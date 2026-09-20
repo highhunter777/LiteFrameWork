@@ -1,14 +1,15 @@
-# CI 门禁：L1（dotnet）与 L2（Unity 侧）
+# CI 门禁：L1、L2 与 L3
 
-> 建立：2026-09-15。依据：《测试开发方案》§4 ①（L1 dotnet 单测）与 §7.2 缺口 a（Unity 侧无门禁）。
+> 建立：2026-09-15。依据：《测试开发框架总设计》的分层门禁要求。
 > 触发原因：**2026-09-15 事故**——上游提交的 16 个 `.meta` 把 `guid` 写成 64 位 base64，Unity 拒绝导入这些资源 → `Unity.Pipeline`/`GameScheduler` 等类型在编译中消失 → 依赖方 9 条 `CS0246`；而 **L1 全程绿色**（dotnet 按路径 glob 编译、不读 `.meta`、不经 Unity 编译器）。
 
-## 1. 两级门禁的分工
+## 1. 分层门禁的分工
 
 | 级别 | 在哪跑 | 抓什么 | 时长 |
 | --- | --- | --- | --- |
-| **L1** | GitHub-hosted **矩阵：`windows-latest` + `ubuntu-latest`**（`.github/workflows/ci.yml` → `l1-dotnet-test`） | `dotnet test Tests/Tests.slnx`：框架层纯 C# 单测（LiteFramework.Core / LiteSim.Core / LiteNet）+ **基线防篡改校验** | 秒级 |
+| **L1** | GitHub-hosted **矩阵：`windows-latest` + `ubuntu-latest`**（`.github/workflows/ci.yml` → `l1-dotnet-test`） | 纯 C# Unit/Contract + **基线防篡改校验** | 分钟级 |
 | **L2** | **自托管 runner**（Windows + 完整工程）→ `l2-unity-gate` | ① **非法 meta/GUID 扫描**（纯文件）② **Unity 侧编译/诊断状态**（经 Unity Pipeline）③ **EditMode 用例**（`Assets/Tests/EditMode`：IEEE 基线逐位对账 + UI 模板/资源完整性） | ①秒级 ②③分钟级 |
+| **L3** | GitHub-hosted Windows + Linux（`l3-network-test`） | RoomServer、真实 UDP/KCP、无头客户端；夜间包含长跑 | 分钟级/夜间长跑 |
 
 **L2 的独有价值**：它是唯一能发现"**资源导入 / Unity 编译 / 跨运行时数值**"类故障的一层——L1 结构性看不见。
 
@@ -19,7 +20,7 @@
 | **跨平台 matrix**（§5-31） | L1 双平台并行（`fail-fast: false`）；已核对无平台专属依赖（临时目录 / 路径 Ordinal 归一化 / BuildHash 行尾归一化 / 无 Win32 API） |
 | **基线防篡改**（§5-30，轻量版） | CI 步：`Tests/**/Baselines/**` 变更必须在 PR 标题/正文或提交信息带 **`[baseline]`**，否则失败——基线是确定性的裁判，静默改动会掩盖回归 |
 | **超时保护**（§5-32） | job `timeout-minutes` + `dotnet test --blame-hang-timeout 5m`（挂死输出挂起栈）；`setup-dotnet cache` 顺带缓存 NuGet |
-| **L2 EditMode 用例**（§5-27） | `Assets/Tests/EditMode/`（asmdef `LiteGame.EditModeTests`，`UNITY_INCLUDE_TESTS` 门控）；编辑器在跑时经 `unity command run_tests mode=EditMode` 直跑，**无需关闭编辑器**；`Total=0` 判失败（防"测试程序集没编进来"静默通过） |
+| **L2 EditMode 用例**（§5-27） | `Assets/Tests/EditMode/`（asmdef `LiteGame.EditModeTests`，`UNITY_INCLUDE_TESTS` 门控）；编辑器在跑时经 `unity command run_tests --mode editor` 直跑，**无需关闭编辑器**；`Total=0` 判失败（防"测试程序集没编进来"静默通过） |
 | **Unity 侧 IEEE 对账**（§5-28） | `LiteSim.Core.Editor/IeeeBaselineChecker`（菜单「LiteSim/对账 IEEE 基线」+ `RunCli`）；**探针下沉到 `LiteSim.Core/IeeeProbe`**——两侧同一份样本与运算，避免各写一份漂移 |
 
 > ⚠️ **2026-09-18 实测发现 → 当晚定案 B 并落地**：Unity(2022.3/Mono) 与 .NET 8 在 **10k 步运算链**上 checksum 不一致
@@ -44,7 +45,7 @@ powershell -NoProfile -File scripts/l2-unity-gate.ps1 -UnityExe 'D:\Unity\2022.3
 
 | 模式 | 触发条件 | 做法 | 特点 |
 | --- | --- | --- | --- |
-| **A. Pipeline**（推荐） | `Library/Pipeline/.unity-pipeline-port` 存在（编辑器在跑） | `recompile_status` + `console` + **`run_tests mode=EditMode`** | **无需关闭编辑器**；复用已连接的编辑器会话；EditMode 用例直跑 |
+| **A. Pipeline**（推荐） | `Library/Pipeline/.unity-pipeline-port` 存在且服务可达 | `set_autotick` + `recompile_status` + `console` + **`run_tests --mode editor`** | **无需关闭编辑器**；复用已连接的编辑器会话；EditMode 用例直跑 |
 | **B. batchmode** | 编辑器未跑，或显式 `-RunEditModeTests` | `unity test --mode EditMode --output TestResults/editmode-results.xml` | 需要授权激活，且**不得有其它实例占用该工程**（脚本会检测并明确报错） |
 
 退出码：**0 = 通过，1 = 有 FAIL**（可直接用作 pre-push/CI 门禁）。
@@ -64,11 +65,13 @@ powershell -NoProfile -File scripts/l2-unity-gate.ps1 -UnityExe 'D:\Unity\2022.3
 ## 4. 建议的本地用法（比 CI 更实用）
 
 - 大改（改 `.meta`、动包、动资源）后：`powershell -NoProfile -File scripts/l2-unity-gate.ps1` —— 编辑器开着时走 Pipeline，**几秒出结论**
-- 纯代码改（不碰资源）：L1 足够（`dotnet test Tests/Tests.slnx`）
+- 纯逻辑代码：`powershell -NoProfile -File scripts/test.ps1 -Lane L1 -Profile PullRequest`
+- 网络/RoomServer：`powershell -NoProfile -File scripts/test.ps1 -Lane L3 -Profile PullRequest`
 - 可选：装成 pre-push 钩子（`powershell -NoProfile -File scripts/l2-unity-gate.ps1 -MetaScanOnly`，零成本拦截"坏 meta"）
 
 ## 5. 现状与后续
 
 - ✅ L1：已在 CI 跑（`l1-dotnet-test`）
+- ✅ L3：已按 Integration/EndToEnd 分类独立运行（`l3-network-test`）
 - ✅ L2：脚本 + 作业就绪（作业默认跳过，待 `L2_ENABLED=true` + 自托管 runner）
 - ⏳ 后续可加：把「非法 meta 扫描」这条规则**并入 `Assets/Tools/DisciplineScanner`**（则 L1 也能拦住它，L2 只留 Unity 编译/测试）——**这是性价比最高的一步**

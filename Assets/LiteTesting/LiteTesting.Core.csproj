@@ -1,0 +1,23 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>netstandard2.1</TargetFramework>
+    <LangVersion>9.0</LangVersion>
+    <Nullable>disable</Nullable>
+    <ImplicitUsings>disable</ImplicitUsings>
+    <EnableDefaultCompileItems>false</EnableDefaultCompileItems>
+    <Deterministic>true</Deterministic>
+    <IsPackable>true</IsPackable>
+    <PackageId>LiteTesting.Core</PackageId>
+    <Version>0.1.0</Version>
+    <Authors>highhunter777</Authors>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+    <PackageTags>testing;deterministic;unity;test-automation</PackageTags>
+    <Description>Runner-neutral deterministic test foundations for .NET and Unity.</Description>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Compile Include="Core/**/*.cs" />
+    <None Include="README.md" Pack="true" PackagePath="/" />
+  </ItemGroup>
+</Project>

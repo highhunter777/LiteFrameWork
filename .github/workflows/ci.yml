@@ -13,6 +13,7 @@ on:
 jobs:
   l1-dotnet-test:
     name: L1 dotnet test（${{ matrix.os }}）
+    if: ${{ github.event_name == 'push' || github.event_name == 'pull_request' }}
     # 跨平台 matrix（《测试开发方案》§7.5 缺口 j）：Sim/协议/打包纯函数必须**跨运行时一致**才算被验，
     # 只在 Windows 跑等于没验——误差恰恰出在平台差异上（M7 FMA/超越函数结论的直接延续）。
     # 已核对无平台专属依赖：临时目录走 Path.GetTempPath、路径一律 Ordinal + '/' 归一化、
@@ -78,9 +79,47 @@ jobs:
           echo "::error::基线文件被修改但未声明。请在 PR 标题/正文或提交信息中加 [baseline] 并说明为何重录（基线是确定性的裁判，静默改动会掩盖回归）。"
           exit 1
 
-      - name: dotnet test Tests/Tests.slnx
-        # --blame-hang-timeout：单用例挂死 5 分钟后中断并输出挂起栈（超时保护）
-        run: dotnet test Tests/Tests.slnx --verbosity minimal --blame-hang-timeout 5m
+      - name: L1 快速测试
+        shell: pwsh
+        run: ./scripts/test.ps1 -Lane L1 -Profile PullRequest
+
+      - name: Upload L1 results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: l1-${{ matrix.os }}-${{ github.run_attempt }}
+          path: TestResults/**
+          if-no-files-found: warn
+
+  l3-network-test:
+    name: L3 network test（${{ matrix.os }}）
+    if: ${{ github.event_name == 'push' || github.event_name == 'pull_request' }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [windows-latest, ubuntu-latest]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 25
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+
+      - name: L3 网络与无头集成测试
+        shell: pwsh
+        run: ./scripts/test.ps1 -Lane L3 -Profile PullRequest
+
+      - name: Upload L3 results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: l3-${{ matrix.os }}-${{ github.run_attempt }}
+          path: TestResults/**
+          if-no-files-found: warn
 
   # ── L2（Unity 侧）门禁 ────────────────────────────────────────────────────
   # 为什么需要：L1 按路径 glob 编译、不读 .meta 也不经 Unity 编译器——2026-09-15 那次
@@ -126,10 +165,18 @@ jobs:
         with:
           dotnet-version: '8.0.x'
 
-      - name: 全量对跑（5 分钟长跑，M10_LONGRUN=1）
-        env:
-          M10_LONGRUN: '1'
-        run: dotnet test Tests/Tests.slnx --filter "FullyQualifiedName~HeadlessRunTests" --verbosity minimal --blame-hang-timeout 10m
+      - name: 夜间 L1
+        shell: pwsh
+        run: ./scripts/test.ps1 -Lane L1 -Profile Nightly
 
-      - name: 全量 L1（含夜间新增回归）
-        run: dotnet test Tests/Tests.slnx --verbosity minimal
+      - name: 夜间 L3（含 5 分钟长跑）
+        shell: pwsh
+        run: ./scripts/test.ps1 -Lane L3 -Profile Nightly
+
+      - name: Upload nightly results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: nightly-${{ matrix.os }}-${{ github.run_attempt }}
+          path: TestResults/**
+          if-no-files-found: warn

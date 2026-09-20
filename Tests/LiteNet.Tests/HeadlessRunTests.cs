@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Threading;
+using LiteTesting;
 using LiteNet;
 using LiteNet.Protocol;
 using LiteNet.Transport;
@@ -20,6 +21,7 @@ namespace LiteNet.Tests
     /// - 决策⑥ 形态注记：全量预测下远端输入未知 → 和解频发属机制正确（和解率=权威/预测差异率）；
     ///   通过条件 = 快照覆盖兜底**不发散不崩盘** + 帧号稳定推进。
     /// </summary>
+    [Trait(TestTrait.Category, TestCategory.EndToEnd)]
     public class HeadlessRunTests : IDisposable
     {
         private const int Port = 27778;
@@ -163,6 +165,7 @@ namespace LiteNet.Tests
         // ---- 5 分钟全量对跑（环境变量门控：M10_LONGRUN=1）----
 
         [Fact]
+        [Trait(TestTrait.Duration, TestDuration.LongRunning)]
         public void 全量对跑_5分钟_无卡顿累积且和解率可观测()
         {
             if (Environment.GetEnvironmentVariable("M10_LONGRUN") != "1")

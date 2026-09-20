@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Threading;
+using LiteTesting;
 using LiteNet.Protocol;
 using LiteNet.Transport;
 using Xunit;
@@ -12,6 +13,7 @@ namespace LiteNet.Tests
     /// KCP 回环双通道冒烟（《M10 实施指导》§3：本机 socket 集成——kcp2k 握手（含 cookie）/Reliable+Unreliable 双向）。
     /// 时序鲁棒：两侧 10ms 轮询泵 + 秒级超时护栏；端口随机偏移避撞。
     /// </summary>
+    [Trait(TestTrait.Category, TestCategory.Integration)]
     public class TransportLoopbackTests
     {
         private static void Pump(KcpTransportServer server, KcpTransportClient client, int milliseconds)

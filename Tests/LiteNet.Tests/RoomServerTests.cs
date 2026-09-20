@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Threading;
+using LiteTesting;
 using LiteNet.Protocol;
 using LiteNet.Transport;
 using RoomServer;
@@ -15,6 +16,7 @@ namespace LiteNet.Tests
     /// （真实输入驱动状态变化）/ 掉线沿用不停帧。全部 .NET 侧闭环（同运行时红线，M9 决策⑩）。
     /// 形态：ServerHost 同进程内嵌 + 真实 KCP UDP 客户端（127.0.0.1 回环）。
     /// </summary>
+    [Trait(TestTrait.Category, TestCategory.Integration)]
     public class RoomServerTests : IDisposable
     {
         private const int Port = 27777;

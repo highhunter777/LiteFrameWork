@@ -5,6 +5,8 @@
 [Bb]in/
 [Bb]uild/
 [Bb]uilds/
+[Bb]in.meta
+[Oo]bj.meta
 [Ll]ogs/
 [Uu]serSettings/
 [Mm]emoryCaptures/
@@ -37,13 +39,16 @@ XLuaSamples/
 !Assets/LiteSim/Core/*.csproj
 !Assets/LiteNet/*.csproj
 !Assets/Tools/DisciplineScanner/*.csproj
+!Assets/LiteTesting/*.csproj
 !RoomServer/*.csproj
 !Tests/LiteFramework.Core.Tests/*.csproj
 !Tests/LiteSim.Core.Tests/*.csproj
 !Tests/LiteNet.Tests/*.csproj
+!Tests/LiteTesting.Core.Tests/*.csproj
 
 # dotnet 侧构建输出（Directory.Build.props 重定向到点目录；三个工程的 .dotnet 一并覆盖）
 .dotnet/
+.dotnet-cli/
 
 # ===== 系统文件 =====
 .DS_Store
@@ -157,3 +162,4 @@ msbuild_preprocessed.xml
 __pycache__/
 AgentScripts/
 Tests/LiteNet.Tests/TempProtoReflection.cs
+TestResults/

@@ -95,7 +95,7 @@
 | **武器** | **Low Poly Weapons VOL.1**：AK74 / M4 / M107 / M249 / M2_50cal / Uzi / RPG7 / M1911 / 手雷 / 烟雾 / 瞄具等 **16 个 FBX** + 材质 + 贴图 + 预制体 + 样例场景；**LITE 包** 5 个 FBX（子弹 / 刀 / 两把枪） | `Assets/Low Poly Weapons VOL.1/`、`Assets/LowPolyWeapons_LITE/` |
 | **渲染档位** | URP **Performant / Balanced / HighFidelity** 三档（机型适配的现成素材，直接映射 `GameSettings.Quality`） | `Assets/Settings/` |
 | tween | DOTween（vendor + 设置资产） | `Assets/Plugins/Demigiant/` |
-| UI 控件模板 | 25 件灰盒模板（本次交付） | `Assets/LiteGame/UI/Widgets/` |
+| UI 控件模板 | 25 件灰盒模板（本次交付） | `Assets/UI/Widgets/`（⚠️ 2026-09-19 重排后；旧 `LiteGame/UI/Widgets/`） |
 | 其他 | 翅膀动画（`Anim@Idle_A_wing` / `Anim@PoseA_wing`）、玩家移动状态机试验件（`Assets/StateMachine/`） | — |
 | **环境/地图（2026-09-14 新增导入）** | **`RPG_FPS_game_assets_industrial`**：55 FBX / **201 prefab** / 43 材质 / 43 贴图 / **3 个场景**（**`Map_v1.unity`、`Map_v2.unity` 两张完整地图**含光照贴图与反射探针 + `Assets_showcase_scene.unity`）/ 模块件：Buildings·Industrial / Roads（Floor_elevation_sets·Road_sets）/ Fences / Containers / Barrels / Boxes / Dumpsters / Oil_tanks / Other_props / Particles（Dust·Smoke）。**体积 457 MB** | `Assets/RPG_FPS_game_assets_industrial/` |
 

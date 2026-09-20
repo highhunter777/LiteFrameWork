@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using LiteTesting;
 using LiteNet.Protocol;
 using LiteNet.Proto;
 using LiteNet.Transport;
@@ -14,6 +15,7 @@ namespace LiteNet.Tests
     /// 跑通"装配 → 连接 → Join → 满员开局"全链路，证明换传输框架确实只需新写适配器 + 装配一行，
     /// 而不是嘴上说可替换（假件也能跑，才是真的解耦）。
     /// </summary>
+    [Trait(TestTrait.Category, TestCategory.Contract)]
     public sealed class ServerHostTransportTests
     {
         [Fact]

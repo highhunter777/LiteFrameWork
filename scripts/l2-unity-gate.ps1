@@ -87,20 +87,30 @@ $descriptor = Join-Path $ProjectPath 'Library\Pipeline\.unity-pipeline-port'
 $unityAvailable = $null -ne (Get-Command 'unity' -ErrorAction SilentlyContinue)
 
 function Invoke-PipelineCommand([string]$command, [string[]]$cmdArgs) {
-    # 命令名与参数必须分开传：`unity command run_tests mode=EditMode`
-    if ($cmdArgs -and $cmdArgs.Count -gt 0) {
-        $out = & unity command $command @cmdArgs --project-path $ProjectPath 2>&1
+    # 命令名与参数必须分开传：`unity command run_tests --mode editor`
+    # 全局 ErrorActionPreference=Stop 会把 native stderr 提前升级成异常，导致真正的 CLI
+    # 诊断被截断；这里先完整捕获 stdout/stderr，再按退出码统一抛出。
+    $savedErrorActionPreference = $ErrorActionPreference
+    try {
+        $ErrorActionPreference = 'Continue'
+        if ($cmdArgs -and $cmdArgs.Count -gt 0) {
+            $out = & unity command --timeout 10 $command @cmdArgs --project-path $ProjectPath 2>&1
+        }
+        else {
+            $out = & unity command --timeout 10 $command --project-path $ProjectPath 2>&1
+        }
+        $exitCode = $LASTEXITCODE
     }
-    else {
-        $out = & unity command $command --project-path $ProjectPath 2>&1
+    finally {
+        $ErrorActionPreference = $savedErrorActionPreference
     }
-    if ($LASTEXITCODE -ne 0) { throw "unity command $command $($cmdArgs -join ' ') 失败: $($out -join ' ')" }
+    if ($exitCode -ne 0) { throw "unity command $command $($cmdArgs -join ' ') 失败（退出码 $exitCode）：$($out -join ' ')" }
     return ($out -join "`n")
 }
 
 # 从 Pipeline 的 JSON 结果里取整数字段（取不到返回 -1，便于区分"0 条"与"解析失败"）
 function Get-JsonInt([string]$text, [string]$key) {
-    $m = [regex]::Match($text, '"' + $key + '"\s*:\s*(\d+)')
+    $m = [regex]::Match($text, '(?i)"' + $key + '"\s*:\s*(\d+)')
     if ($m.Success) { return [int]$m.Groups[1].Value }
     return -1
 }
@@ -127,8 +137,11 @@ if ((Test-Path $descriptor) -and -not $RunEditModeTests) {
     }
     else {
         $desc = Get-Content $descriptor -Raw | ConvertFrom-Json
-        Write-Note "已连接编辑器：port $($desc.port) / pid $($desc.pid) / $($desc.unityVersion)"
+        Write-Note "发现编辑器描述符：port $($desc.port) / pid $($desc.pid) / $($desc.unityVersion)（连通性由首条 Pipeline 命令确认）"
         try {
+            # Pipeline 规范：后台编译/测试前必须保持 Editor tick，避免失焦或最小化后挂起。
+            Invoke-PipelineCommand 'set_autotick' @('--enable', 'true') | Out-Null
+
             # ③ 新鲜度守卫（2026-09-19 加）：**先把源码刷进程序集，再谈编译状态**
             # 坑：外部改 .cs 后 Unity 不会自动导入（AssetDatabase 未 Refresh）→
             #     recompile_status 仍报 up_to_date、EditMode 用例跑的是**旧程序集** → L2 假绿。
@@ -210,13 +223,13 @@ UnityEditor.Compilation.CompilationPipeline.RequestScriptCompilation();
             # ③ Unity EditMode 用例（#27/#28）：经 Pipeline 直接跑，编辑器无需关闭。
             # 用例在 Assets/Tests/EditMode（IEEE 基线逐位对账 + UI 模板/资源完整性）；
             # Total=0 视为失败——否则"测试程序集没编进来"会静默通过。
-            $rt = Invoke-PipelineCommand 'run_tests' @('mode=EditMode')
+            $rt = Invoke-PipelineCommand 'run_tests' @('--mode', 'editor')
             $total  = Get-JsonInt $rt 'Total'
             $passed = Get-JsonInt $rt 'Passed'
             $failed = Get-JsonInt $rt 'Failed'
             Write-Host "  run_tests(EditMode): Total=$total Passed=$passed Failed=$failed" -ForegroundColor DarkGray
             if ($total -le 0) { Write-Bad 'EditMode 用例数 = 0（测试程序集未编入？检查 Assets/Tests/EditMode 的 asmdef 与 UNITY_INCLUDE_TESTS）' }
-            elseif ($failed -gt 0) { Write-Bad "EditMode 用例失败 $failed 项（Total=$total）——明细：unity command run_tests mode=EditMode --project-path `"$ProjectPath`"" }
+            elseif ($failed -gt 0) { Write-Bad "EditMode 用例失败 $failed 项（Total=$total）——明细：unity command run_tests --mode editor --project-path `"$ProjectPath`"" }
             else { Write-Ok "EditMode 用例全绿（$passed/$total）" }
         }
         catch { Write-Bad "Pipeline 命令执行失败：$($_.Exception.Message)" }

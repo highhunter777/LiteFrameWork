@@ -8,6 +8,8 @@
         "LiteSim.View",
         "LiteGame.Editor",
         "LiteGame.Runtime",
+        "LiteTesting.Core",
+        "LiteTesting.Unity.Editor",
         "UniTask",
         "UnityEngine.TestRunner",
         "UnityEditor.TestRunner",

@@ -15,6 +15,7 @@
     <ProjectReference Include="..\..\Assets\LiteNet\LiteNet.csproj" />
     <ProjectReference Include="..\..\Assets\LiteSim\Core\LiteSim.Core.csproj" />
     <ProjectReference Include="..\..\RoomServer\RoomServer.csproj" />
+    <ProjectReference Include="..\..\Assets\LiteTesting\LiteTesting.Core.csproj" />
   </ItemGroup>
 
 </Project>
