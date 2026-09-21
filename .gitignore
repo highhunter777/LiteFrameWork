@@ -46,6 +46,9 @@ XLuaSamples/
 !Tests/LiteNet.Tests/*.csproj
 !Tests/LiteTesting.Core.Tests/*.csproj
 
+# 手写开发入口（非 Unity 生成物）：VS2022 服务端开发解决方案（经典 .sln 格式，全版本兼容）
+!RoomServer/*.sln
+
 # dotnet 侧构建输出（Directory.Build.props 重定向到点目录；三个工程的 .dotnet 一并覆盖）
 .dotnet/
 .dotnet-cli/
