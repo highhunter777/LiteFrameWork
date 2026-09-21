@@ -21,7 +21,7 @@ namespace LiteNet.Tests
         {
             var gate = new InputGate(2);
             // 客户端包：msg.Frame = 11，窗口 [11,10,9,8]；服务器当前帧 10 → 需要 11
-            InputMessage msg = Packet(11, 1, 2, 3, 4);
+            InputMessage msg = Packet(11, 1f, 0.5f, 0.75f, 0.25f);
             Assert.True(gate.Store(msg, PlayerId, EntityId, serverFrame: 10, out int frame, out _));
             Assert.Equal(11, frame);
         }
@@ -31,10 +31,10 @@ namespace LiteNet.Tests
         {
             var gate = new InputGate(2);
             // 窗口 [11,10,9,8]；服务器当前帧 9 → 需要 10（不是包内最新的 11）
-            InputMessage msg = Packet(11, 1f, 2f, 3f, 4f);
+            InputMessage msg = Packet(11, 1f, 0.5f, 0.75f, 0.25f);
             Assert.True(gate.Store(msg, PlayerId, EntityId, serverFrame: 9, out int frame, out SimInputFrame input));
             Assert.Equal(10, frame);
-            Assert.Equal(2f, input.MoveX, 1e-6f);          // 取的是 10 那一帧的内容（不是最新帧）
+            Assert.Equal(0.5f, input.MoveX, 1e-6f);         // 取的是 10 那一帧的内容（不是最新帧）
         }
 
         [Fact]
@@ -42,7 +42,7 @@ namespace LiteNet.Tests
         {
             var gate = new InputGate(2);
             // 服务器当前帧 10；包内窗口 [9,8,7,6] 全部已消费 → 拒绝，且不得滞留
-            InputMessage msg = Packet(9, 1f, 2f, 3f, 4f);
+            InputMessage msg = Packet(9, 1f, 0.5f, 0.75f, 0.25f);
             Assert.False(gate.Store(msg, PlayerId, EntityId, serverFrame: 10, out _, out _));
             Assert.Equal(1, gate.DroppedStaleFrame);
             Assert.Equal(0, gate.AcceptedCount);
@@ -87,8 +87,8 @@ namespace LiteNet.Tests
         {
             var gate = new InputGate(2);
             Assert.True(gate.Store(Packet(11, 1f, 0f, 0f, 0f), PlayerId, EntityId, 10, out _, out _));
-            // 同帧重发（内容不同）→ 丢弃（首条生效）
-            Assert.False(gate.Store(Packet(11, 9f, 0f, 0f, 0f), PlayerId, EntityId, 10, out _, out _));
+            // 同帧重发（内容不同但**合法**——向量边界下非法内容会被记为 vector 违纪而非重复）→ 丢弃（首条生效）
+            Assert.False(gate.Store(Packet(11, 0.5f, 0f, 0f, 0f), PlayerId, EntityId, 10, out _, out _));
             Assert.Equal(1, gate.DroppedDuplicateFrame);
             Assert.True(gate.TryConsume(11, PlayerId, out SimInputFrame kept));
             Assert.Equal(1f, kept.MoveX, 1e-6f);
@@ -230,6 +230,136 @@ namespace LiteNet.Tests
             Assert.False(gate.TryConsume(11, 1, out _));
         }
 
+        // ---- R0-A 边界用例（《商业级通用服务端框架总设计》§5 P0-2/P0-3）----
+
+        [Fact]
+        public void 八人同帧_全部独立预存消费_不串位()
+        {
+            var gate = new InputGate(8);
+            int serverFrame = 100;
+            int frame = serverFrame + 1;
+
+            for (int p = 0; p < 8; p++)
+                Assert.True(gate.Store(Packet(frame, 0.1f * (p + 1), 0f, 0f, 0f), p, entityId: 1000 + p, serverFrame, out _, out _),
+                    $"玩家 {p} 的同帧输入必须可独立预存");
+
+            for (int p = 0; p < 8; p++)
+            {
+                Assert.True(gate.TryConsume(frame, p, out SimInputFrame input));
+                Assert.Equal(1000 + p, input.EntityId);                        // 各拿各的（EntityId 覆写各不同）
+                Assert.Equal(0.1f * (p + 1), input.MoveX, 1e-6f);
+            }
+            // 消费即出队
+            for (int p = 0; p < 8; p++) Assert.False(gate.TryConsume(frame, p, out _));
+        }
+
+        [Fact]
+        public void 定容环槽复用_陈旧输入不复活()
+        {
+            var gate = new InputGate(2);
+            // inputDelay=1 形态：帧 F 在 serverFrame = F-1 时到达（取帧扫描起点恰为 F）
+            Assert.True(gate.Store(Packet(105, 0.5f, 0f, 0f, 0f), 0, EntityId, 104, out _, out _));
+            Assert.True(gate.TryConsume(105, 0, out SimInputFrame first));
+            Assert.Equal(0.5f, first.MoveX, 1e-6f);
+
+            // 环回绕：帧 121 与 105 同槽（121 % 16 == 105 % 16 == 9）——slot 换代必须完整清理
+            Assert.True(gate.Store(Packet(121, 0.25f, 0f, 0f, 0f), 0, EntityId, 120, out _, out _));
+            Assert.False(gate.TryConsume(105, 0, out _), "已消费/换代槽位不得复活陈旧输入");
+            Assert.True(gate.TryConsume(121, 0, out SimInputFrame second));
+            Assert.Equal(0.25f, second.MoveX, 1e-6f);                          // 新代内容完好
+        }
+
+        [Fact]
+        public void 非有限值_NaN与正负Infinity拒之门外()
+        {
+            var gate = new InputGate(2);
+            Assert.False(gate.Store(Raw(11, float.NaN, 0f, 1f, 0f, 0u, 0u), PlayerId, EntityId, 10, out _, out _));
+            Assert.False(gate.Store(Raw(11, 0f, float.PositiveInfinity, 1f, 0f, 0u, 0u), PlayerId, EntityId, 10, out _, out _));
+            Assert.False(gate.Store(Raw(11, 0f, 0f, float.NegativeInfinity, 0f, 0u, 0u), PlayerId, EntityId, 10, out _, out _));
+            Assert.Equal(3, gate.DroppedNonFinite);
+            Assert.Equal(0, gate.AcceptedCount);
+
+            // 非法包不烧帧槽：同帧的合法重发仍可被接受（P0-3"非法包不得进入权威状态"且不占用配额）
+            Assert.True(gate.Store(Packet(11, 1f, 0f, 0f, 0f), PlayerId, EntityId, 10, out _, out _));
+            Assert.Equal(1, gate.AcceptedCount);
+        }
+
+        [Fact]
+        public void 向量边界_分量与长度越界拒绝()
+        {
+            var gate = new InputGate(2);
+            Assert.False(gate.Store(Raw(11, 1.5f, 0f, 1f, 0f, 0u, 0u), PlayerId, EntityId, 10, out _, out _));   // Move 分量越界
+            Assert.False(gate.Store(Raw(12, 0.8f, 0.8f, 1f, 0f, 0u, 0u), PlayerId, EntityId, 11, out _, out _)); // Move 长度² = 1.28 越界
+            Assert.False(gate.Store(Raw(13, 1f, 0f, 0.8f, 0.8f, 0u, 0u), PlayerId, EntityId, 12, out _, out _)); // Aim 长度² 越界
+            Assert.Equal(3, gate.DroppedIllegalVector);
+            Assert.Equal(0, gate.AcceptedCount);
+
+            // 对角满速（0.707…×2）合法：长度² = 0.5+0.5 = 1 恰在界内
+            float diag = 0.70710677f;
+            Assert.True(gate.Store(Raw(14, diag, diag, diag, -diag, 0u, 0u), PlayerId, EntityId, 13, out _, out _));
+        }
+
+        [Fact]
+        public void 开火帧零瞄准拒绝_无意图零瞄准放行()
+        {
+            var gate = new InputGate(2);
+            // Fire 需要方向：零 Aim 开火 = 非法
+            Assert.False(gate.Store(Raw(11, 0f, 0f, 0f, 0f, SimInputFrame.ButtonFire, 0u), PlayerId, EntityId, 10, out _, out _));
+            // Skill 同理（施法需要方向）
+            Assert.False(gate.Store(Raw(12, 0f, 0f, 0f, 0f, SimInputFrame.ButtonSkill1, 1u), PlayerId, EntityId, 11, out _, out _));
+            Assert.Equal(2, gate.DroppedIllegalVector);
+
+            // 纯移动帧零 Aim 合法（瞄准零 = 无意图，Sim 侧 atan2 只在开火帧被消费）
+            Assert.True(gate.Store(Raw(13, 0.5f, 0f, 0f, 0f, 0u, 0u), PlayerId, EntityId, 12, out _, out _));
+            // Reload/Pickup 不依赖 Aim（走槽位/目标语义）
+            Assert.True(gate.Store(Raw(14, 0f, 0f, 0f, 0f, SimInputFrame.ButtonReload, 2u), PlayerId, EntityId, 13, out _, out _));
+            Assert.Equal(2, gate.AcceptedCount);
+        }
+
+        [Fact]
+        public void 消息形状_超冗余窗上限整条拒绝()
+        {
+            var gate = new InputGate(2);
+            var msg = new InputMessage { Frame = 11, AckSnapshot = 0, ViewFrame = 0 };
+            for (int i = 0; i < InputPacker.MaxRedundancy + 1; i++)
+                msg.Frames.Add(new InputFrame { EntityId = 1, MoveX = 1f, AimX = 1f });
+            Assert.False(gate.Store(msg, PlayerId, EntityId, 10, out _, out _));
+            Assert.Equal(1, gate.DroppedOversizedMessage);
+            Assert.Equal(0, gate.AcceptedCount);
+        }
+
+        [Fact]
+        public void 模糊包_随机字节与随机浮点不污染权威态()
+        {
+            // P0-3 验收（压缩版）：固定种子的伪随机坏输入——不抛、不进 Sim、有计数
+            var rng = new System.Random(20260922);
+            var gate = new InputGate(2);
+            long acceptedBefore = 0;
+            for (int i = 0; i < 256; i++)
+            {
+                float mx = FloatBits(rng.Next());
+                float mz = FloatBits(rng.Next());
+                float ax = FloatBits(rng.Next());
+                float az = FloatBits(rng.Next());
+                uint buttons = (uint)rng.Next();
+                var msg = new InputMessage { Frame = rng.Next(-2, 60), AckSnapshot = rng.Next(-2, 60), ViewFrame = 0 };
+                msg.Frames.Add(new InputFrame { EntityId = 1, MoveX = mx, MoveZ = mz, AimX = ax, AimZ = az, Buttons = buttons });
+                // 不抛即通过本条；被接受时值必须已通过全部边界（有限 + 范围 + 白名单 + 槽位 + seq）
+                if (gate.Store(msg, 0, EntityId, serverFrame: 30, out _, out SimInputFrame accepted))
+                {
+                    Assert.True(float.IsFinite(accepted.MoveX) && float.IsFinite(accepted.AimX));
+                    Assert.True(accepted.MoveX * accepted.MoveX + accepted.MoveZ * accepted.MoveZ <= ProtocolConstants.VectorLengthSquaredLimit + 1e-6f);
+                    Assert.Equal(EntityId, accepted.EntityId);               // 防伪覆写恒成立
+                    acceptedBefore++;
+                }
+            }
+            Assert.True(acceptedBefore < 256, "随机坏输入不应全数被接受");
+            Assert.True(gate.AcceptedCount == acceptedBefore);
+        }
+
+        /// <summary>把随机 int 位型重解释为 float——制造 NaN/Infinity/超大/正常值的全谱坏输入。</summary>
+        private static float FloatBits(int bits) => System.BitConverter.ToSingle(System.BitConverter.GetBytes(bits), 0);
+
         /// <summary>构造一条窗口 [frame, frame-1, frame-2, frame-3] 的输入包（每帧内容各不相同）。</summary>
         private static InputMessage Packet(int frame, float m0, float m1, float m2, float m3,
             int ackSnapshot = 0, uint buttons = 0, uint actionSeq = 0, long target = 0)
@@ -248,6 +378,14 @@ namespace LiteNet.Tests
                     ActionSeq = i == 0 ? actionSeq : 0u,
                 });
             }
+            return msg;
+        }
+
+        /// <summary>单帧裸包（向量边界用例用：Move/Aim 四浮点与按钮全可控）。</summary>
+        private static InputMessage Raw(int frame, float moveX, float moveZ, float aimX, float aimZ, uint buttons, uint actionSeq)
+        {
+            var msg = new InputMessage { Frame = frame, AckSnapshot = 0, ViewFrame = 0 };
+            msg.Frames.Add(new InputFrame { EntityId = 1, MoveX = moveX, MoveZ = moveZ, AimX = aimX, AimZ = aimZ, Buttons = buttons, ActionSeq = actionSeq });
             return msg;
         }
     }

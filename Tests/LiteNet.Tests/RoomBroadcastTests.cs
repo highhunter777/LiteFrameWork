@@ -144,8 +144,9 @@ namespace LiteNet.Tests
         {
             var (room, capture, s1, s2) = BuildStartedRoom();
 
-            s1.SendQueueBytes = ProtocolConstants.BackpressureQueueLimitBytes * 4;   // s1 堆积（模拟慢客户端）
-            s1.AckedBytes = 0;
+            // 模拟慢客户端：真实发送过 4×上限字节但从未 ACK（诚实记账播种——R0-P0-4 后水位
+            // 只能经验证过的 ACK 释放，直接改 SendQueueBytes/AckedBytes 的旧播种方式绕过了 ledger）
+            s1.RecordSnapshotSend(0, (int)(ProtocolConstants.BackpressureQueueLimitBytes * 4));
 
             for (int i = 0; i < 20; i++) room.StepFrame();
 
@@ -162,22 +163,22 @@ namespace LiteNet.Tests
         public void 背压恢复_水位回落后逐档恢复()
         {
             var (room, _, s1, _) = BuildStartedRoom();
-            s1.SendQueueBytes = ProtocolConstants.BackpressureQueueLimitBytes * 4;
+            s1.RecordSnapshotSend(0, (int)(ProtocolConstants.BackpressureQueueLimitBytes * 4));   // 慢客户端：真实发送从未确认
             for (int i = 0; i < 6; i++) room.StepFrame();
             Assert.True(s1.BackpressureTier >= 1);
 
-            // ack 到达 → 队列消化（AckedBytes 追上）
-            room.OnClientAck(s1, room.AuthSim.Frame);
+            // ack 到达 → 队列消化（AckedBytes 经 ledger 前推）
+            room.OnClientAck(s1, s1.LastSentSnapshotFrame);
             int tierAfterAck = s1.BackpressureTier;
 
             // 恢复需要连续达标 2s（120 帧）→ 跑够时间。
             // P0 起快照分层携带比赛状态 + 本人私有面（每包约 +60B）——单次 ack 后队列会重新积压，
             // "只 ack 一次就静默恢复"的经济性不再成立；真实客户端每输入包都带 ack_snapshot（§4.5），
-            // 这里对齐真实反馈节奏：每步 ack（水位维持 ≤ 阈值 40%）→ 恢复判据才可稳定观测
+            // 对齐真实反馈节奏：每步 ack 最新已发送帧（重复 ack 由验证层幂等忽略）→ 水位维持低位 → 恢复可观测
             for (int i = 0; i < ProtocolConstants.RecoverHoldMillis * SimConfig.TickRate / 1000 + 5; i++)
             {
                 room.StepFrame();
-                room.OnClientAck(s1, room.AuthSim.Frame);
+                room.OnClientAck(s1, s1.LastSentSnapshotFrame);
             }
 
             Assert.True(s1.BackpressureTier < tierAfterAck || s1.BackpressureTier == 0,

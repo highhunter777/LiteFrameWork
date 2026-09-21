@@ -108,7 +108,7 @@ namespace RoomServer
             if (snapshot.IsFull) SnapshotFullSent++;
 
             int bytes = snapshot.CalculateSize();
-            session.SendQueueBytes += bytes;
+            session.RecordSnapshotSend(frame, bytes);      // R0-P0-4：发送 ledger 记账（ACK 释放的唯一依据）
             SnapshotSent++;
             if (SendTo != null) SendTo(session, PacketType.StateSnapshot, snapshot, false);
         }

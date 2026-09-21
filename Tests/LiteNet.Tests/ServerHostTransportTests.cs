@@ -100,6 +100,77 @@ namespace LiteNet.Tests
             Assert.True(t.Disposed, "ServerHost 接管传输所有权：Dispose 应释放它");
         }
 
+        // ---- R0-A 边界（《商业级通用服务端框架总设计》§5 P0-3）----
+
+        [Fact]
+        public void 超长入包_解析前硬边界拒绝并计数_不崩溃()
+        {
+            var t = new FakeRoomTransport();
+            using var host = new ServerHost(t, new RoomConfig { Port = 33337, RoomId = "Fake" });
+            t.RaiseConnected(1);
+
+            // 超过 MaxInboundPacketBytes 的"Join"包（内容合法但体量越界）——解析前直接丢弃
+            var oversized = new byte[ServerHost.MaxInboundPacketBytes + 1];
+            oversized[0] = (byte)PacketType.Join;
+            t.RaiseData(1, oversized);
+
+            Assert.Equal(1, host.Ops.PacketOversized);
+            Assert.Equal(0, host.Ops.Rejects);
+            Assert.Null(t.LastJoinAck(1));                       // 未进房（且 proto 解析器从未见到这个包）
+
+            // 边界内正常包照常处理
+            t.RaiseData(1, JoinPacket());
+            Assert.NotNull(t.LastJoinAck(1));
+        }
+
+        [Fact]
+        public void Join字段超长_按UTF8字节上限拒绝()
+        {
+            var t = new FakeRoomTransport();
+            using var host = new ServerHost(t, new RoomConfig { Port = 33338, RoomId = "Room-A" });
+            t.RaiseConnected(1);
+
+            // token 超 256 UTF-8 字节（多字节字符——字节数 ≠ 字符数）
+            string longToken = new string('年', ServerHost.MaxTokenBytes / 3 + 1);
+            t.RaiseData(1, PacketCodec.Encode(PacketType.Join,
+                new JoinRequest { RoomId = "Room-A", Token = longToken, BuildHash = ServerHost.ServerBuildHash }));
+            Assert.Null(t.LastJoinAck(1));
+            Assert.Equal(1, host.Ops.Rejects);
+
+            // roomId 超 64 字节
+            string longRoom = new string('r', ServerHost.MaxRoomIdBytes + 1);
+            t.RaiseData(1, PacketCodec.Encode(PacketType.Join,
+                new JoinRequest { RoomId = longRoom, Token = "t", BuildHash = ServerHost.ServerBuildHash }));
+            Assert.Equal(2, host.Ops.Rejects);
+
+            // 合法边界值（恰好 ≤ 上限）放行
+            string maxToken = new string('t', ServerHost.MaxTokenBytes);
+            t.RaiseData(1, PacketCodec.Encode(PacketType.Join,
+                new JoinRequest { RoomId = "Room-A", Token = maxToken, BuildHash = ServerHost.ServerBuildHash }));
+            Assert.NotNull(t.LastJoinAck(1));
+            Assert.Equal(2, host.Ops.Rejects);                   // 不再增长
+        }
+
+        [Fact]
+        public void 坏包计数_未知类型与随机字节不污染会话()
+        {
+            var t = new FakeRoomTransport();
+            using var host = new ServerHost(t, new RoomConfig { Port = 33339, RoomId = "Fake" });
+            t.RaiseConnected(1);
+
+            t.RaiseData(1, new byte[] { 200, 1, 2, 3 });          // 未定义 packet type
+            t.RaiseData(1, new byte[] { (byte)PacketType.Join, 0xFF, 0xFF, 0xFF }); // proto 解析失败
+            t.RaiseData(1, System.Array.Empty<byte>());           // 空包
+
+            Assert.Equal(3, host.Ops.PacketRejects);
+            Assert.Null(t.LastJoinAck(1));
+            Assert.Equal(0, host.Ops.Rejects);                    // 坏包是丢弃不是进房拒绝
+
+            // 之后正常包照常处理（会话未被坏包污染）
+            t.RaiseData(1, JoinPacket());
+            Assert.NotNull(t.LastJoinAck(1));
+        }
+
         private static byte[] JoinPacket()
         {
             return PacketCodec.Encode(PacketType.Join,

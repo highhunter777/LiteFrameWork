@@ -165,7 +165,9 @@ namespace RoomServer
 
             if (OnInputAccepted != null) OnInputAccepted(session, msg);
 
-            // 开火 + 带视点帧 → 记下待回溯判定（在下一帧步进后执行——那时环里才有"开火帧"的历史态）
+            // 开火 + 带视点帧 → 记下待回溯判定（在下一帧步进后执行——那时环里才有"开火帧"的历史态）。
+            // 回溯对齐参考（pendingFireAck）用闸门**钳位后**的记账值；LastAckSnapshot（NeedsFull 判据）
+            // 不在此写——它只吃 Room.OnClientAck 验证通过的值（R0-P0-4）。
             bool fired = (acceptedInput.Buttons & SimInputFrame.ButtonFire) != 0u;
             if (fired && msg.ViewFrame > 0)
             {
@@ -173,7 +175,6 @@ namespace RoomServer
                 _pendingFireView[p] = msg.ViewFrame;
                 _pendingFireAck[p] = Gate.LastClampedAckSnapshot;
                 _hasPendingFire[p] = true;
-                session.LastAckSnapshot = msg.AckSnapshot;
             }
         }
 
@@ -229,13 +230,44 @@ namespace RoomServer
         /// <summary>下一次广播强制全量（重连场景：客户端要从零重建）。转调广播器（广播面已拆出）。</summary>
         public void RequestFullSnapshot() => Broadcaster.RequestFullSnapshot();
 
-        /// <summary>客户端 ack 到达：释放已确认的下行字节（E1 水位的减项；记账在广播器职责面，转发接缝）。</summary>
+        // ---- R0 可信 ACK（《商业级通用服务端框架总设计》§5 P0-4；分类计数——Ops 观测）----
+        /// <summary>ACK 回退/重复/负值（≤ 已确认水位）拒绝计数。</summary>
+        public long AckRejectedStale;
+        /// <summary>ACK 超前（> 最近实际发送帧——伪造/时钟错乱）拒绝计数。</summary>
+        public long AckRejectedFuture;
+        /// <summary>ACK 落在 ledger 窗外（超窗未确认——陈旧）拒绝计数。</summary>
+        public long AckRejectedEvicted;
+        /// <summary>ACK 违纪合计（= 上三者之和；Ops 汇总口径）。</summary>
+        public long AckRejected => AckRejectedStale + AckRejectedFuture + AckRejectedEvicted;
+
+        /// <summary>
+        /// 语义 ACK 验证（P0-4：**旧实现"ack 到达即 AckedBytes=SendQueueBytes 全清"可被任意伪造 ack 清空水位**——
+        /// 慢客户端伪装成快客户端，E1 降级形同虚设）。四道闸全过才释放：
+        /// 非负且单调前进（> LastAcceptedAckFrame）→ 不超前（≤ LastSentSnapshotFrame，只认真实发送过的帧）
+        /// → 命中发送 ledger（取该帧发送后的累计字节）。释放 = <c>AckedBytes = ledger.累计值</c>（天然单调）。
+        /// <see cref="Session.LastAckSnapshot"/>（NeedsFull 判据）**只在验证后**更新——差分器的全量兜底只吃可信值。
+        /// </summary>
         public void OnClientAck(Session session, int ackSnapshot)
         {
-            if (ackSnapshot < 0) return;
-            session.LastAckSnapshot = ackSnapshot;
-            // 简化记账：ack 前进即认为该连接的下行队列被消化（kcp2k 内建重传在极端丢包下会滞后，水位因而是保守估计）
-            session.AckedBytes = session.SendQueueBytes;
+            if (ackSnapshot < 0 || ackSnapshot <= session.LastAcceptedAckFrame)
+            {
+                AckRejectedStale++;
+                return;
+            }
+            if (ackSnapshot > session.LastSentSnapshotFrame)
+            {
+                AckRejectedFuture++;
+                return;
+            }
+            if (!session.SnapshotLedger.TryGet(ackSnapshot, out long cumulativeAfter))
+            {
+                AckRejectedEvicted++;
+                return;
+            }
+
+            session.AckedBytes = cumulativeAfter;               // ledger 累计口径：一次到位
+            session.LastAcceptedAckFrame = ackSnapshot;
+            session.LastAckSnapshot = ackSnapshot;              // 验证过才更新（P0-4 红线）
         }
 
         /// <summary>包发送出口（ServerHost 装配时注入；测试用 <c>Room.SendTo = (session, type, msg, reliable) => ...</c> 捕获）。

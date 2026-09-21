@@ -17,6 +17,14 @@ namespace LiteNet.Protocol
         /// <summary>ack 落后触发全量的阈值（帧）：30 帧 = 0.5s 没收到客户端 ack 说明它掉队了。</summary>
         public const int FullResendAckLagFrames = 30;
 
+        // ---- 输入数值边界（R0：《商业级通用服务端框架总设计》§5 P0-3；两端同源旋钮，改值即改校验）----
+
+        /// <summary>Move/Aim 单分量绝对值上限（采集侧契约"长度 ≤1 由采集侧保证"的服务器侧强制值）。</summary>
+        public const float MoveComponentLimit = 1f;
+
+        /// <summary>Move/Aim 向量长度平方上限（=1；用平方比较避免开方——开方属超越函数纪律管辖区）。</summary>
+        public const float VectorLengthSquaredLimit = 1f;
+
         // ---- E1 背压降级（决策 11；《服务端架构设计》§10-E1：基线无背压，一个慢客户端会拖垮房间）----
         // 传输层为 kcp2k 内建发送队列（KcpPeer 定长窗口，无慢启动），**队列水位由应用层估算并记账**——
         // 比读 kcp2k 内部状态更稳（T5 断言"其余客户端不受慢客户端拖累"的前提）。

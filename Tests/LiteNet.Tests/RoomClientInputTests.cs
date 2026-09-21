@@ -156,7 +156,7 @@ namespace LiteNet.Tests
         }
 
         [Fact]
-        public void 快照帧与输入确认_分开跟踪_供视点帧推导()
+        public void 快照帧与输入确认_分开跟踪_上报的是快照帧()
         {
             var t = new FakeTransport();
             var c = new RoomClient(t);
@@ -166,7 +166,20 @@ namespace LiteNet.Tests
             t.RaiseData(Protocol.PacketCodec.Encode(Protocol.PacketType.StateSnapshot, snap));
 
             Assert.Equal(100, c.LastSnapshotFrame);   // 视点帧推导要用这个（§3.4.1）
-            Assert.Equal(57, c.LastAckSnapshot);      // 这是"输入已到达服务器"，别当快照帧用
+            Assert.Equal(57, c.LastAckSnapshot);      // 诊断字段：这是"输入已到达服务器"，别当快照帧用
+
+            // R0-P0-4 契约：InputMessage.AckSnapshot 上报的必须是**已收最新快照帧号**（协议注释口径）。
+            // 修正前错报 AckInput（57）——服务器按发送 ledger 验证后"从未发送过的帧号"被整体忽略。
+            c.SendInput(101, Input(101, 0), 0);
+            Proto.InputMessage last = t.LastInput();
+            Assert.Equal(100, last.AckSnapshot);      // 上报快照帧 100（不是输入确认 57）
+
+            // 未收到任何快照时：上报 0（proto3 默认值——服务器按"未来/无效"忽略，无害）
+            var t2 = new FakeTransport();
+            var c2 = new RoomClient(t2);
+            c2.SendInput(1, Input(1, 0), 0);
+            Assert.Equal(0, t2.LastInput().AckSnapshot);
+            c2.Dispose();
         }
 
         private static SimInputFrame Input(int frame, uint buttons)

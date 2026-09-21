@@ -32,6 +32,15 @@ namespace RoomServer
         public const string ServerBuildHash = BuildHash.Value;
         public const long OpsIntervalMs = 5000;
 
+        /// <summary>入包长度上限（字节）：《服务端总设计》§5 P0-3——protobuf 解析**之前**的硬边界。
+        /// 入站合法包 = 冗余输入（4 帧 × ~50B）或 Join/重连信令，远小于此；超限按恶意包丢弃计数。</summary>
+        public const int MaxInboundPacketBytes = 4096;
+
+        /// <summary>Join 字段 UTF-8 字节上限（P0-3：所有字符串限制 UTF-8 字节数——防超长串打爆日志/内存）。</summary>
+        public const int MaxRoomIdBytes = 64;
+        public const int MaxTokenBytes = 256;
+        public const int MaxBuildHashBytes = 128;
+
         private readonly IRoomTransport _transport;   // 窄端口（可替换性第二刀，2026-09-19 收口）
         private readonly SessionManager _sessions = new SessionManager();
         private readonly Dictionary<string, Room> _rooms = new Dictionary<string, Room>();
@@ -89,12 +98,24 @@ namespace RoomServer
         private void OnTransportData(int connectionId, ArraySegment<byte> data, bool reliable)
         {
             _nowMs = NowMs();
+
+            // P0-3 包体硬边界：长度限制在 protobuf 解析**之前**（超长包不进解析器 = 不给"解析耗尽内存"留门）
+            if (data.Count > MaxInboundPacketBytes)
+            {
+                _ops.PacketOversized++;
+                return;
+            }
+
             Session session = _sessions.GetOrAddOnFirstPacket(connectionId, _nowMs);
             if (session == null) return;
             session.Touch(_nowMs);
             if (session.Disconnected) return;
 
-            if (!PacketCodec.TryDecode(data, out PacketType type, out IMessage message)) return;
+            if (!PacketCodec.TryDecode(data, out PacketType type, out IMessage message))
+            {
+                _ops.PacketRejects++;                                     // 未知类型/截断/坏 proto：计数（P0-3 统一拒绝并计数）
+                return;
+            }
 
             switch (type)
             {
@@ -120,6 +141,11 @@ namespace RoomServer
         /// Join 信令：token 非空 + **房间号一致** + buildHash 必须等于服务器版本（版本红线）
         /// → 分配玩家号 → JoinAck + 满员即 StartGame。
         ///
+        /// **安全能力现状（R0 声明，《服务端总设计》§5 P0-6/R2 补齐）**：本校验是**原型级**——
+        /// token 只判非空与长度，重连票据是可预测串；kcp2k V1.41 cookie 只解决 UDP 探测/放大防护，
+        /// **不提供业务身份、机密性或完整性**。公开部署前必须完成 R2（签名 Join Ticket、CSPRNG 重连票据、
+        /// 远端地址限流与安全信封）——在此之前本服务不得直接暴露公网。
+        ///
         /// 房间号校验（2026-09-19 审查收紧）：原先**完全忽略** `JoinRequest.RoomId`——MVP 单房间下无害，
         /// 但既然 `--room` 已是可配项，"请求 A 房却静默进 B 房"就成了不可解释的客户端体验 ✗。
         /// 现在房间号不符（或缺失）直接拒绝：错误必须显式，不能靠"恰好只有一个房间"。
@@ -127,6 +153,16 @@ namespace RoomServer
         private void HandleJoin(Session session, JoinRequest join)
         {
             if (session.PlayerId >= 0) return;                              // 重复 Join 忽略
+
+            // P0-3 字符串边界：UTF-8 字节数上限（先于一切语义；拒绝日志不回显字段内容）
+            if (OverByteLimit(join.RoomId, MaxRoomIdBytes)
+                || OverByteLimit(join.Token, MaxTokenBytes)
+                || OverByteLimit(join.BuildHash, MaxBuildHashBytes))
+            {
+                Reject(session, "Join 字段超长");
+                return;
+            }
+
             if (string.IsNullOrEmpty(join.Token))                            // token 红线：空即拒绝
             {
                 Reject(session, "token 缺失");
@@ -173,7 +209,7 @@ namespace RoomServer
                     SendToSession(kv.Value, PacketType.StartGame, new Proto.StartGame
                     {
                         Seed = Room.Seed,
-                        ConfigHash = unchecked((uint)ServerBuildHash.GetHashCode()),
+                        ConfigHash = CombatConfigDigest.Compute(),   // R0-P0-5：规范化 SHA-256 配置摘要（GetHashCode 有进程随机种子，跨进程必不一致）
                         Frame = Room.AuthSim.Frame,
                     }, reliable: true);
                 }
@@ -184,8 +220,7 @@ namespace RoomServer
         {
             if (session.Room == null || session.PlayerId < 0) return;
             Room room = session.Room;
-            session.LastAckSnapshot = msg.AckSnapshot;
-            room.OnClientAck(session, msg.AckSnapshot);
+            room.OnClientAck(session, msg.AckSnapshot);   // 语义 ACK 验证化（P0-4）：LastAckSnapshot 只在此处前推
             room.OnInput(session, msg);   // 计数经 Room.OnInputAccepted 回挂到 Ops（只统计被闸门接受的包）
         }
 
@@ -250,7 +285,13 @@ namespace RoomServer
         private void Reject(Session session, string reason)
         {
             _ops.Rejects++;
-            Console.WriteLine($"[Reject] conn {session.ConnectionId}: {reason}");
+            Console.WriteLine($"[Reject] conn {session.ConnectionId}: {reason}");   // 只打原因，不回显 token/payload（P0-3）
+        }
+
+        /// <summary>字符串 UTF-8 字节数超限判定（P0-3：空串由各语义检查自理，此处只挡超长）。</summary>
+        private static bool OverByteLimit(string value, int maxBytes)
+        {
+            return value != null && System.Text.Encoding.UTF8.GetByteCount(value) > maxBytes;
         }
 
         /// <summary>

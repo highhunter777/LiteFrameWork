@@ -22,7 +22,7 @@ namespace LiteNet
         private readonly SimInputFrame[] _window = new SimInputFrame[InputPacker.MaxRedundancy]; // 打包用连续窗口
         private int _recentFrame = -1;      // 最近记录的逻辑帧（-1 = 尚未记录）
         private int _recentCount;           // 从 _recentFrame 往回**连续**可用的帧数（跳帧即重置为 1）
-        private int _lastAckSnapshot;
+        private int _lastInputAck;          // 最近收到的"输入确认"（服务器 AckInput 字段——诊断用，不上报）
         private bool _disposed;
 
         public bool Connected => _transport.Connected;
@@ -32,7 +32,7 @@ namespace LiteNet
         /// ⚠️ 它**不是**"最新收到的快照帧号"——别拿它算视点帧（§3.4.1 的"视角帧"要的是快照帧，
         /// 见 <see cref="LastSnapshotFrame"/>；此处命名沿协议字段，2026-09-19 审查加注避免误用）。
         /// </summary>
-        public int LastAckSnapshot => _lastAckSnapshot;
+        public int LastAckSnapshot => _lastInputAck;
 
         /// <summary>最近一次收到的快照帧号（**视点帧推导的正确来源**：+ `SimConfig.InterpFrames` = 玩家所见帧，§3.4.1）。</summary>
         public int LastSnapshotFrame { get; private set; } = -1;
@@ -69,6 +69,10 @@ namespace LiteNet
         /// 服务器按 `InputPacker.TryGetFrame(msg, frame)` 逐帧取用 → 丢一包仍能从后续包补帧。
         /// 修正前实现把同一份"最新输入"重复 4 次（冗余形同虚设，且开火位只留首个）——那是**协议语义破损**，
         /// 不只是低效。此处统一走 <see cref="InputPacker.Pack"/>（协议单源）。
+        ///
+        /// **ack 语义（R0-P0-4 修正）**：ackSnapshot = **已收最新快照帧号**（<see cref="LastSnapshotFrame"/>，
+        /// 协议注释口径）——修正前错报服务器下发的 AckInput（输入确认帧号），服务器按发送 ledger 验证 ACK 后
+        /// 这种"从未发送过的帧号"会被整体忽略 → 背压水位永不释放 + NeedsFull 常真。未收到快照时填 0。
         /// </summary>
         public void SendInput(int frame, in SimInputFrame input, int viewFrame)
         {
@@ -77,8 +81,9 @@ namespace LiteNet
             for (int i = 0; i < _recentCount; i++)
                 _window[i] = _ring[RingIndex(frame - i)];
 
+            int ackSnapshot = LastSnapshotFrame >= 0 ? LastSnapshotFrame : 0;
             var msg = InputPacker.Pack(frame, new ReadOnlySpan<SimInputFrame>(_window, 0, _recentCount),
-                _lastAckSnapshot, viewFrame);
+                ackSnapshot, viewFrame);
             Send(PacketType.Input, msg, reliable: false);
         }
 
@@ -158,7 +163,7 @@ namespace LiteNet
                     break;
                 case PacketType.StateSnapshot:
                     var snapshot = (Proto.StateSnapshot)msg;
-                    _lastAckSnapshot = snapshot.AckInput;
+                    _lastInputAck = snapshot.AckInput;          // 诊断：服务器输入确认（不上报——上报的是快照帧）
                     LastSnapshotFrame = snapshot.Frame;
                     OnSnapshot?.Invoke(snapshot);
                     break;

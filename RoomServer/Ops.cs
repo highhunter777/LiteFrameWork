@@ -23,6 +23,14 @@ namespace RoomServer
         public long Rejects;
         public long ReconnectsServed;
 
+        // ---- R0 边界拒绝计数（《服务端总设计》§5 P0-3"统一拒绝并计数"）----
+        /// <summary>坏包（未知类型/截断/proto 解析失败）拒绝计数。</summary>
+        public long PacketRejects;
+        /// <summary>超长入包（解析前长度上限）拒绝计数。</summary>
+        public long PacketOversized;
+        /// <summary>语义 ACK 违纪（回退/重复/超前/超窗——不释放水位，见 Room.OnClientAck）。</summary>
+        public long AckRejected;
+
         private readonly StringBuilder _sb = new StringBuilder(512);
 
         /// <summary>周期汇总（帧号/房间/快照/输入/和解率/背压/回溯/节拍债——一行式，便于日志抓取）。</summary>
@@ -49,7 +57,10 @@ namespace RoomServer
                .Append(" comp=").Append(room.LagComp.CompensatedCount)
                .Append(" degr=").Append(room.LagComp.DegradedCount)
                .Append(" | bp: throttled=").Append(room.BackpressureThrottled)
-               .Append(" rejects=").Append(Rejects);
+               .Append(" | edge: rejects=").Append(Rejects)
+               .Append(" pktBad=").Append(PacketRejects)
+               .Append(" pktBig=").Append(PacketOversized)
+               .Append(" ackBad=").Append(AckRejected);
             if (loop != null)
                 _sb.Append(" | loop: ticks=").Append(loop.Ticks)
                    .Append(" debt=").Append(loop.DroppedTimeMs).Append("ms")
