@@ -103,7 +103,7 @@ namespace RoomServer
             // 以 `AckSnapshot > serverFrame` 判非法 → **合法输入被自己的 ack 丢掉**（服务器只能用空输入推进）。
             // 钳到本快照帧后：既符合 §3.4.1「ackSnapshot ≤ 服务器已广播帧号」，也保持"输入已到达"的语义。
             int ackInput = Math.Min(gate.LastAcceptedFrame(playerId), frame);
-            Proto.StateSnapshot snapshot = _differ.BuildFor(frame, authSim, ackInput, viewPos, radius);
+            Proto.StateSnapshot snapshot = _differ.BuildFor(frame, authSim, ackInput, viewPos, radius, entityId);
             if (session.BackpressureTier >= 3) TrimFarthest(snapshot, viewPos);   // 档位 3：低优先级实体丢弃
             if (snapshot.IsFull) SnapshotFullSent++;
 

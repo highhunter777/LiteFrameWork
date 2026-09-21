@@ -219,11 +219,12 @@ namespace RoomServer
             room.RequestFullSnapshot();                                  // 下一广播整帧全量（该客户端要从零重建）
 
             var response = new Proto.ReconnectResponse { Ok = true };
-            SimVector3 viewPos = room.AuthSim.TryResolve(room.EntityIdOf(playerId), out int viewSlot)
-                ? room.AuthSim.Entities[viewSlot].Pos
-                : SimVector3.Zero;
-            // 重连响应里的快照是**独立探测**（不推进广播基线）：显式构造一份全量
+            long viewerEntityId = room.EntityIdOf(playerId);
+            // 重连响应里的快照是**独立探测**（不推进广播基线）：显式构造一份全量。
+            // 分层顺序（§5.6）：公共全量（PackFull 槽位）→ 比赛状态（PackFull 内附）→ 本人私有状态 → 输入历史。
+            // 私有面只发本人——不泄漏他人库存，也不依赖 CustomData 全量路径（P0 阻塞项 ①）。
             response.Snapshot = SnapshotCodec.PackFull(room.AuthSim.Frame, room.AuthSim, room.Gate.LastAcceptedFrame(playerId));
+            response.Snapshot.PrivateState = SnapshotCodec.PackPrivate(room.AuthSim, viewerEntityId);
             for (int f = room.AuthSim.Frame - SimConfig.MaxInputHistory + 1; f <= room.AuthSim.Frame; f++)
             {
                 if (f <= 0) continue;

@@ -48,7 +48,7 @@ namespace LiteNet.Tests
 
             Assert.True(msg.IsFull);
             Assert.Equal(state.AliveCount(), msg.Slots.Count);
-            Assert.Equal(SimChecksum.ComputeChecksum(state), msg.Checksum);
+            Assert.Equal(SimChecksum.ComputePublicChecksum(state), msg.Checksum);
         }
 
         [Fact]
@@ -77,7 +77,7 @@ namespace LiteNet.Tests
                     Proto.StateSnapshot msg = differ.Build(state.Frame, state, 0,
                         state.Entities[0].Pos, radius, forceFull: false);
                     SnapshotReassembler.Apply(msg, mirror, out uint checksum);
-                    Assert.Equal(SimChecksum.ComputeChecksum(state), checksum);          // 权威 checksum 随包下发
+                    Assert.Equal(SimChecksum.ComputePublicChecksum(state), checksum);   // 公共口径 checksum 随包下发
                     Assert.Equal(state.Frame, mirror.Frame);
 
                     // 镜像末态 == 权威末态：关闭 AOI 时**全部**槽位逐位对上；开启时可见集为子集，
@@ -218,6 +218,48 @@ namespace LiteNet.Tests
             long newId = mirror.Spawn(new EntitySlot { Hp = 10, Pos = new SimVector3(1f, 0f, 1f) }, out _);
             Assert.NotEqual(state.Entities[0].Id, newId);          // 版本表由 Id>>16 重建 → 不撞既有实体
             Assert.NotEqual(state.Entities[1].Id, newId);
+        }
+
+        [Fact]
+        public void 私有面_只附本人_比赛状态层随每份快照()
+        {
+            var state = BuildWorld(out _);
+            var differ = new SnapshotDiffer();
+
+            // 两名玩家的私有运行态各不相同（弹药/技能 CD/局内包——只应出现在本人的快照里）
+            state.Weapons[0 * SimConfig.WeaponSlotsPerEntity].MagAmmo = 30;
+            state.Weapons[1 * SimConfig.WeaponSlotsPerEntity].MagAmmo = 8;
+            state.Actions[1 * SimConfig.ActionSlotsPerEntity + 2].CooldownEnd = 600;      // B 的 Skill3
+            state.MatchBag[1 * SimConfig.MatchBagSlotsPerEntity + 3].ItemDefId = 701;    // B 的背包
+            state.Match = new MatchStateData { Phase = 1, Timer = 10800, Round = 1 };
+
+            long idA = state.Entities[0].Id;
+            long idB = state.Entities[1].Id;
+
+            differ.BeginFrame(state.Frame, state, forceFull: false);   // 每广播帧一次（两段式）
+            Proto.StateSnapshot forA = differ.BuildFor(state.Frame, state, 0, state.Entities[0].Pos, SimConfig.AoiRadius, idA);
+            Proto.StateSnapshot forB = differ.BuildFor(state.Frame, state, 0, state.Entities[1].Pos, SimConfig.AoiRadius, idB);
+            Proto.StateSnapshot bare = differ.BuildFor(state.Frame, state, 0, state.Entities[0].Pos, SimConfig.AoiRadius, 0L);
+
+            // 比赛状态层：每份快照都带（room 级、全体同值）
+            Assert.Equal(1, forA.Match.Phase);
+            Assert.Equal(10800, forA.Match.Timer);
+            Assert.Equal(1, forB.Match.Round);
+
+            // 私有面：只附会话归属本人；不带他人的量（防泄漏，业务总设计 §1）
+            Assert.NotNull(forA.PrivateState);
+            Assert.Equal(idA, forA.PrivateState.EntityId);
+            Assert.Equal(30, forA.PrivateState.Weapons[0].MagAmmo);
+            Assert.Equal(0, forA.PrivateState.Skills[2].CooldownEnd);        // B 的 Skill3 CD 不在 A 的快照里
+            Assert.Equal(0, forA.PrivateState.Bag[3].ItemDefId);             // B 的背包不在 A 的快照里
+
+            Assert.NotNull(forB.PrivateState);
+            Assert.Equal(idB, forB.PrivateState.EntityId);
+            Assert.Equal(8, forB.PrivateState.Weapons[0].MagAmmo);
+            Assert.Equal(600, forB.PrivateState.Skills[1].CooldownEnd);   // Skills[1] ↔ 动作槽 2（Skill2）
+            Assert.Equal(701, forB.PrivateState.Bag[3].ItemDefId);
+
+            Assert.Null(bare.PrivateState);                                  // 无会话归属（诊断/单测路径）不带私有面
         }
     }
 }

@@ -220,11 +220,18 @@ namespace LiteSim.Tests
             return copy;
         }
 
-        /// <summary>逐元素比较两个世界（含全部槽位逻辑字段与平面数组——"完全一致"的可执行形态）。</summary>
+        /// <summary>逐元素比较两个世界（含全部槽位逻辑字段与平面数组——"完全一致"的可执行形态；
+        /// P0 起覆盖公共战斗面与全部运行态数组/Match）。</summary>
         private static void AssertWorldsElementWiseEqual(SimWorldState a, SimWorldState b)
         {
             Assert.Equal(b.Frame, a.Frame);
             Assert.Equal(b.RngState, a.RngState);
+            Assert.Equal(b.Match.Phase, a.Match.Phase);
+            Assert.Equal(b.Match.Team, a.Match.Team);
+            Assert.Equal(b.Match.Score, a.Match.Score);
+            Assert.Equal(b.Match.Timer, a.Match.Timer);
+            Assert.Equal(b.Match.Round, a.Match.Round);
+            Assert.Equal(b.Match.Winner, a.Match.Winner);
 
             for (int i = 0; i < SimConfig.MaxEntities; i++)
             {
@@ -238,11 +245,100 @@ namespace LiteSim.Tests
                 Assert.Equal(b.Entities[i].Yaw, a.Entities[i].Yaw);
                 Assert.Equal(b.Entities[i].Hp, a.Entities[i].Hp);
                 Assert.Equal(b.Entities[i].Flags, a.Entities[i].Flags);
+                Assert.Equal(b.Entities[i].Shield, a.Entities[i].Shield);
+                Assert.Equal(b.Entities[i].Kills, a.Entities[i].Kills);
+                Assert.Equal(b.Entities[i].Deaths, a.Entities[i].Deaths);
+                Assert.Equal(b.Entities[i].SelectedWeapon, a.Entities[i].SelectedWeapon);
             }
 
             for (int i = 0; i < a.AliveBitmap.Length; i++) Assert.Equal(b.AliveBitmap[i], a.AliveBitmap[i]);
             for (int i = 0; i < a.Globals.Length; i++) Assert.Equal(b.Globals[i], a.Globals[i]);
             for (int i = 0; i < a.CustomData.Length; i++) Assert.Equal(b.CustomData[i], a.CustomData[i]);
+            for (int i = 0; i < a.Weapons.Length; i++)
+            {
+                Assert.Equal(b.Weapons[i].WeaponDefId, a.Weapons[i].WeaponDefId);
+                Assert.Equal(b.Weapons[i].MagAmmo, a.Weapons[i].MagAmmo);
+                Assert.Equal(b.Weapons[i].ReserveAmmo, a.Weapons[i].ReserveAmmo);
+                Assert.Equal(b.Weapons[i].NextFireFrame, a.Weapons[i].NextFireFrame);
+                Assert.Equal(b.Weapons[i].ReloadEndFrame, a.Weapons[i].ReloadEndFrame);
+                Assert.Equal(b.Weapons[i].EquipEndFrame, a.Weapons[i].EquipEndFrame);
+                Assert.Equal(b.Weapons[i].State, a.Weapons[i].State);
+                Assert.Equal(b.Weapons[i].ShotSeq, a.Weapons[i].ShotSeq);
+            }
+            for (int i = 0; i < a.Actions.Length; i++)
+            {
+                Assert.Equal(b.Actions[i].ActionId, a.Actions[i].ActionId);
+                Assert.Equal(b.Actions[i].StartFrame, a.Actions[i].StartFrame);
+                Assert.Equal(b.Actions[i].Phase, a.Actions[i].Phase);
+                Assert.Equal(b.Actions[i].CastToken, a.Actions[i].CastToken);
+                Assert.Equal(b.Actions[i].CooldownEnd, a.Actions[i].CooldownEnd);
+                Assert.Equal(b.Actions[i].Charges, a.Actions[i].Charges);
+            }
+            for (int i = 0; i < a.Status.Length; i++)
+            {
+                Assert.Equal(b.Status[i].EffectId, a.Status[i].EffectId);
+                Assert.Equal(b.Status[i].EndFrame, a.Status[i].EndFrame);
+                Assert.Equal(b.Status[i].Param, a.Status[i].Param);
+            }
+            for (int i = 0; i < a.MatchBag.Length; i++)
+            {
+                Assert.Equal(b.MatchBag[i].ItemDefId, a.MatchBag[i].ItemDefId);
+                Assert.Equal(b.MatchBag[i].Count, a.MatchBag[i].Count);
+                Assert.Equal(b.MatchBag[i].QuickSlot, a.MatchBag[i].QuickSlot);
+            }
+            for (int i = 0; i < a.Resources.Length; i++) Assert.Equal(b.Resources[i], a.Resources[i]);
+        }
+
+        // ---- P0 和解口径（《状态同步专项设计》§5.2 分层 + §6.1：私有面不进比对，公共面差异必纠）----
+
+        [Fact]
+        public void 和解口径_私有面差异不触发和解()
+        {
+            var (map, players) = Scenario();
+            var sim = new RollbackSim(SimChecksumBaselineSpec.BuildWorld(), map, IdentityTemplate(players));
+            for (int t = 0; t < 5; t++) sim.Tick(SimConfig.Dt);   // 帧 0..5（环内）
+            int frame = sim.State.Frame;
+
+            var authoritative = new SimWorldState();
+            sim.State.CopyTo(authoritative);
+
+            // 服务器侧私有面推进（开火扣弹/技能 CD/拾取/资源/随机数）——客户端**永远无法重建**：
+            // 全量口径必变，和解锚点（公共口径）不得包含，否则每份快照必假和解
+            int slot = (int)(players[0] & 0xFFFFL);
+            authoritative.Weapons[slot * SimConfig.WeaponSlotsPerEntity].MagAmmo = 29;
+            authoritative.Actions[slot * SimConfig.ActionSlotsPerEntity + 2].CooldownEnd = 600;
+            authoritative.Status[slot * SimConfig.StatusSlotsPerEntity].Param = 60;
+            authoritative.MatchBag[slot * SimConfig.MatchBagSlotsPerEntity].ItemDefId = 701;
+            authoritative.Resources[slot] = 5;
+            authoritative.RngState ^= 0xABUL;
+            Assert.NotEqual(SimChecksum.ComputeChecksum(sim.State), SimChecksum.ComputeChecksum(authoritative));
+
+            Assert.False(sim.OnAuthoritativeSnapshot(frame, authoritative, SimChecksum.ComputePublicChecksum(authoritative)));
+            Assert.Equal(0, sim.ReconcileCount);
+        }
+
+        [Fact]
+        public void 和解口径_公共面差异触发和解并采纳权威()
+        {
+            var (map, players) = Scenario();
+            var sim = new RollbackSim(SimChecksumBaselineSpec.BuildWorld(), map, IdentityTemplate(players));
+            for (int t = 0; t < 5; t++) sim.Tick(SimConfig.Dt);
+            int frame = sim.State.Frame;
+
+            var authoritative = new SimWorldState();
+            sim.State.CopyTo(authoritative);
+            int slot = (int)(players[0] & 0xFFFFL);
+            authoritative.Entities[slot].Shield = 60;          // 服务器护盾事实（公共面）
+            authoritative.Entities[slot].Kills = 3;
+            authoritative.Actions[slot * SimConfig.ActionSlotsPerEntity].ActionId = 301;
+            authoritative.Actions[slot * SimConfig.ActionSlotsPerEntity].Phase = ActionPhase.Active;
+            authoritative.Match.Timer = 10800;
+
+            Assert.True(sim.OnAuthoritativeSnapshot(frame, authoritative, SimChecksum.ComputePublicChecksum(authoritative)));
+            Assert.Equal(1, sim.ReconcileCount);
+            Assert.Equal(60, sim.State.Entities[slot].Shield); // 权威覆盖采纳
+            Assert.Equal(3, sim.State.Entities[slot].Kills);
+            Assert.Equal(10800, sim.State.Match.Timer);
         }
     }
 }

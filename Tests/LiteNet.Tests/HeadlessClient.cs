@@ -29,6 +29,7 @@ namespace LiteNet.Tests
         private readonly KcpTransportClient _transport;   // 本 harness 创建并拥有（生产路径由 KcpNetworkService 持有）
         private RollbackSim _sim;
         private SimMapData _map;
+        private SimWorldState _mirror;             // 持久权威镜像（SnapshotReassembler 应用目标，§5.5——增量快照只在它上面累积才完整）
         private readonly Queue<SimInputFrame> _pending = new Queue<SimInputFrame>();
         private SimInputFrame _lastInput;
 
@@ -88,7 +89,9 @@ namespace LiteNet.Tests
             _lastInput = local;
         }
 
-        /// <summary>快照处理：和解（Sim 内部 checksum 比对/覆盖/重放）+ 首次快照对齐本地实体 Id（按 Slot==PlayerId）。
+        /// <summary>快照处理：持久镜像重建（协议单源 SnapshotReassembler）→ 和解（公共口径 checksum 比对/覆盖/重放）
+        /// → 无和解时把比赛状态/本人私有面覆盖到本地态（客户端不预测的量须随包刷新）。
+        /// 首次快照对齐本地实体 Id（按 Slot==PlayerId）。
         /// StartGame 未达（Unreliable 快照可能先于 Reliable 信令到达）时丢弃快照——Sim 惰性建后下一快照即正常。</summary>
         private void OnSnapshot(Proto.StateSnapshot snapshot)
         {
@@ -103,34 +106,20 @@ namespace LiteNet.Tests
                 }
             }
 
-            var authoritative = SimAuthMirror(snapshot);
-            bool reconciled = Sim.OnAuthoritativeSnapshot(snapshot.Frame, authoritative, snapshot.Checksum);
+            _mirror = _mirror ?? new SimWorldState();
+            SnapshotReassembler.Apply(snapshot, _mirror, out uint checksum);
+            bool reconciled = _sim.OnAuthoritativeSnapshot(snapshot.Frame, _mirror, checksum);
             if (reconciled)
             {
                 MismatchReports++;
                 Client.SendMismatch(snapshot.Frame);
             }
-        }
-
-        /// <summary>权威镜像重建：直接槽位赋值（保 Id/活体位——Spawn 走分配器会破坏 Id 一致性）。</summary>
-        private static SimWorldState SimAuthMirror(Proto.StateSnapshot snapshot)
-        {
-            var restored = new SimWorldState { Frame = snapshot.Frame };
-            foreach (var slot in snapshot.Slots)
+            else
             {
-                int slotIndex = slot.Slot;
-                restored.Entities[slotIndex] = new EntitySlot
-                {
-                    Id = slot.Id,
-                    Pos = new SimVector3(slot.PosX, slot.PosY, slot.PosZ),
-                    Vel = new SimVector3(slot.VelX, slot.VelY, slot.VelZ),
-                    Yaw = slot.Yaw,
-                    Hp = slot.Hp,
-                    Flags = slot.Flags,
-                };
-                restored.AliveBitmap[slotIndex >> 5] |= 1u << (slotIndex & 31);
+                // 预测正确：本地态不被权威覆盖——但弹药/技能 CD/背包/比赛状态这些**不预测量**
+                // 只能从快照来，必须随每包刷新（P0 分层应用，否则 HUD 私有面永远停在初值）
+                SnapshotReassembler.OverlayPrivateAndMatch(snapshot, _sim.State);
             }
-            return restored;
         }
 
         /// <summary>

@@ -43,6 +43,9 @@ namespace LiteNet
         public event Action<Proto.JoinAck> OnJoinAck;
         public event Action<Proto.StartGame> OnStartGame;
         public event Action<Proto.StateSnapshot> OnSnapshot;
+        /// <summary>重连响应（§5.6：权威快照[公共全量+比赛状态+本人私有] + 后续输入历史；P0 前该包被静默丢弃）。
+        /// 应用原语见 <see cref="Protocol.SnapshotReassembler"/>（镜像 Apply + 输入历史喂 RollbackSim）。</summary>
+        public event Action<Proto.ReconnectResponse> OnReconnectResponse;
         public event Action OnDisconnected;
 
         public RoomClient(IClientTransport transport)
@@ -158,6 +161,9 @@ namespace LiteNet
                     _lastAckSnapshot = snapshot.AckInput;
                     LastSnapshotFrame = snapshot.Frame;
                     OnSnapshot?.Invoke(snapshot);
+                    break;
+                case PacketType.ReconnectResponse:
+                    OnReconnectResponse?.Invoke((Proto.ReconnectResponse)msg);
                     break;
             }
         }

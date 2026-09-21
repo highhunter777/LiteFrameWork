@@ -59,6 +59,34 @@ namespace LiteSim.Tests
             Assert.Equal(SimMath.Dt, SimConfig.Dt);
             Assert.Equal(32, SimConfig.CustomBytesPerEntity);
             Assert.Equal(256, SimConfig.GlobalsBytes);
+            // 《游戏业务系统总设计》§3.1 固定布局容量（P0 契约冻结）
+            Assert.Equal(2, SimConfig.WeaponSlotsPerEntity);
+            Assert.Equal(4, SimConfig.ActionSlotsPerEntity);
+            Assert.Equal(4, SimConfig.StatusSlotsPerEntity);
+            Assert.Equal(12, SimConfig.MatchBagSlotsPerEntity);
+        }
+
+        [Fact]
+        public void 布局_P0运行态结构_仅值类型字段()
+        {
+            // P0 新增运行态必须与 EntitySlot 同纪律（blittable）：进快照/校验的前提
+            AssertValueTypesOnly(typeof(WeaponRuntime));
+            AssertValueTypesOnly(typeof(ActionRuntime));
+            AssertValueTypesOnly(typeof(StatusSlotData));
+            AssertValueTypesOnly(typeof(MatchBagSlot));
+            AssertValueTypesOnly(typeof(MatchStateData));
+        }
+
+        private static void AssertValueTypesOnly(Type t)
+        {
+            FieldInfo[] fields = t.GetFields(AllInstance);
+            Assert.True(fields.Length > 0, t.Name + " 无字段");
+
+            for (int i = 0; i < fields.Length; i++)
+            {
+                Assert.True(fields[i].FieldType.IsValueType,
+                    t.Name + "." + fields[i].Name + " : " + fields[i].FieldType.Name + " 必须是值类型（blittable）");
+            }
         }
 
         [Fact]
@@ -117,6 +145,20 @@ namespace LiteSim.Tests
             src.Frame = 123;
             src.Globals[7] = 0xAB;
             src.CustomData[slot * SimConfig.CustomBytesPerEntity + 3] = 0xCD;
+            src.Match = new MatchStateData { Phase = 1, Timer = 10800, Round = 1, Winner = id };
+            src.Resources[slot] = 77;
+            src.Weapons[slot * SimConfig.WeaponSlotsPerEntity + 1] = new WeaponRuntime
+            {
+                WeaponDefId = 9002, MagAmmo = 8, ReserveAmmo = 32,
+                NextFireFrame = 45, ReloadEndFrame = 0, EquipEndFrame = 12, State = WeaponSlotState.Ready, ShotSeq = 3,
+            };
+            src.Actions[slot * SimConfig.ActionSlotsPerEntity + 0] = new ActionRuntime
+            {
+                ActionId = 301, StartFrame = 120, Phase = ActionPhase.Windup, CastToken = 9, CooldownEnd = 480, Charges = 1,
+            };
+            src.Actions[slot * SimConfig.ActionSlotsPerEntity + 2] = new ActionRuntime { ActionId = 305, CooldownEnd = 300, Charges = 2 };
+            src.Status[slot * SimConfig.StatusSlotsPerEntity + 0] = new StatusSlotData { EffectId = 51, EndFrame = 900, Param = 60 };
+            src.MatchBag[slot * SimConfig.MatchBagSlotsPerEntity + 11] = new MatchBagSlot { ItemDefId = 701, Count = 3, QuickSlot = 4 };
 
             src.CopyTo(dst);
             Assert.Equal(123, dst.Frame);
@@ -124,18 +166,95 @@ namespace LiteSim.Tests
             Assert.Equal((byte)0xCD, dst.CustomData[slot * SimConfig.CustomBytesPerEntity + 3]);
             Assert.True(dst.TryResolve(id, out int resolved));
             Assert.Equal(50, dst.Entities[resolved].Hp);
+            Assert.Equal(1, dst.Match.Phase);
+            Assert.Equal(10800, dst.Match.Timer);
+            Assert.Equal(id, dst.Match.Winner);
+            Assert.Equal(77, dst.Resources[resolved]);
+            Assert.Equal(9002, dst.Weapons[resolved * SimConfig.WeaponSlotsPerEntity + 1].WeaponDefId);
+            Assert.Equal(8, dst.Weapons[resolved * SimConfig.WeaponSlotsPerEntity + 1].MagAmmo);
+            Assert.Equal(WeaponSlotState.Ready, dst.Weapons[resolved * SimConfig.WeaponSlotsPerEntity + 1].State);
+            Assert.Equal(301, dst.Actions[resolved * SimConfig.ActionSlotsPerEntity + 0].ActionId);
+            Assert.Equal(ActionPhase.Windup, dst.Actions[resolved * SimConfig.ActionSlotsPerEntity + 0].Phase);
+            Assert.Equal(305, dst.Actions[resolved * SimConfig.ActionSlotsPerEntity + 2].ActionId);
+            Assert.Equal(51, dst.Status[resolved * SimConfig.StatusSlotsPerEntity + 0].EffectId);
+            Assert.Equal(701, dst.MatchBag[resolved * SimConfig.MatchBagSlotsPerEntity + 11].ItemDefId);
+            Assert.Equal(4, dst.MatchBag[resolved * SimConfig.MatchBagSlotsPerEntity + 11].QuickSlot);
 
             // 深拷独立性：改 dst 一字节，src 必须不受影响（§7 风险 1 对策）
             dst.Globals[7] = 0x11;
             dst.Entities[resolved].Hp = 99;
+            dst.Resources[resolved] = 1;
+            dst.Match.Phase = 2;
+            dst.Weapons[resolved * SimConfig.WeaponSlotsPerEntity + 1].MagAmmo = 0;
             Assert.Equal((byte)0xAB, src.Globals[7]);
             Assert.Equal(50, src.Entities[slot].Hp);
+            Assert.Equal(77, src.Resources[slot]);
+            Assert.Equal(1, src.Match.Phase);
+            Assert.Equal(8, src.Weapons[slot * SimConfig.WeaponSlotsPerEntity + 1].MagAmmo);
 
             // 瞬态缓冲不随快照走（§3.7/决策⑥）
             src.Cmds.Write(SimCommandKind.Damage, id, 0L, 10);
             Assert.Equal(1, src.Cmds.Count);
             src.CopyTo(dst);
             Assert.Equal(0, dst.Cmds.Count);
+        }
+
+        [Fact]
+        public void 槽位_Despawn清零每实体运行态_空槽校验值恒定()
+        {
+            var a = new SimWorldState();
+            long id = a.Spawn(new EntitySlot { Hp = 50 }, out int slot);
+            a.Entities[slot].Kills = 7;
+            a.Resources[slot] = 88;
+            a.Weapons[slot * SimConfig.WeaponSlotsPerEntity] = new WeaponRuntime { WeaponDefId = 1, MagAmmo = 30 };
+            a.Actions[slot * SimConfig.ActionSlotsPerEntity] = new ActionRuntime { ActionId = 2, CooldownEnd = 99 };
+            a.Status[slot * SimConfig.StatusSlotsPerEntity] = new StatusSlotData { EffectId = 3, Param = 60 };
+            a.MatchBag[slot * SimConfig.MatchBagSlotsPerEntity] = new MatchBagSlot { ItemDefId = 4, Count = 5 };
+
+            a.Despawn(id);
+
+            // 上一占用者的残留必须清干净：空槽校验值恒定 = 同种子重放可对账的前提（§3.6）
+            Assert.Equal(0, a.Resources[slot]);
+            Assert.Equal(0, a.Weapons[slot * SimConfig.WeaponSlotsPerEntity].MagAmmo);
+            Assert.Equal(0, a.Weapons[slot * SimConfig.WeaponSlotsPerEntity].WeaponDefId);
+            Assert.Equal(0, a.Actions[slot * SimConfig.ActionSlotsPerEntity].ActionId);
+            Assert.Equal(0, a.Status[slot * SimConfig.StatusSlotsPerEntity].EffectId);
+            Assert.Equal(0, a.MatchBag[slot * SimConfig.MatchBagSlotsPerEntity].ItemDefId);
+
+            var fresh = new SimWorldState();
+            Assert.Equal(SimChecksum.ComputeStateChecksum(fresh), SimChecksum.ComputeStateChecksum(a));
+        }
+
+        [Fact]
+        public void 校验口径_全量覆盖P0运行态_公共口径只认公共面()
+        {
+            var s = new SimWorldState();
+            long id = s.Spawn(new EntitySlot { Hp = 50 }, out int slot);
+            uint full0 = SimChecksum.ComputeChecksum(s);
+            uint public0 = SimChecksum.ComputePublicChecksum(s);
+
+            // 私有面变化：全量口径必变，公共口径不变（客户端重建不了私有面——和解锚点不得包含）
+            s.Weapons[slot * SimConfig.WeaponSlotsPerEntity].MagAmmo = 30;
+            s.Actions[slot * SimConfig.ActionSlotsPerEntity + 2].CooldownEnd = 600;
+            s.Status[slot * SimConfig.StatusSlotsPerEntity].Param = 60;
+            s.MatchBag[slot * SimConfig.MatchBagSlotsPerEntity].ItemDefId = 9;
+            s.Resources[slot] = 5;
+            s.RngState = 123UL;
+            Assert.NotEqual(full0, SimChecksum.ComputeChecksum(s));
+            Assert.Equal(public0, SimChecksum.ComputePublicChecksum(s));
+
+            // 公共面变化：两种口径都必变
+            s.Entities[slot].Shield = 60;
+            s.Entities[slot].Kills = 1;
+            s.Entities[slot].SelectedWeapon = 1;
+            s.Actions[slot * SimConfig.ActionSlotsPerEntity].ActionId = 301;
+            s.Actions[slot * SimConfig.ActionSlotsPerEntity].Phase = ActionPhase.Active;
+            s.Match.Timer = 10800;
+            Assert.NotEqual(public0, SimChecksum.ComputePublicChecksum(s));
+            Assert.NotEqual(full0, SimChecksum.ComputeChecksum(s));
+
+            // 公共口径与全量口径是两个值域（防误替换成同一实现）
+            Assert.NotEqual(SimChecksum.ComputeChecksum(s), SimChecksum.ComputePublicChecksum(s));
         }
     }
 }

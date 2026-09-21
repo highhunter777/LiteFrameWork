@@ -35,12 +35,20 @@ namespace LiteNet.Protocol
 
         public static Proto.InputFrame ToProto(in SimInputFrame src)
         {
-            return new Proto.InputFrame { EntityId = src.EntityId, MoveX = src.MoveX, MoveZ = src.MoveZ, AimX = src.AimX, AimZ = src.AimZ, Buttons = src.Buttons };
+            return new Proto.InputFrame
+            {
+                EntityId = src.EntityId, MoveX = src.MoveX, MoveZ = src.MoveZ, AimX = src.AimX, AimZ = src.AimZ, Buttons = src.Buttons,
+                SelectedWeaponSlot = src.SelectedWeaponSlot, TargetEntityId = src.TargetEntityId, ActionSeq = src.ActionSeq,
+            };
         }
 
         public static SimInputFrame FromProto(Proto.InputFrame src)
         {
-            return new SimInputFrame { EntityId = src.EntityId, MoveX = src.MoveX, MoveZ = src.MoveZ, AimX = src.AimX, AimZ = src.AimZ, Buttons = src.Buttons };
+            return new SimInputFrame
+            {
+                EntityId = src.EntityId, MoveX = src.MoveX, MoveZ = src.MoveZ, AimX = src.AimX, AimZ = src.AimZ, Buttons = src.Buttons,
+                SelectedWeaponSlot = src.SelectedWeaponSlot, TargetEntityId = src.TargetEntityId, ActionSeq = src.ActionSeq,
+            };
         }
     }
 }

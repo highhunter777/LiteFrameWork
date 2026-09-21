@@ -27,5 +27,22 @@ namespace LiteSim
 
         /// <summary>标志位（存活/无敌/开火中…按需定义；活体判定以 AliveBitmap 为准）。</summary>
         public uint Flags;
+
+        // ---- P0 公共战斗面（《游戏业务系统总设计》§1/《状态同步专项设计》§5.2 PublicStateSnapshot）----
+        // 全部随公共 SlotDelta 下发：差分器逐字段比对，变化即增量发送。
+        // 私有面（弹药/技能 CD/背包/资源）不在此——见 SimCombatRuntime/SimMatchRuntime 各自注释。
+
+        /// <summary>护盾（公开投影值；明细在 <see cref="StatusSlotData"/>，P1 StatusSystem 维护同步）。</summary>
+        public int Shield;
+
+        /// <summary>击杀数（公开：比分/KDA）。</summary>
+        public int Kills;
+
+        /// <summary>死亡数（公开：比分/KDA）。</summary>
+        public int Deaths;
+
+        /// <summary>当前装备武器槽（公开：-1 = 未装备；0..<see cref="SimConfig.WeaponSlotsPerEntity"/>-1）。
+        /// 其他玩家渲染武器外观用它；弹药等私有运行态只在本人 PrivateStateSnapshot。</summary>
+        public int SelectedWeapon;
     }
 }

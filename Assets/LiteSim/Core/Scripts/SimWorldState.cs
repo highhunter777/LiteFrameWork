@@ -21,6 +21,28 @@ namespace LiteSim
         public readonly byte[] Globals;
         public readonly byte[] CustomData;
 
+        // ---- P0 战斗运行态（《游戏业务系统总设计》§3.1 固定布局 + 《状态同步专项设计》§3"明确的 Weapon/Action/Status/Match 状态数组"）----
+        // 纪律与 Entities 相同：值类型定长数组（布局契约 #5），寻址 slot * PerEntity + i；
+        // 公开/私有承载边界见各结构体注释（PublicCombatState / PrivateStateSnapshot 两层，§5.2）。
+
+        /// <summary>武器运行态：<c>[slot * WeaponSlotsPerEntity + w]</c>（弹药/换弹/节拍——本人私有面）。</summary>
+        public readonly WeaponRuntime[] Weapons;
+
+        /// <summary>动作/技能运行态：<c>[slot * ActionSlotsPerEntity + a]</c>（0=主动作槽；1..3=Skill1..3）。</summary>
+        public readonly ActionRuntime[] Actions;
+
+        /// <summary>状态效果槽：<c>[slot * StatusSlotsPerEntity + i]</c>（明细私有；公开投影 = EntitySlot.Shield）。</summary>
+        public readonly StatusSlotData[] Status;
+
+        /// <summary>局内背包：<c>[slot * MatchBagSlotsPerEntity + i]</c>（12 格——本人私有面）。</summary>
+        public readonly MatchBagSlot[] MatchBag;
+
+        /// <summary>技能资源/实体（本人私有面；技能消耗账本，P1 ActionSystem 消费）。</summary>
+        public readonly int[] Resources;
+
+        /// <summary>比赛状态（room 级；公共面——随每份快照全量下发）。</summary>
+        public MatchStateData Match;
+
         // 非 readonly：可变结构体字段，readonly 会触发防御性拷贝丢写（见 CommandBuffer 注释）。
         public CommandBuffer Cmds;
         public FrameEventBuffer Events;
@@ -35,6 +57,11 @@ namespace LiteSim
             AliveBitmap = new uint[(SimConfig.MaxEntities + 31) / 32];
             Globals = new byte[SimConfig.GlobalsBytes];
             CustomData = new byte[SimConfig.MaxEntities * SimConfig.CustomBytesPerEntity];
+            Weapons = new WeaponRuntime[SimConfig.MaxEntities * SimConfig.WeaponSlotsPerEntity];
+            Actions = new ActionRuntime[SimConfig.MaxEntities * SimConfig.ActionSlotsPerEntity];
+            Status = new StatusSlotData[SimConfig.MaxEntities * SimConfig.StatusSlotsPerEntity];
+            MatchBag = new MatchBagSlot[SimConfig.MaxEntities * SimConfig.MatchBagSlotsPerEntity];
+            Resources = new int[SimConfig.MaxEntities];
             _versions = new ulong[SimConfig.MaxEntities];
             Cmds = new CommandBuffer { Items = new SimCommand[CommandBuffer.Capacity] };
             Events = new FrameEventBuffer { Items = new FrameEvent[FrameEventBuffer.Capacity] };
@@ -95,13 +122,20 @@ namespace LiteSim
 
         /// <summary>
         /// 释放槽位（§3.1：清 AliveBitmap 位）。Double-free/已死 Id 静默忽略；
-        /// 槽位数据清零——空槽校验值恒定，不随历史漂移（§3.6 全槽位参与校验的前提）。
+        /// 槽位数据清零——**含全部每实体运行态数组段**（武器/动作/状态/局内包/资源）：
+        /// 空槽校验值恒定、不随历史漂移（§3.6 全槽位参与校验的前提——上一占用者的残留弹药
+        /// 会让"同种子不同历史"的重放校验值分叉）。
         /// </summary>
         public void Despawn(long id)
         {
             if (!TryResolve(id, out int slotIndex)) return;
             AliveBitmap[slotIndex >> 5] &= ~(1u << (slotIndex & 31));
             Entities[slotIndex] = default;
+            Array.Clear(Weapons, slotIndex * SimConfig.WeaponSlotsPerEntity, SimConfig.WeaponSlotsPerEntity);
+            Array.Clear(Actions, slotIndex * SimConfig.ActionSlotsPerEntity, SimConfig.ActionSlotsPerEntity);
+            Array.Clear(Status, slotIndex * SimConfig.StatusSlotsPerEntity, SimConfig.StatusSlotsPerEntity);
+            Array.Clear(MatchBag, slotIndex * SimConfig.MatchBagSlotsPerEntity, SimConfig.MatchBagSlotsPerEntity);
+            Resources[slotIndex] = 0;
         }
 
         /// <summary>
@@ -143,15 +177,23 @@ namespace LiteSim
         /// 深拷快照原语（#1，M9 SnapshotRing 复用）：逐数组 Array.Copy。
         /// 不拷 Cmds/Events（帧内瞬态，§3.7/决策⑥）；
         /// _versions/_nextFree 分配器状态随快照走——否则重放期新分配的 Id 会与被恢复的旧 Id 撞车。
+        /// P0 起 Weapons/Actions/Status/MatchBag/Resources/Match 一并全量拷贝
+        /// （《游戏业务系统总设计》§1 阻塞项 ②：新字段漏 CopyTo = 回滚/重连静默分叉）。
         /// </summary>
         public void CopyTo(SimWorldState dst)
         {
             dst.Frame = Frame;
             dst.RngState = RngState;
+            dst.Match = Match;
             Array.Copy(Entities, dst.Entities, Entities.Length);
             Array.Copy(AliveBitmap, dst.AliveBitmap, AliveBitmap.Length);
             Array.Copy(Globals, dst.Globals, Globals.Length);
             Array.Copy(CustomData, dst.CustomData, CustomData.Length);
+            Array.Copy(Weapons, dst.Weapons, Weapons.Length);
+            Array.Copy(Actions, dst.Actions, Actions.Length);
+            Array.Copy(Status, dst.Status, Status.Length);
+            Array.Copy(MatchBag, dst.MatchBag, MatchBag.Length);
+            Array.Copy(Resources, dst.Resources, Resources.Length);
             Array.Copy(_versions, dst._versions, _versions.Length);
             dst._nextFree = _nextFree;
         }

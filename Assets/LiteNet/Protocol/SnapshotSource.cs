@@ -5,16 +5,17 @@ namespace LiteNet.Protocol
     /// <summary>
     /// 服务器广播状态（《M10实施指导》决策 7；前身是批② 的 <see cref="ISnapshotSource"/>）。
     ///
-    /// 两段式（多客户端必需）：<see cref="BeginFrame"/> 每广播帧一次（算差分、推进基线），
-    /// <see cref="BuildFor"/> 每客户端一次（纯读，按各自 AOI 视点过滤）——见 <see cref="SnapshotDiffer"/> 注释。
+    /// 两段式（多客户端必需）：<see cref="BeginFrame"/> 每广播帧一次（算差分、打包比赛状态层、推进基线），
+    /// <see cref="BuildFor"/> 每客户端一次（纯读，按各自 AOI 视点过滤 + 附本人私有面）——见 <see cref="SnapshotDiffer"/> 注释。
     /// </summary>
     public interface ISnapshotSource
     {
         /// <summary>每广播帧一次：算本帧变化集 / 判定全量 / 推进基线。<paramref name="forceFull"/> = 整帧强制全量。</summary>
         void BeginFrame(int frame, SimWorldState state, bool forceFull = false);
 
-        /// <summary>每客户端一次：取该客户端可见的槽位（全量帧 = 全部可见活体；增量帧 = 可见 ∩ 变化集）。</summary>
-        Proto.StateSnapshot BuildFor(int frame, SimWorldState state, int ackInput, SimVector3 viewPos, float aoiRadius);
+        /// <summary>每客户端一次：取该客户端可见的槽位（全量帧 = 全部可见活体；增量帧 = 可见 ∩ 变化集）+
+        /// 比赛状态层 + 本人私有面（<paramref name="viewerEntityId"/> ≠ 0 时）。</summary>
+        Proto.StateSnapshot BuildFor(int frame, SimWorldState state, int ackInput, SimVector3 viewPos, float aoiRadius, long viewerEntityId);
 
         /// <summary>便捷组合（单客户端/测试）：BeginFrame + BuildFor。</summary>
         Proto.StateSnapshot Build(int frame, SimWorldState state, int ackInput, SimVector3 viewPos, float aoiRadius, bool forceFull = false);

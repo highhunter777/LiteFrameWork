@@ -1,6 +1,7 @@
-// LiteNet 战斗协议单源（《状态同步实施方案》§4.5 协议矩阵 + §4.2 双通道）
+// LiteNet 战斗协议单源（《状态同步实施方案》§4.5 协议矩阵 + §4.2 双通道；P0 分层见《状态同步专项设计》§5.2）
 // 生成：scripts/gen-proto.ps1（protoc 3.36.1 / Google.Protobuf 3.36.1；产物入库 Generated/Battle.cs，勿手改）
 // 约定：float 字段 = IEEE 754 单精度，位级精确往返（M9 和解机制依赖位级一致；量化整型留带宽调优时另行评估）
+// 纪律：只增字段号，不重编号；旧端通过 buildHash 拒绝混房（《游戏业务系统总设计》§1 P0 阻塞项 ④）
 syntax = "proto3";
 package litebattle;
 option csharp_namespace = "LiteNet.Proto";
@@ -13,7 +14,11 @@ message InputFrame {
   float move_z = 3;
   float aim_x = 4;       // 瞄准方向 X（XZ；非零，长度 ≤1 由采集侧保证；朝向不再上线）
   float aim_z = 5;
-  uint32 buttons = 6;    // 字段号随 2026-09-17 瞄准改造调整（协议未发布，允许重编号）
+  uint32 buttons = 6;    // 按钮位：0 Fire / 1 Reload / 2 SwitchWeapon / 3..5 Skill1..3 / 6 Pickup / 7 UseItem / 8 Dodge(保留)
+  // ---- P0 追加（《游戏业务系统总设计》§3.2；只增不改，字段号顺延）----
+  int32 selected_weapon_slot = 7;  // SwitchWeapon 意图的目标武器槽（0..1）；仅 buttons 含 SwitchWeapon 时有效
+  int64 target_entity_id = 8;     // 意图目标实体（Pickup 的拾取物等；0 = 无目标；语义解析在 Sim 内）
+  uint32 action_seq = 9;          // 离散动作请求序号（逐玩家单调递增；服务器按 (playerId, seq) 去重防重放）
 }
 
 // ===== C→S 逐帧输入（Unreliable + ≤4 帧冗余）=====
@@ -25,8 +30,9 @@ message InputMessage {
   int32 view_frame = 4;             // 开火时刻所见帧（服务器回溯判定点 §3.4.1；无开火填 0）
 }
 
-// ===== S→C 快照（Unreliable；增量/全量同构——增量=变化槽位，全量=全部活体槽位）=====
+// ===== S→C 快照（Unreliable；增量/全量同构——增量=变化槽位，全量=全部可见活体槽位）=====
 
+// 公共实体面（PublicCombatState 层）：可见实体每人一条；私有面（弹药/CD/背包）只进 PrivateStateDelta
 message SlotDelta {
   int32 slot = 1;
   int64 id = 2;                      // 槽位活体即持此 Id；全量下可重建分配器 version（id>>16）
@@ -35,14 +41,75 @@ message SlotDelta {
   float yaw = 9;
   int32 hp = 10;
   uint32 flags = 11;
+  // ---- P0 公共战斗面追加（《状态同步专项设计》§5.2 PublicStateSnapshot：护盾/公开状态/动作摘要）----
+  int32 shield = 12;                 // 护盾（公开投影值）
+  int32 kills = 13;                  // 击杀数（KDA/比分）
+  int32 deaths = 14;                 // 死亡数
+  int32 selected_weapon = 15;        // 当前装备武器槽（-1 = 未装备；渲染武器外观）
+  int32 action_id = 16;              // 主动作摘要：动作 Id（0 = 无动作）
+  int32 action_phase = 17;           // 主动作阶段（0 None / 1 Windup / 2 Active / 3 Recovery）
+  int32 action_start_frame = 18;     // 主动作起始帧（进度/表现对齐）
+}
+
+// 比赛状态层（MatchStateSnapshot 层）：room 级、全体可见；随每份快照全量携带（自带收敛，无需差分）
+message MatchStateDelta {
+  int32 phase = 1;                   // 阶段（0 未开始 / 1 进行 / 2 结算）
+  int32 team = 2;                    // 队伍模式（0 FFA / 1 团队）
+  int32 score = 3;                    // 团队比分（FFA 恒 0；个人 KDA 在 SlotDelta）
+  int32 timer = 4;                    // 倒计时剩余帧
+  int32 round = 5;                    // 回合号
+  int64 winner = 6;                   // 胜者实体/队伍 Id（0 = 未定）
+}
+
+// 私有面（PrivateStateSnapshot 层）单元消息：只发本人（《游戏业务系统总设计》§1——禁止泄漏他人库存）
+
+message WeaponDelta {                // 单武器槽运行态（0..WeaponSlots-1 顺序填充）
+  int32 weapon_def_id = 1;
+  int32 mag_ammo = 2;
+  int32 reserve_ammo = 3;
+  int32 state = 4;                   // WeaponSlotState（0 Unequipped / 1 Ready / 2 Reloading / 3 Switching）
+  int32 next_fire_frame = 5;         // 射速节拍（整数帧）
+  int32 reload_end_frame = 6;
+  int32 equip_end_frame = 7;
+  int32 shot_seq = 8;
+}
+
+message SkillDelta {                 // 单技能槽账本（Skill1..3 顺序填充）
+  int32 action_id = 1;
+  int32 cooldown_end = 2;
+  int32 charges = 3;
+}
+
+message StatusDelta {                // 单状态效果槽（0..3 顺序填充）
+  int32 effect_id = 1;
+  int32 end_frame = 2;
+  int32 param = 3;
+}
+
+message BagSlotDelta {               // 局内背包单格（0..11 顺序填充）
+  int32 item_def_id = 1;
+  int32 count = 2;
+  int32 quick_slot = 3;
+}
+
+message PrivateStateDelta {          // 本人私有状态全量（每份快照携带，自带丢包收敛）
+  int64 entity_id = 1;               // 归属实体（客户端据此定位槽位写入）
+  int32 resource = 2;                // 技能资源
+  repeated WeaponDelta weapons = 3;
+  repeated SkillDelta skills = 4;
+  repeated StatusDelta status = 5;
+  repeated BagSlotDelta bag = 6;
 }
 
 message StateSnapshot {
   int32 frame = 1;
   bool is_full = 2;                  // 全量：快照丢包累积补偿/重连恢复用；增量：对比上一广播帧副本
   repeated SlotDelta slots = 3;
-  uint32 checksum = 4;               // 权威 Sim 全量校验（客户端和解判定：本地预测 checksum vs 此值）
+  uint32 checksum = 4;               // **公共口径**校验（SimChecksum.ComputePublicChecksum：快照可重建层的和解锚点）
   int32 ack_input = 5;               // 服务器已确认的最新输入帧号（下限口径）
+  // ---- P0 分层追加（《状态同步专项设计》§5.2：比赛状态层 + 本人私有层）----
+  MatchStateDelta match = 6;
+  PrivateStateDelta private_state = 7;   // 仅本人快照携带（RoomServer 按会话填充）
 }
 
 // ===== 信令（Reliable）=====
@@ -68,7 +135,7 @@ message ReconnectRequest { string one_time_token = 1; }   // E3：一次性票�
 message ReconnectResponse {
   bool ok = 1;
   string reason = 4;                        // 失败原因（批③ 追加）
-  StateSnapshot snapshot = 2;               // 权威快照（首选路径 §5.6）
+  StateSnapshot snapshot = 2;               // 权威快照（首选路径 §5.6）：公共全量 + 比赛状态 + 本人私有状态（P0 分层）
   repeated InputMessage history = 3;        // 后续输入历史（客户端据此在快照帧上续跑，无需重放全史）
 }
 

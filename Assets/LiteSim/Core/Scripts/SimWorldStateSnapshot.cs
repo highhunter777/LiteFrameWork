@@ -5,9 +5,11 @@ namespace LiteSim
     /// 服务器不能为"上一广播帧副本"再养一份 SimWorldState（快照环已占 16 份）。
     ///
     /// 字段取舍（与 <see cref="SimChecksum"/> 覆盖项逐项对齐，防"摘要漏字段 → 差分漏发 → 客户端静默分叉"）：
-    /// - **含**：全部逻辑字段（Id/Pos/Vel/Yaw/Hp/Flags）+ Frame + RngState + 活体位图。
-    /// - **不含**：Globals/CustomData（M8 未消费，全零；消费方落地时**必须**同步扩展本摘要——
-    ///   <c>Protocol.SnapshotDiffer</c> 的"全量走快照环"路径自动跟上，因为该路径对比的就是 <see cref="SimWorldState"/> 本身）。
+    /// - **含**：全部公共逻辑字段（Id/Pos/Vel/Yaw/Hp/Flags/Shield/Kills/Deaths/SelectedWeapon）
+    ///   + **主动作摘要**（ActionId/StartFrame/Phase——差分基线必须覆盖线上 SlotDelta 会发的每个字段）
+    ///   + Frame + RngState + 活体位图。
+    /// - **不含**：Globals/CustomData/武器/技能/状态/局内包/资源（私有面与扩展 blob 不进公共差分——
+    ///   私有层每包全量发本人，Globals/CustomData 由 <c>SnapshotDiffer.GlobalsDiffer</c> 探针兜底转全量）。
     /// - **不含**：分配器 _versions/_nextFree（非逻辑字段，不进 checksum）。
     ///
     /// float 字段按**位型**比较（<c>SingleToInt32Bits</c>）——+0/-0 位型不同即算变化：
@@ -22,6 +24,15 @@ namespace LiteSim
         public int Hp;
         public uint Flags;
 
+        // ---- P0 公共战斗面 + 主动作摘要（SlotDelta 全字段对齐）----
+        public int Shield;
+        public int Kills;
+        public int Deaths;
+        public int SelectedWeapon;
+        public int ActionId;
+        public int ActionStartFrame;
+        public ActionPhase ActionPhase;
+
         /// <summary>与另一槽位逐字段位级相等（RngState/Frame 不在此——它们在 <see cref="SimWorldStateSnapshot"/> 头部）。</summary>
         public static bool BitEqual(in EntitySnapshotEntry a, in EntitySnapshotEntry b)
         {
@@ -29,7 +40,10 @@ namespace LiteSim
                 && BitUtil.Equal(a.Pos.X, b.Pos.X) && BitUtil.Equal(a.Pos.Y, b.Pos.Y) && BitUtil.Equal(a.Pos.Z, b.Pos.Z)
                 && BitUtil.Equal(a.Vel.X, b.Vel.X) && BitUtil.Equal(a.Vel.Y, b.Vel.Y) && BitUtil.Equal(a.Vel.Z, b.Vel.Z)
                 && BitUtil.Equal(a.Yaw, b.Yaw)
-                && a.Hp == b.Hp && a.Flags == b.Flags; // lint-allow R3（整型血量/标志位判等，非浮点精度比较）
+                && a.Hp == b.Hp && a.Flags == b.Flags // lint-allow R3（整型血量/标志位判等，非浮点精度比较）
+                && a.Shield == b.Shield && a.Kills == b.Kills && a.Deaths == b.Deaths // lint-allow R3（整型判等，非浮点精度比较）
+                && a.SelectedWeapon == b.SelectedWeapon // lint-allow R3（整型判等，非浮点精度比较）
+                && a.ActionId == b.ActionId && a.ActionStartFrame == b.ActionStartFrame && a.ActionPhase == b.ActionPhase; // lint-allow R3（整型/枚举判等，非浮点精度比较）
         }
     }
 
@@ -62,19 +76,22 @@ namespace LiteSim
             for (int i = 0; i < SimConfig.MaxEntities; i++)
             {
                 if (!s.IsAlive(i)) continue;
-                Entities[i] = Capture(s.Entities[i]);
+                Entities[i] = Capture(s, i);
             }
         }
 
         /// <summary>槽位是否与摘要逐字段位级一致（活体集合不同即视为不一致——上层按"活体数变化"整体重建）。</summary>
-        public bool Matches(int slot, in EntitySlot e)
+        public bool Matches(int slot, in SimWorldState s)
         {
-            return EntitySnapshotEntry.BitEqual(Entities[slot], Capture(e));
+            return EntitySnapshotEntry.BitEqual(Entities[slot], Capture(s, slot));
         }
 
-        /// <summary>槽位 → 摘要项（CaptureFull 与 Matches 共用同一份字段搬运，防两处字段清单漂移）。</summary>
-        public static EntitySnapshotEntry Capture(in EntitySlot e)
+        /// <summary>槽位 → 摘要项（含主动作摘要——需取 <see cref="SimWorldState.Actions"/>，
+        /// 故入口吃整个 state）。CaptureFull 与 Matches 共用同一份字段搬运，防两处字段清单漂移。</summary>
+        public static EntitySnapshotEntry Capture(in SimWorldState s, int slot)
         {
+            ref EntitySlot e = ref s.Entities[slot];
+            ref ActionRuntime a = ref s.Actions[slot * SimConfig.ActionSlotsPerEntity];   // 主动作槽
             EntitySnapshotEntry entry;
             entry.Id = e.Id;
             entry.Pos = e.Pos;
@@ -82,6 +99,13 @@ namespace LiteSim
             entry.Yaw = e.Yaw;
             entry.Hp = e.Hp;
             entry.Flags = e.Flags;
+            entry.Shield = e.Shield;
+            entry.Kills = e.Kills;
+            entry.Deaths = e.Deaths;
+            entry.SelectedWeapon = e.SelectedWeapon;
+            entry.ActionId = a.ActionId;
+            entry.ActionStartFrame = a.StartFrame;
+            entry.ActionPhase = a.Phase;
             return entry;
         }
     }

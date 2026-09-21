@@ -169,8 +169,11 @@ namespace LiteSim
         ///
         /// - **快照超前**（frame &gt; 本地已执行帧——预测停摆/halt 态）：直接权威覆盖续跑（快照覆盖兜底语义）。
         /// - **帧太老**（环窗口外）：无法重放中间预测——直接权威覆盖（丢中间预测，下一次快照再纠）。
-        /// - **环内**：本地预测@frame 的 checksum 与权威比对——一致 = 零和解；不符 = Restore 权威 + 重放
-        ///   frame+1..last（全体输入：本地真实 + 远端沿用——远端误差由下一次快照再纠，v3 预期内）。
+        /// - **环内**：本地预测@frame 的 **公共口径 checksum**（<see cref="SimChecksum.ComputePublicChecksum"/>，
+        ///   P0 起线上 StateSnapshot.checksum 只覆盖"快照可重建 + 可预测"层）与权威比对——一致 = 零和解；
+        ///   不符 = Restore 权威 + 重放 frame+1..last（全体输入：本地真实 + 远端沿用——远端误差由下一次快照再纠，v3 预期内）。
+        ///   私有面（他人弹药/技能 CD/背包/资源、RngState、状态明细）客户端永远无法重建，不进比对口径——
+        ///   否则每份快照必假和解（P0 口径定案，见 SimChecksum 类注释）。
         ///
         /// 返回 true = 发生和解（调用方上报 MismatchReport）。
         /// </summary>
@@ -188,10 +191,10 @@ namespace LiteSim
                 return true;
             }
 
-            // 环内：本地预测@frame checksum 比对（位级——和解判定的位级锚点）
+            // 环内：本地预测@frame 公共口径 checksum 比对（位级——和解判定的位级锚点）
             _probe = _probe ?? new SimWorldState();
             _ring.TryRestore(frame, _probe);
-            uint localChecksum = SimChecksum.ComputeChecksum(_probe);
+            uint localChecksum = SimChecksum.ComputePublicChecksum(_probe);
 
             if (localChecksum == authoritativeChecksum) return false;   // 预测正确——零和解（lint-allow R3：uint 位级判等，非浮点精度比较）
 

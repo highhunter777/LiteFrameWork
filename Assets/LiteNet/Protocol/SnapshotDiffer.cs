@@ -23,13 +23,16 @@ namespace LiteNet.Protocol
     /// 金标是**轻量摘要**不是全量 SimWorldState（见 <see cref="SimWorldStateSnapshot"/>）：
     /// 服务器已为回溯环养 16 份全量状态，广播基线不该再养一份。
     ///
-    /// 字段覆盖与 <see cref="SimChecksum"/> 对齐（Id/Pos/Vel/Yaw/Hp/Flags）；Globals/CustomData 由
-    /// <see cref="GlobalsDiffer"/> 兜底（有变化即转全量），新增逻辑字段必须同步扩展摘要。
+    /// 字段覆盖与 <see cref="SimChecksum"/>（公共口径）对齐：Id/Pos/Vel/Yaw/Hp/Flags/Shield/Kills/Deaths/
+    /// SelectedWeapon + 主动作摘要（P0 公共战斗面）；Globals/CustomData 由 <see cref="GlobalsDiffer"/> 兜底
+    /// （有变化即转全量），新增公共逻辑字段必须同步扩展摘要。
+    /// 私有面（武器弹药/技能 CD/状态明细/局内包/资源）不走差分——随每份快照全量发本人（SnapshotCodec.PackPrivate）。
     /// </summary>
     public sealed class SnapshotDiffer : ISnapshotSource
     {
         private readonly SimWorldStateSnapshot _baseline = new SimWorldStateSnapshot();
         private readonly AoiFilter _aoi = new AoiFilter();          // 实例持有网格（多房间/多实例互不串味）
+        private Proto.MatchStateDelta _match;                       // 本帧比赛状态（BeginFrame 打包一次，BuildFor 复用）
 
         /// <summary>AOI 网格外活体数（诊断/Ops）：>0 = 地图超出 `SimConfig.AoiGridExtentMeters`——
         /// 已按视点距离兜底不漏发，但应把覆盖半径调大（否则每帧多一圈距离判定）。</summary>
@@ -62,7 +65,6 @@ namespace LiteNet.Protocol
         /// </summary>
         public void BeginFrame(int frame, SimWorldState state, bool forceFull = false)
         {
-            uint checksum = SimChecksum.ComputeChecksum(state);
             bool aliveChanged = !_baselineValid || state.AliveCount() != _baseline.AliveCount;
             bool dueFull = _lastFullFrame != int.MinValue && frame - _lastFullFrame >= ProtocolConstants.FullEveryFrames;
             bool full = forceFull || aliveChanged || dueFull;
@@ -76,7 +78,7 @@ namespace LiteNet.Protocol
             for (int i = 0; i < SimConfig.MaxEntities; i++)
             {
                 if (!state.IsAlive(i)) continue;
-                if (!full && _baseline.Matches(i, in state.Entities[i])) continue;
+                if (!full && _baseline.Matches(i, in state)) continue;   // 未变化槽位跳过（全量帧=全活体）
                 _changed.Add(i);
             }
 
@@ -92,20 +94,22 @@ namespace LiteNet.Protocol
                 for (int c = 0; c < _changed.Count; c++)
                 {
                     int slot = _changed[c];
-                    _baseline.Entities[slot] = SimWorldStateSnapshot.Capture(state.Entities[slot]);
+                    _baseline.Entities[slot] = SimWorldStateSnapshot.Capture(in state, slot);
                 }
                 DeltaCount++;
             }
 
             _baselineValid = true;
             _lastBroadcastFrame = frame;
+            _match = SnapshotCodec.PackMatch(state);              // 比赛状态层：每广播帧打包一次（全房同值）
         }
 
         /// <summary>
-        /// **每客户端调一次**：取该客户端可见的槽位（全量帧 = 全部可见活体；增量帧 = 可见 ∩ 变化集）。
+        /// **每客户端调一次**：取该客户端可见的槽位（全量帧 = 全部可见活体；增量帧 = 可见 ∩ 变化集）+
+        /// 比赛状态层 + **本人私有面**（<paramref name="viewerEntityId"/> ≠ 0 时附 PrivateState——只发本人）。
         /// 纯读——不推进任何状态（同帧多次调用结果一致）。
         /// </summary>
-        public Proto.StateSnapshot BuildFor(int frame, SimWorldState state, int ackInput, SimVector3 viewPos, float aoiRadius)
+        public Proto.StateSnapshot BuildFor(int frame, SimWorldState state, int ackInput, SimVector3 viewPos, float aoiRadius, long viewerEntityId)
         {
             _visible.Clear();
             _aoi.CollectVisible(in state, viewPos, aoiRadius, _visible);
@@ -114,14 +118,18 @@ namespace LiteNet.Protocol
             {
                 Frame = frame,
                 IsFull = _frameFull,
-                Checksum = SimChecksum.ComputeChecksum(state),   // 和解判定锚点（增量也带全量校验值）
+                Checksum = SimChecksum.ComputePublicChecksum(state),   // 和解判定锚点（增量也带公共口径校验值）
                 AckInput = ackInput,
+                Match = _match,                                        // 比赛状态层（全体同值）
             };
+            if (viewerEntityId != 0L)
+                msg.PrivateState = SnapshotCodec.PackPrivate(state, viewerEntityId);   // 私有层：只发本人
 
             if (_frameFull)
             {
                 for (int v = 0; v < _visible.Count; v++)
-                    msg.Slots.Add(SnapshotCodec.ToDelta(_visible[v], state.Entities[_visible[v]]));
+                    msg.Slots.Add(SnapshotCodec.ToDelta(_visible[v], state.Entities[_visible[v]],
+                        state.Actions[_visible[v] * SimConfig.ActionSlotsPerEntity]));
             }
             else
             {
@@ -130,7 +138,8 @@ namespace LiteNet.Protocol
                 {
                     int slot = _changed[c];
                     if (!ContainsSorted(_visible, slot)) continue;
-                    msg.Slots.Add(SnapshotCodec.ToDelta(slot, state.Entities[slot]));
+                    msg.Slots.Add(SnapshotCodec.ToDelta(slot, state.Entities[slot],
+                        state.Actions[slot * SimConfig.ActionSlotsPerEntity]));
                 }
             }
 
@@ -138,11 +147,11 @@ namespace LiteNet.Protocol
             return msg;
         }
 
-        /// <summary>便捷组合（单客户端/测试）：BeginFrame + BuildFor。</summary>
+        /// <summary>便捷组合（单客户端/测试）：BeginFrame + BuildFor（无私有面）。</summary>
         public Proto.StateSnapshot Build(int frame, SimWorldState state, int ackInput, SimVector3 viewPos, float aoiRadius, bool forceFull = false)
         {
             BeginFrame(frame, state, forceFull);
-            return BuildFor(frame, state, ackInput, viewPos, aoiRadius);
+            return BuildFor(frame, state, ackInput, viewPos, aoiRadius, viewerEntityId: 0L);
         }
 
         public Proto.StateSnapshot Build(int frame, SimWorldState state, int ackInput)

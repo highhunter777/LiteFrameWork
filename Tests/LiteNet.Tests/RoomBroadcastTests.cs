@@ -106,6 +106,40 @@ namespace LiteNet.Tests
         }
 
         [Fact]
+        public void 广播私有面_各客户端只收到本人私有态_比赛状态全体同值()
+        {
+            var (room, capture, s1, s2) = BuildStartedRoom();
+
+            // 各玩家私有运行态不同（弹药数——只应出现在本人的快照里，业务总设计 §1 禁泄漏）
+            room.AuthSim.Weapons[0 * SimConfig.WeaponSlotsPerEntity].MagAmmo = 30;
+            room.AuthSim.Weapons[1 * SimConfig.WeaponSlotsPerEntity].MagAmmo = 8;
+            room.AuthSim.Match = new MatchStateData { Phase = 1, Timer = 10800, Round = 1 };
+
+            for (int i = 0; i < 4; i++) room.StepFrame();
+
+            List<StateSnapshot> a = capture.SnapshotsFor(s1);
+            List<StateSnapshot> b = capture.SnapshotsFor(s2);
+            Assert.True(a.Count > 0 && b.Count > 0);
+
+            foreach (StateSnapshot snap in a)
+            {
+                Assert.NotNull(snap.PrivateState);
+                Assert.Equal(room.EntityIdOf(0), snap.PrivateState.EntityId);
+                Assert.Equal(30, snap.PrivateState.Weapons[0].MagAmmo);   // 自己的弹药
+                Assert.Equal(0, snap.PrivateState.Weapons[1].MagAmmo);    // 另一武器槽空（不是别人的量）
+                Assert.NotNull(snap.Match);                                // 比赛状态层随广播
+                Assert.Equal(1, snap.Match.Phase);
+                Assert.Equal(10800, snap.Match.Timer);
+            }
+            foreach (StateSnapshot snap in b)
+            {
+                Assert.NotNull(snap.PrivateState);
+                Assert.Equal(room.EntityIdOf(1), snap.PrivateState.EntityId);
+                Assert.Equal(8, snap.PrivateState.Weapons[0].MagAmmo);
+            }
+        }
+
+        [Fact]
         public void 背压超限_该客户端降档抽帧_其余客户端不受拖累()
         {
             var (room, capture, s1, s2) = BuildStartedRoom();
@@ -136,8 +170,15 @@ namespace LiteNet.Tests
             room.OnClientAck(s1, room.AuthSim.Frame);
             int tierAfterAck = s1.BackpressureTier;
 
-            // 恢复需要连续达标 2s（120 帧）→ 跑够时间
-            for (int i = 0; i < ProtocolConstants.RecoverHoldMillis * SimConfig.TickRate / 1000 + 5; i++) room.StepFrame();
+            // 恢复需要连续达标 2s（120 帧）→ 跑够时间。
+            // P0 起快照分层携带比赛状态 + 本人私有面（每包约 +60B）——单次 ack 后队列会重新积压，
+            // "只 ack 一次就静默恢复"的经济性不再成立；真实客户端每输入包都带 ack_snapshot（§4.5），
+            // 这里对齐真实反馈节奏：每步 ack（水位维持 ≤ 阈值 40%）→ 恢复判据才可稳定观测
+            for (int i = 0; i < ProtocolConstants.RecoverHoldMillis * SimConfig.TickRate / 1000 + 5; i++)
+            {
+                room.StepFrame();
+                room.OnClientAck(s1, room.AuthSim.Frame);
+            }
 
             Assert.True(s1.BackpressureTier < tierAfterAck || s1.BackpressureTier == 0,
                 $"水位回落后应恢复档位（tier {tierAfterAck} → {s1.BackpressureTier}）");
