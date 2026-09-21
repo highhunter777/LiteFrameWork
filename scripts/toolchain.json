@@ -1,0 +1,53 @@
+{
+  "$comment": "机器可读工具链清单——《商业级通用客户端框架总设计》§14.1。restore-check.ps1 依据本文件校验环境。",
+  "name": "litegame-toolchain",
+  "updatedAt": "2026-09-21",
+  "unity": {
+    "version": "2022.3.55f1c1",
+    "revision": "06b99830297d",
+    "edition": "Unity China",
+    "source": "https://unity.cn/download"
+  },
+  "dotnet": {
+    "sdk": "8.0",
+    "purpose": "L1/L3 测试（Tests/Tests.slnx）、RoomServer"
+  },
+  "python": {
+    "minVersion": "3.10",
+    "packages": ["openpyxl"],
+    "purpose": "Luban/gen_lua_keys.py（gen.bat 第三步）"
+  },
+  "generators": {
+    "luban": "vendored: Luban/（gen.bat，表链唯一生成入口）",
+    "xlua": "self-provided: Tools/（XLuaGenerate.exe，重生成 xLua 适配代码时需要）",
+    "protobuf": "scripts/gen-proto.ps1（协议重新生成时需要 protoc）"
+  },
+  "packages": {
+    "vendored": [
+      { "name": "com.tuyoogame.yooasset", "version": "3.0.5", "license": "MIT", "path": "Packages/com.tuyoogame.yooasset" },
+      { "name": "com.code-philosophy.luban", "version": "见 package.json", "license": "MIT", "path": "Packages/com.code-philosophy.luban" }
+    ],
+    "registry": "Packages/manifest.json（com.unity.* 固定版本）",
+    "localTooling": ["Packages/MCPForUnity", "Packages/com.unity.pipeline"]
+  },
+  "paidOrRestrictedPlugins": [
+    {
+      "name": "Odin Inspector",
+      "version": "4.0.2.3",
+      "path": "Assets/Plugins/Sirenix",
+      "license": "按席位付费，不可再分发——克隆后须自行安装",
+      "consumer": "LiteGame.Editor（标记工具/编排器）"
+    },
+    {
+      "name": "DOTween",
+      "path": "Assets/Plugins/Demigiant",
+      "license": "免费，Asset Store 分发（仓库仅跟踪部分文件）——克隆后须补装",
+      "consumer": "UiFx/转场（LiteGame.Runtime asmdef 引用 DOTween.Modules）"
+    }
+  ],
+  "android": {
+    "status": "未配置",
+    "requires": ["JDK 11", "Android SDK (API 34)", "Android NDK (r23+)"],
+    "note": "C0-② 构建 Android IL2CPP 前须安装；restore-check 以警告报告，不阻塞 Windows 开发"
+  }
+}
