@@ -1,0 +1,19 @@
+{
+  "$comment": "Player build profile - Client Framework Master Design 14.2. scripts/build-player.ps1 validates and drives the pipeline build from this file. KEEP ASCII-ONLY (PS 5.1 GBK parsing).",
+  "profileName": "windows-x64-il2cpp-dev",
+  "updatedAt": "2026-09-22",
+  "environment": "dev",
+  "channel": "development",
+  "platform": "StandaloneWindows64",
+  "buildTargetGroup": "Standalone",
+  "backend": "IL2CPP",
+  "architecture": "x86_64",
+  "scenes": ["Assets/Scenes/Test.unity"],
+  "defines": [],
+  "contentMode": "OfflineBundles",
+  "endpoints": {},
+  "signing": { "mode": "none" },
+  "stripping": { "level": "Minimal" },
+  "debugSymbols": true,
+  "output": "Builds/StandaloneWindows64"
+}

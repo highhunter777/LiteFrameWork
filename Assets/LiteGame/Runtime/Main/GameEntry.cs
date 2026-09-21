@@ -112,8 +112,11 @@ namespace LiteGame
             s_container.RegisterInstance<GameSettings>(gameSettings);
 
             // 6. 调试组件注入（同 GameObject；均为可选——未挂即跳过）
+            //    守卫与 DebugTuner/M0SelfTestRunner 定义处一致：release Player 下类型被条件编译移除。
+#if UNITY_EDITOR || DEVELOPMENT_BUILD || LITEFRAMEWORK_DEBUG
             GetComponent<DebugTuner>()?.Inject(worldClock, uiClock, events);
             GetComponent<M0SelfTestRunner>()?.Inject(s_container.Tickables, s_container.Stats);
+#endif
             // DevHUD 跨程序集（LiteGame.DevHUD → LiteGame.Runtime 单向），自拉取：见 DevHUD.Start
 
             DontDestroyOnLoad(gameObject);
