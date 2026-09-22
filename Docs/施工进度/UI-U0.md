@@ -53,7 +53,7 @@
 
 - 提交前工作区发现 `.github/workflows/ci.yml` 带有对已提交 C0-④ 接线的**重复追加**（L0 扫描×2、Player 构建/冒烟×2、超时 60→90）——属坏编辑，已回退到已验证的 HEAD 版本；本批提交不含该文件。
 - 复核门禁（最终工作区态）：L1 `scripts/test.ps1 -Lane L1` **407 通过 / 0 失败**（=R0 后 405 + SafeCall.TryInvoke 2 例；记录中 416 为未过滤全量口径，含 EndToEnd/LongRunning 标记用例，两口径自洽）；Unity recompile `errors:[]`；**L2 EditMode 36/36 通过**；**L3 8 项通过**（含 30s 双端对跑——UI 批不触服务端面，回归确认无串扰）。
-- 提交哈希：见文末补记。
+- 提交哈希：d72f0e1（feat(u0) UI 正确性止血，19 文件，已推送 origin/LiteGame；含本记录）。
 
 ## 已知边界（后续批次）
 
