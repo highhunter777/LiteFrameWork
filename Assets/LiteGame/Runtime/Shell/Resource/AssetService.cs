@@ -13,8 +13,8 @@ namespace LiteGame
     /// 契约（写给未来读代码的人）：
     /// ① location 统一使用资源完整路径（如 "Assets/LiteGame/RawFile/Config/demo_tbitem.bytes"）——手册 M2 坑位：RawFile location 用完整路径；
     /// ② UniTask 签名（§7.7），底层 YooAsset 3.0.5（经 UniTaskAssetExtensions 适配）；初始化必须先于一切加载（ProcedurePreload 驱动）；
-    /// ③ M2 只交付 EditorSimulateMode（编辑器模拟：VirtualAssetBundle 虚拟构建 + 编辑器文件系统直读）；
-    ///    Offline/Host/Web 模式与热更流程是 M6 的事（YooAssetComponent 试验件为参考）；
+    /// ③ EditorSimulateMode（编辑器开发）与 OfflinePlayMode（Player 内置包，C0-③）已交付；
+    ///    Host/Web 模式与热更流程归 C1 内容更新线（试验件 YooAssetComponent 仅参考）；
     /// ④ 每个句柄用完 Release（本类内部完成），无句柄外泄；加载失败抛 InvalidOperationException 带 location——fail-fast 由流程 Fail() 接；
     /// ⑤ 主线程 only（YooAsset 操作无线程安全承诺，§7.4 同款纪律）。
     /// </summary>
@@ -38,8 +38,12 @@ namespace LiteGame
         }
 
         /// <summary>
-        /// 初始化资源包（EditorSimulateMode）。由 ProcedurePreload 调用一次，重复调用幂等。
-        /// YooAsset 3.0.x 链路：模拟构建虚拟包 → 挂编辑器文件系统 → 请求版本 → 加载清单（清单加载独立于初始化，3.0 拆分）。
+        /// 初始化资源包。由 ProcedurePreload 调用一次，重复调用幂等。
+        /// Editor：EditorSimulateMode（虚拟构建 + 编辑器文件系统直读，零构建成本）。
+        /// Player：OfflinePlayMode（C0-③）——内置包（StreamingAssets/yoo）加载，无网络下载；
+        ///         StreamingAssets 无内置包时初始化失败 → 流程 Fail → 错误 UI（可诊断，不静默）。
+        /// Host/Web 模式与热更流程归 C1 内容更新线（总设计 §8.1）。
+        /// 共享尾段：Initialize → 请求版本 → 加载清单（模拟/离线均由对应文件系统应答，3.0 拆分）。
         /// </summary>
         public static async UniTask InitAsync(string packageName = DefaultPackageName, CancellationToken ct = default)
         {
@@ -54,13 +58,25 @@ namespace LiteGame
             // 编辑器模拟：先执行模拟构建生成虚拟包根目录，再用编辑器文件系统加载
             PackageBuildResult simulateResult =
                 EditorSimulateBuildInvoker.Build(packageName, (int)EBundleType.VirtualAssetBundle);
-            var options = new EditorSimulateModeOptions
+            InitializePackageOptions initializeOptions = new EditorSimulateModeOptions
             {
                 EditorFileSystemParameters =
                     FileSystemParameters.CreateDefaultEditorFileSystemParameters(simulateResult.PackageRootDirectory),
             };
+#else
+            // Player：OfflinePlayMode——内置文件系统从 StreamingAssets 应答版本/清单/Bundle
+            if (!YooAssets.IsInitialized) YooAssets.Initialize();
+            if (!YooAssets.TryGetPackage(packageName, out var package))
+                package = YooAssets.CreatePackage(packageName);
+            s_package = package;
 
-            await package.InitializePackageAsync(options).AsUniTask(ct);
+            InitializePackageOptions initializeOptions = new OfflinePlayModeOptions
+            {
+                BuiltinFileSystemParameters = FileSystemParameters.CreateDefaultBuiltinFileSystemParameters(),
+            };
+#endif
+
+            await package.InitializePackageAsync(initializeOptions).AsUniTask(ct);
 
             RequestPackageVersionOperation versionOp = package.RequestPackageVersionAsync();
             await versionOp.AsUniTask(ct);
@@ -71,10 +87,6 @@ namespace LiteGame
 
             s_initialized = true;
             Log.Info($"AssetService 就绪:package \"{packageName}\" version {package.GetPackageVersion()}", "Asset");
-#else
-            throw new NotSupportedException(
-                "AssetService.InitAsync:M2 仅支持 EditorSimulateMode——Offline/Host/Web 模式与热更流程随 M6 交付");
-#endif
         }
 
         /// <summary>加载资源对象。失败抛（含 location），句柄内部 Release。</summary>
