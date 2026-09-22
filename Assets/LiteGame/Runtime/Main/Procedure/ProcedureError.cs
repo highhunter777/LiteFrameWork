@@ -33,12 +33,12 @@ namespace LiteGame
                 ShowMinimalErrorUI(message);
                 Log.Error($"{SmokeMarker} minimal error UI shown - see Player.log", "Procedure");
             }
+            catch (OperationCanceledException) { /* 正常取消，静默 */ }
             catch (Exception uiEx)
             {
                 // 错误 UI 自身失败不能吞掉原始错误——两处都落日志（Player.log 冒烟断言仍可命中第一条）
                 Log.Error($"{SmokeMarker} UI 创建失败:{uiEx.Message}", "Procedure");
             }
-            catch (OperationCanceledException) { /* 正常取消，静默 */ }
         }
 
         /// <summary>

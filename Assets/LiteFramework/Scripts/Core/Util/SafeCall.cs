@@ -20,6 +20,21 @@ namespace LiteFramework
             }
         }
 
+        /// <summary>
+        /// 成败可判的调用（无返回值）：异常同样被隔离并记录，但调用方拿得到"这一步失败了"——
+        /// 用于**必须能回滚**的编排步骤（如 UI 首次打开 OnInit/OnShow 失败要清理半成品，§4.1），
+        /// 避免用返回值伪造成功（"Active + 空逻辑"伪装）。
+        /// </summary>
+        public static bool TryInvoke(Action call, string where)
+        {
+            try { call(); return true; }
+            catch (Exception ex)
+            {
+                Log.Error($"[SafeCall:{where}] {ex.GetType().Name}:{ex.Message}", "SafeCall");
+                return false;
+            }
+        }
+
         /// <summary>带返回值调用：抛异常被隔离并返回 fallback（调用方拿到确定值，不走半执行态）。</summary>
         public static T Invoke<T>(Func<T> call, string where, T fallback = default)
         {

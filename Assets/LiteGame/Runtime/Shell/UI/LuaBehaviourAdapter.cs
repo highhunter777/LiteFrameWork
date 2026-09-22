@@ -19,15 +19,19 @@ namespace LiteGame
     }
 
     /// <summary>
-    /// 生命周期桥（M4 §2.3，手册步骤 3，设计方案 §4.3）：持注册表取出的逻辑表，
-    /// 把 IUIFormLogic 七回调翻译成 `self:OnInit/OnShow/...`。
+    /// 生命周期桥（M4 §2.3，手册步骤 3；实例与调用契约按《UI框架总设计》§5.1 修订）：
+    /// 注册表存的是**模块表**，本适配器即**实例工厂**——构造期执行 `module.new()` 得到页面实例
+    /// （无 `new` 的旧式逻辑表退化为"模块自身即实例"），把 IUIFormLogic 七回调翻译成
+    /// `self:OnInit/OnShow/...`（冒号定义的生命周期方法显式传 self）。
     /// ① 七个 LuaFunction 构造期一次取齐缓存（OnUpdate 每帧路径禁反复 Get）；
     /// ② 方法缺失 = 静默跳过（界面可只写需要的回调）；
     /// ③ 异常防护由 UIForm 层的 SafeCall 统一承担（单回调抛 = 该界面降级，不炸壳）；
-    /// ④ 数据回传解包：LuaUIData → 原始 LuaTable；C# 自定义 IUIData 原样传入（userdata）。
-    /// ⑤ 受控 API 面（§2.4）：OnInit 建绑定索引 + 挂 `self.ui` 门面表（通用派发器，whitelist 单委托
+    /// ④ 数据回传解包：LuaUIData → 原始 LuaTable；C# 自定义 IUIData 原样传入（userdata）；
+    /// ⑤ 受控 API 面（§2.4）：OnInit 建绑定索引 + 给**实例**挂 `self.ui` 门面表（通用派发器，whitelist 单委托
     ///    Action&lt;string, LuaTable&gt;——EventBridge 同款手法，零新增生成）；OnHide 解绑全部按钮
-    ///    （池化复用跨环境的安全垫）。DevReload 语义：重载编排"先全关再重建"，适配器无跨 env 状态。
+    ///    （池化复用跨环境的安全垫）；
+    /// ⑥ **所有权分开（§5.1）**：注册表拥有模块引用，页面拥有实例与回调引用——<see cref="Release"/>
+    ///    只释放实例/回调/ui 门面表，**绝不 Dispose 共享模块**。
     /// </summary>
     public sealed class LuaBehaviourAdapter : IUIFormLogic
     {
@@ -55,14 +59,21 @@ return {
 }";
 
         private readonly LuaEnv _env;
-        private readonly LuaTable _logic;
+        private readonly LuaTable _module;                 // 注册表拥有的共享模块（不 Dispose）
+        private readonly LuaTable _instance;               // 本页面实例（module.new() 产物或模块自身）
         private readonly LuaFunction _onInit, _onShow, _onUpdate, _onPause, _onCover, _onReveal, _onHide;
+        private readonly object[] _selfArgs = new object[1];    // self 复用（零参回调热路径零分配）
+        private readonly object[] _selfArgs2 = new object[2];   // self + data
+        private readonly object[] _selfArgs3 = new object[3];   // self + form + data（OnInit）
         private UIBindIndex _index;
+        private LuaTable _apiTable;
+        private bool _released;
 
-        public LuaBehaviourAdapter(LuaEnv env, LuaTable logic)
+        public LuaBehaviourAdapter(LuaEnv env, LuaTable module)
         {
             _env = env ?? throw new ArgumentNullException(nameof(env));
-            _logic = logic ?? throw new ArgumentNullException(nameof(logic));
+            _module = module ?? throw new ArgumentNullException(nameof(module));
+            _instance = CreateInstance(_module);
             _onInit = GetFn("OnInit");
             _onShow = GetFn("OnShow");
             _onUpdate = GetFn("OnUpdate");
@@ -70,6 +81,26 @@ return {
             _onCover = GetFn("OnCover");
             _onReveal = GetFn("OnReveal");
             _onHide = GetFn("OnHide");
+        }
+
+        /// <summary>
+        /// 实例工厂（§5.1）：模块有 `new` → 执行 `module.new()`，返回非 table 即注册失败；
+        /// 无 `new` 的旧式逻辑表（直接 `return { OnShow = ... }`）= 模块自身即实例。
+        /// </summary>
+        private static LuaTable CreateInstance(LuaTable module)
+        {
+            var ctor = module.Get<LuaFunction>("new");
+            if (ctor == null) return module;
+            try
+            {
+                var result = ctor.Call(module);
+                if (result != null && result.Length > 0 && result[0] is LuaTable instance) return instance;
+                throw new InvalidOperationException("模块 new() 未返回 table——实例工厂契约（§5.1）");
+            }
+            finally
+            {
+                ctor.Dispose();
+            }
         }
 
         public void OnInit(UIForm form, IUIData data)
@@ -83,34 +114,48 @@ return {
             _env.DoString("__ui_api_c = nil");
             if (shim != null && shim.Length > 0 && shim[0] is LuaTable apiTable)
             {
-                _logic.Set<string, LuaTable>("ui", apiTable);   // Lua 侧 self.ui:OnButton / SetText / ...
+                _apiTable?.Dispose();                          // 复用后再跑 OnInit（换表重建）：旧门面表放手
+                _apiTable = apiTable;
+                _instance.Set<string, LuaTable>("ui", apiTable);   // Lua 侧 self.ui:OnButton / SetText / ...
             }
 
-            Call(_onInit, "OnInit", form, ToLuaArg(data));
+            _selfArgs3[0] = _instance;
+            _selfArgs3[1] = form;
+            _selfArgs3[2] = ToLuaArg(data);
+            CallRaw(_onInit, _selfArgs3);
         }
 
-        public void OnShow(IUIData data) => Call(_onShow, "OnShow", ToLuaArg(data));
-        public void OnUpdate(float deltaTime) => Call(_onUpdate, "OnUpdate", deltaTime);
-        public void OnPause() => Call(_onPause, "OnPause");
-        public void OnCover() => Call(_onCover, "OnCover");
-        public void OnReveal() => Call(_onReveal, "OnReveal");
+        public void OnShow(IUIData data) { _selfArgs2[0] = _instance; _selfArgs2[1] = ToLuaArg(data); CallRaw(_onShow, _selfArgs2); }
+        public void OnUpdate(float deltaTime) { _selfArgs2[0] = _instance; _selfArgs2[1] = deltaTime; CallRaw(_onUpdate, _selfArgs2); }
+        public void OnPause() => CallSelf(_onPause);
+        public void OnCover() => CallSelf(_onCover);
+        public void OnReveal() => CallSelf(_onReveal);
 
         public void OnHide()
         {
             _index?.UnbindAll();                              // 池化复用跨环境安全垫：旧 fn 监听全部移除
-            Call(_onHide, "OnHide");
+            CallSelf(_onHide);
         }
 
-        /// <summary>持有的逻辑表（换表释放/诊断用）。</summary>
-        public LuaTable Logic => _logic;
+        /// <summary>页面实例（诊断/换表释放用）。</summary>
+        public LuaTable Logic => _instance;
+
+        /// <summary>注册表持有的共享模块（所有权在注册表——诊断用，调用方不得 Dispose）。</summary>
+        public LuaTable Module => _module;
+
+        /// <summary>是否已释放（幂等守卫 + 测试断言用）。</summary>
+        public bool Released => _released;
 
         /// <summary>
-        /// 换表释放（M4 §2.3 运行期增量重填）：解绑按钮监听 + 释放 Lua 侧引用（逻辑表与七个回调函数）。
-        /// 幂等（`LuaBase.Dispose` 有 disposed 守卫）；DevReload 走 `env.Dispose` 兜底，二者不冲突。
-        /// **调用前提**：本适配器已不再被任何界面使用（仅在"换表"时调用，见 `UIService.SwapIfStale`）。
+        /// 释放（M4 §2.3 运行期增量重填 / §10.2 env 重建）：解绑按钮监听 + 释放**本页面拥有**的
+        /// Lua 引用（实例、已缓存回调、ui 门面表）。**不释放共享模块**（§5.1 所有权分开——模块归注册表）。
+        /// 幂等；调用前提 = 本适配器已不再被任何界面使用（换表 / 全关 / env 重建前）。
         /// </summary>
         public void Release()
         {
+            if (_released) return;
+            _released = true;
+
             _index?.UnbindAll();
             _onInit?.Dispose();
             _onShow?.Dispose();
@@ -119,7 +164,9 @@ return {
             _onCover?.Dispose();
             _onReveal?.Dispose();
             _onHide?.Dispose();
-            _logic?.Dispose();
+            _apiTable?.Dispose();
+            _apiTable = null;
+            if (!ReferenceEquals(_instance, _module)) _instance.Dispose();   // 模块自身即实例时不越权释放
         }
 
         /// <summary>ui-API 通用派发（payload 表协议）：onButton{name,fn} / offButton{name} /
@@ -172,11 +219,23 @@ return {
             }
         }
 
-        private LuaFunction GetFn(string name) => _logic.Get<LuaFunction>(name);
+        private LuaFunction GetFn(string name) => _instance.Get<LuaFunction>(name);
 
-        private static void Call(LuaFunction fn, string name, params object[] args)
+        /// <summary>零参回调（冒号定义 → 显式传 self；复用预置数组，热路径零分配）。</summary>
+        private void CallSelf(LuaFunction fn)
         {
-            if (fn == null) return;                         // 界面未实现该回调：静默跳过
+            if (fn == null) return;                             // 界面未实现该回调：静默跳过
+            _selfArgs[0] = _instance;
+            CallRaw(fn, _selfArgs);
+        }
+
+        /// <summary>
+        /// 统一调用口：已释放的适配器不得再访问 env（§10.2 旧 env 零访问——调用已 Dispose 的
+        /// LuaFunction 会打进死环境）。
+        /// </summary>
+        private void CallRaw(LuaFunction fn, object[] args)
+        {
+            if (fn == null || _released) return;
             fn.Call(args);
         }
 

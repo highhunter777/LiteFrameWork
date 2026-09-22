@@ -14,7 +14,8 @@
         "UnityEngine.TestRunner",
         "UnityEditor.TestRunner",
         "Luban.Runtime",
-        "Luban.Tables"
+        "Luban.Tables",
+        "xLuaMain"
     ],
     "includePlatforms": [
         "Editor"

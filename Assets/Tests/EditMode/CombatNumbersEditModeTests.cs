@@ -2,6 +2,8 @@ using System.Collections.Generic;
 using System.IO;
 using LiteGame;            // ConfigService（表数据预取清单）
 using LiteSim;
+using LiteTesting;
+using LiteTesting.Unity;
 using Luban;
 using NUnit.Framework;
 using UnityEngine;
@@ -17,7 +19,7 @@ namespace LiteGame.Tests.EditMode
     /// 为什么不复用 `ConfigService.LoadAsync`：它走 YooAsset 异步 + 流程前置，EditMode 里拉不起来；
     /// 这里用同一份 `TableDataFiles` 清单直读磁盘，等价且更快（清单一致性由第二个用例保证）。
     /// </summary>
-    public sealed class CombatNumbersEditModeTests
+    public sealed class CombatNumbersEditModeTests : UnityTestBase
     {
         private static readonly string[] DataFiles =
         {
@@ -25,6 +27,7 @@ namespace LiteGame.Tests.EditMode
         };
 
         [Test]
+        [Category(TestCategory.Contract)]
         public void 预取清单_含玩法数值表()
         {
             CollectionAssert.Contains(ConfigService.TableDataFiles, "tbcombatnum",
@@ -34,6 +37,7 @@ namespace LiteGame.Tests.EditMode
         }
 
         [Test]
+        [Category(TestCategory.Asset)]
         public void 数值表_可建表且与运行时值一致()
         {
             string dir = Path.Combine(ProjectRoot(), "Assets", "LiteGame", "RawFile", "Config");

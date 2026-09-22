@@ -8,20 +8,12 @@ using UnityEngine;
 namespace LiteGame
 {
     /// <summary>骨架装配点 + 根容器宿主（§12）。容器不静态暴露 Resolve；实例全程持有供驱动枚举 Tickables。</summary>
-    [DefaultExecutionOrder(-1000)]   // 必须最先 Awake：RegisterInstance 静态入口只在本件 Awake 后可用
+    [DefaultExecutionOrder(-1000)]   // 引导件必须最先 Awake：FileSys/Log/容器由本件建立，其余组件依赖这套基础设施
     public sealed class GameEntry : MonoBehaviour
     {
         private static ServiceContainer s_container;
         private static StageMachine<ProcedureId, ProcedureArgs> s_fsm;   // 通用流程状态机（2026-09-17 A 路线）
         private bool _active;
-
-        /// <summary>组件 Awake 的唯一入口：**只许注册，不许解析**；装配密封后抛。</summary>
-        public static void RegisterInstance<TInterface>(TInterface instance)
-        {
-            if (s_container == null || s_container.IsSealed)
-                throw new InvalidOperationException("GameEntry 未装配或装配已密封");
-            s_container.RegisterInstance(instance);
-        }
 
         /// <summary>把装配权传给起始流程。ProcedureLaunch 是**唯一受信装配点**：
         /// 注册业务服务 → Seal。用 public：ProcedureLaunch 在 LiteGame.Runtime，跨程序集访问。</summary>

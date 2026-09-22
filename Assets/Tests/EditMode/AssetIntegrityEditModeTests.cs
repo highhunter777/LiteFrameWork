@@ -1,6 +1,8 @@
 using System.Collections.Generic;
 using System.Text;
 using LiteGame.Editor;
+using LiteTesting;
+using LiteTesting.Unity;
 using NUnit.Framework;
 using UnityEditor;
 using UnityEngine;
@@ -16,11 +18,12 @@ namespace LiteGame.Tests.EditMode
     /// 范围取舍：只做**不返工**的子集（UI 模板 + prefab 完整性）。装配冒烟（GameEntry→ProcedureMain）
     /// 明确留 M11——SimView/控制器/地图尚未定形，此刻写必然重写。
     /// </summary>
-    public sealed class AssetIntegrityEditModeTests
+    public sealed class AssetIntegrityEditModeTests : UnityTestBase
     {
         private const string WidgetDir = "Assets/UI/Widgets";   // 2026-09-19：UI 已从 LiteGame 迁到顶层 Assets/UI
 
         [Test]
+        [Category(TestCategory.Asset)]
         public void UI模板_全部可加载且无缺失脚本()
         {
             string[] guids = AssetDatabase.FindAssets("t:Prefab", new[] { WidgetDir });
@@ -51,6 +54,7 @@ namespace LiteGame.Tests.EditMode
         }
 
         [Test]
+        [Category(TestCategory.Asset)]
         public void UI控件模板_自检全通过()
         {
             // 与菜单「LiteGame/UI/校验控件模板」同源（WidgetPrefabCheck.RunAll）——不重复实现断言

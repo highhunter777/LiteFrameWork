@@ -2,6 +2,8 @@ using System.Collections.Generic;
 using Cysharp.Threading.Tasks;
 using LiteFramework;
 using LiteSim.View;
+using LiteTesting;
+using LiteTesting.Unity;
 using NUnit.Framework;
 using UnityEngine;
 
@@ -12,9 +14,10 @@ namespace LiteGame.Tests.EditMode
     ///
     /// 全替身、**零素材依赖**（`Assets/FX/` 下尚无项目自制的 `fx_*` prefab）：
     /// 假时钟可确定性推进 `Now`；同步 loader（`UniTask.FromResult`）让加载内联完成 → 无需 PlayerLoop；
-    /// 假 prefab 用 `new GameObject(..., typeof(ParticleSystem))` 造，池照常 Instantiate。
+    /// 假 prefab 用 `Scope.CreateGameObject(..., typeof(ParticleSystem))` 造，池照常 Instantiate；
+    /// 全部 GameObject（prefab/世界容器/池/挂点）由 `UnityTestBase.Scope` 在 TearDown 统一回收。
     /// </summary>
-    public sealed class VfxServiceEditModeTests
+    public sealed class VfxServiceEditModeTests : UnityTestBase
     {
         private sealed class TestClock : IWorldClock
         {
@@ -47,16 +50,11 @@ namespace LiteGame.Tests.EditMode
 
             private UniTask<GameObject> SyncLoader(string loc, System.Threading.CancellationToken ct)
                 => UniTask.FromResult(Prefab);
-
-            public void Dispose()
-            {
-                Kill(World); Kill(Pool); Kill(Prefab);
-            }
         }
 
-        private static Rig NewRig()
+        private Rig NewRig()
         {
-            var prefab = new GameObject("fx_test", typeof(ParticleSystem));
+            var prefab = Scope.CreateGameObject("fx_test", typeof(ParticleSystem));
             var main = prefab.GetComponent<ParticleSystem>().main;
             main.duration = 1f;
             main.startLifetime = 1f;                 // 生命周期 = duration + startLifetime = 2s
@@ -65,14 +63,9 @@ namespace LiteGame.Tests.EditMode
             {
                 Clock = new TestClock(),
                 Prefab = prefab,
-                World = new GameObject("[vfx-world]"),
-                Pool = new GameObject("[vfx-pool]"),
+                World = Scope.CreateGameObject("[vfx-world]"),
+                Pool = Scope.CreateGameObject("[vfx-pool]"),
             };
-        }
-
-        private static void Kill(Object go)
-        {
-            if (go != null) Object.DestroyImmediate(go);
         }
 
         private static string Snap(VfxService svc, string key)
@@ -85,11 +78,12 @@ namespace LiteGame.Tests.EditMode
         // ---- API 跑通 ----
 
         [Test]
+        [Category(TestCategory.Contract)]
         public void VFX_Play_跟随挂点_实例挂到挂点下()
         {
             var rig = NewRig();
             var svc = rig.Make();
-            var attach = new GameObject("host").transform;
+            var attach = Scope.CreateGameObject("host").transform;
 
             var h = svc.Play("fx_hit", attach, follow: true);
 
@@ -99,12 +93,10 @@ namespace LiteGame.Tests.EditMode
 
             svc.Stop(h);
             Assert.AreEqual("0", Snap(svc, "活跃"));
-
-            Kill(attach.gameObject);
-            rig.Dispose();
         }
 
         [Test]
+        [Category(TestCategory.Contract)]
         public void VFX_Play_不跟随_挂世界容器且应用缩放()
         {
             var rig = NewRig();
@@ -117,10 +109,10 @@ namespace LiteGame.Tests.EditMode
             Assert.AreEqual(2.5f, rig.World.transform.GetChild(0).localScale.x, 0.001f);
 
             svc.Stop(h);
-            rig.Dispose();
         }
 
         [Test]
+        [Category(TestCategory.Contract)]
         public void VFX_句柄_单调递增且Stop幂等()
         {
             var rig = NewRig();
@@ -139,12 +131,12 @@ namespace LiteGame.Tests.EditMode
             Assert.AreEqual("1", Snap(svc, "活跃"), "只停了 h1");
 
             svc.Stop(h2);
-            rig.Dispose();
         }
 
         // ---- 池化 ----
 
         [Test]
+        [Category(TestCategory.Contract)]
         public void VFX_池化_同prefab回收后再播不新建实例()
         {
             var rig = NewRig();
@@ -160,12 +152,12 @@ namespace LiteGame.Tests.EditMode
             Assert.AreEqual("1", Snap(svc, "活跃"));
 
             svc.Stop(h2);
-            rig.Dispose();
         }
 
         // ---- 预算与降级 ----
 
         [Test]
+        [Category(TestCategory.Contract)]
         public void VFX_超预算_默认回收最旧()
         {
             var rig = NewRig();
@@ -180,11 +172,10 @@ namespace LiteGame.Tests.EditMode
 
             svc.Stop(h1);                       // 已被回收 → 幂等
             Assert.AreEqual("2", Snap(svc, "活跃"));
-
-            rig.Dispose();
         }
 
         [Test]
+        [Category(TestCategory.Contract)]
         public void VFX_超预算_拒绝模式_返回无效句柄并计数()
         {
             var rig = NewRig();
@@ -197,11 +188,10 @@ namespace LiteGame.Tests.EditMode
             Assert.IsFalse(h3.IsValid, "拒绝模式返回无效句柄");
             Assert.AreEqual("2", Snap(svc, "活跃"));
             Assert.AreEqual("1", Snap(svc, "拒绝"));
-
-            rig.Dispose();
         }
 
         [Test]
+        [Category(TestCategory.Contract)]
         public void VFX_低端_跳过重特效类别()
         {
             var rig = NewRig();
@@ -214,11 +204,10 @@ namespace LiteGame.Tests.EditMode
             Assert.IsFalse(h.IsValid, "低端跳过 heavy 类别");
             Assert.AreEqual("1", Snap(svc, "跳过"));
             Assert.AreEqual("0", Snap(svc, "活跃"));
-
-            rig.Dispose();
         }
 
         [Test]
+        [Category(TestCategory.Unit)]
         public void VFX_未登记名字_按命名即引用合成地址()
         {
             var catalog = new VfxCatalog();
@@ -232,12 +221,13 @@ namespace LiteGame.Tests.EditMode
         // ---- 挂点清理（谁挂谁清）----
 
         [Test]
+        [Category(TestCategory.Contract)]
         public void VFX_StopAll_按挂点隔离_不影响其他挂点()
         {
             var rig = NewRig();
             var svc = rig.Make();
-            var a = new GameObject("host-a").transform;
-            var b = new GameObject("host-b").transform;
+            var a = Scope.CreateGameObject("host-a").transform;
+            var b = Scope.CreateGameObject("host-b").transform;
 
             svc.Play("fx_a", a, true);
             svc.Play("fx_b", a, true);
@@ -250,19 +240,18 @@ namespace LiteGame.Tests.EditMode
             Assert.AreEqual(1, b.childCount);
 
             svc.StopAll(b);
-            Kill(a.gameObject); Kill(b.gameObject);
-            rig.Dispose();
         }
 
         // ---- 加载在途 × 宿主回收竞态（决策 10）----
 
         [Test]
+        [Category(TestCategory.Contract)]
         public void VFX_加载在途被宿主回收_不实例化且无残留()
         {
             var rig = NewRig();
             var tcs = new UniTaskCompletionSource<GameObject>();
             var svc = rig.Make(loader: (loc, ct) => tcs.Task);
-            var attach = new GameObject("host").transform;
+            var attach = Scope.CreateGameObject("host").transform;
 
             var h = svc.Play("fx_slow", attach, true);
             Assert.IsTrue(h.IsValid);
@@ -276,13 +265,12 @@ namespace LiteGame.Tests.EditMode
             Assert.AreEqual(0, attach.childCount, "被回收的在途特效不得实例化");
             Assert.AreEqual("0", Snap(svc, "活跃"), "不得复活");
 
-            Kill(attach.gameObject);
-            rig.Dispose();
         }
 
         // ---- 到期回收（不依赖粒子回调）----
 
         [Test]
+        [Category(TestCategory.Contract)]
         public void VFX_到期_Tick自动回收()
         {
             var rig = NewRig();
@@ -298,11 +286,10 @@ namespace LiteGame.Tests.EditMode
             rig.Clock.NowValue += 2f;            // 累计 3s > 2s
             svc.Tick(0.016f);
             Assert.AreEqual("0", Snap(svc, "活跃"), "到期即归还池");
-
-            rig.Dispose();
         }
 
         [Test]
+        [Category(TestCategory.Contract)]
         public void VFX_空名_返回无效句柄()
         {
             var rig = NewRig();
@@ -310,8 +297,6 @@ namespace LiteGame.Tests.EditMode
 
             Assert.IsFalse(svc.Play(null, null, false).IsValid);
             Assert.IsFalse(svc.Play("", null, false).IsValid);
-
-            rig.Dispose();
         }
     }
 }

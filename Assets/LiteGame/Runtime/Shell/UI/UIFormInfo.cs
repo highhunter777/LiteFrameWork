@@ -16,10 +16,20 @@ namespace LiteGame
     }
 
     /// <summary>
+    /// 界面目录契约（§3"可注入面"）：壳只依赖"按 id 取界面信息"这一件事——生产实现 = Luban 投影
+    /// <see cref="UIFormCatalog"/>，替身/测试可实现本接口而不必拉起配置链路（§3：避免 UIService 测试
+    /// 依赖静态资源系统与完整启动流程）。
+    /// </summary>
+    public interface IUIFormCatalog
+    {
+        UIFormInfo Get(int id);
+    }
+
+    /// <summary>
     /// 装配层投影件（M4 §2.0）：把 TbUIForm 行投影为 <see cref="UIFormInfo"/>。懒加载 + 幂等；
     /// 未命中抛（fail-fast，§3.4——表漏配在启动期当场暴露）。
     /// </summary>
-    public sealed class UIFormCatalog
+    public sealed class UIFormCatalog : IUIFormCatalog
     {
         private readonly Dictionary<int, UIFormInfo> _byId = new Dictionary<int, UIFormInfo>(16);
         private readonly IConfigService _config;

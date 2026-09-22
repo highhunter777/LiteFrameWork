@@ -37,5 +37,21 @@ namespace LiteFramework.Tests
             var result = SafeCall.Invoke<int>(() => throw new InvalidOperationException("boom"), "test", -1);
             Assert.Equal(-1, result);
         }
+
+        [Fact]
+        public void TryInvoke_正常执行返回true()
+        {
+            var called = false;
+            Assert.True(SafeCall.TryInvoke(() => called = true, "test"));
+            Assert.True(called);
+        }
+
+        [Fact]
+        public void TryInvoke_抛异常被隔离并返回false()
+        {
+            var before = Log.ErrorCount;
+            Assert.False(SafeCall.TryInvoke(() => throw new InvalidOperationException("boom"), "test"));
+            Assert.Equal(before + 1, Log.ErrorCount);       // 异常落地 C# 日志（调用方可据此回滚）
+        }
     }
 }

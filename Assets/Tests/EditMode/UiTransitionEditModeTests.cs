@@ -1,5 +1,7 @@
 using System;
 using Cysharp.Threading.Tasks;
+using LiteTesting;
+using LiteTesting.Unity;
 using NUnit.Framework;
 using UnityEngine;
 
@@ -12,7 +14,7 @@ namespace LiteGame.Tests.EditMode
     /// 且全部用例用 `UniTask.CompletedTask` 假策略 → `await` 内联完成，**全程 Tick(dt) 驱动、零 PlayerLoop 依赖**。
     /// 状态机本身的迁移语义（last-wins / 帧末 Advance / 重入抛）由 L1 的 StageMachineTests 钉住，此处只验编排层。
     /// </summary>
-    public sealed class UiTransitionEditModeTests
+    public sealed class UiTransitionEditModeTests : UnityTestBase
     {
         // ---- 替身 ----
 
@@ -54,17 +56,13 @@ namespace LiteGame.Tests.EditMode
         /// 造一个界面实例。**Canvas/CanvasGroup 必须在 GameObject 构造器里预建**——
         /// EditMode 下 `AddComponent&lt;Canvas&gt;()` 后立刻访问 `renderMode` 会抛
         /// MissingComponentException（native 组件未就绪），UIForm 的补齐分支会踩到。
+        /// 实例由 `UnityTestBase.Scope` 在 TearDown 统一销毁。
         /// </summary>
-        private static UIForm MakeForm(int id, bool fullScreen = false)
+        private UIForm MakeForm(int id, bool fullScreen = false)
         {
             var info = new UIFormInfo { Id = id, FullScreen = fullScreen, Layer = 1, Location = "x", LuaPath = "x" };
-            var go = new GameObject("F" + id, typeof(RectTransform), typeof(Canvas), typeof(CanvasGroup));
+            var go = Scope.CreateGameObject("F" + id, typeof(RectTransform), typeof(Canvas), typeof(CanvasGroup));
             return new UIForm(info, go);
-        }
-
-        private static void Kill(UIForm form)
-        {
-            if (form != null && form.Root != null) UnityEngine.Object.DestroyImmediate(form.Root);
         }
 
         /// <summary>同步取结果（只在断言任务已完成时调用——避免在无 PlayerLoop 的 EditMode 里阻塞）。</summary>
@@ -77,6 +75,7 @@ namespace LiteGame.Tests.EditMode
         // ---- ① 同帧三连点：首个执行、第二个排队、第三个丢弃 ----
 
         [Test]
+        [Category(TestCategory.Contract)]
         public void 转场_同帧三连点_首个执行_次个排队_第三丢弃()
         {
             var rec = new Recorder();
@@ -97,13 +96,13 @@ namespace LiteGame.Tests.EditMode
             var outcome3 = Result(t3);
             Assert.IsFalse(outcome3.Completed, "被丢弃的请求以 Completed=false 收尾");
 
-            Kill(a); Kill(b); Kill(c);
             _ = t1; _ = t2;
         }
 
         // ---- ② 转场中重复请求同一 Incoming → 忽略 ----
 
         [Test]
+        [Category(TestCategory.Contract)]
         public void 转场_重复请求同一Incoming_被忽略且不重复播表现()
         {
             var rec = new Recorder();
@@ -119,13 +118,13 @@ namespace LiteGame.Tests.EditMode
             runner.Tick(0.016f);                                       // 表现随帧末迁移发起
             Assert.AreEqual(1, rec.ShowCount, "重复请求不得再启动表现");
 
-            Kill(a);
             _ = t1;
         }
 
         // ---- ③ Replace：默认合成两组并发 / 自定义 IReplaceTransition 时不走合成 ----
 
         [Test]
+        [Category(TestCategory.Contract)]
         public void 转场_Replace_默认合成_离场与入场并发各一次()
         {
             var rec = new Recorder();
@@ -140,11 +139,10 @@ namespace LiteGame.Tests.EditMode
             Assert.AreEqual(1, rec.ShowCount, "Replace 默认合成应调 PlayShow");
             Assert.IsTrue(Result(t).Completed);
             Assert.AreEqual(TransitionId.Idle, runner.Phase);
-
-            Kill(outForm); Kill(inForm);
         }
 
         [Test]
+        [Category(TestCategory.Contract)]
         public void 转场_Replace_自定义策略_不走合成()
         {
             var rec = new Recorder();
@@ -162,13 +160,13 @@ namespace LiteGame.Tests.EditMode
             Assert.AreEqual(0, rec.CloseCount, "定制实现下壳不再合成 PlayClose");
             Assert.AreEqual(0, rec.ShowCount, "定制实现下壳不再合成 PlayShow");
 
-            Kill(outForm); Kill(inForm);
             _ = t;
         }
 
         // ---- ④ Pop：等价于 Back，走同一排队路径（这里验模式映射） ----
 
         [Test]
+        [Category(TestCategory.Contract)]
         public void 转场_Pop_只播离场()
         {
             var rec = new Recorder();
@@ -183,13 +181,13 @@ namespace LiteGame.Tests.EditMode
             Assert.AreEqual(0, rec.ShowCount);
             Assert.AreEqual(TransitionId.Idle, runner.Phase);
 
-            Kill(form);
             _ = t;
         }
 
         // ---- ⑤ 坏策略不回调 → 超时强制收尾 ----
 
         [Test]
+        [Category(TestCategory.Contract)]
         public void 转场_坏策略不回调_超时强制收尾且门恢复()
         {
             var rec = new Recorder { HoldShow = true };
@@ -205,13 +203,12 @@ namespace LiteGame.Tests.EditMode
             Assert.AreEqual(TransitionId.Idle, runner.Phase, "超时后必须回到 Idle（UI 不卡死）");
             Assert.IsFalse(runner.Busy);
             Assert.IsTrue(form.CanvasGroup.blocksRaycasts, "超时收尾也要恢复交互门");
-
-            Kill(form);
         }
 
         // ---- ⑥ 交互门由壳统一管（不依赖策略自觉）----
 
         [Test]
+        [Category(TestCategory.Contract)]
         public void 转场_交互门_转场中关闭_收尾后恢复()
         {
             var rec = new Recorder();                            // 策略完全不碰 CanvasGroup
@@ -228,13 +225,13 @@ namespace LiteGame.Tests.EditMode
             Assert.IsTrue(outForm.CanvasGroup.blocksRaycasts);
             Assert.IsTrue(inForm.CanvasGroup.blocksRaycasts);
 
-            Kill(outForm); Kill(inForm);
             _ = t;
         }
 
         // ---- ⑦ 完成事件 begin/end 成对且 mode 相符 ----
 
         [Test]
+        [Category(TestCategory.Contract)]
         public void 转场_事件_begin与end成对且mode相符()
         {
             var rec = new Recorder();
@@ -254,13 +251,13 @@ namespace LiteGame.Tests.EditMode
             Assert.AreEqual(1, finished, "end 应恰好一次（成对）");
             Assert.AreEqual(TransitionMode.Pop, seenMode, "mode 与调用相符");
 
-            Kill(form);
             _ = t;
         }
 
         // ---- 补：队列取出发生在下一帧（一帧最多一变）----
 
         [Test]
+        [Category(TestCategory.Contract)]
         public void 转场_队列取出_不早于下一帧()
         {
             var rec = new Recorder();
@@ -281,13 +278,13 @@ namespace LiteGame.Tests.EditMode
             runner.Tick(0.016f);                                 // B 进入 In
             Assert.AreEqual(2, rec.ShowCount, "B 的表现发起");
 
-            Kill(a); Kill(b);
             _ = t1; _ = t2;
         }
 
         // ---- 补：策略抛异常不阻塞收尾 ----
 
         [Test]
+        [Category(TestCategory.Contract)]
         public void 转场_策略抛异常_不阻塞收尾且Completed为false()
         {
             var rec = new Recorder { Throw = true };
@@ -303,8 +300,6 @@ namespace LiteGame.Tests.EditMode
             Assert.IsFalse(outcome.TimedOut, "这是异常不是超时（两者语义不同）");
             Assert.AreEqual(TransitionId.Idle, runner.Phase);
             Assert.IsTrue(form.CanvasGroup.blocksRaycasts);
-
-            Kill(form);
         }
     }
 }

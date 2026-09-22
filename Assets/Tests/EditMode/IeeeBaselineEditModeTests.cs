@@ -1,4 +1,6 @@
 using LiteSim.Editor;
+using LiteTesting;
+using LiteTesting.Unity;
 using NUnit.Framework;
 
 namespace LiteGame.Tests.EditMode
@@ -10,9 +12,10 @@ namespace LiteGame.Tests.EditMode
     /// 也是 L2 门禁里"数值层"那一环（v3 定位下它不再是正确性前提，但决定预测/和解质量）。
     /// 探针与基线均为单一来源：<see cref="IeeeProbe"/>（LiteSim 内）+ `Tests/…/Baselines/IeeeBaseline.txt`（.NET 记录）。
     /// </summary>
-    public sealed class IeeeBaselineEditModeTests
+    public sealed class IeeeBaselineEditModeTests : UnityTestBase
     {
         [Test]
+        [Category(TestCategory.Contract)]
         public void IEEE基线_Unity侧与NET侧逐位一致()
         {
             var (ok, report) = IeeeBaselineChecker.Verify();
@@ -28,6 +31,7 @@ namespace LiteGame.Tests.EditMode
         /// 一旦回归（例如有人绕过 `SimMath.Sqrt` 直接用 BCL），它立刻红。
         /// </summary>
         [Test]
+        [Category(TestCategory.Contract)]
         public void IEEE运算链_跨运行时逐位一致()
         {
             var (expected, unity, same) = IeeeBaselineChecker.ChainComparison();

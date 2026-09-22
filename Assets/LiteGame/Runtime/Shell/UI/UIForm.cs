@@ -5,10 +5,12 @@ using UnityEngine;
 namespace LiteGame
 {
     /// <summary>
-    /// 界面运行时实例（M4 §2.1）：七态机 + 逻辑持有 + 画布就位。
+    /// 界面运行时实例（M4 §2.1）：状态机 + 逻辑持有 + 画布就位。
     /// 状态迁移全部走本类守卫方法（非法迁移当场抛——fail-fast 精神 §3.4）；
     /// 逻辑回调统一经 SafeCall（单个回调抛 = 该界面降级，不炸壳——错误语义同事件桥）。
     /// 画布契约：prefab 根自带 Canvas（overrideSorting）+ CanvasGroup 最佳；缺失则壳补齐，sortingOrder 由层级组分配。
+    /// 《UI框架总设计》§4 修订：首次与复用共用 <see cref="PrepareForShow"/> 复位；
+    /// Covered/Paused 属"仍打开"，同样可关闭；首次 OnInit/OnShow 失败对外报失败以便壳回滚。
     /// </summary>
     public sealed class UIForm
     {
@@ -20,6 +22,9 @@ namespace LiteGame
         public CanvasGroup CanvasGroup { get; }
         public IUIFormLogic Logic { get; set; } = NullUIFormLogic.Instance;
 
+        /// <summary>位置基线（实例化时刻的 anchoredPosition，含 prefab 作者意图）——复用/重开复位用。</summary>
+        private readonly Vector2 _baselinePos;
+
         public UIForm(UIFormInfo info, GameObject root)
         {
             Info = info ?? throw new ArgumentNullException(nameof(info));
@@ -29,21 +34,40 @@ namespace LiteGame
             Canvas.renderMode = RenderMode.ScreenSpaceOverlay;
             Canvas.overrideSorting = true;
             CanvasGroup = root.GetComponent<CanvasGroup>() ?? root.AddComponent<CanvasGroup>();
+            _baselinePos = root.transform is RectTransform rt ? rt.anchoredPosition : Vector2.zero;
         }
 
         // ---- 生命周期迁移（UIService 编排调用；守卫 + 逻辑回调定序）----
 
-        /// <summary>首次打开：Loading → OnInit → OnShow → Active。</summary>
-        internal void EnterActiveFromLoading(IUIData data)
+        /// <summary>
+        /// 显示前复位（§4.2，首次与复用共用）：激活对象、复位 alpha 与位置基线（默认离场表现会把
+        /// alpha 收成 0，不复位则复用后"页在但看不见"）。
+        /// 输入态此处只回到基线；"转场锁 / 模态 / 暂停"的综合求解属 U1 的输入协调者。
+        /// </summary>
+        internal void PrepareForShow()
         {
-            Transit(UIFormState.Loading, UIFormState.Active);
-            SafeCall.Invoke(() => Logic.OnInit(this, data), $"UIForm[{Id}].OnInit");
-            SafeCall.Invoke(() => Logic.OnShow(data), $"UIForm[{Id}].OnShow");
+            Root.SetActive(true);
+            if (CanvasGroup != null)
+            {
+                CanvasGroup.alpha = 1f;
+                CanvasGroup.interactable = true;
+                CanvasGroup.blocksRaycasts = true;
+            }
+            if (Root.transform is RectTransform rt) rt.anchoredPosition = _baselinePos;
         }
 
-        /// <summary>池化复用：Recycled →（SetActive true）→ OnShow → Active。OnInit 不重跑。
-        /// 例外：<see cref="NeedsReinit"/> 为真（运行期换表后新适配器没建过绑定索引）——补跑 OnInit，否则
-        /// 界面"活着但按钮全不响应"。</summary>
+        /// <summary>首次打开：Loading → OnInit → OnShow → Active。
+        /// 返回 false = OnInit/OnShow 抛异常（异常已被 SafeCall 记录）——调用方必须回滚清理，
+        /// 不得以 Active + 空逻辑伪装成功（§4.1）。</summary>
+        internal bool EnterActiveFromLoading(IUIData data)
+        {
+            Transit(UIFormState.Loading, UIFormState.Active);
+            if (!SafeCall.TryInvoke(() => Logic.OnInit(this, data), $"UIForm[{Id}].OnInit")) return false;
+            if (!SafeCall.TryInvoke(() => Logic.OnShow(data), $"UIForm[{Id}].OnShow")) return false;
+            return true;
+        }
+
+        /// <summary>池化复用：Recycled →（SetActive true）→ OnShow → Active。OnInit 不重跑。</summary>
         internal void EnterActiveFromRecycled(IUIData data)
         {
             Transit(UIFormState.Recycled, UIFormState.Active);
@@ -58,6 +82,33 @@ namespace LiteGame
 
         /// <summary>复用前是否需补跑 OnInit（仅在"逻辑换表"后置真，见 <see cref="UIService.MarkLogicStale"/>）。</summary>
         internal bool NeedsReinit { get; set; }
+
+        /// <summary>是否仍逻辑打开（Active/Covered/Paused）：§4.1 展示状态独立于"可否关闭"——
+        /// 遮盖与暂停都不改变关得掉的事实。</summary>
+        public bool IsOpen => State is UIFormState.Active or UIFormState.Covered or UIFormState.Paused;
+
+        /// <summary>逻辑落空（§10.2 env 重建 / 开门前置）：解绑并释放旧 Lua 引用、逻辑置空，
+        /// 下次显示前按当前注册表重新解析——否则界面会拿已 Dispose 的 LuaFunction 打进死环境。</summary>
+        internal void DropLogic()
+        {
+            if (Logic is LuaBehaviourAdapter adapter) adapter.Release();
+            Logic = NullUIFormLogic.Instance;
+        }
+
+        /// <summary>打开失败回滚（§4.1）：释放逻辑与 Lua 引用并销毁对象——半成品不入池、不进字典。</summary>
+        internal void DisposeFailedOpen()
+        {
+            DropLogic();
+            if (Root == null) return;
+#if UNITY_EDITOR
+            if (!Application.isPlaying)
+            {
+                UnityEngine.Object.DestroyImmediate(Root);    // EditMode 下 Destroy 只记 error 不生效（L2 用例依赖）
+                return;
+            }
+#endif
+            UnityEngine.Object.Destroy(Root);
+        }
 
         internal void EnterPaused()
         {
@@ -83,10 +134,14 @@ namespace LiteGame
             SafeCall.Invoke(() => Logic.OnReveal(), $"UIForm[{Id}].OnReveal");
         }
 
-        /// <summary>开始关闭：OnHide 已调，停在 Closing——§2.2 转场策略可在此等待动画后再 Recycle。</summary>
+        /// <summary>开始关闭（Active/Covered/Paused 三态均可）：OnHide 已调，停在 Closing——
+        /// §2.2 转场策略可在此等待动画后再 Recycle。遮盖/暂停不是"关不掉"的理由（§4.1）。</summary>
         internal void EnterClosing()
         {
-            Transit(UIFormState.Active, UIFormState.Closing);
+            if (!IsOpen)
+                throw new InvalidOperationException(
+                    $"UIForm[{Id}] 非法状态迁移:{State} → Closing（仅 Active/Covered/Paused 可关闭）");
+            State = UIFormState.Closing;
             SafeCall.Invoke(() => Logic.OnHide(), $"UIForm[{Id}].OnHide");
 
             // 界面级订阅清零：OnHide 之后、落池之前（与按钮 UnbindAll 同一时点语义——
