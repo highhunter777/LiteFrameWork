@@ -1,0 +1,20 @@
+{
+  "$comment": "Player build profile - Client Framework Master Design 14.2 (primary mobile platform). scripts/build-player.ps1 validates and drives the pipeline build from this file. KEEP ASCII-ONLY (PS 5.1 GBK parsing).",
+  "profileName": "android-il2cpp-dev",
+  "updatedAt": "2026-09-22",
+  "environment": "dev",
+  "channel": "development",
+  "platform": "Android",
+  "buildTargetGroup": "Android",
+  "backend": "IL2CPP",
+  "architecture": "ARM64",
+  "scenes": ["Assets/Scenes/Test.unity"],
+  "defines": [],
+  "contentMode": "OfflineBundles",
+  "endpoints": {},
+  "signing": { "mode": "debug-keystore" },
+  "stripping": { "level": "Minimal" },
+  "debugSymbols": true,
+  "output": "Builds/android",
+  "artifactGlob": "*.apk"
+}

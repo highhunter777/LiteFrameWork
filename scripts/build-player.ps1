@@ -156,9 +156,10 @@ if ($finalJson -match '"(failed|error|cancelled|aborted)"\s*:\s*true' -or $final
 
 # ── 6. artifact verification ─────────────────────────────────────────────────
 $outDir = Join-Path $ProjectPath $prof.output
-$exe = Get-ChildItem $outDir -Filter '*.exe' -File -ErrorAction SilentlyContinue | Select-Object -First 1
-if (-not $exe) { Write-Host "no .exe under $outDir - artifact verification failed" -ForegroundColor Red; exit 1 }
-Write-Host "artifact: $($exe.FullName) ($([math]::Round($exe.Length/1MB,1)) MB)" -ForegroundColor Green
+$glob = if ($prof.artifactGlob) { $prof.artifactGlob } else { '*.exe' }
+$artifact = Get-ChildItem $outDir -Filter $glob -File -ErrorAction SilentlyContinue | Select-Object -First 1
+if (-not $artifact) { Write-Host "no artifact ($glob) under $outDir - artifact verification failed" -ForegroundColor Red; exit 1 }
+Write-Host "artifact: $($artifact.FullName) ($([math]::Round($artifact.Length/1MB,1)) MB)" -ForegroundColor Green
 Write-Host ''
 Write-Host 'C0-2 build PASSED' -ForegroundColor Green
 exit 0

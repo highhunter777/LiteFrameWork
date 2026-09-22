@@ -15,5 +15,6 @@
   "signing": { "mode": "none" },
   "stripping": { "level": "Minimal" },
   "debugSymbols": true,
-  "output": "Builds/StandaloneWindows64"
+  "output": "Builds/StandaloneWindows64",
+  "artifactGlob": "*.exe"
 }
