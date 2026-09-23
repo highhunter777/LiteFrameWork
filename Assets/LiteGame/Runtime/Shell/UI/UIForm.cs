@@ -1,4 +1,5 @@
 using System;
+using System.Threading;
 using LiteFramework;
 using UnityEngine;
 
@@ -25,6 +26,23 @@ namespace LiteGame
         /// <summary>位置基线（实例化时刻的 anchoredPosition，含 prefab 作者意图）——复用/重开复位用。</summary>
         private readonly Vector2 _baselinePos;
 
+        // ---- 展示作用域（U1-①：《UI框架总设计》§4.4——"每次打开到关闭"的 CTS 与代次）----
+
+        private int _displayGeneration;
+        private CancellationTokenSource _displayCts;
+
+        /// <summary>展示代次（每次打开递增）：异步图片/网络结果/动画回调**写入前验证**
+        /// （<see cref="IsDisplayCurrent"/>）——复用后的新页面不被旧回调污染（§4.3）。</summary>
+        public int DisplayGeneration => _displayGeneration;
+
+        /// <summary>本次展示的取消令牌（展示作用域）：打开时创建、关闭时取消——页面内跨帧异步
+        /// （图标加载/网络请求/延时任务）绑定它，界面关闭即级联取消。池化复用安全（每次打开重建）。</summary>
+        public CancellationToken DisplayToken => _displayCts?.Token ?? CancellationToken.None;
+
+        /// <summary>代次核验：迟到结果凭旧代次写入 = 污染复用后的新页面——必须丢弃（§4.3）。</summary>
+        public bool IsDisplayCurrent(int generation)
+            => generation == _displayGeneration && IsOpen;
+
         public UIForm(UIFormInfo info, GameObject root)
         {
             Info = info ?? throw new ArgumentNullException(nameof(info));
@@ -47,6 +65,7 @@ namespace LiteGame
         internal void PrepareForShow()
         {
             Root.SetActive(true);
+            BeginDisplay();                                    // 展示代次递增 + 新展示作用域 CTS（每次打开一份）
             if (CanvasGroup != null)
             {
                 CanvasGroup.alpha = 1f;
@@ -54,6 +73,14 @@ namespace LiteGame
                 CanvasGroup.blocksRaycasts = true;
             }
             if (Root.transform is RectTransform rt) rt.anchoredPosition = _baselinePos;
+        }
+
+        /// <summary>开启一次展示（PrepareForShow 内调用）：代次递增 + 重建展示作用域 CTS（旧的已在上次关闭释放）。</summary>
+        private void BeginDisplay()
+        {
+            _displayGeneration++;
+            _displayCts?.Dispose();
+            _displayCts = new CancellationTokenSource();
         }
 
         /// <summary>首次打开：Loading → OnInit → OnShow → Active。
@@ -144,6 +171,11 @@ namespace LiteGame
             State = UIFormState.Closing;
             SafeCall.Invoke(() => Logic.OnHide(), $"UIForm[{Id}].OnHide");
 
+            // 展示作用域收尾（§4.4）：取消本次打开的在途异步（图标/请求/延时任务级联取消）
+            try { _displayCts?.Cancel(); } catch (ObjectDisposedException) { }
+            _displayCts?.Dispose();
+            _displayCts = null;
+
             // 界面级订阅清零：OnHide 之后、落池之前（与按钮 UnbindAll 同一时点语义——
             // 池化复用跨环境的安全垫，防"回收期间事件打进已关闭界面"）。
             _subs?.Dispose();
@@ -183,6 +215,29 @@ namespace LiteGame
         {
             Transit(UIFormState.Closing, UIFormState.Recycled);
             Root.SetActive(false);
+        }
+
+        /// <summary>实例真正销毁（U1-②/UI-06：缓存淘汰/显式 Destroy/Shutdown 终态）：
+        /// 释放逻辑与 Lua 引用、取消展示令牌、标记 Disposed、销毁 GameObject——租约由 UIService 释放。
+        /// 之后本 UIForm 对象不可再复用（再次打开 = 全新实例）。</summary>
+        internal void DestroyInstance()
+        {
+            DropLogic();
+            try { _displayCts?.Cancel(); } catch (ObjectDisposedException) { }
+            _displayCts?.Dispose();
+            _displayCts = null;
+            _subs?.Dispose();
+            _subs = null;
+            State = UIFormState.Disposed;
+            if (Root == null) return;
+#if UNITY_EDITOR
+            if (!Application.isPlaying)
+            {
+                UnityEngine.Object.DestroyImmediate(Root);    // EditMode 下 Destroy 只记 error 不生效（L2 用例依赖）
+                return;
+            }
+#endif
+            UnityEngine.Object.Destroy(Root);
         }
 
         /// <summary>OnUpdate 派发（UIService.Tick，仅 Active 态会走到这里）。</summary>

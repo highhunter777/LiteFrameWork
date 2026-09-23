@@ -12,5 +12,6 @@ namespace LiteGame
         Paused,     // 手动暂停（OnPause；恢复走 OnShow）
         Closing,    // 关闭中（OnHide 已调；§2.2 转场策略可在此等待动画）
         Recycled,   // 已回收进池（inactive，可复用；复用不重跑 OnInit）
+        Disposed,   // 已销毁（U1：缓存淘汰/显式 Destroy/Shutdown——终态，不可复用）
     }
 }

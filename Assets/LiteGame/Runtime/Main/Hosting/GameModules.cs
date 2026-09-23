@@ -170,10 +170,12 @@ namespace LiteGame
             }
         }
 
-        /// <summary>⑧ UI 壳：三注册表 + 红点 + UIService（逻辑解析器接 LuaBehaviourAdapter ← UI 注册表，解析失败降级 NullLogic）。</summary>
+        /// <summary>⑧ UI 壳：三注册表 + 红点 + UIService（逻辑解析器接 LuaBehaviourAdapter ← UI 注册表，解析失败降级 NullLogic）。
+        /// U1-②：prefab 加载经内容服务租约（UI-05——实例持租约到销毁）；Shutdown 释放面（UI-06）。</summary>
         internal sealed class UiShell : IClientModule
         {
             private RedDotRegistry _redDotRegistry;
+            private UIService _uiService;
 
             public string Name => "UiShell";
 
@@ -181,6 +183,7 @@ namespace LiteGame
             {
                 var config = context.Require<ConfigService>();
                 var lua = context.Require<LuaComponent>();
+                var content = context.Require<IContentService>();   // 依赖②内容服务——注册序即依赖序
                 _redDotRegistry = new RedDotRegistry();
                 var uiRegistry = new UiLuaRegistry();
                 var contentRegistry = new ContentLuaRegistry();
@@ -190,16 +193,26 @@ namespace LiteGame
                 context.Put(strategyRegistry);
                 context.Put(_redDotRegistry);
 
-                var uiService = new UIService(new UIFormCatalog(config),
-                    logicResolver: info => new LuaBehaviourAdapter(lua.Env, uiRegistry.Get(info.LuaPath)));
-                context.Put(uiService);
+                _uiService = new UIService(new UIFormCatalog(config),
+                    logicResolver: info => new LuaBehaviourAdapter(lua.Env, uiRegistry.Get(info.LuaPath)),
+                    loadPrefab: (location, token) => LoadPrefabLeaseAsync(content, location, token));
+                context.Put(_uiService);
                 return UniTask.CompletedTask;
             }
 
             public UniTask ShutdownAsync(CancellationToken ct)
             {
-                _redDotRegistry?.Clear();     // 全量 UI 关闭/Shutdown 归 U1（Scope/租约）
-                return UniTask.CompletedTask;
+                _redDotRegistry?.Clear();
+                return _uiService?.ShutdownAsync() ?? UniTask.CompletedTask;   // U1-②：全关+缓存销毁+租约归零+Root 销毁
+            }
+
+            /// <summary>prefab 租约通道（UI-05）：内容服务 Acquire → AssetLease 转 IUIPrefabLease——
+            /// UIService 不感知内容服务类型，只认可释放句柄（§3 资源适配边界）。</summary>
+            private static async UniTask<IUIPrefabLease> LoadPrefabLeaseAsync(
+                IContentService content, string location, CancellationToken ct)
+            {
+                var lease = await content.AcquireAsync<UnityEngine.GameObject>(location, ct: ct);
+                return new ContentPrefabLease(lease);
             }
         }
 

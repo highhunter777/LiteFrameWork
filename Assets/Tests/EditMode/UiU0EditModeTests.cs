@@ -221,7 +221,7 @@ return m";
                 var service = new UIService(catalog,
                     transitionStrategy: trans,
                     logicResolver: info => new LuaBehaviourAdapter(env, registry.Get(info.LuaPath)),
-                    loadPrefab: (loc, ct) => UniTask.FromResult(AssetDatabase.LoadAssetAtPath<GameObject>(loc)));
+                    loadPrefab: (loc, ct) => UniTask.FromResult(UIPrefabLeases.Unowned(AssetDatabase.LoadAssetAtPath<GameObject>(loc))));
 
                 // 首开：真 UIMain 的 OnShow 访问 self.ui:OnButton + self.ui:Pulse——self 未传必炸（§2.2 复现口径）
                 var form = Await(service.ShowAsync(1), service);
@@ -279,7 +279,7 @@ return m";
             var service = new UIService(catalog,
                 transitionStrategy: trans, replaceTransition: replace,
                 logicResolver: _ => new RecordingLogic(),
-                loadPrefab: (loc, ct) => UniTask.FromResult(FakePrefab("p" + loc)));
+                loadPrefab: (loc, ct) => UniTask.FromResult(UIPrefabLeases.Unowned(FakePrefab("p" + loc))));
 
             var f1 = Await(service.ShowAsync(1), service);
             int f1FirstOrder = f1.Canvas.sortingOrder;                // 复用会重排——先记首开值（同一 UIForm 对象）
@@ -308,7 +308,7 @@ return m";
             var service = new UIService(catalog,
                 transitionStrategy: new MimicTransition(),
                 logicResolver: info => { var l = new RecordingLogic(); logics[info.Id] = l; return l; },
-                loadPrefab: (loc, ct) => UniTask.FromResult(FakePrefab("p" + loc)));
+                loadPrefab: (loc, ct) => UniTask.FromResult(UIPrefabLeases.Unowned(FakePrefab("p" + loc))));
 
             var f1 = Await(service.ShowAsync(1), service);
             var f2 = Await(service.ShowAsync(2), service);
@@ -355,13 +355,15 @@ return m";
             var service = new UIService(catalog,
                 transitionStrategy: new MimicTransition(),
                 logicResolver: _ => logic,
-                loadPrefab: (loc, ct) => UniTask.FromResult(FakePrefab("p" + loc)));
+                loadPrefab: (loc, ct) => UniTask.FromResult(UIPrefabLeases.Unowned(FakePrefab("p" + loc))));
 
             int errBefore = LiteFramework.Log.ErrorCount;
             var task = service.ShowAsync(1);
             for (int i = 0; i < 10 && task.Status == UniTaskStatus.Pending; i++) service.Tick(0.05f);
-            Assert.Throws<InvalidOperationException>(() => task.GetAwaiter().GetResult(),
+            // U1-①：初始化失败升级为类型化异常（Reason=InitFailed；基类 InvalidOperationException 保持旧捕获点兼容）
+            var openEx = Assert.Throws<UIOpenException>(() => task.GetAwaiter().GetResult(),
                 "初始化失败必须对外报失败（禁止 Active+NullLogic 伪装成功）");
+            Assert.AreEqual(UIOpenFailure.InitFailed, openEx.Reason);
             Assert.Greater(LiteFramework.Log.ErrorCount, errBefore, "SafeCall 应记录 OnInit 异常");
             Assert.IsFalse(service.IsOpen(1), "回滚后不得登记在打开集合");
 
@@ -388,7 +390,7 @@ return m";
             var service = new UIService(catalog,
                 transitionStrategy: new MimicTransition(),
                 logicResolver: info => new LuaBehaviourAdapter(EnvOf(), registry.Get(info.LuaPath)),
-                loadPrefab: (loc, ct) => UniTask.FromResult(AssetDatabase.LoadAssetAtPath<GameObject>(loc)));
+                loadPrefab: (loc, ct) => UniTask.FromResult(UIPrefabLeases.Unowned(AssetDatabase.LoadAssetAtPath<GameObject>(loc))));
             // resolver 经局部函数取"当前 env"——模拟 LuaComponent.Shutdown/Init 交接
             LuaEnv EnvOf() => env;
 

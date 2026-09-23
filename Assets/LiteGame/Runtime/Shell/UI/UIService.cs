@@ -13,32 +13,57 @@ namespace LiteGame
     /// + 转场编排层（§1.5：状态机 + 排队 1 + 超时兜底 + 壳统一管交互门；策略只是"表现体"）
     /// + 逻辑解析器（LuaBehaviourAdapter 接线；解析失败降级 NullLogic）。
     /// 薄壳 = DI 注册的普通服务（设计方案 §1.3），ProcedureLaunch 注册、装配点构造。
-    /// 驱动：ITickable（GameEntry 统一喂）——仅 Active 态转发 OnUpdate；
+    /// 驱动：ITickable（GameEntry 统一喂）——仅 Active 态转发 OnUpdate（快照迭代——回调内开关界面安全）；
     /// 遮盖语义（组级批量暂停的灰盒形态）：全屏界面打开 → 更低层级组的 Active 界面批量 Covered，
     /// 关闭后按"仍开着的最高全屏"重算（多全屏叠开不误恢复）。
     /// 《UI框架总设计》§4 修订：首次与复用合流成 <see cref="FinishOpenAsync"/> 一条管线；
     /// 打开失败回滚；Close/CloseAll 覆盖 Covered/Paused；env 重建走 <see cref="DropAllLogic"/> 清旧引用。
+    /// U1-①（§4.3，UI-03）：在途打开操作合流（并发 Show 共享一份工作，不返回 null）；数据冲突 Busy；
+    /// 调用方 token 只取消本人、全员退出撤工作；Close 对在途加载发权威取消；失败类型化（<see cref="UIOpenException"/>）。
     /// </summary>
     public sealed class UIService : ITickable, IModuleStats
     {
         public static readonly string[] GroupNames = { "Bottom", "Window", "Top" };
 
+        /// <summary>缓存实例数默认预算（§5.2：缓存有预算——Resident 也计入总预算；U2 接表列覆盖）。</summary>
+        public const int DefaultCacheBudget = 16;
+
+        /// <summary>关闭原因（§4.4：区分用户关闭与系统清理——系统关闭不受业务"未保存拦截"阻挡、不必播离场）。</summary>
+        public enum CloseReason
+        {
+            User,        // 用户主动（可被出栈拦截）
+            Back,        // 返回（可被出栈拦截）
+            Replace,     // 同组全屏替换（内部）
+            ScopeExit,   // 父级 Scope 退出（系统：跳过拦截与离场）
+            Reload,      // env 重建（系统）
+            Shutdown,    // 宿主关闭（系统）
+        }
+
         private readonly IUIFormCatalog _catalog;
         private readonly Dictionary<int, UIForm> _forms = new Dictionary<int, UIForm>(16);   // id → 实例（含池中）
-        private readonly HashSet<int> _loading = new HashSet<int>();                         // 加载在途（幂等守卫：入字典前的窗口期）
+        private readonly Dictionary<int, OpenOperation> _openOps = new Dictionary<int, OpenOperation>(4);   // 在途打开操作（UI-03：并发合流）
+        private readonly Dictionary<int, IUIPrefabLease> _leases = new Dictionary<int, IUIPrefabLease>(8);  // 实例租约（UI-05：持到真正销毁）
+        private readonly Dictionary<int, long> _lastUsed = new Dictionary<int, long>(8);     // 最近使用序号（LRU 淘汰判据）
         private readonly HashSet<int> _closing = new HashSet<int>();                         // 关闭在途（转场动画期间防并发 Close 重入）
         private readonly HashSet<int> _staleLogic = new HashSet<int>();   // 逻辑待更新（运行期增量重填，§2.3）
+        private readonly List<UIForm> _tickSnapshot = new List<UIForm>(16);   // Tick 快照（§4.3 重入正确性：回调内开关界面不改枚举集合）
         private readonly UILayerGroup[] _groups;
         private readonly Transform _root;
         private readonly UITransitionRunner _transitions;                  // 转场编排层（§1.5，不注册 ITickable）
         private readonly IPopInterceptor _pop;
         private readonly Func<UIFormInfo, IUIFormLogic> _logicResolver;
-        private readonly Func<string, CancellationToken, UniTask<GameObject>> _loadPrefab;
+        private readonly Func<string, CancellationToken, UniTask<IUIPrefabLease>> _loadPrefab;
+        private long _useCounter;
+        private bool _shutdown;
+
+        /// <summary>缓存实例数预算（池中 Recycled 计数上限；超预算淘汰最久未用的非打开实例）。</summary>
+        public int CacheBudget { get; set; }
 
         /// <param name="replaceTransition">可选：Replace 的"两组并发"定制位；null = 壳合成 WhenAll(Close, Show)。</param>
         /// <param name="transitionMaxDuration">转场超时兜底（§1.5.4 规则④），默认 2s。</param>
-        /// <param name="loadPrefab">可选：界面 prefab 加载口（默认走静态 <see cref="AssetService"/>）。
-        /// 注入点是 U0 的"可先 fake loader"验收口与失败注入；U1 起换成内容服务租约（§3 资源适配）。</param>
+        /// <param name="loadPrefab">界面 prefab 租约加载口（**必填**——UI-05：返回可释放句柄；
+        /// 生产绑定内容服务（<see cref="ContentPrefabLease"/>），测试/工具用 <see cref="UIPrefabLeases.Unowned"/>）。</param>
+        /// <param name="cacheBudget">缓存实例数预算（默认 <see cref="DefaultCacheBudget"/>）。</param>
         public UIService(IUIFormCatalog catalog,
             ILayerStrategy layerStrategy = null,
             ITransitionStrategy transitionStrategy = null,
@@ -46,14 +71,17 @@ namespace LiteGame
             Func<UIFormInfo, IUIFormLogic> logicResolver = null,
             IReplaceTransition replaceTransition = null,
             float transitionMaxDuration = UITransitionRunner.DefaultMaxDuration,
-            Func<string, CancellationToken, UniTask<GameObject>> loadPrefab = null)
+            Func<string, CancellationToken, UniTask<IUIPrefabLease>> loadPrefab = null,
+            int cacheBudget = DefaultCacheBudget)
         {
             _catalog = catalog ?? throw new ArgumentNullException(nameof(catalog));
             _transitions = new UITransitionRunner(transitionStrategy ?? new FadeSlideTransition(),
                                                   replaceTransition, transitionMaxDuration);
             _pop = popInterceptor ?? new DefaultPopInterceptor();
             _logicResolver = logicResolver;
-            _loadPrefab = loadPrefab ?? AssetService.LoadAssetAsync<GameObject>;
+            _loadPrefab = loadPrefab ?? throw new ArgumentNullException(nameof(loadPrefab),
+                "UI prefab 加载口必填（UI-05：租约语义——生产绑内容服务，测试绑 Unowned）");
+            CacheBudget = cacheBudget > 0 ? cacheBudget : DefaultCacheBudget;
 
             _root = new GameObject("[UIRoot]").transform;
             if (Application.isPlaying) UnityEngine.Object.DontDestroyOnLoad(_root.gameObject);   // EditMode 用例（L2）不得走 DDOL
@@ -71,9 +99,15 @@ namespace LiteGame
         /// <summary>打开界面（§4.2 统一流程：校验请求 → 获取或创建实例 → 校验初始化 → 复位视觉 →
         /// 排序/遮盖 → OnShow → 入场/替换 → 返回结果）。首次与复用**同一条管线**：复用只省略实例初始化。
         /// 幂等：已打开（含 Covered/Paused）直接返回；池中复用重跑 OnShow 但不重跑 OnInit。
+        /// U1-①（§4.3，UI-03）：同一界面**并发 Show 合流共享一次加载/打开**（不再返回 null 表示进行中）；
+        /// 在途且数据不同 → <see cref="UIOpenException"/>(Busy)；调用方 token 只取消本人等待，
+        /// 全员退出才撤销工作；Close 对在途打开发权威取消。失败抛类型化异常（Reason 分类）。
         /// 数据传参收口 <see cref="IUIData"/>（禁 object，2026-09-13 修订）。</summary>
-        public async UniTask<UIForm> ShowAsync(int formId, IUIData data = null, CancellationToken ct = default)
+        public UniTask<UIForm> ShowAsync(int formId, IUIData data = null, CancellationToken ct = default)
         {
+            ct.ThrowIfCancellationRequested();
+            if (_shutdown)
+                throw new UIOpenException(UIOpenFailure.Rejected, formId, "UI 已 Shutdown——不再接受页面操作（§4.4 停止接入）");
             var info = _catalog.Get(formId);
             var group = GetGroup(info.Layer);
 
@@ -84,51 +118,140 @@ namespace LiteGame
                     case UIFormState.Recycled:
                         SwapIfStale(existing);            // 换表重建（运行期增量重填）后再复用
                         EnsureLogic(existing);            // env 重建后逻辑已落空：按当前注册表重新解析
-                        return await ReuseAsync(existing, group, data);
+                        return ReuseAsync(existing, group, data);
                     case UIFormState.Active:
                     case UIFormState.Covered:
                     case UIFormState.Paused:
                         // 已打开即幂等返回；不暗中再次 OnShow（更新数据用显式刷新操作，§4.2）
                         Log.Warning($"UIForm[{formId}] 已打开（{existing.State}）——ShowAsync 幂等返回", "UI");
-                        return existing;
+                        return UniTask.FromResult(existing);
                     default:
                         throw new InvalidOperationException(
                             $"UIForm[{formId}] 状态 {existing.State} 不允许 Show（§3.4 fail-fast）");
                 }
             }
-            if (_loading.Contains(formId))
+
+            // 在途打开操作合流（UI-03）：并发 Show 共享同一次加载/打开——等待者各自可取消，工作只有一份
+            if (_openOps.TryGetValue(formId, out var op))
             {
-                Log.Warning($"UIForm[{formId}] 加载中——并发 Show 已忽略（否则双实例：字典覆盖 + 首实例泄漏）", "UI");
-                return null;
+                if (!ReferenceEquals(op.Data, data))
+                    throw new UIOpenException(UIOpenFailure.Busy, formId,
+                        $"UIForm[{formId}] 打开在途且数据不同——首请求持有数据（§4.3），更新数据走显式刷新/替换");
+                Interlocked.Increment(ref op.Waiters);
+                return WaitOpenAsync(op, ct);
             }
-            _loading.Add(formId);
+
+            op = new OpenOperation(formId, data);
+            _openOps[formId] = op;
+            Interlocked.Increment(ref op.Waiters);
+            RunOpenAsync(op, info, group).Forget();       // 工作与等待分离：工作只受权威取消（WorkCts），不随单人等待走
+            return WaitOpenAsync(op, ct);
+        }
+
+        /// <summary>等待一次在途打开：外部 token 只约束本人等待；取消时释放等待份额，
+        /// 全员退出且工作未完成 → 撤销工作（§4.3"取消等待 ≠ 底层停止"的对称面）。</summary>
+        private async UniTask<UIForm> WaitOpenAsync(OpenOperation op, CancellationToken ct)
+        {
             try
             {
-                // 实例化管线：加载 → 实例化挂组 → 画布就位 → 入栈 → OnInit/OnShow → 转场表现
-                var prefab = await _loadPrefab(info.Location, ct);
-                var root = UnityEngine.Object.Instantiate(prefab, group.Root);
-                var form = new UIForm(info, root);
+                return await op.Completion.Task.AttachExternalCancellation(ct);
+            }
+            catch (OperationCanceledException)
+            {
+                if (Interlocked.Decrement(ref op.Waiters) <= 0 && !op.Completion.Task.Status.IsCompleted())
+                    op.WorkCts.Cancel();                  // 最后一个等待者退出：撤销尚未提交的工作
+                throw;
+            }
+            catch (UIOpenException)
+            {
+                Interlocked.Decrement(ref op.Waiters);    // 失败也释放等待份额（工作由 RunOpenAsync 收尾）
+                throw;
+            }
+        }
+
+        /// <summary>执行一次打开（工作侧）：加载 → 实例化挂组 → 画布就位 → 入栈 → OnInit/OnShow → 转场表现。
+        /// 权威取消在各提交检查点核验（迟到结果不提交、半成品就地回滚）；成功/失败统一经 Completion 交付全部等待者。</summary>
+        private async UniTaskVoid RunOpenAsync(OpenOperation op, UIFormInfo info, UILayerGroup group)
+        {
+            UIForm form = null;
+            IUIPrefabLease lease = null;
+            try
+            {
+                try
+                {
+                    lease = await _loadPrefab(info.Location, op.WorkCts.Token);
+                }
+                catch (OperationCanceledException) { throw; }
+                catch (Exception ex)
+                {
+                    throw new UIOpenException(UIOpenFailure.LoadFailed, op.FormId,
+                        $"UIForm[{op.FormId}] prefab 加载失败:{info.Location}", ex);   // 类型化 + 含 location（§4.3）
+                }
+                op.WorkCts.Token.ThrowIfCancellationRequested();      // 迟到结果不提交（权威取消在加载完成后核）
+
+                var root = UnityEngine.Object.Instantiate(lease.Prefab, group.Root);
+                form = new UIForm(info, root);
                 form.Logic = ResolveLogic(info);
                 form.PrepareForShow();
                 group.AssignDepth(form);
-                _forms[formId] = form;
+                _forms[op.FormId] = form;
+                _leases[op.FormId] = lease;                           // 所有权移交：租约由 UIService 持有到实例真正销毁
+                lease = null;                                         // 登记成功——失败路径不再就地释放
                 group.Stack.Push(form);
 
-                if (!form.EnterActiveFromLoading(data))
+                if (!form.EnterActiveFromLoading(op.Data))
                 {
                     // 打开回滚（§4.1）：撤销登记 → 释放逻辑/Lua 引用 → 销毁对象 → 对外报失败
                     // （禁止"Active + NullLogic 伪装成功"）
-                    _forms.Remove(formId);
+                    _forms.Remove(op.FormId);
+                    _leases.Remove(op.FormId);
                     group.Stack.Remove(form);
                     form.DisposeFailedOpen();
-                    throw new InvalidOperationException(
-                        $"UIForm[{formId}] 初始化失败（OnInit/OnShow 抛异常）——已回滚，对象与登记均已清理");
+                    throw new UIOpenException(UIOpenFailure.InitFailed, op.FormId,
+                        $"UIForm[{op.FormId}] 初始化失败（OnInit/OnShow 抛异常）——已回滚，对象与登记均已清理");
                 }
-                return await FinishOpenAsync(form, group);
+
+                var opened = await FinishOpenAsync(form, group);
+                op.Completion.TrySetResult(opened);
+            }
+            catch (OperationCanceledException)
+            {
+                // 权威取消（Close 对在途 / 全员退出）：半成品就地回滚，全部等待者收类型化取消
+                if (form != null)
+                {
+                    _forms.Remove(op.FormId);
+                    _leases.Remove(op.FormId);
+                    group.Stack.Remove(form);
+                    form.DisposeFailedOpen();
+                }
+                op.Completion.TrySetException(new UIOpenException(UIOpenFailure.Canceled, op.FormId,
+                    $"UIForm[{op.FormId}] 打开被权威取消（Close/全部等待者退出/Scope 退出）"));
+            }
+            catch (Exception ex)
+            {
+                op.Completion.TrySetException(ex);       // 全部等待者收到同一异常（加载失败等）
             }
             finally
             {
-                _loading.Remove(formId);
+                lease?.Release();                        // 所有权未移交成功的就地释放（加载到、但未登记）
+                _openOps.Remove(op.FormId);
+                op.WorkCts.Dispose();
+            }
+        }
+
+        /// <summary>在途打开操作（UI-03）：同一界面的并发 Show 合并到这一份记录上。</summary>
+        private sealed class OpenOperation
+        {
+            public readonly int FormId;
+            public readonly IUIData Data;                 // 首个请求持有数据（§4.3：数据冲突 = Busy，不静默覆盖）
+            public readonly UniTaskCompletionSource<UIForm> Completion = new UniTaskCompletionSource<UIForm>();
+            public readonly CancellationTokenSource WorkCts = new CancellationTokenSource();   // 权威取消源
+            public int Waiters;                           // 在途等待者数（全员退出才撤工作）
+
+            public OpenOperation(int formId, IUIData data)
+            {
+                FormId = formId;
+                Data = data;
             }
         }
 
@@ -169,16 +292,38 @@ namespace LiteGame
         /// <summary>关闭界面（Active/Covered/Paused 均可）：出栈拦截 → 离场转场 → OnHide → 落池。
         /// 全屏关闭后重算遮盖。并发安全：转场动画期间二次 Close 直接忽略（_closing 在途集——
         /// 重入会在 Recycled 态撞迁移守卫）。</summary>
-        public async UniTask CloseAsync(int formId)
+        /// <summary>关闭界面（Active/Covered/Paused 均可）：出栈拦截（仅用户语义）→ 离场转场（系统原因跳过）
+        /// → OnHide → 落池。全屏关闭后重算遮盖。并发安全：转场动画期间二次 Close 直接忽略。
+        /// 系统原因（ScopeExit/Reload/Shutdown）：跳过出栈拦截（§4.4 系统清理不受业务"未保存拦截"无限阻挡）
+        /// 且不必播离场——但 OnHide 与释放照常完成。</summary>
+        public async UniTask CloseAsync(int formId, CloseReason reason = CloseReason.User)
         {
+            // UI-03：关闭在途加载 = 权威取消（页面从未打开，Close 即完成——不抛"未打开"）
+            if (_openOps.TryGetValue(formId, out var op))
+            {
+                op.WorkCts.Cancel();                      // 先取消再摘登记：新 Show 不会并入将死操作
+                _openOps.Remove(formId);
+                Log.Info($"UIForm[{formId}] 在途打开被 Close 取消", "UI");
+                return;
+            }
+
             if (!_forms.TryGetValue(formId, out var form))
                 throw new KeyNotFoundException($"UIForm 表存在但未打开:{formId}（§3.4 fail-fast）");
             if (!form.IsOpen)
                 throw new InvalidOperationException(
                     $"UIForm[{formId}] 状态 {form.State} 不允许 Close（仅 Active/Covered/Paused）");
-            if (!_pop.CanClose(form))
+
+            bool system = reason is CloseReason.ScopeExit or CloseReason.Reload or CloseReason.Shutdown;
+            if (!system && !_pop.CanClose(form))
             {
                 Log.Info($"UIForm[{formId}] 关闭被出栈拦截", "UI");
+                return;
+            }
+            if (system)
+            {
+                // 系统清理：无离场表现，直接落库（OnHide/订阅清理/展示令牌取消照常）
+                CloseFormInternal(form);
+                Log.Info($"UIForm[{formId}] 系统关闭（{reason}）", "UI");
                 return;
             }
             if (!_closing.Add(formId))
@@ -206,17 +351,71 @@ namespace LiteGame
 
         /// <summary>DevReload / Scope 退出编排用（§2.3 定案"重载后全关" + §4.4 CloseAll 从**全部打开**
         /// 集合清理）：旧 LuaTable 经适配器持有时全部失效，留旧界面 = 静默用死对象。
-        /// Covered/Paused 同样是打开着的界面——只抓 Active 快照会漏关（UI-04）。逐界面容错（单界面失败不阻断）。</summary>
-        public async UniTask CloseAllOpen()
+        /// Covered/Paused 同样是打开着的界面——只抓 Active 快照会漏关（UI-04）。逐界面容错（单界面失败不阻断）。
+        /// 默认系统语义（ScopeExit）：跳过出栈拦截与离场表现——系统清理不被业务守卫阻挡（§4.4）。</summary>
+        public async UniTask CloseAllOpen(CloseReason reason = CloseReason.ScopeExit)
         {
             var ids = new List<int>();
             foreach (var kv in _forms)
                 if (kv.Value.IsOpen) ids.Add(kv.Key);
             foreach (var id in ids)
             {
-                try { await CloseAsync(id); }
+                try { await CloseAsync(id, reason); }
                 catch (Exception ex) { Log.Error($"CloseAllOpen[{id}]:{ex.Message}", "UI"); }
             }
+        }
+
+        /// <summary>
+        /// 销毁一个缓存实例（UI-06：缓存页面完整销毁——GameObject Destroy + 租约释放 + 登记摘除）。
+        /// 仅允许销毁**非打开**（Recycled）实例——打开中的先 Close；在途加载先等待/取消。
+        /// DestroyOnClose 策略与低内存清理走同一路径（§5.2）。
+        /// </summary>
+        public void Destroy(int formId)
+        {
+            if (!_forms.TryGetValue(formId, out var form))
+                return;                                    // 幂等：不存在 = 已销毁
+            if (form.IsOpen || _openOps.ContainsKey(formId))
+                throw new InvalidOperationException(
+                    $"UIForm[{formId}] 打开中/加载在途——先 Close/等待完成再 Destroy（§5.2 只淘汰未打开实例）");
+            DestroyFormInternal(formId);
+            Log.Info($"UIForm[{formId}] 缓存实例已销毁（租约释放）", "UI");
+        }
+
+        /// <summary>
+        /// 优雅关闭（§4.4 ShutdownAsync，UI-06）：停止接入 → 取消全部在途操作 → 全关（系统语义）→
+        /// 销毁全部缓存实例与租约 → 销毁 DDoL Root。幂等；逐项异常汇总上报不中断后续清理。
+        /// </summary>
+        public async UniTask ShutdownAsync()
+        {
+            if (_shutdown) return;                         // 幂等
+            _shutdown = true;                              // ① 停止接入（Show 即拒）
+
+            // ② 取消全部在途打开（等待者收类型化 Canceled；半成品由工作侧就地回滚）
+            if (_openOps.Count > 0)
+            {
+                var cancelling = new List<OpenOperation>(_openOps.Values);
+                _openOps.Clear();
+                foreach (var op in cancelling) op.WorkCts.Cancel();
+            }
+
+            // ③ 全关（系统语义：不播离场、跳过拦截——OnHide/订阅/展示令牌照常清理）
+            await CloseAllOpen(CloseReason.Shutdown);
+
+            // ④ 销毁全部缓存实例 + 释放全部租约（UI-06：完整销毁路径）
+            var cachedIds = new List<int>(_forms.Keys);
+            foreach (var id in cachedIds) DestroyFormInternal(id);
+
+            // ⑤ 销毁 DDoL Root
+            if (_root != null)
+            {
+#if UNITY_EDITOR
+                if (!Application.isPlaying) UnityEngine.Object.DestroyImmediate(_root.gameObject);
+                else UnityEngine.Object.Destroy(_root.gameObject);
+#else
+                UnityEngine.Object.Destroy(_root.gameObject);
+#endif
+            }
+            Log.Info("UI Shutdown 完成：在途取消、全关、缓存销毁、租约归零、Root 销毁", "UI");
         }
 
         /// <summary>
@@ -373,7 +572,7 @@ namespace LiteGame
         }
 
         /// <summary>
-        /// 落库关闭：EnterClosing → 出栈 → 落池 → 换表 → 重算遮盖。
+        /// 落库关闭：EnterClosing → 出栈 → 落池 → 换表 → 重算遮盖 → LRU 记账 → 预算淘汰。
         /// 由 <see cref="CloseAsync"/>（Pop 转场收尾后）与 Replace 自动关闭旧界面共用。
         /// 顺序不能反：OnHide 跑完前换表会让界面"一半旧一半新"（§2.3）。
         /// </summary>
@@ -384,14 +583,63 @@ namespace LiteGame
             form.Recycle();
             SwapIfStale(form);
             if (form.Info.FullScreen) RecomputeCovering();
+            _lastUsed[form.Id] = ++_useCounter;            // LRU 记账（最近使用序号）
+            EvictBeyondBudget();
+        }
+
+        /// <summary>缓存预算淘汰（§5.2 LRU：只淘汰**未打开、未被操作引用**的缓存实例）：
+        /// 池中（Recycled）计数超预算 → 按最近使用序淘汰最旧者（完整销毁：GameObject + 租约 + 登记）。</summary>
+        private void EvictBeyondBudget()
+        {
+            int cached = 0;
+            foreach (var kv in _forms)
+                if (kv.Value.State == UIFormState.Recycled) cached++;
+            if (cached <= CacheBudget) return;
+
+            // 候选 = 池中实例，按最近使用序升序（最旧先淘汰）
+            var candidates = new List<(int id, long used)>(cached);
+            foreach (var kv in _forms)
+                if (kv.Value.State == UIFormState.Recycled && _lastUsed.TryGetValue(kv.Key, out long used))
+                    candidates.Add((kv.Key, used));
+            candidates.Sort((a, b) => a.used.CompareTo(b.used));
+
+            int toEvict = cached - CacheBudget;
+            for (int i = 0; i < toEvict && i < candidates.Count; i++)
+            {
+                DestroyFormInternal(candidates[i].id);
+                Log.Info($"UIForm[{candidates[i].id}] 缓存超出预算 {CacheBudget}——LRU 淘汰（租约释放）", "UI");
+            }
+        }
+
+        /// <summary>完整销毁（UI-06）：摘登记 → 实例销毁（GameObject + 逻辑/Lua 引用 + 展示令牌）→ 租约释放。
+        /// 终态 Disposed——不可再复用（再次 Show = 全新实例与全新租约）。</summary>
+        private void DestroyFormInternal(int formId)
+        {
+            if (!_forms.TryGetValue(formId, out var form)) return;
+            _forms.Remove(formId);
+            _staleLogic.Remove(formId);
+            _lastUsed.Remove(formId);
+            form.DestroyInstance();
+            if (_leases.TryGetValue(formId, out var lease))
+            {
+                _leases.Remove(formId);
+                lease.Release();                           // 最后一个依赖实例已销毁——底层引用归零（§5.2）
+            }
         }
 
         // ---- ITickable / IModuleStats ----
 
         public void Tick(float deltaTime)
         {
-            foreach (var form in _forms.Values)
-                if (form.State == UIFormState.Active) form.RaiseUpdate(deltaTime);
+            // 快照迭代（§4.3 重入正确性）：OnUpdate 内发起开/关/销毁不得在枚举 _forms 时改集合；
+            // 本帧新建的界面下帧起参与驱动（新开的页面同帧不需要 OnUpdate）。
+            _tickSnapshot.Clear();
+            _tickSnapshot.AddRange(_forms.Values);
+            for (int i = 0; i < _tickSnapshot.Count; i++)
+            {
+                var form = _tickSnapshot[i];
+                if (form != null && form.State == UIFormState.Active) form.RaiseUpdate(deltaTime);
+            }
 
             // 转场推进放**真帧末**：既让界面 OnUpdate 里发起的请求同帧末生效，
             // 也保证收尾时同步恢复的续体（EnterClosing/Recycle）不会撞上面的字典枚举。
