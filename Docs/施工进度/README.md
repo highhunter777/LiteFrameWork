@@ -15,4 +15,5 @@
 | [UI-U0.md](UI-U0.md) | 《UI框架总设计》U0 正确性止血：Lua 实例/self、复用合流、Covered/Paused 全关、列表窗口复用、失败回滚、env 重建零旧引用；PlayMode/租约留 U1 |
 | [服务端R0.md](服务端R0.md) | 《商业级通用服务端框架总设计》R0 正确性止血：精确节拍、定容输入环、数值边界、可信 ACK、稳定 configHash |
 | [服务端R1.md](服务端R1.md) | 《商业级通用服务端框架总设计》R1：RoomRuntime 纯化（Runtime/Application 分层）、RoomCommand/RoomOutput、Match 状态机、Session/席位分离、重连闭环（Restoring 门闩 + 客户端会话状态机）、R11 纯化纪律扫描 |
-| [客户端C1.md](客户端C1.md) | 《商业级通用客户端框架总设计》C1-①②③：ClientHost/AppLifetime/ClientScope、GameEntry 引导收敛、统一取消与逆序关闭；Scope 树/内容事务/热更留后续 |
+| [客户端C1.md](客户端C1.md) | 《商业级通用客户端框架总设计》C1-①～⑩：ClientHost/AppLifetime/统一取消链、Scope 原语、IContentService/AssetLease/共享加载/代次、ConfigService 快照化、激活事务与 Patch 流程；Host 下载/验签与深度候选验证留热更批 |
+| [UI-U1.md](UI-U1.md) | 《UI框架总设计》U1 操作与所有权：操作合流/取消/类型化结果（UI-03）、租约/缓存预算/销毁/Shutdown（UI-05/06）、统一排序/输入锁职责分离/转场取消复位（UI-09）、真资源包 Player 页面打开锚点；模态栈/导航队列/策略列留 U2 |
