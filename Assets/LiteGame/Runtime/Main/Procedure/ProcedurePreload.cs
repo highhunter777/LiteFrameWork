@@ -6,22 +6,25 @@ using LiteFramework;
 namespace LiteGame
 {
     /// <summary>
-    /// 预载流程（M3 版）：资源初始化 → 配置加载 → **M3 锚点五步序**（手册步骤 4 / M3 指导 §2.4）——
+    /// 预载流程（M3 版；C1-⑧ 资源初始化改经 IContentService——注入装配，为 U1/C2 租约消费者就位）：
+    /// 资源初始化 → 配置加载 → **M3 锚点五步序**（手册步骤 4 / M3 指导 §2.4）——
     /// ① Lua 全量预载 → ② Init env + 执行 main.lua → ③ RegistryFiller 读三件套填充注册表 →
     /// ④ 报告整批统一判定（有失败即 Fail 阻断）→ ⑤ 放行进 Main。
     /// LuaComponent/RegistryFiller 由装配点构造注入（依赖不从 payload 取）。
     /// </summary>
     public sealed class ProcedurePreload : ProcedureStageBase<ProcedureId, ProcedureArgs>
     {
+        private readonly IContentService _content;
         private readonly IConfigService _config;
         private readonly LuaComponent _lua;
         private readonly RegistryFiller _filler;
         private readonly IEventCenter _events;
 
-        public ProcedurePreload(IConfigService config, LuaComponent lua, RegistryFiller filler, IEventCenter events,
+        public ProcedurePreload(IContentService content, IConfigService config, LuaComponent lua, RegistryFiller filler, IEventCenter events,
             CancellationToken rootToken = default)
             : base(rootToken)
         {
+            _content = content ?? throw new ArgumentNullException(nameof(content));
             _config = config ?? throw new ArgumentNullException(nameof(config));
             _lua = lua ?? throw new ArgumentNullException(nameof(lua));
             _filler = filler ?? throw new ArgumentNullException(nameof(filler));
@@ -36,7 +39,7 @@ namespace LiteGame
             try
             {
                 UnityEngine.Debug.Log("[Preload] begin");        // C1-③ 临时诊断
-                await AssetService.InitAsync(ct: ct);
+                await _content.InitializeAsync(ct);              // 资源包初始化（幂等；EditorSimulate/Offline 与主链共用）
                 UnityEngine.Debug.Log("[Preload] asset ready");  // C1-③ 临时诊断
                 await _config.LoadAsync(ct);
 

@@ -116,7 +116,54 @@ namespace LiteFramework.Tests
 
             var cts = new CancellationTokenSource();
             Assert.ThrowsAny<OperationCanceledException>(
-                () => svc.AcquireAsync<FakeAsset>("slow", cts.Token).AsTask().GetAwaiter().GetResult());
+                () => svc.AcquireAsync<FakeAsset>("slow", default, cts.Token).AsTask().GetAwaiter().GetResult());
+        }
+
+        [Fact]
+        public void 代次隔离_同location不同代_不共享登记与引用计数()
+        {
+            var svc = Service();
+            var genA = ContentGeneration.Default;                       // builtin#0（默认代）
+            var genB = new ContentGeneration("release-2", 3UL);        // 候选/新代
+            var assetA = new FakeAsset { Name = "builtin-icon" };
+            var assetB = new FakeAsset { Name = "new-icon" };
+            svc.Register("ui/icon", assetA);                            // 默认代登记
+            svc.Register("ui/icon", assetB, genB);                      // 新代登记（同 location 不同资源）
+
+            var la = svc.AcquireAsync<FakeAsset>("ui/icon").GetAwaiter().GetResult();
+            var lb = svc.AcquireAsync<FakeAsset>("ui/icon", genB).GetAwaiter().GetResult();
+
+            Assert.Same(assetA, la.Asset);                              // 各取各代（§8.2 加载键含代次）
+            Assert.Same(assetB, lb.Asset);
+            Assert.Equal(2, svc.LiveLeaseCount);                        // 两代各自计数
+
+            la.Dispose();
+            Assert.Equal(1, svc.LiveLeaseCount);                        // 释放默认代不影响新代
+            lb.Dispose();
+            Assert.Equal(0, svc.LiveLeaseCount);
+        }
+
+        [Fact]
+        public void 代次身份_默认代与builtin零代一致_不同值不等()
+        {
+            Assert.Equal(new ContentGeneration("builtin", 0UL), ContentGeneration.Default);
+            Assert.NotEqual(new ContentGeneration("builtin", 1UL), ContentGeneration.Default);
+            Assert.NotEqual(new ContentGeneration("other", 0UL), ContentGeneration.Default);
+        }
+
+        [Fact]
+        public void 代次隔离_失败注入按代命中_不影响他代同location()
+        {
+            var svc = Service();
+            var genB = new ContentGeneration("release-2", 1UL);
+            svc.Register("ui/icon", new FakeAsset { Name = "builtin-icon" });
+            svc.InjectFailure("ui/icon", new InvalidOperationException("新代资产损坏"), genB);
+
+            Assert.Throws<InvalidOperationException>(
+                () => svc.AcquireAsync<FakeAsset>("ui/icon", genB).GetAwaiter().GetResult());   // 新代失败
+
+            var ok = svc.AcquireAsync<FakeAsset>("ui/icon").GetAwaiter().GetResult();            // 默认代不受牵连
+            Assert.Equal("builtin-icon", ok.Asset.Name);
         }
 
         private static void Pump(UniTask task)

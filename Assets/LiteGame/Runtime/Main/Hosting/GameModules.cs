@@ -194,7 +194,27 @@ namespace LiteGame
             public UniTask ShutdownAsync(CancellationToken ct) => UniTask.CompletedTask;   // 实例/租约释放归 U1/M11
         }
 
-        /// <summary>⑨ 容器与流程机：注册（**注册顺序 = 驱动顺序**）→ 流程机（业务装配仍由 ProcedureLaunch Seal，§12）。
+        /// <summary>⑨ 内容服务：IContentService 注入装配（YooAsset 适配 + 共享加载协调器 + 租约）——
+        /// U1/C2 消费租约；资源包初始化仍由 ProcedurePreload 经本服务触发（与旧行为同时序）；
+        /// Host 下载/激活事务归批次D。</summary>
+        internal sealed class Content : IClientModule
+        {
+            private YooAssetContentService _content;
+
+            public string Name => "Content";
+
+            public UniTask InitializeAsync(ClientContext context, CancellationToken ct)
+            {
+                _content = new YooAssetContentService();
+                context.Put<IContentService>(_content);
+                return UniTask.CompletedTask;
+            }
+
+            public UniTask ShutdownAsync(CancellationToken ct)
+                => _content?.ShutdownAsync(ct) ?? UniTask.CompletedTask;   // 释放面：剩余租约/句柄归零
+        }
+
+        /// <summary>⑩ 容器与流程机：注册（**注册顺序 = 驱动顺序**）→ 流程机（业务装配仍由 ProcedureLaunch Seal，§12）。
         /// 场景服务归本模块所有——关闭时释放全部场景句柄（§6.2 Scene 域退出动作，C1-⑦ 补宿主关闭释放面）。</summary>
         internal sealed class Container : IClientModule
         {
@@ -206,6 +226,7 @@ namespace LiteGame
             {
                 var container = new ServiceContainer();
                 var config = context.Require<ConfigService>();
+                var content = context.Require<IContentService>();   // C1-⑧：Preload 经 IContentService 初始化资源（时序不变）
                 _scenes = new SceneService();                    // 本模块所有——ShutdownAsync 逆序释放句柄（§6.2 Scene 域）
                 var lua = context.Require<LuaComponent>();
                 var events = context.Require<EventCenter>();
@@ -227,7 +248,7 @@ namespace LiteGame
                 container.RegisterInstance<IUIClock>(context.Require<IUIClock>());
                 container.RegisterInstance<IWallClock>(context.Require<IWallClock>());
                 container.RegisterInstance<IEventCenter>(events);
-                var fsm = CreateMachine(context, container, _scenes, config, lua, events, uiService, uiRegistry, contentRegistry,
+                var fsm = CreateMachine(context, container, _scenes, content, config, lua, events, uiService, uiRegistry, contentRegistry,
                     strategyRegistry, redDotRegistry, logicScheduler, uiScheduler, timelineRunner,
                     entityService, audioService, vfxService);
                 container.RegisterInstance<StageMachine<ProcedureId, ProcedureArgs>>(fsm);
@@ -244,7 +265,7 @@ namespace LiteGame
 
             /// <summary>原 GameEntry.CreateMachine 平移（依赖全部经 context 取——依赖不从 payload 取的纪律不变）。</summary>
             private static StageMachine<ProcedureId, ProcedureArgs> CreateMachine(ClientContext context, ServiceContainer container,
-                SceneService scenes, ConfigService config, LuaComponent lua, EventCenter events, UIService uiService,
+                SceneService scenes, IContentService content, ConfigService config, LuaComponent lua, EventCenter events, UIService uiService,
                 UiLuaRegistry uiRegistry, ContentLuaRegistry contentRegistry, StrategyLuaRegistry strategyRegistry,
                 RedDotRegistry redDotRegistry, ILogicScheduler logicScheduler, IUIScheduler uiScheduler,
                 GameTimelineRunner timelineRunner, EntityService entityService, AudioService audioService, VfxService vfxService)
@@ -254,7 +275,7 @@ namespace LiteGame
                 var rootToken = context.RootScope.Token;            // C1-⑦ 统一取消链：流程阶段 CTS 链接宿主根令牌
                 return new StageMachine<ProcedureId, ProcedureArgs>("Procedure",
                     (ProcedureId.Launch, new ProcedureLaunch(container, config, scenes, uiRegistry, contentRegistry, strategyRegistry, uiService, redDotRegistry, logicScheduler, uiScheduler, timelineRunner, entityService, audioService, vfxService, refill, rootToken)),
-                    (ProcedureId.Preload, new ProcedurePreload(config, lua, filler, events, rootToken)),
+                    (ProcedureId.Preload, new ProcedurePreload(content, config, lua, filler, events, rootToken)),
                     (ProcedureId.Main, new ProcedureMain(rootToken)),
                     (ProcedureId.Error, new ProcedureError(rootToken)));
             }

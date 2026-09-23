@@ -5,6 +5,40 @@ using Cysharp.Threading.Tasks;
 namespace LiteFramework
 {
     /// <summary>
+    /// 内容代次（《商业级通用客户端框架总设计》§8.2"Scope 固定 ContentGeneration，加载与缓存键包含代次"；
+    /// 《热更与内容发布专项设计》§9"ContentGeneration 持有固定资源目录、脚本集合、配置快照及依赖 ID"）：
+    /// 同一 location 在不同代次下是**不同资源**——候选与当前隔离、旧使用者不从全局 Current 混取新内容的键维度。
+    /// 本类型是代次的**键身份**（ReleaseId + 单调 Value）；完整代次对象（目录/脚本集合/快照/依赖 ID）随热更批在激活事务上构建。
+    /// </summary>
+    public readonly struct ContentGeneration : IEquatable<ContentGeneration>
+    {
+        /// <summary>发布身份（热更 §5 ReleaseId：一次不可变内容发布；内置内容为 "builtin"）。</summary>
+        public string ReleaseId { get; }
+
+        /// <summary>同 Release 内单调代次（内置/初始 = 0；候选激活递增）。</summary>
+        public ulong Value { get; }
+
+        /// <summary>内置代次（无热更、始终可用——启动与恢复的兜底身份）。</summary>
+        public static ContentGeneration Default { get; } = new ContentGeneration("builtin", 0);
+
+        public ContentGeneration(string releaseId, ulong value)
+        {
+            ReleaseId = releaseId ?? throw new ArgumentNullException(nameof(releaseId));
+            Value = value;
+        }
+
+        public bool Equals(ContentGeneration other)
+            => Value == other.Value && string.Equals(ReleaseId, other.ReleaseId, StringComparison.Ordinal);
+
+        public override bool Equals(object obj) => obj is ContentGeneration other && Equals(other);
+
+        public override int GetHashCode()
+            => (ReleaseId == null ? 0 : StringComparer.Ordinal.GetHashCode(ReleaseId)) ^ Value.GetHashCode();
+
+        public override string ToString() => $"{ReleaseId}#{Value}";
+    }
+
+    /// <summary>
     /// 资源租约（《商业级通用客户端框架总设计》§8.2 资源租约）：对已加载资产的一份**可释放持有权**。
     ///
     /// 契约（§8.2 逐条落点）：
@@ -65,8 +99,10 @@ namespace LiteFramework
         /// <summary>初始化（幂等）。</summary>
         UniTask InitializeAsync(CancellationToken ct = default);
 
-        /// <summary>获取资源租约（引用计数 +1；失败抛含 location 的异常；ct 取消贯穿加载）。</summary>
-        UniTask<AssetLease<T>> AcquireAsync<T>(string location, CancellationToken ct = default) where T : class;
+        /// <summary>获取资源租约（引用计数 +1；失败抛含 location 的异常；ct 取消贯穿加载）。
+        /// <paramref name="generation"/> 固定本次获取的**内容代次**（§8.2：加载/缓存键包含代次——
+        /// 默认 = 当前代；旧 Scope 应显式携带自己的代次，不从全局 Current 混取新内容）。</summary>
+        UniTask<AssetLease<T>> AcquireAsync<T>(string location, ContentGeneration generation = default, CancellationToken ct = default) where T : class;
 
         /// <summary>优雅关闭：释放全部剩余租约与缓存（幂等）。</summary>
         UniTask ShutdownAsync(CancellationToken ct = default);
