@@ -1,7 +1,9 @@
 {
 	"name": "LiteFramework.Core",
 	"rootNamespace": "LiteFramework",
-	"references": [],
+	"references": [
+		"UniTask"
+	],
 	"includePlatforms": [],
 	"excludePlatforms": [],
 	"allowUnsafeCode": false,

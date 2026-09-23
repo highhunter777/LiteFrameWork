@@ -3,6 +3,7 @@
     "rootNamespace": "LiteGame.Tests.EditMode",
     "references": [
         "LiteFramework.Core",
+        "LiteFramework.Unity",
         "LiteSim.Core",
         "LiteSim.Core.Editor",
         "LiteSim.View",

@@ -42,6 +42,25 @@ namespace LiteGame
         }
 
         /// <summary>
+        /// 引导期（流程机就绪前）的启动失败落点：内建最小错误 UI + 冒烟标记。
+        /// GameEntry 宿主初始化失败时调用——确定错误态（§C1 退出条件宿主侧保证）；
+        /// 重试/回滚/清缓存入口按 §7.2 ErrorRecovery 在 C1 后续落地。
+        /// </summary>
+        public static void ShowBootstrapError(string message)
+        {
+            try
+            {
+                Log.Error($"{SmokeMarker} bootstrap failed: {message}", "Bootstrap");
+                ShowMinimalErrorUI(message);
+            }
+            catch (Exception uiEx)
+            {
+                // 错误 UI 自身失败不能吞掉原始错误——两处都落日志（Player.log 冒烟断言仍可命中第一条）
+                Log.Error($"{SmokeMarker} UI 创建失败:{uiEx.Message}", "Bootstrap");
+            }
+        }
+
+        /// <summary>
         /// 内建最小错误 UI：Canvas(Overlay) + 黑底 + 全屏文本。诊断用途，代码构建——
         /// 不经资源包（关键错误界面必须可从内置资源启动，总设计 §6.1）；
         /// 主行英文规避内置字体无 CJK 字形的限制，完整诊断以 Player.log 为准。

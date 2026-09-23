@@ -33,7 +33,9 @@ namespace LiteGame
         {
             try
             {
+                UnityEngine.Debug.Log("[Preload] begin");        // C1-③ 临时诊断
                 await AssetService.InitAsync(ct: ct);
+                UnityEngine.Debug.Log("[Preload] asset ready");  // C1-③ 临时诊断
                 await _config.LoadAsync(ct);
 
                 // ---- M3 锚点：Lua 预载与注册表填充段（勿在此行上方插入消费逻辑）----
