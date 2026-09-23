@@ -128,10 +128,10 @@ jobs:
 
   # ── L2（Unity 侧）门禁 ────────────────────────────────────────────────────
   # 为什么需要：L1 按路径 glob 编译、不读 .meta 也不经 Unity 编译器——2026-09-15 那次
-  #   16 个非法 GUID 的 .meta 事故里 L1 全绿而 Unity 编译是坏的（详见 Docs/CI门禁（L1-L2）.md）。
+  #   16 个非法 GUID 的 .meta 事故里 L1 全绿而 Unity 编译是坏的（门禁说明见 Docs/README.md 执行与环境文档）。
   # 为什么默认不跑：GitHub-hosted runner 跑不了本工程的 Unity 侧——
   #   ① 仓库按约定只含自研代码/预制品/文档，ProjectSettings/美术素材/场景/Odin 均不入库，
-  #      全新克隆工程无法编译（见 Docs/克隆后自备清单.md）
+  #      全新克隆工程无法编译（见 Docs/环境恢复指南.md）
   #   ② 编辑器是 Unity 中国版 2022.3.55f1c1，GitHub 镜像与授权都不匹配
   # 因此 L2 走**自托管 runner（Windows + 完整工程）**，并用仓库变量 L2_ENABLED=true 开启。
   l2-unity-gate:
