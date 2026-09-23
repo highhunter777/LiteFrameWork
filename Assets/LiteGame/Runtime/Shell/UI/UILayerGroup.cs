@@ -5,8 +5,11 @@ using UnityEngine;
 namespace LiteGame
 {
     /// <summary>
-    /// 层级组（M4 §2.1/§2.2）：组内栈 + Depth 分配（分配规则经 <see cref="ILayerStrategy"/> 注入，默认基序+槽位）。
-    /// 组间深度以 BaseDepth 步进 100 隔离；组内槽位溢出 100 时回卷并告警（防侵入相邻组）。
+    /// 层级组（M4 §2.1/§2.2）：组内栈 + Depth 分配（分配规则经 <see cref="ILayerStrategy"/> 注入）。
+    /// 组间深度以 BaseDepth 步进 100 隔离。
+    /// U1-③（§6.2 统一排序）：**开序即深序**——排序按当前打开顺序计算，每次入栈、移除、
+    /// BringToFront、复用后统一重算（<see cref="RecalculateOrders"/>）；废止旧"递增槽位 + 100 回卷"
+    /// ——组容量不足（栈超 <see cref="DepthStride"/>）由调用方在入栈前拒绝并诊断，禁止悄悄复用 order。
     /// </summary>
     public sealed class UILayerGroup
     {
@@ -17,7 +20,6 @@ namespace LiteGame
         public Transform Root { get; }                  // UIRoot 下的组节点（实例化挂点）
         public UIStack Stack { get; } = new UIStack();
         private readonly ILayerStrategy _layerStrategy;
-        private int _nextSlot;
 
         public UILayerGroup(string name, int baseDepth, Transform root, ILayerStrategy layerStrategy)
         {
@@ -27,18 +29,16 @@ namespace LiteGame
             _layerStrategy = layerStrategy ?? throw new ArgumentNullException(nameof(layerStrategy));
         }
 
-        /// <summary>sortingOrder 由层级策略解析；槽位满 100 回卷（告警——同屏同组超百界面属异常）。</summary>
-        public int AssignDepth(UIForm form)
+        /// <summary>组容量已满（§6.2：容量不足拒绝并诊断——打开请求在入栈前被拒，不回卷复用 order）。</summary>
+        public bool IsFull => Stack.Count >= DepthStride;
+
+        /// <summary>统一重算组内排序：开序即深序（栈序号 → 策略解析 order）。
+        /// 每次入栈 / 移除 / BringToFront / 复用后调用（§6.2）；O(栈深)——栈深有界（≤100）。</summary>
+        public void RecalculateOrders()
         {
-            if (_nextSlot >= DepthStride)
-            {
-                Log.Warning($"层级组[{Name}] 深度槽位耗尽（{DepthStride}）——回卷，旧界面 sortingOrder 将被复用", "UI");
-                _nextSlot = 0;
-            }
-            int order = _layerStrategy.ResolveSortingOrder(this, _nextSlot);
-            _nextSlot++;
-            form.AssignDepth(order);
-            return order;
+            var open = Stack.Open;
+            for (int i = 0; i < open.Count; i++)
+                open[i].AssignDepth(_layerStrategy.ResolveSortingOrder(this, i));
         }
     }
 }

@@ -110,6 +110,9 @@ namespace LiteGame
                 throw new UIOpenException(UIOpenFailure.Rejected, formId, "UI 已 Shutdown——不再接受页面操作（§4.4 停止接入）");
             var info = _catalog.Get(formId);
             var group = GetGroup(info.Layer);
+            if (group.IsFull)
+                throw new UIOpenException(UIOpenFailure.Rejected, formId,
+                    $"层级组[{group.Name}] 容量不足（{UILayerGroup.DepthStride}）——拒绝打开（§6.2：禁止复用正在使用的 order）");
 
             if (_forms.TryGetValue(formId, out var existing))
             {
@@ -193,11 +196,11 @@ namespace LiteGame
                 form = new UIForm(info, root);
                 form.Logic = ResolveLogic(info);
                 form.PrepareForShow();
-                group.AssignDepth(form);
                 _forms[op.FormId] = form;
                 _leases[op.FormId] = lease;                           // 所有权移交：租约由 UIService 持有到实例真正销毁
                 lease = null;                                         // 登记成功——失败路径不再就地释放
                 group.Stack.Push(form);
+                group.RecalculateOrders();                            // U1-③：开序即深序（统一重算）
 
                 if (!form.EnterActiveFromLoading(op.Data))
                 {
@@ -262,8 +265,8 @@ namespace LiteGame
         private async UniTask<UIForm> ReuseAsync(UIForm form, UILayerGroup group, IUIData data)
         {
             form.PrepareForShow();
-            group.AssignDepth(form);                          // 复用同样回到组内最上层
-            group.Stack.Push(form);
+            group.Stack.Push(form);                          // 复用同样回到组内最上层
+            group.RecalculateOrders();                       // U1-③：复用后统一重排序（§6.2）
             form.EnterActiveFromRecycled(data);
             return await FinishOpenAsync(form, group);
         }
@@ -447,6 +450,17 @@ namespace LiteGame
             form.EnterActiveFromPaused();
         }
 
+        /// <summary>置顶（U1-③，§6.2 BringToFront）：组内移到栈顶并统一重排序。
+        /// 仅对打开中的界面有效（Recycled 的复用打开天然置顶）。</summary>
+        public void BringToFront(int formId)
+        {
+            var form = RequireOpen(formId);
+            var group = GetGroup(form.Info.Layer);
+            if (!group.Stack.Remove(form)) return;
+            group.Stack.Push(form);
+            group.RecalculateOrders();
+        }
+
         /// <summary>查询打开状态（IsOpen = Active/Covered/Paused——对 Lua 语义"界面上没关"）。</summary>
         public bool IsOpen(int formId) => _forms.TryGetValue(formId, out var f) && f.IsOpen;
 
@@ -579,7 +593,9 @@ namespace LiteGame
         private void CloseFormInternal(UIForm form)
         {
             form.EnterClosing();
-            GetGroup(form.Info.Layer).Stack.Remove(form);
+            var group = GetGroup(form.Info.Layer);
+            group.Stack.Remove(form);
+            group.RecalculateOrders();                        // U1-③：移除后统一重算（紧缩——不复用 order 也不留洞）
             form.Recycle();
             SwapIfStale(form);
             if (form.Info.FullScreen) RecomputeCovering();

@@ -62,6 +62,10 @@ namespace LiteGame
         /// <summary>是否有事务在执行。</summary>
         public bool Busy => _current != null;
 
+        /// <summary>该界面是否处于当前事务的输入锁内（U1-③：输入协调求解用——接受即锁）。</summary>
+        public bool IsLocked(UIForm form)
+            => _current != null && (ReferenceEquals(_current.Outgoing, form) || ReferenceEquals(_current.Incoming, form));
+
         /// <summary>待办队列长度（0 或 1）。</summary>
         public int QueueLength => _queued != null ? 1 : 0;
 
@@ -83,6 +87,7 @@ namespace LiteGame
                 Outgoing = outgoing,
                 Incoming = incoming,
                 MaxDuration = _maxDuration,
+                Cts = new System.Threading.CancellationTokenSource(),   // U1-③：本事务取消源（超时/权威取消停策略工作）
             };
             ctx.Play = BuildPlay(ctx);
 
@@ -95,6 +100,7 @@ namespace LiteGame
             if (incoming != null && ReferenceEquals(incoming, _current.Incoming))
             {
                 Log.Warning($"转场中重复请求同一界面[{incoming.Id}]——忽略", "UI");
+                ctx.Skipped = true;
                 ctx.Tcs.TrySetResult(OutcomeOf(ctx));
                 return ctx.Tcs.Task;
             }
@@ -108,6 +114,7 @@ namespace LiteGame
             {
                 _dropped++;
                 Log.Warning($"转场队列已满——请求丢弃(mode={mode}，累计 {_dropped})", "UI");
+                ctx.Skipped = true;
                 ctx.Tcs.TrySetResult(OutcomeOf(ctx));
             }
             return ctx.Tcs.Task;
@@ -131,7 +138,8 @@ namespace LiteGame
                 if (inTransition && !c.TimedOut && !c.Done && _machine.StageTime > c.MaxDuration)
                 {
                     c.TimedOut = true;
-                    Log.Error($"转场超时({c.MaxDuration:0.##}s)——强制收尾(mode={c.Mode})", "UI");
+                    Log.Error($"转场超时({c.MaxDuration:0.##}s)——取消策略工作并强制收尾(mode={c.Mode})", "UI");
+                    try { c.Cts?.Cancel(); } catch (ObjectDisposedException) { }   // U1-③：先停 Tween/异步工作（§6.3），再收尾
                     _machine.Request(TransitionId.Idle);
                 }
                 else if (inTransition && !c.TimedOut && c.Done)
@@ -170,18 +178,25 @@ namespace LiteGame
         private void Finalize(TransitionContext ctx)
         {
             ctx.Finalized = true;
-            RestoreGate(ctx.Outgoing);          // 规则③：不依赖策略自觉（池中/已回收界面恢复也无害）
-            RestoreGate(ctx.Incoming);
-            _current = null;
+            _current = null;                                // 先清当前事务：恢复按"无转场锁"的协调值计算（U1-③）
+            ApplyComputedInput(ctx.Outgoing);
+            ApplyComputedInput(ctx.Incoming);
+            try { ctx.Cts?.Dispose(); } catch (ObjectDisposedException) { }
+            ctx.Cts = null;
 
             var outcome = OutcomeOf(ctx);
             ctx.Tcs.TrySetResult(outcome);
             Finished?.Invoke(outcome);
         }
 
-        private static void RestoreGate(UIForm form)
+        /// <summary>按协调者计算值恢复输入（U1-③，§6.3：不无条件写回 true）——
+        /// 生命周期未锁定的页面解锁；Paused/Closing/Recycled/Disposed 保持锁定（各自的锁定理由仍在）。
+        /// blocksRaycasts 全程不动（打开的界面始终遮挡下层射线——职责分离，§6.2）。</summary>
+        private static void ApplyComputedInput(UIForm form)
         {
-            if (form != null && form.CanvasGroup != null) form.CanvasGroup.blocksRaycasts = true;
+            if (form == null || form.CanvasGroup == null) return;
+            form.CanvasGroup.interactable =
+                !(form.State is UIFormState.Paused or UIFormState.Closing or UIFormState.Recycled or UIFormState.Disposed);
         }
 
         private static TransitionOutcome OutcomeOf(TransitionContext ctx) => new TransitionOutcome
@@ -189,14 +204,19 @@ namespace LiteGame
             Mode = ctx.Mode,
             Outgoing = ctx.Outgoing,
             Incoming = ctx.Incoming,
+            Kind = ctx.TimedOut ? TransitionResultKind.TimedOut
+                 : ctx.Completed ? TransitionResultKind.Completed
+                 : ctx.Skipped ? TransitionResultKind.Skipped
+                 : ctx.Failed ? TransitionResultKind.Failed
+                 : TransitionResultKind.Cancelled,
             Completed = ctx.Completed && !ctx.TimedOut,
             TimedOut = ctx.TimedOut,
         };
 
         private Func<UniTask> BuildPlay(TransitionContext c) => c.Mode switch
         {
-            TransitionMode.Pop => () => _strategy.PlayClose(c.Outgoing),
-            TransitionMode.Push => () => _strategy.PlayShow(c.Incoming),
+            TransitionMode.Pop => () => _strategy.PlayClose(c.Outgoing, c.Cts.Token),
+            TransitionMode.Push => () => _strategy.PlayShow(c.Incoming, c.Cts.Token),
             TransitionMode.Replace => () => PlayReplace(c),
             _ => () => UniTask.CompletedTask,
         };
@@ -204,8 +224,8 @@ namespace LiteGame
         /// <summary>Replace 的"两组并发"：策略实现了 <see cref="IReplaceTransition"/> 走定制，否则壳合成。</summary>
         private UniTask PlayReplace(TransitionContext c)
             => _replace != null
-                ? _replace.PlayReplace(c.Outgoing, c.Incoming)
-                : UniTask.WhenAll(_strategy.PlayClose(c.Outgoing), _strategy.PlayShow(c.Incoming));
+                ? _replace.PlayReplace(c.Outgoing, c.Incoming, c.Cts.Token)
+                : UniTask.WhenAll(_strategy.PlayClose(c.Outgoing, c.Cts.Token), _strategy.PlayShow(c.Incoming, c.Cts.Token));
 
         public string StatsName => "UITransition";
 

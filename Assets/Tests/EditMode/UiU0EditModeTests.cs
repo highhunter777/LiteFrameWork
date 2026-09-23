@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Threading;
 using Cysharp.Threading.Tasks;
 using LiteGame.UI;
 using LiteTesting;
@@ -48,7 +49,7 @@ namespace LiteGame.Tests.EditMode
             public int ShowCount, CloseCount;
             public float AlphaAtShowEntry = float.NaN;
 
-            public UniTask PlayShow(UIForm form)
+            public UniTask PlayShow(UIForm form, CancellationToken ct)
             {
                 ShowCount++;
                 AlphaAtShowEntry = form.CanvasGroup.alpha;
@@ -56,7 +57,7 @@ namespace LiteGame.Tests.EditMode
                 return UniTask.CompletedTask;
             }
 
-            public UniTask PlayClose(UIForm form)
+            public UniTask PlayClose(UIForm form, CancellationToken ct)
             {
                 CloseCount++;
                 form.CanvasGroup.alpha = 0f;
@@ -67,7 +68,7 @@ namespace LiteGame.Tests.EditMode
         private sealed class CountingReplace : IReplaceTransition
         {
             public int Count;
-            public UniTask PlayReplace(UIForm outgoing, UIForm incoming)
+            public UniTask PlayReplace(UIForm outgoing, UIForm incoming, CancellationToken ct)
             {
                 Count++;
                 return UniTask.CompletedTask;
@@ -291,7 +292,9 @@ return m";
             Assert.AreEqual(1, replace.Count, "复用同样推导 Replace（原实现只判首次——UI-02）");
             Assert.IsFalse(service.IsOpen(2), "被替换的旧全屏应收池");
             Assert.IsTrue(service.IsOpen(1));
-            Assert.Greater(f1b.Canvas.sortingOrder, f1FirstOrder, "复用应重新分配排序（组基序+递增槽位）");
+            // U1-③ 统一排序（开序即深序 + 移除紧缩）：Replace 收尾后本组仅剩 f1——回到组基序位。
+            // 旧"递增槽位不回收"已废止（§6.2：排序按当前打开顺序计算）；同组全屏互斥下幸存页即组内唯一，无重叠。
+            Assert.AreEqual(f1FirstOrder, f1b.Canvas.sortingOrder, "移除紧缩后幸存页回到组基序位（统一重排）");
         }
 
         // ---- ③ 三层全屏：遮盖状态 + Covered/Paused 可关 + CloseAllOpen 全清（UI-04）----

@@ -23,6 +23,9 @@ namespace LiteGame
         /// <summary>超时兜底时长（§1.5.4 规则④）。</summary>
         public float MaxDuration;
 
+        /// <summary>本事务的取消源（U1-③，§6.3：超时/权威取消经它停止策略的 Tween/异步工作）。</summary>
+        public System.Threading.CancellationTokenSource Cts;
+
         /// <summary>表现入口（由 Runner 按模式绑定：策略 / IReplaceTransition 合成）。</summary>
         public Func<UniTask> Play;
 
@@ -31,6 +34,12 @@ namespace LiteGame
 
         /// <summary>表现正常完成。</summary>
         public bool Completed;
+
+        /// <summary>策略异常完成（≠ 正常完成/取消）。</summary>
+        public bool Failed;
+
+        /// <summary>请求被丢弃/忽略（未开始事务——队列满或目标已是当前 Incoming）。</summary>
+        public bool Skipped;
 
         /// <summary>超时被强制收尾。</summary>
         public bool TimedOut;

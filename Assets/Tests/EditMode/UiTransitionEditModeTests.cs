@@ -1,4 +1,5 @@
 using System;
+using System.Threading;
 using Cysharp.Threading.Tasks;
 using LiteTesting;
 using LiteTesting.Unity;
@@ -23,15 +24,17 @@ namespace LiteGame.Tests.EditMode
             public int ShowCount, CloseCount;
             public bool HoldShow;          // 坏策略：永不回调（验超时兜底）
             public bool Throw;             // 抛异常策略（验表现故障不阻塞收尾）
+            public CancellationToken LastShowCt;
 
-            public UniTask PlayShow(UIForm form)
+            public UniTask PlayShow(UIForm form, CancellationToken ct)
             {
                 ShowCount++;
+                LastShowCt = ct;
                 if (Throw) throw new InvalidOperationException("假策略故障");
                 return HoldShow ? new UniTaskCompletionSource().Task : UniTask.CompletedTask;
             }
 
-            public UniTask PlayClose(UIForm form)
+            public UniTask PlayClose(UIForm form, CancellationToken ct)
             {
                 CloseCount++;
                 return UniTask.CompletedTask;
@@ -43,7 +46,7 @@ namespace LiteGame.Tests.EditMode
             public int Count;
             public UIForm LastOut, LastIn;
 
-            public UniTask PlayReplace(UIForm outgoing, UIForm incoming)
+            public UniTask PlayReplace(UIForm outgoing, UIForm incoming, CancellationToken ct)
             {
                 Count++;
                 LastOut = outgoing;
@@ -200,30 +203,34 @@ namespace LiteGame.Tests.EditMode
             var outcome = Result(t);
             Assert.IsTrue(outcome.TimedOut, "超时应被标记");
             Assert.IsFalse(outcome.Completed, "超时 = 未正常完成");
+            Assert.AreEqual(TransitionResultKind.TimedOut, outcome.Kind, "U1-③：结果分类");
             Assert.AreEqual(TransitionId.Idle, runner.Phase, "超时后必须回到 Idle（UI 不卡死）");
             Assert.IsFalse(runner.Busy);
-            Assert.IsTrue(form.CanvasGroup.blocksRaycasts, "超时收尾也要恢复交互门");
+            Assert.IsFalse(runner.IsLocked(form), "收尾后不再持锁");
+            Assert.IsTrue(form.CanvasGroup.interactable, "超时收尾也要按计算值恢复输入（§6.3 先复位）");
         }
 
-        // ---- ⑥ 交互门由壳统一管（不依赖策略自觉）----
+        // ---- ⑥ 输入锁由壳统一管（不依赖策略自觉）；interactable 与 blocksRaycasts 职责分离 ----
 
         [Test]
         [Category(TestCategory.Contract)]
-        public void 转场_交互门_转场中关闭_收尾后恢复()
+        public void 转场_交互门_转场中锁interactable_收尾按计算值恢复_blocksRaycasts不动()
         {
             var rec = new Recorder();                            // 策略完全不碰 CanvasGroup
             var runner = new UITransitionRunner(rec);
             var outForm = MakeForm(1); var inForm = MakeForm(2);
 
             var t = runner.PlayAsync(TransitionMode.Replace, outForm, inForm);
-            runner.Tick(0.016f);                                 // 进入 In：关两组门
+            runner.Tick(0.016f);                                 // 进入 In：锁两组输入
 
-            Assert.IsFalse(outForm.CanvasGroup.blocksRaycasts, "离场界面转场中禁交互");
-            Assert.IsFalse(inForm.CanvasGroup.blocksRaycasts, "入场界面转场中禁交互");
-
-            runner.Tick(0.016f);                                 // 收尾：恢复
-            Assert.IsTrue(outForm.CanvasGroup.blocksRaycasts);
+            Assert.IsFalse(outForm.CanvasGroup.interactable, "离场界面转场中禁交互（接受即锁）");
+            Assert.IsFalse(inForm.CanvasGroup.interactable, "入场界面转场中禁交互");
+            Assert.IsTrue(outForm.CanvasGroup.blocksRaycasts, "blocksRaycasts 全程不动——遮挡下层射线（§6.2 职责分离）");
             Assert.IsTrue(inForm.CanvasGroup.blocksRaycasts);
+
+            runner.Tick(0.016f);                                 // 收尾：按计算值恢复
+            Assert.IsTrue(outForm.CanvasGroup.interactable);
+            Assert.IsTrue(inForm.CanvasGroup.interactable);
 
             _ = t;
         }

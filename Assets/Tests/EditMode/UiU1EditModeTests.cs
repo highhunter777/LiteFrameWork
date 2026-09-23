@@ -30,8 +30,8 @@ namespace LiteGame.Tests.EditMode
 
         private sealed class MimicTransition : ITransitionStrategy
         {
-            public UniTask PlayShow(UIForm form) { form.CanvasGroup.alpha = 1f; return UniTask.CompletedTask; }
-            public UniTask PlayClose(UIForm form) { form.CanvasGroup.alpha = 0f; return UniTask.CompletedTask; }
+            public UniTask PlayShow(UIForm form, CancellationToken ct) { form.CanvasGroup.alpha = 1f; return UniTask.CompletedTask; }
+            public UniTask PlayClose(UIForm form, CancellationToken ct) { form.CanvasGroup.alpha = 0f; return UniTask.CompletedTask; }
         }
 
         private sealed class RecordingLogic : IUIFormLogic
@@ -470,6 +470,116 @@ namespace LiteGame.Tests.EditMode
             foreach (var go in UnityEngine.Object.FindObjectsOfType<GameObject>())
                 if (go.name == "[UIRoot]") return go;
             return null;
+        }
+
+        // ---- U1-③：统一排序 / 容量拒绝 / 输入锁 / 转场取消复位（UI-09）----
+
+        /// <summary>门控转场：入场挂起在 UTCS 上（测试控制转场窗口）；ct 取消时以 OCE 放行（复位契约）。</summary>
+        private sealed class HoldTransition : ITransitionStrategy
+        {
+            public UIForm Captured;
+            public bool CtFired;
+            private readonly UniTaskCompletionSource _gate = new UniTaskCompletionSource();
+
+            public UniTask PlayShow(UIForm form, CancellationToken ct)
+            {
+                Captured = form;
+                ct.Register(() => { CtFired = true; _gate.TrySetException(new OperationCanceledException(ct)); });
+                return _gate.Task;
+            }
+
+            public UniTask PlayClose(UIForm form, CancellationToken ct) => UniTask.CompletedTask;
+            public void Release() => _gate.TrySetResult();
+        }
+
+        private UIService SyncService(FakeCatalog catalog, ITransitionStrategy transition = null)
+            => new UIService(catalog,
+                transitionStrategy: transition ?? new MimicTransition(),
+                logicResolver: _ => new RecordingLogic(),
+                loadPrefab: (loc, ct) => UniTask.FromResult<IUIPrefabLease>(UIPrefabLeases.Unowned(FakePrefab("p" + loc))));
+
+        [Test]
+        [Category(TestCategory.Contract)]
+        public void 排序统一_开序即深序_移除紧缩_BringToFront置顶()
+        {
+            var catalog = new FakeCatalog();
+            catalog.Add(1); catalog.Add(2); catalog.Add(3);
+            var service = SyncService(catalog);
+
+            var f1 = Await(service.ShowAsync(1), service);
+            var f2 = Await(service.ShowAsync(2), service);
+            var f3 = Await(service.ShowAsync(3), service);
+            int baseDepth = f1.Canvas.sortingOrder;                // Window 组基序
+            Assert.AreEqual(baseDepth, f1.Canvas.sortingOrder, "开序即深序（§6.2 统一排序）");
+            Assert.AreEqual(baseDepth + 1, f2.Canvas.sortingOrder);
+            Assert.AreEqual(baseDepth + 2, f3.Canvas.sortingOrder);
+
+            Await(service.CloseAsync(2), service);                  // 移除中位
+            Assert.AreEqual(baseDepth + 1, f3.Canvas.sortingOrder, "移除后紧缩——不留洞、不复用旧 order");
+
+            service.BringToFront(1);                                // 置顶
+            Assert.AreEqual(baseDepth + 1, f1.Canvas.sortingOrder, "置顶后到组内最上");
+            Assert.AreEqual(baseDepth, f3.Canvas.sortingOrder);
+        }
+
+        [Test]
+        [Category(TestCategory.Contract)]
+        public void 组容量不足_拒绝打开_不回卷复用order()
+        {
+            var catalog = new FakeCatalog();
+            for (int i = 1; i <= UILayerGroup.DepthStride + 1; i++) catalog.Add(i);
+            var service = SyncService(catalog);
+
+            for (int i = 1; i <= UILayerGroup.DepthStride; i++)
+                Await(service.ShowAsync(i), service);               // 每次打开经 Tick 驱动转场收尾
+
+            var ex = Assert.Throws<UIOpenException>(() => Await(service.ShowAsync(UILayerGroup.DepthStride + 1), service));
+            Assert.AreEqual(UIOpenFailure.Rejected, ex.Reason, "容量不足在创建/入栈之前拒绝（§6.2 废止回卷）");
+        }
+
+        [Test]
+        [Category(TestCategory.Contract)]
+        public void 转场输入锁_接受即锁interactable_blocksRaycasts全程不动_收尾按计算值恢复()
+        {
+            var catalog = new FakeCatalog(); catalog.Add(1);
+            var hold = new HoldTransition();
+            var service = SyncService(catalog, hold);
+
+            var t = service.ShowAsync(1);
+            service.Tick(0.016f);                                   // 帧末：转场启动（接受即锁）
+            Assert.IsNotNull(hold.Captured, "转场已开始");
+            Assert.IsFalse(hold.Captured.CanvasGroup.interactable, "转场接受即锁（§6.3 不等策略开始）");
+            Assert.IsTrue(hold.Captured.CanvasGroup.blocksRaycasts, "blocksRaycasts 全程不动——遮挡下层射线（§6.2 职责分离）");
+
+            hold.Release();                                         // 策略正常完成
+            service.Tick(0.016f);                                   // 收尾
+            var form = Await(t, service);
+            Assert.IsTrue(form.CanvasGroup.interactable, "收尾按计算值恢复（非无条件 true）");
+            Assert.IsTrue(form.CanvasGroup.blocksRaycasts);
+            Await(service.CloseAsync(1), service);
+        }
+
+        [Test]
+        [Category(TestCategory.Contract)]
+        public void 转场超时_取消策略工作_结果TimedOut_输入按计算值恢复()
+        {
+            var catalog = new FakeCatalog(); catalog.Add(1);
+            var hold = new HoldTransition();
+            var service = new UIService(catalog,
+                transitionStrategy: hold,
+                transitionMaxDuration: 0.5f,
+                logicResolver: _ => new RecordingLogic(),
+                loadPrefab: (loc, ct) => UniTask.FromResult<IUIPrefabLease>(UIPrefabLeases.Unowned(FakePrefab("p" + loc))));
+
+            var t = service.ShowAsync(1);
+            service.Tick(0.016f);                                   // 转场启动（挂起）
+            for (int i = 0; i < 6; i++) service.Tick(0.2f);         // 累计 >0.5s → 超时
+
+            Assert.IsTrue(hold.CtFired, "超时必须先停策略工作（§6.3：取消令牌送达）");
+            var form = Await(t, service);
+            Assert.IsTrue(form.CanvasGroup.interactable, "超时收尾按计算值恢复输入");
+            Assert.AreEqual(UIFormState.Active, form.State, "动效超时降级为立即完成页面操作（先复位）");
+            Await(service.CloseAsync(1), service);
         }
     }
 }

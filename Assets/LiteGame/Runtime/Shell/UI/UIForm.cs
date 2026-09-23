@@ -140,12 +140,14 @@ namespace LiteGame
         internal void EnterPaused()
         {
             Transit(UIFormState.Active, UIFormState.Paused);
+            if (CanvasGroup != null) CanvasGroup.interactable = false;   // U1-③：输入协调——暂停页锁定交互（§6.2）
             SafeCall.Invoke(() => Logic.OnPause(), $"UIForm[{Id}].OnPause");
         }
 
         internal void EnterActiveFromPaused()
         {
             Transit(UIFormState.Paused, UIFormState.Active);
+            if (CanvasGroup != null) CanvasGroup.interactable = true;    // 恢复为协调计算值（无转场锁时即开）
             SafeCall.Invoke(() => Logic.OnShow(null), $"UIForm[{Id}].OnShow");
         }
 
