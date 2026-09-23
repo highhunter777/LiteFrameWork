@@ -301,7 +301,7 @@ namespace LiteGame
                     (ProcedureId.Launch, new ProcedureLaunch(container, config, scenes, uiRegistry, contentRegistry, strategyRegistry, uiService, redDotRegistry, logicScheduler, uiScheduler, timelineRunner, entityService, audioService, vfxService, refill, rootToken)),
                     (ProcedureId.Patch, new ProcedurePatch(content, activations, rootToken)),
                     (ProcedureId.Preload, new ProcedurePreload(content, config, lua, filler, events, rootToken)),
-                    (ProcedureId.Main, new ProcedureMain(rootToken)),
+                    (ProcedureId.Main, new ProcedureMain(uiService, rootToken)),
                     (ProcedureId.Error, new ProcedureError(rootToken)));
             }
         }

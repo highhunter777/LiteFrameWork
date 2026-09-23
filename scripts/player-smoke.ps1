@@ -49,7 +49,7 @@ if (Test-Path $playerLog) { Remove-Item $playerLog -Force -ErrorAction SilentlyC
 $proc = Start-Process -FilePath $exe -WorkingDirectory (Split-Path $exe -Parent) -PassThru
 Write-Host "launched (pid $($proc.Id)); polling up to $TimeoutSec s for defined-state marker" -ForegroundColor White
 
-$markers = @('BootstrapError', '[Asset] ready', 'AssetService')
+$markers = @('BootstrapError', '[Asset] ready', 'AssetService', '[UI] main open')
 $deadline = (Get-Date).AddSeconds($TimeoutSec)
 $hit = $null
 $lastLog = ''
