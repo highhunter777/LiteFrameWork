@@ -62,7 +62,10 @@ while ((Get-Date) -lt $deadline) {
     if (Test-Path $playerLog) {
         $lastLog = Get-Content $playerLog -Raw -ErrorAction SilentlyContinue
         foreach ($m in $markers) {
-            if ($lastLog -match $m) { $hit = $m; break }
+            # [regex]::Escape: markers are LITERAL strings. '[Asset] ready' as a raw regex is a char
+            # class ('[Asset]' matches one of A/s/e/t) that never matches its own literal - it had been
+            # silently matching 'asset ready' in the old '[Preload] asset ready' line instead (C1-11 fix).
+            if ($lastLog -match [regex]::Escape($m)) { $hit = $m; break }
         }
         if ($hit) { break }
     }
