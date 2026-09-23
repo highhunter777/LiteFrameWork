@@ -49,6 +49,7 @@ namespace LiteGame
             {
                 _content = new YooAssetContentService();
                 context.Put<IContentService>(_content);
+                context.Put(new ActivationTransactionStore(new FileActivationRecordIO()));   // C1-⑩：启动恢复决策（Patch 流程消费）
                 return UniTask.CompletedTask;
             }
 
@@ -282,8 +283,10 @@ namespace LiteGame
                 var filler = new RegistryFiller(config, lua, uiRegistry, contentRegistry, strategyRegistry);
                 var refill = new LuaRegistryRefillService(lua, uiService, config, uiRegistry, contentRegistry, strategyRegistry);
                 var rootToken = context.RootScope.Token;            // C1-⑦ 统一取消链：流程阶段 CTS 链接宿主根令牌
+                var activations = context.Require<ActivationTransactionStore>();   // C1-⑩：Patch 流程消费（Content ②产物）
                 return new StageMachine<ProcedureId, ProcedureArgs>("Procedure",
                     (ProcedureId.Launch, new ProcedureLaunch(container, config, scenes, uiRegistry, contentRegistry, strategyRegistry, uiService, redDotRegistry, logicScheduler, uiScheduler, timelineRunner, entityService, audioService, vfxService, refill, rootToken)),
+                    (ProcedureId.Patch, new ProcedurePatch(content, activations, rootToken)),
                     (ProcedureId.Preload, new ProcedurePreload(content, config, lua, filler, events, rootToken)),
                     (ProcedureId.Main, new ProcedureMain(rootToken)),
                     (ProcedureId.Error, new ProcedureError(rootToken)));

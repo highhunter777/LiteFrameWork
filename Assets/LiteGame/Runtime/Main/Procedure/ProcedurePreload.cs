@@ -39,8 +39,7 @@ namespace LiteGame
             try
             {
                 UnityEngine.Debug.Log("[Preload] begin");        // C1-③ 临时诊断
-                await _content.InitializeAsync(ct);              // 资源包初始化（幂等；EditorSimulate/Offline 与主链共用）
-                UnityEngine.Debug.Log("[Preload] asset ready");  // C1-③ 临时诊断
+                // 资源包初始化已移入 Patch 流程（C1-⑩：内容事务恢复先行——§7.1 Patch 先于 Preload）
                 await _config.LoadAsync(ct);
 
                 // ---- M3 锚点：Lua 预载与注册表填充段（勿在此行上方插入消费逻辑）----

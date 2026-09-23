@@ -84,7 +84,7 @@ namespace LiteGame
                 Bridge.BindRegistries(_uiRegistry, _contentRegistry);   // ui/content 骨架门面查询底座（§2.5）
                 Bridge.BindUIService(_ui);               // 真实门面 Show/Close/IsOpen 后端（M4 §2.3）
 
-                m.Request(ProcedureId.Preload);
+                m.Request(ProcedureId.Patch);            // C1-⑩：先过内容事务（启动恢复 + 资源包初始化）再预载
             }
             catch (OperationCanceledException) { /* 正常取消，静默 */ }
             catch (Exception ex)
