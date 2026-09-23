@@ -100,7 +100,7 @@ Assets/Animator.meta
 Assets/StateMachine/
 Assets/StateMachine.meta
 
-# ===== 工程配置与工具链（不入库；克隆后自备清单见 Docs/克隆后自备清单.md）=====
+# ===== 工程配置与工具链（不入库；环境恢复见 Docs/环境恢复指南.md）=====
 # 说明：仓库只保留自研框架代码/预制品/文档。以下为工程配置与本地工具链：
 #       ProjectSettings（Unity 工程设置，缺失则无法直接打开工程）、
 #       Tools（XLua 工具）、Packages/MCPForUnity（编辑器自动化桥）。
@@ -139,6 +139,7 @@ Assets/Resources.meta
 Assets/Scenes/
 Assets/Scenes.meta
 Assets/StreamingAssets.meta
+Assets/StreamingAssets/
 Assets/UniversalRenderPipelineGlobalSettings.asset
 Assets/UniversalRenderPipelineGlobalSettings.asset.meta
 .vsconfig

@@ -49,6 +49,8 @@ namespace LiteGame
         {
             if (s_initialized) return;
 
+            UnityEngine.Debug.Log("[Asset] init begin");         // C1-③ 临时诊断
+
 #if UNITY_EDITOR
             if (!YooAssets.IsInitialized) YooAssets.Initialize();
             if (!YooAssets.TryGetPackage(packageName, out var package))
@@ -86,6 +88,7 @@ namespace LiteGame
             await manifestOp.AsUniTask(ct);
 
             s_initialized = true;
+            UnityEngine.Debug.Log($"[Asset] ready package={packageName} version={package.GetPackageVersion()}");   // C1-③ 临时诊断：冒烟标记（与 Log.Info 双打，验收后移除临时行）
             Log.Info($"AssetService 就绪:package \"{packageName}\" version {package.GetPackageVersion()}", "Asset");
         }
 

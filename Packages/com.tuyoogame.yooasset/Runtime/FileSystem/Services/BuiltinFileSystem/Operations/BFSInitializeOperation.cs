@@ -36,6 +36,7 @@ namespace YooAsset
         {
             if (_steps == ESteps.None || _steps == ESteps.Done)
                 return;
+            UnityEngine.Debug.Log($"[YooBreadcrumb] BFS step={_steps}");
 
             if (_steps == ESteps.CheckPlatform)
             {

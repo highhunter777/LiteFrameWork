@@ -67,6 +67,13 @@ namespace LiteFramework
             Token = _cts.Token;
         }
 
+        /// <summary>创建子作用域（§6.2 五层 Scope 树的建树语法糖）：
+        /// 子 Scope 链接父级 CTS（父取消级联子），子 Dispose 不影响父。</summary>
+        public ClientScope CreateChild(string childName)
+        {
+            return new ClientScope(childName, this);
+        }
+
         /// <summary>登记一个可释放资源（返回资源本身，便于链式使用）。
         /// 已释放后登记：立即释放并抛 <see cref="ObjectDisposedException"/>（登记进已死作用域 = 生命周期错误，必须显性失败）。</summary>
         public T Register<T>(T disposable) where T : IDisposable
