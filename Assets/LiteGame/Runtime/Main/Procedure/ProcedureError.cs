@@ -21,6 +21,8 @@ namespace LiteGame
         /// <summary>Player 冒烟（scripts/player-smoke.ps1）与日志检索的固定标记。</summary>
         private const string SmokeMarker = "[BootstrapError]";
 
+        public ProcedureError(CancellationToken rootToken = default) : base(rootToken) { }
+
         protected override void RunAsync(IStageHost<ProcedureId, ProcedureArgs> m, in ProcedureArgs req, CancellationToken ct)
             => RunAsyncCore(m, req.Error, ct).Forget();
 

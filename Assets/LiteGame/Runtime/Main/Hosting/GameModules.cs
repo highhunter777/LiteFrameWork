@@ -194,15 +194,19 @@ namespace LiteGame
             public UniTask ShutdownAsync(CancellationToken ct) => UniTask.CompletedTask;   // 实例/租约释放归 U1/M11
         }
 
-        /// <summary>⑨ 容器与流程机：注册（**注册顺序 = 驱动顺序**）→ 流程机（业务装配仍由 ProcedureLaunch Seal，§12）。</summary>
+        /// <summary>⑨ 容器与流程机：注册（**注册顺序 = 驱动顺序**）→ 流程机（业务装配仍由 ProcedureLaunch Seal，§12）。
+        /// 场景服务归本模块所有——关闭时释放全部场景句柄（§6.2 Scene 域退出动作，C1-⑦ 补宿主关闭释放面）。</summary>
         internal sealed class Container : IClientModule
         {
+            private SceneService _scenes;
+
             public string Name => "Container";
 
             public UniTask InitializeAsync(ClientContext context, CancellationToken ct)
             {
                 var container = new ServiceContainer();
                 var config = context.Require<ConfigService>();
+                _scenes = new SceneService();                    // 本模块所有——ShutdownAsync 逆序释放句柄（§6.2 Scene 域）
                 var lua = context.Require<LuaComponent>();
                 var events = context.Require<EventCenter>();
                 var uiService = context.Require<UIService>();
@@ -223,7 +227,7 @@ namespace LiteGame
                 container.RegisterInstance<IUIClock>(context.Require<IUIClock>());
                 container.RegisterInstance<IWallClock>(context.Require<IWallClock>());
                 container.RegisterInstance<IEventCenter>(events);
-                var fsm = CreateMachine(context, container, config, lua, events, uiService, uiRegistry, contentRegistry,
+                var fsm = CreateMachine(context, container, _scenes, config, lua, events, uiService, uiRegistry, contentRegistry,
                     strategyRegistry, redDotRegistry, logicScheduler, uiScheduler, timelineRunner,
                     entityService, audioService, vfxService);
                 container.RegisterInstance<StageMachine<ProcedureId, ProcedureArgs>>(fsm);
@@ -232,23 +236,27 @@ namespace LiteGame
                 return UniTask.CompletedTask;
             }
 
-            public UniTask ShutdownAsync(CancellationToken ct) => UniTask.CompletedTask;   // 流程机无关闭面（对局/会话关闭归 C2）
+            public UniTask ShutdownAsync(CancellationToken ct)
+            {
+                _scenes?.ReleaseAll();                          // 宿主关闭释放面：场景句柄租约归零（不卸场景——进程已在退出路径）
+                return UniTask.CompletedTask;                   // 流程机无关闭面（对局/会话关闭归 C2）
+            }
 
             /// <summary>原 GameEntry.CreateMachine 平移（依赖全部经 context 取——依赖不从 payload 取的纪律不变）。</summary>
             private static StageMachine<ProcedureId, ProcedureArgs> CreateMachine(ClientContext context, ServiceContainer container,
-                ConfigService config, LuaComponent lua, EventCenter events, UIService uiService,
+                SceneService scenes, ConfigService config, LuaComponent lua, EventCenter events, UIService uiService,
                 UiLuaRegistry uiRegistry, ContentLuaRegistry contentRegistry, StrategyLuaRegistry strategyRegistry,
                 RedDotRegistry redDotRegistry, ILogicScheduler logicScheduler, IUIScheduler uiScheduler,
                 GameTimelineRunner timelineRunner, EntityService entityService, AudioService audioService, VfxService vfxService)
             {
-                var scenes = new SceneService();
                 var filler = new RegistryFiller(config, lua, uiRegistry, contentRegistry, strategyRegistry);
                 var refill = new LuaRegistryRefillService(lua, uiService, config, uiRegistry, contentRegistry, strategyRegistry);
+                var rootToken = context.RootScope.Token;            // C1-⑦ 统一取消链：流程阶段 CTS 链接宿主根令牌
                 return new StageMachine<ProcedureId, ProcedureArgs>("Procedure",
-                    (ProcedureId.Launch, new ProcedureLaunch(container, config, scenes, uiRegistry, contentRegistry, strategyRegistry, uiService, redDotRegistry, logicScheduler, uiScheduler, timelineRunner, entityService, audioService, vfxService, refill)),
-                    (ProcedureId.Preload, new ProcedurePreload(config, lua, filler, events)),
-                    (ProcedureId.Main, new ProcedureMain()),
-                    (ProcedureId.Error, new ProcedureError()));
+                    (ProcedureId.Launch, new ProcedureLaunch(container, config, scenes, uiRegistry, contentRegistry, strategyRegistry, uiService, redDotRegistry, logicScheduler, uiScheduler, timelineRunner, entityService, audioService, vfxService, refill, rootToken)),
+                    (ProcedureId.Preload, new ProcedurePreload(config, lua, filler, events, rootToken)),
+                    (ProcedureId.Main, new ProcedureMain(rootToken)),
+                    (ProcedureId.Error, new ProcedureError(rootToken)));
             }
         }
     }

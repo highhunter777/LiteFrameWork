@@ -35,7 +35,8 @@ namespace LiteGame
             UIService uiService, RedDotRegistry redDotRegistry,
             ILogicScheduler logicScheduler, IUIScheduler uiScheduler, GameTimelineRunner timelineRunner,
             EntityService entityService, AudioService audioService, VfxService vfxService,
-            LuaRegistryRefillService refillService)
+            LuaRegistryRefillService refillService, CancellationToken rootToken = default)
+            : base(rootToken)
         {
             _container = container ?? throw new ArgumentNullException(nameof(container));
             _config = config ?? throw new ArgumentNullException(nameof(config));

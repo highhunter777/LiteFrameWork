@@ -109,6 +109,35 @@ namespace LiteGame
             Log.Info($"叠加场景已卸载:{location}（余 {_additives.Count}）", "Scene");
         }
 
+        // ---- 释放（宿主关闭面） ----
+
+        /// <summary>
+        /// 释放全部在持场景句柄（单场景 + 全部叠加），**不执行场景卸载**——本方法只用于宿主关闭路径
+        /// （Container 模块 ShutdownAsync 逆序调用，§6.2 Scene 域"释放资源租约"退出动作）：
+        /// 进程已在退出，卸场景无意义，但 YooAsset 引用必须归零（编辑器 Domain-Reload-Off 的重复 Play、
+        /// 退出复跑不能累积半开句柄）。幂等；正常路径的单/叠加卸载不经过本方法。
+        /// </summary>
+        public void ReleaseAll()
+        {
+            int released = 0;
+            if (_single != null)
+            {
+                _single.Dispose();                              // 释放引用（不 Unload——退出路径）
+                _single = null;
+                _singleLocation = null;
+                released++;
+            }
+
+            released += _additives.Count;
+            if (_additives.Count > 0)
+            {
+                foreach (var kv in _additives) kv.Value.Dispose();
+                _additives.Clear();
+            }
+
+            if (released > 0) Log.Info($"宿主关闭释放 {released} 个场景句柄（退出路径不卸场景，仅归还引用）", "Scene");
+        }
+
         // ---- 内部 ----
 
         private async UniTask<SceneHandle> LoadHandleAsync(string location, LoadSceneMode mode, CancellationToken ct)

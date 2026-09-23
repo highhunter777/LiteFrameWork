@@ -25,6 +25,12 @@ namespace LiteGame
     {
         private static bool s_booted;   // 重复引导守卫（场景误含引导件时静默销毁新件；不持生命周期）
 
+        /// <summary>编辑器静态清理（§6.1"清理静态兼容状态，支持关闭 Domain Reload 的编辑器场景"）：
+        /// Domain-Reload-Off 时静态跨 Play 残留——s_booted 不复位会把第二次 Play 的引导件当重复件静默销毁
+        /// （引导死锁）。AppLifetime 已桥接 ClientHost.ResetForEditorReload；本类自有静态在此复位。</summary>
+        [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
+        public static void ResetForEditorReload() => s_booted = false;
+
         private ClientHost _host;
         private ServiceContainer _container;   // 实例字段（原静态——§4 原则 8：实例全程持有，随引导件销毁）
         private StageMachine<ProcedureId, ProcedureArgs> _fsm;

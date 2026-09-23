@@ -18,7 +18,9 @@ namespace LiteGame
         private readonly RegistryFiller _filler;
         private readonly IEventCenter _events;
 
-        public ProcedurePreload(IConfigService config, LuaComponent lua, RegistryFiller filler, IEventCenter events)
+        public ProcedurePreload(IConfigService config, LuaComponent lua, RegistryFiller filler, IEventCenter events,
+            CancellationToken rootToken = default)
+            : base(rootToken)
         {
             _config = config ?? throw new ArgumentNullException(nameof(config));
             _lua = lua ?? throw new ArgumentNullException(nameof(lua));

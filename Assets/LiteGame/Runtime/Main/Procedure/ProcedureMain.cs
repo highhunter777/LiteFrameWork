@@ -10,6 +10,8 @@ namespace LiteGame
     /// </summary>
     public sealed class ProcedureMain : ProcedureStageBase<ProcedureId, ProcedureArgs>
     {
+        public ProcedureMain(CancellationToken rootToken = default) : base(rootToken) { }
+
         protected override void RunAsync(IStageHost<ProcedureId, ProcedureArgs> m, in ProcedureArgs req, CancellationToken ct)
         {
             // 空转待命——无 Request 请求即停在本阶段
