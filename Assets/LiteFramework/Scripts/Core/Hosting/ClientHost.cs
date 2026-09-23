@@ -115,6 +115,13 @@ namespace LiteFramework
                 for (int i = 0; i < modules.Count; i++)
                 {
                     ct.ThrowIfCancellationRequested();
+                    lock (_gate)
+                    {
+                        // C1-⑦ 关闭竞态守卫：ShutdownAsync 与初始化并发（退出打断引导）时，
+                        // 初始化不再继续装配——以 OCE 走"回滚已成功模块 → 确定错误态"路径。
+                        if (_shutdownRequested)
+                            throw new OperationCanceledException("引导被宿主关闭打断（ShutdownAsync 与 InitializeAsync 并发）");
+                    }
                     IClientModule module = modules[i];
                     ModuleTrace?.Invoke(module.Name, "init:start");
                     await module.InitializeAsync(_context, ct);
@@ -135,8 +142,9 @@ namespace LiteFramework
         }
 
         /// <summary>
-        /// 优雅关闭：先按登记顺序执行刷新钩子（设置/存档/遥测/最后日志），再**逆序**关闭全部已初始化模块，
-        /// 最后释放根 Scope。单模块/单钩子失败不阻断其余（异常聚合进 <see cref="ShutdownFailures"/>，不抛出）；
+        /// 优雅关闭：**先行取消根令牌**（统一取消链——级联流程/任务在途异步）→ 按登记顺序执行刷新钩子
+        /// （设置/存档/遥测/最后日志）→ **逆序**关闭全部已初始化模块，最后释放根 Scope。
+        /// 单模块/单钩子失败不阻断其余（异常聚合进 <see cref="ShutdownFailures"/>，不抛出）；
         /// 幂等（并发/重复调用收敛为一次）。
         /// </summary>
         public async UniTask ShutdownAsync(CancellationToken ct = default)
@@ -150,7 +158,11 @@ namespace LiteFramework
                 flushes = new List<(string, Func<CancellationToken, UniTask>)>(_flushHooks);
             }
 
-            // ① 刷新钩子（登记顺序）：失败聚合不阻断
+            // ① 统一取消链先行（C1-⑦）：根取消级联全部链接令牌（流程阶段 CTS/子 Scope 在途异步），
+            //    使"宿主逆序关闭模块"与"流程仍持旧设施继续跑"不再竞态；资源释放仍在末尾 Dispose。
+            _rootScope?.Cancel();
+
+            // ② 刷新钩子（登记顺序）：失败聚合不阻断
             for (int i = 0; i < flushes.Count; i++)
             {
                 try
@@ -165,7 +177,7 @@ namespace LiteFramework
                 }
             }
 
-            // ② 逆序关闭已初始化模块（未初始化者跳过——启动失败回滚后再次关闭不应触碰未初始化模块）
+            // ③ 逆序关闭已初始化模块（未初始化者跳过——启动失败回滚后再次关闭不应触碰未初始化模块）
             List<IClientModule> modules;
             int initialized;
             lock (_gate)
@@ -193,7 +205,7 @@ namespace LiteFramework
                 }
             }
 
-            // ③ 根 Scope 释放（LIFO 资源逆序 + 根取消）+ 终态
+            // ④ 根 Scope 释放（LIFO 资源逆序 + 根取消）+ 终态
             _rootScope?.Dispose();
             lock (_gate) _state = 4;
         }

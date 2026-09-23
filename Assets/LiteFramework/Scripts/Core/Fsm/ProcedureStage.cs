@@ -8,6 +8,11 @@ namespace LiteFramework
     /// 保留原设计的两条核心语义——**进流程即建 CTS 并跑 `RunAsync`、离场即 Cancel + Dispose**
     /// （`OnEnter`/`OnLeave` 不再 virtual，子类只写 `RunAsync`，避免漏掉取消语义）。
     ///
+    /// C1-⑦ 统一取消链（§4 原则 4"所有跨帧异步必须绑定 CancellationToken" + §6.1 根取消源）：
+    /// 构造时可传入宿主根令牌（ClientHost.RootScope.Token）——阶段 CTS **链接**根令牌：
+    /// 宿主关闭（ShutdownAsync 先行 Cancel 根）时，在途流程异步与离场取消走同一条取消链，
+    /// 不再出现"宿主已逆序关闭模块、流程仍持旧设施继续跑"的竞态。根取消 ≠ 离场：资源释放仍由 Scope 负责。
+    ///
     /// 与旧版的差异：业务流程状态**不再经 owner 载体**——每次迁移的数据走 <typeparamref name="TReq"/> payload
     /// （`ProcedureArgs`），编译期强类型，且不依赖"owner 上可能为 null 的字段"。
     /// `IProcedureOwner`/`ProcedureOwner` 随之退休（决策记录见《通用流程状态机施工图》§5）。
@@ -19,13 +24,23 @@ namespace LiteFramework
     public abstract class ProcedureStageBase<TId, TReq> : IStage<TId, TReq>
         where TId : struct
     {
+        private readonly CancellationToken _rootToken;      // 宿主根令牌（default = 无根——纯 L1/工具场景）
         private CancellationTokenSource _cts;
+
+        /// <param name="rootToken">宿主根取消令牌（ClientHost.RootScope.Token）；传 default 保持无根语义（原行为）。</param>
+        protected ProcedureStageBase(CancellationToken rootToken = default)
+        {
+            _rootToken = rootToken;
+        }
 
         public virtual void OnInit(IStageHost<TId, TReq> m) { }
 
         public void OnEnter(IStageHost<TId, TReq> m, in TReq req)
         {
-            _cts = new CancellationTokenSource();
+            // 链接根令牌：离场取消（本阶段 CTS）与宿主关闭（根）共用一条取消链；无根时退化为独立 CTS（原语义）
+            _cts = _rootToken == default
+                ? new CancellationTokenSource()
+                : CancellationTokenSource.CreateLinkedTokenSource(_rootToken);
             RunAsync(m, in req, _cts.Token);
         }
 
