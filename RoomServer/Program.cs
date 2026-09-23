@@ -2,6 +2,8 @@ using System;
 using System.Threading;
 using LiteSim;
 using RoomServer;
+using RoomServer.Application;
+using RoomServer.Runtime;
 
 // RoomServer 入口（M10：批② 权威循环 + 批③ 快照/回溯/Ops）。
 // MVP 参数固定（端口 17777 / Room-A / 2 人房）；节拍由 ServerLoop 绝对锚定（60Hz，防漂移累积）。

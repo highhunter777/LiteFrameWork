@@ -46,6 +46,7 @@ namespace LiteNet.Protocol
                     case PacketType.Leave: message = Proto.Leave.Parser.ParseFrom(payload); return true;
                     case PacketType.ReconnectRequest: message = Proto.ReconnectRequest.Parser.ParseFrom(payload); return true;
                     case PacketType.ReconnectResponse: message = Proto.ReconnectResponse.Parser.ParseFrom(payload); return true;
+                    case PacketType.RestoreComplete: message = Proto.RestoreComplete.Parser.ParseFrom(payload); return true;
                     default: return false;
                 }
             }

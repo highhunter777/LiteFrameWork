@@ -1,6 +1,6 @@
 using LiteSim;
 
-namespace RoomServer
+namespace RoomServer.Runtime
 {
     /// <summary>
     /// 预存输入定容环（《商业级通用服务端框架总设计》§5 P0-2：入闸输入的**唯一存储**——
@@ -11,7 +11,7 @@ namespace RoomServer
     /// 在环回绕后"复活"（幽灵输入 = 判定分叉，比丢帧严重得多）。
     ///
     /// 容量推导：需覆盖 [当前帧 − 冗余窗, 当前帧 + 未来容忍窗] 的全部帧号——
-    /// <c>FutureFrameTolerance(8) + InputPacker.MaxRedundancy(4) + 1 = 13 ≤ 16</c>（16 = 2 的幂，取模用掩码）。
+    /// <c>FutureFrameTolerance(8) + ClientInputBatch.MaxFrames(4) + 1 = 13 ≤ 16</c>（16 = 2 的幂，取模用掩码）。
     /// 越界帧号在 <see cref="InputGate"/> 先验证后索引（P0-2：验证永远先于索引），环内不会见到窗口外的帧。
     /// </summary>
     public sealed class PendingInputRing

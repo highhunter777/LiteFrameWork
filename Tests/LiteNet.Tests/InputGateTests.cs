@@ -1,7 +1,6 @@
 using LiteNet.Protocol;
-using LiteNet.Proto;
 using LiteSim;
-using RoomServer;
+using RoomServer.Runtime;
 using Xunit;
 
 namespace LiteNet.Tests
@@ -10,6 +9,10 @@ namespace LiteNet.Tests
     /// 输入闸门单元用例（《M10实施指导》附「服务端审查」2026-09-19）：
     /// 取帧口径、ack 处理、已消费帧拒绝、按键白名单——四条都是"服务器边界"行为，
     /// 用假消息直接测 `InputGate`，不依赖网络与房间。
+    ///
+    /// R1 迁移：入参从 proto <c>InputMessage</c> 换成纯数据 <see cref="ClientInputBatch"/>
+    /// （Runtime 不见 proto）——断言逐条保持（characterization）。跨层常量一致性由文末
+    /// "契约"组钉死（MaxFrames/MoveComponentLimit/VectorLengthSquaredLimit）。
     /// </summary>
     public sealed class InputGateTests
     {
@@ -20,8 +23,8 @@ namespace LiteNet.Tests
         public void 取帧_优先服务器当前帧加一()
         {
             var gate = new InputGate(2);
-            // 客户端包：msg.Frame = 11，窗口 [11,10,9,8]；服务器当前帧 10 → 需要 11
-            InputMessage msg = Packet(11, 1f, 0.5f, 0.75f, 0.25f);
+            // 客户端包：batch.Frame = 11，窗口 [11,10,9,8]；服务器当前帧 10 → 需要 11
+            ClientInputBatch msg = Packet(11, 1f, 0.5f, 0.75f, 0.25f);
             Assert.True(gate.Store(msg, PlayerId, EntityId, serverFrame: 10, out int frame, out _));
             Assert.Equal(11, frame);
         }
@@ -31,7 +34,7 @@ namespace LiteNet.Tests
         {
             var gate = new InputGate(2);
             // 窗口 [11,10,9,8]；服务器当前帧 9 → 需要 10（不是包内最新的 11）
-            InputMessage msg = Packet(11, 1f, 0.5f, 0.75f, 0.25f);
+            ClientInputBatch msg = Packet(11, 1f, 0.5f, 0.75f, 0.25f);
             Assert.True(gate.Store(msg, PlayerId, EntityId, serverFrame: 9, out int frame, out SimInputFrame input));
             Assert.Equal(10, frame);
             Assert.Equal(0.5f, input.MoveX, 1e-6f);         // 取的是 10 那一帧的内容（不是最新帧）
@@ -42,7 +45,7 @@ namespace LiteNet.Tests
         {
             var gate = new InputGate(2);
             // 服务器当前帧 10；包内窗口 [9,8,7,6] 全部已消费 → 拒绝，且不得滞留
-            InputMessage msg = Packet(9, 1f, 0.5f, 0.75f, 0.25f);
+            ClientInputBatch msg = Packet(9, 1f, 0.5f, 0.75f, 0.25f);
             Assert.False(gate.Store(msg, PlayerId, EntityId, serverFrame: 10, out _, out _));
             Assert.Equal(1, gate.DroppedStaleFrame);
             Assert.Equal(0, gate.AcceptedCount);
@@ -54,8 +57,8 @@ namespace LiteNet.Tests
         public void 超前ack_不丢输入_只计数并钳位()
         {
             var gate = new InputGate(2);
-            // ack 超前（客户端回传的 ack 曾是"下一待处理帧"——见 RoomBroadcaster 的钳位说明）
-            InputMessage msg = Packet(11, 1f, 1f, 1f, 1f, ackSnapshot: 99);
+            // ack 超前（客户端回传的 ack 曾是"下一待处理帧"——见 SnapshotPipeline 的钳位说明）
+            ClientInputBatch msg = Packet(11, 1f, 1f, 1f, 1f, ackSnapshot: 99);
             Assert.True(gate.Store(msg, PlayerId, EntityId, serverFrame: 10, out int frame, out _));
             Assert.Equal(11, frame);                          // 输入照常被接受
             Assert.Equal(1, gate.AcceptedCount);
@@ -67,7 +70,7 @@ namespace LiteNet.Tests
         public void 负ack_同样只计数不丢输入()
         {
             var gate = new InputGate(2);
-            InputMessage msg = Packet(11, 1f, 1f, 1f, 1f, ackSnapshot: -5);
+            ClientInputBatch msg = Packet(11, 1f, 1f, 1f, 1f, ackSnapshot: -5);
             Assert.True(gate.Store(msg, PlayerId, EntityId, serverFrame: 10, out _, out _));
             Assert.Equal(1, gate.DroppedAckSnapshot);
             Assert.Equal(0, gate.LastClampedAckSnapshot);
@@ -77,7 +80,7 @@ namespace LiteNet.Tests
         public void 按键白名单_伪造服务器内部位被丢()
         {
             var gate = new InputGate(2);
-            InputMessage msg = Packet(11, 1f, 1f, 1f, 1f, buttons: SimInputFrame.ButtonFireFlag);
+            ClientInputBatch msg = Packet(11, 1f, 1f, 1f, 1f, buttons: SimInputFrame.ButtonFireFlag);
             Assert.False(gate.Store(msg, PlayerId, EntityId, serverFrame: 10, out _, out _));
             Assert.Equal(1, gate.DroppedIllegalButtons);
         }
@@ -107,7 +110,7 @@ namespace LiteNet.Tests
         public void 实体Id防伪_覆写为会话所属()
         {
             var gate = new InputGate(2);
-            InputMessage msg = Packet(11, 1f, 0f, 0f, 0f);
+            ClientInputBatch msg = Packet(11, 1f, 0f, 0f, 0f);
             msg.Frames[0].EntityId = 99999;                   // 客户端上报伪 Id
             Assert.True(gate.Store(msg, PlayerId, EntityId, 10, out _, out SimInputFrame input));
             Assert.Equal(EntityId, input.EntityId);           // 一律覆写
@@ -123,7 +126,7 @@ namespace LiteNet.Tests
                 | SimInputFrame.ButtonSkill1 | SimInputFrame.ButtonSkill2 | SimInputFrame.ButtonSkill3
                 | SimInputFrame.ButtonPickup | SimInputFrame.ButtonUseItem | SimInputFrame.ButtonDodge;
             // Fire/Dodge 连续/保留位不带 seq 也可；离散位带 seq=1（首个，>0 基线）→ 合法
-            InputMessage msg = Packet(11, 1f, 0f, 0f, 0f, buttons: allDefined, actionSeq: 1, target: 77L);
+            ClientInputBatch msg = Packet(11, 1f, 0f, 0f, 0f, buttons: allDefined, actionSeq: 1, target: 77L);
             Assert.True(gate.Store(msg, PlayerId, EntityId, 10, out _, out SimInputFrame input));
             Assert.Equal(allDefined, input.Buttons);
             Assert.Equal(1u, input.ActionSeq);                // 字段透传
@@ -136,12 +139,12 @@ namespace LiteNet.Tests
         {
             var gate = new InputGate(2);
             // Reload 是离散意图：必须携带非零 seq（合法 SDK 不会构造缺 seq 的离散请求）
-            InputMessage msg = Packet(11, 1f, 0f, 0f, 0f, buttons: SimInputFrame.ButtonReload, actionSeq: 0);
+            ClientInputBatch msg = Packet(11, 1f, 0f, 0f, 0f, buttons: SimInputFrame.ButtonReload, actionSeq: 0);
             Assert.False(gate.Store(msg, PlayerId, EntityId, 10, out _, out _));
             Assert.Equal(1, gate.DroppedIllegalActionSeq);
 
             // 连续意图（Fire）不带 seq：照常放行——seq 纪律只约束离散动作
-            InputMessage fire = Packet(11, 1f, 0f, 0f, 0f, buttons: SimInputFrame.ButtonFire);
+            ClientInputBatch fire = Packet(11, 1f, 0f, 0f, 0f, buttons: SimInputFrame.ButtonFire);
             Assert.True(gate.Store(fire, PlayerId, EntityId, 10, out _, out _));
         }
 
@@ -191,18 +194,18 @@ namespace LiteNet.Tests
             var gate = new InputGate(2);
 
             // 伪造武器槽（§5.4：范围是传输层可见事实）→ 整条丢弃
-            InputMessage bad = Packet(11, 1f, 0f, 0f, 0f, buttons: SimInputFrame.ButtonSwitchWeapon, actionSeq: 1);
+            ClientInputBatch bad = Packet(11, 1f, 0f, 0f, 0f, buttons: SimInputFrame.ButtonSwitchWeapon, actionSeq: 1);
             bad.Frames[0].SelectedWeaponSlot = SimConfig.WeaponSlotsPerEntity;   // 越界
             Assert.False(gate.Store(bad, PlayerId, EntityId, 10, out _, out _));
             Assert.Equal(1, gate.DroppedIllegalWeaponSlot);
 
-            InputMessage negative = Packet(12, 1f, 0f, 0f, 0f, buttons: SimInputFrame.ButtonSwitchWeapon, actionSeq: 2);
+            ClientInputBatch negative = Packet(12, 1f, 0f, 0f, 0f, buttons: SimInputFrame.ButtonSwitchWeapon, actionSeq: 2);
             negative.Frames[0].SelectedWeaponSlot = -1;                          // 负值
             Assert.False(gate.Store(negative, PlayerId, EntityId, 11, out _, out _));
             Assert.Equal(2, gate.DroppedIllegalWeaponSlot);
 
             // 合法切枪 → 放行且目标槽透传
-            InputMessage ok = Packet(13, 1f, 0f, 0f, 0f, buttons: SimInputFrame.ButtonSwitchWeapon, actionSeq: 3);
+            ClientInputBatch ok = Packet(13, 1f, 0f, 0f, 0f, buttons: SimInputFrame.ButtonSwitchWeapon, actionSeq: 3);
             ok.Frames[0].SelectedWeaponSlot = 1;
             Assert.True(gate.Store(ok, PlayerId, EntityId, 12, out _, out SimInputFrame input));
             Assert.Equal(1, input.SelectedWeaponSlot);
@@ -213,8 +216,8 @@ namespace LiteNet.Tests
         {
             var gate = new InputGate(2);
             // 2026-09-22 P0 修复回归：帧号单键会让玩家 0 的同帧输入被玩家 1 顶掉（TryConsume 只有一人拿到）
-            InputMessage m0 = Packet(11, 0.5f, 0f, 0f, 0f);
-            InputMessage m1 = Packet(11, -0.5f, 0f, 0f, 0f);
+            ClientInputBatch m0 = Packet(11, 0.5f, 0f, 0f, 0f);
+            ClientInputBatch m1 = Packet(11, -0.5f, 0f, 0f, 0f);
             Assert.True(gate.Store(m0, playerId: 0, entityId: 10, serverFrame: 10, out _, out _));
             Assert.True(gate.Store(m1, playerId: 1, entityId: 20, serverFrame: 10, out _, out _));
 
@@ -320,9 +323,8 @@ namespace LiteNet.Tests
         public void 消息形状_超冗余窗上限整条拒绝()
         {
             var gate = new InputGate(2);
-            var msg = new InputMessage { Frame = 11, AckSnapshot = 0, ViewFrame = 0 };
-            for (int i = 0; i < InputPacker.MaxRedundancy + 1; i++)
-                msg.Frames.Add(new InputFrame { EntityId = 1, MoveX = 1f, AimX = 1f });
+            ClientInputBatch msg = Packet(11, 1f, 1f, 1f, 1f);
+            msg.Count = ClientInputBatch.MaxFrames + 1;        // 声明的帧数超上限（App 不预筛——闸门判定）
             Assert.False(gate.Store(msg, PlayerId, EntityId, 10, out _, out _));
             Assert.Equal(1, gate.DroppedOversizedMessage);
             Assert.Equal(0, gate.AcceptedCount);
@@ -342,8 +344,7 @@ namespace LiteNet.Tests
                 float ax = FloatBits(rng.Next());
                 float az = FloatBits(rng.Next());
                 uint buttons = (uint)rng.Next();
-                var msg = new InputMessage { Frame = rng.Next(-2, 60), AckSnapshot = rng.Next(-2, 60), ViewFrame = 0 };
-                msg.Frames.Add(new InputFrame { EntityId = 1, MoveX = mx, MoveZ = mz, AimX = ax, AimZ = az, Buttons = buttons });
+                ClientInputBatch msg = Packet(rng.Next(-2, 60), mx, mz, ax, az, ackSnapshot: rng.Next(-2, 60), buttons: buttons);
                 // 不抛即通过本条；被接受时值必须已通过全部边界（有限 + 范围 + 白名单 + 槽位 + seq）
                 if (gate.Store(msg, 0, EntityId, serverFrame: 30, out _, out SimInputFrame accepted))
                 {
@@ -357,18 +358,28 @@ namespace LiteNet.Tests
             Assert.True(gate.AcceptedCount == acceptedBefore);
         }
 
+        // ---- R1 契约：Runtime 复述常量与协议单源一致（改一处必红另一处）----
+
+        [Fact]
+        public void 契约_Runtime复述常量与协议单源一致()
+        {
+            Assert.Equal(InputPacker.MaxRedundancy, ClientInputBatch.MaxFrames);
+            Assert.Equal(ProtocolConstants.MoveComponentLimit, InputGate.MoveComponentLimit);
+            Assert.Equal(ProtocolConstants.VectorLengthSquaredLimit, InputGate.VectorLengthSquaredLimit);
+        }
+
         /// <summary>把随机 int 位型重解释为 float——制造 NaN/Infinity/超大/正常值的全谱坏输入。</summary>
         private static float FloatBits(int bits) => System.BitConverter.ToSingle(System.BitConverter.GetBytes(bits), 0);
 
         /// <summary>构造一条窗口 [frame, frame-1, frame-2, frame-3] 的输入包（每帧内容各不相同）。</summary>
-        private static InputMessage Packet(int frame, float m0, float m1, float m2, float m3,
+        private static ClientInputBatch Packet(int frame, float m0, float m1, float m2, float m3,
             int ackSnapshot = 0, uint buttons = 0, uint actionSeq = 0, long target = 0)
         {
-            var msg = new InputMessage { Frame = frame, AckSnapshot = ackSnapshot, ViewFrame = 0 };
+            var frames = new SimInputFrame[ClientInputBatch.MaxFrames];
             float[] moves = { m0, m1, m2, m3 };
-            for (int i = 0; i < InputPacker.MaxRedundancy; i++)
+            for (int i = 0; i < ClientInputBatch.MaxFrames; i++)
             {
-                msg.Frames.Add(new InputFrame
+                frames[i] = new SimInputFrame
                 {
                     EntityId = 1,
                     MoveX = moves[i], MoveZ = 0f, AimX = 1f, AimZ = 0f,
@@ -376,17 +387,21 @@ namespace LiteNet.Tests
                     SelectedWeaponSlot = i == 0 ? 1 : 0,
                     TargetEntityId = i == 0 ? target : 0L,
                     ActionSeq = i == 0 ? actionSeq : 0u,
-                });
+                };
             }
-            return msg;
+            return new ClientInputBatch
+            {
+                Frame = frame, AckSnapshot = ackSnapshot, ViewFrame = 0,
+                Count = ClientInputBatch.MaxFrames, Frames = frames,
+            };
         }
 
         /// <summary>单帧裸包（向量边界用例用：Move/Aim 四浮点与按钮全可控）。</summary>
-        private static InputMessage Raw(int frame, float moveX, float moveZ, float aimX, float aimZ, uint buttons, uint actionSeq)
+        private static ClientInputBatch Raw(int frame, float moveX, float moveZ, float aimX, float aimZ, uint buttons, uint actionSeq)
         {
-            var msg = new InputMessage { Frame = frame, AckSnapshot = 0, ViewFrame = 0 };
-            msg.Frames.Add(new InputFrame { EntityId = 1, MoveX = moveX, MoveZ = moveZ, AimX = aimX, AimZ = aimZ, Buttons = buttons, ActionSeq = actionSeq });
-            return msg;
+            var frames = new SimInputFrame[ClientInputBatch.MaxFrames];
+            frames[0] = new SimInputFrame { EntityId = 1, MoveX = moveX, MoveZ = moveZ, AimX = aimX, AimZ = aimZ, Buttons = buttons, ActionSeq = actionSeq };
+            return new ClientInputBatch { Frame = frame, AckSnapshot = 0, ViewFrame = 0, Count = 1, Frames = frames };
         }
     }
 }

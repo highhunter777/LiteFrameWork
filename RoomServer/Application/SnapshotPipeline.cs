@@ -3,29 +3,31 @@ using System.Collections.Generic;
 using LiteNet.Protocol;
 using LiteNet.Proto;
 using LiteSim;
+using RoomServer.Runtime;
 using Proto = LiteNet.Proto;
 
-namespace RoomServer
+namespace RoomServer.Application
 {
     /// <summary>
-    /// 快照广播器（自 Room 拆出，2026-09-19 高内聚拆分）：**只负责"把权威态发给各客户端"**——
-    /// 30Hz 抽帧编排 / SnapshotDiffer 两段式差分 / AOI 可见裁剪 / E1 背压分档与降级 / 全量兜底。
+    /// 快照广播管线（R1：自 <c>RoomBroadcaster</c> 迁入 App 层——**只负责"把权威态发给各客户端"**：
+    /// 30Hz 抽帧编排 / SnapshotDiffer 两段式差分 / AOI 可见裁剪 / E1 背压分档与降级 / 全量兜底）。
     ///
-    /// 职责边界（拆分依据）：Room 管"权威模拟与成员席位"（状态面），本类管"权威态如何到达客户端"
-    /// （广播面）——两者的变更原因不同（改手感参数不动广播，改背压策略不动模拟）。
+    /// 归属裁定（R1 契约）：差分器 <see cref="SnapshotDiffer"/> 与编码器 <see cref="SnapshotCodec"/>
+    /// 消费 proto 且是快照格式的**唯一单源**（§19 禁第二套快照 DTO）——因此快照构建整体留在 App 层，
+    /// RoomRuntime 只持权威态（<see cref="RoomRuntime.AuthSim"/>）与输入闸门（<see cref="RoomRuntime.Gate"/>），
+    /// 由本管线在每次权威步进后**拉取**构建下发。Runtime 不产快照输出，两层无需快照契约。
     ///
-    /// 依赖：只读输入 = 成员席位数组 + 实体 Id 数组 + 权威态（每步传入）；写 = 每会话的背压/水位记账字段。
-    /// 发送出口 = SendTo 委托（ServerHost 装配；测试捕获）——与 Room.SendTo 同款接缝。
+    /// 依赖：只读输入 = 席位→会话数组 + 实体 Id 解析（<see cref="RoomRuntime.EntityIdOf"/>）+ 权威态；
+    /// 写 = 每会话的背压/水位记账字段（App 层会话）。
     /// </summary>
-    public sealed class RoomBroadcaster
+    public sealed class SnapshotPipeline
     {
-        private readonly Session[] _playerSessions;
-        private readonly long[] _entityIds;
+        private readonly Session[] _seatSessions;
         private readonly SnapshotDiffer _differ;
         private int _broadcastOrdinal;
         private bool _forceFullPending;
 
-        // ---- Ops 计数（广播面；Room 转发属性保持外部引用兼容）----
+        // ---- Ops 计数（广播面）----
         public long SnapshotSent;
         public long SnapshotFullSent;
         public long BackpressureThrottled;
@@ -36,22 +38,33 @@ namespace RoomServer
         /// <summary>差分器只读暴露（Ops 快照尺寸统计用）。</summary>
         public SnapshotDiffer Differ => _differ;
 
-        public RoomBroadcaster(Session[] playerSessions, long[] entityIds, SnapshotDiffer differ)
+        public SnapshotPipeline(Session[] seatSessions, SnapshotDiffer differ = null)
         {
-            _playerSessions = playerSessions;
-            _entityIds = entityIds;
-            _differ = differ;
+            _seatSessions = seatSessions;
+            _differ = differ ?? new SnapshotDiffer();
         }
 
-        /// <summary>下一次广播整帧强制全量（重连场景：客户端要从零重建）。</summary>
+        /// <summary>
+        /// 下一次广播整帧强制全量。**唯一生产调用点 = 重连恢复完成**（SeatRestored）：
+        /// 抑制期间差分基线已推进到 B（> 重连响应快照帧 N_r），恢复后若直接投增量会留
+        /// (N_r, B] 陈旧缝——整帧全量把所有人的广播链重新锚定到同一帧，增量自此无缺口。
+        /// （全量是整帧属性：其他客户端多付一帧全量，换来差分基线一义性。）
+        /// </summary>
         public void RequestFullSnapshot() => _forceFullPending = true;
 
         /// <summary>
         /// 到点广播（30Hz：每 TickRate/SnapshotHz 帧一次）。
         /// E1 背压按会话分档：档位 0 全速；档位 1 抽帧；档位 2 收缩 AOI；档位 3 额外裁掉最远实体。
         /// 降档只影响**该客户端**，其余客户端不受拖累（《服务端架构设计》§10-E1 验收点）。
+        ///
+        /// <paramref name="seatBroadcastable"/>（playerId → 席位是否可播）：null = 不抑制；
+        /// ServerHost 传"席位 == Active"——Restoring 席位（重连恢复中，§9.3 步骤 6）在**本方法两个环**都被跳过：
+        /// 发送环不向其投增量；NeedsFull 扫描环也不看它（其 fresh 水位 ack=-1 若参与判定，会把
+        /// **整帧**持续强制成全量——其他客户端白白付全量带宽）。恢复完成由宿主经
+        /// <see cref="RequestFullSnapshot"/> 显式重锚整帧。
         /// </summary>
-        public void BroadcastIfDue(int frame, SimWorldState authSim, InputGate gate)
+        public void BroadcastIfDue(int frame, SimWorldState authSim, InputGate gate, Func<int, long> entityIdOf,
+            Func<int, bool> seatBroadcastable = null)
         {
             if (frame <= 0) return;
             int stride = SimConfig.TickRate / SimConfig.SnapshotHz;
@@ -61,24 +74,26 @@ namespace RoomServer
 
             int broadcastIndex = _broadcastOrdinal / stride;   // 第几次广播（抽帧档按它取模）
 
+            bool Suppressed(int p) => seatBroadcastable != null && !seatBroadcastable(p);
+
             // ① 每广播帧**算一次差分**（推进金标）——多客户端共享同一份，各自只做 AOI 过滤（纯读）。
-            // 全量触发（重连待补 / 有客户端 ack 掉队 / 周期性）是**整帧**属性：本帧对所有客户端都是全量，
+            // 全量触发（显式请求 / 有客户端 ack 掉队 / 周期性）是**整帧**属性：本帧对所有客户端都是全量，
             // 客户端各自丢弃多余槽位即可（1s 周期兜底本来就会发生，代价可接受；换来的是差分基线的一义性）。
             bool forceFull = _forceFullPending;
-            for (int p = 0; p < _playerSessions.Length; p++)
+            for (int p = 0; p < _seatSessions.Length; p++)
             {
-                Session session = _playerSessions[p];
-                if (session == null || session.Disconnected) continue;
+                Session session = _seatSessions[p];
+                if (session == null || session.Disconnected || Suppressed(p)) continue;
                 if (_differ.NeedsFull(session.LastAckSnapshot)) forceFull = true;
             }
             _forceFullPending = false;
             _differ.BeginFrame(frame, authSim, forceFull);
 
-            // ② 每客户端各取可见部分（背压档位只影响该客户端）
-            for (int p = 0; p < _playerSessions.Length; p++)
+            // ② 每客户端各取可见部分（背压档位只影响该客户端；Restoring 席位抑制——§9.3 步骤 6）
+            for (int p = 0; p < _seatSessions.Length; p++)
             {
-                Session session = _playerSessions[p];
-                if (session == null || session.Disconnected) continue;
+                Session session = _seatSessions[p];
+                if (session == null || session.Disconnected || Suppressed(p)) continue;
 
                 UpdateBackpressureTier(session, frame);
                 if (session.BackpressureTier >= 1 && broadcastIndex % ProtocolConstants.ThrottledStride != 0)
@@ -87,13 +102,14 @@ namespace RoomServer
                     continue;
                 }
 
-                SendSnapshot(session, p, frame, authSim, gate);
+                SendSnapshot(session, p, frame, authSim, gate, entityIdOf);
             }
         }
 
-        private void SendSnapshot(Session session, int playerId, int frame, SimWorldState authSim, InputGate gate)
+        private void SendSnapshot(Session session, int playerId, int frame, SimWorldState authSim, InputGate gate,
+            Func<int, long> entityIdOf)
         {
-            long entityId = _entityIds[playerId];
+            long entityId = entityIdOf(playerId);
             SimVector3 viewPos = ResolvePosition(authSim, entityId);
             float radius = session.BackpressureTier >= 2 ? ProtocolConstants.ThrottleAoiRadius : SimConfig.AoiRadius;
 

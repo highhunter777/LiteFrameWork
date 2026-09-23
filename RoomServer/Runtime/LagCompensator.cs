@@ -1,6 +1,6 @@
 using LiteSim;
 
-namespace RoomServer
+namespace RoomServer.Runtime
 {
     /// <summary>
     /// 命中延迟补偿 = 服务器回溯（《状态同步实施方案》§3.4.1 + 《M10实施指导》决策 8）。
@@ -58,7 +58,7 @@ namespace RoomServer
         {
             _auth = auth;
             _playerCount = playerCount;
-            _ring = ring;                                   // 与 Room.SnapshotHistory 同一份（权威循环每帧 Capture）
+            _ring = ring;                                   // 与 RoomRuntime.SnapshotHistory 同一份（权威循环每帧 Capture）
             _scratch = new SimWorldState();
             _fireInputs = new SimInputFrame[playerCount];
             _historyCapacity = SimConfig.LagCompHistory + 1;
@@ -78,7 +78,7 @@ namespace RoomServer
 
         /// <summary>
         /// 处理一条开火输入：回溯到玩家所见帧判定，命中结果以命令/事件形式落到**当前帧**。
-        /// 调用时机：<see cref="Room.StepFrame"/> 之后（权威当前帧 = 本步刚跑完的帧）。
+        /// 调用时机：<see cref="RoomRuntime"/> 单帧步进之后（权威当前帧 = 本步刚跑完的帧）。
         ///
         /// <paramref name="viewFrame"/> = **客户端看到的权威帧号**（§3.4.1：ackSnapshot 对应的权威帧 + 插值帧）。
         /// 它已经是服务器帧轴上的值（快照帧号两端同源），所以服务器只做两步：

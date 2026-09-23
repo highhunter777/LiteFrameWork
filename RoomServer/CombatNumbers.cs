@@ -11,7 +11,7 @@ namespace RoomServer
     /// 表现为和解风暴。做法：`gen.bat` 的 Pass 1b 把同一份表源额外产出 json
     /// （`RoomServer/Data/tbcombatnum.json`），本类读取后回填 <see cref="CombatConfig"/>。
     ///
-    /// **为什么用 json 而不是 bin**：Luban 的 C# 运行时是**本机 `file:` 依赖**（《克隆后自备清单》§4：
+    /// **为什么用 json 而不是 bin**：Luban 的 C# 运行时是**本机 `file:` 依赖**（《环境恢复指南》§4：
     /// manifest 不入库）→ .NET 8 的 RoomServer 无法引用它；json 是本工程可直接解析的形态，
     /// 且与客户端 bin **同一次 gen.bat、同一份 xlsx** 产出 → 不可能漂移。
     ///

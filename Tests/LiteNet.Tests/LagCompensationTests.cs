@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using LiteSim;
 using RoomServer;
+using RoomServer.Runtime;
 using Xunit;
 
 namespace LiteNet.Tests

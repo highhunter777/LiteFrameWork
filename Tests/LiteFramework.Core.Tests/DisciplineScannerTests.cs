@@ -231,6 +231,47 @@ namespace LiteFramework.Tests
             Assert.Equal(0, Count("Resources.Load(\"x\"); // lint-allow R8", LintRule.R8ResourcesLoad));
         }
 
+        // ---- R11：RoomServer/Runtime 纯化（《商业级通用服务端框架总设计》§8.1 禁止项）----
+
+        [Fact]
+        public void 纪律_R11_运行时纯化违例被逐类命中()
+        {
+            // 传输/Socket/协议
+            Assert.Equal(1, Count("var t = new KcpTransportServer();", LintRule.R11RuntimePurity));
+            Assert.Equal(1, Count("private readonly IRoomTransport _transport;", LintRule.R11RuntimePurity));
+            Assert.Equal(1, Count("var s = new Socket(...);", LintRule.R11RuntimePurity));
+            Assert.Equal(1, Count("var ep = new System.Net.IPEndPoint(...);", LintRule.R11RuntimePurity));
+            // proto / LiteNet 引用
+            Assert.Equal(1, Count("using LiteNet.Protocol;", LintRule.R11RuntimePurity));
+            Assert.Equal(1, Count("var x = LiteNet.Protocol.PacketType.Join;", LintRule.R11RuntimePurity));
+            Assert.Equal(1, Count("var b = Google.Protobuf.IMessage.Extensions;", LintRule.R11RuntimePurity));
+            // 墙钟/等待/Console/文件/随机
+            Assert.Equal(1, Count("var t = DateTime.Now;", LintRule.R11RuntimePurity));
+            Assert.Equal(1, Count("var t = Environment.TickCount64;", LintRule.R11RuntimePurity));
+            Assert.Equal(1, Count("var sw = Stopwatch.StartNew();", LintRule.R11RuntimePurity));
+            Assert.Equal(1, Count("Thread.Sleep(16);", LintRule.R11RuntimePurity));
+            Assert.Equal(1, Count("Console.WriteLine(\"tick\");", LintRule.R11RuntimePurity));
+            Assert.Equal(1, Count("File.ReadAllText(path);", LintRule.R11RuntimePurity));
+            Assert.Equal(1, Count("var r = new Random();", LintRule.R11RuntimePurity));
+        }
+
+        [Fact]
+        public void 纪律_R11_运行时合法面不误报()
+        {
+            // Sim 域引用与确定性工具是 Runtime 的合法面
+            Assert.Equal(0, Count("using LiteSim;", LintRule.R11RuntimePurity));
+            Assert.Equal(0, Count("var v = SimMath.MulAdd2(a, b, c, d);", LintRule.R11RuntimePurity));
+            Assert.Equal(0, Count("AuthSim.RngState = (ulong)Seed;", LintRule.R11RuntimePurity));
+            Assert.Equal(0, Count("var ring = new PendingInputRing(16);", LintRule.R11RuntimePurity));
+            // 常量复述不引用 LiteNet（ClientInputBatch.MaxFrames 的既定形态）
+            Assert.Equal(0, Count("public const int MaxFrames = 4;", LintRule.R11RuntimePurity));
+            // 注释里的禁用 API 名不算违规
+            Assert.Equal(0, Count("// 不打印 Console、不读 DateTime.Now（§8.1 禁止项）", LintRule.R11RuntimePurity));
+            // 规则号命名 + 门控（R11 只对 RoomServer/Runtime 目标启用，其他根的文本不经过本规则）
+            Assert.Equal("R11", DisciplineScanner.RuleId(LintRule.R11RuntimePurity));
+            Assert.Equal(0, Count("Console.WriteLine(\"ok\"); // lint-allow R11", LintRule.R11RuntimePurity));
+        }
+
         private static int Count(string text, LintRule rule)
         {
             return DisciplineScanner.ScanText("test.cs", text, new[] { rule }).Count;

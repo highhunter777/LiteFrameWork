@@ -6,6 +6,7 @@ using LiteTesting;
 using LiteNet.Protocol;
 using LiteNet.Transport;
 using RoomServer;
+using RoomServer.Runtime;
 using Xunit;
 
 namespace LiteNet.Tests
@@ -35,21 +36,27 @@ namespace LiteNet.Tests
         public void 房间容量_由配置决定_四人房满员且第五人被拒()
         {
             var config = new RoomConfig { RoomId = "Four", ExpectedPlayers = 4, Seed = 12345 };
-            var room = new Room(config);
+            var room = new RoomRuntime(config);
 
             Assert.Equal(4, room.ExpectedPlayers);
             for (int i = 0; i < 4; i++)
-            {
-                var session = new Session(i, 0);
-                Assert.Equal(i, room.AssignPlayerId(session));       // 席位按配置容量分配
-            }
-            Assert.Equal(-1, room.AssignPlayerId(new Session(99, 0)));   // 满员：第五人被拒
+                Assert.Equal(i, JoinPlayerId(room, i));              // 席位按配置容量分配（命令面）
+            Assert.Equal(-1, JoinPlayerId(room, 99));                // 满员：第五人被拒
             Assert.Equal(new[] { 0, 1, 2, 3 }, room.MemberIds());
 
-            room.Start(0);                                            // seed=0 → 走配置策略（本用例固定 12345）
-            Assert.Equal(12345L, room.Seed);
+            Assert.Equal(12345L, room.Seed);                          // 满员自动开局，seed 走固定配置
             Assert.True(room.Started);
             for (int i = 0; i < 4; i++) Assert.True(room.EntityIdOf(i) != 0L);   // 4 个实体都已生成
+        }
+
+        /// <summary>执行 Join 命令并返回分配到的席位号（被拒返回 -1）——命令面的进房等价物。</summary>
+        private static int JoinPlayerId(RoomRuntime room, int connectionId)
+        {
+            var outputs = new List<RoomOutput>();
+            room.Execute(RoomCommand.Join(connectionId), outputs);
+            foreach (RoomOutput o in outputs)
+                if (o is SignalOutput { Signal: PlayerAdmitted pa }) return pa.PlayerId;
+            return -1;
         }
 
         public void Dispose()
@@ -197,12 +204,16 @@ namespace LiteNet.Tests
             Assert.True(player0.Pos.X > -15f + 0.5f,
                 $"玩家 0 未按输入移动（pos.x={player0.Pos.X:F3}，期望 > -14.5）Gate 计数：acc={gate.AcceptedCount} dup={gate.DroppedDuplicateFrame} oor={gate.DroppedOutOfRange} illegal={gate.DroppedIllegalFrame} ack={gate.DroppedAckSnapshot}");
 
-            // 掉线沿用：客户端全部断开 → 权威循环继续推帧不卡死
+            // 掉线沿用（§4.5-2）：单人掉线不停帧——其余成员仍在，权威循环继续推帧
             int frameBefore = _host.Room.AuthSim.Frame;
             c1.Disconnect();
-            c2.Disconnect();
             Pump(400);
-            Assert.True(_host.Room.AuthSim.Frame > frameBefore, "掉线后权威循环停帧（应沿用空输入继续）");
+            Assert.True(_host.Room.AuthSim.Frame > frameBefore, "单人掉线后权威循环停帧（应沿用空输入继续）");
+
+            // R1 §9.1：全员离场 → 收尾关闭（不再对空房间无限空转；冻结结果并进入终态）
+            c2.Disconnect();
+            Assert.True(WaitFor(() => _host.Room.Phase == MatchPhase.Closed, 5000),
+                $"全员离场应关闭对局（当前 Phase={_host.Room.Phase}）");
         }
 
         [Fact]

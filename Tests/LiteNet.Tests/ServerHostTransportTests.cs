@@ -5,6 +5,7 @@ using LiteNet.Protocol;
 using LiteNet.Proto;
 using LiteNet.Transport;
 using RoomServer;
+using RoomServer.Runtime;
 using Xunit;
 
 namespace LiteNet.Tests
@@ -171,6 +172,67 @@ namespace LiteNet.Tests
             Assert.NotNull(t.LastJoinAck(1));
         }
 
+        // ---- R1 批③：重连闭环（§9.2/§9.3；App+Runtime 全链，假传输零 Socket）----
+
+        [Fact]
+        public void 重连闭环_重绑Restoring抑制增量_恢复ACK后整帧全量重锚()
+        {
+            var t = new FakeRoomTransport();
+            using var host = new ServerHost(t, new RoomConfig { Port = 33341, RoomId = "Fake", ExpectedPlayers = 2 });
+            t.RaiseConnected(1);
+            t.RaiseConnected(2);
+            t.RaiseData(1, JoinPacket());
+            t.RaiseData(2, JoinPacket());
+            Assert.True(host.Room.Started, "满员自动开局");
+            string token = t.LastJoinAck(1).ReconnectToken;
+
+            // 跑帧建立广播基线（stride=2：第 2/4 次 Pump 各广播一次）
+            for (int i = 0; i < 4; i++) host.Pump();
+            Assert.Equal(2, t.CountOf(1, PacketType.StateSnapshot));
+
+            // conn1 断线：席位保留、对局继续；conn2 广播不受影响
+            t.RaiseDisconnected(1);
+            int snaps2 = t.CountOf(2, PacketType.StateSnapshot);
+            for (int i = 0; i < 4; i++) host.Pump();
+            Assert.Equal(SeatPhase.Disconnected, host.Room.SeatOf(0).Phase);
+            Assert.Equal(snaps2 + 2, t.CountOf(2, PacketType.StateSnapshot));
+
+            // conn3 凭一次性票据重连：席位 Restoring；响应带版本确认（§9.3 步骤 2）+ 权威全量快照 + 输入历史
+            t.RaiseConnected(3);
+            t.RaiseData(3, PacketCodec.Encode(PacketType.ReconnectRequest,
+                new ReconnectRequest { OneTimeToken = token }));
+            var resp = (ReconnectResponse)t.Last(3, PacketType.ReconnectResponse);
+            Assert.NotNull(resp);
+            Assert.True(resp.Ok);
+            Assert.True(resp.Snapshot.IsFull, "重连响应必须是权威全量快照");
+            Assert.True(resp.History.Count > 0, "应带回输入历史（§9.3 步骤 5）");
+            Assert.Equal(host.Room.Seed, resp.Seed);
+            Assert.Equal(host.Room.FixedConfig.Digest, resp.ConfigHash);
+            Assert.Equal(ServerHost.ServerBuildHash, resp.BuildHash);
+            Assert.Equal(SeatPhase.Restoring, host.Room.SeatOf(0).Phase);
+            Assert.Equal(3, host.Room.SeatOf(0).ConnectionId);
+
+            // Restoring 抑制：conn3 无增量；conn2 照常（且未被 fresh 水位拖成全帧）
+            for (int i = 0; i < 4; i++) host.Pump();
+            Assert.True(t.CountOf(3, PacketType.StateSnapshot) == 0, "恢复完成前不得投增量广播");
+            Assert.Equal(snaps2 + 4, t.CountOf(2, PacketType.StateSnapshot));
+
+            // 票据一次性：同票重放被拒（§5.6/E3）
+            t.RaiseData(3, PacketCodec.Encode(PacketType.ReconnectRequest,
+                new ReconnectRequest { OneTimeToken = token }));
+            Assert.False(((ReconnectResponse)t.Last(3, PacketType.ReconnectResponse)).Ok);
+
+            // 恢复完成 ACK → 席位 Active + 整帧全量重锚（抑制期间基线已越过重连快照帧）
+            t.RaiseData(3, PacketCodec.Encode(PacketType.RestoreComplete, new RestoreComplete()));
+            for (int i = 0; i < 2; i++) host.Pump();
+            Assert.Equal(SeatPhase.Active, host.Room.SeatOf(0).Phase);
+            Assert.Equal(1, host.Ops.RestoresCompleted);
+            var resumed = (StateSnapshot)t.Last(3, PacketType.StateSnapshot);
+            Assert.NotNull(resumed);
+            Assert.True(resumed.IsFull, "恢复后首包整帧全量（广播链重锚——增量自此无缺口）");
+            Assert.Equal(host.Room.AuthSim.Frame, resumed.Frame);
+        }
+
         private static byte[] JoinPacket()
         {
             return PacketCodec.Encode(PacketType.Join,
@@ -209,11 +271,26 @@ namespace LiteNet.Tests
             }
 
             public void RaiseConnected(int conn) => OnConnected?.Invoke(conn);
+            public void RaiseDisconnected(int conn) => OnDisconnected?.Invoke(conn);
             public void RaiseData(int conn, byte[] packet, bool reliable = true)
                 => OnData?.Invoke(conn, new ArraySegment<byte>(packet), reliable);
 
             public JoinAck LastJoinAck(int conn) => (JoinAck)LastOf(conn, PacketType.JoinAck);
             public StartGame LastStartGame(int conn) => (StartGame)LastOf(conn, PacketType.StartGame);
+            public object Last(int conn, PacketType type) => LastOf(conn, type);
+
+            /// <summary>该连接收到的指定类型包数（抑制/恢复断言用）。</summary>
+            public int CountOf(int conn, PacketType type)
+            {
+                int count = 0;
+                for (int i = 0; i < _sent.Count; i++)
+                {
+                    if (_sent[i].conn != conn) continue;
+                    if (!PacketCodec.TryDecode(_sent[i].data, out PacketType t, out _)) continue;
+                    if (t == type) count++;
+                }
+                return count;
+            }
 
             private object LastOf(int conn, PacketType type)
             {

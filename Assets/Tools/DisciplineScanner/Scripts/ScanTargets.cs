@@ -69,6 +69,13 @@ namespace Tools.DisciplineScan
             LintRule.R10ShellSendsBusinessPacket,
         };
 
+        /// <summary>RoomServer/Runtime：R11 纯化（《商业级通用服务端框架总设计》§8.1 禁止项——
+        /// Transport/墙钟/Console/文件/proto 引用一概不得进入纯运行时层）。</summary>
+        public static readonly LintRule[] RuntimePurityRules =
+        {
+            LintRule.R11RuntimePurity,
+        };
+
         /// <summary>LiteSim 下不适用确定性规则的表现层子根（View 跑引擎、有 GameObject，
         /// 与 Sim 的定点/纯 C# 约束是两回事；只守 R6 原生协程）。</summary>
         public static readonly string[] SimLayerExcludes =
@@ -87,6 +94,7 @@ namespace Tools.DisciplineScan
             new ScanTarget("Assets/LiteGame/Scripts/Runtime", UnityRules),
             new ScanTarget("Assets/LiteGame", GameRules),                                      // R8 资源唯一入口
             new ScanTarget("Assets/LiteGame/Scripts/Runtime/Shell/UI", ShellUiRules),          // R10 薄壳/UI 不发业务包
+            new ScanTarget("RoomServer/Runtime", RuntimePurityRules),                          // R1 纯运行时层（R1《服务端总设计》§8.1）
         };
 
         /// <summary>

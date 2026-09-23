@@ -67,11 +67,13 @@ namespace LiteNet.Proto {
             "GAYgASgFIj0KCVN0YXJ0R2FtZRIMCgRzZWVkGAEgASgDEhMKC2NvbmZpZ19o",
             "YXNoGAIgASgNEg0KBWZyYW1lGAMgASgFIgcKBUxlYXZlIiAKCUhlYXJ0YmVh",
             "dBITCgtjbGllbnRfdGltZRgBIAEoAyIqChBSZWNvbm5lY3RSZXF1ZXN0EhYK",
-            "Dm9uZV90aW1lX3Rva2VuGAEgASgJIocBChFSZWNvbm5lY3RSZXNwb25zZRIK",
+            "Dm9uZV90aW1lX3Rva2VuGAEgASgJIr4BChFSZWNvbm5lY3RSZXNwb25zZRIK",
             "CgJvaxgBIAEoCBIOCgZyZWFzb24YBCABKAkSKwoIc25hcHNob3QYAiABKAsy",
             "GS5saXRlYmF0dGxlLlN0YXRlU25hcHNob3QSKQoHaGlzdG9yeRgDIAMoCzIY",
-            "LmxpdGViYXR0bGUuSW5wdXRNZXNzYWdlIh8KDk1pc21hdGNoUmVwb3J0Eg0K",
-            "BWZyYW1lGAEgASgFQhCqAg1MaXRlTmV0LlByb3RvYgZwcm90bzM="));
+            "LmxpdGViYXR0bGUuSW5wdXRNZXNzYWdlEgwKBHNlZWQYBSABKAMSEwoLY29u",
+            "ZmlnX2hhc2gYBiABKA0SEgoKYnVpbGRfaGFzaBgHIAEoCSIRCg9SZXN0b3Jl",
+            "Q29tcGxldGUiHwoOTWlzbWF0Y2hSZXBvcnQSDQoFZnJhbWUYASABKAVCEKoC",
+            "DUxpdGVOZXQuUHJvdG9iBnByb3RvMw=="));
       descriptor = pbr::FileDescriptor.FromGeneratedCode(descriptorData,
           new pbr::FileDescriptor[] { },
           new pbr::GeneratedClrTypeInfo(null, null, new pbr::GeneratedClrTypeInfo[] {
@@ -91,7 +93,8 @@ namespace LiteNet.Proto {
             new pbr::GeneratedClrTypeInfo(typeof(global::LiteNet.Proto.Leave), global::LiteNet.Proto.Leave.Parser, null, null, null, null, null),
             new pbr::GeneratedClrTypeInfo(typeof(global::LiteNet.Proto.Heartbeat), global::LiteNet.Proto.Heartbeat.Parser, new[]{ "ClientTime" }, null, null, null, null),
             new pbr::GeneratedClrTypeInfo(typeof(global::LiteNet.Proto.ReconnectRequest), global::LiteNet.Proto.ReconnectRequest.Parser, new[]{ "OneTimeToken" }, null, null, null, null),
-            new pbr::GeneratedClrTypeInfo(typeof(global::LiteNet.Proto.ReconnectResponse), global::LiteNet.Proto.ReconnectResponse.Parser, new[]{ "Ok", "Reason", "Snapshot", "History" }, null, null, null, null),
+            new pbr::GeneratedClrTypeInfo(typeof(global::LiteNet.Proto.ReconnectResponse), global::LiteNet.Proto.ReconnectResponse.Parser, new[]{ "Ok", "Reason", "Snapshot", "History", "Seed", "ConfigHash", "BuildHash" }, null, null, null, null),
+            new pbr::GeneratedClrTypeInfo(typeof(global::LiteNet.Proto.RestoreComplete), global::LiteNet.Proto.RestoreComplete.Parser, null, null, null, null, null),
             new pbr::GeneratedClrTypeInfo(typeof(global::LiteNet.Proto.MismatchReport), global::LiteNet.Proto.MismatchReport.Parser, new[]{ "Frame" }, null, null, null, null)
           }));
     }
@@ -5792,6 +5795,9 @@ namespace LiteNet.Proto {
       reason_ = other.reason_;
       snapshot_ = other.snapshot_ != null ? other.snapshot_.Clone() : null;
       history_ = other.history_.Clone();
+      seed_ = other.seed_;
+      configHash_ = other.configHash_;
+      buildHash_ = other.buildHash_;
       _unknownFields = pb::UnknownFieldSet.Clone(other._unknownFields);
     }
 
@@ -5857,6 +5863,51 @@ namespace LiteNet.Proto {
       get { return history_; }
     }
 
+    /// <summary>Field number for the "seed" field.</summary>
+    public const int SeedFieldNumber = 5;
+    private long seed_;
+    /// <summary>
+    /// ---- R1 追加（《商业级通用服务端框架总设计》§9.3 恢复顺序步骤 2：下发协议/Sim/配置版本确认）----
+    /// </summary>
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public long Seed {
+      get { return seed_; }
+      set {
+        seed_ = value;
+      }
+    }
+
+    /// <summary>Field number for the "config_hash" field.</summary>
+    public const int ConfigHashFieldNumber = 6;
+    private uint configHash_;
+    /// <summary>
+    /// 房间创建时绑定的规范化配置摘要（StartGame 同值）
+    /// </summary>
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public uint ConfigHash {
+      get { return configHash_; }
+      set {
+        configHash_ = value;
+      }
+    }
+
+    /// <summary>Field number for the "build_hash" field.</summary>
+    public const int BuildHashFieldNumber = 7;
+    private string buildHash_ = "";
+    /// <summary>
+    /// 服务器构建哈希（客户端比对自身——防跨版本混房）
+    /// </summary>
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public string BuildHash {
+      get { return buildHash_; }
+      set {
+        buildHash_ = pb::ProtoPreconditions.CheckNotNull(value, "value");
+      }
+    }
+
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public override bool Equals(object other) {
@@ -5876,6 +5927,9 @@ namespace LiteNet.Proto {
       if (Reason != other.Reason) return false;
       if (!object.Equals(Snapshot, other.Snapshot)) return false;
       if(!history_.Equals(other.history_)) return false;
+      if (Seed != other.Seed) return false;
+      if (ConfigHash != other.ConfigHash) return false;
+      if (BuildHash != other.BuildHash) return false;
       return Equals(_unknownFields, other._unknownFields);
     }
 
@@ -5887,6 +5941,9 @@ namespace LiteNet.Proto {
       if (Reason.Length != 0) hash ^= Reason.GetHashCode();
       if (snapshot_ != null) hash ^= Snapshot.GetHashCode();
       hash ^= history_.GetHashCode();
+      if (Seed != 0L) hash ^= Seed.GetHashCode();
+      if (ConfigHash != 0) hash ^= ConfigHash.GetHashCode();
+      if (BuildHash.Length != 0) hash ^= BuildHash.GetHashCode();
       if (_unknownFields != null) {
         hash ^= _unknownFields.GetHashCode();
       }
@@ -5918,6 +5975,18 @@ namespace LiteNet.Proto {
         output.WriteRawTag(34);
         output.WriteString(Reason);
       }
+      if (Seed != 0L) {
+        output.WriteRawTag(40);
+        output.WriteInt64(Seed);
+      }
+      if (ConfigHash != 0) {
+        output.WriteRawTag(48);
+        output.WriteUInt32(ConfigHash);
+      }
+      if (BuildHash.Length != 0) {
+        output.WriteRawTag(58);
+        output.WriteString(BuildHash);
+      }
       if (_unknownFields != null) {
         _unknownFields.WriteTo(output);
       }
@@ -5941,6 +6010,18 @@ namespace LiteNet.Proto {
         output.WriteRawTag(34);
         output.WriteString(Reason);
       }
+      if (Seed != 0L) {
+        output.WriteRawTag(40);
+        output.WriteInt64(Seed);
+      }
+      if (ConfigHash != 0) {
+        output.WriteRawTag(48);
+        output.WriteUInt32(ConfigHash);
+      }
+      if (BuildHash.Length != 0) {
+        output.WriteRawTag(58);
+        output.WriteString(BuildHash);
+      }
       if (_unknownFields != null) {
         _unknownFields.WriteTo(ref output);
       }
@@ -5961,6 +6042,15 @@ namespace LiteNet.Proto {
         size += 1 + pb::CodedOutputStream.ComputeMessageSize(Snapshot);
       }
       size += history_.CalculateSize(_repeated_history_codec);
+      if (Seed != 0L) {
+        size += 1 + pb::CodedOutputStream.ComputeInt64Size(Seed);
+      }
+      if (ConfigHash != 0) {
+        size += 1 + pb::CodedOutputStream.ComputeUInt32Size(ConfigHash);
+      }
+      if (BuildHash.Length != 0) {
+        size += 1 + pb::CodedOutputStream.ComputeStringSize(BuildHash);
+      }
       if (_unknownFields != null) {
         size += _unknownFields.CalculateSize();
       }
@@ -5986,6 +6076,15 @@ namespace LiteNet.Proto {
         Snapshot.MergeFrom(other.Snapshot);
       }
       history_.Add(other.history_);
+      if (other.Seed != 0L) {
+        Seed = other.Seed;
+      }
+      if (other.ConfigHash != 0) {
+        ConfigHash = other.ConfigHash;
+      }
+      if (other.BuildHash.Length != 0) {
+        BuildHash = other.BuildHash;
+      }
       _unknownFields = pb::UnknownFieldSet.MergeFrom(_unknownFields, other._unknownFields);
     }
 
@@ -6022,6 +6121,18 @@ namespace LiteNet.Proto {
           }
           case 34: {
             Reason = input.ReadString();
+            break;
+          }
+          case 40: {
+            Seed = input.ReadInt64();
+            break;
+          }
+          case 48: {
+            ConfigHash = input.ReadUInt32();
+            break;
+          }
+          case 58: {
+            BuildHash = input.ReadString();
             break;
           }
         }
@@ -6062,6 +6173,179 @@ namespace LiteNet.Proto {
             Reason = input.ReadString();
             break;
           }
+          case 40: {
+            Seed = input.ReadInt64();
+            break;
+          }
+          case 48: {
+            ConfigHash = input.ReadUInt32();
+            break;
+          }
+          case 58: {
+            BuildHash = input.ReadString();
+            break;
+          }
+        }
+      }
+    }
+    #endif
+
+  }
+
+  [global::System.Diagnostics.DebuggerDisplayAttribute("{ToString(),nq}")]
+  public sealed partial class RestoreComplete : pb::IMessage<RestoreComplete>
+  #if !GOOGLE_PROTOBUF_REFSTRUCT_COMPATIBILITY_MODE
+      , pb::IBufferMessage
+  #endif
+  {
+    private static readonly pb::MessageParser<RestoreComplete> _parser = new pb::MessageParser<RestoreComplete>(() => new RestoreComplete());
+    private pb::UnknownFieldSet _unknownFields;
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public static pb::MessageParser<RestoreComplete> Parser { get { return _parser; } }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public static pbr::MessageDescriptor Descriptor {
+      get { return global::LiteNet.Proto.BattleReflection.Descriptor.MessageTypes[17]; }
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    pbr::MessageDescriptor pb::IMessage.Descriptor {
+      get { return Descriptor; }
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public RestoreComplete() {
+      OnConstruction();
+    }
+
+    partial void OnConstruction();
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public RestoreComplete(RestoreComplete other) : this() {
+      _unknownFields = pb::UnknownFieldSet.Clone(other._unknownFields);
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public RestoreComplete Clone() {
+      return new RestoreComplete(this);
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public override bool Equals(object other) {
+      return Equals(other as RestoreComplete);
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public bool Equals(RestoreComplete other) {
+      if (ReferenceEquals(other, null)) {
+        return false;
+      }
+      if (ReferenceEquals(other, this)) {
+        return true;
+      }
+      return Equals(_unknownFields, other._unknownFields);
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public override int GetHashCode() {
+      int hash = 1;
+      if (_unknownFields != null) {
+        hash ^= _unknownFields.GetHashCode();
+      }
+      return hash;
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public override string ToString() {
+      return pb::JsonFormatter.ToDiagnosticString(this);
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public void WriteTo(pb::CodedOutputStream output) {
+    #if !GOOGLE_PROTOBUF_REFSTRUCT_COMPATIBILITY_MODE
+      output.WriteRawMessage(this);
+    #else
+      if (_unknownFields != null) {
+        _unknownFields.WriteTo(output);
+      }
+    #endif
+    }
+
+    #if !GOOGLE_PROTOBUF_REFSTRUCT_COMPATIBILITY_MODE
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    void pb::IBufferMessage.InternalWriteTo(ref pb::WriteContext output) {
+      if (_unknownFields != null) {
+        _unknownFields.WriteTo(ref output);
+      }
+    }
+    #endif
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public int CalculateSize() {
+      int size = 0;
+      if (_unknownFields != null) {
+        size += _unknownFields.CalculateSize();
+      }
+      return size;
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public void MergeFrom(RestoreComplete other) {
+      if (other == null) {
+        return;
+      }
+      _unknownFields = pb::UnknownFieldSet.MergeFrom(_unknownFields, other._unknownFields);
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public void MergeFrom(pb::CodedInputStream input) {
+    #if !GOOGLE_PROTOBUF_REFSTRUCT_COMPATIBILITY_MODE
+      input.ReadRawMessage(this);
+    #else
+      uint tag;
+      while ((tag = input.ReadTag()) != 0) {
+      if ((tag & 7) == 4) {
+        // Abort on any end group tag.
+        return;
+      }
+      switch(tag) {
+          default:
+            _unknownFields = pb::UnknownFieldSet.MergeFieldFrom(_unknownFields, input);
+            break;
+        }
+      }
+    #endif
+    }
+
+    #if !GOOGLE_PROTOBUF_REFSTRUCT_COMPATIBILITY_MODE
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    void pb::IBufferMessage.InternalMergeFrom(ref pb::ParseContext input) {
+      uint tag;
+      while ((tag = input.ReadTag()) != 0) {
+      if ((tag & 7) == 4) {
+        // Abort on any end group tag.
+        return;
+      }
+      switch(tag) {
+          default:
+            _unknownFields = pb::UnknownFieldSet.MergeFieldFrom(_unknownFields, ref input);
+            break;
         }
       }
     }
@@ -6084,7 +6368,7 @@ namespace LiteNet.Proto {
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public static pbr::MessageDescriptor Descriptor {
-      get { return global::LiteNet.Proto.BattleReflection.Descriptor.MessageTypes[17]; }
+      get { return global::LiteNet.Proto.BattleReflection.Descriptor.MessageTypes[18]; }
     }
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]

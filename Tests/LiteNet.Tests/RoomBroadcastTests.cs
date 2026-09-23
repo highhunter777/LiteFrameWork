@@ -5,6 +5,8 @@ using LiteNet.Protocol;
 using LiteNet.Proto;
 using LiteSim;
 using RoomServer;
+using RoomServer.Application;
+using RoomServer.Runtime;
 using Xunit;
 
 namespace LiteNet.Tests
@@ -12,7 +14,8 @@ namespace LiteNet.Tests
     /// <summary>
     /// 房间广播 / E1 背压 / 重连服务 用例（《M10实施指导》§2.7/§2.8 + §3"E1 背压"/"E3 加固"组）。
     ///
-    /// 形态：直接驱动 <see cref="Room"/>（假传输——用 <c>Room.SendTo</c> 捕获出站包），
+    /// R1 迁移：改由 <see cref="RoomRuntime"/> 命令面驱动（Join/Tick/ClientInput）+ App 层
+    /// <see cref="SnapshotPipeline"/> 广播（假传输——用 pipeline.SendTo 捕获出站包），
     /// 不依赖 KCP 与真实网络（那部分由 RoomServerTests 的 loopback 用例覆盖）。
     /// </summary>
     public sealed class RoomBroadcastTests
@@ -30,39 +33,76 @@ namespace LiteNet.Tests
                        .ConvertAll(s => (StateSnapshot)s.msg);
         }
 
-        private static (Room room, Capture capture, Session s1, Session s2) BuildStartedRoom()
+        /// <summary>执行一次 Join 命令并把进房连接绑定到 App 层席位映射（App 装配的测试等价物）。</summary>
+        private static int Join(RoomRuntime room, Session session, Session[] seats)
         {
-            var room = new Room(new RoomConfig { RoomId = "TestRoom" });
+            var outputs = new List<RoomOutput>();
+            room.Execute(RoomCommand.Join(session.ConnectionId), outputs);
+            foreach (RoomOutput o in outputs)
+            {
+                if (o is SignalOutput { Signal: PlayerAdmitted pa })
+                {
+                    session.PlayerId = pa.PlayerId;
+                    seats[pa.PlayerId] = session;
+                    return pa.PlayerId;
+                }
+            }
+            return -1;
+        }
+
+        /// <summary>命令面步进：Tick + 快照广播（与 ServerHost.Pump 同序）。</summary>
+        private static void Step(RoomRuntime room, SnapshotPipeline pipeline, int count)
+        {
+            Step(room, pipeline, count, null);
+        }
+
+        /// <summary>带席位可播判定的步进（ServerHost.Pump 传"席位 == Active"的同款形态）。</summary>
+        private static void Step(RoomRuntime room, SnapshotPipeline pipeline, int count, Func<int, bool> seatBroadcastable)
+        {
+            var outputs = new List<RoomOutput>();
+            for (int i = 0; i < count; i++)
+            {
+                room.Execute(RoomCommand.Tick(0), outputs);
+                pipeline.BroadcastIfDue(room.AuthSim.Frame, room.AuthSim, room.Gate, room.EntityIdOf, seatBroadcastable);
+            }
+        }
+
+        private static (RoomRuntime room, Capture capture, Session s1, Session s2, SnapshotPipeline pipeline) BuildStartedRoom()
+        {
+            var room = new RoomRuntime(new RoomConfig { RoomId = "TestRoom", Seed = SharedSeed });
+            var seats = new Session[room.ExpectedPlayers];
+            var pipeline = new SnapshotPipeline(seats);
             var capture = new Capture();
-            room.SendTo = (session, type, msg, reliable) => capture.Sent.Add((session, type, msg, reliable));
-            room.Broadcaster.SendTo = room.SendTo;   // 广播面拆分后共用同一捕获（快照经 Broadcaster 发出）
+            pipeline.SendTo = (session, type, msg, reliable) => capture.Sent.Add((session, type, msg, reliable));
 
             var s1 = new Session(1, 0);
             var s2 = new Session(2, 0);
-            Assert.Equal(0, room.AssignPlayerId(s1));
-            Assert.Equal(1, room.AssignPlayerId(s2));
-            room.Start(SharedSeed);
-            return (room, capture, s1, s2);
+            Assert.Equal(0, Join(room, s1, seats));
+            Assert.Equal(1, Join(room, s2, seats));
+            Assert.True(room.Started, "满员后应自动开局（批② 换 §9.1 Starting 迁移）");
+            return (room, capture, s1, s2, pipeline);
         }
 
-        /// <summary>合成一条"第 frame 帧、玩家 p 的移动输入"（EntityId 必填——缺省 0 会被判失效实体）。</summary>
-        private static InputMessage MoveInput(Room room, int playerId, int frame, float moveX)
+        /// <summary>合成一条"第 frame 帧、玩家 p 的移动输入"（EntityId 按席位取——缺省 0 会被判失效实体）。</summary>
+        private static ClientInputBatch MoveInput(RoomRuntime room, int playerId, int frame, float moveX)
         {
-            long entityId = room.EntityIdOf(playerId);
-            return new InputMessage
-            {
-                Frame = frame,
-                AckSnapshot = 0,
-                Frames = { new InputFrame { EntityId = entityId, MoveX = moveX, AimX = 1f } },
-            };
+            var frames = new SimInputFrame[ClientInputBatch.MaxFrames];
+            frames[0] = new SimInputFrame { EntityId = room.EntityIdOf(playerId), MoveX = moveX, AimX = 1f };
+            return new ClientInputBatch { Frame = frame, AckSnapshot = 0, Count = 1, Frames = frames };
+        }
+
+        private static void Input(RoomRuntime room, Session session, in ClientInputBatch batch)
+        {
+            var outputs = new List<RoomOutput>();
+            room.Execute(RoomCommand.ClientInput(session.PlayerId, batch), outputs);
         }
 
         [Fact]
         public void 快照按30Hz广播_每两逻辑帧一次()
         {
-            var (room, capture, s1, s2) = BuildStartedRoom();
+            var (room, capture, s1, s2, pipeline) = BuildStartedRoom();
 
-            for (int i = 0; i < 10; i++) room.StepFrame();
+            Step(room, pipeline, 10);
 
             // 10 逻辑帧 → 30Hz 抽帧 → 5 次广播 × 2 客户端 = 10 个快照包
             int stride = SimConfig.TickRate / SimConfig.SnapshotHz;
@@ -74,9 +114,9 @@ namespace LiteNet.Tests
         [Fact]
         public void 首包全量_后续增量_活体数变化再全量()
         {
-            var (room, capture, s1, _) = BuildStartedRoom();
+            var (room, capture, s1, _, pipeline) = BuildStartedRoom();
 
-            for (int i = 0; i < 6; i++) room.StepFrame();
+            Step(room, pipeline, 6);
             List<StateSnapshot> snapshots = capture.SnapshotsFor(s1);
 
             Assert.True(snapshots[0].IsFull, "首个快照必须是全量（客户端从零重建）");
@@ -86,9 +126,9 @@ namespace LiteNet.Tests
             // 杀一个实体 → 含该帧的广播必须转全量（缺席无法表达"死了"）。
             // 先推进到下一广播边界的前一帧，再杀——保证"活体变化"这一帧本身就是广播帧
             capture.Sent.Clear();
-            while ((room.AuthSim.Frame + 1) % (SimConfig.TickRate / SimConfig.SnapshotHz) != 0) room.StepFrame();
+            while ((room.AuthSim.Frame + 1) % (SimConfig.TickRate / SimConfig.SnapshotHz) != 0) Step(room, pipeline, 1);
             room.AuthSim.Despawn(room.EntityIdOf(1));
-            for (int i = 0; i < 4; i++) room.StepFrame();
+            Step(room, pipeline, 4);
             List<StateSnapshot> after = capture.SnapshotsFor(s1);
             Assert.True(after[0].IsFull, $"活体集合变化的那次广播必须是全量（slots={after[0].Slots.Count} full={after[0].IsFull}）");
         }
@@ -96,10 +136,10 @@ namespace LiteNet.Tests
         [Fact]
         public void 掉线成员不广播_其余成员不受影响()
         {
-            var (room, capture, s1, s2) = BuildStartedRoom();
+            var (room, capture, s1, s2, pipeline) = BuildStartedRoom();
             s2.Disconnected = true;
 
-            for (int i = 0; i < 4; i++) room.StepFrame();
+            Step(room, pipeline, 4);
 
             Assert.True(capture.SnapshotsFor(s1).Count > 0, "在线成员应继续收到快照");
             Assert.Empty(capture.SnapshotsFor(s2));                  // 掉线者不占带宽（掉线不停帧，但不发）
@@ -108,14 +148,14 @@ namespace LiteNet.Tests
         [Fact]
         public void 广播私有面_各客户端只收到本人私有态_比赛状态全体同值()
         {
-            var (room, capture, s1, s2) = BuildStartedRoom();
+            var (room, capture, s1, s2, pipeline) = BuildStartedRoom();
 
             // 各玩家私有运行态不同（弹药数——只应出现在本人的快照里，业务总设计 §1 禁泄漏）
             room.AuthSim.Weapons[0 * SimConfig.WeaponSlotsPerEntity].MagAmmo = 30;
             room.AuthSim.Weapons[1 * SimConfig.WeaponSlotsPerEntity].MagAmmo = 8;
             room.AuthSim.Match = new MatchStateData { Phase = 1, Timer = 10800, Round = 1 };
 
-            for (int i = 0; i < 4; i++) room.StepFrame();
+            Step(room, pipeline, 4);
 
             List<StateSnapshot> a = capture.SnapshotsFor(s1);
             List<StateSnapshot> b = capture.SnapshotsFor(s2);
@@ -142,18 +182,18 @@ namespace LiteNet.Tests
         [Fact]
         public void 背压超限_该客户端降档抽帧_其余客户端不受拖累()
         {
-            var (room, capture, s1, s2) = BuildStartedRoom();
+            var (room, capture, s1, s2, pipeline) = BuildStartedRoom();
 
             // 模拟慢客户端：真实发送过 4×上限字节但从未 ACK（诚实记账播种——R0-P0-4 后水位
             // 只能经验证过的 ACK 释放，直接改 SendQueueBytes/AckedBytes 的旧播种方式绕过了 ledger）
             s1.RecordSnapshotSend(0, (int)(ProtocolConstants.BackpressureQueueLimitBytes * 4));
 
-            for (int i = 0; i < 20; i++) room.StepFrame();
+            Step(room, pipeline, 20);
 
             int s1Count = capture.SnapshotsFor(s1).Count;
             int s2Count = capture.SnapshotsFor(s2).Count;
             Assert.True(s1.BackpressureTier >= 1, $"慢客户端应已降档（tier={s1.BackpressureTier}）");
-            Assert.True(room.BackpressureThrottled > 0, "应有抽帧计数");
+            Assert.True(pipeline.BackpressureThrottled > 0, "应有抽帧计数");
             Assert.True(s2Count > s1Count,
                 $"其余客户端不应被拖累：s1={s1Count} s2={s2Count}（tier={s1.BackpressureTier}/{s2.BackpressureTier}）");
             Assert.Equal(0, s2.BackpressureTier);
@@ -162,13 +202,13 @@ namespace LiteNet.Tests
         [Fact]
         public void 背压恢复_水位回落后逐档恢复()
         {
-            var (room, _, s1, _) = BuildStartedRoom();
+            var (room, _, s1, _, pipeline) = BuildStartedRoom();
             s1.RecordSnapshotSend(0, (int)(ProtocolConstants.BackpressureQueueLimitBytes * 4));   // 慢客户端：真实发送从未确认
-            for (int i = 0; i < 6; i++) room.StepFrame();
+            Step(room, pipeline, 6);
             Assert.True(s1.BackpressureTier >= 1);
 
             // ack 到达 → 队列消化（AckedBytes 经 ledger 前推）
-            room.OnClientAck(s1, s1.LastSentSnapshotFrame);
+            s1.TryAcceptAck(s1.LastSentSnapshotFrame);
             int tierAfterAck = s1.BackpressureTier;
 
             // 恢复需要连续达标 2s（120 帧）→ 跑够时间。
@@ -177,12 +217,55 @@ namespace LiteNet.Tests
             // 对齐真实反馈节奏：每步 ack 最新已发送帧（重复 ack 由验证层幂等忽略）→ 水位维持低位 → 恢复可观测
             for (int i = 0; i < ProtocolConstants.RecoverHoldMillis * SimConfig.TickRate / 1000 + 5; i++)
             {
-                room.StepFrame();
-                room.OnClientAck(s1, s1.LastSentSnapshotFrame);
+                Step(room, pipeline, 1);
+                s1.TryAcceptAck(s1.LastSentSnapshotFrame);
             }
 
             Assert.True(s1.BackpressureTier < tierAfterAck || s1.BackpressureTier == 0,
                 $"水位回落后应恢复档位（tier {tierAfterAck} → {s1.BackpressureTier}）");
+        }
+
+        [Fact]
+        public void 重连席位Restoring_抑制增量_恢复ACK后整帧全量重锚()
+        {
+            var room = new RoomRuntime(new RoomConfig { RoomId = "TestRoom", Seed = SharedSeed });
+            var seats = new Session[room.ExpectedPlayers];
+            var pipeline = new SnapshotPipeline(seats);
+            var capture = new Capture();
+            pipeline.SendTo = (session, type, msg, reliable) => capture.Sent.Add((session, type, msg, reliable));
+            var s1 = new Session(1, 0);
+            var s2 = new Session(2, 0);
+            Assert.Equal(0, Join(room, s1, seats));
+            Assert.Equal(1, Join(room, s2, seats));
+
+            Step(room, pipeline, 2);                                    // 建立全量基线
+            Assert.True(capture.SnapshotsFor(s1).Count > 0);
+
+            // s1 掉线 → 新连接重绑（App 等价物：新 Session 顶入席位映射）→ 席位 Restoring
+            room.Execute(RoomCommand.Disconnect(s1.ConnectionId), new List<RoomOutput>());
+            var fresh = new Session(9, 0);
+            room.Execute(RoomCommand.Rebind(0, 9), new List<RoomOutput>());
+            seats[0] = fresh;
+            Assert.Equal(SeatPhase.Restoring, room.SeatOf(0).Phase);
+
+            // 抑制期间：Restoring 席位零投递；其余成员照常收增量（且不得被 fresh 水位拖成全帧）
+            capture.Sent.Clear();
+            Step(room, pipeline, 6, p => room.SeatOf(p)?.Phase == SeatPhase.Active);
+            Assert.Empty(capture.SnapshotsFor(fresh));
+            Assert.True(capture.SnapshotsFor(s2).Count > 0, "其余成员不受抑制影响");
+            foreach (StateSnapshot s in capture.SnapshotsFor(s2))
+                Assert.False(s.IsFull, "抑制期间的增量帧不得被 Restoring 席位的 fresh 水位强制成全量");
+
+            // 恢复完成 ACK → Active；宿主重锚（ServerHost 在 SeatRestored 时同款调用）
+            room.Execute(RoomCommand.RestoreAck(0), new List<RoomOutput>());
+            Assert.Equal(SeatPhase.Active, room.SeatOf(0).Phase);
+            pipeline.RequestFullSnapshot();
+
+            capture.Sent.Clear();
+            Step(room, pipeline, 2, p => room.SeatOf(p)?.Phase == SeatPhase.Active);
+            List<StateSnapshot> resumed = capture.SnapshotsFor(fresh);
+            Assert.Single(resumed);
+            Assert.True(resumed[0].IsFull, "恢复后首包必须整帧全量（广播链重锚，增量自此无缺口）");
         }
 
         [Fact]
@@ -205,13 +288,13 @@ namespace LiteNet.Tests
         [Fact]
         public void 重连响应_携带权威快照与输入历史()
         {
-            var (room, capture, _, _) = BuildStartedRoom();
+            var (room, _, s1, _, pipeline) = BuildStartedRoom();
 
             // 跑几帧并喂输入（历史才有内容）
             for (int i = 0; i < 6; i++)
             {
-                room.OnInput(GetSession(room, 0), MoveInput(room, 0, room.AuthSim.Frame + 1, 1f));
-                room.StepFrame();
+                Input(room, s1, MoveInput(room, 0, room.AuthSim.Frame + 1, 1f));
+                Step(room, pipeline, 1);
             }
 
             var service = new ReconnectService();
@@ -220,7 +303,7 @@ namespace LiteNet.Tests
             Assert.Equal(0, playerId);
 
             // 客户端凭票取"权威快照 + 输入历史"（服务器侧能力，§5.6 首选路径）
-            var recovered = room.Differ.Build(room.AuthSim.Frame, room.AuthSim, 0,
+            var recovered = pipeline.Differ.Build(room.AuthSim.Frame, room.AuthSim, 0,
                 room.AuthSim.Entities[0].Pos, SimConfig.AoiRadius, forceFull: true);
             var mirror = new SimWorldState();
             SnapshotReassembler.Apply(recovered, mirror, out _);
@@ -233,13 +316,6 @@ namespace LiteNet.Tests
             for (int f = room.AuthSim.Frame - SimConfig.MaxInputHistory + 1; f <= room.AuthSim.Frame; f++)
                 if (f > 0 && room.HistoryFor(f, out _)) historyCount++;
             Assert.True(historyCount > 0, "重连响应应带回最近若干帧的输入历史");
-            _ = capture;
-        }
-
-        private static Session GetSession(Room room, int playerId)
-        {
-            Assert.True(room.TryGetMember(playerId, out Session session));
-            return session;
         }
     }
 }

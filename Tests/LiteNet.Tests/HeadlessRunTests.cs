@@ -8,6 +8,7 @@ using LiteNet.Protocol;
 using LiteNet.Transport;
 using LiteSim;
 using RoomServer;
+using RoomServer.Runtime;
 using Xunit;
 
 namespace LiteNet.Tests
@@ -160,6 +161,50 @@ namespace LiteNet.Tests
             // 不发散：A 的预测帧号与权威帧差有界
             Assert.True(a.Sim.State.Frame <= _host.Room.AuthSim.Frame + SimConfig.MaxCatchUp, "A 预测发散");
             Assert.True(b.Sim.State.Frame <= _host.Room.AuthSim.Frame + SimConfig.MaxCatchUp, "B 预测发散");
+        }
+
+        // ---- R1 批③：断线重连闭环（§9.3；真实 UDP 回环 + 真实 KCP 重拨）----
+
+        [Fact]
+        public void 断线重连_席位保留_恢复后增量广播继续()
+        {
+            var a = StartHeadless("A");
+            var b = StartHeadless("B");
+            Assert.True(WaitFor(() => BothJoined(2), 5000), "双客户端未完成 Join");
+            Assert.True(WaitFor(() => a.Sim != null && b.Sim != null), "StartGame 未达");
+
+            RunFor(a, b, 120);                                   // 2s 对跑建立基线
+            int aFrameBefore = a.LastSnapshotFrame;
+            Assert.True(aFrameBefore > 0, "A 未收到快照");
+
+            // A 断线：客户端感知（SuspectedLost）；服务器席位保留、对局继续；B 不受影响
+            a.Client.Disconnect();
+            Assert.True(WaitFor(() => a.Client.Phase == ClientSessionPhase.SuspectedLost, 5000),
+                "客户端未感知断线");
+            Assert.True(WaitFor(() => _host.Room.SeatOf(0) != null
+                && _host.Room.SeatOf(0).Phase == SeatPhase.Disconnected, 5000), "服务器未观察到断线");
+            int bFrameAtDrop = b.LastSnapshotFrame;
+            Assert.True(WaitFor(() => b.LastSnapshotFrame > bFrameAtDrop, 5000), "B 广播不应因 A 掉线中断");
+            Assert.Equal(MatchPhase.Running, _host.Room.Phase);
+
+            // A 凭票据重连：Restoring → 应用权威快照 → CompleteRestore → Connected（§9.3 步骤 6）
+            Assert.True(a.Client.BeginReconnect());
+            Assert.True(WaitFor(() => a.Client.Phase == ClientSessionPhase.Connected, 10_000), "重连恢复未完成");
+            int aFrameAtRestore = a.LastSnapshotFrame;          // 重连响应快照帧（OnReconnectResponse 推进）
+            // 服务器侧事实（相位在发送即翻转——RestoreComplete 的处理在服务器下一泵，须等事实而非发完即断）
+            Assert.True(WaitFor(() => _host.Ops.RestoresCompleted == 1, 5000), "服务器未处理恢复完成 ACK");
+            Assert.Equal(SeatPhase.Active, _host.Room.SeatOf(0).Phase);
+            Assert.Equal(0, a.Client.PlayerId);                  // 原席位/玩家号不变（§9.2）
+
+            // 恢复后增量广播继续到达（帧号越过恢复点——广播面已解除抑制）
+            Assert.True(WaitFor(() => a.LastSnapshotFrame > aFrameAtRestore, 5000), "恢复后 A 未继续收到快照");
+
+            // 对局仍在进行，双方快照持续推进
+            Assert.Equal(MatchPhase.Running, _host.Room.Phase);
+            int bFrameAfterRestore = b.LastSnapshotFrame;
+            RunFor(a, b, 60);                                    // 再跑 1s：双端继续消费
+            Assert.True(a.LastSnapshotFrame > aFrameAtRestore);
+            Assert.True(b.LastSnapshotFrame > bFrameAfterRestore);
         }
 
         // ---- 5 分钟全量对跑（环境变量门控：M10_LONGRUN=1）----

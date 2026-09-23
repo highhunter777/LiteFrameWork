@@ -2,7 +2,7 @@ using System;
 using System.Diagnostics;
 using System.Threading;
 
-namespace RoomServer
+namespace RoomServer.Application
 {
     /// <summary>
     /// 单调时钟端口（《商业级通用服务端框架总设计》§5 P0-1：调度器不直接触系统时钟——

@@ -1,6 +1,8 @@
 using System.Diagnostics;
 using LiteNet.Transport;
 using RoomServer;
+using RoomServer.Application;
+using RoomServer.Runtime;
 using Xunit;
 
 namespace LiteNet.Tests

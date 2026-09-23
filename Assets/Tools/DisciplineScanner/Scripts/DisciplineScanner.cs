@@ -38,6 +38,10 @@ namespace Tools.DisciplineScan
 
         /// <summary>R10 禁 INetworkService（`Shell/UI`）：薄壳/UI 不得直发业务包（网络契约归框架层，业务数据经事件/桥过）。</summary>
         R10ShellSendsBusinessPacket = 10,
+
+        /// <summary>R11 RoomServer/Runtime 纯化（《商业级通用服务端框架总设计》§8.1 禁止项）：
+        /// 禁 Transport/Socket/kcp、系统墙钟/Stopwatch/Sleep、Console、文件 IO、proto/LiteNet 引用与全局随机。</summary>
+        R11RuntimePurity = 11,
     }
 
     /// <summary>一条纪律违规。</summary>
@@ -101,6 +105,31 @@ namespace Tools.DisciplineScan
         /// <summary>R10：Shell/UI 不得直发业务包——禁 INetworkService 契约。</summary>
         private static readonly Regex R10Regex = new Regex(@"\bINetworkService\b", RegexOptions.Compiled);
 
+        /// <summary>
+        /// R11：RoomServer/Runtime 纯化（§8.1 禁止项——Runtime 只持确定性房间状态，时间经 RoomCommand.Tick 注入、
+        /// 输入经 ClientInputBatch 纯数据、输出经 RoomOutput 纯事件）。命中任一即违规：
+        /// Console / DateTime.Now / Environment.TickCount / Stopwatch / Thread.Sleep / System.Net / Socket / Kcp* /
+        /// IRoomTransport / using LiteNet 或 LiteNet. 限定名（proto 单源在 LiteNet）/ Google.Protobuf /
+        /// System.IO / File.* / new Random()（确定性随机走 Sim 的 RngState）。注释剔除后匹配（本文件命中示例在字符串里）。
+        /// </summary>
+        private static readonly Regex R11Regex = new Regex(
+            @"\bConsole\s*\.\s*(?:Write|WriteLine|WriteAsync|WriteLineAsync|Error|Out|In|Read|ReadLine|ReadKey)" +
+            @"|\bDateTime\s*\.\s*(?:Now|UtcNow)" +
+            @"|\bEnvironment\s*\.\s*TickCount" +
+            @"|\bStopwatch\b" +
+            @"|\bThread\s*\.\s*Sleep\b" +
+            @"|\bSystem\s*\.\s*Net\b" +
+            @"|\bSocket\b" +
+            @"|\bKcp\w*" +
+            @"|\bIRoomTransport\b" +
+            @"|\busing\s+LiteNet\b" +
+            @"|\bLiteNet\s*\." +
+            @"|\bGoogle\s*\.\s*Protobuf\b" +
+            @"|\bSystem\s*\.\s*IO\b" +
+            @"|\bFile\s*\.\s*(?:Open|Read|Write|Delete|Exists|Create|Append|Move|Copy)" +
+            @"|\bnew\s+Random\s*\(",
+            RegexOptions.Compiled);
+
         private static readonly Regex NumericLiteral = new Regex(
             @"^[-+]?[0-9]+(\.[0-9]+)?[fFuUlLdDmM]*$", RegexOptions.Compiled);
 
@@ -117,6 +146,7 @@ namespace Tools.DisciplineScan
             LintRule.R8ResourcesLoad,
             LintRule.R9ModInSim,
             LintRule.R10ShellSendsBusinessPacket,
+            LintRule.R11RuntimePurity,
         };
 
         public static string RuleId(LintRule rule)
@@ -133,6 +163,7 @@ namespace Tools.DisciplineScan
                 case LintRule.R8ResourcesLoad: return "R8";
                 case LintRule.R9ModInSim: return "R9";
                 case LintRule.R10ShellSendsBusinessPacket: return "R10";
+                case LintRule.R11RuntimePurity: return "R11";
                 default: return "R?";
             }
         }
@@ -308,6 +339,7 @@ namespace Tools.DisciplineScan
                 case LintRule.R8ResourcesLoad: return R8Regex.IsMatch(code);
                 case LintRule.R9ModInSim: return R9Regex.IsMatch(code);
                 case LintRule.R10ShellSendsBusinessPacket: return R10Regex.IsMatch(code);
+                case LintRule.R11RuntimePurity: return R11Regex.IsMatch(code);
                 default: return false;
             }
         }

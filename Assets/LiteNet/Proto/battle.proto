@@ -137,7 +137,15 @@ message ReconnectResponse {
   string reason = 4;                        // 失败原因（批③ 追加）
   StateSnapshot snapshot = 2;               // 权威快照（首选路径 §5.6）：公共全量 + 比赛状态 + 本人私有状态（P0 分层）
   repeated InputMessage history = 3;        // 后续输入历史（客户端据此在快照帧上续跑，无需重放全史）
+  // ---- R1 追加（《商业级通用服务端框架总设计》§9.3 恢复顺序步骤 2：下发协议/Sim/配置版本确认）----
+  int64 seed = 5;                           // 本局 seed（与 StartGame 同值——客户端校验"还是那局"）
+  uint32 config_hash = 6;                   // 房间创建时绑定的规范化配置摘要（StartGame 同值）
+  string build_hash = 7;                    // 服务器构建哈希（客户端比对自身——防跨版本混房）
 }
+
+// ===== C→S 恢复完成 ACK（Reliable；R1《服务端总设计》§9.3 步骤 6：客户端恢复完成后服务器才恢复该席位增量广播）=====
+
+message RestoreComplete { }                 // 空载荷：Restoring → Active 的门闩；到达前服务器抑制该席位增量快照
 
 // ===== C→S 和解上报（Unreliable；Ops 汇总和解率）=====
 

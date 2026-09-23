@@ -5,6 +5,7 @@ using LiteNet.Protocol;
 using LiteNet.Transport;
 using LiteSim;
 using RoomServer;
+using RoomServer.Runtime;
 
 namespace LiteNet.Tests
 {
@@ -43,9 +44,42 @@ namespace LiteNet.Tests
             Client = new RoomClient(transport);
             Client.OnStartGame += OnStartGame;
             Client.OnSnapshot += OnSnapshot;
-            // 连接即自动请求进房：Join 延迟到 transport OnConnected（kcp2k cookie 握手完成后）再发
-            transport.OnConnected += () => Client.SendJoin(RoomConfig.Default().RoomId, "harness", RoomServer.ServerHost.ServerBuildHash);
+            Client.OnReconnectResponse += OnReconnectResponse;
+            // 连接即自动请求进房：Join 延迟到 transport OnConnected（kcp2k cookie 握手完成后）再发；
+            // 重连时不重复 Join（相位 != Idle——RoomClient 状态机自动发 ReconnectRequest）
+            transport.OnConnected += () =>
+            {
+                if (Client.Phase == ClientSessionPhase.Idle)
+                    Client.SendJoin(RoomConfig.Default().RoomId, "harness", RoomServer.ServerHost.ServerBuildHash);
+            };
             Client.Connect("127.0.0.1", 27778);
+        }
+
+        /// <summary>
+        /// 重连恢复（R1，§9.3 步骤 3~5）：权威全量重建持久镜像 → 和解本地预测到该帧 → 宣告恢复完成
+        /// （CompleteRestore——服务器收到前抑制本席位增量广播）。输入历史不重放：镜像即恢复终点帧，
+        /// 后续权威循环从该帧继续（历史重放调优留 M11 表现层）。
+        /// </summary>
+        private void OnReconnectResponse(Proto.ReconnectResponse response)
+        {
+            if (!response.Ok || Client.Phase != ClientSessionPhase.Restoring) return;
+
+            _mirror = _mirror ?? new SimWorldState();
+            SnapshotReassembler.Apply(response.Snapshot, _mirror, out uint checksum);
+
+            if (LocalEntityId == 0 && Client.PlayerId >= 0)
+            {
+                foreach (var slot in response.Snapshot.Slots)
+                {
+                    if (slot.Slot == Client.PlayerId) { LocalEntityId = slot.Id; break; }
+                }
+            }
+
+            if (_sim != null)
+                _sim.OnAuthoritativeSnapshot(response.Snapshot.Frame, _mirror, checksum);
+
+            LastSnapshotFrame = response.Snapshot.Frame;
+            Client.CompleteRestore();
         }
 
         /// <summary>StartGame：按服务器下发的 seed 重建同构世界（双玩家 = 与 Room.Start 的玩家段一致）→ 建 RollbackSim。</summary>
@@ -73,7 +107,8 @@ namespace LiteNet.Tests
         /// <summary>注入本地意图输入（对跑脚本生成；下一 Tick 发出并预测消费）。</summary>
         public void EnqueueLocalInput(SimInputFrame input) => _pending.Enqueue(input);
 
-        /// <summary>推进（泵内调用）：发本地输入 → 预测推进。</summary>
+        /// <summary>推进（泵内调用）：发本地输入 → 预测推进。断线窗口（传输未连）只推进本地预测不发——
+        /// 重连恢复后由权威快照和解校正。</summary>
         public void Tick(float realDelta)
         {
             if (_sim == null) return;
@@ -82,8 +117,11 @@ namespace LiteNet.Tests
             var local = _pending.Count > 0 ? _pending.Dequeue() : default;
             local.EntityId = LocalEntityId;
 
-            Client.SendInput(_sim.State.Frame + 1, local, viewFrame: 0);
-            InputsSent++;
+            if (Client.Connected)
+            {
+                Client.SendInput(_sim.State.Frame + 1, local, viewFrame: 0);
+                InputsSent++;
+            }
 
             Sim.Tick(realDelta);
             _lastInput = local;
