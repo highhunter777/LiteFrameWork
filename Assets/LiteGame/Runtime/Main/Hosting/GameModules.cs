@@ -36,7 +36,27 @@ namespace LiteGame
             public UniTask ShutdownAsync(CancellationToken ct) => UniTask.CompletedTask;   // 日志落盘/崩溃上报归 C3
         }
 
-        /// <summary>② 设置：加载玩家偏好（先于容器——UI/声音壳注册时就要读）；退出前保存（§6.1 刷新钩子语义）。</summary>
+        /// <summary>② 内容服务：IContentService 注入装配（YooAsset 适配 + 共享加载协调器 + 租约）——
+        /// 配置/Lua 字节通道与 U1/C2 租约消费者依赖它（注册序即依赖序：先于 Config/Presentation）；
+        /// 资源包初始化仍由 ProcedurePreload 经本服务触发；Host 下载/激活事务归批次D。</summary>
+        internal sealed class Content : IClientModule
+        {
+            private YooAssetContentService _content;
+
+            public string Name => "Content";
+
+            public UniTask InitializeAsync(ClientContext context, CancellationToken ct)
+            {
+                _content = new YooAssetContentService();
+                context.Put<IContentService>(_content);
+                return UniTask.CompletedTask;
+            }
+
+            public UniTask ShutdownAsync(CancellationToken ct)
+                => _content?.ShutdownAsync(ct) ?? UniTask.CompletedTask;   // 释放面：剩余租约/句柄归零
+        }
+
+        /// <summary>③ 设置：加载玩家偏好（先于容器——UI/声音壳注册时就要读）；退出前保存（§6.1 刷新钩子语义）。</summary>
         internal sealed class Settings : IClientModule
         {
             private SettingService _settings;
@@ -59,7 +79,7 @@ namespace LiteGame
             }
         }
 
-        /// <summary>③ 事件与时钟：双轨时钟分域（逻辑轨受时停/变速，UI 轨不受）+ 墙钟。</summary>
+        /// <summary>④ 事件与时钟：双轨时钟分域（逻辑轨受时停/变速，UI 轨不受）+ 墙钟。</summary>
         internal sealed class Clocks : IClientModule
         {
             private EventCenter _events;
@@ -85,7 +105,7 @@ namespace LiteGame
             public UniTask ShutdownAsync(CancellationToken ct) => UniTask.CompletedTask;   // 时钟无关闭面（U1 Scope 统一取消）
         }
 
-        /// <summary>④ 时序执行：逻辑/UI 调度器 + 时间轴执行器（依赖③时钟——模块序即依赖序）。</summary>
+        /// <summary>⑤ 时序执行：逻辑/UI 调度器 + 时间轴执行器（依赖④时钟——模块序即依赖序）。</summary>
         internal sealed class Schedulers : IClientModule
         {
             public string Name => "Schedulers";
@@ -101,7 +121,7 @@ namespace LiteGame
             public UniTask ShutdownAsync(CancellationToken ct) => UniTask.CompletedTask;   // 同上——U1 统一取消
         }
 
-        /// <summary>⑤ Lua 宿主（同 GameObject 组件）：Init/DoMain 在 Preload 锚点；退出 Shutdown 释放 env/回调。</summary>
+        /// <summary>⑥ Lua 宿主（同 GameObject 组件）：Init/DoMain 在 Preload 锚点；退出 Shutdown 释放 env/回调。</summary>
         internal sealed class LuaHost : IClientModule
         {
             private readonly UnityEngine.GameObject _hostObject;
@@ -125,22 +145,31 @@ namespace LiteGame
             }
         }
 
-        /// <summary>⑥ 配置：表投影数据源（UIFormCatalog/注册表填充依赖）。</summary>
+        /// <summary>⑦ 配置：表投影数据源（UIFormCatalog/注册表填充依赖）。字节通道经 ②内容服务租约
+        /// （C1-⑨：代次/引用统一——提取 bytes 即释放源资产，热更专项 §9）；候选校验→原子发布见 ConfigService。</summary>
         internal sealed class Config : IClientModule
         {
             public string Name => "Config";
 
             public UniTask InitializeAsync(ClientContext context, CancellationToken ct)
             {
-                context.Put(new ConfigService((location, token) =>
-                    AssetService.LoadRawFileBytesAsync(location, token)));
+                var content = context.Require<IContentService>();   // 依赖②——注册序即依赖序
+                context.Put(new ConfigService((location, token) => LoadBytesViaContentLease(content, location, token)));
                 return UniTask.CompletedTask;
             }
 
-            public UniTask ShutdownAsync(CancellationToken ct) => UniTask.CompletedTask;   // 配置快照/事务归 G1 后续批
+            public UniTask ShutdownAsync(CancellationToken ct) => UniTask.CompletedTask;   // 配置重发布/事务归热更批
+
+            /// <summary>经内容租约读表字节（TextAsset 提取 bytes 后即释放——复制数据不留源引用）。</summary>
+            private static async UniTask<byte[]> LoadBytesViaContentLease(IContentService content, string location, CancellationToken ct)
+            {
+                var lease = await content.AcquireAsync<UnityEngine.TextAsset>(location, ct: ct);
+                try { return lease.Asset.bytes; }
+                finally { lease.Dispose(); }
+            }
         }
 
-        /// <summary>⑦ UI 壳：三注册表 + 红点 + UIService（逻辑解析器接 LuaBehaviourAdapter ← UI 注册表，解析失败降级 NullLogic）。</summary>
+        /// <summary>⑧ UI 壳：三注册表 + 红点 + UIService（逻辑解析器接 LuaBehaviourAdapter ← UI 注册表，解析失败降级 NullLogic）。</summary>
         internal sealed class UiShell : IClientModule
         {
             private RedDotRegistry _redDotRegistry;
@@ -173,7 +202,7 @@ namespace LiteGame
             }
         }
 
-        /// <summary>⑧ 表现壳：实体/声音/世界 VFX（加载口注入 AssetService，到期走逻辑时钟）。</summary>
+        /// <summary>⑨ 表现壳：实体/声音/世界 VFX（加载口注入 AssetService，到期走逻辑时钟）。</summary>
         internal sealed class Presentation : IClientModule
         {
             public string Name => "Presentation";
@@ -192,26 +221,6 @@ namespace LiteGame
             }
 
             public UniTask ShutdownAsync(CancellationToken ct) => UniTask.CompletedTask;   // 实例/租约释放归 U1/M11
-        }
-
-        /// <summary>⑨ 内容服务：IContentService 注入装配（YooAsset 适配 + 共享加载协调器 + 租约）——
-        /// U1/C2 消费租约；资源包初始化仍由 ProcedurePreload 经本服务触发（与旧行为同时序）；
-        /// Host 下载/激活事务归批次D。</summary>
-        internal sealed class Content : IClientModule
-        {
-            private YooAssetContentService _content;
-
-            public string Name => "Content";
-
-            public UniTask InitializeAsync(ClientContext context, CancellationToken ct)
-            {
-                _content = new YooAssetContentService();
-                context.Put<IContentService>(_content);
-                return UniTask.CompletedTask;
-            }
-
-            public UniTask ShutdownAsync(CancellationToken ct)
-                => _content?.ShutdownAsync(ct) ?? UniTask.CompletedTask;   // 释放面：剩余租约/句柄归零
         }
 
         /// <summary>⑩ 容器与流程机：注册（**注册顺序 = 驱动顺序**）→ 流程机（业务装配仍由 ProcedureLaunch Seal，§12）。

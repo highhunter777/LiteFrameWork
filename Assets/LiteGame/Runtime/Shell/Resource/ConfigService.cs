@@ -13,17 +13,24 @@ namespace LiteGame
     {
         Tables Tables { get; }                     // Luban 生成物，cfg 命名空间；未加载访问抛
         bool Loaded { get; }
-        UniTask LoadAsync(CancellationToken ct);   // 走 AssetService（UniTask 适配层），完成即放行——签名对齐 §7.7
+        UniTask LoadAsync(CancellationToken ct);   // 候选构建→校验→原子发布；完成即放行——签名对齐 §7.7
     }
 
     /// <summary>
     /// 配置加载薄壳（DI 单例，ProcedureLaunch 注册只注册不加载，ProcedurePreload 尾部 LoadAsync 放行）。
-    /// 契约（设计方案 §5.2"松"纪律）：
-    /// ① 本类不感知资源方案——构造收字节委托 `Func&lt;string, UniTask&lt;byte[]&gt;&gt;`（装配点绑定 AssetService.LoadRawFileBytesAsync）；
-    /// ② 表数据文件清单显式登记在 <see cref="TableDataFiles"/>——"缺一个 .bytes 报错明确"由逐文件预取实现
-    ///    （报错带完整 location；新增 Luban 表时此清单加一行，将来随 Bridge.data 生成器自动产出）；
-    /// ③ Tables 构造是同步的（Luban 生成物签名）——异步预取全部 bytes 后再同步建表，loader 从缓存取；
-    /// ④ 加载失败 fail-fast 抛（损坏/缺失不静默），由流程 Fail() 接——存档损坏不能炸启动，配置缺失必须炸。
+    /// C1-⑨ 快照化（《商业级通用客户端框架总设计》§9 + §4 原则 6/10 + 热更专项 §11）：
+    /// **候选构建 → 校验 → 原子发布**三段式——
+    /// ① 候选字节预取（缺表 fail-fast，报错带完整 location）；
+    /// ② 候选建表（Luban 同步解析——解析失败抛，**不触碰任何已发布状态**）；
+    /// ③ 校验（tbcombatnum 单行表等全表约束）+ 玩法数值回填 + <see cref="ConfigSnapshotService{TSnapshot}"/>
+    ///    原子发布（版本单调）。失败保留旧版/空态——纠正旧实现"先设 _tables 再 ApplyCombatNumbers"
+    ///    的半发布缺陷（校验炸了 Loaded 已为 true，见热更专项 §2 Current）。
+    ///
+    /// 其余契约（设计方案 §5.2"松"纪律）不变：
+    /// 本类不感知资源方案——构造收字节委托（装配点绑定 IContentService 租约通道——代次/引用统一）；
+    /// 表清单显式登记在 <see cref="TableDataFiles"/>（新增 Luban 表时加一行，将来随 Bridge.data 生成器自动产出）；
+    /// 加载失败 fail-fast 抛（损坏/缺失不静默），由流程 Fail() 接——存档损坏不能炸启动，配置缺失必须炸。
+    /// 运行态重发布（热更安全窗口）与完整版本身份（GameplayDigest/Release 归属）随热更批；对局固定快照归 G2。
     /// </summary>
     public sealed class ConfigService : IConfigService
     {
@@ -41,14 +48,22 @@ namespace LiteGame
         };
 
         private readonly Func<string, CancellationToken, UniTask<byte[]>> _bytesProvider;
+        private readonly ConfigSnapshotService<Tables> _snapshots;   // 原子发布（候选校验→替换→版本单调）
         private Tables _tables;
 
         public ConfigService(Func<string, CancellationToken, UniTask<byte[]>> bytesProvider)
         {
             _bytesProvider = bytesProvider ?? throw new ArgumentNullException(nameof(bytesProvider));
+            _snapshots = new ConfigSnapshotService<Tables>(ValidateCandidate);
         }
 
         public bool Loaded => _tables != null;
+
+        /// <summary>已发布快照版本（每次成功发布 +1；0 = 尚未发布——诊断/后续热更安全窗口用）。</summary>
+        public ulong Version => _snapshots.Version;
+
+        /// <summary>当前已发布快照（未发布为 null——与 <see cref="Loaded"/> 同判据）。</summary>
+        public Tables CurrentSnapshot => _snapshots.Current;
 
         public Tables Tables
         {
@@ -64,6 +79,7 @@ namespace LiteGame
         {
             if (_tables != null) return;                   // 幂等：重复 Load 直接返回
 
+            // ① 候选字节预取（缺表 fail-fast，报错带 location）
             var cache = new Dictionary<string, byte[]>(TableDataFiles.Length);
             foreach (string file in TableDataFiles)
             {
@@ -80,21 +96,34 @@ namespace LiteGame
                 }
             }
 
-            _tables = new Tables(file => new ByteBuf(cache[file]));   // Luban 同步建表，loader 查预取缓存
-            ApplyCombatNumbers(_tables);
-            Log.Info($"配置加载完成:{TableDataFiles.Length} 张表", "Config");
+            // ② 候选建表（Luban 同步解析——解析失败抛；此刻未触碰任何已发布状态/全局数值）
+            var candidate = new Tables(file => new ByteBuf(cache[file]));
+
+            // ③ 校验 + 原子发布 + 回填（顺序钉死：发布失败 → Loaded 保持 false、CombatConfig 不动）
+            _snapshots.Publish(candidate);                 // 校验失败抛（保留旧版/空态），版本 +1
+            ApplyCombatNumbers(candidate);                 // 校验已过（行存在性由 ValidateCandidate 保证）
+            _tables = candidate;                           // 对外可见（发布成功后）
+            Log.Info($"配置快照发布完成:{TableDataFiles.Length} 张表 version={Version}", "Config");
+        }
+
+        /// <summary>候选校验（发布闸门——返回 null 通过，非 null 为拒绝原因上抛）。</summary>
+        private static string ValidateCandidate(Tables candidate)
+        {
+            if (candidate == null) return "候选表为 null";
+            if (candidate.Tbcombatnum == null || candidate.Tbcombatnum.Get(1) == null)
+                return "tbcombatnum 缺 id=1 行（单行数值表）——表源被改坏或生成物过期";
+            return null;
         }
 
         /// <summary>
         /// 玩法数值回填（表 → `CombatConfig`）：LiteSim 是零依赖程序集，读表能力只能由外部喂 primitives。
         /// 表值即手感参数唯一真相；**本类的默认值须与表一致**（L1 守卫用例卡漂移）。
         /// 服务端读同一表源的 json 产物（`RoomServer/Data/tbcombatnum.json`）——两端同值，受 buildHash 闭包保护。
+        /// 调用契约：<see cref="ValidateCandidate"/> 已通过（行存在性保证——本方法不再兜底判空）。
         /// </summary>
         private static void ApplyCombatNumbers(Tables tables)
         {
             cfg.combatnum row = tables.Tbcombatnum.Get(1);        // 单行表固定 id=1
-            if (row == null)
-                throw new InvalidOperationException("tbcombatnum 缺 id=1 行（单行数值表）——表源被改坏或生成物过期");
 
             CombatConfig.LoadFrom(
                 row.MoveSpeed, row.Gravity,

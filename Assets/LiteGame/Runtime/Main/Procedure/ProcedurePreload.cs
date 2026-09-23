@@ -45,7 +45,8 @@ namespace LiteGame
 
                 // ---- M3 锚点：Lua 预载与注册表填充段（勿在此行上方插入消费逻辑）----
                 // ① 全量预载：同步 loader 的咽喉（§4.2），env 依赖它，先建缓存再 Init
-                var preloader = new LuaPreloader();
+                //    （C1-⑨：字节经 IContentService 租约通道——代次/引用统一，提取即释放）
+                var preloader = new LuaPreloader(LoadLuaBytesViaContent);
                 await preloader.PreloadAllAsync(ct);
                 _lua.Init(preloader, _events);                   // env + 桥绑定（服务桥 §2.5 / 事件桥 §2.6）
                 _lua.DoMain();                                   // ② 执行 main.lua（require/定义，§4.4）
@@ -71,6 +72,14 @@ namespace LiteGame
                 Fail(m, ex, nameof(RunAsyncCore));
                 m.Request(ProcedureId.Error, new ProcedureArgs(ex));
             }
+        }
+
+        /// <summary>经内容租约读 Lua 字节（TextAsset 提取 bytes 即释放——复制数据不留源引用，热更 §9）。</summary>
+        private async UniTask<byte[]> LoadLuaBytesViaContent(string location, CancellationToken ct)
+        {
+            var lease = await _content.AcquireAsync<UnityEngine.TextAsset>(location, ct: ct);
+            try { return lease.Asset.bytes; }
+            finally { lease.Dispose(); }
         }
     }
 }

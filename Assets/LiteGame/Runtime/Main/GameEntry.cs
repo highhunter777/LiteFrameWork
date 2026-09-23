@@ -70,6 +70,7 @@ namespace LiteGame
 
             // 装配（§6.1：注册顺序 = 初始化顺序 = 关闭逆序——依赖图由调用序表达）
             _host.AddModule(new GameModules.PlatformInfrastructure())
+                 .AddModule(new GameModules.Content())
                  .AddModule(new GameModules.Settings())
                  .AddModule(new GameModules.Clocks())
                  .AddModule(new GameModules.Schedulers())
@@ -77,7 +78,6 @@ namespace LiteGame
                  .AddModule(new GameModules.Config())
                  .AddModule(new GameModules.UiShell())
                  .AddModule(new GameModules.Presentation())
-                 .AddModule(new GameModules.Content())
                  .AddModule(new GameModules.Container());
 
             _bootCts = new CancellationTokenSource();

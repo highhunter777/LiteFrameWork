@@ -14,18 +14,30 @@ namespace LiteGame
     /// **无目录枚举 API**（fallback 不存在，收集器 AssetTags 必须配 `lua`，已配）。
     /// key = require 路径：剥 `Assets/LiteGame/Lua/` 前缀与 `.lua` 后缀（如 `ui/UIMain`、`cfg/tbuiform`）。
     /// 生命周期：Preload 锚点构造并填充（2.4 接线），DevReload 时清空重载（§2.7）。
+    ///
+    /// C1-⑨ 候选通道（《热更与内容发布专项设计》§10 候选阶段最小落点）：
+    /// - **字节通道可注入**：主链经 IContentService 租约（代次/引用统一；提取字节即释放源资产，§9）；
+    ///   null = AssetService 直读（DevReload/编辑器工具兼容——迁移期静态门面豁免）。
+    /// - **候选完整性**：预载集合即依赖闭包（全量 .lua 进缓存——require 不可能落空）；重复 key 显性拒绝
+    ///   （静默覆盖 = 候选集合被污染）。深度候选验证（语法/导出/Bridge 能力/受控验证 env）随热更批。
     /// </summary>
     public sealed class LuaPreloader
     {
         /// <summary>Lua 资源收集目录（YooAsset location 前缀；跨平台恒为 Assets 路径——单源：Editor 的 LiteGameIgnoreRule 亦引用此常量）。</summary>
         public const string LuaDir = "Assets/LiteGame/Lua/";
 
+        private readonly Func<string, CancellationToken, UniTask<byte[]>> _bytesProvider;   // null = AssetService 直读
         private readonly Dictionary<string, byte[]> _scripts = new Dictionary<string, byte[]>(256);
 
         /// <summary>已预载脚本（require 路径 → 字节；loader 只读）。</summary>
         public IReadOnlyDictionary<string, byte[]> Scripts => _scripts;
 
         public int Count => _scripts.Count;
+
+        public LuaPreloader(Func<string, CancellationToken, UniTask<byte[]>> bytesProvider = null)
+        {
+            _bytesProvider = bytesProvider;
+        }
 
         public async UniTask PreloadAllAsync(CancellationToken ct = default)
         {
@@ -40,9 +52,19 @@ namespace LiteGame
                     continue;
                 var key = ToRequireKey(info.AssetPath);
                 ct.ThrowIfCancellationRequested();
-                _scripts[key] = await AssetService.LoadRawFileBytesAsync(info.AssetPath, ct);
+                if (_scripts.ContainsKey(key))            // 候选完整性：重复 key 显性拒绝（不静默覆盖）
+                    throw new InvalidOperationException($"Lua 预载重复 key:{key}（同一 require 路径两个来源——候选集合被污染）");
+                _scripts[key] = await LoadBytesAsync(info.AssetPath, ct);
             }
             Log.Info($"Lua 全量预载完成：{Count} 个文件", "Lua");
+        }
+
+        /// <summary>字节通道：注入 provider（内容租约）优先；未注入退回 AssetService 直读（迁移期兼容）。</summary>
+        private UniTask<byte[]> LoadBytesAsync(string assetPath, CancellationToken ct)
+        {
+            return _bytesProvider != null
+                ? _bytesProvider(assetPath, ct)
+                : AssetService.LoadRawFileBytesAsync(assetPath, ct);
         }
 
         /// <summary>资源路径 → require 路径（loader 的 filepath 契约）。</summary>
