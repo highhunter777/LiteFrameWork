@@ -17,3 +17,4 @@
 | [服务端R1.md](服务端R1.md) | 《商业级通用服务端框架总设计》R1：RoomRuntime 纯化（Runtime/Application 分层）、RoomCommand/RoomOutput、Match 状态机、Session/席位分离、重连闭环（Restoring 门闩 + 客户端会话状态机）、R11 纯化纪律扫描 |
 | [客户端C1.md](客户端C1.md) | 《商业级通用客户端框架总设计》C1-①～⑩：ClientHost/AppLifetime/统一取消链、Scope 原语、IContentService/AssetLease/共享加载/代次、ConfigService 快照化、激活事务与 Patch 流程；Host 下载/验签与深度候选验证留热更批 |
 | [UI-U1.md](UI-U1.md) | 《UI框架总设计》U1 操作与所有权：操作合流/取消/类型化结果（UI-03）、租约/缓存预算/销毁/Shutdown（UI-05/06）、统一排序/输入锁职责分离/转场取消复位（UI-09）、真资源包 Player 页面打开锚点；模态栈/导航队列/策略列留 U2 |
+| [客户端C2.md](客户端C2.md) | 《商业级通用客户端框架总设计》C2 会话子集：BattleClient/BattleContext、Match/Battle 流程与 Account/Match Scope、断线自动重连与恢复、地图单源；附带通用表现壳所有权（租约缓存/音频释放面/DOTween Manual 轨接 UIClock）。SimView/相机/HUD/输入与 Login/Lobby/Result 留后续批 |
