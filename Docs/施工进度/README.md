@@ -18,3 +18,4 @@
 | [客户端C1.md](客户端C1.md) | 《商业级通用客户端框架总设计》C1-①～⑩：ClientHost/AppLifetime/统一取消链、Scope 原语、IContentService/AssetLease/共享加载/代次、ConfigService 快照化、激活事务与 Patch 流程；Host 下载/验签与深度候选验证留热更批 |
 | [UI-U1.md](UI-U1.md) | 《UI框架总设计》U1 操作与所有权：操作合流/取消/类型化结果（UI-03）、租约/缓存预算/销毁/Shutdown（UI-05/06）、统一排序/输入锁职责分离/转场取消复位（UI-09）、真资源包 Player 页面打开锚点；模态栈/导航队列/策略列留 U2 |
 | [客户端C2.md](客户端C2.md) | 《商业级通用客户端框架总设计》C2 会话与表现：BattleClient/BattleContext、Match/Battle 流程与 Account/Match Scope、断线自动重连与恢复、地图单源；LiteSim.View 的 SimView（镜像/远端插值/本地和解衰减/事件静默门）、EntityViewMap 池、相机档位、PlayerController 输入采集与三个门；附带通用表现壳所有权（租约缓存/音频释放面/DOTween Manual 轨接 UIClock）。HUD/角色动画与 Login/Lobby/Result 留后续批 |
+| [客户端表现基础.md](客户端表现基础.md) | 《框架先行》§7 第 4 项余部：Scene/Entity/Audio 生命周期收敛（迟到加载代次检查、实体作用域与关闭面、分域时钟、池释放面）+ 《动画模块专项设计》首个批次的纯规则半部（AnimationId/Handle 三分量身份/终态/Profile Resolver/通道仲裁/有界保留）。UI 接缝半部、Animator 后端与真角色验收留后续批 |
