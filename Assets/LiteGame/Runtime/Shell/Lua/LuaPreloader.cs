@@ -27,6 +27,7 @@ namespace LiteGame
         public const string LuaDir = "Assets/LiteGame/Lua/";
 
         private readonly Func<string, CancellationToken, UniTask<byte[]>> _bytesProvider;   // null = AssetService 直读
+        private readonly Func<string[]> _listLuaFiles;    // null = 静态 Package tag 查询（迁移期兼容）
         private readonly Dictionary<string, byte[]> _scripts = new Dictionary<string, byte[]>(256);
 
         /// <summary>已预载脚本（require 路径 → 字节；loader 只读）。</summary>
@@ -34,29 +35,45 @@ namespace LiteGame
 
         public int Count => _scripts.Count;
 
-        public LuaPreloader(Func<string, CancellationToken, UniTask<byte[]>> bytesProvider = null)
+        /// <param name="bytesProvider">字节通道（主链经内容租约；null = AssetService 兼容）。</param>
+        /// <param name="listLuaFiles">清单通道（G1 通用表现批：装配点绑定——返回 .lua 资产路径数组；
+        /// 运行时不再直查 YooAsset 静态门面，热更批以发布清单替换绑定时本类零改动；null = tag 查询兼容）。</param>
+        public LuaPreloader(Func<string, CancellationToken, UniTask<byte[]>> bytesProvider = null,
+            Func<string[]> listLuaFiles = null)
         {
             _bytesProvider = bytesProvider;
+            _listLuaFiles = listLuaFiles;
         }
 
         public async UniTask PreloadAllAsync(CancellationToken ct = default)
         {
             _scripts.Clear();                              // DevReload 重入语义：清了再来
-            var infos = AssetService.Package.GetAssetInfos("lua");
-            if (infos == null || infos.Length == 0)
-                throw new InvalidOperationException("Lua 预载清单为空——收集组 LiteGameLua 的 lua tag 未生效");
+            var paths = ListLuaFilePaths();
+            if (paths == null || paths.Length == 0)
+                throw new InvalidOperationException("Lua 预载清单为空——清单绑定/收集组 LiteGameLua 的 lua tag 未生效");
 
-            foreach (var info in infos)
+            foreach (var assetPath in paths)
             {
-                if (!info.AssetPath.EndsWith(".lua", StringComparison.Ordinal))
+                if (!assetPath.EndsWith(".lua", StringComparison.Ordinal))
                     continue;
-                var key = ToRequireKey(info.AssetPath);
+                var key = ToRequireKey(assetPath);
                 ct.ThrowIfCancellationRequested();
                 if (_scripts.ContainsKey(key))            // 候选完整性：重复 key 显性拒绝（不静默覆盖）
                     throw new InvalidOperationException($"Lua 预载重复 key:{key}（同一 require 路径两个来源——候选集合被污染）");
-                _scripts[key] = await LoadBytesAsync(info.AssetPath, ct);
+                _scripts[key] = await LoadBytesAsync(assetPath, ct);
             }
             Log.Info($"Lua 全量预载完成：{Count} 个文件", "Lua");
+        }
+
+        /// <summary>清单来源：注入委托优先（装配点绑定）；未注入退回静态 Package tag 查询（迁移期兼容）。</summary>
+        private string[] ListLuaFilePaths()
+        {
+            if (_listLuaFiles != null) return _listLuaFiles();
+            var infos = AssetService.Package.GetAssetInfos("lua");
+            if (infos == null || infos.Length == 0) return Array.Empty<string>();
+            var paths = new string[infos.Length];
+            for (int i = 0; i < infos.Length; i++) paths[i] = infos[i].AssetPath;
+            return paths;
         }
 
         /// <summary>字节通道：注入 provider（内容租约）优先；未注入退回 AssetService 直读（迁移期兼容）。</summary>

@@ -14,7 +14,7 @@ namespace LiteGame
     }
 
     /// <summary>转场策略（M4 §2.2，动效设计方案 附 A.2）：入场/离场动效的表现位。
-    /// 实现纪律（附 A 原语库）：SetUpdate(true) 走 UIClock 轨；SetLink(KillOnDisable) 防泄漏；
+    /// 实现纪律（附 A 原语库）：SetUpdate(UpdateType.Manual, true) 走 UIClock 轨；SetLink(KillOnDisable) 防泄漏；
     /// 动效永不携带判定——播完与否不影响状态迁移（UIService 侧容错等待）。
     /// U1-③（§6.3 复位契约）：<paramref name="ct"/> 取消（超时/权威取消）时实现方必须**停止自身工作**
     /// （Tween Kill/异步终止）并**复位到目标视觉**（Kill(complete=true) 跳终值即复位）——
@@ -78,7 +78,7 @@ namespace LiteGame
         private static Sequence BuildBase(UIForm form)
         {
             var seq = DOTween.Sequence();
-            seq.SetUpdate(true);                                            // UIClock 轨：时停不停
+            seq.SetUpdate(UpdateType.Manual, true);            // G1 动画时钟：UIClock 轨（时停不停/暂停即停，DotweenUiClockDriver 派发）
             seq.SetLink(form.Root, LinkBehaviour.KillOnDisable);            // 池化回收/隐藏即杀，防泄漏
             return seq;
         }

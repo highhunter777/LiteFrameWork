@@ -1,4 +1,5 @@
 using System;
+using LiteFramework;
 
 namespace LiteGame
 {
@@ -12,13 +13,19 @@ namespace LiteGame
         /// <summary>失败原因（`ProcedureId.Error` 阶段读；其余阶段为 null）。</summary>
         public readonly Exception Error;
 
-        public ProcedureArgs(Exception error = null)
+        /// <summary>对局会话（`ProcedureId.Match` 产出 → `Battle` 消费——跨阶段迁移数据，非服务定位器：
+        /// 实例由 Match 阶段创建、随迁移移交所有权，Battle 离场时负责其 Scope 收尾）。</summary>
+        public readonly BattleClient BattleClient;
+
+        /// <summary>Account 作用域（与 <see cref="BattleClient"/> 同批移交；Battle 离场 Dispose——关闭序
+        /// BattleContext.Dispose → Match Scope → Account Scope，§6.2）。</summary>
+        public readonly ClientScope AccountScope;
+
+        public ProcedureArgs(Exception error = null, BattleClient battleClient = null, ClientScope accountScope = null)
         {
             Error = error;
+            BattleClient = battleClient;
+            AccountScope = accountScope;
         }
-
-        // ---- 联机线扩展位（M10 四批 / M11 填，见《UI扩展能力设计》§9.1）----
-        // roomId / frameNo / BattleContext：流程间传参加在这里（只读字段 + 构造入参），
-        // 不新增 owner 载体、不用字符串键字典。
     }
 }

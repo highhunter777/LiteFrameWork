@@ -383,16 +383,8 @@ namespace RoomServer.Runtime
             }
         }
 
-        /// <summary>标准灰盒地图：±50 边界 + 16 网格出生点（MVP 房间形态；正式地图装配归 M11）。</summary>
-        private static SimMapData BuildStandardMap()
-        {
-            var map = new SimMapData { GroundY = 0f, HalfWidth = 50f, HalfDepth = 50f };
-            for (int i = 0; i < SimMapData.MaxSpawnPoints; i++)
-            {
-                map.SpawnPoints[i] = new SimVector3(((i % 4) - 1.5f) * 10f, 0f, ((i / 4) - 1.5f) * 10f);
-            }
-            map.SpawnPointCount = SimMapData.MaxSpawnPoints;
-            return map;
-        }
+        /// <summary>标准灰盒地图：±50 边界 + 16 网格出生点——构造单源在 <see cref="SimMapData.StandardBattleMap"/>
+        /// （C2：客户端预测世界共用同一构造，两端地图不一致 = 出生点错位 = 预测不分叉收敛）。</summary>
+        private static SimMapData BuildStandardMap() => SimMapData.StandardBattleMap();
     }
 }

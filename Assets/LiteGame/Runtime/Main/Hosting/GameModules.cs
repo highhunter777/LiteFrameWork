@@ -2,6 +2,7 @@ using System;
 using System.Threading;
 using Cysharp.Threading.Tasks;
 using LiteFramework;
+using LiteGame.UI;
 using LiteSim.View;
 
 namespace LiteGame
@@ -100,6 +101,7 @@ namespace LiteGame
                 context.Put<IWorldClock>(_worldClock);
                 context.Put<IUIClock>(_uiClock);
                 context.Put<IWallClock>(_wallClock);
+                UiAnimationClock.Bind(_uiClock);               // G1 动画时钟：DOTween Custom 轨/序列帧接入 UIClock
                 return UniTask.CompletedTask;
             }
 
@@ -216,17 +218,24 @@ namespace LiteGame
             }
         }
 
-        /// <summary>⑨ 表现壳：实体/声音/世界 VFX（加载口注入 AssetService，到期走逻辑时钟）。</summary>
+        /// <summary>⑨ 表现壳：实体/声音/世界 VFX。G1 通用表现批：加载口统一绑 <see cref="PrefabLeaseCache"/>
+        /// （租约持有——纠正静态门面"返回前 Release"的悬空引用）；Shutdown 释放面（音频全局停止 + 租约归零）。</summary>
         internal sealed class Presentation : IClientModule
         {
+            private PrefabLeaseCache _prefabs;
+            private AudioService _audio;
+
             public string Name => "Presentation";
 
             public UniTask InitializeAsync(ClientContext context, CancellationToken ct)
             {
-                context.Put(new EntityService());
-                context.Put(new AudioService());
+                var content = context.Require<IContentService>();   // 依赖②——注册序即依赖序
+                _prefabs = new PrefabLeaseCache(content);
+                _audio = new AudioService();
+                context.Put(new EntityService(_prefabs.GetAsync));  // 加载口绑租约缓存（实例池常驻期间持租约）
+                context.Put(_audio);
                 var vfxService = new VfxService(
-                    loader: (location, token) => AssetService.LoadAssetAsync<UnityEngine.GameObject>(location, token),
+                    loader: _prefabs.GetAsync,
                     clock: context.Require<IWorldClock>(),
                     catalog: new VfxCatalog(),
                     budget: VfxBudget.Default());
@@ -234,7 +243,12 @@ namespace LiteGame
                 return UniTask.CompletedTask;
             }
 
-            public UniTask ShutdownAsync(CancellationToken ct) => UniTask.CompletedTask;   // 实例/租约释放归 U1/M11
+            public UniTask ShutdownAsync(CancellationToken ct)
+            {
+                _audio?.Shutdown();                           // G1：总线全局停止 + [Audio] 根销毁
+                _prefabs?.ReleaseAll();                      // G1：表现壳 prefab 租约归零（VFX/Entity 常驻池的关闭面）
+                return UniTask.CompletedTask;
+            }
         }
 
         /// <summary>⑩ 容器与流程机：注册（**注册顺序 = 驱动顺序**）→ 流程机（业务装配仍由 ProcedureLaunch Seal，§12）。
@@ -265,11 +279,12 @@ namespace LiteGame
                 var audioService = context.Require<AudioService>();
                 var vfxService = context.Require<VfxService>();
 
-                // 注册顺序 = 驱动顺序：MainThreadDispatcher 帧首泵最先 → 时钟 → FSM
+                // 注册顺序 = 驱动顺序：MainThreadDispatcher 帧首泵最先 → 时钟 → UI 动效轨泵 → FSM
                 container.RegisterInstance<IMainThreadDispatcher>(new MainThreadDispatcher());
                 container.RegisterInstance<IWorldClock>(context.Require<IWorldClock>());
                 container.RegisterInstance<IUIClock>(context.Require<IUIClock>());
                 container.RegisterInstance<IWallClock>(context.Require<IWallClock>());
+                container.RegisterInstance(new DotweenUiClockDriver(context.Require<IUIClock>()));   // G1：DOTween Manual 轨按 UIClock 派发（时停不停/暂停即停）
                 container.RegisterInstance<IEventCenter>(events);
                 var fsm = CreateMachine(context, container, _scenes, content, config, lua, events, uiService, uiRegistry, contentRegistry,
                     strategyRegistry, redDotRegistry, logicScheduler, uiScheduler, timelineRunner,
@@ -300,9 +315,21 @@ namespace LiteGame
                 return new StageMachine<ProcedureId, ProcedureArgs>("Procedure",
                     (ProcedureId.Launch, new ProcedureLaunch(container, config, scenes, uiRegistry, contentRegistry, strategyRegistry, uiService, redDotRegistry, logicScheduler, uiScheduler, timelineRunner, entityService, audioService, vfxService, refill, rootToken)),
                     (ProcedureId.Patch, new ProcedurePatch(content, activations, rootToken)),
-                    (ProcedureId.Preload, new ProcedurePreload(content, config, lua, filler, events, rootToken)),
+                    (ProcedureId.Preload, new ProcedurePreload(content, config, lua, filler, events, ListLuaAssetPaths, rootToken)),
                     (ProcedureId.Main, new ProcedureMain(uiService, rootToken)),
+                    (ProcedureId.Match, new ProcedureMatch(context.RootScope, rootToken)),
+                    (ProcedureId.Battle, new ProcedureBattle(rootToken)),
                     (ProcedureId.Error, new ProcedureError(rootToken)));
+            }
+
+            /// <summary>Lua 清单绑定（G1：静态 YooAsset tag 查询收口于装配点——热更批以发布清单替换绑定，运行时零改动）。</summary>
+            private static string[] ListLuaAssetPaths()
+            {
+                var infos = AssetService.Package.GetAssetInfos("lua");
+                if (infos == null || infos.Length == 0) return Array.Empty<string>();
+                var paths = new string[infos.Length];
+                for (int i = 0; i < infos.Length; i++) paths[i] = infos[i].AssetPath;
+                return paths;
             }
         }
     }

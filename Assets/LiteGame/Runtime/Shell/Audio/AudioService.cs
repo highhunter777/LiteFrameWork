@@ -44,13 +44,16 @@ namespace LiteGame
         }
 
         private readonly Dictionary<Group, GroupDef> _groups = new Dictionary<Group, GroupDef>(4);
-        private readonly Transform _root;
+        private Transform _root;                             // 关闭后置空（Shutdown 幂等判据）
         private int _nextHandle = 1;
 
         public AudioService(int effectProxies = 4, int uiProxies = 2, int voiceProxies = 2, int bgmProxies = 2)
         {
             _root = new GameObject("[Audio]").transform;
-            UnityEngine.Object.DontDestroyOnLoad(_root.gameObject);
+            // DontDestroyOnLoad 仅 Play mode 合法（编辑器脚本直调抛 InvalidOperationException）——
+            // 编辑态用例（EditMode 验收 / 工具脚本）跳过，与 Shutdown 的 Destroy/DestroyImmediate 分支同口径。
+            if (Application.isPlaying)
+                UnityEngine.Object.DontDestroyOnLoad(_root.gameObject);
             AddGroup(Group.Effect, "Effect", effectProxies);
             AddGroup(Group.Ui, "Ui", uiProxies);
             AddGroup(Group.Voice, "Voice", voiceProxies);
@@ -185,6 +188,32 @@ namespace LiteGame
         }
 
         public bool IsGroupMuted(Group group) => _groups[group].Mute;
+
+        /// <summary>全局停止（G1 通用表现批：Audio 总线统一停止面）——全部组全部在播代理立即停
+        /// （系统路径不等淡出表现；失效句柄语义不变）。用户语义的逐句柄淡出走 <see cref="Stop"/>。</summary>
+        public void StopAll()
+        {
+            int stopped = 0;
+            foreach (var g in _groups.Values)
+                foreach (var p in g.Proxies)
+                    if (p.Busy) { ReleaseProxy(p); stopped++; }
+            if (stopped > 0) Log.Info($"音频全局停止：{stopped} 个在播代理", "Audio");
+        }
+
+        /// <summary>释放面（宿主关闭，G1"统一取消与释放"）：全局停止 + 销毁 [Audio] 根（幂等）。</summary>
+        public void Shutdown()
+        {
+            if (_root == null) return;                       // 幂等（_root 置空即已关闭）
+            StopAll();
+            var go = _root.gameObject;
+            _root = null;
+            _groups.Clear();
+#if UNITY_EDITOR
+            if (!Application.isPlaying) { UnityEngine.Object.DestroyImmediate(go); return; }
+#endif
+            UnityEngine.Object.Destroy(go);
+            Log.Info("音频壳已关闭（全局停止 + 根销毁）", "Audio");
+        }
 
         public string StatsName => "Audio";
 

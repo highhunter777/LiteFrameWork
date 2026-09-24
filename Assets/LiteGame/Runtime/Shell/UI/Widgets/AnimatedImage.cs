@@ -26,7 +26,7 @@ namespace LiteGame.UI
         private void Update()
         {
             if (!_playing || _image == null || Frames == null || Frames.Length == 0) return;
-            _timer += Time.unscaledDeltaTime;
+            _timer += UiAnimationClock.Delta;               // G1 动画时钟：UIClock 步进（时停/暂停即停；未绑定退化真实帧）
             float step = 1f / Mathf.Max(1f, Fps);
             while (_timer >= step)
             {

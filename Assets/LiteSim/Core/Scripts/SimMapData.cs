@@ -73,5 +73,21 @@ namespace LiteSim
             dst.HalfWidth = HalfWidth;
             dst.HalfDepth = HalfDepth;
         }
+
+        /// <summary>
+        /// 标准灰盒对战地图（C2 单源）：±50 边界 + 16 网格出生点。
+        /// 服务端（RoomRuntime 开局生成）与客户端（BattleContext 预测世界重建）**必须**共用同一构造——
+        /// 两端地图不一致 = 出生点错位 = 预测永不分叉收敛。原 RoomServer.BuildStandardMap 平移至此。
+        /// </summary>
+        public static SimMapData StandardBattleMap()
+        {
+            var map = new SimMapData { GroundY = 0f, HalfWidth = 50f, HalfDepth = 50f };
+            for (int i = 0; i < MaxSpawnPoints; i++)
+            {
+                map.SpawnPoints[i] = new SimVector3(((i % 4) - 1.5f) * 10f, 0f, ((i / 4) - 1.5f) * 10f);
+            }
+            map.SpawnPointCount = MaxSpawnPoints;
+            return map;
+        }
     }
 }

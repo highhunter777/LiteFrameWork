@@ -6,8 +6,9 @@ namespace LiteGame.UI
 {
     /// <summary>
     /// 动效原语库（动效设计方案 附 A.1 的实现件，M4c 前置）：**全项目唯一碰 DOTween 的地方**。
-    /// 纪律写死在每个原语里：SetUpdate(true) = UIClock 轨（时停不停 UI）；SetLink(KillOnDisable) =
-    /// 目标禁用即杀（防泄漏）；原语同步返回、不携带任何判定。
+    /// G1 动画时钟：SetUpdate(UpdateType.Manual, true) = **UIClock 轨**（经 DotweenUiClockDriver 按 UIClock
+    /// 派发——时停不停、暂停即停；旧 SetUpdate(true) 是实时轨不等价 UIClock，动画专项 §1 裁决）；
+    /// SetLink(KillOnDisable) = 目标禁用即杀（防泄漏）；原语同步返回、不携带任何判定。
     /// </summary>
     public static class UiFx
     {
@@ -17,7 +18,7 @@ namespace LiteGame.UI
             var baseAlpha = g.color.a;
             return g.DOFade(baseAlpha * strength, duration)
                 .SetLoops(2, LoopType.Yoyo)
-                .SetUpdate(true)
+                .SetUpdate(UpdateType.Manual, true)
                 .SetLink(g.gameObject, LinkBehaviour.KillOnDisable);
         }
 
@@ -27,7 +28,7 @@ namespace LiteGame.UI
             var c = g.color;
             return g.DOColor(new Color(1f, 1f, 0.6f, c.a), duration)
                 .From(Color.white)
-                .SetUpdate(true)
+                .SetUpdate(UpdateType.Manual, true)
                 .SetLink(g.gameObject, LinkBehaviour.KillOnDisable);
         }
 
@@ -37,7 +38,7 @@ namespace LiteGame.UI
             return rt.DOAnchorPos(rt.anchoredPosition + offset, duration)
                 .From(true)
                 .SetEase(Ease.OutQuad)
-                .SetUpdate(true)
+                .SetUpdate(UpdateType.Manual, true)
                 .SetLink(rt.gameObject, LinkBehaviour.KillOnDisable);
         }
 
@@ -50,7 +51,7 @@ namespace LiteGame.UI
                     label.text = format(v);
                 }, to, duration)
                 .SetEase(Ease.OutQuad)
-                .SetUpdate(true)
+                .SetUpdate(UpdateType.Manual, true)
                 .SetLink(label.gameObject, LinkBehaviour.KillOnDisable);
         }
     }

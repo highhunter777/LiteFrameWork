@@ -1,0 +1,224 @@
+using System;
+using System.Threading;
+using LiteFramework;
+using LiteNet;
+using LiteNet.Protocol;
+using LiteSim;
+
+namespace LiteGame
+{
+    /// <summary>
+    /// 对局上下文（C2 批①，《商业级通用客户端框架总设计》§19 C2"BattleContext 创建/销毁、网络/Sim/View 接线"）：
+    /// 一局对局的**全部运行态编排**——网络事件 → 持久镜像重建（协议单源 SnapshotReassembler）→
+    /// 预测/和解（RollbackSim）→（批②：SimView/相机/动画）→ 输入上行。
+    ///
+    /// 逻辑镜像 <c>Tests/LiteNet.Tests/HeadlessClient.cs</c>（已验证的集成形态），差异只有三点：
+    /// 传输由 <see cref="BattleClient"/> 持有、地图走 <see cref="SimMapData.StandardBattleMap"/> 单源、
+    /// 生命周期挂 Match Scope（本类创建并持有，Dispose 即拆——离场无 Match 残留的载体）。
+    ///
+    /// **断线恢复策略（C2 会话子集口径）**：SuspectedLost 即自动 <see cref="BattleClient.BeginReconnect"/>
+    /// （凭 JoinAck 票据）；Failed（重连超时/拒绝/版本不符）→ <see cref="Ended"/>(SessionFailed) 交流程层
+    /// 裁决回主菜单——不在上下文内静默重建会话（正式重试 UI 归 G3）。
+    ///
+    /// 生命周期：ctor 建 Match Scope → 挂 RoomClient 事件（退订经 <see cref="DelegatedDisposable"/> 登记进
+    /// Scope，LIFO 保证晚挂先退）→ Dispose 拆订阅 → Match Scope.Dispose。事件处理在 Dispose 后一律短路。
+    /// </summary>
+    public sealed class BattleContext : IDisposable
+    {
+        /// <summary>对局结束原因（Ended 事件载荷；流程层据此回 Main 或报错）。</summary>
+        public enum EndReason
+        {
+            /// <summary>玩家主动离场。</summary>
+            Leave = 0,
+            /// <summary>会话失败（重连超时/被拒/版本不符——无票据的断线同归此类）。</summary>
+            SessionFailed,
+        }
+
+        /// <summary>首版房间规模（RoomConfig 默认 2 人房——两端 StartGame 世界重建的定容依据）。</summary>
+        public const int ExpectedPlayers = 2;
+
+        /// <summary>对局结束（恰好一次；Dispose 不触发——那是清理不是结束）。</summary>
+        public event Action<EndReason> Ended;
+
+        public ClientSessionPhase SessionPhase => _battle.Phase;
+        public bool Connected => _battle.Connected;
+        public int PlayerId => _battle.Client.PlayerId;
+
+        /// <summary>本地玩家实体 Id（0 = 尚未对齐——首份快照按 Slot==PlayerId 解析，HeadlessClient 同口径）。</summary>
+        public long LocalEntityId => _localEntityId;
+
+        /// <summary>本地预测/和解 Sim（StartGame 后可用；null = 对局尚未建立）。</summary>
+        public RollbackSim Sim => _sim;
+
+        /// <summary>最近一次收到的快照帧号（视点帧推导来源——批② SimView 消费）。</summary>
+        public int LastSnapshotFrame => _battle.Client.LastSnapshotFrame;
+
+        /// <summary>和解次数（本地预测被权威覆盖的次数；诊断/DevHUD）。</summary>
+        public long ReconcileCount => _reconcileCount;
+
+        private readonly BattleClient _battle;
+        private readonly ClientScope _matchScope;
+        private readonly SimMapData _map;
+        private readonly Func<SimInputFrame> _inputProvider;
+
+        private RollbackSim _sim;
+        private SimWorldState _mirror;                       // 持久权威镜像（增量快照只在它上面累积才完整，§5.5）
+        private long _localEntityId;
+        private long _reconcileCount;
+        private bool _disposed;
+        private int _ended;
+
+        /// <param name="inputProvider">本地输入采集（批② PlayerController 注入；null = 空输入——纯会话/测试形态）。</param>
+        public BattleContext(BattleClient battle, ClientScope accountScope,
+            Func<SimInputFrame> inputProvider = null, SimMapData map = null)
+        {
+            _battle = battle ?? throw new ArgumentNullException(nameof(battle));
+            if (accountScope == null) throw new ArgumentNullException(nameof(accountScope));
+            _inputProvider = inputProvider;
+            _map = map ?? SimMapData.StandardBattleMap();
+
+            _matchScope = accountScope.CreateChild("Match");
+
+            // 订阅 + 退订登记（LIFO：晚挂先退——Dispose 即拆，不靠调用方记得退订）
+            _battle.Client.OnStartGame += OnStartGame;
+            _battle.Client.OnSnapshot += OnSnapshot;
+            _battle.Client.OnReconnectResponse += OnReconnectResponse;
+            _battle.Client.OnPhaseChanged += OnPhaseChanged;
+            _matchScope.Register(new DelegatedDisposable(() =>
+            {
+                _battle.Client.OnStartGame -= OnStartGame;
+                _battle.Client.OnSnapshot -= OnSnapshot;
+                _battle.Client.OnReconnectResponse -= OnReconnectResponse;
+                _battle.Client.OnPhaseChanged -= OnPhaseChanged;
+            }));
+        }
+
+        /// <summary>
+        /// 每帧驱动（ProcedureBattle.OnUpdate 调——唯一驱动入口）：网络双泵 → 输入上行 + 预测推进。
+        /// Sim 未建（StartGame 未达）时只泵网络；输入只在对局中发送。
+        /// </summary>
+        public void Tick(float realDelta)
+        {
+            if (_disposed) return;
+            _battle.TickIncoming();
+            _battle.TickOutgoing();
+
+            if (_sim == null) return;
+
+            var local = _inputProvider != null ? _inputProvider() : default;
+            local.EntityId = _localEntityId;
+
+            if (_battle.Connected)
+                _battle.Client.SendInput(_sim.State.Frame + 1, local, viewFrame: 0);
+
+            _sim.Tick(realDelta);
+        }
+
+        /// <summary>主动离场（幂等）——流程层据 <see cref="Ended"/> 收尾回 Main。</summary>
+        public void Leave() => End(EndReason.Leave);
+
+        private void End(EndReason reason)
+        {
+            if (Interlocked.Exchange(ref _ended, 1) != 0) return;   // 恰好一次
+            Ended?.Invoke(reason);
+        }
+
+        // ---- 网络事件处理（HeadlessClient 已验证形态的镜像）----
+
+        /// <summary>StartGame：按服务器 seed 重建同构世界（预测的前提——两端世界构造必须逐位一致）。</summary>
+        private void OnStartGame(LiteNet.Proto.StartGame sg)
+        {
+            if (_disposed || _sim != null) return;   // 幂等（重连不重发 StartGame）
+
+            var world = new SimWorldState { RngState = (ulong)sg.Seed };
+            for (int i = 0; i < ExpectedPlayers; i++)
+            {
+                SimVector3 spawn = _map.SpawnPoints[i % _map.SpawnPointCount];
+                world.Spawn(new EntitySlot { Hp = CombatConfig.EntityHp, Pos = spawn, Yaw = 0f }, out int _);
+            }
+
+            var template = new SimInputFrame[ExpectedPlayers];
+            for (int i = 0; i < ExpectedPlayers; i++) template[i].EntityId = i;   // 服务器覆写防伪；本地预测按 playerId 对齐
+
+            _sim = new RollbackSim(world, _map, template);
+        }
+
+        /// <summary>
+        /// 快照：镜像重建 → 和解（checksum 比对/覆盖/重放）→ 无和解时刷新非预测量（弹药/CD/比赛状态——
+        /// P0 分层：不预测的量只能随包来）。首份快照对齐本地实体 Id。
+        /// </summary>
+        private void OnSnapshot(LiteNet.Proto.StateSnapshot snapshot)
+        {
+            if (_disposed || _sim == null) return;   // Sim 未建：丢弃（Reliable StartGame 随后即到）
+
+            ResolveLocalEntity(snapshot);
+
+            _mirror = _mirror ?? new SimWorldState();
+            SnapshotReassembler.Apply(snapshot, _mirror, out uint checksum);
+            if (_sim.OnAuthoritativeSnapshot(snapshot.Frame, _mirror, checksum))
+            {
+                _reconcileCount++;
+                _battle.Client.SendMismatch(snapshot.Frame);
+            }
+            else
+            {
+                SnapshotReassembler.OverlayPrivateAndMatch(snapshot, _sim.State);
+            }
+        }
+
+        /// <summary>
+        /// 重连恢复（§9.3 步骤 3~5）：仅 Restoring 相位可应用——权威全量重建镜像 → 和解到该帧 →
+        /// <see cref="RoomClient.CompleteRestore"/> 发恢复 ACK（服务器收到前抑制本席位增量广播）。
+        /// </summary>
+        private void OnReconnectResponse(LiteNet.Proto.ReconnectResponse response)
+        {
+            if (_disposed) return;
+            if (!response.Ok || _battle.Phase != ClientSessionPhase.Restoring) return;
+
+            _mirror = _mirror ?? new SimWorldState();
+            SnapshotReassembler.Apply(response.Snapshot, _mirror, out uint checksum);
+
+            if (_localEntityId == 0 && _battle.Client.PlayerId >= 0)
+                ResolveLocalEntity(response.Snapshot);
+
+            if (_sim != null)
+                _sim.OnAuthoritativeSnapshot(response.Snapshot.Frame, _mirror, checksum);
+
+            _battle.Client.CompleteRestore();
+        }
+
+        /// <summary>相位迁移：断线自动重连（凭票据）；Failed → 对局终结（流程层裁决去留）。</summary>
+        private void OnPhaseChanged(ClientSessionPhase from, ClientSessionPhase to)
+        {
+            if (_disposed) return;
+            switch (to)
+            {
+                case ClientSessionPhase.SuspectedLost:
+                    _battle.BeginReconnect();            // false = 无票据（内部已转 Failed，下一事件收口）
+                    break;
+                case ClientSessionPhase.Failed:
+                    End(EndReason.SessionFailed);
+                    break;
+            }
+        }
+
+        private void ResolveLocalEntity(LiteNet.Proto.StateSnapshot snapshot)
+        {
+            if (_localEntityId != 0 || _battle.Client.PlayerId < 0) return;
+            foreach (LiteNet.Proto.SlotDelta slot in snapshot.Slots)
+            {
+                if (slot.Slot == _battle.Client.PlayerId) { _localEntityId = slot.Id; break; }
+            }
+        }
+
+        /// <summary>拆订阅 → Match Scope.Dispose（LIFO 释放对局资源）。不触发 <see cref="Ended"/>。</summary>
+        public void Dispose()
+        {
+            if (_disposed) return;
+            _disposed = true;
+            _sim = null;
+            _mirror = null;
+            _matchScope.Dispose();                        // 订阅退订经 Scope 登记面执行（含 DisposeFailures 聚合）
+        }
+    }
+}

@@ -72,7 +72,15 @@ namespace LiteGame
         private readonly HashSet<int> _releaseOnLoad = new HashSet<int>();      // 加载竞态表
         private readonly Dictionary<int, int> _parentOf = new Dictionary<int, int>(8);                        // 挂接：child → parent
         private readonly Dictionary<int, List<int>> _attachments = new Dictionary<int, List<int>>(8);         // 挂接：parent → [child]（容器可枚举）
+        private readonly Func<string, CancellationToken, UniTask<GameObject>> _loadPrefab;   // 加载口（G1：绑 PrefabLeaseCache——租约持有；缺省静态门面为迁移期兼容）
         private int _nextHandle = 1;
+
+        /// <param name="loadPrefab">prefab 加载口（装配点绑 <see cref="PrefabLeaseCache"/>——实例池常驻期间持租约；
+        /// null = 静态 <see cref="AssetService"/> 兼容（迁移期，热更批全量收口）。</param>
+        public EntityService(Func<string, CancellationToken, UniTask<GameObject>> loadPrefab = null)
+        {
+            _loadPrefab = loadPrefab ?? AssetService.LoadAssetAsync<GameObject>;
+        }
 
         /// <summary>预占句柄（竞态场景用：先 Reserve → ShowAsync(id) → 任意时刻 Hide(id)）。</summary>
         public int Reserve() => _nextHandle++;
@@ -100,7 +108,7 @@ namespace LiteGame
             _inFlight.Add(handleId);
             try
             {
-                var prefab = await AssetService.LoadAssetAsync<GameObject>(location, ct);
+                var prefab = await _loadPrefab(location, ct);
                 _inFlight.Remove(handleId);
                 if (_releaseOnLoad.Remove(handleId))
                 {

@@ -29,6 +29,17 @@ namespace LiteGame
         protected override void RunAsync(IStageHost<ProcedureId, ProcedureArgs> m, in ProcedureArgs req, CancellationToken ct)
             => RunAsyncCore(m, ct).Forget();          // 一行转发，仅此而已——禁止 async void
 
+        public override void OnUpdate(IStageHost<ProcedureId, ProcedureArgs> m, float elapseSeconds)
+        {
+#if UNITY_EDITOR || DEVELOPMENT_BUILD || LITEFRAMEWORK_DEBUG
+            // C2 测试入口（批①）：F9 = 进入测试对局（隔离测试发行者身份，正式登录页归 G3）。
+            // 主菜单 → 进对局的正式入口（页面按钮/Matchmaking）归 U2/G3——此处只留热键，不进正式 UI。
+            // 门禁与 SimSandbox 同口径：开发/编辑器可用，正式包无该入口（不塞进 Release 玩家）。
+            if (UnityEngine.Input.GetKeyDown(UnityEngine.KeyCode.F9))
+                m.Request(ProcedureId.Match);
+#endif
+        }
+
         private async UniTask RunAsyncCore(IStageHost<ProcedureId, ProcedureArgs> m, CancellationToken ct)
         {
             try

@@ -19,9 +19,10 @@ namespace LiteGame
         private readonly LuaComponent _lua;
         private readonly RegistryFiller _filler;
         private readonly IEventCenter _events;
+        private readonly Func<string[]> _listLuaFiles;     // Lua 清单（装配点绑定——G1：静态门面收口于装配点）
 
         public ProcedurePreload(IContentService content, IConfigService config, LuaComponent lua, RegistryFiller filler, IEventCenter events,
-            CancellationToken rootToken = default)
+            Func<string[]> listLuaFiles = null, CancellationToken rootToken = default)
             : base(rootToken)
         {
             _content = content ?? throw new ArgumentNullException(nameof(content));
@@ -29,6 +30,7 @@ namespace LiteGame
             _lua = lua ?? throw new ArgumentNullException(nameof(lua));
             _filler = filler ?? throw new ArgumentNullException(nameof(filler));
             _events = events ?? throw new ArgumentNullException(nameof(events));
+            _listLuaFiles = listLuaFiles;
         }
 
         protected override void RunAsync(IStageHost<ProcedureId, ProcedureArgs> m, in ProcedureArgs req, CancellationToken ct)
@@ -44,8 +46,9 @@ namespace LiteGame
 
                 // ---- M3 锚点：Lua 预载与注册表填充段（勿在此行上方插入消费逻辑）----
                 // ① 全量预载：同步 loader 的咽喉（§4.2），env 依赖它，先建缓存再 Init
-                //    （C1-⑨：字节经 IContentService 租约通道——代次/引用统一，提取即释放）
-                var preloader = new LuaPreloader(LoadLuaBytesViaContent);
+                //    （C1-⑨：字节经 IContentService 租约通道——代次/引用统一，提取即释放；
+                //     G1：清单经装配点注入——运行时不再直查静态门面）
+                var preloader = new LuaPreloader(LoadLuaBytesViaContent, _listLuaFiles);
                 await preloader.PreloadAllAsync(ct);
                 _lua.Init(preloader, _events);                   // env + 桥绑定（服务桥 §2.5 / 事件桥 §2.6）
                 _lua.DoMain();                                   // ② 执行 main.lua（require/定义，§4.4）
