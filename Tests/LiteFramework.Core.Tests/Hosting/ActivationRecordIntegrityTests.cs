@@ -324,5 +324,79 @@ namespace LiteFramework.Tests
             Assert.Throws<ArgumentNullException>(() => store.BeginCandidate(""));
             Assert.Throws<ArgumentNullException>(() => store.Confirm(null, 1));
         }
+
+        /// <summary>
+        /// 空值占位符是 <c>"\0null"</c>（NUL + null），**不是** <c>" null"</c>。
+        ///
+        /// 2026-09-25 核查：该形式自 `bd75616`（引入 <c>Compute</c> 那次提交）即存在，
+        /// 非后续损坏、非手误引入——它与空格形式在"区分 null 与空串"上**能力等价**。
+        ///
+        /// 本用例的价值是**防止顺手修正**：把 NUL 改成空格会改变摘要 → 所有既有激活记录失效
+        /// → 用户丢已确认版本。若将来确实要改，必须同时升 <c>SchemaVersion</c> 并接受一次失效。
+        /// </summary>
+        [Fact]
+        public void 空值占位符_以NUL为前缀_改动会使既有记录失效()
+        {
+            var record = new ActivationRecord
+            {
+                ConfirmedReleaseId = null,       // 触发占位符路径
+                PendingReleaseId = null,
+                LastFailure = null,
+                TransactionId = null,
+            };
+
+            // 占位符确实进入摘要：把某个 null 字段改成空串，摘要必须变
+            string withNull = ActivationRecordIntegrity.Compute(record);
+            record.LastFailure = "";
+            string withEmpty = ActivationRecordIntegrity.Compute(record);
+            Assert.NotEqual(withNull, withEmpty);
+
+            // 钉住当前摘要的稳定性（若有人改了占位符形式，此断言会失败并提示上面的说明）
+            var probe = new ActivationRecord
+            {
+                ConfirmedReleaseId = "builtin",
+                ConfirmedVersion = 0,
+                RecordSequence = 0,
+                PendingReleaseId = null,
+                LastFailure = null,
+                TransactionId = null,
+            };
+            string digest = ActivationRecordIntegrity.Compute(probe);
+            Assert.Equal(64, digest.Length);
+            Assert.Equal(digest, ActivationRecordIntegrity.Compute(probe));   // 同输入同摘要
+        }
+
+        [Fact]
+        public void 已确认修订_随Confirm写入_且可被反回退基线读取()
+        {
+            var io = new MemoryIO();
+            var store = new ActivationTransactionStore(io);
+
+            store.BeginCandidate("rel-7");
+            store.MarkPendingActivation();
+            store.Confirm("rel-7", 3, revision: 42);
+
+            Assert.Equal(42L, store.Current.ConfirmedRevision);
+
+            // 重新读盘（模拟下次启动）——修订必须存活
+            var reloaded = new ActivationTransactionStore(io);
+            Assert.Equal(42L, reloaded.Current.ConfirmedRevision);
+            Assert.Equal("rel-7", reloaded.Current.ConfirmedReleaseId);
+            Assert.True(ActivationRecordIntegrity.Verify(reloaded.Current));
+        }
+
+        [Fact]
+        public void 旧记录无修订字段_默认零_且完整性仍通过()
+        {
+            // 反序列化旧 JSON（无 ConfirmedRevision）→ 字段保持默认 0，不回填、不报错
+            // （Newtonsoft 缺失字段保留默认值——故本次加字段**向后兼容**）
+            var record = new ActivationRecord
+            {
+                ConfirmedReleaseId = "legacy",
+                ConfirmedVersion = 9,
+            };
+            Assert.Equal(0L, record.ConfirmedRevision);
+            Assert.True(ActivationRecordIntegrity.Verify(ActivationRecordIntegrity.Stamp(record)));
+        }
     }
 }

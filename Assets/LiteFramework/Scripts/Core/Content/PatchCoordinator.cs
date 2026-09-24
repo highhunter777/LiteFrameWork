@@ -200,7 +200,7 @@ namespace LiteFramework
                     new DownloadFailureInfo(DownloadFailureKind.ReadError, detail: unhealthy), ct);
 
             // ── ⑧ 确认提交（§8；写盘失败由 IO 实现方抛出，本类不吞）──
-            _store.Confirm(candidate.ReleaseId, recovered.ConfirmedVersion + 1);
+            _store.Confirm(candidate.ReleaseId, recovered.ConfirmedVersion + 1, candidate.Revision);
             _generationSink?.Advise(_store.ActiveGeneration);
             SetPhase(PatchPhase.Confirmed);
             return PatchRunResult.Ok(PatchPhase.Confirmed, candidate.ReleaseId);

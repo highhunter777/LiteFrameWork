@@ -93,13 +93,12 @@ namespace LiteGame
 
             // §6 信任门：描述未过校验的候选**不得**进入编排。
             //
-            // 反回退基线传 0（不启用反回退拒绝）：设计 §6 要求"候选修订低于**已确认修订**即拒绝"，
-            // 但当前 `ActivationRecord` 只记录 `ConfirmedVersion`（代次值），**不记录发布修订**——
-            // 两者语义不同，拿代次当修订是错的。补齐需扩 `ActivationRecord`（会改完整性摘要与 schema），
-            // 属独立批次；在此之前**不伪造基线**，平台侧由候选来源自身的可见范围约束。
+            // 反回退基线取**已确认的发布修订**（非代次）——`ConfirmedRevision` 与 `ConfirmedVersion`
+            // 语义不同，前者才是 §6 说的"已确认修订"。该字段未并入完整性摘要（见 ActivationRecord 注释），
+            // 故它只提高拒绝门槛、不是安全边界；重放防护由签名与发布修订单调性共同承担。
             ReleaseVerdict verdict = ReleaseManifestValidator.Validate(
                 offer.Manifest, offer.SignedBytes, offer.Signature, _verifier, _player,
-                confirmedRevision: 0,
+                confirmedRevision: _store.Current.ConfirmedRevision,
                 budget: _budget);
 
             LastRejectReason = verdict.Accepted ? ReleaseRejectReason.None : verdict.Reason;
