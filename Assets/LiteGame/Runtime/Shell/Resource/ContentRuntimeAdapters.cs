@@ -71,6 +71,93 @@ namespace LiteGame
     }
 
     /// <summary>
+    /// 磁盘余量探测（**通用实现**；不依赖平台专有 API）。
+    ///
+    /// 策略：先试桌面 <see cref="System.IO.DriveInfo"/>（精确、廉价）；不可用时回退**写探针**——
+    /// 向目标目录逐级试探写入固定块直到失败，得出"至少能写多少"。写探针拿到的是**下界**
+    /// （受限于单次试探粒度），故报告值再乘一个保守系数，宁可少报也不多报
+    /// （多报会让预检放行、更新写到一半失败）。
+    ///
+    /// **代价与边界（如实标注）**：
+    /// - 写探针会**实际占用并删除**临时文件；在低存储设备上可能触发系统清理——故只在
+    ///   DriveInfo 不可用时走这条路，且探针上限远低于真实盘容量；
+    /// - 它测量的是"**当前能写多少**"，不是"总剩余空间"——有配额/写保护的目录会被如实判小；
+    /// - **不是精确计量**：报告值只够做"够/不够"的判定，不能用于展示给用户的容量数字。
+    /// </summary>
+    public sealed class WriteProbeDiskSpaceProbe : IDiskSpaceProbe
+    {
+        private readonly string _absoluteDir;
+        private readonly string _probeFileName;
+        private readonly DriveInfoSpaceProbe _desktop;
+        private readonly long _probeCapBytes;
+
+        /// <param name="absoluteDir">目标目录（绝对路径）。</param>
+        /// <param name="probeCapBytes">写探针上限（默认 512MB；避免在低存储设备上制造压力）。</param>
+        /// <param name="probeFileName">探针文件名（装配点可指定为唯一名以防并发冲突）。</param>
+        public WriteProbeDiskSpaceProbe(string absoluteDir, long probeCapBytes = 512L * 1024 * 1024,
+            string probeFileName = ".disk_probe")
+        {
+            _absoluteDir = absoluteDir ?? throw new ArgumentNullException(nameof(absoluteDir));
+            _desktop = new DriveInfoSpaceProbe(absoluteDir);
+            _probeFileName = string.IsNullOrEmpty(probeFileName) ? ".disk_probe" : probeFileName;
+            _probeCapBytes = probeCapBytes < 1024 * 1024 ? 1024 * 1024 : probeCapBytes;
+        }
+
+        public long GetAvailableBytes()
+        {
+            // ① 桌面精确路径
+            long desktop = _desktop.GetAvailableBytes();
+            if (desktop >= 0) return desktop;
+
+            // ② 通用写探针（下界）
+            long writable = ProbeWritable();
+            return writable < 0 ? -1L : writable;
+        }
+
+        /// <summary>逐块试探写入，返回可写字节下界；失败返回 -1。</summary>
+        private long ProbeWritable()
+        {
+            const int BlockBytes = 4 * 1024 * 1024;
+            var block = new byte[BlockBytes];
+            long written = 0;
+            string path = null;
+
+            try
+            {
+                string dir = System.IO.Path.GetFullPath(_absoluteDir);
+                if (!System.IO.Directory.Exists(dir)) System.IO.Directory.CreateDirectory(dir);
+                path = System.IO.Path.Combine(dir, _probeFileName);
+
+                using (var stream = new System.IO.FileStream(path, System.IO.FileMode.Create,
+                           System.IO.FileAccess.Write, System.IO.FileShare.None))
+                {
+                    while (written < _probeCapBytes)
+                    {
+                        stream.Write(block, 0, BlockBytes);
+                        written += BlockBytes;
+                    }
+                    stream.Flush(true);
+                }
+
+                // 到达自设上限说明实际余量不少于它；保守回退为上限（不夸大）
+                return _probeCapBytes;
+            }
+            catch (Exception)
+            {
+                // 写失败 = 已探明边界。written 为下界；但失败本身可能来自配额/权限而非空间，
+                // 故按保守系数折算（宁可少报），完全不确知时返回 -1。
+                if (written <= 0) return -1L;
+                return written / 2;
+            }
+            finally
+            {
+                try { if (path != null && System.IO.File.Exists(path)) System.IO.File.Delete(path); }
+                catch (Exception) { /* 清理失败不影响结论 */ }
+            }
+        }
+    }
+
+    /// <summary>
     /// 候选磁盘余量探测（§7"空间预检"）。
     ///
     /// **诚实实现**：.NET Standard 没有跨平台的"目录可用空间" API
@@ -79,7 +166,8 @@ namespace LiteGame
     /// 而 <see cref="SpacePrecheck"/> 对"不可知"按**不足**处理（不会让更新在写入中途失败）。
     ///
     /// 这意味着**当前形态下空间预检会拒绝所有候选**：这是刻意的 fail-closed，
-    /// 而非缺陷。接通真实平台探测（Android/iOS 原生命令）后本实现替换，属 H3-b。
+    /// 而非缺陷。需要跨平台精确探测时改用 <see cref="WriteProbeDiskSpaceProbe"/>
+    /// （以写入压力换通用性）或接入平台专有 API。
     /// </summary>
     public sealed class UnavailableDiskSpaceProbe : IDiskSpaceProbe
     {

@@ -112,6 +112,23 @@ namespace LiteFramework
         }
 
         /// <summary>
+        /// 向文件末尾追加字节(临时文件续传用);不存在则创建。目录自动建立。
+        ///
+        /// **非原子**——与 <see cref="WriteAllBytes"/> 的区别是有意为之:续传临时文件允许中途留存,
+        /// 由调用方在完成时整体校验摘要后原子提交(<c>WriteAllBytes</c> 走临时+Replace)。
+        /// 半截临时文件本身不是可用候选,校验会拒它。
+        /// </summary>
+        public static void AppendAllBytes(string relPath, byte[] bytes)
+        {
+            EnsureInit();
+            if (bytes == null || bytes.Length == 0) return;
+            string path = Combine(relPath);
+            EnsureDirFor(path);
+            using (var stream = new FileStream(path, FileMode.Append, FileAccess.Write, FileShare.None))
+                stream.Write(bytes, 0, bytes.Length);
+        }
+
+        /// <summary>
         /// 递归枚举目录下**所有文件**(相对 RootPath、正斜杠)。目录不存在 → 空数组。
         ///
         /// 与 <see cref="GetFiles"/> 的区别:后者非递归、且刻意不带通配符 pattern
