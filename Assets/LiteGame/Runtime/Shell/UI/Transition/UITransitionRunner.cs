@@ -89,6 +89,7 @@ namespace LiteGame
                 MaxDuration = _maxDuration,
                 Cts = new System.Threading.CancellationTokenSource(),   // U1-③：本事务取消源（超时/权威取消停策略工作）
             };
+            ctx.Playback = new MotionPlayback(ctx.Cts);              // 终态出口与取消源同址（§6.3 + 动画专项 §10）
             ctx.Play = BuildPlay(ctx);
 
             if (_current == null)
@@ -135,7 +136,18 @@ namespace LiteGame
                 var c = _current;
                 bool inTransition = _machine.Current != TransitionId.Idle;
 
-                if (inTransition && !c.TimedOut && !c.Done && _machine.StageTime > c.MaxDuration)
+                // 页面在事务进行中被回收/销毁（缓存淘汰、Destroy、低内存清理）：本条策略不再有
+                // 可靠的回调源——本仓 DOTween 1.3.030 实测 KillOnDisable 与显式 Kill **都不触发 OnKill**
+                // （动画专项 §2 登记的缺陷比记录更严重），靠超时兜底会让任务白悬最多 MaxDuration。
+                // 故由壳主动取消：策略复位 → 记 Cancelled → 立即收尾。
+                if (inTransition && !c.TimedOut && !c.Done && IsOwnerGone(c))
+                {
+                    c.OwnerGone = true;
+                    Log.Warning($"转场期间界面已回收——取消策略工作并收尾(mode={c.Mode})", "UI");
+                    try { c.Cts?.Cancel(); } catch (ObjectDisposedException) { }
+                    _machine.Request(TransitionId.Idle);
+                }
+                else if (inTransition && !c.TimedOut && !c.Done && _machine.StageTime > c.MaxDuration)
                 {
                     c.TimedOut = true;
                     Log.Error($"转场超时({c.MaxDuration:0.##}s)——取消策略工作并强制收尾(mode={c.Mode})", "UI");
@@ -166,6 +178,15 @@ namespace LiteGame
         }
 
         // ---- 内部 ----
+
+        /// <summary>事务锁定的页面是否已离开"可播"生命周期（回收/销毁 = 表现宿主已不可靠）。
+        /// 只认 <see cref="UIFormState.Recycled"/>/<see cref="UIFormState.Disposed"/>——
+        /// Cover/Pause/Closing 仍会收尾回调，不作取消依据（避免把正常流程误判成丢失）。</summary>
+        private static bool IsOwnerGone(TransitionContext c)
+            => IsGone(c.Outgoing) || IsGone(c.Incoming);
+
+        private static bool IsGone(UIForm form)
+            => form != null && (form.State is UIFormState.Recycled or UIFormState.Disposed);
 
         private void Start(TransitionContext ctx)
         {
@@ -199,24 +220,63 @@ namespace LiteGame
                 !(form.State is UIFormState.Paused or UIFormState.Closing or UIFormState.Recycled or UIFormState.Disposed);
         }
 
-        private static TransitionOutcome OutcomeOf(TransitionContext ctx) => new TransitionOutcome
+        /// <summary>
+        /// 结果分类。**分工**：超时/丢弃两种"事务级"事实优先（它们由 Runner 判定）；
+        /// 其余交给策略写下的**播放终态**（<see cref="MotionPlayback.Outcome"/>）——
+        /// 这样"策略被取消但未超时"会如实报 <see cref="TransitionResultKind.Cancelled"/>，
+        /// 而不是落到含糊的兜底值（动画专项 §10"播放终态与 UI 操作结果分层映射"）。
+        /// 未实现带终态签名的旧策略：<c>Playback.Finished</c> 恒 false → 按完成处理（保持旧语义）。
+        /// </summary>
+        private static TransitionOutcome OutcomeOf(TransitionContext ctx)
         {
-            Mode = ctx.Mode,
-            Outgoing = ctx.Outgoing,
-            Incoming = ctx.Incoming,
-            Kind = ctx.TimedOut ? TransitionResultKind.TimedOut
-                 : ctx.Completed ? TransitionResultKind.Completed
-                 : ctx.Skipped ? TransitionResultKind.Skipped
-                 : ctx.Failed ? TransitionResultKind.Failed
-                 : TransitionResultKind.Cancelled,
-            Completed = ctx.Completed && !ctx.TimedOut,
-            TimedOut = ctx.TimedOut,
-        };
+            TransitionResultKind kind;
+            if (ctx.TimedOut)
+            {
+                kind = TransitionResultKind.TimedOut;
+            }
+            else if (ctx.Skipped)
+            {
+                kind = TransitionResultKind.Skipped;
+            }
+            else if (ctx.Failed)
+            {
+                kind = TransitionResultKind.Failed;              // StartPlay 捕获到策略异常（优先于播放终态）
+            }
+            else if (ctx.OwnerGone)
+            {
+                // 页面被回收：表现未播完但也不是超时——按取消分类（策略已复位并在 Playback 记 Cancelled）
+                kind = TransitionResultKind.Cancelled;
+            }
+            else if (ctx.Playback != null && ctx.Playback.Finished)
+            {
+                kind = ctx.Playback.Outcome switch
+                {
+                    MotionOutcome.Cancelled => TransitionResultKind.Cancelled,
+                    MotionOutcome.Failed => TransitionResultKind.Failed,
+                    _ => TransitionResultKind.Completed,
+                };
+            }
+            else
+            {
+                kind = ctx.Completed ? TransitionResultKind.Completed : TransitionResultKind.Cancelled;
+            }
+
+            return new TransitionOutcome
+            {
+                Mode = ctx.Mode,
+                Outgoing = ctx.Outgoing,
+                Incoming = ctx.Incoming,
+                Kind = kind,
+                // Completed 语义 = "表现正常播完"（§6.3）；超时/取消/异常/丢弃都不算
+                Completed = kind == TransitionResultKind.Completed,
+                TimedOut = ctx.TimedOut,
+            };
+        }
 
         private Func<UniTask> BuildPlay(TransitionContext c) => c.Mode switch
         {
-            TransitionMode.Pop => () => _strategy.PlayClose(c.Outgoing, c.Cts.Token),
-            TransitionMode.Push => () => _strategy.PlayShow(c.Incoming, c.Cts.Token),
+            TransitionMode.Pop => () => _strategy.PlayClose(c.Outgoing, c.Playback),
+            TransitionMode.Push => () => _strategy.PlayShow(c.Incoming, c.Playback),
             TransitionMode.Replace => () => PlayReplace(c),
             _ => () => UniTask.CompletedTask,
         };
@@ -224,8 +284,8 @@ namespace LiteGame
         /// <summary>Replace 的"两组并发"：策略实现了 <see cref="IReplaceTransition"/> 走定制，否则壳合成。</summary>
         private UniTask PlayReplace(TransitionContext c)
             => _replace != null
-                ? _replace.PlayReplace(c.Outgoing, c.Incoming, c.Cts.Token)
-                : UniTask.WhenAll(_strategy.PlayClose(c.Outgoing, c.Cts.Token), _strategy.PlayShow(c.Incoming, c.Cts.Token));
+                ? _replace.PlayReplace(c.Outgoing, c.Incoming, c.Playback)
+                : UniTask.WhenAll(_strategy.PlayClose(c.Outgoing, c.Playback), _strategy.PlayShow(c.Incoming, c.Playback));
 
         public string StatsName => "UITransition";
 

@@ -68,6 +68,12 @@ namespace LiteGame.Tests.EditMode
             return new UIForm(info, go);
         }
 
+        /// <summary>反射直调 internal 成员（EditMode 程序集不可见——与既有用例同口径）。</summary>
+        private static void Invoke(object target, string method)
+            => target.GetType()
+                .GetMethod(method, System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance)
+                ?.Invoke(target, null);
+
         /// <summary>同步取结果（只在断言任务已完成时调用——避免在无 PlayerLoop 的 EditMode 里阻塞）。</summary>
         private static TransitionOutcome Result(UniTask<TransitionOutcome> t)
         {
@@ -286,6 +292,165 @@ namespace LiteGame.Tests.EditMode
             Assert.AreEqual(2, rec.ShowCount, "B 的表现发起");
 
             _ = t1; _ = t2;
+        }
+
+        // ---- ⑥ 播放终态（动画专项 §10 / UI §6.3）----
+
+        /// <summary>写终态的假策略：可控完成/取消，并记录是否复位。</summary>
+        private sealed class OutcomeRecorder : ITransitionStrategy
+        {
+            public bool ResetOnCancel;              // 模拟"取消时复位"
+            public int Resets;
+            public bool Hold;                       // 永不主动完成（等外部取消）
+
+            public UniTask PlayShow(UIForm form, CancellationToken ct) => UniTask.CompletedTask;
+            public UniTask PlayClose(UIForm form, CancellationToken ct) => UniTask.CompletedTask;
+
+            public async UniTask PlayShow(UIForm form, MotionPlayback playback)
+            {
+                if (Hold)
+                {
+                    // 等取消信号；收到即"复位"并写终态（真实策略的形态）
+                    var tcs = new UniTaskCompletionSource();
+                    using (playback.Token.Register(() => { if (ResetOnCancel) { Resets++; } tcs.TrySetResult(); }))
+                        await tcs.Task;
+                    playback.Finish(MotionOutcome.Cancelled);
+                    return;
+                }
+                playback.Finish(MotionOutcome.Completed);
+            }
+        }
+
+        [Test]
+        [Category(TestCategory.Contract)]
+        public void 转场_策略写Completed终态_结果按Completed分类()
+        {
+            var rec = new OutcomeRecorder();
+            var runner = new UITransitionRunner(rec);
+            var form = MakeForm(1);
+
+            var t = runner.PlayAsync(TransitionMode.Push, null, form);
+            runner.Tick(0.016f);
+            runner.Tick(0.016f);
+
+            var outcome = Result(t);
+            Assert.AreEqual(TransitionResultKind.Completed, outcome.Kind);
+            Assert.IsTrue(outcome.Completed);
+        }
+
+        [Test]
+        [Category(TestCategory.Contract)]
+        public void 转场_策略写Cancelled终态_未超时也报Cancelled且已复位()
+        {
+            // 回归卡（2026-09-25 真实缺陷）：超时之外，策略被判为取消时结果必须是 Cancelled
+            // 而不是落到兜底；且取消路径必须触发复位（原实现 Kill(true) 不复位）。
+            var rec = new OutcomeRecorder { Hold = true, ResetOnCancel = true };
+            var runner = new UITransitionRunner(rec);
+            var form = MakeForm(1);
+
+            var t = runner.PlayAsync(TransitionMode.Push, null, form);
+            runner.Tick(0.016f);
+
+            // 未超时（MaxDuration 默认 2s）→ 走到超时分支才取消；这里推进到超时
+            runner.Tick(2.1f);
+            runner.Tick(0.016f);
+
+            var outcome = Result(t);
+            Assert.AreEqual(TransitionResultKind.TimedOut, outcome.Kind, "超时优先于播放终态");
+            Assert.IsTrue(outcome.TimedOut);
+            Assert.AreEqual(1, rec.Resets, "取消路径必须复位（§6.3——不得留半截动画）");
+            Assert.AreEqual(TransitionId.Idle, runner.Phase);
+        }
+
+        // ---- ⑦ 真实策略（FadeSlideTransition）的复位与终态 ----
+        // 本组是 2026-09-25 修掉的真实缺陷的回归卡：原 ToTask 用 Kill(true) 复位，
+        // 但本仓 DOTween 实测 Kill(true) **既不跳终值也不派发回调** → 超时取消后页面停在半透明。
+
+        [Test]
+        [Category(TestCategory.Contract)]
+        public void 真实策略_正常完成_写Completed终态且alpha到目标()
+        {
+            var form = MakeForm(1);
+            form.CanvasGroup.alpha = 0f;                       // 入场起点
+            var playback = new MotionPlayback(null);
+
+            var task = new FadeSlideTransition().PlayShow(form, playback);
+            Assert.AreEqual(UniTaskStatus.Pending, task.Status, "Manual 轨需显式推进——任务不应立即完成");
+
+            // UIClock 派发（与 DotweenUiClockDriver 同款：independent=true 取 unscaled 参数）
+            for (int i = 0; i < 40 && task.Status == UniTaskStatus.Pending; i++)
+                DG.Tweening.DOTween.ManualUpdate(0.02f, 0.02f);
+
+            Assert.AreEqual(UniTaskStatus.Succeeded, task.Status, "推进足够步数后应完成");
+            Assert.IsTrue(playback.Finished);
+            Assert.AreEqual(MotionOutcome.Completed, playback.Outcome);
+            Assert.AreEqual(1f, form.CanvasGroup.alpha, 0.01f, "入场终值 = 完全可见");
+            DG.Tweening.DOTween.KillAll();
+        }
+
+        [Test]
+        [Category(TestCategory.Contract)]
+        public void 真实策略_取消时复位到目标视觉_不留半截动画()
+        {
+            // 回归卡：取消（超时/权威）必须复位。原实现 Kill(true) 不复位 → alpha 停在中途。
+            var form = MakeForm(1);
+            form.CanvasGroup.alpha = 0f;
+            using var cts = new System.Threading.CancellationTokenSource();
+            var playback = new MotionPlayback(cts);
+
+            var task = new FadeSlideTransition().PlayShow(form, playback);
+            DG.Tweening.DOTween.ManualUpdate(0.05f, 0.05f);   // 推进一点（未到终值）
+
+            float midway = form.CanvasGroup.alpha;
+            Assert.Greater(midway, 0f, "应已离开起点");
+            Assert.Less(midway, 1f, "尚未到终值（这样才能验复位）");
+
+            cts.Cancel();                                      // 权威取消
+
+            Assert.AreEqual(UniTaskStatus.Succeeded, task.Status, "取消也要让任务收尾（不悬）");
+            Assert.IsTrue(playback.Finished);
+            Assert.AreEqual(MotionOutcome.Cancelled, playback.Outcome, "终态如实记取消");
+            Assert.AreEqual(1f, form.CanvasGroup.alpha, 0.01f, "复位：跳到目标视觉（§6.3）");
+            DG.Tweening.DOTween.KillAll();
+        }
+
+        [Test]
+        [Category(TestCategory.Contract)]
+        public void 真实策略_页面被回收_壳主动取消并收尾_不白等超时()
+        {
+            // 回归卡（2026-09-25 实测发现，比动画专项 §2 记录更严重）：
+            // 本仓 DOTween 1.3.030 的 OnKill **根本不触发**（显式 Kill(false) 与 KillOnDisable 均实测为无回调），
+            // 故页面在转场中被回收时任务会悬着，只能白等 MaxDuration 超时。
+            // 现由壳感知 Recycled/Disposed 并主动取消 → 立刻收尾、如实报 Cancelled、策略复位。
+            var form = MakeForm(1);
+            form.CanvasGroup.alpha = 0f;
+
+            // 用真实策略 + 长超时（避免把"超时兜底"误当成修复）
+            var runner = new UITransitionRunner(new FadeSlideTransition(), maxDuration: 30f);
+            var t = runner.PlayAsync(TransitionMode.Push, null, form);
+            runner.Tick(0.016f);                               // 启动表现
+
+            DG.Tweening.DOTween.ManualUpdate(0.05f, 0.05f);   // 推进一点（未到终值）
+            Assert.Less(form.CanvasGroup.alpha, 1f, "尚未到终值");
+
+            // 页面被回收（缓存淘汰/低内存路径）：走真实迁移序列 Loading → Active → Closing → Recycled。
+            // internal 成员在 EditMode 程序集不可见，用反射直调——与既有用例调用 AnimatedImage 的
+            // OnEnable/Update 同一口径（EditMode 不派发引擎消息时的既定做法）。
+            Invoke(form, "PrepareForShow");                    // Loading → Ready 前置
+            typeof(UIForm).GetProperty("State")?.SetValue(form, UIFormState.Active);
+            Invoke(form, "EnterClosing");
+            Invoke(form, "Recycle");
+            Assert.AreEqual(UIFormState.Recycled, form.State, "已落到池（Recycled）");
+
+            runner.Tick(0.016f);                               // 壳应主动取消（不等 30s 超时）
+            runner.Tick(0.016f);
+
+            var outcome = Result(t);
+            Assert.IsFalse(outcome.TimedOut, "这是页面回收，不是超时（两者语义不同）");
+            Assert.AreEqual(TransitionResultKind.Cancelled, outcome.Kind, "如实报取消");
+            Assert.AreEqual(TransitionId.Idle, runner.Phase, "立即回 Idle——不悬着");
+            Assert.AreEqual(1f, form.CanvasGroup.alpha, 0.01f, "复位到目标视觉（§6.3）");
+            DG.Tweening.DOTween.KillAll();
         }
 
         // ---- 补：策略抛异常不阻塞收尾 ----

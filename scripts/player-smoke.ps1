@@ -7,7 +7,14 @@
 #       poll log for a defined-state marker within timeout -> kill process.
 # Defined-state markers (either passes):
 #   - BootstrapError : preload failed and the built-in minimal error UI shown
-#   - AssetService   : offline bundles present and AssetService initialized
+#   - [Asset] ready  : offline bundles present and AssetService fully initialized
+#   - [UI] main open : real main page opened (U1 full-chain anchor)
+#
+# NOTE (2026-09-25): the bare word 'AssetService' used to be a marker. It matched the
+#   STACK TRACE line of '[Asset] init begin' (LiteGame.AssetService:InitAsync(...)), i.e.
+#   it fired while the app was still *starting up* - a false pass that would mask a hang
+#   in YooAsset initialization. Removed: only completion evidence may pass. Same class of
+#   defect as the C1-11 regex fix below - do not add bare identifiers as markers.
 # Any other outcome (process died early, no marker in timeout) fails.
 # NOTE: keep this file ASCII-only (PS 5.1 GBK parsing of non-BOM UTF-8).
 # Usage: powershell -NoProfile -File scripts/player-smoke.ps1 [-TimeoutSec 30]
@@ -49,7 +56,7 @@ if (Test-Path $playerLog) { Remove-Item $playerLog -Force -ErrorAction SilentlyC
 $proc = Start-Process -FilePath $exe -WorkingDirectory (Split-Path $exe -Parent) -PassThru
 Write-Host "launched (pid $($proc.Id)); polling up to $TimeoutSec s for defined-state marker" -ForegroundColor White
 
-$markers = @('BootstrapError', '[Asset] ready', 'AssetService', '[UI] main open')
+$markers = @('BootstrapError', '[Asset] ready', '[UI] main open')
 $deadline = (Get-Date).AddSeconds($TimeoutSec)
 $hit = $null
 $lastLog = ''

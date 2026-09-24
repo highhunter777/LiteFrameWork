@@ -26,6 +26,10 @@ namespace LiteGame
         /// <summary>本事务的取消源（U1-③，§6.3：超时/权威取消经它停止策略的 Tween/异步工作）。</summary>
         public System.Threading.CancellationTokenSource Cts;
 
+        /// <summary>表现终态容器（动画专项 §10"结束原因"出口；策略写、收尾读）。
+        /// 与 <see cref="Cts"/> 同址：取消信号与终态原因配对，避免"取消后不知道是取消还是完成"。</summary>
+        public MotionPlayback Playback;
+
         /// <summary>表现入口（由 Runner 按模式绑定：策略 / IReplaceTransition 合成）。</summary>
         public Func<UniTask> Play;
 
@@ -43,6 +47,9 @@ namespace LiteGame
 
         /// <summary>超时被强制收尾。</summary>
         public bool TimedOut;
+
+        /// <summary>所属页面在事务中被回收/销毁，壳主动取消（策略失去可靠回调源——见 Runner.Tick）。</summary>
+        public bool OwnerGone;
 
         /// <summary>交互门已关（阶段 OnEnter 幂等守卫）。</summary>
         public bool GateClosed;
