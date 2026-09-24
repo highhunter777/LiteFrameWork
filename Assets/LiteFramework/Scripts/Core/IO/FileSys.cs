@@ -78,6 +78,79 @@ namespace LiteFramework
             return File.Exists(path) ? File.ReadAllText(path) : null;
         }
 
+        // ---- 字节(候选内容用) ----
+
+        /// <summary>
+        /// 原子写字节。**候选文件含二进制**(资源/Lua 字节码/任意清单项),文本通道不能用。
+        /// 与 <see cref="WriteAllText"/> 同款:临时文件 + 元数据级原子提交(§8"不能把普通覆盖写文件称为原子事务")。
+        /// </summary>
+        public static void WriteAllBytes(string relPath, byte[] bytes)
+        {
+            EnsureInit();
+            if (bytes == null) throw new ArgumentNullException(nameof(bytes));
+            string path = Combine(relPath);
+            EnsureDirFor(path);
+            string tmp = path + ".tmp";
+            File.WriteAllBytes(tmp, bytes);
+            CommitAtomic(path, tmp);
+        }
+
+        /// <summary>不存在 → null(与 <see cref="ReadAllText"/> 同语义)。</summary>
+        public static byte[] ReadAllBytes(string relPath)
+        {
+            EnsureInit();
+            string path = Combine(relPath);
+            return File.Exists(path) ? File.ReadAllBytes(path) : null;
+        }
+
+        /// <summary>文件字节长度;不存在 → -1(区别于 0 字节的空文件)。</summary>
+        public static long GetFileLength(string relPath)
+        {
+            EnsureInit();
+            string path = Combine(relPath);
+            return File.Exists(path) ? new FileInfo(path).Length : -1L;
+        }
+
+        /// <summary>
+        /// 递归枚举目录下**所有文件**(相对 RootPath、正斜杠)。目录不存在 → 空数组。
+        ///
+        /// 与 <see cref="GetFiles"/> 的区别:后者非递归、且刻意不带通配符 pattern
+        /// (跨平台大小写行为不一致)。本方法供候选根全量清点用——候选校验需要"清单 vs 落盘"的
+        /// 双向差异,必须看到全部层级。
+        /// </summary>
+        public static string[] GetFilesRecursive(string relDir)
+        {
+            EnsureInit();
+            string dir = Combine(relDir);
+            if (!Directory.Exists(dir)) return Array.Empty<string>();
+
+            string[] full = Directory.GetFiles(dir, "*", SearchOption.AllDirectories);
+            var result = new string[full.Length];
+            int prefixLen = s_path.RootPath.Length + 1;
+            for (int i = 0; i < full.Length; i++)
+                result[i] = full[i].Substring(prefixLen).Replace('\\', '/');
+            return result;
+        }
+
+        /// <summary>
+        /// 递归删除目录(候选清理用)。目录不存在 = 幂等成功。
+        /// **越界保护**:<see cref="Combine"/> 已拒绝绝对路径/盘符/`..` 段,故不可能删到 RootPath 之外。
+        /// </summary>
+        public static void DeleteDirectory(string relDir)
+        {
+            EnsureInit();
+            if (string.IsNullOrEmpty(relDir)) throw new ArgumentException("禁删除根目录", nameof(relDir));
+            string dir = Combine(relDir);
+            if (Directory.Exists(dir)) Directory.Delete(dir, recursive: true);
+        }
+
+        /// <summary>目录是否存在(判定候选根是否已建立)。</summary>
+        public static bool DirectoryExists(string relDir)
+        {
+            EnsureInit();
+            return !string.IsNullOrEmpty(relDir) && Directory.Exists(Combine(relDir));
+        }
+
         // ---- JSON ----
 
         public static void WriteJson<T>(string relPath, T value)
