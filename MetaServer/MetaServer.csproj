@@ -1,0 +1,26 @@
+<Project Sdk="Microsoft.NET.Sdk">  <!--
+    MetaServer（《Meta 服务专项设计》§4.1 宿主选型裁决、§4.2 目标工程结构）。
+    服务端总设计 §6/§11/§12：Generic Host + Options ValidateOnStart + 健康检查 + 优雅关闭。
+
+    依赖红线（§4.1）：<FrameworkReference Include="Microsoft.AspNetCore.App" />
+    引用已安装共享框架，**不产生任何 PackageReference**（2026-09-25 实测 project.assets.json 的 libs=0），
+    符合 C0-① 依赖治理与 scripts/l0-dep-scan.ps1 口径。禁止改用 NuGet Web 包。
+
+    LangVersion 10.0（**有意不同于 RoomServer 的 9.0**）：2026-09-25 实测 C# 9 下最小 API
+    惯用写法（MapGet target-typed lambda / 方法组）全部编译失败（CS1593/CS1503/CS0030），
+    只有逐端点显式委托转换可用。档位差异是技术约束，不是配置疏漏。
+  -->
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net8.0</TargetFramework>
+    <LangVersion>10.0</LangVersion>
+    <Nullable>disable</Nullable>
+    <ImplicitUsings>disable</ImplicitUsings>
+    <IsPackable>false</IsPackable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <FrameworkReference Include="Microsoft.AspNetCore.App" />
+  </ItemGroup>
+
+</Project>

@@ -76,11 +76,28 @@ namespace Tools.DisciplineScan
             LintRule.R11RuntimePurity,
         };
 
+        /// <summary>MetaServer：R11 同类把守（《Meta 服务专项设计》§3.2/§4.2）——
+        /// Meta 的模块层与契约层不得引用 IO/墙钟/Console，也不得引用 LiteNet/proto/Kcp：
+        /// 局外契约不混进战斗协议，且 Meta 类型永不进入 RoomServer/Runtime。
+        /// 宿主装配层（Host/Infrastructure）合法使用 Web/IO，故排除在外。</summary>
+        public static readonly LintRule[] MetaPurityRules =
+        {
+            LintRule.R11RuntimePurity,
+        };
+
         /// <summary>LiteSim 下不适用确定性规则的表现层子根（View 跑引擎、有 GameObject，
         /// 与 Sim 的定点/纯 C# 约束是两回事；只守 R6 原生协程）。</summary>
         public static readonly string[] SimLayerExcludes =
         {
             "Assets/LiteSim/View",
+        };
+
+        /// <summary>MetaServer 的宿主装配层：合法使用 Kestrel/Web/IO/Console（服务端总设计 §12 Generic Host），
+        /// 不属于模块或契约层，故不进 R11 扫描。目标根内其余子目录（Contracts/、Modules/、Infrastructure/）
+        /// 随 §4.2 目录建起后**自动**纳入扫描，无需再改本文件。</summary>
+        public static readonly string[] MetaHostExcludes =
+        {
+            "MetaServer/Host",
         };
 
         /// <summary>默认扫描目标集合。</summary>
@@ -95,6 +112,7 @@ namespace Tools.DisciplineScan
             new ScanTarget("Assets/LiteGame", GameRules),                                      // R8 资源唯一入口
             new ScanTarget("Assets/LiteGame/Scripts/Runtime/Shell/UI", ShellUiRules),          // R10 薄壳/UI 不发业务包
             new ScanTarget("RoomServer/Runtime", RuntimePurityRules),                          // R1 纯运行时层（R1《服务端总设计》§8.1）
+            new ScanTarget("MetaServer", MetaPurityRules, MetaHostExcludes),                    // Meta 模块/契约层（《Meta 服务专项设计》§4.2）
         };
 
         /// <summary>

@@ -137,6 +137,39 @@ namespace LiteFramework.Tests
             Assert.True(hits.Count == 0, "纪律扫描发现违规：\n" + sb);
         }
 
+        /// <summary>
+        /// MetaServer 的 R11 边界登记（《Meta 服务专项设计》§3.2/§4.2）：
+        /// 模块/契约层受纯化把守，宿主装配层（Kestrel/IO/Console）按 §12 合法豁免。
+        ///
+        /// 排除按**目录段前缀**匹配（<c>IsUnderExcludedRoot</c>），故 <c>MetaServer/Host</c>
+        /// 只排 <c>Host/</c> 子目录、不误伤将来的 <c>Hosting/</c>。
+        /// 真实源码是否干净由上面的"零违规"用例证明；本用例钉的是**登记意图**，
+        /// 避免后续误把宿主层扫进去或误把模块层排除掉。
+        /// </summary>
+        [Fact]
+        public void 纪律_MetaServer_登记为受守根_仅宿主层豁免()
+        {
+            bool found = false;
+            ScanTarget meta = default;
+            for (int i = 0; i < ScanTargets.Default.Length; i++)
+            {
+                if (ScanTargets.Default[i].Root == "MetaServer")
+                {
+                    meta = ScanTargets.Default[i];
+                    found = true;
+                    break;
+                }
+            }
+
+            Assert.True(found, "ScanTargets.Default 缺少 MetaServer 目标——模块层将不受纪律扫描把守");
+            Assert.Contains(LintRule.R11RuntimePurity, meta.Rules);
+            Assert.NotNull(meta.ExcludeRoots);
+            Assert.Contains("MetaServer/Host", meta.ExcludeRoots);
+            // 只排宿主层的 Host/ 子目录；模块与契约层必须留在扫描内
+            Assert.DoesNotContain("MetaServer/Modules", meta.ExcludeRoots);
+            Assert.DoesNotContain("MetaServer/Contracts", meta.ExcludeRoots);
+        }
+
         [Fact]
         public void 纪律_R7_非法metaGUID被命中()
         {

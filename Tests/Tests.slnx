@@ -7,6 +7,8 @@
   <Project Path="../Assets/LiteNet/LiteNet.csproj" />
   <Project Path="../Assets/Tools/DisciplineScanner/DisciplineScanner.csproj" />
   <Project Path="../RoomServer/RoomServer.csproj" />
+  <Project Path="../MetaServer/MetaServer.csproj" />
   <Project Path="LiteSim.Core.Tests/LiteSim.Core.Tests.csproj" />
   <Project Path="LiteNet.Tests/LiteNet.Tests.csproj" />
+  <Project Path="MetaServer.Tests/MetaServer.Tests.csproj" />
 </Solution>

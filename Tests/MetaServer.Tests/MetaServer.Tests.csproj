@@ -1,0 +1,29 @@
+<Project Sdk="Microsoft.NET.Sdk">  <!--
+     MetaServer 测试工程。命名必须是 *.Tests.csproj——scripts/test.ps1 以该通配符发现测试工程
+     （`Get-ChildItem -Recurse -Filter '*.Tests.csproj'`），改名会被静默漏跑。
+  -->
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <LangVersion>10.0</LangVersion>
+    <Nullable>disable</Nullable>
+    <ImplicitUsings>disable</ImplicitUsings>
+    <IsTestProject>true</IsTestProject>
+    <IsPackable>false</IsPackable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.11.1" />
+    <PackageReference Include="xunit" Version="2.9.2" />
+    <PackageReference Include="xunit.runner.visualstudio" Version="2.8.2" PrivateAssets="all" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!--
+      被引用即进入 Tests.slnx 的 restore 图。test.ps1 只 restore 测试工程，随后以 no-restore 方式
+      构建 slnx；若 slnx 里的非测试工程没有任何测试工程引用它，构建会直接失败。
+    -->
+    <ProjectReference Include="..\..\MetaServer\MetaServer.csproj" />
+    <ProjectReference Include="..\..\Assets\LiteTesting\LiteTesting.Core.csproj" />
+  </ItemGroup>
+
+</Project>
