@@ -28,6 +28,20 @@ namespace LiteGame
         private string _singleLocation;
         private readonly Dictionary<string, SceneHandle> _additives = new Dictionary<string, SceneHandle>(StringComparer.Ordinal);
         private SceneHandle _lastLoad;                                     // 进度读数源：最近一次发起的加载
+        private readonly CancellationTokenSource _lifetime = new CancellationTokenSource();
+
+        /// <summary>
+        /// 宿主代次：<see cref="ReleaseAll"/> 时递增。在途加载据此判定"我已过期"——
+        /// 底层加载不可中途取消时，迟到的结果必须**释放自己的租约**而不是回写已释放的服务
+        /// （《动画模块专项设计》§9 同款纪律；《客户端总设计》§5"旧回调不能修改新实例"）。
+        /// </summary>
+        private int _generation;
+
+        /// <summary>服务是否已释放（ReleaseAll 后不再接受加载请求）。</summary>
+        public bool IsReleased { get; private set; }
+
+        /// <summary>因宿主已释放而被丢弃的迟到加载结果数（诊断：应恒为 0，非 0 说明有加载跨了关闭）。</summary>
+        public int DiscardedLateLoads { get; private set; }
 
         /// <summary>最近一次加载操作的进度（0~1；无加载为 0）。</summary>
         public float Progress => _lastLoad != null ? _lastLoad.Progress : 0f;
@@ -52,6 +66,9 @@ namespace LiteGame
         public async UniTask LoadSingleAsync(string location, CancellationToken ct = default)
         {
             ValidateLocation(location);
+            ThrowIfReleased(nameof(LoadSingleAsync));
+
+            int generation = _generation;
             await UnloadSingleAsync(ct);
 
             SceneHandle handle = null;
@@ -59,10 +76,23 @@ namespace LiteGame
             {
                 handle = await LoadHandleAsync(location, LoadSceneMode.Single, ct);
             }
-            finally
+            catch
             {
-                // Single 语义已销毁全部旧场景：无论成败，叠加登记都失效（Dispose 释放引用，不再 Unload）
+                // 失败路径也要清理叠加登记（Single 语义可能已销毁旧场景）——见 finally 的说明
                 ClearAdditiveRegistry();
+                throw;
+            }
+
+            // Single 语义已销毁全部旧场景：无论成败，叠加登记都失效（Dispose 释放引用，不再 Unload）
+            ClearAdditiveRegistry();
+
+            // 迟到检查（§9）：等待期间宿主可能已 ReleaseAll——此时不得回写已释放的服务
+            if (generation != _generation || IsReleased)
+            {
+                handle.Dispose();
+                DiscardedLateLoads++;
+                Log.Warning($"单场景加载完成但宿主已释放，结果就地丢弃:{location}", "Scene");
+                return;
             }
 
             _single = handle;
@@ -87,13 +117,25 @@ namespace LiteGame
         public async UniTask LoadAdditiveAsync(string location, CancellationToken ct = default)
         {
             ValidateLocation(location);
+            ThrowIfReleased(nameof(LoadAdditiveAsync));
             if (IsLoaded(location))
             {
                 Log.Warning($"叠加场景已加载，忽略重复请求:{location}", "Scene");
                 return;
             }
 
+            int generation = _generation;
             SceneHandle handle = await LoadHandleAsync(location, LoadSceneMode.Additive, ct);
+
+            // 迟到检查（§9）：等待期间宿主已释放 / 已发生单场景切换清理 → 就地释放引用
+            if (generation != _generation || IsReleased || _additives.ContainsKey(location))
+            {
+                handle.Dispose();
+                DiscardedLateLoads++;
+                Log.Warning($"叠加场景加载完成但宿主已释放或登记已变更，结果就地丢弃:{location}", "Scene");
+                return;
+            }
+
             _additives[location] = handle;
             Log.Info($"叠加场景已加载:{location}（当前叠加数 {_additives.Count}）", "Scene");
         }
@@ -119,6 +161,13 @@ namespace LiteGame
         /// </summary>
         public void ReleaseAll()
         {
+            if (IsReleased) return;                             // 幂等
+            IsReleased = true;
+            _generation++;                                      // 使全部在途加载过期（迟到结果就地释放）
+
+            try { _lifetime.Cancel(); } catch (ObjectDisposedException) { }
+            _lifetime.Dispose();
+
             int released = 0;
             if (_single != null)
             {
@@ -135,10 +184,22 @@ namespace LiteGame
                 _additives.Clear();
             }
 
+            _lastLoad = null;                                   // 进度读数源失效
+
             if (released > 0) Log.Info($"宿主关闭释放 {released} 个场景句柄（退出路径不卸场景，仅归还引用）", "Scene");
         }
 
+        /// <summary>宿主代次取消令牌（服务生命周期）——调用方与自己的 ct 链接，即可获得"宿主关闭级联"。
+        /// 已释放时返回已取消令牌。</summary>
+        public CancellationToken LifetimeToken => _lifetime.Token;
+
         // ---- 内部 ----
+
+        private void ThrowIfReleased(string operation)
+        {
+            if (IsReleased)
+                throw new ObjectDisposedException(nameof(SceneService), $"宿主已释放，拒绝 {operation}");
+        }
 
         private async UniTask<SceneHandle> LoadHandleAsync(string location, LoadSceneMode mode, CancellationToken ct)
         {

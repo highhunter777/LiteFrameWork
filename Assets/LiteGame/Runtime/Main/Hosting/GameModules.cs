@@ -224,6 +224,8 @@ namespace LiteGame
         {
             private PrefabLeaseCache _prefabs;
             private AudioService _audio;
+            private EntityService _entities;
+            private VfxService _vfxService;
 
             public string Name => "Presentation";
 
@@ -232,21 +234,24 @@ namespace LiteGame
                 var content = context.Require<IContentService>();   // 依赖②——注册序即依赖序
                 _prefabs = new PrefabLeaseCache(content);
                 _audio = new AudioService();
-                context.Put(new EntityService(_prefabs.GetAsync));  // 加载口绑租约缓存（实例池常驻期间持租约）
-                context.Put(_audio);
-                var vfxService = new VfxService(
+                _audio.BindClocks(context.Require<IWorldClock>(), context.Require<IUIClock>());   // 淡变分域（§7 时钟表）
+                _entities = new EntityService(_prefabs.GetAsync) { HostScope = context.RootScope };   // 实体作用域挂根（宿主退出级联）
+                _vfxService = new VfxService(
                     loader: _prefabs.GetAsync,
                     clock: context.Require<IWorldClock>(),
                     catalog: new VfxCatalog(),
                     budget: VfxBudget.Default());
-                context.Put(vfxService);
+                context.Put(_entities);
+                context.Put(_audio);
+                context.Put(_vfxService);
                 return UniTask.CompletedTask;
             }
 
             public UniTask ShutdownAsync(CancellationToken ct)
             {
-                _audio?.Shutdown();                           // G1：总线全局停止 + [Audio] 根销毁
-                _prefabs?.ReleaseAll();                      // G1：表现壳 prefab 租约归零（VFX/Entity 常驻池的关闭面）
+                _entities?.Shutdown();                       // 取消在途加载 + 连锁回收活体 + 排空实例池
+                _audio?.Shutdown();                          // 总线全局停止 + [Audio] 根销毁
+                _prefabs?.ReleaseAll();                      // 表现壳 prefab 租约归零（VFX/Entity 常驻池的关闭面）
                 return UniTask.CompletedTask;
             }
         }

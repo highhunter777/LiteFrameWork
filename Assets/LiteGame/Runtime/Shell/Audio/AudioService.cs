@@ -46,6 +46,27 @@ namespace LiteGame
         private readonly Dictionary<Group, GroupDef> _groups = new Dictionary<Group, GroupDef>(4);
         private Transform _root;                             // 关闭后置空（Shutdown 幂等判据）
         private int _nextHandle = 1;
+        private IWorldClock _worldClock;                     // 淡变的世界轨（Effect/Voice）
+        private IUIClock _uiClock;                           // 淡变的 UI 轨（Ui/Bgm）
+
+        /// <summary>
+        /// 分域时钟注入（《动画模块专项设计》§7 时钟表 + 《状态同步专项设计》§6.2"世界/UI 暂停"）：
+        /// 音效随世界暂停/变速，UI 音与 BGM 随 UI 暂停——**不再读 <c>Time.deltaTime</c>**。
+        /// 本工程 <c>Time.timeScale</c> 恒为 1（<see cref="GameClock"/> 纪律），读它等于永不暂停：
+        /// 旧注释声称的"时停即停"从未成立。未注入时退化为真实帧步进（编辑器/测试兜底）。
+        /// </summary>
+        public void BindClocks(IWorldClock world, IUIClock ui)
+        {
+            _worldClock = world;
+            _uiClock = ui;
+        }
+
+        /// <summary>组 → 时钟域（Effect/Voice 走世界轨；Ui/Bgm 走 UI 轨——UI 暂停不该掐掉战斗音效）。</summary>
+        private float DeltaSeconds(Group group)
+        {
+            IGameClock clock = group == Group.Effect || group == Group.Voice ? (IGameClock)_worldClock : _uiClock;
+            return clock != null ? clock.ScaledDelta : UnityEngine.Time.deltaTime;
+        }
 
         public AudioService(int effectProxies = 4, int uiProxies = 2, int voiceProxies = 2, int bgmProxies = 2)
         {
@@ -243,7 +264,9 @@ namespace LiteGame
 
         /// <summary>
         /// 音量淡变（fire-and-forget）：k 从 from 到 to 线性过渡，音量 = BaseVolume × 组音量 × k。
-        /// 世界轨（Time.deltaTime）：时停即停，与音效语义一致。自检退出：句柄被抢占/停止即取消。
+        /// **时钟域**：按组取 <see cref="DeltaSeconds"/>——Effect/Voice 吃 WorldClock（世界暂停即停），
+        /// Ui/Bgm 吃 UIClock。暂停期间 dt 为 0，淡变原地保持（不推进也不误判完成）。
+        /// 自检退出：句柄被抢占/停止即取消（不靠时钟推进来发现失效）。
         /// </summary>
         private async UniTaskVoid FadeAsync(GroupDef g, Proxy p, int handle, float fromK, float toK, float duration)
         {
@@ -251,11 +274,14 @@ namespace LiteGame
             float t = 0f;
             while (p.Handle == handle)
             {
-                float dt = UnityEngine.Time.deltaTime;
-                t += dt;
-                float k = Mathf.Lerp(fromK, toK, Mathf.Clamp01(t / duration));
-                ApplyVolume(g, p, k);
-                if (t >= duration) break;
+                float dt = DeltaSeconds(g.Group);
+                if (dt > 0f)
+                {
+                    t += dt;
+                    float k = Mathf.Lerp(fromK, toK, Mathf.Clamp01(t / duration));
+                    ApplyVolume(g, p, k);
+                    if (t >= duration) break;
+                }
                 await UniTask.Yield(PlayerLoopTiming.Update);
             }
 

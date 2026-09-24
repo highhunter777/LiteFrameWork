@@ -30,7 +30,7 @@ namespace LiteFramework
     public sealed class GameObjectPool
     {
         private readonly Dictionary<string, ObjectPool<GameObject>> _buckets = new Dictionary<string, ObjectPool<GameObject>>(8);
-        private readonly Transform _root;                  // 池化停放容器（整体隐藏——池内物必非激活）
+        private Transform _root;                           // 池化停放容器（整体隐藏——池内物必非激活）；Dispose 后置空
 
         public GameObjectPool(Transform root = null, int maxIdlePerKey = 32)
         {
@@ -38,14 +38,21 @@ namespace LiteFramework
             if (root != null)
             {
                 _root = root;
+                _ownsRoot = false;
             }
             else
             {
+                _ownsRoot = true;
                 _root = new GameObject("[GameObjectPool]").transform;
-                UnityEngine.Object.DontDestroyOnLoad(_root.gameObject);
+                // DontDestroyOnLoad 仅 Play mode 合法（编辑器脚本/EditMode 用例直调抛 InvalidOperationException）——
+                // 与 UIService/AudioService 同口径：编辑态跳过，编辑态池随测试作用域销毁即可。
+                if (Application.isPlaying)
+                    UnityEngine.Object.DontDestroyOnLoad(_root.gameObject);
             }
             _root.gameObject.SetActive(false);
         }
+
+        private bool _ownsRoot;                              // 自建根才由本池销毁（注入的 root 归注入方）
 
         public int MaxIdlePerKey { get; }
 
@@ -81,7 +88,7 @@ namespace LiteFramework
                 throw new InvalidOperationException("该 GameObject 无桶键标记——不是本池产物，禁止入池");
 
             go.GetComponent<IPoolLifecycle>()?.OnRecycle();
-            go.transform.SetParent(_root, false);
+            if (_root != null) go.transform.SetParent(_root, false);   // Dispose 后无停放容器——保持在位即可
             GetBucket(marker.Key, null).Release(go);       // 桶必然已存在（产物由此而出）
         }
 
@@ -99,6 +106,41 @@ namespace LiteFramework
         public int PooledCount(string key)
             => _buckets.TryGetValue(key, out var pool) ? pool.UnusedCount : 0;
 
+        /// <summary>
+        /// 排空全部桶并销毁闲置实例（池的生命周期释放面——宿主关闭/场景卸载时调用）。
+        /// **只销毁闲置件**：仍在使用中的实例由调用方先归还/回收（谁持有谁负责，池不越权回收使用中的对象）。
+        /// 幂等；桶结构保留（再次 Get 会重建桶）。销毁口径走各桶自己的 onDestroy（UnityEngine.Object.Destroy）。
+        /// </summary>
+        public void Clear()
+        {
+            foreach (var bucket in _buckets.Values)
+                bucket.Clear();                            // ObjectPool.Clear = Trim(0)：销毁全部闲置件
+        }
+
+        /// <summary>
+        /// 池的完整释放面：<see cref="Clear"/> + 销毁自建池根（未注入 root 时才有权销毁——注入的 root 归注入方）。
+        /// 幂等；释放后再 Get/Release 会自建新桶（不抛——池是可再生的，与服务关闭语义不同）。
+        /// </summary>
+        public void Dispose()
+        {
+            Clear();
+            if (_ownsRoot && _root != null)
+            {
+                DestroyAtRuntime(_root.gameObject);
+                _root = null;
+            }
+        }
+
+        /// <summary>销毁口径：Play mode 走延迟销毁（不打断当帧），编辑态走立即销毁
+        /// （EditMode 无延迟销毁帧，<c>Destroy</c> 会报错——与 UIService/AudioService 同口径）。</summary>
+        private static void DestroyAtRuntime(GameObject go)
+        {
+#if UNITY_EDITOR
+            if (!Application.isPlaying) { UnityEngine.Object.DestroyImmediate(go); return; }
+#endif
+            UnityEngine.Object.Destroy(go);
+        }
+
         private ObjectPool<GameObject> GetBucket(string key, Func<GameObject> create)
         {
             if (!_buckets.TryGetValue(key, out var pool))
@@ -112,7 +154,7 @@ namespace LiteFramework
                     },
                     onGet: go => go.SetActive(true),
                     onRelease: go => go.SetActive(false),
-                    onDestroy: go => UnityEngine.Object.Destroy(go),
+                    onDestroy: go => DestroyAtRuntime(go),
                     maxIdle: MaxIdlePerKey,
                     statsName: $"GameObjectPool.{key}");
                 _buckets[key] = pool;

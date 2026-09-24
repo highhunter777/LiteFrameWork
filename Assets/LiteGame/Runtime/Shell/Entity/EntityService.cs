@@ -14,6 +14,13 @@ namespace LiteGame
         public string Location { get; }
         public GameObject GameObject { get; internal set; }
 
+        /// <summary>
+        /// 实体级作用域（《商业级通用客户端框架总设计》§6.2 实体域；《框架先行》§5 接缝 1）：
+        /// **谁创建谁取消**——实体随宿主（场景/对局/展示）退出而回收，其上的异步与定时器的取消源就是这里。
+        /// 与下方订阅袋同址：取消令牌、资源登记、事件订阅三项都随实体回收一并收口，不留裸根任务。
+        /// </summary>
+        public ClientScope Scope { get; internal set; }
+
         private SubscriptionBag _subs;
         private bool _released;
 
@@ -73,13 +80,69 @@ namespace LiteGame
         private readonly Dictionary<int, int> _parentOf = new Dictionary<int, int>(8);                        // 挂接：child → parent
         private readonly Dictionary<int, List<int>> _attachments = new Dictionary<int, List<int>>(8);         // 挂接：parent → [child]（容器可枚举）
         private readonly Func<string, CancellationToken, UniTask<GameObject>> _loadPrefab;   // 加载口（G1：绑 PrefabLeaseCache——租约持有；缺省静态门面为迁移期兼容）
+        private readonly CancellationTokenSource _lifetime = new CancellationTokenSource();   // 宿主关闭级联（在途加载链接它）
         private int _nextHandle = 1;
+
+        /// <summary>显式宿主作用域（装配点注入；null = 每个实体自建独立作用域，仅靠 <see cref="Hide"/> 回收）。</summary>
+        public ClientScope HostScope { get; set; }
+
+        /// <summary>是否已关闭（<see cref="Shutdown"/> 后不再接受新实体）。</summary>
+        public bool IsShutdown { get; private set; }
+
+        /// <summary>重复归还计数（诊断：对未知/已回收句柄的 Hide——多次归还是纪律问题，要可见）。</summary>
+        public int DuplicateReturns { get; private set; }
+
+        /// <summary>池中闲置实例数（诊断/泄漏断言：反复循环后应回到预期基线，不无界增长）。</summary>
+        public int PooledTotal => _pool.PooledTotal;
+
+        /// <summary>当前活体实体数（诊断/基线断言）。</summary>
+        public int ActiveCount => _active.Count;
+
+        /// <summary>加载在途数（诊断：关闭后应为 0）。</summary>
+        public int InFlightCount => _inFlight.Count;
 
         /// <param name="loadPrefab">prefab 加载口（装配点绑 <see cref="PrefabLeaseCache"/>——实例池常驻期间持租约；
         /// null = 静态 <see cref="AssetService"/> 兼容（迁移期，热更批全量收口）。</param>
         public EntityService(Func<string, CancellationToken, UniTask<GameObject>> loadPrefab = null)
         {
             _loadPrefab = loadPrefab ?? AssetService.LoadAssetAsync<GameObject>;
+        }
+
+        /// <summary>
+        /// 关闭释放面（宿主关闭）：取消在途加载（链接取消令牌）、回收全部活体、清空竞态表、排空实例池。
+        /// 幂等。收回调链会连锁收子件——与正常回收同一路径（不留第二套语义）。
+        /// </summary>
+        public void Shutdown()
+        {
+            if (IsShutdown) return;
+            IsShutdown = true;
+
+            try { _lifetime.Cancel(); } catch (ObjectDisposedException) { }   // 取消在途加载
+
+            var handles = new List<int>(_active.Keys);
+            for (int i = 0; i < handles.Count; i++)
+                if (_active.ContainsKey(handles[i]))          // 级联回收可能已带走子件——跳过快照里已消失的
+                    HideInternal(handles[i]);
+
+            _releaseOnLoad.Clear();
+            _inFlight.Clear();
+            _attachments.Clear();
+            _parentOf.Clear();
+            _pool.Clear();                                                     // 排空驻留实例（池根随之销毁）
+
+            _lifetime.Dispose();
+            Log.Info($"实体壳已关闭（回收 {handles.Count} 个活体，池已排空）", "Entity");
+        }
+
+        /// <summary>宿主关闭级联令牌（在途加载链接它——关闭即取消，不靠等待）。</summary>
+        public CancellationToken LifetimeToken => _lifetime.Token;
+
+        /// <summary>实体作用域（注入宿主作用域则建子作用域——宿主退出级联取消实体上的全部工作；
+        /// 未注入则各自独立，仅靠回收点 Dispose）。</summary>
+        private ClientScope NewEntityScope(int handleId)
+        {
+            string name = $"Entity[{handleId}]";
+            return HostScope != null ? HostScope.CreateChild(name) : new ClientScope(name);
         }
 
         /// <summary>预占句柄（竞态场景用：先 Reserve → ShowAsync(id) → 任意时刻 Hide(id)）。</summary>
@@ -98,7 +161,7 @@ namespace LiteGame
             // 池命中：零加载直取（生命周期 OnSpawn 由通用池驱动）
             if (_pool.TryGet(location, out var pooled, parent))
             {
-                var pooledHandle = new EntityHandle(handleId, location, pooled);
+                var pooledHandle = new EntityHandle(handleId, location, pooled) { Scope = NewEntityScope(handleId) };
                 _active[handleId] = pooledHandle;
                 Log.Info($"实体[{handleId}] 复用（{location}，池中 {_pool.PooledTotal}）", "Entity");
                 return pooledHandle;
@@ -119,7 +182,7 @@ namespace LiteGame
 
                 // 首建：经通用池建桶（打 PooledInstance 标记，后续走复用）
                 var go = _pool.Get(location, () => UnityEngine.Object.Instantiate(prefab, parent), parent);
-                var handle = new EntityHandle(handleId, location, go);
+                var handle = new EntityHandle(handleId, location, go) { Scope = NewEntityScope(handleId) };
                 _active[handleId] = handle;
                 handle.GameObject.GetComponent<IPoolLifecycle>()?.OnSpawn();
                 Log.Info($"实体[{handleId}] 显示（{location}，池中 {_pool.PooledTotal}）", "Entity");
@@ -195,10 +258,10 @@ namespace LiteGame
                 ? (IReadOnlyList<int>)list.ToArray()
                 : Array.Empty<int>();
 
-        /// <summary>隐藏实体：连锁收子件 → 脱离父容器 → 回收。加载在途 → 竞态表；未知句柄告警忽略。</summary>
+        /// <summary>隐藏实体：连锁收子件 → 脱离父容器 → 回收。加载在途 → 竞态表；未知句柄 = 幂等 no-op + 计数。</summary>
         public void Hide(int handleId)
         {
-            if (_active.TryGetValue(handleId, out var handle))
+            if (_active.TryGetValue(handleId, out _))
             {
                 HideInternal(handleId);
                 return;
@@ -208,7 +271,10 @@ namespace LiteGame
                 _releaseOnLoad.Add(handleId);              // 加载竞态表：完成后立即取消
                 return;
             }
-            Log.Warning($"实体[{handleId}] 未知句柄——Hide 忽略", "Entity");
+
+            // 重复归还/未知句柄：**幂等 no-op**（重复归还不是错误状态，但也绝不该静默——
+            // 计数留痕，供诊断提示调用方纪律问题）。不抛异常：清理路径抛异常会让关停链断在半路。
+            DuplicateReturns++;
         }
 
         /// <summary>回收连锁（内部）：① 递归收子件（子件的子件递归；容器随递归变动，拷贝遍历）
@@ -233,6 +299,8 @@ namespace LiteGame
             }
             var handle = _active[handleId];
             handle.DisposeSubscriptions();                 // 订阅清零在池回收之前：OnRecycle 期间已无事件可打进来
+            handle.Scope?.Dispose();                       // 实体作用域收口（取消令牌 + 登记资源）——先于池回收
+            handle.Scope = null;
             _pool.Release(handle.GameObject);
             _active.Remove(handleId);
             Log.Info($"实体[{handleId}] 回收（连锁含子件）", "Entity");
