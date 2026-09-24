@@ -20,3 +20,4 @@
 | [客户端C2.md](客户端C2.md) | 《商业级通用客户端框架总设计》C2 会话与表现：BattleClient/BattleContext、Match/Battle 流程与 Account/Match Scope、断线自动重连与恢复、地图单源；LiteSim.View 的 SimView（镜像/远端插值/本地和解衰减/事件静默门）、EntityViewMap 池、相机档位、PlayerController 输入采集与三个门；附带通用表现壳所有权（租约缓存/音频释放面/DOTween Manual 轨接 UIClock）。HUD/角色动画与 Login/Lobby/Result 留后续批 |
 | [客户端表现基础.md](客户端表现基础.md) | 《框架先行》§7 第 4 项余部：Scene/Entity/Audio 生命周期收敛（迟到加载代次检查、实体作用域与关闭面、分域时钟、池释放面）+ 《动画模块专项设计》首个批次的纯规则半部（AnimationId/Handle 三分量身份/终态/Profile Resolver/通道仲裁/有界保留）。UI 接缝半部、Animator 后端与真角色验收留后续批 |
 | [Meta服务宿主.md](Meta服务宿主.md) | 《Meta 服务专项设计》§4.1/§4.2/§10/§11：宿主骨架（Generic Host + Options 范围校验 ValidateOnStart + `/live` `/ready` `/metrics` + 优雅关闭与 drain + 入站上限）、零 NuGet 接入、R11 边界登记。含三处静默失效缺陷的实测与修正。持久化样例（M0-c）与票据验证接口（M0-d）未交付 |
+| [热更内容校验.md](热更内容校验.md) | 《热更与内容发布专项设计》§5/§7/§12：候选文件 IO 与空间端口、失败分类（暂态/确定性）、逐文件摘要复算与双向差异、下载计划与多源轮转/有界重试。填平"信任侧已备好、执行侧为零"的缺口。下载执行适配（H3-b）、PatchCoordinator（H3-c）、Lua 候选验证（H3-d）、健康确认（H3-e）未交付 |
