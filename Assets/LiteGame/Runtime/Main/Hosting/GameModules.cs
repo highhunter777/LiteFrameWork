@@ -50,9 +50,57 @@ namespace LiteGame
             {
                 _content = new YooAssetContentService();
                 context.Put<IContentService>(_content);
+                context.Put<IGenerationSink>(_content);                                      // 代次推进（§9：确认后切换，失败回退）
                 context.Put(new ActivationTransactionStore(new FileActivationRecordIO()));   // C1-⑩：启动恢复决策（Patch 流程消费）
+
+                // 内容事务编排（§7/§8）。装配形态决定能力边界：
+                // - **候选来源 = 本地信封文件**（`content/candidate.json`）：可在无 CDN 条件下走完整链路，
+                //   用于故障注入与双版本联调。**真实 CDN 通道属 H3-b，未交付**。
+                // - **磁盘余量 = DriveInfo**：桌面返回真实可用空间；移动端不支持 → -1 不可知 →
+                //   空间预检按不足处理（刻意 fail-closed，见 DriveInfoSpaceProbe 注释）。
+                // - **健康确认 = 空聚合**：无探针 → CompositeHealthCheck 判为**不健康**（§8）。
+                //   于是当前形态下**任何候选都会被拒绝**——这是刻意的：在真资源探针（待办 5）
+                //   就位前，不得让未验证的候选通过。链路可测，但不可发布。
+                var candidateFiles = new FileSysCandidateFileSource(CandidateRoot);
+                var coordinator = new PatchCoordinator(
+                    context.Require<ActivationTransactionStore>(),
+                    candidateFiles,
+                    new DriveInfoSpaceProbe(UnityEngine.Application.persistentDataPath),
+                    new LocalDirectoryCandidateFetcher(CandidateRoot),
+                    new CompositeHealthCheck(),                                              // 无探针 → 不健康（§8）
+                    new ContentActivator(_content));
+                context.Put(new PatchRunner(
+                    new FileSystemCandidateProvider(),
+                    BuildPlayerCapabilities(),
+                    context.Require<ActivationTransactionStore>(),
+                    coordinator,
+                    verifier: null,                                                          // 无受信公钥 → 候选一律被拒（见 BuildPlayerCapabilities）
+                    budget: null));
+                context.Put(coordinator);
                 return UniTask.CompletedTask;
             }
+
+            /// <summary>候选根（FileSys 相对路径）。</summary>
+            internal const string CandidateRoot = "content/candidate";
+
+            /// <summary>
+            /// 运行时可接受的能力下限（§5 版本元组"当前 Player 实际具备"的一侧）。
+            /// 由编译期常量/生成物填充——**不接受运行时可变来源**（否则兼容判定可被内容影响）。
+            ///
+            /// 本形态下多数维度取 0 = 不限；`AppVersion` 留空 = 不要求精确匹配。
+            /// 真实能力声明随生成链接线（§5"不能只上报 Player 内旧常量"）。
+            /// </summary>
+            private static PlayerCapabilities BuildPlayerCapabilities() => new PlayerCapabilities
+            {
+                AppVersion = "",
+                Platform = UnityEngine.Application.platform.ToString(),
+                Channel = "",
+                BridgeApiVersion = 0,
+                ProtocolVersion = 0,
+                SimVersion = 0,
+                ConfigSchemaVersion = 0,
+                SaveSchemaVersion = 0,
+            };
 
             public UniTask ShutdownAsync(CancellationToken ct)
                 => _content?.ShutdownAsync(ct) ?? UniTask.CompletedTask;   // 释放面：剩余租约/句柄归零
@@ -317,9 +365,10 @@ namespace LiteGame
                 var refill = new LuaRegistryRefillService(lua, uiService, config, uiRegistry, contentRegistry, strategyRegistry);
                 var rootToken = context.RootScope.Token;            // C1-⑦ 统一取消链：流程阶段 CTS 链接宿主根令牌
                 var activations = context.Require<ActivationTransactionStore>();   // C1-⑩：Patch 流程消费（Content ②产物）
+                var patchRunner = context.Require<PatchRunner>();                  // 热更：内容事务编排
                 return new StageMachine<ProcedureId, ProcedureArgs>("Procedure",
                     (ProcedureId.Launch, new ProcedureLaunch(container, config, scenes, uiRegistry, contentRegistry, strategyRegistry, uiService, redDotRegistry, logicScheduler, uiScheduler, timelineRunner, entityService, audioService, vfxService, refill, rootToken)),
-                    (ProcedureId.Patch, new ProcedurePatch(content, activations, rootToken)),
+                    (ProcedureId.Patch, new ProcedurePatch(content, activations, patchRunner, rootToken)),
                     (ProcedureId.Preload, new ProcedurePreload(content, config, lua, filler, events, ListLuaAssetPaths, rootToken)),
                     (ProcedureId.Main, new ProcedureMain(uiService, rootToken)),
                     (ProcedureId.Match, new ProcedureMatch(context.RootScope, rootToken)),

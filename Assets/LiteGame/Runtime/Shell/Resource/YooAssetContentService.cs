@@ -19,7 +19,7 @@ namespace LiteGame
     ///   Host 模式下载/校验/激活/回滚事务归批次D（PatchCoordinator），本批不虚构。
     /// - **主线程 only**（YooAsset 操作无线程安全承诺——与 AssetService 同款纪律）。
     /// </summary>
-    public sealed class YooAssetContentService : IContentService
+    public sealed class YooAssetContentService : IContentService, IGenerationSink
     {
         /// <summary>加载键：(内容代次, location, 类型)——§8.2"加载与缓存键包含代次"。</summary>
         private readonly struct LoadKey : IEquatable<LoadKey>
@@ -70,6 +70,23 @@ namespace LiteGame
             await AssetService.InitAsync(ct: ct);                 // 幂等：与 ProcedurePreload/既有调用方共存
             _generation = ContentGeneration.Default;
             Interlocked.Exchange(ref _initialized, 1);
+        }
+
+        /// <summary>
+        /// 代次推进（<see cref="IGenerationSink"/>，《热更与内容发布专项设计》§9）。
+        ///
+        /// 补上此前缺口：<c>_generation</c> 原先只在 <c>InitializeAsync</c> 里被设为 Default，
+        /// **无 setter、从未切换过**——于是即使候选健康确认通过，新内容也永远不会被加载
+        /// （加载键含代次，见 <see cref="LoadKey"/>）。
+        ///
+        /// <see cref="PatchCoordinator"/> 在「确认提交」后推进到新代次、在「失败回退」时提示回已确认代次。
+        /// **已持有的租约不受影响**：租约持有的是句柄，旧代次的键仍指向旧句柄，
+        /// 新获取才走新代次（§9"旧 Scope 继续从自己的 generation 加载"）。
+        /// </summary>
+        public void Advise(ContentGeneration generation)
+        {
+            if (generation.ReleaseId == null) return;             // 未指定 = 不改动（防御：default 无身份）
+            _generation = generation;
         }
 
         public async UniTask<AssetLease<T>> AcquireAsync<T>(string location, ContentGeneration generation = default, CancellationToken ct = default)

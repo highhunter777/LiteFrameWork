@@ -63,7 +63,11 @@ namespace LiteFramework
 
         internal static PatchRunResult Nothing() => new PatchRunResult(false, true, PatchPhase.Idle, default, null);
 
-        internal static PatchRunResult Fail(PatchPhase phase, DownloadFailureInfo failure, string detail)
+        /// <summary>
+        /// 失败结果。**public 供装配层构造**（`PatchRunner` 在候选描述被拒时需产出失败结果——
+        /// 该路径不进入 <see cref="PatchCoordinator"/>）。
+        /// </summary>
+        public static PatchRunResult Fail(PatchPhase phase, DownloadFailureInfo failure, string detail)
             => new PatchRunResult(false, false, phase, failure, detail);
 
         public override string ToString()

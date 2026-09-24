@@ -91,4 +91,41 @@ namespace LiteFramework
     {
         void Advise(ContentGeneration generation);
     }
+
+    /// <summary>
+    /// 一份候选提案（§6"先验证描述的结构/预算与签名，再依据可信描述计划下载"）。
+    ///
+    /// <see cref="SignedBytes"/> 是**描述文件的原始字节**（签名对象，不做换行归一化——§5）；
+    /// <see cref="Signature"/> 是解码后的签名字节。三者一起交给校验器，
+    /// **不得由提供方代判是否可信**（信任判定只在 <see cref="ReleaseManifestValidator"/>）。
+    /// </summary>
+    public readonly struct CandidateOffer
+    {
+        public readonly ReleaseManifest Manifest;
+        public readonly byte[] SignedBytes;
+        public readonly byte[] Signature;
+
+        public CandidateOffer(ReleaseManifest manifest, byte[] signedBytes, byte[] signature)
+        {
+            Manifest = manifest;
+            SignedBytes = signedBytes;
+            Signature = signature;
+        }
+
+        /// <summary>无候选（已是最新 / 无发布通道）。</summary>
+        public bool IsEmpty => Manifest == null;
+    }
+
+    /// <summary>
+    /// 候选来源端口（§6/§7）。取回"有没有新发布、它是什么"——**不负责判断可不可信**。
+    ///
+    /// 实现方可读本地目录、可查询发布服务；无论哪种，返回的都是**未经信任的**提案，
+    /// 由 <see cref="ReleaseManifestValidator"/> 校验后才可依据其内容行动。
+    /// 真实 CDN 通道属 H3-b，不在本端口的最小实现内。
+    /// </summary>
+    public interface ICandidateProvider
+    {
+        /// <summary>取候选；无候选返回 <see cref="CandidateOffer.IsEmpty"/> 为 true 的结果（不是异常）。</summary>
+        UniTask<CandidateOffer> TryGetCandidateAsync(CancellationToken ct = default);
+    }
 }
