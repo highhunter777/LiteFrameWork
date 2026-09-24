@@ -4,6 +4,7 @@ using LiteFramework;
 using LiteNet;
 using LiteNet.Protocol;
 using LiteSim;
+using LiteSim.View;
 
 namespace LiteGame
 {
@@ -59,14 +60,19 @@ namespace LiteGame
         private readonly BattleClient _battle;
         private readonly ClientScope _matchScope;
         private readonly SimMapData _map;
-        private readonly Func<SimInputFrame> _inputProvider;
+        private Func<SimInputFrame> _inputProvider;
 
         private RollbackSim _sim;
         private SimWorldState _mirror;                       // 持久权威镜像（增量快照只在它上面累积才完整，§5.5）
+        private readonly SimWorldStateSnapshot[] _viewSnapshots = new SimWorldStateSnapshot[2];   // 视图插值源（轮转：上一份/最新一份）
+        private int _viewSnapWrite;                          // 下一次写入下标（0/1 轮转）
         private long _localEntityId;
         private long _reconcileCount;
         private bool _disposed;
         private int _ended;
+
+        /// <summary>表现视图（C2 批② SimView 建后挂上；null = 无视图——纯会话/测试形态仍完整可跑）。</summary>
+        public SimView View { get; private set; }
 
         /// <param name="inputProvider">本地输入采集（批② PlayerController 注入；null = 空输入——纯会话/测试形态）。</param>
         public BattleContext(BattleClient battle, ClientScope accountScope,
@@ -94,7 +100,43 @@ namespace LiteGame
         }
 
         /// <summary>
-        /// 每帧驱动（ProcedureBattle.OnUpdate 调——唯一驱动入口）：网络双泵 → 输入上行 + 预测推进。
+        /// 挂上表现视图（C2 批②——须在 StartGame 之后调用：SimView 要本地预测态 <see cref="RollbackSim.State"/>）。
+        /// 视图生命周期由调用方（ProcedureBattle）随 Match Scope 收尾；本方法只做接线与首帧对齐。
+        /// </summary>
+        public void AttachView(SimView view)
+        {
+            if (_disposed) throw new ObjectDisposedException(nameof(BattleContext));
+            View = view ?? throw new ArgumentNullException(nameof(view));
+
+            // 回滚/和解 → 视图静默闸；帧事件在**逻辑帧边界**交付（事件是帧内瞬态，事后轮询读不到）
+            if (_sim != null)
+            {
+                _sim.OnRollback = View.OnRollback;
+                _sim.OnReconcile = View.OnReconcile;
+                _sim.OnFrameEvents = View.OnFrameEvents;
+                View.AlignLocal(_localEntityId);
+            }
+        }
+
+        /// <summary>
+        /// 挂输入采集口（C2 批②：PlayerController 的注入点；null = 恢复空输入）。
+        /// 与 ctor 的 inputProvider 同义，供"视图建在上下文之后"的装配序使用。
+        /// </summary>
+        public void AttachInput(Func<SimInputFrame> provider) => _inputProvider = provider;
+
+        /// <summary>本地玩家**预测**位置（输入瞄准的参照原点——不读视图 Transform，避免平滑误差回灌输入）。
+        /// 未对齐/未开局时返回原点。</summary>
+        public SimVector3 LocalPosition
+        {
+            get
+            {
+                if (_sim == null || _localEntityId == 0) return default;
+                return _sim.State.TryResolve(_localEntityId, out int slot) ? _sim.State.Entities[slot].Pos : default;
+            }
+        }
+
+        /// <summary>
+        /// 每帧驱动（ProcedureBattle.OnUpdate 调——唯一驱动入口）：网络双泵 → 输入上行 + 预测推进 → 表现视图。
         /// Sim 未建（StartGame 未达）时只泵网络；输入只在对局中发送。
         /// </summary>
         public void Tick(float realDelta)
@@ -108,10 +150,15 @@ namespace LiteGame
             var local = _inputProvider != null ? _inputProvider() : default;
             local.EntityId = _localEntityId;
 
+            // 视点帧 = 最新快照帧 + 插值帧数（《状态同步专项设计》§3.4.1：玩家所见帧落后最新快照）
+            int snapshotFrame = _battle.Client.LastSnapshotFrame;
+            int viewFrame = snapshotFrame >= 0 ? snapshotFrame + SimConfig.InterpFrames : 0;
+
             if (_battle.Connected)
-                _battle.Client.SendInput(_sim.State.Frame + 1, local, viewFrame: 0);
+                _battle.Client.SendInput(_sim.State.Frame + 1, local, viewFrame: viewFrame);
 
             _sim.Tick(realDelta);
+            View?.Tick(realDelta);               // 表现视图（网络/Sim 之后：本帧权威已应用）
         }
 
         /// <summary>主动离场（幂等）——流程层据 <see cref="Ended"/> 收尾回 Main。</summary>
@@ -141,11 +188,19 @@ namespace LiteGame
             for (int i = 0; i < ExpectedPlayers; i++) template[i].EntityId = i;   // 服务器覆写防伪；本地预测按 playerId 对齐
 
             _sim = new RollbackSim(world, _map, template);
+
+            // 批②：视图若已挂（AttachView 早于 StartGame），补上回滚/和解/帧事件接线
+            if (View != null)
+            {
+                _sim.OnRollback = View.OnRollback;
+                _sim.OnReconcile = View.OnReconcile;
+                _sim.OnFrameEvents = View.OnFrameEvents;
+            }
         }
 
         /// <summary>
         /// 快照：镜像重建 → 和解（checksum 比对/覆盖/重放）→ 无和解时刷新非预测量（弹药/CD/比赛状态——
-        /// P0 分层：不预测的量只能随包来）。首份快照对齐本地实体 Id。
+        /// P0 分层：不预测的量只能随包来）→ 视图插值源推进。首份快照对齐本地实体 Id。
         /// </summary>
         private void OnSnapshot(LiteNet.Proto.StateSnapshot snapshot)
         {
@@ -164,6 +219,8 @@ namespace LiteGame
             {
                 SnapshotReassembler.OverlayPrivateAndMatch(snapshot, _sim.State);
             }
+
+            PushViewSnapshot();                      // 视图插值源：上一份/最新一份轮转
         }
 
         /// <summary>
@@ -184,7 +241,30 @@ namespace LiteGame
             if (_sim != null)
                 _sim.OnAuthoritativeSnapshot(response.Snapshot.Frame, _mirror, checksum);
 
+            PushViewSnapshot();                      // 恢复快照同样是插值源（重连后不跳帧）
+            View?.AlignLocal(_localEntityId);        // 重连可能换了实体/复活的命：重新落位
+
             _battle.Client.CompleteRestore();
+        }
+
+        /// <summary>
+        /// 把当前镜像拷进视图插值源（两块轮转）。用 <see cref="SimWorldStateSnapshot.CaptureFull"/>
+        /// 而非增量摘要——视图要的是**完整**槽位，而 <c>SnapshotReassembler</c> 只保证"缺席 = 未变化"
+        /// （增量包的槽位可能没被这帧指到，必须从持久镜像整体取）。
+        /// </summary>
+        private void PushViewSnapshot()
+        {
+            if (View == null) return;
+            var snap = _viewSnapshots[_viewSnapWrite];
+            if (snap == null)
+            {
+                snap = new SimWorldStateSnapshot();
+                _viewSnapshots[_viewSnapWrite] = snap;
+            }
+            snap.CaptureFull(_mirror);
+            _viewSnapWrite ^= 1;                     // 轮转：下一份写另一块，保留当前这份供插值
+
+            View.OnAuthoritativeSnapshot(snap);
         }
 
         /// <summary>相位迁移：断线自动重连（凭票据）；Failed → 对局终结（流程层裁决去留）。</summary>
@@ -207,7 +287,12 @@ namespace LiteGame
             if (_localEntityId != 0 || _battle.Client.PlayerId < 0) return;
             foreach (LiteNet.Proto.SlotDelta slot in snapshot.Slots)
             {
-                if (slot.Slot == _battle.Client.PlayerId) { _localEntityId = slot.Id; break; }
+                if (slot.Slot == _battle.Client.PlayerId)
+                {
+                    _localEntityId = slot.Id;
+                    View?.AlignLocal(_localEntityId);     // 视图首帧直接落位（不从上一条命的位置飞过去）
+                    break;
+                }
             }
         }
 

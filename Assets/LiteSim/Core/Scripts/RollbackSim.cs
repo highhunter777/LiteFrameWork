@@ -39,6 +39,17 @@ namespace LiteSim
         /// <summary>和解回调（M10 客户端上报 MismatchReport 的接缝：参数 = 和解帧号）。</summary>
         public Action<int> OnReconcile;
 
+        /// <summary>
+        /// 帧事件交付（**消费帧事件的唯一时机**——<see cref="FrameDriver"/> 在回调返回后立即清空
+        /// 事件缓冲，事后轮询永远读不到；参数 = 本逻辑帧的状态，事件在 <c>s.Events</c>）。
+        ///
+        /// 与 <see cref="OnRollback"/>/<see cref="OnReconcile"/> 的区别：后两者是**偶发**的和解/重放信号，
+        /// 本回调**每逻辑帧**都来（追帧时一帧一次）——表现层（SimView 的事件静默门）据此消费开火/命中/死亡。
+        /// 重放段（<see cref="ExecuteRollback"/>/<see cref="OnAuthoritativeSnapshot"/> 内部）不走本回调：
+        /// 那些 Step 的事件按决策⑫"不消费即清"，正是不重播一次性副作用的来源。
+        /// </summary>
+        public Action<SimWorldState> OnFrameEvents;
+
         public RollbackSim(SimWorldState initialState, SimMapData map, SimInputFrame[] inputTemplate)
         {
             _state = initialState;
@@ -108,6 +119,10 @@ namespace LiteSim
             _ring.Capture(s.Frame, s);                        // Step 后捕获（决策②）
             _history.Record(s.Frame, _tickInputs, _tickPredicted);
             PrepareNext(s.Frame + 1);                         // 下一逻辑帧输入（多逻辑帧各自决议）
+
+            // 帧事件交付**必须最后做**：FrameDriver 在回调返回后清空事件缓冲（决策⑥），
+            // 这里是消费方读事件的最后时机（SimView 静默门在此取件）。
+            OnFrameEvents?.Invoke(s);
         }
 
         /// <summary>下一逻辑帧输入决议：历史早到真实输入优先（逐玩家）；否则沿用上一帧（Buttons=0——开火不预测，决策⑥）。</summary>

@@ -318,7 +318,7 @@ namespace LiteGame
                     (ProcedureId.Preload, new ProcedurePreload(content, config, lua, filler, events, ListLuaAssetPaths, rootToken)),
                     (ProcedureId.Main, new ProcedureMain(uiService, rootToken)),
                     (ProcedureId.Match, new ProcedureMatch(context.RootScope, rootToken)),
-                    (ProcedureId.Battle, new ProcedureBattle(rootToken)),
+                    (ProcedureId.Battle, new ProcedureBattle(content, vfxService, rootToken)),
                     (ProcedureId.Error, new ProcedureError(rootToken)));
             }
 
