@@ -46,6 +46,7 @@
 
 - [商业级通用客户端框架总设计](architecture/商业级通用客户端框架总设计.md)
 - [商业级通用服务端框架总设计](architecture/商业级通用服务端框架总设计.md)
+- [Meta 服务专项设计](architecture/Meta服务专项设计.md)：Auth/Lobby/Profile 模块化单体、宿主选型（ASP.NET Core Minimal API + Kestrel，共享框架零 NuGet）、Join Ticket 与签名原语、Mongo/Redis 数据原则、结算 Outbox 幂等、接口契约与测试矩阵；G1 只建接缝，主体归 G3。
 - [框架先行建设与业务接入专项设计](architecture/框架先行建设与业务接入专项设计.md)：框架先建范围、必要后续基础能力前置、五个最小样例及业务准入；保持 G0～G6/C/R/U 编号，状态仍由待办与施工记录维护。
 
 ### 游戏业务
