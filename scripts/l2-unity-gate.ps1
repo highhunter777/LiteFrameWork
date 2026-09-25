@@ -141,8 +141,15 @@ function Get-JsonInt([string]$text, [string]$key) {
 }
 
 # 新鲜度守卫用：Assets 下最新 .cs 的写入时间 / Library/ScriptAssemblies 下最新 .dll 的写入时间
+#
+# **必须排除点目录**（2026-09-25 实测假阳）：Directory.Build.props 把 dotnet 侧构建输出重定向到
+# `Assets/<模块>/.dotnet/`，其中 `obj/Release/**/*.cs` 是 MSBuild 生成的 AssemblyInfo。点目录被
+# Unity 忽略、**从不参与编译**，但 L1 每跑一次就刷新其时间戳 → "源码新于程序集" 恒真，
+# `Refresh` 又不可能把它推进程序集 → 守卫永久 FAIL、L2 永远红。判据从"文件多新"变成
+# "Unity 会编译的文件多新"。gitignore 的 `.dotnet/` 与此处排除的是同一样东西。
 function Get-NewestSourceTime {
-    $files = Get-ChildItem -Path (Join-Path $ProjectPath 'Assets') -Recurse -Filter *.cs -File -ErrorAction SilentlyContinue
+    $files = Get-ChildItem -Path (Join-Path $ProjectPath 'Assets') -Recurse -Filter *.cs -File -ErrorAction SilentlyContinue |
+        Where-Object { $_.FullName -notmatch '[\\/]\.' }
     if (-not $files) { return [datetime]::MinValue }
     return ($files | Sort-Object LastWriteTime -Descending | Select-Object -First 1).LastWriteTime
 }

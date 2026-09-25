@@ -52,4 +52,4 @@
 2. **缓存策略列（Resident/LRU/DestroyOnClose per-form）未接表**：tbuiform 无策略列（加列需 Luban 表变更）——U1 交付统一预算 + LRU + 显式 Destroy；per-form 策略列随 U2 表扩展。
 3. **TransitionResultKind.Cancelled 预留**：U1 的取消源为超时与 Shutdown（系统关闭不走转场）；外部导航取消（Go/Back 期间）随 U2 接入。
 4. **队列上限 QueueCapacity=8/OpenTimeout=10s 未实装**：§4.3 的串行导航队列属 U2 导航（Go/Back/Replace 单写者）；U1 已交付其前置（操作合流/拒绝语义/类型化结果）。
-5. **L2 PlayMode 未建**（lane 未接入）：真 UIService+真 Lua 的取消加载/三层遮盖等 PlayMode 场景以 EditMode 真资源用例 + Player 冒烟承接；PlayMode lane 随测试框架线接入后补。
+5. ~~**L2 PlayMode 未建**（lane 未接入）：真 UIService+真 Lua 的取消加载/三层遮盖等 PlayMode 场景以 EditMode 真资源用例 + Player 冒烟承接；PlayMode lane 随测试框架线接入后补。~~ **已于 2026-09-25 消解**：`Assets/Tests/UI/PlayMode` 建成并接入 `scripts/l2-unity-gate.ps1` 同一门禁（真 UIService + 真 LuaEnv + 真 prefab + 真转场，12 例），见 [框架先行记录](框架先行.md)。**但本批的取消加载/三层遮盖场景仍未在 PlayMode 下覆盖**——余项转记 [框架先行 §3](框架先行.md) 样例②。
