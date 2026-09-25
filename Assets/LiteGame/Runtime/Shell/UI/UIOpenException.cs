@@ -19,6 +19,9 @@ namespace LiteGame
 
         /// <summary>请求被拒绝：Shutdown 后不再接入 / 层级组容量不足等（拒绝发生在创建/入栈/OnShow 之前）。</summary>
         Rejected = 4,
+
+        /// <summary>导航排队等待超时（§4.3"队列有上限、等待超时和可观测拒绝结果"——等待超时未被调度即失败）。</summary>
+        Timeout = 5,
     }
 
     /// <summary>

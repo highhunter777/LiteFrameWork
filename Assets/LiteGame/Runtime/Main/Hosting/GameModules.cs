@@ -247,6 +247,7 @@ namespace LiteGame
                     logicResolver: info => new LuaBehaviourAdapter(lua.Env, uiRegistry.Get(info.LuaPath)),
                     loadPrefab: (location, token) => LoadPrefabLeaseAsync(content, location, token));
                 context.Put(_uiService);
+                context.Put(new UINavigationController(_uiService));   // U2 首版导航（UI-11）：产品导航的单写者入口
                 return UniTask.CompletedTask;
             }
 
@@ -371,9 +372,9 @@ namespace LiteGame
                     (ProcedureId.Launch, new ProcedureLaunch(container, config, scenes, uiRegistry, contentRegistry, strategyRegistry, uiService, redDotRegistry, logicScheduler, uiScheduler, timelineRunner, entityService, audioService, vfxService, refill, rootToken)),
                     (ProcedureId.Patch, new ProcedurePatch(content, activations, patchRunner, rootToken)),
                     (ProcedureId.Preload, new ProcedurePreload(content, config, lua, filler, events, ListLuaAssetPaths, rootToken)),
-                    (ProcedureId.Main, new ProcedureMain(uiService, rootToken)),
+                    (ProcedureId.Main, new ProcedureMain(uiService, context.Require<UINavigationController>(), rootToken)),
                     (ProcedureId.Match, new ProcedureMatch(context.RootScope, rootToken)),
-                    (ProcedureId.Battle, new ProcedureBattle(content, vfxService, rootToken)),
+                    (ProcedureId.Battle, new ProcedureBattle(content, vfxService, uiService, rootToken)),
                     (ProcedureId.Error, new ProcedureError(rootToken)));
             }
 

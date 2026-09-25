@@ -37,6 +37,7 @@ namespace LiteGame
 
         private readonly IContentService _content;
         private readonly IVFXService _vfx;
+        private readonly UIService _ui;          // 模态输入门（U2 模态栈接入后的细化——见 IsUiBlocking）
 
         private BattleContext _context;
         private ClientScope _account;
@@ -49,11 +50,13 @@ namespace LiteGame
         private GameObject _prefab;
         private AssetLease<GameObject> _prefabLease;
 
-        public ProcedureBattle(IContentService content, IVFXService vfx = null, CancellationToken rootToken = default)
+        public ProcedureBattle(IContentService content, IVFXService vfx = null, UIService ui = null,
+            CancellationToken rootToken = default)
             : base(rootToken)
         {
             _content = content ?? throw new ArgumentNullException(nameof(content));
             _vfx = vfx;
+            _ui = ui;
         }
 
         protected override void RunAsync(IStageHost<ProcedureId, ProcedureArgs> m, in ProcedureArgs req, CancellationToken ct)
@@ -189,8 +192,12 @@ namespace LiteGame
             return go.transform;
         }
 
-        /// <summary>UI 是否正在拦截游戏输入（上下文门数据源；U2 导航/模态栈接入后细化）。</summary>
-        private bool IsUiBlocking { get; set; }
+        /// <summary>
+        /// UI 是否正在拦截游戏输入（上下文门数据源）。U2 模态栈接入后的细化（§6.2"输入由单一协调者
+        /// 综合模态栈、转场锁…"——客户端取其游戏输入面）：**模态打开 = 游戏意图全零**；
+        /// 非模态 UI（HUD 等）不拦截游戏输入。null UI（替身/测试装配）= 不拦截。
+        /// </summary>
+        private bool IsUiBlocking => _ui != null && _ui.IsModalOpen;
 
         private GameObject InstantiateView(string location, Transform parent)
         {

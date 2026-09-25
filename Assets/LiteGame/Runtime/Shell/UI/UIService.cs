@@ -288,6 +288,8 @@ namespace LiteGame
             if (outgoing != null && outgoing.IsOpen)
                 CloseFormInternal(outgoing);            // 切换：旧界面在转场收尾后关闭（转场期间被显式关掉则不再动）
 
+            RecomputeModalBlocking();                   // 模态射线遮蔽随打开/替换收尾重算（§6.2）
+
             Log.Info($"UIForm[{form.Id}] 打开（{group.Name}@{form.Canvas.sortingOrder}，{mode}）", "UI");
             return form;
         }
@@ -459,10 +461,92 @@ namespace LiteGame
             if (!group.Stack.Remove(form)) return;
             group.Stack.Push(form);
             group.RecalculateOrders();
+            RecomputeModalBlocking();                       // 模态射线遮蔽随组内序变化重算（§6.2）
         }
 
         /// <summary>查询打开状态（IsOpen = Active/Covered/Paused——对 Lua 语义"界面上没关"）。</summary>
         public bool IsOpen(int formId) => _forms.TryGetValue(formId, out var f) && f.IsOpen;
+
+        // ---- 模态栈（UI-12 框架半部，《UI框架总设计》§6.2）----
+
+        /// <summary>登记为模态的 formId 集合（装配点/页面代码显式登记——U2 per-form 表列就位前的接缝；
+        /// 模态栈不是独立记账：**从仍逻辑打开的全部页面推导**（§6.2 遮盖同款纪律），按画布序取最顶）。</summary>
+        private readonly HashSet<int> _modalForms = new HashSet<int>(4);
+
+        /// <summary>登记模态（幂等；同 formId 重复登记无副作用）。</summary>
+        public void RegisterModal(int formId) => _modalForms.Add(formId);
+
+        /// <summary>取消模态登记（幂等；已打开页面不受影响——只影响后续 Back/遮蔽推导）。</summary>
+        public void UnregisterModal(int formId) => _modalForms.Remove(formId);
+
+        /// <summary>当前是否有打开着的模态（输入协调者的组成输入，§6.2"输入由单一协调者综合模态栈…"）。</summary>
+        public bool IsModalOpen => TopModalForm() != null;
+
+        /// <summary>当前最顶模态（无模态返回 0）。</summary>
+        public int TopModalId => TopModalForm()?.Id ?? 0;
+
+        private UIForm TopModalForm()
+        {
+            UIForm top = null;
+            foreach (var kv in _forms)
+            {
+                var f = kv.Value;
+                if (!f.IsOpen || !_modalForms.Contains(kv.Key)) continue;
+                if (top == null || f.Canvas.sortingOrder > top.Canvas.sortingOrder) top = f;
+            }
+            return top;
+        }
+
+        /// <summary>
+        /// 返回目标（§6.2 平台返回统一处理）：**最顶模态优先**，无模态时取最高非空层级组的栈顶。
+        /// 被出栈拦截的关闭是合法确定结果——这里只给目标，拦截由 <see cref="CloseAsync"/> 走 Back 语义。
+        /// </summary>
+        public bool TryGetBackTarget(out int formId)
+        {
+            var modal = TopModalForm();
+            if (modal != null) { formId = modal.Id; return true; }
+
+            for (int i = _groups.Length - 1; i >= 0; i--)
+            {
+                if (_groups[i].Stack.Count == 0) continue;
+                var top = _groups[i].Stack.Top;
+                if (top != null && top.IsOpen) { formId = top.Id; return true; }
+            }
+            formId = 0;
+            return false;
+        }
+
+        /// <summary>
+        /// 模态射线遮蔽（§6.2"模态有真实射线遮罩；禁用页面交互不等于停止阻挡下层射线"）：
+        /// 顶层模态打开期间，视觉上位于其**下方**的仍打开页面 <c>blocksRaycasts=false</c>——
+        /// 下方页面既不可命中、也不再阻挡射线（模态自身的全屏底图是真实遮罩——prefab 内容层）。
+        /// 复位口径：每次重算先把全部仍打开页面恢复 true 再按遮蔽关——与 PrepareForShow 的复位面互补。
+        /// 只写 blocksRaycasts；interactable 归转场锁/暂停的输入协调（U1-③ 职责分离不变）。
+        /// </summary>
+        private void RecomputeModalBlocking()
+        {
+            var top = TopModalForm();
+            foreach (var kv in _forms)
+            {
+                var f = kv.Value;
+                if (!f.IsOpen) continue;
+                f.CanvasGroup.blocksRaycasts = !(top != null && f != top && IsVisuallyBelow(f, top));
+            }
+        }
+
+        /// <summary>视觉层级判下方：更低层级组，或同组内更早打开（栈序在前）。</summary>
+        private bool IsVisuallyBelow(UIForm f, UIForm top)
+        {
+            if (f.Info.Layer != top.Info.Layer) return f.Info.Layer < top.Info.Layer;
+            var open = GetGroup(f.Info.Layer).Stack.Open;
+            int fi = -1, ti = -1;
+            for (int i = 0; i < open.Count; i++)
+            {
+                if (ReferenceEquals(open[i], f)) fi = i;
+                if (ReferenceEquals(open[i], top)) ti = i;
+            }
+            return fi >= 0 && ti >= 0 && fi < ti;
+        }
 
         // ---- 逻辑换表：运行期增量重填（M4 §2.3 的"标记待更新"落地）----
 
@@ -599,6 +683,7 @@ namespace LiteGame
             form.Recycle();
             SwapIfStale(form);
             if (form.Info.FullScreen) RecomputeCovering();
+            RecomputeModalBlocking();                         // 模态射线遮蔽随关闭重算（关掉模态 → 下方恢复可命中）
             _lastUsed[form.Id] = ++_useCounter;            // LRU 记账（最近使用序号）
             EvictBeyondBudget();
         }
