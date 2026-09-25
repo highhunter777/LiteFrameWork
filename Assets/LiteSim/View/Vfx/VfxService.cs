@@ -8,13 +8,15 @@ using UnityEngine;
 namespace LiteSim.View
 {
     /// <summary>
-    /// VFX 服务实现（《VFX服务实施指导》§2）：加载 / 池化 / 挂点跟随 / 预算降级 / 到期回收。
+    /// VFX 服务实现（《VFX服务实施指导》§2）：加载 / 池化 / 挂点跟随 / 预算降级 / 到期回收 / 关闭释放面。
     ///
     /// **三条边界**（《动作与特效设计》§2.3）：① UI 动效不并入（走 UiFx+DOTween）
     /// ② 音效不并入（服务不调用其他服务，编排方分别调）③ 防重播（`silenceUntilFrame`）住 View，不在本服务内。
     ///
-    /// 加载口 <see cref="VfxAssetLoader"/> 由装配点注入（`AssetService`），本程序集因此不依赖 LiteGame/YooAsset。
-    /// 到期回收**不依赖粒子回调**——按世界时钟推算，`Tick` 扫描。
+    /// 加载口 <see cref="VfxAssetLoader"/> 由装配点注入（PrefabLeaseCache——租约通道），
+    /// 本程序集因此不依赖 LiteGame/YooAsset；**prefab 租约归装配层持有与释放**（本服务只缓存引用）。
+    /// 到期回收**不依赖粒子回调**——按世界时钟推算，`Tick` 扫描；宿主关闭走 <see cref="Shutdown"/>
+    /// （真取消在途 + 回收活体 + 排空池）。
     /// </summary>
     public sealed class VfxService : IVFXService, ITickable
     {
@@ -27,7 +29,7 @@ namespace LiteSim.View
         private readonly IWorldClock _clock;
         private readonly VfxCatalog _catalog;
         private readonly VfxBudget _budget;
-        private readonly Transform _worldRoot;
+        private Transform _worldRoot;                       // Shutdown 销毁自建根后置 null（注入的归注入方）
         private readonly GameObjectPool _pool;
 
         private readonly VfxHandleTable _table = new VfxHandleTable();
@@ -35,8 +37,19 @@ namespace LiteSim.View
         private readonly Dictionary<Transform, List<int>> _byAttach = new Dictionary<Transform, List<int>>(8);
         private readonly List<int> _expired = new List<int>(16);
 
+        /// <summary>宿主关闭级联令牌（在途加载链接它——关闭即取消，不靠等待丢弃）。</summary>
+        private readonly CancellationTokenSource _lifetime = new CancellationTokenSource();
+
+        private bool _ownsWorldRoot;
+
         private int _nextId = 1;
-        private int _created, _rejected, _skipped, _loading, _autoRecycled;
+        private int _created, _rejected, _skipped, _loading, _autoRecycled, _discardedLateLoads;
+
+        /// <summary>是否已关闭（<see cref="Shutdown"/> 后不再接受新播放——fail-fast）。</summary>
+        public bool IsShutdown { get; private set; }
+
+        /// <summary>宿主关闭级联令牌（供调用方链接——与 EntityService 同名语义）。</summary>
+        public CancellationToken LifetimeToken => _lifetime.Token;
 
         /// <param name="loader">加载口（必需；装配点绑 AssetService，测试注入替身）。</param>
         /// <param name="clock">世界时钟（必需；时停冻结到期）。</param>
@@ -55,6 +68,7 @@ namespace LiteSim.View
             _budget = budget ?? VfxBudget.Default();
             _pool = new GameObjectPool(poolRoot, maxIdlePerPrefab);
 
+            _ownsWorldRoot = worldRoot == null;
             if (worldRoot != null)
             {
                 _worldRoot = worldRoot;
@@ -62,7 +76,9 @@ namespace LiteSim.View
             else
             {
                 _worldRoot = new GameObject("[VfxWorld]").transform;
-                UnityEngine.Object.DontDestroyOnLoad(_worldRoot.gameObject);
+                // DontDestroyOnLoad 仅 Play mode 合法（与 UIService/AudioService/GameObjectPool 同口径：编辑态跳过）
+                if (Application.isPlaying)
+                    UnityEngine.Object.DontDestroyOnLoad(_worldRoot.gameObject);
             }
 
             Log.Info($"VFX 服务就绪（同屏上限 {_budget.MaxActive} / {_budget.Overflow}）", Tag);
@@ -72,6 +88,12 @@ namespace LiteSim.View
 
         public VfxHandle Play(string name, Transform attach, bool follow, float scale = 1f)
         {
+            if (IsShutdown)
+            {
+                Log.Warning("VFX 已关闭——拒绝新播放（fail-fast）", Tag);
+                return default;
+            }
+
             var def = _catalog.Resolve(name);
             if (!def.IsValid)
             {
@@ -151,6 +173,50 @@ namespace LiteSim.View
             for (int i = 0; i < copy.Length; i++) Stop(new VfxHandle(copy[i]));
         }
 
+        // ---- 关闭释放面（宿主关闭）----
+
+        /// <summary>
+        /// 关闭释放面（对齐 EntityService/AudioService 的宿主关闭语义，§5 接缝 1"谁创建、谁取消、谁释放"）：
+        /// 先行取消在途加载（<see cref="LifetimeToken"/>——真取消，不靠等待丢弃）→ 回收全部活体
+        /// （与正常 Stop 同一路径，不留第二套语义）→ 清挂点表 → 排空池（销毁自建池根）→
+        /// 清 prefab 缓存引用（**租约释放归装配层** `PrefabLeaseCache.ReleaseAll`——本服务只持引用）→
+        /// 销毁自建世界容器。幂等；关闭后 <see cref="Play"/> 拒绝（fail-fast）。
+        /// </summary>
+        public void Shutdown()
+        {
+            if (IsShutdown) return;
+            IsShutdown = true;
+
+            try { _lifetime.Cancel(); } catch (ObjectDisposedException) { }   // 先行取消在途加载
+
+            var ids = new List<int>(16);
+            _table.CollectAll(ids);
+            for (int i = 0; i < ids.Count; i++)
+                Stop(new VfxHandle(ids[i]));                       // 活体归池 / 在途置弃（正常路径收尾）
+
+            _byAttach.Clear();
+            _prefabs.Clear();                                      // 只清引用——租约归 PrefabLeaseCache.ReleaseAll（装配层）
+            _pool.Dispose();                                       // 排空闲置件 + 销毁自建池根（注入的归注入方）
+
+            if (_ownsWorldRoot && _worldRoot != null)
+            {
+                DestroyWorldRoot(_worldRoot.gameObject);
+                _worldRoot = null;
+            }
+
+            _lifetime.Dispose();
+            Log.Info($"VFX 已关闭（回收 {ids.Count} 个活体，池已排空）", Tag);
+        }
+
+        /// <summary>销毁口径：Play mode 延迟销毁（不打断当帧）；编辑态立即销毁（与 GameObjectPool 同口径）。</summary>
+        private static void DestroyWorldRoot(GameObject go)
+        {
+#if UNITY_EDITOR
+            if (!Application.isPlaying) { UnityEngine.Object.DestroyImmediate(go); return; }
+#endif
+            UnityEngine.Object.Destroy(go);
+        }
+
         // ---- ITickable ----
 
         /// <summary>到期扫描（不依赖粒子回调）：到点即归还池。</summary>
@@ -174,6 +240,7 @@ namespace LiteSim.View
             into["拒绝"] = _rejected.ToString();
             into["跳过"] = _skipped.ToString();
             into["加载中"] = _loading.ToString();
+            into["迟弃"] = _discardedLateLoads.ToString();
         }
 
         // ---- 内部 ----
@@ -183,9 +250,16 @@ namespace LiteSim.View
             _loading++;
             try
             {
-                var prefab = await _loader(inst.Def.Location, CancellationToken.None);
+                // 生命周期令牌：宿主关闭即真取消（单实例 Stop 仍走 Cancelled 丢弃——加载是共享缓存，
+                // 不因单个调用者退出而撤，§5.1"共享工作与单个调用者取消区分"）
+                var prefab = await _loader(inst.Def.Location, _lifetime.Token);
 
-                if (inst.Cancelled) return;                        // 宿主已回收 → 丢弃（不实例化、无残留）
+                if (inst.Cancelled || IsShutdown)
+                {
+                    // 宿主已回收 / 服务已关闭 → 迟到结果就地丢弃：不写缓存、不实例化（不复活已回收对象）
+                    _discardedLateLoads++;
+                    return;
+                }
 
                 if (prefab == null)
                 {
@@ -196,6 +270,11 @@ namespace LiteSim.View
 
                 _prefabs[inst.Def.Location] = prefab;
                 Materialize(inst, prefab);
+            }
+            catch (OperationCanceledException)
+            {
+                // 取消 ≠ 错误（§7.2 口径）：宿主关闭路径取消在途加载——静默收口，不进错误日志
+                _table.TryTake(inst.Id, out _);
             }
             catch (Exception ex)
             {

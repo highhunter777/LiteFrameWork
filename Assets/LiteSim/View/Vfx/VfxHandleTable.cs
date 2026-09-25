@@ -41,5 +41,11 @@ namespace LiteSim.View
                 if (inst.Go != null && inst.ExpireAt <= now) into.Add(inst.Id);
             }
         }
+
+        /// <summary>收集全部活跃 id（Shutdown 用——快照遍历，避免边 Stop 边枚举）。</summary>
+        public void CollectAll(List<int> into)
+        {
+            foreach (var kv in _byId) into.Add(kv.Key);
+        }
     }
 }

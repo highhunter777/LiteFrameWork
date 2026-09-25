@@ -299,7 +299,8 @@ namespace LiteGame
             {
                 _entities?.Shutdown();                       // 取消在途加载 + 连锁回收活体 + 排空实例池
                 _audio?.Shutdown();                          // 总线全局停止 + [Audio] 根销毁
-                _prefabs?.ReleaseAll();                      // 表现壳 prefab 租约归零（VFX/Entity 常驻池的关闭面）
+                _vfxService?.Shutdown();                     // 取消在途加载 + 回收活体 + 排空池 + 清缓存引用
+                _prefabs?.ReleaseAll();                      // 表现壳 prefab 租约归零（最后：先收使用者再放租约）
                 return UniTask.CompletedTask;
             }
         }

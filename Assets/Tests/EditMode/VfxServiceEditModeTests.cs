@@ -267,6 +267,100 @@ namespace LiteGame.Tests.EditMode
 
         }
 
+        // ---- 关闭释放面（宿主关闭，§5 接缝 1）----
+
+        [Test]
+        [Category(TestCategory.Contract)]
+        public void VFX_关闭_在途加载被真取消()
+        {
+            var rig = NewRig();
+            System.Threading.CancellationToken seenCt = default;
+            UniTask<GameObject> LinkedLoader(string loc, System.Threading.CancellationToken ct)
+            {
+                seenCt = ct;
+                var tcs = new UniTaskCompletionSource<GameObject>();
+                ct.Register(() => tcs.TrySetCanceled());
+                return tcs.Task;
+            }
+            var svc = rig.Make(loader: LinkedLoader);
+            var attach = Scope.CreateGameObject("host").transform;
+
+            svc.Play("fx_slow", attach, true);
+
+            svc.Shutdown();
+
+            Assert.IsTrue(svc.IsShutdown);
+            Assert.IsTrue(seenCt.IsCancellationRequested, "关闭必须真取消在途加载令牌（不是只靠丢弃）");
+            Assert.AreEqual("0", Snap(svc, "活跃"), "关闭即回收全部活体（含在途登记）");
+        }
+
+        [Test]
+        [Category(TestCategory.Contract)]
+        public void VFX_关闭_迟到完成的加载不写缓存不实例化()
+        {
+            var rig = NewRig();
+            var tcs = new UniTaskCompletionSource<GameObject>();
+            var svc = rig.Make(loader: (loc, ct) => tcs.Task);   // 不响应取消的 loader（底层不可中断形态）
+
+            svc.Play("fx_slow", null, false);
+            Assert.AreEqual("1", Snap(svc, "活跃"));
+
+            svc.Shutdown();                       // 在途时关闭
+            tcs.TrySetResult(rig.Prefab);         // 迟到完成
+
+            Assert.AreEqual("0", Snap(svc, "活跃"), "不得复活");
+            Assert.AreEqual(0, rig.World.transform.childCount, "迟到结果不得实例化");
+            Assert.AreEqual("1", Snap(svc, "迟弃"), "迟到丢弃要计数可见");
+        }
+
+        [Test]
+        [Category(TestCategory.Contract)]
+        public void VFX_关闭_活体归池后排空_幂等且拒绝新播放()
+        {
+            var rig = NewRig();
+            var svc = rig.Make();
+            svc.Play("fx_a", null, false);
+            svc.Play("fx_b", null, false);
+            Assert.AreEqual("2", Snap(svc, "活跃"));
+
+            svc.Shutdown();
+
+            Assert.AreEqual("0", Snap(svc, "活跃"), "活体全部回收");
+            Assert.AreEqual("0", Snap(svc, "池中"), "池已排空");
+            Assert.DoesNotThrow(() => svc.Shutdown(), "重复关闭幂等");
+
+            var h3 = svc.Play("fx_c", null, false);
+            Assert.IsFalse(h3.IsValid, "关闭后拒绝新播放（fail-fast）");
+            Assert.AreEqual("0", Snap(svc, "活跃"), "拒绝的播放不得登记");
+        }
+
+        [Test]
+        [Category(TestCategory.Contract)]
+        public void VFX_关闭_自建世界容器随之销毁_注入的不动()
+        {
+            var rig = NewRig();
+            VfxService owned = null;
+            VfxService injected = null;
+            try
+            {
+                owned = new VfxService((loc, ct) => UniTask.FromResult(rig.Prefab), rig.Clock);   // worldRoot/poolRoot 均自建
+                injected = rig.Make();                                                              // 世界容器/池根注入（归测试作用域）
+
+                Assert.IsNotNull(UnityEngine.GameObject.Find("[VfxWorld]"), "自建世界容器存在");
+
+                owned.Shutdown();
+                Assert.IsNull(UnityEngine.GameObject.Find("[VfxWorld]"), "自建容器随关闭销毁（编辑态 DestroyImmediate）");
+
+                injected.Shutdown();                                                                 // 注入容器归注入方——销毁不抛、对象仍在
+                Assert.IsNotNull(rig.World, "注入的世界容器不被服务销毁");
+            }
+            finally
+            {
+                owned?.Shutdown();
+                injected?.Shutdown();
+            }
+        }
+
         // ---- 到期回收（不依赖粒子回调）----
 
         [Test]
