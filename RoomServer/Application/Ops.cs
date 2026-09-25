@@ -24,6 +24,12 @@ namespace RoomServer.Application
         public long Rejects;
         public long ReconnectsServed;
 
+        // ---- 多房间容量（§6 Room Registry / §429 房间容量可配 + 范围校验）----
+        /// <summary>因达房间容量上限被拒的建房请求数（§520/§600：上限来自配置，不写死）。</summary>
+        public long RoomsRejectedAtCapacity;
+        /// <summary>因模板缺失/模板配置非法被拒的建房请求数。</summary>
+        public long RoomsRejectedBadConfig;
+
         // ---- Join 票据拒绝（§P0-6；《框架先行》§5-4）----
         /// <summary>票据拒绝总数（任何分类）。</summary>
         public long TicketRejected;
@@ -75,11 +81,18 @@ namespace RoomServer.Application
 
         private readonly StringBuilder _sb = new StringBuilder(512);
 
-        /// <summary>周期汇总（帧号/房间/快照/输入/和解率/背压/回溯/节拍债——一行式，便于日志抓取）。</summary>
-        public string Format(RoomRuntime room, SnapshotPipeline pipeline, SessionManager sessions, ServerLoop.LoopStats loop = null)
+        /// <summary>
+        /// 周期汇总（房间号/帧号/快照/输入/和解率/背压/回溯/节拍债——一行式，便于日志抓取）。
+        /// **逐房间**调用：多房间下按房间出一行，才能看出是哪个房间慢/过载（§514 隔离观测前提）。
+        /// <paramref name="roomCount"/> 与 <paramref name="loop"/> 属宿主/Worker 级——只在首行给。
+        /// </summary>
+        public string Format(string roomId, RoomRuntime room, SnapshotPipeline pipeline,
+            SessionManager sessions, int roomCount, ServerLoop.LoopStats loop = null)
         {
             _sb.Clear();
-            _sb.Append("[Ops] frame=").Append(room.AuthSim.Frame)
+            _sb.Append("[Ops] rooms=").Append(roomCount)
+               .Append(" room=").Append(roomId)
+               .Append(" frame=").Append(room.AuthSim.Frame)
                .Append(" steps=").Append(room.StepsCount)
                .Append(" sessions=").Append(sessions.Count)
                .Append(" players=").Append(room.NextPlayerId)
@@ -108,6 +121,8 @@ namespace RoomServer.Application
                .Append(" sessClean=").Append(SessionsCleaned)
                .Append(" pktBad=").Append(PacketRejects)
                .Append(" pktBig=").Append(PacketOversized)
+               .Append(" roomsFull=").Append(RoomsRejectedAtCapacity)
+               .Append(" roomsBad=").Append(RoomsRejectedBadConfig)
                .Append(" ackBad=").Append(AckRejected)
                .Append("(stale=").Append(AckRejectedStale)
                .Append(" future=").Append(AckRejectedFuture)

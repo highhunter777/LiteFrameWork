@@ -71,11 +71,29 @@ namespace RoomServer
         public const int SessionCleanupIntervalTicks = 600;
         private int _ticksSinceCleanup;
 
-        // ---- R1 Runtime 装配 ----
-        private readonly RoomRuntime _runtime;
-        private readonly SnapshotPipeline _pipeline;
-        /// <summary>席位映射：playerId → 连接会话（Join/重绑时写入；广播与信号按此定位连接）。</summary>
-        private readonly Session[] _seatSessions;
+        // ---- 房间表（§6"一个 roomId 只能映射一个独立 RoomActor"）----
+        //
+        // **为什么是表而不是字段**：2026-09-26 之前 Runtime / 快照管线 / 席位表是宿主上的三个并列
+        // 字段，"每房间一份"在类型上无处表达；§116 记的"当前任意 roomId 指向同一 Room"即此。
+        // 收成 RoomInstance 之后，多房间 = 这张表，"每房间一份"由类型保证。
+        //
+        // **容量**：§429 要求房间容量**可配 + 范围校验**，§520/§600 明确"不把估算值写死为事实"
+        // "不在设计阶段虚构固定房间数"——故上限来自配置，达上限**拒绝新建**而非静默拒绝进房。
+        private readonly Dictionary<string, RoomInstance> _roomTable = new Dictionary<string, RoomInstance>(StringComparer.Ordinal);
+
+        /// <summary>当前房间列表（顺序 = 插入序，非稳定契约；用于 Pump/Ops 遍历）。</summary>
+        private readonly List<RoomInstance> _rooms = new List<RoomInstance>();
+
+        /// <summary>建房时把选定的 roomId 交给 ApplySignal 用（提交到输出应用之间无重入）。</summary>
+        private RoomInstance _currentRoom;
+
+        private readonly RoomServerConfig _serverConfig;
+
+        /// <summary>房间容量上限（配置项；§429 范围校验在装载期完成）。</summary>
+        public int MaxRooms
+        {
+            get { return _serverConfig?.MaxRooms ?? 1; }
+        }
         /// <summary>命令输出复用缓冲与输入批量复用缓冲（热路径零分配）。</summary>
         private readonly List<RoomOutput> _outputs = new List<RoomOutput>();
         private readonly SimInputFrame[] _batchFrames = new SimInputFrame[ClientInputBatch.MaxFrames];
@@ -85,27 +103,73 @@ namespace RoomServer
         private bool _disposed;
 
         public SessionManager Sessions => _sessions;
+
+        /// <summary>首房间配置（兼容只读投影；多房间下"哪个房间"见 <see cref="Rooms"/> / <see cref="TryGetOrCreateRoom"/>）。</summary>
         public RoomConfig Config { get; }
-        public RoomRuntime Room => _runtime;
-        public SnapshotPipeline Pipeline => _pipeline;
+
+        /// <summary>首房间运行时（兼容投影；等价 <c>TryGetOrCreateRoom(Config.RoomId)</c> 的结果）。</summary>
+        public RoomRuntime Room => _rooms.Count > 0 ? _rooms[0].Runtime : null;
+
+        /// <summary>首房间快照管线（兼容投影）。</summary>
+        public SnapshotPipeline Pipeline => _rooms.Count > 0 ? _rooms[0].Pipeline : null;
+
+        /// <summary>当前在册房间数（Ops/容量观测）。</summary>
+        public int RoomCount
+        {
+            get { return _rooms.Count; }
+        }
+
+        /// <summary>当前房间号快照（诊断用；顺序 = 插入序）。</summary>
+        public string[] RoomIds
+        {
+            get
+            {
+                var ids = new string[_rooms.Count];
+                for (int i = 0; i < _rooms.Count; i++) ids[i] = _rooms[i].RoomId;
+                return ids;
+            }
+        }
+
         public Ops Ops => _ops;
 
+        /// <summary>
+        /// 建宿主。<paramref name="roomServerConfig"/> 给出房间容量上限与动态建房模板。
+        ///
+        /// **不传 <paramref name="roomServerConfig"/> 时**退回"单房间预置"形态：只按
+        /// <paramref name="config"/> 建一个房间、容量 1、拒绝任何别的 roomId——这是历史用例与
+        /// 嵌入式用法的兼容通道，**不是**生产形态（生产走配置文件 + 动态建房）。
+        /// </summary>
         public ServerHost(IRoomTransport transport, RoomConfig config = null,
-            IJoinTicketValidator ticketValidator = null, string audience = null)
+            IJoinTicketValidator ticketValidator = null, string audience = null,
+            RoomServerConfig roomServerConfig = null)
         {
             _transport = transport ?? throw new ArgumentNullException(nameof(transport));
+            _serverConfig = roomServerConfig;
             Config = config ?? RoomConfig.Default();
             _tickets = ticketValidator;
-            _audience = audience ?? string.Empty;
-            _runtime = new RoomRuntime(Config);
-            _sessions = new SessionManager(4 * _runtime.ExpectedPlayers);   // R1 容量上限（§9.2）
-            _seatSessions = new Session[_runtime.ExpectedPlayers];
-            _pipeline = new SnapshotPipeline(_seatSessions);
-            _pipeline.SendTo = SendToSession;
+            _audience = audience ?? _serverConfig?.Audience ?? string.Empty;
+
+            // 预置房间：
+            // - 显式给了 config 且未给 roomServerConfig → 单房间兼容形态，预置该房间；
+            // - 两者都没给 → 完全默认的单房间；
+            // - 给了 roomServerConfig 且 config 为 null → **不预置**：所有房间首次进房时按模板创建。
+            //   （动态建房下预置一个房间会白占一格容量，且"哪个 roomId 该被预置"本身没有依据。）
+            RoomInstance first = null;
+            if (config != null) first = AddRoom(config);
+            else if (_serverConfig == null) first = AddRoom(RoomConfig.Default());
+
+            // 会话表容量按**全服潜在连接数**算（§9.2 会话容量上限）：
+            // 配了配置 → 房间上限 × 最大房间人数 ×4（按单房间算会让第二个房间的连接被会话上限拒掉，
+            // 多房间实测踩过）；未配 → 沿用 R1 口径 首房间 ×4。
+            int sessionCapacity = _serverConfig != null
+                ? 4 * _serverConfig.MaxRooms * _serverConfig.MaxExpectedPlayers
+                : 4 * (first != null ? first.Runtime.ExpectedPlayers : 2);
+            _sessions = new SessionManager(sessionCapacity);
+
             _transport.OnConnected += OnTransportConnected;
             _transport.OnData += OnTransportData;
             _transport.OnDisconnected += OnTransportDisconnected;
-            _transport.Start(Config.Port);   // Start 必须显式调用——此前遗漏导致服务器不监听（握手全失败）
+            _transport.Start(_serverConfig != null ? _serverConfig.Port : Config.Port);   // Start 必须显式调用——此前遗漏导致服务器不监听（握手全失败）
         }
 
         public void Dispose()
@@ -131,9 +195,14 @@ namespace RoomServer
         private void OnTransportDisconnected(int connectionId)
         {
             _nowMs = NowMs();
+            string roomId = null;
             if (_sessions.TryGet(connectionId, out Session session))
+            {
                 session.Disconnected = true;   // 掉线不停帧（§4.5-2）：标记 + 席位保留（重连窗口内可重绑）
-            SubmitCommand(RoomCommand.Disconnect(connectionId));   // 席位侧通报（幂等：无映射即忽略）
+                roomId = session.RoomId;
+            }
+            // 按会话所在房间通报（§6 路由）；未进房的连接没有房间，通报无对象——幂等忽略。
+            SubmitCommandTo(GetRoomInstance(roomId), RoomCommand.Disconnect(connectionId));
         }
 
         private void OnTransportData(int connectionId, ArraySegment<byte> data, bool reliable)
@@ -212,13 +281,6 @@ namespace RoomServer
                 Reject(session, "token 缺失");
                 return;
             }
-            if (join.RoomId != _runtime.RoomId)                              // 房间号红线：不符/缺失即拒绝
-            {
-                Reject(session, string.IsNullOrEmpty(join.RoomId)
-                    ? $"房间号缺失（本服房间：{_runtime.RoomId}）"
-                    : $"房间号不符：{join.RoomId} != {_runtime.RoomId}");
-                return;
-            }
             if (join.BuildHash != ServerBuildHash)                           // 版本红线：Sim/协议版本比对不符拒绝进房
             {
                 Reject(session, $"buildHash 不符：{join.BuildHash} != {ServerBuildHash}");
@@ -226,11 +288,14 @@ namespace RoomServer
             }
 
             // 票据验证（§P0-6）：装配了验证器就**逐一验签**——非空不再构成准入理由。
-            // 未装配（null）时保留 R0 声明的原型行为，并在下方注释标明；生产装配必须传入验证器。
+            // 未装配（null）时保留 R0 声明的原型行为；生产装配必须传入验证器。
+            //
+            // **顺序：票据先于建房**。动态建房下若先建房再验票，任何人拿垃圾 token 打不同 roomId
+            // 就能把房间表撑到容量上限（拒绝服务）。故票据的 roomId 绑定在**建房之前**比对。
             if (_tickets != null)
             {
                 JoinPrincipal principal = _tickets.Validate(join.Token, new JoinContext(
-                    _runtime.RoomId, ServerBuildHash, _audience, _nowMs));
+                    join.RoomId, ServerBuildHash, _audience, _nowMs));
                 if (principal == null || !principal.IsValid)
                 {
                     JoinTicketRejection reason = principal == null
@@ -244,9 +309,25 @@ namespace RoomServer
                 session.Principal = principal;      // 身份事实留给 App 层（席位归属仍由 RoomRuntime 权威分配）
             }
 
+            // 房间解析/创建（§6"一个 roomId 只能映射一个独立 RoomActor"；重复 roomId 复用既有房间）
+            RoomInstance room = GetRoomInstance(join.RoomId);
+            if (room == null)
+            {
+                RoomRuntime created = OpenRoom(join.RoomId);
+                if (created == null)
+                {
+                    // 空房号 / 达容量上限 / 模板缺失——一律拒绝进房（不静默排队、不静默建成别的配置）
+                    Reject(session, string.IsNullOrEmpty(join.RoomId)
+                        ? "房间号缺失"
+                        : $"房间不可用：{join.RoomId}（在册 {_rooms.Count}/{MaxRooms}）");
+                    return;
+                }
+                room = GetRoomInstance(join.RoomId);
+            }
+
             session.BuildHash = join.BuildHash;
 
-            SubmitCommand(RoomCommand.Join(session.ConnectionId), joinContext: session);
+            SubmitCommandTo(room, RoomCommand.Join(session.ConnectionId), joinContext: session);
         }
 
         /// <summary>票据拒绝分类计数（同时进 Ops 周期行——越界分类并入 Miscellaneous）。</summary>
@@ -303,9 +384,13 @@ namespace RoomServer
             _inputBatch.Count = raw;
             _inputBatch.Frames = _batchFrames;
 
-            long acceptedBefore = _runtime.Gate.AcceptedCount;
-            SubmitCommand(RoomCommand.ClientInput(session.PlayerId, _inputBatch));
-            if (_runtime.Gate.AcceptedCount > acceptedBefore)   // 只统计被闸门接受的包（取代旧 OnInputAccepted 回挂）
+            // 输入按会话所在房间路由（§6：一个连接只属于一个房间）
+            RoomInstance inputRoom = GetRoomInstance(session.RoomId);
+            if (inputRoom == null) return;
+
+            long acceptedBefore = inputRoom.Runtime.Gate.AcceptedCount;
+            SubmitCommandTo(inputRoom, RoomCommand.ClientInput(session.PlayerId, _inputBatch));
+            if (inputRoom.Runtime.Gate.AcceptedCount > acceptedBefore)   // 只统计被闸门接受的包（取代旧 OnInputAccepted 回挂）
             {
                 _ops.InputPackets++;
                 _ops.AckObserved++;
@@ -332,13 +417,14 @@ namespace RoomServer
                 SendToSession(session, PacketType.ReconnectResponse, new Proto.ReconnectResponse { Ok = false, Reason = "票据无效或已过期" }, reliable: true);
                 return;
             }
-            if (roomId != _runtime.RoomId)                     // 票据绑定房间号（R1：原实现忽略该绑定）
+            RoomInstance instance = GetRoomInstance(roomId);
+            if (instance == null)                              // 票据绑定房间号（R1：原实现忽略该绑定）
             {
                 SendToSession(session, PacketType.ReconnectResponse, new Proto.ReconnectResponse { Ok = false, Reason = "票据与房间不符" }, reliable: true);
                 return;
             }
 
-            RoomRuntime room = TryGetOrCreateRoom(roomId);
+            RoomRuntime room = instance.Runtime;
             if (!room.TryGetSeat(playerId, out PlayerSession seat))
             {
                 SendToSession(session, PacketType.ReconnectResponse, new Proto.ReconnectResponse { Ok = false, Reason = "席位不存在" }, reliable: true);
@@ -356,9 +442,10 @@ namespace RoomServer
             {
                 old.Disconnected = true;
             }
-            SubmitCommand(RoomCommand.Rebind(playerId, session.ConnectionId));   // 席位 → Restoring（增量广播抑制中）
+            SubmitCommandTo(instance, RoomCommand.Rebind(playerId, session.ConnectionId));   // 席位 → Restoring（增量广播抑制中）
             session.PlayerId = playerId;
-            _seatSessions[playerId] = session;
+            session.RoomId = roomId;
+            instance.Seats[playerId] = session;
 
             var response = new Proto.ReconnectResponse { Ok = true };
             long viewerEntityId = room.EntityIdOf(playerId);
@@ -386,13 +473,14 @@ namespace RoomServer
         private void HandleRestoreComplete(Session session)
         {
             if (session.PlayerId < 0) return;
-            SubmitCommand(RoomCommand.RestoreAck(session.PlayerId));   // 幂等：非 Restoring 时 Runtime 静默忽略
+            // 幂等：非 Restoring 时 Runtime 静默忽略。路由到会话所在房间。
+            SubmitCommandTo(GetRoomInstance(session.RoomId), RoomCommand.RestoreAck(session.PlayerId));
         }
 
         private void HandleLeave(Session session)
         {
             session.Disconnected = true;
-            SubmitCommand(RoomCommand.Disconnect(session.ConnectionId));
+            SubmitCommandTo(GetRoomInstance(session.RoomId), RoomCommand.Disconnect(session.ConnectionId));
         }
 
         private void SendToSession(Session session, PacketType type, IMessage message, bool reliable)
@@ -412,10 +500,28 @@ namespace RoomServer
         /// </summary>
         private void SubmitCommand(in RoomCommand cmd, Session joinContext = null)
         {
+            RoomInstance room = _currentRoom ?? (_rooms.Count > 0 ? _rooms[0] : null);
+            if (room == null) return;
             _outputs.Clear();
-            _runtime.Execute(cmd, _outputs);
+            room.Runtime.Execute(cmd, _outputs);
             for (int i = 0; i < _outputs.Count; i++) ApplyOutput(_outputs[i], joinContext);
             _outputs.Clear();
+        }
+
+        /// <summary>把命令提交到**指定房间**（多房间路由：输入/断线/重连各自知道自己属于哪个房间）。</summary>
+        private void SubmitCommandTo(RoomInstance room, in RoomCommand cmd, Session joinContext = null)
+        {
+            if (room == null) return;
+            RoomInstance saved = _currentRoom;
+            _currentRoom = room;
+            try
+            {
+                SubmitCommand(cmd, joinContext);
+            }
+            finally
+            {
+                _currentRoom = saved;
+            }
         }
 
         private void ApplyOutput(RoomOutput output, Session joinContext)
@@ -450,13 +556,16 @@ namespace RoomServer
             {
                 case PlayerAdmitted pa:
                 {
-                    Session session = joinContext ?? (pa.PlayerId < _seatSessions.Length ? _seatSessions[pa.PlayerId] : null);
+                    RoomInstance room = _currentRoom ?? (_rooms.Count > 0 ? _rooms[0] : null);
+                    if (room == null) break;
+                    Session session = joinContext ?? (pa.PlayerId < room.Seats.Length ? room.Seats[pa.PlayerId] : null);
                     if (session == null) break;
                     session.PlayerId = pa.PlayerId;
-                    _seatSessions[pa.PlayerId] = session;
+                    session.RoomId = room.RoomId;          // 多房间路由键（输入/重连/断线按它找房间）
+                    room.Seats[pa.PlayerId] = session;
 
                     // E3 重连票据（一次性）：进房成功才发——重连时凭它换权威快照（§5.6 首选路径的服务器侧能力）
-                    string ticket = _reconnects.Issue(pa.PlayerId, _runtime.RoomId);
+                    string ticket = _reconnects.Issue(pa.PlayerId, room.RoomId);
                     SendToSession(session, PacketType.JoinAck, new Proto.JoinAck
                     {
                         PlayerId = pa.PlayerId,
@@ -469,9 +578,12 @@ namespace RoomServer
                     break;
                 }
                 case MatchStarted ms:
-                    for (int p = 0; p < _seatSessions.Length; p++)
+                {
+                    RoomInstance room = _currentRoom ?? (_rooms.Count > 0 ? _rooms[0] : null);
+                    if (room == null) break;
+                    for (int p = 0; p < room.Seats.Length; p++)
                     {
-                        Session member = _seatSessions[p];
+                        Session member = room.Seats[p];
                         if (member == null || member.Disconnected) continue;
                         SendToSession(member, PacketType.StartGame, new Proto.StartGame
                         {
@@ -481,10 +593,14 @@ namespace RoomServer
                         }, reliable: true);
                     }
                     break;
-                case SeatRestored sr:
+                }
+                case SeatRestored:
+                {
                     _ops.RestoresCompleted++;              // §9.3 步骤 6：席位回 Active——增量广播恢复
-                    _pipeline.RequestFullSnapshot();       // 重锚广播链：抑制期间基线已越过重连快照帧，整帧全量补齐 (N_r, B] 缝
+                    RoomInstance room = _currentRoom ?? (_rooms.Count > 0 ? _rooms[0] : null);
+                    room?.Pipeline.RequestFullSnapshot();  // 重锚广播链：抑制期间基线已越过重连快照帧，整帧全量补齐 (N_r, B] 缝
                     break;
+                }
             }
         }
 
@@ -503,10 +619,17 @@ namespace RoomServer
             if (_disposed) return;
             _nowMs = NowMs();
             _transport.TickIncoming();
-            SubmitCommand(RoomCommand.Tick(_nowMs));
-            if (_runtime.Started)
-                _pipeline.BroadcastIfDue(_runtime.AuthSim.Frame, _runtime.AuthSim, _runtime.Gate, _runtime.EntityIdOf,
-                    SeatBroadcastable);
+
+            // 逐房间推进（§8.2"一个 Worker 顺序驱动多个 RoomActor"——当前宿主主线程即唯一 Worker）。
+            // 快照广播的播放条件由**每房间自己的席位**判定：多房间下必须按房间传各自的可播视图。
+            for (int i = 0; i < _rooms.Count; i++)
+            {
+                RoomInstance room = _rooms[i];
+                SubmitCommandTo(room, RoomCommand.Tick(_nowMs));
+                if (room.Runtime.Started)
+                    room.Pipeline.BroadcastIfDue(room.Runtime.AuthSim.Frame, room.Runtime.AuthSim,
+                        room.Runtime.Gate, room.Runtime.EntityIdOf, room.SeatBroadcastable);
+            }
             if (++_ticksSinceCleanup >= SessionCleanupIntervalTicks)
             {
                 _ticksSinceCleanup = 0;
@@ -517,25 +640,111 @@ namespace RoomServer
             MaybePrintOps();
         }
 
-        /// <summary>席位可播判定（§9.3 步骤 6）：只有 Active 席位接收增量广播；Restoring（重连恢复中）抑制。</summary>
+        /// <summary>
+        /// 席位可播判定（§9.3 步骤 6）：只有 Active 席位接收增量广播；Restoring（重连恢复中）抑制。
+        /// 快照管线按房间构造，故这里只需按 <paramref name="playerId"/> 查该房间自己的席位表。
+        /// </summary>
         private bool SeatBroadcastable(int playerId)
         {
-            return _runtime.TryGetSeat(playerId, out PlayerSession seat) && seat.Phase == SeatPhase.Active;
+            RoomInstance room = _currentRoom ?? (_rooms.Count > 0 ? _rooms[0] : null);
+            return room != null && room.Runtime.TryGetSeat(playerId, out PlayerSession seat)
+                && seat.Phase == SeatPhase.Active;
         }
 
-        /// <summary>Ops 周期打印（默认 5s；帧号/房间数/快照尺寸/和解率汇总）。</summary>
+        /// <summary>按房间号取房间（不存在返回 false；**不创建**——建房要容量校验与配置模板，见 <see cref="OpenRoom"/>）。</summary>
+        public bool TryGetRoom(string roomId, out RoomRuntime room)
+        {
+            if (roomId != null && _roomTable.TryGetValue(roomId, out RoomInstance inst))
+            {
+                room = inst.Runtime;
+                return true;
+            }
+            room = null;
+            return false;
+        }
+
+        /// <summary>
+        /// 打开房间（幂等：已存在则返回既有实例，**不重建**）。走配置模板造房间配置，受
+        /// <see cref="MaxRooms"/> 约束——达上限返回 null（调用方**拒绝进房**，不是静默排队）。
+        ///
+        /// **失败语义**（都返回 null，由调用方转成"拒绝进房"）：
+        /// - 未装配 <see cref="RoomServerConfig"/> 且 roomId 与预置房间不符（单房间形态）；
+        /// - 达容量上限；
+        /// - 模板缺失或模板配置非法（<see cref="RoomServerConfig.BuildRoomConfig"/> 抛，此处捕获转为 null）。
+        ///
+        /// **空 roomId**：建房必须有路由键，直接 null。
+        /// </summary>
+        public RoomRuntime OpenRoom(string roomId)
+        {
+            if (string.IsNullOrEmpty(roomId)) return null;
+            if (_roomTable.TryGetValue(roomId, out RoomInstance existing)) return existing.Runtime;
+
+            // 单房间兼容形态：只认预置房间，不动态建房（容量 1 由构造路径保证）
+            if (_serverConfig == null) return null;
+            if (_rooms.Count >= _serverConfig.MaxRooms)
+            {
+                _ops.RoomsRejectedAtCapacity++;
+                return null;
+            }
+
+            RoomConfig cfg;
+            try
+            {
+                cfg = _serverConfig.BuildRoomConfig(null, roomId);   // 无模板参数 → 配置的 default_template
+            }
+            catch (Exception ex)
+            {
+                // 配置错误不炸宿主：拒绝该房号并计数（§429 范围校验在装载期已挡掉大部分，此处兜底）
+                _ops.RoomsRejectedBadConfig++;
+                Console.WriteLine($"[Room] 建房被拒 room={roomId}: {ex.Message}");
+                return null;
+            }
+
+            return AddRoom(cfg).Runtime;
+        }
+
+        /// <summary>登记一个房间（构造预置与 <see cref="OpenRoom"/> 共用）。</summary>
+        private RoomInstance AddRoom(RoomConfig cfg)
+        {
+            var inst = new RoomInstance(cfg);
+            inst.Pipeline.SendTo = SendToSession;
+            _roomTable[inst.RoomId] = inst;
+            _rooms.Add(inst);
+            return inst;
+        }
+
+        /// <summary>按房间号取房间（新建房时用；不存在返回 null）。</summary>
+        private RoomInstance GetRoomInstance(string roomId)
+        {
+            return roomId != null && _roomTable.TryGetValue(roomId, out RoomInstance i) ? i : null;
+        }
+
+        /// <summary>
+        /// Ops 周期打印（默认 5s）。**逐房间一行**——多房间下把整台服务器的帧号/快照合成一行会丢掉
+        /// "哪个房间慢"这个唯一有用的信息（§514"多房间并发时一个慢客户端或过载房间不拖累其他房间"
+        /// 的观测前提就是能按房间看）。节拍与宿主级计数只打在首行（属进程/Worker 级，不属房间）。
+        /// </summary>
         private void MaybePrintOps()
         {
             if (!_ops.PrintEnabled) return;
             if (_nowMs - _ops.LastPrintMs < OpsIntervalMs) return;
             _ops.LastPrintMs = _nowMs;
-            Console.WriteLine(_ops.Format(_runtime, _pipeline, _sessions, LoopStats));
+
+            for (int i = 0; i < _rooms.Count; i++)
+            {
+                RoomInstance room = _rooms[i];
+                Console.WriteLine(_ops.Format(room.RoomId, room.Runtime, room.Pipeline, _sessions,
+                    _rooms.Count, i == 0 ? LoopStats : null));
+            }
         }
 
         /// <summary>节拍统计来源（宿主装配 ServerLoop 后注入；null = 不打印节拍段——用例/嵌入式用法）。</summary>
         public ServerLoop.LoopStats LoopStats { get; set; }
 
-        /// <summary>按房间号取房间（MVP：唯一预置房间；R2 RoomRegistry 接管路由）。</summary>
-        public RoomRuntime TryGetOrCreateRoom(string roomId) => _runtime;
+        /// <summary>
+        /// 按房间号取房间；**不存在则创建**（OpenRoom 语义）。历史名保留给既有调用方——
+        /// 单房间形态下它等价于"取预置房间"（不存在时返回 null，因为该形态下容量为 1 且无模板）。
+        /// </summary>
+        public RoomRuntime TryGetOrCreateRoom(string roomId) => OpenRoom(roomId);
     }
 }

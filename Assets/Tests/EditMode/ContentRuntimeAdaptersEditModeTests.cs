@@ -345,7 +345,8 @@ namespace LiteGame.Tests.EditMode
 
             var offer = new CandidateOffer(manifest, signedBytes, new byte[] { 1 });
             return new PatchRunner(new FixedProvider(offer), Player(), store, coord,
-                new AlwaysOkVerifier(), spaceRequestFactory: m => new SpaceCheckRequest
+                keyId => (ISignatureVerifier)new AlwaysOkVerifier(),   // 端到端装配批：verifier → 按 KeyId 解析
+                spaceRequestFactory: m => new SpaceCheckRequest
                 {
                     CandidateBytes = TotalOf(m),
                     SafetyMarginBytes = 0,

@@ -1,7 +1,7 @@
 # UI 框架总设计
 
 > 状态：现行领域总设计；目标设计尚未整体实现
-> 版本：1.3
+> 版本：1.4
 > 更新日期：2026-09-24
 > 适用范围：Unity UGUI、C#/Lua 页面、导航、资源、转场、控件、制作工具与 UI 验收
 > Owner：客户端 UI；资源与环境重建由客户端架构共同负责
@@ -61,7 +61,7 @@ P0 = 基本正确性/发布阻塞；P1 = 完整产品与稳定运行需要；P2 
 | UI-09 | P1 | 转场门只关 blocksRaycasts；超时无取消策略契约；页面操作忽略转场结果 | 6.3 输入仲裁、取消复位、明确操作结果 |
 | UI-10 | P1 | UIForm.RaiseUpdate 构造闭包/日志串；Lua params 数组与 float 装箱；倒计时每帧格式化 | 8.1 更新门控、专用委托和值去重；Profiler |
 | UI-11 | P1 | 渲染模式强制 Overlay；根无统一缩放配置；图集/本地化/导航尚未形成完整链路 | 6～9 按产品需求落地 |
-| UI-12 | P1 | EditMode 转场用例不能证明 UIService + 真 Lua + 真资源的打开链路正确 | 12 完整页面集成与 Player 门禁 |
+| UI-12 | P1 | EditMode 转场用例不能证明 UIService + 真 Lua + 真资源的打开链路正确 | 12 完整页面集成与 Player 门禁。**部分消解（2026-09-25）**：L2 PlayMode 载体已建并接入同一门禁——真 UIService + 真 LuaEnv + 真 prefab + 真转场（冷开/复用/卸载/在途取消、暂停与覆盖状态语义、动画资源组合、反馈面，12 例）。余项：列表滚动与 DevReload 环境重建段、语义 Locator/Driver、Player 门禁 |
 
 证据文件：[资源门面](../../../../Assets/LiteGame/Runtime/Shell/Resource/AssetService.cs)、[默认转场](../../../../Assets/LiteGame/Runtime/Shell/UI/Strategies.cs)、[列表](../../../../Assets/LiteGame/Runtime/Shell/UI/Widgets/VirtualList.cs)、[DevReload](../../../../Assets/LiteGame/Editor/DevReload.cs)、[UIMain](../../../../Assets/LiteGame/Lua/UI/UIMain.lua)、[转场测试](../../../../Assets/Tests/EditMode/UiTransitionEditModeTests.cs)。
 
@@ -306,6 +306,8 @@ Match/Battle/Result 流程、ProcedureArgs 的必要上下文和安全窗口属�
 | L1 | 可抽取纯逻辑：请求合并、队列拒绝、导航历史、深度分配、缓存淘汰、代次与取消 | 一个请求一个终态；排序不重叠；所有权对称 |
 | L2 EditMode | 绑定/缺脚本/资源引用/本地化/样式；转场 fake clock/异常/超时 | 正例绿且违规负例红；结果可定位资产 |
 | L2 PlayMode | 真 UIService + 真 Lua 页面开关复用；取消加载；三层遮盖；Modal 输入；列表滚动；语言变更；DevReload/Shutdown | 可见可点且数据正确；无迟到写入；清理后无悬挂订阅/对象 |
+
+**L2 PlayMode 现状（2026-09-25）**：`Assets/Tests/UI/PlayMode` 已建并接入 `scripts/l2-unity-gate.ps1` 同一门禁（真 UIService + 真 LuaEnv + 真 prefab，YooAsset EditorSimulateMode）。已覆盖：冷开/关闭后复用（同一实例）/Shutdown 释放/*在途取消（类型化 `UIOpenException{Canceled}` + 租约对称）/暂停（OnPause 且 OnUpdate 停派发）/跨层覆盖（Covered→OnCover、关源→OnReveal）/动画资源组合（按包可用性分流）/反馈面真 prefab。**未覆盖**：列表滚动、语言变更、DevReload 环境重建、Modal 输入；语义 Locator/Driver/Wait/Evidence 分层未建立。
 | L4 Player/真机 | 实际 AB/目标加载模式、低内存、前后台、内容更新/失败恢复、长文本/安全区、长时操作与性能 | 达到已记录设备预算并保留构建/日志/Profiler 证据 |
 
 建议回归序列：同页开关 100 次；并发 Show 与中途 Close；首开失败后重试；页面 A/B/A 返回；三层全屏逐层关闭；列表 0/1/500/5000 条首尾往返且反复 Refresh；复用项异步图标乱序；新逻辑语法错误；环境重建后重新打开。只验证最终状态不够，需断言回调次数、引用/订阅数量与峰值。

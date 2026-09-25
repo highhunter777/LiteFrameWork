@@ -32,6 +32,15 @@ namespace RoomServer.Application
         /// <summary>进房后分配的玩家号（房间内从 0 递增；未进房 = -1）。App 路由缓存——席位事实在 Runtime。</summary>
         public int PlayerId = -1;
 
+        /// <summary>
+        /// 本会话当前所在房间号（未进房 = null）。多房间下的**路由键**：输入/重连/断线都要先按它
+        /// 找到房间，再按 <see cref="PlayerId"/> 找席位。
+        ///
+        /// 与 <see cref="PlayerId"/> 同为 App 层路由缓存——**不构成身份**（身份在
+        /// <see cref="Principal"/>，席位事实在 Runtime）。会话断线即弃，本字段随会话消失。
+        /// </summary>
+        public string RoomId;
+
         /// <summary>客户端上报的构建哈希（Join 时校验，不符拒绝进房——版本红线 §4.5-5）。</summary>
         public string BuildHash;
 

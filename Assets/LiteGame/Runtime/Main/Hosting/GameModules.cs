@@ -53,28 +53,35 @@ namespace LiteGame
                 context.Put<IGenerationSink>(_content);                                      // 代次推进（§9：确认后切换，失败回退）
                 context.Put(new ActivationTransactionStore(new FileActivationRecordIO()));   // C1-⑩：启动恢复决策（Patch 流程消费）
 
-                // 内容事务编排（§7/§8）。装配形态决定能力边界：
-                // - **候选来源 = 本地信封文件**（`content/candidate.json`）：可在无 CDN 条件下走完整链路，
-                //   用于故障注入与双版本联调。**真实 CDN 通道属 H3-b，未交付**。
-                // - **磁盘余量 = DriveInfo**：桌面返回真实可用空间；移动端不支持 → -1 不可知 →
-                //   空间预检按不足处理（刻意 fail-closed，见 DriveInfoSpaceProbe 注释）。
-                // - **健康确认 = 空聚合**：无探针 → CompositeHealthCheck 判为**不健康**（§8）。
-                //   于是当前形态下**任何候选都会被拒绝**——这是刻意的：在真资源探针（待办 5）
-                //   就位前，不得让未验证的候选通过。链路可测，但不可发布。
+                // 热更链生产装配（§6/§8/§12 端到端装配批）。装配形态决定能力边界：
+                // - **信任锚**：内置锚表（ContentTrustAnchors——根信任编入应用本体，不放可写存储）。
+                //   当前为零锚点 → 任何候选按 UnknownOrRevokedKey 拒（fail-closed 保持）；
+                //   锚点 provisioning = 发布流程生成密钥对后重新生成锚表（私钥绝不入库/入包）。
+                // - **候选来源 = 本地信封文件**（`content/candidate.json`）：无 CDN 条件下走完整链路；
+                //   CDN 通道（HttpCandidateFetcher）随部署配置接入——未配 CDN 不空挂。
+                // - **磁盘余量 = DriveInfo**：桌面返回真实可用空间；移动端 -1 不可知 → 空间预检按不足处理。
+                // - **健康探针族**：候选配置（config/ 前缀 = Luban 表字节）+ 候选 Lua（lua/ 前缀 → 模块名 →
+                //   受控沙箱执行）——两者基于候选根文件，先于资源包初始化可运行。
+                //   入口资源可加载性探针（AssetsHealthProbe）查当前代次入口，须在资源包初始化后才有意义
+                //   （Patch 先于初始化，时序不可能）——归 Preload 后接缝（见待办总览 §2.1 边界）。
+                var trustedKeys = new TrustedKeyStore();
+                ContentTrustAnchors.ApplyTo(trustedKeys);                                    // 当前零锚点 = fail-closed
                 var candidateFiles = new FileSysCandidateFileSource(CandidateRoot);
                 var coordinator = new PatchCoordinator(
                     context.Require<ActivationTransactionStore>(),
                     candidateFiles,
                     new DriveInfoSpaceProbe(UnityEngine.Application.persistentDataPath),
                     new LocalDirectoryCandidateFetcher(CandidateRoot),
-                    new CompositeHealthCheck(),                                              // 无探针 → 不健康（§8）
+                    new CompositeHealthCheck(
+                        new CandidateConfigHealthProbe(CandidateRoot, ReleaseLayout.ConfigPaths),
+                        new LuaScriptsHealthProbe(CandidateRoot, ReleaseLayout.LuaScripts)),
                     new ContentActivator(_content));
                 context.Put(new PatchRunner(
                     new FileSystemCandidateProvider(),
                     BuildPlayerCapabilities(),
                     context.Require<ActivationTransactionStore>(),
                     coordinator,
-                    verifier: null,                                                          // 无受信公钥 → 候选一律被拒（见 BuildPlayerCapabilities）
+                    trustedKeys.AsResolver(),                                                // keyId → 验签器；未登记/已撤销 → null → 拒（§6）
                     budget: null));
                 context.Put(coordinator);
                 return UniTask.CompletedTask;
