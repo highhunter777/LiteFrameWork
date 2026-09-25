@@ -177,3 +177,12 @@ Assets/InitTestScene*.unity.meta
 # ===== 角色资源包（176MB，用户选择不入 VCS；测试按包可用性分流，缺包走灰盒降级）=====
 Assets/CombatGirlsCharacterPack/
 Assets/CombatGirlsCharacterPack.meta
+
+# ===== 密钥材料（绝不入库；2026-09-26 实测：测试跑出的 RSA 私钥落在 Tests/ 且未被忽略）=====
+# key_ras 含 <D>/<P>/<Q> 私钥指数——一旦提交进 public 仓库即等同泄露。
+# 信任锚的公钥应经 ContentTrustAnchors 生成流程内置，不靠提交私钥文件。
+Tests/key_ras
+Tests/key_ras.pub
+*.pem
+*.pfx
+*.p12
