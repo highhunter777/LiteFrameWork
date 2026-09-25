@@ -104,12 +104,14 @@ Assets/StateMachine.meta
 
 # ===== 工程配置与工具链（不入库；环境恢复见 Docs/环境恢复指南.md）=====
 # 说明：仓库只保留自研框架代码/预制品/文档。以下为工程配置与本地工具链：
-#       ProjectSettings（Unity 工程设置，缺失则无法直接打开工程）、
 #       Tools（XLua 工具）、Packages/MCPForUnity（编辑器自动化桥）。
 #       如需入库请显式 `git add -f <路径>`。
 # 注意（2026-09-21 C0-① 起）：Packages/manifest.json 与 packages-lock.json 已入库（依赖声明必须版本控制）；
 #       Packages/com.tuyoogame.yooasset 与 Packages/com.code-philosophy.luban 为 vendored 内嵌包，随库分发。
-/ProjectSettings/
+# 注意（2026-09-26）：ProjectSettings **已放开入库**——自托管 runner 需要能独立编译工程，
+#       而"全新克隆打不开工程"正是 L2 无法在 CI 上跑的首因。放开前已核：
+#       凭据字段（AndroidKeystoreName / metroCertificate* / cloudProjectId / organizationId）**均为空**，
+#       无个人绝对路径，仅 productGUID（工程标识，非密钥）。
 # Luban：**整条链入库**（2026-09-17 决策，分两步）——表源 `Data/*.xlsx` 是配置表唯一真相，
 # 生成器与脚本/schema（LubanGenerater 155 文件 6.1M 二进制、gen.bat / gen.sh / gen_lua_keys.py、
 # luban.conf、Defines/builtin.xml）是"换机可复现"的前提；曾因表源不入库导致换机 regen 用旧表源
@@ -121,10 +123,11 @@ Assets/StateMachine.meta
 Packages/MCPForUnity/
 
 # ===== 第三方插件（不入库；自研代码依赖它们，克隆后自备）=====
-# Demigiant= DOTween（远端已跟踪其部分文件，此处忽略未入库的发行文件）；
 # Sirenix = Odin Inspector（付费授权，不可再分发）；UniRx / VContainer = 本地依赖。
-Assets/Plugins/Demigiant/
-Assets/Plugins/Demigiant.meta
+# **DOTween 已放开入库**（2026-09-26，用户决定）：runner 需要它才能编译 LiteGame.Runtime
+# （引用 DOTween.Modules）。原注释称"不可再分发"，但该包**已随 Asset Store 公开导入分发**，
+# 且包内无 LICENSE 文件（许可在 dotween.demigiant.com/license.php）——L0 许可门禁只覆盖
+# Packages/ 下的 vendored 包，Assets/Plugins 不在其列。
 Assets/Plugins/Sirenix/
 Assets/Plugins/Sirenix.meta
 Assets/Plugins/UniRx/
