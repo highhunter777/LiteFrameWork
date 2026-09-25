@@ -9,8 +9,10 @@ namespace LiteGame
     /// <summary>
     /// 进房流程（C2 批①）：创建 **Account Scope** → BattleClient 连接 + Join → JoinAck 即移交 Battle。
     ///
-    /// 身份口径（框架先行 §6）：正式登录业务归 G3——本阶段使用**隔离测试发行者**的受控测试身份
-    /// （<see cref="TestToken"/>；生产缺真实依赖时由服务端拒绝，不悄悄退回 fake）。
+    /// 身份口径（框架先行 §6）：正式登录业务归 G3——本阶段**仅开发/编辑器/开发包**使用隔离测试
+    /// 发行者的受控测试身份（<see cref="TestToken"/>，与 ProcedureMain F9 同门禁）；
+    /// **正式构建缺真实身份依赖时直接拒绝进房**（确定错误态，不悄悄退回 fake——见
+    /// <see cref="RunAsync"/> 门禁）。服务端 R2 前维持"不得公网"红线（Join 侧票据校验仍为原型级）。
     /// buildHash 用 <see cref="LiteNet.BuildHash.Value"/>（两端同源——不一致服务端拒绝进房）。
     ///
     /// 所有权：Account Scope 在本阶段创建；正常路径随 <see cref="ProcedureArgs"/> 移交 Battle
@@ -37,7 +39,20 @@ namespace LiteGame
         }
 
         protected override void RunAsync(IStageHost<ProcedureId, ProcedureArgs> m, in ProcedureArgs req, CancellationToken ct)
-            => RunAsyncCore(m, ct).Forget();          // 一行转发，仅此而已——禁止 async void
+        {
+#if UNITY_EDITOR || DEVELOPMENT_BUILD || LITEFRAMEWORK_DEBUG
+            RunAsyncCore(m, ct).Forget();          // 一行转发，仅此而已——禁止 async void
+#else
+            // 框架先行 §6"生产配置缺真实依赖时拒绝启动或拒绝相应功能，不能悄悄退回 fake"：
+            // 正式包未接入真实登录（Join Ticket 归 G3）——**拒绝进房**并进确定错误态。
+            // 当前正式包本无进房入口（F9 已被同门禁编译排除），此处是第二道防线：
+            // 真实登录接入前，任何未来入口到达本阶段都必须显式失败，不得用测试身份连服务器。
+            var ex = new InvalidOperationException(
+                "正式构建未接入真实登录（Join Ticket 归 G3）——拒绝以测试身份进房（框架先行 §6）");
+            Fail(m, ex, nameof(RunAsync));
+            m.Request(ProcedureId.Error, new ProcedureArgs(ex));
+#endif
+        }
 
         private async UniTask RunAsyncCore(IStageHost<ProcedureId, ProcedureArgs> m, CancellationToken ct)
         {
