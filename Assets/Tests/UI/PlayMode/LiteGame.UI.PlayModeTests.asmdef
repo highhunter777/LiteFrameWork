@@ -9,7 +9,8 @@
         "LiteFramework.Unity",
         "UniTask",
         "UnityEngine.TestRunner",
-        "Unity.TextMeshPro"
+        "Unity.TextMeshPro",
+        "xLuaMain"
     ],
     "includePlatforms": [],
     "excludePlatforms": [],
