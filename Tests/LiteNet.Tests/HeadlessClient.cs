@@ -21,6 +21,8 @@ namespace LiteNet.Tests
     {
         public readonly RoomClient Client;
         public readonly string ClientName;
+        /// <summary>本客户端所在房间号（多房间对跑用；单房间形态下＝该服唯一房间）。</summary>
+        public readonly string RoomId;
         public int PlayerId = -1;
         public long LocalEntityId;
         public int LastSnapshotFrame;
@@ -36,11 +38,17 @@ namespace LiteNet.Tests
 
         public RollbackSim Sim => _sim;
 
-        public HeadlessClient(string name, SimMapData map, KcpTransportClient transport)
+        /// <summary>
+        /// 无头客户端。<paramref name="roomId"/>/<paramref name="port"/> 参数化以支持**多房间并行对跑**
+        /// （两客户端进不同房间）；缺省退回单房间形态（Room-A @ 27778），历史用例不受影响。
+        /// </summary>
+        public HeadlessClient(string name, SimMapData map, KcpTransportClient transport,
+            string roomId = null, int port = 27778)
         {
             ClientName = name;
             _map = map;
             _transport = transport;
+            RoomId = roomId ?? RoomConfig.Default().RoomId;
             Client = new RoomClient(transport);
             Client.OnStartGame += OnStartGame;
             Client.OnSnapshot += OnSnapshot;
@@ -50,9 +58,9 @@ namespace LiteNet.Tests
             transport.OnConnected += () =>
             {
                 if (Client.Phase == ClientSessionPhase.Idle)
-                    Client.SendJoin(RoomConfig.Default().RoomId, "harness", RoomServer.ServerHost.ServerBuildHash);
+                    Client.SendJoin(RoomId, "harness", RoomServer.ServerHost.ServerBuildHash);
             };
-            Client.Connect("127.0.0.1", 27778);
+            Client.Connect("127.0.0.1", port);
         }
 
         /// <summary>
