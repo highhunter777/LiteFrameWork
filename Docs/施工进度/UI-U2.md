@@ -15,8 +15,53 @@
 | U2-⑤b 字体/SafeArea | 字体族与 fallback 链、缺字检查、SafeArea 细化 | **未开始** |
 | U2-⑤c LText 控件接入 | `UIBindIndex` 按 key 设文本 + 语言变更自动刷新；Lua 门面 `SetTextKey/SetTextKeyArgs/SetTextKeyPlural/UnbindTextKey` | **已完成**（2026-09-25） |
 | U2-⑤d 打字机 | LTextLabel 可取消打字机（§9 末条） | **未开始** |
-| U2-⑥ Dialog 结果/队列、Loading/Error 页 | 确认弹窗结果回传、加载/错误页 | **未开始** |
+| U2-⑥a 弹窗形态裁决 | 用户 2026-09-25 裁决：弹窗分两类（独立 Canvas 类走服务 / 页面独有类页面自理）；新建页面级 `Screens/Dialog.prefab` | **已完成**（prefab 已探针验证可打开） |
+| U2-⑥b Dialog 服务 | `DialogService`（结果/队列/优先级/互斥组/取消）+ `UIDialog` 等待式 + `UIService` 两接缝 | **未完成** — 曾写完并编译通过，**测试 12 例仅 3 通过**；代码已撤出工作区，见下方"未完成事项" |
+| U2-⑥c Loading/Error 页 | 加载/错误页统一入口 | **未开始** |
 | U2-⑦ 焦点 | 手柄/键盘焦点导航 | **未开始** |
+
+## 未完成事项
+
+### Dialog 服务：测试未能通过，代码已撤出（2026-09-25）
+
+**状态**：**代码已全部撤出工作区**（未提交、未入库）；仅保留裁决产物 `Assets/UI/Screens/Dialog.prefab`。
+
+**保留产物**：
+
+| 文件 | 说明 |
+| --- | --- |
+| `Assets/UI/Screens/Dialog.prefab`（新，在盘） | **页面级弹窗**（Canvas + CanvasGroup + UIDialog）——**探针已验证可打开、控件可取**，是弹窗形态裁决的直接产物，独立于测试是否通过 |
+
+**已撤出的实现**（曾写完并编译通过，未通过测试，故撤出）：
+`DialogService.cs`（结果/队列/优先级/互斥组/取消）、`UIDialog` 等待式扩展
+（`WaitAsync`/`Configure(title,msg)`/`SettleExternally`）、`UIService` 的
+`TryGetOpenForm` 与关闭时弹窗收口、`DialogServiceEditModeTests.cs`（12 例，3 通过）、
+测试程序集的 `Unity.TextMeshPro` 引用。
+
+**已确证的发现**（对后续有价值，已写入记忆与本文）：
+
+1. **`UIService.ShowAsync` 会 `Instantiate` prefab**（`UIService.cs:195`）——
+   调用方持有的 prefab 原件上的组件**不是**屏幕上那个；要操作实例控件必须另找入口
+   （本批曾加 `TryGetOpenForm`，随撤出移除）。这是本批唯一沉淀的确定性知识。
+2. **`Assets/UI/Widgets/` 下 24 个 prefab 全部无 Canvas**，只有 `Screens/UIMain.prefab` 有——
+   把子控件 prefab 当页面打开会抛 `MissingComponentException: There is no 'Canvas'`。
+   这是弹窗分类裁决的直接依据。
+
+**未解决的问题（阻塞该批测试）**：
+
+> 同一段代码，**独立探针类**中点击按钮后结果任务立即 `Succeeded`；
+> 作为**正式测试类**的方法则保持 `Pending`。
+
+已逐项排除：LText 服务、请求形状、tick 循环条件、`[SetUp]` 结构（`Build()` 移入方法内亦无效）、
+辅助方法（`Dlg`/`Click`/`PumpUntilOpen`/`PumpGet`）、探针类并存污染（删掉探针类后仍失败）、
+测试间污染（单独跑该用例仍失败）。最后一步"逐字复制探针代码"的变体亦失败，
+而几步之前完全相同的代码成功——**存在未能定位的隐藏变量**，疑似与
+Unity Test Framework 的 fixture 生命周期或 UniTask 在 EditMode 下的调度有关。
+
+**投入与教训**：该项约 40+ 轮"改-编译-跑"（每轮约 2 分钟），多数轮次基于未验证的猜测。
+正确做法应是**先隔离出最小可复现**再改——本批直到最后才做逐行二分，为时已晚。
+该现象可作独立调查任务，**不应继续占用 U2 批次**。
+
 
 ## 施工记录
 
@@ -146,7 +191,7 @@ Flash 回**原色**（原实现回落固定色，属缺陷）、Slide 回原位�
 | 项 | 命令 | 结果 |
 |---|---|---|
 | L1 | `powershell -NoProfile -File scripts/test.ps1 -Lane L1 -Profile PullRequest` | **761 通过 / 0 失败**（本批 +48 例） |
-| L2 | `powershell -NoProfile -File scripts/l2-unity-gate.ps1` | **通过**——12041 个 .meta GUID 全合法；Unity 编译零错误；EditMode **189/189**（本批 +9） |
+| L2 | `powershell -NoProfile -File scripts/l2-unity-gate.ps1` | **通过**——12042 个 .meta GUID 全合法；Unity 编译零错误；EditMode **189/189**（含新增 `Screens/Dialog.prefab`） |
 
 ## 已知边界
 
