@@ -116,16 +116,15 @@ namespace LiteGame
                 {
                     return new DownloadFailureInfo(DownloadFailureKind.Canceled, entry.Path);
                 }
+                catch (UnityWebRequestException ex)
+                {
+                    // UniTask 的 WithCancellation 在非 2xx 时**自己抛**（不是返回失败结果），
+                    // 故分类必须在这里做——await 之后的 request.result 检查对错误路径不可达。
+                    return Classify(ex.ResponseCode, ex.Message, entry.Path);
+                }
 
                 if (request.result != UnityWebRequest.Result.Success)
-                {
-                    // 4xx 是确定性（资源不存在/无权限，重试无效）；5xx 与网络错是暂态（§7 分类）
-                    long code = request.responseCode;
-                    bool deterministic = code >= 400 && code < 500;
-                    return new DownloadFailureInfo(
-                        deterministic ? DownloadFailureKind.FileMissing : DownloadFailureKind.TransientNetwork,
-                        entry.Path, detail: $"HTTP {code}: {request.error}");
-                }
+                    return Classify(request.responseCode, request.error, entry.Path);
 
                 byte[] body = request.downloadHandler?.data;
                 if (body == null)
@@ -145,6 +144,19 @@ namespace LiteGame
                 FileSys.Delete(temp);
                 return default;
             }
+        }
+
+        /// <summary>
+        /// 传输失败分类（§7"区分暂态网络错误与签名/兼容错误"）。
+        /// **4xx 是确定性**（资源不存在/无权限，重试无效）；**5xx 与网络错是暂态**（可重试/换源）；
+        /// **0 = 未拿到响应**（连接失败/DNS/超时）同样按暂态处理。
+        /// </summary>
+        internal static DownloadFailureInfo Classify(long responseCode, string error, string path)
+        {
+            bool deterministic = responseCode >= 400 && responseCode < 500;
+            return new DownloadFailureInfo(
+                deterministic ? DownloadFailureKind.FileMissing : DownloadFailureKind.TransientNetwork,
+                path, detail: $"HTTP {responseCode}: {error}");
         }
 
         /// <summary>
