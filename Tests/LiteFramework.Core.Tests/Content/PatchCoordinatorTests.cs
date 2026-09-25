@@ -90,6 +90,48 @@ namespace LiteFramework.Tests
             Assert.Equal(0, fetcher.Calls);
             Assert.Equal(0, activator.ActivateCalls);
             Assert.Contains("InsufficientSpace", store.Current.LastFailure);
+            Assert.Null(store.Current.PendingReleaseId);               // 预检失败不开候选事务（无临时归属可清）
+        }
+
+        [Fact]
+        public void 获取失败_候选事务先于下载落盘_临时文件随即回收()
+        {
+            var (coord, _, files, _, fetcher, _, _, _, store) = Build(initialReleaseId: "rel-1", initialVersion: 5);
+            ReleaseManifest m = PatchTestFixtures.ManifestWithFiles(files, "rel-2", ("a.bin", "AAA"));
+            fetcher.Succeed = false;
+            fetcher.FailKind = DownloadFailureKind.TransientNetwork;
+            string pendingAtFetchStart = "<unset>";
+            fetcher.BeforeFetch = () => pendingAtFetchStart = store.Current.PendingReleaseId;
+
+            PatchRunResult r = PatchTestFixtures.Pump(
+                coord.RunAsync(m, PatchTestFixtures.PlanFor(m), PatchTestFixtures.SpaceFor(m)));
+
+            Assert.False(r.Succeeded);
+            Assert.Equal(PatchPhase.Fetching, r.FinalPhase);
+            // §8 表行 1：Candidate 事务在下载开始前已落盘——下载/校验中中断时记录持有临时归属
+            Assert.Equal("rel-2", pendingAtFetchStart);
+            Assert.Equal("rel-2", store.Current.PendingReleaseId);
+            Assert.Equal(ActivationState.Candidate, store.Current.PendingState);
+            // 失败收尾即回收该候选的临时文件（不等下次启动）；已确认版本保留不动
+            Assert.Contains("rel-2", fetcher.Cleaned);
+            Assert.Equal("rel-1", store.Current.ConfirmedReleaseId);
+            Assert.Equal(5UL, store.Current.ConfirmedVersion);
+        }
+
+        [Fact]
+        public void 无候选_启动恢复仍回收上次在途候选的临时文件()
+        {
+            var (coord, _, _, _, fetcher, health, activator, _, store) = Build(initialReleaseId: "rel-1", initialVersion: 7);
+            store.BeginCandidate("rel-dead");                          // 模拟上次下载/校验中被杀：记录在途
+
+            PatchRunResult r = PatchTestFixtures.Pump(
+                coord.RunAsync(null, null, new SpaceCheckRequest()));
+
+            Assert.True(r.NoWork);
+            Assert.Contains("rel-dead", fetcher.Cleaned);              // §8 表行 1：恢复即清理临时归属
+            Assert.Equal(0, health.Calls);
+            Assert.Equal(0, activator.ActivateCalls);
+            Assert.Null(store.Current.PendingReleaseId);               // 在途事务已了结
         }
 
         [Fact]
@@ -198,8 +240,8 @@ namespace LiteFramework.Tests
         [Fact]
         public void 中断恢复_在途候选不回退已确认且以Confirmed继续()
         {
-            // 模拟"上次在 PendingActivation 被杀"：记录里有在途候选
-            var (coord, _, files, _, _, _, activator, _, store) = Build(initialReleaseId: "rel-1", initialVersion: 7);
+            // 模拟"上次在途候选被杀"：记录里有在途候选
+            var (coord, _, files, _, fetcher, _, activator, _, store) = Build(initialReleaseId: "rel-1", initialVersion: 7);
             store.BeginCandidate("rel-dead");
             store.MarkPendingActivation();
             store.RecordFailure("上次激活中断");
@@ -212,6 +254,7 @@ namespace LiteFramework.Tests
             Assert.True(r.Succeeded, r.ToString());
             Assert.Equal("rel-2", store.Current.ConfirmedReleaseId);
             Assert.Equal(1, activator.ActivateCalls);
+            Assert.Contains("rel-dead", fetcher.Cleaned);              // §8 表行 1：恢复时回收在途候选的临时归属
         }
 
         [Fact]

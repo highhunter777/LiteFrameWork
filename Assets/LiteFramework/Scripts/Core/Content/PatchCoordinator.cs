@@ -86,6 +86,8 @@ namespace LiteFramework
     ///
     /// 顺序（与 §8 及 §4 mermaid 一致，**每一步都持久化**以便中断后可恢复）：
     /// 启动恢复 → 空间预检 → 获取 → 校验 → 标记待激活 → 激活 → 健康 → 确认。
+    /// 候选事务在**获取开始前**落盘（Candidate 覆盖下载/校验区间，§8 表行 1）；
+    /// 在途候选的临时文件在**启动恢复**与**失败收尾**两处经端口回收。
     ///
     /// **失败一律保留允许版本**（§8"失败从保留版本重建"）：任何一步失败都
     /// ① <see cref="ActivationTransactionStore.RecordFailure"/> 留档、
@@ -104,6 +106,10 @@ namespace LiteFramework
         private readonly IContentActivator _activator;
         private readonly IGenerationSink _generationSink;
         private readonly ReleaseBudget _budget;
+
+        /// <summary>本次编排已开始候选事务的发布身份（BeginCandidate 之后非空）——
+        /// 失败收尾按它回收该候选的临时文件；预检/依赖阶段失败时为 null（尚无临时归属）。</summary>
+        private string _activeReleaseId;
 
         /// <summary>当前进行到的阶段（诊断；失败后保留失败阶段供定位）。</summary>
         public PatchPhase Phase { get; private set; } = PatchPhase.Idle;
@@ -149,7 +155,13 @@ namespace LiteFramework
         {
             // ── ① 启动恢复：在途事务按 §8 表回退（持久化；尝试有上限）──
             SetPhase(PatchPhase.Recovering);
+            string pendingBeforeRecovery = _store.Current.PendingReleaseId;
             ActivationRecord recovered = _store.RecoverOnStartup();
+
+            // §8 表行 1/行 2：上次在途候选（下载/校验/激活窗口中断）——按记录回收其临时归属。
+            // 清理是恢复的次要目标（端口契约不抛），不得阻断"以 Confirmed 继续"的主流程。
+            if (pendingBeforeRecovery != null)
+                await _fetcher.CleanupTempAsync(pendingBeforeRecovery, ct);
 
             if (candidate == null)
             {
@@ -170,6 +182,10 @@ namespace LiteFramework
                     new DownloadFailureInfo(DownloadFailureKind.InsufficientSpace, detail: space.Detail), ct);
 
             // ── ③ 获取候选（§7）──
+            // 候选事务先于下载落盘（§8 表行 1：下载/校验中中断 → 下次启动按记录清理该候选
+            // 的临时文件）。不先记录，则该阶段的进程中断既无恢复依据、临时文件也无归属可查。
+            _store.BeginCandidate(candidate.ReleaseId);
+            _activeReleaseId = candidate.ReleaseId;
             SetPhase(PatchPhase.Fetching);
             CandidateFetchResult fetched = await _fetcher.FetchAsync(candidate, plan, ct);
             if (!fetched.Succeeded)
@@ -184,7 +200,7 @@ namespace LiteFramework
 
             // ── ⑤ 持久化"待激活"（§8 表行 2 的恢复决策点）──
             // 顺序不可颠倒：必须在健康确认之前落盘，否则进程在激活后中断将无从恢复。
-            _store.BeginCandidate(candidate.ReleaseId);
+            // （Candidate 事务已在 ③ 下载前开始，此处推进为 PendingActivation。）
             _store.MarkPendingActivation();
             SetPhase(PatchPhase.PendingActivation);
 
@@ -245,6 +261,11 @@ namespace LiteFramework
         {
             LastFailure = failure;
             _store.RecordFailure($"{phase}：{failure}");
+
+            // 该候选的获取/校验已终止——立即回收其临时文件，不等下次启动（§8 表行 1 的清理义务；
+            // 幂等：获取成功后的失败此处已无可清理 = no-op）。
+            if (_activeReleaseId != null)
+                await _fetcher.CleanupTempAsync(_activeReleaseId, ct);
 
             ContentGeneration confirmed = new ContentGeneration(recovered.ConfirmedReleaseId, recovered.ConfirmedVersion);
             _generationSink?.Advise(confirmed);

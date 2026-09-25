@@ -49,6 +49,18 @@ namespace LiteFramework
     {
         UniTask<CandidateFetchResult> FetchAsync(
             ReleaseManifest manifest, DownloadPlan plan, CancellationToken ct = default);
+
+        /// <summary>
+        /// 清理属于指定发布的临时文件（§8 表行 1"清理/恢复属于该候选的临时文件"）。
+        ///
+        /// 调用场景：① 启动恢复发现上次在途候选——按记录里的发布身份回收其临时归属；
+        /// ② 编排失败收尾——获取/校验已终止的候选不留半截文件。
+        ///
+        /// **幂等且不抛**：无可清理时 no-op；清理失败由实现方吞掉——清理是恢复的次要目标，
+        /// 不得阻断"以 Confirmed 继续"的主流程（残留垃圾在按发布隔离的目录内，
+        /// 下次同发布清理幂等重试）。
+        /// </summary>
+        UniTask CleanupTempAsync(string releaseId, CancellationToken ct = default);
     }
 
     /// <summary>

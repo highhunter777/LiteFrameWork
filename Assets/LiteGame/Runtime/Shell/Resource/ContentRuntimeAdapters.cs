@@ -351,5 +351,9 @@ namespace LiteGame
 
             return UniTask.FromResult(CandidateFetchResult.Ok(paths));
         }
+
+        /// <summary>本实现只清点已落盘内容、不发起下载，**不产生临时文件**——无可清理，按端口契约 no-op。</summary>
+        public UniTask CleanupTempAsync(string releaseId, CancellationToken ct = default)
+            => UniTask.CompletedTask;
     }
 }

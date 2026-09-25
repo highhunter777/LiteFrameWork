@@ -52,14 +52,27 @@ namespace LiteFramework.Tests
         public int Calls;
         public List<string> PathsToReturn = new List<string>();
 
+        /// <summary>FetchAsync 进入时回调（测试用来观察"下载开始前"的事务状态）。</summary>
+        public Action BeforeFetch;
+
+        /// <summary>CleanupTempAsync 收到的发布身份（按序）。</summary>
+        public readonly List<string> Cleaned = new List<string>();
+
         public UniTask<CandidateFetchResult> FetchAsync(ReleaseManifest manifest, DownloadPlan plan, CancellationToken ct = default)
         {
             Calls++;
+            BeforeFetch?.Invoke();
             if (!Succeed) return UniTask.FromResult(CandidateFetchResult.Fail(FailKind, detail: "夹具"));
             var paths = PathsToReturn.Count > 0
                 ? PathsToReturn
                 : ManifestPaths(manifest);
             return UniTask.FromResult(CandidateFetchResult.Ok(paths));
+        }
+
+        public UniTask CleanupTempAsync(string releaseId, CancellationToken ct = default)
+        {
+            Cleaned.Add(releaseId);
+            return UniTask.CompletedTask;
         }
 
         private static List<string> ManifestPaths(ReleaseManifest m)

@@ -260,6 +260,24 @@ namespace LiteGame.Tests.EditMode
                 StringAssert.DoesNotContain("a.bin", f);
         }
 
+        [Test]
+        public void 临时目录回收_按发布隔离_幂等不抛()
+        {
+            var f = new HttpCandidateFetcher(Root, _baseUrl);
+
+            // 两个 Release 各留一个临时件——只回收 rel-A，rel-B 不受牵连（§7 Release 归属）
+            FileSys.WriteAllBytes(f.TempPath("rel-A", "a.bin"), B("AAA"));
+            FileSys.WriteAllBytes(f.TempPath("rel-B", "a.bin"), B("BBB"));
+
+            f.CleanupTempAsync("rel-A").GetAwaiter().GetResult();   // 全程同步完成（无网络）
+
+            Assert.AreEqual(-1L, FileSys.GetFileLength(f.TempPath("rel-A", "a.bin")));  // 已回收
+            Assert.AreEqual(3L, FileSys.GetFileLength(f.TempPath("rel-B", "a.bin")));   // 不误伤
+
+            f.CleanupTempAsync("rel-A").GetAwaiter().GetResult();   // 幂等：目录已不存在 = no-op
+            f.CleanupTempAsync(null).GetAwaiter().GetResult();     // 空发布身份按 no-op，不抛
+        }
+
         // ---- 构造校验 ----
 
         [Test]

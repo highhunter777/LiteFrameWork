@@ -83,6 +83,28 @@ namespace LiteGame
         }
 
         /// <summary>
+        /// 回收该发布的临时目录（<see cref="TempPath"/> 的 Release 隔离根：
+        /// <c>&lt;候选根&gt;/.tmp/&lt;releaseId&gt;</c>）——§8 表行 1"清理属于该候选的临时文件"。
+        ///
+        /// 幂等（目录不存在 = no-op）；按端口契约**不抛**：清理失败吞掉——它是恢复的次要目标，
+        /// 不得阻断"以 Confirmed 继续"；残留垃圾被隔离在该发布的 .tmp 目录内，
+        /// 下次同发布清理会幂等重试。
+        /// </summary>
+        public UniTask CleanupTempAsync(string releaseId, CancellationToken ct = default)
+        {
+            if (string.IsNullOrEmpty(releaseId)) return UniTask.CompletedTask;
+            try
+            {
+                FileSys.DeleteDirectory(_candidateRoot + "/.tmp/" + releaseId);
+            }
+            catch (Exception)
+            {
+                // 端口契约：不抛。清理失败只影响磁盘整洁度，不影响恢复决策与允许版本。
+            }
+            return UniTask.CompletedTask;
+        }
+
+        /// <summary>
         /// 取单个文件。临时文件与目标文件同目录（跨卷 Move 会退化为拷贝）。
         /// </summary>
         private async UniTask<DownloadFailureInfo> FetchOneAsync(
