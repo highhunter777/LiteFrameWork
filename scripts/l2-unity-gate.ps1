@@ -108,14 +108,15 @@ function Invoke-PipelineCommand([string]$command, [string[]]$cmdArgs) {
     return ($out -join "`n")
 }
 
-# EditMode 套件异步执行（2026-09-25）：同步 run_tests 走 `--timeout 10`，套件涨过阈值即超时失败
+# Unity 测试套件异步执行（2026-09-25）：同步 run_tests 走 `--timeout 10`，套件涨过阈值即超时失败
 # （217 例时实测必挂）。改异步触发 + 轮询 test_status 到终态——与 unity-pipeline 技能记载的
 # 长跑形态一致（`--async_tests true` → 轮询 `test_status`）。返回含 Total/Passed/Failed 的结果文本。
-function Invoke-EditModeTestsAsync([int]$timeoutSeconds = 900) {
+# $mode：editor（EditMode）/ playmode（PlayMode）。两者共用同一入口，不另起旁路。
+function Invoke-UnityTestsAsync([string]$mode, [int]$timeoutSeconds = 900) {
     $savedErrorActionPreference = $ErrorActionPreference
     try {
         $ErrorActionPreference = 'Continue'
-        $null = & unity command --timeout 60 run_tests --mode editor --async_tests true --project-path $ProjectPath 2>&1
+        $null = & unity command --timeout 60 run_tests --mode $mode --async_tests true --project-path $ProjectPath 2>&1
 
         $deadline = (Get-Date).AddSeconds($timeoutSeconds)
         while ((Get-Date) -lt $deadline) {
@@ -125,7 +126,7 @@ function Invoke-EditModeTestsAsync([int]$timeoutSeconds = 900) {
             if ($joined -match '"status"\s*:\s*"running"') { continue }
             if ($joined -match '"status"\s*:\s*"(completed|failed|idle)') { return $joined }
         }
-        throw "EditMode 用例超时（${timeoutSeconds}s 未到终态）"
+        throw "$mode 用例超时（${timeoutSeconds}s 未到终态）"
     }
     finally {
         $ErrorActionPreference = $savedErrorActionPreference
@@ -247,8 +248,8 @@ UnityEditor.Compilation.CompilationPipeline.RequestScriptCompilation();
             # ③ Unity EditMode 用例（#27/#28）：经 Pipeline 直接跑，编辑器无需关闭。
             # 用例在 Assets/Tests/EditMode（IEEE 基线逐位对账 + UI 模板/资源完整性）；
             # Total=0 视为失败——否则"测试程序集没编进来"会静默通过。
-            # 走异步轮询（同步调用在套件涨过 CLI 阈值后必超时，见 Invoke-EditModeTestsAsync）。
-            $rt = Invoke-EditModeTestsAsync
+            # 走异步轮询（同步调用在套件涨过 CLI 阈值后必超时，见 Invoke-UnityTestsAsync）。
+            $rt = Invoke-UnityTestsAsync 'editor'
             $total  = Get-JsonInt $rt 'Total'
             $passed = Get-JsonInt $rt 'Passed'
             $failed = Get-JsonInt $rt 'Failed'
@@ -256,6 +257,19 @@ UnityEditor.Compilation.CompilationPipeline.RequestScriptCompilation();
             if ($total -le 0) { Write-Bad 'EditMode 用例数 = 0（测试程序集未编入？检查 Assets/Tests/EditMode 的 asmdef 与 UNITY_INCLUDE_TESTS）' }
             elseif ($failed -gt 0) { Write-Bad "EditMode 用例失败 $failed 项（Total=$total）——明细：unity command run_tests --mode editor --project-path `"$ProjectPath`"" }
             else { Write-Ok "EditMode 用例全绿（$passed/$total）" }
+
+            # ④ Unity PlayMode 用例（2026-09-25 建组）：真 UIService + 真 prefab + 真转场链路。
+            # 《UI测试开发专项设计》§6"仅验证转场 Runner 或模板结构不能替代此项"；用例在
+            # Assets/Tests/UI/PlayMode。§8.1 要求接入**同一门禁**，不得另起旁路入口。
+            # Total=0 同判失败——PlayMode 程序集未编入不能静默通过。
+            $rtp = Invoke-UnityTestsAsync 'playmode'
+            $ptotal  = Get-JsonInt $rtp 'Total'
+            $ppassed = Get-JsonInt $rtp 'Passed'
+            $pfailed = Get-JsonInt $rtp 'Failed'
+            Write-Host "  run_tests(PlayMode): Total=$ptotal Passed=$ppassed Failed=$pfailed" -ForegroundColor DarkGray
+            if ($ptotal -le 0) { Write-Bad 'PlayMode 用例数 = 0（测试程序集未编入？检查 Assets/Tests/UI/PlayMode 的 asmdef）' }
+            elseif ($pfailed -gt 0) { Write-Bad "PlayMode 用例失败 $pfailed 项（Total=$ptotal）——明细：unity command run_tests --mode playmode --project-path `"$ProjectPath`"" }
+            else { Write-Ok "PlayMode 用例全绿（$ppassed/$ptotal）" }
         }
         catch { Write-Bad "Pipeline 命令执行失败：$($_.Exception.Message)" }
     }

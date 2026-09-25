@@ -1,0 +1,25 @@
+{
+    "name": "LiteGame.UI.PlayModeTests",
+    "rootNamespace": "LiteGame.Tests.UI.PlayMode",
+    "references": [
+        "LiteTesting.Core",
+        "LiteTesting.Runtime",
+        "LiteGame.Runtime",
+        "LiteFramework.Core",
+        "LiteFramework.Unity",
+        "UniTask",
+        "UnityEngine.TestRunner",
+        "Unity.TextMeshPro"
+    ],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": true,
+    "precompiledReferences": [
+        "nunit.framework.dll"
+    ],
+    "autoReferenced": false,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}

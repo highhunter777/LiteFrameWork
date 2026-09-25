@@ -1,0 +1,19 @@
+{
+    "name": "LiteTesting.Runtime",
+    "rootNamespace": "LiteTesting.Unity",
+    "references": [
+        "LiteTesting.Core",
+        "UnityEngine.TestRunner"
+    ],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": true,
+    "precompiledReferences": [
+        "nunit.framework.dll"
+    ],
+    "autoReferenced": false,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}
