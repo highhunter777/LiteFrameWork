@@ -110,7 +110,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   m_Material: {fileID: 0}
-  m_Color: {r: 0.18, g: 0.18, b: 0.22, a: 1}
+  m_Color: {r: 0.2, g: 0.3, b: 0.45, a: 1}
   m_RaycastTarget: 1
   m_RaycastPadding: {x: 0, y: 0, z: 0, w: 0}
   m_Maskable: 1
@@ -179,6 +179,7 @@ MonoBehaviour:
   Template: {fileID: 8226415139779864511}
   Direction: 0
   Spacing: 8
+  Overscan: 2
   HardCap: 512
 --- !u!1 &7047771392735697344
 GameObject:

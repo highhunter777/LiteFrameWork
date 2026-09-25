@@ -45,6 +45,13 @@ namespace LiteGame
         public int TimedOut { get; private set; }
         public int CancelledWhileQueued { get; private set; }
 
+        /// <summary>
+        /// Back 前置拦截（§6.1 Back 优先级链首位——"Loading 阻断期间按操作取消规则处理返回，
+        /// 不能悄悄穿透到下层"）：返回 true = 已消费本次 Back（取消当前阻断操作，不进入模态/页面关闭链）。
+        /// 注册方（FeedbackService）必须是确定行为、不弹 UI。null = 无拦截（默认）。
+        /// </summary>
+        public Func<bool> BackInterceptor { get; set; }
+
         /// <param name="ui">UI 壳服务（导航的执行引擎）。</param>
         /// <param name="nowMs">单调毫秒源（默认 Stopwatch；测试注入假时钟驱动等待超时判定）。</param>
         public UINavigationController(UIService ui, int queueCapacity = DefaultQueueCapacity,
@@ -69,11 +76,15 @@ namespace LiteGame
         }
 
         /// <summary>
-        /// 返回：关闭最顶模态（无模态则最高非空组的栈顶）。返回 false = 当前无可返回目标（确定结果，不抛）。
+        /// 返回（§6.2 平台返回统一处理）：**Back 前置拦截**（Loading 阻断期取消，消费即返回 true）
+        /// → 关闭最顶模态（无模态则最高非空组的栈顶）。返回 false = 当前无可返回目标（确定结果，不抛）。
         /// 关闭可被出栈拦截（<see cref="UIService.CloseReason.Back"/> 语义）——拦截时返回 true（已提交关闭）。
         /// </summary>
         public UniTask<bool> BackAsync(CancellationToken ct = default)
         {
+            if (BackInterceptor != null && BackInterceptor())
+                return UniTask.FromResult(true);          // 阻断期消费：不穿透到下层（§6.1）
+
             var op = Enqueue(NavKind.Back, 0, null, ct);
             return WaitBoolAsync(op, ct);
         }

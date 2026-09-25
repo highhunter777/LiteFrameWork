@@ -53,6 +53,8 @@ namespace LiteGame.Editor
             done.Add(Save(BuildGuideHighlight(), "GuideHighlight"));
             done.Add(Save(BuildSafeArea(), "SafeArea"));
             done.Add(Save(BuildSimpleList(), "SimpleList"));
+            // 反馈面（2026-09-25 U2 归位）
+            done.Add(Save(BuildLoading(), "Loading"));
             AssetDatabase.SaveAssets();
             AssetDatabase.Refresh();
             LiteFramework.Log.Info("[WidgetPrefab] 模板构建完成：" + string.Join(" / ", done), "UI");
@@ -60,12 +62,17 @@ namespace LiteGame.Editor
 
         // ================= 批③：余件 =================
 
-        /// <summary>轻提示：根挂 Toast，子放非激活模板（Show 时实例化到同父）。</summary>
+        /// <summary>轻提示：根挂 Toast，子放非激活模板（Show 时实例化到同父）。
+        /// 2026-09-25：按 §6.1 多条并存改造——根为**透明容器**（无 Image，否则多条叠底），
+        /// 纵向排布由 Toast.Spacing/StackDirection 定义，条数上限 MaxVisible 超出淘汰最旧。</summary>
         private static GameObject BuildToast()
         {
             var root = Node("Toast", null, new Vector2(360f, 48f));
             var toast = root.AddComponent<Toast>();
             toast.Duration = 2f;
+            toast.MaxVisible = 4;
+            toast.Spacing = 8f;
+            toast.StackDirection = 1;   // 沿 +Y 向上生长（Spread 语义：旧条在下，新条依次上移）
 
             var tpl = Node("_Template", root, new Vector2(320f, 40f));
             var tplBg = tpl.AddComponent<Image>();
@@ -77,6 +84,108 @@ namespace LiteGame.Editor
 
             Expose(root, "界面级命名：如 ToastHost");
             return root;
+        }
+
+        /// <summary>加载遮罩控件（2026-09-25 新增）：全屏阻断面 + 居中文案。
+        /// 阻断面 raycastTarget=true 吃掉射线（§6.2"输入禁用/射线阻断/焦点是不同职责"——
+        /// 阻断靠阻断面，不靠停组，故可与 Toast 同层并存不互斥）。</summary>
+        private static GameObject BuildLoading()
+        {
+            var root = Node("Loading", null, new Vector2(1920f, 1080f));
+            Stretch(root.GetComponent<RectTransform>(), 0f);
+
+            var mask = root.AddComponent<LoadingMask>();
+
+            var blocker = Node("Blocker", root, new Vector2(1920f, 1080f));
+            Stretch(blocker.GetComponent<RectTransform>(), 0f);
+            var bg = blocker.AddComponent<Image>();
+            bg.color = new Color(0f, 0f, 0f, 0.55f);
+            bg.raycastTarget = true;                       // 阻断面吃掉射线
+            mask.Blocker = bg;
+
+            var message = Text("Message", root, "加载中…");
+            message.fontSize = 28f;
+            var rt = message.rectTransform;
+            rt.anchorMin = rt.anchorMax = rt.pivot = new Vector2(0.5f, 0.5f);
+            rt.sizeDelta = new Vector2(600f, 80f);
+            rt.anchoredPosition = Vector2.zero;
+            mask.Message = message;
+
+            Expose(root, "界面级命名：如 LoadingRoot");
+            return root;
+        }
+
+        // ================= 反馈面页面级包装（2026-09-25 U2 反馈面归位） =================
+        // 24 件 Widget 模板无 Canvas，不能当 form 打开（U2-⑥a 裁决的直接依据）——反馈面要经
+        // UIService 打开，必须有页面级包装：Canvas + CanvasGroup + 嵌套控件实例。
+
+        private const string ScreenDir = "Assets/UI/Screens";
+
+        /// <summary>构建反馈面页面级包装（Loading/Toast）。错误弹窗复用既有 Screens/Dialog.prefab。
+        /// 幂等：重复执行覆盖同名文件。</summary>
+        [MenuItem("LiteGame/UI/构建反馈面 Screens")]
+        private static void BuildFeedbackScreens()
+        {
+            EnsureFolder(ScreenDir);
+            var done = new List<string>();
+            done.Add(SaveScreen(BuildLoadingScreen(), "Loading"));
+            done.Add(SaveScreen(BuildToastScreen(), "Toast"));
+            Debug.Log($"[WidgetPrefab] 反馈面页面构建完成:{string.Join(",", done)}");
+        }
+
+        /// <summary>Loading 页面级包装：Canvas + CanvasGroup + 嵌套 Loading 控件。</summary>
+        private static GameObject BuildLoadingScreen()
+        {
+            var root = ScreenNode("Loading");
+            NestWidget(root, "Loading");
+            return root;
+        }
+
+        /// <summary>Toast 页面级包装：Canvas + CanvasGroup + 嵌套 Toast 控件（容器定位在下方居中）。</summary>
+        private static GameObject BuildToastScreen()
+        {
+            var root = ScreenNode("Toast");
+            GameObject widget = NestWidget(root, "Toast");
+            // 容器下移，给向上堆叠留出空间（新条沿 +Y 生长，不会被顶部裁掉）
+            ((RectTransform)widget.transform).anchoredPosition = new Vector2(0f, -320f);
+            return root;
+        }
+
+        /// <summary>页面级根：Canvas(Overlay) + CanvasGroup（UIService 的 UIForm 要求两者存在）。</summary>
+        private static GameObject ScreenNode(string name)
+        {
+            var root = new GameObject(name, typeof(RectTransform), typeof(Canvas), typeof(CanvasGroup));
+            var rt = (RectTransform)root.transform;
+            rt.anchorMin = Vector2.zero;
+            rt.anchorMax = Vector2.one;
+            rt.offsetMin = Vector2.zero;
+            rt.offsetMax = Vector2.zero;
+            rt.pivot = new Vector2(0.5f, 0.5f);
+
+            var canvas = root.GetComponent<Canvas>();
+            canvas.renderMode = RenderMode.ScreenSpaceOverlay;
+            canvas.overrideSorting = true;   // 层内排序由 UIForm/统一排序器接管
+            return root;
+        }
+
+        /// <summary>把 Widgets 下已生成的控件模板作为嵌套 prefab 实例挂进页面（保留 Prefab 引用关系）。</summary>
+        private static GameObject NestWidget(GameObject parent, string widgetName)
+        {
+            var widget = AssetDatabase.LoadAssetAtPath<GameObject>($"{OutDir}/{widgetName}.prefab");
+            if (widget == null)
+                throw new InvalidOperationException($"控件模板缺失:{widgetName}.prefab（先跑“构建控件模板 Prefabs”）");
+
+            var instance = (GameObject)PrefabUtility.InstantiatePrefab(widget);
+            instance.transform.SetParent(parent.transform, false);
+            return instance;
+        }
+
+        private static string SaveScreen(GameObject root, string name)
+        {
+            var path = $"{ScreenDir}/{name}.prefab";
+            var prefab = PrefabUtility.SaveAsPrefabAsset(root, path);
+            UnityEngine.Object.DestroyImmediate(root);
+            return name + (prefab != null ? "✓" : "✗");
         }
 
         /// <summary>气泡：挂点旁短命提示（朝上小三角由美术补）。</summary>
@@ -880,6 +989,42 @@ namespace LiteGame.Editor
                 var ok = t != null && t.Template != null && !t.Template.gameObject.activeSelf;
                 Kill(go);
                 return ok;
+            }, ref fail);
+
+            pass += Check("Loading：阻断面吃射线 + 文案接线", () =>
+            {
+                var go = Instantiate("Loading");
+                var m = go.GetComponent<LiteGame.UI.LoadingMask>();
+                var ok = m != null && m.Blocker != null && m.Blocker.raycastTarget && m.Message != null;
+                Kill(go);
+                return ok;
+            }, ref fail);
+
+            pass += Check("Toast：多条并存（3 条各自计时，先到者独立消失）", () =>
+            {
+                var go = Instantiate("Toast");
+                var t = go.GetComponent<LiteGame.UI.Toast>();
+                t.Show("A", 1f);
+                t.Show("B", 5f);
+                t.Show("C", 5f);
+                bool three = t.VisibleCount == 3;
+                t.Tick(1.5f);                       // A 到期；B/C 各自还剩 3.5s
+                bool aGone = t.VisibleCount == 2;
+                t.Tick(3.6f);                       // B/C 一并到期
+                bool allGone = t.VisibleCount == 0;
+                Kill(go);
+                return three && aGone && allGone;
+            }, ref fail);
+
+            pass += Check("Toast：超上限淘汰最旧并计数", () =>
+            {
+                var go = Instantiate("Toast");
+                var t = go.GetComponent<LiteGame.UI.Toast>();
+                for (int i = 0; i < 6; i++) t.Show("T" + i, 5f);
+                bool capped = t.VisibleCount == t.MaxVisible;
+                bool counted = t.DroppedCount == 2;
+                Kill(go);
+                return capped && counted;
             }, ref fail);
 
             pass += Check("Bubble：Label 接线", () =>

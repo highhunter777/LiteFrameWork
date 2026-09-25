@@ -108,6 +108,30 @@ function Invoke-PipelineCommand([string]$command, [string[]]$cmdArgs) {
     return ($out -join "`n")
 }
 
+# EditMode 套件异步执行（2026-09-25）：同步 run_tests 走 `--timeout 10`，套件涨过阈值即超时失败
+# （217 例时实测必挂）。改异步触发 + 轮询 test_status 到终态——与 unity-pipeline 技能记载的
+# 长跑形态一致（`--async_tests true` → 轮询 `test_status`）。返回含 Total/Passed/Failed 的结果文本。
+function Invoke-EditModeTestsAsync([int]$timeoutSeconds = 900) {
+    $savedErrorActionPreference = $ErrorActionPreference
+    try {
+        $ErrorActionPreference = 'Continue'
+        $null = & unity command --timeout 60 run_tests --mode editor --async_tests true --project-path $ProjectPath 2>&1
+
+        $deadline = (Get-Date).AddSeconds($timeoutSeconds)
+        while ((Get-Date) -lt $deadline) {
+            Start-Sleep -Seconds 5
+            $statusText = & unity command --timeout 30 test_status --project-path $ProjectPath 2>&1
+            $joined = $statusText -join "`n"
+            if ($joined -match '"status"\s*:\s*"running"') { continue }
+            if ($joined -match '"status"\s*:\s*"(completed|failed|idle)') { return $joined }
+        }
+        throw "EditMode 用例超时（${timeoutSeconds}s 未到终态）"
+    }
+    finally {
+        $ErrorActionPreference = $savedErrorActionPreference
+    }
+}
+
 # 从 Pipeline 的 JSON 结果里取整数字段（取不到返回 -1，便于区分"0 条"与"解析失败"）
 function Get-JsonInt([string]$text, [string]$key) {
     $m = [regex]::Match($text, '(?i)"' + $key + '"\s*:\s*(\d+)')
@@ -223,7 +247,8 @@ UnityEditor.Compilation.CompilationPipeline.RequestScriptCompilation();
             # ③ Unity EditMode 用例（#27/#28）：经 Pipeline 直接跑，编辑器无需关闭。
             # 用例在 Assets/Tests/EditMode（IEEE 基线逐位对账 + UI 模板/资源完整性）；
             # Total=0 视为失败——否则"测试程序集没编进来"会静默通过。
-            $rt = Invoke-PipelineCommand 'run_tests' @('--mode', 'editor')
+            # 走异步轮询（同步调用在套件涨过 CLI 阈值后必超时，见 Invoke-EditModeTestsAsync）。
+            $rt = Invoke-EditModeTestsAsync
             $total  = Get-JsonInt $rt 'Total'
             $passed = Get-JsonInt $rt 'Passed'
             $failed = Get-JsonInt $rt 'Failed'

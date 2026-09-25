@@ -17,6 +17,7 @@
         "UnityEditor.TestRunner",
         "Luban.Runtime",
         "Luban.Tables",
+        "Unity.TextMeshPro",
         "xLuaMain"
     ],
     "includePlatforms": [

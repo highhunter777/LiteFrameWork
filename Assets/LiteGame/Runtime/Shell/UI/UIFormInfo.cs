@@ -11,7 +11,7 @@ namespace LiteGame
         public int Id;
         public string LuaPath;      // 注册表 Lua 逻辑表路径（"UI.UIMain"，LuaKeys 收口；§2.3 适配器消费）
         public string Location;     // prefab 资源完整路径（表列 = Assets/ 相对路径，如 "UI/UIMain.prefab"）
-        public int Layer;           // 层级组索引（0=Bottom 1=Window 2=Top，灰盒三组）
+        public int Layer;           // 语义层索引（0=Bottom 1=Window 2=Top 3=System；System 归反馈面，见 §6.2）
         public bool FullScreen;     // 全屏页：激活时批量遮盖更低层级组（组级批量暂停语义）
     }
 

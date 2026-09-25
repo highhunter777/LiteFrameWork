@@ -121,6 +121,17 @@ namespace LiteGame.UI
             }
         }
 
+        /// <summary>同步加载模板（自检用；编辑器快路径）。真机无自检路径，返回 null。</summary>
+        private static GameObject LoadTemplateSync(string name)
+        {
+#if UNITY_EDITOR
+            var asset = UnityEditor.AssetDatabase.LoadAssetAtPath<GameObject>($"{WidgetDir}/{name}.prefab");
+            return asset != null ? UnityEngine.Object.Instantiate(asset) : null;
+#else
+            return null;
+#endif
+        }
+
         // ---------------- 断言（只留与模板无关者） ----------------
 
         private void RunChecks()
@@ -138,17 +149,16 @@ namespace LiteGame.UI
             });
             Check("所有权互斥：金币走绑定 + 命令式违例抛（§4.7 共存验收）", () =>
             {
-                var root = new GameObject("t");
-                var goldGo = new GameObject("GoldText", typeof(Text));
-                goldGo.transform.SetParent(root.transform, false);
-                var index = new UIBindIndex(new Dictionary<string, Component>
-                {
-                    ["GoldText"] = goldGo.GetComponent<Text>()
-                });
+                // 复用一个真实模板（CountText → Label）：视觉取模板，不在自检里拼装（§7）——
+                // 旧实现在此处 new GameObject + typeof(Text)，既违规也让断言脱离真实控件结构。
+                GameObject inst = LoadTemplateSync("CountText");
+                if (inst == null) return false;
+                TMP_Text label = inst.GetComponentInChildren<TMP_Text>(true);
+                if (label == null) { Destroy(inst); return false; }
 
+                var index = new UIBindIndex(new Dictionary<string, Component> { ["GoldText"] = label });
                 var binder = index.BindText<int>("GoldText", v => "金币 " + v);   // 绑定驱动
                 binder.Set(100);
-                var label = goldGo.GetComponent<Text>();
                 bool boundWrite = label.text == "金币 100";
 
                 bool violationCaught = false;
@@ -156,7 +166,7 @@ namespace LiteGame.UI
                 catch (InvalidOperationException) { violationCaught = true; }
                 bool textKept = label.text == "金币 100";
 
-                Destroy(root);
+                Destroy(inst);
                 return boundWrite && violationCaught && textKept;
             });
             LogSummary($"控件自检完成 PASS={_pass} FAIL={_fail}（模板件断言见 WidgetTemplateCheck）");

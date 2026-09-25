@@ -2,6 +2,7 @@ using System;
 using System.Threading;
 using Cysharp.Threading.Tasks;
 using LiteFramework;
+using LiteGame.UI;
 using LiteSim.View;
 
 namespace LiteGame
@@ -29,13 +30,14 @@ namespace LiteGame
         private readonly AudioService _audio;
         private readonly VfxService _vfx;
         private readonly LuaRegistryRefillService _refill;
+        private readonly UINavigationController _nav;
 
         public ProcedureLaunch(ServiceContainer container, ConfigService config, SceneService scenes,
             UiLuaRegistry uiRegistry, ContentLuaRegistry contentRegistry, StrategyLuaRegistry strategyRegistry,
             UIService uiService, RedDotRegistry redDotRegistry,
             ILogicScheduler logicScheduler, IUIScheduler uiScheduler, GameTimelineRunner timelineRunner,
             EntityService entityService, AudioService audioService, VfxService vfxService,
-            LuaRegistryRefillService refillService, CancellationToken rootToken = default)
+            LuaRegistryRefillService refillService, UINavigationController nav, CancellationToken rootToken = default)
             : base(rootToken)
         {
             _container = container ?? throw new ArgumentNullException(nameof(container));
@@ -53,6 +55,7 @@ namespace LiteGame
             _audio = audioService ?? throw new ArgumentNullException(nameof(audioService));
             _vfx = vfxService ?? throw new ArgumentNullException(nameof(vfxService));
             _refill = refillService ?? throw new ArgumentNullException(nameof(refillService));
+            _nav = nav ?? throw new ArgumentNullException(nameof(nav));
         }
 
         protected override void RunAsync(IStageHost<ProcedureId, ProcedureArgs> m, in ProcedureArgs req, CancellationToken ct)
@@ -78,6 +81,12 @@ namespace LiteGame
                 _container.RegisterInstance<AudioService>(_audio);       // 声音壳（M4 §2.9：组+代理）
                 _container.RegisterInstance<IVFXService>(_vfx);          // VFX 服务（M11：表现层，注册即发现 ITickable → 自动驱动到期回收）
                 _container.RegisterInstance<LuaRegistryRefillService>(_refill);   // 运行期增量重填（§2.3；触发点 M11 + 调试菜单）
+                var dialogs = new DialogService(_ui);    // U2-⑥b：弹窗服务（ITickable 随注册自动驱动；§4.3 ShowDialogAsync 口径）
+                _container.RegisterInstance<DialogService>(dialogs);
+                var feedback = new FeedbackService(_ui, dialogs, _nav);   // U2-⑥c：Loading/Error/Toast 统一入口（System 层 form；Back 链首位拦截）
+                _container.RegisterInstance<FeedbackService>(feedback);
+                // Toast 多条计时：接 UIClock 步进（未打开时短路）；显式持有实例，不做全局单例查找
+                _container.RegisterInstance<ToastTicker>(new ToastTicker(() => feedback.ToastHost));
                 _container.Seal();                       // 注册面冻结；此后 Resolve 不受限
 
                 Bridge.Bind(() => _config.Tables);       // 服务桥装配期绑定（M2 C# 骨架，M3 绑成 Lua 全局表）

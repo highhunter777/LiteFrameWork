@@ -16,51 +16,57 @@
 | U2-⑤c LText 控件接入 | `UIBindIndex` 按 key 设文本 + 语言变更自动刷新；Lua 门面 `SetTextKey/SetTextKeyArgs/SetTextKeyPlural/UnbindTextKey` | **已完成**（2026-09-25） |
 | U2-⑤d 打字机 | LTextLabel 可取消打字机（§9 末条） | **未开始** |
 | U2-⑥a 弹窗形态裁决 | 用户 2026-09-25 裁决：弹窗分两类（独立 Canvas 类走服务 / 页面独有类页面自理）；新建页面级 `Screens/Dialog.prefab` | **已完成**（prefab 已探针验证可打开） |
-| U2-⑥b Dialog 服务 | `DialogService`（结果/队列/优先级/互斥组/取消）+ `UIDialog` 等待式 + `UIService` 两接缝 | **未完成** — 曾写完并编译通过，**测试 12 例仅 3 通过**；代码已撤出工作区，见下方"未完成事项" |
-| U2-⑥c Loading/Error 页 | 加载/错误页统一入口 | **未开始** |
+| U2-⑥b Dialog 服务 | `DialogService`（结果/队列/优先级/互斥组/取消）+ `UIDialog` 等待式 + `UIService` 两接缝 | **已完成**（2026-09-25 接手交付，11/11；"Pending 之谜"已破案，见下） |
+| U2-⑥c Loading/Error 页 | 加载/错误页统一入口 | **已完成**（2026-09-25：FeedbackService——Loading 嵌套阻断 + Back 首位拦截取消、Error/重试经 DialogService、Toast 计时面；空状态随大厅消费者落地）。**视觉已归位**：三面改走 System 层模板 form，见「反馈面归位」 |
 | U2-⑦ 焦点 | 手柄/键盘焦点导航 | **未开始** |
 
 ## 未完成事项
 
-### Dialog 服务：测试未能通过，代码已撤出（2026-09-25）
+### Dialog 服务：谜团已破案，批次已完成（2026-09-25 接手批）
 
-**状态**：**代码已全部撤出工作区**（未提交、未入库）；仅保留裁决产物 `Assets/UI/Screens/Dialog.prefab`。
+上一批"探针成功/正式用例 Pending"的隐藏变量已定位并消除，批次按同口径重新交付（11/11 绿）。
 
-**保留产物**：
+**谜底（两层叠加）**：
 
-| 文件 | 说明 |
-| --- | --- |
-| `Assets/UI/Screens/Dialog.prefab`（新，在盘） | **页面级弹窗**（Canvas + CanvasGroup + UIDialog）——**探针已验证可打开、控件可取**，是弹窗形态裁决的直接产物，独立于测试是否通过 |
+1. **就绪条件错位（主因）**：`UIService.ShowAsync` 的完成要经过转场 runner（`UITransitionRunner` 由
+   `UIService.Tick` 帧末驱动），而 `UIForm` 在转场收尾**之前**就已 Active/IsOpen——
+   以"表单已打开"为泵动退出条件会**过早退出**，此后命令面（如弹窗的结果等待）尚未挂上，
+   后续断言/点击全部落空。探针类当时"立即 Succeeded"是因为其时序恰好落在同帧同步段。
+   **修正**：就绪条件一律泵到**业务事实**（如 `TryGetActiveDialog`——对话框武装完成），不是表单 IsOpen。
+2. **UniTask 编辑态无 PlayerLoop**：异步 EditMode 用例的等待必须显式泵
+   （`for (...Pending...) { svc.Tick(...); }`，同 UiNavModalEditModeTests 已验证形态）——裸 await 永远 Pending。
 
-**已撤出的实现**（曾写完并编译通过，未通过测试，故撤出）：
-`DialogService.cs`（结果/队列/优先级/互斥组/取消）、`UIDialog` 等待式扩展
-（`WaitAsync`/`Configure(title,msg)`/`SettleExternally`）、`UIService` 的
-`TryGetOpenForm` 与关闭时弹窗收口、`DialogServiceEditModeTests.cs`（12 例，3 通过）、
-测试程序集的 `Unity.TextMeshPro` 引用。
+**本批交付**：
 
-**已确证的发现**（对后续有价值，已写入记忆与本文）：
+- `DialogService.cs`（`Shell/UI/`）：`ShowAsync(Request)` → `DialogResult{Ok/Cancel/Closed}`；
+  **互斥组**（组内串行，跨组并行）、**优先级**（降序出队、同级 FIFO）、**有界队列**（满则类型化
+  `Rejected`）、**合并**（同 `MergeKey` 在途请求共享同一结果任务——"重复断线/错误弹窗不堆叠"）、
+  **收口**（被外部关闭 → `Closed`）；实现 `ITickable`（容器注册即驱动）。
+  **先关后交付**：结果任务完成时弹窗已离场、组已释放（结果交付在 `CloseAsync` 完成之后）。
+- `UIDialog` 等待式：`WaitAsync(title,msg,okText,cancelText)` / `SettleExternally()`（幂等，
+  外部收口后按钮回调清空）；按钮文案可配。
+- `UIService` 接缝：`FormClosed` 事件（`CloseFormInternal` 单一漏斗——用户/系统/替换路径全通知；
+  回调内禁再开关界面的重入约束已注明）。旧"TryGetOpenForm"方案不再需要——`ShowAsync` 返回的
+  `UIForm.Root` 即实例入口。
+- 装配：`ProcedureLaunch` 构造并注册 `DialogService`（Seal 前唯一受信装配点）。
+- 测试：`DialogServiceEditModeTests`（11 例，全替身零真资源）——确认/取消、合并共享结果、
+  互斥组串行+跨组并行、优先级+FIFO、队列满拒绝、外部关闭/Shutdown 收口、等待者取消只解除本人、
+  UIDialog 等待式幂等、缺组件类型化失败。
+
+**上一批已撤出代码的处置**：全部按新实现重写，未复用其代码；`Unity.TextMeshPro` 测试程序集引用
+重新加入（TMP 文本断言需要）。
+
+### 已确证发现（历史保留，对后续有价值）
 
 1. **`UIService.ShowAsync` 会 `Instantiate` prefab**（`UIService.cs:195`）——
-   调用方持有的 prefab 原件上的组件**不是**屏幕上那个；要操作实例控件必须另找入口
-   （本批曾加 `TryGetOpenForm`，随撤出移除）。这是本批唯一沉淀的确定性知识。
+   调用方持有的 prefab 原件上的组件**不是**屏幕上那个；要操作实例控件必须经返回的
+   `UIForm.Root` 查找（本批 DialogService 即此做法）。
 2. **`Assets/UI/Widgets/` 下 24 个 prefab 全部无 Canvas**，只有 `Screens/UIMain.prefab` 有——
    把子控件 prefab 当页面打开会抛 `MissingComponentException: There is no 'Canvas'`。
    这是弹窗分类裁决的直接依据。
 
-**未解决的问题（阻塞该批测试）**：
-
-> 同一段代码，**独立探针类**中点击按钮后结果任务立即 `Succeeded`；
-> 作为**正式测试类**的方法则保持 `Pending`。
-
-已逐项排除：LText 服务、请求形状、tick 循环条件、`[SetUp]` 结构（`Build()` 移入方法内亦无效）、
-辅助方法（`Dlg`/`Click`/`PumpUntilOpen`/`PumpGet`）、探针类并存污染（删掉探针类后仍失败）、
-测试间污染（单独跑该用例仍失败）。最后一步"逐字复制探针代码"的变体亦失败，
-而几步之前完全相同的代码成功——**存在未能定位的隐藏变量**，疑似与
-Unity Test Framework 的 fixture 生命周期或 UniTask 在 EditMode 下的调度有关。
-
-**投入与教训**：该项约 40+ 轮"改-编译-跑"（每轮约 2 分钟），多数轮次基于未验证的猜测。
-正确做法应是**先隔离出最小可复现**再改——本批直到最后才做逐行二分，为时已晚。
-该现象可作独立调查任务，**不应继续占用 U2 批次**。
+**方法论沉淀**：上一批 40+ 轮"改-编译-跑"未中的根因即"未先隔离最小可复现"；本批用独立探针
+fixture 复现并二分（泵动条件一改即绿），一轮定位——教训成立，照此执行。
 
 
 ## 施工记录
@@ -151,6 +157,24 @@ Flash 回**原色**（原实现回落固定色，属缺陷）、Slide 回原位�
 `Bridge.text.Get/Format`（U2-⑤c，需 Unity 侧）。**故本次交付的是"文本链的服务层"，
 不是"UI 已能显示本地化文本"**。
 
+### 2026-09-25 · FeedbackService 统一反馈入口（U2-⑥c）
+
+《UI框架总设计》§6.1"Loading、空状态、错误/重试、Toast 有统一入口"——本批交付服务层三面
+（**代码创建内置视觉**，资产化归制作线替换同结构 prefab；空状态是页面内组件，随大厅消费者落地）：
+
+- **Loading**（`BeginLoading` → `LoadingScope`）：嵌套计数阻断面，最后一个结束才解除；阻断期
+  `LoadingToken` 供被门控操作绑定取消。**Back 链首位**：`UINavigationController` 增
+  `BackInterceptor` 接缝（§6.1"Loading 阻断期间按操作取消规则处理返回，不能悄悄穿透到下层"——
+  阻断期消费 Back = 取消当前操作，不进模态/页面关闭链；未阻断原样穿透）。
+- **错误/重试**（`ShowErrorAsync` → bool 重试）：经 DialogService 落地——可重试双按钮
+  （重试/退出）、不可重试单确认；同 MergeKey 重复错误自动合并；结果任务**先关后交付**。
+- **Toast**（`ShowToast`）：非阻断短提示，Tick 计时到期消失，新提示替换旧提示（单面 + 重置计时）。
+
+**接缝与装配**：`ProcedureLaunch` 构造注册（`BackInterceptor` 在 nav 上由服务自装/自卸）；
+错误弹窗首版复用 Dialog 表行（专用 ErrorPage prefab 归制作线替换，服务只依赖 DialogService 契约）。
+测试 7 例（`FeedbackServiceEditModeTests`）——嵌套计数、阻断期 Back 取消+不穿透、非阻断穿透、
+错误重试/取消、错误合并、Toast 替换与到期。EditMode 就绪口径沿用 ⑥b 破案结论（泵业务事实，非 IsOpen）。
+
 ### 2026-09-25 · LText 控件接入（U2-⑤c）
 
 把 LText 服务层接到 UI——**这是让本地化真正可用的那一步**。
@@ -176,6 +200,54 @@ Flash 回**原色**（原实现回落固定色，属缺陷）、Slide 回原位�
 **未做**：打字机（§9 末条"LTextLabel 打字机为表现行为，关闭/语言变化取消旧任务"）——
 需与动画/时钟接缝一起做，属 U2-⑤d。
 
+### 2026-09-25 · 反馈面归位（视觉单一来源裁决 + ⑥c 返工）
+
+用户裁决：**所有 UI 不准自建视觉**。本批把 ⑥c 的自建反馈面按新纪律返工，并把规则写入设计文档。
+
+**裁决与规则（设计文档）**：`UI框架总设计` §7 视觉单一来源 + 引导期错误界面**唯一例外**三条判据、
+§6.2 反馈面归 System 语义层（废止私有 `sortingOrder=30000`）、§6.1 统一入口=语义统一 +
+**Toast 多条并存**契约、§1.1 裁决表两行；`UI制作规范` §2 运行时禁建视觉 + §8 反例扫描进静态检查；
+`待办总览` 新增「UI 视觉单一来源」行。
+
+**扫出的存量问题（本次一并修）**：
+
+1. **第二条 Toast 实现**：`Widgets/Toast.prefab` 与 `Toast.cs` 早已存在且是模板 25 件之一，
+   `UIBindIndex.ShowToast`/Lua 面在用——⑥c 另建了代码版 Toast。**属复发**（`UIDemoPage` 已走过
+   「代码构建 → 模板 prefab 实例化」同一改造）。
+2. **`FeedbackService` 默认 `errorFormId = 201` 在生产必炸**：`#uiform` 表原本只有 1 行（id=1），
+   `UIFormCatalog.Get(201)` 直接抛 `KeyNotFoundException`；而 `DialogServiceEditModeTests` 用
+   `FakeCatalog` 自 Add 201，**替身掩盖了真表缺陷**（11/11 绿测的是假表）。
+3. **构建器 ↔ prefab 长期不同步**：HEAD 的 `WidgetPrefabBuilder` 已硬编码 `0.25,0.45,0.75`，
+   而提交的 `StateButton.prefab` 是 `UiStyle.Accent` 的 `0.3,0.7,0.95`——"确定性生成"已不成立。
+   经裁决**以生成器为准**，19 件模板按构建器重建（含外观/结构差异）。
+4. **`UIForm.cs` 隐藏兜底**：prefab 缺 Canvas/CanvasGroup 时 `AddComponent` 静默补齐，把装配错误
+   藏到表现层——改**缺失即 fail-fast**（制作规范 §2 本就要求页面根自带）。
+5. **buildHash 闭包过宽**：`DATA_TARGETS` 把 UI 表单也算进联机版本哈希——加一行反馈面即令
+   **全员拒绝进房**。同 `SKIP_DIRS` 已记录的坑（"给菜单加一行注释 → 全员拒绝进房"）的另一个入口；
+   按同一判据排除 tbuiform（生成器与 C# 守卫同步）。
+
+**本批交付**：
+
+- `UIService`：`GroupNames` 增 `System`（第 4 语义层，tbuiform.layer=3）；`ResolveLogic` **空 LuaPath
+  显式降级不打 Error**（否则纯展示面凭空踩 UI 门禁"Console 新增 Error 即判失败"）。
+- `FeedbackService` 重写：拆掉自建 root/Canvas/Image/Text 与 `OverlaySortingOrder`；三面（Loading
+  遮罩 / 错误弹窗 / Toast 承载）均走 `UIService` 打开的 **System 层 form**，只持实例驱动状态；
+  构造函数开 `open/close/isOpen` 注入口（测试可脱离真表）。
+- `LoadingMask`（新控件）+ `Widgets/Loading.prefab`（新模板，构建器确定性生成）。
+- `Toast` 改造：**多条并存**（各自计时独立消失，不替换不重置他人）、纵向堆叠（承载容器排布）、
+  数量上限 + 最旧淘汰计数；计时从 `UniTask.Delay` 改 **`Tick` 可泵**（EditMode 无 PlayerLoop，
+  旧实现下用例会永久挂起）；`ToastTicker : ITickable` 接 `UiAnimationClock.Delta` 经 UIClock 驱动。
+- `#uiform` 表新增 3 行（201 错误弹窗 / 202 Loading / 203 Toast，layer=3，lua_path 空）并重生成。
+- **可执行规则载体**：`VisualConstructionScanner`（纯函数扫描器）+ `VisualSingleSourceEditModeTests`
+  （5 合成的正/负例 + 真实代码面扫描）——规则不再只写在文档里。
+
+**验证**：L1 **761 通过**；L2 EditMode **217/217**（含新增 17 例）；Unity 编译零错误；
+`WidgetPrefabCheck` 新增 4 条断言（Loading 阻断面接线、Toast 多条并存/超限淘汰）全 PASS。
+
+**教训（方法论）**：本批两次踩到同一根因——**替身让真链路缺陷隐形**（FakeCatalog 掩盖表缺行、
+既有 11/11 全绿测的是假表）；以及**在未提交工作树里做"还原验证"会覆盖掉自己的改动**
+（用备份复原 tbuiform 模拟旧输入时，把三行改动一起还原了，需重新 gen 恢复）。
+
 ## 测试面
 
 - `Assets/Tests/EditMode/UiNavModalEditModeTests.cs`（7 例，全替身零真资源）：
@@ -192,6 +264,8 @@ Flash 回**原色**（原实现回落固定色，属缺陷）、Slide 回原位�
 |---|---|---|
 | L1 | `powershell -NoProfile -File scripts/test.ps1 -Lane L1 -Profile PullRequest` | **761 通过 / 0 失败**（本批 +48 例） |
 | L2 | `powershell -NoProfile -File scripts/l2-unity-gate.ps1` | **通过**——12042 个 .meta GUID 全合法；Unity 编译零错误；EditMode **189/189**（含新增 `Screens/Dialog.prefab`） |
+| L2（反馈面归位批） | `unity command run_tests --mode editor` | EditMode **217/217**（+10 FeedbackService、+7 视觉单一来源）；Unity 编译零错误 |
+| L1（反馈面归位批） | `powershell -NoProfile -File scripts/test.ps1 -Lane L1 -Profile PullRequest` | **761 通过 / 0 失败**（含 buildHash 闭包调整后的复算守卫） |
 
 ## 已知边界
 
@@ -199,4 +273,9 @@ Flash 回**原色**（原实现回落固定色，属缺陷）、Slide 回原位�
   U2 退出条件"大厅、长列表、HUD、确认弹窗四个真实消费者闭环 + 中英/输入/异常用例通过"**远未达到**；
   已交付的是导航、模态、LText 服务层与控件接入四个接缝；字体族与打字机尚未接通。
 - **无 PlayMode**：本批为 EditMode 全替身验证；真资源场景下的导航/模态行为未验证（L2 PlayMode lane 未建）。
+  **反馈面归位批同样未过 PlayMode**：Loading/Toast/错误弹窗的真 prefab + 真转场链路未跑过，
+  仅 EditMode 全替身 + 构建器自检通过。
 - **队列上限/超时为候选配置**（8 / 10s），标注"目标设备与真实包验证后调整"——尚无实测依据。
+- **Toast 无淡入淡出**：多条并存的堆叠与到期是硬切（`SetActive`），表现层过渡随制作线。
+- **19 件模板按构建器重建**：以生成器为准的裁决已执行，但差异（外观/结构）未经视觉评审；
+  `WidgetPrefabCheck` 只覆盖可代码驱动的行为面，观感差异需人工过目。

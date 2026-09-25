@@ -33,6 +33,8 @@
 - 同一页面绑定命名空间内唯一、类型匹配。列表项/子页面作为独立绑定作用域时由生成器显式区分，不能依赖偶然的层级遍历顺序。
 - 修改绑定后重新生成并验证索引；生成结果与运行时扫描结果一致。模板、生成代码与页面三者不能各维护一套名字。
 - 控件模板不直接依赖具体玩法、Transport 或 Sim。业务通过 ViewModel/受控 API 驱动。
+- **运行时代码不得构建用户可见视觉效果**：不 `new GameObject` 造 Canvas/Graphic/Text/Button，不 `AddComponent` 挂视觉组件；一律引用本目录模板。唯一例外是引导期错误界面（判据见[总设计第 7 节](UI框架总设计.md#7-渲染适配与制作边界)）——它是"资源不可用时仍要能显示"的兜底，不是可援引的先例。层容器节点（`UIRoot` 与各层节点）是骨架不是视觉，不在此限。**测试夹具同受此约束**：从测试专用 prefab（`Assets/Tests/UI/Fixtures/`）加载，不进 Screens/Widgets 收集路径，见[UI 测试开发专项设计 §7.2](../quality/UI测试开发专项设计.md)。
+- 反馈面（Loading/Toast/错误重试）落在 System 语义层并经统一排序器分配 order；不得自建 Canvas 或私有 sortingOrder 跨层。
 - Prefab/asset/meta 变更经 Unity 编辑器或项目 Pipeline，遵循根目录 `UNITY-GUIDE.md`；工具保留 Undo 和差异预览，不手改序列化文本。
 
 建议：模板采用 Root/Bg/Content/Interaction 的清晰结构，PascalCase 命名，内部节点可用 `_` 前缀。层级尽量浅，但不以统一“最多五层”阻止合法组合。图标选择 Simple；需要九宫格拉伸的背景才选 Sliced；进度按需要选 Filled。
@@ -104,7 +106,7 @@ Canvas 按刷新频率和同时可见区域组织。高频与静态内容可以�
 
 | 阶段 | 必须检查 | 验证载体 |
 | --- | --- | --- |
-| 资产静态检查 | 丢脚本、绑定唯一/类型、资源引用、本地化 key、字体/样式、图集引用、Raycast 配置 | L2 EditMode 校验器；未实现项列人工报告 |
+| 资产静态检查 | 丢脚本、绑定唯一/类型、资源引用、本地化 key、字体/样式、图集引用、Raycast 配置；**运行时视觉构建反例扫描**（服务/页面代码中的 `new GameObject` 与视觉 `AddComponent`——违规负例须落在 EditMode 用例，例外须能指向总设计第 7 节判据） | L2 EditMode 校验器；未实现项列人工报告 |
 | 页面行为 | 首开/关闭/复用、层序/模态、焦点、语言切换、异步资源取消 | L2 PlayMode，实际生命周期和 Lua |
 | 列表 | 首尾往返、重复刷新、增删到 0、异步图标乱序、窗口缩放 | L2 PlayMode |
 | 发布表现 | 真资源包、SafeArea、长文本、内存清理、CPU/GPU/GC、前后台 | L4 Player/目标设备 |

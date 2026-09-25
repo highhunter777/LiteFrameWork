@@ -23,7 +23,10 @@ namespace LiteGame
     /// </summary>
     public sealed class UIService : ITickable, IModuleStats
     {
-        public static readonly string[] GroupNames = { "Bottom", "Window", "Top" };
+        /// <summary>语义层名（§6.2"保留 Bottom/Window/Top，可增 Modal/Loading/System"）。
+        /// 2026-09-25 增 <c>System</c>：Toast/Loading/错误重试等统一反馈面占此层，经统一排序器分配 order——
+        /// 反馈面不得再自建 Canvas 或私有 sortingOrder（§7 视觉单一来源）。索引即 tbuiform.layer 列。</summary>
+        public static readonly string[] GroupNames = { "Bottom", "Window", "Top", "System" };
 
         /// <summary>缓存实例数默认预算（§5.2：缓存有预算——Resident 也计入总预算；U2 接表列覆盖）。</summary>
         public const int DefaultCacheBudget = 16;
@@ -593,7 +596,7 @@ namespace LiteGame
         {
             if (layer < 0 || layer >= _groups.Length)
                 throw new ArgumentOutOfRangeException(nameof(layer),
-                    $"层级越界:{layer}（灰盒三层 0..{_groups.Length - 1}，核对 tbuiform.layer 列）");
+                    $"层级越界:{layer}（语义层 0..{_groups.Length - 1}={string.Join("/", GroupNames)}，核对 tbuiform.layer 列）");
             return _groups[layer];
         }
 
@@ -640,6 +643,11 @@ namespace LiteGame
 
         private IUIFormLogic ResolveLogic(UIFormInfo info)
         {
+            // 空 LuaPath = 无业务逻辑的展示面（Loading/Toast/错误弹窗——2026-09-25 表口径）：
+            // **正常降级，不打日志**。若无此分支会落到下方 catch 打 Error，而测试专项 §8.2 把
+            // "Console 新增 Error" 判为 UI Lane 失败——纯展示面会凭空制造门禁红灯。
+            if (string.IsNullOrEmpty(info.LuaPath)) return NullUIFormLogic.Instance;
+
             // 逻辑解析：resolver（GameEntry 装配 LuaBehaviourAdapter ← UI 注册表）→ 失败降级 NullLogic
             // （错误语义"注册失败"，§3.4——启动期已知键由 RegistryFiller 校验兜底，此处为运行期降级）
             if (_logicResolver == null) return NullUIFormLogic.Instance;
@@ -674,6 +682,14 @@ namespace LiteGame
         /// 由 <see cref="CloseAsync"/>（Pop 转场收尾后）与 Replace 自动关闭旧界面共用。
         /// 顺序不能反：OnHide 跑完前换表会让界面"一半旧一半新"（§2.3）。
         /// </summary>
+        /// <summary>
+        /// 页面关闭通知（U2-⑥b 接缝）：<see cref="CloseFormInternal"/> 是全部关闭路径的单一漏斗
+        /// （用户/系统/替换），打开中的页面真正离场时在此广播。消费者（弹窗服务等）据此对
+        /// "被外部关闭"的在途等待收口——否则等待任务永久悬挂。
+        /// 重入约束同 Tick 快照：回调内**禁止再开关界面**（先记账，出回调后再操作）。
+        /// </summary>
+        public event Action<int> FormClosed;
+
         private void CloseFormInternal(UIForm form)
         {
             form.EnterClosing();
@@ -686,6 +702,7 @@ namespace LiteGame
             RecomputeModalBlocking();                         // 模态射线遮蔽随关闭重算（关掉模态 → 下方恢复可命中）
             _lastUsed[form.Id] = ++_useCounter;            // LRU 记账（最近使用序号）
             EvictBeyondBudget();
+            FormClosed?.Invoke(form.Id);
         }
 
         /// <summary>缓存预算淘汰（§5.2 LRU：只淘汰**未打开、未被操作引用**的缓存实例）：

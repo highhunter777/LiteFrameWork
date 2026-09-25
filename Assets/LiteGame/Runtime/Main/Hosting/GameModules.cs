@@ -369,7 +369,7 @@ namespace LiteGame
                 var activations = context.Require<ActivationTransactionStore>();   // C1-⑩：Patch 流程消费（Content ②产物）
                 var patchRunner = context.Require<PatchRunner>();                  // 热更：内容事务编排
                 return new StageMachine<ProcedureId, ProcedureArgs>("Procedure",
-                    (ProcedureId.Launch, new ProcedureLaunch(container, config, scenes, uiRegistry, contentRegistry, strategyRegistry, uiService, redDotRegistry, logicScheduler, uiScheduler, timelineRunner, entityService, audioService, vfxService, refill, rootToken)),
+                    (ProcedureId.Launch, new ProcedureLaunch(container, config, scenes, uiRegistry, contentRegistry, strategyRegistry, uiService, redDotRegistry, logicScheduler, uiScheduler, timelineRunner, entityService, audioService, vfxService, refill, context.Require<UINavigationController>(), rootToken)),
                     (ProcedureId.Patch, new ProcedurePatch(content, activations, patchRunner, rootToken)),
                     (ProcedureId.Preload, new ProcedurePreload(content, config, lua, filler, events, ListLuaAssetPaths, rootToken)),
                     (ProcedureId.Main, new ProcedureMain(uiService, context.Require<UINavigationController>(), rootToken)),

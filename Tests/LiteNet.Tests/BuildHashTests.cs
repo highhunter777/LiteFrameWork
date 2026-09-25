@@ -36,6 +36,10 @@ namespace LiteNet.Tests
 
         private static readonly string[] DataExtensions = { ".bytes", ".json" };
 
+        /// <summary>非玩法表（与生成器 DATA_EXCLUDE_NAMES 对齐，2026-09-25）：hash 只覆盖影响判定/协议的
+        /// 表，UI 表单（层级/路径/全屏）属表现层——改它不应让全员拒绝进房（同 SkipDirs 记录的坑）。</summary>
+        private static readonly string[] DataExcludeNames = { "tbuiform.bytes", "tbuiform.json" };
+
         private static readonly string[] SkipDirs = { "bin", "obj", ".dotnet", "__pycache__", "Editor" };
         private const string SelfName = "BuildHash.g.cs";
 
@@ -84,6 +88,7 @@ namespace LiteNet.Tests
                     foreach (string ext in DataExtensions)
                         if (name.EndsWith(ext, StringComparison.Ordinal)) { isData = true; break; }
                     if (!isData) continue;
+                    if (IsDataExcluded(name)) continue;
                     if (IsUnderSkipDir(root, full)) continue;
                     files.Add(full);
                 }
@@ -98,6 +103,14 @@ namespace LiteNet.Tests
             string rel = Path.GetRelativePath(root, full).Replace('\\', '/');
             foreach (string dir in SkipDirs)
                 if (rel.Contains("/" + dir + "/", StringComparison.Ordinal)) return true;
+            return false;
+        }
+
+        /// <summary>非玩法表判定（与生成器 DATA_EXCLUDE_NAMES 同一判据）。</summary>
+        private static bool IsDataExcluded(string fileName)
+        {
+            foreach (string excluded in DataExcludeNames)
+                if (string.Equals(fileName, excluded, StringComparison.Ordinal)) return true;
             return false;
         }
 

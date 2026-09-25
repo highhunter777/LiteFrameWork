@@ -80,7 +80,6 @@ GameObject:
   - component: {fileID: 1682355512226325854}
   - component: {fileID: 6637252695607175878}
   - component: {fileID: 5538770102075429129}
-  - component: {fileID: 7566168048742872199}
   m_Layer: 0
   m_Name: _Template
   m_TagString: Untagged
@@ -146,7 +145,7 @@ MonoBehaviour:
   m_fontColor32:
     serializedVersion: 2
     rgba: 4294967295
-  m_fontColor: {r: 0.9, g: 0.75, b: 0.25, a: 1}
+  m_fontColor: {r: 1, g: 0.9, b: 0.4, a: 1}
   m_enableVertexGradient: 0
   m_colorMode: 3
   m_fontColorGradient:
@@ -205,15 +204,3 @@ MonoBehaviour:
   m_hasFontAssetChanged: 0
   m_baseMaterial: {fileID: 0}
   m_maskOffset: {x: 0, y: 0, z: 0, w: 0}
---- !u!225 &7566168048742872199
-CanvasGroup:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 5380183769463254546}
-  m_Enabled: 1
-  m_Alpha: 1
-  m_Interactable: 1
-  m_BlocksRaycasts: 1
-  m_IgnoreParentGroups: 0

@@ -48,10 +48,18 @@ namespace LiteGame
             Info = info ?? throw new ArgumentNullException(nameof(info));
             Id = info.Id;
             Root = root ? root : throw new ArgumentNullException(nameof(root));
-            Canvas = root.GetComponent<Canvas>() ?? root.AddComponent<Canvas>();
+
+            // 缺失即 fail-fast（§7 视觉单一来源 / 制作规范 §2"页面根具有 Canvas、CanvasGroup"）：
+            // 旧实现在此处 AddComponent 兜底，会把"prefab 装配错误"静默修好——运行时补的 Canvas
+            // 绕过统一根缩放与排序配置，缺陷被藏到表现层才发现。装配错误必须在装配期当场暴露。
+            Canvas = root.GetComponent<Canvas>()
+                ?? throw new InvalidOperationException(
+                    $"表单[{info.Id}] prefab 缺少 Canvas——页面根必须自带（制作规范 §2；运行时不得补建，§7）");
             Canvas.renderMode = RenderMode.ScreenSpaceOverlay;
             Canvas.overrideSorting = true;
-            CanvasGroup = root.GetComponent<CanvasGroup>() ?? root.AddComponent<CanvasGroup>();
+            CanvasGroup = root.GetComponent<CanvasGroup>()
+                ?? throw new InvalidOperationException(
+                    $"表单[{info.Id}] prefab 缺少 CanvasGroup——页面根必须自带（制作规范 §2；运行时不得补建，§7）");
             _baselinePos = root.transform is RectTransform rt ? rt.anchoredPosition : Vector2.zero;
         }
 

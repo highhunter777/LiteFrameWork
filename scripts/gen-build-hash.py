@@ -36,6 +36,16 @@ DATA_TARGETS = [
     os.path.join('RoomServer', 'Data'),
 ]
 DATA_EXTS = ('.bytes', '.json')     # .meta 由 endswith('.meta') 排除（不会命中此白名单，双保险）
+
+# 非玩法表排除（2026-09-25）：hash 只覆盖**会影响判定或协议的表**。UI 表（tbuiform）改一行界面配置
+# 与对局行为无关，喂进 hash 会让"hash 变了但两端行为没变"——同 SKIP_DIRS 那条注释记录的坑：
+# 旧例给菜单加一行注释导致全员拒绝进房，这里是同一病症的另一个入口（加一个反馈面 form 行）。
+# 新增排除必须落在同一判据上：该表是否参与判定/协议。UI 布局、文本、图标属表现层。
+# 注意：服务端 json 与客户端 bin 都按同规则排除——两端一致，不会造成单边漂移。
+DATA_EXCLUDE_NAMES = {
+    'tbuiform.bytes',   # 客户端 bin（UI 表单：层级/路径/全屏——纯表现）
+    'tbuiform.json',    # 服务端 json（同上，同源产物）
+}
 OUT_FILE = os.path.join(ROOT, 'Assets', 'LiteNet', 'Protocol', 'BuildHash.g.cs')
 SELF_NAME = 'BuildHash.g.cs'
 SKIP_DIRS = {'bin', 'obj', '.dotnet', '__pycache__', 'Editor'}
@@ -66,6 +76,8 @@ def collect():
             dirnames[:] = [d for d in dirnames if d not in SKIP_DIRS]
             for name in filenames:
                 if not name.endswith(DATA_EXTS) or name.endswith('.meta'):
+                    continue
+                if name in DATA_EXCLUDE_NAMES:      # 非玩法表（见 DATA_EXCLUDE_NAMES 判据）
                     continue
                 full = os.path.join(dirpath, name)
                 rel = os.path.relpath(full, ROOT).replace('\\', '/')
