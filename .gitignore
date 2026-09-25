@@ -173,3 +173,7 @@ TestResults/
 # Unity Test Runner 的 PlayMode 临时场景（2026-09-26 实测：跑完 L2 PlayMode 后残留）
 Assets/InitTestScene*.unity
 Assets/InitTestScene*.unity.meta
+
+# ===== 角色资源包（176MB，用户选择不入 VCS；测试按包可用性分流，缺包走灰盒降级）=====
+Assets/CombatGirlsCharacterPack/
+Assets/CombatGirlsCharacterPack.meta

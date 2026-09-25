@@ -2,11 +2,11 @@
 
 > 状态：现行专项设计；目标服务尚未实现
 > 版本：1.0
-> 更新日期：2026-09-25
+> 更新日期：2026-09-26
 > 适用范围：`MetaServer`（Auth/Lobby/Profile）、Meta 与 RoomServer 的接缝、Meta 与客户端的接口契约、宿主选型、存储与结算幂等、Meta 测试矩阵
 > Owner：Meta/数据；服务端架构负责宿主与边界接缝，客户端流程/UI Owner 负责消费端契约
 > 依赖：`SignatureVerifier`（签名原语）、`Protocol`/`PacketCodec`（版本字段）、`LiteNet.Contracts` 版本契约、热更专项的 ReleaseCatalog/兼容策略、Mongo/Redis 部署环境
-> 实施状态：第 2 节是 2026-09-25 代码核查基线；其余为目标契约。本文的工程结构、接口命名与目录建议不表示已有代码或已完成交付。
+> 实施状态：第 2 节是 2026-09-26 代码核查基线；其余为目标契约。本文的工程结构、接口命名与目录建议不表示已有代码或已完成交付。
 
 ## 1. 定位与冲突裁决
 
@@ -38,9 +38,9 @@ Meta 是战斗服之外的**局外权威**：账号、身份、大厅、进度�
 
 | 范围 | 核查结果 |
 | --- | --- |
-| 服务端代码 | 仅 `RoomServer/`（`Runtime/` + `Application/` + `Program.cs`）。**不存在 MetaServer、Auth、Lobby、Profile、Mongo、Redis、Outbox 的任何实现或桩** |
-| 宿主 | `RoomServer/Program.cs` 是手写 `args` 解析 + `Thread.Sleep(Timeout.Infinite)` 的控制台形态；Generic Host、Options、健康检查、优雅关闭**均未建立**（归 R2） |
-| 身份与票据 | `ReconnectService` 已具备 CSPRNG 票据与房间绑定（R1 交付），但**Join 仍只校验非空 token**；无签名、无 audience/expiry/nonce 校验器（服务端总设计 §1 成熟度表：身份与传输安全=不合格） |
+| 服务端代码 | `RoomServer/`（`Runtime/` + `Application/` + `Program.cs`）之外，**MetaServer 宿主骨架已建立（2026-09-25，[Meta 服务宿主](../../施工进度/Meta服务宿主.md)）**：Generic Host + Options + 健康检查 + 优雅关闭，`FrameworkReference` 零 NuGet 接入。Auth/Lobby/Profile/Mongo/Redis/Outbox 业务仍无实现或桩 |
+| 宿主 | `RoomServer/Program.cs` 常驻形态已接 `Console.CancelKeyPress` 触发排空（2026-09-26，[服务端多房间](../../施工进度/服务端多房间.md)，"信号→排空→退出"链路待真实终端手验）；Meta 宿主骨架交付内容见上行——`ValidateOnStart` 范围校验、`/live` `/ready` `/metrics`、drain 与入站上限均已建立 |
+| 身份与票据 | `ReconnectService` 已具备票据**房间绑定**（R1 交付），但签发的仍是**可预测串**（CSPRNG 归 R2）；**Join 已接票据验签接缝（M0-d，2026-09-26）**：`IJoinTicketValidator` + `HmacJoinTicketValidator`（过期/篡改/重放/密钥轮换/受众/房间/哈希矩阵），接入 `ServerHost.HandleJoin` 真实准入路径且验证先于建房——"只校验非空 token"已终结；Meta 侧签发端（Auth）归 G3 |
 | 签名原语 | `Assets/LiteFramework/Scripts/Core/Content/SignatureVerifier.cs` 已落地**RSA-2048 + PKCS#1 v1.5 + SHA-256**，并留档实测结论：`ECDsa`/`ECDsaCng` 在 Mono 下抛 `NotImplementedException`，Ed25519 无类型。该结论是**客户端运行时**的约束，服务端为完整 .NET，但为保持单一密钥体系，Meta 沿用同一原语 |
 | Web 依赖 | 仓库内**没有任何 Web/HTTP 服务端代码**；仅 `UniRx/Scripts/UnityEngineBridge/ObservableWWW.cs`（无关）。`global.json` 锁 SDK `8.0.400`（`rollForward: latestMajor`），本机 `Microsoft.AspNetCore.App` 8.0.22 与 9.0.11 均已安装 |
 | 版本字段 | `ServerHost.ServerBuildHash` 与 `CombatConfigDigest`（SHA-256 截取 uint32）已存在；`protocolVersion`/`simVersion`/`contentVersion` 的目标语义尚未在协议中全部落地 |
@@ -48,7 +48,7 @@ Meta 是战斗服之外的**局外权威**：账号、身份、大厅、进度�
 | 测试接缝 | L1 为 .NET xUnit（`Tests/*.Tests`，入口 `Tests/Tests.slnx`）；**尚无 HTTP/数据库测试容器夹具**（测试开发框架总设计 §8 列为待补） |
 | 文档坐标 | Meta 的设计坐标分散在服务端总设计 §6/§11/§13、业务总设计 §2、《待办总览》G3。**本文是 Meta 的唯一专项入口** |
 
-结论：Meta 当前是**设计阶段**，完成度判定沿用服务端总设计 §1 的"数据与 Meta 服务=设计阶段"。本文全部内容除本节外均为 Target。
+结论：Meta 当前是**骨架接缝阶段**——宿主骨架（2026-09-25）与 Join 票据验签接缝（2026-09-26）已交付，Auth/Lobby/Profile/Mongo/Redis/Outbox 业务仍为设计；完成度判定见服务端总设计 §1「数据与 Meta 服务」行（已同步至骨架阶段）。本文除本节外均为 Target。
 
 ## 3. 服务边界与数据所有权
 

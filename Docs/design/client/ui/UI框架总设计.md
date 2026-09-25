@@ -1,8 +1,8 @@
 # UI 框架总设计
 
 > 状态：现行领域总设计；目标设计尚未整体实现
-> 版本：1.4
-> 更新日期：2026-09-24
+> 版本：1.5
+> 更新日期：2026-09-26
 > 适用范围：Unity UGUI、C#/Lua 页面、导航、资源、转场、控件、制作工具与 UI 验收
 > Owner：客户端 UI；资源与环境重建由客户端架构共同负责
 > 实施状态：第 2 节为本次代码核查；第 3～12 节为目标契约；第 13 节为唯一 UI 实施路线
@@ -71,7 +71,7 @@ P0 = 基本正确性/发布阻塞；P1 = 完整产品与稳定运行需要；P2 
 
 **U1 交付（2026-09-24）**：UI-03/05/06/09 与所有权重构已按 §13 U1 交付——在途打开操作合流（并发 Show 共享一次加载，不返回 null）+ 类型化 `UIOpenException`（Canceled/LoadFailed/InitFailed/Busy/Rejected）+ Close/Shutdown 权威取消（§4.3）；`IUIPrefabLease` 租约通道（实例持租约到真正销毁、缓存实例算使用者）+ 缓存预算 LRU 淘汰 + `Destroy` 完整销毁 + `CloseReason`（系统关闭跳过拦截与离场）+ `ShutdownAsync` 全链释放（§4.4/§5.2）；组内**开序即深序**统一排序（废止 100 槽位回卷——容量不足拒绝）+ `BringToFront`（§6.2）；输入锁职责分离（interactable 锁 / blocksRaycasts 全程遮挡）+ 转场 `CancellationToken` 与复位契约（超时先停工作再收尾、Kill(complete) 跳终值复位）+ 结果分类 Kind（§6.3）；展示代次 + 展示作用域 CTS；ProcedureMain 打开真实主页面（真 prefab+真 Lua+租约全链）。证据：EditMode 69/69（U1 新增 18 例）、Player 构建+冒烟 PASSED（`[UI] main open` 真资源包页面打开）、L1 505 全绿，见 [施工记录](../../../施工进度/UI-U1.md)。余项：模态栈/导航队列/外部取消随 U2；per-form 缓存策略列随 U2 表扩展。
 
-**U2 首批交付（2026-09-25）**：§4.3 导航（`UINavigationController` 单写者串行 + 队列上限 + 等待超时 + 排队期取消——含"取消回调 LIFO 被等待侧抢先注销"真实缺陷的根因修复）、§6.2 模态栈（从仍打开页面推导、最顶模态优先 Back、下方页面射线遮蔽）、真实消费者接线（ProcedureMain 走导航、ProcedureBattle 以模态为游戏输入门）、UiFx 原语中断复位（完成态即基线）；U2-⑤ 本地化（`LocalizationCatalog/Service/Table` 服务层 48 例 + `UIBindIndex.SetTextKey` 控件/Lua 面）、U2-⑥ DialogService（合并/互斥组/优先级/有界队列）与 FeedbackService 统一反馈面（Loading/错误重试/Toast 落 System 层 form，视觉单一来源扫描用例）、**PlayMode 验证载体**（真 Lua 页面生命周期/暂停覆盖状态语义/动画资源组合段，接入 L2 同一门禁）。证据：EditMode 217/217 + PlayMode 12/12、L1 761 全绿，见 [施工记录](../../../施工进度/UI-U2.md)。余项：字体/SafeArea（U2-⑤b）、打字机（⑤d）、焦点（⑦）、HUD 随消费者。
+**U2 首批交付（2026-09-25）**：§4.3 导航（`UINavigationController` 单写者串行 + 队列上限 + 等待超时 + 排队期取消——含"取消回调 LIFO 被等待侧抢先注销"真实缺陷的根因修复）、§6.2 模态栈（从仍打开页面推导、最顶模态优先 Back、下方页面射线遮蔽）、真实消费者接线（ProcedureMain 走导航、ProcedureBattle 以模态为游戏输入门）、UiFx 原语中断复位（完成态即基线）；U2-⑤ 本地化（`LocalizationCatalog/Service/Table` 服务层 48 例 + `UIBindIndex.SetTextKey` 控件/Lua 面）、U2-⑥ DialogService（合并/互斥组/优先级/有界队列）与 FeedbackService 统一反馈面（Loading/错误重试/Toast 落 System 层 form，视觉单一来源扫描用例）、**PlayMode 验证载体**（真 Lua 页面生命周期/暂停覆盖状态语义/动画资源组合段，接入 L2 同一门禁）。证据：EditMode 217/217 + PlayMode 12/12、L1 761 全绿，见 [施工记录](../../../施工进度/UI-U2.md)。**per-form 缓存策略列（U2-⑧，2026-09-26）**：§5.2 三列策略（Lru 默认/Resident 不淘汰且计入总预算/DestroyOnClose 关即销毁）壳消费面——`UICacheStrategy` 枚举 + `UIService` 关闭分流与淘汰候选排除，EditMode +3 例、批后 225/225 复核；tbuiform 表列与投影接线未做（生产页面暂全默认 LRU）。余项：字体/SafeArea（U2-⑤b）、打字机（⑤d）、焦点（⑦）、HUD 随消费者。
 
 旧文档记载的 25 件模板、36/36 模板自检、26/26 模拟加载、28/28 EditMode 和 L1 364 绿保留为历史记录；不能据此关闭本表缺陷，也不设成永久测试数量。
 

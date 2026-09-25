@@ -19,6 +19,7 @@
 | U2-⑥b Dialog 服务 | `DialogService`（结果/队列/优先级/互斥组/取消）+ `UIDialog` 等待式 + `UIService` 两接缝 | **已完成**（2026-09-25 接手交付，11/11；"Pending 之谜"已破案，见下） |
 | U2-⑥c Loading/Error 页 | 加载/错误页统一入口 | **已完成**（2026-09-25：FeedbackService——Loading 嵌套阻断 + Back 首位拦截取消、Error/重试经 DialogService、Toast 计时面；空状态随大厅消费者落地）。**视觉已归位**：三面改走 System 层模板 form，见「反馈面归位」 |
 | U2-⑦ 焦点 | 手柄/键盘焦点导航 | **未开始** |
+| U2-⑧ per-form 缓存策略列（U1 余项，§5.2） | `UICacheStrategy`（Lru 默认/Resident 不淘汰/DestroyOnClose 关即销毁）的壳消费面 | **已完成**（2026-09-26，壳面 3 例；tbuiform 表列与投影接线未做，生产页面暂全默认 LRU） |
 
 ## 未完成事项
 
@@ -248,6 +249,17 @@ Flash 回**原色**（原实现回落固定色，属缺陷）、Slide 回原位�
 既有 11/11 全绿测的是假表）；以及**在未提交工作树里做"还原验证"会覆盖掉自己的改动**
 （用备份复原 tbuiform 模拟旧输入时，把三行改动一起还原了，需重新 gen 恢复）。
 
+### 2026-09-26 · per-form 缓存策略列（U2-⑧，U1 余项收口）
+
+U1 交付段预告"per-form 缓存策略列随 U2 表扩展"——本批把 §5.2"缓存策略为 Resident、LRU、DestroyOnClose"的**壳消费面**落地（代码 `e5fd46c`）：
+
+- `UICacheStrategy` 枚举（`UIFormInfo.cs`）：`Lru`（默认——关闭入池，超预算按最近使用序淘汰）/ `Resident`（关闭入池但**不参与淘汰**，主界面/高频页，预算满也保留）/ `DestroyOnClose`（关即销毁——不进池，释放租约与 GameObject，低频/重资源页）。
+- `UIService.CloseFormInternal`：DestroyOnClose 分流——不走回收池，直接完整销毁后广播 `FormClosed`（对齐 §4.4 离场语义）。
+- `UIService.EvictBeyondBudget`：淘汰候选**排除 Resident**——Resident 仍计入 cached 总数（"Resident 也必须计入总预算"口径不变），超预算时只从 LRU 策略实例中按最近使用序淘汰最旧者。
+- 测试：`UICacheStrategyEditModeTests`（3 例）——DestroyOnClose 关即销毁且再 Show 为全新实例、Resident 不参与 LRU 淘汰、超预算淘汰最旧而 Resident 幸存。`ReleaseLayoutEditModeTests` 同批整理注释与分类标注（零行为变化）。
+
+**边界（表列配置接入未做）**：tbuiform 表未扩展该列、`UIFormCatalog` 投影未接线——`UIFormInfo.CacheStrategy` 当前恒为默认 `Lru`，生产页面全部按默认 LRU；`Resident`/`DestroyOnClose` 仅可编程构造（测试即此形态）。列加进表后投影才能读（"壳不碰 Luban 类型、投影在装配层"纪律不变）；主界面声明 Resident、低频页声明 DestroyOnClose 的实际配置随表列扩展批落地。
+
 ## 测试面
 
 - `Assets/Tests/EditMode/UiNavModalEditModeTests.cs`（7 例，全替身零真资源）：
@@ -266,10 +278,11 @@ Flash 回**原色**（原实现回落固定色，属缺陷）、Slide 回原位�
 | L2 | `powershell -NoProfile -File scripts/l2-unity-gate.ps1` | **通过**——12042 个 .meta GUID 全合法；Unity 编译零错误；EditMode **189/189**（含新增 `Screens/Dialog.prefab`） |
 | L2（反馈面归位批） | `unity command run_tests --mode editor` | EditMode **217/217**（+10 FeedbackService、+7 视觉单一来源）；Unity 编译零错误 |
 | L1（反馈面归位批） | `powershell -NoProfile -File scripts/test.ps1 -Lane L1 -Profile PullRequest` | **761 通过 / 0 失败**（含 buildHash 闭包调整后的复算守卫） |
+| L2（缓存策略批 U2-⑧，2026-09-26） | `unity command run_tests --mode editor` / `--mode playmode` | EditMode **225/225**（装配批 222 + 本批 3）；PlayMode **12/12**；Unity 编译零错误。L1 778（本批未动 dotnet 侧，沿用两次一致实测） |
 
 ## 已知边界
 
-- **U2-⑤b/⑤d 与 ⑥⑦ 未交付**（字体与 SafeArea、打字机、Dialog 与 Loading/Error 页、焦点）。
+- **U2-⑤b/⑤d 与 ⑦ 未交付**（字体与 SafeArea、打字机、焦点；Dialog/Loading/Error 反馈面 ⑥a/b/c 与缓存策略列 ⑧ 已交付）。
   U2 退出条件"大厅、长列表、HUD、确认弹窗四个真实消费者闭环 + 中英/输入/异常用例通过"**远未达到**；
   已交付的是导航、模态、LText 服务层与控件接入四个接缝；字体族与打字机尚未接通。
 - ~~**无 PlayMode**：本批为 EditMode 全替身验证；真资源场景下的导航/模态行为未验证（L2 PlayMode lane 未建）。~~

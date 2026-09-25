@@ -68,7 +68,7 @@ UI 产品代码 --------------------------------^（不得反向依赖测试代�
 
 ### 2.2 现状与目标目录
 
-当前项目已有 `Assets/Tests/EditMode` UI 用例、`Assets/LiteTesting/Core`、`Assets/LiteTesting/Editor` 和 `scripts/l2-unity-gate.ps1`。UI 专项目标目录如下；迁移期间允许存量用例暂留在 `Assets/Tests/EditMode`，但新增用例按目标目录归档。
+当前项目已有 `Assets/Tests/EditMode` UI 用例、`Assets/LiteTesting/Core`、`Assets/LiteTesting/Editor`、`Assets/LiteTesting/Runtime`（PlayMode 所有权）和 `scripts/l2-unity-gate.ps1`。UI 专项目标目录如下；迁移期间允许存量用例暂留在 `Assets/Tests/EditMode`，但新增用例按目标目录归档。
 
 ```text
 Assets/
@@ -402,7 +402,7 @@ powershell -NoProfile -File scripts/test.ps1 -Lane L2 -Profile PullRequest
 powershell -NoProfile -File scripts/test.ps1 -Lane All -Profile Nightly
 ```
 
-现有 `scripts/l2-unity-gate.ps1` 目前以 EditMode 为主；UI 自动化接入时必须扩展同一门禁的 PlayMode 执行、结果计数、超时、Console 检查和产物上传，不得另起一个绕过 `scripts/test.ps1` 的本地入口。性能的 Player/真机执行归 Release Pipeline，但结果仍使用相同的 `run-id`、分类和产物目录。
+现有 `scripts/l2-unity-gate.ps1` **已完成 PlayMode 执行接入（2026-09-25）**：EditMode 与 PlayMode 共用同一异步轮询入口（`--async_tests` + 轮询 `test_status`），各自计数、超时与 Console 检查，Total=0 同判失败；未另起绕过 `scripts/test.ps1` 的本地入口。产物上传与性能采样仍待接入（性能的 Player/真机执行归 Release Pipeline，结果使用相同的 `run-id`、分类和产物目录）。
 
 ### 8.2 UI 门禁
 
@@ -471,8 +471,8 @@ UI 功能只有同时满足以下条件才算完成：
 
 ### 10.2 建设顺序
 
-1. **标签与归档**：为存量 UI 用例补齐元数据，创建 `Assets/Tests/UI` 目标目录和程序集边界。
-2. **PlayMode 支撑**：补齐运行时 Scope、页面夹具、语义 Locator、Driver、Wait 和 Evidence；把 P0 页面闭环接入 L2。
+1. **标签与归档**：为存量 UI 用例补齐元数据。**目录与程序集边界已建立**（`Assets/Tests/UI/PlayMode`，2026-09-25）；存量用例的 `UIType`/`Duration`/`Priority`/`Owner` 补齐待办。
+2. **PlayMode 支撑**：运行时 Scope（`LiteTesting.Runtime`）与页面夹具已就位，**P0 页面闭环已接入 L2 同一门禁**（真 Lua 生命周期、暂停/覆盖状态语义、动画资源组合、反馈面，12 例）；余项为语义 Locator、Driver、Wait 和 Evidence 分层。
 3. **自动化闭环**：以大厅、确认弹窗、列表/背包和错误恢复为首批流程，建立 Screen Object 和数据驱动 Scenario。
 4. **性能采样**：接入统一 Profiler 适配、固定设备档、性能 JSON/CSV 和基线对账；先 Nightly 趋势，再开启 Release 硬门禁。
 5. **发布验收**：完善低/中/高档设备矩阵、视觉人工签收、前后台/低内存/热更场景和长稳报告。
