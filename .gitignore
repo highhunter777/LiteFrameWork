@@ -169,3 +169,7 @@ __pycache__/
 AgentScripts/
 Tests/LiteNet.Tests/TempProtoReflection.cs
 TestResults/
+
+# Unity Test Runner 的 PlayMode 临时场景（2026-09-26 实测：跑完 L2 PlayMode 后残留）
+Assets/InitTestScene*.unity
+Assets/InitTestScene*.unity.meta
