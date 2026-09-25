@@ -35,6 +35,18 @@ namespace RoomServer
         public readonly RoomConfig Config;
 
         /// <summary>
+        /// 排空截止时刻（单调毫秒；-1 = 未在排空）。由 <see cref="ServerHost.BeginDrain"/> 置位，
+        /// 到点仍未终态则由 Pump 强制关闭（§12 第 3 步）。
+        /// </summary>
+        public long DrainDeadlineMs = -1;
+
+        /// <summary>是否处于排空（§12 第 2 步：停止接受新 Join，已在对局内的继续跑）。</summary>
+        public bool Draining
+        {
+            get { return DrainDeadlineMs >= 0; }
+        }
+
+        /// <summary>
         /// 本房间的席位可播判定（§9.3 步骤 6）：只有 Active 席位接收增量广播；Restoring（重连恢复中）抑制。
         /// **按房间传**——多房间下快照管线必须看自己房间的席位，不能共用宿主的全局判定。
         /// </summary>

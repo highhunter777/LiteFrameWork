@@ -87,6 +87,12 @@ namespace RoomServer
         /// <summary>建房时把选定的 roomId 交给 ApplySignal 用（提交到输出应用之间无重入）。</summary>
         private RoomInstance _currentRoom;
 
+        /// <summary>是否已进入排空（§12 第 1–2 步：不再接受新 Join／新房间）。</summary>
+        private bool _draining;
+
+        /// <summary>排空截止时刻（单调毫秒；-1 = 未排空）。</summary>
+        private long _drainDeadlineMs = -1;
+
         private readonly RoomServerConfig _serverConfig;
 
         /// <summary>房间容量上限（配置项；§429 范围校验在装载期完成）。</summary>
@@ -281,6 +287,17 @@ namespace RoomServer
                 Reject(session, "token 缺失");
                 return;
             }
+
+            // 排空红线（§12 第 2 步"停止接受新 Join"）：置位后**任何**新进房都拒，含已在册房间。
+            // 既有对局的输入/重连不受影响（各自走 HandleInput / HandleReconnect）。
+            // 放在字段边界之后：超长包已按 PacketRejects 归类，不该在排空计数里再记一次。
+            if (_draining)
+            {
+                _ops.RejectsWhileDraining++;      // Rejects 由 Reject() 记，此处只记排空专属分类
+                Reject(session, "服务排空中：不接受新进房");
+                return;
+            }
+
             if (join.BuildHash != ServerBuildHash)                           // 版本红线：Sim/协议版本比对不符拒绝进房
             {
                 Reject(session, $"buildHash 不符：{join.BuildHash} != {ServerBuildHash}");
@@ -625,6 +642,15 @@ namespace RoomServer
             for (int i = 0; i < _rooms.Count; i++)
             {
                 RoomInstance room = _rooms[i];
+
+                // 排空超时兜底（§12 第 3 步"超时则归档 Aborted 原因并安全关闭"）：
+                // 排空期间若某房间未在时限内自然收敛，此处强制关闭，避免永久停在排空态。
+                if (room.DrainDeadlineMs >= 0 && _nowMs >= room.DrainDeadlineMs && !room.Runtime.Closed)
+                {
+                    _ops.RoomsDrainTimedOut++;
+                    SubmitCommandTo(room, RoomCommand.Shutdown(ShutdownReason.DrainTimeout));
+                }
+
                 SubmitCommandTo(room, RoomCommand.Tick(_nowMs));
                 if (room.Runtime.Started)
                     room.Pipeline.BroadcastIfDue(room.Runtime.AuthSim.Frame, room.Runtime.AuthSim,
@@ -649,6 +675,77 @@ namespace RoomServer
             RoomInstance room = _currentRoom ?? (_rooms.Count > 0 ? _rooms[0] : null);
             return room != null && room.Runtime.TryGetSeat(playerId, out PlayerSession seat)
                 && seat.Phase == SeatPhase.Active;
+        }
+
+        /// <summary>
+        /// 开始排空／优雅关闭（《商业级通用服务端框架总设计》§12"优雅关闭"第 2–5 步的宿主侧）。
+        ///
+        /// **设计五步与本实现的对应**：
+        /// 1. "Readiness 置 false，Lobby 不再分配新 Match"——本服务不接 Lobby（实例注册/容量上报归 R2），
+        ///    故无 readiness 面；等价语义由 <see cref="Draining"/> 对**本进程**生效：不做新房间、不收新进房。
+        /// 2. "停止接受新 Join，现有房间进入 drain"——**已实现**：<see cref="Draining"/> 置位后
+        ///    <see cref="HandleJoin"/> 一律拒绝（含已在册房间），既有对局继续跑。
+        /// 3. "在配置时限内完成对局；超时则归档 Aborted 原因并安全关闭"——**已实现**：
+        ///    到 <paramref name="deadlineMs"/> 仍未终态的房间在 <see cref="Pump"/> 中发
+        ///    <see cref="ShutdownReason.DrainTimeout"/> 强制关闭。
+        /// 4. "刷新 Outbox/Archive 到持久介质"——**未实现**（无 Outbox/归档，依赖 M0-c 持久化接缝）。
+        /// 5. "停止 Worker、Transport 和 Host"——**未实现**：由调用方 <see cref="Dispose"/> 承担，
+        ///    本方法只负责第 2–3 步的状态迁移。
+        ///
+        /// **幂等**：重复调用只在前移截止时刻时生效（取更早者，不延后已定的排空期限）。
+        /// </summary>
+        /// <param name="deadlineMs">排空截止（单调毫秒，与 <c>Pump</c> 同一时钟源）。</param>
+        public void BeginDrain(long deadlineMs)
+        {
+            if (_draining && deadlineMs >= _drainDeadlineMs) return;   // 已排空且新期限不更早 → 无操作
+            _draining = true;
+            _drainDeadlineMs = deadlineMs;
+
+            for (int i = 0; i < _rooms.Count; i++)
+            {
+                RoomInstance room = _rooms[i];
+                if (room.Runtime.Closed) continue;                     // 终态房间不必排空
+                // 取更早的截止时刻：排空期限只可前移，不可被后一次调用延后
+                if (room.DrainDeadlineMs < 0 || deadlineMs < room.DrainDeadlineMs)
+                    room.DrainDeadlineMs = deadlineMs;
+            }
+            Console.WriteLine($"[RoomServer] 开始排空：在册 {_rooms.Count} 房，截止 +{deadlineMs}ms（单调时钟）");
+        }
+
+        /// <summary>是否已进入排空（§12 第 1–2 步：不再接受新 Join／新房间）。</summary>
+        public bool Draining
+        {
+            get { return _draining; }
+        }
+
+        /// <summary>
+        /// 宿主单调时钟当前毫秒——与 <see cref="Pump"/> 的 <c>_nowMs</c>、<see cref="BeginDrain"/>
+        /// 的截止时刻**同一时钟源**。调用方据此刻画排空期限（<c>CurrentMs + 配置时限</c>）。
+        /// </summary>
+        public long CurrentMs
+        {
+            get { return NowMs(); }
+        }
+
+        /// <summary>排空截止时刻（-1 = 未排空）。</summary>
+        public long DrainDeadlineMs
+        {
+            get { return _drainDeadlineMs; }
+        }
+
+        /// <summary>
+        /// 排空是否已完成：已进入排空，且**所有在册房间都到终态**（§12 第 3 步收敛判据）。
+        /// 调用方据此决定何时执行第 5 步（停 Transport/Host）。
+        /// </summary>
+        public bool DrainComplete
+        {
+            get
+            {
+                if (!_draining) return false;
+                for (int i = 0; i < _rooms.Count; i++)
+                    if (!_rooms[i].Runtime.Closed) return false;
+                return true;
+            }
         }
 
         /// <summary>按房间号取房间（不存在返回 false；**不创建**——建房要容量校验与配置模板，见 <see cref="OpenRoom"/>）。</summary>

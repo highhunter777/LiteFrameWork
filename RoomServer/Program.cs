@@ -7,6 +7,9 @@ using RoomServer;
 using RoomServer.Application;
 using RoomServer.Runtime;
 
+// 排空宽限：收到停止信号后等待对局自然收敛的时长（§12 第 3 步"在配置时限内完成对局"）。
+const long DrainGraceMs = 5_000;
+
 // RoomServer 入口（M10：批② 权威循环 + 批③ 快照/回溯/Ops）。
 // 节拍由 ServerLoop 绝对锚定（60Hz，防漂移累积）。
 //
@@ -88,9 +91,31 @@ if (durationMs > 0)
 }
 else
 {
-    loop.Start();                               // 常驻形态
-    Console.WriteLine("[RoomServer] 常驻中（Ctrl+C 退出）");
-    Thread.Sleep(Timeout.Infinite);
+    // 常驻形态：Ctrl+C 触发**优雅关闭**（§12 优雅关闭 2→3 步；不再直接杀进程）。
+    // 第 1 步（readiness 置 false / Lobby 停分配）本服务无 Lobby 面，等价语义由 host.Draining 承担。
+    // 第 4 步（刷 Outbox/归档）与第 5 步（停 Worker/Transport）依赖尚未交付的持久化与 Worker 池。
+    var shutdown = new ManualResetEventSlim(false);
+    Console.CancelKeyPress += (_, e) =>
+    {
+        e.Cancel = true;                    // 不让默认行为直接杀进程——先排空
+        shutdown.Set();
+    };
+
+    loop.Start();
+    Console.WriteLine($"[RoomServer] 常驻中（Ctrl+C 优雅关闭；排空时限 {DrainGraceMs}ms）");
+    shutdown.Wait();
+
+    Console.WriteLine("[RoomServer] 收到停止信号 → 开始排空");
+    host.BeginDrain(host.CurrentMs + DrainGraceMs);
+    var drainWatch = System.Diagnostics.Stopwatch.StartNew();
+    while (!host.DrainComplete && drainWatch.ElapsedMilliseconds < DrainGraceMs + 2_000)
+    {
+        Thread.Sleep(50);
+    }
+    loop.Stop();
+    Console.WriteLine(host.DrainComplete
+        ? $"[RoomServer] 排空完成（{drainWatch.ElapsedMilliseconds}ms）：房间数={host.RoomCount} drainTimeout={host.Ops.RoomsDrainTimedOut}"
+        : $"[RoomServer] 排空未在时限内完成（{drainWatch.ElapsedMilliseconds}ms）——按超时退出");
 }
 
 /// <summary>取 --config 的值；缺省用配置类给出的相对路径（相对工作目录）。</summary>

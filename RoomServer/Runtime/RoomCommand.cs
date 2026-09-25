@@ -8,6 +8,12 @@ namespace RoomServer.Runtime
         TimeLimit,
         /// <summary>运维主动终止（进程排空 / 人工干预）。</summary>
         Operator,
+        /// <summary>
+        /// **限时排空**（§12 优雅关闭第 3 步："在配置时限内完成对局；**超时则归档 Aborted 原因并安全关闭**"）。
+        /// 与 <see cref="Operator"/> 的区别在语义而非机制：Operator 是立即停，DrainTimeout 是
+        /// "已等满排空时限仍未自然收敛"。归档/日志据此区分"正常排空"与"排空超时被强停"。
+        /// </summary>
+        DrainTimeout,
         /// <summary>不可恢复错误（内部状态损坏、连续异常）。</summary>
         Error,
         /// <summary>等待玩家超时（房间始终未满员）。</summary>

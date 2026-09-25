@@ -30,6 +30,12 @@ namespace RoomServer.Application
         /// <summary>因模板缺失/模板配置非法被拒的建房请求数。</summary>
         public long RoomsRejectedBadConfig;
 
+        // ---- 排空（§12 优雅关闭）----
+        /// <summary>排空期间被拒的新进房数（§12 第 2 步"停止接受新 Join"）。</summary>
+        public long RejectsWhileDraining;
+        /// <summary>排空超时被强制关闭的房间数（§12 第 3 步"超时则归档 Aborted 原因并安全关闭"）。</summary>
+        public long RoomsDrainTimedOut;
+
         // ---- Join 票据拒绝（§P0-6；《框架先行》§5-4）----
         /// <summary>票据拒绝总数（任何分类）。</summary>
         public long TicketRejected;
@@ -123,6 +129,8 @@ namespace RoomServer.Application
                .Append(" pktBig=").Append(PacketOversized)
                .Append(" roomsFull=").Append(RoomsRejectedAtCapacity)
                .Append(" roomsBad=").Append(RoomsRejectedBadConfig)
+               .Append(" drainRej=").Append(RejectsWhileDraining)
+               .Append(" drainTimeout=").Append(RoomsDrainTimedOut)
                .Append(" ackBad=").Append(AckRejected)
                .Append("(stale=").Append(AckRejectedStale)
                .Append(" future=").Append(AckRejectedFuture)
