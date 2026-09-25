@@ -35,8 +35,11 @@ namespace LiteSim.View
         /// <summary>静默门放行的帧事件回调（编排方接线：VFX/音效/飘字）。</summary>
         public delegate void FrameEventSink(in FrameEvent e);
 
-        /// <summary>默认实体 prefab（灰盒：单一胶囊；正式角色资源按选装/角色配置解析）。</summary>
-        public const string DefaultEntityPrefab = "Assets/Art/Characters/BoxFighter.prefab";
+        /// <summary>对局实体视图 prefab（2026-09-25 资源指令：模型只用 CombatGirlsCharacterPack——
+        /// 真角色视图由该包模型+该包 Rifle_Controller 构成，见 CombatGirlsAnimationProfile.ViewPrefabPath）。
+        /// 资源包未入库的克隆加载失败 → ProcedureBattle 回退程序化灰盒（可复现降级，勿删兜底）；
+        /// 按选装/角色配置的多样解析归后续批（原 BoxFighter 占位路径从未入库）。</summary>
+        public const string DefaultEntityPrefab = "Assets/CombatGirlsCharacterPack/Runtime/RifleGirl_View.prefab";
 
         /// <summary>快照间隔（秒）——插值窗口时长，由 <see cref="SimConfig.SnapshotHz"/> 派生。</summary>
         public static float SnapshotInterval => 1f / SimConfig.SnapshotHz;

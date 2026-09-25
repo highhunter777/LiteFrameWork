@@ -105,3 +105,17 @@ MonoBehaviour:
         FilterRuleName: CollectAll
         AssetTags: ui
         UserData: 
+    - GroupName: Characters
+      GroupDesc: "\u5BF9\u5C40\u89D2\u8272\u89C6\u56FE prefab\uFF08\u6A21\u578B/\u52A8\u753B\u53D6\u81EA
+        CombatGirlsCharacterPack\uFF0C\u4F9D\u8D56\u81EA\u52A8\u6536\u96C6\uFF09"
+      AssetTags: 
+      ActiveRuleName: EnableGroup
+      Collectors:
+      - CollectPath: Assets/CombatGirlsCharacterPack/Runtime
+        CollectorGUID: 
+        CollectorType: 0
+        AddressRuleName: AddressByFileName
+        PackRuleName: PackDirectory
+        FilterRuleName: CollectAll
+        AssetTags: 
+        UserData: 

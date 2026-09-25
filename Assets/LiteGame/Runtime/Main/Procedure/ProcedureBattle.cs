@@ -4,6 +4,7 @@ using Cysharp.Threading.Tasks;
 using LiteFramework;
 using LiteSim;
 using LiteSim.View;
+using LiteSim.View.Animation;
 using UnityEngine;
 
 namespace LiteGame
@@ -41,6 +42,7 @@ namespace LiteGame
         private ClientScope _account;
         private ClientScope _viewScope;          // 视图资源（prefab 租约/视图根）自有作用域
         private SimView _view;
+        private CharacterLocomotionDriver _locomotion;   // 移动动画驱动（视图的消费者——先于视图拆除）
         private PlayerController _input;
         private Transform _viewRoot;
         private GameObject _viewRootGo;
@@ -126,8 +128,8 @@ namespace LiteGame
         }
 
         /// <summary>
-        /// 取玩家实体 prefab（经内容服务租约，登记进视图作用域）。内容包暂无该资源时**回退灰盒**——
-        /// 灰盒期美术资源未入库属正常，不让整局进错误态；正式角色资源随前置批落地后此分支自然消失。
+        /// 取玩家实体 prefab（经内容服务租约，登记进视图作用域）。资源包未入库的克隆（第三方素材按
+        /// 仓库政策不入 VCS）或加载失败时**回退程序化灰盒**——缺角色资源是可复现降级而非错误态。
         /// </summary>
         private async UniTask AcquireEntityPrefabAsync(CancellationToken ct)
         {
@@ -168,6 +170,8 @@ namespace LiteGame
                 camera: rig);
             _context.AttachView(_view);
 
+            _locomotion = new CharacterLocomotionDriver(_view);   // 移动动画首版：视图速度 → 播放器 → Animator 后端（§7 更新次序的 Driver 段）
+
             _input = new PlayerController(cam);
             _input.SetGate(() => !IsUiBlocking);                  // 上下文门：UI 打开 → 意图全零
 
@@ -207,6 +211,8 @@ namespace LiteGame
 
         private void DetachView()
         {
+            _locomotion?.Dispose();               // 先停动画驱动（视图消费者），再拆视图本体
+            _locomotion = null;
             _context?.AttachInput(null);
             _input = null;
             _view = null;                                         // 视图实例随 _viewRoot 销毁
@@ -234,6 +240,7 @@ namespace LiteGame
 #endif
 
             _context.Tick(elapseSeconds);         // 网络双泵 + 输入上行 + 预测推进 + 表现视图（唯一驱动入口）
+            _locomotion?.Tick(elapseSeconds);    // 移动动画：视图位置已更新，再解析目标姿态（视图的下游消费者）
         }
 
         /// <summary>等对局结束（Ended 恰好一次；ct 打断 = 宿主关闭路径）。</summary>
