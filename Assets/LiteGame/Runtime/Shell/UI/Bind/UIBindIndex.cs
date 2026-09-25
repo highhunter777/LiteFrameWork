@@ -88,6 +88,10 @@ namespace LiteGame
         {
             foreach (var c in _controls.Values)
                 if (c is Button btn) btn.onClick.RemoveAllListeners();
+
+            // 本地化绑定与订阅一并解除——池化复用不得留旧订阅（否则旧页继续被语言事件刷新）
+            _ltext.Clear();
+            DetachLocale();
         }
 
         /// <summary>命令式写文本（所有权登记：与 Bind 互斥）。</summary>
@@ -98,6 +102,87 @@ namespace LiteGame
             if (TryGet<UnityEngine.UI.Text>(name, out var legacy)) { legacy.text = value; return; }
             throw new InvalidOperationException($"绑定索引[{name}] 无 Text/TMP_Text 组件");
         }
+
+        // ---- LText：按 key 设文本 + 语言变更自动刷新（《UI框架总设计》§9）----
+
+        /// <summary>
+        /// 本地化绑定（控件名 → key + 模板参数）。语言变更时**只重写这些控件的文本**——
+        /// §9"语言变更刷新本地化组件…不重跑 OnShow、不重新订阅按钮、不重发业务请求"。
+        /// </summary>
+        private readonly Dictionary<string, LTextBinding> _ltext = new Dictionary<string, LTextBinding>(8);
+
+        /// <summary>已订阅的语言服务（<see cref="UnbindAll"/> 时退订——池化复用不留旧订阅）。</summary>
+        private ILocalizationService _locale;
+
+        private sealed class LTextBinding
+        {
+            public string Key;
+            public object[] Args;
+            public long Plural;
+            public bool IsPlural;
+        }
+
+        /// <summary>
+        /// 绑定语言服务（装配点注入）。切换语言时经 <see cref="OnLocaleChanged"/> 刷新全部已绑定项。
+        /// 重复注入会先退订旧的——避免同实例多份订阅导致重复刷新。
+        /// </summary>
+        public void BindLocale(ILocalizationService localization)
+        {
+            if (ReferenceEquals(_locale, localization)) return;
+            DetachLocale();
+            _locale = localization;
+            if (_locale != null) _locale.OnLocaleChanged += OnLocaleChanged;
+        }
+
+        private void DetachLocale()
+        {
+            if (_locale != null) _locale.OnLocaleChanged -= OnLocaleChanged;
+            _locale = null;
+        }
+
+        /// <summary>语言变更：按已登记 key 重写文本（不触碰未绑定 key 的控件）。</summary>
+        private void OnLocaleChanged(string _)
+        {
+            foreach (KeyValuePair<string, LTextBinding> kv in _ltext)
+            {
+                LTextBinding b = kv.Value;
+                SetText(kv.Key, Resolve(b));
+            }
+        }
+
+        /// <summary>
+        /// 按 key 设文本。**未注入语言服务时抛**——静默显示原始 key 会让"忘了注入"
+        /// 变成"线上全是 key"的隐蔽故障。
+        /// </summary>
+        public void SetTextKey(string name, string key, params object[] args)
+        {
+            if (_locale == null)
+                throw new InvalidOperationException($"绑定索引[{name}] SetTextKey 需先 BindLocale（未注入语言服务）");
+
+            MarkDriver(name, ControlDriver.Command);
+            var b = new LTextBinding { Key = key, Args = args, IsPlural = false };
+            _ltext[name] = b;
+            SetText(name, Resolve(b));
+        }
+
+        /// <summary>按 key 设文本（带复数；§9"英文 one/other 显式选取"）。</summary>
+        public void SetTextKeyPlural(string name, string key, long count, params object[] args)
+        {
+            if (_locale == null)
+                throw new InvalidOperationException($"绑定索引[{name}] SetTextKeyPlural 需先 BindLocale（未注入语言服务）");
+
+            MarkDriver(name, ControlDriver.Command);
+            var b = new LTextBinding { Key = key, Args = args, Plural = count, IsPlural = true };
+            _ltext[name] = b;
+            SetText(name, Resolve(b));
+        }
+
+        /// <summary>解出当前语言下的文本（复数走 FormatPlural，否则 Format）。</summary>
+        private string Resolve(LTextBinding b)
+            => b.IsPlural ? _locale.FormatPlural(b.Key, b.Plural, b.Args) : _locale.Format(b.Key, b.Args);
+
+        /// <summary>解除单个控件的本地化绑定（不再随语言刷新）。</summary>
+        public bool UnbindTextKey(string name) => _ltext.Remove(name);
 
         public void SetVisible(string name, bool visible)
         {

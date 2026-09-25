@@ -43,6 +43,12 @@ return {
     OnButton = function(_, name, fn) c('onButton', { name = name, fn = fn }) end,
     OffButton = function(_, name) c('offButton', { name = name }) end,
     SetText = function(_, name, text) c('setText', { name = name, text = text }) end,
+    SetTextKey = function(_, name, key) c('setTextKey', { name = name, key = key }) end,
+    SetTextKeyArgs = function(_, name, key, a0, a1, a2, a3) c('setTextKeyArgs',
+        { name = name, key = key, arg0 = a0, arg1 = a1, arg2 = a2, arg3 = a3 }) end,
+    SetTextKeyPlural = function(_, name, key, count, a0, a1, a2, a3) c('setTextKeyPlural',
+        { name = name, key = key, count = count, arg0 = a0, arg1 = a1, arg2 = a2, arg3 = a3 }) end,
+    UnbindTextKey = function(_, name) c('unbindTextKey', { name = name }) end,
     SetVisible = function(_, name, visible) c('setVisible', { name = name, visible = visible }) end,
     SetInteractable = function(_, name, on) c('setInteractable', { name = name, on = on }) end,
     SetProgress = function(_, name, value) c('setProgress', { name = name, value = value }) end,
@@ -169,6 +175,27 @@ return {
             if (!ReferenceEquals(_instance, _module)) _instance.Dispose();   // 模块自身即实例时不越权释放
         }
 
+        /// <summary>LText 模板参数的 Lua 侧上限（具名 arg0..argN；定长避免引入变长表协议）。</summary>
+        public const int MaxLuaFormatArgs = 4;
+
+        /// <summary>
+        /// 取 LText 模板参数：约定 Lua 侧传具名 <c>arg0..arg3</c>。
+        ///
+        /// **为何不用变长表**：xLua 的 <c>LuaTable.Get</c> 对嵌套数组的映射语义不由本项目控制，
+        /// 猜错会静默取到空值；具名定长键语义确定，且与既有 payload 协议（全具名）一致。
+        /// </summary>
+        private static object[] LuaFormatArgs(LuaTable payload)
+        {
+            var args = new List<object>(MaxLuaFormatArgs);
+            for (int i = 0; i < MaxLuaFormatArgs; i++)
+            {
+                object v = payload.Get<string, object>("arg" + i);
+                if (v == null) break;
+                args.Add(v);
+            }
+            return args.Count == 0 ? null : args.ToArray();
+        }
+
         /// <summary>ui-API 通用派发（payload 表协议）：onButton{name,fn} / offButton{name} /
         /// setText{name,text} / setVisible{name,visible} / setInteractable{name,on} /
         /// setProgress{name,value} / setProgressRange{name,cur,max} / setHp{name,cur,max} /
@@ -190,6 +217,22 @@ return {
                     break;
                 case "offButton": _index.UnbindButton(payload.Get<string, string>("name")); break;
                 case "setText": _index.SetText(payload.Get<string, string>("name"), payload.Get<string, string>("text")); break;
+                // ---- LText（《UI框架总设计》§9；Lua API 参考 Bridge.text.Get/Format 的控件面）----
+                case "setTextKey":
+                    _index.SetTextKey(payload.Get<string, string>("name"), payload.Get<string, string>("key"));
+                    break;
+                case "setTextKeyPlural":
+                    // 参数以具名 arg0/arg1/... 传递（Lua 侧拼表；定长上限见 MaxLuaFormatArgs）
+                    _index.SetTextKeyPlural(payload.Get<string, string>("name"), payload.Get<string, string>("key"),
+                        (long)payload.Get<string, double>("count"), LuaFormatArgs(payload));
+                    break;
+                case "setTextKeyArgs":
+                    _index.SetTextKey(payload.Get<string, string>("name"), payload.Get<string, string>("key"),
+                        LuaFormatArgs(payload));
+                    break;
+                case "unbindTextKey":
+                    _index.UnbindTextKey(payload.Get<string, string>("name"));
+                    break;
                 case "setVisible": _index.SetVisible(payload.Get<string, string>("name"), payload.Get<string, bool>("visible")); break;
                 case "setInteractable": _index.SetInteractable(payload.Get<string, string>("name"), payload.Get<string, bool>("on")); break;
                 // ---- 批⑦ 扩展 ----

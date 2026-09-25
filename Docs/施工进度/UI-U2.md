@@ -13,7 +13,8 @@
 | U2-④ UiFx 中断复位 | `Pulse`/`Flash`/`Slide` 中断即复位回基线 | **已完成**（2026-09-25） |
 | U2-⑤a LText 核心 | `LocalizationCatalog` / `LocalizationService` / `LocalizationTable`：回退链、缺 key 策略、复数、转义、key 校验、覆盖率 | **已完成**（2026-09-25） |
 | U2-⑤b 字体/SafeArea | 字体族与 fallback 链、缺字检查、SafeArea 细化 | **未开始** |
-| U2-⑤c LTextLabel 与 Bridge | `Bridge.text.Get/Format`、LTextLabel（参数/语言刷新/可取消打字机） | **未开始** |
+| U2-⑤c LText 控件接入 | `UIBindIndex` 按 key 设文本 + 语言变更自动刷新；Lua 门面 `SetTextKey/SetTextKeyArgs/SetTextKeyPlural/UnbindTextKey` | **已完成**（2026-09-25） |
+| U2-⑤d 打字机 | LTextLabel 可取消打字机（§9 末条） | **未开始** |
 | U2-⑥ Dialog 结果/队列、Loading/Error 页 | 确认弹窗结果回传、加载/错误页 | **未开始** |
 | U2-⑦ 焦点 | 手柄/键盘焦点导航 | **未开始** |
 
@@ -105,6 +106,31 @@ Flash 回**原色**（原实现回落固定色，属缺陷）、Slide 回原位�
 `Bridge.text.Get/Format`（U2-⑤c，需 Unity 侧）。**故本次交付的是"文本链的服务层"，
 不是"UI 已能显示本地化文本"**。
 
+### 2026-09-25 · LText 控件接入（U2-⑤c）
+
+把 LText 服务层接到 UI——**这是让本地化真正可用的那一步**。
+
+- `UIBindIndex.SetTextKey(name, key, args)` / `SetTextKeyPlural(name, key, count, args)`：
+  按 key 写文本，并**登记**该控件（语言变更时重写）。
+- `BindLocale(ILocalizationService)`：注入语言服务并订阅变更；**重复注入先退订旧实例**
+  （避免装配点重复调用留下多份订阅）。
+- `UnbindTextKey(name)` / `UnbindAll()`：解除绑定与订阅——`UnbindAll` 是池化复用的安全垫，
+  **旧页不得继续被语言事件刷新**。
+- **未注入语言服务时 `SetTextKey` 抛**：静默显示原始 key 会让"忘了注入"变成
+  "线上全是 key"的隐蔽故障。
+
+**语言变更刷新面精确**（§9"语言变更刷新本地化组件…不重跑 OnShow、不重新订阅按钮、
+不重发业务请求"）：只重写登记过 key 的控件；业务自己写的字面值控件不受影响——
+测试专门钉住这一条。
+
+**Lua 面**：`self.ui:SetTextKey / SetTextKeyArgs / SetTextKeyPlural / UnbindTextKey`
+（Lua API 参考"本地化：`Bridge.text.Get/Format` 与 LTextLabel"的控件面）。
+模板参数走**具名定长键** `arg0..arg3`——xLua 的 `LuaTable.Get` 对嵌套数组的映射语义
+不由本项目控制，猜错会静默取到空值；具名键语义确定，且与既有 payload 协议（全具名）一致。
+
+**未做**：打字机（§9 末条"LTextLabel 打字机为表现行为，关闭/语言变化取消旧任务"）——
+需与动画/时钟接缝一起做，属 U2-⑤d。
+
 ## 测试面
 
 - `Assets/Tests/EditMode/UiNavModalEditModeTests.cs`（7 例，全替身零真资源）：
@@ -120,12 +146,12 @@ Flash 回**原色**（原实现回落固定色，属缺陷）、Slide 回原位�
 | 项 | 命令 | 结果 |
 |---|---|---|
 | L1 | `powershell -NoProfile -File scripts/test.ps1 -Lane L1 -Profile PullRequest` | **761 通过 / 0 失败**（本批 +48 例） |
-| L2 | `powershell -NoProfile -File scripts/l2-unity-gate.ps1` | **通过**——12040 个 .meta GUID 全合法；Unity 编译零错误；EditMode **180/180** |
+| L2 | `powershell -NoProfile -File scripts/l2-unity-gate.ps1` | **通过**——12041 个 .meta GUID 全合法；Unity 编译零错误；EditMode **189/189**（本批 +9） |
 
 ## 已知边界
 
-- **U2-⑤b/⑤c 与 ⑥⑦ 未交付**（字体与 SafeArea、LTextLabel/Bridge、Dialog 与 Loading/Error 页、焦点）——
+- **U2-⑤b/⑤d 与 ⑥⑦ 未交付**（字体与 SafeArea、打字机、Dialog 与 Loading/Error 页、焦点）。
   U2 退出条件"大厅、长列表、HUD、确认弹窗四个真实消费者闭环 + 中英/输入/异常用例通过"**远未达到**；
-  已交付的是导航、模态、LText 服务层三个接缝；UI 侧消费（LTextLabel）与字体尚未接通。
+  已交付的是导航、模态、LText 服务层与控件接入四个接缝；字体族与打字机尚未接通。
 - **无 PlayMode**：本批为 EditMode 全替身验证；真资源场景下的导航/模态行为未验证（L2 PlayMode lane 未建）。
 - **队列上限/超时为候选配置**（8 / 10s），标注"目标设备与真实包验证后调整"——尚无实测依据。
