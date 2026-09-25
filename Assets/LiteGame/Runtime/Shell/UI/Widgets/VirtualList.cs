@@ -216,12 +216,18 @@ namespace LiteGame.UI
                 : new Vector2(total, size.y);
         }
 
-        /// <summary>Content 沿滚动轴已滚过的距离（Content 负向平移 = 视口起点前移）。</summary>
+        /// <summary>Content 沿滚动轴已滚过的距离。
+        /// 取**绝对值**：手动驱动（EditMode 替身/测试）惯用 -y 正向书写；真 ScrollRect 在当前
+        /// Content（top-anchor/pivot）结构下以 +y 表示滚过——2026-09-26 PlayMode 实测
+        /// normalizedPosition=0 时 anchoredPosition.y=+27592。窗口计算只消费"滚过多少"，
+        /// 不消费符号——Abs 对两种驱动形态等价。</summary>
         private float Offset()
         {
             var content = (RectTransform)transform;
-            float along = Direction == Axis.Vertical ? -content.anchoredPosition.y : content.anchoredPosition.x;
-            return Mathf.Max(0f, along);
+            float along = Direction == Axis.Vertical
+                ? Mathf.Abs(content.anchoredPosition.y)
+                : Mathf.Abs(content.anchoredPosition.x);
+            return along;
         }
 
         /// <summary>视口沿滚动轴尺寸；无 ScrollRect / 无视口 = 整表可见（不裁剪）。</summary>

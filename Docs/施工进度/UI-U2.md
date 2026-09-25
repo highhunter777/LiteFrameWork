@@ -20,6 +20,7 @@
 | U2-⑥c Loading/Error 页 | 加载/错误页统一入口 | **已完成**（2026-09-25：FeedbackService——Loading 嵌套阻断 + Back 首位拦截取消、Error/重试经 DialogService、Toast 计时面；空状态随大厅消费者落地）。**视觉已归位**：三面改走 System 层模板 form，见「反馈面归位」 |
 | U2-⑦ 焦点 | 手柄/键盘焦点导航 | **未开始** |
 | U2-⑧ per-form 缓存策略列（U1 余项，§5.2） | `UICacheStrategy`（Lru 默认/Resident 不淘汰/DestroyOnClose 关即销毁）的壳消费面 | **已完成**（2026-09-26，壳面 3 例；tbuiform 表列与投影接线未做，生产页面暂全默认 LRU） |
+| U2-⑨ 导航 Replace + 包③覆盖度余部（§6.1/§4.3） | `UINavigationController.ReplaceAsync`（显式替换当前记录：关当前顶再开新页，目标即顶幂等）+ PlayMode 补段（导航 Go/Back/Replace 真资源段、转场输入锁、列表真滚动、DevReload 环境重建、循环计数、诊断关联） | **已完成**（2026-09-26，EditMode +2、PlayMode 10 例；修 UIService 回滚租约泄漏与 VirtualList.Offset 符号两处真缺陷，见记录） |
 
 ## 未完成事项
 
@@ -259,6 +260,24 @@ U1 交付段预告"per-form 缓存策略列随 U2 表扩展"——本批把 §5.
 - 测试：`UICacheStrategyEditModeTests`（3 例）——DestroyOnClose 关即销毁且再 Show 为全新实例、Resident 不参与 LRU 淘汰、超预算淘汰最旧而 Resident 幸存。`ReleaseLayoutEditModeTests` 同批整理注释与分类标注（零行为变化）。
 
 **边界（表列配置接入未做）**：tbuiform 表未扩展该列、`UIFormCatalog` 投影未接线——`UIFormInfo.CacheStrategy` 当前恒为默认 `Lru`，生产页面全部按默认 LRU；`Resident`/`DestroyOnClose` 仅可编程构造（测试即此形态）。列加进表后投影才能读（"壳不碰 Luban 类型、投影在装配层"纪律不变）；主界面声明 Resident、低频页声明 DestroyOnClose 的实际配置随表列扩展批落地。
+
+### 2026-09-26 · 导航 Replace + 包③覆盖度余部（U2-⑨）
+
+《框架先行》包③"仍缺"清单的四段（导航 Go/Back/Replace 真资源段、列表段、DevReload 环境重建段、输入锁恢复）+ 三块准入项证据（循环计数/诊断关联/可扩展接入示例）的 PlayMode 收口。接手并行会话的进行中 WIP 并修绿 4 例失败（用户裁决收口）：
+
+- **`UINavigationController.ReplaceAsync`**（§6.1"显式替换当前记录"）：NavKind 增 Replace——关当前顶页（`CloseReason.Replace` 离场原因）再开新页；目标即当前顶时幂等（不先关后开）；排队/超时/取消语义与 Go 同管线。EditMode +2（替换语义/幂等语义，`UiNavModalEditModeTests`）。
+- **PlayMode 10 例**（三组，真资源真转场）：
+  - `NavigationPlayModeTests`（4）：Go 前进 Back 返回（跨层覆盖栈——下层保留/复用同实例/重开不加租约）、Replace 替换当前记录（旧页关/底层留/Back 回底）、Replace 幂等、转场输入锁（接受即锁 interactable、blocksRaycasts 全程遮挡、完成按协调者恢复——ObservingTransition 在策略首帧取观测点，窗口确定性）。
+  - `ListPlayModeTests`（3）：真 VirtualList（构建器新 ListScreen 页面嵌套模板）500 条滚动首尾往返（节点恒于容量、FirstIndex 前进回退、索引 0 重绑）、重复刷新不重绑不增节点、缩容 500→1→0。
+  - `EnvRebuildPlayModeTests`（3）：复刻 §10.2 DevReload 顺序（全关→DropAllLogic→env.Dispose→新 env→复用缓存实例接管新逻辑、旧 env 零访问）、同页开关 10 次（租约恰一份、OnShow 逐次递增、Shutdown 对称释放）、注入 OnInit 失败（类型化异常含 formId/阶段、回滚对称、日志经 LiteFramework.Log 面可读）。
+- **两处产品真缺陷修复**：
+  1. **UIService 回滚租约泄漏**（§4.4 所有权清理）：`RunOpenAsync` 的 InitFailed 与权威取消两条回滚路径只从 `_leases` 字典摘除、不调 `lease.Release()`——"获取后初始化失败"路径泄漏（此前在途取消用例测的是"未获取就取消"0=0 假对称，未覆盖此路径）。两处均补就地释放。
+  2. **VirtualList.Offset() 符号假设**（§8.2）：原 `-anchoredPosition.y` 只匹配手动驱动的负值形态；真 ScrollRect 在当前 Content（top-anchor/pivot）结构下以 **+y** 表示滚过距离（PlayMode 实测 normalizedPosition=0 时 y=+27592）——改 `Mathf.Abs`（窗口计算只消费距离不消费符号，EditMode 替身 -y 与真 ScrollRect +y 等价兼容）。
+- **测试侧三处修正**（接手时的 4 例红中）：导航组 Layer 配置（前进页须与底页**跨层**，同层全屏触发组内 Replace 契约——U0 交付语义，非缺陷）；BackAsync 异步任务须等终态；复用租约断言改"重开前后 Acquired 不变"（两页各一份租约，基线 2 非线性 1）；列表首行断言改 `ZeroIndexText`（绑定循环按索引升序，"最后绑定"落在最高索引）；诊断断言通道从 LogAssert 改 LiteFramework.Log 面（helper 未注入时不桥接 Unity 日志——LogAssert 恒等不到，EditMode 先例即 ErrorCount/Recent 口径）。
+
+**「可扩展」接入示例**：ListScreen 页面新增只动构建器（`BuildListScreens` 菜单，确定性生成）与测试目录条目——UIService/导航/控件框架零改动，即包③准入项"新增样例页面走既定扩展点"的载体。
+
+**验证**：L2 EditMode **227/227** + PlayMode **22/22**（全绿）；L1 778 沿用（本批未动 dotnet 侧）。
 
 ## 测试面
 

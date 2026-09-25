@@ -199,6 +199,57 @@ namespace LiteGame.Tests.EditMode
             Assert.AreEqual(1, loader.CallOrder.Count, "被取消的 Go 不得产生加载");
         }
 
+        // ---- 导航：Replace（§6.1 显式替换当前记录）----
+
+        [Test]
+        [Category(TestCategory.Contract)]
+        public void 导航_Replace_显式替换当前顶页_旧页关闭新页打开()
+        {
+            var catalog = new FakeCatalog();
+            catalog.Add(1); catalog.Add(2);
+            var loader = new GateLoader();
+            var svc = Service(catalog, loader);
+            var nav = new UINavigationController(svc);
+
+            var t1 = nav.GoAsync(1);
+            loader.Deliver(FakePrefab("p1"));
+            Await(t1, svc);
+            Assert.IsTrue(svc.IsOpen(1), "初始页打开");
+
+            var t2 = nav.ReplaceAsync(2);                 // 替换当前记录（§6.1）：先关旧页再开新页
+            // 执行序：Close(1)（即时转场）→ Show(2) 发起加载——等加载请求出现再交付（GateLoader 单门源）
+            for (int i = 0; i < 100 && loader.CallOrder.Count < 2; i++) svc.Tick(0.05f);
+            Assert.AreEqual(2, loader.CallOrder.Count, "Replace 应为新页发起加载");
+            loader.Deliver(FakePrefab("p2"));
+            var f2 = Await(t2, svc);
+
+            Assert.IsTrue(svc.IsOpen(2), "新页打开");
+            Assert.IsFalse(svc.IsOpen(1), "当前记录被替换：旧页收到 Replace 离场并关闭");
+            Assert.AreEqual(2, nav.Executed, "两条导航操作均执行");
+        }
+
+        [Test]
+        [Category(TestCategory.Contract)]
+        public void 导航_Replace_目标即当前顶_幂等返回不重开()
+        {
+            var catalog = new FakeCatalog();
+            catalog.Add(1);
+            var loader = new GateLoader();
+            var svc = Service(catalog, loader);
+            var nav = new UINavigationController(svc);
+
+            var t1 = nav.GoAsync(1);
+            loader.Deliver(FakePrefab("p1"));
+            var f1 = Await(t1, svc);
+
+            var t2 = nav.ReplaceAsync(1);                 // 当前记录已是目标——幂等（§4.2 不先关后开）
+            var f2 = Await(t2, svc);
+
+            Assert.AreSame(f1, f2, "幂等返回同一实例");
+            Assert.IsTrue(svc.IsOpen(1), "仍打开");
+            Assert.AreEqual(1, loader.CallOrder.Count, "幂等路径不产生第二次加载");
+        }
+
         // ---- 模态栈（§6.2）----
 
         [Test]

@@ -76,6 +76,18 @@ namespace LiteGame
         }
 
         /// <summary>
+        /// 显式替换当前记录（§6.1"ReplaceAsync 显式替换当前记录"）：关闭当前顶页（Replace 离场原因）
+        /// 并打开目标页。与 <see cref="GoAsync"/> 在首版覆盖栈下的差异：Go 保留旧页（新页覆盖其上），
+        /// Replace 明确关闭当前记录——跨层同样替换，且旧页收到类型化的 Replace 离场原因
+        /// （<see cref="UIService.CloseReason.Replace"/>）。目标即当前顶页时幂等返回（不先关后开）。
+        /// </summary>
+        public UniTask<UIForm> ReplaceAsync(int formId, IUIData data = null, CancellationToken ct = default)
+        {
+            var op = Enqueue(NavKind.Replace, formId, data, ct);
+            return WaitFormAsync(op, ct);
+        }
+
+        /// <summary>
         /// 返回（§6.2 平台返回统一处理）：**Back 前置拦截**（Loading 阻断期取消，消费即返回 true）
         /// → 关闭最顶模态（无模态则最高非空组的栈顶）。返回 false = 当前无可返回目标（确定结果，不抛）。
         /// 关闭可被出栈拦截（<see cref="UIService.CloseReason.Back"/> 语义）——拦截时返回 true（已提交关闭）。
@@ -127,7 +139,7 @@ namespace LiteGame
             op.Cts.Cancel();
 
             var fail = new UIOpenException(UIOpenFailure.Canceled, op.FormId,
-                op.Kind == NavKind.Back ? "导航 Back 被取消（排队期）" : $"导航 Go[{op.FormId}] 被取消（排队期）");
+                op.Kind == NavKind.Back ? "导航 Back 被取消（排队期）" : $"导航 {op.Kind}[{op.FormId}] 被取消（排队期）");
             op.Fail(fail);
         }
 
@@ -150,7 +162,7 @@ namespace LiteGame
                         op.Fail(new UIOpenException(UIOpenFailure.Timeout, op.FormId,
                             op.Kind == NavKind.Back
                                 ? $"导航 Back 排队等待超时（{OpenTimeoutSeconds}s）"
-                                : $"导航 Go[{op.FormId}] 排队等待超时（{OpenTimeoutSeconds}s）——队列被长操作阻塞"));
+                                : $"导航 {op.Kind}[{op.FormId}] 排队等待超时（{OpenTimeoutSeconds}s）——队列被长操作阻塞"));
                         op.Registration.Dispose();
                         continue;
                     }
@@ -161,15 +173,36 @@ namespace LiteGame
                         switch (op.Kind)
                         {
                             case NavKind.Go:
+                            {
                                 var form = await _ui.ShowAsync(op.FormId, op.Data, op.Cts.Token);
                                 op.FormCompletion.TrySetResult(form);
                                 break;
+                            }
                             case NavKind.Back:
+                            {
                                 bool hasTarget = _ui.TryGetBackTarget(out int target);
                                 if (hasTarget)
                                     await _ui.CloseAsync(target, UIService.CloseReason.Back);
                                 op.BoolCompletion.TrySetResult(hasTarget);
                                 break;
+                            }
+                            case NavKind.Replace:
+                            {
+                                // 当前顶即目标 → 幂等（历史语义：当前记录已是目标，不先关后开）
+                                if (_ui.TryGetBackTarget(out int cur) && cur == op.FormId)
+                                {
+                                    var opened = await _ui.ShowAsync(op.FormId, op.Data, op.Cts.Token);
+                                    op.FormCompletion.TrySetResult(opened);
+                                    break;
+                                }
+                                // 显式替换当前记录：先关当前顶（Replace 离场原因），再打开新页；
+                                // 关闭失败/被拦截与打开失败同归 op.Fail——半成品由 UIService 回滚
+                                if (cur != 0)
+                                    await _ui.CloseAsync(cur, UIService.CloseReason.Replace);
+                                var form = await _ui.ShowAsync(op.FormId, op.Data, op.Cts.Token);
+                                op.FormCompletion.TrySetResult(form);
+                                break;
+                            }
                         }
                         Executed++;
                     }
@@ -207,7 +240,7 @@ namespace LiteGame
                     op.Fail(new UIOpenException(UIOpenFailure.Timeout, op.FormId,
                         op.Kind == NavKind.Back
                             ? $"导航 Back 排队等待超时（{OpenTimeoutSeconds}s）"
-                            : $"导航 Go[{op.FormId}] 排队等待超时（{OpenTimeoutSeconds}s）——队列被长操作阻塞"));
+                            : $"导航 {op.Kind}[{op.FormId}] 排队等待超时（{OpenTimeoutSeconds}s）——队列被长操作阻塞"));
                     continue;
                 }
                 keep.Add(op);
@@ -247,7 +280,7 @@ namespace LiteGame
             }
         }
 
-        private enum NavKind { Go, Back }
+        private enum NavKind { Go, Replace, Back }
 
         private sealed class NavOp
         {
@@ -270,11 +303,12 @@ namespace LiteGame
                 EnqueuedAtMs = enqueuedAtMs;
             }
 
-            /// <summary>只故障本种类的完成源（另一源无人等待——故障它会成为 UniTask 未观察异常）。</summary>
+            /// <summary>只故障本种类的完成源（Back 走 Bool 源；Go/Replace 走 Form 源——
+            /// 另一源无人等待，故障它会成为 UniTask 未观察异常）。</summary>
             public void Fail(Exception ex)
             {
-                if (Kind == NavKind.Go) FormCompletion.TrySetException(ex);
-                else BoolCompletion.TrySetException(ex);
+                if (Kind == NavKind.Back) BoolCompletion.TrySetException(ex);
+                else FormCompletion.TrySetException(ex);
             }
         }
     }

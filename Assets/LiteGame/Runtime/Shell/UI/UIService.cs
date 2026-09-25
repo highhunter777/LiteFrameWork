@@ -208,9 +208,10 @@ namespace LiteGame
                 if (!form.EnterActiveFromLoading(op.Data))
                 {
                     // 打开回滚（§4.1）：撤销登记 → 释放逻辑/Lua 引用 → 销毁对象 → 对外报失败
-                    // （禁止"Active + NullLogic 伪装成功"）
+                    // （禁止"Active + NullLogic 伪装成功"）。租约同步释放（§4.4 所有权清理——
+                    // 登记后 lease 已置 null，finally 兜底不再覆盖此路径，必须就地释放）
                     _forms.Remove(op.FormId);
-                    _leases.Remove(op.FormId);
+                    if (_leases.Remove(op.FormId, out IUIPrefabLease failedLease)) failedLease.Release();
                     group.Stack.Remove(form);
                     form.DisposeFailedOpen();
                     throw new UIOpenException(UIOpenFailure.InitFailed, op.FormId,
@@ -226,7 +227,7 @@ namespace LiteGame
                 if (form != null)
                 {
                     _forms.Remove(op.FormId);
-                    _leases.Remove(op.FormId);
+                    if (_leases.Remove(op.FormId, out IUIPrefabLease canceledLease)) canceledLease.Release();
                     group.Stack.Remove(form);
                     form.DisposeFailedOpen();
                 }

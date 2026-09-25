@@ -181,6 +181,24 @@ namespace LiteGame.Editor
             return root;
         }
 
+        /// <summary>列表页（2026-09-26 包③覆盖度余部）：页面根 + 嵌套 VirtualList 模板。
+        /// 「可扩展」接入示例的载体——新增页面只动构建器与目录条目，框架零改动（§8.2 列表段 PlayMode 用例消费）。</summary>
+        [MenuItem("LiteGame/UI/构建列表页 Screens")]
+        private static void BuildListScreens()
+        {
+            EnsureFolder(ScreenDir);
+            var done = new List<string>();
+            done.Add(SaveScreen(BuildListScreen(), "ListScreen"));
+            Debug.Log($"[WidgetPrefab] 列表页构建完成:{string.Join(",", done)}");
+        }
+
+        private static GameObject BuildListScreen()
+        {
+            var root = ScreenNode("ListScreen");
+            NestWidget(root, "VirtualList");
+            return root;
+        }
+
         /// <summary>Toast 页面级包装：Canvas + CanvasGroup + 嵌套 Toast 控件（容器定位在下方居中）。</summary>
         private static GameObject BuildToastScreen()
         {
