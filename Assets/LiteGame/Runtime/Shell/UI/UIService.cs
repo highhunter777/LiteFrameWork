@@ -700,13 +700,23 @@ namespace LiteGame
             SwapIfStale(form);
             if (form.Info.FullScreen) RecomputeCovering();
             RecomputeModalBlocking();                         // 模态射线遮蔽随关闭重算（关掉模态 → 下方恢复可命中）
+
+            // per-form 缓存策略（§5.2 U2 表列）：DestroyOnClose 关即销毁（不进池）
+            if (form.Info.CacheStrategy == UICacheStrategy.DestroyOnClose)
+            {
+                DestroyFormInternal(form.Id);
+                Log.Info($"UIForm[{form.Id}] DestroyOnClose——关即销毁", "UI");
+                FormClosed?.Invoke(form.Id);
+                return;
+            }
+
             _lastUsed[form.Id] = ++_useCounter;            // LRU 记账（最近使用序号）
             EvictBeyondBudget();
             FormClosed?.Invoke(form.Id);
         }
 
-        /// <summary>缓存预算淘汰（§5.2 LRU：只淘汰**未打开、未被操作引用**的缓存实例）：
-        /// 池中（Recycled）计数超预算 → 按最近使用序淘汰最旧者（完整销毁：GameObject + 租约 + 登记）。</summary>
+        /// <summary>缓存预算淘汰（§5.2 LRU：只淘汰**未打开、未被操作引用**的缓存实例；
+        /// per-form 策略 Resident 不参与淘汰——预算满时跳过常驻页，淘汰候选仅限 LRU 策略的实例）。</summary>
         private void EvictBeyondBudget()
         {
             int cached = 0;
@@ -714,11 +724,15 @@ namespace LiteGame
                 if (kv.Value.State == UIFormState.Recycled) cached++;
             if (cached <= CacheBudget) return;
 
-            // 候选 = 池中实例，按最近使用序升序（最旧先淘汰）
+            // 候选 = 池中 LRU 策略实例（Resident 不淘汰），按最近使用序升序（最旧先淘汰）
             var candidates = new List<(int id, long used)>(cached);
             foreach (var kv in _forms)
-                if (kv.Value.State == UIFormState.Recycled && _lastUsed.TryGetValue(kv.Key, out long used))
+            {
+                if (kv.Value.State != UIFormState.Recycled) continue;
+                if (kv.Value.Info.CacheStrategy == UICacheStrategy.Resident) continue;
+                if (_lastUsed.TryGetValue(kv.Key, out long used))
                     candidates.Add((kv.Key, used));
+            }
             candidates.Sort((a, b) => a.used.CompareTo(b.used));
 
             int toEvict = cached - CacheBudget;

@@ -1,17 +1,15 @@
-using System.Collections.Generic;
+using System.Collections;
 using LiteFramework;
-using LiteGame;
 using LiteTesting;
 using NUnit.Framework;
 using UnityEngine;
+using UnityEngine.TestTools;
 
 namespace LiteGame.Tests.EditMode
 {
-    /// <summary>
-    /// 发布布局约定（《热更与内容发布专项设计》§7/§8 的探针装配输入——
+    /// <summary>发布布局约定（《热更与内容发布专项设计》§7/§8 的探针装配输入——
     /// config/ 前缀 = 配置、lua/ 前缀 = 热更脚本、模块名派生与 LuaPreloader 同规则）。
-    /// 这些约定是 GameModules 装配与发布流水线的**共同契约**，派生错了探针就查错文件。
-    /// </summary>
+    /// 这些约定是 GameModules 装配与发布流水线的**共同契约**，派生错了探针就查错文件。</summary>
     public sealed class ReleaseLayoutEditModeTests
     {
         private static ReleaseManifest ManifestWith(params string[] paths)
@@ -22,7 +20,6 @@ namespace LiteGame.Tests.EditMode
         }
 
         [Test]
-        [Category(TestCategory.Contract)]
         public void 布局_config前缀_挑出配置文件()
         {
             var m = ManifestWith("config/tbuiform.bytes", "lua/ui/UIMain.lua", "other/x.bin");
@@ -33,7 +30,6 @@ namespace LiteGame.Tests.EditMode
         }
 
         [Test]
-        [Category(TestCategory.Contract)]
         public void 布局_lua前缀_派生模块名与LuaPreloader同规则()
         {
             var m = ManifestWith("lua/ui/UIMain.lua", "lua/cfg/tbuiform.lua", "lua/main.lua", "lua/x.txt", "config/a.bytes");
@@ -51,7 +47,6 @@ namespace LiteGame.Tests.EditMode
         }
 
         [Test]
-        [Category(TestCategory.Contract)]
         public void 布局_空清单_返回空集合不抛()
         {
             var m = ManifestWith();
@@ -60,7 +55,6 @@ namespace LiteGame.Tests.EditMode
         }
 
         [Test]
-        [Category(TestCategory.Contract)]
         public void 信任锚_零锚点Apply_返回零且库保持空()
         {
             var store = new TrustedKeyStore();
@@ -72,7 +66,6 @@ namespace LiteGame.Tests.EditMode
         }
 
         [Test]
-        [Category(TestCategory.Contract)]
         public void 信任锚_登记后Resolve_未登记keyId返回null()
         {
             var store = new TrustedKeyStore();
