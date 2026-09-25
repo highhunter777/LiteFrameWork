@@ -16,6 +16,12 @@
 #   powershell -NoProfile -File scripts/l2-unity-gate.ps1                  # 全量（默认）
 #   powershell -NoProfile -File scripts/l2-unity-gate.ps1 -MetaScanOnly    # 只跑①（无 Unity 环境也能用）
 #   powershell -NoProfile -File scripts/l2-unity-gate.ps1 -RunEditModeTests # 强制走 B（batchmode 测试）
+#
+# 两种模式跑**同样的两段测试**（EditMode + PlayMode）：
+#   A. 编辑器在跑 → 经 Unity Pipeline（异步轮询 test_status），无需关闭编辑器
+#   B. 编辑器未跑 → batchmode `unity test --mode <EditMode|PlayMode>`
+# 2026-09-26 前只有 A 覆盖 PlayMode；B 只跑 EditMode，导致夜间（无编辑器）永远漏掉
+# PlayMode 那一半——现两段对齐。
 # ─────────────────────────────────────────────────────────────────────────────
 [CmdletBinding()]
 param(
@@ -25,6 +31,9 @@ param(
     [switch]$MetaScanOnly,
     [switch]$RunEditModeTests
 )
+
+# batchmode 的 PlayMode 结果文件（与 EditMode 分开落盘，失败时能分辨是哪一段红的）
+$PlayModeOutput = 'TestResults\playmode-results.xml'
 
 # 工程路径：未显式给出时按脚本位置推导（$PSScriptRoot 在参数默认值阶段可能为空，故放体内）
 if ([string]::IsNullOrWhiteSpace($ProjectPath)) {
@@ -285,7 +294,7 @@ UnityEditor.Compilation.CompilationPipeline.RequestScriptCompilation();
     }
 }
 elseif ($RunEditModeTests -or -not (Test-Path $descriptor)) {
-    Write-Step '② Unity 侧 EditMode 测试（batchmode）'
+    Write-Step '② Unity 侧测试（batchmode：EditMode + PlayMode）'
     if (Get-Process -Name 'Unity' -ErrorAction SilentlyContinue) {
         Write-Bad '检测到 Unity 进程在运行：batchmode 无法与已打开的编辑器共用同一工程。请关闭编辑器后重跑（或直接跑默认模式走 Pipeline）'
     }
@@ -298,10 +307,24 @@ elseif ($RunEditModeTests -or -not (Test-Path $descriptor)) {
     else {
         $outDir = Join-Path $ProjectPath (Split-Path $TestOutput -Parent)
         if (-not (Test-Path $outDir)) { New-Item -ItemType Directory -Path $outDir | Out-Null }
-        Write-Note "执行 unity test --mode EditMode --output $TestOutput"
-        & unity test --project-path $ProjectPath --mode EditMode --output $TestOutput 2>&1 | ForEach-Object { Write-Host "    $_" -ForegroundColor DarkGray }
-        if ($LASTEXITCODE -ne 0) { Write-Bad "EditMode 测试未通过（退出码 $LASTEXITCODE），报告见 $TestOutput" }
-        else { Write-Ok "EditMode 测试通过，报告见 $TestOutput" }
+
+        # 两段各自独立判定：一段红不代表另一段不跑——两段的失败原因完全不同
+        # （EditMode 偏资产/契约，PlayMode 偏真实 PlayerLoop/转场/资源），只跑一段等于漏一半。
+        foreach ($mode in @('EditMode', 'PlayMode')) {
+            $outFile = if ($mode -eq 'EditMode') { $TestOutput } else { $PlayModeOutput }
+            Write-Note "执行 unity test --mode $mode --output $outFile"
+            # 工程是**位置参数**，不是 --project-path（`unity test --help` 的 Arguments 段）。
+            # 2026-09-26 前原代码用 `--project-path`，CLI 报 unknown option 直接失败——
+            # 即 batchmode 这条路**从未真正跑起来过**，不是"只跑 EditMode"的问题。
+            # -e/--editor-path：CLI 默认去 Unity Hub 标准位置找编辑器，**找不到 Unity 中国版**
+            # （实测报「编辑器 2022.3.55f1c1 未安装」）——$UnityExe 参数以前只用于 Test-Path 检查，
+            # 从没传给命令，故必须显式指定。
+            # --timeout：batchmode 冷启动要导包/编译，默认无超时会让任务计划程序挂到天荒地老
+            & unity test $ProjectPath -e $UnityExe --mode $mode --output $outFile --timeout 1800 2>&1 |
+                ForEach-Object { Write-Host "    $_" -ForegroundColor DarkGray }
+            if ($LASTEXITCODE -ne 0) { Write-Bad "$mode 测试未通过（退出码 $LASTEXITCODE），报告见 $outFile" }
+            else { Write-Ok "$mode 测试通过，报告见 $outFile" }
+        }
     }
 }
 

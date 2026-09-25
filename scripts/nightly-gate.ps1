@@ -22,15 +22,23 @@ param(
 
 $ErrorActionPreference = 'Stop'
 
+# 编码链（实测踩坑）：PowerShell 5.1 默认按控制台代码页（本机 GBK/936）解码子进程 stdout。
+# 子进程（l2-unity-gate.ps1 / Unity CLI）输出含中文时会被解成乱码，再经 Add-Content 落盘
+# 就得到无效 UTF-8——日志作为"证据"直接废掉。故显式统一下行到 UTF-8。
+[Console]::OutputEncoding = [System.Text.Encoding]::UTF8
+$OutputEncoding = [System.Text.Encoding]::UTF8
+
 $stamp   = Get-Date -Format 'yyyy-MM-dd_HHmmss'
 $logDir  = Join-Path $ProjectPath 'TestResults\nightly'
 if (-not (Test-Path $logDir)) { New-Item -ItemType Directory -Path $logDir -Force | Out-Null }
 $logFile = Join-Path $logDir "L2-$stamp.log"
 
 function Write-Log([string]$text) {
-    # 同时进控制台与文件（任务计划程序会捕获控制台，但历史条目有限，文件才是长期证据）
+    # 同时进控制台与文件（任务计划程序会捕获控制台，但历史条目有限，文件才是长期证据）。
+    # 用 .NET 显式 UTF-8（无 BOM）而非 Add-Content —— 后者在 5.1 下行为随 $PSDefaultParameterValues 漂移。
     Write-Host $text
-    Add-Content -LiteralPath $logFile -Value $text -Encoding UTF8
+    [System.IO.File]::AppendAllText($logFile, $text + [Environment]::NewLine,
+        (New-Object System.Text.UTF8Encoding($false)))
 }
 
 $exitCode = 0
@@ -59,11 +67,15 @@ try {
     if ($LASTEXITCODE -ne 0) { Write-Log "  [FAIL] L2 退出码 $LASTEXITCODE"; $exitCode = 1 }
     else { Write-Log '  [PASS] L2' }
 
-    # ── 如实标注 PlayMode 是否真的跑了（batchmode 分支不含它）──
-    $ranPlayMode = ($l2 | Out-String) -match 'run_tests\(PlayMode\)'
+    # ── 如实标注 PlayMode 是否真的跑了（覆盖两种模式的不同输出形态）──
+    #   Pipeline 模式：打印 "run_tests(PlayMode): Total=… Passed=…"
+    #   batchmode 模式：打印 "PlayMode 测试通过/未通过，报告见 …"
+    # 只匹配一种会让另一种模式下误报"未执行"。
+    $l2Text = $l2 | Out-String
+    $ranPlayMode = ($l2Text -match 'run_tests\(PlayMode\)') -or ($l2Text -match 'PlayMode 测试(通过|未通过)')
     Write-Log ''
-    if ($ranPlayMode) { Write-Log 'PlayMode：已执行（见上方 run_tests(PlayMode) 行）' }
-    else { Write-Log 'PlayMode：**本次未执行**——batchmode 分支只跑 EditMode；要覆盖 PlayMode 需编辑器在跑（Pipeline 模式）' }
+    if ($ranPlayMode) { Write-Log 'PlayMode：已执行' }
+    else { Write-Log 'PlayMode：**本次未执行**——请检查 L2 是否因「编辑器在跑但管线不可用」提前失败' }
 }
 catch {
     Write-Log "[FAIL] 夜间门禁异常：$($_.Exception.Message)"
