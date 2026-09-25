@@ -10,11 +10,54 @@
 | M0-a 宿主骨架 | `MetaServer/` 工程 + Generic Host 装配 + Options 范围校验 `ValidateOnStart` + `/live` `/ready` `/metrics` + 优雅关闭与 drain + 入站请求体上限 | **已完成**（见下） |
 | M0-b 接缝登记 | gitignore 白名单、`Tests.slnx`、L0 纪律扫描目标（R11 纯化边界） | **已完成**（见下） |
 | M0-c 持久化接缝 | 存储端口、迁移/事务/幂等约束、故障夹具、一个持久化样例（框架先行 §4"持久化"行） | **未开始** |
-| M0-d 票据接缝 | `IJoinTicketValidator` 接口 + 非法票据测试（服务端总设计 §P0-6；§5-4"没有真实登录业务时也不能省略票据验证接口与非法票据测试"） | **未开始** |
+| M0-d 票据接缝 | `IJoinTicketValidator` 接口 + 非法票据测试（服务端总设计 §P0-6；§5-4"没有真实登录业务时也不能省略票据验证接口与非法票据测试"） | **已完成**（2026-09-26，见下） |
 
-**范围界定**：本批只交付宿主骨架，**不含任何业务模块**——Auth/Lobby/Profile 归 G3（《Meta 服务专项设计》§15），不提前建空壳模块（客户端 `ProcedureId` 已按同一原则刻意未加 Login/Lobby/Result 枚举）。框架先行 §5-4 的票据验证接口属框架期必建项，**尚未交付**，见 M0-d。
+**范围界定**：本批只交付宿主骨架，**不含任何业务模块**——Auth/Lobby/Profile 归 G3（《Meta 服务专项设计》§15），不提前建空壳模块（客户端 `ProcedureId` 已按同一原则刻意未加 Login/Lobby/Result 枚举）。
+
+**M0-d 归属更正（2026-09-26）**：票据验证器接口**不在 MetaServer 工程内**，落在 `RoomServer/Application/`——
+《服务端总设计》§7 的"建议最小接口"把 `IJoinTicketValidator` 列在 RoomServer 工程结构下，Meta 专项 §15
+R2 行亦写"RoomServer 侧：Join Ticket **本地验签**"。Meta 侧只**签发**（§6.2"唯一身份接缝"）。
+本表原把它记作 Meta 批次，属归类不准；实现按设计归属走。
 
 ## 施工记录
+
+### 2026-09-26 · M0-d Join 票据验证接缝交付
+
+**目标**（§5-4"没有真实登录业务时也不能省略运行时的票据验证接口与非法票据测试"）：
+接口形状由设计钉死为 `IJoinTicketValidator.Validate(string ticket, JoinContext)`（服务端总设计 §7），
+故失败不走异常也不走 bool，而是返回 `JoinPrincipal` 带 `JoinTicketRejection` 分类。
+
+**交付物**（全部在 `RoomServer/Application/`，R11 纯化边界之外）：
+
+| 文件 | 内容 |
+| --- | --- |
+| `JoinTicket.cs` | 接缝：`IJoinTicketValidator` / `JoinPrincipal` / `JoinContext` / `JoinTicketKey` / `JoinTicketRejection`（11 分类） |
+| `JoinTicketFormat.cs` | **线格式单一来源**：字段序、Base64Url 编码、被签名覆盖的范围。签发端与验证端共用 |
+| `JoinTicketValidator.cs` | `HmacJoinTicketValidator`：验签 + 六项绑定 + 有界 nonce 重放窗口 |
+| `ServerHost.HandleJoin` | **接入真实准入路径**：装配验证器后 token 逐一验签，非空不再构成准入理由 |
+
+**三处设计要点（都是被"测试要测它声称测的那件事"逼出来的）**：
+
+1. **线格式单一来源**。测试签发器 `TestTicketIssuer` 与验证器共用 `JoinTicketFormat`——
+   若测试侧另写一份拼串，签发端漂移时验证端仍然全绿。这与工程既有的"协议单源红线"是同一条纪律。
+2. **重放判定排在最后**（④时效 → ⑤绑定 → ⑥重放）。若提前，攻击者可用乱签票据耗尽 nonce 窗口
+   = 拒绝服务。`重放判定在验签之后_伪造签名不占用nonce窗口` 用**同一 nonce** 先坏签名后真签名钉住顺序。
+3. **nonce 窗口满时拒绝新票据，不淘汰旧条目**。淘汰等于把已用过的 nonce 放出窗口 = 重开重放口子。
+   安全 > 可用；`RejectedWindowFull` 计数 > 0 表示宿主未及时 `PurgeExpiredNonces`。
+
+**一轮实测踩坑（记录以免重犯）**：准入用例最初 12/34 失败——`Ctx()` 的受众缺省值写成了 `"any"`，
+而签发器缺省是 `"test"`，于是**全组用例都先撞 AudienceMismatch**；又因受众校验**排在房间/哈希/版本之前**，
+把后三者的失配一并掩盖了。两个教训：绑定项判定的**顺序**决定了失配时的可诊断性；
+跨文件缺省值不一致时，症状会出现在与原因无关的地方。
+
+**验证证据**：
+
+| 门禁 | 命令 | 结果 |
+| --- | --- | --- |
+| L3 | `scripts/test.ps1 -Lane L3` | **57 通过 / 0 失败**（LiteNet.Tests 由 9 → **51**，+42 即本批；MetaServer 6） |
+| L1 | `scripts/test.ps1 -Lane L1` | **761 通过 / 0 失败**（本批用例标 `Integration`，按分层归 **L3** 不占 L1） |
+
+**未完成**：Meta 侧签发端（G3）；非对称验签（R2 可选）；重连票据 CSPRNG 化（R2）；远端限流与安全信封（R2）。
 
 ### 2026-09-25 · 宿主骨架交付（含三处实测缺陷修正）
 
@@ -79,7 +122,16 @@
 
 ## 已知边界
 
-- **M0-c / M0-d 未交付**：持久化样例与票据验证接口仍是框架先行 §4/§5-4 的缺口，归后续批；在此之前不得宣称 Meta 接缝完备。
+- **M0-c 未交付**：持久化样例仍是框架先行 §4"持久化"行 / §5-5 的缺口，归后续批；在此之前不得宣称 Meta 接缝完备。
+- **M0-d 已交付但范围有限**：交付的是**验证接缝 + HMAC-SHA256 参考实现 + 非法票据矩阵**，落在 RoomServer 侧。
+  - **算法是共享密钥 HMAC，不是非对称签名**。§P0-6 允许"本地公钥**或共享验证器**"，框架期 Meta/RoomServer
+    同信任域故取后者；换非对称只替换 `HmacJoinTicketValidator` 一个类，接口与消费者不变。
+  - **密钥由部署注入**（`--ticket-key <kid>:<base64>`），仓库内**没有**密钥生成/登记工具——
+    Meta 侧签发端的实现归 G3（Auth/Lobby），本批只交消费端。
+  - **未装配验证器时退回原型级非空校验**：这是刻意保留的联调形态（否则全部历史用例与本地联调齐断），
+    但**未验证 ≠ 已验证**——`Session.Principal` 保持 null，且启动时打印显式告警（§6"不能悄悄退回 fake"）。
+    生产装配**必须**传 `--ticket-key`。
+  - **重连票据仍未达标**：`ReconnectService` 签发的仍是**可预测串**（非 CSPRNG），归 R2，见该文件类注释。
 - `BuildHash` 为占位值，未接 `gen-build-hash.py`——按 §P0-5，该字段在接线前**不可**用作版本身份或签名。
 - 生产编排面（TLS、限流分层、Secret Provider、Docker）未接，归 R4/§12。
 - 本批无业务端点，`/metrics` 为最小文本出口；正式 Prometheus/OTel 出口归 R4（§11.2）。

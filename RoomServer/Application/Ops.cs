@@ -24,6 +24,18 @@ namespace RoomServer.Application
         public long Rejects;
         public long ReconnectsServed;
 
+        // ---- Join 票据拒绝（§P0-6；《框架先行》§5-4）----
+        /// <summary>票据拒绝总数（任何分类）。</summary>
+        public long TicketRejected;
+        /// <summary>签名不匹配（篡改）。</summary>
+        public long TicketRejectedBadSignature;
+        /// <summary>已过期。</summary>
+        public long TicketRejectedExpired;
+        /// <summary>重放（nonce 已消费）。</summary>
+        public long TicketRejectedReplayed;
+        /// <summary>未知 kid（密钥轮换后旧 kid 下线）。</summary>
+        public long TicketRejectedUnknownKey;
+
         // ---- R1 会话容量与生命周期（§9.2）----
         /// <summary>会话容量上限拒绝的连接数（超限断开计数）。</summary>
         public long SessionsRejected;
@@ -99,7 +111,12 @@ namespace RoomServer.Application
                .Append(" ackBad=").Append(AckRejected)
                .Append("(stale=").Append(AckRejectedStale)
                .Append(" future=").Append(AckRejectedFuture)
-               .Append(" evict=").Append(AckRejectedEvicted).Append(')');
+               .Append(" evict=").Append(AckRejectedEvicted).Append(')')
+               .Append(" tktBad=").Append(TicketRejected)
+               .Append("(bad=").Append(TicketRejectedBadSignature)
+               .Append(" exp=").Append(TicketRejectedExpired)
+               .Append(" rply=").Append(TicketRejectedReplayed)
+               .Append(" kid=").Append(TicketRejectedUnknownKey).Append(')');
             if (loop != null)
                 _sb.Append(" | loop: ticks=").Append(loop.Ticks)
                    .Append(" debt=").Append(loop.DroppedTimeMs).Append("ms")

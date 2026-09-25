@@ -35,6 +35,13 @@ namespace RoomServer.Application
         /// <summary>客户端上报的构建哈希（Join 时校验，不符拒绝进房——版本红线 §4.5-5）。</summary>
         public string BuildHash;
 
+        /// <summary>
+        /// 验证通过的 Join 票据主体（§P0-6 身份接缝）。**null = 未走票据验证**（验证器未装配的原型形态）。
+        /// 这是**身份事实**（谁），而 <see cref="PlayerId"/> 是**席位路由**（第几号位）——两者不可互推：
+        /// 席位仍由 RoomRuntime 权威分配，本字段不参与分配。日志不得输出其中任何字段值。
+        /// </summary>
+        public JoinPrincipal Principal;
+
         /// <summary>最近一次收到该会话任何包的 monotonic 毫秒（诊断用；超时踢除走 kcp2k）。</summary>
         public long LastSeenMs;
 

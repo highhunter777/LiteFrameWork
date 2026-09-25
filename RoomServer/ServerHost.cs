@@ -54,6 +54,19 @@ namespace RoomServer
         private readonly Ops _ops = new Ops();
         private readonly Stopwatch _clock = Stopwatch.StartNew();
 
+        /// <summary>
+        /// Join 票据验证器（《服务端总设计》§P0-6；《框架先行》§5-4 必建接缝）。**null = 未装配**：
+        /// 此时 token 只作原型级非空校验（R0 声明行为，历史用例不受影响）；
+        /// 装配后**逐一验签**，失败即拒绝——<see cref="JoinTicketRejection"/> 分类进 Ops。
+        /// </summary>
+        private readonly IJoinTicketValidator _tickets;
+
+        /// <summary>本服受众标识（票据 audience 比对；空 = 不做受众校验）。由装配方传入——本层不依赖 Meta 配置。</summary>
+        private readonly string _audience;
+
+        /// <summary>票据拒绝分类计数（OPS 输出；索引 = <see cref="JoinTicketRejection"/> 值）。</summary>
+        private readonly int[] _ticketRejections = new int[16];
+
         /// <summary>会话周期清理节拍（600 tick ≈ 10s @60Hz）。</summary>
         public const int SessionCleanupIntervalTicks = 600;
         private int _ticksSinceCleanup;
@@ -77,10 +90,13 @@ namespace RoomServer
         public SnapshotPipeline Pipeline => _pipeline;
         public Ops Ops => _ops;
 
-        public ServerHost(IRoomTransport transport, RoomConfig config = null)
+        public ServerHost(IRoomTransport transport, RoomConfig config = null,
+            IJoinTicketValidator ticketValidator = null, string audience = null)
         {
             _transport = transport ?? throw new ArgumentNullException(nameof(transport));
             Config = config ?? RoomConfig.Default();
+            _tickets = ticketValidator;
+            _audience = audience ?? string.Empty;
             _runtime = new RoomRuntime(Config);
             _sessions = new SessionManager(4 * _runtime.ExpectedPlayers);   // R1 容量上限（§9.2）
             _seatSessions = new Session[_runtime.ExpectedPlayers];
@@ -169,10 +185,14 @@ namespace RoomServer
         /// Join 信令：token 非空 + **房间号一致** + buildHash 必须等于服务器版本（版本红线）
         /// → 投递 <see cref="RoomCommand.Join"/> → JoinAck + 满员即 MatchStarted 广播。
         ///
-        /// **安全能力现状（R0 声明，《服务端总设计》§5 P0-6/R2 补齐）**：本校验是**原型级**——
-        /// token 只判非空与长度，重连票据是可预测串；kcp2k V1.41 cookie 只解决 UDP 探测/放大防护，
-        /// **不提供业务身份、机密性或完整性**。公开部署前必须完成 R2（签名 Join Ticket、CSPRNG 重连票据、
-        /// 远端地址限流与安全信封）——在此之前本服务不得直接暴露公网。
+        /// **安全能力现状（R0 声明 + 2026-09-26 票据接缝接入，《服务端总设计》§5 P0-6/R2 补齐）**：
+        /// 装配了 <see cref="IJoinTicketValidator"/> 后，token 走**验签 + 六项绑定 + 重放窗口**
+        /// （过期/篡改/重放/受众/房间/构建哈希，见 <see cref="JoinTicketValidatorTests"/>）；
+        /// **未装配**时退回原型级非空校验（<see cref="Session.Principal"/> 为 null）。
+        /// 两处**仍未**达标（公开部署前必须完成 R2）：kcp2k V1.41 cookie 只解决 UDP 探测/放大防护，
+        /// **不提供业务身份、机密性或完整性**；重连票据仍由本服务自签且是**可预测串**（非 CSPRNG，
+        /// 见 <see cref="ReconnectService"/>）。**在两者完成前本服务不得直接暴露公网**。
+        /// 远端地址限流与安全信封同属 R2。
         /// </summary>
         private void HandleJoin(Session session, JoinRequest join)
         {
@@ -204,9 +224,52 @@ namespace RoomServer
                 Reject(session, $"buildHash 不符：{join.BuildHash} != {ServerBuildHash}");
                 return;
             }
+
+            // 票据验证（§P0-6）：装配了验证器就**逐一验签**——非空不再构成准入理由。
+            // 未装配（null）时保留 R0 声明的原型行为，并在下方注释标明；生产装配必须传入验证器。
+            if (_tickets != null)
+            {
+                JoinPrincipal principal = _tickets.Validate(join.Token, new JoinContext(
+                    _runtime.RoomId, ServerBuildHash, _audience, _nowMs));
+                if (principal == null || !principal.IsValid)
+                {
+                    JoinTicketRejection reason = principal == null
+                        ? JoinTicketRejection.Malformed
+                        : principal.Rejection;
+                    CountTicketRejection(reason);
+                    // 拒绝原因只打分类，**不打票据原文与字段值**（Meta 专项 §13.1 禁写 token/票据）
+                    Reject(session, $"票据拒绝：{reason}");
+                    return;
+                }
+                session.Principal = principal;      // 身份事实留给 App 层（席位归属仍由 RoomRuntime 权威分配）
+            }
+
             session.BuildHash = join.BuildHash;
 
             SubmitCommand(RoomCommand.Join(session.ConnectionId), joinContext: session);
+        }
+
+        /// <summary>票据拒绝分类计数（同时进 Ops 周期行——越界分类并入 Miscellaneous）。</summary>
+        private void CountTicketRejection(JoinTicketRejection reason)
+        {
+            int i = (int)reason;
+            _ticketRejections[i >= 0 && i < _ticketRejections.Length ? i : 0]++;
+
+            _ops.TicketRejected++;
+            switch (reason)
+            {
+                case JoinTicketRejection.BadSignature: _ops.TicketRejectedBadSignature++; break;
+                case JoinTicketRejection.Expired: _ops.TicketRejectedExpired++; break;
+                case JoinTicketRejection.Replayed: _ops.TicketRejectedReplayed++; break;
+                case JoinTicketRejection.UnknownKey: _ops.TicketRejectedUnknownKey++; break;
+            }
+        }
+
+        /// <summary>某拒绝分类的累计次数（Ops 观测）。</summary>
+        public int TicketRejections(JoinTicketRejection reason)
+        {
+            int i = (int)reason;
+            return i >= 0 && i < _ticketRejections.Length ? _ticketRejections[i] : 0;
         }
 
         private void HandleInput(Session session, InputMessage msg)

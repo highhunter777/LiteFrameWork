@@ -5,6 +5,7 @@ using LiteNet.Protocol;
 using LiteNet.Proto;
 using LiteNet.Transport;
 using RoomServer;
+using RoomServer.Application;
 using RoomServer.Runtime;
 using Xunit;
 
@@ -243,65 +244,175 @@ namespace LiteNet.Tests
         /// 假传输：只实现窄端口（不碰 kcp2k）——同时验证"端口够不够用"（若 ServerHost 用到端口外的东西，
         /// 本类就编译不过，解耦度自证）。
         /// </summary>
-        private sealed class FakeRoomTransport : IRoomTransport
+    }
+
+    /// <summary>
+    /// Join 票据接缝**接入真实准入路径**的端到端用例（《框架先行》§5-4"运行时票据验证接口与
+    /// 非法票据测试"；§6"真实网络链应经过**与运行时一致的验证器**"）。
+    ///
+    /// <see cref="JoinTicketValidatorTests"/> 验的是验证器本身的判断；本组验的是
+    /// **ServerHost 真的在用它**——若只在旁边放个验证器、Join 路径仍只看非空 token，
+    /// 前一组依然全绿而接缝形同虚设。
+    ///
+    /// 走假传输 <see cref="FakeRoomTransport"/>：不碰 kcp2k，纯命令面闭环。
+    /// </summary>
+    [Trait(TestTrait.Category, TestCategory.Integration)]
+    public sealed class JoinTicketAdmissionTests
+    {
+        private const string Room = "TicketRoom";
+        private const long Now = 5_000_000;
+
+        /// <summary>装配了验证器的宿主的 Join 通道（与生产同一条 <see cref="ServerHost.HandleJoin"/> 路径）。</summary>
+        private static (ServerHost host, TestTicketIssuer issuer, FakeRoomTransport t) NewHost(string audience = "aud")
         {
-            private readonly List<(int conn, ArraySegment<byte> data, bool reliable)> _sent
-                = new List<(int, ArraySegment<byte>, bool)>();
-
-            public int StartedPort { get; private set; } = -1;
-            public bool Disposed { get; private set; }
-
-            public event Action<int, ArraySegment<byte>, bool> OnData;
-            public event Action<int> OnConnected;
-            public event Action<int> OnDisconnected;
-
-            public void Start(int port) => StartedPort = port;
-            public void TickIncoming() { }
-            public void TickOutgoing() { }
-            public void Disconnect(int connectionId) { }
-            public void Broadcast(ArraySegment<byte> data, bool reliable) { }
-            public void Dispose() => Disposed = true;
-
-            /// <summary>真实传输同步拷贝；假件同样拷贝（避免上层复用缓冲的假设在假件上假绿）。</summary>
-            public void SendTo(int connectionId, ArraySegment<byte> data, bool reliable)
-            {
-                var copy = new byte[data.Count];
-                Buffer.BlockCopy(data.Array, data.Offset, copy, 0, data.Count);
-                _sent.Add((connectionId, new ArraySegment<byte>(copy), reliable));
-            }
-
-            public void RaiseConnected(int conn) => OnConnected?.Invoke(conn);
-            public void RaiseDisconnected(int conn) => OnDisconnected?.Invoke(conn);
-            public void RaiseData(int conn, byte[] packet, bool reliable = true)
-                => OnData?.Invoke(conn, new ArraySegment<byte>(packet), reliable);
-
-            public JoinAck LastJoinAck(int conn) => (JoinAck)LastOf(conn, PacketType.JoinAck);
-            public StartGame LastStartGame(int conn) => (StartGame)LastOf(conn, PacketType.StartGame);
-            public object Last(int conn, PacketType type) => LastOf(conn, type);
-
-            /// <summary>该连接收到的指定类型包数（抑制/恢复断言用）。</summary>
-            public int CountOf(int conn, PacketType type)
-            {
-                int count = 0;
-                for (int i = 0; i < _sent.Count; i++)
-                {
-                    if (_sent[i].conn != conn) continue;
-                    if (!PacketCodec.TryDecode(_sent[i].data, out PacketType t, out _)) continue;
-                    if (t == type) count++;
-                }
-                return count;
-            }
-
-            private object LastOf(int conn, PacketType type)
-            {
-                for (int i = _sent.Count - 1; i >= 0; i--)
-                {
-                    if (_sent[i].conn != conn) continue;
-                    if (!PacketCodec.TryDecode(_sent[i].data, out PacketType t, out var msg)) continue;
-                    if (t == type) return msg;
-                }
-                return null;
-            }
+            var issuer = TestTicketIssuer.Random("k1");
+            var t = new FakeRoomTransport();
+            var host = new ServerHost(t, new RoomConfig { Port = 40001, RoomId = Room, ExpectedPlayers = 2 },
+                new HmacJoinTicketValidator(new[] { issuer.AsValidatorKey() }), audience);
+            return (host, issuer, t);
         }
+
+        private static byte[] JoinWith(string token, string room = Room, string hash = null)
+        {
+            return PacketCodec.Encode(PacketType.Join, new JoinRequest
+            {
+                RoomId = room,
+                Token = token,
+                BuildHash = hash ?? ServerHost.ServerBuildHash,
+            });
+        }
+
+        [Fact]
+        public void 合法票据_经真实Join路径放行()
+        {
+            var h = NewHost();
+            using var host = h.host;
+            h.t.RaiseConnected(1);
+
+            h.t.RaiseData(1, JoinWith(h.issuer.Issue("p1", Room, ServerHost.ServerBuildHash, Now,
+                audience: "aud")));
+
+            Assert.NotNull(h.t.LastJoinAck(1));
+            Assert.Equal(0, h.t.LastJoinAck(1).PlayerId);
+            Assert.Equal(0, host.Ops.Rejects);
+        }
+
+        [Fact]
+        public void 非空但未签名的token_被拒绝_证明非空不再是准入理由()
+        {
+            // 这是接缝真正接上的判据：装配验证器后，任意非空串**不再**能进房。
+            var h = NewHost();
+            using var host = h.host;
+            h.t.RaiseConnected(1);
+
+            h.t.RaiseData(1, JoinWith("i-am-not-a-ticket"));
+
+            Assert.Null(h.t.LastJoinAck(1));
+            Assert.Equal(1, host.Ops.Rejects);
+            Assert.Equal(1, host.TicketRejections(JoinTicketRejection.Malformed));
+        }
+
+        [Fact]
+        public void 过期票据_经真实Join路径拒绝并计入分类()
+        {
+            var h = NewHost();
+            using var host = h.host;
+            h.t.RaiseConnected(1);
+            // 宿主时钟起于 Stopwatch 归零（构造时的 _nowMs ≈ 0..数十 ms），**不是**用例里的 Now 常量。
+            // 故过期票据必须签成"明确早于 0"：nbf=-20000 / exp=-9000 —— 宿主任何时刻都已越过它。
+            string expired = h.issuer.Issue("p1", Room, ServerHost.ServerBuildHash, nowMs: -10_000,
+                ttlMs: 1_000, notBeforeMs: -20_000, audience: "aud");
+
+            h.t.RaiseData(1, JoinWith(expired));
+
+            Assert.Null(h.t.LastJoinAck(1));
+            Assert.Equal(1, host.TicketRejections(JoinTicketRejection.Expired));
+        }
+
+        [Fact]
+        public void 篡改票据_经真实Join路径拒绝()
+        {
+            var h = NewHost();
+            using var host = h.host;
+            h.t.RaiseConnected(1);
+            string tampered = h.issuer.IssueThenTamper("p1", Room, ServerHost.ServerBuildHash, Now,
+                partIndex: 7, newPartValue: "AAAA");   // buildHash 段
+
+            h.t.RaiseData(1, JoinWith(tampered));
+
+            Assert.Null(h.t.LastJoinAck(1));
+            Assert.Equal(1, host.TicketRejections(JoinTicketRejection.BadSignature));
+        }
+
+        [Fact]
+        public void 重放同一票据_第二次被拒绝()
+        {
+            var h = NewHost();
+            using var host = h.host;
+            string ticket = h.issuer.Issue("p1", Room, ServerHost.ServerBuildHash, Now,
+                audience: "aud", nonce: "n-replay");
+
+            h.t.RaiseConnected(1);
+            h.t.RaiseData(1, JoinWith(ticket));
+            Assert.NotNull(h.t.LastJoinAck(1));
+
+            h.t.RaiseConnected(2);
+            h.t.RaiseData(2, JoinWith(ticket));
+
+            Assert.Null(h.t.LastJoinAck(2));
+            Assert.Equal(1, host.TicketRejections(JoinTicketRejection.Replayed));
+        }
+
+        [Fact]
+        public void 票据绑定别的房间_与Join房间号不一致即拒绝()
+        {
+            var h = NewHost();
+            using var host = h.host;
+            h.t.RaiseConnected(1);
+            // 票据签名有效、房间号红线也过（JoinRequest 里房间号正确），但**票据绑定的是别处**
+            string ticket = h.issuer.Issue("p1", "OtherRoom", ServerHost.ServerBuildHash, Now, audience: "aud");
+
+            h.t.RaiseData(1, JoinWith(ticket));
+
+            Assert.Null(h.t.LastJoinAck(1));
+            Assert.Equal(1, host.TicketRejections(JoinTicketRejection.RoomMismatch));
+        }
+
+        [Fact]
+        public void 未装配验证器_退回原型非空校验_且身份留空()
+        {
+            // 兼容形态：历史用例与本地联调不受影响；但 Principal 必须为 null——
+            // 未验证不等于已验证（不得留下可被误当身份的残留）。
+            var t = new FakeRoomTransport();
+            using var host = new ServerHost(t, new RoomConfig { Port = 40002, RoomId = Room, ExpectedPlayers = 2 });
+            t.RaiseConnected(1);
+
+            t.RaiseData(1, JoinWith("plain-token"));
+
+            Assert.NotNull(t.LastJoinAck(1));
+            Assert.True(host.Sessions.TryGet(1, out Session session));
+            Assert.Null(session.Principal);
+        }
+
+        [Fact]
+        public void 票据连续拒绝_不影响已放行连接与对局()
+        {
+            var h = NewHost();
+            using var host = h.host;
+            h.t.RaiseConnected(1);
+            h.t.RaiseData(1, JoinWith(h.issuer.Issue("p1", Room, ServerHost.ServerBuildHash, Now, audience: "aud")));
+            Assert.NotNull(h.t.LastJoinAck(1));
+
+            h.t.RaiseConnected(2);
+            for (int i = 0; i < 5; i++) h.t.RaiseData(2, JoinWith("garbage-" + i));
+            Assert.Equal(5, host.TicketRejections(JoinTicketRejection.Malformed));
+
+            // 被拒连接断开不牵连已进房者
+            h.t.RaiseDisconnected(2);
+            Assert.NotNull(h.t.LastJoinAck(1));
+            Assert.True(host.Sessions.TryGet(1, out Session s1));
+            Assert.False(s1.Disconnected);
+        }
+
     }
 }
