@@ -55,6 +55,7 @@ namespace LiteGame.Editor
             done.Add(Save(BuildSimpleList(), "SimpleList"));
             // 反馈面（2026-09-25 U2 归位）
             done.Add(Save(BuildLoading(), "Loading"));
+            done.Add(Save(BuildBaseline(), "Baseline"));
             AssetDatabase.SaveAssets();
             AssetDatabase.Refresh();
             LiteFramework.Log.Info("[WidgetPrefab] 模板构建完成：" + string.Join(" / ", done), "UI");
@@ -115,6 +116,26 @@ namespace LiteGame.Editor
             return root;
         }
 
+        /// <summary>基准页控件（2026-09-25 新增）：纯全屏底 + 文案，无业务逻辑。
+        /// 用途是给"页面 A / 页面 B / 弹窗"这类**层级与状态语义**（覆盖、暂停、导航）提供
+        /// 最小真实页面——它没有业务内容，不是业务页模板。</summary>
+        private static GameObject BuildBaseline()
+        {
+            var root = Node("Baseline", null, new Vector2(1920f, 1080f));
+            Stretch(root.GetComponent<RectTransform>(), 0f);
+
+            var bg = root.AddComponent<Image>();
+            bg.color = new Color(0.06f, 0.06f, 0.08f, 0.92f);
+            bg.raycastTarget = false;                      // 纯底，不挡射线
+
+            var label = Text("Label", root, "基准页");
+            label.fontSize = 24f;
+            Stretch(label.rectTransform, 40f);
+
+            Expose(root, "界面级命名：如 PageA");
+            return root;
+        }
+
         // ================= 反馈面页面级包装（2026-09-25 U2 反馈面归位） =================
         // 24 件 Widget 模板无 Canvas，不能当 form 打开（U2-⑥a 裁决的直接依据）——反馈面要经
         // UIService 打开，必须有页面级包装：Canvas + CanvasGroup + 嵌套控件实例。
@@ -138,6 +159,25 @@ namespace LiteGame.Editor
         {
             var root = ScreenNode("Loading");
             NestWidget(root, "Loading");
+            return root;
+        }
+
+        /// <summary>基准页 A/B（2026-09-25）：层级与状态语义（覆盖/暂停/导航）的最小真实页面。
+        /// 两件结构相同、各自独立——用于验证"另一页打开"这类跨页语义（同页无法验证覆盖）。</summary>
+        [MenuItem("LiteGame/UI/构建基准页 Screens")]
+        private static void BuildBaselineScreens()
+        {
+            EnsureFolder(ScreenDir);
+            var done = new List<string>();
+            done.Add(SaveScreen(BuildBaselineScreen("BaselineA"), "BaselineA"));
+            done.Add(SaveScreen(BuildBaselineScreen("BaselineB"), "BaselineB"));
+            Debug.Log($"[WidgetPrefab] 基准页构建完成:{string.Join(",", done)}");
+        }
+
+        private static GameObject BuildBaselineScreen(string name)
+        {
+            var root = ScreenNode(name);
+            NestWidget(root, "Baseline");
             return root;
         }
 

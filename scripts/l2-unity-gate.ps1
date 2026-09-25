@@ -192,12 +192,15 @@ UnityEditor.Compilation.CompilationPipeline.RequestScriptCompilation();
                 [System.IO.File]::WriteAllText($stFile,
                     'return UnityEditor.EditorApplication.isCompiling ? 1 : 0;', $utf8NoBom)
 
-                Invoke-PipelineCommand 'eval_file' @('Temp/l2-freshness-request.cs') | Out-Null
+                # `--timeout 30000` 是命令级超时：CodeEvalCommand 默认只等 5000ms 主线程操作，
+                # 编辑器忙（导入/编译收尾）时报 "Main thread operation timed out after 5000ms" 并落
+                # Console error 级条目——会被"Console 无新增 error"检查记成噪声（2026-09-25 实测）。
+                Invoke-PipelineCommand 'eval_file' @('--timeout', '30000', 'Temp/l2-freshness-request.cs') | Out-Null
                 $waited = 0
                 while ($waited -lt 90) {
                     Start-Sleep -Seconds 3
                     $waited += 3
-                    $busy = Invoke-PipelineCommand 'eval_file' @('Temp/l2-freshness-status.cs')
+                    $busy = Invoke-PipelineCommand 'eval_file' @('--timeout', '30000', 'Temp/l2-freshness-status.cs')
                     if ($busy -notmatch '"result":\s*"?1') { break }
                 }
             }

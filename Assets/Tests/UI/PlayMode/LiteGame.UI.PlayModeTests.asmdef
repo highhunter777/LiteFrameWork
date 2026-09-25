@@ -7,6 +7,8 @@
         "LiteGame.Runtime",
         "LiteFramework.Core",
         "LiteFramework.Unity",
+        "LiteSim.Core",
+        "LiteSim.View",
         "UniTask",
         "UnityEngine.TestRunner",
         "Unity.TextMeshPro",

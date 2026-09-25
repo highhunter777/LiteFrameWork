@@ -26,5 +26,26 @@
     "prefab": "UI/Screens/Toast.prefab",
     "layer": 3,
     "full_screen": false
+  },
+  {
+    "id": 204,
+    "lua_path": "",
+    "prefab": "UI/Screens/BaselineA.prefab",
+    "layer": 0,
+    "full_screen": true
+  },
+  {
+    "id": 205,
+    "lua_path": "",
+    "prefab": "UI/Screens/BaselineB.prefab",
+    "layer": 2,
+    "full_screen": true
+  },
+  {
+    "id": 206,
+    "lua_path": "",
+    "prefab": "UI/Screens/Dialog.prefab",
+    "layer": 1,
+    "full_screen": false
   }
 ]
