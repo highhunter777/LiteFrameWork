@@ -124,8 +124,9 @@ namespace Tools.DisciplineScan
             new ScanTarget("Assets/LiteGame", GameRules),                                      // R8 资源唯一入口 + R12 适配器边界
             new ScanTarget("Assets/LiteGame/UI", ShellUiRules),                                // R10 薄壳/UI 不发业务包
             // 注（2026-09-26）：此处原写作 `Assets/LiteGame/Scripts/Runtime/Shell/UI`——**不存在**，
-            // R10 亦一直空扫。先按真实路径修正为 `Runtime/Shell/UI`；同日 §5.1 拆出
-            // `LiteGame.UI` 程序集后再改为 `Assets/LiteGame/UI`（目录一变规则就红，同 R12 行为）。
+            // R10 亦一直空扫。先按真实路径修正为 `Runtime/Shell/UI`；同日 §5.1 第五刀拆出
+            // `LiteGame.UI` 程序集，随目录改为 `Assets/LiteGame/UI`（同 R12 边界表：目录一变规则就红）。
+            // 该目标的存在性由 `纪律_R12_已接入真实扫描目标_且目标路径存在` 钉住。
             new ScanTarget("RoomServer/Runtime", RuntimePurityRules),                          // R1 纯运行时层（R1《服务端总设计》§8.1）
             new ScanTarget("MetaServer", MetaPurityRules, MetaHostExcludes),                    // Meta 模块/契约层（《Meta 服务专项设计》§4.2）
         };

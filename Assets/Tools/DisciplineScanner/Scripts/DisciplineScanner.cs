@@ -164,9 +164,41 @@ namespace Tools.DisciplineScan
             // XLua：随 §5.1 拆分为独立程序集后归 `Assets/LiteGame/Scripting/`
             ("XLua", new[] { "Assets/LiteGame/Scripting/" }),
             // DG.Tweening：随 §5.1 拆分为独立程序集后归 `Assets/LiteGame/UI/Anim/`
-            // （原 `Runtime/Shell/UI/Anim/`——目录一变规则就红，这正是 R12 该有的行为）
+            // （原 `Runtime/Shell/UI/Anim/`——同上）
             ("DG.Tweening", new[] { "Assets/LiteGame/UI/Anim/" }),
         };
+
+        /// <summary>
+        /// R12 边界表的**存在性守卫**：每条 AllowedRoots 必须在 repoRoot 下真实存在，否则报违规。
+        ///
+        /// **为什么需要它**：<see cref="IsAdapterBoundaryAllowed"/> 是纯 `StartsWith` 前缀比较——
+        /// 边界路径一旦因目录搬迁而陈旧，**不匹配任何真实文件 = 静默失效**：适配器 import 会在
+        /// 本应放行的地方被判违规（或反之），而没有任何东西会红。这与本文件"扫描目标必须存在"
+        /// 防的是同一类失效（R6/R10 曾因路径写错空扫至今）。
+        ///
+        /// 拆程序集时会连续搬迁边界目录，此守卫让**规则表过期当场可见**，而不是等到某次无关改动
+        /// 意外触发边界判定才暴露。
+        /// </summary>
+        public static IReadOnlyList<LintViolation> ValidateAdapterBoundaries(string repoRoot)
+        {
+            var violations = new List<LintViolation>();
+            foreach (var (adapter, roots) in R12Boundaries)
+            {
+                foreach (string root in roots)
+                {
+                    string full = Path.Combine(repoRoot, root.Replace('/', Path.DirectorySeparatorChar));
+                    if (Directory.Exists(full)) continue;
+                    violations.Add(new LintViolation
+                    {
+                        File = "DisciplineScanner.cs",
+                        Line = 0,
+                        Rule = LintRule.R12AdapterBoundary,
+                        Code = $"R12 边界表路径不存在：{adapter} → {root}——该边界正在静默失效",
+                    });
+                }
+            }
+            return violations;
+        }
 
         /// <summary>
         /// 该文件是否落在某适配器的允许边界内。

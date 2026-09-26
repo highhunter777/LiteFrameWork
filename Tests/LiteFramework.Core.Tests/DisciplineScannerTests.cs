@@ -331,6 +331,18 @@ namespace LiteFramework.Tests
             }
         }
 
+        /// <summary>R12 **边界表**的存在性守卫：边界路径一旦因目录搬迁而陈旧，判定会静默失效
+        /// （纯前缀比较，不匹配任何真实文件）。与上面的"扫描目标必须存在"防同一类失效——
+        /// 2026-09-26 §5.1 拆程序集时连续搬迁边界目录，此守卫让规则表过期当场可见。</summary>
+        [Fact]
+        public void 纪律_R12_边界表路径必须真实存在()
+        {
+            var violations = DisciplineScanner.ValidateAdapterBoundaries(RepoRoot());
+            Assert.True(violations.Count == 0,
+                "R12 边界表存在陈旧路径（该边界正在静默失效）：" +
+                string.Join(" | ", System.Linq.Enumerable.Select(violations, v => v.Code)));
+        }
+
         /// <summary>向上找含 Tests/Tests.slnx 的仓库根（与内容夹具同款定位）。</summary>
         private static string RepoRoot()
         {
@@ -361,7 +373,7 @@ namespace LiteFramework.Tests
                 "using XLua;", LintRule.R12AdapterBoundary));
             Assert.Equal(0, CountAt("Assets/LiteGame/Scripting/Bridge/C.cs",
                 "using XLua;", LintRule.R12AdapterBoundary));
-            Assert.Equal(0, CountAt("Assets/LiteGame/Runtime/Shell/UI/Anim/C.cs",
+            Assert.Equal(0, CountAt("Assets/LiteGame/UI/Anim/C.cs",
                 "using DG.Tweening;", LintRule.R12AdapterBoundary));
 
             // 反向：边界目录**不**放行别人的适配器
@@ -369,7 +381,7 @@ namespace LiteFramework.Tests
                 "using XLua;", LintRule.R12AdapterBoundary));
             Assert.Equal(1, CountAt("Assets/LiteGame/Scripting/Lua/C.cs",
                 "using YooAsset;", LintRule.R12AdapterBoundary));
-            Assert.Equal(1, CountAt("Assets/LiteGame/Runtime/Shell/UI/Anim/C.cs",
+            Assert.Equal(1, CountAt("Assets/LiteGame/UI/Anim/C.cs",
                 "using YooAsset;", LintRule.R12AdapterBoundary));
         }
 
@@ -380,7 +392,7 @@ namespace LiteFramework.Tests
                 "using YooAsset;", LintRule.R12AdapterBoundary));
             Assert.Equal(1, CountAt("Assets/LiteGame/Runtime/Shell/UI/Strategies.cs",
                 "using DG.Tweening;", LintRule.R12AdapterBoundary));
-            Assert.Equal(1, CountAt("Assets/LiteGame/Runtime/Shell/UI/Adapter.cs",
+            Assert.Equal(1, CountAt("Assets/LiteGame/UI/Adapter.cs",
                 "using XLua;", LintRule.R12AdapterBoundary));
         }
 
