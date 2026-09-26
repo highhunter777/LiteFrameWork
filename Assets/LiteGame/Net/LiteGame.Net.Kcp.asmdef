@@ -1,0 +1,19 @@
+{
+    "name": "LiteGame.Net.Kcp",
+    "rootNamespace": "LiteGame",
+    "references": [
+        "LiteFramework.Core",
+        "LiteFramework.Unity",
+        "LiteNet",
+        "UniTask"
+    ],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}
