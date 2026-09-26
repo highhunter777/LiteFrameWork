@@ -29,7 +29,22 @@ namespace LiteGame
         // ---- 展示作用域（U1-①：《UI框架总设计》§4.4——"每次打开到关闭"的 CTS 与代次）----
 
         private int _displayGeneration;
-        private CancellationTokenSource _displayCts;
+
+        /// <summary>本次展示的 <see cref="ClientScope"/>（每次打开重建、关闭 Dispose）。
+        ///
+        /// **为什么是 ClientScope 而不是裸 CTS**（《客户端总设计》§6.2 UI 行"每次展示另有子作用域"）：
+        /// 通用壳的展示期资源不止取消令牌一件——订阅袋、展示期任务都要**同一时点、逆序**收尾。
+        /// 原先由 <see cref="EnterClosing"/> 手写"先取消再 Dispose 袋"两行，每加一类展示期资源就要
+        /// 再加一行、且顺序靠人记；改由作用域托管后，登记什么就按 LIFO 收什么（§4 原则 4：
+        /// 所有长生命周期对象必须有唯一 Owner）。
+        ///
+        /// 所有权仍在<b>实例</b>（§6.2"实例创建至销毁；每次展示另有子作用域"）：本作用域是
+        /// <see cref="UIForm"/> 的内部展示状态，**不是**池化实例的租约——租约覆盖缓存实例寿命，
+        /// 由 <c>UIService</c> 持到真正销毁。
+        ///
+        /// 不传父作用域：展示的存续由本实例的状态机决定（开→关），不由父级取消驱动——
+        /// 父级驱动的批量清理走 <c>UIService.CloseAllOpen</c>，逐界面正常关闭路径，两条路不混。</summary>
+        private ClientScope _displayScope;
 
         /// <summary>展示代次（每次打开递增）：异步图片/网络结果/动画回调**写入前验证**
         /// （<see cref="IsDisplayCurrent"/>）——复用后的新页面不被旧回调污染（§4.3）。</summary>
@@ -37,7 +52,7 @@ namespace LiteGame
 
         /// <summary>本次展示的取消令牌（展示作用域）：打开时创建、关闭时取消——页面内跨帧异步
         /// （图标加载/网络请求/延时任务）绑定它，界面关闭即级联取消。池化复用安全（每次打开重建）。</summary>
-        public CancellationToken DisplayToken => _displayCts?.Token ?? CancellationToken.None;
+        public CancellationToken DisplayToken => _displayScope?.Token ?? CancellationToken.None;
 
         /// <summary>代次核验：迟到结果凭旧代次写入 = 污染复用后的新页面——必须丢弃（§4.3）。</summary>
         public bool IsDisplayCurrent(int generation)
@@ -83,12 +98,12 @@ namespace LiteGame
             if (Root.transform is RectTransform rt) rt.anchoredPosition = _baselinePos;
         }
 
-        /// <summary>开启一次展示（PrepareForShow 内调用）：代次递增 + 重建展示作用域 CTS（旧的已在上次关闭释放）。</summary>
+        /// <summary>开启一次展示（PrepareForShow 内调用）：代次递增 + 重建展示作用域（旧的已在上次关闭释放）。</summary>
         private void BeginDisplay()
         {
             _displayGeneration++;
-            _displayCts?.Dispose();
-            _displayCts = new CancellationTokenSource();
+            _displayScope?.Dispose();                          // 防御：上次关闭未走 EnterClosing 时兜底
+            _displayScope = new ClientScope($"UIForm[{Id}].Display#{_displayGeneration}");
         }
 
         /// <summary>首次打开：Loading → OnInit → OnShow → Active。
@@ -183,10 +198,11 @@ namespace LiteGame
             State = UIFormState.Closing;
             SafeCall.Invoke(() => Logic.OnHide(), $"UIForm[{Id}].OnHide");
 
-            // 展示作用域收尾（§4.4）：取消本次打开的在途异步（图标/请求/延时任务级联取消）
-            try { _displayCts?.Cancel(); } catch (ObjectDisposedException) { }
-            _displayCts?.Dispose();
-            _displayCts = null;
+            // 展示作用域收尾（§4.4 / §6.2 UI 行）：一次 Dispose 取消本次打开的在途异步
+            // （图标/请求/延时任务级联取消）**并**逆序释放登记项（订阅袋等）——
+            // 顺序由作用域保证，不再靠本方法手写。幂等，池化复用安全。
+            _displayScope?.Dispose();
+            _displayScope = null;                      // 置空以支持池化复用：下次显示时重建
 
             // 界面级订阅清零：OnHide 之后、落池之前（与按钮 UnbindAll 同一时点语义——
             // 池化复用跨环境的安全垫，防"回收期间事件打进已关闭界面"）。
@@ -194,10 +210,9 @@ namespace LiteGame
             _subs = null;                              // 置空以支持池化复用：下次显示时按需重建
         }
 
-        private SubscriptionBag _subs;
-
         /// <summary>
-        /// 界面级订阅袋：订阅的事件随界面关闭自动清零（EnterClosing 统一 Dispose），池化复用安全。
+        /// 界面级订阅袋：订阅的事件随界面关闭自动清零（**登记进展示作用域**，随
+        /// <see cref="EnterClosing"/> 的作用域 Dispose 一并释放），池化复用安全。
         /// 用法：<c>form.Subscriptions.Add(events.Subscribe&lt;XxxEvent&gt;(OnXxx));</c>
         /// C# 侧界面逻辑订阅事件一律挂这里，不要裸订阅——否则关界面后通道仍持回调（泄漏 +
         /// 复用后回调打进新界面）。Dispose 后误用会当场抛 ObjectDisposedException。
@@ -218,9 +233,14 @@ namespace LiteGame
                     Log.Error($"UIForm[{Id}]: {msg}", "UI");
 #endif
                 }
+                // 每次展示一枚新袋、登记进本次展示作用域——关闭时随作用域逆序释放，
+                // 不跨展示复用（复用即"旧订阅打进新页面"的来源）。同一展示内重复取到同一枚（惰性）。
                 return _subs ??= new SubscriptionBag();
             }
         }
+
+        /// <summary>本次展示的订阅袋（惰性；随 <see cref="EnterClosing"/> 的作用域释放置空）。</summary>
+        private SubscriptionBag _subs;
 
         /// <summary>落池：Closing → Recycled（SetActive false）。</summary>
         internal void Recycle()
@@ -235,11 +255,8 @@ namespace LiteGame
         internal void DestroyInstance()
         {
             DropLogic();
-            try { _displayCts?.Cancel(); } catch (ObjectDisposedException) { }
-            _displayCts?.Dispose();
-            _displayCts = null;
-            _subs?.Dispose();
-            _subs = null;
+            _displayScope?.Dispose();                  // 展示作用域收尾（同 EnterClosing；幂等）
+            _displayScope = null;
             State = UIFormState.Disposed;
             if (Root == null) return;
 #if UNITY_EDITOR
