@@ -11,9 +11,10 @@ namespace LiteGame
     /// Sim 灰盒沙盒（《M8实施指导》§2.7，一次性调试件——不承担产品职责；M11 SimView/输入服务
     /// 上线后整件删除）。用途：让 Sim 层肉眼可见（跑动/开火/命中/掉血），早期验证手感与数值。
     ///
-    /// **2026-09-26 改归属**：本件从 `LiteGame/DevHUD/` 并入 `LiteGame.Editor`（Editor-only 程序集）
-    /// ——**Player 构建里不再有它**，真机上验不了 Sim；需要真机肉眼验 Sim 时再单独拆一个运行时
-    /// 程序集（当前无此需求，用户已裁决）。
+    /// **2026-09-26/27 归属回退（重要教训）**：本件曾随 DevHUD 一并并入 `LiteGame/Editor/`，
+    /// 但 Unity 的 `Assets/.../Editor/` 是特殊文件夹，其中的 MonoBehaviour **不能 AddComponent**
+    /// （"it needs to be outside the 'Editor' folder"）。SimSandbox 同样是代码创建形态，故一并失效。
+    /// 已回退为独立 `LiteGame.DevHUD` 程序集；**不要把本目录移进任何 `Editor/` 下**。
     ///
     /// - 驱动：FrameDriver.Tick(Time.deltaTime)（不吃 IGameClock，M8 决策 #14）——追帧/防死亡螺旋由 FrameDriver 承担。
     /// - 输入：键盘 WASD + 鼠标朝向 + 左键开火，直接组装 SimInputFrame（不做控制器抽象/键位重绑，#18/#19）。

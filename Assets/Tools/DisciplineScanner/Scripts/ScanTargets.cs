@@ -120,17 +120,21 @@ namespace Tools.DisciplineScan
         /// 未登记的目录会让本规则报红——**目录一变就红**，与 R12 边界表同一纪律。
         /// 非代码目录（`Lua`/`link.xml` 等）也在列：它们不是"层"，但要有名有姓。
         ///
-        /// 2026-09-26 收敛两处：`DevHUD` → 并入 `Editor/DevHUD`（顶层少一个目录）；`RawFile`
-        /// → 生成物移出 LiteGame，LiteGame 回归**纯代码层**。少一个目录 = 少一处例外。
+        /// 2026-09-26 收敛两处：`RawFile` → 生成物移出 LiteGame，LiteGame 回归**纯代码层**。
+        /// `DevHUD` 曾在同日并入 `Editor/`，**2026-09-27 已回退**——Unity 的 `Assets/.../Editor/`
+        /// 是特殊文件夹，其中的 MonoBehaviour 不能 AddComponent（运行时报
+        /// "it needs to be outside the 'Editor' folder"），而 DevHUD/SimSandbox 正是代码创建形态，
+        /// 并进去 = HUD 静默消失。故顶层重新登记 `DevHUD`。
         /// </summary>
         public static readonly string[] LiteGameTopLevelDirs =
         {
             "Abstractions",          // §5 / §5.1：LiteClient.Abstractions
-            "Adapters",              // §5 顶层第四层：Content.YooAsset / Network.Kcp / Scripting.XLua / Serialization.Luban
+            "Adapters",              // §5 顶层第四层：Content.YooAsset / Network.Kcp / Scripting.XLua / Serialization.Luban / Platform.Unity
             "App",                   // §5 顶层第一层 Game.App
             "Runtime",               // §5 顶层第二层 Client.Runtime（目录名 = 层标签）
             "UI",                    // §5 框图 "UI Runtime"（游戏侧，故 LiteGame.UI 而非 LiteClient.UI）
-            "Editor",                // 编辑器工具程序集 + 开发面工具（DevHUD/SimSandbox 并入，不在 §5 层内，登记为例外）
+            "Editor",                // 编辑器工具程序集（不在 §5 层内，登记为例外）
+            "DevHUD",                // 开发面工具（同上；**不能并进 Editor/**——见上，MonoBehaviour 加不上）
             "Lua",                   // 脚本资产（非程序集目录；Luban lua pass 的产物 + 业务脚本）
         };
 

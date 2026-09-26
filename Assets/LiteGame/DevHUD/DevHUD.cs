@@ -11,11 +11,15 @@ namespace LiteGame
     /// 自建 GameObject（场景**不挂**组件——Editor-only asmdef 实测会把 play 模式场景组件剥离并报
     /// "not derived from MonoBehaviour"，2026-09-10 回归为三宏 #if 剥离 + 代码创建，同 DebugTuner 手法）。
     ///
-    /// **2026-09-26 改归属**：本件从 `LiteGame/DevHUD/` 并入 `LiteGame.Editor`（Editor-only 程序集）。
-    /// 后果明确且是用户裁决的结果：**构建 Player 时本程序集整个不进包**，dev 包/冒烟里不再有 HUD
-    /// 与 SimSandbox。外层三宏 #if 保留——它现在管的是"编辑器里 Domain Reload / 非播放态"的语义，
-    /// 与程序集边界各司其职（不必依赖 #if 兜底才不进包）。
-    /// 自拉取模式：LiteGame.Editor → LiteClient.Runtime 单向引用，HUD 在 Start 经
+    /// **2026-09-26/27 归属回退（重要教训）**：本件曾被并入 `LiteGame/Editor/DevHUD/` + `LiteGame.Editor`
+    /// （Editor-only 程序集），结果 **HUD 在 play 模式下彻底不出现**。原因：
+    /// Unity 的 `Assets/.../Editor/` 是特殊文件夹，其中的 MonoBehaviour **不能 AddComponent**——
+    /// 运行时报 "Can't add script behaviour 'DevHUD' because it is an editor script. To attach a script
+    /// it needs to be outside the 'Editor' folder."，组件加不上、只剩一个空 GameObject
+    /// （本件正是**代码创建**形态，所以直接命中）。已回退为独立 `LiteGame.DevHUD` 程序集 +
+    /// 三宏 `#if` 剥离；**不要把本目录移进任何 `Editor/` 下**。
+    /// Player 里的剥离由三宏负责，不需要也不应该靠程序集边界。
+    /// 自拉取模式：LiteGame.DevHUD → LiteClient.Runtime 单向引用，HUD 在 Start 经
     /// FindAnyObjectByType 拉 `GameEntry.Stats`（只读统计访问器，非解析入口）+ 场景组件型 IModuleStats 合并。
     /// **各段渲染开关 = public 字段**（Inspector 可配 / 代码可改，2026-09-13）：showStats /
     /// statToggles（单模块段 bool 开关）/ showLogRecent / logRecentLines / showErrorsLine。
