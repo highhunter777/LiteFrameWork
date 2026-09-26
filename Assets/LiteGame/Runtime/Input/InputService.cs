@@ -85,19 +85,28 @@ namespace LiteGame
             BlockedByName = null;
             BlockedReason = null;
 
-            // "本帧产生了一份新输入"的唯一置位点：只在真正采到新输入时置位，
-            // 因此 TryTakeForSend 不会把上一次的意图当成新输入重发，也不会在断线恢复后爆发重传。
-            _sampledThisRenderFrame = true;
-
             if (_source == null)
             {
                 SampleWithNoSource++;
                 _pending = default;                      // 无设备 = 空意图（触屏源未接线时的合法形态）
                 _hasPending = true;
+                _sampledThisRenderFrame = true;
                 return;
             }
 
-            _pending = _source.Sample(localOrigin);
+            IntentSample sample = _source.Sample(localOrigin);
+            if (sample.Handled)
+            {
+                _pending = sample.Frame;                 // 采到了（可能是空意图——用户真的什么都没按）
+                // "本帧产生了一份新输入"的**唯一置位点**：只有真的采到才置位，因此
+                // TryTakeForSend 既不会把上一次的意图当新输入重发（设备未就绪时不上行），
+                // 也不会在断线恢复后爆发重传。
+                _sampledThisRenderFrame = true;
+            }
+            else
+            {
+                SampleWithNoSource++;                    // 未采到：保留上一次有效意图，不把"无采样"降级成"零输入"
+            }
 
             // 设备返回值的契约兜底（移动/瞄准长度 ≤ 1 归设备源自己保证，这里不重复做）：
             // 只挡 NaN/Infinity —— 非法值会经 Step 污染整个 Sim；服务器 InputGate 亦会拒，

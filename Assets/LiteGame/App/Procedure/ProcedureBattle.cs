@@ -42,6 +42,8 @@ namespace LiteGame
         private readonly IContentService _content;
         private readonly IVFXService _vfx;
         private readonly IInputService _input;       // 输入服务（2026-09-26 输入服务批：取代裸 Func<bool> 上下文门）
+        private readonly ICameraService _camera;     // 相机服务（Cinemachine 接入，2026-09-26；装配根建、跨对局复用）
+        private readonly bool _requireCamera;        // 缺相机 = 装配缺口（见 ctor 注释）
 
         private BattleContext _context;
         private ClientScope _account;
@@ -56,13 +58,21 @@ namespace LiteGame
         /// <param name="input">输入服务（装配根注册的跨对局实例）。**流程不再持"UI 是否拦截"这类判断**：
         /// 上下文门是登记进服务的具名拦截源（`ui.modal` 由装配根登记），流程只负责本局的设备源与
         /// 清派发状态（《角色状态与动作专项设计》§3"输入三件"）。null = 无输入服务（测试装配/无输入形态）。</param>
-        public ProcedureBattle(IContentService content, IInputService input, IVFXService vfx = null,
-            CancellationToken rootToken = default)
+        /// <param name="camera">相机服务（Cinemachine 适配器，装配根建）。**相机构图归 vcam 的场景配置**——
+        /// 流程只做一件事：每局开局 <see cref="ICameraService.Reset"/>（下一帧重新落位，不从上局位置飞过来）。
+        /// null + <paramref name="requireCamera"/> = true 时进确定错误态（见下）。</param>
+        /// <param name="requireCamera">缺相机时是否拒绝对局。**装配根按场景是否配了虚拟相机决定**：
+        /// 有 vcam 的包传 false（正常路径）；没配 vcam 的包传 true——让"对局跑得动但看不见"
+        /// 这种最难的静默失效变成显性失败，而不是进了对局才发现画面纹丝不动。</param>
+        public ProcedureBattle(IContentService content, IInputService input, ICameraService camera,
+            IVFXService vfx = null, CancellationToken rootToken = default, bool requireCamera = false)
             : base(rootToken)
         {
             _content = content ?? throw new ArgumentNullException(nameof(content));
             _input = input;
+            _camera = camera;
             _vfx = vfx;
+            _requireCamera = requireCamera;
         }
 
         protected override void RunAsync(IStageHost<ProcedureId, ProcedureArgs> m, in ProcedureArgs req, CancellationToken ct)
@@ -77,6 +87,9 @@ namespace LiteGame
             try
             {
                 _account = accountScope ?? throw new InvalidOperationException("Battle 阶段缺少 Account Scope（必须由 Match 移交）");
+                if (_camera == null && _requireCamera)
+                    throw new InvalidOperationException(
+                        "对局相机缺失：场景未配置 CinemachineVirtualCamera（装配缺口——不做无相机对局的静默降级）");
 
                 // 视图根 + 实体 prefab（缺失回退程序化灰盒——不把缺美术资源当启动失败）
                 _viewScope = _account.CreateChild("BattleView");
@@ -165,48 +178,43 @@ namespace LiteGame
         }
 
         /// <summary>
-        /// 建视图并接线：SimView（镜像/插值/静默门/相机）+ 输入接线（设备源/相机上下文）。
+        /// 建视图并接线：SimView（镜像/插值/静默门/相机服务）。
+        ///
+        /// **相机不再由本阶段创建**（2026-09-26 Cinemachine 接入）：装配根建好
+        /// <see cref="ICameraService"/>（内含场景配置好的虚拟相机）并跨对局复用，本阶段只把端口
+        /// 交给 SimView，并在开局 <see cref="ICameraService.Reset"/> 一次（镜头重新落位，
+        /// 不从上局位置飞过来）。构图/档位/阻尼全归 vcam 的场景配置，代码里没有第二处事实源。
         /// </summary>
         private void AttachView()
         {
-            Camera cam = Camera.main;
-            var rig = new BattleCameraRig(ResolveCameraTransform(cam), BattleCameraRig.Rig.Default);
-            if (cam != null) rig.ApplyLens(cam);
-
             _view = new SimView(_context.Sim.State, _viewRoot,
                 factory: InstantiateView,
                 recycler: null,                                   // 自有池（EntityService 接线归表现壳批）
-                camera: rig);
+                camera: _camera);
             _context.AttachView(_view);
 
             _locomotion = new CharacterLocomotionDriver(_view);   // 移动动画首版：视图速度 → 播放器 → Animator 后端（§7 更新次序的 Driver 段）
 
-            AttachInput(cam);
+            AttachInput();
             UnityEngine.Debug.Log($"[Battle] view-attached prefab={EntityPrefab}");
         }
 
         /// <summary>
-        /// 输入接线（§3 输入三件）：设备源 + 相机上下文 + 交接给对局上下文。
-        /// **上下文门不在这里裁决**——本阶段不再持有"UI 是否拦截"这类判断，拦截源在装配根按名登记
-        /// （`ui.modal`），由服务采样时统一裁决并报出是**谁**拦的。
-        /// 阶段只负责本局的两件事：设备源随对局进出（相机是局内对象），以及清上一局的派发状态。
+        /// 输入接线（§3 输入三件）：**设备源已在装配根装好**（<see cref="InputModule"/>，
+        /// 2026-09-26 New Input System 接入），本阶段只清上一局的派发状态并把服务交给对局上下文。
+        /// **上下文门不在这里裁决**——拦截源在装配根按名登记（`ui.modal`），由服务采样时统一裁决
+        /// 并报出是**谁**拦的。
+        ///
+        /// 设备源驻留装配根（不再随对局 new/撤）的理由：Action 资产与订阅是进程级资源，
+        /// 每局重建会重复付 Enable/资产解析的代价，且"对局结束时设备源被撤"会让根级的其他
+        /// 消费者（未来的暂停菜单/调试面板）拿不到输入。对局进出只影响**意图是否被消费**。
         /// </summary>
-        private void AttachInput(Camera battleCamera)
+        private void AttachInput()
         {
             if (_input == null) return;                           // 无服务（替身/测试装配）= 无输入形态
-            _input.SetSource(new KeyboardMouseIntentSource(battleCamera));
             _input.Reset();                                       // 上一局的待用意图/派发状态不带进本局
             _context.AttachInput(_input);
-        }
-
-        /// <summary>无相机时自建一台（对局必须有可跟随的相机；场景相机会被优先复用）。</summary>
-        private Transform ResolveCameraTransform(Camera sceneCamera)
-        {
-            if (sceneCamera != null) return sceneCamera.transform;
-            var go = new GameObject("[BattleCamera]");
-            var created = go.AddComponent<Camera>();
-            created.fieldOfView = BattleCameraRig.Rig.Default.FieldOfView;
-            return go.transform;
+            _camera?.Reset();                                     // 镜头重新落位（不从上局位置飞过来）
         }
 
         private GameObject InstantiateView(string location, Transform parent)
@@ -219,11 +227,7 @@ namespace LiteGame
 
         private void DetachView()
         {
-            if (_input != null)
-            {
-                _input.Reset();                                // 离场即清派发状态（拦截源是装配根的，不在此摘）
-                _input.SetSource(null);                        // 设备源归本阶段所有：卸载即撤，不留悬挂相机引用
-            }
+            if (_input != null) _input.Reset();   // 离场即清派发状态（设备源与拦截源都是装配根的，不在此摘）
             _locomotion?.Dispose();               // 先停动画驱动（视图消费者），再拆视图本体
             _locomotion = null;
             _context?.AttachInput(null);

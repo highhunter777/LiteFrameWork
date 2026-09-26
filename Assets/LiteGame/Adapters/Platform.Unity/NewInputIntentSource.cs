@@ -1,0 +1,122 @@
+using System;
+using LiteFramework;
+using LiteSim;
+using UnityEngine;
+using UnityEngine.InputSystem;
+
+namespace LiteGame
+{
+    /// <summary>
+    /// New Input System 设备源（<see cref="IIntentSource"/> 的 Input System 实现，
+    /// 《角色状态与动作专项设计》§3 第 1 件"键鼠和触屏输出相同的 Move/Aim/Buttons"）。
+    ///
+    /// **为什么用 Input System 而不是 legacy <c>UnityEngine.Input</c>**：同一套 Action 资产同时
+    /// 覆盖键鼠与触屏（《联机战斗演示专项设计》§1"触屏沿用同一 Move/Aim/Buttons 输入面"），
+    /// 且重绑/多设备由框架承担——设备源不再硬编码 KeyCode。旧的 legad 实现（读 KeyCode + 鼠标
+    /// 直接取坐标）已删除，不保留双路。
+    ///
+    /// **职责边界**（三件里只管第 1 件）：
+    /// - 上下文门与帧边界门归 <see cref="IInputService"/>；本类只回答"按键现在是什么"；
+    /// - **离散意图的按键沿在这里产生**：<c>Fire</c> 是连续意图（按住即持续），
+    ///   而 Reload/Switch/Skill/Pickup/UseItem 属 §3 第 3 件的"按键沿所在的一个逻辑帧才置位"，
+    ///   需要逐玩家单调递增的 <c>ActionSeq</c>。Action 资产里这些动作**尚未定义**（随武器/Action
+    ///   消费者接入，G2），故本版只产出 Fire/Move/Aim，不伪造其它位；
+    /// - 瞄准方向由**鼠标屏幕点 → 地面平面**解算（俯视角），参照原点由调用方逐帧给出
+    ///   （<see cref="Sample"/> 的 <c>localPos</c>）——输入服务按"门与采样同帧"的纪律传入。
+    /// </summary>
+    public sealed class NewInputIntentSource : IIntentSource, IDisposable
+    {
+        /// <summary>地面平面（俯视角：瞄准射线打到 y=0 的地面）。</summary>
+        private readonly Plane _groundPlane = new Plane(Vector3.up, 0f);
+
+        private readonly PlayerInputActions _actions;
+        private readonly bool _ownsActions;      // 自建资产时负责释放；外部传入（装配根共享）由调用方释放
+        private Camera _camera;
+        private float _aimX = 1f;                // 瞄准方向（长度 ≤1；默认朝 +X）
+        private float _aimZ;
+        private bool _disposed;
+
+        public string Name => "new-input-system";
+
+        /// <param name="actions">Action 资产包装（装配根创建并持有；null = 自建，由本类释放）。</param>
+        /// <param name="camera">瞄准解算相机（null = 不做瞄准换算，沿用上次方向）。</param>
+        public NewInputIntentSource(PlayerInputActions actions = null, Camera camera = null)
+        {
+            _ownsActions = actions == null;
+            _actions = actions ?? new PlayerInputActions();
+            _camera = camera;
+            _actions.GamePlay.Enable();          // 采集前置：动作图未启用时所有读数恒为零（静默失效的经典形态）
+        }
+
+        /// <summary>瞄准解算相机（对局相机随局变化——表现壳建好后经 <c>IInputService.SetAimCamera</c> 注入）。</summary>
+        public Camera Camera
+        {
+            get => _camera;
+            set => _camera = value;
+        }
+
+        /// <summary>
+        /// 瞄准解算相机（装配根注入：表现壳建好主相机后设一次）。
+        /// **为什么不进 <see cref="IIntentSource"/> 接口**：那会让核心接口依赖 <c>UnityEngine.Camera</c>，
+        /// 从而把 `LiteClient.Runtime` 的输入三件排除出 L1 的源链接覆盖（纯逻辑那部分必须能脱离引擎编译）。
+        /// 相机只是**本实现**的输入之一，由装配根对具体类型设置即可——接口不必为实现的设备差异扩面。
+        /// </summary>
+        public void SetAimCamera(Camera camera) => _camera = camera;
+
+        public IntentSample Sample(in SimVector3 localPos)
+        {
+            if (_disposed) return IntentSample.None;
+
+            // 未启用/无设备时 InputAction 读数为零——这是"采样到空意图"，不是"没有采样"。
+            // 两者的区分见 IntentSample 的注释；本实现只要资产已启用就始终算采到。
+            Vector2 move = _actions.GamePlay.Move.ReadValue<Vector2>();
+            var frame = default(SimInputFrame);
+            frame.MoveX = move.x;
+            frame.MoveZ = move.y;                // 2D 向量的 y 轴映射到世界 Z（俯视角平面）
+
+            // 长度 ≤1 契约：数字键盘/手柄可能有轴向过冲与斜向超长，采集侧负责归一
+            float moveMag2 = frame.MoveX * frame.MoveX + frame.MoveZ * frame.MoveZ;
+            if (moveMag2 > 1f)
+            {
+                float inv = 1f / Mathf.Sqrt(moveMag2);
+                frame.MoveX *= inv;
+                frame.MoveZ *= inv;
+            }
+
+            // 瞄准：鼠标位置 → 地面平面交点 → 相对本地玩家的方向（长度 ≤1，与旧实现同口径）
+            if (_camera != null && Mouse.current != null)
+            {
+                var ray = _camera.ScreenPointToRay(Mouse.current.position.ReadValue());
+                if (_groundPlane.Raycast(ray, out float distance))
+                {
+                    Vector3 p = ray.GetPoint(distance);
+                    float ax = p.x - localPos.X;
+                    float az = p.z - localPos.Z;
+                    float aimMag2 = ax * ax + az * az;
+                    if (aimMag2 > 0.000001f)
+                    {
+                        float inv = 1f / Mathf.Sqrt(aimMag2);
+                        _aimX = ax * inv;
+                        _aimZ = az * inv;
+                    }
+                }
+            }
+
+            frame.AimX = _aimX;
+            frame.AimZ = _aimZ;
+            frame.Buttons = _actions.GamePlay.Fire.IsPressed() ? SimInputFrame.ButtonFire : 0u;
+            return new IntentSample(frame);
+        }
+
+        public void Dispose()
+        {
+            if (_disposed) return;
+            _disposed = true;
+            if (_actions != null)
+            {
+                _actions.GamePlay.Disable();     // 采集后置：不 Disable 会触发资产析构断言（生成的 ~PlayerInputActions）
+                if (_ownsActions) _actions.Dispose();
+            }
+        }
+    }
+}

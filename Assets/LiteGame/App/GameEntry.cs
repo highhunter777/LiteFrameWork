@@ -149,8 +149,8 @@ namespace LiteGame
                 .AddModule(new LuaHostModule(gameObject))        // ⑥ 脚本宿主（同 GameObject 组件）
                 .AddModule(new ConfigModule())                   // ⑦ 表投影数据源（依赖 ② 的租约通道）
                 .AddModule(new UiShellModule())                  // ⑧ UI 壳（依赖 ⑥⑦②）
-                .AddModule(new PresentationModule())             // ⑨ 表现壳（依赖 ②④）
-                .AddModule(new InputModule())                    // ⑩ 输入服务（依赖 ⑧ 的 UI 结论时机在装配根登记）
+                .AddModule(new PresentationModule())             // ⑨ 表现壳 + 相机服务（依赖 ②④）
+                .AddModule(new InputModule())                    // ⑩ 输入服务（设备源；瞄准相机取自 ⑨ 登记的主相机）
                 .AddModule(new ContainerModule());               // ⑪ 容器与流程机（消费以上全部——装配根最后一段）
         }
 

@@ -38,10 +38,10 @@
     <Compile Include="..\..\Assets\LiteGame\Runtime\Input\IIntentSource.cs" Link="Input\IIntentSource.cs" />
     <Compile Include="..\..\Assets\LiteGame\Runtime\Input\IInputService.cs" Link="Input\IInputService.cs" />
     <!--
-      `KeyboardMouseIntentSource.cs` **不**在这里链接：它引 UnityEngine（相机/输入设备），
-      链接进来需要 Unity 托管引用，而本仓测试项目约定**不写 Unity 安装路径**（§14.1 禁个人绝对路径），
-      靠可选的 `UnityEditorPath` 属性又会在未设时静默不守卫——比不守卫更糟。该文件的编译由
-      夜间 L2 门禁覆盖（本批已登记在施工记录）。L1 只覆盖无引擎依赖的裁决核心。
+      **平台实现不在 L1**：`NewInputIntentSource` / `CinemachineCameraService`（`Adapters/Platform.Unity/`）
+      引 UnityEngine / Unity.InputSystem / Cinemachine，链接进来需要 Unity 托管与包引用，而本仓测试项目
+      约定**不写 Unity 安装路径**（§14.1 禁个人绝对路径）。它们的编译由夜间 L2 门禁覆盖，
+      行为归 PlayMode/Player 验证。L1 只覆盖无引擎依赖的裁决核心（三个门 + 端口契约）。
     -->
   </ItemGroup>
 

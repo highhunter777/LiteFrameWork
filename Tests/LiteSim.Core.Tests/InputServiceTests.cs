@@ -26,13 +26,20 @@ namespace LiteSim.Core.Tests
 
             public string Name => "fake";
 
-            public SimInputFrame Sample(in SimVector3 localPos)
+            public IntentSample Sample(in SimVector3 localPos)
             {
                 SampleCount++;
                 LastOrigin = localPos;
                 HasOrigin = true;
-                return Next;
+                return new IntentSample(Next);
             }
+        }
+
+        /// <summary>永远"没采到"的设备源（区分 None 与"采到空意图"——见 IntentSample 注释）。</summary>
+        private sealed class NothingSource : IIntentSource
+        {
+            public string Name => "nothing";
+            public IntentSample Sample(in SimVector3 localPos) => IntentSample.None;
         }
 
         private static SimInputFrame Move(float x, float z) => new SimInputFrame { MoveX = x, MoveZ = z, AimX = 1f, AimZ = 0f };
@@ -136,6 +143,42 @@ namespace LiteSim.Core.Tests
             Assert.Equal(1, service.SampleWithNoSource);
             Assert.Equal(0f, service.Pending.MoveX);
             Assert.Equal(0u, service.Pending.Buttons);
+        }
+
+        [Fact]
+        public void 采样_设备返回未采到时保留上一次有效意图_不降级成零输入()
+        {
+            var service = new InputService();
+            var source = new FakeSource { Next = Move(0f, 1f) };
+            service.SetSource(source);
+            service.SampleOnRenderFrame(default);
+            Assert.Equal(1f, service.Pending.MoveZ);
+
+            // 设备"没采到"（未就绪/无设备）——与"采到空意图"是两回事（见 IntentSample 注释）
+            service.TryTakeForSend(out _);               // 消费上一帧的"采过"标记（渲染帧已翻页）
+            service.SetSource(new NothingSource());
+            service.SampleOnRenderFrame(default);
+
+            Assert.True(Math.Abs(service.Pending.MoveZ - 1f) < 0.0001f, "未采到应保留上一次有效意图");
+            Assert.Equal(1, service.SampleWithNoSource);
+            Assert.False(service.TryTakeForSend(out _), "未采到就不该上行");
+        }
+
+        [Fact]
+        public void 采样_设备采到空意图时照常覆盖_用户真的什么都没按()
+        {
+            var service = new InputService();
+            var source = new FakeSource { Next = Move(0f, 1f) };
+            service.SetSource(source);
+            service.SampleOnRenderFrame(default);
+            Assert.Equal(1f, service.Pending.MoveZ);
+
+            service.TryTakeForSend(out _);               // 消费上一帧的"采过"标记（渲染帧已翻页）
+            source.Next = default(SimInputFrame);        // 采到了，但是空意图（松开所有键）
+            service.SampleOnRenderFrame(default);
+
+            Assert.True(Math.Abs(service.Pending.MoveZ) < 0.0001f, "空意图要如实覆盖——否则松开按键角色还在走");
+            Assert.Equal(0, service.SampleWithNoSource);
         }
 
         // ---- 采样节流与上行 ----

@@ -45,7 +45,7 @@ namespace LiteGame.Tests.EditMode
         }
 
         private static SimView NewView(SimWorldState world, ViewCounter counter,
-            BattleCameraRig camera = null, System.Func<EntitySlot, string> locationOf = null)
+            ICameraService camera = null, System.Func<EntitySlot, string> locationOf = null)
             => new SimView(world, null, Factory(counter), counter.Recycled.Add, camera, locationOf);
 
         /// <summary>无回收方形态：EntityViewMap 走**自有池**（生产接 EntityService 时池归它所有，
@@ -248,39 +248,66 @@ namespace LiteGame.Tests.EditMode
             Assert.AreEqual(200, view.SilenceUntilFrame, "回滚推进更远的闸门");
         }
 
-        // ---- 相机 ----
+        // ---- 相机（端口）：SimView 只把本地表现位置喂给 ICameraService ----
+        // 真实实现（CinemachineCameraService）属 Platform.Unity 适配器：它要场景里的虚拟相机与
+        // CinemachineBrain，归 PlayMode/Player 验证；本层用替身钉住**契约**（喂什么位置、何时开始）。
 
         [Test]
-        public void 相机_跟随本地表现位置_首帧直接落位()
+        public void 相机_跟随本地表现位置_按渲染帧喂给相机端口()
         {
             var world = NewWorld(new SimVector3(4f, 0f, 6f));
             long id = world.Entities[0].Id;
             var counter = new ViewCounter();
+            var cam = new CameraProbe();
 
-            var camGo = new GameObject("cam");
-            var rig = new BattleCameraRig(camGo.transform, BattleCameraRig.Rig.Default);
-            var view = NewView(world, counter, camera: rig);
+            var view = NewView(world, counter, camera: cam);
             view.AlignLocal(id);
 
             view.Tick(1f / 60f);
-            Assert.IsTrue(rig.HasFocus);
-            Assert.AreEqual(4f, rig.Focus.x, 0.1f, "焦点跟本地表现位置");
-            Assert.Greater(camGo.transform.position.y, rig.Focus.y, "俯视角相机在焦点上方（pitch 为负）");
+            Assert.AreEqual(1, cam.FollowCount, "每渲染帧一次");
+            Assert.AreEqual(4f, cam.LastTarget.x, 0.1f, "喂的是本地表现位置（X）");
+            Assert.AreEqual(6f, cam.LastTarget.z, 0.1f, "喂的是本地表现位置（Z）");
         }
-
-        // ---- 输入设备源（键鼠）：上下文门与帧边界门已上移输入服务，见 L1 InputServiceTests ----
 
         [Test]
-        public void 输入_无相机时瞄准方向为单位向量_移动无键时为零()
+        public void 相机_未对齐本地实体时不喂_对齐后才开始()
         {
-            var source = new KeyboardMouseIntentSource(null);      // 无相机：不做瞄准换算，沿用默认方向
-            var frame = source.Sample(new SimVector3(0f, 0f, 0f));
+            var world = NewWorld(new SimVector3(1f, 0f, 2f));
+            var counter = new ViewCounter();
+            var cam = new CameraProbe();
 
-            float aimMag = Mathf.Sqrt(frame.AimX * frame.AimX + frame.AimZ * frame.AimZ);
-            Assert.AreEqual(1f, aimMag, 0.001f, "默认瞄准方向为单位向量（长度 ≤1 契约）");
-            Assert.AreEqual(0f, frame.MoveX);
-            Assert.AreEqual(0f, frame.MoveZ);
-            Assert.AreEqual(0u, frame.Buttons, "无按键输入");
+            var view = NewView(world, counter, camera: cam);
+            view.Tick(1f / 60f);                       // 未 AlignLocal：无本地表现
+            Assert.AreEqual(0, cam.FollowCount, "没有本地表现就不该驱动相机");
+
+            view.AlignLocal(world.Entities[0].Id);
+            view.Tick(1f / 60f);
+            Assert.AreEqual(1, cam.FollowCount);
         }
+
+        /// <summary>相机端口替身：只记"喂了几次、喂的什么"。</summary>
+        private sealed class CameraProbe : ICameraService
+        {
+            public int FollowCount;
+            public Vector3 LastTarget;
+            public bool HasFocus { get; private set; }
+            public Vector3 Focus => LastTarget;
+
+            public void Follow(in Vector3 target, float deltaSeconds)
+            {
+                FollowCount++;
+                LastTarget = target;
+                HasFocus = true;
+            }
+
+            public void Reset() => HasFocus = false;
+            public void Shutdown() { }
+        }
+
+        // ---- 输入设备源 ----
+        // 原键鼠源（KeyboardMouseIntentSource）已删除，改由 Platform.Unity 适配器的
+        // NewInputIntentSource 承担（New Input System：读 InputAction，需要真实设备与 Action 资产，
+        // 归 Player/真机验证）。三个门（上下文门/帧边界门/采样节流）与设备源契约由 L1 覆盖
+        // （Tests/LiteSim.Core.Tests/InputServiceTests.cs）。
     }
 }

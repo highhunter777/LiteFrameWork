@@ -46,7 +46,7 @@ namespace LiteSim.View
 
         private readonly SimWorldState _sim;                  // 本地预测态（只读）
         private readonly EntityViewMap _views;
-        private readonly BattleCameraRig _camera;
+        private readonly ICameraService _camera;              // 相机端口（实现住 Platform.Unity 适配器——本层不认识 Cinemachine）
 
         // ---- 插值源（远端）----
         private SimWorldStateSnapshot _snapFrom;
@@ -92,7 +92,7 @@ namespace LiteSim.View
         public int DeliveredEvents { get; private set; }
 
         public SimView(SimWorldState sim, Transform root, ViewFactory factory, ViewRecycler recycler = null,
-            BattleCameraRig camera = null, Func<EntitySlot, string> prefabLocationOf = null)
+            ICameraService camera = null, Func<EntitySlot, string> prefabLocationOf = null)
         {
             _sim = sim ?? throw new ArgumentNullException(nameof(sim));
             _camera = camera;
@@ -240,7 +240,7 @@ namespace LiteSim.View
         private void UpdateCamera(float dt)
         {
             if (_camera == null || !_hasLocalDisplay) return;
-            _camera.Tick(LocalDisplayPosition, dt);
+            _camera.Follow(LocalDisplayPosition, dt);   // 相机平滑/档位归实现（Cinemachine 由 vcam 配置表达）
         }
 
         /// <summary>

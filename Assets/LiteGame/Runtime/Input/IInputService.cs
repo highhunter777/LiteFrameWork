@@ -61,6 +61,7 @@ namespace LiteGame
 
         /// <summary>设置设备源（null = 清空设备）。切换设备不重置帧边界状态。</summary>
         void SetSource(IIntentSource source);
+
         /// <summary>登记/替换一个拦截源，返回是否**新增**（false = 覆盖了既有同名源——
         /// UI 重连、流程重进时用同一名字更新是常态，重名不抛错；需要严格判重请直用
         /// <see cref="IntentGate.Register"/> 的抛错语义）。</summary>

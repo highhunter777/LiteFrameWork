@@ -149,7 +149,8 @@ namespace Tools.DisciplineScan
 
         /// <summary>R12：适配器实现的 import——按<b>文件路径</b>决定是否放行（见 <see cref="IsAdapterBoundaryAllowed"/>）。</summary>
         private static readonly Regex R12Regex = new Regex(
-            @"^\s*using\s+(YooAsset|XLua|DG\.Tweening)\b", RegexOptions.Compiled | RegexOptions.Multiline);
+            @"^\s*using\s+(YooAsset|XLua|DG\.Tweening|UnityEngine\.InputSystem|Cinemachine)\b",
+            RegexOptions.Compiled | RegexOptions.Multiline);
 
         /// <summary>
         /// R12 边界表：适配器 → 允许 import 它的目录前缀（相对**项目根**，正斜杠）。
@@ -165,6 +166,10 @@ namespace Tools.DisciplineScan
             ("YooAsset", new[] { "Assets/LiteGame/Adapters/Content.YooAsset/" }),
             // XLua：同上
             ("XLua", new[] { "Assets/LiteGame/Adapters/Scripting.XLua/" }),
+            // Unity.InputSystem：输入设备适配（2026-09-26 New Input System 接入）——设备源是它的唯一消费者
+            ("UnityEngine.InputSystem", new[] { "Assets/LiteGame/Adapters/Platform.Unity/" }),
+            // Cinemachine：相机适配（同上）——消费者只认 ICameraService 端口，不认识这个包
+            ("Cinemachine", new[] { "Assets/LiteGame/Adapters/Platform.Unity/" }),
             // DG.Tweening：UI 动效适配。**不在 Adapters 层**——它是 `Game-specific UI`（§5 框图的
             // Game.App 行），随 UI 程序集归游戏侧
             ("DG.Tweening", new[] { "Assets/LiteGame/UI/Anim/" }),
