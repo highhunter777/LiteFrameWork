@@ -13,7 +13,6 @@
         "Luban.Tables",
         "UniTask",
         "Unity.TextMeshPro",
-        "YooAsset",
         "xLuaMain"
     ],
     "includePlatforms": [],
