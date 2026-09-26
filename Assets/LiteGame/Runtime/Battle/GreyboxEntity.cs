@@ -17,8 +17,12 @@ namespace LiteGame
     /// `Resources.GetBuiltinResource` 在本工程实测取不到内置胶囊/默认材质（返回 null，
     /// 见批次记录），故用 <see cref="GameObject.CreatePrimitive"/>——实测可用且渲染器自带
     /// 当前渲染管线（URP/Lit）的共享材质，无需自建材质。
+    ///
+    /// **可见性为 public（2026-09-26 §5.1 第五刀后）**：消费者 `ProcedureBattle` 按设计
+    /// 住 `LiteGame.App`（Application Procedures），与本职**不同程序集**——`internal` 会
+    /// 编不过（编译器实测 CS0122）。这不是放宽封装，是把类别的真实可见性写准。
     /// </summary>
-    internal static class GreyboxEntity
+    public static class GreyboxEntity
     {
         /// <summary>实体高度（胶囊中心抬升量 = 半高）；与 <c>CombatConfig.HitscanHeight</c> 同量级。</summary>
         private const float VisualHeight = 2f;

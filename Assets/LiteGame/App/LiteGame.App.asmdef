@@ -11,6 +11,7 @@
         "LiteFramework.Unity",
         "LiteGame.Runtime",
         "LiteGame.UI",
+        "LiteNet",
         "LiteSim.Core",
         "LiteSim.View",
         "Luban.Runtime",

@@ -42,7 +42,7 @@
       "name": "DOTween",
       "path": "Assets/Plugins/Demigiant",
       "license": "免费，Asset Store 分发（仓库仅跟踪部分文件）——克隆后须补装",
-      "consumer": "UiFx/转场（LiteGame.Runtime asmdef 引用 DOTween.Modules）"
+      "consumer": "UiFx/转场（LiteGame.UI asmdef 引用 DOTween.Modules，仅 UI/Anim/）"
     }
   ],
   "android": {

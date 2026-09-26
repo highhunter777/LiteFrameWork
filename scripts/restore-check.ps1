@@ -106,7 +106,7 @@ else { Miss 'Odin Inspector missing: Assets/Plugins/Sirenix (per-seat paid, non-
 if (Test-Path (Join-Path $ProjectPath 'Assets\Plugins\Demigiant\DOTween')) {
     Ok 'DOTween present (free plugin, installed locally)'
 }
-else { Miss 'DOTween missing: Assets/Plugins/Demigiant/DOTween (LiteGame.Runtime references DOTween.Modules; install free version from Asset Store)' }
+else { Miss 'DOTween missing: Assets/Plugins/Demigiant/DOTween (LiteGame.UI references DOTween.Modules; install free version from Asset Store)' }
 
 if (Test-Path (Join-Path $ProjectPath 'Assets\Plugins\UniTask')) { Ok 'UniTask present' }
 else { Miss 'UniTask missing: Assets/Plugins/UniTask (runtime required; should ship with repo)' }
