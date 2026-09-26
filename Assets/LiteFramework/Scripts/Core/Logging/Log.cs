@@ -41,6 +41,33 @@ namespace LiteFramework
         public static void SetHelper(ILogHelper helper) => _helper = helper;
         public static void SetOutputLevel(LogLevel min) => _minOutput = min;
 
+        /// <summary>
+        /// 复位全部静态状态（helper 注入、输出等级、环形缓冲、计数）。
+        ///
+        /// **为什么必须有**：<see cref="SetHelper"/> 注入的是**静态**字段，编辑器里跨测试运行存活。
+        /// PlayMode 套件会跑完整引导链（<c>GameModules.PlatformInfrastructure</c> 调
+        /// <c>SetHelper(new UnityLogHelper())</c>），此后 Unity 的 <c>LogAssert</c> 就开始看见
+        /// 本来被静默丢弃的错误日志——**故意触发错误日志的 EditMode 用例随即被判定
+        /// "Unhandled log message"**（2026-09-26 实测：PlayMode 之后再跑 EditMode 必 5 红，
+        /// 而域重载后首跑 234/234 全绿）。
+        ///
+        /// **谁该调**：测试夹具的 Setup/TearDown（保证用例在确定状态下跑），
+        /// 以及编辑器域重载入口。生产代码**不要**调——注入的 helper 是进程级设施。
+        /// </summary>
+        public static void ResetForTesting()
+        {
+            _helper = null;
+            ErrorCount = 0;
+            Array.Clear(_ring, 0, _ring.Length);
+            _start = 0;
+            _count = 0;
+#if UNITY_EDITOR || DEVELOPMENT_BUILD || LITEFRAMEWORK_DEBUG
+            _minOutput = LogLevel.Info;
+#else
+            _minOutput = LogLevel.Warning;
+#endif
+        }
+
         // tag 契约:稳定的模块名常量("FileSys"/"Event");动态信息(实例名/路径)进 message 不进 tag——Recent 只有 32 条,tag 集合必须小而稳定。
         public static void Info(string message, string tag = null) => Emit(LogLevel.Info, message, tag);
         public static void Warning(string message, string tag = null) => Emit(LogLevel.Warning, message, tag);
