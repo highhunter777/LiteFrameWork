@@ -1,28 +1,30 @@
 {
-	"name": "LiteGame.Editor",
-	"rootNamespace": "LiteGame",
-	"references": [
-		"LiteGame.Runtime",
-		"LiteFramework.Core",
-		"LiteFramework.Unity",
-		"Luban.Tables",
-		"UniTask",
-		"xLuaMain",
-		"YooAsset",
-		"YooAsset.Editor",
-		"LiteCodeGen.Runtime",
-		"LiteCodeGen.Editor",
-		"Unity.TextMeshPro"
-	],
-	"includePlatforms": [
-		"Editor"
-	],
-	"excludePlatforms": [],
-	"allowUnsafeCode": false,
-	"overrideReferences": false,
-	"precompiledReferences": [],
-	"autoReferenced": false,
-	"defineConstraints": [],
-	"versionDefines": [],
-	"noEngineReferences": false
+    "name": "LiteGame.Editor",
+    "rootNamespace": "LiteGame",
+    "references": [
+        "LiteCodeGen.Editor",
+        "LiteCodeGen.Runtime",
+        "LiteFramework.Core",
+        "LiteFramework.Unity",
+        "LiteGame.Content.YooAsset",
+        "LiteGame.Net.Kcp",
+        "LiteGame.Runtime",
+        "Luban.Tables",
+        "UniTask",
+        "Unity.TextMeshPro",
+        "YooAsset",
+        "YooAsset.Editor",
+        "xLuaMain"
+    ],
+    "includePlatforms": [
+        "Editor"
+    ],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": false,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
 }

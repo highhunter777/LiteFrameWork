@@ -158,7 +158,9 @@ namespace Tools.DisciplineScan
         /// </summary>
         private static readonly (string Adapter, string[] AllowedRoots)[] R12Boundaries =
         {
-            ("YooAsset", new[] { "Assets/LiteGame/Runtime/Shell/Resource/" }),
+            // YooAsset：随 §5.1 拆分为独立程序集后归 `Assets/LiteGame/Content/`
+            // （原 `Runtime/Shell/Resource/`——目录一变规则就红，这正是 R12 该有的行为）
+            ("YooAsset", new[] { "Assets/LiteGame/Content/" }),
             ("XLua", new[] { "Assets/LiteGame/Runtime/Shell/Lua/", "Assets/LiteGame/Runtime/Shell/Bridge/" }),
             ("DG.Tweening", new[] { "Assets/LiteGame/Runtime/Shell/UI/Anim/" }),
         };

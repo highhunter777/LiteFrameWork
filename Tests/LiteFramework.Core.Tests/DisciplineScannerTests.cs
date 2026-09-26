@@ -1,4 +1,4 @@
-﻿using System.Collections.Generic;
+using System.Collections.Generic;
 using System.Text;
 using Tools.DisciplineScan;
 using Xunit;
@@ -355,7 +355,7 @@ namespace LiteFramework.Tests
             // **每个边界只放行它对应的那一个适配器**——不是"边界目录里什么都能 import"。
             // （初版把三个 using 一起塞进每个目录并期望 0，是错的：Shell/Resource 放行 YooAsset，
             //   但不放行 XLua/DG.Tweening。）
-            Assert.Equal(0, CountAt("Assets/LiteGame/Runtime/Shell/Resource/C.cs",
+            Assert.Equal(0, CountAt("Assets/LiteGame/Content/C.cs",
                 "using YooAsset;", LintRule.R12AdapterBoundary));
             Assert.Equal(0, CountAt("Assets/LiteGame/Runtime/Shell/Lua/C.cs",
                 "using XLua;", LintRule.R12AdapterBoundary));
@@ -365,7 +365,7 @@ namespace LiteFramework.Tests
                 "using DG.Tweening;", LintRule.R12AdapterBoundary));
 
             // 反向：边界目录**不**放行别人的适配器
-            Assert.Equal(1, CountAt("Assets/LiteGame/Runtime/Shell/Resource/C.cs",
+            Assert.Equal(1, CountAt("Assets/LiteGame/Content/C.cs",
                 "using XLua;", LintRule.R12AdapterBoundary));
             Assert.Equal(1, CountAt("Assets/LiteGame/Runtime/Shell/Lua/C.cs",
                 "using YooAsset;", LintRule.R12AdapterBoundary));
