@@ -17,7 +17,6 @@ namespace LiteGame
     {
         private readonly ServiceContainer _container;
         private readonly ConfigService _config;
-        private readonly SceneService _scenes;
         private readonly UiLuaRegistry _uiRegistry;
         private readonly ContentLuaRegistry _contentRegistry;
         private readonly StrategyLuaRegistry _strategyRegistry;
@@ -32,7 +31,7 @@ namespace LiteGame
         private readonly LuaRegistryRefillService _refill;
         private readonly UINavigationController _nav;
 
-        public ProcedureLaunch(ServiceContainer container, ConfigService config, SceneService scenes,
+        public ProcedureLaunch(ServiceContainer container, ConfigService config,
             UiLuaRegistry uiRegistry, ContentLuaRegistry contentRegistry, StrategyLuaRegistry strategyRegistry,
             UIService uiService, RedDotRegistry redDotRegistry,
             ILogicScheduler logicScheduler, IUIScheduler uiScheduler, GameTimelineRunner timelineRunner,
@@ -42,7 +41,6 @@ namespace LiteGame
         {
             _container = container ?? throw new ArgumentNullException(nameof(container));
             _config = config ?? throw new ArgumentNullException(nameof(config));
-            _scenes = scenes ?? throw new ArgumentNullException(nameof(scenes));
             _uiRegistry = uiRegistry ?? throw new ArgumentNullException(nameof(uiRegistry));
             _contentRegistry = contentRegistry ?? throw new ArgumentNullException(nameof(contentRegistry));
             _strategyRegistry = strategyRegistry ?? throw new ArgumentNullException(nameof(strategyRegistry));
@@ -67,7 +65,6 @@ namespace LiteGame
             {
                 _container.RegisterInstance<ConfigService>(_config);
                 _container.RegisterInstance<IConfigService>(_config);
-                _container.RegisterInstance<SceneService>(_scenes);
                 // 三注册表（M3 §2.4：注册表实例装配在唯一受信装配点；元素同为 LuaTable，标记接口区分）
                 _container.RegisterInstance<IUILuaRegistry>(_uiRegistry);
                 _container.RegisterInstance<IContentLuaRegistry>(_contentRegistry);

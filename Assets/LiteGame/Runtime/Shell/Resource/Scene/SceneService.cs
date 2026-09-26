@@ -5,7 +5,7 @@ using Cysharp.Threading.Tasks;
 using LiteFramework;
 using UnityEngine;
 using UnityEngine.SceneManagement;
-using YooAsset;   // lint-allow R12
+using YooAsset;
 
 namespace LiteGame
 {
@@ -22,7 +22,7 @@ namespace LiteGame
     /// **叠加场景的 AudioListener/Camera 冲突由场景制作者处理**（机制壳不代管策略——实测叠加后会出现
     /// "multiple audio listeners" 警告，属被叠加场景自带监听器所致）。
     /// </summary>
-    public sealed class SceneService
+    public sealed class SceneService : ISceneService
     {
         private SceneHandle _single;                                       // 单场景（切换语义）
         private string _singleLocation;

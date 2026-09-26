@@ -331,6 +331,10 @@ namespace LiteGame
                 var config = context.Require<ConfigService>();
                 var content = context.Require<IContentService>();   // C1-⑧：Preload 经 IContentService 初始化资源（时序不变）
                 _scenes = new SceneService();                    // 本模块所有——ShutdownAsync 逆序释放句柄（§6.2 Scene 域）
+                // 场景能力经**抽象**暴露（§5.1 逻辑边界）：流程不认识 SceneService 具体类
+                // （它是 YooAsset 适配器）。**注册归装配根**——原先由 ProcedureLaunch 透传注册，
+                // 那让流程无谓地依赖了适配器类型。
+                container.RegisterInstance<ISceneService>(_scenes);
                 var lua = context.Require<LuaComponent>();
                 var events = context.Require<EventCenter>();
                 var uiService = context.Require<UIService>();
@@ -352,7 +356,7 @@ namespace LiteGame
                 container.RegisterInstance<IWallClock>(context.Require<IWallClock>());
                 container.RegisterInstance(new DotweenUiClockDriver(context.Require<IUIClock>()));   // G1：DOTween Manual 轨按 UIClock 派发（时停不停/暂停即停）
                 container.RegisterInstance<IEventCenter>(events);
-                var fsm = CreateMachine(context, container, _scenes, content, config, lua, events, uiService, uiRegistry, contentRegistry,
+                var fsm = CreateMachine(context, container, content, config, lua, events, uiService, uiRegistry, contentRegistry,
                     strategyRegistry, redDotRegistry, logicScheduler, uiScheduler, timelineRunner,
                     entityService, audioService, vfxService);
                 container.RegisterInstance<StageMachine<ProcedureId, ProcedureArgs>>(fsm);
@@ -369,7 +373,7 @@ namespace LiteGame
 
             /// <summary>原 GameEntry.CreateMachine 平移（依赖全部经 context 取——依赖不从 payload 取的纪律不变）。</summary>
             private static StageMachine<ProcedureId, ProcedureArgs> CreateMachine(ClientContext context, ServiceContainer container,
-                SceneService scenes, IContentService content, ConfigService config, LuaComponent lua, EventCenter events, UIService uiService,
+                IContentService content, ConfigService config, LuaComponent lua, EventCenter events, UIService uiService,
                 UiLuaRegistry uiRegistry, ContentLuaRegistry contentRegistry, StrategyLuaRegistry strategyRegistry,
                 RedDotRegistry redDotRegistry, ILogicScheduler logicScheduler, IUIScheduler uiScheduler,
                 GameTimelineRunner timelineRunner, EntityService entityService, AudioService audioService, VfxService vfxService)
@@ -380,7 +384,7 @@ namespace LiteGame
                 var activations = context.Require<ActivationTransactionStore>();   // C1-⑩：Patch 流程消费（Content ②产物）
                 var patchRunner = context.Require<PatchRunner>();                  // 热更：内容事务编排
                 return new StageMachine<ProcedureId, ProcedureArgs>("Procedure",
-                    (ProcedureId.Launch, new ProcedureLaunch(container, config, scenes, uiRegistry, contentRegistry, strategyRegistry, uiService, redDotRegistry, logicScheduler, uiScheduler, timelineRunner, entityService, audioService, vfxService, refill, context.Require<UINavigationController>(), rootToken)),
+                    (ProcedureId.Launch, new ProcedureLaunch(container, config, uiRegistry, contentRegistry, strategyRegistry, uiService, redDotRegistry, logicScheduler, uiScheduler, timelineRunner, entityService, audioService, vfxService, refill, context.Require<UINavigationController>(), rootToken)),
                     (ProcedureId.Patch, new ProcedurePatch(content, activations, patchRunner, rootToken)),
                     (ProcedureId.Preload, new ProcedurePreload(content, config, lua, filler, events, ListLuaAssetPaths, rootToken)),
                     (ProcedureId.Main, new ProcedureMain(uiService, context.Require<UINavigationController>(), rootToken)),

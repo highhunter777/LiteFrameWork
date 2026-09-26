@@ -293,7 +293,7 @@ namespace LiteGame.Editor
         /// <summary>场景操作（fire-and-forget + 忙碌守卫 + 结果落面板；异常不外泄到编辑器）。</summary>
         private async UniTaskVoid RunSceneOp(Func<UniTask> op, string label)
         {
-            SceneService scene = GetSceneService();
+            ISceneService scene = GetSceneService();
             if (scene == null) { _sceneResult = $"{label}失败：SceneService 未装配"; return; }
 
             _sceneBusy = true;
@@ -331,13 +331,13 @@ namespace LiteGame.Editor
 
         private void RefreshSceneState()
         {
-            SceneService scene = Application.isPlaying ? GetSceneService() : null;
+            ISceneService scene = Application.isPlaying ? GetSceneService() : null;
             _sceneState = scene == null
                 ? "场景状态：未运行（Play 后可用）"
                 : DescribeScenes(scene);
         }
 
-        private static string DescribeScenes(SceneService scene)
+        private static string DescribeScenes(ISceneService scene)
         {
             var sb = new System.Text.StringBuilder();
             sb.Append("单场景=").Append(scene.SingleSceneName ?? "(无)")
@@ -357,7 +357,7 @@ namespace LiteGame.Editor
             return sb.ToString();
         }
 
-        private SceneService GetSceneService() => ResolveFromContainer<SceneService>();
+        private ISceneService GetSceneService() => ResolveFromContainer<ISceneService>();
 
         // ---- ④ 产物核对 ----
 
