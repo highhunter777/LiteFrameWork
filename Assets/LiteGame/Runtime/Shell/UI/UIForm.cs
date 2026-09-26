@@ -126,7 +126,9 @@ namespace LiteGame
         /// 下次显示前按当前注册表重新解析——否则界面会拿已 Dispose 的 LuaFunction 打进死环境。</summary>
         internal void DropLogic()
         {
-            if (Logic is LuaBehaviourAdapter adapter) adapter.Release();
+            // 经通用钩子释放——通用 UI 运行时**不认识任何脚本适配器**（§5.1 逻辑边界）；
+            // 需要归还外部引用的逻辑自行覆写 IUIFormLogic.Release。
+            Logic?.Release();
             Logic = NullUIFormLogic.Instance;
         }
 

@@ -586,7 +586,7 @@ namespace LiteGame
         {
             if (!_staleLogic.Remove(form.Id)) return;
 
-            if (form.Logic is LuaBehaviourAdapter old) old.Release();
+            form.Logic?.Release();   // 通用钩子——UI 服务不认识脚本适配器（§5.1）
             form.Logic = ResolveLogic(form.Info);
             if (form.State == UIFormState.Recycled) form.NeedsReinit = true;
         }

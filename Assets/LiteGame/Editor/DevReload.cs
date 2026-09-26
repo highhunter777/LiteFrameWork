@@ -54,7 +54,9 @@ namespace LiteGame.Editor
             strategy.Clear();
             lua.Shutdown();                                // ③ 事件桥退订 → env.Dispose（旧对象全失效时点）
 
-            var preloader = new LiteGame.LuaPreloader();
+            var preloader = new LiteGame.LuaPreloader(
+                DevReloadBytesAsync,   // 磁盘直读：响应编辑器里刚改的 .lua（不走资源包）
+                ListLuaFilesOnDisk);   // 磁盘枚举：同上
             await preloader.PreloadAllAsync();             // ④ 重预载：改动后的 .lua 进缓存
             lua.Init(preloader, events);                   //    env 重建 + 服务桥/事件桥重绑
             lua.DoMain();                                  // ⑤ 重跑 main.lua
@@ -67,6 +69,40 @@ namespace LiteGame.Editor
                     Log.Error($"DevReload 注册表填充失败 [{f.kind}] {f.key}:{f.reason}", "DevReload");
             }
             Log.Info($"DevReload 完成：预载 {preloader.Count}、填充 {report.Filled}/{report.Total}、失败 {report.Failed}", "DevReload");
+        }
+
+        /// <summary>
+        /// DevReload 的字节通道：**磁盘直读**——这正是它与生产主链的区别（主链走内容租约/资源包）。
+        /// 编辑器里刚改的 .lua 未必已进模拟资源包，读磁盘才能拿到最新字节。
+        ///
+        /// **为什么由本类提供而不是让 LuaPreloader 回落**（2026-09-26，§5.1 逻辑边界）：
+        /// 原先 LuaPreloader 未注入时回落 `AssetService.LoadRawFileBytesAsync`——那让 **Lua 层
+        /// 硬依赖 YooAsset 类型**，asmdef 拆不开（成环）。改为"通道必注入"，
+        /// 编辑器工具在自己的程序集里给磁盘实现，通用层不认识任何适配器。
+        /// </summary>
+        private static UniTask<byte[]> DevReloadBytesAsync(string assetPath, CancellationToken ct)
+        {
+            string full = System.IO.Path.Combine(
+                System.IO.Directory.GetCurrentDirectory(), assetPath.Replace('/', System.IO.Path.DirectorySeparatorChar));
+            byte[] bytes = System.IO.File.ReadAllBytes(full);
+            return UniTask.FromResult(bytes);
+        }
+
+        /// <summary>DevReload 的清单通道：**磁盘枚举** `Assets/LiteGame/Lua/**/*.lua`（同 <see cref="DevReloadBytesAsync"/> 的理由）。</summary>
+        private static string[] ListLuaFilesOnDisk()
+        {
+            string root = System.IO.Path.Combine(
+                System.IO.Directory.GetCurrentDirectory(),
+                LiteGame.LuaPreloader.LuaDir.Replace('/', System.IO.Path.DirectorySeparatorChar));
+            if (!System.IO.Directory.Exists(root)) return new string[0];
+
+            string[] files = System.IO.Directory.GetFiles(root, "*.lua", System.IO.SearchOption.AllDirectories);
+            // 磁盘绝对路径 → 工程相对路径（与 LuaPreloader.ToRequireKey 的 `LuaDir` 前缀契约对齐）
+            var result = new string[files.Length];
+            for (int i = 0; i < files.Length; i++)
+                result[i] = files[i].Replace(System.IO.Path.DirectorySeparatorChar, '/')
+                                     .Replace(System.IO.Directory.GetCurrentDirectory().Replace('\\', '/') + "/", string.Empty);
+            return result;
         }
     }
 }

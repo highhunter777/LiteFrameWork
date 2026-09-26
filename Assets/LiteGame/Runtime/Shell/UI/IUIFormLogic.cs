@@ -24,6 +24,25 @@ namespace LiteGame
         void OnCover();                          // 被更高层级组全屏界面遮盖（批量语义）
         void OnReveal();                         // 遮盖解除
         void OnHide();                           // 关闭（进入 Closing→Recycled 前）
+
+        /// <summary>
+        /// 外壳要丢弃本逻辑实例时的收尾钩子（<see cref="UIForm.DropLogic"/>、逻辑替换、
+        /// 打开失败回滚三处都走它）。
+        ///
+        /// **为什么需要它**（《客户端总设计》§5.1"先形成逻辑边界"）：原先外壳直接用
+        /// `Logic is LuaBehaviourAdapter a → a.Release()` 做类型判断——那让**通用 UI 运行时
+        /// 必须认识脚本适配器**，等于把通用层焊死在 xLua 上，asmdef 拆不开（成环）。
+        /// 改为由逻辑**自己**申明"我持有需要归还的东西"，外壳只管调这一个方法，
+        /// 于是 UI 运行时只依赖 <see cref="IUIFormLogic"/> 这一张契约。
+        ///
+        /// **实现要求**：**必须幂等**——同一实例可能被多次丢弃（关→回滚→再关）。
+        /// 默认实现为空（无外部持有的纯 C# 逻辑无需实现）。
+        /// </summary>
+        void Release()
+        {
+            // 默认空实现：C# 界面逻辑通常不持有需归还的外部引用。
+            // LuaBehaviourAdapter 覆写它来释放 Lua 表引用（防"拿已 Dispose 的 LuaFunction 打进死环境"）。
+        }
     }
 
     /// <summary>空逻辑（无 C# 逻辑、Lua 逻辑未接前的占位——§2.3 前壳可独立运行）。</summary>
