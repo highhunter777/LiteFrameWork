@@ -5,7 +5,6 @@ using Cysharp.Threading.Tasks;
 using LiteFramework;
 using LiteGame;
 using LiteSim.View;
-using LiteSim.View.Vfx;
 using LiteTesting;
 using LiteTesting.Unity;
 using NUnit.Framework;
@@ -55,7 +54,7 @@ namespace LiteGame.Tests.UI.PlayMode
             {
                 var init = AssetService.InitAsync();
                 yield return Wait(init, 60f);
-                Assert.IsFalse(init.Status == UniTaskStatus.Pending, "资源包初始化超时（60s）");
+                Assert.AreEqual(UniTaskStatus.Succeeded, init.Status, "资源包初始化未成功（faulted 会在此抛出）");
                 _assetsReady = true;
             }
 
@@ -215,21 +214,25 @@ namespace LiteGame.Tests.UI.PlayMode
             var scene = new SceneService();
             Assert.IsFalse(scene.IsLoaded(TestScene), "初始未加载");
 
-            var load = scene.LoadSingleAsync(TestScene);
+            // **用 Additive 而非 Single**：PlayMode 用例跑在 Unity 测试框架自己的场景里，
+            // 而 Single 模式会销毁当前所有场景——把测试场景一并干掉；且当它是**唯一**已加载场景时
+            // `SceneManager.UnloadSceneAsync` 返回 null，YooAsset 抛
+            // "Failed to unload scene"（实测）。Additive 不碰测试场景，语义也够验"真资源加载/卸载"。
+            var load = scene.LoadAdditiveAsync(TestScene);
             yield return Wait(load, 30f);
-            Assert.IsFalse(load.Status == UniTaskStatus.Pending, "场景加载超时");
+            Assert.AreEqual(UniTaskStatus.Succeeded, load.Status, "场景加载未成功（faulted 会在此抛出真实异常）");
             Assert.IsTrue(scene.IsLoaded(TestScene), "加载后 IsLoaded 应为真");
 
-            var unload = scene.UnloadSingleAsync();
+            var unload = scene.UnloadAdditiveAsync(TestScene);
             yield return Wait(unload, 30f);
             Assert.IsFalse(scene.IsLoaded(TestScene), "卸载后 IsLoaded 应为假");
-            Assert.DoesNotThrow(() => scene.UnloadSingleAsync().GetAwaiter().GetResult(),
+            Assert.DoesNotThrow(() => scene.UnloadAdditiveAsync(TestScene).GetAwaiter().GetResult(),
                 "二次卸载必须幂等");
 
             scene.ReleaseAll();                                  // 释放面：之后拒绝新加载
             Assert.IsTrue(scene.IsReleased);
             Assert.Throws<ObjectDisposedException>(
-                () => scene.LoadSingleAsync(TestScene).GetAwaiter().GetResult(),
+                () => scene.LoadAdditiveAsync(TestScene).GetAwaiter().GetResult(),
                 "已释放的场景服务不得接受新加载");
         }
 
@@ -272,6 +275,10 @@ namespace LiteGame.Tests.UI.PlayMode
             _vfx.Stop(b1);
             _vfx.Snapshot(snap);
             Assert.AreEqual("0", snap["活跃"], "全部归还后活跃归零");
+
+            // UnityTest 的 IEnumerator 必须至少让出一帧（否则 CS0161：并非所有路径都返回值）。
+            // 这几条断言本身是同步可判定的，此处只是满足协程形态，不依赖帧序。
+            yield return null;
         }
 
         [UnityTest]

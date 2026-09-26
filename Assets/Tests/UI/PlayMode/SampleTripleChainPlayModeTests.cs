@@ -5,7 +5,6 @@ using Cysharp.Threading.Tasks;
 using LiteFramework;
 using LiteGame;
 using LiteSim.View;
-using LiteSim.View.Vfx;
 using LiteTesting;
 using LiteTesting.Unity;
 using NUnit.Framework;
@@ -57,7 +56,7 @@ namespace LiteGame.Tests.UI.PlayMode
             {
                 var init = AssetService.InitAsync();
                 yield return Wait(init, 60f);
-                Assert.IsFalse(init.Status == UniTaskStatus.Pending, "资源包初始化超时（60s）");
+                Assert.AreEqual(UniTaskStatus.Succeeded, init.Status, "①资源包初始化未成功（faulted 会在此抛出）");
                 _assetsReady = true;
             }
 
@@ -85,10 +84,16 @@ namespace LiteGame.Tests.UI.PlayMode
         {
             // ═══ ① 真资源场景 ═══
             var scene = new SceneService();
-            var load = scene.LoadSingleAsync(TestScene);
+            // 用 **Additive** 而非 Single：PlayMode 用例跑在自己的测试场景里，
+            // Single 会把测试场景销毁掉（且最后卸载必然失败——见场景组用例的注释）。
+            var load = scene.LoadAdditiveAsync(TestScene);
             yield return Wait(load, 30f);
-            Assert.IsFalse(load.Status == UniTaskStatus.Pending, "场景加载超时");
-            Assert.IsTrue(scene.IsLoaded(TestScene), "①真场景应已加载");
+            // **必须断言 Succeeded，不能只断言"不是 Pending"**：加载失败时 task 是 faulted，
+            // "非 Pending" 同样成立——那样断言就等于把失败当成功。取结果让真实异常浮出来。
+            Assert.AreEqual(UniTaskStatus.Succeeded, load.Status,
+                "①真场景加载未成功（faulted 会在此处抛出真实异常）");
+            load.GetAwaiter().GetResult();
+Assert.IsTrue(scene.IsLoaded(TestScene), "①真场景应已加载");
 
             // ═══ ② 测试角色（灰盒形态：引擎基本体，见类注释的素材说明）═══
             // 加载口注入灰盒产生器——**不冒充真资源**：资产目录（Assets/Model 等）本就不入库，
@@ -98,7 +103,7 @@ namespace LiteGame.Tests.UI.PlayMode
 
             var show = entity.ShowAsync(GreyboxLocations.Capsule, stageRoot);
             yield return Wait(show, 30f);
-            Assert.IsFalse(show.Status == UniTaskStatus.Pending, "测试角色创建超时");
+            Assert.AreEqual(UniTaskStatus.Succeeded, show.Status, "②测试角色创建未成功");
             EntityHandle avatar = show.GetAwaiter().GetResult();
             Assert.IsNotNull(avatar?.GameObject, "②测试角色应就位");
             Assert.AreEqual(1, entity.ActiveCount, "②应有 1 个活动实体");
@@ -143,8 +148,11 @@ namespace LiteGame.Tests.UI.PlayMode
             Assert.AreEqual("0", vfxSnap["活跃"], "④特效应已归还");
 
             _audio.Stop(voice);
-            _audio.Shutdown();
+            _audio.Shutdown();                                  // 音效服务关闭（含重复关不炸）
+            _vfx.Shutdown();                                    // **特效服务也要关**——只 Stop 个体不算卸载
             yield return null;
+            Assert.IsTrue(_vfx.IsShutdown, "④特效服务应已关闭");
+            Assert.IsTrue(_audio.StatsName == "Audio", "④音效服务关闭后仍可读（幂等不留半状态）");
 
             // 4b. 再收角色
             entity.Hide(avatar.Id);
@@ -161,11 +169,11 @@ namespace LiteGame.Tests.UI.PlayMode
                 "④实体作用域应随回收一并释放（谁创建谁取消）");
 
             entity.Shutdown();
-            Assert.IsTrue(entity.IsShutdown);
+            Assert.IsTrue(entity.IsShutdown, "④实体服务应已关闭");
             Assert.DoesNotThrow(() => entity.Shutdown(), "④实体服务关闭幂等");
 
             // 4c. 最后卸载场景
-            var unload = scene.UnloadSingleAsync();
+            var unload = scene.UnloadAdditiveAsync(TestScene);
             yield return Wait(unload, 30f);
             Assert.IsFalse(scene.IsLoaded(TestScene), "④场景应已卸载");
             scene.ReleaseAll();
@@ -173,8 +181,8 @@ namespace LiteGame.Tests.UI.PlayMode
 
             // ═══ ⑤ 整链终检：无残留 ═══
             Assert.AreEqual(0, entity.ActiveCount, "⑤无活动实体残留");
-            Assert.IsTrue(_vfx.IsShutdown);
-            Assert.IsTrue(_audio.StatsName == "Audio");         // 关闭后仍可读（幂等不留半状态）
+            Assert.IsTrue(_vfx.IsShutdown, "⑤特效服务应仍处于关闭态");
+            Assert.IsTrue(_audio.StatsName == "Audio", "⑤音效服务关闭后仍可读");
         }
 
         // ---- 辅助 ----

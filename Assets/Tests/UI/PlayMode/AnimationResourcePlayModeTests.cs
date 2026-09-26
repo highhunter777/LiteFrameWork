@@ -235,8 +235,6 @@ namespace LiteGame.Tests.UI.PlayMode
                 "拒绝原因应为 OwnerUnavailable（稳定可诊断）");
             yield return null;
         }
-    }
-}
 
         [UnityTest]
         public IEnumerator 动画_驱动对无控制器视图_跳过且不报错()

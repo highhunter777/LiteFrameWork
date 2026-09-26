@@ -509,11 +509,16 @@ namespace LiteGame.Tests.EditMode
             var runner = new PatchRunner(new FixedProvider(offer), Player(), store, coord,
                 trustedKeys.AsResolver());
 
+            // 已被确认的版本必须在被拒前后**不变**。
+            // 注意 `ActivationRecord.ConfirmedReleaseId` 的**初值是 "builtin"**（不是 null）——
+            // 断言 null 会失败；正确的性质是"未被改写"。
+            string confirmedBefore = store.Current.ConfirmedReleaseId;
             PatchRunResult r = runner.RunAsync().GetAwaiter().GetResult();
 
             Assert.AreEqual(ReleaseRejectReason.BadSignature, runner.LastRejectReason);
             Assert.IsFalse(r.Succeeded);
-            Assert.IsNull(store.Current.ConfirmedReleaseId, "被拒的候选不得改写已确认版本");
+            Assert.AreEqual(confirmedBefore, store.Current.ConfirmedReleaseId,
+                "被拒的候选不得改写已确认版本");
         }
     }
 }
