@@ -6,8 +6,6 @@
         "LiteCodeGen.Runtime",
         "LiteFramework.Core",
         "LiteFramework.Unity",
-        "LiteGame.Content.YooAsset",
-        "LiteGame.Net.Kcp",
         "LiteNet",
         "LiteSim.Core",
         "LiteSim.View",

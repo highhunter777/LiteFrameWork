@@ -4,6 +4,7 @@
     "references": [
         "LiteFramework.Core",
         "LiteFramework.Unity",
+        "LiteGame.App",
         "LiteGame.Content.YooAsset",
         "LiteGame.Editor",
         "LiteGame.Net.Kcp",
