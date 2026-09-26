@@ -412,5 +412,108 @@ namespace LiteGame.Tests.EditMode
             Assert.IsFalse(r.NoWork);
             Assert.AreEqual(ReleaseRejectReason.InvalidEntry, runner.LastRejectReason);
         }
+
+        // ---- 真签名候选的接受路径（《框架先行》样例①"验签/下载段"）------------------
+        //
+        // 上面三条 `编排端到端_*` 用的是 `AlwaysOkVerifier`——**信任关被短路**，
+        // 故它们证明的是"编排能跑通"，证明不了"真签名能被接受"。
+        // 下面这条把验签器换成**内置锚点**，并让候选来自**真信封**（发布私钥签出、已入库），
+        // 从而覆盖「真信封 → 信任关 → 下载 → 校验 → 健康 → 激活」的完整贯通。
+        //
+        // 不依赖私钥：验签只需公钥，而公钥在内置锚点 ContentTrustAnchors 里。
+
+        /// <summary>真信封夹具的声明内容——必须与签名时的字节**完全一致**（摘要会核对）。</summary>
+        private static readonly (string path, string content)[] FixtureFiles =
+        {
+            ("config/tbcombatnum.json", "{\"id\":1,\"hp\":100}"),
+            ("lua/ui/UIMain.lua", "return { OnShow = function() end }\n"),
+        };
+
+        [Test]
+        public void 编排端到端_真签名候选_经内置锚点接受并推进到Confirmed()
+        {
+            const string fixture = "Assets/Tests/EditMode/Fixtures/signed-candidate.json";
+            Assert.IsTrue(System.IO.File.Exists(fixture), $"真信封夹具缺失：{fixture}");
+
+            CandidateOffer offer = SignedManifestEnvelope.Parse(System.IO.File.ReadAllText(fixture));
+            Assert.IsFalse(offer.IsEmpty, "真信封必须可解析");
+
+            // 把夹具声明的内容落到候选根（摘要与之一致 → 通过逐文件校验）
+            foreach ((string path, string content) in FixtureFiles)
+                WriteCandidate(path, content);
+
+            var store = new ActivationTransactionStore(new MemoryActivationIO(), () => 1);
+            var coord = new PatchCoordinator(
+                store,
+                new FileSysCandidateFileSource(Root),
+                new DriveInfoSpaceProbe(UnityEngine.Application.persistentDataPath),
+                new LocalDirectoryCandidateFetcher(Root),
+                new AlwaysHealthy(),
+                new NoOpActivator(),
+                generationSink: null);
+
+            // **关键差异**：验签器来自内置锚点（真实信任链），不是 AlwaysOkVerifier
+            var trustedKeys = new TrustedKeyStore();
+            int anchors = ContentTrustAnchors.ApplyTo(trustedKeys);
+            Assert.GreaterOrEqual(anchors, 1, "内置锚点应至少一条");
+
+            var runner = new PatchRunner(new FixedProvider(offer), Player(), store, coord,
+                trustedKeys.AsResolver(),
+                spaceRequestFactory: m => new SpaceCheckRequest
+                {
+                    CandidateBytes = TotalOf(m),
+                    SafetyMarginBytes = 0,
+                });
+
+            PatchRunResult r = runner.RunAsync().GetAwaiter().GetResult();
+
+            Assert.AreEqual(ReleaseRejectReason.None, runner.LastRejectReason,
+                "信任关必须放行——被拒说明签发端与运行时的字节契约漂移");
+            Assert.IsTrue(r.Succeeded, r.ToString());
+            Assert.AreEqual(PatchPhase.Confirmed, r.FinalPhase);
+            Assert.AreEqual(offer.Manifest.ReleaseId, store.Current.ConfirmedReleaseId);
+        }
+
+        [Test]
+        public void 编排端到端_签名被篡改_信任关拒绝且不下载()
+        {
+            const string fixture = "Assets/Tests/EditMode/Fixtures/signed-candidate.json";
+            Assert.IsTrue(System.IO.File.Exists(fixture), $"真信封夹具缺失：{fixture}");
+
+            string json = System.IO.File.ReadAllText(fixture);
+            // 改清单里的 ReleaseId —— 被签名字节随之改变，而签名不动 → 必须被拒。
+            // 这条钉的是"信任关看的是**被签名字节**，不是反序列化后的对象"。
+            string tampered = json.Replace("\"ReleaseId\":\"rel-fixture-001\"",
+                                           "\"ReleaseId\":\"rel-evil-999\"");
+            Assert.AreNotEqual(json, tampered, "替换未生效——夹具的 ReleaseId 变了？");
+
+            CandidateOffer offer = SignedManifestEnvelope.Parse(tampered);
+            Assert.IsFalse(offer.IsEmpty);
+
+            foreach ((string path, string content) in FixtureFiles)
+                WriteCandidate(path, content);
+
+            var store = new ActivationTransactionStore(new MemoryActivationIO(), () => 1);
+            var coord = new PatchCoordinator(
+                store,
+                new FileSysCandidateFileSource(Root),
+                new DriveInfoSpaceProbe(UnityEngine.Application.persistentDataPath),
+                new LocalDirectoryCandidateFetcher(Root),
+                new AlwaysHealthy(),
+                new NoOpActivator(),
+                generationSink: null);
+
+            var trustedKeys = new TrustedKeyStore();
+            ContentTrustAnchors.ApplyTo(trustedKeys);
+
+            var runner = new PatchRunner(new FixedProvider(offer), Player(), store, coord,
+                trustedKeys.AsResolver());
+
+            PatchRunResult r = runner.RunAsync().GetAwaiter().GetResult();
+
+            Assert.AreEqual(ReleaseRejectReason.BadSignature, runner.LastRejectReason);
+            Assert.IsFalse(r.Succeeded);
+            Assert.IsNull(store.Current.ConfirmedReleaseId, "被拒的候选不得改写已确认版本");
+        }
     }
 }
