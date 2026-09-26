@@ -105,6 +105,139 @@ namespace LiteGame.Tests.UI.PlayMode
             Assert.DoesNotThrow(() => player.Dispose(), "重复释放幂等");
         }
 
+        /// <summary>
+        /// 取真角色 prefab 的共用前置：返回 null 表示包不可用（调用方走降级分支）。
+        /// 结果只取一次（UniTask 不允许 await/取结果两次）。
+        /// </summary>
+        private IEnumerator LoadAvatar(System.Action<GameObject> onDone)
+        {
+            var load = AssetService.LoadAssetAsync<GameObject>(CombatGirlsAnimationProfile.ViewPrefabPath);
+            yield return Wait(load, 60f);
+            GameObject prefab = load.Status == UniTaskStatus.Succeeded ? load.GetAwaiter().GetResult() : null;
+            onDone(prefab);
+        }
+
+        [UnityTest]
+        public IEnumerator 动画打断_真资源下同通道替换_旧播放得Interrupted且通道归新播放()
+        {
+            // 《框架先行》§6 样例③ 必测失败项「**动画打断**」。
+            //
+            // **与 L1 的分工**：`AnimationContractTests` 已在**纯契约**层覆盖
+            // 「同通道替换_旧播放得Interrupted」；本组要的是**真控制器/真资源**下同一条语义成立——
+            // 那是 EditMode 与替身都给不了的（真 Animator 通道、真状态切换）。
+            GameObject prefab = null;
+            yield return LoadAvatar(p => prefab = p);
+
+            if (prefab == null)
+            {
+                // 缺包：走同一契约的**降级断言**（不因缺包而跳过整条用例——
+                // 那会让"打断"这一项永远没人验）。见本文件既有用例的降级分支口径。
+                GameObject greybox = _scope.CreateGameObject("InterruptGreybox");
+                var viewRoot = _scope.CreateGameObject("InterruptViewRoot").transform;
+                greybox.transform.SetParent(viewRoot, false);
+
+                using (var driver = new CharacterLocomotionDriver(
+                           new SimView(new SimWorldState(), viewRoot, (loc, parent) => greybox)))
+                {
+                    Assert.DoesNotThrow(() => driver.Tick(0.02f), "无控制器视图不得抛（灰盒降级）");
+                    Assert.AreEqual(0, driver.AnimatedViews, "无控制器的视图不建播放器");
+                }
+                yield break;
+            }
+
+            GameObject avatar = _scope.Track(UnityEngine.Object.Instantiate(prefab));
+            var root = _scope.CreateGameObject("InterruptRoot").transform;
+            avatar.transform.SetParent(root, false);
+
+            Animator animator = avatar.GetComponentInChildren<Animator>(true);
+            Assert.IsNotNull(animator?.runtimeAnimatorController, "真角色应带 RuntimeAnimatorController");
+
+            var backend = new AnimatorAnimationBackend(animator);
+            var player = new CharacterAnimationPlayer(backend, CombatGirlsAnimationProfile.Build());
+
+            // 记录终态（OnTerminal 是打断判据的出口——§6"旧待提交一并终止"）
+            var terminals = new System.Collections.Generic.List<(AnimationHandle h, AnimationTerminalState t)>();
+            player.OnTerminal += (h, t) => terminals.Add((h, t));
+
+            // ① 先起 Run
+            AnimationStartResult first = player.Play(new AnimationRequest(
+                CharacterAnimationIds.Run, AnimationChannel.Locomotion));
+            Assert.IsTrue(first.Accepted, "真控制器应有 Run 状态");
+
+            for (int i = 0; i < 5; i++) { player.Tick(0.05f); player.Tick(0.05f); }
+
+            // ② 同通道再起 Walk → Run 应得 **Interrupted**（被接受的新播放接管替换）
+            AnimationStartResult second = player.Play(new AnimationRequest(
+                CharacterAnimationIds.Walk, AnimationChannel.Locomotion));
+            Assert.IsTrue(second.Accepted, "真控制器应有 Walk 状态");
+
+            yield return null;                                  // 让真实 PlayerLoop 转一帧
+
+            Assert.IsTrue(terminals.Exists(x => x.t == AnimationTerminalState.Interrupted),
+                "同通道替换必须让旧播放得 Interrupted 终态（§6 打断语义）");
+
+            // ③ 通道归新播放所有（不是"两边都在跑"）
+            Assert.IsTrue(backend.IsChannelActive(AnimationChannel.Locomotion),
+                "通道应仍处于激活态（新播放接管）");
+            Assert.IsTrue(player.TryGetState(second.Handle, out AnimationPlaybackState state)
+                          && state.Terminal == AnimationTerminalState.None,
+                "新播放应仍在进行（未被自己的接入误终止）");
+
+            // ④ 快速反复打断：混合尾部有上限、不无限累积（§12"多次快速打断…不能无限累积"）
+            for (int i = 0; i < 12; i++)
+            {
+                player.Play(new AnimationRequest(
+                    i % 2 == 0 ? CharacterAnimationIds.Idle : CharacterAnimationIds.Run,
+                    AnimationChannel.Locomotion));
+                player.Tick(0.02f);
+            }
+            Assert.LessOrEqual(terminals.Count, CharacterAnimationPlayer.TerminalRetentionCapacity,
+                "反复打断的终态记录必须有界（§12：不能无限累积）");
+
+            player.Dispose();
+            yield return null;
+        }
+
+        [UnityTest]
+        public IEnumerator 动画打断_Owner释放_当前播放得OwnerDisposed而非静默消失()
+        {
+            // 「加载后 Owner 已退出」的另一半：Owner 结束时**在播的动画必须收到明确终态**，
+            // 而不是悄悄停掉（§5 接缝 3"Owner 释放有明确终态"）。
+            GameObject prefab = null;
+            yield return LoadAvatar(p => prefab = p);
+            if (prefab == null) yield break;                     // 缺包：上一条已断言降级契约
+
+            GameObject avatar = _scope.Track(UnityEngine.Object.Instantiate(prefab));
+            var root = _scope.CreateGameObject("DisposeRoot").transform;
+            avatar.transform.SetParent(root, false);
+
+            var backend = new AnimatorAnimationBackend(avatar.GetComponentInChildren<Animator>(true));
+            var player = new CharacterAnimationPlayer(backend, CombatGirlsAnimationProfile.Build());
+
+            AnimationTerminalState? terminal = null;
+            player.OnTerminal += (h, t) => terminal = t;
+
+            player.Play(new AnimationRequest(CharacterAnimationIds.Run, AnimationChannel.Locomotion));
+            for (int i = 0; i < 5; i++) player.Tick(0.05f);
+
+            player.Dispose();                                    // Owner 释放
+
+            Assert.AreEqual(AnimationTerminalState.OwnerDisposed, terminal,
+                "Owner 释放时当前播放必须得 OwnerDisposed 终态（不是静默消失）");
+            Assert.IsTrue(player.IsDisposed);
+            Assert.DoesNotThrow(() => player.Dispose(), "重复释放幂等");
+
+            // Owner 释放后不得再接受新播放
+            AnimationStartResult after = player.Play(new AnimationRequest(
+                CharacterAnimationIds.Idle, AnimationChannel.Locomotion));
+            Assert.IsFalse(after.Accepted, "已释放的播放器不得接受新播放");
+            Assert.AreEqual(AnimationStartResult.Reason.OwnerUnavailable, after.RejectReason,
+                "拒绝原因应为 OwnerUnavailable（稳定可诊断）");
+            yield return null;
+        }
+    }
+}
+
         [UnityTest]
         public IEnumerator 动画_驱动对无控制器视图_跳过且不报错()
         {

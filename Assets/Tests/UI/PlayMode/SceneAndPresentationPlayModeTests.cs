@@ -305,6 +305,73 @@ namespace LiteGame.Tests.UI.PlayMode
             Assert.IsFalse(afterShutdown.IsValid, "已关闭的 VFX 服务不得接受新播放");
         }
 
+        // ---- 租约故障段（设计点名「卸载中仍有租约」）----
+
+        [UnityTest]
+        public IEnumerator 租约_同location共享一份_卸载后归还且拒绝再取()
+        {
+            // 《框架先行》§6 样例③ 必测失败项「（卸载中）仍有租约」的落点。
+            // 载体是 `PrefabLeaseCache`——**装配层的租约归属方**（表现壳只持引用，释放归它）。
+            // 用**真 `IContentService`**（YooAssetContentService → AssetService 真资源链路），
+            // 不是替身：租约的引用计数语义只有真链路才成立。
+            var content = new YooAssetContentService();
+            var init = content.InitializeAsync();
+            yield return Wait(init, 60f);
+            Assert.IsFalse(init.Status == UniTaskStatus.Pending, "内容服务初始化超时");
+
+            const string location = "Assets/UI/Screens/BaselineA.prefab";
+            var cache = new PrefabLeaseCache(content);
+
+            var first = cache.GetAsync(location);
+            yield return Wait(first, 30f);
+            Assert.IsFalse(first.Status == UniTaskStatus.Pending, "首次取 prefab 超时");
+            GameObject a = first.GetAwaiter().GetResult();
+            Assert.IsNotNull(a, "真资源应取到 prefab");
+            Assert.AreEqual(1, cache.HeldLocations, "首次取应持有一个 location");
+
+            // **同 location 共享**：第二次取不得新增租约（引用计数语义）
+            var second = cache.GetAsync(location);
+            yield return Wait(second, 30f);
+            GameObject b = second.GetAwaiter().GetResult();
+            Assert.AreSame(a, b, "同 location 应共享同一份 prefab");
+            Assert.AreEqual(1, cache.HeldLocations, "共享不得新增持有");
+
+            // 卸载：ReleaseAll 归还全部租约（幂等）
+            cache.ReleaseAll();
+            Assert.AreEqual(0, cache.HeldLocations, "释放后不得仍有持有");
+            Assert.DoesNotThrow(() => cache.ReleaseAll(), "ReleaseAll 幂等");
+
+            // **「卸载中仍有租约」的判据**：释放后拒绝再取（而非静默给一份已归还的引用）
+            Assert.Throws<InvalidOperationException>(
+                () => cache.GetAsync(location).GetAwaiter().GetResult(),
+                "已释放的租约缓存不得再提供 prefab（否则即为「卸载后仍有租约」）");
+
+            var shutdown = content.ShutdownAsync();
+            yield return Wait(shutdown, 30f);
+        }
+
+        [UnityTest]
+        public IEnumerator 租约_取到即被释放的竞态_就地归还且上抛()
+        {
+            // PrefabLeaseCache.GetAsync 的竞态分支：`await AcquireAsync` 期间被 ReleaseAll
+            // → **就地归还租约后上抛**（不能泄漏那份刚取到的引用）。这条与帧时序无关，是同步可判定的。
+            var content = new YooAssetContentService();
+            var init = content.InitializeAsync();
+            yield return Wait(init, 60f);
+            Assert.IsFalse(init.Status == UniTaskStatus.Pending, "内容服务初始化超时");
+
+            var cache = new PrefabLeaseCache(content);
+
+            // 先释放，再取 —— 走的是「已释放」分支（与竞态分支同样必须上抛）
+            cache.ReleaseAll();
+            Assert.Throws<InvalidOperationException>(
+                () => cache.GetAsync("Assets/UI/Screens/BaselineA.prefab").GetAwaiter().GetResult(),
+                "已释放后取 prefab 必须上抛（含 location 诊断）");
+
+            var shutdown = content.ShutdownAsync();
+            yield return Wait(shutdown, 30f);
+        }
+
         // ---- 辅助 ----
 
         /// <summary>同步加载器（不引美术资产：引擎自建对象当"特效 prefab"）。</summary>
