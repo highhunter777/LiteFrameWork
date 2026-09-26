@@ -131,9 +131,9 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 1304298837}
-  - component: {fileID: 1304298841}
   - component: {fileID: 1304298840}
   - component: {fileID: 1304298839}
+  - component: {fileID: 1304298841}
   m_Layer: 0
   m_Name: GameObject
   m_TagString: Untagged
@@ -185,6 +185,7 @@ MonoBehaviour:
   WorldPaused: 0
   UiPaused: 0
   StrictMode: 1
+  UseLocalServer: 0
 --- !u!114 &1304298841
 MonoBehaviour:
   m_ObjectHideFlags: 0

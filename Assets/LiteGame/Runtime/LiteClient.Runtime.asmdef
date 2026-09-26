@@ -8,6 +8,8 @@
         "LiteNet",
         "LiteSim.Core",
         "LiteSim.View",
+        "RoomServer.Application.Runtime",
+        "RoomServer.Runtime",
         "UniTask"
     ],
     "includePlatforms": [],

@@ -81,7 +81,7 @@ namespace LiteGame
             {
                 account = _rootScope.CreateChild("Account");
                 battle = account.Register(new BattleClient(TestHost, TestPort, TestRoomId, TestToken,
-                    LiteNet.BuildHash.Value));
+                    LiteNet.BuildHash.Value, transport: CreateTransport()));
                 _pending = battle;                        // 交给 OnUpdate 驱动泵（握手/收发全靠它推进）
 
                 await WaitJoined(battle, ct);
@@ -103,6 +103,27 @@ namespace LiteGame
                 Fail(m, ex, nameof(RunAsyncCore));
                 m.Request(ProcedureId.Error, new ProcedureArgs(ex));
             }
+        }
+
+        /// <summary>
+        /// 选择传输：**真 KCP（默认）** 还是 **进程内本地服务器**（离线隔离开发）。
+        ///
+        /// 开关来自 <see cref="DebugTuner.UseLocalServerEnabled"/>（场景里挂的调试组件，Inspector 勾选）。
+        /// **只在开发/编辑器/开发包可用**——`DebugTuner` 整体在 `#if` 内，release 下该静态不存在，
+        /// 故此处也包在同一门禁里，正式包恒走真 KCP（不给"悄悄退化成假服务器"留窗口，
+        /// 框架先行 §6"生产配置缺真实依赖时拒绝启动或拒绝相应功能，不能悄悄退回 fake"）。
+        /// </summary>
+        private static LiteNet.Transport.IClientTransport CreateTransport()
+        {
+#if UNITY_EDITOR || DEVELOPMENT_BUILD || LITEFRAMEWORK_DEBUG
+            if (DebugTuner.UseLocalServerEnabled)
+            {
+                UnityEngine.Debug.Log("[Match] **本地服务器**：对局在进程内跑真 RoomRuntime 内核"
+                    + "（无 Socket / 无票据 / 单房间 / 剩余席位自动补位站桩——弱网、重连真实性与真实多人交互仍须真服务器验证）");
+                return new LocalServerTransport(new RoomServer.Runtime.RoomConfig { RoomId = TestRoomId });
+            }
+#endif
+            return null;                                  // null = BattleClient 自建真 KCP（生产路径）
         }
 
         /// <summary>等 JoinAck（RoomClient 相位 Idle → Connected；超时 = 确定失败态）。</summary>

@@ -17,6 +17,7 @@
         "LiteSim.View",
         "Luban.Runtime",
         "Luban.Tables",
+        "RoomServer.Runtime",
         "UniTask",
         "xLuaMain"
     ],
