@@ -1,23 +1,14 @@
 {
-    "name": "LiteGame.App",
+    "name": "LiteClient.Runtime",
     "rootNamespace": "LiteGame",
     "references": [
         "LiteClient.Abstractions",
-        "LiteClient.Content.YooAsset",
-        "LiteClient.Network.Kcp",
-        "LiteClient.Scripting.XLua",
-        "LiteClient.Serialization.Luban",
         "LiteFramework.Core",
         "LiteFramework.Unity",
-        "LiteGame.Runtime",
-        "LiteGame.UI",
         "LiteNet",
         "LiteSim.Core",
         "LiteSim.View",
-        "Luban.Runtime",
-        "Luban.Tables",
-        "UniTask",
-        "xLuaMain"
+        "UniTask"
     ],
     "includePlatforms": [],
     "excludePlatforms": [],

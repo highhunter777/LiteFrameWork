@@ -5,7 +5,7 @@ namespace LiteGame.Editor
 {
     /// <summary>
     /// xLua 生成配置（M3 步骤 2.1，2026-09-10 决策修订）：**业务类型（Bridge）不进 LuaCallCSharp**——
-    /// 生成代码落在 xLuaMain 内，包 wrapper 需要业务类型就得让 xLuaMain 引 LiteGame.Runtime，
+    /// 生成代码落在 xLuaMain 内，包 wrapper 需要业务类型就得让 xLuaMain 引 LiteClient.Runtime，
     /// 而 Runtime（LuaComponent）引 xLuaMain → asmdef 循环（asmdef 禁环）。
     /// 替代形态：**服务桥走 CSharpCallLua 委托注册**（LuaComponent 把适配函数 Set 进全局表，
     /// 查表属低频入口，动态转换符合热路径纪律 §4.3）；Bridge 拆独立底层程序集后（M4+ 视频率）再评估生成路线。

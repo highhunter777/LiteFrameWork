@@ -10,7 +10,7 @@ namespace LiteGame
     /// <summary>开发 HUD（只读快照展示）。**自创建形态**：[RuntimeInitializeOnLoadMethod] 在场景加载后
     /// 自建 GameObject（场景**不挂**组件——Editor-only asmdef 实测会把 play 模式场景组件剥离并报
     /// "not derived from MonoBehaviour"，2026-09-10 回归为三宏 #if 剥离 + 代码创建，同 DebugTuner 手法）。
-    /// 自拉取模式：LiteGame.DevHUD → LiteGame.Runtime 单向引用，HUD 在 Start 经
+    /// 自拉取模式：LiteGame.DevHUD → LiteClient.Runtime 单向引用，HUD 在 Start 经
     /// FindAnyObjectByType 拉 `GameEntry.Stats`（只读统计访问器，非解析入口）+ 场景组件型 IModuleStats 合并。
     /// **各段渲染开关 = public 字段**（Inspector 可配 / 代码可改，2026-09-13）：showStats /
     /// statToggles（单模块段 bool 开关）/ showLogRecent / logRecentLines / showErrorsLine。

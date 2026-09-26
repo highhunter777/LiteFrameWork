@@ -3,10 +3,10 @@
     "rootNamespace": "LiteGame",
     "references": [
         "LiteClient.Abstractions",
+        "LiteClient.Runtime",
         "LiteClient.Serialization.Luban",
         "LiteFramework.Core",
         "LiteFramework.Unity",
-        "LiteGame.Runtime",
         "LiteGame.UI",
         "Luban.Runtime",
         "Luban.Tables",
