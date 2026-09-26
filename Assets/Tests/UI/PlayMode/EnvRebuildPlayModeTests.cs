@@ -4,6 +4,7 @@ using System.IO;
 using System.Threading;
 using Cysharp.Threading.Tasks;
 using LiteGame;
+using LiteGame.UI;
 using LiteTesting;
 using LiteTesting.Unity;
 using NUnit.Framework;
@@ -85,7 +86,8 @@ namespace LiteGame.Tests.UI.PlayMode
                 }),
                 // resolver 读**实例字段**——env 重建后同一 UIService 的复用路径会解析到新 env 的模块
                 logicResolver: info => new LuaBehaviourAdapter(_env, _module),
-                loadPrefab: LoadRealPrefabAsync);
+                loadPrefab: LoadRealPrefabAsync,
+                transitionStrategy: new FadeSlideTransition());   // 生产同款（默认已改零动效，见 §5.1）
 
             var host = _scope.CreateGameObject("PlayModeHost");
             PlayModeTicker.Attach(host, _ui.Tick);

@@ -3,6 +3,7 @@ using System.Threading;
 using Cysharp.Threading.Tasks;
 using LiteTesting;
 using LiteTesting.Unity;
+using LiteGame.UI;   // FadeSlideTransition 已随 §5.1 迁入适配器边界（原在 LiteGame 根）
 using NUnit.Framework;
 using UnityEngine;
 

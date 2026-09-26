@@ -94,7 +94,8 @@ namespace LiteGame.Tests.UI.PlayMode
                     new UIFormInfo { Id = PageList, Layer = 0, FullScreen = true,
                         LuaPath = "", Location = "Assets/UI/Screens/ListScreen.prefab" },
                 }),
-                loadPrefab: LoadRealPrefabAsync);
+                loadPrefab: LoadRealPrefabAsync,
+                transitionStrategy: new FadeSlideTransition());   // 生产同款（默认已改零动效，见 §5.1）
 
             var host = _scope.CreateGameObject("PlayModeHost");
             PlayModeTicker.Attach(host, _ui.Tick);

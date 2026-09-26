@@ -88,7 +88,8 @@ namespace LiteGame.Tests.UI.PlayMode
                         LuaPath = UIMainRequire, Location = UIMainLocation },
                 }),
                 logicResolver: _ => new LuaBehaviourAdapter(_env, module),
-                loadPrefab: LoadRealPrefabAsync);
+                loadPrefab: LoadRealPrefabAsync,
+                transitionStrategy: new FadeSlideTransition());   // 生产同款（默认已改零动效，见 §5.1）
             _nav = new UINavigationController(_ui);
 
             var host = _scope.CreateGameObject("PlayModeHost");

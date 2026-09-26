@@ -101,7 +101,8 @@ namespace LiteGame.Tests.UI.PlayMode
                     if (!_logics.TryGetValue(info.Id, out var logic)) _logics[info.Id] = logic = new CountingLogic();
                     return logic;
                 },
-                loadPrefab: (loc, ct) => LoadLeaseAsync(loc, ct));
+                loadPrefab: (loc, ct) => LoadLeaseAsync(loc, ct),
+                transitionStrategy: new FadeSlideTransition());   // 生产同款（默认已改零动效，见 §5.1）
 
             var host = _scope.CreateGameObject("Host");
             PlayModeTicker.Attach(host, _ui.Tick);

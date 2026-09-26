@@ -89,7 +89,8 @@ namespace LiteGame.Tests.UI.PlayMode
             }
 
             _ui = new UIService(BuildCatalog(),
-                loadPrefab: LoadRealPrefabAsync);
+                loadPrefab: LoadRealPrefabAsync,
+                transitionStrategy: new FadeSlideTransition());   // 生产同款（默认已改零动效，见 §5.1）
             _nav = new UINavigationController(_ui);
             _dialogs = new DialogService(_ui);
             _feedback = new FeedbackService(_ui, _dialogs, _nav);

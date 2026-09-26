@@ -78,7 +78,7 @@ namespace LiteGame
             int cacheBudget = DefaultCacheBudget)
         {
             _catalog = catalog ?? throw new ArgumentNullException(nameof(catalog));
-            _transitions = new UITransitionRunner(transitionStrategy ?? new FadeSlideTransition(),
+            _transitions = new UITransitionRunner(transitionStrategy ?? new InstantTransition(),   // 默认零动效：通用层不认识动效适配器（§5.1）；生产装配显式传 FadeSlideTransition
                                                   replaceTransition, transitionMaxDuration);
             _pop = popInterceptor ?? new DefaultPopInterceptor();
             _logicResolver = logicResolver;

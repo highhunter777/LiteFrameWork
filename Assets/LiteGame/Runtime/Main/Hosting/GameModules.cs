@@ -252,7 +252,11 @@ namespace LiteGame
 
                 _uiService = new UIService(new UIFormCatalog(config),
                     logicResolver: info => new LuaBehaviourAdapter(lua.Env, uiRegistry.Get(info.LuaPath)),
-                    loadPrefab: (location, token) => LoadPrefabLeaseAsync(content, location, token));
+                    loadPrefab: (location, token) => LoadPrefabLeaseAsync(content, location, token),
+                    // 转场策略**必须显式传**（《客户端总设计》§5.1 逻辑边界）：UIService 的默认
+                    // 已改为零动效 InstantTransition（通用层不认识 DOTween）；产品转场是**装配决策**，
+                    // 在此注入真实现。不传 = 页面瞬时切换（功能正确、无动效）。
+                    transitionStrategy: new FadeSlideTransition());
                 context.Put(_uiService);
                 context.Put(new UINavigationController(_uiService));   // U2 首版导航（UI-11）：产品导航的单写者入口
                 return UniTask.CompletedTask;
