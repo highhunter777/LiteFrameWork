@@ -130,13 +130,17 @@ jobs:
   # 为什么需要：L1 按路径 glob 编译、不读 .meta 也不经 Unity 编译器——2026-09-15 那次
   #   16 个非法 GUID 的 .meta 事故里 L1 全绿而 Unity 编译是坏的（门禁说明见 Docs/README.md 执行与环境文档）。
   # 为什么默认不跑：GitHub-hosted runner 跑不了本工程的 Unity 侧——
-  #   ① 仓库按约定只含自研代码/预制品/文档，ProjectSettings/美术素材/场景/Odin 均不入库，
-  #      全新克隆工程无法编译（见 Docs/环境恢复指南.md）
+  #   ① 仓库按约定只含自研代码/预制品/文档，美术素材/场景/Odin 均不入库
   #   ② 编辑器是 Unity 中国版 2022.3.55f1c1，GitHub 镜像与授权都不匹配
   # 因此 L2 走**自托管 runner（Windows + 完整工程）**，并用仓库变量 L2_ENABLED=true 开启。
+  #
+  # **只在夜间/手动跑（2026-09-26 用户要求）**：Unity 测试占编辑器、冷启动要导包编译，
+  # 白天跑会打断编辑会话。故本 job 显式排除 push/PR——即使 L2_ENABLED 打开也不会在白天触发。
+  # 夜间另有本机计划任务 `LiteGame-Nightly-Gate`（03:00，跑 L1+L2，日志落 TestResults/nightly/），
+  # 与下面这个 job 目的重叠：**二选一即可**，同时开会白跑两遍。
   l2-unity-gate:
     name: L2 Unity 侧门禁 + Player 构建/冒烟（自托管 runner）
-    if: ${{ vars.L2_ENABLED == 'true' }}
+    if: ${{ vars.L2_ENABLED == 'true' && (github.event_name == 'schedule' || github.event_name == 'workflow_dispatch') }}
     runs-on: [self-hosted, windows]
     timeout-minutes: 60
     steps:
