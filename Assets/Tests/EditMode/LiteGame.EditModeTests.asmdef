@@ -9,6 +9,7 @@
         "LiteGame.Editor",
         "LiteGame.Net.Kcp",
         "LiteGame.Runtime",
+        "LiteGame.Scripting.XLua",
         "LiteNet",
         "LiteSim.Core",
         "LiteSim.Core.Editor",

@@ -10,6 +10,7 @@
         "LiteGame.Content.YooAsset",
         "LiteGame.Net.Kcp",
         "LiteGame.Runtime",
+        "LiteGame.Scripting.XLua",
         "Luban.Tables",
         "UniTask",
         "Unity.TextMeshPro",

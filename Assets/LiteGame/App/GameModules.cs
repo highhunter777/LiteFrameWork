@@ -384,8 +384,18 @@ namespace LiteGame
                 var rootToken = context.RootScope.Token;            // C1-⑦ 统一取消链：流程阶段 CTS 链接宿主根令牌
                 var activations = context.Require<ActivationTransactionStore>();   // C1-⑩：Patch 流程消费（Content ②产物）
                 var patchRunner = context.Require<PatchRunner>();                  // 热更：内容事务编排
+                // Lua 侧产物就地注册 + 服务桥绑定（原在 ProcedureLaunch——那是 Runtime 流程，
+                // 不该认识脚本适配器；§5.1 逻辑边界：适配器产物由装配根接线）
+                container.RegisterInstance<IUILuaRegistry>(uiRegistry);
+                container.RegisterInstance<IContentLuaRegistry>(contentRegistry);
+                container.RegisterInstance<IStrategyLuaRegistry>(strategyRegistry);
+                container.RegisterInstance<LuaRegistryRefillService>(refill);
+                Bridge.Bind(() => config.Tables);            // M2 C# 骨架，M3 绑成 Lua 全局表
+                Bridge.BindRegistries(uiRegistry, contentRegistry);   // ui/content 骨架门面查询底座（§2.5）
+                Bridge.BindUIService(uiService);             // 真实门面 Show/Close/IsOpen 后端（M4 §2.3）
+
                 return new StageMachine<ProcedureId, ProcedureArgs>("Procedure",
-                    (ProcedureId.Launch, new ProcedureLaunch(container, config, uiRegistry, contentRegistry, strategyRegistry, uiService, redDotRegistry, logicScheduler, uiScheduler, timelineRunner, entityService, audioService, vfxService, refill, context.Require<UINavigationController>(), rootToken)),
+                    (ProcedureId.Launch, new ProcedureLaunch(container, config, uiService, redDotRegistry, logicScheduler, uiScheduler, timelineRunner, entityService, audioService, vfxService, context.Require<UINavigationController>(), rootToken)),
                     (ProcedureId.Patch, new ProcedurePatch(content, activations, patchRunner, rootToken)),
                     (ProcedureId.Preload, new ProcedurePreload(content, config, lua, filler, events, () => ListLuaAssetPaths(content), rootToken)),
                     (ProcedureId.Main, new ProcedureMain(uiService, context.Require<UINavigationController>(), rootToken)),

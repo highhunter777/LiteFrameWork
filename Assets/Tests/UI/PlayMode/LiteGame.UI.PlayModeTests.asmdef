@@ -8,6 +8,7 @@
         "LiteGame.Content.YooAsset",
         "LiteGame.Net.Kcp",
         "LiteGame.Runtime",
+        "LiteGame.Scripting.XLua",
         "LiteSim.Core",
         "LiteSim.View",
         "LiteTesting.Core",

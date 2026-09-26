@@ -357,9 +357,9 @@ namespace LiteFramework.Tests
             //   但不放行 XLua/DG.Tweening。）
             Assert.Equal(0, CountAt("Assets/LiteGame/Content/C.cs",
                 "using YooAsset;", LintRule.R12AdapterBoundary));
-            Assert.Equal(0, CountAt("Assets/LiteGame/Runtime/Shell/Lua/C.cs",
+            Assert.Equal(0, CountAt("Assets/LiteGame/Scripting/Lua/C.cs",
                 "using XLua;", LintRule.R12AdapterBoundary));
-            Assert.Equal(0, CountAt("Assets/LiteGame/Runtime/Shell/Bridge/C.cs",
+            Assert.Equal(0, CountAt("Assets/LiteGame/Scripting/Bridge/C.cs",
                 "using XLua;", LintRule.R12AdapterBoundary));
             Assert.Equal(0, CountAt("Assets/LiteGame/Runtime/Shell/UI/Anim/C.cs",
                 "using DG.Tweening;", LintRule.R12AdapterBoundary));
@@ -367,7 +367,7 @@ namespace LiteFramework.Tests
             // 反向：边界目录**不**放行别人的适配器
             Assert.Equal(1, CountAt("Assets/LiteGame/Content/C.cs",
                 "using XLua;", LintRule.R12AdapterBoundary));
-            Assert.Equal(1, CountAt("Assets/LiteGame/Runtime/Shell/Lua/C.cs",
+            Assert.Equal(1, CountAt("Assets/LiteGame/Scripting/Lua/C.cs",
                 "using YooAsset;", LintRule.R12AdapterBoundary));
             Assert.Equal(1, CountAt("Assets/LiteGame/Runtime/Shell/UI/Anim/C.cs",
                 "using YooAsset;", LintRule.R12AdapterBoundary));

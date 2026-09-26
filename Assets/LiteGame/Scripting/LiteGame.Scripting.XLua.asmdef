@@ -1,22 +1,21 @@
 {
-    "name": "LiteGame.DevHUD",
+    "name": "LiteGame.Scripting.XLua",
     "rootNamespace": "LiteGame",
     "references": [
         "LiteFramework.Core",
         "LiteFramework.Unity",
-        "LiteGame.App",
-        "LiteGame.Content.YooAsset",
-        "LiteGame.Net.Kcp",
         "LiteGame.Runtime",
-        "LiteGame.Scripting.XLua",
-        "LiteSim.Core"
+        "Luban.Runtime",
+        "Luban.Tables",
+        "UniTask",
+        "xLuaMain"
     ],
     "includePlatforms": [],
     "excludePlatforms": [],
     "allowUnsafeCode": false,
     "overrideReferences": false,
     "precompiledReferences": [],
-    "autoReferenced": false,
+    "autoReferenced": true,
     "defineConstraints": [],
     "versionDefines": [],
     "noEngineReferences": false

@@ -17,9 +17,6 @@ namespace LiteGame
     {
         private readonly ServiceContainer _container;
         private readonly ConfigService _config;
-        private readonly UiLuaRegistry _uiRegistry;
-        private readonly ContentLuaRegistry _contentRegistry;
-        private readonly StrategyLuaRegistry _strategyRegistry;
         private readonly UIService _ui;
         private readonly RedDotRegistry _redDot;
         private readonly ILogicScheduler _logicScheduler;
@@ -28,22 +25,17 @@ namespace LiteGame
         private readonly EntityService _entities;
         private readonly AudioService _audio;
         private readonly VfxService _vfx;
-        private readonly LuaRegistryRefillService _refill;
         private readonly UINavigationController _nav;
 
         public ProcedureLaunch(ServiceContainer container, ConfigService config,
-            UiLuaRegistry uiRegistry, ContentLuaRegistry contentRegistry, StrategyLuaRegistry strategyRegistry,
             UIService uiService, RedDotRegistry redDotRegistry,
             ILogicScheduler logicScheduler, IUIScheduler uiScheduler, GameTimelineRunner timelineRunner,
             EntityService entityService, AudioService audioService, VfxService vfxService,
-            LuaRegistryRefillService refillService, UINavigationController nav, CancellationToken rootToken = default)
+            UINavigationController nav, CancellationToken rootToken = default)
             : base(rootToken)
         {
             _container = container ?? throw new ArgumentNullException(nameof(container));
             _config = config ?? throw new ArgumentNullException(nameof(config));
-            _uiRegistry = uiRegistry ?? throw new ArgumentNullException(nameof(uiRegistry));
-            _contentRegistry = contentRegistry ?? throw new ArgumentNullException(nameof(contentRegistry));
-            _strategyRegistry = strategyRegistry ?? throw new ArgumentNullException(nameof(strategyRegistry));
             _ui = uiService ?? throw new ArgumentNullException(nameof(uiService));
             _redDot = redDotRegistry ?? throw new ArgumentNullException(nameof(redDotRegistry));
             _logicScheduler = logicScheduler ?? throw new ArgumentNullException(nameof(logicScheduler));
@@ -52,7 +44,6 @@ namespace LiteGame
             _entities = entityService ?? throw new ArgumentNullException(nameof(entityService));
             _audio = audioService ?? throw new ArgumentNullException(nameof(audioService));
             _vfx = vfxService ?? throw new ArgumentNullException(nameof(vfxService));
-            _refill = refillService ?? throw new ArgumentNullException(nameof(refillService));
             _nav = nav ?? throw new ArgumentNullException(nameof(nav));
         }
 
@@ -65,10 +56,6 @@ namespace LiteGame
             {
                 _container.RegisterInstance<ConfigService>(_config);
                 _container.RegisterInstance<IConfigService>(_config);
-                // 三注册表（M3 §2.4：注册表实例装配在唯一受信装配点；元素同为 LuaTable，标记接口区分）
-                _container.RegisterInstance<IUILuaRegistry>(_uiRegistry);
-                _container.RegisterInstance<IContentLuaRegistry>(_contentRegistry);
-                _container.RegisterInstance<IStrategyLuaRegistry>(_strategyRegistry);
                 _container.RegisterInstance<UIService>(_ui);    // UI 壳（M4 §2.1：薄壳 = DI 注册的普通服务）
                 _container.RegisterInstance<RedDotRegistry>(_redDot);   // 红点规则口（M4 §2.5：完整树 = M4c）
                 _container.RegisterInstance<ILogicScheduler>(_logicScheduler);   // 时序双轨（M4 §2.7：逻辑轨受时停）
@@ -77,7 +64,6 @@ namespace LiteGame
                 _container.RegisterInstance<EntityService>(_entities);   // 实体壳（M4 §2.8：池化+竞态表）
                 _container.RegisterInstance<AudioService>(_audio);       // 声音壳（M4 §2.9：组+代理）
                 _container.RegisterInstance<IVFXService>(_vfx);          // VFX 服务（M11：表现层，注册即发现 ITickable → 自动驱动到期回收）
-                _container.RegisterInstance<LuaRegistryRefillService>(_refill);   // 运行期增量重填（§2.3；触发点 M11 + 调试菜单）
                 var dialogs = new DialogService(_ui);    // U2-⑥b：弹窗服务（ITickable 随注册自动驱动；§4.3 ShowDialogAsync 口径）
                 _container.RegisterInstance<DialogService>(dialogs);
                 var feedback = new FeedbackService(_ui, dialogs, _nav);   // U2-⑥c：Loading/Error/Toast 统一入口（System 层 form；Back 链首位拦截）
@@ -86,9 +72,6 @@ namespace LiteGame
                 _container.RegisterInstance<ToastTicker>(new ToastTicker(() => feedback.ToastHost));
                 _container.Seal();                       // 注册面冻结；此后 Resolve 不受限
 
-                Bridge.Bind(() => _config.Tables);       // 服务桥装配期绑定（M2 C# 骨架，M3 绑成 Lua 全局表）
-                Bridge.BindRegistries(_uiRegistry, _contentRegistry);   // ui/content 骨架门面查询底座（§2.5）
-                Bridge.BindUIService(_ui);               // 真实门面 Show/Close/IsOpen 后端（M4 §2.3）
 
                 m.Request(ProcedureId.Patch);            // C1-⑩：先过内容事务（启动恢复 + 资源包初始化）再预载
             }
