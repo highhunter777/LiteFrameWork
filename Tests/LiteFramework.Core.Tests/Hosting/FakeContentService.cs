@@ -44,10 +44,20 @@ namespace LiteFramework
         /// <summary>Shutdown 已执行标记（幂等断言用）。</summary>
         public bool ShutdownCompleted { get; private set; }
 
+        /// <summary>按 tag 预置的路径表（测试播种；未播种 = 空清单）。</summary>
+        public readonly Dictionary<string, List<string>> TagPaths = new Dictionary<string, List<string>>();
+
         public UniTask InitializeAsync(CancellationToken ct = default)
         {
             Interlocked.Exchange(ref _initialized, 1);
             return UniTask.CompletedTask;
+        }
+
+        /// <summary>按 tag 列路径（契约成员；测试播种 <see cref="TagPaths"/>）。</summary>
+        public IReadOnlyList<string> ListAssetPathsByTag(string tag)
+        {
+            if (string.IsNullOrEmpty(tag)) return Array.Empty<string>();
+            return TagPaths.TryGetValue(tag, out var list) ? list : (IReadOnlyList<string>)Array.Empty<string>();
         }
 
         public UniTask<AssetLease<T>> AcquireAsync<T>(string location, ContentGeneration generation = default, CancellationToken ct = default) where T : class

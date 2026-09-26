@@ -38,6 +38,10 @@ namespace LiteGame.Tests.EditMode
 
             public UniTask InitializeAsync(CancellationToken ct = default) => UniTask.CompletedTask;
 
+            /// <summary>本替身不模拟内容发现——空清单（R12/§5.1 后契约新增的成员）。</summary>
+            public System.Collections.Generic.IReadOnlyList<string> ListAssetPathsByTag(string tag)
+                => System.Array.Empty<string>();
+
             public UniTask<AssetLease<T>> AcquireAsync<T>(string location, ContentGeneration generation = default, CancellationToken ct = default) where T : class
             {
                 Acquires.TryGetValue(location, out int n);

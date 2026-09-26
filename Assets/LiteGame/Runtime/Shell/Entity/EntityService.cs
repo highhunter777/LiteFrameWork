@@ -101,11 +101,12 @@ namespace LiteGame
         /// <summary>加载在途数（诊断：关闭后应为 0）。</summary>
         public int InFlightCount => _inFlight.Count;
 
-        /// <param name="loadPrefab">prefab 加载口（装配点绑 <see cref="PrefabLeaseCache"/>——实例池常驻期间持租约；
-        /// null = 静态 <see cref="AssetService"/> 兼容（迁移期，热更批全量收口）。</param>
-        public EntityService(Func<string, CancellationToken, UniTask<GameObject>> loadPrefab = null)
+        /// <param name="loadPrefab">prefab 加载口（装配点绑 <c>PrefabLeaseCache</c>——实例池常驻期间持租约）。
+        /// **必注入**：原先的 `null → AssetService` 静态回退已删（《客户端总设计》§5.1 逻辑边界）——
+        /// 它让实体服务（Runtime）反向依赖 YooAsset 适配器。全部调用点本就传了 loader（生产/测试皆然）。</param>
+        public EntityService(Func<string, CancellationToken, UniTask<GameObject>> loadPrefab)
         {
-            _loadPrefab = loadPrefab ?? AssetService.LoadAssetAsync<GameObject>;
+            _loadPrefab = loadPrefab ?? throw new ArgumentNullException(nameof(loadPrefab));
         }
 
         /// <summary>

@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using System;
 using System.Threading;
 using Cysharp.Threading.Tasks;
@@ -103,6 +104,16 @@ namespace LiteFramework
         /// <paramref name="generation"/> 固定本次获取的**内容代次**（§8.2：加载/缓存键包含代次——
         /// 默认 = 当前代；旧 Scope 应显式携带自己的代次，不从全局 Current 混取新内容）。</summary>
         UniTask<AssetLease<T>> AcquireAsync<T>(string location, ContentGeneration generation = default, CancellationToken ct = default) where T : class;
+
+        /// <summary>
+        /// 按 tag 列出内容路径（如 "lua" → 全部 .lua 资产路径）。
+        ///
+        /// **为什么在契约里**：TAG 是**发布约定**（收集组打标），实现方各不相同
+        /// （YooAsset 走 <c>GetAssetInfos</c>；热更批走发布清单）。放在内容服务契约里，
+        /// 调用方（装配点）不必认识任何具体后端的包类型——原先装配点直调
+        /// `AssetService.Package`（YooAsset 类型），拆 asmdef 时就是 Runtime → Adapter 的硬依赖。
+        /// </summary>
+        IReadOnlyList<string> ListAssetPathsByTag(string tag);
 
         /// <summary>优雅关闭：释放全部剩余租约与缓存（幂等）。</summary>
         UniTask ShutdownAsync(CancellationToken ct = default);

@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using System;
 using System.Threading;
 using Cysharp.Threading.Tasks;
@@ -110,6 +111,18 @@ namespace LiteGame
             handleLease.Dispose();                                // 类型不符：立即归还底层引用再显性失败
             throw new InvalidOperationException(
                 $"资源类型不符:{location} 期望 {typeof(T).Name} 实得 {handle.AssetObject?.GetType().Name ?? "null"}");
+        }
+
+        /// <summary>按 tag 列内容路径（YooAsset 侧：静态门面的 <c>GetAssetInfos</c>；3.0.5 该重载即按 tag 查询）。
+        /// 原先这段住装配点（<c>GameModules.ListLuaAssetPaths</c>），2026-09-26 归位到适配器（§5.1）。</summary>
+        public IReadOnlyList<string> ListAssetPathsByTag(string tag)
+        {
+            if (string.IsNullOrEmpty(tag)) return Array.Empty<string>();
+            var infos = AssetService.Package.GetAssetInfos(tag);
+            if (infos == null || infos.Length == 0) return Array.Empty<string>();
+            var paths = new string[infos.Length];
+            for (int i = 0; i < infos.Length; i++) paths[i] = infos[i].AssetPath;
+            return paths;
         }
 
         public UniTask ShutdownAsync(CancellationToken ct = default)

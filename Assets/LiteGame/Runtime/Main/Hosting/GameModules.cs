@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Threading;
 using Cysharp.Threading.Tasks;
 using LiteFramework;
@@ -386,21 +387,27 @@ namespace LiteGame
                 return new StageMachine<ProcedureId, ProcedureArgs>("Procedure",
                     (ProcedureId.Launch, new ProcedureLaunch(container, config, uiRegistry, contentRegistry, strategyRegistry, uiService, redDotRegistry, logicScheduler, uiScheduler, timelineRunner, entityService, audioService, vfxService, refill, context.Require<UINavigationController>(), rootToken)),
                     (ProcedureId.Patch, new ProcedurePatch(content, activations, patchRunner, rootToken)),
-                    (ProcedureId.Preload, new ProcedurePreload(content, config, lua, filler, events, ListLuaAssetPaths, rootToken)),
+                    (ProcedureId.Preload, new ProcedurePreload(content, config, lua, filler, events, () => ListLuaAssetPaths(content), rootToken)),
                     (ProcedureId.Main, new ProcedureMain(uiService, context.Require<UINavigationController>(), rootToken)),
                     (ProcedureId.Match, new ProcedureMatch(context.RootScope, rootToken)),
                     (ProcedureId.Battle, new ProcedureBattle(content, vfxService, uiService, rootToken)),
                     (ProcedureId.Error, new ProcedureError(rootToken)));
             }
 
-            /// <summary>Lua 清单绑定（G1：静态 YooAsset tag 查询收口于装配点——热更批以发布清单替换绑定，运行时零改动）。</summary>
-            private static string[] ListLuaAssetPaths()
+            /// <summary>
+            /// Lua 清单绑定（G1：tag 查询收口于**适配器**——热更批以发布清单替换绑定，运行时零改动）。
+            ///
+            /// **2026-09-26 改**（§5.1 逻辑边界）：原先此处直调 `AssetService.Package.GetAssetInfos("lua")`，
+            /// 让装配点认识 YooAsset 的 `ResourcePackage`。现改由内容适配器暴露 `ListLuaAssetPaths()`——
+            /// **tag 查询本就是发布约定，归适配器**；装配点只做委托绑定。
+            /// </summary>
+            private static string[] ListLuaAssetPaths(IContentService content)
             {
-                var infos = AssetService.Package.GetAssetInfos("lua");
-                if (infos == null || infos.Length == 0) return Array.Empty<string>();
-                var paths = new string[infos.Length];
-                for (int i = 0; i < infos.Length; i++) paths[i] = infos[i].AssetPath;
-                return paths;
+                IReadOnlyList<string> paths = content.ListAssetPathsByTag("lua");
+                if (paths == null || paths.Count == 0) return Array.Empty<string>();
+                var result = new string[paths.Count];          // 不用 LINQ（R4 禁）
+                for (int i = 0; i < paths.Count; i++) result[i] = paths[i];
+                return result;
             }
         }
     }
