@@ -114,7 +114,7 @@ namespace LiteGame
         }
 
         /// <summary>按 tag 列内容路径（YooAsset 侧：静态门面的 <c>GetAssetInfos</c>；3.0.5 该重载即按 tag 查询）。
-        /// 原先这段住装配点（<c>GameModules.ListLuaAssetPaths</c>），2026-09-26 归位到适配器（§5.1）。</summary>
+        /// 原先这段住装配点（<c>ContainerModule.ListLuaAssetPaths</c>），2026-09-26 归位到适配器（§5.1）。</summary>
         public IReadOnlyList<string> ListAssetPathsByTag(string tag)
         {
             if (string.IsNullOrEmpty(tag)) return Array.Empty<string>();

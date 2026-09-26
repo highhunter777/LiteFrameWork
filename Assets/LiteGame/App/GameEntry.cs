@@ -11,7 +11,8 @@ namespace LiteGame
     /// <summary>
     /// Unity 引导适配器（《商业级通用客户端框架总设计》§6.1：**GameEntry 最终收敛为 Unity 引导适配器，
     /// 真正的启动与关闭由 ClientHost 持有**——C1 批①②落地）：
-    /// - Awake：建 ClientHost + AppLifetime 桥，按依赖序注册 IClientModule（装配步骤全量移入 GameModules），
+    /// - Awake：建 ClientHost + AppLifetime 桥，按依赖序注册 IClientModule（装配步骤见
+    ///   <see cref="RegisterModules"/>，各模块一件，住 `App/Bootstrap/`），
     ///   启动初始化（失败 → ProcedureError.ShowBootstrapError 进入确定错误态，§C1 退出条件宿主侧）。
     /// - Start：流程机启动（Launch）——依赖宿主初始化同步完成（首批模块全同步）。
     /// - Update：驱动容器 Tickables（原语义：变速由 IGameClock 内部缩放，勿用 Time.deltaTime 二次乘）。
@@ -73,17 +74,7 @@ namespace LiteGame
             gameObject.AddComponent<AppLifetime>().Bind(_host);
 
             // 装配（§6.1：注册顺序 = 初始化顺序 = 关闭逆序——依赖图由调用序表达）
-            _host.AddModule(new GameModules.PlatformInfrastructure())
-                 .AddModule(new GameModules.Content())
-                 .AddModule(new GameModules.Settings())
-                 .AddModule(new GameModules.Clocks())
-                 .AddModule(new GameModules.Schedulers())
-                 .AddModule(new GameModules.LuaHost(gameObject))
-                 .AddModule(new GameModules.Config())
-                 .AddModule(new GameModules.UiShell())
-                 .AddModule(new GameModules.Presentation())
-                 .AddModule(new GameModules.InputModule())
-                 .AddModule(new GameModules.Container());
+            RegisterModules(_host);
 
             _bootCts = new CancellationTokenSource();
 
@@ -133,6 +124,34 @@ namespace LiteGame
                 return;
             }
             _fsm.Start(ProcedureId.Launch);
+        }
+
+        /// <summary>
+        /// 模块装配序列（《客户端总设计》§6.1"按依赖顺序初始化，失败时只关闭已经成功初始化的模块"）。
+        ///
+        /// **注册顺序 = 初始化顺序 = 关闭逆序**：模块间依赖只能引用更早模块的产物（经
+        /// <see cref="ClientContext"/> 的 Put/Require 传递——不用字典做服务定位，同型唯一、
+        /// 类型编译期可见，装配错误显性失败）。这份调用序**就是**依赖图，Host 不推断。
+        ///
+        /// 2026-09-26：原先十一个模块类嵌在 `GameModules` 一个 515 行文件里，本批按件拆到
+        /// `App/Bootstrap/`（每件一文件、顶层类）。拆的理由不是文件大小，是**这类泛用类名
+        /// 需要作用域**——模块类改名 `XxxModule` 后，`Content`/`Config`/`Settings` 这些名字
+        /// 才敢放顶层（否则 `UnityEngine.Input` 这类既有引用会被自己人劫持，见
+        /// <see cref="InputModule"/> 的登记）。
+        /// </summary>
+        private void RegisterModules(ClientHost host)
+        {
+            host.AddModule(new PlatformInfrastructureModule())   // ① 本地持久化 + 日志（先于一切 IO）
+                .AddModule(new ContentModule())                  // ② IContentService（配置/Lua 字节通道的租约来源）
+                .AddModule(new SettingsModule())                 // ③ 玩家偏好（先于容器——UI/声音壳注册时就要读）
+                .AddModule(new ClocksModule())                   // ④ 双轨时钟 + 事件中心
+                .AddModule(new SchedulersModule())               // ⑤ 时序执行（依赖 ④）
+                .AddModule(new LuaHostModule(gameObject))        // ⑥ 脚本宿主（同 GameObject 组件）
+                .AddModule(new ConfigModule())                   // ⑦ 表投影数据源（依赖 ② 的租约通道）
+                .AddModule(new UiShellModule())                  // ⑧ UI 壳（依赖 ⑥⑦②）
+                .AddModule(new PresentationModule())             // ⑨ 表现壳（依赖 ②④）
+                .AddModule(new InputModule())                    // ⑩ 输入服务（依赖 ⑧ 的 UI 结论时机在装配根登记）
+                .AddModule(new ContainerModule());               // ⑪ 容器与流程机（消费以上全部——装配根最后一段）
         }
 
         private void Update()

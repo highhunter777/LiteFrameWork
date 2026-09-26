@@ -19,7 +19,7 @@ namespace LiteGame.UI
     /// - **MonoBehaviour 件**（AnimatedImage 等序列帧）：经 <see cref="Delta"/> 取 UIClock 步进
     ///   （未绑定退化为 Time.unscaledDeltaTime——编辑器/测试兜底）。
     ///
-    /// 进程内唯一 UIClock（GameModules 装配点 <see cref="Bind"/>；Domain-Reload-Off 静态残留由
+    /// 进程内唯一 UIClock（ClocksModule 装配点 <see cref="Bind"/>；Domain-Reload-Off 静态残留由
     /// SubsystemRegistration 重置清空——§4 原则 8 同款纪律）。
     /// </summary>
     public static class UiAnimationClock

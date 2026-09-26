@@ -45,7 +45,7 @@ namespace LiteFramework
         /// 复位全部静态状态（helper 注入、输出等级、环形缓冲、计数）。
         ///
         /// **为什么必须有**：<see cref="SetHelper"/> 注入的是**静态**字段，编辑器里跨测试运行存活。
-        /// PlayMode 套件会跑完整引导链（<c>GameModules.PlatformInfrastructure</c> 调
+        /// PlayMode 套件会跑完整引导链（<c>PlatformInfrastructureModule</c> 调
         /// <c>SetHelper(new UnityLogHelper())</c>），此后 Unity 的 <c>LogAssert</c> 就开始看见
         /// 本来被静默丢弃的错误日志——**故意触发错误日志的 EditMode 用例随即被判定
         /// "Unhandled log message"**（2026-09-26 实测：PlayMode 之后再跑 EditMode 必 5 红，

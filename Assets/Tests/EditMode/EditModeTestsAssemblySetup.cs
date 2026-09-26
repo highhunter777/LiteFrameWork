@@ -6,7 +6,7 @@ namespace LiteGame.Tests.EditMode
     /// EditMode 程序集的**每轮起始复位**（2026-09-26）。
     ///
     /// <b>为什么需要</b>：<c>LiteFramework.Log</c> 是静态类，注入的 helper **跨测试运行存活**，
-    /// 而 PlayMode 套件会跑完整引导链（<c>GameModules.PlatformInfrastructure</c> 调
+    /// 而 PlayMode 套件会跑完整引导链（<c>PlatformInfrastructureModule</c> 调
     /// <c>Log.SetHelper(new UnityLogHelper())</c>）。一旦 helper 在，Unity 的 <c>LogAssert</c>
     /// 就开始看见本被静默丢弃的错误日志——本套件里**故意触发错误日志**的用例随即被判
     /// <c>Unhandled log message</c>。

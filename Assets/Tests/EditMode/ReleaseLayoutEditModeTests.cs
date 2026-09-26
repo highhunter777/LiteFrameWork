@@ -9,7 +9,7 @@ namespace LiteGame.Tests.EditMode
 {
     /// <summary>发布布局约定（《热更与内容发布专项设计》§7/§8 的探针装配输入——
     /// config/ 前缀 = 配置、lua/ 前缀 = 热更脚本、模块名派生与 LuaPreloader 同规则）。
-    /// 这些约定是 GameModules 装配与发布流水线的**共同契约**，派生错了探针就查错文件。</summary>
+    /// 这些约定是 ContainerModule 装配与发布流水线的**共同契约**，派生错了探针就查错文件。</summary>
     public sealed class ReleaseLayoutEditModeTests
     {
         private static ReleaseManifest ManifestWith(params string[] paths)

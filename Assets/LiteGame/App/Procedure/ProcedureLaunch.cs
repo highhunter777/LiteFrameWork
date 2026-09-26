@@ -8,7 +8,7 @@ namespace LiteGame
 {
     /// <summary>
     /// 启动流程：**移交**（原"唯一受信装配点"——业务服务注册已按 §5.1 逻辑边界**全量归还装配根**
-    /// <see cref="GameModules"/>：注册是装配职责，且 UI 服务在 Runtime 侧注册会让流程层必须认识 UI 运行时，
+    /// <see cref="ContainerModule"/>：注册是装配职责，且 UI 服务在 Runtime 侧注册会让流程层必须认识 UI 运行时，
     /// 与 `Runtime → UI` 成环、拆不出 asmdef）。
     ///
     /// 本阶段现在只剩一件事：请求进入内容事务。**Start 由 GameEntry.Start() 触发**
