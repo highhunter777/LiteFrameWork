@@ -10,11 +10,16 @@ namespace LiteGame
     /// G1 通用表现批：加载口统一绑 <see cref="PrefabLeaseCache"/>（租约持有——纠正静态门面
     /// "返回前 Release"的悬空引用）；Shutdown 释放面（音频全局停止 + 租约归零）。
     ///
-    /// **相机（2026-09-26 Cinemachine 接入）**：本模块负责**主相机与虚拟相机的存在性**
-    /// ——场景没配就建一台默认主相机（保证有投影面），虚拟相机交给场景/预制配置
-    /// （<see cref="CinemachineCameraService.TryCreateFromScene"/>——**没有就如实报缺口**，
-    /// 不在运行期凭空造一台把美术配置掩盖掉）。建好后经 <see cref="IInputService.SetAimCamera"/>
-    /// 把相机交给输入服务做瞄准解算（设备源在 ⑩ 才建，故这里是"回填"）。</summary>
+    /// **相机（2026-09-26 Cinemachine 接入）**：本模块建**相机服务**并把主相机登记进上下文，
+    /// 但**不要求模块初始化期就已经有虚拟相机**——vcam 是场景对象，而启动场景（Test.unity）
+    /// 里不一定配、训练场那类玩法场景才配。服务自己会在场景切换后重新解析
+    /// （见 <see cref="CinemachineCameraService"/> 的"场景切换后重新解析"段），
+    /// 所以装配期只建服务、不做存在性裁决：
+    /// - 有 vcam → 服务解析并接线（对局相机可用）；
+    /// - 没 vcam → 记一条**装配缺口**日志，服务保持"未解析"，等切到带 vcam 的场景自动接上。
+    ///
+    /// 主相机一律本模块保证（场景没配就建一台默认的）：**它是投影面**，与"构图归 vcam 配置"
+    /// 是两件事——没有 Camera 组件连画面都没有，那不是构图问题。</summary>
     internal sealed class PresentationModule : IClientModule
     {
         private PrefabLeaseCache _prefabs;
@@ -42,17 +47,13 @@ namespace LiteGame
             context.Put(_audio);
             context.Put(_vfxService);
 
-            Camera camera = EnsureCamera();
-            context.Put(camera);                                 // 主相机（⑩ 输入服务做瞄准解算要用）
-            if (CinemachineCameraService.TryCreateFromScene(out CinemachineCameraService camService, out string reason))
-            {
-                _camera = camService;
-                context.Put<ICameraService>(_camera);            // 对局流程（ContainerModule）经端口取
-            }
-            else
-            {
-                Log.Warning($"[Camera] {reason}——对局相机不可用（画面不动，非崩溃）", "Camera");
-            }
+            context.Put(EnsureCamera());                         // 主相机（⑩ 输入服务做瞄准解算要用）
+            _camera = new CinemachineCameraService();            // 相机服务常驻；vcam 在场景里，由服务按需解析
+            context.Put<ICameraService>(_camera);                // 对局流程（ContainerModule）经端口取
+
+            if (!_camera.HasCamera)
+                Log.Info($"[Camera] 启动场景暂无虚拟相机：{_camera.LastResolveReason}——" +
+                         "切到配了 vcam 的场景后会自动接线（相机配置归场景）", "Camera");
             return UniTask.CompletedTask;
         }
 

@@ -33,9 +33,28 @@ namespace LiteGame
 
         private readonly ClientScope _rootScope;
 
+        /// <summary>本阶段在途的会话（<see cref="OnUpdate"/> 据它驱动传输泵；未连接时为 null）。</summary>
+        private BattleClient _pending;
+
         public ProcedureMatch(ClientScope rootScope, CancellationToken rootToken = default) : base(rootToken)
         {
             _rootScope = rootScope ?? throw new ArgumentNullException(nameof(rootScope));
+        }
+
+        /// <summary>
+        /// 驱动传输泵（**本阶段必需的**，不是可选优化）：KCP 的 cookie 握手与后续收发全靠
+        /// <c>TickIncoming/TickOutgoing</c> 轮询推进——不泵就永远连不上，Join 也永远发不出去。
+        /// 此前这段等待期没有任何驱动点（<c>BattleContext.Tick</c> 要等进了 Battle 才有），
+        /// 于是真 KCP 路径表现为"服务器建了连接又静默超时"；EditMode 用例走假传输（瞬时连接、
+        /// 不需泵）所以没暴露。泵挂在本阶段的 <see cref="OnUpdate"/> 上：阶段生命周期 = 泵的生命周期，
+        /// 迁移进 Battle 后由 <c>BattleContext.Tick</c> 接续（不会双泵）。
+        /// </summary>
+        public override void OnUpdate(IStageHost<ProcedureId, ProcedureArgs> m, float elapseSeconds)
+        {
+            BattleClient pending = _pending;
+            if (pending == null) return;
+            pending.TickIncoming();
+            pending.TickOutgoing();
         }
 
         protected override void RunAsync(IStageHost<ProcedureId, ProcedureArgs> m, in ProcedureArgs req, CancellationToken ct)
@@ -63,19 +82,23 @@ namespace LiteGame
                 account = _rootScope.CreateChild("Account");
                 battle = account.Register(new BattleClient(TestHost, TestPort, TestRoomId, TestToken,
                     LiteNet.BuildHash.Value));
+                _pending = battle;                        // 交给 OnUpdate 驱动泵（握手/收发全靠它推进）
 
                 await WaitJoined(battle, ct);
                 UnityEngine.Debug.Log("[Battle] joined (JoinAck)");
 
+                _pending = null;                          // 泵交棒给 BattleContext.Tick（不双泵）
                 // 移交所有权：Account Scope + BattleClient 随迁移进 Battle（离场收尾在 Battle）
                 m.Request(ProcedureId.Battle, new ProcedureArgs(battleClient: battle, accountScope: account));
             }
             catch (OperationCanceledException)
             {
+                _pending = null;
                 account?.Dispose();                       // 离场/宿主关闭：就地收尾，不流转
             }
             catch (Exception ex)
             {
+                _pending = null;
                 account?.Dispose();                       // 失败收尾（含 BattleClient/传输释放）
                 Fail(m, ex, nameof(RunAsyncCore));
                 m.Request(ProcedureId.Error, new ProcedureArgs(ex));

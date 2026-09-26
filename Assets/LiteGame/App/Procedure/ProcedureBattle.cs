@@ -58,9 +58,13 @@ namespace LiteGame
         /// <param name="input">输入服务（装配根注册的跨对局实例）。**流程不再持"UI 是否拦截"这类判断**：
         /// 上下文门是登记进服务的具名拦截源（`ui.modal` 由装配根登记），流程只负责本局的设备源与
         /// 清派发状态（《角色状态与动作专项设计》§3"输入三件"）。null = 无输入服务（测试装配/无输入形态）。</param>
-        /// <param name="camera">相机服务（Cinemachine 适配器，装配根建）。**相机构图归 vcam 的场景配置**——
-        /// 流程只做一件事：每局开局 <see cref="ICameraService.Reset"/>（下一帧重新落位，不从上局位置飞过来）。
-        /// null + <paramref name="requireCamera"/> = true 时进确定错误态（见下）。</param>
+        /// <param name="camera">相机服务（Cinemachine 适配器，装配根建，**跨场景常驻**）。**相机构图归
+        /// vcam 的场景配置**——流程只做一件事：每局开局 <see cref="ICameraService.Reset"/>（下一帧重新落位，
+        /// 不从上局位置飞过来）。服务对象恒非 null；"这一刻有没有接上 vcam"由
+        /// <paramref name="requireCamera"/> 在开打前裁决（见下）。</param>
+        /// <param name="requireCamera">开打前是否要求相机已接上 vcam。**装配根传 true**：
+        /// 没接上的对局会"跑得动、看不见"，属最难查的静默失效——在开打前显性失败，
+        /// 而不是静默降级成一台乱飞的相机。</param>
         /// <param name="requireCamera">缺相机时是否拒绝对局。**装配根按场景是否配了虚拟相机决定**：
         /// 有 vcam 的包传 false（正常路径）；没配 vcam 的包传 true——让"对局跑得动但看不见"
         /// 这种最难的静默失效变成显性失败，而不是进了对局才发现画面纹丝不动。</param>
@@ -87,9 +91,12 @@ namespace LiteGame
             try
             {
                 _account = accountScope ?? throw new InvalidOperationException("Battle 阶段缺少 Account Scope（必须由 Match 移交）");
-                if (_camera == null && _requireCamera)
+                // 相机缺失 = 装配缺口（场景没配 vcam / 进对局前没切到玩法场景）：
+                // 不静默降级成"跑得动但看不见"的对局，在开打前显性失败。
+                if (_requireCamera && !CameraReady())
                     throw new InvalidOperationException(
-                        "对局相机缺失：场景未配置 CinemachineVirtualCamera（装配缺口——不做无相机对局的静默降级）");
+                        "对局相机未就绪：场景里没有接上的 CinemachineVirtualCamera"
+                        + "（相机配置归场景——确认已切到配了 vcam 的玩法场景）");
 
                 // 视图根 + 实体 prefab（缺失回退程序化灰盒——不把缺美术资源当启动失败）
                 _viewScope = _account.CreateChild("BattleView");
@@ -134,7 +141,10 @@ namespace LiteGame
         /// <summary>等 StartGame（Reliable 信令；Sim 未建则视图无源）。已建（重连/重进）直接放行。</summary>
         private static async UniTask WaitStartGame(BattleClient battle, CancellationToken ct)
         {
-            if (battle.Client.LastSnapshotFrame >= 0) return;   // 已在局中（幂等：不重复等）
+            // **判据是"StartGame 是否已处理"，不是"快照是否已到"**：快照与 StartGame 是两条独立路径
+            // （Unreliable vs Reliable），快照先到完全正常；拿 LastSnapshotFrame 当"已在局中"的代理，
+            // 会让本方法提前返回、后面读空的 Sim（实测就是这样崩的）。
+            if (battle.Client.HasStartGame && battle.Client.StartGame != null) return;
 
             var ready = new UniTaskCompletionSource();
             void Handler(LiteNet.Proto.StartGame _) => ready.TrySetResult();
@@ -175,6 +185,19 @@ namespace LiteGame
                     }
                 }));
             }
+        }
+
+        /// <summary>
+        /// 相机是否真的就绪（"有服务"不等于"接上了 vcam"——服务常驻，vcam 随场景）。
+        /// **按需解析**：此刻视图还没建立、<see cref="ICameraService.Follow"/> 一次都没调过，
+        /// 光读状态必然是"未接线"，所以这里主动让适配器再解析一次（场景可能刚被 Main 切到训练场）。
+        /// 非 Cinemachine 实现（测试替身等）视为就绪——由它自己保证。
+        /// </summary>
+        private bool CameraReady()
+        {
+            if (_camera == null) return false;
+            var cinemachine = _camera as CinemachineCameraService;
+            return cinemachine != null ? cinemachine.EnsureCamera() : true;
         }
 
         /// <summary>

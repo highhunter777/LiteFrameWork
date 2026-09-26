@@ -31,11 +31,21 @@ namespace LiteGame
             return UniTask.CompletedTask;
         }
 
+        /// <summary>
+        /// 关服顺序**不可颠倒**：先 `Dispose` 设备源（它持有 Input System 的 Action 资产——
+        /// 生成类 `~PlayerInputActions` 的析构断言要求资产被 GC 时 action map **已 Disable**），
+        /// 再清服务状态。
+        ///
+        /// 这里刻意**不**用 <c>ResetAll()</c>：它内部会清空 <c>Source</c>，而本方法要保证
+        /// "设备源一定被 Dispose"——把那条依赖藏在"某个方法顺带做掉"里，改动顺序时就会静默漏掉
+        /// （触发点正是生成类析构断言：表现为关服时刷一行 Assert，而非崩溃，很容易被忽略）。
+        /// </summary>
         public UniTask ShutdownAsync(CancellationToken ct)
         {
-            _service?.ResetAll();                        // 关服清干净（拦截源/设备源/计数；静态清零语义的实例版）
-            _source?.Dispose();                          // 设备源的资产/订阅释放（action map Disable + 资产销毁）
+            _source?.Dispose();                          // ① 设备源：action map Disable + 资产销毁（必须在清引用之前）
             _source = null;
+            _service?.ResetAll();                        // ② 服务：拦截源/设备源引用/计数全清（关服语义）
+            _service = null;
             return UniTask.CompletedTask;
         }
     }

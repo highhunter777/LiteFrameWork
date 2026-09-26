@@ -62,6 +62,7 @@ namespace LiteNet
         private string _lastHost;            // 最近一次连接端点（重拨用）
         private int _lastPort;
         private bool _hasStartGame;         // StartGame 已达（版本确认的 seed/配置基准）
+        private Proto.StartGame _startGame; // **最近一次 StartGame 载荷**（晚订阅者补发用——见 OnStartGame 的契约）
         private long _matchSeed;
         private uint _matchConfigHash;
         private long _reconnectDeadlineMs;   // Reconnecting 相位的超时线（注入时钟口径）
@@ -83,6 +84,18 @@ namespace LiteNet
 
         /// <summary>最近一次收到的快照帧号（**视点帧推导的正确来源**：+ `SimConfig.InterpFrames` = 玩家所见帧，§3.4.1）。</summary>
         public int LastSnapshotFrame { get; private set; } = -1;
+
+        /// <summary>StartGame 是否已到达（版本确认基准已就位）。</summary>
+        public bool HasStartGame => _hasStartGame;
+
+        /// <summary>
+        /// 最近一次 StartGame（未到达 = null）。**晚订阅者必须先读这里**：
+        /// <see cref="OnStartGame"/> 是**一次性边缘事件**（消息到达那一刻发一次，无订阅者即丢失），
+        /// 而 StartGame 在时序上可能**早于**应用层建好订阅——服务器在席位满员时立即开局广播，
+        /// 而应用层往往要等 JoinAck 回来才开始建对局对象（实测：1 人房必现，2 人房因等待掩盖了它）。
+        /// 消费范式：先查本属性，为 null 再订阅事件。
+        /// </summary>
+        public Proto.StartGame StartGame => _startGame;
 
         /// <summary>当前冗余窗口可带的帧数（诊断/测试用：= 从最新帧往回连续可用的输入帧数，≤ 4）。</summary>
         public int RedundancyWindowSize => _recentCount;
@@ -323,6 +336,7 @@ namespace LiteNet
                     var start = (Proto.StartGame)msg;
                     _matchSeed = start.Seed;                     // §9.3 步骤 2：重连版本确认基准
                     _matchConfigHash = start.ConfigHash;
+                    _startGame = start;                          // 缓存载荷：晚订阅者靠它补发（见 StartGame 属性）
                     _hasStartGame = true;
                     OnStartGame?.Invoke(start);
                     break;

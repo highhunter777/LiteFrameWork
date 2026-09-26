@@ -60,8 +60,20 @@ namespace LiteGame
         /// **为什么不进 <see cref="IIntentSource"/> 接口**：那会让核心接口依赖 <c>UnityEngine.Camera</c>，
         /// 从而把 `LiteClient.Runtime` 的输入三件排除出 L1 的源链接覆盖（纯逻辑那部分必须能脱离引擎编译）。
         /// 相机只是**本实现**的输入之一，由装配根对具体类型设置即可——接口不必为实现的设备差异扩面。
+        ///
+        /// 传进来的相机**可能随场景切换被销毁**（主相机是场景对象）：<see cref="ResolveCamera"/> 在采样时
+        /// 检查并回落到当前 `Camera.main`，调用方不需要在每次切场景后记得重设（那种约定迟早会漏）。
         /// </summary>
         public void SetAimCamera(Camera camera) => _camera = camera;
+
+        /// <summary>取当前可用的瞄准相机：缓存的失效（随场景销毁）就回落到 <c>Camera.main</c>。</summary>
+        private Camera ResolveCamera()
+        {
+            if (_camera != null && !ReferenceEquals(_camera, null)) return _camera;
+
+            _camera = Camera.main;                   // 场景切换后的新主相机（无则 null，见调用点的判定）
+            return _camera;
+        }
 
         public IntentSample Sample(in SimVector3 localPos)
         {
@@ -84,9 +96,10 @@ namespace LiteGame
             }
 
             // 瞄准：鼠标位置 → 地面平面交点 → 相对本地玩家的方向（长度 ≤1，与旧实现同口径）
-            if (_camera != null && Mouse.current != null)
+            Camera aimCamera = ResolveCamera();       // 场景切换后缓存会失效——这里回落到当前 Camera.main
+            if (aimCamera != null && Mouse.current != null)
             {
-                var ray = _camera.ScreenPointToRay(Mouse.current.position.ReadValue());
+                var ray = aimCamera.ScreenPointToRay(Mouse.current.position.ReadValue());
                 if (_groundPlane.Raycast(ray, out float distance))
                 {
                     Vector3 p = ray.GetPoint(distance);

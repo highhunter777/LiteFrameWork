@@ -106,7 +106,7 @@ namespace LiteGame
         }
 
         /// <summary>原 GameEntry.CreateMachine 平移（依赖全部经 context 取——依赖不从 payload 取的纪律不变）。</summary>
-        private static StageMachine<ProcedureId, ProcedureArgs> CreateMachine(ClientContext context, ServiceContainer container,
+        private StageMachine<ProcedureId, ProcedureArgs> CreateMachine(ClientContext context, ServiceContainer container,
             IContentService content, ConfigService config, LuaComponent lua, EventCenter events, UIService uiService,
             UiLuaRegistry uiRegistry, ContentLuaRegistry contentRegistry, StrategyLuaRegistry strategyRegistry,
             RedDotRegistry redDotRegistry, ILogicScheduler logicScheduler, IUIScheduler uiScheduler,
@@ -148,31 +148,21 @@ namespace LiteGame
             input.RegisterBlocker(new IntentGate.BlockerKey("ui.modal", "模态 UI 打开——游戏意图被拦截"),
                 () => uiService.IsModalOpen);
 
-            // 相机服务（⑨ 表现壳建；场景没配虚拟相机时为 null）。
-            // **headless 守卫**：没相机服务就不进对局——没有虚拟相机的 Player 里，对局会"跑得动、看不见"，
-            // 那是最难查的一类静默失效（同一类问题的既有口径：ProcedureMatch 在正式构建里直接 Fail 拒绝测试身份）。
-            // 当前 BuildProfile 只构建 Test.unity（无 vcam），故这是**预期会命中**的守卫，不是死代码。
-            ICameraService camera = context.Get<ICameraService>();
-            if (camera == null)
-            {
-                return new StageMachine<ProcedureId, ProcedureArgs>("Procedure",
-                    (ProcedureId.Launch, new ProcedureLaunch(rootToken)),
-                    (ProcedureId.Patch, new ProcedurePatch(content, activations, patchRunner, rootToken)),
-                    (ProcedureId.Preload, new ProcedurePreload(content, config, lua, filler, events, () => ListLuaAssetPaths(content), rootToken)),
-                    (ProcedureId.Main, new ProcedureMain(openUi, rootToken)),
-                    (ProcedureId.Match, new ProcedureMatch(context.RootScope, rootToken)),
-                    // 相机缺失 = 装配缺口：显性失败进错误态，不静默降级成无相机对局
-                    (ProcedureId.Battle, new ProcedureBattle(content, input, null, vfxService, rootToken, requireCamera: true)),
-                    (ProcedureId.Error, new ProcedureError(rootToken)));
-            }
+            // 相机服务（⑨ 表现壳建，**常驻**：vcam 是场景对象，随场景加载/卸载而生灭）。
+            // 装配期**不再做"当前有没有 vcam"的裁决**——启动场景（Test.unity）通常不带 vcam，
+            // 玩法场景（训练场）才带，而服务自己会在场景切换后重新解析并接线
+            // （见 CinemachineCameraService 的"场景切换后重新解析"段）。
+            // 进对局仍要求**那一刻**有相机：没有的话对局会"跑得动、看不见"，属最难查的静默失效，
+            // 由 ProcedureBattle(requireCamera: true) 在开打前显性失败。
+            ICameraService camera = context.Require<ICameraService>();
 
             return new StageMachine<ProcedureId, ProcedureArgs>("Procedure",
                 (ProcedureId.Launch, new ProcedureLaunch(rootToken)),
                 (ProcedureId.Patch, new ProcedurePatch(content, activations, patchRunner, rootToken)),
                 (ProcedureId.Preload, new ProcedurePreload(content, config, lua, filler, events, () => ListLuaAssetPaths(content), rootToken)),
-                (ProcedureId.Main, new ProcedureMain(openUi, rootToken)),
+                (ProcedureId.Main, new ProcedureMain(openUi, _scenes, rootToken)),
                 (ProcedureId.Match, new ProcedureMatch(context.RootScope, rootToken)),
-                (ProcedureId.Battle, new ProcedureBattle(content, input, camera, vfxService, rootToken)),
+                (ProcedureId.Battle, new ProcedureBattle(content, input, camera, vfxService, rootToken, requireCamera: true)),
                 (ProcedureId.Error, new ProcedureError(rootToken)));
         }
 

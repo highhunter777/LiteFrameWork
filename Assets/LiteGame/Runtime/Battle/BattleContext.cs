@@ -102,6 +102,12 @@ namespace LiteGame
                 _battle.Client.OnReconnectResponse -= OnReconnectResponse;
                 _battle.Client.OnPhaseChanged -= OnPhaseChanged;
             }));
+
+            // **补上迟到的 StartGame**：OnStartGame 是边缘事件，服务器可能在应用层建好订阅之前就广播
+            // （席位满员即刻开局——1 人房必现；2 人房因等人把这个竞态掩盖了）。不补的话本上下文会永远
+            // 停在"Sim 未建"：每帧只泵网络、不建世界、不发输入，表现为"进了对局但画面不动"。
+            var late = _battle.Client.StartGame;
+            if (late != null) OnStartGame(late);
         }
 
         /// <summary>
