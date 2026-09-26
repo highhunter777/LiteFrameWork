@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Threading;
 using Cysharp.Threading.Tasks;
 using LiteFramework;
-using YooAsset;
+using YooAsset;   // lint-allow R12
 
 namespace LiteGame
 {

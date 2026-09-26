@@ -1,4 +1,4 @@
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.Text;
 using Tools.DisciplineScan;
 using Xunit;
@@ -308,6 +308,109 @@ namespace LiteFramework.Tests
         private static int Count(string text, LintRule rule)
         {
             return DisciplineScanner.ScanText("test.cs", text, new[] { rule }).Count;
+        }
+
+        [Fact]
+        public void 纪律_R12_已接入真实扫描目标_且目标路径存在()
+        {
+            // **防"静默失效"**（2026-09-26 实测教训）：本文件里 R6/R10 的两个 LiteGame 扫描目标
+            // 曾因路径写成 `Assets/LiteGame/Scripts/Runtime/...`（实际无 `Scripts/`）**空扫至今**——
+            // 规则写了但从未生效，且没有任何东西会红。
+            // 故此处同时钉两件事：①R12 在 GameRules 里；②每个目标根**目录真实存在**。
+            var gameTarget = System.Array.Find(
+                Tools.DisciplineScan.ScanTargets.Default,
+                t => t.Root == "Assets/LiteGame");
+            Assert.Equal("Assets/LiteGame", gameTarget.Root);
+            Assert.Contains(LintRule.R12AdapterBoundary, gameTarget.Rules);
+
+            string repoRoot = RepoRoot();
+            foreach (var target in Tools.DisciplineScan.ScanTargets.Default)
+            {
+                Assert.True(System.IO.Directory.Exists(System.IO.Path.Combine(repoRoot, target.Root)),
+                    $"扫描目标根不存在，该规则集正在**空扫**：{target.Root}");
+            }
+        }
+
+        /// <summary>向上找含 Tests/Tests.slnx 的仓库根（与内容夹具同款定位）。</summary>
+        private static string RepoRoot()
+        {
+            var dir = new System.IO.DirectoryInfo(System.AppContext.BaseDirectory);
+            while (dir != null && !System.IO.File.Exists(System.IO.Path.Combine(dir.FullName, "Tests", "Tests.slnx")))
+                dir = dir.Parent;
+            Assert.NotNull(dir);
+            return dir.FullName;
+        }
+
+        /// <summary>带路径的计数——R12 的判定依赖文件路径（边界目录内放行），故必须能传路径。</summary>
+        private static int CountAt(string relativePath, string text, LintRule rule)
+        {
+            return DisciplineScanner.ScanText(relativePath, text, new[] { rule }).Count;
+        }
+
+        // ---- R12 适配器边界（《客户端总设计》§5.1"形成逻辑边界和依赖测试"）----
+
+        [Fact]
+        public void 纪律_R12_边界目录内_对应适配器import放行()
+        {
+            // **每个边界只放行它对应的那一个适配器**——不是"边界目录里什么都能 import"。
+            // （初版把三个 using 一起塞进每个目录并期望 0，是错的：Shell/Resource 放行 YooAsset，
+            //   但不放行 XLua/DG.Tweening。）
+            Assert.Equal(0, CountAt("Assets/LiteGame/Runtime/Shell/Resource/C.cs",
+                "using YooAsset;", LintRule.R12AdapterBoundary));
+            Assert.Equal(0, CountAt("Assets/LiteGame/Runtime/Shell/Lua/C.cs",
+                "using XLua;", LintRule.R12AdapterBoundary));
+            Assert.Equal(0, CountAt("Assets/LiteGame/Runtime/Shell/Bridge/C.cs",
+                "using XLua;", LintRule.R12AdapterBoundary));
+            Assert.Equal(0, CountAt("Assets/LiteGame/Runtime/Shell/UI/Anim/C.cs",
+                "using DG.Tweening;", LintRule.R12AdapterBoundary));
+
+            // 反向：边界目录**不**放行别人的适配器
+            Assert.Equal(1, CountAt("Assets/LiteGame/Runtime/Shell/Resource/C.cs",
+                "using XLua;", LintRule.R12AdapterBoundary));
+            Assert.Equal(1, CountAt("Assets/LiteGame/Runtime/Shell/Lua/C.cs",
+                "using YooAsset;", LintRule.R12AdapterBoundary));
+            Assert.Equal(1, CountAt("Assets/LiteGame/Runtime/Shell/UI/Anim/C.cs",
+                "using YooAsset;", LintRule.R12AdapterBoundary));
+        }
+
+        [Fact]
+        public void 纪律_R12_边界外_适配器import被命中()
+        {
+            Assert.Equal(1, CountAt("Assets/LiteGame/Runtime/Shell/SceneService.cs",
+                "using YooAsset;", LintRule.R12AdapterBoundary));
+            Assert.Equal(1, CountAt("Assets/LiteGame/Runtime/Shell/UI/Strategies.cs",
+                "using DG.Tweening;", LintRule.R12AdapterBoundary));
+            Assert.Equal(1, CountAt("Assets/LiteGame/Runtime/Shell/UI/Adapter.cs",
+                "using XLua;", LintRule.R12AdapterBoundary));
+        }
+
+        [Fact]
+        public void 纪律_R12_前缀相近的目录不误放行()
+        {
+            // 边界表的路径比较两端补斜杠：`Shell/Lua` 不得放行 `Shell/LuaXxx`
+            Assert.Equal(1, CountAt("Assets/LiteGame/Runtime/Shell/LuaExtras/C.cs",
+                "using XLua;", LintRule.R12AdapterBoundary));
+            Assert.Equal(1, CountAt("Assets/LiteGame/Runtime/Shell/UI/Animated/C.cs",
+                "using DG.Tweening;", LintRule.R12AdapterBoundary));
+        }
+
+        [Fact]
+        public void 纪律_R12_非适配器import与限定名不受影响()
+        {
+            Assert.Equal(0, CountAt("Assets/LiteGame/Runtime/Shell/SceneService.cs",
+                "using System.Collections;", LintRule.R12AdapterBoundary));
+
+            // 边界表只列 YooAsset/XLua/DG.Tweening——其它第三方不受 R12 管
+            Assert.Equal(0, CountAt("Assets/LiteGame/Runtime/Shell/C.cs",
+                "using UniTask;", LintRule.R12AdapterBoundary));
+        }
+
+        [Fact]
+        public void 纪律_R12_注释里的using不算违规()
+        {
+            // 与其它规则同口径：注释先剔除再匹配
+            Assert.Equal(0, CountAt("Assets/LiteGame/Runtime/Shell/SceneService.cs",
+                "// 该文件不用 using YooAsset; 了", LintRule.R12AdapterBoundary));
         }
     }
 }

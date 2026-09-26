@@ -40,8 +40,25 @@ namespace Tools.DisciplineScan
         R10ShellSendsBusinessPacket = 10,
 
         /// <summary>R11 RoomServer/Runtime 纯化（《商业级通用服务端框架总设计》§8.1 禁止项）：
-        /// 禁 Transport/Socket/kcp、系统墙钟/Stopwatch/Sleep、Console、文件 IO、proto/LiteNet 引用与全局随机。</summary>
+        /// 禁 Transport/Socket/kcp、系统墙钟/Stopwatch/LongSleep、Console、文件 IO、proto/LiteNet 引用与全局随机。</summary>
         R11RuntimePurity = 11,
+
+        /// <summary>R12 适配器边界（《商业级通用客户端框架总设计》§5.1"先在现有程序集内**形成逻辑边界**
+        /// 和**依赖测试**，稳定后再拆 asmdef/UPM"）：适配器实现只许在各自的边界目录内引用。
+        ///
+        /// **为什么现在加**：通用服务已稳定（churn 过去），但一个 asmdef 吞下 YooAsset/xLua/DOTween，
+        /// 且**没有任何规则阻止耦合继续扩散**——新代码可以随意再 import 一次。
+        /// 这正是 §5.1 点名的"依赖测试"，也是将来拆 asmdef 的**前置条件**：
+        /// 不先钉住，拆完照样重新长回来。
+        ///
+        /// 边界与例外：
+        /// <list type="bullet">
+        /// <item>YooAsset → `Shell/Resource/**`（内容适配器）</item>
+        /// <item>XLua → `Shell/Lua/**`、`Shell/Bridge/**`（脚本运行时与桥）</item>
+        /// <item>DG.Tweening → `Shell/UI/Anim/**`（动效适配）</item>
+        /// </list>
+        /// 例外行用 `lint-allow R12` 标注并写明理由（如"该文件本身就是场景适配器"）。</summary>
+        R12AdapterBoundary = 12,
     }
 
     /// <summary>一条纪律违规。</summary>
@@ -130,6 +147,47 @@ namespace Tools.DisciplineScan
             @"|\bnew\s+Random\s*\(",
             RegexOptions.Compiled);
 
+        /// <summary>R12：适配器实现的 import——按<b>文件路径</b>决定是否放行（见 <see cref="IsAdapterBoundaryAllowed"/>）。</summary>
+        private static readonly Regex R12Regex = new Regex(
+            @"^\s*using\s+(YooAsset|XLua|DG\.Tweening)\b", RegexOptions.Compiled | RegexOptions.Multiline);
+
+        /// <summary>
+        /// R12 边界表：适配器 → 允许 import 它的目录前缀（相对**项目根**，正斜杠）。
+        /// <b>这是"形成逻辑边界"的唯一登记点</b>——新增适配器时在这里加一行，
+        /// 而不是到处散写字符串（与动画 Profile 的"ID→状态绑定唯一登记点"同一纪律）。
+        /// </summary>
+        private static readonly (string Adapter, string[] AllowedRoots)[] R12Boundaries =
+        {
+            ("YooAsset", new[] { "Assets/LiteGame/Runtime/Shell/Resource/" }),
+            ("XLua", new[] { "Assets/LiteGame/Runtime/Shell/Lua/", "Assets/LiteGame/Runtime/Shell/Bridge/" }),
+            ("DG.Tweening", new[] { "Assets/LiteGame/Runtime/Shell/UI/Anim/" }),
+        };
+
+        /// <summary>
+        /// 该文件是否落在某适配器的允许边界内。
+        /// 路径**两端补斜杠**再比较，避免 `Shell/Lua` 误放行 `Shell/LuaXxx`。
+        /// </summary>
+        private static bool IsAdapterBoundaryAllowed(string relativePath, string adapter)
+        {
+            if (string.IsNullOrEmpty(relativePath)) return false;
+            string p = relativePath.Replace('\\', '/');
+            if (!p.StartsWith("/", StringComparison.Ordinal)) p = "/" + p;
+            foreach (var (name, roots) in R12Boundaries)
+            {
+                if (!string.Equals(name, adapter, StringComparison.Ordinal)) continue;
+                foreach (string root in roots)
+                    if (p.StartsWith("/" + root, StringComparison.Ordinal)) return true;
+            }
+            return false;
+        }
+
+        /// <summary>从一行 `using X;` 中取出适配器名（非适配器 import 返回 null）。</summary>
+        private static string AdapterOf(string codeLine)
+        {
+            Match m = R12Regex.Match(codeLine);
+            return m.Success ? m.Groups[1].Value : null;
+        }
+
         private static readonly Regex NumericLiteral = new Regex(
             @"^[-+]?[0-9]+(\.[0-9]+)?[fFuUlLdDmM]*$", RegexOptions.Compiled);
 
@@ -147,6 +205,7 @@ namespace Tools.DisciplineScan
             LintRule.R9ModInSim,
             LintRule.R10ShellSendsBusinessPacket,
             LintRule.R11RuntimePurity,
+            LintRule.R12AdapterBoundary,
         };
 
         public static string RuleId(LintRule rule)
@@ -164,6 +223,7 @@ namespace Tools.DisciplineScan
                 case LintRule.R9ModInSim: return "R9";
                 case LintRule.R10ShellSendsBusinessPacket: return "R10";
                 case LintRule.R11RuntimePurity: return "R11";
+                case LintRule.R12AdapterBoundary: return "R12";
                 default: return "R?";
             }
         }
@@ -200,7 +260,7 @@ namespace Tools.DisciplineScan
 
                 for (int r = 0; r < rules.Length; r++)
                 {
-                    if (!IsExempt(raw, rules[r]) && Matches(rules[r], code, raw))
+                    if (!IsExempt(raw, rules[r]) && Matches(rules[r], code, raw, fileName))
                         result.Add(Make(fileName, lineNo, rules[r], raw));
                 }
             }
@@ -326,7 +386,7 @@ namespace Tools.DisciplineScan
 
         // ---- 内部 ----
 
-        private static bool Matches(LintRule rule, string code, string raw)
+        private static bool Matches(LintRule rule, string code, string raw, string fileName)
         {
             switch (rule)
             {
@@ -340,6 +400,14 @@ namespace Tools.DisciplineScan
                 case LintRule.R9ModInSim: return R9Regex.IsMatch(code);
                 case LintRule.R10ShellSendsBusinessPacket: return R10Regex.IsMatch(code);
                 case LintRule.R11RuntimePurity: return R11Regex.IsMatch(code);
+                case LintRule.R12AdapterBoundary:
+                {
+                    string adapter = AdapterOf(code);
+                    // 非适配器 import 行：不归 R12 管
+                    if (adapter == null) return false;
+                    // 适配器 import 行：只有落在该适配器的边界目录内才放行
+                    return !IsAdapterBoundaryAllowed(fileName, adapter);
+                }
                 default: return false;
             }
         }

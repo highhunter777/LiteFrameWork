@@ -2,7 +2,7 @@ using System;
 using System.Collections.Generic;
 using LiteFramework;
 using UnityEngine;
-using XLua;
+using XLua;   // lint-allow R12
 
 namespace LiteGame
 {

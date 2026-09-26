@@ -5,7 +5,7 @@ using Cysharp.Threading.Tasks;
 using LiteFramework;
 using UnityEngine;
 using UnityEngine.SceneManagement;
-using YooAsset;
+using YooAsset;   // lint-allow R12
 
 namespace LiteGame
 {

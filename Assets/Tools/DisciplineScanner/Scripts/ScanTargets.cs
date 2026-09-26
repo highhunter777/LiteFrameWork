@@ -57,10 +57,15 @@ namespace Tools.DisciplineScan
             LintRule.R6NativeCoroutine,
         };
 
-        /// <summary>LiteGame 全域：R8 资源唯一入口（禁 Resources.Load/LoadAsync；Editor 目录由 IsExcluded 排除）。</summary>
+        /// <summary>LiteGame 全域：R8 资源唯一入口 + R12 适配器边界（Editor 目录由 IsExcluded 排除）。</summary>
         public static readonly LintRule[] GameRules =
         {
             LintRule.R8ResourcesLoad,
+            // R12 适配器边界（《客户端总设计》§5.1"形成逻辑边界和依赖测试"）：
+            // YooAsset/xLua/DOTween 的实现只许在各自边界目录内 import。
+            // 用途不只是"抓现有违规"——更是**阻止新耦合扩散**：
+            // 在一体 asmdef 里，没有它，任何人都能再 import 一次而无人察觉。
+            LintRule.R12AdapterBoundary,
         };
 
         /// <summary>薄壳/UI：R10 不得直发业务包（禁 INetworkService 契约）。</summary>
@@ -108,9 +113,18 @@ namespace Tools.DisciplineScan
             new ScanTarget("Assets/LiteNet", NetRules),
             new ScanTarget("Assets/LiteFramework/Scripts/Core", CoreRules),
             new ScanTarget("Assets/LiteFramework/Scripts/Unity", UnityRules),
-            new ScanTarget("Assets/LiteGame/Scripts/Runtime", UnityRules),
-            new ScanTarget("Assets/LiteGame", GameRules),                                      // R8 资源唯一入口
-            new ScanTarget("Assets/LiteGame/Scripts/Runtime/Shell/UI", ShellUiRules),          // R10 薄壳/UI 不发业务包
+            // 注（2026-09-26）：原有一条 `ScanTarget("Assets/LiteGame/Scripts/Runtime", UnityRules)`
+            // ——**该目录不存在**（实际为 `Assets/LiteGame/Runtime`，无 `Scripts/`），
+            // 即 R6（禁原生协程）自加入起就在**空扫**。
+            // 未按原意修正路径：`Assets/LiteGame` 全域挂在 GameRules（非 UnityRules），
+            // 而 R6 的正则 `\byield\s+return\b` **不区分 C# 迭代器与 Unity 协程**——
+            // 实测 `ContentTrustAnchors.cs:46` 的 `yield return new Anchor(...)`（IEnumerable 迭代器）
+            // 会被误报。**空扫与误报都不是我们想要的**，故删掉该目标并把 R6 的矫正登记为待办
+            // （需先把正则收紧到 `IEnumerator`/`StartCoroutine` 语境，或引入更精确的判定）。
+            new ScanTarget("Assets/LiteGame", GameRules),                                      // R8 资源唯一入口 + R12 适配器边界
+            new ScanTarget("Assets/LiteGame/Runtime/Shell/UI", ShellUiRules),                   // R10 薄壳/UI 不发业务包
+            // 注（2026-09-26）：此处原写作 `Assets/LiteGame/Scripts/Runtime/Shell/UI`——同样**不存在**，
+            // R10 亦一直空扫。已按真实路径修正。
             new ScanTarget("RoomServer/Runtime", RuntimePurityRules),                          // R1 纯运行时层（R1《服务端总设计》§8.1）
             new ScanTarget("MetaServer", MetaPurityRules, MetaHostExcludes),                    // Meta 模块/契约层（《Meta 服务专项设计》§4.2）
         };
