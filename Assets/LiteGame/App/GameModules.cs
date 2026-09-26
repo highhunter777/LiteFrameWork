@@ -360,10 +360,47 @@ namespace LiteGame
                 var fsm = CreateMachine(context, container, content, config, lua, events, uiService, uiRegistry, contentRegistry,
                     strategyRegistry, redDotRegistry, logicScheduler, uiScheduler, timelineRunner,
                     entityService, audioService, vfxService);
+
+                // 业务服务注册（原在 ProcedureLaunch——**注册是装配职责**，且 UI 服务在 Runtime 侧注册
+                // 会让流程层必须认识 UI 运行时，与 `Runtime → UI` 成环、拆不出 asmdef；§5.1 已有多处同型先例）。
+                // 注册顺序 = 驱动顺序：与迁移前逐条同序（含 UIService **晚于** FSM 这一既有时序）——
+                // 本批只搬位置不改行为，时序调整另行评估。
+                RegisterBusinessServices(container, config, uiService, redDotRegistry, logicScheduler, uiScheduler,
+                    timelineRunner, entityService, audioService, vfxService);
+
                 container.RegisterInstance<StageMachine<ProcedureId, ProcedureArgs>>(fsm);
+                container.Seal();                                // 注册面冻结（原在 ProcedureLaunch.Async）——装配期止于此
                 context.Put(fsm);
                 context.Put(container);
                 return UniTask.CompletedTask;
+            }
+
+            /// <summary>
+            /// 业务服务注册（原 <c>ProcedureLaunch.RunAsyncCore</c> 逐条平移）。<b>顺序即驱动顺序</b>
+            /// （<see cref="ServiceContainer.RegisterInstance{TInterface}"/> 注册即发现 ITickable）：
+            /// 此处 UIService/DialogService/VfxService 均为 ITickable，顺序不可随手调整。
+            /// </summary>
+            private static void RegisterBusinessServices(ServiceContainer container, ConfigService config,
+                UIService uiService, RedDotRegistry redDotRegistry, ILogicScheduler logicScheduler, IUIScheduler uiScheduler,
+                GameTimelineRunner timelineRunner, EntityService entityService, AudioService audioService, VfxService vfxService)
+            {
+                var nav = new UINavigationController(uiService);      // U2 单写者导航（真实消费者：ProcedureMain 经装配根注入的能力）
+                var dialogs = new DialogService(uiService);          // U2-⑥b：弹窗服务（ITickable 随注册自动驱动；§4.3 ShowDialogAsync 口径）
+                var feedback = new FeedbackService(uiService, dialogs, nav);   // U2-⑥c：Loading/Error/Toast 统一入口（System 层 form；Back 链首位拦截）
+
+                container.RegisterInstance<UIService>(uiService);              // UI 壳（M4 §2.1：薄壳 = DI 注册的普通服务）
+                container.RegisterInstance<UINavigationController>(nav);       // 导航（U2）
+                container.RegisterInstance<RedDotRegistry>(redDotRegistry);    // 红点规则口（M4 §2.5：完整树 = M4c）
+                container.RegisterInstance<ILogicScheduler>(logicScheduler);   // 时序双轨（M4 §2.7：逻辑轨受时停）
+                container.RegisterInstance<IUIScheduler>(uiScheduler);         // UI 轨不受时停
+                container.RegisterInstance<ITimelineRunner>(timelineRunner);   // 时间轴执行器（剧情/技能）
+                container.RegisterInstance<EntityService>(entityService);      // 实体壳（M4 §2.8：池化+竞态表）
+                container.RegisterInstance<AudioService>(audioService);        // 声音壳（M4 §2.9：组+代理）
+                container.RegisterInstance<IVFXService>(vfxService);           // VFX 服务（M11：表现层，注册即发现 ITickable → 自动驱动到期回收）
+                container.RegisterInstance<DialogService>(dialogs);
+                container.RegisterInstance<FeedbackService>(feedback);
+                // Toast 多条计时：接 UIClock 步进（未打开时短路）；显式持有实例，不做全局单例查找
+                container.RegisterInstance<ToastTicker>(new ToastTicker(() => feedback.ToastHost));
             }
 
             public UniTask ShutdownAsync(CancellationToken ct)
@@ -396,13 +433,20 @@ namespace LiteGame
                 Bridge.BindRegistries(uiRegistry, contentRegistry);   // ui/content 骨架门面查询底座（§2.5）
                 Bridge.BindUIService(uiService);             // 真实门面 Show/Close/IsOpen 后端（M4 §2.3）
 
+                // 导航是 UI 运行时类型——装配根在此把它的两个能力面**经委托**交给流程（§5.1 逻辑边界：
+                // 流程不认识 UI）。单写者语义不变：委托绑定的仍是同一个 UINavigationController 实例。
+                var nav = context.Require<UINavigationController>();
+                Func<int, CancellationToken, UniTask> openUi =
+                    (formId, ct) => nav.GoAsync(formId, ct: ct);
+                Func<bool> isUiBlocking = () => uiService.IsModalOpen;
+
                 return new StageMachine<ProcedureId, ProcedureArgs>("Procedure",
-                    (ProcedureId.Launch, new ProcedureLaunch(container, config, uiService, redDotRegistry, logicScheduler, uiScheduler, timelineRunner, entityService, audioService, vfxService, context.Require<UINavigationController>(), rootToken)),
+                    (ProcedureId.Launch, new ProcedureLaunch(rootToken)),
                     (ProcedureId.Patch, new ProcedurePatch(content, activations, patchRunner, rootToken)),
                     (ProcedureId.Preload, new ProcedurePreload(content, config, lua, filler, events, () => ListLuaAssetPaths(content), rootToken)),
-                    (ProcedureId.Main, new ProcedureMain(uiService, context.Require<UINavigationController>(), rootToken)),
+                    (ProcedureId.Main, new ProcedureMain(openUi, rootToken)),
                     (ProcedureId.Match, new ProcedureMatch(context.RootScope, rootToken)),
-                    (ProcedureId.Battle, new ProcedureBattle(content, vfxService, uiService, rootToken)),
+                    (ProcedureId.Battle, new ProcedureBattle(content, vfxService, isUiBlocking, rootToken)),
                     (ProcedureId.Error, new ProcedureError(rootToken)));
             }
 

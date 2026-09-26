@@ -2,16 +2,13 @@
     "name": "LiteGame.Runtime",
     "rootNamespace": "LiteGame",
     "references": [
-        "DOTween.Modules",
         "LiteClient.Abstractions",
-        "LiteCodeGen.Runtime",
         "LiteFramework.Core",
         "LiteFramework.Unity",
         "LiteNet",
         "LiteSim.Core",
         "LiteSim.View",
-        "UniTask",
-        "Unity.TextMeshPro"
+        "UniTask"
     ],
     "includePlatforms": [],
     "excludePlatforms": [],

@@ -13,6 +13,7 @@
         "LiteFramework.Unity",
         "LiteGame.App",
         "LiteGame.Runtime",
+        "LiteGame.UI",
         "Luban.Tables",
         "UniTask",
         "Unity.TextMeshPro",

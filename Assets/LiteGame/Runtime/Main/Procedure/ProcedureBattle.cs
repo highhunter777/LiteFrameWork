@@ -37,7 +37,7 @@ namespace LiteGame
 
         private readonly IContentService _content;
         private readonly IVFXService _vfx;
-        private readonly UIService _ui;          // 模态输入门（U2 模态栈接入后的细化——见 IsUiBlocking）
+        private readonly Func<bool> _isUiBlocking;   // 模态输入门（U2 §6.2"输入由单一协调者综合模态栈"）
 
         private BattleContext _context;
         private ClientScope _account;
@@ -50,13 +50,16 @@ namespace LiteGame
         private GameObject _prefab;
         private AssetLease<GameObject> _prefabLease;
 
-        public ProcedureBattle(IContentService content, IVFXService vfx = null, UIService ui = null,
+        /// <param name="isUiBlocking">UI 模态拦截查询。**刻意取 <see cref="Func{TResult}"/> 而非 UI 服务类型**
+        /// （§5.1 逻辑边界）：流程层不该认识 UI 运行时——`UI → Runtime` 与 `Runtime → UI` 同时存在即成环，
+        /// 拆不出 asmdef。装配根把 `UIService.IsModalOpen` 传进来，流程只看见"一个查询"。</param>
+        public ProcedureBattle(IContentService content, IVFXService vfx = null, Func<bool> isUiBlocking = null,
             CancellationToken rootToken = default)
             : base(rootToken)
         {
             _content = content ?? throw new ArgumentNullException(nameof(content));
             _vfx = vfx;
-            _ui = ui;
+            _isUiBlocking = isUiBlocking;
         }
 
         protected override void RunAsync(IStageHost<ProcedureId, ProcedureArgs> m, in ProcedureArgs req, CancellationToken ct)
@@ -195,9 +198,9 @@ namespace LiteGame
         /// <summary>
         /// UI 是否正在拦截游戏输入（上下文门数据源）。U2 模态栈接入后的细化（§6.2"输入由单一协调者
         /// 综合模态栈、转场锁…"——客户端取其游戏输入面）：**模态打开 = 游戏意图全零**；
-        /// 非模态 UI（HUD 等）不拦截游戏输入。null UI（替身/测试装配）= 不拦截。
+        /// 非模态 UI（HUD 等）不拦截游戏输入。未注入查询（替身/测试装配）= 不拦截。
         /// </summary>
-        private bool IsUiBlocking => _ui != null && _ui.IsModalOpen;
+        private bool IsUiBlocking => _isUiBlocking != null && _isUiBlocking();
 
         private GameObject InstantiateView(string location, Transform parent)
         {

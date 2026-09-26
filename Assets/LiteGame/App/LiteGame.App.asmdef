@@ -10,6 +10,7 @@
         "LiteFramework.Core",
         "LiteFramework.Unity",
         "LiteGame.Runtime",
+        "LiteGame.UI",
         "LiteSim.Core",
         "LiteSim.View",
         "Luban.Runtime",

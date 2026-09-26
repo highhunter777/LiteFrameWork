@@ -8,8 +8,8 @@ namespace LiteGame
     /// <summary>
     /// 主流程（U1-④：真实主页面接入——《UI框架总设计》U1 退出条件"实际资源包 Player 可打开/关闭"的验收锚点）：
     /// 进入 Main 即打开 UIMain（真 prefab + 真 Lua + 内容租约链路端到端），失败进确定错误态。
-    /// 导航走 <see cref="UINavigationController"/>（U2 首版单写者导航的真实消费者——产品入口必须走导航，
-    /// 不直调 ShowAsync）。后续流程树（主菜单 → 进场景 → 战斗 → 结算，M5+/C2）在此扩展；
+    /// 打开走装配根注入的导航能力（U2 首版单写者导航的真实消费者——产品入口必须走导航，不直调 ShowAsync）。
+    /// 后续流程树（主菜单 → 进场景 → 战斗 → 结算，M5+/C2）在此扩展；
     /// Match/Battle/Result 预留见 <see cref="ProcedureId"/>。
     /// </summary>
     public sealed class ProcedureMain : ProcedureStageBase<ProcedureId, ProcedureArgs>
@@ -20,12 +20,14 @@ namespace LiteGame
         /// <summary>Player 冒烟标记（scripts/player-smoke.ps1 标记集——真资源包页面打开的健康证据）。</summary>
         private const string SmokeMarker = "[UI] main open";
 
-        private readonly UINavigationController _nav;
+        /// <summary>打开主页面（§5.1 逻辑边界：流程层不认识 UI 运行时，只持一个"打开第 N 号界面"的能力）。
+        /// 导航的**单写者**语义（U2）不变——由装配根注入的 <see cref="UINavigationController"/> 保持唯一。</summary>
+        private readonly Func<int, CancellationToken, UniTask> _open;
 
-        public ProcedureMain(UIService ui, UINavigationController nav, CancellationToken rootToken = default) : base(rootToken)
+        public ProcedureMain(Func<int, CancellationToken, UniTask> open, CancellationToken rootToken = default)
+            : base(rootToken)
         {
-            _nav = nav ?? throw new ArgumentNullException(nameof(nav));
-            if (ui == null) throw new ArgumentNullException(nameof(ui));   // 依赖存在性校验（装配契约），字段暂不持用
+            _open = open ?? throw new ArgumentNullException(nameof(open));
         }
 
         protected override void RunAsync(IStageHost<ProcedureId, ProcedureArgs> m, in ProcedureArgs req, CancellationToken ct)
@@ -46,7 +48,7 @@ namespace LiteGame
         {
             try
             {
-                await _nav.GoAsync(MainFormId, ct: ct);        // 单写者导航（真 prefab + 真 Lua + 内容租约——U1 全链）
+                await _open(MainFormId, ct);                   // 单写者导航（真 prefab + 真 Lua + 内容租约——U1 全链）
                 UnityEngine.Debug.Log($"{SmokeMarker} form={MainFormId} lease-held");
             }
             catch (OperationCanceledException) { /* 正常取消，静默 */ }

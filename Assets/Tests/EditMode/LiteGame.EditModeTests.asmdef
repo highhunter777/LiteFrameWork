@@ -12,6 +12,7 @@
         "LiteGame.App",
         "LiteGame.Editor",
         "LiteGame.Runtime",
+        "LiteGame.UI",
         "LiteNet",
         "LiteSim.Core",
         "LiteSim.Core.Editor",

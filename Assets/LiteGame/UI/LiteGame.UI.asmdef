@@ -1,17 +1,12 @@
 {
-    "name": "LiteClient.Scripting.XLua",
+    "name": "LiteGame.UI",
     "rootNamespace": "LiteGame",
     "references": [
-        "LiteClient.Abstractions",
-        "LiteClient.Serialization.Luban",
+        "DOTween.Modules",
+        "LiteCodeGen.Runtime",
         "LiteFramework.Core",
-        "LiteFramework.Unity",
-        "LiteGame.Runtime",
-        "LiteGame.UI",
-        "Luban.Runtime",
-        "Luban.Tables",
         "UniTask",
-        "xLuaMain"
+        "Unity.TextMeshPro"
     ],
     "includePlatforms": [],
     "excludePlatforms": [],

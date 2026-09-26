@@ -53,9 +53,9 @@ namespace Tools.DisciplineScan
         ///
         /// 边界与例外：
         /// <list type="bullet">
-        /// <item>YooAsset → `Shell/Resource/**`（内容适配器）</item>
-        /// <item>XLua → `Shell/Lua/**`、`Shell/Bridge/**`（脚本运行时与桥）</item>
-        /// <item>DG.Tweening → `Shell/UI/Anim/**`（动效适配）</item>
+        /// <item>YooAsset → `Content/**`（内容适配器）</item>
+        /// <item>XLua → `Scripting/**`（脚本运行时与桥）</item>
+        /// <item>DG.Tweening → `UI/Anim/**`（动效适配）</item>
         /// </list>
         /// 例外行用 `lint-allow R12` 标注并写明理由（如"该文件本身就是场景适配器"）。</summary>
         R12AdapterBoundary = 12,
@@ -163,7 +163,9 @@ namespace Tools.DisciplineScan
             ("YooAsset", new[] { "Assets/LiteGame/Content/" }),
             // XLua：随 §5.1 拆分为独立程序集后归 `Assets/LiteGame/Scripting/`
             ("XLua", new[] { "Assets/LiteGame/Scripting/" }),
-            ("DG.Tweening", new[] { "Assets/LiteGame/Runtime/Shell/UI/Anim/" }),
+            // DG.Tweening：随 §5.1 拆分为独立程序集后归 `Assets/LiteGame/UI/Anim/`
+            // （原 `Runtime/Shell/UI/Anim/`——目录一变规则就红，这正是 R12 该有的行为）
+            ("DG.Tweening", new[] { "Assets/LiteGame/UI/Anim/" }),
         };
 
         /// <summary>

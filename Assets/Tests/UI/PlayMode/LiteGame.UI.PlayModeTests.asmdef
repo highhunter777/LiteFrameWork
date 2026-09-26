@@ -11,6 +11,7 @@
         "LiteFramework.Unity",
         "LiteGame.App",
         "LiteGame.Runtime",
+        "LiteGame.UI",
         "LiteSim.Core",
         "LiteSim.View",
         "LiteTesting.Core",
