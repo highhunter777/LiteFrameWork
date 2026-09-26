@@ -30,6 +30,16 @@ namespace LiteGame.UI
 
         private const string WidgetDir = "Assets/UI/Widgets";   // 2026-09-19：UI 已从 LiteGame 迁到顶层 Assets/UI
 
+        /// <summary>
+        /// 模板加载器（**装配方注入**——真机分支用）。
+        ///
+        /// **为什么是注入而不是直调 `AssetService`**（《客户端总设计》§5.1 逻辑边界）：
+        /// 本页在通用 UI 层，直调静态资源门面会让 UI 层反向依赖 YooAsset 适配器，
+        /// 拆 asmdef 时就是 `UI → Adapter` 的硬依赖。编辑器菜单装配时注入实现即可；
+        /// 未注入时编辑器路径（AssetDatabase）照常工作，真机分支返回 null（本页是开发验收页，非产品入口）。
+        /// </summary>
+        public Func<string, System.Threading.CancellationToken, UniTask<GameObject>> LoadPrefab { get; set; }
+
         private int _pass, _fail;
 
         private void Awake() => BuildAsync().Forget();       // 模板加载是异步的（真机分支），断言排在构建之后
@@ -102,16 +112,17 @@ namespace LiteGame.UI
 
         /// <summary>模板加载：编辑器走 AssetDatabase（快路径）；真机走 YooAsset 运行时加载（收集组 LiteGameWidgets）。
         /// 编辑器下 AssetDatabase 未命中（例如资源刚生成未导入）时同样落到运行时路径——两条路都不通才返回 null。</summary>
-        private static async UniTask<GameObject> LoadTemplateAsync(string name)
+        private async UniTask<GameObject> LoadTemplateAsync(string name)
         {
             string path = $"{WidgetDir}/{name}.prefab";
 #if UNITY_EDITOR
             var asset = UnityEditor.AssetDatabase.LoadAssetAtPath<GameObject>(path);
             if (asset != null) return UnityEngine.Object.Instantiate(asset);
 #endif
+            if (LoadPrefab == null) return null;          // 未注入 = 真机分支不可用（开发页，非产品入口）
             try
             {
-                var prefab = await AssetService.LoadAssetAsync<GameObject>(path);
+                var prefab = await LoadPrefab(path, default(System.Threading.CancellationToken));
                 return prefab != null ? UnityEngine.Object.Instantiate(prefab) : null;
             }
             catch (Exception ex)

@@ -20,7 +20,10 @@ namespace LiteGame.Editor
             var scaler = canvasGo.GetComponent<UnityEngine.UI.CanvasScaler>();
             scaler.uiScaleMode = UnityEngine.UI.CanvasScaler.ScaleMode.ScaleWithScreenSize;
             scaler.referenceResolution = new Vector2(1920f, 1080f);
-            canvasGo.AddComponent<LiteGame.UI.UIDemoPage>();
+            var page = canvasGo.AddComponent<LiteGame.UI.UIDemoPage>();
+            // 注入真机分支的模板加载口（编辑器装配点——这里认识 AssetService 是允许的；
+            // UI 层自己不认识，见 UIDemoPage.LoadPrefab 注释）
+            page.LoadPrefab = (loc, ct) => LiteGame.AssetService.LoadAssetAsync<GameObject>(loc, ct);
             Debug.Log("[WidgetDemo] Demo 页已创建——控制台过滤 WidgetCheck 看自检结果", canvasGo);
         }
     }
