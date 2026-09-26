@@ -3,7 +3,6 @@
     "rootNamespace": "LiteGame",
     "references": [
         "LiteClient.Abstractions",
-        "LiteClient.App",
         "LiteClient.Content.YooAsset",
         "LiteClient.Network.Kcp",
         "LiteClient.Runtime",
@@ -11,6 +10,7 @@
         "LiteClient.Serialization.Luban",
         "LiteFramework.Core",
         "LiteFramework.Unity",
+        "LiteGame.App",
         "LiteGame.UI",
         "LiteSim.Core"
     ],

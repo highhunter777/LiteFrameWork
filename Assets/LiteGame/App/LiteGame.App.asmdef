@@ -1,5 +1,5 @@
 {
-    "name": "LiteClient.App",
+    "name": "LiteGame.App",
     "rootNamespace": "LiteGame",
     "references": [
         "LiteClient.Abstractions",
