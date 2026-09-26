@@ -318,7 +318,40 @@ namespace LiteGame
             }
         }
 
-        /// <summary>⑩ 容器与流程机：注册（**注册顺序 = 驱动顺序**）→ 流程机（业务装配仍由 ProcedureLaunch Seal，§12）。
+        /// <summary>
+        /// ⑩ 输入服务（2026-09-26 输入服务批，《角色状态与动作专项设计》§3"输入三件"）：
+        /// 设备 → 意图 → 三个门 的协调者。**登记在 Root**（跨对局复用；对局期由 ProcedureBattle
+        /// 挂/摘设备源与阶段拦截源），设备源由流程按对局注入（相机上下文随对局变），
+        /// 产品级拦截源（UI 模态）在此登记一次、跨对局常驻——与 UI 壳同层，不由流程重复登记。
+        ///
+        /// 放在 UiShell **之后**（依赖序）与 ⑪Container **之前**：后者的流程装配需要它，
+        /// 而它的 UI 依赖经委托（<c>uiService.IsModalOpen</c>）注入，不认识 UI 运行时（§5.1 逻辑边界）。
+        ///
+        /// **命名注意**：本模块类叫 <c>InputModule</c> 而不是 <c>Input</c>——本文件 `using UnityEngine`，
+        /// 同名嵌套类会把 `Input.GetKey` 这类**既有引用**解析到我们的类型上（CS0117），
+        /// 属那种"改一处、炸在另一处"的隐蔽破坏；模块名对宿主只作日志标签用。
+        /// </summary>
+        internal sealed class InputModule : IClientModule
+        {
+            private InputService _service;
+
+            public string Name => "Input";
+
+            public UniTask InitializeAsync(ClientContext context, CancellationToken ct)
+            {
+                _service = new InputService();
+                context.Put<IInputService>(_service);
+                return UniTask.CompletedTask;
+            }
+
+            public UniTask ShutdownAsync(CancellationToken ct)
+            {
+                _service?.ResetAll();                        // 关服清干净（拦截源/设备源/计数；静态清零语义的实例版）
+                return UniTask.CompletedTask;
+            }
+        }
+
+        /// <summary>⑪ 容器与流程机：注册（**注册顺序 = 驱动顺序**）→ 流程机（业务装配仍由 ProcedureLaunch Seal，§12）。
         /// 场景服务归本模块所有——关闭时释放全部场景句柄（§6.2 Scene 域退出动作，C1-⑦ 补宿主关闭释放面）。</summary>
         internal sealed class Container : IClientModule
         {
@@ -438,7 +471,19 @@ namespace LiteGame
                 var nav = context.Require<UINavigationController>();
                 Func<int, CancellationToken, UniTask> openUi =
                     (formId, ct) => nav.GoAsync(formId, ct: ct);
-                Func<bool> isUiBlocking = () => uiService.IsModalOpen;
+
+                // 输入拦截源（§6.2"输入由单一协调者综合模态栈、转场锁、暂停和产品策略计算"；
+                // 《角色状态与动作专项设计》§3 第 2 件）。**在装配根登记一次**——产品级、跨对局常驻，
+                // 流程既不持"UI 是否拦截"这类判断，也不认识具体拦截源。
+                //
+                // 当前唯一登记项 `ui.modal`（UI 模态栈；转场锁随 UI 壳结论计入，U1-③ 输入锁语义不变）。
+                // **刻意不按会话相位拦**：断线但未出提示 UI 时（SuspectedLost → 自动重连的短暂窗口）
+                // 游戏照常预测与操作——拦下会凭空改变玩法行为、把可玩的连接瞬间变成停顿；
+                // "重连提示打开"本身就是一个模态页，由本条覆盖。
+                // 其余源随各自消费者接入（暂停/失焦/平台返回见《客户端总设计》§12.2，C3 平台生命周期）。
+                var input = context.Require<IInputService>();
+                input.RegisterBlocker(new IntentGate.BlockerKey("ui.modal", "模态 UI 打开——游戏意图被拦截"),
+                    () => uiService.IsModalOpen);
 
                 return new StageMachine<ProcedureId, ProcedureArgs>("Procedure",
                     (ProcedureId.Launch, new ProcedureLaunch(rootToken)),
@@ -446,7 +491,7 @@ namespace LiteGame
                     (ProcedureId.Preload, new ProcedurePreload(content, config, lua, filler, events, () => ListLuaAssetPaths(content), rootToken)),
                     (ProcedureId.Main, new ProcedureMain(openUi, rootToken)),
                     (ProcedureId.Match, new ProcedureMatch(context.RootScope, rootToken)),
-                    (ProcedureId.Battle, new ProcedureBattle(content, vfxService, isUiBlocking, rootToken)),
+                    (ProcedureId.Battle, new ProcedureBattle(content, input, vfxService, rootToken)),
                     (ProcedureId.Error, new ProcedureError(rootToken)));
             }
 

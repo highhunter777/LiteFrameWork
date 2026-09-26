@@ -82,6 +82,7 @@ namespace LiteGame
                  .AddModule(new GameModules.Config())
                  .AddModule(new GameModules.UiShell())
                  .AddModule(new GameModules.Presentation())
+                 .AddModule(new GameModules.InputModule())
                  .AddModule(new GameModules.Container());
 
             _bootCts = new CancellationTokenSource();

@@ -8,7 +8,7 @@ using UnityEngine.SceneManagement;
 namespace LiteGame
 {
     /// <summary>
-    /// Sim 灰盒沙盒（《M8实施指导》§2.7，一次性调试件——不承担产品职责；M11 SimView/PlayerController
+    /// Sim 灰盒沙盒（《M8实施指导》§2.7，一次性调试件——不承担产品职责；M11 SimView/输入服务
     /// 上线后整件删除）。用途：让 Sim 层肉眼可见（跑动/开火/命中/掉血），早期验证手感与数值。
     ///
     /// - 驱动：FrameDriver.Tick(Time.deltaTime)（不吃 IGameClock，M8 决策 #14）——追帧/防死亡螺旋由 FrameDriver 承担。

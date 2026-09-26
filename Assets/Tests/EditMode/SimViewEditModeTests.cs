@@ -9,13 +9,14 @@ using UnityEngine;
 namespace LiteGame.Tests.EditMode
 {
     /// <summary>
-    /// C2 批② 表现视图与输入采集验收（全替身、零网络、零资源包）：
+    /// C2 批② 表现视图验收（全替身、零网络、零资源包）：
     /// - SimView：槽位镜像增删、远端快照插值、本地预测跟随与和解衰减、硬切、**事件静默门**去重；
-    /// - EntityViewMap：按槽位索引、按 prefab 分池复用、回收计数回落（泄漏断言）；
-    /// - PlayerController：上下文门（UI 打开 → 意图全零含 Buttons）、移动向量长度 ≤1 归一。
+    /// - EntityViewMap：按槽位索引、按 prefab 分池复用、回收计数回落（泄漏断言）。
     ///
     /// 纯数学（插值/衰减/硬切判据）在 L1（Tests/LiteSim.Core.Tests/ViewTransformMathTests）——本类只验
-    /// 引擎侧接线与生命周期。
+    /// 引擎侧接线与生命周期。**输入服务**（上下文门/帧边界门/采样节流）同在 L1
+    /// （Tests/LiteSim.Core.Tests/InputServiceTests）——设备源的相机换算属本层，但需真实 Input 状态，
+    /// 由夜间 L2 与 Player 冒烟覆盖。
     /// </summary>
     public sealed class SimViewEditModeTests : UnityTestBase
     {
@@ -267,35 +268,19 @@ namespace LiteGame.Tests.EditMode
             Assert.Greater(camGo.transform.position.y, rig.Focus.y, "俯视角相机在焦点上方（pitch 为负）");
         }
 
-        // ---- PlayerController ----
+        // ---- 输入设备源（键鼠）：上下文门与帧边界门已上移输入服务，见 L1 InputServiceTests ----
 
         [Test]
-        public void 输入_上下文门关闭时意图全零_含Buttons()
+        public void 输入_无相机时瞄准方向为单位向量_移动无键时为零()
         {
-            bool gate = false;
-            var input = new PlayerController(null, () => gate);
-
-            var frame = input.Collect(new SimVector3(0f, 0f, 0f));
-            Assert.AreEqual(0f, frame.MoveX);
-            Assert.AreEqual(0f, frame.MoveZ);
-            Assert.AreEqual(0u, frame.Buttons, "上下文门连 Buttons 一并清零（UI 打开时不该开火）");
-            Assert.IsTrue(input.LastBlockedByGate);
-
-            gate = true;
-            input.Collect(new SimVector3(0f, 0f, 0f));
-            Assert.IsFalse(input.LastBlockedByGate, "门打开即放行");
-        }
-
-        [Test]
-        public void 输入_瞄准方向默认单位长度_移动无键时为零()
-        {
-            var input = new PlayerController(null);                // 无相机：不做瞄准换算，沿用默认方向
-            var frame = input.Collect(new SimVector3(0f, 0f, 0f));
+            var source = new KeyboardMouseIntentSource(null);      // 无相机：不做瞄准换算，沿用默认方向
+            var frame = source.Sample(new SimVector3(0f, 0f, 0f));
 
             float aimMag = Mathf.Sqrt(frame.AimX * frame.AimX + frame.AimZ * frame.AimZ);
             Assert.AreEqual(1f, aimMag, 0.001f, "默认瞄准方向为单位向量（长度 ≤1 契约）");
             Assert.AreEqual(0f, frame.MoveX);
             Assert.AreEqual(0f, frame.MoveZ);
+            Assert.AreEqual(0u, frame.Buttons, "无按键输入");
         }
     }
 }
