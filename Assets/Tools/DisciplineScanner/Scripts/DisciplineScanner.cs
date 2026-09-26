@@ -158,13 +158,15 @@ namespace Tools.DisciplineScan
         /// </summary>
         private static readonly (string Adapter, string[] AllowedRoots)[] R12Boundaries =
         {
-            // YooAsset：随 §5.1 拆分为独立程序集后归 `Assets/LiteGame/Content/`
-            // （原 `Runtime/Shell/Resource/`——目录一变规则就红，这正是 R12 该有的行为）
-            ("YooAsset", new[] { "Assets/LiteGame/Content/" }),
-            // XLua：随 §5.1 拆分为独立程序集后归 `Assets/LiteGame/Scripting/`
-            ("XLua", new[] { "Assets/LiteGame/Scripting/" }),
-            // DG.Tweening：随 §5.1 拆分为独立程序集后归 `Assets/LiteGame/UI/Anim/`
-            // （原 `Runtime/Shell/UI/Anim/`——同上）
+            // 适配器层（《客户端总设计》§5 顶层框图第四层 `Adapters`）：
+            // 四个适配器统一住 `Assets/LiteGame/Adapters/<程序集后缀>/`，**目录名 = 层标签**
+            // （程序集名不含 Adapters 前缀；asmdef 不要求目录名与程序集名相同）。
+            // YooAsset：随 §5.1 拆为独立程序集 → 2026-09-26 收进 Adapters 层
+            ("YooAsset", new[] { "Assets/LiteGame/Adapters/Content.YooAsset/" }),
+            // XLua：同上
+            ("XLua", new[] { "Assets/LiteGame/Adapters/Scripting.XLua/" }),
+            // DG.Tweening：UI 动效适配。**不在 Adapters 层**——它是 `Game-specific UI`（§5 框图的
+            // Game.App 行），随 UI 程序集归游戏侧
             ("DG.Tweening", new[] { "Assets/LiteGame/UI/Anim/" }),
         };
 

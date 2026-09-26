@@ -343,6 +343,18 @@ namespace LiteFramework.Tests
                 string.Join(" | ", System.Linq.Enumerable.Select(violations, v => v.Code)));
         }
 
+        /// <summary>§5 顶层分层守卫：`Assets/LiteGame/` 下不允许出现未登记的顶层目录。
+        /// 2026-09-26 建 `Adapters/` 层时补——此前顶层目录是历次拆分自然长出来的，没人检查过
+        /// 它们是否落在设计的层里（四个适配器曾平铺在根上，只能靠人工阅读发现）。</summary>
+        [Fact]
+        public void 纪律_LiteGame顶层目录必须已登记()
+        {
+            var unregistered = Tools.DisciplineScan.ScanTargets.ValidateLiteGameTopLevel(RepoRoot());
+            Assert.True(unregistered.Count == 0,
+                "Assets/LiteGame 下存在未登记的顶层目录（逃出 §5 分层，或需在 LiteGameTopLevelDirs 登记并说明归属）："
+                + string.Join(", ", unregistered));
+        }
+
         /// <summary>向上找含 Tests/Tests.slnx 的仓库根（与内容夹具同款定位）。</summary>
         private static string RepoRoot()
         {
@@ -367,19 +379,20 @@ namespace LiteFramework.Tests
             // **每个边界只放行它对应的那一个适配器**——不是"边界目录里什么都能 import"。
             // （初版把三个 using 一起塞进每个目录并期望 0，是错的：Shell/Resource 放行 YooAsset，
             //   但不放行 XLua/DG.Tweening。）
-            Assert.Equal(0, CountAt("Assets/LiteGame/Content/C.cs",
+            // 2026-09-26：适配器收进 `Adapters/` 层，路径随之更新（目录一变规则就红，本用例即其表现）。
+            Assert.Equal(0, CountAt("Assets/LiteGame/Adapters/Content.YooAsset/C.cs",
                 "using YooAsset;", LintRule.R12AdapterBoundary));
-            Assert.Equal(0, CountAt("Assets/LiteGame/Scripting/Lua/C.cs",
+            Assert.Equal(0, CountAt("Assets/LiteGame/Adapters/Scripting.XLua/Lua/C.cs",
                 "using XLua;", LintRule.R12AdapterBoundary));
-            Assert.Equal(0, CountAt("Assets/LiteGame/Scripting/Bridge/C.cs",
+            Assert.Equal(0, CountAt("Assets/LiteGame/Adapters/Scripting.XLua/Bridge/C.cs",
                 "using XLua;", LintRule.R12AdapterBoundary));
             Assert.Equal(0, CountAt("Assets/LiteGame/UI/Anim/C.cs",
                 "using DG.Tweening;", LintRule.R12AdapterBoundary));
 
             // 反向：边界目录**不**放行别人的适配器
-            Assert.Equal(1, CountAt("Assets/LiteGame/Content/C.cs",
+            Assert.Equal(1, CountAt("Assets/LiteGame/Adapters/Content.YooAsset/C.cs",
                 "using XLua;", LintRule.R12AdapterBoundary));
-            Assert.Equal(1, CountAt("Assets/LiteGame/Scripting/Lua/C.cs",
+            Assert.Equal(1, CountAt("Assets/LiteGame/Adapters/Scripting.XLua/Lua/C.cs",
                 "using YooAsset;", LintRule.R12AdapterBoundary));
             Assert.Equal(1, CountAt("Assets/LiteGame/UI/Anim/C.cs",
                 "using YooAsset;", LintRule.R12AdapterBoundary));

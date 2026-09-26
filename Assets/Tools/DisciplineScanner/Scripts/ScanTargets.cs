@@ -1,3 +1,7 @@
+using System;
+using System.Collections.Generic;
+using System.IO;
+
 namespace Tools.DisciplineScan
 {
     /// <summary>一个扫描目标：源根（相对项目根）+ 该根启用的规则子集 + 可选排除子根。</summary>
@@ -104,6 +108,49 @@ namespace Tools.DisciplineScan
         {
             "MetaServer/Host",
         };
+
+        /// <summary>
+        /// `Assets/LiteGame/` 下**允许存在的顶层目录**（《客户端总设计》§5 顶层分层）。
+        ///
+        /// 2026-09-26 建 `Adapters/` 层时补：此前顶层目录是历次拆分**自然长出来的**，
+        /// 没有人检查过它们是否落在设计的层里——本次盘查发现 `Content/Net/Scripting/
+        /// Serialization` 四个适配器平铺在根上、没有 `Adapters/` 层，只能靠人工阅读发现。
+        ///
+        /// 新增顶层目录必须在此登记，并说明它属于 §5 的哪一层（或为何是例外）。
+        /// 未登记的目录会让本规则报红——**目录一变就红**，与 R12 边界表同一纪律。
+        /// 非代码目录（`Lua`/`RawFile`/`link.xml` 等）也在列：它们不是"层"，但要有名有姓。
+        /// </summary>
+        public static readonly string[] LiteGameTopLevelDirs =
+        {
+            "Abstractions",          // §5 / §5.1：LiteClient.Abstractions
+            "Adapters",              // §5 顶层第四层：Content.YooAsset / Network.Kcp / Scripting.XLua / Serialization.Luban
+            "App",                   // §5 顶层第一层 Game.App
+            "Runtime",               // §5 顶层第二层 Client.Runtime（目录名 = 层标签）
+            "UI",                    // §5 框图 "UI Runtime"（游戏侧，故 LiteGame.UI 而非 LiteClient.UI）
+            "DevHUD",                // 开发面工具（不在 §5 层内，登记为例外）
+            "Editor",                // 编辑器工具程序集（同上）
+            "Lua",                   // 脚本资产（非程序集目录）
+            "RawFile",               // 配置字节资产（非程序集目录）
+        };
+
+        /// <summary>
+        /// 校验 `Assets/LiteGame` 顶层目录全部已登记（未登记 = 逃出设计分层，见上）。
+        /// 返回未登记目录名（无则空）。
+        /// </summary>
+        public static List<string> ValidateLiteGameTopLevel(string projectRoot)
+        {
+            var unregistered = new List<string>();
+            string root = Path.Combine(projectRoot, "Assets", "LiteGame");
+            if (!Directory.Exists(root)) return unregistered;
+
+            foreach (string dir in Directory.GetDirectories(root))
+            {
+                string name = Path.GetFileName(dir);
+                if (Array.IndexOf(LiteGameTopLevelDirs, name) < 0) unregistered.Add(name);
+            }
+            unregistered.Sort(StringComparer.Ordinal);
+            return unregistered;
+        }
 
         /// <summary>默认扫描目标集合。</summary>
         public static readonly ScanTarget[] Default =
