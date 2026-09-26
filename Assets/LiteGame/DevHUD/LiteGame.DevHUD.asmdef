@@ -5,10 +5,10 @@
         "LiteFramework.Core",
         "LiteFramework.Unity",
         "LiteGame.App",
-        "LiteGame.Content.YooAsset",
-        "LiteGame.Net.Kcp",
+        "LiteClient.Content.YooAsset",
+        "LiteClient.Network.Kcp",
         "LiteGame.Runtime",
-        "LiteGame.Scripting.XLua",
+        "LiteClient.Scripting.XLua",
         "LiteSim.Core"
     ],
     "includePlatforms": [],

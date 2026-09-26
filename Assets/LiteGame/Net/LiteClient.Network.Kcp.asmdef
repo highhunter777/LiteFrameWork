@@ -1,14 +1,11 @@
 {
-    "name": "LiteGame.Scripting.XLua",
+    "name": "LiteClient.Network.Kcp",
     "rootNamespace": "LiteGame",
     "references": [
         "LiteFramework.Core",
         "LiteFramework.Unity",
-        "LiteGame.Runtime",
-        "Luban.Runtime",
-        "Luban.Tables",
-        "UniTask",
-        "xLuaMain"
+        "LiteNet",
+        "UniTask"
     ],
     "includePlatforms": [],
     "excludePlatforms": [],

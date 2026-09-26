@@ -1,11 +1,11 @@
 {
-    "name": "LiteGame.Net.Kcp",
+    "name": "LiteClient.Content.YooAsset",
     "rootNamespace": "LiteGame",
     "references": [
         "LiteFramework.Core",
         "LiteFramework.Unity",
-        "LiteNet",
-        "UniTask"
+        "UniTask",
+        "YooAsset"
     ],
     "includePlatforms": [],
     "excludePlatforms": [],

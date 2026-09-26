@@ -1,11 +1,14 @@
 {
-    "name": "LiteGame.Content.YooAsset",
+    "name": "LiteClient.Scripting.XLua",
     "rootNamespace": "LiteGame",
     "references": [
         "LiteFramework.Core",
         "LiteFramework.Unity",
+        "LiteGame.Runtime",
+        "Luban.Runtime",
+        "Luban.Tables",
         "UniTask",
-        "YooAsset"
+        "xLuaMain"
     ],
     "includePlatforms": [],
     "excludePlatforms": [],
