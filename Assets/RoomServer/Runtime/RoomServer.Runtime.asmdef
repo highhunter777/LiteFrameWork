@@ -1,0 +1,16 @@
+{
+    "name": "RoomServer.Runtime",
+    "rootNamespace": "RoomServer.Runtime",
+    "references": [
+        "LiteSim.Core"
+    ],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": false,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": true
+}

@@ -1,0 +1,34 @@
+<Project Sdk="Microsoft.NET.Sdk">  <!--
+    双轨编译（测试开发方案 §1.2 同款）：RoomServer.Runtime 在 Unity（asmdef）与 dotnet（本 csproj）两侧编译。
+    - 范围锁死 Runtime/：纯房间内核（确定性状态机/输入环/快照），**只依赖 LiteSim + BCL**
+    - 与 LiteSim.Core 同款：noEngineReferences / LangVersion 9.0（防双轨漂移）/ EnableDefaultCompileItems=false
+    - Unity 忽略 .csproj，本文件入库仅供 dotnet（服务端宿主与测试）使用
+    - 2026-09-27 从仓库根 RoomServer/Runtime 迁入 Assets：原位置 Unity 看不见，客户端无法在进程内
+      跑真权威内核做离线开发（《服务端总设计》§7 目标结构本就把它列为独立项目，R1 记录写明"拆独立
+      csproj/包边界随 R2+"）。迁入后服务端与 Unity 客户端**编译的是同一份源码**。
+  -->
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <LangVersion>9.0</LangVersion>
+    <Nullable>disable</Nullable>
+    <ImplicitUsings>disable</ImplicitUsings>
+    <EnableDefaultCompileItems>false</EnableDefaultCompileItems>
+    <IsPackable>false</IsPackable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- 本 csproj 已下沉到 Runtime/ 内（与 asmdef 同目录、同 LiteSim.Core 布局），故 glob 不再带 Runtime/ 前缀。
+         **必须排除构建产物目录**：csproj 与源码同目录时，`**/*.cs` 会把生成物（AssemblyInfo 等）
+         一并扫进来（CS0579 特性重复）——LiteSim.Core 因源码在 Scripts/ 子目录下而天然避开了这个坑。
+         产物目录 = `.dotnet/`（上层 Directory.Build.props 重定向；Unity 资产库忽略点目录，但
+         **MSBuild 的 `**` 不忽略点目录**——2026-09-27 实测：只排 obj/bin 时 `.dotnet/obj` 的
+         AssemblyInfo 照样进编译）。obj/bin 一并保留在排除表里，防有人删了重定向后旧坑复发。 -->
+    <Compile Include="**/*.cs" Exclude=".dotnet/**/*.cs;obj/**/*.cs;bin/**/*.cs" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- **只引 LiteSim**：R11 红线禁止本层出现 proto/LiteNet（纯化扫描会命中 "using LiteNet"）。 -->
+    <ProjectReference Include="..\..\..\Assets\LiteSim\Core\LiteSim.Core.csproj" />
+  </ItemGroup>
+
+</Project>

@@ -41,6 +41,8 @@ XLuaSamples/
 !Assets/Tools/DisciplineScanner/*.csproj
 !Assets/LiteTesting/*.csproj
 !RoomServer/*.csproj
+!Assets/RoomServer/Runtime/*.csproj
+!Assets/RoomServer/Application/*.csproj
 !MetaServer/*.csproj
 !Tests/LiteFramework.Core.Tests/*.csproj
 !Tests/LiteSim.Core.Tests/*.csproj

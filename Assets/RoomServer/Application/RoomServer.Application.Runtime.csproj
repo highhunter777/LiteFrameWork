@@ -1,0 +1,44 @@
+<Project Sdk="Microsoft.NET.Sdk">  <!--
+    双轨编译：RoomServer.Application 的无 IO 子集（快照管线 / 会话 / 账本），
+    服务端宿主与 Unity 客户端共编同一份源码。
+
+    **为什么单列一个程序集而不是并进 Runtime**：
+    - R11 纯化红线的管辖范围是 `Assets/RoomServer/Runtime`（"Runtime 只持确定性房间状态"）。
+      快照管线要 `LiteNet.Protocol`（差分/重组纯函数）与 `LiteNet.Proto`（消息类型），
+      按 R11 判据本就进不了 Runtime——把它塞进去等于放宽红线。
+      （对照：LiteNet.Protocol/Proto 同样不含 Socket，真正的网络实现只在 `LiteNet.Transport`。）
+    - 对照 LiteFramework：`IAnimationBackend` 的端口在 Core、Animator 实现另立程序集——
+      分层靠**归属**表达，不靠把不同职责塞进同一层。
+    - 设计 §7 目标结构里 `RoomServer.Application` 本就是独立项目。
+
+    **包含范围**：本程序集进包的必须是**无 IO、无墙钟、无 Console、无 kcp** 的文件。
+    带 Socket/kcp2k/文件/时钟的 Application 文件（ServerHost、ServerLoop、ReconnectService…）
+    仍留在仓库根 `RoomServer/` 工程，**不得**挪进来。
+  -->
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <LangVersion>9.0</LangVersion>
+    <Nullable>disable</Nullable>
+    <ImplicitUsings>disable</ImplicitUsings>
+    <EnableDefaultCompileItems>false</EnableDefaultCompileItems>
+    <IsPackable>false</IsPackable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- 本 csproj 已下沉到 Application/ 内（与 asmdef 同目录），故 glob 不再带 Application/ 前缀。
+         排除产物目录的理由同 Runtime 工程（CS0579；`.dotnet/` 是重定向产物目录——MSBuild 的
+         `**` 不忽略点目录，2026-09-27 实测踩坑）。 -->
+    <Compile Include="**/*.cs" Exclude=".dotnet/**/*.cs;obj/**/*.cs;bin/**/*.cs" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\..\Assets\LiteNet\LiteNet.csproj" />
+    <ProjectReference Include="..\..\..\Assets\LiteSim\Core\LiteSim.Core.csproj" />
+    <ProjectReference Include="..\Runtime\RoomServer.Runtime.csproj" />
+    <!-- protobuf：本程序集**不进 Unity 双轨**——它依赖 protobuf，而本仓 Unity 侧用的是
+         Vendor DLL（Assets/LiteNet/Vendor/Google.Protobuf）而非 NuGet。若日后要进 Unity，
+         需改成与 LiteNet 相同的 vendor DLL 方案（见该 csproj 顶部注释）。 -->
+    <PackageReference Include="Google.Protobuf" Version="3.36.1" />
+  </ItemGroup>
+
+</Project>

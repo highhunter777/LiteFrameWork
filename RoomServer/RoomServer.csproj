@@ -15,6 +15,11 @@
   <ItemGroup>
     <ProjectReference Include="..\Assets\LiteNet\LiteNet.csproj" />
     <ProjectReference Include="..\Assets\LiteSim\Core\LiteSim.Core.csproj" />
+    <!-- 房间内核已按《服务端总设计》§7 目标结构独立成项目（2026-09-27 迁入 Assets/RoomServer）：
+         纯运行时、无 Socket/无文件/无时钟，现由服务端宿主与 Unity 客户端**共编同一份源码**。 -->
+    <ProjectReference Include="..\Assets\RoomServer\Runtime\RoomServer.Runtime.csproj" />
+    <!-- Application 的无 IO 子集（快照管线/会话/账本/票据）同理——本地开发形态在客户端内复用它。 -->
+    <ProjectReference Include="..\Assets\RoomServer\Application\RoomServer.Application.Runtime.csproj" />
   </ItemGroup>
 
 </Project>

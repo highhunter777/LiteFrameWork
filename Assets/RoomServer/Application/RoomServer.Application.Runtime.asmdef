@@ -1,0 +1,20 @@
+{
+    "name": "RoomServer.Application.Runtime",
+    "rootNamespace": "RoomServer.Application",
+    "references": [
+        "LiteNet",
+        "LiteSim.Core",
+        "RoomServer.Runtime"
+    ],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": true,
+    "precompiledReferences": [
+        "Google.Protobuf.dll"
+    ],
+    "autoReferenced": false,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": true
+}
