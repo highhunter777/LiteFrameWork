@@ -60,11 +60,22 @@ namespace LiteGame.Tests.EditMode
         [Test]
         public void 正例_登记例外不判违规()
         {
-            // 引导期错误界面：唯一例外（§7 判据）——显式登记在 AllowedFiles
+            // 引导期错误界面：唯一例外（§7 判据）——显式登记在 AllowedFileNames。
+            // 按**文件名**登记，故此处路径随目录迁移变化不影响放行（2026-09-26 改）。
             var v = VisualConstructionScanner.ScanSource(
-                "Assets/LiteGame/Runtime/Main/Procedure/ProcedureError.cs",
+                "Assets/LiteGame/App/Procedure/ProcedureError.cs",
                 "var root = new GameObject(\"BootstrapErrorUI\", typeof(Canvas), typeof(Image));");
             Assert.AreEqual(0, v.Count, "登记例外不判违规（判据见 §7：仅引导期 + 绑冒烟标记）");
+        }
+
+        [Test]
+        public void 反例_同名之外的视觉构建仍判违规()
+        {
+            // 按文件名登记的边界：**只有登记的那个文件名**放行，别的文件即便在例外目录里也不行
+            var v = VisualConstructionScanner.ScanSource(
+                "Assets/LiteGame/App/Procedure/ProcedureMain.cs",
+                "var root = new GameObject(\"X\", typeof(Canvas), typeof(Image));");
+            Assert.AreEqual(1, v.Count, "未登记文件不得借例外目录逃逸");
         }
 
         [Test]
@@ -82,9 +93,13 @@ namespace LiteGame.Tests.EditMode
         public void 真实代码_运行时无未登记的视觉构建()
         {
             string root = ProjectRoot();
+            // 覆盖全部含视觉构建的目录。2026-09-26：流程（唯一例外 ProcedureError 的所在地）
+            // 随 §5.1 从 `Runtime` 迁到 `App/Procedure`，此处**必须同步**——例外只对
+            // "被扫到的文件"生效，漏扫该目录等于让唯一例外与它所在的整个目录一起失去把守。
             List<VisualConstructionScanner.Violation> found =
                 VisualConstructionScanner.ScanDirectory(root,
-                    "Assets/LiteGame/Runtime", "Assets/LiteFramework/Scripts", "Assets/LiteSim/View");
+                    "Assets/LiteGame/Runtime", "Assets/LiteGame/App",
+                    "Assets/LiteFramework/Scripts", "Assets/LiteSim/View");
 
             if (found.Count > 0)
                 Assert.Fail("运行时视觉构建违规（§7 视觉单一来源）:\n" +

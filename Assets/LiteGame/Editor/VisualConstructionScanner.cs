@@ -34,11 +34,21 @@ namespace LiteGame.Editor
             "EventSystem", "StandaloneInputModule", "InputSystemUIInputModule",
         };
 
-        /// <summary>登记例外（相对工程根的路径，正斜杠）。新增须同步设计文档 §7 判据。</summary>
-        public static readonly string[] AllowedFiles =
+        /// <summary>登记例外的**文件名**（非路径）。新增须同步设计文档 §7 判据。
+        ///
+        /// **为什么用文件名而不是路径**（2026-09-26）：原按完整路径登记，ProcedureError.cs 随
+        /// §5.1 从 `Runtime/Main/Procedure/` 迁到 `App/Procedure/` 后**登记静默失效**——
+        /// 真实源码扫描因"找不到该路径"把唯一的例外文件当普通文件扫（或反之），
+        /// 而 EditMode 用例传的是**合成路径**、仍走放行分支，故全绿掩盖了它。
+        /// 与 R6/R10 的"路径写错 = 空扫"是同一类失效。
+        ///
+        /// 例外由**文件名**唯一标识已足够（本仓只有一处）；迁移目录时不再需要同步本表。
+        /// 若将来出现同名文件，须改为"文件名 + 特征片段"判定，不得退回写死路径。
+        /// </summary>
+        public static readonly string[] AllowedFileNames =
         {
             // 引导期错误界面：内置资源不可用时仍要能显示（§7）；绑冒烟标记 BootstrapError
-            "Assets/LiteGame/Runtime/Main/Procedure/ProcedureError.cs",
+            "ProcedureError.cs",
         };
 
         public sealed class Violation
@@ -117,12 +127,13 @@ namespace LiteGame.Editor
             return false;
         }
 
-        /// <summary>该文件是否登记为例外。</summary>
+        /// <summary>该文件是否登记为例外（按**文件名**匹配——目录迁移不再使登记失效）。</summary>
         public static bool IsAllowed(string file)
         {
             string norm = Normalize(file);
-            foreach (string allowed in AllowedFiles)
-                if (norm.EndsWith(allowed, StringComparison.OrdinalIgnoreCase)) return true;
+            foreach (string allowed in AllowedFileNames)
+                if (norm.EndsWith("/" + allowed, StringComparison.OrdinalIgnoreCase)
+                    || norm.Equals(allowed, StringComparison.OrdinalIgnoreCase)) return true;
             return false;
         }
 
