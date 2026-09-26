@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using LiteFramework;
 
@@ -9,11 +10,13 @@ namespace LiteGame
     /// + 自签候选即绕过整条验签链）。
     ///
     /// **生成契约**：本文件由发布流程从信任清单生成（私钥留在签名机，**绝不入库/入包**）；
-    /// 当前为**零锚点**——任何候选签名都会因"keyId 未登记"被拒（fail-closed 保持，§8）。
-    /// 锚点 provisioning = 运维生成密钥对 → 公钥条目加入信任清单 → 重新生成本文件 → 随包发布。
-    ///
-    /// 轮换：新旧 keyId 并存（Add 两次），旧版撤销经 <see cref="TrustedKeyStore.Revoke"/>
+    /// 轮换时新旧 keyId 并存（Add 两次），旧版撤销经 <see cref="TrustedKeyStore.Revoke"/>
     /// （由下一版内置表体现——撤销清单随可写存储分发会被篡改，首版不做）。
+    ///
+    /// **首版锚点（2026-09-26 provisioning）**：RSA-2048（§6 算法选型裁决）；私钥存签名机
+    /// 用户目录 `.unitylib-content-signing/`（仓库外）。生成时已做配对实证（私钥签 → 本表
+    /// 公钥参数验通过、篡改签名拒绝）。候选验签链自此从 fail-closed 转为可接受——
+    /// 发布工具需使用该私钥对候选描述签名，且清单 KeyId 声明为下行条目的 keyId。
     /// </summary>
     public static class ContentTrustAnchors
     {
@@ -33,11 +36,18 @@ namespace LiteGame
         }
 
         /// <summary>
-        /// 内置锚点（当前为零——见生成契约）。条目以 <c>yield return new Anchor(...)</c> 形式追加。
+        /// 内置锚点（Base64 = <see cref="TrustedKeyStore.LoadFromJson"/> 同款编码；
+        /// 条目以 <c>yield return new Anchor(...)</c> 形式追加）。
         /// </summary>
         public static IEnumerable<Anchor> BuiltIn
         {
-            get { yield break; }
+            get
+            {
+                yield return new Anchor(
+                    "release-key-2026-09-26",
+                    Convert.FromBase64String("tgkOQKLKzUvND2kruLTjIRRDXWQVAiQ21Wr5eI+VINAtJwnai0CS9qFf8nZQozA5rgPYDAYlULHC95p4+/pslvIXL7PY5Dx7rOe2tlmUUygyah5dvQOPZkz07EigiVxfy8ZkwCOahA+Ptr43W9MQ8OMEMQW0CeCkeO/jRhqgPqsYyBsl5jch9S9DdoOpA9ngjPcp6pO61nCrCTUulNOz8DinbpF8xPR5bBLmKsFjZ0XGas4R3EDdzx0AYLeZ2bdrfQny+nJ30vmIESlB58VMXXigAbHQO6rmqCDoE3LDIHQjvamRalmGivU4x7TrAFAM0Rq0bqLg46thpcMxomhK5Q=="),
+                    Convert.FromBase64String("AQAB"));   // e = 65537
+            }
         }
 
         /// <summary>把内置锚点登记进受信公钥库（装配点调用；返回登记数——0 = 无锚点，fail-closed）。</summary>

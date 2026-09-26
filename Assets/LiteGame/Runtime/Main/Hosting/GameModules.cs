@@ -55,8 +55,8 @@ namespace LiteGame
 
                 // 热更链生产装配（§6/§8/§12 端到端装配批）。装配形态决定能力边界：
                 // - **信任锚**：内置锚表（ContentTrustAnchors——根信任编入应用本体，不放可写存储）。
-                //   当前为零锚点 → 任何候选按 UnknownOrRevokedKey 拒（fail-closed 保持）；
-                //   锚点 provisioning = 发布流程生成密钥对后重新生成锚表（私钥绝不入库/入包）。
+                //   首版锚点已 provisioning（2026-09-26，release-key-2026-09-26 / RSA-2048）——
+                //   候选验签链可用；轮换/撤销经下一版内置表 + Revoke 体现（私钥绝不入库/入包）。
                 // - **候选来源 = 本地信封文件**（`content/candidate.json`）：无 CDN 条件下走完整链路；
                 //   CDN 通道（HttpCandidateFetcher）随部署配置接入——未配 CDN 不空挂。
                 // - **磁盘余量 = DriveInfo**：桌面返回真实可用空间；移动端 -1 不可知 → 空间预检按不足处理。
@@ -65,7 +65,7 @@ namespace LiteGame
                 //   入口资源可加载性探针（AssetsHealthProbe）查当前代次入口，须在资源包初始化后才有意义
                 //   （Patch 先于初始化，时序不可能）——归 Preload 后接缝（见待办总览 §2.1 边界）。
                 var trustedKeys = new TrustedKeyStore();
-                ContentTrustAnchors.ApplyTo(trustedKeys);                                    // 当前零锚点 = fail-closed
+                ContentTrustAnchors.ApplyTo(trustedKeys);                                    // 首版锚点已 provisioning（2026-09-26）
                 var candidateFiles = new FileSysCandidateFileSource(CandidateRoot);
                 var coordinator = new PatchCoordinator(
                     context.Require<ActivationTransactionStore>(),

@@ -55,14 +55,25 @@ namespace LiteGame.Tests.EditMode
         }
 
         [Test]
-        public void 信任锚_零锚点Apply_返回零且库保持空()
+        public void 信任锚_内置锚点Apply_登记数与内置条目一致且可解析()
         {
             var store = new TrustedKeyStore();
 
             int applied = ContentTrustAnchors.ApplyTo(store);
 
-            Assert.AreEqual(0, applied, "当前零内置锚点——fail-closed 保持（候选一律 UnknownOrRevokedKey 拒）");
-            Assert.AreEqual(0, store.ProbeCount);
+            // 首版锚点 provisioning（2026-09-26）：内置表非空——Apply 登记数与条目数一致，
+            // 且每个内置 keyId 都可解析出验签器（fail-closed 已转为可接受——发布侧需配对私钥签名）。
+            // 零锚点时代已终结；若轮换期再次清空，本断言须随内置表同步改写。
+            int builtinCount = 0;
+            foreach (var _ in ContentTrustAnchors.BuiltIn) builtinCount++;
+            Assert.GreaterOrEqual(builtinCount, 1, "首版锚点已 provisioning（2026-09-26）——内置表不应为空");
+            Assert.AreEqual(builtinCount, applied, "Apply 登记数与内置条目数一致");
+            Assert.AreEqual(builtinCount, store.ProbeCount);
+            foreach (var anchor in ContentTrustAnchors.BuiltIn)
+            {
+                Assert.IsNotNull(store.Resolve(anchor.KeyId),
+                    $"内置 keyId[{anchor.KeyId}] 应可解析验签器（未登记/已撤销 = null → 候选拒）");
+            }
         }
 
         [Test]
