@@ -10,6 +10,37 @@ using YooAsset;
 namespace LiteGame
 {
     /// <summary>
+    /// 场景句柄的租约包装（《客户端总设计》§8.2 四件之一的 `SceneLease`）。
+    ///
+    /// **为什么是包装而不是直接登记 <see cref="SceneHandle"/>**：<see cref="ClientScope.Register{T}"/>
+    /// 要求 <c>T : IDisposable</c>，而 <see cref="SceneHandle"/> 的 <c>Dispose</c> **只释放 YooAsset 引用、
+    /// 不卸场景**。卸载路径要的是"先 <c>UnloadSceneAsync</c> 再 Dispose"——借租约把这两步绑成一个
+    /// 可登记对象，作用域的 LIFO 收尾即"卸场景 + 释放资源"（§6.2 Scene 行退出动作）。
+    ///
+    /// **正常卸载路径不用它**：卸载走 <see cref="SceneService.UnloadSingleAsync"/> /
+    /// <see cref="SceneService.UnloadAdditiveAsync"/> 的显式 <c>UnloadHandleAsync</c>（因为要 await
+    /// 卸载完成）；本租约服务**宿主关闭路径**（<see cref="SceneService.ReleaseAll"/>，退出不卸场景、
+    /// 只归还引用）与作用域的登记语义。两条路径都幂等（<see cref="AssetLease{T}"/> 同款守卫）。
+    /// </summary>
+    internal sealed class SceneLease : IDisposable
+    {
+        private readonly SceneHandle _handle;
+        private bool _released;
+
+        public SceneLease(SceneHandle handle)
+        {
+            _handle = handle ?? throw new ArgumentNullException(nameof(handle));
+        }
+
+        public void Dispose()
+        {
+            if (_released) return;
+            _released = true;
+            _handle.Dispose();
+        }
+    }
+
+    /// <summary>
     /// 场景加载薄壳（DI 单例，ProcedureLaunch 注册）。**只提供机制，切换决策归 Procedure**——
     /// 业务禁止裸调 AssetService.LoadSceneAsync（设计方案 §1.3 场景行）。
     /// 加载方式（两种，语义各自钉死）：
@@ -25,8 +56,10 @@ namespace LiteGame
     public sealed class SceneService : ISceneService
     {
         private SceneHandle _single;                                       // 单场景（切换语义）
+        private ClientScope _singleScope;                                  // 单场景作用域（§6.2 Scene 行）
         private string _singleLocation;
         private readonly Dictionary<string, SceneHandle> _additives = new Dictionary<string, SceneHandle>(StringComparer.Ordinal);
+        private readonly Dictionary<string, ClientScope> _additiveScopes = new Dictionary<string, ClientScope>(StringComparer.Ordinal);   // 每个叠加场景一枚作用域
         private SceneHandle _lastLoad;                                     // 进度读数源：最近一次发起的加载
         private readonly CancellationTokenSource _lifetime = new CancellationTokenSource();
 
@@ -97,6 +130,11 @@ namespace LiteGame
 
             _single = handle;
             _singleLocation = location;
+            // 场景作用域（§6.2"Scene：场景加载到卸载"）：句柄登记进作用域后，
+            // 卸载/释放路径**只 Dispose 作用域**就完成了"卸场景 + 释放引用"两件事——
+            // 顺序与容错由 ClientScope 保证（先 UnloadSceneAsync 再 Dispose，见 SceneLease 的 LIFO 语义）。
+            _singleScope = new ClientScope($"Scene.Single[{location}]");
+            _singleScope.Register(new SceneLease(handle));
             Log.Info($"单场景已加载:{location}", "Scene");
         }
 
@@ -106,9 +144,12 @@ namespace LiteGame
             if (_single == null) return;
 
             SceneHandle handle = _single;
+            ClientScope scope = _singleScope;
             _single = null;
+            _singleScope = null;
             _singleLocation = null;                            // 先摘引用：重入/失败都不指向半卸场景
             await UnloadHandleAsync(handle, ct);
+            scope?.Dispose();                                  // 作用域收尾：登记项已由上面的显式卸载归还，此处保幂等与容错聚合
         }
 
         // ---- 叠加（并发） ----
@@ -137,6 +178,9 @@ namespace LiteGame
             }
 
             _additives[location] = handle;
+            var additiveScope = new ClientScope($"Scene.Additive[{location}]");
+            additiveScope.Register(new SceneLease(handle));
+            _additiveScopes[location] = additiveScope;
             Log.Info($"叠加场景已加载:{location}（当前叠加数 {_additives.Count}）", "Scene");
         }
 
@@ -147,7 +191,9 @@ namespace LiteGame
             if (!_additives.TryGetValue(location, out SceneHandle handle)) return;
 
             _additives.Remove(location);                       // 先摘引用：重入/失败都不指向半卸场景
+            _additiveScopes.Remove(location, out ClientScope scope);
             await UnloadHandleAsync(handle, ct);
+            scope?.Dispose();                                  // 作用域收尾（同单场景）
             Log.Info($"叠加场景已卸载:{location}（余 {_additives.Count}）", "Scene");
         }
 
@@ -176,6 +222,8 @@ namespace LiteGame
                 _singleLocation = null;
                 released++;
             }
+            _singleScope?.Dispose();                            // 场景作用域同步收尾（幂等）
+            _singleScope = null;
 
             released += _additives.Count;
             if (_additives.Count > 0)
@@ -183,6 +231,8 @@ namespace LiteGame
                 foreach (var kv in _additives) kv.Value.Dispose();
                 _additives.Clear();
             }
+            foreach (var kv in _additiveScopes) kv.Value.Dispose();
+            _additiveScopes.Clear();
 
             _lastLoad = null;                                   // 进度读数源失效
 
@@ -231,7 +281,9 @@ namespace LiteGame
 
             int count = _additives.Count;
             foreach (var kv in _additives) kv.Value.Dispose();  // Unity 已销毁其场景——只释放引用
+            foreach (var kv in _additiveScopes) kv.Value.Dispose();   // 作用域同步收尾（幂等）
             _additives.Clear();
+            _additiveScopes.Clear();
             Log.Info($"单场景切换清理 {count} 个叠加登记（Unity Single 语义已销毁其场景）", "Scene");
         }
 
