@@ -11,7 +11,13 @@ namespace LiteGame
     }
 
     /// <summary>
-    /// 界面逻辑七回调（M4 §2.0）：C# 界面逻辑与 LuaBehaviourAdapter（§2.3）同面。
+    /// 界面逻辑契约（M4 §2.0）：C# 界面逻辑与 LuaBehaviourAdapter（§2.3）同面。
+    ///
+    /// **文件名与命名空间的分离是有意的**（2026-09-26，§5.1 逻辑边界）：本文件叫 `LuaUI.cs`
+    /// 是因为它的主要消费者是 Lua 界面逻辑，但它**零 xLua 依赖**——纯契约。
+    /// xLua 实现在 `Shell/Bridge/LuaBehaviourAdapter.cs`（`LuaUIData` 同处），
+    /// 依赖方向为 **LuaBridge → UI 契约**，UI 侧不再认识脚本运行时。
+    /// 这与 `ILuaRegistry`（住核心层、无 xLua）同一纪律：**Lua 契约不带具体运行时**。
     /// 数据传参一律 <see cref="IUIData"/>（禁 object）；调用一律经 <see cref="UIForm"/> 的 SafeCall 防护——
     /// 单个回调抛异常 = 该界面降级，不炸壳（错误语义同事件桥，§3.4 降级细则）。
     /// </summary>
