@@ -386,6 +386,8 @@ namespace LiteGame
                 var patchRunner = context.Require<PatchRunner>();                  // 热更：内容事务编排
                 // Lua 侧产物就地注册 + 服务桥绑定（原在 ProcedureLaunch——那是 Runtime 流程，
                 // 不该认识脚本适配器；§5.1 逻辑边界：适配器产物由装配根接线）
+                container.RegisterInstance<IConfigTableSource>(config);   // 通用面（流程/装配用）
+                container.RegisterInstance<IConfigService>(config);       // Luban 面（表投影/Lua 数据桥用）
                 container.RegisterInstance<IUILuaRegistry>(uiRegistry);
                 container.RegisterInstance<IContentLuaRegistry>(contentRegistry);
                 container.RegisterInstance<IStrategyLuaRegistry>(strategyRegistry);

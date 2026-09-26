@@ -16,7 +16,7 @@ namespace LiteGame
     public sealed class ProcedureLaunch : ProcedureStageBase<ProcedureId, ProcedureArgs>
     {
         private readonly ServiceContainer _container;
-        private readonly ConfigService _config;
+        private readonly IConfigTableSource _config;
         private readonly UIService _ui;
         private readonly RedDotRegistry _redDot;
         private readonly ILogicScheduler _logicScheduler;
@@ -27,7 +27,7 @@ namespace LiteGame
         private readonly VfxService _vfx;
         private readonly UINavigationController _nav;
 
-        public ProcedureLaunch(ServiceContainer container, ConfigService config,
+        public ProcedureLaunch(ServiceContainer container, IConfigTableSource config,
             UIService uiService, RedDotRegistry redDotRegistry,
             ILogicScheduler logicScheduler, IUIScheduler uiScheduler, GameTimelineRunner timelineRunner,
             EntityService entityService, AudioService audioService, VfxService vfxService,
@@ -54,8 +54,6 @@ namespace LiteGame
         {
             try
             {
-                _container.RegisterInstance<ConfigService>(_config);
-                _container.RegisterInstance<IConfigService>(_config);
                 _container.RegisterInstance<UIService>(_ui);    // UI 壳（M4 §2.1：薄壳 = DI 注册的普通服务）
                 _container.RegisterInstance<RedDotRegistry>(_redDot);   // 红点规则口（M4 §2.5：完整树 = M4c）
                 _container.RegisterInstance<ILogicScheduler>(_logicScheduler);   // 时序双轨（M4 §2.7：逻辑轨受时停）

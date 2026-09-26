@@ -2,6 +2,8 @@
     "name": "LiteClient.Scripting.XLua",
     "rootNamespace": "LiteGame",
     "references": [
+        "LiteClient.Abstractions",
+        "LiteClient.Serialization.Luban",
         "LiteFramework.Core",
         "LiteFramework.Unity",
         "LiteGame.Runtime",

@@ -1,17 +1,13 @@
 {
-    "name": "LiteGame.Runtime",
+    "name": "LiteClient.Serialization.Luban",
     "rootNamespace": "LiteGame",
     "references": [
-        "DOTween.Modules",
         "LiteClient.Abstractions",
-        "LiteCodeGen.Runtime",
         "LiteFramework.Core",
-        "LiteFramework.Unity",
-        "LiteNet",
         "LiteSim.Core",
-        "LiteSim.View",
-        "UniTask",
-        "Unity.TextMeshPro"
+        "Luban.Runtime",
+        "Luban.Tables",
+        "UniTask"
     ],
     "includePlatforms": [],
     "excludePlatforms": [],
