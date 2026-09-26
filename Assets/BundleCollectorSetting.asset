@@ -45,7 +45,7 @@ MonoBehaviour:
       AssetTags: 
       ActiveRuleName: EnableGroup
       Collectors:
-      - CollectPath: Assets/LiteGame/RawFile/Config
+      - CollectPath: Assets/GameData/Config
         CollectorGUID: 
         CollectorType: 0
         AddressRuleName: AddressByFileName

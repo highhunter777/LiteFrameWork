@@ -10,7 +10,12 @@ namespace LiteGame
     /// <summary>开发 HUD（只读快照展示）。**自创建形态**：[RuntimeInitializeOnLoadMethod] 在场景加载后
     /// 自建 GameObject（场景**不挂**组件——Editor-only asmdef 实测会把 play 模式场景组件剥离并报
     /// "not derived from MonoBehaviour"，2026-09-10 回归为三宏 #if 剥离 + 代码创建，同 DebugTuner 手法）。
-    /// 自拉取模式：LiteGame.DevHUD → LiteClient.Runtime 单向引用，HUD 在 Start 经
+    ///
+    /// **2026-09-26 改归属**：本件从 `LiteGame/DevHUD/` 并入 `LiteGame.Editor`（Editor-only 程序集）。
+    /// 后果明确且是用户裁决的结果：**构建 Player 时本程序集整个不进包**，dev 包/冒烟里不再有 HUD
+    /// 与 SimSandbox。外层三宏 #if 保留——它现在管的是"编辑器里 Domain Reload / 非播放态"的语义，
+    /// 与程序集边界各司其职（不必依赖 #if 兜底才不进包）。
+    /// 自拉取模式：LiteGame.Editor → LiteClient.Runtime 单向引用，HUD 在 Start 经
     /// FindAnyObjectByType 拉 `GameEntry.Stats`（只读统计访问器，非解析入口）+ 场景组件型 IModuleStats 合并。
     /// **各段渲染开关 = public 字段**（Inspector 可配 / 代码可改，2026-09-13）：showStats /
     /// statToggles（单模块段 bool 开关）/ showLogRecent / logRecentLines / showErrorsLine。

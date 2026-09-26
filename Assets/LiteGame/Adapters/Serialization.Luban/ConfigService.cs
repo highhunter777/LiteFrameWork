@@ -40,9 +40,9 @@ namespace LiteGame
     public sealed class ConfigService : IConfigService
     {
         /// <summary>表数据收集目录（YooAsset location 前缀；跨平台恒为 Assets 路径，与物理盘符无关）。</summary>
-        public const string DataDir = "Assets/LiteGame/RawFile/Config/";
+        public const string DataDir = "Assets/GameData/Config/";
 
-        /// <summary>gen.bat 第一遍产出的表数据文件名（RawFile/Config 下，不带扩展名）——与 Tables.cs 的 loader 键一一对应。</summary>
+        /// <summary>gen.bat 第一遍产出的表数据文件名（GameData/Config 下，不带扩展名）——与 Tables.cs 的 loader 键一一对应。</summary>
         public static readonly string[] TableDataFiles =
         {
             "demo_tbitem",

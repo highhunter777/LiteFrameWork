@@ -46,7 +46,7 @@ namespace LiteNet.Tests
         [Fact]
         public void 客户端bin产物存在()
         {
-            string bin = Path.Combine(RepoRoot(), "Assets", "LiteGame", "RawFile", "Config", "tbcombatnum.bytes");
+            string bin = Path.Combine(RepoRoot(), "Assets", "GameData", "Config", "tbcombatnum.bytes");
             Assert.True(File.Exists(bin), "缺客户端数值 bin（gen.bat Pass 1）——ConfigService 预取会直接抛");
         }
 

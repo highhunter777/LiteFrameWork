@@ -30,7 +30,7 @@ namespace LiteNet.Tests
         /// <summary>表数据目标（与生成器 DATA_TARGETS 对齐）：改动数值即改 hash → 旧客户端被拒进房。</summary>
         private static readonly string[] DataTargets =
         {
-            "Assets/LiteGame/RawFile/Config",
+            "Assets/GameData/Config",
             "RoomServer/Data",
         };
 

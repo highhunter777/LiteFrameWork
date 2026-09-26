@@ -6,7 +6,7 @@ namespace LiteSim
     ///
     /// - 默认值 = M8 灰盒实测值（原 SimConfig 玩法段迁移，消费点改名同步）；
     /// - **Luban 表链路已通（2026-09-19）**：表源 `Luban/Data/#combatnum.xlsx` → `gen.bat` 双产物
-    ///   （客户端 bin `Assets/LiteGame/RawFile/Config/tbcombatnum.bytes`；服务端 json `RoomServer/Data/tbcombatnum.json`）
+    ///   （客户端 bin `Assets/GameData/Config/tbcombatnum.bytes`；服务端 json `RoomServer/Data/tbcombatnum.json`）
     ///   → 启动装配调 <see cref="LoadFrom"/> 回填（客户端 `ConfigService`；服务端 `Program`）。
     ///   **本类的默认值必须与表值一致**（L1 守卫用例 `CombatNumbersTests` 卡住漂移）；装载后两端同值（表数据进 buildHash，不一致直接拒进房）。
     /// - 确定性：全部 float/int 常量语义不变（位级确定的输入，无运算）。

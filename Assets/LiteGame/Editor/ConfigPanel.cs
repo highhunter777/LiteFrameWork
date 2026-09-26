@@ -363,7 +363,7 @@ namespace LiteGame.Editor
 
         private void DrawFilesSection()
         {
-            EditorGUILayout.LabelField("配置产物核对（RawFile/Config）", EditorStyles.boldLabel);
+            EditorGUILayout.LabelField("配置产物核对（GameData/Config）", EditorStyles.boldLabel);
             if (GUILayout.Button("核对文件清单", GUILayout.Width(130))) RefreshFiles();
 
             if (_fileTotal == 0)
@@ -389,7 +389,7 @@ namespace LiteGame.Editor
             _fileTotal = ConfigService.TableDataFiles.Length;
             foreach (string file in ConfigService.TableDataFiles)
             {
-                string path = $"Assets/LiteGame/RawFile/Config/{file}.bytes";
+                string path = $"Assets/GameData/Config/{file}.bytes";
                 if (!File.Exists(path)) _missingFiles.Add(file);
             }
         }

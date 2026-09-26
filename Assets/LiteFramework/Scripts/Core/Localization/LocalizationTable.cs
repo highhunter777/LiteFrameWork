@@ -6,7 +6,7 @@ namespace LiteFramework
     /// <summary>
     /// LText 表数据装载（《UI框架总设计》§9 文本链 `#text.xlsx → 生成 key/语言数据 → LText 服务`）。
     ///
-    /// **数据形态**与既有 Luban 表产物一致（`RawFile/Config/*.bytes`，JSON 数组对象）：
+    /// **数据形态**与既有 Luban 表产物一致（`GameData/Config/*.bytes`，JSON 数组对象）：
     /// <code>[{"key":"UI.Main.Title","zh-CN":"标题","en":"Title"}, ...]</code>
     /// — locale 是**列名**。这是最小可用形态：新增语言 = 加一列，
     /// **但复数规则与 RTL 需代码评估**（§9"不承诺'加列即可零代码支持'"）。

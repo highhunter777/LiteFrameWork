@@ -8,11 +8,11 @@ rem Pass 1: C# typed code + binary data (M2 config pipeline)
     -d bin ^
     --conf %~dp0luban.conf ^
     -x outputCodeDir=E:\unityProject\Test\Assets\GameData\Generated ^
-    -x outputDataDir=E:\unityProject\Test\Assets\LiteGame\RawFile\Config
+    -x outputDataDir=E:\unityProject\Test\Assets\GameData\Config
 
 rem Pass 1b: server-side numbers as json (RoomServer has no Luban runtime dep; same table source
 rem          as client -> build hash closure protects consistency)
-rem          NOTE: outputDataDir must NOT point at Assets/LiteGame/RawFile/Config -- Luban clears the
+rem          NOTE: outputDataDir must NOT point at Assets/GameData/Config -- Luban clears the
 rem          data dir of the pass, which would wipe the client's .bytes (pitfall hit 2026-09-19-&gt;)
 %LUBAN_EXE% ^
     -t all ^
