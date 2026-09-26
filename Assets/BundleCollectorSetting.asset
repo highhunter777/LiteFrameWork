@@ -111,7 +111,7 @@ MonoBehaviour:
       AssetTags: 
       ActiveRuleName: EnableGroup
       Collectors:
-      - CollectPath: Assets/CombatGirlsCharacterPack/Runtime
+      - CollectPath: Assets/Prefab
         CollectorGUID: 
         CollectorType: 0
         AddressRuleName: AddressByFileName

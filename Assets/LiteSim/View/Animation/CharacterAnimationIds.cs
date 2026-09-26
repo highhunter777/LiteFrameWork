@@ -27,8 +27,13 @@ namespace LiteSim.View.Animation
         /// <summary>该包的动画控制器（装配与测试校验用单源路径）。</summary>
         public const string ControllerPath = "Assets/CombatGirlsCharacterPack/RifleGirl/Animations/Rifle_Controller.controller";
 
-        /// <summary>对局实体视图 prefab（模型只用该包；缺包克隆走 SimView 灰盒兜底降级）。</summary>
-        public const string ViewPrefabPath = "Assets/CombatGirlsCharacterPack/Runtime/RifleGirl_View.prefab";
+        /// <summary>对局实体视图 prefab（缺包克隆走 SimView 灰盒兜底降级）。
+        /// **2026-09-26 换 prefab**：`RifleGirl_View` → `Player(Rifle)`（+MagicaCloth 布料/头发物理），
+        /// 位于 `Assets/Prefab/`（依赖资产在 `CombatGirlsCharacterPack/`——收集组需同时覆盖两处）。
+        /// **必须与 <see cref="SimView.DefaultEntityPrefab"/> 同值**——两处都是"对局实体用哪个 prefab"
+        /// 的单源，分叉会让动画绑定与实际视图对不上（绑定按名字解析，换 prefab 后状态名不变，
+        /// 但视图与动画配置指向不同文件时排查成本高）。</summary>
+        public const string ViewPrefabPath = "Assets/Prefab/Player(Rifle).prefab";
 
         /// <summary>
         /// 构建对局角色的动画 Profile（不可变共享数据——每实体播放器引用同一份）。

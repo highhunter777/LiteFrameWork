@@ -38,8 +38,14 @@ namespace LiteSim.View
         /// <summary>对局实体视图 prefab（2026-09-25 资源指令：模型只用 CombatGirlsCharacterPack——
         /// 真角色视图由该包模型+该包 Rifle_Controller 构成，见 CombatGirlsAnimationProfile.ViewPrefabPath）。
         /// 资源包未入库的克隆加载失败 → ProcedureBattle 回退程序化灰盒（可复现降级，勿删兜底）；
-        /// 按选装/角色配置的多样解析归后续批（原 BoxFighter 占位路径从未入库）。</summary>
-        public const string DefaultEntityPrefab = "Assets/CombatGirlsCharacterPack/Runtime/RifleGirl_View.prefab";
+        /// 按选装/角色配置的多样解析归后续批（原 BoxFighter 占位路径从未入库）。
+        ///
+        /// **2026-09-26 换 prefab**：`RifleGirl_View` → `Player(Rifle)`（+MagicaCloth 布料/头发物理，
+        /// 414 vs 371 个对象）。它住在 `Assets/Prefab/`，**不在 `Assets/CombatGirlsCharacterPack/` 内**——
+        /// 该包只是它的**依赖来源**（贴图/网格/动画/Avatar 全在该包内），prefab 本体是独立资产。
+        /// 因此收集组必须**额外覆盖 `Assets/Prefab`**，否则 YooAsset 拿不到它（收集按目录走）。
+        /// 依赖资产仍由 `Assets/CombatGirlsCharacterPack/Runtime` 那一组收。</summary>
+        public const string DefaultEntityPrefab = "Assets/Prefab/Player(Rifle).prefab";
 
         /// <summary>快照间隔（秒）——插值窗口时长，由 <see cref="SimConfig.SnapshotHz"/> 派生。</summary>
         public static float SnapshotInterval => 1f / SimConfig.SnapshotHz;
