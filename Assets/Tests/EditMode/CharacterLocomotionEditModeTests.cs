@@ -863,7 +863,86 @@ namespace LiteGame.Tests.EditMode
             driver.Dispose();
         }
 
-        // ---- 权重数学（纯计算面 LocomotionBlendMath：公式直测，不经视图/资源/逐帧位移）----
+        // ---- 帧事件 → 开火动画（§8 接缝：静默门 → 决策表 → 消费者 → 上半身叠加）----
+
+        [Test]
+        [Category(TestCategory.Contract)]
+        public void 驱动_帧事件开火_上半身叠加开火动作_同段连发不重提_停火播完即止()
+        {
+            var prefab = LoadPrefabOrIgnore();
+            var world = new SimWorldState { RngState = 1UL };
+            long selfId = world.Spawn(new EntitySlot { Hp = 100, Pos = new SimVector3(0f, 0f, 0f), Yaw = 0f }, out _);
+
+            SimView view = new SimView(world, null,
+                factory: (loc, parent) =>
+                {
+                    var go = Object.Instantiate(prefab, parent);
+                    go.name = loc;
+                    Scope.Track(go);
+                    return go;
+                },
+                recycler: null);
+            view.AlignLocal(selfId);
+            var driver = new CharacterLocomotionDriver(view);       // 构造即自订阅 EventSink（§8 接缝）
+            const float dt = 1f / 60f;
+            var stats = new Dictionary<string, string>();
+            var firePos = new SimVector3(0f, 0f, 0f);
+
+            view.Tick(dt);
+            driver.Tick(dt);                                        // 建播放器（初建 = MoveBlend）
+            view.Tick(dt);
+            driver.Tick(dt);
+            Assert.AreEqual(1, driver.AnimatedViews);
+
+            // 逻辑帧边界交付一个 Fire 事件（主体 = 本地玩家）：静默门放行 → 驱动消费 → 上半身叠加开火
+            DeliverFire(view, world, selfId, firePos);
+            Assert.AreEqual(0, view.SilencedEvents, "非静默段的事件必须放行");
+            Assert.AreEqual(1, view.DeliveredEvents);
+            driver.Tick(dt);
+            Assert.AreEqual(1, driver.FireSubmits, "首次 Fire 事件应提交开火动作");
+            ((IModuleStats)driver).Snapshot(stats);
+            Assert.AreEqual("2", stats["channels"], "开火占用 UpperBody，与 Locomotion 并存（腿部继续走跑）");
+            Assert.AreEqual("0", stats["truncatedBlends"], "首次提交不产生截断");
+
+            // 动作确实在播（不是"提交即结束"）
+            for (int i = 0; i < 5; i++) driver.Tick(dt);
+            ((IModuleStats)driver).Snapshot(stats);
+            Assert.AreEqual("2", stats["channels"], "一次性片段到边界才收 Completed——数帧内仍应在播");
+
+            // 同段连发（上一发还在播——AimIdle_Shoot 0.967s）→ **不重提**（§8 合并规则）
+            for (int i = 0; i < 20; i++) { DeliverFire(view, world, selfId, firePos); driver.Tick(dt); }
+            Assert.AreEqual(1, driver.FireSubmits, "同段连发不得重提（重提会把动作按在第 0 帧 + 刷 Interrupted 终态）");
+            ((IModuleStats)driver).Snapshot(stats);
+            Assert.AreEqual("0", stats["truncatedBlends"], "没有重提就没有截断");
+
+            // 持续开火跨过片段边界 → 每轮重起一次（连发表现）：300 帧 ≈ 5s ⇒ 提交次数与"每轮一次"同量级
+            for (int i = 0; i < 300; i++) { DeliverFire(view, world, selfId, firePos); driver.Tick(dt); }
+            Assert.GreaterOrEqual(driver.FireSubmits, 2, "跨过片段边界后应重起新一轮（连发表现）");
+            Assert.LessOrEqual(driver.FireSubmits, 12, "重起应与「每轮一次」同量级（逐帧重提会是数百次）");
+
+            // 停火：当前一轮播完 + 上层淡出 → UpperBody 释放（节点回基线）；此后不得自行重起
+            int released = 0;
+            for (; released < 200; released++)
+            {
+                driver.Tick(dt);
+                ((IModuleStats)driver).Snapshot(stats);
+                if (stats["channels"] == "1") break;
+            }
+            Assert.Less(released, 200, "停火后当前一轮播完即止（UpperBody 必须释放）");
+            int submitted = driver.FireSubmits;
+            for (int i = 0; i < 30; i++) driver.Tick(dt);
+            Assert.AreEqual(submitted, driver.FireSubmits, "没有新事件不得自行重起开火动作");
+
+            driver.Dispose();
+        }
+
+        /// <summary>按真实链路交付一个 Fire 事件（写入缓冲 → SimView 静默门 → EventSink → 消费者）。</summary>
+        private static void DeliverFire(SimView view, SimWorldState world, long shooterId, SimVector3 pos)
+        {
+            world.Events.Write(FrameEventKind.Fire, shooterId, 0L, 0, pos);
+            view.OnFrameEvents(world);
+            world.Events.Clear();                                   // FrameDriver 的消费后清空（决策⑥）
+        }
 
         [Test]
         [Category(TestCategory.Unit)]

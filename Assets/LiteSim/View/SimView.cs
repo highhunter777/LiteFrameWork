@@ -111,6 +111,13 @@ namespace LiteSim.View
         /// <summary>取槽位视图（诊断/HUD/测试用；未建返回 false）。</summary>
         public bool TryGetView(int slotIndex, out GameObject view) => _views.TryGet(slotIndex, out view);
 
+        /// <summary>
+        /// 实体 Id → 槽位（**帧事件消费的寻址口**，§8"主体 → 实体槽位 → 该实体的播放器"）：
+        /// 事件主体是 Id（跨对象复用代次稳定），而视图/播放器按槽位寻址——消费者用本方法完成那一步。
+        /// 未解析（已回收 / 代次过期 / 越界）返回 false，消费者据此**丢弃事件**（不猜、不补播）。
+        /// </summary>
+        public bool TryGetSlot(long entityId, out int slotIndex) => _sim.TryResolve(entityId, out slotIndex);
+
         /// <summary>被静默丢弃的帧事件数（诊断：回滚重放的去重命中数）。</summary>
         public int SilencedEvents { get; private set; }
 

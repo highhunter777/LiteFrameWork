@@ -39,10 +39,18 @@ namespace LiteSim.View.Animation
     /// 与缺角色资源的既有降级姿势一致。视图回收/复用时旧播放器随视图消失被 Dispose，
     /// 新占用者重建（Owner 代次语义由重建保证）。
     ///
+    /// **帧事件（§8 表现事件）**：本类实现 <see cref="IFrameEventAnimationConsumer"/> 并**自订阅**
+    /// `SimView.EventSink`（构造时挂上、<see cref="Dispose"/> 时摘下——生命周期与"视图消费者"同向，
+    /// 不留"忘了接线"这类静默失效）。本批只消费 **Fire**（开火）：语义/通道经
+    /// <see cref="FrameEventAnimationMap"/> 查表（不散写映射），播放落到**上半身叠加层**（腿部继续走跑）。
+    /// **已在播则不重提**——当前 `ShootingSystem` 按住开火位即每逻辑帧产出一个 Fire 事件（射速节拍归
+    /// P1 `WeaponSystem`），逐事件重提会把动作按在第 0 帧并刷 `Interrupted` 终态；接缝纪律见 §8 与
+    /// <see cref="IFrameEventAnimationConsumer"/>。Hit/Death 的 FullBody 接管**不在本批**（归角色垂直切片余部）。
+    ///
     /// **诊断（§11）**：实现 <see cref="IModuleStats"/>，聚合各后端的通道占用/节点数/未知绑定/截断计数
     /// （调用方复用容器，零分配）；<see cref="TryGetMotion"/> 供 HUD/测试读当前形态与权重。
     /// </summary>
-    public sealed class CharacterLocomotionDriver : IDisposable, IModuleStats
+    public sealed class CharacterLocomotionDriver : IDisposable, IModuleStats, IFrameEventAnimationConsumer
     {
         /// <summary>瞄准态"静止 → 移动"的进入阈值（m/s）。</summary>
         public const float AimMoveEnterMps = 0.6f;
@@ -53,6 +61,10 @@ namespace LiteSim.View.Animation
         private readonly SimView _view;
         private readonly AnimationProfile _profile;
         private readonly SlotAnim[] _slots = new SlotAnim[SimConfig.MaxEntities];
+
+        /// <summary>开火语义与通道（**单一来源 = 帧事件决策表**：构造期解析并校验，不在本类散写映射）。</summary>
+        private readonly AnimationId _fireId;
+        private readonly AnimationChannel _fireChannel;
 
         /// <summary>复用权重容器（零分配：混合请求只读、不保留引用——见 <see cref="AnimationBlendRequest"/>）。</summary>
         private readonly float[] _moveWeights;
@@ -78,7 +90,20 @@ namespace LiteSim.View.Animation
 
             _moveWeights = new float[moveBlend.SlotCount];
             _aimWeights = new float[aimBlend.SlotCount];
+
+            // 开火（帧事件路径）：映射从决策表来、Profile 必须有对应定义——配置错误在构造期显性失败，
+            // 不等到第一次开火才发现"没东西可播"（与上面两条混合定义的校验同一纪律）
+            if (!FrameEventAnimationMap.TryMap(FrameEventKind.Fire, out _fireId, out _fireChannel)
+                || !_profile.TryGetDefinition(_fireId, out _))
+                throw new ArgumentException(
+                    $"Profile 缺开火语义（FrameEventAnimationMap 的 Fire 映射 → {CharacterAnimationIds.Fire}）", nameof(profile));
+
+            _view.EventSink += OnFrameEvent;      // 自订阅（§8 接缝：接在静默门之后）；Dispose 时摘下
         }
+
+        /// <summary>实际提交的**开火动作次数**（诊断/测试）：同段连发只计一次；上一轮播完后仍在开火才再计一次。
+        /// 逐帧重提（每帧建节点 + 刷 `Interrupted` 终态）会让这个计数暴涨——它是"§8 合并规则生效"的观测量。</summary>
+        public int FireSubmits { get; private set; }
 
         /// <summary>当前有动画播放器的实体视图数（诊断/测试）。</summary>
         public int AnimatedViews
@@ -172,7 +197,47 @@ namespace LiteSim.View.Animation
         {
             if (_disposed) return;
             _disposed = true;
+            _view.EventSink -= OnFrameEvent;      // 先摘订阅：此后到达的事件一律不再进入本类
             for (int i = 0; i < _slots.Length; i++) ReleaseSlot(i);
+        }
+
+        // ---- IFrameEventAnimationConsumer（§8：帧事件 → 播放请求）----
+
+        /// <summary>
+        /// 帧事件消费（**逻辑帧边界**，由 <see cref="SimView.EventSink"/> 在静默门之后调用——回滚重放/和解
+        /// 段已被挡，故"本地即时反馈与权威确认"不会各播一次，§8 合并规则）。本批只接开火：
+        /// **查表 → 主体解析槽位 → 该实体播放器 → Play(Fire, UpperBody)**；其余事件类型不处理。
+        /// </summary>
+        public void OnFrameEvent(in FrameEvent e)
+        {
+            if (_disposed) return;
+            if (!FrameEventAnimationMap.TryMap(e.Kind, out var id, out _)) return;   // 未覆盖的事件类型不处理
+            if (!id.Equals(_fireId)) return;                                        // 本批只接开火（Hit/Death 归余部）
+
+            if (!_view.TryGetSlot(e.EntityId, out int slotIndex)) return;            // 主体已回收：丢弃（不补播、不猜）
+            if (slotIndex < 0 || slotIndex >= _slots.Length) return;
+
+            var s = _slots[slotIndex];
+            if (s?.Player == null) return;                                           // 灰盒视图/播放器未建：无动画面可播
+            SubmitFire(s);
+        }
+
+        /// <summary>开火动作提交：**已在播则不重提**（见类注释：当前"按住开火位 = 每逻辑帧一个 Fire 事件"，
+        /// 逐事件重提会把动作按在第 0 帧并刷 Interrupted 终态）；播完之后再来事件 → 重新起一轮（连发表现）。</summary>
+        private void SubmitFire(SlotAnim s)
+        {
+            if (s.FireHandle.IsValid && s.Player.TryGetState(s.FireHandle, out var state) && state.IsPlaying) return;
+
+            var result = s.Player.Play(new AnimationRequest(_fireId, _fireChannel));
+            if (result.Accepted)
+            {
+                FireSubmits++;
+                s.FireHandle = result.Handle;
+            }
+            else
+            {
+                s.FireHandle = default;      // 拒绝（配置/能力面）不推进状态：下一次事件重试
+            }
         }
 
         // ---- 内部：形态解析与提交 ----
@@ -259,6 +324,7 @@ namespace LiteSim.View.Animation
             s.Player = null;
             s.Backend = null;
             s.Current = default;
+            s.FireHandle = default;
             s.HasPos = false;
             s.IsAim = false;
             s.AimMoving = false;
@@ -302,6 +368,8 @@ namespace LiteSim.View.Animation
             public AnimationId Current;
             /// <summary>当前形态的句柄（就地调权重必须拿它——旧句柄会拒绝）。</summary>
             public AnimationHandle Handle;
+            /// <summary>开火（UpperBody）最近一次提交的句柄——"同段连发不重提"的判据（见 <see cref="SubmitFire"/>）。</summary>
+            public AnimationHandle FireHandle;
             public Vector3 LastPos;
             public bool HasPos;
             /// <summary>瞄准态（来自 <see cref="SimView.IsAiming"/>，每帧刷新）。</summary>
