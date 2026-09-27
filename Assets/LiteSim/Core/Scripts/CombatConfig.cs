@@ -18,6 +18,19 @@ namespace LiteSim
         /// <summary>玩家移动速度（m/s，2.5D XZ 平面）。</summary>
         public static float MoveSpeed { get; private set; } = 5f;
 
+        /// <summary>
+        /// 瞄准态移速倍率（右键 ADS 期间移动上限 = <see cref="MoveSpeed"/> × 本值）。
+        /// **取 0.5 = 乘 2 的幂**：位级精确、不引舍入（确定性纪律）。5 × 0.5 = **2.5 m/s**，
+        /// 恰好等于视图 Walk 档上界（`CharacterLocomotionDriver.WalkFullMps`）——限速后"瞄准移动"
+        /// 只需要 `AimWalk_*` 一套片段，不需要 AimJog。
+        /// **表化待补**：数值表加列 `aim_move_speed` 后本常量让位（登记在《角色状态与动作专项设计》§7）。
+        /// </summary>
+        public const float AimMoveSpeedFactor = 0.5f;
+
+        /// <summary>瞄准态移动速度上限（m/s）= <see cref="MoveSpeed"/> × <see cref="AimMoveSpeedFactor"/>。
+        /// 参与 <see cref="CombatConfigDigest"/>——**联机身份**：两端不一致会以摘要不符当场拒进房。</summary>
+        public static float AimMoveSpeed => MoveSpeed * AimMoveSpeedFactor;
+
         /// <summary>重力加速度（m/s²，y 轴向下，§3.5）。</summary>
         public static float Gravity { get; private set; } = -20f;
 

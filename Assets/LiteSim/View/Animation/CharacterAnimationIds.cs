@@ -4,48 +4,38 @@ namespace LiteSim.View.Animation
 {
     /// <summary>
     /// 角色动画语义 ID（§4"游戏层定义语义，框架只处理类型化 ID"）。
-    /// 语义与控制器状态解耦——状态绑定见 <see cref="CombatGirlsAnimationProfile"/>。
+    /// 语义与控制器状态解耦——状态绑定见 <see cref="CombatGirlsAnimationProfile"/>（独立文件：
+    /// 本表只在"增删语义"时变，绑定只在"改配置/覆盖规则"时变）。
     /// </summary>
     public static class CharacterAnimationIds
     {
+        // ---- 基础移动（Locomotion）----
         public static readonly AnimationId Idle = new AnimationId("Locomotion.Idle");
         public static readonly AnimationId Walk = new AnimationId("Locomotion.Walk");
         public static readonly AnimationId Run = new AnimationId("Locomotion.Run");
-    }
+        /// <summary>瞄准站姿（§13 首角色覆盖表"瞄准"；同为 Locomotion 通道——移动语义的一种）。</summary>
+        public static readonly AnimationId AimIdle = new AnimationId("Locomotion.AimIdle");
 
-    /// <summary>
-    /// CombatGirls 角色动画 Profile（《动画模块专项设计》§3/§4：ID → 控制器状态绑定的唯一登记点；
-    /// §4"不得到处散写参数字符串"）。
-    ///
-    /// **资源来源（2026-09-25 资源指令）**：模型与主要动画均取自 `CombatGirlsCharacterPack`
-    /// ——绑定即该包 `Rifle_Controller` 的状态名；包未覆盖的语义（受击/死亡表现细化等）
-    /// 该包内亦备有状态（Hit1/Hit2/Die1/Die2/Stun/Evade/Reload/Aim*），出现消费者时按需登记，
-    /// 不预建无消费者的绑定。
-    /// </summary>
-    public static class CombatGirlsAnimationProfile
-    {
-        /// <summary>该包的动画控制器（装配与测试校验用单源路径）。</summary>
-        public const string ControllerPath = "Assets/CombatGirlsCharacterPack/RifleGirl/Animations/Rifle_Controller.controller";
+        // ---- 上半身叠加（UpperBody）----
+        /// <summary>开火（§13"开火"；只盖上半身，腿部继续走跑）。</summary>
+        public static readonly AnimationId Fire = new AnimationId("Combat.Fire");
+        /// <summary>换弹（§13"换弹"）。</summary>
+        public static readonly AnimationId Reload = new AnimationId("Combat.Reload");
 
-        /// <summary>对局实体视图 prefab（缺包克隆走 SimView 灰盒兜底降级）。
-        /// **2026-09-26 换 prefab**：`RifleGirl_View` → `Player(Rifle)`（+MagicaCloth 布料/头发物理），
-        /// 位于 `Assets/Prefab/`（依赖资产在 `CombatGirlsCharacterPack/`——收集组需同时覆盖两处）。
-        /// **必须与 <see cref="SimView.DefaultEntityPrefab"/> 同值**——两处都是"对局实体用哪个 prefab"
-        /// 的单源，分叉会让动画绑定与实际视图对不上（绑定按名字解析，换 prefab 后状态名不变，
-        /// 但视图与动画配置指向不同文件时排查成本高）。</summary>
-        public const string ViewPrefabPath = "Assets/Prefab/Player(Rifle).prefab";
+        // ---- 全身覆盖（FullBody）----
+        /// <summary>受击（§13"受击"）。</summary>
+        public static readonly AnimationId Hit = new AnimationId("Combat.Hit");
+        /// <summary>死亡（§13"死亡"）。</summary>
+        public static readonly AnimationId Death = new AnimationId("Combat.Death");
+        /// <summary>回避（§13 附列；同包已有独立片段，也是 FullBody 打断的天然消费者）。</summary>
+        public static readonly AnimationId Evade = new AnimationId("Combat.Evade");
 
-        /// <summary>
-        /// 构建对局角色的动画 Profile（不可变共享数据——每实体播放器引用同一份）。
-        /// 移动三态均循环（§5"循环播放不会自然 Completed"）。
-        /// </summary>
-        public static AnimationProfile Build()
-            => new AnimationProfile()
-                .Register(new AnimationDefinition(CharacterAnimationIds.Idle, AnimationChannel.Locomotion,
-                    binding: "Idle", loop: true, minSpeed: 0.01f, maxSpeed: 2f))
-                .Register(new AnimationDefinition(CharacterAnimationIds.Walk, AnimationChannel.Locomotion,
-                    binding: "Walk", loop: true, minSpeed: 0.01f, maxSpeed: 2f))
-                .Register(new AnimationDefinition(CharacterAnimationIds.Run, AnimationChannel.Locomotion,
-                    binding: "Run", loop: true, minSpeed: 0.01f, maxSpeed: 2f));
+        // ---- 混合形态（同通道多片段按权重；**权重由 Driver 给**——《动画模块专项设计》§4）----
+        /// <summary>非瞄准移动的速度轴混合（槽位序 = {Idle, Walk, Run}；权重按速度连续插值，权重由 Driver 给）。</summary>
+        public static readonly AnimationId MoveBlend = new AnimationId("Locomotion.MoveBlend");
+
+        /// <summary>瞄准移动的方向轴混合（槽位序 = {AimWalk_F, AimWalk_R, AimWalk_B, AimWalk_L}；
+        /// 相邻两片按"移动方向 vs 朝向"夹角插值——限速后瞄准移动只有走路一档，故不需要 AimJog）。</summary>
+        public static readonly AnimationId AimMoveBlend = new AnimationId("Locomotion.AimMoveBlend");
     }
 }

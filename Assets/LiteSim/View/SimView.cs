@@ -50,6 +50,11 @@ namespace LiteSim.View
         /// <summary>快照间隔（秒）——插值窗口时长，由 <see cref="SimConfig.SnapshotHz"/> 派生。</summary>
         public static float SnapshotInterval => 1f / SimConfig.SnapshotHz;
 
+        /// <summary>本地实体视图内的**瞄准/相机参考点**名字（prefab 约定：`Player(Rifle)` 根下
+        /// 直接子物体 `AimPoint`，局部 (0,1,1)——胸高、模型前方 1m）。2026-09-27 第三人称形态：
+        /// 相机跟随与瞄准原点都改锚这里（视觉胸高支点），缺该子物体时自动退回实体根（原口径）。</summary>
+        public const string LocalAimPointName = "AimPoint";
+
         private readonly SimWorldState _sim;                  // 本地预测态（只读）
         private readonly EntityViewMap _views;
         private readonly ICameraService _camera;              // 相机端口（实现住 Platform.Unity 适配器——本层不认识 Cinemachine）
@@ -63,6 +68,8 @@ namespace LiteSim.View
         private SimVector3 _localDisplay;
         private float _localYaw;
         private bool _hasLocalDisplay;
+        private Transform _localAimPoint;                    // 本地视图的瞄准/相机参考点（见 TryResolveLocalAimPoint）
+        private CharacterController _localCc;                 // 本地视图物理代理（CC.Move 收敛到衰减目标——见 PlaceLocal/EnsureLocalCc）
 
         /// <summary>超过该平面距离直接硬切（复活/传送；《状态同步专项设计》§6.2）。≤0 = 永不硬切。</summary>
         public float SnapDistance = 3f;
@@ -81,6 +88,19 @@ namespace LiteSim.View
 
         /// <summary>本地玩家**表现**位置（相机跟随目标；缓存避免调用方每帧重算）。</summary>
         public Vector3 LocalDisplayPosition => new Vector3(_localDisplay.X, _localDisplay.Y, _localDisplay.Z);
+
+        /// <summary>本地视图的 AimPoint 是否已解析（相机/瞄准参考点；未建视图或缺子物体 = false）。</summary>
+        public bool HasLocalAimPoint => TryResolveLocalAimPoint(out _);
+
+        /// <summary>本地视图 AimPoint 世界位置（调用方仅在 HasLocalAimPoint 为 true 时读取）。</summary>
+        public Vector3 LocalAimPointPosition
+        {
+            get
+            {
+                TryResolveLocalAimPoint(out Transform t);
+                return t != null ? t.position : LocalDisplayPosition;
+            }
+        }
 
         /// <summary>本地表现是否已初始化（首帧直接落位，不做衰减）。</summary>
         public bool HasLocalDisplay => _hasLocalDisplay;
@@ -136,6 +156,8 @@ namespace LiteSim.View
             if (entityId == LocalEntityId) return;
             LocalEntityId = entityId;
             _hasLocalDisplay = false;          // 换实体/重连：重新落位（不从上一条命的位置飞过去）
+            _localAimPoint = null;             // AimPoint 缓存一并失效（视图随实体重建，引用会换）
+            _localCc = null;                   // CC 代理一并失效（视图重建后 EnsureLocalCc 重新解析）
         }
 
         // ---- 每帧驱动 ----
@@ -171,7 +193,16 @@ namespace LiteSim.View
                 {
                     ref EntitySlot slot = ref _sim.Entities[i];
                     var view = _views.Create(i, slot);
-                    if (view != null) Place(view.transform, in slot.Pos, slot.Yaw);
+                    if (view != null)
+                    {
+                        Place(view.transform, in slot.Pos, slot.Yaw);
+                        // **远端实体禁 CC**（2026-09-27 裁决：CC/碰撞体归预制体配置，运行时只管语义）：
+                        // 实体间碰撞 Sim 未建模（#12 只落静态障碍）——远端实例的 CC 是实心胶囊，
+                        // 会挡本地 CC 造成表现/权威分叉。本地实体在 <see cref="EnsureLocalCc"/> 再启用
+                        // （首份快照对齐 LocalEntityId 之前这里可能先禁一次，对齐后恢复——竞态安全）。
+                        var cc = view.GetComponent<CharacterController>();
+                        if (cc != null && slot.Id != LocalEntityId) cc.enabled = false;
+                    }
                 }
                 else if (!alive && hasView)
                 {
@@ -240,13 +271,69 @@ namespace LiteSim.View
             }
 
             if (_views.TryGet(slotIndex, out var view))
+                PlaceLocal(view, dt);
+        }
+
+        /// <summary>本地视图落位（2026-09-27 CC 代理批）：**位置走 CharacterController.Move** 收敛到
+        /// 衰减目标（Unity 物理管贴地/防穿模/台阶——Sim 判定之外的场景几何不再穿透），旋转直写。
+        /// CC **由预制体配置**（2026-09-27 裁决——本类只解析消费，不建件不设参，见 <see cref="EnsureLocalCc"/>）；
+        /// 预制体没配 CC（灰盒视图/测试装配）退回 <see cref="Place"/> 直落——表现等价旧口径。</summary>
+        private void PlaceLocal(GameObject view, float dt)
+        {
+            CharacterController cc = EnsureLocalCc(view);
+            if (cc == null)
+            {
                 Place(view.transform, in _localDisplay, _localYaw);
+                return;
+            }
+
+            Vector3 target = new Vector3(_localDisplay.X, _localDisplay.Y, _localDisplay.Z);
+            Vector3 delta = target - view.transform.position;
+            if (delta.sqrMagnitude > 0.0000001f) cc.Move(delta);   // 硬切时 delta 大——CC 一样一次 Move 到位（无墙内复活点，见出生清障）
+            view.transform.rotation = Quaternion.Euler(0f, 90f - _localYaw * Mathf.Rad2Deg, 0f);   // 旋转不归物理（同 Place：90° − yaw）
+        }
+
+        /// <summary>取本地视图的物理代理（**纯消费**，2026-09-27 裁决：CC 与碰撞体由预制体配置——
+        /// 这里不建件、不设参，只解析＋为本地实例启用；远端实例在 <see cref="SyncViews"/> 建立时禁用）。
+        /// 预制体没配 CC（灰盒视图/测试装配/尚未配置）→ 返回 null，<see cref="PlaceLocal"/> 退回
+        /// <see cref="Place"/> 直落——表现等价旧口径。
+        /// **耦合提示**：CC 胶囊参数（radius/height/center）是 Sim 身位（HitscanRadius/HitscanHeight）
+        /// 的第二处事实源——改 CombatConfig 身位常量时必须同步预制体（两端不一致时命中判定与
+        /// 视觉推挡会出现半径差）。</summary>
+        private CharacterController EnsureLocalCc(GameObject view)
+        {
+            if (_localCc != null && !ReferenceEquals(_localCc, null)) return _localCc;
+
+            var cc = view.GetComponent<CharacterController>();
+            if (cc != null && !cc.enabled) cc.enabled = true;   // 本地实例启用（远端默认禁——见 SyncViews）
+            _localCc = cc;                                       // null 也缓存：没配 CC 的视图每帧重查成本低（一次 GetComponent）
+            return cc;
         }
 
         private void UpdateCamera(float dt)
         {
             if (_camera == null || !_hasLocalDisplay) return;
+            // **主相机只看角色本体**（2026-09-27 分镜裁决）：焦点 = 本地表现位置（角色根）；
+            // AimPoint **不喂主相机**——它是瞄准相机的资产（瞄准态相机届时经
+            // <see cref="LocalAimPointPosition"/> 接线）。相机构图（肩偏移/阻尼/FOV）归 vcam 场景配置。
             _camera.Follow(LocalDisplayPosition, dt);   // 相机平滑/档位归实现（Cinemachine 由 vcam 配置表达）
+        }
+
+        /// <summary>解析本地视图的 AimPoint（prefab 约定名，直系子物体查找；见 <see cref="LocalAimPointName"/>）。
+        /// 缓存 + 失效重查（视图随死亡回收/复活重建，Transform 随之换引用——ReferenceEquals 判真身）。</summary>
+        private bool TryResolveLocalAimPoint(out Transform aimPoint)
+        {
+            aimPoint = _localAimPoint;
+            if (aimPoint != null && !ReferenceEquals(aimPoint, null)) return true;
+
+            if (LocalEntityId == 0 || !_sim.TryResolve(LocalEntityId, out int slotIndex)) return false;
+            if (!_views.TryGet(slotIndex, out var view)) return false;
+
+            aimPoint = view.transform.Find(LocalAimPointName);
+            if (aimPoint == null) return false;
+
+            _localAimPoint = aimPoint;               // 解析成功才缓存：缺子物体的 prefab 每帧重查（幂等且便宜）
+            return true;
         }
 
         /// <summary>
@@ -272,13 +359,35 @@ namespace LiteSim.View
                 EventSink?.Invoke(in e);
             }
         }
+        /// <summary>
+        /// 实体是否处于瞄准态（右键 ADS）。**只读 Sim 事实**——表现不读输入设备，本方法就是那条边界的入口：
+        /// - **本地**：取预测态（预测帧保留连续位，所以与本地手感同帧）；
+        /// - **远端**：取**最新权威快照**的位（离散位"取新不取插值"——位在前后快照之间的中间态无意义；
+        ///   代价是远端举枪比插值姿态略早，量级 = 视点延迟 <see cref="SimConfig.InterpFrames"/> 帧）。
+        /// 槽位越界 / 首快照未到 / 槽位已死 → false（不是瞄准态，而不是抛）。
+        /// </summary>
+        public bool IsAiming(int slotIndex)
+        {
+            if (slotIndex < 0 || slotIndex >= SimConfig.MaxEntities) return false;
+
+            // 本地实体必须**先按实体 Id 解析槽位**——Id 是"版本&lt;&lt;48 | 槽位"，不能当下标用
+            if (LocalEntityId != 0 && _sim.TryResolve(LocalEntityId, out int localSlot) && localSlot == slotIndex)
+                return (_sim.Entities[slotIndex].Flags & EntityFlags.Aiming) != 0u;
+
+            if (_snapTo == null) return false;
+            if ((_snapTo.AliveBitmap[slotIndex >> 5] & (1u << (slotIndex & 31))) == 0u) return false;
+            return (_snapTo.Entities[slotIndex].Flags & EntityFlags.Aiming) != 0u;
+        }
 
         // ---- 辅助 ----
 
+        /// <summary>摆位：位置 1:1；旋转 = <c>90° − yaw</c>——模型视觉前沿约定 +Z（AimPoint 同轴），
+        /// Sim 的 Yaw 从 +X 起量（Atan2(AimZ, AimX)），两者差恒定 90°（2026-09-27 实测修正：原 −yaw
+        /// 写法让角色面向偏转 90°、准星出现在角色侧面）。</summary>
         private static void Place(Transform t, in SimVector3 pos, float yaw)
         {
             t.position = new Vector3(pos.X, pos.Y, pos.Z);
-            t.rotation = Quaternion.Euler(0f, -yaw * Mathf.Rad2Deg, 0f);   // Sim 的 Yaw 在 XZ 平面，绕 Y 轴取负
+            t.rotation = Quaternion.Euler(0f, 90f - yaw * Mathf.Rad2Deg, 0f);
         }
 
         private static bool TryFind(SimWorldStateSnapshot snapshot, long entityId, out EntitySnapshotEntry entry)

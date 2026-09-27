@@ -82,6 +82,14 @@ namespace LiteGame.Tests.EditMode
             public int CountOf(PacketType type) => Sent.FindAll(s => s.type == type).Count;
         }
 
+        /// <summary>设备替身：恒返回一份"采到了"的空意图——让输入链路（采样 → 帧边界门 → 上行）完整走通。
+        /// （2026-09-26 输入服务批起 BattleContext 经 <see cref="IInputService"/> 取输入，null = 空输入。）</summary>
+        private sealed class StubIntentSource : IIntentSource
+        {
+            public string Name => "stub";
+            public IntentSample Sample(in SimVector3 localPos) => new IntentSample(default);
+        }
+
         private FakeClientTransport _transport;
 
         private BattleClient NewClient(string buildHash = null)
@@ -317,7 +325,9 @@ namespace LiteGame.Tests.EditMode
             using (var account = new ClientScope("Account"))
             {
                 account.Register(battle);                        // 生产形态：Account Scope 拥有会话（离场 Dispose 释放）
-                var context = new BattleContext(battle, account);
+                var inputService = new InputService();
+                inputService.SetSource(new StubIntentSource());      // 设备替身：输入链路完整（null 输入 = 不上行）
+                var context = new BattleContext(battle, account, inputService);
                 try
                 {
                     context.Tick(1f / 60);                           // StartGame 未达：只泵网络，不抛
@@ -325,6 +335,7 @@ namespace LiteGame.Tests.EditMode
                     Assert.That(_transport.CountOf(PacketType.Input), Is.EqualTo(0), "未进对局不上行输入");
 
                     _transport.Deliver(new StartGame { Seed = 12345, ConfigHash = 42, Frame = 0 }, PacketType.StartGame);
+                    inputService.SampleOnRenderFrame(context.LocalPosition); // 生产序：渲染帧采样 → 逻辑帧 Tick 取用/上行
                     context.Tick(1f / 60);                           // 首个对局 Tick：发输入（帧 1）+ 预测推进
                     Assert.That(_transport.CountOf(PacketType.Input), Is.EqualTo(1));
                     InputMessage input = (InputMessage)_transport.Sent.Find(s => s.type == PacketType.Input).msg;

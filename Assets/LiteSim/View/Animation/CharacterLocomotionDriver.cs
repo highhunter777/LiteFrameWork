@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using LiteFramework;
 using LiteFramework.Animation;
 using LiteSim;
@@ -7,37 +8,84 @@ using UnityEngine;
 namespace LiteSim.View.Animation
 {
     /// <summary>
-    /// 角色移动动画驱动器（《动画模块专项设计》§7 更新次序中"Driver 解析参数与目标进度 →
-    /// 提交播放/取消"的首个消费者）：按视图实例的实际移动速度把移动语义
-    /// （<see cref="CharacterAnimationIds"/>）提交到每实体自己的
-    /// <see cref="CharacterAnimationPlayer"/>（经 Profile 解析 → <see cref="AnimatorAnimationBackend"/>）。
+    /// 角色移动动画驱动器（《动画模块专项设计》§7 更新次序中"Driver 解析参数与目标进度 → 提交播放/取消"
+    /// 的首个消费者；§4"混合的权重由 Driver 给"的第一个真实消费者）：按视图实例的**速度与移动方向**
+    /// 解析移动形态，经每实体自己的 <see cref="CharacterAnimationPlayer"/>
+    /// （Profile 解析 → <see cref="AnimatorAnimationBackend"/>）提交。
     ///
-    /// **速度来源**：视图 Transform 的帧间位移——本地（预测+和解衰减）与远端（快照插值）
-    /// 同一来源，不读 Sim 内部（本类是 View 层消费者，只读视图）；插值/衰减的速度天然平滑。
+    /// **形态矩阵（2026-09-27 瞄准态批）**：
+    /// <code>
+    /// 未瞄准   → Locomotion.MoveBlend = {Idle, Walk, Run}   速度轴 1D 混合（权重按速度连续插值）
+    /// 瞄准+静止 → AimIdle（单片段）
+    /// 瞄准+移动 → Locomotion.AimMoveBlend = {AimWalk_F/R/B/L}  4 向 strafe，相邻两片按夹角插值
+    /// </code>
+    /// - **速度轴改走混合器**：不再按阈值离散切片段，权重连续 ⇒ 没有档位抖动；权重经
+    ///   <c>CharacterAnimationPlayer.UpdateBlendWeights</c> **就地更新**（不换句柄、不产生终态、不重建节点——
+    ///   连续调参不该表现为"反复打断"）；只有**换形态**才重新提交。
+    /// - **瞄准态**从 <see cref="SimView.IsAiming"/> 读（Sim 权威事实；本类仍不读输入设备）。
+    /// - **限速在 Sim 侧**（`CombatConfig.AimMoveSpeed` = 走路档）——所以瞄准移动只需要 AimWalk 一套片段；
+    ///   本类不做数值限速，只按实际速度解析形态。
+    /// - **迟滞只用在"瞄准静止 ↔ 瞄准移动"这一处形态切换**（双阈值：起步用高阈、停下用低阈）；
+    ///   其余两轴都是连续权重，不需要迟滞。
+    ///
+    /// **速度/方向来源**：视图 Transform 的帧间位移——本地（预测+和解衰减）与远端（快照插值）
+    /// 同一来源，不读 Sim 位置；插值/衰减的速度天然平滑。
     /// **时钟**：跟随视图同一时间域（真实帧间隔——与 SimView 插值一致；世界暂停语义与视图移动
     /// 一并归 G2 表现收口，本类不单独缩放）。
     ///
     /// **灰盒降级**：无 Animator 的视图（灰盒胶囊/缺资源克隆）不建播放器——表现为无动画，
     /// 与缺角色资源的既有降级姿势一致。视图回收/复用时旧播放器随视图消失被 Dispose，
     /// 新占用者重建（Owner 代次语义由重建保证）。
+    ///
+    /// **诊断（§11）**：实现 <see cref="IModuleStats"/>，聚合各后端的通道占用/节点数/未知绑定/截断计数
+    /// （调用方复用容器，零分配）；<see cref="TryGetMotion"/> 供 HUD/测试读当前形态与权重。
     /// </summary>
-    public sealed class CharacterLocomotionDriver : IDisposable
+    public sealed class CharacterLocomotionDriver : IDisposable, IModuleStats
     {
-        /// <summary>低于该速度（m/s）视为静止。</summary>
+        /// <summary>速度轴锚点（m/s）：≤ 此值 Idle 权重为 1，往上开始并入 Walk。</summary>
         public const float IdleBelowMps = 0.5f;
 
-        /// <summary>高于该速度（m/s）视为奔跑（CombatConfig.MoveSpeed 默认 5）。</summary>
-        public const float RunAboveMps = 2.5f;
+        /// <summary>速度轴锚点（m/s）：Walk 权重到 1、开始并入 Run——同时也是**瞄准限速后的满速**
+        /// （`CombatConfig.MoveSpeed × AimMoveSpeedFactor` = 2.5）。</summary>
+        public const float WalkFullMps = 2.5f;
+
+        /// <summary>速度轴锚点（m/s）：Run 权重到 1（略低于 <c>CombatConfig.MoveSpeed</c> = 5，给斜向/边界留余量）。</summary>
+        public const float RunFullMps = 4.5f;
+
+        /// <summary>瞄准态"静止 → 移动"的进入阈值（m/s）。</summary>
+        public const float AimMoveEnterMps = 0.6f;
+
+        /// <summary>瞄准态"移动 → 静止"的退出阈值（m/s）——与进入阈值拉开即迟滞，防在单点来回切形态。</summary>
+        public const float AimMoveExitMps = 0.3f;
 
         private readonly SimView _view;
         private readonly AnimationProfile _profile;
         private readonly SlotAnim[] _slots = new SlotAnim[SimConfig.MaxEntities];
+
+        /// <summary>复用权重容器（零分配：混合请求只读、不保留引用——见 <see cref="AnimationBlendRequest"/>）。</summary>
+        private readonly float[] _moveWeights;
+        private readonly float[] _aimWeights;
+
         private bool _disposed;
 
         public CharacterLocomotionDriver(SimView view, AnimationProfile profile = null)
         {
             _view = view ?? throw new ArgumentNullException(nameof(view));
             _profile = profile ?? CombatGirlsAnimationProfile.Build();
+
+            // 权重容器长度直接取登记定义（单一来源）；定义缺失或形状不对 = 配置错误，**构造期显性失败**，
+            // 不等到运行时逐帧静默失败。
+            if (!_profile.TryGetBlendDefinition(CharacterAnimationIds.MoveBlend, out var moveBlend)
+                || moveBlend.SlotCount != 3)
+                throw new ArgumentException(
+                    $"Profile 缺 {CharacterAnimationIds.MoveBlend} 的 3 槽位混合定义（形状 {{Idle,Walk,Run}}）", nameof(profile));
+            if (!_profile.TryGetBlendDefinition(CharacterAnimationIds.AimMoveBlend, out var aimBlend)
+                || aimBlend.SlotCount != 4)
+                throw new ArgumentException(
+                    $"Profile 缺 {CharacterAnimationIds.AimMoveBlend} 的 4 槽位混合定义（形状 {{AimWalk_F,R,B,L}}）", nameof(profile));
+
+            _moveWeights = new float[moveBlend.SlotCount];
+            _aimWeights = new float[aimBlend.SlotCount];
         }
 
         /// <summary>当前有动画播放器的实体视图数（诊断/测试）。</summary>
@@ -63,8 +111,23 @@ namespace LiteSim.View.Animation
         }
 
         /// <summary>
-        /// 每渲染帧推进（SimView 之后调用——视图位置先更新，本类再解析目标姿态）：
-        /// 视图增删检查 → 速度分档 → 语义变化才提交 → 播放器采样推进。
+        /// 读槽位当前形态与**权重**（诊断/HUD/测试；<paramref name="weights"/> 由调用方复用，零分配）：
+        /// 返回 false = 无播放器 / 容器太小 / 当前是单片段形态（此时 <paramref name="id"/> 仍给出形态 ID）。
+        /// </summary>
+        public bool TryGetMotion(int slotIndex, out AnimationId id, float[] weights)
+        {
+            id = default;
+            if (slotIndex < 0 || slotIndex >= _slots.Length) return false;
+            var s = _slots[slotIndex];
+            if (s?.Player == null || !s.Current.IsValid) return false;
+
+            id = s.Current;
+            return s.CopyWeightsTo(weights);
+        }
+
+        /// <summary>
+        /// 每渲染帧推进（SimView 之后调用——视图位置先更新，本类再解析形态）：
+        /// 视图增删检查 → 速度/方向测量 → 形态与权重解析 → 提交或就地调权重 → 播放器采样推进。
         /// </summary>
         public void Tick(float realDelta)
         {
@@ -85,24 +148,27 @@ namespace LiteSim.View.Animation
                     var animator = go.GetComponentInChildren<Animator>(true);
                     if (animator == null || animator.runtimeAnimatorController == null)
                     {
-                        // 灰盒视图：无动画面——只记位置（保持速度判断的帧间基准），不建播放器
+                        // 灰盒视图：无动画面——只记位置（保持速度判断的帧间基准），不建播放器。
+                        // **不打日志**：这里是每帧路径，逐帧 LogWarning 会刷屏；降级事实由 §11 的
+                        // IModuleStats（views 计数）与用例断言（AnimatedViews == 0）承担观测。
                         RememberPosition(s, go);
                         continue;
                     }
 
-                    s.Player = new CharacterAnimationPlayer(new AnimatorAnimationBackend(animator), _profile);
-                    s.Current = CharacterAnimationIds.Idle;
-                    s.Player.Play(new AnimationRequest(s.Current, AnimationChannel.Locomotion));   // 初建落 Idle（不开局 T-pose）
+                    var backend = new AnimatorAnimationBackend(animator);
+                    s.Backend = backend;
+                    s.Player = new CharacterAnimationPlayer(backend, _profile);
+                    BuildSpeedWeights(0f, _moveWeights);
+                    var first = SubmitBlend(s, CharacterAnimationIds.MoveBlend, _moveWeights);   // 初建落 Idle=1（不开局 T-pose）
+                    Debug.LogWarning($"[Anim][diag] slot {i} 播放器建立：view「{go.name}」animator「{animator.name}」"
+                        + $"ctrl={animator.runtimeAnimatorController.name} layers={animator.layerCount} 初建提交={first}");
                 }
 
                 if (s.HasPos && dt > 0f)
                 {
-                    var target = ResolveTarget(s, go.transform.position, dt);
-                    if (!target.Equals(s.Current))
-                    {
-                        var result = s.Player.Play(new AnimationRequest(target, AnimationChannel.Locomotion));
-                        if (result.Accepted) s.Current = target;      // 拒绝不推进状态（下次重试，不丢帧）
-                    }
+                    s.IsAim = _view.IsAiming(i);
+                    float speed = MeasureSpeed(s, go.transform.position, dt, out Vector3 moveDir);
+                    Submit(s, speed, in moveDir, go.transform.rotation);
                 }
 
                 RememberPosition(s, go);
@@ -117,15 +183,126 @@ namespace LiteSim.View.Animation
             for (int i = 0; i < _slots.Length; i++) ReleaseSlot(i);
         }
 
-        // ---- 内部 ----
+        // ---- 内部：形态解析与提交 ----
 
-        private AnimationId ResolveTarget(SlotAnim s, Vector3 pos, float dt)
+        /// <summary>本帧形态：同形态就地调权重，换形态才重新提交（形态矩阵见类注释）。</summary>
+        private void Submit(SlotAnim s, float speed, in Vector3 moveDir, Quaternion rotation)
         {
-            Vector3 d = pos - s.LastPos;
-            float speed = Mathf.Sqrt(d.x * d.x + d.z * d.z) / dt;      // 水平速度（m/s）
-            if (speed < IdleBelowMps) return CharacterAnimationIds.Idle;
-            if (speed < RunAboveMps) return CharacterAnimationIds.Walk;
-            return CharacterAnimationIds.Run;
+            if (s.IsAim)
+            {
+                // 迟滞：起步用高阈、停下用低阈（唯一需要迟滞的形态切换点——其余两轴是连续权重）
+                bool moving = s.AimMoving ? speed > AimMoveExitMps : speed >= AimMoveEnterMps;
+                s.AimMoving = moving;
+
+                if (moving)
+                {
+                    BuildAimWeights(in moveDir, rotation, _aimWeights);
+                    SubmitBlend(s, CharacterAnimationIds.AimMoveBlend, _aimWeights);
+                }
+                else
+                {
+                    SubmitSingle(s, CharacterAnimationIds.AimIdle);
+                }
+                return;
+            }
+
+            BuildSpeedWeights(speed, _moveWeights);
+            SubmitBlend(s, CharacterAnimationIds.MoveBlend, _moveWeights);
+        }
+
+        /// <summary>
+        /// 非瞄准速度轴权重（槽位序 {Idle, Walk, Run}）：<c>IdleBelowMps → WalkFullMps → RunFullMps</c>
+        /// 三段线性插值，总和恒 1、边界连续（在锚点上两侧算出的权重相同——不会有跳变）。
+        /// </summary>
+        private static void BuildSpeedWeights(float speed, float[] weights)
+        {
+            weights[0] = 0f;
+            weights[1] = 0f;
+            weights[2] = 0f;
+
+            if (speed <= IdleBelowMps)
+            {
+                weights[0] = 1f;
+                return;
+            }
+            if (speed < WalkFullMps)
+            {
+                float k = (speed - IdleBelowMps) / (WalkFullMps - IdleBelowMps);
+                weights[0] = 1f - k;
+                weights[1] = k;
+                return;
+            }
+            if (speed < RunFullMps)
+            {
+                float k = (speed - WalkFullMps) / (RunFullMps - WalkFullMps);
+                weights[1] = 1f - k;
+                weights[2] = k;
+                return;
+            }
+            weights[2] = 1f;
+        }
+
+        /// <summary>
+        /// 瞄准移动方向轴权重（槽位序 {F, R, B, L}）：把"移动方向 vs 朝向"的夹角换算成槽位坐标
+        /// （F=0 / R=+1 / B=±2 / L=−1，各槽位相隔 90°），取**相邻两片**按小数部分插值——权重连续，
+        /// 跨扇区不跳变（所以不需要方向迟滞）。模型前沿约定 +Z（与 <c>SimView.Place</c> 的
+        /// <c>Quaternion.Euler(0, 90° − yaw)</c> 同源）。
+        /// </summary>
+        private static void BuildAimWeights(in Vector3 moveDir, Quaternion rotation, float[] weights)
+        {
+            Vector3 facing = rotation * Vector3.forward;
+            float rel = Vector3.SignedAngle(facing, moveDir, Vector3.up);   // [-180,180]：正 = 朝向的右侧
+
+            float t = rel / 90f;                                            // 槽位坐标：F=0 / R=1 / B=2 / L=-1
+            int idx = Mathf.FloorToInt(t);
+            float frac = t - idx;
+            int slotA = ((idx % 4) + 4) % 4;
+            int slotB = (slotA + 1) % 4;
+
+            for (int i = 0; i < weights.Length; i++) weights[i] = 0f;
+            weights[slotA] = 1f - frac;
+            weights[slotB] = frac;
+        }
+
+        /// <summary>视图帧间位移 → 水平速度（m/s）与单位移动方向（无位移时方向为零向量）。</summary>
+        private static float MeasureSpeed(SlotAnim s, Vector3 pos, float dt, out Vector3 dir)
+        {
+            float dx = pos.x - s.LastPos.x;
+            float dz = pos.z - s.LastPos.z;
+            float len = Mathf.Sqrt(dx * dx + dz * dz);
+            dir = len > 1e-5f ? new Vector3(dx / len, 0f, dz / len) : Vector3.zero;
+            return len / dt;
+        }
+
+        /// <summary>提交/更新混合形态：同 ID 且句柄仍在播 → **就地调权重**（零重建、零终态）；否则重新提交。</summary>
+        private static bool SubmitBlend(SlotAnim s, AnimationId id, float[] weights)
+        {
+            if (s.Current.Equals(id) && s.Handle.IsValid && s.Player.UpdateBlendWeights(s.Handle, weights))
+            {
+                s.StoreWeights(weights);
+                return true;
+            }
+
+            var result = s.Player.PlayBlend(new AnimationBlendRequest(id, AnimationChannel.Locomotion, weights));
+            if (!result.Accepted) return false;            // 拒绝不推进状态（下次重试，不丢帧）
+
+            s.Current = id;
+            s.Handle = result.Handle;
+            s.StoreWeights(weights);
+            return true;
+        }
+
+        /// <summary>提交单片段形态（同 ID 已在播则不重复提交——重复提交会白换句柄、给旧播放收 Interrupted）。</summary>
+        private static void SubmitSingle(SlotAnim s, AnimationId id)
+        {
+            if (s.Current.Equals(id) && s.Handle.IsValid) return;
+
+            var result = s.Player.Play(new AnimationRequest(id, AnimationChannel.Locomotion));
+            if (!result.Accepted) return;
+
+            s.Current = id;
+            s.Handle = result.Handle;
+            s.IsBlendForm = false;
         }
 
         private static void RememberPosition(SlotAnim s, GameObject go)
@@ -140,17 +317,75 @@ namespace LiteSim.View.Animation
             if (s == null) return;
             s.Player?.Dispose();                         // 销毁序：代次失效 → 终态 → 释放后端（Graph.Destroy）
             s.Player = null;
+            s.Backend = null;
             s.Current = default;
             s.HasPos = false;
+            s.IsAim = false;
+            s.AimMoving = false;
             _slots[i] = null;
+        }
+
+        // ---- IModuleStats（§11 诊断；调用方复用容器，禁止每次 new）----
+
+        string IModuleStats.StatsName => "Animation";
+
+        void IModuleStats.Snapshot(Dictionary<string, string> into)
+        {
+            into.Clear();
+
+            int channels = 0, nodes = 0, nodesMax = 0, unknown = 0, truncated = 0;
+            for (int i = 0; i < _slots.Length; i++)
+            {
+                var b = _slots[i]?.Backend;
+                if (b == null) continue;
+                channels += b.ActiveChannels;
+                nodes += b.PlayableCount;
+                if (b.PlayableCount > nodesMax) nodesMax = b.PlayableCount;
+                unknown += b.UnknownBindings;
+                truncated += b.TruncatedBlends;
+            }
+
+            into["views"] = AnimatedViews.ToString();
+            into["channels"] = channels.ToString();
+            into["nodes"] = nodes.ToString();
+            into["nodesMax"] = nodesMax.ToString();       // 单后端峰值：节点稳定性（§12）的观测值
+            into["unknownBindings"] = unknown.ToString();
+            into["truncatedBlends"] = truncated.ToString();
         }
 
         private sealed class SlotAnim
         {
             public CharacterAnimationPlayer Player;
+            /// <summary>后端引用（诊断聚合用；与 Player 同生共死）。</summary>
+            public AnimatorAnimationBackend Backend;
+            /// <summary>当前形态语义（单片段或混合 ID——<see cref="TryGetCurrent"/> 的读值）。</summary>
             public AnimationId Current;
+            /// <summary>当前形态的句柄（就地调权重必须拿它——旧句柄会拒绝）。</summary>
+            public AnimationHandle Handle;
             public Vector3 LastPos;
             public bool HasPos;
+            /// <summary>瞄准态（来自 <see cref="SimView.IsAiming"/>，每帧刷新）。</summary>
+            public bool IsAim;
+            /// <summary>瞄准+移动的迟滞锁存（见 <see cref="AimMoveEnterMps"/>/<see cref="AimMoveExitMps"/>）。</summary>
+            public bool AimMoving;
+            /// <summary>当前是否混合形态（单片段形态没有权重）。</summary>
+            public bool IsBlendForm;
+            /// <summary>最近一次提交/更新的权重副本（诊断与用例的读值；长度随形态 3 或 4）。</summary>
+            private float[] _weights;
+
+            public void StoreWeights(float[] weights)
+            {
+                if (_weights == null || _weights.Length != weights.Length) _weights = new float[weights.Length];
+                Array.Copy(weights, _weights, weights.Length);
+                IsBlendForm = true;
+            }
+
+            public bool CopyWeightsTo(float[] into)
+            {
+                if (!IsBlendForm || _weights == null || into == null || into.Length < _weights.Length) return false;
+                Array.Copy(_weights, into, _weights.Length);
+                return true;
+            }
         }
     }
 }

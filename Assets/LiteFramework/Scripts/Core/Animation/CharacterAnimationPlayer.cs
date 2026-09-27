@@ -15,6 +15,8 @@ namespace LiteFramework.Animation
     /// - **替换加载中的请求必须终止旧待提交 Handle**，迟到加载只释放自己的资源、不抢回通道（§6）；
     /// - **终态记录有界保留**，过期查询返回未找到，不把已完成 Handle 永久留在全局表（§5）；
     /// - 各通道**至多一个待提交 + 一个当前播放**，无默认队列（§6/§12）；
+    /// - **混合播放与单片段共用同一套通道仲裁**（<c>PlayBlend</c>），但永不 Completed——混合集合没有
+    ///   单一结束边界（§5）；
     /// - 销毁顺序：代次失效 → 取消在途 → 撤销订阅 → 释放后端（§9）。
     ///
     /// 时钟：本类不持有分域时钟——由调用方（Driver/容器）按 §7 的更新次序把已缩放的
@@ -44,7 +46,7 @@ namespace LiteFramework.Animation
 
         private readonly IAnimationBackend _backend;
         private readonly AnimationProfile _profile;
-        private readonly Dictionary<AnimationChannel, AnimationChannelSlot> _slots = new Dictionary<AnimationChannel, AnimationChannelSlot>(4);
+        private readonly Dictionary<AnimationChannel, ChannelSlot> _slots = new Dictionary<AnimationChannel, ChannelSlot>(4);
         private readonly Dictionary<int, TerminalRecord> _terminals = new Dictionary<int, TerminalRecord>();
         private readonly Queue<int> _terminalOrder = new Queue<int>();
 
@@ -88,29 +90,69 @@ namespace LiteFramework.Animation
             }
 
             // 能力校验：后端不支持的能力**明确拒绝**，不静默降级（§4"不把不支持的能力静默降级"）
-            AnimationBackendCapabilities caps = _backend.Capabilities;
-            if (resolved.StartNormalized > 0f && (caps & AnimationBackendCapabilities.StartAtNormalized) == 0)
-            { RejectedRequests++; return AnimationStartResult.Reject(AnimationStartResult.Reason.UnsupportedCapability); }
-            if (resolved.Speed != 1f && (caps & AnimationBackendCapabilities.SpeedOverride) == 0)
-            { RejectedRequests++; return AnimationStartResult.Reject(AnimationStartResult.Reason.UnsupportedCapability); }
-            if (resolved.Channel != AnimationChannel.Locomotion && (caps & AnimationBackendCapabilities.LayeredChannels) == 0)
-            { RejectedRequests++; return AnimationStartResult.Reject(AnimationStartResult.Reason.UnsupportedCapability); }
+            if (!CapabilitiesAllow(resolved.StartNormalized, resolved.Speed, resolved.Channel))
+            {
+                RejectedRequests++;
+                return AnimationStartResult.Reject(AnimationStartResult.Reason.UnsupportedCapability);
+            }
 
-            var handle = new AnimationHandle(_playerId, _ownerGeneration, ++_sequence);
-            var slot = Slot(resolved.Channel);
-
-            if (slot.HasCurrent)
-                Finish(resolved.Channel, slot.Current, slot.CurrentId, AnimationTerminalState.Interrupted);   // 替换：旧播放（含加载中）终止
-
-            slot.Current = handle;
-            slot.CurrentId = resolved.Id;
-            slot.Loading = resolved.RequiresLoad;
-            slot.Active = true;
-
+            var handle = TakeChannel(resolved.Channel, resolved.Id, resolved.RequiresLoad, out var slot);
             if (!resolved.RequiresLoad)
                 Commit(resolved.Channel, slot, handle, in resolved);
 
             return AnimationStartResult.Accept(handle);
+        }
+
+        /// <summary>
+        /// 提交混合播放（§5 Play 的混合面）：与 <see cref="Play"/> **共用同一套通道仲裁**
+        /// （<see cref="TakeChannel"/>——同通道替换收 Interrupted、句柄三分量、终态恰好一次、每通道至多一个当前），
+        /// 差异只有两点：
+        /// ① **不走装载路径**：槽位绑定必须已可直接提交（混合不做资源加载，解析期已拒空槽位）；
+        /// ② **永不 Completed**：混合集合没有单一结束边界（§5），后端不把它纳入完成掩码——
+        /// 它只能被替换/停止/释放收终态。
+        /// 返回拒绝时**不改变现有播放**（与 Play 同规矩）；前端能力位缺失时**显性拒绝**而非降级成单片段。
+        /// </summary>
+        public AnimationStartResult PlayBlend(in AnimationBlendRequest request)
+        {
+            if (_disposed)
+                return AnimationStartResult.Reject(AnimationStartResult.Reason.OwnerUnavailable);
+
+            if (!_profile.TryResolveBlend(request, out var resolved, out var reason))
+            {
+                RejectedRequests++;
+                return AnimationStartResult.Reject(reason);
+            }
+
+            // 能力位：混合路径**必需** ClipBlending——降级成单片段播放等于静默丢掉权重语义（§4）
+            if ((_backend.Capabilities & AnimationBackendCapabilities.ClipBlending) == 0
+                || !CapabilitiesAllow(resolved.StartNormalized, resolved.Speed, resolved.Channel))
+            {
+                RejectedRequests++;
+                return AnimationStartResult.Reject(AnimationStartResult.Reason.UnsupportedCapability);
+            }
+
+            var handle = TakeChannel(resolved.Channel, resolved.Id, requiresLoad: false, out var slot);
+            if (!_backend.TryPlayBlend(in resolved))
+                Finish(resolved.Channel, handle, slot.CurrentId, AnimationTerminalState.Failed);   // 后端拒绝/执行失败：不假装在播
+
+            return AnimationStartResult.Accept(handle);
+        }
+
+        /// <summary>
+        /// 就地更新混合权重（**连续调参路径**，§5"连续参数更新…按实际需要提供独立接口"）：
+        /// 权重随速度/方向逐帧变化时用它，而不是每帧 <see cref="PlayBlend"/>——后者会换句柄、
+        /// 给旧播放收 Interrupted，让"连续调参"表现成"反复打断"。
+        /// 句柄必须仍是**该通道的当前播放**（旧句柄/已终态/已被替换 → false）；不产生终态、不换句柄。
+        /// 后端拒绝（当前不是混合节点 / 权重数与槽位不符 / 权重非法）同样返回 false 且不改动现状——
+        /// 调用方据此回退到 <see cref="PlayBlend"/> 重新提交。
+        /// </summary>
+        public bool UpdateBlendWeights(AnimationHandle handle, float[] weights)
+        {
+            if (_disposed) return false;
+            if (!TryFindCurrent(handle, out var channel, out var slot)) return false;
+            if (slot.Loading) return false;                            // 加载中无节点可调（混合不走装载，防御）
+
+            return _backend.TrySetBlendWeights(channel, weights);
         }
 
         /// <summary>
@@ -167,12 +209,16 @@ namespace LiteFramework.Animation
 
         /// <summary>
         /// 每帧推进（**唯一驱动入口**，§7"Graph Evaluate 只由一个驱动器调用"）：
-        /// 先采样各通道，再把自然结束的播放收成 Completed。delta 由调用方按分域时钟给出；播放器不再次缩放。
+        /// **先单次采样全部通道**（一次 <c>Tick</c>，绝不逐通道循环驱动——那会把时间重复推进），
+        /// 再按返回的通道掩码，把自然结束的播放逐通道收成 Completed。delta 由调用方按分域时钟给出；
+        /// 播放器不再次缩放。
         /// </summary>
         public void Tick(float deltaSeconds)
         {
             if (_disposed) return;
             if (float.IsNaN(deltaSeconds)) return;
+
+            AnimationChannelMask done = _backend.Tick(deltaSeconds);
 
             // 非分配迭代：增量字典可能删空键，但 Tick 期间 Finish 只改值不改集合结构——
             // 用枚举器比"拷进静态缓冲"更安全（静态缓冲在嵌套播放器场景会被互相覆盖）。
@@ -181,8 +227,10 @@ namespace LiteFramework.Animation
                 var slot = pair.Value;
                 if (slot == null || !slot.HasCurrent || slot.Loading) continue;
 
-                if (_backend.Tick(pair.Key, deltaSeconds))
-                    Finish(pair.Key, slot.Current, slot.CurrentId, AnimationTerminalState.Completed);   // 自然结束 → Completed
+                // 掩码里属于非活跃通道的位一律忽略（防迟到收口写错通道）
+                if ((done & AnimationChannelMasks.Of(pair.Key)) == 0) continue;
+
+                Finish(pair.Key, slot.Current, slot.CurrentId, AnimationTerminalState.Completed);   // 自然结束 → Completed
             }
         }
 
@@ -219,7 +267,36 @@ namespace LiteFramework.Animation
 
         // ---- 内部 ----
 
-        private void Commit(AnimationChannel channel, AnimationChannelSlot slot, AnimationHandle handle, in AnimationResolvedPlayback resolved)
+        /// <summary>
+        /// 通道仲裁共用段（<see cref="Play"/>/<see cref="PlayBlend"/> 同规矩，逐字复用——不允许两条路径长出两套仲裁）：
+        /// 分配句柄（三分量身份）→ 旧当前播放（含加载中）收 Interrupted → 槽位换上新句柄。
+        /// </summary>
+        private AnimationHandle TakeChannel(AnimationChannel channel, AnimationId id, bool requiresLoad, out ChannelSlot slot)
+        {
+            var handle = new AnimationHandle(_playerId, _ownerGeneration, ++_sequence);
+            slot = Slot(channel);
+
+            if (slot.HasCurrent)
+                Finish(channel, slot.Current, slot.CurrentId, AnimationTerminalState.Interrupted);
+
+            slot.Current = handle;
+            slot.CurrentId = id;
+            slot.Loading = requiresLoad;
+            slot.Active = true;
+            return handle;
+        }
+
+        /// <summary>能力校验（Play/PlayBlend 共用）：后端不支持的能力**明确拒绝**，不静默降级（§4）。</summary>
+        private bool CapabilitiesAllow(float startNormalized, float speed, AnimationChannel channel)
+        {
+            AnimationBackendCapabilities caps = _backend.Capabilities;
+            if (startNormalized > 0f && (caps & AnimationBackendCapabilities.StartAtNormalized) == 0) return false;
+            if (speed != 1f && (caps & AnimationBackendCapabilities.SpeedOverride) == 0) return false;
+            if (channel != AnimationChannel.Locomotion && (caps & AnimationBackendCapabilities.LayeredChannels) == 0) return false;
+            return true;
+        }
+
+        private void Commit(AnimationChannel channel, ChannelSlot slot, AnimationHandle handle, in AnimationResolvedPlayback resolved)
         {
             if (!_backend.TryPlay(in resolved))
             {
@@ -282,18 +359,18 @@ namespace LiteFramework.Animation
 
         private bool IsTerminal(AnimationHandle handle) => _terminals.ContainsKey(Key(handle));
 
-        private AnimationChannelSlot Slot(AnimationChannel channel)
+        private ChannelSlot Slot(AnimationChannel channel)
         {
             if (!_slots.TryGetValue(channel, out var slot))
             {
-                slot = new AnimationChannelSlot();
+                slot = new ChannelSlot();
                 _slots[channel] = slot;
             }
             return slot;
         }
 
         /// <summary>句柄是否仍是某通道的当前播放。</summary>
-        private bool TryFindCurrent(AnimationHandle handle, out AnimationChannel channel, out AnimationChannelSlot slot)
+        private bool TryFindCurrent(AnimationHandle handle, out AnimationChannel channel, out ChannelSlot slot)
         {
             foreach (var pair in _slots)
             {
@@ -315,5 +392,21 @@ namespace LiteFramework.Animation
             };
 
         private static int Key(AnimationHandle h) => (h.PlayerId * 397) ^ (h.OwnerGeneration * 31) ^ h.RequestSequence;
+
+        /// <summary>
+        /// 单通道的播放槽（§6"首版每通道最多一个待提交请求和一个当前逻辑播放"）。
+        /// 没有队列——新请求替换旧请求，旧请求立即取得 Interrupted 终态。
+        /// **本类的私有实现细节**（不放进后端契约文件：它只被本播放器读写）。
+        /// </summary>
+        private sealed class ChannelSlot
+        {
+            public AnimationHandle Current;          // 当前逻辑播放（已提交或提交中）
+            public AnimationId CurrentId;
+            public bool Loading;                     // 已接受但尚未提交成功
+            public bool Active;
+
+            /// <summary>替换当前播放：旧 Handle 得 Interrupted 终态（旧待提交 Handle 一并终止——§6）。</summary>
+            public bool HasCurrent => Active && Current.IsValid;
+        }
     }
 }

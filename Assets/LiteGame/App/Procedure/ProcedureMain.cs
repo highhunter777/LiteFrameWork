@@ -63,8 +63,8 @@ namespace LiteGame
         {
             try
             {
-                await _open(MainFormId, ct);                   // 单写者导航（真 prefab + 真 Lua + 内容租约——U1 全链）
-                UnityEngine.Debug.Log($"{SmokeMarker} form={MainFormId} lease-held");
+                //await _open(MainFormId, ct);                   // 单写者导航（真 prefab + 真 Lua + 内容租约——U1 全链）
+                //UnityEngine.Debug.Log($"{SmokeMarker} form={MainFormId} lease-held");
                 await EnterBattleSceneAsync(ct);
             }
             catch (OperationCanceledException) { /* 正常取消，静默 */ }
@@ -88,7 +88,7 @@ namespace LiteGame
             if (_scenes == null) return;
             if (_scenes.IsLoaded(BattleScene)) return;         // 幂等：重进 Main 不重复加载
 
-            await _scenes.LoadSingleAsync(BattleScene, ct);
+            await _scenes.LoadAdditiveAsync(BattleScene, ct);
             UnityEngine.Debug.Log($"[Main] 玩法场景已加载:{BattleScene} scene={_scenes.SingleSceneName}");
         }
     }

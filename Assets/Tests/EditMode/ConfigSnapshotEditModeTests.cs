@@ -23,7 +23,8 @@ namespace LiteGame.Tests.EditMode
     {
         private static Dictionary<string, byte[]> ReadTableBytes()
         {
-            string dir = Path.Combine(ProjectRoot(), "Assets", "LiteGame", "RawFile", "Config");
+            // 表数据目录从 ConfigService 单源取（生成物 2026-09-26 由 LiteGame/RawFile 收敛到 GameData）
+            string dir = Path.Combine(ProjectRoot(), ConfigService.DataDir);
             var cache = new Dictionary<string, byte[]>(ConfigService.TableDataFiles.Length);
             foreach (string f in ConfigService.TableDataFiles)
             {

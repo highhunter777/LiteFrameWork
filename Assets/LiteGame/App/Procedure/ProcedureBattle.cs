@@ -236,8 +236,20 @@ namespace LiteGame
         {
             if (_input == null) return;                           // 无服务（替身/测试装配）= 无输入形态
             _input.Reset();                                       // 上一局的待用意图/派发状态不带进本局
+
+            // **对局相机注入**（2026-09-27）：设备源持有的是装配根 boot 相机——叠加开发形态下它
+            // **不随场景销毁**，`Camera.main` 回落也拿错机（两台相机在场），瞄准/相机相对移动会
+            // 全部算在错机上。这里把真对局渲染相机（brain 所在 Camera）显式换进去。
+            if (_camera is CinemachineCameraService ccs && _input.Source is NewInputIntentSource source)
+            {
+                ccs.EnsureCamera();                                // 视图未建时 Follow 还没跑过——先解析 vcam
+                Camera renderCamera = ccs.TryGetRenderCamera();
+                if (renderCamera != null) source.SetAimCamera(renderCamera);
+                else UnityEngine.Debug.LogWarning("[Battle] 对局渲染相机未解析到——瞄准/移动继续用设备源现持相机");
+            }
+
             _context.AttachInput(_input);
-            _camera?.Reset();                                     // 镜头重新落位（不从上局位置飞过来）
+            _camera?.Reset();                                     // 镜头重新落位（不从上一局位置飞过来）
         }
 
         private GameObject InstantiateView(string location, Transform parent)
@@ -280,7 +292,8 @@ namespace LiteGame
 
             // ① 渲染帧采样（上下文门在此裁决：登记源任一成立 → 本帧不产生新输入，见 IInputService）。
             //    瞄准参照原点取自 Sim 预测态——不读视图 Transform（平滑过的表现量会把误差回灌进输入）。
-            //    阶段驱动即渲染帧驱动（StageMachine 由 GameEntry.Update 每渲染帧推进一次）。
+            //    2026-09-27 分镜裁决：AimPoint 不进输入/主相机，留给瞄准相机（瞄准态接线时用
+            //    SimView.LocalAimPointPosition）。
             if (_input != null && _context.Sim != null)
                 _input.SampleOnRenderFrame(_context.LocalPosition);
 

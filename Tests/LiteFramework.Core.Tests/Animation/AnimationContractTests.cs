@@ -28,15 +28,21 @@ namespace LiteFramework.Core.Tests.Animation
         {
             public AnimationBackendCapabilities Capabilities { get; set; } =
                 AnimationBackendCapabilities.Looping | AnimationBackendCapabilities.SpeedOverride |
-                AnimationBackendCapabilities.StartAtNormalized | AnimationBackendCapabilities.LayeredChannels;
+                AnimationBackendCapabilities.StartAtNormalized | AnimationBackendCapabilities.LayeredChannels |
+                AnimationBackendCapabilities.ClipBlending;
 
             public readonly List<AnimationResolvedPlayback> Played = new List<AnimationResolvedPlayback>();
+            public readonly List<AnimationResolvedBlend> Blended = new List<AnimationResolvedBlend>();
             public readonly List<AnimationChannel> Stopped = new List<AnimationChannel>();
-            public readonly Dictionary<AnimationChannel, bool> FinishOnTick = new Dictionary<AnimationChannel, bool>();
+            /// <summary>本后端在本次采样中"自然到达结束边界"的通道集合（Tick 的返回值来源）。</summary>
+            public AnimationChannelMask FinishMask = AnimationChannelMask.None;
             public bool PlaySucceeds = true;
+            public bool BlendSucceeds = true;
             public bool Disposed;
-            /// <summary>每通道已被 Tick 的累计秒数（验证单一驱动入口与时钟缩放归属）。</summary>
-            public readonly Dictionary<AnimationChannel, float> TickedSeconds = new Dictionary<AnimationChannel, float>();
+            /// <summary>被驱动的次数——验证 §7"Graph Evaluate 只由一个驱动器调用"（每帧恰好一次）。</summary>
+            public int TickCalls;
+            /// <summary>累计被驱动的秒数（验证时钟缩放归属：播放器不乘 TimeScale，原样交给后端）。</summary>
+            public float TotalTickedSeconds;
 
             public bool TryPlay(in AnimationResolvedPlayback playback)
             {
@@ -45,15 +51,36 @@ namespace LiteFramework.Core.Tests.Animation
                 return true;
             }
 
+            public bool TryPlayBlend(in AnimationResolvedBlend blend)
+            {
+                if (!BlendSucceeds) return false;
+                // 记录即**快照权重**：请求契约是"只读、不保留引用"（调用方复用数组逐帧调权重），
+                // 测试替身留引用当事实会把"提交后调用方又改了数组"误报成后端读到新值。
+                Blended.Add(new AnimationResolvedBlend(blend.Id, blend.Channel, blend.Bindings,
+                    (float[])blend.Weights.Clone(), blend.StartNormalized, blend.Speed));
+                return true;
+            }
+
+            /// <summary>就地权重更新的记录（每条一次成功调用；验证"连续调参不换句柄、不产生终态"）。</summary>
+            public readonly List<float[]> BlendWeightsUpdated = new List<float[]>();
+            public bool SetWeightsSucceeds = true;
+
+            public bool TrySetBlendWeights(AnimationChannel channel, float[] weights)
+            {
+                if (!SetWeightsSucceeds) return false;
+                BlendWeightsUpdated.Add((float[])weights.Clone());
+                return true;
+            }
+
             public bool TryStop(AnimationChannel channel) { Stopped.Add(channel); return true; }
 
             public bool IsChannelActive(AnimationChannel channel) => Played.Count > 0;
 
-            public bool Tick(AnimationChannel channel, float deltaSeconds)
+            public AnimationChannelMask Tick(float deltaSeconds)
             {
-                TickedSeconds.TryGetValue(channel, out float acc);
-                TickedSeconds[channel] = acc + deltaSeconds;
-                return FinishOnTick.TryGetValue(channel, out bool f) && f;
+                TickCalls++;
+                TotalTickedSeconds += deltaSeconds;
+                return FinishMask;
             }
 
             public void Dispose() => Disposed = true;
@@ -210,7 +237,7 @@ namespace LiteFramework.Core.Tests.Animation
         [Fact]
         public void 终态_正常结束_Completed恰好一次()
         {
-            var backend = new FakeBackend { FinishOnTick = { [AnimationChannel.Locomotion] = true } };
+            var backend = new FakeBackend { FinishMask = AnimationChannelMask.Locomotion };
             var player = new CharacterAnimationPlayer(backend, Profile());
             int terminals = 0;
             AnimationTerminalState last = AnimationTerminalState.None;
@@ -230,7 +257,7 @@ namespace LiteFramework.Core.Tests.Animation
         [Fact]
         public void 终态_循环播放不自然Completed()
         {
-            var backend = new FakeBackend { FinishOnTick = { [AnimationChannel.Locomotion] = false } };
+            var backend = new FakeBackend();                                // 掩码为空 = 无通道自然到达结束边界
             var player = new CharacterAnimationPlayer(backend, Profile());
             int terminals = 0;
             player.OnTerminal += (h, t) => terminals++;
@@ -516,20 +543,372 @@ namespace LiteFramework.Core.Tests.Animation
 
             Play(player, "run");
             player.Tick(0.5f);                                      // 播放器不乘 TimeScale——原样交给后端
-            Assert.Equal(0.5f, backend.TickedSeconds[AnimationChannel.Locomotion], 4);
+            Assert.Equal(0.5f, backend.TotalTickedSeconds, 4);
+            Assert.Equal(1, backend.TickCalls);
         }
 
         [Fact]
-        public void Tick_加载中不推进后端()
+        public void Tick_单次驱动_三通道激活也只驱动一次()
         {
             var backend = new FakeBackend();
+            var player = new CharacterAnimationPlayer(backend, Profile());
+
+            Play(player, "run", AnimationChannel.Locomotion);
+            Play(player, "reload", AnimationChannel.UpperBody);
+            Play(player, "death", AnimationChannel.FullBody);
+
+            player.Tick(0.016f);
+
+            // §7"Graph Evaluate 只由一个驱动器调用"：多通道激活不得让累计时间被重复推进
+            Assert.Equal(1, backend.TickCalls);
+            Assert.Equal(0.016f, backend.TotalTickedSeconds, 5);
+        }
+
+        [Fact]
+        public void 终态_掩码按通道收Completed_各恰好一次_未标通道不误收()
+        {
+            var backend = new FakeBackend
+            {
+                FinishMask = AnimationChannelMask.Locomotion | AnimationChannelMask.UpperBody,
+            };
+            var player = new CharacterAnimationPlayer(backend, Profile());
+            var completed = new Dictionary<AnimationChannel, int>();
+            player.OnTerminal += (h, t) =>
+            {
+                if (t != AnimationTerminalState.Completed) return;
+                player.TryGetState(h, out var s);
+                completed.TryGetValue(s.Channel, out int n);
+                completed[s.Channel] = n + 1;
+            };
+
+            var move = Play(player, "run", AnimationChannel.Locomotion);
+            var act = Play(player, "reload", AnimationChannel.UpperBody);
+            var full = Play(player, "death", AnimationChannel.FullBody);   // 掩码未标：不得被收
+
+            player.Tick(0.016f);
+
+            Assert.Equal(1, completed[AnimationChannel.Locomotion]);
+            Assert.Equal(1, completed[AnimationChannel.UpperBody]);
+            Assert.False(completed.ContainsKey(AnimationChannel.FullBody), "掩码里没有的通道不得收 Completed");
+
+            player.Tick(0.016f);                                    // 已终态：不产生第二次
+            Assert.Equal(1, completed[AnimationChannel.Locomotion]);
+            Assert.Equal(1, completed[AnimationChannel.UpperBody]);
+
+            Assert.True(player.TryGetState(move.Handle, out var mv) && !mv.IsPlaying);
+            Assert.True(player.TryGetState(act.Handle, out var ac) && !ac.IsPlaying);
+            Assert.True(player.TryGetState(full.Handle, out var fl) && fl.IsPlaying, "未标通道仍在播");
+        }
+
+        [Fact]
+        public void Tick_加载中不收集完成_也不提交后端()
+        {
+            var backend = new FakeBackend { FinishMask = AnimationChannelMask.Locomotion };
             var profile = new AnimationProfile();
             profile.Register(new AnimationDefinition(new AnimationId("loadA"), AnimationChannel.Locomotion, "B.A", requiresLoad: true));
             var player = new CharacterAnimationPlayer(backend, profile);
+            int terminals = 0;
+            player.OnTerminal += (h, t) => terminals++;
 
             Play(player, "loadA");
             player.Tick(0.5f);
-            Assert.False(backend.TickedSeconds.ContainsKey(AnimationChannel.Locomotion), "尚未提交的播放不推进后端");
+
+            Assert.Empty(backend.Played);                           // 尚未提交：后端无该播放
+            Assert.Equal(0, terminals);                             // 加载中不得被掩码误收 Completed
+        }
+
+        // ---- 完成判定归定义（§5）----
+
+        [Fact]
+        public void 解析_循环标志随定义进播放方案()
+        {
+            var profile = Profile();
+
+            Assert.True(profile.TryResolve(new AnimationRequest(new AnimationId("run"), AnimationChannel.Locomotion),
+                out var looping, out _));
+            Assert.True(looping.Loop, "循环定义必须把 Loop 传进方案（后端不读资产 loop 设置）");
+
+            Assert.True(profile.TryResolve(new AnimationRequest(new AnimationId("reload"), AnimationChannel.UpperBody),
+                out var once, out _));
+            Assert.False(once.Loop);
+        }
+
+        // ---- 混合路径（§4 Blend 的登记/解析面 + §6 通道仲裁复用）----
+
+        private static AnimationProfile BlendProfile()
+        {
+            var p = new AnimationProfile();
+            p.RegisterBlend(new AnimationBlendDefinition(new AnimationId("move"), AnimationChannel.Locomotion,
+                new[] { "Walk", "Run" }));
+            p.RegisterBlend(new AnimationBlendDefinition(new AnimationId("upper"), AnimationChannel.UpperBody,
+                new[] { "Aim", "Shoot" }, minSpeed: 0.5f, maxSpeed: 1.5f));
+            return p;
+        }
+
+        private static AnimationStartResult Blend(CharacterAnimationPlayer player, string id,
+            AnimationChannel channel = AnimationChannel.Locomotion, params float[] weights)
+            => player.PlayBlend(new AnimationBlendRequest(new AnimationId(id), channel, weights));
+
+        /// <summary>单片段 + 混合共存的 Profile（验证跨形态替换走同一套通道仲裁）。</summary>
+        private static AnimationProfile MixedProfile()
+            => BlendProfile()
+                .Register(new AnimationDefinition(new AnimationId("run"), AnimationChannel.Locomotion, "B.Run", loop: true))
+                .Register(new AnimationDefinition(new AnimationId("idle"), AnimationChannel.Locomotion, "B.Idle", loop: true));
+
+        [Fact]
+        public void 解析_混合_按槽位序解析绑定与权重_通道以定义为权威()
+        {
+            var profile = BlendProfile();
+            bool ok = profile.TryResolveBlend(
+                new AnimationBlendRequest(new AnimationId("move"), AnimationChannel.FullBody, new[] { 1f, 2f }),
+                out var resolved, out var reason);
+
+            Assert.True(ok);
+            Assert.Equal(new[] { "Walk", "Run" }, resolved.Bindings);
+            Assert.Equal(new[] { 1f, 2f }, resolved.Weights);
+            Assert.Equal(AnimationChannel.Locomotion, resolved.Channel);   // 请求通道与定义不符：以定义通道为权威
+            Assert.Equal(2, resolved.SlotCount);
+            Assert.Equal(AnimationStartResult.Reason.None, reason);
+        }
+
+        [Fact]
+        public void 解析_混合_权重数目与槽位不符_整组拒绝()
+        {
+            var profile = BlendProfile();
+
+            Assert.False(profile.TryResolveBlend(
+                new AnimationBlendRequest(new AnimationId("move"), AnimationChannel.Locomotion, new[] { 1f }),
+                out _, out var reason));
+            Assert.Equal(AnimationStartResult.Reason.InvalidRequest, reason);
+
+            Assert.False(profile.TryResolveBlend(
+                new AnimationBlendRequest(new AnimationId("move"), AnimationChannel.Locomotion, null),
+                out _, out var nullReason), "权重数组为 null 必须拒绝");
+            Assert.Equal(AnimationStartResult.Reason.InvalidRequest, nullReason);
+        }
+
+        [Fact]
+        public void 解析_混合_权重非法整组拒绝_不做部分接受()
+        {
+            var profile = BlendProfile();
+            float[][] bad =
+            {
+                new[] { 1f, -1f },              // 负权重
+                new[] { float.NaN, 1f },        // 非有限
+                new[] { float.PositiveInfinity, 1f },
+                new[] { 0f, 0f },               // 全零：没有可播的东西
+                new[] { float.MaxValue, float.MaxValue },   // 总和溢出
+            };
+
+            foreach (var weights in bad)
+            {
+                Assert.False(profile.TryResolveBlend(
+                    new AnimationBlendRequest(new AnimationId("move"), AnimationChannel.Locomotion, weights),
+                    out _, out var reason), $"权重 [{string.Join(",", weights)}] 必须整组拒绝");
+                Assert.Equal(AnimationStartResult.Reason.InvalidRequest, reason);
+            }
+        }
+
+        [Fact]
+        public void 解析_混合_未登记ID_拒绝为InvalidDefinition_不参与回退链()
+        {
+            var profile = new AnimationProfile(FallbackPolicy.UseFallback);
+            profile.Register(new AnimationDefinition(new AnimationId("idle"), AnimationChannel.Locomotion, "B.Idle", loop: true));
+            profile.RegisterFallback(new AnimationId("move"), new AnimationId("idle"));   // 只对单片段路径有效
+
+            Assert.False(profile.TryResolveBlend(
+                new AnimationBlendRequest(new AnimationId("move"), AnimationChannel.Locomotion, new[] { 1f }),
+                out _, out var reason));
+            Assert.Equal(AnimationStartResult.Reason.InvalidDefinition, reason);
+        }
+
+        [Theory]
+        [InlineData(0f)]
+        [InlineData(-1f)]
+        [InlineData(float.NaN)]
+        public void 解析_混合_非法速度为InvalidRequest_超区间为UnsupportedCapability(float speed)
+        {
+            var profile = BlendProfile();
+
+            // 字段本身非法（≤0/NaN）→ InvalidRequest；合法但超出定义区间 → 能力不支持（不静默夹取）
+            var request = new AnimationBlendRequest(new AnimationId("upper"), AnimationChannel.UpperBody,
+                new[] { 1f, 1f }, 0f, speed);
+            Assert.False(profile.TryResolveBlend(request, out _, out var reason));
+            Assert.Equal(AnimationStartResult.Reason.InvalidRequest, reason);
+
+            Assert.False(profile.TryResolveBlend(new AnimationBlendRequest(new AnimationId("upper"),
+                AnimationChannel.UpperBody, new[] { 1f, 1f }, 0f, 3f), out _, out var rangeReason));
+            Assert.Equal(AnimationStartResult.Reason.UnsupportedCapability, rangeReason);
+        }
+
+        [Fact]
+        public void 解析_混合_越界起点_拒绝()
+        {
+            var profile = BlendProfile();
+            Assert.False(profile.TryResolveBlend(new AnimationBlendRequest(new AnimationId("move"),
+                AnimationChannel.Locomotion, new[] { 1f, 1f }, 1.5f), out _, out var reason));
+            Assert.Equal(AnimationStartResult.Reason.InvalidRequest, reason);
+        }
+
+        [Fact]
+        public void 登记_混合定义_非法形态显性拒绝()
+        {
+            var profile = new AnimationProfile();
+
+            Assert.Throws<System.ArgumentException>(() =>                                  // 空槽位
+                profile.RegisterBlend(new AnimationBlendDefinition(new AnimationId("b"), AnimationChannel.Locomotion, new string[0])));
+            Assert.Throws<System.ArgumentException>(() =>                                  // 超上限
+                profile.RegisterBlend(new AnimationBlendDefinition(new AnimationId("b"), AnimationChannel.Locomotion,
+                    new string[AnimationProfile.MaxBlendSlots + 1])));
+            Assert.Throws<System.ArgumentException>(() =>                                  // 槽位缺绑定
+                profile.RegisterBlend(new AnimationBlendDefinition(new AnimationId("b"), AnimationChannel.Locomotion,
+                    new[] { "Walk", "" })));
+            Assert.Throws<System.ArgumentException>(() =>                                  // 非法速度区间
+                profile.RegisterBlend(new AnimationBlendDefinition(new AnimationId("b"), AnimationChannel.Locomotion,
+                    new[] { "Walk" }, minSpeed: 2f, maxSpeed: 1f)));
+
+            // 同一 ID 不能既是单片段又是混合（解析形态会歧义）
+            var shared = new AnimationId("both");
+            profile.Register(new AnimationDefinition(shared, AnimationChannel.Locomotion, "B.Idle", loop: true));
+            Assert.Throws<System.ArgumentException>(() =>
+                profile.RegisterBlend(new AnimationBlendDefinition(shared, AnimationChannel.Locomotion, new[] { "Walk" })));
+
+            var blendOnly = new AnimationId("blendOnly");
+            profile.RegisterBlend(new AnimationBlendDefinition(blendOnly, AnimationChannel.Locomotion, new[] { "Walk" }));
+            Assert.Throws<System.ArgumentException>(() =>
+                profile.Register(new AnimationDefinition(blendOnly, AnimationChannel.Locomotion, "B.Idle")));
+
+            // 登记时克隆槽位数组：事后改写调用方数组不得影响定义
+            var slots = new[] { "Walk", "Run" };
+            profile.RegisterBlend(new AnimationBlendDefinition(new AnimationId("clone"), AnimationChannel.Locomotion, slots));
+            slots[0] = "Mutated";
+            Assert.True(profile.TryGetBlendDefinition(new AnimationId("clone"), out var def));
+            Assert.Equal("Walk", def.Bindings[0]);
+        }
+
+        [Fact]
+        public void 混合_后端无ClipBlending能力_显性拒绝不静默降级()
+        {
+            var backend = new FakeBackend { Capabilities = AnimationBackendCapabilities.Looping | AnimationBackendCapabilities.LayeredChannels };
+            var player = new CharacterAnimationPlayer(backend, BlendProfile());
+
+            var result = Blend(player, "move", AnimationChannel.Locomotion, 1f, 1f);
+
+            Assert.False(result.Accepted);
+            Assert.Equal(AnimationStartResult.Reason.UnsupportedCapability, result.RejectReason);
+            Assert.Empty(backend.Blended);                                  // 不降级成单片段、不半提交
+        }
+
+        [Fact]
+        public void 混合_同通道替换_旧播放Interrupted_跨形态互相打断()
+        {
+            var backend = new FakeBackend();
+            var player = new CharacterAnimationPlayer(backend, MixedProfile());
+            var terminals = new List<AnimationTerminalState>();
+            player.OnTerminal += (h, t) => terminals.Add(t);
+
+            var single = Play(player, "run");                               // 单片段 → 混合
+            var blend = Blend(player, "move", AnimationChannel.Locomotion, 1f, 0f);
+            Assert.True(blend.Accepted);
+            Assert.Equal(AnimationTerminalState.Interrupted, Assert.Single(terminals));
+            Assert.Single(backend.Blended);                                 // 混合被真正提交
+            Assert.Single(backend.Played);                                  // 单片段只提交过一次
+
+            Assert.False(player.Stop(single.Handle, AnimationStopReason.Cancelled), "被替换的旧句柄无写入权");
+            var again = Play(player, "idle");                               // 混合 → 单片段
+            Assert.True(again.Accepted);
+            Assert.Equal(2, terminals.Count);
+            Assert.Equal(AnimationTerminalState.Interrupted, terminals[1]);
+            Assert.True(player.Stop(again.Handle, AnimationStopReason.Cancelled));
+        }
+
+        [Fact]
+        public void 混合_后端拒绝_得Failed终态_不假装在播()
+        {
+            var backend = new FakeBackend { BlendSucceeds = false };
+            var player = new CharacterAnimationPlayer(backend, BlendProfile());
+            AnimationTerminalState terminal = AnimationTerminalState.None;
+            player.OnTerminal += (h, t) => terminal = t;
+
+            var result = Blend(player, "move", AnimationChannel.Locomotion, 1f, 1f);
+
+            Assert.True(result.Accepted);                                   // 已接受……
+            Assert.Equal(AnimationTerminalState.Failed, terminal);          // ……但后端失败必须收 Failed（§5）
+            Assert.False(player.TryGetState(result.Handle, out var state) && state.IsPlaying);
+        }
+
+        [Fact]
+        public void 混合_未登记的混合ID_拒绝_且不影响现有播放()
+        {
+            var backend = new FakeBackend();
+            var player = new CharacterAnimationPlayer(backend, BlendProfile());
+            int terminals = 0;
+            player.OnTerminal += (h, t) => terminals++;
+
+            var current = Blend(player, "move", AnimationChannel.Locomotion, 1f, 1f);
+            var rejected = Blend(player, "no-such-blend", AnimationChannel.Locomotion, 1f);
+
+            Assert.False(rejected.Accepted);
+            Assert.Equal(AnimationStartResult.Reason.InvalidDefinition, rejected.RejectReason);
+            Assert.Equal(0, terminals);                                     // 现有播放未被替换（§6 提交前失败保持原播放）
+            Assert.True(player.Stop(current.Handle, AnimationStopReason.Cancelled));
+        }
+
+        [Fact]
+        public void 混合_权重就地更新_不换句柄不产生终态()
+        {
+            // 连续调参路径（速度/方向权重逐帧变化）：不得表现成"反复打断"
+            var backend = new FakeBackend();
+            var player = new CharacterAnimationPlayer(backend, MixedProfile());
+            int terminals = 0;
+            player.OnTerminal += (h, t) => terminals++;
+
+            var current = Blend(player, "move", AnimationChannel.Locomotion, 1f, 0f);
+            Assert.True(player.UpdateBlendWeights(current.Handle, new[] { 0.25f, 0.75f }));
+
+            Assert.Single(backend.Blended);                       // 没有第二次提交
+            Assert.Equal(0, terminals);                           // 没有 Interrupted
+            Assert.Equal(new[] { 0.25f, 0.75f }, Assert.Single(backend.BlendWeightsUpdated));
+            Assert.True(player.TryGetState(current.Handle, out var state) && state.IsPlaying);
+
+            // 未指向当前播放的句柄 → false，且不改现状（旧句柄/未知句柄都无写入权）
+            Assert.False(player.UpdateBlendWeights(default, new[] { 1f, 0f }));
+
+            var replaced = Play(player, "run");                    // 同通道替换：混合被 Interrupted
+            Assert.False(player.UpdateBlendWeights(current.Handle, new[] { 1f, 0f }), "被替换的旧句柄不得再调权重");
+            Assert.True(player.Stop(replaced.Handle, AnimationStopReason.Cancelled));
+        }
+
+        [Fact]
+        public void 混合_后端拒绝就地更新_返回false且句柄仍在播()
+        {
+            var backend = new FakeBackend { SetWeightsSucceeds = false };
+            var player = new CharacterAnimationPlayer(backend, BlendProfile());
+
+            var current = Blend(player, "move", AnimationChannel.Locomotion, 1f, 0f);
+
+            Assert.False(player.UpdateBlendWeights(current.Handle, new[] { 1f, 0f }), "后端拒绝 = false（调用方据此回退到重新提交）");
+            Assert.True(player.TryGetState(current.Handle, out var state) && state.IsPlaying, "拒绝不得改变现有播放");
+        }
+
+        [Fact]
+        public void 混合_权重数组复用同一实例_每次提交各自读取()
+        {
+            // 零分配路径：调用方复用同一数组逐帧调权重——播放器/后端只在提交内读取，不保留引用
+            var backend = new FakeBackend();
+            var player = new CharacterAnimationPlayer(backend, BlendProfile());
+            var weights = new[] { 1f, 0f };
+
+            Assert.True(BlendWeighted(player, weights).Accepted);
+            weights[0] = 0.25f; weights[1] = 0.75f;
+            Assert.True(BlendWeighted(player, weights).Accepted);
+
+            Assert.Equal(2, backend.Blended.Count);
+            Assert.Equal(new[] { 1f, 0f }, backend.Blended[0].Weights);
+            Assert.Equal(new[] { 0.25f, 0.75f }, backend.Blended[1].Weights);
+
+            static AnimationStartResult BlendWeighted(CharacterAnimationPlayer p, float[] w)
+                => p.PlayBlend(new AnimationBlendRequest(new AnimationId("move"), AnimationChannel.Locomotion, w));
         }
     }
 }

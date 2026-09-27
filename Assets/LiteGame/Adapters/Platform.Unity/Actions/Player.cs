@@ -46,6 +46,33 @@ namespace LiteGame
                     ""processors"": """",
                     ""interactions"": """",
                     ""initialStateCheck"": true
+                },
+                {
+                    ""name"": ""Look"",
+                    ""type"": ""Value"",
+                    ""id"": ""e48a17fc-fbd8-4a3c-b570-0ea24e3682f8"",
+                    ""expectedControlType"": """",
+                    ""processors"": """",
+                    ""interactions"": """",
+                    ""initialStateCheck"": true
+                },
+                {
+                    ""name"": ""Aim"",
+                    ""type"": ""Button"",
+                    ""id"": ""0a4d8003-19f0-4e40-80bc-e7f9b44e23b9"",
+                    ""expectedControlType"": """",
+                    ""processors"": """",
+                    ""interactions"": """",
+                    ""initialStateCheck"": false
+                },
+                {
+                    ""name"": ""Dash"",
+                    ""type"": ""Button"",
+                    ""id"": ""8736dd44-7474-42a0-b3f3-71989fd52a00"",
+                    ""expectedControlType"": """",
+                    ""processors"": """",
+                    ""interactions"": """",
+                    ""initialStateCheck"": false
                 }
             ],
             ""bindings"": [
@@ -125,6 +152,39 @@ namespace LiteGame
                     ""action"": ""Move"",
                     ""isComposite"": false,
                     ""isPartOfComposite"": true
+                },
+                {
+                    ""name"": """",
+                    ""id"": ""850f8064-881d-4286-83e4-da332403d755"",
+                    ""path"": ""<Mouse>/delta"",
+                    ""interactions"": """",
+                    ""processors"": """",
+                    ""groups"": """",
+                    ""action"": ""Look"",
+                    ""isComposite"": false,
+                    ""isPartOfComposite"": false
+                },
+                {
+                    ""name"": """",
+                    ""id"": ""58aa0fb7-f206-4575-8f36-ad0e4e57362a"",
+                    ""path"": ""<Mouse>/rightButton"",
+                    ""interactions"": """",
+                    ""processors"": """",
+                    ""groups"": """",
+                    ""action"": ""Aim"",
+                    ""isComposite"": false,
+                    ""isPartOfComposite"": false
+                },
+                {
+                    ""name"": """",
+                    ""id"": ""e034a00a-da78-45b5-9ac1-d0fcce7a1151"",
+                    ""path"": ""<Keyboard>/leftShift"",
+                    ""interactions"": """",
+                    ""processors"": """",
+                    ""groups"": """",
+                    ""action"": ""Dash"",
+                    ""isComposite"": false,
+                    ""isPartOfComposite"": false
                 }
             ]
         },
@@ -157,12 +217,32 @@ namespace LiteGame
             ]
         }
     ],
-    ""controlSchemes"": []
+    ""controlSchemes"": [
+        {
+            ""name"": ""KeyboardMouse Control Scheme"",
+            ""bindingGroup"": ""KeyboardMouse Control Scheme"",
+            ""devices"": [
+                {
+                    ""devicePath"": ""<Keyboard>"",
+                    ""isOptional"": false,
+                    ""isOR"": false
+                },
+                {
+                    ""devicePath"": ""<Mouse>"",
+                    ""isOptional"": false,
+                    ""isOR"": false
+                }
+            ]
+        }
+    ]
 }");
             // GamePlay
             m_GamePlay = asset.FindActionMap("GamePlay", throwIfNotFound: true);
             m_GamePlay_Fire = m_GamePlay.FindAction("Fire", throwIfNotFound: true);
             m_GamePlay_Move = m_GamePlay.FindAction("Move", throwIfNotFound: true);
+            m_GamePlay_Look = m_GamePlay.FindAction("Look", throwIfNotFound: true);
+            m_GamePlay_Aim = m_GamePlay.FindAction("Aim", throwIfNotFound: true);
+            m_GamePlay_Dash = m_GamePlay.FindAction("Dash", throwIfNotFound: true);
             // UI
             m_UI = asset.FindActionMap("UI", throwIfNotFound: true);
             m_UI_Newaction = m_UI.FindAction("New action", throwIfNotFound: true);
@@ -235,12 +315,18 @@ namespace LiteGame
         private List<IGamePlayActions> m_GamePlayActionsCallbackInterfaces = new List<IGamePlayActions>();
         private readonly InputAction m_GamePlay_Fire;
         private readonly InputAction m_GamePlay_Move;
+        private readonly InputAction m_GamePlay_Look;
+        private readonly InputAction m_GamePlay_Aim;
+        private readonly InputAction m_GamePlay_Dash;
         public struct GamePlayActions
         {
             private @PlayerInputActions m_Wrapper;
             public GamePlayActions(@PlayerInputActions wrapper) { m_Wrapper = wrapper; }
             public InputAction @Fire => m_Wrapper.m_GamePlay_Fire;
             public InputAction @Move => m_Wrapper.m_GamePlay_Move;
+            public InputAction @Look => m_Wrapper.m_GamePlay_Look;
+            public InputAction @Aim => m_Wrapper.m_GamePlay_Aim;
+            public InputAction @Dash => m_Wrapper.m_GamePlay_Dash;
             public InputActionMap Get() { return m_Wrapper.m_GamePlay; }
             public void Enable() { Get().Enable(); }
             public void Disable() { Get().Disable(); }
@@ -256,6 +342,15 @@ namespace LiteGame
                 @Move.started += instance.OnMove;
                 @Move.performed += instance.OnMove;
                 @Move.canceled += instance.OnMove;
+                @Look.started += instance.OnLook;
+                @Look.performed += instance.OnLook;
+                @Look.canceled += instance.OnLook;
+                @Aim.started += instance.OnAim;
+                @Aim.performed += instance.OnAim;
+                @Aim.canceled += instance.OnAim;
+                @Dash.started += instance.OnDash;
+                @Dash.performed += instance.OnDash;
+                @Dash.canceled += instance.OnDash;
             }
 
             private void UnregisterCallbacks(IGamePlayActions instance)
@@ -266,6 +361,15 @@ namespace LiteGame
                 @Move.started -= instance.OnMove;
                 @Move.performed -= instance.OnMove;
                 @Move.canceled -= instance.OnMove;
+                @Look.started -= instance.OnLook;
+                @Look.performed -= instance.OnLook;
+                @Look.canceled -= instance.OnLook;
+                @Aim.started -= instance.OnAim;
+                @Aim.performed -= instance.OnAim;
+                @Aim.canceled -= instance.OnAim;
+                @Dash.started -= instance.OnDash;
+                @Dash.performed -= instance.OnDash;
+                @Dash.canceled -= instance.OnDash;
             }
 
             public void RemoveCallbacks(IGamePlayActions instance)
@@ -329,10 +433,22 @@ namespace LiteGame
             }
         }
         public UIActions @UI => new UIActions(this);
+        private int m_KeyboardMouseControlSchemeSchemeIndex = -1;
+        public InputControlScheme KeyboardMouseControlSchemeScheme
+        {
+            get
+            {
+                if (m_KeyboardMouseControlSchemeSchemeIndex == -1) m_KeyboardMouseControlSchemeSchemeIndex = asset.FindControlSchemeIndex("KeyboardMouse Control Scheme");
+                return asset.controlSchemes[m_KeyboardMouseControlSchemeSchemeIndex];
+            }
+        }
         public interface IGamePlayActions
         {
             void OnFire(InputAction.CallbackContext context);
             void OnMove(InputAction.CallbackContext context);
+            void OnLook(InputAction.CallbackContext context);
+            void OnAim(InputAction.CallbackContext context);
+            void OnDash(InputAction.CallbackContext context);
         }
         public interface IUIActions
         {

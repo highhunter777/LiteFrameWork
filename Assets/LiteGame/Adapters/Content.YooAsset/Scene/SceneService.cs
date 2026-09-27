@@ -154,7 +154,11 @@ namespace LiteGame
 
         // ---- 叠加（并发） ----
 
-        /// <summary>叠加加载场景并激活；同 location 已加载 = Warning + no-op。</summary>
+        /// <summary>叠加加载场景并激活；同 location 已加载 = Warning + no-op。
+        /// **同名场景已在 SceneManager 在场（预置场景开发形态）= 不再叠加**：编辑器里开着目标场景
+        /// 进 Play 时，再叠加会得到 Unity 的**第二份同名实例**（相机/监听器/场景对象全部翻倍）。
+        /// 命中 → 跳过加载，登记为**领养场景**（句柄 = null，属编辑器会话，本服务不卸不释放）；
+        /// `IsLoaded` 从此返回 true（后续重进走幂等早退），`UnloadAdditiveAsync` 对领养实例 = no-op 警告。</summary>
         public async UniTask LoadAdditiveAsync(string location, CancellationToken ct = default)
         {
             ValidateLocation(location);
@@ -162,6 +166,12 @@ namespace LiteGame
             if (IsLoaded(location))
             {
                 Log.Warning($"叠加场景已加载，忽略重复请求:{location}", "Scene");
+                return;
+            }
+            if (IsLoadedExternally(location))
+            {
+                _additives[location] = null;              // 领养登记：无句柄（场景归编辑器会话所有）
+                Log.Warning($"同名场景已在场（预置场景开发形态），跳过叠加加载并登记:{location}", "Scene");
                 return;
             }
 
@@ -184,7 +194,8 @@ namespace LiteGame
             Log.Info($"叠加场景已加载:{location}（当前叠加数 {_additives.Count}）", "Scene");
         }
 
-        /// <summary>卸载指定叠加场景；未加载 = no-op（幂等宽容）。</summary>
+        /// <summary>卸载指定叠加场景；未加载 = no-op（幂等宽容）。**领养实例 = no-op 警告**：
+        /// 场景归编辑器会话所有，本服务只摘自己的登记、不卸载它。</summary>
         public async UniTask UnloadAdditiveAsync(string location, CancellationToken ct = default)
         {
             ValidateLocation(location);
@@ -192,6 +203,11 @@ namespace LiteGame
 
             _additives.Remove(location);                       // 先摘引用：重入/失败都不指向半卸场景
             _additiveScopes.Remove(location, out ClientScope scope);
+            if (handle == null)
+            {
+                Log.Warning($"叠加场景为领养实例（预置场景开发形态），只摘登记、不执行卸载:{location}", "Scene");
+                return;
+            }
             await UnloadHandleAsync(handle, ct);
             scope?.Dispose();                                  // 作用域收尾（同单场景）
             Log.Info($"叠加场景已卸载:{location}（余 {_additives.Count}）", "Scene");
@@ -228,7 +244,7 @@ namespace LiteGame
             released += _additives.Count;
             if (_additives.Count > 0)
             {
-                foreach (var kv in _additives) kv.Value.Dispose();
+                foreach (var kv in _additives) kv.Value?.Dispose();   // 领养实例（null 句柄）只清登记
                 _additives.Clear();
             }
             foreach (var kv in _additiveScopes) kv.Value.Dispose();
@@ -280,7 +296,7 @@ namespace LiteGame
             if (_additives.Count == 0) return;
 
             int count = _additives.Count;
-            foreach (var kv in _additives) kv.Value.Dispose();  // Unity 已销毁其场景——只释放引用
+            foreach (var kv in _additives) kv.Value?.Dispose();  // Unity 已销毁其场景——只释放引用（领养实例 = null 只清登记）
             foreach (var kv in _additiveScopes) kv.Value.Dispose();   // 作用域同步收尾（幂等）
             _additives.Clear();
             _additiveScopes.Clear();
@@ -290,6 +306,19 @@ namespace LiteGame
         private static void ValidateLocation(string location)
         {
             if (string.IsNullOrEmpty(location)) throw new ArgumentNullException(nameof(location));
+        }
+
+        /// <summary>SceneManager 里是否已有同 path 的已加载场景（本服务之外持有的——编辑器预置场景开发形态）。
+        /// 在发起 YooAsset 加载**之前**调用：本服务自己加载的场景此刻还不在 SceneManager 里，
+        /// 命中的一定是外部（编辑器会话）实例。</summary>
+        private static bool IsLoadedExternally(string location)
+        {
+            for (int i = 0; i < SceneManager.sceneCount; i++)
+            {
+                Scene s = SceneManager.GetSceneAt(i);
+                if (s.isLoaded && s.path == location) return true;
+            }
+            return false;
         }
     }
 }

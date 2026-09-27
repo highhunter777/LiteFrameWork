@@ -142,7 +142,9 @@ namespace LiteSim
                 else
                 {
                     _tickInputs[i] = baseInputs[i];           // 沿用移动/朝向（§5.3）
-                    _tickInputs[i].Buttons = 0u;              // 开火不预测（离散事件猜错代价极大）
+                    // 只保留**连续意图位**（见 SimInputFrame.PredictedButtons）：开火与离散意图不预测
+                    // （离散事件猜错代价极大）；连续位跟着沿用，否则"举枪/松开"会在缺真实输入的帧闪断。
+                    _tickInputs[i].Buttons &= SimInputFrame.PredictedButtons;
                     _tickPredicted[i] = true;
                 }
             }

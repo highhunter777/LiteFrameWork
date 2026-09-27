@@ -41,9 +41,19 @@ namespace LiteSim
         /// <summary>闪避/保留位（《游戏业务系统总设计》§3.2 位 8：已定义未实现——服务器白名单放行，Sim 侧暂无消费者）。</summary>
         public const uint ButtonDodge = 1u << 8;
 
+        /// <summary>瞄准（ADS，连续意图——长按右键期间每帧置位，松开清零；不带 action_seq）。</summary>
+        public const uint ButtonAim = 1u << 9;
+
         /// <summary>离散意图位集（需携带 action_seq 的按钮）。</summary>
         public const uint DiscreteIntentButtons =
             ButtonReload | ButtonSwitchWeapon | ButtonSkill1 | ButtonSkill2 | ButtonSkill3 | ButtonPickup | ButtonUseItem;
+
+        /// <summary>
+        /// **预测帧保留位集**（<c>RollbackSim</c> 的"沿用上一帧"口径）：连续意图可预测（与移动同性质），
+        /// 开火与离散意图不预测（猜错代价极大）。**新增连续位时改这里**——不要在回滚代码里散写位常量，
+        /// 否则再加位必漏。
+        /// </summary>
+        public const uint PredictedButtons = ButtonAim;
 
         /// <summary>
         /// **服务器回溯专用**：本槽输入表示"该实体在回溯帧上补判一次开火"（《M10实施指导》决策 8）。

@@ -64,6 +64,28 @@ namespace LiteGame
         /// <summary>已解析的虚拟相机所在场景名（诊断用；未解析 = null）。</summary>
         public string CameraSceneName => _vcam != null ? _vcam.gameObject.scene.name : null;
 
+        /// <summary>
+        /// 当前接线 vcam 的**渲染相机**（Cinemachine brain 所在 Camera；未解析到 = null）。
+        /// 消费者：输入设备源（<c>NewInputIntentSource.SetAimCamera</c>）——叠加开发形态下 boot 相机
+        /// 不随场景销毁，`Camera.main` 回落会拿错机，必须显式注入真对局渲染相机。
+        /// 解析顺序：vcam 同物体或父链上的 brain → 全场 brain 中 Live 的一台 → null（如实回报）。
+        /// </summary>
+        public Camera TryGetRenderCamera()
+        {
+            if (_vcam == null || ReferenceEquals(_vcam, null)) return null;
+
+            CinemachineBrain own = _vcam.GetComponentInParent<CinemachineBrain>();
+            if (own != null) return own.OutputCamera;
+
+            var brains = UnityEngine.Object.FindObjectsByType<CinemachineBrain>(
+                FindObjectsInactive.Exclude, FindObjectsSortMode.None);
+            for (int i = 0; i < brains.Length; i++)
+            {
+                if (brains[i] != null && brains[i].IsLive(_vcam)) return brains[i].OutputCamera;
+            }
+            return brains != null && brains.Length > 0 ? brains[0].OutputCamera : null;
+        }
+
         /// <param name="followTarget">跟随目标；null = 用 vcam 已设的 Follow，仍未设则自建空目标。
         /// **只在解析时生效**（重新解析后沿用同一个偏好）。</param>
         public CinemachineCameraService(Transform followTarget = null)

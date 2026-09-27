@@ -58,6 +58,15 @@ namespace LiteGame.Tests.EditMode
         [Category(TestCategory.Contract)]
         public void 收集器_Characters组覆盖运行时目录()
         {
+            // 期望值从**单源**推：运行时角色 prefab（`CombatGirlsAnimationProfile.ViewPrefabPath`）所在目录
+            // 必须被 Characters 组收集——否则角色进不了内容包。不硬编码目录字面量，prefab 换位置时断言跟着走。
+            //
+            // 2026-09-27 裁决：收集组保持单条 `Assets/Prefab`（prefab 已随 2a0906a 迁到该目录），
+            // 模型/动画依赖在 `CombatGirlsCharacterPack` 内由 **YooAsset 依赖链自动收集**（见组描述），
+            // 不再要求显式收 `CombatGirlsCharacterPack/Runtime`——故本用例由「断言包目录」改为「断言 prefab 目录」。
+            string expectedDir = System.IO.Path.GetDirectoryName(CombatGirlsAnimationProfile.ViewPrefabPath)
+                .Replace('\\', '/');
+
             // 反射读取 YooAsset 收集配置（测试程序集不引 YooAsset.Editor——避免为一条结构断言扩 asmdef）
             var setting = AssetDatabase.LoadAssetAtPath<ScriptableObject>("Assets/BundleCollectorSetting.asset");
             Assert.IsNotNull(setting, "BundleCollectorSetting 缺失");
@@ -75,11 +84,11 @@ namespace LiteGame.Tests.EditMode
                     foreach (var collector in collectors)
                     {
                         var path = (string)collector.GetType().GetField("CollectPath").GetValue(collector);
-                        if (path == "Assets/CombatGirlsCharacterPack/Runtime") found = true;
+                        if (path == expectedDir) found = true;
                     }
                 }
             }
-            Assert.IsTrue(found, "Characters 收集组必须覆盖运行时 prefab 目录——否则角色进不了内容包");
+            Assert.IsTrue(found, $"Characters 收集组必须覆盖运行时角色 prefab 目录 {expectedDir}——否则角色进不了内容包");
         }
 
         /// <summary>递归收集层 0 全部状态名（含子状态机）。</summary>

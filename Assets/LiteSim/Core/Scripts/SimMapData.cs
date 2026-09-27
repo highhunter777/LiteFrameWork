@@ -75,18 +75,31 @@ namespace LiteSim
         }
 
         /// <summary>
-        /// 标准灰盒对战地图（C2 单源）：±50 边界 + 16 网格出生点。
+        /// 标准灰盒对战地图（C2 单源）：200×200 判定边界（半宽 ±100，2026-09-27 指令——原 ±50）
+        /// + 16 网格出生点（4×4、10m 间距）+ **周边围墙障碍**（2026-09-27 碰撞进 Sim 批：与训练场
+        /// Environment 同源数据化——地面 140×140、围栏外沿 ±69；墙高 20 等价"不可越过"，玩家无跳跃）。
         /// 服务端（RoomRuntime 开局生成）与客户端（BattleContext 预测世界重建）**必须**共用同一构造——
-        /// 两端地图不一致 = 出生点错位 = 预测永不分叉收敛。原 RoomServer.BuildStandardMap 平移至此。
+        /// 两端地图不一致 = 出生点错位/碰撞分叉 = 预测永不分叉收敛。原 RoomServer.BuildStandardMap 平移至此。
         /// </summary>
         public static SimMapData StandardBattleMap()
         {
-            var map = new SimMapData { GroundY = 0f, HalfWidth = 50f, HalfDepth = 50f };
+            var map = new SimMapData { GroundY = 0f, HalfWidth = 100f, HalfDepth = 100f };
             for (int i = 0; i < MaxSpawnPoints; i++)
             {
                 map.SpawnPoints[i] = new SimVector3(((i % 4) - 1.5f) * 10f, 0f, ((i / 4) - 1.5f) * 10f);
             }
             map.SpawnPointCount = MaxSpawnPoints;
+
+            // 周边围墙（Box，围栏外沿 ±69、厚 ~2m；四段在角上重叠无害）。出生网格 ±15 距墙 50+m，
+            // 留足对局纵深；玩家被墙截在可视地面内（±68/70 一带），不再走出 140×140 的视觉地面。
+            map.Obstacles[0] = new SimObstacle { Kind = SimObstacleKind.Box, Center = new SimVector3(0f, 0f, -69f), HalfX = 70f, HalfZ = 1f, Height = 20f };
+            map.Obstacles[1] = new SimObstacle { Kind = SimObstacleKind.Box, Center = new SimVector3(0f, 0f, 69f), HalfX = 70f, HalfZ = 1f, Height = 20f };
+            map.Obstacles[2] = new SimObstacle { Kind = SimObstacleKind.Box, Center = new SimVector3(-69f, 0f, 0f), HalfX = 1f, HalfZ = 70f, Height = 20f };
+            map.Obstacles[3] = new SimObstacle { Kind = SimObstacleKind.Box, Center = new SimVector3(69f, 0f, 0f), HalfX = 1f, HalfZ = 70f, Height = 20f };
+            // 测试方块（训练场 /Cube 同源：位置 (5, 0.5, 0) 的单位立方体，底贴地）——
+            // SimObstacle 的 y 是底部高度：底 0、半宽 0.5、高 1。距最近出生点 (5,±5) 有 4m 通道。
+            map.Obstacles[4] = new SimObstacle { Kind = SimObstacleKind.Box, Center = new SimVector3(5f, 0f, 0f), HalfX = 0.5f, HalfZ = 0.5f, Height = 1f };
+            map.ObstacleCount = 5;
             return map;
         }
     }

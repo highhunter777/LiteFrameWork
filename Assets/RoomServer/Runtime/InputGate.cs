@@ -77,7 +77,7 @@ namespace RoomServer.Runtime
         public const uint AllowedButtons =
             SimInputFrame.ButtonFire | SimInputFrame.ButtonReload | SimInputFrame.ButtonSwitchWeapon
             | SimInputFrame.ButtonSkill1 | SimInputFrame.ButtonSkill2 | SimInputFrame.ButtonSkill3
-            | SimInputFrame.ButtonPickup | SimInputFrame.ButtonUseItem | SimInputFrame.ButtonDodge;
+            | SimInputFrame.ButtonPickup | SimInputFrame.ButtonUseItem | SimInputFrame.ButtonDodge|SimInputFrame.ButtonAim;
 
         /// <summary>必须携带非零 Aim 的意图位（射击/施法需要方向；Reload/Pickup/Use 走 target/槽位语义）。</summary>
         private const uint AimRequiredButtons =

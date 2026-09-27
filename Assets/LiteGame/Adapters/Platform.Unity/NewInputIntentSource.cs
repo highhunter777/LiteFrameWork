@@ -21,8 +21,11 @@ namespace LiteGame
     ///   而 Reload/Switch/Skill/Pickup/UseItem 属 §3 第 3 件的"按键沿所在的一个逻辑帧才置位"，
     ///   需要逐玩家单调递增的 <c>ActionSeq</c>。Action 资产里这些动作**尚未定义**（随武器/Action
     ///   消费者接入，G2），故本版只产出 Fire/Move/Aim，不伪造其它位；
-    /// - 瞄准方向由**鼠标屏幕点 → 地面平面**解算（俯视角），参照原点由调用方逐帧给出
-    ///   （<see cref="Sample"/> 的 <c>localPos</c>）——输入服务按"门与采样同帧"的纪律传入。
+    /// - 瞄准方向由**鼠标屏幕点 → 地面平面**解算，参照原点由调用方逐帧给出
+    ///   （<see cref="Sample"/> 的 <c>localPos</c>——2026-09-27 起为**玩家预制体 AimPoint** 的世界位置，
+    ///   退回 Sim 预测态位置）；
+    /// - **移动按相机平面 yaw 旋转**（2026-09-27 第三人称形态）：W=屏幕上=相机 forward 投影；
+    ///   相机为 null（纯测试装配）时退化为世界轴直映射。
     /// </summary>
     public sealed class NewInputIntentSource : IIntentSource, IDisposable
     {
@@ -81,10 +84,28 @@ namespace LiteGame
 
             // 未启用/无设备时 InputAction 读数为零——这是"采样到空意图"，不是"没有采样"。
             // 两者的区分见 IntentSample 的注释；本实现只要资产已启用就始终算采到。
+            Camera aimCamera = ResolveCamera();       // 相机同时是瞄准解算源与移动的"屏幕基准"（见下）
             Vector2 move = _actions.GamePlay.Move.ReadValue<Vector2>();
             var frame = default(SimInputFrame);
-            frame.MoveX = move.x;
-            frame.MoveZ = move.y;                // 2D 向量的 y 轴映射到世界 Z（俯视角平面）
+            float moveX = move.x;
+            float moveZ = move.y;                     // 2D 向量的 y 轴先按屏幕"上"理解，再旋进世界（见下）
+            if (aimCamera != null)
+            {
+                // **相机相对移动**（2026-09-27 第三人称形态）：W = 屏幕上 = 相机平面 forward 投影，
+                // D = 屏幕右 = 相机 right——不再按世界轴直映射（旧俯视角相机无 yaw 时两者等价；
+                // 肩后/自由相机一旦有 yaw，世界轴映射的 WASD 会横着走）。
+                // 只在**采集侧**旋转：Sim 输入契约仍是世界空间向量，服务器/预测/协议零改动。
+                // 边界：正俯视（pitch≈-90°）时平面 yaw 不可良定义——该形态应保持俯视相机的固定 yaw。
+                float yawRad = aimCamera.transform.eulerAngles.y * Mathf.Deg2Rad;
+                float sin = Mathf.Sin(yawRad);
+                float cos = Mathf.Cos(yawRad);
+                float wx = moveX * cos + moveZ * sin;  // 屏幕右×(cos,-sin) + 屏幕上×(sin,cos)
+                float wz = -moveX * sin + moveZ * cos;
+                moveX = wx;
+                moveZ = wz;
+            }
+            frame.MoveX = moveX;
+            frame.MoveZ = moveZ;
 
             // 长度 ≤1 契约：数字键盘/手柄可能有轴向过冲与斜向超长，采集侧负责归一
             float moveMag2 = frame.MoveX * frame.MoveX + frame.MoveZ * frame.MoveZ;
@@ -95,8 +116,8 @@ namespace LiteGame
                 frame.MoveZ *= inv;
             }
 
-            // 瞄准：鼠标位置 → 地面平面交点 → 相对本地玩家的方向（长度 ≤1，与旧实现同口径）
-            Camera aimCamera = ResolveCamera();       // 场景切换后缓存会失效——这里回落到当前 Camera.main
+            // 瞄准：鼠标位置 → 地面平面交点 → 相对瞄准原点（aimpoint 口径，见 Sample 的调用方）的方向
+            // 场景切换后缓存会失效——ResolveCamera 已回落到当前 Camera.main
             if (aimCamera != null && Mouse.current != null)
             {
                 var ray = aimCamera.ScreenPointToRay(Mouse.current.position.ReadValue());
@@ -118,6 +139,7 @@ namespace LiteGame
             frame.AimX = _aimX;
             frame.AimZ = _aimZ;
             frame.Buttons = _actions.GamePlay.Fire.IsPressed() ? SimInputFrame.ButtonFire : 0u;
+            frame.Buttons |= _actions.GamePlay.Aim.IsPressed() ? SimInputFrame.ButtonAim : 0u;
             return new IntentSample(frame);
         }
 

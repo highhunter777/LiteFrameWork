@@ -25,7 +25,8 @@ namespace LiteSim
 
         public int Hp;
 
-        /// <summary>标志位（存活/无敌/开火中…按需定义；活体判定以 AliveBitmap 为准）。</summary>
+        /// <summary>标志位（位定义见 <see cref="EntityFlags"/>；活体判定以 AliveBitmap 为准）。
+        /// **随公共快照 / 差分器 / <c>SimChecksum</c> / <c>SlotDelta.flags</c> 全链下发**——远端可见。</summary>
         public uint Flags;
 
         // ---- P0 公共战斗面（《游戏业务系统总设计》§1/《状态同步专项设计》§5.2 PublicStateSnapshot）----
@@ -44,5 +45,19 @@ namespace LiteSim
         /// <summary>当前装备武器槽（公开：-1 = 未装备；0..<see cref="SimConfig.WeaponSlotsPerEntity"/>-1）。
         /// 其他玩家渲染武器外观用它；弹药等私有运行态只在本人 PrivateStateSnapshot。</summary>
         public int SelectedWeapon;
+    }
+
+    /// <summary>
+    /// <see cref="EntitySlot.Flags"/> 的位定义（**取位只能从这里来**）。
+    ///
+    /// 为什么单列一个类型：**输入位与实体标志位是两个位空间**——直接拿
+    /// <c>SimInputFrame.ButtonAim</c> 当标志位用，日后输入位重排会静默改掉快照/checksum 语义
+    /// （`Flags` 进 <c>SimChecksum</c> 与线上 `SlotDelta.flags`，跨端身份敏感）。值可以碰巧相同，
+    /// 名字必须各自独立。
+    /// </summary>
+    public static class EntityFlags
+    {
+        /// <summary>瞄准态（右键 ADS；由 <c>InputSystem</c> 从输入位**每帧覆写**——连续状态，不是边沿）。</summary>
+        public const uint Aiming = 1u << 0;
     }
 }
