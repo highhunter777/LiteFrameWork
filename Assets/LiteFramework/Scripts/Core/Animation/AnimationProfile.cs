@@ -3,79 +3,13 @@ using System.Collections.Generic;
 
 namespace LiteFramework.Animation
 {
-    /// <summary>
-    /// 动画定义（《动画模块专项设计》§4）：只读定义，**播放实例另存**当前位置/层权重/Handle/结束状态——
-    /// 本类是不可变的共享数据，不在其上存角色状态。
-    /// </summary>
-    public readonly struct AnimationDefinition
-    {
-        public readonly AnimationId Id;
-        public readonly AnimationChannel Channel;
-        /// <summary>后端绑定：Controller 状态完整路径/层，或后续 Clip 资源键。</summary>
-        public readonly string Binding;
-        /// <summary>是否循环（§5"循环播放不会自然 Completed"）。</summary>
-        public readonly bool Loop;
-        /// <summary>合法速度区间（含端点）；越界请求按 <see cref="FallbackPolicy.Reject"/> 拒绝。</summary>
-        public readonly float MinSpeed;
-        public readonly float MaxSpeed;
-        /// <summary>是否需要装载（false = 预加载集合，提交即生效）。</summary>
-        public readonly bool RequiresLoad;
-
-        public AnimationDefinition(AnimationId id, AnimationChannel channel, string binding,
-            bool loop = false, float minSpeed = 0.01f, float maxSpeed = 4f, bool requiresLoad = false)
-        {
-            Id = id;
-            Channel = channel;
-            Binding = binding;
-            Loop = loop;
-            MinSpeed = minSpeed;
-            MaxSpeed = maxSpeed;
-            RequiresLoad = requiresLoad;
-        }
-
-        public bool IsValid => Id.IsValid && !string.IsNullOrEmpty(Binding);
-    }
-
     /// <summary>定义缺失或资源缺失时的策略（§4 Fallback："拒绝、回退或保持已有姿态的明确策略"）。</summary>
     public enum FallbackPolicy
     {
         /// <summary>拒绝请求，保持当前姿态（默认）。</summary>
         Reject = 0,
-        /// <summary>回退到同通道已登记的回退 ID（<see cref="AnimationProfile.FallbackOf"/>），回退深度受限。</summary>
+        /// <summary>回退到同通道已登记的回退 ID（<see cref="AnimationProfile.RegisterFallback"/>），回退深度受限。</summary>
         UseFallback = 1,
-    }
-
-    /// <summary>
-    /// 混合定义（§4 Blend 的**登记面**）：语义 ID → 有序的绑定槽位集合（槽位序 = 请求权重次序）。
-    ///
-    /// **集合形态固定**——权重只调比例，不增删槽位（换集合 = 换 ID/换定义）；因此槽位数能在解析期
-    /// 与后端容量对齐校验（§12"混合与 Graph：每角色状态/节点/过渡尾部有上限"）。
-    /// **槽位应当是循环片段**：混合集合恒为循环形态（无单一结束边界，§5），一次性片段在混合里会停在末帧
-    /// （首版不逐输入强制回绕——典型用途是循环片段之间按速度连续混合）。
-    /// </summary>
-    public readonly struct AnimationBlendDefinition
-    {
-        public readonly AnimationId Id;
-        public readonly AnimationChannel Channel;
-        /// <summary>槽位绑定（槽位序；构造时克隆，视为只读）。</summary>
-        public readonly string[] Bindings;
-        /// <summary>合法速度区间（含端点）；越界请求按 <see cref="FallbackPolicy.Reject"/> 拒绝。</summary>
-        public readonly float MinSpeed;
-        public readonly float MaxSpeed;
-
-        public AnimationBlendDefinition(AnimationId id, AnimationChannel channel, string[] bindings,
-            float minSpeed = 0.01f, float maxSpeed = 4f)
-        {
-            Id = id;
-            Channel = channel;
-            Bindings = bindings == null ? null : (string[])bindings.Clone();
-            MinSpeed = minSpeed;
-            MaxSpeed = maxSpeed;
-        }
-
-        public int SlotCount => Bindings?.Length ?? 0;
-
-        public bool IsValid => Id.IsValid && SlotCount > 0;
     }
 
     /// <summary>
