@@ -21,7 +21,7 @@ namespace LiteSim
         /// <summary>
         /// 瞄准态移速倍率（右键 ADS 期间移动上限 = <see cref="MoveSpeed"/> × 本值）。
         /// **取 0.5 = 乘 2 的幂**：位级精确、不引舍入（确定性纪律）。5 × 0.5 = **2.5 m/s**，
-        /// 恰好等于视图 Walk 档上界（`CharacterLocomotionDriver.WalkFullMps`）——限速后"瞄准移动"
+        /// 恰好等于视图 Walk 档上界（`LocomotionBlendMath.WalkFullMps`）——限速后"瞄准移动"
         /// 只需要 `AimWalk_*` 一套片段，不需要 AimJog。
         /// **表化待补**：数值表加列 `aim_move_speed` 后本常量让位（登记在《角色状态与动作专项设计》§7）。
         /// </summary>

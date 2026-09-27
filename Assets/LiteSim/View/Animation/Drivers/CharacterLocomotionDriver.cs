@@ -27,6 +27,8 @@ namespace LiteSim.View.Animation
     ///   本类不做数值限速，只按实际速度解析形态。
     /// - **迟滞只用在"瞄准静止 ↔ 瞄准移动"这一处形态切换**（双阈值：起步用高阈、停下用低阈）；
     ///   其余两轴都是连续权重，不需要迟滞。
+    /// - **权重数学独立成件**（<see cref="LocomotionBlendMath"/>：速度锚点常量 + 两支插值公式）——
+    ///   本类只负责测速度、算夹角、提交形态与就地调权重，公式改动不牵动播放编排。
     ///
     /// **速度/方向来源**：视图 Transform 的帧间位移——本地（预测+和解衰减）与远端（快照插值）
     /// 同一来源，不读 Sim 位置；插值/衰减的速度天然平滑。
@@ -42,16 +44,6 @@ namespace LiteSim.View.Animation
     /// </summary>
     public sealed class CharacterLocomotionDriver : IDisposable, IModuleStats
     {
-        /// <summary>速度轴锚点（m/s）：≤ 此值 Idle 权重为 1，往上开始并入 Walk。</summary>
-        public const float IdleBelowMps = 0.5f;
-
-        /// <summary>速度轴锚点（m/s）：Walk 权重到 1、开始并入 Run——同时也是**瞄准限速后的满速**
-        /// （`CombatConfig.MoveSpeed × AimMoveSpeedFactor` = 2.5）。</summary>
-        public const float WalkFullMps = 2.5f;
-
-        /// <summary>速度轴锚点（m/s）：Run 权重到 1（略低于 <c>CombatConfig.MoveSpeed</c> = 5，给斜向/边界留余量）。</summary>
-        public const float RunFullMps = 4.5f;
-
         /// <summary>瞄准态"静止 → 移动"的进入阈值（m/s）。</summary>
         public const float AimMoveEnterMps = 0.6f;
 
@@ -158,7 +150,7 @@ namespace LiteSim.View.Animation
                     var backend = new AnimatorAnimationBackend(animator);
                     s.Backend = backend;
                     s.Player = new CharacterAnimationPlayer(backend, _profile);
-                    BuildSpeedWeights(0f, _moveWeights);
+                    LocomotionBlendMath.BuildSpeedWeights(0f, _moveWeights);
                     var first = SubmitBlend(s, CharacterAnimationIds.MoveBlend, _moveWeights);   // 初建落 Idle=1（不开局 T-pose）
                     Debug.LogWarning($"[Anim][diag] slot {i} 播放器建立：view「{go.name}」animator「{animator.name}」"
                         + $"ctrl={animator.runtimeAnimatorController.name} layers={animator.layerCount} 初建提交={first}");
@@ -196,7 +188,9 @@ namespace LiteSim.View.Animation
 
                 if (moving)
                 {
-                    BuildAimWeights(in moveDir, rotation, _aimWeights);
+                    Vector3 facing = rotation * Vector3.forward;
+                    float rel = Vector3.SignedAngle(facing, moveDir, Vector3.up);   // [-180,180]：正 = 朝向的右侧
+                    LocomotionBlendMath.BuildAimWeights(rel, _aimWeights);
                     SubmitBlend(s, CharacterAnimationIds.AimMoveBlend, _aimWeights);
                 }
                 else
@@ -206,62 +200,8 @@ namespace LiteSim.View.Animation
                 return;
             }
 
-            BuildSpeedWeights(speed, _moveWeights);
+            LocomotionBlendMath.BuildSpeedWeights(speed, _moveWeights);
             SubmitBlend(s, CharacterAnimationIds.MoveBlend, _moveWeights);
-        }
-
-        /// <summary>
-        /// 非瞄准速度轴权重（槽位序 {Idle, Walk, Run}）：<c>IdleBelowMps → WalkFullMps → RunFullMps</c>
-        /// 三段线性插值，总和恒 1、边界连续（在锚点上两侧算出的权重相同——不会有跳变）。
-        /// </summary>
-        private static void BuildSpeedWeights(float speed, float[] weights)
-        {
-            weights[0] = 0f;
-            weights[1] = 0f;
-            weights[2] = 0f;
-
-            if (speed <= IdleBelowMps)
-            {
-                weights[0] = 1f;
-                return;
-            }
-            if (speed < WalkFullMps)
-            {
-                float k = (speed - IdleBelowMps) / (WalkFullMps - IdleBelowMps);
-                weights[0] = 1f - k;
-                weights[1] = k;
-                return;
-            }
-            if (speed < RunFullMps)
-            {
-                float k = (speed - WalkFullMps) / (RunFullMps - WalkFullMps);
-                weights[1] = 1f - k;
-                weights[2] = k;
-                return;
-            }
-            weights[2] = 1f;
-        }
-
-        /// <summary>
-        /// 瞄准移动方向轴权重（槽位序 {F, R, B, L}）：把"移动方向 vs 朝向"的夹角换算成槽位坐标
-        /// （F=0 / R=+1 / B=±2 / L=−1，各槽位相隔 90°），取**相邻两片**按小数部分插值——权重连续，
-        /// 跨扇区不跳变（所以不需要方向迟滞）。模型前沿约定 +Z（与 <c>SimView.Place</c> 的
-        /// <c>Quaternion.Euler(0, 90° − yaw)</c> 同源）。
-        /// </summary>
-        private static void BuildAimWeights(in Vector3 moveDir, Quaternion rotation, float[] weights)
-        {
-            Vector3 facing = rotation * Vector3.forward;
-            float rel = Vector3.SignedAngle(facing, moveDir, Vector3.up);   // [-180,180]：正 = 朝向的右侧
-
-            float t = rel / 90f;                                            // 槽位坐标：F=0 / R=1 / B=2 / L=-1
-            int idx = Mathf.FloorToInt(t);
-            float frac = t - idx;
-            int slotA = ((idx % 4) + 4) % 4;
-            int slotB = (slotA + 1) % 4;
-
-            for (int i = 0; i < weights.Length; i++) weights[i] = 0f;
-            weights[slotA] = 1f - frac;
-            weights[slotB] = frac;
         }
 
         /// <summary>视图帧间位移 → 水平速度（m/s）与单位移动方向（无位移时方向为零向量）。</summary>

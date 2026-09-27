@@ -1,4 +1,4 @@
-using LiteFramework;
+using LiteFramework.Animation;
 
 namespace LiteSim.View.Animation
 {

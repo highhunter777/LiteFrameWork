@@ -1,10 +1,9 @@
 using System;
 using System.Collections.Generic;
-using LiteFramework;
 using LiteFramework.Animation;
 using UnityEngine;
 using UnityEngine.Animations;
-using UnityEngine.Playables;
+using UnityEngine.Playables;   // PlayableExtensions：GetTime/SetTime/SetInputWeight/Pause 等扩展方法都在这
 
 namespace LiteSim.View.Animation
 {
@@ -13,42 +12,29 @@ namespace LiteSim.View.Animation
     /// PlayableGraph 采用 Manual 更新"）：把已解析的播放方案落到 PlayableGraph，姿态推进只经
     /// <see cref="Tick"/>（Graph.Evaluate——§7"Graph Evaluate 只由一个驱动器调用"）。
     ///
-    /// **2026-09-27 分层混合版（三通道）**：在既有 Clip 直驱（可播任意 Clip）之上引入
-    /// <see cref="AnimationLayerMixerPlayable"/>——通道叠加/上半身混合落地，同时保持
-    /// "不回到控制器参数/Trigger 驱动"（该资产参数全是 Trigger、多层无 Mask，
-    /// §7 字面的控制器参数驱动在本资产上不成立，走 §4 允许的「Clip 资源键」分支）。
+    /// **本类只做编排 + 能力声明 + 诊断聚合**，机制各有归属（2026-09-28 收敛）：
+    /// - 图拓扑 / 层序 / 层权重 / 开局默认姿态 → <see cref="AnimationLayerGraph"/>（固定 6 输入，反复打断不增长）；
+    /// - 节点两形态（单片段 / 普通混合器）、通道运行态、断线与销毁 → <see cref="ChannelNode"/>；
+    /// - 层权重推进与落位回收 → <see cref="ChannelBlendAdvance"/>；
+    /// - 结束边界判定 → Core 的 <see cref="ClipCompletionTracker"/>（读定义的 Loop，不读资产 loop 设置）。
     ///
-    /// **图拓扑（固定 6 输入，反复打断不增长）**：
-    /// <code>
-    /// _output(source = _mixer)
-    /// _mixer = AnimationLayerMixerPlayable.Create(graph, 6)
-    ///   [0] locomotion 当前   weight 1（基础层；初值 = 控制器默认姿态）
-    ///   [1] locomotion 尾部   weight 1→0   （旧片段在**上层**淡出——交叉淡化= 旧覆盖新再让位）
-    ///   [2] fullbody   尾部   weight 1（旧片段**在下层**保持）
-    ///   [3] fullbody   当前   weight 0→1   （新片段淡入；无掩码 → 全量覆盖）
-    ///   [4] upperbody  尾部   weight 1     + 上半身 LayerMask
-    ///   [5] upperbody  当前   weight 0→1   + 上半身 LayerMask
-    /// </code>
-    /// 基础层（locomotion）的旧片段必须在上层淡出（层 0 的权重被混合器忽略，放下层等于不可见）；
-    /// 上层通道反之——新片段在下层之上淡入，旧片段在下层以权重 1 保持，淡化完成即销毁 →
-    /// 每通道**恰好一个当前 + 一个尾部**，节点数回基线（§12"反复打断后节点数稳定"）。
+    /// **2026-09-27 分层混合版（三通道）**：在既有 Clip 直驱（可播任意 Clip）之上引入
+    /// AnimationLayerMixerPlayable——通道叠加/上半身混合落地，同时保持"不回到控制器参数/Trigger 驱动"
+    /// （该资产参数全是 Trigger、多层无 Mask，§7 字面的控制器参数驱动在本资产上不成立，
+    /// 走 §4 允许的「Clip 资源键」分支）。
     /// **FullBody 不需要"记忆并恢复旧移动动作"**：Locomotion 从未离开层 0、时间持续推进，
     /// FullBody 权重归零即自然回到当前移动姿态（不引 shadow、不恢复过期旧动作——§6）。
-    ///
-    /// **完成判定归定义（§5）**：读 <see cref="AnimationResolvedPlayback.Loop"/>，**不读资产 loop 设置**——
-    /// 定义为循环却资产不循环时手工回绕，定义为一次性却资产循环时按回卷检测；两个方向都成立。
     ///
     /// **能力位诚实声明（§4）**：<c>Looping | StartAtNormalized | SpeedOverride | ClipBlending</c>，
     /// **仅当上半身 Mask 构造成功才追加 <c>LayeredChannels</c>**（非 humanoid 时 UpperBody 被显性拒绝）。
     /// 速度经 <c>SetSpeed</c>；<see cref="Tick"/> 只把已缩放的 delta 交给 Evaluate，不再乘 Speed（§7 归属分离）。
     ///
-    /// **普通混合器（同通道多片段按权重混合）**：<see cref="TryPlayBlend"/> 用 `AnimationMixerPlayable`
+    /// **普通混合器（同通道多片段按权重混合）**：<see cref="TryPlayBlend"/> 用 <c>AnimationMixerPlayable</c>
     /// （无 Mask、纯权重，典型用途 Walk↔Run 按速度连续混合），**且是唯一的混合提交入口**——
     /// 语义 ID → 槽位绑定的解析归 Profile，经 <c>CharacterAnimationPlayer.PlayBlend</c> 进入本方法
-    /// （不存在"绕过播放器直接按名字播"的第二条路径）。混合节点与单片段节点共用同一套机制——
-    /// 让位到尾部、淡入淡出、回收，见内部 <c>Node</c>；**混合节点按循环对待，不产生 Completed**。
+    /// （不存在"绕过播放器直接按名字播"的第二条路径）；**混合节点按循环对待，不产生 Completed**。
     /// **淡化时长**：由构造函数显式传入（<see cref="DefaultBlendSeconds"/> 只是默认值，**不是**淡化数学里的常量），
-    /// 并在构造时分发给每个通道（<c>ChannelState.BlendSeconds</c>）；`0` = 瞬时落位。
+    /// 并在构造时分发给每个通道（<see cref="ChannelState.BlendSeconds"/>）；`0` = 瞬时落位。
     /// </summary>
     public sealed class AnimatorAnimationBackend : IAnimationBackend
     {
@@ -57,37 +43,24 @@ namespace LiteSim.View.Animation
         public const float DefaultBlendSeconds = 0.12f;
 
         /// <summary>同通道混合（普通混合器）的输入片段数上限——**与 <see cref="AnimationProfile.MaxBlendSlots"/> 同源**
-        /// （登记期已挡住越界形态，这里只作执行面的防御与定长数组容量；§12 节点数有界）。</summary>
+        /// （登记期已挡住越界形态，这里只作执行面的防御；§12 节点数有界）。</summary>
         public const int MaxBlendInputs = AnimationProfile.MaxBlendSlots;
 
         /// <summary>完成/回卷判定容差（秒）。</summary>
         private const float TimeEpsilon = 1e-4f;
 
-        // ---- 固定图拓扑（层序即混合序）----
-        private const int LayerLocomotionCurrent = 0;
-        private const int LayerLocomotionTail = 1;
-        private const int LayerFullBodyTail = 2;
-        private const int LayerFullBodyCurrent = 3;
-        private const int LayerUpperBodyTail = 4;
-        private const int LayerUpperBodyCurrent = 5;
-        private const int InputCount = 6;
-
         private readonly Animator _animator;
-        private readonly PlayableGraph _graph;
-        private readonly AnimationLayerMixerPlayable _mixer;
-        private readonly AnimatorControllerPlayable _controller;
-        private readonly AnimationPlayableOutput _output;
+        private readonly AnimationLayerGraph _layers;
         private readonly Dictionary<string, AnimationClip> _clips = new Dictionary<string, AnimationClip>(StringComparer.Ordinal);
         private readonly AvatarMask _upperBodyMask;
         private readonly ChannelState _locomotion;
         private readonly ChannelState _fullBody;
         private readonly ChannelState _upperBody;
 
-        private bool _defaultPoseConnected;      // 基础层仍挂控制器默认姿态（开局不露 T-pose）
         private bool _disposed;
 
         /// <summary>本后端的淡入/淡出时长（秒；**构造时显式传入**，0 = 瞬时落位）。
-        /// 已分发给每个通道（<c>ChannelState.BlendSeconds</c>），淡化数学不读任何常量。</summary>
+        /// 已分发给每个通道（<see cref="ChannelState.BlendSeconds"/>），淡化数学不读任何常量。</summary>
         public float BlendSeconds { get; }
 
         /// <param name="animator">视图实例上的 Animator（必须已挂 RuntimeAnimatorController——缺控制器的
@@ -105,36 +78,23 @@ namespace LiteSim.View.Animation
                     "混合时长必须 ≥ 0 且有限（0 = 瞬时落位）");
             BlendSeconds = blendSeconds;
 
-            _graph = PlayableGraph.Create("CharacterAnimation");
-            _graph.SetTimeUpdateMode(DirectorUpdateMode.Manual);          // 只由本类 Tick 推进（§7）
-            _controller = AnimatorControllerPlayable.Create(_graph, _animator.runtimeAnimatorController);
-            _mixer = AnimationLayerMixerPlayable.Create(_graph, InputCount);
-            _output = AnimationPlayableOutput.Create(_graph, "CharacterAnim", _animator);
-            _output.SetSourcePlayable(_mixer);
-            _graph.Play();
+            _layers = new AnimationLayerGraph(_animator);
 
             RegisterControllerClips();
 
-            _locomotion = new ChannelState(AnimationChannel.Locomotion, isBase: true, LayerLocomotionCurrent, LayerLocomotionTail, BlendSeconds);
-            _fullBody = new ChannelState(AnimationChannel.FullBody, isBase: false, LayerFullBodyCurrent, LayerFullBodyTail, BlendSeconds);
-            _upperBody = new ChannelState(AnimationChannel.UpperBody, isBase: false, LayerUpperBodyCurrent, LayerUpperBodyTail, BlendSeconds);
+            _locomotion = new ChannelState(AnimationChannel.Locomotion, isBase: true,
+                AnimationLayerGraph.LocomotionCurrent, AnimationLayerGraph.LocomotionTail, BlendSeconds);
+            _fullBody = new ChannelState(AnimationChannel.FullBody, isBase: false,
+                AnimationLayerGraph.FullBodyCurrent, AnimationLayerGraph.FullBodyTail, BlendSeconds);
+            _upperBody = new ChannelState(AnimationChannel.UpperBody, isBase: false,
+                AnimationLayerGraph.UpperBodyCurrent, AnimationLayerGraph.UpperBodyTail, BlendSeconds);
 
             _upperBodyMask = UpperBodyMaskFactory.TryBuild(_animator.avatar);   // 纯函数，见 UpperBodyMaskFactory
             if (_upperBodyMask != null)
             {
-                _mixer.SetLayerMaskFromAvatarMask((uint)LayerUpperBodyCurrent, _upperBodyMask);
-                _mixer.SetLayerMaskFromAvatarMask((uint)LayerUpperBodyTail, _upperBodyMask);
+                _layers.ApplyUpperBodyMask(AnimationLayerGraph.UpperBodyCurrent, _upperBodyMask);
+                _layers.ApplyUpperBodyMask(AnimationLayerGraph.UpperBodyTail, _upperBodyMask);
             }
-
-            // 层 0 的输入权重**默认为 0，必须显式置 1**：Unity 2022.3 实测——多层混合器上
-            // "层 0 权重恒 1、不可改"并不成立（不设时 GetInputWeight(0) 读回 0，基础层整体不输出，
-            // 表现为"通道在播、时间在走，角色姿态纹丝不动"）。未连接的其余层不需要占位。
-            _mixer.SetInputWeight(LayerLocomotionCurrent, 1f);
-            for (int i = 1; i < InputCount; i++) _mixer.SetInputWeight(i, 0f);
-
-            // 开局默认姿态：控制器 playable 占基础层（首帧不露 T-pose）；第一次播放后让位给片段
-            _mixer.ConnectInput(LayerLocomotionCurrent, _controller, 0);
-            _defaultPoseConnected = true;
         }
 
         // ---- 能力位（§4 诚实声明，不静默降级）----
@@ -168,7 +128,7 @@ namespace LiteSim.View.Animation
         }
 
         /// <summary>图内 playable 节点数（§12 节点稳定用例的观测量）。</summary>
-        public int PlayableCount => _graph.IsValid() ? _graph.GetPlayableCount() : 0;
+        public int PlayableCount => _layers.PlayableCount;
 
         /// <summary>上半身 LayerMask 是否可用（false = 非 humanoid，UpperBody 通道不可用）。</summary>
         public bool HasUpperBodyMask => _upperBodyMask != null;
@@ -182,14 +142,14 @@ namespace LiteSim.View.Animation
 
             bool hasNode = ch.Current.IsValid;
             string source = !hasNode
-                ? (ch.IsBase && _defaultPoseConnected ? "controller" : "none")
+                ? (ch.IsBase && _layers.DefaultPoseConnected ? "controller" : "none")
                 : ch.Current.IsBlend
                     ? $"mixer({ch.Current.InputCount})"                       // 普通混合器节点：报输入片段数
                     : (ch.Current.ClipAsset != null ? ch.Current.ClipAsset.name : "clip");
 
             // 权重报**混合器实际值**而不是本类记账值：2026-09-27 实测缺陷里记账值恒 1、层 0 实际为 0，
             // 记账值会把"基础层没落地"伪装成全绿——诊断必须报引擎真值（§11 可诊断）。
-            float weight = hasNode ? _mixer.GetInputWeight(ch.CurrentLayer) : 0f;
+            float weight = hasNode ? _layers.GetWeight(ch.CurrentLayer) : 0f;
             float time = hasNode
                 ? (ch.Current.IsBlend ? (float)ch.Current.Mixer.GetTime() : (float)ch.Current.Clip.GetTime())
                 : 0f;
@@ -321,7 +281,7 @@ namespace LiteSim.View.Animation
         /// <summary>释放通道（幂等）。基础层保持当前帧（无下层可回退，重新提交即恢复推进）；
         /// 上层权重淡出到 0，露出下方 Locomotion（§3"释放即权重淡出"）。
         /// 若此时仍有在途混合尾部，丢弃它即一次确定性截断（§12"截断策略并计数"）——尾部一旦存续
-        /// 就说明交叉淡化尚未落位（落位会在 <see cref="AdvanceBlend"/> 里自行销毁）。</summary>
+        /// 就说明交叉淡化尚未落位（落位会在 <see cref="ChannelBlendAdvance.Advance"/> 里自行销毁）。</summary>
         public bool TryStop(AnimationChannel channel)
         {
             if (_disposed) return false;
@@ -336,12 +296,12 @@ namespace LiteSim.View.Animation
 
             if (ch.IsBase)
             {
-                DestroyTail(ch);
+                ch.DestroyTail(_layers);
                 if (ch.Current.IsValid) ch.Current.Root.Pause();  // 姿态冻结在当前帧（单片段/混合节点通用）
                 return true;
             }
 
-            DestroyTail(ch);                                      // 淡出不再需要旧片段在下层保持
+            ch.DestroyTail(_layers);                              // 淡出不再需要旧片段在下层保持
             ch.TargetWeight = 0f;                                 // 权重淡出 → 露出 Locomotion
             return true;
         }
@@ -362,11 +322,11 @@ namespace LiteSim.View.Animation
 
             float dt = deltaSeconds > 0f ? deltaSeconds : 0f;
 
-            AdvanceBlend(_locomotion, dt);
-            AdvanceBlend(_fullBody, dt);
-            AdvanceBlend(_upperBody, dt);
+            ChannelBlendAdvance.Advance(_locomotion, _layers, dt);
+            ChannelBlendAdvance.Advance(_fullBody, _layers, dt);
+            ChannelBlendAdvance.Advance(_upperBody, _layers, dt);
 
-            _graph.Evaluate(dt);                                   // 每帧恰好一次（多通道也不重复推进时间）
+            _layers.Evaluate(dt);                                  // 每帧恰好一次（多通道也不重复推进时间）
 
             AnimationChannelMask done = AnimationChannelMask.None;
             if (CheckCompletion(_locomotion)) done |= AnimationChannelMask.Locomotion;
@@ -379,7 +339,7 @@ namespace LiteSim.View.Animation
         {
             if (_disposed) return;
             _disposed = true;
-            if (_graph.IsValid()) _graph.Destroy();                 // §9 销毁序的最后引擎步骤
+            _layers.Destroy();                                      // §9 销毁序的最后引擎步骤
         }
 
         // ---- 内部：提交（两条路径共用"让位 → 落位 → 接层"三段）----
@@ -387,7 +347,7 @@ namespace LiteSim.View.Animation
         /// <summary>单片段提交（<see cref="TryPlay"/> 的落地）：建 Clip 节点并在通道上落位。</summary>
         private void StartOnChannel(ChannelState ch, AnimationClip clip, in AnimationResolvedPlayback playback)
         {
-            Node node = Node.ClipNode(_graph, clip, playback.Speed, playback.StartNormalized);
+            ChannelNode node = ChannelNode.ClipNode(_layers.Graph, clip, playback.Speed, playback.StartNormalized);
             ch.Completion.Reset(clip.length, playback.Loop,
                 playback.StartNormalized > 0f ? clip.length * playback.StartNormalized : 0f);
             CommitNode(ch, node, playback.Binding, playback.Speed);
@@ -396,19 +356,19 @@ namespace LiteSim.View.Animation
         /// <summary>同通道多片段混合提交（<see cref="TryPlayBlend"/> 的落地）：建普通混合器节点并落位。</summary>
         private void StartBlendOnChannel(ChannelState ch, in AnimationResolvedBlend blend, float weightSum)
         {
-            Node node = Node.BlendNode(_graph, in blend, _clips, weightSum);
+            ChannelNode node = ChannelNode.BlendNode(_layers.Graph, in blend, _clips, weightSum);
             ch.Completion.Reset(0f, loop: true, startTime: 0f);      // 混合节点按循环对待：不做边界判定（§5）
             CommitNode(ch, node, DescribeBlend(in blend), blend.Speed);
         }
 
         /// <summary>让位（旧当前 → 尾部）→ 落位（新节点成为当前）→ 接层（含基础层权重显式置 1）。</summary>
-        private void CommitNode(ChannelState ch, in Node node, string binding, float speed)
+        private void CommitNode(ChannelState ch, in ChannelNode node, string binding, float speed)
         {
             // 确定性截断（§12）：已有在途尾部 → 立刻销毁，不排第二个尾巴（上限恒为每通道一条）
             if (ch.Tail.IsValid)
             {
                 TruncatedBlends++;
-                DestroyTail(ch);
+                ch.DestroyTail(_layers);
             }
 
             // 旧当前 → 尾部（每通道恰好一条）：基础层尾部在**上层**淡出 1→0；
@@ -416,27 +376,27 @@ namespace LiteSim.View.Animation
             // 槽位换了层，必须先断开原层再连到尾部层（同一输入不能同时连两个源）。
             if (ch.Current.IsValid)
             {
-                _mixer.DisconnectInput(ch.CurrentLayer);
-                _mixer.SetInputWeight(ch.CurrentLayer, 0f);
+                _layers.Disconnect(ch.CurrentLayer);
+                _layers.SetWeight(ch.CurrentLayer, 0f);
 
                 ch.Tail = ch.Current;
                 ch.TailWeight = 1f;
-                _mixer.ConnectInput(ch.TailLayer, ch.Tail.Root, 0);
-                _mixer.SetInputWeight(ch.TailLayer, 1f);
+                _layers.Connect(ch.TailLayer, ch.Tail.Root);
+                _layers.SetWeight(ch.TailLayer, 1f);
             }
 
-            if (ch.IsBase) ReleaseDefaultPose();                       // 第一次基础层播放：控制器默认姿态让位
+            if (ch.IsBase) _layers.ReleaseDefaultPose();               // 第一次基础层播放：控制器默认姿态让位
 
             ch.Current = node;
             ch.Binding = binding;
             ch.Speed = speed;
             ch.Active = true;
 
-            _mixer.ConnectInput(ch.CurrentLayer, ch.Current.Root, 0);
-            // 基础层（层 0）必须显式置 1（默认值 0，见构造函数注释）；上层通道从 0 淡入（旧片段由尾部在下层保持）
+            _layers.Connect(ch.CurrentLayer, ch.Current.Root);
+            // 基础层（层 0）必须显式置 1（默认值 0，见 AnimationLayerGraph 注释）；上层通道从 0 淡入（旧片段由尾部在下层保持）
             ch.CurrentWeight = ch.IsBase ? 1f : 0f;
             ch.TargetWeight = 1f;
-            _mixer.SetInputWeight(ch.CurrentLayer, ch.IsBase ? 1f : ch.CurrentWeight);
+            _layers.SetWeight(ch.CurrentLayer, ch.IsBase ? 1f : ch.CurrentWeight);
         }
 
         /// <summary>混合节点的诊断绑定串（`blend:A+B`；≤ <see cref="MaxBlendInputs"/> 段，长度有界）。</summary>
@@ -445,42 +405,6 @@ namespace LiteSim.View.Animation
             string binding = "blend:" + blend.Bindings[0];
             for (int i = 1; i < blend.SlotCount; i++) binding += "+" + blend.Bindings[i];
             return binding;
-        }
-
-        /// <summary>第一次播放时摘掉控制器默认姿态（其 playable 保留不销毁——节点数恒定，仅不再被采样）。</summary>
-        private void ReleaseDefaultPose()
-        {
-            if (!_defaultPoseConnected) return;
-            _mixer.DisconnectInput(LayerLocomotionCurrent);
-            _defaultPoseConnected = false;
-        }
-
-        // ---- 内部：混合推进 ----
-
-        /// <summary>推进本通道的层权重。时长 **0 = 瞬时落位**（显式传入的语义：测试与"直接切"）——
-        /// 不做除法、不读任何常量（`ch.BlendSeconds` 是构造时分发给该通道的显式值）。</summary>
-        private void AdvanceBlend(ChannelState ch, float dt)
-        {
-            if (ch.IsBase)
-            {
-                if (!ch.Tail.IsValid) return;
-                ch.TailWeight = ch.BlendSeconds > 0f
-                    ? Mathf.Max(0f, ch.TailWeight - dt / ch.BlendSeconds)
-                    : 0f;
-                _mixer.SetInputWeight(ch.TailLayer, ch.TailWeight);
-                if (ch.TailWeight <= 0f) DestroyTail(ch);           // 淡化完成 → 节点回基线
-                return;
-            }
-
-            ch.CurrentWeight = ch.BlendSeconds > 0f
-                ? Mathf.MoveTowards(ch.CurrentWeight, ch.TargetWeight, dt / ch.BlendSeconds)
-                : ch.TargetWeight;
-            if (ch.Current.IsValid) _mixer.SetInputWeight(ch.CurrentLayer, ch.CurrentWeight);
-
-            if (ch.CurrentWeight >= 1f) DestroyTail(ch);            // 新节点完全接管：旧的落位销毁
-
-            // 通道已释放且淡出结束：销毁当前，节点回基线
-            if (!ch.Active && ch.CurrentWeight <= 0f && ch.Current.IsValid) DestroyCurrent(ch);
         }
 
         // ---- 内部：完成检测（判定逻辑在 Core 的 ClipCompletionTracker，本类只做引擎读写）----
@@ -499,52 +423,6 @@ namespace LiteSim.View.Animation
             return action == ClipTickAction.Completed;
         }
 
-        // ---- 内部：节点管理（节点所有权只在 DestroyTail/DestroyCurrent/DestroyNode 收口）----
-
-        private void DestroyTail(ChannelState ch)
-        {
-            if (ch.Tail.IsValid)
-            {
-                _mixer.DisconnectInput(ch.TailLayer);
-                _mixer.SetInputWeight(ch.TailLayer, 0f);
-                DestroyNode(ref ch.Tail);
-            }
-            ch.Tail = default;
-            ch.TailWeight = 0f;
-        }
-
-        private void DestroyCurrent(ChannelState ch)
-        {
-            if (ch.Current.IsValid)
-            {
-                _mixer.DisconnectInput(ch.CurrentLayer);
-                _mixer.SetInputWeight(ch.CurrentLayer, 0f);
-                DestroyNode(ref ch.Current);
-            }
-            ch.Current = default;
-            ch.CurrentWeight = 0f;
-            ch.Completion.Completed = false;
-        }
-
-        /// <summary>销毁一个节点：混合节点要**先销毁它的全部输入片段**（Unity 不会替你级联销毁）。</summary>
-        private static void DestroyNode(ref Node node)
-        {
-            if (node.IsValid)
-            {
-                if (node.IsBlend)
-                {
-                    for (int i = 0; i < node.InputCount; i++)
-                        if (node.Inputs[i].IsValid()) node.Inputs[i].Destroy();
-                    node.Mixer.Destroy();
-                }
-                else
-                {
-                    node.Clip.Destroy();
-                }
-            }
-            node = default;
-        }
-
         private ChannelState ChannelOf(AnimationChannel channel)
             => channel switch
             {
@@ -553,97 +431,5 @@ namespace LiteSim.View.Animation
                 AnimationChannel.FullBody => _fullBody,
                 _ => null,
             };
-
-        /// <summary>
-        /// 通道上的一个节点（当前/尾部共用同一表示）：**单片段**（<see cref="AnimationClipPlayable"/>）或
-        /// **同通道多片段混合**（普通 <see cref="AnimationMixerPlayable"/>：无 Mask、纯权重）。
-        /// 两者都能直接作为分层混合器的输入（<see cref="Root"/>），因此通道机制（让位 / 淡入淡出 / 回收）
-        /// 对两种形态一视同仁——这也是"普通混合器"不必再建一套通道状态的原因。
-        /// </summary>
-        private struct Node
-        {
-            /// <summary>层混合器的输入源（单片段 = <see cref="Clip"/>；混合 = <see cref="Mixer"/>）。</summary>
-            public Playable Root;
-            public AnimationClipPlayable Clip;
-            /// <summary>单片段节点的资产（时长/完成判据；混合节点为 null）。</summary>
-            public AnimationClip ClipAsset;
-            public AnimationMixerPlayable Mixer;
-            /// <summary>混合节点的输入片段（固定容量 <see cref="MaxBlendInputs"/>；单片段节点不用）。</summary>
-            public AnimationClipPlayable[] Inputs;
-            public int InputCount;
-            public bool IsBlend;
-
-            public bool IsValid => Root.IsValid();
-
-            /// <summary>建单片段节点：足部 IK 关（与 Sim 位移不叠加，后置批）、速度与归一化起点显式给。</summary>
-            public static Node ClipNode(PlayableGraph graph, AnimationClip clip, float speed, float startNormalized)
-            {
-                AnimationClipPlayable cp = AnimationClipPlayable.Create(graph, clip);
-                cp.SetApplyFootIK(false);
-                cp.SetSpeed(speed);                                          // 速度归 SetSpeed，Tick 不再乘（§7）
-                if (startNormalized > 0f) cp.SetTime(clip.length * startNormalized);   // 起点能力
-                return new Node { Root = cp, Clip = cp, ClipAsset = clip };
-            }
-
-            /// <summary>建混合节点（普通混合器）：权重按 <paramref name="weightSum"/> 归一化（集合内部总和恒 1，
-            /// 通道的层权重另行表达），输入共用同一 speed、起点按各自归一化位置对齐。</summary>
-            public static Node BlendNode(PlayableGraph graph, in AnimationResolvedBlend blend,
-                Dictionary<string, AnimationClip> clips, float weightSum)
-            {
-                int count = blend.SlotCount;
-                AnimationMixerPlayable mixer = AnimationMixerPlayable.Create(graph, count);
-                var inputs = new AnimationClipPlayable[MaxBlendInputs];
-                for (int i = 0; i < count; i++)
-                {
-                    AnimationClip clip = clips[blend.Bindings[i]];
-                    AnimationClipPlayable cp = AnimationClipPlayable.Create(graph, clip);
-                    cp.SetApplyFootIK(false);
-                    cp.SetSpeed(blend.Speed);
-                    if (blend.StartNormalized > 0f) cp.SetTime(clip.length * blend.StartNormalized);
-                    graph.Connect(cp, 0, mixer, i);
-                    mixer.SetInputWeight(i, blend.Weights[i] / weightSum);
-                    inputs[i] = cp;
-                }
-                return new Node { Root = mixer, Mixer = mixer, Inputs = inputs, InputCount = count, IsBlend = true };
-            }
-        }
-
-        /// <summary>
-        /// 单通道运行态（§6"每通道最多一个当前播放"）：当前节点 + 至多一条混合尾部。
-        /// 基础层（Locomotion）的尾部在**上层**淡出（1→0）；上层通道的尾部在**下层**保持（权重 1）而
-        /// 当前节点从 0 淡入——两种角色共用同一对（当前层 / 尾部层）槽位，节点数恒定。
-        /// </summary>
-        private sealed class ChannelState
-        {
-            public readonly AnimationChannel Channel;
-            public readonly bool IsBase;
-            public readonly int CurrentLayer;
-            public readonly int TailLayer;
-            /// <summary>本通道的淡入/淡出时长（秒；**构造时显式传入**，0 = 瞬时落位）——淡化数学只用它。</summary>
-            public readonly float BlendSeconds;
-
-            public Node Current;
-            public Node Tail;
-
-            public string Binding;
-            /// <summary>结束边界判定状态（纯逻辑，见 <see cref="ClipCompletionTracker"/>；混合节点不用）。</summary>
-            public ClipCompletionTracker Completion;
-            public float Speed = 1f;
-
-            public float CurrentWeight;
-            public float TargetWeight;
-            public float TailWeight;
-
-            public bool Active;
-
-            public ChannelState(AnimationChannel channel, bool isBase, int currentLayer, int tailLayer, float blendSeconds)
-            {
-                Channel = channel;
-                IsBase = isBase;
-                CurrentLayer = currentLayer;
-                TailLayer = tailLayer;
-                BlendSeconds = blendSeconds;
-            }
-        }
     }
 }

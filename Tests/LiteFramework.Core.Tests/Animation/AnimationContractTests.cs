@@ -1,5 +1,4 @@
 using System.Collections.Generic;
-using LiteFramework;
 using LiteFramework.Animation;
 using Xunit;
 

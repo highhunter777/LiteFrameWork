@@ -863,6 +863,71 @@ namespace LiteGame.Tests.EditMode
             driver.Dispose();
         }
 
+        // ---- 权重数学（纯计算面 LocomotionBlendMath：公式直测，不经视图/资源/逐帧位移）----
+
+        [Test]
+        [Category(TestCategory.Unit)]
+        public void 权重数学_速度轴三段插值_锚点连续且总和恒一()
+        {
+            var w = new float[3];                                           // 槽位序 {Idle, Walk, Run}
+
+            LocomotionBlendMath.BuildSpeedWeights(0f, w);
+            Assert.AreEqual(1f, w[0], 1e-4f, "静止：Idle 权重 1");
+
+            LocomotionBlendMath.BuildSpeedWeights(1.5f, w);                 // 锚点 0.5 → 2.5 的中点
+            Assert.AreEqual(0.5f, w[0], 1e-4f, "1.5 m/s：Idle/Walk 各半");
+            Assert.AreEqual(0.5f, w[1], 1e-4f);
+            Assert.AreEqual(0f, w[2], 1e-4f);
+
+            // 锚点连续性：锚点两侧极限值相同（不会有跳变）——取锚点前 1e-3 与锚点对比
+            LocomotionBlendMath.BuildSpeedWeights(LocomotionBlendMath.WalkFullMps - 1e-3f, w);
+            float belowIdle = w[0], belowWalk = w[1];
+            LocomotionBlendMath.BuildSpeedWeights(LocomotionBlendMath.WalkFullMps, w);
+            Assert.AreEqual(belowIdle, w[0], 2e-3f, "Walk 锚点两侧 Idle 权重连续");
+            Assert.AreEqual(belowWalk, w[1], 2e-3f, "Walk 锚点两侧 Walk 权重连续");
+
+            LocomotionBlendMath.BuildSpeedWeights(LocomotionBlendMath.RunFullMps, w);
+            Assert.AreEqual(1f, w[2], 1e-4f, "Run 锚点：Run 权重 1");
+
+            foreach (var speed in new[] { 0f, 0.5f, 1.2f, 2.5f, 3.4f, 4.5f, 9f })
+            {
+                LocomotionBlendMath.BuildSpeedWeights(speed, w);
+                Assert.AreEqual(1f, w[0] + w[1] + w[2], 1e-4f, $"{speed} m/s：权重总和必须恒为 1");
+            }
+        }
+
+        [Test]
+        [Category(TestCategory.Unit)]
+        public void 权重数学_方向轴四向相邻插值_边界落槽位且跨扇区连续()
+        {
+            var w = new float[4];                                           // 槽位序 {F, R, B, L}
+
+            LocomotionBlendMath.BuildAimWeights(0f, w);
+            Assert.AreEqual(1f, w[0], 1e-4f, "正前：F 权重 1");
+
+            LocomotionBlendMath.BuildAimWeights(45f, w);
+            Assert.AreEqual(0.5f, w[0], 1e-4f, "45°：F 与相邻侧向各半");
+            Assert.AreEqual(0.5f, w[1], 1e-4f, "45° 落在 F→R 扇区：相邻侧向是 R");
+
+            LocomotionBlendMath.BuildAimWeights(90f, w);
+            Assert.AreEqual(0f, w[0], 1e-4f, "正侧向是槽位边界：F 权重 0");
+            Assert.AreEqual(1f, w[1], 1e-4f, "正侧向（+90°）落在 R 槽位，权重 1");
+
+            LocomotionBlendMath.BuildAimWeights(-90f, w);
+            Assert.AreEqual(1f, w[3], 1e-4f, "负侧向（−90°）落在 L 槽位，权重 1");
+
+            LocomotionBlendMath.BuildAimWeights(180f, w);
+            Assert.AreEqual(1f, w[2], 1e-4f, "正后：B 权重 1");
+
+            // 跨扇区连续 + 环上负角：权重非负、总和恒 1（相邻两片插值，不是硬切）
+            foreach (var deg in new[] { -180f, -135f, -45f, 0f, 22.5f, 89f, 91f, 135f, 179f })
+            {
+                LocomotionBlendMath.BuildAimWeights(deg, w);
+                Assert.AreEqual(1f, w[0] + w[1] + w[2] + w[3], 1e-4f, $"{deg}°：权重总和必须恒为 1");
+                for (int i = 0; i < 4; i++) Assert.GreaterOrEqual(w[i], 0f, $"{deg}°：槽位 {i} 权重不得为负");
+            }
+        }
+
         [Test]
         [Category(TestCategory.Unit)]
         public void 驱动_灰盒视图_无Animator不建播放器不抛()

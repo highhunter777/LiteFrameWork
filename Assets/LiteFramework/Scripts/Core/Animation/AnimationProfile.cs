@@ -1,7 +1,7 @@
 using System;
 using System.Collections.Generic;
 
-namespace LiteFramework
+namespace LiteFramework.Animation
 {
     /// <summary>
     /// 动画定义（《动画模块专项设计》§4）：只读定义，**播放实例另存**当前位置/层权重/Handle/结束状态——
