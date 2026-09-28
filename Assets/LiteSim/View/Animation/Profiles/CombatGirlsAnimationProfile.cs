@@ -63,6 +63,12 @@ namespace LiteSim.View.Animation
                 .RegisterBlend(new AnimationBlendDefinition(CharacterAnimationIds.MoveBlend, AnimationChannel.Locomotion,
                     new[] { "Idle", "Walk", "Run" }, minSpeed: 0.01f, maxSpeed: 2f))
                 .RegisterBlend(new AnimationBlendDefinition(CharacterAnimationIds.AimMoveBlend, AnimationChannel.Locomotion,
-                    new[] { "AimWalk_F", "AimWalk_R", "AimWalk_B", "AimWalk_L" }, minSpeed: 0.01f, maxSpeed: 2f));
+                    new[] { "AimWalk_F", "AimWalk_R", "AimWalk_B", "AimWalk_L" }, minSpeed: 0.01f, maxSpeed: 2f))
+                // 上半身附加 Mask：add_weapon_r/l 是挂在本骨架 root 下的**非人形武器骨**（枪模 Weapon_Rifle
+                // 挂其下，开火/换弹片段的枪骨曲线全在这根骨上）——humanoid 部位位盖不到，必须显式进
+                // Mask 的 transform 段，否则开火时手臂动、枪被基础层钉在握持姿势。
+                // **胸部附加骨（add_chest_l01/bone28、add_chest_r01/bone29）刻意不登记**：布料域
+                // （MagicaCloth 在驱动），动画层与布料解算器争抢会让表现打架。
+                .RegisterUpperBodyMaskPaths("root/add_weapon_r", "root/add_weapon_l");
     }
 }

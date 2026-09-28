@@ -172,7 +172,8 @@ namespace LiteSim.View.Animation
                         continue;
                     }
 
-                    var backend = new AnimatorAnimationBackend(animator);
+                    var backend = new AnimatorAnimationBackend(animator, AnimatorAnimationBackend.DefaultBlendSeconds,
+                        _profile.UpperBodyMaskPaths);   // 附加骨路径随 Profile（§6 Mask 由 Profile 固定）
                     s.Backend = backend;
                     s.Player = new CharacterAnimationPlayer(backend, _profile);
                     LocomotionBlendMath.BuildSpeedWeights(0f, _moveWeights);

@@ -68,7 +68,11 @@ namespace LiteSim.View.Animation
         /// <param name="blendSeconds">淡入/淡出时长（秒）：**当作必填对待**——默认值只是常见手感的兜底，
         /// 调用方应显式给（0 = 瞬时落位，测试与"直接切"用）。该值在构造时分发给每个通道，
         /// 每个通道的淡化数学只用自己的那一份。</param>
-        public AnimatorAnimationBackend(Animator animator, float blendSeconds = DefaultBlendSeconds)
+        /// <param name="upperBodyMaskPaths">上半身附加 Mask 的非人形骨路径（Profile 登记面，见
+        /// <see cref="UpperBodyMaskFactory"/>；null/空 = 只有 humanoid 部位位）。路径与骨架不匹配时
+        /// 逐条 [Anim][diag] 警告——该骨保持基础层姿势，不静默吞掉。</param>
+        public AnimatorAnimationBackend(Animator animator, float blendSeconds = DefaultBlendSeconds,
+            IReadOnlyList<string> upperBodyMaskPaths = null)
         {
             _animator = animator ?? throw new ArgumentNullException(nameof(animator));
             if (_animator.runtimeAnimatorController == null)
@@ -89,11 +93,23 @@ namespace LiteSim.View.Animation
             _upperBody = new ChannelState(AnimationChannel.UpperBody, isBase: false,
                 AnimationLayerGraph.UpperBodyCurrent, AnimationLayerGraph.UpperBodyTail, BlendSeconds);
 
-            _upperBodyMask = UpperBodyMaskFactory.TryBuild(_animator.avatar);   // 纯函数，见 UpperBodyMaskFactory
+            _upperBodyMask = UpperBodyMaskFactory.TryBuild(_animator.avatar, upperBodyMaskPaths);   // 纯函数，见 UpperBodyMaskFactory
             if (_upperBodyMask != null)
             {
                 _layers.ApplyUpperBodyMask(AnimationLayerGraph.UpperBodyCurrent, _upperBodyMask);
                 _layers.ApplyUpperBodyMask(AnimationLayerGraph.UpperBodyTail, _upperBodyMask);
+
+                // 附加骨路径存在性诊断：AvatarMask 对骨架上不存在的路径静默无效果——构造期逐条核对，
+                // 错配显性化（[Anim][diag]，与驱动层同前缀），不等"枪还是不动"再人肉排查。
+                if (upperBodyMaskPaths != null)
+                {
+                    foreach (var path in upperBodyMaskPaths)
+                    {
+                        if (_animator.transform.Find(path) == null)
+                            Debug.LogWarning($"[Anim][diag] 上半身附加 Mask 路径在骨架上不存在：{path}" +
+                                "（Profile 与 rig 不匹配，该骨保持基础层姿势）");
+                    }
+                }
             }
         }
 
