@@ -18,6 +18,9 @@ namespace LiteSim.View.Animation
     /// 未瞄准   → Locomotion.MoveBlend = {Idle, Walk, Run}   速度轴 1D 混合（权重按速度连续插值）
     /// 瞄准+静止 → AimIdle（单片段）
     /// 瞄准+移动 → Locomotion.AimMoveBlend = {AimWalk_F/R/B/L}  4 向 strafe，相邻两片按夹角插值
+    /// 开火驻留窗内 → 移动形态视同瞄准态（2026-09-28 裁决：腰射/跑射的臂姿语境配对；2026-09-30 起窗长与
+    ///               Sim 侧 CombatConfig.FireStanceFrames 同源（0.7s）——限速/朝向窗在 InputSystem 同窗生效，
+    ///               两层同进同退；窗内不再被 MoveBlend/Run 打断）
     /// </code>
     /// - **速度轴改走混合器**：不再按阈值离散切片段，权重连续 ⇒ 没有档位抖动；权重经
     ///   <c>CharacterAnimationPlayer.UpdateBlendWeights</c> **就地更新**（不换句柄、不产生终态、不重建节点——
@@ -42,7 +45,11 @@ namespace LiteSim.View.Animation
     /// **帧事件（§8 表现事件）**：本类实现 <see cref="IFrameEventAnimationConsumer"/> 并**自订阅**
     /// `SimView.EventSink`（构造时挂上、<see cref="Dispose"/> 时摘下——生命周期与"视图消费者"同向，
     /// 不留"忘了接线"这类静默失效）。本批只消费 **Fire**（开火）：语义/通道经
-    /// <see cref="FrameEventAnimationMap"/> 查表（不散写映射），播放落到**上半身叠加层**（腿部继续走跑）。
+    /// <see cref="FrameEventAnimationMap"/> 查表（不散写映射），播放落到**上半身叠加层**——
+    /// **Fire 在途期间移动形态视同瞄准态**（站定腰射基础层进 AimIdle、跑射进 AimWalk——ADS 臂姿
+    /// 的语境配对，2026-09-28 裁决；此前叠加在非瞄准髋上会握把错位，FullBody 方案因盖掉腿而废弃）。
+    /// **移动中不提交开火叠加**（AimWalk 自带持枪步态、逐帧自洽；站姿射击片段叠上行走的骨盆必错位——
+    /// 枪骨锚 root 不摆、手臂链随步态摆；包内无 AimWalk_Shoot，反馈由枪口特效承担）。
     /// **已在播则不重提**——当前 `ShootingSystem` 按住开火位即每逻辑帧产出一个 Fire 事件（射速节拍归
     /// P1 `WeaponSystem`），逐事件重提会把动作按在第 0 帧并刷 `Interrupted` 终态；接缝纪律见 §8 与
     /// <see cref="IFrameEventAnimationConsumer"/>。Hit/Death 的 FullBody 接管**不在本批**（归角色垂直切片余部）。
@@ -57,6 +64,11 @@ namespace LiteSim.View.Animation
 
         /// <summary>瞄准态"移动 → 静止"的退出阈值（m/s）——与进入阈值拉开即迟滞，防在单点来回切形态。</summary>
         public const float AimMoveExitMps = 0.3f;
+
+        /// <summary>开火片段播放速度（倍率）——连发后坐节奏直接吃这里：完整播完再重起的循环从
+        /// ~1.1s 压到 ~0.5s（"连发没后坐"的观感主因是一秒只踢一次），单发也更利落。
+        /// Profile 区间上界即 2×。装配进战斗层 SlotAnimContext（《层次动画机设计》批B-①）。</summary>
+        public const float FirePlaybackSpeed = 2f;
 
         private readonly SimView _view;
         private readonly AnimationProfile _profile;
@@ -102,8 +114,16 @@ namespace LiteSim.View.Animation
         }
 
         /// <summary>实际提交的**开火动作次数**（诊断/测试）：同段连发只计一次；上一轮播完后仍在开火才再计一次。
-        /// 逐帧重提（每帧建节点 + 刷 `Interrupted` 终态）会让这个计数暴涨——它是"§8 合并规则生效"的观测量。</summary>
-        public int FireSubmits { get; private set; }
+        /// 批B-① 起由战斗层各槽位上下文聚合（原驱动器字段的迁移位）——观测量口径不变。</summary>
+        public int FireSubmits
+        {
+            get
+            {
+                int n = 0;
+                for (int i = 0; i < _slots.Length; i++) n += _slots[i]?.CombatCtx?.FireSubmits ?? 0;
+                return n;
+            }
+        }
 
         /// <summary>当前有动画播放器的实体视图数（诊断/测试）。</summary>
         public int AnimatedViews
@@ -173,9 +193,22 @@ namespace LiteSim.View.Animation
                     }
 
                     var backend = new AnimatorAnimationBackend(animator, AnimatorAnimationBackend.DefaultBlendSeconds,
-                        _profile.UpperBodyMaskPaths);   // 附加骨路径随 Profile（§6 Mask 由 Profile 固定）
+                        _profile.UpperBodyMaskExclusions);   // 排除子树随 Profile（§6；纳入面由后端自动派生）
                     s.Backend = backend;
                     s.Player = new CharacterAnimationPlayer(backend, _profile);
+
+                    // 战斗层装配（《层次动画机设计》批B-①）：fire 系规则正名进状态机——
+                    // 驻留窗/移动门控/起跑终止/连发重起全在 FiringStage，驱动器只喂事实与转发事件。
+                    s.CombatCtx = new SlotAnimContext
+                    {
+                        Player = s.Player,
+                        FireId = _fireId,
+                        FireChannel = _fireChannel,
+                        FirePlaybackSpeed = FirePlaybackSpeed,
+                    };
+                    s.Combat = CombatAnimMachine.Build(s.CombatCtx);
+                    s.Combat.Start(CombatAnimId.Idle);
+
                     LocomotionBlendMath.BuildSpeedWeights(0f, _moveWeights);
                     var first = SubmitBlend(s, CharacterAnimationIds.MoveBlend, _moveWeights);   // 初建落 Idle=1（不开局 T-pose）
                     Debug.LogWarning($"[Anim][diag] slot {i} 播放器建立：view「{go.name}」animator「{animator.name}」"
@@ -184,8 +217,24 @@ namespace LiteSim.View.Animation
 
                 if (s.HasPos && dt > 0f)
                 {
-                    s.IsAim = _view.IsAiming(i);
                     float speed = MeasureSpeed(s, go.transform.position, dt, out Vector3 moveDir);
+
+                    // 迟滞锁存**两分支共用刷新**：Firing 的移动门控读它——只在一个分支里更新会让
+                    // 门控吃到非瞄准期冻结的陈旧值（实测：跑动停稳后腰射被误判"移动中"而不播动画）。
+                    bool moving = s.AimMoving ? speed > AimMoveExitMps : speed >= AimMoveEnterMps;
+                    s.AimMoving = moving;
+
+                    // 战斗层推进：事实先行（IsMoving 喂给状态）→ 状态机 Tick（Advance + OnUpdate——
+                    // 窗尽回 Idle / 起跑只停站姿后坐叠加（不退态，2026-09-30 腰射批）的事务在此应用）
+                    // → 移动层按"当前是否 Firing"合成瞄准语境。
+                    s.CombatCtx.IsMoving = moving;
+                    s.Combat.Tick(dt);
+
+                    // 瞄准态来自 Sim 权威事实；**Firing 态即射击语境**（驻留窗内含——事件刷新制在
+                    // FiringStage 内）。站定腰射基础层进 AimIdle、跑射进 AimWalk（2026-09-28 裁决），
+                    // 叠加层手臂与基础层同语境。
+                    s.IsAim = _view.IsAiming(i) || IsCombatFiring(s);
+
                     Submit(s, speed, in moveDir, go.transform.rotation);
                 }
 
@@ -207,7 +256,8 @@ namespace LiteSim.View.Animation
         /// <summary>
         /// 帧事件消费（**逻辑帧边界**，由 <see cref="SimView.EventSink"/> 在静默门之后调用——回滚重放/和解
         /// 段已被挡，故"本地即时反馈与权威确认"不会各播一次，§8 合并规则）。本批只接开火：
-        /// **查表 → 主体解析槽位 → 该实体播放器 → Play(Fire, UpperBody)**；其余事件类型不处理。
+        /// **查表 → 主体解析槽位 → 战斗层状态机**（已在 Firing 态则走态内合并口续窗/重起；否则
+        /// Request 进态——进态提交与门控由 FiringStage 自持）；其余事件类型不处理。
         /// </summary>
         public void OnFrameEvent(in FrameEvent e)
         {
@@ -219,40 +269,29 @@ namespace LiteSim.View.Animation
             if (slotIndex < 0 || slotIndex >= _slots.Length) return;
 
             var s = _slots[slotIndex];
-            if (s?.Player == null) return;                                           // 灰盒视图/播放器未建：无动画面可播
-            SubmitFire(s);
-        }
+            if (s?.Player == null || s.Combat == null) return;                       // 灰盒视图/播放器未建：无动画面可播
 
-        /// <summary>开火动作提交：**已在播则不重提**（见类注释：当前"按住开火位 = 每逻辑帧一个 Fire 事件"，
-        /// 逐事件重提会把动作按在第 0 帧并刷 Interrupted 终态）；播完之后再来事件 → 重新起一轮（连发表现）。</summary>
-        private void SubmitFire(SlotAnim s)
-        {
-            if (s.FireHandle.IsValid && s.Player.TryGetState(s.FireHandle, out var state) && state.IsPlaying) return;
-
-            var result = s.Player.Play(new AnimationRequest(_fireId, _fireChannel));
-            if (result.Accepted)
-            {
-                FireSubmits++;
-                s.FireHandle = result.Handle;
-            }
+            if (s.Combat.Started && s.Combat.Current == CombatAnimId.Firing)
+                s.CombatCtx.Firing.OnFireEvent();        // 态内合并：续窗 + 在播吞/已完重起（不产生自转事务）
             else
-            {
-                s.FireHandle = default;      // 拒绝（配置/能力面）不推进状态：下一次事件重试
-            }
+                s.Combat.Request(CombatAnimId.Firing, new CombatAnimReq { IsFireEvent = true });
         }
+
+        /// <summary>战斗层是否处于 Firing（驻留窗内含——事件刷新制）。</summary>
+        private static bool IsCombatFiring(SlotAnim s)
+            => s.Combat != null && s.Combat.Started && s.Combat.Current == CombatAnimId.Firing;
 
         // ---- 内部：形态解析与提交 ----
 
-        /// <summary>本帧形态：同形态就地调权重，换形态才重新提交（形态矩阵见类注释）。</summary>
+        /// <summary>本帧形态：同形态就地调权重，换形态才重新提交（形态矩阵见类注释）。
+        /// 开火系的全部规则（驻留窗/移动门控/起跑终止/连发重起）已归战斗层状态机（批B-①）——
+        /// 这里只按"瞄准语境 + 移动与否"选移动层形态。</summary>
         private void Submit(SlotAnim s, float speed, in Vector3 moveDir, Quaternion rotation)
         {
             if (s.IsAim)
             {
-                // 迟滞：起步用高阈、停下用低阈（唯一需要迟滞的形态切换点——其余两轴是连续权重）
-                bool moving = s.AimMoving ? speed > AimMoveExitMps : speed >= AimMoveEnterMps;
-                s.AimMoving = moving;
-
-                if (moving)
+                // 迟滞锁存已在 Tick 统一刷新（两分支共用——见那里的注释）；这里只按"移动与否"选形态
+                if (s.AimMoving)
                 {
                     Vector3 facing = rotation * Vector3.forward;
                     float rel = Vector3.SignedAngle(facing, moveDir, Vector3.up);   // [-180,180]：正 = 朝向的右侧
@@ -324,8 +363,9 @@ namespace LiteSim.View.Animation
             s.Player?.Dispose();                         // 销毁序：代次失效 → 终态 → 释放后端（Graph.Destroy）
             s.Player = null;
             s.Backend = null;
+            s.Combat = null;                             // 战斗层状态机随播放器同生共死（播放器销毁即失效）
+            s.CombatCtx = null;
             s.Current = default;
-            s.FireHandle = default;
             s.HasPos = false;
             s.IsAim = false;
             s.AimMoving = false;
@@ -365,17 +405,21 @@ namespace LiteSim.View.Animation
             public CharacterAnimationPlayer Player;
             /// <summary>后端引用（诊断聚合用；与 Player 同生共死）。</summary>
             public AnimatorAnimationBackend Backend;
+            /// <summary>战斗层状态机（批B-①：fire 系规则的承载件——随 Player 同生共死）。</summary>
+            public HierarchicalStageMachine<CombatAnimId, CombatAnimReq> Combat;
+            /// <summary>战斗层的槽位上下文（Player/Fire 绑定/IsMoving 事实——见 SlotAnimContext）。</summary>
+            public SlotAnimContext CombatCtx;
             /// <summary>当前形态语义（单片段或混合 ID——<see cref="TryGetCurrent"/> 的读值）。</summary>
             public AnimationId Current;
             /// <summary>当前形态的句柄（就地调权重必须拿它——旧句柄会拒绝）。</summary>
             public AnimationHandle Handle;
-            /// <summary>开火（UpperBody）最近一次提交的句柄——"同段连发不重提"的判据（见 <see cref="SubmitFire"/>）。</summary>
-            public AnimationHandle FireHandle;
             public Vector3 LastPos;
             public bool HasPos;
             /// <summary>瞄准态（来自 <see cref="SimView.IsAiming"/>，每帧刷新）。</summary>
             public bool IsAim;
-            /// <summary>瞄准+移动的迟滞锁存（见 <see cref="AimMoveEnterMps"/>/<see cref="AimMoveExitMps"/>）。</summary>
+            /// <summary>瞄准+移动的迟滞锁存（见 <see cref="AimMoveEnterMps"/>/<see cref="AimMoveExitMps"/>）。
+            /// **Tick 统一刷新**——移动门控（战斗层 Firing 的提交门）以它为据，单分支刷新会让门控吃到
+            /// 非瞄准期冻结的陈旧值（实测：跑动停稳后腰射被误判"移动中"而不播动画）。</summary>
             public bool AimMoving;
             /// <summary>当前是否混合形态（单片段形态没有权重）。</summary>
             public bool IsBlendForm;

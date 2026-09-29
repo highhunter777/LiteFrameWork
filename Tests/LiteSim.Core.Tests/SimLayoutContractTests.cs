@@ -240,6 +240,7 @@ namespace LiteSim.Tests
             s.MatchBag[slot * SimConfig.MatchBagSlotsPerEntity].ItemDefId = 9;
             s.Resources[slot] = 5;
             s.RngState = 123UL;
+            s.Entities[slot].FireStanceFrames = 9;   // 开火驻留窗（Sim 内派生面，2026-09-30）：远端开火输入不可重建 ⇒ 同私有面判
             Assert.NotEqual(full0, SimChecksum.ComputeChecksum(s));
             Assert.Equal(public0, SimChecksum.ComputePublicChecksum(s));
 

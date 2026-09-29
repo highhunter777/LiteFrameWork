@@ -23,6 +23,14 @@ namespace LiteSim
         /// <summary>朝向（XZ 平面，弧度；射击必需）。</summary>
         public float Yaw;
 
+        /// <summary>**开火驻留窗**的剩余逻辑帧数（2026-09-30 腰射批）：开火帧由 <see cref="InputSystem"/>
+        /// 重置为 <see cref="CombatConfig.FireStanceFrames"/>，其后每逻辑帧递减；窗内与瞄准中同待遇
+        /// （限走路档 + 朝准星）——移动点射的停火帧不再回跳全速/移动向。**Sim 内派生状态、不随公共
+        /// 快照/差分下发**（远端的开火输入不可重建——进 <c>SlotDelta</c> 列《角色状态与动作专项设计》§7
+        /// 余项）：只进 <see cref="SimChecksum"/> 的**全量口径**、公共口径不覆盖（与私有面同判）；
+        /// 回滚/重放/CopyTo 经槽位数组整块深拷自动携带。</summary>
+        public byte FireStanceFrames;
+
         public int Hp;
 
         /// <summary>标志位（位定义见 <see cref="EntityFlags"/>；活体判定以 AliveBitmap 为准）。
@@ -45,6 +53,7 @@ namespace LiteSim
         /// <summary>当前装备武器槽（公开：-1 = 未装备；0..<see cref="SimConfig.WeaponSlotsPerEntity"/>-1）。
         /// 其他玩家渲染武器外观用它；弹药等私有运行态只在本人 PrivateStateSnapshot。</summary>
         public int SelectedWeapon;
+
     }
 
     /// <summary>
@@ -59,5 +68,19 @@ namespace LiteSim
     {
         /// <summary>瞄准态（右键 ADS；由 <c>InputSystem</c> 从输入位**每帧覆写**——连续状态，不是边沿）。</summary>
         public const uint Aiming = 1u << 0;
+
+        // ---- 分型 kind 位（《实体分型表设计》§1，2026-09-29）----
+        // kind 位 = "该槽位持有哪张分型表行数据"的迷你 archetype mask：置位 ⟺ Items/Projectiles/Zones
+        // 对应行有效。**只增不改不重排**（Flags 进 SimChecksum 与线上 SlotDelta.flags——跨端身份敏感，
+        // 与输入位空间的纪律同款）。
+
+        /// <summary>地面道具（<see cref="SimWorldState.Items"/> 行有效）。</summary>
+        public const uint KindItem = 1u << 1;
+
+        /// <summary>投掷物（<see cref="SimWorldState.Projectiles"/> 行有效）。</summary>
+        public const uint KindProjectile = 1u << 2;
+
+        /// <summary>区域效果（<see cref="SimWorldState.Zones"/> 行有效）。</summary>
+        public const uint KindZone = 1u << 3;
     }
 }

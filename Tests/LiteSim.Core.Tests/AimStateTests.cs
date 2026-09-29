@@ -5,7 +5,10 @@ namespace LiteSim.Tests
 {
     /// <summary>
     /// 瞄准态口径验收（《角色状态与动作专项设计》§7 的 **Sim 侧半边**，2026-09-27）：
-    /// **限速**（ADS 期间移动上限 = 走路档）、**朝向派生**（瞄准/开火朝准星；否则朝移动方向；两者都没有则保持）、
+    /// **限速**（ADS 期间移动上限 = 走路档；**2026-09-28 射击限速裁决：开火中（瞄准或腰射）同样限到
+    /// 走路档**——与 ADS 同源 <see cref="CombatConfig.AimMoveSpeed"/>，防"全速走位 + 腰射"的火力机动优势；
+    /// **2026-09-30 腰射批：开火驻留窗内限速保持**——点射停火帧不回跳全速）、
+    /// **朝向派生**（瞄准/开火朝准星；**驻留窗内同跟准星**；都没有则保持）、
     /// **标志位**（<see cref="EntityFlags"/> 每帧从输入位覆写）、**预测保留**（连续意图位在预测帧存活——
     /// "本地举枪不闪断"的 Sim 侧保证）。纯规则、零引擎。
     /// </summary>
@@ -34,6 +37,112 @@ namespace LiteSim.Tests
 
             InputSystem.Run(world, Inputs(id, 1f, 0f, 1f, 0f));
             Assert.Equal(CombatConfig.MoveSpeed, world.Entities[slot].Vel.X, 4);
+        }
+
+        [Fact]
+        public void 限速_开火移动同样降到走路档_腰射与瞄准一致()
+        {
+            long id = Spawn(out var world, out int slot);
+
+            // 腰射（未瞄准但开火）→ 与 ADS 同限（2026-09-28 裁决：火力机动不优于瞄准射击）
+            InputSystem.Run(world, Inputs(id, 1f, 0f, 1f, 0f, SimInputFrame.ButtonFire));
+            Assert.Equal(CombatConfig.AimMoveSpeed, world.Entities[slot].Vel.X, 4);
+
+            // 驻留窗内（停火帧）→ 仍走路档（2026-09-30 腰射批：点射停火帧不回跳全速）
+            InputSystem.Run(world, Inputs(id, 1f, 0f, 1f, 0f));
+            Assert.Equal(CombatConfig.AimMoveSpeed, world.Entities[slot].Vel.X, 4);
+
+            // 窗尽 → 恢复全速
+            for (int i = 0; i < CombatConfig.FireStanceFrames; i++)
+                InputSystem.Run(world, Inputs(id, 1f, 0f, 1f, 0f));
+            Assert.Equal(CombatConfig.MoveSpeed, world.Entities[slot].Vel.X, 4);
+        }
+
+        [Fact]
+        public void 驻留窗_窗内限速且跟准星_窗尽一起回落()
+        {
+            long id = Spawn(out var world, out int slot);
+            ref EntitySlot e = ref world.Entities[slot];
+
+            // 移动中腰射一枪（准星 +X、移动 +Z）：开火帧 → 走路档 + 朝准星（与移动方向无关）
+            InputSystem.Run(world, Inputs(id, 0f, 1f, 1f, 0f, SimInputFrame.ButtonFire));
+            Assert.Equal(CombatConfig.AimMoveSpeed, e.Vel.Z, 4);
+            Assert.Equal(0f, e.Yaw, 5);
+            Assert.Equal(CombatConfig.FireStanceFrames, (int)e.FireStanceFrames);
+
+            // 停火帧（窗内剩余 41 帧）→ 限速与朝准星一并保持——点射主诉场景不再回跳
+            for (int i = 1; i < CombatConfig.FireStanceFrames; i++)
+            {
+                InputSystem.Run(world, Inputs(id, 0f, 1f, 1f, 0f));
+                Assert.Equal(CombatConfig.AimMoveSpeed, e.Vel.Z, 4);
+                Assert.Equal(0f, e.Yaw, 5);
+            }
+
+            // 窗尽 → 速度回全速、朝向回落移动向（+Z → Yaw = atan2(1,0)）
+            InputSystem.Run(world, Inputs(id, 0f, 1f, 1f, 0f));
+            Assert.Equal(CombatConfig.MoveSpeed, e.Vel.Z, 4);
+            Assert.Equal(SimTrig.Atan2(1f, 0f), e.Yaw, 5);
+            Assert.Equal(0, (int)e.FireStanceFrames);
+        }
+
+        [Fact]
+        public void 驻留窗_窗内再点射_窗口重置()
+        {
+            long id = Spawn(out var world, out int slot);
+            ref EntitySlot e = ref world.Entities[slot];
+
+            // 第 1 枪（准星 +X）→ 停火帧推进至窗口余 10（42 - 32 次递减）
+            InputSystem.Run(world, Inputs(id, 0f, 1f, 1f, 0f, SimInputFrame.ButtonFire));
+            for (int i = 0; i < CombatConfig.FireStanceFrames - 10; i++)
+                InputSystem.Run(world, Inputs(id, 0f, 1f, 1f, 0f));
+
+            // 第 2 枪（新准星 -X）→ 窗口重置为满、朝新枪口向
+            InputSystem.Run(world, Inputs(id, 0f, 1f, -1f, 0f, SimInputFrame.ButtonFire));
+            Assert.Equal(SimTrig.Atan2(0f, -1f), e.Yaw, 5);
+            Assert.Equal(CombatConfig.FireStanceFrames, (int)e.FireStanceFrames);
+
+            // 重置后的整窗仍朝新准星（连点不衰减）
+            for (int i = 1; i < CombatConfig.FireStanceFrames; i++)
+            {
+                InputSystem.Run(world, Inputs(id, 0f, 1f, -1f, 0f));
+                Assert.Equal(SimTrig.Atan2(0f, -1f), e.Yaw, 5);
+            }
+        }
+
+        [Fact]
+        public void 驻留窗_静止点射_零准星不派生_窗尽保持最后朝向()
+        {
+            long id = Spawn(out var world, out int slot);
+            ref EntitySlot e = ref world.Entities[slot];
+
+            // 静止腰射（准星 -Z）→ 朝准星
+            InputSystem.Run(world, Inputs(id, 0f, 0f, 0f, -1f, SimInputFrame.ButtonFire));
+            float fired = SimTrig.Atan2(-1f, 0f);
+            Assert.Equal(fired, e.Yaw, 5);
+
+            // 静止 + 零准星（0,0）：窗内不拿零向量算 Atan2（保持），窗尽后无移动同样保持
+            for (int i = 0; i < CombatConfig.FireStanceFrames + 5; i++)
+                InputSystem.Run(world, Inputs(id, 0f, 0f, 0f, 0f));
+
+            Assert.Equal(fired, e.Yaw, 5);
+            Assert.Equal(0, (int)e.FireStanceFrames);
+        }
+
+        [Fact]
+        public void 驻留窗_随CopyTo深拷_回滚重放基点可重建()
+        {
+            long id = Spawn(out var world, out int slot);
+
+            InputSystem.Run(world, Inputs(id, 0f, 1f, 1f, 0f, SimInputFrame.ButtonFire));
+            Assert.Equal(CombatConfig.FireStanceFrames, (int)world.Entities[slot].FireStanceFrames);
+
+            var snapshot = new SimWorldState();
+            world.CopyTo(snapshot);                                        // 回滚环/重放基点的同款原语
+            InputSystem.Run(world, Inputs(id, 0f, 1f, 1f, 0f));           // 原世界继续推进（窗内第 2 帧）
+
+            // 快照不被后续推进扰动（深拷）：回滚 Restore 回本帧后，驻留窗原样可重建
+            Assert.Equal(CombatConfig.FireStanceFrames, (int)snapshot.Entities[slot].FireStanceFrames);
+            Assert.Equal(CombatConfig.FireStanceFrames - 1, (int)world.Entities[slot].FireStanceFrames);
         }
 
         [Fact]

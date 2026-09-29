@@ -34,6 +34,12 @@ namespace LiteSim
         /// <summary>重力加速度（m/s²，y 轴向下，§3.5）。</summary>
         public static float Gravity { get; private set; } = -20f;
 
+        /// <summary>**最大速度硬上限**（m/s，水平合速度）——服务器代码兜底（2026-09-28 用户裁决：
+        /// "配置只做软上限"）：表值（走/跑/冲/滑铲/钩爪……MovementConfig）怎么调都是设计软值，
+        /// 本护栏只对配置错误/增益叠加/未来机制 bug 生效，防实体被吹飞。取值盖过表内最快设计速度
+        /// （钩爪拉拽 20）留 ~25% 余量；**刻意不进 digest**（代码常量两端编译期同值，无需摘要）。</summary>
+        public const float HardMaxSpeed = 25f;
+
         // ---- 射击 ----
 
         /// <summary>hitscan 射程（m）。</summary>
@@ -44,6 +50,18 @@ namespace LiteSim
 
         /// <summary>命中圆柱高度（m，区间 [Pos.Y, Pos.Y + Height]）。</summary>
         public static float HitscanHeight { get; private set; } = 2f;
+
+        /// <summary>
+        /// **开火驻留窗**（逻辑帧，2026-09-30 腰射批）：开火帧把 <see cref="EntitySlot.FireStanceFrames"/>
+        /// 重置为本值，其后每帧递减；窗内与瞄准中同待遇（限 <see cref="AimMoveSpeed"/> 走路档 + 朝准星）
+        /// ——移动点射的停火帧不再回跳全速/移动向，窗尽一起回落。42 帧 = 0.7s @60Hz：盖过常见点射间隔
+        /// （~150–250ms），且 ≥ 站姿后坐片段时长（2× 速 ≈0.5s——窗尽在中断前收口）。
+        /// **表现层开火驻留窗（<c>CombatAnimMachine.FiringHoldSeconds</c>）从本值同源派生**——两层窗必须
+        /// 同长，错位会出现"AimWalk 形态配全速滑步"或"限速中却跑姿"的中间带。
+        /// **const 不进 digest**（两端编译期同值，同 <see cref="HardMaxSpeed"/> 先例）；**表化待补**（登记在
+        /// 《角色状态与动作专项设计》§7 余项）。槽位字段是 byte ⇒ 超 255 直接编译错（护栏）。
+        /// </summary>
+        public const int FireStanceFrames = 42;
 
         // ---- 伤害 ----
 

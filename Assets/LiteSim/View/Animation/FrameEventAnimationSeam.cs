@@ -38,7 +38,10 @@ namespace LiteSim.View.Animation
     {
         /// <summary>
         /// 映射帧事件 → （动画语义，通道）。未覆盖的事件类型返回 false（消费方按"不处理"继续）。
-        /// 开火是**上半身叠加**（腿部继续走跑）；受击/死亡是**全身覆盖**。
+        /// 开火是**上半身叠加**（2026-09-28 裁决：AimIdle_Shoot 的臂姿锚在 ADS 语境上——驱动器在
+        /// Fire 在途期间把移动形态**视同瞄准态**（站定进 AimIdle/跑动进 AimWalk），基础层与叠加层
+        /// 同语境，握把全场景对齐；FullBody 方案被此替代——它会把腿盖掉，AimWalk 形态不可见）。
+        /// 受击/死亡是**全身覆盖**。
         /// </summary>
         public static bool TryMap(FrameEventKind kind, out AnimationId id, out AnimationChannel channel)
         {

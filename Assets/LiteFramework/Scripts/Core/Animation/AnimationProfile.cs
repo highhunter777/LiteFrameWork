@@ -20,8 +20,9 @@ namespace LiteFramework.Animation
     /// 回退链**限制深度**并禁止成环（§4"限制回退深度，禁止环"）。
     /// 单片段与混合**各有一张 ID 表**（同 ID 不得两栖——解析形态会歧义，登记期即拒绝）；
     /// 回退链只作用于单片段路径（混合形态不同，不做跨形态回退）。
-    /// **上半身附加 Mask 路径**（§6"通道之间的 Mask…由 Profile 固定"）：humanoid 部位位盖不到的
-    /// 骨架附加骨（武器骨等）在此登记——rig 特有知识与绑定同源，后端只消费不散写。
+    /// **上半身 Mask 排除子树**（§6"通道之间的 Mask…由 Profile 固定"）：遮罩默认由后端从骨架
+    /// 自动派生（人形部位位 + 非腿骨全收），Profile 只登记**按域排除**的子树（布料域骨——
+    /// 动画曲线与布料解算器争抢会让表现打架）。rig 特有知识与绑定同源，后端只消费不散写。
     /// </summary>
     public sealed class AnimationProfile
     {
@@ -35,7 +36,7 @@ namespace LiteFramework.Animation
         private readonly Dictionary<AnimationId, AnimationDefinition> _defs = new Dictionary<AnimationId, AnimationDefinition>();
         private readonly Dictionary<AnimationId, AnimationBlendDefinition> _blends = new Dictionary<AnimationId, AnimationBlendDefinition>();
         private readonly Dictionary<AnimationId, AnimationId> _fallback = new Dictionary<AnimationId, AnimationId>();
-        private readonly List<string> _upperBodyMaskPaths = new List<string>();
+        private readonly List<string> _upperBodyMaskExclusions = new List<string>();
 
         public FallbackPolicy Policy { get; }
 
@@ -44,10 +45,10 @@ namespace LiteFramework.Animation
         /// <summary>已登记的混合定义数。</summary>
         public int BlendCount => _blends.Count;
 
-        /// <summary>上半身附加 Mask 的非人形骨路径（相对动画机根，与片段曲线路径同规）。
-        /// 消费方：后端构造 <c>UpperBodyMaskFactory.TryBuild</c>——humanoid 部位位之外、
-        /// 骨架里独立存在的附加骨（武器骨等）必须经这里进遮罩。</summary>
-        public IReadOnlyList<string> UpperBodyMaskPaths => _upperBodyMaskPaths;
+        /// <summary>上半身 Mask 的排除子树路径（相对动画机根，与片段曲线路径同规；子树语义——
+        /// 命中路径自身与全部后代一并排除）。消费方：后端构造 <c>UpperBodyMaskFactory.TryBuild</c>——
+        /// 骨架自动派生的纳入面里减掉这些子树（布料域骨等）。</summary>
+        public IReadOnlyList<string> UpperBodyMaskExclusions => _upperBodyMaskExclusions;
 
         public AnimationProfile(FallbackPolicy policy = FallbackPolicy.Reject)
         {
@@ -117,18 +118,18 @@ namespace LiteFramework.Animation
             return this;
         }
 
-        /// <summary>登记上半身附加 Mask 路径（链式；空串显性拒绝——登记即校验）。只追加不去重：
-        /// 路径重复对 Mask 无损（transform 段按路径寻址），登记侧保持零判重开销。</summary>
-        public AnimationProfile RegisterUpperBodyMaskPaths(params string[] transformPaths)
+        /// <summary>登记上半身 Mask 排除子树（链式；空串显性拒绝——登记即校验）。子树语义：
+        /// 命中路径自身与全部后代一并排除。只追加不去重（重复登记对 Mask 无损）。</summary>
+        public AnimationProfile RegisterUpperBodyMaskExclusions(params string[] subtreePaths)
         {
-            if (transformPaths == null)
-                throw new ArgumentNullException(nameof(transformPaths));
-            foreach (var path in transformPaths)
+            if (subtreePaths == null)
+                throw new ArgumentNullException(nameof(subtreePaths));
+            foreach (var path in subtreePaths)
             {
                 if (string.IsNullOrWhiteSpace(path))
-                    throw new ArgumentException("上半身附加 Mask 路径为空串", nameof(transformPaths));
+                    throw new ArgumentException("上半身 Mask 排除路径为空串", nameof(subtreePaths));
             }
-            _upperBodyMaskPaths.AddRange(transformPaths);
+            _upperBodyMaskExclusions.AddRange(subtreePaths);
             return this;
         }
 

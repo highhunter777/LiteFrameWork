@@ -80,6 +80,38 @@ namespace LiteSim
             }
 
             h = MixMatchState(h, in s.Match);
+
+            // 分型表公共面（《实体分型表设计》§2）：道具/投掷物/区域是世界可见面（全端可重建），
+            // 与活体位图同判——线上和解口径必须覆盖，漏了 = 该层分叉但和解不报的静默漂移。
+            ItemState[] items = s.Items;
+            for (int i = 0; i < items.Length; i++)
+            {
+                ref ItemState it = ref items[i];
+                h = MixInt32(h, it.ItemDefId);
+                h = MixInt32(h, it.Count);
+                h = MixInt64(h, it.OwnerId);
+                h = MixInt32(h, it.AgeFrames);
+            }
+
+            ProjectileState[] projectiles = s.Projectiles;
+            for (int i = 0; i < projectiles.Length; i++)
+            {
+                ref ProjectileState p = ref projectiles[i];
+                h = MixInt32(h, p.ItemDefId);
+                h = MixFloat(h, p.Speed);
+                h = MixInt32(h, p.DetonateFrame);
+                h = MixInt64(h, p.OwnerId);
+            }
+
+            ZoneState[] zones = s.Zones;
+            for (int i = 0; i < zones.Length; i++)
+            {
+                ref ZoneState z = ref zones[i];
+                h = MixInt32(h, z.ItemDefId);
+                h = MixFloat(h, z.Radius);
+                h = MixInt32(h, z.RemainingFrames);
+                h = MixInt64(h, z.OwnerId);
+            }
             return h;
         }
 
@@ -108,6 +140,9 @@ namespace LiteSim
                 h = MixInt32(h, e.Kills);
                 h = MixInt32(h, e.Deaths);
                 h = MixInt32(h, e.SelectedWeapon);
+                // 开火驻留窗（Sim 内派生面，2026-09-30）：只进全量口径——远端的开火输入不可重建，
+                // 进公共口径会让"快照早于开火"的每份快照必假和解（与私有面同判；SlotDelta 扩展列 §7 余项）
+                h = MixByte(h, e.FireStanceFrames);
             }
 
             byte[] globals = s.Globals;
@@ -162,6 +197,37 @@ namespace LiteSim
 
             int[] resources = s.Resources;
             for (int i = 0; i < resources.Length; i++) h = MixInt32(h, resources[i]);
+
+            // 分型表（《实体分型表设计》§2：三个确定性面缺一即隐形分叉——这里是第一面）
+            ItemState[] items = s.Items;
+            for (int i = 0; i < items.Length; i++)
+            {
+                ref ItemState it = ref items[i];
+                h = MixInt32(h, it.ItemDefId);
+                h = MixInt32(h, it.Count);
+                h = MixInt64(h, it.OwnerId);
+                h = MixInt32(h, it.AgeFrames);
+            }
+
+            ProjectileState[] projectiles = s.Projectiles;
+            for (int i = 0; i < projectiles.Length; i++)
+            {
+                ref ProjectileState p = ref projectiles[i];
+                h = MixInt32(h, p.ItemDefId);
+                h = MixFloat(h, p.Speed);
+                h = MixInt32(h, p.DetonateFrame);
+                h = MixInt64(h, p.OwnerId);
+            }
+
+            ZoneState[] zones = s.Zones;
+            for (int i = 0; i < zones.Length; i++)
+            {
+                ref ZoneState z = ref zones[i];
+                h = MixInt32(h, z.ItemDefId);
+                h = MixFloat(h, z.Radius);
+                h = MixInt32(h, z.RemainingFrames);
+                h = MixInt64(h, z.OwnerId);
+            }
 
             h = MixMatchState(h, in s.Match);
             return h;

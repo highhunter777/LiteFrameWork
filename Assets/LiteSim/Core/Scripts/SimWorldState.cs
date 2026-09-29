@@ -40,6 +40,20 @@ namespace LiteSim
         /// <summary>技能资源/实体（本人私有面；技能消耗账本，P1 ActionSystem 消费）。</summary>
         public readonly int[] Resources;
 
+        // ---- 分型表（《实体分型表设计》§1，2026-09-29）----
+        // 行有效 ⟺ 槽位活体且 EntityFlags.Kind* 置位（kind 位 = 迷你 archetype mask）。
+        // 脊柱不动：这些是**平行行表**（每槽位一行），不是每实体子槽阵列——与 P0 运行态同一条
+        // 布局纪律（定容值类型数组，#5），但寻址就是槽位索引本身。
+
+        /// <summary>地面道具行表（<c>[slot]</c>；拾取入包后归 MatchBag，本行清零）。</summary>
+        public readonly ItemState[] Items;
+
+        /// <summary>投掷物行表（<c>[slot]</c>；手雷/闪光——ProjectileSystem 弹道结算用）。</summary>
+        public readonly ProjectileState[] Projectiles;
+
+        /// <summary>区域效果行表（<c>[slot]</c>；EMP/雷达驻留区——ZoneSystem 衰减回收用）。</summary>
+        public readonly ZoneState[] Zones;
+
         /// <summary>比赛状态（room 级；公共面——随每份快照全量下发）。</summary>
         public MatchStateData Match;
 
@@ -62,6 +76,9 @@ namespace LiteSim
             Status = new StatusSlotData[SimConfig.MaxEntities * SimConfig.StatusSlotsPerEntity];
             MatchBag = new MatchBagSlot[SimConfig.MaxEntities * SimConfig.MatchBagSlotsPerEntity];
             Resources = new int[SimConfig.MaxEntities];
+            Items = new ItemState[SimConfig.MaxEntities];
+            Projectiles = new ProjectileState[SimConfig.MaxEntities];
+            Zones = new ZoneState[SimConfig.MaxEntities];
             _versions = new ulong[SimConfig.MaxEntities];
             Cmds = new CommandBuffer { Items = new SimCommand[CommandBuffer.Capacity] };
             Events = new FrameEventBuffer { Items = new FrameEvent[FrameEventBuffer.Capacity] };
@@ -136,6 +153,9 @@ namespace LiteSim
             Array.Clear(Status, slotIndex * SimConfig.StatusSlotsPerEntity, SimConfig.StatusSlotsPerEntity);
             Array.Clear(MatchBag, slotIndex * SimConfig.MatchBagSlotsPerEntity, SimConfig.MatchBagSlotsPerEntity);
             Resources[slotIndex] = 0;
+            Items[slotIndex] = default;          // 分型表行随槽位清零（空槽校验值恒定，§3.6 同款前提）
+            Projectiles[slotIndex] = default;
+            Zones[slotIndex] = default;
         }
 
         /// <summary>
@@ -194,6 +214,9 @@ namespace LiteSim
             Array.Copy(Status, dst.Status, Status.Length);
             Array.Copy(MatchBag, dst.MatchBag, MatchBag.Length);
             Array.Copy(Resources, dst.Resources, Resources.Length);
+            Array.Copy(Items, dst.Items, Items.Length);          // 分型表（《游戏业务总设计》§1 阻塞项②同款：
+            Array.Copy(Projectiles, dst.Projectiles, Projectiles.Length);   // 新字段漏 CopyTo = 回滚/重连静默分叉）
+            Array.Copy(Zones, dst.Zones, Zones.Length);
             Array.Copy(_versions, dst._versions, _versions.Length);
             dst._nextFree = _nextFree;
         }

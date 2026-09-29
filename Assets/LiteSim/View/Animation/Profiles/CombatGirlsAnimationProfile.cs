@@ -46,7 +46,9 @@ namespace LiteSim.View.Animation
                     binding: "Run", loop: true, minSpeed: 0.01f, maxSpeed: 2f))
                 .Register(new AnimationDefinition(CharacterAnimationIds.AimIdle, AnimationChannel.Locomotion,
                     binding: "AimIdle", loop: true, minSpeed: 0.01f, maxSpeed: 2f))
-                // 上半身叠加：一次性（开火片段很短，允许提速到 2×）
+                // 上半身叠加：一次性（开火片段很短，允许提速到 2×）。臂姿语境由驱动器配对：
+                // Fire 在途期间移动形态视同瞄准态（站定腰射进 AimIdle、跑射进 AimWalk——
+                // 2026-09-28 裁决），叠加层与基础层同语境，握把不再错位。
                 .Register(new AnimationDefinition(CharacterAnimationIds.Fire, AnimationChannel.UpperBody,
                     binding: "AimIdle_Shoot", loop: false, minSpeed: 0.8f, maxSpeed: 2f))
                 .Register(new AnimationDefinition(CharacterAnimationIds.Reload, AnimationChannel.UpperBody,
@@ -64,11 +66,12 @@ namespace LiteSim.View.Animation
                     new[] { "Idle", "Walk", "Run" }, minSpeed: 0.01f, maxSpeed: 2f))
                 .RegisterBlend(new AnimationBlendDefinition(CharacterAnimationIds.AimMoveBlend, AnimationChannel.Locomotion,
                     new[] { "AimWalk_F", "AimWalk_R", "AimWalk_B", "AimWalk_L" }, minSpeed: 0.01f, maxSpeed: 2f))
-                // 上半身附加 Mask：add_weapon_r/l 是挂在本骨架 root 下的**非人形武器骨**（枪模 Weapon_Rifle
-                // 挂其下，开火/换弹片段的枪骨曲线全在这根骨上）——humanoid 部位位盖不到，必须显式进
-                // Mask 的 transform 段，否则开火时手臂动、枪被基础层钉在握持姿势。
-                // **胸部附加骨（add_chest_l01/bone28、add_chest_r01/bone29）刻意不登记**：布料域
-                // （MagicaCloth 在驱动），动画层与布料解算器争抢会让表现打架。
-                .RegisterUpperBodyMaskPaths("root/add_weapon_r", "root/add_weapon_l");
+                // 上半身 Mask 排除子树（§6；纳入面由后端从骨架自动派生——武器骨/补插骨零登记，
+                // 手工路径清单 2026-09-28 废弃）：add_chest_l01/r01 是布料域附加骨（MagicaCloth
+                // 在驱动，子树含 bone28/29）——开火/换弹片段曲线了它们，不排除的话动画层与布料
+                // 解算器争抢会让表现打架。
+                .RegisterUpperBodyMaskExclusions(
+                    "root/pelvis/spine_01/spine_02/spine_03/add_chest_l01",
+                    "root/pelvis/spine_01/spine_02/spine_03/add_chest_r01");
     }
 }
