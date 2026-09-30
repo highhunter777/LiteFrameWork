@@ -13,4 +13,5 @@
   <Project Path="LiteSim.Core.Tests/LiteSim.Core.Tests.csproj" />
   <Project Path="LiteNet.Tests/LiteNet.Tests.csproj" />
   <Project Path="MetaServer.Tests/MetaServer.Tests.csproj" />
+  <Project Path="MetaServer.Integration.Tests/MetaServer.Integration.Tests.csproj" />
 </Solution>

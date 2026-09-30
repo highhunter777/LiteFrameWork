@@ -1,0 +1,36 @@
+<Project Sdk="Microsoft.NET.Sdk">  <!--
+     MetaServer L3 集成测试工程（M0-c 批二，《Meta 服务专项设计》§4.2 目标结构
+     `Tests/MetaServer.IntegrationTests/`——L3（HTTP/DB 测试容器）、§14 L3 行
+     "真实 HTTP + Mongo 测试容器"）。
+
+     命名必须是 *.Tests.csproj——scripts/test.ps1 以该通配符发现测试工程，改名会被静默漏跑。
+     用例一律 Trait=Category:Integration → 只进 L3 车道，不占 L1。
+  -->
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <LangVersion>10.0</LangVersion>
+    <Nullable>disable</Nullable>
+    <ImplicitUsings>disable</ImplicitUsings>
+    <IsTestProject>true</IsTestProject>
+    <IsPackable>false</IsPackable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.11.1" />
+    <PackageReference Include="xunit" Version="2.9.2" />
+    <PackageReference Include="xunit.runner.visualstudio" Version="2.8.2" PrivateAssets="all" />
+    <!-- 运行时跳过（xunit 2.x 无 Assert.Skip）：Mongo 不可达时显式 Skip，跳过在 TRX/汇总可见，不假绿 -->
+    <PackageReference Include="Xunit.SkippableFact" Version="1.4.13" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\MetaServer\MetaServer.csproj" />
+    <ProjectReference Include="..\..\Assets\LiteTesting\LiteTesting.Core.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- 与 MetaServer 同版钉死（夹具直接使用驱动 API：探活/建客户端/清库） -->
+    <PackageReference Include="MongoDB.Driver" Version="3.12.0" />
+  </ItemGroup>
+
+</Project>

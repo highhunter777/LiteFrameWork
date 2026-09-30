@@ -118,7 +118,18 @@ namespace MetaServer.Infrastructure.Persistence
                 }
             }
 
-            long recovered = await _versionStore.ReadCurrentAsync(ct);
+            long recovered;
+            try
+            {
+                recovered = await _versionStore.ReadCurrentAsync(ct);
+            }
+            catch
+            {
+                // 版本存储不可达：RecoveredVersion 是"尽力报告值"——未知以 -1 表示，
+                // 并保守标记回滚失败（状态不可信；宿主仍以失败拒绝启动）
+                recovered = -1;
+                rollbackFailed = true;
+            }
             return new MigrationOutcome.Failed(failedStep.Version, reason, recovered, rollbackFailed);
         }
     }

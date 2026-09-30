@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using MongoDB.Driver;
 
 namespace MetaServer
 {
@@ -13,8 +14,8 @@ namespace MetaServer
     /// **每项都有范围校验**（§10"均有范围校验"），拒绝值直接导致启动失败返回非零退出码，
     /// 不得带默认错配置继续运行。
     ///
-    /// 本批为宿主骨架：只承载监听、上限与关闭时限。业务参数（Mongo/Redis/限流阈值/Outbox 容量）
-    /// 归 G3/R4，接入时在此追加属性与校验，不另建第二套配置类。
+    /// M0-c 批二（2026-09-30）起承载持久化参数（Mongo 连接/库名/Outbox 容量）；
+    /// Redis/限流阈值等仍归 G3/R4，接入时在此追加，不另建第二套配置类。
     /// </summary>
     public sealed class MetaConfig
     {
@@ -32,6 +33,21 @@ namespace MetaServer
 
         /// <summary>关闭时限（秒）：Host 在该期限内完成在途请求与后台服务停止，超时强制结束。</summary>
         public int ShutdownTimeoutSeconds { get; set; } = 15;
+
+        // ---- 持久化（M0-c 批二，2026-09-30；§9.1/§10/§11.2）----
+
+        /// <summary>
+        /// Mongo 连接串。**空 = 持久化功能关闭**（拒绝相应功能而非拒绝启动——样例命令 503、
+        /// /ready 不检存储）；非空时必须为合法 mongodb/mongodb+srv URI 且配套库名。
+        /// 生产部署必须配置：启用后启动迁移失败（含 Mongo 不可达）即拒绝启动（fail-closed）。
+        /// </summary>
+        public string MongoConnectionString { get; set; } = "";
+
+        /// <summary>数据库名（配置了连接串时必填）。</summary>
+        public string MongoDatabaseName { get; set; } = "";
+
+        /// <summary>持久 Outbox 容量上界（§11.2"任何队列必须有显式容量"；满则入队显式拒绝）。</summary>
+        public int OutboxCapacity { get; set; } = 1024;
 
         public static MetaConfig Default() => new MetaConfig();
 
@@ -67,7 +83,41 @@ namespace MetaServer
                 errors.Add("ShutdownTimeoutSeconds 必须在 1..300，实际：" + ShutdownTimeoutSeconds);
             }
 
+            // ---- 持久化（M0-c 批二）：功能门 + 形状校验 ----
+            // 驱动 3.x 无 MongoUrl.TryCreate——用 Create 的异常面判合法性（配置校验场景，
+            // 把任何解析失败都归为"非法 URI"并回报原值，不做进一步分类）
+            bool storageConfigured = !string.IsNullOrWhiteSpace(MongoConnectionString);
+            if (storageConfigured && !IsParsableMongoUri(MongoConnectionString))
+            {
+                errors.Add("MongoConnectionString 必须是合法 mongodb/mongodb+srv URI：" + MongoConnectionString);
+            }
+            if (storageConfigured && string.IsNullOrWhiteSpace(MongoDatabaseName))
+            {
+                errors.Add("配置了 MongoConnectionString 时 MongoDatabaseName 不得为空");
+            }
+            if (!storageConfigured && !string.IsNullOrWhiteSpace(MongoDatabaseName))
+            {
+                errors.Add("未配置 MongoConnectionString 时 MongoDatabaseName 应为空（没有存储可指向）");
+            }
+            if (OutboxCapacity < 1 || OutboxCapacity > 1024 * 1024)
+            {
+                errors.Add("OutboxCapacity 必须在 1..1048576，实际：" + OutboxCapacity);
+            }
+
             return errors;
+        }
+
+        private static bool IsParsableMongoUri(string value)
+        {
+            try
+            {
+                MongoUrl.Create(value);
+                return true;
+            }
+            catch
+            {
+                return false;
+            }
         }
     }
 }

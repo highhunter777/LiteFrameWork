@@ -82,9 +82,9 @@
 
 ## 4. Meta 服务（接缝期）
 
-- 宿主骨架：Generic Host + Options 范围校验 + `/live` `/ready` `/metrics` + 优雅关闭与 drain + 入站上限；零 NuGet 依赖接入。
+- 宿主骨架：Generic Host + Options 范围校验 + `/live` `/ready` `/metrics` + 优雅关闭与 drain + 入站上限；Web 面零 NuGet（MongoDB.Driver 为服务端首个真 NuGet，2026-09-30 裁决登记）。
 - 票据接缝：`IJoinTicketValidator` + HMAC 验证器 + 非法票据矩阵（过期/篡改/重放/密钥轮换/受众/房间/哈希），接入 `ServerHost.HandleJoin`。
-- 持久化接缝（M0-c）进行中：批一（2026-09-30）已交付 `Contracts/Persistence` 三端口（结算账本双维度幂等/revision CAS 原子边界、有界 Outbox、迁移显式版本化+失败回滚）+ 样例命令消费者，L1 28 例语义全绿；**L3 实存储段（真 Mongo 副本集容器 + 重启恢复报告）未交付**——它仍阻塞《框架先行》准入项"持久化契约有效"与样例⑤（见 [待办总览](../待办总览.md)）。
+- 持久化接缝（M0-c）**已完成（2026-09-30）**：`Contracts/Persistence` 三端口（结算账本双维度幂等/revision CAS 原子边界、有界 Outbox、迁移显式版本化+失败回滚）＋ `Infrastructure/Persistence/Mongo` 真适配器（副本集事务、唯一索引兜底）＋宿主接线（启动迁移 fail-closed、`/ready` 依赖检查、`POST /sample/settlement` 样例端点）；L1 28 例＋L3 26 例（含容器级重启恢复与"重复提交 100 次只生效一次"）——《框架先行》准入项"持久化契约有效"与样例⑤由此达标（见 [待办总览](../待办总览.md)）。
 
 ## 5. 一条链的完整时序（把 02 §② 落到类）
 

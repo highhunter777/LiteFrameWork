@@ -38,17 +38,17 @@ Meta 是战斗服之外的**局外权威**：账号、身份、大厅、进度�
 
 | 范围 | 核查结果 |
 | --- | --- |
-| 服务端代码 | `RoomServer/`（`Runtime/` + `Application/` + `Program.cs`）之外，**MetaServer 宿主骨架已建立（2026-09-25，[Meta 服务宿主](../../施工进度/Meta服务宿主.md)）**：Generic Host + Options + 健康检查 + 优雅关闭，`FrameworkReference` 零 NuGet 接入。Auth/Lobby/Profile/Mongo/Redis/Outbox 业务仍无实现或桩 |
+| 服务端代码 | `RoomServer/`（`Runtime/` + `Application/` + `Program.cs`）之外，**MetaServer 宿主骨架已建立（2026-09-25，[Meta 服务宿主](../../施工进度/Meta服务宿主.md)）**：Generic Host + Options + 健康检查 + 优雅关闭，Web 面 `FrameworkReference` 零 NuGet；**持久化接缝（M0-c）已关闭（2026-09-30）**：`Contracts/Persistence` 三端口 + `Infrastructure/Persistence/Mongo` 真适配器（MongoDB.Driver 3.12.0——服务端首个真 NuGet，裁决登记于 csproj）+ 宿主接线（启动迁移 fail-closed/`/ready` 依赖检查/样例命令端点）。Auth/Lobby/Profile/Redis/Settlement Outbox 业务仍无实现或桩（G3） |
 | 宿主 | `RoomServer/Program.cs` 常驻形态已接 `Console.CancelKeyPress` 触发排空（2026-09-26，[服务端多房间](../../施工进度/服务端多房间.md)，"信号→排空→退出"链路待真实终端手验）；Meta 宿主骨架交付内容见上行——`ValidateOnStart` 范围校验、`/live` `/ready` `/metrics`、drain 与入站上限均已建立 |
 | 身份与票据 | `ReconnectService` 已具备票据**房间绑定**（R1 交付），但签发的仍是**可预测串**（CSPRNG 归 R2）；**Join 已接票据验签接缝（M0-d，2026-09-26）**：`IJoinTicketValidator` + `HmacJoinTicketValidator`（过期/篡改/重放/密钥轮换/受众/房间/哈希矩阵），接入 `ServerHost.HandleJoin` 真实准入路径且验证先于建房——"只校验非空 token"已终结；Meta 侧签发端（Auth）归 G3 |
 | 签名原语 | `Assets/LiteFramework/Scripts/Core/Content/SignatureVerifier.cs` 已落地**RSA-2048 + PKCS#1 v1.5 + SHA-256**，并留档实测结论：`ECDsa`/`ECDsaCng` 在 Mono 下抛 `NotImplementedException`，Ed25519 无类型。该结论是**客户端运行时**的约束，服务端为完整 .NET，但为保持单一密钥体系，Meta 沿用同一原语 |
 | Web 依赖 | 仓库内**没有任何 Web/HTTP 服务端代码**；仅 `UniRx/Scripts/UnityEngineBridge/ObservableWWW.cs`（无关）。`global.json` 锁 SDK `8.0.400`（`rollForward: latestMajor`），本机 `Microsoft.AspNetCore.App` 8.0.22 与 9.0.11 均已安装 |
 | 版本字段 | `ServerHost.ServerBuildHash` 与 `CombatConfigDigest`（SHA-256 截取 uint32）已存在；`protocolVersion`/`simVersion`/`contentVersion` 的目标语义尚未在协议中全部落地 |
 | 客户端消费端 | `MetaClient` 未实现。`ProcedureId` 刻意未加 Login/Lobby/Result 枚举，避免出现空阶段（[客户端 C2 记录](../../施工进度/客户端C2.md)） |
-| 测试接缝 | L1 为 .NET xUnit（`Tests/*.Tests`，入口 `Tests/Tests.slnx`）；**尚无 HTTP/数据库测试容器夹具**（测试开发框架总设计 §8 列为待补） |
+| 测试接缝 | L1 为 .NET xUnit（`Tests/*.Tests`，入口 `Tests/Tests.slnx`）；**Mongo 测试容器夹具已交付（2026-09-30，[Meta 服务宿主](../../施工进度/Meta服务宿主.md) M0-c 批二）**：`Tests/MetaServer.Integration.Tests/MongoFixture`（探活→docker 自起单节点副本集→用例级独立库）＋ 26 例 L3（含容器级重启恢复）；HTTP 集成走既有 `WebHost` 临时端口模式 |
 | 文档坐标 | Meta 的设计坐标分散在服务端总设计 §6/§11/§13、业务总设计 §2、《待办总览》G3。**本文是 Meta 的唯一专项入口** |
 
-结论：Meta 当前是**骨架接缝阶段**——宿主骨架（2026-09-25）与 Join 票据验签接缝（2026-09-26）已交付，Auth/Lobby/Profile/Mongo/Redis/Outbox 业务仍为设计；完成度判定见服务端总设计 §1「数据与 Meta 服务」行（已同步至骨架阶段）。本文除本节外均为 Target。
+结论：Meta 当前是**骨架＋持久化接缝阶段**——宿主骨架（2026-09-25）、Join 票据验签接缝（2026-09-26）与持久化接缝 M0-c（2026-09-30，真 Mongo 实存储＋L3 重启恢复报告）已交付，Auth/Lobby/Profile/Redis/Settlement Outbox 业务仍为设计；完成度判定见服务端总设计 §1「数据与 Meta 服务」行（已同步）。本文除本节外均为 Target。
 
 ## 3. 服务边界与数据所有权
 
@@ -107,7 +107,10 @@ MetaServer/                              单一工程起步（§7 过渡步骤 1
 └─ Host/                                 Generic Host、Options、健康检查、装配
 
 Tests/MetaServer.Tests/                  L1（纯逻辑/契约）
-Tests/MetaServer.IntegrationTests/       L3（HTTP/DB 测试容器）
+Tests/MetaServer.Integration.Tests/      L3（HTTP/DB 测试容器）
+                                        （命名须满足 scripts/test.ps1 的 *.Tests.csproj 发现契约——
+                                        原文 "IntegrationTests" 不含 ".Tests.csproj" 子串会被门禁静默漏跑，
+                                        2026-09-30 实测后改名并给 test.ps1 加了契约守卫）
 ```
 
 **过渡顺序（对齐服务端总设计 §7，禁止目录大搬迁）：**

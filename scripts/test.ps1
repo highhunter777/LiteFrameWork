@@ -54,6 +54,18 @@ function Invoke-DotNetLane([string]$name, [string]$filter, [string]$hangTimeout)
     $projects = @(Get-ChildItem -Path (Join-Path $ProjectPath 'Tests') -Recurse -Filter '*.Tests.csproj' -File | Sort-Object FullName)
     if ($projects.Count -eq 0) { throw 'No test projects were found under Tests/.' }
 
+    # Guard (2026-09-30, M0-c batch 2): any Tests/**/*.csproj whose name does NOT
+    # match the '*.Tests.csproj' discovery filter would be SILENTLY skipped by this
+    # lane - e.g. 'MetaServer.IntegrationTests.csproj' (the design-doc wording)
+    # ends with 'IntegrationTests.csproj' and never matches. Fail loudly instead.
+    $projectPaths = @($projects | ForEach-Object { $_.FullName })
+    $allCsproj = @(Get-ChildItem -Path (Join-Path $ProjectPath 'Tests') -Recurse -Filter '*.csproj' -File)
+    $violating = @($allCsproj | Where-Object { $projectPaths -notcontains $_.FullName })
+    if ($violating.Count -gt 0) {
+        $names = ($violating | ForEach-Object { $_.Name }) -join ', '
+        throw "Test project name violates the *.Tests.csproj discovery contract and would be silently skipped: $names"
+    }
+
     foreach ($project in $projects) {
         $projectName = [System.IO.Path]::GetFileNameWithoutExtension($project.Name)
         Write-Host "  -> restore $projectName (parallelism disabled)" -ForegroundColor DarkGray

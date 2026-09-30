@@ -1,7 +1,10 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Threading;
 using System.Threading.Tasks;
+using MetaServer.Infrastructure.Persistence;
+using MetaServer.Infrastructure.Persistence.Mongo;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Http;
@@ -13,6 +16,8 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
+using MongoDB.Bson;
+using MongoDB.Driver;
 
 namespace MetaServer
 {
@@ -77,6 +82,38 @@ namespace MetaServer
             // ---- 观测面（§11.2）：进程级单例，计数就地累加 ----
             builder.Services.AddSingleton<Ops>();
 
+            // ---- 持久化装配（M0-c 批二）----
+            // 功能门：配置了 Mongo 连接串才注册（§10"缺真实依赖拒绝启动或拒绝相应功能"——
+            // 本处取后者：功能关闭＝样例端点 503、/ready 不检存储）。**门读**用 ConfigurationBinder
+            // 绑同一节，**消费值**一律经 IOptions（避免 2026-09-25 实测过的双实例失效——见 MetaConfig 注释）。
+            MetaConfig boot = builder.Configuration.GetSection(ConfigSection).Get<MetaConfig>() ?? new MetaConfig();
+            if (!string.IsNullOrWhiteSpace(boot.MongoConnectionString))
+            {
+                builder.Services.AddSingleton(sp =>
+                {
+                    MetaConfig meta = sp.GetRequiredService<IOptions<MetaConfig>>().Value;
+                    MongoClientSettings settings =
+                        MongoClientSettings.FromUrl(MongoUrl.Create(meta.MongoConnectionString));
+                    settings.ServerSelectionTimeout = TimeSpan.FromSeconds(5);
+                    return (MongoDB.Driver.IMongoClient)new MongoClient(settings);
+                });
+                builder.Services.AddSingleton(sp => sp.GetRequiredService<MongoDB.Driver.IMongoClient>()
+                    .GetDatabase(sp.GetRequiredService<IOptions<MetaConfig>>().Value.MongoDatabaseName));
+                builder.Services.AddSingleton<MetaServer.Contracts.Persistence.ISettlementLedger>(sp =>
+                    new MongoSettlementLedger(sp.GetRequiredService<MongoDB.Driver.IMongoDatabase>()));
+                builder.Services.AddSingleton<MetaServer.Contracts.Persistence.IOutboxStore>(sp =>
+                    new MongoOutboxStore(
+                        sp.GetRequiredService<MongoDB.Driver.IMongoDatabase>(),
+                        sp.GetRequiredService<IOptions<MetaConfig>>().Value.OutboxCapacity));
+                builder.Services.AddSingleton<MetaServer.Contracts.Persistence.ISchemaVersionStore, MongoSchemaVersionStore>();
+                builder.Services.AddSingleton<MetaServer.Contracts.Persistence.ISchemaMigrator>(sp =>
+                    new SchemaMigrationRunner(
+                        MongoMigrations.All(sp.GetRequiredService<MongoDB.Driver.IMongoDatabase>()),
+                        sp.GetRequiredService<MetaServer.Contracts.Persistence.ISchemaVersionStore>()));
+                builder.Services.AddSingleton<SettlementSampleUseCase>();
+                builder.Services.AddHostedService<MigrationStartupService>();
+            }
+
             WebApplication app = builder.Build();
 
             // 监听地址由 IOptions 解析（§10：不得从另建的实例读，否则配置文件覆盖不到）
@@ -85,6 +122,7 @@ namespace MetaServer
 
             app.Use(CountRequestsAsync);
             MapHealthEndpoints(app);
+            SampleEndpoints.Map(app);
             return app;
         }
 
@@ -113,15 +151,40 @@ namespace MetaServer
         /// 语义分工是硬要求：`/live` 只证进程事件循环仍能响应；`/ready` 证配置与依赖正常**且未处于 drain**。
         /// 二者不可合并——把 drain 混进 live 会让编排器误杀进程而不是摘流量。
         ///
-        /// C# 10 target-typed lambda 在此可用（见 csproj 的 LangVersion 说明）。
+        /// M0-c 批二起 `/ready` 包含真实依赖：配置了存储时 ping Mongo（§10"/ready 的判定必须包含
+        /// 真实依赖（Mongo 可达）"）；功能关闭（未配置连接串）时无依赖可检，仍返回 ready。
         /// </summary>
         private static void MapHealthEndpoints(WebApplication app)
         {
             app.MapGet("/live", () => Results.Text("live", "text/plain"));
 
-            app.MapGet("/ready", (Ops ops) => ops.Draining
-                ? Results.Text("draining", "text/plain", statusCode: StatusCodes.Status503ServiceUnavailable)
-                : Results.Text("ready", "text/plain"));
+            app.MapGet("/ready", async Task<IResult> (HttpContext context, Ops ops) =>
+            {
+                if (ops.Draining)
+                {
+                    return Results.Text("draining", "text/plain",
+                        statusCode: StatusCodes.Status503ServiceUnavailable);
+                }
+
+                IMongoDatabase database = context.RequestServices.GetService<IMongoDatabase>();
+                if (database != null)
+                {
+                    using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(2));
+                    try
+                    {
+                        await database.RunCommandAsync(
+                            new BsonDocumentCommand<BsonDocument>(new BsonDocument("ping", 1)),
+                            cancellationToken: timeout.Token);
+                    }
+                    catch
+                    {
+                        return Results.Text("store-unreachable", "text/plain",
+                            statusCode: StatusCodes.Status503ServiceUnavailable);
+                    }
+                }
+
+                return Results.Text("ready", "text/plain");
+            });
 
             app.MapGet("/metrics", (Ops ops) => Results.Text(ops.FormatMetrics(), "text/plain"));
         }

@@ -9,7 +9,7 @@
 |---|---|---|
 | M0-a 宿主骨架 | `MetaServer/` 工程 + Generic Host 装配 + Options 范围校验 `ValidateOnStart` + `/live` `/ready` `/metrics` + 优雅关闭与 drain + 入站请求体上限 | **已完成**（见下） |
 | M0-b 接缝登记 | gitignore 白名单、`Tests.slnx`、L0 纪律扫描目标（R11 纯化边界） | **已完成**（见下） |
-| M0-c 持久化接缝 | 存储端口、迁移/事务/幂等约束、故障夹具、一个持久化样例（框架先行 §4"持久化"行） | **进行中**（批一契约面 + L1 已交付 2026-09-30，见下；L3 实存储/容器段待 Mongo/容器环境） |
+| M0-c 持久化接缝 | 存储端口、迁移/事务/幂等约束、故障夹具、一个持久化样例（框架先行 §4"持久化"行） | **已完成**（2026-09-30：批一契约面 + L1、批二真 Mongo 实存储 + L3 重启恢复报告——见下） |
 | M0-d 票据接缝 | `IJoinTicketValidator` 接口 + 非法票据测试（服务端总设计 §P0-6；§5-4"没有真实登录业务时也不能省略票据验证接口与非法票据测试"） | **已完成**（2026-09-26，见下） |
 
 **范围界定**：本批只交付宿主骨架，**不含任何业务模块**——Auth/Lobby/Profile 归 G3（《Meta 服务专项设计》§15），不提前建空壳模块（客户端 `ProcedureId` 已按同一原则刻意未加 Login/Lobby/Result 枚举）。
@@ -20,6 +20,71 @@ R2 行亦写"RoomServer 侧：Join Ticket **本地验签**"。Meta 侧只**签�
 本表原把它记作 Meta 批次，属归类不准；实现按设计归属走。
 
 ## 施工记录
+
+### 2026-09-30 · M0-c 持久化接缝（批二：真 Mongo 实存储 + L3 重启恢复报告）——M0-c 关闭
+
+**范围**：MongoDB.Driver 装配裁决、真适配器三件、宿主接线（配置/启动迁移/样例端点//ready）、L3 容器夹具与用例、
+**重启恢复报告**（§5-5"实际存储验证"+§14 L3 矩阵——M0-c 的完成判据）。本批达成，M0-c 标已完成。
+
+**交付物**：
+
+| 文件 | 内容 |
+| --- | --- |
+| `MetaServer.csproj` | **MongoDB.Driver 3.12.0**——服务端第一个真 NuGet。裁决登记于 csproj 注释：§4.1"零 NuGet"论证范围是 Web 包；§9.1 唯一权威存储/§14 Mongo 测试容器/§15 G1 存储端口共同要求真实驱动，自研线协议被 §1.1 否决。驱动只落 Infrastructure，Contracts 零驱动依赖 |
+| `Infrastructure/Persistence/Mongo/MongoDocuments.cs` | 集合名单单源（迁移/适配器/L3 断言共用）+ 五个文档形状 |
+| `Infrastructure/Persistence/Mongo/MongoSettlementLedger.cs` | 真结算账本：幂等双维度（_id＋业务键复合唯一索引）、**副本集事务内** CAS 推进＋账目写入（冲突/撞键整笔回滚）、Duplicate 返回首次快照、存储异常＝未确认（重试安全） |
+| `Infrastructure/Persistence/Mongo/MongoOutboxStore.cs` | 真 Outbox：入队幂等（唯一 _id 裁判）、有界容量（满则 RejectedFull）、OutboxSeq 原子自增承载入队次序（$natural 无排序保证不用）、确认条件更新不回退、失败只累加计数 |
+| `Infrastructure/Persistence/Mongo/MongoMigrations.cs` | 真迁移步骤 v1（ledger 建集＋业务键唯一索引）/v2（outbox 建集＋扫描索引）；**回滚＝结构回退（移除索引）不 drop 集合**——不销毁数据，步骤注释声明该与"完全互逆"的偏差 |
+| `Infrastructure/Persistence/SchemaMigrationRunner.cs`（硬化） | 回滚后版本读回按尽力报告：存储不可达→recovered=-1＋rollbackFailed=true（原先裸异常穿透类型化结果承诺——死端口用例暴露） |
+| `Host/MetaConfig.cs` | `MongoConnectionString`/`MongoDatabaseName`/`OutboxCapacity` 三项＋范围校验（连接串形状/配套库名/容量界） |
+| `Host/MetaHost.cs` | 装配：连接串非空→注册 Mongo 家族（客户端/库/三端口/迁移执行器/样例用例/HostedService）；**功能门读**经 ConfigurationBinder 绑同节、**消费值**一律 IOptions（避开 2026-09-25 双实例失效）；`/ready` 在配置存储时 ping Mongo（2s 超时） |
+| `Host/MigrationStartupService.cs` | 启动迁移；失败/被拒/存储异常统一 `InvalidOperationException` → **宿主拒绝启动（fail-closed，§9.1）** |
+| `Host/SampleEndpoints.cs` | `POST /sample/settlement`——样例⑤"简单测试命令"HTTP 载体：accepted/duplicate 200（首次快照）、conflict 409、invalid 400、store-unavailable 503；**未配置存储→503 store-not-configured**（拒绝相应功能，不退回替身） |
+| `Tests/MetaServer.Integration.Tests/`（5 件） | `MongoFixture`（MONGO_TEST_URI→探活→docker 自起容器含 rs.initiate；用例级独立库＋统一清理；`Xunit.SkippableFact` 显式跳过）＋四组 26 例 L3 |
+| `scripts/test.ps1` | **命名契约守卫**（见下——防再次静默漏跑） |
+| `Tests.slnx`/`.gitignore` | 新工程登记（含 csproj 白名单） |
+
+**三处实测教训（如实）**：
+
+1. **发现契约静默漏跑（本批最大陷阱）**：设计 §4.2 树形命名 `MetaServer.IntegrationTests` **不匹配** test.ps1 的
+   `*.Tests.csproj` 发现通配符（"IntegrationTests.csproj" 不含 ".Tests.csproj" 子串）→ 门禁**静默丢弃**该工程
+   （L3 总数 93 而非 118，无任何报错；M0-b 记录的警告以"照设计文本命名"的方式重现）。修复＝工程改名
+   `MetaServer.Integration.Tests` 满足契约＋test.ps1 加守卫（`Tests/**/*.csproj` 不满足契约即显性 throw）。
+   **门禁通配符是硬约束，设计文本让位并留痕**。
+2. **docker 输出管道死锁**：`RunDockerAsync` 等退出后再读 stdout——`docker inspect` 的 KB 级 JSON 填满管道缓冲、
+   进程写阻塞不退出 → 恒定 10s 超时 → docker 被误判不可用（重启用例 1ms 假跳过、容器时间戳证明 restart 根本没执行）。
+   修复＝并发排空输出管道。定位靠指纹："每用例恰 10s＝inspect 超时值"。
+3. **R11 豁免问题的实际答案＝无需豁免**：适配器纯编排（驱动在 NuGet 包内不被扫描）、自写代码不触碰 R11 禁用原语
+   ——L1 纪律扫描零违规实证。批一登记的"两处注释矛盾"以"Infrastructure 保持 R11-clean by construction"化解，
+   `ScanTargets.cs` 零改动。
+
+**验证证据**（非原开发机；Mongo＝Docker `litegame-mongo` 容器，mongo:8.0 **单节点副本集 rs0**——事务要求副本集，§8.1）：
+
+| 门禁 | 结果 |
+| --- | --- |
+| L1 全量 | **882 通过 / 1 失败**——失败为 BuildHash 快照既有红（批一定性：快照提交内容与常量不同步、远端 main 同样存在，与本批无关）；含纪律扫描：**驱动适配器首次落 Infrastructure，R11 零违规** |
+| L3 全量 | **119 通过 / 0 失败 / 0 跳过**（LiteNet.Tests 87 ＋ MetaServer.Integration.Tests **26** ＋ MetaServer.Tests 6） |
+| 冒烟（手验，非门禁） | 宿主**进程级**重启：两次起 `MetaServer.exe`（env `META_Meta__Mongo*`），同命令重发 → `duplicate` 首次快照；mongosh 核验 schema_version=2、`ux_settlement_key` 唯一索引在（**集合自动建不算证据，索引才是迁移实证**） |
+
+**重启恢复报告**（§14 必备故障矩阵逐项——M0-c 完成判据）：
+
+| 矩阵项 | 证据 | 形态 |
+| --- | --- | --- |
+| 实际持久化确认 | 首次提交 accepted＋介质可查（mongosh 直读账目）；迁移建索引可证 | L3＋冒烟 |
+| 重复提交（两维度） | 同操作号/同业务键换操作号 → Duplicate 首次快照；**重复提交一百次只生效一次**（§17"幂等"行样例级闭环） | L3 |
+| 提交边界（CAS 冲突） | 真实事务**整笔回滚**：账目无残留、修订未动；携带实际修订号重试成功 | L3 |
+| 响应丢失 | L1 语义钉（FailAfterCommit→未确认→重试命中首次）；宿主级重发 POST → 200 duplicate 首次快照 | L1＋L3 |
+| 进程恢复 | **宿主进程重启**（冒烟手验）；**容器重启**（`docker restart` → 账目仍在、Outbox 待处理恢复/确认不复活，2 例）；客户端重建（新 IMongoClient，多例） | L3＋冒烟 |
+| 迁移失败 | v2 注入失败 → v1 **真实回滚**（唯一索引移除＋版本归零）；死端口 → 宿主拒绝启动（fail-closed） | L3 |
+| OS 级"确认点前后杀进程" | **未做**——事务提交边界＋介质级重启覆盖确认点语义；OS kill 矩阵归 G4 真机（与热更专项 §8 杀进程同批） | 后置（如实登记） |
+
+**已知边界**：
+
+- 事务内并发 write-conflict **不自动重试**：以未确认抛出、调用方重试（驱动可重试写不覆盖多语句事务提交冲突）。
+- Outbox 容量检查与插入非原子：并发窗口可短暂越界——容量是显式承诺不是硬不变量（契约注释声明）。
+- 真实 Auth/Lobby/Profile 归 G3；样例端点是样例⑤载体**非业务 API**（错误形状简化为 code+data；§5.2 正式
+  `{code,messageKey,args}` 归 G3 Contracts）。
+- Redis、TLS/Dockerfile/Secret Provider/编排面归 R4；`BuildHash` 占位未接（§P0-5）。
 
 ### 2026-09-30 · M0-c 持久化接缝（批一：契约面 + L1 语义段）
 
@@ -164,7 +229,7 @@ R2 行亦写"RoomServer 侧：Join Ticket **本地验签**"。Meta 侧只**签�
 
 ## 已知边界
 
-- **M0-c 进行中（批一已交付，2026-09-30）**：契约面（结算账本/Outbox/迁移三端口 + 样例命令与用例，L1 28 例语义全绿）已交付；**仍缺 L3 实存储段**（真 Mongo 副本集容器 + 进程级重启恢复报告）——完成前不得宣称持久化接缝完备（框架先行 §5-5"只做 fake 存储不能证明重启恢复"）。
+- **M0-c 已完成（2026-09-30，批一契约面＋批二真 Mongo 实存储）**：存储端口/约束/夹具/样例全部落地，重启恢复报告见批二记录（§14 矩阵逐项）。后置边界：OS 级杀进程矩阵归 G4 真机、Auth/Lobby/Profile 归 G3、Redis/编排面归 R4。
 - **M0-d 已交付但范围有限**：交付的是**验证接缝 + HMAC-SHA256 参考实现 + 非法票据矩阵**，落在 RoomServer 侧。
   - **算法是共享密钥 HMAC，不是非对称签名**。§P0-6 允许"本地公钥**或共享验证器**"，框架期 Meta/RoomServer
     同信任域故取后者；换非对称只替换 `HmacJoinTicketValidator` 一个类，接口与消费者不变。
