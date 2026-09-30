@@ -283,6 +283,21 @@ namespace LiteSim.View.Animation
             return true;
         }
 
+        /// <summary>**就地更新**混合节点播放倍率（步频同步）：倍率乘在混合器节点上，各输入片段的
+        /// 原生 Speed 不动（Playable 速度沿图相乘，等效整体变速）。只对混合节点生效——
+        /// 单片段节点的速度在提交时给定，不在此路。</summary>
+        public bool TrySetBlendSpeed(AnimationChannel channel, float speedScale)
+        {
+            if (_disposed) return false;
+            if (float.IsNaN(speedScale) || float.IsInfinity(speedScale) || speedScale <= 0f) return false;
+
+            ChannelState ch = ChannelOf(channel);
+            if (ch == null || !ch.Current.IsValid || !ch.Current.IsBlend) return false;
+
+            ch.Current.Mixer.SetSpeed(speedScale);
+            return true;
+        }
+
         /// <summary>释放通道（幂等）。基础层保持当前帧（无下层可回退，重新提交即恢复推进）；
         /// 上层权重淡出到 0，露出下方 Locomotion（§3"释放即权重淡出"）。
         /// 若此时仍有在途混合尾部，丢弃它即一次确定性截断（§12"截断策略并计数"）——尾部一旦存续

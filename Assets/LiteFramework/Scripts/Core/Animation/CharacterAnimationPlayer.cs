@@ -156,6 +156,21 @@ namespace LiteFramework.Animation
         }
 
         /// <summary>
+        /// 就地更新混合节点播放倍率（步频同步——移动腰射：AimWalk 原生步频 × 倍率 = 实际脚程，
+        /// 免"走姿步频配跑速"滑步）。与 <see cref="UpdateBlendWeights"/> 同款纪律：只改参数，
+        /// 不换句柄、不重建节点、不产生终态。句柄必须指向当前混合播放；
+        /// 非混合节点 / 未知或旧句柄 / 加载中 → false 且不改现状。
+        /// </summary>
+        public bool TrySetBlendSpeed(AnimationHandle handle, float speedScale)
+        {
+            if (_disposed) return false;
+            if (!TryFindCurrent(handle, out var channel, out var slot)) return false;
+            if (slot.Loading) return false;
+
+            return _backend.TrySetBlendSpeed(channel, speedScale);
+        }
+
+        /// <summary>
         /// 装载完成回填（由资源侧在装载结束时调用）。**只有仍是该通道当前请求时才提交**——
         /// 迟到结果只释放自己的资源，绝不抢回通道（§6）。
         /// </summary>

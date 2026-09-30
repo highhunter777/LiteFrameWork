@@ -71,6 +71,17 @@ namespace LiteFramework.Core.Tests.Animation
                 return true;
             }
 
+            /// <summary>就地播放倍率更新的记录（步频同步——每次成功调用记一条）。</summary>
+            public readonly List<float> BlendSpeedsUpdated = new List<float>();
+            public bool SetBlendSpeedSucceeds = true;
+
+            public bool TrySetBlendSpeed(AnimationChannel channel, float speedScale)
+            {
+                if (!SetBlendSpeedSucceeds) return false;
+                BlendSpeedsUpdated.Add(speedScale);
+                return true;
+            }
+
             public bool TryStop(AnimationChannel channel) { Stopped.Add(channel); return true; }
 
             public bool IsChannelActive(AnimationChannel channel) => Played.Count > 0;
@@ -887,6 +898,41 @@ namespace LiteFramework.Core.Tests.Animation
             var current = Blend(player, "move", AnimationChannel.Locomotion, 1f, 0f);
 
             Assert.False(player.UpdateBlendWeights(current.Handle, new[] { 1f, 0f }), "后端拒绝 = false（调用方据此回退到重新提交）");
+            Assert.True(player.TryGetState(current.Handle, out var state) && state.IsPlaying, "拒绝不得改变现有播放");
+        }
+
+        [Fact]
+        public void 混合_播放倍率就地更新_不换句柄不产生终态()
+        {
+            // 步频同步路径（移动腰射：混合片段原生步频 × 倍率 = 实际脚程）：同"就地调参"纪律
+            var backend = new FakeBackend();
+            var player = new CharacterAnimationPlayer(backend, MixedProfile());
+            int terminals = 0;
+            player.OnTerminal += (h, t) => terminals++;
+
+            var current = Blend(player, "move", AnimationChannel.Locomotion, 1f, 0f);
+            Assert.True(player.TrySetBlendSpeed(current.Handle, 2f));
+
+            Assert.Single(backend.Blended);                       // 没有第二次提交
+            Assert.Equal(0, terminals);                           // 没有 Interrupted
+            Assert.Equal(new[] { 2f }, backend.BlendSpeedsUpdated); // 倍率原样到达后端
+            Assert.True(player.TryGetState(current.Handle, out var state) && state.IsPlaying);
+
+            Assert.False(player.TrySetBlendSpeed(default, 2f));   // 未知句柄 → false
+
+            var replaced = Play(player, "run");                    // 同通道替换：混合被 Interrupted
+            Assert.False(player.TrySetBlendSpeed(current.Handle, 2f), "被替换的旧句柄不得再调倍率");
+        }
+
+        [Fact]
+        public void 混合_后端拒绝倍率更新_返回false且句柄仍在播()
+        {
+            var backend = new FakeBackend { SetBlendSpeedSucceeds = false };
+            var player = new CharacterAnimationPlayer(backend, BlendProfile());
+
+            var current = Blend(player, "move", AnimationChannel.Locomotion, 1f, 0f);
+
+            Assert.False(player.TrySetBlendSpeed(current.Handle, 2f), "后端拒绝 = false");
             Assert.True(player.TryGetState(current.Handle, out var state) && state.IsPlaying, "拒绝不得改变现有播放");
         }
 

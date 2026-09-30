@@ -9,6 +9,7 @@ using LiteTesting.Unity;
 using NUnit.Framework;
 using UnityEditor;
 using UnityEngine;
+using UnityEngine.Playables;
 
 namespace LiteGame.Tests.EditMode
 {
@@ -438,6 +439,47 @@ namespace LiteGame.Tests.EditMode
 
             player.Dispose();                                                  // 释放才收终态（§9）
             Assert.AreEqual(AnimationTerminalState.OwnerDisposed, last, "混合的终态只来自替换/停止/释放");
+        }
+
+        [Test]
+        [Category(TestCategory.Contract)]
+        public void 混合_播放倍率就地缩放_真图生效()
+        {
+            // 步频同步（2026-09-30 移动腰射批）：倍率乘在混合器节点上（Playable 速度沿图相乘），
+            // 输入片段原生 Speed 不动——真实图上直读验证，不经替身。
+            var prefab = LoadPrefabOrIgnore();
+            var go = Scope.Track(Object.Instantiate(prefab));
+            var anim = go.GetComponentInChildren<Animator>(true);
+            var player = new CharacterAnimationPlayer(
+                new AnimatorAnimationBackend(anim, blendSeconds: 0f), TestProfile());
+
+            var accepted = PlayBlend(player, TestMoveBlend, AnimationChannel.Locomotion, 1f, 0f);
+            Assert.IsTrue(accepted.Accepted, "混合提交应被接受");
+            Assert.AreEqual(1f, FindBlendMixerSpeed(anim.playableGraph), 1e-3f, "提交后应为原生 1×");
+
+            Assert.IsTrue(player.TrySetBlendSpeed(accepted.Handle, 2f), "就地倍率更新应被接受");
+            Assert.AreEqual(2f, FindBlendMixerSpeed(anim.playableGraph), 1e-3f, "倍率应乘在混合器节点上");
+
+            Assert.IsFalse(player.TrySetBlendSpeed(accepted.Handle, 0f), "非正倍率必须拒绝");
+            Assert.IsFalse(player.TrySetBlendSpeed(accepted.Handle, float.NaN), "NaN 倍率必须拒绝");
+            Assert.AreEqual(2f, FindBlendMixerSpeed(anim.playableGraph), 1e-3f, "拒绝后倍率不变");
+
+            Assert.IsFalse(player.TrySetBlendSpeed(default, 2f), "未知句柄必须拒绝");
+        }
+
+        /// <summary>遍历图找普通混合器（AnimationMixerPlayable）读倍率：层混合器根 → 通道节点根。
+        /// 基础层 0 是 AnimatorControllerPlayable、片段节点是 AnimationClipPlayable，都不会误命中；
+        /// 本后端同一时刻只在一个通道播混合 ⇒ 命中的就是被测混合节点。</summary>
+        private static float FindBlendMixerSpeed(PlayableGraph graph)
+        {
+            PlayableHandle root = graph.GetOutput(0).GetSourcePlayable();
+            for (int i = 0; i < root.GetInputCount(); i++)
+            {
+                PlayableHandle input = root.GetInput(i);
+                if (input.IsValid() && input.GetPlayableType() == typeof(AnimationMixerPlayable))
+                    return ((AnimationMixerPlayable)input).GetSpeed();
+            }
+            return -1f;
         }
 
         // ---- 帧事件接缝（§8：本批只预留形状与决策表，真实消费归 G2）----

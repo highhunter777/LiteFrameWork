@@ -19,8 +19,8 @@ namespace LiteSim.View.Animation
     /// 瞄准+静止 → AimIdle（单片段）
     /// 瞄准+移动 → Locomotion.AimMoveBlend = {AimWalk_F/R/B/L}  4 向 strafe，相邻两片按夹角插值
     /// 开火驻留窗内 → 移动形态视同瞄准态（2026-09-28 裁决：腰射/跑射的臂姿语境配对；窗长为
-    ///               CombatAnimMachine.FiringHoldSeconds = 2.0s 常量——2026-09-30 曾改与 Sim 侧
-    ///               驻留窗同源 0.7s，随驻留窗口径回退一并还原；起跑整态退出，移动形态回 MoveBlend）
+    ///               CombatAnimMachine.FiringHoldSeconds = 2.0s 常量，纯表现语义——Sim 侧无窗），
+    ///               且 AimMoveBlend 播放倍率随实际速度缩放（走 1× / 跑 2× 钳制，步频跟脚程无滑步）
     /// </code>
     /// - **速度轴改走混合器**：不再按阈值离散切片段，权重连续 ⇒ 没有档位抖动；权重经
     ///   <c>CharacterAnimationPlayer.UpdateBlendWeights</c> **就地更新**（不换句柄、不产生终态、不重建节点——
@@ -297,6 +297,13 @@ namespace LiteSim.View.Animation
                     float rel = Vector3.SignedAngle(facing, moveDir, Vector3.up);   // [-180,180]：正 = 朝向的右侧
                     LocomotionBlendMath.BuildAimWeights(rel, _aimWeights);
                     SubmitBlend(s, CharacterAnimationIds.AimMoveBlend, _aimWeights);
+
+                    // 步频同步（2026-09-30 移动腰射批）：AimWalk 原生步频锚在走路档（AimMoveSpeed）——
+                    // 不限速的移动腰射按实际速度缩放混合器倍率（走 1×、跑 2× 钳制），步频跟脚程一致
+                    // ⇒ 无"走姿步频配跑速"滑步。ADS 路径 Sim 已限走路档 ⇒ 倍率恒 ≈1，天然无感。
+                    // 上限 2× = Run 档速度：没有 AimRun 片段（债 #5），更快的冲刺钳在 2×。
+                    s.Player.TrySetBlendSpeed(s.Handle,
+                        Mathf.Clamp(speed / CombatConfig.AimMoveSpeed, 1f, 2f));
                 }
                 else
                 {

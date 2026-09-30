@@ -35,14 +35,16 @@ namespace LiteSim.View.Animation
     ///   静默满窗才回 Idle）；
     /// - Firing 内新事件且上一轮已完 → 重起一轮（2× 速，原连发重起策略）；
     /// - 移动层事实（IsMoving）由驱动器每帧喂 ctx：**移动中不提交后坐**（原移动门控——AimWalk
-    ///   持枪自洽）；**起跑整态退出**（回 Idle，移动形态回 MoveBlend 接管——B-① 原形；2026-09-30
-    ///   曾改"只停叠加不退态"的驻留窗口径，随 Sim 侧驻留窗一并回退）；
+    ///   持枪自洽）；**起跑只停站姿后坐叠加、不退出 Firing 态**——Firing 是"移动形态视同瞄准态"
+    ///   配对的载体，退出会让移动腰射失去持枪臂姿（2026-09-30 步频同步批恢复；Sim 侧已无窗，
+    ///   步频滑步由驱动器的倍率缩放消解）；
     /// - 窗尽回 Idle（叠加随离场淡出）。
     /// </summary>
     public static class CombatAnimMachine
     {
         /// <summary>开火驻留窗（秒）——窗内移动形态视同瞄准态（驻留语义随状态持有）。
-        /// 2.0s 常量（批B-① 原形；2026-09-30 曾改与 Sim 侧开火驻留窗同源派生，随驻留窗口径回退一并还原）。</summary>
+        /// 2.0s 常量（批B-① 原形；**纯表现语义**——Sim 侧开火驻留窗已于同日回退，两层不再同源，
+        /// 移动腰射的"步频跟脚程"由驱动器的混合器倍率缩放承担）。</summary>
         public const float FiringHoldSeconds = 2.0f;
 
         /// <summary>装配一台战斗层状态机（批B-① 无复合态=平面退化形态；批B-② 移动层入树时长出第二根）。</summary>
@@ -97,7 +99,8 @@ namespace LiteSim.View.Animation
     /// <summary>
     /// 开火态：驻留窗内持有 UpperBody 后坐叠加。进态即提交一轮（移动中只开窗不提交——
     /// AimWalk 持枪自洽，后坐留给站定）；窗内来新事件且上一轮已完 → 重起一轮（连发）；
-    /// 移动开始 → **整态退出**（回 Idle，叠加随离场淡出，移动形态回 MoveBlend 接管）；窗尽 → 回 Idle。
+    /// 移动开始 → **只停站姿后坐叠加、不退出本态**（Firing 是移动腰射"持枪步态"配对的载体——
+    /// 腿部 AimWalk 由驱动器按实际速度缩放步频，见 CharacterLocomotionDriver 步频同步）；窗尽 → 回 Idle。
     /// </summary>
     internal sealed class FiringStage : IStage<CombatAnimId, CombatAnimReq>
     {
@@ -124,12 +127,14 @@ namespace LiteSim.View.Animation
 
         public void OnUpdate(IStageHost<CombatAnimId, CombatAnimReq> m, float elapseSeconds)
         {
-            // 起跑终止（B-① 原形）：移动开始 → 整态退出（回 Idle）——移动形态回 MoveBlend 接管。
-            // 2026-09-30 曾改"只停站姿后坐叠加、不退 Firing 态"（驻留窗口径），随 Sim 侧驻留窗回退一并还原。
-            if (_ctx.IsMoving)
+            // 起跑终止（2026-09-30 步频同步批恢复"不退态"）：移动开始 → 只停**站姿后坐叠加**（上半身
+            // 让位给 AimWalk 持枪步态），**不退出 Firing 态**——Firing 是"移动形态视同瞄准态"配对的
+            // 载体（驱动器 IsCombatFiring → IsAim 合成）；腿部的步频滑步由驱动器倍率缩放消解。
+            // 窗保持（事件刷新制继续），窗尽自然回 Idle。
+            if (_ctx.IsMoving && _handle.IsValid)
             {
-                m.Request(CombatAnimId.Idle);
-                return;
+                _ctx.Player.Stop(_handle, AnimationStopReason.Cancelled);
+                _handle = default;
             }
 
             // 驻留窗尽（事件刷新制：静默满窗才出）→ 回 Idle（叠加随状态离场停止——引擎层淡出）

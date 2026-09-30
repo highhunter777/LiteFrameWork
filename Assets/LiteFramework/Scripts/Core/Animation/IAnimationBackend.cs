@@ -46,6 +46,16 @@ namespace LiteFramework.Animation
         /// </summary>
         bool TrySetBlendWeights(AnimationChannel channel, float[] weights);
 
+        /// <summary>
+        /// **就地更新**混合节点的播放倍率（步频同步——移动腰射：混合片段的原生步频 × 倍率 = 实际脚程，
+        /// 免"走姿步频配跑速"的滑步）。倍率乘在混合器节点上，各输入片段的 Speed 不动（Playable 速度
+        /// 沿图相乘，等效整体变速）。
+        ///
+        /// 仅当该通道当前节点确实是混合节点、倍率有限且 &gt; 0 时生效；否则返回 false 且**不改动现状**。
+        /// 与 <see cref="TrySetBlendWeights"/> 同款"就地调参"纪律：节点、输入片段、相位、句柄都不动。
+        /// </summary>
+        bool TrySetBlendSpeed(AnimationChannel channel, float speedScale);
+
         /// <summary>停止某通道的当前播放（幂等；通道无播放时返回 false）。</summary>
         bool TryStop(AnimationChannel channel);
 
