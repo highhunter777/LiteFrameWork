@@ -9,7 +9,7 @@
 |---|---|---|
 | M0-a 宿主骨架 | `MetaServer/` 工程 + Generic Host 装配 + Options 范围校验 `ValidateOnStart` + `/live` `/ready` `/metrics` + 优雅关闭与 drain + 入站请求体上限 | **已完成**（见下） |
 | M0-b 接缝登记 | gitignore 白名单、`Tests.slnx`、L0 纪律扫描目标（R11 纯化边界） | **已完成**（见下） |
-| M0-c 持久化接缝 | 存储端口、迁移/事务/幂等约束、故障夹具、一个持久化样例（框架先行 §4"持久化"行） | **未开始** |
+| M0-c 持久化接缝 | 存储端口、迁移/事务/幂等约束、故障夹具、一个持久化样例（框架先行 §4"持久化"行） | **进行中**（批一契约面 + L1 已交付 2026-09-30，见下；L3 实存储/容器段待 Mongo/容器环境） |
 | M0-d 票据接缝 | `IJoinTicketValidator` 接口 + 非法票据测试（服务端总设计 §P0-6；§5-4"没有真实登录业务时也不能省略票据验证接口与非法票据测试"） | **已完成**（2026-09-26，见下） |
 
 **范围界定**：本批只交付宿主骨架，**不含任何业务模块**——Auth/Lobby/Profile 归 G3（《Meta 服务专项设计》§15），不提前建空壳模块（客户端 `ProcedureId` 已按同一原则刻意未加 Login/Lobby/Result 枚举）。
@@ -20,6 +20,48 @@ R2 行亦写"RoomServer 侧：Join Ticket **本地验签**"。Meta 侧只**签�
 本表原把它记作 Meta 批次，属归类不准；实现按设计归属走。
 
 ## 施工记录
+
+### 2026-09-30 · M0-c 持久化接缝（批一：契约面 + L1 语义段）
+
+**范围**：按"非本机开发、不跑 Unity"约束只做纯 .NET 可验部分；L3 实存储段（Mongo 驱动装配、副本集容器夹具、进程级重启恢复报告）待具备 Mongo/容器环境后施工（批二）。
+**状态判据**：批一交付 ≠ M0-c 完成——§5-5"只做 fake 存储不能证明重启恢复"，完成以 L3 重启恢复报告为准。
+
+**交付物**：
+
+| 文件 | 内容 |
+| --- | --- |
+| `Contracts/Persistence/SettlementLedger.cs` | 结算账本端口 `ISettlementLedger`：**双维度幂等**（operationId + (playerId, matchId, settlementType)，唯一索引为最终裁判，§11.2/§11.3）、首次应用 = 唯一账目 + revision CAS 推进的**同一原子边界**（CAS 冲突整笔回滚不残留）、`Duplicate` 携带**首次快照**（重复提交不重新计算）、`SettlementStoreUnavailableException` = 未确认语义（不冒充成功、重试安全） |
+| `Contracts/Persistence/Outbox.cs` | 持久 Outbox 端口 `IOutboxStore`：**有界容量**（满则显式 `RejectedFull`，§11.2"任何队列必须有显式容量与清理策略"）、入队幂等（Confirmed 条目不复活不重投）、**失败保持可重试**只累加计数（§10"未提交项保持可重试状态"）；`OutboxStatus` 刻意两态——失败不落独立状态，重试语义由状态本身承载 |
+| `Contracts/Persistence/SchemaMigration.cs` | 迁移契约：`IMigrationStep`（Migrate/Rollback 必须互逆、Migrate 可重复应用）、`ISchemaVersionStore`（**版本写回 = 确认点**，任意一步后进程终止、重启从最后确认版本继续）、`MigrationOutcome` 四态（失败显式报告"哪一步、回到哪版、回滚是否失败"——§9.1 不静默半迁移） |
+| `Contracts/Persistence/SampleSettlementCommand.cs` | 样例⑤"简单测试命令"DTO + `Validate()` 一次报全（与 `MetaConfig.Validate` 同口径）；**非业务模型**——§5-5 不冻结库存/奖励语义 |
+| `Infrastructure/Persistence/SettlementSampleUseCase.cs` | 样例命令消费者：验证 → 原子应用 → `SampleCommandResult` 五态（Accepted/DuplicateHit/Conflict/Rejected/Unconfirmed）；**非业务模块**（Auth/Lobby/Profile 归 G3；生产装配缺真实存储时拒绝启动、不悄悄退回替身） |
+| `Infrastructure/Persistence/SchemaMigrationRunner.cs` | 迁移执行器：步骤表连续性校验（缺口/重复/降级/越界全部显式拒绝）→ 逐版本应用每步写回 → 失败**逆序回滚含失败步本身**并显式报告；全程经端口注入，无墙钟/无 IO |
+| `Tests/MetaServer.Tests/`（4 文件） | `PersistenceTestDoubles.cs`（外持状态替身＝"介质比进程活得久"的 L1 形态；故障注入 `FailBeforeCommit`/`FailAfterCommit`）+ 三组契约测试 28 例（SettlementPersistence 11 / OutboxPersistence 7 / SchemaMigration 10，Trait=Contract） |
+
+**登记面**：零新工程、零 csproj——`Contracts/`、`Infrastructure/` 落盘即自动受 R11 扫（M0-b 已预留）；`Tests.slnx`、`.gitignore`、`ScanTargets.cs` 本批零改动。
+
+**过程性记录（如实）**：
+
+1. **CAS 冲突测试场景首建模错误**（首跑 2 例红暴露）：冲突笔误用同业务键（match-1/settle）——同键换操作号按契约属**重复提交**（上游重复签发），不属冲突。改为"同账号、不同 match、修订号过期"。该修正同时把"幂等判定先于 CAS"的优先序钉进了测试。
+2. **弱断言自纠**：首批 9 处 `Assert.Equal(1/0, Count)`（xUnit2013）已全部改 `Single/Empty`——意图表达明确。既有 `MetaConfigTests` 3 处 xUnit1031 警告非本批引入，未动。
+
+**验证证据**（本机为**非原开发机**：zip 快照、无 .git；dotnet SDK 10.0.301 编 net8.0——`global.json` `latestMajor` 允许；本机执行策略拦 ps1 → 以 `-ExecutionPolicy Bypass` 运行）：
+
+| 门禁 | 结果 |
+| --- | --- |
+| L1 全量 | **882 通过 / 1 失败**：LiteFramework.Core.Tests **523**（含纪律扫描——MetaServer 新增 `Contracts/`、`Infrastructure/` **首次受扫，R11 零违规**）、LiteNet.Tests 159/160、LiteSim.Core.Tests **147**、LiteTesting.Core.Tests **7**、MetaServer.Tests **46**（18 既有 + **28 本批**） |
+| L3 全量 | **93 通过 / 0 失败**（LiteNet.Tests 87 + MetaServer.Tests 6；本批只加 L1 用例，跑 L3 是为确认改了测试工程本身后既有集成用例零回归） |
+
+**1 例 L1 失败为快照既有问题，与本批无关**（证据链，待原机裁决）：
+`BuildHash_与当前源码复算一致_未忘记重跑生成器` 红——常量 `55b99f87388c9b13` vs 快照复算 `0ccf063313acf873`。① python 生成器（`gen-build-hash.py`）只读复算同得 `0ccf…`——跨语言口径一致、算法无漂移，快照内容自洽；② 本批 10 个新文件全部在该 53 文件闭包之外（`MetaServer/`、`Tests/`）；③ 文件时间戳全部为解压时刻（zip 重置），无法定位差异文件。**判定：快照提交内容与其常量不同步**（原机常量生成自含未提交生成物的工作树，或常量重生成后的文件未全量推送）。**未擅动**——buildHash 是跨端协议门禁，本机重生成会把快照现状铸成新门禁值、与原机 `55b9…` 分叉。
+
+**未完成（批二，待 Mongo/容器环境）**：
+
+- **MongoDB.Driver 引入裁决**：服务端第一个真 NuGet（M0-a 的零 `PackageReference` 只约束 Web 包，§4.1 论证范围；§14 已点名 Mongo 测试容器）——契约零驱动依赖的分层已就位，驱动只落 `Infrastructure/`，走 C0-① 依赖治理/许可扫描登记。
+- **R11 豁免裁决**：真实 IO 落 `Infrastructure/` 时需明确豁免范围——`ScanTargets.cs` 两处注释说法不一（`MetaPurityRules` 注释称"宿主装配层合法使用 Web/IO 故排除在外"，`MetaHostExcludes` 实际只排 `Host/`）。本批以"Infrastructure 保持 R11-clean"回避了该冲突。
+- 真 Mongo 适配（结算账本两个唯一索引 + 事务、Outbox 持久实现、真实迁移步骤）＋ **单节点副本集**容器夹具（§8.1 副本集模式——事务在单机模式不可用，事务重试用例跑不了）。
+- L3 用例与接线：真实存储确认/重复提交/提交前后**进程级终止**/重启恢复/迁移失败矩阵；`/ready` 判定接真依赖（Mongo 可达、Outbox 未超阈，§10）；样例命令的 HTTP 入口接线（缺真实存储时拒绝启动）。
+- 完成后形成**重启恢复报告**，M0-c 方可标已完成。
 
 ### 2026-09-26 · M0-d Join 票据验证接缝交付
 
@@ -122,7 +164,7 @@ R2 行亦写"RoomServer 侧：Join Ticket **本地验签**"。Meta 侧只**签�
 
 ## 已知边界
 
-- **M0-c 未交付**：持久化样例仍是框架先行 §4"持久化"行 / §5-5 的缺口，归后续批；在此之前不得宣称 Meta 接缝完备。
+- **M0-c 进行中（批一已交付，2026-09-30）**：契约面（结算账本/Outbox/迁移三端口 + 样例命令与用例，L1 28 例语义全绿）已交付；**仍缺 L3 实存储段**（真 Mongo 副本集容器 + 进程级重启恢复报告）——完成前不得宣称持久化接缝完备（框架先行 §5-5"只做 fake 存储不能证明重启恢复"）。
 - **M0-d 已交付但范围有限**：交付的是**验证接缝 + HMAC-SHA256 参考实现 + 非法票据矩阵**，落在 RoomServer 侧。
   - **算法是共享密钥 HMAC，不是非对称签名**。§P0-6 允许"本地公钥**或共享验证器**"，框架期 Meta/RoomServer
     同信任域故取后者；换非对称只替换 `HmacJoinTicketValidator` 一个类，接口与消费者不变。
