@@ -11,8 +11,10 @@ import re
 
 DATA_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "Data")
 # 2026-09-19 目录重排跟进：LiteGame/Scripts/{Runtime,Editor,DevHUD} 已平铺为 LiteGame/{Runtime,Editor,DevHUD}
+# 2026-09-30 跟进 1369266（Shell 一层收平）：xLua 桥归 Adapters/Scripting.XLua，生成物随桥走——
+#   仍写旧路径 Runtime/Shell 会在桥正本旁再造一份同名 LuaKeys（CS0101，Unity 编译直接炸）。
 OUT_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)),
-                        "..", "Assets", "LiteGame", "Runtime", "Shell", "Bridge", "Generated", "LuaKeys.g.cs")
+                        "..", "Assets", "LiteGame", "Adapters", "Scripting.XLua", "Bridge", "Generated", "LuaKeys.g.cs")
 
 PATH_FIELDS = ("lua_path", "entry")               # 注册表路径列字段名
 ROOTS = ("UI", "Content", "Strategies")           # §4.4 三个固定根
