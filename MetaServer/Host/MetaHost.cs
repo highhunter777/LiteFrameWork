@@ -53,6 +53,14 @@ namespace MetaServer
         {
             WebApplicationBuilder builder = WebApplication.CreateBuilder(args ?? Array.Empty<string>());
 
+            // Generic Host 在 Windows 上可能自动装配 EventLog provider。非管理员进程写入
+            // 默认的 ".NET Runtime" source 会在宿主启动失败时再次抛异常，把真正的迁移/依赖
+            // 失败包装成 AggregateException，破坏 fail-closed 的稳定错误语义。Meta 服务的
+            // 结构化日志出口当前是控制台（正式 OTel/Prometheus 归 R4），因此明确移除
+            // EventLog，保证日志故障不会遮蔽原始启动异常。
+            builder.Logging.ClearProviders();
+            builder.Logging.AddConsole();
+
             // ---- 配置来源（§10）----
             string configPath = Path.Combine(AppContext.BaseDirectory, "appsettings.json");
             builder.Configuration.AddJsonFile(configPath, optional: true, reloadOnChange: false);
