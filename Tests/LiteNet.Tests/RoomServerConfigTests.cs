@@ -32,12 +32,128 @@ namespace LiteNet.Tests
 
             Assert.Equal(17777, c.Port);
             Assert.Equal(4, c.MaxRooms);
+            Assert.Equal(1, c.WorkerCount);
+            Assert.Equal(1024, c.MailboxCapacity);
             Assert.Equal("cluster-1", c.Audience);
             Assert.Contains("standard", c.TemplateIds);
             Assert.Contains("four", c.TemplateIds);
             Assert.True(c.HasTemplate(null));            // null → 默认模板
             Assert.Equal(2, c.BuildRoomConfig(null, "Any").ExpectedPlayers);
             Assert.Equal(4, c.BuildRoomConfig("four", "Any").ExpectedPlayers);
+        }
+
+        [Fact]
+        public void 结算Outbox_缺省路径与容量可预测()
+        {
+            var c = RoomServerConfig.Parse(Good);
+
+            Assert.Equal("Outbox/settlements.journal", c.SettlementJournalPath);
+            Assert.Equal(10_000, c.SettlementOutboxCapacity);
+            Assert.Contains("settlementJournal=Outbox/settlements.journal", c.Describe());
+            Assert.Contains("settlementCapacity=10000", c.Describe());
+            Assert.Contains("workerCount=1", c.Describe());
+            Assert.Contains("mailboxCapacity=1024", c.Describe());
+        }
+
+        [Theory]
+        [InlineData(1)]
+        [InlineData(256)]
+        public void Worker数量_边界值可用(int workerCount)
+        {
+            string json = WithProperty("worker_count", workerCount.ToString(), false);
+
+            var c = RoomServerConfig.Parse(json);
+
+            Assert.Equal(workerCount, c.WorkerCount);
+        }
+
+        [Theory]
+        [InlineData(0)]
+        [InlineData(-1)]
+        [InlineData(257)]
+        public void Worker数量_越界拒绝(int workerCount)
+        {
+            string json = WithProperty("worker_count", workerCount.ToString(), false);
+
+            Assert.ThrowsAny<System.Exception>(() => RoomServerConfig.Parse(json));
+        }
+
+        [Fact]
+        public void Worker数量_超出Int32仍拒绝()
+        {
+            string json = WithProperty("worker_count", "2147483648", false);
+
+            Assert.ThrowsAny<System.Exception>(() => RoomServerConfig.Parse(json));
+        }
+
+        [Theory]
+        [InlineData(1)]
+        [InlineData(1_000_000)]
+        public void WorkerMailbox容量_边界值可用(int capacity)
+        {
+            string json = WithProperty("mailbox_capacity", capacity.ToString(), false);
+
+            var c = RoomServerConfig.Parse(json);
+
+            Assert.Equal(capacity, c.MailboxCapacity);
+        }
+
+        [Theory]
+        [InlineData(0)]
+        [InlineData(-1)]
+        [InlineData(1_000_001)]
+        public void WorkerMailbox容量_越界拒绝(int capacity)
+        {
+            string json = WithProperty("mailbox_capacity", capacity.ToString(), false);
+
+            Assert.ThrowsAny<System.Exception>(() => RoomServerConfig.Parse(json));
+        }
+
+        [Fact]
+        public void WorkerMailbox容量_超出Int32仍拒绝()
+        {
+            string json = WithProperty("mailbox_capacity", "2147483648", false);
+
+            Assert.ThrowsAny<System.Exception>(() => RoomServerConfig.Parse(json));
+        }
+
+        [Fact]
+        public void 结算日志路径_必须使用journal后缀()
+        {
+            string json = WithProperty("settlement_journal", "Outbox/settlements.json", true);
+
+            Assert.ThrowsAny<System.Exception>(() => RoomServerConfig.Parse(json));
+        }
+
+        [Theory]
+        [InlineData(1)]
+        [InlineData(1_000_000)]
+        public void 结算Outbox容量_边界值可用(int capacity)
+        {
+            string json = WithProperty("settlement_outbox_capacity", capacity.ToString(), false);
+
+            var c = RoomServerConfig.Parse(json);
+
+            Assert.Equal(capacity, c.SettlementOutboxCapacity);
+        }
+
+        [Theory]
+        [InlineData(0)]
+        [InlineData(-1)]
+        [InlineData(1_000_001)]
+        public void 结算Outbox容量_越界拒绝(int capacity)
+        {
+            string json = WithProperty("settlement_outbox_capacity", capacity.ToString(), false);
+
+            Assert.ThrowsAny<System.Exception>(() => RoomServerConfig.Parse(json));
+        }
+
+        [Fact]
+        public void 结算Outbox容量_超出Int32仍拒绝()
+        {
+            string json = WithProperty("settlement_outbox_capacity", "2147483648", false);
+
+            Assert.ThrowsAny<System.Exception>(() => RoomServerConfig.Parse(json));
         }
 
         [Fact]
@@ -163,8 +279,19 @@ namespace LiteNet.Tests
 
             var c = RoomServerConfig.Load(path);
             Assert.True(c.MaxRooms > 0);
+            Assert.InRange(c.WorkerCount, 1, 256);
+            Assert.InRange(c.MailboxCapacity, 1, 1_000_000);
             Assert.NotEmpty(c.TemplateIds);
             Assert.True(c.Combat.EntityHp > 0, "自带配置的玩法数值应为有效值");
+        }
+
+        private static string WithProperty(string property, string value, bool quoteValue)
+        {
+            char quote = (char)34;
+            string audience = quote + "audience" + quote + ": " + quote + "cluster-1" + quote + ",";
+            string rendered = quoteValue ? quote + value + quote : value;
+            string addition = quote + property + quote + ": " + rendered + ",";
+            return Good.Replace(audience, audience + " " + addition);
         }
 
         private static string RepoRoot()

@@ -60,7 +60,8 @@ namespace LiteNet.Tests
         public void Dispose()
         {
             foreach (var c in _clients) c.Dispose();
-            _serverTransport.Dispose();
+            // ServerHost owns Worker Pool + Transport；先走宿主收尾，避免配置驱动的固定池遗留后台线程。
+            _host.Dispose();
         }
 
         private HeadlessClient StartIn(string name, string roomId)

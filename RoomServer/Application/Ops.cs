@@ -57,6 +57,14 @@ namespace RoomServer.Application
         public long MatchStateChanges;
         /// <summary>SettlementReady 产出数。</summary>
         public long SettlementsReady;
+        /// <summary>SettlementReady 已入盒落盘数（§11.3 本地持久 Outbox；排空第 4 步的语义承载）。</summary>
+        public long SettlementsJournaled;
+        /// <summary>入盒幂等命中数（同 matchId 重复——重放/重试形态）。</summary>
+        public long SettlementsOutboxDuplicates;
+        /// <summary>入盒容量满拒数（§6"有界 Outbox"；显式拒绝不静默丢）。</summary>
+        public long SettlementsOutboxRejected;
+        /// <summary>入盒介质写失败数（不抛进权威循环，计数可见）。</summary>
+        public long SettlementsOutboxFailed;
         /// <summary>重连恢复完成数（SeatRestored：Restoring → Active；§9.3 步骤 6）。</summary>
         public long RestoresCompleted;
 
@@ -121,6 +129,10 @@ namespace RoomServer.Application
                .Append(" | match: phase=").Append(room.Phase)
                .Append(" transitions=").Append(MatchStateChanges)
                .Append(" settled=").Append(SettlementsReady)
+               .Append(" obx(ok/dup/rej/fail)=").Append(SettlementsJournaled).Append('/')
+               .Append(SettlementsOutboxDuplicates).Append('/')
+               .Append(SettlementsOutboxRejected).Append('/')
+               .Append(SettlementsOutboxFailed)
                .Append(" restored=").Append(RestoresCompleted)
                .Append(" | edge: rejects=").Append(Rejects)
                .Append(" sessRej=").Append(SessionsRejected)

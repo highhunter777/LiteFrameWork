@@ -36,6 +36,30 @@ namespace LiteNet.Tests
         }
 
         [Fact]
+        public void 断线会话收到迟到首包_不在没有新连接事件时复活()
+        {
+            var table = new SessionManager(2);
+            var disconnected = new Session(7, 0, 11) { Disconnected = true };
+            Assert.True(table.TryAdd(disconnected));
+            long lastSeenBefore = disconnected.LastSeenMs;
+
+            Session late = table.GetOrAddOnFirstPacket(7, 1);
+
+            Assert.Same(disconnected, late);
+            Assert.True(late.Disconnected);
+            Assert.Equal(lastSeenBefore, late.LastSeenMs);
+            Assert.Equal(1, table.Count);
+
+            // 真正的连接 Id 复用必须经过 OnConnected 对应的 TryAddNew，
+            // 才会创建新代次并允许新包进入。
+            Assert.True(table.TryAddNew(7, 2, out Session fresh));
+            Assert.NotSame(disconnected, fresh);
+            Assert.False(fresh.Disconnected);
+            Assert.NotEqual(disconnected.Epoch, fresh.Epoch);
+            Assert.Equal(1, fresh.Epoch);
+        }
+
+        [Fact]
         public void 周期清理_断线超窗与未进房静默被移除()
         {
             var table = new SessionManager(8);

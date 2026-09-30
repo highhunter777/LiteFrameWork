@@ -79,6 +79,22 @@ namespace RoomServer.Application
             return true;
         }
 
+        /// <summary>
+        /// 只查看票据绑定，不消费一次性票据。Mailbox admission 在控制 lane 满载时
+        /// 需要先定位目标房间，避免为了路由而吞掉仍可重试的重连票据。
+        /// </summary>
+        public bool TryPeek(string token, out int playerId, out string roomId)
+        {
+            playerId = -1;
+            roomId = null;
+            if (string.IsNullOrEmpty(token)) return false;
+            if (!_tickets.TryGetValue(token, out Ticket ticket)) return false;
+            if (NowMs() > ticket.ExpireAtMs) return false;
+            playerId = ticket.PlayerId;
+            roomId = ticket.RoomId;
+            return true;
+        }
+
         /// <summary>清理过期票据（宿主周期调用；不清理只是内存缓慢增长，功能不受影响）。</summary>
         public int PurgeExpired()
         {

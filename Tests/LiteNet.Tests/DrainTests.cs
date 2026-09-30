@@ -12,12 +12,15 @@ namespace LiteNet.Tests
     /// 优雅关闭／排空用例（《商业级通用服务端框架总设计》§12"优雅关闭"五步；《框架先行》§6 样例④
     /// "…**drain**"、§8 准入项「联机宿主闭环」"…和**关闭排空**通过"）。
     ///
-    /// **设计五步与本实现的覆盖**（未覆盖的两步在本组里显式断言其"未实现"语义，不留含糊）：
+    /// **设计五步与本实现的覆盖**（未覆盖的在本组里显式断言其"未实现"语义，不留含糊）：
     /// 1. readiness 置 false，Lobby 不再分配——**无 Lobby/实例注册（R2）**，等价语义是本进程 `Draining`；
     /// 2. 停止接受新 Join，现有房间进入 drain——**已实现**；
     /// 3. 限时完成对局，超时归档 Aborted——**已实现**；
-    /// 4. 刷新 Outbox/Archive 到持久介质——**未实现**（无 Outbox，依赖 M0-c）；
-    /// 5. 停止 Worker/Transport/Host——**未实现**（由调用方 Dispose 承担）。
+    /// 4. 刷新 Outbox/Archive 到持久介质——**已实现**（M0-c 后续批：装配 ISettlementOutbox 时
+    ///    SettlementReady 逐条 write-through 落盘，DrainComplete 后 FlushSettlementOutbox 收口；
+    ///    完整 Match 归档与提交管道归 R3）；
+    /// 5. 停止 Worker/Transport/Host——**生命周期已接线**（`Dispose` 按 Worker → Transport → Outbox
+    ///    顺序收尾）；真正 Mailbox 排空与 Worker/房间 Owner 切换仍归后续 R2 路由批次。
     /// </summary>
     [Trait(TestTrait.Category, TestCategory.Integration)]
     public sealed class DrainTests
@@ -293,6 +296,62 @@ namespace LiteNet.Tests
             int frame = room.AuthSim.Frame;
             for (int i = 0; i < 5; i++) host.Pump();
             Assert.Equal(frame, room.AuthSim.Frame);
+        }
+
+        // ---- 第 4 步：刷新 Outbox 到持久介质（M0-c 后续批）----
+
+        [Fact]
+        public void 排空超时收尾_结算入盒落盘_第4步收口()
+        {
+            // 全链：满员开局 → 排空超时强制收尾 → SettlementReady → 本地持久 Outbox（真实临时文件）
+            // → DrainComplete → FlushSettlementOutbox（§12 第 4 步）→ 介质可读、重启可重放。
+            string dir = System.IO.Path.Combine(System.IO.Path.GetTempPath(),
+                "litegame_drain_" + System.Guid.NewGuid().ToString("N"));
+            string journal = System.IO.Path.Combine(dir, "settlements.journal");
+            var cfg = RoomServerConfig.Parse(Config);
+            var t = new FakeRoomTransport();
+            using (var outbox = FileSettlementOutbox.Open(journal, 16))
+            using (var host = new ServerHost(t, null, null, null, cfg, outbox))
+            {
+                host.Ops.PrintEnabled = false;
+
+                t.RaiseConnected(1); t.RaiseConnected(2);
+                t.RaiseData(1, Join("Room-A"));
+                t.RaiseData(2, Join("Room-A"));
+                host.TryGetRoom("Room-A", out RoomRuntime room);
+                Assert.True(room.Started);
+
+                host.BeginDrain(0);
+                host.Pump();
+                Assert.True(room.Closed);
+                Assert.True(host.DrainComplete);
+
+                // SettlementReady 即入盒（write-through——收口前已在介质上）
+                Assert.Equal(1, host.Ops.SettlementsReady);
+                Assert.Equal(1, host.Ops.SettlementsJournaled);
+                Assert.Equal(1, host.SettlementOutboxPending);
+
+                host.FlushSettlementOutbox();     // §12 第 4 步收口（幂等）
+                host.FlushSettlementOutbox();
+            }
+
+            try
+            {
+                // 介质事实：文件在、内容含房间号
+                Assert.True(System.IO.File.Exists(journal));
+                Assert.Contains("Room-A", System.IO.File.ReadAllText(journal));
+
+                // 重启恢复：新实例续接——待提交不丢（提交管道归 R3）
+                using (var restarted = FileSettlementOutbox.Open(journal, 16))
+                {
+                    Assert.Equal(1, restarted.Count);
+                    Assert.Equal("Room-A", restarted.ListPending()[0].MatchId);
+                }
+            }
+            finally
+            {
+                if (System.IO.Directory.Exists(dir)) System.IO.Directory.Delete(dir, true);
+            }
         }
     }
 }

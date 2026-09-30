@@ -176,6 +176,10 @@ AgentScripts/
 Tests/LiteNet.Tests/TempProtoReflection.cs
 TestResults/
 
+# RoomServer 结算 Outbox 日志（本地持久介质，运行产物不入库；且不得移入 RoomServer/Data——
+# 那里的 .json 参与 buildHash 哈希闭包，日志落错处会让哈希随对局漂移）
+Outbox/
+
 # Unity Test Runner 的 PlayMode 临时场景（2026-09-26 实测：跑完 L2 PlayMode 后残留）
 Assets/InitTestScene*.unity
 Assets/InitTestScene*.unity.meta

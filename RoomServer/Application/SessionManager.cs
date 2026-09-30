@@ -22,6 +22,7 @@ namespace RoomServer.Application
 
         private readonly Dictionary<int, Session> _byConnection = new Dictionary<int, Session>();
         private readonly int _capacity;
+        private long _nextEpoch;
 
         public SessionManager(int capacity)
         {
@@ -42,14 +43,41 @@ namespace RoomServer.Application
             return true;
         }
 
+        /// <summary>为传输连接创建新的代次并登记；连接 Id 复用时也会递增。</summary>
+        public bool TryAddNew(int connectionId, long nowMs, out Session session)
+        {
+            session = null;
+            if (_byConnection.TryGetValue(connectionId, out Session existing) && !existing.Disconnected)
+            {
+                session = existing;
+                return true;
+            }
+            if (existing != null) _byConnection.Remove(connectionId);
+            if (_byConnection.Count >= _capacity) return false;
+            session = new Session(connectionId, nowMs, ++_nextEpoch);
+            _byConnection[connectionId] = session;
+            return true;
+        }
+
         public bool TryGet(int connectionId, out Session session) => _byConnection.TryGetValue(connectionId, out session);
 
-        /// <summary>首包兜底：连接事件与首包间存在竞态窗口时补登记（超容量返回 null——宿主丢包并计数）。</summary>
+        /// <summary>
+        /// 首包兜底：连接事件与首包间存在竞态窗口时补登记（超容量返回 null——宿主丢包并计数）。
+        /// 已断线的旧代次原样返回，由宿主丢弃迟到包；连接 Id 复用必须先经过
+        /// <see cref="TryAddNew"/>，避免迟到数据在没有新连接事件时复活会话。
+        /// </summary>
         public Session GetOrAddOnFirstPacket(int connectionId, long nowMs)
         {
-            if (_byConnection.TryGetValue(connectionId, out Session session)) return session;
+            if (_byConnection.TryGetValue(connectionId, out Session session))
+            {
+                // OnConnected 会通过 TryAddNew 显式替换同 Id 的旧代次。
+                // 这里不能把断线会话提前移除并新建：传输层迟到包不应在没有
+                // 新 OnConnected 的情况下复活连接。调用方会看到 Disconnected
+                // 并丢弃该包；真正的 Id 复用由下一次 TryAddNew 完成。
+                return session;
+            }
             if (_byConnection.Count >= _capacity) return null;
-            session = new Session(connectionId, nowMs);
+            session = new Session(connectionId, nowMs, ++_nextEpoch);
             _byConnection[connectionId] = session;
             return session;
         }

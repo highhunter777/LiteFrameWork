@@ -73,8 +73,17 @@ Console.WriteLine($"[RoomServer] 玩法数值（进程级共享，所有房间�
 
 // 预置房间：**不预置**——单进程多房间下所有房间首次进房时按配置模板创建（懒创建），
 // 容量上限 max_rooms 就是全部房间数。预置一个房间会白占一格，且"该预置哪个 roomId"没有依据。
+
+// 结算 Outbox（§11.3"本地持久 Outbox"；排空第 4 步的落地面）。启动时续接既有日志：
+// 进程重启后待提交条目不丢（重启恢复面）；坏行（崩溃半行）跳过并计数。
+using var settlementOutbox = FileSettlementOutbox.Open(
+    serverConfig.SettlementJournalPath, serverConfig.SettlementOutboxCapacity);
+if (settlementOutbox.Count > 0 || settlementOutbox.SkippedCorruptLines > 0)
+    Console.WriteLine($"[RoomServer] 结算日志重放：待提交 {settlementOutbox.Count} 条（坏行跳过 {settlementOutbox.SkippedCorruptLines}）——提交管道归 R3");
+
 using var transport = new KcpTransportServer();
-using var host = new ServerHost(transport, null, ticketValidator, audience, serverConfig);
+using var host = new ServerHost(transport, null, ticketValidator, audience, serverConfig, settlementOutbox,
+    mailboxRouting: true, drainMailboxesImmediately: true);
 host.Ops.PrintEnabled = !quiet;
 
 // --port 是宿主级覆盖（配置文件里的 port 是同一个值的来源；此处允许验收脚本临时换端口）。
@@ -91,9 +100,11 @@ if (durationMs > 0)
 }
 else
 {
-    // 常驻形态：Ctrl+C 触发**优雅关闭**（§12 优雅关闭 2→3 步；不再直接杀进程）。
-    // 第 1 步（readiness 置 false / Lobby 停分配）本服务无 Lobby 面，等价语义由 host.Draining 承担。
-    // 第 4 步（刷 Outbox/归档）与第 5 步（停 Worker/Transport）依赖尚未交付的持久化与 Worker 池。
+    // 常驻形态：Ctrl+C 触发**优雅关闭**（§12 优雅关闭 2→4 步；不再直接杀进程）。
+    // 第 1 步（readiness 置 false / Lobby 停分配）本服务无 Lobby 面，等价语义由 host.Draining 承担；
+    // 第 4 步（刷 Outbox 到持久介质）经 host.FlushSettlementOutbox() 收口（M0-c 后续批）；
+    // 第 5 步的 Worker/Transport 生命周期已由 using/Dispose 接线；Mailbox 路由与房间 Owner
+    // 排空前置仍归后续 R2 批次。
     var shutdown = new ManualResetEventSlim(false);
     Console.CancelKeyPress += (_, e) =>
     {
@@ -102,7 +113,7 @@ else
     };
 
     loop.Start();
-    Console.WriteLine($"[RoomServer] 常驻中（Ctrl+C 优雅关闭；排空时限 {DrainGraceMs}ms）");
+    Console.WriteLine($"[RoomServer] 常驻中（Ctrl+C 优雅关闭；排空时限 {DrainGraceMs}ms；结算日志 {serverConfig.SettlementJournalPath}）");
     shutdown.Wait();
 
     Console.WriteLine("[RoomServer] 收到停止信号 → 开始排空");
@@ -113,9 +124,13 @@ else
         Thread.Sleep(50);
     }
     loop.Stop();
+
+    // §12 第 4 步：刷新 Outbox 到持久介质（逐条 write-through 已落盘，此处为收口确认）；
+    // 未提交条目保持在日志中可重试——下次启动的"结算日志重放"即恢复面。
+    host.FlushSettlementOutbox();
     Console.WriteLine(host.DrainComplete
-        ? $"[RoomServer] 排空完成（{drainWatch.ElapsedMilliseconds}ms）：房间数={host.RoomCount} drainTimeout={host.Ops.RoomsDrainTimedOut}"
-        : $"[RoomServer] 排空未在时限内完成（{drainWatch.ElapsedMilliseconds}ms）——按超时退出");
+        ? $"[RoomServer] 排空完成（{drainWatch.ElapsedMilliseconds}ms）：房间数={host.RoomCount} drainTimeout={host.Ops.RoomsDrainTimedOut} 结算在盒={host.SettlementOutboxPending}（待提交，管道归 R3）"
+        : $"[RoomServer] 排空未在时限内完成（{drainWatch.ElapsedMilliseconds}ms）——按超时退出（结算在盒={host.SettlementOutboxPending}）");
 }
 
 /// <summary>取 --config 的值；缺省用配置类给出的相对路径（相对工作目录）。</summary>

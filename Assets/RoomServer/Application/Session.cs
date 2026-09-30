@@ -29,6 +29,12 @@ namespace RoomServer.Application
         /// <summary>传输层连接 Id（kcp2k connectionId）。</summary>
         public readonly int ConnectionId;
 
+        /// <summary>
+        /// 连接代次。连接 Id 可能被底层复用；宿主把该值带进 Mailbox envelope，
+        /// 消费时可丢弃旧连接的迟到命令。直接构造的历史测试会使用 0（不启用代次校验）。
+        /// </summary>
+        public readonly long Epoch;
+
         /// <summary>进房后分配的玩家号（房间内从 0 递增；未进房 = -1）。App 路由缓存——席位事实在 Runtime。</summary>
         public int PlayerId = -1;
 
@@ -56,6 +62,9 @@ namespace RoomServer.Application
 
         /// <summary>断线标记（掉线不停帧：权威循环对断线者沿用空输入 §4.5-2）。</summary>
         public bool Disconnected;
+
+        /// <summary>Join 已验收并入 Mailbox、尚未由 Runtime 消费的 admission 闸门。</summary>
+        public bool JoinPending;
 
         /// <summary>E1 背压水位（累计已发快照字节数）——按此降档；释放只能经 ACK ledger（R0-P0-4）。</summary>
         public long SendQueueBytes;
@@ -97,8 +106,14 @@ namespace RoomServer.Application
         public int LastAckSnapshot = -1;
 
         public Session(int connectionId, long nowMs)
+            : this(connectionId, nowMs, 0)
+        {
+        }
+
+        public Session(int connectionId, long nowMs, long epoch)
         {
             ConnectionId = connectionId;
+            Epoch = epoch;
             LastSeenMs = nowMs;
         }
 

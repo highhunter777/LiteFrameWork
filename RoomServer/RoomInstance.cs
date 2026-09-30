@@ -1,3 +1,4 @@
+using System;
 using RoomServer.Application;
 using RoomServer.Runtime;
 
@@ -19,8 +20,14 @@ namespace RoomServer
     /// </summary>
     internal sealed class RoomInstance
     {
+        /// <summary>未显式传容量时的每房间三 lane 默认容量，与宿主配置默认值保持一致。</summary>
+        public const int DefaultMailboxCapacity = 1024;
+
         /// <summary>房间号（= <see cref="RoomConfig.RoomId"/>；路由键，创建后不变）。</summary>
         public readonly string RoomId;
+
+        /// <summary>是否由动态 Join 预留；仅这类尚未入局的空房可在 admission 失败时回滚。</summary>
+        public readonly bool IsDynamic;
 
         /// <summary>权威运行时（Sim + 闸门 + 席位）。</summary>
         public readonly RoomRuntime Runtime;
@@ -33,6 +40,36 @@ namespace RoomServer
 
         /// <summary>本房间的固定配置（创建时定，此后不变——§P0-5/§4"房间创建时固定不可变玩法配置"）。</summary>
         public readonly RoomConfig Config;
+
+        /// <summary>
+        /// 房间宿主消息盒。入站 Control/Input 已由 ServerHost 按房间路由并由 owner 消费；
+        /// Outbound lane 为后续 Worker 输出回传保留，保证路由与房间状态一起表达"每房间一份"。
+        /// </summary>
+        public readonly RoomMailbox<RoomInputEnvelope, RoomControlEnvelope, RoomOutboundEnvelope> Mailbox;
+
+        /// <summary>三条 lane 使用的统一容量（细分容量可从 <see cref="MailboxCounts"/> 观测）。</summary>
+        public int MailboxCapacity => Mailbox.InputCapacity;
+
+        /// <summary>Input lane 容量。</summary>
+        public int MailboxInputCapacity => Mailbox.InputCapacity;
+
+        /// <summary>Control lane 容量。</summary>
+        public int MailboxControlCapacity => Mailbox.ControlCapacity;
+
+        /// <summary>Outbound lane 容量。</summary>
+        public int MailboxOutboundCapacity => Mailbox.OutboundCapacity;
+
+        /// <summary>三条 lane 当前排队数量快照。</summary>
+        public RoomMailboxCounts MailboxCounts => Mailbox.Counts;
+
+        /// <summary>累计成功入队条数。</summary>
+        public long MailboxAcceptedCount => Mailbox.AcceptedCount;
+
+        /// <summary>累计成功出队条数。</summary>
+        public long MailboxDequeuedCount => Mailbox.DequeuedCount;
+
+        /// <summary>累计因 lane 满而拒绝的入队条数。</summary>
+        public long MailboxRejectedFullCount => Mailbox.RejectedFullCount;
 
         /// <summary>
         /// 排空截止时刻（单调毫秒；-1 = 未在排空）。由 <see cref="ServerHost.BeginDrain"/> 置位，
@@ -56,12 +93,42 @@ namespace RoomServer
         }
 
         public RoomInstance(RoomConfig config)
+            : this(config, DefaultMailboxCapacity, false)
         {
+        }
+
+        /// <summary>以统一容量创建房间 Mailbox；三条 lane 各自拥有该容量。</summary>
+        public RoomInstance(RoomConfig config, int mailboxCapacity)
+            : this(config, mailboxCapacity, false)
+        {
+        }
+
+        public RoomInstance(RoomConfig config, int mailboxCapacity, bool isDynamic)
+            : this(config, mailboxCapacity, mailboxCapacity, mailboxCapacity, isDynamic)
+        {
+        }
+
+        /// <summary>
+        /// 以独立 lane 容量创建房间 Mailbox。宿主配置当前只有一个统一容量，保留此
+        /// 重载供后续按优先级配置输入/控制/出站配额。
+        /// </summary>
+        public RoomInstance(RoomConfig config, int inputCapacity, int controlCapacity, int outboundCapacity)
+            : this(config, inputCapacity, controlCapacity, outboundCapacity, false)
+        {
+        }
+
+        public RoomInstance(RoomConfig config, int inputCapacity, int controlCapacity, int outboundCapacity,
+            bool isDynamic)
+        {
+            if (config == null) throw new ArgumentNullException(nameof(config));
             Config = config;
             RoomId = config.RoomId;
+            IsDynamic = isDynamic;
             Runtime = new RoomRuntime(config);
             Seats = new Session[Runtime.ExpectedPlayers];
             Pipeline = new SnapshotPipeline(Seats);
+            Mailbox = new RoomMailbox<RoomInputEnvelope, RoomControlEnvelope, RoomOutboundEnvelope>(
+                inputCapacity, controlCapacity, outboundCapacity);
         }
     }
 }

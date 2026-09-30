@@ -5,11 +5,14 @@
     "combat = 进程级共享玩法数值：Sim 系统静态读 CombatConfig，所有房间同一份。",
     "  **不允许按房间覆盖**——宿主侧覆盖造不出真隔离，只会让票据里的 ConfigHash 与实际计算值不符。",
     "  每房间参数化依赖 Sim 侧迁移（归 G1/热更批），届时本文件才可能长出 per-room combat。",
+    "worker_count/mailbox_capacity = R2 Worker/Mailbox 配置；默认 1 Worker，宿主生命周期已接线，运行时消息路由按批次推进。",
     "改本文件必须重启生效：启动时快照，运行中不重读（§188 房间创建时固定不可变玩法配置）。"
   ],
 
   "port": 17777,
   "max_rooms": 8,
+  "worker_count": 1,
+  "mailbox_capacity": 1024,
   "audience": "",
   "default_template": "standard",
 

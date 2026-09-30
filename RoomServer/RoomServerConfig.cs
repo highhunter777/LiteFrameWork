@@ -67,19 +67,41 @@ namespace RoomServer
         /// <summary>本进程允许的 audience（票据比对；空 = 不校验）。</summary>
         public readonly string Audience;
 
+        /// <summary>固定 Worker 数（R2 Worker Pool；当前默认 1，运行时路由切换前保持单循环行为兼容）。</summary>
+        public readonly int WorkerCount;
+
+        /// <summary>每个固定 Worker 的有界 Mailbox 容量（R2；核心与宿主生命周期已接线，运行时消息路由后续生效）。</summary>
+        public readonly int MailboxCapacity;
+
+        /// <summary>
+        /// 结算 Outbox 日志路径（M0-c 后续批"排空第 4 步"；§11.3 本地持久 Outbox）。
+        /// 缺省 Outbox/settlements.journal。**强制 .journal 后缀**：RoomServer/Data 的
+        /// .json/.bytes 参与 buildHash 哈希闭包——日志若配成那里的 .json，会随每局结算漂移、
+        /// 两端握手全拒（这是一条实测级红线，装载期直接拒，不给运行期踩）。
+        /// </summary>
+        public readonly string SettlementJournalPath;
+
+        /// <summary>结算 Outbox 容量上限（§6"有界 Outbox"；满则入盒显式拒绝并计数）。</summary>
+        public readonly int SettlementOutboxCapacity;
+
         private readonly string _sourcePath;
 
         private RoomServerConfig(string sourcePath, int port, int maxRooms, string audience,
             Dictionary<string, RoomTemplate> rooms, string defaultTemplateId,
-            CombatNumValues combat)
+            CombatNumValues combat, int workerCount, int mailboxCapacity,
+            string settlementJournalPath, int settlementOutboxCapacity)
         {
             _sourcePath = sourcePath;
             _port = port;
             MaxRooms = maxRooms;
             Audience = audience ?? string.Empty;
+            WorkerCount = workerCount;
+            MailboxCapacity = mailboxCapacity;
             _rooms = rooms;
             _defaultTemplateId = defaultTemplateId;
             _combat = combat;
+            SettlementJournalPath = settlementJournalPath;
+            SettlementOutboxCapacity = settlementOutboxCapacity;
 
             int widest = 0;
             foreach (RoomTemplate t in rooms.Values)
@@ -165,6 +187,20 @@ namespace RoomServer
 
             string audience = OptionalString(root, "audience");
 
+            // R2 Worker Pool 配置：默认 1 保持当前单循环行为；范围先钉住，避免线程数/队列
+            // 上限被错误配置成资源放大器。核心与宿主生命周期已接线，运行时路由按批次推进。
+            long workerCountValue = OptionalLong(root, "worker_count", 1);
+            if (workerCountValue < 1 || workerCountValue > 256)
+                throw new InvalidDataException(
+                    $"worker_count 越界（允许 1..256）：{workerCountValue}：{sourcePath}");
+            int workerCount = (int)workerCountValue;
+
+            long mailboxCapacityValue = OptionalLong(root, "mailbox_capacity", 1024);
+            if (mailboxCapacityValue < 1 || mailboxCapacityValue > 1_000_000)
+                throw new InvalidDataException(
+                    $"mailbox_capacity 越界（允许 1..1000000）：{mailboxCapacityValue}：{sourcePath}");
+            int mailboxCapacity = (int)mailboxCapacityValue;
+
             // combat：全进程共享（Sim 静态读）——必填，且**不允许按房间覆盖**。
             // 形状与 Luban 产物 tbcombatnum.json 一致（`[{...}]`），故配置既可直接内联，
             // 也可由部署把表产物整段嵌入——两条路产出的字节形状相同。
@@ -199,7 +235,28 @@ namespace RoomServer
                     throw new InvalidDataException($"rooms 不得含名为 combat 的模板（与进程级分区同名）：{sourcePath}");
             }
 
-            return new RoomServerConfig(sourcePath, port, maxRooms, audience, rooms, defaultId, combat);
+            // ---- 结算 Outbox（排空第 4 步；可选字段 + 范围校验 + 路径红线）----
+            string journal = OptionalString(root, "settlement_journal");
+            if (string.IsNullOrEmpty(journal)) journal = "Outbox/settlements.journal";
+            if (!journal.EndsWith(".journal", StringComparison.OrdinalIgnoreCase))
+                throw new InvalidDataException(
+                    $"settlement_journal 必须以 .journal 结尾（RoomServer/Data 的 .json/.bytes 参与 buildHash 哈希闭包，日志落错处会让哈希随对局漂移、两端握手全拒）：{journal}：{sourcePath}");
+            if (Path.IsPathRooted(journal) && !File.Exists(journal))
+            {
+                // 绝对路径允许（部署形态），但目录必须在（提前暴露错配置，不在首次结算时才炸）
+                string dir = Path.GetDirectoryName(journal);
+                if (!string.IsNullOrEmpty(dir) && !Directory.Exists(dir))
+                    throw new InvalidDataException($"settlement_journal 目录不存在：{dir}：{sourcePath}");
+            }
+
+            long outboxCapacityValue = OptionalLong(root, "settlement_outbox_capacity", 10_000);
+            if (outboxCapacityValue < 1 || outboxCapacityValue > 1_000_000)
+                throw new InvalidDataException(
+                    $"settlement_outbox_capacity 越界（允许 1..1000000）：{outboxCapacityValue}：{sourcePath}");
+            int outboxCapacity = (int)outboxCapacityValue;
+
+            return new RoomServerConfig(sourcePath, port, maxRooms, audience, rooms, defaultId, combat,
+                workerCount, mailboxCapacity, journal, outboxCapacity);
         }
 
         /// <summary>可调默认路径（相对工作目录）。</summary>
@@ -261,9 +318,11 @@ namespace RoomServer
         public string Describe()
         {
             return string.Format(CultureInfo.InvariantCulture,
-                "port={0} maxRooms={1} audience={2} rooms=[{3}] default={4}",
-                Port, MaxRooms, string.IsNullOrEmpty(Audience) ? "(不校验)" : Audience,
-                string.Join(",", _rooms.Keys), _defaultTemplateId);
+                "port={0} maxRooms={1} workerCount={2} mailboxCapacity={3} audience={4} rooms=[{5}] default={6} settlementJournal={7} settlementCapacity={8}",
+                Port, MaxRooms, WorkerCount, MailboxCapacity,
+                string.IsNullOrEmpty(Audience) ? "(不校验)" : Audience,
+                string.Join(",", _rooms.Keys), _defaultTemplateId, SettlementJournalPath,
+                SettlementOutboxCapacity);
         }
     }
 }

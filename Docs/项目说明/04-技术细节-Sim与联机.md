@@ -77,7 +77,7 @@
 ### 3.3 运维面
 
 - 多房间：`roomId → RoomInstance` 路由、动态建房受 `max_rooms` 约束（见 [服务端多房间记录](../施工进度/服务端多房间.md)）。
-- 排空（优雅关闭第 2–3 步）与跨房间过载隔离、真实传输多房间隔离已交付；Worker Pool / 有界 Mailbox 归 R2。
+- 排空（优雅关闭第 2–4 步）与跨房间过载隔离、真实传输多房间隔离已交付；Worker/Mailbox 核心、宿主生命周期与 Control/Input 入站路由已接线，Runtime/Outbound Worker 迁移与排空第 5 步完整核证仍归 R2。
 - 离线隔离开发：房间内核可跑在**进程内本服**（`LocalServerTransport`），便于无网环境开发与联机用例（见 [离线隔离开发](../施工进度/离线隔离开发.md)）。
 
 ## 4. Meta 服务（接缝期）
