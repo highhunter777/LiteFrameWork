@@ -196,3 +196,9 @@ Tests/key_ras.pub
 *.pem
 *.pfx
 *.p12
+
+# ===== MagicaCloth2（第三方付费资产，不入 VCS；同 CombatGirlsCharacterPack 先例——
+# 缺包时按域排除的遮罩手工维护面照常工作，ProjectSettings 的 MAGICACLOTH2 宏与
+# manifest 的 collections/burst 依赖未提交，干净检出不会引用到缺失包）=====
+Assets/MagicaCloth2/
+Assets/MagicaCloth2.meta
