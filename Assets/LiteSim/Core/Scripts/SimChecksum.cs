@@ -140,9 +140,6 @@ namespace LiteSim
                 h = MixInt32(h, e.Kills);
                 h = MixInt32(h, e.Deaths);
                 h = MixInt32(h, e.SelectedWeapon);
-                // 开火驻留窗（Sim 内派生面，2026-09-30）：只进全量口径——远端的开火输入不可重建，
-                // 进公共口径会让"快照早于开火"的每份快照必假和解（与私有面同判；SlotDelta 扩展列 §7 余项）
-                h = MixByte(h, e.FireStanceFrames);
             }
 
             byte[] globals = s.Globals;

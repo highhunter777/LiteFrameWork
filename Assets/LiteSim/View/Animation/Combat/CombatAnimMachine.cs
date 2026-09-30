@@ -31,21 +31,19 @@ namespace LiteSim.View.Animation
     /// <summary>
     /// 战斗层状态机装配（《层次动画机设计》§2——旧驱动器布尔规则的正名，不是重设计）：
     /// - Idle→Firing：Fire 事件（驱动器转发 Request / 态内 OnFireEvent 合并）；
-    /// - Firing 驻留（StageTime 判窗，原 FireStanceHoldSeconds）——**2026-09-30 起与 Sim 侧开火驻留窗
-    ///   同源派生**（<see cref="CombatConfig.FireStanceFrames"/>，0.7s @60Hz）：形态窗与限速/朝向窗必须
-    ///   同长，错位会出现"AimWalk 形态配全速滑步"或"限速中却跑姿"的中间带；
+    /// - Firing 驻留（事件刷新制判窗，原 FireStanceHoldSeconds 语义——2.0s 常量；持续射击不断续窗，
+    ///   静默满窗才回 Idle）；
     /// - Firing 内新事件且上一轮已完 → 重起一轮（2× 速，原连发重起策略）；
     /// - 移动层事实（IsMoving）由驱动器每帧喂 ctx：**移动中不提交后坐**（原移动门控——AimWalk
-    ///   持枪自洽）；**起跑只停站姿后坐叠加、不退出 Firing 态**（2026-09-30 腰射批修正——整态退出会让
-    ///   移动形态回落 MoveBlend/Run，"移动腰射被 run 打断"）；
+    ///   持枪自洽）；**起跑整态退出**（回 Idle，移动形态回 MoveBlend 接管——B-① 原形；2026-09-30
+    ///   曾改"只停叠加不退态"的驻留窗口径，随 Sim 侧驻留窗一并回退）；
     /// - 窗尽回 Idle（叠加随离场淡出）。
     /// </summary>
     public static class CombatAnimMachine
     {
         /// <summary>开火驻留窗（秒）——窗内移动形态视同瞄准态（驻留语义随状态持有）。
-        /// **从 Sim 侧同源派生**（2026-09-30 腰射批用户裁决）：改窗长只动
-        /// <see cref="CombatConfig.FireStanceFrames"/>，两层窗口同进同退。</summary>
-        public static float FiringHoldSeconds => CombatConfig.FireStanceFrames / (float)SimConfig.TickRate;
+        /// 2.0s 常量（批B-① 原形；2026-09-30 曾改与 Sim 侧开火驻留窗同源派生，随驻留窗口径回退一并还原）。</summary>
+        public const float FiringHoldSeconds = 2.0f;
 
         /// <summary>装配一台战斗层状态机（批B-① 无复合态=平面退化形态；批B-② 移动层入树时长出第二根）。</summary>
         public static HierarchicalStageMachine<CombatAnimId, CombatAnimReq> Build(SlotAnimContext ctx)
@@ -99,15 +97,14 @@ namespace LiteSim.View.Animation
     /// <summary>
     /// 开火态：驻留窗内持有 UpperBody 后坐叠加。进态即提交一轮（移动中只开窗不提交——
     /// AimWalk 持枪自洽，后坐留给站定）；窗内来新事件且上一轮已完 → 重起一轮（连发）；
-    /// 移动开始 → **只停站姿后坐叠加、不退出本态**（2026-09-30 腰射批修正：整态退出会让移动形态
-    /// 回落 MoveBlend/Run——"移动腰射被 run 打断"；窗保持事件刷新制，窗尽 → 回 Idle）。
+    /// 移动开始 → **整态退出**（回 Idle，叠加随离场淡出，移动形态回 MoveBlend 接管）；窗尽 → 回 Idle。
     /// </summary>
     internal sealed class FiringStage : IStage<CombatAnimId, CombatAnimReq>
     {
         private readonly SlotAnimContext _ctx;
         private AnimationHandle _handle;
         private float _windowElapsed;      // 驻留剩余（秒）——**事件刷新制**（原 FireStanceHold 语义：
-                                           // 持续射击时窗不断续期，只有静默满窗（0.7s，同源派生）才出；
+                                           // 持续射击时窗不断续期，只有静默满窗（2.0s 常量）才出；
                                            // 不用 StageTime——那是"进态后绝对时长"，持续射击会周期性闪回 Idle 一帧）
 
         internal FiringStage(SlotAnimContext ctx)
@@ -127,13 +124,12 @@ namespace LiteSim.View.Animation
 
         public void OnUpdate(IStageHost<CombatAnimId, CombatAnimReq> m, float elapseSeconds)
         {
-            // 起跑终止（2026-09-30 腰射批修正）：移动开始 → 只停**站姿后坐叠加**（AimWalk 持枪步态
-            // 自洽接管上半身），**不退出 Firing 态**——退出会让移动形态回落 MoveBlend/Run（"移动腰射
-            // 被 run 打断"）。窗保持（事件刷新制继续），窗尽自然回 Idle。
-            if (_ctx.IsMoving && _handle.IsValid)
+            // 起跑终止（B-① 原形）：移动开始 → 整态退出（回 Idle）——移动形态回 MoveBlend 接管。
+            // 2026-09-30 曾改"只停站姿后坐叠加、不退 Firing 态"（驻留窗口径），随 Sim 侧驻留窗回退一并还原。
+            if (_ctx.IsMoving)
             {
-                _ctx.Player.Stop(_handle, AnimationStopReason.Cancelled);
-                _handle = default;
+                m.Request(CombatAnimId.Idle);
+                return;
             }
 
             // 驻留窗尽（事件刷新制：静默满窗才出）→ 回 Idle（叠加随状态离场停止——引擎层淡出）

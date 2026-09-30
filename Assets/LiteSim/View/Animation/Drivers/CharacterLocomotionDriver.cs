@@ -18,9 +18,9 @@ namespace LiteSim.View.Animation
     /// 未瞄准   → Locomotion.MoveBlend = {Idle, Walk, Run}   速度轴 1D 混合（权重按速度连续插值）
     /// 瞄准+静止 → AimIdle（单片段）
     /// 瞄准+移动 → Locomotion.AimMoveBlend = {AimWalk_F/R/B/L}  4 向 strafe，相邻两片按夹角插值
-    /// 开火驻留窗内 → 移动形态视同瞄准态（2026-09-28 裁决：腰射/跑射的臂姿语境配对；2026-09-30 起窗长与
-    ///               Sim 侧 CombatConfig.FireStanceFrames 同源（0.7s）——限速/朝向窗在 InputSystem 同窗生效，
-    ///               两层同进同退；窗内不再被 MoveBlend/Run 打断）
+    /// 开火驻留窗内 → 移动形态视同瞄准态（2026-09-28 裁决：腰射/跑射的臂姿语境配对；窗长为
+    ///               CombatAnimMachine.FiringHoldSeconds = 2.0s 常量——2026-09-30 曾改与 Sim 侧
+    ///               驻留窗同源 0.7s，随驻留窗口径回退一并还原；起跑整态退出，移动形态回 MoveBlend）
     /// </code>
     /// - **速度轴改走混合器**：不再按阈值离散切片段，权重连续 ⇒ 没有档位抖动；权重经
     ///   <c>CharacterAnimationPlayer.UpdateBlendWeights</c> **就地更新**（不换句柄、不产生终态、不重建节点——
@@ -225,7 +225,7 @@ namespace LiteSim.View.Animation
                     s.AimMoving = moving;
 
                     // 战斗层推进：事实先行（IsMoving 喂给状态）→ 状态机 Tick（Advance + OnUpdate——
-                    // 窗尽回 Idle / 起跑只停站姿后坐叠加（不退态，2026-09-30 腰射批）的事务在此应用）
+                    // 窗尽回 Idle / 起跑整态退出（B-① 原形，2026-09-30 回退驻留窗口径）的事务在此应用）
                     // → 移动层按"当前是否 Firing"合成瞄准语境。
                     s.CombatCtx.IsMoving = moving;
                     s.Combat.Tick(dt);

@@ -23,14 +23,6 @@ namespace LiteSim
         /// <summary>朝向（XZ 平面，弧度；射击必需）。</summary>
         public float Yaw;
 
-        /// <summary>**开火驻留窗**的剩余逻辑帧数（2026-09-30 腰射批）：开火帧由 <see cref="InputSystem"/>
-        /// 重置为 <see cref="CombatConfig.FireStanceFrames"/>，其后每逻辑帧递减；窗内与瞄准中同待遇
-        /// （限走路档 + 朝准星）——移动点射的停火帧不再回跳全速/移动向。**Sim 内派生状态、不随公共
-        /// 快照/差分下发**（远端的开火输入不可重建——进 <c>SlotDelta</c> 列《角色状态与动作专项设计》§7
-        /// 余项）：只进 <see cref="SimChecksum"/> 的**全量口径**、公共口径不覆盖（与私有面同判）；
-        /// 回滚/重放/CopyTo 经槽位数组整块深拷自动携带。</summary>
-        public byte FireStanceFrames;
-
         public int Hp;
 
         /// <summary>标志位（位定义见 <see cref="EntityFlags"/>；活体判定以 AliveBitmap 为准）。
