@@ -10,9 +10,12 @@ namespace LiteSim
     /// - **限速**：**瞄准中 ∨ 开火态**（开火态 = <see cref="EntitySlot.FireStanceFrames"/> &gt; 0，
     ///   2026-09-30 三次裁决——移动腰射按 aimwalk 移动）→ 移动上限
     ///   <see cref="CombatConfig.AimMoveSpeed"/>（= 走路档）；
-    /// - **朝向派生分两种**：瞄准中**或开火帧** → 朝准星（腰射的射击方向来自 `Aim`，身位必须跟枪口一致，
-    ///   否则子弹看起来从侧面飞出）；否则 → 朝移动方向（非瞄准的走跑用"前进向"片段，侧移不再横着走）；
-    ///   都不满足（静止且未开火）→ **保持上一帧 Yaw**（不拿零向量退化、且回放/重放可重建）。
+    /// - **朝向派生（批C+ 组合修复——债 #4 根治，2026-10-01 七次裁决）**：
+    ///   **射击语境（瞄准 ∨ 开火帧 ∨ 窗内）且准星向量有效** → 朝准星（即时跟枪——点射间隙帧不回摆，
+    ///   视图侧由此得到稳定的 AimWalk 四向权重）并**武装离场转向**；
+    ///   否则移动 → 朝移动方向——武装态按 <see cref="CombatConfig.FaceTurnRadPerSec"/> 逐帧过渡
+    ///   （窗尽回转不瞬切），到位解除恢复即时跟向；都没有 → **保持上一帧 Yaw**（不拿零向量退化，
+    ///   且回放/重放可重建）；
     /// - **开火驻留窗递减**（批次C）：Run 顶部对**全槽位**统一推进——缺席/空输入帧与死亡实体照常衰减
     ///   （整数计数 ⇒ 确定性）；窗随 <see cref="ShootingSystem"/> 判定点置满、本系统先跑 ⇒ 置窗次帧起限速生效。
     /// </summary>
@@ -45,15 +48,41 @@ namespace LiteSim
                 e.Vel.X = inputs[i].MoveX * speed;
                 e.Vel.Z = inputs[i].MoveZ * speed;
 
-                // 朝向派生（规则见类注释；Atan2(dz, dx) 查表，确定性）
-                if (aiming || (buttons & (SimInputFrame.ButtonFire | SimInputFrame.ButtonFireFlag)) != 0u)
+                // 朝向派生（规则见类注释）：射击语境 → 朝准星——**准星向量必须有效**（Atan2(0,0) 无意义，
+                // 零向量不派生、落入保持）；窗内间隙帧不回移动向（点射"逐拍回摆"的根治面）
+                bool fireFrame = (buttons & (SimInputFrame.ButtonFire | SimInputFrame.ButtonFireFlag)) != 0u;
+                bool aimValid = SimMath.MulAdd2(inputs[i].AimX, inputs[i].AimX, inputs[i].AimZ, inputs[i].AimZ)
+                    > MoveEpsilonSquared;
+                if ((aiming || fireFrame || e.FireStanceFrames > 0) && aimValid)
                 {
                     e.Yaw = SimTrig.Atan2(inputs[i].AimZ, inputs[i].AimX);
+                    e.FaceExitTurning = 1;   // 武装离场转向：语境解除后的首个移动帧起按速率平滑转回
                 }
-                else if (SimMath.MulAdd2(inputs[i].MoveX, inputs[i].MoveX, inputs[i].MoveZ, inputs[i].MoveZ) > MoveEpsilonSquared)
+                else if (SimMath.MulAdd2(inputs[i].MoveX, inputs[i].MoveX, inputs[i].MoveZ, inputs[i].MoveZ)
+                         > MoveEpsilonSquared)
                 {
-                    e.Yaw = SimTrig.Atan2(inputs[i].MoveZ, inputs[i].MoveX);
+                    // 朝移动方向：武装态（离场转向中）按转向速率逐帧过渡（窗尽回转不瞬切），
+                    // 步长内到位＝精确落位并解除武装（分支即语义——**禁浮点等值比较**，R3）；
+                    // 非武装态即时跟向（常态移动，既有手感不变）。差值/结果归约到 (-π, π]。
+                    float target = SimTrig.Atan2(inputs[i].MoveZ, inputs[i].MoveX);
+                    float maxStep = CombatConfig.FaceTurnRadPerSec * SimConfig.Dt;
+                    float d = target - e.Yaw;
+                    while (d > SimTrig.Pi) d -= SimTrig.TwoPi;
+                    while (d < -SimTrig.Pi) d += SimTrig.TwoPi;
+
+                    if (e.FaceExitTurning != 0 && (d > maxStep || d < -maxStep))
+                    {
+                        e.Yaw += d > 0f ? maxStep : -maxStep;      // 一步过渡
+                        while (e.Yaw > SimTrig.Pi) e.Yaw -= SimTrig.TwoPi;      // 结果归约——值域与 Atan2 一致
+                        while (e.Yaw <= -SimTrig.Pi) e.Yaw += SimTrig.TwoPi;
+                    }
+                    else
+                    {
+                        e.Yaw = target;                            // 步长内到位（解除武装）/ 常态即时跟向
+                        e.FaceExitTurning = 0;
+                    }
                 }
+                // else：静止且无语境 → 保持上一帧（不更新）
 
                 // 瞄准态标志：**每帧从输入位覆写**（位定义见 EntityFlags——输入位与实体标志位是两个位空间）
                 e.Flags = (e.Flags & ~EntityFlags.Aiming) | (aiming ? EntityFlags.Aiming : 0u);

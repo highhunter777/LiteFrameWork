@@ -53,6 +53,7 @@ namespace LiteSim.Tests
             // 批次C：开火驻留窗是**改写 Vel 的判定输入**（瞄准 ∨ 开火态 → 限速）——必须进全量 checksum
             // （漏一个 = 重放对账漏检）；同时是**私有面**（远端开火输入不可重建）——不得进公共比对口径
             // （进比对只会制造窗内假和解——churn 边界与协议加列根治路径见《角色状态与动作专项设计》§7）。
+            // 批C+：离场转向标记（FaceExitTurning——改写 Yaw 的过渡状态）同口径。
             var world = new SimWorldState { RngState = 1UL };
             world.Spawn(new EntitySlot { Hp = 100 }, out int slot);
 
@@ -65,7 +66,21 @@ namespace LiteSim.Tests
                 "开火窗进全量口径（判定输入——重放对账必含）");
             Assert.True(public0 == SimChecksum.ComputePublicChecksum(world),
                 "开火窗不进公共口径（私有面——远端不可重建）");
-            Assert.Equal(60, CombatConfig.FireStanceFrames);
+
+            uint full1 = SimChecksum.ComputeStateChecksum(world);
+            uint public1 = SimChecksum.ComputePublicChecksum(world);
+
+            world.Entities[slot].FaceExitTurning = 1;
+
+            Assert.True(full1 != SimChecksum.ComputeStateChecksum(world),
+                "离场转向标记进全量口径（改写 Yaw 的过渡状态——重放对账必含）");
+            Assert.True(public1 == SimChecksum.ComputePublicChecksum(world),
+                "离场转向标记不进公共口径（私有面）");
+
+            // 窗长钉（用户调参 2026-10-01：六次裁决 60 → 90＝1.5s——单源属性生效，只动了 CombatConfig 一处；
+            // 钉住当前调参防意外手改）；转向速率同钉
+            Assert.Equal(90, CombatConfig.FireStanceFrames);
+            Assert.Equal(12f, CombatConfig.FaceTurnRadPerSec);
         }
 
         [Fact]

@@ -59,6 +59,15 @@ namespace LiteSim
         /// </summary>
         public byte FireStanceFrames;
 
+        /// <summary>
+        /// 离场转向中（0 = 否；1 = 武装/进行中）——债 #4 组合修复的**过渡状态**（2026-10-01 七次裁决）：
+        /// 任意射击语境帧（瞄准/开火/窗内朝准星）**武装**；语境解除后的移动帧按
+        /// <see cref="CombatConfig.FaceTurnRadPerSec"/> 逐帧转向移动方向（窗尽回转不瞬切），到位清零
+        /// （后续移动帧恢复即时跟向）。**私有面**：由输入历史派生（重放可重建）、只进全量 checksum——
+        /// 与 <see cref="FireStanceFrames"/> 同类的和解 churn 边界（§7 登记）。
+        /// </summary>
+        public byte FaceExitTurning;
+
     }
 
     /// <summary>

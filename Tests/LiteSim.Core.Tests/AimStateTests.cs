@@ -101,6 +101,78 @@ namespace LiteSim.Tests
             Assert.True(world.Entities[slot].FireStanceFrames > 0, "重置后的窗尚有余量");
         }
 
+        // ---- 朝向组合修复（批C+：债 #4 根治——窗内朝准星不回摆 ＋ 窗尽按转向速率平滑回转）----
+
+        [Fact]
+        public void 朝向_开火窗内朝准星_点射间隙不回移动向()
+        {
+            long id = Spawn(out var world, out int slot);
+
+            // 用户报告场景：移动 +Z、点射 -X（射击方向与移动方向相反）——期望窗内稳定面朝射击方向
+            // （视图侧四向权重由"移动 vs 朝向"取角 ⇒ 稳定 AimWalk_B 的权威面）
+            var fire = Inputs(id, 0f, 1f, -1f, 0f, SimInputFrame.ButtonFire);
+            var gap = Inputs(id, 0f, 1f, -1f, 0f);                              // 间隙帧：同样移动/同样准星、不带开火位
+
+            InputSystem.Run(world, fire);
+            ShootingSystem.Run(world, fire);                                    // 判定点置满窗 + 武装离场转向
+            float crosshairYaw = SimTrig.Atan2(0f, -1f);
+            Assert.True(world.Entities[slot].Yaw == crosshairYaw, "开火帧朝准星");
+
+            // 窗内间隙帧：**不回移动方向**（旧口径在此逐拍回摆 → 视图四向权重 F/B 互顶——后退动画被淹没）
+            for (int i = 0; i < CombatConfig.FireStanceFrames - 2; i++)
+                InputSystem.Run(world, gap);
+            Assert.True(world.Entities[slot].Yaw == crosshairYaw,
+                "窗内间隙帧保持朝准星——点射不逐拍回摆（AimWalk_B 的稳定前提）");
+            Assert.True(world.Entities[slot].FireStanceFrames > 0, "断言前窗仍在");
+
+            // 窗尽（自然结束）：武装的离场转向生效——首个移动帧不瞬切，按速率过渡
+            for (int i = 0; i < 2; i++) InputSystem.Run(world, gap);
+            Assert.True(world.Entities[slot].FireStanceFrames == 0, "窗尽归零");
+            float before = world.Entities[slot].Yaw;
+            float step = CombatConfig.FaceTurnRadPerSec * SimConfig.Dt;
+            InputSystem.Run(world, gap);
+            float after = world.Entities[slot].Yaw;
+            Assert.True(after != before, "窗尽后回转开始（不保持准星向）");
+            Assert.True(System.Math.Abs(after - before) <= step + 1e-5f,
+                "窗尽回转按转向速率过渡（一帧一步，不瞬切）");
+
+            // 过渡完成：精确落位移动方向，武装解除——后续移动恢复即时跟向（无速率过渡）
+            float moveYaw = SimTrig.Atan2(1f, 0f);
+            int guard = 0;
+            while (world.Entities[slot].Yaw != moveYaw && guard++ < 300)
+                InputSystem.Run(world, gap);
+            Assert.True(world.Entities[slot].Yaw == moveYaw, "转向速率最终精确落位移动方向");
+            Assert.True(world.Entities[slot].FaceExitTurning == 0, "到位即解除武装");
+
+            var east = Inputs(id, 1f, 0f, -1f, 0f);                            // 改向 +X（准星仍 -X 但无语境）
+            InputSystem.Run(world, east);
+            Assert.True(world.Entities[slot].Yaw == SimTrig.Atan2(0f, 1f),
+                "解除后恢复即时跟向（常态移动不受速率限制——既有手感不变）");
+        }
+
+        [Fact]
+        public void 朝向_窗内静止保持准星向_窗尽静止不转向()
+        {
+            long id = Spawn(out var world, out int slot);
+
+            // 站定点射（不移动）：窗内保持准星向；窗尽后仍静止 → 保持上一帧（离场转向无移动目标不触发）
+            var fireStill = Inputs(id, 0f, 0f, -1f, 0f, SimInputFrame.ButtonFire);
+            var stillGap = Inputs(id, 0f, 0f, -1f, 0f);
+
+            InputSystem.Run(world, fireStill);
+            ShootingSystem.Run(world, fireStill);
+            float crosshairYaw = SimTrig.Atan2(0f, -1f);
+            Assert.True(world.Entities[slot].Yaw == crosshairYaw);
+
+            for (int i = 0; i < CombatConfig.FireStanceFrames; i++)
+                InputSystem.Run(world, stillGap);                              // 窗内+窗尽：全程静止
+            Assert.True(world.Entities[slot].FireStanceFrames == 0);
+            Assert.True(world.Entities[slot].Yaw == crosshairYaw,
+                "静止无移动目标 → 保持上一帧（离场转向不凭空转）");
+            Assert.True(world.Entities[slot].FaceExitTurning != 0,
+                "武装保持（下次移动才过渡）——由输入历史可重建");
+        }
+
         [Fact]
         public void 朝向_未瞄准朝移动方向_瞄准或开火朝准星_都没有则保持()
         {

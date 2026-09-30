@@ -54,7 +54,16 @@ namespace LiteSim
         /// **同源派生**（改窗长只动此处）。**不变式：窗长 ≥ 开火片段播放时长**（防事件后窗先尽截断
         /// 在播射击片段——装配期校验，见 CharacterLocomotionDriver）。
         /// </summary>
-        public const int FireStanceFrames = 60;
+        public const int FireStanceFrames = 90;
+
+        /// <summary>
+        /// 离场转向速率（rad/秒）——射击语境（瞄准 ∨ 开火帧 ∨ 窗内）解除后，朝向从准星转回移动方向
+        /// **不瞬切**：按本速率逐帧过渡（债 #4"单点腰射朝向微摆"的组合根治，2026-10-01 七次裁决）。
+        /// 12 rad/s ≈ 687°/s：180° 回转 ≈0.26s、90° ≈0.13s——可见但不拖沓；射击语境内（含 ADS）
+        /// 保持即时跟枪，不受本值影响。**代码常量（两端编译期同值）——与 <see cref="HardMaxSpeed"/>
+        /// 同口径刻意不进 digest**（窗长进 digest 是因其表化计划 ⇒ 装载态漂移风险；本值无表化计划）。
+        /// </summary>
+        public const float FaceTurnRadPerSec = 12f;
 
         /// <summary>命中圆柱半径（m）。</summary>
         public static float HitscanRadius { get; private set; } = 0.5f;
