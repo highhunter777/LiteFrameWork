@@ -44,13 +44,16 @@ namespace LiteSim.View.Animation
                     binding: "Walk", loop: true, minSpeed: 0.01f, maxSpeed: 2f))
                 .Register(new AnimationDefinition(CharacterAnimationIds.Run, AnimationChannel.Locomotion,
                     binding: "Run", loop: true, minSpeed: 0.01f, maxSpeed: 2f))
-                .Register(new AnimationDefinition(CharacterAnimationIds.AimIdle, AnimationChannel.Locomotion,
+                // 瞄准/开火两族 → **FullBody**（v0.5 五次裁决通道改绑：战斗动作全部全身接管——
+                // UpperBody 叠加机构保留但当前零消费者；窗内保持 clip 见《层次动画机设计》六次裁决）：
+                // - AimIdle 循环：既是瞄准·静止的形态，也是 FireIdle 窗内持枪站姿的填窗循环；
+                // - Fire 一次性：站姿射击片段（FireIdle 按事件重播；移动开火不播——无 AimWalk_Shoot
+                //   资产，债 #5，反馈由枪口特效承担）。
+                .Register(new AnimationDefinition(CharacterAnimationIds.AimIdle, AnimationChannel.FullBody,
                     binding: "AimIdle", loop: true, minSpeed: 0.01f, maxSpeed: 2f))
-                // 上半身叠加：一次性（开火片段很短，允许提速到 2×）。臂姿语境由驱动器配对：
-                // Fire 在途期间移动形态视同瞄准态（站定腰射进 AimIdle、跑射进 AimWalk——
-                // 2026-09-28 裁决），叠加层与基础层同语境，握把不再错位。
-                .Register(new AnimationDefinition(CharacterAnimationIds.Fire, AnimationChannel.UpperBody,
+                .Register(new AnimationDefinition(CharacterAnimationIds.Fire, AnimationChannel.FullBody,
                     binding: "AimIdle_Shoot", loop: false, minSpeed: 0.8f, maxSpeed: 2f))
+                // Reload 无消费者（批C 接入时随五次裁决改绑 FullBody——不预建无消费者的绑定语义）
                 .Register(new AnimationDefinition(CharacterAnimationIds.Reload, AnimationChannel.UpperBody,
                     binding: "Reload", loop: false, minSpeed: 0.5f, maxSpeed: 2f))
                 // 全身覆盖：一次性
@@ -60,11 +63,13 @@ namespace LiteSim.View.Animation
                     binding: "Die1", loop: false, minSpeed: 0.5f, maxSpeed: 1.5f))
                 .Register(new AnimationDefinition(CharacterAnimationIds.Evade, AnimationChannel.FullBody,
                     binding: "Evade", loop: false, minSpeed: 0.7f, maxSpeed: 1.5f))
-                // 混合形态（§4 Blend 的登记面；权重由 Driver 给，槽位序即权重数组次序）：
-                // 非瞄准移动 = 速度轴 1D 混合；瞄准移动 = 4 向 strafe 按夹角插值（限速后只有走路一档）
+                // 混合形态（§4 Blend 的登记面；权重由驱动器/状态机给，槽位序即权重数组次序）：
+                // 非瞄准移动 = 速度轴 1D 混合（Locomotion 通道——移动根独占）；
+                // 瞄准移动（含开火·移动 FireWalk）= 4 向 strafe 按夹角插值（**FullBody**——五次裁决通道改绑；
+                // 限速后只有走路一档）
                 .RegisterBlend(new AnimationBlendDefinition(CharacterAnimationIds.MoveBlend, AnimationChannel.Locomotion,
                     new[] { "Idle", "Walk", "Run" }, minSpeed: 0.01f, maxSpeed: 2f))
-                .RegisterBlend(new AnimationBlendDefinition(CharacterAnimationIds.AimMoveBlend, AnimationChannel.Locomotion,
+                .RegisterBlend(new AnimationBlendDefinition(CharacterAnimationIds.AimMoveBlend, AnimationChannel.FullBody,
                     new[] { "AimWalk_F", "AimWalk_R", "AimWalk_B", "AimWalk_L" }, minSpeed: 0.01f, maxSpeed: 2f))
                 // 上半身 Mask 排除子树（§6；纳入面由后端从骨架自动派生——武器骨/补插骨零登记，
                 // 手工路径清单 2026-09-28 废弃）：add_chest_l01/r01 是布料域附加骨（MagicaCloth

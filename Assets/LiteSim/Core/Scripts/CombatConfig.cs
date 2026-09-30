@@ -45,6 +45,16 @@ namespace LiteSim
         /// <summary>hitscan 射程（m）。</summary>
         public static float HitscanRange { get; private set; } = 100f;
 
+        /// <summary>
+        /// 射击窗长（逻辑帧数）——**开火态时间**（2026-09-30 六次裁决：**1s @60Hz = 60 帧独立常量**，
+        /// 与开火动画时长解耦——四次修正"窗长=动画时长换算"废止；事件刷新＝重置满窗，上限即窗长）。
+        /// View 侧驻留窗按 `FireStanceFrames / SimConfig.TickRate` **同源派生**（改窗长只动此处）。
+        /// **不变式：窗长 ≥ 开火片段播放时长**（防事件后窗先尽截断在播射击片段——装配期校验）。
+        /// 开火限速的 Sim 权威镜像（`EntitySlot.FireStanceFrames` ＋ `InputSystem` 限速 ＋ digest）
+        /// 随批次C 落地——本常量先作窗长单源（《角色状态与动作专项设计》§7 限速行）。
+        /// </summary>
+        public const int FireStanceFrames = 60;
+
         /// <summary>命中圆柱半径（m）。</summary>
         public static float HitscanRadius { get; private set; } = 0.5f;
 

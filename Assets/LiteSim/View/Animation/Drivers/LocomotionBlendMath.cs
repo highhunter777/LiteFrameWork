@@ -25,6 +25,22 @@ namespace LiteSim.View.Animation
         /// <summary>速度轴锚点（m/s）：Run 权重到 1（略低于 <c>CombatConfig.MoveSpeed</c> = 5，给斜向/边界留余量）。</summary>
         public const float RunFullMps = 4.5f;
 
+        /// <summary>瞄准静止 ↔ 瞄准移动的**进入阈值**（m/s）——迟滞上沿（v0.5 起由移动事实锁存消费，
+        /// 战斗根 idle↔walk 轴两族共用：AimIdle↔AimWalk / FireIdle↔FireWalk）。</summary>
+        public const float AimMoveEnterMps = 0.6f;
+
+        /// <summary>瞄准移动 → 静止的**退出阈值**（m/s）——迟滞下沿（与进入阈值拉开即迟滞，防单点来回切）。</summary>
+        public const float AimMoveExitMps = 0.3f;
+
+        /// <summary>
+        /// **移动事实锁存**（迟滞公式单源——《层次动画机设计》§2：锁存是**原始速度的纯函数**，
+        /// 由驱动器每帧算并作为事实喂状态机；机内无迟滞散字段）：上沿进（≥ 进阈值）、下沿出（> 退阈值），
+        /// 中间带保持上一值——比较符与原驱动器逐字同源。
+        /// </summary>
+        public static bool UpdateLatch(bool previousMoving, float speed)
+            => previousMoving ? speed > AimMoveExitMps : speed >= AimMoveEnterMps;
+
+
         /// <summary>
         /// 非瞄准速度轴权重（槽位序 {Idle, Walk, Run}）：<c>IdleBelowMps → WalkFullMps → RunFullMps</c>
         /// 三段线性插值，总和恒 1、边界连续（在锚点上两侧算出的权重相同——不会有跳变）。
