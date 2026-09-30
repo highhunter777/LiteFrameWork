@@ -9,6 +9,7 @@ using LiteTesting.Unity;
 using NUnit.Framework;
 using UnityEditor;
 using UnityEngine;
+using UnityEngine.Animations;
 using UnityEngine.Playables;
 
 namespace LiteGame.Tests.EditMode
@@ -472,12 +473,12 @@ namespace LiteGame.Tests.EditMode
         /// 本后端同一时刻只在一个通道播混合 ⇒ 命中的就是被测混合节点。</summary>
         private static float FindBlendMixerSpeed(PlayableGraph graph)
         {
-            PlayableHandle root = graph.GetOutput(0).GetSourcePlayable();
+            Playable root = graph.GetOutput(0).GetSourcePlayable();
             for (int i = 0; i < root.GetInputCount(); i++)
             {
-                PlayableHandle input = root.GetInput(i);
-                if (input.IsValid() && input.GetPlayableType() == typeof(AnimationMixerPlayable))
-                    return ((AnimationMixerPlayable)input).GetSpeed();
+                Playable input = root.GetInput(i);
+                if (!input.IsValid() || input.GetPlayableType() != typeof(AnimationMixerPlayable)) continue;
+                return (float)input.GetSpeed();
             }
             return -1f;
         }
