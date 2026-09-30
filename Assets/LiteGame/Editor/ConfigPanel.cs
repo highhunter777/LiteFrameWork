@@ -410,7 +410,7 @@ namespace LiteGame.Editor
             string remembered = EditorPrefs.GetString(PrefTable, string.Empty);
             _tableNames = names.ToArray();
             int index = System.Array.IndexOf(_tableNames, remembered);
-            if (index < 0) index = System.Array.IndexOf(_tableNames, "Tbitem");   // 首次打开默认 demo 表
+            if (index < 0) index = System.Array.IndexOf(_tableNames, "Tbitemconfig");   // 首次打开默认道具表
             _tableIndex = Mathf.Clamp(index, 0, _tableNames.Length - 1);
         }
 

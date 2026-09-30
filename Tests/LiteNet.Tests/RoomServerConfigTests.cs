@@ -13,6 +13,7 @@ namespace LiteNet.Tests
     ///
     /// 本组钉住的是**配置错误必须响亮地失败**：坏文件/坏字段/越界一律抛，不静默兜底——
     /// 兜底会让配置错误变成线上的隐形分叉（与 <see cref="CombatNumbers"/> 同一口径）。
+    /// 2026-09-28 起 combat 内联分区已废弃（玩法数值走 .bytes 表，见 CombatNumbersTests）。
     /// </summary>
     [Trait(TestTrait.Category, TestCategory.Contract)]
     public sealed class RoomServerConfigTests
@@ -20,9 +21,6 @@ namespace LiteNet.Tests
         private const string Good = @"{
             ""port"": 17777, ""max_rooms"": 4, ""audience"": ""cluster-1"",
             ""default_template"": ""standard"",
-            ""combat"": [ { ""id"":1, ""move_speed"":5, ""gravity"":-20, ""hitscan_range"":100,
-                         ""hitscan_radius"":0.5, ""hitscan_height"":2, ""base_damage"":25,
-                         ""damage_spread"":1, ""entity_hp"":100 } ],
             ""rooms"": { ""standard"": { ""expected_players"": 2 }, ""four"": { ""expected_players"": 4 } }
         }";
 
@@ -234,8 +232,8 @@ namespace LiteNet.Tests
         // ---- 范围校验（§429）----
 
         [Theory]
-        [InlineData(@"{""port"":0,""max_rooms"":1,""combat"": [{""id"":1}],""rooms"":{""d"":{""expected_players"":2}}}")]
-        [InlineData(@"{""port"":70000,""max_rooms"":1,""combat"": [{""id"":1}],""rooms"":{""d"":{""expected_players"":2}}}")]
+        [InlineData(@"{""port"":0,""max_rooms"":1,""rooms"":{""d"":{""expected_players"":2}}}")]
+        [InlineData(@"{""port"":70000,""max_rooms"":1,""rooms"":{""d"":{""expected_players"":2}}}")]
         public void 端口越界_拒绝(string json)
         {
             Assert.ThrowsAny<System.Exception>(() => RoomServerConfig.Parse(json));
@@ -269,10 +267,12 @@ namespace LiteNet.Tests
         // ---- 结构与引用完整性 ----
 
         [Fact]
-        public void 缺combat分区_拒绝()
+        public void combat分区已废弃_出现即拒绝()
         {
+            // 玩法数值走 .bytes 表（CombatNumbers）；内联分区留着只会变成第二真相源——显性拒绝。
             string json = @"{
                 ""port"": 17777, ""max_rooms"": 1,
+                ""combat"": [{""id"":1}],
                 ""rooms"": { ""d"": { ""expected_players"": 2 } }
             }";
             Assert.ThrowsAny<System.Exception>(() => RoomServerConfig.Parse(json));
@@ -281,7 +281,7 @@ namespace LiteNet.Tests
         [Fact]
         public void 缺rooms分区_拒绝()
         {
-            string json = @"{ ""port"": 17777, ""max_rooms"": 1, ""combat"": [{""id"":1}] }";
+            string json = @"{ ""port"": 17777, ""max_rooms"": 1 }";
             Assert.ThrowsAny<System.Exception>(() => RoomServerConfig.Parse(json));
         }
 
@@ -289,7 +289,7 @@ namespace LiteNet.Tests
         public void rooms为空_拒绝()
         {
             string json = @"{
-                ""port"": 17777, ""max_rooms"": 1, ""combat"": [{""id"":1}], ""rooms"": {}
+                ""port"": 17777, ""max_rooms"": 1, ""rooms"": {}
             }";
             Assert.ThrowsAny<System.Exception>(() => RoomServerConfig.Parse(json));
         }
@@ -316,20 +316,27 @@ namespace LiteNet.Tests
             Assert.ThrowsAny<System.Exception>(() => c.BuildRoomConfig(null, ""));
         }
 
-        // ---- 玩法数值：进程级共享，禁止按房间覆盖 ----
+        [Fact]
+        public void rooms允许名为combat的模板_分区废弃后不再保留字()
+        {
+            // 2026-09-28：combat 内联分区废弃后，模板名空间不再需要保留字。
+            const string json = @"{
+                ""port"": 17777, ""max_rooms"": 1, ""default_template"": ""combat"",
+                ""rooms"": { ""combat"": { ""expected_players"": 2 } }
+            }";
+            var c = RoomServerConfig.Parse(json);
+            Assert.Contains("combat", c.TemplateIds);
+            Assert.Equal(2, c.BuildRoomConfig("combat", "Room-C").ExpectedPlayers);
+        }
 
         [Fact]
-        public void 玩法数值为进程级_所有房间同一份()
+        public void 房间参数按模板隔离()
         {
             var c = RoomServerConfig.Parse(Good);
 
             RoomConfig a = c.BuildRoomConfig("standard", "Room-A");
             RoomConfig b = c.BuildRoomConfig("four", "Room-B");
 
-            // 两房间玩法数值同源（Sim 静态读），此处只能断言"配置层没有 per-room 数值"：
-            // 摘要同刻由同一全局 CombatConfig 计算——见 FixedCombatConfig。
-            Assert.Equal(100, c.Combat.EntityHp);
-            Assert.Equal(5f, c.Combat.MoveSpeed);
             Assert.NotEqual(a.ExpectedPlayers, b.ExpectedPlayers);   // 房间参数可以不同
         }
 
@@ -345,7 +352,6 @@ namespace LiteNet.Tests
             Assert.InRange(c.WorkerCount, 1, 256);
             Assert.InRange(c.MailboxCapacity, 1, 1_000_000);
             Assert.NotEmpty(c.TemplateIds);
-            Assert.True(c.Combat.EntityHp > 0, "自带配置的玩法数值应为有效值");
             Assert.InRange(c.RateLimit.Buckets, 1, 1_000_000);
             Assert.True(c.RateLimit.SessionPackets.Burst >= 1);
         }

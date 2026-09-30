@@ -31,22 +31,20 @@ TARGETS = [
     os.path.join('Assets', 'LiteNet', 'Protocol'),
 ]
 DATA_TARGETS = [
-    # 表数据两端同源（客户端 bin 给 Unity 链路；服务端 json 给 RoomServer——它不依赖 Luban 运行时）
+    # 表数据两端同源（2026-09-28 起：服务端也读 .bytes——RoomServer 源链接 Generated + Luban 运行时，
+    # 与客户端共编同一份代码、同读 GameData/Config 下同一份二进制；原服务端 json（RoomServer/Data）已废弃删除）
     # 2026-09-26：客户端 bin 从 Assets/LiteGame/RawFile/Config 移到 Assets/GameData/Config
     # ——与代码侧产物 Generated/ 同域（Luban 三份产物归拢），LiteGame 回归纯代码层。
     os.path.join('Assets', 'GameData', 'Config'),
-    os.path.join('RoomServer', 'Data'),
 ]
-DATA_EXTS = ('.bytes', '.json')     # .meta 由 endswith('.meta') 排除（不会命中此白名单，双保险）
+DATA_EXTS = ('.bytes',)     # .meta 由 endswith('.meta') 排除（不会命中此白名单，双保险）
 
 # 非玩法表排除（2026-09-25）：hash 只覆盖**会影响判定或协议的表**。UI 表（tbuiform）改一行界面配置
 # 与对局行为无关，喂进 hash 会让"hash 变了但两端行为没变"——同 SKIP_DIRS 那条注释记录的坑：
 # 旧例给菜单加一行注释导致全员拒绝进房，这里是同一病症的另一个入口（加一个反馈面 form 行）。
 # 新增排除必须落在同一判据上：该表是否参与判定/协议。UI 布局、文本、图标属表现层。
-# 注意：服务端 json 与客户端 bin 都按同规则排除——两端一致，不会造成单边漂移。
 DATA_EXCLUDE_NAMES = {
-    'tbuiform.bytes',   # 客户端 bin（UI 表单：层级/路径/全屏——纯表现）
-    'tbuiform.json',    # 服务端 json（同上，同源产物）
+    'tbuiform.bytes',   # UI 表单：层级/路径/全屏——纯表现
 }
 OUT_FILE = os.path.join(ROOT, 'Assets', 'LiteNet', 'Protocol', 'BuildHash.g.cs')
 SELF_NAME = 'BuildHash.g.cs'

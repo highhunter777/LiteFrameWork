@@ -1,96 +1,95 @@
 using System;
 using System.IO;
-using System.Text.Json;
 using LiteSim;
 
 namespace RoomServer
 {
     /// <summary>
-    /// 服务端玩法数值装载（《玩法数值解耦审查与Luban表设计》§3.2，2026-09-19）：
+    /// 服务端玩法数值装载（《玩法数值解耦审查与Luban表设计》§3.2，2026-09-19；
+    /// **2026-09-28 切 .bytes**——用户裁决"服务器也用 .bytes"）：
     /// 服务端跑**权威 Sim**，必须与客户端拿到**同一份手感数值**——否则同一份输入两端算出不同结果，
-    /// 表现为和解风暴。做法：`gen.bat` 的 Pass 1b 把同一份表源额外产出 json
-    /// （`RoomServer/Data/tbcombatnum.json`），本类读取后回填 <see cref="CombatConfig"/>。
+    /// 表现为和解风暴。
     ///
-    /// **为什么用 json 而不是 bin**：Luban 的 C# 运行时是**本机 `file:` 依赖**（《环境恢复指南》§4：
-    /// manifest 不入库）→ .NET 8 的 RoomServer 无法引用它；json 是本工程可直接解析的形态，
-    /// 且与客户端 bin **同一次 gen.bat、同一份 xlsx** 产出 → 不可能漂移。
+    /// **当前主源链路**（2026-09-28 终态）：本类直读**客户端同一份 .bytes**
+    /// （`Assets/GameData/Config/*.bytes`，gen.bat Pass 1 产出；缺省走 `LoadFromRepo` 仓库路径，
+    /// `--combat-table <目录>` 显式覆盖）——原 roomserver.json combat 内联分区废弃（单源表格式
+    /// 由 json 切 bin 后，内联 json 形态成了第二真相源，让位）。两端同代码（生成物源链接共编）
+    /// 同数据（同一份二进制），物理上不可能漂移。
     ///
-    /// **一致性双保险**：① 两端数值同源（同一 xlsx）② 表数据进 buildHash（`scripts/gen-build-hash.py`），
-    /// 版本不一致直接在 Join 握手被拒。
+    /// **历史前提已失效**：2026-09-19 选 json 是因为 Luban C# 运行时是本机 `file:` 依赖、
+    /// .NET 8 引用不了——现包已 embedded 入库（`Packages/com.code-philosophy.luban`），
+    /// RoomServer 源链接其 Runtime + Generated，约束不成立。
+    ///
+    /// **一致性双保险**不变：① 两端数值同源（同一 .bytes）② 表数据进 buildHash
+    /// （`scripts/gen-build-hash.py`），版本不一致直接在 Join 握手被拒。
     /// </summary>
     public static class CombatNumbers
     {
-        /// <summary>表数据相对仓库根的路径（gen.bat Pass 1b 产出）。</summary>
-        public const string RelativePath = "RoomServer/Data/tbcombatnum.json";
+        /// <summary>客户端表数据目录（相对仓库根；gen.bat Pass 1 产出，两端共用同一份文件）。</summary>
+        public const string RelativeDir = "Assets/GameData/Config";
 
         public const int SingleRowId = 1;   // 单行表固定 id
 
         /// <summary>
-        /// 自动定位仓库根并装载（Production 入口调用；定位失败或数据缺失 → 抛，fail-fast）。
+        /// 从仓库根装载客户端 .bytes 表目录（定位失败或缺表 → 抛，fail-fast）。
         /// 数值错了必然分叉——宁可起不来，也不要带着错数值跑权威局。
         /// </summary>
         public static void LoadFromRepo()
         {
             string root = FindRepoRoot()
                           ?? throw new InvalidOperationException(
-                              $"找不到仓库根（需含 Assets 与 Tests/Tests.slnx）——无法装载 {RelativePath}");
-            Load(Path.Combine(root, RelativePath.Replace('/', Path.DirectorySeparatorChar)));
-        }
-
-        /// <summary>从指定 json 文件装载（测试与显式路径用）。</summary>
-        public static void Load(string jsonPath)
-        {
-            if (!File.Exists(jsonPath))
-                throw new FileNotFoundException(
-                    $"玩法数值表缺失：{jsonPath}（跑 Luban/gen.bat 的 Pass 1b 生成——数值缺失等于两端分叉）", jsonPath);
-
-            string json = File.ReadAllText(jsonPath);
-            CombatNumValues values = Parse(json);
-            values.Apply();
-
-            Console.WriteLine(
-                $"[RoomServer] 玩法数值装载：move={values.MoveSpeed} gravity={values.Gravity} " +
-                $"hitscan={values.HitscanRange}/{values.HitscanRadius}/{values.HitscanHeight} " +
-                $"dmg={values.BaseDamage}±{values.DamageSpread} hp={values.EntityHp}");
+                              $"找不到仓库根（需含 Assets 与 Tests/Tests.slnx）——无法装载 {RelativeDir}");
+            LoadTableBytes(Path.Combine(root, RelativeDir.Replace('/', Path.DirectorySeparatorChar)));
         }
 
         /// <summary>
-        /// 纯解析（可测）：json 文本 → 数值。形如 <c>[{ "id":1, "move_speed":5, ... }]</c>。
-        /// 缺字段/坏格式 → 抛（不返回默认值——静默兜底会让"表没生成"变成"跑着默认值"的隐形分叉）。
+        /// 从指定表目录装载（表目录 = 客户端 GameData/Config；表清单与客户端
+        /// <c>ConfigService.TableDataFiles</c> 同源——Tables 构造器逐表取字节）。
         /// </summary>
-        public static CombatNumValues Parse(string json)
+        public static cfg.Tables LoadTableBytes(string configDir)
         {
-            using var doc = JsonDocument.Parse(json);
-            if (doc.RootElement.ValueKind != JsonValueKind.Array || doc.RootElement.GetArrayLength() == 0)
-                throw new InvalidDataException("tbcombatnum.json 结构异常：应为非空数组");
+            if (!Directory.Exists(configDir))
+                throw new DirectoryNotFoundException($"表数据目录缺失：{configDir}（跑 Luban/gen.bat Pass 1）");
 
-            JsonElement row = doc.RootElement[0];
+            var tables = new cfg.Tables(file =>
+            {
+                string path = Path.Combine(configDir, file + ".bytes");
+                if (!File.Exists(path))
+                    throw new FileNotFoundException($"配置表缺失：{path}（跑 Luban/gen.bat Pass 1——数值缺失等于两端分叉）", path);
+                return new Luban.ByteBuf(File.ReadAllBytes(path));
+            });
+
+            var row = tables.Tbcombatnum.Get(SingleRowId)
+                      ?? throw new InvalidDataException($"tbcombatnum 缺 id={SingleRowId} 行（单行数值表）");
+            Console.WriteLine(
+                $"[RoomServer] 玩法数值（bin 表）：move={row.MoveSpeed} gravity={row.Gravity} " +
+                $"hitscan={row.HitscanRange}/{row.HitscanRadius}/{row.HitscanHeight} " +
+                $"dmg={row.BaseDamage}±{row.DamageSpread} hp={row.EntityHp}");
+            return tables;
+        }
+
+        /// <summary>
+        /// 纯解析（可测）：tbcombatnum.bytes 字节 → 数值。坏格式/截断 → 抛
+        /// （不返回默认值——静默兜底会让"表没生成"变成"跑着默认值"的隐形分叉）。
+        /// 单表直读（不构造 Tables——那是全表装载器，顺序依赖没必要带进解析面）。
+        /// </summary>
+        public static CombatNumValues Parse(byte[] combatnumBytes)
+        {
+            var table = new cfg.Tbcombatnum(new Luban.ByteBuf(combatnumBytes));
+            var row = table.Get(SingleRowId)
+                      ?? throw new InvalidDataException($"tbcombatnum.bytes 缺 id={SingleRowId} 行（单行数值表）");
             return new CombatNumValues
             {
-                Id = RequireInt(row, "id"),
-                MoveSpeed = RequireFloat(row, "move_speed"),
-                Gravity = RequireFloat(row, "gravity"),
-                HitscanRange = RequireFloat(row, "hitscan_range"),
-                HitscanRadius = RequireFloat(row, "hitscan_radius"),
-                HitscanHeight = RequireFloat(row, "hitscan_height"),
-                BaseDamage = RequireInt(row, "base_damage"),
-                DamageSpread = RequireInt(row, "damage_spread"),
-                EntityHp = RequireInt(row, "entity_hp"),
+                Id = row.Id,
+                MoveSpeed = row.MoveSpeed,
+                Gravity = row.Gravity,
+                HitscanRange = row.HitscanRange,
+                HitscanRadius = row.HitscanRadius,
+                HitscanHeight = row.HitscanHeight,
+                BaseDamage = row.BaseDamage,
+                DamageSpread = row.DamageSpread,
+                EntityHp = row.EntityHp,
             };
-        }
-
-        private static int RequireInt(JsonElement row, string name)
-        {
-            if (!row.TryGetProperty(name, out JsonElement e) || !e.TryGetInt32(out int v))
-                throw new InvalidDataException($"tbcombatnum.json 缺字段或类型不符：{name}（应为 int）");
-            return v;
-        }
-
-        private static float RequireFloat(JsonElement row, string name)
-        {
-            if (!row.TryGetProperty(name, out JsonElement e) || !e.TryGetSingle(out float v))
-                throw new InvalidDataException($"tbcombatnum.json 缺字段或类型不符：{name}（应为 float）");
-            return v;
         }
 
         /// <summary>仓库根定位：与测试侧同款标记（Assets + Tests/Tests.slnx），从程序目录向上找。</summary>

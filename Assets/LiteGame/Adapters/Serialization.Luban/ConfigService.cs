@@ -45,7 +45,8 @@ namespace LiteGame
         /// <summary>gen.bat 第一遍产出的表数据文件名（GameData/Config 下，不带扩展名）——与 Tables.cs 的 loader 键一一对应。</summary>
         public static readonly string[] TableDataFiles =
         {
-            "demo_tbitem",
+            "tbitemconfig",      // 道具表（类型 + 刷新/拾取/携带/使用 + 各类型效果数值；原 demo_tbitem 让位，2026-09-28）
+            "tbmovementconfig",  // 移动数值（单行表；装载后回填 MovementConfig——机制消费随系统落地接入）
             "tbuiform",
             "tbcontententry",
             "tbstrategy",
@@ -107,6 +108,7 @@ namespace LiteGame
             // ③ 校验 + 原子发布 + 回填（顺序钉死：发布失败 → Loaded 保持 false、CombatConfig 不动）
             _snapshots.Publish(candidate);                 // 校验失败抛（保留旧版/空态），版本 +1
             ApplyCombatNumbers(candidate);                 // 校验已过（行存在性由 ValidateCandidate 保证）
+            ApplyMovementNumbers(candidate);               // 移动数值（同上：一致性闸门在 ValidateCandidate）
             _tables = candidate;                           // 对外可见（发布成功后）
             Log.Info($"配置快照发布完成:{TableDataFiles.Length} 张表 version={Version}", "Config");
         }
@@ -117,6 +119,12 @@ namespace LiteGame
             if (candidate == null) return "候选表为 null";
             if (candidate.Tbcombatnum == null || candidate.Tbcombatnum.Get(1) == null)
                 return "tbcombatnum 缺 id=1 行（单行数值表）——表源被改坏或生成物过期";
+            if (candidate.Tbmovementconfig == null || candidate.Tbmovementconfig.Get(1) == null)
+                return "tbmovementconfig 缺 id=1 行（单行数值表）——表源被改坏或生成物过期";
+            if (candidate.Tbitemconfig == null || candidate.Tbitemconfig.DataList.Count == 0)
+                return "tbitemconfig 空表——表源被改坏或生成物过期";
+            if (candidate.Tbmovementconfig.Get(1).Gravity != candidate.Tbcombatnum.Get(1).Gravity)
+                return "movementconfig.gravity 与 combatnum.gravity 不一致（重力双表位漂移——单源在 combatnum，MovementSystem 只读 CombatConfig.Gravity）";
             return null;
         }
 
@@ -139,6 +147,30 @@ namespace LiteGame
                 $"玩法数值装载：move={row.MoveSpeed} gravity={row.Gravity} " +
                 $"hitscan={row.HitscanRange}/{row.HitscanRadius}/{row.HitscanHeight} " +
                 $"dmg={row.BaseDamage}±{row.DamageSpread} hp={row.EntityHp}", "Config");
+        }
+
+        /// <summary>
+        /// 移动数值回填（表 → <see cref="MovementConfig"/>）：与 ApplyCombatNumbers 同纪律——LiteSim 零依赖，
+        /// 由外部喂 primitives；表值即设计软值，硬护栏是代码常量 <see cref="CombatConfig.HardMaxSpeed"/>。
+        /// 机制消费（走跑冲/滑铲/空中控制/跳跃/钩爪/闪现）随对应 Sim 系统落地逐项接入并进 digest。
+        /// 调用契约：<see cref="ValidateCandidate"/> 已通过（行存在性 + 重力双表位一致性均闸在前）。
+        /// </summary>
+        private static void ApplyMovementNumbers(Tables tables)
+        {
+            cfg.movementconfig row = tables.Tbmovementconfig.Get(1);        // 单行表固定 id=1
+
+            MovementConfig.LoadFrom(
+                row.WalkSpeed, row.RunSpeed, row.SprintSpeed, row.Acceleration, row.SprintDuration,
+                row.SlideSpeed, row.SlideFriction, row.SlideTurnPenalty,
+                row.AirControl, row.Gravity,
+                row.JumpSpeed, row.DoubleJumpCount, row.DoubleJumpSpeed,
+                row.GrappleDistance, row.GrappleSpeed, row.GrappleCooldown,
+                row.BlinkDistance, row.BlinkCooldown);
+
+            Log.Info(
+                $"移动数值装载：walk={row.WalkSpeed} run={row.RunSpeed} sprint={row.SprintSpeed} " +
+                $"slide={row.SlideSpeed}/{row.SlideFriction} jump={row.JumpSpeed}×{row.DoubleJumpCount + 1} " +
+                $"grapple={row.GrappleDistance}/{row.GrappleSpeed} blink={row.BlinkDistance}", "Config");
         }
     }
 }

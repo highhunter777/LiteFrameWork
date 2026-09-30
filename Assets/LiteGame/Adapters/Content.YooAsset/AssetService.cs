@@ -11,7 +11,7 @@ namespace LiteGame
     /// 资源加载统一门面（静态豁免名单第四位——设计方案 §1.3"沿用方案 A 的 AssetService 静态门面"结论）。
     /// 业务只依赖此类，不直接依赖 YooAsset；换资源方案只改这一个文件。
     /// 契约（写给未来读代码的人）：
-    /// ① location 统一使用资源完整路径（如 "Assets/GameData/Config/demo_tbitem.bytes"）——手册 M2 坑位：RawFile location 用完整路径；
+    /// ① location 统一使用资源完整路径（如 "Assets/GameData/Config/tbcombatnum.bytes"）——手册 M2 坑位：RawFile location 用完整路径；
     /// ② UniTask 签名（§7.7），底层 YooAsset 3.0.5（经 UniTaskAssetExtensions 适配）；初始化必须先于一切加载（ProcedurePreload 驱动）；
     /// ③ EditorSimulateMode（编辑器开发）与 OfflinePlayMode（Player 内置包，C0-③）已交付；
     ///    Host/Web 模式与热更流程归 C1 内容更新线（试验件 YooAssetComponent 仅参考）；

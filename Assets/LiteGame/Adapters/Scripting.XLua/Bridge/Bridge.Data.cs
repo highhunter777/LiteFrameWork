@@ -45,8 +45,9 @@ namespace LiteGame
         {
             // ---- C# 侧（强类型直返；行对象由 Luban DataMap 自缓存，不重复建 C# 缓存）----
 
-            /// <summary>查道具表（demo 试验表，链路验证用）。</summary>
-            public static cfg.demo.item GetItem(int id) => Tables().Tbitem.Get(id);
+            /// <summary>查道具表（ItemConfig：类型 + 刷新/拾取/携带/使用 + 各类型效果数值；
+            /// 2026-09-28 由 demo_item 让位为正式配置）。</summary>
+            public static cfg.itemconfig GetItem(int id) => Tables().Tbitemconfig.Get(id);
 
             /// <summary>查 UI 界面注册表（LuaPath/Prefab/层级/全屏）。</summary>
             public static cfg.uiform GetUIForm(int id) => Tables().Tbuiform.Get(id);
@@ -60,16 +61,32 @@ namespace LiteGame
             private static readonly Dictionary<int, LuaTable> s_itemLua = new Dictionary<int, LuaTable>(16);
             private static readonly Dictionary<int, LuaTable> s_uiFormLua = new Dictionary<int, LuaTable>(16);
 
-            /// <summary>Lua 侧查道具表：同 id 恒返回同一 LuaTable 实例（缓存命中）。</summary>
+            /// <summary>Lua 侧查道具表：同 id 恒返回同一 LuaTable 实例（缓存命中）。
+            /// 全字段展开（19 列）——道具玩法（拾取/使用/投掷）在 Lua 侧落地时按需取用。</summary>
             public static LuaTable GetItemLua(LuaEnv env, int id)
             {
                 if (s_itemLua.TryGetValue(id, out var hit)) return hit;
                 var row = GetItem(id);
                 var t = env.NewTable();
                 t.Set("Id", row.Id);
+                t.Set("Type", row.Type);
                 t.Set("Name", row.Name);
-                t.Set("Desc", row.Desc);
-                t.Set("Count", row.Count);
+                t.Set("SpawnInterval", row.SpawnInterval);
+                t.Set("MaxAlive", row.MaxAlive);
+                t.Set("PickupRadius", row.PickupRadius);
+                t.Set("CarryLimit", row.CarryLimit);
+                t.Set("UseDuration", row.UseDuration);
+                t.Set("HealAmount", row.HealAmount);
+                t.Set("ShieldAmount", row.ShieldAmount);
+                t.Set("GrenadeDamage", row.GrenadeDamage);
+                t.Set("GrenadeRadius", row.GrenadeRadius);
+                t.Set("GrenadeFalloff", row.GrenadeFalloff);
+                t.Set("EmpRadius", row.EmpRadius);
+                t.Set("EmpDuration", row.EmpDuration);
+                t.Set("RadarRadius", row.RadarRadius);
+                t.Set("RadarDuration", row.RadarDuration);
+                t.Set("ProjectileSpeed", row.ProjectileSpeed);
+                t.Set("TravelDistance", row.TravelDistance);
                 s_itemLua[id] = t;
                 return t;
             }

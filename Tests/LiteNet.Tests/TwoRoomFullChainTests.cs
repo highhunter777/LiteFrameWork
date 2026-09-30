@@ -35,9 +35,6 @@ namespace LiteNet.Tests
         private static readonly string Config = @"{
             ""port"": " + Port + @", ""max_rooms"": 4, ""audience"": """",
             ""default_template"": ""two"",
-            ""combat"": [ { ""id"":1, ""move_speed"":5, ""gravity"":-20, ""hitscan_range"":100,
-                           ""hitscan_radius"":0.5, ""hitscan_height"":2, ""base_damage"":25,
-                           ""damage_spread"":1, ""entity_hp"":100 } ],
             ""rooms"": { ""two"": { ""expected_players"": 2, ""match_time_limit_ms"": 30000 } }
         }";
 

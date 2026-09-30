@@ -451,7 +451,7 @@ namespace LiteGame.Tests.EditMode
             Assert.IsTrue(FrameEventAnimationMap.TryMap(FrameEventKind.Fire, out var fire, out var fireChannel),
                 "开火有语义映射");
             Assert.AreEqual(CharacterAnimationIds.Fire, fire);
-            Assert.AreEqual(AnimationChannel.UpperBody, fireChannel, "开火只盖上半身（腿部继续走跑）");
+            Assert.AreEqual(AnimationChannel.UpperBody, fireChannel, "开火上半身叠加（Fire 在途移动形态视同瞄准态——腰射/跑射臂姿语境配对，2026-09-28 裁决）");
 
             Assert.IsTrue(FrameEventAnimationMap.TryMap(FrameEventKind.Hit, out _, out var hitChannel));
             Assert.AreEqual(AnimationChannel.FullBody, hitChannel, "受击整身覆盖");

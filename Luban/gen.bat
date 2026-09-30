@@ -1,7 +1,9 @@
 cd /d %~dp0
 set LUBAN_EXE=%~dp0LubanGenerater\Luban\Luban.exe
 
-rem Pass 1: C# typed code + binary data (M2 config pipeline)
+rem Pass 1: C# typed code + binary data (M2 config pipeline).
+rem 2026-09-28: 服务端同读这份 .bytes（RoomServer 源链接 Generated + Luban Runtime——
+rem              原 Pass 1b 服务端 json 已废弃，RoomServer/Data 随之删除）。
 %LUBAN_EXE% ^
     -t client ^
     -c cs-bin ^
@@ -9,18 +11,6 @@ rem Pass 1: C# typed code + binary data (M2 config pipeline)
     --conf %~dp0luban.conf ^
     -x outputCodeDir=E:\unityProject\Test\Assets\GameData\Generated ^
     -x outputDataDir=E:\unityProject\Test\Assets\GameData\Config
-
-rem Pass 1b: server-side numbers as json (RoomServer has no Luban runtime dep; same table source
-rem          as client -> build hash closure protects consistency)
-rem          NOTE: outputDataDir must NOT point at Assets/GameData/Config -- Luban clears the
-rem          data dir of the pass, which would wipe the client's .bytes (pitfall hit 2026-09-19-&gt;)
-%LUBAN_EXE% ^
-    -t all ^
-    -c cs-simple-json ^
-    -d json ^
-    --conf %~dp0luban.conf ^
-    -x outputCodeDir=%~dp0output\json-code ^
-    -x outputDataDir=E:\unityProject\Test\RoomServer\Data
 
 rem Pass 2: Lua data tables (consumed by Bridge.data in M3)
 %LUBAN_EXE% ^

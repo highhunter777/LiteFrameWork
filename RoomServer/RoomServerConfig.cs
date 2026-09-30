@@ -14,11 +14,12 @@ namespace RoomServer
     /// tick/snapshot 频率、队列上限和安全策略**均有范围校验**"；§520/§600"**不把估算值写死为事实**"
     /// "不在设计阶段虚构固定房间数"）。
     ///
-    /// **分区语义**（rooms 按模板逐房取值；其余分区进程级共享）：
+    /// **分区语义**（rooms 按模板逐房取值；玩法数值不在此文件）：
     /// - <c>rooms</c>：房间**模板**。动态建房时按模板取值——每个 roomId 一份（§6"一个 roomId
     ///   只能映射一个独立 RoomActor"）。模板缺失/字段缺失 → **拒绝建房**，不静默兜底。
-    /// - <c>combat</c>：**进程级共享**玩法数值。所有房间共用同一份（Sim 系统静态读
-    ///   <see cref="CombatConfig"/>，参数化迁移归 G1/热更批）。
+    /// - 玩法数值**不在本文件**（2026-09-28 起）：服务端与客户端同读 `Assets/GameData/Config/*.bytes`
+    ///   （<see cref="CombatNumbers"/>；原 combat 内联分区废弃——单源表格式由 json 切到 bin 后，
+    ///   内联 json 形态成了第二真相源，让位）。
     /// - <c>rate_limit</c>：**进程级共享**分层限流参（R2 安全批；可选，缺省见
     ///   <see cref="RateLimitSettings.Default"/>）。
     ///
@@ -36,7 +37,6 @@ namespace RoomServer
 
         private readonly Dictionary<string, RoomTemplate> _rooms;
         private readonly string _defaultTemplateId;
-        private readonly CombatNumValues _combat;
 
         /// <summary>监听端口（宿主自身参数，不随房间变）。</summary>
         private int _port;
@@ -98,7 +98,7 @@ namespace RoomServer
 
         private RoomServerConfig(string sourcePath, int port, int maxRooms, string audience,
             Dictionary<string, RoomTemplate> rooms, string defaultTemplateId,
-            CombatNumValues combat, int workerCount, int mailboxCapacity,
+            int workerCount, int mailboxCapacity,
             string settlementJournalPath, int settlementOutboxCapacity, RateLimitSettings rateLimit)
         {
             _sourcePath = sourcePath;
@@ -109,7 +109,6 @@ namespace RoomServer
             MailboxCapacity = mailboxCapacity;
             _rooms = rooms;
             _defaultTemplateId = defaultTemplateId;
-            _combat = combat;
             SettlementJournalPath = settlementJournalPath;
             SettlementOutboxCapacity = settlementOutboxCapacity;
             RateLimit = rateLimit ?? RateLimitSettings.Default;
@@ -132,11 +131,7 @@ namespace RoomServer
             get { return _rooms.Keys; }
         }
 
-        /// <summary>玩法数值（共享）。宿主把它装载进 <see cref="CombatConfig"/>。</summary>
-        public CombatNumValues Combat
-        {
-            get { return _combat; }
-        }
+        /// <summary>玩法数值（共享）已移至 <see cref="CombatNumbers"/>（.bytes 表，2026-09-28）。</summary>
 
         /// <summary>
         /// 按模板名造一份房间配置。模板不存在或必填项缺失 → 抛（**不兜底**——
@@ -212,12 +207,10 @@ namespace RoomServer
                     $"mailbox_capacity 越界（允许 1..1000000）：{mailboxCapacityValue}：{sourcePath}");
             int mailboxCapacity = (int)mailboxCapacityValue;
 
-            // combat：全进程共享（Sim 静态读）——必填，且**不允许按房间覆盖**。
-            // 形状与 Luban 产物 tbcombatnum.json 一致（`[{...}]`），故配置既可直接内联，
-            // 也可由部署把表产物整段嵌入——两条路产出的字节形状相同。
-            if (!root.TryGetProperty("combat", out JsonElement combatEl) || combatEl.ValueKind != JsonValueKind.Array)
-                throw new InvalidDataException($"配置缺 combat 分区或形状不对（应为数组，同 tbcombatnum.json）：{sourcePath}");
-            CombatNumValues combat = CombatNumbers.Parse(combatEl.GetRawText());
+            // combat 内联分区已废弃（2026-09-28）：玩法数值走 .bytes 表（CombatNumbers），本文件不再内联。
+            if (root.TryGetProperty("combat", out JsonElement legacyCombat))
+                throw new InvalidDataException(
+                    $"combat 分区已废弃（玩法数值走 Assets/GameData/Config/*.bytes 表——见 CombatNumbers）：{sourcePath}");
 
             if (!root.TryGetProperty("rooms", out JsonElement roomsEl) || roomsEl.ValueKind != JsonValueKind.Object)
                 throw new InvalidDataException($"配置缺 rooms 分区（房间模板表）：{sourcePath}");
@@ -237,14 +230,6 @@ namespace RoomServer
             if (!rooms.ContainsKey(defaultId))
                 throw new InvalidDataException(
                     $"default_template 指向不存在的模板：{defaultId}（可用：{string.Join(",", rooms.Keys)}）：{sourcePath}");
-
-            // 显式拒绝"按房间覆盖玩法数值"：Sim 静态读全局，宿主侧覆盖造不出真隔离，
-            // 只会让票据 ConfigHash 与实际计算值不符（见 RoomServerConfig 类注释）。
-            foreach (string key in rooms.Keys)
-            {
-                if (string.Equals(key, "combat", StringComparison.Ordinal))
-                    throw new InvalidDataException($"rooms 不得含名为 combat 的模板（与进程级分区同名）：{sourcePath}");
-            }
 
             // ---- 结算 Outbox（排空第 4 步；可选字段 + 范围校验 + 路径红线）----
             string journal = OptionalString(root, "settlement_journal");
@@ -268,7 +253,7 @@ namespace RoomServer
 
             RateLimitSettings rateLimit = ParseRateLimit(root, sourcePath);
 
-            return new RoomServerConfig(sourcePath, port, maxRooms, audience, rooms, defaultId, combat,
+            return new RoomServerConfig(sourcePath, port, maxRooms, audience, rooms, defaultId,
                 workerCount, mailboxCapacity, journal, outboxCapacity, rateLimit);
         }
 

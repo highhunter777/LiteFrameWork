@@ -105,9 +105,6 @@ namespace LiteNet.Tests
             const string json = @"{
                 ""port"": 40104, ""max_rooms"": 2, ""worker_count"": 2, ""mailbox_capacity"": 3,
                 ""audience"": """", ""default_template"": ""two"",
-                ""combat"": [ { ""id"":1, ""move_speed"":5, ""gravity"":-20, ""hitscan_range"":100,
-                    ""hitscan_radius"":0.5, ""hitscan_height"":2, ""base_damage"":25,
-                    ""damage_spread"":1, ""entity_hp"":100 } ],
                 ""rooms"": { ""two"": { ""expected_players"": 2 } }
             }";
             var config = RoomServerConfig.Parse(json);

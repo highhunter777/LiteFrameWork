@@ -15,7 +15,8 @@ public partial class Tables
 {
     public Tbcombatnum Tbcombatnum {get; }
     public Tbcontententry Tbcontententry {get; }
-    public demo.Tbitem Tbitem {get; }
+    public Tbitemconfig Tbitemconfig {get; }
+    public Tbmovementconfig Tbmovementconfig {get; }
     public Tbstrategy Tbstrategy {get; }
     public Tbuiform Tbuiform {get; }
 
@@ -23,7 +24,8 @@ public partial class Tables
     {
         Tbcombatnum = new Tbcombatnum(loader("tbcombatnum"));
         Tbcontententry = new Tbcontententry(loader("tbcontententry"));
-        Tbitem = new demo.Tbitem(loader("demo_tbitem"));
+        Tbitemconfig = new Tbitemconfig(loader("tbitemconfig"));
+        Tbmovementconfig = new Tbmovementconfig(loader("tbmovementconfig"));
         Tbstrategy = new Tbstrategy(loader("tbstrategy"));
         Tbuiform = new Tbuiform(loader("tbuiform"));
         ResolveRef();
@@ -33,7 +35,8 @@ public partial class Tables
     {
         Tbcombatnum.ResolveRef(this);
         Tbcontententry.ResolveRef(this);
-        Tbitem.ResolveRef(this);
+        Tbitemconfig.ResolveRef(this);
+        Tbmovementconfig.ResolveRef(this);
         Tbstrategy.ResolveRef(this);
         Tbuiform.ResolveRef(this);
     }

@@ -164,9 +164,6 @@ namespace LiteNet.Tests
             // 端到端接缝：RoomServerConfig.rate_limit → ServerHost.RateLimit（不是"两边各自单测过了"）。
             var cfg = RoomServerConfig.Parse(@"{
                 ""port"": 40216, ""max_rooms"": 2,
-                ""combat"": [ { ""id"":1, ""move_speed"":5, ""gravity"":-20, ""hitscan_range"":100,
-                             ""hitscan_radius"":0.5, ""hitscan_height"":2, ""base_damage"":25,
-                             ""damage_spread"":1, ""entity_hp"":100 } ],
                 ""rooms"": { ""default"": { ""expected_players"": 2 } },
                 ""rate_limit"": { ""session_burst"": 1, ""session_per_sec"": 0.1 }
             }");

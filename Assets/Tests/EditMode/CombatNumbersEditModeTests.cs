@@ -23,7 +23,7 @@ namespace LiteGame.Tests.EditMode
     {
         private static readonly string[] DataFiles =
         {
-            "demo_tbitem", "tbuiform", "tbcontententry", "tbstrategy", "tbcombatnum",
+            "tbitemconfig", "tbmovementconfig", "tbuiform", "tbcontententry", "tbstrategy", "tbcombatnum",
         };
 
         [Test]

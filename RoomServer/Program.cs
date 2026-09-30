@@ -13,19 +13,20 @@ const long DrainGraceMs = 5_000;
 // RoomServer 入口（M10：批② 权威循环 + 批③ 快照/回溯/Ops）。
 // 节拍由 ServerLoop 绝对锚定（60Hz，防漂移累积）。
 //
-// 配置来源（2026-09-26 起）：配置文件为**主源**，命令行可覆盖少量宿主参数。
-//   --config <path>   配置文件路径（默认 Config/roomserver.json）
-//   --combat-table <path>  玩法数值表（缺省走 CombatNumbers.LoadFromRepo 的仓库路径）
+// 配置来源：宿主参数走配置文件 + 命令行覆盖；**玩法数值走 .bytes 表**（2026-09-28 起，
+// 与客户端同一份二进制——两端同代码同数据，物理上不可漂移；原 roomserver.json 内联 combat 分区废弃）。
+//   --config <path>        配置文件路径（默认 Config/roomserver.json）
+//   --combat-table <dir>   玩法数值表目录（缺省走 CombatNumbers.LoadFromRepo 的仓库路径 Assets/GameData/Config）
 //   其余：--port / --duration <ms> / --quiet / --ticket-key <kid>:<base64> / --audience <id>
 //
 // **房间形态**：单进程多房间 + 动态创建（§6"一个 roomId 只能映射一个独立 RoomActor"）。
 // 房间参数来自配置模板，玩法数值为**进程级共享**（Sim 静态读 CombatConfig——参数化迁 G1）。
 var serverConfig = RoomServerConfig.Load(ResolveConfigPath(args));
-serverConfig.Combat.Apply();          // 共享数值装载进 Sim 静态消费面（所有房间同一份）
 
 long durationMs = 0;
 bool quiet = false;
 int? portOverride = null;
+string combatTableDir = null;
 var ticketKeys = new List<JoinTicketKey>();
 string audienceOverride = null;
 
@@ -37,6 +38,7 @@ for (int i = 0; i < args.Length; i++)
         case "--duration": if (i + 1 < args.Length) durationMs = long.Parse(args[++i]); break;
         case "--quiet": quiet = true; break;
         case "--audience": if (i + 1 < args.Length) audienceOverride = args[++i]; break;
+        case "--combat-table": if (i + 1 < args.Length) combatTableDir = args[++i]; break;
         case "--ticket-key":
             if (i + 1 < args.Length)
             {
@@ -49,6 +51,10 @@ for (int i = 0; i < args.Length; i++)
             break;
     }
 }
+
+// 玩法数值装载（.bytes 表——与客户端同一份文件；fail-fast：数值缺失宁可起不来）。
+if (combatTableDir != null) CombatNumbers.LoadTableBytes(combatTableDir);
+else CombatNumbers.LoadFromRepo();
 
 // 票据验证器装配：生产**必须**传 key（fail-closed）。缺 key 不静默退回——显式告警（§6"不能悄悄退回 fake"）。
 if (portOverride.HasValue) serverConfig.OverridePort(portOverride.Value);
@@ -68,8 +74,8 @@ else
 Console.WriteLine($"[RoomServer] 配置：{serverConfig.Describe()}（{serverConfig.SourcePath}）");
 Console.WriteLine($"[RoomServer] 启动（端口 {serverConfig.Port} / 容量 {serverConfig.MaxRooms} 房 / 模板 [{string.Join(",", serverConfig.TemplateIds)}] / {SimConfig.TickRate}Hz 权威步 / {SimConfig.SnapshotHz}Hz 快照）");
 Console.WriteLine($"[RoomServer] buildHash={ServerHost.ServerBuildHash}（源码内容哈希——Sim 或协议一改即变）");
-Console.WriteLine($"[RoomServer] 玩法数值（进程级共享，所有房间同一份）：move={serverConfig.Combat.MoveSpeed} " +
-    $"gravity={serverConfig.Combat.Gravity} hp={serverConfig.Combat.EntityHp} dmg={serverConfig.Combat.BaseDamage}±{serverConfig.Combat.DamageSpread}");
+Console.WriteLine($"[RoomServer] 玩法数值（进程级共享，所有房间同一份）：move={LiteSim.CombatConfig.MoveSpeed} " +
+    $"gravity={LiteSim.CombatConfig.Gravity} hp={LiteSim.CombatConfig.EntityHp} dmg={LiteSim.CombatConfig.BaseDamage}±{LiteSim.CombatConfig.DamageSpread}");
 
 // 预置房间：**不预置**——单进程多房间下所有房间首次进房时按配置模板创建（懒创建），
 // 容量上限 max_rooms 就是全部房间数。预置一个房间会白占一格，且"该预置哪个 roomId"没有依据。

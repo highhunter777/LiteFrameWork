@@ -1,0 +1,10 @@
+return
+{
+[1] = {id=1,type=1,name="医疗包",spawn_interval=15,max_alive=4,pickup_radius=1.5,carry_limit=3,use_duration=1.5,heal_amount=50,shield_amount=0,grenade_damage=0,grenade_radius=0,grenade_falloff=0,emp_radius=0,emp_duration=0,radar_radius=0,radar_duration=0,projectile_speed=0,travel_distance=0,},
+[2] = {id=2,type=2,name="护盾电池",spawn_interval=15,max_alive=4,pickup_radius=1.5,carry_limit=3,use_duration=1,heal_amount=0,shield_amount=25,grenade_damage=0,grenade_radius=0,grenade_falloff=0,emp_radius=0,emp_duration=0,radar_radius=0,radar_duration=0,projectile_speed=0,travel_distance=0,},
+[3] = {id=3,type=3,name="手雷",spawn_interval=20,max_alive=4,pickup_radius=1.5,carry_limit=4,use_duration=0.6,heal_amount=0,shield_amount=0,grenade_damage=80,grenade_radius=5,grenade_falloff=0.5,emp_radius=0,emp_duration=0,radar_radius=0,radar_duration=0,projectile_speed=20,travel_distance=0,},
+[4] = {id=4,type=4,name="EMP",spawn_interval=25,max_alive=2,pickup_radius=1.5,carry_limit=2,use_duration=0.6,heal_amount=0,shield_amount=0,grenade_damage=0,grenade_radius=0,grenade_falloff=0,emp_radius=6,emp_duration=3,radar_radius=0,radar_duration=0,projectile_speed=15,travel_distance=0,},
+[5] = {id=5,type=5,name="雷达",spawn_interval=30,max_alive=2,pickup_radius=1.5,carry_limit=1,use_duration=0.8,heal_amount=0,shield_amount=0,grenade_damage=0,grenade_radius=0,grenade_falloff=0,emp_radius=0,emp_duration=0,radar_radius=40,radar_duration=8,projectile_speed=0,travel_distance=0,},
+[6] = {id=6,type=6,name="钩爪",spawn_interval=40,max_alive=2,pickup_radius=1.5,carry_limit=1,use_duration=0.5,heal_amount=0,shield_amount=0,grenade_damage=0,grenade_radius=0,grenade_falloff=0,emp_radius=0,emp_duration=0,radar_radius=0,radar_duration=0,projectile_speed=0,travel_distance=30,},
+[7] = {id=7,type=7,name="传送器",spawn_interval=45,max_alive=2,pickup_radius=1.5,carry_limit=1,use_duration=0.5,heal_amount=0,shield_amount=0,grenade_damage=0,grenade_radius=0,grenade_falloff=0,emp_radius=0,emp_duration=0,radar_radius=0,radar_duration=0,projectile_speed=0,travel_distance=20,},
+}

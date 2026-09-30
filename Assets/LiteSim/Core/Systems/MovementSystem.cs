@@ -23,6 +23,18 @@ namespace LiteSim
 
                 ref EntitySlot e = ref entities[i];
 
+                // 最大速度硬上限（水平合速度）——服务器代码兜底护栏（2026-09-28 用户裁决："配置只做
+                // 软上限"）：配置错误/增益叠加/未来机制 bug 也不会让实体超速吹飞；用 SimMath 位级
+                // 确定原语（MulAdd2 + Sqrt），护栏本身不引运行时差异。
+                float velSq = SimMath.MulAdd2(e.Vel.X, e.Vel.X, e.Vel.Z, e.Vel.Z);
+                float hardSq = CombatConfig.HardMaxSpeed * CombatConfig.HardMaxSpeed;
+                if (velSq > hardSq)
+                {
+                    float scale = CombatConfig.HardMaxSpeed / SimMath.Sqrt(velSq);
+                    e.Vel.X *= scale;
+                    e.Vel.Z *= scale;
+                }
+
                 // XZ 平面位移（速度由 InputSystem 写入）
                 e.Pos.X += e.Vel.X * SimConfig.Dt;
                 e.Pos.Z += e.Vel.Z * SimConfig.Dt;
