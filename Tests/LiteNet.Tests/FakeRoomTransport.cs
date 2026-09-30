@@ -22,6 +22,14 @@ namespace LiteNet.Tests
         public int StartedPort { get; private set; } = -1;
         public bool Disposed { get; private set; }
 
+        /// <summary>被宿主断开过的连接号（per-IP 限流拒绝等断言用）。</summary>
+        public readonly List<int> Disconnects = new List<int>();
+
+        private readonly Dictionary<int, string> _remoteAddresses = new Dictionary<int, string>();
+
+        /// <summary>设定某连接的规范化远端地址（per-IP 限流用例）；默认 null = 未知（宿主跳过 IP 维度限流）。</summary>
+        public void SetRemoteAddress(int conn, string address) => _remoteAddresses[conn] = address;
+
         public event Action<int, ArraySegment<byte>, bool> OnData;
         public event Action<int> OnConnected;
         public event Action<int> OnDisconnected;
@@ -29,9 +37,12 @@ namespace LiteNet.Tests
         public void Start(int port) => StartedPort = port;
         public void TickIncoming() { }
         public void TickOutgoing() { }
-        public void Disconnect(int connectionId) { }
+        public void Disconnect(int connectionId) => Disconnects.Add(connectionId);
         public void Broadcast(ArraySegment<byte> data, bool reliable) { }
         public void Dispose() => Disposed = true;
+
+        public string GetRemoteAddress(int connectionId)
+            => _remoteAddresses.TryGetValue(connectionId, out string address) ? address : null;
 
         /// <summary>真实传输同步拷贝；假件同样拷贝（避免上层复用缓冲的假设在假件上假绿）。</summary>
         public void SendTo(int connectionId, ArraySegment<byte> data, bool reliable)

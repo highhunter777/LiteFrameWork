@@ -124,6 +124,39 @@ namespace LiteNet.Tests
             Assert.Equal(2, service.Count);
         }
 
+        // ---- R2 安全批：票据熵源（§P0-6"CSPRNG 生成、至少 128 bit 熵"）----
+
+        [Fact]
+        public void 重连票据_CSPRNG_不可复现且熵宽达标()
+        {
+            // 旧实现是 "rc{serial:x}-{playerId:x}"：两个新实例按同一顺序签发会产出**同一串**。
+            // CSPRNG 下重放签发序列不可复现——这条用例钉住"可预测串"不再回归。
+            string a = new ReconnectService().Issue(playerId: 7, roomId: "R");
+            string b = new ReconnectService().Issue(playerId: 7, roomId: "R");
+            Assert.NotEqual(a, b);
+
+            string token = new ReconnectService().Issue(playerId: 7, roomId: "R");
+            Assert.Equal(22, token.Length);                               // 16 B → base64url 去 padding
+            Assert.Matches("^[A-Za-z0-9_-]{22}$", token);                 // base64url 字母表，无 '=' padding
+
+            // 还原字节数 = 128 bit（熵宽是设计口径，不是"看起来随机"）
+            string padded = token.Replace('-', '+').Replace('_', '/');
+            switch (padded.Length % 4) { case 2: padded += "=="; break; case 3: padded += "="; break; }
+            Assert.Equal(ReconnectService.TokenEntropyBytes, System.Convert.FromBase64String(padded).Length);
+        }
+
+        [Fact]
+        public void 重连票据_批量签发无重复()
+        {
+            var service = new ReconnectService();
+            var seen = new System.Collections.Generic.HashSet<string>(System.StringComparer.Ordinal);
+            for (int i = 0; i < 64; i++)
+            {
+                string token = service.Issue(playerId: 3, roomId: "R");
+                Assert.True(seen.Add(token), "票据重复：" + token);
+            }
+        }
+
         // ---- 重绑：新会话水位归零，旧 ACK 不复活 ----
 
         [Fact]

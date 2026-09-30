@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.Security.Cryptography;
 
 namespace RoomServer.Application
 {
@@ -15,8 +16,11 @@ namespace RoomServer.Application
     ///   淘汰语义 = 该客户端需重新 Join，不影响在途合法重连的近期票据）；
     /// - <see cref="PurgeExpired"/> 由宿主周期调用。
     ///
-    /// 安全边界（R2 前不得公网）：票据仍是**可预测串**（非 CSPRNG），仅作原型能力——
-    /// 签名票据/熵源改造归 R2（《服务端通用框架总设计》§5 P0-6）。
+    /// 安全边界（R2 安全批，2026-09-30）：票据已改为 **CSPRNG 生成的不透明串**
+    /// （<see cref="TokenEntropyBytes"/>×8 = 128 bit 熵，<see cref="RandomNumberGenerator"/>，
+    /// §P0-6"至少 128 bit 熵"+"不得自创密码算法"）——旧实现的 <c>rc{serial}-{playerId}</c>
+    /// 可预测且泄露席位号，已删除。**仍未达公开部署标准**的是信道侧：业务载荷无机密性/完整性/
+    /// 重放保护（**安全信封**，专项另立）——在信封完成前本服务不得公网暴露（R0 红线口径不变）。
     /// </summary>
     public sealed class ReconnectService
     {
@@ -25,6 +29,9 @@ namespace RoomServer.Application
 
         /// <summary>票据表容量上限（默认 256——房间席位规模下远超在途票据数，超限淘汰最老）。</summary>
         public const int DefaultCapacity = 256;
+
+        /// <summary>票据熵字节数：16 B = 128 bit（§P0-6"至少 128 bit 熵"），base64url 后 22 字符。</summary>
+        public const int TokenEntropyBytes = 16;
 
         private struct Ticket
         {
@@ -37,7 +44,6 @@ namespace RoomServer.Application
         private readonly Queue<string> _issuedOrder = new Queue<string>();   // 签发序（淘汰最老用）
         private readonly IMonotonicClock _clock;
         private readonly int _capacity;
-        private long _serial;
 
         public ReconnectService(int capacity = DefaultCapacity, IMonotonicClock clock = null)
         {
@@ -57,10 +63,21 @@ namespace RoomServer.Application
                 _tickets.Remove(oldest);                                    // 淘汰最老（票据是短期凭证）
             }
 
-            string token = "rc" + (++_serial).ToString("x") + "-" + playerId.ToString("x");
+            string token = NewToken();
             _tickets[token] = new Ticket { PlayerId = playerId, RoomId = roomId, ExpireAtMs = NowMs() + TicketTtlMs };
             _issuedOrder.Enqueue(token);
             return token;
+        }
+
+        /// <summary>
+        /// CSPRNG 不透明票据：<see cref="TokenEntropyBytes"/> 字节随机数 → base64url（去 padding，无分隔符）。
+        /// 不携带任何可推导信息（旧实现的序号与 playerId 编码已删除——票据原文本来就不进日志）。
+        /// </summary>
+        private static string NewToken()
+        {
+            byte[] bytes = RandomNumberGenerator.GetBytes(TokenEntropyBytes);
+            return System.Convert.ToBase64String(bytes)
+                .TrimEnd('=').Replace('+', '-').Replace('/', '_');
         }
 
         /// <summary>消费票据（一次性 + 时效）：成功则移除并返回席位；失败不改状态。</summary>

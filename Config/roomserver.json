@@ -6,6 +6,9 @@
     "  **不允许按房间覆盖**——宿主侧覆盖造不出真隔离，只会让票据里的 ConfigHash 与实际计算值不符。",
     "  每房间参数化依赖 Sim 侧迁移（归 G1/热更批），届时本文件才可能长出 per-room combat。",
     "worker_count/mailbox_capacity = R2 Worker/Mailbox 配置；默认 1 Worker，宿主生命周期已接线，运行时消息路由按批次推进。",
+    "rate_limit = R2 安全批③分层限流（§343 桶容量上限+周期清理；§595 可按 IP/账号/Session 生效）。",
+    "  ip = IP 维度·连接（OnConnected）、entry = IP 维度·入场（Join/Reconnect）、account = 账号维度（验签后）、session = 单连接包速率；",
+    "  *_burst/*_per_sec = 令牌桶突发/稳态速率，buckets = 每 lane 键表容量上限，idle_ms = 空闲桶回收阈值；整段可省略走缺省。",
     "改本文件必须重启生效：启动时快照，运行中不重读（§188 房间创建时固定不可变玩法配置）。"
   ],
 
@@ -15,6 +18,19 @@
   "mailbox_capacity": 1024,
   "audience": "",
   "default_template": "standard",
+
+  "rate_limit": {
+    "ip_burst": 32,
+    "ip_per_sec": 4,
+    "entry_burst": 32,
+    "entry_per_sec": 8,
+    "account_burst": 16,
+    "account_per_sec": 2,
+    "session_burst": 256,
+    "session_per_sec": 128,
+    "buckets": 8192,
+    "idle_ms": 120000
+  },
 
   "combat": [
     {

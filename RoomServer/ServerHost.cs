@@ -53,6 +53,16 @@ namespace RoomServer
         private readonly IRoomTransport _transport;   // 窄端口（可替换性第二刀，2026-09-19 收口）
         private readonly SessionManager _sessions;
         private readonly ReconnectService _reconnects = new ReconnectService();
+
+        /// <summary>
+        /// 分层限流（R2 安全批③）：IP 维度（连接/入场）+ 账号维度（入场）+ Session 维度（包速率）。
+        /// 配置装载 <see cref="RoomServerConfig.RateLimit"/> 或构造注入；两者皆无时用
+        /// <see cref="RateLimitSettings.Default"/>（§520/§600：缺省是可用形态，不是"实测值"）。
+        /// 探测不到的远端地址（<see cref="IRoomTransport.GetRemoteAddress"/> 为 null）**跳过 IP 维度**——
+        /// 限不了看不见的地址，跳过而不是全拒（见端口契约）。
+        /// </summary>
+        private readonly RateLimiter _rateLimit;
+
         private readonly Ops _ops = new Ops();
         private readonly Stopwatch _clock = Stopwatch.StartNew();
 
@@ -212,6 +222,9 @@ namespace RoomServer
 
         public Ops Ops => _ops;
 
+        /// <summary>分层限流器（R2 安全批③；观测计数与测试断言入口）。</summary>
+        public RateLimiter RateLimit => _rateLimit;
+
         /// <summary>
         /// 建宿主。<paramref name="roomServerConfig"/> 给出房间容量上限、动态建房模板与
         /// Worker Pool 默认装配参数；传入 <paramref name="workerPool"/> 可在纯 .NET 用例中显式注入。
@@ -226,7 +239,7 @@ namespace RoomServer
             IJoinTicketValidator ticketValidator = null, string audience = null,
             RoomServerConfig roomServerConfig = null, ISettlementOutbox settlementOutbox = null,
             RoomWorkerPool workerPool = null, bool mailboxRouting = false,
-            bool drainMailboxesImmediately = true)
+            bool drainMailboxesImmediately = true, RateLimiter rateLimiter = null)
         {
             _transport = transport ?? throw new ArgumentNullException(nameof(transport));
             _serverConfig = roomServerConfig;
@@ -234,6 +247,7 @@ namespace RoomServer
             _tickets = ticketValidator;
             _audience = audience ?? _serverConfig?.Audience ?? string.Empty;
             _settlementOutbox = settlementOutbox;
+            _rateLimit = rateLimiter ?? new RateLimiter(_serverConfig?.RateLimit ?? RateLimitSettings.Default);
             _workerPool = workerPool ?? (_serverConfig != null
                 ? new RoomWorkerPool(_serverConfig.WorkerCount, _serverConfig.MailboxCapacity, OnWorkerFailure)
                 : null);
@@ -315,6 +329,15 @@ namespace RoomServer
         private void OnTransportConnected(int connectionId)
         {
             _nowMs = NowMs();
+
+            // 分层限流·IP 维度·连接（R2 安全批③）：kcp2k 握手后才会触发本回调，
+            // 远端地址此时已可达（KcpServer 先登记连接再回调）。地址探测不到 → 放行（限不了看不见的地址）。
+            if (!_rateLimit.TryAcquireIpConnect(_transport.GetRemoteAddress(connectionId), _nowMs))
+            {
+                _transport.Disconnect(connectionId);
+                return;
+            }
+
             if (!_sessions.TryAddNew(connectionId, _nowMs, out _))
             {
                 // R1 会话容量上限（§9.2）：超限不登记并断开——未认证连接不能把记账表撑成无界内存
@@ -427,6 +450,10 @@ namespace RoomServer
                 return;
             }
 
+            // 分层限流·Session 维度·包速率（R2 安全批③）：单热连接灌包被限速**静默丢弃**——
+            // 不回应（对洪水响应即放大），计数在 <see cref="RateLimiter.RejectedSessionPackets"/>。
+            if (!_rateLimit.TryAcquireSessionPacket(connectionId, _nowMs)) return;
+
             Session session = _sessions.GetOrAddOnFirstPacket(connectionId, _nowMs);
             if (session == null) return;
             if (session.Disconnected) return;
@@ -464,19 +491,29 @@ namespace RoomServer
         /// <summary>
         /// Join 信令：token 非空 + **房间号一致** + buildHash 必须等于服务器版本（版本红线）
         /// → 投递 <see cref="RoomCommand.Join"/> → JoinAck + 满员即 MatchStarted 广播。
+        /// 入场先过**分层限流**（R2 安全批③）：IP 维度（本方法首段）+ 账号维度（验签通过后）。
         ///
-        /// **安全能力现状（R0 声明 + 2026-09-26 票据接缝接入，《服务端总设计》§5 P0-6/R2 补齐）**：
+        /// **安全能力现状（R0 声明 + 2026-09-26 票据接缝 + R2 安全批①—③）**：
         /// 装配了 <see cref="IJoinTicketValidator"/> 后，token 走**验签 + 六项绑定 + 重放窗口**
         /// （过期/篡改/重放/受众/房间/构建哈希，见 <see cref="JoinTicketValidatorTests"/>）；
         /// **未装配**时退回原型级非空校验（<see cref="Session.Principal"/> 为 null）。
-        /// 两处**仍未**达标（公开部署前必须完成 R2）：kcp2k V1.41 cookie 只解决 UDP 探测/放大防护，
-        /// **不提供业务身份、机密性或完整性**；重连票据仍由本服务自签且是**可预测串**（非 CSPRNG，
-        /// 见 <see cref="ReconnectService"/>）。**在两者完成前本服务不得直接暴露公网**。
-        /// 远端地址限流与安全信封同属 R2。
+        /// 重连票据已 CSPRNG 化（<see cref="ReconnectService"/>，128bit 不透明串）；远端地址暴露
+        /// （<see cref="IRoomTransport.GetRemoteAddress"/>）与分层限流（<see cref="RateLimiter"/>）已就位。
+        /// **仍未**达标：kcp2k V1.41 cookie 只解决 UDP 探测/放大防护，**不提供业务身份、机密性或完整性**——
+        /// 安全信封（成熟安全传输或等价机密性/完整性/序号/重放窗口）归专项。
+        /// **在信封完成前本服务不得直接暴露公网**。
         /// </summary>
         private void HandleJoin(Session session, JoinRequest join)
         {
             if (session.PlayerId >= 0 || session.JoinPending) return;         // 重复/排队中的 Join 忽略
+
+            // 分层限流·IP 维度·入场（R2 安全批③）：先于验签与建房——频率校验在昂贵操作之前。
+            // 地址探测不到 → 放行；被限走统一 Reject（计数 + 日志，不回 JoinAck）。
+            if (!_rateLimit.TryAcquireIpEntry(_transport.GetRemoteAddress(session.ConnectionId), _nowMs))
+            {
+                Reject(session, "IP 入场频率超限");
+                return;
+            }
 
             // P0-3 字符串边界：UTF-8 字节数上限（先于一切语义；拒绝日志不回显字段内容）
             if (OverByteLimit(join.RoomId, MaxRoomIdBytes)
@@ -545,6 +582,14 @@ namespace RoomServer
                     return;
                 }
                 validatedPrincipal = principal;
+
+                // 分层限流·账号维度·入场（R2 安全批③）：验签通过后才有 AccountId 可比对（验签前拿不到账号）。
+                // 注意 nonce 已在验签中消费——此处被限即该票据作废（合法客户端远够余量，见 RateLimitSettings.Default）。
+                if (!_rateLimit.TryAcquireAccountEntry(principal.AccountId, _nowMs))
+                {
+                    Reject(session, "账号入场频率超限");
+                    return;
+                }
             }
 
             // 房间解析/创建（§6"一个 roomId 只能映射一个独立 RoomActor"；重复 roomId 复用既有房间）
@@ -681,6 +726,11 @@ namespace RoomServer
         /// </summary>
         private void HandleReconnect(Session session, Proto.ReconnectRequest request)
         {
+            // 分层限流·IP 维度·入场（R2 安全批③）：与 Join 共表。被限 → **静默丢弃**——
+            // 重连洪水不放大（不回 ReconnectResponse），也不向探测者泄露票据窗口状态。
+            if (!_rateLimit.TryAcquireIpEntry(_transport.GetRemoteAddress(session.ConnectionId), _nowMs))
+                return;
+
             if (_mailboxRouting)
             {
                 HandleReconnectMailbox(session, request);
@@ -1319,6 +1369,7 @@ namespace RoomServer
                 _ticksSinceCleanup = 0;
                 _ops.SessionsCleaned += _sessions.Cleanup(_nowMs);   // §9.2 周期清理（容量+时效）
                 _reconnects.PurgeExpired();
+                _rateLimit.PurgeIdle(_nowMs);                        // §343 限流桶同节奏周期清理（R2 安全批③）
             }
             _transport.TickOutgoing();
             MaybePrintOps();
@@ -1527,7 +1578,7 @@ namespace RoomServer
             {
                 RoomInstance room = _rooms[i];
                 Console.WriteLine(_ops.Format(room.RoomId, room.Runtime, room.Pipeline, _sessions,
-                    _rooms.Count, i == 0 ? LoopStats : null));
+                    _rooms.Count, i == 0 ? LoopStats : null, i == 0 ? _rateLimit : null));
             }
         }
 

@@ -1,6 +1,7 @@
 using System.IO;
 using LiteTesting;
 using RoomServer;
+using RoomServer.Application;
 using RoomServer.Runtime;
 using Xunit;
 
@@ -168,6 +169,68 @@ namespace LiteNet.Tests
             Assert.Equal(17777, cfg.Port);
         }
 
+        // ---- 分层限流分区（R2 安全批③；§343 桶容量上限+周期清理）----
+
+        [Fact]
+        public void 限流分区_缺失走缺省()
+        {
+            var c = RoomServerConfig.Parse(Good);
+
+            Assert.Equal(RateLimitSettings.Default.IpConnect.Burst, c.RateLimit.IpConnect.Burst);
+            Assert.Equal(RateLimitSettings.Default.IpEntry.RefillPerSec, c.RateLimit.IpEntry.RefillPerSec);
+            Assert.Equal(RateLimitSettings.Default.AccountEntry.Burst, c.RateLimit.AccountEntry.Burst);
+            Assert.Equal(RateLimitSettings.Default.SessionPackets.Burst, c.RateLimit.SessionPackets.Burst);
+            Assert.Equal(8192, c.RateLimit.Buckets);
+            Assert.Equal(120_000, c.RateLimit.IdleTtlMs);
+            Assert.Contains("rateLimit=[ip=32/4", c.Describe());
+            Assert.Contains("buckets=8192", c.Describe());
+        }
+
+        [Fact]
+        public void 限流分区_部分字段覆盖_其余走缺省()
+        {
+            string json = Good.Replace(@"""audience"": ""cluster-1"",",
+                @"""audience"": ""cluster-1"",
+                  ""rate_limit"": { ""session_burst"": 8, ""session_per_sec"": 3.5 }, ");
+
+            var c = RoomServerConfig.Parse(json);
+
+            Assert.Equal(8, c.RateLimit.SessionPackets.Burst);            // 覆盖生效
+            Assert.Equal(3.5, c.RateLimit.SessionPackets.RefillPerSec);   // 小数速率可解析
+            Assert.Equal(RateLimitSettings.Default.IpConnect.Burst, c.RateLimit.IpConnect.Burst);   // 其余缺省
+            Assert.Equal(8192, c.RateLimit.Buckets);
+        }
+
+        [Theory]
+        [InlineData("ip_burst", "0")]
+        [InlineData("ip_burst", "-1")]
+        [InlineData("ip_burst", "65536")]
+        [InlineData("entry_per_sec", "0")]
+        [InlineData("entry_per_sec", "-0.5")]
+        [InlineData("account_burst", "0")]
+        [InlineData("session_per_sec", "0")]
+        [InlineData("buckets", "0")]
+        [InlineData("buckets", "1000001")]
+        [InlineData("idle_ms", "999")]
+        [InlineData("idle_ms", "86400001")]
+        public void 限流分区_越界拒绝(string field, string value)
+        {
+            string json = Good.Replace(@"""audience"": ""cluster-1"",",
+                @"""audience"": ""cluster-1"",
+                  ""rate_limit"": { """ + field + @""": " + value + @" }, ");
+
+            Assert.ThrowsAny<System.Exception>(() => RoomServerConfig.Parse(json));
+        }
+
+        [Fact]
+        public void 限流分区_非对象拒绝()
+        {
+            string json = Good.Replace(@"""audience"": ""cluster-1"",",
+                @"""audience"": ""cluster-1"", ""rate_limit"": 5, ");
+
+            Assert.ThrowsAny<System.Exception>(() => RoomServerConfig.Parse(json));
+        }
+
         // ---- 范围校验（§429）----
 
         [Theory]
@@ -283,6 +346,8 @@ namespace LiteNet.Tests
             Assert.InRange(c.MailboxCapacity, 1, 1_000_000);
             Assert.NotEmpty(c.TemplateIds);
             Assert.True(c.Combat.EntityHp > 0, "自带配置的玩法数值应为有效值");
+            Assert.InRange(c.RateLimit.Buckets, 1, 1_000_000);
+            Assert.True(c.RateLimit.SessionPackets.Burst >= 1);
         }
 
         private static string WithProperty(string property, string value, bool quoteValue)

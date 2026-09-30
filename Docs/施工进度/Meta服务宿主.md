@@ -164,7 +164,7 @@ R2 行亦写"RoomServer 侧：Join Ticket **本地验签**"。Meta 侧只**签�
 | L3 | `scripts/test.ps1 -Lane L3` | **57 通过 / 0 失败**（LiteNet.Tests 由 9 → **51**，+42 即本批；MetaServer 6） |
 | L1 | `scripts/test.ps1 -Lane L1` | **761 通过 / 0 失败**（本批用例标 `Integration`，按分层归 **L3** 不占 L1） |
 
-**未完成**：Meta 侧签发端（G3）；非对称验签（R2 可选）；重连票据 CSPRNG 化（R2）；远端限流与安全信封（R2）。
+**未完成**：Meta 侧签发端（G3）；非对称验签（R2 可选）；~~重连票据 CSPRNG 化（R2）~~ 已于 2026-09-30 交付（[服务端R2安全](服务端R2安全.md)）；~~远端限流~~ 已交付（同上），**安全信封仍缺（另立专项）**。
 
 ### 2026-09-25 · 宿主骨架交付（含三处实测缺陷修正）
 
@@ -238,7 +238,8 @@ R2 行亦写"RoomServer 侧：Join Ticket **本地验签**"。Meta 侧只**签�
   - **未装配验证器时退回原型级非空校验**：这是刻意保留的联调形态（否则全部历史用例与本地联调齐断），
     但**未验证 ≠ 已验证**——`Session.Principal` 保持 null，且启动时打印显式告警（§6"不能悄悄退回 fake"）。
     生产装配**必须**传 `--ticket-key`。
-  - **重连票据仍未达标**：`ReconnectService` 签发的仍是**可预测串**（非 CSPRNG），归 R2，见该文件类注释。
+  - ~~**重连票据仍未达标**：`ReconnectService` 签发的仍是**可预测串**（非 CSPRNG），归 R2，见该文件类注释。~~
+    → **已于 2026-09-30 交付**（R2 安全批①：16 B CSPRNG → base64url 不透明串，[服务端R2安全](服务端R2安全.md)）。
 - `BuildHash` 为占位值，未接 `gen-build-hash.py`——按 §P0-5，该字段在接线前**不可**用作版本身份或签名。
 - 生产编排面（TLS、限流分层、Secret Provider、Docker）未接，归 R4/§12。
 - 本批无业务端点，`/metrics` 为最小文本出口；正式 Prometheus/OTel 出口归 R4（§11.2）。

@@ -4,6 +4,7 @@ using System.Globalization;
 using System.IO;
 using System.Text.Json;
 using LiteSim;
+using RoomServer.Application;
 using RoomServer.Runtime;
 
 namespace RoomServer
@@ -13,11 +14,13 @@ namespace RoomServer
     /// tick/snapshot 频率、队列上限和安全策略**均有范围校验**"；§520/§600"**不把估算值写死为事实**"
     /// "不在设计阶段虚构固定房间数"）。
     ///
-    /// **两个分区，两种语义**：
+    /// **分区语义**（rooms 按模板逐房取值；其余分区进程级共享）：
     /// - <c>rooms</c>：房间**模板**。动态建房时按模板取值——每个 roomId 一份（§6"一个 roomId
     ///   只能映射一个独立 RoomActor"）。模板缺失/字段缺失 → **拒绝建房**，不静默兜底。
     /// - <c>combat</c>：**进程级共享**玩法数值。所有房间共用同一份（Sim 系统静态读
     ///   <see cref="CombatConfig"/>，参数化迁移归 G1/热更批）。
+    /// - <c>rate_limit</c>：**进程级共享**分层限流参（R2 安全批；可选，缺省见
+    ///   <see cref="RateLimitSettings.Default"/>）。
     ///
     /// **不可变性**（§188"房间创建时固定不可变玩法配置…已有数据发布只供新房间采用"）：
     /// 本类在启动时**快照** json 文本，此后不再读文件——运行中改盘上文件不影响已建房间，
@@ -84,12 +87,19 @@ namespace RoomServer
         /// <summary>结算 Outbox 容量上限（§6"有界 Outbox"；满则入盒显式拒绝并计数）。</summary>
         public readonly int SettlementOutboxCapacity;
 
+        /// <summary>
+        /// 分层限流参（R2 安全批；§343"限流桶必须有容量上限和周期清理"、§595"限流可按 IP/账号/Session 生效"）。
+        /// <c>rate_limit</c> 分区可选：缺失 → <see cref="RateLimitSettings.Default"/>；
+        /// 给了 → 逐字段范围校验（不静默兜底半段配置）。
+        /// </summary>
+        public readonly RateLimitSettings RateLimit;
+
         private readonly string _sourcePath;
 
         private RoomServerConfig(string sourcePath, int port, int maxRooms, string audience,
             Dictionary<string, RoomTemplate> rooms, string defaultTemplateId,
             CombatNumValues combat, int workerCount, int mailboxCapacity,
-            string settlementJournalPath, int settlementOutboxCapacity)
+            string settlementJournalPath, int settlementOutboxCapacity, RateLimitSettings rateLimit)
         {
             _sourcePath = sourcePath;
             _port = port;
@@ -102,6 +112,7 @@ namespace RoomServer
             _combat = combat;
             SettlementJournalPath = settlementJournalPath;
             SettlementOutboxCapacity = settlementOutboxCapacity;
+            RateLimit = rateLimit ?? RateLimitSettings.Default;
 
             int widest = 0;
             foreach (RoomTemplate t in rooms.Values)
@@ -255,8 +266,55 @@ namespace RoomServer
                     $"settlement_outbox_capacity 越界（允许 1..1000000）：{outboxCapacityValue}：{sourcePath}");
             int outboxCapacity = (int)outboxCapacityValue;
 
+            RateLimitSettings rateLimit = ParseRateLimit(root, sourcePath);
+
             return new RoomServerConfig(sourcePath, port, maxRooms, audience, rooms, defaultId, combat,
-                workerCount, mailboxCapacity, journal, outboxCapacity);
+                workerCount, mailboxCapacity, journal, outboxCapacity, rateLimit);
+        }
+
+        /// <summary>
+        /// 分层限流分区（可选）。整段缺失 → 缺省；只要给了分区就**逐字段**校验
+        /// （半段错配置会静默改变安全水位——宁可起不来）。
+        /// </summary>
+        private static RateLimitSettings ParseRateLimit(JsonElement root, string sourcePath)
+        {
+            if (!root.TryGetProperty("rate_limit", out JsonElement rl)) return RateLimitSettings.Default;
+            if (rl.ValueKind != JsonValueKind.Object)
+                throw new InvalidDataException($"rate_limit 必须是对象：{sourcePath}");
+
+            RateLimitSettings.Lane ipConnect = ParseLane(rl, "ip", 32, 4, sourcePath);
+            RateLimitSettings.Lane ipEntry = ParseLane(rl, "entry", 32, 8, sourcePath);
+            RateLimitSettings.Lane accountEntry = ParseLane(rl, "account", 16, 2, sourcePath);
+            RateLimitSettings.Lane sessionPackets = ParseLane(rl, "session", 256, 128, sourcePath);
+
+            // 键表容量上限（§343）：1 百万条 ~= 每桶 ~50B，封顶内存；下限 1 保证能限速。
+            long buckets = OptionalLong(rl, "buckets", 8192);
+            if (buckets < 1 || buckets > 1_000_000)
+                throw new InvalidDataException($"rate_limit.buckets 越界（允许 1..1000000）：{buckets}：{sourcePath}");
+
+            // 空闲桶回收阈值：过小会误清活跃桶（丢欠账），过大等于不清理——范围两头都钉住。
+            long idleMs = OptionalLong(rl, "idle_ms", 120_000);
+            if (idleMs < 1_000 || idleMs > 86_400_000)
+                throw new InvalidDataException($"rate_limit.idle_ms 越界（允许 1000..86400000）：{idleMs}：{sourcePath}");
+
+            return new RateLimitSettings(ipConnect, ipEntry, accountEntry, sessionPackets,
+                (int)buckets, idleMs);
+        }
+
+        private static RateLimitSettings.Lane ParseLane(JsonElement parent, string prefix,
+            int defaultBurst, double defaultPerSec, string sourcePath)
+        {
+            long burst = OptionalLong(parent, prefix + "_burst", defaultBurst);
+            if (burst < 1 || burst > 65_535)
+                throw new InvalidDataException(
+                    $"rate_limit.{prefix}_burst 越界（允许 1..65535）：{burst}：{sourcePath}");
+
+            double perSec = OptionalDouble(parent, prefix + "_per_sec", defaultPerSec);
+            if (!(perSec > 0) || perSec > 100_000)   // 非 >0 同时挡 NaN/0/负数
+                throw new InvalidDataException(
+                    $"rate_limit.{prefix}_per_sec 越界（允许 (0,100000]）：{perSec.ToString(CultureInfo.InvariantCulture)}：{sourcePath}");
+
+            return new RateLimitSettings.Lane((int)burst, perSec);
         }
 
         /// <summary>可调默认路径（相对工作目录）。</summary>
@@ -306,6 +364,14 @@ namespace RoomServer
             return v;
         }
 
+        private static double OptionalDouble(JsonElement parent, string name, double fallback)
+        {
+            if (!parent.TryGetProperty(name, out JsonElement e)) return fallback;
+            if (e.ValueKind != JsonValueKind.Number || !e.TryGetDouble(out double v))
+                throw new InvalidDataException($"字段 {name} 必须是数字");
+            return v;
+        }
+
         private static string OptionalString(JsonElement parent, string name)
         {
             if (!parent.TryGetProperty(name, out JsonElement e)) return null;
@@ -318,11 +384,19 @@ namespace RoomServer
         public string Describe()
         {
             return string.Format(CultureInfo.InvariantCulture,
-                "port={0} maxRooms={1} workerCount={2} mailboxCapacity={3} audience={4} rooms=[{5}] default={6} settlementJournal={7} settlementCapacity={8}",
+                "port={0} maxRooms={1} workerCount={2} mailboxCapacity={3} audience={4} rooms=[{5}] default={6} settlementJournal={7} settlementCapacity={8} rateLimit=[ip={9} entry={10} account={11} session={12} buckets={13} idleMs={14}]",
                 Port, MaxRooms, WorkerCount, MailboxCapacity,
                 string.IsNullOrEmpty(Audience) ? "(不校验)" : Audience,
                 string.Join(",", _rooms.Keys), _defaultTemplateId, SettlementJournalPath,
-                SettlementOutboxCapacity);
+                SettlementOutboxCapacity,
+                LaneText(RateLimit.IpConnect), LaneText(RateLimit.IpEntry),
+                LaneText(RateLimit.AccountEntry), LaneText(RateLimit.SessionPackets),
+                RateLimit.Buckets, RateLimit.IdleTtlMs);
+        }
+
+        private static string LaneText(RateLimitSettings.Lane lane)
+        {
+            return string.Format(CultureInfo.InvariantCulture, "{0}/{1}", lane.Burst, lane.RefillPerSec);
         }
     }
 }

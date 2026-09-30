@@ -98,10 +98,12 @@ namespace RoomServer.Application
         /// <summary>
         /// 周期汇总（房间号/帧号/快照/输入/和解率/背压/回溯/节拍债——一行式，便于日志抓取）。
         /// **逐房间**调用：多房间下按房间出一行，才能看出是哪个房间慢/过载（§514 隔离观测前提）。
-        /// <paramref name="roomCount"/> 与 <paramref name="loop"/> 属宿主/Worker 级——只在首行给。
+        /// <paramref name="roomCount"/>、<paramref name="loop"/> 与 <paramref name="limiter"/> 属宿主/Worker 级——
+        /// 只在首行给（<paramref name="limiter"/> = R2 安全批③限流计数，单源在 <see cref="RateLimiter"/>）。
         /// </summary>
         public string Format(string roomId, RoomRuntime room, SnapshotPipeline pipeline,
-            SessionManager sessions, int roomCount, ServerLoop.LoopStats loop = null)
+            SessionManager sessions, int roomCount, ServerLoop.LoopStats loop = null,
+            RateLimiter limiter = null)
         {
             _sb.Clear();
             _sb.Append("[Ops] rooms=").Append(roomCount)
@@ -152,6 +154,14 @@ namespace RoomServer.Application
                .Append(" exp=").Append(TicketRejectedExpired)
                .Append(" rply=").Append(TicketRejectedReplayed)
                .Append(" kid=").Append(TicketRejectedUnknownKey).Append(')');
+            if (limiter != null)
+                _sb.Append(" | rl: ipConn=").Append(limiter.RejectedIpConnect)
+                   .Append(" ipEntry=").Append(limiter.RejectedIpEntry)
+                   .Append(" acct=").Append(limiter.RejectedAccountEntry)
+                   .Append(" sess=").Append(limiter.RejectedSessionPackets)
+                   .Append(" tblFull=").Append(limiter.RejectedTableFull)
+                   .Append(" purged=").Append(limiter.BucketsPurged)
+                   .Append(" buckets=").Append(limiter.BucketCount);
             if (loop != null)
                 _sb.Append(" | loop: ticks=").Append(loop.Ticks)
                    .Append(" debt=").Append(loop.DroppedTimeMs).Append("ms")

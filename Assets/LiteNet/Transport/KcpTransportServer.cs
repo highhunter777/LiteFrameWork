@@ -57,6 +57,16 @@ namespace LiteNet.Transport
 
         public void Disconnect(int connectionId) => _server?.Disconnect(connectionId);
 
+        /// <summary>
+        /// 规范化远端地址（无端口）。kcp2k 在握手完成、登记 connection **之后**才回调
+        /// OnConnected（KcpServer.cs:273-288），故连接事件内即可取到地址——per-IP 限流
+        /// 在"接受连接"这一拍就有键可用。未握手/已断开返回 null。
+        /// </summary>
+        public string GetRemoteAddress(int connectionId)
+        {
+            return RemoteAddress.Normalize(_server?.GetClientEndPoint(connectionId));
+        }
+
         public void Dispose()
         {
             if (_server != null)

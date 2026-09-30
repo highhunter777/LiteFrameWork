@@ -177,6 +177,7 @@ namespace LiteNet.Tests
             public void Disconnect(int connectionId) { }
             public void Broadcast(ArraySegment<byte> data, bool reliable) { }
             public void SendTo(int connectionId, ArraySegment<byte> data, bool reliable) { }
+            public string GetRemoteAddress(int connectionId) => null;
 
             public void Dispose()
             {
