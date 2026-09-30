@@ -140,6 +140,7 @@ namespace LiteSim
                 h = MixInt32(h, e.Kills);
                 h = MixInt32(h, e.Deaths);
                 h = MixInt32(h, e.SelectedWeapon);
+                h = MixByte(h, e.FireStanceFrames);   // 开火驻留窗（私有面——改写 Vel 的判定输入，全量口径必含；公共口径不含，见 ComputePublicChecksum）
             }
 
             byte[] globals = s.Globals;

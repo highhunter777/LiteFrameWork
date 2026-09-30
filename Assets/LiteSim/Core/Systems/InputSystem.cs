@@ -7,10 +7,14 @@ namespace LiteSim
     /// 输入数组已由 SimStep 按 EntityId 升序排列（§3.3 同帧多请求的确定性来源）。
     ///
     /// **2026-09-27 瞄准态口径（用户裁决，见《角色状态与动作专项设计》§7）**：
-    /// - **限速**：ADS 期间移动上限降到 <see cref="CombatConfig.AimMoveSpeed"/>（= 走路档）；
+    /// - **限速**：**瞄准中 ∨ 开火态**（开火态 = <see cref="EntitySlot.FireStanceFrames"/> &gt; 0，
+    ///   2026-09-30 三次裁决——移动腰射按 aimwalk 移动）→ 移动上限
+    ///   <see cref="CombatConfig.AimMoveSpeed"/>（= 走路档）；
     /// - **朝向派生分两种**：瞄准中**或开火帧** → 朝准星（腰射的射击方向来自 `Aim`，身位必须跟枪口一致，
     ///   否则子弹看起来从侧面飞出）；否则 → 朝移动方向（非瞄准的走跑用"前进向"片段，侧移不再横着走）；
     ///   都不满足（静止且未开火）→ **保持上一帧 Yaw**（不拿零向量退化、且回放/重放可重建）。
+    /// - **开火驻留窗递减**（批次C）：Run 顶部对**全槽位**统一推进——缺席/空输入帧与死亡实体照常衰减
+    ///   （整数计数 ⇒ 确定性）；窗随 <see cref="ShootingSystem"/> 判定点置满、本系统先跑 ⇒ 置窗次帧起限速生效。
     /// </summary>
     public static class InputSystem
     {
@@ -19,6 +23,11 @@ namespace LiteSim
 
         public static void Run(SimWorldState s, SimInputFrame[] inputs)
         {
+            // 开火驻留窗统一递减（全槽位——含缺席/死亡：窗自然衰减，死亡不特判；"离开开火态即取消"的自然结束面）
+            EntitySlot[] entities = s.Entities;
+            for (int i = 0; i < SimConfig.MaxEntities; i++)
+                if (entities[i].FireStanceFrames > 0) entities[i].FireStanceFrames--;
+
             for (int i = 0; i < inputs.Length; i++)
             {
                 // 目标已死 = 引用失效 = 正常路径（#7），本帧输入丢弃
@@ -28,8 +37,11 @@ namespace LiteSim
                 uint buttons = inputs[i].Buttons;
                 bool aiming = (buttons & SimInputFrame.ButtonAim) != 0u;
 
-                // 移动：瞄准限速（倍率 0.5 = 乘 2 的幂，位级精确——见 CombatConfig.AimMoveSpeed）
-                float speed = aiming ? CombatConfig.AimMoveSpeed : CombatConfig.MoveSpeed;
+                // 移动：瞄准 ∨ 开火态 → 限速走路档（瞄准倍率 0.5 = 乘 2 的幂，位级精确；
+                // 开火态限速改写 Vel ⇒ 窗计数是**判定输入**——已进全量 checksum，见 EntitySlot.FireStanceFrames）
+                float speed = aiming || e.FireStanceFrames > 0
+                    ? CombatConfig.AimMoveSpeed
+                    : CombatConfig.MoveSpeed;
                 e.Vel.X = inputs[i].MoveX * speed;
                 e.Vel.Z = inputs[i].MoveZ * speed;
 

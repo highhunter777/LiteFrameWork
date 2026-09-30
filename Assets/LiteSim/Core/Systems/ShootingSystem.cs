@@ -7,7 +7,8 @@ namespace LiteSim
     /// 本系统是 M8 唯一消费 RngState 的系统（#10：确定性审计写在签名上——伤害浮动 ±1）。
     ///
     /// **服务器回溯（M10 批③）**：LagCompensator 会把本系统**单独**跑在历史帧状态上（不 Step），
-    /// 因此本系统必须满足两条：① 不改 Frame/时序；② 只读输入 + 写 Cmds/Events/RngState。
+    /// 因此本系统必须满足两条：① 不改 Frame/时序；② 只读输入 + 写 Cmds/Events/RngState +
+    /// 槽位开火窗（FireStanceFrames——与 Fire 事件同点置窗；回溯副本上的写入随副本丢弃，不入权威态）。
     /// 回调方负责还原 RngState（回溯判定不该消费权威随机数）。
     /// </summary>
     public static class ShootingSystem
@@ -60,6 +61,11 @@ namespace LiteSim
                         hitSlot = j;
                     }
                 }
+
+                // 开火驻留窗置满（三次裁决：与 Fire 事件**同点**——View 侧窗口同触发同长度同刷新，
+                // 事件刷新制重置满窗、上限即窗长；限速由 InputSystem 次帧起生效——本系统在输入之后跑）。
+                // 服务器回溯（M10 批③）：本字段随回溯副本丢弃，不入权威态——契约见类注释②。
+                shooter.FireStanceFrames = (byte)CombatConfig.FireStanceFrames;
 
                 s.Events.Write(FrameEventKind.Fire, shooter.Id, 0L, 0, shooter.Pos);
 

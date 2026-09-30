@@ -48,6 +48,27 @@ namespace LiteSim.Tests
         }
 
         [Fact]
+        public void 开火窗_私有面_全量口径必变_公共口径不变()
+        {
+            // 批次C：开火驻留窗是**改写 Vel 的判定输入**（瞄准 ∨ 开火态 → 限速）——必须进全量 checksum
+            // （漏一个 = 重放对账漏检）；同时是**私有面**（远端开火输入不可重建）——不得进公共比对口径
+            // （进比对只会制造窗内假和解——churn 边界与协议加列根治路径见《角色状态与动作专项设计》§7）。
+            var world = new SimWorldState { RngState = 1UL };
+            world.Spawn(new EntitySlot { Hp = 100 }, out int slot);
+
+            uint full0 = SimChecksum.ComputeStateChecksum(world);
+            uint public0 = SimChecksum.ComputePublicChecksum(world);
+
+            world.Entities[slot].FireStanceFrames = (byte)CombatConfig.FireStanceFrames;
+
+            Assert.True(full0 != SimChecksum.ComputeStateChecksum(world),
+                "开火窗进全量口径（判定输入——重放对账必含）");
+            Assert.True(public0 == SimChecksum.ComputePublicChecksum(world),
+                "开火窗不进公共口径（私有面——远端不可重建）");
+            Assert.Equal(60, CombatConfig.FireStanceFrames);
+        }
+
+        [Fact]
         public void 布局_SimConfig_常量与开工清单对账()
         {
             // 《状态同步实施方案》§11-3：60Hz / inputDelay 1 / MaxCatchUp 5 / MaxRollbackFrames 8 / MaxEntities 256

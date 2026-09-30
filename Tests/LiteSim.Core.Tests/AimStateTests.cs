@@ -36,6 +36,71 @@ namespace LiteSim.Tests
             Assert.Equal(CombatConfig.MoveSpeed, world.Entities[slot].Vel.X, 4);
         }
 
+        // ---- 开火驻留窗（批次C：Sim 权威开火态——三次裁决"移动腰射按 aimwalk 移动"的 Sim 侧落地）----
+
+        [Fact]
+        public void 开火窗_窗内限速走路档_窗尽回落全速_重放可重建()
+        {
+            long id = Spawn(out var world, out int slot);
+            var fire = Inputs(id, 1f, 0f, 1f, 0f, SimInputFrame.ButtonFire);
+            var move = Inputs(id, 1f, 0f, 1f, 0f);
+
+            // 置窗帧：InputSystem 先跑（窗未置——仍全速），ShootingSystem 判定点置满窗（与 Fire 事件同点）
+            InputSystem.Run(world, fire);
+            Assert.True(world.Entities[slot].Vel.X == CombatConfig.MoveSpeed,
+                "置窗帧仍全速——窗在判定点才置，限速自次帧起生效（系统序：输入 → 射击判定）");
+            ShootingSystem.Run(world, fire);
+            Assert.True(world.Entities[slot].FireStanceFrames == (byte)CombatConfig.FireStanceFrames,
+                "开火判定置满窗（事件刷新制——上限即窗长）");
+
+            // 窗内：不再开火、只移动 → 限速走路档（移动腰射按 aimwalk 移动）
+            InputSystem.Run(world, move);
+            Assert.True(world.Entities[slot].Vel.X == CombatConfig.AimMoveSpeed, "窗内移动被限到走路档");
+
+            // 窗尽（自然结束）：递减到 0 → 回全速
+            for (int i = 0; i < CombatConfig.FireStanceFrames; i++)
+                InputSystem.Run(world, move);
+            Assert.True(world.Entities[slot].FireStanceFrames == 0, "窗尽归零（离开开火态即取消限速）");
+            Assert.True(world.Entities[slot].Vel.X == CombatConfig.MoveSpeed, "窗尽后移动回全速");
+
+            // 重放可重建：同输入序列再跑一个世界——窗计数与全量 checksum 逐位一致（私有面已进全量口径）
+            long id2 = Spawn(out var world2, out int slot2);
+            var fire2 = Inputs(id2, 1f, 0f, 1f, 0f, SimInputFrame.ButtonFire);
+            var move2 = Inputs(id2, 1f, 0f, 1f, 0f);
+            InputSystem.Run(world2, fire2); ShootingSystem.Run(world2, fire2);
+            InputSystem.Run(world2, move2);
+            for (int i = 0; i < CombatConfig.FireStanceFrames; i++) InputSystem.Run(world2, move2);
+            Assert.True(world.Entities[slot].FireStanceFrames == world2.Entities[slot2].FireStanceFrames,
+                "同输入序列 ⇒ 同窗计数（确定性）");
+            Assert.True(SimChecksum.ComputeStateChecksum(world) == SimChecksum.ComputeStateChecksum(world2),
+                "两世界全量 checksum 逐位一致（开火窗进全量口径——重放对账可重建）");
+        }
+
+        [Fact]
+        public void 开火窗_事件刷新重置满窗_持续射击窗不落()
+        {
+            long id = Spawn(out var world, out int slot);
+            var fire = Inputs(id, 1f, 0f, 1f, 0f, SimInputFrame.ButtonFire);
+            var move = Inputs(id, 1f, 0f, 1f, 0f);
+
+            InputSystem.Run(world, fire);
+            ShootingSystem.Run(world, fire);                       // 置满：60
+
+            // 走 30 帧（窗 → 30）再开一枪 → 重置回满窗（上限即窗长，不累加）
+            for (int i = 0; i < 30; i++) InputSystem.Run(world, move);
+            Assert.True(world.Entities[slot].FireStanceFrames == (byte)(CombatConfig.FireStanceFrames - 30),
+                "不开火的帧逐帧递减");
+            InputSystem.Run(world, fire);
+            ShootingSystem.Run(world, fire);
+            Assert.True(world.Entities[slot].FireStanceFrames == (byte)CombatConfig.FireStanceFrames,
+                "事件刷新＝重置满窗（上限即窗长——持续射击窗不落）");
+
+            // 再走 30 帧：窗仍有余量 → 仍限速（若窗没重置，30+30=60 早应归零回全速）
+            for (int i = 0; i < 30; i++) InputSystem.Run(world, move);
+            Assert.True(world.Entities[slot].Vel.X == CombatConfig.AimMoveSpeed, "重置后的窗仍在——限速保持");
+            Assert.True(world.Entities[slot].FireStanceFrames > 0, "重置后的窗尚有余量");
+        }
+
         [Fact]
         public void 朝向_未瞄准朝移动方向_瞄准或开火朝准星_都没有则保持()
         {

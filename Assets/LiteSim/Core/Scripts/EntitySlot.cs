@@ -46,6 +46,19 @@ namespace LiteSim
         /// 其他玩家渲染武器外观用它；弹药等私有运行态只在本人 PrivateStateSnapshot。</summary>
         public int SelectedWeapon;
 
+        /// <summary>
+        /// 开火驻留窗剩余（逻辑帧数；0 = 不在开火态）——**Sim 权威开火态**（2026-09-30 三次裁决＋
+        /// 2026-10-01 批次C 落地，口径见《角色状态与动作专项设计》§7 限速行）。**私有面**：只进
+        /// 全量 checksum（<see cref="SimChecksum"/>），不进公共快照/SlotDelta——远端开火输入不可重建，
+        /// 进公共比对口径只会制造窗内假和解（有界 churn 边界与协议加列根治路径已在 §7 登记）。
+        /// 置窗＝<see cref="ShootingSystem"/> 开火判定点（与 <see cref="FrameEventKind.Fire"/> 事件同点，
+        /// 事件刷新制——每次判定重置满窗，上限即窗长）；递减＝<see cref="InputSystem"/> 每帧统一推进
+        /// （全槽位含死亡/缺席——整数计数 ⇒ 确定性）；限速＝InputSystem 按"瞄准 ∨ 开火态"限到
+        /// <see cref="CombatConfig.AimMoveSpeed"/>（走路档）。窗长单源 <see cref="CombatConfig.FireStanceFrames"/>
+        /// （1s @60Hz，六次裁决——与开火动画时长解耦）。
+        /// </summary>
+        public byte FireStanceFrames;
+
     }
 
     /// <summary>
