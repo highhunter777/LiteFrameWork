@@ -208,3 +208,6 @@ Assets/MagicaCloth2.meta
 # 恢复可见（需要提交这三者的真实变更时）：
 #   git ls-files -v | grep ^S   列出；git update-index --no-skip-worktree <file>
 # 注意：远端若真要改这三个文件，pull 会因 skip-worktree 拒绝合并——先 no-skip 再拉。
+
+# ===== .trae/（Trae 编辑器本地配置，机器私有）=====
+.trae/
