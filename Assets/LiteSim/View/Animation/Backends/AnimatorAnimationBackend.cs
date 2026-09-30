@@ -185,6 +185,22 @@ namespace LiteSim.View.Animation
             _clips[key] = clip;
         }
 
+        /// <summary>
+        /// 查询已登记绑定的**片段时长**（秒）——消费方：驱动器派生**开火态时间**
+        /// （开火态时间 = 开火动画时间 = 片段时长 ÷ 播放倍率，装配期解析一次，见
+        /// <c>SlotAnimContext.FireHoldSeconds</c>）。**时长单一来源 = 片段资产**——不在 Profile/驱动里写时长。
+        /// 未知绑定 / 空片段 / 零长 → false（调用方据此显性处理，不猜兜底时长）。
+        /// **原生时长**（不受播放倍率影响；倍率由调用方自行相除）。
+        /// </summary>
+        public bool TryGetClipSeconds(string binding, out float seconds)
+        {
+            seconds = 0f;
+            if (_disposed || string.IsNullOrEmpty(binding)) return false;
+            if (!_clips.TryGetValue(binding, out AnimationClip clip) || clip == null) return false;
+            seconds = clip.length;
+            return seconds > 0f;
+        }
+
         public bool TryPlay(in AnimationResolvedPlayback playback)
         {
             if (_disposed) return false;

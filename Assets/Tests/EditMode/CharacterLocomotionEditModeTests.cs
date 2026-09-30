@@ -979,6 +979,61 @@ namespace LiteGame.Tests.EditMode
             driver.Dispose();
         }
 
+        // ---- 开火态时间 = 开火动画时间（2026-09-30 四次裁决：驻留窗长从片段资产派生，不再写常量）----
+
+        [Test]
+        [Category(TestCategory.Contract)]
+        public void 驱动_开火态时间等于开火动画时间_片段播完即退态()
+        {
+            var prefab = LoadPrefabOrIgnore();
+            var world = new SimWorldState { RngState = 1UL };
+            long selfId = world.Spawn(new EntitySlot { Hp = 100, Pos = new SimVector3(0f, 0f, 0f), Yaw = 0f }, out _);
+
+            SimView view = new SimView(world, null,
+                factory: (loc, parent) =>
+                {
+                    var go = Object.Instantiate(prefab, parent);
+                    go.name = loc;
+                    Scope.Track(go);
+                    return go;
+                },
+                recycler: null);
+            view.AlignLocal(selfId);
+            var driver = new CharacterLocomotionDriver(view);
+            const float dt = 1f / 60f;
+
+            view.Tick(dt);
+            driver.Tick(dt);
+            view.Tick(dt);
+            driver.Tick(dt);                                   // 建播放器（初建 = MoveBlend）
+            Assert.IsTrue(driver.TryGetCurrent(0, out var before) && before.Equals(CharacterAnimationIds.MoveBlend),
+                "开火前：非瞄准 + 静止 = 移动轴混合");
+
+            // 单发（非瞄准、静止）→ 开火态内移动形态视同瞄准态（AimIdle）
+            DeliverFire(view, world, selfId, new SimVector3(0f, 0f, 0f));
+            driver.Tick(dt);
+            Assert.AreEqual(1, driver.FireSubmits, "单发应提交一轮开火动作");
+            Assert.IsTrue(driver.TryGetCurrent(0, out var inFire) && inFire.Equals(CharacterAnimationIds.AimIdle),
+                "开火态内 = 瞄准语境（AimIdle）");
+
+            // 开火态时间 = 开火动画时间（AimIdle_Shoot 0.967s ÷ 2× ≈ 0.48s）：片段播完即离态——
+            // **不是历史 2.0s 常量窗**（静默满窗才回 Idle，窗尽 = 本轮片段播完）
+            float elapsed = 0f;
+            while (elapsed < 2.5f)
+            {
+                driver.Tick(dt);
+                elapsed += dt;
+                if (driver.TryGetCurrent(0, out var cur) && !cur.Equals(CharacterAnimationIds.AimIdle)) break;
+            }
+
+            Assert.Greater(elapsed, 0.2f, "片段播完前不得离态（开火动画 2× 速 ≈0.5s）");
+            Assert.Less(elapsed, 1.0f, "离态应 ≈ 开火动画时间——退回 2.0s 常量窗即翻红（旧口径回归哨兵）");
+            Assert.IsTrue(driver.TryGetCurrent(0, out var after) && after.Equals(CharacterAnimationIds.MoveBlend),
+                "离态后回非瞄准移动形态（窗尽 = 开火动画播完）");
+
+            driver.Dispose();
+        }
+
         /// <summary>按真实链路交付一个 Fire 事件（写入缓冲 → SimView 静默门 → EventSink → 消费者）。</summary>
         private static void DeliverFire(SimView view, SimWorldState world, long shooterId, SimVector3 pos)
         {

@@ -18,8 +18,9 @@ namespace LiteSim.View.Animation
     /// 未瞄准   → Locomotion.MoveBlend = {Idle, Walk, Run}   速度轴 1D 混合（权重按速度连续插值）
     /// 瞄准+静止 → AimIdle（单片段）
     /// 瞄准+移动 → Locomotion.AimMoveBlend = {AimWalk_F/R/B/L}  4 向 strafe，相邻两片按夹角插值
-    /// 开火驻留窗内 → 移动形态视同瞄准态（2026-09-28 裁决：腰射/跑射的臂姿语境配对；窗长为
-    ///               CombatAnimMachine.FiringHoldSeconds = 2.0s 常量，纯表现语义——Sim 侧无窗），
+    /// 开火态内 → 移动形态视同瞄准态（2026-09-28 裁决：腰射/跑射的臂姿语境配对；**开火态时间 =
+    ///               开火动画时间**——驻留窗长 = 开火片段时长 ÷ 播放倍率，槽位装配期从片段资产解析、
+    ///               事件刷新制；2026-09-30 四次裁决，纯表现语义——Sim 侧无窗），
     ///               且 AimMoveBlend 播放倍率随实际速度缩放（走 1× / 跑 2× 钳制，步频跟脚程无滑步）
     /// </code>
     /// - **速度轴改走混合器**：不再按阈值离散切片段，权重连续 ⇒ 没有档位抖动；权重经
@@ -67,7 +68,8 @@ namespace LiteSim.View.Animation
 
         /// <summary>开火片段播放速度（倍率）——连发后坐节奏直接吃这里：完整播完再重起的循环从
         /// ~1.1s 压到 ~0.5s（"连发没后坐"的观感主因是一秒只踢一次），单发也更利落。
-        /// Profile 区间上界即 2×。装配进战斗层 SlotAnimContext（《层次动画机设计》批B-①）。</summary>
+        /// Profile 区间上界即 2×。装配进战斗层 SlotAnimContext（《层次动画机设计》批B-①）。
+        /// **开火态时间（驻留窗长）= 片段时长 ÷ 本倍率**——装配期查片段资产派生，不写时长常量。</summary>
         public const float FirePlaybackSpeed = 2f;
 
         private readonly SimView _view;
@@ -77,6 +79,9 @@ namespace LiteSim.View.Animation
         /// <summary>开火语义与通道（**单一来源 = 帧事件决策表**：构造期解析并校验，不在本类散写映射）。</summary>
         private readonly AnimationId _fireId;
         private readonly AnimationChannel _fireChannel;
+
+        /// <summary>开火片段绑定名（Profile 单源）——槽位装配期按它向后端查片段时长，派生开火态时间。</summary>
+        private readonly string _fireBinding;
 
         /// <summary>复用权重容器（零分配：混合请求只读、不保留引用——见 <see cref="AnimationBlendRequest"/>）。</summary>
         private readonly float[] _moveWeights;
@@ -106,9 +111,11 @@ namespace LiteSim.View.Animation
             // 开火（帧事件路径）：映射从决策表来、Profile 必须有对应定义——配置错误在构造期显性失败，
             // 不等到第一次开火才发现"没东西可播"（与上面两条混合定义的校验同一纪律）
             if (!FrameEventAnimationMap.TryMap(FrameEventKind.Fire, out _fireId, out _fireChannel)
-                || !_profile.TryGetDefinition(_fireId, out _))
+                || !_profile.TryGetDefinition(_fireId, out var fireDef))
                 throw new ArgumentException(
                     $"Profile 缺开火语义（FrameEventAnimationMap 的 Fire 映射 → {CharacterAnimationIds.Fire}）", nameof(profile));
+
+            _fireBinding = fireDef.Binding;   // 开火态时间的片段时长查询键（装配期用，见 SlotAnimContext.FireHoldSeconds）
 
             _view.EventSink += OnFrameEvent;      // 自订阅（§8 接缝：接在静默门之后）；Dispose 时摘下
         }
@@ -197,6 +204,11 @@ namespace LiteSim.View.Animation
                     s.Backend = backend;
                     s.Player = new CharacterAnimationPlayer(backend, _profile);
 
+                    // 开火态时间 = 开火动画时间（《层次动画机设计》§2 四次裁决）：窗长从**片段资产**派生
+                    // （片段时长 ÷ 播放倍率），装配期解析一次；解析失败 = 0 → 进态即退（与"没东西可播"
+                    // 一致）——由后端 unknownBindings 计数与播放 Failed 终态承担观测，不猜兜底时长。
+                    s.Backend.TryGetClipSeconds(_fireBinding, out float fireSeconds);
+
                     // 战斗层装配（《层次动画机设计》批B-①）：fire 系规则正名进状态机——
                     // 驻留窗/移动门控/起跑终止/连发重起全在 FiringStage，驱动器只喂事实与转发事件。
                     s.CombatCtx = new SlotAnimContext
@@ -205,6 +217,7 @@ namespace LiteSim.View.Animation
                         FireId = _fireId,
                         FireChannel = _fireChannel,
                         FirePlaybackSpeed = FirePlaybackSpeed,
+                        FireHoldSeconds = fireSeconds / FirePlaybackSpeed,
                     };
                     s.Combat = CombatAnimMachine.Build(s.CombatCtx);
                     s.Combat.Start(CombatAnimId.Idle);
@@ -212,7 +225,8 @@ namespace LiteSim.View.Animation
                     LocomotionBlendMath.BuildSpeedWeights(0f, _moveWeights);
                     var first = SubmitBlend(s, CharacterAnimationIds.MoveBlend, _moveWeights);   // 初建落 Idle=1（不开局 T-pose）
                     Debug.LogWarning($"[Anim][diag] slot {i} 播放器建立：view「{go.name}」animator「{animator.name}」"
-                        + $"ctrl={animator.runtimeAnimatorController.name} layers={animator.layerCount} 初建提交={first}");
+                        + $"ctrl={animator.runtimeAnimatorController.name} layers={animator.layerCount} 初建提交={first}"
+                        + $" 开火态时间={s.CombatCtx.FireHoldSeconds:0.###}s（片段「{_fireBinding}」/{FirePlaybackSpeed}×）");
                 }
 
                 if (s.HasPos && dt > 0f)
