@@ -202,3 +202,9 @@ Tests/key_ras.pub
 # manifest 的 collections/burst 依赖未提交，干净检出不会引用到缺失包）=====
 Assets/MagicaCloth2/
 Assets/MagicaCloth2.meta
+# 装配产物（manifest/packages-lock/ProjectSettings 宏）是**已跟踪文件**，.gitignore 管不到——
+# 2026-09-30 起以 skip-worktree 屏蔽本机差异：
+#   git update-index --skip-worktree Packages/manifest.json Packages/packages-lock.json ProjectSettings/ProjectSettings.asset
+# 恢复可见（需要提交这三者的真实变更时）：
+#   git ls-files -v | grep ^S   列出；git update-index --no-skip-worktree <file>
+# 注意：远端若真要改这三个文件，pull 会因 skip-worktree 拒绝合并——先 no-skip 再拉。
