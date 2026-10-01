@@ -50,7 +50,7 @@ namespace LiteGame
                 //     G1：清单经装配点注入——运行时不再直查静态门面）
                 var preloader = new LuaPreloader(LoadLuaBytesViaContent, _listLuaFiles);
                 await preloader.PreloadAllAsync(ct);
-                _lua.Init(preloader, _events);                   // env + 桥绑定（服务桥 §2.5 / 事件桥 §2.6）
+                _lua.Init(preloader, _events, Bridge.BindGlobals);   // env + 事件桥；游戏桥经注入（产品→框架）
                 _lua.DoMain();                                   // ② 执行 main.lua（require/定义，§4.4）
                 _lua.TickEnabled = true;                         // tick 派发开（宿主心跳；main.lua 无定时器也无害）
 

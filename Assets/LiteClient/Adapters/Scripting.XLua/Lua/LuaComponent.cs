@@ -48,8 +48,9 @@ namespace LiteGame
             }
         }
 
-        /// <summary>初始化 env + 注册自定义 loader + 绑定服务桥/事件桥（AddComponent 后调用一次；重复调用抛）。</summary>
-        public void Init(LuaPreloader preloader, IEventCenter eventCenter)
+        /// <summary>初始化 env + 注册自定义 loader + 绑定事件桥，并经 <paramref name="bindGameGlobals"/> 注入游戏桥
+        /// （AddComponent 后调用一次；重复调用抛）。游戏桥由装配点/编辑器工具传入——宿主不认识 Bridge（方向=产品→框架）。</summary>
+        public void Init(LuaPreloader preloader, IEventCenter eventCenter, Action<LuaEnv> bindGameGlobals = null)
         {
             if (_env != null) throw new InvalidOperationException("LuaComponent 已初始化——重复 Init");
             _preloader = preloader ?? throw new ArgumentNullException(nameof(preloader));
@@ -57,7 +58,7 @@ namespace LiteGame
             _env = new LuaEnv();
             _env.AddLoader(LoadFromCache);
             BindLog();
-            BindBridge();                                      // 服务桥（§2.5）：Bridge.data/ui/content 三门面
+            bindGameGlobals?.Invoke(_env);                     // 游戏桥（§2.5）：Bridge.data/ui/content 由注入方绑定
             _eventBridge = new EventBridge(_env, eventCenter); // 事件桥（§2.6）：events.on + 显式映射注册
 #if UNITY_EDITOR
             // LuaPanda 断点钩子（手册步骤 9）：仅编辑器启用（宏隔离——hook 进包 = 真机莫名掉帧）。
@@ -66,30 +67,6 @@ namespace LiteGame
                 DoString("require('LuaPanda').start()", "luaPanda");
 #endif
             Log.Info("LuaEnv 初始化完成（loader=预载缓存，桥已绑定）", "Lua");
-        }
-
-        /// <summary>
-        /// §4.3 服务桥绑定（§2.5）：Bridge.data/ui/content 组装成全局表——"启动时把容器服务显式绑定成
-        /// Lua 全局表"字面满足。门面方法全走白名单委托 Func&lt;int, LuaTable&gt;（2.1 生成代码已含，零再生成）；
-        /// 只导出三门面，ILuaRegistry/玩法系统一律不导出；禁止 CS. 直引业务类型。
-        /// </summary>
-        private void BindBridge()
-        {
-            var data = _env.NewTable();
-            data.Set("GetItem", new Func<int, LuaTable>(id => Bridge.Data.GetItemLua(_env, id)));
-            data.Set("GetUIForm", new Func<int, LuaTable>(id => Bridge.Data.GetUIFormLua(_env, id)));
-            var ui = _env.NewTable();
-            ui.Set("GetLogic", new Func<int, LuaTable>(Bridge.Ui.GetLogic));
-            ui.Set("Show", new Action<int, LuaTable>(Bridge.Ui.Show));          // 真实门面（M4 §2.3，委托需 Generate Code）
-            ui.Set("Close", new Action<int>(Bridge.Ui.Close));
-            ui.Set("IsOpen", new Func<int, bool>(Bridge.Ui.IsOpen));
-            var content = _env.NewTable();
-            content.Set("GetProcessor", new Func<int, LuaTable>(Bridge.Content.GetProcessor));
-            var bridge = _env.NewTable();
-            bridge.Set("data", data);
-            bridge.Set("ui", ui);
-            bridge.Set("content", content);
-            _env.Global.Set("Bridge", bridge);
         }
 
         /// <summary>

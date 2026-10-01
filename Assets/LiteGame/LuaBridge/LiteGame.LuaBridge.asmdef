@@ -1,13 +1,12 @@
 {
-    "name": "LiteClient.Scripting.XLua",
+    "name": "LiteGame.LuaBridge",
     "rootNamespace": "LiteGame",
     "references": [
         "LiteClient.Abstractions",
-        "LiteClient.Runtime",
+        "LiteClient.Scripting.XLua",
         "LiteClient.Serialization.Luban",
         "LiteFramework.Async",
         "LiteFramework.Core",
-        "LiteFramework.Unity",
         "LiteGame.UI",
         "Luban.Runtime",
         "Luban.Tables",
@@ -24,3 +23,4 @@
     "versionDefines": [],
     "noEngineReferences": false
 }
+

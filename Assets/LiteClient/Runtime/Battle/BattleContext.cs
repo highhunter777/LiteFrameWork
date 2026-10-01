@@ -71,6 +71,8 @@ namespace LiteGame
         private long _reconcileCount;
         private bool _disposed;
         private int _ended;
+        private int _diagLastAlive = -1;                     // [Diag] 临时哨位：逐渲染帧盯活体数（bot 消失排查）
+        private bool _diagDiverged;                          // [Diag] 临时哨位：本地/镜像活体分歧是否已报（防刷屏）
 
         /// <summary>表现视图（C2 批② SimView 建后挂上；null = 无视图——纯会话/测试形态仍完整可跑）。</summary>
         public SimView View { get; private set; }
@@ -168,6 +170,22 @@ namespace LiteGame
 
             if (_sim == null) return;
 
+            // [Diag] 临时哨位：逐渲染帧盯活体数——捕获杀死 bot 的**渲染帧时刻**与其时近事件（不依赖和解路径）
+            int diagAlive = _sim.State.AliveCount();
+            if (diagAlive != _diagLastAlive)
+            {
+                if (_diagLastAlive >= 0)
+                {
+                    var dump = new System.Text.StringBuilder();
+                    for (int i = 0; i < ExpectedPlayers; i++)
+                        dump.Append($" slot{i}:alive={_sim.State.IsAlive(i)} id={_sim.State.Entities[i].Id} hp={_sim.State.Entities[i].Hp}");
+                    UnityEngine.Debug.LogWarning(
+                        $"[Diag] 活体数变化 {_diagLastAlive}->{diagAlive} simFrame={_sim.State.Frame} lastSnap={_battle.Client.LastSnapshotFrame} halted={_sim.Halted} reconciles={_reconcileCount}{dump}");
+                }
+                _diagLastAlive = diagAlive;
+                _diagDiverged = false;
+            }
+
             // 视点帧 = 最新快照帧 + 插值帧数（《状态同步专项设计》§3.4.1：玩家所见帧落后最新快照）
             int snapshotFrame = _battle.Client.LastSnapshotFrame;
             int viewFrame = snapshotFrame >= 0 ? snapshotFrame + SimConfig.InterpFrames : 0;
@@ -234,6 +252,9 @@ namespace LiteGame
                 _sim.OnReconcile = View.OnReconcile;
                 _sim.OnFrameEvents = View.OnFrameEvents;
             }
+
+            // [Diag] 临时哨位：真实输入失配回滚是哨位外的唯一直写路径——留痕
+            _sim.OnRollback += f => UnityEngine.Debug.LogWarning($"[Diag] 输入回滚 ExecuteRollback 重放至帧={f}");
         }
 
         /// <summary>
@@ -248,14 +269,32 @@ namespace LiteGame
 
             _mirror = _mirror ?? new SimWorldState();
             SnapshotReassembler.Apply(snapshot, _mirror, out uint checksum);
+            int aliveBefore = _sim.State.AliveCount();
             if (_sim.OnAuthoritativeSnapshot(snapshot.Frame, _mirror, checksum))
             {
                 _reconcileCount++;
                 _battle.Client.SendMismatch(snapshot.Frame);
+
+                // [Diag] 临时诊断哨位（bot 消失排查）：和解采纳镜像改变了活体集合——
+                // 合法情形仅"真死亡/复活"；若 bot 无故出现在这里 = 采纳了把它误杀的镜像
+                int aliveAfter = _sim.State.AliveCount();
+                if (aliveAfter != aliveBefore)
+                    UnityEngine.Debug.LogWarning(
+                        $"[Diag] 和解改变活体数 frame={snapshot.Frame} isFull={snapshot.IsFull} slots={snapshot.Slots.Count} alive {aliveBefore}->{aliveAfter} mirrorAlive={_mirror.AliveCount()}");
             }
             else
             {
                 SnapshotReassembler.OverlayPrivateAndMatch(snapshot, _sim.State);
+
+                // [Diag] 临时哨位：本地与镜像活体分歧（本地死/镜像活——杀死真凶的中间态，逐份快照盯）
+                int simAlive = _sim.State.AliveCount();
+                int mirrorAlive = _mirror.AliveCount();
+                if (simAlive != mirrorAlive && !_diagDiverged)
+                {
+                    _diagDiverged = true;
+                    UnityEngine.Debug.LogWarning(
+                        $"[Diag] 活体分歧 无和解路径 frame={snapshot.Frame} simAlive={simAlive} mirrorAlive={mirrorAlive} simFrame={_sim.State.Frame}");
+                }
             }
 
             PushViewSnapshot();                      // 视图插值源：上一份/最新一份轮转

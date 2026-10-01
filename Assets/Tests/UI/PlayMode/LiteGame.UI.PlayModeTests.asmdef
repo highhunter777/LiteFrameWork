@@ -12,6 +12,7 @@
         "LiteFramework.Core",
         "LiteFramework.Unity",
         "LiteGame.App",
+        "LiteGame.LuaBridge",
         "LiteGame.UI",
         "LiteSim.Core",
         "LiteSim.View",
@@ -30,7 +31,9 @@
         "nunit.framework.dll"
     ],
     "autoReferenced": false,
-    "defineConstraints": [],
+    "defineConstraints": [
+        "UNITY_INCLUDE_TESTS"
+    ],
     "versionDefines": [],
     "noEngineReferences": false
 }

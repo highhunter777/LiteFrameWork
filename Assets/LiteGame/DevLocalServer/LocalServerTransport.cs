@@ -8,6 +8,9 @@ using LiteSim;
 using RoomServer.Application;
 using RoomServer.Runtime;
 
+// 开发面剥离：与 DevHUD/DebugTuner 同款三宏 #if（release Player 中本件整体不编译；
+// asmdef 层不设约束——见《共享代码范围》施工记录批②边界）。
+#if UNITY_EDITOR || DEVELOPMENT_BUILD || LITEFRAMEWORK_DEBUG
 namespace LiteGame
 {
     /// <summary>
@@ -306,3 +309,5 @@ namespace LiteGame
         }
     }
 }
+
+#endif

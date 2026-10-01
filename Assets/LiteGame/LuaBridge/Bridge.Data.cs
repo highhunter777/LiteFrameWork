@@ -38,6 +38,31 @@ namespace LiteGame
             s_uiService = uiService ?? throw new ArgumentNullException(nameof(uiService));
         }
 
+        /// <summary>
+        /// 绑定 Bridge 三门面为 Lua 全局表（原 <c>LuaComponent.BindBridge</c>，2026-10-01 归位产品侧）：
+        /// 由装配点/编辑器工具经 <c>LuaComponent.Init</c> 注入——宿主（LiteClient.Scripting.XLua）不认识 Bridge，
+        /// 依赖方向 = 产品 → 框架。门面方法全走白名单委托 Func&lt;int, LuaTable&gt;；只导出三门面，
+        /// ILuaRegistry/玩法系统一律不导出；禁止 CS. 直引业务类型。
+        /// </summary>
+        public static void BindGlobals(LuaEnv env)
+        {
+            var data = env.NewTable();
+            data.Set("GetItem", new Func<int, LuaTable>(id => Data.GetItemLua(env, id)));
+            data.Set("GetUIForm", new Func<int, LuaTable>(id => Data.GetUIFormLua(env, id)));
+            var ui = env.NewTable();
+            ui.Set("GetLogic", new Func<int, LuaTable>(Ui.GetLogic));
+            ui.Set("Show", new Action<int, LuaTable>(Ui.Show));          // 真实门面（M4 §2.3，委托需 Generate Code）
+            ui.Set("Close", new Action<int>(Ui.Close));
+            ui.Set("IsOpen", new Func<int, bool>(Ui.IsOpen));
+            var content = env.NewTable();
+            content.Set("GetProcessor", new Func<int, LuaTable>(Content.GetProcessor));
+            var bridge = env.NewTable();
+            bridge.Set("data", data);
+            bridge.Set("ui", ui);
+            bridge.Set("content", content);
+            env.Global.Set("Bridge", bridge);
+        }
+
         private static Tables Tables() => s_tables();
 
         /// <summary>数据门面：查表。C# 侧强类型直返；Lua 侧经 GetXxxLua 手工展开并按行缓存。</summary>

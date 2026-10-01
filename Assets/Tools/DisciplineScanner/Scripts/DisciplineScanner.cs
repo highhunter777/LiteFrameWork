@@ -30,7 +30,7 @@ namespace Tools.DisciplineScan
         /// <summary>R7 非法 .meta GUID：guid 必须是 32 位 hex（64 位 base64 会被 Unity 拒绝导入 → 资源/类型静默消失）。</summary>
         R7InvalidMetaGuid = 7,
 
-        /// <summary>R8 禁 Resources.Load/LoadAsync（`Assets/LiteGame`）：破「资源唯一入口」——统一走资源服务/收集组。</summary>
+        /// <summary>R8 禁 Resources.Load/LoadAsync（`Assets/LiteGame` / `Assets/LiteClient`）：破「资源唯一入口」——统一走资源服务/收集组。</summary>
         R8ResourcesLoad = 8,
 
         /// <summary>R9 禁 Mod 相关类型（`Assets/LiteSim`）：守《模组系统设计》红线 M1「模组永不进 Sim」（判定必须在权威内）。</summary>
@@ -160,16 +160,16 @@ namespace Tools.DisciplineScan
         private static readonly (string Adapter, string[] AllowedRoots)[] R12Boundaries =
         {
             // 适配器层（《客户端总设计》§5 顶层框图第四层 `Adapters`）：
-            // 四个适配器统一住 `Assets/LiteGame/Adapters/<程序集后缀>/`，**目录名 = 层标签**
-            // （程序集名不含 Adapters 前缀；asmdef 不要求目录名与程序集名相同）。
-            // YooAsset：随 §5.1 拆为独立程序集 → 2026-09-26 收进 Adapters 层
-            ("YooAsset", new[] { "Assets/LiteGame/Adapters/Content.YooAsset/" }),
-            // XLua：同上
-            ("XLua", new[] { "Assets/LiteGame/Adapters/Scripting.XLua/" }),
+            // 框架侧适配器统一住 `Assets/LiteClient/Adapters/<程序集后缀>/`（2026-10-01 随框架侧迁出 LiteGame），
+            // **目录名 = 层标签**（程序集名不含 Adapters 前缀；asmdef 不要求目录名与程序集名相同）。
+            ("YooAsset", new[] { "Assets/LiteClient/Adapters/Content.YooAsset/" }),
+            // XLua：宿主（env/预载/校验）住框架侧 Adapters；**Lua 桥**（生命周期/数据门面/注册表）是产品侧绑定层，
+            // 住 `Assets/LiteGame/LuaBridge/`——同守本边界
+            ("XLua", new[] { "Assets/LiteClient/Adapters/Scripting.XLua/", "Assets/LiteGame/LuaBridge/" }),
             // Unity.InputSystem：输入设备适配（2026-09-26 New Input System 接入）——设备源是它的唯一消费者
-            ("UnityEngine.InputSystem", new[] { "Assets/LiteGame/Adapters/Platform.Unity/" }),
+            ("UnityEngine.InputSystem", new[] { "Assets/LiteClient/Adapters/Platform.Unity/" }),
             // Cinemachine：相机适配（同上）——消费者只认 ICameraService 端口，不认识这个包
-            ("Cinemachine", new[] { "Assets/LiteGame/Adapters/Platform.Unity/" }),
+            ("Cinemachine", new[] { "Assets/LiteClient/Adapters/Platform.Unity/" }),
             // DG.Tweening：UI 动效适配。**不在 Adapters 层**——它是 `Game-specific UI`（§5 框图的
             // Game.App 行），随 UI 程序集归游戏侧
             ("DG.Tweening", new[] { "Assets/LiteGame/UI/Anim/" }),

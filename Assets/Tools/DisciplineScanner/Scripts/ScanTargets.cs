@@ -125,18 +125,20 @@ namespace Tools.DisciplineScan
         /// 是特殊文件夹，其中的 MonoBehaviour 不能 AddComponent（运行时报
         /// "it needs to be outside the 'Editor' folder"），而 DevHUD/SimSandbox 正是代码创建形态，
         /// 并进去 = HUD 静默消失。故顶层重新登记 `DevHUD`。
+        ///
+        /// **2026-10-01 框架侧迁出**：`Abstractions`/`Adapters`/`Runtime` 属 `LiteClient.*`（可提取框架侧），
+        /// 移住 `Assets/LiteClient/`（扫描目标见 <see cref="Default"/>）；本表只登记**产品侧**目录，
+        /// 新增 `LuaBridge`（Lua 生命周期/数据门面/注册表桥的归位）。
         /// </summary>
         public static readonly string[] LiteGameTopLevelDirs =
         {
-            "Abstractions",          // §5 / §5.1：LiteClient.Abstractions
-            "Adapters",              // §5 顶层第四层：Content.YooAsset / Network.Kcp / Scripting.XLua / Serialization.Luban / Platform.Unity
             "App",                   // §5 顶层第一层 Game.App
-            "Runtime",               // §5 顶层第二层 Client.Runtime（目录名 = 层标签）
             "UI",                    // §5 框图 "UI Runtime"（游戏侧，故 LiteGame.UI 而非 LiteClient.UI）
             "Editor",                // 编辑器工具程序集（不在 §5 层内，登记为例外）
             "DevHUD",                // 开发面工具（同上；**不能并进 Editor/**——见上，MonoBehaviour 加不上）
             "DevLocalServer",        // 开发面：进程内本地服（《共享代码范围专项设计》§3 D2 调试宿主档位；见下）
             "Lua",                   // 脚本资产（非程序集目录；Luban lua pass 的产物 + 业务脚本）
+            "LuaBridge",             // 产品侧 Lua 桥（LiteGame.LuaBridge：生命周期/数据门面/注册表；宿主 LiteClient.Scripting.XLua 的消费者）
         };
 
         /// <summary>
@@ -167,14 +169,15 @@ namespace Tools.DisciplineScan
             new ScanTarget("Assets/LiteFramework/Scripts/Core", CoreRules),
             new ScanTarget("Assets/LiteFramework/Scripts/Unity", UnityRules),
             // 注（2026-09-26）：原有一条 `ScanTarget("Assets/LiteGame/Scripts/Runtime", UnityRules)`
-            // ——**该目录不存在**（实际为 `Assets/LiteGame/Runtime`，无 `Scripts/`），
+            // ——**该目录不存在**（当时实际为 `Assets/LiteGame/Runtime`，无 `Scripts/`；现值 `Assets/LiteClient/Runtime`），
             // 即 R6（禁原生协程）自加入起就在**空扫**。
             // 未按原意修正路径：`Assets/LiteGame` 全域挂在 GameRules（非 UnityRules），
             // 而 R6 的正则 `\byield\s+return\b` **不区分 C# 迭代器与 Unity 协程**——
             // 实测 `ContentTrustAnchors.cs:46` 的 `yield return new Anchor(...)`（IEnumerable 迭代器）
             // 会被误报。**空扫与误报都不是我们想要的**，故删掉该目标并把 R6 的矫正登记为待办
             // （需先把正则收紧到 `IEnumerator`/`StartCoroutine` 语境，或引入更精确的判定）。
-            new ScanTarget("Assets/LiteGame", GameRules),                                      // R8 资源唯一入口 + R12 适配器边界
+            new ScanTarget("Assets/LiteClient", GameRules),                                    // R8 资源唯一入口 + R12 适配器边界（框架侧：Abstractions/Runtime/Adapters）
+            new ScanTarget("Assets/LiteGame", GameRules),                                      // R8 资源唯一入口 + R12 适配器边界（产品侧）
             new ScanTarget("Assets/LiteGame/UI", ShellUiRules),                                // R10 薄壳/UI 不发业务包
             // 注（2026-09-26）：此处原写作 `Assets/LiteGame/Scripts/Runtime/Shell/UI`——**不存在**，
             // R10 亦一直空扫。先按真实路径修正为 `Runtime/Shell/UI`；同日 §5.1 第五刀拆出
@@ -424,6 +427,52 @@ namespace Tools.DisciplineScan
                 if (!referencesServer)
                     problems.Add("登记目录下无 asmdef 引用服务端程序集：" + root
                         + "（登记表陈旧 → D2 规则静默失效）");
+            }
+            return problems;
+        }
+
+        /// <summary>
+        /// **客户端框架侧纯度**（《客户端总设计》§5.1）：`LiteClient.*`（通用核心 + 适配器）整体不得引用
+        /// 任何 `LiteGame.*` 程序集——产品面（含 `LuaBridge`）依赖框架，反向一律禁止。
+        /// 方向一旦被破坏，框架侧就只能随产品走（§C5 通用包提取被挡）——本判据把它钉成可执行规则。
+        /// </summary>
+        public static readonly string[] ClientFrameworkPurityAsmdefs =
+        {
+            "Assets/LiteClient/Abstractions/LiteClient.Abstractions.asmdef",
+            "Assets/LiteClient/Runtime/LiteClient.Runtime.asmdef",
+            "Assets/LiteClient/Adapters/Content.YooAsset/LiteClient.Content.YooAsset.asmdef",
+            "Assets/LiteClient/Adapters/Network.Kcp/LiteClient.Network.Kcp.asmdef",
+            "Assets/LiteClient/Adapters/Platform.Unity/LiteClient.Platform.Unity.asmdef",
+            "Assets/LiteClient/Adapters/Scripting.XLua/LiteClient.Scripting.XLua.asmdef",
+            "Assets/LiteClient/Adapters/Serialization.Luban/LiteClient.Serialization.Luban.asmdef",
+        };
+
+        /// <summary>校验客户端框架侧未引用 `LiteGame.*`（见 <see cref="ClientFrameworkPurityAsmdefs"/>）。返回违规描述（空 = 通过）。</summary>
+        public static List<string> ValidateClientFrameworkPurity(string projectRoot)
+        {
+            var problems = new List<string>();
+            foreach (string rel in ClientFrameworkPurityAsmdefs)
+            {
+                string path = Path.Combine(projectRoot, rel.Replace('/', Path.DirectorySeparatorChar));
+                if (!File.Exists(path))
+                {
+                    problems.Add("框架侧 asmdef 不存在：" + rel + "（规则静默失效）");
+                    continue;
+                }
+                string text = File.ReadAllText(path);
+                int i = text.IndexOf("\"references\"", StringComparison.Ordinal);
+                if (i < 0) continue;
+                int open = text.IndexOf('[', i);
+                int close = text.IndexOf(']', open);
+                if (open < 0 || close < 0) continue;
+
+                string body = text.Substring(open + 1, close - open - 1);
+                foreach (string raw in body.Split(','))
+                {
+                    string dep = raw.Replace("\"", string.Empty).Trim();
+                    if (dep.StartsWith("LiteGame", StringComparison.Ordinal))
+                        problems.Add("框架侧引用了产品面程序集：" + rel + " -> " + dep);
+                }
             }
             return problems;
         }

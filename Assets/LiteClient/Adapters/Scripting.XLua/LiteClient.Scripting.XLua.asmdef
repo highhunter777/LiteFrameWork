@@ -1,20 +1,21 @@
 {
-    "name": "LiteGame.DevLocalServer",
+    "name": "LiteClient.Scripting.XLua",
     "rootNamespace": "LiteGame",
     "references": [
+        "LiteClient.Abstractions",
         "LiteClient.Runtime",
-        "LiteNet",
-        "LiteSim.Core",
-        "RoomServer.Application.Runtime",
-        "RoomServer.Runtime",
-        "UniTask"
+        "LiteFramework.Async",
+        "LiteFramework.Core",
+        "LiteFramework.Unity",
+        "UniTask",
+        "xLuaMain"
     ],
     "includePlatforms": [],
     "excludePlatforms": [],
     "allowUnsafeCode": false,
     "overrideReferences": false,
     "precompiledReferences": [],
-    "autoReferenced": false,
+    "autoReferenced": true,
     "defineConstraints": [],
     "versionDefines": [],
     "noEngineReferences": false

@@ -1,4 +1,4 @@
-﻿# ─────────────────────────────────────────────────────────────────────────────
+# ─────────────────────────────────────────────────────────────────────────────
 # 候选信封生成器（发布端工具；《热更与内容发布专项设计》§6）
 #
 # 用途：把一份候选内容目录打成**已签名候选信封**，供运行时 FileSystemCandidateProvider
@@ -11,7 +11,7 @@
 # 私钥：默认 ~/.unitylib-content-signing/release-key-2026-09-26.xml（**仓库外，绝不入库**）。
 #
 # ── 编码契约（与运行时逐字节对齐，改动前必读）────────────────────────────────
-# 运行时 SignedManifestEnvelope.Parse（Assets/LiteGame/Runtime/Shell/Resource/ContentRuntimeAdapters.cs:249）
+# 运行时 SignedManifestEnvelope.Parse（Assets/LiteClient/Runtime/Resource/ContentRuntimeAdapters.cs:249）
 # 这样取被签名字节：
 #     manifestToken.ToString(Newtonsoft.Json.Formatting.None)
 # 即**紧凑 JSON**（无空白/无换行、字段按插入序）。随后 ToObject<ReleaseManifest>() 反序列化。
@@ -34,7 +34,7 @@ param(
     [string]$OutFile = 'content/candidate.json',
     [int]$ExpiresInDays = 30,
     [string]$Platform = '',
-    [string]$AnchorsCs = 'Assets/LiteGame/Runtime/Shell/Resource/ContentTrustAnchors.cs',
+    [string]$AnchorsCs = 'Assets/LiteClient/Runtime/Resource/ContentTrustAnchors.cs',
     [string]$KeyPath = "$env:USERPROFILE\.unitylib-content-signing\release-key-2026-09-26.xml",
     [string]$KeyId = 'release-key-2026-09-26'
 )
