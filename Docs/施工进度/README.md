@@ -12,6 +12,7 @@
 |---|---|
 | [客户端C0.md](客户端C0.md) | 《商业级通用客户端框架总设计》C0：可复制构建与 Player 启动 |
 | [同步契约P0.md](同步契约P0.md) | 已交付 Sync-P0：快照分层（公共/比赛/私有）、输入面扩展、和解口径；纳入总体 G0 基线，不等于服务端 R0 完成 |
+| [快照全量AOI修复.md](快照全量AOI修复.md) | 缺陷修复（2026-10-01）：全量帧被 AOI 裁剪 × Reassembler"全量缺席=死" × 和解采纳镜像 → 视野外实体客户端无声误杀（bot/远端消失）+ 30Hz 失配风暴；修为**全量=全图、AOI/档3 只裁增量**，另补 SimView 远端 snap（§6.2"远端必要时 snap"落地，传送/复活不播成飞人）；含 F9 传送类功能前置件结论与 checksum 口径遗留登记 |
 | [UI-U0.md](UI-U0.md) | 《UI框架总设计》U0 正确性止血：Lua 实例/self、复用合流、Covered/Paused 全关、列表窗口复用、失败回滚、env 重建零旧引用；PlayMode/租约留 U1 |
 | [服务端R0.md](服务端R0.md) | 《商业级通用服务端框架总设计》R0 正确性止血：精确节拍、定容输入环、数值边界、可信 ACK、稳定 configHash |
 | [服务端R1.md](服务端R1.md) | 《商业级通用服务端框架总设计》R1：RoomRuntime 纯化（Runtime/Application 分层）、RoomCommand/RoomOutput、Match 状态机、Session/席位分离、重连闭环（Restoring 门闩 + 客户端会话状态机）、R11 纯化纪律扫描 |
