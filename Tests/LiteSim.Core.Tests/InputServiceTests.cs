@@ -9,8 +9,9 @@ namespace LiteSim.Tests
     /// 输入服务（《角色状态与动作专项设计》§3"输入三件"；《联机战斗演示专项设计》§5"输入和三个门"）
     /// 的 L1 覆盖。
     ///
-    /// 覆盖的是**输入服务自己那一段**：上下文门（谁拦的、拦下时意图不被覆盖）、
-    /// 帧边界门（同一逻辑帧只消费一次）、采样与上行节流（每渲染帧一份，预测与上行同值）。
+    /// 覆盖的是**输入服务自己那一段**：上下文门（谁拦的、拦下 = 本帧空意图并照常上行——2026-10-02
+    /// 修复①：与服务器空输入兜底逐位同值，否则本地沿旧值推进、权威按空输入执行，弹模态即回拉）、
+    /// 帧边界门（同一逻辑帧只消费一次）、采样与上行（每渲染帧一份结论，预测与上行同值）。
     /// 前置契约（<c>RollbackSim.OnRealInput</c> 早到即入史）由 RollbackSimTests 覆盖；
     /// 设备源（相机换算）与流程接线属 Unity 侧，归 L2/Player 验证——本文件不假装覆盖它们。
     /// </summary>
@@ -80,7 +81,7 @@ namespace LiteSim.Tests
         }
 
         [Fact]
-        public void 上下文门_拦下时待用意图保持等值_不产生凭空零输入帧()
+        public void 上下文门_拦下时本帧输入为空且照常上行_预测与权威兜底同值()
         {
             var service = new InputService();
             var source = new FakeSource { Next = Move(0f, 1f) };
@@ -88,17 +89,26 @@ namespace LiteSim.Tests
             bool modalOpen = false;
             service.RegisterBlocker(new IntentGate.BlockerKey("ui.modal", "模态打开"), () => modalOpen);
 
-            service.SampleOnRenderFrame(default);             // 放行：采到"向前"
+            service.SampleOnRenderFrame(default);             // 渲染帧 1：放行，采到"向前"
             Assert.Equal(1f, service.Pending.MoveZ);
+            Assert.True(service.TryTakeForSend(out _));        // 生产序：每渲染帧 Sample → Tick 内上行（消费开闸标记）
 
             modalOpen = true;
-            service.SampleOnRenderFrame(default);             // 拦下
-            Assert.Equal(1f, service.Pending.MoveZ);          // 意图没被全零覆盖
+            service.SampleOnRenderFrame(default);             // 渲染帧 2：拦下
+            // 2026-10-02 修复①：拦下 = 本帧没有战斗输入——空意图（不再保持旧值）。
+            // 服务器对缺席帧按空输入兜底执行，本地必须同读零，否则"本地在动、权威已停"每份快照回拉。
+            Assert.Equal(0f, service.Pending.MoveZ);
+            Assert.Equal(1, service.SampleDiposedByGate);
+            Assert.True(service.TryTakeForPrediction(2, out SimInputFrame predicted), "拦下帧照常有输入结论（空）");
+            Assert.Equal(0f, predicted.MoveZ);
+            Assert.True(service.TryTakeForSend(out SimInputFrame sent), "拦下帧照常上行——空意图包同样携带 ackSnapshot");
+            Assert.Equal(0f, sent.MoveZ);
 
             modalOpen = false;
-            service.SampleOnRenderFrame(default);             // UI 关掉即恢复采样
+            service.SampleOnRenderFrame(default);             // 渲染帧 3：UI 关掉即恢复采样（采样先于预测，无凭空零帧）
             Assert.False(service.IsBlocked);
             Assert.Equal(2, source.SampleCount);
+            Assert.Equal(1f, service.Pending.MoveZ);
         }
 
         [Fact]
@@ -146,7 +156,7 @@ namespace LiteSim.Tests
         }
 
         [Fact]
-        public void 采样_设备返回未采到时保留上一次有效意图_不降级成零输入()
+        public void 采样_设备未采到时本帧输入为空_照常上行()
         {
             var service = new InputService();
             var source = new FakeSource { Next = Move(0f, 1f) };
@@ -154,14 +164,16 @@ namespace LiteSim.Tests
             service.SampleOnRenderFrame(default);
             Assert.Equal(1f, service.Pending.MoveZ);
 
-            // 设备"没采到"（未就绪/无设备）——与"采到空意图"是两回事（见 IntentSample 注释）
-            service.TryTakeForSend(out _);               // 消费上一帧的"采过"标记（渲染帧已翻页）
+            // 设备"没采到"（未就绪/无设备）——与"采到空意图"是两回事（见 IntentSample 注释），
+            // 但与被拦**同读法**（2026-10-02 修复①）：空意图 + 照常上行，与服务器空输入兜底同值。
+            service.TryTakeForSend(out _);               // 消费上一帧的"已采样"标记（渲染帧已翻页）
             service.SetSource(new NothingSource());
             service.SampleOnRenderFrame(default);
 
-            Assert.True(Math.Abs(service.Pending.MoveZ - 1f) < 0.0001f, "未采到应保留上一次有效意图");
+            Assert.Equal(0f, service.Pending.MoveZ);
             Assert.Equal(1, service.SampleWithNoSource);
-            Assert.False(service.TryTakeForSend(out _), "未采到就不该上行");
+            Assert.True(service.TryTakeForSend(out SimInputFrame sent), "未采到也要上行——空意图包让权威与本地同读");
+            Assert.Equal(0f, sent.MoveZ);
         }
 
         [Fact]
@@ -197,13 +209,13 @@ namespace LiteSim.Tests
         }
 
         [Fact]
-        public void 上行_采过才发_同一帧只发一次()
+        public void 上行_每渲染帧一份结论_同一帧只报一次()
         {
             var service = new InputService();
             var source = new FakeSource { Next = Move(0.5f, 0f) };
             service.SetSource(source);
 
-            Assert.False(service.TryTakeForSend(out _));        // 未采样不上行
+            Assert.False(service.TryTakeForSend(out _));        // 从未采样过 = 无结论不上行
 
             service.SampleOnRenderFrame(default);
             Assert.True(service.TryTakeForSend(out SimInputFrame sent));
@@ -271,7 +283,7 @@ namespace LiteSim.Tests
         }
 
         [Fact]
-        public void 帧边界门_拦下期间逻辑帧取到的是拦截前那份输入()
+        public void 帧边界门_拦下期间逻辑帧取到的是空输入()
         {
             var service = new InputService();
             var source = new FakeSource { Next = Move(0f, 1f) };
@@ -281,12 +293,13 @@ namespace LiteSim.Tests
 
             service.SampleOnRenderFrame(default);
             Assert.True(service.TryTakeForPrediction(1, out _));
+            service.TryTakeForSend(out _);                   // 渲染帧边界：消费开闸标记（生产序 Sample → 上行）
 
             blocked = true;
             service.SampleOnRenderFrame(default);
-            // 待用意图未被覆盖：第 2 帧消费到的是第 1 帧那份（"这段时间没有新输入"）。
+            // 拦下帧的输入结论 = 空（2026-10-02 修复①）：第 2 帧消费到零，与服务器空输入兜底同值。
             Assert.True(service.TryTakeForPrediction(2, out SimInputFrame second));
-            Assert.Equal(1f, second.MoveZ);
+            Assert.Equal(0f, second.MoveZ);
         }
 
         // ---- 复位 ----

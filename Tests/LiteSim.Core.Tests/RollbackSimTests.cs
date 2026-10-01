@@ -340,5 +340,58 @@ namespace LiteSim.Tests
             Assert.Equal(3, sim.State.Entities[slot].Kills);
             Assert.Equal(10800, sim.State.Match.Timer);
         }
+
+        // ---- 追帧补发读取（2026-10-02 修复②：多逻辑帧渲染帧的沿用帧同样必须可上行）----
+
+        [Fact]
+        public void 补发读取_真实输入帧与追帧沿用帧都取得到_值与执行时一致()
+        {
+            var (map, players) = Scenario();
+            var sim = new RollbackSim(SimChecksumBaselineSpec.BuildWorld(), map, IdentityTemplate(players));
+
+            // 第 1 帧真实输入（早到入史）——含开火位，验证沿用帧的开火不预测掩码
+            var real = new SimInputFrame[players.Length];
+            real[0] = new SimInputFrame
+            {
+                EntityId = players[0],
+                MoveX = 0.5f, MoveZ = 0f, AimX = 1f, AimZ = 0f,
+                Buttons = SimInputFrame.ButtonFire | SimInputFrame.ButtonAim,
+            };
+            real[1] = new SimInputFrame { EntityId = players[1] };
+            sim.OnRealInput(1, real);
+            sim.Tick(SimConfig.Dt);                       // 执行第 1 帧（真实输入）
+
+            Assert.True(sim.TryGetExecutedInput(1, 0, out var usedReal));
+            Assert.Equal(0.5f, usedReal.MoveX);
+            Assert.Equal(SimInputFrame.ButtonFire | SimInputFrame.ButtonAim, usedReal.Buttons);
+
+            sim.Tick(SimConfig.Dt * 2f);                  // 一个渲染帧跑 2 个逻辑帧（第 2、3 帧沿用推进）
+            Assert.Equal(3, sim.State.Frame);
+
+            // 沿用帧读回的就是本地实际执行的那份：移动沿用、开火被 PredictedButtons 掩掉——
+            // 补发它们，服务器才不会对这些帧按空输入兜底执行（移动中分叉）。
+            Assert.True(sim.TryGetExecutedInput(2, 0, out var used2));
+            Assert.Equal(0.5f, used2.MoveX);
+            Assert.Equal(SimInputFrame.ButtonAim, used2.Buttons);
+            Assert.True(sim.TryGetExecutedInput(3, 0, out var used3));
+            Assert.Equal(0.5f, used3.MoveX);
+            Assert.Equal(SimInputFrame.ButtonAim, used3.Buttons);
+            Assert.Equal(players[0], used2.EntityId);     // 身份随输入数组槽位携带（EntityId 不丢）
+        }
+
+        [Fact]
+        public void 补发读取_未执行帧与越界玩家一律拒绝()
+        {
+            var (map, players) = Scenario();
+            var sim = new RollbackSim(SimChecksumBaselineSpec.BuildWorld(), map, IdentityTemplate(players));
+            sim.Tick(SimConfig.Dt);                       // 执行第 1 帧（沿用零输入）
+            Assert.Equal(1, sim.State.Frame);
+
+            Assert.False(sim.TryGetExecutedInput(0, 0, out _), "帧 0 是初始锚定，不是已执行步");
+            Assert.False(sim.TryGetExecutedInput(2, 0, out _), "未来帧不在史里");
+            Assert.False(sim.TryGetExecutedInput(1, -1, out _), "负槽位拒绝");
+            Assert.False(sim.TryGetExecutedInput(1, players.Length, out _), "越界槽位拒绝");
+            Assert.True(sim.TryGetExecutedInput(1, 0, out _));   // 边界内的照常可读
+        }
     }
 }

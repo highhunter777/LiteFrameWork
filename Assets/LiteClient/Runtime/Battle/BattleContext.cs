@@ -154,11 +154,15 @@ namespace LiteGame
         ///
         /// **输入的门与顺序**（《角色状态与动作专项设计》§3 输入三件；2026-09-26 输入服务批）：
         /// 采样与上下文门已在渲染帧由 <see cref="IInputService.SampleOnRenderFrame"/> 完成（拦截源成立
-        /// → 本帧没有新输入）。本方法只做两件按逻辑帧对齐的事，顺序不可换：
+        /// → 本帧输入为全零，照常上行）。本方法只做三件按逻辑帧对齐的事，顺序不可换：
         /// <list type="number">
         /// <item><b>第 F 帧输入送进预测</b>——<c>RollbackSim.OnRealInput(F, …)</c> 早到即入史，
         ///   于是第 F 步用的是真实输入而非沿用（否则"发了但没预测"会让下一份权威快照判定不符 → 自造回滚）；</item>
-        /// <item><b>同一份输入上行</b>——预览帧号 <c>F</c> 与本地将要执行的步一致（两端同帧同值）。</item>
+        /// <item><b>同一份输入上行</b>——预览帧号 <c>F</c> 与本地将要执行的步一致（两端同帧同值）；</item>
+        /// <item><b>追帧沿用帧补发</b>（2026-10-02 修复②）——<c>Tick</c> 跑了 ≥2 个逻辑帧时，
+        ///   多出的帧用"沿用上一帧"推进（<c>RollbackSim.PrepareNext</c>），这些帧同样上行
+        ///   （<c>RollbackSim.TryGetExecutedInput</c> 取回实际执行的那份）——漏发会让服务器按空输入
+        ///   兜底执行，移动中分叉成快照频率的橡皮筋。</item>
         /// </list>
         /// 逻辑帧消费门（同一帧只取一次）与上行节流都在服务内，本方法只按 <c>Frame+1</c> 请求。
         /// </summary>
@@ -206,6 +210,25 @@ namespace LiteGame
             }
 
             _sim.Tick(realDelta);
+
+            // 追帧补发（2026-10-02 修复②）：本渲染帧跑了 ≥2 个逻辑帧时，多出的帧本地以
+            // "沿用上一帧"推进（RollbackSim.PrepareNext）——这些帧**同样必须上行**：服务器对缺席帧的
+            // 唯一读法是空输入兜底（RoomRuntime 缺席沿用 default），漏发即"本地在动、权威已停"，
+            // 移动中每份快照都和解回拉（低帧率下成快照频率的持续橡皮筋）。帧号从 inputFrame+1
+            // 补到本渲染帧实际执行到的帧；每帧各自发包（InputGate 每包只取 serverFrame+1 一帧，
+            // 追几帧就得发几包），最近帧窗口会自动携带更早帧兜丢包。
+            if (_input != null && _battle.Connected)
+            {
+                int slot = _battle.Client.PlayerId;
+                for (int f = inputFrame + 1; f <= _sim.State.Frame; f++)
+                {
+                    if (slot < 0 || slot >= _localInputs.Length) break;
+                    if (!_sim.TryGetExecutedInput(f, slot, out SimInputFrame carried)) break;   // 理论不达（本渲染帧刚执行刚入史）
+                    carried.EntityId = _localEntityId;                       // 服务器 InputGate 覆写防伪；与主路径同口径
+                    _battle.Client.SendInput(f, carried, viewFrame: viewFrame);
+                }
+            }
+
             View?.Tick(realDelta);               // 表现视图（网络/Sim 之后：本帧权威已应用）
         }
 

@@ -8,15 +8,21 @@ namespace LiteGame
     ///
     /// 三个门的落地（与 <see cref="IInputService"/> 的接口文档一一对应，本类只写实现细节）：
     ///
-    /// **① 上下文门**——<see cref="IntentGate"/> 上登记的拦截源每渲染帧裁决一次。拦下时**直接把本帧
-    /// 采样作废**（不写待用意图），而不是采一份全零覆盖：设备状态与意图之间因此保持"最后一次放行时
-    /// 的样子"，UI 关掉后的第一帧沿用的是拦截前的意图，不会凭空出现一帧零输入。语义上，被拦下的帧
-    /// 等价于这段真实时间里没有新输入——逻辑帧消费门照常取到同一份输入（追帧/多逻辑帧不产生额外输入）。
+    /// **① 上下文门**——<see cref="IntentGate"/> 上登记的拦截源每渲染帧裁决一次。拦下时本帧采样作废、
+    /// 待用意图写<b>全零</b>并照常置"已采样"（2026-10-02 修复，推翻 2026-09-26 的"作废+保持旧值+不发"
+    /// 口径——该口径只算了本地预测面：本地沿旧意图推进、上行又静默，服务器对缺席帧的唯一读法是空输入
+    /// 兜底（<c>RoomRuntime</c> 缺席沿用 default）→ 移动中弹模态即"本地在动、权威已停"，下一份快照必
+    /// 和解回拉）。现语义：被拦下的帧等价于"这一帧没有战斗输入"，本地与服务器**同读**——本地零意图
+    /// 预测、上行零意图、服务器缺席兜底也是零，三处逐位一致（《角色状态与动作专项设计》§3 第 2 件
+    /// "UI/菜单打开时输出零战斗意图"、§6 验收"UI 打开时角色不动"）。解拦后的首个采样帧即恢复实时
+    /// 按键（采样先于预测，见 <c>ProcedureBattle.OnUpdate</c> 第①步），不会凭空多出零帧。
     ///
-    /// **② 上行**——<see cref="TryTakeForSend"/> 只在"本渲染帧成功采样过"时返回 true（每渲染帧最多一次），
-    /// 与 <see cref="TryTakeForPrediction"/> 共享同一份 <see cref="_pending"/>：同一帧里预测消费与
-    /// 上行发出的**是同一份输入**（《状态同步专项设计》§5.1 的前提——两端同帧同值）。冗余重发由
-    /// <c>RoomClient</c> 的最近帧窗口负责，本类不重复发。
+    /// **② 上行**——每渲染帧一份**结论**：采到发采到的，没采到（被拦/设备未返回）发全零；
+    /// <see cref="TryTakeForSend"/> 与 <see cref="TryTakeForPrediction"/> 共享同一份
+    /// <see cref="_pending"/>：同一帧里预测消费与上行发出的**是同一份输入**（《状态同步专项设计》§5.1
+    /// 的前提——两端同帧同值）。拦下期间照发还有第二层意义：ackSnapshot 随输入包上行，静默超
+    /// <c>FullResendAckLagFrames</c> 会让服务器 NeedsFull 判据把**整帧**持续强制成全量（全房陪付
+    /// 带宽）。冗余重发由 <c>RoomClient</c> 的最近帧窗口负责，本类不重复发。
     ///
     /// **③ 帧边界门**——<see cref="TryTakeForPrediction"/> 记 <see cref="_lastPredictedFrame"/>，
     /// 同一 frame 第二次调用返回 false；采样未发生过的帧（无待用）也返回 false，杜绝"拿上一次的
@@ -32,7 +38,7 @@ namespace LiteGame
 
         private IIntentSource _source;
         private bool _hasPending;
-        private bool _sampledThisRenderFrame;          // 本渲染帧采到了新输入（上行的唯一开闸条件）
+        private bool _sampledThisRenderFrame;          // 本渲染帧已有确定的输入结论（采到/被拦零/未采到零——上行据此开闸）
         private SimInputFrame _pending;
         private int _lastPredictedFrame = -1;
 
@@ -65,9 +71,8 @@ namespace LiteGame
 
         public void SampleOnRenderFrame(SimVector3 localOrigin)
         {
-            // 每渲染帧只裁决一次。**开闸点必须唯一**：只在这里清标记，而置位只发生在真正采到新输入时
-            // （下面）。于是"本帧有没有新输入"这件事恰好被消费一次——拦截帧、以及"被拦下期间本帧
-            // 又被调用"的情况，都不会把上一次的意图当成新输入重发。
+            // 每渲染帧只裁决一次。**开闸点必须唯一**：只在这里清标记，而置位只发生在本帧有确定结论时
+            // （下面三条路径：被拦零、无设备零、真采样——结论无论是谁，都恰好被消费一次）。
             bool alreadyHandled = _sampledThisRenderFrame;
             _sampledThisRenderFrame = false;
 
@@ -80,7 +85,12 @@ namespace LiteGame
                 BlockedByName = blocked.HasValue ? blocked.Value.Name : null;
                 BlockedReason = blocked.HasValue ? blocked.Value.Reason : null;
                 SampleDiposedByGate++;
-                return;                                  // 待用意图保持：本帧没有新输入（不是"零输入"）
+                // 拦下 = 本帧没有战斗输入：写空意图并照常置位（2026-10-02，理由见类注释①——
+                // 与服务器空输入兜底逐位同值，预测/上行/权威三处同读"没有输入"）。
+                _pending = default;
+                _hasPending = true;
+                _sampledThisRenderFrame = true;
+                return;
             }
             BlockedByName = null;
             BlockedReason = null;
@@ -98,14 +108,14 @@ namespace LiteGame
             if (sample.Handled)
             {
                 _pending = sample.Frame;                 // 采到了（可能是空意图——用户真的什么都没按）
-                // "本帧产生了一份新输入"的**唯一置位点**：只有真的采到才置位，因此
-                // TryTakeForSend 既不会把上一次的意图当新输入重发（设备未就绪时不上行），
-                // 也不会在断线恢复后爆发重传。
-                _sampledThisRenderFrame = true;
+                _sampledThisRenderFrame = true;          // "本帧有确定结论"的置位点之一
             }
             else
             {
-                SampleWithNoSource++;                    // 未采到：保留上一次有效意图，不把"无采样"降级成"零输入"
+                SampleWithNoSource++;
+                // 未采到与被拦**同读法**：空意图 + 照常置位（沿用旧值会与权威空输入分叉，理由同上）
+                _pending = default;
+                _sampledThisRenderFrame = true;
             }
 
             // 设备返回值的契约兜底（移动/瞄准长度 ≤ 1 归设备源自己保证，这里不重复做）：

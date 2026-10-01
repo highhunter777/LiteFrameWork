@@ -74,6 +74,24 @@ namespace LiteSim
         /// <summary>诊断/测试用：重放段逐帧修正验证（M9 决策⑨）。</summary>
         public SnapshotRing Ring => _ring;
 
+        /// <summary>
+        /// 读取某帧**已执行**的某玩家输入（追帧补发用）。追帧沿用帧（<see cref="PrepareNext"/> 的
+        /// baseInputs 续行）与真实输入帧同读——多逻辑帧渲染帧里，未上行的沿用帧会让服务器按空输入
+        /// 兜底执行，产生"本地在动、权威已停"的分叉（《状态同步专项设计》两端同帧同值前提），
+        /// 调用方（BattleContext）须把这些帧同样 SendInput。
+        /// <paramref name="playerIndex"/> 为输入数组槽位（= playerId）。frame 必须 ≤ 当前已执行帧
+        /// （未来帧不在史里）；超出史窗/未记录/越界槽位 = false。
+        /// </summary>
+        public bool TryGetExecutedInput(int frame, int playerIndex, out SimInputFrame input)
+        {
+            input = default;
+            if (frame <= 0 || frame > _state.Frame) return false;   // 只读已执行帧（0 = 初始锚定，未执行）
+            if (playerIndex < 0 || playerIndex >= _playerCount) return false;
+            if (!_history.TryGet(frame, out var stored, out var _)) return false;
+            input = stored[playerIndex];
+            return true;
+        }
+
         /// <summary>预测推进。停预测（越界退化）期间不推进——§5.4 强制等待。</summary>
         public void Tick(float realDelta)
         {

@@ -13,14 +13,17 @@ namespace LiteGame
     /// <list type="number">
     /// <item><b>上下文门</b>——<see cref="RegisterBlocker"/> 登记的拦截源（UI 模态栈、暂停、失焦、
     ///   重连提示）：任一成立，本帧的采样结论**作废**（<see cref="SampleDiposedByGate"/> 计数），
-    ///   待用意图保持上一次放行时的取值。"作废 + 保持"是刻意的组合：作废让
-    ///   <see cref="TryTakeForSend"/> 本帧不发包（否则重连窗口里会把最后一次意图反复重传）；
-    ///   保持让操作者在拦下期间**一直按住**的键在解拦后照常生效，而不会在门开合的瞬间
-    ///   凭空插入一帧零输入（《角色状态与动作专项设计》§3 第 2 件"输出零战斗意图"——
-    ///   拦下期间生效的意图恒为"最后一次放行时的意图"，正是这条约束的落地形态）。
+    ///   待用意图写<b>全零</b>并照常置"已采样"（《角色状态与动作专项设计》§3 第 2 件
+    ///   "UI/菜单打开时输出零战斗意图"的直接落地：UI 打开时角色不动）。
+    ///   **为什么是"零"而不是"保持最后一次放行值"**（2026-10-02 修复，推翻 2026-09-26 口径）：
+    ///   服务器对缺席帧的唯一读法是空输入兜底——本地沿用旧值推进、上行又静默，移动中弹模态即
+    ///   "本地在动、权威已停"，下一份快照必和解回拉；零值让本地预测/上行/权威兜底三处逐位同读
+    ///   "这一帧没有战斗输入"。照发还让 ackSnapshot 随包流动（静默超时会让服务器把整帧持续
+    ///   强制成全量快照）。
     ///   UI 侧结论由装配根**经委托注入**，本服务不认识 UI 运行时（《客户端总设计》§5.1 逻辑边界）。</item>
     /// <item><b>采样与上行</b>——每渲染帧最多采 1 次（<see cref="SampleOnRenderFrame"/>），
-    ///   <see cref="TryTakeForSend"/> 只报告"本帧采过"，同一份输入既进预测又上行。</item>
+    ///   <see cref="TryTakeForSend"/> 每渲染帧恰报一次：采到发采到的，没采到发全零；
+    ///   同一份输入既进预测又上行（两端同帧同值）。</item>
     /// <item><b>帧边界门</b>——<see cref="TryTakeForPrediction"/> 每个逻辑帧消费一次，同一帧重复
     ///   取用返回 false（追帧不产生额外输入）。</item>
     /// </list>
@@ -53,10 +56,10 @@ namespace LiteGame
         /// <summary>被上下文门拦下的采样次数（诊断：UI 拦截时长占比）。</summary>
         long SampleDiposedByGate { get; }
 
-        /// <summary>无设备源导致空意图的采样次数（诊断：触屏源未接线时可见）。</summary>
+        /// <summary>无设备源、或设备未返回采样（Handled=false）导致空意图的采样次数（诊断：触屏源未接线/设备未就绪时可见）。</summary>
         long SampleWithNoSource { get; }
 
-        /// <summary>当前待用意图（最近一次成功采样的产物；门拦下时不更新）。**不含 EntityId**——由会话补齐。</summary>
+        /// <summary>当前待用意图（本帧的输入结论：采到 = 设备读数；被拦/未采到 = 全零）。**不含 EntityId**——由会话补齐。</summary>
         SimInputFrame Pending { get; }
 
         /// <summary>设置设备源（null = 清空设备）。切换设备不重置帧边界状态。</summary>
@@ -85,8 +88,9 @@ namespace LiteGame
         bool TryTakeForPrediction(int frame, out SimInputFrame input);
 
         /// <summary>
-        /// 上行取值：本渲染帧是否采到了新输入（采过才发，同一帧只报一次）。返回的就是当帧送进
-        /// 预测的那一份——冗余重发由 <c>RoomClient</c> 的最近帧窗口承担，本服务不重复发。
+        /// 上行取值：本渲染帧的输入结论，每渲染帧恰报一次（采到发采到的，没采到发全零——
+        /// 服务器对缺席帧按空输入兜底执行，零值与其逐位同值，两端同帧同值的前提）。
+        /// 返回的就是当帧送进预测的那一份——冗余重发由 <c>RoomClient</c> 的最近帧窗口承担，本服务不重复发。
         /// </summary>
         bool TryTakeForSend(out SimInputFrame input);
 
