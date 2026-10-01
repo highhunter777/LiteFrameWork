@@ -4,6 +4,7 @@
     "references": [
         "DOTween.Modules",
         "LiteCodeGen.Runtime",
+        "LiteFramework.Async",
         "LiteFramework.Core",
         "UniTask",
         "Unity.TextMeshPro"

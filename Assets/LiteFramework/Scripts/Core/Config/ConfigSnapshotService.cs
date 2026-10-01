@@ -1,7 +1,4 @@
 using System;
-using System.Collections.Generic;
-using System.Threading;
-using Cysharp.Threading.Tasks;
 
 namespace LiteFramework
 {
@@ -61,24 +58,6 @@ namespace LiteFramework
                 _version++;
                 return _version;
             }
-        }
-    }
-
-    /// <summary>
-    /// 异步发布变体：候选构造/校验涉及异步 IO（读表/反序列化）时使用。
-    /// 发布语义与同步版一致：校验失败保留旧版。
-    /// </summary>
-    public static class ConfigSnapshotPublishExtensions
-    {
-        /// <summary>异步构造候选 + 校验 + 原子发布（§10.1"先验证后原子提交"的异步形态）。</summary>
-        public static async UniTask<ulong> PublishAsync<TSnapshot>(
-            this ConfigSnapshotService<TSnapshot> service,
-            Func<CancellationToken, UniTask<TSnapshot>> buildCandidate,
-            CancellationToken ct = default)
-            where TSnapshot : class
-        {
-            TSnapshot candidate = await buildCandidate(ct);
-            return service.Publish(candidate);
         }
     }
 }

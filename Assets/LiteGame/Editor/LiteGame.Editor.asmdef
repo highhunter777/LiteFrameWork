@@ -10,6 +10,7 @@
         "LiteClient.Serialization.Luban",
         "LiteCodeGen.Editor",
         "LiteCodeGen.Runtime",
+        "LiteFramework.Async",
         "LiteFramework.Core",
         "LiteFramework.Unity",
         "LiteGame.App",
@@ -18,9 +19,9 @@
         "Luban.Tables",
         "UniTask",
         "Unity.TextMeshPro",
+        "xLuaMain",
         "YooAsset",
-        "YooAsset.Editor",
-        "xLuaMain"
+        "YooAsset.Editor"
     ],
     "includePlatforms": [
         "Editor"

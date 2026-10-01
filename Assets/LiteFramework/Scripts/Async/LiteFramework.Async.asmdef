@@ -1,11 +1,8 @@
 {
-    "name": "LiteSim.View",
-    "rootNamespace": "LiteSim.View",
+    "name": "LiteFramework.Async",
+    "rootNamespace": "LiteFramework",
     "references": [
-        "LiteFramework.Async",
         "LiteFramework.Core",
-        "LiteFramework.Unity",
-        "LiteSim.Core",
         "UniTask"
     ],
     "includePlatforms": [],
@@ -16,5 +13,5 @@
     "autoReferenced": true,
     "defineConstraints": [],
     "versionDefines": [],
-    "noEngineReferences": false
+    "noEngineReferences": true
 }

@@ -2,6 +2,7 @@
     "name": "LiteClient.Network.Kcp",
     "rootNamespace": "LiteGame",
     "references": [
+        "LiteFramework.Async",
         "LiteFramework.Core",
         "LiteFramework.Unity",
         "LiteNet",

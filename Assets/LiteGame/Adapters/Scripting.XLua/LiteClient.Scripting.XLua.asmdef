@@ -5,6 +5,7 @@
         "LiteClient.Abstractions",
         "LiteClient.Runtime",
         "LiteClient.Serialization.Luban",
+        "LiteFramework.Async",
         "LiteFramework.Core",
         "LiteFramework.Unity",
         "LiteGame.UI",

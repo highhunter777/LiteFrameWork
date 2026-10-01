@@ -5,6 +5,7 @@
         "Cinemachine",
         "LiteClient.Abstractions",
         "LiteClient.Runtime",
+        "LiteFramework.Async",
         "LiteFramework.Core",
         "LiteSim.Core",
         "LiteSim.View",

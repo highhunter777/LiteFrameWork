@@ -17,7 +17,8 @@ namespace LiteFramework
     /// （`ProcedureArgs`），编译期强类型，且不依赖"owner 上可能为 null 的字段"。
     /// `IProcedureOwner`/`ProcedureOwner` 随之退休（决策记录见《通用流程状态机施工图》§5）。
     ///
-    /// `RunAsync` 是 void 签名——Core 引不了 UniTask（零依赖纪律），子类必须"一行转发"给 async 主体，
+    /// `RunAsync` 是 void 签名——Core 是 S2 契约层（零第三方实现依赖，见《客户端与服务端共享代码范围
+    /// 专项设计》§2.1），引不了 UniTask；子类必须"一行转发"给 async 主体，
     /// **禁止 async void**（异常调用方接不住，M0 指导 §6）。
     /// 流程依赖不从 payload 取（那是服务定位器的变体）——依赖走构造注入存为本类字段。
     /// </summary>

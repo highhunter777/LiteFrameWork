@@ -1,0 +1,12 @@
+<Project>
+
+  <!--
+    双轨编译产物重定向：dotnet 侧的 bin/obj 不落在 Assets 目录内（Unity 会扫描 obj 里的生成 .cs）。
+    点开头的目录 Unity 资产数据库直接忽略。Tests 项目在 Assets 外，用默认位置。
+  -->
+  <PropertyGroup>
+    <BaseIntermediateOutputPath>.dotnet/obj/</BaseIntermediateOutputPath>
+    <BaseOutputPath>.dotnet/bin/</BaseOutputPath>
+  </PropertyGroup>
+
+</Project>

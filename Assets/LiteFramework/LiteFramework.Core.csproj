@@ -2,13 +2,14 @@
 
   <!--
     双轨编译（测试开发方案 §1.2）：LiteFramework.Core 在 Unity（asmdef）与 dotnet（本 csproj）两侧编译。
-    - 范围锁死 Scripts/Core：Core 是零引擎引用程序集（noEngineReferences:true），但**不是零第三方**——
-      C1 起接入 UniTask（客户端异步契约单源，Unity 侧引内嵌 com.cysharp.unitask 2.5.11 源码程序集，
-      dotnet 侧引同版本 NuGet Cysharp.Threading.Tasks——API 面一致，仅宿主不同）
+    - 范围锁死 Scripts/Core：Core 是 **S2 契约共享**档位（《客户端与服务端共享代码范围专项设计》§2.1）——
+      义务是"零引擎 + **零第三方实现依赖**"。2026-10-01 批④ 起 UniTask 已随引它的件外提到
+      `LiteFramework.Async`（同目录 csproj），**本工程不再有任何 PackageReference**。
     - EnableDefaultCompileItems=false：SDK 默认 glob 会把 Unity 层源码扫进来，必须关掉改为显式 include
     - DefineConstants: LITEFRAMEWORK_DEBUG —— dotnet 侧 Debug 校验（重复归还检测/Validate 等）全量激活（§1.1）
     - LangVersion 9.0：与 Unity 侧 C# 能力对齐，防双轨漂移（dotnet 侧先用了 Unity 编不了的语法 = 假绿）
     - Unity 忽略 .csproj，本文件入库仅供 dotnet 使用
+    - 产物重定向由同目录 Directory.Build.props 负责（Unity 会把 Assets 下的 bin/obj 当插件导入）
   -->
   <PropertyGroup>
     <TargetFramework>net8.0</TargetFramework>
@@ -22,12 +23,6 @@
 
   <ItemGroup>
     <Compile Include="Scripts/Core/**/*.cs" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <!-- UniTask（C1-批①）：nuget.org 包 ID 为 "UniTask"（Cysharp 发布）；版本与 Unity 侧
-         Assets/Plugins/UniTask（com.cysharp.unitask 2.5.11）对齐 -->
-    <PackageReference Include="UniTask" Version="2.5.11" />
   </ItemGroup>
 
 </Project>

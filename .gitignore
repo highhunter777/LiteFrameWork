@@ -36,6 +36,7 @@ XLuaSamples/
 
 # 双轨编译的手写工程文件（被 Tests.slnx / 测试工程引用，保留入库）
 !Assets/LiteFramework/*.csproj
+!Assets/LiteFramework/Scripts/Async/*.csproj
 !Assets/LiteSim/Core/*.csproj
 !Assets/LiteNet/*.csproj
 !Assets/Tools/DisciplineScanner/*.csproj

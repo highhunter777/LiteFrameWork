@@ -2,6 +2,7 @@
     "name": "LiteClient.Abstractions",
     "rootNamespace": "LiteGame",
     "references": [
+        "LiteFramework.Async",
         "LiteFramework.Core",
         "UniTask"
     ],

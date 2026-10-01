@@ -3,6 +3,7 @@
     "rootNamespace": "LiteGame",
     "references": [
         "LiteClient.Abstractions",
+        "LiteFramework.Async",
         "LiteFramework.Core",
         "LiteFramework.Unity",
         "LiteNet",

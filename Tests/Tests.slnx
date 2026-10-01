@@ -1,6 +1,7 @@
 <Solution>
   <Project Path="../Assets/LiteTesting/LiteTesting.Core.csproj" />
   <Project Path="../Assets/LiteFramework/LiteFramework.Core.csproj" />
+  <Project Path="../Assets/LiteFramework/Scripts/Async/LiteFramework.Async.csproj" />
   <Project Path="LiteTesting.Core.Tests/LiteTesting.Core.Tests.csproj" />
   <Project Path="LiteFramework.Core.Tests/LiteFramework.Core.Tests.csproj" />
   <Project Path="../Assets/LiteSim/Core/LiteSim.Core.csproj" />
