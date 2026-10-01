@@ -160,8 +160,14 @@ namespace LiteSim.View.Animation
                 : 0f;
             float length = hasNode && !ch.Current.IsBlend && ch.Current.ClipAsset != null ? ch.Current.ClipAsset.length : 0f;
 
+            // 速度同样报**引擎真值**（混合器/片段 SetSpeed 后的值）：就地倍率更新（TrySetBlendSpeed）
+            // 只动节点不动记账，报记账值会把"倍率没生效"伪装成全绿——与权重同一口径（§11）。
+            float speed = hasNode
+                ? (ch.Current.IsBlend ? (float)ch.Current.Mixer.GetSpeed() : (float)ch.Current.Clip.GetSpeed())
+                : 0f;
+
             debug = new AnimationChannelDebug(ch.Active, ch.Binding, weight, ch.Tail.IsValid ? ch.TailWeight : 0f,
-                time, length, ch.Completion.Loop, ch.Speed, source);
+                time, length, ch.Completion.Loop, speed, source);
             return true;
         }
 

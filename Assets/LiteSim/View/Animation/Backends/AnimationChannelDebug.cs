@@ -19,6 +19,7 @@ namespace LiteSim.View.Animation
         public readonly float Time;
         public readonly float Length;
         public readonly bool Loop;
+        /// <summary>引擎真值：混合器/片段节点上实际生效的速度（TrySetBlendSpeed 就地更新当场可见）。</summary>
         public readonly float Speed;
         public readonly string Source;
 

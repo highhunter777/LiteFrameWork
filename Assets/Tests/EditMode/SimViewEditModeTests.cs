@@ -119,12 +119,13 @@ namespace LiteGame.Tests.EditMode
             Assert.IsTrue(view.TryGetView(0, out var go), "槽位 0 视图已建");
             Assert.AreEqual(100f, go.transform.position.x, 0.01f, "无插值源时退回预测态位置");
 
-            // 两份快照：帧 1 在 x=0，帧 2 在 x=10
+            // 两份快照：帧 1 在 x=0，帧 2 在 x=2——间距 < 默认 SnapDistance(3m)，本用例只测平滑；
+            // 超阈值的硬切另有专测《远端插值_前后快照跳变超SnapDistance硬切_不播成飞人》
             var snapA = new SimWorldStateSnapshot();
             var simA = NewWorld(new SimVector3(0f, 0f, 0f));
             snapA.CaptureFull(simA);
             var snapB = new SimWorldStateSnapshot();
-            var simB = NewWorld(new SimVector3(10f, 0f, 0f));
+            var simB = NewWorld(new SimVector3(2f, 0f, 0f));
             snapB.CaptureFull(simB);
 
             view.OnAuthoritativeSnapshot(snapA);
@@ -136,11 +137,11 @@ namespace LiteGame.Tests.EditMode
 
             view.Tick(SimView.SnapshotInterval);                   // alpha = 1 → 到 B
             view.TryGetView(0, out go);
-            Assert.AreEqual(10f, go.transform.position.x, 0.01f, "窗口终点 = 新快照位置");
+            Assert.AreEqual(2f, go.transform.position.x, 0.01f, "窗口终点 = 新快照位置");
 
             view.Tick(SimView.SnapshotInterval * 10f);             // 快照停摆：停在最新不外推
             view.TryGetView(0, out go);
-            Assert.AreEqual(10f, go.transform.position.x, 0.01f, "快照停摆不无限外推");
+            Assert.AreEqual(2f, go.transform.position.x, 0.01f, "快照停摆不无限外推");
         }
 
         [Test]

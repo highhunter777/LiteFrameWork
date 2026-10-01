@@ -447,40 +447,28 @@ namespace LiteGame.Tests.EditMode
         public void 混合_播放倍率就地缩放_真图生效()
         {
             // 步频同步（2026-09-30 移动腰射批）：倍率乘在混合器节点上（Playable 速度沿图相乘），
-            // 输入片段原生 Speed 不动——真实图上直读验证，不经替身。
+            // 输入片段原生 Speed 不动——经引擎真值诊断（TryGetChannelDebug.Speed）验证，不经替身。
             var prefab = LoadPrefabOrIgnore();
             var go = Scope.Track(Object.Instantiate(prefab));
             var anim = go.GetComponentInChildren<Animator>(true);
-            var player = new CharacterAnimationPlayer(
-                new AnimatorAnimationBackend(anim, blendSeconds: 0f), TestProfile());
+            var backend = new AnimatorAnimationBackend(anim, blendSeconds: 0f);
+            var player = new CharacterAnimationPlayer(backend, TestProfile());
 
             var accepted = PlayBlend(player, TestMoveBlend, AnimationChannel.Locomotion, 1f, 0f);
             Assert.IsTrue(accepted.Accepted, "混合提交应被接受");
-            Assert.AreEqual(1f, FindBlendMixerSpeed(anim.playableGraph), 1e-3f, "提交后应为原生 1×");
+            Assert.IsTrue(backend.TryGetChannelDebug(AnimationChannel.Locomotion, out var d0), "混合提交后通道诊断可读");
+            Assert.AreEqual(1f, d0.Speed, 1e-3f, "提交后应为原生 1×");
 
             Assert.IsTrue(player.TrySetBlendSpeed(accepted.Handle, 2f), "就地倍率更新应被接受");
-            Assert.AreEqual(2f, FindBlendMixerSpeed(anim.playableGraph), 1e-3f, "倍率应乘在混合器节点上");
+            Assert.IsTrue(backend.TryGetChannelDebug(AnimationChannel.Locomotion, out var d1), "就地更新后通道诊断可读");
+            Assert.AreEqual(2f, d1.Speed, 1e-3f, "倍率应乘在混合器节点上（引擎 SetSpeed 真值）");
 
             Assert.IsFalse(player.TrySetBlendSpeed(accepted.Handle, 0f), "非正倍率必须拒绝");
             Assert.IsFalse(player.TrySetBlendSpeed(accepted.Handle, float.NaN), "NaN 倍率必须拒绝");
-            Assert.AreEqual(2f, FindBlendMixerSpeed(anim.playableGraph), 1e-3f, "拒绝后倍率不变");
+            Assert.IsTrue(backend.TryGetChannelDebug(AnimationChannel.Locomotion, out var d2), "拒绝后通道诊断可读");
+            Assert.AreEqual(2f, d2.Speed, 1e-3f, "拒绝后倍率不变");
 
             Assert.IsFalse(player.TrySetBlendSpeed(default, 2f), "未知句柄必须拒绝");
-        }
-
-        /// <summary>遍历图找普通混合器（AnimationMixerPlayable）读倍率：层混合器根 → 通道节点根。
-        /// 基础层 0 是 AnimatorControllerPlayable、片段节点是 AnimationClipPlayable，都不会误命中；
-        /// 本后端同一时刻只在一个通道播混合 ⇒ 命中的就是被测混合节点。</summary>
-        private static float FindBlendMixerSpeed(PlayableGraph graph)
-        {
-            Playable root = graph.GetOutput(0).GetSourcePlayable();
-            for (int i = 0; i < root.GetInputCount(); i++)
-            {
-                Playable input = root.GetInput(i);
-                if (!input.IsValid() || input.GetPlayableType() != typeof(AnimationMixerPlayable)) continue;
-                return (float)input.GetSpeed();
-            }
-            return -1f;
         }
 
         // ---- 帧事件接缝（§8）----
@@ -1149,7 +1137,7 @@ namespace LiteGame.Tests.EditMode
 
         [Test]
         [Category(TestCategory.Contract)]
-        public void 驱动_退根两条路_窗尽有瞄准降级Aim叶_同形态续播保相位_松ADS回移动根()
+        public void 驱动_退根两条路_瞄准保持期窗充值不退_松ADS窗尽回移动根()
         {
             var prefab = LoadPrefabOrIgnore();
             var world = new SimWorldState { RngState = 1UL };
@@ -1191,23 +1179,18 @@ namespace LiteGame.Tests.EditMode
                 "窗内持枪站姿循环（与 AimIdle 态同一 clip）");
             Assert.IsTrue(driver.TryGetFormHandle(0, out var holdHandle), "持枪站姿句柄可读");
 
-            // 窗尽 ∧ IsAiming → **降级 Aim 叶**（不退根）；同形态就地续播保相位——句柄不变、
-            // 零重提交（重提交会按第 0 帧 + 刷终态）
-            while (elapsed < 2.0f)
-            {
-                driver.Tick(dt);
-                elapsed += dt;
-                if (driver.TryGetAnimState(0, out var s2) && s2 == CharacterAnimId.AimIdle) break;
-            }
-            Assert.Less(elapsed, 1.6f, "窗尽（≈1s）在瞄准保持期必须降级（四次修正旧口径 0.48s、批B-① 2.0s 都翻红）");
-            Assert.IsTrue(driver.TryGetAnimState(0, out var s3) && s3 == CharacterAnimId.AimIdle,
-                "窗尽 ∧ IsAiming → 降级 AimIdle（战斗根不退——非退根路）");
-            Assert.IsTrue(driver.TryGetFormHandle(0, out var downHandle)
-                && downHandle.Equals(holdHandle),
-                "降级走同形态续播——句柄不变（保相位、零淡化、零重提交）");
+            // 批次E（八次裁决）：`IsAiming` 在场即充值窗（CombatRootStage.OnUpdate）——瞄准保持期内
+            // 窗被持续充值、永不尽：**不降级、不退根**，FireIdle 持续持有站姿循环（同句柄、零重提交）
+            while (elapsed < 2.0f) { driver.Tick(dt); elapsed += dt; }
+            Assert.IsTrue(driver.TryGetAnimState(0, out var s2) && s2 == CharacterAnimId.FireIdle,
+                "瞄准保持期窗充值——保持 FireIdle（窗不尽、不降级、不退根）");
+            Assert.IsTrue(driver.TryGetCurrent(0, out var held2) && held2.Equals(CharacterAnimationIds.AimIdle),
+                "窗充值期仍持枪站姿循环");
+            Assert.IsTrue(driver.TryGetFormHandle(0, out var holdHandle2) && holdHandle2.Equals(holdHandle),
+                "窗充值期同句柄续播——零重提交（重提交会按第 0 帧 + 刷终态）");
 
-            // 松 ADS（InputSystem 覆写标志位）→ **批次E 统一退根**：!IsAiming 但窗充值中（IsAiming
-            // 在场即充值——松开后的窗尾 1.5s 内机器保持瞄准形态）→ 窗尽才退根回移动根叶
+            // 松 ADS（InputSystem 覆写标志位）→ !IsAiming → 窗不再充值、开始递减；窗尾（≈1s）内
+            // 保持战斗根形态（窗内不回移动层——统一退根路）→ 窗尽才退根回移动根叶
             InputSystem.Run(world, new[] { new SimInputFrame { EntityId = selfId } });
             float releaseElapsed = 0f;
             for (; releaseElapsed < 2.5f; )
@@ -1216,10 +1199,11 @@ namespace LiteGame.Tests.EditMode
                 releaseElapsed += dt;
                 if (driver.TryGetAnimState(0, out var s4)
                     && (s4 == CharacterAnimId.Idle || s4 == CharacterAnimId.Moving)) break;
-                Assert.IsTrue(s4 == CharacterAnimId.AimIdle || s4 == CharacterAnimId.AimWalk,
-                    "松 ADS 后窗尾内必须保持瞄准形态（窗内不回移动层——统一退根路）");
+                Assert.IsTrue(s4 == CharacterAnimId.FireIdle || s4 == CharacterAnimId.FireWalk
+                    || s4 == CharacterAnimId.AimIdle || s4 == CharacterAnimId.AimWalk,
+                    "松 ADS 后窗尾内必须保持战斗根形态（窗内不回移动层——统一退根路）");
             }
-            Assert.Less(releaseElapsed, 2.5f, "窗尾（≈1.5s）内必须退根");
+            Assert.Less(releaseElapsed, 2.5f, "窗尾（≈1s）内必须退根");
             Assert.IsTrue(driver.TryGetCurrent(0, out var back) && back.Equals(CharacterAnimationIds.MoveBlend),
                 "退根后回移动根形态");
 
