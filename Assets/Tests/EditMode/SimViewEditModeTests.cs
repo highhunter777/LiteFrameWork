@@ -143,6 +143,37 @@ namespace LiteGame.Tests.EditMode
             Assert.AreEqual(10f, go.transform.position.x, 0.01f, "快照停摆不无限外推");
         }
 
+        [Test]
+        public void 远端插值_前后快照跳变超SnapDistance硬切_不播成飞人()
+        {
+            var world = NewWorld(new SimVector3(0f, 0f, 0f));     // 预测态里的远端实体（无插值源时的退回位）
+            var counter = new ViewCounter();
+            var view = NewView(world, counter);
+            view.LocalEntityId = 999;                             // 不匹配任何实体 → 走远端插值分支
+            view.SnapDistance = 3f;
+
+            view.Tick(1f / 60f);                                   // 建视图
+            Assert.IsTrue(view.TryGetView(0, out var go));
+
+            // 前后快照：x=0 → x=50（权威侧传送/复活级跳变；两份世界同序 Spawn → 同实体 Id 可互相找到）
+            var snapA = new SimWorldStateSnapshot();
+            snapA.CaptureFull(NewWorld(new SimVector3(0f, 0f, 0f)));
+            var snapB = new SimWorldStateSnapshot();
+            snapB.CaptureFull(NewWorld(new SimVector3(50f, 0f, 0f)));
+
+            view.OnAuthoritativeSnapshot(snapA);
+            view.OnAuthoritativeSnapshot(snapB);
+
+            // 窗口内任意 alpha 都必须直接落新位置——插值会把 50m 跳变播成 33ms 横穿地图的"飞人"
+            view.Tick(0f);                                         // alpha = 0（旧实现停在 x=0 再起步飞越）
+            view.TryGetView(0, out go);
+            Assert.AreEqual(50f, go.transform.position.x, 0.01f, "跳变超阈值 → 远端硬切（§6.2 远端必要时 snap）");
+
+            view.Tick(SimView.SnapshotInterval * 0.5f);           // 窗口中点：稳定在新位置，不回头插值
+            view.TryGetView(0, out go);
+            Assert.AreEqual(50f, go.transform.position.x, 0.01f, "硬切后不横穿（无中途飞越帧）");
+        }
+
         // ---- 本地预测/衰减 ----
 
         [Test]

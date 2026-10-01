@@ -120,7 +120,7 @@ namespace RoomServer.Application
             // 钳到本快照帧后：既符合 §3.4.1「ackSnapshot ≤ 服务器已广播帧号」，也保持"输入已到达"的语义。
             int ackInput = Math.Min(gate.LastAcceptedFrame(playerId), frame);
             Proto.StateSnapshot snapshot = _differ.BuildFor(frame, authSim, ackInput, viewPos, radius, entityId);
-            if (session.BackpressureTier >= 3) TrimFarthest(snapshot, viewPos);   // 档位 3：低优先级实体丢弃
+            if (session.BackpressureTier >= 3) TrimFarthest(snapshot, viewPos);   // 档位 3：低优先级实体丢弃（仅增量帧）
             if (snapshot.IsFull) SnapshotFullSent++;
 
             int bytes = snapshot.CalculateSize();
@@ -129,9 +129,12 @@ namespace RoomServer.Application
             if (SendTo != null) SendTo(session, PacketType.StateSnapshot, snapshot, false);
         }
 
-        /// <summary>档位 3：裁掉"距视点最远的"一半实体（低优先级丢弃，§10-E1 第三级）。</summary>
+        /// <summary>档位 3：裁掉"距视点最远的"一半实体（低优先级丢弃，§10-E1 第三级）。
+        /// **只裁增量帧**——全量帧的"缺席 = 死"镜像语义以全图为前提（见 <see cref="SnapshotDiffer.BuildFor"/>
+        /// 全量不裁 AOI 的同一条红线），裁了会让档 3 客户端把视野外实体在镜像里误杀。</summary>
         private static void TrimFarthest(Proto.StateSnapshot snapshot, SimVector3 viewPos)
         {
+            if (snapshot.IsFull) return;           // 全量整帧保留（缺席判死只在全图全量下成立）
             if (snapshot.Slots.Count <= 1) return;
             int keep = (int)(snapshot.Slots.Count * ProtocolConstants.ThrottleEntityKeepRatio);
             if (keep >= snapshot.Slots.Count) return;

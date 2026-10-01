@@ -226,6 +226,48 @@ namespace LiteNet.Tests
         }
 
         [Fact]
+        public void 背压档3_只裁增量帧_全量帧整帧保留()
+        {
+            var (room, capture, s1, s2, pipeline) = BuildStartedRoom();
+            s1.BackpressureTier = 3;                       // 直置档位（升降滞回另有专测——这里只验裁剪面）
+
+            // 双实体持续变化（裁剪/保留的可观察面：变化集恒为两槽位）
+            for (int i = 0; i < 3; i++)
+            {
+                Input(room, s1, MoveInput(room, 0, room.AuthSim.Frame + 1, 1f));
+                Input(room, s2, MoveInput(room, 1, room.AuthSim.Frame + 1, -1f));
+                Step(room, pipeline, 1);
+            }
+            Assert.Empty(capture.SnapshotsFor(s1));        // 档 1+ 抽帧：第 1 次广播（broadcastIndex 1）被跳过
+
+            // 请求全量恰好落在 s1 在收的广播上（broadcastIndex 2）——档 3 的 TrimFarthest 必须豁免全量帧：
+            // 全量"缺席 = 死"的镜像语义只对全图成立，裁了会让档 3 客户端把视野外实体在镜像里误杀
+            pipeline.RequestFullSnapshot();
+            for (int i = 0; i < 4; i++)
+            {
+                Input(room, s1, MoveInput(room, 0, room.AuthSim.Frame + 1, 1f));
+                Input(room, s2, MoveInput(room, 1, room.AuthSim.Frame + 1, -1f));
+                Step(room, pipeline, 1);
+            }
+            List<StateSnapshot> s1Snaps = capture.SnapshotsFor(s1);
+            Assert.Single(s1Snaps);                       // 此刻只收过全量（broadcastIndex 2）
+            Assert.True(s1Snaps[0].IsFull, "请求的全量落在 s1 在收的广播上");
+            Assert.True(s1Snaps[0].Slots.Count == room.AuthSim.AliveCount(),
+                $"档 3 全量帧整帧保留（旧实现裁半 → 缺席判死误杀视野外实体；slots={s1Snaps[0].Slots.Count} alive={room.AuthSim.AliveCount()}）");
+
+            for (int i = 0; i < 2; i++)                    // 后续增量（broadcastIndex 4，s1 在收）
+            {
+                Input(room, s1, MoveInput(room, 0, room.AuthSim.Frame + 1, 1f));
+                Input(room, s2, MoveInput(room, 1, room.AuthSim.Frame + 1, -1f));
+                Step(room, pipeline, 1);
+            }
+            List<StateSnapshot> s1After = capture.SnapshotsFor(s1);   // SnapshotsFor 是即时快照——重取
+            Assert.Equal(2, s1After.Count);               // 全量 + 增量恰两包
+            Assert.False(s1After[1].IsFull);
+            Assert.Single(s1After[1].Slots);               // 档 3 增量仍裁最远半数（回归守卫：裁剪只让位于全量语义）
+        }
+
+        [Fact]
         public void 重连席位Restoring_抑制增量_恢复ACK后整帧全量重锚()
         {
             var room = new RoomRuntime(new RoomConfig { RoomId = "TestRoom", Seed = SharedSeed });

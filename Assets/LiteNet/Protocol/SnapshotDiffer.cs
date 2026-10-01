@@ -16,6 +16,12 @@ namespace LiteNet.Protocol
     /// - <see cref="BuildFor"/>：每客户端一次——纯读，把本帧变化集按该客户端可见性过滤。
     /// （<see cref="Build"/> 是两者的便捷组合，供单客户端/测试路径使用。）
     ///
+    /// **全量帧不裁 AOI**（2026-10-01 缺陷修复）：<see cref="SnapshotReassembler"/> 对全量的语义是
+    /// "**缺席槽位一律判死**"——它以全图为前提。曾把 AOI 裁进全量帧：视野外实体在客户端镜像被判死，
+    /// 任何一次和解采纳镜像（RollbackSim 失配/超前覆盖）都会把它无声杀掉（bot/远端"消失"，
+    /// 死亡表现也被静默门吞掉）。AOI 与背压档 3 的实体裁剪只允许作用于**增量帧**（带宽收益全在
+    /// 30Hz 增量上，≤1Hz 全量整帧可付）。
+    ///
     /// 基线语义 = "**最近一次广播出去的状态**"。三类情况必须走全量，否则客户端会静默分叉：
     /// ① 首帧 / 基线未建立；② **活体集合发生变化**（生成/死亡/槽位复用——增量只发变化槽位，
     /// 客户端无法从"缺席"区分"没变"与"死了"）；③ 客户端 ack 落后（<see cref="NeedsFull"/>）。
@@ -106,15 +112,13 @@ namespace LiteNet.Protocol
         }
 
         /// <summary>
-        /// **每客户端调一次**：取该客户端可见的槽位（全量帧 = 全部可见活体；增量帧 = 可见 ∩ 变化集）+
-        /// 比赛状态层 + **本人私有面**（<paramref name="viewerEntityId"/> ≠ 0 时附 PrivateState——只发本人）。
+        /// **每客户端调一次**：全量帧 = **全图活体**（不裁 AOI——"全量缺席 = 死"的镜像语义只对全图成立，
+        /// 见类注释）；增量帧 = 可见 ∩ 变化集（AOI 只裁增量）+ 比赛状态层 + **本人私有面**
+        /// （<paramref name="viewerEntityId"/> ≠ 0 时附 PrivateState——只发本人）。
         /// 纯读——不推进任何状态（同帧多次调用结果一致）。
         /// </summary>
         public Proto.StateSnapshot BuildFor(int frame, SimWorldState state, int ackInput, SimVector3 viewPos, float aoiRadius, long viewerEntityId)
         {
-            _visible.Clear();
-            _aoi.CollectVisible(in state, viewPos, aoiRadius, _visible);
-
             var msg = new Proto.StateSnapshot
             {
                 Frame = frame,
@@ -128,12 +132,20 @@ namespace LiteNet.Protocol
 
             if (_frameFull)
             {
-                for (int v = 0; v < _visible.Count; v++)
-                    msg.Slots.Add(SnapshotCodec.ToDelta(_visible[v], state.Entities[_visible[v]],
-                        state.Actions[_visible[v] * SimConfig.ActionSlotsPerEntity]));
+                // 全量帧 = 全图活体（整帧属性，各客户端同一份槽位集）。带宽：全量 ≤1Hz 且 ≤ 活体数——
+                // AOI 的收益全在 30Hz 增量上，全量整帧可付；缺席判死的前提不允许任何裁剪。
+                for (int i = 0; i < SimConfig.MaxEntities; i++)
+                {
+                    if (!state.IsAlive(i)) continue;
+                    msg.Slots.Add(SnapshotCodec.ToDelta(i, state.Entities[i],
+                        state.Actions[i * SimConfig.ActionSlotsPerEntity]));
+                }
             }
             else
             {
+                _visible.Clear();
+                _aoi.CollectVisible(in state, viewPos, aoiRadius, _visible);   // AOI 只裁增量帧
+
                 // 变化集 ⊂ 全图活体；这里按可见性过滤（两个升序表求交，槽位序保持升序）
                 for (int c = 0; c < _changed.Count; c++)
                 {

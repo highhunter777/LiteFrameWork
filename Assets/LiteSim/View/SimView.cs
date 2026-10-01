@@ -12,7 +12,8 @@ namespace LiteSim.View
     ///
     /// **只读 Sim、只写视图**——不写任何 Sim 状态（《状态同步专项设计》§1 原则 3：View → Sim 只有输入和读取）。
     /// 两类来源分别处理：
-    /// - **远端**：连续两份权威快照按视点帧插值（<see cref="SimWorldStateSnapshot"/> × 前后，平滑不抖）；
+    /// - **远端**：连续两份权威快照按视点帧插值（<see cref="SimWorldStateSnapshot"/> × 前后，平滑不抖；
+    ///   前后间距超 <see cref="SnapDistance"/> 硬切——§6.2"远端必要时 snap"，传送/复活不播成飞人）；
     /// - **本地玩家**：跟预测态（0 延迟）；和解后按 <see cref="ViewTransformMath.Decay"/> 指数收敛
     ///   （帧率无关，不微抖）；超过 <see cref="SnapDistance"/> 硬切（复活/传送）。
     ///
@@ -71,7 +72,9 @@ namespace LiteSim.View
         private Transform _localAimPoint;                    // 本地视图的瞄准/相机参考点（见 TryResolveLocalAimPoint）
         private CharacterController _localCc;                 // 本地视图物理代理（CC.Move 收敛到衰减目标——见 PlaceLocal/EnsureLocalCc）
 
-        /// <summary>超过该平面距离直接硬切（复活/传送；《状态同步专项设计》§6.2）。≤0 = 永不硬切。</summary>
+        /// <summary>硬切距离阈值（米），两处共用：① 本地和解衰减超过它直接落位（复活/传送）；
+        /// ② 远端前后两份快照的位置差超过它同样硬切（§6.2"远端必要时 snap"——否则权威侧的
+        /// 传送/复活级跳变会被插值播成横穿地图的"飞人"）。≤0 = 永不硬切。</summary>
         public float SnapDistance = 3f;
 
         /// <summary>和解误差衰减速率（越大收敛越快；帧率无关）。</summary>
@@ -247,6 +250,15 @@ namespace LiteSim.View
             if (alpha > 1f) alpha = 1f;
 
             if (!TryFind(_snapFrom, entityId, out var a) || !TryFind(_snapTo, entityId, out var b)) return false;
+
+            // 远端硬切（§6.2"远端必要时 snap；复活/传送允许硬切"）：前后两份快照间距超阈值 =
+            // 权威侧发生过传送/复活级跳变——照常插值会把它播成横穿地图的"飞人"，直接对齐最新快照。
+            if (ViewTransformMath.ShouldSnap(a.Pos, b.Pos, SnapDistance))
+            {
+                pos = b.Pos;
+                yaw = b.Yaw;
+                return true;
+            }
 
             pos = ViewTransformMath.Lerp(a.Pos, b.Pos, alpha);
             yaw = ViewTransformMath.YawLerp(a.Yaw, b.Yaw, alpha);

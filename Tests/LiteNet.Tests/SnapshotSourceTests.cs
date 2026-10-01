@@ -124,6 +124,68 @@ namespace LiteNet.Tests
         }
 
         [Fact]
+        public void 全量帧不裁AOI_首帧与周期全量都带视野外实体_增量仍按可见裁剪()
+        {
+            var state = BuildWorld(out _);
+            var differ = new SnapshotDiffer();
+
+            // p1 拉到 p0 视野外（45m 处、距视点 55m；差分器/AOI 只读事实，不问位置来历）
+            state.Entities[1].Pos = new SimVector3(45f, 0f, 0f);
+            SimVector3 viewer = state.Entities[0].Pos;                              // (-10,0,0)
+
+            // 首帧必全量：视野外实体必须在内——"全量缺席 = 死"的镜像语义（SnapshotReassembler）
+            // 只对全图成立。曾把 AOI 裁进全量帧：客户端镜像误杀视野外实体，和解一采纳 bot/远端就无声消失
+            Proto.StateSnapshot first = differ.Build(state.Frame, state, 0, viewer, SimConfig.AoiRadius);
+            Assert.True(first.IsFull);
+            Assert.Equal(state.AliveCount(), first.Slots.Count);
+
+            // 周期兜底全量（forceFull 等价 FullEveryFrames 到点）：同样不裁
+            Proto.StateSnapshot cycle = differ.Build(state.Frame, state, 0, viewer, SimConfig.AoiRadius, forceFull: true);
+            Assert.True(cycle.IsFull);
+            Assert.Equal(state.AliveCount(), cycle.Slots.Count);
+
+            // 增量帧：AOI 照裁——只动视点自身（p0），视野外的 p1 不发（带宽收益全在增量上）
+            state.Entities[0].Shield = 11;                                          // 变化集 = {p0}
+            Proto.StateSnapshot delta = differ.Build(state.Frame, state, 0, viewer, SimConfig.AoiRadius, forceFull: false);
+            Assert.False(delta.IsFull);
+            Assert.Single(delta.Slots);
+            Assert.Equal(0, delta.Slots[0].Slot);
+        }
+
+        [Fact]
+        public void 和解采纳镜像时_AOI外实体不被误杀()
+        {
+            var state = BuildWorld(out SimMapData map);
+            var differ = new SnapshotDiffer();
+
+            // 权威侧：p1 在 p0 的 AOI 外（55m）
+            state.Entities[1].Pos = new SimVector3(45f, 0f, 0f);
+            Proto.StateSnapshot full = differ.Build(state.Frame, state, 0, state.Entities[0].Pos, SimConfig.AoiRadius);
+            Assert.True(full.IsFull);
+
+            // 客户端持久镜像（缺席判死语义的落点）+ 同构预测世界（同序 Spawn → 同实体 Id）
+            var mirror = Mirror();
+            SnapshotReassembler.Apply(full, mirror, out uint checksum);
+            Assert.Equal(2, mirror.AliveCount());                     // 视野外实体在镜像里活着（缺陷的直接面）
+
+            var local = new SimWorldState { RngState = state.RngState };
+            local.Spawn(new EntitySlot { Hp = CombatConfig.EntityHp, Pos = new SimVector3(-10f, 0f, 0f) }, out _);
+            local.Spawn(new EntitySlot { Hp = CombatConfig.EntityHp, Pos = new SimVector3(10f, 0f, 0f) }, out _);
+            var rollback = new RollbackSim(local, map, NoInput);
+
+            // 预测先行一步（真分叉：本地帧 1 超前权威快照帧 0）→ 和解必然采纳镜像
+            rollback.OnRealInput(1, Move(rollback.State, 0, 1f));
+            rollback.Tick(1f / 60f);
+            bool reconciled = rollback.OnAuthoritativeSnapshot(state.Frame, mirror, checksum);
+            Assert.True(reconciled, "预测超前权威帧 → 必和解");
+
+            // 红线（《状态同步专项设计》§8"AOI 只影响广播不影响判定"）：和解后视野外实体仍活着——
+            // 旧实现里被 AOI 裁过的全量已把它在镜像中判死，和解连坐 → bot/远端无声消失
+            Assert.True(rollback.State.IsAlive(1));
+            Assert.Equal(45f, rollback.State.Entities[1].Pos.X, 3);   // 镜像真值落地
+        }
+
+        [Fact]
         public void 静止场景_增量趋零()
         {
             var state = BuildWorld(out SimMapData map);
