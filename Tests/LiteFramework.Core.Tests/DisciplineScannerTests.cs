@@ -395,6 +395,47 @@ namespace LiteFramework.Tests
                 + "）：" + string.Join(" | ", offenders));
         }
 
+        /// <summary>D1 守卫（《客户端与服务端共享代码范围专项设计》§3）：服务端宿主工程的
+        /// `ProjectReference` **不得**指向客户端面（`LiteFramework`/`LiteGame`/`LiteClient`/`LiteSim/View`）。
+        ///
+        /// 这是**已被遵守的既成事实**（实测两宿主工程零客户端引用）——本用例把它钉成判据，
+        /// 防止日后有人图方便让宿主直接引客户端件（那会让"服务端只依赖 S0/S1/S2"从规则退化成习惯）。</summary>
+        [Fact]
+        public void 纪律_D1_服务端宿主不得依赖客户端面()
+        {
+            var problems = Tools.DisciplineScan.ScanTargets.ValidateServerHostDirection(RepoRoot());
+            Assert.True(problems.Count == 0, string.Join(" | ", problems));
+        }
+
+        /// <summary>G5 守卫（§8.1）：共享档位（S1/S2）成员的 asmdef 必须满足义务 ①
+        /// （`noEngineReferences: true`）。给共享件加一个 Unity 引用，它就**再也编不进 dotnet 侧**，
+        /// 而没有任何东西会红——本用例就是那个"东西"。</summary>
+        [Fact]
+        public void 纪律_G5_共享档位成员的asmdef必须零引擎()
+        {
+            var problems = Tools.DisciplineScan.ScanTargets.ValidateSharedAssemblyFlags(RepoRoot());
+            Assert.True(problems.Count == 0, string.Join(" | ", problems));
+        }
+
+        /// <summary>G5 守卫（§2.2 义务②）：S2 契约层必须**零第三方实现依赖**。
+        /// 批④ 把 UniTask 从 `LiteFramework.Core` 外提到 `LiteFramework.Async` 后，本用例钉住这次收窄——
+        /// 再往 Core 加第三方引用当场红（否则"服务端可直接消费的契约层"就名存实亡）。</summary>
+        [Fact]
+        public void 纪律_G5_S2契约层必须零第三方实现依赖()
+        {
+            var problems = Tools.DisciplineScan.ScanTargets.ValidateContractLayerDependencies(RepoRoot());
+            Assert.True(problems.Count == 0, string.Join(" | ", problems));
+        }
+
+        /// <summary>G2 守卫（§8.1）：`Assets/` 下不得出现 `bin`/`obj`（Unity 会当插件导入 → CS1704/CS0579）。
+        /// 各双轨目录靠同目录 `Directory.Build.props` 重定向到 `.dotnet/`——**漏配就出这事，而漏配不报错**。</summary>
+        [Fact]
+        public void 纪律_G2_Assets下不得有构建产物目录()
+        {
+            var problems = Tools.DisciplineScan.ScanTargets.ValidateNoBuildOutputsUnderAssets(RepoRoot());
+            Assert.True(problems.Count == 0, string.Join(" | ", problems));
+        }
+
         /// <summary>向上找含 Tests/Tests.slnx 的仓库根（与内容夹具同款定位）。</summary>
         private static string RepoRoot()
         {

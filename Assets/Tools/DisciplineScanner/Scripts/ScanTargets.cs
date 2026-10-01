@@ -227,6 +227,178 @@ namespace Tools.DisciplineScan
         };
 
         /// <summary>
+        /// **服务端产线**（《共享代码范围专项设计》§3 规则 D1）：服务端宿主工程**只准**依赖
+        /// S0/S1/S2，不得依赖客户端面（S3/S4）。这是**已被遵守的既成事实**（实测两宿主工程
+        /// 零 `LiteFramework`/`LiteGame` 引用），本表把它钉成可执行判据，而不是留作文字约定。
+        /// </summary>
+        public static readonly string[] ServerHostProjects =
+        {
+            "RoomServer/RoomServer.csproj",
+            "MetaServer/MetaServer.csproj",
+        };
+
+        /// <summary>服务端宿主工程不得引用的客户端面程序集关键字（出现在 ProjectReference 即违规）。</summary>
+        public static readonly string[] ClientSideProjectMarkers =
+        {
+            "LiteFramework",
+            "LiteGame",
+            "LiteClient",
+            "LiteSim/View",
+        };
+
+        /// <summary>
+        /// **共享档位表 = 代码**（《共享代码范围专项设计》§2.1 的 S0–S4，§8.1 守卫 G5）。
+        ///
+        /// 为什么需要它：档位此前只在文档里（§4.1 清单），而"新增/搬动文件即报红"必须可执行。
+        /// 这里钉的是**档位的义务**中最容易静默退化的那一条——S1/S2 成员的 asmdef 必须是
+        /// `noEngineReferences: true`（S2 还要求零第三方实现依赖）。一旦有人给共享件加一个
+        /// Unity 引用，它就**再也编不进 dotnet 侧**，而没有任何东西会红。
+        ///
+        /// 与 G1（S0 源集单源）、D1/D2（方向）合起来，覆盖档位义务的可机械判定部分；
+        /// S0 的"进 hash 源集"由 G1 清单承担，不在此重复。
+        /// </summary>
+        public static readonly string[] SharedAssemblyDefs =
+        {
+            // S1 机制共享：两端都要跑这套机制，但结果不需逐位一致
+            "Assets/RoomServer/Runtime/RoomServer.Runtime.asmdef",
+            "Assets/RoomServer/Application/RoomServer.Application.Runtime.asmdef",
+            "Assets/LiteNet/LiteNet.asmdef",
+            // S2 契约共享：只有形状共享，两端各自实现（**零第三方实现依赖**——见下）
+            "Assets/LiteFramework/Scripts/Core/LiteFramework.Core.asmdef",
+        };
+
+        /// <summary>
+        /// **S2 档位的额外义务②：零第三方实现依赖**（§2.2）。
+        ///
+        /// 为什么单列：`LiteFramework.Core` 曾是"名为共享、实无服务端消费者"的形态——
+        /// 声明着 `references: ["UniTask"]`，服务端若要用它的契约就会被拖进一个**实现级**第三方依赖。
+        /// 2026-10-01 批④ 把引 UniTask 的件外提到 `LiteFramework.Async`，本表**钉住这次收窄**：
+        /// 有人再往 Core 加一个第三方引用，当场红。
+        ///
+        /// 例外：Unity 内嵌的 `UniTask` 之外，`references` 里只允许出现**本仓自研程序集**。
+        /// 判据用白名单（而非黑名单）——新增依赖必须显式登记，不能悄悄溜进来。
+        /// </summary>
+        public static readonly (string Asmdef, string[] AllowedThirdParty)[] ContractZeroDepDefs =
+        {
+            ("Assets/LiteFramework/Scripts/Core/LiteFramework.Core.asmdef", new string[0]),
+        };
+
+        /// <summary>
+        /// 校验 S2 契约层**零第三方实现依赖**（§2.2 义务②）。返回违规描述（空 = 通过）。
+        /// </summary>
+        public static List<string> ValidateContractLayerDependencies(string projectRoot)
+        {
+            var problems = new List<string>();
+            foreach (var (rel, allowed) in ContractZeroDepDefs)
+            {
+                string path = Path.Combine(projectRoot, rel.Replace('/', Path.DirectorySeparatorChar));
+                if (!File.Exists(path))
+                {
+                    problems.Add("S2 契约层 asmdef 不存在：" + rel + "（规则静默失效）");
+                    continue;
+                }
+                string text = File.ReadAllText(path);
+                int i = text.IndexOf("\"references\"", StringComparison.Ordinal);
+                if (i < 0) continue;
+                int open = text.IndexOf('[', i);
+                int close = text.IndexOf(']', open);
+                if (open < 0 || close < 0) continue;
+
+                string body = text.Substring(open + 1, close - open - 1);
+                foreach (string raw in body.Split(','))
+                {
+                    // 去引号与空白；空项（references 为空数组）跳过
+                    string dep = raw.Replace("\"", string.Empty).Trim();
+                    if (dep.Length == 0) continue;
+                    bool isAllowed = Array.IndexOf(allowed, dep) >= 0;
+                    // 本仓自研程序集（Lite* / RoomServer*）不算第三方
+                    if (!isAllowed && (dep.StartsWith("Lite", StringComparison.Ordinal)
+                                       || dep.StartsWith("RoomServer", StringComparison.Ordinal)))
+                        isAllowed = true;
+                    if (!isAllowed)
+                        problems.Add("S2 契约层引用了第三方实现依赖（义务②要求零第三方）：" + rel + " -> " + dep);
+                }
+            }
+            return problems;
+        }
+
+        /// <summary>
+        /// 校验档位成员的 asmdef 满足 S1/S2 的共同义务 ①（`noEngineReferences: true`）。
+        /// 返回违规描述（空 = 通过）。**每行的 Path 必须真实存在**，否则规则静默失效（同 R12 的坑）。
+        /// </summary>
+        public static List<string> ValidateSharedAssemblyFlags(string projectRoot)
+        {
+            var problems = new List<string>();
+            foreach (string rel in SharedAssemblyDefs)
+            {
+                string path = Path.Combine(projectRoot, rel.Replace('/', Path.DirectorySeparatorChar));
+                if (!File.Exists(path))
+                {
+                    problems.Add("档位成员 asmdef 不存在：" + rel + "（档位表陈旧 → 义务判定静默失效）");
+                    continue;
+                }
+                string text = File.ReadAllText(path);
+                // 缺键 = Unity 默认 true（旧式 asmdef）；显式 false 才是违规
+                if (text.IndexOf("\"noEngineReferences\": false", StringComparison.Ordinal) >= 0)
+                    problems.Add("档位成员声明了引擎引用（S1/S2 义务①要求 noEngineReferences: true）：" + rel);
+            }
+            return problems;
+        }
+
+        /// <summary>
+        /// **G2**：`Assets/` 下不得出现 `bin`/`obj` 构建产物目录（点目录除外）。
+        ///
+        /// 为什么：Unity 会把 `Assets/` 下的 `bin/*.dll` 当插件导入，与 asmdef 编出的同名程序集
+        /// 撞车（CS1704），并扫描 `obj/` 里的生成 `.cs`（CS0579）。各双轨目录靠同目录
+        /// `Directory.Build.props` 重定向到 `.dotnet/`——**漏配就出这事，而漏配不报错**。
+        /// 本判据是预防性的：实测 2026-10-01 当前无违规，但它会挡住"给新目录建 csproj 时忘配 props"。
+        /// </summary>
+        public static List<string> ValidateNoBuildOutputsUnderAssets(string projectRoot)
+        {
+            var problems = new List<string>();
+            string assets = Path.Combine(projectRoot, "Assets");
+            if (!Directory.Exists(assets)) return problems;
+
+            foreach (string dir in Directory.GetDirectories(assets, "*", SearchOption.AllDirectories))
+            {
+                string name = Path.GetFileName(dir);
+                if (name != "bin" && name != "obj") continue;
+                // `.dotnet/` 是**约定**的重定向产物目录（点开头 Unity 资产库直接忽略），合法
+                string rel = dir.Substring(projectRoot.Length).Replace('\\', '/').TrimStart('/');
+                if (rel.IndexOf("/.dotnet/", StringComparison.Ordinal) >= 0) continue;
+                problems.Add("Assets 下出现构建产物目录（Unity 会当插件导入 → CS1704/CS0579；"
+                    + "给该目录补 Directory.Build.props 重定向到 .dotnet/）：" + rel);
+            }
+            return problems;
+        }
+
+        /// <summary>
+        /// §3 规则 **D1** 校验：服务端宿主工程的 `ProjectReference` 不得指向客户端面。
+        /// 返回违规描述（空 = 通过）。
+        /// </summary>
+        public static List<string> ValidateServerHostDirection(string projectRoot)
+        {
+            var problems = new List<string>();
+            foreach (string proj in ServerHostProjects)
+            {
+                string path = Path.Combine(projectRoot, proj.Replace('/', Path.DirectorySeparatorChar));
+                if (!File.Exists(path))
+                {
+                    problems.Add("服务端宿主工程不存在：" + proj + "（D1 登记表陈旧 → 规则静默失效）");
+                    continue;
+                }
+                foreach (string line in File.ReadAllLines(path))
+                {
+                    if (line.IndexOf("ProjectReference", StringComparison.Ordinal) < 0) continue;
+                    foreach (string marker in ClientSideProjectMarkers)
+                        if (line.IndexOf(marker, StringComparison.OrdinalIgnoreCase) >= 0)
+                            problems.Add(proj + " 的 ProjectReference 指向客户端面（违反 D1）：" + line.Trim());
+                }
+            }
+            return problems;
+        }
+
+        /// <summary>
         /// **登记表存在性守卫**（同 R12 的 <c>ValidateAdapterBoundaries</c>）：登记目录必须在仓库里真实存在，
         /// 且该目录下确有 asmdef 引用了服务端程序集——否则登记表陈旧 = 规则静默失效。
         /// </summary>

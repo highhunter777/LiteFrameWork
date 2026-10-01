@@ -368,6 +368,58 @@ namespace LiteNet.Tests
             Assert.Equal(ProtocolConstants.VectorLengthSquaredLimit, InputGate.VectorLengthSquaredLimit);
         }
 
+        /// <summary>
+        /// **G4 契约（《客户端与服务端共享代码范围专项设计》§8.1）**：固定逻辑帧率下，
+        /// "1 秒"这类**按帧表达的时长**必须随 `TickRate` 走。
+        ///
+        /// 为什么需要：`ProtocolConstants.FullEveryFrames` 的注释写"60 帧 = 1s"，
+        /// 但它是**裸常量**——若把 `SimConfig.TickRate` 改成 30，全量兜底会静默变成 **0.5 秒**
+        /// （带宽翻倍、无人察觉），且没有任何东西会红。本用例就是那个"东西"。
+        ///
+        /// 断言口径：`FullEveryFrames` 必须是 `TickRate` 的**整数倍**，且倍数为 1 秒只出现一次
+        /// （即它确实表达一个整数秒）。两值同属 S0，但语义耦合是**设计事实**、编译期表达不出来。
+        /// </summary>
+        [Fact]
+        public void 契约_全量兜底间隔必须与TickRate表达整数秒()
+        {
+            int tickRate = SimConfig.TickRate;
+            int frames = ProtocolConstants.FullEveryFrames;
+
+            Assert.True(frames > 0, "FullEveryFrames 必须为正");
+            Assert.True(frames % tickRate == 0,
+                $"FullEveryFrames={frames} 不是 TickRate={tickRate} 的整数倍——" +
+                "全量兜底间隔已不是一个整数秒（改 TickRate 必须同改本常量，反之亦然）");
+            Assert.True(frames / tickRate >= 1,
+                $"FullEveryFrames={frames} 小于一个 TickRate={tickRate}——兜底间隔短于 1 秒，语义已破");
+        }
+
+        /// <summary>
+        /// **G4 契约**：`InputGate.AllowedButtons`（S1）是 `SimInputFrame` 各按钮位（S0）的**并集复述**。
+        ///
+        /// 为什么需要：`AllowedButtons` 逐位罗列了 S0 的 9 个按钮常量。若 S0 **重命名/删除**其中一个，
+        /// 编译红的是 S1——**S0 侧（客户端）零保护**：客户端可以继续发一个服务端已不认识的位，
+        /// 表现为"输入静默被丢弃、玩家按键无反应"，而两端编译都过。
+        /// 本用例把"白名单 = 已知按键全集的子集"钉死，并为 S0 侧的改动建立回流信号。
+        /// </summary>
+        [Fact]
+        public void 契约_按键白名单必须覆盖S0的全部可上报位()
+        {
+            // 所有玩家可上报的按钮位（S0 词表）——**新增按钮必须同改 InputGate.AllowedButtons**，
+            // 否则客户端发了、服务端当"未定义位"整帧丢弃。
+            uint playerReportable =
+                SimInputFrame.ButtonFire | SimInputFrame.ButtonReload | SimInputFrame.ButtonSwitchWeapon
+                | SimInputFrame.ButtonSkill1 | SimInputFrame.ButtonSkill2 | SimInputFrame.ButtonSkill3
+                | SimInputFrame.ButtonPickup | SimInputFrame.ButtonUseItem
+                | SimInputFrame.ButtonDodge | SimInputFrame.ButtonAim;
+
+            Assert.Equal(playerReportable, InputGate.AllowedButtons);
+
+            // 服务端内部位（如 ButtonFireFlag）**不得**出现在上报白名单里——那是判定内部状态，
+            // 客户端伪造它会绕过"开火确认"语义。
+            Assert.True((InputGate.AllowedButtons & SimInputFrame.ButtonFireFlag) == 0u,
+                "服务端内部位不得进入客户端上报白名单");
+        }
+
         /// <summary>把随机 int 位型重解释为 float——制造 NaN/Infinity/超大/正常值的全谱坏输入。</summary>
         private static float FloatBits(int bits) => System.BitConverter.ToSingle(System.BitConverter.GetBytes(bits), 0);
 
