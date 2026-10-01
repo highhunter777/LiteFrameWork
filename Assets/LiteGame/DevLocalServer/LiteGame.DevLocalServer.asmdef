@@ -1,13 +1,12 @@
 {
-    "name": "LiteClient.Runtime",
+    "name": "LiteGame.DevLocalServer",
     "rootNamespace": "LiteGame",
     "references": [
-        "LiteClient.Abstractions",
-        "LiteFramework.Core",
-        "LiteFramework.Unity",
+        "LiteClient.Runtime",
         "LiteNet",
         "LiteSim.Core",
-        "LiteSim.View",
+        "RoomServer.Application.Runtime",
+        "RoomServer.Runtime",
         "UniTask"
     ],
     "includePlatforms": [],

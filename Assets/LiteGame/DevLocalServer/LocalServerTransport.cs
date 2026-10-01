@@ -73,6 +73,23 @@ namespace LiteGame
             };
         }
 
+        /// <summary>
+        /// 按房间号构造（**调用方的唯一入口**）。
+        ///
+        /// **为什么需要它**（《客户端与服务端共享代码范围专项设计》§3 D2 + §7-1）：
+        /// 消费方（`ProcedureMatch.CreateTransport`）此前要自己 `new RoomConfig{...}`，
+        /// 于是它必须认识 `RoomServer.Runtime`——**依赖从"装配档位"漏进了业务代码**。
+        /// 本类是该档位里唯一认识房间内核的类型，配置装配归它，调用方只留房间号。
+        ///
+        /// 人数/seed/时限留默认（与 `RoomConfig` 的 MVP 形态一致）——本地服本就不模拟
+        /// 多房间/票据/排空（见类注释"真实性边界"），没有需要按房间调的参数。
+        /// </summary>
+        public static LocalServerTransport ForRoom(string roomId)
+        {
+            if (string.IsNullOrEmpty(roomId)) throw new ArgumentException("房间号不得为空", nameof(roomId));
+            return new LocalServerTransport(new RoomConfig { RoomId = roomId });
+        }
+
         public void Connect(string address, int port)
         {
             if (_disposed) throw new ObjectDisposedException(nameof(LocalServerTransport));

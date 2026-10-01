@@ -120,7 +120,7 @@ namespace LiteGame
             {
                 UnityEngine.Debug.Log("[Match] **本地服务器**：对局在进程内跑真 RoomRuntime 内核"
                     + "（无 Socket / 无票据 / 单房间 / 剩余席位自动补位站桩——弱网、重连真实性与真实多人交互仍须真服务器验证）");
-                return new LocalServerTransport(new RoomServer.Runtime.RoomConfig { RoomId = TestRoomId });
+                return LocalServerTransport.ForRoom(TestRoomId);
             }
 #endif
             return null;                                  // null = BattleClient 自建真 KCP（生产路径）

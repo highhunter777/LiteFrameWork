@@ -135,6 +135,7 @@ namespace Tools.DisciplineScan
             "UI",                    // §5 框图 "UI Runtime"（游戏侧，故 LiteGame.UI 而非 LiteClient.UI）
             "Editor",                // 编辑器工具程序集（不在 §5 层内，登记为例外）
             "DevHUD",                // 开发面工具（同上；**不能并进 Editor/**——见上，MonoBehaviour 加不上）
+            "DevLocalServer",        // 开发面：进程内本地服（《共享代码范围专项设计》§3 D2 调试宿主档位；见下）
             "Lua",                   // 脚本资产（非程序集目录；Luban lua pass 的产物 + 业务脚本）
         };
 
@@ -193,5 +194,66 @@ namespace Tools.DisciplineScan
             "Assets",
             "Packages",
         };
+
+        /// <summary>
+        /// **客户端对服务端程序集的引用登记表**（《客户端与服务端共享代码范围专项设计》§3 规则 D2）。
+        ///
+        /// 背景（实测，2026-10-01）：`LiteClient.Runtime` 曾**无条件**引用 `RoomServer.Runtime` +
+        /// `RoomServer.Application.Runtime`，而该引用的**唯一**消费者是一个开发面文件
+        /// （进程内本地服）。后果：两个服务端程序集进**所有** Player 构建，且被
+        /// `LiteClient.Runtime` 的全部引用方传递性带上——而 `ProcedureMatch` 里的
+        /// `#if UNITY_EDITOR || DEVELOPMENT_BUILD` **只挡调用点，挡不住 asmdef 引用**（引用是程序集级的）。
+        ///
+        /// 判据（D2 原文）：客户端**可以**依赖服务端程序集，但只在**调试宿主**档位里，
+        /// 且该依赖必须落在**具名程序集**上——不得回流进业务程序集。
+        ///
+        /// 与 R12 的 <see cref="DisciplineScanner.R12Boundaries"/> 同一纪律：**这是唯一登记点**，
+        /// 新增一行即放行一个程序集；未登记的 asmdef 引了服务端程序集 → 报红。
+        /// 存在性由 <see cref="ValidateDevHostReferences"/> 守卫（路径陈旧 = 静默失效，同 R12 的坑）。
+        /// </summary>
+        public static readonly string[] DevHostMayReferenceServerAssemblies =
+        {
+            // 唯一合法档位：进程内本地服（离线隔离开发，2026-09-27 起；2026-10-01 从
+            // LiteClient.Runtime 收进独立程序集）。它是 RoomRuntime/SnapshotPipeline 的调试宿主，
+            // 不进生产路径——`ProcedureMatch.CreateTransport` 在 release 宏下恒走真 KCP。
+            "Assets/LiteGame/DevLocalServer",
+        };
+
+        /// <summary>客户端侧禁止出现的服务端程序集名（引它们必须落在上表的登记目录里）。</summary>
+        public static readonly string[] ServerAssemblyNames =
+        {
+            "RoomServer.Runtime",
+            "RoomServer.Application.Runtime",
+        };
+
+        /// <summary>
+        /// **登记表存在性守卫**（同 R12 的 <c>ValidateAdapterBoundaries</c>）：登记目录必须在仓库里真实存在，
+        /// 且该目录下确有 asmdef 引用了服务端程序集——否则登记表陈旧 = 规则静默失效。
+        /// </summary>
+        public static List<string> ValidateDevHostReferences(string projectRoot)
+        {
+            var problems = new List<string>();
+            foreach (string root in DevHostMayReferenceServerAssemblies)
+            {
+                string dir = Path.Combine(projectRoot, root.Replace('/', Path.DirectorySeparatorChar));
+                if (!Directory.Exists(dir))
+                {
+                    problems.Add("登记目录不存在：" + root + "（登记表陈旧 → D2 规则静默失效）");
+                    continue;
+                }
+                bool referencesServer = false;
+                foreach (string asmdef in Directory.GetFiles(dir, "*.asmdef", SearchOption.AllDirectories))
+                {
+                    string text = File.ReadAllText(asmdef);
+                    foreach (string asm in ServerAssemblyNames)
+                        if (text.Contains("\"" + asm + "\"")) { referencesServer = true; break; }
+                    if (referencesServer) break;
+                }
+                if (!referencesServer)
+                    problems.Add("登记目录下无 asmdef 引用服务端程序集：" + root
+                        + "（登记表陈旧 → D2 规则静默失效）");
+            }
+            return problems;
+        }
     }
 }

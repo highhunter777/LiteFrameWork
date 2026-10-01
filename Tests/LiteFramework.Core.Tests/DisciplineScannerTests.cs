@@ -355,6 +355,46 @@ namespace LiteFramework.Tests
                 + string.Join(", ", unregistered));
         }
 
+        /// <summary>D2 守卫（《客户端与服务端共享代码范围专项设计》§3）：客户端 asmdef 引服务端程序集，
+        /// 必须落在 <c>DevHostMayReferenceServerAssemblies</c> 登记目录里。
+        ///
+        /// 背景：`LiteClient.Runtime` 曾无条件引用两个 RoomServer 程序集，唯一消费者却是一个开发面文件
+        /// （进程内本地服）→ 两个服务端程序集进**所有** Player 构建。`ProcedureMatch` 的 `#if`
+        /// 只挡调用点、挡不住 asmdef 引用（引用是程序集级的）。</summary>
+        [Fact]
+        public void 纪律_D2_客户端引服务端程序集必须在调试宿主档位内()
+        {
+            string root = RepoRoot();
+            var problems = Tools.DisciplineScan.ScanTargets.ValidateDevHostReferences(root);
+            Assert.True(problems.Count == 0, string.Join(" | ", problems));
+
+            string clientRoot = System.IO.Path.Combine(root, "Assets", "LiteGame");
+            var allowed = new System.Collections.Generic.List<string>();
+            foreach (string d in Tools.DisciplineScan.ScanTargets.DevHostMayReferenceServerAssemblies)
+                allowed.Add(System.IO.Path.Combine(root, d.Replace('/', System.IO.Path.DirectorySeparatorChar))
+                    + System.IO.Path.DirectorySeparatorChar);
+
+            var offenders = new System.Collections.Generic.List<string>();
+            foreach (string asmdef in System.IO.Directory.GetFiles(clientRoot, "*.asmdef",
+                         System.IO.SearchOption.AllDirectories))
+            {
+                bool isAllowed = false;
+                foreach (string a in allowed)
+                    if (asmdef.StartsWith(a, System.StringComparison.Ordinal)) { isAllowed = true; break; }
+                if (isAllowed) continue;
+
+                string text = System.IO.File.ReadAllText(asmdef);
+                foreach (string asm in Tools.DisciplineScan.ScanTargets.ServerAssemblyNames)
+                    if (text.Contains("\"" + asm + "\""))
+                        offenders.Add(System.IO.Path.GetFileName(asmdef) + " 引用了 " + asm);
+            }
+
+            Assert.True(offenders.Count == 0,
+                "客户端业务程序集不得依赖服务端程序集（D2：只许落在调试宿主档位 "
+                + string.Join("/", Tools.DisciplineScan.ScanTargets.DevHostMayReferenceServerAssemblies)
+                + "）：" + string.Join(" | ", offenders));
+        }
+
         /// <summary>向上找含 Tests/Tests.slnx 的仓库根（与内容夹具同款定位）。</summary>
         private static string RepoRoot()
         {
