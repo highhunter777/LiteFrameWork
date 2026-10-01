@@ -18,6 +18,7 @@
     <Compile Include="Protocol/**/*.cs" />
     <Compile Include="Transport/**/*.cs" />
     <Compile Include="Client/**/*.cs" />
+    <Compile Include="Diagnostics/**/*.cs" />
     <Compile Include="Proto/Generated/**/*.cs" />
     <Compile Include="Vendor/kcp2k/**/*.cs" />
   </ItemGroup>

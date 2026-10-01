@@ -82,6 +82,10 @@ namespace LiteSim.View
 
             if (view == null) return;
 
+            // [Diag] 临时诊断哨位（bot 消失排查）：对局中视图回收 = 罕见事件，任何一次都留痕
+            UnityEngine.Debug.LogWarning(
+                $"[Diag] 视图回收 slot={slotIndex} name={view.name} active={view.activeSelf} pos={view.transform.position}");
+
             if (_recycler != null)
             {
                 // 回收方决定去向（EntityService.Hide 会自己做停用/归池/销毁）——
@@ -118,6 +122,7 @@ namespace LiteSim.View
             var go = stack.Pop();
             PooledCount--;
             if (go == null) return null;          // 池中对象被外部销毁：当作未命中
+            go.SetActive(true);                   // Release 侧停用入池——取件必须重新激活（对偶缺失 = 复用件永久隐形，2026-10-01 bot 消失排查实锤）
             return go;
         }
 

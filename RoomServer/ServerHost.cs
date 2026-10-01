@@ -4,6 +4,7 @@ using System.Diagnostics;
 using System.Threading;
 using Google.Protobuf;
 using LiteNet;
+using LiteNet.Diagnostics;
 using LiteNet.Protocol;
 using LiteNet.Proto;
 using LiteNet.Transport;
@@ -511,7 +512,7 @@ namespace RoomServer
             // 地址探测不到 → 放行；被限走统一 Reject（计数 + 日志，不回 JoinAck）。
             if (!_rateLimit.TryAcquireIpEntry(_transport.GetRemoteAddress(session.ConnectionId), _nowMs))
             {
-                Reject(session, "IP 入场频率超限");
+                RejectJoin(session, in join, DiagStage.Room, DiagCode.JoinRejectedAdmission, "IP 入场频率超限");
                 return;
             }
 
@@ -520,13 +521,13 @@ namespace RoomServer
                 || OverByteLimit(join.Token, MaxTokenBytes)
                 || OverByteLimit(join.BuildHash, MaxBuildHashBytes))
             {
-                Reject(session, "Join 字段超长");
+                RejectJoin(session, in join, DiagStage.Room, DiagCode.JoinRejectedAdmission, "Join 字段超长");
                 return;
             }
 
             if (string.IsNullOrEmpty(join.Token))                            // token 红线：空即拒绝
             {
-                Reject(session, "token 缺失");
+                RejectJoin(session, in join, DiagStage.Room, DiagCode.JoinRejectedAdmission, "token 缺失");
                 return;
             }
 
@@ -536,13 +537,15 @@ namespace RoomServer
             if (_draining)
             {
                 _ops.RejectsWhileDraining++;      // Rejects 由 Reject() 记，此处只记排空专属分类
-                Reject(session, "服务排空中：不接受新进房");
+                RejectJoin(session, in join, DiagStage.Room, DiagCode.JoinRejectedAdmission, "服务排空中：不接受新进房");
                 return;
             }
 
             if (join.BuildHash != ServerBuildHash)                           // 版本红线：Sim/协议版本比对不符拒绝进房
             {
-                Reject(session, $"buildHash 不符：{join.BuildHash} != {ServerBuildHash}");
+                // 版本红线：**Build 段**拒绝——记录带两端哈希对照，与客户端进房记录同键（全链诊断样例的注入点）
+                RejectJoin(session, in join, DiagStage.Build, DiagCode.JoinRejectedBuildHash,
+                    $"buildHash 不符：{join.BuildHash} != {ServerBuildHash}");
                 return;
             }
 
@@ -555,7 +558,7 @@ namespace RoomServer
             {
                 if (existingRoom.Mailbox.IsClosed) Interlocked.Increment(ref _mailboxClosed);
                 else Interlocked.Increment(ref _mailboxRejectedFull);
-                Reject(session, "房间控制队列已满");
+                RejectJoin(session, in join, DiagStage.Room, DiagCode.JoinRejectedAdmission, "房间控制队列已满");
                 return;
             }
 
@@ -578,7 +581,7 @@ namespace RoomServer
                         : principal.Rejection;
                     CountTicketRejection(reason);
                     // 拒绝原因只打分类，**不打票据原文与字段值**（Meta 专项 §13.1 禁写 token/票据）
-                    Reject(session, $"票据拒绝：{reason}");
+                    RejectJoin(session, in join, DiagStage.Room, DiagCode.JoinRejectedTicket, $"票据拒绝：{reason}");
                     return;
                 }
                 validatedPrincipal = principal;
@@ -587,7 +590,7 @@ namespace RoomServer
                 // 注意 nonce 已在验签中消费——此处被限即该票据作废（合法客户端远够余量，见 RateLimitSettings.Default）。
                 if (!_rateLimit.TryAcquireAccountEntry(principal.AccountId, _nowMs))
                 {
-                    Reject(session, "账号入场频率超限");
+                    RejectJoin(session, in join, DiagStage.Room, DiagCode.JoinRejectedAdmission, "账号入场频率超限");
                     return;
                 }
             }
@@ -601,9 +604,10 @@ namespace RoomServer
                 if (created == null)
                 {
                     // 空房号 / 达容量上限 / 模板缺失——一律拒绝进房（不静默排队、不静默建成别的配置）
-                    Reject(session, string.IsNullOrEmpty(join.RoomId)
-                        ? "房间号缺失"
-                        : $"房间不可用：{join.RoomId}（在册 {_rooms.Count}/{MaxRooms}）");
+                    RejectJoin(session, in join, DiagStage.Room, DiagCode.JoinRejectedRoom,
+                        string.IsNullOrEmpty(join.RoomId)
+                            ? "房间号缺失"
+                            : $"房间不可用：{join.RoomId}（在册 {_rooms.Count}/{MaxRooms}）");
                     return;
                 }
                 room = GetRoomInstance(join.RoomId);
@@ -627,7 +631,7 @@ namespace RoomServer
                 session.Principal = previousPrincipal;
                 session.BuildHash = previousBuildHash;
                 if (createdRoom) RemoveEmptyRoom(room);
-                Reject(session, "房间控制队列不可用");
+                RejectJoin(session, in join, DiagStage.Room, DiagCode.JoinRejectedAdmission, "房间控制队列不可用");
             }
             else
             {
@@ -951,6 +955,18 @@ namespace RoomServer
             _transport.SendTo(session.ConnectionId, new ArraySegment<byte>(PacketCodec.Encode(type, message)), reliable);
         }
 
+        /// <summary>
+        /// 进房拒绝的**诊断单一落点**（《框架先行》§8「可诊断」）：结构化记录（stage/code/关联键）→ 计数与日志。
+        /// 关联键与客户端 <c>RoomClient</c> 的进房记录**同形同键**（<see cref="DiagTrace.JoinKey"/> 单源构造）——
+        /// 一次注入失败即可按 key 把两端与各域记录对齐，<paramref name="stage"/> 直接指出失败段落（Build/Room/…）。
+        /// 拒绝原因进 detail；**不回显 token/payload**（P0-3 与《Meta 专项》§13.1 不变）。
+        /// </summary>
+        private void RejectJoin(Session session, in Proto.JoinRequest join, string stage, string code, string reason)
+        {
+            DiagTrace.Emit(stage, code, DiagTrace.JoinKey(join.RoomId, session.PlayerId, join.BuildHash), reason);
+            Reject(session, reason);
+        }
+
         private void Reject(Session session, string reason)
         {
             _ops.Rejects++;
@@ -1194,6 +1210,11 @@ namespace RoomServer
                     RoomInstance rejectedRoom = _currentRoom;
                     if (_sessions.TryGet(jr.ConnectionId, out Session rejectedSession))
                     {
+                        // 房间侧拒绝（房间运行时的判定）——与宿主侧同键记录对齐（§8「可诊断」）
+                        DiagTrace.Emit(DiagStage.Room, DiagCode.JoinRejectedRoom,
+                            DiagTrace.JoinKey(rejectedRoom?.RoomId ?? rejectedSession.RoomId,
+                                rejectedSession.PlayerId, rejectedSession.BuildHash),
+                            jr.Reason);
                         rejectedSession.JoinPending = false;
                         if (rejectedSession.PlayerId < 0)
                         {

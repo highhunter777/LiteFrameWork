@@ -1,4 +1,5 @@
 using System;
+using LiteNet.Diagnostics;
 using LiteNet.Protocol;
 using LiteNet.Transport;
 using LiteSim;
@@ -59,6 +60,8 @@ namespace LiteNet
         private ClientSessionPhase _phase = ClientSessionPhase.Idle;
         private string _reconnectToken;      // JoinAck 下发的一次性票据（断线重连凭据）
         private string _joinedBuildHash;     // 本端 Join 时发送的构建哈希（版本确认比对基准）
+        private string _joinAttemptRoomId;   // 最近一次进房尝试的目标房间（诊断记录用）
+        private bool _joinAttemptPending;    // 已发 Join 未收 JoinAck（诊断：断线记录据此判定"未获应答"）
         private string _lastHost;            // 最近一次连接端点（重拨用）
         private int _lastPort;
         private bool _hasStartGame;         // StartGame 已达（版本确认的 seed/配置基准）
@@ -72,6 +75,13 @@ namespace LiteNet
 
         /// <summary>当前会话相位（§9.3 状态机的观测面）。</summary>
         public ClientSessionPhase Phase => _phase;
+
+        /// <summary>
+        /// 内容/事务诊断上下文（**组合根注入**；null/空 = 未注入）：发布身份/内容代次/激活事务 ID 的自由文本，
+        /// 进房诊断记录会带上它——本类不认识内容系统，但"这次进房用的是哪份内容"必须能与内容/事务面关联
+        /// （《框架先行》§8「可诊断」）。示例：`release=rel-7;gen=3;txn=txn-abc`。
+        /// </summary>
+        public string ContentContext { get; set; }
 
         /// <summary>会话相位迁移通知（从/到；Failed 原因见 OnReconnectResponse 或超时事实本身）。</summary>
         public event Action<ClientSessionPhase, ClientSessionPhase> OnPhaseChanged;
@@ -134,6 +144,13 @@ namespace LiteNet
         public void SendJoin(string roomId, string token, string buildHash)
         {
             _joinedBuildHash = buildHash;                 // 版本确认基准（§9.3 步骤 2：重连响应须同值）
+            _joinAttemptRoomId = roomId;
+            _joinAttemptPending = true;
+            // 结构化诊断（§8「可诊断」）：与服务器 RejectJoin 的拒绝记录**同键**（DiagTrace.JoinKey 单源）——
+            // detail 带内容/事务上下文，使一次失败可把 版本/内容/事务/会话/房间 的记录串起来。
+            DiagTrace.Emit(DiagStage.Session, DiagCode.JoinAttempt,
+                DiagTrace.JoinKey(roomId, PlayerId, buildHash),
+                "content=" + (string.IsNullOrEmpty(ContentContext) ? "-" : ContentContext));
             Send(PacketType.Join, new Proto.JoinRequest { RoomId = roomId, Token = token, BuildHash = buildHash }, reliable: true);
         }
 
@@ -315,6 +332,15 @@ namespace LiteNet
         /// <summary>传输断开：在房/恢复中 → SuspectedLost（席位仍在重连窗口内）；Reconnecting 保持（超时线裁决）。</summary>
         private void HandleTransportDisconnected()
         {
+            // 诊断（§8「可诊断」）：发了 Join 又没等到 JoinAck 就断开——服务器侧拒绝（未回原因，见
+            // ServerHost.RejectJoin）的**客户端侧事实**；与服务器记录同键，两端据此对齐。
+            if (_joinAttemptPending && _phase == ClientSessionPhase.Idle)
+            {
+                _joinAttemptPending = false;
+                DiagTrace.Emit(DiagStage.Session, DiagCode.JoinNoAckDisconnected,
+                    DiagTrace.JoinKey(_joinAttemptRoomId, PlayerId, _joinedBuildHash),
+                    "content=" + (string.IsNullOrEmpty(ContentContext) ? "-" : ContentContext));
+            }
             if (_phase == ClientSessionPhase.Connected || _phase == ClientSessionPhase.Restoring)
                 Transition(ClientSessionPhase.SuspectedLost);
             OnDisconnected?.Invoke();
@@ -328,6 +354,7 @@ namespace LiteNet
                 case PacketType.JoinAck:
                     var ack = (Proto.JoinAck)msg;
                     PlayerId = ack.PlayerId;
+                    _joinAttemptPending = false;                // 进房已有应答（诊断判定用）
                     _reconnectToken = string.IsNullOrEmpty(ack.ReconnectToken) ? null : ack.ReconnectToken;
                     Transition(ClientSessionPhase.Connected);   // 进房/重新 Join 均以 JoinAck 为准
                     OnJoinAck?.Invoke(ack);
