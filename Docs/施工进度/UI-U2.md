@@ -75,7 +75,7 @@ fixture 复现并二分（泵动条件一改即绿），一轮定位——教训
 
 ### 2026-09-25 · 导航与模态交付（含一处真实缺陷修复）
 
-**① 导航协调者**（`Assets/LiteGame/Runtime/Shell/UI/UINavigationController.cs`）
+**① 导航协调者**（`Assets/LiteGame/UI/UINavigationController.cs`）
 
 落在 `UIService` 之上的唯一导航入口：页面/流程的 Go/Back 一律经本类排队串行执行。
 契约（§4.3）：

@@ -2,14 +2,14 @@
 
 > 状态：现行专项设计；已有菜单与目标工具分列
 > 版本：2.0
-> 更新日期：2026-09-21
+> 更新日期：2026-10-01
 > Owner：客户端工具；运行时/API 契约由客户端 UI 负责
 > 依赖：[UI框架总设计](UI框架总设计.md)、[制作规范](UI制作规范.md)、现有 BindNode/LiteCodeGen 与 Unity Pipeline
 > 输入：Prefab、绑定标记、样式/文本配置、资源引用；输出：标准资产、生成代码与结构化校验报告
 
 ## 1. Current 与工具边界
 
-已存在 [WidgetPrefabBuilder](../../../../Assets/LiteGame/Editor/WidgetPrefabBuilder.cs)、[UICollectCheckMenu](../../../../Assets/LiteGame/Editor/UICollectCheckMenu.cs)、[UiStyle/UiStyleTool](../../../../Assets/LiteGame/Editor/Style/UiStyleTool.cs) 等菜单，以及运行时 BindIndexBuilder、UIBindBase。历史自检数量保留在归档，本文不据此宣告完整标记工具、编排器、样式窗口或 CI 规则已经交付。
+已存在 [WidgetPrefabBuilder](../../../../Assets/LiteGame/Editor/WidgetPrefabBuilder.cs)、[UICollectCheckMenu](../../../../Assets/LiteGame/Editor/UICollectCheckMenu.cs)、[UiStyle/UiStyleTool](../../../../Assets/LiteGame/Editor/Style/UiStyleTool.cs) 等菜单、视觉构建反例扫描器 [VisualConstructionScanner](../../../../Assets/LiteGame/Editor/VisualConstructionScanner.cs)，以及运行时 [BindIndexBuilder](../../../../Assets/LiteGame/UI/Bind/BindIndexBuilder.cs)、[UIBindBase](../../../../Assets/LiteGame/UI/Bind/UIBindBase.cs)。完整标记工具、编排器、样式窗口和 CI 规则仍未交付。
 
 工具服务标准资产和受控运行时：
 
@@ -35,7 +35,7 @@
 
 改名/删除标记后重生成无残留；生成结果确定、重复执行不产生 diff；生成索引与运行时扫描对同一实例得到相同名称/类型。类型缺失和重名有负例；路径失效报告资产和节点，不静默映射错控件。
 
-落点优先既有 Editor 程序集；是否拆 asmdef 按依赖边界决定，不以旧“永不新增程序集”限制测试隔离。
+落点优先既有 Editor 程序集；是否拆 asmdef 按依赖边界决定，不以“永不新增程序集”限制测试隔离。
 
 ## 3. 样式工具
 
@@ -61,9 +61,9 @@ Middle、字距/行距 0 是默认，不是所有语言硬限制。字号阶梯�
 
 - 颜色可用最近 token 匹配与 1e-4 阈值收敛；文字枚举/字号精确应用。改变 token/档位后重跑应幂等。
 - 作用域为 `Assets/UI/Widgets/**`、`Assets/UI/Screens/**`。只修改已标记的目标属性；结构、锚点/尺寸、shader 替换是另一项明确操作。
-- 未标记组件先报告，按迁移清单收口；不能静默跳过却报告全工程已一致。
+- 未标记组件先报告，按整改清单收口；不能静默跳过却报告全工程已一致。
 - 漂移报告区分标记缺失、声明覆盖、属性不符和资源引用失效；运行时实例变化不进入资产漂移。
-- 字体检查目标字体族/fallback/语言覆盖，废止“全 UI 唯一字体且无 fallback”。共享材质优先，实例材质要有所有权与预算。
+- 字体检查目标字体族/fallback/语言覆盖，不以“全 UI 唯一字体”为目标。共享材质优先，实例材质要有所有权与预算。
 - 帧动画只校验资源引用和帧顺序声明，不重排帧序。
 
 ### 3.3 材质、文字特效与候选轴
@@ -87,7 +87,7 @@ Shader 做能力校验，不做自动“一键换 shader”。用代表性资产
 | 行为 | 复用视觉、输入穿透、焦点、列表重绑、语言变更、取消 | L2 PlayMode |
 | 性能 | rebuild/批次/GC/打开分段耗时 | Profiler/Player，不能用静态正则代替 |
 
-每条硬规则提供正例与违规负例。需要组件和序列化资产语义的规则不得塞进纯文本 DisciplineScanner。规则严重级别、迁移例外和适用范围与制作规范一致；未实现的规则标识为待接入，不显示为自动通过。
+每条硬规则提供正例与违规负例。需要组件和序列化资产语义的规则不得塞进纯文本 DisciplineScanner。规则严重级别、例外和适用范围与制作规范一致；未实现的规则标识为待接入，不显示为自动通过。
 
 预览应覆盖中英/伪本地化、长文本、安全区、字体缩放和 reduced motion。能在编辑态检出的结构错误提前失败；依赖 Awake/OnEnable 的行为用 PlayMode 证明。
 
@@ -97,7 +97,7 @@ Shader 做能力校验，不做自动“一键换 shader”。用代表性资产
 
 流程：打开页面 → 选控件模板 → 原生布局 → 标记/命名 → 样式和本地化预览 → 校验生成 → 真 Lua 页面验证。模板 Variant、嵌套 Prefab 和列表项要保留各自作用域，不以面板自动重名规则掩盖绑定冲突。
 
-不要求凑齐四个面板才可用；优先交付校验和属性入口。预算按可验证功能拆分，不沿用旧稿“若干百行/两三天”的估算作为交付承诺。
+不要求凑齐四个面板才可用；优先交付校验和属性入口。预算按可验证功能拆分，不以行数或天数估算作为交付承诺。
 
 ## 6. 调试补丁与诊断
 
@@ -107,7 +107,7 @@ UIPatch 的版本、作用域、生产禁用和冲突规则由总设计第 10.3 
 
 ## 7. 时间轴归属与实施顺序
 
-原稿技能/表现 Timeline 的自定义轨、导出和整数帧校验已转入 [动作与特效专项设计](../../gameplay/动作与特效专项设计.md)。UI 转场仍走运行时策略；非对局演出可按该专项使用 Timeline。时间轴编辑器不作为 UI U0/U1 的前置。
+技能/表现 Timeline 的自定义轨、导出和整数帧校验由 [动作与特效专项设计](../../gameplay/动作与特效专项设计.md) 负责，不属 UI 工具范围。UI 转场仍走运行时策略；非对局演出可按该专项使用 Timeline。时间轴编辑器不作为 UI U0/U1 的前置。
 
 唯一排期在总设计第 13 节：基础校验/可观测性随 U0/U1；绑定/样式/预览/CI 随 U2/U3；完整编排器与 UIPatch 随 U4 的真实消费者。需要大批量修改模板时事先核对工作区改动并限定资产清单，不能用工具覆盖其他未完成修改。
 

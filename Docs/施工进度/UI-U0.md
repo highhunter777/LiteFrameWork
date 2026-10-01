@@ -21,14 +21,14 @@
 
 **代码位置**：
 
-- `Assets/LiteGame/Runtime/Shell/UI/LuaBehaviourAdapter.cs`——注册表存**模块**，适配器即**实例工厂**：构造期执行 `module.new()`（无 `new` 的旧式表退化为"模块自身即实例"）；七个回调显式传 self（预置数组复用，热路径零分配）；`self.ui` 挂实例；`Release()` 只释放实例/回调/ui 门面表，**不 Dispose 共享模块**（§5.1 所有权分开）；`CallRaw` 加 released 守卫（§10.2 旧 env 零访问）。
-- `Assets/LiteGame/Runtime/Shell/UI/UIService.cs`——首次与复用合流为一条管线（`ReuseAsync` + 公共尾段 `FinishOpenAsync`：遮盖重算 → Replace 推导 → 播表现 → 关旧全屏）；复用走 `PrepareForShow` 复位 + `AssignDepth` 重排；ShowAsync 幂等口径扩到 Covered/Paused（不暗中重跑 OnShow）；打开失败回滚（撤登记 → `DisposeFailedOpen` → 抛失败）；`CloseAsync`/`CloseAllOpen`/`IsOpen` 覆盖 Covered/Paused；`RecomputeCovering` 遮盖源 = 仍打开的全屏（含 Covered/Paused）；新增 `DropAllLogic()`（env 重建前置）；新增可注入面 `loadPrefab`（fake loader 验收口，U1 换内容服务租约）。
-- `Assets/LiteGame/Runtime/Shell/UI/UIForm.cs`——`PrepareForShow()`（SetActive + alpha/interactable/blocksRaycasts/位置基线复位，基线取实例化时刻）；`EnterClosing` 接受 Active/Covered/Paused；`EnterActiveFromLoading` 返回成败（经新 `SafeCall.TryInvoke`）；`DropLogic`/`DisposeFailedOpen`（EditMode 用 `DestroyImmediate`——`Object.Destroy` 在编辑态只记 error 不生效）。
-- `Assets/LiteGame/Runtime/Shell/UI/Widgets/VirtualList.cs`——按 §8.2 重写为**窗口复用**：节点数 = ceil(视口/步长) + 2×Overscan + 1（不随数据量）；由 Content 偏移/视口尺寸/项尺寸算首末索引；Content 总尺寸按数据量维护（垂直路径只写垂直尺寸）；节点按索引重绑、先解绑（可选口 `IVirtualListUnbind`）再写数据；ScrollRect 监听只绑一次、OnDisable/OnDestroy 对称解绑；`HardCap` 改为超限**告警**（不做静默截断）；`RefreshWindow()` 公开口供无 ScrollRect 宿主与测试。
-- `Assets/LiteGame/Runtime/Shell/UI/UIFormInfo.cs`——新增 `IUIFormCatalog` 契约（§3 可注入面），`UIFormCatalog` 实现之；`UIService` 改依赖接口。
+- `Assets/LiteGame/LuaBridge/LuaBehaviourAdapter.cs`——注册表存**模块**，适配器即**实例工厂**：构造期执行 `module.new()`（无 `new` 的旧式表退化为"模块自身即实例"）；七个回调显式传 self（预置数组复用，热路径零分配）；`self.ui` 挂实例；`Release()` 只释放实例/回调/ui 门面表，**不 Dispose 共享模块**（§5.1 所有权分开）；`CallRaw` 加 released 守卫（§10.2 旧 env 零访问）。
+- `Assets/LiteGame/UI/UIService.cs`——首次与复用合流为一条管线（`ReuseAsync` + 公共尾段 `FinishOpenAsync`：遮盖重算 → Replace 推导 → 播表现 → 关旧全屏）；复用走 `PrepareForShow` 复位 + `AssignDepth` 重排；ShowAsync 幂等口径扩到 Covered/Paused（不暗中重跑 OnShow）；打开失败回滚（撤登记 → `DisposeFailedOpen` → 抛失败）；`CloseAsync`/`CloseAllOpen`/`IsOpen` 覆盖 Covered/Paused；`RecomputeCovering` 遮盖源 = 仍打开的全屏（含 Covered/Paused）；新增 `DropAllLogic()`（env 重建前置）；新增可注入面 `loadPrefab`（fake loader 验收口，U1 换内容服务租约）。
+- `Assets/LiteGame/UI/UIForm.cs`——`PrepareForShow()`（SetActive + alpha/interactable/blocksRaycasts/位置基线复位，基线取实例化时刻）；`EnterClosing` 接受 Active/Covered/Paused；`EnterActiveFromLoading` 返回成败（经新 `SafeCall.TryInvoke`）；`DropLogic`/`DisposeFailedOpen`（EditMode 用 `DestroyImmediate`——`Object.Destroy` 在编辑态只记 error 不生效）。
+- `Assets/LiteGame/UI/Widgets/VirtualList.cs`——按 §8.2 重写为**窗口复用**：节点数 = ceil(视口/步长) + 2×Overscan + 1（不随数据量）；由 Content 偏移/视口尺寸/项尺寸算首末索引；Content 总尺寸按数据量维护（垂直路径只写垂直尺寸）；节点按索引重绑、先解绑（可选口 `IVirtualListUnbind`）再写数据；ScrollRect 监听只绑一次、OnDisable/OnDestroy 对称解绑；`HardCap` 改为超限**告警**（不做静默截断）；`RefreshWindow()` 公开口供无 ScrollRect 宿主与测试。
+- `Assets/LiteGame/UI/UIFormInfo.cs`——新增 `IUIFormCatalog` 契约（§3 可注入面），`UIFormCatalog` 实现之；`UIService` 改依赖接口。
 - `Assets/LiteFramework/Scripts/Core/Util/SafeCall.cs`——新增 `TryInvoke`（成败可判的隔离调用，回滚路径用；行为与其余 SafeCall 同语义：异常落地 Log.Error）。
 - `Assets/LiteGame/Editor/DevReload.cs`——顺序钉死新增 ⓪′：全关后、`lua.Shutdown()`（env.Dispose）**前**调 `DropAllLogic()`（释放 Lua 引用必须趁 env 存活）。
-- `Assets/LiteGame/Runtime/Main/GameEntry.cs`——无需改动：`logicResolver` 闭包不变，实例工厂职责移入适配器。
+- `Assets/LiteGame/App/GameEntry.cs`——无需改动：`logicResolver` 闭包不变，实例工厂职责移入适配器。
 - `Assets/Tests/EditMode/UiU0EditModeTests.cs`（新增，6 例）+ `LiteGame.EditModeTests.asmdef` 补 `xLuaMain` 引用。
 
 **实现口径偏离与登记**：

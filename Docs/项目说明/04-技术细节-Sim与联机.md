@@ -48,7 +48,7 @@
 
 | 项 | 内容 |
 |---|---|
-| 覆盖 | `Assets/LiteSim/Core/Scripts`、`Assets/LiteSim/Core/Systems`、`Assets/LiteNet/Proto`、`Assets/LiteNet/Protocol` ＋ **玩法表数据**（`Assets/GameData/Config` 客户端 bin 与 `RoomServer/Data` 服务端 json 同源；UI 表如 `tbuiform` 显式排除） |
+| 覆盖 | `Assets/LiteSim/Core/Scripts`、`Assets/LiteSim/Core/Systems`、`Assets/LiteNet/Proto`、`Assets/LiteNet/Protocol` ＋ **玩法表数据**（`Assets/GameData/Config/*.bytes`——**两端同读这一份**；服务端 `RoomServer/Data` json 已退役 2026-09-28；UI 表如 `tbuiform` 显式排除） |
 | 算法 | 按相对路径 Ordinal 排序 → 逐个喂 `路径\0内容（行尾 CRLF/CR→LF 归一化）` → SHA-256 → 取前 16 个十六进制字符 |
 | 生成 | `python scripts/gen-build-hash.py` → `Assets/LiteNet/Protocol/BuildHash.g.cs` |
 | 握手 | `RoomClient.SendJoin → JoinRequest.build_hash`：两端不等 → 拒绝进房（**改 Sim/协议/表必须重跑生成器**） |
@@ -60,7 +60,7 @@
 
 - `RoomServer/Runtime`（`RoomServer.Runtime` 程序集）：**纯化内核**——asmdef 零引擎依赖，且纪律 **R11 禁 Console / 系统时钟 / 文件 IO / proto / LiteNet 引用**（违反被 L1 纪律扫描打红）。
 - `RoomServer/Application`（`RoomServer.Application.Runtime`）：快照流水线、会话编排等允许引用协议/传输的部分。
-- 可执行宿主：`RoomServer/RoomServer.csproj`（net8.0，引用上述两者 + `LiteNet` + `LiteSim.Core`）——`Program.cs`（入口）、`ServerHost.cs`（连接/房间表/排空装配）、`ServerLoop.cs`（**60Hz 节拍**）、`RoomInstance.cs`、`Application/`（SessionManager/ReconnectService 等带 IO 的另一半）。
+- 可执行宿主：`RoomServer/RoomServer.csproj`（net8.0，引用上述两者 + `LiteNet` + `LiteSim.Core`）——`Program.cs`（入口）、`ServerHost.cs`（连接/房间表/排空装配）、`RoomInstance.cs`、`RoomWorkerPool.cs`、`SettlementOutbox.cs`、`Application/`（`ServerLoop.cs` **60Hz 节拍** / SessionManager / ReconnectService / RoomMailbox 等带 IO 的另一半）。
 
 ### 3.2 关键件
 

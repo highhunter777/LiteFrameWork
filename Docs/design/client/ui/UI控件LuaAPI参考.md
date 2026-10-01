@@ -2,14 +2,13 @@
 
 > 状态：现行参考；已有 API 与目标 API 分列
 > 版本：2.0
-> 更新日期：2026-09-21
+> 更新日期：2026-10-01
 > Owner：客户端 UI / Lua
 > 权威契约：[UI框架总设计](UI框架总设计.md)；制作要求：[UI制作规范](UI制作规范.md)
-> 注意：当前适配器存在 self 缺失，完整页面调用不可视为已验收；见总设计 UI-01
 
 ## 1. 源码与调用约定
 
-现有入口：[LuaBehaviourAdapter](../../../../Assets/LiteGame/Runtime/Shell/UI/LuaBehaviourAdapter.cs)、[UIBindIndex](../../../../Assets/LiteGame/Runtime/Shell/UI/Bind/UIBindIndex.cs)、[LuaComponent.BindBridge](../../../../Assets/LiteGame/Runtime/Shell/Lua/LuaComponent.cs)、[Bridge.Ui](../../../../Assets/LiteGame/Runtime/Shell/Bridge/Bridge.Data.cs)。
+现有入口：[LuaBehaviourAdapter](../../../../Assets/LiteGame/LuaBridge/LuaBehaviourAdapter.cs)、[UIBindIndex](../../../../Assets/LiteGame/UI/Bind/UIBindIndex.cs)、[Bridge.BindGlobals](../../../../Assets/LiteGame/LuaBridge/Bridge.Data.cs)、[Bridge.Ui](../../../../Assets/LiteGame/LuaBridge/Bridge.Data.cs)。
 
 两种入口的调用方式不同，必须按注册方式区分：
 
@@ -26,15 +25,11 @@ self.ui:OnButton("BtnClose", function()
 end)
 ```
 
-上面演示参数约定，不表示当前完整打开链已正常。旧稿 `Bridge.ui:Show(id, data)` 多传了一个表参数，废止。
+上面演示两种入口的参数约定：`Bridge.ui` 的方法用点号调用，`self.ui` 的 shim 用冒号调用。
 
-### 1.1 生命周期：现有形态与待修正项
+### 1.1 生命周期：实例与调用契约
 
-现有 `IUIFormLogic` 有 `OnInit/OnShow/OnUpdate/OnPause/OnCover/OnReveal/OnHide` 七个回调；缺少对应 Lua 方法时跳过。适配器建立绑定索引并向逻辑表挂 `ui`。
-
-当前问题：适配器 `fn.Call(args)` 未传逻辑实例，冒号定义的 `self` 被错位；GameEntry 直接使用 require 返回表，尚无明确实例工厂。目标是注册模块、工厂创建实例、回调显式传 self。不能仅把 Lua 方法全部改成点号绕过实例契约。
-
-修复后的目标写法：
+`IUIFormLogic` 有 `OnInit/OnShow/OnUpdate/OnPause/OnCover/OnReveal/OnHide` 七个回调；缺少对应 Lua 方法时跳过。适配器即实例工厂：注册表存模块，构造期执行 `module.new()` 得到页面实例，向实例挂 `ui` 门面表，回调显式传 `self`。
 
 ```lua
 local class = require("Core.class")
@@ -50,21 +45,21 @@ function M:OnShow(data)
     end)
 end
 
-return M -- 注册工厂/模块；运行时调用 M.new()，每页独立实例。
+return M -- 注册模块；运行时调用 M.new()，每页独立实例。
 ```
 
-当前 Lua OnHide 会调用 UnbindAll，复用不会正常重跑 OnInit，因此按钮绑定放在 OnShow。`events.on` 当前仍需页面自行持有注销函数；自动纳入展示作用域是 U1 目标。当前 C# UIBindBase 不具备与 Lua 完全相同的自动解绑，需要同步修正。
+Lua `OnHide` 会解绑全部按钮，复用不重跑 `OnInit`，因此按钮绑定放在 `OnShow`。`events.on` 需页面自行持有注销函数；纳入展示作用域的自动解绑为目标能力，C# 与 Lua 语义将保持一致。
 
-OnResume、OnNavigationResult、OnLocaleChanged、OnDispose 为目标可选能力，尚未导出；语言切换/返回结果不得通过重复 OnShow 模拟。
+`OnResume`、`OnNavigationResult`、`OnLocaleChanged`、`OnDispose` 为目标可选能力，尚未导出；语言切换/返回结果不得通过重复 OnShow 模拟。
 
 ## 2. 已有全局门面
 
 | 入口 | 当前行为 | 限制 |
 | --- | --- | --- |
-| `Bridge.ui.Show(id, data)` | fire-and-forget 打开，Lua 表包装为 IUIData；失败写日志 | 无 Lua 完成结果；并发/取消由 U1 重构 |
-| `Bridge.ui.Close(id)` | fire-and-forget 关闭 | 当前仅 Active；目标覆盖全部逻辑打开态 |
+| `Bridge.ui.Show(id, data)` | fire-and-forget 打开，Lua 表包装为 IUIData；失败写日志 | 无 Lua 完成结果；并发/取消由服务层承担 |
+| `Bridge.ui.Close(id)` | fire-and-forget 关闭 | 覆盖全部逻辑打开态（Active/Covered/Paused） |
 | `Bridge.ui.IsOpen(id)` | Active/Covered/Paused 为 true | 不表示资源已加载完成或页面可交互 |
-| `Bridge.ui.GetLogic(id)` | 返回注册表逻辑表 | 遗留诊断口，业务不应借此调用另一页/持有模块；随实例工厂迁移收口 |
+| `Bridge.ui.GetLogic(id)` | 返回注册表模块 | 遗留诊断口，业务不应借此调用另一页/持有模块；页面实例所有权在适配器 |
 | `Bridge.data.GetItem/GetUIForm` | 按行缓存的数据门面 | 本参考不扩充数据协议 |
 | `Bridge.content.GetProcessor` | 内容注册查询 | 不应越权访问底层服务 |
 | `log.info/warning/error`、`events.on` | 日志与事件桥 | 事件退订遵循现有桥协议 |
@@ -73,24 +68,26 @@ OnResume、OnNavigationResult、OnLocaleChanged、OnDispose 为目标可选能�
 
 ## 3. 已有 self.ui 方法
 
-当前 shim 声明 16 个方法。这是静态声明数量，不代表全链路测试通过。所有控件名来自页面 `BindNode.BindName`；模板不预设非空名字。
+当前 shim 声明 20 个方法。所有控件名来自页面 `BindNode.BindName`；模板不预设非空名字。
 
 | 方法 | 当前语义/参数 |
 | --- | --- |
 | `OnButton(name, fn)` / `OffButton(name)` | 替换式 Button 绑定/移除；C# 回调经 SafeCall |
 | `SetText(name, text)` | TMP_Text 优先，兼容 UGUI Text；应绑定实际 Label 节点 |
+| `SetTextKey(name, key)` / `SetTextKeyArgs(name, key, a0..a3)` / `SetTextKeyPlural(name, key, count, a0..a3)` | 按 key 写文本并登记控件，语言变更自动刷新；参数走具名 arg0..arg3 |
+| `UnbindTextKey(name)` | 解除 key 绑定与语言刷新 |
 | `SetVisible(name, visible)` | 目标节点 SetActive |
 | `SetInteractable(name, on)` | Selectable 优先，回退 UIWidget.Interactable |
 | `SetProgress(name, value01)` | ProgressBar 归一化值 |
 | `SetProgressRange(name, cur, max)` | ProgressBar 当前/最大值 |
 | `SetHp(name, cur, max)` | HpBar 前条/延迟条与数值 |
 | `StartCountdown(name, seconds)` / `StopCountdown(name)` | 启停倒计时；Stop 不触发 OnDone |
-| `ShowToast(text)` | 查找 Toast 宿主；缺失按当前实现记录日志 |
+| `ShowToast(text)` | 查找 Toast 宿主并追加一条，多条并存、超限最旧淘汰；宿主缺失记日志不抛 |
 | `ShowBubble(name, text, duration)` | duration 缺省 1.5s |
 | `ShowFlyText(name, text)` | 在目标位置显示飘字 |
-| `Pulse(name, strength, duration)` | shim 缺省 1.2/0.16s；当前是 Graphic 透明度动画，非缩放 |
-| `Flash(name, duration)` | shim 缺省 0.3s；当前调用 Graphic 颜色 Tween，不能承诺自动回到原色 |
-| `Slide(name, ox, oy, duration)` | offset 缺省 0/0，duration 缺省 0.25s；最终视觉应受复位契约约束 |
+| `Pulse(name, strength, duration)` | shim 缺省 1.2/0.16s；Graphic 透明度呼吸，完成/中断回原透明度 |
+| `Flash(name, duration)` | shim 缺省 0.3s；Graphic 颜色高亮回落，完成/中断回原色 |
+| `Slide(name, ox, oy, duration)` | offset 缺省 0/0，duration 缺省 0.25s；完成/中断回原位 |
 
 实现经 `Action<string, LuaTable>` 派发，不向 Lua 暴露 GetControl。Pulse/Flash 的 Graphic 解析是自身 → Button.targetGraphic → 组件/子级 Graphic；Slide 使用组件 Transform 的 RectTransform。
 
@@ -101,7 +98,6 @@ OnResume、OnNavigationResult、OnLocaleChanged、OnDispose 为目标可选能�
 - MarkDriver 当前按控件登记命令式/绑定式所有权；目标逐属性协调，避免动效与数据争写。
 - Button 解绑当前使用 RemoveAllListeners；目标只移除框架自有监听。
 - OnButton 派发持有 payload 并在点击时取 LuaFunction；目标为展示作用域持有的明确回调句柄，关闭/换表释放，不能无限滞留 Lua 引用。
-- Pulse 的 Lua 默认值与 C# UiFx 默认值不同；Flash/Slide 及取消后的基线必须在 U0/U1 实测并统一。当前 G20 入口存在不代表视觉复位已完成。
 - 连续 TMP 淡入淡出不要使用当前 Graphic 颜色口，按制作规范增加 CanvasGroup 专用路径。
 
 ## 4. 控件与 API 对照
@@ -109,11 +105,11 @@ OnResume、OnNavigationResult、OnLocaleChanged、OnDispose 为目标可选能�
 | 模板/能力 | 已有可用入口形态 | 待补足 |
 | --- | --- | --- |
 | StateButton | OnButton、SetInteractable；文本绑定 Label | 统一页面输入锁/焦点，框架自有监听 |
-| Dialog | OnButton、SetText、Bridge.ui 开关 | 类型化结果、取消、互斥与有界队列 |
-| Toast/Bubble/FlyText | ShowToast/ShowBubble/ShowFlyText | Scope 取消、宿主所有权、容量与复位 |
+| Dialog | OnButton、SetText、Bridge.ui 开关 | 已由 `DialogService` 承载：类型化结果、取消、互斥组、有界队列 |
+| Toast/Bubble/FlyText | ShowToast/ShowBubble/ShowFlyText | 多条并存、超限淘汰与复位；Scope 取消、宿主所有权 |
 | ProgressBar/HpBar | SetProgress/SetProgressRange/SetHp | 更新去重、统一时钟、收敛停更 |
 | Countdown | StartCountdown/StopCountdown | 显示秒去重、关闭期取消 |
-| VirtualList/SimpleList | 无 Lua 数据源门面 | G6 SetList；先修 C# 列表内核 |
+| VirtualList/SimpleList | 无 Lua 数据源门面 | G6 SetList（C# 内核已为窗口复用） |
 | RedDot | 无专用 Lua 入口 | G4 BindRedDot(name, key) |
 | StarRating/CountText | CountText 可通过 Label 静态设值 | G8 SetStars；G9 RollCount |
 | Stepper | 可操作暴露文本节点 | G13 SetStepper/变化通知 |
@@ -125,11 +121,11 @@ OnResume、OnNavigationResult、OnLocaleChanged、OnDispose 为目标可选能�
 | SafeArea | 挂载并启用 SafeAreaReceiver 后自处理 | 统一根/内容区域装配；不能声称当前壳自动给所有页添加 |
 | 单向绑定 | C# UIBindIndex.BindText 已有 | G21 Lua 绑定句柄与释放协议 |
 
-历史 G 编号只用于追溯；总设计 U0～U4 决定施工顺序。
+G 编号用于追溯；总设计 U0～U4 决定实施顺序。
 
 ## 5. Target：扩展契约
 
-所有本节入口尚未实现，名称为设计建议；实施时须同步 C# 接口、shim、生成与测试。
+本节为尚未实现的目标入口，名称为设计建议；实施时须同步 C# 接口、shim、生成与测试。
 
 - 导航：`Bridge.ui.Go/Back/Replace` 提供请求标识与完成通知；Lua 无原生 await 不等于只能 fire-and-forget。用受控回调/事件返回 Success/Blocked/Busy/Cancelled/Failed，页面退出后停止交付。
 - 弹窗：类型化等待由 C# 承载，Lua 接受结果通知；确认、取消、ScopeExit 区分，不暴露 Unity 对象。

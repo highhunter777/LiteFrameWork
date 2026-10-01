@@ -2,7 +2,7 @@
 
 > 状态：现行专项设计
 > 版本：1.0
-> 更新日期：2026-09-25
+> 更新日期：2026-10-01
 > 归属：[测试开发框架总设计](测试开发框架总设计.md)
 > 适用范围：Unity UGUI/TMP 页面、UIService、Lua 页面、UI Prefab、输入与导航、列表、动效及其发布性能。
 > 执行入口：逻辑上统一使用 `scripts/test.ps1`；Unity 交互遵循根目录 `UNITY-GUIDE.md`。
@@ -68,7 +68,7 @@ UI 产品代码 --------------------------------^（不得反向依赖测试代�
 
 ### 2.2 现状与目标目录
 
-当前项目已有 `Assets/Tests/EditMode` UI 用例、`Assets/LiteTesting/Core`、`Assets/LiteTesting/Editor`、`Assets/LiteTesting/Runtime`（PlayMode 所有权）和 `scripts/l2-unity-gate.ps1`。UI 专项目标目录如下；迁移期间允许存量用例暂留在 `Assets/Tests/EditMode`，但新增用例按目标目录归档。
+UI 用例按目标目录归入；`Assets/Tests/EditMode` 保留既有界面契约用例。UI 专项目标目录如下：
 
 ```text
 Assets/
@@ -366,7 +366,7 @@ UI 性能指标的预算以 [UI 框架总设计第 12 节](../client/ui/UI框架
 
 所有随机数据来自 `TestRunSettings` 派生种子。列表、文本、语言、资源延迟和输入序列都必须能由测试 ID 加种子复现。
 
-**夹具加载而非构建（2026-09-25 裁决）**：测试夹具同样遵守 [UI 框架总设计第 7 节](../client/ui/UI框架总设计.md)的视觉单一来源——Canvas、EventSystem、输入模块和反馈面**从测试专用夹具 prefab 加载**，不在测试代码里 `new GameObject` / `AddComponent` 拼装。理由不是洁癖：夹具拼装出的结构与生产模板本就会漂移，"测试通过"会脱离真实页面形态，而 UI 越权改造的第一次复发（`UIDemoPage`）正是从夹具式构建起步的。
+**夹具加载而非构建**：测试夹具遵守 [UI 框架总设计第 7 节](../client/ui/UI框架总设计.md) 的视觉单一来源——Canvas、EventSystem、输入模块和反馈面**从测试专用夹具 prefab 加载**，不在测试代码里 `new GameObject` / `AddComponent` 拼装。夹具拼装出的结构与生产模板会漂移，"测试通过"会脱离真实页面形态。
 
 夹具 prefab 的存放与判定：
 
@@ -374,7 +374,7 @@ UI 性能指标的预算以 [UI 框架总设计第 12 节](../client/ui/UI框架
 - 需要屏上事件（点击/拖拽/焦点）的 PlayMode 用例才加载含 EventSystem/InputModule 的夹具；不上屏的夹具不带屏上依赖，避免把 PlayMode 专属结构漏进 EditMode；
 - 夹具 prefab 的结构本身纳入界面契约用例（第 4.2 节），有正例和违规负例。
 
-**存量例外**：`Assets/Tests/EditMode` 迁移期内用代码构造**非视觉**夹具不判违规（如 `UnityTestScope.CreateGameObject` 造带自定义组件的测试宿主）；一旦某夹具开始拼装视觉或交互结构（Canvas、Graphic、EventSystem、InputModule、Raycaster），即转入夹具 prefab，不得以"测试代码"名义豁免。
+**既有夹具例外**：`Assets/Tests/EditMode` 中用代码构造**非视觉**夹具不判违规（如 `UnityTestScope.CreateGameObject` 造带自定义组件的测试宿主）；一旦某夹具开始拼装视觉或交互结构（Canvas、Graphic、EventSystem、InputModule、Raycaster），即转入夹具 prefab，不得以"测试代码"名义豁免。
 
 **负例不受此限**：第 4.2 节用于触发校验器的**违规负例**（第 7.2 节表格"资产结构"行的临时对象）是喂给规则的输入，不是产品面——仍在代码或临时 Prefab 中构造。判据是"该结构是否会被当成真实页面形态复用"：夹具模拟生产面 → 必须加载 prefab；负例只求触发失败 → 不受限。
 
@@ -402,7 +402,7 @@ powershell -NoProfile -File scripts/test.ps1 -Lane L2 -Profile PullRequest
 powershell -NoProfile -File scripts/test.ps1 -Lane All -Profile Nightly
 ```
 
-现有 `scripts/l2-unity-gate.ps1` **已完成 PlayMode 执行接入（2026-09-25）**：EditMode 与 PlayMode 共用同一异步轮询入口（`--async_tests` + 轮询 `test_status`），各自计数、超时与 Console 检查，Total=0 同判失败；未另起绕过 `scripts/test.ps1` 的本地入口。产物上传与性能采样仍待接入（性能的 Player/真机执行归 Release Pipeline，结果使用相同的 `run-id`、分类和产物目录）。
+`scripts/l2-unity-gate.ps1` 中 EditMode 与 PlayMode 共用同一异步轮询入口（`--async_tests` + 轮询 `test_status`），各自计数、超时与 Console 检查，Total=0 同判失败，不另起绕过 `scripts/test.ps1` 的本地入口。性能的 Player/真机执行归 Release Pipeline，结果使用相同的 `run-id`、分类和产物目录。
 
 ### 8.2 UI 门禁
 
@@ -463,19 +463,19 @@ UI 功能只有同时满足以下条件才算完成：
 
 ## 10. 落地路线与责任
 
+UI 契约用例、`LiteTesting` 双轨核心、EditMode/PlayMode 运行时夹具与统一门禁入口已落地；剩余为元数据补齐、自动化分层与性能采样。
+
 ### 10.1 现有能力承接
 
-- 现有 `Assets/Tests/EditMode` 中的 `UiNavModalEditModeTests`、`UiTransitionEditModeTests`、`UiU0EditModeTests` 和 `UiU1EditModeTests` 继续作为 UI 契约存量，逐步补齐 `UIType`、`Duration`、`Priority` 和 `Owner`。
 - UI 生命周期、列表、资源所有权、取消、模态和转场的具体断言以 [UI 框架总设计第 12 节](../client/ui/UI框架总设计.md#12-验收预算与观测) 与现有实现契约为准。
 - `LiteTesting.Core`、`UnityTestScope`、`scripts/test.ps1` 和 `scripts/l2-unity-gate.ps1` 是统一入口和清理边界；专项文档不得复制一套并行 Runner。
 
 ### 10.2 建设顺序
 
-1. **标签与归档**：为存量 UI 用例补齐元数据。**目录与程序集边界已建立**（`Assets/Tests/UI/PlayMode`，2026-09-25）；存量用例的 `UIType`/`Duration`/`Priority`/`Owner` 补齐待办。
-2. **PlayMode 支撑**：运行时 Scope（`LiteTesting.Runtime`）与页面夹具已就位，**P0 页面闭环已接入 L2 同一门禁**（真 Lua 生命周期、暂停/覆盖状态语义、动画资源组合、反馈面，12 例）；余项为语义 Locator、Driver、Wait 和 Evidence 分层。
-3. **自动化闭环**：以大厅、确认弹窗、列表/背包和错误恢复为首批流程，建立 Screen Object 和数据驱动 Scenario。
-4. **性能采样**：接入统一 Profiler 适配、固定设备档、性能 JSON/CSV 和基线对账；先 Nightly 趋势，再开启 Release 硬门禁。
-5. **发布验收**：完善低/中/高档设备矩阵、视觉人工签收、前后台/低内存/热更场景和长稳报告。
+1. **标签补齐**：为既有 UI 用例补齐 `UIType`/`Duration`/`Priority`/`Owner` 元数据。
+2. **自动化闭环**：建立语义 Locator、Driver、Wait 和 Evidence 分层，以大厅、确认弹窗、列表/背包和错误恢复为首批流程，建立 Screen Object 和数据驱动 Scenario。
+3. **性能采样**：接入统一 Profiler 适配、固定设备档、性能 JSON/CSV 和基线对账；先 Nightly 趋势，再开启 Release 硬门禁。
+4. **发布验收**：完善低/中/高档设备矩阵、视觉人工签收、前后台/低内存/热更场景和长稳报告。
 
 ### 10.3 责任划分
 

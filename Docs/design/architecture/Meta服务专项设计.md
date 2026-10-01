@@ -1,18 +1,18 @@
 # Meta 服务专项设计
 
-> 状态：现行专项设计；目标服务尚未实现
+> 状态：现行专项设计（目标契约层；实现进度见 Docs/施工进度/）
 > 版本：1.0
-> 更新日期：2026-09-26
+> 更新日期：2026-10-01
 > 适用范围：`MetaServer`（Auth/Lobby/Profile）、Meta 与 RoomServer 的接缝、Meta 与客户端的接口契约、宿主选型、存储与结算幂等、Meta 测试矩阵
 > Owner：Meta/数据；服务端架构负责宿主与边界接缝，客户端流程/UI Owner 负责消费端契约
 > 依赖：`SignatureVerifier`（签名原语）、`Protocol`/`PacketCodec`（版本字段）、`LiteNet.Contracts` 版本契约、热更专项的 ReleaseCatalog/兼容策略、Mongo/Redis 部署环境
-> 实施状态：第 2 节是 2026-09-26 代码核查基线；其余为目标契约。本文的工程结构、接口命名与目录建议不表示已有代码或已完成交付。
+> 工程结构、接口命名与目录为设计建议，具体进度见 Docs/施工进度/。
 
 ## 1. 定位与冲突裁决
 
 Meta 是战斗服之外的**局外权威**：账号、身份、大厅、进度、库存与结算账本。它与 RoomServer 的分工是单向、不可逆的——Meta 向房间提供不可变入场事实，房间向 Meta 输出受验证的结算增量，**房间不对局中查询 Meta，Meta 不参与战斗判定**。
 
-本文件细化《商业级通用服务端框架总设计》§6/§7/§11/§12/§13 在 Meta 侧的落地，并吸收《游戏业务系统总设计》§2 的权威边界表。冲突时按服务端总设计 §0 的优先级处理；本文不复制协议、状态机或业务规则的第二份定义。
+本文件细化《商业级通用服务端框架总设计》§6/§7/§11/§12/§13 在 Meta 侧的落地，并沿用《游戏业务系统总设计》§2 的权威边界表。冲突时按服务端总设计 §0 的优先级处理；本文不复制协议、状态机或业务规则的第二份定义。
 
 - 目标架构、安全红线、上线门槛以[服务端总设计](../architecture/商业级通用服务端框架总设计.md)为准。
 - 客户端侧消费契约（`MetaClient`、Login/Lobby/Result 流程、Account Scope）以[客户端总设计](../architecture/商业级通用客户端框架总设计.md)§10.1/§19 C2 为准；本文只定义服务端一侧。
@@ -20,9 +20,9 @@ Meta 是战斗服之外的**局外权威**：账号、身份、大厅、进度�
 - 版本字段分工（`protocolVersion`/`simVersion`/`buildHash`/`configHash`/`contentVersion`）与规范化规则以服务端总设计 §P0-5 及[热更专项](../client/content/热更与内容发布专项设计.md)§5 为准。
 - 施工先后与准入以[框架先行建设与业务接入专项设计](../architecture/框架先行建设与业务接入专项设计.md)、《[待办总览](../../待办总览.md)》为准。
 
-### 1.1 待裁决问题与当前选择
+### 1.1 关键选型裁定
 
-| 待裁决问题 | 当前目标选择 |
+| 选型项 | 设计选择 |
 | --- | --- |
 | 宿主框架 | **ASP.NET Core Minimal API + Kestrel**，以 `<FrameworkReference Include="Microsoft.AspNetCore.App" />` 引用共享框架，不引入任何 NuGet Web 包（见 §4.1） |
 | 是否一开始拆微服务 | 不拆。第一版为**模块化单体**，Auth/Lobby/Profile 是同进程内的独立模块与数据所有权（服务端总设计 §11.1） |
@@ -34,21 +34,11 @@ Meta 是战斗服之外的**局外权威**：账号、身份、大厅、进度�
 | Meta 是否内嵌 Content/热更控制面 | 否。内容发布描述与信任根由热更专项定义；Meta 不另建第二个分发控制面 |
 | 构造语法档位 | **`LangVersion 10.0`**（不沿用 RoomServer 的 9.0）。C# 9 不支持最小 API 的惯用写法——target-typed lambda（`MapGet("/x", () => "ok")`）与方法组处理器均编译失败（`CS1593`/`CS1503`/`CS0030`），只有逐端点显式委托转换可用。其余档位同 RoomServer：`net8.0` / `Nullable disable` / `ImplicitUsings disable` |
 
-## 2. Current：2026-09-25 核查事实
+## 2. 当前进度状况
 
-| 范围 | 核查结果 |
-| --- | --- |
-| 服务端代码 | `RoomServer/`（`Runtime/` + `Application/` + `Program.cs`）之外，**MetaServer 宿主骨架已建立（2026-09-25，[Meta 服务宿主](../../施工进度/Meta服务宿主.md)）**：Generic Host + Options + 健康检查 + 优雅关闭，Web 面 `FrameworkReference` 零 NuGet；**持久化接缝（M0-c）已关闭（2026-09-30）**：`Contracts/Persistence` 三端口 + `Infrastructure/Persistence/Mongo` 真适配器（MongoDB.Driver 3.12.0——服务端首个真 NuGet，裁决登记于 csproj）+ 宿主接线（启动迁移 fail-closed/`/ready` 依赖检查/样例命令端点）。Auth/Lobby/Profile/Redis/Settlement Outbox 业务仍无实现或桩（G3） |
-| 宿主 | `RoomServer/Program.cs` 常驻形态已接 `Console.CancelKeyPress` 触发排空（2026-09-26，[服务端多房间](../../施工进度/服务端多房间.md)，"信号→排空→退出"链路待真实终端手验）；Meta 宿主骨架交付内容见上行——`ValidateOnStart` 范围校验、`/live` `/ready` `/metrics`、drain 与入站上限均已建立 |
-| 身份与票据 | `ReconnectService` 已具备票据**房间绑定**（R1 交付），**且签发已 CSPRNG 化（2026-09-30，R2 安全批，[施工记录](../../施工进度/服务端R2安全.md)）**；**Join 已接票据验签接缝（M0-d，2026-09-26）**：`IJoinTicketValidator` + `HmacJoinTicketValidator`（过期/篡改/重放/密钥轮换/受众/房间/哈希矩阵），接入 `ServerHost.HandleJoin` 真实准入路径且验证先于建房——"只校验非空 token"已终结；Meta 侧签发端（Auth）归 G3 |
-| 签名原语 | `Assets/LiteFramework/Scripts/Core/Content/SignatureVerifier.cs` 已落地**RSA-2048 + PKCS#1 v1.5 + SHA-256**，并留档实测结论：`ECDsa`/`ECDsaCng` 在 Mono 下抛 `NotImplementedException`，Ed25519 无类型。该结论是**客户端运行时**的约束，服务端为完整 .NET，但为保持单一密钥体系，Meta 沿用同一原语 |
-| Web 依赖 | 仓库内**没有任何 Web/HTTP 服务端代码**；仅 `UniRx/Scripts/UnityEngineBridge/ObservableWWW.cs`（无关）。`global.json` 锁 SDK `8.0.400`（`rollForward: latestMajor`），本机 `Microsoft.AspNetCore.App` 8.0.22 与 9.0.11 均已安装 |
-| 版本字段 | `ServerHost.ServerBuildHash` 与 `CombatConfigDigest`（SHA-256 截取 uint32）已存在；`protocolVersion`/`simVersion`/`contentVersion` 的目标语义尚未在协议中全部落地 |
-| 客户端消费端 | `MetaClient` 未实现。`ProcedureId` 刻意未加 Login/Lobby/Result 枚举，避免出现空阶段（[客户端 C2 记录](../../施工进度/客户端C2.md)） |
-| 测试接缝 | L1 为 .NET xUnit（`Tests/*.Tests`，入口 `Tests/Tests.slnx`）；**Mongo 测试容器夹具已交付（2026-09-30，[Meta 服务宿主](../../施工进度/Meta服务宿主.md) M0-c 批二）**：`Tests/MetaServer.Integration.Tests/MongoFixture`（探活→docker 自起单节点副本集→用例级独立库）＋ 26 例 L3（含容器级重启恢复）；HTTP 集成走既有 `WebHost` 临时端口模式 |
-| 文档坐标 | Meta 的设计坐标分散在服务端总设计 §6/§11/§13、业务总设计 §2、《待办总览》G3。**本文是 Meta 的唯一专项入口** |
+Meta 当前处于**骨架＋持久化接缝**阶段：宿主骨架（Generic Host + Options 校验 + 健康检查 + 优雅关闭）、Join 票据验签接缝、持久化端口与 Mongo 适配器已落地；Auth/Lobby/Profile 业务、Redis 与 Meta 侧结算 Outbox 仍为设计。证据见[施工进度](../../施工进度/README.md)与[Meta 服务宿主](../../施工进度/Meta服务宿主.md)。
 
-结论：Meta 当前是**骨架＋持久化接缝阶段**——宿主骨架（2026-09-25）、Join 票据验签接缝（2026-09-26）与持久化接缝 M0-c（2026-09-30，真 Mongo 实存储＋L3 重启恢复报告）已交付，Auth/Lobby/Profile/Redis/Settlement Outbox 业务仍为设计；完成度判定见服务端总设计 §1「数据与 Meta 服务」行（已同步）。本文除本节外均为 Target。
+本文其余章节均为目标契约。
 
 ## 3. 服务边界与数据所有权
 
@@ -109,8 +99,7 @@ MetaServer/                              单一工程起步（§7 过渡步骤 1
 Tests/MetaServer.Tests/                  L1（纯逻辑/契约）
 Tests/MetaServer.Integration.Tests/      L3（HTTP/DB 测试容器）
                                         （命名须满足 scripts/test.ps1 的 *.Tests.csproj 发现契约——
-                                        原文 "IntegrationTests" 不含 ".Tests.csproj" 子串会被门禁静默漏跑，
-                                        2026-09-30 实测后改名并给 test.ps1 加了契约守卫）
+                                        不含 ".Tests.csproj" 子串的工程名会被门禁静默漏跑）
 ```
 
 **过渡顺序（对齐服务端总设计 §7，禁止目录大搬迁）：**
@@ -261,7 +250,7 @@ RoomRuntime 冻结 MatchResult
 以下三条是上述条款的**实现约束**。它们描述典型的框架行为，违反时**不抛异常、不报警告**，只在运行时表现为"配置未生效"，因此必须显式遵守：
 
 1. **配置只由 Options 管线持有一份**。另注册配置单例（`AddSingleton(config)` 与 `AddOptions<T>()` 并存）会解析出**两个不同实例**，`IValidateOptions` 校验的是无人使用的那个——非法配置照常启动成功，违反上方"启动失败即非零退出码"。消费方一律经 `IOptions<T>` 取用。
-2. **配置类必须用属性，不得用 public 字段**。`ConfigurationBinder` 只绑定属性，字段形态会让版本化文件与环境变量配置源**完全不生效**，违反上方"配置来源"。`RoomServer.Runtime.RoomConfig` 的字段形态属过渡实现，不作为 Meta 侧范式。
+2. **配置类必须用属性，不得用 public 字段**。`ConfigurationBinder` 只绑定属性，字段形态会让版本化文件与环境变量配置源**完全不生效**，违反上方"配置来源"。`RoomServer.Runtime.RoomConfig` 的字段形态不作为 Meta 侧范式。
 3. **校验触发点可能在 `Build()` 而非 `StartAsync()`**。Host 构造 `ConsoleLifetime` 时会解析 `IOptions<HostOptions>`，若其配置委托依赖 `IOptions<MetaConfig>` 即提前带出校验。`Program` 必须把 `Build()` 与 `StartAsync()` 同置于捕获 `OptionsValidationException` 的块内，否则异常以未处理形式逃逸，拿不到稳定的非零退出码与错误清单。
 
 ### 10.2 配置项落地要求
@@ -346,13 +335,13 @@ CI 仍以 `scripts/test.ps1` 为唯一入口；HTTP/数据库夹具随实现接�
 
 | 阶段 | Meta 侧交付 | 与本文关系 |
 | --- | --- | --- |
-| **G1（当前）** | 只建**接缝**：必要存储端口、迁移/事务/幂等约束、故障夹具、**一个持久化样例**；Join Ticket **验证器接口**与非法票据测试 | 框架先行 §4"持久化"行与 §5-4；不建真实 Meta 业务 |
+| **G1** | 只建**接缝**：必要存储端口、迁移/事务/幂等约束、故障夹具、**一个持久化样例**；Join Ticket **验证器接口**与非法票据测试 | 框架先行 §4"持久化"行与 §5-4；不建真实 Meta 业务 |
 | **R2** | RoomServer 侧：Generic Host、Join Ticket **本地验签**、实例注册与容量上报、drain | 与 §4.1/§6.2/§7 对接；本文为 Meta 侧定义，R2 为房间侧消费 |
 | **G3** | MetaServer 本体：Auth/Lobby/Profile、Mongo Ledger、Reservation、Settlement Outbox/Archive；客户端 `MetaClient` 与 Login/Lobby/Result（C2 批③） | 本文件的主体在此时落地 |
 | **R4 / G4** | OpenTelemetry、Dashboard、告警、Docker、实例调度、灰度与回滚、长稳与故障注入 | §11/§12/§14 的运维面收口 |
-| **后置** | Chat/Guild；完整运营后台；微服务拆分 | §1.1 待裁决表；不进入首个战斗服 Beta |
+| **后置** | Chat/Guild；完整运营后台；微服务拆分 | §1.1 选型裁定；不进入首个战斗服 Beta |
 
-**当前可开工的只有 G1 那一行**：存储端口、幂等约束、故障夹具与持久化样例，加上票据验证器接口。真实 Auth/Lobby/Profile 语义按《待办总览》G3 排队，不提前实现空壳模块，也不在客户端 `ProcedureId` 中预置空阶段。
+**G1 只建接缝**：存储端口、幂等约束、故障夹具与持久化样例，加上票据验证器接口。真实 Auth/Lobby/Profile 语义归《待办总览》G3，不提前实现空壳模块，也不在客户端 `ProcedureId` 中预置空阶段。
 
 ## 16. 禁止的做法
 
