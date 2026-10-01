@@ -54,7 +54,7 @@ namespace LiteSim
         /// **同源派生**（改窗长只动此处）。**不变式：窗长 ≥ 开火片段播放时长**（防事件后窗先尽截断
         /// 在播射击片段——装配期校验，见 CharacterLocomotionDriver）。
         /// </summary>
-        public const int FireStanceFrames = 90;
+        public const int FireStanceFrames = 60;
 
         /// <summary>
         /// 离场转向速率（rad/秒）——射击语境（瞄准 ∨ 开火帧 ∨ 窗内）解除后，朝向从准星转回移动方向

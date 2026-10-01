@@ -1206,11 +1206,20 @@ namespace LiteGame.Tests.EditMode
                 && downHandle.Equals(holdHandle),
                 "降级走同形态续播——句柄不变（保相位、零淡化、零重提交）");
 
-            // 松 ADS（InputSystem 覆写标志位）→ 退根路②：!IsAiming → 回移动根叶
+            // 松 ADS（InputSystem 覆写标志位）→ **批次E 统一退根**：!IsAiming 但窗充值中（IsAiming
+            // 在场即充值——松开后的窗尾 1.5s 内机器保持瞄准形态）→ 窗尽才退根回移动根叶
             InputSystem.Run(world, new[] { new SimInputFrame { EntityId = selfId } });
-            driver.Tick(dt);
-            Assert.IsTrue(driver.TryGetAnimState(0, out var s4) && s4 == CharacterAnimId.Idle,
-                "松 ADS → 退根路②回移动根（战斗层退出——无窗语境时活跃判据只 IsAiming）");
+            float releaseElapsed = 0f;
+            for (; releaseElapsed < 2.5f; )
+            {
+                driver.Tick(dt);
+                releaseElapsed += dt;
+                if (driver.TryGetAnimState(0, out var s4)
+                    && (s4 == CharacterAnimId.Idle || s4 == CharacterAnimId.Moving)) break;
+                Assert.IsTrue(s4 == CharacterAnimId.AimIdle || s4 == CharacterAnimId.AimWalk,
+                    "松 ADS 后窗尾内必须保持瞄准形态（窗内不回移动层——统一退根路）");
+            }
+            Assert.Less(releaseElapsed, 2.5f, "窗尾（≈1.5s）内必须退根");
             Assert.IsTrue(driver.TryGetCurrent(0, out var back) && back.Equals(CharacterAnimationIds.MoveBlend),
                 "退根后回移动根形态");
 

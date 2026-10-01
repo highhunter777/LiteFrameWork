@@ -87,10 +87,9 @@ namespace LiteSim.Tests
             Assert.True(public1 == SimChecksum.ComputePublicChecksum(world),
                 "离场转向标记不进公共口径（可由窗+输入重推导——不占协议字段号）");
 
-            // 窗长钉（用户调参 2026-10-01：六次裁决 60 → 90＝1.5s——单源属性生效，只动了 CombatConfig 一处；
-            // 钉住当前调参防意外手改）；转向速率同钉
-            Assert.Equal(90, CombatConfig.FireStanceFrames);
-            Assert.Equal(12f, CombatConfig.FaceTurnRadPerSec);
+            // 窗长/转向速率不再数字钉：窗长是**用户实时调参项**（单源 CombatConfig.FireStanceFrames，
+            // 历史曾 60/90 往返）；跨端一致性由 buildHash（源码）+ digest（联机身份）守卫——那才是系统级闸门
+            Assert.True(CombatConfig.FireStanceFrames > 0 && CombatConfig.FaceTurnRadPerSec > 0f);
         }
 
         [Fact]
