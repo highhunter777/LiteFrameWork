@@ -43,6 +43,7 @@ XLuaSamples/
 !RoomServer/*.csproj
 !Assets/RoomServer/Runtime/*.csproj
 !Assets/RoomServer/Application/*.csproj
+!Assets/LiteNet/Diagnostics/*.csproj
 !MetaServer/*.csproj
 !Tests/LiteFramework.Core.Tests/*.csproj
 !Tests/LiteSim.Core.Tests/*.csproj

@@ -1,0 +1,19 @@
+<Project>
+
+  <!--
+    双轨编译产物重定向：dotnet 侧的 bin/obj 不落在 Assets 目录内——Unity 会把
+    `Assets/` 下的 `bin/*.dll` 当插件导入，与 asmdef 编出的同名程序集撞车（CS1704），
+    并扫描 `obj/` 里的生成 `.cs`（CS0579）。点开头的目录 Unity 资产数据库直接忽略。
+    （与 LiteNet / RoomServer / LiteFramework 各目录的 Directory.Build.props 同款。）
+
+    本目录现状：`DiagTrace.cs` 由 `LiteNet.csproj` 的逐目录 `Compile Include` 收集，
+    尚无自己的 csproj。一旦新增（见《客户端与服务端共享代码范围专项设计》§4.3
+    配套动作：新增共享目录须同时落 asmdef / csproj 列举 / .gitignore 白名单 / 本 props），
+    产物即被重定向到此处，不会污染 Assets。
+  -->
+  <PropertyGroup>
+    <BaseIntermediateOutputPath>.dotnet/obj/</BaseIntermediateOutputPath>
+    <BaseOutputPath>.dotnet/bin/</BaseOutputPath>
+  </PropertyGroup>
+
+</Project>

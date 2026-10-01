@@ -11,37 +11,33 @@ namespace LiteNet.Tests
     /// `BuildHash` 守卫（M10 前置）：按 `scripts/gen-build-hash.py` 的**同一规则**复算源码 hash 并与生成常量比对。
     /// 目的：**改了 Sim / 协议却忘了重跑生成器** → L1 当场红（否则握手时才发现两端不一致，代价大得多）。
     /// 规则要点（与生成器逐条对齐）：排序 Ordinal；喂入 "相对路径\0内容"；**行尾归一化 CRLF/CR → LF**（跨机器一致）。
+    ///
+    /// **源集清单是单源**：本测试不持有 TARGETS/DATA_TARGETS 的第二份副本，而是读生成器一并产出的
+    /// <see cref="BuildHashSourceSet"/>（`Assets/LiteNet/Protocol/BuildHashSourceSet.g.cs`）。
+    /// 历史教训（2026-10-01 修复）：清单此前在 python 与 C# 各写一份，已漂移过一次——
+    /// C# 侧**曾**残留 `RoomServer/Data` 与 `.json`（该目录 2026-09-28 已删），而用例对不存在目录静默跳过，
+    /// 于是**守卫对源集的复算有一半走空且不报错**。跨语言无法共享定义的问题由其单源生成解决
+    /// （《客户端与服务端共享代码范围专项设计》§8.1 G1）。
     /// </summary>
     public sealed class BuildHashTests
     {
-        /// <summary>
-        /// **必须与 `scripts/gen-build-hash.py` 的 TARGETS 逐条一致**（生成器是 python、本测试是 C#，
-        /// 跨语言无法共享定义，只能同步维护——本用例就是用来抓这份漂移的）。
-        /// Systems/ 与 Scripts/ 平级（2026-09-19 目录收纳的最终形态），同属判定源集，漏了会让两端分叉不被校验。
-        /// </summary>
-        private static readonly string[] Targets =
+        private static readonly string[] Targets = BuildHashSourceSet.Targets;
+        private static readonly string[] DataTargets = BuildHashSourceSet.DataTargets;
+        private static readonly string[] DataExtensions = BuildHashSourceSet.DataExtensions;
+        private static readonly string[] DataExcludeNames = BuildHashSourceSet.DataExcludeNames;
+        private static readonly string[] SkipDirs = BuildHashSourceSet.SkipDirs;
+        private static readonly string[] SelfNames = BuildHashSourceSet.SelfNames;
+
+        [Fact]
+        public void BuildHash_源集清单非空()
         {
-            "Assets/LiteSim/Core/Scripts",
-            "Assets/LiteSim/Core/Systems",
-            "Assets/LiteNet/Proto",
-            "Assets/LiteNet/Protocol",
-        };
-
-        /// <summary>表数据目标（与生成器 DATA_TARGETS 对齐）：改动数值即改 hash → 旧客户端被拒进房。</summary>
-        private static readonly string[] DataTargets =
-        {
-            "Assets/GameData/Config",
-            "RoomServer/Data",
-        };
-
-        private static readonly string[] DataExtensions = { ".bytes", ".json" };
-
-        /// <summary>非玩法表（与生成器 DATA_EXCLUDE_NAMES 对齐，2026-09-25）：hash 只覆盖影响判定/协议的
-        /// 表，UI 表单（层级/路径/全屏）属表现层——改它不应让全员拒绝进房（同 SkipDirs 记录的坑）。</summary>
-        private static readonly string[] DataExcludeNames = { "tbuiform.bytes", "tbuiform.json" };
-
-        private static readonly string[] SkipDirs = { "bin", "obj", ".dotnet", "__pycache__", "Editor" };
-        private const string SelfName = "BuildHash.g.cs";
+            // 防"清单空了但一切静默通过"——生成器坏了/被清空时当场红，而不是等握手才发现无人校验。
+            Assert.NotEmpty(Targets);
+            Assert.NotEmpty(DataTargets);
+            Assert.NotEmpty(DataExtensions);
+            Assert.NotEmpty(SkipDirs);
+            Assert.NotEmpty(SelfNames);
+        }
 
         [Fact]
         public void BuildHash_常量格式合法()
@@ -72,7 +68,7 @@ namespace LiteNet.Tests
                 foreach (string full in Directory.EnumerateFiles(baseDir, "*.cs", SearchOption.AllDirectories))
                 {
                     if (full.EndsWith(".meta", StringComparison.Ordinal)) continue;
-                    if (Path.GetFileName(full) == SelfName) continue;     // 排除自身输出（否则自指不稳）
+                    if (IsSelfOutput(full)) continue;                     // 排除自身输出（否则自指不稳/不收敛）
                     if (IsUnderSkipDir(root, full)) continue;
                     files.Add(full);
                 }
@@ -111,6 +107,15 @@ namespace LiteNet.Tests
         {
             foreach (string excluded in DataExcludeNames)
                 if (string.Equals(fileName, excluded, StringComparison.Ordinal)) return true;
+            return false;
+        }
+
+        /// <summary>生成器自身输出判定（两个 .g.cs 都落在 hash 源集目录里，必须排除）。</summary>
+        private static bool IsSelfOutput(string fullPath)
+        {
+            string name = Path.GetFileName(fullPath);
+            foreach (string self in SelfNames)
+                if (string.Equals(name, self, StringComparison.Ordinal)) return true;
             return false;
         }
 
