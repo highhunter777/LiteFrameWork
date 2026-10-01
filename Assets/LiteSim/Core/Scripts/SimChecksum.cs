@@ -72,6 +72,7 @@ namespace LiteSim
                 h = MixInt32(h, e.Kills);
                 h = MixInt32(h, e.Deaths);
                 h = MixInt32(h, e.SelectedWeapon);
+                h = MixByte(h, e.FireStanceFrames);   // 开火驻留窗（批次D 公共化：限速+朝准星语境的判定输入，反回放重建面——公共口径必含，漏 = 客户端预测与权威分叉不报和解）
 
                 ref ActionRuntime a = ref s.Actions[i * SimConfig.ActionSlotsPerEntity];   // 主动作槽摘要
                 h = MixInt32(h, a.ActionId);

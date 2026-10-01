@@ -6,11 +6,14 @@ namespace LiteSim
     ///
     /// 字段取舍（与 <see cref="SimChecksum"/> 覆盖项逐项对齐，防"摘要漏字段 → 差分漏发 → 客户端静默分叉"）：
     /// - **含**：全部公共逻辑字段（Id/Pos/Vel/Yaw/Hp/Flags/Shield/Kills/Deaths/SelectedWeapon）
+    ///   + **开火驻留窗**（`FireStanceFrames`——批次D 公共化：该字段改写 Vel/Yaw[限速+朝准星语境]，
+    ///   客户端预测/回滚重放必须能从快照重建，缺失 ⇒ 窗内逐快照纠偏＝橡皮筋，实测 2026-10-01）
     ///   + **主动作摘要**（ActionId/StartFrame/Phase——差分基线必须覆盖线上 SlotDelta 会发的每个字段）
     ///   + Frame + RngState + 活体位图。
     /// - **不含**：Globals/CustomData/武器/技能/状态/局内包/资源（私有面与扩展 blob 不进公共差分——
     ///   私有层每包全量发本人，Globals/CustomData 由 <c>SnapshotDiffer.GlobalsDiffer</c> 探针兜底转全量）。
-    /// - **不含**：分配器 _versions/_nextFree（非逻辑字段，不进 checksum）。
+    /// - **不含**：分配器 _versions/_nextFree（非逻辑字段，不进 checksum）；FaceExitTurning
+    ///   （离场转向标记——可由窗+输入在重放中重推导，不占用协议字段号；1 帧边界误差可接受）。
     ///
     /// float 字段按**位型**比较（<c>SingleToInt32Bits</c>）——+0/-0 位型不同即算变化：
     /// 差分漏发一位就分叉（M9 和解机制的位级前提），宁可多发不比错。
@@ -32,6 +35,7 @@ namespace LiteSim
         public int ActionId;
         public int ActionStartFrame;
         public ActionPhase ActionPhase;
+        public byte FireStanceFrames;
 
         /// <summary>与另一槽位逐字段位级相等（RngState/Frame 不在此——它们在 <see cref="SimWorldStateSnapshot"/> 头部）。</summary>
         public static bool BitEqual(in EntitySnapshotEntry a, in EntitySnapshotEntry b)
@@ -43,7 +47,8 @@ namespace LiteSim
                 && a.Hp == b.Hp && a.Flags == b.Flags // lint-allow R3（整型血量/标志位判等，非浮点精度比较）
                 && a.Shield == b.Shield && a.Kills == b.Kills && a.Deaths == b.Deaths // lint-allow R3（整型判等，非浮点精度比较）
                 && a.SelectedWeapon == b.SelectedWeapon // lint-allow R3（整型判等，非浮点精度比较）
-                && a.ActionId == b.ActionId && a.ActionStartFrame == b.ActionStartFrame && a.ActionPhase == b.ActionPhase; // lint-allow R3（整型/枚举判等，非浮点精度比较）
+                && a.ActionId == b.ActionId && a.ActionStartFrame == b.ActionStartFrame && a.ActionPhase == b.ActionPhase // lint-allow R3（整型/枚举判等，非浮点精度比较）
+                && a.FireStanceFrames == b.FireStanceFrames; // lint-allow R3（byte 开火窗判等，非浮点精度比较）
         }
     }
 
@@ -103,6 +108,7 @@ namespace LiteSim
             entry.Kills = e.Kills;
             entry.Deaths = e.Deaths;
             entry.SelectedWeapon = e.SelectedWeapon;
+            entry.FireStanceFrames = e.FireStanceFrames;   // 开火驻留窗（批次D 公共化——差分基线与回放重建面）
             entry.ActionId = a.ActionId;
             entry.ActionStartFrame = a.StartFrame;
             entry.ActionPhase = a.Phase;

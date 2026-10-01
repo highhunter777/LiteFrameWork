@@ -24,7 +24,8 @@ namespace LiteNet.Protocol
     /// 服务器已为回溯环养 16 份全量状态，广播基线不该再养一份。
     ///
     /// 字段覆盖与 <see cref="SimChecksum"/>（公共口径）对齐：Id/Pos/Vel/Yaw/Hp/Flags/Shield/Kills/Deaths/
-    /// SelectedWeapon + 主动作摘要（P0 公共战斗面）；Globals/CustomData 由 <see cref="GlobalsDiffer"/> 兜底
+    /// SelectedWeapon + **开火驻留窗**（批次D）+ 主动作摘要（P0 公共战斗面）；Globals/CustomData 由
+    /// <see cref="GlobalsDiffer"/> 兜底
     /// （有变化即转全量），新增公共逻辑字段必须同步扩展摘要。
     /// 私有面（武器弹药/技能 CD/状态明细/局内包/资源）不走差分——随每份快照全量发本人（SnapshotCodec.PackPrivate）。
     /// </summary>

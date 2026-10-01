@@ -16,6 +16,8 @@ namespace LiteNet.Protocol
     public static class SnapshotCodec
     {
         // ---- 公共面 ----
+        // 批次D 起含**开火驻留窗**（fire_stance_frames=19）：限速+朝准星语境的判定输入——
+        // 回滚基线/差分基线/和解锚点必须能重建它，缺失 ⇒ 窗内预测分叉 ⇒ 逐快照纠偏（橡皮筋）。
 
         public static Proto.SlotDelta ToDelta(int slot, in EntitySlot e, in ActionRuntime activeAction)
         {
@@ -32,6 +34,7 @@ namespace LiteNet.Protocol
                 Kills = e.Kills,
                 Deaths = e.Deaths,
                 SelectedWeapon = e.SelectedWeapon,
+                FireStanceFrames = e.FireStanceFrames,     // 开火驻留窗（批次D：回滚基线/重放重建面）
                 ActionId = activeAction.ActionId,
                 ActionPhase = (int)activeAction.Phase,
                 ActionStartFrame = activeAction.StartFrame,
@@ -60,6 +63,7 @@ namespace LiteNet.Protocol
                 Kills = d.Kills,
                 Deaths = d.Deaths,
                 SelectedWeapon = d.SelectedWeapon,
+                FireStanceFrames = (byte)d.FireStanceFrames,   // 开火驻留窗（批次D：FromDelta 还原进 EntitySlot——回滚基线携带）
             };
         }
 
