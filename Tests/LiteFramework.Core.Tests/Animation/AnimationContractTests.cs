@@ -2,7 +2,7 @@ using System.Collections.Generic;
 using LiteFramework.Animation;
 using Xunit;
 
-namespace LiteFramework.Core.Tests.Animation
+namespace LiteFramework.Tests.Animation
 {
     /// <summary>
     /// 动画播放契约验收（《动画模块专项设计》§13 L1 行"Resolver、覆盖顺序、通道提交、Handle 代次、

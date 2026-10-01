@@ -1,4 +1,4 @@
-namespace RoomServer
+namespace RoomServer.Application
 {
     /// <summary>
     /// 快照发送 ledger（《商业级通用服务端框架总设计》§5 P0-4"可信 ACK 与背压"）：

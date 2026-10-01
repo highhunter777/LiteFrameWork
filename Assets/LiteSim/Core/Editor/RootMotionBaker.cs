@@ -7,7 +7,7 @@ using LiteSim;
 using UnityEditor;
 using UnityEngine;
 
-namespace LiteSim.EditorTools
+namespace LiteSim.Editor
 {
     /// <summary>烘焙条目（配置资产里逐动作登记；字段语义见 <see cref="RootMotionEntry"/>）。</summary>
     [Serializable]

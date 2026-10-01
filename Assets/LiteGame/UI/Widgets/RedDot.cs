@@ -2,7 +2,7 @@ using System;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UI;
-
+using LiteGame.UI;
 namespace LiteGame.UI
 {
     /// <summary>红点控件（M4c，M4a 口子 RedDotRegistry 的完整实现）：绑定红点树节点，计数 &gt; 0 显示 Dot。

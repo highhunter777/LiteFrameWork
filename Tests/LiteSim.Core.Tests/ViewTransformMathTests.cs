@@ -3,7 +3,7 @@ using LiteSim;
 using LiteSim.View;
 using Xunit;
 
-namespace LiteSim.Core.Tests
+namespace LiteSim.Tests
 {
     /// <summary>
     /// 表现变换纯函数验收（《联机战斗演示专项设计》§2.4 C3 / 《M11实施指导》"插值/衰减抽成纯函数

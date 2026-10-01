@@ -4,7 +4,7 @@ using System.Text;
 using LiteFramework;
 using Xunit;
 
-namespace LiteFramework.Core.Tests.Content
+namespace LiteFramework.Tests.Content
 {
     /// <summary>
     /// 内容签名与发布描述校验验收（《热更与内容发布专项设计》§6 发布描述与信任边界；

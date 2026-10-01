@@ -1,69 +1,8 @@
 using System;
-using System.Diagnostics;
 using System.Threading;
 
 namespace RoomServer.Application
 {
-    /// <summary>
-    /// 单调时钟端口（《商业级通用服务端框架总设计》§5 P0-1：调度器不直接触系统时钟——
-    /// L1 用虚拟时钟驱动，无真实 Sleep；生产装配 <see cref="StopwatchClock"/>）。
-    /// 语义与 <see cref="System.Diagnostics.Stopwatch"/> 对齐：Timestamp 单调递增，Frequency 为每秒刻度数。
-    /// </summary>
-    public interface IMonotonicClock
-    {
-        long Timestamp { get; }
-        long Frequency { get; }
-    }
-
-    /// <summary>
-    /// 等待策略端口：把调度"等到 targetTimestamp"的表达与真实等待手段解耦。
-    /// 生产实现 <see cref="ThreadSleepDelay"/>（粗睡 + 自旋收尾）；虚拟实现直接把时钟推进到目标（零真实等待）。
-    /// </summary>
-    public interface IDelayStrategy
-    {
-        void DelayUntil(IMonotonicClock clock, long targetTimestamp);
-    }
-
-    /// <summary>生产时钟：QPC 高精度（Windows ~10MHz / Linux ~1GHz），不受系统时间调整影响。</summary>
-    public sealed class StopwatchClock : IMonotonicClock
-    {
-        public static readonly StopwatchClock Instance = new StopwatchClock();
-
-        public long Timestamp => Stopwatch.GetTimestamp();
-        public long Frequency => Stopwatch.Frequency;
-    }
-
-    /// <summary>生产等待：粗睡到 1ms 内再自旋收尾（Windows 定时器粒度 ~15ms，纯睡必超调）。</summary>
-    public sealed class ThreadSleepDelay : IDelayStrategy
-    {
-        public static readonly ThreadSleepDelay Instance = new ThreadSleepDelay();
-
-        public void DelayUntil(IMonotonicClock clock, long targetTimestamp)
-        {
-            long remain = targetTimestamp - clock.Timestamp;
-            if (remain <= 0) return;
-
-            long remainMs = remain * 1000L / clock.Frequency;
-            if (remainMs > 1) Thread.Sleep((int)(remainMs - 1));
-            while (clock.Timestamp < targetTimestamp) Thread.SpinWait(64);
-        }
-    }
-
-    /// <summary>
-    /// 60Hz 权威循环宿主（《M10实施指导》风险 5："PeriodicTimer 节拍漂移 → 绝对时间锚定"；
-    /// **R0 重构**：《服务端总设计》§5 P0-1——整数毫秒锚点 1000/60=16ms 实际只给出 62.5Hz，
-    /// 追帧只能补"执行落后"，补不了"时间轴本身错了 4%"）。
-    ///
-    /// **有理数锚定**：第 n 帧目标时间 = <c>start + n × frequency / tickRate</c>（整数运算，
-    /// floor 语义——1/60 秒在任意时钟频率下都被精确表达，无累计漂移；n×frequency 的溢出
-    /// 防御见 LoopBody 的重置分支）。单轮抖动不累积（锚点不随执行时间滑动）。
-    ///
-    /// 两条节拍纪律（2026-09-19 立，R0 保留并高精度化）：
-    /// - **追赶必须有上限**（<see cref="MaxCatchUp"/>）：落后超过上限即**丢弃时间债**（锚点前移），
-    ///   否则过载时就是无界追帧 = 持续满核；债在 <see cref="LoopStats.DroppedTimeMs"/> 可观测。
-    /// - **固定 dt**：房间权威步恒用 Sim 内部 1/60 常量，本类只管"何时到点"，
-    ///   不向模拟传递 wall-clock delta（P0-1 红线）。
-    /// </summary>
     public sealed class ServerLoop
     {
         /// <summary>逻辑帧率默认值（与 <c>SimConfig.TickRate</c> 同源约定；ServerLoop 不引 LiteSim，故本地复述）。</summary>

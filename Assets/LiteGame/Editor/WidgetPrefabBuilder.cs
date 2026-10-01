@@ -1284,9 +1284,9 @@ namespace LiteGame.Editor
             pass += Check("SafeArea：组件就绪 + 换策略不抛", () =>
             {
                 var go = Instantiate("SafeArea");
-                var sa = go.GetComponent<LiteGame.SafeAreaReceiver>();
+                var sa = go.GetComponent<SafeAreaReceiver>();
                 if (sa == null) { Kill(go); return false; }
-                sa.SetStrategy(new LiteGame.DefaultSafeAreaStrategy());
+                sa.SetStrategy(new DefaultSafeAreaStrategy());
                 Kill(go);
                 return true;
             }, ref fail);
@@ -1294,7 +1294,7 @@ namespace LiteGame.Editor
             pass += Check("SimpleList：Template 接线", () =>
             {
                 var go = Instantiate("SimpleList");
-                var l = go.GetComponent<LiteGame.SimpleListView>();
+                var l = go.GetComponent<SimpleListView>();
                 var ok = l != null && l.Template != null && !l.Template.gameObject.activeSelf;
                 Kill(go);
                 return ok;

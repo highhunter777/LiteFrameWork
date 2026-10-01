@@ -2,7 +2,7 @@ using System;
 using System.Threading;
 using Cysharp.Threading.Tasks;
 
-namespace LiteGame
+namespace LiteGame.UI
 {
     /// <summary>
     /// 表现播放的结束原因（《动画模块专项设计》§10"UI 的播放终态与 UI 操作结果分层映射"；

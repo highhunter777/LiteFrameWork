@@ -4,7 +4,7 @@ using System.Collections.Generic;
 using LiteFramework;
 using UnityEngine;
 
-namespace LiteGame
+namespace LiteGame.UI
 {
     /// <summary>
     /// 最小渲染验证件（灰盒，M4 §2.5）：模板克隆 N 项纵向排布，Refresh 逐项回调数据源。

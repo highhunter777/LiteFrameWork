@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Threading;
 using Cysharp.Threading.Tasks;
 
-namespace LiteFramework
+namespace LiteFramework.Tests
 {
     /// <summary>
     /// IContentService 的 fake 实现（C1-⑤ 接缝批：契约冻结 + 失败注入夹具；C1-⑧ 补内容代次键维度）。

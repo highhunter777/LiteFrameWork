@@ -3,7 +3,7 @@ using LiteGame;
 using LiteSim;
 using Xunit;
 
-namespace LiteSim.Core.Tests
+namespace LiteSim.Tests
 {
     /// <summary>
     /// 输入服务（《角色状态与动作专项设计》§3"输入三件"；《联机战斗演示专项设计》§5"输入和三个门"）

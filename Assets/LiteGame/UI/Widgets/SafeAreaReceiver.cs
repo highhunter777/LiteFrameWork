@@ -1,6 +1,6 @@
 using UnityEngine;
 
-namespace LiteGame
+namespace LiteGame.UI
 {
     /// <summary>SafeArea 接收器（M4 §2.6 刘海屏红线）：把避让矩形应用到自身 RectTransform 的 anchors。
     /// 低频轮询（0.5s）+ 尺寸变化即标脏，避免每帧计算；策略可换（SetStrategy）。
