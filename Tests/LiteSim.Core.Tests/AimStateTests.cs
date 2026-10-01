@@ -21,7 +21,7 @@ namespace LiteSim.Tests
             => new[] { new SimInputFrame { EntityId = id, MoveX = mx, MoveZ = mz, AimX = ax, AimZ = az, Buttons = buttons } };
 
         [Fact]
-        public void 限速_瞄准移动降到走路档_松开恢复全速()
+        public void 限速_瞄准移动降到走路档_松开窗内保持_窗尽恢复全速()
         {
             long id = Spawn(out var world, out int slot);
 
@@ -32,8 +32,73 @@ namespace LiteSim.Tests
             Assert.Equal(CombatConfig.AimMoveSpeed, world.Entities[slot].Vel.X, 4);
             Assert.Equal(2.5f, CombatConfig.AimMoveSpeed, 4);   // = 视图 Walk 档上界（瞄准移动只需 AimWalk 一套片段）
 
+            // 批次E：松开瞄准 → 瞄准帧已置满共用窗 ⇒ 窗内保持走路档（不再瞬回全速）
             InputSystem.Run(world, Inputs(id, 1f, 0f, 1f, 0f));
+            Assert.Equal(CombatConfig.AimMoveSpeed, world.Entities[slot].Vel.X, 4);
+
+            // 窗尽（递减 90 帧）→ 回全速
+            for (int i = 0; i < CombatConfig.FireStanceFrames; i++)
+                InputSystem.Run(world, Inputs(id, 1f, 0f, 1f, 0f));
             Assert.Equal(CombatConfig.MoveSpeed, world.Entities[slot].Vel.X, 4);
+        }
+
+        // ---- 批次E（八次裁决）：瞄准点按共用驻留窗——间隙帧不回摆/限速随窗/窗尽离场转向 ----
+
+        [Fact]
+        public void 朝向_点按瞄准_间隙帧不回移动向_窗尽速率回转()
+        {
+            long id = Spawn(out var world, out int slot);
+
+            // 点按瞄准 + 反方向移动（与点射同款场景——用户裁决"也要一样，共用一个窗口"）：
+            // 移动 +Z、准星 -X；按下瞄准→朝准星并置满共用窗；松开间隙帧窗内不回移动向
+            var aimFrame = Inputs(id, 0f, 1f, -1f, 0f, SimInputFrame.ButtonAim);
+            var gapFrame = Inputs(id, 0f, 1f, -1f, 0f);
+            float crosshairYaw = SimTrig.Atan2(0f, -1f);
+            float moveYaw = SimTrig.Atan2(1f, 0f);
+
+            InputSystem.Run(world, aimFrame);
+            // 瞄准帧朝准星 + 置满共用窗（批次E）
+            Assert.Equal(crosshairYaw, world.Entities[slot].Yaw, 5);
+            Assert.Equal((byte)CombatConfig.FireStanceFrames, world.Entities[slot].FireStanceFrames);
+
+            InputSystem.Run(world, gapFrame);
+            // 点按间隙帧窗内保持准星向（不回移动向——与点射同一共用窗语义）
+            Assert.Equal(crosshairYaw, world.Entities[slot].Yaw, 5);
+
+            // 窗尽 → 离场转向（武装生效：按速率过渡回移动方向，不瞬切）
+            for (int i = 0; i < CombatConfig.FireStanceFrames; i++)
+                InputSystem.Run(world, gapFrame);
+            Assert.Equal(0, world.Entities[slot].FireStanceFrames);
+            float before = world.Entities[slot].Yaw;
+            float step = CombatConfig.FaceTurnRadPerSec * SimConfig.Dt;
+            InputSystem.Run(world, gapFrame);
+            float after = world.Entities[slot].Yaw;
+            Assert.True(after != before, "窗尽回转开始（不保持准星向）");
+            Assert.True(System.Math.Abs(after - before) <= step + 1e-5f, "一帧一步过渡（不错切）");
+
+            int guard = 0;
+            while (world.Entities[slot].Yaw != moveYaw && guard++ < 300)
+                InputSystem.Run(world, gapFrame);
+            Assert.Equal(moveYaw, world.Entities[slot].Yaw, 6);   // 最终精确落位移动方向
+            Assert.Equal((byte)0, world.Entities[slot].FaceExitTurning);   // 到位解除武装
+        }
+
+        [Fact]
+        public void 限速_点按瞄准_窗内保持走路档_窗尽回全速()
+        {
+            long id = Spawn(out var world, out int slot);
+            var aimFrame = Inputs(id, 1f, 0f, 1f, 0f, SimInputFrame.ButtonAim);
+            var gapFrame = Inputs(id, 1f, 0f, 1f, 0f);
+
+            InputSystem.Run(world, aimFrame);
+            Assert.Equal(CombatConfig.AimMoveSpeed, world.Entities[slot].Vel.X, 4);   // 瞄准帧走路档
+
+            InputSystem.Run(world, gapFrame);
+            Assert.Equal(CombatConfig.AimMoveSpeed, world.Entities[slot].Vel.X, 4);   // 间隙帧（窗内）保持走路档
+
+            for (int i = 0; i < CombatConfig.FireStanceFrames; i++)
+                InputSystem.Run(world, gapFrame);
+            Assert.Equal(CombatConfig.MoveSpeed, world.Entities[slot].Vel.X, 4);   // 窗尽回全速
         }
 
         // ---- 开火驻留窗（批次C：Sim 权威开火态——三次裁决"移动腰射按 aimwalk 移动"的 Sim 侧落地）----

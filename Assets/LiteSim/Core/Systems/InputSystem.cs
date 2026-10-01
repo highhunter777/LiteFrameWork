@@ -40,6 +40,11 @@ namespace LiteSim
                 uint buttons = inputs[i].Buttons;
                 bool aiming = (buttons & SimInputFrame.ButtonAim) != 0u;
 
+                // 批次E（八次裁决）：**瞄准帧也置满同一个驻留窗**——频繁点按瞄准与点射共用
+                // `FireStanceFrames`（同一字段/同一递减/同一快照公共面——协议零改动）：点按间隙帧
+                // 不回移动向（朝准星+限速走路档随窗——视图 AimWalk 四向稳定的前提），窗尽离场转向。
+                if (aiming) e.FireStanceFrames = (byte)CombatConfig.FireStanceFrames;
+
                 // 移动：瞄准 ∨ 开火态 → 限速走路档（瞄准倍率 0.5 = 乘 2 的幂，位级精确；
                 // 开火态限速改写 Vel ⇒ 窗计数是**判定输入**——已进全量 checksum，见 EntitySlot.FireStanceFrames）
                 float speed = aiming || e.FireStanceFrames > 0
