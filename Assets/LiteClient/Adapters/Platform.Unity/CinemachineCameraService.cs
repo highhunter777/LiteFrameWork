@@ -11,10 +11,14 @@ namespace LiteGame
     /// 《联机战斗演示专项设计》§3"相机跟本地预测位置；和解期间跟衰减后的表现位置"）。
     ///
     /// **职责只有一个：把表现层每帧给出的位置喂给虚拟相机。** 相机怎么摆（俯角/距离/FOV/阻尼/
-    /// 跟随偏移/优先级/Brain）全部是**场景与预制配置**，由美术/关卡在 Inspector 里设定并随场景入库
-    /// ——本类**不写任何档位常量**，也不改 vcam 的 Lens/Transposer/Priority。理由（《客户端总设计》
+    /// 跟随偏移）全部是**场景与预制配置**，由美术/关卡在 Inspector 里设定并随场景入库
+    /// ——本类**不写任何档位常量**，也不改 vcam 的 Lens/Transposer。理由（《客户端总设计》
     /// §12.2 视觉单一来源的同一条判据）：相机构图是产品表现决策，用代码再表达一遍就有了第二处事实源，
     /// 调完编辑器发现"改了没用"是最难查的一类分歧。
+    ///
+    /// **例外：瞄准接管（2026-10-02 瞄准相机批，<see cref="SetAiming"/>）写 Priority**——但写的
+    /// 是**派生值**（主 vcam 场景优先级 + 1）且下降沿**还原回场景配置原值**；镜头本身（FOV/偏移/距离）
+    /// 仍全归场景。语义态（"瞄准中"）来自端口调用方，映射成 Cinemachine 机制是适配器的本分。
     ///
     /// **场景切换后的重新解析（本类的关键行为）**：虚拟相机是**场景对象**，随场景加载/卸载而生灭
     /// （Single 模式切场景后，启动场景里的 vcam 会被一并销毁）。因此本类在每次
@@ -28,6 +32,11 @@ namespace LiteGame
     /// </summary>
     public sealed class CinemachineCameraService : ICameraService
     {
+        /// <summary>瞄准 vcam 的场景约定名（训练场 `/Aim Camera`；构图/基础优先级归场景配置）。
+        /// 主相机解析时**排除**它——瞄准接管期间它优先级被抬到主之上，不排除会在场景切换重解析时
+        /// 把主跟随错误地绑到瞄准机上。</summary>
+        private const string AimCameraName = "Aim Camera";
+
         private CinemachineVirtualCamera _vcam;
         private Transform _target;               // 当前接线用的跟随目标
         private bool _ownsTarget;                // 自建的空目标才销毁；场景里的不动
@@ -35,6 +44,13 @@ namespace LiteGame
         private bool _hasFocus;
         private bool _shutdown;
         private string _lastResolveReason;
+
+        // ---- 瞄准相机（ADS 接管；2026-10-02 瞄准相机批）----
+        private CinemachineVirtualCamera _aimVcam;
+        private Transform _aimFollowAtBind;      // 接管前瞄准机的 Follow（还原，同主相机的处置）
+        private Transform _aimLookAtAtBind;      // 同上（LookAt）
+        private int _aimPriorityAtBind;           // 接管前优先级（场景配置值——抬升基准由主相机派生，还原回场景值）
+        private bool _aiming;                    // 当前语义态（变化沿生效）
 
         /// <summary>装配点指定的跟随目标（null = 用 vcam 自己配的 Follow，再没有就自建空目标）。</summary>
         private readonly Transform _preferredTarget;
@@ -109,8 +125,9 @@ namespace LiteGame
 
         /// <summary>
         /// 解析并接线一台虚拟相机（构造时调一次；此后由 <see cref="Follow"/> 在检测到失效时自动重解析）。
-        /// 解析规则：全场景中**优先级最高**的启用 vcam——多台 vcam 并存时（如每场景各配一台、
-        /// 或叠加场景各带一台）由优先级决定接哪台，与 Cinemachine 自身的选机口径一致。
+        /// 解析规则：全场景中**优先级最高**的启用 vcam（**排除瞄准机**——见 <see cref="AimCameraName"/>；
+        /// 瞄准接管期间它优先级在主之上，不排除会把主跟随绑错）——多台 vcam 并存时
+        /// （如每场景各配一台、或叠加场景各带一台）由优先级决定接哪台，与 Cinemachine 自身的选机口径一致。
         /// </summary>
         private void Resolve()
         {
@@ -122,6 +139,7 @@ namespace LiteGame
             for (int i = 0; i < all.Length; i++)
             {
                 if (all[i] == null || !all[i].gameObject.activeInHierarchy) continue;
+                if (all[i].name == AimCameraName) continue;   // 瞄准机不参与主跟随竞选
                 if (best == null || all[i].Priority > best.Priority) best = all[i];
             }
 
@@ -162,6 +180,7 @@ namespace LiteGame
         /// <summary>解除当前接线（销毁自建目标、还原 vcam 的 Follow 引用）。</summary>
         private void Unbind()
         {
+            ReleaseAimCamera();                  // 瞄准机若在接管态先还原（优先级/Follow 归还场景配置）
             if (_vcam != null)
             {
                 // vcam 可能已随场景销毁（Unity 的伪 null）——用 ReferenceEquals 判真身，避免误碰已销毁对象
@@ -206,6 +225,92 @@ namespace LiteGame
             _hasFocus = false;
             Focus = Vector3.zero;
         }
+
+        /// <summary>
+        /// 瞄准态接管（2026-10-02 瞄准相机批，<see cref="ICameraService.SetAiming"/> 契约）：
+        /// 上升沿 → 解析场景约定名 <see cref="AimCameraName"/> 的瞄准 vcam，把主相机的**同一跟随目标**
+        /// 接给它（跟随与主相机同源——AimPoint 方案已废弃，瞄准机构图里的参考偏移归 vcam 组件配置），
+        /// 并抬优先级到**主 vcam 当前优先级 + 1**（基准派生自主相机的场景配置，代码不写档位常量）；
+        /// 下降沿 → 优先级/Follow/LookAt 全部还原回接管前的场景值。
+        /// 接管态幂等（已在接管且瞄准机存活 = no-op）；上升沿失败（主机未接线/瞄准机缺失/接管中场景
+        /// 切换导致瞄准机失效）**保持未接管态逐帧重试**——场景加载完成后无需调用方记得补调。
+        /// 瞄准机缺失记 <see cref="LastAimResolveReason"/>（不替场景自建——"美术调好的相机没生效"
+        /// 不能被掩盖；日志只在新原因时打一次，防每帧刷屏）。
+        /// </summary>
+        public void SetAiming(bool aiming)
+        {
+            if (_shutdown) return;
+
+            if (aiming)
+            {
+                if (_aiming && IsAimCameraAlive()) return;   // 已接管且瞄准机存活：幂等
+                if (_vcam == null || ReferenceEquals(_vcam, null)) return;   // 主机未接线：无跟随目标可共享，保持未接管重试
+                if (!EnsureAimCamera()) return;               // 瞄准机缺失：保持未接管，下帧重试
+
+                _aiming = true;                               // 上升沿（或接管中失效后的重建沿）
+                _aimFollowAtBind = _aimVcam.Follow;
+                _aimLookAtAtBind = _aimVcam.LookAt;
+                _aimPriorityAtBind = _aimVcam.Priority;
+                _aimVcam.Follow = _target;                     // 与主相机同源（每帧 Follow 已在喂这个目标）
+                if (_aimVcam.LookAt == null) _aimVcam.LookAt = _target;   // HardLookAt 管线吃 LookAt（同主相机的处置）
+                _aimVcam.Priority = _vcam.Priority + 1;        // 基准派生：主 vcam 场景优先级 + 1，接管生效
+                Log.Info($"[Camera] 瞄准机接管「{_aimVcam.name}」prio={_aimVcam.Priority}", "Camera");
+            }
+            else
+            {
+                if (!_aiming) return;
+                ReleaseAimCamera();
+            }
+        }
+
+        /// <summary>接管中的瞄准机是否仍存活（对象存活 + 场景仍已加载）。</summary>
+        private bool IsAimCameraAlive()
+        {
+            return _aimVcam != null && !ReferenceEquals(_aimVcam, null) && _aimVcam.gameObject.scene.IsValid();
+        }
+
+        /// <summary>解析瞄准机（按约定名；已解析且存活直接复用）。返回 false = 场景未配置瞄准机。</summary>
+        private bool EnsureAimCamera()
+        {
+            if (IsAimCameraAlive()) { LastAimResolveReason = null; return true; }
+
+            _aimVcam = null;
+            var all = UnityEngine.Object.FindObjectsByType<CinemachineVirtualCamera>(
+                FindObjectsInactive.Exclude, FindObjectsSortMode.None);
+            for (int i = 0; i < all.Length; i++)
+            {
+                if (all[i] == null || all[i].name != AimCameraName) continue;
+                _aimVcam = all[i];
+                LastAimResolveReason = null;
+                return true;
+            }
+
+            string reason = $"场景里没有启用的「{AimCameraName}」——ADS 接管 no-op（瞄准相机配置归场景，不由代码自建）";
+            if (LastAimResolveReason != reason)               // 只在原因变化时打（防每帧重试刷屏）
+            {
+                Log.Info("[Camera] " + reason, "Camera");
+                LastAimResolveReason = reason;
+            }
+            return false;
+        }
+
+        /// <summary>还原瞄准机（优先级/Follow/LookAt 归还接管前的场景配置值；机已随场景销毁则只清引用）。</summary>
+        private void ReleaseAimCamera()
+        {
+            _aiming = false;
+            if (_aimVcam != null && !ReferenceEquals(_aimVcam, null))
+            {
+                _aimVcam.Priority = _aimPriorityAtBind;
+                if (_aimVcam.Follow == _target) _aimVcam.Follow = _aimFollowAtBind;
+                if (_aimVcam.LookAt == _target) _aimVcam.LookAt = _aimLookAtAtBind;
+            }
+            _aimVcam = null;
+            _aimFollowAtBind = null;
+            _aimLookAtAtBind = null;
+        }
+
+        /// <summary>最近一次瞄准机解析失败的原因（解析成功/未尝试 = null）。诊断/装配检查用。</summary>
+        public string LastAimResolveReason { get; private set; }
 
         public void Shutdown()
         {

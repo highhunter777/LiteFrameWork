@@ -34,6 +34,15 @@ namespace LiteSim.View
         /// <summary>跟随目标表现位置（每渲染帧调用；<paramref name="deltaSeconds"/> = 真实帧间隔）。</summary>
         void Follow(in Vector3 target, float deltaSeconds);
 
+        /// <summary>
+        /// 瞄准态通知（2026-10-02 瞄准相机批）：本地玩家处于 ADS（右键瞄准）时传 true——期望**瞄准视角
+        /// 接管**；松开回 false。**语义态进端口、接管方式归实现**（Cinemachine = 抬瞄准 vcam 优先级），
+        /// 与构图同理不在接口表达任何档位常量。
+        /// 每渲染帧幂等调用（实现内部按变化沿生效）；实现自备目标（如瞄准 vcam）的解析与还原——
+        /// 瞄准视角缺配置（场景没有瞄准相机）时如实 no-op，不得替场景自建。
+        /// </summary>
+        void SetAiming(bool aiming);
+
         /// <summary>重置跟随状态（解除控制/重开局时调：下一帧重新落位，不从上一次位置飞过去）。</summary>
         void Reset();
 

@@ -51,11 +51,6 @@ namespace LiteSim.View
         /// <summary>快照间隔（秒）——插值窗口时长，由 <see cref="SimConfig.SnapshotHz"/> 派生。</summary>
         public static float SnapshotInterval => 1f / SimConfig.SnapshotHz;
 
-        /// <summary>本地实体视图内的**瞄准/相机参考点**名字（prefab 约定：`Player(Rifle)` 根下
-        /// 直接子物体 `AimPoint`，局部 (0,1,1)——胸高、模型前方 1m）。2026-09-27 第三人称形态：
-        /// 相机跟随与瞄准原点都改锚这里（视觉胸高支点），缺该子物体时自动退回实体根（原口径）。</summary>
-        public const string LocalAimPointName = "AimPoint";
-
         private readonly SimWorldState _sim;                  // 本地预测态（只读）
         private readonly EntityViewMap _views;
         private readonly ICameraService _camera;              // 相机端口（实现住 Platform.Unity 适配器——本层不认识 Cinemachine）
@@ -69,7 +64,6 @@ namespace LiteSim.View
         private SimVector3 _localDisplay;
         private float _localYaw;
         private bool _hasLocalDisplay;
-        private Transform _localAimPoint;                    // 本地视图的瞄准/相机参考点（见 TryResolveLocalAimPoint）
         private CharacterController _localCc;                 // 本地视图物理代理（CC.Move 收敛到衰减目标——见 PlaceLocal/EnsureLocalCc）
 
         /// <summary>硬切距离阈值（米），两处共用：① 本地和解衰减超过它直接落位（复活/传送）；
@@ -91,19 +85,6 @@ namespace LiteSim.View
 
         /// <summary>本地玩家**表现**位置（相机跟随目标；缓存避免调用方每帧重算）。</summary>
         public Vector3 LocalDisplayPosition => new Vector3(_localDisplay.X, _localDisplay.Y, _localDisplay.Z);
-
-        /// <summary>本地视图的 AimPoint 是否已解析（相机/瞄准参考点；未建视图或缺子物体 = false）。</summary>
-        public bool HasLocalAimPoint => TryResolveLocalAimPoint(out _);
-
-        /// <summary>本地视图 AimPoint 世界位置（调用方仅在 HasLocalAimPoint 为 true 时读取）。</summary>
-        public Vector3 LocalAimPointPosition
-        {
-            get
-            {
-                TryResolveLocalAimPoint(out Transform t);
-                return t != null ? t.position : LocalDisplayPosition;
-            }
-        }
 
         /// <summary>本地表现是否已初始化（首帧直接落位，不做衰减）。</summary>
         public bool HasLocalDisplay => _hasLocalDisplay;
@@ -166,7 +147,6 @@ namespace LiteSim.View
             if (entityId == LocalEntityId) return;
             LocalEntityId = entityId;
             _hasLocalDisplay = false;          // 换实体/重连：重新落位（不从上一条命的位置飞过去）
-            _localAimPoint = null;             // AimPoint 缓存一并失效（视图随实体重建，引用会换）
             _localCc = null;                   // CC 代理一并失效（视图重建后 EnsureLocalCc 重新解析）
         }
 
@@ -332,27 +312,11 @@ namespace LiteSim.View
         private void UpdateCamera(float dt)
         {
             if (_camera == null || !_hasLocalDisplay) return;
-            // **主相机只看角色本体**（2026-09-27 分镜裁决）：焦点 = 本地表现位置（角色根）；
-            // AimPoint **不喂主相机**——它是瞄准相机的资产（瞄准态相机届时经
-            // <see cref="LocalAimPointPosition"/> 接线）。相机构图（肩偏移/阻尼/FOV）归 vcam 场景配置。
+            // **主相机只看角色本体**（2026-09-27 分镜裁决，2026-10-02 AimPoint 废弃后仍成立）：
+            // 焦点 = 本地表现位置（角色根）。瞄准相机（ADS）由流程经 <see cref="ICameraService.SetAiming"/>
+            // 接管，跟随目标与主相机同源（相机服务侧同一焦点），不引用预制体参考点。
+            // 相机构图（肩偏移/阻尼/FOV）归 vcam 场景配置。
             _camera.Follow(LocalDisplayPosition, dt);   // 相机平滑/档位归实现（Cinemachine 由 vcam 配置表达）
-        }
-
-        /// <summary>解析本地视图的 AimPoint（prefab 约定名，直系子物体查找；见 <see cref="LocalAimPointName"/>）。
-        /// 缓存 + 失效重查（视图随死亡回收/复活重建，Transform 随之换引用——ReferenceEquals 判真身）。</summary>
-        private bool TryResolveLocalAimPoint(out Transform aimPoint)
-        {
-            aimPoint = _localAimPoint;
-            if (aimPoint != null && !ReferenceEquals(aimPoint, null)) return true;
-
-            if (LocalEntityId == 0 || !_sim.TryResolve(LocalEntityId, out int slotIndex)) return false;
-            if (!_views.TryGet(slotIndex, out var view)) return false;
-
-            aimPoint = view.transform.Find(LocalAimPointName);
-            if (aimPoint == null) return false;
-
-            _localAimPoint = aimPoint;               // 解析成功才缓存：缺子物体的 prefab 每帧重查（幂等且便宜）
-            return true;
         }
 
         /// <summary>
@@ -400,7 +364,7 @@ namespace LiteSim.View
 
         // ---- 辅助 ----
 
-        /// <summary>摆位：位置 1:1；旋转 = <c>90° − yaw</c>——模型视觉前沿约定 +Z（AimPoint 同轴），
+        /// <summary>摆位：位置 1:1；旋转 = <c>90° − yaw</c>——模型视觉前沿约定 +Z，
         /// Sim 的 Yaw 从 +X 起量（Atan2(AimZ, AimX)），两者差恒定 90°（2026-09-27 实测修正：原 −yaw
         /// 写法让角色面向偏转 90°、准星出现在角色侧面）。</summary>
         private static void Place(Transform t, in SimVector3 pos, float yaw)

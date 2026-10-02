@@ -317,11 +317,13 @@ namespace LiteGame.Tests.EditMode
             Assert.AreEqual(1, cam.FollowCount);
         }
 
-        /// <summary>相机端口替身：只记"喂了几次、喂的什么"。</summary>
+        /// <summary>相机端口替身：只记"喂了几次、喂的什么"（瞄准态由流程喂，SimView 不碰——2026-10-02 瞄准相机批起记录最后值）。</summary>
         private sealed class CameraProbe : ICameraService
         {
             public int FollowCount;
             public Vector3 LastTarget;
+            public int SetAimingCount;
+            public bool LastAiming;
             public bool HasFocus { get; private set; }
             public Vector3 Focus => LastTarget;
 
@@ -330,6 +332,12 @@ namespace LiteGame.Tests.EditMode
                 FollowCount++;
                 LastTarget = target;
                 HasFocus = true;
+            }
+
+            public void SetAiming(bool aiming)
+            {
+                SetAimingCount++;
+                LastAiming = aiming;
             }
 
             public void Reset() => HasFocus = false;

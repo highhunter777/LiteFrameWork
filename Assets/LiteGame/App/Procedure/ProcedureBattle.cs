@@ -281,6 +281,18 @@ namespace LiteGame
         }
 
         /// <summary>
+        /// 本地玩家是否处于瞄准态（右键 ADS）——喂 <see cref="ICameraService.SetAiming"/> 的语义源。
+        /// 读 <see cref="SimView.IsAiming"/>（本地预测态：连续位进 PredictedButtons，与本地手感同帧），
+        /// 按实体 Id 解析槽位（同准心驱动的读法）；未对齐/视图未建 = false。
+        /// </summary>
+        private bool IsLocalAiming()
+        {
+            return _view != null && _view.LocalEntityId != 0
+                && _view.TryGetSlot(_view.LocalEntityId, out int slot)
+                && _view.IsAiming(slot);
+        }
+
+        /// <summary>
         /// 输入接线（§3 输入三件）：**设备源已在装配根装好**（<see cref="InputModule"/>，
         /// 2026-09-26 New Input System 接入），本阶段只清上一局的派发状态并把服务交给对局上下文。
         /// **上下文门不在这里裁决**——拦截源在装配根按名登记（`ui.modal`），由服务采样时统一裁决
@@ -325,6 +337,7 @@ namespace LiteGame
             _locomotion = null;
             _crosshair?.Dispose();                // 准心驱动（还系统光标——同属视图消费者，先于视图本体拆）
             _crosshair = null;
+            _camera?.SetAiming(false);            // 瞄准机还原（优先级/Follow 归还场景值——离场不得遗留接管态）
             _context?.AttachInput(null);
             _view = null;                                         // 视图实例随 _viewRoot 销毁
             if (_viewRootGo != null)
@@ -350,16 +363,18 @@ namespace LiteGame
             if (UnityEngine.Input.GetKeyDown(LeaveKey)) _context.Leave();
 #endif
 
-            // ① 渲染帧采样（上下文门在此裁决：登记源任一成立 → 本帧不产生新输入，见 IInputService）。
-            //    瞄准参照原点取自 Sim 预测态——不读视图 Transform（平滑过的表现量会把误差回灌进输入）。
-            //    2026-09-27 分镜裁决：AimPoint 不进输入/主相机，留给瞄准相机（瞄准态接线时用
-            //    SimView.LocalAimPointPosition）。
+            // ① 渲染帧采样（上下文门在此裁决：登记源任一成立 → 本帧输入为空，见 IInputService）。
+            //    瞄准参照原点取自 Sim 预测态——不读视图 Transform（平滑过的表现量会把误差回灌输入）。
+            //    瞄准相机（2026-10-02 瞄准相机批）：AimPoint 方案已废弃（用户裁决）——ADS 视角由
+            //    SetAiming 每帧喂本地预测态瞄准位，适配器抬场景 /Aim Camera 优先级接管，
+            //    跟随目标与主相机同源，不引用预制体参考点。
             if (_input != null && _context.Sim != null)
                 _input.SampleOnRenderFrame(_context.LocalPosition);
 
             _context.Tick(elapseSeconds);         // ② 网络双泵 + 输入上行 + 预测推进 + 表现视图（唯一驱动入口）
             _locomotion?.Tick(elapseSeconds);    // 移动动画：视图位置已更新，再解析目标姿态（视图的下游消费者）
             _crosshair?.Tick();                  // 对局准心（HUD）：位置/形态/光标——视图状态的最后一个消费者
+            _camera?.SetAiming(IsLocalAiming()); // 瞄准相机接管（每帧幂等；适配器按沿生效——视图态已解析）
         }
 
         /// <summary>等对局结束（Ended 恰好一次；ct 打断 = 宿主关闭路径）。</summary>

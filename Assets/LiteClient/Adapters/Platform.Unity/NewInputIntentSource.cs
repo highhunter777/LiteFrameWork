@@ -22,8 +22,8 @@ namespace LiteGame
     ///   需要逐玩家单调递增的 <c>ActionSeq</c>。Action 资产里这些动作**尚未定义**（随武器/Action
     ///   消费者接入，G2），故本版只产出 Fire/Move/Aim，不伪造其它位；
     /// - 瞄准方向由**鼠标屏幕点 → 地面平面**解算，参照原点由调用方逐帧给出
-    ///   （<see cref="Sample"/> 的 <c>localPos</c>——2026-09-27 起为**玩家预制体 AimPoint** 的世界位置，
-    ///   退回 Sim 预测态位置）；
+    ///   （<see cref="Sample"/> 的 <c>localPos</c>——生产调用方传 Sim 预测态位置，
+    ///   不读视图 Transform；预制体 AimPoint 参考点已随 2026-10-02 瞄准相机批废弃）；
     /// - **移动按相机平面 yaw 旋转**（2026-09-27 第三人称形态）：W=屏幕上=相机 forward 投影；
     ///   相机为 null（纯测试装配）时退化为世界轴直映射。
     /// </summary>
