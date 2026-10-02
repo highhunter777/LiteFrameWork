@@ -204,7 +204,7 @@ namespace LiteGame
             return _vcam.gameObject.scene.IsValid();
         }
 
-        public void Follow(in Vector3 target, float deltaSeconds)
+        public void Follow(in Vector3 target, in Quaternion facing, float deltaSeconds)
         {
             if (_shutdown) return;
 
@@ -216,7 +216,15 @@ namespace LiteGame
             }
 
             Focus = target;                      // 表现空间的目标位置（诊断/HUD 用）
-            if (_target != null && !ReferenceEquals(_target, null)) _target.position = Focus;   // 阻尼/平滑在 Cinemachine 侧按 vcam 配置生效
+            if (_target != null && !ReferenceEquals(_target, null))
+            {
+                // 位置每帧写；**朝向只写自建焦点**——场景配置的 Follow 目标自带姿态语义（骨骼/动画），
+                // 不越权覆写（2026-10-02 焦点带旋转批：构图偏移如 FramingTransposer 的
+                // TrackedObjectOffset 随 Follow 目标的旋转——自建焦点此前恒 identity，
+                // 偏移实际是世界系固定，玩家转向后构图点绕角色乱转）。
+                if (_ownsTarget) _target.SetPositionAndRotation(target, facing);
+                else _target.position = Focus;   // 阻尼/平滑在 Cinemachine 侧按 vcam 配置生效
+            }
             _hasFocus = true;
         }
 

@@ -315,8 +315,8 @@ namespace LiteSim.View
             // **主相机只看角色本体**（2026-09-27 分镜裁决，2026-10-02 AimPoint 废弃后仍成立）：
             // 焦点 = 本地表现位置（角色根）。瞄准相机（ADS）由流程经 <see cref="ICameraService.SetAiming"/>
             // 接管，跟随目标与主相机同源（相机服务侧同一焦点），不引用预制体参考点。
-            // 相机构图（肩偏移/阻尼/FOV）归 vcam 场景配置。
-            _camera.Follow(LocalDisplayPosition, dt);   // 相机平滑/档位归实现（Cinemachine 由 vcam 配置表达）
+            // 相机构图（肩偏移/阻尼/FOV）归 vcam 场景配置；朝向随焦点下发（角色系构图偏移的基准）。
+            _camera.Follow(LocalDisplayPosition, FacingRotation(_localYaw), dt);   // 平滑/档位归实现（Cinemachine 由 vcam 配置表达）
         }
 
         /// <summary>
@@ -364,13 +364,21 @@ namespace LiteSim.View
 
         // ---- 辅助 ----
 
-        /// <summary>摆位：位置 1:1；旋转 = <c>90° − yaw</c>——模型视觉前沿约定 +Z，
-        /// Sim 的 Yaw 从 +X 起量（Atan2(AimZ, AimX)），两者差恒定 90°（2026-09-27 实测修正：原 −yaw
-        /// 写法让角色面向偏转 90°、准星出现在角色侧面）。</summary>
+        /// <summary>摆位：位置 1:1；旋转 = <see cref="FacingRotation"/>（模型视觉前沿约定 +Z）。</summary>
         private static void Place(Transform t, in SimVector3 pos, float yaw)
         {
             t.position = new Vector3(pos.X, pos.Y, pos.Z);
-            t.rotation = Quaternion.Euler(0f, 90f - yaw * Mathf.Rad2Deg, 0f);
+            t.rotation = FacingRotation(yaw);
+        }
+
+        /// <summary>
+        /// Sim Yaw（从 +X 起量）→ 视觉朝向旋转：恒差 <c>90°</c>（模型视觉前沿约定 +Z；2026-09-27
+        /// 实测修正：原 −yaw 写法让角色面向偏转 90°、准星出现在角色侧面）。相机焦点（2026-10-02
+        /// 焦点带旋转批）用同一份旋转——构图偏移随它变**角色系**（X=右肩、Z=前方）。
+        /// </summary>
+        private static Quaternion FacingRotation(float yaw)
+        {
+            return Quaternion.Euler(0f, 90f - yaw * Mathf.Rad2Deg, 0f);
         }
 
         private static bool TryFind(SimWorldStateSnapshot snapshot, long entityId, out EntitySnapshotEntry entry)

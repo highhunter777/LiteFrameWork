@@ -299,6 +299,9 @@ namespace LiteGame.Tests.EditMode
             Assert.AreEqual(1, cam.FollowCount, "每渲染帧一次");
             Assert.AreEqual(4f, cam.LastTarget.x, 0.1f, "喂的是本地表现位置（X）");
             Assert.AreEqual(6f, cam.LastTarget.z, 0.1f, "喂的是本地表现位置（Z）");
+            // 2026-10-02 焦点带旋转批：朝向同份下发（yaw=0 → 视觉前沿 +Z，即 90° 旋转）——
+            // 构图偏移（TrackedObjectOffset 随 Follow 目标旋转）据此变角色系。
+            Assert.AreEqual(90f, cam.LastFacing.eulerAngles.y, 0.01f, "朝向 = 90°−yaw（视觉前沿 +Z 约定）");
         }
 
         [Test]
@@ -317,20 +320,23 @@ namespace LiteGame.Tests.EditMode
             Assert.AreEqual(1, cam.FollowCount);
         }
 
-        /// <summary>相机端口替身：只记"喂了几次、喂的什么"（瞄准态由流程喂，SimView 不碰——2026-10-02 瞄准相机批起记录最后值）。</summary>
+        /// <summary>相机端口替身：只记"喂了几次、喂的什么"（朝向随 2026-10-02 焦点带旋转批记录；
+        /// 瞄准态由流程喂，SimView 不碰——记录位供流程级用例断言）。</summary>
         private sealed class CameraProbe : ICameraService
         {
             public int FollowCount;
             public Vector3 LastTarget;
+            public Quaternion LastFacing;
             public int SetAimingCount;
             public bool LastAiming;
             public bool HasFocus { get; private set; }
             public Vector3 Focus => LastTarget;
 
-            public void Follow(in Vector3 target, float deltaSeconds)
+            public void Follow(in Vector3 target, in Quaternion facing, float deltaSeconds)
             {
                 FollowCount++;
                 LastTarget = target;
+                LastFacing = facing;
                 HasFocus = true;
             }
 
