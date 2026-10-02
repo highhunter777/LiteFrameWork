@@ -21,7 +21,8 @@
 param(
     [string]$ProjectPath = '',
     [string]$ExePath = 'Builds/StandaloneWindows64/Test.exe',
-    [int]$TimeoutSec = 30
+    [int]$TimeoutSec = 30,
+    [string[]]$PlayerArgs = @()   # forwarded to the player exe (e.g. -content.cdnUrl=http://127.0.0.1:18090)
 )
 
 if ([string]::IsNullOrWhiteSpace($ProjectPath)) {
@@ -51,7 +52,7 @@ Get-Process -Name (Split-Path $exe -Leaf) -ErrorAction SilentlyContinue | Stop-P
 Start-Sleep -Seconds 1
 if (Test-Path $playerLog) { Remove-Item $playerLog -Force -ErrorAction SilentlyContinue }
 
-$proc = Start-Process -FilePath $exe -WorkingDirectory (Split-Path $exe -Parent) -PassThru
+$proc = Start-Process -FilePath $exe -WorkingDirectory (Split-Path $exe -Parent) -PassThru -ArgumentList $PlayerArgs
 Write-Host "launched (pid $($proc.Id)); polling up to $TimeoutSec s for defined-state marker" -ForegroundColor White
 
 $markers = @('BootstrapError', '[Asset] ready', '[UI] main open')

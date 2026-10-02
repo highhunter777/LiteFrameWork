@@ -14,6 +14,13 @@ namespace LiteGame
     /// 事务代次与激活决策"）：本类负责**逐文件获取 + 归属校验 + 原子落盘**；
     /// 交付路径（contentRoot/releaseId/相对路径）由发布流水线保证与清单一致。
     ///
+    /// **来源与重试（端口契约："按 <see cref="DownloadPlan"/> 的选定来源取字节"）**：
+    /// 下载基址来自计划选定源（<see cref="DownloadSource.BaseLocation"/>，装配点经
+    /// <see cref="ContentDeployConfig"/> 注入）；逐文件走 <see cref="DownloadPlan.TrySelect"/> →
+    /// 尝试 → 暂态失败 <see cref="DownloadPlan.RecordAttempt"/> 计数 → <see cref="DownloadPlan.BackoffMs"/>
+    /// 退避后再选源——单源即"同源重试"，多源即轮转换源（§7 换源/退避语义）；
+    /// 确定性失败（4xx/写入失败）立即终止（重试与换源都无意义，不通过反复重试绕过验证）。
+    ///
     /// **断点续传**（§7"验证临时文件的 Release/长度/摘要归属；完成后全文件校验，
     /// **不能只信已传字节计数**"）：
     /// - 临时文件路径**归属到具体 Release**（含 releaseId 段）——换 Release 不会误用旧半截文件；
@@ -28,20 +35,16 @@ namespace LiteGame
     public sealed class HttpCandidateFetcher : ICandidateFetcher
     {
         private readonly string _candidateRoot;      // 落盘根（FileSys 相对路径）
-        private readonly string _baseUrl;            // 来源基址（末尾不带 /）
         private readonly int _timeoutSeconds;
 
         /// <summary>下载进度回调（已完成文件数、总文件数、当前文件名）；null = 不回调。</summary>
         public Action<int, int, string> OnProgress;
 
-        public HttpCandidateFetcher(string candidateRoot, string baseUrl, int timeoutSeconds = 30)
+        public HttpCandidateFetcher(string candidateRoot, int timeoutSeconds = 30)
         {
             _candidateRoot = string.IsNullOrEmpty(candidateRoot)
                 ? throw new ArgumentException("候选根不能为空", nameof(candidateRoot))
                 : candidateRoot.TrimEnd('/');
-            _baseUrl = string.IsNullOrEmpty(baseUrl)
-                ? throw new ArgumentException("来源基址不能为空", nameof(baseUrl))
-                : baseUrl.TrimEnd('/');
             _timeoutSeconds = timeoutSeconds < 1 ? 30 : timeoutSeconds;
         }
 
@@ -60,7 +63,7 @@ namespace LiteGame
                 if (ct.IsCancellationRequested)
                     return CandidateFetchResult.Fail(DownloadFailureKind.Canceled);
 
-                DownloadFailureInfo failure = await FetchOneAsync(manifest.ReleaseId, entry, ct);
+                DownloadFailureInfo failure = await FetchOneAsync(manifest.ReleaseId, entry, plan, ct);
                 if (failure.Kind != DownloadFailureKind.None)
                     return CandidateFetchResult.Fail(failure.Kind, failure.Path, failure.Detail);
 
@@ -86,7 +89,7 @@ namespace LiteGame
         /// 回收该发布的临时目录（<see cref="TempPath"/> 的 Release 隔离根：
         /// <c>&lt;候选根&gt;/.tmp/&lt;releaseId&gt;</c>）——§8 表行 1"清理属于该候选的临时文件"。
         ///
-        /// 幂等（目录不存在 = no-op）；按端口契约**不抛**：清理失败吞掉——它是恢复的次要目标，
+        /// 幂等（目录不存在 = no-op）；按端口契约**不抛**：清理失败吞掉——清理是恢复的次要目标，
         /// 不得阻断"以 Confirmed 继续"；残留垃圾被隔离在该发布的 .tmp 目录内，
         /// 下次同发布清理会幂等重试。
         /// </summary>
@@ -105,10 +108,10 @@ namespace LiteGame
         }
 
         /// <summary>
-        /// 取单个文件。临时文件与目标文件同目录（跨卷 Move 会退化为拷贝）。
+        /// 取单个文件：已完整落盘则跳过（幂等重跑不重复下载）；否则按计划逐源尝试。
         /// </summary>
         private async UniTask<DownloadFailureInfo> FetchOneAsync(
-            string releaseId, ReleaseFileEntry entry, CancellationToken ct)
+            string releaseId, ReleaseFileEntry entry, DownloadPlan plan, CancellationToken ct)
         {
             // 已完整落盘（长度一致）则跳过——幂等重跑不重复下载
             string target = _candidateRoot + "/" + entry.Path;
@@ -119,13 +122,41 @@ namespace LiteGame
             string temp = TempPath(releaseId, entry.Path);
             long have = FileSys.GetFileLength(temp);
             if (have > entry.Length)
-            {
                 FileSys.Delete(temp);                 // 超出清单长度 = 无归属价值，弃置重下
-                have = 0;
+
+            while (true)
+            {
+                // 选源（含预算判定）：暂态失败轮转换源，确定性失败不在此路径（下方即止）
+                if (!plan.TrySelect(entry.Path, out DownloadPlanEntry selected, out DownloadFailureInfo selectFailure))
+                    return selectFailure;             // 达尝试上限/不在清单 → SourceUnavailable
+
+                string url = selected.Source.BaseLocation + "/" + releaseId + "/" + entry.Path;
+                DownloadFailureInfo failure = await FetchFromUrl(url, entry, temp, target, ct);
+                if (failure.Kind == DownloadFailureKind.None)
+                    return default;                   // 该文件完成（摘要复算归上层校验器）
+
+                if (!failure.IsTransient) return failure;               // 确定性：重试与换源无效
+                if (!plan.RecordAttempt(entry.Path, failure)) return failure;   // 预算耗尽：末次失败如实上报
+
+                int backoffMs = plan.BackoffMs(selected.Attempt);
+                if (backoffMs > 0)
+                {
+                    try
+                    {
+                        await UniTask.Delay(backoffMs, cancellationToken: ct);
+                    }
+                    catch (OperationCanceledException)
+                    {
+                        return new DownloadFailureInfo(DownloadFailureKind.Canceled, entry.Path);
+                    }
+                }
             }
+        }
 
-            string url = _baseUrl + "/" + releaseId + "/" + entry.Path;
-
+        /// <summary>对单个 URL 做一次完整获取：传输 → 长度核对 → 原子提交（临时件随即移除）。</summary>
+        private async UniTask<DownloadFailureInfo> FetchFromUrl(
+            string url, ReleaseFileEntry entry, string temp, string target, CancellationToken ct)
+        {
             using (var request = UnityWebRequest.Get(url))
             {
                 request.timeout = _timeoutSeconds;

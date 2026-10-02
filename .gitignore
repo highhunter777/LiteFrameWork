@@ -213,3 +213,6 @@ Assets/MagicaCloth2.meta
 
 # ===== .trae/（Trae 编辑器本地配置，机器私有）=====
 .trae/
+
+# ===== LocalCDN/（本地 CDN 发布根——签名信封与候选内容，机器私有不入库）=====
+LocalCDN/

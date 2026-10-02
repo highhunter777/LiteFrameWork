@@ -1,3 +1,4 @@
+using System;
 using System.Threading;
 using Cysharp.Threading.Tasks;
 using LiteFramework;
@@ -24,32 +25,56 @@ namespace LiteGame
             // - **信任锚**：内置锚表（ContentTrustAnchors——根信任编入应用本体，不放可写存储）。
             //   锚点已 provisioning（RSA-2048）——候选验签链可用；轮换/撤销经下一版内置表 + Revoke
             //   体现（私钥绝不入库/入包）。
-            // - **候选来源 = 本地信封文件**（`content/candidate.json`）：无 CDN 条件下走完整链路；
-            //   CDN 通道（HttpCandidateFetcher）未配则不空挂。
+            // - **候选通道 = 部署配置二选一**（§7 部署配置契约；基址非信任边界——信封必过验签、
+            //   文件必过摘要复算，被污染的基址只能造成失败/拒绝）：
+            //   配了 CDN（ContentDeployConfig，命令行注入）→ 信封与文件都走 HTTP（HttpCandidateProvider +
+            //   HttpCandidateFetcher，来源经 DownloadPlan 下发）；未配 → 本地信封文件通道（现行为，
+            //   无网络依赖，离线开发用）。
             // - **磁盘余量 = DriveInfo**：桌面返回真实可用空间；移动端 -1 不可知 → 空间预检按不足处理。
             // - **健康探针族**：候选配置（config/ 前缀 = Luban 表字节）+ 候选 Lua（lua/ 前缀 → 模块名 →
             //   受控沙箱执行）——两者基于候选根文件，先于资源包初始化可运行。
             //   入口资源可加载性探针（AssetsHealthProbe）查当前代次入口，须在资源包初始化后才有意义
             //   （Patch 先于初始化，时序不可能）。
+            ContentCdnConfig deploy = ContentDeployConfig.Load();
+            ICandidateFetcher fetcher;
+            ICandidateProvider provider;
+            Func<ReleaseManifest, DownloadPlan> planFactory;
+            if (deploy.HasCdn)
+            {
+                var source = new DownloadSource("cdn", deploy.BaseUrl);
+                fetcher = new HttpCandidateFetcher(CandidateRoot, deploy.TimeoutSeconds);
+                provider = new HttpCandidateProvider(deploy.BaseUrl, deploy.OfferPath, deploy.TimeoutSeconds);
+                planFactory = manifest => new DownloadPlan(manifest, new[] { source });
+                Log.Info($"内容通道：CDN {deploy.BaseUrl}（信封 {deploy.OfferPath}）", "Content");
+            }
+            else
+            {
+                fetcher = new LocalDirectoryCandidateFetcher(CandidateRoot);
+                provider = new FileSystemCandidateProvider();
+                planFactory = null;                       // PatchRunner 默认计划（本地通道只清点落盘、不消费来源）
+                Log.Info("内容通道：本地信封（未配置 CDN）", "Content");
+            }
+
             var trustedKeys = new TrustedKeyStore();
-            ContentTrustAnchors.ApplyTo(trustedKeys);                                    // 锚点已 provisioning
+            ContentTrustAnchors.ApplyTo(trustedKeys);                                // 锚点已 provisioning
             var candidateFiles = new FileSysCandidateFileSource(CandidateRoot);
             var coordinator = new PatchCoordinator(
                 context.Require<ActivationTransactionStore>(),
                 candidateFiles,
                 new DriveInfoSpaceProbe(UnityEngine.Application.persistentDataPath),
-                new LocalDirectoryCandidateFetcher(CandidateRoot),
+                fetcher,
                 new CompositeHealthCheck(
                     new CandidateConfigHealthProbe(CandidateRoot, ReleaseLayout.ConfigPaths),
                     new LuaScriptsHealthProbe(CandidateRoot, ReleaseLayout.LuaScripts)),
                 new ContentActivator(_content));
             context.Put(new PatchRunner(
-                new FileSystemCandidateProvider(),
+                provider,
                 BuildPlayerCapabilities(),
                 context.Require<ActivationTransactionStore>(),
                 coordinator,
                 trustedKeys.AsResolver(),                                                // keyId → 验签器；未登记/已撤销 → null → 拒（§6）
-                budget: null));
+                budget: null,
+                planFactory: planFactory));
             context.Put(coordinator);
             return UniTask.CompletedTask;
         }

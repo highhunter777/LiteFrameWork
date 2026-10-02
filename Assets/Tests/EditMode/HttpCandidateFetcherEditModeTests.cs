@@ -1,7 +1,6 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
-using System.Net;
 using System.Text;
 using System.Threading;
 using Cysharp.Threading.Tasks;
@@ -21,6 +20,10 @@ namespace LiteGame.Tests.EditMode
     /// 能抓到替身测试断言不了的传输层与 PlayerLoop 依赖问题
     /// （`GetAwaiter().GetResult()` 对 `SendWebRequest` 会抛 "Not yet completed"）。
     ///
+    /// **来源语义**：下载基址来自 <see cref="DownloadPlan"/> 选定源（端口契约"按计划取字节"）——
+    /// 故每用例的计划的源就是本地监听基址；重试/换源语义用 <see cref="LocalHttpTestServer.RouteFlaky"/>
+    /// 的故障注入 + <see cref="LocalHttpTestServer.HitCount"/> 断言实际尝试次数。
+    ///
     /// **形态**：异步用例用 <c>[UnityTest]</c> + <c>IEnumerator</c>——
     /// EditMode 下没有 PlayerLoop，`SendWebRequest` 的续延不在 MoveNext 点执行，
     /// 同步忙等会挂起，必须由 Test Framework 在帧间推进。
@@ -30,70 +33,28 @@ namespace LiteGame.Tests.EditMode
     {
         private const string Root = "test_http_candidate";
 
-        private HttpListener _listener;
-        private string _baseUrl;
-        private readonly Dictionary<string, (int status, byte[] body)> _routes =
-            new Dictionary<string, (int, byte[])>();
+        private LocalHttpTestServer _server;
 
         [SetUp]
         protected void Init()
         {
             FileSys.Init(new UnityPathProvider(), new NewtonsoftJsonSerializer());
             if (FileSys.DirectoryExists(Root)) FileSys.DeleteDirectory(Root);
-
-            int port = FreePort();
-            _baseUrl = "http://127.0.0.1:" + port;
-            _listener = new HttpListener();
-            _listener.Prefixes.Add(_baseUrl + "/");
-            _listener.Start();
-            _listener.BeginGetContext(OnRequest, null);
+            _server = new LocalHttpTestServer();
         }
 
         [TearDown]
         protected void Clean()
         {
-            try { _listener?.Stop(); _listener?.Close(); } catch (Exception) { }
-            _listener = null;
+            _server?.Dispose();
+            _server = null;
             if (FileSys.DirectoryExists(Root)) FileSys.DeleteDirectory(Root);
         }
 
-        private static int FreePort()
-        {
-            var l = new System.Net.Sockets.TcpListener(IPAddress.Loopback, 0);
-            l.Start();
-            int port = ((IPEndPoint)l.LocalEndpoint).Port;
-            l.Stop();
-            return port;
-        }
-
-        private void OnRequest(IAsyncResult ar)
-        {
-            HttpListener listener = _listener;
-            if (listener == null || !listener.IsListening) return;
-            try
-            {
-                HttpListenerContext ctx = listener.EndGetContext(ar);
-                listener.BeginGetContext(OnRequest, null);
-
-                string path = ctx.Request.Url.AbsolutePath;
-                if (_routes.TryGetValue(path, out var route))
-                {
-                    ctx.Response.StatusCode = route.status;
-                    if (route.body != null) ctx.Response.OutputStream.Write(route.body, 0, route.body.Length);
-                }
-                else
-                {
-                    ctx.Response.StatusCode = 404;
-                }
-                ctx.Response.Close();
-            }
-            catch (Exception) { /* 停止时的竞态 */ }
-        }
-
-        private void Route(string path, string content, int status = 200)
-            => _routes[path] = (status, Encoding.UTF8.GetBytes(content));
-
         private static byte[] B(string s) => Encoding.UTF8.GetBytes(s);
+
+        /// <summary>零退避预算：重试语义照常计数，但不真等（退避数值归 DownloadPlan 的 L1 用例）。</summary>
+        private static DownloadBudget ZeroBackoff() => new DownloadBudget { BackoffBaseMs = 0, BackoffCapMs = 0 };
 
         private static ReleaseManifest ManifestWith(params (string path, string content)[] files)
         {
@@ -110,18 +71,19 @@ namespace LiteGame.Tests.EditMode
             return m;
         }
 
-        private static DownloadPlan PlanFor(ReleaseManifest m)
-            => new DownloadPlan(m, new[] { new DownloadSource("http", "http://x") });
+        /// <summary>单源计划（源 = 本地监听基址）。</summary>
+        private DownloadPlan PlanFor(ReleaseManifest m)
+            => new DownloadPlan(m, new[] { new DownloadSource("http", _server.BaseUrl) }, ZeroBackoff());
 
-        private HttpCandidateFetcher Fetcher() => new HttpCandidateFetcher(Root, _baseUrl);
+        private HttpCandidateFetcher Fetcher() => new HttpCandidateFetcher(Root);
 
         // ---- 正常路径 ----
 
         [UnityTest]
         public IEnumerator 真实HTTP_下载并落盘_内容与摘要一致()
         {
-            Route("/rel-http/a.bin", "AAA");
-            Route("/rel-http/sub/b.bin", "BB");
+            _server.Route("/rel-http/a.bin", "AAA");
+            _server.Route("/rel-http/sub/b.bin", "BB");
             ReleaseManifest m = ManifestWith(("a.bin", "AAA"), ("sub/b.bin", "BB"));
 
             CandidateFetchResult r = default;
@@ -140,8 +102,8 @@ namespace LiteGame.Tests.EditMode
         [UnityTest]
         public IEnumerator 真实HTTP_进度回调_逐文件推进()
         {
-            Route("/rel-http/a.bin", "A");
-            Route("/rel-http/b.bin", "B");
+            _server.Route("/rel-http/a.bin", "A");
+            _server.Route("/rel-http/b.bin", "B");
             ReleaseManifest m = ManifestWith(("a.bin", "A"), ("b.bin", "B"));
 
             var progress = new List<(int done, int total)>();
@@ -168,6 +130,7 @@ namespace LiteGame.Tests.EditMode
             yield return Fetcher().FetchAsync(m, PlanFor(m)).ToCoroutine(x => r = x);
 
             Assert.IsTrue(r.Succeeded, r.Failure.ToString());
+            Assert.AreEqual(0, _server.HitCount("/rel-http/a.bin"));
         }
 
         // ---- 失败分类 ----
@@ -183,12 +146,13 @@ namespace LiteGame.Tests.EditMode
             Assert.IsFalse(r.Succeeded);
             Assert.AreEqual(DownloadFailureKind.FileMissing, r.Failure.Kind);
             Assert.IsFalse(r.Failure.IsTransient);            // 4xx = 确定性
+            Assert.AreEqual(1, _server.HitCount("/rel-http/missing.bin"), "确定性失败不得重试");
         }
 
         [UnityTest]
-        public IEnumerator HTTP500_判暂态失败_可重试()
+        public IEnumerator HTTP500_判暂态失败_按预算重试至耗尽()
         {
-            Route("/rel-http/a.bin", "boom", status: 500);
+            _server.Route("/rel-http/a.bin", "boom", status: 500);    // 恒 500
             ReleaseManifest m = ManifestWith(("a.bin", "AAA"));
 
             CandidateFetchResult r = default;
@@ -197,12 +161,71 @@ namespace LiteGame.Tests.EditMode
             Assert.IsFalse(r.Succeeded);
             Assert.AreEqual(DownloadFailureKind.TransientNetwork, r.Failure.Kind);
             Assert.IsTrue(r.Failure.IsTransient);
+            // 默认预算 MaxAttemptsPerFile=3：三次尝试全部落在同一源后如实上报末次暂态失败
+            Assert.AreEqual(3, _server.HitCount("/rel-http/a.bin"));
+        }
+
+        [UnityTest]
+        public IEnumerator 暂态失败_重试后成功()
+        {
+            _server.RouteFlaky("/rel-http/a.bin", "AAA", failTimes: 1);   // 首次 500，之后 200
+            ReleaseManifest m = ManifestWith(("a.bin", "AAA"));
+
+            CandidateFetchResult r = default;
+            yield return Fetcher().FetchAsync(m, PlanFor(m)).ToCoroutine(x => r = x);
+
+            Assert.IsTrue(r.Succeeded, r.Failure.ToString());
+            Assert.AreEqual(2, _server.HitCount("/rel-http/a.bin"));
+            Assert.AreEqual("AAA", Encoding.UTF8.GetString(FileSys.ReadAllBytes(Root + "/a.bin")));
+        }
+
+        [UnityTest]
+        public IEnumerator 多源_首选源暂态故障_换源成功()
+        {
+            // 同一监听的两个路径前缀模拟两个源：srcA 恒 500，srcB 正常
+            _server.Route("/srcA/rel-http/a.bin", "boom", status: 500);
+            _server.Route("/srcB/rel-http/a.bin", "AAA");
+            ReleaseManifest m = ManifestWith(("a.bin", "AAA"));
+            var plan = new DownloadPlan(m, new[]
+            {
+                new DownloadSource("srcA", _server.BaseUrl + "/srcA", priority: 0),
+                new DownloadSource("srcB", _server.BaseUrl + "/srcB", priority: 1),
+            }, ZeroBackoff());
+
+            CandidateFetchResult r = default;
+            yield return Fetcher().FetchAsync(m, plan).ToCoroutine(x => r = x);
+
+            Assert.IsTrue(r.Succeeded, r.Failure.ToString());
+            Assert.AreEqual(1, _server.HitCount("/srcA/rel-http/a.bin"), "首选源一次暂态后轮转");
+            Assert.AreEqual(1, _server.HitCount("/srcB/rel-http/a.bin"));
+            Assert.AreEqual("AAA", Encoding.UTF8.GetString(FileSys.ReadAllBytes(Root + "/a.bin")));
+        }
+
+        [UnityTest]
+        public IEnumerator 多源_预算耗尽_如实上报末次失败()
+        {
+            _server.Route("/srcA/rel-http/a.bin", "boom", status: 500);
+            _server.Route("/srcB/rel-http/a.bin", "boom", status: 500);
+            ReleaseManifest m = ManifestWith(("a.bin", "AAA"));
+            var plan = new DownloadPlan(m, new[]
+            {
+                new DownloadSource("srcA", _server.BaseUrl + "/srcA", priority: 0),
+                new DownloadSource("srcB", _server.BaseUrl + "/srcB", priority: 1),
+            }, new DownloadBudget { BackoffBaseMs = 0, BackoffCapMs = 0, MaxAttemptsPerFile = 2 });
+
+            CandidateFetchResult r = default;
+            yield return Fetcher().FetchAsync(m, plan).ToCoroutine(x => r = x);
+
+            Assert.IsFalse(r.Succeeded);
+            Assert.AreEqual(DownloadFailureKind.TransientNetwork, r.Failure.Kind);
+            Assert.AreEqual(1, _server.HitCount("/srcA/rel-http/a.bin"));
+            Assert.AreEqual(1, _server.HitCount("/srcB/rel-http/a.bin"));
         }
 
         [UnityTest]
         public IEnumerator 长度不符_写盘前拒绝_不留半截()
         {
-            Route("/rel-http/a.bin", "TOOLONG");               // 清单声称 3
+            _server.Route("/rel-http/a.bin", "TOOLONG");               // 清单声称 3
             ReleaseManifest m = ManifestWith(("a.bin", "AAA"));
 
             CandidateFetchResult r = default;
@@ -216,7 +239,7 @@ namespace LiteGame.Tests.EditMode
         [UnityTest]
         public IEnumerator 取消_在循环边界生效()
         {
-            Route("/rel-http/a.bin", "AAA");
+            _server.Route("/rel-http/a.bin", "AAA");
             ReleaseManifest m = ManifestWith(("a.bin", "AAA"));
 
             using var cts = new CancellationTokenSource();
@@ -234,7 +257,7 @@ namespace LiteGame.Tests.EditMode
         [Test]
         public void 临时路径_归属到Release()
         {
-            var f = new HttpCandidateFetcher(Root, _baseUrl);
+            var f = new HttpCandidateFetcher(Root);
 
             string p1 = f.TempPath("rel-A", "a.bin");
             string p2 = f.TempPath("rel-B", "a.bin");
@@ -248,7 +271,7 @@ namespace LiteGame.Tests.EditMode
         [UnityTest]
         public IEnumerator 下载完成后_临时件不残留()
         {
-            Route("/rel-http/a.bin", "AAA");
+            _server.Route("/rel-http/a.bin", "AAA");
             ReleaseManifest m = ManifestWith(("a.bin", "AAA"));
 
             CandidateFetchResult r = default;
@@ -263,7 +286,7 @@ namespace LiteGame.Tests.EditMode
         [Test]
         public void 临时目录回收_按发布隔离_幂等不抛()
         {
-            var f = new HttpCandidateFetcher(Root, _baseUrl);
+            var f = new HttpCandidateFetcher(Root);
 
             // 两个 Release 各留一个临时件——只回收 rel-A，rel-B 不受牵连（§7 Release 归属）
             FileSys.WriteAllBytes(f.TempPath("rel-A", "a.bin"), B("AAA"));
@@ -281,10 +304,9 @@ namespace LiteGame.Tests.EditMode
         // ---- 构造校验 ----
 
         [Test]
-        public void 构造参数_空值拒绝()
+        public void 构造参数_空候选根拒绝()
         {
-            Assert.Throws<ArgumentException>(() => new HttpCandidateFetcher("", "http://x"));
-            Assert.Throws<ArgumentException>(() => new HttpCandidateFetcher(Root, ""));
+            Assert.Throws<ArgumentException>(() => new HttpCandidateFetcher(""));
         }
     }
 }

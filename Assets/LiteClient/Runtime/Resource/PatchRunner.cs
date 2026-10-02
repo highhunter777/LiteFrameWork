@@ -59,11 +59,17 @@ namespace LiteGame
         private readonly ReleaseBudget _budget;
         private readonly Func<string, ISignatureVerifier> _verifierResolver;
         private readonly Func<ReleaseManifest, SpaceCheckRequest> _spaceRequestFactory;
+        private readonly Func<ReleaseManifest, DownloadPlan> _planFactory;
 
         /// <param name="verifierResolver">
         /// 清单 KeyId → 验签器（受信公钥库的解析接缝，§6"对应 TrustedKeyRing"）。
         /// 返回 null = keyId 未登记/已撤销 → 校验器按 <see cref="ReleaseRejectReason.UnknownOrRevokedKey"/>
         /// 拒绝（fail-closed——语义即"未登记/已撤销"，与单验签器形态的 null 语义一致）。
+        /// </param>
+        /// <param name="planFactory">
+        /// 下载计划工厂（清单 → 计划；**来源拓扑的唯一装配口**）：CDN 通道传"真实部署基址源"
+        /// （与 <c>HttpCandidateFetcher</c> 同一套 <see cref="DownloadSource"/>）。null = 本地通道
+        /// 默认计划（<c>LocalDirectoryCandidateFetcher</c> 只清点落盘、不消费来源）。
         /// </param>
         public PatchRunner(
             ICandidateProvider provider,
@@ -72,7 +78,8 @@ namespace LiteGame
             PatchCoordinator coordinator,
             Func<string, ISignatureVerifier> verifierResolver,
             ReleaseBudget budget = null,
-            Func<ReleaseManifest, SpaceCheckRequest> spaceRequestFactory = null)
+            Func<ReleaseManifest, SpaceCheckRequest> spaceRequestFactory = null,
+            Func<ReleaseManifest, DownloadPlan> planFactory = null)
         {
             _provider = provider ?? throw new ArgumentNullException(nameof(provider));
             _player = player ?? throw new ArgumentNullException(nameof(player));
@@ -81,6 +88,7 @@ namespace LiteGame
             _verifierResolver = verifierResolver ?? throw new ArgumentNullException(nameof(verifierResolver));
             _budget = budget ?? new ReleaseBudget();
             _spaceRequestFactory = spaceRequestFactory ?? DefaultSpaceRequest;
+            _planFactory = planFactory ?? DefaultPlan;
         }
 
         /// <summary>最近一次描述校验的拒绝原因（诊断；接受时为 None）。</summary>
@@ -126,12 +134,16 @@ namespace LiteGame
                     new DownloadFailureInfo(DownloadFailureKind.ReadError, detail: windowVerdict.Reason.ToString()), null);
             }
 
-            var plan = new DownloadPlan(offer.Manifest,
-                new[] { new DownloadSource("candidate-root", "file://candidate") });
+            DownloadPlan plan = _planFactory(offer.Manifest);
 
             return await _coordinator.RunAsync(
                 offer.Manifest, plan, _spaceRequestFactory(offer.Manifest), ct);
         }
+
+        /// <summary>本地通道默认计划：来源仅作诊断标识——<see cref="LocalDirectoryCandidateFetcher"/>
+        /// 清点已落盘文件、不消费来源位置。</summary>
+        private static DownloadPlan DefaultPlan(ReleaseManifest manifest)
+            => new DownloadPlan(manifest, new[] { new DownloadSource("candidate-root", "file://candidate") });
 
         /// <summary>默认空间请求：候选总字节 + 清单声明的解压峰值（未声明为 0）+ 安全余量 0。</summary>
         private static SpaceCheckRequest DefaultSpaceRequest(ReleaseManifest manifest)
