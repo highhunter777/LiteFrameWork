@@ -15,11 +15,15 @@
 # ─────────────────────────────────────────────────────────────────────────────
 [CmdletBinding()]
 param(
-    [string]$ProjectPath = 'E:\unityProject\Test',
+    [string]$ProjectPath = '',
     [switch]$SkipL1
 )
 
 $ErrorActionPreference = 'Stop'
+
+# project root: derived from this script's location (was a machine-specific hardcoded path)
+$here = if ($PSScriptRoot) { $PSScriptRoot } else { Split-Path -Parent $MyInvocation.MyCommand.Path }
+if ([string]::IsNullOrWhiteSpace($ProjectPath)) { $ProjectPath = (Resolve-Path (Join-Path $here '..\..')).Path }
 
 # 编码链：PowerShell 5.1 默认按控制台代码页（本机 GBK/936）解码子进程 stdout。
 # 子进程（l2-unity-gate.ps1 / Unity CLI）输出含中文时会被解成乱码，再经 Add-Content 落盘

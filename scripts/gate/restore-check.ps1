@@ -17,7 +17,7 @@ param(
 if ([string]::IsNullOrWhiteSpace($ProjectPath)) {
     $here = $PSScriptRoot
     if ([string]::IsNullOrWhiteSpace($here)) { $here = Split-Path -Parent $MyInvocation.MyCommand.Path }
-    $ProjectPath = (Resolve-Path (Join-Path $here '..')).Path
+    $ProjectPath = (Resolve-Path (Join-Path $here '..\..')).Path
 }
 
 $script:blocking = New-Object System.Collections.Generic.List[string]
@@ -36,7 +36,7 @@ if (Test-Path $pv) {
     $ver = ((Get-Content $pv | Select-String 'm_EditorVersion:').ToString()) -replace 'm_EditorVersion:\s*',''
     $expected = '2022.3.55f1c1'
     if ($ver -eq $expected) { Ok "Unity $ver (matches toolchain.json)" }
-    else { Miss "Unity version mismatch: got $ver, expected $expected (scripts/toolchain.json)" }
+    else { Miss "Unity version mismatch: got $ver, expected $expected (scripts/gate/toolchain.json)" }
     if (-not (Test-Path (Join-Path $ProjectPath 'ProjectSettings\ProjectSettings.asset'))) {
         Miss 'ProjectSettings incomplete (not in repo; obtain from controlled source - see Docs/clone-restore guide)'
     } else { Ok 'ProjectSettings complete' }
@@ -101,7 +101,7 @@ if (Test-Path (Join-Path $ProjectPath 'Assets\Plugins\Sirenix')) {
     if ($odinDlls -gt 0) { Ok 'Odin Inspector present (paid plugin, installed locally)' }
     else { Miss 'Sirenix dir exists but Odin assemblies missing (reinstall Odin Inspector 4.0.2.3)' }
 }
-else { Miss 'Odin Inspector missing: Assets/Plugins/Sirenix (per-seat paid, non-redistributable; install it yourself - see scripts/toolchain.json paidOrRestrictedPlugins)' }
+else { Miss 'Odin Inspector missing: Assets/Plugins/Sirenix (per-seat paid, non-redistributable; install it yourself - see scripts/gate/toolchain.json paidOrRestrictedPlugins)' }
 
 if (Test-Path (Join-Path $ProjectPath 'Assets\Plugins\Demigiant\DOTween')) {
     Ok 'DOTween present (free plugin, installed locally)'

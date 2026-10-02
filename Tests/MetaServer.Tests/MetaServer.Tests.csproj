@@ -22,7 +22,7 @@
       被引用即进入 Tests.slnx 的 restore 图。test.ps1 只 restore 测试工程，随后以 no-restore 方式
       构建 slnx；若 slnx 里的非测试工程没有任何测试工程引用它，构建会直接失败。
     -->
-    <ProjectReference Include="..\..\MetaServer\MetaServer.csproj" />
+    <ProjectReference Include="..\..\Server\MetaServer\MetaServer.csproj" />
     <ProjectReference Include="..\..\Assets\LiteTesting\LiteTesting.Core.csproj" />
   </ItemGroup>
 

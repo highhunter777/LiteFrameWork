@@ -5,7 +5,7 @@
 > 更新日期：2026-10-01
 > 归属：[测试开发框架总设计](测试开发框架总设计.md)
 > 适用范围：Unity UGUI/TMP 页面、UIService、Lua 页面、UI Prefab、输入与导航、列表、动效及其发布性能。
-> 执行入口：逻辑上统一使用 `scripts/test.ps1`；Unity 交互遵循根目录 `UNITY-GUIDE.md`。
+> 执行入口：逻辑上统一使用 `scripts/gate/test.ps1`；Unity 交互遵循根目录 `UNITY-GUIDE.md`。
 > 权威预算：[UI 框架总设计第 12 节](../client/ui/UI框架总设计.md#12-验收预算与观测)。
 
 本文把 UI 的**界面测试、自动化测试和性能测试**收纳到现有测试开发框架，不新建一套脱离 `LiteTesting` 的测试体系。本文定义 UI 测试的边界、目录、元数据、夹具、断言、执行 Profile、性能口径和交付证据；产品 UI 契约仍由 [UI 框架总设计](../client/ui/UI框架总设计.md) 与 [UI 制作规范](../client/ui/UI制作规范.md) 负责。
@@ -111,7 +111,7 @@ Assets/
 
 ## 3. 元数据与执行分类
 
-UI 测试继续使用现有 `Category`、`Duration`、`Priority`、`Owner` 契约，不新增一套不能被 `scripts/test.ps1` 识别的分类。三类 UI 测试通过 `UIType` 属性区分：
+UI 测试继续使用现有 `Category`、`Duration`、`Priority`、`Owner` 契约，不新增一套不能被 `scripts/gate/test.ps1` 识别的分类。三类 UI 测试通过 `UIType` 属性区分：
 
 | 元数据 | 界面测试 | 自动化测试 | 性能测试 |
 | --- | --- | --- | --- |
@@ -398,11 +398,11 @@ UI 性能指标的预算以 [UI 框架总设计第 12 节](../client/ui/UI框架
 逻辑入口保持不变：
 
 ```powershell
-powershell -NoProfile -File scripts/test.ps1 -Lane L2 -Profile PullRequest
-powershell -NoProfile -File scripts/test.ps1 -Lane All -Profile Nightly
+powershell -NoProfile -File scripts/gate/test.ps1 -Lane L2 -Profile PullRequest
+powershell -NoProfile -File scripts/gate/test.ps1 -Lane All -Profile Nightly
 ```
 
-`scripts/l2-unity-gate.ps1` 中 EditMode 与 PlayMode 共用同一异步轮询入口（`--async_tests` + 轮询 `test_status`），各自计数、超时与 Console 检查，Total=0 同判失败，不另起绕过 `scripts/test.ps1` 的本地入口。性能的 Player/真机执行归 Release Pipeline，结果使用相同的 `run-id`、分类和产物目录。
+`scripts/gate/l2-unity-gate.ps1` 中 EditMode 与 PlayMode 共用同一异步轮询入口（`--async_tests` + 轮询 `test_status`），各自计数、超时与 Console 检查，Total=0 同判失败，不另起绕过 `scripts/gate/test.ps1` 的本地入口。性能的 Player/真机执行归 Release Pipeline，结果使用相同的 `run-id`、分类和产物目录。
 
 ### 8.2 UI 门禁
 
@@ -468,7 +468,7 @@ UI 契约用例、`LiteTesting` 双轨核心、EditMode/PlayMode 运行时夹具
 ### 10.1 现有能力承接
 
 - UI 生命周期、列表、资源所有权、取消、模态和转场的具体断言以 [UI 框架总设计第 12 节](../client/ui/UI框架总设计.md#12-验收预算与观测) 与现有实现契约为准。
-- `LiteTesting.Core`、`UnityTestScope`、`scripts/test.ps1` 和 `scripts/l2-unity-gate.ps1` 是统一入口和清理边界；专项文档不得复制一套并行 Runner。
+- `LiteTesting.Core`、`UnityTestScope`、`scripts/gate/test.ps1` 和 `scripts/gate/l2-unity-gate.ps1` 是统一入口和清理边界；专项文档不得复制一套并行 Runner。
 
 ### 10.2 建设顺序
 

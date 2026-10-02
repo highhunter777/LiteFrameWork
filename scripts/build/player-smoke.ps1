@@ -15,7 +15,7 @@
 #   while the app is still starting up, masking a hang.
 # Any other outcome (process died early, no marker in timeout) fails.
 # NOTE: keep this file ASCII-only (PS 5.1 GBK parsing of non-BOM UTF-8).
-# Usage: powershell -NoProfile -File scripts/player-smoke.ps1 [-TimeoutSec 30]
+# Usage: powershell -NoProfile -File scripts/build/player-smoke.ps1 [-TimeoutSec 30]
 # ─────────────────────────────────────────────────────────────────────────────
 [CmdletBinding()]
 param(
@@ -28,12 +28,12 @@ param(
 if ([string]::IsNullOrWhiteSpace($ProjectPath)) {
     $here = $PSScriptRoot
     if ([string]::IsNullOrWhiteSpace($here)) { $here = Split-Path -Parent $MyInvocation.MyCommand.Path }
-    $ProjectPath = (Resolve-Path (Join-Path $here '..')).Path
+    $ProjectPath = (Resolve-Path (Join-Path $here '..\..')).Path
 }
 
 $exe = if ([IO.Path]::IsPathRooted($ExePath)) { $ExePath } else { Join-Path $ProjectPath $ExePath }
 if (-not (Test-Path $exe)) {
-    Write-Host "player exe missing: $exe (run scripts/build-player.ps1 first)" -ForegroundColor Red
+    Write-Host "player exe missing: $exe (run scripts/build/build-player.ps1 first)" -ForegroundColor Red
     exit 1
 }
 

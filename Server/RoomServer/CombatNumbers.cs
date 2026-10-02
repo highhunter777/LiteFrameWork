@@ -14,7 +14,7 @@ namespace RoomServer
     /// 同数据（同一份二进制），物理上不可能漂移。
     ///
     /// **一致性双保险**：① 两端数值同源（同一 .bytes）② 表数据进 buildHash
-    /// （`scripts/gen-build-hash.py`），版本不一致直接在 Join 握手被拒。
+    /// （`scripts/codegen/gen-build-hash.py`），版本不一致直接在 Join 握手被拒。
     /// </summary>
     public static class CombatNumbers
     {

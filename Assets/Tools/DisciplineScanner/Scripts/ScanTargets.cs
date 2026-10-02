@@ -105,7 +105,7 @@ namespace Tools.DisciplineScan
         /// **自动**纳入扫描，无需再改本文件。</summary>
         public static readonly string[] MetaHostExcludes =
         {
-            "MetaServer/Host",
+            "Server/MetaServer/Host",
         };
 
         /// <summary>
@@ -161,7 +161,7 @@ namespace Tools.DisciplineScan
             new ScanTarget("Assets/LiteGame/UI", ShellUiRules),                                // R10 薄壳/UI 不发业务包
             // 该目标的存在性由 `纪律_R12_已接入真实扫描目标_且目标路径存在` 钉住。
             new ScanTarget("Assets/RoomServer/Runtime", RuntimePurityRules),                  // R1 纯运行时层（R1《服务端总设计》§8.1）
-            new ScanTarget("MetaServer", MetaPurityRules, MetaHostExcludes),                    // Meta 模块/契约层（《Meta 服务专项设计》§4.2）
+            new ScanTarget("Server/MetaServer", MetaPurityRules, MetaHostExcludes),                    // Meta 模块/契约层（《Meta 服务专项设计》§4.2）
         };
 
         /// <summary>
@@ -206,8 +206,8 @@ namespace Tools.DisciplineScan
         /// </summary>
         public static readonly string[] ServerHostProjects =
         {
-            "RoomServer/RoomServer.csproj",
-            "MetaServer/MetaServer.csproj",
+            "Server/RoomServer/RoomServer.csproj",
+            "Server/MetaServer/MetaServer.csproj",
         };
 
         /// <summary>服务端宿主工程不得引用的客户端面程序集关键字（出现在 ProjectReference 即违规）。</summary>

@@ -15,8 +15,8 @@
 #     is tab-field 3 of the response line (Parameters follows as field 4).
 #   - set_player_settings JSON quotes get stripped by PS 5.1 native arg
 #     passing, so the backend switch uses eval_file calling the Unity API
-#     directly (same pattern as scripts/l2-unity-gate.ps1).
-# Usage: powershell -NoProfile -File scripts/build-player.ps1 -Profile BuildProfiles/windows-x64.json
+#     directly (same pattern as scripts/gate/l2-unity-gate.ps1).
+# Usage: powershell -NoProfile -File scripts/build/build-player.ps1 -Profile BuildProfiles/windows-x64.json
 # ─────────────────────────────────────────────────────────────────────────────
 [CmdletBinding()]
 param(
@@ -28,7 +28,7 @@ param(
 if ([string]::IsNullOrWhiteSpace($ProjectPath)) {
     $here = $PSScriptRoot
     if ([string]::IsNullOrWhiteSpace($here)) { $here = Split-Path -Parent $MyInvocation.MyCommand.Path }
-    $ProjectPath = (Resolve-Path (Join-Path $here '..')).Path
+    $ProjectPath = (Resolve-Path (Join-Path $here '..\..')).Path
 }
 
 function Invoke-Pipeline([string]$command, [string[]]$cmdArgs) {
@@ -61,10 +61,10 @@ function Invoke-EvalFile([string]$fileName, [string]$code) {
 # ── 1. gates ─────────────────────────────────────────────────────────────────
 if (-not $SkipRestoreCheck) {
     Write-Host '== restore-check ==' -ForegroundColor Cyan
-    & powershell -NoProfile -ExecutionPolicy Bypass -File (Join-Path $PSScriptRoot 'restore-check.ps1') -ProjectPath $ProjectPath
+    & powershell -NoProfile -ExecutionPolicy Bypass -File (Join-Path $PSScriptRoot 'gate/restore-check.ps1') -ProjectPath $ProjectPath
     if ($LASTEXITCODE -ne 0) { Write-Host 'restore-check failed - build aborted' -ForegroundColor Red; exit 1 }
     Write-Host '== l0-dep-scan ==' -ForegroundColor Cyan
-    & powershell -NoProfile -ExecutionPolicy Bypass -File (Join-Path $PSScriptRoot 'l0-dep-scan.ps1') -ProjectPath $ProjectPath
+    & powershell -NoProfile -ExecutionPolicy Bypass -File (Join-Path $PSScriptRoot 'gate/l0-dep-scan.ps1') -ProjectPath $ProjectPath
     if ($LASTEXITCODE -ne 0) { Write-Host 'l0-dep-scan failed - build aborted' -ForegroundColor Red; exit 1 }
 }
 

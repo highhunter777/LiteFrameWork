@@ -7,10 +7,10 @@
   <Project Path="../Assets/LiteSim/Core/LiteSim.Core.csproj" />
   <Project Path="../Assets/LiteNet/LiteNet.csproj" />
   <Project Path="../Assets/Tools/DisciplineScanner/DisciplineScanner.csproj" />
-  <Project Path="../RoomServer/RoomServer.csproj" />
+  <Project Path="../Server/RoomServer/RoomServer.csproj" />
   <Project Path="../Assets/RoomServer/Runtime/RoomServer.Runtime.csproj" />
   <Project Path="../Assets/RoomServer/Application/RoomServer.Application.Runtime.csproj" />
-  <Project Path="../MetaServer/MetaServer.csproj" />
+  <Project Path="../Server/MetaServer/MetaServer.csproj" />
   <Project Path="LiteSim.Core.Tests/LiteSim.Core.Tests.csproj" />
   <Project Path="LiteNet.Tests/LiteNet.Tests.csproj" />
   <Project Path="MetaServer.Tests/MetaServer.Tests.csproj" />

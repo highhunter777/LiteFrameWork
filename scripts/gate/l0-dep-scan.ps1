@@ -11,7 +11,7 @@
 # NOTE: keep this file ASCII-only. Windows PowerShell 5.1 parses non-BOM
 #       UTF-8 as GBK on zh-CN systems and breaks on CJK comments.
 # Exit code: 0 = pass, 1 = violations. Wire into CI (L0 must-run on PR).
-# Usage: powershell -NoProfile -File scripts/l0-dep-scan.ps1
+# Usage: powershell -NoProfile -File scripts/gate/l0-dep-scan.ps1
 # ─────────────────────────────────────────────────────────────────────────────
 [CmdletBinding()]
 param(
@@ -21,7 +21,7 @@ param(
 if ([string]::IsNullOrWhiteSpace($ProjectPath)) {
     $here = $PSScriptRoot
     if ([string]::IsNullOrWhiteSpace($here)) { $here = Split-Path -Parent $MyInvocation.MyCommand.Path }
-    $ProjectPath = (Resolve-Path (Join-Path $here '..')).Path
+    $ProjectPath = (Resolve-Path (Join-Path $here '..\..')).Path
 }
 
 $violations = New-Object System.Collections.Generic.List[string]

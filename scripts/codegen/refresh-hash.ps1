@@ -21,8 +21,8 @@
 # reconciles; it provides no bypass switch.
 #
 # Usage:
-#   powershell -NoProfile -File scripts/refresh-hash.ps1
-#   powershell -NoProfile -File scripts/refresh-hash.ps1 -SkipServerBuild
+#   powershell -NoProfile -File scripts/codegen/refresh-hash.ps1
+#   powershell -NoProfile -File scripts/codegen/refresh-hash.ps1 -SkipServerBuild
 #
 # NOTE: keep this file ASCII-only (PS 5.1 GBK parsing of non-BOM UTF-8).
 # ─────────────────────────────────────────────────────────────────────────────
@@ -39,14 +39,14 @@ $ErrorActionPreference = 'Stop'
 if ([string]::IsNullOrWhiteSpace($ProjectPath)) {
     $here = $PSScriptRoot
     if ([string]::IsNullOrWhiteSpace($here)) { $here = Split-Path -Parent $MyInvocation.MyCommand.Path }
-    $ProjectPath = (Resolve-Path (Join-Path $here '..')).Path
+    $ProjectPath = (Resolve-Path (Join-Path $here '..\..')).Path
 }
 
 $repoRoot = $ProjectPath
 
 # -- 1. rerun the buildHash generator ----------------------------------------
 Write-Host '== 1/4 rerun buildHash generator ==' -ForegroundColor Cyan
-$genScript = Join-Path $repoRoot 'scripts/gen-build-hash.py'
+$genScript = Join-Path $repoRoot 'scripts/codegen/gen-build-hash.py'
 & python $genScript
 if ($LASTEXITCODE -ne 0) { Write-Host 'gen-build-hash.py failed' -ForegroundColor Red; exit 1 }
 
@@ -60,7 +60,7 @@ if (-not $SkipServerBuild) {
     Write-Host '== 2/4 rebuild RoomServer ==' -ForegroundColor Cyan
     $env:DOTNET_CLI_HOME = Join-Path $repoRoot '.dotnet-cli'
     $env:DOTNET_CLI_TELEMETRY_OPTOUT = '1'
-    & dotnet build (Join-Path $repoRoot 'RoomServer/RoomServer.csproj') -v:q --nologo
+    & dotnet build (Join-Path $repoRoot 'Server/RoomServer/RoomServer.csproj') -v:q --nologo
     if ($LASTEXITCODE -ne 0) { Write-Host 'RoomServer build failed' -ForegroundColor Red; exit 1 }
 }
 else {
@@ -111,7 +111,7 @@ try {
         # (no process kill needed). Args go through an array: a bare `--` in the
         # command line is parsed by PS as the decrement operator.
         $runArgs = @(
-            'run', '--project', (Join-Path $repoRoot 'RoomServer/RoomServer.csproj'), '--no-build', '--',
+            'run', '--project', (Join-Path $repoRoot 'Server/RoomServer/RoomServer.csproj'), '--no-build', '--',
             '--config', (Join-Path $repoRoot $Config), '--duration', '1500', '--quiet'
         )
         $out = & dotnet @runArgs 2>&1

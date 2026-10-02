@@ -14,7 +14,7 @@
   <ItemGroup>
     <ProjectReference Include="..\..\Assets\LiteNet\LiteNet.csproj" />
     <ProjectReference Include="..\..\Assets\LiteSim\Core\LiteSim.Core.csproj" />
-    <ProjectReference Include="..\..\RoomServer\RoomServer.csproj" />
+    <ProjectReference Include="..\..\Server\RoomServer\RoomServer.csproj" />
     <ProjectReference Include="..\..\Assets\LiteTesting\LiteTesting.Core.csproj" />
     <!-- 全链诊断样例（§8「可诊断」）：内容激活事务面（Core 的 ActivationTransactionStore +
          IDiagRecordSink 端口）与本组的会话/房间面在**一次失败**里对齐——测试项目专用引用，

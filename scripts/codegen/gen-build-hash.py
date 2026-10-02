@@ -25,7 +25,7 @@
 import hashlib
 import os
 
-ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 TARGETS = [
     'Assets/LiteSim/Core/Scripts',
     'Assets/LiteSim/Core/Systems',

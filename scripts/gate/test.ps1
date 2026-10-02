@@ -13,7 +13,7 @@ param(
 $ErrorActionPreference = 'Stop'
 
 if ([string]::IsNullOrWhiteSpace($ProjectPath)) {
-    $ProjectPath = (Resolve-Path (Join-Path $PSScriptRoot '..')).Path
+    $ProjectPath = (Resolve-Path (Join-Path $PSScriptRoot '..\..')).Path
 } else {
     $ProjectPath = (Resolve-Path $ProjectPath).Path
 }
@@ -143,7 +143,7 @@ function Invoke-L2 {
 
     Write-Host "`n=== L2 | $Profile ===" -ForegroundColor Cyan
     $shell = (Get-Command powershell -ErrorAction Stop).Source
-    & $shell -NoProfile -File (Join-Path $ProjectPath 'scripts/l2-unity-gate.ps1') -ProjectPath $ProjectPath
+    & $shell -NoProfile -File (Join-Path $ProjectPath 'scripts/gate/l2-unity-gate.ps1') -ProjectPath $ProjectPath
     if ($LASTEXITCODE -ne 0) {
         throw "L2 failed with exit code $LASTEXITCODE."
     }

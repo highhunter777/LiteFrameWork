@@ -1,6 +1,6 @@
 ﻿# 生成 LiteNet 协议代码（生成物入库：Assets/LiteNet/Proto/Generated/Battle.cs——运行期零工具链依赖）
 # protoc 来源：nuget 包 Google.Protobuf.Tools 3.36.1（tools/windows_x64/protoc.exe；版本必须与运行时 Google.Protobuf 3.36.1 对齐）
-# 用法：在仓库根执行  powershell -File scripts/gen-proto.ps1 -ProtocPath <protoc.exe 路径>
+# 用法：在仓库根执行  powershell -File scripts/codegen/gen-proto.ps1 -ProtocPath <protoc.exe 路径>
 param(
     [Parameter(Mandatory = $true)]
     [string]$ProtocPath

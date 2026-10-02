@@ -15,21 +15,21 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\Assets\LiteNet\LiteNet.csproj" />
-    <ProjectReference Include="..\Assets\LiteSim\Core\LiteSim.Core.csproj" />
+    <ProjectReference Include="..\..\Assets\LiteNet\LiteNet.csproj" />
+    <ProjectReference Include="..\..\Assets\LiteSim\Core\LiteSim.Core.csproj" />
     <!-- 房间内核已按《服务端总设计》§7 目标结构独立成项目：
          纯运行时、无 Socket/无文件/无时钟，现由服务端宿主与 Unity 客户端**共编同一份源码**。 -->
-    <ProjectReference Include="..\Assets\RoomServer\Runtime\RoomServer.Runtime.csproj" />
+    <ProjectReference Include="..\..\Assets\RoomServer\Runtime\RoomServer.Runtime.csproj" />
     <!-- Application 的无 IO 子集（快照管线/会话/账本/票据）同理——本地开发形态在客户端内复用它。 -->
-    <ProjectReference Include="..\Assets\RoomServer\Application\RoomServer.Application.Runtime.csproj" />
+    <ProjectReference Include="..\..\Assets\RoomServer\Application\RoomServer.Application.Runtime.csproj" />
   </ItemGroup>
 
   <!-- 服务端配置装载（与客户端同一份 .bytes 二进制）：Luban 运行时与生成表代码
        均为仓库内源码（Packages/com.code-philosophy.luban 为 embedded 包，非本机 file: 依赖），
        源链接共编——两端同代码同数据，物理上不可能漂移。 -->
   <ItemGroup>
-    <Compile Include="..\Packages\com.code-philosophy.luban\Runtime\*.cs" Link="LubanRuntime\%(Filename)%(Extension)" />
-    <Compile Include="..\Assets\GameData\Generated\**\*.cs" Link="LubanGenerated\%(RecursiveDir)%(Filename)%(Extension)" />
+    <Compile Include="..\..\Packages\com.code-philosophy.luban\Runtime\*.cs" Link="LubanRuntime\%(Filename)%(Extension)" />
+    <Compile Include="..\..\Assets\GameData\Generated\**\*.cs" Link="LubanGenerated\%(RecursiveDir)%(Filename)%(Extension)" />
   </ItemGroup>
 
 </Project>

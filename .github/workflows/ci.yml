@@ -82,11 +82,11 @@ jobs:
       - name: L0 依赖与秘密扫描（仅 windows 跑一次）
         if: matrix.os == 'windows-latest'
         shell: pwsh
-        run: ./scripts/l0-dep-scan.ps1 -ProjectPath ${{ github.workspace }}
+        run: ./scripts/gate/l0-dep-scan.ps1 -ProjectPath ${{ github.workspace }}
 
       - name: L1 快速测试
         shell: pwsh
-        run: ./scripts/test.ps1 -Lane L1 -Profile PullRequest
+        run: ./scripts/gate/test.ps1 -Lane L1 -Profile PullRequest
 
       - name: Upload L1 results
         if: always()
@@ -116,7 +116,7 @@ jobs:
 
       - name: L3 网络与无头集成测试
         shell: pwsh
-        run: ./scripts/test.ps1 -Lane L3 -Profile PullRequest
+        run: ./scripts/gate/test.ps1 -Lane L3 -Profile PullRequest
 
       - name: Upload L3 results
         if: always()
@@ -150,15 +150,15 @@ jobs:
       - name: L2 门禁（非法 meta 扫描 + Unity 编译/测试状态）
         shell: powershell
         # 编辑器在跑 → 经 Unity Pipeline 查询（无需关闭编辑器）；未跑 → batchmode EditMode 测试
-        run: powershell -NoProfile -File scripts/l2-unity-gate.ps1 -ProjectPath ${{ github.workspace }}
+        run: powershell -NoProfile -File scripts/gate/l2-unity-gate.ps1 -ProjectPath ${{ github.workspace }}
 
       - name: C0 Player 构建（Windows x64 IL2CPP）
         shell: powershell
-        run: powershell -NoProfile -File scripts/build-player.ps1 -ProjectPath ${{ github.workspace }} -Profile BuildProfiles/windows-x64.json -SkipRestoreCheck
+        run: powershell -NoProfile -File scripts/build/build-player.ps1 -ProjectPath ${{ github.workspace }} -Profile BuildProfiles/windows-x64.json -SkipRestoreCheck
 
       - name: C0 Player 启动冒烟
         shell: powershell
-        run: powershell -NoProfile -File scripts/player-smoke.ps1 -ProjectPath ${{ github.workspace }} -TimeoutSec 30
+        run: powershell -NoProfile -File scripts/build/player-smoke.ps1 -ProjectPath ${{ github.workspace }} -TimeoutSec 30
 
   # ── 夜间回归层（M10 长跑）─────────────────────────────────────────────
   # 5 分钟全量对跑（HeadlessRunTests.全量对跑_5分钟）由环境变量 M10_LONGRUN=1 门控：
@@ -184,11 +184,11 @@ jobs:
 
       - name: 夜间 L1
         shell: pwsh
-        run: ./scripts/test.ps1 -Lane L1 -Profile Nightly
+        run: ./scripts/gate/test.ps1 -Lane L1 -Profile Nightly
 
       - name: 夜间 L3（含 5 分钟长跑）
         shell: pwsh
-        run: ./scripts/test.ps1 -Lane L3 -Profile Nightly
+        run: ./scripts/gate/test.ps1 -Lane L3 -Profile Nightly
 
       - name: Upload nightly results
         if: always()

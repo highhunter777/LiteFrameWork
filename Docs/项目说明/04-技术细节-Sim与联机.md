@@ -37,7 +37,7 @@
 
 | 件 | 说明 |
 |---|---|
-| 协议单源 | `Proto/battle.proto` → `Proto/Generated/Battle.cs`（生成脚本 `scripts/gen-proto.ps1`） |
+| 协议单源 | `Proto/battle.proto` → `Proto/Generated/Battle.cs`（生成脚本 `scripts/codegen/gen-proto.ps1`） |
 | 信封与编解码 | `Protocol/PacketCodec.cs`：`[1B PacketType][proto payload]`；`PacketWriter`、`PacketType` |
 | 输入位打包 | `Protocol/InputPacker.cs` |
 | 快照 | `SnapshotDiffer`（差分）→ `SnapshotCodec`（编解码）→ `SnapshotReassembler`（重组）；`AoiFilter`（按兴趣域裁剪） |
@@ -50,17 +50,17 @@
 |---|---|
 | 覆盖 | `Assets/LiteSim/Core/Scripts`、`Assets/LiteSim/Core/Systems`、`Assets/LiteNet/Proto`、`Assets/LiteNet/Protocol` ＋ **玩法表数据**（`Assets/GameData/Config/*.bytes`——**两端同读这一份**；服务端 `RoomServer/Data` json 已退役 2026-09-28；UI 表如 `tbuiform` 显式排除） |
 | 算法 | 按相对路径 Ordinal 排序 → 逐个喂 `路径\0内容（行尾 CRLF/CR→LF 归一化）` → SHA-256 → 取前 16 个十六进制字符 |
-| 生成 | `python scripts/gen-build-hash.py` → `Assets/LiteNet/Protocol/BuildHash.g.cs` |
+| 生成 | `python scripts/codegen/gen-build-hash.py` → `Assets/LiteNet/Protocol/BuildHash.g.cs` |
 | 握手 | `RoomClient.SendJoin → JoinRequest.build_hash`：两端不等 → 拒绝进房（**改 Sim/协议/表必须重跑生成器**） |
 | 守卫 | `Tests/LiteNet.Tests/BuildHashTests` 按同规则复算并与常量比对（L1 抓"忘了重跑"） |
 
-## 3. 服务端房间：`Assets/RoomServer` + `RoomServer/`
+## 3. 服务端房间：`Assets/RoomServer` + `Server/RoomServer/`
 
 ### 3.1 分层与纯化
 
 - `RoomServer/Runtime`（`RoomServer.Runtime` 程序集）：**纯化内核**——asmdef 零引擎依赖，且纪律 **R11 禁 Console / 系统时钟 / 文件 IO / proto / LiteNet 引用**（违反被 L1 纪律扫描打红）。
 - `RoomServer/Application`（`RoomServer.Application.Runtime`）：快照流水线、会话编排等允许引用协议/传输的部分。
-- 可执行宿主：`RoomServer/RoomServer.csproj`（net8.0，引用上述两者 + `LiteNet` + `LiteSim.Core`）——`Program.cs`（入口）、`ServerHost.cs`（连接/房间表/排空装配）、`RoomInstance.cs`、`RoomWorkerPool.cs`、`SettlementOutbox.cs`、`Application/`（`ServerLoop.cs` **60Hz 节拍** / SessionManager / ReconnectService / RoomMailbox 等带 IO 的另一半）。
+- 可执行宿主：`Server/RoomServer/RoomServer.csproj`（net8.0，引用上述两者 + `LiteNet` + `LiteSim.Core`）——`Program.cs`（入口）、`ServerHost.cs`（连接/房间表/排空装配）、`RoomInstance.cs`、`RoomWorkerPool.cs`、`SettlementOutbox.cs`、`Application/`（`ServerLoop.cs` **60Hz 节拍** / SessionManager / ReconnectService / RoomMailbox 等带 IO 的另一半）。
 
 ### 3.2 关键件
 
@@ -77,7 +77,7 @@
 ### 3.3 运维面
 
 - 多房间：`roomId → RoomInstance` 路由、动态建房受 `max_rooms` 约束（见 [服务端多房间记录](../施工进度/服务端多房间.md)）。
-- 排空（优雅关闭第 2–4 步）与跨房间过载隔离、真实传输多房间隔离已交付；Worker/Mailbox 核心、宿主生命周期与 Control/Input 入站路由已接线，Runtime/Outbound Worker 迁移与排空第 5 步完整核证仍归 R2。
+- 排空（优雅关闭第 2–4 步）与跨房间过载隔离、真实传输多房间隔离已交付；Worker/Mailbox 核心、宿主生命周期与 Control/Input 入站路由已接线，**Worker 执行形态（Runtime/Outbound 迁移 + 房间 Owner 切换）与终态房间销毁已交付（2026-10-02）**；剩安全信封（专项）与排空第 5 步"信号→排空→退出"进程级手验。
 - **R2 安全批（2026-09-30）**：重连票据 CSPRNG（16 B 不透明串）、`IRoomTransport.GetRemoteAddress` 规范化远端地址、分层限流（IP 连接/入场、账号入场、Session 包速率；桶容量上限+周期清理）——安全信封另立专项，完成前不得公网（见 [服务端R2安全记录](../施工进度/服务端R2安全.md)）。
 - 离线隔离开发：房间内核可跑在**进程内本服**（`LocalServerTransport`），便于无网环境开发与联机用例（见 [离线隔离开发](../施工进度/离线隔离开发.md)）。
 
@@ -109,7 +109,7 @@ InputService.SampleOnRenderFrame
 
 ## 6. 边界与坑（写在这里以免重复踩）
 
-- 改 Sim 源码 / proto / 玩法表 → **必跑 `python scripts/gen-build-hash.py`**（否则全员拒进房）。
+- 改 Sim 源码 / proto / 玩法表 → **必跑 `python scripts/codegen/gen-build-hash.py`**（否则全员拒进房）。
 - `RoomServer/Runtime` 内不得引入 Console/系统时钟/文件 IO/proto/LiteNet（R11）。
 - 快照与 `StartGame` 是两条独立路径（Unreliable vs Reliable）：**"快照先到"完全正常**，判断"是否已在局中"要看 `HasStartGame`，不能拿 `LastSnapshotFrame` 当代理（历史缺陷）。
 - 公共 checksum 只含公共可重建字段：客户端**不能**用全量 checksum 做线上和解。

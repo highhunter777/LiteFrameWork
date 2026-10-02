@@ -20,7 +20,7 @@
   "generators": {
     "luban": "vendored: Luban/（gen.bat，表链唯一生成入口）",
     "xlua": "self-provided: Tools/（XLuaGenerate.exe，重生成 xLua 适配代码时需要）",
-    "protobuf": "scripts/gen-proto.ps1（协议重新生成时需要 protoc）"
+    "protobuf": "scripts/codegen/gen-proto.ps1（协议重新生成时需要 protoc）"
   },
   "packages": {
     "vendored": [

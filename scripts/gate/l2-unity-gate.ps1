@@ -13,9 +13,9 @@
 #
 # 依赖：Unity CLI（`unity`）在 PATH；本机 Unity 编辑器路径见 -UnityExe。
 # 用法（Windows PowerShell 5.1 亦可，本机未装 pwsh）：
-#   powershell -NoProfile -File scripts/l2-unity-gate.ps1                  # 全量（默认）
-#   powershell -NoProfile -File scripts/l2-unity-gate.ps1 -MetaScanOnly    # 只跑①（无 Unity 环境也能用）
-#   powershell -NoProfile -File scripts/l2-unity-gate.ps1 -RunEditModeTests # 强制走 B（batchmode 测试）
+#   powershell -NoProfile -File scripts/gate/l2-unity-gate.ps1                  # 全量（默认）
+#   powershell -NoProfile -File scripts/gate/l2-unity-gate.ps1 -MetaScanOnly    # 只跑①（无 Unity 环境也能用）
+#   powershell -NoProfile -File scripts/gate/l2-unity-gate.ps1 -RunEditModeTests # 强制走 B（batchmode 测试）
 #
 # 两种模式跑**同样的两段测试**（EditMode + PlayMode）：
 #   A. 编辑器在跑 → 经 Unity Pipeline（异步轮询 test_status），无需关闭编辑器
@@ -39,7 +39,7 @@ if ([string]::IsNullOrWhiteSpace($ProjectPath)) {
     $here = $PSScriptRoot
     if ([string]::IsNullOrWhiteSpace($here)) { $here = Split-Path -Parent $MyInvocation.MyCommand.Path }
     if ([string]::IsNullOrWhiteSpace($here)) { $here = (Get-Location).Path }
-    $ProjectPath = (Resolve-Path (Join-Path $here '..')).Path
+    $ProjectPath = (Resolve-Path (Join-Path $here '..\..')).Path
 }
 
 $ErrorActionPreference = 'Stop'

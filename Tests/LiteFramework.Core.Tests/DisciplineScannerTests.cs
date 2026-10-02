@@ -152,7 +152,7 @@ namespace LiteFramework.Tests
             ScanTarget meta = default;
             for (int i = 0; i < ScanTargets.Default.Length; i++)
             {
-                if (ScanTargets.Default[i].Root == "MetaServer")
+                if (ScanTargets.Default[i].Root == "Server/MetaServer")
                 {
                     meta = ScanTargets.Default[i];
                     found = true;
@@ -163,10 +163,10 @@ namespace LiteFramework.Tests
             Assert.True(found, "ScanTargets.Default 缺少 MetaServer 目标——模块层将不受纪律扫描把守");
             Assert.Contains(LintRule.R11RuntimePurity, meta.Rules);
             Assert.NotNull(meta.ExcludeRoots);
-            Assert.Contains("MetaServer/Host", meta.ExcludeRoots);
+            Assert.Contains("Server/MetaServer/Host", meta.ExcludeRoots);
             // 只排宿主层的 Host/ 子目录；模块与契约层必须留在扫描内
-            Assert.DoesNotContain("MetaServer/Modules", meta.ExcludeRoots);
-            Assert.DoesNotContain("MetaServer/Contracts", meta.ExcludeRoots);
+            Assert.DoesNotContain("Server/MetaServer/Modules", meta.ExcludeRoots);
+            Assert.DoesNotContain("Server/MetaServer/Contracts", meta.ExcludeRoots);
         }
 
         [Fact]
