@@ -44,6 +44,10 @@ namespace LiteGame.Editor
         private string _sceneResult = "(未操作)";
         private bool _sceneBusy;
 
+        // 调参区（DebugTuner 收纳：直读/直写场景组件字段）
+        private DebugTuner _tuner;
+        private double _nextTunerFind;
+
         [MenuItem("LiteGame/测试/GM 面板")]
         private static void Open()
         {
@@ -72,6 +76,15 @@ namespace LiteGame.Editor
 
         private void Update()
         {
+            if (_tuner == null || _tuner.Equals(null))              // 场景/Play 切换后引用可能失效：2s 节流重寻
+            {
+                if (EditorApplication.timeSinceStartup >= _nextTunerFind)
+                {
+                    _nextTunerFind = EditorApplication.timeSinceStartup + 2;
+                    _tuner = FindTuner();
+                    Repaint();
+                }
+            }
             if (!Application.isPlaying || EditorApplication.timeSinceStartup < _nextRefresh) return;
             _nextRefresh = EditorApplication.timeSinceStartup + RefreshInterval;
             RefreshStatus();
@@ -84,6 +97,8 @@ namespace LiteGame.Editor
             _scroll = EditorGUILayout.BeginScrollView(_scroll);
 
             DrawTestModeSection();
+            EditorGUILayout.Space(6);
+            DrawTunerSection();
             EditorGUILayout.Space(6);
             DrawStatusSection();
             EditorGUILayout.Space(6);
@@ -129,6 +144,52 @@ namespace LiteGame.Editor
             if (Application.isPlaying
                 && UnityEngine.Object.FindObjectsByType<DebugTuner>(FindObjectsInactive.Exclude, FindObjectsSortMode.None).Length == 0)
                 EditorGUILayout.HelpBox("场景未挂 DebugTuner：时间缩放/暂停不会生效（其余开关不受影响）。", MessageType.Warning);
+        }
+
+        // ---- 调参（DebugTuner 收纳：读/写场景组件字段）----
+
+        private void DrawTunerSection()
+        {
+            EditorGUILayout.LabelField("调参（DebugTuner）", EditorStyles.boldLabel);
+            if (_tuner == null || _tuner.Equals(null))
+            {
+                if (GUILayout.Button("查找场景中的 DebugTuner"))
+                    _tuner = FindTuner();
+                EditorGUILayout.HelpBox(
+                    "未找到 DebugTuner（与 GameEntry 同对象）——时间缩放/暂停、事件严格模式等旋钮需它落钟；挂上后本区自动接管调参。",
+                    MessageType.Info);
+                return;
+            }
+
+            using (new EditorGUILayout.HorizontalScope())
+            {
+                if (GUILayout.Button("选中对象", GUILayout.Width(80)))
+                    Selection.activeObject = _tuner;
+                EditorGUILayout.LabelField(Application.isPlaying ? "Play 中（即时生效）" : "编辑模式（改的是场景配置）");
+            }
+
+            EditorGUI.BeginChangeCheck();
+            _tuner.SyncEnabled = EditorGUILayout.ToggleLeft("时钟同步（关 = 滑杆停管，时钟归程序直控）", _tuner.SyncEnabled);
+            _tuner.WorldTimeScale = EditorGUILayout.Slider("世界缩放", _tuner.WorldTimeScale, 0f, 2f);
+            _tuner.WorldPaused = EditorGUILayout.ToggleLeft("世界暂停", _tuner.WorldPaused);
+            _tuner.UiPaused = EditorGUILayout.ToggleLeft("UI 暂停", _tuner.UiPaused);
+            _tuner.StrictMode = EditorGUILayout.ToggleLeft("事件严格模式", _tuner.StrictMode);
+            _tuner.UseLocalServer = EditorGUILayout.ToggleLeft("本地服务器（F9 进对局走进程内 RoomRuntime）", _tuner.UseLocalServer);
+            if (EditorGUI.EndChangeCheck() && !Application.isPlaying)
+            {
+                EditorUtility.SetDirty(_tuner);                     // 编辑模式：标脏组件与场景（值随场景保存）
+                UnityEditor.SceneManagement.EditorSceneManager.MarkSceneDirty(_tuner.gameObject.scene);
+            }
+
+            if (TestModeRuntime.Active)
+                EditorGUILayout.HelpBox("测试模式激活中：世界缩放/暂停由测试面板快照接管（本节对应滑杆停管）。", MessageType.Info);
+        }
+
+        private static DebugTuner FindTuner()
+        {
+            var all = UnityEngine.Object.FindObjectsByType<DebugTuner>(
+                FindObjectsInactive.Include, FindObjectsSortMode.None);
+            return all.Length > 0 ? all[0] : null;
         }
 
         // ---- ① 运行状态 ----
