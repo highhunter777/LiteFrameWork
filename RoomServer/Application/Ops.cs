@@ -1,4 +1,5 @@
 using System.Text;
+using System.Threading;
 using LiteSim;
 using RoomServer.Runtime;
 
@@ -10,6 +11,10 @@ namespace RoomServer.Application
     /// 验收口径（§9 M10 行）："和解触发率全程可观测"= <see cref="MismatchReports"/> 与房间差分/回溯计数。
     /// 吞吐（本次打印与上次打印的差值）在未到打印点的查询里只返回**瞬时值**，不做窗口推算——
     /// 定位是运维观测行，不是精确计量器；精确差值由对跑脚本按相邻两行自行计算。
+    ///
+    /// **并发形态**（R2 Worker 执行）：输入/ACK 类计数可能由多个房间 Worker 线程累加，
+    /// 故这些计数用 <see cref="Interlocked"/> 前推；周期行读取仍为普通读（近似值）——
+    /// 观测行的定位不变，不承诺快照一致性。
     /// </summary>
     public sealed class Ops
     {
@@ -37,6 +42,9 @@ namespace RoomServer.Application
         public long RejectsWhileDraining;
         /// <summary>排空超时被强制关闭的房间数（§12 第 3 步"超时则归档 Aborted 原因并安全关闭"）。</summary>
         public long RoomsDrainTimedOut;
+
+        /// <summary>Worker 执行形态下被合并节流跳过的 Tick 数（至多一条在途；防 Worker 落后时 Tick 堆积）。</summary>
+        public long TicksCoalesced;
 
         // ---- Join 票据拒绝（§P0-6；《框架先行》§5-4）----
         /// <summary>票据拒绝总数（任何分类）。</summary>
@@ -84,15 +92,25 @@ namespace RoomServer.Application
         /// <summary>ACK 落在 ledger 窗外拒绝计数。</summary>
         public long AckRejectedEvicted;
 
-        /// <summary>ACK 验证结果归类记账（会话只返回结果，计数归宿主）。</summary>
+        /// <summary>ACK 验证结果归类记账（会话只返回结果，计数归宿主；可被房间 Worker 线程调用）。</summary>
         public void CountAck(AckResult result)
         {
             switch (result)
             {
-                case AckResult.RejectedStale: AckRejectedStale++; AckRejected++; break;
-                case AckResult.RejectedFuture: AckRejectedFuture++; AckRejected++; break;
-                case AckResult.RejectedEvicted: AckRejectedEvicted++; AckRejected++; break;
+                case AckResult.RejectedStale: Interlocked.Increment(ref AckRejectedStale); Interlocked.Increment(ref AckRejected); break;
+                case AckResult.RejectedFuture: Interlocked.Increment(ref AckRejectedFuture); Interlocked.Increment(ref AckRejected); break;
+                case AckResult.RejectedEvicted: Interlocked.Increment(ref AckRejectedEvicted); Interlocked.Increment(ref AckRejected); break;
             }
+        }
+
+        /// <summary>
+        /// 被输入闸门接受的包计数（输入包 + ACK 观测同一落点前推）。
+        /// 宿主 owner 形态与 Worker 执行形态共用；Worker 形态可从多个房间线程调用。
+        /// </summary>
+        public void CountAcceptedInput()
+        {
+            Interlocked.Increment(ref InputPackets);
+            Interlocked.Increment(ref AckObserved);
         }
 
         private readonly StringBuilder _sb = new StringBuilder(512);
@@ -148,6 +166,7 @@ namespace RoomServer.Application
                .Append(" roomsDown=").Append(RoomsDestroyed)
                .Append(" drainRej=").Append(RejectsWhileDraining)
                .Append(" drainTimeout=").Append(RoomsDrainTimedOut)
+               .Append(" tickCoalesced=").Append(TicksCoalesced)
                .Append(" ackBad=").Append(AckRejected)
                .Append("(stale=").Append(AckRejectedStale)
                .Append(" future=").Append(AckRejectedFuture)

@@ -4,7 +4,7 @@
     "rooms = 房间模板：动态建房时按模板取值，每个 roomId 一份（§6 一个 roomId 映射一个独立 RoomActor）。",
     "玩法数值：2026-09-28 起不再内联——服务端与客户端同读 Assets/GameData/Config/*.bytes",
     "  （gen.bat Pass 1 产出、buildHash 闭包保护；--combat-table <目录> 可显式指定表目录）。",
-    "worker_count/mailbox_capacity = R2 Worker/Mailbox 配置；默认 1 Worker，宿主生命周期已接线，运行时消息路由按批次推进。",
+    "worker_count/mailbox_capacity = R2 Worker/Mailbox 配置；默认 1 Worker。生产入口（Program.cs）以 workerExecution 形态装配：房间命令与快照广播在 hash(roomId)%worker_count 归属的 Worker 上执行，宿主只做 Transport IO、准入与 Outbound 回传应用（§8.2）。",
     "rate_limit = R2 安全批③分层限流（§343 桶容量上限+周期清理；§595 可按 IP/账号/Session 生效）。",
     "  ip = IP 维度·连接（OnConnected）、entry = IP 维度·入场（Join/Reconnect）、account = 账号维度（验签后）、session = 单连接包速率；",
     "  *_burst/*_per_sec = 令牌桶突发/稳态速率，buckets = 每 lane 键表容量上限，idle_ms = 空闲桶回收阈值；整段可省略走缺省。",

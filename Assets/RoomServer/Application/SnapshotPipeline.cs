@@ -17,12 +17,14 @@ namespace RoomServer.Application
     /// RoomRuntime 只持权威态（<see cref="RoomRuntime.AuthSim"/>）与输入闸门（<see cref="RoomRuntime.Gate"/>），
     /// 由本管线在每次权威步进后**拉取**构建下发。Runtime 不产快照输出，两层无需快照契约。
     ///
-    /// 依赖：只读输入 = 席位→会话数组 + 实体 Id 解析（<see cref="RoomRuntime.EntityIdOf"/>）+ 权威态；
-    /// 写 = 每会话的背压/水位记账字段（App 层会话）。
+    /// 依赖：只读输入 = 席位→广播视图数组（<see cref="IBroadcastSeat"/>：连接号/代次/断开标记/记账）
+    /// + 实体 Id 解析（<see cref="RoomRuntime.EntityIdOf"/>）+ 权威态；
+    /// 写 = 每席位的广播记账（<see cref="BroadcastAccount"/>——宿主 owner 形态挂在会话上，
+    /// Worker 执行形态挂在房间本地席位槽上）。
     /// </summary>
     public sealed class SnapshotPipeline
     {
-        private readonly Session[] _seatSessions;
+        private readonly IBroadcastSeat[] _seats;
         private readonly SnapshotDiffer _differ;
         private int _broadcastOrdinal;
         private bool _forceFullPending;
@@ -32,15 +34,16 @@ namespace RoomServer.Application
         public long SnapshotFullSent;
         public long BackpressureThrottled;
 
-        /// <summary>快照发送出口（ServerHost 装配；测试捕获）。</summary>
-        public Action<Session, PacketType, Google.Protobuf.IMessage, bool> SendTo;
+        /// <summary>快照发送出口（装配方注入：宿主 owner 形态直发会话；Worker 执行形态入 Outbound 回传）。
+        /// 载荷为席位视图——发送方按 <see cref="IBroadcastSeat.ConnectionId"/> / 代次定位连接。</summary>
+        public Action<IBroadcastSeat, PacketType, Google.Protobuf.IMessage, bool> SendTo;
 
         /// <summary>差分器只读暴露（Ops 快照尺寸统计用）。</summary>
         public SnapshotDiffer Differ => _differ;
 
-        public SnapshotPipeline(Session[] seatSessions, SnapshotDiffer differ = null)
+        public SnapshotPipeline(IBroadcastSeat[] seats, SnapshotDiffer differ = null)
         {
-            _seatSessions = seatSessions;
+            _seats = seats;
             _differ = differ ?? new SnapshotDiffer();
         }
 
@@ -80,38 +83,39 @@ namespace RoomServer.Application
             // 全量触发（显式请求 / 有客户端 ack 掉队 / 周期性）是**整帧**属性：本帧对所有客户端都是全量，
             // 客户端各自丢弃多余槽位即可（1s 周期兜底本来就会发生，代价可接受；换来的是差分基线的一义性）。
             bool forceFull = _forceFullPending;
-            for (int p = 0; p < _seatSessions.Length; p++)
+            for (int p = 0; p < _seats.Length; p++)
             {
-                Session session = _seatSessions[p];
-                if (session == null || session.Disconnected || Suppressed(p)) continue;
-                if (_differ.NeedsFull(session.LastAckSnapshot)) forceFull = true;
+                IBroadcastSeat seat = _seats[p];
+                if (seat == null || seat.Disconnected || Suppressed(p)) continue;
+                if (_differ.NeedsFull(seat.Account.LastAckSnapshot)) forceFull = true;
             }
             _forceFullPending = false;
             _differ.BeginFrame(frame, authSim, forceFull);
 
             // ② 每客户端各取可见部分（背压档位只影响该客户端；Restoring 席位抑制——§9.3 步骤 6）
-            for (int p = 0; p < _seatSessions.Length; p++)
+            for (int p = 0; p < _seats.Length; p++)
             {
-                Session session = _seatSessions[p];
-                if (session == null || session.Disconnected || Suppressed(p)) continue;
+                IBroadcastSeat seat = _seats[p];
+                if (seat == null || seat.Disconnected || Suppressed(p)) continue;
 
-                UpdateBackpressureTier(session, frame);
-                if (session.BackpressureTier >= 1 && broadcastIndex % ProtocolConstants.ThrottledStride != 0)
+                UpdateBackpressureTier(seat.Account, frame);
+                if (seat.Account.BackpressureTier >= 1 && broadcastIndex % ProtocolConstants.ThrottledStride != 0)
                 {
                     BackpressureThrottled++;      // 档位 1+：抽帧（该客户端本次不发；其余客户端不受影响）
                     continue;
                 }
 
-                SendSnapshot(session, p, frame, authSim, gate, entityIdOf);
+                SendSnapshot(seat, p, frame, authSim, gate, entityIdOf);
             }
         }
 
-        private void SendSnapshot(Session session, int playerId, int frame, SimWorldState authSim, InputGate gate,
+        private void SendSnapshot(IBroadcastSeat seat, int playerId, int frame, SimWorldState authSim, InputGate gate,
             Func<int, long> entityIdOf)
         {
+            BroadcastAccount account = seat.Account;
             long entityId = entityIdOf(playerId);
             SimVector3 viewPos = ResolvePosition(authSim, entityId);
-            float radius = session.BackpressureTier >= 2 ? ProtocolConstants.ThrottleAoiRadius : SimConfig.AoiRadius;
+            float radius = account.BackpressureTier >= 2 ? ProtocolConstants.ThrottleAoiRadius : SimConfig.AoiRadius;
 
             // ackInput 口径（2026-09-19 审查修正）：= min(该客户端最新被接受的输入帧, 本快照帧)。
             // 为什么必须钳：inputDelay=1 下"最新接受帧"通常是**服务端帧+1**（客户端发的是未来帧），
@@ -120,13 +124,13 @@ namespace RoomServer.Application
             // 钳到本快照帧后：既符合 §3.4.1「ackSnapshot ≤ 服务器已广播帧号」，也保持"输入已到达"的语义。
             int ackInput = Math.Min(gate.LastAcceptedFrame(playerId), frame);
             Proto.StateSnapshot snapshot = _differ.BuildFor(frame, authSim, ackInput, viewPos, radius, entityId);
-            if (session.BackpressureTier >= 3) TrimFarthest(snapshot, viewPos);   // 档位 3：低优先级实体丢弃（仅增量帧）
+            if (account.BackpressureTier >= 3) TrimFarthest(snapshot, viewPos);   // 档位 3：低优先级实体丢弃（仅增量帧）
             if (snapshot.IsFull) SnapshotFullSent++;
 
             int bytes = snapshot.CalculateSize();
-            session.RecordSnapshotSend(frame, bytes);      // R0-P0-4：发送 ledger 记账（ACK 释放的唯一依据）
+            account.RecordSnapshotSend(frame, bytes);      // R0-P0-4：发送 ledger 记账（ACK 释放的唯一依据）
             SnapshotSent++;
-            if (SendTo != null) SendTo(session, PacketType.StateSnapshot, snapshot, false);
+            if (SendTo != null) SendTo(seat, PacketType.StateSnapshot, snapshot, false);
         }
 
         /// <summary>档位 3：裁掉"距视点最远的"一半实体（低优先级丢弃，§10-E1 第三级）。
@@ -158,33 +162,33 @@ namespace RoomServer.Application
         }
 
         /// <summary>E1 水位判定与档位升降（滞回：水位超限即升档；低于 40% 且持续 2s 才逐档降）。</summary>
-        private static void UpdateBackpressureTier(Session session, int frame)
+        private static void UpdateBackpressureTier(BroadcastAccount account, int frame)
         {
-            long queued = session.SendQueueBytes - session.AckedBytes;
+            long queued = account.SendQueueBytes - account.AckedBytes;
             if (queued < 0) queued = 0;
 
             if (queued > ProtocolConstants.BackpressureQueueLimitBytes)
             {
-                if (session.BackpressureTier < 3) session.BackpressureTier++;
-                session.BackpressureDrops++;
-                session.RecoverSinceFrame = -1;
+                if (account.BackpressureTier < 3) account.BackpressureTier++;
+                account.BackpressureDrops++;
+                account.RecoverSinceFrame = -1;
                 return;
             }
 
-            if (session.BackpressureTier > 0)
+            if (account.BackpressureTier > 0)
             {
                 if (queued <= ProtocolConstants.BackpressureQueueLimitBytes * ProtocolConstants.BackpressureRecoverRatio)
                 {
-                    if (session.RecoverSinceFrame < 0) session.RecoverSinceFrame = frame;
-                    else if (frame - session.RecoverSinceFrame >= ProtocolConstants.RecoverHoldMillis * SimConfig.TickRate / 1000)
+                    if (account.RecoverSinceFrame < 0) account.RecoverSinceFrame = frame;
+                    else if (frame - account.RecoverSinceFrame >= ProtocolConstants.RecoverHoldMillis * SimConfig.TickRate / 1000)
                     {
-                        session.BackpressureTier--;
-                        session.RecoverSinceFrame = -1;
+                        account.BackpressureTier--;
+                        account.RecoverSinceFrame = -1;
                     }
                 }
                 else
                 {
-                    session.RecoverSinceFrame = -1;
+                    account.RecoverSinceFrame = -1;
                 }
             }
         }

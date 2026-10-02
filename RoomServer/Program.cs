@@ -88,8 +88,10 @@ if (settlementOutbox.Count > 0 || settlementOutbox.SkippedCorruptLines > 0)
     Console.WriteLine($"[RoomServer] 结算日志重放：待提交 {settlementOutbox.Count} 条（坏行跳过 {settlementOutbox.SkippedCorruptLines}）");
 
 using var transport = new KcpTransportServer();
+// workerExecution: true = 生产形态（§8.2）：房间命令与快照广播在 hash 归属的 Worker 上执行，
+// 宿主只做 Transport IO、准入与回传应用（Outbound lane）。嵌入式/历史用例保持默认的宿主 owner 直驱形态。
 using var host = new ServerHost(transport, null, ticketValidator, audience, serverConfig, settlementOutbox,
-    mailboxRouting: true, drainMailboxesImmediately: true);
+    mailboxRouting: true, drainMailboxesImmediately: false, workerExecution: true);
 host.Ops.PrintEnabled = !quiet;
 
 // --port 是宿主级覆盖（配置文件里的 port 是同一个值的来源；此处允许验收脚本临时换端口）。

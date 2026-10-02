@@ -82,18 +82,18 @@ namespace LiteNet.Tests
             Pump(200);
 
             // ① 阶段定位：Build 段（版本红线），detail 带两端哈希对照
-            var serverReject = Find(DiagCode.JoinRejectedBuildHash);
+            var serverReject = Find(DiagCode.JoinRejectedBuildHash, "deadbeef-deadbeef");
             Assert.Equal(DiagStage.Build, serverReject.Stage);
             Assert.Contains(ServerHost.ServerBuildHash, serverReject.Detail);
             Assert.Contains("deadbeef-deadbeef", serverReject.Detail);
 
             // ② 两端关联：客户端进房记录与服务器拒绝记录**同键**
-            var attempt = Find(DiagCode.JoinAttempt);
+            var attempt = Find(DiagCode.JoinAttempt, "deadbeef-deadbeef");
             Assert.Equal(DiagStage.Session, attempt.Stage);
             Assert.Equal(serverReject.Key, attempt.Key);
 
             // ③ 内容/事务关联：两条记录互相可指认（客户端 detail 里的 txn == 事务记录键里的 txn）
-            var txn = Find(DiagCode.ActivationFailed);
+            var txn = Find(DiagCode.ActivationFailed, "txn-diag-1");
             Assert.Equal(DiagStage.Txn, txn.Stage);
             Assert.Contains("release=rel-7", txn.Key);
             Assert.Contains("txn=txn-diag-1", txn.Key);
@@ -101,7 +101,7 @@ namespace LiteNet.Tests
             Assert.Contains(store.Current.TransactionId, attempt.Detail);
 
             // 会话面事实：未获应答即断开 → 客户端侧记录（与①②同键）
-            var noAck = Find(DiagCode.JoinNoAckDisconnected);
+            var noAck = Find(DiagCode.JoinNoAckDisconnected, "deadbeef-deadbeef");
             Assert.Equal(serverReject.Key, noAck.Key);
             Assert.Equal(-1, client.PlayerId);   // 未进房（未获 JoinAck）
 
@@ -130,7 +130,7 @@ namespace LiteNet.Tests
 
             store.RecoverOnStartup();      // 模拟"待激活态被中断后重启"的恢复决策
 
-            var recovered = Find(DiagCode.ActivationRecovered);
+            var recovered = Find(DiagCode.ActivationRecovered, "txn-recover-1");
             Assert.Equal(DiagStage.Txn, recovered.Stage);
             Assert.Contains("release=rel-8", recovered.Key);
             Assert.Contains("txn=txn-recover-1", recovered.Key);
@@ -176,8 +176,14 @@ namespace LiteNet.Tests
             return predicate();
         }
 
-        private static DiagEvent Find(string code)
-            => DiagTrace.Recent.First(e => e.Code == code);
+        /// <summary>
+        /// 在全局诊断环里找**本样例注入**的记录：<see cref="DiagTrace"/> 是进程级静态环（容量 64），
+        /// 其它真实传输用例类并行运行时也会写同码记录（各 xunit 类并行）——因此必须按**注入标记**
+        /// （错误的 buildHash / 本样例的 txn）过滤，否则会取到别的用例的记录（跨类串读）。
+        /// </summary>
+        private static DiagEvent Find(string code, string marker)
+            => DiagTrace.Recent.First(e => e.Code == code
+                && ((e.Key != null && e.Key.Contains(marker)) || (e.Detail != null && e.Detail.Contains(marker))));
 
         /// <summary>组合根接线：Core 诊断端口 → 结构化记录面（生产形态由宿主/Bootstrap 装同款适配）。</summary>
         private sealed class DiagSinkAdapter : IDiagRecordSink

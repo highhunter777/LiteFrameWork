@@ -73,7 +73,7 @@ namespace LiteNet.Tests
             var seats = new Session[room.ExpectedPlayers];
             var pipeline = new SnapshotPipeline(seats);
             var capture = new Capture();
-            pipeline.SendTo = (session, type, msg, reliable) => capture.Sent.Add((session, type, msg, reliable));
+            pipeline.SendTo = (seat, type, msg, reliable) => capture.Sent.Add(((Session)seat, type, msg, reliable));
 
             var s1 = new Session(1, 0);
             var s2 = new Session(2, 0);
@@ -274,7 +274,7 @@ namespace LiteNet.Tests
             var seats = new Session[room.ExpectedPlayers];
             var pipeline = new SnapshotPipeline(seats);
             var capture = new Capture();
-            pipeline.SendTo = (session, type, msg, reliable) => capture.Sent.Add((session, type, msg, reliable));
+            pipeline.SendTo = (seat, type, msg, reliable) => capture.Sent.Add(((Session)seat, type, msg, reliable));
             var s1 = new Session(1, 0);
             var s2 = new Session(2, 0);
             Assert.Equal(0, Join(room, s1, seats));

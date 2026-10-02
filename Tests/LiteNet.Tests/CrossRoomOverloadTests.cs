@@ -85,7 +85,7 @@ namespace LiteNet.Tests
             f.Seats = new Session[f.Room.ExpectedPlayers];
             f.Pipeline = new SnapshotPipeline(f.Seats);
             f.Capture = new Capture();
-            f.Pipeline.SendTo = (session, type, msg, reliable) => f.Capture.Sent.Add((session, type, msg));
+            f.Pipeline.SendTo = (seat, type, msg, reliable) => f.Capture.Sent.Add(((Session)seat, type, msg));
 
             f.Slow = new Session(connBase, 0);
             f.Healthy = new Session(connBase + 1, 0);

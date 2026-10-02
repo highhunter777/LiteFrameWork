@@ -42,5 +42,13 @@ namespace RoomServer.Application
             cumulativeAfter = 0;
             return false;
         }
+
+        /// <summary>清空环（重绑换连接：新连接没有历史发送记录，等价于全新 ledger）。</summary>
+        public void Clear()
+        {
+            System.Array.Clear(_frames, 0, Capacity);
+            System.Array.Clear(_cumulativeAfter, 0, Capacity);
+            _next = 0;
+        }
     }
 }

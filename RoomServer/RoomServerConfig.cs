@@ -69,7 +69,11 @@ namespace RoomServer
         /// <summary>本进程允许的 audience（票据比对；空 = 不校验）。</summary>
         public readonly string Audience;
 
-        /// <summary>固定 Worker 数（当前默认 1，保持单循环行为兼容）。</summary>
+        /// <summary>
+        /// 固定 Worker 数（§8.2）。生产入口以 workerExecution 形态装配：房间命令与快照广播
+        /// 在 <c>hash(roomId) % worker_count</c> 归属的 Worker 上执行；缺省 1 保持与宿主
+        /// owner 直驱相同的执行形态（嵌入式默认形态不受影响）。
+        /// </summary>
         public readonly int WorkerCount;
 
         /// <summary>每个固定 Worker 的有界 Mailbox 容量。</summary>
