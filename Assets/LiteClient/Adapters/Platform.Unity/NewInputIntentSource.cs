@@ -78,6 +78,20 @@ namespace LiteGame
             return _camera;
         }
 
+        /// <summary>
+        /// 鼠标屏幕位（准心/HUD 消费面，2026-10-02 战斗准心批）。InputSystem 的 import 只许在本
+        /// 适配器边界内（纪律 R12）——App 层的准心驱动经注入位消费本属性，不直接认识 InputSystem。
+        /// 无鼠标设备（纯触屏形态）回退零点。
+        /// </summary>
+        public Vector2 MouseScreenPosition
+        {
+            get
+            {
+                Mouse mouse = Mouse.current;
+                return mouse != null ? mouse.position.ReadValue() : Vector2.zero;
+            }
+        }
+
         public IntentSample Sample(in SimVector3 localPos)
         {
             if (_disposed) return IntentSample.None;

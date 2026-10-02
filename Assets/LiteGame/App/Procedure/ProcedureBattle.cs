@@ -39,6 +39,12 @@ namespace LiteGame
         /// </summary>
         private const string EntityPrefab = SimView.DefaultEntityPrefab;
 
+        /// <summary>对局准心的场景对象名与子路径（训练场 /Battle HUD/Crosshair/{Hip,Ads}——构建器单源）。</summary>
+        private const string HudRootName = "Battle HUD";
+        private const string CrosshairPath = "Crosshair";
+        private const string HipName = "Hip";
+        private const string AdsName = "Ads";
+
         private readonly IContentService _content;
         private readonly IVFXService _vfx;
         private readonly IInputService _input;       // 输入服务（2026-09-26 输入服务批：取代裸 Func<bool> 上下文门）
@@ -50,6 +56,7 @@ namespace LiteGame
         private ClientScope _viewScope;          // 视图资源（prefab 租约/视图根）自有作用域
         private SimView _view;
         private CharacterLocomotionDriver _locomotion;   // 移动动画驱动（视图的消费者——先于视图拆除）
+        private BattleCrosshairDriver _crosshair;       // 对局准心（战斗 HUD 第一件——场景 /Battle HUD，见 AttachCrosshair）
         private Transform _viewRoot;
         private GameObject _viewRootGo;
         private GameObject _prefab;
@@ -218,8 +225,59 @@ namespace LiteGame
 
             _locomotion = new CharacterLocomotionDriver(_view);   // 移动动画首版：视图速度 → 播放器 → Animator 后端（§7 更新次序的 Driver 段）
 
+            AttachCrosshair();                                  // 对局准心（HUD 第一件——视图/输入均已就绪，场景对象按名解析）
             AttachInput();
             UnityEngine.Debug.Log($"[Battle] view-attached prefab={EntityPrefab}");
+        }
+
+        /// <summary>
+        /// 挂对局准心（战斗 HUD 第一件，2026-10-02）：场景对象（训练场 <c>/Battle HUD</c>——
+        /// 构建器确定性生成，AgentScripts/BuildBattleHud.cs）由本阶段按名解析；**缺失静默降级**
+        /// （只警告）——HUD 是表现增益，不把"场景没配 HUD"当对局失败（同角色 prefab 灰盒降级口径）。
+        /// 准心画布无 GraphicRaycaster 且 CanvasGroup 不拦射线——**永不参与输入**；上下文门被拦
+        /// （模态 UI 开）时由驱动自己藏准心还系统光标。
+        /// </summary>
+        private void AttachCrosshair()
+        {
+            GameObject root = GameObject.Find(HudRootName);
+            if (root == null)
+            {
+                UnityEngine.Debug.LogWarning($"[Battle] 场景缺 '{HudRootName}'——准心静默降级（玩法场景未配 HUD 对象）");
+                return;
+            }
+
+            RectTransform plane = root.transform as RectTransform;
+            RectTransform reticle = root.transform.Find(CrosshairPath) as RectTransform;
+            if (plane == null || reticle == null)
+            {
+                UnityEngine.Debug.LogWarning($"[Battle] '{HudRootName}' 结构不符（Canvas 根缺 RectTransform 或缺 {CrosshairPath}）——准心静默降级");
+                return;
+            }
+
+            _crosshair = new BattleCrosshairDriver(_view, _input, plane, reticle,
+                hip: FindChildGameObject(root, CrosshairPath + "/" + HipName),
+                ads: FindChildGameObject(root, CrosshairPath + "/" + AdsName),
+                screenPosition: ScreenPositionOf(_input));           // 鼠标位来自设备源适配器（R12：InputSystem 只在边界内）
+            UnityEngine.Debug.Log("[Battle] crosshair-attached");
+        }
+
+        /// <summary>
+        /// 准心的鼠标位来源：设备源适配器的 <see cref="NewInputIntentSource.MouseScreenPosition"/>。
+        /// 非该实现（测试替身/无设备形态）返回 null——驱动回退屏幕零点。**不在此 import InputSystem**
+        /// （纪律 R12：适配器 import 只许在 Platform.Unity 边界目录内）。
+        /// </summary>
+        private static Func<Vector2> ScreenPositionOf(IInputService input)
+        {
+            return input != null && input.Source is NewInputIntentSource source
+                ? () => source.MouseScreenPosition
+                : null;
+        }
+
+        /// <summary>按子路径取对象（形态组缺失 = 单形态退化——准心驱动容忍 null）。</summary>
+        private static GameObject FindChildGameObject(GameObject root, string path)
+        {
+            Transform t = root.transform.Find(path);
+            return t != null ? t.gameObject : null;
         }
 
         /// <summary>
@@ -265,6 +323,8 @@ namespace LiteGame
             if (_input != null) _input.Reset();   // 离场即清派发状态（设备源与拦截源都是装配根的，不在此摘）
             _locomotion?.Dispose();               // 先停动画驱动（视图消费者），再拆视图本体
             _locomotion = null;
+            _crosshair?.Dispose();                // 准心驱动（还系统光标——同属视图消费者，先于视图本体拆）
+            _crosshair = null;
             _context?.AttachInput(null);
             _view = null;                                         // 视图实例随 _viewRoot 销毁
             if (_viewRootGo != null)
@@ -299,6 +359,7 @@ namespace LiteGame
 
             _context.Tick(elapseSeconds);         // ② 网络双泵 + 输入上行 + 预测推进 + 表现视图（唯一驱动入口）
             _locomotion?.Tick(elapseSeconds);    // 移动动画：视图位置已更新，再解析目标姿态（视图的下游消费者）
+            _crosshair?.Tick();                  // 对局准心（HUD）：位置/形态/光标——视图状态的最后一个消费者
         }
 
         /// <summary>等对局结束（Ended 恰好一次；ct 打断 = 宿主关闭路径）。</summary>
