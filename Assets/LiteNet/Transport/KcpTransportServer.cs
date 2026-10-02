@@ -48,7 +48,7 @@ namespace LiteNet.Transport
         {
             if (_server == null) return;
             KcpChannel channel = reliable ? KcpChannel.Reliable : KcpChannel.Unreliable;
-            // kcp2k 无内建广播——遍历连接逐发（§4.6 第二刀实现点；E1 背压在此基础上按连接限队列）
+            // kcp2k 无内建广播——遍历连接逐发（§4.6 实现点；E1 背压在此基础上按连接限队列）
             foreach (KeyValuePair<int, KcpServerConnection> kv in _server.connections)
             {
                 kv.Value.SendData(data, channel);
@@ -78,7 +78,7 @@ namespace LiteNet.Transport
 
         private static class Log
         {
-            // Server .NET 控制台共用本程序集——不引框架日志，落 Console（M10 批②由 Ops 统一接管）
+            // Server .NET 控制台共用本程序集——不引框架日志，落 Console
             public static void Warn(string message) => Console.WriteLine(message);
         }
     }

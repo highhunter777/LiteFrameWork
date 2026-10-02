@@ -3,7 +3,7 @@ using System;
 namespace LiteNet.Transport
 {
     /// <summary>
-    /// 房间传输窄端口（《状态同步实施方案》§4.6 可替换性第二刀）：
+    /// 房间传输窄端口（《状态同步实施方案》§4.6 可替换性）：
     /// FrameAggregator / AuthSim / SnapshotDiffer 等房间业务组件只依赖这 3 类操作 + 连接元数据
     /// + 3 个事件，不感知 KcpServer——换传输框架 / 拆 Gate 时 Sim 代码零改动。
     /// 驱动由业务循环负责（MVP 单循环：每 tick 顺序 TickIncoming → 逻辑 → TickOutgoing，~10ms 节拍）。

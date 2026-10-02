@@ -5,7 +5,7 @@ namespace LiteNet.Protocol
     /// <summary>
     /// 快照编解码（《状态同步专项设计》§5.2 快照分层）：
     /// - **公共面**（SlotDelta ↔ EntitySlot + 主动作摘要）：位级精确（协议单源约定）——量化整型是带宽调优项，
-    ///   引入即破坏 M9 位级和解机制，需专项评估后另行落。
+    ///   引入即破坏位级和解机制，需专项评估后另行落。
     /// - **比赛状态层**（<see cref="PackMatch"/>）：room 级，随每份快照全量携带。
     /// - **私有面**（<see cref="PackPrivate"/>/<see cref="ApplyPrivate"/>）：只发本人（弹药/技能 CD/状态明细/局内包/资源）。
     /// 全量快照 = 全部活体槽位 + Match（+ 重连/单测路径按会话附 Private）；
@@ -16,7 +16,7 @@ namespace LiteNet.Protocol
     public static class SnapshotCodec
     {
         // ---- 公共面 ----
-        // 批次D 起含**开火驻留窗**（fire_stance_frames=19）：限速+朝准星语境的判定输入——
+        // 含**开火驻留窗**（fire_stance_frames=19）：限速+朝准星语境的判定输入——
         // 回滚基线/差分基线/和解锚点必须能重建它，缺失 ⇒ 窗内预测分叉 ⇒ 逐快照纠偏（橡皮筋）。
 
         public static Proto.SlotDelta ToDelta(int slot, in EntitySlot e, in ActionRuntime activeAction)
@@ -34,7 +34,7 @@ namespace LiteNet.Protocol
                 Kills = e.Kills,
                 Deaths = e.Deaths,
                 SelectedWeapon = e.SelectedWeapon,
-                FireStanceFrames = e.FireStanceFrames,     // 开火驻留窗（批次D：回滚基线/重放重建面）
+                FireStanceFrames = e.FireStanceFrames,     // 开火驻留窗（回滚基线/重放重建面）
                 ActionId = activeAction.ActionId,
                 ActionPhase = (int)activeAction.Phase,
                 ActionStartFrame = activeAction.StartFrame,
@@ -63,7 +63,7 @@ namespace LiteNet.Protocol
                 Kills = d.Kills,
                 Deaths = d.Deaths,
                 SelectedWeapon = d.SelectedWeapon,
-                FireStanceFrames = (byte)d.FireStanceFrames,   // 开火驻留窗（批次D：FromDelta 还原进 EntitySlot——回滚基线携带）
+                FireStanceFrames = (byte)d.FireStanceFrames,   // 开火驻留窗（FromDelta 还原进 EntitySlot——回滚基线携带）
             };
         }
 

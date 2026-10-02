@@ -7,32 +7,22 @@ namespace LiteNet.Protocol
     /// <summary>
     /// 增量快照差分器（《M10实施指导》决策 7 + §2.7）。
     ///
-    /// **两段式 API（2026-09-18 批③ 修正）**：一个房间的多个客户端共享一份差分基线，
-    /// 但每个客户端的 AOI 视点不同 → 必须"**每广播帧算一次差分，然后按客户端各取可见部分**"。
-    /// 早期实现让每个客户端各调一次 <c>Build</c>，而 <c>Build</c> 内部会推进基线 →
-    /// 第二个客户端看到的永远是"刚被第一个客户端刷新的基线" → 恒发空增量（实测：两个客户端时
-    /// 116/144 次广播退化为全量，客户端 2 收不到任何变化）。故拆成：
-    /// - <see cref="BeginFrame"/>：每广播帧一次——算变化集 / 判定是否全量 / **推进基线**；
-    /// - <see cref="BuildFor"/>：每客户端一次——纯读，把本帧变化集按该客户端可见性过滤。
-    /// （<see cref="Build"/> 是两者的便捷组合，供单客户端/测试路径使用。）
+    /// **两段式 API**：一个房间的多个客户端共享一份差分基线，但各客户端 AOI 视点不同，故
+    /// <see cref="BeginFrame"/> **每广播帧一次**（算变化集 / 判定是否全量 / 推进基线），
+    /// <see cref="BuildFor"/> **每客户端一次**（纯读，把本帧变化集按该客户端可见性过滤）；
+    /// <see cref="Build"/> 是两者的便捷组合，供单客户端/测试路径使用。
     ///
-    /// **全量帧不裁 AOI**（2026-10-01 缺陷修复）：<see cref="SnapshotReassembler"/> 对全量的语义是
-    /// "**缺席槽位一律判死**"——它以全图为前提。曾把 AOI 裁进全量帧：视野外实体在客户端镜像被判死，
-    /// 任何一次和解采纳镜像（RollbackSim 失配/超前覆盖）都会把它无声杀掉（bot/远端"消失"，
-    /// 死亡表现也被静默门吞掉）。AOI 与背压档 3 的实体裁剪只允许作用于**增量帧**（带宽收益全在
-    /// 30Hz 增量上，≤1Hz 全量整帧可付）。
+    /// **全量帧不裁 AOI**：<see cref="SnapshotReassembler"/> 对全量的语义是"**缺席槽位一律判死**"（以全图为前提），
+    /// 故 AOI 与背压档 3 的实体裁剪只允许作用于**增量帧**（带宽收益全在 30Hz 增量上，≤1Hz 全量整帧可付）。
     ///
     /// 基线语义 = "**最近一次广播出去的状态**"。三类情况必须走全量，否则客户端会静默分叉：
-    /// ① 首帧 / 基线未建立；② **活体集合发生变化**（生成/死亡/槽位复用——增量只发变化槽位，
-    /// 客户端无法从"缺席"区分"没变"与"死了"）；③ 客户端 ack 落后（<see cref="NeedsFull"/>）。
+    /// ① 首帧 / 基线未建立；② **活体集合发生变化**（增量只发变化槽位，客户端无法从"缺席"区分"没变"与"死了"）；
+    /// ③ 客户端 ack 落后（<see cref="NeedsFull"/>）。
     ///
-    /// 金标是**轻量摘要**不是全量 SimWorldState（见 <see cref="SimWorldStateSnapshot"/>）：
-    /// 服务器已为回溯环养 16 份全量状态，广播基线不该再养一份。
-    ///
+    /// 金标是**轻量摘要**不是全量 SimWorldState（见 <see cref="SimWorldStateSnapshot"/>）。
     /// 字段覆盖与 <see cref="SimChecksum"/>（公共口径）对齐：Id/Pos/Vel/Yaw/Hp/Flags/Shield/Kills/Deaths/
-    /// SelectedWeapon + **开火驻留窗**（批次D）+ 主动作摘要（P0 公共战斗面）；Globals/CustomData 由
-    /// <see cref="GlobalsDiffer"/> 兜底
-    /// （有变化即转全量），新增公共逻辑字段必须同步扩展摘要。
+    /// SelectedWeapon + 开火驻留窗 + 主动作摘要（P0 公共战斗面）；Globals/CustomData 由
+    /// <see cref="GlobalsDiffer"/> 兜底（有变化即转全量），新增公共逻辑字段必须同步扩展摘要。
     /// 私有面（武器弹药/技能 CD/状态明细/局内包/资源）不走差分——随每份快照全量发本人（SnapshotCodec.PackPrivate）。
     /// </summary>
     public sealed class SnapshotDiffer : ISnapshotSource
@@ -189,7 +179,7 @@ namespace LiteNet.Protocol
         /// "摘要未覆盖的全局状态"探针：Globals/CustomData（及未来新增的逻辑字段）不在 <see cref="EntitySnapshotEntry"/> 里，
         /// 差分器发不出去；变了而不转全量 → 客户端**静默分叉**（最难查的一类）。
         /// 基准每帧推进（含全量帧——否则首帧全量后基准停在初始值，次帧必误报）。
-        /// M8 的 SimStep 里 Globals/CustomData 恒为零，实际只有 RngState（开火伤害浮动）会动。
+        /// SimStep 里 Globals/CustomData 恒为零，实际只有 RngState（开火伤害浮动）会动。
         /// <b>纪律：任何进 checksum 的新状态字段都必须同时进 <see cref="EntitySnapshotEntry"/>。</b>
         /// </summary>
         private bool GlobalsDiffer(in SimWorldState state)

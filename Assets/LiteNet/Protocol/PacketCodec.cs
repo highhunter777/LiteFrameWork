@@ -4,7 +4,7 @@ using Google.Protobuf;
 namespace LiteNet.Protocol
 {
     /// <summary>
-    /// 信封编解码（§4.6 可替换性第一刀：纯函数，零 IO 零状态零 kcp2k 依赖）。
+    /// 信封编解码（§4.6 可替换性：纯函数，零 IO 零状态零 kcp2k 依赖）。
     /// 线格式：[1B PacketType][proto 载荷]。
     /// 健壮性约定：坏包/未知类型/截断载荷 → TryDecode 返回 false（丢弃不抛——服务器对传输层垃圾零容忍零崩溃）。
     /// </summary>

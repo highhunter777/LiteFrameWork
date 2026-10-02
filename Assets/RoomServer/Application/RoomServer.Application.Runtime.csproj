@@ -27,7 +27,7 @@
   <ItemGroup>
     <!-- 本 csproj 已下沉到 Application/ 内（与 asmdef 同目录），故 glob 不再带 Application/ 前缀。
          排除产物目录的理由同 Runtime 工程（CS0579；`.dotnet/` 是重定向产物目录——MSBuild 的
-         `**` 不忽略点目录，2026-09-27 实测踩坑）。 -->
+         `**` 不忽略点目录）。 -->
     <Compile Include="**/*.cs" Exclude=".dotnet/**/*.cs;obj/**/*.cs;bin/**/*.cs" />
   </ItemGroup>
 

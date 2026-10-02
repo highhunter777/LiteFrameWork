@@ -3,13 +3,13 @@
     服务端总设计 §6/§11/§12：Generic Host + Options ValidateOnStart + 健康检查 + 优雅关闭。
 
     依赖红线（§4.1）：Web 面零 NuGet——<FrameworkReference Include="Microsoft.AspNetCore.App" />
-    引用已安装共享框架（2026-09-25 实测 project.assets.json 的 libs=0），禁止改用 NuGet Web 包。
-    2026-09-30（M0-c 批二）起引入第一个真 NuGet：MongoDB.Driver——§9.1"MongoDB 唯一权威存储"、
+    引用已安装共享框架，禁止改用 NuGet Web 包。
+    引入 MongoDB.Driver 真 NuGet——§9.1"MongoDB 唯一权威存储"、
     §14 L3"Mongo 测试容器"、§15 G1"存储端口 + 一个持久化样例"共同要求真实驱动；自研线协议被
     §1.1"不自研 HTTP 栈"同一理由否决。驱动只落 Infrastructure/（适配器层），
     Contracts/ 保持零驱动依赖（L0 方向：Contracts 不得引用 Infrastructure）；版本显式钉死。
 
-    LangVersion 10.0（**有意不同于 RoomServer 的 9.0**）：2026-09-25 实测 C# 9 下最小 API
+    LangVersion 10.0（**有意不同于 RoomServer 的 9.0**）：C# 9 下最小 API
     惯用写法（MapGet target-typed lambda / 方法组）全部编译失败（CS1593/CS1503/CS0030），
     只有逐端点显式委托转换可用。档位差异是技术约束，不是配置疏漏。
   -->
@@ -28,7 +28,7 @@
 
   <ItemGroup>
     <!--
-      服务端 NuGet 登记处（C0-① 依赖治理在服务端侧的承载）：l0-dep-scan 管 Unity
+      服务端 NuGet 登记处（依赖治理在服务端侧的承载）：l0-dep-scan 管 Unity
       manifest/lock 与密钥，不管服务端 PackageReference——本 ItemGroup 即登记位置。
     -->
     <PackageReference Include="MongoDB.Driver" Version="3.12.0" />

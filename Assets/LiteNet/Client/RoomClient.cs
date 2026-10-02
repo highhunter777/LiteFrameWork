@@ -7,7 +7,7 @@ using LiteSim;
 namespace LiteNet
 {
     /// <summary>
-    /// 客户端会话相位（《商业级通用服务端框架总设计》§9.3 重连闭环——R1 批③）：
+    /// 客户端会话相位（《商业级通用服务端框架总设计》§9.3 重连闭环）：
     /// <c>Connected → SuspectedLost → Reconnecting → Restoring → Connected</c>；<c>Reconnecting</c> 超时/被拒 → <see cref="Failed"/>。
     /// </summary>
     public enum ClientSessionPhase
@@ -32,14 +32,14 @@ namespace LiteNet
     /// 传输走窄端口 <see cref="IClientTransport"/>（双通道：信令 Reliable / 输入与快照 Unreliable）。
     /// 纯会话与打包——Sim 预测/和解不在此（客户端 Sim 侧由 RollbackSim 承担，M10 全量预测形态）。
     ///
-    /// **重连状态机（R1，§9.3）**：断线 → <see cref="ClientSessionPhase.SuspectedLost"/>；
+    /// **重连状态机（§9.3）**：断线 → <see cref="ClientSessionPhase.SuspectedLost"/>；
     /// <see cref="BeginReconnect"/> 凭 JoinAck 下发的一次性票据重拨并自动发 ReconnectRequest；
     /// 响应 Ok 且版本确认（seed/配置摘要/构建哈希与 StartGame/Join 一致）→ <see cref="ClientSessionPhase.Restoring"/>
     /// （应用层经 OnReconnectResponse 应用权威快照与输入历史）→ <see cref="CompleteRestore"/> 发
     /// RestoreComplete（Reliable）→ 回 Connected。拒绝/版本不符/超时 → Failed（不自动重试——应用层决策）。
     ///
-    /// **生命周期（2026-09-19 审查修正）**：传输是**注入依赖、所有权归创建方**——`Dispose` 只退订与
-    /// 释放自身缓冲，**不 Dispose 传输**（M11 的 `KcpNetworkService` 会持有并管理它）。
+    /// **生命周期**：传输是**注入依赖、所有权归创建方**——`Dispose` 只退订与
+    /// 释放自身缓冲，**不 Dispose 传输**（`KcpNetworkService` 会持有并管理它）。
     /// </summary>
     public sealed class RoomClient : IDisposable
     {
@@ -88,7 +88,7 @@ namespace LiteNet
         /// <summary>
         /// 最近一次收到的**输入确认**（= 服务器已接受本客户端输入到的帧号，快照的 `AckInput` 字段）。
         /// ⚠️ 它**不是**"最新收到的快照帧号"——别拿它算视点帧（§3.4.1 的"视角帧"要的是快照帧，
-        /// 见 <see cref="LastSnapshotFrame"/>；此处命名沿协议字段，2026-09-19 审查加注避免误用）。
+        /// 见 <see cref="LastSnapshotFrame"/>；此处命名沿协议字段避免误用）。
         /// </summary>
         public int LastAckSnapshot => _lastInputAck;
 
@@ -102,7 +102,7 @@ namespace LiteNet
         /// 最近一次 StartGame（未到达 = null）。**晚订阅者必须先读这里**：
         /// <see cref="OnStartGame"/> 是**一次性边缘事件**（消息到达那一刻发一次，无订阅者即丢失），
         /// 而 StartGame 在时序上可能**早于**应用层建好订阅——服务器在席位满员时立即开局广播，
-        /// 而应用层往往要等 JoinAck 回来才开始建对局对象（实测：1 人房必现，2 人房因等待掩盖了它）。
+        /// 而应用层往往要等 JoinAck 回来才开始建对局对象。
         /// 消费范式：先查本属性，为 null 再订阅事件。
         /// </summary>
         public Proto.StartGame StartGame => _startGame;
@@ -157,14 +157,12 @@ namespace LiteNet
         /// <summary>
         /// 发送逐帧输入（**最近 ≤4 帧冗余**）；viewFrame = 开火时刻所见帧（延迟补偿回溯点，§3.4.1）。
         ///
-        /// 冗余语义（2026-09-19 审查修正）：包里带的是**本帧 + 往回连续的历史帧**（每帧各自的内容与开火位），
+        /// 冗余语义：包里带的是**本帧 + 往回连续的历史帧**（每帧各自的内容与开火位），
         /// 服务器按 `InputPacker.TryGetFrame(msg, frame)` 逐帧取用 → 丢一包仍能从后续包补帧。
-        /// 修正前实现把同一份"最新输入"重复 4 次（冗余形同虚设，且开火位只留首个）——那是**协议语义破损**，
-        /// 不只是低效。此处统一走 <see cref="InputPacker.Pack"/>（协议单源）。
+        /// 打包统一走 <see cref="InputPacker.Pack"/>（协议单源）。
         ///
-        /// **ack 语义（R0-P0-4 修正）**：ackSnapshot = **已收最新快照帧号**（<see cref="LastSnapshotFrame"/>，
-        /// 协议注释口径）——修正前错报服务器下发的 AckInput（输入确认帧号），服务器按发送 ledger 验证 ACK 后
-        /// 这种"从未发送过的帧号"会被整体忽略 → 背压水位永不释放 + NeedsFull 常真。未收到快照时填 0。
+        /// **ack 语义**：ackSnapshot = **已收最新快照帧号**（<see cref="LastSnapshotFrame"/>，协议注释口径）——
+        /// 服务器按发送 ledger 验证 ACK，未发送过的帧号会被整体忽略；未收到快照时填 0。
         /// </summary>
         public void SendInput(int frame, in SimInputFrame input, int viewFrame)
         {
@@ -185,7 +183,7 @@ namespace LiteNet
             Send(PacketType.MismatchReport, new Proto.MismatchReport { Frame = frame }, reliable: false);
         }
 
-        // ---- 重连状态机（§9.3；R1 批③）----
+        // ---- 重连状态机（§9.3）----
 
         /// <summary>
         /// 发起重连（SuspectedLost → Reconnecting）：凭 JoinAck 票据重拨传输——连接建立后自动发

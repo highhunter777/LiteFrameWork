@@ -5,8 +5,7 @@
     **为什么必须**：Unity 会把 Assets/ 下的 bin/*.dll 当插件导入，与 asmdef 编出的同名程序集
     撞车（CS1704 "same simple name has already been imported"），同时会扫描 obj/ 里的生成 .cs。
     点开头的目录（.dotnet/）Unity 资产数据库直接忽略。
-    （与 Assets/LiteFramework、Assets/LiteSim、Assets/LiteNet 的 Directory.Build.props 同款。
-     2026-09-27 实测踩坑：Runtime/Application 两工程最初漏了本文件，Unity 编译直接 CS1704 一片。）
+    （与 Assets/LiteFramework、Assets/LiteSim、Assets/LiteNet 的 Directory.Build.props 同款。）
   -->
   <PropertyGroup>
     <BaseIntermediateOutputPath>.dotnet/obj/</BaseIntermediateOutputPath>

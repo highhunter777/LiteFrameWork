@@ -81,9 +81,8 @@ namespace LiteCodeGen.EditorTools
                     cb.Line();
                 }
 
-                // 双路径 B 的受控索引登记（M4 §2.4 对接：Designer 字段同时进 UIBindIndex，
-                // 受控 API 面与路径 A 汇合）。由 BindRoot.EmitRegisterControl 显式开关控制——
-                // 不再按基类名字符串推断（原名含匹配会在基类改名后静默停止生成）。
+                // 受控索引登记（M4 §2.4：Designer 字段同时进 UIBindIndex，受控 API 面与路径 A 汇合）。
+                // 由 BindRoot.EmitRegisterControl 显式开关控制——按基类名字符串推断会在基类改名后静默停止生成。
                 if (emitRegisterControl)
                 {
                     cb.Line();

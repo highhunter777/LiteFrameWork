@@ -5,12 +5,12 @@ using Google.Protobuf;
 namespace LiteNet.Protocol
 {
     /// <summary>
-    /// 复用信封编码器（2026-09-19 客户端审查：输入包 60Hz，`PacketCodec.Encode` 每包两次分配 → GC 压力）。
+    /// 复用信封编码器（输入包 60Hz，`PacketCodec.Encode` 每包两次分配 → GC 压力）。
     ///
     /// 做法：绑一块**可增长缓冲** + 复用的 `MemoryStream` + `CodedOutputStream`（三者仅在扩容时重建），
     /// 把 `[1B PacketType][proto 载荷]` 直接写进缓冲（不经中间 byte[]）→ **每包零托管分配**。
     /// `Write` 返回的段**在下一次 `Write` 前有效**——这一点由传输保证：kcp2k 可靠/不可靠两条路径都会
-    /// **同步 `Buffer.BlockCopy`** 到内部缓冲（`KcpPeer.SendReliable`/`SendUnreliable` 实测），故返回即可复用。
+    /// **同步 `Buffer.BlockCopy`** 到内部缓冲（`KcpPeer.SendReliable`/`SendUnreliable`），故返回即可复用。
     ///
     /// **线格式单一来源**：信封首字节在此定义，`PacketCodec` 的编解码按同规则；
     /// `PacketWriterTests` 断言两者产出**逐字节一致**（防止高频路径与常规路径各写一套格式）。

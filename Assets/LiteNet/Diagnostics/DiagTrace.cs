@@ -6,18 +6,14 @@ using System.Text;
 namespace LiteNet.Diagnostics
 {
     /// <summary>
-    /// 一条**结构化诊断记录**（《框架先行建设与业务接入专项设计》§8「可诊断」：
-    /// "一次注入失败可关联 Build/内容、事务、会话/房间并定位阶段"——证据=受控日志/错误码/诊断产物）。
+    /// 一条**结构化诊断记录**：固定字段、稳定分类码、可断言、可落产物，
+    /// 供跨端（客户端/服务端）与跨域（版本/内容/事务/会话/房间）**按同一关联键对齐**。
     ///
     /// 与 <c>LiteFramework.Log</c> 的分工（不是第二套日志）：<c>Log</c> 是**人读**的环形文本面
-    /// （Tag + Message，32 条）；本件是**机读**的结构化面——固定字段、稳定分类码、可断言、可落产物，
-    /// 供跨端（客户端/服务端）与跨域（版本/内容事务/会话/房间）**按同一个关联键对齐**。
+    /// （Tag + Message，32 条）；本件是**机读**的结构化面。
     ///
-    /// 纪律：
-    /// - <see cref="Stage"/>/<see cref="Code"/> 是**稳定词表**（新阶段/新分类才加常量，动态值进
-    ///   <see cref="Key"/>/<see cref="Detail"/>）；
-    /// - **不记录凭据**（票据/token/密钥一律不落——同《Meta 专项》§13.1）；
-    /// - 容量有界（<see cref="Capacity"/>），满了滚出最旧——它是诊断面不是审计面。
+    /// 纪律：<see cref="Stage"/>/<see cref="Code"/> 是**稳定词表**（动态值进 <see cref="Key"/>/<see cref="Detail"/>）；
+    /// **不记录凭据**（票据/token/密钥一律不落）；容量有界（<see cref="Capacity"/>），满了滚出最旧。
     /// </summary>
     public readonly struct DiagEvent
     {

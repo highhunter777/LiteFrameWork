@@ -8,7 +8,7 @@ namespace LiteCodeGen.EditorTools
 {
     public static class BindMenus
     {
-        // 菜单统一收口到 LiteGame（2026-09-14）：与 LiteGame/UI 下其他工具（构建/校验控件模板、Widget Demo）同处一级
+        // 菜单统一收口到 LiteGame：与 LiteGame/UI 下其他工具（构建/校验控件模板、Widget Demo）同处一级
         private const string RootMenuPath = "LiteGame/UI/绑定/添加 BindRoot（生成根）";
         private const string BindMenuPath = "LiteGame/UI/绑定/添加 BindNode 标记";
         private const string AssetMenuPath = "LiteGame/UI/绑定/生成绑定代码";

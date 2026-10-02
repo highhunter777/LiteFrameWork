@@ -7,7 +7,7 @@ namespace LiteNet.Protocol
     /// 输入打包/解包（§4.2 冗余：每包带最近 ≤4 帧输入；frames[0] = frame 最新帧，早帧在后）。
     /// 服务器解包按"帧号 → 冗余窗口偏移"取帧：丢一包仍能从后续包补帧。
     /// SimInputFrame ↔ Proto.InputFrame 字段一一对应——protobuf float = IEEE 32 位，位级精确往返
-    /// （M9 和解机制依赖位级一致；EntityId 由服务器按会话覆写，打包侧原样携带）。
+    /// （和解机制依赖位级一致；EntityId 由服务器按会话覆写，打包侧原样携带）。
     /// </summary>
     public static class InputPacker
     {
