@@ -7,8 +7,7 @@ namespace LiteFramework.Tests
 {
     /// <summary>
     /// 纪律扫描（《测试开发方案》§7.3 ②）：规则集自测 + 真实源码扫描。
-    /// 引擎在 <c>Assets/Tools/DisciplineScanner</c>（零依赖），Editor 菜单与这里**共用同一份规则**——
-    /// 取代了此前"规则在 LiteSim 引擎 / 协程扫描 / 宏扫描三处各写一遍"的重复。
+    /// 引擎在 <c>Assets/Tools/DisciplineScanner</c>（零依赖），Editor 菜单与这里**共用同一份规则**。
     /// </summary>
     public sealed class DisciplineScannerTests
     {
@@ -84,7 +83,7 @@ namespace LiteFramework.Tests
         [Fact]
         public void 纪律_注释内容不参与匹配()
         {
-            // 注释里提到禁用 API 不算违规（UIBubble.cs 曾因此误报）
+            // 注释里提到禁用 API 不算违规
             Assert.Equal(0, Count("// 原 StopAllCoroutines 语义，用 CTS 显式表达", LintRule.R6NativeCoroutine));
             Assert.Equal(0, Count("/// 禁 FusedMultiplyAdd 注释", LintRule.R2Fma));
             Assert.Equal(0, Count("// if (a == b) 注释里的比较", LintRule.R3FloatEquality));
@@ -173,7 +172,7 @@ namespace LiteFramework.Tests
         [Fact]
         public void 纪律_R7_非法metaGUID被命中()
         {
-            // 2026-09-15 事故形态：64 位 base64 guid（Unity 拒收 → 资源静默消失）
+            // 事故形态：64 位 base64 guid（Unity 拒收 → 资源静默消失）
             var v = DisciplineScanner.ScanMetaText(
                 "A.cs.meta",
                 "fileFormatVersion: 2\nguid: CnpNtin4W3zo6TQqjvzFRl7jkSDkR2TEnPSUX6izpYrJlgIFe7QCcvs=\n");
@@ -313,8 +312,8 @@ namespace LiteFramework.Tests
         [Fact]
         public void 纪律_R12_已接入真实扫描目标_且目标路径存在()
         {
-            // **防"静默失效"**（2026-09-26 实测教训）：本文件里 R6/R10 的两个 LiteGame 扫描目标
-            // 曾因路径写成 `Assets/LiteGame/Scripts/Runtime/...`（实际无 `Scripts/`）**空扫至今**——
+            // **防"静默失效"**：本文件里 R6/R10 的两个 LiteGame 扫描目标可能因路径写错
+            // （如 `Assets/LiteGame/Scripts/Runtime/...`，实际无 `Scripts/`）**空扫**——
             // 规则写了但从未生效，且没有任何东西会红。
             // 故此处同时钉两件事：①R12 在 GameRules 里；②每个目标根**目录真实存在**。
             var gameTarget = System.Array.Find(
@@ -333,7 +332,7 @@ namespace LiteFramework.Tests
 
         /// <summary>R12 **边界表**的存在性守卫：边界路径一旦因目录搬迁而陈旧，判定会静默失效
         /// （纯前缀比较，不匹配任何真实文件）。与上面的"扫描目标必须存在"防同一类失效——
-        /// 2026-09-26 §5.1 拆程序集时连续搬迁边界目录，此守卫让规则表过期当场可见。</summary>
+        /// 此守卫让规则表过期当场可见。</summary>
         [Fact]
         public void 纪律_R12_边界表路径必须真实存在()
         {
@@ -344,8 +343,7 @@ namespace LiteFramework.Tests
         }
 
         /// <summary>§5 顶层分层守卫：`Assets/LiteGame/` 下不允许出现未登记的顶层目录。
-        /// 2026-09-26 建 `Adapters/` 层时补——此前顶层目录是历次拆分自然长出来的，没人检查过
-        /// 它们是否落在设计的层里（四个适配器曾平铺在根上，只能靠人工阅读发现）。</summary>
+        /// 顶层目录必须落在设计的层里（四个适配器不可平铺在根上）。</summary>
         [Fact]
         public void 纪律_LiteGame顶层目录必须已登记()
         {
@@ -358,7 +356,7 @@ namespace LiteFramework.Tests
         /// <summary>D2 守卫（《客户端与服务端共享代码范围专项设计》§3）：客户端 asmdef 引服务端程序集，
         /// 必须落在 <c>DevHostMayReferenceServerAssemblies</c> 登记目录里。
         ///
-        /// 背景：`LiteClient.Runtime` 曾无条件引用两个 RoomServer 程序集，唯一消费者却是一个开发面文件
+        /// 原因：`LiteClient.Runtime` 若无条件引用两个 RoomServer 程序集，唯一消费者却是一个开发面文件
         /// （进程内本地服）→ 两个服务端程序集进**所有** Player 构建。`ProcedureMatch` 的 `#if`
         /// 只挡调用点、挡不住 asmdef 引用（引用是程序集级的）。</summary>
         [Fact]
@@ -405,10 +403,18 @@ namespace LiteFramework.Tests
             Assert.True(problems.Count == 0, string.Join(" | ", problems));
         }
 
+        /// <summary>注释卫生（AGENTS 代码规范 6）：第一方代码注释不得出现日期戳/批次号等施工痕迹（历史进 Docs/施工进度）。</summary>
+        [Fact]
+        public void 纪律_代码注释不含施工痕迹()
+        {
+            var problems = Tools.DisciplineScan.ScanTargets.ValidateCommentHygiene(RepoRoot());
+            Assert.True(problems.Count == 0, string.Join(" | ", problems));
+        }
+
         /// <summary>D1 守卫（《客户端与服务端共享代码范围专项设计》§3）：服务端宿主工程的
         /// `ProjectReference` **不得**指向客户端面（`LiteFramework`/`LiteGame`/`LiteClient`/`LiteSim/View`）。
         ///
-        /// 这是**已被遵守的既成事实**（实测两宿主工程零客户端引用）——本用例把它钉成判据，
+        /// 本用例把它钉成判据，
         /// 防止日后有人图方便让宿主直接引客户端件（那会让"服务端只依赖 S0/S1/S2"从规则退化成习惯）。</summary>
         [Fact]
         public void 纪律_D1_服务端宿主不得依赖客户端面()
@@ -428,7 +434,6 @@ namespace LiteFramework.Tests
         }
 
         /// <summary>G5 守卫（§2.2 义务②）：S2 契约层必须**零第三方实现依赖**。
-        /// 批④ 把 UniTask 从 `LiteFramework.Core` 外提到 `LiteFramework.Async` 后，本用例钉住这次收窄——
         /// 再往 Core 加第三方引用当场红（否则"服务端可直接消费的契约层"就名存实亡）。</summary>
         [Fact]
         public void 纪律_G5_S2契约层必须零第三方实现依赖()
@@ -468,9 +473,7 @@ namespace LiteFramework.Tests
         public void 纪律_R12_边界目录内_对应适配器import放行()
         {
             // **每个边界只放行它对应的那一个适配器**——不是"边界目录里什么都能 import"。
-            // （初版把三个 using 一起塞进每个目录并期望 0，是错的：Shell/Resource 放行 YooAsset，
-            //   但不放行 XLua/DG.Tweening。）
-            // 2026-09-26：适配器收进 `Adapters/` 层；2026-10-01：框架侧迁 `Assets/LiteClient/`，
+            // 适配器在 `Adapters/` 层；框架侧在 `Assets/LiteClient/`，
             // Lua 桥归 `Assets/LiteGame/LuaBridge/`（目录一变规则就红，本用例即其表现）。
             Assert.Equal(0, CountAt("Assets/LiteClient/Adapters/Content.YooAsset/C.cs",
                 "using YooAsset;", LintRule.R12AdapterBoundary));
