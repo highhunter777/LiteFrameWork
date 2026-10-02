@@ -10,14 +10,13 @@ using UnityEngine;
 namespace LiteGame.Editor
 {
     /// <summary>
-    /// 配置链路面板。三区：
-    /// ① 运行状态——Play/AssetService/配置/FSM 流程/错误计数，Play 中 0.5s 自动刷新；
-    /// ② 表查询——表清单由反射从 cfg.Tables 自动发现（新增 Luban 表零改动），key 可配（int 优先，退化 string），
-    ///    结果显示行总数 + 命中行字段 dump，未命中明确提示；
-    /// ③ 产物核对——ConfigService.TableDataFiles 逐项 File.Exists（缺失标红）。
+    /// GM 面板（编辑器）：测试模式入口 + 配置链路。
+    /// 测试模式区——进入/退出测试模式（本地服 Room-Test）、传送到准心、生效开关一览；
+    /// 配置链路四区——运行状态（Play 中 0.5s 刷新）/ 表查询（表清单反射自 cfg.Tables）/
+    /// 场景操作（加载/卸载/叠加语义验证）/ 产物核对（TableDataFiles 逐项 File.Exists）。
     /// 配置持久化走 EditorPrefs；正式断言权威在测试项目（Luban.Runtime 带引擎依赖进不了 xUnit 双轨）。
     /// </summary>
-    public sealed class ConfigPanel : EditorWindow
+    public sealed class GmPanel : EditorWindow
     {
         private const string PrefTable = "LiteGame.ConfigPanel.Table";
         private const string PrefKey = "LiteGame.ConfigPanel.Key";
@@ -45,11 +44,11 @@ namespace LiteGame.Editor
         private string _sceneResult = "(未操作)";
         private bool _sceneBusy;
 
-        [MenuItem("LiteGame/Config/Smoke Panel")]
+        [MenuItem("LiteGame/测试/GM 面板")]
         private static void Open()
         {
-            var window = GetWindow<ConfigPanel>("配置链路面板");
-            window.minSize = new Vector2(440, 420);
+            var window = GetWindow<GmPanel>("GM 面板");
+            window.minSize = new Vector2(460, 520);
             window.Show();
         }
 
@@ -84,6 +83,8 @@ namespace LiteGame.Editor
         {
             _scroll = EditorGUILayout.BeginScrollView(_scroll);
 
+            DrawTestModeSection();
+            EditorGUILayout.Space(6);
             DrawStatusSection();
             EditorGUILayout.Space(6);
             DrawQuerySection();
@@ -97,6 +98,37 @@ namespace LiteGame.Editor
                 MessageType.Info);
 
             EditorGUILayout.EndScrollView();
+        }
+
+        // ---- ⓪ 测试模式 ----
+
+        private void DrawTestModeSection()
+        {
+            EditorGUILayout.LabelField("测试模式", EditorStyles.boldLabel);
+            EditorGUILayout.LabelField(TestModeRuntime.Active ? "进行中（本地服 Room-Test）" : "未进入");
+
+            using (new EditorGUILayout.HorizontalScope())
+            {
+                if (GUILayout.Button("进入测试模式"))
+                {
+                    TestModePanel.Apply();                  // 资产快照 → 运行时（未配置时套默认口径）
+                    TestModeRuntime.EnterRequested = true;  // 主菜单消费 → 进测试房
+                }
+                if (GUILayout.Button("退出测试模式"))
+                    TestModeRuntime.ExitRequested = true;   // 对局内 = 离场并关模式；主菜单 = 只关模式
+                if (GUILayout.Button("传送到准心"))
+                    TestModeRuntime.TeleportRequested = true;
+            }
+            if (GUILayout.Button("打开测试面板（配置开关）"))
+                EditorWindow.GetWindow<TestModePanel>("测试面板");
+
+            EditorGUILayout.LabelField(
+                $"免死={TestModeRuntime.NoDeath} 缩放={TestModeRuntime.TimeScale:0.##} 暂停={TestModeRuntime.Paused} "
+                + $"传送={TestModeRuntime.TeleportEnabled} 冻结={TestModeRuntime.BotFrozen} bot={TestModeRuntime.BotCount}",
+                EditorStyles.wordWrappedLabel);
+            if (Application.isPlaying
+                && UnityEngine.Object.FindObjectsByType<DebugTuner>(FindObjectsInactive.Exclude, FindObjectsSortMode.None).Length == 0)
+                EditorGUILayout.HelpBox("场景未挂 DebugTuner：时间缩放/暂停不会生效（其余开关不受影响）。", MessageType.Warning);
         }
 
         // ---- ① 运行状态 ----

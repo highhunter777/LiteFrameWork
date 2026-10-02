@@ -31,6 +31,8 @@ namespace LiteGame
 #if UNITY_EDITOR || DEVELOPMENT_BUILD || LITEFRAMEWORK_DEBUG
         /// <summary>主动离场热键（测试入口）。</summary>
         private const UnityEngine.KeyCode LeaveKey = UnityEngine.KeyCode.F10;
+        /// <summary>测试模式传送键（传送到当前准心点）。</summary>
+        private const UnityEngine.KeyCode TeleportKey = UnityEngine.KeyCode.T;
 #endif
 
         /// <summary>
@@ -372,6 +374,13 @@ namespace LiteGame
             // 主动离场热键（测试入口，与 ProcedureMain F9 进对局同门禁）：Leave → Ended(Leave) → 收尾回 Main。
             // 此处只留热键，不进正式 UI（正式离场入口由 UI 层提供）。
             if (UnityEngine.Input.GetKeyDown(LeaveKey)) _context.Leave();
+            if (UnityEngine.Input.GetKeyDown(TeleportKey)) TestModeRuntime.TeleportRequested = true;   // T = 传送到准心（测试模式）
+            if (TestModeRuntime.ExitRequested)                                                          // GM 面板退出：离场并关模式
+            {
+                TestModeRuntime.ExitRequested = false;
+                TestModeRuntime.Active = false;
+                _context.Leave();
+            }
 #endif
 
             // ① 渲染帧采样（上下文门在此裁决：登记源任一成立 → 本帧输入为空，见 IInputService）。
@@ -390,6 +399,19 @@ namespace LiteGame
                 Vector3? aimPoint = _aimPointOf?.Invoke();
                 _camera.SetAimPoint(aimPoint ?? default, aimPoint.HasValue);
             }
+#if UNITY_EDITOR || DEVELOPMENT_BUILD || LITEFRAMEWORK_DEBUG
+            if (TestModeRuntime.TeleportRequested)               // 测试模式传送：解析准心点 → 交权威侧（本地服）分发
+            {
+                TestModeRuntime.TeleportRequested = false;
+                if (TestModeRuntime.Active && TestModeRuntime.TeleportEnabled
+                    && _aimPointOf != null && _aimPointOf() is Vector3 target)
+                {
+                    SimTestRules.TeleportTarget = new SimVector3(target.x, target.y, target.z);
+                    SimTestRules.TeleportDispatch = true;      // 交权威侧（本地服宿主）执行
+                }
+                else UnityEngine.Debug.LogWarning("[TestMode] 传送请求忽略（未开测试模式/未启用/无瞄准点）");
+            }
+#endif
         }
 
         /// <summary>等对局结束（Ended 恰好一次；ct 打断 = 宿主关闭路径）。</summary>

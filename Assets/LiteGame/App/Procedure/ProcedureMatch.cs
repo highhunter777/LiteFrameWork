@@ -119,14 +119,18 @@ namespace LiteGame
         private static LiteNet.Transport.IClientTransport CreateTransport(bool testRoom)
         {
 #if UNITY_EDITOR || DEVELOPMENT_BUILD || LITEFRAMEWORK_DEBUG
-            LiteSim.SimTestRules.NoDeath = testRoom;      // 规则随入口设置：常规入口（F9）一律复位
+            LiteSim.SimTestRules.NoDeath   = testRoom && TestModeRuntime.NoDeath;   // 规则随入口设置：常规入口（F9）一律复位
+            LiteSim.SimTestRules.Active    = testRoom;                             // 本地服宿主钩子（冻结/传送）开关
+            LiteSim.SimTestRules.BotFrozen = testRoom && TestModeRuntime.BotFrozen;
+            LiteSim.SimTestRules.TeleportDispatch = false;                         // 进房清残留请求
             if (testRoom || DebugTuner.UseLocalServerEnabled)
             {
                 UnityEngine.Debug.Log(testRoom
                     ? "[Match] **测试房**：本地服 Room-Test + 全房免死（Hp 保底 1、目标不消失——测试专用）"
                     : "[Match] **本地服务器**：对局在进程内跑真 RoomRuntime 内核"
                         + "（无 Socket / 无票据 / 单房间 / 剩余席位自动补位站桩——弱网、重连真实性与真实多人交互仍须真服务器验证）");
-                return LocalServerTransport.ForRoom(testRoom ? TestRoomId : DefaultRoomId);
+                int players = testRoom ? 1 + UnityEngine.Mathf.Max(0, TestModeRuntime.BotCount) : 0;   // 0 = 房间默认
+                return LocalServerTransport.ForRoom(testRoom ? TestRoomId : DefaultRoomId, players);
             }
 #endif
             return null;                                  // null = BattleClient 自建真 KCP（生产路径）

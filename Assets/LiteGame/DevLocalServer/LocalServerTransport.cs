@@ -54,6 +54,10 @@ namespace LiteGame
         private bool _connectPending;                // Connect 已请求、等下一次泵建立（时序对齐真 KCP，见 Connect）
         private bool _disposed;
 
+        // ---- 测试模式钩子（bot 冻结 / 传送分发）；按最大席位定容，避免热路径分配 ----
+        private readonly SimVector3[] _botHomePos = new SimVector3[16];
+        private readonly bool[] _botHomeCaptured = new bool[16];
+
         public bool Connected => _connected;
 
         public event Action OnConnected;
@@ -86,10 +90,13 @@ namespace LiteGame
         /// 人数/seed/时限留默认（与 `RoomConfig` 的 MVP 形态一致）——本地服本就不模拟
         /// 多房间/票据/排空（见类注释"真实性边界"），没有需要按房间调的参数。
         /// </summary>
-        public static LocalServerTransport ForRoom(string roomId)
+        /// <param name="expectedPlayers">总席位（0 = 房间默认 2）；测试模式按 bot 数量配置。</param>
+        public static LocalServerTransport ForRoom(string roomId, int expectedPlayers = 0)
         {
             if (string.IsNullOrEmpty(roomId)) throw new ArgumentException("房间号不得为空", nameof(roomId));
-            return new LocalServerTransport(new RoomConfig { RoomId = roomId });
+            var config = new RoomConfig { RoomId = roomId };
+            if (expectedPlayers > 0) config.ExpectedPlayers = expectedPlayers;
+            return new LocalServerTransport(config);
         }
 
         public void Connect(string address, int port)
@@ -211,6 +218,35 @@ namespace LiteGame
             }
         }
 
+        /// <summary>测试模式钩子（本地服 = 权威侧）：bot 冻结（位置回写进房快照）与传送分发
+        /// （本地玩家实体移到准心目标点；客户端经快照硬切对齐）。规则读 <see cref="SimTestRules"/>
+        /// （LiteSim.Core——本节与宿主同程序集可见；默认 false 即无操作）。</summary>
+        private void ApplyTestModeOverrides()
+        {
+            if (!SimTestRules.Active || !_joined) return;
+            SimWorldState sim = _runtime.AuthSim;
+
+            if (SimTestRules.BotFrozen)
+            {
+                for (int p = 0; p < _runtime.ExpectedPlayers && p < _botHomePos.Length; p++)
+                {
+                    if (p == _playerId) continue;
+                    long id = _runtime.EntityIdOf(p);
+                    if (id == 0 || !sim.TryResolve(id, out int slot)) continue;
+                    if (_botHomeCaptured[p]) sim.Entities[slot].Pos = _botHomePos[p];
+                    else { _botHomePos[p] = sim.Entities[slot].Pos; _botHomeCaptured[p] = true; }
+                }
+            }
+
+            if (SimTestRules.TeleportDispatch)
+            {
+                SimTestRules.TeleportDispatch = false;
+                long id = _runtime.EntityIdOf(_playerId);
+                if (id != 0 && sim.TryResolve(id, out int slot))
+                    sim.Entities[slot].Pos = SimTestRules.TeleportTarget;
+            }
+        }
+
         /// <summary>权威步进（`RoomClient.TickOutgoing` → 这里 → 内核与快照）。</summary>
         public void TickOutgoing()
         {
@@ -226,6 +262,7 @@ namespace LiteGame
                 _tickAccumMs -= stepMs;
                 _nowMs += (long)stepMs;
 
+                ApplyTestModeOverrides();
                 _runtime.Execute(RoomCommand.Tick(_nowMs), _outputs);
                 DrainOutputs();
 

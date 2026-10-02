@@ -48,8 +48,9 @@ namespace LiteGame
             UseLocalServerEnabled = UseLocalServer;      // 开关全局同步（见上面静态字段的说明）
 
             if (_world == null || !SyncEnabled) return;    // 关同步：滑杆停管，时钟归程序直控
-            _world.TimeScale = WorldTimeScale;
-            _world.Paused   = WorldPaused;
+            bool testMode = TestModeRuntime.Active;        // 测试模式：时间缩放/暂停由测试面板快照直落（滑条停管）
+            _world.TimeScale = testMode ? TestModeRuntime.TimeScale : WorldTimeScale;
+            _world.Paused   = testMode ? TestModeRuntime.Paused : WorldPaused;
             _ui.Paused      = UiPaused;
             _events.StrictMode = StrictMode;
         }
