@@ -170,7 +170,9 @@ namespace RoomServer
         /// <summary>首房间配置（兼容只读投影；多房间下"哪个房间"见 <see cref="Rooms"/> / <see cref="TryGetOrCreateRoom"/>）。</summary>
         public RoomConfig Config { get; }
 
-        /// <summary>首房间运行时（兼容投影；等价 <c>TryGetOrCreateRoom(Config.RoomId)</c> 的结果）。</summary>
+        /// <summary>首房间运行时（兼容投影；等价 <c>TryGetOrCreateRoom(Config.RoomId)</c> 的结果）。
+        /// 终态房间会被销毁（<see cref="TryDestroyTerminalRoom"/>），此后本投影为 null——
+        /// 需要跨越终态的引用请提前持有或改用 <see cref="TryGetRoom"/>。</summary>
         public RoomRuntime Room => _rooms.Count > 0 ? _rooms[0].Runtime : null;
 
         /// <summary>首房间快照管线（兼容投影）。</summary>
@@ -1383,6 +1385,10 @@ namespace RoomServer
                 if (room.Runtime.Started)
                     room.Pipeline.BroadcastIfDue(room.Runtime.AuthSim.Frame, room.Runtime.AuthSim,
                         room.Runtime.Gate, room.Runtime.EntityIdOf, room.SeatBroadcastable);
+
+                // 终态房间销毁（§42："drain 与房间销毁后清理归 R2"）：本房间当轮输出已在上方应用
+                // （结算入盒等），此处先移除再调整下标，下一轮不再遍历本房间。
+                if (TryDestroyTerminalRoom(room)) i--;
             }
             if (++_ticksSinceCleanup >= SessionCleanupIntervalTicks)
             {
@@ -1561,6 +1567,7 @@ namespace RoomServer
         /// <summary>
         /// 只移除刚刚预留且尚未形成席位的空房间。动态 Join 入盒失败或 Runtime
         /// 消费后拒绝时用来回滚房间容量 reservation；已有席位/已开局房间绝不回收。
+        /// 身份校验防止误删**同房号重建后的新房间**（旧实例被终态销毁后，同房号可再建）。
         /// </summary>
         private bool RemoveEmptyRoom(RoomInstance room)
         {
@@ -1569,9 +1576,56 @@ namespace RoomServer
                 return false;
             for (int i = 0; i < room.Seats.Length; i++)
                 if (room.Seats[i] != null) return false;
-            if (!_roomTable.Remove(room.RoomId)) return false;
+            if (!_roomTable.TryGetValue(room.RoomId, out RoomInstance registered)
+                || !ReferenceEquals(registered, room))
+                return false;
+            _roomTable.Remove(room.RoomId);
             _rooms.Remove(room);
             room.Mailbox.Complete();
+            return true;
+        }
+
+        /// <summary>
+        /// 终态房间销毁（《商业级通用服务端框架总设计》§42"drain 与房间销毁后清理归 R2"）。
+        ///
+        /// 触发：房间到达终态（<see cref="RoomRuntime.Closed"/> = Closed/Aborted）后，在随后的
+        /// <see cref="Pump"/> 中销毁——销毁前本房间**当轮输出已全部应用**（结算入 Outbox、
+        /// 关闭事件已记日志），因此不丢结算事实。
+        ///
+        /// 动作：从房间表移除（容量归还，达上限前不再占用）→ Mailbox Complete（停止入站，
+        /// 残余消息丢弃——房间已终态，输入/Tick 均为无操作）→ 清理席位会话的路由字段。
+        ///
+        /// **为什么必须清理会话路由**：销毁后同房号可重建。若旧会话仍带
+        /// <c>RoomId/PlayerId</c>，其迟到输入会按房号命中**新房间**并可能落在陌生人的席位上
+        /// （跨连接的输入串位）。清理后旧会话重新 Join 必须再次走准入。
+        /// </summary>
+        private bool TryDestroyTerminalRoom(RoomInstance room)
+        {
+            if (room == null || !room.Runtime.Closed) return false;
+            if (!_roomTable.TryGetValue(room.RoomId, out RoomInstance registered)
+                || !ReferenceEquals(registered, room))
+                return false;   // 已被移除或已重建：不是本实例
+
+            for (int p = 0; p < room.Seats.Length; p++)
+            {
+                Session seat = room.Seats[p];
+                room.Seats[p] = null;
+                if (seat == null) continue;
+                if (string.Equals(seat.RoomId, room.RoomId, StringComparison.Ordinal)) seat.RoomId = null;
+                if (seat.PlayerId == p)
+                {
+                    seat.PlayerId = -1;
+                    seat.Principal = null;
+                    seat.BuildHash = null;
+                }
+            }
+
+            _roomTable.Remove(room.RoomId);
+            _rooms.Remove(room);
+            room.Mailbox.Complete();
+            while (room.Mailbox.TryDequeue(out _)) { }   // 残余控制/输入/出站消息随房间终态丢弃
+            _ops.RoomsDestroyed++;
+            Console.WriteLine($"[Room] 终态房间已销毁：{room.RoomId}（在册 {_rooms.Count}/{MaxRooms}）");
             return true;
         }
 

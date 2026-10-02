@@ -281,13 +281,15 @@ namespace LiteNet.Tests
             using var host = h.host;
             h.t.RaiseConnected(1);
             h.t.RaiseData(1, Join("Room-A"));
+            host.TryGetRoom("Room-A", out RoomRuntime room);
 
             host.BeginDrain(0);
             for (int i = 0; i < 3; i++) host.Pump();
             Assert.True(host.DrainComplete);
 
-            // 完成后继续 Pump 不得复活任何房间（终态幂等，权威循环不再推进）
-            host.TryGetRoom("Room-A", out RoomRuntime room);
+            // 终态房间已销毁（§42）：房间表清零，且完成后继续 Pump 不得复活任何房间
+            Assert.False(host.TryGetRoom("Room-A", out _));
+            Assert.Equal(0, host.RoomCount);
             int frame = room.AuthSim.Frame;
             for (int i = 0; i < 5; i++) host.Pump();
             Assert.Equal(frame, room.AuthSim.Frame);

@@ -211,9 +211,11 @@ namespace LiteNet.Tests
             Assert.True(_host.Room.AuthSim.Frame > frameBefore, "单人掉线后权威循环停帧（应沿用空输入继续）");
 
             // §9.1：全员离场 → 收尾关闭（不再对空房间无限空转；冻结结果并进入终态）
+            // 终态房间随后由宿主 Pump 销毁（§42）——先持有运行时引用再断开，避免兼容投影变 null。
+            var closingRoom = _host.Room;
             c2.Disconnect();
-            Assert.True(WaitFor(() => _host.Room.Phase == MatchPhase.Closed, 5000),
-                $"全员离场应关闭对局（当前 Phase={_host.Room.Phase}）");
+            Assert.True(WaitFor(() => closingRoom.Phase == MatchPhase.Closed, 5000),
+                $"全员离场应关闭对局（当前 Phase={closingRoom.Phase}）");
         }
 
         [Fact]

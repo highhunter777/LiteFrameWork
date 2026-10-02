@@ -29,6 +29,8 @@ namespace RoomServer.Application
         public long RoomsRejectedAtCapacity;
         /// <summary>因模板缺失/模板配置非法被拒的建房请求数。</summary>
         public long RoomsRejectedBadConfig;
+        /// <summary>终态房间销毁数（§42"房间销毁后清理"：容量归还，同房号此后可重建）。</summary>
+        public long RoomsDestroyed;
 
         // ---- 排空（§12 优雅关闭）----
         /// <summary>排空期间被拒的新进房数（§12 第 2 步"停止接受新 Join"）。</summary>
@@ -143,6 +145,7 @@ namespace RoomServer.Application
                .Append(" pktBig=").Append(PacketOversized)
                .Append(" roomsFull=").Append(RoomsRejectedAtCapacity)
                .Append(" roomsBad=").Append(RoomsRejectedBadConfig)
+               .Append(" roomsDown=").Append(RoomsDestroyed)
                .Append(" drainRej=").Append(RejectsWhileDraining)
                .Append(" drainTimeout=").Append(RoomsDrainTimedOut)
                .Append(" ackBad=").Append(AckRejected)
