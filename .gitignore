@@ -194,16 +194,14 @@ Assets/CombatGirlsCharacterPack.meta
 Assets/KriptoFX/
 Assets/KriptoFX.meta
 
-# ===== 资源规范（AGENTS.md：非代码和脚本资源一律不上版本管理）=====
-# 三方导入与样例资源下架；各机自行导入 TMP Essentials / 生成样例。
-# 项目自产场景/prefab/工程设置（Assets/Scenes、Assets/UI、BundleCollectorSetting、
-# ProjectSettings、GameData 表产物）是干净还原基线与双端构建输入，**保留入库**。
+# ===== 资源规范（AGENTS.md 修订版）=====
+# 可入库：代码与脚本、配置资源、预制体模板资源、场景资源；不可入库：其他资源与第三方付费资源。
+# 下架项：Assets/TextMesh Pro（TMP 三方导入树——各机自行导入 Essentials）、
+# Assets/ShareResource（内容样例）；TestModeSettings.asset 属配置资源，恢复入库。
 Assets/TextMesh Pro/
 Assets/TextMesh Pro.meta
 Assets/ShareResource/
 Assets/ShareResource.meta
-Assets/LiteGame/Editor/TestModeSettings.asset
-Assets/LiteGame/Editor/TestModeSettings.asset.meta
 
 # ===== 密钥材料（绝不入库；2026-09-26 实测：测试跑出的 RSA 私钥落在 Tests/ 且未被忽略）=====
 # key_ras 含 <D>/<P>/<Q> 私钥指数——一旦提交进 public 仓库即等同泄露。
