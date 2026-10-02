@@ -3,6 +3,7 @@ using System.IO;
 using UnityEditor;
 using UnityEngine;
 using YooAsset.Editor;
+using LiteClient;
 
 namespace LiteGame.EditorTools
 {

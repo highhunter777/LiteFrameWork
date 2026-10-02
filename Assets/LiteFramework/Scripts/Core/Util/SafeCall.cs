@@ -4,7 +4,7 @@ namespace LiteFramework
 {
     /// <summary>
     /// 调用即防护（引擎无关）：包住"外部回调"——
-    /// 单个回调抛异常不得中断派发链（xLua 侧薄封装见 LiteGame.EventBridge）。
+    /// 单个回调抛异常不得中断派发链（xLua 侧薄封装见 LiteClient.EventBridge）。
     /// 异常经 Log.Error 落地，调用方存活。
     /// 仅用于低频入口；每帧热路径不走 try/catch。
     /// </summary>

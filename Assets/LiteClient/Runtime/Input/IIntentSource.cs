@@ -1,6 +1,6 @@
 using LiteSim;
 
-namespace LiteGame
+namespace LiteClient
 {
     /// <summary>
     /// 输入设备的抽象（《角色状态与动作专项设计》§3 输入三件之一）：

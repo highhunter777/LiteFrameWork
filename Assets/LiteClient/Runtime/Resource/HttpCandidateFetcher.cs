@@ -5,7 +5,7 @@ using Cysharp.Threading.Tasks;
 using LiteFramework;
 using UnityEngine.Networking;
 
-namespace LiteGame
+namespace LiteClient
 {
     /// <summary>
     /// 真实候选下载器（《热更与内容发布专项设计》§7"只下载固定 Release 的不可变文件"）。

@@ -59,6 +59,29 @@ namespace LiteGame.EditorTools
             };
         }
 
+        /// <summary>
+        /// 候选构建的**异步**入口（CLI/Pipeline 调用——同步入口超出 eval 主线程窗口；
+        /// 完成后 <see cref="Status"/> = success/failed，产物目录见 <see cref="LastOutputDirectory"/>）。
+        /// </summary>
+        public static void RunCandidateAsync()
+        {
+            Status = "starting";
+            EditorApplication.delayCall += () =>
+            {
+                try
+                {
+                    Status = "running";
+                    RunForCandidate(out _);
+                    Status = "success";
+                }
+                catch (Exception ex)
+                {
+                    Debug.LogException(ex);
+                    Status = "failed: " + ex.Message;
+                }
+            };
+        }
+
         /// <summary>Windows Offline 包便捷入口（Pipeline eval/CI 调用——避免 eval 内联写 BuildTarget 类型名）。</summary>
         public static void RunStandaloneWindows64() => Run(BuildTarget.StandaloneWindows64);
 

@@ -4,7 +4,7 @@ using System.Threading;
 using Cysharp.Threading.Tasks;
 using LiteFramework;
 
-namespace LiteGame
+namespace LiteClient
 {
     /// <summary>
     /// Lua 脚本健康探针（《热更与内容发布专项设计》§8"健康确认至少覆盖候选 …Lua/main…"；

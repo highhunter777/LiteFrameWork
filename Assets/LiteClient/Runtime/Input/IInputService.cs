@@ -1,6 +1,6 @@
 using LiteSim;
 
-namespace LiteGame
+namespace LiteClient
 {
     /// <summary>
     /// 游戏输入服务（《角色状态与动作专项设计》§3"输入三件"的框架落点；《联机战斗演示专项设计》

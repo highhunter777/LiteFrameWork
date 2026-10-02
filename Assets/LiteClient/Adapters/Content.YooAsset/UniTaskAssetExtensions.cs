@@ -3,7 +3,7 @@ using System.Threading;
 using Cysharp.Threading.Tasks;
 using YooAsset;
 
-namespace LiteGame
+namespace LiteClient
 {
     /// <summary>
     /// YooAsset 异步操作 → UniTask 适配（YooAsset 回调 → UniTask）。

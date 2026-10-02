@@ -1,7 +1,7 @@
 using System;
 using LiteFramework;
 
-namespace LiteGame
+namespace LiteClient
 {
     /// <summary>
     /// 候选资产包根判定（《热更与内容发布专项设计》§7/§8）：资源包初始化时决定"是否以**已确认候选**的

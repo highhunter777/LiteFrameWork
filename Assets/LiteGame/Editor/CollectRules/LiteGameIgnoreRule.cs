@@ -14,7 +14,7 @@ namespace LiteGame.Editor
     public class LiteGameIgnoreRule : IAssetIgnoreRule
     {
         // 单源：引用运行时常量（LuaPreloader.LuaDir），目录改动只改一处
-        private static readonly string LuaDir = LiteGame.LuaPreloader.LuaDir;
+        private static readonly string LuaDir = LiteClient.LuaPreloader.LuaDir;
 
         private static readonly HashSet<string> s_ignoreFileExtensions = new HashSet<string>()
             { "", ".so", ".cs", ".js", ".boo", ".meta", ".cginc", ".hlsl" };

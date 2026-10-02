@@ -3,6 +3,7 @@ using Cysharp.Threading.Tasks;
 using LiteFramework;
 using UnityEditor;
 using UnityEngine;
+using LiteClient;
 
 namespace LiteGame.Editor
 {

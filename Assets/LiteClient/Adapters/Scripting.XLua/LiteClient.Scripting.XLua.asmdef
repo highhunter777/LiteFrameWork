@@ -1,6 +1,6 @@
 {
     "name": "LiteClient.Scripting.XLua",
-    "rootNamespace": "LiteGame",
+    "rootNamespace": "LiteClient",
     "references": [
         "LiteClient.Abstractions",
         "LiteClient.Runtime",

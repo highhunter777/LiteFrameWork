@@ -1,6 +1,6 @@
 using UnityEngine;
 
-namespace LiteGame
+namespace LiteClient
 {
     /// <summary>
     /// 程序化灰盒实体（对局可见性的兜底件，非美术方案）：内容包尚无角色 prefab 时，用引擎内置基本体

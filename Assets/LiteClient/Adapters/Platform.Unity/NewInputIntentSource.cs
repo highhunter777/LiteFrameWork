@@ -4,7 +4,7 @@ using LiteSim;
 using UnityEngine;
 using UnityEngine.InputSystem;
 
-namespace LiteGame
+namespace LiteClient
 {
     /// <summary>
     /// New Input System 设备源（<see cref="IIntentSource"/> 的 Input System 实现，
@@ -131,6 +131,9 @@ namespace LiteGame
                 frame.MoveX *= inv;
                 frame.MoveZ *= inv;
             }
+            // 归一化的浮点舍入可能把长度平方推过 1（1+1ulp）——服务器闸门按 >1 整帧拒收
+            // （机理与实测值见 IntentVectorLimit 类注释）；出界即按余量收缩，界内逐位不动。
+            IntentVectorLimit.EnsureWithinLengthLimit(ref frame.MoveX, ref frame.MoveZ);
 
             // 瞄准：鼠标位置 → 地面平面交点 → 相对瞄准原点（aimpoint 口径，见 Sample 的调用方）的方向
             // 场景切换后缓存会失效——ResolveCamera 已回落到当前 Camera.main
@@ -149,6 +152,8 @@ namespace LiteGame
                         float inv = 1f / Mathf.Sqrt(aimMag2);
                         _aimX = ax * inv;
                         _aimZ = az * inv;
+                        // 与 move 同因：归一化舍入可能落在 1+1ulp，出界收缩过闸（界内逐位不动）
+                        IntentVectorLimit.EnsureWithinLengthLimit(ref _aimX, ref _aimZ);
                     }
                 }
             }

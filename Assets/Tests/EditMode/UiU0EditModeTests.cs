@@ -11,6 +11,7 @@ using UnityEditor;
 using UnityEngine;
 using UnityEngine.UI;
 using XLua;
+using LiteClient;
 
 namespace LiteGame.Tests.EditMode
 {

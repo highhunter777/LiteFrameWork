@@ -1,8 +1,9 @@
 {
     "name": "LiteClient.Content.YooAsset",
-    "rootNamespace": "LiteGame",
+    "rootNamespace": "LiteClient",
     "references": [
         "LiteClient.Abstractions",
+        "LiteClient.Runtime",
         "LiteFramework.Async",
         "LiteFramework.Core",
         "LiteFramework.Unity",

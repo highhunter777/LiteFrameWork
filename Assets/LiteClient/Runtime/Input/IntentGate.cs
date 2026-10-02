@@ -1,6 +1,6 @@
 using System;
 
-namespace LiteGame
+namespace LiteClient
 {
     /// <summary>
     /// 输入拦截源的**唯一裁决多项式**：任一登记源在其条件下成立，游戏意图即被拦下。

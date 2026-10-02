@@ -2,7 +2,7 @@ using System;
 using LiteNet;
 using LiteNet.Transport;
 
-namespace LiteGame
+namespace LiteClient
 {
     /// <summary>
     /// 对局客户端会话：**持有传输与 RoomClient**，负责装配与生命周期；会话状态机**不在此重复**——

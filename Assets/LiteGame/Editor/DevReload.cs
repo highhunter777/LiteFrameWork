@@ -3,6 +3,7 @@ using Cysharp.Threading.Tasks;
 using LiteFramework;
 using UnityEditor;
 using UnityEngine;
+using LiteClient;
 
 namespace LiteGame.Editor
 {
@@ -31,7 +32,7 @@ namespace LiteGame.Editor
 
         private static async UniTaskVoid ReloadAsync()
         {
-            var lua = Object.FindFirstObjectByType<LiteGame.LuaComponent>();
+            var lua = Object.FindFirstObjectByType<LiteClient.LuaComponent>();
             if (lua == null)
             {
                 Log.Error("DevReload 未找到 LuaComponent", "DevReload");
@@ -39,7 +40,7 @@ namespace LiteGame.Editor
             }
 
             var container = Object.FindFirstObjectByType<LiteGame.GameEntry>().TakeContainer();
-            var config = container.Resolve<LiteGame.IConfigService>();
+            var config = container.Resolve<LiteClient.IConfigService>();
             var events = container.Resolve<LiteFramework.IEventCenter>();
             var uiService = container.Resolve<LiteGame.UIService>();
             var ui = container.Resolve<LiteGame.IUILuaRegistry>();
@@ -54,7 +55,7 @@ namespace LiteGame.Editor
             strategy.Clear();
             lua.Shutdown();                                // ③ 事件桥退订 → env.Dispose（旧对象全失效时点）
 
-            var preloader = new LiteGame.LuaPreloader(
+            var preloader = new LiteClient.LuaPreloader(
                 DevReloadBytesAsync,   // 磁盘直读：响应编辑器里刚改的 .lua（不走资源包）
                 ListLuaFilesOnDisk);   // 磁盘枚举：同上
             await preloader.PreloadAllAsync();             // ④ 重预载：改动后的 .lua 进缓存
@@ -92,7 +93,7 @@ namespace LiteGame.Editor
         {
             string root = System.IO.Path.Combine(
                 System.IO.Directory.GetCurrentDirectory(),
-                LiteGame.LuaPreloader.LuaDir.Replace('/', System.IO.Path.DirectorySeparatorChar));
+                LiteClient.LuaPreloader.LuaDir.Replace('/', System.IO.Path.DirectorySeparatorChar));
             if (!System.IO.Directory.Exists(root)) return new string[0];
 
             string[] files = System.IO.Directory.GetFiles(root, "*.lua", System.IO.SearchOption.AllDirectories);

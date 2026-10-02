@@ -1,7 +1,7 @@
 using System;
 using LiteSim;
 
-namespace LiteGame
+namespace LiteClient
 {
     /// <summary>
     /// <see cref="IInputService"/> 的实现（《角色状态与动作专项设计》§3"输入三件"的协调者）。

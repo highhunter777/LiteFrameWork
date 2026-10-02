@@ -1,7 +1,7 @@
 using System.Collections.Generic;
 using LiteFramework;
 
-namespace LiteGame
+namespace LiteClient
 {
     /// <summary>
     /// 发布布局约定（《热更与内容发布专项设计》§7/§8 的单源——探针装配与候选校验共用，

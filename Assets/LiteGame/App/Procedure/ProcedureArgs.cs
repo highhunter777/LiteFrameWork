@@ -1,5 +1,6 @@
 using System;
 using LiteFramework;
+using LiteClient;
 
 namespace LiteGame
 {

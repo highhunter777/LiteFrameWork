@@ -5,7 +5,7 @@ using Cysharp.Threading.Tasks;
 using LiteFramework;
 using UnityEngine;
 
-namespace LiteGame
+namespace LiteClient
 {
     /// <summary>实体句柄：Hide/查询按句柄走（不裸露 GameObject 之外的生命周期控制）。</summary>
     public sealed class EntityHandle

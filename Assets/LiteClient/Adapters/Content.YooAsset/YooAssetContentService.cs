@@ -5,7 +5,7 @@ using Cysharp.Threading.Tasks;
 using LiteFramework;
 using YooAsset;
 
-namespace LiteGame
+namespace LiteClient
 {
     /// <summary>
     /// IContentService 的 YooAsset 适配（《商业级通用客户端框架总设计》§8.1"用可注入
@@ -19,7 +19,7 @@ namespace LiteGame
     ///   Host 模式下载/校验/激活/回滚事务由 PatchCoordinator 承担。
     /// - **主线程 only**（YooAsset 操作无线程安全承诺——与 AssetService 同款纪律）。
     /// </summary>
-    public sealed class YooAssetContentService : IContentService, IGenerationSink
+    public sealed class YooAssetContentService : IContentService, IGenerationSink, IContentLocationCatalog
     {
         /// <summary>加载键：(内容代次, location, 类型)——§8.2"加载与缓存键包含代次"。</summary>
         private readonly struct LoadKey : IEquatable<LoadKey>
@@ -135,6 +135,10 @@ namespace LiteGame
             for (int i = 0; i < infos.Length; i++) paths[i] = infos[i].AssetPath;
             return paths;
         }
+
+        /// <summary>location 是否在当前代次清单内（<see cref="IContentLocationCatalog"/>；初始化后查询）。</summary>
+        public bool IsLocationValid(string location)
+            => !string.IsNullOrEmpty(location) && AssetService.Package.IsLocationValid(location);
 
         public UniTask ShutdownAsync(CancellationToken ct = default)
         {

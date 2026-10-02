@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Threading;
 using LiteFramework;
 using XLua;
+using LiteClient;
 
 namespace LiteGame
 {

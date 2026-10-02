@@ -1,7 +1,7 @@
 using System;
 using System.Globalization;
 
-namespace LiteGame
+namespace LiteClient
 {
     /// <summary>
     /// CDN 通道部署配置（《热更与内容发布专项设计》§7 部署配置契约）。

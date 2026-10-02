@@ -4,7 +4,7 @@ using Cysharp.Threading.Tasks;
 using LiteFramework;
 using UnityEngine;
 
-namespace LiteGame
+namespace LiteClient
 {
     /// <summary>
     /// 声音壳：**组 + 代理模型**。组 = 类别（Effect/Ui/Voice/Bgm），每组 N 个 AudioSource 代理轮转

@@ -2,6 +2,7 @@ using System;
 using System.Threading;
 using Cysharp.Threading.Tasks;
 using LiteFramework;
+using LiteClient;
 
 namespace LiteGame
 {
@@ -15,7 +16,8 @@ namespace LiteGame
     /// ② 资源包初始化（当前 Confirmed 代——`ActiveGeneration`）。
     /// ③ 入口资源检查（可选；<see cref="AssetsHealthProbe"/>）——**须在②之后**：探针走运行时同一条
     ///    租约通道加载入口资源，而在②之前资源包尚未就绪（Patch 早于初始化的时序不可能执行它）。
-    ///    失败 = Error 流程（与②失败同轨，不静默）；通过记证据行供冒烟核对。
+    ///    判据：属于当前代次清单的入口必须可加载（失败 = Error 流程，与②同轨不静默）；不属于的跳过
+    ///    （内置代次不含候选专属入口——内置启动不因此失败）。通过记证据行（含 checked/skipped）供冒烟核对。
     ///
     /// 失败 = RecordFailure + Error 流程（确定错误态）；编排内部已保证"失败保留允许版本"（§8），
     /// 故此处不做回退——回退由 `PatchCoordinator` 在健康失败时执行。
@@ -25,14 +27,15 @@ namespace LiteGame
         private readonly IContentService _content;
         private readonly ActivationTransactionStore _activations;
         private readonly PatchRunner _patchRunner;
-        private readonly IHealthProbe _entryAssetsProbe;
+        private readonly AssetsHealthProbe _entryAssetsProbe;
 
         /// <param name="patchRunner">内容事务编排（可空——为空时退化为"仅启动恢复 + 初始化"，
         /// 用于无候选来源的装配形态；**不得**据此宣称具备热更能力）。</param>
-        /// <param name="entryAssetsProbe">入口资源可加载性探针（可空——为空时不检查；时序说明见类注释）。</param>
+        /// <param name="entryAssetsProbe">入口资源可加载性探针（可空——为空时不检查；时序说明见类注释）。
+        /// 不属于当前代次清单的入口会被探针跳过（内置启动不因候选专属入口而失败）。</param>
         public ProcedurePatch(IContentService content, ActivationTransactionStore activations,
             PatchRunner patchRunner = null, CancellationToken rootToken = default,
-            IHealthProbe entryAssetsProbe = null)
+            AssetsHealthProbe entryAssetsProbe = null)
             : base(rootToken)
         {
             _content = content ?? throw new ArgumentNullException(nameof(content));
@@ -89,8 +92,8 @@ namespace LiteGame
                         m.Request(ProcedureId.Error, new ProcedureArgs(probeError));
                         return;
                     }
-                    UnityEngine.Debug.Log($"[Content] entry-assets ok probe={_entryAssetsProbe.Name}");   // 证据行（冒烟核对）
-                    Log.Info($"入口资源可加载（{_entryAssetsProbe.Name}）", "Content");
+                    UnityEngine.Debug.Log($"[Content] entry-assets ok probe={_entryAssetsProbe.Name} checked={_entryAssetsProbe.LastChecked} skipped={_entryAssetsProbe.LastSkipped}");   // 证据行（冒烟核对）
+                    Log.Info($"入口资源可加载（{_entryAssetsProbe.Name}）：checked={_entryAssetsProbe.LastChecked} skipped={_entryAssetsProbe.LastSkipped}", "Content");
                 }
 
                 m.Request(ProcedureId.Preload);

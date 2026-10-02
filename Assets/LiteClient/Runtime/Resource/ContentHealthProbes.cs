@@ -5,7 +5,7 @@ using Cysharp.Threading.Tasks;
 using LiteFramework;
 using UnityEngine;
 
-namespace LiteGame
+namespace LiteClient
 {
     /// <summary>
     /// 候选配置健康探针（《热更与内容发布专项设计》§8"健康确认至少覆盖候选 ConfigSnapshot…"；
@@ -143,6 +143,11 @@ namespace LiteGame
     /// 因此"能取到"本身就是有效证据；若走 AssetDatabase 直读则测不出运行时才会暴露的
     /// 收集组/依赖/类型问题。
     ///
+    /// **判据分两类**（靠 <see cref="IContentLocationCatalog"/> 区分；服务未实现该端口时全部按硬校验）：
+    /// - location **不在当前代次清单内**（如内置代次不含候选专属入口）→ **跳过**（不计失败，计入
+    ///   <see cref="LastSkipped"/>）——否则"内置启动"会被误判成失败；
+    /// - location **在清单内** → 必须加载成功（计入 <see cref="LastChecked"/>），失败即问题。
+    ///
     /// **作用范围如实标注**：检查的是**当前代次**（= 已确认版本）的入口资源，
     /// **不是候选内容**（候选尚未切换代次）。它验证"入口资源在真实加载路径上可用"，
     /// 用于捕捉"更新后入口坏了"这类回归；候选专属的资源可加载性需激活后由健康确认覆盖。
@@ -154,7 +159,13 @@ namespace LiteGame
 
         public string Name => "entry-assets";
 
-        /// <param name="content">内容服务（与运行时同一条租约通道）。</param>
+        /// <summary>最近一次检查中**属于当前代次**并实际加载校验的 location 数（证据行核对用）。</summary>
+        public int LastChecked { get; private set; }
+
+        /// <summary>最近一次检查中**不在当前代次清单内**而跳过的 location 数（证据行核对用）。</summary>
+        public int LastSkipped { get; private set; }
+
+        /// <param name="content">内容服务（与运行时同一条租约通道；实现 <see cref="IContentLocationCatalog"/> 时启用跳过判据）。</param>
         /// <param name="locations">关键入口资源的 location 列表（装配点注入）。</param>
         public AssetsHealthProbe(IContentService content, IReadOnlyList<string> locations)
         {
@@ -164,12 +175,23 @@ namespace LiteGame
 
         public async UniTask<string> CheckAsync(ReleaseManifest candidate, CancellationToken ct = default)
         {
+            LastChecked = 0;
+            LastSkipped = 0;
             if (_locations.Count == 0) return null;        // 未声明入口 = 本探针无覆盖项
 
+            var catalog = _content as IContentLocationCatalog;
             var problems = new List<string>();
             foreach (string location in _locations)
             {
                 if (ct.IsCancellationRequested) return "入口资源检查已取消";
+
+                // 不属于当前代次 = 跳过（"内置代次没有候选专属入口"不是失败；属于但加载不出才是）
+                if (catalog != null && !catalog.IsLocationValid(location))
+                {
+                    LastSkipped++;
+                    continue;
+                }
+                LastChecked++;
                 try
                 {
                     // 走真实加载路径；取到即释放（不计入长期持有）

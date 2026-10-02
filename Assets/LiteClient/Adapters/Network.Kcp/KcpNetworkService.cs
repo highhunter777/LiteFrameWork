@@ -7,7 +7,7 @@ using LiteNet;
 using LiteNet.Transport;
 using UnityEngine;
 
-namespace LiteGame
+namespace LiteClient
 {
     /// <summary>
     /// 框架网络挂点的 LiteNet 桥接（《状态同步实施方案》§7.1）：

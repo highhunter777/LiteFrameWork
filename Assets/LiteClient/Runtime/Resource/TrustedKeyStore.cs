@@ -2,7 +2,7 @@ using System;
 using System.Collections.Generic;
 using LiteFramework;
 
-namespace LiteGame
+namespace LiteClient
 {
     /// <summary>
     /// 受信公钥库（《热更与内容发布专项设计》§6"客户端只带信任公钥，私钥由受控发布签名环境持有"、

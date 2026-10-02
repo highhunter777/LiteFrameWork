@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using LiteFramework;
+using LiteClient;
 
 namespace LiteGame
 {

@@ -7,7 +7,7 @@ using UnityEngine;
 using UnityEngine.SceneManagement;
 using YooAsset;
 
-namespace LiteGame
+namespace LiteClient
 {
     /// <summary>
     /// 场景句柄的租约包装（《客户端总设计》§8.2 四件之一的 `SceneLease`）。

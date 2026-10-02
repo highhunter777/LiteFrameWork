@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using LiteFramework;
 using XLua;
 
-namespace LiteGame
+namespace LiteClient
 {
     /// <summary>
     /// 事件桥：C# 事件 → 逐回调 pcall（经 SafeCall）→ Lua 回调表。

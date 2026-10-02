@@ -1,6 +1,6 @@
 {
     "name": "LiteClient.Platform.Unity",
-    "rootNamespace": "LiteGame",
+    "rootNamespace": "LiteClient",
     "references": [
         "Cinemachine",
         "LiteClient.Abstractions",

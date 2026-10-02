@@ -1,6 +1,6 @@
 {
     "name": "LiteClient.Network.Kcp",
-    "rootNamespace": "LiteGame",
+    "rootNamespace": "LiteClient",
     "references": [
         "LiteFramework.Async",
         "LiteFramework.Core",

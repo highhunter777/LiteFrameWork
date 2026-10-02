@@ -1,6 +1,6 @@
 {
     "name": "LiteClient.Runtime",
-    "rootNamespace": "LiteGame",
+    "rootNamespace": "LiteClient",
     "references": [
         "LiteClient.Abstractions",
         "LiteFramework.Async",

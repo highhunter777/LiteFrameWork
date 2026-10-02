@@ -1,6 +1,6 @@
 {
     "name": "LiteClient.Serialization.Luban",
-    "rootNamespace": "LiteGame",
+    "rootNamespace": "LiteClient",
     "references": [
         "LiteClient.Abstractions",
         "LiteFramework.Async",

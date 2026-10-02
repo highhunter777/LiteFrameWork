@@ -8,7 +8,7 @@ namespace LiteFramework
     /// Get：缺失 → 默认值（首启正常）；解析失败 → 默认值 + Log.Warning（事故可见）。
     /// Set：先经 clamp（可选范围校验）再写入——越界值在写入口死掉。
     /// 只支持 float/int/bool/string（SettingService 的四种口径）；其他 T 在构造时抛。
-    /// 具体设置清单（键/默认值/范围）由业务定义——见 LiteGame.GameSettings。
+    /// 具体设置清单（键/默认值/范围）由业务定义——见 LiteClient.GameSettings。
     /// </summary>
     public sealed class Setting<T>
     {

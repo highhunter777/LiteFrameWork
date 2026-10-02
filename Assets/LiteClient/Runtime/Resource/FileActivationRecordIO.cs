@@ -1,6 +1,6 @@
 using LiteFramework;
 
-namespace LiteGame
+namespace LiteClient
 {
     /// <summary>
     /// 激活记录的文件持久化（IActivationRecordIO 的 FileSys 实现——persistentDataPath 下 JSON）。

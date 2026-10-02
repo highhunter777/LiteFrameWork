@@ -4,7 +4,7 @@ using System.Threading;
 using Cysharp.Threading.Tasks;
 using LiteFramework;
 
-namespace LiteGame
+namespace LiteClient
 {
     /// <summary>
     /// Lua 全量预载器。**loader 是同步签名 → 启动期全量预载是咽喉**（设计方案 §4.2）：

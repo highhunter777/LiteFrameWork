@@ -5,7 +5,7 @@ using LiteFramework;
 using UnityEngine;
 using YooAsset;
 
-namespace LiteGame
+namespace LiteClient
 {
     /// <summary>
     /// 资源加载统一门面（沿用 AssetService 静态门面）。业务只依赖此类，不直接依赖 YooAsset；换资源方案只改这一个文件。

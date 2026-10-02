@@ -1,7 +1,7 @@
 using System.Threading;
 using Cysharp.Threading.Tasks;
 
-namespace LiteGame
+namespace LiteClient
 {
     /// <summary>
     /// 配置表来源（通用、零 Luban 名）：`Serialization.Luban` 是 Adapter，运行时/流程只依赖抽象。

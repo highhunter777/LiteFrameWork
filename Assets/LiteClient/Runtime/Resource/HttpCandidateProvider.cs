@@ -4,7 +4,7 @@ using Cysharp.Threading.Tasks;
 using LiteFramework;
 using UnityEngine.Networking;
 
-namespace LiteGame
+namespace LiteClient
 {
     /// <summary>
     /// CDN 信封提供者（《热更与内容发布专项设计》§7"各源必须提供同一摘要文件"）：

@@ -2,7 +2,7 @@ using System;
 using System.Collections.Generic;
 using LiteFramework;
 
-namespace LiteGame
+namespace LiteClient
 {
     /// <summary>
     /// 内置信任锚表（《热更与内容发布专项设计》§6"内置锚点 + 可选外部撤销清单"）：
