@@ -37,6 +37,10 @@ namespace LiteGame
         private float _aimZ;
         private bool _disposed;
 
+        private Vector3 _aimPointWorld; // 本帧解算的瞄准点（无解算帧 = false）
+        private bool _hasAimPoint;
+        /// <summary> 最近一次采样解算出的瞄准点（世界；无鼠标/无交点 = false）。 </summary>
+        public bool TryGetAimPoint ( out Vector3 point ) { point = _aimPointWorld; return _hasAimPoint; }
         public string Name => "new-input-system";
 
         /// <param name="actions">Action 资产包装（装配根创建并持有；null = 自建，由本类释放）。</param>
@@ -92,8 +96,9 @@ namespace LiteGame
 
         public IntentSample Sample(in SimVector3 localPos)
         {
+            _hasAimPoint = false;
             if (_disposed) return IntentSample.None;
-
+            
             // 未启用/无设备时 InputAction 读数为零——这是"采样到空意图"，不是"没有采样"。
             // 两者的区分见 IntentSample 的注释；本实现只要资产已启用就始终算采到。
             Camera aimCamera = ResolveCamera();       // 相机同时是瞄准解算源与移动的"屏幕基准"（见下）
@@ -135,6 +140,7 @@ namespace LiteGame
                 if (_groundPlane.Raycast(ray, out float distance))
                 {
                     Vector3 p = ray.GetPoint(distance);
+                    _aimPointWorld = p; _hasAimPoint = true;
                     float ax = p.x - localPos.X;
                     float az = p.z - localPos.Z;
                     float aimMag2 = ax * ax + az * az;

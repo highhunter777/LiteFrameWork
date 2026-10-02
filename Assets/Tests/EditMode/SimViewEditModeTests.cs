@@ -329,6 +329,9 @@ namespace LiteGame.Tests.EditMode
             public Quaternion LastFacing;
             public int SetAimingCount;
             public bool LastAiming;
+            public int SetAimPointCount;
+            public Vector3 LastAimPoint;
+            public bool LastHasAimPoint;
             public bool HasFocus { get; private set; }
             public Vector3 Focus => LastTarget;
 
@@ -344,6 +347,13 @@ namespace LiteGame.Tests.EditMode
             {
                 SetAimingCount++;
                 LastAiming = aiming;
+            }
+
+            public void SetAimPoint(in Vector3 point, bool hasPoint)
+            {
+                SetAimPointCount++;
+                LastAimPoint = point;
+                LastHasAimPoint = hasPoint;
             }
 
             public void Reset() => HasFocus = false;

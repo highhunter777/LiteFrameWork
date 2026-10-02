@@ -16,9 +16,10 @@ namespace LiteGame
     /// §12.2 视觉单一来源的同一条判据）：相机构图是产品表现决策，用代码再表达一遍就有了第二处事实源，
     /// 调完编辑器发现"改了没用"是最难查的一类分歧。
     ///
-    /// **例外：瞄准接管（<see cref="SetAiming"/>）写 Priority**——但写的
-    /// 是**派生值**（主 vcam 场景优先级 + 1）且下降沿**还原回场景配置原值**；镜头本身（FOV/偏移/距离）
-    /// 仍全归场景。语义态（"瞄准中"）来自端口调用方，映射成 Cinemachine 机制是适配器的本分。
+    /// **例外：瞄准接管（<see cref="SetAiming"/>）写两处派生值**——优先级（主 vcam 场景值 + 1）与
+    /// 构图 z 偏移（按 <see cref="AimOffsetCurve"/> 随瞄准点拉近），两者下降沿都**还原回场景配置原值**；
+    /// 镜头其余档位（FOV/距离/其它偏移分量）仍全归场景。语义态（"瞄准中"）来自端口调用方，
+    /// 映射成 Cinemachine 机制是适配器的本分。
     ///
     /// **场景切换后的重新解析（本类的关键行为）**：虚拟相机是**场景对象**，随场景加载/卸载而生灭
     /// （Single 模式切场景后，启动场景里的 vcam 会被一并销毁）。因此本类在每次
@@ -47,8 +48,12 @@ namespace LiteGame
 
         // ---- 瞄准相机（ADS 接管，持续预放置形态：接线前置到绑定时刻，全程跟着玩家预先就位）----
         private CinemachineVirtualCamera _aimVcam;
-        private int _aimPriorityAtBind;           // 接管前优先级（场景配置值——抬升基准由主相机派生，释放时还原回场景值）
-        private bool _aiming;                     // 当前语义态（变化沿生效）
+        private CinemachineComposer _aimVcamAim;   // 构图器（TrackedObjectOffset.z = 瞄准曲线写入面）
+        private int _aimPriorityAtBind;            // 接管前优先级（场景配置值——抬升基准由主相机派生，释放时还原回场景值）
+        private float _aimOffsetZAtBind;           // 接管前构图 z 偏移（场景基准值；曲线在 d=基值处接回它）
+        private bool _aiming;                      // 当前语义态（变化沿生效）
+        private Vector3 _aimPoint;                 // 最近一帧解算的瞄准点（世界）
+        private bool _hasAimPoint;                 // 本帧是否有解算结果（false = 不动作，保持现值）
 
         /// <summary>装配点指定的跟随目标（null = 用 vcam 自己配的 Follow，再没有就自建空目标）。</summary>
         private readonly Transform _preferredTarget;
@@ -183,9 +188,11 @@ namespace LiteGame
             if (_aimVcam != null && !ReferenceEquals(_aimVcam, null))
             {
                 _aimVcam.Priority = _aimPriorityAtBind;   // 归还场景优先级（Follow/LookAt 保持接线——持续预放置）
+                RestoreAimOffset();                       // 构图 z 偏移同样归还（解绑/切场景不遗留接管值）
                 _aiming = false;
             }
             _aimVcam = null;
+            _aimVcamAim = null;
             if (_vcam != null)
             {
                 // vcam 可能已随场景销毁（Unity 的伪 null）——用 ReferenceEquals 判真身，避免误碰已销毁对象
@@ -242,8 +249,9 @@ namespace LiteGame
         /// 瞄准态接管（<see cref="ICameraService.SetAiming"/> 契约；持续预放置形态）：
         /// 瞄准机的 Follow/LookAt 在**绑定主相机时即接线**（<see cref="BindAimCamera"/>），且
         /// StandbyUpdate=Always 全程跟着玩家——**接管瞬间瞄准机已在正确位姿**，切换只剩
-        /// 优先级翻转（本方法唯一写的字段）与 brain 的 FOV/构图混合，无陈旧位姿甩动。
-        /// 幂等（已接管 no-op）；主机未接线/瞄准机缺失时保持未接管逐帧重试，缺机记
+        /// 优先级翻转与 brain 的 FOV/构图混合，无陈旧位姿甩动；构图 z 偏移按
+        /// <see cref="AimOffsetCurve"/> 随瞄准点拉近（派生写入、释放还原场景值）。
+        /// 幂等（已接管则只刷新偏移）；主机未接线/瞄准机缺失时保持未接管逐帧重试，缺机记
         /// <see cref="LastAimResolveReason"/>（不代场景自建）。
         /// </summary>
         public void SetAiming(bool aiming)
@@ -253,15 +261,20 @@ namespace LiteGame
             if (aiming)
             {
                 if (_aiming && _aimVcam != null && !ReferenceEquals(_aimVcam, null)
-                    && _aimVcam.gameObject.scene.IsValid()) return;   // 已接管且瞄准机存活：幂等
+                    && _aimVcam.gameObject.scene.IsValid())
+                {
+                    ApplyAimOffset();                         // 已接管：每帧按瞄准点刷新构图 z 偏移
+                    return;
+                }
                 if (_vcam == null || ReferenceEquals(_vcam, null)) return;   // 主机未接线：保持未接管重试
                 BindAimCamera();                              // 幂等：未接线则接线（预放置语义见上）
                 if (_aimVcam == null || ReferenceEquals(_aimVcam, null)) return;
 
-                if (!_aiming)                                 // 上升沿：只翻优先级
+                if (!_aiming)                                 // 上升沿：翻优先级 + 起始一次偏移刷新
                 {
                     _aiming = true;
                     _aimPriorityAtBind = _aimVcam.Priority;
+                    ApplyAimOffset();
                     _aimVcam.Priority = _vcam.Priority + 1;   // 基准派生：主 vcam 场景优先级 + 1
                     Log.Info($"[Camera] 瞄准机接管「{_aimVcam.name}」prio={_aimVcam.Priority}", "Camera");
                 }
@@ -272,7 +285,8 @@ namespace LiteGame
                 _aiming = false;
                 if (_aimVcam != null && !ReferenceEquals(_aimVcam, null))
                 {
-                    _aimVcam.Priority = _aimPriorityAtBind;   // 只还原优先级；Follow/LookAt 保持接线（持续预放置）
+                    _aimVcam.Priority = _aimPriorityAtBind;   // 还原优先级；Follow/LookAt 保持接线（持续预放置）
+                    RestoreAimOffset();                       // 构图 z 偏移同样还原场景值
                     Log.Info($"[Camera] 瞄准机释放「{_aimVcam.name}」prio={_aimVcam.Priority}", "Camera");
                 }
             }
@@ -293,6 +307,8 @@ namespace LiteGame
             _aimVcam.Follow = _target;
             if (_aimVcam.LookAt == null) _aimVcam.LookAt = _target;
             _aimVcam.m_StandbyUpdate = CinemachineVirtualCameraBase.StandbyUpdateMode.Always;
+            if (!_aiming && _aimVcamAim != null && !ReferenceEquals(_aimVcamAim, null))
+                _aimOffsetZAtBind = _aimVcamAim.m_TrackedObjectOffset.z;   // 场景基准值（仅非瞄准期可采：曲线接回的端点）
             Log.Info($"[Camera] 瞄准机预放置「{_aimVcam.name}」(follow/lookAt=主焦点, standby=Always)", "Camera");
         }
 
@@ -310,6 +326,7 @@ namespace LiteGame
             {
                 if (all[i] == null || all[i].name != AimCameraName) continue;
                 _aimVcam = all[i];
+                _aimVcamAim = _aimVcam.GetCinemachineComponent<CinemachineComposer>();
                 LastAimResolveReason = null;
                 return true;
             }
@@ -332,6 +349,34 @@ namespace LiteGame
             _shutdown = true;
             SceneManager.sceneLoaded -= OnSceneLoaded;   // 退订：静态事件不平账 = 跨 Play 的悬挂回调
             Unbind();
+        }
+
+        /// <summary>瞄准点通知（<see cref="ICameraService.SetAimPoint"/> 契约）：缓存本帧解算结果；
+        /// 瞄准期立即刷新构图 z 偏移，非瞄准期只存值（预放置用场景偏移）。</summary>
+        public void SetAimPoint(in Vector3 point, bool hasPoint)
+        {
+            _aimPoint = point;
+            _hasAimPoint = hasPoint;
+            if (_aiming) ApplyAimOffset();
+        }
+
+        /// <summary>按纯二次曲线把瞄准点距离写进构图 z 偏移（<see cref="AimOffsetCurve"/>）。
+        /// 距离 = 瞄准点在**焦点前向**上的投影（偏移轴 = 焦点局部 z，角色系）；无解算点/无构图器/无焦点时不动作。</summary>
+        private void ApplyAimOffset()
+        {
+            if (!_hasAimPoint || _aimVcamAim == null || ReferenceEquals(_aimVcamAim, null)) return;
+            if (_target == null || ReferenceEquals(_target, null)) return;
+
+            float d = Vector3.Dot(_aimPoint - _target.position, _target.forward);
+            if (d < 0f) d = 0f;
+            _aimVcamAim.m_TrackedObjectOffset.z = AimOffsetCurve.Z(d, _aimOffsetZAtBind);
+        }
+
+        /// <summary>构图 z 偏移还原为接管前场景值（释放/解绑路径；幂等）。</summary>
+        private void RestoreAimOffset()
+        {
+            if (_aimVcamAim != null && !ReferenceEquals(_aimVcamAim, null))
+                _aimVcamAim.m_TrackedObjectOffset.z = _aimOffsetZAtBind;
         }
     }
 }

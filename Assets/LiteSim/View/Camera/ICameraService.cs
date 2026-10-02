@@ -50,6 +50,12 @@ namespace LiteSim.View
         /// </summary>
         void SetAiming(bool aiming);
 
+        /// <summary> 瞄准点通知（世界空间；本地解算的鼠标→地面交点）。每渲染帧幂等调用，仅瞄准期有意义； 
+        /// hasPoint=false = 本帧无解算（无鼠标/无交点）→ 实现不得猜点（保持预放置位姿）。 
+        /// 语义态进端口、用法归实现（与 SetAiming 同口径）。 
+        /// </summary> 
+        void SetAimPoint ( in Vector3 point, bool hasPoint ) ;
+
         /// <summary>重置跟随状态（解除控制/重开局时调：下一帧重新落位，不从上一次位置飞过去）。</summary>
         void Reset();
 

@@ -57,6 +57,7 @@ namespace LiteGame
         private SimView _view;
         private CharacterLocomotionDriver _locomotion;   // 移动动画驱动（视图的消费者——先于视图拆除）
         private BattleCrosshairDriver _crosshair;       // 对局准心（战斗 HUD 第一件——场景 /Battle HUD，见 AttachCrosshair）
+        private Func<Vector3?> _aimPointOf;             // 瞄准点来源（世界坐标；null = 无设备形态——相机保持场景构图）
         private Transform _viewRoot;
         private GameObject _viewRootGo;
         private GameObject _prefab;
@@ -223,6 +224,7 @@ namespace LiteGame
             _locomotion = new CharacterLocomotionDriver(_view);   // 移动动画：视图速度 → 播放器 → Animator 后端（§7 更新次序的 Driver 段）
 
             AttachCrosshair();                                  // 对局准心（HUD 第一件——视图/输入均已就绪，场景对象按名解析）
+            _aimPointOf = AimPointOf(_input);                   // 瞄准点（世界）→ 相机瞄准构图 z 偏移曲线
             AttachInput();
             UnityEngine.Debug.Log($"[Battle] view-attached prefab={EntityPrefab}");
         }
@@ -267,6 +269,17 @@ namespace LiteGame
         {
             return input != null && input.Source is NewInputIntentSource source
                 ? () => source.MouseScreenPosition
+                : null;
+        }
+
+        /// <summary>
+        /// 瞄准点来源：设备源适配器解算的鼠标→地面交点（世界坐标；与准心共用同一解算结果）。
+        /// 非该实现（测试替身/无设备形态）返回 null——相机保持场景构图。**不在此 import InputSystem**（R12）。
+        /// </summary>
+        private static Func<Vector3?> AimPointOf(IInputService input)
+        {
+            return input != null && input.Source is NewInputIntentSource source
+                ? (Func<Vector3?>)(() => source.TryGetAimPoint(out Vector3 point) ? point : (Vector3?)null)
                 : null;
         }
 
@@ -334,6 +347,7 @@ namespace LiteGame
             _locomotion = null;
             _crosshair?.Dispose();                // 准心驱动（还系统光标——同属视图消费者，先于视图本体拆）
             _crosshair = null;
+            _aimPointOf = null;                   // 瞄准点来源随本局设备源一起摘（方法组不跨局持有）
             _camera?.SetAiming(false);            // 瞄准机还原（优先级/Follow 归还场景值——离场不得遗留接管态）
             _context?.AttachInput(null);
             _view = null;                                         // 视图实例随 _viewRoot 销毁
@@ -371,6 +385,11 @@ namespace LiteGame
             _locomotion?.Tick(elapseSeconds);    // 移动动画：视图位置已更新，再解析目标姿态（视图的下游消费者）
             _crosshair?.Tick();                  // 对局准心（HUD）：位置/形态/光标——视图状态的最后一个消费者
             _camera?.SetAiming(IsLocalAiming()); // 瞄准相机接管（每帧幂等；适配器按沿生效——视图态已解析）
+            if (_camera != null)                  // 瞄准点（世界）→ 构图 z 偏移曲线（适配器按到焦点的前向投影换算）
+            {
+                Vector3? aimPoint = _aimPointOf?.Invoke();
+                _camera.SetAimPoint(aimPoint ?? default, aimPoint.HasValue);
+            }
         }
 
         /// <summary>等对局结束（Ended 恰好一次；ct 打断 = 宿主关闭路径）。</summary>
