@@ -20,11 +20,17 @@ namespace LiteGame
         /// BattleContext.Dispose → Match Scope → Account Scope，§6.2）。</summary>
         public readonly ClientScope AccountScope;
 
-        public ProcedureArgs(Exception error = null, BattleClient battleClient = null, ClientScope accountScope = null)
+        /// <summary>测试房意图（`Main` F10 → `Match` 读）：强制本地服 + 房号 Room-Test + 全房免死
+        /// （<see cref="LiteSim.SimTestRules.NoDeath"/>）——开发/测试专用，正式包无该入口。</summary>
+        public readonly bool TestRoom;
+
+        public ProcedureArgs(Exception error = null, BattleClient battleClient = null, ClientScope accountScope = null,
+            bool testRoom = false)
         {
             Error = error;
             BattleClient = battleClient;
             AccountScope = accountScope;
+            TestRoom = testRoom;
         }
     }
 }

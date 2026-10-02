@@ -24,7 +24,9 @@ namespace LiteGame
         public const string TestHost = "127.0.0.1";
         public const int TestPort = 17777;
         /// <summary>测试房间（RoomConfig 默认房间号）。</summary>
-        public const string TestRoomId = "Room-A";
+        public const string DefaultRoomId = "Room-A";
+        /// <summary>测试房房间号（F10 入口：本地服专用于测试；全房免死规则见 <see cref="LiteSim.SimTestRules"/>）。</summary>
+        public const string TestRoomId = "Room-Test";
         /// <summary>隔离测试发行者的受控测试身份（服务端仍按红线拒绝公网）。</summary>
         public const string TestToken = "c2-dev-token";
 
@@ -58,7 +60,7 @@ namespace LiteGame
         protected override void RunAsync(IStageHost<ProcedureId, ProcedureArgs> m, in ProcedureArgs req, CancellationToken ct)
         {
 #if UNITY_EDITOR || DEVELOPMENT_BUILD || LITEFRAMEWORK_DEBUG
-            RunAsyncCore(m, ct).Forget();          // 一行转发，仅此而已——禁止 async void
+            RunAsyncCore(m, ct, req.TestRoom).Forget();          // 一行转发，仅此而已——禁止 async void
 #else
             // 生产配置缺真实依赖时拒绝启动或拒绝相应功能，不能悄悄退回 fake：
             // 正式包未接入真实登录——**拒绝进房**并进确定错误态。
@@ -71,15 +73,16 @@ namespace LiteGame
 #endif
         }
 
-        private async UniTask RunAsyncCore(IStageHost<ProcedureId, ProcedureArgs> m, CancellationToken ct)
+        private async UniTask RunAsyncCore(IStageHost<ProcedureId, ProcedureArgs> m, CancellationToken ct, bool testRoom)
         {
             ClientScope account = null;
             BattleClient battle = null;
             try
             {
                 account = _rootScope.CreateChild("Account");
-                battle = account.Register(new BattleClient(TestHost, TestPort, TestRoomId, TestToken,
-                    LiteNet.BuildHash.Value, transport: CreateTransport()));
+                battle = account.Register(new BattleClient(TestHost, TestPort,
+                        testRoom ? TestRoomId : DefaultRoomId, TestToken,
+                        LiteNet.BuildHash.Value, transport: CreateTransport(testRoom)));
                 _pending = battle;                        // 交给 OnUpdate 驱动泵（握手/收发全靠它推进）
 
                 await WaitJoined(battle, ct);
@@ -104,21 +107,26 @@ namespace LiteGame
         }
 
         /// <summary>
-        /// 选择传输：**真 KCP（默认）** 还是 **进程内本地服务器**（离线隔离开发）。
+        /// 选择传输（<paramref name="testRoom"/> = F10 测试房：强制本地服 + 房号 Room-Test + 全房免死）：
+        /// **真 KCP（默认）** 还是 **进程内本地服务器**（离线隔离开发，开关 <see cref="DebugTuner.UseLocalServerEnabled"/>）。
         ///
-        /// 开关来自 <see cref="DebugTuner.UseLocalServerEnabled"/>（场景里挂的调试组件，Inspector 勾选）。
         /// **只在开发/编辑器/开发包可用**——`DebugTuner` 整体在 `#if` 内，release 下该静态不存在，
         /// 故此处也包在同一门禁里，正式包恒走真 KCP（不给"悄悄退化成假服务器"留窗口，
         /// 框架先行 §6"生产配置缺真实依赖时拒绝启动或拒绝相应功能，不能悄悄退回 fake"）。
+        /// **测试房不提供 KCP 形态**：免死规则靠"客户端预测与进程内服务器同进程同源"（<see cref="LiteSim.SimTestRules"/>），
+        /// 真服务器的房间级规则下发未做。
         /// </summary>
-        private static LiteNet.Transport.IClientTransport CreateTransport()
+        private static LiteNet.Transport.IClientTransport CreateTransport(bool testRoom)
         {
 #if UNITY_EDITOR || DEVELOPMENT_BUILD || LITEFRAMEWORK_DEBUG
-            if (DebugTuner.UseLocalServerEnabled)
+            LiteSim.SimTestRules.NoDeath = testRoom;      // 规则随入口设置：常规入口（F9）一律复位
+            if (testRoom || DebugTuner.UseLocalServerEnabled)
             {
-                UnityEngine.Debug.Log("[Match] **本地服务器**：对局在进程内跑真 RoomRuntime 内核"
-                    + "（无 Socket / 无票据 / 单房间 / 剩余席位自动补位站桩——弱网、重连真实性与真实多人交互仍须真服务器验证）");
-                return LocalServerTransport.ForRoom(TestRoomId);
+                UnityEngine.Debug.Log(testRoom
+                    ? "[Match] **测试房**：本地服 Room-Test + 全房免死（Hp 保底 1、目标不消失——测试专用）"
+                    : "[Match] **本地服务器**：对局在进程内跑真 RoomRuntime 内核"
+                        + "（无 Socket / 无票据 / 单房间 / 剩余席位自动补位站桩——弱网、重连真实性与真实多人交互仍须真服务器验证）");
+                return LocalServerTransport.ForRoom(testRoom ? TestRoomId : DefaultRoomId);
             }
 #endif
             return null;                                  // null = BattleClient 自建真 KCP（生产路径）

@@ -55,6 +55,9 @@ namespace LiteGame
             // 门禁与 SimSandbox 同口径：开发/编辑器可用，正式包无该入口（不塞进 Release 玩家）。
             if (UnityEngine.Input.GetKeyDown(UnityEngine.KeyCode.F9))
                 m.Request(ProcedureId.Match);
+            // F10 = 测试房：强制本地服 + 房号 Room-Test + 全房免死（目标不消失——测试专用）。
+            if (UnityEngine.Input.GetKeyDown(UnityEngine.KeyCode.F10))
+                m.Request(ProcedureId.Match, new ProcedureArgs(testRoom: true));
 #endif
         }
 

@@ -153,6 +153,29 @@ namespace LiteSim.Tests
         }
 
         [Fact]
+        public void 测试房免死_跨死线保底1且不写Death()
+        {
+            var s = new SimWorldState();
+            long id = s.Spawn(new EntitySlot { Hp = CombatConfig.EntityHp }, out int slot);
+
+            SimTestRules.NoDeath = true;
+            try
+            {
+                s.Cmds.Write(SimCommandKind.Damage, id, 0L, CombatConfig.EntityHp + 50);
+                SimStep.FlushCommands(s);
+
+                Assert.Equal(1, s.Entities[slot].Hp);   // 保命不消失：跨死线保底 1
+                Assert.Equal(0, s.Events.Count);        // 无 Death 事件
+                Assert.Equal(0, s.Cmds.Count);          // 无 Kill 产出
+                Assert.True(s.IsAlive(slot));
+            }
+            finally
+            {
+                SimTestRules.NoDeath = false;           // 静态规则：用例毕复位（防跨用例污染）
+            }
+        }
+
+        [Fact]
         public void 命令缓冲_死亡目标命令作废不重复击杀()
         {
             var s = new SimWorldState();
