@@ -3,7 +3,7 @@ using System.Threading;
 using Cysharp.Threading.Tasks;
 using LiteTesting;
 using LiteTesting.Unity;
-using LiteGame.UI;   // FadeSlideTransition 已随 §5.1 迁入适配器边界（原在 LiteGame 根）
+using LiteGame.UI;   // FadeSlideTransition 在适配器边界（§5.1）
 using NUnit.Framework;
 using UnityEngine;
 
@@ -343,8 +343,8 @@ namespace LiteGame.Tests.EditMode
         [Category(TestCategory.Contract)]
         public void 转场_策略写Cancelled终态_未超时也报Cancelled且已复位()
         {
-            // 回归卡（2026-09-25 真实缺陷）：超时之外，策略被判为取消时结果必须是 Cancelled
-            // 而不是落到兜底；且取消路径必须触发复位（原实现 Kill(true) 不复位）。
+            // 回归卡：超时之外，策略被判为取消时结果必须是 Cancelled
+            // 而不是落到兜底；且取消路径必须触发复位。
             var rec = new OutcomeRecorder { Hold = true, ResetOnCancel = true };
             var runner = new UITransitionRunner(rec);
             var form = MakeForm(1);
@@ -364,8 +364,8 @@ namespace LiteGame.Tests.EditMode
         }
 
         // ---- ⑦ 真实策略（FadeSlideTransition）的复位与终态 ----
-        // 本组是 2026-09-25 修掉的真实缺陷的回归卡：原 ToTask 用 Kill(true) 复位，
-        // 但本仓 DOTween 实测 Kill(true) **既不跳终值也不派发回调** → 超时取消后页面停在半透明。
+        // 本仓 DOTween 的 Kill(true) **既不跳终值也不派发回调**，故真实策略的取消路径必须显式复位；
+        // 本组钉住复位与终态。
 
         [Test]
         [Category(TestCategory.Contract)]
@@ -393,7 +393,7 @@ namespace LiteGame.Tests.EditMode
         [Category(TestCategory.Contract)]
         public void 真实策略_取消时复位到目标视觉_不留半截动画()
         {
-            // 回归卡：取消（超时/权威）必须复位。原实现 Kill(true) 不复位 → alpha 停在中途。
+            // 回归卡：取消（超时/权威）必须复位，否则 alpha 停在中途。
             var form = MakeForm(1);
             form.CanvasGroup.alpha = 0f;
             using var cts = new System.Threading.CancellationTokenSource();
@@ -419,10 +419,9 @@ namespace LiteGame.Tests.EditMode
         [Category(TestCategory.Contract)]
         public void 真实策略_页面被回收_壳主动取消并收尾_不白等超时()
         {
-            // 回归卡（2026-09-25 实测发现，比动画专项 §2 记录更严重）：
-            // 本仓 DOTween 1.3.030 的 OnKill **根本不触发**（显式 Kill(false) 与 KillOnDisable 均实测为无回调），
-            // 故页面在转场中被回收时任务会悬着，只能白等 MaxDuration 超时。
-            // 现由壳感知 Recycled/Disposed 并主动取消 → 立刻收尾、如实报 Cancelled、策略复位。
+            // 回归卡：本仓 DOTween 1.3.030 的 OnKill **不触发**（Kill(false) 与 KillOnDisable 均无回调），
+            // 页面在转场中被回收时任务会悬着——须由壳感知 Recycled/Disposed 主动取消，
+            // 立刻收尾、如实报 Cancelled、策略复位。
             var form = MakeForm(1);
             form.CanvasGroup.alpha = 0f;
 

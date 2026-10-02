@@ -14,7 +14,7 @@ namespace LiteNet.Tests
     /// <summary>
     /// 房间广播 / E1 背压 / 重连服务 用例（《M10实施指导》§2.7/§2.8 + §3"E1 背压"/"E3 加固"组）。
     ///
-    /// R1 迁移：改由 <see cref="RoomRuntime"/> 命令面驱动（Join/Tick/ClientInput）+ App 层
+    /// 改由 <see cref="RoomRuntime"/> 命令面驱动（Join/Tick/ClientInput）+ App 层
     /// <see cref="SnapshotPipeline"/> 广播（假传输——用 pipeline.SendTo 捕获出站包），
     /// 不依赖 KCP 与真实网络（那部分由 RoomServerTests 的 loopback 用例覆盖）。
     /// </summary>
@@ -79,7 +79,7 @@ namespace LiteNet.Tests
             var s2 = new Session(2, 0);
             Assert.Equal(0, Join(room, s1, seats));
             Assert.Equal(1, Join(room, s2, seats));
-            Assert.True(room.Started, "满员后应自动开局（批② 换 §9.1 Starting 迁移）");
+            Assert.True(room.Started, "满员后应自动开局");
             return (room, capture, s1, s2, pipeline);
         }
 
@@ -184,8 +184,8 @@ namespace LiteNet.Tests
         {
             var (room, capture, s1, s2, pipeline) = BuildStartedRoom();
 
-            // 模拟慢客户端：真实发送过 4×上限字节但从未 ACK（诚实记账播种——R0-P0-4 后水位
-            // 只能经验证过的 ACK 释放，直接改 SendQueueBytes/AckedBytes 的旧播种方式绕过了 ledger）
+            // 模拟慢客户端：真实发送过 4×上限字节但从未 ACK（诚实记账播种——水位
+            // 只能经验证过的 ACK 释放，直接改 SendQueueBytes/AckedBytes 会绕过 ledger）
             s1.RecordSnapshotSend(0, (int)(ProtocolConstants.BackpressureQueueLimitBytes * 4));
 
             Step(room, pipeline, 20);
@@ -253,7 +253,7 @@ namespace LiteNet.Tests
             Assert.Single(s1Snaps);                       // 此刻只收过全量（broadcastIndex 2）
             Assert.True(s1Snaps[0].IsFull, "请求的全量落在 s1 在收的广播上");
             Assert.True(s1Snaps[0].Slots.Count == room.AuthSim.AliveCount(),
-                $"档 3 全量帧整帧保留（旧实现裁半 → 缺席判死误杀视野外实体；slots={s1Snaps[0].Slots.Count} alive={room.AuthSim.AliveCount()}）");
+                $"档 3 全量帧整帧保留（缺席判死误杀视野外实体；slots={s1Snaps[0].Slots.Count} alive={room.AuthSim.AliveCount()}）");
 
             for (int i = 0; i < 2; i++)                    // 后续增量（broadcastIndex 4，s1 在收）
             {

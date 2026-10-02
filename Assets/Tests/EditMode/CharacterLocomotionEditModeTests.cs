@@ -57,7 +57,7 @@ namespace LiteGame.Tests.EditMode
                 .RegisterBlend(new AnimationBlendDefinition(TestUpperBlend, AnimationChannel.UpperBody,
                     new[] { "Reload" }, minSpeed: 0.1f, maxSpeed: 2f));
 
-        /// <summary>经 Profile/播放器提交混合（权重槽位序 = 定义槽位序；本批的**唯一混合入口**）。</summary>
+        /// <summary>经 Profile/播放器提交混合（权重槽位序 = 定义槽位序；唯一混合入口）。</summary>
         private static AnimationStartResult PlayBlend(CharacterAnimationPlayer player, AnimationId id,
             AnimationChannel channel, params float[] weights)
             => player.PlayBlend(new AnimationBlendRequest(id, channel, weights));
@@ -186,11 +186,10 @@ namespace LiteGame.Tests.EditMode
         [Category(TestCategory.Contract)]
         public void 分层_基础层权重必须落地_关键骨骼姿态确实推进()
         {
-            // 2026-09-27 实测缺陷的回归守卫：`AnimationLayerMixerPlayable` 的层 0 权重**默认是 0**，
-            // 不显式置 1 时基础层整体不输出——通道在播、时间在走、IsChannelActive 全绿，
-            // 角色姿态却停在默认姿势（非映射的武器挂点骨骼停在绑定位置 → 表现为"武器脱手悬空"）。
-            // 既有用例只比"两个实例之间的相对差"（叠加层是否改写手臂），缺陷态下两边同坏 → 相对差依然成立。
-            // 本用例因此断言两件**绝对事实**：混合器真值权重、以及手骨逐帧确实在变。
+            // 回归守卫：`AnimationLayerMixerPlayable` 的层 0 权重**默认是 0**，不显式置 1 时基础层
+            // 整体不输出——通道在播、时间在走、IsChannelActive 全绿，角色姿态却停在默认姿势。
+            // 相对差断言在缺陷态下两边同坏仍成立，故此处断言两件**绝对事实**：
+            // 混合器真值权重、以及手骨逐帧确实在变。
             var prefab = LoadPrefabOrIgnore();
             var go = Scope.Track(Object.Instantiate(prefab));
             var animator = go.GetComponentInChildren<Animator>(true);
@@ -446,7 +445,7 @@ namespace LiteGame.Tests.EditMode
         [Category(TestCategory.Contract)]
         public void 混合_播放倍率就地缩放_真图生效()
         {
-            // 步频同步（2026-09-30 移动腰射批）：倍率乘在混合器节点上（Playable 速度沿图相乘），
+            // 步频同步：倍率乘在混合器节点上（Playable 速度沿图相乘），
             // 输入片段原生 Speed 不动——经引擎真值诊断（TryGetChannelDebug.Speed）验证，不经替身。
             var prefab = LoadPrefabOrIgnore();
             var go = Scope.Track(Object.Instantiate(prefab));
@@ -471,10 +470,7 @@ namespace LiteGame.Tests.EditMode
             Assert.IsFalse(player.TrySetBlendSpeed(default, 2f), "未知句柄必须拒绝");
         }
 
-        // ---- 帧事件接缝（§8）----
-        // 决策表 FrameEventAnimationMap 已随 v0.5 五次裁决退役（映射=状态机的转换条件——fire 事件即进
-        // Fire 系，语义/通道由战斗层装配期从 Profile 单源解析，驱动器构造期校验）；交叉校验用例随之删除，
-        // 通道改绑（Fire/AimIdle/AimMoveBlend → FullBody）由驱动用例与构造期校验承担。
+        // ---- 帧事件接缝（§8）：Fire 事件即进 Fire 系，语义/通道由战斗层装配期从 Profile 单源解析 ----
 
         [Test]
         [Category(TestCategory.Contract)]
@@ -898,8 +894,8 @@ namespace LiteGame.Tests.EditMode
             driver.Tick(dt);
             Assert.AreEqual(1, driver.AnimatedViews);
 
-            // 站定单发：跨根进 FireIdle——战斗根覆盖（移动根收 Locomotion、FireIdle 播 FullBody 片段；
-            // 事务序先停后播）。旧"channels=2 上半身叠加"口径不再成立：叠加层被全身接管替代。
+            // 站定单发：跨根进 FireIdle——战斗根覆盖移动根（收 Locomotion、FireIdle 播 FullBody 片段；
+            // 事务序先停后播）。
             DeliverFire(view, world, selfId, firePos);
             Assert.AreEqual(0, view.SilencedEvents, "非静默段的事件必须放行");
             Assert.AreEqual(1, view.DeliveredEvents);
@@ -911,7 +907,6 @@ namespace LiteGame.Tests.EditMode
                 "开火片段在播 = FullBody 当前形态");
 
             // 覆盖直证：Locomotion 被收（淡出后节点归零）→ 通道数回落 1——**仍处于射击窗内**（1s）。
-            // 旧上半身叠加口径下 channels 恒为 2（叠加层与基础层并存）；全身接管必须在窗内就回落。
             int settled = 0;
             for (; settled < 30; settled++)
             {
@@ -919,7 +914,7 @@ namespace LiteGame.Tests.EditMode
                 ((IModuleStats)driver).Snapshot(stats);
                 if (stats["channels"] == "1") break;
             }
-            Assert.Less(settled, 30, "全身接管：Locomotion 收口淡出后通道数必须回落 1（窗口 1s 内——叠加恒 2 是旧口径）");
+            Assert.Less(settled, 30, "全身接管：Locomotion 收口淡出后通道数必须回落 1（窗口 1s 内）");
             Assert.AreEqual("0", stats["truncatedBlends"], "首次提交不产生截断");
 
             // 同段连发（上一发还在播——AimIdle_Shoot 0.967s @2× ≈ 29 帧）→ **不重提**（§8 合并规则）
@@ -952,7 +947,7 @@ namespace LiteGame.Tests.EditMode
             driver.Dispose();
         }
 
-        // ---- 批B-②：单机双根（v0.5/v0.6）——窗内保持 clip / 路由 / 退根不变量 / 同形态续播 ----
+        // ---- 单机双根（v0.5/v0.6）：窗内保持 clip / 路由 / 退根不变量 / 同形态续播 ----
 
         [Test]
         [Category(TestCategory.Contract)]
@@ -991,7 +986,7 @@ namespace LiteGame.Tests.EditMode
                 "进态即播射击片段（FullBody 当前形态 = 开火语义）");
 
             // 片段播完（0.967s @2× ≈ 0.48s < 窗 1s）→ **不退态、不回移动层**：
-            // 窗内保持 clip——态内切持枪站姿循环填窗（六次裁决）
+            // 窗内保持 clip——态内切持枪站姿循环填窗
             float elapsed = 0f;
             while (elapsed < 0.8f) { driver.Tick(dt); elapsed += dt; }
             Assert.IsTrue(driver.TryGetCurrent(0, out var held) && held.Equals(CharacterAnimationIds.AimIdle),
@@ -999,8 +994,7 @@ namespace LiteGame.Tests.EditMode
             Assert.IsTrue(driver.TryGetAnimState(0, out var s2) && s2 == CharacterAnimId.FireIdle,
                 "持枪站姿仍是 FireIdle 态（态内切 clip，不迁移）");
 
-            // 窗尽（1s 独立常量）→ 退根回移动层：既不是四次修正的 0.48s 片段时长（太短），
-            // 也不是批B-① 的 2.0s 姿态窗——两者回归都会翻红
+            // 窗尽（1s 独立常量）→ 退根回移动层：退根点是窗长 1s，不是片段时长 0.48s，也不是 2.0s 姿态窗
             while (elapsed < 2.5f)
             {
                 driver.Tick(dt);
@@ -1048,7 +1042,7 @@ namespace LiteGame.Tests.EditMode
             Assert.IsTrue(driver.TryGetAnimState(0, out var s1) && s1 == CharacterAnimId.FireIdle);
             Assert.AreEqual(1, driver.FireSubmits, "站定开火播站姿片段");
 
-            // ② 起跑（≥ 进入阈 0.6 m/s）后开火 → FireWalk：**不播站姿片段**（无移动射击资产——债 #5），
+            // ② 起跑（≥ 进入阈 0.6 m/s）后开火 → FireWalk：**不播站姿片段**（无移动射击资产），
             //    只开窗 + AimMoveBlend 四向（站姿片段连腿定格不可盖步态——门控即路由）
             float elapsed = 0f;
             while (elapsed < 1.2f) { driver.Tick(dt); elapsed += dt; }   // 首发的窗先走完 → 回移动层
@@ -1064,7 +1058,7 @@ namespace LiteGame.Tests.EditMode
                 "移动开火按锁存路由进 FireWalk");
             Assert.AreEqual(submitsBefore, driver.FireSubmits, "移动开火不提交站姿片段（反馈归枪口特效）");
             Assert.IsTrue(driver.TryGetCurrent(0, out var form) && form.Equals(CharacterAnimationIds.AimMoveBlend),
-                "FireWalk 的保持 clip = AimMoveBlend 四向（firewalk 也一样——六次裁决）");
+                "FireWalk 的保持 clip = AimMoveBlend 四向（firewalk 也一样）");
 
             driver.Dispose();
         }
@@ -1179,7 +1173,7 @@ namespace LiteGame.Tests.EditMode
                 "窗内持枪站姿循环（与 AimIdle 态同一 clip）");
             Assert.IsTrue(driver.TryGetFormHandle(0, out var holdHandle), "持枪站姿句柄可读");
 
-            // 批次E（八次裁决）：`IsAiming` 在场即充值窗（CombatRootStage.OnUpdate）——瞄准保持期内
+            // `IsAiming` 在场即充值窗（CombatRootStage.OnUpdate）——瞄准保持期内
             // 窗被持续充值、永不尽：**不降级、不退根**，FireIdle 持续持有站姿循环（同句柄、零重提交）
             while (elapsed < 2.0f) { driver.Tick(dt); elapsed += dt; }
             Assert.IsTrue(driver.TryGetAnimState(0, out var s2) && s2 == CharacterAnimId.FireIdle,

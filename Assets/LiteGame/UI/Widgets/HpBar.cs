@@ -1,11 +1,11 @@
-// 拆自 Progress.cs（2026-09-14：一类一文件——非首个 MonoBehaviour 无法序列化进 prefab，实测）
+// 一类一文件：非首个 MonoBehaviour 无法序列化进 prefab
 using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
 
 namespace LiteGame.UI
 {
-    /// <summary>血条（M4c）：双条血格——前条瞬时响应，后条延迟滑落（打击感标准做法）。底层即两条 ProgressBar。</summary>
+    /// <summary>血条：双条血格——前条瞬时响应，后条延迟滑落（打击感标准做法）。底层即两条 ProgressBar。</summary>
     public class HpBar : MonoBehaviour
     {
         public Image FrontFill;                          // 前条（瞬时）

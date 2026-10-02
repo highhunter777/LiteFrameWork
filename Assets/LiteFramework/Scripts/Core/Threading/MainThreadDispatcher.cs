@@ -18,7 +18,7 @@ namespace LiteFramework
             while (_queue.TryDequeue(out var action))
             {
                 try { action(); }
-                catch (Exception ex) { Log.Error(ex, "MainThreadDispatcher"); }  // 单回调失败不炸队列(§7.8 同款)
+                catch (Exception ex) { Log.Error(ex, "MainThreadDispatcher"); }  // 单回调失败不炸队列
             }
         }
 

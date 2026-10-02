@@ -12,7 +12,7 @@ namespace LiteFramework.Animation
         public readonly string Binding;
         public readonly float StartNormalized;
         public readonly float Speed;
-        /// <summary>是否循环（§5"Completed 的判定方式必须写入定义"——判定归定义，不读资产 loop 设置）。</summary>
+        /// <summary>是否循环（Completed 的判定方式必须写入定义——判定归定义，不读资产 loop 设置）。</summary>
         public readonly bool Loop;
         /// <summary>是否需要等待资源装载（false = 预加载命中，提交即生效）。</summary>
         public readonly bool RequiresLoad;
@@ -34,7 +34,7 @@ namespace LiteFramework.Animation
     /// 已解析的混合方案（Profile/Resolver 的输出；后端只认这个，不认 AnimationId）。
     /// <see cref="Bindings"/> 来自 Profile 登记（不可变共享数据，**不复制**）；
     /// <see cref="Weights"/> 来自请求（**调用方数组，只在本次提交内有效、不保留**）——两者同一槽位序。
-    /// 混合集合**恒为循环形态**：没有单一结束边界，不产生 <c>Completed</c>（§5），故没有 Loop 字段。
+    /// 混合集合**恒为循环形态**：没有单一结束边界，不产生 <c>Completed</c>，故没有 Loop 字段。
     /// </summary>
     public readonly struct AnimationResolvedBlend
     {

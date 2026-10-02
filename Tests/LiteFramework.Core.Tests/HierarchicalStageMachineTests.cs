@@ -5,7 +5,7 @@ using Xunit;
 namespace LiteFramework.Tests
 {
     /// <summary>
-    /// 层级状态机（HSM）`HierarchicalStageMachine&lt;TId, TReq&gt;`（2026-09-17）。
+    /// 层级状态机（HSM）`HierarchicalStageMachine&lt;TId, TReq&gt;`。
     /// 覆盖：建树校验 / enter-exit-update 顺序 / LCA 跨层降升 / 降层不重跑祖先 / 浅深历史 /
     /// 显式目标优先 / 冒泡 / H10 的 7 条传统语义 / 异常中断 / 与 flat 的行为对拍。
     ///
@@ -308,7 +308,7 @@ namespace LiteFramework.Tests
             Assert.False(f.Machine.Raise(3));                         // 普通 Stage 未实现 IEventSink
         }
 
-        // ---- Reset（深→浅收尾 + 清历史；2026-09-17 补）----
+        // ---- Reset（深→浅收尾 + 清历史）----
 
         [Fact]
         public void HSM_Reset_深到浅OnLeave_清路径与历史_可再次Start()

@@ -14,12 +14,12 @@ namespace LiteFramework.Animation
     }
 
     /// <summary>
-    /// 片段结束边界的**纯判定逻辑**（《动画模块专项设计》§5"Completed 的判定方式必须写入定义，
-    /// 不读资产 loop 设置"；§7"时间归属分离"）。
+    /// 片段结束边界的**纯判定逻辑**（Completed 的判定方式必须写入定义，
+    /// 不读资产 loop 设置；时间归属分离）。
     ///
     /// **为什么单独成类**：判定只有三个输入——定义是否循环、片段时长、上一帧时间——不含任何引擎对象，
     /// 故与 `AnimatorAnimationBackend` 分离后：① 后端只管引擎调用（`GetTime`/`SetTime`），
-    /// 判定不再与图拓扑混在同一个类里；② 四个象限（定义为循环×资产循环/不循环）可用假时长直接单测，
+    /// 判定不与图拓扑混在同一个类里；② 四个象限（定义为循环×资产循环/不循环）可用假时长直接单测，
     /// 不需要 Animator 与真资产。
     ///
     /// 时间用 <see cref="double"/> 接收（`AnimationClipPlayable.GetTime()` 的原生类型），
@@ -27,7 +27,7 @@ namespace LiteFramework.Animation
     /// </summary>
     public struct ClipCompletionTracker
     {
-        /// <summary>定义是否循环（**读定义，不读资产**——§5）。</summary>
+        /// <summary>定义是否循环（**读定义，不读资产**）。</summary>
         public bool Loop;
 
         /// <summary>片段时长（秒；≤0 视为时长未知，不做任何判定）。</summary>

@@ -11,17 +11,16 @@ namespace LiteGame.UI
 
     /// <summary>
     /// 默认转场：淡入淡出 + 轻位移（灰盒版，动效方案附 A.2 形态）。
-    /// UI 模块扩展（CanvasGroup.DOFade / DOAnchorPos 系）经 DOTween.Modules asmdef 接入
-    /// （Modules 源文件由 firstpass 挪入独立程序集，2026-09-13）。
-    /// U1-③：输入锁/恢复由壳统一管（interactable——见 TransitionStageOps/Runner），策略不再碰
+    /// UI 模块扩展（CanvasGroup.DOFade / DOAnchorPos 系）经 DOTween.Modules asmdef 接入。
+    /// 输入锁/恢复由壳统一管（interactable——见 TransitionStageOps/Runner），策略不碰
     /// blocksRaycasts（遮挡下层射线与"本页可交互"职责分离，§6.2）；
     /// ct 取消时**先 Complete() 跳终值再 Kill(false) 清理**即复位（§6.3 复位契约）——
-    /// 注意不是 <c>Kill(true)</c>：本仓 DOTween 1.3.030 实测它不复位（详见 <see cref="ITransitionStrategy"/> 注释）。
+    /// 注意不是 <c>Kill(true)</c>：本仓 DOTween 该调用不复位（详见 <see cref="ITransitionStrategy"/> 注释）。
     /// </summary>
     public sealed class FadeSlideTransition : ITransitionStrategy
     {
         public UniTask PlayShow(UIForm form, CancellationToken ct)
-            => PlayShow(form, new MotionPlayback(null));      // 旧签名：无终态容器（壳按完成处理）
+            => PlayShow(form, new MotionPlayback(null));      // 无终态容器（壳按完成处理）
 
         public UniTask PlayClose(UIForm form, CancellationToken ct)
             => PlayClose(form, new MotionPlayback(null));
@@ -47,21 +46,20 @@ namespace LiteGame.UI
         private static Sequence BuildBase(UIForm form)
         {
             var seq = DOTween.Sequence();
-            seq.SetUpdate(UpdateType.Manual, true);            // G1 动画时钟：UIClock 轨（时停不停/暂停即停，DotweenUiClockDriver 派发）
+            seq.SetUpdate(UpdateType.Manual, true);            // UIClock 轨（时停不停/暂停即停，DotweenUiClockDriver 派发）
             seq.SetLink(form.Root, LinkBehaviour.KillOnDisable);            // 池化回收/隐藏即杀，防泄漏
             return seq;
         }
 
         /// <summary>
-        /// 收尾契约（§6.3 复位 + 终态分类）。**2026-09-25 据实测重写**——原实现有三处错误：
+        /// 收尾契约（§6.3 复位 + 终态分类）：
         ///
-        /// ① **<c>Kill(true)</c> 不复位**：本仓 DOTween 实测 <c>Kill(true)</c> 既不跳终值也不派发回调
-        ///    （裸 Tweener 与 Sequence 均如此，原作者注释所称"跳终值即复位"不成立）。复位改为
-        ///    <c>Complete()</c> 跳终值 → 再 <c>Kill(false)</c> 清理。
-        /// ② **<c>OnKill</c> 不是完成信号**（动画专项 §2 登记的缺陷）：<c>OnComplete</c>/<c>OnKill</c>
-        ///    都直接 <c>TrySetResult</c> 会让"被 KillOnDisable 杀掉"也报成功。现改为 <c>OnComplete</c>
-        ///    记 Completed、<c>OnKill</c> 只兜底完成 TCS（并记 Cancelled），迟到回调不覆盖已写终态。
-        /// ③ **无终态出口**：调用方无法区分"播完"与"被杀"。现经 <see cref="MotionPlayback"/> 写终态。
+        /// ① **<c>Kill(true)</c> 不复位**：本仓 DOTween 上 <c>Kill(true)</c> 既不跳终值也不派发回调
+        ///    （裸 Tweener 与 Sequence 均如此）。复位为 <c>Complete()</c> 跳终值 → 再 <c>Kill(false)</c> 清理。
+        /// ② **<c>OnKill</c> 不是完成信号**：<c>OnComplete</c>/<c>OnKill</c> 都直接 <c>TrySetResult</c>
+        ///    会让"被 KillOnDisable 杀掉"也报成功。现为 <c>OnComplete</c> 记 Completed、<c>OnKill</c>
+        ///    只兜底完成 TCS（并记 Cancelled），迟到回调不覆盖已写终态。
+        /// ③ 终态经 <see cref="MotionPlayback"/> 写：调用方可区分"播完"与"被杀"。
         ///
         /// 取消路径顺序：先写终态（Cancelled）→ 再复位（Complete + Kill）——避免复位触发的回调
         /// 覆盖已定终态。取消注册在收尾时释放，不留悬挂注册。

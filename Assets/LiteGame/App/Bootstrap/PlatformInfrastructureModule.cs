@@ -20,6 +20,6 @@ namespace LiteGame
             return UniTask.CompletedTask;
         }
 
-        public UniTask ShutdownAsync(CancellationToken ct) => UniTask.CompletedTask;   // 日志落盘/崩溃上报归 C3
+        public UniTask ShutdownAsync(CancellationToken ct) => UniTask.CompletedTask;   // 日志落盘/崩溃上报由平台层负责
     }
 }

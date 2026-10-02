@@ -4,20 +4,20 @@ using System.Security.Cryptography;
 namespace LiteFramework
 {
     /// <summary>
-    /// 内容哈希（《热更与内容发布专项设计》§5"摘要分两层：文件完整性对实际原始字节计算完整 SHA-256；
-    /// 语义摘要对双端解析的玩法数据按同一规范计算"）。
+    /// 内容哈希（摘要分两层：文件完整性对实际原始字节计算完整 SHA-256；
+    /// 语义摘要对双端解析的玩法数据按同一规范计算）。
     ///
-    /// **实现约束（2026-09-25 本工程实测）**：Unity 的 `unity-4.8-api` 参考程序集是筛选子集，
+    /// **实现约束**：Unity 的 `unity-4.8-api` 参考程序集是筛选子集，
     /// 没有 .NET 6+ 的 `SHA256.HashData` / `Convert.ToHexString`；本类只用实测可用的
     /// `SHA256.Create()` + 手工 hex 转换。**不要**改成 HashData/ToHexString（编译不过）。
     ///
-    /// **不做任何换行归一化**：文件完整性必须对**原始字节**计算（§5"二进制文件不做 CRLF 替换；
-    /// 文本归一化仅限明确声明的文本源码身份"）。这与 buildHash 生成器（对文本源码做 CRLF→LF 归一）
+    /// **不做任何换行归一化**：文件完整性必须对**原始字节**计算（二进制文件不做 CRLF 替换；
+    /// 文本归一化仅限明确声明的文本源码身份）。这与 buildHash 生成器（对文本源码做 CRLF→LF 归一）
     /// 是**两套口径**，不可混用——buildHash 是源码身份，本类是下载文件完整性。
     ///
     /// **实例 vs 静态**：单次散列用静态方法（内部用非分配路径）；对成百上千个候选文件循环校验时，
     /// 持有一个 <see cref="Hasher"/> 实例复用算法对象——避免每文件一次 `SHA256.Create()`
-    /// 的分配与会话开销（G4 可能扫全量候选）。
+    /// 的分配与会话开销。
     /// </summary>
     public static class ContentHash
     {
@@ -35,7 +35,7 @@ namespace LiteFramework
 
         /// <summary>
         /// 可复用的 SHA-256 会话（批量校验用）。**非线程安全**——每个校验循环持有一个实例。
-        /// 用 <c>IncrementalHash</c>：本工程实测可用，且不需要每文件重建算法对象。
+        /// 用 <c>IncrementalHash</c>：可用，且不需要每文件重建算法对象。
         /// </summary>
         public sealed class Hasher : IDisposable
         {

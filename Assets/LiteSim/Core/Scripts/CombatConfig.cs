@@ -1,11 +1,11 @@
 namespace LiteSim
 {
     /// <summary>
-    /// 玩法数值单源（2026-09-19 解耦定案：**手感参数与协议常量分离**——本类只装"一局战斗怎么打"，
+    /// 玩法数值单源（**手感参数与协议常量分离**——本类只装"一局战斗怎么打"，
     /// SimConfig 只装"确定性架构怎么搭"；两者生命周期不同：前者可调表迭代，后者编译期锁死）。
     ///
-    /// - 默认值 = M8 灰盒实测值（原 SimConfig 玩法段迁移，消费点改名同步）；
-    /// - **Luban 表链路已通（2026-09-19）**：表源 `Luban/Data/#combatnum.xlsx` → `gen.bat` 双产物
+    /// - 默认值 = 灰盒实测值；
+    /// - **Luban 表链路**：表源 `Luban/Data/#combatnum.xlsx` → `gen.bat` 双产物
     ///   （客户端 bin `Assets/GameData/Config/tbcombatnum.bytes`；服务端 json `RoomServer/Data/tbcombatnum.json`）
     ///   → 启动装配调 <see cref="LoadFrom"/> 回填（客户端 `ConfigService`；服务端 `Program`）。
     ///   **本类的默认值必须与表值一致**（L1 守卫用例 `CombatNumbersTests` 卡住漂移）；装载后两端同值（表数据进 buildHash，不一致直接拒进房）。
@@ -34,8 +34,8 @@ namespace LiteSim
         /// <summary>重力加速度（m/s²，y 轴向下，§3.5）。</summary>
         public static float Gravity { get; private set; } = -20f;
 
-        /// <summary>**最大速度硬上限**（m/s，水平合速度）——服务器代码兜底（2026-09-28 用户裁决：
-        /// "配置只做软上限"）：表值（走/跑/冲/滑铲/钩爪……MovementConfig）怎么调都是设计软值，
+        /// <summary>**最大速度硬上限**（m/s，水平合速度）——服务器代码兜底（"配置只做软上限"）：
+        /// 表值（走/跑/冲/滑铲/钩爪……MovementConfig）怎么调都是设计软值，
         /// 本护栏只对配置错误/增益叠加/未来机制 bug 生效，防实体被吹飞。取值盖过表内最快设计速度
         /// （钩爪拉拽 20）留 ~25% 余量；**刻意不进 digest**（代码常量两端编译期同值，无需摘要）。</summary>
         public const float HardMaxSpeed = 25f;
@@ -46,9 +46,9 @@ namespace LiteSim
         public static float HitscanRange { get; private set; } = 100f;
 
         /// <summary>
-        /// 射击窗长（逻辑帧数）——**开火态时间**（2026-09-30 六次裁决：**1s @60Hz = 60 帧独立常量**，
-        /// 与开火动画时长解耦——四次修正"窗长=动画时长换算"废止；事件刷新＝重置满窗，上限即窗长）。
-        /// **Sim 权威开火态已落地（批次C，2026-10-01）**：`EntitySlot.FireStanceFrames` 在 `ShootingSystem`
+        /// 射击窗长（逻辑帧数）——**开火态时间**（**1s @60Hz = 60 帧独立常量**，
+        /// 与开火动画时长解耦；事件刷新＝重置满窗，上限即窗长）。
+        /// `EntitySlot.FireStanceFrames` 在 `ShootingSystem`
         /// 判定点置满、`InputSystem` 逐帧统一递减，并按"瞄准 ∨ 开火态"限速 `AimMoveSpeed`——进
         /// `CombatConfigDigest`（联机身份）。View 侧驻留窗按 `FireStanceFrames / SimConfig.TickRate`
         /// **同源派生**（改窗长只动此处）。**不变式：窗长 ≥ 开火片段播放时长**（防事件后窗先尽截断
@@ -58,7 +58,7 @@ namespace LiteSim
 
         /// <summary>
         /// 离场转向速率（rad/秒）——射击语境（瞄准 ∨ 开火帧 ∨ 窗内）解除后，朝向从准星转回移动方向
-        /// **不瞬切**：按本速率逐帧过渡（债 #4"单点腰射朝向微摆"的组合根治，2026-10-01 七次裁决）。
+        /// **不瞬切**：按本速率逐帧过渡（债 #4"单点腰射朝向微摆"的根治）。
         /// 12 rad/s ≈ 687°/s：180° 回转 ≈0.26s、90° ≈0.13s——可见但不拖沓；射击语境内（含 ADS）
         /// 保持即时跟枪，不受本值影响。**代码常量（两端编译期同值）——与 <see cref="HardMaxSpeed"/>
         /// 同口径刻意不进 digest**（窗长进 digest 是因其表化计划 ⇒ 装载态漂移风险；本值无表化计划）。
@@ -76,16 +76,15 @@ namespace LiteSim
         /// <summary>基础伤害（命中值 = BaseDamage ± DamageSpread 内浮动）。</summary>
         public static int BaseDamage { get; private set; } = 25;
 
-        /// <summary>伤害浮动幅度（命中值 = Base + rng.NextRange(-Spread, Spread+1)；0 = 无浮动）。
-        /// ——自原 `+ rng.NextRange(0, 3) - 1` 表达式提取，语义等价 ±1。</summary>
+        /// <summary>伤害浮动幅度（命中值 = Base + rng.NextRange(-Spread, Spread+1)；0 = 无浮动）。</summary>
         public static int DamageSpread { get; private set; } = 1;
 
-        /// <summary>出生 HP（实体初始生命）。**表字段 `entity_hp`**（M11 实体表化前并入本表：单一职责暂借位）。</summary>
+        /// <summary>出生 HP（实体初始生命）。**表字段 `entity_hp`**（实体表化前并入本表：单一职责暂借位）。</summary>
         public static int EntityHp { get; private set; } = 100;
 
         /// <summary>
-        /// Luban 表装载接缝（批⑤/M11 接线）：tb_combat_num 读取后调用，逐字段覆写。
-        /// 当前表链路未落地——保留默认值；参数未做合法性钳制（来源是策划表而非外部输入）。
+        /// Luban 表装载接缝：tb_combat_num 读取后调用，逐字段覆写；
+        /// 参数未做合法性钳制（来源是策划表而非外部输入）。
         /// </summary>
         public static void LoadFrom(float moveSpeed, float gravity, float hitscanRange, float hitscanRadius,
             float hitscanHeight, int baseDamage, int damageSpread, int entityHp)

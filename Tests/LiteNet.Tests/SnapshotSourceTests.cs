@@ -8,7 +8,6 @@ namespace LiteNet.Tests
 {
     /// <summary>
     /// 快照载波 / 差分器用例（《M10实施指导》§2.7 / §3 组）。
-    /// 批② 的 FullSnapshotSource 占位已被批③ 的 <see cref="SnapshotDiffer"/> 取代（接口同形、循环零改动），
     /// 本文件覆盖：首帧全量 / 增量重建 == 权威态 / 静止增量趋零 / 活体变化转全量 / 全量兜底 / AOI / 分配器重建。
     /// </summary>
     public sealed class SnapshotSourceTests
@@ -30,7 +29,7 @@ namespace LiteNet.Tests
 
         private static readonly SimInputFrame[] NoInput = { new SimInputFrame(), new SimInputFrame() };
 
-        /// <summary>构造一帧"某玩家移动"的输入（**必须带 EntityId** —— 缺省 0 会被 TryResolve 判为失效实体而丢弃，曾因此让用例空转）。</summary>
+        /// <summary>构造一帧"某玩家移动"的输入（**必须带 EntityId** —— 缺省 0 会被 TryResolve 判为失效实体而丢弃）。</summary>
         private static SimInputFrame[] Move(SimWorldState state, int playerId, float moveX)
         {
             var inputs = new SimInputFrame[2];
@@ -180,7 +179,7 @@ namespace LiteNet.Tests
             Assert.True(reconciled, "预测超前权威帧 → 必和解");
 
             // 红线（《状态同步专项设计》§8"AOI 只影响广播不影响判定"）：和解后视野外实体仍活着——
-            // 旧实现里被 AOI 裁过的全量已把它在镜像中判死，和解连坐 → bot/远端无声消失
+            // 若全量被 AOI 裁过，缺席会在镜像中判死并连坐和解 → bot/远端无声消失
             Assert.True(rollback.State.IsAlive(1));
             Assert.Equal(45f, rollback.State.Entities[1].Pos.X, 3);   // 镜像真值落地
         }

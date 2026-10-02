@@ -1,14 +1,14 @@
 namespace LiteSim
 {
     /// <summary>
-    /// 移动数值单源（2026-09-28 用户配置批）：与 <see cref="CombatConfig"/> 同构的**表化数值面**——
+    /// 移动数值单源：与 <see cref="CombatConfig"/> 同构的**表化数值面**——
     /// 表源 `Luban/Data/#movementconfig.xlsx` → `ConfigService.ApplyMovementNumbers` 回填。
     ///
     /// **当前消费面**：表链路与装载（两端同源）；**机制消费（走/跑/冲/滑铲/空中控制/跳跃/钩爪/闪现）
-    /// 随对应 Sim 系统落地逐项接入**——接入时随批次进 <see cref="CombatConfigDigest"/>（联机身份：
+    /// 随对应 Sim 系统落地逐项接入**——接入时进 <see cref="CombatConfigDigest"/>（联机身份：
     /// 两端不一致以摘要不符拒进房），本版不预挂（不预建无消费者的纪律同样适用于摘要面）。
-    /// **硬上限不在本类**：<see cref="CombatConfig.HardMaxSpeed"/> 是代码兜底护栏（用户裁决——
-    /// "配置只做软上限，服务器代码兜底"），本类的速度字段全部是设计软值。
+    /// **硬上限不在本类**：<see cref="CombatConfig.HardMaxSpeed"/> 是代码兜底护栏
+    /// （"配置只做软上限，服务器代码兜底"），本类的速度字段全部是设计软值。
     ///
     /// - 默认值必须与表值一致（漂移由装载闸门与对账守卫卡）；
     /// - <see cref="Gravity"/> 与 combatnum.gravity 是**同一物理量的双表位**——一致性由

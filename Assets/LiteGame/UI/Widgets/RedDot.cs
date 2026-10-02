@@ -5,8 +5,7 @@ using UnityEngine.UI;
 using LiteGame.UI;
 namespace LiteGame.UI
 {
-    /// <summary>红点控件（M4c，M4a 口子 RedDotRegistry 的完整实现）：绑定红点树节点，计数 &gt; 0 显示 Dot。
-    /// 2026-09-14 重建：拆文件时同名覆盖事故后按旧程序集反射签名还原（Dot/Tree/Key 字段名逐一对齐）。</summary>
+    /// <summary>红点控件（RedDotRegistry 的完整实现）：绑定红点树节点，计数 &gt; 0 显示 Dot。</summary>
     public class RedDot : UIWidget
     {
         [Tooltip("红点本体（Image；子节点或自身）")]
@@ -46,7 +45,7 @@ namespace LiteGame.UI
     }
 
     /// <summary>
-    /// 红点树（M4c，M4a 口子 RedDotRegistry 的完整实现）：节点计数变更向父链传播，父节点计数 = 子节点之和。
+    /// 红点树（RedDotRegistry 的完整实现）：节点计数变更向父链传播，父节点计数 = 子节点之和。
     /// 用法：tree.Node("mail").Node("mail.attach").SetCount(1) → "mail" 自动 1 并广播 onChanged。
     /// </summary>
     public sealed class RedDotNode

@@ -10,8 +10,8 @@ namespace LiteSim
     }
 
     /// <summary>
-    /// 静态障碍（判定半，§18/决策 #17）：Circle = Center + Radius（y 区间 [Center.Y, Center.Y + Height]）；
-    /// Box = Center + HalfX/HalfZ（同 y 区间）。M8 只冻结数据结构，碰撞分桶系统留后续里程碑空位（#12）。
+    /// 静态障碍（判定半，§18）：Circle = Center + Radius（y 区间 [Center.Y, Center.Y + Height]）；
+    /// Box = Center + HalfX/HalfZ（同 y 区间）。只冻结数据结构，碰撞分桶系统留后续里程碑空位（#12）。
     /// </summary>
     public struct SimObstacle
     {
@@ -34,9 +34,9 @@ namespace LiteSim
     }
 
     /// <summary>
-    /// 判定用地图数据（M8 决策 #17：M8 定下并冻结；系统实现可留空）。
+    /// 判定用地图数据（定下并冻结；系统实现可留空）。
     /// 定长可拷（同 #5）；对局中只读；是常量配置——不进快照、不进 checksum（§3.6 只哈希逻辑状态）。
-    /// 视觉地图与它无关（§18：视觉半属 View，M11 装配）。
+    /// 视觉地图与它无关（§18：视觉半属 View，装配期接入）。
     /// </summary>
     public sealed class SimMapData
     {
@@ -62,7 +62,7 @@ namespace LiteSim
         /// <summary>世界边界 Z 半深。</summary>
         public float HalfDepth;
 
-        /// <summary>定长深拷（保持可拷约束；M9 之后若地图需入网/落盘，此方法即拷贝原语）。</summary>
+        /// <summary>定长深拷（保持可拷约束；若地图需入网/落盘，此方法即拷贝原语）。</summary>
         public void CopyTo(SimMapData dst)
         {
             dst.ObstacleCount = ObstacleCount;
@@ -75,11 +75,11 @@ namespace LiteSim
         }
 
         /// <summary>
-        /// 标准灰盒对战地图（C2 单源）：200×200 判定边界（半宽 ±100，2026-09-27 指令——原 ±50）
-        /// + 16 网格出生点（4×4、10m 间距）+ **周边围墙障碍**（2026-09-27 碰撞进 Sim 批：与训练场
+        /// 标准灰盒对战地图（C2 单源）：200×200 判定边界（半宽 ±100）
+        /// + 16 网格出生点（4×4、10m 间距）+ **周边围墙障碍**（与训练场
         /// Environment 同源数据化——地面 140×140、围栏外沿 ±69；墙高 20 等价"不可越过"，玩家无跳跃）。
         /// 服务端（RoomRuntime 开局生成）与客户端（BattleContext 预测世界重建）**必须**共用同一构造——
-        /// 两端地图不一致 = 出生点错位/碰撞分叉 = 预测永不分叉收敛。原 RoomServer.BuildStandardMap 平移至此。
+        /// 两端地图不一致 = 出生点错位/碰撞分叉 = 预测永不分叉收敛。
         /// </summary>
         public static SimMapData StandardBattleMap()
         {

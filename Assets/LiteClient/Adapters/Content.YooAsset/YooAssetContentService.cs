@@ -8,16 +8,15 @@ using YooAsset;
 namespace LiteGame
 {
     /// <summary>
-    /// IContentService 的 YooAsset 适配（C1-⑧ 批次B：《商业级通用客户端框架总设计》§8.1"用可注入
-    /// IContentService 取代静态所有权，YooAsset 作为后端" + §8.2 资源租约；热更专项 §14 G1"AssetService/异步适配"）：
+    /// IContentService 的 YooAsset 适配（《商业级通用客户端框架总设计》§8.1"用可注入
+    /// IContentService 取代静态所有权，YooAsset 作为后端" + §8.2 资源租约）：
     ///
-    /// - **租约持有句柄**：AssetHandle 加载完成后不再立即 Release（旧 AssetService 静态门面的反模式——
-    ///   "返回裸 Unity Object、Handle 立即释放"无法证明存活）——句柄由 <see cref="SharedLoadCoordinator{TKey,TAsset}"/>
+    /// - **租约持有句柄**：AssetHandle 加载完成后不立即 Release——句柄由 <see cref="SharedLoadCoordinator{TKey,TAsset}"/>
     ///   持有到引用归零，租约 Dispose → handle.Release()（YooAsset 引用计数递减，实际卸载由包调度）。
     /// - **并发合并**：同 (代次, location, 类型) 的并发获取共享一次底层加载；单人取消不取消共享任务；
     ///   全员退出后迟到结果就地卸载（YooAsset 操作不可中途取消——UniTaskAssetExtensions 边界检查语义）。
     /// - **初始化**：委托 AssetService.InitAsync（幂等；EditorSimulate/Offline 与主链共用）——
-    ///   Host 模式下载/校验/激活/回滚事务归批次D（PatchCoordinator），本批不虚构。
+    ///   Host 模式下载/校验/激活/回滚事务由 PatchCoordinator 承担。
     /// - **主线程 only**（YooAsset 操作无线程安全承诺——与 AssetService 同款纪律）。
     /// </summary>
     public sealed class YooAssetContentService : IContentService, IGenerationSink
@@ -55,7 +54,7 @@ namespace LiteGame
         private ContentGeneration _generation = ContentGeneration.Default;
         private int _initialized;                                 // 0=未 1=已
 
-        /// <summary>当前内容代次（诊断/后续激活事务切换点——C1-⑧ 先冻结身份，切换归批次D）。</summary>
+        /// <summary>当前内容代次（诊断/激活事务切换点；切换由 PatchCoordinator 驱动）。</summary>
         public ContentGeneration CurrentGeneration => _generation;
 
         /// <summary>存活加载条目数（在途等待 + 有效持有——诊断/泄漏断言用）。</summary>
@@ -75,10 +74,6 @@ namespace LiteGame
 
         /// <summary>
         /// 代次推进（<see cref="IGenerationSink"/>，《热更与内容发布专项设计》§9）。
-        ///
-        /// 补上此前缺口：<c>_generation</c> 原先只在 <c>InitializeAsync</c> 里被设为 Default，
-        /// **无 setter、从未切换过**——于是即使候选健康确认通过，新内容也永远不会被加载
-        /// （加载键含代次，见 <see cref="LoadKey"/>）。
         ///
         /// <see cref="PatchCoordinator"/> 在「确认提交」后推进到新代次、在「失败回退」时提示回已确认代次。
         /// **已持有的租约不受影响**：租约持有的是句柄，旧代次的键仍指向旧句柄，
@@ -113,8 +108,7 @@ namespace LiteGame
                 $"资源类型不符:{location} 期望 {typeof(T).Name} 实得 {handle.AssetObject?.GetType().Name ?? "null"}");
         }
 
-        /// <summary>按 tag 列内容路径（YooAsset 侧：静态门面的 <c>GetAssetInfos</c>；3.0.5 该重载即按 tag 查询）。
-        /// 原先这段住装配点（<c>ContainerModule.ListLuaAssetPaths</c>），2026-09-26 归位到适配器（§5.1）。</summary>
+        /// <summary>按 tag 列内容路径（YooAsset 侧：<c>GetAssetInfos</c>；3.0.5 该重载即按 tag 查询）。</summary>
         public IReadOnlyList<string> ListAssetPathsByTag(string tag)
         {
             if (string.IsNullOrEmpty(tag)) return Array.Empty<string>();

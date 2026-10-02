@@ -1,7 +1,7 @@
 namespace LiteSim
 {
     /// <summary>
-    /// 实体槽位（《状态同步实施方案》§3.1 + M8 决策 #3）：纯值类型（blittable）——
+    /// 实体槽位（《状态同步实施方案》§3.1）：纯值类型（blittable）——
     /// EntitySlot[] 才能被 Array.Copy 整块深拷（#1/#4）。
     /// 自定义状态不放本 struct（#2：struct 内放数组字段会被浅拷共享，快照必错），
     /// 一律落 SimWorldState.CustomData 平面数组（slot * CustomBytesPerEntity + offset 寻址）。
@@ -47,20 +47,20 @@ namespace LiteSim
         public int SelectedWeapon;
 
         /// <summary>
-        /// 开火驻留窗剩余（逻辑帧数；0 = 不在开火态）——**Sim 权威开火态**（2026-09-30 三次裁决＋
-        /// 2026-10-01 批次C 落地，口径见《角色状态与动作专项设计》§7 限速行）。**私有面**：只进
+        /// 开火驻留窗剩余（逻辑帧数；0 = 不在开火态）——**Sim 权威开火态**（口径见
+        /// 《角色状态与动作专项设计》§7 限速行）。**私有面**：只进
         /// 全量 checksum（<see cref="SimChecksum"/>），不进公共快照/SlotDelta——远端开火输入不可重建，
         /// 进公共比对口径只会制造窗内假和解（有界 churn 边界与协议加列根治路径已在 §7 登记）。
         /// 置窗＝<see cref="ShootingSystem"/> 开火判定点（与 <see cref="FrameEventKind.Fire"/> 事件同点，
         /// 事件刷新制——每次判定重置满窗，上限即窗长）；递减＝<see cref="InputSystem"/> 每帧统一推进
         /// （全槽位含死亡/缺席——整数计数 ⇒ 确定性）；限速＝InputSystem 按"瞄准 ∨ 开火态"限到
         /// <see cref="CombatConfig.AimMoveSpeed"/>（走路档）。窗长单源 <see cref="CombatConfig.FireStanceFrames"/>
-        /// （1s @60Hz，六次裁决——与开火动画时长解耦）。
+        /// （1s @60Hz，与开火动画时长解耦）。
         /// </summary>
         public byte FireStanceFrames;
 
         /// <summary>
-        /// 离场转向中（0 = 否；1 = 武装/进行中）——债 #4 组合修复的**过渡状态**（2026-10-01 七次裁决）：
+        /// 离场转向中（0 = 否；1 = 武装/进行中）——债 #4 修复的**过渡状态**：
         /// 任意射击语境帧（瞄准/开火/窗内朝准星）**武装**；语境解除后的移动帧按
         /// <see cref="CombatConfig.FaceTurnRadPerSec"/> 逐帧转向移动方向（窗尽回转不瞬切），到位清零
         /// （后续移动帧恢复即时跟向）。**私有面**：由输入历史派生（重放可重建）、只进全量 checksum——
@@ -83,7 +83,7 @@ namespace LiteSim
         /// <summary>瞄准态（右键 ADS；由 <c>InputSystem</c> 从输入位**每帧覆写**——连续状态，不是边沿）。</summary>
         public const uint Aiming = 1u << 0;
 
-        // ---- 分型 kind 位（《实体分型表设计》§1，2026-09-29）----
+        // ---- 分型 kind 位（《实体分型表设计》§1）----
         // kind 位 = "该槽位持有哪张分型表行数据"的迷你 archetype mask：置位 ⟺ Items/Projectiles/Zones
         // 对应行有效。**只增不改不重排**（Flags 进 SimChecksum 与线上 SlotDelta.flags——跨端身份敏感，
         // 与输入位空间的纪律同款）。

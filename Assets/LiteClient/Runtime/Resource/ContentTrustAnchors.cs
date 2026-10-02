@@ -11,12 +11,10 @@ namespace LiteGame
     ///
     /// **生成契约**：本文件由发布流程从信任清单生成（私钥留在签名机，**绝不入库/入包**）；
     /// 轮换时新旧 keyId 并存（Add 两次），旧版撤销经 <see cref="TrustedKeyStore.Revoke"/>
-    /// （由下一版内置表体现——撤销清单随可写存储分发会被篡改，首版不做）。
+    /// （由下一版内置表体现——撤销清单随可写存储分发会被篡改，本类不做）。
     ///
-    /// **首版锚点（2026-09-26 provisioning）**：RSA-2048（§6 算法选型裁决）；私钥存签名机
-    /// 用户目录 `.unitylib-content-signing/`（仓库外）。生成时已做配对实证（私钥签 → 本表
-    /// 公钥参数验通过、篡改签名拒绝）。候选验签链自此从 fail-closed 转为可接受——
-    /// 发布工具需使用该私钥对候选描述签名，且清单 KeyId 声明为下行条目的 keyId。
+    /// **锚点**：RSA-2048；私钥存签名机用户目录 `.unitylib-content-signing/`（仓库外）。
+    /// 发布工具需用该私钥对候选描述签名，候选清单 KeyId 须声明为下行条目的 keyId。
     /// </summary>
     public static class ContentTrustAnchors
     {

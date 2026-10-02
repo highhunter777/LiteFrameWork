@@ -21,10 +21,10 @@ namespace LiteSim
 
     /// <summary>
     /// 比赛状态（§3.1 固定布局 MatchState；room 级单实例）。
-    /// 《状态同步专项设计》§5.2：阶段、倒计时、比分、回合和胜者——原 Globals 承载位的**正式契约化**
+    /// 《状态同步专项设计》§5.2：阶段、倒计时、比分、回合和胜者——比分/回合并的正式契约化
     /// （Globals 只留版本化扩展，见 §1 P0 阻塞项第 3 条）。
     /// 公共面：随每份快照全量下发（MatchStateSnapshot 层），全部客户端可见。
-    /// 字段取舍：FFA（首版）个人比分/KDA 在 <see cref="EntitySlot.Kills"/>/<see cref="EntitySlot.Deaths"/>；
+    /// 字段取舍：FFA 个人比分/KDA 在 <see cref="EntitySlot.Kills"/>/<see cref="EntitySlot.Deaths"/>；
     /// <c>Score</c> 只承载团队模式的单值比分（Team=1 时生效）。
     /// </summary>
     public struct MatchStateData
@@ -32,7 +32,7 @@ namespace LiteSim
         /// <summary>比赛阶段（0=未开始 1=进行 2=结算；取值域 P1 MatchSystem 冻结）。</summary>
         public int Phase;
 
-        /// <summary>队伍模式（0=FFA 死亡竞赛（首版）；1=团队）。</summary>
+        /// <summary>队伍模式（0=FFA 死亡竞赛；1=团队）。</summary>
         public int Team;
 
         /// <summary>团队比分（Team=1 时生效；FFA 恒 0）。</summary>

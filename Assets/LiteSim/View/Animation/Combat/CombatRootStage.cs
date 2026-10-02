@@ -14,7 +14,7 @@ namespace LiteSim.View.Animation
     }
 
     /// <summary>
-    /// 战斗根复合态（上层）：射击窗持有者 + 退根/降级**单点裁决**（v0.5/v0.6 §2——窗递减与
+    /// 战斗根复合态（上层）：射击窗持有者 + 退根/降级**单点裁决**（窗递减与
     /// "窗尽 → 去哪"收在此处，叶只发层内轴请求且先让位）。
     /// </summary>
     internal sealed class CombatRootStage : IStage<CharacterAnimId, CombatAnimReq>
@@ -41,15 +41,15 @@ namespace LiteSim.View.Animation
         {
             if (StageGate.Pending(m)) return;                 // 事件路由已挂（进 Fire 系优先）——本帧不裁决
 
-            // 批次E（八次裁决）：`IsAiming` 在场即充值窗（Sim 侧瞄准帧同步置窗——两层同源同长；
+            // `IsAiming` 在场即充值窗（Sim 侧瞄准帧同步置窗——两层同源同长；
             // 长按 ADS 的松开尾巴与点按瞄准的间隙尾巴同一语义：窗内不回移动层）
             if (_ctx.IsAiming) _window = _ctx.FireHoldSeconds;
             else if (_window > 0f) _window = Mathf.Max(0f, _window - elapseSeconds);
 
-            // 退根/降级单点裁决（批次E 统一——**全族同一条退根路**：窗尽 ∧ !IsAiming；
+            // 退根/降级单点裁决（**全族同一条退根路**：窗尽 ∧ !IsAiming；
             // 移动事实永不触发退根，只选叶）：
             //   窗尽 ∧ IsAiming → Fire* 降级 Aim 叶（同形态续播保相位；Aim 系无需请求——已在 Aim 叶）
-            //   窗尽 ∧ !IsAiming → 移动根叶（窗尽才离开——窗内"不能回移动层"的六次裁决语义）
+            //   窗尽 ∧ !IsAiming → 移动根叶（窗尽才离开——窗内"不能回移动层"）
             if (_window <= 0f)
             {
                 if (_ctx.IsAiming)

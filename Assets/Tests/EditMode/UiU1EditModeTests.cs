@@ -11,7 +11,7 @@ using UnityEngine;
 namespace LiteGame.Tests.EditMode
 {
     /// <summary>
-    /// UI U1-① 操作记录与取消验收（《UI框架总设计》§4.3——UI-03）：
+    /// 操作记录与取消验收（《UI框架总设计》§4.3——UI-03）：
     /// 并发 Show 合流共享一次加载（不返回 null）；数据冲突 Busy；调用方 token 只取消本人等待、
     /// 全员退出撤工作；Close 对在途打开发权威取消；失败类型化（UIOpenException）；
     /// 展示代次（复用递增、迟到代次核验失败）与展示作用域 CTS（关闭即取消）；Tick 快照重入安全。
@@ -303,7 +303,7 @@ namespace LiteGame.Tests.EditMode
             var f1 = Await(svc.ShowAsync(1), svc);
             Assert.AreEqual(UIFormState.Active, f1.State);
 
-            Assert.DoesNotThrow(() => svc.Tick(0.05f), "OnUpdate 内开新界面不得在枚举 _forms 时改集合（旧实现此处 InvalidOperationException）");
+            Assert.DoesNotThrow(() => svc.Tick(0.05f), "OnUpdate 内开新界面不得在枚举 _forms 时改集合");
             Assert.True(svc.IsOpen(2), "重入打开成功");
         }
 

@@ -6,7 +6,7 @@ using UnityEngine.UI;
 namespace LiteGame
 {
     /// <summary>
-    /// UI 绑定基类（M4 §2.4）：C# 界面逻辑的受控 API 承载件（设计方案 §4.6——不裸抛 GameObject）。
+    /// UI 绑定基类：C# 界面逻辑的受控 API 承载件（设计方案 §4.6——不裸抛 GameObject）。
     /// 双模式索引：A) OnInit 时经 BindIndexBuilder 读 BindNode 标记构建；B) Designer 生成类构造期
     /// RegisterControl 登记（LiteCodeGen 路径 B）。两模式自动选择——登记非空即走 B。
     /// 七回调拆成 protected virtual（子类覆写业务，本类承接 IUIFormLogic 转发）；

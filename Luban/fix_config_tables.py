@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""修正 2026-09-28 配置批的 xlsx：__tables__ 两行对齐（##标记 + 字符串true）+ 两张新数据表数据行重排。"""
+"""对齐 __tables__ 两行（##标记 + 字符串true）+ 重排两张新数据表的数据行。"""
 import os
 import openpyxl
 

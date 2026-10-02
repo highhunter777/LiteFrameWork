@@ -4,7 +4,7 @@ using System.Collections.Generic;
 namespace LiteFramework
 {
     /// <summary>
-    /// 候选脚本集合中的一项（《热更与内容发布专项设计》§10"从固定文件清单构建不可变脚本集合"）。
+    /// 候选脚本集合中的一项（从固定文件清单构建不可变脚本集合）。
     /// </summary>
     public sealed class ScriptEntry
     {
@@ -14,7 +14,7 @@ namespace LiteFramework
         /// <summary>相对候选根的文件路径（正斜杠）。</summary>
         public string Path;
 
-        /// <summary>本脚本 require 的其他模块名（**必须同批提供**——§7"同步 require 的依赖必须完整预载"）。</summary>
+        /// <summary>本脚本 require 的其他模块名（**必须同批提供**——同步 require 的依赖必须完整预载）。</summary>
         public List<string> Requires = new List<string>();
 
         public ScriptEntry() { }
@@ -46,21 +46,21 @@ namespace LiteFramework
     }
 
     /// <summary>
-    /// 候选脚本集合（§10）。**不可变**：构造后只读，激活前不被就地修改——
-    /// 这是"先构建和验证候选集合，失败保留完整旧版本，不发布半套内容"（§1 冲突裁决）的前提。
+    /// 候选脚本集合。**不可变**：构造后只读，激活前不被就地修改——
+    /// 这是"先构建和验证候选集合，失败保留完整旧版本，不发布半套内容"的前提。
     ///
     /// 与运行期 <c>LuaPreloader</c> 的区别：那个的清单来自"当前包内容"且字典可被重预载清空；
     /// 本类持有的是**固定 Release 的文件清单**派生的脚本集合，带依赖闭包与摘要身份。
     ///
     /// 零 Unity/Lua 依赖——只做模块名、路径、依赖闭包的**静态**校验，L1 全覆盖。
-    /// **真实语法/执行/Bridge 能力检查需 Lua VM**（H3-d 的 Unity 侧），不在本类范围。
+    /// **真实语法/执行/Bridge 能力检查需 Lua VM**（Unity 侧），不在本类范围。
     /// </summary>
     public sealed class CandidateScriptSet
     {
         private readonly List<ScriptEntry> _entries;
         private readonly Dictionary<string, ScriptEntry> _byModule;
 
-        /// <summary>脚本集合身份（对"模块→路径 + 依赖"规范化后的摘要；§5 ScriptDigest 的落点）。</summary>
+        /// <summary>脚本集合身份（对"模块→路径 + 依赖"规范化后的摘要；ScriptDigest 的落点）。</summary>
         public string ScriptDigest { get; }
 
         public IReadOnlyList<ScriptEntry> Entries => _entries;
@@ -77,9 +77,9 @@ namespace LiteFramework
             => module != null && _byModule.TryGetValue(module, out ScriptEntry e) ? e : null;
 
         /// <summary>
-        /// 从固定清单构建并校验（§10"检查依赖/语法/导出/Bridge 能力"里**可静态做**的部分）。
+        /// 从固定清单构建并校验（"检查依赖/语法/导出/Bridge 能力"里**可静态做**的部分）。
         ///
-        /// 拒绝项：模块名/路径非法或重复、依赖不成环、**依赖必须在同批提供**（§7 同步 require 必须完整预载）。
+        /// 拒绝项：模块名/路径非法或重复、依赖不成环、**依赖必须在同批提供**（同步 require 必须完整预载）。
         /// </summary>
         public static ScriptSetVerdict TryBuild(IEnumerable<ScriptEntry> entries, out CandidateScriptSet set)
         {
@@ -111,7 +111,7 @@ namespace LiteFramework
 
             if (list.Count == 0) return ScriptSetVerdict.Reject("脚本集合为空");
 
-            // 依赖闭包：**每个依赖都必须同批提供**（§7）——缺一个就不能整体激活
+            // 依赖闭包：**每个依赖都必须同批提供**——缺一个就不能整体激活
             foreach (ScriptEntry e in list)
             {
                 if (e.Requires == null) continue;
@@ -119,7 +119,7 @@ namespace LiteFramework
                 {
                     if (string.IsNullOrEmpty(dep)) continue;
                     if (!byModule.ContainsKey(dep))
-                        return ScriptSetVerdict.Reject($"{e.Module} 依赖 {dep} 不在本批清单内（§7 依赖必须完整预载）");
+                        return ScriptSetVerdict.Reject($"{e.Module} 依赖 {dep} 不在本清单内（依赖必须完整预载）");
                 }
             }
 
@@ -132,7 +132,7 @@ namespace LiteFramework
         }
 
         /// <summary>
-        /// 规范化摘要（§5"降级到可重建口径"）：模块名升序 → 模块|路径|依赖（依赖亦排序），
+        /// 规范化摘要（降级到可重建口径）：模块名升序 → 模块|路径|依赖（依赖亦排序），
         /// 用 \n 分隔后取 SHA-256。**不依赖输入顺序**——同一集合以不同顺序给出必须同摘要。
         /// </summary>
         private static string ComputeDigest(List<ScriptEntry> entries)

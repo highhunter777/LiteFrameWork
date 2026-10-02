@@ -6,7 +6,7 @@ using System.Text;
 namespace LiteSim
 {
     /// <summary>根位移方向策略（《联机动画与根位移专项设计》§3 DeltaYaw / DirectionPolicy）。
-    /// 起始锁定 = 动作全程按发起朝向旋转局部增量（首版烘焙口径，逐帧 yaw 数组恒零）；
+    /// 起始锁定 = 动作全程按发起朝向旋转局部增量（逐帧 yaw 数组恒零）；
     /// 其余值预留（逐帧转体/有限输入修正——接入时两端同步定稿）。</summary>
     public enum RootMotionDirectionPolicy : byte
     {
@@ -35,7 +35,7 @@ namespace LiteSim
     ///
     /// 量化纪律（烘焙侧与消费侧同源定稿——§3"单位、舍入规则和计算次序在 Sim 侧定稿"）：
     /// - 平面增量：**毫米有符号整数**（short，±32.767m 单 tick 上限恒安全）；
-    /// - Yaw：**厘度**（1/100 度，short）——首版 DirectionPolicy=起始锁定，数组恒零；
+    /// - Yaw：**厘度**（1/100 度，short）——DirectionPolicy=起始锁定，数组恒零；
     /// - 舍入：round half away from zero（正负对称，无银行家舍入歧义）；
     /// - 采样：固定 60Hz（TickRate）；SampleCount = max(1, round(clip 时长×60) − 1) 个
     ///   "帧 i → 帧 i+1"增量；循环片段不回绕（尾帧差按曲线末值持位——原地走跑不受影响）。
@@ -59,7 +59,7 @@ namespace LiteSim
         /// <summary>平面局部增量（毫米）：[2i]=X、[2i+1]=Z；长度恒 = 2×SampleCount。</summary>
         public short[] DeltaLocalXzMm;
 
-        /// <summary>每 tick 偏航（厘度）：长度恒 = SampleCount（首版恒零）。</summary>
+        /// <summary>每 tick 偏航（厘度）：长度恒 = SampleCount（恒零）。</summary>
         public short[] DeltaYawCentiDeg;
     }
 

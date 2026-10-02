@@ -8,10 +8,10 @@ using Xunit;
 namespace LiteNet.Tests
 {
     /// <summary>
-    /// 房间输入消费用例（《M10实施指导》附「服务端审查」2026-09-19）：
+    /// 房间输入消费用例（《M10实施指导》附「服务端审查」）：
     /// 关注"输入进到房间之后"的语义——多人同 tick 开火是否都记回溯、超前 ack 是否仍推进。
     ///
-    /// R1 迁移：改由 <see cref="RoomRuntime"/> 命令面驱动（Join/Tick/ClientInput），不起网络。
+    /// 改由 <see cref="RoomRuntime"/> 命令面驱动（Join/Tick/ClientInput），不起网络。
     /// </summary>
     public sealed class RoomInputTests
     {

@@ -8,11 +8,11 @@ using Xunit;
 namespace LiteNet.Tests
 {
     /// <summary>
-    /// `RoomClient` 输入冗余与生命周期（2026-09-19 客户端审查四条，逐条钉成用例）：
+    /// `RoomClient` 输入冗余与生命周期：
     ///
     /// 1. **冗余窗口是真历史**：包里带 frame、frame−1、frame−2…，每帧**各自的内容**——
-    ///    丢一包仍能从后续包补帧（修正前把同一份"最新输入"重复 4 次，冗余形同虚设）。
-    /// 2. **开火位随帧保留**：Buttons 属于各自那一帧，不再只在首个冗余帧里出现。
+    ///    丢一包仍能从后续包补帧。
+    /// 2. **开火位随帧保留**：Buttons 属于各自那一帧。
     /// 3. **退订**：Dispose 后传输事件不再回调 RoomClient（用假传输验，不碰真实网络）。
     /// 4. **不接管传输所有权**：Dispose 不释放注入的传输。
     ///
@@ -168,8 +168,8 @@ namespace LiteNet.Tests
             Assert.Equal(100, c.LastSnapshotFrame);   // 视点帧推导要用这个（§3.4.1）
             Assert.Equal(57, c.LastAckSnapshot);      // 诊断字段：这是"输入已到达服务器"，别当快照帧用
 
-            // R0-P0-4 契约：InputMessage.AckSnapshot 上报的必须是**已收最新快照帧号**（协议注释口径）。
-            // 修正前错报 AckInput（57）——服务器按发送 ledger 验证后"从未发送过的帧号"被整体忽略。
+            // 契约：InputMessage.AckSnapshot 上报的必须是**已收最新快照帧号**（协议注释口径）。
+            // 错报 AckInput（57）会被服务器按发送 ledger 验证后整体忽略。
             c.SendInput(101, Input(101, 0), 0);
             Proto.InputMessage last = t.LastInput();
             Assert.Equal(100, last.AckSnapshot);      // 上报快照帧 100（不是输入确认 57）

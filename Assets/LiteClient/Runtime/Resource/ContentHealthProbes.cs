@@ -18,7 +18,7 @@ namespace LiteGame
     /// 本探针做的检查（§11 的"schema、外键、资源键"中**可在此层做**的部分）：
     /// ① 清单声明的配置项**全部存在且非空**；② JSON **可解析**（不是截断/畸形）；
     /// ③ 结构化产物**根对象形态正确**（数组/对象之一，非裸标量）。
-    /// 更深的表间外键与数值域校验依赖 Luban 生成的 schema，属后续批次。
+    /// 更深的表间外键与数值域校验依赖 Luban 生成的 schema，不在本探针覆盖范围。
     /// </summary>
     public sealed class CandidateConfigHealthProbe : IHealthProbe
     {

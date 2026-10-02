@@ -6,7 +6,7 @@ using NUnit.Framework;
 namespace LiteGame.Tests.EditMode
 {
     /// <summary>
-    /// GameEntry 静态纪律用例（C1-⑦：《商业级通用客户端框架总设计》§6.1
+    /// GameEntry 静态纪律用例（《商业级通用客户端框架总设计》§6.1
     /// "使用 RuntimeInitializeOnLoadMethod(SubsystemRegistration) 清理静态兼容状态，支持关闭 Domain Reload 的编辑器场景"）：
     /// 重复引导守卫 s_booted 是 GameEntry 仅存的静态——Domain-Reload-Off 下跨 Play 残留，
     /// 不复位会把第二次 Play 的引导件当重复件静默销毁（引导死锁）。ResetForEditorReload 是唯一复位入口。

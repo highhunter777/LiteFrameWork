@@ -23,12 +23,10 @@ namespace LiteGame.Tests.EditMode
         }
 
         /// <summary>
-        /// 运算链（10k 步）跨运行时**必须逐位一致**——B 方案（自研 software sqrt）的兑现点。
+        /// 运算链（10k 步）跨运行时**必须逐位一致**——B 方案（自研 software sqrt，
+        /// 纯整数/位运算 + 正确舍入）的兑现点。
         ///
-        /// 历史：2026-09-18 曾实测到不一致（.NET 2896875742 / Unity 3683559206），
-        /// 根因是 BCL `Math.Sqrt` 在 Mono 上非正确舍入、被长链放大；改为自研 software sqrt
-        /// （纯整数/位运算 + 正确舍入）后，两侧一致。此用例自此为**硬判据**：
-        /// 一旦回归（例如有人绕过 `SimMath.Sqrt` 直接用 BCL），它立刻红。
+        /// 硬判据：一旦有人绕过 `SimMath.Sqrt` 直接用 BCL `Math.Sqrt`，它立刻红。
         /// </summary>
         [Test]
         [Category(TestCategory.Contract)]

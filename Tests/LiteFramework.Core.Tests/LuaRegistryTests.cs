@@ -4,7 +4,7 @@ using Xunit;
 
 namespace LiteFramework.Tests
 {
-    public sealed class LuaRegistryTests   // 实例注册表，无静态状态（时机断言机制已于 2026-09-10 决策删除）
+    public sealed class LuaRegistryTests   // 实例注册表，无静态状态
     {
         private interface IFakeLogic { }
 
@@ -35,7 +35,7 @@ namespace LiteFramework.Tests
         {
             var ex = Assert.Throws<KeyNotFoundException>(() => _reg.Get("Test.Missing"));
             Assert.Contains("Test.", ex.Message);           // 报错含 kind 前缀
-            Assert.Contains("§4.4", ex.Message);            // 路径约定提示
+            Assert.Contains("按路径约定应为", ex.Message);   // 路径约定提示
         }
 
         [Fact]
@@ -61,7 +61,7 @@ namespace LiteFramework.Tests
             Assert.Equal(2, _reg.Generation);               // 壳据此丢弃缓存引用
         }
 
-        // ---- 运行期增量重填（M4 §2.3：不重建 env 的轻路径，2026-09-17）----
+        // ---- 运行期增量重填（M4 §2.3：不重建 env 的轻路径）----
 
         [Fact]
         public void LuaRegistry_多轮重填_Generation单调不回退()

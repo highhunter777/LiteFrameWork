@@ -4,7 +4,7 @@ using System.Globalization;
 namespace LiteFramework
 {
     /// <summary>
-    /// 单个设置项的强类型值对象（**机制件**）：key/默认值/范围校验**单源**——调用处不再散落硬编码默认值与裸字符串键。
+    /// 单个设置项的强类型值对象（**机制件**）：key/默认值/范围校验**单源**（调用处不散落硬编码默认值与裸字符串键）。
     /// Get：缺失 → 默认值（首启正常）；解析失败 → 默认值 + Log.Warning（事故可见）。
     /// Set：先经 clamp（可选范围校验）再写入——越界值在写入口死掉。
     /// 只支持 float/int/bool/string（SettingService 的四种口径）；其他 T 在构造时抛。

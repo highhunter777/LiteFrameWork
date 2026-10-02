@@ -4,15 +4,14 @@ using System.Collections.Generic;
 namespace LiteFramework
 {
     /// <summary>
-    /// **抢占型阶段状态机**（2026-09-17 能力分层：从 `StageMachine` 抽出的可选能力组，纯加法）：
-    /// 在基础机之上补 ARPG/格斗那类"动作密集"所需的三件——
+    /// **抢占型阶段状态机**：在基础机之上补 ARPG/格斗那类"动作密集"所需的三件——
     /// ① **优先级抢占**（<see cref="IPriorityStage"/>）+ **中断规则**（<see cref="IInterruptPolicy{TId}"/>）
     /// ② **被抢占后恢复**（<see cref="IResumeStage"/> + <see cref="ResumeMode"/> + <see cref="TryResume"/>）
     /// ③ **带优先级覆盖的请求**（必杀霸体这类临时越级）
     ///
     /// 选型：**只做基础状态机（流程/UI/转场）→ 用 `StageMachine`；做角色/动作（格斗、ARPG）→ 用本类。**
     ///
-    /// 语义（对照《状态机ARPG形态扩展施工图》N1–N6）：
+    /// 语义：
     /// - 准入 = `当前阶段允许被它打断 && 来者优先级 ≥ 当前优先级`；<see cref="IInterruptPolicy{TId}"/> 未实现 → 默认可打断；
     /// - **阶段钩子内发起的迁移一律放行**（"自身推进"：连段下一段、时长到点回 Idle 不该被自己的优先级挡住）；
     /// - 被拒 → `Request` 返回 **false**（不抛、不改 pending）；

@@ -1,7 +1,7 @@
 namespace LiteFramework
 {
     /// <summary>
-    /// 诊断记录端口（《框架先行建设与业务接入专项设计》§8「可诊断」：日志和错误码关联版本、
+    /// 诊断记录端口（日志和错误码关联版本、
     /// 更新事务、Scope、会话和房间）。
     ///
     /// **为什么是端口**：Core 在**掌握稳定分类码的判定点**（典型：激活事务失败/恢复，见
@@ -13,7 +13,7 @@ namespace LiteFramework
     /// - <c>stage</c>：稳定域段名（词表见诊断面，如 Build/Content/Txn/Session/Room）；
     /// - <c>code</c>：稳定分类码（可断言、可工单化；不写自由文本）；
     /// - <c>key</c>：**关联键**——把同一次失败在各域/各端对齐的复合键；
-    /// - <c>detail</c>：细节（原因长句/对照值）；**不得携带凭据**（票据/token/密钥，同《Meta 专项》§13.1）。
+    /// - <c>detail</c>：细节（原因长句/对照值）；**不得携带凭据**（票据/token/密钥）。
     /// </summary>
     public interface IDiagRecordSink
     {

@@ -28,7 +28,7 @@ namespace LiteFramework
     }
 
     /// <summary>
-    /// 引用池(静态门面豁免 #2,与 Log 同列;名单封闭,见 §7)。
+    /// 引用池(静态门面豁免 #2,与 Log 同列;名单封闭)。
     /// 契约:入池对象刚被 Clear;Acquire 方不得假设任何字段为默认值——
     /// Release 时的 Clear 是防泄漏防御(解除外部引用),不是初始化服务,初始化责任始终在调用方。
     /// </summary>

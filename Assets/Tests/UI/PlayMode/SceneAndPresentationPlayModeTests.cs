@@ -21,10 +21,7 @@ namespace LiteGame.Tests.UI.PlayMode
     /// - 必测失败：**世界/UI 暂停**、动画打断、**重复归还**、加载后 Owner 已退出、卸载中仍有租约
     /// - 范围限制：用**显式样例指令**驱动动作，不把动画完成作为玩法判定
     ///
-    /// **本组补的是哪一块**：动画段已入 PlayMode（`AnimationResourcePlayModeTests`）、
-    /// VFX 生命周期 EditMode 已 16 例、Scene 生命周期语义 EditMode 已覆盖——但
-    /// **真资源场景加载**、**音效段**、**世界/UI 分域暂停**三者此前**没有任何 PlayMode 证据**；
-    /// `AudioService` 在全仓几乎没有独立用例。
+    /// **本组覆盖**：**真资源场景加载**、**音效段**、**世界/UI 分域暂停**；`AudioService` 的独立 PlayMode 载体。
     ///
     /// **为什么必须是 PlayMode**：本组要的正是 EditMode 给不了的——时钟由**真实 PlayerLoop** 驱动
     /// （`PlayModeTicker`，与生产 `GameEntry.Update` 同语义）、真实场景的加载/卸载、
@@ -149,7 +146,7 @@ namespace LiteGame.Tests.UI.PlayMode
             Assert.AreEqual("1", snap["活跃"], "世界停走时特效不应因时间推进而到期回收");
         }
 
-        // ---- 音效段（此前全仓无独立覆盖）----
+        // ---- 音效段 ----
 
         [UnityTest]
         public IEnumerator 音效_真实播放_Stop后归零且重复归还幂等()
@@ -217,7 +214,7 @@ namespace LiteGame.Tests.UI.PlayMode
             // **用 Additive 而非 Single**：PlayMode 用例跑在 Unity 测试框架自己的场景里，
             // 而 Single 模式会销毁当前所有场景——把测试场景一并干掉；且当它是**唯一**已加载场景时
             // `SceneManager.UnloadSceneAsync` 返回 null，YooAsset 抛
-            // "Failed to unload scene"（实测）。Additive 不碰测试场景，语义也够验"真资源加载/卸载"。
+            // "Failed to unload scene"（Single 且为唯一已加载场景时）。Additive 不碰测试场景，语义也够验"真资源加载/卸载"。
             var load = scene.LoadAdditiveAsync(TestScene);
             yield return Wait(load, 30f);
             Assert.AreEqual(UniTaskStatus.Succeeded, load.Status, "场景加载未成功（faulted 会在此抛出真实异常）");

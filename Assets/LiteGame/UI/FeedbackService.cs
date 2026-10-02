@@ -7,17 +7,17 @@ using UnityEngine;
 namespace LiteGame.UI
 {
     /// <summary>
-    /// 统一反馈入口（U2-⑥c，《UI框架总设计》§6.1"Loading、空状态、错误/重试、Toast 有统一入口；
+    /// 统一反馈入口（《UI框架总设计》§6.1"Loading、空状态、错误/重试、Toast 有统一入口；
     /// 请求失败的反馈可观察，关键错误界面必须可从内置资源启动"）。
     ///
-    /// 三面（**视觉一律取控件模板**——2026-09-25 归位，见 §7 视觉单一来源与服务层职责）：
+    /// 三面（**视觉一律取控件模板**，见 §7 视觉单一来源与服务层职责）：
     /// - **Loading**（<see cref="BeginLoading"/>）：嵌套计数阻断面——最后一个结束才解除；
     ///   阻断期间平台 Back 经 <see cref="TryCancelLoading"/> 取消当前操作（§6.1 Back 优先级：
     ///   "Loading 阻断期间按操作取消规则处理返回，不能悄悄穿透到下层"——经
     ///   <see cref="UINavigationController.BackInterceptor"/> 接入导航链首位）。
     /// - **错误/重试**（<see cref="ShowErrorAsync"/>）：经 <see cref="DialogService"/> 落地——
     ///   同 MergeKey 的重复错误弹窗自动合并（§4.3"重复断线/错误弹窗按键合并"）；返回是否重试。
-    /// - **Toast**（<see cref="ShowToast"/>）：非阻断短提示，**多条并存**各自计时（§6.1 裁决），
+    /// - **Toast**（<see cref="ShowToast"/>）：非阻断短提示，**多条并存**各自计时（§6.1），
     ///   由承载控件 <see cref="Toast"/> 做纵向堆叠与最旧淘汰。
     ///
     /// 三者同为 **System 语义层**的 form（layer=3，§6.2"反馈面归 System 层"），经统一排序器分配 order——

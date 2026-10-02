@@ -3,9 +3,8 @@ using System;
 namespace LiteFramework
 {
     /// <summary>
-    /// 启动/运行错误的恢复分类（《商业级通用客户端框架总设计》§7.2 错误分类表——
-    /// 错误类型决定默认动作：Transient 重试 / Recoverable 清缓存 / Compatibility 阻止 / Security 不重试 / Fatal 退出）。
-    /// C1 只冻结分类与入口骨架；具体恢复动作的实装（下载重试/重新登录/内容回滚）随 C2/C3 主流程落地。
+    /// 启动/运行错误的恢复分类（错误类型决定默认动作：
+    /// Transient 重试 / Recoverable 清缓存 / Compatibility 阻止 / Security 不重试 / Fatal 退出）。
     /// </summary>
     public enum ClientErrorKind
     {
@@ -26,8 +25,8 @@ namespace LiteFramework
     }
 
     /// <summary>
-    /// 错误恢复动作（《商业级通用客户端框架总设计》§7.2：ErrorRecovery 必须提供
-    /// 重试/回滚内容/清缓存/重新登录/离线模式/导出诊断/退出——本枚举冻结动作集，执行器归 C2/C3 流程）。
+    /// 错误恢复动作（ErrorRecovery 必须提供
+    /// 重试/回滚内容/清缓存/重新登录/离线模式/导出诊断/退出——本枚举冻结动作集）。
     /// </summary>
     public enum RecoveryAction
     {
@@ -52,20 +51,20 @@ namespace LiteFramework
 
     /// <summary>
     /// 错误恢复决策骨架：错误 → 分类 → 默认动作。分类由抛出方标记（<see cref="ClientRecoveryException"/>）；
-    /// 未标记的未知异常按 <see cref="ClientErrorKind.Fatal"/> 兜底（§7.2：初始化不变量破坏 = Fatal）。
-    /// 实际的恢复执行器（重试调度/回滚流程/重新登录）归 C2 主流程——本骨架只冻结"分类 → 动作"的映射。
+    /// 未标记的未知异常按 <see cref="ClientErrorKind.Fatal"/> 兜底（初始化不变量破坏 = Fatal）。
+    /// 实际的恢复执行器（重试调度/回滚流程/重新登录）不在此骨架——本骨架只冻结"分类 → 动作"的映射。
     /// </summary>
     public static class ClientErrorRecovery
     {
-        /// <summary>错误 → 默认恢复动作（§7.2 分类表逐行映射）。</summary>
+        /// <summary>错误 → 默认恢复动作（分类表逐行映射）。</summary>
         public static RecoveryAction Resolve(ClientErrorKind kind)
         {
             switch (kind)
             {
                 case ClientErrorKind.Transient: return RecoveryAction.Retry;
                 case ClientErrorKind.Recoverable: return RecoveryAction.ClearCacheAndRetry;
-                case ClientErrorKind.Compatibility: return RecoveryAction.ExportDiagnosticsAndExit;   // 提示更新（C2 接 UI）
-                case ClientErrorKind.Security: return RecoveryAction.ExportDiagnosticsAndExit;        // 不重试（§7.2）
+                case ClientErrorKind.Compatibility: return RecoveryAction.ExportDiagnosticsAndExit;   // 提示更新（UI 层接线）
+                case ClientErrorKind.Security: return RecoveryAction.ExportDiagnosticsAndExit;        // 不重试
                 case ClientErrorKind.Fatal: return RecoveryAction.ExportDiagnosticsAndExit;
                 default: return RecoveryAction.ExportDiagnosticsAndExit;
             }
@@ -80,7 +79,7 @@ namespace LiteFramework
                 case null: return ClientErrorKind.Fatal;
                 case OperationCanceledException: return ClientErrorKind.Transient;   // 取消 ≠ 错误
                 case ClientRecoveryException marked: return marked.Kind;
-                default: return ClientErrorKind.Fatal;                               // 未知异常按 Fatal 兜底（§7.2）
+                default: return ClientErrorKind.Fatal;                               // 未知异常按 Fatal 兜底
             }
         }
 
@@ -90,7 +89,7 @@ namespace LiteFramework
 
     /// <summary>
     /// 带恢复分类的客户端异常：抛出方标记 <see cref="Kind"/>，恢复执行器按分类选动作
-    /// （§7.2 错误分类表——分类在抛出点声明，不在 catch 点猜测）。
+    /// （分类在抛出点声明，不在 catch 点猜测）。
     /// </summary>
     public class ClientRecoveryException : Exception
     {

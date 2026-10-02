@@ -14,8 +14,7 @@ namespace LiteNet.Tests
     /// §8 准入项「联机宿主闭环」"…**两房间隔离**…通过"；《服务端总设计》§6"一个 roomId
     /// 只能映射一个独立 RoomActor"、§514"多房间并发时一个慢客户端或过载房间不拖累其他房间"）。
     ///
-    /// **本组存在的理由**：在此之前"任意 roomId 指向同一 Room"（§116）——隔离无从谈起。
-    /// 光有 <see cref="ServerHost.TryGetRoom"/> 不算数，必须证明**状态真的分家**：
+    /// **本组存在的理由**：光有 <see cref="ServerHost.TryGetRoom"/> 不算数，必须证明**状态真的分家**：
     /// 席位互不可见、帧号各自推进、房间参数互不串用、关一个房间不影响另一个。
     /// </summary>
     [Trait(TestTrait.Category, TestCategory.Integration)]
@@ -147,7 +146,7 @@ namespace LiteNet.Tests
         [Fact]
         public void 单房间兼容形态_不动态建房()
         {
-            // 未装配 RoomServerConfig：只认预置房间，别的 roomId 一律拒绝（历史用例与本机联调通道）
+            // 未装配 RoomServerConfig：只认预置房间，别的 roomId 一律拒绝（嵌入式与本机联调通道）
             var t = new FakeRoomTransport();
             using var host = new ServerHost(t, new RoomConfig { Port = 45002, RoomId = "Only", ExpectedPlayers = 2 });
 

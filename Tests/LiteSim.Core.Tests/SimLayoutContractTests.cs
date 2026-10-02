@@ -50,13 +50,11 @@ namespace LiteSim.Tests
         [Fact]
         public void 开火窗_公共面_全量与公共口径都必变()
         {
-            // 批次C：开火驻留窗是**改写 Vel 的判定输入**（瞄准 ∨ 开火态 → 限速）——必须进全量 checksum
-            // （漏一个 = 重放对账漏检）。
-            // 批次D 口径反转：开火窗**公共化**（fire_stance_frames=19）——客户端预测/回滚重放必须能从
-            // 快照重建窗，缺失 ⇒ 窗内限速/朝向分叉 ⇒ 逐快照纠偏＝橡皮筋（实测 2026-10-01，"不开火也移不动"）。
+            // 开火驻留窗是**改写 Vel 的判定输入**（瞄准 ∨ 开火态 → 限速）——进全量 checksum。
+            // 开火窗**公共化**（fire_stance_frames=19）——客户端预测/回滚重放必须能从快照重建窗，
+            // 缺失 ⇒ 窗内限速/朝向分叉 ⇒ 逐快照纠偏＝橡皮筋（"不开火也移不动"）。
             // ⇒ 公共口径**必含**：窗变 ⇒ 公共 checksum 必变（差分基线/和解锚点同步覆盖——防漏发静默分叉）。
-            // 批C+：离场转向标记（FaceExitTurning）保持**私有面**——可由窗+输入在重放中重推导，
-            // 不占协议字段号（1 帧边界误差可接受）。
+            // 离场转向标记（FaceExitTurning）保持**私有面**——可由窗+输入在重放中重推导，不占协议字段号。
             var world = new SimWorldState { RngState = 1UL };
             world.Spawn(new EntitySlot { Hp = 100 }, out int slot);
 
@@ -68,7 +66,7 @@ namespace LiteSim.Tests
             Assert.True(full0 != SimChecksum.ComputeStateChecksum(world),
                 "开火窗进全量口径（判定输入——重放对账必含）");
             Assert.True(public0 != SimChecksum.ComputePublicChecksum(world),
-                "开火窗进公共口径（批次D 公共化——差分基线/和解锚点/回滚基线必须携带）");
+                "开火窗进公共口径（公共化——差分基线/和解锚点/回滚基线必须携带）");
 
             // 回滚重建面直证（LiteNet 侧 codec 往返留 SnapshotCodecTests——本工程不引用 LiteNet）：
             // 快照摘要捕获侧就在本工程（SimWorldStateSnapshot）
@@ -87,8 +85,8 @@ namespace LiteSim.Tests
             Assert.True(public1 == SimChecksum.ComputePublicChecksum(world),
                 "离场转向标记不进公共口径（可由窗+输入重推导——不占协议字段号）");
 
-            // 窗长/转向速率不再数字钉：窗长是**用户实时调参项**（单源 CombatConfig.FireStanceFrames，
-            // 历史曾 60/90 往返）；跨端一致性由 buildHash（源码）+ digest（联机身份）守卫——那才是系统级闸门
+            // 窗长/转向速率不数字钉：窗长是**用户实时调参项**（单源 CombatConfig.FireStanceFrames）；
+            // 跨端一致性由 buildHash（源码）+ digest（联机身份）守卫——那才是系统级闸门
             Assert.True(CombatConfig.FireStanceFrames > 0 && CombatConfig.FaceTurnRadPerSec > 0f);
         }
 

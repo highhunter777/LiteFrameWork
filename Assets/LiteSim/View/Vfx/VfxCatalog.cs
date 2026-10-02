@@ -10,11 +10,10 @@ namespace LiteSim.View
     public sealed class VfxCatalog
     {
         /// <summary>
-        /// 特效 prefab 根目录（与《联机Demo美术资源清单》§0-6 的 `fx_` 命名约定配套）。
-        /// **2026-09-19 修订**：改用工程**既有的顶层资源目录** `Assets/FX/`——原定的
-        /// `Assets/LiteGame/Art/Effects/` 从未落地（实测为空目录，与外面已有的美术素材割裂）。
-        /// 注意 `Assets/FX/` 下现为第三方原包结构（`ParticlePack/`、`LuffyEffect/`），
-        /// 项目自制的 `fx_*` prefab 按"命名即引用"**扁平放在该根下**。
+        /// 特效 prefab 根目录（与《联机Demo美术资源清单》§0-6 的 `fx_` 命名约定配套）：
+        /// 工程**既有的顶层资源目录** `Assets/FX/`。注意 `Assets/FX/` 下现为第三方原包结构
+        /// （`ParticlePack/`、`LuffyEffect/`），项目自制的 `fx_*` prefab 按"命名即引用"
+        /// **扁平放在该根下**。
         /// </summary>
         public const string DefaultRoot = "Assets/FX/";
 

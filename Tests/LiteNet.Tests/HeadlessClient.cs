@@ -15,7 +15,7 @@ namespace LiteNet.Tests
     ///
     /// 和解（决策⑥ 全量预测形态）：远端玩家输入客户端未知（沿用零）→ 权威与预测必分叉 → 每次快照
     /// OnAuthoritativeSnapshot 恢复权威 + 重放本地历史 → 不发散（有界偏差）。和解率 = "权威与预测差异率"
-    /// （全量预测形态下预期偏高属机制正确；混合形态调优留后——《M10 实施指导》决策⑥）。
+    /// （全量预测形态下预期偏高属机制正确，《M10 实施指导》决策⑥）。
     /// </summary>
     public sealed class HeadlessClient : IDisposable
     {
@@ -40,7 +40,7 @@ namespace LiteNet.Tests
 
         /// <summary>
         /// 无头客户端。<paramref name="roomId"/>/<paramref name="port"/> 参数化以支持**多房间并行对跑**
-        /// （两客户端进不同房间）；缺省退回单房间形态（Room-A @ 27778），历史用例不受影响。
+        /// （两客户端进不同房间）；缺省退回单房间形态（Room-A @ 27778）。
         /// </summary>
         public HeadlessClient(string name, SimMapData map, KcpTransportClient transport,
             string roomId = null, int port = 27778)
@@ -64,9 +64,9 @@ namespace LiteNet.Tests
         }
 
         /// <summary>
-        /// 重连恢复（R1，§9.3 步骤 3~5）：权威全量重建持久镜像 → 和解本地预测到该帧 → 宣告恢复完成
+        /// 重连恢复（§9.3 步骤 3~5）：权威全量重建持久镜像 → 和解本地预测到该帧 → 宣告恢复完成
         /// （CompleteRestore——服务器收到前抑制本席位增量广播）。输入历史不重放：镜像即恢复终点帧，
-        /// 后续权威循环从该帧继续（历史重放调优留 M11 表现层）。
+        /// 后续权威循环从该帧继续。
         /// </summary>
         private void OnReconnectResponse(Proto.ReconnectResponse response)
         {

@@ -12,10 +12,9 @@ using UnityEngine;
 namespace LiteGame.Tests.EditMode
 {
     /// <summary>
-    /// ConfigService 快照化用例（C1-⑨：《商业级通用客户端框架总设计》§9 + 热更专项 §11）：
+    /// ConfigService 快照化用例（《商业级通用客户端框架总设计》§9 + 热更专项 §11）：
     /// 候选构建 → 校验 → 原子发布三段式——失败保留空态（Loaded=false、Version=0、Tables 访问抛）。
-    /// 半发布回归卡：旧实现"先设 _tables 再 ApplyCombatNumbers"在校验炸了后 Loaded 已为 true
-    /// （热更专项 §2 Current 登记的缺陷）——本用例锁死该行为不再复发。
+    /// 半发布回归卡：校验炸了不得留下已发布的半成品。
     /// 字节通道注入假 provider（直读磁盘 .bytes，与 CombatNumbersEditModeTests 同源），
     /// 不依赖 YooAsset（EditMode 无法初始化——见 YooAssetContentServiceEditModeTests 边界注记）。
     /// </summary>
@@ -23,7 +22,7 @@ namespace LiteGame.Tests.EditMode
     {
         private static Dictionary<string, byte[]> ReadTableBytes()
         {
-            // 表数据目录从 ConfigService 单源取（生成物 2026-09-26 由 LiteGame/RawFile 收敛到 GameData）
+            // 表数据目录从 ConfigService 单源取
             string dir = Path.Combine(ProjectRoot(), ConfigService.DataDir);
             var cache = new Dictionary<string, byte[]>(ConfigService.TableDataFiles.Length);
             foreach (string f in ConfigService.TableDataFiles)
@@ -71,7 +70,7 @@ namespace LiteGame.Tests.EditMode
             var svc = new ConfigService((loc, ct) => FromCache(cache, loc, ct));
             Assert.Catch<Exception>(() => svc.LoadAsync(CancellationToken.None).GetAwaiter().GetResult());
 
-            Assert.IsFalse(svc.Loaded, "建表失败必须保留空态——半发布缺陷回归卡（热更专项 §2）");
+            Assert.IsFalse(svc.Loaded, "建表失败必须保留空态——半发布回归卡");
             Assert.AreEqual(0UL, svc.Version, "未发布版本不递增");
             Assert.IsNull(svc.CurrentSnapshot);
             Assert.Throws<InvalidOperationException>(() => { var _ = svc.Tables; });

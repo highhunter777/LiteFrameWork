@@ -28,8 +28,7 @@ namespace LiteNet.Tests
 
         /// <summary>
         /// 与 <see cref="TestTicketIssuer.Issue"/> 的 <c>audience</c> 缺省值**必须一致**。
-        /// 曾经这里写成别的值，于是全组用例都先撞 AudienceMismatch——而且它**排在房间/哈希/版本检查之前**，
-        /// 把后三者的失配一并掩盖了。受众校验是绑定项里第一道，改缺省值要同时改两边。
+        /// 受众校验是绑定项里第一道，排在房间/哈希/版本检查之前；改缺省值要同时改两边。
         /// </summary>
         private const string IssuerDefaultAudience = "test";
 

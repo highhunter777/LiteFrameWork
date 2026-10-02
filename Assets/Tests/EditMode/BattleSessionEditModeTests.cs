@@ -14,7 +14,7 @@ using NUnit.Framework;
 namespace LiteGame.Tests.EditMode
 {
     /// <summary>
-    /// C2 批① 会话与对局上下文验收（全替身、零网络、零墙钟）：
+    /// 会话与对局上下文验收（全替身、零网络、零墙钟）：
     /// - BattleClient 装配面：连接即 Join / 断线重连闭环 / 版本不符拒绝；
     /// - BattleContext 编排面：StartGame 建 Sim、快照和解、本地实体对齐、
     ///   Ended 恰好一次、Dispose 拆订阅 + Match Scope 清零（离场无 Match 残留的载体断言）。
@@ -83,7 +83,7 @@ namespace LiteGame.Tests.EditMode
         }
 
         /// <summary>设备替身：恒返回一份"采到了"的空意图——让输入链路（采样 → 帧边界门 → 上行）完整走通。
-        /// （2026-09-26 输入服务批起 BattleContext 经 <see cref="IInputService"/> 取输入，null = 空输入。）</summary>
+        /// （BattleContext 经 <see cref="IInputService"/> 取输入，null = 空输入。）</summary>
         private sealed class StubIntentSource : IIntentSource
         {
             public string Name => "stub";

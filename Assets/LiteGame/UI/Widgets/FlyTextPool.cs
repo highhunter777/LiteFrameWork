@@ -8,7 +8,7 @@ using UnityEngine.UI;
 
 namespace LiteGame.UI
 {
-    /// <summary>飘字池（M4c）：屏幕坐标文本上飘淡出，池化复用（规格：池深 16——M5 Profiler 实测后可调）。
+    /// <summary>飘字池：屏幕坐标文本上飘淡出，池化复用（规格：池深 16）。
     /// **项目红线：禁用原生协程**——帧循环用 UniTask.NextFrame；生命周期取消 = GetCancellationTokenOnDestroy。</summary>
     public class FlyTextPool : MonoBehaviour
     {
@@ -19,9 +19,9 @@ namespace LiteGame.UI
 
         private readonly Stack<TMP_Text> _pool = new Stack<TMP_Text>(16);
 
-        /// <summary>取实例的 CanvasGroup（**模板 `_Template` 自带**，2026-09-19 经 PrefabUtility 写入）。
-        /// 刻意**不在运行时 AddComponent**——原实现注释记录的"组件变更静默失效"正是发生在"运行期往实例上补组件"
-        /// 这条路径上；组件随 prefab 序列化进来即规避整类风险。缓存避免每帧 GetComponent。</summary>
+        /// <summary>取实例的 CanvasGroup（**模板自带**，随 prefab 序列化进来）。
+        /// 刻意**不在运行时 AddComponent**——运行期往实例上补组件会静默失效；组件随 prefab 序列化即规避整类风险。
+        /// 缓存避免每帧 GetComponent。</summary>
         private readonly Dictionary<TMP_Text, CanvasGroup> _cgCache = new Dictionary<TMP_Text, CanvasGroup>();
 
         private CanvasGroup GetCanvasGroup(TMP_Text label)
@@ -63,10 +63,10 @@ namespace LiteGame.UI
             {
                 if (this == null || label == null || rt == null || cg == null) return;   // 宿主销毁：直接退出（不归还池）
                 if (await UniTask.NextFrame(ct).SuppressCancellationThrow()) return;   // 取消（销毁/回收）：退出
-                // ★ await 之后复检：销毁可能发生在等待期间（批⑦ 自检抓出的 MissingReferenceException 根因）
+                // ★ await 之后复检：销毁可能发生在等待期间
                 if (this == null || label == null || rt == null || cg == null) return;
 
-                t += Time.unscaledDeltaTime;                 // UI 轨（unscaled：时停不停，同原协程语义）
+                t += Time.unscaledDeltaTime;                 // UI 轨（unscaled：时停不停）
                 float k = Mathf.Clamp01(t / Duration);
                 cg.alpha = 1f - k;
                 rt.anchoredPosition = start + Vector2.up * (RiseDistance * k);

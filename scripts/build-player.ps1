@@ -1,5 +1,5 @@
 # ─────────────────────────────────────────────────────────────────────────────
-# Player build (C0-2, 2026-09-22)
+# Player build
 #
 # Per: Client Framework Master Design 19 C0 - "BuildProfile, one-command build,
 #      Windows x64 IL2CPP player build" and 14.2 (versioned BuildProfile).
@@ -161,5 +161,5 @@ $artifact = Get-ChildItem $outDir -Filter $glob -File -ErrorAction SilentlyConti
 if (-not $artifact) { Write-Host "no artifact ($glob) under $outDir - artifact verification failed" -ForegroundColor Red; exit 1 }
 Write-Host "artifact: $($artifact.FullName) ($([math]::Round($artifact.Length/1MB,1)) MB)" -ForegroundColor Green
 Write-Host ''
-Write-Host 'C0-2 build PASSED' -ForegroundColor Green
+Write-Host 'Player build PASSED' -ForegroundColor Green
 exit 0

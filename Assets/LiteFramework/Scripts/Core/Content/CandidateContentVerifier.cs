@@ -3,7 +3,7 @@ using System.Collections.Generic;
 
 namespace LiteFramework
 {
-    /// <summary>候选内容校验的结论（§7：每文件摘要**必须复算**，不能只信清单自述）。</summary>
+    /// <summary>候选内容校验的结论（每文件摘要**必须复算**，不能只信清单自述）。</summary>
     public readonly struct CandidateVerifyResult
     {
         public readonly bool Passed;
@@ -34,14 +34,14 @@ namespace LiteFramework
     }
 
     /// <summary>
-    /// 候选内容校验（《热更与内容发布专项设计》§7"只下载固定 Release 的不可变文件"、
-    /// §5"文件完整性对实际原始字节计算完整 SHA-256"）。
+    /// 候选内容校验（只下载固定 Release 的不可变文件；
+    /// 文件完整性对实际原始字节计算完整 SHA-256）。
     ///
     /// **这是信任链的执行侧**：<see cref="ReleaseManifestValidator"/> 只校验描述的**字段形态**
     /// （路径合法、长度非负、摘要形状），从不读文件字节；本类负责把清单与**落盘内容**对上——
     /// 逐文件复算摘要、核对长度、并检出清单与目录的双向差异。
     ///
-    /// 顺序（与 §6"先验证描述再依据可信描述计划下载"呼应）：调用方必须先通过
+    /// 顺序（先验证描述再依据可信描述计划下载）：调用方必须先通过
     /// <see cref="ReleaseManifestValidator.Validate"/> 再调用本类——**未验证的清单不可作为下载依据**。
     ///
     /// 本类纯规则 + IO 端口，零 Unity 依赖，L1 全覆盖。
@@ -109,7 +109,7 @@ namespace LiteFramework
                                 expected: entry.Length.ToString(), actual: bytes.LongLength.ToString()),
                             verifiedFiles, verifiedBytes);
 
-                    // 复算摘要（§5 原始字节，不做任何换行归一化）
+                    // 复算摘要（原始字节，不做任何换行归一化）
                     string actual = hasher.ComputeHex(bytes);
                     if (!ContentHash.HexEquals(actual, entry.Sha256))
                         return CandidateVerifyResult.Fail(

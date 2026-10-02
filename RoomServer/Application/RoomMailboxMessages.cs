@@ -9,8 +9,8 @@ namespace RoomServer.Application
     ///
     /// <para>
     /// <see cref="RoomCommand"/> 只表示 Runtime 能理解的纯命令；这个封装补上
-    /// 宿主路由所需的房间、连接和会话代次。代次暂由装配方提供，等 Session
-    /// 引入连接复用防护后可用来丢弃迟到消息；消息本身不持有可变的 Session 引用。
+    /// 宿主路由所需的房间、连接和会话代次。代次由装配方提供，用来丢弃迟到消息；
+    /// 消息本身不持有可变的 Session 引用。
     /// </para>
     /// </summary>
     public readonly struct RoomControlEnvelope
@@ -123,9 +123,9 @@ namespace RoomServer.Application
     /// 宿主侧出站封装。
     ///
     /// <para>
-    /// 当前批次仍可在同一 Owner 上直接应用 <see cref="RoomOutput"/>；此类型先把
-    /// 输出与房间代次、序号及来源连接绑定，为后续 Worker → Host 出站队列留下稳定
-    /// 边界。它不持有 Session 引用，也不把 Transport 放进 Runtime。
+    /// 可在同一 Owner 上直接应用 <see cref="RoomOutput"/>；此类型把输出与房间代次、序号及来源
+    /// 连接绑定，为 Worker → Host 出站队列留出稳定边界。它不持有 Session 引用，也不把
+    /// Transport 放进 Runtime。
     /// </para>
     /// </summary>
     public readonly struct RoomOutboundEnvelope

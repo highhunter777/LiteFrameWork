@@ -9,24 +9,24 @@ using RoomServer.Application;
 using RoomServer.Runtime;
 
 // 开发面剥离：与 DevHUD/DebugTuner 同款三宏 #if（release Player 中本件整体不编译；
-// asmdef 层不设约束——见《共享代码范围》施工记录批②边界）。
+// asmdef 层不设约束）。
 #if UNITY_EDITOR || DEVELOPMENT_BUILD || LITEFRAMEWORK_DEBUG
 namespace LiteGame
 {
     /// <summary>
-    /// **进程内本地服务器**（离线隔离开发，2026-09-27）：实现 <see cref="IClientTransport"/>，
+    /// **进程内本地服务器**（离线隔离开发）：实现 <see cref="IClientTransport"/>，
     /// 在同一进程里跑**真的**房间内核 <see cref="RoomRuntime"/> 与**真的** <see cref="SnapshotPipeline"/>
     /// （两者与服务端宿主编译同一份源码：`Assets/RoomServer/{Runtime,Application}`），中间不走网络。
     ///
-    /// **它解决什么**：此前客户端要动战斗代码必须先起 `RoomServer` 进程（端点硬编码 127.0.0.1:17777），
-    /// 否则 `ProcedureMatch` 十秒超时、根本进不了对局。开关打开即自带权威端跑完整闭环。
+    /// **它解决什么**：不必起 `RoomServer` 进程即可在进程内跑完整闭环（否则 `ProcedureMatch`
+    /// 十秒超时、进不了对局）。开关打开即自带权威端。
     ///
     /// **真实性边界（务必分清，别把"本地绿"当"联机绿"）**：
     /// - **真**：Sim 判定、`InputGate` 校验、快照差分/AOI、协议编解码（`PacketCodec`）、会话相位机；
     /// - **假**：无 Socket（无丢包/乱序/延迟/MTU）、无票据验签（token 只做非空）、单房间、
     ///   无多房间/排空/Ops/持久化、时间轴自走（不依赖墙钟）、**自动补位**（真客户端进房后，
     ///   剩余席位由假连接补满并按"缺席空输入"站桩——真实多人交互不可由此模拟）。
-    ///   弱网、断线重连真实性、多房间隔离仍须在**真服务器**验（L3 与两房用例覆盖）。
+    ///   弱网、断线重连真实性、多房间隔离仍须在**真服务器**验。
     ///
     /// **与真服务端应用层的关系**：本类只补最小的那层映射（Join → JoinAck、MatchStarted → StartGame、
     /// Tick → 快照广播），对应 `ServerHost.ApplySignal`/`ApplyOutput` 里那几行。**不复制**票据/多房间/
@@ -80,9 +80,8 @@ namespace LiteGame
         /// 按房间号构造（**调用方的唯一入口**）。
         ///
         /// **为什么需要它**（《客户端与服务端共享代码范围专项设计》§3 D2 + §7-1）：
-        /// 消费方（`ProcedureMatch.CreateTransport`）此前要自己 `new RoomConfig{...}`，
-        /// 于是它必须认识 `RoomServer.Runtime`——**依赖从"装配档位"漏进了业务代码**。
-        /// 本类是该档位里唯一认识房间内核的类型，配置装配归它，调用方只留房间号。
+        /// 消费方（`ProcedureMatch.CreateTransport`）只留房间号，配置装配归本类——否则它必须认识
+        /// `RoomServer.Runtime`，**依赖从"装配档位"漏进业务代码**。本类是该档位里唯一认识房间内核的类型。
         ///
         /// 人数/seed/时限留默认（与 `RoomConfig` 的 MVP 形态一致）——本地服本就不模拟
         /// 多房间/票据/排空（见类注释"真实性边界"），没有需要按房间调的参数。
@@ -193,7 +192,7 @@ namespace LiteGame
         }
 
         /// <summary>
-        /// 自动补位（离线形态专属裁决）：真客户端进房后，剩余席位用**假连接**补满——房间立即满员、
+        /// 自动补位（离线形态专属）：真客户端进房后，剩余席位用**假连接**补满——房间立即满员、
         /// `MatchStarted` 即刻触发。补位者永不发包 = 权威循环每帧给它**空输入**（`RoomRuntime`
         /// "缺席沿用空输入"语义）＝站桩对手。
         ///

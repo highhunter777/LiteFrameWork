@@ -4,7 +4,7 @@ using Xunit;
 namespace LiteSim.Tests
 {
     /// <summary>
-    /// 瞄准态口径验收（《角色状态与动作专项设计》§7 的 **Sim 侧半边**，2026-09-27）：
+    /// 瞄准态口径验收（《角色状态与动作专项设计》§7 的 **Sim 侧半边**）：
     /// **限速**（ADS 期间移动上限 = 走路档）、**朝向派生**（瞄准/开火朝准星；否则朝移动方向；两者都没有则保持）、
     /// **标志位**（<see cref="EntityFlags"/> 每帧从输入位覆写）、**预测保留**（连续意图位在预测帧存活——
     /// "本地举枪不闪断"的 Sim 侧保证）。纯规则、零引擎。
@@ -32,7 +32,7 @@ namespace LiteSim.Tests
             Assert.Equal(CombatConfig.AimMoveSpeed, world.Entities[slot].Vel.X, 4);
             Assert.Equal(2.5f, CombatConfig.AimMoveSpeed, 4);   // = 视图 Walk 档上界（瞄准移动只需 AimWalk 一套片段）
 
-            // 批次E：松开瞄准 → 瞄准帧已置满共用窗 ⇒ 窗内保持走路档（不再瞬回全速）
+            // 松开瞄准 → 瞄准帧已置满共用窗 ⇒ 窗内保持走路档（不瞬回全速）
             InputSystem.Run(world, Inputs(id, 1f, 0f, 1f, 0f));
             Assert.Equal(CombatConfig.AimMoveSpeed, world.Entities[slot].Vel.X, 4);
 
@@ -42,14 +42,14 @@ namespace LiteSim.Tests
             Assert.Equal(CombatConfig.MoveSpeed, world.Entities[slot].Vel.X, 4);
         }
 
-        // ---- 批次E（八次裁决）：瞄准点按共用驻留窗——间隙帧不回摆/限速随窗/窗尽离场转向 ----
+        // ---- 瞄准点按共用驻留窗——间隙帧不回摆/限速随窗/窗尽离场转向 ----
 
         [Fact]
         public void 朝向_点按瞄准_间隙帧不回移动向_窗尽速率回转()
         {
             long id = Spawn(out var world, out int slot);
 
-            // 点按瞄准 + 反方向移动（与点射同款场景——用户裁决"也要一样，共用一个窗口"）：
+            // 点按瞄准 + 反方向移动（与点射同款场景，共用一个窗口）：
             // 移动 +Z、准星 -X；按下瞄准→朝准星并置满共用窗；松开间隙帧窗内不回移动向
             var aimFrame = Inputs(id, 0f, 1f, -1f, 0f, SimInputFrame.ButtonAim);
             var gapFrame = Inputs(id, 0f, 1f, -1f, 0f);
@@ -57,7 +57,7 @@ namespace LiteSim.Tests
             float moveYaw = SimTrig.Atan2(1f, 0f);
 
             InputSystem.Run(world, aimFrame);
-            // 瞄准帧朝准星 + 置满共用窗（批次E）
+            // 瞄准帧朝准星 + 置满共用窗
             Assert.Equal(crosshairYaw, world.Entities[slot].Yaw, 5);
             Assert.Equal((byte)CombatConfig.FireStanceFrames, world.Entities[slot].FireStanceFrames);
 
@@ -101,7 +101,7 @@ namespace LiteSim.Tests
             Assert.Equal(CombatConfig.MoveSpeed, world.Entities[slot].Vel.X, 4);   // 窗尽回全速
         }
 
-        // ---- 开火驻留窗（批次C：Sim 权威开火态——三次裁决"移动腰射按 aimwalk 移动"的 Sim 侧落地）----
+        // ---- 开火驻留窗（Sim 权威开火态——移动腰射按 aimwalk 移动）----
 
         [Fact]
         public void 开火窗_窗内限速走路档_窗尽回落全速_重放可重建()
@@ -166,7 +166,7 @@ namespace LiteSim.Tests
             Assert.True(world.Entities[slot].FireStanceFrames > 0, "重置后的窗尚有余量");
         }
 
-        // ---- 朝向组合修复（批C+：债 #4 根治——窗内朝准星不回摆 ＋ 窗尽按转向速率平滑回转）----
+        // ---- 朝向组合：窗内朝准星不回摆 ＋ 窗尽按转向速率平滑回转 ----
 
         [Fact]
         public void 朝向_开火窗内朝准星_点射间隙不回移动向()
@@ -183,7 +183,7 @@ namespace LiteSim.Tests
             float crosshairYaw = SimTrig.Atan2(0f, -1f);
             Assert.True(world.Entities[slot].Yaw == crosshairYaw, "开火帧朝准星");
 
-            // 窗内间隙帧：**不回移动方向**（旧口径在此逐拍回摆 → 视图四向权重 F/B 互顶——后退动画被淹没）
+            // 窗内间隙帧：**不回移动方向**（否则视图四向权重 F/B 互顶——后退动画被淹没）
             for (int i = 0; i < CombatConfig.FireStanceFrames - 2; i++)
                 InputSystem.Run(world, gap);
             Assert.True(world.Entities[slot].Yaw == crosshairYaw,

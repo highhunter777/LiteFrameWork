@@ -12,7 +12,7 @@ using Xunit;
 namespace LiteNet.Tests
 {
     /// <summary>
-    /// **可替换性验证**（《状态同步实施方案》§4.6 第二刀；2026-09-19 收口）：
+    /// **可替换性验证**（《状态同步实施方案》§4.6）：
     /// `ServerHost` 现在只依赖窄端口 <see cref="IRoomTransport"/>——本用例用**假的传输实现**
     /// 跑通"装配 → 连接 → Join → 满员开局"全链路，证明换传输框架确实只需新写适配器 + 装配一行，
     /// 而不是嘴上说可替换（假件也能跑，才是真的解耦）。
@@ -102,7 +102,7 @@ namespace LiteNet.Tests
             Assert.True(t.Disposed, "ServerHost 接管传输所有权：Dispose 应释放它");
         }
 
-        // ---- R0-A 边界（《商业级通用服务端框架总设计》§5 P0-3）----
+        // ---- 边界（《商业级通用服务端框架总设计》§5 P0-3）----
 
         [Fact]
         public void 超长入包_解析前硬边界拒绝并计数_不崩溃()
@@ -173,7 +173,7 @@ namespace LiteNet.Tests
             Assert.NotNull(t.LastJoinAck(1));
         }
 
-        // ---- R1 批③：重连闭环（§9.2/§9.3；App+Runtime 全链，假传输零 Socket）----
+        // ---- 重连闭环（§9.2/§9.3；App+Runtime 全链，假传输零 Socket）----
 
         [Fact]
         public void 重连闭环_重绑Restoring抑制增量_恢复ACK后整帧全量重锚()
@@ -381,7 +381,7 @@ namespace LiteNet.Tests
         [Fact]
         public void 未装配验证器_退回原型非空校验_且身份留空()
         {
-            // 兼容形态：历史用例与本地联调不受影响；但 Principal 必须为 null——
+            // 兼容形态：嵌入式与本地联调不受影响；但 Principal 必须为 null——
             // 未验证不等于已验证（不得留下可被误当身份的残留）。
             var t = new FakeRoomTransport();
             using var host = new ServerHost(t, new RoomConfig { Port = 40002, RoomId = Room, ExpectedPlayers = 2 });

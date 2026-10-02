@@ -4,8 +4,8 @@ using System.Collections.Generic;
 namespace LiteFramework
 {
     /// <summary>
-    /// 单个下载来源（《热更与内容发布专项设计》§7"多源切换：各源必须提供同一摘要文件；
-    /// 记录源与失败阶段，**不从不同 Release 拼包**"）。
+    /// 单个下载来源（多源切换：各源必须提供同一摘要文件；
+    /// 记录源与失败阶段，**不从不同 Release 拼包**）。
     /// </summary>
     public sealed class DownloadSource
     {
@@ -41,14 +41,14 @@ namespace LiteFramework
         }
     }
 
-    /// <summary>容量与重试预算（§7/§15：**可配置上限**而非写死的"虚构成功率"）。</summary>
+    /// <summary>容量与重试预算（**可配置上限**而非写死的"虚构成功率"）。</summary>
     public sealed class DownloadBudget
     {
         /// <summary>下载并发上限（YooAsset 原生下载器取 8 为参考，但按平台配置）。</summary>
         public int MaxConcurrency = 4;
 
         /// <summary>单文件最大尝试次数（含首试）。**同时是换源次数的上限**——
-        /// 每次重试轮转到一个来源，故不另设"最大换源数"旋钮（无独立消费者，§22 精神）。</summary>
+        /// 每次重试轮转到一个来源，故不另设"最大换源数"旋钮。</summary>
         public int MaxAttemptsPerFile = 3;
 
         /// <summary>退避基数（毫秒）；实际等待由调用方按 <see cref="BackoffMs"/> 计算，本类不 Sleep。</summary>
@@ -59,11 +59,11 @@ namespace LiteFramework
     }
 
     /// <summary>
-    /// 下载计划（§7）。**纯决策，不做 IO**——真正的下载由 YooAsset/平台适配执行
-    /// （§7"YooAsset 负责其擅长的下载与加载实现，项目负责可信发布描述、事务代次与激活决策"）。
+    /// 下载计划。**纯决策，不做 IO**——真正的下载由 YooAsset/平台适配执行
+    /// （YooAsset 负责其擅长的下载与加载实现，项目负责可信发布描述、事务代次与激活决策）。
     ///
     /// 职责边界：本类只回答"该下哪些文件、优先用哪个源、失败后怎么办"，
-    /// 与"下载怎么做"完全分离——这既符合 §7 的分工，也让 L1 能覆盖全部分支。
+    /// 与"下载怎么做"完全分离——这可让 L1 覆盖全部分支。
     /// </summary>
     public sealed class DownloadPlan
     {
@@ -71,7 +71,7 @@ namespace LiteFramework
         private readonly ReleaseManifest _manifest;
         private readonly Dictionary<string, int> _attempts = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
 
-        /// <summary>当前候选的文件清单（只含清单声明的不可变文件——§7"只下载固定 Release 的不可变文件"）。</summary>
+        /// <summary>当前候选的文件清单（只含清单声明的不可变文件——只下载固定 Release 的不可变文件）。</summary>
         public IReadOnlyList<ReleaseFileEntry> Files => _manifest.Files;
 
         public DownloadBudget Budget { get; }
@@ -112,7 +112,7 @@ namespace LiteFramework
 
         /// <summary>
         /// 为一次下载尝试选定条目：**暂态失败换源，确定性失败不再给条目**
-        /// （§7"区分暂态网络错误与签名/兼容错误"；§12"不通过反复重试或忽略验证绕过"）。
+        /// （区分暂态网络错误与签名/兼容错误；不通过反复重试或忽略验证绕过）。
         /// 返回 false = 该文件已无可试来源（调用方按候选隔离处理）。
         /// </summary>
         public bool TrySelect(string path, out DownloadPlanEntry entry, out DownloadFailureInfo failure)

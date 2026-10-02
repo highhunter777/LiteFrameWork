@@ -6,7 +6,7 @@ namespace RoomServer.Application
     /// 会话表（§4.5 SessionManager 行：连接表 + 断线标记；超时踢除由 kcp2k 内建 Timeout 承担）。
     /// GetOrAddOnFirstPacket：首包未登记（连接成功但 Host 尚未见到 OnConnected 竞态窗口）时兜底登记。
     ///
-    /// R1（《商业级通用服务端框架总设计》§9.2"SessionManager…必须有容量上限和周期清理"）：
+    /// **容量与清理**（《商业级通用服务端框架总设计》§9.2"SessionManager…必须有容量上限和周期清理"）：
     /// - **容量上限**：构造时定容（默认 4×房间容量），超限拒绝新会话（地址栏连接仍由 kcp2k 管，
     ///   应用层不再为它分配记账对象）——防未认证连接把会话表撑成无界内存；
     /// - **周期清理** <see cref="Cleanup"/>：清掉"断线且超出重连窗口"与"未进房且长期静默"的会话，

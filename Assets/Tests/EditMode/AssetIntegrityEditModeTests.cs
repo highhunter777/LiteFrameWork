@@ -10,17 +10,17 @@ using UnityEngine;
 namespace LiteGame.Tests.EditMode
 {
     /// <summary>
-    /// 资源与模板完整性（L2 子集，2026-09-18 补；《待办总览》§5-27）。
+    /// 资源与模板完整性（L2 子集）。
     ///
     /// 为什么归 L2：这类"资源/装配坏了"的问题 **L1 结构性看不见**（dotnet 按路径 glob 编译、不读 .meta、
-    /// 不实例化 prefab）——与 2026-09-15 的非法 meta 事故同属一层。
+    /// 不实例化 prefab）。
     ///
-    /// 范围取舍：只做**不返工**的子集（UI 模板 + prefab 完整性）。装配冒烟（GameEntry→ProcedureMain）
-    /// 明确留 M11——SimView/控制器/地图尚未定形，此刻写必然重写。
+    /// 范围取舍：只做**不返工**的子集（UI 模板 + prefab 完整性）；装配冒烟（GameEntry→ProcedureMain）
+    /// 不在本文件。
     /// </summary>
     public sealed class AssetIntegrityEditModeTests : UnityTestBase
     {
-        private const string WidgetDir = "Assets/UI/Widgets";   // 2026-09-19：UI 已从 LiteGame 迁到顶层 Assets/UI
+        private const string WidgetDir = "Assets/UI/Widgets";
 
         [Test]
         [Category(TestCategory.Asset)]

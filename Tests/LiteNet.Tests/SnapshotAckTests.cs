@@ -11,8 +11,8 @@ namespace LiteNet.Tests
     /// ACK 只能确认"真实发送过、单调前进、仍在 ledger 窗内"的快照帧；
     /// 释放 = 该帧发送后的累计字节（水位永不因伪造/回退/超前 ack 倒退或清空）。
     ///
-    /// R1 迁移：四道闸从 Room 迁到 <see cref="Session.TryAcceptAck"/>（ACK 只触连接级水位/ledger，
-    /// 属 App 层事实）；计数改由返回的分类结果表达（Ops 归宿主汇总）。断言语义逐条保持。
+    /// 四道闸在 <see cref="Session.TryAcceptAck"/>（ACK 只触连接级水位/ledger，属 App 层事实）；
+    /// 计数由返回的分类结果表达，Ops 归宿主汇总。
     /// </summary>
     public sealed class SnapshotAckTests
     {

@@ -4,7 +4,7 @@ using Xunit;
 namespace LiteSim.Tests
 {
     /// <summary>
-    /// 静态障碍去穿插（M8 决策 #12 预留位落地，2026-09-27 碰撞进 Sim 批）：
+    /// 静态障碍去穿插：
     /// 判定半 = SimObstacle（圆/盒 + y 区间闸）；身体圆柱复用命中身位（HitscanRadius/HitscanHeight）。
     /// 解析语义 = 去穿插（推出而非阻挡）——速度不衰减，贴墙滑行靠"积分+推出"自然涌现。
     /// 确定性：实体升序 × 障碍升序、SimMath 软件算术——用例含双跑逐位一致锚。

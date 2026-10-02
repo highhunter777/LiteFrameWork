@@ -7,11 +7,11 @@ using XLua;
 namespace LiteGame
 {
     /// <summary>
-    /// 注册表填充器（M3 步骤 2.4，手册步骤 4③）：读注册表三件套，逐行 require/校验/包适配 → Fill →
+    /// 注册表填充器：读注册表三件套，逐行 require/校验/包适配 → Fill →
     /// <see cref="RegistryFillReport"/>。单项失败记入报告继续，整批跑完统一判定（§3.4，不遇错即停）；
     /// 错误语义区分"未注册"（配置漏配——表行引用的 Lua 文件不在预载缓存）与"注册失败"（lua 炸了/未返回表）。
     /// 路径常量一律走 LuaKeys 生成物（§2.0 收口判据，设计方案 §277）。策略行 LuaPath 为空 = C# 默认实现，
-    /// 跳过不计。M3 注册表直存 require 所得逻辑表（LuaTable）；LuaBehaviourAdapter 包适配器随 M4 UI 壳接入。
+    /// 跳过不计。注册表直存 require 所得逻辑表（LuaTable）；LuaBehaviourAdapter 包适配器随 UI 壳接入。
     /// DevReload（§2.7）重填走本类同一条路径，不写第二份。
     /// </summary>
     public sealed class RegistryFiller

@@ -4,9 +4,8 @@ using Xunit;
 namespace LiteFramework.Tests
 {
     /// <summary>
-    /// 通用流程状态机 `StageMachine&lt;TId, TReq&gt;`（2026-09-17 A 路线重构，取代 `Fsm&lt;TOwner&gt;`）。
-    /// 前 7 条 = 旧 `FsmTests` 语义**逐条移植**（迁移红线：语义不得回退）；
-    /// 后 4 条 = 通用化新增（payload 传递 / 两段式 / payload last-wins / 未 Start 时 Request 抛）。
+    /// 通用流程状态机 `StageMachine&lt;TId, TReq&gt;`。
+    /// 沿用旧 `Fsm` 语义（语义不得回退）+ 通用化新增（payload 传递 / 两段式 / payload last-wins / 未 Start 时 Request 抛）。
     /// </summary>
     public sealed class StageMachineTests   // 实例状态机，无静态状态
     {
@@ -50,7 +49,7 @@ namespace LiteFramework.Tests
         private static StageMachine<Id, Req> Make(StageA a, StageB b, StageC c)
             => new StageMachine<Id, Req>("t", (Id.A, a), (Id.B, b), (Id.C, c));
 
-        // ---- 旧 FsmTests 语义（逐条移植）----
+        // ---- 基础语义（沿用 Fsm 语义，不得回退）----
 
         [Fact]
         public void StageMachine_Start_OnEnter触发_未Start时Tick静默()
@@ -149,7 +148,7 @@ namespace LiteFramework.Tests
             Assert.Throws<InvalidOperationException>(() => m.Request(Id.Unregistered));
         }
 
-        // ---- Reset（停止并回到未启动态；2026-09-17 补）----
+        // ---- Reset（停止并回到未启动态）----
 
         [Fact]
         public void StageMachine_Reset_OnLeave对称收尾_可再次Start()

@@ -8,7 +8,7 @@ namespace LiteSim.View
     /// <summary>
     /// 战斗表现视图（《联机战斗演示专项设计》§3"SimView 负责槽位镜像、远端插值、本地和解衰减和事件静默"；
     /// 《状态同步专项设计》§6.2"本地玩家跟预测位置；远端使用前后快照插值；和解时本地误差衰减，
-    /// 远端必要时 snap；复活/传送允许硬切"；《M11实施指导》§2.4 C3）。
+    /// 远端必要时 snap；复活/传送允许硬切"）。
     ///
     /// **只读 Sim、只写视图**——不写任何 Sim 状态（《状态同步专项设计》§1 原则 3：View → Sim 只有输入和读取）。
     /// 两类来源分别处理：
@@ -36,16 +36,12 @@ namespace LiteSim.View
         /// <summary>静默门放行的帧事件回调（编排方接线：VFX/音效/飘字）。</summary>
         public delegate void FrameEventSink(in FrameEvent e);
 
-        /// <summary>对局实体视图 prefab（2026-09-25 资源指令：模型只用 CombatGirlsCharacterPack——
-        /// 真角色视图由该包模型+该包 Rifle_Controller 构成，见 CombatGirlsAnimationProfile.ViewPrefabPath）。
-        /// 资源包未入库的克隆加载失败 → ProcedureBattle 回退程序化灰盒（可复现降级，勿删兜底）；
-        /// 按选装/角色配置的多样解析归后续批（原 BoxFighter 占位路径从未入库）。
-        ///
-        /// **2026-09-26 换 prefab**：`RifleGirl_View` → `Player(Rifle)`（+MagicaCloth 布料/头发物理，
-        /// 414 vs 371 个对象）。它住在 `Assets/Prefab/`，**不在 `Assets/CombatGirlsCharacterPack/` 内**——
-        /// 该包只是它的**依赖来源**（贴图/网格/动画/Avatar 全在该包内），prefab 本体是独立资产。
-        /// 因此收集组必须**额外覆盖 `Assets/Prefab`**，否则 YooAsset 拿不到它（收集按目录走）。
-        /// 依赖资产仍由 `Assets/CombatGirlsCharacterPack/Runtime` 那一组收。</summary>
+        /// <summary>对局实体视图 prefab（模型只用 CombatGirlsCharacterPack——真角色视图由该包模型 +
+        /// 该包 Rifle_Controller 构成，见 CombatGirlsAnimationProfile.ViewPrefabPath）。
+        /// prefab 本体住 `Assets/Prefab/`，**不在 `Assets/CombatGirlsCharacterPack/` 内**——该包只是它的
+        /// **依赖来源**（贴图/网格/动画/Avatar 全在该包内），故收集组必须**额外覆盖 `Assets/Prefab`**，
+        /// 否则 YooAsset 拿不到它（收集按目录走）；依赖资产仍由 `Assets/CombatGirlsCharacterPack/Runtime` 收。
+        /// 资源包未入库的克隆加载失败 → ProcedureBattle 回退程序化灰盒（可复现降级，勿删兜底）。</summary>
         public const string DefaultEntityPrefab = "Assets/Prefab/Player(Rifle).prefab";
 
         /// <summary>快照间隔（秒）——插值窗口时长，由 <see cref="SimConfig.SnapshotHz"/> 派生。</summary>
@@ -156,7 +152,7 @@ namespace LiteSim.View
         /// 每渲染帧：① 视图增删 → ② 远端插值写位 → ③ 本地衰减收敛 → ④ 相机跟随。
         ///
         /// **帧事件不在这里取**：Sim 的帧事件是帧内瞬态，<see cref="FrameDriver"/> 在每个逻辑帧结束后
-        /// 立即清空缓冲（决策⑥）——渲染帧轮询要么读不到、要么重复读。事件经
+        /// 立即清空缓冲——渲染帧轮询要么读不到、要么重复读。事件经
         /// <see cref="OnFrameEvents"/> 在**逻辑帧边界**交付（追帧时一帧一次），由调用方接线到
         /// <c>RollbackSim.OnFrameEvents</c>（见 <c>BattleContext.AttachView</c>）。
         /// <paramref name="realDelta"/> 是真实帧间隔——表现走真实时间（不受逻辑时钟暂停影响）。
@@ -186,8 +182,8 @@ namespace LiteSim.View
                     if (view != null)
                     {
                         Place(view.transform, in slot.Pos, slot.Yaw);
-                        // **远端实体禁 CC**（2026-09-27 裁决：CC/碰撞体归预制体配置，运行时只管语义）：
-                        // 实体间碰撞 Sim 未建模（#12 只落静态障碍）——远端实例的 CC 是实心胶囊，
+                        // **远端实体禁 CC**（CC/碰撞体归预制体配置，运行时只管语义）：
+                        // 实体间碰撞 Sim 未建模（只落静态障碍）——远端实例的 CC 是实心胶囊，
                         // 会挡本地 CC 造成表现/权威分叉。本地实体在 <see cref="EnsureLocalCc"/> 再启用
                         // （首份快照对齐 LocalEntityId 之前这里可能先禁一次，对齐后恢复——竞态安全）。
                         var cc = view.GetComponent<CharacterController>();
@@ -273,10 +269,10 @@ namespace LiteSim.View
                 PlaceLocal(view, dt);
         }
 
-        /// <summary>本地视图落位（2026-09-27 CC 代理批）：**位置走 CharacterController.Move** 收敛到
+        /// <summary>本地视图落位：**位置走 CharacterController.Move** 收敛到
         /// 衰减目标（Unity 物理管贴地/防穿模/台阶——Sim 判定之外的场景几何不再穿透），旋转直写。
-        /// CC **由预制体配置**（2026-09-27 裁决——本类只解析消费，不建件不设参，见 <see cref="EnsureLocalCc"/>）；
-        /// 预制体没配 CC（灰盒视图/测试装配）退回 <see cref="Place"/> 直落——表现等价旧口径。</summary>
+        /// CC **由预制体配置**（本类只解析消费，不建件不设参，见 <see cref="EnsureLocalCc"/>）；
+        /// 预制体没配 CC（灰盒视图/测试装配）退回 <see cref="Place"/> 直落。</summary>
         private void PlaceLocal(GameObject view, float dt)
         {
             CharacterController cc = EnsureLocalCc(view);
@@ -292,10 +288,10 @@ namespace LiteSim.View
             view.transform.rotation = Quaternion.Euler(0f, 90f - _localYaw * Mathf.Rad2Deg, 0f);   // 旋转不归物理（同 Place：90° − yaw）
         }
 
-        /// <summary>取本地视图的物理代理（**纯消费**，2026-09-27 裁决：CC 与碰撞体由预制体配置——
+        /// <summary>取本地视图的物理代理（**纯消费**：CC 与碰撞体由预制体配置——
         /// 这里不建件、不设参，只解析＋为本地实例启用；远端实例在 <see cref="SyncViews"/> 建立时禁用）。
         /// 预制体没配 CC（灰盒视图/测试装配/尚未配置）→ 返回 null，<see cref="PlaceLocal"/> 退回
-        /// <see cref="Place"/> 直落——表现等价旧口径。
+        /// <see cref="Place"/> 直落。
         /// **耦合提示**：CC 胶囊参数（radius/height/center）是 Sim 身位（HitscanRadius/HitscanHeight）
         /// 的第二处事实源——改 CombatConfig 身位常量时必须同步预制体（两端不一致时命中判定与
         /// 视觉推挡会出现半径差）。</summary>
@@ -312,7 +308,7 @@ namespace LiteSim.View
         private void UpdateCamera(float dt)
         {
             if (_camera == null || !_hasLocalDisplay) return;
-            // **主相机只看角色本体**（2026-09-27 分镜裁决，2026-10-02 AimPoint 废弃后仍成立）：
+            // **主相机只看角色本体**：
             // 焦点 = 本地表现位置（角色根）。瞄准相机（ADS）由流程经 <see cref="ICameraService.SetAiming"/>
             // 接管，跟随目标与主相机同源（相机服务侧同一焦点），不引用预制体参考点。
             // 相机构图（肩偏移/阻尼/FOV）归 vcam 场景配置；朝向随焦点下发（角色系构图偏移的基准）。
@@ -372,9 +368,8 @@ namespace LiteSim.View
         }
 
         /// <summary>
-        /// Sim Yaw（从 +X 起量）→ 视觉朝向旋转：恒差 <c>90°</c>（模型视觉前沿约定 +Z；2026-09-27
-        /// 实测修正：原 −yaw 写法让角色面向偏转 90°、准星出现在角色侧面）。相机焦点（2026-10-02
-        /// 焦点带旋转批）用同一份旋转——构图偏移随它变**角色系**（X=右肩、Z=前方）。
+        /// Sim Yaw（从 +X 起量）→ 视觉朝向旋转：恒差 <c>90°</c>（模型视觉前沿约定 +Z）。
+        /// 相机焦点用同一份旋转——构图偏移随它变**角色系**（X=右肩、Z=前方）。
         /// </summary>
         private static Quaternion FacingRotation(float yaw)
         {

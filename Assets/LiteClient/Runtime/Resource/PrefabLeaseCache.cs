@@ -8,15 +8,14 @@ using UnityEngine;
 namespace LiteGame
 {
     /// <summary>
-    /// 表现壳 prefab 租约缓存（G1 通用表现批：《商业级通用客户端框架总设计》§8.2——
-    /// "Prefab 租约从加载完成持有至最后一个依赖实例销毁"）：VFX/Entity 等表现服务的加载口适配。
+    /// 表现壳 prefab 租约缓存（《商业级通用客户端总设计》§8.2——"Prefab 租约从加载完成持有至
+    /// 最后一个依赖实例销毁"）：VFX/Entity 等表现服务的加载口适配。
     ///
     /// 语义：按 location **持租约返回 prefab**——同 location 重复取用共享一份租约（引用计数在内容服务侧）；
     /// 表现服务的实例池当前为**常驻设计**（回收不卸载），故租约由本缓存持有到 <see cref="ReleaseAll"/>
-    /// （宿主关闭/Presentation 模块 Shutdown）——纠正旧绑定"AssetService.LoadAssetAsync 返回前 Release 句柄"
-    /// 的悬空引用反模式（UI-05 同源问题在表现壳的落点）。
-    /// UI 走自身的 <see cref="IUIPrefabLease"/> 生命周期（按 formId 到实例销毁），不经本缓存。
-    /// 按 location 的增量卸载（引用归零即释放）随热更批的内存治理接（届时池需提供排空回调）。
+    /// （宿主关闭/Presentation 模块 Shutdown）。UI 走自身的 <see cref="IUIPrefabLease"/> 生命周期
+    /// （按 formId 到实例销毁），不经本缓存。按 location 的增量卸载（引用归零即释放）尚未实现
+    /// （届时池需提供排空回调）。
     /// </summary>
     public sealed class PrefabLeaseCache
     {

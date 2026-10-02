@@ -10,7 +10,7 @@ namespace LiteFramework
 {
     /// <summary>
     /// 本地持久化门面(静态,豁免名单第三位:Log / ReferencePool / FileSys)。装配:GameEntry.Awake 调 Init。
-    /// 契约(写给未来读代码的人):
+    /// 契约:
     /// ① relPath 禁 .. 段、盘符、绝对开头——**release 也校验**(字符级零分配):越界路径可能来自配置/
     ///    外部输入,属输入校验,不适用"信任 Debug"剥离模型;
     /// ② 原子写:tmp 写完再替换,进程被杀目标仍是旧档;残留 .tmp = 上次半截写,下次写自然覆盖;
@@ -20,7 +20,7 @@ namespace LiteFramework
     /// ④ 同步是主路径(偏好/存档小文件,主线程等微秒级 IO),异步是逃生口(大文件/归档/不能卡帧)——
     ///    元数据操作(Exists/Delete/GetFiles)无异步;
     /// ⑤ 异步签名用 BCL Task:Core 零依赖纪律(csproj 同步摩擦 + Unity 类型不进纯 C# 程序集),
-    ///    业务侧 .AsUniTask() 转签名(§7.7)。
+    ///    业务侧 .AsUniTask() 转签名。
     /// </summary>
     public static class FileSys
     {
@@ -82,7 +82,7 @@ namespace LiteFramework
 
         /// <summary>
         /// 原子写字节。**候选文件含二进制**(资源/Lua 字节码/任意清单项),文本通道不能用。
-        /// 与 <see cref="WriteAllText"/> 同款:临时文件 + 元数据级原子提交(§8"不能把普通覆盖写文件称为原子事务")。
+        /// 与 <see cref="WriteAllText"/> 同款:临时文件 + 元数据级原子提交。
         /// </summary>
         public static void WriteAllBytes(string relPath, byte[] bytes)
         {

@@ -8,15 +8,13 @@ using YooAsset;
 namespace LiteGame
 {
     /// <summary>
-    /// 资源加载统一门面（静态豁免名单第四位——设计方案 §1.3"沿用方案 A 的 AssetService 静态门面"结论）。
-    /// 业务只依赖此类，不直接依赖 YooAsset；换资源方案只改这一个文件。
-    /// 契约（写给未来读代码的人）：
-    /// ① location 统一使用资源完整路径（如 "Assets/GameData/Config/tbcombatnum.bytes"）——手册 M2 坑位：RawFile location 用完整路径；
+    /// 资源加载统一门面（沿用 AssetService 静态门面）。业务只依赖此类，不直接依赖 YooAsset；换资源方案只改这一个文件。
+    /// 契约：
+    /// ① location 统一使用资源完整路径（如 "Assets/GameData/Config/tbcombatnum.bytes"）——RawFile location 用完整路径；
     /// ② UniTask 签名（§7.7），底层 YooAsset 3.0.5（经 UniTaskAssetExtensions 适配）；初始化必须先于一切加载（ProcedurePreload 驱动）；
-    /// ③ EditorSimulateMode（编辑器开发）与 OfflinePlayMode（Player 内置包，C0-③）已交付；
-    ///    Host/Web 模式与热更流程归 C1 内容更新线（试验件 YooAssetComponent 仅参考）；
+    /// ③ EditorSimulateMode（编辑器开发）与 OfflinePlayMode（Player 内置包）为当前支持模式；Host/Web 模式与热更流程未实现；
     /// ④ 每个句柄用完 Release（本类内部完成），无句柄外泄；加载失败抛 InvalidOperationException 带 location——fail-fast 由流程 Fail() 接；
-    /// ⑤ 主线程 only（YooAsset 操作无线程安全承诺，§7.4 同款纪律）。
+    /// ⑤ 主线程 only（YooAsset 操作无线程安全承诺）。
     /// </summary>
     public static class AssetService
     {
@@ -40,16 +38,15 @@ namespace LiteGame
         /// <summary>
         /// 初始化资源包。由 ProcedurePreload 调用一次，重复调用幂等。
         /// Editor：EditorSimulateMode（虚拟构建 + 编辑器文件系统直读，零构建成本）。
-        /// Player：OfflinePlayMode（C0-③）——内置包（StreamingAssets/yoo）加载，无网络下载；
+        /// Player：OfflinePlayMode——内置包（StreamingAssets/yoo）加载，无网络下载；
         ///         StreamingAssets 无内置包时初始化失败 → 流程 Fail → 错误 UI（可诊断，不静默）。
-        /// Host/Web 模式与热更流程归 C1 内容更新线（总设计 §8.1）。
         /// 共享尾段：Initialize → 请求版本 → 加载清单（模拟/离线均由对应文件系统应答，3.0 拆分）。
         /// </summary>
         public static async UniTask InitAsync(string packageName = DefaultPackageName, CancellationToken ct = default)
         {
             if (s_initialized) return;
 
-            UnityEngine.Debug.Log("[Asset] init begin");         // C1-③ 临时诊断
+            UnityEngine.Debug.Log("[Asset] init begin");         // 临时诊断
 
 #if UNITY_EDITOR
             if (!YooAssets.IsInitialized) YooAssets.Initialize();
@@ -88,7 +85,7 @@ namespace LiteGame
             await manifestOp.AsUniTask(ct);
 
             s_initialized = true;
-            UnityEngine.Debug.Log($"[Asset] ready package={packageName} version={package.GetPackageVersion()}");   // C1-③ 临时诊断：冒烟标记（与 Log.Info 双打，验收后移除临时行）
+            UnityEngine.Debug.Log($"[Asset] ready package={packageName} version={package.GetPackageVersion()}");   // 临时诊断：冒烟标记（与 Log.Info 双打）
             Log.Info($"AssetService 就绪:package \"{packageName}\" version {package.GetPackageVersion()}", "Asset");
         }
 
@@ -115,7 +112,7 @@ namespace LiteGame
         public static UniTask<byte[]> LoadRawFileBytesAsync(string location, CancellationToken ct = default)
             => LoadRawFileCore(location, ct, raw => raw.bytes);
 
-        /// <summary>加载原生文本（Lua 文件路径，M3 预载用）。</summary>
+        /// <summary>加载原生文本（Lua 文件路径，预载用）。</summary>
         public static UniTask<string> LoadRawFileTextAsync(string location, CancellationToken ct = default)
             => LoadRawFileCore(location, ct, raw => raw.text);
 
@@ -123,7 +120,7 @@ namespace LiteGame
         /// 原生文件加载核心。**EditorSimulateMode 下走 TextAsset**——YooAsset 3.0.5 的模拟清单是单一
         /// BuildBundleType（VirtualAssetBundle），RawFileObject 只在 RawFile 管线可加载（实测 ABH 路径
         /// LoadAsset(RawFileObject) 恒 null）。.bytes/.txt 均为 TextAsset，收集器按 PackDirectory 打包；
-        /// 混合包/原生文件策略随 M6 打包配置再定（M2实施指导 §实施记录）。
+        /// 混合包/原生文件策略尚未定。
         /// </summary>
         private static async UniTask<T> LoadRawFileCore<T>(string location, CancellationToken ct, Func<TextAsset, T> extract)
         {

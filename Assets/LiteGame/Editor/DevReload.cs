@@ -7,7 +7,7 @@ using UnityEngine;
 namespace LiteGame.Editor
 {
     /// <summary>
-    /// DevReload（M3 §2.7，手册步骤 7）：菜单 Ctrl+Alt+R 秒级迭代。**顺序钉死**——
+    /// DevReload：菜单 Ctrl+Alt+R 秒级迭代。**顺序钉死**——
     /// env.Dispose 后旧 LuaTable 引用全失效，Bridge/注册表缓存不清 = 静默用旧对象：
     /// ⓪ 全关 → ⓪′ 逻辑全体落空（`DropAllLogic`：池中件也释放 Lua 引用，**必须在 env.Dispose 之前**，
     /// 否则下次复用会拿已 Dispose 的 LuaFunction 打进死环境）→ ① 清 Bridge Lua 缓存 → ② 清三注册表
@@ -26,7 +26,7 @@ namespace LiteGame.Editor
                 Log.Warning("DevReload 仅 Play 模式可用（LuaEnv 需存活）", "DevReload");
                 return;
             }
-            ReloadAsync().Forget();                        // 一行转发，禁止 async void（M0 指导 §6）
+            ReloadAsync().Forget();                        // 一行转发，禁止 async void
         }
 
         private static async UniTaskVoid ReloadAsync()
@@ -46,7 +46,7 @@ namespace LiteGame.Editor
             var content = container.Resolve<LiteGame.IContentLuaRegistry>();
             var strategy = container.Resolve<LiteGame.IStrategyLuaRegistry>();
 
-            await uiService.CloseAllOpen();                // ⓪ 重载后全关（§2.3 定案：旧 env 的适配器随 Dispose 失效）
+            await uiService.CloseAllOpen();                // ⓪ 重载后全关（旧 env 的适配器随 Dispose 失效）
             uiService.DropAllLogic();                       // ⓪′ 逻辑落空：释放所有界面（含池中件）持有的 Lua 引用
             Bridge.Data.ClearLuaCaches();                  // ① 旧 LuaTable 引用先放手（§2.5 缓存位）
             ui.Clear();                                    // ② 注册表清空
@@ -75,9 +75,8 @@ namespace LiteGame.Editor
         /// DevReload 的字节通道：**磁盘直读**——这正是它与生产主链的区别（主链走内容租约/资源包）。
         /// 编辑器里刚改的 .lua 未必已进模拟资源包，读磁盘才能拿到最新字节。
         ///
-        /// **为什么由本类提供而不是让 LuaPreloader 回落**（2026-09-26，§5.1 逻辑边界）：
-        /// 原先 LuaPreloader 未注入时回落 `AssetService.LoadRawFileBytesAsync`——那让 **Lua 层
-        /// 硬依赖 YooAsset 类型**，asmdef 拆不开（成环）。改为"通道必注入"，
+        /// **为什么由本类提供而不是让 LuaPreloader 回落**（§5.1 逻辑边界）：若 LuaPreloader 未注入时
+        /// 回落资源适配器，会让 **Lua 层硬依赖 YooAsset 类型**，asmdef 拆不开（成环）。故"通道必注入"，
         /// 编辑器工具在自己的程序集里给磁盘实现，通用层不认识任何适配器。
         /// </summary>
         private static UniTask<byte[]> DevReloadBytesAsync(string assetPath, CancellationToken ct)

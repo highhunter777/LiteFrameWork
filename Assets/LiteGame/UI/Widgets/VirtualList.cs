@@ -5,16 +5,14 @@ using UnityEngine;
 namespace LiteGame.UI
 {
     /// <summary>
-    /// 虚拟列表（《UI框架总设计》§8.2 重写版）：**窗口复用**——节点数由"可见容量 + overscan"决定，
+    /// 虚拟列表（《UI框架总设计》§8.2）：**窗口复用**——节点数由"可见容量 + overscan"决定，
     /// 不随数据总量线性创建；滚动只做"窗口平移 + 索引重绑"，窗口外的节点收回、再滚回来重新入窗。
     ///
-    /// 旧实现的三个问题（UI-07/UI-08）：① 节点数按数据量建；② 裁剪只 SetActive(false) 后
-    /// `continue` 跳过——滚出去的条目再也回不来（列表只能滚一次）；③ 每次 Refresh 都 AddListener，
-    /// 监听只增不减。本版逐条修正：有界节点池 + 索引窗口 + ScrollRect 监听只绑一次、禁用/销毁对称解绑。
+    /// 设计要点：有界节点池 + 索引窗口 + ScrollRect 监听只绑一次、禁用/销毁对称解绑。
     ///
     /// 用法：Template（渲染项模板，**保持非激活**）+ 本组件挂 Content；SetSource 后 Refresh。
     /// 父链上有 ScrollRect 时滚动自动重算窗口；无 ScrollRect 视为整表可见（不做裁剪）。
-    /// 首版固定尺寸单轴（Grid/变高列表属 U4）。
+    /// 固定尺寸单轴（Grid/变高列表未支持）。
     /// </summary>
     public class VirtualList : MonoBehaviour
     {
@@ -218,8 +216,7 @@ namespace LiteGame.UI
 
         /// <summary>Content 沿滚动轴已滚过的距离。
         /// 取**绝对值**：手动驱动（EditMode 替身/测试）惯用 -y 正向书写；真 ScrollRect 在当前
-        /// Content（top-anchor/pivot）结构下以 +y 表示滚过——2026-09-26 PlayMode 实测
-        /// normalizedPosition=0 时 anchoredPosition.y=+27592。窗口计算只消费"滚过多少"，
+        /// Content（top-anchor/pivot）结构下以 +y 表示滚过。窗口计算只消费"滚过多少"，
         /// 不消费符号——Abs 对两种驱动形态等价。</summary>
         private float Offset()
         {

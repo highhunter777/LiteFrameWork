@@ -3,10 +3,10 @@ using System;
 namespace LiteSim
 {
     /// <summary>
-    /// 帧驱动器（《状态同步实施方案》§3.2 + M8 决策 #14）：累加器 + 追帧（MaxCatchUp = 5）+ 固定 dt。
+    /// 帧驱动器（《状态同步实施方案》§3.2）：累加器 + 追帧（MaxCatchUp = 5）+ 固定 dt。
     /// 不吃 IGameClock（GameClock 可变速/暂停，服务表现层；逻辑帧恒 60Hz）；
-    /// 不实现 ITickable（Core 零引擎依赖）——M8 由测试直接驱动，M11 由 SimView 包装。
-    /// 每逻辑帧末回调消费方（帧事件交付，决策⑥），随后清空事件缓冲；
+    /// 不实现 ITickable（Core 零引擎依赖）——测试直接驱动，SimView 包装。
+    /// 每逻辑帧末回调消费方（帧事件交付），随后清空事件缓冲；
     /// 积压超过 MaxCatchUp 时丢弃余量（防死亡螺旋——追不上就跳过，不累积）。
     /// </summary>
     public sealed class FrameDriver
@@ -31,7 +31,7 @@ namespace LiteSim
                 SimStep.Step(s, map, inputs);
 
                 if (onLogicalFrame != null) onLogicalFrame(s);
-                s.Events.Clear(); // 消费后清空（无消费方也清——帧事件是帧内瞬态，决策⑥）
+                s.Events.Clear(); // 消费后清空（无消费方也清——帧事件是帧内瞬态）
 
                 _accumulator -= SimConfig.Dt;
                 steps++;

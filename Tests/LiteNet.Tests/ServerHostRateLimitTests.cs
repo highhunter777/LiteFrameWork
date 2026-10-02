@@ -9,7 +9,7 @@ using Xunit;
 namespace LiteNet.Tests
 {
     /// <summary>
-    /// 分层限流·宿主接线用例（R2 安全批③）：限流点必须**真实经过** Join / Reconnect / OnConnected / 入包
+    /// 分层限流·宿主接线用例：限流点必须**真实经过** Join / Reconnect / OnConnected / 入包
     /// 四条宿主路径（不是"类单测过了就算接线过了"）。IP 维度用 <see cref="FakeRoomTransport.SetRemoteAddress"/>
     /// 供键；未设地址 = 探测不到 → 跳过 IP 维度（端口契约）。各用例只放激被测 lane，其余 lane 给足余量
     /// 以免混淆失败面。

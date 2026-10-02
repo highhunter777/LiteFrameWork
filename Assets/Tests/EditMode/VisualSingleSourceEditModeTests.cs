@@ -7,7 +7,7 @@ using NUnit.Framework;
 namespace LiteGame.Tests.EditMode
 {
     /// <summary>
-    /// 视觉单一来源（《UI框架总设计》§7、2026-09-25 裁决）：运行时代码不得构建用户可见视觉，
+    /// 视觉单一来源（《UI框架总设计》§7）：运行时代码不得构建用户可见视觉，
     /// 一律取 `Assets/UI/Screens|Widgets` 模板。
     ///
     /// 本用例是该规则的**可执行载体**（《UI制作规范》§8"资产静态检查"；
@@ -61,7 +61,7 @@ namespace LiteGame.Tests.EditMode
         public void 正例_登记例外不判违规()
         {
             // 引导期错误界面：唯一例外（§7 判据）——显式登记在 AllowedFileNames。
-            // 按**文件名**登记，故此处路径随目录迁移变化不影响放行（2026-09-26 改）。
+            // 按**文件名**登记，故此处路径随目录迁移变化不影响放行。
             var v = VisualConstructionScanner.ScanSource(
                 "Assets/LiteGame/App/Procedure/ProcedureError.cs",
                 "var root = new GameObject(\"BootstrapErrorUI\", typeof(Canvas), typeof(Image));");
@@ -93,9 +93,8 @@ namespace LiteGame.Tests.EditMode
         public void 真实代码_运行时无未登记的视觉构建()
         {
             string root = ProjectRoot();
-            // 覆盖全部含视觉构建的目录。2026-09-26：流程（唯一例外 ProcedureError 的所在地）
-            // 随 §5.1 从 `Runtime` 迁到 `App/Procedure`，此处**必须同步**——例外只对
-            // "被扫到的文件"生效，漏扫该目录等于让唯一例外与它所在的整个目录一起失去把守。
+            // 覆盖全部含视觉构建的目录。流程（唯一例外 ProcedureError 的所在地）在 `App/Procedure`，
+            // 此处**必须同步**——例外只对"被扫到的文件"生效，漏扫该目录等于让唯一例外与整个目录一起失去把守。
             List<VisualConstructionScanner.Violation> found =
                 VisualConstructionScanner.ScanDirectory(root,
                     "Assets/LiteClient/Runtime", "Assets/LiteGame/App",

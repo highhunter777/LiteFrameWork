@@ -8,16 +8,15 @@ using UnityEngine.SceneManagement;
 namespace LiteGame
 {
     /// <summary>
-    /// Sim 灰盒沙盒（《M8实施指导》§2.7，一次性调试件——不承担产品职责；M11 SimView/输入服务
-    /// 上线后整件删除）。用途：让 Sim 层肉眼可见（跑动/开火/命中/掉血），早期验证手感与数值。
+    /// Sim 灰盒沙盒（一次性调试件——不承担产品职责）。用途：让 Sim 层肉眼可见
+    /// （跑动/开火/命中/掉血），早期验证手感与数值。
     ///
-    /// **2026-09-26/27 归属回退（重要教训）**：本件曾随 DevHUD 一并并入 `LiteGame/Editor/`，
-    /// 但 Unity 的 `Assets/.../Editor/` 是特殊文件夹，其中的 MonoBehaviour **不能 AddComponent**
-    /// （"it needs to be outside the 'Editor' folder"）。SimSandbox 同样是代码创建形态，故一并失效。
-    /// 已回退为独立 `LiteGame.DevHUD` 程序集；**不要把本目录移进任何 `Editor/` 下**。
+    /// **不要把本目录移进任何 `Editor/` 下**：`Assets/.../Editor/` 是特殊文件夹，其中的
+    /// MonoBehaviour **不能 AddComponent**（本件为代码创建形态，会直接失效）——故程序集独立为
+    /// `LiteGame.DevHUD`。
     ///
-    /// - 驱动：FrameDriver.Tick(Time.deltaTime)（不吃 IGameClock，M8 决策 #14）——追帧/防死亡螺旋由 FrameDriver 承担。
-    /// - 输入：键盘 WASD + 鼠标朝向 + 左键开火，直接组装 SimInputFrame（不做控制器抽象/键位重绑，#18/#19）。
+    /// - 驱动：FrameDriver.Tick(Time.deltaTime)（不吃 IGameClock）——追帧/防死亡螺旋由 FrameDriver 承担。
+    /// - 输入：键盘 WASD + 鼠标朝向 + 左键开火，直接组装 SimInputFrame（不做控制器抽象/键位重绑）。
     /// - 可视：Gizmos 画活体（胶囊近似）/朝向射线/hitscan 线/地图边界——不走 SimView、不做插值。
     /// - 飘字：命中/击杀复用 FlyTextPool（场景缺失时静默降级——只画 Gizmos）。
     /// - HUD：IModuleStats 段并入 DevHUD（帧号/活体数/checksum/追帧数/暂停态/靶标数）。

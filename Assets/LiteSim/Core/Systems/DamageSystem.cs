@@ -3,7 +3,7 @@ namespace LiteSim
     /// <summary>
     /// 伤害结算系统（§3.3 顺序第 4 位，§3.7 当帧延迟命令的消费者）：
     /// 结算 Damage 命令 → 扣血 → 跨越死亡线（Hp 由正变非正）时写 Kill 命令 + Death 帧事件。
-    /// 命令的二次产生（Kill）走 FlushCommands 的固定轮次——下一轮窗口处理（M8 无 Kill 消费者，
+    /// 命令的二次产生（Kill）走 FlushCommands 的固定轮次——下一轮窗口处理（无 Kill 消费者，
     /// 掉落/得分为后续里程碑预留位）。
     /// </summary>
     public static class DamageSystem
@@ -20,7 +20,7 @@ namespace LiteSim
                     case SimCommandKind.Damage:
                         ApplyDamage(s, cmd);
                         break;
-                    // Kill/SpawnPickup/AddScore：M8 无消费者（掉落/得分系统留空位，§1-#12）
+                    // Kill/SpawnPickup/AddScore：无消费者（掉落/得分系统留空位）
                 }
             }
         }

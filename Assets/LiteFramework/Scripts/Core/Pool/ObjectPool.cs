@@ -4,14 +4,14 @@ using System.Collections.Generic;
 namespace LiteFramework
 {
     /// <summary>
-    /// 泛型实例池（**机制件**，2026-09-10 决策：自研替代 UnityEngine.Pool.ObjectPool，见设计方案 §1.1）。
+    /// 泛型实例池（**机制件**：自研替代 UnityEngine.Pool.ObjectPool）。
     /// 与静态 <see cref="ReferencePool"/> 的分工：纯数据对象（无创建/回收回调需求）走 ReferencePool 按类型池化；
     /// 带生命周期回调的实例（Buff、技能实例、GameObject 适配等）走本池（实例化后 DI 注册或由工厂持有）。
     ///
     /// 契约（所有权移交制）：
     /// - Acquire 得到的对象状态未定义，调用方必须完成初始化后使用；
     /// - **Release 即移交所有权**——调用方归还后禁止再持引用；挂载物清理遵循"谁挂谁清"（对象实现
-    ///   <see cref="IPoolable"/> 时，OnDespawn 是生命周期容器的执行点，见《M2实施指导》§6.5）；
+    ///   <see cref="IPoolable"/> 时，OnDespawn 是生命周期容器的执行点）；
     /// - **池满（空闲数达 maxIdle）归还即销毁**——不淘汰他人、不自动扩容（调 maxIdle 是配置不是运行时行为）；
     /// - 重复归还为 UB：Debug（三宏并集）下抛，release 信任 Debug 全绿；
     /// - 主线程 only（框架约定）。

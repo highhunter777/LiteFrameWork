@@ -15,8 +15,8 @@ namespace LiteGame.Tests.EditMode
     /// 表现壳生命周期收敛验收（《框架先行建设与业务接入专项设计》§6 样例三"场景与表现"的失败清单：
     /// **世界/UI 暂停、重复归还、加载后 Owner 已退出**；§5 接缝 1"谁创建、谁取消、谁等待清理、谁释放资源"）。
     ///
-    /// 本批交付的是"所有权与释放面"——Scene 的迟到加载作废、Entity 的实体作用域与关闭面、
-    /// Audio 的分域时钟；资源租约与真资源验收仍归各壳的后续批。
+    /// 覆盖"所有权与释放面"——Scene 的迟到加载作废、Entity 的实体作用域与关闭面、
+    /// Audio 的分域时钟。
     /// </summary>
     public sealed class ShellLifecycleEditModeTests : UnityTestBase
     {

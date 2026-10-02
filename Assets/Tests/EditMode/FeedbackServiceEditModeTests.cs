@@ -12,10 +12,10 @@ using UnityEngine.UI;
 namespace LiteGame.Tests.EditMode
 {
     /// <summary>
-    /// U2-⑥c 统一反馈入口（《UI框架总设计》§6.1"Loading、空状态、错误/重试、Toast 有统一入口"）：
+    /// 统一反馈入口（《UI框架总设计》§6.1"Loading、空状态、错误/重试、Toast 有统一入口"）：
     /// - Loading 嵌套阻断 + 阻断期 Back = 取消当前操作（不穿透，§6.1）+ 取消传播到被门控操作；
     /// - 错误/重试经 DialogService（重试/退出、同 MergeKey 合并）；
-    /// - Toast **多条并存**（2026-09-25 裁决）：各自计时独立消失、纵向堆叠、超限淘汰最旧；
+    /// - Toast **多条并存**：各自计时独立消失、纵向堆叠、超限淘汰最旧；
     /// - 三面同为 System 层（layer=3）form，服务不自建视觉（§7）。
     /// 全替身（fake catalog/loader/假件 prefab）；就绪一律泵到**业务事实**（组件武装），不是 IsOpen。
     /// </summary>
@@ -273,7 +273,7 @@ namespace LiteGame.Tests.EditMode
             Assert.IsTrue(PumpAwait(t2), "合并等待者共享结果");
         }
 
-        // ---- Toast：多条并存（2026-09-25 裁决）----
+        // ---- Toast：多条并存 ----
 
         [Test]
         public void Toast_多条并存_各自计时独立消失()

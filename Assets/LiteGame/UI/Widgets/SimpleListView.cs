@@ -1,4 +1,4 @@
-// 拆自 VirtualListSource.cs（2026-09-14：一类一文件——非首个 MonoBehaviour 无法序列化进 prefab，实测）
+// 一类一文件：非首个 MonoBehaviour 无法序列化进 prefab
 using System;
 using System.Collections.Generic;
 using LiteFramework;
@@ -7,7 +7,7 @@ using UnityEngine;
 namespace LiteGame.UI
 {
     /// <summary>
-    /// 最小渲染验证件（灰盒，M4 §2.5）：模板克隆 N 项纵向排布，Refresh 逐项回调数据源。
+    /// 最小渲染验证件（灰盒）：模板克隆 N 项纵向排布，Refresh 逐项回调数据源。
     /// **不做回收/裁剪**——只证明"数据源 → 渲染项"口子可用；SetSource 后数据变更再调 Refresh。
     /// </summary>
     public sealed class SimpleListView : MonoBehaviour
@@ -29,7 +29,7 @@ namespace LiteGame.UI
         public void Refresh()
         {
             if (_source == null || Template == null) return;
-            const int cap = 64;                              // 口子验证上限——完整虚拟化 M4c
+            const int cap = 64;                              // 口子验证上限
             int n = Math.Min(_source.Count, cap);
             while (_items.Count < n)
             {

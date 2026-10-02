@@ -11,7 +11,7 @@ namespace LiteTesting.Unity
     /// **为什么需要它**：生产环境里 `GameEntry.Update` 驱动容器的 Tickables——转场 runner 由
     /// `UIService.Tick` 帧末推进。PlayMode 用例若不建容器就裸 `new UIService(...)`，
     /// **没有任何东西调 Tick**——`ShowAsync` 会停在转场阶段永不完成（`IsOpen` 却已为 true，
-    /// 正是 UI-U2 记录的"就绪条件错位"同一个坑）。
+    /// 即"就绪条件错位"）。
     ///
     /// EditMode 靠用例显式泵 Tick；PlayMode 有真实 PlayerLoop，故由本件承担。
     ///

@@ -10,11 +10,11 @@ using RoomServer.Runtime;
 // 排空宽限：收到停止信号后等待对局自然收敛的时长（§12 第 3 步"在配置时限内完成对局"）。
 const long DrainGraceMs = 5_000;
 
-// RoomServer 入口（M10：批② 权威循环 + 批③ 快照/回溯/Ops）。
+// RoomServer 入口（权威循环 + 快照/回溯/Ops）。
 // 节拍由 ServerLoop 绝对锚定（60Hz，防漂移累积）。
 //
-// 配置来源：宿主参数走配置文件 + 命令行覆盖；**玩法数值走 .bytes 表**（2026-09-28 起，
-// 与客户端同一份二进制——两端同代码同数据，物理上不可漂移；原 roomserver.json 内联 combat 分区废弃）。
+// 配置来源：宿主参数走配置文件 + 命令行覆盖；**玩法数值走 .bytes 表**
+// （与客户端同一份二进制——两端同代码同数据，物理上不可漂移）。
 //   --config <path>        配置文件路径（默认 Config/roomserver.json）
 //   --combat-table <dir>   玩法数值表目录（缺省走 CombatNumbers.LoadFromRepo 的仓库路径 Assets/GameData/Config）
 //   其余：--port / --duration <ms> / --quiet / --ticket-key <kid>:<base64> / --audience <id>
@@ -85,7 +85,7 @@ Console.WriteLine($"[RoomServer] 玩法数值（进程级共享，所有房间�
 using var settlementOutbox = FileSettlementOutbox.Open(
     serverConfig.SettlementJournalPath, serverConfig.SettlementOutboxCapacity);
 if (settlementOutbox.Count > 0 || settlementOutbox.SkippedCorruptLines > 0)
-    Console.WriteLine($"[RoomServer] 结算日志重放：待提交 {settlementOutbox.Count} 条（坏行跳过 {settlementOutbox.SkippedCorruptLines}）——提交管道归 R3");
+    Console.WriteLine($"[RoomServer] 结算日志重放：待提交 {settlementOutbox.Count} 条（坏行跳过 {settlementOutbox.SkippedCorruptLines}）");
 
 using var transport = new KcpTransportServer();
 using var host = new ServerHost(transport, null, ticketValidator, audience, serverConfig, settlementOutbox,
@@ -108,9 +108,8 @@ else
 {
     // 常驻形态：Ctrl+C 触发**优雅关闭**（§12 优雅关闭 2→4 步；不再直接杀进程）。
     // 第 1 步（readiness 置 false / Lobby 停分配）本服务无 Lobby 面，等价语义由 host.Draining 承担；
-    // 第 4 步（刷 Outbox 到持久介质）经 host.FlushSettlementOutbox() 收口（M0-c 后续批）；
-    // 第 5 步的 Worker/Transport 生命周期已由 using/Dispose 接线；Mailbox 路由与房间 Owner
-    // 排空前置仍归后续 R2 批次。
+    // 第 4 步（刷 Outbox 到持久介质）经 host.FlushSettlementOutbox() 收口；
+    // 第 5 步的 Worker/Transport 生命周期已由 using/Dispose 接线。
     var shutdown = new ManualResetEventSlim(false);
     Console.CancelKeyPress += (_, e) =>
     {
@@ -135,7 +134,7 @@ else
     // 未提交条目保持在日志中可重试——下次启动的"结算日志重放"即恢复面。
     host.FlushSettlementOutbox();
     Console.WriteLine(host.DrainComplete
-        ? $"[RoomServer] 排空完成（{drainWatch.ElapsedMilliseconds}ms）：房间数={host.RoomCount} drainTimeout={host.Ops.RoomsDrainTimedOut} 结算在盒={host.SettlementOutboxPending}（待提交，管道归 R3）"
+        ? $"[RoomServer] 排空完成（{drainWatch.ElapsedMilliseconds}ms）：房间数={host.RoomCount} drainTimeout={host.Ops.RoomsDrainTimedOut} 结算在盒={host.SettlementOutboxPending}（待提交）"
         : $"[RoomServer] 排空未在时限内完成（{drainWatch.ElapsedMilliseconds}ms）——按超时退出（结算在盒={host.SettlementOutboxPending}）");
 }
 

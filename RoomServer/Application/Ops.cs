@@ -48,7 +48,7 @@ namespace RoomServer.Application
         /// <summary>未知 kid（密钥轮换后旧 kid 下线）。</summary>
         public long TicketRejectedUnknownKey;
 
-        // ---- R1 会话容量与生命周期（§9.2）----
+        // ---- 会话容量与生命周期（§9.2）----
         /// <summary>会话容量上限拒绝的连接数（超限断开计数）。</summary>
         public long SessionsRejected;
         /// <summary>周期清理移除的会话数（累计）。</summary>
@@ -68,7 +68,7 @@ namespace RoomServer.Application
         /// <summary>重连恢复完成数（SeatRestored：Restoring → Active；§9.3 步骤 6）。</summary>
         public long RestoresCompleted;
 
-        // ---- R0 边界拒绝计数（《服务端总设计》§5 P0-3"统一拒绝并计数"）----
+        // ---- 边界拒绝计数（《服务端总设计》§5 P0-3"统一拒绝并计数"）----
         /// <summary>坏包（未知类型/截断/proto 解析失败）拒绝计数。</summary>
         public long PacketRejects;
         /// <summary>超长入包（解析前长度上限）拒绝计数。</summary>
@@ -99,7 +99,7 @@ namespace RoomServer.Application
         /// 周期汇总（房间号/帧号/快照/输入/和解率/背压/回溯/节拍债——一行式，便于日志抓取）。
         /// **逐房间**调用：多房间下按房间出一行，才能看出是哪个房间慢/过载（§514 隔离观测前提）。
         /// <paramref name="roomCount"/>、<paramref name="loop"/> 与 <paramref name="limiter"/> 属宿主/Worker 级——
-        /// 只在首行给（<paramref name="limiter"/> = R2 安全批③限流计数，单源在 <see cref="RateLimiter"/>）。
+        /// 只在首行给（<paramref name="limiter"/> = 限流计数，单源在 <see cref="RateLimiter"/>）。
         /// </summary>
         public string Format(string roomId, RoomRuntime room, SnapshotPipeline pipeline,
             SessionManager sessions, int roomCount, ServerLoop.LoopStats loop = null,

@@ -13,7 +13,7 @@ namespace LiteNet.Tests
     ///
     /// 本组钉住的是**配置错误必须响亮地失败**：坏文件/坏字段/越界一律抛，不静默兜底——
     /// 兜底会让配置错误变成线上的隐形分叉（与 <see cref="CombatNumbers"/> 同一口径）。
-    /// 2026-09-28 起 combat 内联分区已废弃（玩法数值走 .bytes 表，见 CombatNumbersTests）。
+    /// combat 内联分区不受支持（玩法数值走 .bytes 表，见 CombatNumbersTests）。
     /// </summary>
     [Trait(TestTrait.Category, TestCategory.Contract)]
     public sealed class RoomServerConfigTests
@@ -167,7 +167,7 @@ namespace LiteNet.Tests
             Assert.Equal(17777, cfg.Port);
         }
 
-        // ---- 分层限流分区（R2 安全批③；§343 桶容量上限+周期清理）----
+        // ---- 分层限流分区（§343 桶容量上限+周期清理）----
 
         [Fact]
         public void 限流分区_缺失走缺省()
@@ -319,7 +319,7 @@ namespace LiteNet.Tests
         [Fact]
         public void rooms允许名为combat的模板_分区废弃后不再保留字()
         {
-            // 2026-09-28：combat 内联分区废弃后，模板名空间不再需要保留字。
+            // combat 内联分区不受支持后，模板名空间不再需要保留字。
             const string json = @"{
                 ""port"": 17777, ""max_rooms"": 1, ""default_template"": ""combat"",
                 ""rooms"": { ""combat"": { ""expected_players"": 2 } }

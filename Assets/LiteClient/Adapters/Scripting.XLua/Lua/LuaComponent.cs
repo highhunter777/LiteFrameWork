@@ -9,16 +9,15 @@ using XLua;
 namespace LiteGame
 {
     /// <summary>
-    /// Lua 宿主（M3 步骤 2.3，手册 §五步骤 2——框架唯一新增核心模块）。职责四件：
+    /// Lua 宿主（框架唯一新增核心模块）。职责四件：
     /// ① `LuaEnv` + 自定义 loader（**同步签名**，只从 <see cref="LuaPreloader"/> 预载缓存取——
     ///    "任何'运行时再异步加载'的念头都是错的"，设计方案 §4.2；未命中 = 校验漏项，带路径直接抛）；
     /// ② tick 派发开关（`env.Tick()`——Lua 不需要时不调，MonoBehaviour.Update 驱动）；
     /// ③ 执行 `main.lua`（只 require/定义，重复执行抛——重跑走 DevReload §2.7）；
     /// ④ `Shutdown()`：env.Dispose（OnDestroy 兜底，play 退出自然触发）。
-    /// 附带：`log` 全局表绑定（info/warning/error → LiteFramework.Log，§4.3 日志收口白名单的首批成员）；
-    /// IModuleStats（HUD：已载文件数 / main 执行 / tick 开关）。
+    /// 附带：`log` 全局表绑定（info/warning/error → LiteFramework.Log，§4.3 日志收口白名单）；IModuleStats（HUD）。
     /// 热路径纪律（§4.3）：tick 走 env.Tick()；Bridge 查表等低频入口允许动态转换。
-    /// 生命周期：装配点 AddComponent + Init（2.4 接线）；Shutdown 幂等。
+    /// 生命周期：装配点 AddComponent + Init；Shutdown 幂等。
     /// </summary>
     public sealed class LuaComponent : MonoBehaviour, IModuleStats
     {
@@ -61,7 +60,7 @@ namespace LiteGame
             bindGameGlobals?.Invoke(_env);                     // 游戏桥（§2.5）：Bridge.data/ui/content 由注入方绑定
             _eventBridge = new EventBridge(_env, eventCenter); // 事件桥（§2.6）：events.on + 显式映射注册
 #if UNITY_EDITOR
-            // LuaPanda 断点钩子（手册步骤 9）：仅编辑器启用（宏隔离——hook 进包 = 真机莫名掉帧）。
+            // LuaPanda 断点钩子：仅编辑器启用（宏隔离——hook 进包 = 真机莫名掉帧）。
             // LuaPanda.lua 随 Lua 目录分发进预载缓存；未放入时静默跳过，不阻塞开发流。
             if (_preloader.Scripts.ContainsKey("LuaPanda"))
                 DoString("require('LuaPanda').start()", "luaPanda");
@@ -93,7 +92,7 @@ namespace LiteGame
             Log.Info("main.lua 执行完成", "Lua");
         }
 
-        /// <summary>执行 Lua 片段并返回结果（诊断/面板/后续 DevReload 编排用；低频入口）。</summary>
+        /// <summary>执行 Lua 片段并返回结果（诊断/面板/DevReload 编排用；低频入口）。</summary>
         public object[] DoString(string chunk, string chunkName = "diag")
         {
             ThrowIfNotInit();
@@ -101,7 +100,7 @@ namespace LiteGame
         }
 
         /// <summary>
-        /// 重预载 Lua 文件（运行期增量重填第 ② 步，M4 §2.3）：**不重建 env**，只把 tag `lua` 清单重读一遍
+        /// 重预载 Lua 文件：**不重建 env**，只把 tag `lua` 清单重读一遍
         /// （LuaPreloader 内部先清 `_scripts`），变更后的 .lua 字节即进缓存，下次 require 命中新内容。
         /// </summary>
         public async UniTask RepreloadAsync(CancellationToken ct = default)
@@ -111,7 +110,7 @@ namespace LiteGame
         }
 
         /// <summary>
-        /// 清 require 缓存（运行期增量重填第 ④ 步）：按**注册表根前缀**清 `package.loaded`
+        /// 清 require 缓存：按**注册表根前缀**清 `package.loaded`
         /// （`UI.` / `Content.` / `Strategies.` —— 根集合由 `gen_lua_keys.py` 校验收口，是封闭集）。
         /// 不清 env 级模块（`Bridge`/`log`/LuaPanda/Core.*）——全清会误伤、且无必要。
         /// 返回实际清掉的键数。**已知边界**：只清三个根下的模块，其跨根依赖（如 `Core.class`）仍走缓存。
@@ -201,7 +200,7 @@ namespace LiteGame
         private void ThrowIfNotInit()
         {
             if (_env == null)
-                throw new InvalidOperationException("LuaComponent 未初始化——Init(LuaPreloader) 必须先于一切调用（2.4 接线）");
+                throw new InvalidOperationException("LuaComponent 未初始化——Init(LuaPreloader) 必须先于一切调用");
         }
 
         // ---- IModuleStats（HUD 数据源）----

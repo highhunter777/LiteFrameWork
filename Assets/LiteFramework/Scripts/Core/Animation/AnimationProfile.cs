@@ -3,7 +3,7 @@ using System.Collections.Generic;
 
 namespace LiteFramework.Animation
 {
-    /// <summary>定义缺失或资源缺失时的策略（§4 Fallback："拒绝、回退或保持已有姿态的明确策略"）。</summary>
+    /// <summary>定义缺失或资源缺失时的策略（"拒绝、回退或保持已有姿态的明确策略"）。</summary>
     public enum FallbackPolicy
     {
         /// <summary>拒绝请求，保持当前姿态（默认）。</summary>
@@ -13,14 +13,14 @@ namespace LiteFramework.Animation
     }
 
     /// <summary>
-    /// Profile/Resolver（§3"Profile/Resolver：动画 ID、角色/武器配置、可用后端能力 → 已验证的状态/资源/通道/混合方案"）：
+    /// Profile/Resolver：动画 ID、角色/武器配置、可用后端能力 → 已验证的状态/资源/通道/混合方案。
     /// **只做解析，不做播放**——后端与业务都不认识"哪个 ID 对应哪个状态路径"。
     ///
-    /// 校验纪律（§4"不得到处散写参数字符串"）：登记即校验，非法定义显性失败；
-    /// 回退链**限制深度**并禁止成环（§4"限制回退深度，禁止环"）。
+    /// 校验纪律（不得到处散写参数字符串）：登记即校验，非法定义显性失败；
+    /// 回退链**限制深度**并禁止成环（限制回退深度，禁止环）。
     /// 单片段与混合**各有一张 ID 表**（同 ID 不得两栖——解析形态会歧义，登记期即拒绝）；
     /// 回退链只作用于单片段路径（混合形态不同，不做跨形态回退）。
-    /// **上半身 Mask 排除子树**（§6"通道之间的 Mask…由 Profile 固定"）：遮罩默认由后端从骨架
+    /// **上半身 Mask 排除子树**（通道之间的 Mask 由 Profile 固定）：遮罩默认由后端从骨架
     /// 自动派生（人形部位位 + 非腿骨全收），Profile 只登记**按域排除**的子树（布料域骨——
     /// 动画曲线与布料解算器争抢会让表现打架）。rig 特有知识与绑定同源，后端只消费不散写。
     /// </summary>
@@ -29,7 +29,7 @@ namespace LiteFramework.Animation
         /// <summary>回退链最大深度（超过即视为环或过深配置，登记时拒绝）。</summary>
         public const int MaxFallbackDepth = 4;
 
-        /// <summary>混合槽位上限（§12 上限纪律；与首个后端的固定图容量同源——
+        /// <summary>混合槽位上限（与首个后端的固定图容量同源——
         /// <c>AnimatorAnimationBackend.MaxBlendInputs</c> 直接取本值，防两处漂移）。</summary>
         public const int MaxBlendSlots = 4;
 
@@ -135,7 +135,7 @@ namespace LiteFramework.Animation
 
         /// <summary>
         /// 解析请求 → 播放方案。拒绝原因见 <see cref="AnimationStartResult.Reason"/>——
-        /// **调用方据拒绝原因保持原播放，不做静默降级**（§4/§6）。
+        /// **调用方据拒绝原因保持原播放，不做静默降级**。
         /// </summary>
         public bool TryResolve(in AnimationRequest request, out AnimationResolvedPlayback resolved,
             out AnimationStartResult.Reason rejectReason)
@@ -195,7 +195,7 @@ namespace LiteFramework.Animation
         /// <summary>
         /// 解析混合请求 → 混合方案。与 <see cref="TryResolve"/> 同一纪律：**先字段校验再查定义**，
         /// 非法请求不因"刚好没登记"报成 InvalidDefinition；缺定义为 InvalidDefinition（**不参与回退链**）。
-        /// **权重整组校验**（§6"不能只占一半"的解析面）：任一条不合法（长度与槽位数不符、非有限、负值、
+        /// **权重整组校验**（"不能只占一半"的解析面）：任一条不合法（长度与槽位数不符、非有限、负值、
         /// 总和 ≤ 0 或溢出）即整组拒绝，不做部分接受。混合**不需要装载**——槽位绑定必须已可直接提交。
         /// </summary>
         public bool TryResolveBlend(in AnimationBlendRequest request, out AnimationResolvedBlend resolved,

@@ -16,9 +16,9 @@ using Proto = LiteNet.Proto;
 namespace RoomServer
 {
     /// <summary>
-    /// 服务器宿主（《状态同步实施方案》§4.5 RoomServer 结构图顶层组装 + R1 《商业级通用服务端框架总设计》§7/§8）。
+    /// 服务器宿主（《状态同步实施方案》§4.5 RoomServer 结构图顶层组装 + 《商业级通用服务端框架总设计》§7/§8）。
     ///
-    /// R1 分层（现为 Application+Host 合体，R2 再拆 Generic Host/Options）：
+    /// 分层（现为 Application+Host 合体）：
     /// - **协议边界**：解码 <c>PacketCodec</c> → 校验 → 构造 <see cref="RoomCommand"/>；反向把
     ///   <see cref="RoomOutput"/> 映射为 proto 发送。RoomRuntime 完全不见 proto/Transport。
     /// - **会话**：<see cref="Session"/>（连接级记账/ACK 水位/背压）+ 席位（Runtime <see cref="PlayerSession"/>）
@@ -26,9 +26,9 @@ namespace RoomServer
     /// - **快照**：<see cref="SnapshotPipeline"/> 在每次权威步进后拉取 AuthSim 构建下发；
     ///   重连席位在恢复完成 ACK 前停在 Restoring（管线抑制其增量广播），恢复完成时整帧全量重锚广播链（§9.3 步骤 6）。
     ///
-    /// 单循环（MVP 不拆 I/O 线程，§10.2——IO/Room Worker 解耦归 R2）：
+    /// 单循环（§10.2 不拆 I/O 线程）：
     /// tick 顺序 TickIncoming → Host owner 排空每房间 Mailbox（Control → Input → Outbound）
-    /// → 权威 Tick → 快照广播 → TickOutgoing；房间执行迁移到 Worker 仍归后续批次。
+    /// → 权威 Tick → 快照广播 → TickOutgoing。
     ///
     /// 装配参数由 <see cref="RoomConfig"/> 提供；**buildHash = <see cref="BuildHash.Value"/>**
     /// （源码内容哈希，两端不一 = 逻辑/协议版本不同 → 拒绝进房）。
@@ -38,7 +38,7 @@ namespace RoomServer
     /// </summary>
     public sealed class ServerHost : IDisposable
     {
-        /// <summary>服务器版本锚点 = 源码内容哈希（批③ 从字面量串切换到生成器：Sim 或协议一改，握手即拒）。</summary>
+        /// <summary>服务器版本锚点 = 源码内容哈希（Sim 或协议一改，握手即拒）。</summary>
         public const string ServerBuildHash = BuildHash.Value;
         public const long OpsIntervalMs = 5000;
 
@@ -51,12 +51,12 @@ namespace RoomServer
         public const int MaxTokenBytes = 256;
         public const int MaxBuildHashBytes = 128;
 
-        private readonly IRoomTransport _transport;   // 窄端口（可替换性第二刀，2026-09-19 收口）
+        private readonly IRoomTransport _transport;   // 窄端口（可替换性）
         private readonly SessionManager _sessions;
         private readonly ReconnectService _reconnects = new ReconnectService();
 
         /// <summary>
-        /// 分层限流（R2 安全批③）：IP 维度（连接/入场）+ 账号维度（入场）+ Session 维度（包速率）。
+        /// 分层限流：IP 维度（连接/入场）+ 账号维度（入场）+ Session 维度（包速率）。
         /// 配置装载 <see cref="RoomServerConfig.RateLimit"/> 或构造注入；两者皆无时用
         /// <see cref="RateLimitSettings.Default"/>（§520/§600：缺省是可用形态，不是"实测值"）。
         /// 探测不到的远端地址（<see cref="IRoomTransport.GetRemoteAddress"/> 为 null）**跳过 IP 维度**——
@@ -69,7 +69,7 @@ namespace RoomServer
 
         /// <summary>
         /// Join 票据验证器（《服务端总设计》§P0-6；《框架先行》§5-4 必建接缝）。**null = 未装配**：
-        /// 此时 token 只作原型级非空校验（R0 声明行为，历史用例不受影响）；
+        /// 此时 token 只作原型级非空校验；
         /// 装配后**逐一验签**，失败即拒绝——<see cref="JoinTicketRejection"/> 分类进 Ops。
         /// </summary>
         private readonly IJoinTicketValidator _tickets;
@@ -86,9 +86,8 @@ namespace RoomServer
 
         // ---- 房间表（§6"一个 roomId 只能映射一个独立 RoomActor"）----
         //
-        // **为什么是表而不是字段**：2026-09-26 之前 Runtime / 快照管线 / 席位表是宿主上的三个并列
-        // 字段，"每房间一份"在类型上无处表达；§116 记的"当前任意 roomId 指向同一 Room"即此。
-        // 收成 RoomInstance 之后，多房间 = 这张表，"每房间一份"由类型保证。
+        // **为什么是表而不是字段**：Runtime / 快照管线 / 席位表若并列在宿主上，
+        // "每房间一份"在类型上无处表达；收成 RoomInstance 之后，多房间 = 这张表，"每房间一份"由类型保证。
         //
         // **容量**：§429 要求房间容量**可配 + 范围校验**，§520/§600 明确"不把估算值写死为事实"
         // "不在设计阶段虚构固定房间数"——故上限来自配置，达上限**拒绝新建**而非静默拒绝进房。
@@ -107,24 +106,24 @@ namespace RoomServer
         private long _drainDeadlineMs = -1;
 
         /// <summary>
-        /// 结算 Outbox（§11.3"本地持久 Outbox"；M0-c 后续批接入）。**null = 未装配**：
-        /// SettlementReady 只计数＋日志（现状形态，历史用例不变）；装配后入盒（幂等/有界/失败
+        /// 结算 Outbox（§11.3"本地持久 Outbox"）。**null = 未装配**：
+        /// SettlementReady 只计数＋日志；装配后入盒（幂等/有界/失败
         /// 全部显式计数，不抛进权威循环），排空第 4 步经 <see cref="FlushSettlementOutbox"/> 收口。
         /// 宿主**接管**其生命周期（Dispose 释放）。
         /// </summary>
         private readonly ISettlementOutbox _settlementOutbox;
 
         /// <summary>
-        /// R2 Worker Pool 生命周期接缝。固定池已装配并启动；当前入站 Control/Input 先进入
-        /// 每房间 Mailbox，再由 Host owner 单线程消费。房间执行迁移到 Worker 仍归后续批次。
+        /// Worker Pool 生命周期接缝。固定池已装配并启动；入站 Control/Input 先进入
+        /// 每房间 Mailbox，再由 Host owner 单线程消费。
         /// 配置形态（<see cref="RoomServerConfig"/>）自动创建，测试/嵌入式形态可显式注入。
         /// </summary>
         private readonly RoomWorkerPool _workerPool;
         private long _workerFailures;
 
         /// <summary>
-        /// 是否把入站命令先放入每房间 Mailbox。当前批次仍由 Host owner 单线程消费；
-        /// 默认关闭以保留嵌入式/历史用例的直投语义，生产入口显式开启。
+        /// 是否把入站命令先放入每房间 Mailbox。由 Host owner 单线程消费；
+        /// 默认关闭以保留嵌入式用例的直投语义，生产入口显式开启。
         /// </summary>
         private readonly bool _mailboxRouting;
         private readonly bool _drainMailboxesImmediately;
@@ -223,7 +222,7 @@ namespace RoomServer
 
         public Ops Ops => _ops;
 
-        /// <summary>分层限流器（R2 安全批③；观测计数与测试断言入口）。</summary>
+        /// <summary>分层限流器（观测计数与测试断言入口）。</summary>
         public RateLimiter RateLimit => _rateLimit;
 
         /// <summary>
@@ -231,10 +230,10 @@ namespace RoomServer
         /// Worker Pool 默认装配参数；传入 <paramref name="workerPool"/> 可在纯 .NET 用例中显式注入。
         ///
         /// **不传 <paramref name="roomServerConfig"/> 时**退回"单房间预置"形态：只按
-        /// <paramref name="config"/> 建一个房间、容量 1、拒绝任何别的 roomId——这是历史用例与
-        /// 嵌入式用法的兼容通道，**不是**生产形态（生产走配置文件 + 动态建房）。
+        /// <paramref name="config"/> 建一个房间、容量 1、拒绝任何别的 roomId——这是嵌入式用法的
+        /// 兼容通道，**不是**生产形态（生产走配置文件 + 动态建房）。
         /// 传入配置但未传 Worker Pool 时，宿主按配置创建并启动固定池；未传配置且未显式注入
-        /// 时保持历史单循环形态（<see cref="WorkerPool"/> 为 null）。
+        /// 时保持单循环形态（<see cref="WorkerPool"/> 为 null）。
         /// </summary>
         public ServerHost(IRoomTransport transport, RoomConfig config = null,
             IJoinTicketValidator ticketValidator = null, string audience = null,
@@ -265,8 +264,8 @@ namespace RoomServer
             else if (_serverConfig == null) first = AddRoom(RoomConfig.Default());
 
             // 会话表容量按**全服潜在连接数**算（§9.2 会话容量上限）：
-            // 配了配置 → 房间上限 × 最大房间人数 ×4（按单房间算会让第二个房间的连接被会话上限拒掉，
-            // 多房间实测踩过）；未配 → 沿用 R1 口径 首房间 ×4。
+            // 配了配置 → 房间上限 × 最大房间人数 ×4（按单房间算会让第二个房间的连接被会话上限拒掉）；
+            // 未配 → 首房间 ×4。
             int sessionCapacity = _serverConfig != null
                 ? 4 * _serverConfig.MaxRooms * _serverConfig.MaxExpectedPlayers
                 : 4 * (first != null ? first.Runtime.ExpectedPlayers : 2);
@@ -278,7 +277,7 @@ namespace RoomServer
             try
             {
                 _workerPool?.Start();
-                _transport.Start(_serverConfig != null ? _serverConfig.Port : Config.Port);   // Start 必须显式调用——此前遗漏导致服务器不监听（握手全失败）
+                _transport.Start(_serverConfig != null ? _serverConfig.Port : Config.Port);   // Start 必须显式调用——不调用则服务器不监听
             }
             catch
             {
@@ -331,7 +330,7 @@ namespace RoomServer
         {
             _nowMs = NowMs();
 
-            // 分层限流·IP 维度·连接（R2 安全批③）：kcp2k 握手后才会触发本回调，
+            // 分层限流·IP 维度·连接：kcp2k 握手后才会触发本回调，
             // 远端地址此时已可达（KcpServer 先登记连接再回调）。地址探测不到 → 放行（限不了看不见的地址）。
             if (!_rateLimit.TryAcquireIpConnect(_transport.GetRemoteAddress(connectionId), _nowMs))
             {
@@ -341,7 +340,7 @@ namespace RoomServer
 
             if (!_sessions.TryAddNew(connectionId, _nowMs, out _))
             {
-                // R1 会话容量上限（§9.2）：超限不登记并断开——未认证连接不能把记账表撑成无界内存
+                // 会话容量上限（§9.2）：超限不登记并断开——未认证连接不能把记账表撑成无界内存
                 _ops.SessionsRejected++;
                 _transport.Disconnect(connectionId);
             }
@@ -451,7 +450,7 @@ namespace RoomServer
                 return;
             }
 
-            // 分层限流·Session 维度·包速率（R2 安全批③）：单热连接灌包被限速**静默丢弃**——
+            // 分层限流·Session 维度·包速率：单热连接灌包被限速**静默丢弃**——
             // 不回应（对洪水响应即放大），计数在 <see cref="RateLimiter.RejectedSessionPackets"/>。
             if (!_rateLimit.TryAcquireSessionPacket(connectionId, _nowMs)) return;
 
@@ -492,9 +491,9 @@ namespace RoomServer
         /// <summary>
         /// Join 信令：token 非空 + **房间号一致** + buildHash 必须等于服务器版本（版本红线）
         /// → 投递 <see cref="RoomCommand.Join"/> → JoinAck + 满员即 MatchStarted 广播。
-        /// 入场先过**分层限流**（R2 安全批③）：IP 维度（本方法首段）+ 账号维度（验签通过后）。
+        /// 入场先过**分层限流**：IP 维度（本方法首段）+ 账号维度（验签通过后）。
         ///
-        /// **安全能力现状（R0 声明 + 2026-09-26 票据接缝 + R2 安全批①—③）**：
+        /// **安全能力现状**：
         /// 装配了 <see cref="IJoinTicketValidator"/> 后，token 走**验签 + 六项绑定 + 重放窗口**
         /// （过期/篡改/重放/受众/房间/构建哈希，见 <see cref="JoinTicketValidatorTests"/>）；
         /// **未装配**时退回原型级非空校验（<see cref="Session.Principal"/> 为 null）。
@@ -508,7 +507,7 @@ namespace RoomServer
         {
             if (session.PlayerId >= 0 || session.JoinPending) return;         // 重复/排队中的 Join 忽略
 
-            // 分层限流·IP 维度·入场（R2 安全批③）：先于验签与建房——频率校验在昂贵操作之前。
+            // 分层限流·IP 维度·入场：先于验签与建房——频率校验在昂贵操作之前。
             // 地址探测不到 → 放行；被限走统一 Reject（计数 + 日志，不回 JoinAck）。
             if (!_rateLimit.TryAcquireIpEntry(_transport.GetRemoteAddress(session.ConnectionId), _nowMs))
             {
@@ -563,7 +562,7 @@ namespace RoomServer
             }
 
             // 票据验证（§P0-6）：装配了验证器就**逐一验签**——非空不再构成准入理由。
-            // 未装配（null）时保留 R0 声明的原型行为；生产装配必须传入验证器。
+            // 未装配（null）时保留原型行为；生产装配必须传入验证器。
             //
             // **顺序：票据先于建房**。动态建房下若先建房再验票，任何人拿垃圾 token 打不同 roomId
             // 就能把房间表撑到容量上限（拒绝服务）。故票据的 roomId 绑定在**建房之前**比对。
@@ -586,7 +585,7 @@ namespace RoomServer
                 }
                 validatedPrincipal = principal;
 
-                // 分层限流·账号维度·入场（R2 安全批③）：验签通过后才有 AccountId 可比对（验签前拿不到账号）。
+                // 分层限流·账号维度·入场：验签通过后才有 AccountId 可比对（验签前拿不到账号）。
                 // 注意 nonce 已在验签中消费——此处被限即该票据作废（合法客户端远够余量，见 RateLimitSettings.Default）。
                 if (!_rateLimit.TryAcquireAccountEntry(principal.AccountId, _nowMs))
                 {
@@ -667,7 +666,7 @@ namespace RoomServer
         {
             if (session.PlayerId < 0) return;
 
-            // 直投兼容路径沿用历史时序；Mailbox 路径把 ACK 验证延后到 Host owner
+            // 直投路径先做 ACK 验证；Mailbox 路径把 ACK 验证延后到 Host owner
             // 实际消费输入之后，避免队列满拒仍前推会话 ledger。
             if (!_mailboxRouting)
                 _ops.CountAck(session.TryAcceptAck(msg.AckSnapshot));
@@ -708,7 +707,7 @@ namespace RoomServer
 
             long acceptedBefore = inputRoom.Runtime.Gate.AcceptedCount;
             SubmitCommandTo(inputRoom, RoomCommand.ClientInput(session.PlayerId, _inputBatch));
-            if (inputRoom.Runtime.Gate.AcceptedCount > acceptedBefore)   // 只统计被闸门接受的包（取代旧 OnInputAccepted 回挂）
+            if (inputRoom.Runtime.Gate.AcceptedCount > acceptedBefore)   // 只统计被闸门接受的包
             {
                 _ops.InputPackets++;
                 _ops.AckObserved++;
@@ -730,7 +729,7 @@ namespace RoomServer
         /// </summary>
         private void HandleReconnect(Session session, Proto.ReconnectRequest request)
         {
-            // 分层限流·IP 维度·入场（R2 安全批③）：与 Join 共表。被限 → **静默丢弃**——
+            // 分层限流·IP 维度·入场：与 Join 共表。被限 → **静默丢弃**——
             // 重连洪水不放大（不回 ReconnectResponse），也不向探测者泄露票据窗口状态。
             if (!_rateLimit.TryAcquireIpEntry(_transport.GetRemoteAddress(session.ConnectionId), _nowMs))
                 return;
@@ -746,7 +745,7 @@ namespace RoomServer
                 return;
             }
             RoomInstance instance = GetRoomInstance(roomId);
-            if (instance == null)                              // 票据绑定房间号（R1：原实现忽略该绑定）
+            if (instance == null)                              // 票据绑定房间号
             {
                 SendToSession(session, PacketType.ReconnectResponse, new Proto.ReconnectResponse { Ok = false, Reason = "票据与房间不符" }, reliable: true);
                 return;
@@ -758,7 +757,7 @@ namespace RoomServer
                 SendToSession(session, PacketType.ReconnectResponse, new Proto.ReconnectResponse { Ok = false, Reason = "席位不存在" }, reliable: true);
                 return;
             }
-            if (!room.Started)   // R1：重连只在 Running 有效（终态房间无增量可恢复）
+            if (!room.Started)   // 重连只在 Running 有效（终态房间无增量可恢复）
             {
                 SendToSession(session, PacketType.ReconnectResponse, new Proto.ReconnectResponse { Ok = false, Reason = "房间不在进行中" }, reliable: true);
                 return;
@@ -894,7 +893,7 @@ namespace RoomServer
                 return;
             }
 
-            // 当前批次由 Host owner 消费；无论立即还是延迟装配，重连响应都必须
+            // 由 Host owner 消费；无论立即还是延迟装配，重连响应都必须
             // 在 Runtime 完成 Rebind 后发送，避免客户端先收到快照再发生重绑。
             DrainRoomMailbox(instance);
 
@@ -975,7 +974,7 @@ namespace RoomServer
 
         /// <summary>
         /// 当前 Host owner 对已消费命令执行 Runtime 并应用输出；入站命令的 Mailbox admission
-        /// 与消费由上层路由负责，后续批次再把 Runtime 执行迁移到 Worker。
+        /// 与消费由上层路由负责。
         /// <paramref name="joinContext"/> = 触发本次命令的进房连接（PlayerAdmitted 落位用）。
         /// </summary>
         private void SubmitCommand(in RoomCommand cmd, Session joinContext = null)
@@ -1049,7 +1048,7 @@ namespace RoomServer
             return true;
         }
 
-        /// <summary>兼容旧调用点的提交入口；路由失败由对应 admission 处理。</summary>
+        /// <summary>控制命令的提交入口；路由失败由对应 admission 处理。</summary>
         private void SubmitCommandTo(RoomInstance room, in RoomCommand cmd, Session joinContext = null)
         {
             if (!TrySubmitCommandTo(room, cmd, joinContext)
@@ -1079,7 +1078,7 @@ namespace RoomServer
 
         /// <summary>
         /// Host owner 对单房间 Mailbox 的消费顺序：Control → Input → Outbound。
-        /// 当前 Outbound 仅支持未来 Worker 输出回传，Runtime 仍在本 Host 执行。
+        /// Outbound 用于 Worker 输出回传（Runtime 在本 Host 执行）。
         /// </summary>
         private void DrainRoomMailbox(RoomInstance room)
         {
@@ -1233,7 +1232,7 @@ namespace RoomServer
                     _transport.Disconnect(cc.ConnectionId);
                     break;
                 case MatchStateChangedOutput mcs:
-                    // §9.1/§13.1 结构化事件（R4 换 OpenTelemetry）：低频迁移只在日志记录，不进指标高基数标签
+                    // §9.1/§13.1 结构化事件：低频迁移只在日志记录，不进指标高基数标签
                     _ops.MatchStateChanges++;
                     Console.WriteLine($"[Match] room={mcs.MatchId} {mcs.From}->{mcs.To} reason={mcs.Reason} frame={mcs.Frame} nowMs={mcs.NowMs}");
                     break;
@@ -1241,7 +1240,7 @@ namespace RoomServer
                     _ops.SettlementsReady++;
                     Console.WriteLine($"[Settle] room={sr.Summary.MatchId} seed={sr.Summary.Seed} finalFrame={sr.Summary.FinalFrame} end={sr.Summary.EndReason} seats={sr.Summary.SeatPlayerIds.Length}");
                     // §11.3"本地持久 Outbox"：冻结事实入盒（幂等/有界/失败显式计数——不抛进权威循环，
-                    // §6"持久化写入不得阻塞/炸掉 Room Worker"）。null = 未装配（现状形态）。
+                    // §6"持久化写入不得阻塞/炸掉 Room Worker"）。null = 未装配。
                     if (_settlementOutbox != null)
                     {
                         switch (_settlementOutbox.Enqueue(sr.Summary))
@@ -1390,7 +1389,7 @@ namespace RoomServer
                 _ticksSinceCleanup = 0;
                 _ops.SessionsCleaned += _sessions.Cleanup(_nowMs);   // §9.2 周期清理（容量+时效）
                 _reconnects.PurgeExpired();
-                _rateLimit.PurgeIdle(_nowMs);                        // §343 限流桶同节奏周期清理（R2 安全批③）
+                _rateLimit.PurgeIdle(_nowMs);                        // §343 限流桶同节奏周期清理
             }
             _transport.TickOutgoing();
             MaybePrintOps();
@@ -1411,20 +1410,18 @@ namespace RoomServer
         /// 开始排空／优雅关闭（《商业级通用服务端框架总设计》§12"优雅关闭"第 2–5 步的宿主侧）。
         ///
         /// **设计五步与本实现的对应**：
-        /// 1. "Readiness 置 false，Lobby 不再分配新 Match"——本服务不接 Lobby（实例注册/容量上报归 R2），
+        /// 1. "Readiness 置 false，Lobby 不再分配新 Match"——本服务不接 Lobby，
         ///    故无 readiness 面；等价语义由 <see cref="Draining"/> 对**本进程**生效：不做新房间、不收新进房。
-        /// 2. "停止接受新 Join，现有房间进入 drain"——**已实现**：<see cref="Draining"/> 置位后
+        /// 2. "停止接受新 Join，现有房间进入 drain"——<see cref="Draining"/> 置位后
         ///    <see cref="HandleJoin"/> 一律拒绝（含已在册房间），既有对局继续跑。
-        /// 3. "在配置时限内完成对局；超时则归档 Aborted 原因并安全关闭"——**已实现**：
-        ///    到 <paramref name="deadlineMs"/> 仍未终态的房间在 <see cref="Pump"/> 中发
+        /// 3. "在配置时限内完成对局；超时则归档 Aborted 原因并安全关闭"——到
+        ///    <paramref name="deadlineMs"/> 仍未终态的房间在 <see cref="Pump"/> 中发
         ///    <see cref="ShutdownReason.DrainTimeout"/> 强制关闭。
-        /// 4. "刷新 Outbox/Archive 到持久介质"——**已实现**（M0-c 后续批）：装配了
-        ///    <see cref="ISettlementOutbox"/> 时结算在 SettlementReady 即逐条 write-through 落盘，
-        ///    排空收口经 <see cref="FlushSettlementOutbox"/>（未装配时本步为无操作）。
-        ///    Archive（完整 Match 归档）归 R3。
-        /// 5. "停止 Worker、Transport 和 Host"——**生命周期已接线**：<see cref="Dispose"/> 按
+        /// 4. "刷新 Outbox/Archive 到持久介质"——装配了 <see cref="ISettlementOutbox"/> 时结算在
+        ///    SettlementReady 即逐条 write-through 落盘，排空收口经 <see cref="FlushSettlementOutbox"/>
+        ///    （未装配时本步为无操作）。
+        /// 5. "停止 Worker、Transport 和 Host"——<see cref="Dispose"/> 按
         ///    Worker Stop(drain:true) → Transport → Outbox 顺序收尾；本方法不主动执行第 5 步。
-        ///    真正 Mailbox 排空与 Worker/房间 Owner 切换的前置门禁归后续路由批次。
         ///
         /// **幂等**：重复调用只在前移截止时刻时生效（取更早者，不延后已定的排空期限）。
         /// </summary>
@@ -1607,7 +1604,7 @@ namespace RoomServer
         public ServerLoop.LoopStats LoopStats { get; set; }
 
         /// <summary>
-        /// 按房间号取房间；**不存在则创建**（OpenRoom 语义）。历史名保留给既有调用方——
+        /// 按房间号取房间；**不存在则创建**（OpenRoom 语义的别名）。
         /// 单房间形态下它等价于"取预置房间"（不存在时返回 null，因为该形态下容量为 1 且无模板）。
         /// </summary>
         public RoomRuntime TryGetOrCreateRoom(string roomId) => OpenRoom(roomId);

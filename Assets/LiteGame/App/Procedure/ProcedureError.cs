@@ -8,10 +8,10 @@ using UnityEngine.UI;
 namespace LiteGame
 {
     /// <summary>
-    /// 错误流程：任何流程 Fail 后的落点。显示失败原因（C0-③：内建最小错误 UI，代码构建、不经资源包），
+    /// 错误流程：任何流程 Fail 后的落点。显示失败原因（内建最小错误 UI，代码构建、不经资源包），
     /// 不自动重试不静默退出——启动链失败必须人工排查后重跑。
-    /// 失败原因经 **payload** 传来（`ProcedureArgs.Error`）——取代已退休的 `ProcedureOwner.LastError`。
-    /// 商业错误界面（重试/回滚/清缓存入口）按总设计 §7.2 ErrorRecovery 在 C1 落地。
+    /// 失败原因经 **payload** 传来（`ProcedureArgs.Error`）。
+    /// 商业错误界面（重试/回滚/清缓存入口）见总设计 §7.2 ErrorRecovery。
     /// </summary>
     public sealed class ProcedureError : ProcedureStageBase<ProcedureId, ProcedureArgs>
     {
@@ -46,7 +46,7 @@ namespace LiteGame
         /// <summary>
         /// 引导期（流程机就绪前）的启动失败落点：内建最小错误 UI + 冒烟标记。
         /// GameEntry 宿主初始化失败时调用——确定错误态（§C1 退出条件宿主侧保证）；
-        /// 重试/回滚/清缓存入口按 §7.2 ErrorRecovery 在 C1 后续落地。
+        /// 重试/回滚/清缓存入口见 §7.2 ErrorRecovery。
         /// </summary>
         public static void ShowBootstrapError(string message)
         {

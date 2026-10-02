@@ -15,12 +15,12 @@ using XLua;
 namespace LiteGame.Tests.UI.PlayMode
 {
     /// <summary>
-    /// 环境重建 / 循环计数 / 诊断关联 PlayMode 用例（包③覆盖度余部——三块准入项证据的 UI 侧载体）：
+    /// 环境重建 / 循环计数 / 诊断关联 PlayMode 用例（三块准入项证据的 UI 侧载体）：
     ///
     /// - **DevReload 环境重建段**（§10.2）：复刻《UI总设计》钉死的顺序——全关 → `DropAllLogic` →
     ///   env.Dispose → 新 env/重 require → 重新打开。断言**缓存实例接管新逻辑**：复用不重建 GameObject，
     ///   新逻辑来自新 env（旧 env 已 Dispose——若复用路径触碰旧 LuaFunction 必抛"死环境"异常）。
-    ///   这正是 U0 交付的 `DropAllLogic`（"env 重建前清旧引用"）在真实复用路径上的验证——
+    ///   这正是 `DropAllLogic`（"env 重建前清旧引用"）在真实复用路径上的验证——
     ///   EditMode 无法验证"env 死亡时点"（无真 LuaEnv）。
     ///
     /// - **循环计数**（准入项「资源与缓存稳定」的 UI 侧证据，§12.1"只验证最终状态不够，需断言

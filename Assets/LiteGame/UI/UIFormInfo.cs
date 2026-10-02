@@ -4,9 +4,9 @@ using LiteFramework;
 
 namespace LiteGame
 {
-    /// <summary>界面信息投影（M4 §2.0）：TbUIForm 行 → 壳消费的纯数据。**壳不碰 Luban 类型**——
+    /// <summary>界面信息投影：TbUIForm 行 → 壳消费的纯数据。**壳不碰 Luban 类型**——
     /// 投影在装配层 <see cref="UIFormCatalog"/>（唯一允许触碰 cfg 的位置）完成。</summary>
-    /// <summary>per-form 缓存策略（§5.2 U2 表列——关闭后实例去向）。</summary>
+    /// <summary>per-form 缓存策略（§5.2——关闭后实例去向）。</summary>
     public enum UICacheStrategy
     {
         /// <summary>LRU：关闭后入池，超预算按最近使用序淘汰（默认）。</summary>

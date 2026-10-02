@@ -3,7 +3,7 @@ using System;
 namespace LiteSim
 {
     /// <summary>
-    /// Sim 三角函数——查表 + 归约 + 线性插值（《M7 实施指导》§2.2，决策①②③）。
+    /// Sim 三角函数——查表 + 归约 + 线性插值（《M7 实施指导》§2.2）。
     ///
     /// 单位：弧度（与 SimMath 一致）。
     /// 表：<see cref="SimTrigTables.SinTable"/> 4096 项覆盖 [0, π/2]，线性插值。

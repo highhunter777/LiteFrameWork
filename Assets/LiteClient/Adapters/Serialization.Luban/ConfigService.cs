@@ -23,19 +23,18 @@ namespace LiteGame
 
     /// <summary>
     /// 配置加载薄壳（DI 单例，ProcedureLaunch 注册只注册不加载，ProcedurePreload 尾部 LoadAsync 放行）。
-    /// C1-⑨ 快照化（《商业级通用客户端框架总设计》§9 + §4 原则 6/10 + 热更专项 §11）：
+    /// 快照化（《商业级通用客户端框架总设计》§9 + §4 原则 6/10 + 热更专项 §11）：
     /// **候选构建 → 校验 → 原子发布**三段式——
     /// ① 候选字节预取（缺表 fail-fast，报错带完整 location）；
     /// ② 候选建表（Luban 同步解析——解析失败抛，**不触碰任何已发布状态**）；
     /// ③ 校验（tbcombatnum 单行表等全表约束）+ 玩法数值回填 + <see cref="ConfigSnapshotService{TSnapshot}"/>
-    ///    原子发布（版本单调）。失败保留旧版/空态——纠正旧实现"先设 _tables 再 ApplyCombatNumbers"
-    ///    的半发布缺陷（校验炸了 Loaded 已为 true，见热更专项 §2 Current）。
+    ///    原子发布（版本单调）。失败保留旧版/空态——校验失败时 <see cref="Loaded"/> 保持 false。
     ///
-    /// 其余契约（设计方案 §5.2"松"纪律）不变：
+    /// 其余契约（设计方案 §5.2"松"纪律）：
     /// 本类不感知资源方案——构造收字节委托（装配点绑定 IContentService 租约通道——代次/引用统一）；
-    /// 表清单显式登记在 <see cref="TableDataFiles"/>（新增 Luban 表时加一行，将来随 Bridge.data 生成器自动产出）；
+    /// 表清单显式登记在 <see cref="TableDataFiles"/>（新增 Luban 表时加一行）；
     /// 加载失败 fail-fast 抛（损坏/缺失不静默），由流程 Fail() 接——存档损坏不能炸启动，配置缺失必须炸。
-    /// 运行态重发布（热更安全窗口）与完整版本身份（GameplayDigest/Release 归属）随热更批；对局固定快照归 G2。
+    /// 运行态重发布（热更安全窗口）、完整版本身份（GameplayDigest/Release 归属）与对局固定快照均未实现。
     /// </summary>
     public sealed class ConfigService : IConfigService
     {
@@ -45,7 +44,7 @@ namespace LiteGame
         /// <summary>gen.bat 第一遍产出的表数据文件名（GameData/Config 下，不带扩展名）——与 Tables.cs 的 loader 键一一对应。</summary>
         public static readonly string[] TableDataFiles =
         {
-            "tbitemconfig",      // 道具表（类型 + 刷新/拾取/携带/使用 + 各类型效果数值；原 demo_tbitem 让位，2026-09-28）
+            "tbitemconfig",      // 道具表（类型 + 刷新/拾取/携带/使用 + 各类型效果数值）
             "tbmovementconfig",  // 移动数值（单行表；装载后回填 MovementConfig——机制消费随系统落地接入）
             "tbuiform",
             "tbcontententry",
@@ -65,7 +64,7 @@ namespace LiteGame
 
         public bool Loaded => _tables != null;
 
-        /// <summary>已发布快照版本（每次成功发布 +1；0 = 尚未发布——诊断/后续热更安全窗口用）。</summary>
+        /// <summary>已发布快照版本（每次成功发布 +1；0 = 尚未发布——诊断用）。</summary>
         public ulong Version => _snapshots.Version;
 
         /// <summary>当前已发布快照（未发布为 null——与 <see cref="Loaded"/> 同判据）。</summary>
@@ -152,7 +151,7 @@ namespace LiteGame
         /// <summary>
         /// 移动数值回填（表 → <see cref="MovementConfig"/>）：与 ApplyCombatNumbers 同纪律——LiteSim 零依赖，
         /// 由外部喂 primitives；表值即设计软值，硬护栏是代码常量 <see cref="CombatConfig.HardMaxSpeed"/>。
-        /// 机制消费（走跑冲/滑铲/空中控制/跳跃/钩爪/闪现）随对应 Sim 系统落地逐项接入并进 digest。
+        /// 机制消费（走跑冲/滑铲/空中控制/跳跃/钩爪/闪现）随对应 Sim 系统落地逐项接入。
         /// 调用契约：<see cref="ValidateCandidate"/> 已通过（行存在性 + 重力双表位一致性均闸在前）。
         /// </summary>
         private static void ApplyMovementNumbers(Tables tables)

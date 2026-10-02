@@ -26,11 +26,10 @@ namespace RoomServer
     /// §11.3"RoomRuntime 冻结 MatchResult → … → **本地持久 Outbox** → 后台提交 Profile.Apply"、
     /// §6"需要持久化的结果先写入**有界** Outbox"）。
     ///
-    /// 当前载荷为 R1 冻结的 <see cref="MatchResultSummary"/>（SettlementReadyOutput）；
-    /// R3 结算信封（SettlementEnvelope/签名/后台提交 Profile.Apply）到位后按同一端口演进。
+    /// 载荷为 <see cref="MatchResultSummary"/>（SettlementReadyOutput）。
     ///
-    /// **同步签名**对应宿主单循环形态（§10.2 MVP——命令直投、ApplyOutput 在 Pump 线程上）；
-    /// 入盒是低频事件（一局一次、一行一条）。R2 换 Worker Pool/有界 Mailbox 时随投递通道一起改异步。
+    /// **同步签名**对应宿主单循环形态（§10.2——命令直投、ApplyOutput 在 Pump 线程上）；
+    /// 入盒是低频事件（一局一次、一行一条）。
     /// </summary>
     public interface ISettlementOutbox
     {
@@ -40,7 +39,7 @@ namespace RoomServer
         /// <summary>当前在盒条数（含装载期恢复的历史条目）。</summary>
         int Count { get; }
 
-        /// <summary>待处理条目（重放/审计面；提交管道归 R3——"后台服务重试发送"）。</summary>
+        /// <summary>待处理条目（重放/审计面）。</summary>
         IReadOnlyList<MatchResultSummary> ListPending();
 
         /// <summary>§12 第 4 步"刷新 Outbox 到持久介质"（幂等；WriteThrough 形态下为收口确认）。</summary>
@@ -52,8 +51,7 @@ namespace RoomServer
     ///
     /// - **JSONL 日志**：一行一条（DTO 序列化；MatchResultSummary 是只读字段，经内部 DTO 转换）；
     /// - **逐条 write-through**：`FileOptions.WriteThrough` + 每条 Flush——Enqueue 返回时该条已在介质上；
-    ///   崩溃窗口最多留下半行，装载期跳过并计数（SettlementReady 是"冻结待提交"事实；
-    ///   "已确认结算不丢/不重复发奖"的完整口径归 R3 提交管道 + §17 商业门禁）；
+    ///   崩溃窗口最多留下半行，装载期跳过并计数（SettlementReady 是"冻结待提交"事实）；
     /// - **幂等**：matchId 内存集合判重（装载期从日志重建）——重复入盒返回 Duplicate 不重写；
     /// - **有界**：容量上限（配置）；满则 RejectedFull；
     /// - **路径红线**：必须 <c>.journal</c> 后缀（<see cref="RoomServerConfig"/> 装载期强制）——

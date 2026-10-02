@@ -3,24 +3,18 @@ using UnityEngine;
 namespace LiteGame
 {
     /// <summary>
-    /// 程序化灰盒实体（对局可见性的兜底件）：内容包尚无角色 prefab 时，用引擎内置基本体造一个
-    /// "能看见、能朝向"的替身，保证 SimView/相机/输入链路端到端可验。
-    ///
-    /// **不是美术方案**：正式角色 prefab 随"地图提取/角色动画"前置批入库后，
-    /// <see cref="ProcedureBattle"/> 的租约获取会命中真资源，本件自然退场（无需删代码）。
-    /// 基本体与材质由引擎提供（不引资源包、不依赖 Unity 导入），因此也不受
-    /// <c>Assets/Art/</c> 被 VCS 忽略的影响——灰盒阶段的可复现性靠它保。
+    /// 程序化灰盒实体（对局可见性的兜底件，非美术方案）：内容包尚无角色 prefab 时，用引擎内置基本体
+    /// 造一个"能看见、能朝向"的替身，保证 SimView/相机/输入链路端到端可验。基本体与材质由引擎提供
+    /// （不引资源包、不依赖 Unity 导入），不受 <c>Assets/Art/</c> 被 VCS 忽略的影响。
     ///
     /// **枢轴契约**：实体根位于**脚下**（Sim 的 <c>EntitySlot.Pos</c> 语义），可见网格挂在
     /// 抬升了半高的子节点上——与真角色 prefab 的枢轴约定一致，View 侧无需为灰盒特判。
     ///
-    /// `Resources.GetBuiltinResource` 在本工程实测取不到内置胶囊/默认材质（返回 null，
-    /// 见批次记录），故用 <see cref="GameObject.CreatePrimitive"/>——实测可用且渲染器自带
-    /// 当前渲染管线（URP/Lit）的共享材质，无需自建材质。
+    /// 用 <see cref="GameObject.CreatePrimitive"/> 取网格/材质：其渲染器自带当前渲染管线（URP/Lit）
+    /// 的共享材质，无需自建材质。
     ///
-    /// **可见性为 public（2026-09-26 §5.1 第五刀后）**：消费者 `ProcedureBattle` 按设计
-    /// 住 `LiteGame.App`（Application Procedures），与本职**不同程序集**——`internal` 会
-    /// 编不过（编译器实测 CS0122）。这不是放宽封装，是把类别的真实可见性写准。
+    /// **可见性为 public**：消费者 `ProcedureBattle` 住 `LiteGame.App`（Application Procedures），
+    /// 与本职**不同程序集**——`internal` 会编不过。这不是放宽封装，是把类别的真实可见性写准。
     /// </summary>
     public static class GreyboxEntity
     {

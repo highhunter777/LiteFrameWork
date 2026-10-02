@@ -16,7 +16,7 @@ namespace LiteGame
     /// §12.2 视觉单一来源的同一条判据）：相机构图是产品表现决策，用代码再表达一遍就有了第二处事实源，
     /// 调完编辑器发现"改了没用"是最难查的一类分歧。
     ///
-    /// **例外：瞄准接管（2026-10-02 瞄准相机批，<see cref="SetAiming"/>）写 Priority**——但写的
+    /// **例外：瞄准接管（<see cref="SetAiming"/>）写 Priority**——但写的
     /// 是**派生值**（主 vcam 场景优先级 + 1）且下降沿**还原回场景配置原值**；镜头本身（FOV/偏移/距离）
     /// 仍全归场景。语义态（"瞄准中"）来自端口调用方，映射成 Cinemachine 机制是适配器的本分。
     ///
@@ -45,8 +45,7 @@ namespace LiteGame
         private bool _shutdown;
         private string _lastResolveReason;
 
-        // ---- 瞄准相机（ADS 接管；2026-10-02 瞄准相机批，同日改**持续预放置**形态——用户裁决
-        //      "根据玩家当前位置旋转直接放好"：接线前置到绑定时刻，全程跟着玩家预先就位）----
+        // ---- 瞄准相机（ADS 接管，持续预放置形态：接线前置到绑定时刻，全程跟着玩家预先就位）----
         private CinemachineVirtualCamera _aimVcam;
         private int _aimPriorityAtBind;           // 接管前优先级（场景配置值——抬升基准由主相机派生，释放时还原回场景值）
         private bool _aiming;                     // 当前语义态（变化沿生效）
@@ -110,7 +109,7 @@ namespace LiteGame
 
             // **场景加载完成即重新解析**：启动场景通常不带 vcam（引导场景只放引导件），
             // 玩法场景才带——没有这个订阅，服务会一直停在"启动场景没 vcam"的结论上，
-            // 即使玩法场景已经加载完（实测就是这么暴露的：场景切换成功了，相机却始终没接线）。
+            // 即使玩法场景已经加载完。
             // 订阅而不是"要求调用方在切场景后记得重建服务"：后者迟早会漏，且漏了表现为画面不动。
             SceneManager.sceneLoaded += OnSceneLoaded;
         }
@@ -172,7 +171,7 @@ namespace LiteGame
             _vcam.Follow = _target;
             if (_vcam.LookAt == null) _vcam.LookAt = _target;   // 已配置的 LookAt 不覆盖（可能是独立的看向目标）
 
-            BindAimCamera();                     // 瞄准机**绑定即预放置**（用户裁决：接线前置——不等右键）
+            BindAimCamera();                     // 瞄准机**绑定即预放置**（接线前置——不等右键）
 
             _lastResolveReason = null;
             Log.Info($"[Camera] 已接线 vcam「{_vcam.name}」(scene={_vcam.gameObject.scene.name}, priority={_vcam.Priority})", "Camera");
@@ -225,9 +224,8 @@ namespace LiteGame
             if (_target != null && !ReferenceEquals(_target, null))
             {
                 // 位置每帧写；**朝向只写自建焦点**——场景配置的 Follow 目标自带姿态语义（骨骼/动画），
-                // 不越权覆写（2026-10-02 焦点带旋转批：构图偏移如 FramingTransposer 的
-                // TrackedObjectOffset 随 Follow 目标的旋转——自建焦点此前恒 identity，
-                // 偏移实际是世界系固定，玩家转向后构图点绕角色乱转）。
+                // 不越权覆写（构图偏移如 FramingTransposer 的 TrackedObjectOffset 随 Follow 目标的旋转；
+                // 自建焦点若恒 identity，偏移实际是世界系固定，玩家转向后构图点绕角色乱转）。
                 if (_ownsTarget) _target.SetPositionAndRotation(target, facing);
                 else _target.position = Focus;   // 阻尼/平滑在 Cinemachine 侧按 vcam 配置生效
             }
@@ -241,8 +239,7 @@ namespace LiteGame
         }
 
         /// <summary>
-        /// 瞄准态接管（2026-10-02 瞄准相机批，<see cref="ICameraService.SetAiming"/> 契约；
-        /// 同日改**持续预放置**形态——用户裁决"瞄准相机根据玩家当前位置旋转直接放好"）：
+        /// 瞄准态接管（<see cref="ICameraService.SetAiming"/> 契约；持续预放置形态）：
         /// 瞄准机的 Follow/LookAt 在**绑定主相机时即接线**（<see cref="BindAimCamera"/>），且
         /// StandbyUpdate=Always 全程跟着玩家——**接管瞬间瞄准机已在正确位姿**，切换只剩
         /// 优先级翻转（本方法唯一写的字段）与 brain 的 FOV/构图混合，无陈旧位姿甩动。
@@ -283,8 +280,7 @@ namespace LiteGame
 
         /// <summary>
         /// 瞄准机**持续预放置**（幂等）：按约定名解析 + Follow/LookAt 接主相机同源焦点 +
-        /// StandbyUpdate=Always。全程跟着玩家的意义（用户裁决"根据玩家当前位置旋转直接放好"）：
-        /// 接管瞬间瞄准机已在正确位姿，无陈旧位姿甩动。解析失败记
+        /// StandbyUpdate=Always。全程跟着玩家的意义：接管瞬间瞄准机已在正确位姿，无陈旧位姿甩动。解析失败记
         /// <see cref="LastAimResolveReason"/>（不代场景自建——"美术调好的相机没生效"不能被掩盖；
         /// 日志只在新原因时打一次，防每帧重试刷屏）。
         /// </summary>

@@ -1,4 +1,4 @@
-// 拆自 Input.cs（2026-09-14：一类一文件——非首个 MonoBehaviour 无法序列化进 prefab，实测）
+// 一类一文件：非首个 MonoBehaviour 无法序列化进 prefab
 using TMPro;
 using System;
 using System.Collections.Generic;
@@ -9,7 +9,7 @@ using UnityEngine.UI;
 
 namespace LiteGame.UI
 {
-    /// <summary>步进器（M4c）：-/值/+，min/max/step 钳制；onChanged 出整数值。</summary>
+    /// <summary>步进器：-/值/+，min/max/step 钳制；onChanged 出整数值。</summary>
     public class Stepper : MonoBehaviour
     {
         public Button Minus;

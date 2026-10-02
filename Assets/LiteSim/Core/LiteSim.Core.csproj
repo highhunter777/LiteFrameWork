@@ -1,7 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk">  <!--
     双轨编译（测试开发方案 §1.2）：LiteSim.Core 在 Unity（asmdef）与 dotnet（本 csproj）两侧编译。
     - 范围锁死 Scripts/ 运行时代码：Core 是 references:[] 零依赖程序集（noEngineReferences:true），纯 BCL
-    - Systems/ 同为运行时代码，与 Scripts/ 平级（2026-09-19 目录收纳的最终形态），故显式 include
+    - Systems/ 同为运行时代码，与 Scripts/ 平级，故显式 include
     - Editor/ 与 Scripts/Editor 用 UnityEditor，不进双轨（UnityEditor 命名空间 dotnet 侧编不过）
     - EnableDefaultCompileItems=false：SDK 默认 glob 会把 Editor/Unity 层扫进来，必须关掉改为显式 include
     - LangVersion 9.0：与 Unity 侧 C# 能力对齐，防双轨漂移（dotnet 侧先用了 Unity 编不了的语法 = 假绿）

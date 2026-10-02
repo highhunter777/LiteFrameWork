@@ -44,19 +44,11 @@ namespace Tools.DisciplineScan
         R11RuntimePurity = 11,
 
         /// <summary>R12 适配器边界（《商业级通用客户端框架总设计》§5.1"先在现有程序集内**形成逻辑边界**
-        /// 和**依赖测试**，稳定后再拆 asmdef/UPM"）：适配器实现只许在各自的边界目录内引用。
+        /// 和**依赖测试**，稳定后再拆 asmdef/UPM"）：适配器实现只许在各自的边界目录内引用——
+        /// 阻止耦合继续扩散（没有它，新代码可以随意再 import 一次，拆完 asmdef 也照样长回来）。
         ///
-        /// **为什么现在加**：通用服务已稳定（churn 过去），但一个 asmdef 吞下 YooAsset/xLua/DOTween，
-        /// 且**没有任何规则阻止耦合继续扩散**——新代码可以随意再 import 一次。
-        /// 这正是 §5.1 点名的"依赖测试"，也是将来拆 asmdef 的**前置条件**：
-        /// 不先钉住，拆完照样重新长回来。
-        ///
-        /// 边界与例外：
-        /// <list type="bullet">
-        /// <item>YooAsset → `Content/**`（内容适配器）</item>
-        /// <item>XLua → `Scripting/**`（脚本运行时与桥）</item>
-        /// <item>DG.Tweening → `UI/Anim/**`（动效适配）</item>
-        /// </list>
+        /// 边界：YooAsset → `Content/**`（内容适配器）；XLua → `Scripting/**`（脚本运行时与桥）；
+        /// DG.Tweening → `UI/Anim/**`（动效适配）。
         /// 例外行用 `lint-allow R12` 标注并写明理由（如"该文件本身就是场景适配器"）。</summary>
         R12AdapterBoundary = 12,
     }
@@ -104,7 +96,7 @@ namespace Tools.DisciplineScan
             @"\bIEnumerator\b|\b(?:StartCoroutine|StopCoroutine|StopAllCoroutines)\b|\byield\s+return\b",
             RegexOptions.Compiled);
 
-        /// <summary>R7：.meta 的 guid 行必须是 32 位 hex（2026-09-15 事故：64 位 base64 被 Unity 拒收）。</summary>
+        /// <summary>R7：.meta 的 guid 行必须是 32 位 hex（64 位 base64 会被 Unity 拒收）。</summary>
         private static readonly Regex MetaGuidValueRegex = new Regex(@"^[0-9a-fA-F]{32}$", RegexOptions.Compiled);
 
         /// <summary>R8：资源唯一入口——禁 Resources.Load / LoadAsync（LoadAll 等未列，按《测试开发方案》§7.6 口径）。
@@ -160,13 +152,13 @@ namespace Tools.DisciplineScan
         private static readonly (string Adapter, string[] AllowedRoots)[] R12Boundaries =
         {
             // 适配器层（《客户端总设计》§5 顶层框图第四层 `Adapters`）：
-            // 框架侧适配器统一住 `Assets/LiteClient/Adapters/<程序集后缀>/`（2026-10-01 随框架侧迁出 LiteGame），
+            // 框架侧适配器统一住 `Assets/LiteClient/Adapters/<程序集后缀>/`，
             // **目录名 = 层标签**（程序集名不含 Adapters 前缀；asmdef 不要求目录名与程序集名相同）。
             ("YooAsset", new[] { "Assets/LiteClient/Adapters/Content.YooAsset/" }),
             // XLua：宿主（env/预载/校验）住框架侧 Adapters；**Lua 桥**（生命周期/数据门面/注册表）是产品侧绑定层，
             // 住 `Assets/LiteGame/LuaBridge/`——同守本边界
             ("XLua", new[] { "Assets/LiteClient/Adapters/Scripting.XLua/", "Assets/LiteGame/LuaBridge/" }),
-            // Unity.InputSystem：输入设备适配（2026-09-26 New Input System 接入）——设备源是它的唯一消费者
+            // Unity.InputSystem：输入设备适配——设备源是它的唯一消费者
             ("UnityEngine.InputSystem", new[] { "Assets/LiteClient/Adapters/Platform.Unity/" }),
             // Cinemachine：相机适配（同上）——消费者只认 ICameraService 端口，不认识这个包
             ("Cinemachine", new[] { "Assets/LiteClient/Adapters/Platform.Unity/" }),
@@ -179,12 +171,11 @@ namespace Tools.DisciplineScan
         /// R12 边界表的**存在性守卫**：每条 AllowedRoots 必须在 repoRoot 下真实存在，否则报违规。
         ///
         /// **为什么需要它**：<see cref="IsAdapterBoundaryAllowed"/> 是纯 `StartsWith` 前缀比较——
-        /// 边界路径一旦因目录搬迁而陈旧，**不匹配任何真实文件 = 静默失效**：适配器 import 会在
-        /// 本应放行的地方被判违规（或反之），而没有任何东西会红。这与本文件"扫描目标必须存在"
-        /// 防的是同一类失效（R6/R10 曾因路径写错空扫至今）。
+        /// 边界路径一旦陈旧，**不匹配任何真实文件 = 静默失效**：适配器 import 会在
+        /// 本应放行的地方被判违规（或反之），而没有任何东西会红。这与"扫描目标必须存在"
+        /// 防的是同一类失效。
         ///
-        /// 拆程序集时会连续搬迁边界目录，此守卫让**规则表过期当场可见**，而不是等到某次无关改动
-        /// 意外触发边界判定才暴露。
+        /// 此守卫让**规则表过期当场可见**，而不是等到某次无关改动意外触发边界判定才暴露。
         /// </summary>
         public static IReadOnlyList<LintViolation> ValidateAdapterBoundaries(string repoRoot)
         {
@@ -283,7 +274,7 @@ namespace Tools.DisciplineScan
             if (p.EndsWith("/SimTrigTables.cs", StringComparison.Ordinal)) return true;
             if (p.EndsWith("/DisciplineScanner.cs", StringComparison.Ordinal)) return true;
             if (p.Contains("/Editor/") || p.EndsWith("/Editor", StringComparison.Ordinal)) return true;
-            if (p.Contains("/Vendor/")) return true; // 第三方 vendored 源码（kcp2k 等）——非自研代码不入纪律扫描（M10 批①）
+            if (p.Contains("/Vendor/")) return true; // 第三方 vendored 源码（kcp2k 等）——非自研代码不入纪律扫描
             return false;
         }
 

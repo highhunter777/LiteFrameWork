@@ -15,8 +15,7 @@ namespace MetaServer.Tests
     ///
     /// L1：纯逻辑 + DI 装配，不起监听。
     ///
-    /// 2026-09-25：本文件是三个实测缺陷的**回归钉**——当时骨架"看起来"符合 §10，
-    /// 但实际上非法配置能启动成功（见 <see cref="非法配置_ValidateOnStart拒绝启动"/>）。
+    /// 本文件钉住配置校验在启动路径上的拦截（见 <see cref="非法配置_ValidateOnStart拒绝启动"/>）。
     /// </summary>
     public sealed class MetaConfigTests
     {
@@ -90,14 +89,12 @@ namespace MetaServer.Tests
             Assert.NotEmpty(config.Validate());
         }
 
-        // ---- 以下三项为 2026-09-25 实测缺陷的回归钉 ----
+        // ---- 以下三项为配置校验的回归钉 ----
 
         /// <summary>
         /// §12"启动失败必须返回非零退出码，不能带默认错配置继续运行"。
         ///
-        /// **回归钉**：原实现把配置用 `AddSingleton(config)` 注册，与 `AddOptions&lt;MetaConfig&gt;()`
-        /// 解析出的是两个不同实例；`ValidateOnStart` 校验的是那个没人使用的对象，于是
-        /// 非法配置照样启动成功。此用例确保非法配置**在启动路径上**被拦下。
+        /// 此用例确保非法配置**在启动路径上**被拦下（校验对象必须与实际使用实例一致）。
         /// </summary>
         [Fact]
         [Trait(TestTrait.Category, TestCategory.Contract)]
@@ -109,7 +106,7 @@ namespace MetaServer.Tests
                 [MetaHost.ConfigSection + ":MaxInboundBytes"] = "10",               // 越下限
             };
 
-            // 校验可能在 Build 或 StartAsync 任一阶段触发（实测为 Build：Host 构造 ConsoleLifetime
+            // 校验可能在 Build 或 StartAsync 任一阶段触发（Host 构造 ConsoleLifetime
             // 时解析 IOptions<HostOptions> 即带出 MetaConfig 校验）。两个阶段都算"启动路径被拦住"。
             WebApplication app = null;
             try
@@ -130,8 +127,7 @@ namespace MetaServer.Tests
         /// <summary>
         /// §10 配置来源必须真正生效。
         ///
-        /// **回归钉**：原实现从自建实例读配置，配置文件/环境变量/命令行覆盖**全部静默失效**
-        /// （读到的永远是内联默认值）。此处经 `IOptions&lt;MetaConfig&gt;` 读，即实际生效的那一份。
+        /// 配置必须经 `IOptions&lt;MetaConfig&gt;` 读——那才是实际生效的那一份。
         /// </summary>
         [Fact]
         [Trait(TestTrait.Category, TestCategory.Contract)]

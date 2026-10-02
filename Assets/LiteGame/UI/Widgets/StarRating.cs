@@ -4,7 +4,7 @@ using UnityEngine.UI;
 
 namespace LiteGame.UI
 {
-    /// <summary>星级评分（M4c）：N 颗星（Image 子节点，顺序即星级），整星粒度；onChange 回调。</summary>
+    /// <summary>星级评分：N 颗星（Image 子节点，顺序即星级），整星粒度；onChange 回调。</summary>
     public class StarRating : MonoBehaviour
     {
         public Image[] Stars;

@@ -5,19 +5,18 @@ using System.Text;
 namespace LiteFramework
 {
     /// <summary>
-    /// 层级状态机（HSM，2026-09-17）：`StageMachine` 的超集——状态空间是一棵**树**（复合态可含子层），
+    /// 层级状态机（HSM）：`StageMachine` 的超集——状态空间是一棵**树**（复合态可含子层），
     /// 共享同一份 <see cref="IStage{TId,TReq}"/> 契约与"帧末应用 / last-wins / 离场禁改道"等语义。
-    /// flat 机 = 无复合态时的退化形态（两者有对拍用例）。
+    /// flat 机 = 无复合态时的退化形态。
     ///
-    /// 与平面机的差异（施工图 §2 十条语义）：
+    /// 与平面机的差异：
     /// ① **一次迁移 = 一次事务**：`Request` 只入队，`Advance` 应用——算出目标路径与当前活动路径的**共同祖先（LCA）**，
     ///    LCA 之下先按 **深→浅** 退出、再按 **浅→深** 进入，同帧原子完成（平面机的"一帧最多一变"在此改写为"一帧最多一次事务"）；
     /// ② **OnUpdate 传播：根→叶**；
     /// ③ **降层不重跑祖先**：目标已是活动路径上的祖先时只退出（不重跑它的 `OnEnter`）；
     /// ④ **显式目标优先、未指定层级按历史/初始展开**（`CompositeSpec.History`）——"回到父态"即"回到它上次的子页"；
     /// ⑤ **事件冒泡**：`Raise&lt;TEvt&gt;` 从最深活动态向根问 <see cref="IEventSink{TEvt}"/>，首个消费即停；
-    /// ⑥ **异常不捕获**（脊柱炸响语义同 flat）：事务中途抛 → 立即中止，活动路径保留**已完成部分**（不回滚），
-    ///    置 `Interrupted` 供诊断。
+    /// ⑥ **异常不捕获**：事务中途抛 → 立即中止，活动路径保留**已完成部分**（不回滚），置 `Interrupted` 供诊断。
     ///
     /// 宿主与快照：`ITickable` + `IModuleStats`。
     /// </summary>
@@ -165,7 +164,7 @@ namespace LiteFramework
             _pendingId = target;
             _pendingReq = req;
             _hasPending = true;
-            return true;                       // 层级机不做优先级抢占（见 ARPG 扩展施工图 §3 判据）
+            return true;                       // 层级机不做优先级抢占
         }
 
         public bool Request(TId target) => Request(target, default);

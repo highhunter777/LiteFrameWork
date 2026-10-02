@@ -24,7 +24,7 @@ namespace LiteGame
         /// <summary>超时兜底时长（§1.5.4 规则④）。</summary>
         public float MaxDuration;
 
-        /// <summary>本事务的取消源（U1-③，§6.3：超时/权威取消经它停止策略的 Tween/异步工作）。</summary>
+        /// <summary>本事务的取消源（§6.3：超时/权威取消经它停止策略的 Tween/异步工作）。</summary>
         public System.Threading.CancellationTokenSource Cts;
 
         /// <summary>表现终态容器（动画专项 §10"结束原因"出口；策略写、收尾读）。

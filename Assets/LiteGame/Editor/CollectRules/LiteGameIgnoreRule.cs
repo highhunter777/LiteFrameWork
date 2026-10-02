@@ -5,11 +5,11 @@ using YooAsset.Editor;
 namespace LiteGame.Editor
 {
     /// <summary>
-    /// 工程忽略规则（M3 步骤 2.2，2026-09-10 决策①定案）：**复刻 NormalIgnoreRule 全部行为**，
+    /// 工程忽略规则：**复刻 NormalIgnoreRule 全部行为**，
     /// 唯一差异——`/LiteGame/Lua/` 下的 DefaultAsset（.lua）**放行收集**（否则 Lua 文件被
-    /// "Default asset cannot be packed" 拒绝，M2 实测）。BundleCollectorSetting 包级
+    /// "Default asset cannot be packed" 拒绝）。BundleCollectorSetting 包级
     /// `IgnoreRuleName` 切换为本规则。影响面：其余收集目录无 DefaultAsset
-    /// （Config=.bytes / Scenes=.unity / GameMain/Configs），已核对（M3 指导 §1a）。
+    /// （Config=.bytes / Scenes=.unity / GameMain/Configs）。
     /// </summary>
     public class LiteGameIgnoreRule : IAssetIgnoreRule
     {

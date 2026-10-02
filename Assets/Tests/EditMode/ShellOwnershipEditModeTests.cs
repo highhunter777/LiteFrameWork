@@ -15,7 +15,7 @@ using UnityEngine.UI;
 namespace LiteGame.Tests.EditMode
 {
     /// <summary>
-    /// 表现壳所有权与时钟用例（G1 通用表现批）：
+    /// 表现壳所有权与时钟用例：
     /// ① PrefabLeaseCache——共享租约、ReleaseAll 归零、释放后拒绝（UI-05 同源问题的表现壳落点）；
     /// ② AudioService StopAll/Shutdown——总线全局停止与释放面（§6.2/§12.3 预算基线面）；
     /// ③ UiAnimationClock/DotweenUiClockDriver——DOTween Manual 轨按 UIClock 派发（暂停即停）+ 轨隔离，
@@ -38,7 +38,7 @@ namespace LiteGame.Tests.EditMode
 
             public UniTask InitializeAsync(CancellationToken ct = default) => UniTask.CompletedTask;
 
-            /// <summary>本替身不模拟内容发现——空清单（R12/§5.1 后契约新增的成员）。</summary>
+            /// <summary>本替身不模拟内容发现——空清单。</summary>
             public System.Collections.Generic.IReadOnlyList<string> ListAssetPathsByTag(string tag)
                 => System.Array.Empty<string>();
 
@@ -156,10 +156,9 @@ namespace LiteGame.Tests.EditMode
         }
 
         /// <summary>
-        /// 轨隔离（2026-09-24 DOTween 反射实证，Unity n Unit 双形态一致）：<c>ManualUpdate</c>
-        /// 只推进 <see cref="UpdateType.Manual"/> 轨——Normal/Late/Fixed 轨的既有 Tween 不受影响。
-        /// 这是 UIClock 接管"只动 UI 轨"的前提；若此用例失败，说明 DOTween 版本语义变化，
-        /// UiAnimationClock 的接线口径必须重新裁决。
+        /// 轨隔离：<c>ManualUpdate</c> 只推进 <see cref="UpdateType.Manual"/> 轨——
+        /// Normal/Late/Fixed 轨的既有 Tween 不受影响。这是 UIClock 接管"只动 UI 轨"的前提；
+        /// 若此用例失败，说明 DOTween 版本语义变化，UiAnimationClock 的接线口径须重新评估。
         /// </summary>
         [Test]
         public void 动效时钟_Manual轨只推进Manual_引擎轨不受影响()

@@ -6,18 +6,18 @@ using XLua;
 namespace LiteGame
 {
     /// <summary>
-    /// 事件桥（M3 §2.6，手册步骤 6）：C# 事件 → 逐回调 pcall（经 SafeCall）→ Lua 回调表。
+    /// 事件桥：C# 事件 → 逐回调 pcall（经 SafeCall）→ Lua 回调表。
     /// ① Lua 端 <c>events.on(name, fn)</c> 返回注销委托——Lua 闭包实现（core/eventer.lua 同款语义，
     ///    经诊断口装配，零白名单新增）；② 映射规则由事件桥认领：桥内维护 string 事件名 → C# 事件类型
     ///    的显式映射注册表（新增桥接事件 = 一行 Map）；③ 回调逐个 SafeCall：单个回调抛异常 →
-    ///    C# 日志可见、派发链存活（验收线 6）。生命周期：LuaComponent.Init 创建，Shutdown 先于 env.Dispose 释放。
+    ///    C# 日志可见、派发链存活。生命周期：LuaComponent.Init 创建，Shutdown 先于 env.Dispose 释放。
     /// </summary>
     public sealed class EventBridge : IDisposable
     {
-        /// <summary>M3 机制验证事件名（验收线 6 用；M5 起被真实玩法事件映射替代）。</summary>
+        /// <summary>机制验证事件名（无真实玩法事件时的探针词汇）。</summary>
         public const string ProbeEventName = "bridge.probe";
 
-        /// <summary>M3 机制验证事件——无真实玩法事件，不扩展此词汇（设计方案 §2.6"别造假事件"）。</summary>
+        /// <summary>机制验证事件——无真实玩法事件，不扩展此词汇（设计方案 §2.6"别造假事件"）。</summary>
         public sealed class BridgeProbeEvent
         {
             public string Message;
@@ -62,7 +62,7 @@ end";
             events.Set("on", on);
             env.Global.Set("events", events);
 
-            // 桥内显式映射注册表（新增桥接事件 = 这里加一行）——M3 最少集：1 个机制验证事件
+            // 桥内显式映射注册表（新增桥接事件 = 这里加一行）——当前仅 1 个机制验证事件
             Map<BridgeProbeEvent>(ProbeEventName, e => new object[] { e.Message });
         }
 

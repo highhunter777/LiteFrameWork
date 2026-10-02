@@ -9,8 +9,8 @@ using Xunit;
 namespace LiteNet.Tests
 {
     /// <summary>
-    /// R2 第一批宿主接线：只验 Worker Pool 装配与停止顺序。
-    /// Transport 回调仍是同步直投，真正的 Control/Input/Outbound 路由归后续批次。
+    /// 宿主接线：只验 Worker Pool 装配与停止顺序。
+    /// Transport 回调是同步直投，Control/Input/Outbound 路由由 Host owner 承担。
     /// </summary>
     public sealed class ServerHostWorkerPoolTests
     {

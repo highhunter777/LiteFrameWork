@@ -12,7 +12,7 @@ using Xunit;
 namespace LiteNet.Tests
 {
     /// <summary>
-    /// RoomServer 批② 验收用例（《M10 实施指导》§2.5/2.6）：
+    /// RoomServer 验收用例（《M10 实施指导》§2.5/2.6）：
     /// Join 信令（buildHash 拒绝与放行/满员自动 StartGame）/ 输入两层校验（非法帧号丢弃）/ 权威循环推帧
     /// （真实输入驱动状态变化）/ 掉线沿用不停帧。全部 .NET 侧闭环（同运行时红线，M9 决策⑩）。
     /// 形态：ServerHost 同进程内嵌 + 真实 KCP UDP 客户端（127.0.0.1 回环）。
@@ -28,8 +28,8 @@ namespace LiteNet.Tests
         public RoomServerTests() => _host = new ServerHost(new KcpTransportServer(), new RoomConfig { Port = Port });
 
         /// <summary>
-        /// 房间容量由配置决定（M10 架构审查·建议 2 验证，2026-09-19）：
-        /// 4 人房（M11 demo §9 验收形态）可满员、第五人被拒；席位/实体表/输入门/回溯环随配置定容。
+        /// 房间容量由配置决定：
+        /// 4 人房（demo §9 验收形态）可满员、第五人被拒；席位/实体表/输入门/回溯环随配置定容。
         /// 此举把"容量写死"的隐患钉在用例上——将来有人改回常量即红。
         /// </summary>
         [Fact]
@@ -210,7 +210,7 @@ namespace LiteNet.Tests
             Pump(400);
             Assert.True(_host.Room.AuthSim.Frame > frameBefore, "单人掉线后权威循环停帧（应沿用空输入继续）");
 
-            // R1 §9.1：全员离场 → 收尾关闭（不再对空房间无限空转；冻结结果并进入终态）
+            // §9.1：全员离场 → 收尾关闭（不再对空房间无限空转；冻结结果并进入终态）
             c2.Disconnect();
             Assert.True(WaitFor(() => _host.Room.Phase == MatchPhase.Closed, 5000),
                 $"全员离场应关闭对局（当前 Phase={_host.Room.Phase}）");

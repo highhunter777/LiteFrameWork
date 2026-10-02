@@ -5,7 +5,7 @@ using UnityEngine;
 namespace LiteGame
 {
     /// <summary>调试调参组件：Inspector 拖滑条实时调节运行时旋钮（§12.5）。
-    /// GameEntry 装配期注入目标（step 7）；Update 同步字段 → 目标（每帧几次赋值，零成本）。
+    /// GameEntry 装配期注入目标；Update 同步字段 → 目标（每帧几次赋值，零成本）。
     /// 挂 GameEntry 同 GameObject，随 DontDestroyOnLoad 常驻。release 构建零残留（条件编译）。</summary>
     public sealed class DebugTuner : MonoBehaviour
     {

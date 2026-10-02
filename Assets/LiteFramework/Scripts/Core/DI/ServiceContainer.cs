@@ -8,12 +8,12 @@ using System.Text;
 namespace LiteFramework
 {
     /// <summary>
-    /// 单例服务的构造装配器(composition root 工具,不是 IoC 框架——§3.2)。
+    /// 单例服务的构造装配器(composition root 工具,不是 IoC 框架)。
     /// 纪律:构造函数注入(唯一最长公共构造,歧义抛);注册期查重;
     /// Seal 封注册面(Resolve 不受限);注册即发现(注册顺序 = 驱动顺序)。
-    /// 诊断口径:错误在 Resolve 时点当场抛(未注册/循环依赖含链/构造抛真因),无 Validate 全量预检(2026-09-10 决策删除)。
-    /// 不做:属性注入/自动扫描/AOP/线程安全/Transient-Scoped(§3.2 不做清单)。主线程 only(§7.4)。
-    /// AOT:显式泛型注册零扫描;构造反射可用,实现类写进 link.xml(§7.2)。
+    /// 诊断口径:错误在 Resolve 时点当场抛(未注册/循环依赖含链/构造抛真因),无 Validate 全量预检。
+    /// 不做:属性注入/自动扫描/AOP/线程安全/Transient-Scoped。主线程 only。
+    /// AOT:显式泛型注册零扫描;构造反射可用,实现类写进 link.xml。
     /// </summary>
     public sealed class ServiceContainer : IServiceContainer, IModuleStats
     {
@@ -87,7 +87,7 @@ namespace LiteFramework
         {
             if (!_entries.TryGetValue(iface, out var e))
                 throw new InvalidOperationException(
-                    $"未注册的服务:{iface.Name}——一切服务在 ProcedureLaunch 显式注册(无自动扫描,§3.2)");
+                    $"未注册的服务:{iface.Name}——一切服务在 ProcedureLaunch 显式注册(无自动扫描)");
             if (e.Constructed) return e.Instance;
             if (!_building.Add(iface))
                 throw new InvalidOperationException(
@@ -118,7 +118,7 @@ namespace LiteFramework
                 Type dep = pars[i].ParameterType;
                 if (!_entries.ContainsKey(dep))
                     throw new InvalidOperationException(
-                        $"构造依赖未注册:{e.Impl.Name} 需要 {dep.Name}——裸值/配置经 RegisterInstance 或工厂提供(§3.2)");
+                        $"构造依赖未注册:{e.Impl.Name} 需要 {dep.Name}——裸值/配置经 RegisterInstance 或工厂提供");
                 args[i] = Resolve(dep);                         // 递归
             }
             try { return e.Ctor.Invoke(args); }

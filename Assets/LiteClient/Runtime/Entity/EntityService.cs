@@ -65,11 +65,10 @@ namespace LiteGame
     }
 
     /// <summary>
-    /// 实体壳（M4 §2.8，手册步骤 6）：句柄制实体管理叠在通用 <see cref="GameObjectPool"/> 之上
-    /// （2026-09-13 提炼：池化内核归 Unity 层通用池，本类只留实体语义——Reserve/竞态表/句柄制）。
-    /// 实体 = 视觉表现件，逻辑回 C# 玩法系统（设计方案 §4.1）——**不转发 Lua**。
-    /// 竞态语义（GF EntitiesToReleaseOnLoad 同款）：加载在途收到 Hide → 记入竞态表 →
-    /// 加载完成后取消显示（直接出返回 null）。生命周期回调 = IPoolLifecycle（通用池驱动）。
+    /// 实体壳：句柄制实体管理叠在通用 <see cref="GameObjectPool"/> 之上（池化内核归通用池，
+    /// 本类只留实体语义——Reserve/竞态表/句柄制）。实体 = 视觉表现件，逻辑回 C# 玩法系统——**不转发 Lua**。
+    /// 竞态语义：加载在途收到 Hide → 记入竞态表 → 加载完成后取消显示（直接出返回 null）。
+    /// 生命周期回调 = IPoolLifecycle（通用池驱动）。
     /// </summary>
     public sealed class EntityService : IModuleStats
     {
@@ -79,7 +78,7 @@ namespace LiteGame
         private readonly HashSet<int> _releaseOnLoad = new HashSet<int>();      // 加载竞态表
         private readonly Dictionary<int, int> _parentOf = new Dictionary<int, int>(8);                        // 挂接：child → parent
         private readonly Dictionary<int, List<int>> _attachments = new Dictionary<int, List<int>>(8);         // 挂接：parent → [child]（容器可枚举）
-        private readonly Func<string, CancellationToken, UniTask<GameObject>> _loadPrefab;   // 加载口（G1：绑 PrefabLeaseCache——租约持有；缺省静态门面为迁移期兼容）
+        private readonly Func<string, CancellationToken, UniTask<GameObject>> _loadPrefab;   // 加载口（装配点绑 PrefabLeaseCache——租约持有）
         private readonly CancellationTokenSource _lifetime = new CancellationTokenSource();   // 宿主关闭级联（在途加载链接它）
         private int _nextHandle = 1;
 
@@ -102,8 +101,7 @@ namespace LiteGame
         public int InFlightCount => _inFlight.Count;
 
         /// <param name="loadPrefab">prefab 加载口（装配点绑 <c>PrefabLeaseCache</c>——实例池常驻期间持租约）。
-        /// **必注入**：原先的 `null → AssetService` 静态回退已删（《客户端总设计》§5.1 逻辑边界）——
-        /// 它让实体服务（Runtime）反向依赖 YooAsset 适配器。全部调用点本就传了 loader（生产/测试皆然）。</param>
+        /// **必注入**——本类不回落静态门面，避免实体服务（Runtime）反向依赖 YooAsset 适配器。</param>
         public EntityService(Func<string, CancellationToken, UniTask<GameObject>> loadPrefab)
         {
             _loadPrefab = loadPrefab ?? throw new ArgumentNullException(nameof(loadPrefab));
@@ -196,7 +194,7 @@ namespace LiteGame
         }
 
         /// <summary>
-        /// 挂接（Attach/Detach 行为契约，M4 实施记录 2026-09-13 三语义定案）：
+        /// 挂接（Attach/Detach 行为契约）：
         /// child 挂到 parent 的命名锚点（锚点 = parent 实体内空 Transform，美术摆位；null = parent 根）。
         /// ① 宿主回收连锁收子件（Hide(parent) → 子件递归 Detach + Hide，归各自池——挂接件泄漏机制上不可发生）；
         /// ② Detach 与 Hide 分离（Detach = 脱离挂接保持显示；回收另走 Hide）；

@@ -3,7 +3,7 @@ using System;
 namespace LiteFramework
 {
     /// <summary>
-    /// 被抢占时原阶段的处置（2026-09-17 ARPG 形态扩展）：`Cancel` = 直接丢弃（默认）；`Resume` = 入恢复栈，
+    /// 被抢占时原阶段的处置：`Cancel` = 直接丢弃（默认）；`Resume` = 入恢复栈，
     /// 事后可 <c>TryResume()</c> 回来（受击硬直结束回到被打断的动作这类）。
     /// </summary>
     public enum ResumeMode : byte
@@ -13,7 +13,7 @@ namespace LiteFramework
     }
 
     /// <summary>
-    /// 请求被拒的原因（2026-09-17）：**只描述"正常路径的拒绝"**——
+    /// 请求被拒的原因：**只描述"正常路径的拒绝"**——
     /// 编程错误（未 Start / 未注册 / 重入 / OnLeave 窗口）仍然抛异常，不走这里。
     /// 读点：`StageMachine.LastReject`（每次请求后刷新，被接受则回 <see cref="None"/>）。
     /// </summary>
@@ -57,7 +57,7 @@ namespace LiteFramework
     }
 
     /// <summary>
-    /// 表驱动阶段的规格（2026-09-17）：**一行 = 一个状态的"数据"**，行为由通用
+    /// 表驱动阶段的规格：**一行 = 一个状态的"数据"**，行为由通用
     /// <see cref="TableStage{TId,TReq}"/> 统一承担——这是"状态多而规则同构"（格斗/ARPG 几十上百个动作态）
     /// 的表达方式：60 个状态 = 1 个实现 + 60 行 spec，而不是 60 个类。
     ///
@@ -69,7 +69,7 @@ namespace LiteFramework
         /// <summary>该行对应的阶段 id。</summary>
         public TId Id;
 
-        /// <summary>静态优先级（决策③）：大者胜；`Request` 的 `priorityOverride` 可临时覆盖。</summary>
+        /// <summary>静态优先级：大者胜；`Request` 的 `priorityOverride` 可临时覆盖。</summary>
         public int Priority;
 
         /// <summary>被抢占后是否入恢复栈。</summary>

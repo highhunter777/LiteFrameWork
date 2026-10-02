@@ -7,7 +7,7 @@ namespace LiteGame
     /// <summary>阶段共用动作（Out/In 两个阶段完全同构，收口在一处）。</summary>
     internal static class TransitionStageOps
     {
-        /// <summary>关输入锁（U1-③，§6.2/§6.3：接受即锁——阶段 OnEnter 时机，不等策略开始）。
+        /// <summary>关输入锁（§6.2/§6.3：接受即锁——阶段 OnEnter 时机，不等策略开始）。
         /// 职责分离：锁的是 <b>interactable</b>（本页可交互）；<b>blocksRaycasts 不动</b>——
         /// 打开的界面继续遮挡下层射线（"禁用页面交互 ≠ 停止阻挡下层射线"，§6.2）。幂等。</summary>
         internal static void CloseGate(UIForm form)

@@ -10,9 +10,8 @@ namespace LiteNet.Tests
     /// 假传输：只实现窄端口 <see cref="IRoomTransport"/>（不碰 kcp2k）——同时验证"端口够不够用"
     /// （若 ServerHost 用到端口外的东西，本类就编译不过，解耦度自证）。
     ///
-    /// **提为 namespace 级**（原为 ServerHostTransportTests 私有嵌套类）：加入票据准入用例后
-    /// 出现第二个消费者，再复制一份就会让"端口够不够用"的自证退化——两份假件各自漂移，
-    /// 谁编译不过都不再说明端口不够。故单一来源。
+    /// **namespace 级单一来源**：多个测试类共用它；若各持有私有副本，两份假件会各自漂移，
+    /// "端口够不够用"的自证便退化（谁编译不过都不再说明端口不够）。
     /// </summary>
     internal sealed class FakeRoomTransport : IRoomTransport
     {

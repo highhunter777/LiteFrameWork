@@ -3,7 +3,7 @@
   <!--
     双轨编译（测试开发方案 §1.2）：LiteFramework.Core 在 Unity（asmdef）与 dotnet（本 csproj）两侧编译。
     - 范围锁死 Scripts/Core：Core 是 **S2 契约共享**档位（《客户端与服务端共享代码范围专项设计》§2.1）——
-      义务是"零引擎 + **零第三方实现依赖**"。2026-10-01 批④ 起 UniTask 已随引它的件外提到
+      义务是"零引擎 + **零第三方实现依赖**"。UniTask 随引它的件外提到
       `LiteFramework.Async`（同目录 csproj），**本工程不再有任何 PackageReference**。
     - EnableDefaultCompileItems=false：SDK 默认 glob 会把 Unity 层源码扫进来，必须关掉改为显式 include
     - DefineConstants: LITEFRAMEWORK_DEBUG —— dotnet 侧 Debug 校验（重复归还检测/Validate 等）全量激活（§1.1）

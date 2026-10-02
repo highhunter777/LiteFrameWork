@@ -19,11 +19,11 @@ namespace LiteGame.Tests.EditMode
     /// **本地起 HTTP 监听做真实传输**——不需要外部 CDN，但也不是替身：
     /// 走的是 <c>UnityWebRequest</c> 全链路（TCP→HTTP→响应），
     /// 能抓到替身测试断言不了的传输层与 PlayerLoop 依赖问题
-    /// （实测：`GetAwaiter().GetResult()` 对 `SendWebRequest` 会抛 "Not yet completed"）。
+    /// （`GetAwaiter().GetResult()` 对 `SendWebRequest` 会抛 "Not yet completed"）。
     ///
     /// **形态**：异步用例用 <c>[UnityTest]</c> + <c>IEnumerator</c>——
     /// EditMode 下没有 PlayerLoop，`SendWebRequest` 的续延不在 MoveNext 点执行，
-    /// 同步忙等会挂起（实测），必须由 Test Framework 在帧间推进。
+    /// 同步忙等会挂起，必须由 Test Framework 在帧间推进。
     /// 纯同步用例（路径换算、构造校验）仍用 <c>[Test]</c>。
     /// </summary>
     public sealed class HttpCandidateFetcherEditModeTests : UnityTestBase

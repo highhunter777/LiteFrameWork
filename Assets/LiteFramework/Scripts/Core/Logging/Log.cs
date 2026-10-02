@@ -48,8 +48,7 @@ namespace LiteFramework
         /// PlayMode 套件会跑完整引导链（<c>PlatformInfrastructureModule</c> 调
         /// <c>SetHelper(new UnityLogHelper())</c>），此后 Unity 的 <c>LogAssert</c> 就开始看见
         /// 本来被静默丢弃的错误日志——**故意触发错误日志的 EditMode 用例随即被判定
-        /// "Unhandled log message"**（2026-09-26 实测：PlayMode 之后再跑 EditMode 必 5 红，
-        /// 而域重载后首跑 234/234 全绿）。
+        /// "Unhandled log message"**。
         ///
         /// **谁该调**：测试夹具的 Setup/TearDown（保证用例在确定状态下跑），
         /// 以及编辑器域重载入口。生产代码**不要**调——注入的 helper 是进程级设施。

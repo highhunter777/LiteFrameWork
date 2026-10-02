@@ -3,8 +3,8 @@ using System;
 namespace LiteSim.View
 {
     /// <summary>
-    /// 表现变换数学（《联机战斗演示专项设计》§2.4 C3——《M11实施指导》要求"插值/衰减抽成纯函数
-    /// （ViewTransformMath，无引擎依赖）→ 进 Tests/LiteSim.Core.Tests（L1 覆盖）"，避免"表现数学
+    /// 表现变换数学（《联机战斗演示专项设计》§2.4 C3：插值/衰减抽成纯函数
+    /// （ViewTransformMath，无引擎依赖）→ 进 Tests/LiteSim.Core.Tests（L1 覆盖），避免"表现数学
     /// 只能靠肉眼验"）：
     ///
     /// **本文件零引擎依赖**——只用 <see cref="SimVector3"/> 与 System.Math。它同时被

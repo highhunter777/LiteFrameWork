@@ -1,9 +1,9 @@
 namespace LiteSim
 {
     /// <summary>
-    /// 单玩家一帧的输入面（M8 决策 #17；**2026-09-17 瞄准表示改造：`Yaw` → `AimX/AimZ`**，见
+    /// 单玩家一帧的输入面（瞄准存方向不存角度，见
     /// 《角色状态与动作实现设计》§7-1；**P0 动作意图扩展**：《游戏业务系统总设计》§3.2 输入位和边沿）。
-    /// 采集侧（M8 沙盒直接喂 / M11 输入服务 `LiteGame.IInputService`）组装；Sim 侧只消费。
+    /// 采集侧（沙盒直接喂 / 输入服务 `LiteGame.IInputService`）组装；Sim 侧只消费。
     /// **瞄准存方向不存角度**：射击射线本就需要方向（省一次三角函数往返）、无角度环绕与量化边界问题；
     /// 朝向 `EntitySlot.Yaw` 降为 **Sim 内派生量**（InputSystem 经 `SimTrig.Atan2` 算，表现层仍需要朝向）。
     /// Step 收到的输入数组按 playerId 升序排列，数组顺序即处理顺序（§3.3 同帧多请求的确定性来源）。
@@ -14,7 +14,7 @@ namespace LiteSim
     /// </summary>
     public struct SimInputFrame
     {
-        /// <summary>开火位（M8，连续意图）。</summary>
+        /// <summary>开火位（连续意图）。</summary>
         public const uint ButtonFire = 1u << 0;
 
         /// <summary>换弹（P0，离散意图——带 action_seq）。</summary>
@@ -56,10 +56,10 @@ namespace LiteSim
         public const uint PredictedButtons = ButtonAim;
 
         /// <summary>
-        /// **服务器回溯专用**：本槽输入表示"该实体在回溯帧上补判一次开火"（《M10实施指导》决策 8）。
+        /// **服务器回溯专用**：本槽输入表示"该实体在回溯帧上补判一次开火"。
         /// 不是客户端能上报的按键位——传输层把 <c>Buttons</c> 限制在已定义的玩家按键集合（见 InputGate），
         /// 服务器内部构造的补判输入才带此位；<see cref="ShootingSystem"/> 据此跳过移动向量归一化、
-        /// 并跳过"武器冷却/弹药"类前置（M8 无此状态，先落下契约以免 M11 加武器系统时漏改）。
+        /// 并跳过"武器冷却/弹药"类前置（当前无此状态，先落下契约以免后续加武器系统时漏改）。
         /// </summary>
         public const uint ButtonFireFlag = 1u << 31;
 

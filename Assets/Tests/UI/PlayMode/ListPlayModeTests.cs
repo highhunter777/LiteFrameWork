@@ -14,7 +14,7 @@ using UnityEngine.UI;
 namespace LiteGame.Tests.UI.PlayMode
 {
     /// <summary>
-    /// 列表真资源段 PlayMode 用例（包③覆盖度余部——§8.2 窗口复用在真实 PlayerLoop 下的滚动往返）。
+    /// 列表真资源段 PlayMode 用例（§8.2 窗口复用在真实 PlayerLoop 下的滚动往返）。
     ///
     /// 与 EditMode 虚拟列表用例的差异：本组走**真 prefab**（ListScreen = 页面根 + VirtualList 模板，
     /// 构建器确定性生成）+ **真实布局与滚动管线**（ScrollRect.onValueChanged → Update 窗口重算），
@@ -146,7 +146,7 @@ namespace LiteGame.Tests.UI.PlayMode
                 $"滚到底后窗口首索引应达高段（500-容量±裕量）——实际:{list.FirstIndex}");
             Assert.Less(list.RealizedCount, 500, "底部窗口节点仍恒定于容量");
 
-            // 滚回顶：窗口回退、索引 0 重新入窗（旧实现的"滚出去回不来"缺陷回归线）
+            // 滚回顶：窗口回退、索引 0 重新入窗
             scroll.verticalNormalizedPosition = 1f;
             yield return null; yield return null;
             Assert.AreEqual(0, list.FirstIndex, "回顶后窗口首索引归零（可往返——UI-07 回归）");

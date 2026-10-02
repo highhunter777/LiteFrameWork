@@ -7,7 +7,7 @@ using UnityEngine;
 namespace LiteSim.View.Animation
 {
     /// <summary>
-    /// 开火·静止（六次裁决"窗内保持 clip"）：Fire 事件进态 → 播一轮站姿射击（2× 单次）；
+    /// 开火·静止（"窗内保持 clip"）：Fire 事件进态 → 播一轮站姿射击（2× 单次）；
     /// **片段播完 ∧ 窗在 → 态内切持枪站姿（AimIdle 循环）填窗，不迁移**；窗内新事件 → 重播片段
     /// ＋窗已重置（在播吞——重提会按第 0 帧并刷终态）；起跑 → 迁 FireWalk（片段由 AimMoveBlend
     /// 提交替换、**窗不清**——限速语境保持）。
@@ -44,7 +44,7 @@ namespace LiteSim.View.Animation
 
             if (_fireClip.IsValid)
             {
-                // 本轮片段播完 ∧ 窗在 → 态内切持枪循环（窗长 > 片段时长的填窗段——v0.6 核心）
+                // 本轮片段播完 ∧ 窗在 → 态内切持枪循环（窗长 > 片段时长的填窗段）
                 if (_ctx.Player.TryGetState(_fireClip, out var st) && !st.IsPlaying)
                 {
                     _fireClip = default;

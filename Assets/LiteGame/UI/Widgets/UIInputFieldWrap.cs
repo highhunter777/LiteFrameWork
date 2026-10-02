@@ -8,7 +8,7 @@ using UnityEngine.UI;
 
 namespace LiteGame.UI
 {
-    /// <summary>输入框封装（M4 §2.5/控件库）：UGUI InputField + 校验 hook（返回 false = 拒绝本次提交）。</summary>
+    /// <summary>输入框封装（控件库）：UGUI InputField + 校验 hook（返回 false = 拒绝本次提交）。</summary>
     public class UIInputFieldWrap : MonoBehaviour
     {
         public TMP_InputField Field;

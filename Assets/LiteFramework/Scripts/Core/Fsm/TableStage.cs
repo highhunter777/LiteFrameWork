@@ -3,7 +3,7 @@ using System;
 namespace LiteFramework
 {
     /// <summary>
-    /// 表驱动阶段（2026-09-17 ARPG 形态扩展）：**所有同构状态共享这一个实现**，行为全部读
+    /// 表驱动阶段：**所有同构状态共享这一个实现**，行为全部读
     /// <see cref="StageSpec{TId,TReq}"/>；与平面机（<see cref="StageMachine{TId,TReq}"/>）配套使用。
     ///
     /// **零自身状态**（关键）：驻留帧数从 `host.StageFrames` 读，不自己存——因此同一个 `TableStage` 实例
@@ -43,7 +43,7 @@ namespace LiteFramework
             if (_spec.DurationFrames <= 0 || m.StageFrames < _spec.DurationFrames) return;
 
             // 到点：优先恢复栈顶（"被打断的动作/硬直结束回到原状态"），否则走表里配的下一步
-            //   恢复栈只在抢占机上有 → 探针指向 PreemptiveStageMachine（基础机没有该能力，见能力分层表）
+            //   恢复栈只在抢占机上有 → 探针指向 PreemptiveStageMachine
             if (_spec.AutoResumeOnEnd && m is PreemptiveStageMachine<TId, TReq> machine && machine.TryResume()) return;
             if (_spec.HasNext) m.Request(_spec.NextId);
         }

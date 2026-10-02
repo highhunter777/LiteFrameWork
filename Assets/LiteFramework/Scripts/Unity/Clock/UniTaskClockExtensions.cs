@@ -15,7 +15,7 @@ namespace LiteFramework
             id = clock.Schedule(seconds, () => { reg.Dispose(); source.TrySetResult(); });
             return source.Task;                                // 已派发后 Cancel(id) 由调度器侧幂等;双完成 Try* 均为 no-op
         }
-        // LiteFramework.Unity · UniTask 适配扩展(封装层内部用原语,业务禁止——§7.7)
+        // LiteFramework.Unity · UniTask 适配扩展(封装层内部用原语,业务禁止)
         public static async UniTask WaitAsync(this IGameClock clock, float seconds, CancellationToken ct = default)
         {
             float remaining = seconds;

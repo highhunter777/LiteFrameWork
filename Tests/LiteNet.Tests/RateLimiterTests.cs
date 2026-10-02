@@ -4,7 +4,7 @@ using Xunit;
 namespace LiteNet.Tests
 {
     /// <summary>
-    /// 分层限流用例（R2 安全批③；《商业级通用服务端框架总设计》§595"限流可按 IP/账号/Session 生效"、
+    /// 分层限流用例（《商业级通用服务端框架总设计》§595"限流可按 IP/账号/Session 生效"、
     /// §343"限流桶必须有容量上限和周期清理"）。纯 L1：全部显式传虚拟毫秒，不碰系统时钟
     /// （与 <see cref="ReconnectService"/> 用例同一纪律）。
     /// </summary>

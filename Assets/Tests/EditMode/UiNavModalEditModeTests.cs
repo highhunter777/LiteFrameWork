@@ -12,7 +12,7 @@ using UnityEngine.UI;
 namespace LiteGame.Tests.EditMode
 {
     /// <summary>
-    /// U2 首版导航与模态栈（《UI框架总设计》§4.3 单写者串行/队列上限/等待超时/取消；
+    /// U2 导航与模态栈（《UI框架总设计》§4.3 单写者串行/队列上限/等待超时/取消；
     /// §6.2 模态优先 Back、模态射线遮蔽、输入协调组成输入）+ UiFx 原语中断复位（动画专项 §14 清单）。
     /// 全替身（FakeCatalog/GateLoader/Unowned 租约）——零真资源依赖。
     /// </summary>
@@ -343,7 +343,7 @@ namespace LiteGame.Tests.EditMode
             }
             Assert.AreEqual(0.8f, image.color.a, 0.0001f, "Pulse 中断复位=原透明度");
 
-            // Flash：白高亮回落——完成态=原色（修正登记：原实现回落固定色）
+            // Flash：白高亮回落——完成态=原色
             image.color = new Color(0.9f, 0.2f, 0.3f, 1f);
             using (var h = UiFx.Flash(image))
             {

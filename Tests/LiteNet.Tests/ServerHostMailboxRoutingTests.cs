@@ -9,7 +9,7 @@ using Xunit;
 namespace LiteNet.Tests
 {
     /// <summary>
-    /// R2 第二批第一阶段：Transport 入站先进入每房间 Mailbox，仍由 Host owner 单线程消费。
+    /// Transport 入站先进入每房间 Mailbox，由 Host owner 单线程消费。
     /// WorkerPool 不执行 Runtime；这些用例只钉路由、优先级与满载语义。
     /// </summary>
     public sealed class ServerHostMailboxRoutingTests

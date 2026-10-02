@@ -7,7 +7,7 @@ namespace LiteSim.View.Animation
     /// <summary>
     /// 上半身 LayerMask 的构造工厂（《动画模块专项设计》§6"通道之间的 Mask、覆盖和混合关系由 Profile 固定"）。
     ///
-    /// **自动派生（2026-09-28 起——逐骨手工登记废弃）**：
+    /// **自动派生**：
     /// - humanoid 部位位：开 Body/Head/双臂/手指，关双腿与各 IK；<b>Root 位关闭</b>（Body 已含髋部，
     ///   避免叠加层连根位移一起覆盖基础层）；
     /// - transform 段：遍历动画机下整棵层级，**默认全部纳入**，仅三类不进——①动画机根自身（Root 位关闭）

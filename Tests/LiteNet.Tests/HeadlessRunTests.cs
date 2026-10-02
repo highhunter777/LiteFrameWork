@@ -163,7 +163,7 @@ namespace LiteNet.Tests
             Assert.True(b.Sim.State.Frame <= _host.Room.AuthSim.Frame + SimConfig.MaxCatchUp, "B 预测发散");
         }
 
-        // ---- R1 批③：断线重连闭环（§9.3；真实 UDP 回环 + 真实 KCP 重拨）----
+        // ---- 断线重连闭环（§9.3；真实 UDP 回环 + 真实 KCP 重拨）----
 
         [Fact]
         public void 断线重连_席位保留_恢复后增量广播继续()

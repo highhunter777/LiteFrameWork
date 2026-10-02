@@ -10,12 +10,12 @@ using UnityEngine;
 namespace LiteGame.Editor
 {
     /// <summary>
-    /// 配置链路面板（M2 冒烟件升级为可配置面板）。三区：
+    /// 配置链路面板。三区：
     /// ① 运行状态——Play/AssetService/配置/FSM 流程/错误计数，Play 中 0.5s 自动刷新；
     /// ② 表查询——表清单由反射从 cfg.Tables 自动发现（新增 Luban 表零改动），key 可配（int 优先，退化 string），
     ///    结果显示行总数 + 命中行字段 dump，未命中明确提示；
     /// ③ 产物核对——ConfigService.TableDataFiles 逐项 File.Exists（缺失标红）。
-    /// 配置持久化走 EditorPrefs；正式断言权威在测试项目（Luban.Runtime 带引擎依赖进不了 xUnit 双轨，M2 指导 §6）。
+    /// 配置持久化走 EditorPrefs；正式断言权威在测试项目（Luban.Runtime 带引擎依赖进不了 xUnit 双轨）。
     /// </summary>
     public sealed class ConfigPanel : EditorWindow
     {
@@ -93,7 +93,7 @@ namespace LiteGame.Editor
             DrawFilesSection();
             EditorGUILayout.Space(6);
             EditorGUILayout.HelpBox(
-                "Play 冒烟升级自 M2 菜单项：查询走运行时真实配置（需 Play 且配置已加载）；场景操作为机制级验证（加载/卸载/叠加语义）；产物核对为文件级预检，不依赖运行时。",
+                "查询走运行时真实配置（需 Play 且配置已加载）；场景操作为机制级验证（加载/卸载/叠加语义）；产物核对为文件级预检，不依赖运行时。",
                 MessageType.Info);
 
             EditorGUILayout.EndScrollView();

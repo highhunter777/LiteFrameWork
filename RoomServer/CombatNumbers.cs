@@ -5,22 +5,15 @@ using LiteSim;
 namespace RoomServer
 {
     /// <summary>
-    /// 服务端玩法数值装载（《玩法数值解耦审查与Luban表设计》§3.2，2026-09-19；
-    /// **2026-09-28 切 .bytes**——用户裁决"服务器也用 .bytes"）：
+    /// 服务端玩法数值装载（《玩法数值解耦审查与Luban表设计》§3.2）：
     /// 服务端跑**权威 Sim**，必须与客户端拿到**同一份手感数值**——否则同一份输入两端算出不同结果，
     /// 表现为和解风暴。
     ///
-    /// **当前主源链路**（2026-09-28 终态）：本类直读**客户端同一份 .bytes**
-    /// （`Assets/GameData/Config/*.bytes`，gen.bat Pass 1 产出；缺省走 `LoadFromRepo` 仓库路径，
-    /// `--combat-table <目录>` 显式覆盖）——原 roomserver.json combat 内联分区废弃（单源表格式
-    /// 由 json 切 bin 后，内联 json 形态成了第二真相源，让位）。两端同代码（生成物源链接共编）
+    /// **主源链路**：本类直读**客户端同一份 .bytes**（`Assets/GameData/Config/*.bytes`，gen.bat Pass 1 产出；
+    /// 缺省走 `LoadFromRepo` 仓库路径，`--combat-table <目录>` 显式覆盖）。两端同代码（生成物源链接共编）
     /// 同数据（同一份二进制），物理上不可能漂移。
     ///
-    /// **历史前提已失效**：2026-09-19 选 json 是因为 Luban C# 运行时是本机 `file:` 依赖、
-    /// .NET 8 引用不了——现包已 embedded 入库（`Packages/com.code-philosophy.luban`），
-    /// RoomServer 源链接其 Runtime + Generated，约束不成立。
-    ///
-    /// **一致性双保险**不变：① 两端数值同源（同一 .bytes）② 表数据进 buildHash
+    /// **一致性双保险**：① 两端数值同源（同一 .bytes）② 表数据进 buildHash
     /// （`scripts/gen-build-hash.py`），版本不一致直接在 Join 握手被拒。
     /// </summary>
     public static class CombatNumbers

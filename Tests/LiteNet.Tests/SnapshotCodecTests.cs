@@ -20,7 +20,7 @@ namespace LiteNet.Tests
             s.Entities[slot0].Kills = 3;
             s.Entities[slot0].Deaths = 1;
             s.Entities[slot0].SelectedWeapon = 1;
-            s.Entities[slot1].FireStanceFrames = (byte)CombatConfig.FireStanceFrames;   // 批次D：开火驻留窗往返覆盖（公共面——回滚基线重建面）
+            s.Entities[slot1].FireStanceFrames = (byte)CombatConfig.FireStanceFrames;   // 开火驻留窗往返覆盖（公共面——回滚基线重建面）
             s.Actions[slot0 * SimConfig.ActionSlotsPerEntity] = new ActionRuntime
             {
                 ActionId = 301, StartFrame = 120, Phase = ActionPhase.Active, CastToken = 7,
@@ -57,7 +57,7 @@ namespace LiteNet.Tests
                 Assert.Equal(e.Kills, back.Kills);
                 Assert.Equal(e.Deaths, back.Deaths);
                 Assert.Equal(e.SelectedWeapon, back.SelectedWeapon);
-                Assert.Equal(e.FireStanceFrames, back.FireStanceFrames);   // 批次D：开火驻留窗（公共面往返）
+                Assert.Equal(e.FireStanceFrames, back.FireStanceFrames);   // 开火驻留窗（公共面往返）
 
                 // 主动作摘要（公共面——技能槽冷却/充能不在此，那是私有面）
                 ActionRuntime action = SnapshotCodec.ActiveActionFromDelta(wire);

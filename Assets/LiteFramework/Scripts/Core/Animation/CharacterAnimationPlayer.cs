@@ -4,27 +4,27 @@ using System.Collections.Generic;
 namespace LiteFramework.Animation
 {
     /// <summary>
-    /// 角色动画播放器（《动画模块专项设计》§5/§6——批次"基础契约与 UI 接缝"的核心件）。
+    /// 角色动画播放器。
     ///
-    /// 职责边界：**只解决视觉通道归属**（§6"业务优先级由 Sim/Driver 解释；播放器只解决视觉通道归属"）。
+    /// 职责边界：**只解决视觉通道归属**（业务优先级由 Sim/Driver 解释；播放器只解决视觉通道归属）。
     /// 它不认识"角色是否允许换弹"、不扣弹、不写 Sim，也不碰 VFX/Audio。
     ///
     /// 落实的关键契约：
-    /// - **一个已接受请求只产生一次终态**，且回调重入不能让旧请求再次结束或写回新实例（§5）；
-    /// - **旧 Handle 不能停止复用对象的新播放**——句柄带 (播放器, Owner 代次, 请求序号) 三分量（§5）；
-    /// - **替换加载中的请求必须终止旧待提交 Handle**，迟到加载只释放自己的资源、不抢回通道（§6）；
-    /// - **终态记录有界保留**，过期查询返回未找到，不把已完成 Handle 永久留在全局表（§5）；
-    /// - 各通道**至多一个待提交 + 一个当前播放**，无默认队列（§6/§12）；
+    /// - **一个已接受请求只产生一次终态**，且回调重入不能让旧请求再次结束或写回新实例；
+    /// - **旧 Handle 不能停止复用对象的新播放**——句柄带 (播放器, Owner 代次, 请求序号) 三分量；
+    /// - **替换加载中的请求必须终止旧待提交 Handle**，迟到加载只释放自己的资源、不抢回通道；
+    /// - **终态记录有界保留**，过期查询返回未找到，不把已完成 Handle 永久留在全局表；
+    /// - 各通道**至多一个待提交 + 一个当前播放**，无默认队列；
     /// - **混合播放与单片段共用同一套通道仲裁**（<c>PlayBlend</c>），但永不 Completed——混合集合没有
-    ///   单一结束边界（§5）；
-    /// - 销毁顺序：代次失效 → 取消在途 → 撤销订阅 → 释放后端（§9）。
+    ///   单一结束边界；
+    /// - 销毁顺序：代次失效 → 取消在途 → 撤销订阅 → 释放后端。
     ///
-    /// 时钟：本类不持有分域时钟——由调用方（Driver/容器）按 §7 的更新次序把已缩放的
-    /// delta 交给 <c>Tick</c>；播放器**不再次乘 TimeScale**（§7"避免重复缩放"）。
+    /// 时钟：本类不持有分域时钟——由调用方（Driver/容器）按既定更新次序把已缩放的
+    /// delta 交给 <c>Tick</c>；播放器**不再次乘 TimeScale**（避免重复缩放）。
     /// </summary>
     public sealed class CharacterAnimationPlayer : IDisposable
     {
-        /// <summary>终态记录上限（§5"有界保留"；超出按最旧淘汰，淘汰计数留痕）。</summary>
+        /// <summary>终态记录上限（有界保留；超出按最旧淘汰，淘汰计数留痕）。</summary>
         public const int TerminalRetentionCapacity = 64;
 
         private static int s_nextPlayerId = 1;
@@ -55,16 +55,16 @@ namespace LiteFramework.Animation
         private int _sequence;
         private bool _disposed;
 
-        /// <summary>终态回调（Handle + 终态；**恰好一次**）。Owner 订阅；播放器不等待它推进任何事实（§5）。</summary>
+        /// <summary>终态回调（Handle + 终态；**恰好一次**）。Owner 订阅；播放器不等待它推进任何事实。</summary>
         public event Action<AnimationHandle, AnimationTerminalState> OnTerminal;
 
-        /// <summary>因容量淘汰而丢弃的终态记录数（诊断；§12"容量不足必须计数诊断"）。</summary>
+        /// <summary>因容量淘汰而丢弃的终态记录数（诊断；容量不足必须计数诊断）。</summary>
         public int EvictedTerminalRecords { get; private set; }
 
         /// <summary>被拒绝的请求数（诊断）。</summary>
         public int RejectedRequests { get; private set; }
 
-        /// <summary>Owner 代次（失效即旧句柄全体作废；§9"使 Owner 代次失效并停止接受请求"）。</summary>
+        /// <summary>Owner 代次（失效即旧句柄全体作废；使 Owner 代次失效并停止接受请求）。</summary>
         public int OwnerGeneration => _ownerGeneration;
 
         public bool IsDisposed => _disposed;
@@ -77,7 +77,7 @@ namespace LiteFramework.Animation
             _playerId = System.Threading.Interlocked.Increment(ref s_nextPlayerId);
         }
 
-        /// <summary>提交播放（§5 Play）。返回拒绝时**不改变现有播放**。</summary>
+        /// <summary>提交播放。返回拒绝时**不改变现有播放**。</summary>
         public AnimationStartResult Play(in AnimationRequest request)
         {
             if (_disposed)
@@ -89,7 +89,7 @@ namespace LiteFramework.Animation
                 return AnimationStartResult.Reject(reason);
             }
 
-            // 能力校验：后端不支持的能力**明确拒绝**，不静默降级（§4"不把不支持的能力静默降级"）
+            // 能力校验：后端不支持的能力**明确拒绝**，不静默降级
             if (!CapabilitiesAllow(resolved.StartNormalized, resolved.Speed, resolved.Channel))
             {
                 RejectedRequests++;
@@ -104,11 +104,11 @@ namespace LiteFramework.Animation
         }
 
         /// <summary>
-        /// 提交混合播放（§5 Play 的混合面）：与 <see cref="Play"/> **共用同一套通道仲裁**
+        /// 提交混合播放：与 <see cref="Play"/> **共用同一套通道仲裁**
         /// （<see cref="TakeChannel"/>——同通道替换收 Interrupted、句柄三分量、终态恰好一次、每通道至多一个当前），
         /// 差异只有两点：
         /// ① **不走装载路径**：槽位绑定必须已可直接提交（混合不做资源加载，解析期已拒空槽位）；
-        /// ② **永不 Completed**：混合集合没有单一结束边界（§5），后端不把它纳入完成掩码——
+        /// ② **永不 Completed**：混合集合没有单一结束边界，后端不把它纳入完成掩码——
         /// 它只能被替换/停止/释放收终态。
         /// 返回拒绝时**不改变现有播放**（与 Play 同规矩）；前端能力位缺失时**显性拒绝**而非降级成单片段。
         /// </summary>
@@ -123,7 +123,7 @@ namespace LiteFramework.Animation
                 return AnimationStartResult.Reject(reason);
             }
 
-            // 能力位：混合路径**必需** ClipBlending——降级成单片段播放等于静默丢掉权重语义（§4）
+            // 能力位：混合路径**必需** ClipBlending——降级成单片段播放等于静默丢掉权重语义
             if ((_backend.Capabilities & AnimationBackendCapabilities.ClipBlending) == 0
                 || !CapabilitiesAllow(resolved.StartNormalized, resolved.Speed, resolved.Channel))
             {
@@ -139,7 +139,7 @@ namespace LiteFramework.Animation
         }
 
         /// <summary>
-        /// 就地更新混合权重（**连续调参路径**，§5"连续参数更新…按实际需要提供独立接口"）：
+        /// 就地更新混合权重（**连续调参路径**）：
         /// 权重随速度/方向逐帧变化时用它，而不是每帧 <see cref="PlayBlend"/>——后者会换句柄、
         /// 给旧播放收 Interrupted，让"连续调参"表现成"反复打断"。
         /// 句柄必须仍是**该通道的当前播放**（旧句柄/已终态/已被替换 → false）；不产生终态、不换句柄。
@@ -172,7 +172,7 @@ namespace LiteFramework.Animation
 
         /// <summary>
         /// 装载完成回填（由资源侧在装载结束时调用）。**只有仍是该通道当前请求时才提交**——
-        /// 迟到结果只释放自己的资源，绝不抢回通道（§6）。
+        /// 迟到结果只释放自己的资源，绝不抢回通道。
         /// </summary>
         public void CompleteLoad(AnimationHandle handle, bool loadSucceeded, in AnimationResolvedPlayback resolved)
         {
@@ -189,20 +189,20 @@ namespace LiteFramework.Animation
         }
 
         /// <summary>
-        /// 停止（§5 Stop）。返回 false = 句柄不指向当前播放（重复 Stop / 旧句柄 / 未知）。
+        /// 停止。返回 false = 句柄不指向当前播放（重复 Stop / 旧句柄 / 未知）。
         /// **不重复通知**：已终态的 Handle 再次 Stop 是 no-op。
         /// </summary>
         public bool Stop(AnimationHandle handle, AnimationStopReason reason)
         {
             if (_disposed) return false;
-            if (IsTerminal(handle)) return false;                     // 重复 Stop 不重复通知（§13-3）
-            if (!TryFindCurrent(handle, out var channel, out var slot)) return false;   // 旧 Handle 不能停新播放（§5）
+            if (IsTerminal(handle)) return false;                     // 重复 Stop 不重复通知
+            if (!TryFindCurrent(handle, out var channel, out var slot)) return false;   // 旧 Handle 不能停新播放
 
             Finish(channel, handle, slot.CurrentId, ToTerminal(reason));
             return true;
         }
 
-        /// <summary>查询播放状态。**终态记录有界保留**——过期/未知返回 false（§5）。</summary>
+        /// <summary>查询播放状态。**终态记录有界保留**——过期/未知返回 false。</summary>
         public bool TryGetState(AnimationHandle handle, out AnimationPlaybackState state)
         {
             state = default;
@@ -223,7 +223,7 @@ namespace LiteFramework.Animation
         }
 
         /// <summary>
-        /// 每帧推进（**唯一驱动入口**，§7"Graph Evaluate 只由一个驱动器调用"）：
+        /// 每帧推进（**唯一驱动入口**——Graph Evaluate 只由一个驱动器调用）：
         /// **先单次采样全部通道**（一次 <c>Tick</c>，绝不逐通道循环驱动——那会把时间重复推进），
         /// 再按返回的通道掩码，把自然结束的播放逐通道收成 Completed。delta 由调用方按分域时钟给出；
         /// 播放器不再次缩放。
@@ -250,7 +250,7 @@ namespace LiteFramework.Animation
         }
 
         /// <summary>
-        /// Owner 换代（对象被池化复用，§9"使 Owner 代次失效并停止接受请求"）：
+        /// Owner 换代（对象被池化复用，使 Owner 代次失效并停止接受请求）：
         /// 旧代次的所有当前播放得 OwnerDisposed 终态，随后递增代次——旧句柄就此失效。
         /// </summary>
         public int BumpOwnerGeneration()
@@ -262,7 +262,7 @@ namespace LiteFramework.Animation
         }
 
         /// <summary>
-        /// 释放（§9 销毁顺序）：代次失效 → 停止接受请求 → 在途/当前播放确定终态 → 撤销订阅 → 释放后端。幂等。
+        /// 释放（销毁顺序）：代次失效 → 停止接受请求 → 在途/当前播放确定终态 → 撤销订阅 → 释放后端。幂等。
         /// </summary>
         public void Dispose()
         {
@@ -271,7 +271,7 @@ namespace LiteFramework.Animation
             DisposeCurrentPlays();
 
             _disposed = true;                       // 使代次失效并停止接受请求（后续 Play 一律 OwnerUnavailable）
-            OnTerminal = null;                      // 撤销订阅（不再向已释放的 Owner 回调）
+            OnTerminal = null;                      // 撤销订阅（不向已释放的 Owner 回调）
 
             _backend.Dispose();                     // 最后才释放后端持有的引擎对象/绑定
 
@@ -301,7 +301,7 @@ namespace LiteFramework.Animation
             return handle;
         }
 
-        /// <summary>能力校验（Play/PlayBlend 共用）：后端不支持的能力**明确拒绝**，不静默降级（§4）。</summary>
+        /// <summary>能力校验（Play/PlayBlend 共用）：后端不支持的能力**明确拒绝**，不静默降级。</summary>
         private bool CapabilitiesAllow(float startNormalized, float speed, AnimationChannel channel)
         {
             AnimationBackendCapabilities caps = _backend.Capabilities;
@@ -340,7 +340,7 @@ namespace LiteFramework.Animation
         /// <summary>终态收口（**唯一入口**——保证恰好一次；重入安全）。</summary>
         private void Finish(AnimationChannel channel, AnimationHandle handle, AnimationId id, AnimationTerminalState terminal)
         {
-            if (IsTerminal(handle)) return;                          // 已终态：不重复通知（§5/§13-3）
+            if (IsTerminal(handle)) return;                          // 已终态：不重复通知
 
             Remember(handle, id, channel, terminal);
 
@@ -409,7 +409,7 @@ namespace LiteFramework.Animation
         private static int Key(AnimationHandle h) => (h.PlayerId * 397) ^ (h.OwnerGeneration * 31) ^ h.RequestSequence;
 
         /// <summary>
-        /// 单通道的播放槽（§6"首版每通道最多一个待提交请求和一个当前逻辑播放"）。
+        /// 单通道的播放槽（每通道最多一个待提交请求和一个当前逻辑播放）。
         /// 没有队列——新请求替换旧请求，旧请求立即取得 Interrupted 终态。
         /// **本类的私有实现细节**（不放进后端契约文件：它只被本播放器读写）。
         /// </summary>
@@ -420,7 +420,7 @@ namespace LiteFramework.Animation
             public bool Loading;                     // 已接受但尚未提交成功
             public bool Active;
 
-            /// <summary>替换当前播放：旧 Handle 得 Interrupted 终态（旧待提交 Handle 一并终止——§6）。</summary>
+            /// <summary>替换当前播放：旧 Handle 得 Interrupted 终态（旧待提交 Handle 一并终止）。</summary>
             public bool HasCurrent => Active && Current.IsValid;
         }
     }

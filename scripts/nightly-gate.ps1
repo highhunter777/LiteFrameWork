@@ -1,5 +1,5 @@
-﻿# ─────────────────────────────────────────────────────────────────────────────
-# LiteGame 夜间门禁（Windows 计划任务入口；2026-09-26）
+# ─────────────────────────────────────────────────────────────────────────────
+# LiteGame 夜间门禁（Windows 计划任务入口）
 #
 # 为什么要独立脚本而不是直接注册 l2-unity-gate.ps1：
 #   计划任务需要「跑 → 落日志 → 写退出码 → 可诊断」。l2 脚本自身不落盘日志，
@@ -8,8 +8,7 @@
 # 跑什么：
 #   默认 L2（Unity 门禁：meta 扫描 + 编译状态 + EditMode/PlayMode）。
 #   桌面会话中编辑器在跑 → 经 Unity Pipeline；没有编辑器 → batchmode。
-#   **batchmode 分支目前只跑 EditMode**（PlayMode 仅 Pipeline 分支覆盖）——
-#   本脚本不掩盖这一点：执行结束后会核对日志里有没有 PlayMode 段，没有就如实标注。
+#   本脚本不掩盖：执行结束后会核对日志里有没有 PlayMode 段，没有就如实标注。
 #
 # 退出码：0 = 通过；非 0 = 失败（任务计划程序据此显示"上次运行结果"）。
 # 日志：<repo>\TestResults\nightly\L2-<日期>.log（UTF-8）
@@ -22,7 +21,7 @@ param(
 
 $ErrorActionPreference = 'Stop'
 
-# 编码链（实测踩坑）：PowerShell 5.1 默认按控制台代码页（本机 GBK/936）解码子进程 stdout。
+# 编码链：PowerShell 5.1 默认按控制台代码页（本机 GBK/936）解码子进程 stdout。
 # 子进程（l2-unity-gate.ps1 / Unity CLI）输出含中文时会被解成乱码，再经 Add-Content 落盘
 # 就得到无效 UTF-8——日志作为"证据"直接废掉。故显式统一下行到 UTF-8。
 [Console]::OutputEncoding = [System.Text.Encoding]::UTF8

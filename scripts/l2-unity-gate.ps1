@@ -1,8 +1,8 @@
 ﻿# ─────────────────────────────────────────────────────────────────────────────
-# L2 Unity 侧门禁（2026-09-15）
+# L2 Unity 侧门禁
 #
 # 为什么需要 L2：L1（dotnet 单测）按路径 glob 编译、不读 .meta，也不经 Unity 编译器——
-#   2026-09-15 那次 16 个非法 GUID 的 .meta 事故里 L1 全绿而 Unity 编译是坏的。
+#   非法 GUID 的 .meta 事故里 L1 全绿而 Unity 编译是坏的。
 # L2 补这一层：① 非法 meta/GUID 扫描（纯文件，秒级）② Unity 侧编译/诊断状态。
 #
 # 两种模式（自动选择）：
@@ -20,8 +20,7 @@
 # 两种模式跑**同样的两段测试**（EditMode + PlayMode）：
 #   A. 编辑器在跑 → 经 Unity Pipeline（异步轮询 test_status），无需关闭编辑器
 #   B. 编辑器未跑 → batchmode `unity test --mode <EditMode|PlayMode>`
-# 2026-09-26 前只有 A 覆盖 PlayMode；B 只跑 EditMode，导致夜间（无编辑器）永远漏掉
-# PlayMode 那一半——现两段对齐。
+# A、B 两模式都必须覆盖 EditMode 与 PlayMode，不得漏掉任何一半。
 # ─────────────────────────────────────────────────────────────────────────────
 [CmdletBinding()]
 param(
@@ -117,8 +116,8 @@ function Invoke-PipelineCommand([string]$command, [string[]]$cmdArgs) {
     return ($out -join "`n")
 }
 
-# Unity 测试套件异步执行（2026-09-25）：同步 run_tests 走 `--timeout 10`，套件涨过阈值即超时失败
-# （217 例时实测必挂）。改异步触发 + 轮询 test_status 到终态——与 unity-pipeline 技能记载的
+# Unity 测试套件异步执行：同步 run_tests 走 `--timeout 10`，套件涨过阈值即超时失败。
+# 异步触发 + 轮询 test_status 到终态——与 unity-pipeline 技能记载的
 # 长跑形态一致（`--async_tests true` → 轮询 `test_status`）。返回含 Total/Passed/Failed 的结果文本。
 # $mode：editor（EditMode）/ playmode（PlayMode）。两者共用同一入口，不另起旁路。
 function Invoke-UnityTestsAsync([string]$mode, [int]$timeoutSeconds = 900) {
@@ -151,10 +150,10 @@ function Get-JsonInt([string]$text, [string]$key) {
 
 # 新鲜度守卫用：Assets 下最新 .cs 的写入时间 / Library/ScriptAssemblies 下最新 .dll 的写入时间
 #
-# **必须排除点目录**（2026-09-25 实测假阳）：Directory.Build.props 把 dotnet 侧构建输出重定向到
+# **必须排除点目录**：Directory.Build.props 把 dotnet 侧构建输出重定向到
 # `Assets/<模块>/.dotnet/`，其中 `obj/Release/**/*.cs` 是 MSBuild 生成的 AssemblyInfo。点目录被
-# Unity 忽略、**从不参与编译**，但 L1 每跑一次就刷新其时间戳 → "源码新于程序集" 恒真，
-# `Refresh` 又不可能把它推进程序集 → 守卫永久 FAIL、L2 永远红。判据从"文件多新"变成
+# Unity 忽略、**从不参与编译**，但其时间戳会被 L1 刷新 → "源码新于程序集" 恒真，
+# `Refresh` 又不可能把它推进程序集 → 守卫永久 FAIL、L2 永远红。判据为
 # "Unity 会编译的文件多新"。gitignore 的 `.dotnet/` 与此处排除的是同一样东西。
 function Get-NewestSourceTime {
     $files = Get-ChildItem -Path (Join-Path $ProjectPath 'Assets') -Recurse -Filter *.cs -File -ErrorAction SilentlyContinue |
@@ -183,23 +182,22 @@ if ((Test-Path $descriptor) -and -not $RunEditModeTests) {
             # Pipeline 规范：后台编译/测试前必须保持 Editor tick，避免失焦或最小化后挂起。
             Invoke-PipelineCommand 'set_autotick' @('--enable', 'true') | Out-Null
 
-            # ③ 新鲜度守卫（2026-09-19 加）：**先把源码刷进程序集，再谈编译状态**
-            # 坑：外部改 .cs 后 Unity 不会自动导入（AssetDatabase 未 Refresh）→
+            # ③ 新鲜度守卫：**先把源码刷进程序集，再谈编译状态**
+            #     外部改 .cs 后 Unity 不会自动导入（AssetDatabase 未 Refresh）→
             #     recompile_status 仍报 up_to_date、EditMode 用例跑的是**旧程序集** → L2 假绿。
             #     对策：无条件 Refresh(ForceSynchronousImport) + RequestScriptCompilation 并等编译收敛
             #     （幂等：无改动时几秒内返回）。
             $before = Get-NewestSourceTime
             $refreshDone = $true
             try {
-                # 先清控制台缓冲：否则"上一次失败编译"的 error 会留在缓冲里被判成本次失败（2026-09-19 实测误报）
+                # 先清控制台缓冲：否则"上一次失败编译"的 error 会留在缓冲里被判成本次失败
                 Invoke-PipelineCommand 'clear_console' | Out-Null
 
                 # 代码走临时文件（eval_file）而不是内联字符串：脚本宿主传内联代码会被 native 参数引号规则弄坏
-                # （实测内联形式持续报 "Command 'eval' failed"，而 eval_file 一次就过）
                 $reqFile = Join-Path $ProjectPath 'Temp/l2-freshness-request.cs'
                 $stFile = Join-Path $ProjectPath 'Temp/l2-freshness-status.cs'
                 # 用 .NET 写无 BOM 的 UTF-8：Set-Content -Encoding UTF8 在 PS 5.1 下带 BOM，
-                # eval_file 的编译器会拒（实测 "Command 'eval_file' failed"）
+                # eval_file 的编译器会拒
                 $utf8NoBom = New-Object System.Text.UTF8Encoding($false)
                 [System.IO.File]::WriteAllText($reqFile, @"
 UnityEditor.AssetDatabase.Refresh(UnityEditor.ImportAssetOptions.ForceSynchronousImport);
@@ -210,7 +208,7 @@ UnityEditor.Compilation.CompilationPipeline.RequestScriptCompilation();
 
                 # `--timeout 30000` 是命令级超时：CodeEvalCommand 默认只等 5000ms 主线程操作，
                 # 编辑器忙（导入/编译收尾）时报 "Main thread operation timed out after 5000ms" 并落
-                # Console error 级条目——会被"Console 无新增 error"检查记成噪声（2026-09-25 实测）。
+                # Console error 级条目——会被"Console 无新增 error"检查记成噪声。
                 Invoke-PipelineCommand 'eval_file' @('--timeout', '30000', 'Temp/l2-freshness-request.cs') | Out-Null
                 $waited = 0
                 while ($waited -lt 90) {
@@ -231,9 +229,8 @@ UnityEditor.Compilation.CompilationPipeline.RequestScriptCompilation();
             $after = Get-NewestAssemblyTime
 
             # 新鲜度结论（**以 Unity 的判定为准，mtime 只作证据**）：
-            #  - 强制 Refresh 之后：Unity 说 up_to_date = 内容没变（生成物同内容重写 → mtime 变、内容不变，实测会误判）；
-            #    说 completed = 编译已跑完且无错。两者都意味着"程序集与源码一致"，**不去声称"这次重建了"**
-            #    （实测过：内容未变时 completed 但 dll mtime 不变）；
+            #  - 强制 Refresh 之后：Unity 说 up_to_date = 内容没变（生成物同内容重写 → mtime 变、内容不变）；
+            #    说 completed = 编译已跑完且无错。两者都意味着"程序集与源码一致"，**不去声称"这次重建了"**；
             #  - 只有"刷新没能执行"时，才用 mtime 保守判红（此时无法确认 Unity 是否看见了改动）。
             # 权威信号始终是：强制刷新 + 编译无失败 + 控制台无 CS 错误（下面两条）。
             if ($before -gt $after) {
@@ -264,7 +261,7 @@ UnityEditor.Compilation.CompilationPipeline.RequestScriptCompilation();
                 if ($errCount -gt 0) { Write-Note "有 $errCount 条非编译类 error（如程序集加载告警）；明细：unity command console --project-path `"$ProjectPath`"" }
             }
 
-            # ③ Unity EditMode 用例（#27/#28）：经 Pipeline 直接跑，编辑器无需关闭。
+            # ③ Unity EditMode 用例：经 Pipeline 直接跑，编辑器无需关闭。
             # 用例在 Assets/Tests/EditMode（IEEE 基线逐位对账 + UI 模板/资源完整性）；
             # Total=0 视为失败——否则"测试程序集没编进来"会静默通过。
             # 走异步轮询（同步调用在套件涨过 CLI 阈值后必超时，见 Invoke-UnityTestsAsync）。
@@ -277,7 +274,7 @@ UnityEditor.Compilation.CompilationPipeline.RequestScriptCompilation();
             elseif ($failed -gt 0) { Write-Bad "EditMode 用例失败 $failed 项（Total=$total）——明细：unity command run_tests --mode editor --project-path `"$ProjectPath`"" }
             else { Write-Ok "EditMode 用例全绿（$passed/$total）" }
 
-            # ④ Unity PlayMode 用例（2026-09-25 建组）：真 UIService + 真 prefab + 真转场链路。
+            # ④ Unity PlayMode 用例：真 UIService + 真 prefab + 真转场链路。
             # 《UI测试开发专项设计》§6"仅验证转场 Runner 或模板结构不能替代此项"；用例在
             # Assets/Tests/UI/PlayMode。§8.1 要求接入**同一门禁**，不得另起旁路入口。
             # Total=0 同判失败——PlayMode 程序集未编入不能静默通过。
@@ -314,11 +311,8 @@ elseif ($RunEditModeTests -or -not (Test-Path $descriptor)) {
             $outFile = if ($mode -eq 'EditMode') { $TestOutput } else { $PlayModeOutput }
             Write-Note "执行 unity test --mode $mode --output $outFile"
             # 工程是**位置参数**，不是 --project-path（`unity test --help` 的 Arguments 段）。
-            # 2026-09-26 前原代码用 `--project-path`，CLI 报 unknown option 直接失败——
-            # 即 batchmode 这条路**从未真正跑起来过**，不是"只跑 EditMode"的问题。
             # -e/--editor-path：CLI 默认去 Unity Hub 标准位置找编辑器，**找不到 Unity 中国版**
-            # （实测报「编辑器 2022.3.55f1c1 未安装」）——$UnityExe 参数以前只用于 Test-Path 检查，
-            # 从没传给命令，故必须显式指定。
+            # （报「编辑器 2022.3.55f1c1 未安装」）——必须显式传 $UnityExe。
             # --timeout：batchmode 冷启动要导包/编译，默认无超时会让任务计划程序挂到天荒地老
             & unity test $ProjectPath -e $UnityExe --mode $mode --output $outFile --timeout 1800 2>&1 |
                 ForEach-Object { Write-Host "    $_" -ForegroundColor DarkGray }

@@ -7,7 +7,7 @@ using System.Globalization;
 namespace LiteFramework
 {
     /// <summary>
-    /// 玩家偏好服务(音量/画质/语言,§5.4-6:**存档不经过它**,存档结构业务自持走 FileSys + TryReadJson 迁移)。
+    /// 玩家偏好服务(音量/画质/语言:**存档不经过它**,存档结构业务自持走 FileSys + TryReadJson 迁移)。
     /// DI 单例;构造纯(不 IO),Load 由 ProcedureLaunch 显式调。
     /// 契约:
     /// ① 内部全存字符串(文件即字典,可读可调试;新增 key = 天然兼容,无需版本迁移);类型转换在 Get 处;
@@ -18,7 +18,7 @@ namespace LiteFramework
     /// ④ 数值转换恒 InvariantCulture——区域设置的逗号小数点是跨设备往返 bug 源;
     /// ⑤ SetString(key, null) = 移除该键(回默认值语义;字典不存 null);
     /// ⑥ 解析失败 → 默认值 + Log.Warning(设置值只有本类写入,坏值说明档被外部改过,值得可见);
-    /// ⑦ 主线程 only,无锁(§7.4);key 一律走业务侧常量类(与 FSM 数据字典同款纪律)。
+    /// ⑦ 主线程 only,无锁;key 一律走业务侧常量类(与 FSM 数据字典同款纪律)。
     /// </summary>
     public sealed class SettingService
     {

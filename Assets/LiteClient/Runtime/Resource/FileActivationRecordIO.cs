@@ -8,13 +8,13 @@ namespace LiteGame
     /// 契约落点（《热更与内容发布专项设计》§8）：
     /// - **不可信即弃**：缺文件 / 解析失败 / **结构版本不认识** / **完整性校验不符** → 返回 null
     ///   （调用方按全新安装回 builtin 起点，fail-safe——记录损坏不能阻止以内置内容启动）。
-    /// - **原子提交**（2026-09-25 修正原注释）：<see cref="FileSys.WriteJson"/> 走的是
+    /// - **原子提交**：<see cref="FileSys.WriteJson"/> 走的是
     ///   `临时文件 + File.Replace/Move`（见 <c>FileSys.CommitAtomic</c>），**不是**裸覆盖写——
-    ///   "写一半"被挡在目标文件之外。原注释所称"非原子/单文件全量覆盖"与实现不符，已更正。
+    ///   "写一半"被挡在目标文件之外。
     /// - **完整性保护**：即便有 Replace，仍无法排除文件系统还原、外部工具改写、旧备份回填；
     ///   且被截断但仍合法的 JSON 会被当作有效记录。故提交前经 <see cref="ActivationRecordIntegrity.Stamp"/>
     ///   盖章，读入时校验，不符即按不可信处理（§8"状态记录…带完整性保护"）。
-    /// - **未覆盖**：`File.Replace` 的 fsync/掉电语义与杀进程中断矩阵属 G4 真机验证范围（登记）。
+    /// - **未覆盖**：`File.Replace` 的 fsync/掉电语义与杀进程中断矩阵需真机验证。
     /// </summary>
     public sealed class FileActivationRecordIO : IActivationRecordIO
     {

@@ -5,7 +5,7 @@ using Xunit;
 namespace LiteNet.Tests
 {
     /// <summary>
-    /// 规范化远端地址用例（R2 安全批，§P0-6"Transport 必须提供规范化远端地址…后才可宣称实现
+    /// 规范化远端地址用例（§P0-6"Transport 必须提供规范化远端地址…后才可宣称实现
     /// per-IP 限流"）：限流键的稳定性依赖归一——同一主机的不同端点表达必须落到同一个键，
     /// 不同主机不得合并。纯 L1，无 Socket/墙钟。
     /// </summary>

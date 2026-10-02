@@ -11,7 +11,7 @@ namespace LiteSim
     ///
     /// 规范化规则（固定，两端同源——本类同时是服务端 StartGame.ConfigHash 与客户端校验的单源）：
     /// - 字段顺序固定（<see cref="CombatConfig"/>：装载面 8 字段 + **派生 1 字段** `AimMoveSpeed`
-    ///   + **窗长常量 1 字段** `FireStanceFrames`——批次C 起 Sim 消费它限速，进联机身份）；
+    ///   + **窗长常量 1 字段** `FireStanceFrames`——Sim 消费它限速，进联机身份）；
     /// - float 用 InvariantCulture "R"（往返）格式——跨文化稳定（de-DE 的小数逗号不会改变摘要）；
     /// - 字段以 '\n' 分隔、无空白填充；数值后不带单位。
     /// 取 SHA-256 低 32 位作 proto uint32（StartGame.ConfigHash 字段位宽）。

@@ -3,15 +3,15 @@ using System.Collections.Generic;
 
 namespace LiteFramework
 {
-    /// <summary>逻辑时轨标记（M4 §2.7 决策 ①）：WorldClock 驱动——受暂停/时停/变速。</summary>
+    /// <summary>逻辑时轨标记：WorldClock 驱动——受暂停/时停/变速。</summary>
     public interface ILogicScheduler : IScheduler { }
 
-    /// <summary>UI 时轨标记（M4 §2.7 决策 ①）：UIClock 驱动——受暂停、不受时停。</summary>
+    /// <summary>UI 时轨标记：UIClock 驱动——受暂停、不受时停。</summary>
     public interface IUIScheduler : IScheduler { }
 
     /// <summary>
-    /// 调度器实现（M4 §2.7，手册步骤 7；契约 = M1 IScheduler）：动作点/定时注册、到期触发、可取消。
-    /// 决策落点（M4 §1e 定案）：①推进量 = 注入时钟的 ScaledDelta（不自读 Time）；
+    /// 调度器实现（契约 = <see cref="IScheduler"/>）：动作点/定时注册、到期触发、可取消。
+    /// 决策落点：①推进量 = 注入时钟的 ScaledDelta（不自读 Time）；
     /// ③到期判定 = 注入时钟的 Now。回调安全：单个回调抛经 SafeCall 隔离，不炸调度器；
     /// 同帧到期按注册序 FIFO；回调内可再 Schedule/Cancel，新注册项下一 tick 才处理。
     /// 内部使用最小堆按到期时间排序，取消采用惰性删除，避免每帧 O(n) 扫描。
@@ -84,7 +84,7 @@ namespace LiteFramework
 
         public void Tick(float realDelta)
         {
-            float dt = _clock.ScaledDelta;                 // 冻结/变速单源：时钟层（决策 ①）
+            float dt = _clock.ScaledDelta;                 // 冻结/变速单源：时钟层
             if (dt <= 0f) return;
 
             int currentTick = ++_tickSerial;

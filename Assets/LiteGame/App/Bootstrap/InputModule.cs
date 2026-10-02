@@ -5,12 +5,12 @@ using LiteFramework;
 namespace LiteGame
 {
     /// <summary>
-    /// ⑩ 输入服务（2026-09-26 输入服务批，《角色状态与动作专项设计》§3"输入三件"）：
+    /// ⑩ 输入服务（《角色状态与动作专项设计》§3"输入三件"）：
     /// 设备 → 意图 → 三个门 的协调者。**登记在 Root**（跨对局复用；对局期由 ProcedureBattle
     /// 挂/摘设备源），产品级拦截源（UI 模态）在 <see cref="ContainerModule"/> 的装配点登记一次、
     /// 跨对局常驻——与 UI 壳同层，不由流程重复登记。
     ///
-    /// **设备源在这里装**（New Input System 适配器，2026-09-26 接入）：注入时机是装配根
+    /// **设备源在这里装**（New Input System 适配器）：注入时机是装配根
     /// （组合根本该认识适配器，§5）；对局相机在 <see cref="PresentationModule"/> 建好后经
     /// <see cref="IInputService.SetAimCamera"/> 补上——两者不同时可用，故分两步。
     /// </summary>

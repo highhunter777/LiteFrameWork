@@ -5,7 +5,7 @@ using UnityEngine.UI;
 
 namespace LiteGame.UI
 {
-    /// <summary>页签组（M4c）：N 个按钮互斥选中；选中态 = 可交互反转 + 高亮色。onTabChanged(index)。</summary>
+    /// <summary>页签组：N 个按钮互斥选中；选中态 = 可交互反转 + 高亮色。onTabChanged(index)。</summary>
     public class TabGroup : MonoBehaviour
     {
         [Tooltip("页签按钮（顺序即索引）")]

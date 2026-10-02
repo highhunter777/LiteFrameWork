@@ -2,7 +2,7 @@ namespace LiteSim
 {
     /// <summary>
     /// 帧事件（§3.7 帧事件缓冲）：Sim → View 的离散告知（命中/暴击/死亡/开火——状态差分推不出来的）。
-    /// 消费时机是本设计的关键：每个逻辑帧 Step 结束后立即消费并清空（§3.7/决策⑥）——
+    /// 消费时机是本设计的关键：每个逻辑帧 Step 结束后立即消费并清空（§3.7）——
     /// 追帧不丢事件、不必进快照、回滚重放天然正确。
     /// </summary>
     public struct FrameEvent
@@ -22,7 +22,7 @@ namespace LiteSim
         public SimVector3 Pos;
     }
 
-    /// <summary>帧事件类型（§3.7）。M8 产生 Fire/Hit/Death；Crit/Explosion 为后续里程碑预留。</summary>
+    /// <summary>帧事件类型（§3.7）。当前产生 Fire/Hit/Death；Crit/Explosion 为后续里程碑预留。</summary>
     public enum FrameEventKind : byte
     {
         Fire = 0,
@@ -38,7 +38,7 @@ namespace LiteSim
     /// </summary>
     public struct FrameEventBuffer
     {
-        /// <summary>容量（#13）。</summary>
+        /// <summary>容量。</summary>
         public const int Capacity = 256;
 
         public int Count;
@@ -66,7 +66,7 @@ namespace LiteSim
             Count++;
         }
 
-        /// <summary>每逻辑帧末消费后由驱动调用（不在 SimStep 内清，决策⑥）。</summary>
+        /// <summary>每逻辑帧末消费后由驱动调用（不在 SimStep 内清）。</summary>
         public void Clear()
         {
             Count = 0;

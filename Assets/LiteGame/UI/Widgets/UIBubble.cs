@@ -1,4 +1,4 @@
-// 拆自 Dialogs.cs（2026-09-14：一类一文件——非首个 MonoBehaviour 无法序列化进 prefab，实测）
+// 一类一文件：非首个 MonoBehaviour 无法序列化进 prefab
 using TMPro;
 using System;
 using System.Collections.Generic;
@@ -9,8 +9,8 @@ using UnityEngine.UI;
 
 namespace LiteGame.UI
 {
-    /// <summary>气泡（M4c）：挂点旁的短命提示（带朝上小三角由美术补；灰盒=文本条）。
-    /// 重复 Show 取消上一次等待（原 StopAllCoroutines 语义，用 CTS 显式表达）。</summary>
+    /// <summary>气泡：挂点旁的短命提示（带朝上小三角由美术补；灰盒=文本条）。
+    /// 重复 Show 取消上一次等待（用 CTS 显式表达）。</summary>
     public class UIBubble : MonoBehaviour
     {
         public TMP_Text Label;
@@ -32,7 +32,7 @@ namespace LiteGame.UI
         private async UniTaskVoid HideAfterAsync(float seconds, CancellationToken ct)
         {
             // cancelImmediately: true —— 宿主销毁/被下一次 Show 取消时**立即**观测（默认要等下一个 player loop 刻度，
-            // 编辑态/回收路径下会晚到，导致已销毁对象仍被 SetActive → MissingReferenceException；批⑦ 自检抓出）
+            // 编辑态/回收路径下会晚到，导致已销毁对象仍被 SetActive → MissingReferenceException）
             bool canceled = await UniTask.Delay(TimeSpan.FromSeconds(seconds), DelayType.UnscaledDeltaTime,
                 PlayerLoopTiming.Update, ct, cancelImmediately: true).SuppressCancellationThrow();
             if (canceled || this == null) return;            // 已销毁：`this == null` 走 Unity 重载（别用 ReferenceEquals）

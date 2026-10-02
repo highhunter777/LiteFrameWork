@@ -8,7 +8,7 @@ using Xunit;
 namespace MetaServer.IntegrationTests
 {
     /// <summary>
-    /// Mongo 测试夹具（M0-c 批二；Meta 专项 §14 L3"真实 HTTP + Mongo 测试容器"）。
+    /// Mongo 测试夹具（Meta 专项 §14 L3"真实 HTTP + Mongo 测试容器"）。
     ///
     /// 环境解析（依次）：
     /// 1. `MONGO_TEST_URI` 环境变量（CI 显式指定，不依赖 docker）；
@@ -235,7 +235,7 @@ namespace MetaServer.IntegrationTests
                     return null;
                 }
 
-                // 并发排空输出管道（实测教训：等退出后再读，docker inspect 的 KB 级 JSON 会
+                // 并发排空输出管道（等退出后再读，docker inspect 的 KB 级 JSON 会
                 // 填满管道缓冲、进程写阻塞不退出 → 恒定超时 → docker 被误判不可用）
                 Task<string> stdout = process.StandardOutput.ReadToEndAsync();
                 Task<string> stderr = process.StandardError.ReadToEndAsync();

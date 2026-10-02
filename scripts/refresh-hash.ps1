@@ -1,5 +1,5 @@
 # ─────────────────────────────────────────────────────────────────────────────
-# buildHash refresh (2026-09-26)
+# buildHash refresh
 #
 # Why this exists: buildHash is the Join handshake version red line
 # (ServerHost.cs: `join.BuildHash != ServerBuildHash` -> reject). It covers the
@@ -109,7 +109,7 @@ try {
         $ErrorActionPreference = 'Continue'
         # Start the server, read its self-reported hash, let --duration retire it
         # (no process kill needed). Args go through an array: a bare `--` in the
-        # command line is parsed by PS as the decrement operator (observed).
+        # command line is parsed by PS as the decrement operator.
         $runArgs = @(
             'run', '--project', (Join-Path $repoRoot 'RoomServer/RoomServer.csproj'), '--no-build', '--',
             '--config', (Join-Path $repoRoot $Config), '--duration', '1500', '--quiet'

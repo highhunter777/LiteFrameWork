@@ -4,11 +4,10 @@ using System.Collections.Generic;
 namespace LiteFramework
 {
     /// <summary>
-    /// 下载/校验失败的稳定分类（《热更与内容发布专项设计》§7"区分暂态网络错误与签名/兼容错误"、
-    /// §12 错误类别表）。
+    /// 下载/校验失败的稳定分类（区分暂态网络错误与签名/兼容错误）。
     ///
     /// **分类决定动作**，不是一个笼统的"失败"：
-    /// - 暂态类可重试/切源；确定性类重试无效，必须拒绝候选或提示更新（§12"不通过反复重试或忽略验证绕过"）。
+    /// - 暂态类可重试/切源；确定性类重试无效，必须拒绝候选或提示更新（不通过反复重试或忽略验证绕过）。
     /// - 因此本枚举带 <see cref="DownloadFailureInfo.IsTransient"/> 判定，调用方据此选择重试策略。
     /// </summary>
     public enum DownloadFailureKind
@@ -16,13 +15,13 @@ namespace LiteFramework
         None = 0,
 
         // ---- 暂态（可重试/可切源）----
-        /// <summary>网络超时/连接失败（§12"暂态网络/CDN：有界重试/切源"）。</summary>
+        /// <summary>网络超时/连接失败（暂态网络/CDN：有界重试/切源）。</summary>
         TransientNetwork,
         /// <summary>数据源不可用（单源故障；可切源）。</summary>
         SourceUnavailable,
 
         // ---- 确定性（重试无效）----
-        /// <summary>文件缺失（§12"候选损坏/解析失败：隔离该候选、保留旧版本"）。</summary>
+        /// <summary>文件缺失（候选损坏/解析失败：隔离该候选、保留旧版本）。</summary>
         FileMissing,
         /// <summary>文件长度与清单不符。</summary>
         LengthMismatch,
@@ -30,7 +29,7 @@ namespace LiteFramework
         DigestMismatch,
         /// <summary>读取过程异常（不可读/权限/损坏）。</summary>
         ReadError,
-        /// <summary>空间不足（§12"空间/内存不足：清无引用受控缓存或取消更新"）。</summary>
+        /// <summary>空间不足（空间/内存不足：清无引用受控缓存或取消更新）。</summary>
         InsufficientSpace,
         /// <summary>候选根内出现清单未声明的文件（防混入——多源拼接/残留污染）。</summary>
         UnexpectedFile,
@@ -40,7 +39,7 @@ namespace LiteFramework
         Canceled,
     }
 
-    /// <summary>失败详情（稳定种类 + 可诊断路径/期望值——不含 token/密钥，§13.1 日志红线）。</summary>
+    /// <summary>失败详情（稳定种类 + 可诊断路径/期望值——不含 token/密钥，日志红线）。</summary>
     public readonly struct DownloadFailureInfo
     {
         public readonly DownloadFailureKind Kind;

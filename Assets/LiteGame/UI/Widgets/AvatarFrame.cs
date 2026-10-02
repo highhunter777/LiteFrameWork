@@ -1,4 +1,4 @@
-// 拆自 Display.cs（2026-09-14：一类一文件——非首个 MonoBehaviour 无法序列化进 prefab，实测）
+// 一类一文件：非首个 MonoBehaviour 无法序列化进 prefab
 using TMPro;
 using System;
 using UnityEngine;
@@ -6,7 +6,7 @@ using UnityEngine.UI;
 
 namespace LiteGame.UI
 {
-    /// <summary>头像框（M4c）：头像 + 框 + 等级角标三件套的组装件（Set 一口喂）。</summary>
+    /// <summary>头像框：头像 + 框 + 等级角标三件套的组装件（Set 一口喂）。</summary>
     public class AvatarFrame : MonoBehaviour
     {
         public Image Avatar;

@@ -10,7 +10,7 @@ using UnityEngine;
 namespace LiteGame
 {
     /// <summary>
-    /// 对局流程（C2 批①：会话与对局上下文；批②：表现视图；2026-09-26 输入服务批：输入接线）：
+    /// 对局流程：
     /// OnEnter 建 <see cref="BattleContext"/>（Match Scope 全套）→ 会话建立后挂
     /// <see cref="SimView"/> 与输入服务（设备源）→ 每帧驱动；Ended（主动离场 / 会话失败）
     /// → 逆序收尾（视图 → BattleContext → Match Scope → Account Scope，§6.2 关闭序）→ 回 Main。
@@ -22,20 +22,20 @@ namespace LiteGame
     /// **视图所有权**：SimView 与玩家实体 prefab 的租约由本阶段持有（<see cref="IContentService"/> 注入）；
     /// 离场时先拆视图再拆上下文——视图是上下文的消费者，反向释放会读到已拆的 Sim。
     ///
-    /// **输入所有权**（2026-09-26）：服务本身归装配根（跨对局复用、拦截源在装配根登记一次），
-    /// 本阶段只持**本局的设备源**（相机是局内对象）并在离场时清派发状态；流程不再持任何
+    /// **输入所有权**：服务本身归装配根（跨对局复用、拦截源在装配根登记一次），
+    /// 本阶段只持**本局的设备源**（相机是局内对象）并在离场时清派发状态；流程不持任何
     /// "UI 是否拦截"的判断——那是登记进服务的具名拦截源（`ui.modal`）。
     /// </summary>
     public sealed class ProcedureBattle : ProcedureStageBase<ProcedureId, ProcedureArgs>
     {
 #if UNITY_EDITOR || DEVELOPMENT_BUILD || LITEFRAMEWORK_DEBUG
-        /// <summary>主动离场热键（C2 测试入口；正式 UI 离场按钮归 U2/G3）。</summary>
+        /// <summary>主动离场热键（测试入口）。</summary>
         private const UnityEngine.KeyCode LeaveKey = UnityEngine.KeyCode.F10;
 #endif
 
         /// <summary>
-        /// 玩家实体 prefab（内容包路径；灰盒期该资源尚未入库——<see cref="AssetService"/> 侧缺失时
-        /// **回退程序化灰盒**，不把整局拖进错误态）。正式角色资源随"地图提取/角色动画"前置批落地。
+        /// 玩家实体 prefab（内容包路径；资源缺失时<see cref="AssetService"/> 侧**回退程序化灰盒**，
+        /// 不把整局拖进错误态）。
         /// </summary>
         private const string EntityPrefab = SimView.DefaultEntityPrefab;
 
@@ -47,8 +47,8 @@ namespace LiteGame
 
         private readonly IContentService _content;
         private readonly IVFXService _vfx;
-        private readonly IInputService _input;       // 输入服务（2026-09-26 输入服务批：取代裸 Func<bool> 上下文门）
-        private readonly ICameraService _camera;     // 相机服务（Cinemachine 接入，2026-09-26；装配根建、跨对局复用）
+        private readonly IInputService _input;       // 输入服务
+        private readonly ICameraService _camera;     // 相机服务（Cinemachine 适配器；装配根建、跨对局复用）
         private readonly bool _requireCamera;        // 缺相机 = 装配缺口（见 ctor 注释）
 
         private BattleContext _context;
@@ -62,16 +62,13 @@ namespace LiteGame
         private GameObject _prefab;
         private AssetLease<GameObject> _prefabLease;
 
-        /// <param name="input">输入服务（装配根注册的跨对局实例）。**流程不再持"UI 是否拦截"这类判断**：
+        /// <param name="input">输入服务（装配根注册的跨对局实例）。**流程不持"UI 是否拦截"这类判断**：
         /// 上下文门是登记进服务的具名拦截源（`ui.modal` 由装配根登记），流程只负责本局的设备源与
         /// 清派发状态（《角色状态与动作专项设计》§3"输入三件"）。null = 无输入服务（测试装配/无输入形态）。</param>
         /// <param name="camera">相机服务（Cinemachine 适配器，装配根建，**跨场景常驻**）。**相机构图归
         /// vcam 的场景配置**——流程只做一件事：每局开局 <see cref="ICameraService.Reset"/>（下一帧重新落位，
         /// 不从上局位置飞过来）。服务对象恒非 null；"这一刻有没有接上 vcam"由
         /// <paramref name="requireCamera"/> 在开打前裁决（见下）。</param>
-        /// <param name="requireCamera">开打前是否要求相机已接上 vcam。**装配根传 true**：
-        /// 没接上的对局会"跑得动、看不见"，属最难查的静默失效——在开打前显性失败，
-        /// 而不是静默降级成一台乱飞的相机。</param>
         /// <param name="requireCamera">缺相机时是否拒绝对局。**装配根按场景是否配了虚拟相机决定**：
         /// 有 vcam 的包传 false（正常路径）；没配 vcam 的包传 true——让"对局跑得动但看不见"
         /// 这种最难的静默失效变成显性失败，而不是进了对局才发现画面纹丝不动。</param>
@@ -120,7 +117,7 @@ namespace LiteGame
 
                 BattleContext.EndReason reason = await WaitEnded(_context, ct);
                 UnityEngine.Debug.Log($"[Battle] ended reason={reason} reconciles={_context.ReconcileCount}");
-                next = ProcedureId.Main;              // 会话失败也回 Main（错误恢复 UI 归 G3；日志已留痕）
+                next = ProcedureId.Main;              // 会话失败也回 Main（日志已留痕）
             }
             catch (OperationCanceledException)
             {
@@ -150,7 +147,7 @@ namespace LiteGame
         {
             // **判据是"StartGame 是否已处理"，不是"快照是否已到"**：快照与 StartGame 是两条独立路径
             // （Unreliable vs Reliable），快照先到完全正常；拿 LastSnapshotFrame 当"已在局中"的代理，
-            // 会让本方法提前返回、后面读空的 Sim（实测就是这样崩的）。
+            // 会让本方法提前返回、后面读空的 Sim。
             if (battle.Client.HasStartGame && battle.Client.StartGame != null) return;
 
             var ready = new UniTaskCompletionSource();
@@ -210,7 +207,7 @@ namespace LiteGame
         /// <summary>
         /// 建视图并接线：SimView（镜像/插值/静默门/相机服务）。
         ///
-        /// **相机不再由本阶段创建**（2026-09-26 Cinemachine 接入）：装配根建好
+        /// **相机不由本阶段创建**：装配根建好
         /// <see cref="ICameraService"/>（内含场景配置好的虚拟相机）并跨对局复用，本阶段只把端口
         /// 交给 SimView，并在开局 <see cref="ICameraService.Reset"/> 一次（镜头重新落位，
         /// 不从上局位置飞过来）。构图/档位/阻尼全归 vcam 的场景配置，代码里没有第二处事实源。
@@ -223,7 +220,7 @@ namespace LiteGame
                 camera: _camera);
             _context.AttachView(_view);
 
-            _locomotion = new CharacterLocomotionDriver(_view);   // 移动动画首版：视图速度 → 播放器 → Animator 后端（§7 更新次序的 Driver 段）
+            _locomotion = new CharacterLocomotionDriver(_view);   // 移动动画：视图速度 → 播放器 → Animator 后端（§7 更新次序的 Driver 段）
 
             AttachCrosshair();                                  // 对局准心（HUD 第一件——视图/输入均已就绪，场景对象按名解析）
             AttachInput();
@@ -231,7 +228,7 @@ namespace LiteGame
         }
 
         /// <summary>
-        /// 挂对局准心（战斗 HUD 第一件，2026-10-02）：场景对象（训练场 <c>/Battle HUD</c>——
+        /// 挂对局准心（战斗 HUD 第一件）：场景对象（训练场 <c>/Battle HUD</c>——
         /// 构建器确定性生成，AgentScripts/BuildBattleHud.cs）由本阶段按名解析；**缺失静默降级**
         /// （只警告）——HUD 是表现增益，不把"场景没配 HUD"当对局失败（同角色 prefab 灰盒降级口径）。
         /// 准心画布无 GraphicRaycaster 且 CanvasGroup 不拦射线——**永不参与输入**；上下文门被拦
@@ -293,12 +290,12 @@ namespace LiteGame
         }
 
         /// <summary>
-        /// 输入接线（§3 输入三件）：**设备源已在装配根装好**（<see cref="InputModule"/>，
-        /// 2026-09-26 New Input System 接入），本阶段只清上一局的派发状态并把服务交给对局上下文。
+        /// 输入接线（§3 输入三件）：**设备源已在装配根装好**（<see cref="InputModule"/>），
+        /// 本阶段只清上一局的派发状态并把服务交给对局上下文。
         /// **上下文门不在这里裁决**——拦截源在装配根按名登记（`ui.modal`），由服务采样时统一裁决
         /// 并报出是**谁**拦的。
         ///
-        /// 设备源驻留装配根（不再随对局 new/撤）的理由：Action 资产与订阅是进程级资源，
+        /// 设备源驻留装配根（不随对局 new/撤）的理由：Action 资产与订阅是进程级资源，
         /// 每局重建会重复付 Enable/资产解析的代价，且"对局结束时设备源被撤"会让根级的其他
         /// 消费者（未来的暂停菜单/调试面板）拿不到输入。对局进出只影响**意图是否被消费**。
         /// </summary>
@@ -307,7 +304,7 @@ namespace LiteGame
             if (_input == null) return;                           // 无服务（替身/测试装配）= 无输入形态
             _input.Reset();                                       // 上一局的待用意图/派发状态不带进本局
 
-            // **对局相机注入**（2026-09-27）：设备源持有的是装配根 boot 相机——叠加开发形态下它
+            // **对局相机注入**：设备源持有的是装配根 boot 相机——叠加开发形态下它
             // **不随场景销毁**，`Camera.main` 回落也拿错机（两台相机在场），瞄准/相机相对移动会
             // 全部算在错机上。这里把真对局渲染相机（brain 所在 Camera）显式换进去。
             if (_camera is CinemachineCameraService ccs && _input.Source is NewInputIntentSource source)
@@ -359,15 +356,14 @@ namespace LiteGame
 
 #if UNITY_EDITOR || DEVELOPMENT_BUILD || LITEFRAMEWORK_DEBUG
             // 主动离场热键（测试入口，与 ProcedureMain F9 进对局同门禁）：Leave → Ended(Leave) → 收尾回 Main。
-            // 正式离场入口（UI 按钮/结算）归 U2/G3——此处只留热键，不进正式 UI。
+            // 此处只留热键，不进正式 UI（正式离场入口由 UI 层提供）。
             if (UnityEngine.Input.GetKeyDown(LeaveKey)) _context.Leave();
 #endif
 
             // ① 渲染帧采样（上下文门在此裁决：登记源任一成立 → 本帧输入为空，见 IInputService）。
             //    瞄准参照原点取自 Sim 预测态——不读视图 Transform（平滑过的表现量会把误差回灌输入）。
-            //    瞄准相机（2026-10-02 瞄准相机批）：AimPoint 方案已废弃（用户裁决）——ADS 视角由
-            //    SetAiming 每帧喂本地预测态瞄准位，适配器抬场景 /Aim Camera 优先级接管，
-            //    跟随目标与主相机同源，不引用预制体参考点。
+            //    瞄准相机：ADS 视角由 SetAiming 每帧喂本地预测态瞄准位，适配器抬场景 /Aim Camera
+            //    优先级接管，跟随目标与主相机同源，不引用预制体参考点。
             if (_input != null && _context.Sim != null)
                 _input.SampleOnRenderFrame(_context.LocalPosition);
 

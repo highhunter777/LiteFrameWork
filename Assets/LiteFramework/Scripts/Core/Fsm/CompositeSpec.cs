@@ -4,7 +4,7 @@ using System.Collections.Generic;
 namespace LiteFramework
 {
     /// <summary>
-    /// 复合态的历史模式（层级状态机，2026-09-17）：复合态**退出时**记录其子路径，重进时按此恢复。
+    /// 复合态的历史模式：复合态**退出时**记录其子路径，重进时按此恢复。
     /// `None` = 每次从 `InitialChild` 进；`Shallow` = 只记住直接子态；`Deep` = 记住整条子链。
     /// </summary>
     public enum HistoryMode
@@ -54,9 +54,8 @@ namespace LiteFramework
     }
 
     /// <summary>
-    /// 事件接收位（层级状态机的冒泡，2026-09-17）：**可选实现**——不实现就是"不处理事件"，
-    /// 因此现有阶段（`IStage` 实现）零改动即可接入冒泡。一个阶段可实现多个 `IEventSink&lt;T&gt;`
-    /// 以处理多种事件类型。
+    /// 事件接收位（层级状态机的冒泡）：**可选实现**——不实现就是"不处理事件"。
+    /// 一个阶段可实现多个 `IEventSink&lt;T&gt;` 以处理多种事件类型。
     /// </summary>
     public interface IEventSink<TEvt>
     {

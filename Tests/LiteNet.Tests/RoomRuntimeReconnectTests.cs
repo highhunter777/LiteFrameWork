@@ -7,7 +7,7 @@ using Xunit;
 namespace LiteNet.Tests
 {
     /// <summary>
-    /// R1 退出条件用例（《商业级通用服务端框架总设计》§16 R1）：
+    /// 退出条件用例（《商业级通用服务端框架总设计》§16）：
     /// **RoomRuntime 在无 Socket、无 Sleep、无文件的纯 L1 测试中完整跑一局 + 重连。**
     ///
     /// 时间只从 <see cref="RoomCommand.Tick"/> 命令进入（虚拟毫秒由用例手排，零真实等待）；

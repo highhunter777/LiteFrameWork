@@ -4,7 +4,7 @@ namespace LiteSim
     /// 移动/重力系统（§3.3 顺序第 2 位，§3.5 2.5D）：
     /// XZ 平面位移 + y 轴重力积分 + 地面钳制 + 世界边界钳制 + **静态障碍去穿插**。
     ///
-    /// 障碍碰撞（M8 决策 #12 预留位，2026-09-27 落地）：
+    /// 障碍碰撞：
     /// - 判定半 = <see cref="SimObstacle"/>（圆/盒，XZ 平面 + y 区间闸）；视觉网格不参与判定（§18 视觉半）；
     /// - 身体圆柱复用命中判定的同一身位（半径 <see cref="CombatConfig.HitscanRadius"/>、
     ///   高 <see cref="CombatConfig.HitscanHeight"/>）——一套身体两种用途，不引第二组半径常量；
@@ -23,7 +23,7 @@ namespace LiteSim
 
                 ref EntitySlot e = ref entities[i];
 
-                // 最大速度硬上限（水平合速度）——服务器代码兜底护栏（2026-09-28 用户裁决："配置只做
+                // 最大速度硬上限（水平合速度）——服务器代码兜底护栏（"配置只做
                 // 软上限"）：配置错误/增益叠加/未来机制 bug 也不会让实体超速吹飞；用 SimMath 位级
                 // 确定原语（MulAdd2 + Sqrt），护栏本身不引运行时差异。
                 float velSq = SimMath.MulAdd2(e.Vel.X, e.Vel.X, e.Vel.Z, e.Vel.Z);
@@ -48,7 +48,7 @@ namespace LiteSim
                     e.Vel.Y = 0f;
                 }
 
-                // 世界边界钳制（地图尺寸是判定半的一部分，#17）
+                // 世界边界钳制（地图尺寸是判定半的一部分）
                 if (e.Pos.X < -map.HalfWidth) e.Pos.X = -map.HalfWidth;
                 if (e.Pos.X > map.HalfWidth) e.Pos.X = map.HalfWidth;
                 if (e.Pos.Z < -map.HalfDepth) e.Pos.Z = -map.HalfDepth;

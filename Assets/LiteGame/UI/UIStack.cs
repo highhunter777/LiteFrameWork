@@ -4,7 +4,7 @@ using System.Collections.Generic;
 namespace LiteGame
 {
     /// <summary>
-    /// 组内界面栈（M4 §2.1）：开序即深序（尾 = 最上）；Top/Pop 语义供 §2.2 IPopInterceptor 消费。
+    /// 组内界面栈：开序即深序（尾 = 最上）；Top/Pop 语义供 §2.2 IPopInterceptor 消费。
     /// 仅登记"开着"的界面（Close 即出栈，复用再入栈）。
     /// </summary>
     public sealed class UIStack

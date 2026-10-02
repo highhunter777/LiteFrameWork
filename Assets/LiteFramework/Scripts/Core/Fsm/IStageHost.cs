@@ -3,14 +3,12 @@ using System;
 namespace LiteFramework
 {
     /// <summary>
-    /// 阶段宿主（2026-09-17）：`IStage` 的钩子只认这个**窄接口**，因此同一份阶段实现可以挂在
-    /// **平面机**（<see cref="StageMachine{TId,TReq}"/>）与**层级机**（<see cref="HierarchicalStageMachine{TId,TReq}"/>）上——
-    /// 这是"flat 是 HSM 的退化形态、两者共享同一契约"的落地方式（否则两边的钩子签名类型不同，阶段无法复用）。
+    /// 阶段宿主：`IStage` 的钩子只认这个**窄接口**，因此同一份阶段实现可以挂在
+    /// **平面机**（<see cref="StageMachine{TId,TReq}"/>）与**层级机**（<see cref="HierarchicalStageMachine{TId,TReq}"/>）上。
     ///
     /// 只暴露阶段真正需要的能力（发起请求 + 读当前态）；**机器专属能力不进本接口**：
-    /// - 层级机的 `ActivePath` / `Raise` / `Interrupted` 等，由阶段自行
-    ///   `if (m is HierarchicalStageMachine&lt;TId,TReq&gt; hsm) { ... }` 取用（低频、显式）；
-    /// - 这样平面机不必实现一堆用不到的成员（宁窄勿宽）。
+    /// 层级机的 `ActivePath` / `Raise` / `Interrupted` 等，由阶段自行
+    /// `if (m is HierarchicalStageMachine&lt;TId,TReq&gt; hsm) { ... }` 取用。
     /// </summary>
     public interface IStageHost<TId, TReq> where TId : struct
     {

@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""2026-09-28 配置批：demo_item → ItemConfig（扩字段）；新增 MovementConfig 单行表。
+"""demo_item → ItemConfig（扩字段）；新增 MovementConfig 单行表。
 
 - __tables__.xlsx：demo.TbItem 行改 TbItemConfig（output=itemconfig）；追加 TbMovementConfig 行。
 - #itemconfig.xlsx：新建（道具类型 + 刷新/存在/拾取/携带/使用 + 医疗/护盾/手雷/EMP/雷达/投掷物/钩爪传送）。

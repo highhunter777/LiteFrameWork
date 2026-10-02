@@ -3,13 +3,13 @@ using System;
 namespace LiteSim
 {
     /// <summary>
-    /// 世界状态容器（《状态同步实施方案》§3.1 固定布局 + M8 决策 #4/#5）：
+    /// 世界状态容器（《状态同步实施方案》§3.1 固定布局）：
     /// sealed class 持定长数组——构造期一次分配、运行期零 new；EntitySlot[] 是值类型数组，
     /// 逐数组 Array.Copy 即深拷（#1：纯托管，不引 unsafe/UnsafeUtility——Core 零引擎依赖的必然推论）。
     ///
     /// 布局硬约束（#5，反射自检钉死）：进快照的字段只允许值类型/数组——
     /// Custom/Globals 落平面数组（#2/#3：struct 内放数组字段会被 Array.Copy 浅拷共享 → 回滚必错）。
-    /// Cmds/Events 为帧内瞬态（§3.7/决策⑥）：不进快照、不进 checksum，每帧末消费清空。
+    /// Cmds/Events 为帧内瞬态（§3.7）：不进快照、不进 checksum，每帧末消费清空。
     /// </summary>
     public sealed class SimWorldState
     {
@@ -40,7 +40,7 @@ namespace LiteSim
         /// <summary>技能资源/实体（本人私有面；技能消耗账本，P1 ActionSystem 消费）。</summary>
         public readonly int[] Resources;
 
-        // ---- 分型表（《实体分型表设计》§1，2026-09-29）----
+        // ---- 分型表（《实体分型表设计》§1）----
         // 行有效 ⟺ 槽位活体且 EntityFlags.Kind* 置位（kind 位 = 迷你 archetype mask）。
         // 脊柱不动：这些是**平行行表**（每槽位一行），不是每实体子槽阵列——与 P0 运行态同一条
         // 布局纪律（定容值类型数组，#5），但寻址就是槽位索引本身。
@@ -61,7 +61,7 @@ namespace LiteSim
         public CommandBuffer Cmds;
         public FrameEventBuffer Events;
 
-        // 分配器状态：随快照走（保 M9 重放一致），不进 checksum（非逻辑字段，§3.6）。
+        // 分配器状态：随快照走（保重放一致），不进 checksum（非逻辑字段，§3.6）。
         private readonly ulong[] _versions;
         private int _nextFree;
 
@@ -194,10 +194,10 @@ namespace LiteSim
         }
 
         /// <summary>
-        /// 深拷快照原语（#1，M9 SnapshotRing 复用）：逐数组 Array.Copy。
-        /// 不拷 Cmds/Events（帧内瞬态，§3.7/决策⑥）；
+        /// 深拷快照原语（#1，SnapshotRing 复用）：逐数组 Array.Copy。
+        /// 不拷 Cmds/Events（帧内瞬态，§3.7）；
         /// _versions/_nextFree 分配器状态随快照走——否则重放期新分配的 Id 会与被恢复的旧 Id 撞车。
-        /// P0 起 Weapons/Actions/Status/MatchBag/Resources/Match 一并全量拷贝
+        /// Weapons/Actions/Status/MatchBag/Resources/Match 一并全量拷贝
         /// （《游戏业务系统总设计》§1 阻塞项 ②：新字段漏 CopyTo = 回滚/重连静默分叉）。
         /// </summary>
         public void CopyTo(SimWorldState dst)

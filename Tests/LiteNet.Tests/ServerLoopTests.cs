@@ -8,11 +8,10 @@ using Xunit;
 namespace LiteNet.Tests
 {
     /// <summary>
-    /// 定拍循环用例（R0 重写：《商业级通用服务端框架总设计》§5 P0-1）。
+    /// 定拍循环用例（《商业级通用服务端框架总设计》§5 P0-1）。
     ///
-    /// **旧用例按正确契约修**（待办总览 R0 行：不为保绿保留错误行为）：旧"空载跑一秒"接受 16ms 锚点
-    /// 造成的 62~63 tick——那是 62.5Hz 的**错误时间轴**，追帧补不了时间轴本身错了 4% 的根因。
-    /// 现在用虚拟时钟把节拍器的数学钉死（零真实 Sleep、零墙钟依赖），真实时钟只留一条容差冒烟。
+    /// 用虚拟时钟把节拍器的数学钉死（零真实 Sleep、零墙钟依赖）；真实时钟只留一条容差冒烟。
+    /// 锚点接受 16ms 抖动会造成 62.5Hz 的错误时间轴——追帧补不了时间轴本身错了 4% 的根因。
     /// </summary>
     public sealed class ServerLoopTests
     {
@@ -114,7 +113,7 @@ namespace LiteNet.Tests
             using var host = new ServerHost(new KcpTransportServer(), new RoomConfig { Port = Port + 2 });
             host.Ops.PrintEnabled = false;
             // 单帧体 20ms（模拟过载：> 16.67ms 锚点周期，必然持续落后）。
-            // 注：跨平台 CI——注入强度须大于两平台定时器粒度之和（Linux 1ms 精度下 8ms 不构成过载，M10 批④教训）。
+            // 注：跨平台 CI——注入强度须大于两平台定时器粒度之和（Linux 1ms 精度下 8ms 不构成过载）。
             var loop = new ServerLoop(host, () => System.Threading.Thread.Sleep(20));
 
             var watch = Stopwatch.StartNew();

@@ -12,15 +12,13 @@ namespace LiteNet.Tests
     /// 优雅关闭／排空用例（《商业级通用服务端框架总设计》§12"优雅关闭"五步；《框架先行》§6 样例④
     /// "…**drain**"、§8 准入项「联机宿主闭环」"…和**关闭排空**通过"）。
     ///
-    /// **设计五步与本实现的覆盖**（未覆盖的在本组里显式断言其"未实现"语义，不留含糊）：
-    /// 1. readiness 置 false，Lobby 不再分配——**无 Lobby/实例注册（R2）**，等价语义是本进程 `Draining`；
-    /// 2. 停止接受新 Join，现有房间进入 drain——**已实现**；
-    /// 3. 限时完成对局，超时归档 Aborted——**已实现**；
-    /// 4. 刷新 Outbox/Archive 到持久介质——**已实现**（M0-c 后续批：装配 ISettlementOutbox 时
-    ///    SettlementReady 逐条 write-through 落盘，DrainComplete 后 FlushSettlementOutbox 收口；
-    ///    完整 Match 归档与提交管道归 R3）；
-    /// 5. 停止 Worker/Transport/Host——**生命周期已接线**（`Dispose` 按 Worker → Transport → Outbox
-    ///    顺序收尾）；真正 Mailbox 排空与 Worker/房间 Owner 切换仍归后续 R2 路由批次。
+    /// **设计五步与本实现的覆盖**：
+    /// 1. readiness 置 false，Lobby 不再分配——本服务无 Lobby/实例注册，等价语义是本进程 `Draining`；
+    /// 2. 停止接受新 Join，现有房间进入 drain；
+    /// 3. 限时完成对局，超时归档 Aborted；
+    /// 4. 刷新 Outbox/Archive 到持久介质——装配 ISettlementOutbox 时 SettlementReady 逐条 write-through 落盘，
+    ///    DrainComplete 后 FlushSettlementOutbox 收口；
+    /// 5. 停止 Worker/Transport/Host——`Dispose` 按 Worker → Transport → Outbox 顺序收尾。
     /// </summary>
     [Trait(TestTrait.Category, TestCategory.Integration)]
     public sealed class DrainTests
@@ -295,7 +293,7 @@ namespace LiteNet.Tests
             Assert.Equal(frame, room.AuthSim.Frame);
         }
 
-        // ---- 第 4 步：刷新 Outbox 到持久介质（M0-c 后续批）----
+        // ---- 第 4 步：刷新 Outbox 到持久介质 ----
 
         [Fact]
         public void 排空超时收尾_结算入盒落盘_第4步收口()
@@ -338,7 +336,7 @@ namespace LiteNet.Tests
                 Assert.True(System.IO.File.Exists(journal));
                 Assert.Contains("Room-A", System.IO.File.ReadAllText(journal));
 
-                // 重启恢复：新实例续接——待提交不丢（提交管道归 R3）
+                // 重启恢复：新实例续接——待提交不丢
                 using (var restarted = FileSettlementOutbox.Open(journal, 16))
                 {
                     Assert.Equal(1, restarted.Count);

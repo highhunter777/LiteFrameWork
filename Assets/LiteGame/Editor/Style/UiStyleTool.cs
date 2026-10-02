@@ -7,13 +7,12 @@ using UnityEngine.UI;
 namespace LiteGame.EditorTools.UI
 {
     /// <summary>
-    /// 样式工具（《UI控件库Prefab落地规划》§2"统一色板"的落地执行件；2026-09-17 定案：**仅编辑器批量工具**）。
+    /// 样式工具（"统一色板"的落地执行件；**仅编辑器批量工具**）。
     ///
     /// 机制：**最近 token 匹配 + 阈值**——每个 Graphic 的颜色与 token 全集比对，落在阈值内即视为该 token
     /// 的实例，刷新时改写为 token 现值。由此获得两个关键性质：
     ///   1. **可重入**：颜色已在 token 值上 → 最近匹配即自身 → 幂等；
-    ///   2. **改值可传播**：改 UiStyle 的 token 值后重跑刷新，旧值落在最近邻阈值内 → 全量迁移到新值
-    ///      （取代初版"LegacyMap 一次性映射"——该形态改 token 值后无法传播，已弃）。
+    ///   2. **改值可传播**：改 UiStyle 的 token 值后重跑刷新，旧值落在最近邻阈值内 → 全量迁移到新值。
     /// 阈值 1e-4（逐通道差平方和）——只吸收浮点噪声与"同一意图的离散变体"，手调出的新色不受影响，
     /// 由"对账"报告暴露。
     ///
@@ -22,11 +21,11 @@ namespace LiteGame.EditorTools.UI
     /// - 菜单：LiteGame/UI/样式工具/刷新模板颜色（按主题）、LiteGame/UI/样式工具/对账模板颜色（漂移报告）。
     ///
     /// 边界：只动 Assets/UI/Widgets/ 下的模板 prefab；不挂组件、不进运行时、不改结构；
-    /// 手作模板为唯一维护路径（构建器已降级为历史参考）。
+    /// 手作模板为唯一维护路径。
     /// </summary>
     public static class UiStyleTool
     {
-        private const string WidgetsDir = "Assets/UI/Widgets";  // 2026-09-19：UI 已从 LiteGame 迁到顶层 Assets/UI
+        private const string WidgetsDir = "Assets/UI/Widgets";  // UI 控件模板目录（顶层 Assets/UI）
 
         /// <summary>命中阈值：颜色到 token 的平方距离 ≤ 此值视为该 token 的实例（吸收浮点噪声与离散变体）。</summary>
         private const float HitEpsilon = 1e-4f;

@@ -19,7 +19,7 @@ namespace LiteFramework
     }
 
     /// <summary>
-    /// GameObject 对象池（三池分工的第三件，设计方案 §1.1 既定：**包 Core ObjectPool&lt;T&gt; 做底层，
+    /// GameObject 对象池（三池分工的第三件：**包 Core ObjectPool&lt;T&gt; 做底层，
     /// 不自研第二套池逻辑**；纯数据对象 → ReferencePool，带回调的 C# 逻辑实例 → ObjectPool&lt;T&gt;，
     /// 会进场景渲染的 GameObject → 本池）。
     /// prefab 维度（key）分桶，每桶一个 ObjectPool&lt;GameObject&gt;（复用其所有权移交/重复归还检测/

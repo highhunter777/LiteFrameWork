@@ -46,7 +46,7 @@ namespace LiteGame
     /// **能力边界（如实标注）**：沙箱回收是**能力收口**而非形式化安全边界——
     /// 未执行 <c>debug</c> 库的加固，也不声称可抵御恶意构造的 Lua 字节码；
     /// §10 要求的"错误熔断、内存与执行预算"中，本类只做**逐脚本**报告，不含指令计数/超时中断
-    /// （那需 Lua VM 的 hook 接缝，属后续批次）。
+    /// （那需 Lua VM 的 hook 接缝，本类不实现）。
     /// </summary>
     public sealed class CandidateLuaValidator : IDisposable
     {
@@ -104,7 +104,7 @@ namespace LiteGame
         /// 对每段脚本：
         /// ① 语法——<c>luaL_loadbuffer</c> 能否装载；
         /// ② 模块级执行——在沙箱内 pcall 一次，捕获顶层错误。
-        /// 依赖的模块由批次内已装载者提供（受限 require）。
+        /// 依赖的模块由本次候选集合内已装载者提供（受限 require）。
         /// </summary>
         public IReadOnlyList<LuaScriptVerdict> Validate(
             CandidateScriptSet scripts,

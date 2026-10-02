@@ -36,7 +36,7 @@ namespace LiteFramework
                 try { items[i](); }
                     catch (Exception e)
                     {
-                        Log.Error(e, "Dispose 单个 Subscribe 失败", "SubscriptionBag");   // 单个失败不中断其余（§7.8 同一语义）
+                        Log.Error(e, "Dispose 单个 Subscribe 失败", "SubscriptionBag");   // 单个失败不中断其余
                     }
             }
         }

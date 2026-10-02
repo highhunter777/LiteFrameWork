@@ -6,8 +6,7 @@ using Cysharp.Threading.Tasks;
 namespace LiteFramework
 {
     /// <summary>
-    /// 共享加载协调器（《商业级通用客户端框架总设计》§8.2 SharedLoad——同 generation/location/type 的并发请求合并；
-    /// 《热更与内容发布专项设计》§7 取消语义逐条落点）：
+    /// 共享加载协调器（同 generation/location/type 的并发请求合并）：
     ///
     /// - **合并**：同 key 的多个获取者共享**一次**底层加载（loader 只被调用一次）；加载完成后，新获取者走
     ///   已完成路径（同步拿到租约，不重复加载）。
@@ -16,7 +15,7 @@ namespace LiteFramework
     ///   YooAsset 操作不可中途取消，故"迟到结果不复活"由完成续延兜底：迟到的成功结果就地卸载，不发出租约）。
     /// - **失败**：全部等待者收到同一异常；键移除（重试 = 新的一次加载）。
     /// - **引用计数**：Acquire 返回的租约即一份持有；全部持有者释放后 unloader 恰好执行一次
-    ///   （引用归零即移除——**无保留缓存**；缓存预算/保留策略归 U1/热更批，本类不假装有）。
+    ///   （引用归零即移除——**无保留缓存**）。
     /// - **释放面**：<see cref="Dispose"/> = 关闭路径：已加载条目就地卸载、在途加载尽力取消、迟到结果丢弃。
     ///
     /// 线程模型：全部状态变更在锁内；loader/unloader 一律在锁外调用（实现方可回调本类而无死锁）。
@@ -148,7 +147,7 @@ namespace LiteFramework
                     // 等待恢复时键已被弃置（其余等待者全员退出后本次加载被标记）——迟到结果不复活，不发出租约。
                     // 资产由完成续延（OnLateCompleted）卸载；本等待份额已在弃置时清账，此处只拒绝交付。
                     throw new ObjectDisposedException(
-                        $"共享加载键 {entry.Key} 已被弃置——迟到结果不发出租约（热更专项 §7）");
+                        $"共享加载键 {entry.Key} 已被弃置——迟到结果不发出租约");
                 }
                 entry.Asset ??= asset;                           // 首个恢复的等待者填充（后续同值幂等）
                 entry.Loaded = true;

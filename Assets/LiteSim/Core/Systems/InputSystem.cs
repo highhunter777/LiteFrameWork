@@ -1,22 +1,22 @@
 namespace LiteSim
 {
     /// <summary>
-    /// 输入系统（《状态同步实施方案》§3.3 顺序第 1 位 + M8 决策 #11/#12）：
+    /// 输入系统（《状态同步实施方案》§3.3 顺序第 1 位）：
     /// 应用移动向量、**瞄准方向**与**瞄准态**到玩家实体——朝向（`Yaw`）在此派生；
-    /// 开火位由 ShootingSystem 直接读输入（签名按 #10 窄化）。
+    /// 开火位由 ShootingSystem 直接读输入。
     /// 输入数组已由 SimStep 按 EntityId 升序排列（§3.3 同帧多请求的确定性来源）。
     ///
-    /// **2026-09-27 瞄准态口径（用户裁决，见《角色状态与动作专项设计》§7）**：
-    /// - **限速**：**瞄准中 ∨ 开火态**（开火态 = <see cref="EntitySlot.FireStanceFrames"/> &gt; 0，
-    ///   2026-09-30 三次裁决——移动腰射按 aimwalk 移动）→ 移动上限
+    /// **瞄准态口径（见《角色状态与动作专项设计》§7）**：
+    /// - **限速**：**瞄准中 ∨ 开火态**（开火态 = <see cref="EntitySlot.FireStanceFrames"/> &gt; 0
+    ///   ——移动腰射按 aimwalk 移动）→ 移动上限
     ///   <see cref="CombatConfig.AimMoveSpeed"/>（= 走路档）；
-    /// - **朝向派生（批C+ 组合修复——债 #4 根治，2026-10-01 七次裁决）**：
+    /// - **朝向派生（债 #4 根治）**：
     ///   **射击语境（瞄准 ∨ 开火帧 ∨ 窗内）且准星向量有效** → 朝准星（即时跟枪——点射间隙帧不回摆，
     ///   视图侧由此得到稳定的 AimWalk 四向权重）并**武装离场转向**；
     ///   否则移动 → 朝移动方向——武装态按 <see cref="CombatConfig.FaceTurnRadPerSec"/> 逐帧过渡
     ///   （窗尽回转不瞬切），到位解除恢复即时跟向；都没有 → **保持上一帧 Yaw**（不拿零向量退化，
     ///   且回放/重放可重建）；
-    /// - **开火驻留窗递减**（批次C）：Run 顶部对**全槽位**统一推进——缺席/空输入帧与死亡实体照常衰减
+    /// - **开火驻留窗递减**：Run 顶部对**全槽位**统一推进——缺席/空输入帧与死亡实体照常衰减
     ///   （整数计数 ⇒ 确定性）；窗随 <see cref="ShootingSystem"/> 判定点置满、本系统先跑 ⇒ 置窗次帧起限速生效。
     /// </summary>
     public static class InputSystem
@@ -40,7 +40,7 @@ namespace LiteSim
                 uint buttons = inputs[i].Buttons;
                 bool aiming = (buttons & SimInputFrame.ButtonAim) != 0u;
 
-                // 批次E（八次裁决）：**瞄准帧也置满同一个驻留窗**——频繁点按瞄准与点射共用
+                // **瞄准帧也置满同一个驻留窗**——频繁点按瞄准与点射共用
                 // `FireStanceFrames`（同一字段/同一递减/同一快照公共面——协议零改动）：点按间隙帧
                 // 不回移动向（朝准星+限速走路档随窗——视图 AimWalk 四向稳定的前提），窗尽离场转向。
                 if (aiming) e.FireStanceFrames = (byte)CombatConfig.FireStanceFrames;

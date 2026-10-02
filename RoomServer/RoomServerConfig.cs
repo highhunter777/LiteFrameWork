@@ -17,10 +17,9 @@ namespace RoomServer
     /// **分区语义**（rooms 按模板逐房取值；玩法数值不在此文件）：
     /// - <c>rooms</c>：房间**模板**。动态建房时按模板取值——每个 roomId 一份（§6"一个 roomId
     ///   只能映射一个独立 RoomActor"）。模板缺失/字段缺失 → **拒绝建房**，不静默兜底。
-    /// - 玩法数值**不在本文件**（2026-09-28 起）：服务端与客户端同读 `Assets/GameData/Config/*.bytes`
-    ///   （<see cref="CombatNumbers"/>；原 combat 内联分区废弃——单源表格式由 json 切到 bin 后，
-    ///   内联 json 形态成了第二真相源，让位）。
-    /// - <c>rate_limit</c>：**进程级共享**分层限流参（R2 安全批；可选，缺省见
+    /// - 玩法数值**不在本文件**：服务端与客户端同读 `Assets/GameData/Config/*.bytes`
+    ///   （<see cref="CombatNumbers"/>——数值走单源表格式）。
+    /// - <c>rate_limit</c>：**进程级共享**分层限流参（可选，缺省见
     ///   <see cref="RateLimitSettings.Default"/>）。
     ///
     /// **不可变性**（§188"房间创建时固定不可变玩法配置…已有数据发布只供新房间采用"）：
@@ -63,24 +62,24 @@ namespace RoomServer
         /// <summary>
         /// 所有模板里最大的 <c>expected_players</c>（装载期算好）。
         /// 用途：会话表容量必须按**全服潜在连接数**算，不能按单个房间算——
-        /// 多房间下"按首房间 ×4"会让第二个房间的连接被会话上限拒掉（实测踩过）。
+        /// 多房间下"按首房间 ×4"会让第二个房间的连接被会话上限拒掉。
         /// </summary>
         public readonly int MaxExpectedPlayers;
 
         /// <summary>本进程允许的 audience（票据比对；空 = 不校验）。</summary>
         public readonly string Audience;
 
-        /// <summary>固定 Worker 数（R2 Worker Pool；当前默认 1，运行时路由切换前保持单循环行为兼容）。</summary>
+        /// <summary>固定 Worker 数（当前默认 1，保持单循环行为兼容）。</summary>
         public readonly int WorkerCount;
 
-        /// <summary>每个固定 Worker 的有界 Mailbox 容量（R2；核心与宿主生命周期已接线，运行时消息路由后续生效）。</summary>
+        /// <summary>每个固定 Worker 的有界 Mailbox 容量。</summary>
         public readonly int MailboxCapacity;
 
         /// <summary>
-        /// 结算 Outbox 日志路径（M0-c 后续批"排空第 4 步"；§11.3 本地持久 Outbox）。
+        /// 结算 Outbox 日志路径（"排空第 4 步"；§11.3 本地持久 Outbox）。
         /// 缺省 Outbox/settlements.journal。**强制 .journal 后缀**：RoomServer/Data 的
         /// .json/.bytes 参与 buildHash 哈希闭包——日志若配成那里的 .json，会随每局结算漂移、
-        /// 两端握手全拒（这是一条实测级红线，装载期直接拒，不给运行期踩）。
+        /// 两端握手全拒（这是一条红线，装载期直接拒，不给运行期踩）。
         /// </summary>
         public readonly string SettlementJournalPath;
 
@@ -88,7 +87,7 @@ namespace RoomServer
         public readonly int SettlementOutboxCapacity;
 
         /// <summary>
-        /// 分层限流参（R2 安全批；§343"限流桶必须有容量上限和周期清理"、§595"限流可按 IP/账号/Session 生效"）。
+        /// 分层限流参（§343"限流桶必须有容量上限和周期清理"、§595"限流可按 IP/账号/Session 生效"）。
         /// <c>rate_limit</c> 分区可选：缺失 → <see cref="RateLimitSettings.Default"/>；
         /// 给了 → 逐字段范围校验（不静默兜底半段配置）。
         /// </summary>
@@ -130,8 +129,6 @@ namespace RoomServer
         {
             get { return _rooms.Keys; }
         }
-
-        /// <summary>玩法数值（共享）已移至 <see cref="CombatNumbers"/>（.bytes 表，2026-09-28）。</summary>
 
         /// <summary>
         /// 按模板名造一份房间配置。模板不存在或必填项缺失 → 抛（**不兜底**——
@@ -193,8 +190,8 @@ namespace RoomServer
 
             string audience = OptionalString(root, "audience");
 
-            // R2 Worker Pool 配置：默认 1 保持当前单循环行为；范围先钉住，避免线程数/队列
-            // 上限被错误配置成资源放大器。核心与宿主生命周期已接线，运行时路由按批次推进。
+            // Worker Pool 配置：默认 1 保持单循环行为；范围钉住，避免线程数/队列
+            // 上限被错误配置成资源放大器。
             long workerCountValue = OptionalLong(root, "worker_count", 1);
             if (workerCountValue < 1 || workerCountValue > 256)
                 throw new InvalidDataException(
@@ -207,10 +204,10 @@ namespace RoomServer
                     $"mailbox_capacity 越界（允许 1..1000000）：{mailboxCapacityValue}：{sourcePath}");
             int mailboxCapacity = (int)mailboxCapacityValue;
 
-            // combat 内联分区已废弃（2026-09-28）：玩法数值走 .bytes 表（CombatNumbers），本文件不再内联。
+            // combat 内联分区不受支持：玩法数值走 .bytes 表（CombatNumbers）。
             if (root.TryGetProperty("combat", out JsonElement legacyCombat))
                 throw new InvalidDataException(
-                    $"combat 分区已废弃（玩法数值走 Assets/GameData/Config/*.bytes 表——见 CombatNumbers）：{sourcePath}");
+                    $"combat 分区不受支持（玩法数值走 Assets/GameData/Config/*.bytes 表——见 CombatNumbers）：{sourcePath}");
 
             if (!root.TryGetProperty("rooms", out JsonElement roomsEl) || roomsEl.ValueKind != JsonValueKind.Object)
                 throw new InvalidDataException($"配置缺 rooms 分区（房间模板表）：{sourcePath}");

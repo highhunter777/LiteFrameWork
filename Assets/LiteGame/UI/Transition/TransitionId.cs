@@ -26,7 +26,7 @@ namespace LiteGame
         Pop,
     }
 
-    /// <summary>转场结果分类（U1-③，§6.3：结果区分 Completed/Skipped/TimedOut/Cancelled/Failed——
+    /// <summary>转场结果分类（§6.3：结果区分 Completed/Skipped/TimedOut/Cancelled/Failed——
     /// 页面操作据此决定收尾语义；动效失败可降级为立即完成，但必须先复位）。</summary>
     public enum TransitionResultKind
     {
@@ -53,7 +53,7 @@ namespace LiteGame
         public UIForm Outgoing;
         public UIForm Incoming;
 
-        /// <summary>结果分类（U1-③）。</summary>
+        /// <summary>结果分类。</summary>
         public TransitionResultKind Kind;
 
         /// <summary>表现是否正常播完（= <see cref="Kind"/>==Completed；超时 / 策略异常 / 请求被丢或被忽略 = false）。</summary>

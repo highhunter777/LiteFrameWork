@@ -5,7 +5,7 @@ using Xunit;
 namespace LiteNet.Tests
 {
     /// <summary>
-    /// R1 会话生命周期用例（《商业级通用服务端框架总设计》§9.2）：
+    /// 会话生命周期用例（《商业级通用服务端框架总设计》§9.2）：
     /// SessionManager 容量上限与周期清理、ReconnectService 时钟注入/容量、重绑后新会话水位归零
     /// （旧连接 ACK 状态不复活）。纯 L1，无 Socket/墙钟。
     /// </summary>
@@ -124,13 +124,13 @@ namespace LiteNet.Tests
             Assert.Equal(2, service.Count);
         }
 
-        // ---- R2 安全批：票据熵源（§P0-6"CSPRNG 生成、至少 128 bit 熵"）----
+        // ---- 票据熵源（§P0-6"CSPRNG 生成、至少 128 bit 熵"）----
 
         [Fact]
         public void 重连票据_CSPRNG_不可复现且熵宽达标()
         {
-            // 旧实现是 "rc{serial:x}-{playerId:x}"：两个新实例按同一顺序签发会产出**同一串**。
-            // CSPRNG 下重放签发序列不可复现——这条用例钉住"可预测串"不再回归。
+            // 可预测串（如 "rc{serial:x}-{playerId:x}"）会让两个新实例按同一顺序签发产出**同一串**。
+            // CSPRNG 下签发序列不可复现——这条用例钉住"可预测串"不回归。
             string a = new ReconnectService().Issue(playerId: 7, roomId: "R");
             string b = new ReconnectService().Issue(playerId: 7, roomId: "R");
             Assert.NotEqual(a, b);

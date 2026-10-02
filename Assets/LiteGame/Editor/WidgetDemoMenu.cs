@@ -3,7 +3,7 @@ using UnityEngine;
 
 namespace LiteGame.Editor
 {
-    /// <summary>控件库 Demo 页入口（M4c 验收：一页全展）。仅 Play 模式——运行时灰盒构建 + 自检断言。</summary>
+    /// <summary>控件库 Demo 页入口（一页全展）。仅 Play 模式——运行时灰盒构建 + 自检断言。</summary>
     public static class WidgetDemoMenu
     {
         [MenuItem("LiteGame/UI/Widget Demo")]

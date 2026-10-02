@@ -9,7 +9,7 @@ using UnityEngine;
 namespace LiteGame.Tests.EditMode
 {
     /// <summary>
-    /// C2 批② 表现视图验收（全替身、零网络、零资源包）：
+    /// 表现视图验收（全替身、零网络、零资源包）：
     /// - SimView：槽位镜像增删、远端快照插值、本地预测跟随与和解衰减、硬切、**事件静默门**去重；
     /// - EntityViewMap：按槽位索引、按 prefab 分池复用、回收计数回落（泄漏断言）。
     ///
@@ -166,7 +166,7 @@ namespace LiteGame.Tests.EditMode
             view.OnAuthoritativeSnapshot(snapB);
 
             // 窗口内任意 alpha 都必须直接落新位置——插值会把 50m 跳变播成 33ms 横穿地图的"飞人"
-            view.Tick(0f);                                         // alpha = 0（旧实现停在 x=0 再起步飞越）
+            view.Tick(0f);                                         // alpha = 0（硬切）
             view.TryGetView(0, out go);
             Assert.AreEqual(50f, go.transform.position.x, 0.01f, "跳变超阈值 → 远端硬切（§6.2 远端必要时 snap）");
 
@@ -299,7 +299,7 @@ namespace LiteGame.Tests.EditMode
             Assert.AreEqual(1, cam.FollowCount, "每渲染帧一次");
             Assert.AreEqual(4f, cam.LastTarget.x, 0.1f, "喂的是本地表现位置（X）");
             Assert.AreEqual(6f, cam.LastTarget.z, 0.1f, "喂的是本地表现位置（Z）");
-            // 2026-10-02 焦点带旋转批：朝向同份下发（yaw=0 → 视觉前沿 +Z，即 90° 旋转）——
+            // 朝向同份下发（yaw=0 → 视觉前沿 +Z，即 90° 旋转）——
             // 构图偏移（TrackedObjectOffset 随 Follow 目标旋转）据此变角色系。
             Assert.AreEqual(90f, cam.LastFacing.eulerAngles.y, 0.01f, "朝向 = 90°−yaw（视觉前沿 +Z 约定）");
         }
@@ -320,7 +320,7 @@ namespace LiteGame.Tests.EditMode
             Assert.AreEqual(1, cam.FollowCount);
         }
 
-        /// <summary>相机端口替身：只记"喂了几次、喂的什么"（朝向随 2026-10-02 焦点带旋转批记录；
+        /// <summary>相机端口替身：只记"喂了几次、喂的什么"（朝向随焦点一并记录；
         /// 瞄准态由流程喂，SimView 不碰——记录位供流程级用例断言）。</summary>
         private sealed class CameraProbe : ICameraService
         {
@@ -351,9 +351,8 @@ namespace LiteGame.Tests.EditMode
         }
 
         // ---- 输入设备源 ----
-        // 原键鼠源（KeyboardMouseIntentSource）已删除，改由 Platform.Unity 适配器的
-        // NewInputIntentSource 承担（New Input System：读 InputAction，需要真实设备与 Action 资产，
-        // 归 Player/真机验证）。三个门（上下文门/帧边界门/采样节流）与设备源契约由 L1 覆盖
-        // （Tests/LiteSim.Core.Tests/InputServiceTests.cs）。
+        // 设备源由 Platform.Unity 适配器的 NewInputIntentSource 承担（New Input System：读 InputAction，
+        // 需要真实设备与 Action 资产，归 Player/真机验证）。三个门（上下文门/帧边界门/采样节流）与设备源
+        // 契约由 L1 覆盖（Tests/LiteSim.Core.Tests/InputServiceTests.cs）。
     }
 }

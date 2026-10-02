@@ -4,13 +4,13 @@ using System.Collections.Generic;
 namespace LiteFramework
 {
     /// <summary>
-    /// 候选文件读句柄（《热更与内容发布专项设计》§7"下载、候选校验与容量"）。
+    /// 候选文件读句柄（下载、候选校验与容量）。
     ///
     /// 只暴露校验需要的两件事：**长度**与**完整字节**。为什么不做流式：
-    /// 候选摘要按 §5 对**原始字节**计算完整 SHA-256，<see cref="ContentHash.Hasher"/> 需整块输入；
+    /// 候选摘要对**原始字节**计算完整 SHA-256，<see cref="ContentHash.Hasher"/> 需整块输入；
     /// 且 <see cref="ReleaseBudget.MaxFileBytes"/> 已对单文件设上限（默认 512MB），
     /// 逐文件整体读入有界。流式分块属于大包优化，在有真实包规模数据前不预先引入
-    /// （§15"没有目标包规模与设备数据时不虚构"）。
+    /// （没有目标包规模与设备数据时不虚构）。
     /// </summary>
     public interface ICandidateFile
     {
@@ -35,7 +35,7 @@ namespace LiteFramework
     }
 
     /// <summary>
-    /// 磁盘余量端口（§7"空间预检：计入候选、临时/解压峰值、保留版本及余量"）。
+    /// 磁盘余量端口（空间预检：计入候选、临时/解压峰值、保留版本及余量）。
     /// 单独成端口而非并入 <see cref="ICandidateFileSource"/>：余量查询与文件读取的可用性不同
     /// （平台可能能读文件却拿不到配额），且预检失败必须有明确结果而不是静默跳过。
     /// </summary>
@@ -47,7 +47,7 @@ namespace LiteFramework
     }
 
     /// <summary>
-    /// 空间预检请求（§7）。调用方给出各分项，本类型只做**可测的算术与判定**。
+    /// 空间预检请求。调用方给出各分项，本类型只做**可测的算术与判定**。
     /// </summary>
     public sealed class SpaceCheckRequest
     {
@@ -57,10 +57,10 @@ namespace LiteFramework
         /// <summary>解压峰值（未压缩包为 0）。</summary>
         public long DecompressPeakBytes;
 
-        /// <summary>保留版本的既有占用（不得为其腾挪而破坏可用/恢复版本——§12）。</summary>
+        /// <summary>保留版本的既有占用（不得为其腾挪而破坏可用/恢复版本）。</summary>
         public long RetainedVersionBytes;
 
-        /// <summary>安全余量（平台策略给值；§15 不虚构固定值）。</summary>
+        /// <summary>安全余量（平台策略给值；不虚构固定值）。</summary>
         public long SafetyMarginBytes;
     }
 
@@ -92,7 +92,7 @@ namespace LiteFramework
     }
 
     /// <summary>
-    /// 空间预检（§7）。**溢出安全**：各分项均为 long，累加用 checked 语义的显式判定，
+    /// 空间预检。**溢出安全**：各分项均为 long，累加用 checked 语义的显式判定，
     /// 溢出即判"不足"而不是回绕成小数——回绕会让"空间不够"变成"空间充足"，是安全缺陷。
     /// </summary>
     public static class SpacePrecheck

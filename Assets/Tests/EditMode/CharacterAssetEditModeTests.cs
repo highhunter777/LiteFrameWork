@@ -10,7 +10,7 @@ using UnityEngine;
 namespace LiteGame.Tests.EditMode
 {
     /// <summary>
-    /// 真角色资产校验（2026-09-25 资源指令：模型只用 CombatGirlsCharacterPack，主要动画也用该包——
+    /// 真角色资产校验（模型只用 CombatGirlsCharacterPack，主要动画也用该包——
     /// RifleGirl 模型 + 包内 Rifle_Controller + Humanoid_F 主 Avatar）。
     ///
     /// 资源包按仓库政策不入 VCS（.gitignore"第三方素材包不入库"）——**缺包克隆 Ignore 跳过**
@@ -49,7 +49,7 @@ namespace LiteGame.Tests.EditMode
             var states = new HashSet<string>();
             CollectStates(controller.layers[0].stateMachine, states);
 
-            // 移动三态（本批消费）+ 包内已备的主要战斗状态（出现消费者时登记 Profile）
+            // 移动三态 + 包内已备的主要战斗状态（出现消费者时登记 Profile）
             foreach (var name in new[] { "Idle", "Walk", "Run", "Hit1", "Hit2", "Die1", "Die2", "Reload", "AimIdle", "Evade", "Stun" })
                 Assert.IsTrue(states.Contains(name), $"包内控制器缺状态:{name}");
         }
@@ -61,9 +61,8 @@ namespace LiteGame.Tests.EditMode
             // 期望值从**单源**推：运行时角色 prefab（`CombatGirlsAnimationProfile.ViewPrefabPath`）所在目录
             // 必须被 Characters 组收集——否则角色进不了内容包。不硬编码目录字面量，prefab 换位置时断言跟着走。
             //
-            // 2026-09-27 裁决：收集组保持单条 `Assets/Prefab`（prefab 已随 2a0906a 迁到该目录），
-            // 模型/动画依赖在 `CombatGirlsCharacterPack` 内由 **YooAsset 依赖链自动收集**（见组描述），
-            // 不再要求显式收 `CombatGirlsCharacterPack/Runtime`——故本用例由「断言包目录」改为「断言 prefab 目录」。
+            // 收集组为单条 `Assets/Prefab`（运行时 prefab 所在目录）；模型/动画依赖在
+            // `CombatGirlsCharacterPack` 内由 **YooAsset 依赖链自动收集**（见组描述），本用例断言 prefab 目录。
             string expectedDir = System.IO.Path.GetDirectoryName(CombatGirlsAnimationProfile.ViewPrefabPath)
                 .Replace('\\', '/');
 

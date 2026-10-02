@@ -6,7 +6,7 @@ using YooAsset;
 namespace LiteGame
 {
     /// <summary>
-    /// YooAsset 异步操作 → UniTask 适配（手册 9.0 横切件：YooAsset 回调 → UniTask）。
+    /// YooAsset 异步操作 → UniTask 适配（YooAsset 回调 → UniTask）。
     /// 只在封装层内部使用（§7.7：业务拿到的是 UniTask 签名，不接触 YooAsset 句柄类型）。
     /// 取消语义：YooAsset 操作不支持中途取消——ct 在操作边界检查；等待中的操作不可取消，
     /// 流程级取消（离场）由 ProcedureBase 的 cts 在下一个 await 检查点生效。

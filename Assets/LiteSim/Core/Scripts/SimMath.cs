@@ -5,7 +5,7 @@ namespace LiteSim
     /// <summary>
     /// Sim 数值基础件（LiteSim.Core，零依赖纯 C#）。
     ///
-    /// 单位约定（《M7 实施指导》§1-9）：长度 = 米(m)，时间 = 秒(s)，角度 = 弧度(rad)，
+    /// 单位约定（§1-9）：长度 = 米(m)，时间 = 秒(s)，角度 = 弧度(rad)，
     /// y 轴 = 2.5D 向上（《状态同步实施方案》§3.5）；逻辑帧步长 <see cref="Dt"/> = 1/60（与 SimConfig 同源）。
     ///
     /// IEEE 边界纪律（《状态同步实施方案》§2.1；由 Editor 纪律扫描 R1~R3 执行）：
@@ -66,7 +66,7 @@ namespace LiteSim
         }
 
         /// <summary>
-        /// 平方根——**自研 software sqrt**（2026-09-18 定案 B）：纯整数/位运算 + 正确舍入，
+        /// 平方根——**自研 software sqrt**：纯整数/位运算 + 正确舍入，
         /// 跨运行时逐位确定。
         ///
         /// 为什么不再用 BCL `<c>(float)Math.Sqrt</c>`：Unity(2022.3/Mono) 与 .NET 8 的
@@ -172,7 +172,7 @@ namespace LiteSim
         }
 
         // ─────────────────────────────────────────────────────────────────────
-        // 融合安全算术（2026-09-18 实测发现，见《待办总览》§5-33）
+        // 融合安全算术
         //
         // **真因**：Mono(Unity 2022.3) 的 JIT 会把 `a*b + c*d` 之类**自动融合成 FMA**（单次舍入），
         // 而 .NET 8 严格按 IEEE 每步舍入 → 两侧差 1 ulp。实测证据（同一组分量、同一源码）：
@@ -223,4 +223,4 @@ namespace LiteSim
     }
 }
 
-// rebuild-marker: 2026-09-18T23:59 forced-rebuild (size changed to defeat compiler-server cache)
+// rebuild-marker: forced-rebuild（变更文件尺寸，绕开编译器服务器缓存）

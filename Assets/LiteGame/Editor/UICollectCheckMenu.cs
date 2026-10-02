@@ -16,7 +16,7 @@ namespace LiteGame.Editor
     /// </summary>
     public static class UICollectCheckMenu
     {
-        private const string WidgetDir = "Assets/UI/Widgets";   // 2026-09-19：UI 已从 LiteGame 迁到顶层 Assets/UI
+        private const string WidgetDir = "Assets/UI/Widgets";   // UI 控件模板目录（顶层 Assets/UI）
         private const string ScreenDir = "Assets/UI/Screens";
         private const string Tag = "ui";
 

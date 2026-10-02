@@ -1,5 +1,5 @@
 # ─────────────────────────────────────────────────────────────────────────────
-# L0 dependency & secret scan (C0-1, 2026-09-21)
+# L0 dependency & secret scan
 #
 # Per: Client Framework Master Design 16, row 1 - L0 must intercept personal
 #      absolute package paths, floating git deps, missing licenses and secrets.

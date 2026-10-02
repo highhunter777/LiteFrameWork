@@ -97,7 +97,7 @@ namespace LiteSim.Editor
         private static string BakeOne(RootMotionBakeItem item, List<RootMotionEntry> entries)
         {
             if (item.Clip == null) return $"ActionId {item.ActionId}: 未指定 AnimationClip";
-            if (!item.Clip.humanMotion) return $"ActionId {item.ActionId}: 片段「{item.Clip.name}」非人形（首版仅支持 RootT 曲线，拒绝静默回退）";
+            if (!item.Clip.humanMotion) return $"ActionId {item.ActionId}: 片段「{item.Clip.name}」非人形（仅支持 RootT 曲线，拒绝静默回退）";
 
             AnimationCurve cx = AnimationUtility.GetEditorCurve(item.Clip, RootBinding("RootT.x"));
             AnimationCurve cy = AnimationUtility.GetEditorCurve(item.Clip, RootBinding("RootT.y"));
@@ -108,7 +108,7 @@ namespace LiteSim.Editor
             int sampleCount = Math.Max(1, (int)Math.Round(item.Clip.length * RootMotionCatalog.TickRate,
                 MidpointRounding.AwayFromZero) - 1);
             var dxz = new short[sampleCount * 2];
-            var dyaw = new short[sampleCount];   // 首版恒零（DirectionPolicy=起始锁定）
+            var dyaw = new short[sampleCount];   // 恒零（DirectionPolicy=起始锁定）
             int yPeakMm = 0;
 
             for (int i = 0; i < sampleCount; i++)

@@ -4,9 +4,8 @@ using LiteFramework;
 namespace LiteGame
 {
     /// <summary>
-    /// 流程迁移 payload（通用状态机 `StageMachine&lt;ProcedureId, ProcedureArgs&gt;` 的 `TReq`，2026-09-17）：
-    /// **每次迁移随参数带**，编译期强类型 —— 取代已退休的 `ProcedureOwner`（那套"owner 上挂字段、可能为 null"
-    /// 的弱约束）。所有字段只读；每次 `Request` 覆盖上一次（last-wins 与迁移目标同源）。
+    /// 流程迁移 payload（通用状态机 `StageMachine&lt;ProcedureId, ProcedureArgs&gt;` 的 `TReq`）：
+    /// **每次迁移随参数带**，编译期强类型。所有字段只读；每次 `Request` 覆盖上一次（last-wins 与迁移目标同源）。
     /// </summary>
     public readonly struct ProcedureArgs
     {
@@ -17,7 +16,7 @@ namespace LiteGame
         /// 实例由 Match 阶段创建、随迁移移交所有权，Battle 离场时负责其 Scope 收尾）。</summary>
         public readonly BattleClient BattleClient;
 
-        /// <summary>Account 作用域（与 <see cref="BattleClient"/> 同批移交；Battle 离场 Dispose——关闭序
+        /// <summary>Account 作用域（与 <see cref="BattleClient"/> 一同移交；Battle 离场 Dispose——关闭序
         /// BattleContext.Dispose → Match Scope → Account Scope，§6.2）。</summary>
         public readonly ClientScope AccountScope;
 

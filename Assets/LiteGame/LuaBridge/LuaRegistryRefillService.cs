@@ -7,7 +7,7 @@ using LiteFramework;
 namespace LiteGame
 {
     /// <summary>
-    /// 运行期 Lua 注册表增量重填（设计方案 §2.3 的"合法重入之二"，2026-09-17 交付）：
+    /// 运行期 Lua 注册表增量重填（设计方案 §2.3 的"合法重入之二"）：
     /// **不重建 env** —— 重预载 → 释放旧缓存 → 清 require 缓存 → 三注册表 Clear → 走同一条
     /// <see cref="RegistryFiller.FillAll"/> 重填 → 通知 UI 壳换表。
     ///
@@ -18,7 +18,7 @@ namespace LiteGame
     ///  - 池中界面：`ApplyStaleLogic()` 立刻换表并标记补跑 OnInit。
     ///
     /// 顺序钉死（半更新窗口尽量短，见 <see cref="RefillAsync"/> 内注释）。
-    /// 触发点：M11 流程（回主城 / 战斗结束的检查点）+ 调试菜单；Specify 的安全窗口纪律由调用方承担。
+    /// 触发点：主流程检查点（回主城 / 战斗结束）+ 调试菜单；Specify 的安全窗口纪律由调用方承担。
     /// </summary>
     public sealed class LuaRegistryRefillService : IModuleStats
     {

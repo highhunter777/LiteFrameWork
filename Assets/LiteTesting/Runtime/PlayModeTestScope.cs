@@ -7,8 +7,8 @@ using Object = UnityEngine.Object;
 namespace LiteTesting.Unity
 {
     /// <summary>
-    /// PlayMode 版测试所有权（《UI测试开发专项设计》§2.2 目标目录 `LiteTesting/Runtime`；
-    /// 《框架先行》§4 包③退出条件"真 Lua/Prefab/动画资源组合运行，取消、暂停、复用、卸载可验证"）。
+    /// PlayMode 版测试所有权（《UI测试开发专项设计》§2.2 目标目录 `LiteTesting/Runtime`）：
+    /// 覆盖真 Lua/Prefab/动画资源组合运行，取消、暂停、复用、卸载可验证。
     ///
     /// 与 Editor 版 <c>UnityTestScope</c> 的差异——**两处都是硬约束，不是风格选择**：
     /// - 销毁走 <see cref="Object.Destroy"/>，不是 <c>DestroyImmediate</c>：播放态下 Immediate 会破坏

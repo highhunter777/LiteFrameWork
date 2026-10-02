@@ -15,7 +15,7 @@ namespace LiteGame
     /// 根路径只在装配层出现一次。
     ///
     /// 走 <see cref="FileSys"/> 而非直接 System.IO：本项目 LiteGame 层**零 System.IO**
-    /// （IO 唯一入口是 FileSys，见其类注释与纪律扫描）。新增的字节/递归枚举 API 即为此处补足。
+    /// （IO 唯一入口是 FileSys，其字节/递归枚举 API 供此处使用）。
     /// </summary>
     public sealed class FileSysCandidateFileSource : ICandidateFileSource
     {

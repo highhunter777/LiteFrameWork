@@ -5,7 +5,7 @@ using UnityEngine.UI;
 namespace LiteGame.UI
 {
     /// <summary>
-    /// 加载遮罩控件（2026-09-25 新增，U2 反馈面归位）：全屏阻断面 + 文案。
+    /// 加载遮罩控件（反馈面）：全屏阻断面 + 文案。
     ///
     /// 与 <see cref="UIDialog"/> 同一模式——**只暴露状态驱动，不自己创建视觉**（§7 视觉单一来源）：
     /// 遮罩图与文本由模板 prefab 接线，服务层（FeedbackService）持有实例后调 <see cref="SetMessage"/>。

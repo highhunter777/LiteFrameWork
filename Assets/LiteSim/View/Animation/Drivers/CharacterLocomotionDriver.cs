@@ -8,15 +8,15 @@ using UnityEngine;
 namespace LiteSim.View.Animation
 {
     /// <summary>
-    /// 角色动画驱动器（《层次动画机设计》v0.5/v0.6——**单机双根**：形态裁决全部收进
+    /// 角色动画驱动器（《层次动画机设计》——**单机双根**：形态裁决全部收进
     /// <see cref="CombatAnimMachine"/>，本类只负责事实喂入、事件路由、槽位生命周期与诊断聚合）：
     /// - **速度/方向来源**：视图 Transform 的帧间位移——本地（预测+和解衰减）与远端（快照插值）同一来源，
     ///   不读 Sim 内部；插值/衰减的速度天然平滑；
     /// - **IsAiming**：<see cref="SimView.IsAiming"/>（Sim 权威）；
     /// - **锁存**：迟滞公式单源 <see cref="LocomotionBlendMath.UpdateLatch"/>（进 0.6 / 出 0.3 m/s），
-    ///   驱动器每帧算、作为事实喂状态机（机内无迟滞散字段——v0.2 一次裁决③）；
-    /// - **开火窗长**：单源 `CombatConfig.FireStanceFrames / SimConfig.TickRate`（1s，六次裁决——
-    ///   窗与开火动画时长解耦）；槽位装配期解析开火片段时长做**不变式校验**（窗长 ≥ 片段播放时长，
+    ///   驱动器每帧算、作为事实喂状态机（机内无迟滞散字段）；
+    /// - **开火窗长**：单源 `CombatConfig.FireStanceFrames / SimConfig.TickRate`（1s——窗与开火动画时长解耦）；
+    ///   槽位装配期解析开火片段时长做**不变式校验**（窗长 ≥ 片段播放时长，
     ///   违反记警告——防资产改长/倍率改值后常量没跟）；
     /// - **帧事件**：本类实现 <see cref="IFrameEventAnimationConsumer"/> 并**自订阅**
     ///   `SimView.EventSink`（构造时挂上、<see cref="Dispose"/> 时摘下）；Fire 事件按锁存路由进
@@ -53,7 +53,7 @@ namespace LiteSim.View.Animation
             _profile = profile ?? CombatGirlsAnimationProfile.Build();
 
             // 形状校验（配置错误构造期显性失败，不等到运行时逐帧静默失败）：
-            // MoveBlend 三槽走 Locomotion；开火/瞄准站姿/瞄准移动三形走 FullBody（v0.5 五次裁决通道改绑）
+            // MoveBlend 三槽走 Locomotion；开火/瞄准站姿/瞄准移动三形走 FullBody（战斗动作全身接管）
             if (!_profile.TryGetBlendDefinition(CharacterAnimationIds.MoveBlend, out var moveBlend)
                 || moveBlend.SlotCount != 3
                 || moveBlend.Channel != AnimationChannel.Locomotion)
@@ -63,15 +63,15 @@ namespace LiteSim.View.Animation
                 || aimBlend.SlotCount != 4
                 || aimBlend.Channel != AnimationChannel.FullBody)
                 throw new ArgumentException(
-                    $"Profile 缺 {CharacterAnimationIds.AimMoveBlend} 的 4 槽位 FullBody 混合定义（v0.5 通道改绑后形状 {{AimWalk_F,R,B,L}}）", nameof(profile));
+                    $"Profile 缺 {CharacterAnimationIds.AimMoveBlend} 的 4 槽位 FullBody 混合定义（形状 {{AimWalk_F,R,B,L}}）", nameof(profile));
             if (!_profile.TryGetDefinition(CharacterAnimationIds.Fire, out var fireDef)
                 || fireDef.Channel != AnimationChannel.FullBody)
                 throw new ArgumentException(
-                    $"Profile 开火语义须登记为 FullBody（v0.5 通道改绑：全身接管替代上半身叠加）→ {CharacterAnimationIds.Fire}", nameof(profile));
+                    $"Profile 开火语义须登记为 FullBody（全身接管替代上半身叠加）→ {CharacterAnimationIds.Fire}", nameof(profile));
             if (!_profile.TryGetDefinition(CharacterAnimationIds.AimIdle, out var aimIdleDef)
                 || aimIdleDef.Channel != AnimationChannel.FullBody)
                 throw new ArgumentException(
-                    $"Profile 瞄准站姿须登记为 FullBody（v0.5 通道改绑）→ {CharacterAnimationIds.AimIdle}", nameof(profile));
+                    $"Profile 瞄准站姿须登记为 FullBody → {CharacterAnimationIds.AimIdle}", nameof(profile));
             if (aimIdleDef.Loop == false)
                 throw new ArgumentException(
                     $"Profile 瞄准站姿须为循环（FireIdle 窗内持枪站姿循环填窗）→ {CharacterAnimationIds.AimIdle}", nameof(profile));
@@ -83,7 +83,7 @@ namespace LiteSim.View.Animation
         }
 
         /// <summary>实际提交的**开火动作**次数（诊断/测试）：同段连发只计一次；片段播完仍在开火才再计。
-        /// 由战斗层 FireIdle 各槽位上下文聚合——观测量口径与旧驱动器一致。</summary>
+        /// 由战斗层 FireIdle 各槽位上下文聚合。</summary>
         public int FireSubmits
         {
             get
@@ -106,7 +106,7 @@ namespace LiteSim.View.Animation
         }
 
         /// <summary>读槽位当前**形态**语义（诊断/HUD/测试）：移动根活跃 = MoveBlend；战斗根活跃 = FullBody 当前形态
-        /// （Fire 态内为开火片段，播完窗内持枪站姿切 AimIdle——v0.6"窗内保持 clip"）。无播放器/未开 → false。</summary>
+        /// （Fire 态内为开火片段，播完窗内持枪站姿切 AimIdle——"窗内保持 clip"）。无播放器/未开 → false。</summary>
         public bool TryGetCurrent(int slotIndex, out AnimationId id)
         {
             id = default;
@@ -126,7 +126,7 @@ namespace LiteSim.View.Animation
         /// <summary>
         /// 读槽位当前形态与**权重**（诊断/HUD/测试；<paramref name="weights"/> 由调用方复用，零分配）：
         /// 混合形态（MoveBlend 3 权重 / AimMoveBlend 4 权重）给出拷贝并返回 true；单片段形态返回 false 但
-        /// <paramref name="id"/> 仍给出形态——与旧驱动器口径一致。
+        /// <paramref name="id"/> 仍给出形态。
         /// </summary>
         public bool TryGetMotion(int slotIndex, out AnimationId id, float[] weights)
         {
@@ -200,7 +200,7 @@ namespace LiteSim.View.Animation
                     s.Backend = backend;
                     s.Player = new CharacterAnimationPlayer(backend, _profile);
 
-                    // 不变式校验（四次修正→六次裁决口径）：窗长 ≥ 开火片段播放时长——违反只警告（窗尽会
+                    // 不变式校验：窗长 ≥ 开火片段播放时长——违反只警告（窗尽会
                     // 截断在播片段），不改窗长（窗长单源在 CombatConfig.FireStanceFrames）
                     backend.TryGetClipSeconds(_fireBinding, out float fireSeconds);
                     float clipPlaySeconds = fireSeconds / FirePlaybackSpeed;
@@ -257,8 +257,8 @@ namespace LiteSim.View.Animation
 
         /// <summary>
         /// 帧事件消费（**逻辑帧边界**，由 <see cref="SimView.EventSink"/> 在静默门之后调用）：
-        /// 决策表退役（v0.5）后 fire 事件即进 Fire 系——语义/通道由战斗层装配期从 Profile 单源解析
-        /// （构造期校验保留）；Hit/Death 归批C（未预建消费者）。
+        /// fire 事件即进 Fire 系——语义/通道由战斗层装配期从 Profile 单源解析
+        /// （构造期校验保留）；Hit/Death 待接入（未预建消费者）。
         /// 路由：窗先行（根合并口刷新＝重置满窗）→ Fire 系态内合并（在播吞/已完重起）→ 否则按锁存
         /// Request 进 Fire 叶（站定 FireIdle 播站姿片段、移动 FireWalk 只开窗——门控即路由）。
         /// </summary>

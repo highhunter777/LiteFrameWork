@@ -3,18 +3,18 @@ using System;
 namespace LiteFramework
 {
     /// <summary>
-    /// 内容签名验证端口（《热更与内容发布专项设计》§6"采用成熟签名实现和确定的签名字节编码；
-    /// 客户端只带信任公钥，私钥由受控发布签名环境持有"）。
+    /// 内容签名验证端口（采用成熟签名实现和确定的签名字节编码；
+    /// 客户端只带信任公钥，私钥由受控发布签名环境持有）。
     ///
-    /// **算法选型（2026-09-25 实测裁决）**：RSA-2048 + PKCS#1 v1.5 + SHA-256。
-    /// 本工程实测 `ECDsa` / `ECDsaCng` 在 Mono 下抛 `NotImplementedException`（只有 Windows CNG 实现，
+    /// **算法选型**：RSA-2048 + PKCS#1 v1.5 + SHA-256。
+    /// `ECDsa` / `ECDsaCng` 在 Mono 下抛 `NotImplementedException`（只有 Windows CNG 实现，
     /// 无 OpenSSL 回退；换 API 档位无效——问题在 BCL 裁剪不在档位），Ed25519 连类型都不存在。
     /// 签名每局只验一次清单、不在热路径，RSA 的签名长度代价可忽略。
     ///
     /// **验证语义**：
-    /// - 对**原始字节**验证（不做任何换行/空白归一化——§5"二进制文件不做 CRLF 替换"）；
+    /// - 对**原始字节**验证（不做任何换行/空白归一化——二进制文件不做 CRLF 替换）；
     /// - 失败一律返回 false，**不抛**（候选校验的常规路径，调用方据此拒绝候选）；
-    /// - 公钥用「模数 + 指数」表示而非 SPKI：实测本工程不支持 `ImportSubjectPublicKeyInfo`，
+    /// - 公钥用「模数 + 指数」表示而非 SPKI：本工程不支持 `ImportSubjectPublicKeyInfo`，
     ///   而 `ImportParameters(Modulus, Exponent)` 跨运行时可用。
     /// </summary>
     public interface ISignatureVerifier
@@ -24,7 +24,7 @@ namespace LiteFramework
     }
 
     /// <summary>
-    /// 受信公钥集合（§6"密钥轮换/撤销"的最小落点）：按 keyId 查找公钥；**已撤销的 keyId 一律拒绝**
+    /// 受信公钥集合（密钥轮换/撤销的最小落点）：按 keyId 查找公钥；**已撤销的 keyId 一律拒绝**
     /// （撤销优先于存在——轮换期旧公钥仍在集合里但被撤销时不得再通过）。
     /// </summary>
     public sealed class TrustedKeyRing

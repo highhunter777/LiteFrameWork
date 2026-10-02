@@ -1,13 +1,13 @@
 namespace LiteSim
 {
     /// <summary>
-    /// 快照轻量摘要（《M10实施指导》决策 7 + §11-3 常量集中）：进网/进对比的**必须是摘要，不是全量 state**——
+    /// 快照轻量摘要（§11-3 常量集中）：进网/进对比的**必须是摘要，不是全量 state**——
     /// 服务器不能为"上一广播帧副本"再养一份 SimWorldState（快照环已占 16 份）。
     ///
     /// 字段取舍（与 <see cref="SimChecksum"/> 覆盖项逐项对齐，防"摘要漏字段 → 差分漏发 → 客户端静默分叉"）：
     /// - **含**：全部公共逻辑字段（Id/Pos/Vel/Yaw/Hp/Flags/Shield/Kills/Deaths/SelectedWeapon）
-    ///   + **开火驻留窗**（`FireStanceFrames`——批次D 公共化：该字段改写 Vel/Yaw[限速+朝准星语境]，
-    ///   客户端预测/回滚重放必须能从快照重建，缺失 ⇒ 窗内逐快照纠偏＝橡皮筋，实测 2026-10-01）
+    ///   + **开火驻留窗**（`FireStanceFrames`——该字段改写 Vel/Yaw[限速+朝准星语境]，
+    ///   客户端预测/回滚重放必须能从快照重建，缺失 ⇒ 窗内逐快照纠偏＝橡皮筋）
     ///   + **主动作摘要**（ActionId/StartFrame/Phase——差分基线必须覆盖线上 SlotDelta 会发的每个字段）
     ///   + Frame + RngState + 活体位图。
     /// - **不含**：Globals/CustomData/武器/技能/状态/局内包/资源（私有面与扩展 blob 不进公共差分——
@@ -16,7 +16,7 @@ namespace LiteSim
     ///   （离场转向标记——可由窗+输入在重放中重推导，不占用协议字段号；1 帧边界误差可接受）。
     ///
     /// float 字段按**位型**比较（<c>SingleToInt32Bits</c>）——+0/-0 位型不同即算变化：
-    /// 差分漏发一位就分叉（M9 和解机制的位级前提），宁可多发不比错。
+    /// 差分漏发一位就分叉（和解机制的位级前提），宁可多发不比错。
     /// </summary>
     public struct EntitySnapshotEntry
     {
@@ -108,7 +108,7 @@ namespace LiteSim
             entry.Kills = e.Kills;
             entry.Deaths = e.Deaths;
             entry.SelectedWeapon = e.SelectedWeapon;
-            entry.FireStanceFrames = e.FireStanceFrames;   // 开火驻留窗（批次D 公共化——差分基线与回放重建面）
+            entry.FireStanceFrames = e.FireStanceFrames;   // 开火驻留窗（差分基线与回放重建面）
             entry.ActionId = a.ActionId;
             entry.ActionStartFrame = a.StartFrame;
             entry.ActionPhase = a.Phase;

@@ -1,5 +1,5 @@
 # ─────────────────────────────────────────────────────────────────────────────
-# Player startup smoke (C0-3, 2026-09-22)
+# Player startup smoke
 #
 # Per: Client Framework Master Design 19 C0 - "startup smoke gate" and
 #      "player can reach the minimal error/Patch UI".
@@ -10,11 +10,9 @@
 #   - [Asset] ready  : offline bundles present and AssetService fully initialized
 #   - [UI] main open : real main page opened (U1 full-chain anchor)
 #
-# NOTE (2026-09-25): the bare word 'AssetService' used to be a marker. It matched the
-#   STACK TRACE line of '[Asset] init begin' (LiteGame.AssetService:InitAsync(...)), i.e.
-#   it fired while the app was still *starting up* - a false pass that would mask a hang
-#   in YooAsset initialization. Removed: only completion evidence may pass. Same class of
-#   defect as the C1-11 regex fix below - do not add bare identifiers as markers.
+# NOTE: markers must be completion evidence - do not add bare identifiers
+#   (e.g. 'AssetService') as markers; they can match a stack-trace line and pass
+#   while the app is still starting up, masking a hang.
 # Any other outcome (process died early, no marker in timeout) fails.
 # NOTE: keep this file ASCII-only (PS 5.1 GBK parsing of non-BOM UTF-8).
 # Usage: powershell -NoProfile -File scripts/player-smoke.ps1 [-TimeoutSec 30]
@@ -70,8 +68,7 @@ while ((Get-Date) -lt $deadline) {
         $lastLog = Get-Content $playerLog -Raw -ErrorAction SilentlyContinue
         foreach ($m in $markers) {
             # [regex]::Escape: markers are LITERAL strings. '[Asset] ready' as a raw regex is a char
-            # class ('[Asset]' matches one of A/s/e/t) that never matches its own literal - it had been
-            # silently matching 'asset ready' in the old '[Preload] asset ready' line instead (C1-11 fix).
+            # class ('[Asset]' matches one of A/s/e/t) that never matches its own literal.
             if ($lastLog -match [regex]::Escape($m)) { $hit = $m; break }
         }
         if ($hit) { break }
@@ -84,11 +81,11 @@ if ($alive) { Stop-Process -Id $proc.Id -Force -ErrorAction SilentlyContinue }
 Write-Host ''
 if ($hit) {
     Write-Host "  [OK] defined-state marker reached: '$hit' (process alive: $alive)" -ForegroundColor Green
-    Write-Host 'C0-3 player smoke PASSED' -ForegroundColor Green
+    Write-Host 'player smoke PASSED' -ForegroundColor Green
     exit 0
 }
 Write-Host '  [FAIL] no defined-state marker within timeout - last log lines:' -ForegroundColor Red
 if ($lastLog) { ($lastLog -split "`n" | Select-Object -Last 40) | ForEach-Object { Write-Host "    $_" -ForegroundColor DarkRed } }
 else { Write-Host '    (Player.log missing or empty)' -ForegroundColor DarkRed }
-Write-Host 'C0-3 player smoke FAILED' -ForegroundColor Red
+Write-Host 'player smoke FAILED' -ForegroundColor Red
 exit 1

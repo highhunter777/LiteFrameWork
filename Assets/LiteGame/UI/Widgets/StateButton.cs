@@ -6,7 +6,7 @@ using UnityEngine.UI;
 namespace LiteGame.UI
 {
     /// <summary>
-    /// 多态按钮（M4c）：normal / pressed / disabled / selected 四态色彩 + 长按 + 连点保护。
+    /// 多态按钮：normal / pressed / disabled / selected 四态色彩 + 长按 + 连点保护。
     /// 不依赖 uGUI Selectable——色彩与语义全自持（灰盒：色块多态，贴图换皮随美术）。
     /// 事件：OnClick（经连点保护）、OnLongPress、OnSelectedChanged。
     /// </summary>
@@ -74,7 +74,7 @@ namespace LiteGame.UI
             if (!_pressed) return;
             _pressed = false;
             RefreshVisual();
-            if (_longPressFired) return;                     // 长按已消费，不再算点击
+            if (_longPressFired) return;                     // 长按已消费，不算点击
             if (Time.unscaledTime - _downTime >= LongPressSeconds) return;
             TryClick();
         }

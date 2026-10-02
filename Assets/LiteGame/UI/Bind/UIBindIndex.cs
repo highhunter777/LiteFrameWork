@@ -16,7 +16,7 @@ namespace LiteGame
     }
 
     /// <summary>
-    /// 名字 → 控件索引（M4 §2.4）：受控 API 的查询底座。两种来源——BindNode 标记（路径 A，BindIndexBuilder）
+    /// 名字 → 控件索引：受控 API 的查询底座。两种来源——BindNode 标记（路径 A，BindIndexBuilder）
     /// / Designer 字段登记（路径 B，UIBindBase.RegisterControl）。受控语义在此收口：
     /// 绑按钮 = 替换式（重绑先移除旧监听，池化复用安全）；SetText = TMP 优先回退 UGUI Text；未命中/类型不符 = 抛。
     /// **所有权互斥**（设计方案 §4.7/§453）：每个控件登记驱动方式，Bind 后禁命令式、命令式后禁 Bind——
@@ -181,7 +181,7 @@ namespace LiteGame
         private string Resolve(LTextBinding b)
             => b.IsPlural ? _locale.FormatPlural(b.Key, b.Plural, b.Args) : _locale.Format(b.Key, b.Args);
 
-        /// <summary>解除单个控件的本地化绑定（不再随语言刷新）。</summary>
+        /// <summary>解除单个控件的本地化绑定（不随语言刷新）。</summary>
         public bool UnbindTextKey(string name) => _ltext.Remove(name);
 
         public void SetVisible(string name, bool visible)
@@ -190,8 +190,8 @@ namespace LiteGame
             Get<Component>(name).gameObject.SetActive(visible);
         }
 
-        /// <summary>可交互开关。**G1 修正（2026-09-14，实测定案）**：`Selectable` 优先，回退 `UIWidget.Interactable`
-        /// ——`StateButton`/`RedDot` 等自持交互语义的控件不是 Selectable，旧实现会抛（《UI控件Lua用法表》G1）。</summary>
+        /// <summary>可交互开关：`Selectable` 优先，回退 `UIWidget.Interactable`
+        /// ——`StateButton`/`RedDot` 等自持交互语义的控件不是 Selectable。</summary>
         public void SetInteractable(string name, bool on)
         {
             MarkDriver(name, ControlDriver.Command);
@@ -200,7 +200,7 @@ namespace LiteGame
             throw new InvalidOperationException($"绑定索引[{name}] 无 Selectable / UIWidget 组件（无法设置可交互）");
         }
 
-        // ---- 批⑦ 受控 API 扩展（P0，《UI控件Lua用法表》G3/G7/G10）----
+        // ---- 受控 API 扩展（《UI控件Lua用法表》G3/G7/G10）----
 
         /// <summary>进度条：归一化值（0~1）。G7。</summary>
         public void SetProgress(string name, float value01)
@@ -271,7 +271,7 @@ namespace LiteGame
             ResolveRect(name).anchoredPosition = pos;      // 走 ResolveRect：BindNode 不产 RectTransform，Get<RectTransform> 必抛
         }
 
-        // ---- 批⑧ G20 动效口（《动效设计方案》附 A.3，P1）----
+        // ---- 动效口（《动效设计方案》附 A.3）----
         // 纪律：动效只写表现（透明度/位置），不携带任何判定；原语层的 SetUpdate(true)/SetLink(KillOnDisable)
         // 已写死在 UiFx 里（UIClock 轨 + 界面隐藏即杀）。所有权：与 SetText 等同属命令式驱动。
 
@@ -297,7 +297,7 @@ namespace LiteGame
         }
 
         /// <summary>
-        /// 动效目标解析（G20 专用，**不走 <see cref="Get{T}"/>**）：索引里存的是 BindNode 自动检测到的组件，
+        /// 动效目标解析（**不走 <see cref="Get{T}"/>**）：索引里存的是 BindNode 自动检测到的组件，
         /// 带 Button 的节点存的是 <see cref="Button"/>（AutoTypeCandidates 里 Button 优先于 Image）→ Get&lt;Graphic&gt; 会抛。
         /// 三级回退：自身 Graphic → Button.targetGraphic → 自身/子级 Graphic。
         /// 未命中 = KeyNotFoundException；命中但拿不到 Graphic = InvalidOperationException（与既有受控方法同语义）。

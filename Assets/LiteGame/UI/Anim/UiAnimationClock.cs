@@ -6,13 +6,13 @@ using UnityEngine;
 namespace LiteGame.UI
 {
     /// <summary>
-    /// UI 动效时钟适配（G1 通用表现批；《动画模块专项设计》§1 裁决——"当前 SetUpdate(true) 不等价
+    /// UI 动效时钟适配（《动画模块专项设计》§1——"SetUpdate(true) 不等价
     /// UIClock：必须由 UI 动效适配层明确接入项目 UIClock"）：
     ///
     /// - **DOTween**：<see cref="UpdateType.Manual"/> 轨经 <see cref="DotweenUiClockDriver"/> 按 UIClock
     ///   派发（UiFx 原语 / 转场策略 <c>SetUpdate(UpdateType.Manual, true)</c>——时停不停、暂停即停，
     ///   UIClock 语义）。**不使用 <c>UpdateType.Custom</c>**：本仓 DOTween 为闭源 DLL，其
-    ///   <c>UpdateType</c> 仅含 <c>Normal/Late/Fixed/Manual</c>（2026-09-24 反射实证）；
+    ///   <c>UpdateType</c> 仅含 <c>Normal/Late/Fixed/Manual</c>；
     ///   <c>Manual</c> 轨不受引擎自动更新，只由 <c>DOTween.ManualUpdate</c> 推进——
     ///   实测 <c>ManualUpdate(dt, unscaled)</c> 下 <c>independent=true</c> 取 <c>unscaled</c> 参数，
     ///   不调用即完全冻结（暂停语义天然成立）。
@@ -37,7 +37,7 @@ namespace LiteGame.UI
     }
 
     /// <summary>
-    /// DOTween 的 UIClock 轨驱动（G1：Manual 轨的全局泵——随 UIClock 暂停即停、变速跟随）。
+    /// DOTween 的 UIClock 轨驱动（Manual 轨的全局泵——随 UIClock 暂停即停、变速跟随）。
     /// 装配点注册进容器（注册序在 Clocks 之后）；只推进 <c>SetUpdate(UpdateType.Manual)</c> 轨，
     /// 不影响 Normal/Late/Fixed 轨的既有 Tween（实测：ManualUpdate 只推进 Manual 轨）。
     /// </summary>

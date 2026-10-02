@@ -6,11 +6,11 @@ using UnityEngine;
 namespace LiteGame
 {
     /// <summary>
-    /// 界面运行时实例（M4 §2.1）：状态机 + 逻辑持有 + 画布就位。
+    /// 界面运行时实例：状态机 + 逻辑持有 + 画布就位。
     /// 状态迁移全部走本类守卫方法（非法迁移当场抛——fail-fast 精神 §3.4）；
     /// 逻辑回调统一经 SafeCall（单个回调抛 = 该界面降级，不炸壳——错误语义同事件桥）。
-    /// 画布契约：prefab 根自带 Canvas（overrideSorting）+ CanvasGroup 最佳；缺失则壳补齐，sortingOrder 由层级组分配。
-    /// 《UI框架总设计》§4 修订：首次与复用共用 <see cref="PrepareForShow"/> 复位；
+    /// 画布契约：prefab 根必须自带 Canvas（overrideSorting）+ CanvasGroup；sortingOrder 由层级组分配。
+    /// 首次与复用共用 <see cref="PrepareForShow"/> 复位；
     /// Covered/Paused 属"仍打开"，同样可关闭；首次 OnInit/OnShow 失败对外报失败以便壳回滚。
     /// </summary>
     public sealed class UIForm
@@ -26,7 +26,7 @@ namespace LiteGame
         /// <summary>位置基线（实例化时刻的 anchoredPosition，含 prefab 作者意图）——复用/重开复位用。</summary>
         private readonly Vector2 _baselinePos;
 
-        // ---- 展示作用域（U1-①：《UI框架总设计》§4.4——"每次打开到关闭"的 CTS 与代次）----
+        // ---- 展示作用域（§4.4——"每次打开到关闭"的 CTS 与代次）----
 
         private int _displayGeneration;
 
@@ -34,9 +34,7 @@ namespace LiteGame
         ///
         /// **为什么是 ClientScope 而不是裸 CTS**（《客户端总设计》§6.2 UI 行"每次展示另有子作用域"）：
         /// 通用壳的展示期资源不止取消令牌一件——订阅袋、展示期任务都要**同一时点、逆序**收尾。
-        /// 原先由 <see cref="EnterClosing"/> 手写"先取消再 Dispose 袋"两行，每加一类展示期资源就要
-        /// 再加一行、且顺序靠人记；改由作用域托管后，登记什么就按 LIFO 收什么（§4 原则 4：
-        /// 所有长生命周期对象必须有唯一 Owner）。
+        /// 由作用域托管：登记什么就按 LIFO 收什么（§4 原则 4：所有长生命周期对象必须有唯一 Owner）。
         ///
         /// 所有权仍在<b>实例</b>（§6.2"实例创建至销毁；每次展示另有子作用域"）：本作用域是
         /// <see cref="UIForm"/> 的内部展示状态，**不是**池化实例的租约——租约覆盖缓存实例寿命，
@@ -65,8 +63,8 @@ namespace LiteGame
             Root = root ? root : throw new ArgumentNullException(nameof(root));
 
             // 缺失即 fail-fast（§7 视觉单一来源 / 制作规范 §2"页面根具有 Canvas、CanvasGroup"）：
-            // 旧实现在此处 AddComponent 兜底，会把"prefab 装配错误"静默修好——运行时补的 Canvas
-            // 绕过统一根缩放与排序配置，缺陷被藏到表现层才发现。装配错误必须在装配期当场暴露。
+            // 运行时补的 Canvas 会绕过统一根缩放与排序配置，缺陷被藏到表现层才发现。
+            // 装配错误必须在装配期当场暴露。
             Canvas = root.GetComponent<Canvas>()
                 ?? throw new InvalidOperationException(
                     $"表单[{info.Id}] prefab 缺少 Canvas——页面根必须自带（制作规范 §2；运行时不得补建，§7）");
@@ -155,7 +153,7 @@ namespace LiteGame
 #if UNITY_EDITOR
             if (!Application.isPlaying)
             {
-                UnityEngine.Object.DestroyImmediate(Root);    // EditMode 下 Destroy 只记 error 不生效（L2 用例依赖）
+                UnityEngine.Object.DestroyImmediate(Root);    // EditMode 下 Destroy 只记 error 不生效
                 return;
             }
 #endif
@@ -165,7 +163,7 @@ namespace LiteGame
         internal void EnterPaused()
         {
             Transit(UIFormState.Active, UIFormState.Paused);
-            if (CanvasGroup != null) CanvasGroup.interactable = false;   // U1-③：输入协调——暂停页锁定交互（§6.2）
+            if (CanvasGroup != null) CanvasGroup.interactable = false;   // 输入协调——暂停页锁定交互（§6.2）
             SafeCall.Invoke(() => Logic.OnPause(), $"UIForm[{Id}].OnPause");
         }
 
@@ -200,7 +198,7 @@ namespace LiteGame
 
             // 展示作用域收尾（§4.4 / §6.2 UI 行）：一次 Dispose 取消本次打开的在途异步
             // （图标/请求/延时任务级联取消）**并**逆序释放登记项（订阅袋等）——
-            // 顺序由作用域保证，不再靠本方法手写。幂等，池化复用安全。
+            // 顺序由作用域保证，不靠本方法手写。幂等，池化复用安全。
             _displayScope?.Dispose();
             _displayScope = null;                      // 置空以支持池化复用：下次显示时重建
 
@@ -249,7 +247,7 @@ namespace LiteGame
             Root.SetActive(false);
         }
 
-        /// <summary>实例真正销毁（U1-②/UI-06：缓存淘汰/显式 Destroy/Shutdown 终态）：
+        /// <summary>实例真正销毁（缓存淘汰/显式 Destroy/Shutdown 终态）：
         /// 释放逻辑与 Lua 引用、取消展示令牌、标记 Disposed、销毁 GameObject——租约由 UIService 释放。
         /// 之后本 UIForm 对象不可再复用（再次打开 = 全新实例）。</summary>
         internal void DestroyInstance()
@@ -262,7 +260,7 @@ namespace LiteGame
 #if UNITY_EDITOR
             if (!Application.isPlaying)
             {
-                UnityEngine.Object.DestroyImmediate(Root);    // EditMode 下 Destroy 只记 error 不生效（L2 用例依赖）
+                UnityEngine.Object.DestroyImmediate(Root);    // EditMode 下 Destroy 只记 error 不生效
                 return;
             }
 #endif

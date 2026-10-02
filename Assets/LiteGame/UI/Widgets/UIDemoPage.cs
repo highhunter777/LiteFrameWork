@@ -8,13 +8,12 @@ using UnityEngine.UI;
 namespace LiteGame.UI
 {
     /// <summary>
-    /// 控件库 Demo 页（M4c 验收：一页全展 + 最小断言）。
-    /// **批⑤ 改造（2026-09-14）：代码构建 → 模板 prefab 实例化**。
+    /// 控件库 Demo 页（一页全展 + 最小断言）。
     /// 模板来自 `Assets/UI/Widgets/`（由 `LiteGame.Editor/WidgetPrefabBuilder` 确定性生成，25 件）；
-    /// 模板件的结构/行为断言已归 `WidgetPrefabCheck`（编辑态 + Play 态 25/25 PASS）——本页只保留
+    /// 模板件的结构/行为断言归 `WidgetPrefabCheck`——本页只保留
     /// **与模板无关**的两条（UIDataBinder 去重、绑定/命令式所有权互斥），并负责"一页全展"。
-    /// 加载：编辑器用 AssetDatabase（dev 页快路径）；**真机走 YooAsset 运行时加载**（收集组 `LiteGameWidgets`，
-    /// 2026-09-17 补齐——原真机分支直接返回 null）。异步化走 UniTask（项目红线：禁原生协程）。
+    /// 加载：编辑器用 AssetDatabase（dev 页快路径）；**真机走 YooAsset 运行时加载**（收集组 `LiteGameWidgets`）。
+    /// 异步化走 UniTask（项目红线：禁原生协程）。
     /// </summary>
     public class UIDemoPage : MonoBehaviour
     {
@@ -28,7 +27,7 @@ namespace LiteGame.UI
             "RedDot", "FlyText", "GuideHighlight", "EventRelay", "SafeArea",
         };
 
-        private const string WidgetDir = "Assets/UI/Widgets";   // 2026-09-19：UI 已从 LiteGame 迁到顶层 Assets/UI
+        private const string WidgetDir = "Assets/UI/Widgets";   // UI 控件模板目录（顶层 Assets/UI）
 
         /// <summary>
         /// 模板加载器（**装配方注入**——真机分支用）。
@@ -147,8 +146,8 @@ namespace LiteGame.UI
 
         private void RunChecks()
         {
-            // 说明：StarRating 钳制 / Stepper 钳制 / RedDot 树传播 / Countdown 到点 等**模板相关**断言
-            // 已迁至 WidgetPrefabCheck（模板实例化路径）；此处只保留模板无关的两条。
+            // StarRating 钳制 / Stepper 钳制 / RedDot 树传播 / Countdown 到点 等**模板相关**断言
+            // 归 WidgetPrefabCheck（模板实例化路径）；此处只保留模板无关的两条。
             Check("UIDataBinder 去重", () =>
             {
                 int calls = 0;
@@ -160,8 +159,7 @@ namespace LiteGame.UI
             });
             Check("所有权互斥：金币走绑定 + 命令式违例抛（§4.7 共存验收）", () =>
             {
-                // 复用一个真实模板（CountText → Label）：视觉取模板，不在自检里拼装（§7）——
-                // 旧实现在此处 new GameObject + typeof(Text)，既违规也让断言脱离真实控件结构。
+                // 复用一个真实模板（CountText → Label）：视觉取模板，不在自检里拼装（§7）。
                 GameObject inst = LoadTemplateSync("CountText");
                 if (inst == null) return false;
                 TMP_Text label = inst.GetComponentInChildren<TMP_Text>(true);
@@ -220,8 +218,7 @@ namespace LiteGame.UI
             else { _fail++; Log($"FAIL {name}"); }
         }
 
-        // 静态日志出口：真机加载分支（LoadTemplateAsync）是静态方法，且原实现把实例方法 Log 用在静态上下文里
-        // （被 #if UNITY_EDITOR 掩盖的编译错误——非编辑器平台必挂）。
+        // 静态日志出口：真机加载分支（LoadTemplateAsync）是静态方法——Log 必须为静态。
         private static void LogSummary(string message) => LiteFramework.Log.Info(message, "WidgetCheck");
         private static void Log(string message) => LiteFramework.Log.Info(message, "WidgetCheck");
     }

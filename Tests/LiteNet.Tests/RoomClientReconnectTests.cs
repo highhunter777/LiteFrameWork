@@ -7,7 +7,7 @@ using Xunit;
 namespace LiteNet.Tests
 {
     /// <summary>
-    /// RoomClient 重连状态机用例（《商业级通用服务端框架总设计》§9.3——R1 批③）：
+    /// RoomClient 重连状态机用例（《商业级通用服务端框架总设计》§9.3）：
     /// Connected → SuspectedLost → Reconnecting → Restoring → Connected；超时/拒绝/版本不符 → Failed。
     /// 全部假传输驱动（无 Socket；时钟注入——超时零真实等待）。
     /// </summary>

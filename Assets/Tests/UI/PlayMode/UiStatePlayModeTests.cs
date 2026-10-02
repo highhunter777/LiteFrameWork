@@ -136,7 +136,7 @@ namespace LiteGame.Tests.UI.PlayMode
 
             _ui.Pause(PageA);
             // **同步派发**：Pause → UIForm.EnterPaused → SafeCall(OnPause) 当场执行，不等帧末
-            //（实测口径；帧末只用于转场推进 UIService.Tick 的 _transitions）
+            //（帧末只用于转场推进 UIService.Tick 的 _transitions）
             Assert.AreEqual(1, logic.Pauses, "OnPause 同步恰好一次");
 
             int updatesAtPause = logic.Updates;

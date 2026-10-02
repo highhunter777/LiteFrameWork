@@ -1,7 +1,7 @@
 namespace LiteFramework.Animation
 {
     /// <summary>
-    /// 播放请求（§5）。<b>业务不能传任意资源路径绕过 Profile</b>——只有 <see cref="AnimationId"/>，
+    /// 播放请求。<b>业务不能传任意资源路径绕过 Profile</b>——只有 <see cref="AnimationId"/>，
     /// 资源由 Profile/Resolver 解析。
     /// </summary>
     public readonly struct AnimationRequest
@@ -23,13 +23,13 @@ namespace LiteFramework.Animation
     }
 
     /// <summary>
-    /// 混合播放请求（§5 Play 的混合面；§4 Blend"淡入淡出、层权重"的请求侧）：
+    /// 混合播放请求（"淡入淡出、层权重"的请求侧）：
     /// **语义 ID + 槽位权重**——与 <see cref="AnimationRequest"/> 同规矩，业务只给语义 ID，
     /// 绑定由 Profile 解析（不能传任意资源路径绕过 Profile）。
     ///
     /// **权重按定义槽位序给出**（长度必须等于 <see cref="AnimationBlendDefinition.SlotCount"/>）：
-    /// 权重只表达"混合比例"，不表达"增删片段"——集合形态由 Profile 登记固定（§12 节点有界）。
-    /// **权重由 Driver/消费者裁决**（§6"业务优先级由 Sim/Driver 解释"），播放器只仲裁与校验。
+    /// 权重只表达"混合比例"，不表达"增删片段"——集合形态由 Profile 登记固定（节点有界）。
+    /// **权重由 Driver/消费者裁决**（业务优先级由 Sim/Driver 解释），播放器只仲裁与校验。
     ///
     /// <see cref="Weights"/> 是**调用方数组**：播放器与后端只在本次提交内读取、不保留引用
     /// （零分配路径 = 调用方复用同一数组逐帧调权重）。

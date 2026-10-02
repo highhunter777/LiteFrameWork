@@ -19,7 +19,7 @@ namespace LiteGame.UI
     }
 
     /// <summary>
-    /// 弹窗服务（U2-⑥b，《UI框架总设计》§4.3"ShowDialogAsync 返回确认/取消/关闭原因，支持有界队列、
+    /// 弹窗服务（《UI框架总设计》§4.3"ShowDialogAsync 返回确认/取消/关闭原因，支持有界队列、
     /// 优先级、互斥组和 Scope 取消。重复断线/错误弹窗按键合并，不无限堆叠"）。
     ///
     /// 语义：

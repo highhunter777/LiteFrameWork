@@ -36,14 +36,13 @@ namespace LiteSim.View
         /// <paramref name="facing"/> = 本地玩家**朝向**（视觉前沿为 +Z 的那份旋转——SimView 摆位约定）：
         /// 实现把它写到跟随焦点上，**构图偏移**（如 Cinemachine FramingTransposer 的
         /// TrackedObjectOffset——其语义是"随 Follow 目标旋转"）随之变**角色系**（X=右肩、Z=前方）。
-        /// 背景（2026-10-02 用户裁决"焦点带旋转"）：此前焦点只写位置、旋转恒 identity，
-        /// offset 实际是世界系固定——玩家转向后构图点绕角色乱转。实现可只对**自建焦点**应用旋转
+        /// 实现可只对**自建焦点**应用旋转
         /// （场景配置的 Follow 目标自带姿态，不越权覆写）。
         /// </summary>
         void Follow(in Vector3 target, in Quaternion facing, float deltaSeconds);
 
         /// <summary>
-        /// 瞄准态通知（2026-10-02 瞄准相机批）：本地玩家处于 ADS（右键瞄准）时传 true——期望**瞄准视角
+        /// 瞄准态通知：本地玩家处于 ADS（右键瞄准）时传 true——期望**瞄准视角
         /// 接管**；松开回 false。**语义态进端口、接管方式归实现**（Cinemachine = 抬瞄准 vcam 优先级），
         /// 与构图同理不在接口表达任何档位常量。
         /// 每渲染帧幂等调用（实现内部按变化沿生效）；实现自备目标（如瞄准 vcam）的解析与还原——

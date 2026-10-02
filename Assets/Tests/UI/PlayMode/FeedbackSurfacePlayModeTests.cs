@@ -16,8 +16,8 @@ namespace LiteGame.Tests.UI.PlayMode
     /// 反馈面真资源用例（《框架先行》§4 包③退出条件"真 Lua/Prefab/动画资源组合运行，
     /// 取消、暂停、复用、卸载可验证"；《UI测试开发专项设计》§4.3 PlayMode 界面行为）。
     ///
-    /// **本组存在的理由**：反馈面归位批（`1f3ceac`）只过了 EditMode 全替身 + 构建器自检，
-    /// 真 prefab + 真转场链路**一次都没跑过**——AOT/Lua 面可被替身掩盖，真资源不行。
+    /// **本组存在的理由**：真 prefab + 真转场链路是替身掩盖不了的一面（AOT/Lua 面尤其）——
+    /// 必须真资源验证。
     ///
     /// 与 EditMode 版的区别（都是硬约束）：
     /// - 加载走 **YooAsset 编辑器模拟模式**（`AssetService.InitAsync` 的 `#if UNITY_EDITOR` 分支
@@ -164,7 +164,7 @@ namespace LiteGame.Tests.UI.PlayMode
             var task = _feedback.ShowErrorAsync("真资源错误", "来自真 prefab", retryable: true, mergeKey: "pm1");
 
             // 就绪条件必须是**业务事实**（对话框武装完成），不是"组件存在"（FindObjectOfType 会在
-            // WaitAsync 接线前就命中）——UI-U2"Pending 之谜"记录的就是这个错位。
+            // WaitAsync 接线前就命中）。
             yield return WaitUntil(() => _dialogs.TryGetActiveDialog("error", out _),
                 15f, "错误弹窗未武装（真转场链路）");
 

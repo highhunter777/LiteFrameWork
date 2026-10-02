@@ -1,5 +1,5 @@
 <Project Sdk="Microsoft.NET.Sdk">  <!--
-     MetaServer L3 集成测试工程（M0-c 批二，《Meta 服务专项设计》§4.2 目标结构
+     MetaServer L3 集成测试工程（《Meta 服务专项设计》§4.2 目标结构
      `Tests/MetaServer.IntegrationTests/`——L3（HTTP/DB 测试容器）、§14 L3 行
      "真实 HTTP + Mongo 测试容器"）。
 

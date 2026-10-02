@@ -10,16 +10,15 @@ namespace LiteGame.Tests.EditMode
     /// 候选信封的**接受路径**（《热更与内容发布专项设计》§6；《框架先行》样例①"验签/下载段"）。
     ///
     /// **为什么需要本组**：编排层测试（`PatchCoordinatorTests`）全部运行在信任关**之下**——
-    /// 直接喂 <see cref="ReleaseManifest"/> 对象，绕过了签名；签名链此前只在
-    /// `ReleaseManifestTests` 里用**内存生成的密钥**测过。于是
-    /// 「用**发布私钥**签出的信封，能不能被**内置锚点**接受」这条真实链路**没有任何测试载体**。
+    /// 直接喂 <see cref="ReleaseManifest"/> 对象，绕过了签名；`ReleaseManifestTests` 只用**内存生成的密钥**。
+    /// 故本组承担「用**发布私钥**签出的信封能否被**内置锚点**接受」这条真实链路的测试载体。
     ///
     /// **夹具来源**：`Fixtures/signed-candidate.json` 由 `scripts/gen-candidate.ps1` 用
     /// `release-key-2026-09-26` 私钥生成（私钥在签名机仓库外，**绝不入库**）。
     /// 夹具只含**公钥可验**的数据，入库无碍——故本组在任何机器上都能跑，不依赖私钥。
     ///
-    /// **防的是**：签发端与运行时的**字节契约漂移**。若哪天有人改了清单字段序、字段名或
-    /// 换掉 `Formatting.None`，本组会红——而只测内存密钥的旧用例仍会绿。
+    /// **防的是**：签发端与运行时的**字节契约漂移**。若有人改了清单字段序、字段名或
+    /// 换掉 `Formatting.None`，本组会红。
     /// </summary>
     public sealed class SignedCandidateEnvelopeEditModeTests : UnityTestBase
     {

@@ -7,13 +7,12 @@ using UnityEngine;
 namespace LiteGame.Tests.EditMode
 {
     /// <summary>
-    /// YooAssetContentService 用例（C1-⑧ 批次B）。
-    /// **EditMode 边界（实测）**：YooAssets.Initialize 内部 DontDestroyOnLoad 仅 Play mode 合法——
-    /// 编辑器脚本/测试无法初始化 YooAsset（run_script 探针 2026-09-24 实证 InvalidOperationException）。
+    /// YooAssetContentService 用例。
+    /// **EditMode 边界**：YooAssets.Initialize 内部 DontDestroyOnLoad 仅 Play mode 合法——
+    /// 编辑器脚本/测试无法初始化 YooAsset（抛 InvalidOperationException）。
     /// 因此本文件只覆盖不依赖 YooAsset 初始化的纯逻辑面（未初始化显性失败/关闭幂等）；
     /// 真资源租约/共享加载/引用归零的端到端验证走 **Player 冒烟**（Preload 经 IContentService 初始化
-    /// → [Asset] ready 标记）与后续 L2P lane（接入后补真资源用例）。协调器全语义已在 L1 覆盖
-    /// （SharedLoadCoordinatorTests 10 例）。
+    /// → [Asset] ready 标记）覆盖；协调器全语义已在 L1 覆盖（SharedLoadCoordinatorTests 10 例）。
     /// </summary>
     public sealed class YooAssetContentServiceEditModeTests : UnityTestBase
     {

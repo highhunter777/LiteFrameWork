@@ -5,9 +5,9 @@ using Xunit;
 namespace LiteFramework.Tests
 {
     /// <summary>
-    /// 状态机 **ARPG 形态扩展**（2026-09-17）：表驱动（`StageSpec` + `TableStage`）/ 优先级抢占 /
-    /// 恢复栈 / 帧窗口；外加"约束放宽"（`TId` 不再要求 `Enum`——这里用 `int` 作技能 id）。
-    /// 语义编号对应施工图 §2 的 N1–N8。
+    /// 状态机 **ARPG 形态扩展**：表驱动（`StageSpec` + `TableStage`）/ 优先级抢占 /
+    /// 恢复栈 / 帧窗口；外加"约束放宽"（`TId` 只要求 `struct`——这里用 `int` 作技能 id）。
+    /// 语义编号对应设计 §2 的 N1–N8。
     /// </summary>
     public sealed class StageMachineArpgTests
     {
@@ -319,7 +319,7 @@ namespace LiteFramework.Tests
             Assert.Equal(2, cancelledAtFrame);
         }
 
-        // ---- 被拒原因（RejectReason；2026-09-17 补）----
+        // ---- 被拒原因（RejectReason）----
 
         [Fact]
         public void 拒绝原因_优先级不足_被接受后清空()
@@ -382,7 +382,7 @@ namespace LiteFramework.Tests
             Assert.False(m.HasResumePending);                          // 栈顶那条被丢弃
         }
 
-        // ---- Reset（停止并回未启动态；2026-09-17 补）----
+        // ---- Reset（停止并回未启动态）----
 
         [Fact]
         public void 抢占机_Reset_清空恢复栈与丢弃计数()
@@ -451,7 +451,7 @@ namespace LiteFramework.Tests
             Assert.True(d2.ContainsKey("当前阶段"));            // base 的项仍在（override 先调 base）
         }
 
-        // ---- 约束放宽（Enum → struct）----
+        // ---- 约束放宽（Id 可为 struct）----
 
         [Fact]
         public void 约束放宽_自定义结构体也可作Id()
@@ -462,7 +462,7 @@ namespace LiteFramework.Tests
             Assert.Equal(1, m.Current.Value);
         }
 
-        /// <summary>自定义结构体 id（框架约束已放宽为 `struct`）。</summary>
+        /// <summary>自定义结构体 id（框架约束为 `struct`）。</summary>
         private readonly struct Key : IEquatable<Key>
         {
             public readonly int Value;

@@ -5,13 +5,12 @@ using System.Threading;
 namespace LiteFramework
 {
     /// <summary>
-    /// 客户端作用域原语（《商业级通用客户端框架总设计》§6.2）：Cancellation、Disposable 和
-    /// 资源租约的 **LIFO 释放**。这是 Root/Account/Match/Scene/UI 五层 Scope 树的轻量底座——
-    /// 本批只落原语，各层语义树与"短生命周期依赖不进根容器"的装配约束归 C1 后续批次。
+    /// 客户端作用域原语：Cancellation、Disposable 和
+    /// 资源租约的 **LIFO 释放**。这是 Root/Account/Match/Scene/UI 五层 Scope 树的轻量底座。
     ///
     /// 语义：
     /// - <see cref="Token"/> 随 <see cref="Cancel"/> 或**父 Scope 取消**而失效（链接 CTS——
-    ///   根取消必须级联到全部子孙，跨帧异步绑定它是 §4 原则 4 的落点）。
+    ///   根取消必须级联到全部子孙，跨帧异步应绑定它）。
     /// - <see cref="Register"/> 登记可释放资源，<see cref="Dispose"/> 按**登记逆序**释放
     ///   （后创建的先释放——先建者可能被后建者依赖）。
     /// - 单项释放异常**不阻断其余**（聚合上报）；重复 Dispose 幂等。
@@ -67,7 +66,7 @@ namespace LiteFramework
             Token = _cts.Token;
         }
 
-        /// <summary>创建子作用域（§6.2 五层 Scope 树的建树语法糖）：
+        /// <summary>创建子作用域（五层 Scope 树的建树语法糖）：
         /// 子 Scope 链接父级 CTS（父取消级联子），子 Dispose 不影响父。</summary>
         public ClientScope CreateChild(string childName)
         {

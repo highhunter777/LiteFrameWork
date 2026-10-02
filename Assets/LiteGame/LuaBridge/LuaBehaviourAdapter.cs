@@ -6,7 +6,7 @@ using XLua;
 
 namespace LiteGame
 {
-    /// <summary>Lua 侧数据包装（M4 §2.3）：Lua 构造的数据表经 C# 工厂包成 <see cref="IUIData"/>；
+    /// <summary>Lua 侧数据包装：Lua 构造的数据表经 C# 工厂包成 <see cref="IUIData"/>；
     /// 适配器回传时解包出原始 LuaTable——Lua 拿到的永远是自己认识的表，不是 C# 包装对象。</summary>
     public sealed class LuaUIData : IUIData
     {
@@ -19,7 +19,7 @@ namespace LiteGame
     }
 
     /// <summary>
-    /// 生命周期桥（M4 §2.3，手册步骤 3；实例与调用契约按《UI框架总设计》§5.1 修订）：
+    /// 生命周期桥（实例与调用契约见《UI框架总设计》§5.1）：
     /// 注册表存的是**模块表**，本适配器即**实例工厂**——构造期执行 `module.new()` 得到页面实例
     /// （无 `new` 的旧式逻辑表退化为"模块自身即实例"），把 IUIFormLogic 七回调翻译成
     /// `self:OnInit/OnShow/...`（冒号定义的生命周期方法显式传 self）。
@@ -35,7 +35,7 @@ namespace LiteGame
     /// </summary>
     public sealed class LuaBehaviourAdapter : IUIFormLogic
     {
-        /// <summary>ui-API 通用派发方法名（payload 表协议见 Dispatch；批⑦ 已补 G1/G3/G7/G10，批⑧ 补 G20 动效口）。</summary>
+        /// <summary>ui-API 通用派发方法名（payload 表协议见 Dispatch）。</summary>
         private const string UiApiShim = @"
 local c = __ui_api_c
 __ui_api_c = nil
@@ -153,9 +153,9 @@ return {
         public bool Released => _released;
 
         /// <summary>
-        /// 释放（M4 §2.3 运行期增量重填 / §10.2 env 重建）：解绑按钮监听 + 释放**本页面拥有**的
+        /// 释放（§2.3 运行期增量重填 / §10.2 env 重建）：解绑按钮监听 + 释放**本页面拥有**的
         /// Lua 引用（实例、已缓存回调、ui 门面表）。**不释放共享模块**（§5.1 所有权分开——模块归注册表）。
-        /// 幂等；调用前提 = 本适配器已不再被任何界面使用（换表 / 全关 / env 重建前）。
+        /// 幂等；调用前提 = 本适配器已不被任何界面使用（换表 / 全关 / env 重建前）。
         /// </summary>
         public void Release()
         {
@@ -235,7 +235,7 @@ return {
                     break;
                 case "setVisible": _index.SetVisible(payload.Get<string, string>("name"), payload.Get<string, bool>("visible")); break;
                 case "setInteractable": _index.SetInteractable(payload.Get<string, string>("name"), payload.Get<string, bool>("on")); break;
-                // ---- 批⑦ 扩展 ----
+                // ---- 受控 API 扩展 ----
                 case "setProgress": _index.SetProgress(payload.Get<string, string>("name"), payload.Get<string, float>("value")); break;
                 case "setProgressRange": _index.SetProgress(payload.Get<string, string>("name"), payload.Get<string, float>("cur"), payload.Get<string, float>("max")); break;
                 case "setHp": _index.SetHp(payload.Get<string, string>("name"), payload.Get<string, float>("cur"), payload.Get<string, float>("max")); break;
@@ -244,7 +244,7 @@ return {
                 case "showToast": _index.ShowToast(payload.Get<string, string>("text")); break;
                 case "showBubble": _index.ShowBubble(payload.Get<string, string>("name"), payload.Get<string, string>("text"), payload.Get<string, float>("duration")); break;
                 case "showFlyText": _index.ShowFlyText(payload.Get<string, string>("name"), payload.Get<string, string>("text")); break;
-                // ---- 批⑧ G20 动效口（《动效设计方案》附 A.3）----
+                // ---- 动效口（《动效设计方案》附 A.3）----
                 case "pulse":
                     _index.Pulse(payload.Get<string, string>("name"),
                                  payload.Get<string, float>("strength"),

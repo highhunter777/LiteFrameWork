@@ -9,8 +9,7 @@ namespace LiteSim.Tests
     /// 输入服务（《角色状态与动作专项设计》§3"输入三件"；《联机战斗演示专项设计》§5"输入和三个门"）
     /// 的 L1 覆盖。
     ///
-    /// 覆盖的是**输入服务自己那一段**：上下文门（谁拦的、拦下 = 本帧空意图并照常上行——2026-10-02
-    /// 修复①：与服务器空输入兜底逐位同值，否则本地沿旧值推进、权威按空输入执行，弹模态即回拉）、
+    /// 覆盖的是**输入服务自己那一段**：上下文门（谁拦的、拦下 = 本帧空意图并照常上行——与服务器空输入兜底逐位同值，否则本地沿旧值推进、权威按空输入执行，弹模态即回拉）、
     /// 帧边界门（同一逻辑帧只消费一次）、采样与上行（每渲染帧一份结论，预测与上行同值）。
     /// 前置契约（<c>RollbackSim.OnRealInput</c> 早到即入史）由 RollbackSimTests 覆盖；
     /// 设备源（相机换算）与流程接线属 Unity 侧，归 L2/Player 验证——本文件不假装覆盖它们。
@@ -95,7 +94,7 @@ namespace LiteSim.Tests
 
             modalOpen = true;
             service.SampleOnRenderFrame(default);             // 渲染帧 2：拦下
-            // 2026-10-02 修复①：拦下 = 本帧没有战斗输入——空意图（不再保持旧值）。
+            // 拦下 = 本帧没有战斗输入——空意图（不保持旧值）。
             // 服务器对缺席帧按空输入兜底执行，本地必须同读零，否则"本地在动、权威已停"每份快照回拉。
             Assert.Equal(0f, service.Pending.MoveZ);
             Assert.Equal(1, service.SampleDiposedByGate);
@@ -165,7 +164,7 @@ namespace LiteSim.Tests
             Assert.Equal(1f, service.Pending.MoveZ);
 
             // 设备"没采到"（未就绪/无设备）——与"采到空意图"是两回事（见 IntentSample 注释），
-            // 但与被拦**同读法**（2026-10-02 修复①）：空意图 + 照常上行，与服务器空输入兜底同值。
+            // 但与被拦**同读法**：空意图 + 照常上行，与服务器空输入兜底同值。
             service.TryTakeForSend(out _);               // 消费上一帧的"已采样"标记（渲染帧已翻页）
             service.SetSource(new NothingSource());
             service.SampleOnRenderFrame(default);
@@ -297,7 +296,7 @@ namespace LiteSim.Tests
 
             blocked = true;
             service.SampleOnRenderFrame(default);
-            // 拦下帧的输入结论 = 空（2026-10-02 修复①）：第 2 帧消费到零，与服务器空输入兜底同值。
+            // 拦下帧的输入结论 = 空：第 2 帧消费到零，与服务器空输入兜底同值。
             Assert.True(service.TryTakeForPrediction(2, out SimInputFrame second));
             Assert.Equal(0f, second.MoveZ);
         }

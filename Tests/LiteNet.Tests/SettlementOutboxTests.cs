@@ -15,7 +15,7 @@ namespace LiteNet.Tests
     /// §12 优雅关闭第 4 步"刷新 Outbox 到持久介质"）。真实临时文件——重启恢复＝介质比进程活得久。
     ///
     /// **边界**：此处证明的是"冻结事实不因进程退出而丢、重启可重放"；提交管道（后台服务重试发送
-    /// Profile.Apply）、"已确认结算不丢不重发"的完整口径归 R3/§17。
+    /// Profile.Apply）由后续环节承担。
     /// </summary>
     [Trait(TestTrait.Category, TestCategory.Integration)]
     public sealed class SettlementOutboxFileTests

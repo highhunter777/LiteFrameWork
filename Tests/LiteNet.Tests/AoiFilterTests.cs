@@ -16,7 +16,7 @@ namespace LiteNet.Tests
     public sealed class AoiFilterTests
     {
         /// <summary>
-        /// 网格外实体**不得漏发**（2026-09-19 审查：原先 `_outside` 只收集不消费 → 会从所有人的快照里消失）：
+        /// 网格外实体**不得漏发**（`_outside` 收集的实体必须被消费，否则会从所有人的快照里消失）：
         /// 视点在栅格覆盖范围外、且与目标**距离在半径内** → 目标必须出现在可见集合里；
         /// 距离超半径 → 仍被裁掉（AOI 照常工作，不是"越界就全发"）。
         /// </summary>
@@ -175,7 +175,7 @@ namespace LiteNet.Tests
             }
 
             // 判定结果逐位一致（AOI 只裁剪广播内容，不改任何一个逻辑字段）。
-            // 用不覆盖 Frame 的变体：两个世界各自推进帧号，比含 Frame 的 checksum 会永远不等（实测踩过）
+            // 用不覆盖 Frame 的变体：两个世界各自推进帧号，含 Frame 的 checksum 会永远不等
             Assert.Equal(SimChecksum.ComputeStateChecksum(withoutAoi), SimChecksum.ComputeStateChecksum(withAoi));
         }
     }

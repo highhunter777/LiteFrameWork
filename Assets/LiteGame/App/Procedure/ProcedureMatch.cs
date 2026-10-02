@@ -7,12 +7,12 @@ using LiteNet.Proto;
 namespace LiteGame
 {
     /// <summary>
-    /// 进房流程（C2 批①）：创建 **Account Scope** → BattleClient 连接 + Join → JoinAck 即移交 Battle。
+    /// 进房流程：创建 **Account Scope** → BattleClient 连接 + Join → JoinAck 即移交 Battle。
     ///
-    /// 身份口径（框架先行 §6）：正式登录业务归 G3——本阶段**仅开发/编辑器/开发包**使用隔离测试
-    /// 发行者的受控测试身份（<see cref="TestToken"/>，与 ProcedureMain F9 同门禁）；
-    /// **正式构建缺真实身份依赖时直接拒绝进房**（确定错误态，不悄悄退回 fake——见
-    /// <see cref="RunAsync"/> 门禁）。服务端 R2 前维持"不得公网"红线（Join 侧票据校验仍为原型级）。
+    /// 身份口径：本阶段**仅开发/编辑器/开发包**使用隔离测试发行者的受控测试身份
+    /// （<see cref="TestToken"/>，与 ProcedureMain F9 同门禁）；**正式构建缺真实身份依赖时
+    /// 直接拒绝进房**（确定错误态，不悄悄退回 fake——见 <see cref="RunAsync"/> 门禁）。
+    /// 服务端维持"不得公网"红线（Join 侧票据校验仍为原型级）。
     /// buildHash 用 <see cref="LiteNet.BuildHash.Value"/>（两端同源——不一致服务端拒绝进房）。
     ///
     /// 所有权：Account Scope 在本阶段创建；正常路径随 <see cref="ProcedureArgs"/> 移交 Battle
@@ -20,12 +20,12 @@ namespace LiteGame
     /// </summary>
     public sealed class ProcedureMatch : ProcedureStageBase<ProcedureId, ProcedureArgs>
     {
-        /// <summary>本地联调端点（RoomServer 默认装配；R2 配置化前的测试入口）。</summary>
+        /// <summary>本地联调端点（RoomServer 默认装配；测试入口）。</summary>
         public const string TestHost = "127.0.0.1";
         public const int TestPort = 17777;
         /// <summary>测试房间（RoomConfig 默认房间号）。</summary>
         public const string TestRoomId = "Room-A";
-        /// <summary>隔离测试发行者的受控测试身份（G3 接入真实 Join Ticket 前的占位——服务端仍按红线拒绝公网）。</summary>
+        /// <summary>隔离测试发行者的受控测试身份（服务端仍按红线拒绝公网）。</summary>
         public const string TestToken = "c2-dev-token";
 
         /// <summary>JoinAck 等待预算（毫秒）——超时进 Error（确定失败态，不静默重试）。</summary>
@@ -44,9 +44,7 @@ namespace LiteGame
         /// <summary>
         /// 驱动传输泵（**本阶段必需的**，不是可选优化）：KCP 的 cookie 握手与后续收发全靠
         /// <c>TickIncoming/TickOutgoing</c> 轮询推进——不泵就永远连不上，Join 也永远发不出去。
-        /// 此前这段等待期没有任何驱动点（<c>BattleContext.Tick</c> 要等进了 Battle 才有），
-        /// 于是真 KCP 路径表现为"服务器建了连接又静默超时"；EditMode 用例走假传输（瞬时连接、
-        /// 不需泵）所以没暴露。泵挂在本阶段的 <see cref="OnUpdate"/> 上：阶段生命周期 = 泵的生命周期，
+        /// 泵挂在本阶段的 <see cref="OnUpdate"/> 上：阶段生命周期 = 泵的生命周期，
         /// 迁移进 Battle 后由 <c>BattleContext.Tick</c> 接续（不会双泵）。
         /// </summary>
         public override void OnUpdate(IStageHost<ProcedureId, ProcedureArgs> m, float elapseSeconds)
@@ -62,12 +60,12 @@ namespace LiteGame
 #if UNITY_EDITOR || DEVELOPMENT_BUILD || LITEFRAMEWORK_DEBUG
             RunAsyncCore(m, ct).Forget();          // 一行转发，仅此而已——禁止 async void
 #else
-            // 框架先行 §6"生产配置缺真实依赖时拒绝启动或拒绝相应功能，不能悄悄退回 fake"：
-            // 正式包未接入真实登录（Join Ticket 归 G3）——**拒绝进房**并进确定错误态。
+            // 生产配置缺真实依赖时拒绝启动或拒绝相应功能，不能悄悄退回 fake：
+            // 正式包未接入真实登录——**拒绝进房**并进确定错误态。
             // 当前正式包本无进房入口（F9 已被同门禁编译排除），此处是第二道防线：
-            // 真实登录接入前，任何未来入口到达本阶段都必须显式失败，不得用测试身份连服务器。
+            // 任何入口到达本阶段都必须显式失败，不得用测试身份连服务器。
             var ex = new InvalidOperationException(
-                "正式构建未接入真实登录（Join Ticket 归 G3）——拒绝以测试身份进房（框架先行 §6）");
+                "正式构建未接入真实登录——拒绝以测试身份进房（框架先行 §6）");
             Fail(m, ex, nameof(RunAsync));
             m.Request(ProcedureId.Error, new ProcedureArgs(ex));
 #endif

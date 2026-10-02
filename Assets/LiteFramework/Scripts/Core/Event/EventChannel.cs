@@ -6,7 +6,7 @@ namespace LiteFramework
 {
 
     /// <summary>
-    /// 强类型事件通道。派发语义(写给未来读代码的人):
+    /// 强类型事件通道。派发语义：
     /// ① 本轮收到 = 派发开始时刻的订阅集;订阅/注销立即生效于下一次派发;
     /// ② 嵌套派发各层独立快照——内层派发不影响外层正在遍历的缓冲;
     /// ③ 快照缓冲复用增长式分配:稳态零 GC,分配只在订阅数超过历史峰值时发生一次。
@@ -49,7 +49,7 @@ namespace LiteFramework
                 for (int i = 0; i < n; i++)
                 {
                     try { buf[i](e); }
-                    catch (Exception ex) { Log.Error(ex, $"Event.{typeof(T).Name}"); }  // 单订阅者不炸派发链(§7.8 C# 侧)
+                    catch (Exception ex) { Log.Error(ex, $"Event.{typeof(T).Name}"); }  // 单订阅者不炸派发链
                 }
             }
             finally { _depth--; }

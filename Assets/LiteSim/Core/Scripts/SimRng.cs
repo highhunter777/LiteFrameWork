@@ -3,7 +3,7 @@ using System;
 namespace LiteSim
 {
     /// <summary>
-    /// Sim 随机数：Xorshift64*（<see cref="State"/> 为 ulong）。随机状态进快照（M8 接入）。
+    /// Sim 随机数：Xorshift64*（<see cref="State"/> 为 ulong）。随机状态进快照。
     ///
     /// 只用整数位运算 + 乘法换算（无除法精度依赖），跨运行时逐位确定：同种子同序列。
     /// 使用注意：本类型是 <c>struct</c>，<see cref="NextUInt32"/> 等会就地推进 <see cref="State"/>，

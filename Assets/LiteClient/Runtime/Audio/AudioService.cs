@@ -7,18 +7,15 @@ using UnityEngine;
 namespace LiteGame
 {
     /// <summary>
-    /// 声音壳（M4 §2.9，手册步骤 6）：**组 + 代理模型**。
-    /// 组 = 类别（Effect/Ui/Voice/Bgm），每组 N 个 AudioSource 代理轮转（并发通道，同组音效可叠加）；
-    /// 组音量/静音组级控制；**同优先级不被替换**——全忙时仅"更高优先级"抢占最低优先级代理，否则丢弃（日志可观测）。
-    /// 句柄在代理被抢占/自然播完后失效（Stop 对失效句柄安全忽略）。
+    /// 声音壳：**组 + 代理模型**。组 = 类别（Effect/Ui/Voice/Bgm），每组 N 个 AudioSource 代理轮转
+    /// （并发通道，同组音效可叠加），组音量/静音组级控制；**同优先级不被替换**——全忙时仅"更高优先级"
+    /// 抢占最低优先级代理，否则丢弃（日志可观测）。句柄在代理被抢占/自然播完后失效（Stop 对失效句柄安全忽略）。
     ///
-    /// 评审决议（2026-09-15，对应外部评审 6.2–6.5）：
-    /// - 6.2 Stop O(n)：**不建句柄索引**——总代理数构造期定死（默认 9），Stop 为低频操作；
-    ///   索引反而要维护"自然播完/抢占"的失效清理，得不偿失（不过度设计）。
-    /// - 6.3 抢占语义：**行为正确**——句柄单调递增且永不复用，旧句柄必然失效，
-    ///   Stop(旧句柄) 安全忽略；Source.Play 换 clip 自动停旧音。
-    /// - 6.4 淡入淡出：**已实现** Play(fadeIn) / Stop(fadeOut)，Bgm 组扩为 2 代理支持交叉淡切。
-    /// - 6.5 空间化：**已实现** Play3D（spatialBlend + 一次性世界坐标；跟随实体待真实需求）。
+    /// 设计取舍：
+    /// - Stop **不建句柄索引**（O(总代理数)）——总代理数构造期定死，Stop 为低频操作，
+    ///   索引反而要维护"自然播完/抢占"的失效清理。
+    /// - 句柄单调递增且永不复用——被抢占的旧句柄必然失效，Stop(旧句柄) 安全忽略；Source.Play 换 clip 自动停旧音。
+    /// - 支持 Play(fadeIn)/Stop(fadeOut)（Bgm 组 2 代理支持交叉淡切）与 Play3D（spatialBlend + 一次性世界坐标）。
     /// </summary>
     public sealed class AudioService : IModuleStats
     {
@@ -51,9 +48,9 @@ namespace LiteGame
 
         /// <summary>
         /// 分域时钟注入（《动画模块专项设计》§7 时钟表 + 《状态同步专项设计》§6.2"世界/UI 暂停"）：
-        /// 音效随世界暂停/变速，UI 音与 BGM 随 UI 暂停——**不再读 <c>Time.deltaTime</c>**。
-        /// 本工程 <c>Time.timeScale</c> 恒为 1（<see cref="GameClock"/> 纪律），读它等于永不暂停：
-        /// 旧注释声称的"时停即停"从未成立。未注入时退化为真实帧步进（编辑器/测试兜底）。
+        /// 音效随世界暂停/变速，UI 音与 BGM 随 UI 暂停——**不读 <c>Time.deltaTime</c>**。
+        /// 本工程 <c>Time.timeScale</c> 恒为 1（<see cref="GameClock"/> 纪律），读它等于永不暂停。
+        /// 未注入时退化为真实帧步进（编辑器/测试兜底）。
         /// </summary>
         public void BindClocks(IWorldClock world, IUIClock ui)
         {
@@ -133,14 +130,14 @@ namespace LiteGame
                         steal = p;
                 if (steal == null)
                 {
-                    Log.Info($"声音[{group}] 全忙且同优先级——丢弃（同优先级不被替换，手册 §六）", "Audio");
+                    Log.Info($"声音[{group}] 全忙且同优先级——丢弃（同优先级不被替换）", "Audio");
                     return 0;                              // 0 = 无效句柄
                 }
                 pick = steal;
                 Log.Info($"声音[{group}] 抢占代理（新优先级 {priority} > 旧 {steal.Priority}）", "Audio");
             }
 
-            // 评审 6.3：句柄单调递增且永不复用——被抢占代理的旧句柄必然失效，
+            // 句柄单调递增且永不复用——被抢占代理的旧句柄必然失效，
             // Stop(旧句柄) 走安全忽略分支，外部持有旧句柄不会误停新音。
             pick.Handle = _nextHandle++;
             pick.Priority = priority;
@@ -174,7 +171,7 @@ namespace LiteGame
         /// <summary>
         /// 停止指定句柄。<paramref name="fadeOut"/> &gt; 0 时先淡出再停（淡出期间代理仍占用，
         /// 可被更高优先级抢占——抢占会取消淡出）。失效句柄安全忽略。
-        /// O(总代理数) 有界遍历（构造期定死，默认 9）；Stop 为低频操作，不建句柄索引（评审 6.2 决议）。
+        /// O(总代理数) 有界遍历（构造期定死）；Stop 为低频操作，不建句柄索引。
         /// </summary>
         public void Stop(int handle, float fadeOut = 0f)
         {
@@ -210,7 +207,7 @@ namespace LiteGame
 
         public bool IsGroupMuted(Group group) => _groups[group].Mute;
 
-        /// <summary>全局停止（G1 通用表现批：Audio 总线统一停止面）——全部组全部在播代理立即停
+        /// <summary>全局停止（Audio 总线统一停止面）——全部组全部在播代理立即停
         /// （系统路径不等淡出表现；失效句柄语义不变）。用户语义的逐句柄淡出走 <see cref="Stop"/>。</summary>
         public void StopAll()
         {
@@ -221,7 +218,7 @@ namespace LiteGame
             if (stopped > 0) Log.Info($"音频全局停止：{stopped} 个在播代理", "Audio");
         }
 
-        /// <summary>释放面（宿主关闭，G1"统一取消与释放"）：全局停止 + 销毁 [Audio] 根（幂等）。</summary>
+        /// <summary>释放面（宿主关闭）：全局停止 + 销毁 [Audio] 根（幂等）。</summary>
         public void Shutdown()
         {
             if (_root == null) return;                       // 幂等（_root 置空即已关闭）

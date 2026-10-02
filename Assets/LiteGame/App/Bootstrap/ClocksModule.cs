@@ -27,10 +27,10 @@ namespace LiteGame
             context.Put<IWorldClock>(_worldClock);
             context.Put<IUIClock>(_uiClock);
             context.Put<IWallClock>(_wallClock);
-            UiAnimationClock.Bind(_uiClock);               // G1 动画时钟：DOTween Manual 轨/序列帧接入 UIClock
+            UiAnimationClock.Bind(_uiClock);               // 动画时钟：DOTween Manual 轨/序列帧接入 UIClock
             return UniTask.CompletedTask;
         }
 
-        public UniTask ShutdownAsync(CancellationToken ct) => UniTask.CompletedTask;   // 时钟无关闭面（U1 Scope 统一取消）
+        public UniTask ShutdownAsync(CancellationToken ct) => UniTask.CompletedTask;   // 时钟无关闭面（Scope 统一取消）
     }
 }

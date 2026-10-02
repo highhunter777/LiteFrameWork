@@ -3,7 +3,7 @@ using UnityEngine;
 namespace LiteGame.EditorTools.UI
 {
     /// <summary>
-    /// UI 样式 token 单源（2026-09-17 定案：**仅编辑器工具语义**——颜色归手作 prefab 的序列化数据，
+    /// UI 样式 token 单源（**仅编辑器工具语义**——颜色归手作 prefab 的序列化数据，
     /// 本 token 只作为批量刷新/对账的基准值，不进运行时、不挂组件、不覆盖手调结果以外的任何东西）。
     ///
     /// token 值来自《UI控件库Prefab落地规划》灰盒四色系的实际归纳（WidgetPrefabBuilder 39 处颜色的意图聚类）：

@@ -16,9 +16,8 @@ namespace LiteGame
     /// <summary>
     /// 零动效转场（**默认策略**；《客户端总设计》§5.1"形成逻辑边界"）：立刻把视觉落到终态并报告完成。
     ///
-    /// **为什么要有它**：原 <c>UIService</c> 把 <see cref="FadeSlideTransition"/>（DOTween 实现）
-    /// 当默认值——通用 UI 运行时因此**硬依赖动效适配器**，asmdef 拆不开（成环）。
-    /// 改为默认零动效、由**装配根**显式注入真实现（生产装配传 `FadeSlideTransition`）。
+    /// **为什么要有它**：通用 UI 运行时不得**硬依赖动效适配器**（asmdef 成环）——真实现由
+    /// **装配根**显式注入（生产装配传 `FadeSlideTransition`）。
     ///
     /// **语义与真实现对齐**（含取消路径）：Enter 落 `alpha=1`、Exit 落 `alpha=0`；
     /// 取消已请求时报 <see cref="MotionOutcome.Cancelled"/>，否则 `Completed`——
@@ -28,7 +27,7 @@ namespace LiteGame
     public sealed class InstantTransition : ITransitionStrategy
     {
         public UniTask PlayShow(UIForm form, CancellationToken ct)
-            => PlayShow(form, new MotionPlayback(null));      // 旧签名：无终态容器（壳按完成处理）
+            => PlayShow(form, new MotionPlayback(null));      // 无终态容器（壳按完成处理）
 
         public UniTask PlayClose(UIForm form, CancellationToken ct)
             => PlayClose(form, new MotionPlayback(null));

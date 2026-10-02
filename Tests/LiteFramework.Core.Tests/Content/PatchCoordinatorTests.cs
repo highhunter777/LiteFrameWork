@@ -7,7 +7,7 @@ namespace LiteFramework.Tests
     /// <summary>
     /// 补丁编排（《热更与内容发布专项设计》§8 激活、健康确认与中断恢复；§4 流程图）。
     ///
-    /// 本类是热更链的**第一个生产消费者**——把此前无调用方的描述校验、下载计划、
+    /// 本类是热更链的**第一个生产消费者**——把描述校验、下载计划、
     /// 候选校验、激活事务串成一条可测编排。
     /// </summary>
     public sealed class PatchCoordinatorTests

@@ -14,7 +14,7 @@ namespace LiteGame
     /// INetworkService（字节级契约）→ KcpTransportClient（LiteNet 字节管道）——房间语义（帧号/Join/冗余）
     /// 一概不过桥（§7.3 红线：框架不知道帧号）；字节收发经 OnReceive 事件交给上层（RoomClient 等）。
     ///
-    /// - ITickable：由 GameEntry 统一驱动收发轮询（MVP 单线程，不开网络线程 §7.2）；
+    /// - ITickable：由 GameEntry 统一驱动收发轮询（单线程，不开网络线程 §7.2）；
     /// - ConnectAsync：kcp2k 握手是 Tick 驱动的异步过程——UniTask.WaitUntil 等 Connected（PlayerLoop 泵）；
     /// - IModuleStats：RTT/收发计数进 HUD（§7.2 诊断行）。
     /// </summary>
@@ -77,7 +77,7 @@ namespace LiteGame
             if (_transport != null) _transport.Dispose();
         }
 
-        /// <summary>ITickable：GameEntry 统一驱动（收发轮询，MVP 单线程 §7.2）。</summary>
+        /// <summary>ITickable：GameEntry 统一驱动（收发轮询，单线程 §7.2）。</summary>
         public void Tick(float realDelta)
         {
             _transport?.TickIncoming();

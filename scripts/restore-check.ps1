@@ -1,5 +1,5 @@
 # ─────────────────────────────────────────────────────────────────────────────
-# Environment restore check (C0-1, 2026-09-21)
+# Environment restore check
 #
 # Per: Client Framework Master Design 14.1 / C0 - restore scripts must fail
 #      clearly on missing pieces; never continue with a broken environment.
@@ -123,7 +123,7 @@ if ((Test-Path (Join-Path $ProjectPath 'Assets\Scenes\Boot.unity')) -or (Test-Pa
 } else { Warn 'Assets/Scenes missing - cannot run directly' }
 
 if (-not (Get-Command 'java' -ErrorAction SilentlyContinue)) {
-    Warn 'JDK not detected - Android IL2CPP build (C0-2 mobile) needs JDK 11 + Android SDK/NDK (not blocking Windows dev)'
+    Warn 'JDK not detected - Android IL2CPP build (mobile) needs JDK 11 + Android SDK/NDK (not blocking Windows dev)'
 }
 
 # -- Summary --------------------------------------------------------------------

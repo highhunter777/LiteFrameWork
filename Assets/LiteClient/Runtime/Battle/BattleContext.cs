@@ -9,17 +9,14 @@ using LiteSim.View;
 namespace LiteGame
 {
     /// <summary>
-    /// 对局上下文（C2 批①，《商业级通用客户端框架总设计》§19 C2"BattleContext 创建/销毁、网络/Sim/View 接线"）：
-    /// 一局对局的**全部运行态编排**——网络事件 → 持久镜像重建（协议单源 SnapshotReassembler）→
-    /// 预测/和解（RollbackSim）→（批②：SimView/相机/动画）→ 输入上行。
+    /// 对局上下文：一局对局的**全部运行态编排**——网络事件 → 持久镜像重建（协议单源 SnapshotReassembler）→
+    /// 预测/和解（RollbackSim）→ 表现视图（SimView/相机/动画）→ 输入上行。传输由 <see cref="BattleClient"/>
+    /// 持有、地图走 <see cref="SimMapData.StandardBattleMap"/> 单源、生命周期挂 Match Scope（本类创建并持有，
+    /// Dispose 即拆——离场无 Match 残留的载体）。
     ///
-    /// 逻辑镜像 <c>Tests/LiteNet.Tests/HeadlessClient.cs</c>（已验证的集成形态），差异只有三点：
-    /// 传输由 <see cref="BattleClient"/> 持有、地图走 <see cref="SimMapData.StandardBattleMap"/> 单源、
-    /// 生命周期挂 Match Scope（本类创建并持有，Dispose 即拆——离场无 Match 残留的载体）。
-    ///
-    /// **断线恢复策略（C2 会话子集口径）**：SuspectedLost 即自动 <see cref="BattleClient.BeginReconnect"/>
-    /// （凭 JoinAck 票据）；Failed（重连超时/拒绝/版本不符）→ <see cref="Ended"/>(SessionFailed) 交流程层
-    /// 裁决回主菜单——不在上下文内静默重建会话（正式重试 UI 归 G3）。
+    /// **断线恢复策略**：SuspectedLost 即自动 <see cref="BattleClient.BeginReconnect"/>（凭 JoinAck 票据）；
+    /// Failed（重连超时/拒绝/版本不符）→ <see cref="Ended"/>(SessionFailed) 交流程层裁决回主菜单——
+    /// 不在上下文内静默重建会话。
     ///
     /// 生命周期：ctor 建 Match Scope → 挂 RoomClient 事件（退订经 <see cref="DelegatedDisposable"/> 登记进
     /// Scope，LIFO 保证晚挂先退）→ Dispose 拆订阅 → Match Scope.Dispose。事件处理在 Dispose 后一律短路。
@@ -35,7 +32,7 @@ namespace LiteGame
             SessionFailed,
         }
 
-        /// <summary>首版房间规模（RoomConfig 默认 2 人房——两端 StartGame 世界重建的定容依据）。</summary>
+        /// <summary>房间规模（RoomConfig 默认 2 人房——两端 StartGame 世界重建的定容依据）。</summary>
         public const int ExpectedPlayers = 2;
 
         /// <summary>对局结束（恰好一次；Dispose 不触发——那是清理不是结束）。</summary>
@@ -45,13 +42,13 @@ namespace LiteGame
         public bool Connected => _battle.Connected;
         public int PlayerId => _battle.Client.PlayerId;
 
-        /// <summary>本地玩家实体 Id（0 = 尚未对齐——首份快照按 Slot==PlayerId 解析，HeadlessClient 同口径）。</summary>
+        /// <summary>本地玩家实体 Id（0 = 尚未对齐——首份快照按 Slot==PlayerId 解析）。</summary>
         public long LocalEntityId => _localEntityId;
 
         /// <summary>本地预测/和解 Sim（StartGame 后可用；null = 对局尚未建立）。</summary>
         public RollbackSim Sim => _sim;
 
-        /// <summary>最近一次收到的快照帧号（视点帧推导来源——批② SimView 消费）。</summary>
+        /// <summary>最近一次收到的快照帧号（视点帧推导来源——SimView 消费）。</summary>
         public int LastSnapshotFrame => _battle.Client.LastSnapshotFrame;
 
         /// <summary>和解次数（本地预测被权威覆盖的次数；诊断/DevHUD）。</summary>
@@ -60,7 +57,7 @@ namespace LiteGame
         private readonly BattleClient _battle;
         private readonly ClientScope _matchScope;
         private readonly SimMapData _map;
-        private IInputService _input;                    // 帧对齐后的本地输入源（C2 批②曾是裸 Func；2026-09-26 输入服务批收敛）
+        private IInputService _input;                    // 帧对齐后的本地输入源
         private readonly SimInputFrame[] _localInputs;   // 送进预测/上行的那一份（复用，零分配）
 
         private RollbackSim _sim;
@@ -74,10 +71,10 @@ namespace LiteGame
         private int _diagLastAlive = -1;                     // [Diag] 临时哨位：逐渲染帧盯活体数（bot 消失排查）
         private bool _diagDiverged;                          // [Diag] 临时哨位：本地/镜像活体分歧是否已报（防刷屏）
 
-        /// <summary>表现视图（C2 批② SimView 建后挂上；null = 无视图——纯会话/测试形态仍完整可跑）。</summary>
+        /// <summary>表现视图（SimView 建后挂上；null = 无视图——纯会话/测试形态仍完整可跑）。</summary>
         public SimView View { get; private set; }
 
-        /// <param name="inputProvider">本地输入源（2026-09-26 输入服务批起为 <see cref="IInputService"/>：
+        /// <param name="inputProvider">本地输入源（<see cref="IInputService"/>：
         /// 采样/上下文门/帧边界门都在服务里；本类只按逻辑帧推进并取用。null = 空输入——纯会话/测试形态）。</param>
         public BattleContext(BattleClient battle, ClientScope accountScope,
             IInputService inputProvider = null, SimMapData map = null)
@@ -113,7 +110,7 @@ namespace LiteGame
         }
 
         /// <summary>
-        /// 挂上表现视图（C2 批②——须在 StartGame 之后调用：SimView 要本地预测态 <see cref="RollbackSim.State"/>）。
+        /// 挂上表现视图（须在 StartGame 之后调用：SimView 要本地预测态 <see cref="RollbackSim.State"/>）。
         /// 视图生命周期由调用方（ProcedureBattle）随 Match Scope 收尾；本方法只做接线与首帧对齐。
         /// </summary>
         public void AttachView(SimView view)
@@ -132,7 +129,7 @@ namespace LiteGame
         }
 
         /// <summary>
-        /// 挂输入源（2026-09-26 输入服务批：<see cref="IInputService"/> 的注入点；null = 恢复空输入）。
+        /// 挂输入源（<see cref="IInputService"/> 的注入点；null = 恢复空输入）。
         /// 与 ctor 的 inputProvider 同义，供"视图建在上下文之后"的装配序使用。
         /// </summary>
         public void AttachInput(IInputService provider) => _input = provider;
@@ -152,14 +149,14 @@ namespace LiteGame
         /// 每帧驱动（ProcedureBattle.OnUpdate 调——唯一驱动入口）：网络双泵 → 输入上行与预测推进 → 表现视图。
         /// Sim 未建（StartGame 未达）时只泵网络；输入只在对局中消费与发送。
         ///
-        /// **输入的门与顺序**（《角色状态与动作专项设计》§3 输入三件；2026-09-26 输入服务批）：
+        /// **输入的门与顺序**（《角色状态与动作专项设计》§3 输入三件）：
         /// 采样与上下文门已在渲染帧由 <see cref="IInputService.SampleOnRenderFrame"/> 完成（拦截源成立
         /// → 本帧输入为全零，照常上行）。本方法只做三件按逻辑帧对齐的事，顺序不可换：
         /// <list type="number">
         /// <item><b>第 F 帧输入送进预测</b>——<c>RollbackSim.OnRealInput(F, …)</c> 早到即入史，
         ///   于是第 F 步用的是真实输入而非沿用（否则"发了但没预测"会让下一份权威快照判定不符 → 自造回滚）；</item>
         /// <item><b>同一份输入上行</b>——预览帧号 <c>F</c> 与本地将要执行的步一致（两端同帧同值）；</item>
-        /// <item><b>追帧沿用帧补发</b>（2026-10-02 修复②）——<c>Tick</c> 跑了 ≥2 个逻辑帧时，
+        /// <item><b>追帧沿用帧补发</b>——<c>Tick</c> 跑了 ≥2 个逻辑帧时，
         ///   多出的帧用"沿用上一帧"推进（<c>RollbackSim.PrepareNext</c>），这些帧同样上行
         ///   （<c>RollbackSim.TryGetExecutedInput</c> 取回实际执行的那份）——漏发会让服务器按空输入
         ///   兜底执行，移动中分叉成快照频率的橡皮筋。</item>
@@ -211,7 +208,7 @@ namespace LiteGame
 
             _sim.Tick(realDelta);
 
-            // 追帧补发（2026-10-02 修复②）：本渲染帧跑了 ≥2 个逻辑帧时，多出的帧本地以
+            // 追帧补发：本渲染帧跑了 ≥2 个逻辑帧时，多出的帧本地以
             // "沿用上一帧"推进（RollbackSim.PrepareNext）——这些帧**同样必须上行**：服务器对缺席帧的
             // 唯一读法是空输入兜底（RoomRuntime 缺席沿用 default），漏发即"本地在动、权威已停"，
             // 移动中每份快照都和解回拉（低帧率下成快照频率的持续橡皮筋）。帧号从 inputFrame+1
@@ -249,7 +246,7 @@ namespace LiteGame
             Ended?.Invoke(reason);
         }
 
-        // ---- 网络事件处理（HeadlessClient 已验证形态的镜像）----
+        // ---- 网络事件处理 ----
 
         /// <summary>StartGame：按服务器 seed 重建同构世界（预测的前提——两端世界构造必须逐位一致）。</summary>
         private void OnStartGame(LiteNet.Proto.StartGame sg)
@@ -268,7 +265,7 @@ namespace LiteGame
 
             _sim = new RollbackSim(world, _map, template);
 
-            // 批②：视图若已挂（AttachView 早于 StartGame），补上回滚/和解/帧事件接线
+            // 视图若已挂（AttachView 早于 StartGame），补上回滚/和解/帧事件接线
             if (View != null)
             {
                 _sim.OnRollback = View.OnRollback;

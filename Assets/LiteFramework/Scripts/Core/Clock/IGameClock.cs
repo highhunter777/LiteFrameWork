@@ -13,7 +13,7 @@ namespace LiteFramework
 
         
     }
-    // ---- 标记子接口:身份由接口表达(§1.1 既定)——注入点拿混即编译错误 ----
+    // ---- 标记子接口:身份由接口表达——注入点拿混即编译错误 ----
     public interface IWorldClock : IGameClock { }   // 游戏时间:受暂停/时停/变速
     public interface IUIClock : IGameClock { }     // UI 时间:受暂停、不受时停
 }

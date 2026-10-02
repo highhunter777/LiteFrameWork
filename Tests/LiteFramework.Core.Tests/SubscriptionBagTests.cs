@@ -5,7 +5,7 @@ using Xunit;
 
 namespace LiteFramework.Tests
 {
-    // 订阅袋（审计补测 2026-09-15）：C# 对象事件订阅的生命周期归属件——§7.3"返回注销委托"的集合形态。
+    // 订阅袋：C# 对象事件订阅的生命周期归属件——§7.3"返回注销委托"的集合形态。
     // 无静态状态（不触碰 Log/池），故不入 CoreStatic Collection。
     public sealed class SubscriptionBagTests
     {

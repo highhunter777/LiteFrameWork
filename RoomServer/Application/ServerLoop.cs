@@ -38,7 +38,7 @@ namespace RoomServer.Application
         /// <summary>只读快照（外部轮询用；取的是当前值，不保证与 Ticks 同一瞬间一致）。</summary>
         public LoopStats Stats => _stats;
 
-        /// <summary>生产装配：真实时钟 + 真实等待 + 60Hz（M10 形态便捷构造，host.Pump 为默认帧体）。</summary>
+        /// <summary>生产装配：真实时钟 + 真实等待 + 60Hz（便捷构造，host.Pump 为默认帧体）。</summary>
         public ServerLoop(ServerHost host, Action pumpOverride = null)
             : this(StopwatchClock.Instance, ThreadSleepDelay.Instance,
                   (pumpOverride ?? (host ?? throw new ArgumentNullException(nameof(host))).Pump),

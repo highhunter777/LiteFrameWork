@@ -7,14 +7,14 @@ using LiteFramework;
 namespace LiteGame
 {
     /// <summary>
-    /// 导航协调者（《UI框架总设计》§4.3 首版导航：**单写者串行** + 队列上限 + 等待超时 + 可观测拒绝）。
+    /// 导航协调者（《UI框架总设计》§4.3：**单写者串行** + 队列上限 + 等待超时 + 可观测拒绝）。
     /// 落在 <see cref="UIService"/> 之上的唯一导航入口：页面/流程的 Go/Back 一律经本类排队串行执行
     /// ——直接 <see cref="UIService.ShowAsync"/> 仍可用（工具/测试），但产品导航必须走单写者，
     /// 否则"同帧连点两个按钮"会在转场中途互相打断。
     ///
     /// 契约（§4.3）：
     /// - **队列满在创建/入栈/OnShow 之前拒绝**（<see cref="UIOpenFailure.Rejected"/>——排队计数不含正在执行的操作）；
-    /// - **等待超时可观测**（<see cref="UIOpenFailure.Timeout"/>，出队与入队两个安全调度点判定——首版不建
+    /// - **等待超时可观测**（<see cref="UIOpenFailure.Timeout"/>，出队与入队两个安全调度点判定——不建
     ///   定时器泵，运行中的单个操作自身有界：转场超时 2s 兜底 + 加载取消链）；
     /// - **已接受的操作必须完成、失败或取消**：排队期取消 = 标记放弃（出队时跳过、不加载）；执行期取消 = 贯穿
     ///   <see cref="UIService.ShowAsync"/> 的取消语义（半成品由其回滚）；
@@ -77,7 +77,7 @@ namespace LiteGame
 
         /// <summary>
         /// 显式替换当前记录（§6.1"ReplaceAsync 显式替换当前记录"）：关闭当前顶页（Replace 离场原因）
-        /// 并打开目标页。与 <see cref="GoAsync"/> 在首版覆盖栈下的差异：Go 保留旧页（新页覆盖其上），
+        /// 并打开目标页。与 <see cref="GoAsync"/> 的差异：Go 保留旧页（新页覆盖其上），
         /// Replace 明确关闭当前记录——跨层同样替换，且旧页收到类型化的 Replace 离场原因
         /// （<see cref="UIService.CloseReason.Replace"/>）。目标即当前顶页时幂等返回（不先关后开）。
         /// </summary>
@@ -188,7 +188,7 @@ namespace LiteGame
                             }
                             case NavKind.Replace:
                             {
-                                // 当前顶即目标 → 幂等（历史语义：当前记录已是目标，不先关后开）
+                                // 当前顶即目标 → 幂等（不先关后开）
                                 if (_ui.TryGetBackTarget(out int cur) && cur == op.FormId)
                                 {
                                     var opened = await _ui.ShowAsync(op.FormId, op.Data, op.Cts.Token);

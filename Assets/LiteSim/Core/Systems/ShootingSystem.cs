@@ -1,12 +1,12 @@
 namespace LiteSim
 {
     /// <summary>
-    /// 射击判定系统（§3.3 顺序第 3 位，§3.4 hitscan + M8 决策 #10/#12）：
+    /// 射击判定系统（§3.3 顺序第 3 位，§3.4 hitscan）：
     /// 对活体做圆柱求交（半径 + y 区间），按距离取最近（并列取低槽位——遍历顺序恒定）；
     /// 命中 → Cmds.Write(Damage)；开火/命中 → Events.Write(Fire/Hit)。
-    /// 本系统是 M8 唯一消费 RngState 的系统（#10：确定性审计写在签名上——伤害浮动 ±1）。
+    /// 本系统是唯一消费 RngState 的系统（确定性审计写在签名上——伤害浮动 ±1）。
     ///
-    /// **服务器回溯（M10 批③）**：LagCompensator 会把本系统**单独**跑在历史帧状态上（不 Step），
+    /// **服务器回溯**：LagCompensator 会把本系统**单独**跑在历史帧状态上（不 Step），
     /// 因此本系统必须满足两条：① 不改 Frame/时序；② 只读输入 + 写 Cmds/Events/RngState +
     /// 槽位开火窗（FireStanceFrames——与 Fire 事件同点置窗；回溯副本上的写入随副本丢弃，不入权威态）。
     /// 回调方负责还原 RngState（回溯判定不该消费权威随机数）。
@@ -22,7 +22,7 @@ namespace LiteSim
 
                 ref EntitySlot shooter = ref s.Entities[shooterSlot];
 
-                // 射线方向 = 输入瞄准向量本身（2026-09-17：Aim 即事实，省一次三角函数往返；
+                // 射线方向 = 输入瞄准向量本身（Aim 即事实，省一次三角函数往返；
                 // 零向量不会命中任何目标——采集侧契约要求非零）
                 float dx = inputs[i].AimX;
                 float dz = inputs[i].AimZ;
@@ -62,9 +62,9 @@ namespace LiteSim
                     }
                 }
 
-                // 开火驻留窗置满（三次裁决：与 Fire 事件**同点**——View 侧窗口同触发同长度同刷新，
+                // 开火驻留窗置满（与 Fire 事件**同点**——View 侧窗口同触发同长度同刷新，
                 // 事件刷新制重置满窗、上限即窗长；限速由 InputSystem 次帧起生效——本系统在输入之后跑）。
-                // 服务器回溯（M10 批③）：本字段随回溯副本丢弃，不入权威态——契约见类注释②。
+                // 服务器回溯：本字段随回溯副本丢弃，不入权威态——契约见类注释②。
                 shooter.FireStanceFrames = (byte)CombatConfig.FireStanceFrames;
 
                 s.Events.Write(FrameEventKind.Fire, shooter.Id, 0L, 0, shooter.Pos);
@@ -74,7 +74,7 @@ namespace LiteSim
                     ref EntitySlot hit = ref s.Entities[hitSlot];
 
                     // 伤害浮动 ±DamageSpread（消费 RngState——局部副本推进后写回，SimRng 使用约定）；
-                    // base/spread 走 CombatConfig（2026-09-19 数值解耦：原内嵌表达式参数化）
+                    // base/spread 走 CombatConfig（数值参数化）
                     var rng = new SimRng(s.RngState);
                     int dmg = CombatConfig.BaseDamage + rng.NextRange(-CombatConfig.DamageSpread, CombatConfig.DamageSpread + 1);
                     s.RngState = rng.State;

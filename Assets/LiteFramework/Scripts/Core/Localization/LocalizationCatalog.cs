@@ -4,17 +4,17 @@ using System.Collections.Generic;
 namespace LiteFramework
 {
     /// <summary>
-    /// 本地化目录（《UI框架总设计》§9"目标文本链为 `#text.xlsx → 生成 key/语言数据 → LText 服务 →
-    /// LTextLabel/页面模型`"）。
+    /// 本地化目录（目标文本链为 `#text.xlsx → 生成 key/语言数据 → LText 服务 →
+    /// LTextLabel/页面模型`）。
     ///
     /// **单一来源**：一张 key → (locale → 文本) 的表，按 locale 索引。不可变构造后只读——
-    /// 语言切换只换查询的 locale，不重建目录（§9"语言变更刷新本地化组件…不重跑 OnShow"）。
+    /// 语言切换只换查询的 locale，不重建目录（语言变更刷新本地化组件…不重跑 OnShow）。
     ///
     /// 纯数据 + 纯查询，零 Unity 依赖，L1 全覆盖。
     /// </summary>
     public sealed class LocalizationCatalog
     {
-        /// <summary>源语言（缺 key 时的回退目标，§9"发布期先回退源语言，再显示可诊断占位"）。</summary>
+        /// <summary>源语言（缺 key 时的回退目标——发布期先回退源语言，再显示可诊断占位）。</summary>
         public const string SourceLocale = "zh-CN";
 
         private readonly Dictionary<string, Dictionary<string, string>> _byKey;
@@ -98,7 +98,7 @@ namespace LiteFramework
     }
 
     /// <summary>
-    /// key 命名校验（§9"key 命名 `UI.&lt;页面&gt;.&lt;语义&gt;` / `Common.&lt;语义&gt;`"）。
+    /// key 命名校验（key 命名 `UI.&lt;页面&gt;.&lt;语义&gt;` / `Common.&lt;语义&gt;`）。
     ///
     /// 校验而非"约定"：命名跑了会让本地化覆盖率统计与批量替换失效，
     /// 且是发布期难以回溯的问题——在候选校验阶段就该拦住。
@@ -137,7 +137,7 @@ namespace LiteFramework
         }
     }
 
-    /// <summary>复数类别（§9"英文 one/other 显式选取"；首版只做 zh-CN + en 需要的形式）。</summary>
+    /// <summary>复数类别（英文 one/other 显式选取；只做 zh-CN + en 需要的形式）。</summary>
     public enum PluralCategory
     {
         /// <summary>单数（en: n == 1）。</summary>
@@ -147,7 +147,7 @@ namespace LiteFramework
     }
 
     /// <summary>
-    /// 本地化查询端口（§9"`Get/Format/Raw` 为目标接口，尚未实现"——本类即其实现）。
+    /// 本地化查询端口（`Get/Format/Raw` 为目标接口——本类即其实现）。
     ///
     /// 与 <see cref="LocalizationCatalog"/> 的分工：目录是**数据**，本服务是**查询策略**
     /// （当前 locale、缺 key 策略、复数选取、富文本转义）。
@@ -157,7 +157,7 @@ namespace LiteFramework
         /// <summary>当前语言（BCP-47，如 "zh-CN"/"en"）。</summary>
         string Locale { get; }
 
-        /// <summary>语言变更事件（携带新 locale）。LTextLabel 等订阅它刷新，**不重跑 OnShow**（§9）。</summary>
+        /// <summary>语言变更事件（携带新 locale）。LTextLabel 等订阅它刷新，**不重跑 OnShow**。</summary>
         event Action<string> OnLocaleChanged;
 
         /// <summary>切换语言；同值 = 无操作（不触发事件）。</summary>
@@ -166,13 +166,13 @@ namespace LiteFramework
         /// <summary>取文本（**未转义**原文；缺 key 走缺 key 策略）。</summary>
         string Raw(string key);
 
-        /// <summary>取文本（**安全文本**：玩家/外部插入的参数按 §9 转义）。</summary>
+        /// <summary>取文本（**安全文本**：玩家/外部插入的参数按规范转义）。</summary>
         string Get(string key);
 
-        /// <summary>取文本并填参（§9"模板参数按编号/语义验证"）。</summary>
+        /// <summary>取文本并填参（模板参数按编号/语义验证）。</summary>
         string Format(string key, params object[] args);
 
-        /// <summary>带复数的取文本（§9"英文 one/other 显式选取"）。</summary>
+        /// <summary>带复数的取文本（英文 one/other 显式选取）。</summary>
         string FormatPlural(string key, long count, params object[] args);
 
         /// <summary>缺 key 累计次数（诊断——发布期据此判断翻译完整性）。</summary>

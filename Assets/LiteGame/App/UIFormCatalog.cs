@@ -5,7 +5,7 @@ using LiteFramework;
 namespace LiteGame
 {
     /// <summary>
-    /// 装配层投影件（M4 §2.0）：把 TbUIForm 行投影为 <see cref="UIFormInfo"/>。懒加载 + 幂等；
+    /// 装配层投影件：把 TbUIForm 行投影为 <see cref="UIFormInfo"/>。懒加载 + 幂等；
     /// 未命中抛（fail-fast，§3.4——表漏配在启动期当场暴露）。
     /// </summary>
     public sealed class UIFormCatalog : IUIFormCatalog
@@ -36,7 +36,7 @@ namespace LiteGame
                 {
                     Id = row.Id,
                     LuaPath = row.LuaPath,
-                    Location = "Assets/" + row.Prefab,      // 表列 = Assets/ 相对路径（2026-09-13 定案）
+                    Location = "Assets/" + row.Prefab,      // 表列 = Assets/ 相对路径
                     Layer = row.Layer,
                     FullScreen = row.FullScreen,
                 };

@@ -15,7 +15,7 @@ namespace LiteGame
     /// ② 资源包初始化（当前 Confirmed 代——`ActiveGeneration`）。
     ///
     /// 失败 = RecordFailure + Error 流程（确定错误态）；编排内部已保证"失败保留允许版本"（§8），
-    /// 故此处不再回退——回退由 `PatchCoordinator` 在健康失败时执行。
+    /// 故此处不做回退——回退由 `PatchCoordinator` 在健康失败时执行。
     /// </summary>
     public sealed class ProcedurePatch : ProcedureStageBase<ProcedureId, ProcedureArgs>
     {

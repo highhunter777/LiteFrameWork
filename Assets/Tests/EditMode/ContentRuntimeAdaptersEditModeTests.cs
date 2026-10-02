@@ -13,7 +13,7 @@ namespace LiteGame.Tests.EditMode
     /// <see cref="LocalDirectoryCandidateFetcher"/>（本地候选清点）、
     /// <see cref="UnavailableDiskSpaceProbe"/>（空间不可知的 fail-closed）。
     ///
-    /// 同时覆盖本批为适配新增的 <see cref="FileSys"/> 字节/递归 API ——
+    /// 同时覆盖 <see cref="FileSys"/> 的字节/递归 API ——
     /// LiteGame 层零 System.IO，候选文件（含二进制）必须走 FileSys 通道。
     /// </summary>
     public sealed class ContentRuntimeAdaptersEditModeTests : UnityTestBase
@@ -62,7 +62,7 @@ namespace LiteGame.Tests.EditMode
         private static DownloadPlan PlanFor(ReleaseManifest m)
             => new DownloadPlan(m, new[] { new DownloadSource("local", "file://local") });
 
-        // ---- FileSys 新增 API ----
+        // ---- FileSys API ----
 
         [Test]
         public void FileSys_字节往返_保留二进制()

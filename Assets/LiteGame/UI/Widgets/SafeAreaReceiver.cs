@@ -2,9 +2,8 @@ using UnityEngine;
 
 namespace LiteGame.UI
 {
-    /// <summary>SafeArea 接收器（M4 §2.6 刘海屏红线）：把避让矩形应用到自身 RectTransform 的 anchors。
-    /// 低频轮询（0.5s）+ 尺寸变化即标脏，避免每帧计算；策略可换（SetStrategy）。
-    /// 2026-09-14 重建：拆文件时同名覆盖事故后按旧程序集反射签名还原（五个私有字段与四个方法逐一对齐）。</summary>
+    /// <summary>SafeArea 接收器（刘海屏红线）：把避让矩形应用到自身 RectTransform 的 anchors。
+    /// 低频轮询（0.5s）+ 尺寸变化即标脏，避免每帧计算；策略可换（SetStrategy）。</summary>
     public sealed class SafeAreaReceiver : MonoBehaviour
     {
         private ISafeAreaStrategy _strategy;
@@ -62,7 +61,7 @@ namespace LiteGame.UI
         }
     }
 
-    /// <summary>SafeArea 策略（M4 §2.6，设计方案 §1.3 刘海屏红线）：解析避让矩形。默认 = Screen.safeArea 原样
+    /// <summary>SafeArea 策略（刘海屏红线）：解析避让矩形。默认 = Screen.safeArea 原样
     /// （桌面/编辑器 = 全屏；异形屏 = 真实安全区；横竖屏 / 分屏自动跟随）。</summary>
     public interface ISafeAreaStrategy
     {

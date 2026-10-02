@@ -60,7 +60,7 @@ namespace RoomServer.Application
     }
 
     /// <summary>
-    /// 分层限流（R2 安全批；《商业级通用服务端框架总设计》§P0-6"远端地址限流"、
+    /// 分层限流（《商业级通用服务端框架总设计》§P0-6"远端地址限流"、
     /// §595 Beta 门槛"限流可**按 IP/账号/Session** 生效"、§343"限流桶必须有**容量上限和周期清理**"）。
     ///
     /// **模型**：每 (lane, key) 一个令牌桶——<see cref="RateLimitSettings.Lane.Burst"/> = 突发容量

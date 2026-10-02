@@ -11,7 +11,7 @@ using UnityEngine;
 namespace LiteGame.Tests.EditMode
 {
     /// <summary>
-    /// 客户端玩法数值链路（《玩法数值解耦审查与Luban表设计》§4，2026-09-19）：
+    /// 客户端玩法数值链路（《玩法数值解耦审查与Luban表设计》§4）：
     /// 直接按 `ConfigService` 的同一路径与同一 loader 建 `cfg.Tables` → 取 `Tbcombatnum` 单行 →
     /// 与 `CombatConfig` 的运行时值比对。**验的是真实数据链路**（bin 文件存在且能被 Luban 解析），
     /// 而不是"代码里写了个数"。
@@ -40,7 +40,7 @@ namespace LiteGame.Tests.EditMode
         [Category(TestCategory.Asset)]
         public void 数值表_可建表且与运行时值一致()
         {
-            // 表数据目录从 ConfigService 单源取（生成物 2026-09-26 由 LiteGame/RawFile 收敛到 GameData）
+            // 表数据目录从 ConfigService 单源取
             string dir = Path.Combine(ProjectRoot(), ConfigService.DataDir);
             var cache = new Dictionary<string, byte[]>(DataFiles.Length);
             foreach (string f in DataFiles)

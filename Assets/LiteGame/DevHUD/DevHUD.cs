@@ -8,20 +8,16 @@ using UnityEngine;
 namespace LiteGame
 {
     /// <summary>开发 HUD（只读快照展示）。**自创建形态**：[RuntimeInitializeOnLoadMethod] 在场景加载后
-    /// 自建 GameObject（场景**不挂**组件——Editor-only asmdef 实测会把 play 模式场景组件剥离并报
-    /// "not derived from MonoBehaviour"，2026-09-10 回归为三宏 #if 剥离 + 代码创建，同 DebugTuner 手法）。
+    /// 自建 GameObject（场景**不挂**组件——避免三宏 #if 剥离时场景序列化组件报
+    /// "not derived from MonoBehaviour"；同 DebugTuner 手法）。
     ///
-    /// **2026-09-26/27 归属回退（重要教训）**：本件曾被并入 `LiteGame/Editor/DevHUD/` + `LiteGame.Editor`
-    /// （Editor-only 程序集），结果 **HUD 在 play 模式下彻底不出现**。原因：
-    /// Unity 的 `Assets/.../Editor/` 是特殊文件夹，其中的 MonoBehaviour **不能 AddComponent**——
-    /// 运行时报 "Can't add script behaviour 'DevHUD' because it is an editor script. To attach a script
-    /// it needs to be outside the 'Editor' folder."，组件加不上、只剩一个空 GameObject
-    /// （本件正是**代码创建**形态，所以直接命中）。已回退为独立 `LiteGame.DevHUD` 程序集 +
-    /// 三宏 `#if` 剥离；**不要把本目录移进任何 `Editor/` 下**。
-    /// Player 里的剥离由三宏负责，不需要也不应该靠程序集边界。
+    /// **不要把本目录移进任何 `Editor/` 下**：`Assets/.../Editor/` 是特殊文件夹，其中的
+    /// MonoBehaviour **不能 AddComponent**——运行时报 "it is an editor script"，组件加不上、
+    /// HUD 彻底不出现（本件为**代码创建**形态，直接命中）——故程序集独立为 `LiteGame.DevHUD` +
+    /// 三宏 `#if` 剥离。Player 里的剥离由三宏负责，不靠程序集边界。
     /// 自拉取模式：LiteGame.DevHUD → LiteClient.Runtime 单向引用，HUD 在 Start 经
     /// FindAnyObjectByType 拉 `GameEntry.Stats`（只读统计访问器，非解析入口）+ 场景组件型 IModuleStats 合并。
-    /// **各段渲染开关 = public 字段**（Inspector 可配 / 代码可改，2026-09-13）：showStats /
+    /// **各段渲染开关 = public 字段**（Inspector 可配 / 代码可改）：showStats /
     /// statToggles（单模块段 bool 开关）/ showLogRecent / logRecentLines / showErrorsLine。
     /// 0.25s 节流轮询：聚合单串、OnGUI 画一次；F1 总开关。</summary>
     public sealed class DevHUD : MonoBehaviour

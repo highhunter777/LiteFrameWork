@@ -6,7 +6,7 @@ using Cysharp.Threading.Tasks;
 namespace LiteFramework
 {
     /// <summary>
-    /// 候选内容获取结果（《热更与内容发布专项设计》§7）。
+    /// 候选内容获取结果。
     ///
     /// <see cref="Paths"/> 是**实际落盘的文件路径集合**——交由
     /// <see cref="CandidateContentVerifier"/> 做双向差异核对（清单外杂散文件检出）
@@ -35,12 +35,12 @@ namespace LiteFramework
     }
 
     /// <summary>
-    /// 候选内容获取端口（§7"只下载固定 Release 的不可变文件"）。
+    /// 候选内容获取端口：只下载固定 Release 的不可变文件。
     ///
     /// **为什么是独立端口而非复用 <see cref="ICandidateFileSource"/>**：
     /// 获取**有网络 IO 特性**（HTTP/Host 模式），而这属于装配层——`RoomServer/Runtime` 与
     /// `LiteFramework.Core` 的纯化纪律禁止核心逻辑直接引用 HTTP/传输。
-    /// 端口分离让编排（本批）保持纯逻辑可 L1 覆盖，真实下载适配（H3-b）留在装配层。
+    /// 端口分离让编排保持纯逻辑可 L1 覆盖，真实下载适配留在装配层。
     ///
     /// 实现方职责：按 <see cref="DownloadPlan"/> 的选定来源取字节、落到候选根；
     /// 返回实际落盘路径集合供上层核对；**不得自行省略清单内文件**（缺失由上层按 FileMissing 处理）。
@@ -51,7 +51,7 @@ namespace LiteFramework
             ReleaseManifest manifest, DownloadPlan plan, CancellationToken ct = default);
 
         /// <summary>
-        /// 清理属于指定发布的临时文件（§8 表行 1"清理/恢复属于该候选的临时文件"）。
+        /// 清理属于指定发布的临时文件。
         ///
         /// 调用场景：① 启动恢复发现上次在途候选——按记录里的发布身份回收其临时归属；
         /// ② 编排失败收尾——获取/校验已终止的候选不留半截文件。
@@ -64,11 +64,11 @@ namespace LiteFramework
     }
 
     /// <summary>
-    /// 候选内容健康确认端口（§8"健康确认至少覆盖候选 ConfigSnapshot、Lua/main、
-    /// 全部必需注册表、关键 UI/入口及其资源"）。
+    /// 候选内容健康确认端口：健康确认至少覆盖候选 ConfigSnapshot、Lua/main、
+    /// 全部必需注册表、关键 UI/入口及其资源。
     ///
-    /// 是否健康由装配方按上表逐项判定；本端口只承载结论——编排不重复实现探针
-    /// （那些探针依赖真资源/Lua env，属 H3-e）。
+    /// 是否健康由装配方逐项判定；本端口只承载结论——编排不重复实现探针
+    /// （那些探针依赖真资源/Lua env，属装配层）。
     /// </summary>
     public interface ICandidateHealthCheck
     {
@@ -77,8 +77,8 @@ namespace LiteFramework
     }
 
     /// <summary>
-    /// 内容激活端口（§8 安全窗口："停止接受受影响的新操作，退出相关 Match/Scene/UI Scope，
-    /// 取消在途请求，解除旧 Lua 回调和资源引用"）。
+    /// 内容激活端口：安全窗口内"停止接受受影响的新操作，退出相关 Match/Scene/UI Scope，
+    /// 取消在途请求，解除旧 Lua 回调和资源引用"。
     ///
     /// 编排在 <see cref="PatchCoordinator"/> 的健康确认**之前**调用 <see cref="ActivateAsync"/>：
     /// 顺序错误会让"健康检查失败后回退"无法复原已经切换过的运行时。
@@ -88,16 +88,15 @@ namespace LiteFramework
         /// <summary>在安全窗口内切换到候选内容。</summary>
         UniTask ActivateAsync(ReleaseManifest candidate, CancellationToken ct = default);
 
-        /// <summary>健康检查失败时重建到已确认版本（§8"从允许的 Confirmed 版本重建，不使用半成品"）。</summary>
+        /// <summary>健康检查失败时重建到已确认版本（从允许的 Confirmed 版本重建，不使用半成品）。</summary>
         UniTask RebuildConfirmedAsync(ContentGeneration confirmed, CancellationToken ct = default);
     }
 
     /// <summary>
-    /// 内容代次推进端口（§9"ContentGeneration 持有固定资源目录、脚本集合、配置快照及依赖 ID"）。
+    /// 内容代次推进端口：ContentGeneration 持有固定资源目录、脚本集合、配置快照及依赖 ID。
     ///
-    /// **为什么需要独立端口**：<c>YooAssetContentService._generation</c> 当前只在
-    /// <c>InitializeAsync</c> 里被设为 Default 且**无 setter**——代次维度已冻结为加载键的一部分
-    /// 但从未切换过。健康的候选确认后必须把当前代次推进到它，否则新内容永远不会被加载。
+    /// **为什么需要独立端口**：代次维度是加载键的一部分，但需要显式推进——
+    /// 健康的候选确认后必须把当前代次推进到它，否则新内容永远不会被加载。
     /// </summary>
     public interface IGenerationSink
     {
@@ -105,9 +104,9 @@ namespace LiteFramework
     }
 
     /// <summary>
-    /// 一份候选提案（§6"先验证描述的结构/预算与签名，再依据可信描述计划下载"）。
+    /// 一份候选提案：先验证描述的结构/预算与签名，再依据可信描述计划下载。
     ///
-    /// <see cref="SignedBytes"/> 是**描述文件的原始字节**（签名对象，不做换行归一化——§5）；
+    /// <see cref="SignedBytes"/> 是**描述文件的原始字节**（签名对象，不做换行归一化）；
     /// <see cref="Signature"/> 是解码后的签名字节。三者一起交给校验器，
     /// **不得由提供方代判是否可信**（信任判定只在 <see cref="ReleaseManifestValidator"/>）。
     /// </summary>
@@ -129,11 +128,11 @@ namespace LiteFramework
     }
 
     /// <summary>
-    /// 候选来源端口（§6/§7）。取回"有没有新发布、它是什么"——**不负责判断可不可信**。
+    /// 候选来源端口。取回"有没有新发布、它是什么"——**不负责判断可不可信**。
     ///
     /// 实现方可读本地目录、可查询发布服务；无论哪种，返回的都是**未经信任的**提案，
     /// 由 <see cref="ReleaseManifestValidator"/> 校验后才可依据其内容行动。
-    /// 真实 CDN 通道属 H3-b，不在本端口的最小实现内。
+    /// 真实 CDN 通道不在本端口的最小实现内。
     /// </summary>
     public interface ICandidateProvider
     {

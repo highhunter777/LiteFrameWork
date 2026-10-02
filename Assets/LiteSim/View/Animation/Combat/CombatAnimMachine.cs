@@ -7,8 +7,8 @@ using UnityEngine;
 namespace LiteSim.View.Animation
 {
     /// <summary>
-    /// 角色动画层次机的阶段 id（《层次动画机设计》v0.5 五次重设计/v0.6 六次裁决——**TId 枚举一统**：
-    /// 双复合根 + 全部叶）。批C 消费者到位时在此扩 Reloading/Hit/Death/Evade（同战斗根）。
+    /// 角色动画层次机的阶段 id（**TId 枚举一统**：
+    /// 双复合根 + 全部叶）。消费者到位时在此扩 Reloading/Hit/Death/Evade（同战斗根）。
     /// </summary>
     public enum CharacterAnimId
     {
@@ -48,11 +48,11 @@ namespace LiteSim.View.Animation
     }
 
     /// <summary>
-    /// 单机双根角色动画层次机装配（《层次动画机设计》§1/§2——v0.5/v0.6）：
+    /// 单机双根角色动画层次机装配（《层次动画机设计》§1/§2）：
     /// - **互斥覆盖**：战斗根（上层）任一态激活 = 覆盖移动根（框架多根 = 互斥平级根，跨根 = 全退全进）；
     /// - **战斗层不可被移动层打断**：退根只有两条路——Fire*：窗尽 ∧ !IsAiming；Aim*：!IsAiming（单点裁决）；
     ///   移动事实只驱动层内 idle↔walk 轴（两族）与退根叶选择；
-    /// - **射击窗（六次裁决）**：窗长 = <see cref="CombatConfig.FireStanceFrames"/>/TickRate（1s 独立常量），
+    /// - **射击窗**：窗长 = <see cref="CombatConfig.FireStanceFrames"/>/TickRate（1s 独立常量），
     ///   事件刷新＝重置满窗；**窗内保持 clip**——FireIdle 射击片段播完持 AimIdle 循环、FireWalk 即
     ///   AimMoveBlend 循环；窗尽 = 保持 clip 的终点（同形态次态续播保相位、异形态提交替换）；
     /// - **通道接管**：各根自管本根通道（移动根收/建 Locomotion、战斗根收 FullBody）——事务序
@@ -79,7 +79,7 @@ namespace LiteSim.View.Animation
                 composites: new CompositeSpec<CharacterAnimId>[]
                 {
                     // 初始子态仅形式性存在（战斗根进入恒由事件/ADS 显式 Request 叶）；无历史——
-                    // 窗尽降级与 ADS 进入都按事实选叶，不复活旧子页（v0.5 裁决：不引入历史语义）
+                    // 窗尽降级与 ADS 进入都按事实选叶，不复活旧子页（不引入历史语义）
                     new CompositeSpec<CharacterAnimId>(CharacterAnimId.CombatRoot, CharacterAnimId.AimIdle,
                         HistoryMode.None,
                         CharacterAnimId.FireIdle, CharacterAnimId.FireWalk,

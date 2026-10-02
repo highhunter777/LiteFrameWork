@@ -3,7 +3,7 @@ namespace LiteSim
     /// <summary>
     /// 当帧延迟命令（§3.7 命令缓冲）：伤害 → 死亡 → 掉落这类"当帧内先后依赖"走此缓冲，
     /// 由 SimStep.FlushCommands 按固定轮次（最多 3 轮）分批结算——轮次固定才是确定的。
-    /// 目标/来源用 64 位实体 Id（§3.1 定案；§3.7 旧草图的 int 版作废），
+    /// 目标/来源用 64 位实体 Id（§3.1、§3.7），
     /// 消费方必须经 SimWorldState.TryResolve 校验（失效 = 目标已死，正常路径）。
     /// </summary>
     public struct SimCommand
@@ -20,7 +20,7 @@ namespace LiteSim
         public int Amount;
     }
 
-    /// <summary>命令类型（§3.7）。M8 实际产生 Damage/Kill；SpawnPickup/AddScore 为后续里程碑预留（类型位已冻结）。</summary>
+    /// <summary>命令类型（§3.7）。当前产生 Damage/Kill；SpawnPickup/AddScore 为后续里程碑预留（类型位已冻结）。</summary>
     public enum SimCommandKind : byte
     {
         Damage = 0,

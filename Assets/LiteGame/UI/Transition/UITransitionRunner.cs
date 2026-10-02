@@ -62,7 +62,7 @@ namespace LiteGame
         /// <summary>是否有事务在执行。</summary>
         public bool Busy => _current != null;
 
-        /// <summary>该界面是否处于当前事务的输入锁内（U1-③：输入协调求解用——接受即锁）。</summary>
+        /// <summary>该界面是否处于当前事务的输入锁内（输入协调求解用——接受即锁）。</summary>
         public bool IsLocked(UIForm form)
             => _current != null && (ReferenceEquals(_current.Outgoing, form) || ReferenceEquals(_current.Incoming, form));
 
@@ -87,7 +87,7 @@ namespace LiteGame
                 Outgoing = outgoing,
                 Incoming = incoming,
                 MaxDuration = _maxDuration,
-                Cts = new System.Threading.CancellationTokenSource(),   // U1-③：本事务取消源（超时/权威取消停策略工作）
+                Cts = new System.Threading.CancellationTokenSource(),   // 本事务取消源（超时/权威取消停策略工作）
             };
             ctx.Playback = new MotionPlayback(ctx.Cts);              // 终态出口与取消源同址（§6.3 + 动画专项 §10）
             ctx.Play = BuildPlay(ctx);
@@ -136,10 +136,9 @@ namespace LiteGame
                 var c = _current;
                 bool inTransition = _machine.Current != TransitionId.Idle;
 
-                // 页面在事务进行中被回收/销毁（缓存淘汰、Destroy、低内存清理）：本条策略不再有
-                // 可靠的回调源——本仓 DOTween 1.3.030 实测 KillOnDisable 与显式 Kill **都不触发 OnKill**
-                // （动画专项 §2 登记的缺陷比记录更严重），靠超时兜底会让任务白悬最多 MaxDuration。
-                // 故由壳主动取消：策略复位 → 记 Cancelled → 立即收尾。
+                // 页面在事务进行中被回收/销毁（缓存淘汰、Destroy、低内存清理）：本条策略没有
+                // 可靠的回调源——本仓 DOTween 的 KillOnDisable 与显式 Kill **都不触发 OnKill**，
+                // 靠超时兜底会让任务白悬最多 MaxDuration。故由壳主动取消：策略复位 → 记 Cancelled → 立即收尾。
                 if (inTransition && !c.TimedOut && !c.Done && IsOwnerGone(c))
                 {
                     c.OwnerGone = true;
@@ -151,7 +150,7 @@ namespace LiteGame
                 {
                     c.TimedOut = true;
                     Log.Error($"转场超时({c.MaxDuration:0.##}s)——取消策略工作并强制收尾(mode={c.Mode})", "UI");
-                    try { c.Cts?.Cancel(); } catch (ObjectDisposedException) { }   // U1-③：先停 Tween/异步工作（§6.3），再收尾
+                    try { c.Cts?.Cancel(); } catch (ObjectDisposedException) { }   // 先停 Tween/异步工作（§6.3），再收尾
                     _machine.Request(TransitionId.Idle);
                 }
                 else if (inTransition && !c.TimedOut && c.Done)
@@ -199,7 +198,7 @@ namespace LiteGame
         private void Finalize(TransitionContext ctx)
         {
             ctx.Finalized = true;
-            _current = null;                                // 先清当前事务：恢复按"无转场锁"的协调值计算（U1-③）
+            _current = null;                                // 先清当前事务：恢复按"无转场锁"的协调值计算
             ApplyComputedInput(ctx.Outgoing);
             ApplyComputedInput(ctx.Incoming);
             try { ctx.Cts?.Dispose(); } catch (ObjectDisposedException) { }
@@ -210,7 +209,7 @@ namespace LiteGame
             Finished?.Invoke(outcome);
         }
 
-        /// <summary>按协调者计算值恢复输入（U1-③，§6.3：不无条件写回 true）——
+        /// <summary>按协调者计算值恢复输入（§6.3：不无条件写回 true）——
         /// 生命周期未锁定的页面解锁；Paused/Closing/Recycled/Disposed 保持锁定（各自的锁定理由仍在）。
         /// blocksRaycasts 全程不动（打开的界面始终遮挡下层射线——职责分离，§6.2）。</summary>
         private static void ApplyComputedInput(UIForm form)
@@ -225,7 +224,7 @@ namespace LiteGame
         /// 其余交给策略写下的**播放终态**（<see cref="MotionPlayback.Outcome"/>）——
         /// 这样"策略被取消但未超时"会如实报 <see cref="TransitionResultKind.Cancelled"/>，
         /// 而不是落到含糊的兜底值（动画专项 §10"播放终态与 UI 操作结果分层映射"）。
-        /// 未实现带终态签名的旧策略：<c>Playback.Finished</c> 恒 false → 按完成处理（保持旧语义）。
+        /// 未实现带终态签名的策略：<c>Playback.Finished</c> 恒 false → 按完成处理。
         /// </summary>
         private static TransitionOutcome OutcomeOf(TransitionContext ctx)
         {

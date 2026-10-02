@@ -12,13 +12,13 @@ namespace LiteSim.View.Animation
     /// PlayableGraph 采用 Manual 更新"）：把已解析的播放方案落到 PlayableGraph，姿态推进只经
     /// <see cref="Tick"/>（Graph.Evaluate——§7"Graph Evaluate 只由一个驱动器调用"）。
     ///
-    /// **本类只做编排 + 能力声明 + 诊断聚合**，机制各有归属（2026-09-28 收敛）：
+    /// **本类只做编排 + 能力声明 + 诊断聚合**，机制各有归属：
     /// - 图拓扑 / 层序 / 层权重 / 开局默认姿态 → <see cref="AnimationLayerGraph"/>（固定 6 输入，反复打断不增长）；
     /// - 节点两形态（单片段 / 普通混合器）、通道运行态、断线与销毁 → <see cref="ChannelNode"/>；
     /// - 层权重推进与落位回收 → <see cref="ChannelBlendAdvance"/>；
     /// - 结束边界判定 → Core 的 <see cref="ClipCompletionTracker"/>（读定义的 Loop，不读资产 loop 设置）。
     ///
-    /// **2026-09-27 分层混合版（三通道）**：在既有 Clip 直驱（可播任意 Clip）之上引入
+    /// **分层混合（三通道）**：在 Clip 直驱（可播任意 Clip）之上引入
     /// AnimationLayerMixerPlayable——通道叠加/上半身混合落地，同时保持"不回到控制器参数/Trigger 驱动"
     /// （该资产参数全是 Trigger、多层无 Mask，§7 字面的控制器参数驱动在本资产上不成立，
     /// 走 §4 允许的「Clip 资源键」分支）。
@@ -152,7 +152,7 @@ namespace LiteSim.View.Animation
                     ? $"mixer({ch.Current.InputCount})"                       // 普通混合器节点：报输入片段数
                     : (ch.Current.ClipAsset != null ? ch.Current.ClipAsset.name : "clip");
 
-            // 权重报**混合器实际值**而不是本类记账值：2026-09-27 实测缺陷里记账值恒 1、层 0 实际为 0，
+            // 权重报**混合器实际值**而不是本类记账值：
             // 记账值会把"基础层没落地"伪装成全绿——诊断必须报引擎真值（§11 可诊断）。
             float weight = hasNode ? _layers.GetWeight(ch.CurrentLayer) : 0f;
             float time = hasNode
@@ -242,7 +242,7 @@ namespace LiteSim.View.Animation
         /// **语义**：混合节点按**循环**对待——**不产生 <c>Completed</c>**（混合集合没有单一结束边界，§5）；
         /// 输入片段共用同一 `speed`、起点按 `startNormalized × 自身时长` 对齐（**长度不同的片段其归一化相位
         /// 会随时间漂移**：需要严格步态同步时应用等长片段，或后续再加"按归一化速率对齐"选项）；
-        /// **输入片段的回绕沿用资产自身设置**（首版不逐输入强制回绕：槽位应当是循环片段——见
+        /// **输入片段的回绕沿用资产自身设置**（不逐输入强制回绕：槽位应当是循环片段——见
         /// <see cref="AnimationBlendDefinition"/>）。
         /// 混合节点与单片段节点可互相打断，走同一套"一个当前 + 至多一条尾部"规则（§12 节点有界）。
         /// </summary>

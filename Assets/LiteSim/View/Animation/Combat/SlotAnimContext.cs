@@ -6,7 +6,7 @@ namespace LiteSim.View.Animation
 {
     /// <summary>
     /// 槽位上下文（各态对"播放器 + 事实 + 双通道形态跟踪"的窄面——按槽位重建，不持槽数组引用；
-    /// v0.5 起单机单上下文）。**层间不引用**：跨层事实（IsAiming/锁存/速度/夹角）全部由驱动器喂入。
+    /// 单机单上下文）。**层间不引用**：跨层事实（IsAiming/锁存/速度/夹角）全部由驱动器喂入。
     /// </summary>
     public sealed class SlotAnimContext
     {

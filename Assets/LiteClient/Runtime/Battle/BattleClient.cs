@@ -5,14 +5,13 @@ using LiteNet.Transport;
 namespace LiteGame
 {
     /// <summary>
-    /// 对局客户端会话（C2 批①，《商业级通用客户端框架总设计》§19 C2"BattleClient、Connect 完整终态"）：
-    /// **BattleClient 持有传输与 RoomClient**，负责装配与生命周期；会话状态机**不在此重复**——
-    /// §9.3 相位机（Idle/Connected/SuspectedLost/Reconnecting/Restoring/Failed）全部在
-    /// <see cref="RoomClient"/>（R1 批③交付，L1 已有 7 例状态机用例），本类只做：
+    /// 对局客户端会话：**持有传输与 RoomClient**，负责装配与生命周期；会话状态机**不在此重复**——
+    /// 相位机（Idle/Connected/SuspectedLost/Reconnecting/Restoring/Failed）全部在 <see cref="RoomClient"/>，
+    /// 本类只做：
     /// - **连接与进房装配**：传输 OnConnected 且相位 Idle 时发 Join（初次进房；重连路径由 RoomClient
-    ///   状态机自动发 ReconnectRequest——RoomClient.cs:207 的契约，两条路径互斥不重叠）；
+    ///   状态机自动发 ReconnectRequest，两条路径互斥不重叠）；
     /// - **所有权**：本类创建并拥有 <see cref="KcpTransportClient"/>（Account Scope 登记 BattleClient，
-    ///   Dispose 逆序先 RoomClient 后 transport——RoomClient 不代管传输，RoomClient.cs:253 契约）；
+    ///   Dispose 逆序先 RoomClient 后 transport——RoomClient 不代管传输）；
     /// - **诊断**：传输错误留 <see cref="LastError"/>（kcp2k OnError 不进 RoomClient——会话语义由
     ///   OnDisconnected/相位承担，错误文本只作诊断）。
     ///
@@ -43,7 +42,7 @@ namespace LiteGame
         public string LastError => _lastError;
 
         /// <param name="transport">注入传输（测试假件；null = 新建 KCP——生产形态，所有权归本类）。</param>
-        /// <param name="nowMsProvider">单调毫秒源（L1/测试注入虚拟时钟；null = Stopwatch 兜底——Unity 可编译）。</param>
+        /// <param name="nowMsProvider">单调毫秒源（测试注入虚拟时钟；null = Stopwatch 兜底——Unity 可编译）。</param>
         public BattleClient(string host, int port, string roomId, string token, string buildHash,
             IClientTransport transport = null, Func<long> nowMsProvider = null)
         {

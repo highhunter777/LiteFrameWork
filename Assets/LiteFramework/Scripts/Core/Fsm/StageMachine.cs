@@ -17,15 +17,9 @@ namespace LiteFramework
     }
 
     /// <summary>
-    /// 阶段状态机（**基础机**，2026-09-17）：状态表 + payload + 两段式迁移 + 帧末应用。
-    /// 只负责"状态怎么切"——**不含抢占/恢复/优先级**；需要那些能力用 <see cref="PreemptiveStageMachine{TId,TReq}"/>（子类，纯加法）。
-    ///
-    /// **能力分层（读代码前先看这张表）**：
-    /// | 能力 | 本类 | 在哪 |
-    /// |---|---|---|
-    /// | 状态表 / 迁移 / 守卫 / 计数 / 帧窗口 / 表驱动配套 | ✅ | 本类 |
-    /// | 优先级抢占 + 恢复栈 + `Request(…, priorityOverride)` | ❌ | `PreemptiveStageMachine`（子类） |
-    /// | 层级 / 历史 / 冒泡 | ❌ | 独立的 `HierarchicalStageMachine`（事务语义与平面机不同，刻意不合并） |
+    /// 阶段状态机（**基础机**）：状态表 + payload + 两段式迁移 + 帧末应用。
+    /// 只负责"状态怎么切"——**不含抢占/恢复/优先级**；需要那些能力用 <see cref="PreemptiveStageMachine{TId,TReq}"/>（子类，纯加法）；
+    /// 层级 / 历史 / 冒泡用独立的 <see cref="HierarchicalStageMachine{TId,TReq}"/>。
     ///
     /// 迁移语义（7 条）：
     /// ① `Start` 前 `Tick` 静默；`Start` 前 `Request` 抛；

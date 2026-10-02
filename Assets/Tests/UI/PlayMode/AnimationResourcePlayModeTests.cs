@@ -2,7 +2,7 @@ using System;
 using System.Collections;
 using Cysharp.Threading.Tasks;
 using LiteFramework;
-using LiteFramework.Animation;   // 动画契约（Player/Request/Channel）：2026-09-28 起统一在 LiteFramework.Animation
+using LiteFramework.Animation;   // 动画契约（Player/Request/Channel）统一在 LiteFramework.Animation
 using LiteGame;
 using LiteSim;
 using LiteSim.View;

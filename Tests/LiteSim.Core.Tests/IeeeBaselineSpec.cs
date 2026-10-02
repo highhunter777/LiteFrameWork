@@ -5,9 +5,9 @@ namespace LiteSim.Tests
     /// <summary>
     /// IEEE 边界基线规格（《M7 实施指导》§2.6）——**委托给 <see cref="LiteSim.IeeeProbe"/>**。
     ///
-    /// 2026-09-18 调整：探针（样本 / 运算 / 链 checksum）下沉到 `LiteSim.Core`——
-    /// 因为 Unity 侧对账（Editor 菜单 + EditMode 用例）必须用**同一批输入与同一套运算**，
-    /// 两侧各写一份必然漂移。本类只保留测试侧的取用入口（API 不变，基线文本逐字节不变）。
+    /// 探针（样本 / 运算 / 链 checksum）位于 `LiteSim.Core`——Unity 侧对账（Editor 菜单 + EditMode 用例）
+    /// 与测试侧共用**同一批输入与同一套运算**，两侧各写一份必然漂移。
+    /// 本类只保留测试侧的取用入口（基线文本逐字节不变）。
     /// </summary>
     public static class IeeeBaselineSpec
     {

@@ -15,9 +15,8 @@ using XLua;
 namespace LiteGame.Tests.EditMode
 {
     /// <summary>
-    /// UI U0 正确性止血验收（《UI框架总设计》§13 U0 行 + §12.1 分层用例）：
-    /// ① 真 Lua 首开/关闭/复用（真配置投影 + 真 prefab + 真 LuaEnv + 真注册表，仅资源加载走替身——
-    ///    待办总览 §7 "U0 可先 fake loader"）；
+    /// UI U0 正确性验收（《UI框架总设计》§13 U0 行 + §12.1 分层用例）：
+    /// ① 真 Lua 首开/关闭/复用（真配置投影 + 真 prefab + 真 LuaEnv + 真注册表，仅资源加载走替身）；
     /// ② 复用与首次同管线（复位 alpha/重新排序/复用同判 Replace——UI-02）；
     /// ③ 三层全屏遮盖 + Covered/Paused 可关 + CloseAllOpen 全清（UI-04）；
     /// ④ OnInit/OnShow 失败回滚（无残留、可重试——§4.1）；
@@ -25,7 +24,7 @@ namespace LiteGame.Tests.EditMode
     /// ⑥ VirtualList 窗口复用：有界节点、首尾往返、缩容、Refresh 不重复重绑（UI-07/UI-08）。
     ///
     /// 时序口径与 UiTransitionEditModeTests 相同：假策略 + `Tick(dt)` 手动驱动，await 内联完成，
-    /// 零 PlayerLoop 依赖。真 Lua 用例已在 Editor 实测 xlua.dll 可用（U0 探针，总设计 §2.2）。
+    /// 零 PlayerLoop 依赖；真 Lua 用例在 Editor 上以 xlua.dll 运行（总设计 §2.2）。
     /// </summary>
     public sealed class UiU0EditModeTests : UnityTestBase
     {
@@ -152,7 +151,7 @@ namespace LiteGame.Tests.EditMode
 
         /// <summary>
         /// 替身界面 prefab：**Canvas/CanvasGroup 必须预建**——EditMode 下 UIForm 走 AddComponent 分支
-        /// 会紧接着访问 renderMode 抛 MissingComponentException（native 组件未就绪，2026-09-19 实测）。
+        /// 会紧接着访问 renderMode 抛 MissingComponentException（native 组件未就绪）。
         /// </summary>
         private GameObject FakePrefab(string name)
             => Scope.CreateGameObject(name, typeof(RectTransform), typeof(Canvas), typeof(CanvasGroup));
@@ -289,11 +288,11 @@ return m";
             Assert.AreEqual(0, replace.Count, "开 2 时组内无全屏——Push");
 
             var f1b = Await(service.ShowAsync(1), service);           // 复用 1，同组已有全屏 2
-            Assert.AreEqual(1, replace.Count, "复用同样推导 Replace（原实现只判首次——UI-02）");
+            Assert.AreEqual(1, replace.Count, "复用同样推导 Replace（UI-02）");
             Assert.IsFalse(service.IsOpen(2), "被替换的旧全屏应收池");
             Assert.IsTrue(service.IsOpen(1));
-            // U1-③ 统一排序（开序即深序 + 移除紧缩）：Replace 收尾后本组仅剩 f1——回到组基序位。
-            // 旧"递增槽位不回收"已废止（§6.2：排序按当前打开顺序计算）；同组全屏互斥下幸存页即组内唯一，无重叠。
+            // 统一排序（开序即深序 + 移除紧缩）：Replace 收尾后本组仅剩 f1——回到组基序位
+            //（§6.2：排序按当前打开顺序计算）；同组全屏互斥下幸存页即组内唯一，无重叠。
             Assert.AreEqual(f1FirstOrder, f1b.Canvas.sortingOrder, "移除紧缩后幸存页回到组基序位（统一重排）");
         }
 
@@ -323,7 +322,7 @@ return m";
             Assert.AreEqual(1, logics[1].OnCoverCount);
             Assert.AreEqual(1, logics[2].OnCoverCount);
 
-            // 遮盖中的界面可以直接关（UI-04：Close 只接纳 Active 是缺陷）
+            // 遮盖中的界面可以直接关（UI-04：Close 不得只接纳 Active）
             Await(service.CloseAsync(2), service);
             Assert.IsFalse(service.IsOpen(2));
             Assert.AreEqual(UIFormState.Covered, f1.State, "顶层全屏仍在——底层保持遮盖");
@@ -363,7 +362,7 @@ return m";
             int errBefore = LiteFramework.Log.ErrorCount;
             var task = service.ShowAsync(1);
             for (int i = 0; i < 10 && task.Status == UniTaskStatus.Pending; i++) service.Tick(0.05f);
-            // U1-①：初始化失败升级为类型化异常（Reason=InitFailed；基类 InvalidOperationException 保持旧捕获点兼容）
+            // 初始化失败升级为类型化异常（Reason=InitFailed；基类 InvalidOperationException 保持捕获点兼容）
             var openEx = Assert.Throws<UIOpenException>(() => task.GetAwaiter().GetResult(),
                 "初始化失败必须对外报失败（禁止 Active+NullLogic 伪装成功）");
             Assert.AreEqual(UIOpenFailure.InitFailed, openEx.Reason);
@@ -490,7 +489,7 @@ return m";
             Assert.AreEqual(500 * step - 8f, contentRt.sizeDelta.y, 0.5f, "Content 总尺寸按数据量维护");
             Assert.AreEqual(0, list.FirstIndex);
 
-            // 滚到尾部：窗口平移到末段，条目重绑（旧实现滚出去就永远回不来——UI-07）
+            // 滚到尾部：窗口平移到末段，条目重绑（UI-07 往返）
             contentRt.anchoredPosition = new Vector2(0f, -27592f);
             list.RefreshWindow();
             Assert.GreaterOrEqual(list.FirstIndex, 488, "尾部窗口的首索引应接近数据末尾");
@@ -509,7 +508,7 @@ return m";
             Assert.AreEqual(0, src.FirstBound, "首条重新入窗");
             Assert.AreEqual(12, src.LastBound, "顶部窗口末条");
 
-            // 反复 Refresh：已绑索引不重绑（旧实现每次 Refresh 重复 Bind——UI-08）
+            // 反复 Refresh：已绑索引不重绑（UI-08）
             int before = src.BindCalls;
             for (int i = 0; i < 5; i++) list.Refresh();
             Assert.AreEqual(before, src.BindCalls, "窗口未变时 Refresh 不得重复绑定");

@@ -7,10 +7,10 @@ using UnityEngine;
 namespace LiteGame
 {
     /// <summary>⑨ 表现壳：实体/声音/世界 VFX + 相机服务。
-    /// G1 通用表现批：加载口统一绑 <see cref="PrefabLeaseCache"/>（租约持有——纠正静态门面
-    /// "返回前 Release"的悬空引用）；Shutdown 释放面（音频全局停止 + 租约归零）。
+    /// 加载口统一绑 <see cref="PrefabLeaseCache"/>（租约持有，避免悬空引用）；Shutdown 释放面
+    /// （音频全局停止 + 租约归零）。
     ///
-    /// **相机（2026-09-26 Cinemachine 接入）**：本模块建**相机服务**并把主相机登记进上下文，
+    /// **相机（Cinemachine）**：本模块建**相机服务**并把主相机登记进上下文，
     /// 但**不要求模块初始化期就已经有虚拟相机**——vcam 是场景对象，而启动场景（Test.unity）
     /// 里不一定配、训练场那类玩法场景才配。服务自己会在场景切换后重新解析
     /// （见 <see cref="CinemachineCameraService"/> 的"场景切换后重新解析"段），

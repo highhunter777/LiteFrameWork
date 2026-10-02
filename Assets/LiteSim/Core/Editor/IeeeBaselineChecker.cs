@@ -56,12 +56,9 @@ namespace LiteSim.Editor
         }
 
         /// <summary>
-        /// 逐位对账。(ok, 人类可读报告)。**全部行（含 10k 步 `Chain`）均为硬判据**。
-        ///
-        /// 历史（2026-09-18）：`Chain` 曾是"观测项"——当时实测到 Unity(2022.3/Mono) 与 .NET 8 的
-        /// BCL `Math.Sqrt` 存在 ulp 差异被长链放大（.NET 2896875742 / Unity 3683559206）。
-        /// 定案 **B 方案**：`SimMath.Sqrt` 改为**自研 software sqrt**（纯整数/位运算 + 正确舍入），
-        /// 源头消除后两侧应逐位一致——故本方法恢复"任一不一致即失败"，`Chain` 同属硬判据。
+        /// 逐位对账。(ok, 人类可读报告)。**全部行（含 10k 步 `Chain`）均为硬判据**——
+        /// `SimMath.Sqrt` 是**自研 software sqrt**（纯整数/位运算 + 正确舍入），两侧应逐位一致；
+        /// 任一不一致即失败。
         /// </summary>
         public static (bool ok, string report) Verify()
         {

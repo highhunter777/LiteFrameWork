@@ -55,7 +55,7 @@ namespace LiteSim.Tests
                 script[f] = new[]
                 {
                     // 零输入（含 Aim 零——本脚本不开火，与冷启动模板 IdentityTemplate 的零值逐位一致，
-                    // 这正是"预测正确"用例的前提；2026-09-17 Aim 改造时曾把这里错设成 (1,0) 导致每帧判预测错）
+                    // 这正是"预测正确"用例的前提）
                     new SimInputFrame { EntityId = players[0], MoveX = 0f, MoveZ = 0f, AimX = 0f, AimZ = 0f, Buttons = 0u },
                     new SimInputFrame { EntityId = players[1], MoveX = 0f, MoveZ = 0f, AimX = 0f, AimZ = 0f, Buttons = 0u },
                 };
@@ -221,7 +221,7 @@ namespace LiteSim.Tests
         }
 
         /// <summary>逐元素比较两个世界（含全部槽位逻辑字段与平面数组——"完全一致"的可执行形态；
-        /// P0 起覆盖公共战斗面与全部运行态数组/Match）。</summary>
+        /// 覆盖公共战斗面与全部运行态数组/Match）。</summary>
         private static void AssertWorldsElementWiseEqual(SimWorldState a, SimWorldState b)
         {
             Assert.Equal(b.Frame, a.Frame);
@@ -341,7 +341,7 @@ namespace LiteSim.Tests
             Assert.Equal(10800, sim.State.Match.Timer);
         }
 
-        // ---- 追帧补发读取（2026-10-02 修复②：多逻辑帧渲染帧的沿用帧同样必须可上行）----
+        // ---- 追帧补发读取（多逻辑帧渲染帧的沿用帧同样必须可上行）----
 
         [Fact]
         public void 补发读取_真实输入帧与追帧沿用帧都取得到_值与执行时一致()

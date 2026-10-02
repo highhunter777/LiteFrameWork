@@ -77,7 +77,7 @@ namespace LiteFramework.Tests
         public void 完整性_半截但可解析的记录被判不可信()
         {
             // §8 的核心场景：覆盖写中断留下的记录"还能解析"但内容不完整——
-            // 没有完整性保护时会被当作有效记录采用（旧实现的缺口）。
+            // 没有完整性保护时会被当作有效记录采用。
             // 构造：完整记录含事务 ID 等非默认字段；截断版本丢了它们（反序列化回默认值）。
             var full = new ActivationRecord
             {
@@ -328,8 +328,7 @@ namespace LiteFramework.Tests
         /// <summary>
         /// 空值占位符是 <c>"\0null"</c>（NUL + null），**不是** <c>" null"</c>。
         ///
-        /// 2026-09-25 核查：该形式自 `bd75616`（引入 <c>Compute</c> 那次提交）即存在，
-        /// 非后续损坏、非手误引入——它与空格形式在"区分 null 与空串"上**能力等价**。
+        /// 它与空格形式在"区分 null 与空串"上**能力等价**。
         ///
         /// 本用例的价值是**防止顺手修正**：把 NUL 改成空格会改变摘要 → 所有既有激活记录失效
         /// → 用户丢已确认版本。若将来确实要改，必须同时升 <c>SchemaVersion</c> 并接受一次失效。
@@ -389,7 +388,7 @@ namespace LiteFramework.Tests
         public void 旧记录无修订字段_默认零_且完整性仍通过()
         {
             // 反序列化旧 JSON（无 ConfirmedRevision）→ 字段保持默认 0，不回填、不报错
-            // （Newtonsoft 缺失字段保留默认值——故本次加字段**向后兼容**）
+            // （Newtonsoft 缺失字段保留默认值——故新增字段**向后兼容**）
             var record = new ActivationRecord
             {
                 ConfirmedReleaseId = "legacy",

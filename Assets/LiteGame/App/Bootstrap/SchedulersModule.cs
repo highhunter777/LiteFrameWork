@@ -17,6 +17,6 @@ namespace LiteGame
             return UniTask.CompletedTask;
         }
 
-        public UniTask ShutdownAsync(CancellationToken ct) => UniTask.CompletedTask;   // 同上——U1 统一取消
+        public UniTask ShutdownAsync(CancellationToken ct) => UniTask.CompletedTask;   // 无关闭面（Scope 统一取消）
     }
 }

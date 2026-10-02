@@ -6,9 +6,8 @@ using UnityEngine.UI;
 
 namespace LiteGame.UI
 {
-    /// <summary>控件基类（M4c）：可交互性 + 按压微动效 hook（走 UiFx 原语——全项目唯一 tween 出口）。
-    /// 派生类覆写 Awake 时必须调 base.Awake()；OnClick/OnInteractableChanged 为多态挂点。
-    /// 2026-09-14 重建：拆文件时同名覆盖事故后按旧程序集反射签名还原（成员与序列化字段名逐一对齐）。</summary>
+    /// <summary>控件基类：可交互性 + 按压微动效 hook（走 UiFx 原语——全项目唯一 tween 出口）。
+    /// 派生类覆写 Awake 时必须调 base.Awake()；OnClick/OnInteractableChanged 为多态挂点。</summary>
     public class UIWidget : MonoBehaviour, IPointerClickHandler
     {
         [SerializeField] private bool interactable = true;

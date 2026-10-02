@@ -12,19 +12,17 @@ namespace LiteGame
     ///
     /// **为什么用 Input System 而不是 legacy <c>UnityEngine.Input</c>**：同一套 Action 资产同时
     /// 覆盖键鼠与触屏（《联机战斗演示专项设计》§1"触屏沿用同一 Move/Aim/Buttons 输入面"），
-    /// 且重绑/多设备由框架承担——设备源不再硬编码 KeyCode。旧的 legad 实现（读 KeyCode + 鼠标
-    /// 直接取坐标）已删除，不保留双路。
+    /// 且重绑/多设备由框架承担——设备源不硬编码 KeyCode。
     ///
     /// **职责边界**（三件里只管第 1 件）：
     /// - 上下文门与帧边界门归 <see cref="IInputService"/>；本类只回答"按键现在是什么"；
     /// - **离散意图的按键沿在这里产生**：<c>Fire</c> 是连续意图（按住即持续），
     ///   而 Reload/Switch/Skill/Pickup/UseItem 属 §3 第 3 件的"按键沿所在的一个逻辑帧才置位"，
-    ///   需要逐玩家单调递增的 <c>ActionSeq</c>。Action 资产里这些动作**尚未定义**（随武器/Action
-    ///   消费者接入，G2），故本版只产出 Fire/Move/Aim，不伪造其它位；
+    ///   需要逐玩家单调递增的 <c>ActionSeq</c>。Action 资产里这些动作**尚未定义**，
+    ///   故本版只产出 Fire/Move/Aim，不伪造其它位；
     /// - 瞄准方向由**鼠标屏幕点 → 地面平面**解算，参照原点由调用方逐帧给出
-    ///   （<see cref="Sample"/> 的 <c>localPos</c>——生产调用方传 Sim 预测态位置，
-    ///   不读视图 Transform；预制体 AimPoint 参考点已随 2026-10-02 瞄准相机批废弃）；
-    /// - **移动按相机平面 yaw 旋转**（2026-09-27 第三人称形态）：W=屏幕上=相机 forward 投影；
+    ///   （<see cref="Sample"/> 的 <c>localPos</c>——生产调用方传 Sim 预测态位置，不读视图 Transform）；
+    /// - **移动按相机平面 yaw 旋转**：W=屏幕上=相机 forward 投影；
     ///   相机为 null（纯测试装配）时退化为世界轴直映射。
     /// </summary>
     public sealed class NewInputIntentSource : IIntentSource, IDisposable
@@ -79,8 +77,8 @@ namespace LiteGame
         }
 
         /// <summary>
-        /// 鼠标屏幕位（准心/HUD 消费面，2026-10-02 战斗准心批）。InputSystem 的 import 只许在本
-        /// 适配器边界内（纪律 R12）——App 层的准心驱动经注入位消费本属性，不直接认识 InputSystem。
+        /// 鼠标屏幕位（准心/HUD 消费面）。InputSystem 的 import 只许在本
+        /// 适配器边界内——App 层的准心驱动经注入位消费本属性，不直接认识 InputSystem。
         /// 无鼠标设备（纯触屏形态）回退零点。
         /// </summary>
         public Vector2 MouseScreenPosition
@@ -105,9 +103,8 @@ namespace LiteGame
             float moveZ = move.y;                     // 2D 向量的 y 轴先按屏幕"上"理解，再旋进世界（见下）
             if (aimCamera != null)
             {
-                // **相机相对移动**（2026-09-27 第三人称形态）：W = 屏幕上 = 相机平面 forward 投影，
-                // D = 屏幕右 = 相机 right——不再按世界轴直映射（旧俯视角相机无 yaw 时两者等价；
-                // 肩后/自由相机一旦有 yaw，世界轴映射的 WASD 会横着走）。
+                // **相机相对移动**：W = 屏幕上 = 相机平面 forward 投影，D = 屏幕右 = 相机 right——
+                // 肩后/自由相机一旦有 yaw，世界轴直映射的 WASD 会横着走。
                 // 只在**采集侧**旋转：Sim 输入契约仍是世界空间向量，服务器/预测/协议零改动。
                 // 边界：正俯视（pitch≈-90°）时平面 yaw 不可良定义——该形态应保持俯视相机的固定 yaw。
                 float yawRad = aimCamera.transform.eulerAngles.y * Mathf.Deg2Rad;

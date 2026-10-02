@@ -1,4 +1,4 @@
-// 拆自 Dialogs.cs（2026-09-14：一类一文件——非首个 MonoBehaviour 无法序列化进 prefab，实测）
+// 一类一文件：非首个 MonoBehaviour 无法序列化进 prefab
 using TMPro;
 using System;
 using System.Collections.Generic;
@@ -7,14 +7,14 @@ using UnityEngine;
 namespace LiteGame.UI
 {
     /// <summary>
-    /// 轻提示承载控件（M4c；2026-09-25 按总设计 §6.1 裁决改造为**多条并存**）。
+    /// 轻提示承载控件（§6.1：**多条并存**）。
     ///
     /// 契约（§6.1"Toast 多条并存"）：多条提示同时存在、按序堆叠，每条各自计时独立消失，
     /// 不彼此替换、不重置他人计时；堆叠顺序与间距由**承载控件**定义（容器做纵向排布，
     /// 调用方只给文本）。条数上限超出按**最旧淘汰**并计数（§6.1"反馈可观察"）。
     ///
     /// 计时走 <see cref="Tick"/>（可泵）：EditMode 无 PlayerLoop，`UniTask.Delay` 类异步等待
-    /// 会永久挂起——改手动步进后编辑态用例可直接推进时间断言到期消失。驱动方按 UIClock 步进
+    /// 会永久挂起——手动步进让编辑态用例可直接推进时间断言到期消失。驱动方按 UIClock 步进
     /// （<see cref="UiAnimationClock.Delta"/>，时停不停语义同既有 UI 动效）。
     ///
     /// 视觉取模板（§7 视觉单一来源）：条目实例化自 <see cref="Template"/>，本类不构建视觉。

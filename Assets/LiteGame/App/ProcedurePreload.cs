@@ -6,8 +6,7 @@ using LiteFramework;
 namespace LiteGame
 {
     /// <summary>
-    /// 预载流程（M3 版；C1-⑧ 资源初始化改经 IContentService——注入装配，为 U1/C2 租约消费者就位）：
-    /// 资源初始化 → 配置加载 → **M3 锚点五步序**（手册步骤 4 / M3 指导 §2.4）——
+    /// 预载流程：配置加载 → **五步序**——
     /// ① Lua 全量预载 → ② Init env + 执行 main.lua → ③ RegistryFiller 读三件套填充注册表 →
     /// ④ 报告整批统一判定（有失败即 Fail 阻断）→ ⑤ 放行进 Main。
     /// LuaComponent/RegistryFiller 由装配点构造注入（依赖不从 payload 取）。
@@ -19,7 +18,7 @@ namespace LiteGame
         private readonly LuaComponent _lua;
         private readonly RegistryFiller _filler;
         private readonly IEventCenter _events;
-        private readonly Func<string[]> _listLuaFiles;     // Lua 清单（装配点绑定——G1：静态门面收口于装配点）
+        private readonly Func<string[]> _listLuaFiles;     // Lua 清单（装配点绑定——静态门面收口于装配点）
 
         public ProcedurePreload(IContentService content, IConfigService config, LuaComponent lua, RegistryFiller filler, IEventCenter events,
             Func<string[]> listLuaFiles = null, CancellationToken rootToken = default)
@@ -40,14 +39,14 @@ namespace LiteGame
         {
             try
             {
-                UnityEngine.Debug.Log("[Preload] begin");        // C1-③ 临时诊断
-                // 资源包初始化已移入 Patch 流程（C1-⑩：内容事务恢复先行——§7.1 Patch 先于 Preload）
+                UnityEngine.Debug.Log("[Preload] begin");        // 临时诊断
+                // 资源包初始化在 Patch 流程完成（§7.1 Patch 先于 Preload）
                 await _config.LoadAsync(ct);
 
-                // ---- M3 锚点：Lua 预载与注册表填充段（勿在此行上方插入消费逻辑）----
+                // ---- Lua 预载与注册表填充段（勿在此行上方插入消费逻辑）----
                 // ① 全量预载：同步 loader 的咽喉（§4.2），env 依赖它，先建缓存再 Init
-                //    （C1-⑨：字节经 IContentService 租约通道——代次/引用统一，提取即释放；
-                //     G1：清单经装配点注入——运行时不再直查静态门面）
+                //    （字节经 IContentService 租约通道——代次/引用统一，提取即释放；
+                //     清单经装配点注入——不直查静态门面）
                 var preloader = new LuaPreloader(LoadLuaBytesViaContent, _listLuaFiles);
                 await preloader.PreloadAllAsync(ct);
                 _lua.Init(preloader, _events, Bridge.BindGlobals);   // env + 事件桥；游戏桥经注入（产品→框架）

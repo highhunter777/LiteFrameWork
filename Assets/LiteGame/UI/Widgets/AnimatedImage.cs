@@ -1,11 +1,11 @@
-// 拆自 Display.cs（2026-09-14：一类一文件——非首个 MonoBehaviour 无法序列化进 prefab，实测）
+// 一类一文件：非首个 MonoBehaviour 无法序列化进 prefab
 using System;
 using UnityEngine;
 using UnityEngine.UI;
 
 namespace LiteGame.UI
 {
-    /// <summary>帧序列动画（M4c）：Sprite 数组按 fps 循环/单次播放（灰盒动图——序列帧 UI 元素）。</summary>
+    /// <summary>帧序列动画：Sprite 数组按 fps 循环/单次播放（灰盒动图——序列帧 UI 元素）。</summary>
     public class AnimatedImage : MonoBehaviour
     {
         public Sprite[] Frames;
@@ -26,7 +26,7 @@ namespace LiteGame.UI
         private void Update()
         {
             if (!_playing || _image == null || Frames == null || Frames.Length == 0) return;
-            _timer += UiAnimationClock.Delta;               // G1 动画时钟：UIClock 步进（时停/暂停即停；未绑定退化真实帧）
+            _timer += UiAnimationClock.Delta;               // UIClock 步进（时停/暂停即停；未绑定退化真实帧）
             float step = 1f / Mathf.Max(1f, Fps);
             while (_timer >= step)
             {

@@ -3,7 +3,7 @@ using System;
 namespace LiteFramework.Animation
 {
     /// <summary>
-    /// 停止原因（§5 终态表的非 Completed 项；<see cref="AnimationTerminalState"/> 由其派生）。
+    /// 停止原因（终态表的非 Completed 项；<see cref="AnimationTerminalState"/> 由其派生）。
     /// </summary>
     public enum AnimationStopReason
     {
@@ -18,7 +18,7 @@ namespace LiteFramework.Animation
     }
 
     /// <summary>
-    /// 播放终态（§5"一个已接受请求只产生一次终态"）。
+    /// 播放终态（一个已接受请求只产生一次终态）。
     /// </summary>
     public enum AnimationTerminalState
     {
@@ -34,7 +34,7 @@ namespace LiteFramework.Animation
 
     /// <summary>
     /// 播放状态快照（<c>TryGetState</c> 的输出）。终态记录**有界保留**——过期后查询返回未找到，
-    /// 不把所有已完成 Handle 永久留在表里（§5）。
+    /// 不把所有已完成 Handle 永久留在表里。
     /// </summary>
     public readonly struct AnimationPlaybackState
     {
@@ -60,7 +60,7 @@ namespace LiteFramework.Animation
     }
 
     /// <summary>
-    /// 播放句柄（§5"至少能验证播放器身份、Owner 代次与请求身份"）：
+    /// 播放句柄（至少能验证播放器身份、Owner 代次与请求身份）：
     /// <b>旧 Handle 不能停止复用对象的新播放</b>——三个身份分量共同决定它是否仍指向"那一次播放"。
     /// </summary>
     public readonly struct AnimationHandle : IEquatable<AnimationHandle>
@@ -90,7 +90,7 @@ namespace LiteFramework.Animation
     }
 
     /// <summary>
-    /// 启动结果（§5"区分接受与拒绝"）。拒绝**不改变现有播放**（提交前失败保持原姿态）。
+    /// 启动结果（区分接受与拒绝）。拒绝**不改变现有播放**（提交前失败保持原姿态）。
     /// </summary>
     public readonly struct AnimationStartResult
     {
@@ -100,9 +100,9 @@ namespace LiteFramework.Animation
             None = 0,
             /// <summary>AnimationId 无对应定义（Profile 缺失）。</summary>
             InvalidDefinition,
-            /// <summary>当前后端不支持该能力（§4"不把不支持的能力静默降级"）。</summary>
+            /// <summary>当前后端不支持该能力（不把不支持的能力静默降级）。</summary>
             UnsupportedCapability,
-            /// <summary>通道容量/混合尾部超限（§12）。</summary>
+            /// <summary>通道容量/混合尾部超限。</summary>
             CapacityExceeded,
             /// <summary>Owner 已失效（代次过期/已释放）。</summary>
             OwnerUnavailable,

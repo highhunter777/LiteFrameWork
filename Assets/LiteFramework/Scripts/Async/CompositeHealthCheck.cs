@@ -6,8 +6,8 @@ using Cysharp.Threading.Tasks;
 namespace LiteFramework
 {
     /// <summary>
-    /// 单项健康探针（《热更与内容发布专项设计》§8"健康确认至少覆盖候选 ConfigSnapshot、Lua/main、
-    /// 全部必需注册表、关键 UI/入口及其资源"）。
+    /// 单项健康探针：健康确认至少覆盖候选 ConfigSnapshot、Lua/main、
+    /// 全部必需注册表、关键 UI/入口及其资源。
     ///
     /// **一项一个探针**（而非一个万能探针）：设计逐项列举了覆盖范围，
     /// 合并成一个"全都检查"的接口会让失败无法定位到具体项。
@@ -22,7 +22,7 @@ namespace LiteFramework
     }
 
     /// <summary>
-    /// 健康确认聚合（§8）。逐项执行**全部**探针——不短路：
+    /// 健康确认聚合。逐项执行**全部**探针——不短路：
     /// 一次报告全部不健康项，避免"修一个报一个"的反复试错（与 <see cref="MetaConfig"/> 校验同款纪律）。
     ///
     /// 本类实现 <see cref="ICandidateHealthCheck"/>，直接供 <see cref="PatchCoordinator"/> 使用。
@@ -59,7 +59,7 @@ namespace LiteFramework
         public async UniTask<string> CheckAsync(ReleaseManifest candidate, CancellationToken ct = default)
         {
             if (_probes.Count == 0)
-                return "无健康探针——不得在未确认任何覆盖项的情况下声称健康（§8）";
+                return "无健康探针——不得在未确认任何覆盖项的情况下声称健康";
 
             var failures = new List<string>();
             foreach (IHealthProbe probe in _probes)

@@ -75,7 +75,7 @@ namespace RoomServer.Application
     }
 
     /// <summary>
-    /// 每房间的有界 Mailbox 核心（R2）。
+    /// 每房间的有界 Mailbox 核心。
     ///
     /// <para>
     /// 三条 lane 物理隔离容量：输入包突发不会挤掉控制命令或出站；控制 lane 出队拥有最高

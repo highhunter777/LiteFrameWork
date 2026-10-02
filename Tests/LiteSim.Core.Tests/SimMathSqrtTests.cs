@@ -5,7 +5,7 @@ using Xunit;
 namespace LiteSim.Tests
 {
     /// <summary>
-    /// `SimMath.Sqrt` 自研 software sqrt 的正确性（2026-09-18 定案 B，见《待办总览》§5-33）。
+    /// `SimMath.Sqrt` 自研 software sqrt 的正确性（见《待办总览》§5-33）。
     ///
     /// 判据分两层：
     /// ① **正确性**——与 BCL `(float)Math.Sqrt`（IEEE 要求正确舍入，.NET 侧可信）**逐位一致**：

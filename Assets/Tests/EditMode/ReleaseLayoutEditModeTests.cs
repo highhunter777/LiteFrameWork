@@ -61,12 +61,11 @@ namespace LiteGame.Tests.EditMode
 
             int applied = ContentTrustAnchors.ApplyTo(store);
 
-            // 首版锚点 provisioning（2026-09-26）：内置表非空——Apply 登记数与条目数一致，
-            // 且每个内置 keyId 都可解析出验签器（fail-closed 已转为可接受——发布侧需配对私钥签名）。
-            // 零锚点时代已终结；若轮换期再次清空，本断言须随内置表同步改写。
+            // 内置锚点表非空：Apply 登记数与条目数一致，且每个内置 keyId 都可解析出验签器
+            //（发布侧需配对私钥签名）。
             int builtinCount = 0;
             foreach (var _ in ContentTrustAnchors.BuiltIn) builtinCount++;
-            Assert.GreaterOrEqual(builtinCount, 1, "首版锚点已 provisioning（2026-09-26）——内置表不应为空");
+            Assert.GreaterOrEqual(builtinCount, 1, "内置锚点表不应为空");
             Assert.AreEqual(builtinCount, applied, "Apply 登记数与内置条目数一致");
             Assert.AreEqual(builtinCount, store.ProbeCount);
             foreach (var anchor in ContentTrustAnchors.BuiltIn)

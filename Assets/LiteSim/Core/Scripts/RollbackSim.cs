@@ -3,16 +3,16 @@ using System;
 namespace LiteSim
 {
     /// <summary>
-    /// 回滚执行器（《状态同步实施方案》§5.3–5.4 + M9 决策⑥⑦⑧⑨⑩）：
+    /// 回滚执行器（《状态同步实施方案》§5.3–5.4）：
     /// 预测推进（沿用上一帧、开火不预测）+ 真实输入判定（不符则 Restore(F-1) → 重放 F..last）
     /// + 越界退化（停预测前进，§5.4 正确性兜底）+ 单渲染帧回滚上限（防雪崩）。
     ///
-    /// - FrameDriver 保持 M8 原样（决策⑦ 组合优于修改）：累加器/追帧仍由它承担；
-    ///   逐逻辑帧输入经 onLogicalFrame 回调在帧间刷新（多逻辑帧/渲染帧时每帧各自的预测输入）。
-    /// - 帧号约定（决策②）：帧号 = 已执行步数（Step 末 Frame 递增）；"输入 k"由第 k 步消费（Frame k-1 → k）；
+    /// - FrameDriver 只承担累加器/追帧；逐逻辑帧输入经 onLogicalFrame 回调在帧间刷新
+    ///   （多逻辑帧/渲染帧时每帧各自的预测输入）。
+    /// - 帧号约定：帧号 = 已执行步数（Step 末 Frame 递增）；"输入 k"由第 k 步消费（Frame k-1 → k）；
     ///   Capture 在每步后记录帧 k，构造期先把初始状态锚定为帧 0——第 1 步的回滚（Restore(0)）天然可用。
     ///   收到步 F 的真实输入时 Frame ≥ F 即"已用预测跑过"，target = 帧 F-1（= F 步执行前状态），与 §5.4 伪码自洽。
-    /// - 同运行时红线（决策⑩）：全部验收在 .NET 侧闭环；跨运行时存在 FMA 1-ULP 底噪（M8 收口批实测）。
+    /// - 同运行时红线：全部验收在 .NET 侧闭环；跨运行时存在 FMA 1-ULP 底噪。
     /// - 所有权：initialState 由调用方构造后移交本类（§8.3：BattleContext 显式 new，禁入容器）。
     /// </summary>
     public sealed class RollbackSim
@@ -33,10 +33,10 @@ namespace LiteSim
         private int _reconcileCount;
         private SimWorldState _probe;           // 和解比对探针态（惰性创建，复用——低频事件不违预分配精神）
 
-        /// <summary>回滚回调（M11 View.Realign 接缝预留：参数 = 重放到的帧号）。Sim 不做 IO——订阅方自理。</summary>
+        /// <summary>回滚回调（View.Realign 接缝：参数 = 重放到的帧号）。Sim 不做 IO——订阅方自理。</summary>
         public Action<int> OnRollback;
 
-        /// <summary>和解回调（M10 客户端上报 MismatchReport 的接缝：参数 = 和解帧号）。</summary>
+        /// <summary>和解回调（客户端上报 MismatchReport 的接缝：参数 = 和解帧号）。</summary>
         public Action<int> OnReconcile;
 
         /// <summary>
@@ -46,7 +46,7 @@ namespace LiteSim
         /// 与 <see cref="OnRollback"/>/<see cref="OnReconcile"/> 的区别：后两者是**偶发**的和解/重放信号，
         /// 本回调**每逻辑帧**都来（追帧时一帧一次）——表现层（SimView 的事件静默门）据此消费开火/命中/死亡。
         /// 重放段（<see cref="ExecuteRollback"/>/<see cref="OnAuthoritativeSnapshot"/> 内部）不走本回调：
-        /// 那些 Step 的事件按决策⑫"不消费即清"，正是不重播一次性副作用的来源。
+        /// 那些 Step 的事件不消费即清，正是不重播一次性副作用的来源。
         /// </summary>
         public Action<SimWorldState> OnFrameEvents;
 
@@ -71,7 +71,7 @@ namespace LiteSim
         public int HaltCount => _haltCount;
         public int ReconcileCount => _reconcileCount;
 
-        /// <summary>诊断/测试用：重放段逐帧修正验证（M9 决策⑨）。</summary>
+        /// <summary>诊断/测试用：重放段逐帧修正验证。</summary>
         public SnapshotRing Ring => _ring;
 
         /// <summary>
@@ -98,14 +98,14 @@ namespace LiteSim
             if (_halted) return;
 
             PrepareNext(_state.Frame + 1);   // 每渲染帧预备下一帧输入（幂等：历史未变则结果不变）
-            _rollbacksThisFrame = 0;         // 渲染帧边界（决策⑧上限的计数窗口）
+            _rollbacksThisFrame = 0;         // 渲染帧边界（单帧回滚上限的计数窗口）
             _driver.Tick(realDelta, _state, _map, _tickInputs, OnLogicalFrame);
         }
 
         /// <summary>
-        /// 真实输入到达（M10 由网络层喂；M9 由测试注入）：入史 → 判定（帧已模拟 且 曾用预测输入 且 逐位不符
+        /// 真实输入到达（网络层喂入）：入史 → 判定（帧已模拟 且 已用预测输入 且 逐位不符
         /// → Restore(F-1) → 重放 F..last，§5.4）。早到帧（frame &gt; 已执行帧号）仅入史供模拟时取用，
-        /// 并解锁停预测（决策④恢复语义：确认流越过不可恢复窗口即续跑）。
+        /// 并解锁停预测（确认流越过不可恢复窗口即续跑）。
         /// </summary>
         public void OnRealInput(int frame, SimInputFrame[] realInputs)
         {
@@ -125,7 +125,7 @@ namespace LiteSim
             if (_halted) return;                              // 停预测期不回滚（真实值已入史）
             if (_rollbacksThisFrame >= SimConfig.MaxRollbacksPerFrame)
             {
-                _deferredCount++;                            // 决策⑧：丢弃（v3 权威快照覆盖兜底）
+                _deferredCount++;                            // 丢弃（权威快照覆盖兜底）
                 return;
             }
 
@@ -134,16 +134,16 @@ namespace LiteSim
 
         private void OnLogicalFrame(SimWorldState s)
         {
-            _ring.Capture(s.Frame, s);                        // Step 后捕获（决策②）
+            _ring.Capture(s.Frame, s);                        // Step 后捕获
             _history.Record(s.Frame, _tickInputs, _tickPredicted);
             PrepareNext(s.Frame + 1);                         // 下一逻辑帧输入（多逻辑帧各自决议）
 
-            // 帧事件交付**必须最后做**：FrameDriver 在回调返回后清空事件缓冲（决策⑥），
+            // 帧事件交付**必须最后做**：FrameDriver 在回调返回后清空事件缓冲，
             // 这里是消费方读事件的最后时机（SimView 静默门在此取件）。
             OnFrameEvents?.Invoke(s);
         }
 
-        /// <summary>下一逻辑帧输入决议：历史早到真实输入优先（逐玩家）；否则沿用上一帧（Buttons=0——开火不预测，决策⑥）。</summary>
+        /// <summary>下一逻辑帧输入决议：历史早到真实输入优先（逐玩家）；否则沿用上一帧（Buttons=0——开火不预测）。</summary>
         private void PrepareNext(int nextFrame)
         {
             bool hasReal = _history.TryGet(nextFrame, out var stored, out var pred);
@@ -174,7 +174,7 @@ namespace LiteSim
             int last = _state.Frame;                          // 回滚前已执行到的帧号（先取——Restore 会改写 Frame）
             if (!_ring.TryRestore(target, _state))
             {
-                _halted = true;                               // 决策④：超出深度停预测（强制等待）
+                _halted = true;                               // 超出深度停预测（强制等待）
                 _haltCount++;
                 return;
             }
@@ -190,25 +190,25 @@ namespace LiteSim
 
                 SimStep.Step(_state, _map, inputs);
                 _ring.Capture(_state.Frame, _state);          // 重放段快照同步更新（后续回滚的基点）
-                _state.Events.Clear();                        // 决策⑫：重放期事件不消费即清
+                _state.Events.Clear();                        // 重放期事件不消费即清
             }
 
             PrepareNext(_state.Frame + 1);                     // 回滚后下一帧输入预备
             _rollbacksThisFrame++;
             _rollbackCount++;
-            if (OnRollback != null) OnRollback(_state.Frame); // M11 View.Realign 接缝
+            if (OnRollback != null) OnRollback(_state.Frame); // View.Realign 接缝
         }
 
         /// <summary>
-        /// 权威快照和解入口（M10 §2.9；《状态同步实施方案》§5 章头："回退源=权威快照、重放范围=本地输入"）。
+        /// 权威快照和解入口（《状态同步实施方案》§5 章头："回退源=权威快照、重放范围=本地输入"）。
         ///
         /// - **快照超前**（frame &gt; 本地已执行帧——预测停摆/halt 态）：直接权威覆盖续跑（快照覆盖兜底语义）。
         /// - **帧太老**（环窗口外）：无法重放中间预测——直接权威覆盖（丢中间预测，下一次快照再纠）。
         /// - **环内**：本地预测@frame 的 **公共口径 checksum**（<see cref="SimChecksum.ComputePublicChecksum"/>，
-        ///   P0 起线上 StateSnapshot.checksum 只覆盖"快照可重建 + 可预测"层）与权威比对——一致 = 零和解；
-        ///   不符 = Restore 权威 + 重放 frame+1..last（全体输入：本地真实 + 远端沿用——远端误差由下一次快照再纠，v3 预期内）。
+        ///   线上 StateSnapshot.checksum 只覆盖"快照可重建 + 可预测"层）与权威比对——一致 = 零和解；
+        ///   不符 = Restore 权威 + 重放 frame+1..last（全体输入：本地真实 + 远端沿用——远端误差由下一次快照再纠）。
         ///   私有面（他人弹药/技能 CD/背包/资源、RngState、状态明细）客户端永远无法重建，不进比对口径——
-        ///   否则每份快照必假和解（P0 口径定案，见 SimChecksum 类注释）。
+        ///   否则每份快照必假和解（见 SimChecksum 类注释）。
         ///
         /// 返回 true = 发生和解（调用方上报 MismatchReport）。
         /// </summary>
@@ -240,7 +240,7 @@ namespace LiteSim
             {
                 if (!_history.TryGet(f, out var inputs, out var _)) break;   // 历史窗口外（不应达——32 > 深度）
                 SimStep.Step(_state, _map, inputs);
-                _state.Events.Clear();                          // 重放期事件不消费即清（决策⑫）
+                _state.Events.Clear();                          // 重放期事件不消费即清
             }
 
             PrepareNext(_state.Frame + 1);                      // 重放后刷新下帧输入基线（与 ExecuteRollback 对称）

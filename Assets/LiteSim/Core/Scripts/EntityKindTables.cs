@@ -1,12 +1,12 @@
 namespace LiteSim
 {
     /// <summary>
-    /// 地面道具分型行（《实体分型表设计》§1，2026-09-29）：<c>Items[slot]</c>——行有效 ⟺
+    /// 地面道具分型行（《实体分型表设计》§1）：<c>Items[slot]</c>——行有效 ⟺
     /// 槽位活体且 <see cref="EntityFlags.KindItem"/> 置位（kind 位 = "该槽位持有哪张分型表数据"的
     /// 迷你 archetype mask）。携带面不在本表——进背包后是 <c>MatchBag</c> 的事（既有面）。
     ///
     /// 布局契约同 P0 运行态：纯值类型 struct、定容数组行、零引擎依赖；进快照/checksum 的字段
-    /// 只允许值类型（<c>SimWorldState</c> 布局硬约束 #5 同款）。消费者 = ItemSystem（随 G2 落地）。
+    /// 只允许值类型（<c>SimWorldState</c> 布局硬约束 #5 同款）。消费者 = ItemSystem。
     /// </summary>
     public struct ItemState
     {
@@ -25,7 +25,7 @@ namespace LiteSim
 
     /// <summary>
     /// 投掷物分型行：<c>Projectiles[slot]</c>——行有效 ⟺ KindProjectile 置位。
-    /// 手雷/闪光等抛物面（hitscan 之外的弹道命中在 ProjectileSystem 结算，随 G2 落地）。
+    /// 手雷/闪光等抛物面（hitscan 之外的弹道命中在 ProjectileSystem 结算）。
     /// </summary>
     public struct ProjectileState
     {
@@ -44,7 +44,7 @@ namespace LiteSim
 
     /// <summary>
     /// 区域效果分型行：<c>Zones[slot]</c>——行有效 ⟺ KindZone 置位。
-    /// EMP/雷达等驻留区域：出生点 + 半径 + 剩余时长（ZoneSystem 衰减，随 G2 落地）。
+    /// EMP/雷达等驻留区域：出生点 + 半径 + 剩余时长（ZoneSystem 衰减）。
     /// </summary>
     public struct ZoneState
     {

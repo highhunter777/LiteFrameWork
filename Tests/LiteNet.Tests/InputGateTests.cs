@@ -6,12 +6,11 @@ using Xunit;
 namespace LiteNet.Tests
 {
     /// <summary>
-    /// 输入闸门单元用例（《M10实施指导》附「服务端审查」2026-09-19）：
+    /// 输入闸门单元用例（《M10实施指导》附「服务端审查」）：
     /// 取帧口径、ack 处理、已消费帧拒绝、按键白名单——四条都是"服务器边界"行为，
     /// 用假消息直接测 `InputGate`，不依赖网络与房间。
     ///
-    /// R1 迁移：入参从 proto <c>InputMessage</c> 换成纯数据 <see cref="ClientInputBatch"/>
-    /// （Runtime 不见 proto）——断言逐条保持（characterization）。跨层常量一致性由文末
+    /// 入参是纯数据 <see cref="ClientInputBatch"/>（Runtime 不见 proto）；跨层常量一致性由文末
     /// "契约"组钉死（MaxFrames/MoveComponentLimit/VectorLengthSquaredLimit）。
     /// </summary>
     public sealed class InputGateTests
@@ -215,7 +214,7 @@ namespace LiteNet.Tests
         public void 多玩家同帧输入_互不顶替_各取各的()
         {
             var gate = new InputGate(2);
-            // 2026-09-22 P0 修复回归：帧号单键会让玩家 0 的同帧输入被玩家 1 顶掉（TryConsume 只有一人拿到）
+            // 帧号单键会让玩家 0 的同帧输入被玩家 1 顶掉（TryConsume 只有一人拿到）——本用例钉住按 (玩家, 帧) 双键消费
             ClientInputBatch m0 = Packet(11, 0.5f, 0f, 0f, 0f);
             ClientInputBatch m1 = Packet(11, -0.5f, 0f, 0f, 0f);
             Assert.True(gate.Store(m0, playerId: 0, entityId: 10, serverFrame: 10, out _, out _));
@@ -233,7 +232,7 @@ namespace LiteNet.Tests
             Assert.False(gate.TryConsume(11, 1, out _));
         }
 
-        // ---- R0-A 边界用例（《商业级通用服务端框架总设计》§5 P0-2/P0-3）----
+        // ---- 边界用例（《商业级通用服务端框架总设计》§5 P0-2/P0-3）----
 
         [Fact]
         public void 八人同帧_全部独立预存消费_不串位()
@@ -358,7 +357,7 @@ namespace LiteNet.Tests
             Assert.True(gate.AcceptedCount == acceptedBefore);
         }
 
-        // ---- R1 契约：Runtime 复述常量与协议单源一致（改一处必红另一处）----
+        // ---- 契约：Runtime 复述常量与协议单源一致（改一处必红另一处）----
 
         [Fact]
         public void 契约_Runtime复述常量与协议单源一致()

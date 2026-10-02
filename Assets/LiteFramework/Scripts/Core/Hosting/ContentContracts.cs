@@ -3,14 +3,12 @@ using System;
 namespace LiteFramework
 {
     /// <summary>
-    /// 内容代次（《商业级通用客户端框架总设计》§8.2"Scope 固定 ContentGeneration，加载与缓存键包含代次"；
-    /// 《热更与内容发布专项设计》§9"ContentGeneration 持有固定资源目录、脚本集合、配置快照及依赖 ID"）：
-    /// 同一 location 在不同代次下是**不同资源**——候选与当前隔离、旧使用者不从全局 Current 混取新内容的键维度。
-    /// 本类型是代次的**键身份**（ReleaseId + 单调 Value）；完整代次对象（目录/脚本集合/快照/依赖 ID）随热更批在激活事务上构建。
+    /// 内容代次：同一 location 在不同代次下是**不同资源**——候选与当前隔离、旧使用者不从全局 Current 混取新内容的键维度。
+    /// 本类型是代次的**键身份**（ReleaseId + 单调 Value）；完整代次对象（目录/脚本集合/快照/依赖 ID）在激活事务上构建。
     /// </summary>
     public readonly struct ContentGeneration : IEquatable<ContentGeneration>
     {
-        /// <summary>发布身份（热更 §5 ReleaseId：一次不可变内容发布；内置内容为 "builtin"）。</summary>
+        /// <summary>发布身份（ReleaseId：一次不可变内容发布；内置内容为 "builtin"）。</summary>
         public string ReleaseId { get; }
 
         /// <summary>同 Release 内单调代次（内置/初始 = 0；候选激活递增）。</summary>
@@ -37,9 +35,9 @@ namespace LiteFramework
     }
 
     /// <summary>
-    /// 资源租约（《商业级通用客户端框架总设计》§8.2 资源租约）：对已加载资产的一份**可释放持有权**。
+    /// 资源租约：对已加载资产的一份**可释放持有权**。
     ///
-    /// 契约（§8.2 逐条落点）：
+    /// 契约：
     /// - **对称释放**：Acquire 成功 → Release 恰好一次；重复 Release 幂等（不抛）。
     /// - **引用计数由 Host（内容服务实现方）维护**：租约只是持有权的令牌——Release 通知服务方递减；
     ///   最后一个使用者 Release 后，服务方才可卸载底层资产（Prefab 租约从加载完成持有至最后一个依赖实例销毁）。

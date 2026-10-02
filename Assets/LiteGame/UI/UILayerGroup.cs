@@ -5,11 +5,11 @@ using UnityEngine;
 namespace LiteGame
 {
     /// <summary>
-    /// 层级组（M4 §2.1/§2.2）：组内栈 + Depth 分配（分配规则经 <see cref="ILayerStrategy"/> 注入）。
+    /// 层级组：组内栈 + Depth 分配（分配规则经 <see cref="ILayerStrategy"/> 注入）。
     /// 组间深度以 BaseDepth 步进 100 隔离。
-    /// U1-③（§6.2 统一排序）：**开序即深序**——排序按当前打开顺序计算，每次入栈、移除、
-    /// BringToFront、复用后统一重算（<see cref="RecalculateOrders"/>）；废止旧"递增槽位 + 100 回卷"
-    /// ——组容量不足（栈超 <see cref="DepthStride"/>）由调用方在入栈前拒绝并诊断，禁止悄悄复用 order。
+    /// （§6.2 统一排序）：**开序即深序**——排序按当前打开顺序计算，每次入栈、移除、
+    /// BringToFront、复用后统一重算（<see cref="RecalculateOrders"/>）。
+    /// 组容量不足（栈超 <see cref="DepthStride"/>）由调用方在入栈前拒绝并诊断，禁止悄悄复用 order。
     /// </summary>
     public sealed class UILayerGroup
     {

@@ -7,18 +7,18 @@ using LiteFramework;
 namespace LiteGame
 {
     /// <summary>
-    /// Lua 全量预载器（M3 步骤 2.2）。**loader 是同步签名 → 启动期全量预载是咽喉**（设计方案 §4.2）：
+    /// Lua 全量预载器。**loader 是同步签名 → 启动期全量预载是咽喉**（设计方案 §4.2）：
     /// require 链上任何一个未缓存文件都意味着运行中途炸——不能带缺口进 Main（§3.4 致命级）。
-    /// 清单来源（§1b 实测定案）：**tag `lua` 经 `GetAssetInfos("lua")`**——3.0.5 该重载即按 tag 查询，
-    /// **无目录枚举 API**（fallback 不存在，收集器 AssetTags 必须配 `lua`，已配）。
+    /// 清单来源：**tag `lua` 经 `GetAssetInfos("lua")`**——3.0.5 该重载即按 tag 查询，
+    /// 无目录枚举 API（收集器 AssetTags 必须配 `lua`）。
     /// key = require 路径：剥 `Assets/LiteGame/Lua/` 前缀与 `.lua` 后缀（如 `ui/UIMain`、`cfg/tbuiform`）。
-    /// 生命周期：Preload 锚点构造并填充（2.4 接线），DevReload 时清空重载（§2.7）。
+    /// 生命周期：Preload 锚点构造并填充，DevReload 时清空重载（§2.7）。
     ///
-    /// C1-⑨ 候选通道（《热更与内容发布专项设计》§10 候选阶段最小落点）：
+    /// 候选通道（《热更与内容发布专项设计》§10）：
     /// - **字节通道可注入**：主链经 IContentService 租约（代次/引用统一；提取字节即释放源资产，§9）；
-    ///   两个通道都**必须注入**（见下——2026-09-26 起不再有静态门面回落）。
+    ///   两个通道都**必须注入**（本类不回落静态门面）。
     /// - **候选完整性**：预载集合即依赖闭包（全量 .lua 进缓存——require 不可能落空）；重复 key 显性拒绝
-    ///   （静默覆盖 = 候选集合被污染）。深度候选验证（语法/导出/Bridge 能力/受控验证 env）随热更批。
+    ///   （静默覆盖 = 候选集合被污染）。深度候选验证（语法/导出/Bridge 能力/受控验证 env）另属热更流程。
     /// </summary>
     public sealed class LuaPreloader
     {
@@ -35,8 +35,8 @@ namespace LiteGame
         public int Count => _scripts.Count;
 
         /// <param name="bytesProvider">字节通道（主链经内容租约）。**必注入**。</param>
-        /// <param name="listLuaFiles">清单通道（G1 通用表现批：装配点绑定——返回 .lua 资产路径数组；
-        /// 热更批以发布清单替换绑定时本类零改动）。**必注入**。</param>
+        /// <param name="listLuaFiles">清单通道（装配点绑定——返回 .lua 资产路径数组；
+        /// 以发布清单替换绑定时本类零改动）。**必注入**。</param>
         public LuaPreloader(Func<string, CancellationToken, UniTask<byte[]>> bytesProvider,
             Func<string[]> listLuaFiles)
         {
@@ -67,25 +67,21 @@ namespace LiteGame
         /// <summary>
         /// 清单来源：**必须注入** <c>listLuaFiles</c>（装配点绑定内容适配器）。
         ///
-        /// 原先留了一条"未注入则回落静态 `AssetService.Package.GetAssetInfos("lua")`"的迁移期兼容——
-        /// 2026-09-26 删除（《客户端总设计》§5.1"先形成逻辑边界"）：那条回落让 **Lua 层硬依赖
-        /// YooAsset 类型**（`AssetService.Package` 是 `ResourcePackage`），asmdef 拆不开（成环）。
-        /// 需要读清单时组装配点的委托，本类只认 `Func<string[]>`。
+        /// 不回落静态门面——那会让 **Lua 层硬依赖 YooAsset 类型**（`AssetService.Package` 是
+        /// `ResourcePackage`），asmdef 拆不开（成环）。需要读清单时组装配点的委托，本类只认 `Func<string[]>`。
         /// </summary>
         private string[] ListLuaFilePaths()
         {
             if (_listLuaFiles == null)
                 throw new InvalidOperationException(
-                    "LuaPreloader 未注入 listLuaFiles——清单来源已在装配点绑定（内容适配器），" +
-                    "本类不再回落直读 YooAsset（§5.1 逻辑边界）");
+                    "LuaPreloader 未注入 listLuaFiles——清单来源须在装配点绑定（内容适配器），" +
+                    "本类不回落直读 YooAsset（§5.1 逻辑边界）");
             return _listLuaFiles() ?? Array.Empty<string>();
         }
 
         /// <summary>
         /// 字节通道：**必须注入** <c>bytesProvider</c>（内容租约）。
-        ///
-        /// 同 <see cref="ListLuaFilePaths"/>：原先的 `AssetService.LoadRawFileBytesAsync` 回落
-        /// 已删除——它同样让本类认识内容适配器。
+        /// 同 <see cref="ListLuaFilePaths"/>——不回落静态门面，避免本类认识内容适配器。
         /// </summary>
         private UniTask<byte[]> LoadBytesAsync(string assetPath, CancellationToken ct)
         {

@@ -17,7 +17,7 @@
   </ItemGroup>
 
   <!--
-    表现变换纯函数的 L1 覆盖（《M11实施指导》§2.4 C3 明确要求："插值/衰减抽成纯函数
+    表现变换纯函数的 L1 覆盖（《M11实施指导》§2.4 明确要求："插值/衰减抽成纯函数
     （ViewTransformMath，无引擎依赖）→ 进 Tests/LiteSim.Core.Tests（L1 覆盖）"）。
     LiteSim.View 程序集引 UnityEngine，L1 项目不能 ProjectReference 它；
     该文件本身零引擎依赖，故按源**链接编译**——单一来源，语义不可能在两侧漂移。

@@ -4,14 +4,14 @@ using System.Collections.Generic;
 namespace LiteFramework
 {
     /// <summary>
-    /// 候选被拒的原因（《热更与内容发布专项设计》§4"接受/拒绝候选与**稳定原因码**"）。
+    /// 候选被拒的原因（接受/拒绝候选与**稳定原因码**）。
     /// 调用方据此决定：修复、提示更新、或直接放弃（不得靠反复重试绕过）。
     /// </summary>
     public enum ReleaseRejectReason
     {
         None = 0,
 
-        // ---- 描述结构/预算（§6 路径与预算约束）----
+        // ---- 描述结构/预算（路径与预算约束）----
         /// <summary>描述为空或 schemaVersion 不受支持。</summary>
         UnsupportedSchema,
         /// <summary>releaseId 缺失/含非法字符。</summary>
@@ -23,7 +23,7 @@ namespace LiteFramework
         /// <summary>条目字段非法（长度负、摘要非 64 位小写 hex）。</summary>
         InvalidEntry,
 
-        // ---- 信任（§6 签名/撤销/过期）----
+        // ---- 信任（签名/撤销/过期）----
         /// <summary>keyId 未登记或已撤销。</summary>
         UnknownOrRevokedKey,
         /// <summary>签名验证不通过。</summary>
@@ -33,14 +33,14 @@ namespace LiteFramework
         /// <summary>该发布已被安全撤销。</summary>
         Revoked,
 
-        // ---- 版本（§6 反回退 / §5 兼容）----
+        // ---- 版本（反回退 / 兼容）----
         /// <summary>修订低于已确认修订（防重放旧清单）。</summary>
         RevisionRollback,
         /// <summary>平台/渠道不匹配。</summary>
         PlatformMismatch,
         /// <summary>Player 能力不满足候选要求的下限（App/Bridge/协议/Sim/schema/存档）。</summary>
         IncompatiblePlayer,
-        /// <summary>该发布被标记为 LiveRefresh / 需要未证明的多版本并存能力——首版拒绝。</summary>
+        /// <summary>该发布被标记为 LiveRefresh / 需要未证明的多版本并存能力——拒绝。</summary>
         UnsupportedEffectWindow,
     }
 
@@ -66,7 +66,7 @@ namespace LiteFramework
     }
 
     /// <summary>
-    /// 运行时可接受的能力下限（《热更与内容发布专项设计》§5 版本元组里"当前 Player 实际具备"的一侧）。
+    /// 运行时可接受的能力下限（版本元组里"当前 Player 实际具备"的一侧）。
     /// 由装配点从编译期常量/生成物填充——**不接受运行时可变来源**（否则兼容判定可被内容影响）。
     /// </summary>
     public sealed class PlayerCapabilities
@@ -82,10 +82,8 @@ namespace LiteFramework
     }
 
     /// <summary>
-    /// 描述校验预算（§7"清单/脚本容量：限制文件数、单文件/总字节"；§15"每个平台配置…没有目标包规模
-    /// 与设备数据时不虚构固定毫秒或成功率"——故这些是**可配置上限**而非常量，装配点按平台给值）。
-    ///
-    /// 默认值取灰盒期保守量；真实平台预算在 G2/G4 用真实包与设备建立基线后收紧。
+    /// 描述校验预算（限制文件数、单文件/总字节；每个平台配置没有目标包规模
+    /// 与设备数据时不虚构固定毫秒或成功率——故这些是**可配置上限**而非常量，装配点按平台给值）。
     /// </summary>
     public sealed class ReleaseBudget
     {
@@ -95,7 +93,7 @@ namespace LiteFramework
         /// <summary>单文件最大字节。</summary>
         public long MaxFileBytes = 512L * 1024 * 1024;
 
-        /// <summary>候选总字节上限（§7"空间预检：计入候选、临时/解压峰值、保留版本及余量"由调用方据此计算）。</summary>
+        /// <summary>候选总字节上限（空间预检：计入候选、临时/解压峰值、保留版本及余量——由调用方据此计算）。</summary>
         public long MaxTotalBytes = 4L * 1024 * 1024 * 1024;
 
         /// <summary>路径段数上限（防深层嵌套）。</summary>
@@ -106,9 +104,9 @@ namespace LiteFramework
     }
 
     /// <summary>
-    /// 发布描述校验（《热更与内容发布专项设计》§6 逐条落实）。
+    /// 发布描述校验。
     ///
-    /// **顺序即安全**（§6"先验证描述的结构/预算与签名，再依据可信描述计划下载"）：
+    /// **顺序即安全**（先验证描述的结构/预算与签名，再依据可信描述计划下载）：
     /// ① 结构/schema → ② releaseId → ③ 路径与预算 → ④ 条目字段 → ⑤ 过期 → ⑥ 撤销 → ⑦ 签名 → ⑧ 反回退 → ⑨ 平台 → ⑩ 兼容。
     /// **签名验证在路径/预算校验之后**：先拒绝明显畸形/超预算的输入（廉价且不涉及信任），
     /// 再花签名验证的算力；但**在依据描述做任何下载之前**——这是"再依据可信描述计划下载"的落点。
@@ -119,7 +117,7 @@ namespace LiteFramework
     {
         /// <summary>
         /// 校验描述并验证签名。<paramref name="signedBytes"/> = 描述文件的**原始字节**
-        /// （签名对象；**不做换行归一化**——§5）。<paramref name="signature"/> = 解码后的签名字节。
+        /// （签名对象；**不做换行归一化**）。<paramref name="signature"/> = 解码后的签名字节。
         /// </summary>
         public static ReleaseVerdict Validate(
             ReleaseManifest manifest,
@@ -176,16 +174,16 @@ namespace LiteFramework
                         $"总字节超上限:{total}>{budget.MaxTotalBytes}");
             }
 
-            // ⑤ 过期（§6"元数据重放/过期"）
+            // ⑤ 过期（元数据重放/过期）
             if (manifest.ExpiresAtUnix > 0 && nowUnix > 0 && nowUnix > manifest.ExpiresAtUnix)
                 return ReleaseVerdict.Reject(ReleaseRejectReason.Expired,
                     $"描述已过期:{manifest.ExpiresAtUnix} < now {nowUnix}");
 
-            // ⑥ 安全撤销（§6"反回退校验与运营回退分别处理"；§12 回退前检查目标未被撤销）
+            // ⑥ 安全撤销（反回退校验与运营回退分别处理；回退前检查目标未被撤销）
             if (manifest.Revoked)
                 return ReleaseVerdict.Reject(ReleaseRejectReason.Revoked, "该发布已被安全撤销");
 
-            // ⑦ 签名（在计划下载之前——§6）
+            // ⑦ 签名（在计划下载之前）
             if (verifier == null)
                 return ReleaseVerdict.Reject(ReleaseRejectReason.UnknownOrRevokedKey, "无可用的验签器（keyId 未登记/已撤销）");
             if (signature == null || signature.Length == 0)
@@ -195,7 +193,7 @@ namespace LiteFramework
             if (!verifier.Verify(signedBytes, signature))
                 return ReleaseVerdict.Reject(ReleaseRejectReason.BadSignature, "签名验证不通过");
 
-            // ⑧ 反回退（§6"不接受攻击者重放旧清单"）
+            // ⑧ 反回退（不接受攻击者重放旧清单）
             if (manifest.Revision < confirmedRevision)
                 return ReleaseVerdict.Reject(ReleaseRejectReason.RevisionRollback,
                     $"修订回退:{manifest.Revision} < 已确认 {confirmedRevision}");
@@ -233,7 +231,7 @@ namespace LiteFramework
                         $"存档 schema 不足:需 {compat.SaveSchemaVersion}，本机 {player.SaveSchemaVersion}");
 
                 // AppVersion 采用**精确匹配**（声明即要求相等）。
-                // 不在此自造 semver 比较器（总设计 §22 精神）；"范围匹配"未实现——
+                // 不在此自造 semver 比较器；"范围匹配"未实现——
                 // 需要时引入受测比较器再放宽，**不得静默失效**（声明了却不生效比不声明更危险）。
                 if (!string.IsNullOrEmpty(compat.AppVersion) &&
                     !string.Equals(compat.AppVersion, player.AppVersion, StringComparison.Ordinal))
@@ -244,13 +242,13 @@ namespace LiteFramework
             return ReleaseVerdict.Accept();
         }
 
-        /// <summary>生效窗口是否受本批支持（首版只有 NextLaunch 可冷启动激活；其余需安全窗口/局间协调器）。</summary>
+        /// <summary>生效窗口是否支持（只有 NextLaunch 可冷启动激活；其余需安全窗口/局间协调器）。</summary>
         public static ReleaseVerdict ValidateEffectWindow(ReleaseManifest manifest)
         {
             if (manifest == null) return ReleaseVerdict.Reject(ReleaseRejectReason.UnsupportedSchema, "描述为空");
             if (manifest.EffectWindow != ReleaseEffectWindow.NextLaunch)
                 return ReleaseVerdict.Reject(ReleaseRejectReason.UnsupportedEffectWindow,
-                    $"生效窗口 {manifest.EffectWindow} 需安全窗口协调器（首版仅支持 NextLaunch 冷启动激活）");
+                    $"生效窗口 {manifest.EffectWindow} 需安全窗口协调器（仅支持 NextLaunch 冷启动激活）");
             return ReleaseVerdict.Accept();
         }
 
@@ -277,9 +275,9 @@ namespace LiteFramework
         }
 
         /// <summary>
-        /// 路径约束（§6"文件路径只能落在受控候选目录内，拒绝越界、重复、非法规范化路径和超预算长度/数量"）。
+        /// 路径约束（文件路径只能落在受控候选目录内，拒绝越界、重复、非法规范化路径和超预算长度/数量）。
         /// 只接受**正斜杠分隔的相对路径**——反斜杠一律拒绝（避免 Windows 归一化歧义，
-        /// §5"统一规范化"精神）；".."/"."/空段/前导斜杠/盘符/UNC 全部拒绝。
+        /// 统一规范化）；".."/"."/空段/前导斜杠/盘符/UNC 全部拒绝。
         /// </summary>
         private static ReleaseVerdict ValidatePath(ReleaseFileEntry f, ReleaseBudget budget)
         {

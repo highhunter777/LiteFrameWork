@@ -5,14 +5,14 @@ using System.Text;
 namespace LiteFramework
 {
     /// <summary>
-    /// 本地化服务（《UI框架总设计》§9）。实现 <see cref="ILocalizationService"/>。
+    /// 本地化服务。实现 <see cref="ILocalizationService"/>。
     ///
-    /// 缺 key 策略（§9"缺 key 开发期报告并显示 `[key]`，发布期先回退源语言，再显示可诊断占位"）：
+    /// 缺 key 策略（缺 key 开发期报告并显示 `[key]`，发布期先回退源语言，再显示可诊断占位）：
     /// - 先查目标 locale；无 → 查源语言（回退）；
     /// - 源语言也无 → **开发期**显示 `[key]` 并计数；**发布期**显示占位并计数。
     /// 两条路径**都计数**——缺 key 不能因为"显示得像样"就被忽略。
     ///
-    /// 文本安全（§9"作者文本走允许的富文本标签；玩家/外部文本默认禁富文本或经验证的转义路径插入"）：
+    /// 文本安全（作者文本走允许的富文本标签；玩家/外部文本默认禁富文本或经验证的转义路径插入）：
     /// <see cref="Raw"/> 返回原文（作者文本，允许富文本）；<see cref="Get"/>/<see cref="Format"/>
     /// 返回**已转义模板参数**的安全文本。
     /// </summary>
@@ -39,7 +39,7 @@ namespace LiteFramework
 
         public int MissingKeyCount { get; private set; }
 
-        /// <summary>切换语言。同值 = 无操作（不触发事件——避免无谓的全页刷新，§9）。</summary>
+        /// <summary>切换语言。同值 = 无操作（不触发事件——避免无谓的全页刷新）。</summary>
         public void SetLocale(string locale)
         {
             if (string.IsNullOrEmpty(locale)) return;
@@ -57,7 +57,7 @@ namespace LiteFramework
         }
 
         /// <summary>
-        /// 安全文本（§9 玩家/外部文本默认禁富文本）。
+        /// 安全文本（玩家/外部文本默认禁富文本）。
         ///
         /// **注意**：本方法转义的是**模板本身**——作者文本本不应含未配对的富文本标签，
         /// 若含则按原文返回（作者可控）；真正需要转义的是**参数**，见 <see cref="Format"/>。
@@ -65,7 +65,7 @@ namespace LiteFramework
         public string Get(string key) => Raw(key);
 
         /// <summary>
-        /// 填参（§9"模板参数按编号/语义验证"）。
+        /// 填参（模板参数按编号/语义验证）。
         /// 模板用 <c>{0}</c>/<c>{1}</c> 编号占位；**参数一律转义**——
         /// 玩家名之类的外部内容不能借参数注入富文本标签。
         /// 编号越界/非法占位 = 原样保留并计数（不抛——UI 文本不值得炸流程，但要可观测）。
@@ -78,7 +78,7 @@ namespace LiteFramework
         }
 
         /// <summary>
-        /// 复数（§9"英文 one/other 显式选取"）。
+        /// 复数（英文 one/other 显式选取）。
         /// key 约定：<c>{key}.one</c> / <c>{key}.other</c>——**显式选取**，不做语言猜测；
         /// 目标语言无对应形式时回退 <c>.other</c>，再无则回退裸 key。
         /// zh-CN 无复数：两个 locale 都取 <c>.other</c>（源语言数据只登记 other 即可）。
@@ -102,7 +102,7 @@ namespace LiteFramework
         }
 
         /// <summary>
-        /// 复数规则（首版只覆盖 zh-CN + en）。**不承诺"加列即可零代码支持"**（§9）——
+        /// 复数规则（只覆盖 zh-CN + en）。**不承诺"加列即可零代码支持"**——
         /// 新增语言需在此评估复数规则与 RTL。
         ///
         /// <c>public</c> 供消费者与测试直接断言规则本身（它是纯函数）；<c>FormatPlural</c> 是常规入口。
@@ -149,7 +149,7 @@ namespace LiteFramework
         }
 
         /// <summary>
-        /// 参数转义（§9"玩家/外部文本默认禁富文本或经验证的转义路径插入"）。
+        /// 参数转义（玩家/外部文本默认禁富文本或经验证的转义路径插入）。
         /// 只处理富文本标记符 <c>&lt;</c>——它是 TMP 富文本的唯一入口；
         /// 不转义 <c>&amp;</c> 等（TMP 不解析它们，转了反而让用户看到 <c>&amp;amp;</c>）。
         /// </summary>
@@ -164,7 +164,7 @@ namespace LiteFramework
             return s.Replace('<', '＜');
         }
 
-        /// <summary>缺 key：计数 + 报告，按模式返回占位（§9）。</summary>
+        /// <summary>缺 key：计数 + 报告，按模式返回占位。</summary>
         private string Missing(string key)
         {
             MissingKeyCount++;

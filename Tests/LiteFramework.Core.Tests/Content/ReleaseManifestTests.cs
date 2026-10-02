@@ -10,7 +10,7 @@ namespace LiteFramework.Tests.Content
     /// 内容签名与发布描述校验验收（《热更与内容发布专项设计》§6 发布描述与信任边界；
     /// 热更 §13 L1 行"版本策略、摘要、事务恢复表、取消/代次、纯快照验证"）。
     ///
-    /// **用真实 RSA 而非替身**：算法选型是本批的裁决结论（ECDSA 在本运行时不可用），
+    /// **用真实 RSA 而非替身**：ECDSA 在本运行时不可用，
     /// 必须证明"用真实密钥能签能验、篡改能被拒"——替身只能证明调用顺序。
     /// </summary>
     public sealed class ReleaseManifestTests

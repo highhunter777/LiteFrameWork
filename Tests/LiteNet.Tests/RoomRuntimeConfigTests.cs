@@ -7,11 +7,11 @@ using Xunit;
 namespace LiteNet.Tests
 {
     /// <summary>
-    /// R1 房间级配置快照与 seed 派生用例（《商业级通用服务端框架总设计》§4/P0-5 + §8.1 纯化）：
+    /// 房间级配置快照与 seed 派生用例（《商业级通用服务端框架总设计》§4/P0-5 + §8.1 纯化）：
     /// - 房间创建时**固定**不可变玩法配置并绑定规范化摘要（此后进程改全局不影响本房间的值消费）；
     /// - seed=0 时由 Tick 注入的单调时间派生（Runtime 不再读系统墙钟——纯化红线）。
     ///
-    /// 纪律：不写全局 <see cref="CombatConfig"/> 装载状态（会与其他用例竞态——R0 已立此纪律），
+    /// 纪律：不写全局 <see cref="CombatConfig"/> 装载状态（会与其他用例竞态），
     /// 只做"同刻绑定/派生行为"的断言。
     /// </summary>
     public sealed class RoomRuntimeConfigTests

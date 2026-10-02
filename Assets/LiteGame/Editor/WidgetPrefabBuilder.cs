@@ -9,8 +9,8 @@ using TMPro;
 namespace LiteGame.Editor
 {
     /// <summary>
-    /// 控件模板 prefab 构建器（《UI控件库Prefab落地规划》批①—②：确定性生成 + 可重复执行）。
-    /// 约定（与规划 §2 的细化——落地实证）：
+    /// 控件模板 prefab 构建器（确定性生成 + 可重复执行）。
+    /// 约定：
     ///  · 根 = 控件组件本体；内部接线**全部落在序列化引用**上（Fill/Template/MinMax 等已接好）
     ///  · 结构 Root → Bg / Content / Interaction 三层缺省
     ///  · **模板不预设 BindName**：多个实例同名会炸界面级索引（BindIndexBuilder 重名即抛），
@@ -19,19 +19,17 @@ namespace LiteGame.Editor
     /// </summary>
     public static class WidgetPrefabBuilder
     {
-        private const string OutDir = "Assets/UI/Widgets";   // 2026-09-19：UI 已从 LiteGame 迁到顶层 Assets/UI
+        private const string OutDir = "Assets/UI/Widgets";   // UI 控件模板目录（顶层 Assets/UI）
 
         [MenuItem("LiteGame/UI/构建控件模板 Prefabs")]
         private static void BuildAll()
         {
             EnsureFolder(OutDir);
             var done = new List<string>();
-            // 批② 样板 4 件
             done.Add(Save(BuildStateButton(), "StateButton"));
             done.Add(Save(BuildDialog(), "Dialog"));
             done.Add(Save(BuildVirtualList(), "VirtualList"));
             done.Add(Save(BuildHpBar(), "HpBar"));
-            // 批③ 余件
             done.Add(Save(BuildToast(), "Toast"));
             done.Add(Save(BuildBubble(), "Bubble"));
             done.Add(Save(BuildFlyText(), "FlyText"));
@@ -53,7 +51,7 @@ namespace LiteGame.Editor
             done.Add(Save(BuildGuideHighlight(), "GuideHighlight"));
             done.Add(Save(BuildSafeArea(), "SafeArea"));
             done.Add(Save(BuildSimpleList(), "SimpleList"));
-            // 反馈面（2026-09-25 U2 归位）
+            // 反馈面
             done.Add(Save(BuildLoading(), "Loading"));
             done.Add(Save(BuildBaseline(), "Baseline"));
             AssetDatabase.SaveAssets();
@@ -61,10 +59,10 @@ namespace LiteGame.Editor
             LiteFramework.Log.Info("[WidgetPrefab] 模板构建完成：" + string.Join(" / ", done), "UI");
         }
 
-        // ================= 批③：余件 =================
+        // ================= 余件 =================
 
         /// <summary>轻提示：根挂 Toast，子放非激活模板（Show 时实例化到同父）。
-        /// 2026-09-25：按 §6.1 多条并存改造——根为**透明容器**（无 Image，否则多条叠底），
+        /// 根为**透明容器**（无 Image，否则多条叠底），
         /// 纵向排布由 Toast.Spacing/StackDirection 定义，条数上限 MaxVisible 超出淘汰最旧。</summary>
         private static GameObject BuildToast()
         {
@@ -87,7 +85,7 @@ namespace LiteGame.Editor
             return root;
         }
 
-        /// <summary>加载遮罩控件（2026-09-25 新增）：全屏阻断面 + 居中文案。
+        /// <summary>加载遮罩控件：全屏阻断面 + 居中文案。
         /// 阻断面 raycastTarget=true 吃掉射线（§6.2"输入禁用/射线阻断/焦点是不同职责"——
         /// 阻断靠阻断面，不靠停组，故可与 Toast 同层并存不互斥）。</summary>
         private static GameObject BuildLoading()
@@ -116,7 +114,7 @@ namespace LiteGame.Editor
             return root;
         }
 
-        /// <summary>基准页控件（2026-09-25 新增）：纯全屏底 + 文案，无业务逻辑。
+        /// <summary>基准页控件：纯全屏底 + 文案，无业务逻辑。
         /// 用途是给"页面 A / 页面 B / 弹窗"这类**层级与状态语义**（覆盖、暂停、导航）提供
         /// 最小真实页面——它没有业务内容，不是业务页模板。</summary>
         private static GameObject BuildBaseline()
@@ -136,9 +134,9 @@ namespace LiteGame.Editor
             return root;
         }
 
-        // ================= 反馈面页面级包装（2026-09-25 U2 反馈面归位） =================
-        // 24 件 Widget 模板无 Canvas，不能当 form 打开（U2-⑥a 裁决的直接依据）——反馈面要经
-        // UIService 打开，必须有页面级包装：Canvas + CanvasGroup + 嵌套控件实例。
+        // ================= 反馈面页面级包装 =================
+        // Widget 模板无 Canvas，不能当 form 打开——反馈面要经 UIService 打开，必须有页面级包装：
+        // Canvas + CanvasGroup + 嵌套控件实例。
 
         private const string ScreenDir = "Assets/UI/Screens";
 
@@ -162,7 +160,7 @@ namespace LiteGame.Editor
             return root;
         }
 
-        /// <summary>基准页 A/B（2026-09-25）：层级与状态语义（覆盖/暂停/导航）的最小真实页面。
+        /// <summary>基准页 A/B：层级与状态语义（覆盖/暂停/导航）的最小真实页面。
         /// 两件结构相同、各自独立——用于验证"另一页打开"这类跨页语义（同页无法验证覆盖）。</summary>
         [MenuItem("LiteGame/UI/构建基准页 Screens")]
         private static void BuildBaselineScreens()
@@ -181,7 +179,7 @@ namespace LiteGame.Editor
             return root;
         }
 
-        /// <summary>列表页（2026-09-26 包③覆盖度余部）：页面根 + 嵌套 VirtualList 模板。
+        /// <summary>列表页：页面根 + 嵌套 VirtualList 模板。
         /// 「可扩展」接入示例的载体——新增页面只动构建器与目录条目，框架零改动（§8.2 列表段 PlayMode 用例消费）。</summary>
         [MenuItem("LiteGame/UI/构建列表页 Screens")]
         private static void BuildListScreens()
@@ -970,11 +968,11 @@ namespace LiteGame.Editor
         }
     }
 
-    /// <summary>控件模板自检（《UI控件库Prefab落地规划》批④起步）：模板 prefab 实例化 + 驱动 + 断言。
+    /// <summary>控件模板自检：模板 prefab 实例化 + 驱动 + 断言。
     /// 自动化清单口径同《测试开发方案》：可代码驱动的行为面才断言（指针交互动画不在范围）。</summary>
     public static class WidgetPrefabCheck
     {
-        private const string Dir = "Assets/UI/Widgets";    // 2026-09-19：UI 已从 LiteGame 迁到顶层 Assets/UI
+        private const string Dir = "Assets/UI/Widgets";    // UI 控件模板目录（顶层 Assets/UI）
         private const string Tag = "WidgetTemplateCheck";
 
         [MenuItem("LiteGame/UI/校验控件模板")]
@@ -986,7 +984,7 @@ namespace LiteGame.Editor
 
         /// <summary>
         /// 自检主体（菜单与 EditMode 用例共用）：返回 通过数 / 失败数。
-        /// L2 门禁经 `Assets/Tests/EditMode` 的用例调用它——**不重复实现**，菜单与 CI 同源。
+        /// 门禁经 `Assets/Tests/EditMode` 的用例调用它——**不重复实现**，菜单与 CI 同源。
         /// </summary>
         public static (int pass, int fail) RunAll()
         {
@@ -1038,7 +1036,7 @@ namespace LiteGame.Editor
                 return ok;
             }, ref fail);
 
-            // ---------- 批③ 余件断言 ----------
+            // ---------- 余件断言 ----------
 
             pass += Check("Toast：Template 接线且为非激活", () =>
             {
@@ -1300,9 +1298,9 @@ namespace LiteGame.Editor
                 return ok;
             }, ref fail);
 
-            // ---------- 批⑦：受控 API 扩展（P0）断言 ----------
+            // ---------- 受控 API 扩展断言 ----------
 
-            pass += Check("G1：SetInteractable 打 StateButton 不再抛（回退 UIWidget.Interactable）", () =>
+            pass += Check("G1：SetInteractable 打 StateButton 不抛（回退 UIWidget.Interactable）", () =>
             {
                 var go = Instantiate("StateButton");
                 var btn = go.GetComponent<LiteGame.UI.StateButton>();
@@ -1381,7 +1379,7 @@ namespace LiteGame.Editor
                 return ok;
             }, ref fail);
 
-            // ---------- 批⑧：G20 动效口断言（EditMode 只验解析层与错误语义；DOTween 行为留 Play）----------
+            // ---------- 动效口断言（EditMode 只验解析层与错误语义；DOTween 行为留 Play）----------
             // 为何不在 EditMode 断言 tween 状态：① LiteGame.Editor.asmdef 不引用 DOTween.Modules（写不了 DOTween API）
             // ② EditMode 无播放循环 tween 不推进，且 DOTween.Init() 会 spawn 对象污染当前打开的场景。
 
