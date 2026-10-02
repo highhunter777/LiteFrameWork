@@ -36,6 +36,9 @@ namespace LiteGame.EditorTools
         /// <summary>无轮询状态（Pipeline eval 主线程窗口 5s < SBP 构建时长——异步启动 + 轮询本状态）。</summary>
         public static string Status { get; private set; } = "idle";
 
+        /// <summary>最近一次构建的**产物目录**（PackageRoot，含版本/清单/Bundle——候选打包的输入）。</summary>
+        public static string LastOutputDirectory { get; private set; } = string.Empty;
+
         /// <summary>异步启动构建（EditorApplication.delayCall 下一帧执行；调用方轮询 <see cref="Status"/>）。</summary>
         public static void RunAsync()
         {
@@ -59,10 +62,29 @@ namespace LiteGame.EditorTools
         /// <summary>Windows Offline 包便捷入口（Pipeline eval/CI 调用——避免 eval 内联写 BuildTarget 类型名）。</summary>
         public static void RunStandaloneWindows64() => Run(BuildTarget.StandaloneWindows64);
 
+        /// <summary>
+        /// **候选专用入口**（样例①真实资产包段）：构建 DefaultPackage 但**不复制到 StreamingAssets**
+        /// ——内置包保持既有版本与内容（否则内置包带上新收集组的内容，样例证据自毁）。
+        /// 产物目录经 <paramref name="outputDirectory"/> 返回（同时记录到 <see cref="LastOutputDirectory"/>），
+        /// 由发布脚本以 `publish-candidate.ps1 -BundleSource &lt;dir&gt;` 打成候选的 `bundle/` 段。
+        /// </summary>
+        [MenuItem("LiteGame/Resource/样例：构建候选 Bundle（不覆盖内置包）")]
+        public static void RunForCandidateFromMenu()
+        {
+            RunForCandidate(out string dir);
+            Debug.Log($"[BuiltinBundle] 候选构建完成（未覆盖内置包）：{dir}");
+        }
+
+        public static void RunForCandidate(out string outputDirectory)
+            => RunCore(BuildTarget.StandaloneWindows64, EBundledCopyOption.None, out outputDirectory);
+
         /// <summary>同步构建（Unity 主线程调用——SBP 构建过程内部自管异步等待）。
         /// **显式目标平台**：跟随 activeBuildTarget 会在 C0-② 会话遗留 Android 目标时打出 ARM64 包进
         /// Windows Player（实测 02:18 踩坑）——Offline 冒烟的宿主是 Windows，目标固定并主动切换。</summary>
         public static void Run(BuildTarget buildTarget = BuildTarget.StandaloneWindows64)
+            => RunCore(buildTarget, EBundledCopyOption.ClearAndCopyAll, out _);
+
+        private static void RunCore(BuildTarget buildTarget, EBundledCopyOption copyOption, out string outputDirectory)
         {
             if (EditorUserBuildSettings.activeBuildTarget != buildTarget)
             {
@@ -83,7 +105,7 @@ namespace LiteGame.EditorTools
                 UseAssetDependencyDB = true,           // 增量依赖库（构建提速）
                 VerifyBuildingResult = true,           // 构建结果校验（§4 原则 10：先验证后提交）
                 FileNameStyle = EFileNameStyle.HashName,
-                BundledCopyOption = EBundledCopyOption.ClearAndCopyAll,
+                BundledCopyOption = copyOption,
                 BundledCopyParams = string.Empty,
             };
 
@@ -93,7 +115,9 @@ namespace LiteGame.EditorTools
             if (!result.Success)
                 throw new InvalidOperationException($"内置 Bundle 构建失败（{result.FailedTask}）：{result.ErrorInfo}");
 
-            Debug.Log($"[BuiltinBundle] 构建成功：package={PackageName} version={buildParameters.PackageVersion} target={buildTarget} output={result.OutputPackageDirectory}");
+            LastOutputDirectory = result.OutputPackageDirectory;
+            outputDirectory = result.OutputPackageDirectory;
+            Debug.Log($"[BuiltinBundle] 构建成功：package={PackageName} version={buildParameters.PackageVersion} target={buildTarget} copy={copyOption} output={result.OutputPackageDirectory}");
         }
     }
 }

@@ -47,11 +47,25 @@ namespace LiteGame.Tests.EditMode
         }
 
         [Test]
+        public void 布局_bundle前缀_挑出资产包文件()
+        {
+            var m = ManifestWith("bundle/DefaultPackage.version", "bundle/ab12.bundle", "config/a.bytes", "lua/main.lua");
+            var files = ReleaseLayout.BundleFiles(m);
+
+            Assert.AreEqual(2, files.Count, "只取 bundle/ 前缀（资产包根镜像）");
+            Assert.AreEqual("bundle/DefaultPackage.version", files[0]);
+            Assert.AreEqual("bundle/ab12.bundle", files[1]);
+            StringAssert.StartsWith("bundle/", ReleaseLayout.BundlePrefix);
+            Assert.AreEqual("content/candidate/bundle", ReleaseLayout.CandidateBundleRootRelative);
+        }
+
+        [Test]
         public void 布局_空清单_返回空集合不抛()
         {
             var m = ManifestWith();
             Assert.AreEqual(0, ReleaseLayout.ConfigPaths(m).Count);
             Assert.AreEqual(0, ReleaseLayout.LuaScripts(m).Count);
+            Assert.AreEqual(0, ReleaseLayout.BundleFiles(m).Count);
         }
 
         [Test]

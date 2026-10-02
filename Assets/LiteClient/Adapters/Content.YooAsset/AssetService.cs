@@ -12,7 +12,10 @@ namespace LiteGame
     /// 契约：
     /// ① location 统一使用资源完整路径（如 "Assets/GameData/Config/tbcombatnum.bytes"）——RawFile location 用完整路径；
     /// ② UniTask 签名（§7.7），底层 YooAsset 3.0.5（经 UniTaskAssetExtensions 适配）；初始化必须先于一切加载（ProcedurePreload 驱动）；
-    /// ③ EditorSimulateMode（编辑器开发）与 OfflinePlayMode（Player 内置包）为当前支持模式；Host/Web 模式与热更流程未实现；
+    /// ③ EditorSimulateMode（编辑器开发）与 OfflinePlayMode（Player）为当前支持模式；Host/Web 模式与
+    ///    网络下载流程未实现。Player 的 OfflinePlayMode **包根可变**：`builtinPackageRoot` 为空 = 内置包
+    ///    （StreamingAssets/yoo）；非空 = 以该绝对路径为包根（**已确认候选的 `bundle/` 镜像**，
+    ///    根解析见 <see cref="CandidateBundleRootResolver"/>）；
     /// ④ 每个句柄用完 Release（本类内部完成），无句柄外泄；加载失败抛 InvalidOperationException 带 location——fail-fast 由流程 Fail() 接；
     /// ⑤ 主线程 only（YooAsset 操作无线程安全承诺）。
     /// </summary>
@@ -38,15 +41,17 @@ namespace LiteGame
         /// <summary>
         /// 初始化资源包。由 ProcedurePreload 调用一次，重复调用幂等。
         /// Editor：EditorSimulateMode（虚拟构建 + 编辑器文件系统直读，零构建成本）。
-        /// Player：OfflinePlayMode——内置包（StreamingAssets/yoo）加载，无网络下载；
-        ///         StreamingAssets 无内置包时初始化失败 → 流程 Fail → 错误 UI（可诊断，不静默）。
+        /// Player：OfflinePlayMode——<paramref name="builtinPackageRoot"/> 为空时读内置包
+        ///         （StreamingAssets/yoo）；非空时以该**绝对路径**为包根（已确认候选的 `bundle/` 镜像）；
+        ///         包根缺版本文件时初始化失败 → 流程 Fail → 错误 UI（可诊断，不静默）。
         /// 共享尾段：Initialize → 请求版本 → 加载清单（模拟/离线均由对应文件系统应答，3.0 拆分）。
         /// </summary>
-        public static async UniTask InitAsync(string packageName = DefaultPackageName, CancellationToken ct = default)
+        public static async UniTask InitAsync(string packageName = DefaultPackageName,
+            CancellationToken ct = default, string builtinPackageRoot = null)
         {
             if (s_initialized) return;
 
-            UnityEngine.Debug.Log("[Asset] init begin");         // 临时诊断
+            UnityEngine.Debug.Log($"[Asset] init begin root={(string.IsNullOrEmpty(builtinPackageRoot) ? "builtin" : builtinPackageRoot)}");   // 临时诊断
 
 #if UNITY_EDITOR
             if (!YooAssets.IsInitialized) YooAssets.Initialize();
@@ -63,7 +68,8 @@ namespace LiteGame
                     FileSystemParameters.CreateDefaultEditorFileSystemParameters(simulateResult.PackageRootDirectory),
             };
 #else
-            // Player：OfflinePlayMode——内置文件系统从 StreamingAssets 应答版本/清单/Bundle
+            // Player：OfflinePlayMode——内置文件系统从包根应答版本/清单/Bundle。
+            // 包根二选一：非空 = 已确认候选的 bundle/ 镜像（自定义根）；空 = StreamingAssets 内置包。
             if (!YooAssets.IsInitialized) YooAssets.Initialize();
             if (!YooAssets.TryGetPackage(packageName, out var package))
                 package = YooAssets.CreatePackage(packageName);
@@ -71,7 +77,9 @@ namespace LiteGame
 
             InitializePackageOptions initializeOptions = new OfflinePlayModeOptions
             {
-                BuiltinFileSystemParameters = FileSystemParameters.CreateDefaultBuiltinFileSystemParameters(),
+                BuiltinFileSystemParameters = string.IsNullOrEmpty(builtinPackageRoot)
+                    ? FileSystemParameters.CreateDefaultBuiltinFileSystemParameters()
+                    : FileSystemParameters.CreateDefaultBuiltinFileSystemParameters(builtinPackageRoot),
             };
 #endif
 
@@ -85,7 +93,7 @@ namespace LiteGame
             await manifestOp.AsUniTask(ct);
 
             s_initialized = true;
-            UnityEngine.Debug.Log($"[Asset] ready package={packageName} version={package.GetPackageVersion()}");   // 临时诊断：冒烟标记（与 Log.Info 双打）
+            UnityEngine.Debug.Log($"[Asset] ready package={packageName} version={package.GetPackageVersion()} root={(string.IsNullOrEmpty(builtinPackageRoot) ? "builtin" : builtinPackageRoot)}");   // 临时诊断：冒烟标记（与 Log.Info 双打）
             Log.Info($"AssetService 就绪:package \"{packageName}\" version {package.GetPackageVersion()}", "Asset");
         }
 

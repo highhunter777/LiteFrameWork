@@ -13,6 +13,9 @@ namespace LiteGame
     ///    启动恢复 → 取候选 → 信任门（描述校验/签名）→ 空间预检 → 获取 → 逐文件校验 →
     ///    标记待激活 → 激活 → 健康确认 → 确认提交。**无候选时仍执行启动恢复**。
     /// ② 资源包初始化（当前 Confirmed 代——`ActiveGeneration`）。
+    /// ③ 入口资源检查（可选；<see cref="AssetsHealthProbe"/>）——**须在②之后**：探针走运行时同一条
+    ///    租约通道加载入口资源，而在②之前资源包尚未就绪（Patch 早于初始化的时序不可能执行它）。
+    ///    失败 = Error 流程（与②失败同轨，不静默）；通过记证据行供冒烟核对。
     ///
     /// 失败 = RecordFailure + Error 流程（确定错误态）；编排内部已保证"失败保留允许版本"（§8），
     /// 故此处不做回退——回退由 `PatchCoordinator` 在健康失败时执行。
@@ -22,16 +25,20 @@ namespace LiteGame
         private readonly IContentService _content;
         private readonly ActivationTransactionStore _activations;
         private readonly PatchRunner _patchRunner;
+        private readonly IHealthProbe _entryAssetsProbe;
 
         /// <param name="patchRunner">内容事务编排（可空——为空时退化为"仅启动恢复 + 初始化"，
         /// 用于无候选来源的装配形态；**不得**据此宣称具备热更能力）。</param>
+        /// <param name="entryAssetsProbe">入口资源可加载性探针（可空——为空时不检查；时序说明见类注释）。</param>
         public ProcedurePatch(IContentService content, ActivationTransactionStore activations,
-            PatchRunner patchRunner = null, CancellationToken rootToken = default)
+            PatchRunner patchRunner = null, CancellationToken rootToken = default,
+            IHealthProbe entryAssetsProbe = null)
             : base(rootToken)
         {
             _content = content ?? throw new ArgumentNullException(nameof(content));
             _activations = activations ?? throw new ArgumentNullException(nameof(activations));
             _patchRunner = patchRunner;
+            _entryAssetsProbe = entryAssetsProbe;
         }
 
         protected override void RunAsync(IStageHost<ProcedureId, ProcedureArgs> m, in ProcedureArgs req, CancellationToken ct)
@@ -68,6 +75,23 @@ namespace LiteGame
 
                 // ② 资源包初始化（当前 Confirmed 代——ActiveGeneration；失败含根因上抛）
                 await _content.InitializeAsync(ct);
+
+                // ③ 入口资源检查（须在②之后——见类注释）。候选资产包根是否真正可用（能加载出入口资源）
+                //    在此给出确定证据；失败进确定错误态（与②同轨）。
+                if (_entryAssetsProbe != null)
+                {
+                    string problem = await _entryAssetsProbe.CheckAsync(null, ct);
+                    if (problem != null)
+                    {
+                        var probeError = new InvalidOperationException(
+                            $"入口资源检查失败（{_entryAssetsProbe.Name}）：{problem}");
+                        Fail(m, probeError, nameof(RunAsyncCore));
+                        m.Request(ProcedureId.Error, new ProcedureArgs(probeError));
+                        return;
+                    }
+                    UnityEngine.Debug.Log($"[Content] entry-assets ok probe={_entryAssetsProbe.Name}");   // 证据行（冒烟核对）
+                    Log.Info($"入口资源可加载（{_entryAssetsProbe.Name}）", "Content");
+                }
 
                 m.Request(ProcedureId.Preload);
             }

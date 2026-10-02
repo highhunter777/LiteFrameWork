@@ -154,7 +154,8 @@ namespace LiteGame
 
             return new StageMachine<ProcedureId, ProcedureArgs>("Procedure",
                 (ProcedureId.Launch, new ProcedureLaunch(rootToken)),
-                (ProcedureId.Patch, new ProcedurePatch(content, activations, patchRunner, rootToken)),
+                (ProcedureId.Patch, new ProcedurePatch(content, activations, patchRunner, rootToken,
+                    context.Require<AssetsHealthProbe>())),
                 (ProcedureId.Preload, new ProcedurePreload(content, config, lua, filler, events, () => ListLuaAssetPaths(content), rootToken)),
                 (ProcedureId.Main, new ProcedureMain(openUi, _scenes, rootToken)),
                 (ProcedureId.Match, new ProcedureMatch(context.RootScope, rootToken)),

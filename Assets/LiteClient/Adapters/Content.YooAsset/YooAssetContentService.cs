@@ -67,9 +67,26 @@ namespace LiteGame
 
         public async UniTask InitializeAsync(CancellationToken ct = default)
         {
-            await AssetService.InitAsync(ct: ct);                 // 幂等：与 ProcedurePreload/既有调用方共存
+            // 包根选择（真实资产包段）：激活记录给出**已确认候选**且候选资产包版本文件已就位时，
+            // 以候选 `content/candidate/bundle` 为包根（绝对路径）；否则沿用内置包根（StreamingAssets/yoo）。
+            string bundleRoot = ResolveConfirmedBundleRoot();
+            await AssetService.InitAsync(ct: ct, builtinPackageRoot: bundleRoot);
             _generation = ContentGeneration.Default;
             Interlocked.Exchange(ref _initialized, 1);
+        }
+
+        /// <summary>
+        /// 解析已确认候选的资产包根绝对路径；不满足（无候选身份/版本文件缺失）返回 null = 沿用内置包根。
+        /// 激活记录经 <see cref="FileActivationRecordIO"/> 读（与 Patch 流程同一记录、同一 FileSys 根）。
+        /// </summary>
+        private static string ResolveConfirmedBundleRoot()
+        {
+            ActivationRecord record = new FileActivationRecordIO().TryLoad();
+            if (!CandidateBundleRootResolver.IsCandidateBundleReady(record?.ConfirmedReleaseId,
+                ReleaseLayout.CandidateBundleRootRelative, AssetService.DefaultPackageName, FileSys.Exists))
+                return null;
+            return string.Concat(UnityEngine.Application.persistentDataPath, "/",
+                ReleaseLayout.CandidateBundleRootRelative);
         }
 
         /// <summary>

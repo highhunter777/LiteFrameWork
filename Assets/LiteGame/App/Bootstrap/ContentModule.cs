@@ -31,25 +31,28 @@ namespace LiteGame
             //   HttpCandidateFetcher，来源经 DownloadPlan 下发）；未配 → 本地信封文件通道（现行为，
             //   无网络依赖，离线开发用）。
             // - **磁盘余量 = DriveInfo**：桌面返回真实可用空间；移动端 -1 不可知 → 空间预检按不足处理。
-            // - **健康探针族**：候选配置（config/ 前缀 = Luban 表字节）+ 候选 Lua（lua/ 前缀 → 模块名 →
+            // - **健康探针族**：
+            //   候选配置（config/ 前缀 = Luban 表字节）+ 候选 Lua（lua/ 前缀 → 模块名 →
             //   受控沙箱执行）——两者基于候选根文件，先于资源包初始化可运行。
             //   入口资源可加载性探针（AssetsHealthProbe）查当前代次入口，须在资源包初始化后才有意义
-            //   （Patch 先于初始化，时序不可能）。
+            //   （Patch 先于初始化，时序不可能）——本模块只**登记**探针，由 ProcedurePatch 在初始化后执行；
+            //   入口清单见 ContentSampleAssets（样例①真实资产包段：标记素材只在候选包，能加载即证据）。
             ContentCdnConfig deploy = ContentDeployConfig.Load();
+            string candidateRoot = ReleaseLayout.CandidateRootRelative;
             ICandidateFetcher fetcher;
             ICandidateProvider provider;
             Func<ReleaseManifest, DownloadPlan> planFactory;
             if (deploy.HasCdn)
             {
                 var source = new DownloadSource("cdn", deploy.BaseUrl);
-                fetcher = new HttpCandidateFetcher(CandidateRoot, deploy.TimeoutSeconds);
+                fetcher = new HttpCandidateFetcher(candidateRoot, deploy.TimeoutSeconds);
                 provider = new HttpCandidateProvider(deploy.BaseUrl, deploy.OfferPath, deploy.TimeoutSeconds);
                 planFactory = manifest => new DownloadPlan(manifest, new[] { source });
                 Log.Info($"内容通道：CDN {deploy.BaseUrl}（信封 {deploy.OfferPath}）", "Content");
             }
             else
             {
-                fetcher = new LocalDirectoryCandidateFetcher(CandidateRoot);
+                fetcher = new LocalDirectoryCandidateFetcher(candidateRoot);
                 provider = new FileSystemCandidateProvider();
                 planFactory = null;                       // PatchRunner 默认计划（本地通道只清点落盘、不消费来源）
                 Log.Info("内容通道：本地信封（未配置 CDN）", "Content");
@@ -57,15 +60,15 @@ namespace LiteGame
 
             var trustedKeys = new TrustedKeyStore();
             ContentTrustAnchors.ApplyTo(trustedKeys);                                // 锚点已 provisioning
-            var candidateFiles = new FileSysCandidateFileSource(CandidateRoot);
+            var candidateFiles = new FileSysCandidateFileSource(candidateRoot);
             var coordinator = new PatchCoordinator(
                 context.Require<ActivationTransactionStore>(),
                 candidateFiles,
                 new DriveInfoSpaceProbe(UnityEngine.Application.persistentDataPath),
                 fetcher,
                 new CompositeHealthCheck(
-                    new CandidateConfigHealthProbe(CandidateRoot, ReleaseLayout.ConfigPaths),
-                    new LuaScriptsHealthProbe(CandidateRoot, ReleaseLayout.LuaScripts)),
+                    new CandidateConfigHealthProbe(candidateRoot, ReleaseLayout.ConfigPaths),
+                    new LuaScriptsHealthProbe(candidateRoot, ReleaseLayout.LuaScripts)),
                 new ContentActivator(_content));
             context.Put(new PatchRunner(
                 provider,
@@ -76,11 +79,11 @@ namespace LiteGame
                 budget: null,
                 planFactory: planFactory));
             context.Put(coordinator);
+
+            // 入口资产探针（初始化后执行；时序说明见上）——入口清单来自 ContentSampleAssets（单源）。
+            context.Put(new AssetsHealthProbe(_content, ContentSampleAssets.EntryLocations));
             return UniTask.CompletedTask;
         }
-
-        /// <summary>候选根（FileSys 相对路径）。</summary>
-        internal const string CandidateRoot = "content/candidate";
 
         /// <summary>
         /// 运行时可接受的能力下限（§5 版本元组"当前 Player 实际具备"的一侧）。
