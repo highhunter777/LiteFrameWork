@@ -118,12 +118,14 @@ namespace LiteGame.Tests.EditMode
 
             modalOpen = true;
             input.SampleOnRenderFrame(default);                   // 渲染帧采样 = 门在此裁决（生产序）
+            input.TryTakeForSend(out _);                          // 上行取值——渲染帧边界清（否则下帧采样被判"已裁决"跳过）
             driver.Tick();
             Assert.IsFalse(reticle.gameObject.activeSelf, "被拦 → 藏准心");
             Assert.AreEqual(true, cursor[cursor.Count - 1], "被拦 → 还系统光标（模态要点按钮）");
 
             modalOpen = false;
             input.SampleOnRenderFrame(default);
+            input.TryTakeForSend(out _);                          // 生产序：帧边界清后本帧采样才重评门
             driver.Tick();
             Assert.IsTrue(reticle.gameObject.activeSelf, "解拦 → 准心恢复");
             Assert.AreEqual(false, cursor[cursor.Count - 1], "对局内准心替代光标");
