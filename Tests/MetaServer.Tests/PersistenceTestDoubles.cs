@@ -161,9 +161,17 @@ namespace MetaServer.Tests
                     new OutboxEnqueueOutcome.RejectedFull(_state.Capacity));
             }
 
-            _state.Items.Add(envelope);
+            // 存储端权威：Status/Attempts/CreatedAtUtc 不取调用方值（与 MongoOutboxStore 同语义）
+            OutboxEnvelope stored = envelope with
+            {
+                Status = OutboxStatus.Pending,
+                Attempts = 0,
+                CreatedAtUtc = DateTime.UtcNow,
+                LastFailureReason = null,
+            };
+            _state.Items.Add(stored);
             return ValueTask.FromResult<OutboxEnqueueOutcome>(
-                new OutboxEnqueueOutcome.Enqueued(envelope));
+                new OutboxEnqueueOutcome.Enqueued(stored));
         }
 
         public ValueTask<IReadOnlyList<OutboxEnvelope>> ListPendingAsync(int max, CancellationToken ct)
@@ -201,12 +209,16 @@ namespace MetaServer.Tests
             if (index >= 0)
             {
                 OutboxEnvelope current = _state.Items[index];
-                // 状态保持 Pending（可重试），只累加计数——§10"未提交项保持可重试状态"
-                _state.Items[index] = current with
+                if (current.Status == OutboxStatus.Pending)
                 {
-                    Status = OutboxStatus.Pending,
-                    Attempts = current.Attempts + 1,
-                };
+                    // 状态保持 Pending（可重试），只累加计数并落原因——§10"未提交项保持可重试状态"；
+                    // 已 Confirmed 条目幂等不累加（与 MongoOutboxStore 同语义）
+                    _state.Items[index] = current with
+                    {
+                        Attempts = current.Attempts + 1,
+                        LastFailureReason = reason,
+                    };
+                }
             }
             return ValueTask.CompletedTask;
         }

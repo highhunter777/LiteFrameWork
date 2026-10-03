@@ -36,7 +36,7 @@ namespace MetaServer.IntegrationTests
             Skip.If(!_fixture.Available, "Mongo 不可达且 docker 不可用（MONGO_TEST_URI / litegame-mongo 容器）");
             await _fixture.MigrateToLatestAsync(_database);
             IMongoDatabase database = _fixture.CreateClient().GetDatabase(_database);
-            return new MongoOutboxStore(database, capacity);
+            return new MongoOutboxStore(database, capacity, () => DateTime.UtcNow);
         }
 
         [SkippableFact]
@@ -137,7 +137,7 @@ namespace MetaServer.IntegrationTests
             await store.MarkConfirmedAsync("op-1", CancellationToken.None);
 
             IMongoDatabase database = _fixture.CreateClient().GetDatabase(_database);
-            var rebuilt = new MongoOutboxStore(database, 16);
+            var rebuilt = new MongoOutboxStore(database, 16, () => DateTime.UtcNow);
             var pending = await rebuilt.ListPendingAsync(10, CancellationToken.None);
 
             Assert.Single(pending);
@@ -158,7 +158,7 @@ namespace MetaServer.IntegrationTests
             }
 
             IMongoDatabase database = _fixture.CreateClient().GetDatabase(_database);
-            var afterRestart = new MongoOutboxStore(database, 16);
+            var afterRestart = new MongoOutboxStore(database, 16, () => DateTime.UtcNow);
             var pending = await afterRestart.ListPendingAsync(10, CancellationToken.None);
 
             Assert.Single(pending);                          // 待处理项恢复（仍可重试）

@@ -21,8 +21,16 @@ namespace MetaServer
     {
         // ---- 监听（§4.1 Kestrel；测试用 http://127.0.0.1:0 取临时端口）----
 
-        /// <summary>监听地址。生产必须为 HTTPS 端点（§12"外部接口一律 TLS"）。</summary>
+        /// <summary>监听地址。生产必须为 HTTPS 端点（§12"外部接口一律 TLS"）——
+        /// http 绑定只允许回环地址；非回环 http 需显式置 <see cref="AllowNonLoopbackHttp"/>（受信内网豁免）。</summary>
         public string BindAddress { get; set; } = "http://127.0.0.1:5000";
+
+        /// <summary>
+        /// 非回环 http 绑定豁免（默认 false = 拒绝）。https 绑定不受影响；
+        /// 仅当部署形态确为"受信内网 + 终端 TLS 在上游"时才显式开启——
+        /// 把"生产忘了配 TLS"从静默事故变成启动期显式裁决（硬化批 2026-10-03 门禁化）。
+        /// </summary>
+        public bool AllowNonLoopbackHttp { get; set; }
 
         // ---- 请求边界（对齐《服务端总设计》§5 P0-3"包体在解析前限制长度"）----
 
@@ -33,6 +41,13 @@ namespace MetaServer
 
         /// <summary>关闭时限（秒）：Host 在该期限内完成在途请求与后台服务停止，超时强制结束。</summary>
         public int ShutdownTimeoutSeconds { get; set; } = 15;
+
+        /// <summary>Mongo 集群选择超时（毫秒）——驱动在此期限内选不到可用节点即失败。
+        /// 不可达存储必须快速失败（fail-closed 拒启/503），超时值可配以适配内网拓扑。</summary>
+        public int MongoServerSelectionTimeoutMs { get; set; } = 5000;
+
+        /// <summary>/ready 存储 ping 超时（毫秒）：健康检查必须 bounded，不得拖死探针响应。</summary>
+        public int ReadyPingTimeoutMs { get; set; } = 2000;
 
         // ---- 持久化（M0-c 批二，2026-09-30；§9.1/§10/§11.2）----
 
@@ -71,6 +86,13 @@ namespace MetaServer
             {
                 errors.Add("BindAddress 只支持 http/https，实际：" + parsed.Scheme);
             }
+            else if (parsed.Scheme == Uri.UriSchemeHttp && !IsLoopbackHost(parsed) && !AllowNonLoopbackHttp)
+            {
+                // §12"外部接口一律 TLS"的门禁化：非回环 http 默认拒绝——
+                // 把"生产忘配 TLS"从静默事故变成启动期显式裁决（豁免需显式置 AllowNonLoopbackHttp）
+                errors.Add("BindAddress 为 http 且非回环地址（" + parsed.Host + "）——外部接口必须 TLS；" +
+                           "确需非回环 http（受信内网）请显式置 AllowNonLoopbackHttp=true");
+            }
 
             // 1MB 上限与 §5 P0-3 的"解析前限制长度"一致；低于 1KB 会挡住正常登录载荷
             if (MaxInboundBytes < 1024 || MaxInboundBytes > 1024 * 1024)
@@ -83,13 +105,25 @@ namespace MetaServer
                 errors.Add("ShutdownTimeoutSeconds 必须在 1..300，实际：" + ShutdownTimeoutSeconds);
             }
 
+            if (MongoServerSelectionTimeoutMs < 100 || MongoServerSelectionTimeoutMs > 60000)
+            {
+                errors.Add("MongoServerSelectionTimeoutMs 必须在 100..60000，实际：" + MongoServerSelectionTimeoutMs);
+            }
+
+            if (ReadyPingTimeoutMs < 100 || ReadyPingTimeoutMs > 10000)
+            {
+                errors.Add("ReadyPingTimeoutMs 必须在 100..10000，实际：" + ReadyPingTimeoutMs);
+            }
+
             // ---- 持久化（M0-c 批二）：功能门 + 形状校验 ----
             // 驱动 3.x 无 MongoUrl.TryCreate——用 Create 的异常面判合法性（配置校验场景，
-            // 把任何解析失败都归为"非法 URI"并回报原值，不做进一步分类）
+            // 任何解析失败都归为"非法 URI"）。**错误信息不回显原串**——连接串可能含凭据，
+            // 回显会经 ValidateOnStart 的异常面泄入 stderr/日志（硬化批 2026-10-03）。
             bool storageConfigured = !string.IsNullOrWhiteSpace(MongoConnectionString);
             if (storageConfigured && !IsParsableMongoUri(MongoConnectionString))
             {
-                errors.Add("MongoConnectionString 必须是合法 mongodb/mongodb+srv URI：" + MongoConnectionString);
+                errors.Add("MongoConnectionString 必须是合法 mongodb/mongodb+srv URI（长度 " +
+                           MongoConnectionString.Length + "；原串可能含凭据，不回显）");
             }
             if (storageConfigured && string.IsNullOrWhiteSpace(MongoDatabaseName))
             {
@@ -118,6 +152,14 @@ namespace MetaServer
             {
                 return false;
             }
+        }
+
+        /// <summary>回环宿主判定（127.0.0.0/8、::1、localhost）——http 门禁用。</summary>
+        private static bool IsLoopbackHost(Uri bind)
+        {
+            if (string.Equals(bind.Host, "localhost", StringComparison.OrdinalIgnoreCase)) return true;
+            return System.Net.IPAddress.TryParse(bind.Host, out System.Net.IPAddress ip)
+                   && System.Net.IPAddress.IsLoopback(ip);
         }
     }
 }

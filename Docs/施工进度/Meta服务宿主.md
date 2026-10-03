@@ -21,6 +21,31 @@ R2 行亦写"RoomServer 侧：Join Ticket **本地验签**"。Meta 侧只**签�
 
 ## 施工记录
 
+### 2026-10-03 · MetaServer 硬化批（架构审查 P2/P3 修复：线程安全/脱敏/元数据权威/门禁化）
+
+**背景**：2026-10-03 服务端架构审查登记的 MetaServer 侧债务，按"信封线并行不相交"原则收口本批
+（不触 RoomServer/Transport；MetaServer 亦不在 RoomServer buildHash 闭包内，无哈希联动）。
+
+**交付物**：
+
+| # | 项 | 内容 |
+| --- | --- | --- |
+| H1 | `Ops` 线程安全 | Kestrel 并发请求共用同一实例——计数改 `Interlocked`（`CountRequest`/`CountRejected` 方法，读面保留只读属性）；`/metrics` 格式化改每次调用独立缓冲（原共享 StringBuilder 并发互踩）。L1 并发用例（8 线程 × 1 万次）钉住不丢计数 |
+| H2 | Mongo 连接串脱敏 | 非法 URI 校验错误**不再回显原串**（可能含凭据，原样泄入 stderr/日志）；只报长度与形状提示 |
+| H3 | Outbox 元数据存储端权威 | `OutboxEnvelope` 增 `CreatedAtUtc`/`LastFailureReason`（默认参数，既有 4 参构造零破坏）；**调用方只声明 OperationId/Payload**——入队时存储端强制 Pending/0/当前 UTC（修复 Attempts 播种）；`RecordFailureAsync` 改条件更新：**只对 Pending 生效**（已 Confirmed 幂等不累加、未知无操作）并落原因/时刻（修复"丢 reason 且 Confirmed 也累加"）。`OutboxDoc` 增三字段（Bson 无 schema，旧文档读回缺省值，**无迁移**、索引不变）。UTC 口径对齐 §5.2 |
+| H4 | Program 退出诊断与 CLI 门禁 | 未知参数/`--bind` 缺值 = 配置错误退出码 2（修复"静默忽略拼错覆盖项"与 fail-closed 矛盾）；解析收口 `MetaHost.ParseCliOverrides`（L1 可测）；启动异常改打完整堆栈（`ToString`——迁移/依赖失败需要原始抛点） |
+| H5 | 超时可配 | `MongoServerSelectionTimeoutMs`（默认 5000，100..60000）/`ReadyPingTimeoutMs`（默认 2000，100..10000）落 Options 管线（修复两处硬编码），范围校验进 `Validate` |
+| H6 | TLS 门禁化 | http 绑定只允许回环地址（127.0.0.1/::1/localhost）；非回环 http 默认拒绝、需显式 `AllowNonLoopbackHttp=true`（受信内网豁免）——§12"外部接口一律 TLS"从注释落成启动期门禁 |
+
+**验证证据**：
+
+| 门禁 | 命令 | 结果 |
+| --- | --- | --- |
+| L1 | `dotnet test Tests/MetaServer.Tests -c Release` | **69 / 0**（+15 例：超时范围×4、回环三形态、非回环拒绝/豁免、https 不受门禁影响、连接串脱敏、CLI 解析×3、Ops 并发计数、Outbox 元数据权威×3） |
+| L3 | `MONGO_TEST_URI=mongodb://127.0.0.1:27017/?replicaSet=rs0 dotnet test Tests/MetaServer.Integration.Tests -c Release` | **24 真跑 / 0 失败** + 2 例容器重启恢复跳过（docker 依赖，同既有记录口径；用户态 mongod 8.0.32 副本集） |
+
+**已知边界**：`/ready` 未含 Outbox 积压阈值（依赖派发器语义，归 R3）；`appsettings.json` 版本化文件载体仍缺（需"代码默认值 vs 文件基线"单源裁决，登记待办）；`SampleSettlementCommand` 挪出 Contracts 与样例错误形状统一（归 G3 契约批）；安全信封由并行线施工中（后注：同日 2026-10-03 批1 已交付，[安全信封](安全信封.md)）。
+
 ### 2026-09-30 · M0-c 持久化接缝（批二：真 Mongo 实存储 + L3 重启恢复报告）——M0-c 关闭
 
 **范围**：MongoDB.Driver 装配裁决、真适配器三件、宿主接线（配置/启动迁移/样例端点//ready）、L3 容器夹具与用例、
@@ -164,7 +189,7 @@ R2 行亦写"RoomServer 侧：Join Ticket **本地验签**"。Meta 侧只**签�
 | L3 | `scripts/test.ps1 -Lane L3` | **57 通过 / 0 失败**（LiteNet.Tests 由 9 → **51**，+42 即本批；MetaServer 6） |
 | L1 | `scripts/test.ps1 -Lane L1` | **761 通过 / 0 失败**（本批用例标 `Integration`，按分层归 **L3** 不占 L1） |
 
-**未完成**：Meta 侧签发端（G3）；非对称验签（R2 可选）；~~重连票据 CSPRNG 化（R2）~~ 已于 2026-09-30 交付（[服务端R2安全](服务端R2安全.md)）；~~远端限流~~ 已交付（同上），**安全信封仍缺（另立专项）**。
+**未完成**：Meta 侧签发端（G3）；非对称验签（R2 可选）；~~重连票据 CSPRNG 化（R2）~~ 已于 2026-09-30 交付（[服务端R2安全](服务端R2安全.md)）；~~远端限流~~ 已交付（同上），~~**安全信封仍缺（另立专项）**~~ **批1 已于 2026-10-03 交付（[安全信封](安全信封.md)）；批2 运维接缝随 R4**。
 
 ### 2026-09-25 · 宿主骨架交付（含三处实测缺陷修正）
 

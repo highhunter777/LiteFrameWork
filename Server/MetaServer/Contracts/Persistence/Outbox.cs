@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
@@ -21,9 +22,19 @@ namespace MetaServer.Contracts.Persistence
 
     /// <summary>
     /// 持久 Outbox 条目。<see cref="OperationId"/> 是入队幂等键（§11.2"所有外部写带 requestId/operationId"）。
+    ///
+    /// **调用方只声明 <see cref="OperationId"/>/<see cref="Payload"/>**；<see cref="Status"/>/
+    /// <see cref="Attempts"/>/<see cref="CreatedAtUtc"/>/<see cref="LastFailureReason"/> 是**存储读回字段**——
+    /// 入队时由存储端权威赋值（Pending/0/当前 UTC/null），调用方传入的值一律忽略
+    /// （防 Attempts 播种与状态伪造——硬化批 2026-10-03）。
     /// </summary>
     public sealed record OutboxEnvelope(
-        string OperationId, string Payload, OutboxStatus Status, int Attempts);
+        string OperationId,
+        string Payload,
+        OutboxStatus Status = OutboxStatus.Pending,
+        int Attempts = 0,
+        DateTime CreatedAtUtc = default,
+        string LastFailureReason = null);
 
     /// <summary>入队结果三态——满与重复都必须显式，不得静默丢弃或静默追加。</summary>
     public abstract record OutboxEnqueueOutcome
@@ -59,7 +70,10 @@ namespace MetaServer.Contracts.Persistence
 
         ValueTask MarkConfirmedAsync(string operationId, CancellationToken ct);
 
-        /// <summary>失败记账：状态保持 Pending（可重试），Attempts + 1。</summary>
+        /// <summary>
+        /// 失败记账：**只对 Pending 条目生效**（Confirmed 幂等不累加、未知条目无操作）；
+        /// 状态保持 Pending（可重试），Attempts + 1 并记录原因与时刻（UTC）——重试根因可诊断。
+        /// </summary>
         ValueTask RecordFailureAsync(string operationId, string reason, CancellationToken ct);
     }
 }

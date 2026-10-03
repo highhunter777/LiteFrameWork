@@ -23,13 +23,13 @@ int exitCode = 0;
 
 // 解析覆盖项（不在此校验——校验由 ValidateOnStart 在启动时统一执行，
 // 覆盖文件/环境变量/命令行合并后的**最终生效值**；手写预校验会漏掉配置来源，见 §10）。
-var overrides = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
-for (int i = 0; i < args.Length; i++)
+// 未知参数/缺值 = 配置错误，退出码 2（§12"启动失败必须返回非零退出码"——
+// 静默忽略拼错的覆盖项会让"以为改了配置"成为假象；硬化批 2026-10-03 门禁化）。
+var overrides = MetaHost.ParseCliOverrides(args, out string parseError);
+if (parseError != null)
 {
-    switch (args[i])
-    {
-        case "--bind": if (i + 1 < args.Length) overrides[MetaHost.ConfigSection + ":BindAddress"] = args[++i]; break;
-    }
+    Console.Error.WriteLine("[MetaServer] " + parseError);
+    return 2;
 }
 
 WebApplication app = null;
@@ -67,7 +67,8 @@ catch (OptionsValidationException ex)
 }
 catch (Exception ex)
 {
-    Console.Error.WriteLine("[MetaServer] 启动失败：" + ex.GetType().Name + ": " + ex.Message);
+    // 完整堆栈（ToString）——迁移/依赖失败排障需要原始抛点，只打 Message 会丢失定位线索
+    Console.Error.WriteLine("[MetaServer] 启动失败：" + ex.ToString());
     exitCode = 1;
 }
 finally

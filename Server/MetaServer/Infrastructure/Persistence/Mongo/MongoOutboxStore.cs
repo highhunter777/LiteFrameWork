@@ -15,14 +15,17 @@ namespace MetaServer.Infrastructure.Persistence.Mongo
     /// - 有界容量：入队前 CountDocuments 对界——并发窗口内可短暂越界（检查与插入非原子），
     ///   容量是显式承诺不是硬不变量；超出即 <see cref="OutboxEnqueueOutcome.RejectedFull"/>；
     /// - 次序：入队时经 OutboxSeq 单文档原子自增取 Seq——$natural 无排序保证，不用；
-    /// - 确认/失败：条件更新（已 Confirmed 不回退；失败只累加 Attempts、状态保持 Pending）。
+    /// - 确认/失败：条件更新（已 Confirmed 不回退；失败只对 Pending 累加 Attempts 并落原因/时刻）；
+    /// - **元数据权威**：Status/Attempts/CreatedUtc 由存储端赋值，调用方传入值一律忽略（防播种）；
+    ///   时刻经构造函数注入的时钟取——纯化层不直读墙钟。
     /// </summary>
     public sealed class MongoOutboxStore : IOutboxStore
     {
         private readonly IMongoDatabase _database;
         private readonly int _capacity;
+        private readonly Func<DateTime> _utcNow;
 
-        public MongoOutboxStore(IMongoDatabase database, int capacity)
+        public MongoOutboxStore(IMongoDatabase database, int capacity, Func<DateTime> utcNow)
         {
             if (capacity < 1)
             {
@@ -31,6 +34,7 @@ namespace MetaServer.Infrastructure.Persistence.Mongo
 
             _database = database ?? throw new ArgumentNullException(nameof(database));
             _capacity = capacity;
+            _utcNow = utcNow ?? throw new ArgumentNullException(nameof(utcNow));
         }
 
         public async ValueTask<OutboxEnqueueOutcome> EnqueueAsync(OutboxEnvelope envelope, CancellationToken ct)
@@ -73,8 +77,10 @@ namespace MetaServer.Infrastructure.Persistence.Mongo
             {
                 OperationId = envelope.OperationId,
                 Payload = envelope.Payload,
-                Status = (int)envelope.Status,
-                Attempts = envelope.Attempts,
+                // 存储端权威：Status/Attempts/CreatedUtc 不取调用方值（防播种）；时刻取注入时钟
+                Status = (int)OutboxStatus.Pending,
+                Attempts = 0,
+                CreatedUtc = _utcNow(),
                 Seq = counter.Value,
             };
 
@@ -131,10 +137,14 @@ namespace MetaServer.Infrastructure.Persistence.Mongo
             IMongoCollection<OutboxDoc> outbox =
                 _database.GetCollection<OutboxDoc>(MongoCollectionNames.Outbox);
 
-            // 失败记账：状态保持 Pending（可重试），只累加计数——§10"未提交项保持可重试状态"
+            // 失败记账：**只对 Pending 生效**（已 Confirmed 幂等不累加、未知条目无操作）；
+            // 状态保持 Pending（可重试），只累加计数并落原因/时刻——§10"未提交项保持可重试状态"
             await outbox.UpdateOneAsync(
-                d => d.OperationId == operationId,
-                Builders<OutboxDoc>.Update.Inc(d => d.Attempts, 1),
+                d => d.OperationId == operationId && d.Status == (int)OutboxStatus.Pending,
+                Builders<OutboxDoc>.Update.Combine(
+                    Builders<OutboxDoc>.Update.Inc(d => d.Attempts, 1),
+                    Builders<OutboxDoc>.Update.Set(d => d.LastFailureReason, reason),
+                    Builders<OutboxDoc>.Update.Set(d => d.LastFailureUtc, _utcNow())),
                 null,
                 ct);
         }
@@ -148,7 +158,8 @@ namespace MetaServer.Infrastructure.Persistence.Mongo
         private static OutboxEnvelope ToEnvelope(OutboxDoc doc)
         {
             return new OutboxEnvelope(
-                doc.OperationId, doc.Payload, (OutboxStatus)doc.Status, doc.Attempts);
+                doc.OperationId, doc.Payload, (OutboxStatus)doc.Status, doc.Attempts,
+                doc.CreatedUtc, doc.LastFailureReason);
         }
     }
 }

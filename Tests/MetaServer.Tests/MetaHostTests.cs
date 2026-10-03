@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Net;
 using System.Net.Http;
+using System.Threading;
 using System.Threading.Tasks;
 using LiteTesting;
 using Microsoft.AspNetCore.Builder;
@@ -172,6 +173,60 @@ namespace MetaServer.Tests
             using var http = new HttpClient();
             Assert.Equal(HttpStatusCode.OK, (await http.GetAsync(a.BaseAddress + "/live")).StatusCode);
             Assert.Equal(HttpStatusCode.OK, (await http.GetAsync(b.BaseAddress + "/live")).StatusCode);
+        }
+    }
+
+    /// <summary>
+    /// 纯逻辑面：CLI 覆盖解析门禁与 Ops 并发计数（不起监听）。
+    /// </summary>
+    public sealed class MetaCliAndOpsTests
+    {
+        [Fact]
+        public void 参数解析_合法覆盖_落入配置节()
+        {
+            IReadOnlyDictionary<string, string> overrides =
+                MetaHost.ParseCliOverrides(new[] { "--bind", "http://127.0.0.1:6000" }, out string error);
+
+            Assert.Null(error);
+            Assert.Equal("http://127.0.0.1:6000", overrides["Meta:BindAddress"]);
+        }
+
+        [Theory]
+        [InlineData(new[] { "--bnd", "x" }, "未知参数")]
+        [InlineData(new[] { "--bind" }, "缺少值")]
+        public void 参数解析_未知参数或缺值_报错不静默(string[] args, string expectedFragment)
+        {
+            MetaHost.ParseCliOverrides(args, out string error);
+
+            Assert.NotNull(error);
+            Assert.Contains(expectedFragment, error);
+        }
+
+        [Fact]
+        public void Ops计数_并发不丢()
+        {
+            var ops = new Ops();
+            const int threads = 8;
+            const int perThread = 10_000;
+
+            var barrier = new Barrier(threads);
+            var tasks = new System.Threading.Tasks.Task[threads];
+            for (int t = 0; t < threads; t++)
+            {
+                tasks[t] = System.Threading.Tasks.Task.Run(() =>
+                {
+                    barrier.SignalAndWait();
+                    for (int i = 0; i < perThread; i++)
+                    {
+                        ops.CountRequest();
+                        if (i % 10 == 0) ops.CountRejected();
+                    }
+                });
+            }
+            System.Threading.Tasks.Task.WaitAll(tasks);
+
+            Assert.Equal(threads * perThread, ops.HttpRequests);
+            Assert.Equal(threads * perThread / 10, ops.HttpRejected);
         }
     }
 }

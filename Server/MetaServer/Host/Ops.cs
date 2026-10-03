@@ -1,13 +1,15 @@
 using System;
 using System.Text;
+using System.Threading;
 
 namespace MetaServer
 {
     /// <summary>
     /// Ops 指标（《Meta 服务专项设计》§11.2 Metrics）。
     ///
-    /// 形态沿用 <c>RoomServer.Application.Ops</c>：计数由各处就地累加，本类只做**汇总与格式化**
-    /// （StringBuilder 复用，零分配热路径）。定位是运维观测，不是精确计量器。
+    /// 形态沿用 <c>RoomServer.Application.Ops</c>：计数由各处就地累加，本类只做**汇总与格式化**。
+    /// **线程安全**：Kestrel 并发请求共用同一实例——计数走 <c>Interlocked</c>（硬化批 2026-10-03，
+    /// 修复并发丢计数），/metrics 低频出口每次调用独立缓冲（并发 Format 不再互相踩踏）。
     ///
     /// §11.2 红线：标签**禁用高基数字段**（accountId/playerId/requestId 等只进日志与 Trace）。
     /// 本类因此只做进程级计数，不按调用方维度聚合。
@@ -20,16 +22,24 @@ namespace MetaServer
         /// <summary>进程启动时刻（UTC，UTC 口径见 §5.2"时间字段一律 UTC"）。</summary>
         public readonly DateTime StartedUtc = DateTime.UtcNow;
 
-        /// <summary>HTTP 请求总数（含健康检查）。</summary>
-        public long HttpRequests;
+        private long _httpRequests;
 
-        /// <summary>被拒绝的请求数（超上限/非法）。</summary>
-        public long HttpRejected;
+        private long _httpRejected;
 
         /// <summary>drain 状态：true = 已停止接受外部写，/ready 必须报未就绪（§10 优雅关闭第 1 步）。</summary>
         public volatile bool Draining;
 
-        private readonly StringBuilder _sb = new StringBuilder(256);
+        /// <summary>请求计数（含健康检查；并发安全）。</summary>
+        public void CountRequest() => Interlocked.Increment(ref _httpRequests);
+
+        /// <summary>拒绝计数（4xx/5xx；并发安全）。</summary>
+        public void CountRejected() => Interlocked.Increment(ref _httpRejected);
+
+        /// <summary>HTTP 请求总数（读面；写入只走 <see cref="CountRequest"/>）。</summary>
+        public long HttpRequests => Interlocked.Read(ref _httpRequests);
+
+        /// <summary>被拒绝的请求数（读面；写入只走 <see cref="CountRejected"/>）。</summary>
+        public long HttpRejected => Interlocked.Read(ref _httpRejected);
 
         /// <summary>
         /// 指标文本出口（/metrics）。
@@ -38,17 +48,17 @@ namespace MetaServer
         /// </summary>
         public string FormatMetrics()
         {
-            _sb.Clear();
-            _sb.Append("# TYPE meta_http_request_total counter\n")
-               .Append("meta_http_request_total ").Append(HttpRequests).Append('\n')
-               .Append("# TYPE meta_http_rejected_total counter\n")
-               .Append("meta_http_rejected_total ").Append(HttpRejected).Append('\n')
-               .Append("# TYPE meta_draining gauge\n")
-               .Append("meta_draining ").Append(Draining ? 1 : 0).Append('\n')
-               .Append("# TYPE meta_uptime_seconds gauge\n")
-               .Append("meta_uptime_seconds ")
-               .Append((long)(DateTime.UtcNow - StartedUtc).TotalSeconds).Append('\n');
-            return _sb.ToString();
+            return new StringBuilder(256)
+                .Append("# TYPE meta_http_request_total counter\n")
+                .Append("meta_http_request_total ").Append(HttpRequests).Append('\n')
+                .Append("# TYPE meta_http_rejected_total counter\n")
+                .Append("meta_http_rejected_total ").Append(HttpRejected).Append('\n')
+                .Append("# TYPE meta_draining gauge\n")
+                .Append("meta_draining ").Append(Draining ? 1 : 0).Append('\n')
+                .Append("# TYPE meta_uptime_seconds gauge\n")
+                .Append("meta_uptime_seconds ")
+                .Append((long)(DateTime.UtcNow - StartedUtc).TotalSeconds).Append('\n')
+                .ToString();
         }
     }
 }

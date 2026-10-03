@@ -122,6 +122,66 @@ namespace MetaServer.Tests
             Assert.Equal(2, pending[0].Attempts);
         }
 
+        // ---- 元数据存储端权威 / 失败记账只对 Pending / 原因落库 ----
+
+        [Fact]
+        [Trait(TestTrait.Category, TestCategory.Contract)]
+        public async Task 入队_存储端权威_调用方元数据被重置()
+        {
+            var state = new FakeOutboxState { Capacity = 8 };
+            var store = Store(state);
+            // 调用方恶意/误传：Confirmed + 99 次尝试 + 未来时刻——入队必须全部被忽略
+            var tampered = new OutboxEnvelope("op-1", "payload", OutboxStatus.Confirmed, 99,
+                System.DateTime.UtcNow.AddDays(1), "fake-reason");
+
+            var outcome = await store.EnqueueAsync(tampered, CancellationToken.None);
+
+            var enqueued = Assert.IsType<OutboxEnqueueOutcome.Enqueued>(outcome);
+            Assert.Equal(OutboxStatus.Pending, enqueued.Envelope.Status);
+            Assert.Equal(0, enqueued.Envelope.Attempts);
+            Assert.Null(enqueued.Envelope.LastFailureReason);
+            Assert.True(enqueued.Envelope.CreatedAtUtc > System.DateTime.UtcNow.AddMinutes(-1),
+                "CreatedAtUtc 应由存储端赋值为当前 UTC");
+        }
+
+        [Fact]
+        [Trait(TestTrait.Category, TestCategory.Contract)]
+        public async Task 失败记账_已确认条目不累加()
+        {
+            var state = new FakeOutboxState { Capacity = 8 };
+            var store = Store(state);
+            await store.EnqueueAsync(Envelope("op-1"), CancellationToken.None);
+            await store.MarkConfirmedAsync("op-1", CancellationToken.None);
+
+            await store.RecordFailureAsync("op-1", "不应生效", CancellationToken.None);
+            await store.RecordFailureAsync("op-1", "不应生效", CancellationToken.None);
+
+            // 已 Confirmed 条目"确认后不回退/不累加"——失败记账与确认路径同一条件更新口径
+            var pending = await store.ListPendingAsync(10, CancellationToken.None);
+            Assert.Empty(pending);
+
+            var again = await store.EnqueueAsync(Envelope("op-1"), CancellationToken.None);
+            var duplicate = Assert.IsType<OutboxEnqueueOutcome.Duplicate>(again);
+            Assert.Equal(OutboxStatus.Confirmed, duplicate.Existing.Status);
+            Assert.Equal(0, duplicate.Existing.Attempts);
+            Assert.Null(duplicate.Existing.LastFailureReason);
+        }
+
+        [Fact]
+        [Trait(TestTrait.Category, TestCategory.Contract)]
+        public async Task 失败记账_落原因_重试根因可诊断()
+        {
+            var state = new FakeOutboxState { Capacity = 8 };
+            var store = Store(state);
+            await store.EnqueueAsync(Envelope("op-1"), CancellationToken.None);
+
+            await store.RecordFailureAsync("op-1", "下游 503", CancellationToken.None);
+
+            var pending = await store.ListPendingAsync(10, CancellationToken.None);
+            Assert.Single(pending);
+            Assert.Equal("下游 503", pending[0].LastFailureReason);
+        }
+
         [Fact]
         [Trait(TestTrait.Category, TestCategory.Contract)]
         public async Task 实例重建后_待处理仍可列出_确认项不复活()

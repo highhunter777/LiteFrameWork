@@ -89,6 +89,82 @@ namespace MetaServer.Tests
             Assert.NotEmpty(config.Validate());
         }
 
+        // ---- 超时可配 / TLS 门禁 / 连接串脱敏 ----
+
+        [Theory]
+        [Trait(TestTrait.Category, TestCategory.Contract)]
+        [InlineData(99)]
+        [InlineData(60001)]
+        public void Mongo选择超时越界_被拒(int ms)
+        {
+            var config = MetaConfig.Default();
+            config.MongoServerSelectionTimeoutMs = ms;
+            Assert.NotEmpty(config.Validate());
+        }
+
+        [Theory]
+        [Trait(TestTrait.Category, TestCategory.Contract)]
+        [InlineData(99)]
+        [InlineData(10001)]
+        public void ReadyPing超时越界_被拒(int ms)
+        {
+            var config = MetaConfig.Default();
+            config.ReadyPingTimeoutMs = ms;
+            Assert.NotEmpty(config.Validate());
+        }
+
+        [Theory]
+        [Trait(TestTrait.Category, TestCategory.Contract)]
+        [InlineData("http://127.0.0.1:5000")]
+        [InlineData("http://localhost:5000")]
+        [InlineData("http://[::1]:5000")]
+        public void 回环http绑定_通过(string bind)
+        {
+            var config = MetaConfig.Default();
+            config.BindAddress = bind;
+            Assert.Empty(config.Validate());
+        }
+
+        [Fact]
+        [Trait(TestTrait.Category, TestCategory.Contract)]
+        public void 非回环http绑定_默认拒绝_显式豁免后通过()
+        {
+            var config = MetaConfig.Default();
+            config.BindAddress = "http://0.0.0.0:5000";
+            Assert.NotEmpty(config.Validate());       // §12"外部接口一律 TLS"门禁化：默认拒绝
+
+            config.AllowNonLoopbackHttp = true;       // 受信内网显式豁免
+            Assert.Empty(config.Validate());
+        }
+
+        [Fact]
+        [Trait(TestTrait.Category, TestCategory.Contract)]
+        public void 非回环https绑定_不受http门禁影响()
+        {
+            var config = MetaConfig.Default();
+            config.BindAddress = "https://0.0.0.0:5000";
+            Assert.Empty(config.Validate());
+        }
+
+        [Fact]
+        [Trait(TestTrait.Category, TestCategory.Contract)]
+        public void 非法Mongo连接串_错误不回显原串()
+        {
+            var config = MetaConfig.Default();
+            config.MongoConnectionString = "mongodb://user:secret@host:notaport/db";
+            config.MongoDatabaseName = "meta";
+
+            IReadOnlyList<string> errors = config.Validate();
+
+            Assert.NotEmpty(errors);
+            foreach (string error in errors)
+            {
+                // 连接串可能含凭据——校验错误必须脱敏（否则泄入 stderr/日志）
+                Assert.DoesNotContain("secret", error);
+                Assert.DoesNotContain("user:", error);
+            }
+        }
+
         // ---- 以下三项为配置校验的回归钉 ----
 
         /// <summary>

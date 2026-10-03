@@ -49,7 +49,7 @@ namespace MetaServer
         /// 校验器校验的正是这同一实例。任何"另注册一个 MetaConfig 单例"的写法都会造成
         /// 两套实例、校验器验的是没人用的对象（2026-09-25 实测缺陷，见 <see cref="MetaConfig"/> 注释）。
         /// </summary>
-        public static WebApplication Build(string[] args, IDictionary<string, string> overrides = null)
+        public static WebApplication Build(string[] args, IReadOnlyDictionary<string, string> overrides = null)
         {
             WebApplicationBuilder builder = WebApplication.CreateBuilder(args ?? Array.Empty<string>());
 
@@ -102,7 +102,8 @@ namespace MetaServer
                     MetaConfig meta = sp.GetRequiredService<IOptions<MetaConfig>>().Value;
                     MongoClientSettings settings =
                         MongoClientSettings.FromUrl(MongoUrl.Create(meta.MongoConnectionString));
-                    settings.ServerSelectionTimeout = TimeSpan.FromSeconds(5);
+                    settings.ServerSelectionTimeout =
+                        TimeSpan.FromMilliseconds(meta.MongoServerSelectionTimeoutMs);
                     return (MongoDB.Driver.IMongoClient)new MongoClient(settings);
                 });
                 builder.Services.AddSingleton(sp => sp.GetRequiredService<MongoDB.Driver.IMongoClient>()
@@ -112,7 +113,8 @@ namespace MetaServer
                 builder.Services.AddSingleton<MetaServer.Contracts.Persistence.IOutboxStore>(sp =>
                     new MongoOutboxStore(
                         sp.GetRequiredService<MongoDB.Driver.IMongoDatabase>(),
-                        sp.GetRequiredService<IOptions<MetaConfig>>().Value.OutboxCapacity));
+                        sp.GetRequiredService<IOptions<MetaConfig>>().Value.OutboxCapacity,
+                        () => DateTime.UtcNow));
                 builder.Services.AddSingleton<MetaServer.Contracts.Persistence.ISchemaVersionStore, MongoSchemaVersionStore>();
                 builder.Services.AddSingleton<MetaServer.Contracts.Persistence.ISchemaMigrator>(sp =>
                     new SchemaMigrationRunner(
@@ -142,14 +144,14 @@ namespace MetaServer
         private static async Task CountRequestsAsync(HttpContext context, Func<Task> next)
         {
             Ops ops = context.RequestServices.GetRequiredService<Ops>();
-            ops.HttpRequests++;
+            ops.CountRequest();
             try
             {
                 await next();
             }
             finally
             {
-                if (context.Response.StatusCode >= 400) ops.HttpRejected++;
+                if (context.Response.StatusCode >= 400) ops.CountRejected();
             }
         }
 
@@ -177,7 +179,11 @@ namespace MetaServer
                 IMongoDatabase database = context.RequestServices.GetService<IMongoDatabase>();
                 if (database != null)
                 {
-                    using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(2));
+                    // ping 超时可配（硬化批 2026-10-03；原硬编码 2s）——健康检查必须 bounded
+                    MetaConfig meta = context.RequestServices
+                        .GetRequiredService<IOptions<MetaConfig>>().Value;
+                    using var timeout = new CancellationTokenSource(
+                        TimeSpan.FromMilliseconds(meta.ReadyPingTimeoutMs));
                     try
                     {
                         await database.RunCommandAsync(
@@ -232,6 +238,35 @@ namespace MetaServer
                     ? ValidateOptionsResult.Success
                     : ValidateOptionsResult.Fail(errors);
             }
+        }
+
+        /// <summary>
+        /// 命令行覆盖解析（§10"命令行只用于本地覆盖"）。**未知参数/缺值 = 配置错误**（error 非空，
+        /// 退出码 2）——静默忽略拼错的覆盖项会让"以为改了配置"变成假象，与 fail-closed 口径矛盾
+        /// （硬化批 2026-10-03）。独立成静态方法供 L1 直测。
+        /// </summary>
+        public static IReadOnlyDictionary<string, string> ParseCliOverrides(string[] args, out string error)
+        {
+            var overrides = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+            error = null;
+            for (int i = 0; i < args.Length; i++)
+            {
+                switch (args[i])
+                {
+                    case "--bind":
+                        if (i + 1 >= args.Length)
+                        {
+                            error = "--bind 缺少值（用法：--bind <url>）";
+                            return overrides;
+                        }
+                        overrides[ConfigSection + ":BindAddress"] = args[++i];
+                        break;
+                    default:
+                        error = "未知参数：" + args[i] + "（支持：--bind <url>）";
+                        return overrides;
+                }
+            }
+            return overrides;
         }
     }
 }

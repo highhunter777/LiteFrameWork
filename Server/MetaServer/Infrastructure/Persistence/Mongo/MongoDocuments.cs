@@ -1,3 +1,4 @@
+using System;
 using MongoDB.Bson.Serialization.Attributes;
 
 namespace MetaServer.Infrastructure.Persistence.Mongo
@@ -68,6 +69,15 @@ namespace MetaServer.Infrastructure.Persistence.Mongo
 
         /// <summary>入队次序（OutboxSeq 原子自增分配；$natural 无排序保证，不使用）。</summary>
         public long Seq;
+
+        /// <summary>入队时刻（UTC，§5.2"时间字段一律 UTC"）——存储端权威赋值，非调用方播种。</summary>
+        public DateTime CreatedUtc;
+
+        /// <summary>最近一次失败原因（RecordFailure 记录；重试根因可诊断）。</summary>
+        public string LastFailureReason;
+
+        /// <summary>最近一次失败时刻（UTC）。</summary>
+        public DateTime LastFailureUtc;
     }
 
     /// <summary>Outbox 序号计数文档（单文档自增）。</summary>
