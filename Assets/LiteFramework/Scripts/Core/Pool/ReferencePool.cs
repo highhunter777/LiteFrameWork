@@ -11,19 +11,24 @@ namespace LiteFramework
         public readonly Type Type;
         public readonly int Unused;
         public readonly int Using;
+        public readonly long CreatedCount;    // Acquire 未命中转 new 的次数（Misses = Acquired − PoolHits）
         public readonly long AcquireCount;
         public readonly long ReleaseCount;
         public readonly int MaxSize;        // 当前容量上限
         public readonly int PeakUnused;     // 池内数量的历史峰值
-        public readonly long DroppedCount;  // 因超上限被丢弃的次数
+        public readonly long DroppedCount;  // DropNewest 路径：池满丢弃新归还件的次数
+        public readonly long EvictedCount;  // EvictOldest 路径：池满淘汰队首最旧件的次数
+        public readonly long PoolHits;      // 池中直取数；复用率 = PoolHits / AcquireCount
 
-        public ReferencePoolInfo(Type type, int unused, int using_, long acquire, long release,
+        public ReferencePoolInfo(Type type, int unused, int using_, long created, long acquire, long release,
                                  int maxSize = ReferencePool.DefaultMaxSize,
-                                 int peakUnused = 0, long droppedCount = 0)
+                                 int peakUnused = 0, long droppedCount = 0,
+                                 long evictedCount = 0, long poolHits = 0)
         {
             Type = type; Unused = unused; Using = using_;
-            AcquireCount = acquire; ReleaseCount = release;
+            CreatedCount = created; AcquireCount = acquire; ReleaseCount = release;
             MaxSize = maxSize; PeakUnused = peakUnused; DroppedCount = droppedCount;
+            EvictedCount = evictedCount; PoolHits = poolHits;
         }
     }
 
@@ -31,6 +36,14 @@ namespace LiteFramework
     /// 引用池(静态门面豁免 #2,与 Log 同列;名单封闭)。
     /// 契约:入池对象刚被 Clear;Acquire 方不得假设任何字段为默认值——
     /// Release 时的 Clear 是防泄漏防御(解除外部引用),不是初始化服务,初始化责任始终在调用方。
+    ///
+    /// 高级化(《对象池专项设计》§7):计数无条件化(对齐内核"计数器不做条件编译"裁决——release 口径
+    /// 与 Debug 一致);**保持 Debug-only 的两处**——Using 哈希集(重复归还检测,"release 信任 Debug 全绿"
+    /// 契约不变)与 GetAllInfos/ReferencePoolInfo(HUD 面);per-type 淘汰策略 SetEviction(默认 DropNewest
+    /// =现状;EvictOldest 淘汰队首最旧、新归还件入池——两计数不混用同内核 §3.1 口径);Clear/ClearAll
+    /// 整体清空(被清件只丢弃不走第二次 Clear,与 Trim 同口径)。
+    /// 非目标(§7.4 登记):validateOnAcquire(纯 C# 数据无 fake-null 场景)、TrimExpired(轻量事件对象,
+    /// MaxSize 已把内存钉在与活跃数挂钩的量级,无消费方驱动的按龄场景)。
     /// </summary>
     public static class ReferencePool
     {
@@ -45,14 +58,19 @@ namespace LiteFramework
         private sealed class Bucket
         {
             public readonly Queue<IReference> Pool = new Queue<IReference>(4);
-            // 容量控制是运行期的内存保护,release 同样要生效,故不放条件编译内
+            // 容量控制与淘汰策略是运行期的内存保护,release 同样要生效,故不进条件编译
             public int MaxSize = DefaultMaxSize;
-#if UNITY_EDITOR || DEVELOPMENT_BUILD || LITEFRAMEWORK_DEBUG
-            public readonly HashSet<IReference> Using = new HashSet<IReference>(4);
+            public PoolEviction Eviction = PoolEviction.DropNewest;
+            // 统计无条件化(§7.1):自增开销可忽略,release 口径与 Debug 一致
+            public long CreatedCount;
             public long AcquireCount;
             public long ReleaseCount;
             public int PeakUnused;
             public long DroppedCount;
+            public long EvictedCount;
+            public long PoolHits;
+#if UNITY_EDITOR || DEVELOPMENT_BUILD || LITEFRAMEWORK_DEBUG
+            public readonly HashSet<IReference> Using = new HashSet<IReference>(4);   // 重复归还检测——Debug-only 诊断面
 #endif
         }
 
@@ -66,17 +84,28 @@ namespace LiteFramework
         public static T Acquire<T>() where T : class, IReference, new()
         {
             var bucket = GetOrAdd(typeof(T));
-            T obj = bucket.Pool.Count > 0 ? (T)bucket.Pool.Dequeue() : new T();
+            T obj;
+            if (bucket.Pool.Count > 0)
+            {
+                obj = (T)bucket.Pool.Dequeue();
+                bucket.PoolHits++;
+            }
+            else
+            {
+                obj = new T();
+                bucket.CreatedCount++;
+            }
+            bucket.AcquireCount++;
 #if UNITY_EDITOR || DEVELOPMENT_BUILD || LITEFRAMEWORK_DEBUG
             bucket.Using.Add(obj);
-            bucket.AcquireCount++;
 #endif
             return obj;
         }
 
         /// <summary>
         /// 归还;池负责 Clear。Debug 校验重复归还与未知类型;release 信任 Debug 全绿(重复归还为 UB)。
-        /// **池满(达 MaxSize)时直接丢弃**——对象已 Clear,交给 GC 即可,不无限驻留。
+        /// 池满按 per-type 淘汰策略:DropNewest(默认)= 丢弃新归还件(DroppedCount);
+        /// EvictOldest = 淘汰队首最旧、新归还件入池(EvictedCount)——对象已 Clear,交给 GC 即可,不无限驻留。
         /// </summary>
         public static void Release(IReference reference)
         {
@@ -85,8 +114,8 @@ namespace LiteFramework
 #if UNITY_EDITOR || DEVELOPMENT_BUILD || LITEFRAMEWORK_DEBUG
             if (!bucket.Using.Remove(reference))
                 throw new InvalidOperationException($"ReferencePool: 重复归还或非 Acquire 所得:{reference.GetType().Name}");
-            bucket.ReleaseCount++;
 #endif
+            bucket.ReleaseCount++;
             try { reference.Clear(); }
             catch (Exception ex)
             {
@@ -96,15 +125,19 @@ namespace LiteFramework
 
             if (bucket.Pool.Count >= bucket.MaxSize)
             {
-#if UNITY_EDITOR || DEVELOPMENT_BUILD || LITEFRAMEWORK_DEBUG
-                bucket.DroppedCount++;
-#endif
-                return;                                  // 超限:丢弃,而非让池随峰值膨胀
+                if (bucket.Eviction == PoolEviction.EvictOldest && bucket.Pool.Count > 0)
+                {
+                    bucket.EvictedCount++;
+                    bucket.Pool.Dequeue();                      // 淘汰队首最旧(已 Clear),新归还件入池
+                }
+                else
+                {
+                    bucket.DroppedCount++;                     // 超限:丢弃新归还件,而非让池随峰值膨胀
+                    return;
+                }
             }
             bucket.Pool.Enqueue(reference);
-#if UNITY_EDITOR || DEVELOPMENT_BUILD || LITEFRAMEWORK_DEBUG
             if (bucket.Pool.Count > bucket.PeakUnused) bucket.PeakUnused = bucket.Pool.Count;
-#endif
         }
 
         /// <summary>预热:消除业务高峰(如进战斗)首帧的 new 尖峰。保留于 release——纯循环,无统计开销。
@@ -117,12 +150,11 @@ namespace LiteFramework
             for (int i = 0; i < count; i++)
             {
                 IReference obj = new T();
+                bucket.CreatedCount++;                          // 预热也是"创建"(未 Acquire 不计命中/在用)
                 try { obj.Clear(); } catch { /* 预热不因单个对象的 Clear 缺陷中断 */ }
                 bucket.Pool.Enqueue(obj);
             }
-#if UNITY_EDITOR || DEVELOPMENT_BUILD || LITEFRAMEWORK_DEBUG
             if (bucket.Pool.Count > bucket.PeakUnused) bucket.PeakUnused = bucket.Pool.Count;
-#endif
         }
 
         /// <summary>裁剪池内存量(如退出战斗后释放预热对象)。数量不足则清到空为止。</summary>
@@ -133,11 +165,30 @@ namespace LiteFramework
             while (count-- > 0 && bucket.Pool.Count > 0) bucket.Pool.Dequeue();
         }
 
+        /// <summary>清空某类型的全部空闲件(§7.3)。**在途件不受影响**——按契约归还时自然走 Clear;
+        /// 被清件只丢弃不走第二次 Clear(与 Trim 同口径)。幂等;未注册类型为 no-op(不建桶)。</summary>
+        public static void Clear<T>() where T : class, IReference, new()
+        {
+            if (s_buckets.TryGetValue(typeof(T), out var b)) b.Pool.Clear();
+        }
+
+        /// <summary>清空全部类型的空闲件(重开局/域切换)。在途件不受影响;幂等。</summary>
+        public static void ClearAll()
+        {
+            foreach (var b in s_buckets.Values) b.Pool.Clear();
+        }
+
         /// <summary>调整某类型的池容量上限(默认 64)。**调小不会立即裁剪已有存量**,只影响后续归还;需要立即释放就配 `Remove`。</summary>
         public static void SetMaxSize<T>(int maxSize) where T : class, IReference, new()
         {
             if (maxSize < 0) throw new ArgumentOutOfRangeException(nameof(maxSize));
             GetOrAdd(typeof(T)).MaxSize = maxSize;
+        }
+
+        /// <summary>调整某类型的淘汰策略(默认 DropNewest = 现状;§7.2)。与 <see cref="SetMaxSize{T}"/> 同型的 per-type 配置。</summary>
+        public static void SetEviction<T>(PoolEviction eviction) where T : class, IReference, new()
+        {
+            GetOrAdd(typeof(T)).Eviction = eviction;
         }
 
 #if UNITY_EDITOR || DEVELOPMENT_BUILD || LITEFRAMEWORK_DEBUG
@@ -149,8 +200,9 @@ namespace LiteFramework
             {
                 var b = kv.Value;
                 list.Add(new ReferencePoolInfo(kv.Key, b.Pool.Count, b.Using.Count,
-                                               b.AcquireCount, b.ReleaseCount,
-                                               b.MaxSize, b.PeakUnused, b.DroppedCount));
+                                               b.CreatedCount, b.AcquireCount, b.ReleaseCount,
+                                               b.MaxSize, b.PeakUnused, b.DroppedCount,
+                                               b.EvictedCount, b.PoolHits));
             }
             return list;
         }
