@@ -53,6 +53,7 @@ for (int i = 0; i < args.Length; i++)
 }
 
 // 玩法数值装载（.bytes 表——与客户端同一份文件；fail-fast：数值缺失宁可起不来）。
+// 装载即回填 CombatConfig 权威面（客户端 ConfigService 同语义）——Sim 消费的数值就是表值。
 if (combatTableDir != null) CombatNumbers.LoadTableBytes(combatTableDir);
 else CombatNumbers.LoadFromRepo();
 

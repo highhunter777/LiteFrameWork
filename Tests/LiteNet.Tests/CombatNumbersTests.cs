@@ -75,6 +75,28 @@ namespace LiteNet.Tests
             Assert.ThrowsAny<Exception>(() => CombatNumbers.LoadTableBytes(missing));
         }
 
+        /// <summary>
+        /// 装载链路钉：装载与回填是同一契约的两半——`LoadTableBytes` 返回后运行面必须等于表值。
+        /// 缺此钉则"装载返回值被丢弃、不回填"的服务端会跑硬编码默认值而握手照常通过
+        /// （表数据进 buildHash 两端同变），一旦改表即客户端用表值/服务端用默认值的静默分叉。
+        /// 与用例①合围：本用例卡"运行面 = 表值"，用例①卡"默认值 = 表值"。
+        /// </summary>
+        [Fact]
+        public void 装载即回填_运行面读到表值()
+        {
+            string dir = Path.Combine(RepoRoot(), "Assets", "GameData", "Config");
+            CombatNumValues v = CombatNumbers.LoadTableBytes(dir);
+
+            Assert.Equal(v.MoveSpeed, CombatConfig.MoveSpeed);
+            Assert.Equal(v.Gravity, CombatConfig.Gravity);
+            Assert.Equal(v.HitscanRange, CombatConfig.HitscanRange);
+            Assert.Equal(v.HitscanRadius, CombatConfig.HitscanRadius);
+            Assert.Equal(v.HitscanHeight, CombatConfig.HitscanHeight);
+            Assert.Equal(v.BaseDamage, CombatConfig.BaseDamage);
+            Assert.Equal(v.DamageSpread, CombatConfig.DamageSpread);
+            Assert.Equal(v.EntityHp, CombatConfig.EntityHp);
+        }
+
         /// <summary>回填生效：改表值 → 消费点（Sim 系统读的静态面）立即变；finally 还原避免污染其它用例。</summary>
         [Fact]
         public void 回填生效_消费点读到表值()

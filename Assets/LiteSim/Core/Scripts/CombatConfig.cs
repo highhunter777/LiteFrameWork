@@ -5,9 +5,10 @@ namespace LiteSim
     /// SimConfig 只装"确定性架构怎么搭"；两者生命周期不同：前者可调表迭代，后者编译期锁死）。
     ///
     /// - 默认值 = 灰盒实测值；
-    /// - **Luban 表链路**：表源 `Luban/Data/#combatnum.xlsx` → `gen.bat` 双产物
-    ///   （客户端 bin `Assets/GameData/Config/tbcombatnum.bytes`；服务端 json `RoomServer/Data/tbcombatnum.json`）
-    ///   → 启动装配调 <see cref="LoadFrom"/> 回填（客户端 `ConfigService`；服务端 `Program`）。
+    /// - **Luban 表链路**：表源 `Luban/Data/#combatnum.xlsx` → `gen.bat` 产出客户端 bin
+    ///   `Assets/GameData/Config/tbcombatnum.bytes`（双端同一份 bin，服务端直读不再有 json 产物）
+    ///   → 启动装配调 <see cref="LoadFrom"/> 回填（客户端 `ConfigService`；服务端 `CombatNumbers`
+    ///   装载链——**装载即回填**）。
     ///   **本类的默认值必须与表值一致**（L1 守卫用例 `CombatNumbersTests` 卡住漂移）；装载后两端同值（表数据进 buildHash，不一致直接拒进房）。
     /// - 确定性：全部 float/int 常量语义不变（位级确定的输入，无运算）。
     /// </summary>

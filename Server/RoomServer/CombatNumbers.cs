@@ -13,6 +13,10 @@ namespace RoomServer
     /// 缺省走 `LoadFromRepo` 仓库路径，`--combat-table <目录>` 显式覆盖）。两端同代码（生成物源链接共编）
     /// 同数据（同一份二进制），物理上不可能漂移。
     ///
+    /// **装载即回填**：`LoadTableBytes`/`LoadFromRepo` 装载后立即经 <see cref="CombatNumValues.Apply"/> 回填权威数值面
+    /// （客户端 `ConfigService` 同语义）——装载与回填是同一契约的两半，拆开即"服务端跑默认值、客户端跑表值"的静默分叉；
+    /// <see cref="Parse"/> 保持纯解析（不触碰静态面）。L1 钉子：`CombatNumbersTests.装载即回填_运行面读到表值`。
+    ///
     /// **一致性双保险**：① 两端数值同源（同一 .bytes）② 表数据进 buildHash
     /// （`scripts/codegen/gen-build-hash.py`），版本不一致直接在 Join 握手被拒。
     /// </summary>
@@ -24,22 +28,22 @@ namespace RoomServer
         public const int SingleRowId = 1;   // 单行表固定 id
 
         /// <summary>
-        /// 从仓库根装载客户端 .bytes 表目录（定位失败或缺表 → 抛，fail-fast）。
+        /// 从仓库根装载客户端 .bytes 表目录（定位失败或缺表 → 抛，fail-fast）；装载即回填，返回表行数值。
         /// 数值错了必然分叉——宁可起不来，也不要带着错数值跑权威局。
         /// </summary>
-        public static void LoadFromRepo()
+        public static CombatNumValues LoadFromRepo()
         {
             string root = FindRepoRoot()
                           ?? throw new InvalidOperationException(
                               $"找不到仓库根（需含 Assets 与 Tests/Tests.slnx）——无法装载 {RelativeDir}");
-            LoadTableBytes(Path.Combine(root, RelativeDir.Replace('/', Path.DirectorySeparatorChar)));
+            return LoadTableBytes(Path.Combine(root, RelativeDir.Replace('/', Path.DirectorySeparatorChar)));
         }
 
         /// <summary>
-        /// 从指定表目录装载（表目录 = 客户端 GameData/Config；表清单与客户端
-        /// <c>ConfigService.TableDataFiles</c> 同源——Tables 构造器逐表取字节）。
+        /// 从指定表目录装载并**回填权威数值面**（表目录 = 客户端 GameData/Config；表清单与客户端
+        /// <c>ConfigService.TableDataFiles</c> 同源——Tables 构造器逐表取字节），返回表行数值（观测/断言用）。
         /// </summary>
-        public static cfg.Tables LoadTableBytes(string configDir)
+        public static CombatNumValues LoadTableBytes(string configDir)
         {
             if (!Directory.Exists(configDir))
                 throw new DirectoryNotFoundException($"表数据目录缺失：{configDir}（跑 Luban/gen.bat Pass 1）");
@@ -52,13 +56,14 @@ namespace RoomServer
                 return new Luban.ByteBuf(File.ReadAllBytes(path));
             });
 
-            var row = tables.Tbcombatnum.Get(SingleRowId)
-                      ?? throw new InvalidDataException($"tbcombatnum 缺 id={SingleRowId} 行（单行数值表）");
+            var values = ToValues(tables.Tbcombatnum.Get(SingleRowId)
+                                  ?? throw new InvalidDataException($"tbcombatnum 缺 id={SingleRowId} 行（单行数值表）"));
             Console.WriteLine(
-                $"[RoomServer] 玩法数值（bin 表）：move={row.MoveSpeed} gravity={row.Gravity} " +
-                $"hitscan={row.HitscanRange}/{row.HitscanRadius}/{row.HitscanHeight} " +
-                $"dmg={row.BaseDamage}±{row.DamageSpread} hp={row.EntityHp}");
-            return tables;
+                $"[RoomServer] 玩法数值（bin 表）：move={values.MoveSpeed} gravity={values.Gravity} " +
+                $"hitscan={values.HitscanRange}/{values.HitscanRadius}/{values.HitscanHeight} " +
+                $"dmg={values.BaseDamage}±{values.DamageSpread} hp={values.EntityHp}");
+            values.Apply();
+            return values;
         }
 
         /// <summary>
@@ -71,19 +76,22 @@ namespace RoomServer
             var table = new cfg.Tbcombatnum(new Luban.ByteBuf(combatnumBytes));
             var row = table.Get(SingleRowId)
                       ?? throw new InvalidDataException($"tbcombatnum.bytes 缺 id={SingleRowId} 行（单行数值表）");
-            return new CombatNumValues
-            {
-                Id = row.Id,
-                MoveSpeed = row.MoveSpeed,
-                Gravity = row.Gravity,
-                HitscanRange = row.HitscanRange,
-                HitscanRadius = row.HitscanRadius,
-                HitscanHeight = row.HitscanHeight,
-                BaseDamage = row.BaseDamage,
-                DamageSpread = row.DamageSpread,
-                EntityHp = row.EntityHp,
-            };
+            return ToValues(row);
         }
+
+        /// <summary>表行 → 数值载体（<see cref="Parse"/> 与 <see cref="LoadTableBytes"/> 共用一份映射）。</summary>
+        private static CombatNumValues ToValues(cfg.combatnum row) => new CombatNumValues
+        {
+            Id = row.Id,
+            MoveSpeed = row.MoveSpeed,
+            Gravity = row.Gravity,
+            HitscanRange = row.HitscanRange,
+            HitscanRadius = row.HitscanRadius,
+            HitscanHeight = row.HitscanHeight,
+            BaseDamage = row.BaseDamage,
+            DamageSpread = row.DamageSpread,
+            EntityHp = row.EntityHp,
+        };
 
         /// <summary>仓库根定位：与测试侧同款标记（Assets + Tests/Tests.slnx），从程序目录向上找。</summary>
         internal static string FindRepoRoot()
@@ -111,7 +119,8 @@ namespace RoomServer
         public int DamageSpread;
         public int EntityHp;
 
-        /// <summary>回填 `CombatConfig`——**唯一写入口**（消费点遍布 Sim 系统，静态面只此一处被改写）。</summary>
+        /// <summary>回填 `CombatConfig`——**唯一写入口**（消费点遍布 Sim 系统，静态面只此一处被改写；
+        /// 装载链 <see cref="CombatNumbers.LoadTableBytes"/>/<see cref="CombatNumbers.LoadFromRepo"/> 装载即调用）。</summary>
         public void Apply()
         {
             CombatConfig.LoadFrom(MoveSpeed, Gravity, HitscanRange, HitscanRadius,
