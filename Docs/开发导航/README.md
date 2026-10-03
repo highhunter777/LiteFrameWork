@@ -13,7 +13,7 @@
 
 | 红线 | 触发条件 | 后果/动作 |
 |---|---|---|
-| **BuildHash 源集** | 改动 `Assets/LiteSim/Core/{Scripts,Systems}`、`Assets/LiteNet/{Proto,Protocol}` 或两端表数据 | 这些内容参与两端版本哈希——**改完必须重跑 `python scripts/gen-build-hash.py`**，否则客户端/服务器 buildHash 不一致，Join 被拒进房（这是设计内红线，不是 bug） |
+| **BuildHash 源集** | 改动 `Assets/LiteSim/Core/{Scripts,Systems}`、`Assets/LiteNet/{Proto,Protocol}` 或两端表数据 | 这些内容参与两端版本哈希——**改完必须重跑 `python scripts/codegen/gen-build-hash.py`**，否则客户端/服务器 buildHash 不一致，Join 被拒进房（这是设计内红线，不是 bug） |
 | **R11 纯化纪律** | 在 `Assets/RoomServer/Runtime/` 下写代码 | 房间内核**禁** Console / 系统时钟 / 文件 IO / proto / LiteNet 引用——违反会被 L1 纪律扫描（`DisciplineScannerTests`）打红；扫描目标清单在 `Assets/Tools/DisciplineScanner/Scripts/ScanTargets.cs` |
 | **Unity 序列化资产** | 场景 / Prefab / Material / AnimatorController / `.meta` / 工程设置 | **一律走 unity-pipeline CLI**（见 `UNITY-GUIDE.md`），直接改文件违规；纯文本（.cs/JSON/md）可直接编辑 |
 

@@ -39,13 +39,13 @@
 
 ```powershell
 # 快速纯逻辑回路
-powershell -NoProfile -File scripts/test.ps1 -Lane L1 -Profile PullRequest
+powershell -NoProfile -File scripts/gate/test.ps1 -Lane L1 -Profile PullRequest
 
 # 网络与无头集成回路
-powershell -NoProfile -File scripts/test.ps1 -Lane L3 -Profile PullRequest
+powershell -NoProfile -File scripts/gate/test.ps1 -Lane L3 -Profile PullRequest
 
 # Unity 编译、资源和 EditMode 门禁
-powershell -NoProfile -File scripts/test.ps1 -Lane L2 -Profile PullRequest
+powershell -NoProfile -File scripts/gate/test.ps1 -Lane L2 -Profile PullRequest
 ```
 
 客户端商业化、运行闭环和发布门槛见 [商业级通用客户端框架总设计](Docs/design/architecture/商业级通用客户端框架总设计.md)；共享测试分层、分类约定、确定性与 CI 基础见 [测试开发框架总设计](Docs/design/quality/测试开发框架总设计.md)。

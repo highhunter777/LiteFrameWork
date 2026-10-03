@@ -29,8 +29,8 @@
 ## 执行与环境文档
 
 - **[开发导航](开发导航/README.md)：代码地图与"我想改 X 去哪改"修改指南——新入仓库先读这个**。
-- [CI 工作流](../.github/workflows/ci.yml)、[统一测试入口](../scripts/test.ps1)
-- [Unity 操作指南](../UNITY-GUIDE.md)、[L2 门禁脚本](../scripts/l2-unity-gate.ps1)
+- [CI 工作流](../.github/workflows/ci.yml)、[统一测试入口](../scripts/gate/test.ps1)
+- [Unity 操作指南](../UNITY-GUIDE.md)、[L2 门禁脚本](../scripts/gate/l2-unity-gate.ps1)
 - [Unity Pipeline 本地补丁](UnityPipeline本地补丁.md)
 - [环境恢复指南](环境恢复指南.md)
 

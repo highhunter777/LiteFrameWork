@@ -67,7 +67,7 @@ Meta 当前处于**骨架＋持久化接缝**阶段：宿主骨架（Generic Hos
 
 依据：
 
-1. **零新增依赖**。`net8.0` 上 `<FrameworkReference Include="Microsoft.AspNetCore.App" />` 引用的是随 SDK 安装的共享框架，**不产生 `PackageReference`**，不进入 NuGet 还原图。符合 C0-① 的依赖治理与 `scripts/l0-dep-scan.ps1` 的依赖/许可扫描口径。WebSocket 同属该共享框架，不需要额外包。
+1. **零新增依赖**。`net8.0` 上 `<FrameworkReference Include="Microsoft.AspNetCore.App" />` 引用的是随 SDK 安装的共享框架，**不产生 `PackageReference`**，不进入 NuGet 还原图。符合 C0-① 的依赖治理与 `scripts/gate/l0-dep-scan.ps1` 的依赖/许可扫描口径。WebSocket 同属该共享框架，不需要额外包。
 2. **与 RoomServer 的宿主规划收敛**。服务端总设计 §12 已裁定 `RoomServer.Host` 走 .NET Generic Host、Options `ValidateOnStart`、启动失败返回非零退出码。两条线共用同一套 Host/Options/`IHostedService`/Cancellation/优雅关闭纪律，不产生第二套启动范式。
 3. **§13.3 与 §14 的要求是现成路径**。`/live`、`/ready`、`/metrics`、readiness gate、多阶段 Dockerfile、非 root、只读根文件系统、显式端口、优雅终止时限，在 ASP.NET Core 上都有受支持的标准做法；用 `HttpListener` 或自研栈重写这些是纯负债，且会引入自研 TLS/HTTP 的合规风险。
 4. **契约与诊断同源**。结构化日志、`Activity`/`Trace`、限流中间件与 OpenTelemetry 接入点在 R4 的 §13 目标里有直接对应物。
@@ -98,7 +98,7 @@ MetaServer/                              单一工程起步（§7 过渡步骤 1
 
 Tests/MetaServer.Tests/                  L1（纯逻辑/契约）
 Tests/MetaServer.Integration.Tests/      L3（HTTP/DB 测试容器）
-                                        （命名须满足 scripts/test.ps1 的 *.Tests.csproj 发现契约——
+                                        （命名须满足 scripts/gate/test.ps1 的 *.Tests.csproj 发现契约——
                                         不含 ".Tests.csproj" 子串的工程名会被门禁静默漏跑）
 ```
 
@@ -329,7 +329,7 @@ RoomRuntime 冻结 MatchResult
 
 **必备故障矩阵**（对齐热更专项 §16 的持久点思路）：每个持久化确认点**前后**终止进程；票据重放与篡改；Mongo 不可达；Redis 不可达降级；结算重复提交 100 次只生效一次（§17 商业门禁"幂等"行）。
 
-CI 仍以 `scripts/test.ps1` 为唯一入口；HTTP/数据库夹具随实现接入，不等到最后补。
+CI 仍以 `scripts/gate/test.ps1` 为唯一入口；HTTP/数据库夹具随实现接入，不等到最后补。
 
 ## 15. 与总体施工路径的映射
 
