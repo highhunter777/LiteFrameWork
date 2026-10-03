@@ -105,6 +105,51 @@ namespace LiteGame.Tests.EditMode
             Assert.AreEqual(1, counter.Created, "池命中不重新建视图");
         }
 
+        // ---- EntityViewMap 池收编（《对象池专项设计》§5：每 location 一个内核池 + fake-null 防御）----
+
+        [Test]
+        public void 自有池_容量上限可配_超限销毁不驻留()
+        {
+            var counter = new ViewCounter();
+            var root = new GameObject("池根").transform;
+            var map = new EntityViewMap(Factory(counter), null, root, poolMaxIdle: 2);
+
+            var v0 = map.Create(0, default);
+            var v1 = map.Create(1, default);
+            var v2 = map.Create(2, default);
+            Assert.AreEqual(3, counter.Created, "三建三件（同 location 同桶）");
+
+            map.Release(0);
+            map.Release(1);
+            Assert.AreEqual(2, map.PooledCount);
+            map.Release(2);                                    // 满池：DropNewest 销毁 v2（编辑器 Immediate 口径）
+            Assert.AreEqual(2, map.PooledCount, "容量 2：第三件不驻留");
+            Assert.IsTrue(v2 == null, "超限件即时销毁（编辑器 DestroyImmediate 口径）");
+
+            var reused = map.Create(0, default);
+            Assert.AreSame(v0, reused, "剩余两件按队序复用");
+            Assert.AreEqual(3, counter.Created, "池命中不重建");
+        }
+
+        [Test]
+        public void 自有池_池中件被外部销毁_复用时失效转新建()
+        {
+            var counter = new ViewCounter();
+            var root = new GameObject("池根").transform;
+            var map = new EntityViewMap(Factory(counter), null, root, poolMaxIdle: 4);
+
+            var v0 = map.Create(0, default);
+            map.Release(0);
+            Assert.AreEqual(1, map.PooledCount);
+            UnityEngine.Object.DestroyImmediate(v0);           // 池中件被外部销毁（Unity fake-null 场景）
+
+            var fresh = map.Create(1, default);
+            Assert.IsNotNull(fresh, "失效件不外借——转工厂新建（validateOnAcquire 防御）");
+            Assert.AreNotSame(v0, fresh);
+            Assert.AreEqual(2, counter.Created);
+            Assert.AreEqual(0, map.PooledCount, "失效件消费后池空");
+        }
+
         // ---- 远端插值 ----
 
         [Test]

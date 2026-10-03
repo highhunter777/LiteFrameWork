@@ -329,5 +329,26 @@ namespace LiteGame.Tests.EditMode
             Assert.AreNotEqual(visible[0].anchoredPosition, visible[1].anchoredPosition,
                 "堆叠排布——两条不在同一位置（不重叠）");
         }
+
+        // ---- Toast 池收编（《对象池专项设计》§5：Stack → 内核池，maxIdle=MaxVisible）----
+
+        [Test]
+        public void Toast_归还条入池_复用回落_池深受MaxVisible约束()
+        {
+            Toast toast = WarmToast();
+            Assert.AreEqual(1, toast.PooledCount, "预热条清场后归池（懒池随首次 Show 定型）");
+
+            for (int i = 0; i < 4; i++) { _feedback.ShowToast("T" + i, seconds: 5f); Pump(20); }
+            Assert.AreEqual(4, toast.VisibleCount);
+            Assert.AreEqual(0, toast.PooledCount, "全在活跃：池空");
+
+            toast.Tick(999f);                                  // 全部到期 → 归池（Retire 复位进内核回调）
+            Assert.AreEqual(0, toast.VisibleCount);
+            Assert.AreEqual(4, toast.PooledCount, "四条全归池且不超 maxIdle=MaxVisible");
+
+            _feedback.ShowToast("复用条", seconds: 5f); Pump(20);
+            Assert.AreEqual(3, toast.PooledCount, "池中直取复用（不再 Instantiate）");
+            Assert.AreEqual(1, toast.VisibleCount);
+        }
     }
 }

@@ -2,6 +2,7 @@
 using TMPro;
 using System;
 using System.Collections.Generic;
+using LiteFramework;
 using UnityEngine;
 
 namespace LiteGame.UI
@@ -41,7 +42,12 @@ namespace LiteGame.UI
         public int StackDirection = 1;
 
         private readonly List<Entry> _active = new List<Entry>(4);
-        private readonly Stack<RectTransform> _pool = new Stack<RectTransform>(4);
+        private ObjectPool<RectTransform> _pool;                // 懒建：MaxVisible 序列化后首次 Show 时定型
+                                                                //（《对象池专项设计》§5：maxIdle=MaxVisible——
+                                                                // 池侧装得下活跃峰值，Retire 复位进 onRelease）
+
+        /// <summary>池中闲置条目数（诊断/测试面：随 Retire 增长、随 Show 复用回落）。</summary>
+        public int PooledCount => _pool?.UnusedCount ?? 0;
 
         /// <summary>累计淘汰条数（诊断/测试面；§6.1"反馈可观察"）。</summary>
         public int DroppedCount { get; private set; }
@@ -78,10 +84,9 @@ namespace LiteGame.UI
                 return;
             }
 
-            RectTransform item = _pool.Count > 0 ? _pool.Pop() : Instantiate(Template, Template.parent);
+            RectTransform item = Pool.Acquire();                 // 取件即激活（onGet）；空池 Instantiate 模板
             TMP_Text label = item.GetComponentInChildren<TMP_Text>(true);
             if (label != null) label.text = text;
-            item.gameObject.SetActive(true);
 
             _active.Add(new Entry { Item = item, Remain = seconds > 0f ? seconds : Duration });
 
@@ -119,9 +124,15 @@ namespace LiteGame.UI
         private void Retire(Entry entry)
         {
             if (entry?.Item == null) return;
-            entry.Item.gameObject.SetActive(false);
-            _pool.Push(entry.Item);
+            Pool.Release(entry.Item);                           // 停用/超限销毁由内核回调链驱动
         }
+
+        private ObjectPool<RectTransform> Pool => _pool ??= new ObjectPool<RectTransform>(
+            create: () => Instantiate(Template, Template.parent),
+            onGet: item => item.gameObject.SetActive(true),
+            onRelease: item => item.gameObject.SetActive(false),
+            onDestroy: item => Destroy(item.gameObject),
+            maxIdle: MaxVisible);
 
         /// <summary>纵向堆叠排布：间隔由 Spacing/StackDirection 给定，顺序与创建序一致（旧在上）。</summary>
         private void ApplyLayout()

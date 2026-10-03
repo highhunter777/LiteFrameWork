@@ -179,11 +179,11 @@ namespace LiteClient
                     return null;
                 }
 
-                // 首建：经通用池建桶（打 PooledInstance 标记，后续走复用）
+                // 首建：经通用池建桶（打 PooledInstance 标记，后续走复用）——OnSpawn 由池 Get 驱动
+                //（与池命中路径一致，各恰一次；此处不得再手动调用——§5.1 双 OnSpawn 缺陷已修）
                 var go = _pool.Get(location, () => UnityEngine.Object.Instantiate(prefab, parent), parent);
                 var handle = new EntityHandle(handleId, location, go) { Scope = NewEntityScope(handleId) };
                 _active[handleId] = handle;
-                handle.GameObject.GetComponent<IPoolLifecycle>()?.OnSpawn();
                 Log.Info($"实体[{handleId}] 显示（{location}，池中 {_pool.PooledTotal}）", "Entity");
                 return handle;
             }
