@@ -3,14 +3,6 @@ using System.Collections.Generic;
 
 namespace LiteFramework
 {
-    /// <summary>空闲淘汰策略（池满归还时）。DropNewest = 销毁新归还件（默认/现状）；
-    /// EvictOldest = 销毁队首最旧空闲件、新归还件入池——热点对象（刚归还大概率马上再借）不再被反复重建。</summary>
-    public enum PoolEviction
-    {
-        DropNewest = 0,
-        EvictOldest,
-    }
-
     /// <summary>
     /// 泛型实例池（**机制件**：自研替代 UnityEngine.Pool.ObjectPool）。
     /// 与静态 <see cref="ReferencePool"/> 的分工：纯数据对象（无创建/回收回调需求）走 ReferencePool 按类型池化；

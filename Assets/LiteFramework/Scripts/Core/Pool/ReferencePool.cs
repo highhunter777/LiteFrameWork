@@ -41,9 +41,9 @@ namespace LiteFramework
     /// 与 Debug 一致);**保持 Debug-only 的两处**——Using 哈希集(重复归还检测,"release 信任 Debug 全绿"
     /// 契约不变)与 GetAllInfos/ReferencePoolInfo(HUD 面);per-type 淘汰策略 SetEviction(默认 DropNewest
     /// =现状;EvictOldest 淘汰队首最旧、新归还件入池——两计数不混用同内核 §3.1 口径);Clear/ClearAll
-    /// 整体清空(被清件只丢弃不走第二次 Clear,与 Trim 同口径)。
-    /// 非目标(§7.4 登记):validateOnAcquire(纯 C# 数据无 fake-null 场景)、TrimExpired(轻量事件对象,
-    /// MaxSize 已把内存钉在与活跃数挂钩的量级,无消费方驱动的按龄场景)。
+    /// 整体清空(被清件只丢弃不走第二次 Clear,与 Trim 同口径);TrimExpired 按龄收缩(§7.4——入池时刻为
+    /// 系统钟仅作收缩启发、不进任何判定逻辑;调用方驱动,指定类型或跨全部桶)。
+    /// 非目标(§7.5 登记):validateOnAcquire(纯 C# 数据无 fake-null 场景)。
     /// </summary>
     public static class ReferencePool
     {
@@ -61,6 +61,9 @@ namespace LiteFramework
             // 容量控制与淘汰策略是运行期的内存保护,release 同样要生效,故不进条件编译
             public int MaxSize = DefaultMaxSize;
             public PoolEviction Eviction = PoolEviction.DropNewest;
+            /// <summary>入池时刻（ms，Environment.TickCount——§7.4：仅作收缩启发，不进任何判定逻辑。
+            /// 与 Pool 同进出序；TickCount 为 int 毫秒钟约 24.9 天回绕一次，回绕窗口内差值判读可能错一拍（无害启发）。</summary>
+            public readonly Queue<long> AtMs = new Queue<long>(4);
             // 统计无条件化(§7.1):自增开销可忽略,release 口径与 Debug 一致
             public long CreatedCount;
             public long AcquireCount;
@@ -88,6 +91,7 @@ namespace LiteFramework
             if (bucket.Pool.Count > 0)
             {
                 obj = (T)bucket.Pool.Dequeue();
+                bucket.AtMs.Dequeue();                         // 时刻队列与 Pool 同进出序
                 bucket.PoolHits++;
             }
             else
@@ -129,6 +133,7 @@ namespace LiteFramework
                 {
                     bucket.EvictedCount++;
                     bucket.Pool.Dequeue();                      // 淘汰队首最旧(已 Clear),新归还件入池
+                    bucket.AtMs.Dequeue();                       // 双队同步
                 }
                 else
                 {
@@ -137,6 +142,7 @@ namespace LiteFramework
                 }
             }
             bucket.Pool.Enqueue(reference);
+            bucket.AtMs.Enqueue(Environment.TickCount);         // 入池时刻（§7.4 收缩启发）
             if (bucket.Pool.Count > bucket.PeakUnused) bucket.PeakUnused = bucket.Pool.Count;
         }
 
@@ -153,6 +159,7 @@ namespace LiteFramework
                 bucket.CreatedCount++;                          // 预热也是"创建"(未 Acquire 不计命中/在用)
                 try { obj.Clear(); } catch { /* 预热不因单个对象的 Clear 缺陷中断 */ }
                 bucket.Pool.Enqueue(obj);
+                bucket.AtMs.Enqueue(Environment.TickCount);
             }
             if (bucket.Pool.Count > bucket.PeakUnused) bucket.PeakUnused = bucket.Pool.Count;
         }
@@ -162,20 +169,58 @@ namespace LiteFramework
         {
             if (count <= 0) return;
             var bucket = GetOrAdd(typeof(T));
-            while (count-- > 0 && bucket.Pool.Count > 0) bucket.Pool.Dequeue();
+            while (count-- > 0 && bucket.Pool.Count > 0)
+            {
+                bucket.Pool.Dequeue();
+                bucket.AtMs.Dequeue();
+            }
         }
 
         /// <summary>清空某类型的全部空闲件(§7.3)。**在途件不受影响**——按契约归还时自然走 Clear;
         /// 被清件只丢弃不走第二次 Clear(与 Trim 同口径)。幂等;未注册类型为 no-op(不建桶)。</summary>
         public static void Clear<T>() where T : class, IReference, new()
         {
-            if (s_buckets.TryGetValue(typeof(T), out var b)) b.Pool.Clear();
+            if (s_buckets.TryGetValue(typeof(T), out var b)) { b.Pool.Clear(); b.AtMs.Clear(); }
         }
 
         /// <summary>清空全部类型的空闲件(重开局/域切换)。在途件不受影响;幂等。</summary>
         public static void ClearAll()
         {
-            foreach (var b in s_buckets.Values) b.Pool.Clear();
+            foreach (var b in s_buckets.Values) { b.Pool.Clear(); b.AtMs.Clear(); }
+        }
+
+        /// <summary>按龄收缩（§7.4，指定类型）：销毁该类型桶中空闲时长**超过** maxIdleMs 的件，返回裁剪数。
+        /// 调用方驱动、不自动跑；引用池对象无 onDestroy，丢弃即交 GC。未注册类型为 0（不建桶）。</summary>
+        public static int TrimExpired<T>(long maxIdleMs) where T : class, IReference, new()
+        {
+            if (!s_buckets.TryGetValue(typeof(T), out var b)) return 0;
+            long now = Environment.TickCount;
+            int trimmed = 0;
+            while (b.Pool.Count > 0 && now - b.AtMs.Peek() > maxIdleMs)
+            {
+                b.Pool.Dequeue();
+                b.AtMs.Dequeue();
+                trimmed++;
+            }
+            return trimmed;
+        }
+
+        /// <summary>按龄收缩（§7.4，跨**全部桶**）：销毁全部桶中空闲超时的件，返回裁剪总数。
+        /// 调用方驱动（域切换/低谷期）；时刻为入池时记录的系统钟，仅作收缩启发。</summary>
+        public static int TrimExpired(long maxIdleMs)
+        {
+            long now = Environment.TickCount;
+            int trimmed = 0;
+            foreach (var b in s_buckets.Values)
+            {
+                while (b.Pool.Count > 0 && now - b.AtMs.Peek() > maxIdleMs)
+                {
+                    b.Pool.Dequeue();
+                    b.AtMs.Dequeue();
+                    trimmed++;
+                }
+            }
+            return trimmed;
         }
 
         /// <summary>调整某类型的池容量上限(默认 64)。**调小不会立即裁剪已有存量**,只影响后续归还;需要立即释放就配 `Remove`。</summary>

@@ -166,5 +166,39 @@ namespace LiteFramework.Tests
 
             Assert.Equal(0, ReferencePool.GetAllInfos().First(i => i.Type == typeof(RefL)).Unused);
         }
+
+        // ---- §7.4 空闲过期收缩（设计续命条目：单调系统钟入池时刻，调用方驱动）----
+
+        private sealed class RefM : IReference { public void Clear() { } }
+        private sealed class RefN : IReference { public void Clear() { } }
+
+        [Fact]
+        public void ReferencePool_TrimExpired_指定类型_超龄件裁剪_年轻件保留()
+        {
+            var a = ReferencePool.Acquire<RefM>();
+            ReferencePool.Release(a);
+            Assert.Equal(0, ReferencePool.TrimExpired<RefM>(60_000));    // 刚入池：远未超龄，不裁
+            Assert.Equal(1, ReferencePool.GetAllInfos().First(i => i.Type == typeof(RefM)).Unused);
+
+            var b = ReferencePool.Acquire<RefM>();
+            ReferencePool.Release(b);
+            Assert.Equal(1, ReferencePool.TrimExpired<RefM>(-1));       // 负阈值 = 任意空闲时长都超龄（严格大于 -1 恒真，同毫秒确定性）
+            Assert.Equal(0, ReferencePool.GetAllInfos().First(i => i.Type == typeof(RefM)).Unused);
+        }
+
+        [Fact]
+        public void ReferencePool_TrimExpired_跨全部桶_裁剪数汇总_未注册类型零()
+        {
+            ReferencePool.ClearAll();                                // 清场：隔离此前用例在各桶的遗留空闲件（静态全局态）
+            var m = ReferencePool.Acquire<RefM>();
+            ReferencePool.Release(m);
+            var n = ReferencePool.Acquire<RefN>();
+            ReferencePool.Release(n);
+
+            Assert.Equal(2, ReferencePool.TrimExpired(-1));          // 跨全部桶：两个类型各裁一件（负阈值同毫秒确定性）
+            Assert.Equal(0, ReferencePool.GetAllInfos().First(i => i.Type == typeof(RefM)).Unused);
+            Assert.Equal(0, ReferencePool.GetAllInfos().First(i => i.Type == typeof(RefN)).Unused);
+            Assert.Equal(0, ReferencePool.TrimExpired<RefL>(-1));    // 未注册类型零裁剪（不建桶）
+        }
     }
 }
