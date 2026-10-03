@@ -203,10 +203,11 @@ namespace LiteGame.Tests.EditMode
         {
             // 真实候选包的 main.lua 顶层有 log.info 冒烟锚点：桩保证"模块可装载可执行"可达；
             // 桩非正式 Bridge 注册表（无 UI/事件/网络/存档副作用），§10 隔离面不受影响。
+            // 契约是**可调用**而非 Lua 函数类型——xLua 委托在 Lua 侧不为 type 'function'（正式 BindLog 同形状）。
             CandidateScriptSet set = SetOf(new ScriptEntry("m", "lua/m.lua"));
             var bytes = BytesOf(("lua/m.lua",
                 "assert(type(log) == 'table')\n" +
-                "assert(type(log.info) == 'function')\n" +
+                "assert(log.info ~= nil, 'log.info 缺失')\n" +
                 "log.info('smoke anchor')\n" +
                 "return {}"));
 

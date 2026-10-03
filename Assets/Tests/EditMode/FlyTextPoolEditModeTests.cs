@@ -19,14 +19,13 @@ namespace LiteGame.Tests.EditMode
             var host = new GameObject("FlyTextHost", typeof(RectTransform));
             var pool = host.AddComponent<FlyTextPool>();
 
-            // 模板结构对齐真 prefab：Template(非激活) → Label(带 TMP_Text；CanvasGroup 由模板自带红线)
-            var tpl = new GameObject("Template", typeof(RectTransform)).transform;
-            tpl.SetParent(host.transform, false);
-            var label = new GameObject("Label", typeof(RectTransform)).transform;
-            label.SetParent(tpl, false);
-            label.gameObject.AddComponent<TextMeshProUGUI>();
-            tpl.gameObject.SetActive(false);
-            pool.Template = (RectTransform)tpl;
+            // 模板结构与真 prefab 一致（Assets/UI/Widgets/FlyText.prefab）：_Template 单节点、
+            // TMP_Text 直接挂在该节点上、非激活——create 即 Instantiate(Template).GetComponent<TMP_Text>()。
+            var tpl = new GameObject("_Template", typeof(RectTransform));
+            tpl.transform.SetParent(host.transform, false);
+            tpl.AddComponent<TextMeshProUGUI>();
+            tpl.SetActive(false);
+            pool.Template = (RectTransform)tpl.transform;
             return pool;
         }
 
