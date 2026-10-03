@@ -15,6 +15,7 @@ namespace LiteNet
             "Assets/LiteSim/Core/Systems",
             "Assets/LiteNet/Proto",
             "Assets/LiteNet/Protocol",
+            "Assets/LiteNet/Transport/Security",
         };
 
         /// <summary>表数据目标（相对仓库根，按 <see cref="DataExtensions"/> 白名单收集）。</summary>

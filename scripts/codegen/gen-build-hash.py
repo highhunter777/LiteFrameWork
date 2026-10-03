@@ -31,6 +31,9 @@ TARGETS = [
     'Assets/LiteSim/Core/Systems',
     'Assets/LiteNet/Proto',
     'Assets/LiteNet/Protocol',
+    # 安全信封（2026-10-03）：装饰在 Transport 上的线上协议层——密文帧形状/握手版本
+    # 变更即两端 wire 不兼容，必须进 buildHash 闭包（KCP 适配层本体仍不入闭包：纯传输）。
+    'Assets/LiteNet/Transport/Security',
 ]
 DATA_TARGETS = [
     # 表数据两端同源（2026-09-28 起：服务端也读 .bytes——RoomServer 源链接 Generated + Luban 运行时，

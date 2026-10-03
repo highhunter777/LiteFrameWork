@@ -18,6 +18,8 @@ const long DrainGraceMs = 5_000;
 //   --config <path>        配置文件路径（默认 Config/roomserver.json）
 //   --combat-table <dir>   玩法数值表目录（缺省走 CombatNumbers.LoadFromRepo 的仓库路径 Assets/GameData/Config）
 //   其余：--port / --duration <ms> / --quiet / --ticket-key <kid>:<base64> / --audience <id>
+//   --envelope-key <base64>（或环境变量 LITENET_SECURE_ENVELOPE_KEY）
+//   --allow-insecure-local（仅本机联调，显式允许裸 KCP；公网/共享环境禁止）
 //
 // **房间形态**：单进程多房间 + 动态创建（§6"一个 roomId 只能映射一个独立 RoomActor"）。
 // 房间参数来自配置模板，玩法数值为**进程级共享**（Sim 静态读 CombatConfig——参数化迁 G1）。
@@ -29,6 +31,8 @@ int? portOverride = null;
 string combatTableDir = null;
 var ticketKeys = new List<JoinTicketKey>();
 string audienceOverride = null;
+string envelopeKeyBase64 = Environment.GetEnvironmentVariable("LITENET_SECURE_ENVELOPE_KEY");
+bool allowInsecureLocal = false;
 
 for (int i = 0; i < args.Length; i++)
 {
@@ -38,6 +42,8 @@ for (int i = 0; i < args.Length; i++)
         case "--duration": if (i + 1 < args.Length) durationMs = long.Parse(args[++i]); break;
         case "--quiet": quiet = true; break;
         case "--audience": if (i + 1 < args.Length) audienceOverride = args[++i]; break;
+        case "--envelope-key": if (i + 1 < args.Length) envelopeKeyBase64 = args[++i]; break;
+        case "--allow-insecure-local": allowInsecureLocal = true; break;
         case "--combat-table": if (i + 1 < args.Length) combatTableDir = args[++i]; break;
         case "--ticket-key":
             if (i + 1 < args.Length)
@@ -50,6 +56,16 @@ for (int i = 0; i < args.Length; i++)
             }
             break;
     }
+}
+
+SecureEnvelopeOptions envelopeOptions = null;
+if (!string.IsNullOrWhiteSpace(envelopeKeyBase64))
+{
+    envelopeOptions = SecureEnvelopeOptions.FromBase64(envelopeKeyBase64);
+}
+else if (!allowInsecureLocal)
+{
+    throw new InvalidOperationException("RoomServer 默认拒绝裸 KCP：请提供 --envelope-key 或 LITENET_SECURE_ENVELOPE_KEY；仅本机联调可显式使用 --allow-insecure-local。");
 }
 
 // 玩法数值装载（.bytes 表——与客户端同一份文件；fail-fast：数值缺失宁可起不来）。
@@ -88,7 +104,10 @@ using var settlementOutbox = FileSettlementOutbox.Open(
 if (settlementOutbox.Count > 0 || settlementOutbox.SkippedCorruptLines > 0)
     Console.WriteLine($"[RoomServer] 结算日志重放：待提交 {settlementOutbox.Count} 条（坏行跳过 {settlementOutbox.SkippedCorruptLines}）");
 
-using var transport = new KcpTransportServer();
+using var transport = CreateTransport(envelopeOptions);
+Console.WriteLine(envelopeOptions == null
+    ? "[RoomServer] !! 安全信封未启用：仅允许本机联调，不得暴露公网"
+    : "[RoomServer] 安全信封已启用（AES-256-GCM / HKDF-SHA256 / 64 位重放窗口）");
 // workerExecution: true = 生产形态（§8.2）：房间命令与快照广播在 hash 归属的 Worker 上执行，
 // 宿主只做 Transport IO、准入与回传应用（Outbound lane）。嵌入式/历史用例保持默认的宿主 owner 直驱形态。
 using var host = new ServerHost(transport, null, ticketValidator, audience, serverConfig, settlementOutbox,
@@ -103,7 +122,7 @@ host.LoopStats = loop.Stats;                    // Ops 行带上节拍/掉债观
 if (durationMs > 0)
 {
     loop.Run(durationMs);                       // 验收形态：跑满时长即退出
-    var stats = loop.Stats;
+var stats = loop.Stats;
     Console.WriteLine($"[RoomServer] 跑满 {durationMs}ms：房间数={host.RoomCount} ticks={stats.Ticks} " +
         $"掉时债={stats.DroppedTimeMs}ms 放弃追帧={stats.CatchUpAbandoned}");
 }
@@ -139,6 +158,12 @@ else
     Console.WriteLine(host.DrainComplete
         ? $"[RoomServer] 排空完成（{drainWatch.ElapsedMilliseconds}ms）：房间数={host.RoomCount} drainTimeout={host.Ops.RoomsDrainTimedOut} 结算在盒={host.SettlementOutboxPending}（待提交）"
         : $"[RoomServer] 排空未在时限内完成（{drainWatch.ElapsedMilliseconds}ms）——按超时退出（结算在盒={host.SettlementOutboxPending}）");
+}
+
+static IRoomTransport CreateTransport(SecureEnvelopeOptions options)
+{
+    var kcp = new KcpTransportServer();
+    return options == null ? kcp : new SecureEnvelopeRoomTransport(kcp, options);
 }
 
 /// <summary>取 --config 的值；缺省用配置类给出的相对路径（相对工作目录）。</summary>

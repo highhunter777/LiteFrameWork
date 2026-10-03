@@ -41,10 +41,13 @@ namespace LiteClient
         /// <summary>最近一次传输错误文本（诊断用；null = 无。仅 KCP 实现提供 OnError）。</summary>
         public string LastError => _lastError;
 
-        /// <param name="transport">注入传输（测试假件；null = 新建 KCP——生产形态，所有权归本类）。</param>
+        /// <param name="transport">注入传输（测试假件/本地服；null = 新建 KCP——生产形态，所有权归本类）。</param>
+        /// <param name="secureEnvelopeOptions">安全信封密钥（PSK）。真实 KCP（自建或注入）必须装配——
+        /// 缺失即抛（fail-closed，与 RoomServer 装配口径对称）；LocalServerTransport 等进程内传输不受影响。</param>
         /// <param name="nowMsProvider">单调毫秒源（测试注入虚拟时钟；null = Stopwatch 兜底——Unity 可编译）。</param>
         public BattleClient(string host, int port, string roomId, string token, string buildHash,
-            IClientTransport transport = null, Func<long> nowMsProvider = null)
+            IClientTransport transport = null, Func<long> nowMsProvider = null,
+            SecureEnvelopeOptions secureEnvelopeOptions = null)
         {
             _host = host ?? throw new ArgumentNullException(nameof(host));
             _roomId = roomId ?? throw new ArgumentNullException(nameof(roomId));
@@ -52,11 +55,26 @@ namespace LiteClient
             _buildHash = buildHash ?? throw new ArgumentNullException(nameof(buildHash));
             _port = port;
 
-            _transport = transport ?? new KcpTransportClient();
+            if (transport == null)
+            {
+                if (secureEnvelopeOptions == null)
+                    throw new InvalidOperationException("真实 KCP 必须装配安全信封密钥。");
+                _transport = new SecureEnvelopeClientTransport(new KcpTransportClient(), secureEnvelopeOptions);
+            }
+            else if (transport is KcpTransportClient && secureEnvelopeOptions != null)
+            {
+                _transport = new SecureEnvelopeClientTransport(transport, secureEnvelopeOptions);
+            }
+            else
+            {
+                _transport = transport;
+            }
             _client = new RoomClient(_transport, nowMsProvider);
             _transport.OnConnected += OnTransportConnected;
             if (_transport is KcpTransportClient kcp)
                 kcp.OnError += error => _lastError = error;   // 诊断面：会话语义由相位承担，错误只留文本
+            if (_transport is SecureEnvelopeClientTransport secure)
+                secure.OnError += error => _lastError = error;
             _client.Connect(_host, _port);                    // 初次连接（重拨由 BeginReconnect 走 RoomClient）
         }
 

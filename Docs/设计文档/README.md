@@ -67,6 +67,7 @@
 - [联机同步策略选型](networking/联机同步策略选型.md)
 - [状态同步专项设计](networking/状态同步专项设计.md)
 - [帧同步备选方案](networking/帧同步备选方案.md)
+- [安全信封专项设计](networking/安全信封专项设计.md)：KCP 裸 UDP 上的业务载荷四项保护（机密性/完整性/序号/重放窗口）——PSK 三步握手 + HKDF + AES-256-GCM 传输装饰器，双端 fail-closed 装配；信封源集进 buildHash。
 
 ### 客户端内容与热更
 

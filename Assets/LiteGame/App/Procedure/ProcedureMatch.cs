@@ -134,7 +134,9 @@ namespace LiteGame
                 return LocalServerTransport.ForRoom(testRoom ? TestRoomId : DefaultRoomId, players);
             }
 #endif
-            return null;                                  // null = BattleClient 自建真 KCP（生产路径）
+            return new LiteNet.Transport.SecureEnvelopeClientTransport(
+                new LiteNet.Transport.KcpTransportClient(),
+                LiteNet.Transport.SecureEnvelopeOptions.FromEnvironment());
         }
 
         /// <summary>等 JoinAck（RoomClient 相位 Idle → Connected；超时 = 确定失败态）。</summary>
