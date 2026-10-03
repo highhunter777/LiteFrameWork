@@ -13,7 +13,7 @@ namespace LiteFramework
     /// 时长与恢复：`DurationFrames` 到点后，优先 `AutoResumeOnEnd`（恢复栈顶），否则走 `NextId`。
     /// 未实现 `IPriorityStage` 的机器（如 HSM）也可挂本件，只是抢占/恢复不生效。
     /// </summary>
-    public sealed class TableStage<TId, TReq> : IStage<TId, TReq>, IPriorityStage, IInterruptPolicy<TId>, IResumeStage
+    public sealed class TableStage<TId, TReq> : IStage<TId, TReq>, IPriorityStage, IInterruptPolicy<TId>, IResumeStage, IStageTimeout<TId>
         where TId : struct
     {
         private readonly StageSpec<TId, TReq> _spec;
@@ -27,6 +27,10 @@ namespace LiteFramework
         public int Priority => _spec.Priority;
 
         public ResumeMode Resume => _spec.Resume;
+
+        public int TimeoutFrames => _spec.TimeoutFrames;
+
+        public TId TimeoutTarget => _spec.TimeoutTarget;
 
         public bool CanBeInterruptedBy(TId incoming)
             => _spec.CanBeInterruptedBy != null ? _spec.CanBeInterruptedBy(incoming) : _spec.CanBeInterrupted;

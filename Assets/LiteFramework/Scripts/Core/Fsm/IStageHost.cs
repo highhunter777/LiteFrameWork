@@ -25,7 +25,8 @@ namespace LiteFramework
         int StageFrames { get; }
 
         /// <summary>发起迁移请求（只入队，last-wins；平面机 = 一次迁移，层级机 = 一次迁移事务）。
-        /// 返回 **false** = 被优先级/中断规则挡下（不改变挂起）；层级机恒为 true。</summary>
+        /// 返回 **false** = 被优先级/中断规则挡下（不改变挂起）——仅抢占型机体（平面/层级）可能；
+        /// 基础平面机与层级机恒为 true。</summary>
         bool Request(TId nextId, in TReq req);
 
         /// <summary>无 payload 的迁移请求。</summary>

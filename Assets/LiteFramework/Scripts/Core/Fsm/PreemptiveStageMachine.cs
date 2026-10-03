@@ -17,28 +17,33 @@ namespace LiteFramework
     /// - 被拒 → `Request` 返回 **false**（不抛、不改 pending）；
     /// - 被抢占的旧阶段若声明 `Resume` 且允许被打断 → 入恢复栈（后进先出，深度上限见 <see cref="MaxResumeDepth"/>，超限丢最老）；
     /// - <see cref="TryResume"/> **绕过准入判定**（恢复是"回到更早的状态"）。
+    ///
+    /// 准入判定/恢复栈/拒绝上报由共用件 <see cref="PreemptionCore{TId,TReq}"/> 承担
+    /// （《状态机专项设计》§3.3：与层级抢占机同判例），本类只做接线。
     /// </summary>
     public class PreemptiveStageMachine<TId, TReq> : StageMachine<TId, TReq>
         where TId : struct
     {
         /// <summary>恢复栈深度上限（超出丢最老并计入 <see cref="ResumeDropped"/>）。</summary>
-        public const int MaxResumeDepth = 4;
+        public const int MaxResumeDepth = PreemptionCore<TId, TReq>.MaxResumeDepth;
 
-        private static readonly IEqualityComparer<TId> Cmp = EqualityComparer<TId>.Default;
-
-        private readonly List<TId> _resumeStack = new List<TId>(MaxResumeDepth);
+        private readonly PreemptionCore<TId, TReq> _core = new PreemptionCore<TId, TReq>();
 
         public PreemptiveStageMachine(string name, params (TId id, IStage<TId, TReq> stage)[] stages)
             : base(name, stages) { }
 
+        /// <summary>带迁移表的构造（事件边/条件边经抢占准入裁决——与手动请求同通道）。</summary>
+        public PreemptiveStageMachine(string name, TransitionTable<TId, TReq> transitions, params (TId id, IStage<TId, TReq> stage)[] stages)
+            : base(name, transitions, stages) { }
+
         /// <summary>恢复栈是否非空。</summary>
-        public bool HasResumePending => _resumeStack.Count > 0;
+        public bool HasResumePending => _core.HasResumePending;
 
         /// <summary>恢复栈深度（诊断/HUD）。</summary>
-        public int ResumeDepth => _resumeStack.Count;
+        public int ResumeDepth => _core.ResumeDepth;
 
         /// <summary>因超深被丢弃的恢复项累计数（持续增长说明抢占过密或深度不足）。</summary>
-        public int ResumeDropped { get; private set; }
+        public int ResumeDropped => _core.ResumeDropped;
 
         /// <summary>
         /// 带优先级覆盖的迁移请求：<paramref name="priorityOverride"/> 只作用本次请求
@@ -48,31 +53,15 @@ namespace LiteFramework
             => RequestCore(nextId, in req, priorityOverride);
 
         /// <summary>
-        /// 抢占判定：**阶段自身推进一律放行**（否则"攻击(优先级10)播完回 Idle(优先级0)"会被自己挡住）；
-        /// 外部请求则要过"当前阶段允许被它打断 && 来者优先级 ≥ 当前优先级"。
+        /// 抢占判定（转调共用件）：**阶段自身推进一律放行**；外部请求过
+        /// "当前阶段允许被它打断 && 来者优先级 ≥ 当前优先级"。
         /// </summary>
         protected override bool CanAccept(TId incomingId, int priority)
         {
-            if (InStageCallback) return true;
-
-            var current = CurrentStage;
-            if (current == null) return true;
-
-            bool allowed = current is IInterruptPolicy<TId> policy ? policy.CanBeInterruptedBy(incomingId) : true;
-            if (!allowed)
+            if (!PreemptionCore<TId, TReq>.CanAdmit(CurrentStage, incomingId, GetStage(incomingId),
+                    priority, InStageCallback, out var reason))
             {
-                MarkRejected(RejectReason.InterruptDisallowed);   // 霸体 / 细粒度规则不允许
-                return false;
-            }
-
-            int incomingPriority = priority != int.MinValue
-                ? priority
-                : GetStage(incomingId) is IPriorityStage ip ? ip.Priority : 0;
-            int currentPriority = current is IPriorityStage cp ? cp.Priority : 0;
-
-            if (incomingPriority < currentPriority)
-            {
-                MarkRejected(RejectReason.Priority);
+                MarkRejected(reason);
                 return false;
             }
             return true;
@@ -82,52 +71,39 @@ namespace LiteFramework
         protected override void OnStagePreempted(TId outgoingId)
         {
             if (CurrentStage is IResumeStage rs && rs.Resume == ResumeMode.Resume)
-                PushResume(outgoingId);
+                _core.PushResume(outgoingId);
         }
 
         /// <summary>恢复栈顶（绕过准入判定）：栈空/已在目标 → false（无害）。</summary>
         public bool TryResume()
         {
-            if (_resumeStack.Count == 0)
+            if (!_core.TryPopResume(Current, out var target, out var reason))
             {
-                MarkRejected(RejectReason.ResumeStackEmpty);
+                MarkRejected(reason);
                 return false;
             }
-
-            TId target = _resumeStack[_resumeStack.Count - 1];
-            _resumeStack.RemoveAt(_resumeStack.Count - 1);
-
-            if (Cmp.Equals(target, Current))
-            {
-                MarkRejected(RejectReason.ResumeAlreadyCurrent);  // 已在目标：丢弃这条
-                return false;
-            }
+            RecordResumeSuccess();
             return EnqueueRequest(target, default);              // 绕过准入（恢复不该被抢占规则再挡）
         }
 
         /// <summary>停止并复位：先清恢复栈/计数，再走基类（含 OnLeave 对称收尾）。</summary>
         public override void Reset()
         {
-            _resumeStack.Clear();
-            ResumeDropped = 0;
+            _core.Reset();
             base.Reset();
         }
 
-        private void PushResume(TId id)
-        {
-            if (_resumeStack.Count >= MaxResumeDepth)
-            {
-                _resumeStack.RemoveAt(0);                        // 丢最老
-                ResumeDropped++;
-            }
-            _resumeStack.Add(id);
-        }
+        protected override void CaptureCore(FsmCapture<TId> into)
+            => _core.CaptureInto(into);
+
+        protected override void RestoreCore(FsmCapture<TId> from)
+            => _core.RestoreFrom(from, IsRegistered);
 
         public override void Snapshot(Dictionary<string, string> into)
         {
             base.Snapshot(into);
-            into["恢复栈深"] = _resumeStack.Count.ToString();
-            into["丢弃恢复"] = ResumeDropped.ToString();
+            into["恢复栈深"] = _core.ResumeDepth.ToString();
+            into["丢弃恢复"] = _core.ResumeDropped.ToString();
         }
     }
 }
