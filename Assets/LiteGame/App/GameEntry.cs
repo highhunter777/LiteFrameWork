@@ -95,7 +95,7 @@ namespace LiteGame
                 Debug.Log("[GE] bootstrap done");               // 临时诊断
 #if UNITY_EDITOR || DEVELOPMENT_BUILD || LITEFRAMEWORK_DEBUG
                 // 调试组件注入（同 GameObject；可选——未挂即跳过；守卫与定义处一致：release Player 下类型被条件编译移除）
-                GetComponent<DebugTuner>()?.Inject(_host.Product<IWorldClock>(), _host.Product<IUIClock>(), _host.Product<EventCenter>());
+                GetComponent<DebugTuner>()?.Inject(_host.Product<IWorldClock>(), _host.Product<IUIClock>(), _host.Product<EventCenter>(), _host.Product<CommandCenter>());
 #endif
             }
             catch (OperationCanceledException)

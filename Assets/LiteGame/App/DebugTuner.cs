@@ -1,4 +1,5 @@
 #if UNITY_EDITOR || DEVELOPMENT_BUILD || LITEFRAMEWORK_DEBUG
+using System;
 using LiteFramework;
 using UnityEngine;
 
@@ -12,6 +13,8 @@ namespace LiteGame
         private IWorldClock _world;
         private IUIClock _ui;
         private EventCenter _events;
+        private CommandCenter _commands;                     // 命令中心（离散调试动作经 GM 命令——§6 闭环）
+        private IDisposable _gmCommandRegistration;          // GM 示范命令注册（重注入先注销——幂等）
 
         [Header("世界时钟（时停/变速）")]
         [Tooltip("同步开关：false = 停止每帧覆写，允许运行期程序直接改时钟（时序验证/脚本演出用）")]
@@ -40,8 +43,19 @@ namespace LiteGame
         /// </remarks>
         public static bool UseLocalServerEnabled;
 
-        public void Inject(IWorldClock world, IUIClock ui, EventCenter events)
-            { _world = world; _ui = ui; _events = events; }
+        public void Inject(IWorldClock world, IUIClock ui, EventCenter events, CommandCenter commands)
+        {
+            _world = world; _ui = ui; _events = events; _commands = commands;
+            // GM 示范命令（§6/批2 消费端闭环）：发现面据此列命令，不硬编码清单；重注入先注销
+            _gmCommandRegistration?.Dispose();
+            if (_commands != null)
+                _gmCommandRegistration = _commands.Register(new GmResetClockHandler(this),
+                    new CommandOptions(gmOnly: true, description: "重置时钟（Scale=1、不暂停）"));
+        }
+
+        /// <summary>GM 面板执行入口（Inspector 右键菜单 = 离散动作的编辑器原生入口——经 Send 全链：权限门→处理器→审计）。</summary>
+        [ContextMenu("GM 命令：重置时钟")]
+        private void GmResetClock() => _commands?.Send(new GmResetClockCommand());
 
         private void Update()
         {
