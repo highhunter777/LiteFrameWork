@@ -247,6 +247,131 @@ namespace LiteFramework.Tests
             Assert.Equal(1, unheardInfo.Published);                  // "有没有空转"可见
         }
 
+        // ---- 批3（§3.5 发布拦截链）----
+
+        private sealed class PassAll : IEventInterceptor
+        {
+            public int Calls;
+            public bool Intercept(Type eventType, object e) { Calls++; return true; }
+        }
+
+        private sealed class Veto<TEvent> : IEventInterceptor where TEvent : class
+        {
+            public int Calls;
+            public bool Intercept(Type eventType, object e) { Calls++; return eventType != typeof(TEvent); }
+        }
+
+        private sealed class Recorder : IEventInterceptor
+        {
+            private readonly string _tag;
+            private readonly List<string> _log;
+            public Recorder(string tag, List<string> log) { _tag = tag; _log = log; }
+            public bool Intercept(Type eventType, object e) { _log.Add(_tag); return true; }
+        }
+
+        private sealed class Throwing : IEventInterceptor
+        {
+            public bool Intercept(Type eventType, object e) => throw new InvalidOperationException("拦截器故障注入");
+        }
+
+        [Fact]
+        public void EventCenter_拦截_观测放行_派发正常()
+        {
+            var events = new EventCenter();
+            var received = 0;
+            events.Subscribe<ProbeEvent>(_ => received++);
+            var pass = new PassAll();
+            events.RegisterInterceptor(pass);
+
+            events.Publish(new ProbeEvent());
+            Assert.Equal(1, received);                     // 放行不改变派发
+            Assert.Equal(1, pass.Calls);
+        }
+
+        [Fact]
+        public void EventCenter_拦截_否决丢弃_不派发_否决路径池化回收()
+        {
+            var events = new EventCenter();
+            var received = 0;
+            events.Subscribe<ProbeEvent>(_ => received++);
+            var veto = new Veto<ProbeEvent>();
+            events.RegisterInterceptor(veto);
+
+            events.Publish(new ProbeEvent());              // 否决：订阅者存在也不派发
+            Assert.Equal(0, received);
+            Assert.Equal(1, veto.Calls);
+
+            var pooledVeto = new Veto<PooledProbe>();
+            events.RegisterInterceptor(pooledVeto);
+            var pooled = ReferencePool.Acquire<PooledProbe>();
+            events.Publish(pooled);                        // 否决 + 池化事件回收（不因否决泄漏）
+            Assert.Same(pooled, ReferencePool.Acquire<PooledProbe>());
+        }
+
+        [Fact]
+        public void EventCenter_拦截_注册序运行_注销幂等()
+        {
+            var events = new EventCenter();
+            var order = new List<string>();
+            var unsubA = events.RegisterInterceptor(new Recorder("A", order));
+            events.RegisterInterceptor(new Recorder("B", order));
+
+            events.Publish(new ProbeEvent());
+            Assert.Equal(new[] { "A", "B" }, order);       // 先注册先执行
+
+            unsubA();
+            unsubA();                                      // 幂等：二次注销 no-op
+            events.Publish(new ProbeEvent());
+            Assert.Equal(new[] { "A", "B", "B" }, order);  // A 已移除，B 仍在
+        }
+
+        [Fact]
+        public void EventCenter_拦截_异常隔离_fail_open_不阻断派发()
+        {
+            var events = new EventCenter();
+            var received = 0;
+            events.Subscribe<ProbeEvent>(_ => received++);
+            events.RegisterInterceptor(new Throwing());    // 拦截器作者代码炸了
+            var pass = new PassAll();
+            events.RegisterInterceptor(pass);              // 后续拦截器照常运行
+
+            events.Publish(new ProbeEvent());
+            Assert.Equal(1, pass.Calls);                   // 抛异常的跳过，管线继续
+            Assert.Equal(1, received);                     // fail-open：观测性缺陷不阻断业务流
+            var last = Log.Recent[Log.Recent.Count - 1];
+            Assert.Equal(LogLevel.Error, last.Level);
+        }
+
+        [Fact]
+        public void EventCenter_拦截_否决计数进Snapshot()
+        {
+            var events = new EventCenter();
+            events.RegisterInterceptor(new Veto<ProbeEvent>());
+            events.Publish(new ProbeEvent());
+            events.Publish(new ProbeEvent());
+
+            var into = new Dictionary<string, string>();
+            ((IModuleStats)events).Snapshot(into);
+            Assert.Equal("2", into["Intercepted"]);        // 否决可观察（健康度信号）
+        }
+
+        [Fact]
+        public void EventCenter_拦截_队列路径同样适用_零特例()
+        {
+            var events = new EventCenter();
+            var received = 0;
+            events.Subscribe<ProbeEvent>(_ => received++);
+            events.RegisterInterceptor(new Veto<ProbeEvent>());
+
+            events.PublishQueued(new ProbeEvent());         // 入队不拦（拦截在派发核心内）
+            events.Tick(0.016f);                            // Tick 派发 → 经 Publish 核 → 被否决
+            Assert.Equal(0, received);
+            var into = new Dictionary<string, string>();
+            ((IModuleStats)events).Snapshot(into);
+            Assert.Equal("1", into["Intercepted"]);        // 队列/延迟路径拦截全适用（§3.5：同一核心零特例）
+        }
+
+
         private sealed class PooledProbe : IReference
         {
             public void Clear() { }

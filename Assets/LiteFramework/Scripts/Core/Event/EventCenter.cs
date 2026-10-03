@@ -13,6 +13,8 @@ namespace LiteFramework
         private int _queuedPeak;                            // 队列峰值（消费不及的留存信号）
         private long _recycled;                            // 池化事件回收累计
         private long _strictWarnings;                      // StrictMode 告警累计（没人听的事件信号）
+        private long _intercepted;                         // 拦截否决累计（§3.5——被拦截管掉的事件信号）
+        private readonly List<IEventInterceptor> _interceptors = new List<IEventInterceptor>(2);   // 注册序运行
 
 #if UNITY_EDITOR || DEVELOPMENT_BUILD || LITEFRAMEWORK_DEBUG
         public bool StrictMode { get; set; } = true;    // 编辑器/开发构建：未订阅事件告警
@@ -36,9 +38,46 @@ namespace LiteFramework
             return () => channel.Remove(handler);          // 闭包分配一次/订阅;订阅是生命周期边界低频操作,可接受
         }
 
+        /// <summary>注册发布拦截器（§3.5）：Publish 管线在派发之前按注册序运行；返回注销委托（幂等）。
+        /// 返回 false = 否决（该次发布丢弃、InterceptedCount 记账、池化事件否决路径同样回收）。</summary>
+        public Action RegisterInterceptor(IEventInterceptor interceptor)
+        {
+            if (interceptor == null) throw new ArgumentNullException(nameof(interceptor));
+            _interceptors.Add(interceptor);
+            return () => _interceptors.Remove(interceptor);    // 幂等（同订阅/注销语义）
+        }
+
+        /// <summary>拦截管线（§3.5）：全部放行返回 true；任一否决返回 false。
+        /// 拦截器异常 = 记日志跳过继续（fail-open——观测性缺陷不阻断业务流）。零拦截器 = 一次计数判断。</summary>
+        private bool RunInterceptors<T>(T e) where T : class
+        {
+            if (_interceptors.Count == 0) return true;
+            for (int i = 0; i < _interceptors.Count; i++)
+            {
+                bool pass;
+                try { pass = _interceptors[i].Intercept(typeof(T), e); }
+                catch (Exception ex)
+                {
+                    Log.Error(ex, $"Event.Interceptor.{_interceptors[i].GetType().Name}");
+                    continue;
+                }
+                if (!pass)
+                {
+                    _intercepted++;
+                    return false;
+                }
+            }
+            return true;
+        }
+
         public void Publish<T>(T e) where T : class
         {
             if (e == null) throw new ArgumentNullException(nameof(e));
+            if (!RunInterceptors(e))
+            {
+                RecycleIfPooled(e);                        // 否决路径同样回收——不派发、不告警、不计数发布
+                return;
+            }
             _published++;
             var channel = (EventChannel<T>)GetOrAddChannel<T>();
             bool dispatched = channel.Publish(e);
@@ -134,6 +173,7 @@ namespace LiteFramework
             into["Recycled"] = _recycled.ToString();
             into["StrictWarnings"] = _strictWarnings.ToString();
             into["DelayedCount"] = delayed.ToString();
+            into["Intercepted"] = _intercepted.ToString();
         }
 
 #if UNITY_EDITOR || DEVELOPMENT_BUILD || LITEFRAMEWORK_DEBUG
