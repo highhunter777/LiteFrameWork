@@ -13,14 +13,16 @@ namespace LiteFramework
     /// </summary>
     public interface IEventCenter
     {
-        /// <summary>订阅。返回注销委托,幂等可重复调用(返回注销委托而非裸注册)。</summary>
-        Action Subscribe<T>(Action<T> handler) where T : class;
+        /// <summary>订阅（优先级派发：小值先派发，同优先级保持注册序——priority 默认 0 = 既有语义）。
+        /// 返回注销委托,幂等可重复调用(返回注销委托而非裸注册)。</summary>
+        Action Subscribe<T>(Action<T> handler, int priority = 0) where T : class;
 
         /// <summary>立即派发(热路径,稳态零 GC)。发布即移交所有权,派发完成后池化事件由中心统一回收。</summary>
         void Publish<T>(T e) where T : class;
 
-        /// <summary>入队,Tick 统一派发(低频便利)。class 约束下 object 装箱为零成本引用上转。</summary>
-        void PublishQueued<T>(T e) where T : class;
+        /// <summary>入队,Tick 统一派发(低频便利)。class 约束下 object 装箱为零成本引用上转。
+        /// delayFrames（延迟派发，默认 1 = 现状语义）：入队后第 N 帧 Tick 派发。</summary>
+        void PublishQueued<T>(T e, int delayFrames = 1) where T : class;
 
         /// <summary>默认按构建分流：编辑器/开发构建 true（未订阅事件告警），release false；运行时可覆盖。</summary>
         bool StrictMode { get; set; }
