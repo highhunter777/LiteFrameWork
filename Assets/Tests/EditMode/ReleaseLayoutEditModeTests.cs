@@ -9,7 +9,7 @@ using LiteClient;
 namespace LiteGame.Tests.EditMode
 {
     /// <summary>发布布局约定（《热更与内容发布专项设计》§7/§8 的探针装配输入——
-    /// config/ 前缀 = 配置、lua/ 前缀 = 热更脚本、模块名派生与 LuaPreloader 同规则）。
+    /// config/ 前缀 = 配置、lua/ 前缀 = 热更脚本、模块名派生 = require 点分名（'/' 归一化为 '.'））。
     /// 这些约定是 ContainerModule 装配与发布流水线的**共同契约**，派生错了探针就查错文件。</summary>
     public sealed class ReleaseLayoutEditModeTests
     {
@@ -31,18 +31,18 @@ namespace LiteGame.Tests.EditMode
         }
 
         [Test]
-        public void 布局_lua前缀_派生模块名与LuaPreloader同规则()
+        public void 布局_lua前缀_派生require点分模块名()
         {
             var m = ManifestWith("lua/ui/UIMain.lua", "lua/cfg/tbuiform.lua", "lua/main.lua", "lua/x.txt", "config/a.bytes");
             var scripts = ReleaseLayout.LuaScripts(m);
 
             Assert.AreEqual(3, scripts.Count, "只取 lua/ 前缀的 .lua");
-            Assert.AreEqual("ui/UIMain", scripts[0].Module);
-            Assert.AreEqual("cfg/tbuiform", scripts[1].Module);
+            Assert.AreEqual("ui.UIMain", scripts[0].Module);      // require 点分名（Lua 源码 require("ui.UIMain") 口径）
+            Assert.AreEqual("cfg.tbuiform", scripts[1].Module);
             Assert.AreEqual("main", scripts[2].Module);
             foreach (var s in scripts)
             {
-                Assert.AreEqual(s.Path, "lua/" + s.Module + ".lua", "路径与模块名一一对应");
+                Assert.AreEqual(s.Path, "lua/" + s.Module.Replace('.', '/') + ".lua", "路径与模块名一一对应");
                 Assert.AreEqual(0, s.Requires.Count, "清单不声明依赖——运行期沙箱 require 按批内模块解析");
             }
         }

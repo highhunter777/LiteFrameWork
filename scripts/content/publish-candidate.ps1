@@ -62,7 +62,7 @@ if ($BundleSource) {
 }
 
 $here = if ($PSScriptRoot) { $PSScriptRoot } else { Split-Path -Parent $MyInvocation.MyCommand.Path }
-$projectRoot = (Resolve-Path (Join-Path $here '..')).Path
+$projectRoot = (Resolve-Path (Join-Path $here '..\..')).Path
 
 # serve directory / address: single source = scripts/content/local-cdn.json (loader fails
 # loudly when missing); script parameters still override for one-off runs.

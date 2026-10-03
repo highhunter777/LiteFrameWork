@@ -9,8 +9,9 @@ namespace LiteClient
     ///
     /// 候选根布局：`config/**`（Luban 表字节）+ `lua/**.lua`（热更脚本）+ `bundle/**`
     /// （**资产包根镜像**：YooAsset 包根的版本/清单/Bundle 文件，`bundle/` 本身即一个包根）。
-    /// Lua 模块名派生与运行期 <c>LuaPreloader</c> 同规则（剥前缀与 .lua 后缀、'/' 保留），
-    /// 保证候选沙箱内 require 的解析空间与正式包一致。
+    /// Lua 模块名 = **require 名**（剥 `lua/` 前缀与 `.lua` 后缀、`/` 归一化为 `.`）——与 Lua 源码
+    /// `require("UI.UIMain")` 及候选沙箱的 require 匹配同一口径；<c>LuaPreloader</c> 的斜杠键是
+    /// loader 内部缓存键（loader 做 '.'→'/' 转换），不是模块名约定。
     /// </summary>
     public static class ReleaseLayout
     {
@@ -52,7 +53,7 @@ namespace LiteClient
             return list;
         }
 
-        /// <summary>清单 → 热更脚本条目（模块名派生：剥 lua/ 前缀与 .lua 后缀、'/' 保留）。</summary>
+        /// <summary>清单 → 热更脚本条目（模块名派生 = require 点分名：剥 lua/ 前缀与 .lua 后缀、'/' 归一化为 '.'）。</summary>
         public static IReadOnlyList<ScriptEntry> LuaScripts(ReleaseManifest manifest)
         {
             var entries = new List<ScriptEntry>();
@@ -65,14 +66,15 @@ namespace LiteClient
             return entries;
         }
 
-        /// <summary>候选脚本路径 → Lua require 模块名（如 lua/ui/UIMain.lua → ui/UIMain）。</summary>
+        /// <summary>候选脚本路径 → Lua require 模块名（如 lua/UI/UIMain.lua → UI.UIMain；'/' 归一化为 '.'）。
+        /// 模块名 = Lua 源码里 require("UI.UIMain") 的名字（loader 侧再自行做 '.'→'/' 映射到缓存键）。</summary>
         public static string LuaModuleOf(string candidatePath)
         {
             if (string.IsNullOrEmpty(candidatePath)) return candidatePath;
             string p = candidatePath;
             if (p.StartsWith(LuaPrefix, System.StringComparison.Ordinal)) p = p.Substring(LuaPrefix.Length);
             if (p.EndsWith(".lua", System.StringComparison.Ordinal)) p = p.Substring(0, p.Length - 4);
-            return p;
+            return p.Replace('/', '.');
         }
     }
 }

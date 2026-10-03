@@ -12,7 +12,8 @@ namespace LiteGame.Tests.EditMode
     /// 内容运行时适配（《热更与内容发布专项设计》§7"下载、候选校验与容量"）：
     /// <see cref="FileSysCandidateFileSource"/>（候选文件读取）、
     /// <see cref="LocalDirectoryCandidateFetcher"/>（本地候选清点）、
-    /// <see cref="UnavailableDiskSpaceProbe"/>（空间不可知的 fail-closed）。
+    /// <see cref="UnavailableDiskSpaceProbe"/>（空间不可知的 fail-closed）、
+    /// <see cref="WriteProbeDiskSpaceProbe"/>（生产装配的空间余量链：DriveInfo → 写探针回退）。
     ///
     /// 同时覆盖 <see cref="FileSys"/> 的字节/递归 API ——
     /// LiteGame 层零 System.IO，候选文件（含二进制）必须走 FileSys 通道。
@@ -228,6 +229,19 @@ namespace LiteGame.Tests.EditMode
         {
             var probe = new DriveInfoSpaceProbe(@"Z:\definitely\not\here\nor\there");
             Assert.AreEqual(-1L, probe.GetAvailableBytes());
+        }
+
+        [Test]
+        public void 空间探测_写探针回退_桌面给可用下界()
+        {
+            // 生产装配（ContentModule）用的是"DriveInfo → 写探针回退"链：桌面必须给出可用值
+            // （精确值或写探针下界），绝不能是 -1——否则空间预检 fail-closed 会让热更链在 Player 上整体不可用
+            // （实测 IL2CPP Player 的 DriveInfo 拿不到卷余量）。小上限避免测试期大额写入。
+            var probe = new WriteProbeDiskSpaceProbe(UnityEngine.Application.persistentDataPath,
+                probeCapBytes: 8L * 1024 * 1024);
+            long available = probe.GetAvailableBytes();
+
+            Assert.IsTrue(available > 0, $"桌面应给出可用余量（下界），实得 {available}（-1 = 不可知）");
         }
 
         [Test]

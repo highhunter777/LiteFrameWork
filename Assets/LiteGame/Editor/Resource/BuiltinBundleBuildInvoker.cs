@@ -141,6 +141,30 @@ namespace LiteGame.EditorTools
             LastOutputDirectory = result.OutputPackageDirectory;
             outputDirectory = result.OutputPackageDirectory;
             Debug.Log($"[BuiltinBundle] 构建成功：package={PackageName} version={buildParameters.PackageVersion} target={buildTarget} copy={copyOption} output={result.OutputPackageDirectory}");
+
+            // 候选路径（copy=None 会跳过 YooAsset 的 TaskCreateCatalog）补生成内置目录文件：
+            // 运行时以候选包根初始化时，内置文件系统必读 `BuiltinCatalog.bytes`（文件名 → 包 GUID 映射）——
+            // 缺它 = 激活后启动 404（实测）。目录生成写进**构建输出目录**（不碰 StreamingAssets，
+            // "不覆盖内置包"语义保持）；镜像到候选 `bundle/**` 后随发布走。
+            if (copyOption == EBundledCopyOption.None)
+                CreateBuiltinCatalogInOutput(result.OutputPackageDirectory);
+        }
+
+        /// <summary>
+        /// 在构建输出目录内生成 `BuiltinCatalog.bytes`/`.json`（YooAsset 内置目录文件）。
+        /// 经反射调用 YooAsset 内部 `BuiltinCatalogHelper.CreateFile`——序列化格式的单一来源留在包内，
+        /// 本工程不复制其二进制格式（包升级不脱节）；解密器同内置构建路径（不加密时为 null）。
+        /// </summary>
+        private static void CreateBuiltinCatalogInOutput(string outputDirectory)
+        {
+            Type helperType = Type.GetType("YooAsset.BuiltinCatalogHelper, YooAsset")
+                ?? throw new InvalidOperationException("YooAsset.BuiltinCatalogHelper 未找到（包结构变更？）");
+            System.Reflection.MethodInfo createFile = helperType.GetMethod("CreateFile",
+                System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Static)
+                ?? throw new InvalidOperationException("BuiltinCatalogHelper.CreateFile 未找到（包结构变更？）");
+            bool ok = (bool)createFile.Invoke(null, new object[] { null, PackageName, outputDirectory });
+            if (!ok) throw new InvalidOperationException($"候选内置目录生成失败：{outputDirectory}");
+            Debug.Log($"[BuiltinBundle] 候选内置目录已生成：{outputDirectory}（BuiltinCatalog.bytes/.json）");
         }
     }
 }

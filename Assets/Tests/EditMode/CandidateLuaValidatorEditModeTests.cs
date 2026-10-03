@@ -160,11 +160,13 @@ namespace LiteGame.Tests.EditMode
         }
 
         [Test]
-        public void 沙箱_批内require_可用()
+        public void 沙箱_批内require_按需装载不依赖清单顺序()
         {
+            // use 在前、base（依赖）在后：沙箱按需装载（与运行期"全量预载 + require 时执行"同语义），
+            // 依赖在清单后位也必须解析出真实值——真实候选包 Content/DemoEntry 即依赖后位的 Core.class。
             CandidateScriptSet set = SetOf(
-                new ScriptEntry("base", "lua/base.lua"),
-                new ScriptEntry("use", "lua/use.lua", "base"));
+                new ScriptEntry("use", "lua/use.lua", "base"),
+                new ScriptEntry("base", "lua/base.lua"));
             var bytes = BytesOf(
                 ("lua/base.lua", "return { v = 42 }"),
                 ("lua/use.lua", "local b = require('base') if b == nil or b.v ~= 42 then error('依赖未就绪') end return {}"));
@@ -172,11 +174,69 @@ namespace LiteGame.Tests.EditMode
             using var v = new CandidateLuaValidator();
             IReadOnlyList<LuaScriptVerdict> r = v.Validate(set, bytes);
 
-            // 注意：集合内顺序由 scripts.Entries 决定，base 未必先载——
-            // 故此处只要求"不因沙箱本身失败"（越集 require 才应被拒）
-            foreach (LuaScriptVerdict vd in r)
-                Assert.IsFalse(vd.Reason != null && vd.Reason.Contains("越出候选集合"),
-                    $"{vd.Module} 不应被判越集：{vd.Reason}");
+            Assert.AreEqual(2, r.Count);
+            Assert.IsTrue(r[0].Ok, "use 依赖后位 base——按需装载后应通过：" + r[0].Reason);
+            Assert.IsTrue(r[1].Ok, r[1].Reason);
+        }
+
+        [Test]
+        public void 沙箱_require环_当场拒绝不悬挂()
+        {
+            // 清单不声明 Requires 时环由沙箱守卫（执行中集合）当场拒绝——不得悬挂/爆栈
+            CandidateScriptSet set = SetOf(
+                new ScriptEntry("a", "lua/a.lua"),
+                new ScriptEntry("b", "lua/b.lua"));
+            var bytes = BytesOf(
+                ("lua/a.lua", "local b = require('b') return { b = b }"),
+                ("lua/b.lua", "local a = require('a') return { a = a }"));
+
+            using var v = new CandidateLuaValidator();
+            IReadOnlyList<LuaScriptVerdict> r = v.Validate(set, bytes);
+
+            Assert.AreEqual(2, r.Count);
+            string summary = CandidateLuaValidator.Summarize(r);
+            StringAssert.Contains("循环依赖", summary);          // 环被当场拒绝（不是悬挂/爆栈）
+        }
+
+        [Test]
+        public void 沙箱_日志桥无副作用桩_模块顶层可执行()
+        {
+            // 真实候选包的 main.lua 顶层有 log.info 冒烟锚点：桩保证"模块可装载可执行"可达；
+            // 桩非正式 Bridge 注册表（无 UI/事件/网络/存档副作用），§10 隔离面不受影响。
+            CandidateScriptSet set = SetOf(new ScriptEntry("m", "lua/m.lua"));
+            var bytes = BytesOf(("lua/m.lua",
+                "assert(type(log) == 'table')\n" +
+                "assert(type(log.info) == 'function')\n" +
+                "log.info('smoke anchor')\n" +
+                "return {}"));
+
+            using var v = new CandidateLuaValidator();
+            IReadOnlyList<LuaScriptVerdict> r = v.Validate(set, bytes);
+
+            Assert.IsTrue(r[0].Ok, r[0].Reason);
+        }
+
+        [Test]
+        public void 沙箱_标准库require_同packageLoaded语义()
+        {
+            // 真实 Lua 的 package.loaded 预注册标准库：require('math') 不落 loader
+            //（LuaPanda 的 tools.createJson 顶层即此用法）；被回收的 io/os 仍不可 require。
+            CandidateScriptSet set = SetOf(new ScriptEntry("m", "lua/m.lua"));
+            var bytes = BytesOf(("lua/m.lua",
+                "local math = require('math')\n" +
+                "local string = require('string')\n" +
+                "local table = require('table')\n" +
+                "assert(type(math.floor) == 'function')\n" +
+                "assert(type(string.format) == 'function')\n" +
+                "assert(type(table.concat) == 'function')\n" +
+                "assert(not pcall(require, 'io'))\n" +
+                "assert(not pcall(require, 'os'))\n" +
+                "return {}"));
+
+            using var v = new CandidateLuaValidator();
+            IReadOnlyList<LuaScriptVerdict> r = v.Validate(set, bytes);
+
+            Assert.IsTrue(r[0].Ok, r[0].Reason);
         }
 
         [Test]

@@ -61,10 +61,10 @@ function Invoke-EvalFile([string]$fileName, [string]$code) {
 # ── 1. gates ─────────────────────────────────────────────────────────────────
 if (-not $SkipRestoreCheck) {
     Write-Host '== restore-check ==' -ForegroundColor Cyan
-    & powershell -NoProfile -ExecutionPolicy Bypass -File (Join-Path $PSScriptRoot 'gate/restore-check.ps1') -ProjectPath $ProjectPath
+    & powershell -NoProfile -ExecutionPolicy Bypass -File (Join-Path $ProjectPath 'scripts/gate/restore-check.ps1') -ProjectPath $ProjectPath
     if ($LASTEXITCODE -ne 0) { Write-Host 'restore-check failed - build aborted' -ForegroundColor Red; exit 1 }
     Write-Host '== l0-dep-scan ==' -ForegroundColor Cyan
-    & powershell -NoProfile -ExecutionPolicy Bypass -File (Join-Path $PSScriptRoot 'gate/l0-dep-scan.ps1') -ProjectPath $ProjectPath
+    & powershell -NoProfile -ExecutionPolicy Bypass -File (Join-Path $ProjectPath 'scripts/gate/l0-dep-scan.ps1') -ProjectPath $ProjectPath
     if ($LASTEXITCODE -ne 0) { Write-Host 'l0-dep-scan failed - build aborted' -ForegroundColor Red; exit 1 }
 }
 
@@ -125,6 +125,7 @@ Write-Host '  dry_run OK' -ForegroundColor Green
 
 # ── 5. build (confirm) + poll ────────────────────────────────────────────────
 Write-Host '== build (confirm; IL2CPP may take 10-30 min) ==' -ForegroundColor Cyan
+$buildStart = Get-Date
 $respJson = Invoke-Pipeline 'build' @('--confirm', 'true')
 $resp = $respJson | ConvertFrom-Json
 if ($resp.status -eq 'error' -or $resp.success -eq $false) {
@@ -160,6 +161,18 @@ $glob = if ($prof.artifactGlob) { $prof.artifactGlob } else { '*.exe' }
 $artifact = Get-ChildItem $outDir -Filter $glob -File -ErrorAction SilentlyContinue | Select-Object -First 1
 if (-not $artifact) { Write-Host "no artifact ($glob) under $outDir - artifact verification failed" -ForegroundColor Red; exit 1 }
 Write-Host "artifact: $($artifact.FullName) ($([math]::Round($artifact.Length/1MB,1)) MB)" -ForegroundColor Green
+
+# freshness: a build with compile errors can report "completed" without producing anything
+# (observed 2026-10-03: stale GameAssembly kept, script said PASSED) - require a file newer
+# than this build's start time, else it is a silent no-op.
+$freshCut = $buildStart.AddMinutes(-1)
+$fresh = Get-ChildItem $outDir -Recurse -File -ErrorAction SilentlyContinue |
+    Where-Object { $_.LastWriteTime -ge $freshCut } | Select-Object -First 1
+if (-not $fresh) {
+    Write-Host "artifact stale: nothing under $outDir newer than $($buildStart.ToString('HH:mm:ss')) - build produced nothing (check compile errors in Editor.log)" -ForegroundColor Red
+    exit 1
+}
+Write-Host "freshness: $($fresh.Name) @ $($fresh.LastWriteTime.ToString('HH:mm:ss'))" -ForegroundColor Green
 Write-Host ''
 Write-Host 'Player build PASSED' -ForegroundColor Green
 exit 0

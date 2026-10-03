@@ -202,13 +202,25 @@ namespace LiteClient
             {
                 string full = System.IO.Path.GetFullPath(_rootPath);
                 string root = System.IO.Path.GetPathRoot(full);
-                if (string.IsNullOrEmpty(root)) return -1L;
+                if (string.IsNullOrEmpty(root))
+                {
+                    Log.Warning($"磁盘余量不可知：无法解析卷根（path='{_rootPath}'）", "Content");
+                    return -1L;
+                }
 
                 var drive = new System.IO.DriveInfo(root);
-                return drive.IsReady ? drive.AvailableFreeSpace : -1L;
+                if (!drive.IsReady)
+                {
+                    Log.Warning($"磁盘余量不可知：卷未就绪（root='{root}'）", "Content");
+                    return -1L;
+                }
+                return drive.AvailableFreeSpace;
             }
-            catch (Exception)
+            catch (Exception ex)
             {
+                // 静默 -1 会让"桌面拿不到余量"成为不可见事故（SpacePrecheck 按不足拒绝所有候选，
+                // 热更链在 Player 上整体不可用）——留一次可诊断痕迹（每次预检至多一条，非热路径）。
+                Log.Warning($"磁盘余量不可知：DriveInfo 失败（path='{_rootPath}'）：{ex.GetType().Name}: {ex.Message}", "Content");
                 return -1L;                  // 平台不支持/权限不足/路径异常一律按"不可知"
             }
         }

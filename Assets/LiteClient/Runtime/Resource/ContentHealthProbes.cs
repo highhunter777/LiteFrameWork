@@ -16,8 +16,10 @@ namespace LiteClient
     /// "候选坏"与"激活过程坏"。
     ///
     /// 本探针做的检查（§11 的"schema、外键、资源键"中**可在此层做**的部分）：
-    /// ① 清单声明的配置项**全部存在且非空**；② JSON **可解析**（不是截断/畸形）；
-    /// ③ 结构化产物**根对象形态正确**（数组/对象之一，非裸标量）。
+    /// ① 清单声明的配置项**全部存在且非空**；② **JSON 产物**（`.json`）可解析且根形态正确
+    /// （数组/对象之一，非裸标量）。非 JSON 产物（如 Luban 二进制表字节 `.bytes`）在此层只做
+    /// 存在与非空——**真正的反序列化校验归运行时配置加载器**（`ConfigService` 候选建表 +
+    /// `ValidateCandidate`），探针不重复解析假设。
     /// 更深的表间外键与数值域校验依赖 Luban 生成的 schema，不在本探针覆盖范围。
     /// </summary>
     public sealed class CandidateConfigHealthProbe : IHealthProbe
@@ -58,9 +60,14 @@ namespace LiteClient
                     continue;
                 }
 
-                string json = System.Text.Encoding.UTF8.GetString(bytes);
-                string shape = CheckShape(json);
-                if (shape != null) problems.Add($"{rel}：{shape}");
+                // JSON 产物做结构校验；其余格式（Luban 二进制表字节等）只保证存在且非空——
+                // 反序列化校验归运行时加载器（ConfigService），探针不重复 JSON 解析假设。
+                if (rel.EndsWith(".json", StringComparison.Ordinal))
+                {
+                    string json = System.Text.Encoding.UTF8.GetString(bytes);
+                    string shape = CheckShape(json);
+                    if (shape != null) problems.Add($"{rel}：{shape}");
+                }
             }
 
             return UniTask.FromResult(problems.Count == 0 ? null : string.Join(" | ", problems));

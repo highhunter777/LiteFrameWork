@@ -31,7 +31,9 @@ namespace LiteGame
             //   配了 CDN（ContentDeployConfig，命令行注入）→ 信封与文件都走 HTTP（HttpCandidateProvider +
             //   HttpCandidateFetcher，来源经 DownloadPlan 下发）；未配 → 本地信封文件通道（现行为，
             //   无网络依赖，离线开发用）。
-            // - **磁盘余量 = DriveInfo**：桌面返回真实可用空间；移动端 -1 不可知 → 空间预检按不足处理。
+            // - **磁盘余量 = DriveInfo → 写探针回退**：优先 DriveInfo 精确值；不可用（实测 IL2CPP
+            //   Windows Player 的 DriveInfo 拿不到卷余量）→ 写探针取下界（只在确有候选、预检时机写入，
+            //   属更新期一次性成本）；两者均不可知 → -1 → 空间预检按不足处理（fail-closed）。
             // - **健康探针族**：
             //   候选配置（config/ 前缀 = Luban 表字节）+ 候选 Lua（lua/ 前缀 → 模块名 →
             //   受控沙箱执行）——两者基于候选根文件，先于资源包初始化可运行。
@@ -65,7 +67,7 @@ namespace LiteGame
             var coordinator = new PatchCoordinator(
                 context.Require<ActivationTransactionStore>(),
                 candidateFiles,
-                new DriveInfoSpaceProbe(UnityEngine.Application.persistentDataPath),
+                new WriteProbeDiskSpaceProbe(UnityEngine.Application.persistentDataPath),
                 fetcher,
                 new CompositeHealthCheck(
                     new CandidateConfigHealthProbe(candidateRoot, ReleaseLayout.ConfigPaths),

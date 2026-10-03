@@ -55,7 +55,7 @@ try {
     if (-not $SkipL1) {
         Write-Log ''
         Write-Log '---- L1 ----'
-        $l1 = & (Join-Path $ProjectPath 'scripts\test.ps1') -Lane L1 -Profile Nightly *>&1
+        $l1 = & (Join-Path $ProjectPath 'scripts\gate\test.ps1') -Lane L1 -Profile Nightly *>&1
         $l1 | ForEach-Object { Write-Log "  $_" }
         if ($LASTEXITCODE -ne 0) { Write-Log "  [FAIL] L1 退出码 $LASTEXITCODE"; $exitCode = 1 }
         else { Write-Log '  [PASS] L1' }
@@ -64,7 +64,7 @@ try {
     # ── L2（Unity 门禁）──
     Write-Log ''
     Write-Log '---- L2 ----'
-    $l2Script = Join-Path $ProjectPath 'scripts\l2-unity-gate.ps1'
+    $l2Script = Join-Path $ProjectPath 'scripts\gate\l2-unity-gate.ps1'
     $l2 = & powershell -NoProfile -File $l2Script -ProjectPath $ProjectPath *>&1
     $l2 | ForEach-Object { Write-Log "  $_" }
     if ($LASTEXITCODE -ne 0) { Write-Log "  [FAIL] L2 退出码 $LASTEXITCODE"; $exitCode = 1 }
