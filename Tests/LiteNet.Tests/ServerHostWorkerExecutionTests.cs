@@ -311,6 +311,8 @@ namespace LiteNet.Tests
 
             public IReadOnlyList<MatchResultSummary> ListPending() => Entries;
 
+            public bool TryMarkCompleted(string matchId) => false;
+
             public void Flush() { }
         }
     }

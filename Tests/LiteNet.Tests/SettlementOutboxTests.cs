@@ -37,6 +37,17 @@ namespace LiteNet.Tests
             if (Directory.Exists(dir)) Directory.Delete(dir, true);
         }
 
+        /// <summary>Outbox 流仍打开时的共享读（句柄 share=Read 只容 Read 访问，File.ReadAllLines 的 share 不兼容）。</summary>
+        private static string[] ReadJournalLines(string path)
+        {
+            using var fs = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite);
+            using var reader = new StreamReader(fs);
+            var lines = new List<string>();
+            string line;
+            while ((line = reader.ReadLine()) != null) lines.Add(line);
+            return lines.ToArray();
+        }
+
         [Fact]
         public void 首次入盒_逐条落盘_文件可读()
         {
@@ -192,6 +203,157 @@ namespace LiteNet.Tests
                 Cleanup(path);
             }
         }
+
+        // ---- 完成语义（§11.3"Outbox 标记完成"存储半步；容量按待提交计）----
+
+        [Fact]
+        public void 标记完成_释放容量_退出待提交面()
+        {
+            string path = TempJournal();
+            try
+            {
+                using (var outbox = FileSettlementOutbox.Open(path, 2))
+                {
+                    Assert.Equal(SettlementOutboxResult.Appended, outbox.Enqueue(Summary("m-1")));
+                    Assert.Equal(SettlementOutboxResult.Appended, outbox.Enqueue(Summary("m-2")));
+                    Assert.Equal(SettlementOutboxResult.RejectedFull, outbox.Enqueue(Summary("m-3")));
+
+                    Assert.True(outbox.TryMarkCompleted("m-1"));
+                    Assert.Equal(1, outbox.Count);                  // 容量按待提交计——标记即释放
+                    Assert.Equal(SettlementOutboxResult.Appended, outbox.Enqueue(Summary("m-3")));
+
+                    Assert.False(outbox.TryMarkCompleted("m-x"));   // 未知 matchId
+                    Assert.False(outbox.TryMarkCompleted("m-1"));   // 已完成（幂等，不写盘）
+                    Assert.Equal(2, outbox.Count);
+
+                    IReadOnlyList<MatchResultSummary> pending = outbox.ListPending();
+                    Assert.Equal(2, pending.Count);
+                    Assert.Equal("m-2", pending[0].MatchId);
+                    Assert.Equal("m-3", pending[1].MatchId);
+                }
+            }
+            finally
+            {
+                Cleanup(path);
+            }
+        }
+
+        [Fact]
+        public void 重启恢复_完成态不复活()
+        {
+            string path = TempJournal();
+            try
+            {
+                using (var first = FileSettlementOutbox.Open(path, 16))
+                {
+                    first.Enqueue(Summary("m-1"));
+                    first.Enqueue(Summary("m-2"));
+                    Assert.True(first.TryMarkCompleted("m-1"));
+                }
+
+                using (var restarted = FileSettlementOutbox.Open(path, 16))
+                {
+                    Assert.Equal(1, restarted.Count);               // 完成标记行重放 → 不回到待提交面
+                    Assert.Equal("m-2", restarted.ListPending()[0].MatchId);
+                    Assert.Equal(SettlementOutboxResult.Duplicate,
+                        restarted.Enqueue(Summary("m-1")));         // 未压实前判重仍含已完成
+                }
+            }
+            finally
+            {
+                Cleanup(path);
+            }
+        }
+
+        [Fact]
+        public void Flush压实_日志收敛为待提交_容量随之可用()
+        {
+            string path = TempJournal();
+            try
+            {
+                using (var outbox = FileSettlementOutbox.Open(path, 16))
+                {
+                    outbox.Enqueue(Summary("m-1"));
+                    outbox.Enqueue(Summary("m-2"));
+                    outbox.Enqueue(Summary("m-3"));
+                    Assert.True(outbox.TryMarkCompleted("m-1"));
+                    Assert.True(outbox.TryMarkCompleted("m-2"));
+
+                    outbox.Flush();                                  // 收口即压实
+                    Assert.Equal(1, outbox.Compactions);
+                    Assert.Equal(1, outbox.Count);
+                    Assert.Equal(1, ReadJournalLines(path).Length); // 日志只剩待提交行（m-3）
+                }
+
+                using (var reopened = FileSettlementOutbox.Open(path, 16))
+                {
+                    Assert.Equal(1, reopened.Count);
+                    Assert.Equal("m-3", reopened.ListPending()[0].MatchId);
+
+                    // 压实后判重集合收敛：已完成 matchId 重入盒作为新待提交接受——
+                    // 重复提交不重复发奖由 Meta 台账唯一索引兜底（§11.2）
+                    Assert.Equal(SettlementOutboxResult.Appended, reopened.Enqueue(Summary("m-1")));
+                    Assert.Equal(2, reopened.Count);
+                }
+            }
+            finally
+            {
+                Cleanup(path);
+            }
+        }
+
+        [Fact]
+        public void 旧格式日志_无Kind行_按结算行重放()
+        {
+            string path = TempJournal();
+            try
+            {
+                Directory.CreateDirectory(Path.GetDirectoryName(path));
+                File.WriteAllLines(path, new[]
+                {
+                    "{\"MatchId\":\"m-1\",\"Seed\":7,\"FinalFrame\":10,\"EndReason\":1,\"SeatPlayerIds\":[1,2]}",
+                    "{\"MatchId\":\"m-2\",\"Seed\":8,\"FinalFrame\":20,\"EndReason\":1,\"SeatPlayerIds\":[1,2]}",
+                });
+
+                using (var outbox = FileSettlementOutbox.Open(path, 16))
+                {
+                    Assert.Equal(2, outbox.Count);                  // 既有日志兼容：缺 Kind = 结算行
+                    Assert.Equal(SettlementOutboxResult.Appended, outbox.Enqueue(Summary("m-3")));
+                }
+            }
+            finally
+            {
+                Cleanup(path);
+            }
+        }
+
+        [Fact]
+        public void 连续标记达阈值_自动压实_判重集合收敛()
+        {
+            string path = TempJournal();
+            try
+            {
+                using (var outbox = FileSettlementOutbox.Open(path, 2048))
+                {
+                    for (int i = 0; i < 1024; i++)
+                    {
+                        Assert.Equal(SettlementOutboxResult.Appended, outbox.Enqueue(Summary("m-" + i)));
+                        Assert.True(outbox.TryMarkCompleted("m-" + i));
+                    }
+
+                    Assert.True(outbox.Compactions >= 1);           // 达自动压实阈值即重写（长跑不无界）
+                    Assert.Equal(0, outbox.Count);
+                    Assert.Equal(0, ReadJournalLines(path).Length);
+
+                    Assert.Equal(SettlementOutboxResult.Appended, outbox.Enqueue(Summary("m-final")));
+                    Assert.Equal(1, outbox.Count);
+                }
+            }
+            finally
+            {
+                Cleanup(path);
+            }
+        }
     }
 
     /// <summary>
@@ -226,6 +388,8 @@ namespace LiteNet.Tests
             }
 
             public IReadOnlyList<MatchResultSummary> ListPending() => Entries;
+
+            public bool TryMarkCompleted(string matchId) => false;
 
             public void Flush() => FlushCalls++;
         }
