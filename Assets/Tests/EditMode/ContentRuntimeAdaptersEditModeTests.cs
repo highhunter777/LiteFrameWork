@@ -309,6 +309,7 @@ namespace LiteGame.Tests.EditMode
                     SchemaVersion = r.SchemaVersion,
                     ConfirmedReleaseId = r.ConfirmedReleaseId,
                     ConfirmedVersion = r.ConfirmedVersion,
+                    ConfirmedRevision = r.ConfirmedRevision,
                     PendingReleaseId = r.PendingReleaseId,
                     PendingState = r.PendingState,
                     RecoveryAttempts = r.RecoveryAttempts,
@@ -534,6 +535,122 @@ namespace LiteGame.Tests.EditMode
             Assert.IsFalse(r.Succeeded);
             Assert.AreEqual(confirmedBefore, store.Current.ConfirmedReleaseId,
                 "被拒的候选不得改写已确认版本");
+        }
+
+        // ---- 两版本更新对照（§6 反回退：同一发布的两个修订走真实信任链）----------------
+        //
+        // 上面两组钉的是单版本：真签名接受、篡改拒绝。本组补**两版本对照**——
+        // 修订 1 与修订 2 都在真实信任链（内置锚点验签）上跑，且「确认修订基线」跨启动
+        // 从持久记录读回：新修订放行、旧修订重放被拒、被拒不得改写已确认。
+        // 两个夹具同为 rel-fixture-001（修订 1/2），均发布私钥签出、只含公钥可验数据。
+
+        private const string FixtureV1 = "Assets/Tests/EditMode/Fixtures/signed-candidate.json";
+        private const string FixtureV2 = "Assets/Tests/EditMode/Fixtures/signed-candidate-v2.json";
+
+        private static CandidateOffer ParseFixture(string fixturePath)
+        {
+            Assert.IsTrue(System.IO.File.Exists(fixturePath), $"真信封夹具缺失：{fixturePath}");
+            CandidateOffer offer = SignedManifestEnvelope.Parse(System.IO.File.ReadAllText(fixturePath));
+            Assert.IsFalse(offer.IsEmpty, $"真信封必须可解析：{fixturePath}");
+            return offer;
+        }
+
+        /// <summary>真信任链 runner（验签器来自内置锚点，非 AlwaysOkVerifier）。
+        /// store 由调用方给——每次「启动」新建 store、共享同一 IO，模拟跨启动读回记录。</summary>
+        private PatchRunner BuildTrustChainRunner(CandidateOffer offer, ActivationTransactionStore store)
+        {
+            var coord = new PatchCoordinator(
+                store,
+                new FileSysCandidateFileSource(Root),
+                new DriveInfoSpaceProbe(UnityEngine.Application.persistentDataPath),
+                new LocalDirectoryCandidateFetcher(Root),
+                new AlwaysHealthy(),
+                new NoOpActivator(),
+                generationSink: null);
+
+            var trustedKeys = new TrustedKeyStore();
+            ContentTrustAnchors.ApplyTo(trustedKeys);
+
+            return new PatchRunner(new FixedProvider(offer), Player(), store, coord,
+                trustedKeys.AsResolver(),
+                spaceRequestFactory: m => new SpaceCheckRequest
+                {
+                    CandidateBytes = TotalOf(m),
+                    SafetyMarginBytes = 0,
+                });
+        }
+
+        [Test]
+        public void 两版本更新_新修订接受_修订基线跨启动前移()
+        {
+            CandidateOffer v1 = ParseFixture(FixtureV1);
+            CandidateOffer v2 = ParseFixture(FixtureV2);
+            Assert.AreEqual(v1.Manifest.ReleaseId, v2.Manifest.ReleaseId, "两版本夹具应是同一发布的两个修订");
+            Assert.Less(v1.Manifest.Revision, v2.Manifest.Revision, "v2 修订必须高于 v1");
+
+            foreach ((string path, string content) in FixtureFiles)
+                WriteCandidate(path, content);
+
+            var io = new MemoryActivationIO();
+
+            // 第一「启动」：修订 1 接受并确认
+            var store1 = new ActivationTransactionStore(io, () => 1);
+            PatchRunner runner1 = BuildTrustChainRunner(v1, store1);
+            PatchRunResult r1 = runner1.RunAsync().GetAwaiter().GetResult();
+            Assert.AreEqual(ReleaseRejectReason.None, runner1.LastRejectReason, "v1 应被接受");
+            Assert.IsTrue(r1.Succeeded, r1.ToString());
+            Assert.AreEqual(PatchPhase.Confirmed, r1.FinalPhase);
+            Assert.AreEqual("rel-fixture-001", store1.Current.ConfirmedReleaseId);
+            Assert.AreEqual(1L, store1.Current.ConfirmedRevision);
+
+            // 第二「启动」：新 store 从记录读回——确认修订必须回转（两版本对照的基线输入）
+            var store2 = new ActivationTransactionStore(io, () => 1);
+            Assert.AreEqual(1L, store2.Current.ConfirmedRevision, "确认修订必须随记录回转");
+
+            // 修订 2 在修订 1 的基线上放行并推进确认
+            PatchRunner runner2 = BuildTrustChainRunner(v2, store2);
+            PatchRunResult r2 = runner2.RunAsync().GetAwaiter().GetResult();
+            Assert.AreEqual(ReleaseRejectReason.None, runner2.LastRejectReason, "v2 高于已确认修订——应放行");
+            Assert.IsTrue(r2.Succeeded, r2.ToString());
+            Assert.AreEqual(PatchPhase.Confirmed, r2.FinalPhase);
+            Assert.AreEqual("rel-fixture-001", store2.Current.ConfirmedReleaseId);
+            Assert.AreEqual(2L, store2.Current.ConfirmedRevision, "v2 确认后基线前移到修订 2");
+        }
+
+        [Test]
+        public void 两版本更新_旧修订重放_信任关拒绝且已确认保持()
+        {
+            CandidateOffer v1 = ParseFixture(FixtureV1);
+            CandidateOffer v2 = ParseFixture(FixtureV2);
+
+            foreach ((string path, string content) in FixtureFiles)
+                WriteCandidate(path, content);
+
+            var io = new MemoryActivationIO();
+
+            // 前置（各自独立「启动」）：修订 1 → 修订 2 依次确认
+            var store1 = new ActivationTransactionStore(io, () => 1);
+            Assert.IsTrue(BuildTrustChainRunner(v1, store1).RunAsync().GetAwaiter().GetResult().Succeeded,
+                "前置：v1 应被接受");
+            var store2 = new ActivationTransactionStore(io, () => 1);
+            Assert.IsTrue(BuildTrustChainRunner(v2, store2).RunAsync().GetAwaiter().GetResult().Succeeded,
+                "前置：v2 应在修订 1 基线上被接受");
+            Assert.AreEqual(2L, store2.Current.ConfirmedRevision);
+
+            // 对照：基线已是修订 2，重放修订 1——信任关必须拒绝，且不进入编排
+            var store3 = new ActivationTransactionStore(io, () => 1);
+            Assert.AreEqual(2L, store3.Current.ConfirmedRevision, "重放对照的基线应为 v2 的修订 2");
+
+            PatchRunner runner3 = BuildTrustChainRunner(v1, store3);
+            PatchRunResult r3 = runner3.RunAsync().GetAwaiter().GetResult();
+
+            Assert.AreEqual(ReleaseRejectReason.RevisionRollback, runner3.LastRejectReason,
+                "低修订必须被反回退门拒绝");
+            Assert.IsFalse(r3.Succeeded);
+            Assert.IsFalse(r3.NoWork);
+            Assert.AreEqual("rel-fixture-001", store3.Current.ConfirmedReleaseId, "被拒的重放不得改写已确认版本");
+            Assert.AreEqual(2L, store3.Current.ConfirmedRevision, "被拒的重放不得回退确认修订");
+            StringAssert.Contains("候选描述被拒", store3.Current.LastFailure ?? "", "拒绝原因应留档（与诊断面同源）");
         }
     }
 }
