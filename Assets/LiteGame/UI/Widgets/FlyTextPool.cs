@@ -65,21 +65,23 @@ namespace LiteGame.UI
         private async UniTaskVoid FlyAsync(RectTransform rt, TMP_Text label, CancellationToken ct)
         {
             // 淡出走 CanvasGroup.alpha（§3.2）；位置走 transform（纯 transform，不触发 mesh 重建）。
-            // 组件由模板自带 → 取不到（模板被改坏）时退化为"只位移不淡出"，不抛异常、不静默炸用例。
+            // 组件由模板自带 → 取不到（模板缺组件）时守卫语义 = **只跳过淡出**：alpha 写入逐处判空，
+            // 位移与回收照常——缺组件不得中断飞行与归还（2026-10-04 裁决；此前循环守卫含 cg 判空
+            // 会首帧退出，位移/回收全失效且不归还池）。
             var cg = GetCanvasGroup(label);
             if (cg != null) cg.alpha = 1f;
             var start = rt.anchoredPosition;
             float t = 0f;
             while (t < Duration)
             {
-                if (this == null || label == null || rt == null || cg == null) return;   // 宿主销毁：直接退出（不归还池）
+                if (this == null || label == null || rt == null) return;   // 宿主销毁：直接退出（不归还池）
                 if (await UniTask.NextFrame(ct).SuppressCancellationThrow()) return;   // 取消（销毁/回收）：退出
                 // ★ await 之后复检：销毁可能发生在等待期间
-                if (this == null || label == null || rt == null || cg == null) return;
+                if (this == null || label == null || rt == null) return;
 
                 t += Time.unscaledDeltaTime;                 // UI 轨（unscaled：时停不停）
                 float k = Mathf.Clamp01(t / Duration);
-                cg.alpha = 1f - k;
+                if (cg != null) cg.alpha = 1f - k;
                 rt.anchoredPosition = start + Vector2.up * (RiseDistance * k);
             }
             if (this == null || label == null) return;       // 正常收尾前的最后一道守卫

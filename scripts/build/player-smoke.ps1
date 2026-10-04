@@ -22,7 +22,10 @@ param(
     [string]$ProjectPath = '',
     [string]$ExePath = 'Builds/StandaloneWindows64/Test.exe',
     [int]$TimeoutSec = 30,
-    [string[]]$PlayerArgs = @()   # forwarded to the player exe (e.g. -content.cdnUrl=http://127.0.0.1:18090)
+    [string[]]$PlayerArgs = @(),   # forwarded to the player exe (e.g. -content.cdnUrl=http://127.0.0.1:18090)
+    [switch]$MemLoop,              # memory-loop mode: wait for '[MemLoop] done' then assert trend/residency from log lines
+    [int]$MemLoopCycles = 30,      # must match MemoryLoopProbe.Cycles
+    [double]$MemLoopMaxGrowthMb = 8.0
 )
 
 if ([string]::IsNullOrWhiteSpace($ProjectPath)) {
@@ -53,9 +56,15 @@ Start-Sleep -Seconds 1
 if (Test-Path $playerLog) { Remove-Item $playerLog -Force -ErrorAction SilentlyContinue }
 
 $proc = Start-Process -FilePath $exe -WorkingDirectory (Split-Path $exe -Parent) -PassThru -ArgumentList $PlayerArgs
-Write-Host "launched (pid $($proc.Id)); polling up to $TimeoutSec s for defined-state marker" -ForegroundColor White
 
 $markers = @('BootstrapError', '[Asset] ready', '[UI] main open')
+if ($MemLoop) {
+    # MemLoop mode: probe waits for content-ready itself (retry loop up to 180s inside the
+    # player), so the outer poll needs a much larger budget than a plain startup smoke.
+    if ($TimeoutSec -eq 30) { $TimeoutSec = 240 }
+    $markers = @('[MemLoop] fail', '[MemLoop] done')
+}
+Write-Host "launched (pid $($proc.Id)); mode=$(if ($MemLoop) { 'memloop' } else { 'startup' }); polling up to $TimeoutSec s" -ForegroundColor White
 $deadline = (Get-Date).AddSeconds($TimeoutSec)
 $hit = $null
 $lastLog = ''
@@ -79,10 +88,56 @@ while ((Get-Date) -lt $deadline) {
 $alive = -not $proc.HasExited
 if ($alive) { Stop-Process -Id $proc.Id -Force -ErrorAction SilentlyContinue }
 
+# ── MemLoop assertions: parse '[MemLoop] cycle=...' lines and enforce trend + residency ──
+function Assert-MemLoopLog([string]$logText) {
+    $pattern = '\[MemLoop\] cycle=(\d+) allocMB=([\d.]+) monoMB=([\d.]+) active=(\d+) pooled=(\d+) held=(\d+)'
+    $rows = @()
+    foreach ($line in ($logText -split "`n")) {
+        if ($line -match $pattern) {
+            $rows += ,@([int]$Matches[1], [double]$Matches[2], [int]$Matches[4], [int]$Matches[5], [int]$Matches[6])
+        }
+    }
+    if ($rows.Count -ne $MemLoopCycles) {
+        Write-Host "  [FAIL] expected $MemLoopCycles cycle lines, found $($rows.Count)" -ForegroundColor Red
+        return $false
+    }
+    # Residency cap: single entry location -> active always 0 after Hide, pooled/held pinned at 1.
+    # (Update the pinned values together with ContentSampleAssets.EntryLocations growth.)
+    foreach ($r in $rows) {
+        if ($r[2] -ne 0 -or $r[3] -ne 1 -or $r[4] -ne 1) {
+            Write-Host "  [FAIL] residency drifted at cycle $($r[0]): active=$($r[2]) pooled=$($r[3]) held=$($r[4])" -ForegroundColor Red
+            return $false
+        }
+    }
+    $first = $rows[0..4]   | ForEach-Object { $_[1] } | Measure-Object -Average
+    $last  = $rows[-5..-1] | ForEach-Object { $_[1] } | Measure-Object -Average
+    $growth = [math]::Round($last.Average - $first.Average, 2)
+    Write-Host ("  mem trend: first5avg={0}MB last5avg={1}MB growth={2}MB (budget {3}MB)" -f `
+        [math]::Round($first.Average,1), [math]::Round($last.Average,1), $growth, $MemLoopMaxGrowthMb)
+    if ($growth -gt $MemLoopMaxGrowthMb) {
+        Write-Host "  [FAIL] memory growth over budget" -ForegroundColor Red
+        return $false
+    }
+    return $true
+}
+
 Write-Host ''
 if ($hit) {
+    if ($MemLoop) {
+        if ($hit -eq '[MemLoop] fail') {
+            Write-Host '  [FAIL] probe reported failure:' -ForegroundColor Red
+            if ($lastLog) { ($lastLog -split "`n" | Select-Object -Last 20) | ForEach-Object { Write-Host "    $_" -ForegroundColor DarkRed } }
+            Write-Host 'memloop smoke FAILED' -ForegroundColor Red
+            exit 1
+        }
+        if (-not (Assert-MemLoopLog $lastLog)) {
+            Write-Host 'memloop smoke FAILED' -ForegroundColor Red
+            exit 1
+        }
+    }
     Write-Host "  [OK] defined-state marker reached: '$hit' (process alive: $alive)" -ForegroundColor Green
-    Write-Host 'player smoke PASSED' -ForegroundColor Green
+    if ($MemLoop) { Write-Host 'memloop smoke PASSED' -ForegroundColor Green }
+    else { Write-Host 'player smoke PASSED' -ForegroundColor Green }
     exit 0
 }
 Write-Host '  [FAIL] no defined-state marker within timeout - last log lines:' -ForegroundColor Red

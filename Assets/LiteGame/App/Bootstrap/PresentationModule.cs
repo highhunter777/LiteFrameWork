@@ -44,6 +44,7 @@ namespace LiteGame
                 clock: context.Require<IWorldClock>(),
                 catalog: new VfxCatalog(),
                 budget: VfxBudget.Default());
+            context.Put(_prefabs);                               // 租约缓存驻留面（HeldLocations 诊断/内存实测读）
             context.Put(_entities);
             context.Put(_audio);
             context.Put(_vfxService);

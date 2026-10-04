@@ -53,6 +53,7 @@ namespace LiteGame
             container.RegisterInstance<IWallClock>(context.Require<IWallClock>());
             container.RegisterInstance(new DotweenUiClockDriver(context.Require<IUIClock>()));   // DOTween Manual 轨按 UIClock 派发（时停不停/暂停即停）
             container.RegisterInstance<IEventCenter>(events);
+            container.RegisterInstance<PrefabLeaseCache>(context.Require<PrefabLeaseCache>());   // 租约缓存（池常驻期间的租约归属方——驻留面诊断读）
             // 命令中心（§《命令中心专项设计》）：Core 不含宏判定——权限门开关由装配方按三宏并集传入（可测接缝）
             var commands = new CommandCenter(
 #if UNITY_EDITOR || DEVELOPMENT_BUILD || LITEFRAMEWORK_DEBUG
