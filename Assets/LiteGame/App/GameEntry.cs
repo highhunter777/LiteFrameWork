@@ -100,6 +100,8 @@ namespace LiteGame
                 // 内存循环实测探针：**不进 dev 条件块**——本构建为非 dev Player（dev 块在此被剔除），
                 // 靠 -memloop 命令行门控（未带参数 = 一次数组查找后无操作，同 -content.cdnUrl 风格）
                 MemoryLoopProbe.TryArm(_container);
+                // 模态输入恢复探针：同款命令行门控（-inputmodal）——正常启动零影响
+                InputModalProbe.TryArm(_host);
             }
             catch (OperationCanceledException)
             {

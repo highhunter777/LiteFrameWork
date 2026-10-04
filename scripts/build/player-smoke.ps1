@@ -25,7 +25,8 @@ param(
     [string[]]$PlayerArgs = @(),   # forwarded to the player exe (e.g. -content.cdnUrl=http://127.0.0.1:18090)
     [switch]$MemLoop,              # memory-loop mode: wait for '[MemLoop] done' then assert trend/residency from log lines
     [int]$MemLoopCycles = 30,      # must match MemoryLoopProbe.Cycles
-    [double]$MemLoopMaxGrowthMb = 8.0
+    [double]$MemLoopMaxGrowthMb = 8.0,
+    [switch]$InputModal            # modal-input-recovery mode: wait for '[InputModal] done' then assert phase lines
 )
 
 if ([string]::IsNullOrWhiteSpace($ProjectPath)) {
@@ -64,6 +65,11 @@ if ($MemLoop) {
     if ($TimeoutSec -eq 30) { $TimeoutSec = 240 }
     $markers = @('[MemLoop] fail', '[MemLoop] done')
 }
+if ($InputModal) {
+    # InputModal mode: probe retries modal open until content-ready (up to 180s inside the player).
+    if ($TimeoutSec -eq 30) { $TimeoutSec = 240 }
+    $markers = @('[InputModal] fail', '[InputModal] done')
+}
 Write-Host "launched (pid $($proc.Id)); mode=$(if ($MemLoop) { 'memloop' } else { 'startup' }); polling up to $TimeoutSec s" -ForegroundColor White
 $deadline = (Get-Date).AddSeconds($TimeoutSec)
 $hit = $null
@@ -71,7 +77,15 @@ $lastLog = ''
 while ((Get-Date) -lt $deadline) {
     Start-Sleep -Seconds 2
     if ($proc.HasExited) {
-        Write-Host "process exited early (code $($proc.ExitCode))" -ForegroundColor Red
+        # Probe modes (MemLoop/InputModal) self-quit on done/fail: the marker may already be in
+        # the log. Check it before declaring early exit, or a completed probe run reads as FAIL.
+        if (Test-Path $playerLog) {
+            $lastLog = Get-Content $playerLog -Raw -ErrorAction SilentlyContinue
+            foreach ($m in $markers) {
+                if ($lastLog -match [regex]::Escape($m)) { $hit = $m; break }
+            }
+        }
+        if (-not $hit) { Write-Host "process exited early (code $($proc.ExitCode))" -ForegroundColor Red }
         break
     }
     if (Test-Path $playerLog) {
@@ -121,6 +135,33 @@ function Assert-MemLoopLog([string]$logText) {
     return $true
 }
 
+# ── InputModal assertions: require all three phase lines with their expected verdicts ──
+function Assert-InputModalLog([string]$logText) {
+    # Phase lines (literal markers, one per probe phase; 'ok' suffix = all frames consistent):
+    #   baseline  : not blocked, held intent visible every frame
+    #   modal     : blocked by the product-level 'ui.modal' source, pending zeroed, gate counter advanced
+    #   recovered : first post-close sample frame already carries the held intent (no phantom zero frame)
+    $required = @(
+        '\[InputModal\] baseline ok frames=\d+ blocked=0 move=1\.00 fire=1',
+        '\[InputModal\] modal-open form=\d+ isOpen=True topModal=\d+ blockers=\d+',
+        '\[InputModal\] modal ok frames=\d+ by=ui\.modal zero=1 disposed=\+\d+',
+        '\[InputModal\] modal-close form=\d+ isOpen=False modal=False',
+        '\[InputModal\] recovered ok frames=\d+ blocked=0 move=1\.00 fire=1 firstFrameZero=0'
+    )
+    foreach ($pat in $required) {
+        if ($logText -notmatch $pat) {
+            Write-Host "  [FAIL] missing/incorrect phase line: $pat" -ForegroundColor Red
+            return $false
+        }
+    }
+    if ($logText -match '\[InputModal\] fail') {
+        Write-Host "  [FAIL] probe reported failure:" -ForegroundColor Red
+        ($logText -split "`n" | Where-Object { $_ -match '\[InputModal\] fail' }) | ForEach-Object { Write-Host "    $_" -ForegroundColor DarkRed }
+        return $false
+    }
+    return $true
+}
+
 Write-Host ''
 if ($hit) {
     if ($MemLoop) {
@@ -135,8 +176,21 @@ if ($hit) {
             exit 1
         }
     }
+    if ($InputModal) {
+        if ($hit -eq '[InputModal] fail') {
+            Write-Host '  [FAIL] probe reported failure:' -ForegroundColor Red
+            if ($lastLog) { ($lastLog -split "`n" | Select-Object -Last 20) | ForEach-Object { Write-Host "    $_" -ForegroundColor DarkRed } }
+            Write-Host 'inputmodal smoke FAILED' -ForegroundColor Red
+            exit 1
+        }
+        if (-not (Assert-InputModalLog $lastLog)) {
+            Write-Host 'inputmodal smoke FAILED' -ForegroundColor Red
+            exit 1
+        }
+    }
     Write-Host "  [OK] defined-state marker reached: '$hit' (process alive: $alive)" -ForegroundColor Green
     if ($MemLoop) { Write-Host 'memloop smoke PASSED' -ForegroundColor Green }
+    elseif ($InputModal) { Write-Host 'inputmodal smoke PASSED' -ForegroundColor Green }
     else { Write-Host 'player smoke PASSED' -ForegroundColor Green }
     exit 0
 }
