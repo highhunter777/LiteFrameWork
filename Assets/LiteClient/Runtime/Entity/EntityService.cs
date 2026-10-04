@@ -72,7 +72,7 @@ namespace LiteClient
     /// </summary>
     public sealed class EntityService : IModuleStats
     {
-        private readonly GameObjectPool _pool = new GameObjectPool();
+        private readonly GameObjectPool _pool;
         private readonly Dictionary<int, EntityHandle> _active = new Dictionary<int, EntityHandle>(16);
         private readonly HashSet<int> _inFlight = new HashSet<int>();           // 加载在途
         private readonly HashSet<int> _releaseOnLoad = new HashSet<int>();      // 加载竞态表
@@ -102,9 +102,12 @@ namespace LiteClient
 
         /// <param name="loadPrefab">prefab 加载口（装配点绑 <c>PrefabLeaseCache</c>——实例池常驻期间持租约）。
         /// **必注入**——本类不回落静态门面，避免实体服务（Runtime）反向依赖 YooAsset 适配器。</param>
-        public EntityService(Func<string, CancellationToken, UniTask<GameObject>> loadPrefab)
+        /// <param name="poolRoot">池根容器（null = 自建 <c>[GameObjectPool]</c> 根并 DontDestroyOnLoad）。
+        /// 测试/Player 注入受控容器，避免自建根跨用例驻留（同 VfxService 的池根注入形态）。</param>
+        public EntityService(Func<string, CancellationToken, UniTask<GameObject>> loadPrefab, Transform poolRoot = null)
         {
             _loadPrefab = loadPrefab ?? throw new ArgumentNullException(nameof(loadPrefab));
+            _pool = new GameObjectPool(poolRoot);
         }
 
         /// <summary>
@@ -151,9 +154,16 @@ namespace LiteClient
         public UniTask<EntityHandle> ShowAsync(string location, Transform parent = null, CancellationToken ct = default)
             => ShowAsync(Reserve(), location, parent, ct);
 
-        /// <summary>显示实体（指定句柄）：池命中直取（零加载）；未命中加载 → 竞态表命中则取消（返回 null）。</summary>
+        /// <summary>显示实体（指定句柄）：池命中直取（零加载）；未命中加载 → 竞态表命中则取消（返回 null）。
+        /// 关闭后拒绝新实体（显性失败，同 SceneService 口径）；在途加载链接生命周期令牌——
+        /// 关闭即真取消，不依赖调用方传令牌；加载完成收尾复查（关闭 → 不实例化；宿主已退出 → 显性失败）。</summary>
         public async UniTask<EntityHandle> ShowAsync(int handleId, string location, Transform parent = null, CancellationToken ct = default)
         {
+            if (IsShutdown)
+                throw new ObjectDisposedException(nameof(EntityService), $"实体壳已关闭——不再接受新实体（句柄 {handleId}）");
+            if (HostScope != null && HostScope.IsDisposed)
+                throw new ObjectDisposedException(nameof(HostScope), "宿主作用域已释放——实体不得再显示");
+
             if (_active.ContainsKey(handleId))
                 throw new InvalidOperationException($"实体句柄 {handleId} 已在使用（先 Hide 再 Show，§3.4 fail-fast）");
 
@@ -166,18 +176,30 @@ namespace LiteClient
                 return pooledHandle;
             }
 
-            // 未命中：加载在途登记（竞态窗口开启）
+            // 未命中：加载在途登记（竞态窗口开启）；加载口同时挂调用方取消与壳生命周期——关闭即真取消
             _inFlight.Add(handleId);
+            CancellationTokenSource linked = CancellationTokenSource.CreateLinkedTokenSource(ct, _lifetime.Token);
             try
             {
-                var prefab = await _loadPrefab(location, ct);
+                var prefab = await _loadPrefab(location, linked.Token);
                 _inFlight.Remove(handleId);
+                if (IsShutdown)
+                {
+                    // 加载完成时壳已关闭：loader 可能不观察取消令牌——按竞态同语义取消显示，
+                    // 不实例化（否则幽灵实体复活在已关闭的壳上，同 VfxService 收尾复查口径）
+                    Log.Info($"实体[{handleId}] 加载完成时壳已关闭——取消显示", "Entity");
+                    return null;
+                }
                 if (_releaseOnLoad.Remove(handleId))
                 {
                                     // 加载期间被 Hide（竞态表命中）——不实例化不显示，直接取消
                     Log.Info($"实体[{handleId}] 加载期间已被 Hide——取消显示（竞态表）", "Entity");
                     return null;
                 }
+                if (HostScope != null && HostScope.IsDisposed)
+                    throw new ObjectDisposedException(nameof(HostScope),
+                        $"实体[{handleId}] 加载完成时宿主作用域已退出——显性失败不静默（§6 样例③「加载后 Owner 已退出」）");
+                linked.Token.ThrowIfCancellationRequested();   // 调用方取消且 loader 未观察令牌 → 类型化取消
 
                 // 首建：经通用池建桶（打 PooledInstance 标记，后续走复用）——OnSpawn 由池 Get 驱动
                 //（与池命中路径一致，各恰一次；此处不得再手动调用——§5.1 双 OnSpawn 缺陷已修）
@@ -189,6 +211,7 @@ namespace LiteClient
             }
             finally
             {
+                linked.Dispose();
                 _inFlight.Remove(handleId);                // 幂等兜底（正常路径上方已移除）
             }
         }

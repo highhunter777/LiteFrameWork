@@ -179,6 +179,36 @@ namespace LiteGame.Tests.EditMode
             }
         }
 
+        [Test]
+        public void 实体_已回收句柄拒绝再订阅_当场抛()
+        {
+            // 对象级故障（句柄误用面）：回收后取订阅袋 = 往已回收实体塞订阅（必然泄漏）——
+            // Debug 三宏下当场抛，release 记错误（EntityHandle.Subscriptions 契约）。
+            var loader = new FakeLoader();
+            var service = new EntityService(loader.Load);
+            var handle = service.ShowAsync("Assets/Prefab/A.prefab").GetAwaiter().GetResult();
+            service.Hide(handle.Id);
+
+            InvalidOperationException ex = Assert.Throws<InvalidOperationException>(
+                () => { var subs = handle.Subscriptions; },
+                "已回收句柄不得再取订阅袋");
+            StringAssert.Contains("泄漏", ex.Message, "错误信息应说明后果（订阅袋不会再被释放）");
+        }
+
+        [Test]
+        public void 实体_活句柄重复Show_fail_fast拒绝()
+        {
+            // 对象级故障（§3.4 fail-fast）：同一句柄在用时再 Show = 状态竞争——显性拒绝，不静默顶替。
+            var loader = new FakeLoader();
+            var service = new EntityService(loader.Load);
+            var handle = service.ShowAsync("Assets/Prefab/A.prefab").GetAwaiter().GetResult();
+
+            Assert.Throws<InvalidOperationException>(
+                () => service.ShowAsync(handle.Id, "Assets/Prefab/B.prefab").GetAwaiter().GetResult(),
+                "活句柄重复 Show 必须抛");
+            Assert.AreEqual(1, service.ActiveCount, "拒绝后活体不变");
+        }
+
         // ---- ③ Scene：迟到加载（§9"迟到结果释放自己的租约，不能回写已回收对象"）----
 
         [Test]
