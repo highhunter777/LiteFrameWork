@@ -101,7 +101,16 @@ namespace LiteGame
             catch (OperationCanceledException) { /* 正常取消，静默 */ }
             catch (Exception ex)
             {
-                _activations.RecordFailure($"Patch 阶段失败：{ex.Message}");   // 留档（Confirmed 不动——不影响下次以已确认版本启动）
+                try
+                {
+                    _activations.RecordFailure($"Patch 阶段失败：{ex.Message}");   // 留档（Confirmed 不动——不影响下次以已确认版本启动）
+                }
+                catch (Exception persistEx)
+                {
+                    // 留档自身写盘失败（确认点写盘被拒/磁盘满等）不得吞掉原始失败并阻断错误流程——
+                    // 确定错误态仍须可达（§8：失败 = 留档 + Error 流程；写盘失败时"留档"只剩日志这一条腿）。
+                    Log.Error($"内容失败留档未落盘：{persistEx.GetType().Name}: {persistEx.Message}", "Patch");
+                }
                 Fail(m, ex, nameof(RunAsyncCore));
                 m.Request(ProcedureId.Error, new ProcedureArgs(ex));
             }
