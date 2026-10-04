@@ -42,7 +42,7 @@ R2 行亦写"RoomServer 侧：Join Ticket **本地验签**"。Meta 侧只**签�
 | 门禁 | 命令 | 结果 |
 | --- | --- | --- |
 | L1 | `dotnet test Tests/MetaServer.Tests -c Release` | **69 / 0**（+15 例：超时范围×4、回环三形态、非回环拒绝/豁免、https 不受门禁影响、连接串脱敏、CLI 解析×3、Ops 并发计数、Outbox 元数据权威×3） |
-| L3 | `MONGO_TEST_URI=mongodb://127.0.0.1:27017/?replicaSet=rs0 dotnet test Tests/MetaServer.Integration.Tests -c Release` | **24 真跑 / 0 失败** + 2 例容器重启恢复跳过（docker 依赖，同既有记录口径；用户态 mongod 8.0.32 副本集） |
+| L3 | `MONGO_TEST_URI=mongodb://127.0.0.1:27017/?replicaSet=rs0 dotnet test Tests/MetaServer.Integration.Tests -c Release` | **24 真跑 / 0 失败** + 2 例容器重启恢复跳过（docker 依赖，同既有记录口径；用户态 mongod 8.0.32 副本集）（后注：2026-10-04 docker 引擎就绪后全量容器矩阵复跑——两例实跑通过，Integration 26/26，[框架联合验收](框架联合验收.md) §7） |
 
 **已知边界**：`/ready` 未含 Outbox 积压阈值（依赖派发器语义，归 R3）；`appsettings.json` 版本化文件载体仍缺（需"代码默认值 vs 文件基线"单源裁决，登记待办）；`SampleSettlementCommand` 挪出 Contracts 与样例错误形状统一（归 G3 契约批）；安全信封由并行线施工中（后注：同日 2026-10-03 批1 已交付，[安全信封](安全信封.md)）。
 
