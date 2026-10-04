@@ -36,6 +36,10 @@ namespace LiteGame
         private const UnityEngine.KeyCode TeleportKey = UnityEngine.KeyCode.T;
 #endif
 
+        /// <summary>瞄准滞回的最小保持宽度——与 Brain DefaultBlend（EaseInOut 0.3s）对齐：
+        /// 短按也走完一次完整混合，连点不重启混合（2026-10-04 相机抖动治理裁决）。</summary>
+        private const float AimMinHoldSeconds = 0.3f;
+
         /// <summary>
         /// 玩家实体 prefab（内容包路径；资源缺失时<see cref="AssetService"/> 侧**回退程序化灰盒**，
         /// 不把整局拖进错误态）。
@@ -52,6 +56,7 @@ namespace LiteGame
         private readonly IVFXService _vfx;
         private readonly IInputService _input;       // 输入服务
         private readonly ICameraService _camera;     // 相机服务（Cinemachine 适配器；装配根建、跨对局复用）
+        private readonly AimHoldGate _aimGate = new AimHoldGate(AimMinHoldSeconds);   // 瞄准态滞回：短按保完整摆动、连点不翻转
         private readonly bool _requireCamera;        // 缺相机 = 装配缺口（见 ctor 注释）
 
         private BattleContext _context;
@@ -394,7 +399,7 @@ namespace LiteGame
             _context.Tick(elapseSeconds);         // ② 网络双泵 + 输入上行 + 预测推进 + 表现视图（唯一驱动入口）
             _locomotion?.Tick(elapseSeconds);    // 移动动画：视图位置已更新，再解析目标姿态（视图的下游消费者）
             _crosshair?.Tick();                  // 对局准心（HUD）：位置/形态/光标——视图状态的最后一个消费者
-            _camera?.SetAiming(IsLocalAiming()); // 瞄准相机接管（每帧幂等；适配器按沿生效——视图态已解析）
+            _camera?.SetAiming(_aimGate.Feed(IsLocalAiming(), elapseSeconds)); // 瞄准相机接管（每帧幂等；适配器按沿生效——视图态已解析；滞回门控短按，防频繁点按来回重启混合）
             if (_camera != null)                  // 瞄准点（世界）→ 构图 z 偏移曲线（适配器按到焦点的前向投影换算）
             {
                 Vector3? aimPoint = _aimPointOf?.Invoke();
