@@ -11,12 +11,12 @@ using UnityEngine.UI;
 namespace LiteGame.Tests.UI.PlayMode
 {
     /// <summary>
-    /// 飘字池守卫语义 PlayMode 用例（2026-10-04 裁决：模板缺 CanvasGroup = 只跳过淡出，
-    /// 位移与回收照常——此前循环守卫含 cg 判空会首帧退出：不位移/不淡出/**不归还池**）。
+    /// 飘字池守卫语义 PlayMode 用例：模板缺 CanvasGroup = 只跳过淡出，
+    /// 位移与回收照常（守卫进循环条件会首帧退出：不位移/不淡出/**不归还池**）。
     ///
     /// **为什么必须是 PlayMode**：FlyAsync 走 UniTask.NextFrame + Time.unscaledDeltaTime 累积——
-    /// EditMode 没有 PlayerLoop，飞行/回收路径根本不执行（这正是 1f3ceac 模板重建丢 CanvasGroup
-    /// 的回归没被 EditMode 抓住的原因：借出/克隆语义同步可测，飞行收尾只有帧驱动才走得到）。
+    /// EditMode 没有 PlayerLoop，飞行/回收路径根本不执行（模板重建丢 CanvasGroup 的回归
+    /// 没被 EditMode 抓住的原因：借出/克隆语义同步可测，飞行收尾只有帧驱动才走得到）。
     ///
     /// 模板两形态：**缺 CanvasGroup**（复刻真 FlyText.prefab `_Template` 的单节点形状）与
     /// **带 CanvasGroup**（完整淡出路径）。时序判据按**真实时间累积**（unscaled）——帧数随机器

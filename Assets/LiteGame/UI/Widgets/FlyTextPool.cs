@@ -66,8 +66,8 @@ namespace LiteGame.UI
         {
             // 淡出走 CanvasGroup.alpha（§3.2）；位置走 transform（纯 transform，不触发 mesh 重建）。
             // 组件由模板自带 → 取不到（模板缺组件）时守卫语义 = **只跳过淡出**：alpha 写入逐处判空，
-            // 位移与回收照常——缺组件不得中断飞行与归还（2026-10-04 裁决；此前循环守卫含 cg 判空
-            // 会首帧退出，位移/回收全失效且不归还池）。
+            // 位移与回收照常——缺组件不得中断飞行与归还（守卫不得进循环条件：含 cg 判空会在
+            // 首帧退出，位移/回收全失效且不归还池）。
             var cg = GetCanvasGroup(label);
             if (cg != null) cg.alpha = 1f;
             var start = rt.anchoredPosition;
