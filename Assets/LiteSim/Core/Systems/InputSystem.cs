@@ -37,6 +37,11 @@ namespace LiteSim
                 if (!s.TryResolve(inputs[i].EntityId, out int slotIndex)) continue;
 
                 ref EntitySlot e = ref s.Entities[slotIndex];
+
+                // 死亡实体输入作废（Hp≤0：移动/朝向/开火窗/标志位全不写——尸体不受操控；
+                // NoDeath 测试房 Hp 跨死线保底 1，永不触发本守卫）
+                if (e.Hp <= 0) continue;
+
                 uint buttons = inputs[i].Buttons;
                 bool aiming = (buttons & SimInputFrame.ButtonAim) != 0u;
 

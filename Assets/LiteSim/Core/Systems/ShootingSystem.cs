@@ -22,6 +22,9 @@ namespace LiteSim
 
                 ref EntitySlot shooter = ref s.Entities[shooterSlot];
 
+                // 死亡射手不开火（Hp≤0：窗/事件/命中判定全跳过——尸体不受操控）
+                if (shooter.Hp <= 0) continue;
+
                 // 射线方向 = 输入瞄准向量本身（Aim 即事实，省一次三角函数往返；
                 // 零向量不会命中任何目标——采集侧契约要求非零）
                 float dx = inputs[i].AimX;
@@ -36,6 +39,9 @@ namespace LiteSim
                     if ((s.AliveBitmap[j >> 5] & (1u << (j & 31))) == 0u) continue;
 
                     ref EntitySlot tgt = ref s.Entities[j];
+
+                    // 死亡目标不可命中（尸体非有效目标——命中反馈/伤害/爆头全不发生）
+                    if (tgt.Hp <= 0) continue;
 
                     // 圆柱 y 区间：射线在 [tgt.Pos.Y, tgt.Pos.Y + Height] 内才算
                     if (originY < tgt.Pos.Y) continue;
@@ -74,7 +80,9 @@ namespace LiteSim
                     ref EntitySlot hit = ref s.Entities[hitSlot];
 
                     // 伤害浮动 ±DamageSpread（消费 RngState——局部副本推进后写回，SimRng 使用约定）；
-                    // base/spread 走 CombatConfig（数值参数化）
+                    // base/spread 走 CombatConfig（数值参数化）。爆头带判定（命中高度 ≥ 目标脚底 +
+                    // HeadHitLine）→ 倍率移位（位级精确）——倍率在命中判定处应用，
+                    // Damage 命令/Hit 事件携带即最终值，结算侧无需知部位。
                     var rng = new SimRng(s.RngState);
                     int dmg = CombatConfig.BaseDamage + rng.NextRange(-CombatConfig.DamageSpread, CombatConfig.DamageSpread + 1);
                     s.RngState = rng.State;
@@ -83,6 +91,9 @@ namespace LiteSim
                         shooter.Pos.X + dx * hitT,
                         originY,
                         shooter.Pos.Z + dz * hitT);
+
+                    if (hitPos.Y >= hit.Pos.Y + CombatConfig.HeadHitLine)
+                        dmg <<= CombatConfig.HeadshotDamageShift;
 
                     s.Cmds.Write(SimCommandKind.Damage, hit.Id, shooter.Id, dmg);
                     s.Events.Write(FrameEventKind.Hit, hit.Id, shooter.Id, dmg, hitPos);

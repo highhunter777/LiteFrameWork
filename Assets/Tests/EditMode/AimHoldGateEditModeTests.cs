@@ -4,7 +4,7 @@ using NUnit.Framework;
 namespace LiteGame.Tests.EditMode
 {
     /// <summary>
-    /// 瞄准态滞回门用例（2026-10-04 ADS 相机抖动治理——频繁点按不再重启相机混合的输入侧语义）。
+    /// 瞄准态滞回门用例（ADS 相机抖动治理——频繁点按不再重启相机混合的输入侧语义）。
     /// 纯 C# 确定性状态机：dt 全部注入（不读时钟），逐帧脚本化喂入。
     /// 宽度取 0.3s 断言（与生产常量 AimMinHoldSeconds 同值—— Brain DefaultBlend 时长）。
     /// </summary>

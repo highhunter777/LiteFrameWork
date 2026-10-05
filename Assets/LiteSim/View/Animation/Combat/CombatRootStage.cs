@@ -39,6 +39,14 @@ namespace LiteSim.View.Animation
 
         public void OnUpdate(IStageHost<CharacterAnimId, CombatAnimReq> m, float elapseSeconds)
         {
+            // 死亡裁决（**压过一切**——含已挂起的事件路由，last-wins 后发者赢）：
+            // 死亡不可逆 → 恒驻 Dead 叶；窗充值/退根/降级在死亡期全不发生
+            if (_ctx.IsDead)
+            {
+                if (m.Current != CharacterAnimId.Dead) m.Request(CharacterAnimId.Dead);
+                return;
+            }
+
             if (StageGate.Pending(m)) return;                 // 事件路由已挂（进 Fire 系优先）——本帧不裁决
 
             // `IsAiming` 在场即充值窗（Sim 侧瞄准帧同步置窗——两层同源同长；

@@ -35,6 +35,10 @@ namespace LiteSim.View.Animation
 
         /// <summary>移动根·速度轴 1D 混合 {Idle,Walk,Run}。</summary>
         Moving = 7,
+
+        /// <summary>死亡叶（终态）：进态即播 Death（一次性·非循环）——完成后不重发/不退根/不降权
+        /// （playable 停在末帧 = 帧锁定；根裁决按 IsDead 恒驻本叶）。</summary>
+        Dead = 8,
     }
 
     /// <summary>
@@ -75,6 +79,7 @@ namespace LiteSim.View.Animation
                     (CharacterAnimId.AimWalk, new AimWalkStage(ctx)),
                     (CharacterAnimId.Idle, new IdleStage(ctx)),
                     (CharacterAnimId.Moving, new MovingStage(ctx)),
+                    (CharacterAnimId.Dead, new DeadStage(ctx)),
                 },
                 composites: new CompositeSpec<CharacterAnimId>[]
                 {
@@ -83,7 +88,7 @@ namespace LiteSim.View.Animation
                     new CompositeSpec<CharacterAnimId>(CharacterAnimId.CombatRoot, CharacterAnimId.AimIdle,
                         HistoryMode.None,
                         CharacterAnimId.FireIdle, CharacterAnimId.FireWalk,
-                        CharacterAnimId.AimIdle, CharacterAnimId.AimWalk),
+                        CharacterAnimId.AimIdle, CharacterAnimId.AimWalk, CharacterAnimId.Dead),
                     new CompositeSpec<CharacterAnimId>(CharacterAnimId.LocomotionRoot, CharacterAnimId.Idle,
                         HistoryMode.None,
                         CharacterAnimId.Idle, CharacterAnimId.Moving),

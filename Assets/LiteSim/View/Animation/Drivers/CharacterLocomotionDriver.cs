@@ -230,6 +230,10 @@ namespace LiteSim.View.Animation
                     s.MovingLatch = LocomotionBlendMath.UpdateLatch(s.MovingLatch, speed);   // 锁存公式单源
 
                     // 事实喂入（单机单上下文——层间不引用，全部经 ctx 单点）
+                    if (_view.IsDead(i)) s.DeadSeen = true;   // 死亡不可逆锁存（快照状态——重连/迟到者同路径）
+                    s.Ctx.IsDead = s.DeadSeen;
+                    if (s.DeadSeen && s.Machine.Current != CharacterAnimId.Dead)
+                        s.Machine.Request(CharacterAnimId.Dead);   // 状态轮询路径：重建/迟到者按死亡事实强制进叶
                     s.Ctx.IsAiming = _view.IsAiming(i);
                     s.Ctx.IsMoving = s.MovingLatch;
                     s.Ctx.Speed = speed;
@@ -265,6 +269,22 @@ namespace LiteSim.View.Animation
         public void OnFrameEvent(in FrameEvent e)
         {
             if (_disposed) return;
+
+            // Death：死亡不可逆锁存 + 立即进死亡叶（**压过一切挂起路由**——last-wins；
+            // 迟到/重连无事件者由状态轮询路径补进：IsDead 事实 → 根裁决强制迁移）
+            if (e.Kind == FrameEventKind.Death)
+            {
+                if (!_view.TryGetSlot(e.EntityId, out int deadSlot)) return;
+                if (deadSlot < 0 || deadSlot >= _slots.Length) return;
+                var d = _slots[deadSlot];
+                if (d?.Machine == null || !d.Machine.Started || d.Ctx == null) return;   // 灰盒/未启动：无动画面
+                d.DeadSeen = true;
+                d.Ctx.IsDead = true;
+                if (d.Machine.Current != CharacterAnimId.Dead)
+                    d.Machine.Request(CharacterAnimId.Dead);
+                return;
+            }
+
             if (e.Kind != FrameEventKind.Fire) return;            // 未覆盖事件类型不处理（Crit/Explosion 未预建）
 
             if (!_view.TryGetSlot(e.EntityId, out int slotIndex)) return;   // 主体已回收：丢弃（不补播、不猜）
@@ -364,6 +384,7 @@ namespace LiteSim.View.Animation
             public Vector3 LastPos;
             public bool HasPos;
             public bool MovingLatch;                       // 移动事实锁存（公式单源 LocomotionBlendMath）
+            public bool DeadSeen;                          // 死亡不可逆锁存（事件沿/快照状态——置位后恒真）
         }
     }
 }

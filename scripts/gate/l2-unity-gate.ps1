@@ -102,10 +102,10 @@ function Invoke-PipelineCommand([string]$command, [string[]]$cmdArgs) {
     try {
         $ErrorActionPreference = 'Continue'
         if ($cmdArgs -and $cmdArgs.Count -gt 0) {
-            $out = & unity command --timeout 10 $command @cmdArgs --project-path $ProjectPath 2>&1
+            $out = & unity command --timeout 10 $command @cmdArgs --project-path $ProjectPath --proxy-disable 2>&1
         }
         else {
-            $out = & unity command --timeout 10 $command --project-path $ProjectPath 2>&1
+            $out = & unity command --timeout 10 $command --project-path $ProjectPath --proxy-disable 2>&1
         }
         $exitCode = $LASTEXITCODE
     }
@@ -124,12 +124,12 @@ function Invoke-UnityTestsAsync([string]$mode, [int]$timeoutSeconds = 900) {
     $savedErrorActionPreference = $ErrorActionPreference
     try {
         $ErrorActionPreference = 'Continue'
-        $null = & unity command --timeout 60 run_tests --mode $mode --async_tests true --project-path $ProjectPath 2>&1
+        $null = & unity command --timeout 60 run_tests --mode $mode --async_tests true --project-path $ProjectPath --proxy-disable 2>&1
 
         $deadline = (Get-Date).AddSeconds($timeoutSeconds)
         while ((Get-Date) -lt $deadline) {
             Start-Sleep -Seconds 5
-            $statusText = & unity command --timeout 30 test_status --project-path $ProjectPath 2>&1
+            $statusText = & unity command --timeout 30 test_status --project-path $ProjectPath --proxy-disable 2>&1
             $joined = $statusText -join "`n"
             if ($joined -match '"status"\s*:\s*"running"') { continue }
             if ($joined -match '"status"\s*:\s*"(completed|failed|idle)') { return $joined }

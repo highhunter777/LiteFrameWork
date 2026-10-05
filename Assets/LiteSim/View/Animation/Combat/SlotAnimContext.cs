@@ -25,6 +25,10 @@ namespace LiteSim.View.Animation
         /// <summary>瞄准中（SimView.IsAiming——Sim 权威；战斗根活跃判据之一）。</summary>
         public bool IsAiming;
 
+        /// <summary>死亡事实（SimView.IsDead——Hp≤0 快照可重建；战斗根死亡裁决判据，
+        /// 不可逆：置位后恒驻死亡叶，窗/退根/Aim 系全被守卫）。</summary>
+        public bool IsDead;
+
         /// <summary>移动事实锁存（迟滞公式单源 <see cref="LocomotionBlendMath.UpdateLatch"/>）。</summary>
         public bool IsMoving;
 

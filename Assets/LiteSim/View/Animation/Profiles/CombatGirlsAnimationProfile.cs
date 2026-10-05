@@ -60,7 +60,7 @@ namespace LiteSim.View.Animation
                 .Register(new AnimationDefinition(CharacterAnimationIds.Hit, AnimationChannel.FullBody,
                     binding: "Hit1", loop: false, minSpeed: 0.5f, maxSpeed: 2f))
                 .Register(new AnimationDefinition(CharacterAnimationIds.Death, AnimationChannel.FullBody,
-                    binding: "Die1", loop: false, minSpeed: 0.5f, maxSpeed: 1.5f))
+                    binding: "Die2", loop: false, minSpeed: 0.5f, maxSpeed: 1.5f, holdOnFinish: true))   // 死亡帧锁定：一次性·非循环，播完保持末帧
                 .Register(new AnimationDefinition(CharacterAnimationIds.Evade, AnimationChannel.FullBody,
                     binding: "Evade", loop: false, minSpeed: 0.7f, maxSpeed: 1.5f))
                 // 混合形态（§4 Blend 的登记面；权重由驱动器/状态机给，槽位序即权重数组次序）：

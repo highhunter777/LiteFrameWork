@@ -358,6 +358,24 @@ namespace LiteSim.View
             return (_snapTo.Entities[slotIndex].Flags & EntityFlags.Aiming) != 0u;
         }
 
+        /// <summary>
+        /// 实体是否已死亡（Hp ≤ 0——Sim 权威状态，**公共快照可重建**：重连/迟到加入者按状态出
+        /// 死亡表现，不依赖事件回放）。取数口径同 <see cref="IsAiming"/>：本地取预测态、
+        /// 远端取最新权威快照；槽位越界 / 首快照未到 / 槽位已死 → false。
+        /// </summary>
+        public bool IsDead(int slotIndex)
+        {
+            if (slotIndex < 0 || slotIndex >= SimConfig.MaxEntities) return false;
+
+            // 本地实体必须**先按实体 Id 解析槽位**——同 IsAiming 口径（Id 不能当下标用）
+            if (LocalEntityId != 0 && _sim.TryResolve(LocalEntityId, out int localSlot) && localSlot == slotIndex)
+                return _sim.Entities[slotIndex].Hp <= 0;
+
+            if (_snapTo == null) return false;
+            if ((_snapTo.AliveBitmap[slotIndex >> 5] & (1u << (slotIndex & 31))) == 0u) return false;
+            return _snapTo.Entities[slotIndex].Hp <= 0;
+        }
+
         // ---- 辅助 ----
 
         /// <summary>摆位：位置 1:1；旋转 = <see cref="FacingRotation"/>（模型视觉前沿约定 +Z）。</summary>

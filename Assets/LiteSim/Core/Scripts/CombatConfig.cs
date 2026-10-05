@@ -72,6 +72,22 @@ namespace LiteSim
         /// <summary>命中圆柱高度（m，区间 [Pos.Y, Pos.Y + Height]）。</summary>
         public static float HitscanHeight { get; private set; } = 2f;
 
+        /// <summary>
+        /// 爆头带线（m，相对目标脚底）：命中高度 ≥ 目标 Pos.Y + <see cref="HeadHitLine"/> 判爆头。
+        /// 当前 hitscan 为**水平射线**（命中高度 = 射手眼高）——同地平面对枪（眼高 ≈ 半身高 1.0m）
+        /// 永不达线，高差位（高台打低处）才有爆头；俯仰轴归输入面扩展（AimY 未实现）。
+        /// **代码常量（两端编译期同值）——与 <see cref="FaceTurnRadPerSec"/> 同口径刻意不进 digest**
+        /// （无表化计划；表化时改属性进 <see cref="LoadFrom"/> 并纳入 digest）。
+        /// </summary>
+        public const float HeadHitLine = 1.7f;   // = HitscanHeight(2f) × 0.85
+
+        /// <summary>
+        /// 爆头伤害倍率（移位数）：伤害 `&lt;&lt; HeadshotDamageShift`（×2^shift——位级精确，
+        /// 与 AimMoveSpeed"乘 2 的幂"同约定）；0 = 无倍率。倍率在**命中判定处**应用——
+        /// Damage 命令携带即最终值，结算侧无需知部位。**代码常量不进 digest**（表化随数值调参批）。
+        /// </summary>
+        public const int HeadshotDamageShift = 1;
+
         // ---- 伤害 ----
 
         /// <summary>基础伤害（命中值 = BaseDamage ± DamageSpread 内浮动）。</summary>

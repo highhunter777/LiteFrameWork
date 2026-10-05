@@ -18,8 +18,16 @@ namespace LiteFramework.Animation
         /// <summary>是否需要装载（false = 预加载集合，提交即生效）。</summary>
         public readonly bool RequiresLoad;
 
+        /// <summary>
+        /// 自然完成后**保持末帧**（不停止播放、不停用通道）——死亡帧锁定等终态语义；
+        /// 仅对非循环定义有意义（循环不会自然 Completed）。默认 false（完成即收口停机，既有口径）。
+        /// 保持期间后续同通道提交仍走通道仲裁替换。
+        /// </summary>
+        public readonly bool HoldOnFinish;
+
         public AnimationDefinition(AnimationId id, AnimationChannel channel, string binding,
-            bool loop = false, float minSpeed = 0.01f, float maxSpeed = 4f, bool requiresLoad = false)
+            bool loop = false, float minSpeed = 0.01f, float maxSpeed = 4f, bool requiresLoad = false,
+            bool holdOnFinish = false)
         {
             Id = id;
             Channel = channel;
@@ -28,6 +36,7 @@ namespace LiteFramework.Animation
             MinSpeed = minSpeed;
             MaxSpeed = maxSpeed;
             RequiresLoad = requiresLoad;
+            HoldOnFinish = holdOnFinish;
         }
 
         public bool IsValid => Id.IsValid && !string.IsNullOrEmpty(Binding);

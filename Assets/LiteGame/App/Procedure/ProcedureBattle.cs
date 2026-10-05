@@ -37,7 +37,7 @@ namespace LiteGame
 #endif
 
         /// <summary>瞄准滞回的最小保持宽度——与 Brain DefaultBlend（EaseInOut 0.3s）对齐：
-        /// 短按也走完一次完整混合，连点不重启混合（2026-10-04 相机抖动治理裁决）。</summary>
+        /// 短按也走完一次完整混合，连点不重启混合（相机抖动的输入侧治理）。</summary>
         private const float AimMinHoldSeconds = 0.3f;
 
         /// <summary>

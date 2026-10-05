@@ -346,11 +346,18 @@ namespace LiteFramework.Animation
 
             if (_slots.TryGetValue(channel, out var slot) && handle.Equals(slot.Current))
             {
-                if (!slot.Loading) _backend.TryStop(channel);         // 加载中无需停（从未提交）
-                slot.Current = default;
-                slot.CurrentId = default;
-                slot.Loading = false;
-                slot.Active = false;
+                // 定义声明 HoldOnFinish 且自然完成 → **不停机不停用**（帧锁定）：非循环资产
+                // 采样停在末帧，通道保持活跃；后续同通道提交仍走通道仲裁替换。其余终态照常收口。
+                bool hold = terminal == AnimationTerminalState.Completed
+                    && _profile.TryGetDefinition(id, out var def) && def.HoldOnFinish;
+                if (!hold)
+                {
+                    if (!slot.Loading) _backend.TryStop(channel);     // 加载中无需停（从未提交）
+                    slot.Current = default;
+                    slot.CurrentId = default;
+                    slot.Loading = false;
+                    slot.Active = false;
+                }
             }
 
             OnTerminal?.Invoke(handle, terminal);
