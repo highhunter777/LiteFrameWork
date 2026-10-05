@@ -88,6 +88,13 @@ namespace LiteSim
         /// </summary>
         public const int HeadshotDamageShift = 1;
 
+        /// <summary>
+        /// 尸体期（帧，@60Hz = 3s）：死亡跨线后槽位的保留期——尸体表现/掉落/重连可见的权威载体窗；
+        /// 期内实体零交互（输入作废/不可命中/不开火），期满由 CleanupSystem 回收。
+        /// **代码常量不进 digest**（表化随数值调参批——同 HeadshotDamageShift 口径）。
+        /// </summary>
+        public const int CorpseFrames = 180;
+
         // ---- 伤害 ----
 
         /// <summary>基础伤害（命中值 = BaseDamage ± DamageSpread 内浮动）。</summary>

@@ -45,6 +45,9 @@ namespace LiteSim
             // 只在跨越死亡线的这一次写 Kill + Death（过量伤害堆叠不重复击杀）
             if (hpBefore > 0 && e.Hp <= 0)
             {
+                e.CorpseFrames = (byte)CombatConfig.CorpseFrames;   // 尸体期置满：槽位保留窗（死亡表现/掉落载体）
+                e.Vel.X = 0f;                                       // 尸体定身：清水平速度（InputSystem 已不再写 Vel——
+                e.Vel.Z = 0f;                                       //   不清则按末速度滑行整个尸体期）；竖直分量留重力沉降
                 s.Cmds.Write(SimCommandKind.Kill, cmd.Target, cmd.Source, 0);
                 s.Events.Write(FrameEventKind.Death, cmd.Target, cmd.Source, 0, e.Pos);
             }

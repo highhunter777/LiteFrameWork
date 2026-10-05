@@ -73,6 +73,7 @@ namespace LiteSim
                 h = MixInt32(h, e.Deaths);
                 h = MixInt32(h, e.SelectedWeapon);
                 h = MixByte(h, e.FireStanceFrames);   // 开火驻留窗（限速+朝准星语境的判定输入，回放重建面——公共口径必含，漏 = 客户端预测与权威分叉不报和解）
+                h = MixByte(h, e.CorpseFrames);       // 尸体期剩余（死亡表现的权威载体窗——公共口径必含，槽位存活期随它变化）
 
                 ref ActionRuntime a = ref s.Actions[i * SimConfig.ActionSlotsPerEntity];   // 主动作槽摘要
                 h = MixInt32(h, a.ActionId);
@@ -142,6 +143,7 @@ namespace LiteSim
                 h = MixInt32(h, e.Deaths);
                 h = MixInt32(h, e.SelectedWeapon);
                 h = MixByte(h, e.FireStanceFrames);   // 开火驻留窗（私有面——改写 Vel 的判定输入，全量口径必含；公共口径不含，见 ComputePublicChecksum）
+                h = MixByte(h, e.CorpseFrames);       // 尸体期剩余（全量口径必含——回放重建的确定性状态）
                 h = MixByte(h, e.FaceExitTurning);    // 离场转向标记（私有面——改写 Yaw 的过渡状态，同上）
             }
 

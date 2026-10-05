@@ -68,6 +68,15 @@ namespace LiteSim
         /// </summary>
         public byte FaceExitTurning;
 
+        /// <summary>
+        /// 尸体期剩余（帧，0 = 不在尸体期）：死亡帧（Hp 跨线）由 <see cref="DamageSystem"/> 置满
+        /// <see cref="CombatConfig.CorpseFrames"/>，<see cref="CleanupSystem"/> 逐帧递减、归零才回收槽位——
+        /// 死亡表现（尸体动画/掉落/重连可见）的**权威载体窗**。期内零交互：InputSystem 输入作废、
+        /// ShootingSystem 不可命中/不开火。**公共面**（尸体表现按快照重建——远端可见），
+        /// 进公共快照与双口径 checksum（同 FireStanceFrames 先例）。
+        /// </summary>
+        public byte CorpseFrames;
+
     }
 
     /// <summary>

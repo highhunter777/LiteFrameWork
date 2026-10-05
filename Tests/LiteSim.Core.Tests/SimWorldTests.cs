@@ -63,9 +63,10 @@ namespace LiteSim.Tests
             Assert.Equal(FrameEventKind.Death, s.Events.Items[2].Kind);
             Assert.Equal(target, s.Events.Items[2].EntityId);
 
-            // 清理必须看到同帧死亡：目标槽位已回收
-            Assert.False(s.IsAlive(targetSlot));
-            Assert.Equal(1, s.AliveCount());
+            // 尸体期语义（死亡链路根治）：同帧不再回收——槽位保留为尸体载体
+            // （bitmap 保持、CorpseFrames 递减）；期满才回收。回收断言见 CorpsePhaseTests。
+            Assert.True(s.IsAlive(targetSlot), "尸体期内槽位保留（死亡表现载体）");
+            Assert.Equal(2, s.AliveCount());
 
             // 命令缓冲帧末清空；Step 不清帧事件（由驱动消费后清，决策⑥）
             Assert.Equal(0, s.Cmds.Count);

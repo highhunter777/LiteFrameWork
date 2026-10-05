@@ -12,8 +12,19 @@ namespace LiteSim
             for (int i = 0; i < SimConfig.MaxEntities; i++)
             {
                 if ((aliveBitmap[i >> 5] & (1u << (i & 31))) == 0u) continue;
-                if (entities[i].Hp > 0) continue;
 
+                ref EntitySlot e = ref entities[i];
+                if (e.Hp > 0) continue;                        // 活体
+
+                // 尸体期：递减保留（死亡表现的权威载体窗——期间实体零交互：
+                // InputSystem 输入作废 / ShootingSystem 不可命中不开火）
+                if (e.CorpseFrames > 0)
+                {
+                    e.CorpseFrames--;
+                    continue;
+                }
+
+                // 尸体期满：回收（清 AliveBitmap 位 + 槽位清零——空槽校验值恒定，§3.6）
                 aliveBitmap[i >> 5] &= ~(1u << (i & 31));
                 entities[i] = default;
             }
