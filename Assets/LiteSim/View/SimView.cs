@@ -60,7 +60,6 @@ namespace LiteSim.View
         private SimVector3 _localDisplay;
         private float _localYaw;
         private bool _hasLocalDisplay;
-        private float _cameraYawFrozenAt = float.NaN;      // 腰射驻留窗的相机朝向锁存（NaN = 窗外，随 _localYaw）
         private CharacterController _localCc;                 // 本地视图物理代理（CC.Move 收敛到衰减目标——见 PlaceLocal/EnsureLocalCc）
 
         /// <summary>硬切距离阈值（米），两处共用：① 本地和解衰减超过它直接落位（复活/传送）；
@@ -74,8 +73,8 @@ namespace LiteSim.View
         /// <summary>事件静默闸：帧号 ≤ 该值的帧事件不派发（回滚重放/和解去重的帧闸）。</summary>
         public int SilenceUntilFrame { get; private set; } = -1;
 
-        /// <summary>本地玩家是否处于**开火驻留窗**（腰射冻结相机输入的判据——`FireStanceFrames` 公共面，
-        /// 预测态即时镜像；流程经相机端口 `SetOrbitInputEnabled` 喂实现侧，与 UpdateCamera 的朝向冻结同判据）。</summary>
+        /// <summary>本地玩家是否处于**开火驻留窗**（`FireStanceFrames` 公共面，预测态即时镜像）。
+        /// 消费面＝流程：`ProcedureBattle` 据此喂相机端口 `SetOrbitInputEnabled`（腰射窗内停鼠标轨道旋转）。</summary>
         public bool IsLocalFireStance
         {
             get
@@ -325,24 +324,12 @@ namespace LiteSim.View
             // 焦点 = 本地表现位置（角色根）。瞄准相机（ADS）由流程经 <see cref="ICameraService.SetAiming"/>
             // 接管，跟随目标与主相机同源（相机服务侧同一焦点），不引用预制体参考点。
             // 相机构图（肩偏移/阻尼/FOV）归 vcam 场景配置，代码里没有第二处事实源。
-
-            // **腰射开火驻留窗（<see cref="IsLocalFireStance"/>，公共面——预测态即时镜像）：窗内
-            // 冻结主相机朝向**（进窗时刻锁存——玩家转身不牵动相机，腰射连点画面稳定；位置照常跟随；
-            // 窗尽恢复跟 Yaw，vcam 阻尼平滑回归）。ADS 段主相机被瞄准机优先级接管，冻结值无视觉影响——
-            // 同窗口径不区分（瞄准帧同样置满窗）。鼠标驱动的轨道旋转冻结归流程（SetOrbitInputEnabled）——
-            // 本冻结只管"焦点朝向 → 构图偏移/heading 跟随"半条链。
-            bool inFireStance = IsLocalFireStance;
-            if (inFireStance)
-            {
-                if (float.IsNaN(_cameraYawFrozenAt)) _cameraYawFrozenAt = _localYaw;   // 进窗锁存
-            }
-            else
-            {
-                _cameraYawFrozenAt = float.NaN;                                        // 窗尽解冻
-            }
-            float cameraYaw = inFireStance ? _cameraYawFrozenAt : _localYaw;
-
-            _camera.Follow(LocalDisplayPosition, FacingRotation(cameraYaw), dt);   // 平滑/档位归实现（Cinemachine 由 vcam 配置表达）
+            //
+            // 腰射开火驻留窗的相机稳定**不走本方法**——训练场 rig 实况（主相机 BindingMode=WorldSpace、
+            // Orbit Heading 不回正、旋转纯由 CinemachineInputProvider 鼠标驱动）：焦点朝向对主相机是
+            // 空操作；冻结它反而钉死瞄准机 Composer 的角色系肩偏移（ADS 开火窗内瞄准构图不跟转——回归）。
+            // 窗内旋转冻结唯一有效落点＝轨道输入门（流程喂 SetOrbitInputEnabled，见 ProcedureBattle）。
+            _camera.Follow(LocalDisplayPosition, FacingRotation(_localYaw), dt);   // 平滑/档位归实现（Cinemachine 由 vcam 配置表达）
         }
 
         /// <summary>

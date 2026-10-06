@@ -365,69 +365,10 @@ namespace LiteGame.Tests.EditMode
             Assert.AreEqual(1, cam.FollowCount);
         }
 
-        [Test]
-        public void 相机_腰射驻留窗内冻结朝向_玩家转身不牵动相机()
-        {
-            var world = NewWorld(new SimVector3(4f, 0f, 6f));
-            long id = world.Entities[0].Id;
-            var counter = new ViewCounter();
-            var cam = new CameraProbe();
-
-            var view = NewView(world, counter, camera: cam);
-            view.AlignLocal(id);
-            view.Tick(1f / 60f);
-
-            // 进窗（Yaw 未动——锁存基线＝开火瞬间朝向；锁存时机在进窗帧，表现 Yaw 已含当帧衰减）
-            world.Entities[0].FireStanceFrames = (byte)LiteSim.CombatConfig.FireStanceFrames;
-            view.Tick(1f / 60f);
-            float frozen = cam.LastFacing.eulerAngles.y;
-
-            // 窗内大幅转身：相机朝向钉死在锁存值，位置照常跟随
-            world.Entities[0].Yaw = 2.5f;
-            view.Tick(1f / 60f);
-            Assert.AreEqual(frozen, cam.LastFacing.eulerAngles.y, 0.01f,
-                "驻留窗内相机朝向冻结（玩家转身不牵动相机）");
-            Assert.AreEqual(4f, cam.LastTarget.x, 0.5f, "位置照常跟随（只冻旋转）");
-
-            // 窗内继续转——冻结值仍钉在锁存朝向
-            world.Entities[0].Yaw = 3.0f;
-            view.Tick(1f / 60f);
-            Assert.AreEqual(frozen, cam.LastFacing.eulerAngles.y, 0.01f, "窗内持续冻结");
-        }
-
-        [Test]
-        public void 相机_驻留窗尽恢复跟Yaw_窗口外转身相机随动()
-        {
-            var world = NewWorld(new SimVector3(4f, 0f, 6f));
-            long id = world.Entities[0].Id;
-            var counter = new ViewCounter();
-            var cam = new CameraProbe();
-
-            var view = NewView(world, counter, camera: cam);
-            view.AlignLocal(id);
-            view.Tick(1f / 60f);
-
-            // 进窗（锁存基线＝90°，yaw=0）→ 窗内转身（冻结）
-            world.Entities[0].FireStanceFrames = (byte)LiteSim.CombatConfig.FireStanceFrames;
-            view.Tick(1f / 60f);
-            float frozen = cam.LastFacing.eulerAngles.y;
-            Assert.AreEqual(90f, frozen, 0.01f, "进窗锁存基线（yaw=0 → 90°）");
-
-            world.Entities[0].Yaw = 1.5f;
-            view.Tick(1f / 60f);
-            Assert.AreEqual(frozen, cam.LastFacing.eulerAngles.y, 0.01f, "窗内冻结在锁存朝向");
-
-            // 窗尽（表现 Yaw 衰减跟上后相机恢复随动）
-            world.Entities[0].FireStanceFrames = 0;
-            view.Tick(1f / 60f);
-            Assert.IsTrue(Mathf.Abs(cam.LastFacing.eulerAngles.y - frozen) > 0.01f,
-                "窗尽后相机朝向随表现 Yaw 恢复（不再钉死）");
-
-            // 无窗转身：相机直接随动（原行为不回归破坏）
-            world.Entities[0].Yaw = 0f;
-            view.Tick(10 * (1f / 60f));                                          // 衰减收敛
-            Assert.AreEqual(90f, cam.LastFacing.eulerAngles.y, 1f, "无窗时相机恢复原行为（跟 Yaw）");
-        }
+        // 腰射驻留窗相机冻结曾在此设两条用例（朝向锁存版）——随"焦点朝向冻结"拆除而移除：
+        // rig 实况（BindingMode=WorldSpace、Heading 不回正、旋转纯鼠标驱动）下焦点朝向对主相机是
+        // 空操作、且会钉死瞄准机肩偏移；窗内旋转冻结唯一有效落点是轨道输入门（流程级 SetOrbitInputEnabled，
+        // CameraProbe.OrbitInputEnabled 记录位供流程级用例断言）。
 
         /// <summary>相机端口替身：只记"喂了几次、喂的什么"（朝向随焦点一并记录；
         /// 瞄准态由流程喂，SimView 不碰——记录位供流程级用例断言）。</summary>
