@@ -195,7 +195,7 @@ namespace RoomServer.Runtime
 
             // 数值边界（R0-P0-3：非法浮点不得进入权威状态——NaN/Infinity 会毒化移动/射击判定）
             if (!float.IsFinite(wire.MoveX) || !float.IsFinite(wire.MoveZ)
-                || !float.IsFinite(wire.AimX) || !float.IsFinite(wire.AimZ))
+                || !float.IsFinite(wire.AimX) || !float.IsFinite(wire.AimY) || !float.IsFinite(wire.AimZ))
             {
                 DroppedNonFinite++;
                 return false;
@@ -215,14 +215,19 @@ namespace RoomServer.Runtime
             }
 
             // Aim：分量与长度 ≤ 1；Fire/Skill 意图帧必须非零（零方向开火/施法 = 非法，Sim 侧 atan2 也会失义）
+            // **三分量口径**（瞄准向量三维化——《俯视角三维命中与爆头判定专项设计》§3.2）：
+            // AimY 是Sim 弹道的一部分（仰角），**必须同受分量/长度闸约束**，否则客户端可
+            // 借AimY 送出超界方向（长度平方 > 1 的三维向量仍能通过二维闸门）——权威端
+            // 必须与采集侧 `IntentVectorLimit.EnsureWithinLengthLimit(ref,ref,ref)` 同判据。
             if (wire.AimX > MoveComponentLimit || wire.AimX < -MoveComponentLimit
+                || wire.AimY > MoveComponentLimit || wire.AimY < -MoveComponentLimit
                 || wire.AimZ > MoveComponentLimit || wire.AimZ < -MoveComponentLimit)
             {
                 DroppedIllegalVector++;
                 return false;
             }
             bool aimNeeded = (wire.Buttons & AimRequiredButtons) != 0u;
-            float aimLengthSquared = wire.AimX * wire.AimX + wire.AimZ * wire.AimZ;
+            float aimLengthSquared = wire.AimX * wire.AimX + wire.AimY * wire.AimY + wire.AimZ * wire.AimZ;
             if (aimLengthSquared > VectorLengthSquaredLimit
                 || (aimNeeded && aimLengthSquared <= 0f))   // lint-allow R3（长度平方与 0 常量比较，采集边界判定）
             {

@@ -33,19 +33,25 @@ namespace LiteSim
                 // 零向量不会命中任何目标——采集侧契约要求非零）
                 float dx = inputs[i].AimX;
                 float dz = inputs[i].AimZ;
+                // **三维化（俯视角爆头——《俯视角三维命中与爆头判定专项设计》§3.1/§4.1）**：
+                // 采集侧给出含 Y 分量的单位瞄准向量（旧口径恒 dy=0 ⇒ 射线恒水平）。
+                float dy = inputs[i].AimY;
 
                 // **逻辑枪口**（子弹出射点＝逻辑枪口而非本体中心）——<see cref="CombatConfig.MuzzleOrigin"/>
                 // 单源（服务器可重建、回溯用历史帧 Yaw）。视觉枪口位属表现层（服务器无模型/动画、
                 // 回溯无历史姿态）——常量偏移保留权威/确定/可回溯（朝向系 = 枪随身体转）。
-                // 高度默认=眼高 ⇒ y 带闸与爆头带判据口径不变。
                 SimVector3 muzzle = CombatConfig.MuzzleOrigin(shooter.Pos, shooter.Yaw);
 
                 // 判定单源（SimRaycast）：实体圆柱最近者 + 障碍最近者取近——
-                // 障碍更近 ⇒ 截停（实体命中与并列时实体优先：障碍仅以严格更近获胜）
-                SimRaycast.RaycastEntities(s, shooterSlot, muzzle.X, muzzle.Y, muzzle.Z, dx, dz,
+                // 障碍更近 ⇒ 截停（实体命中与并列时实体优先：障碍仅以严格更近获胜）。
+                // **实体走三维入口（带 dy）**；障碍保持 2.5D（关卡障碍为地面级圆/盒，三维化无收益——
+                // 见专项设计 §4.1「仅实体圆柱三维化」）。
+                SimRaycast.RaycastEntities(s, shooterSlot, muzzle.X, muzzle.Y, muzzle.Z, dx, dz, dy,
                     CombatConfig.HitscanRange, out int hitSlot, out float hitT);
-                bool blockedByObstacle = SimRaycast.RaycastObstacles(map, muzzle.X, muzzle.Y, muzzle.Z,
-                    dx, dz, CombatConfig.HitscanRange, out float obstacleT)
+                // 障碍仍在XZ 平面按水平距离求解⇒**须折回三维参数**才能与 hitT 同量纲比较
+                // （hitT 是沿三维单位方向的长度；障碍 t 是水平距离）。
+                bool blockedByObstacle = RaycastObstacles3D(map, muzzle.X, muzzle.Y, muzzle.Z,
+                    dx, dz, dy, CombatConfig.HitscanRange, out float obstacleT)
                     && (hitSlot < 0 || obstacleT < hitT);
 
                 // 开火驻留窗置满（与 Fire 事件**同点**——View 侧窗口同触发同长度同刷新，
@@ -60,25 +66,71 @@ namespace LiteSim
                     ref EntitySlot hit = ref s.Entities[hitSlot];
 
                     // 伤害浮动 ±DamageSpread（消费 RngState——局部副本推进后写回，SimRng 使用约定）；
-                    // base/spread 走 CombatConfig（数值参数化）。爆头带判定（命中高度 ≥ 目标脚底 +
-                    // HeadHitLine）→ 倍率移位（位级精确）——倍率在命中判定处应用，
-                    // Damage 命令/Hit 事件携带即最终值，结算侧无需知部位。
+                    // base/spread 走 CombatConfig（数值参数化）。
                     var rng = new SimRng(s.RngState);
                     int dmg = CombatConfig.BaseDamage + rng.NextRange(-CombatConfig.DamageSpread, CombatConfig.DamageSpread + 1);
                     s.RngState = rng.State;
 
+                    // **命中点取三维**（`+ dy * hitT`）：爆头判据的输入。旧 2.5D 恒用 muzzle.Y（水平），
+                    // 三维化后命中点高度随仰角与距离变化——**这正是平地可爆头的物理来源**。
                     var hitPos = new SimVector3(
                         muzzle.X + dx * hitT,
-                        muzzle.Y,
+                        muzzle.Y + dy * hitT,
                         muzzle.Z + dz * hitT);
 
-                    if (hitPos.Y >= hit.Pos.Y + CombatConfig.HeadHitLine)
-                        dmg <<= CombatConfig.HeadshotDamageShift;
+                    // **爆头＝命中点落在头部带**（专项设计 §4.2）：头部带 = 身位顶部子区间
+                    // **[HeadHitLine, HitscanHeight]**（相对目标脚底，闭区间）——非 >= 单边。
+                    // 单边 `>= HeadHitLine` 有漏洞：高差位俯射**越过头顶**仍被判爆头；
+                    // 与 Duckov HitBox 语义一致（头是一个区间而非半空间）。
+                    //
+                    // **边界须与 SimRaycast 的 Y 带闸同口径（闭区间含端点）**：既有用例
+                    // 「高差位命中头部带」（射手 Y=1⇒ 眼高恰= 身位顶 2.0）依赖含端点语义——
+                    // 单方面把上界收紧为 `<` 会与Y 带闸分叉（闸放行、爆头判据落空 ⇒ 判为未命中）。
+                    // 上界"越过头顶"的漏洞由 SimRaycast 的 Y 带闸（`yHit > 顶` 排除）承担，
+                    // 此处只需 `>= 下沿`（`>` 上界不可能到达：命中点已过Y 带闸）。
+                    float relY = hitPos.Y - hit.Pos.Y;
+                    bool headshot = relY >= CombatConfig.HeadHitLine;
+                    if (headshot) dmg <<= CombatConfig.HeadshotDamageShift;
 
                     s.Cmds.Write(SimCommandKind.Damage, hit.Id, shooter.Id, dmg);
-                    s.Events.Write(FrameEventKind.Hit, hit.Id, shooter.Id, dmg, hitPos);
+                    // **爆头发`Crit`、普通发 `Hit`**（专项设计 §4.2）：`Crit` 枚举早已预留且
+                    // ShootingSystem 从不写它；**不进 checksum、不进快照**（帧内瞬态），故协议/基线
+                    // 零改动。表现层链路已通（HitFeedbackDispatcher 传 Kind →伤害数字 Crit 档 → 红字）。
+                    s.Events.Write(headshot ? FrameEventKind.Crit : FrameEventKind.Hit,
+                        hit.Id, shooter.Id, dmg, hitPos);
                 }
             }
+        }
+
+        /// <summary>
+        /// 障碍求交的**三维折算**（专项设计 §4.1「仅实体圆柱三维化」）：
+        /// <see cref="SimRaycast.RaycastObstacles"/> 在 XZ 平面按**水平距离**求解（口径不变——
+        /// 关卡障碍均为地面级圆/盒，三维化收益为零而破坏面大），但调用方需要与实体
+        /// <c>hitT</c> **同量纲**（沿三维单位方向的长度）比较，故此处把水平距离折回三维参数：
+        /// <c>t_3d = t_xz / h</c>（h = 水平投影长度 √(dx²+dz²)）。
+        /// **dy = 0 时 h = 1 ⇒ 逐位等价旧的二维调用**（既有沙盒/激光口径不变）。
+        /// 近乎垂直（h ≤ <see cref="SimRaycast.ParallelEpsilon"/>）时水平投影退化，
+        /// 障碍在水平方向不可达 ⇒ 判未命中（不与实体争近远）。
+        /// </summary>
+        private static bool RaycastObstacles3D(in SimMapData map,
+            float ox, float oy, float oz, float dx, float dz, float dy,
+            float maxT, out float t)
+        {
+            float h2 = SimMath.MulAdd2(dx, dx, dz, dz);
+            float h = SimMath.Sqrt(h2);
+            if (h <= SimRaycast.ParallelEpsilon) { t = maxT; return false; }
+
+            // 障碍侧仍按 XZ 平面求解：方向需归一到水平单位向量（长度 1），
+            // 使其返回值是"水平距离"而非三维长度。
+            float invH = 1f / h;
+            if (!SimRaycast.RaycastObstacles(map, ox, oy, oz, dx * invH, dz * invH, maxT, out float tFlat))
+            {
+                t = maxT;
+                return false;
+            }
+
+            t = tFlat * invH;         // 水平距离 → 三维参数（与 hitT 同量纲）
+            return true;
         }
     }
 }
