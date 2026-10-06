@@ -19,6 +19,9 @@ message InputFrame {
   int32 selected_weapon_slot = 7;  // SwitchWeapon 意图的目标武器槽（0..1）；仅 buttons 含 SwitchWeapon 时有效
   int64 target_entity_id = 8;     // 意图目标实体（Pickup 的拾取物等；0 = 无目标；语义解析在 Sim 内）
   uint32 action_seq = 9;          // 离散动作请求序号（逐玩家单调递增；服务器按 (playerId, seq) 去重防重放）
+  // ---- 俯视角三维命中（《俯视角三维命中与爆头判定专项设计》§3.2；只增不改，字段号顺延）----
+  float aim_y = 10;         // 瞄准方向 Y（三维化：0 = 水平射线=旧行为；非零 ⇒ 射线带上仰角/俯角，
+                            // 远距离命中点抬高 ⇒ 可命中头部带。平地爆头的唯一来源）
 }
 
 // ===== C→S 逐帧输入（Unreliable + ≤4 帧冗余）=====

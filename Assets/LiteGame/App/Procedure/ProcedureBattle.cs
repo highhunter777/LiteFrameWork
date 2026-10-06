@@ -306,10 +306,22 @@ namespace LiteGame
                 return;
             }
 
-            _damageNumbers = new BattleDamageNumberDriver(_view, NewDamageNumber, _worldClock);
+            _damageNumbers = new BattleDamageNumberDriver(_view, NewDamageNumber, _worldClock,
+                cameraOf: RenderCameraOf());      // billboard 面对局渲染相机（非 Camera.main——叠加形态会拿错）
             _hitFeedback?.Register(_damageNumbers);
             UnityEngine.Debug.Log("[Battle] damage-numbers-attached");
         }
+
+        /// <summary>
+        /// 对局**渲染相机**解析（伤害飘字 billboard 面用；每帧调，故须轻量且如实降级）：
+        /// Cinemachine brain 的 <c>OutputCamera</c>——**不走 <c>Camera.main</c>**：叠加开发形态下
+        /// boot 相机不随场景销毁且带 MainCamera tag，<c>Camera.main</c> 会拿到错的那台（同
+        /// <see cref="AttachInput"/> 给设备源注入相机的口径）。解析不到 → null，驱动退回不跟随朝向。
+        /// </summary>
+        private Func<Camera> RenderCameraOf()
+            => _camera is CinemachineCameraService ccs
+                ? new Func<Camera>(ccs.TryGetRenderCamera)
+                : (Func<Camera>)null;
 
         /// <summary>飘字实例工厂（驱动池的 create 回调）：底件实例化挂 _viewRoot，随离场拆。</summary>
         private TMPro.TextMeshPro NewDamageNumber()
@@ -521,13 +533,25 @@ namespace LiteGame
 #endif
 
             // ① 渲染帧采样（上下文门在此裁决：登记源任一成立 → 本帧输入为空，见 IInputService）。
-            //    瞄准参照原点 = **逻辑枪口**（Sim 预测态派生：Pos+Yaw 经 CombatConfig.MuzzleOrigin 单源——
-            //    不读视图 Transform，平滑量不回灌输入）——瞄准向量 = 枪口 → 准心地面点方向，
-            //    子弹（权威枪口同式出射）**过准心正上方**，消除本体锚点与枪口出射的平行差。
+            //    瞄准参照原点 = **本体位置**（Sim 预测态 `LocalPosition`——不读视图 Transform，
+            //    平滑量不回灌输入）。瞄准向量 = 本体 → 准心地面点方向。
+            //
+            //    **为什么不用逻辑枪口（MuzzleOrigin）作原点——闭环自激**：
+            //    逻辑枪口的 XZ 偏移是**朝向系**的（前向 0.35 + 右向 0.2），而 Yaw 又由瞄准向量
+            //    反推（InputSystem.cs:68）⇒ 「Yaw → 枪口位 → 瞄准向量 → Yaw」成正反馈闭环。
+            //    闭环增益 ≈ |MuzzleOffset| / |准心点 − 枪口|：准心远时收敛（无感），准心贴近角色时
+            //    d ≈ 0.4m、增益 ≫ 1 ⇒ Yaw 逐帧放大，角色原地摆头（近距抖动真因）。
+            //    改用不依赖 Yaw 的本体位置后闭环断开，抖动根治。
+            //
+            //    **弹道原点仍是逻辑枪口**（`ShootingSystem.cs:41` 与 `MuzzleOrigin` 同式，未改动）——
+            //    输入侧锚点与弹道侧出射点**解耦**是合理的：前者只决定"朝哪转"，后者决定"从哪打"，
+            //    权威/预测本就同式，两端一致不受影响。代价：不再有"子弹过准心正上方"的过冲修正
+            //    （从本体出发的射线与从枪口出发差一个 ≤0.4m 的平行差）。
+            //
             //    瞄准相机：ADS 视角由 SetAiming 每帧喂本地预测态瞄准位，适配器抬场景 /Aim Camera
             //    优先级接管，跟随目标与主相机同源，不引用预制体参考点。
             if (_input != null && _context.Sim != null)
-                _input.SampleOnRenderFrame(_context.LocalMuzzlePosition);
+                _input.SampleOnRenderFrame(_context.LocalPosition);
 
             _context.Tick(elapseSeconds);         // ② 网络双泵 + 输入上行 + 预测推进 + 表现视图（唯一驱动入口）
             _locomotion?.Tick(elapseSeconds);    // 移动动画：视图位置已更新，再解析目标姿态（视图的下游消费者）

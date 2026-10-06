@@ -38,6 +38,7 @@ namespace LiteNet.Protocol
             return new Proto.InputFrame
             {
                 EntityId = src.EntityId, MoveX = src.MoveX, MoveZ = src.MoveZ, AimX = src.AimX, AimZ = src.AimZ, Buttons = src.Buttons,
+                AimY = src.AimY,
                 SelectedWeaponSlot = src.SelectedWeaponSlot, TargetEntityId = src.TargetEntityId, ActionSeq = src.ActionSeq,
             };
         }
@@ -47,6 +48,7 @@ namespace LiteNet.Protocol
             return new SimInputFrame
             {
                 EntityId = src.EntityId, MoveX = src.MoveX, MoveZ = src.MoveZ, AimX = src.AimX, AimZ = src.AimZ, Buttons = src.Buttons,
+                AimY = src.AimY,
                 SelectedWeaponSlot = src.SelectedWeaponSlot, TargetEntityId = src.TargetEntityId, ActionSeq = src.ActionSeq,
             };
         }

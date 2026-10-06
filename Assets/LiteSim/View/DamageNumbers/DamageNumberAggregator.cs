@@ -91,6 +91,15 @@ namespace LiteSim.View.DamageNumbers
             return new DamageNumberSnapshot(targetId, role, e.Value, e.Crit, e.SpawnedAt, e.LastMergeAt, e.Seed, merged: false);
         }
 
+        /// <summary>
+        /// 纯判定：此刻该键的命中**会不会并入既有条目**（键在册且距最后活动 ≤ 窗口）。
+        /// 与 <see cref="MergeOrSpawn"/> 的分支判据同源（单一口径），供调用方在**真正合并之前**
+        /// 预知"将起新条目"，以便先收口上一代条目——驱动用它避免同键覆盖导致旧实例失去跟踪
+        /// （旧实例漏了淡出推进 ⇒ 永久残留 + 池泄漏）。**无副作用**：不改时钟、不改账面。
+        /// </summary>
+        public bool WillMerge(long targetId, HitLocalRole role, double now)
+            => _entries.TryGetValue((targetId, role), out Entry e) && now - e.LastMergeAt <= _mergeWindow;
+
         /// <summary>查在册条目（驱动 Tick 读取账面用）。</summary>
         public bool TryGet(long targetId, HitLocalRole role, out DamageNumberSnapshot snapshot)
         {

@@ -24,61 +24,61 @@ namespace LiteNet.Proto {
     static BattleReflection() {
       byte[] descriptorData = global::System.Convert.FromBase64String(
           string.Concat(
-            "CgxiYXR0bGUucHJvdG8SCmxpdGViYXR0bGUiugEKCklucHV0RnJhbWUSEQoJ",
+            "CgxiYXR0bGUucHJvdG8SCmxpdGViYXR0bGUiyQEKCklucHV0RnJhbWUSEQoJ",
             "ZW50aXR5X2lkGAEgASgDEg4KBm1vdmVfeBgCIAEoAhIOCgZtb3ZlX3oYAyAB",
             "KAISDQoFYWltX3gYBCABKAISDQoFYWltX3oYBSABKAISDwoHYnV0dG9ucxgG",
             "IAEoDRIcChRzZWxlY3RlZF93ZWFwb25fc2xvdBgHIAEoBRIYChB0YXJnZXRf",
-            "ZW50aXR5X2lkGAggASgDEhIKCmFjdGlvbl9zZXEYCSABKA0ibwoMSW5wdXRN",
-            "ZXNzYWdlEg0KBWZyYW1lGAEgASgFEiYKBmZyYW1lcxgCIAMoCzIWLmxpdGVi",
-            "YXR0bGUuSW5wdXRGcmFtZRIUCgxhY2tfc25hcHNob3QYAyABKAUSEgoKdmll",
-            "d19mcmFtZRgEIAEoBSLnAgoJU2xvdERlbHRhEgwKBHNsb3QYASABKAUSCgoC",
-            "aWQYAiABKAMSDQoFcG9zX3gYAyABKAISDQoFcG9zX3kYBCABKAISDQoFcG9z",
-            "X3oYBSABKAISDQoFdmVsX3gYBiABKAISDQoFdmVsX3kYByABKAISDQoFdmVs",
-            "X3oYCCABKAISCwoDeWF3GAkgASgCEgoKAmhwGAogASgFEg0KBWZsYWdzGAsg",
-            "ASgNEg4KBnNoaWVsZBgMIAEoBRINCgVraWxscxgNIAEoBRIOCgZkZWF0aHMY",
-            "DiABKAUSFwoPc2VsZWN0ZWRfd2VhcG9uGA8gASgFEhEKCWFjdGlvbl9pZBgQ",
-            "IAEoBRIUCgxhY3Rpb25fcGhhc2UYESABKAUSGgoSYWN0aW9uX3N0YXJ0X2Zy",
-            "YW1lGBIgASgFEhoKEmZpcmVfc3RhbmNlX2ZyYW1lcxgTIAEoDRIVCg1jb3Jw",
-            "c2VfZnJhbWVzGBQgASgNImsKD01hdGNoU3RhdGVEZWx0YRINCgVwaGFzZRgB",
-            "IAEoBRIMCgR0ZWFtGAIgASgFEg0KBXNjb3JlGAMgASgFEg0KBXRpbWVyGAQg",
-            "ASgFEg0KBXJvdW5kGAUgASgFEg4KBndpbm5lchgGIAEoAyK5AQoLV2VhcG9u",
-            "RGVsdGESFQoNd2VhcG9uX2RlZl9pZBgBIAEoBRIQCghtYWdfYW1tbxgCIAEo",
-            "BRIUCgxyZXNlcnZlX2FtbW8YAyABKAUSDQoFc3RhdGUYBCABKAUSFwoPbmV4",
-            "dF9maXJlX2ZyYW1lGAUgASgFEhgKEHJlbG9hZF9lbmRfZnJhbWUYBiABKAUS",
-            "FwoPZXF1aXBfZW5kX2ZyYW1lGAcgASgFEhAKCHNob3Rfc2VxGAggASgFIkYK",
-            "ClNraWxsRGVsdGESEQoJYWN0aW9uX2lkGAEgASgFEhQKDGNvb2xkb3duX2Vu",
-            "ZBgCIAEoBRIPCgdjaGFyZ2VzGAMgASgFIkIKC1N0YXR1c0RlbHRhEhEKCWVm",
-            "ZmVjdF9pZBgBIAEoBRIRCgllbmRfZnJhbWUYAiABKAUSDQoFcGFyYW0YAyAB",
-            "KAUiRgoMQmFnU2xvdERlbHRhEhMKC2l0ZW1fZGVmX2lkGAEgASgFEg0KBWNv",
-            "dW50GAIgASgFEhIKCnF1aWNrX3Nsb3QYAyABKAUi2gEKEVByaXZhdGVTdGF0",
-            "ZURlbHRhEhEKCWVudGl0eV9pZBgBIAEoAxIQCghyZXNvdXJjZRgCIAEoBRIo",
-            "Cgd3ZWFwb25zGAMgAygLMhcubGl0ZWJhdHRsZS5XZWFwb25EZWx0YRImCgZz",
-            "a2lsbHMYBCADKAsyFi5saXRlYmF0dGxlLlNraWxsRGVsdGESJwoGc3RhdHVz",
-            "GAUgAygLMhcubGl0ZWJhdHRsZS5TdGF0dXNEZWx0YRIlCgNiYWcYBiADKAsy",
-            "GC5saXRlYmF0dGxlLkJhZ1Nsb3REZWx0YSLcAQoNU3RhdGVTbmFwc2hvdBIN",
-            "CgVmcmFtZRgBIAEoBRIPCgdpc19mdWxsGAIgASgIEiQKBXNsb3RzGAMgAygL",
-            "MhUubGl0ZWJhdHRsZS5TbG90RGVsdGESEAoIY2hlY2tzdW0YBCABKA0SEQoJ",
-            "YWNrX2lucHV0GAUgASgFEioKBW1hdGNoGAYgASgLMhsubGl0ZWJhdHRsZS5N",
-            "YXRjaFN0YXRlRGVsdGESNAoNcHJpdmF0ZV9zdGF0ZRgHIAEoCzIdLmxpdGVi",
-            "YXR0bGUuUHJpdmF0ZVN0YXRlRGVsdGEiQQoLSm9pblJlcXVlc3QSDwoHcm9v",
-            "bV9pZBgBIAEoCRINCgV0b2tlbhgCIAEoCRISCgpidWlsZF9oYXNoGAMgASgJ",
-            "IpABCgdKb2luQWNrEhEKCXBsYXllcl9pZBgBIAEoBRIPCgdtZW1iZXJzGAIg",
-            "AygFEhcKD3JlY29ubmVjdF90b2tlbhgDIAEoCRIgChhyZWNvbm5lY3Rfd2lu",
-            "ZG93X3NlY29uZHMYBCABKAUSEwoLc25hcHNob3RfaHoYBSABKAUSEQoJdGlj",
-            "a19yYXRlGAYgASgFIj0KCVN0YXJ0R2FtZRIMCgRzZWVkGAEgASgDEhMKC2Nv",
-            "bmZpZ19oYXNoGAIgASgNEg0KBWZyYW1lGAMgASgFIgcKBUxlYXZlIiAKCUhl",
-            "YXJ0YmVhdBITCgtjbGllbnRfdGltZRgBIAEoAyIqChBSZWNvbm5lY3RSZXF1",
-            "ZXN0EhYKDm9uZV90aW1lX3Rva2VuGAEgASgJIr4BChFSZWNvbm5lY3RSZXNw",
-            "b25zZRIKCgJvaxgBIAEoCBIOCgZyZWFzb24YBCABKAkSKwoIc25hcHNob3QY",
-            "AiABKAsyGS5saXRlYmF0dGxlLlN0YXRlU25hcHNob3QSKQoHaGlzdG9yeRgD",
-            "IAMoCzIYLmxpdGViYXR0bGUuSW5wdXRNZXNzYWdlEgwKBHNlZWQYBSABKAMS",
-            "EwoLY29uZmlnX2hhc2gYBiABKA0SEgoKYnVpbGRfaGFzaBgHIAEoCSIRCg9S",
-            "ZXN0b3JlQ29tcGxldGUiHwoOTWlzbWF0Y2hSZXBvcnQSDQoFZnJhbWUYASAB",
-            "KAVCEKoCDUxpdGVOZXQuUHJvdG9iBnByb3RvMw=="));
+            "ZW50aXR5X2lkGAggASgDEhIKCmFjdGlvbl9zZXEYCSABKA0SDQoFYWltX3kY",
+            "CiABKAIibwoMSW5wdXRNZXNzYWdlEg0KBWZyYW1lGAEgASgFEiYKBmZyYW1l",
+            "cxgCIAMoCzIWLmxpdGViYXR0bGUuSW5wdXRGcmFtZRIUCgxhY2tfc25hcHNo",
+            "b3QYAyABKAUSEgoKdmlld19mcmFtZRgEIAEoBSLnAgoJU2xvdERlbHRhEgwK",
+            "BHNsb3QYASABKAUSCgoCaWQYAiABKAMSDQoFcG9zX3gYAyABKAISDQoFcG9z",
+            "X3kYBCABKAISDQoFcG9zX3oYBSABKAISDQoFdmVsX3gYBiABKAISDQoFdmVs",
+            "X3kYByABKAISDQoFdmVsX3oYCCABKAISCwoDeWF3GAkgASgCEgoKAmhwGAog",
+            "ASgFEg0KBWZsYWdzGAsgASgNEg4KBnNoaWVsZBgMIAEoBRINCgVraWxscxgN",
+            "IAEoBRIOCgZkZWF0aHMYDiABKAUSFwoPc2VsZWN0ZWRfd2VhcG9uGA8gASgF",
+            "EhEKCWFjdGlvbl9pZBgQIAEoBRIUCgxhY3Rpb25fcGhhc2UYESABKAUSGgoS",
+            "YWN0aW9uX3N0YXJ0X2ZyYW1lGBIgASgFEhoKEmZpcmVfc3RhbmNlX2ZyYW1l",
+            "cxgTIAEoDRIVCg1jb3Jwc2VfZnJhbWVzGBQgASgNImsKD01hdGNoU3RhdGVE",
+            "ZWx0YRINCgVwaGFzZRgBIAEoBRIMCgR0ZWFtGAIgASgFEg0KBXNjb3JlGAMg",
+            "ASgFEg0KBXRpbWVyGAQgASgFEg0KBXJvdW5kGAUgASgFEg4KBndpbm5lchgG",
+            "IAEoAyK5AQoLV2VhcG9uRGVsdGESFQoNd2VhcG9uX2RlZl9pZBgBIAEoBRIQ",
+            "CghtYWdfYW1tbxgCIAEoBRIUCgxyZXNlcnZlX2FtbW8YAyABKAUSDQoFc3Rh",
+            "dGUYBCABKAUSFwoPbmV4dF9maXJlX2ZyYW1lGAUgASgFEhgKEHJlbG9hZF9l",
+            "bmRfZnJhbWUYBiABKAUSFwoPZXF1aXBfZW5kX2ZyYW1lGAcgASgFEhAKCHNo",
+            "b3Rfc2VxGAggASgFIkYKClNraWxsRGVsdGESEQoJYWN0aW9uX2lkGAEgASgF",
+            "EhQKDGNvb2xkb3duX2VuZBgCIAEoBRIPCgdjaGFyZ2VzGAMgASgFIkIKC1N0",
+            "YXR1c0RlbHRhEhEKCWVmZmVjdF9pZBgBIAEoBRIRCgllbmRfZnJhbWUYAiAB",
+            "KAUSDQoFcGFyYW0YAyABKAUiRgoMQmFnU2xvdERlbHRhEhMKC2l0ZW1fZGVm",
+            "X2lkGAEgASgFEg0KBWNvdW50GAIgASgFEhIKCnF1aWNrX3Nsb3QYAyABKAUi",
+            "2gEKEVByaXZhdGVTdGF0ZURlbHRhEhEKCWVudGl0eV9pZBgBIAEoAxIQCghy",
+            "ZXNvdXJjZRgCIAEoBRIoCgd3ZWFwb25zGAMgAygLMhcubGl0ZWJhdHRsZS5X",
+            "ZWFwb25EZWx0YRImCgZza2lsbHMYBCADKAsyFi5saXRlYmF0dGxlLlNraWxs",
+            "RGVsdGESJwoGc3RhdHVzGAUgAygLMhcubGl0ZWJhdHRsZS5TdGF0dXNEZWx0",
+            "YRIlCgNiYWcYBiADKAsyGC5saXRlYmF0dGxlLkJhZ1Nsb3REZWx0YSLcAQoN",
+            "U3RhdGVTbmFwc2hvdBINCgVmcmFtZRgBIAEoBRIPCgdpc19mdWxsGAIgASgI",
+            "EiQKBXNsb3RzGAMgAygLMhUubGl0ZWJhdHRsZS5TbG90RGVsdGESEAoIY2hl",
+            "Y2tzdW0YBCABKA0SEQoJYWNrX2lucHV0GAUgASgFEioKBW1hdGNoGAYgASgL",
+            "MhsubGl0ZWJhdHRsZS5NYXRjaFN0YXRlRGVsdGESNAoNcHJpdmF0ZV9zdGF0",
+            "ZRgHIAEoCzIdLmxpdGViYXR0bGUuUHJpdmF0ZVN0YXRlRGVsdGEiQQoLSm9p",
+            "blJlcXVlc3QSDwoHcm9vbV9pZBgBIAEoCRINCgV0b2tlbhgCIAEoCRISCgpi",
+            "dWlsZF9oYXNoGAMgASgJIpABCgdKb2luQWNrEhEKCXBsYXllcl9pZBgBIAEo",
+            "BRIPCgdtZW1iZXJzGAIgAygFEhcKD3JlY29ubmVjdF90b2tlbhgDIAEoCRIg",
+            "ChhyZWNvbm5lY3Rfd2luZG93X3NlY29uZHMYBCABKAUSEwoLc25hcHNob3Rf",
+            "aHoYBSABKAUSEQoJdGlja19yYXRlGAYgASgFIj0KCVN0YXJ0R2FtZRIMCgRz",
+            "ZWVkGAEgASgDEhMKC2NvbmZpZ19oYXNoGAIgASgNEg0KBWZyYW1lGAMgASgF",
+            "IgcKBUxlYXZlIiAKCUhlYXJ0YmVhdBITCgtjbGllbnRfdGltZRgBIAEoAyIq",
+            "ChBSZWNvbm5lY3RSZXF1ZXN0EhYKDm9uZV90aW1lX3Rva2VuGAEgASgJIr4B",
+            "ChFSZWNvbm5lY3RSZXNwb25zZRIKCgJvaxgBIAEoCBIOCgZyZWFzb24YBCAB",
+            "KAkSKwoIc25hcHNob3QYAiABKAsyGS5saXRlYmF0dGxlLlN0YXRlU25hcHNo",
+            "b3QSKQoHaGlzdG9yeRgDIAMoCzIYLmxpdGViYXR0bGUuSW5wdXRNZXNzYWdl",
+            "EgwKBHNlZWQYBSABKAMSEwoLY29uZmlnX2hhc2gYBiABKA0SEgoKYnVpbGRf",
+            "aGFzaBgHIAEoCSIRCg9SZXN0b3JlQ29tcGxldGUiHwoOTWlzbWF0Y2hSZXBv",
+            "cnQSDQoFZnJhbWUYASABKAVCEKoCDUxpdGVOZXQuUHJvdG9iBnByb3RvMw=="));
       descriptor = pbr::FileDescriptor.FromGeneratedCode(descriptorData,
           new pbr::FileDescriptor[] { },
           new pbr::GeneratedClrTypeInfo(null, null, new pbr::GeneratedClrTypeInfo[] {
-            new pbr::GeneratedClrTypeInfo(typeof(global::LiteNet.Proto.InputFrame), global::LiteNet.Proto.InputFrame.Parser, new[]{ "EntityId", "MoveX", "MoveZ", "AimX", "AimZ", "Buttons", "SelectedWeaponSlot", "TargetEntityId", "ActionSeq" }, null, null, null, null),
+            new pbr::GeneratedClrTypeInfo(typeof(global::LiteNet.Proto.InputFrame), global::LiteNet.Proto.InputFrame.Parser, new[]{ "EntityId", "MoveX", "MoveZ", "AimX", "AimZ", "Buttons", "SelectedWeaponSlot", "TargetEntityId", "ActionSeq", "AimY" }, null, null, null, null),
             new pbr::GeneratedClrTypeInfo(typeof(global::LiteNet.Proto.InputMessage), global::LiteNet.Proto.InputMessage.Parser, new[]{ "Frame", "Frames", "AckSnapshot", "ViewFrame" }, null, null, null, null),
             new pbr::GeneratedClrTypeInfo(typeof(global::LiteNet.Proto.SlotDelta), global::LiteNet.Proto.SlotDelta.Parser, new[]{ "Slot", "Id", "PosX", "PosY", "PosZ", "VelX", "VelY", "VelZ", "Yaw", "Hp", "Flags", "Shield", "Kills", "Deaths", "SelectedWeapon", "ActionId", "ActionPhase", "ActionStartFrame", "FireStanceFrames", "CorpseFrames" }, null, null, null, null),
             new pbr::GeneratedClrTypeInfo(typeof(global::LiteNet.Proto.MatchStateDelta), global::LiteNet.Proto.MatchStateDelta.Parser, new[]{ "Phase", "Team", "Score", "Timer", "Round", "Winner" }, null, null, null, null),
@@ -147,6 +147,7 @@ namespace LiteNet.Proto {
       selectedWeaponSlot_ = other.selectedWeaponSlot_;
       targetEntityId_ = other.targetEntityId_;
       actionSeq_ = other.actionSeq_;
+      aimY_ = other.aimY_;
       _unknownFields = pb::UnknownFieldSet.Clone(other._unknownFields);
     }
 
@@ -282,6 +283,21 @@ namespace LiteNet.Proto {
       }
     }
 
+    /// <summary>Field number for the "aim_y" field.</summary>
+    public const int AimYFieldNumber = 10;
+    private float aimY_;
+    /// <summary>
+    /// ---- 俯视角三维命中（《俯视角三维命中与爆头判定专项设计》§3.2；只增不改，字段号顺延）----
+    /// </summary>
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public float AimY {
+      get { return aimY_; }
+      set {
+        aimY_ = value;
+      }
+    }
+
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public override bool Equals(object other) {
@@ -306,6 +322,7 @@ namespace LiteNet.Proto {
       if (SelectedWeaponSlot != other.SelectedWeaponSlot) return false;
       if (TargetEntityId != other.TargetEntityId) return false;
       if (ActionSeq != other.ActionSeq) return false;
+      if (!pbc::ProtobufEqualityComparers.BitwiseSingleEqualityComparer.Equals(AimY, other.AimY)) return false;
       return Equals(_unknownFields, other._unknownFields);
     }
 
@@ -322,6 +339,7 @@ namespace LiteNet.Proto {
       if (SelectedWeaponSlot != 0) hash ^= SelectedWeaponSlot.GetHashCode();
       if (TargetEntityId != 0L) hash ^= TargetEntityId.GetHashCode();
       if (ActionSeq != 0) hash ^= ActionSeq.GetHashCode();
+      if (AimY != 0F) hash ^= pbc::ProtobufEqualityComparers.BitwiseSingleEqualityComparer.GetHashCode(AimY);
       if (_unknownFields != null) {
         hash ^= _unknownFields.GetHashCode();
       }
@@ -376,6 +394,10 @@ namespace LiteNet.Proto {
         output.WriteRawTag(72);
         output.WriteUInt32(ActionSeq);
       }
+      if (AimY != 0F) {
+        output.WriteRawTag(85);
+        output.WriteFloat(AimY);
+      }
       if (_unknownFields != null) {
         _unknownFields.WriteTo(output);
       }
@@ -422,6 +444,10 @@ namespace LiteNet.Proto {
         output.WriteRawTag(72);
         output.WriteUInt32(ActionSeq);
       }
+      if (AimY != 0F) {
+        output.WriteRawTag(85);
+        output.WriteFloat(AimY);
+      }
       if (_unknownFields != null) {
         _unknownFields.WriteTo(ref output);
       }
@@ -458,6 +484,9 @@ namespace LiteNet.Proto {
       }
       if (ActionSeq != 0) {
         size += 1 + pb::CodedOutputStream.ComputeUInt32Size(ActionSeq);
+      }
+      if (AimY != 0F) {
+        size += 1 + 4;
       }
       if (_unknownFields != null) {
         size += _unknownFields.CalculateSize();
@@ -497,6 +526,9 @@ namespace LiteNet.Proto {
       }
       if (other.ActionSeq != 0) {
         ActionSeq = other.ActionSeq;
+      }
+      if (other.AimY != 0F) {
+        AimY = other.AimY;
       }
       _unknownFields = pb::UnknownFieldSet.MergeFrom(_unknownFields, other._unknownFields);
     }
@@ -553,6 +585,10 @@ namespace LiteNet.Proto {
             ActionSeq = input.ReadUInt32();
             break;
           }
+          case 85: {
+            AimY = input.ReadFloat();
+            break;
+          }
         }
       }
     #endif
@@ -606,6 +642,10 @@ namespace LiteNet.Proto {
           }
           case 72: {
             ActionSeq = input.ReadUInt32();
+            break;
+          }
+          case 85: {
+            AimY = input.ReadFloat();
             break;
           }
         }

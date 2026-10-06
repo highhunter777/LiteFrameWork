@@ -55,6 +55,9 @@ namespace LiteNet.Tests
                 MoveX = -3.1415927f,
                 MoveZ = 1e-30f,
                 AimX = 6.2831853f,
+                // **AimY 必须填非默认**——否则"零到零"往返会假绿（《俯视角三维命中与爆头判定专项设计》§3.2：
+                // 三维瞄准的仰角分量；协议字段号 10，漏映射则俯仰静默丢失、爆头永不发生）
+                AimY = 2.7182818f,
                 AimZ = -6.2831853f,
                 Buttons = 0xDEADBEEFu,
             };
@@ -66,6 +69,7 @@ namespace LiteNet.Tests
             Assert.Equal(BitConverter.SingleToInt32Bits(src.MoveX), BitConverter.SingleToInt32Bits(back.MoveX));
             Assert.Equal(BitConverter.SingleToInt32Bits(src.MoveZ), BitConverter.SingleToInt32Bits(back.MoveZ));
             Assert.Equal(BitConverter.SingleToInt32Bits(src.AimX), BitConverter.SingleToInt32Bits(back.AimX));
+            Assert.Equal(BitConverter.SingleToInt32Bits(src.AimY), BitConverter.SingleToInt32Bits(back.AimY));
             Assert.Equal(BitConverter.SingleToInt32Bits(src.AimZ), BitConverter.SingleToInt32Bits(back.AimZ));
             Assert.Equal(src.Buttons, back.Buttons);
         }

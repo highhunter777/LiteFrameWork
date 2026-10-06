@@ -22,6 +22,12 @@ namespace LiteGame
     /// 跟随与到期收口——**轨道数学/渲染件可替换**（§5 升级路径：TMP 直渲 → 网格提取 → 合批，
     /// 换渲染件不动本类之外的纯件）。
     ///
+    /// **跟随与朝向**：每帧把 TMP 摆到锚点上方并**转向渲染相机**（billboard）——底件 prefab
+    /// 无 TMP_Billboard 组件、初始旋转 identity，故朝向必须由本驱动每帧写（对局相机是可旋转的
+    /// Cinemachine 轨道机，烘焙朝向只在某机位下正确）。**可见正面朝本地 −Z**（TMP 契约），
+    /// 故 billboard 传 <c>−toCam</c> 使 −Z 朝向相机；up 取世界上方向（跟随相机俯仰会侧翻）。
+    /// 相机来源经<code>cameraOf</code> 注入（对局渲染相机），null 时回落 <c>Camera.main</c> 且不跟随朝向（诚实退化）。
+    ///
     /// **生命周期**：实例经 <see cref="ObjectPool{T}"/> 池化（onGet/onRelease 只翻转激活态）；
     /// 条目到期（聚合器裁决）→ 实例归还＋摘账（账实一致）；目标 despawn/视图回收 →
     /// 冻结于最后锚点继续淡出（不悬挂、不瞬移）；同屏超 <see cref="Budget"/> → 淘汰最旧并**记日志**
@@ -46,6 +52,7 @@ namespace LiteGame
         private readonly Func<TextMeshPro> _factory;
         private readonly IWorldClock _clock;
         private readonly IDamageNumberStyleResolver _style;
+        private readonly Func<Camera> _cameraOf;         // **对局渲染相机**（billboard 面——不是 Camera.main，见下）
         private readonly ObjectPool<GameObject> _pool;
         private readonly DamageNumberAggregator _aggregator = new DamageNumberAggregator();
         private readonly Dictionary<(long TargetId, HitLocalRole Role), Active> _active =
@@ -77,12 +84,16 @@ namespace LiteGame
         }
 
         public BattleDamageNumberDriver(SimView view, Func<TextMeshPro> factory, IWorldClock clock,
-            IDamageNumberStyleResolver style = null)
+            IDamageNumberStyleResolver style = null, Func<Camera> cameraOf = null)
         {
             _view = view ?? throw new ArgumentNullException(nameof(view));
             _factory = factory ?? throw new ArgumentNullException(nameof(factory));
             _clock = clock ?? throw new ArgumentNullException(nameof(clock));
             _style = style ?? new DamageNumberStyleResolver();
+            // **相机来源可注入**（billboard 面）：优先由装配点给对局渲染相机（Cinemachine brain 的
+            // OutputCamera）；null = 无设备形态（如测试装配），此时回落 Camera.main，camScale 恒 1、
+            // 朝向不跟随（诚实退化——不猜相机）。同 `ProcedureBattle` 给设备源注入相机的同一口径。
+            _cameraOf = cameraOf;
             _pool = new ObjectPool<GameObject>(
                 () => _factory().gameObject,
                 onGet: go => go.SetActive(true),
@@ -104,12 +115,31 @@ namespace LiteGame
             if (_ticking)
                 Debug.LogWarning("[Battle] 伤害数字：Tick 期间命中到达（重入面留证）——键快照已容错，请回溯本日志的调用栈");
 
+            // **同键旧代际收口（账实一致，必须在 `MergeOrSpawn` 之前）**：`_active` 的键是 (目标, 角色)，
+            // **同目标同角色的条目共用一键**。间隔射击（超出 `MergeWindowSeconds`）时本帧会起新条目
+            // （`Merged=false`），若直接覆盖赋值，旧条目的记录就被顶掉 ⇒
+            //  ① 旧实例不再被 `Tick` 遍历 → alpha 永不再推进 ⇒ **淡出失效、数字永久残留屏幕**；
+            //  ② 旧实例也再不会被 `Release` 按键查到 → **池实例永不归还（泄漏）**。
+            // 现象：连击后新数字正常淡出，被顶掉的旧数字永不消失。
+            //
+            // **只在"真起新条目"时收口**：`WillMerge` 判否才Release。若不判、连击（`Merged=true`）
+            // 也一并收口，则每发连击都销毁重建实例 ⇒ 破坏"连击不跳位/不重启淡出"的既有语义
+            // （`ApplyEntry` 的原意就是保住同一条目的相位）。
+            //
+            // **顺序要点**：`Release` 内含 `_aggregator.Remove(key)`，故必须**先收口旧代际、再让聚合器
+            // 建新条目**；若反序（先 MergeOrSpawn 后 Release），会把刚写入的新账一并摘掉 ⇒ 新条目
+            // 在 `_active` 有记录、聚合器却无账，`CollectExpired` 判到期后 `TryGet` 落空 ⇒ 淡出被跳过。
+            // 收口走 `Release` 同一路径（与 `EvictOldest`/`Dispose` 一致），不新增第二套释放语义。
+            var key = (ctx.EntityId, ctx.LocalRole);
+            bool merging = _aggregator.WillMerge(ctx.EntityId, ctx.LocalRole, _clock.Now);
+            if (!merging && _active.ContainsKey(key)) Release(key);
+
             var snap = _aggregator.MergeOrSpawn(ctx.EntityId, ctx.LocalRole, ctx.Value,
                 ctx.Kind == FrameEventKind.Crit, _clock.Now, _seedCounter++);
 
             if (snap.Merged)
             {
-                ApplyEntry((ctx.EntityId, ctx.LocalRole), in snap);       // 连击：更新既有条目（文本/档位升级）
+                ApplyEntry(key, in snap);       // 连击：更新既有条目（文本/档位升级）
                 return;
             }
 
@@ -123,7 +153,7 @@ namespace LiteGame
             if (ctx.Slot >= 0 && _view.TryGetView(ctx.Slot, out var v) && v != null)
                 anchor = v.transform.position;
 
-            _active[(ctx.EntityId, ctx.LocalRole)] = new Active
+            _active[key] = new Active
             {
                 Tmp = tmp,
                 Slot = ctx.Slot,
@@ -186,7 +216,8 @@ namespace LiteGame
                 for (int i = 0; i < _expired.Count; i++) Release(_expired[i]);
 
                 // ② 视觉推进：轨道数学 → 位形/透明度；跟随槽位视图（消失 → 冻结最后锚点）
-                Camera cam = Camera.main;
+                // 相机解析**每帧一次**并复用：billboard 朝向与 camScale 都以它为基准。
+                Camera cam = _cameraOf != null ? _cameraOf() : Camera.main;
 
                 _tickKeys.Clear();
                 foreach (var key in _active.Keys) _tickKeys.Add(key);   // 收集段：纯 Add，无外部调用——无重入窗口
@@ -217,6 +248,24 @@ namespace LiteGame
                     }
 
                     a.Tmp.transform.position = pos;
+
+                    // **billboard：每帧把飘字转向渲染相机**（此前**从未写过 rotation**——底件
+                    // `fx_damage_number.prefab` 只有 Transform+MeshRenderer+TextMeshPro 三个组件、
+                    // 无 TMP_Billboard、初始旋转 identity，故 TMP 恒保持烘焙朝向）。
+                    // 对局相机是 Cinemachine 轨道机（可旋转），烘焙朝向只在某机位下正确 ⇒ 飘字歪。
+                    //
+                    // **朝向轴取 −Z（TMP 的可见正面朝本地 −Z）**：用 `LookRotation(toCam, up)`会让
+                    // **+Z** 指向相机，等于把背面转向观察者 ⇒ 文字呈镜像/反向（第一版踩过）。
+                    // 故这里传 **−toCam**，使 **−Z**（正面）朝向相机。
+                    // up取世界上方向而非相机 up：相机在飘字上方俯视，跟随相机俯仰会让文字侧翻。
+                    // 相机恰在同高时退化（不写rotation）—— LookRotation 的退化轴在此无解。
+                    if (cam != null)
+                    {
+                        Vector3 toCam = cam.transform.position - pos;
+                        if (toCam.sqrMagnitude > 1e-6f)
+                            a.Tmp.transform.rotation = Quaternion.LookRotation(-toCam, Vector3.up);
+                    }
+
                     float scale = pop * a.ScaleBoost * camScale;
                     a.Tmp.transform.localScale = new Vector3(scale, scale, scale);
                     a.Tmp.fontSize = a.FontSize;
