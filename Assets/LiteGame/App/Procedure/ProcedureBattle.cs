@@ -56,6 +56,10 @@ namespace LiteGame
         /// 加载失败/缺 LineRenderer → 静默降级（warn 一次，无激光不失败——同准心 HUD 缺失口径）。</summary>
         private const string LaserSightPrefab = "Assets/FX/fx_lazer_sight.prefab";
 
+        /// <summary>伤害数字底件 prefab（Assets/FX——世界空间 TMP 飘字；实例由驱动按预算逐条实例化）。
+        /// 加载失败 → 静默降级（warn 一次，无飘字不失败——同准心/激光缺失口径）。</summary>
+        private const string DamageNumberPrefab = "Assets/FX/fx_damage_number.prefab";
+
         private readonly IContentService _content;
         private readonly IVFXService _vfx;
         private readonly IInputService _input;       // 输入服务
@@ -72,6 +76,9 @@ namespace LiteGame
         private BattleLaserDriver _laser;               // 瞄准激光（准心的世界空间兄弟件——开火射线的可见投影）
         private GameObject _laserBeam;                 // 激光束实例（挂 _viewRoot，随离场拆；驱动只管显隐/端点）
         private AssetLease<GameObject> _laserLease;    // 激光束 prefab 租约（登记进 _viewScope，随作用域归还）
+        private HitFeedbackDispatcher _hitFeedback;    // 命中分发（帧事件 → 命中反馈消费者——伤害数字等；EventSink 并列订阅）
+        private BattleDamageNumberDriver _damageNumbers;   // 伤害数字（命中反馈首个消费者——合并窗口/池/预算）
+        private AssetLease<GameObject> _damageNumberLease; // 飘字底件租约（实例由驱动工厂逐条实例化）
         private Func<Vector3?> _aimPointOf;             // 瞄准点来源（世界坐标；null = 无设备形态——相机保持场景构图）
         private Transform _viewRoot;
         private GameObject _viewRootGo;
@@ -125,6 +132,7 @@ namespace LiteGame
                 _viewRoot = _viewRootGo.transform;
                 await AcquireEntityPrefabAsync(ct);
                 await AcquireLaserSightAsync(ct);
+                await AcquireDamageNumberAsync(ct);
 
                 _context = new BattleContext(battleClient, _account);
                 UnityEngine.Debug.Log("[Battle] context-created (Match Scope built)");
@@ -256,6 +264,53 @@ namespace LiteGame
         }
 
         /// <summary>
+        /// 取伤害数字底件 prefab（只取租约不实例化——实例由驱动工厂按预算逐条实例化，与激光单实例不同形）。
+        /// 资源缺失/加载失败 → **静默降级**（只警告）：飘字是表现增益，不把"缺底件"当对局失败
+        /// （同角色 prefab 灰盒/准心 HUD 缺失口径）。
+        /// </summary>
+        private async UniTask AcquireDamageNumberAsync(CancellationToken ct)
+        {
+            try
+            {
+                _damageNumberLease = await _content.AcquireAsync<GameObject>(DamageNumberPrefab, ct: ct);
+                _viewScope.Register(_damageNumberLease);
+            }
+            catch (Exception ex) when (!(ex is OperationCanceledException))
+            {
+                UnityEngine.Debug.LogWarning($"[Battle] 伤害数字底件缺失/加载失败，飘字降级:{DamageNumberPrefab}（{ex.Message}）");
+                _damageNumberLease = null;
+            }
+        }
+
+        /// <summary>
+        /// 挂伤害数字（<see cref="BattleDamageNumberDriver"/>——命中反馈首个消费者；文本/位形/池归驱动）。
+        /// 底件缺 <see cref="TMPro.TextMeshPro"/>（资产被改）→ 警告并降级，不失败。
+        /// </summary>
+        private void AttachDamageNumbers()
+        {
+            if (_damageNumberLease == null) return;             // 取件降级已警告
+            if (_damageNumberLease.Asset == null || _damageNumberLease.Asset.GetComponent<TMPro.TextMeshPro>() == null)
+            {
+                UnityEngine.Debug.LogWarning($"[Battle] 伤害数字底件缺 TextMeshPro——飘字降级:{DamageNumberPrefab}");
+                _damageNumberLease = null;
+                return;
+            }
+
+            _damageNumbers = new BattleDamageNumberDriver(_view, NewDamageNumber);
+            _hitFeedback?.Register(_damageNumbers);
+            UnityEngine.Debug.Log("[Battle] damage-numbers-attached");
+        }
+
+        /// <summary>飘字实例工厂（驱动池的 create 回调）：底件实例化挂 _viewRoot，随离场拆。</summary>
+        private TMPro.TextMeshPro NewDamageNumber()
+        {
+            var go = UnityEngine.Object.Instantiate(_damageNumberLease.Asset, _viewRoot);
+            go.name = "DamageNumber";
+            go.SetActive(false);                                 // 池化语义：归还/空闲即隐藏
+            return go.GetComponent<TMPro.TextMeshPro>();
+        }
+
+        /// <summary>
         /// 相机是否真的就绪（"有服务"不等于"接上了 vcam"——服务常驻，vcam 随场景）。
         /// **按需解析**：此刻视图还没建立、<see cref="ICameraService.Follow"/> 一次都没调过，
         /// 光读状态必然是"未接线"，所以这里主动让适配器再解析一次（场景可能刚被 Main 切到训练场）。
@@ -289,6 +344,8 @@ namespace LiteGame
             AttachCrosshair();                                  // 对局准心（HUD 第一件——视图/输入均已就绪，场景对象按名解析）
             _aimPointOf = AimPointOf(_input);                   // 瞄准点（世界）→ 相机构图 z 偏移曲线 + 激光收敛端点（准心同源）
             AttachLaserSight();                                 // 瞄准激光（束实例已取，接线驱动——端点直落准心标记的地面点）
+            _hitFeedback = new HitFeedbackDispatcher(_view);   // 命中分发骨架：EventSink 并列订阅——消费者随各自批注册
+            AttachDamageNumbers();                             // 伤害数字（命中反馈首个消费者——只显本地造成/承受）
             AttachInput();
             UnityEngine.Debug.Log($"[Battle] view-attached prefab={EntityPrefab}");
         }
@@ -415,6 +472,10 @@ namespace LiteGame
             _laser = null;
             _laserBeam = null;
             _laserLease = null;
+            _damageNumbers?.Dispose();          // 伤害数字（消费者先于分发器拆——实例全归还池）
+            _damageNumbers = null;
+            _hitFeedback?.Dispose();              // 命中分发（视图消费者——先于视图本体拆；消费者随各自批自管）
+            _hitFeedback = null;
             _aimPointOf = null;                   // 瞄准点来源随本局设备源一起摘（方法组不跨局持有）
             _camera?.SetAiming(false);            // 瞄准机还原（优先级/Follow 归还场景值——离场不得遗留接管态）
             _context?.AttachInput(null);
@@ -462,6 +523,7 @@ namespace LiteGame
             _locomotion?.Tick(elapseSeconds);    // 移动动画：视图位置已更新，再解析目标姿态（视图的下游消费者）
             _crosshair?.Tick();                  // 对局准心（HUD）：位置/形态/光标——视图状态的最后一个消费者
             _laser?.Tick();                     // 瞄准激光（世界空间）：端点 = 开火射线（实体/障碍截停）——视图消费者
+            _damageNumbers?.Tick(elapseSeconds); // 伤害数字：命中事件的视觉收尾（合并窗口/淡出/跟随）——视图的最后一个消费者
             _camera?.SetAiming(_aimGate.Feed(IsLocalAiming(), elapseSeconds)); // 瞄准相机接管（每帧幂等；适配器按沿生效——视图态已解析；滞回门控短按，防频繁点按来回重启混合）
             if (_camera != null)                  // 瞄准点（世界）→ 构图 z 偏移曲线（适配器按到焦点的前向投影换算）
             {

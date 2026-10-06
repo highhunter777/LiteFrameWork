@@ -27,6 +27,19 @@
   </ItemGroup>
 
   <!--
+    伤害数字纯逻辑件的 L1 覆盖（《命中反馈与伤害数字专项设计》批B）：聚合（合并窗口/暴击粘滞/双钟/
+    账实分离）、轨道数学（升浮/淡出/抖动/出场缩放/推挤）、样式常量表（角色档与按值分带）、K 简写
+    格式化——全零引擎。角色键 HitLocalRole 独立成零引擎文件（HitFeedback.cs 含 Vector3，Unity 侧独编）。
+  -->
+  <ItemGroup>
+    <Compile Include="..\..\Assets\LiteSim\View\HitLocalRole.cs" Link="View\HitLocalRole.cs" />
+    <Compile Include="..\..\Assets\LiteSim\View\DamageNumbers\DamageNumberMotion.cs" Link="View\DamageNumbers\DamageNumberMotion.cs" />
+    <Compile Include="..\..\Assets\LiteSim\View\DamageNumbers\DamageNumberAggregator.cs" Link="View\DamageNumbers\DamageNumberAggregator.cs" />
+    <Compile Include="..\..\Assets\LiteSim\View\DamageNumbers\DamageNumberStyle.cs" Link="View\DamageNumbers\DamageNumberStyle.cs" />
+    <Compile Include="..\..\Assets\LiteSim\View\DamageNumbers\DamageNumberFormatter.cs" Link="View\DamageNumbers\DamageNumberFormatter.cs" />
+  </ItemGroup>
+
+  <!--
     输入服务的 L1 覆盖：三个门（上下文门/帧边界门/采样节流）全是纯逻辑，按项目既有口径
     用**源链接**纳入 L1——同一份 .cs 既被 Unity（LiteClient.Runtime）编，也被 L1 编，
     不靠程序集引用（那需要 UnityEngine，L1 编不了）。前置契约在别处已由 L1 覆盖

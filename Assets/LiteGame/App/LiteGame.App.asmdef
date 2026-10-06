@@ -21,6 +21,7 @@
         "Luban.Runtime",
         "Luban.Tables",
         "UniTask",
+        "Unity.TextMeshPro",
         "xLuaMain"
     ],
     "includePlatforms": [],
