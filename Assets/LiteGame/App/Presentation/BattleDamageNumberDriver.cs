@@ -27,8 +27,10 @@ namespace LiteGame
     /// 冻结于最后锚点继续淡出（不悬挂、不瞬移）；同屏超 <see cref="Budget"/> → 淘汰最旧并**记日志**
     /// （不静默丢）。
     ///
-    /// **时钟**：驱动自有累加钟（Tick(dt) 喂入）——命中在逻辑帧边界到达、视觉在渲染帧推进，
-    /// 两钟同源（_now），窗口判定在 ≤1 帧误差内一致。
+    /// **时钟**：合并窗口与寿命走注入的 <see cref="IWorldClock"/>（世界时钟——VfxService 同款纪律），
+    /// **不累加渲染帧 delta**——实测编辑器态 `Time.unscaledDeltaTime` 会整体通胀数倍（背景节流态
+    /// unscaledTime 跑 2.6~3.5 倍墙钟），累加 delta 会把淡出窗压扁到几百毫秒；世界时钟保持 1:1 且
+    /// 变速/暂停语义内建（测试模式 TimeScale 即经它生效）。
     /// </summary>
     public sealed class BattleDamageNumberDriver : IDisposable, IHitFeedbackConsumer
     {
@@ -42,15 +44,17 @@ namespace LiteGame
 
         private readonly SimView _view;
         private readonly Func<TextMeshPro> _factory;
+        private readonly IWorldClock _clock;
         private readonly IDamageNumberStyleResolver _style;
         private readonly ObjectPool<GameObject> _pool;
         private readonly DamageNumberAggregator _aggregator = new DamageNumberAggregator();
         private readonly Dictionary<(long TargetId, HitLocalRole Role), Active> _active =
             new Dictionary<(long, HitLocalRole), Active>(16);
         private readonly List<(long TargetId, HitLocalRole Role)> _expired = new List<(long, HitLocalRole)>(8);
-        private double _now;
+        private readonly List<(long TargetId, HitLocalRole Role)> _tickKeys = new List<(long, HitLocalRole)>(16);
         private int _seedCounter;
         private bool _disposed;
+        private bool _ticking;     // 诊断探针：Tick 期间命中到达 = 存在未定位的重入面（见 OnHitFeedback）
 
         /// <summary>在册飘字数（诊断/预算断言面）。</summary>
         public int ActiveCount => _active.Count;
@@ -72,11 +76,12 @@ namespace LiteGame
             public double SpawnedAt;       // 淘汰"最旧"的判据
         }
 
-        public BattleDamageNumberDriver(SimView view, Func<TextMeshPro> factory,
+        public BattleDamageNumberDriver(SimView view, Func<TextMeshPro> factory, IWorldClock clock,
             IDamageNumberStyleResolver style = null)
         {
             _view = view ?? throw new ArgumentNullException(nameof(view));
             _factory = factory ?? throw new ArgumentNullException(nameof(factory));
+            _clock = clock ?? throw new ArgumentNullException(nameof(clock));
             _style = style ?? new DamageNumberStyleResolver();
             _pool = new ObjectPool<GameObject>(
                 () => _factory().gameObject,
@@ -93,8 +98,14 @@ namespace LiteGame
             if (ctx.Kind != FrameEventKind.Hit && ctx.Kind != FrameEventKind.Crit) return;   // 死亡/开火不进飘字
             if (ctx.LocalRole == HitLocalRole.Bystander) return;                             // 口径：只显本地造成/承受
 
+            // 诊断探针（真机实测 Tick 枚举曾被中途修改——InvalidOperation 一次，静态排查枚举体内
+            // 全部外部调用均为纯读，重入面未定位）：命中本应只在逻辑帧边界（Tick 外）到达；
+            // 若 Tick 期间到达，键快照遍历已结构性容错（本条同帧入账/新键下帧拾取），此日志留证溯源。
+            if (_ticking)
+                Debug.LogWarning("[Battle] 伤害数字：Tick 期间命中到达（重入面留证）——键快照已容错，请回溯本日志的调用栈");
+
             var snap = _aggregator.MergeOrSpawn(ctx.EntityId, ctx.LocalRole, ctx.Value,
-                ctx.Kind == FrameEventKind.Crit, _now, _seedCounter++);
+                ctx.Kind == FrameEventKind.Crit, _clock.Now, _seedCounter++);
 
             if (snap.Merged)
             {
@@ -159,49 +170,63 @@ namespace LiteGame
             Release(oldest);
         }
 
-        /// <summary>每渲染帧视觉推进（ProcedureBattle.OnUpdate 末段——视图/激光之后的下游消费者）。</summary>
-        public void Tick(float dt)
+        /// <summary>每渲染帧视觉推进（ProcedureBattle.OnUpdate 末段——视图/激光之后的下游消费者）。
+        /// 时钟读注入的世界钟（单次快照，同 Tick 内一致）；② 段走**键快照遍历**（收集段零外部调用、
+        /// 遍历段缺键容错）——枚举不持有跨外部调用的活枚举器，即使 Tick 中途 _active 被修改
+        /// （真机实测出现过一次未定位的重入面）也不炸：缺键跳过、新键下帧拾取。</summary>
+        public void Tick()
         {
             if (_disposed) return;
-            _now += dt;
-
-            // ① 到期收口：聚合器裁决（淡出钟），实例归还 + 摘账——账实一致
-            _aggregator.CollectExpired(_now, _expired);
-            for (int i = 0; i < _expired.Count; i++) Release(_expired[i]);
-
-            // ② 视觉推进：轨道数学 → 位形/透明度；跟随槽位视图（消失 → 冻结最后锚点）
-            Camera cam = Camera.main;
-            foreach (var kv in _active)
+            double now = _clock.Now;
+            _ticking = true;
+            try
             {
-                if (!_aggregator.TryGet(kv.Key.Item1, kv.Key.Item2, out var snap)) continue;
+                // ① 到期收口：聚合器裁决（淡出钟），实例归还 + 摘账——账实一致
+                _aggregator.CollectExpired(now, _expired);
+                for (int i = 0; i < _expired.Count; i++) Release(_expired[i]);
 
-                DamageNumberMotion.Evaluate(
-                    (float)(_now - snap.SpawnedAt), (float)(_now - snap.LastMergeAt),
-                    snap.Crit, snap.Seed,
-                    out float rise, out float push, out float alpha, out float shake, out float pop);
+                // ② 视觉推进：轨道数学 → 位形/透明度；跟随槽位视图（消失 → 冻结最后锚点）
+                Camera cam = Camera.main;
 
-                Active a = kv.Value;
-                if (a.Slot >= 0 && _view.TryGetView(a.Slot, out var v) && v != null)
-                    a.LastAnchor = v.transform.position;                 // 跟随；despawn 后保持最后锚点
-
-                Vector3 pos = new Vector3(
-                    a.LastAnchor.x + push + shake,
-                    a.LastAnchor.y + DamageNumberMotion.HoverHeight + rise,
-                    a.LastAnchor.z);
-
-                float camScale = 1f;
-                if (cam != null)
+                _tickKeys.Clear();
+                foreach (var key in _active.Keys) _tickKeys.Add(key);   // 收集段：纯 Add，无外部调用——无重入窗口
+                for (int i = 0; i < _tickKeys.Count; i++)
                 {
-                    float d = Vector3.Distance(cam.transform.position, pos);
-                    camScale = Mathf.Clamp(d / CameraReferenceDistance, CameraScaleMin, CameraScaleMax);
-                }
+                    var key = _tickKeys[i];
+                    if (!_active.TryGetValue(key, out var a)) continue;               // 快照后被移除（到期/淘汰/重入）→ 容错跳过
+                    if (!_aggregator.TryGet(key.Item1, key.Item2, out var snap)) continue;
 
-                a.Tmp.transform.position = pos;
-                float scale = pop * a.ScaleBoost * camScale;
-                a.Tmp.transform.localScale = new Vector3(scale, scale, scale);
-                a.Tmp.fontSize = a.FontSize;
-                a.Tmp.color = new Color(a.R, a.G, a.B, alpha);
-                _active[kv.Key] = a;
+                    DamageNumberMotion.Evaluate(
+                        (float)(now - snap.SpawnedAt), (float)(now - snap.LastMergeAt),
+                        snap.Crit, snap.Seed,
+                        out float rise, out float push, out float alpha, out float shake, out float pop);
+
+                    if (a.Slot >= 0 && _view.TryGetView(a.Slot, out var v) && v != null)
+                        a.LastAnchor = v.transform.position;                 // 跟随；despawn 后保持最后锚点
+
+                    Vector3 pos = new Vector3(
+                        a.LastAnchor.x + push + shake,
+                        a.LastAnchor.y + DamageNumberMotion.HoverHeight + rise,
+                        a.LastAnchor.z);
+
+                    float camScale = 1f;
+                    if (cam != null)
+                    {
+                        float d = Vector3.Distance(cam.transform.position, pos);
+                        camScale = Mathf.Clamp(d / CameraReferenceDistance, CameraScaleMin, CameraScaleMax);
+                    }
+
+                    a.Tmp.transform.position = pos;
+                    float scale = pop * a.ScaleBoost * camScale;
+                    a.Tmp.transform.localScale = new Vector3(scale, scale, scale);
+                    a.Tmp.fontSize = a.FontSize;
+                    a.Tmp.color = new Color(a.R, a.G, a.B, alpha);
+                    _active[key] = a;                                        // 键经 TryGetValue 刚确认在册——纯值更新
+                }
+            }
+            finally
+            {
+                _ticking = false;
             }
         }
 

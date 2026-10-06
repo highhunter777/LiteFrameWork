@@ -77,8 +77,9 @@ namespace LiteGame
         private GameObject _laserBeam;                 // 激光束实例（挂 _viewRoot，随离场拆；驱动只管显隐/端点）
         private AssetLease<GameObject> _laserLease;    // 激光束 prefab 租约（登记进 _viewScope，随作用域归还）
         private HitFeedbackDispatcher _hitFeedback;    // 命中分发（帧事件 → 命中反馈消费者——伤害数字等；EventSink 并列订阅）
-        private BattleDamageNumberDriver _damageNumbers;   // 伤害数字（命中反馈首个消费者——合并窗口/池/预算）
+        private BattleDamageNumberDriver _damageNumbers;   // 伤害数字（命中反馈首个消费者——合并窗口/池/预算；世界钟驱动）
         private AssetLease<GameObject> _damageNumberLease; // 飘字底件租约（实例由驱动工厂逐条实例化）
+        private readonly LiteFramework.IWorldClock _worldClock;  // 世界钟（伤害数字寿命/合并窗——不累加渲染帧 delta，实测编辑器态会通胀）
         private Func<Vector3?> _aimPointOf;             // 瞄准点来源（世界坐标；null = 无设备形态——相机保持场景构图）
         private Transform _viewRoot;
         private GameObject _viewRootGo;
@@ -96,7 +97,8 @@ namespace LiteGame
         /// 有 vcam 的包传 false（正常路径）；没配 vcam 的包传 true——让"对局跑得动但看不见"
         /// 这种最难的静默失效变成显性失败，而不是进了对局才发现画面纹丝不动。</param>
         public ProcedureBattle(IContentService content, IInputService input, ICameraService camera,
-            IVFXService vfx = null, CancellationToken rootToken = default, bool requireCamera = false)
+            IVFXService vfx = null, CancellationToken rootToken = default, bool requireCamera = false,
+            LiteFramework.IWorldClock worldClock = null)
             : base(rootToken)
         {
             _content = content ?? throw new ArgumentNullException(nameof(content));
@@ -104,6 +106,7 @@ namespace LiteGame
             _camera = camera;
             _vfx = vfx;
             _requireCamera = requireCamera;
+            _worldClock = worldClock;
         }
 
         protected override void RunAsync(IStageHost<ProcedureId, ProcedureArgs> m, in ProcedureArgs req, CancellationToken ct)
@@ -283,8 +286,9 @@ namespace LiteGame
         }
 
         /// <summary>
-        /// 挂伤害数字（<see cref="BattleDamageNumberDriver"/>——命中反馈首个消费者；文本/位形/池归驱动）。
-        /// 底件缺 <see cref="TMPro.TextMeshPro"/>（资产被改）→ 警告并降级，不失败。
+        /// 挂伤害数字（<see cref="BattleDamageNumberDriver"/>——命中反馈首个消费者；文本/位形/池归驱动；
+        /// 寿命与合并窗走世界钟——变速/暂停语义内建）。底件缺 <see cref="TMPro.TextMeshPro"/>（资产被改）
+        /// 或世界钟未注入（装配缺口）→ 警告并降级，不失败。
         /// </summary>
         private void AttachDamageNumbers()
         {
@@ -295,8 +299,14 @@ namespace LiteGame
                 _damageNumberLease = null;
                 return;
             }
+            if (_worldClock == null)
+            {
+                UnityEngine.Debug.LogWarning("[Battle] 世界钟未注入——伤害数字降级（装配缺口，见 ContainerModule）");
+                _damageNumberLease = null;
+                return;
+            }
 
-            _damageNumbers = new BattleDamageNumberDriver(_view, NewDamageNumber);
+            _damageNumbers = new BattleDamageNumberDriver(_view, NewDamageNumber, _worldClock);
             _hitFeedback?.Register(_damageNumbers);
             UnityEngine.Debug.Log("[Battle] damage-numbers-attached");
         }
@@ -523,7 +533,7 @@ namespace LiteGame
             _locomotion?.Tick(elapseSeconds);    // 移动动画：视图位置已更新，再解析目标姿态（视图的下游消费者）
             _crosshair?.Tick();                  // 对局准心（HUD）：位置/形态/光标——视图状态的最后一个消费者
             _laser?.Tick();                     // 瞄准激光（世界空间）：端点 = 开火射线（实体/障碍截停）——视图消费者
-            _damageNumbers?.Tick(elapseSeconds); // 伤害数字：命中事件的视觉收尾（合并窗口/淡出/跟随）——视图的最后一个消费者
+            _damageNumbers?.Tick();             // 伤害数字：命中事件的视觉收尾（合并窗口/淡出/跟随）——世界钟取时
             _camera?.SetAiming(_aimGate.Feed(IsLocalAiming(), elapseSeconds)); // 瞄准相机接管（每帧幂等；适配器按沿生效——视图态已解析；滞回门控短按，防频繁点按来回重启混合）
             if (_camera != null)                  // 瞄准点（世界）→ 构图 z 偏移曲线（适配器按到焦点的前向投影换算）
             {

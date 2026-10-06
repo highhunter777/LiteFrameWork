@@ -163,6 +163,7 @@ namespace LiteGame
             // 进对局仍要求**那一刻**有相机：没有的话对局会"跑得动、看不见"，属最难查的静默失效，
             // 由 ProcedureBattle(requireCamera: true) 在开打前显性失败。
             ICameraService camera = context.Require<ICameraService>();
+            LiteFramework.IWorldClock worldClock = context.Require<LiteFramework.IWorldClock>();   // 世界钟（伤害数字寿命/合并窗——变速/暂停语义内建）
 
             return new StageMachine<ProcedureId, ProcedureArgs>("Procedure",
                 (ProcedureId.Launch, new ProcedureLaunch(rootToken)),
@@ -171,7 +172,7 @@ namespace LiteGame
                 (ProcedureId.Preload, new ProcedurePreload(content, config, lua, filler, events, () => ListLuaAssetPaths(content), rootToken)),
                 (ProcedureId.Main, new ProcedureMain(openUi, _scenes, rootToken)),
                 (ProcedureId.Match, new ProcedureMatch(context.RootScope, rootToken)),
-                (ProcedureId.Battle, new ProcedureBattle(content, input, camera, vfxService, rootToken, requireCamera: true)),
+                (ProcedureId.Battle, new ProcedureBattle(content, input, camera, vfxService, rootToken, requireCamera: true, worldClock: worldClock)),
                 (ProcedureId.Error, new ProcedureError(rootToken)));
         }
 
