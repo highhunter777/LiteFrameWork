@@ -194,6 +194,11 @@ Assets/CombatGirlsCharacterPack.meta
 Assets/KriptoFX/
 Assets/KriptoFX.meta
 
+# ===== DamageNumbersPro（第三方付费包，32MB；运行时已裁决弃用、留本地作自研参考——
+# 炼化口径与自研契约见 Docs/设计文档/gameplay/命中反馈与伤害数字专项设计.md；同 KriptoFX 先例）=====
+Assets/DamageNumbersPro/
+Assets/DamageNumbersPro.meta
+
 # ===== 资源规范（AGENTS.md 修订版）=====
 # 可入库：代码与脚本、配置资源、预制体模板资源、场景资源；不可入库：其他资源与第三方付费资源。
 # 下架项：Assets/TextMesh Pro（TMP 三方导入树——各机自行导入 Essentials）、
