@@ -441,6 +441,7 @@ namespace LiteGame.Tests.EditMode
             public int SetAimPointCount;
             public Vector3 LastAimPoint;
             public bool LastHasAimPoint;
+            public bool OrbitInputEnabled = true;   // 记录位（SimView 不调它——轨道输入门由流程喂；供流程级用例断言）
             public bool HasFocus { get; private set; }
             public Vector3 Focus => LastTarget;
 
@@ -456,6 +457,11 @@ namespace LiteGame.Tests.EditMode
             {
                 SetAimingCount++;
                 LastAiming = aiming;
+            }
+
+            public void SetOrbitInputEnabled(bool enabled)
+            {
+                OrbitInputEnabled = enabled;
             }
 
             public void SetAimPoint(in Vector3 point, bool hasPoint)

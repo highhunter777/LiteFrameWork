@@ -74,6 +74,18 @@ namespace LiteSim.View
         /// <summary>事件静默闸：帧号 ≤ 该值的帧事件不派发（回滚重放/和解去重的帧闸）。</summary>
         public int SilenceUntilFrame { get; private set; } = -1;
 
+        /// <summary>本地玩家是否处于**开火驻留窗**（腰射冻结相机输入的判据——`FireStanceFrames` 公共面，
+        /// 预测态即时镜像；流程经相机端口 `SetOrbitInputEnabled` 喂实现侧，与 UpdateCamera 的朝向冻结同判据）。</summary>
+        public bool IsLocalFireStance
+        {
+            get
+            {
+                return _hasLocalDisplay
+                    && _sim.TryResolve(LocalEntityId, out int slot)
+                    && _sim.Entities[slot].FireStanceFrames > 0;
+            }
+        }
+
         /// <summary>本地玩家实体 Id（0 = 未对齐——对齐前无本地表现，相机也不跟）。</summary>
         public long LocalEntityId { get; set; }
 
@@ -314,12 +326,12 @@ namespace LiteSim.View
             // 接管，跟随目标与主相机同源（相机服务侧同一焦点），不引用预制体参考点。
             // 相机构图（肩偏移/阻尼/FOV）归 vcam 场景配置，代码里没有第二处事实源。
 
-            // **腰射开火驻留窗（<see cref="EntitySlot.FireStanceFrames"/>，公共面——预测态即时镜像）：窗内
+            // **腰射开火驻留窗（<see cref="IsLocalFireStance"/>，公共面——预测态即时镜像）：窗内
             // 冻结主相机朝向**（进窗时刻锁存——玩家转身不牵动相机，腰射连点画面稳定；位置照常跟随；
             // 窗尽恢复跟 Yaw，vcam 阻尼平滑回归）。ADS 段主相机被瞄准机优先级接管，冻结值无视觉影响——
-            // 同窗口径不区分（瞄准帧同样置满窗）。
-            bool inFireStance = _sim.TryResolve(LocalEntityId, out int localSlot)
-                && _sim.Entities[localSlot].FireStanceFrames > 0;
+            // 同窗口径不区分（瞄准帧同样置满窗）。鼠标驱动的轨道旋转冻结归流程（SetOrbitInputEnabled）——
+            // 本冻结只管"焦点朝向 → 构图偏移/heading 跟随"半条链。
+            bool inFireStance = IsLocalFireStance;
             if (inFireStance)
             {
                 if (float.IsNaN(_cameraYawFrozenAt)) _cameraYawFrozenAt = _localYaw;   // 进窗锁存

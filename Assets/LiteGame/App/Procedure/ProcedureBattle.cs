@@ -535,6 +535,7 @@ namespace LiteGame
             _laser?.Tick();                     // 瞄准激光（世界空间）：端点 = 开火射线（实体/障碍截停）——视图消费者
             _damageNumbers?.Tick();             // 伤害数字：命中事件的视觉收尾（合并窗口/淡出/跟随）——世界钟取时
             _camera?.SetAiming(_aimGate.Feed(IsLocalAiming(), elapseSeconds)); // 瞄准相机接管（每帧幂等；适配器按沿生效——视图态已解析；滞回门控短按，防频繁点按来回重启混合）
+            _camera?.SetOrbitInputEnabled(!_view.IsLocalFireStance);          // 轨道输入门：腰射开火驻留窗内停鼠标驱动的相机旋转（窗尽恢复——稳定连点画面）
             if (_camera != null)                  // 瞄准点（世界）→ 构图 z 偏移曲线（适配器按到焦点的前向投影换算）
             {
                 Vector3? aimPoint = _aimPointOf?.Invoke();
