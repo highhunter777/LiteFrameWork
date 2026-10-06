@@ -16,8 +16,10 @@ namespace LiteNet.Protocol
     public static class SnapshotCodec
     {
         // ---- 公共面 ----
-        // 含**开火驻留窗**（fire_stance_frames=19）：限速+朝准星语境的判定输入——
-        // 回滚基线/差分基线/和解锚点必须能重建它，缺失 ⇒ 窗内预测分叉 ⇒ 逐快照纠偏（橡皮筋）。
+        // 含**开火驻留窗**（fire_stance_frames=19）与**尸体期**（corpse_frames=20）：分别是
+        // 限速+朝准星语境、尸体表现载体窗的判定输入/权威状态——回滚基线/差分基线/和解锚点必须能重建，
+        // 缺失 ⇒ 窗内预测分叉 ⇒ 逐快照纠偏（橡皮筋）；尸体期缺失 ⇒ 公共口径 checksum 结构性不等
+        // ⇒ 尸体期内每帧假和解。字段清单须与 <see cref="SimChecksum.ComputePublicChecksum"/> 逐项对齐。
 
         public static Proto.SlotDelta ToDelta(int slot, in EntitySlot e, in ActionRuntime activeAction)
         {
@@ -35,6 +37,8 @@ namespace LiteNet.Protocol
                 Deaths = e.Deaths,
                 SelectedWeapon = e.SelectedWeapon,
                 FireStanceFrames = e.FireStanceFrames,     // 开火驻留窗（回滚基线/重放重建面）
+                CorpseFrames = e.CorpseFrames,             // 尸体期剩余（corpse_frames=20：公共面且进公共口径
+                //   checksum——不携带则客户端重建恒为 0，尸体期内每帧假和解）
                 ActionId = activeAction.ActionId,
                 ActionPhase = (int)activeAction.Phase,
                 ActionStartFrame = activeAction.StartFrame,
@@ -64,6 +68,8 @@ namespace LiteNet.Protocol
                 Deaths = d.Deaths,
                 SelectedWeapon = d.SelectedWeapon,
                 FireStanceFrames = (byte)d.FireStanceFrames,   // 开火驻留窗（FromDelta 还原进 EntitySlot——回滚基线携带）
+                CorpseFrames = (byte)d.CorpseFrames,           // 尸体期（同上：公共口径 checksum 覆盖它，
+                //   还原缺失即和解锚点与权威值结构性不等）
             };
         }
 

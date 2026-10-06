@@ -16,7 +16,7 @@ namespace LiteSim
 
             InputSystem.Run(s, inputs);
             MovementSystem.Run(s.Entities, s.AliveBitmap, map);
-            ShootingSystem.Run(s, inputs);
+            ShootingSystem.Run(s, map, inputs);   // 射击判定参与障碍遮挡（SimRaycast 单源——子弹不穿墙）
 
             FlushCommands(s); // 伤害结算经命令缓冲（当帧延迟，§3.7）
 

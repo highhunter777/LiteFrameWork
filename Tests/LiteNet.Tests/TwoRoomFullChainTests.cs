@@ -28,11 +28,12 @@ namespace LiteNet.Tests
     [Trait(TestTrait.Category, TestCategory.EndToEnd)]
     public sealed class TwoRoomFullChainTests : IDisposable
     {
-        private const int Port = 28991;
+        private int Port => _host.BoundPort;   // 动态端口（Start(0) 系统分配后回读）
 
-        /// <summary>2 人房模板 + 可配容量；对局时限 30s（够跑完整链路，且不会提前收尾）。</summary>
+        /// <summary>2 人房模板 + 可配容量；对局时限 30s（够跑完整链路，且不会提前收尾）。
+        /// **端口 0 = 系统分配**——静态配置在构造前求值，不能引用 <see cref="Port"/>（那时宿主还没建）。</summary>
         private static readonly string Config = @"{
-            ""port"": " + Port + @", ""max_rooms"": 4, ""audience"": """",
+            ""port"": 0, ""max_rooms"": 4, ""audience"": """",
             ""default_template"": ""two"",
             ""rooms"": { ""two"": { ""expected_players"": 2, ""match_time_limit_ms"": 30000 } }
         }";

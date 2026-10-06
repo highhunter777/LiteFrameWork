@@ -7,7 +7,7 @@ param(
 )
 
 $ErrorActionPreference = 'Stop'
-$root = Split-Path -Parent $PSScriptRoot
+$root = Split-Path -Parent (Split-Path -Parent $PSScriptRoot)   # scripts/codegen → 仓库根
 $protoDir = Join-Path $root 'Assets/LiteNet/Proto'
 $outDir = Join-Path $protoDir 'Generated'
 

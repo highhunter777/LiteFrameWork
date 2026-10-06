@@ -31,56 +31,56 @@ namespace LiteNet.Proto {
             "ZW50aXR5X2lkGAggASgDEhIKCmFjdGlvbl9zZXEYCSABKA0ibwoMSW5wdXRN",
             "ZXNzYWdlEg0KBWZyYW1lGAEgASgFEiYKBmZyYW1lcxgCIAMoCzIWLmxpdGVi",
             "YXR0bGUuSW5wdXRGcmFtZRIUCgxhY2tfc25hcHNob3QYAyABKAUSEgoKdmll",
-            "d19mcmFtZRgEIAEoBSLQAgoJU2xvdERlbHRhEgwKBHNsb3QYASABKAUSCgoC",
+            "d19mcmFtZRgEIAEoBSLnAgoJU2xvdERlbHRhEgwKBHNsb3QYASABKAUSCgoC",
             "aWQYAiABKAMSDQoFcG9zX3gYAyABKAISDQoFcG9zX3kYBCABKAISDQoFcG9z",
             "X3oYBSABKAISDQoFdmVsX3gYBiABKAISDQoFdmVsX3kYByABKAISDQoFdmVs",
             "X3oYCCABKAISCwoDeWF3GAkgASgCEgoKAmhwGAogASgFEg0KBWZsYWdzGAsg",
             "ASgNEg4KBnNoaWVsZBgMIAEoBRINCgVraWxscxgNIAEoBRIOCgZkZWF0aHMY",
             "DiABKAUSFwoPc2VsZWN0ZWRfd2VhcG9uGA8gASgFEhEKCWFjdGlvbl9pZBgQ",
             "IAEoBRIUCgxhY3Rpb25fcGhhc2UYESABKAUSGgoSYWN0aW9uX3N0YXJ0X2Zy",
-            "YW1lGBIgASgFEhoKEmZpcmVfc3RhbmNlX2ZyYW1lcxgTIAEoDSJrCg9NYXRj",
-            "aFN0YXRlRGVsdGESDQoFcGhhc2UYASABKAUSDAoEdGVhbRgCIAEoBRINCgVz",
-            "Y29yZRgDIAEoBRINCgV0aW1lchgEIAEoBRINCgVyb3VuZBgFIAEoBRIOCgZ3",
-            "aW5uZXIYBiABKAMiuQEKC1dlYXBvbkRlbHRhEhUKDXdlYXBvbl9kZWZfaWQY",
-            "ASABKAUSEAoIbWFnX2FtbW8YAiABKAUSFAoMcmVzZXJ2ZV9hbW1vGAMgASgF",
-            "Eg0KBXN0YXRlGAQgASgFEhcKD25leHRfZmlyZV9mcmFtZRgFIAEoBRIYChBy",
-            "ZWxvYWRfZW5kX2ZyYW1lGAYgASgFEhcKD2VxdWlwX2VuZF9mcmFtZRgHIAEo",
-            "BRIQCghzaG90X3NlcRgIIAEoBSJGCgpTa2lsbERlbHRhEhEKCWFjdGlvbl9p",
-            "ZBgBIAEoBRIUCgxjb29sZG93bl9lbmQYAiABKAUSDwoHY2hhcmdlcxgDIAEo",
-            "BSJCCgtTdGF0dXNEZWx0YRIRCgllZmZlY3RfaWQYASABKAUSEQoJZW5kX2Zy",
-            "YW1lGAIgASgFEg0KBXBhcmFtGAMgASgFIkYKDEJhZ1Nsb3REZWx0YRITCgtp",
-            "dGVtX2RlZl9pZBgBIAEoBRINCgVjb3VudBgCIAEoBRISCgpxdWlja19zbG90",
-            "GAMgASgFItoBChFQcml2YXRlU3RhdGVEZWx0YRIRCgllbnRpdHlfaWQYASAB",
-            "KAMSEAoIcmVzb3VyY2UYAiABKAUSKAoHd2VhcG9ucxgDIAMoCzIXLmxpdGVi",
-            "YXR0bGUuV2VhcG9uRGVsdGESJgoGc2tpbGxzGAQgAygLMhYubGl0ZWJhdHRs",
-            "ZS5Ta2lsbERlbHRhEicKBnN0YXR1cxgFIAMoCzIXLmxpdGViYXR0bGUuU3Rh",
-            "dHVzRGVsdGESJQoDYmFnGAYgAygLMhgubGl0ZWJhdHRsZS5CYWdTbG90RGVs",
-            "dGEi3AEKDVN0YXRlU25hcHNob3QSDQoFZnJhbWUYASABKAUSDwoHaXNfZnVs",
-            "bBgCIAEoCBIkCgVzbG90cxgDIAMoCzIVLmxpdGViYXR0bGUuU2xvdERlbHRh",
-            "EhAKCGNoZWNrc3VtGAQgASgNEhEKCWFja19pbnB1dBgFIAEoBRIqCgVtYXRj",
-            "aBgGIAEoCzIbLmxpdGViYXR0bGUuTWF0Y2hTdGF0ZURlbHRhEjQKDXByaXZh",
-            "dGVfc3RhdGUYByABKAsyHS5saXRlYmF0dGxlLlByaXZhdGVTdGF0ZURlbHRh",
-            "IkEKC0pvaW5SZXF1ZXN0Eg8KB3Jvb21faWQYASABKAkSDQoFdG9rZW4YAiAB",
-            "KAkSEgoKYnVpbGRfaGFzaBgDIAEoCSKQAQoHSm9pbkFjaxIRCglwbGF5ZXJf",
-            "aWQYASABKAUSDwoHbWVtYmVycxgCIAMoBRIXCg9yZWNvbm5lY3RfdG9rZW4Y",
-            "AyABKAkSIAoYcmVjb25uZWN0X3dpbmRvd19zZWNvbmRzGAQgASgFEhMKC3Nu",
-            "YXBzaG90X2h6GAUgASgFEhEKCXRpY2tfcmF0ZRgGIAEoBSI9CglTdGFydEdh",
-            "bWUSDAoEc2VlZBgBIAEoAxITCgtjb25maWdfaGFzaBgCIAEoDRINCgVmcmFt",
-            "ZRgDIAEoBSIHCgVMZWF2ZSIgCglIZWFydGJlYXQSEwoLY2xpZW50X3RpbWUY",
-            "ASABKAMiKgoQUmVjb25uZWN0UmVxdWVzdBIWCg5vbmVfdGltZV90b2tlbhgB",
-            "IAEoCSK+AQoRUmVjb25uZWN0UmVzcG9uc2USCgoCb2sYASABKAgSDgoGcmVh",
-            "c29uGAQgASgJEisKCHNuYXBzaG90GAIgASgLMhkubGl0ZWJhdHRsZS5TdGF0",
-            "ZVNuYXBzaG90EikKB2hpc3RvcnkYAyADKAsyGC5saXRlYmF0dGxlLklucHV0",
-            "TWVzc2FnZRIMCgRzZWVkGAUgASgDEhMKC2NvbmZpZ19oYXNoGAYgASgNEhIK",
-            "CmJ1aWxkX2hhc2gYByABKAkiEQoPUmVzdG9yZUNvbXBsZXRlIh8KDk1pc21h",
-            "dGNoUmVwb3J0Eg0KBWZyYW1lGAEgASgFQhCqAg1MaXRlTmV0LlByb3RvYgZw",
-            "cm90bzM="));
+            "YW1lGBIgASgFEhoKEmZpcmVfc3RhbmNlX2ZyYW1lcxgTIAEoDRIVCg1jb3Jw",
+            "c2VfZnJhbWVzGBQgASgNImsKD01hdGNoU3RhdGVEZWx0YRINCgVwaGFzZRgB",
+            "IAEoBRIMCgR0ZWFtGAIgASgFEg0KBXNjb3JlGAMgASgFEg0KBXRpbWVyGAQg",
+            "ASgFEg0KBXJvdW5kGAUgASgFEg4KBndpbm5lchgGIAEoAyK5AQoLV2VhcG9u",
+            "RGVsdGESFQoNd2VhcG9uX2RlZl9pZBgBIAEoBRIQCghtYWdfYW1tbxgCIAEo",
+            "BRIUCgxyZXNlcnZlX2FtbW8YAyABKAUSDQoFc3RhdGUYBCABKAUSFwoPbmV4",
+            "dF9maXJlX2ZyYW1lGAUgASgFEhgKEHJlbG9hZF9lbmRfZnJhbWUYBiABKAUS",
+            "FwoPZXF1aXBfZW5kX2ZyYW1lGAcgASgFEhAKCHNob3Rfc2VxGAggASgFIkYK",
+            "ClNraWxsRGVsdGESEQoJYWN0aW9uX2lkGAEgASgFEhQKDGNvb2xkb3duX2Vu",
+            "ZBgCIAEoBRIPCgdjaGFyZ2VzGAMgASgFIkIKC1N0YXR1c0RlbHRhEhEKCWVm",
+            "ZmVjdF9pZBgBIAEoBRIRCgllbmRfZnJhbWUYAiABKAUSDQoFcGFyYW0YAyAB",
+            "KAUiRgoMQmFnU2xvdERlbHRhEhMKC2l0ZW1fZGVmX2lkGAEgASgFEg0KBWNv",
+            "dW50GAIgASgFEhIKCnF1aWNrX3Nsb3QYAyABKAUi2gEKEVByaXZhdGVTdGF0",
+            "ZURlbHRhEhEKCWVudGl0eV9pZBgBIAEoAxIQCghyZXNvdXJjZRgCIAEoBRIo",
+            "Cgd3ZWFwb25zGAMgAygLMhcubGl0ZWJhdHRsZS5XZWFwb25EZWx0YRImCgZz",
+            "a2lsbHMYBCADKAsyFi5saXRlYmF0dGxlLlNraWxsRGVsdGESJwoGc3RhdHVz",
+            "GAUgAygLMhcubGl0ZWJhdHRsZS5TdGF0dXNEZWx0YRIlCgNiYWcYBiADKAsy",
+            "GC5saXRlYmF0dGxlLkJhZ1Nsb3REZWx0YSLcAQoNU3RhdGVTbmFwc2hvdBIN",
+            "CgVmcmFtZRgBIAEoBRIPCgdpc19mdWxsGAIgASgIEiQKBXNsb3RzGAMgAygL",
+            "MhUubGl0ZWJhdHRsZS5TbG90RGVsdGESEAoIY2hlY2tzdW0YBCABKA0SEQoJ",
+            "YWNrX2lucHV0GAUgASgFEioKBW1hdGNoGAYgASgLMhsubGl0ZWJhdHRsZS5N",
+            "YXRjaFN0YXRlRGVsdGESNAoNcHJpdmF0ZV9zdGF0ZRgHIAEoCzIdLmxpdGVi",
+            "YXR0bGUuUHJpdmF0ZVN0YXRlRGVsdGEiQQoLSm9pblJlcXVlc3QSDwoHcm9v",
+            "bV9pZBgBIAEoCRINCgV0b2tlbhgCIAEoCRISCgpidWlsZF9oYXNoGAMgASgJ",
+            "IpABCgdKb2luQWNrEhEKCXBsYXllcl9pZBgBIAEoBRIPCgdtZW1iZXJzGAIg",
+            "AygFEhcKD3JlY29ubmVjdF90b2tlbhgDIAEoCRIgChhyZWNvbm5lY3Rfd2lu",
+            "ZG93X3NlY29uZHMYBCABKAUSEwoLc25hcHNob3RfaHoYBSABKAUSEQoJdGlj",
+            "a19yYXRlGAYgASgFIj0KCVN0YXJ0R2FtZRIMCgRzZWVkGAEgASgDEhMKC2Nv",
+            "bmZpZ19oYXNoGAIgASgNEg0KBWZyYW1lGAMgASgFIgcKBUxlYXZlIiAKCUhl",
+            "YXJ0YmVhdBITCgtjbGllbnRfdGltZRgBIAEoAyIqChBSZWNvbm5lY3RSZXF1",
+            "ZXN0EhYKDm9uZV90aW1lX3Rva2VuGAEgASgJIr4BChFSZWNvbm5lY3RSZXNw",
+            "b25zZRIKCgJvaxgBIAEoCBIOCgZyZWFzb24YBCABKAkSKwoIc25hcHNob3QY",
+            "AiABKAsyGS5saXRlYmF0dGxlLlN0YXRlU25hcHNob3QSKQoHaGlzdG9yeRgD",
+            "IAMoCzIYLmxpdGViYXR0bGUuSW5wdXRNZXNzYWdlEgwKBHNlZWQYBSABKAMS",
+            "EwoLY29uZmlnX2hhc2gYBiABKA0SEgoKYnVpbGRfaGFzaBgHIAEoCSIRCg9S",
+            "ZXN0b3JlQ29tcGxldGUiHwoOTWlzbWF0Y2hSZXBvcnQSDQoFZnJhbWUYASAB",
+            "KAVCEKoCDUxpdGVOZXQuUHJvdG9iBnByb3RvMw=="));
       descriptor = pbr::FileDescriptor.FromGeneratedCode(descriptorData,
           new pbr::FileDescriptor[] { },
           new pbr::GeneratedClrTypeInfo(null, null, new pbr::GeneratedClrTypeInfo[] {
             new pbr::GeneratedClrTypeInfo(typeof(global::LiteNet.Proto.InputFrame), global::LiteNet.Proto.InputFrame.Parser, new[]{ "EntityId", "MoveX", "MoveZ", "AimX", "AimZ", "Buttons", "SelectedWeaponSlot", "TargetEntityId", "ActionSeq" }, null, null, null, null),
             new pbr::GeneratedClrTypeInfo(typeof(global::LiteNet.Proto.InputMessage), global::LiteNet.Proto.InputMessage.Parser, new[]{ "Frame", "Frames", "AckSnapshot", "ViewFrame" }, null, null, null, null),
-            new pbr::GeneratedClrTypeInfo(typeof(global::LiteNet.Proto.SlotDelta), global::LiteNet.Proto.SlotDelta.Parser, new[]{ "Slot", "Id", "PosX", "PosY", "PosZ", "VelX", "VelY", "VelZ", "Yaw", "Hp", "Flags", "Shield", "Kills", "Deaths", "SelectedWeapon", "ActionId", "ActionPhase", "ActionStartFrame", "FireStanceFrames" }, null, null, null, null),
+            new pbr::GeneratedClrTypeInfo(typeof(global::LiteNet.Proto.SlotDelta), global::LiteNet.Proto.SlotDelta.Parser, new[]{ "Slot", "Id", "PosX", "PosY", "PosZ", "VelX", "VelY", "VelZ", "Yaw", "Hp", "Flags", "Shield", "Kills", "Deaths", "SelectedWeapon", "ActionId", "ActionPhase", "ActionStartFrame", "FireStanceFrames", "CorpseFrames" }, null, null, null, null),
             new pbr::GeneratedClrTypeInfo(typeof(global::LiteNet.Proto.MatchStateDelta), global::LiteNet.Proto.MatchStateDelta.Parser, new[]{ "Phase", "Team", "Score", "Timer", "Round", "Winner" }, null, null, null, null),
             new pbr::GeneratedClrTypeInfo(typeof(global::LiteNet.Proto.WeaponDelta), global::LiteNet.Proto.WeaponDelta.Parser, new[]{ "WeaponDefId", "MagAmmo", "ReserveAmmo", "State", "NextFireFrame", "ReloadEndFrame", "EquipEndFrame", "ShotSeq" }, null, null, null, null),
             new pbr::GeneratedClrTypeInfo(typeof(global::LiteNet.Proto.SkillDelta), global::LiteNet.Proto.SkillDelta.Parser, new[]{ "ActionId", "CooldownEnd", "Charges" }, null, null, null, null),
@@ -982,6 +982,7 @@ namespace LiteNet.Proto {
       actionPhase_ = other.actionPhase_;
       actionStartFrame_ = other.actionStartFrame_;
       fireStanceFrames_ = other.fireStanceFrames_;
+      corpseFrames_ = other.corpseFrames_;
       _unknownFields = pb::UnknownFieldSet.Clone(other._unknownFields);
     }
 
@@ -1248,6 +1249,25 @@ namespace LiteNet.Proto {
       }
     }
 
+    /// <summary>Field number for the "corpse_frames" field.</summary>
+    public const int CorpseFramesFieldNumber = 20;
+    private uint corpseFrames_;
+    /// <summary>
+    /// ---- 尸体期剩余（**只增字段号**追加；公共面——尸体期是死亡表现的权威载体窗）----
+    /// 死亡跨线后逐帧递减、归零即回收槽位（CleanupSystem）。它进公共口径 checksum
+    /// （SimChecksum.ComputePublicChecksum），故 wire 必须携带——否则客户端 FromDelta 重建恒为 0，
+    /// 权威 checksum 与客户端预测值在尸体期内必不等 ⇒ 每帧假和解 + 重放。
+    /// 与 fire_stance_frames 同口径：公共化私有判定输入，保回滚/和解基线可重建。
+    /// </summary>
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public uint CorpseFrames {
+      get { return corpseFrames_; }
+      set {
+        corpseFrames_ = value;
+      }
+    }
+
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public override bool Equals(object other) {
@@ -1282,6 +1302,7 @@ namespace LiteNet.Proto {
       if (ActionPhase != other.ActionPhase) return false;
       if (ActionStartFrame != other.ActionStartFrame) return false;
       if (FireStanceFrames != other.FireStanceFrames) return false;
+      if (CorpseFrames != other.CorpseFrames) return false;
       return Equals(_unknownFields, other._unknownFields);
     }
 
@@ -1308,6 +1329,7 @@ namespace LiteNet.Proto {
       if (ActionPhase != 0) hash ^= ActionPhase.GetHashCode();
       if (ActionStartFrame != 0) hash ^= ActionStartFrame.GetHashCode();
       if (FireStanceFrames != 0) hash ^= FireStanceFrames.GetHashCode();
+      if (CorpseFrames != 0) hash ^= CorpseFrames.GetHashCode();
       if (_unknownFields != null) {
         hash ^= _unknownFields.GetHashCode();
       }
@@ -1402,6 +1424,10 @@ namespace LiteNet.Proto {
         output.WriteRawTag(152, 1);
         output.WriteUInt32(FireStanceFrames);
       }
+      if (CorpseFrames != 0) {
+        output.WriteRawTag(160, 1);
+        output.WriteUInt32(CorpseFrames);
+      }
       if (_unknownFields != null) {
         _unknownFields.WriteTo(output);
       }
@@ -1488,6 +1514,10 @@ namespace LiteNet.Proto {
         output.WriteRawTag(152, 1);
         output.WriteUInt32(FireStanceFrames);
       }
+      if (CorpseFrames != 0) {
+        output.WriteRawTag(160, 1);
+        output.WriteUInt32(CorpseFrames);
+      }
       if (_unknownFields != null) {
         _unknownFields.WriteTo(ref output);
       }
@@ -1554,6 +1584,9 @@ namespace LiteNet.Proto {
       }
       if (FireStanceFrames != 0) {
         size += 2 + pb::CodedOutputStream.ComputeUInt32Size(FireStanceFrames);
+      }
+      if (CorpseFrames != 0) {
+        size += 2 + pb::CodedOutputStream.ComputeUInt32Size(CorpseFrames);
       }
       if (_unknownFields != null) {
         size += _unknownFields.CalculateSize();
@@ -1623,6 +1656,9 @@ namespace LiteNet.Proto {
       }
       if (other.FireStanceFrames != 0) {
         FireStanceFrames = other.FireStanceFrames;
+      }
+      if (other.CorpseFrames != 0) {
+        CorpseFrames = other.CorpseFrames;
       }
       _unknownFields = pb::UnknownFieldSet.MergeFrom(_unknownFields, other._unknownFields);
     }
@@ -1719,6 +1755,10 @@ namespace LiteNet.Proto {
             FireStanceFrames = input.ReadUInt32();
             break;
           }
+          case 160: {
+            CorpseFrames = input.ReadUInt32();
+            break;
+          }
         }
       }
     #endif
@@ -1812,6 +1852,10 @@ namespace LiteNet.Proto {
           }
           case 152: {
             FireStanceFrames = input.ReadUInt32();
+            break;
+          }
+          case 160: {
+            CorpseFrames = input.ReadUInt32();
             break;
           }
         }

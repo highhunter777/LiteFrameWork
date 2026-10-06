@@ -34,6 +34,11 @@ namespace LiteNet.Tests
         public event Action<int> OnDisconnected;
 
         public void Start(int port) => StartedPort = port;
+
+        /// <summary>假件无真实 socket：<c>Start(0)</c> 时回落一个确定值（测试要看的是"回读口存在且被调用"，
+        /// 不需要真实端口语义——真端口回读由 KcpTransportServer 承担）。</summary>
+        public int BoundPort => StartedPort > 0 ? StartedPort : (StartedPort == 0 ? 1 : -1);
+
         public void TickIncoming() { }
         public void TickOutgoing() { }
         public void Disconnect(int connectionId) => Disconnects.Add(connectionId);

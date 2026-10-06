@@ -93,7 +93,7 @@ namespace RoomServer.Runtime
             SnapshotHistory = new SnapshotRing(SimConfig.LagCompHistory);
             int players = ExpectedPlayers;                     // 配置定容（席位/输入槽/实体表/回溯环一致）
             Gate = new InputGate(players);
-            LagComp = new LagCompensator(AuthSim, players, SnapshotHistory);
+            LagComp = new LagCompensator(AuthSim, Map, players, SnapshotHistory);
             _seats = new PlayerSession[players];
             _entityIds = new long[players];
             _frameInputs = new SimInputFrame[players];

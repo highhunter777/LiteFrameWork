@@ -66,6 +66,44 @@ namespace LiteSim
         /// </summary>
         public const float FaceTurnRadPerSec = 12f;
 
+        // ---- 逻辑枪口（子弹出射点＝本体+朝向系常量偏移——消激光/准心与弹道的原点残差）----
+
+        /// <summary>
+        /// 逻辑枪口·前向偏移（m，朝向系——射手 Yaw 前向）。子弹射线原点 = 本体 Pos + 前向×本值 +
+        /// 右向×<see cref="MuzzleOffsetRight"/> + 高度<see cref="MuzzleOffsetHeight"/>。
+        /// **为何不是"动画枪口"**：枪口位是表现层（服务器无模型/动画；客户端上报＝伪造面＋确定性破坏；
+        /// 回溯无历史姿态）——固定常量偏移保留权威/确定/可回溯。取值 ≈ 瞄准态持枪的枪口位
+        /// （视觉 <c>Weapon_Rifle/Muzzle</c> 锚点的近似）——观感校准项。
+        /// **表化计划**：tb_weapon（G2-P1）落 per-weapon 列时迁表并经 <see cref="LoadFrom"/> 装载
+        /// （故进 digest——同 <see cref="FireStanceFrames"/>"表化计划 ⇒ 进 digest"先例口径）。
+        /// </summary>
+        public const float MuzzleOffsetForward = 0.35f;
+
+        /// <summary>逻辑枪口·右向偏移（m，朝向系右向 = forward 顺时针 90°——枪在右手侧）。</summary>
+        public const float MuzzleOffsetRight = 0.2f;
+
+        /// <summary>
+        /// 逻辑枪口·高度（m，相对脚底）。**默认 = 眼高**——命中圆柱 y 带闸与爆头带判据
+        /// （<see cref="HeadHitLine"/>）都以射线眼高为基准；默认值保持既有爆头/带闸口径不变（只挪 XZ）。
+        /// </summary>
+        public const float MuzzleOffsetHeight = 1f;
+
+        /// <summary>
+        /// 逻辑枪口世界位（**出射点单源**——<see cref="ShootingSystem"/> 与瞄准激光收敛端点共用同一实现，
+        /// 防两处手写漂移）：本体 Pos + 朝向系常量偏移（前向×<see cref="MuzzleOffsetForward"/> +
+        /// 右向×<see cref="MuzzleOffsetRight"/> + 高度<see cref="MuzzleOffsetHeight"/>）。
+        /// 右向 = forward 顺时针 90°：forward=(cos,sin) ⇒ right=(sin,−cos)。
+        /// </summary>
+        public static SimVector3 MuzzleOrigin(in SimVector3 pos, float yaw)
+        {
+            float cy = SimTrig.Cos(yaw);
+            float sy = SimTrig.Sin(yaw);
+            return new SimVector3(
+                pos.X + cy * MuzzleOffsetForward + sy * MuzzleOffsetRight,
+                pos.Y + MuzzleOffsetHeight,
+                pos.Z + sy * MuzzleOffsetForward - cy * MuzzleOffsetRight);
+        }
+
         /// <summary>命中圆柱半径（m）。</summary>
         public static float HitscanRadius { get; private set; } = 0.5f;
 

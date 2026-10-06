@@ -170,6 +170,7 @@ Packages/com.unity.pipeline/
 CODEBUDDY.md
 CODELY.md
 /.claude/
+.codelyignore
 
 # ===== 构建/诊断产物与 agent 临时件（不入库）=====
 msbuild_preprocessed.xml
@@ -198,6 +199,20 @@ Assets/KriptoFX.meta
 # 炼化口径与自研契约见 Docs/设计文档/gameplay/命中反馈与伤害数字专项设计.md；同 KriptoFX 先例）=====
 Assets/DamageNumbersPro/
 Assets/DamageNumbersPro.meta
+
+# ===== Synty InterfaceMilitaryCombatHUD（第三方付费 HUD 包，366MB，不入 VCS；同 KriptoFX 先例——
+# 取用范围与裁决见 Docs/设计文档/gameplay/战斗美术资源参考.md）=====
+Assets/Synty/
+Assets/Synty.meta
+
+# ===== 资产商店导入残留（本机清理项：Help.pdf / More Assets.url / unity3d.txt 与孤儿 Temp.meta）=====
+Assets/Help.pdf
+Assets/Help.pdf.meta
+Assets/More Assets.url
+Assets/More Assets.url.meta
+Assets/unity3d.txt
+Assets/unity3d.txt.meta
+Assets/Temp.meta
 
 # ===== 资源规范（AGENTS.md 修订版）=====
 # 可入库：代码与脚本、配置资源、预制体模板资源、场景资源；不可入库：其他资源与第三方付费资源。

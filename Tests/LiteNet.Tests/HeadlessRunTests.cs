@@ -25,7 +25,7 @@ namespace LiteNet.Tests
     [Trait(TestTrait.Category, TestCategory.EndToEnd)]
     public class HeadlessRunTests : IDisposable
     {
-        private const int Port = 27778;
+        private int Port => _host.BoundPort;   // 动态端口（Start(0) 系统分配后回读）
 
         private readonly ServerHost _host;
         private readonly KcpTransportServer _serverTransport;
@@ -41,7 +41,8 @@ namespace LiteNet.Tests
         public HeadlessRunTests()
         {
             _serverTransport = new KcpTransportServer();
-            _host = new ServerHost(_serverTransport, new RoomConfig { Port = Port });
+            // 端口 0 = 系统分配（构造期不能读 Port 属性——那时 _host 还没赋值）
+            _host = new ServerHost(_serverTransport, new RoomConfig { Port = 0 });
         }
 
         public void Dispose()

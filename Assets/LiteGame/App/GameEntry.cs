@@ -41,7 +41,7 @@ namespace LiteGame
         private CancellationTokenSource _bootCts;
         private bool _active;
 
-        /// <summary>把装配权传给起始流程。ProcedureLaunch 是**唯一受信装配点**：注册业务服务 → Seal。</summary>
+        /// <summary>把装配完成的服务容器交给流程消费。**装配与 Seal 均在装配根**（Bootstrap/ContainerModule）——流程不参与注册（§5.1：注册是装配职责）。</summary>
         public ServiceContainer TakeContainer()
         {
             if (_container == null) throw new InvalidOperationException("未装配");
@@ -115,8 +115,8 @@ namespace LiteGame
             }
         }
 
-        /// <summary>流程四阶段：业务服务在 ProcedureLaunch 装配（注册 IConfigService/SceneService → Seal）；
-        /// 流程依赖在模块装配点构造注入——依赖不从 payload 取（局部服务定位器同罪）。</summary>
+        /// <summary>流程启动：业务服务已由装配根（ContainerModule）注册并 Seal；
+        /// 流程依赖经构造注入消费——依赖不从 payload 取（局部服务定位器同罪）。</summary>
         private void Start()
         {
             if (!_active) return;                            // 重复引导件：Awake 已销毁，不参与

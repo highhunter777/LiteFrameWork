@@ -20,12 +20,14 @@ namespace LiteNet.Tests
     [Trait(TestTrait.Category, TestCategory.Integration)]
     public class RoomServerTests : IDisposable
     {
-        private const int Port = 27777;
-
         private readonly ServerHost _host;
         private readonly List<KcpTransportClient> _clients = new List<KcpTransportClient>();
 
-        public RoomServerTests() => _host = new ServerHost(new KcpTransportServer(), new RoomConfig { Port = Port });
+        /// <summary>实际监听端口（**系统分配**：<c>Port = 0</c> → <see cref="ServerHost.BoundPort"/> 回读）。
+        /// 不用固定端口：同机常驻软件可能占用（实测 aTrustXtunnel 占 7777/7778 曾致本类偶发 Bind 失败）。</summary>
+        private int Port => _host.BoundPort;
+
+        public RoomServerTests() => _host = new ServerHost(new KcpTransportServer(), new RoomConfig { Port = 0 });
 
         /// <summary>
         /// 房间容量由配置决定：

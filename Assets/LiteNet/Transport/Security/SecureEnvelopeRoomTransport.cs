@@ -53,6 +53,9 @@ namespace LiteNet.Transport
             _inner.Start(port);
         }
 
+        /// <summary>转发内层实际绑定端口（装饰器不改变绑定语义；<c>Start(0)</c> 的分配结果原样透出）。</summary>
+        public int BoundPort => _inner.BoundPort;
+
         public void TickIncoming() => _inner.TickIncoming();
         public void TickOutgoing() => _inner.TickOutgoing();
 

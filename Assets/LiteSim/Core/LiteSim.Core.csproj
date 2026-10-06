@@ -19,6 +19,11 @@
   <ItemGroup>
     <Compile Include="Scripts/**/*.cs" Exclude="Scripts/Editor/**/*.cs" />
     <Compile Include="Systems/**/*.cs" />
+    <!-- Diagnostics/：回放录制/离线复算/字段级 diff。纯 BCL（只用 SimChecksum/SimStep/SimWorldState），
+         与 Systems/ 同为运行时代码，双轨可编。 -->
+    <Compile Include="Diagnostics/**/*.cs" />
+    <!-- Properties/AssemblyInfo.cs：InternalsVisibleTo（测试可见 internal 生成物） -->
+    <Compile Include="Properties/**/*.cs" />
   </ItemGroup>
 
 </Project>

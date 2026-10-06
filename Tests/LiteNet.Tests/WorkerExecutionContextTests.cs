@@ -23,9 +23,9 @@ namespace LiteNet.Tests
     [Trait(TestTrait.Category, TestCategory.Integration)]
     public sealed class WorkerExecutionContextTests : IDisposable
     {
-        private const int Port = 28884;
+        private int Port => _host.BoundPort;   // 动态端口：宿主绑定后回读（Start(0) 由系统分配）
         private const string Config = @"{
-            ""port"": 28884, ""max_rooms"": 4, ""worker_count"": 2, ""audience"": """",
+            ""port"": 0, ""max_rooms"": 4, ""worker_count"": 2, ""audience"": """",
             ""default_template"": ""two"",
             ""rooms"": { ""two"": { ""expected_players"": 2 } }
         }";

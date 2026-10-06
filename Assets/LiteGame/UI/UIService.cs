@@ -20,8 +20,15 @@ namespace LiteGame
     /// 打开失败回滚；Close/CloseAll 覆盖 Covered/Paused；env 重建走 <see cref="DropAllLogic"/> 清旧引用。
     /// （§4.3）：在途打开操作合流（并发 Show 共享一份工作，不返回 null）；数据冲突 Busy；
     /// 调用方 token 只取消本人、全员退出撤工作；Close 对在途加载发权威取消；失败类型化（<see cref="UIOpenException"/>）。
+    ///
+    /// **职责边界（单一职责）**：本类只做**实例生命周期编排**——池化/租约/LRU、开关注入转场、
+    /// 打开并发合流、遮盖推导、Lua 逻辑换表。**模态栈/射线遮蔽/Back 目标**是独立的输入协调子域，
+    /// 已抽出 <see cref="UIModalStack"/>（本类经 <see cref="UIModalStack.IUIFormQuery"/> 提供窄查询口，
+    /// 上面的 RegisterModal/IsModalOpen/TryGetBackTarget 等是**转发面**——公共 API 不变）。
+    /// 逻辑换表（<see cref="MarkLogicStale"/> 族）与遮盖（<see cref="RecomputeCovering"/>）
+    /// 仍留本类：前者是实例生命周期的一环（复用前必须换表），后者与开/关管线同事务序。
     /// </summary>
-    public sealed class UIService : ITickable, IModuleStats
+    public sealed class UIService : ITickable, IModuleStats, UIModalStack.IUIFormQuery
     {
         /// <summary>语义层名（§6.2"保留 Bottom/Window/Top，可增 Modal/Loading/System"）。
         /// <c>System</c>：Toast/Loading/错误重试等统一反馈面占此层，经统一排序器分配 order——
@@ -53,6 +60,7 @@ namespace LiteGame
         private readonly UILayerGroup[] _groups;
         private readonly Transform _root;
         private readonly UITransitionRunner _transitions;                  // 转场编排层（§1.5，不注册 ITickable）
+        private readonly UIModalStack _modals;                             // 模态栈/射线遮蔽/Back 目标（§6.2 独立子域）
         private readonly IPopInterceptor _pop;
         private readonly Func<UIFormInfo, IUIFormLogic> _logicResolver;
         private readonly Func<string, CancellationToken, UniTask<IUIPrefabLease>> _loadPrefab;
@@ -96,6 +104,7 @@ namespace LiteGame
                 _groups[i] = new UILayerGroup(GroupNames[i], (i + 1) * UILayerGroup.DepthStride, node,
                     layerStrategy ?? new DefaultLayerStrategy());
             }
+            _modals = new UIModalStack(this);      // 查询口 = 本类（暴露"谁开着/某层栈顶"两个窄事实）
             Log.Info("UI 壳就绪:层级组 Bottom/Window/Top（策略三件默认实现）", "UI");
         }
 
@@ -292,7 +301,7 @@ namespace LiteGame
             if (outgoing != null && outgoing.IsOpen)
                 CloseFormInternal(outgoing);            // 切换：旧界面在转场收尾后关闭（转场期间被显式关掉则不动）
 
-            RecomputeModalBlocking();                   // 模态射线遮蔽随打开/替换收尾重算（§6.2）
+            _modals.RecomputeBlocking();                  // 模态射线遮蔽随打开/替换收尾重算（§6.2）
 
             Log.Info($"UIForm[{form.Id}] 打开（{group.Name}@{form.Canvas.sortingOrder}，{mode}）", "UI");
             return form;
@@ -462,92 +471,35 @@ namespace LiteGame
             if (!group.Stack.Remove(form)) return;
             group.Stack.Push(form);
             group.RecalculateOrders();
-            RecomputeModalBlocking();                       // 模态射线遮蔽随组内序变化重算（§6.2）
+            _modals.RecomputeBlocking();                       // 模态射线遮蔽随组内序变化重算（§6.2）
         }
 
         /// <summary>查询打开状态（IsOpen = Active/Covered/Paused——对 Lua 语义"界面上没关"）。</summary>
         public bool IsOpen(int formId) => _forms.TryGetValue(formId, out var f) && f.IsOpen;
 
         // ---- 模态栈（§6.2）----
-
-        /// <summary>登记为模态的 formId 集合（装配点/页面代码显式登记；
-        /// 模态栈不是独立记账：**从仍逻辑打开的全部页面推导**（§6.2 遮盖同款纪律），按画布序取最顶）。</summary>
-        private readonly HashSet<int> _modalForms = new HashSet<int>(4);
+        // 模态登记/顶模态推导/射线遮蔽/Back 目标是一套自洽的输入协调子域，已独立为 UIModalStack
+        // （窄查询口注入，本类不把"谁开着"的判据泄漏出去）。以下四行是**转发面**——保持
+        // UIService 的既有公共 API 不变（DialogService/UINavigationController/装配点零改动）。
 
         /// <summary>登记模态（幂等；同 formId 重复登记无副作用）。</summary>
-        public void RegisterModal(int formId) => _modalForms.Add(formId);
+        public void RegisterModal(int formId) => _modals.Register(formId);
 
         /// <summary>取消模态登记（幂等；已打开页面不受影响——只影响后续 Back/遮蔽推导）。</summary>
-        public void UnregisterModal(int formId) => _modalForms.Remove(formId);
+        public void UnregisterModal(int formId) => _modals.Unregister(formId);
 
         /// <summary>当前是否有打开着的模态（输入协调者的组成输入，§6.2"输入由单一协调者综合模态栈…"）。</summary>
-        public bool IsModalOpen => TopModalForm() != null;
+        public bool IsModalOpen => _modals.IsModalOpen;
 
         /// <summary>当前最顶模态（无模态返回 0）。</summary>
-        public int TopModalId => TopModalForm()?.Id ?? 0;
-
-        private UIForm TopModalForm()
-        {
-            UIForm top = null;
-            foreach (var kv in _forms)
-            {
-                var f = kv.Value;
-                if (!f.IsOpen || !_modalForms.Contains(kv.Key)) continue;
-                if (top == null || f.Canvas.sortingOrder > top.Canvas.sortingOrder) top = f;
-            }
-            return top;
-        }
+        public int TopModalId => _modals.TopModalId;
 
         /// <summary>
         /// 返回目标（§6.2 平台返回统一处理）：**最顶模态优先**，无模态时取最高非空层级组的栈顶。
         /// 被出栈拦截的关闭是合法确定结果——这里只给目标，拦截由 <see cref="CloseAsync"/> 走 Back 语义。
         /// </summary>
-        public bool TryGetBackTarget(out int formId)
-        {
-            var modal = TopModalForm();
-            if (modal != null) { formId = modal.Id; return true; }
+        public bool TryGetBackTarget(out int formId) => _modals.TryGetBackTarget(out formId);
 
-            for (int i = _groups.Length - 1; i >= 0; i--)
-            {
-                if (_groups[i].Stack.Count == 0) continue;
-                var top = _groups[i].Stack.Top;
-                if (top != null && top.IsOpen) { formId = top.Id; return true; }
-            }
-            formId = 0;
-            return false;
-        }
-
-        /// <summary>
-        /// 模态射线遮蔽（§6.2"模态有真实射线遮罩；禁用页面交互不等于停止阻挡下层射线"）：
-        /// 顶层模态打开期间，视觉上位于其**下方**的仍打开页面 <c>blocksRaycasts=false</c>——
-        /// 下方页面既不可命中、也不阻挡射线（模态自身的全屏底图是真实遮罩——prefab 内容层）。
-        /// 复位口径：每次重算先把全部仍打开页面恢复 true 再按遮蔽关——与 PrepareForShow 的复位面互补。
-        /// 只写 blocksRaycasts；interactable 归转场锁/暂停的输入协调（职责分离不变）。
-        /// </summary>
-        private void RecomputeModalBlocking()
-        {
-            var top = TopModalForm();
-            foreach (var kv in _forms)
-            {
-                var f = kv.Value;
-                if (!f.IsOpen) continue;
-                f.CanvasGroup.blocksRaycasts = !(top != null && f != top && IsVisuallyBelow(f, top));
-            }
-        }
-
-        /// <summary>视觉层级判下方：更低层级组，或同组内更早打开（栈序在前）。</summary>
-        private bool IsVisuallyBelow(UIForm f, UIForm top)
-        {
-            if (f.Info.Layer != top.Info.Layer) return f.Info.Layer < top.Info.Layer;
-            var open = GetGroup(f.Info.Layer).Stack.Open;
-            int fi = -1, ti = -1;
-            for (int i = 0; i < open.Count; i++)
-            {
-                if (ReferenceEquals(open[i], f)) fi = i;
-                if (ReferenceEquals(open[i], top)) ti = i;
-            }
-            return fi >= 0 && ti >= 0 && fi < ti;
-        }
 
         // ---- 逻辑换表：运行期增量重填（§2.3）----
 
@@ -589,6 +541,22 @@ namespace LiteGame
         }
 
         // ---- 内部 ----
+
+        // ---- UIModalStack.IUIFormQuery：模态栈的窄查询口 ----
+        // 只暴露两个事实（谁仍开着 / 某层已打开栈），不把实例字典与生命周期交出去——
+        // 模态推导因此可独立测试（替身实现本接口即可）。
+
+        void UIModalStack.IUIFormQuery.CollectOpen(List<UIForm> into)
+        {
+            foreach (var kv in _forms)
+                if (kv.Value != null && kv.Value.IsOpen) into.Add(kv.Value);
+        }
+
+        IReadOnlyList<UIForm> UIModalStack.IUIFormQuery.StackOf(int layer)
+            => layer >= 0 && layer < _groups.Length ? _groups[layer].Stack.Open : null;
+
+        int UIModalStack.IUIFormQuery.HighestLayer => _groups.Length - 1;
+
 
         private UILayerGroup GetGroup(int layer)
         {
@@ -676,11 +644,6 @@ namespace LiteGame
         }
 
         /// <summary>
-        /// 落库关闭：EnterClosing → 出栈 → 落池 → 换表 → 重算遮盖 → LRU 记账 → 预算淘汰。
-        /// 由 <see cref="CloseAsync"/>（Pop 转场收尾后）与 Replace 自动关闭旧界面共用。
-        /// 顺序不能反：OnHide 跑完前换表会让界面"一半旧一半新"（§2.3）。
-        /// </summary>
-        /// <summary>
         /// 页面关闭通知：<see cref="CloseFormInternal"/> 是全部关闭路径的单一漏斗
         /// （用户/系统/替换），打开中的页面真正离场时在此广播。消费者（弹窗服务等）据此对
         /// "被外部关闭"的在途等待收口——否则等待任务永久悬挂。
@@ -688,6 +651,11 @@ namespace LiteGame
         /// </summary>
         public event Action<int> FormClosed;
 
+        /// <summary>
+        /// 落库关闭：EnterClosing → 出栈 → 落池 → 换表 → 重算遮盖 → LRU 记账 → 预算淘汰。
+        /// 由 <see cref="CloseAsync"/>（Pop 转场收尾后）与 Replace 自动关闭旧界面共用。
+        /// 顺序不能反：OnHide 跑完前换表会让界面"一半旧一半新"（§2.3）。
+        /// </summary>
         private void CloseFormInternal(UIForm form)
         {
             form.EnterClosing();
@@ -697,7 +665,7 @@ namespace LiteGame
             form.Recycle();
             SwapIfStale(form);
             if (form.Info.FullScreen) RecomputeCovering();
-            RecomputeModalBlocking();                         // 模态射线遮蔽随关闭重算（关掉模态 → 下方恢复可命中）
+            _modals.RecomputeBlocking();                  // 模态射线遮蔽随关闭重算（关掉模态 → 下方恢复可命中）
 
             // per-form 缓存策略（§5.2 U2 表列）：DestroyOnClose 关即销毁（不进池）
             if (form.Info.CacheStrategy == UICacheStrategy.DestroyOnClose)

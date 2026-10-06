@@ -23,6 +23,9 @@ namespace LiteSim.Tests
         private static SimInputFrame[] FireAt(long id, float ax = 1f, float az = 0f)
             => new[] { new SimInputFrame { EntityId = id, AimX = ax, AimZ = az, Buttons = SimInputFrame.ButtonFire } };
 
+        /// <summary>空障碍图（本组只验命中高度/倍率/死亡守卫——不参与障碍遮挡判定）。</summary>
+        private static readonly SimMapData NoObstacles = new SimMapData();
+
         private static int HitValue(SimWorldState world)
         {
             for (int i = 0; i < world.Events.Count; i++)
@@ -44,7 +47,7 @@ namespace LiteSim.Tests
         {
             var (world, shooter, target, _, _) = SpawnPair(shooterY: 0f, targetY: 0f);
 
-            ShootingSystem.Run(world, FireAt(shooter));
+            ShootingSystem.Run(world, NoObstacles, FireAt(shooter));
 
             int hit = HitValue(world);
             Assert.InRange(hit, CombatConfig.BaseDamage - CombatConfig.DamageSpread,
@@ -59,7 +62,7 @@ namespace LiteSim.Tests
             // 射手高台（Y=1）→ 眼高 2.0 ≥ 目标头部带线 1.7 → 爆头
             var (world, shooter, target, _, _) = SpawnPair(shooterY: 1f, targetY: 0f);
 
-            ShootingSystem.Run(world, FireAt(shooter));
+            ShootingSystem.Run(world, NoObstacles, FireAt(shooter));
 
             int hit = HitValue(world);
             int lower = (CombatConfig.BaseDamage - CombatConfig.DamageSpread) << CombatConfig.HeadshotDamageShift;
@@ -75,7 +78,7 @@ namespace LiteSim.Tests
             var (world, shooter, target, shooterSlot, _) = SpawnPair(shooterY: 0f, targetY: 0f);
             world.Entities[shooterSlot].Hp = 0;            // 死亡事实（Hp≤0）
 
-            ShootingSystem.Run(world, FireAt(shooter));
+            ShootingSystem.Run(world, NoObstacles, FireAt(shooter));
 
             Assert.Equal(0, world.Events.Count);
             Assert.Equal(0, world.Cmds.Count);
@@ -86,7 +89,7 @@ namespace LiteSim.Tests
         {
             var (world, shooter, target, _, _) = SpawnPair(shooterY: 0f, targetY: 0f, targetHp: 0);
 
-            ShootingSystem.Run(world, FireAt(shooter));
+            ShootingSystem.Run(world, NoObstacles, FireAt(shooter));
 
             Assert.Equal(1, world.Events.Count);           // 只有 Fire（无 Hit）
             Assert.Equal(FrameEventKind.Fire, world.Events.Items[0].Kind);

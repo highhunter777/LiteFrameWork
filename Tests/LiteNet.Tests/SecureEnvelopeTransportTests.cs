@@ -326,6 +326,10 @@ namespace LiteNet.Tests
             public event Action<int> OnDisconnected;
 
             public void Start(int port) { }
+
+            /// <summary>本类假件不涉及端口回读（装饰器转发语义由 SecureEnvelopeRoomTransport 转发断言覆盖）。</summary>
+            public int BoundPort => -1;
+
             public void TickIncoming() { }
             public void TickOutgoing() { }
             public void SendTo(int connectionId, ArraySegment<byte> data, bool reliable) => Sent.Add(new SentPacket(data, reliable));
@@ -354,9 +358,9 @@ namespace LiteNet.Tests
     [Trait(LiteTesting.TestTrait.Category, LiteTesting.TestCategory.Integration)]
     public sealed class SecureEnvelopeRealTransportTests : IDisposable
     {
-        private const int Port = 28896;
+        private int Port => _host.BoundPort;   // 动态端口：宿主绑定后回读（Start(0) 由系统分配）
         private const string Config = @"{
-            ""port"": 28896, ""max_rooms"": 2, ""audience"": """",
+            ""port"": 0, ""max_rooms"": 2, ""audience"": """",
             ""default_template"": ""two"",
             ""rooms"": { ""two"": { ""expected_players"": 2 } }
         }";

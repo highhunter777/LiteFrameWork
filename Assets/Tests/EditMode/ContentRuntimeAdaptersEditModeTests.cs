@@ -216,8 +216,9 @@ namespace LiteGame.Tests.EditMode
         [Test]
         public void 空间探测_DriveInfo_桌面返回真实余量()
         {
-            // 桌面/Editor 下应能拿到真实可用空间；移动端/不支持时返回 -1（fail-closed）
-            var probe = new DriveInfoSpaceProbe(UnityEngine.Application.persistentDataPath);
+            // 桌面/Editor 下应能拿到真实可用空间；移动端/不支持时返回 -1（fail-closed）。
+            // 走 FileSys 相对路径（IO 唯一入口；绝对路径会被 ValidateRelPath 拒绝）。
+            var probe = new DriveInfoSpaceProbe(ReleaseLayout.CandidateRootRelative);
             long available = probe.GetAvailableBytes();
 
             Assert.IsTrue(available == -1L || available > 0,
@@ -225,10 +226,17 @@ namespace LiteGame.Tests.EditMode
         }
 
         [Test]
-        public void 空间探测_不存在路径_按不可知处理()
+        public void 空间探测_卷不可用_按不可知处理()
         {
-            var probe = new DriveInfoSpaceProbe(@"Z:\definitely\not\here\nor\there");
-            Assert.AreEqual(-1L, probe.GetAvailableBytes());
+            // 探针只报**相对**目录所在卷的余量；"探不到"的正确触发是 DriveInfo 不可用
+            // （平台不支持 / 卷未就绪），而非"目录不存在"——不存在目录仍与 RootPath 同卷，
+            // 返回真实余量才是正确行为（目录会被写入侧自动创建，见 FileSys.WriteProbe）。
+            // 这里断言"绝不抛、且返回值属于 {正数, -1}"这一真实契约。
+            var probe = new DriveInfoSpaceProbe("no_such_dir_yet");
+            long available = probe.GetAvailableBytes();
+
+            Assert.IsTrue(available == -1L || available > 0,
+                $"不存在目录仍应给出同卷余量或不可知，实得 {available}");
         }
 
         [Test]
@@ -237,7 +245,7 @@ namespace LiteGame.Tests.EditMode
             // 生产装配（ContentModule）用的是"DriveInfo → 写探针回退"链：桌面必须给出可用值
             // （精确值或写探针下界），绝不能是 -1——否则空间预检 fail-closed 会让热更链在 Player 上整体不可用
             // （实测 IL2CPP Player 的 DriveInfo 拿不到卷余量）。小上限避免测试期大额写入。
-            var probe = new WriteProbeDiskSpaceProbe(UnityEngine.Application.persistentDataPath,
+            var probe = new WriteProbeDiskSpaceProbe(ReleaseLayout.CandidateRootRelative,
                 probeCapBytes: 8L * 1024 * 1024);
             long available = probe.GetAvailableBytes();
 
@@ -353,7 +361,7 @@ namespace LiteGame.Tests.EditMode
             var coord = new PatchCoordinator(
                 store,
                 new FileSysCandidateFileSource(Root),
-                new DriveInfoSpaceProbe(UnityEngine.Application.persistentDataPath),
+                new DriveInfoSpaceProbe(Root),
                 new LocalDirectoryCandidateFetcher(Root),
                 healthy ? (ICandidateHealthCheck)new AlwaysHealthy() : new CompositeHealthCheck(),   // 空聚合 = 不健康
                 new NoOpActivator(),
@@ -462,7 +470,7 @@ namespace LiteGame.Tests.EditMode
             var coord = new PatchCoordinator(
                 store,
                 new FileSysCandidateFileSource(Root),
-                new DriveInfoSpaceProbe(UnityEngine.Application.persistentDataPath),
+                new DriveInfoSpaceProbe(Root),
                 new LocalDirectoryCandidateFetcher(Root),
                 new AlwaysHealthy(),
                 new NoOpActivator(),
@@ -513,7 +521,7 @@ namespace LiteGame.Tests.EditMode
             var coord = new PatchCoordinator(
                 store,
                 new FileSysCandidateFileSource(Root),
-                new DriveInfoSpaceProbe(UnityEngine.Application.persistentDataPath),
+                new DriveInfoSpaceProbe(Root),
                 new LocalDirectoryCandidateFetcher(Root),
                 new AlwaysHealthy(),
                 new NoOpActivator(),
@@ -562,7 +570,7 @@ namespace LiteGame.Tests.EditMode
             var coord = new PatchCoordinator(
                 store,
                 new FileSysCandidateFileSource(Root),
-                new DriveInfoSpaceProbe(UnityEngine.Application.persistentDataPath),
+                new DriveInfoSpaceProbe(Root),
                 new LocalDirectoryCandidateFetcher(Root),
                 new AlwaysHealthy(),
                 new NoOpActivator(),

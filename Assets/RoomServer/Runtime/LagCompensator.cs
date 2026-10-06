@@ -36,6 +36,7 @@ namespace RoomServer.Runtime
         }
 
         private readonly SimWorldState _auth;
+        private readonly SimMapData _map;
         private readonly SnapshotRing _ring;
         private readonly int _playerCount;
         private readonly int _historyCapacity;
@@ -54,9 +55,10 @@ namespace RoomServer.Runtime
         public long CompensatedCount;
         public long DegradedCount;
 
-        public LagCompensator(SimWorldState auth, int playerCount, SnapshotRing ring)
+        public LagCompensator(SimWorldState auth, in SimMapData map, int playerCount, SnapshotRing ring)
         {
             _auth = auth;
+            _map = map;                                  // 障碍是静态判定数据（回溯窗内逐帧同值——历史帧与当前帧同一份）
             _playerCount = playerCount;
             _ring = ring;                                   // 与 RoomRuntime.SnapshotHistory 同一份（权威循环每帧 Capture）
             _scratch = new SimWorldState();
@@ -121,7 +123,7 @@ namespace RoomServer.Runtime
             ulong rngBefore = _auth.RngState;                // 回溯判定不消费权威随机数（还原时一并回滚）
             ClearFireBuffers();
             _fireInputs[0] = fire;
-            ShootingSystem.Run(_auth, _fireInputs);          // ③ 单系统执行（不 Step）
+            ShootingSystem.Run(_auth, _map, _fireInputs);    // ③ 单系统执行（不 Step）
 
             FrameEventBuffer events = _auth.Events;          // 值类型快照（Items 引用不变）
             CommandBuffer cmds = _auth.Cmds;
@@ -142,7 +144,7 @@ namespace RoomServer.Runtime
         {
             ClearFireBuffers();
             _fireInputs[0] = fire;
-            ShootingSystem.Run(_auth, _fireInputs);
+            ShootingSystem.Run(_auth, _map, _fireInputs);
 
             FrameEventBuffer events = _auth.Events;
             CommandBuffer cmds = _auth.Cmds;

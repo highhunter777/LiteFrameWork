@@ -53,6 +53,12 @@ message SlotDelta {
   // 私有判定输入公共化：开火窗改写 Vel/Yaw（限速+朝准星语境），回滚基线必须携带——否则重放丢窗
   // ⇒ 窗内限速/朝向分叉 ⇒ 逐快照纠偏（橡皮筋/移不动，实测 2026-10-01）。0 = 不在开火态。
   uint32 fire_stance_frames = 19;
+  // ---- 尸体期剩余（**只增字段号**追加；公共面——尸体期是死亡表现的权威载体窗）----
+  // 死亡跨线后逐帧递减、归零即回收槽位（CleanupSystem）。它进公共口径 checksum
+  // （SimChecksum.ComputePublicChecksum），故 wire 必须携带——否则客户端 FromDelta 重建恒为 0，
+  // 权威 checksum 与客户端预测值在尸体期内必不等 ⇒ 每帧假和解 + 重放。
+  // 与 fire_stance_frames 同口径：公共化私有判定输入，保回滚/和解基线可重建。
+  uint32 corpse_frames = 20;
 }
 
 // 比赛状态层（MatchStateSnapshot 层）：room 级、全体可见；随每份快照全量携带（自带收敛，无需差分）

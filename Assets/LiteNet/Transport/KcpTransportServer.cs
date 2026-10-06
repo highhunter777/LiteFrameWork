@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Net;
 using kcp2k;
 
 namespace LiteNet.Transport
@@ -35,6 +36,12 @@ namespace LiteNet.Transport
                 _config);
             _server.Start((ushort)port);
         }
+
+        /// <summary>
+        /// 实际绑定端口（<see cref="Start"/> 后有效）。<c>Start(0)</c> 时是系统分配的真实端口——
+        /// kcp2k 的 <see cref="KcpServer.LocalEndPoint"/> 直接给出，无需自行记录。
+        /// </summary>
+        public int BoundPort => (_server?.LocalEndPoint as IPEndPoint)?.Port ?? -1;
 
         public void TickIncoming() => _server?.TickIncoming();
         public void TickOutgoing() => _server?.TickOutgoing();

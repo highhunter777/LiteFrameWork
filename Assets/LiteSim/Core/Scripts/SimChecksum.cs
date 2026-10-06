@@ -57,23 +57,10 @@ namespace LiteSim
 
             for (int i = 0; i < SimConfig.MaxEntities; i++)
             {
-                ref EntitySlot e = ref s.Entities[i];
-                h = MixInt64(h, e.Id);
-                h = MixFloat(h, e.Pos.X);
-                h = MixFloat(h, e.Pos.Y);
-                h = MixFloat(h, e.Pos.Z);
-                h = MixFloat(h, e.Vel.X);
-                h = MixFloat(h, e.Vel.Y);
-                h = MixFloat(h, e.Vel.Z);
-                h = MixFloat(h, e.Yaw);
-                h = MixInt32(h, e.Hp);
-                h = MixUInt32(h, e.Flags);
-                h = MixInt32(h, e.Shield);
-                h = MixInt32(h, e.Kills);
-                h = MixInt32(h, e.Deaths);
-                h = MixInt32(h, e.SelectedWeapon);
-                h = MixByte(h, e.FireStanceFrames);   // 开火驻留窗（限速+朝准星语境的判定输入，回放重建面——公共口径必含，漏 = 客户端预测与权威分叉不报和解）
-                h = MixByte(h, e.CorpseFrames);       // 尸体期剩余（死亡表现的权威载体窗——公共口径必含，槽位存活期随它变化）
+                // 实体公共面：字段清单不在此手写——由 [StateLayer] 标注生成
+                // （EntitySlot.Sync.g.cs，scripts/codegen/gen-sync-code.ps1）。
+                // 加字段只改 EntitySlot 一处，此处自动跟上（漏改 = 编译期可见）。
+                h = EntitySlot.MixPublic(h, in s.Entities[i]);
 
                 ref ActionRuntime a = ref s.Actions[i * SimConfig.ActionSlotsPerEntity];   // 主动作槽摘要
                 h = MixInt32(h, a.ActionId);
@@ -127,24 +114,9 @@ namespace LiteSim
 
             for (int i = 0; i < SimConfig.MaxEntities; i++)
             {
-                ref EntitySlot e = ref s.Entities[i];
-                h = MixInt64(h, e.Id);
-                h = MixFloat(h, e.Pos.X);
-                h = MixFloat(h, e.Pos.Y);
-                h = MixFloat(h, e.Pos.Z);
-                h = MixFloat(h, e.Vel.X);
-                h = MixFloat(h, e.Vel.Y);
-                h = MixFloat(h, e.Vel.Z);
-                h = MixFloat(h, e.Yaw);
-                h = MixInt32(h, e.Hp);
-                h = MixUInt32(h, e.Flags);
-                h = MixInt32(h, e.Shield);
-                h = MixInt32(h, e.Kills);
-                h = MixInt32(h, e.Deaths);
-                h = MixInt32(h, e.SelectedWeapon);
-                h = MixByte(h, e.FireStanceFrames);   // 开火驻留窗（私有面——改写 Vel 的判定输入，全量口径必含；公共口径不含，见 ComputePublicChecksum）
-                h = MixByte(h, e.CorpseFrames);       // 尸体期剩余（全量口径必含——回放重建的确定性状态）
-                h = MixByte(h, e.FaceExitTurning);    // 离场转向标记（私有面——改写 Yaw 的过渡状态，同上）
+                // 实体槽全量面（公共 + 私有 + 仅内部确定性态）：字段清单由 [StateLayer] 标注生成，
+                // 不在此手写——加字段只改 EntitySlot 一处（见 EntitySlot.Sync.g.cs）。
+                h = EntitySlot.MixFull(h, in s.Entities[i]);
             }
 
             byte[] globals = s.Globals;
@@ -155,47 +127,21 @@ namespace LiteSim
 
             WeaponRuntime[] weapons = s.Weapons;
             for (int i = 0; i < weapons.Length; i++)
-            {
-                ref WeaponRuntime w = ref weapons[i];
-                h = MixInt32(h, w.WeaponDefId);
-                h = MixInt32(h, w.MagAmmo);
-                h = MixInt32(h, w.ReserveAmmo);
-                h = MixInt32(h, w.NextFireFrame);
-                h = MixInt32(h, w.ReloadEndFrame);
-                h = MixInt32(h, w.EquipEndFrame);
-                h = MixByte(h, (byte)w.State);
-                h = MixInt32(h, w.ShotSeq);
-            }
+                h = WeaponRuntime.MixFull(h, in weapons[i]);
 
+            // 运行态数组：字段清单同样由 [StateLayer] 标注生成（见 EntitySlot.Sync.g.cs）。
+            // 加字段只改结构体一处。
             ActionRuntime[] actions = s.Actions;
             for (int i = 0; i < actions.Length; i++)
-            {
-                ref ActionRuntime a = ref actions[i];
-                h = MixInt32(h, a.ActionId);
-                h = MixInt32(h, a.StartFrame);
-                h = MixByte(h, (byte)a.Phase);
-                h = MixInt32(h, a.CastToken);
-                h = MixInt32(h, a.CooldownEnd);
-                h = MixInt32(h, a.Charges);
-            }
+                h = ActionRuntime.MixFull(h, in actions[i], i % SimConfig.ActionSlotsPerEntity);
 
             StatusSlotData[] status = s.Status;
             for (int i = 0; i < status.Length; i++)
-            {
-                ref StatusSlotData st = ref status[i];
-                h = MixInt32(h, st.EffectId);
-                h = MixInt32(h, st.EndFrame);
-                h = MixInt32(h, st.Param);
-            }
+                h = StatusSlotData.MixFull(h, in status[i]);
 
             MatchBagSlot[] bag = s.MatchBag;
             for (int i = 0; i < bag.Length; i++)
-            {
-                ref MatchBagSlot b = ref bag[i];
-                h = MixInt32(h, b.ItemDefId);
-                h = MixInt32(h, b.Count);
-                h = MixInt32(h, b.QuickSlot);
-            }
+                h = MatchBagSlot.MixFull(h, in bag[i]);
 
             int[] resources = s.Resources;
             for (int i = 0; i < resources.Length; i++) h = MixInt32(h, resources[i]);
@@ -236,7 +182,7 @@ namespace LiteSim
         }
 
         /// <summary>Match 混合段（全量与公共口径共用——公共面含 Match，字段清单单源）。</summary>
-        private static uint MixMatchState(uint h, in MatchStateData m)
+        internal static uint MixMatchState(uint h, in MatchStateData m)
         {
             h = MixInt32(h, m.Phase);
             h = MixInt32(h, m.Team);
@@ -249,12 +195,12 @@ namespace LiteSim
 
         // ---- FNV-1a 逐字节混合（浮点经位型逐位确定，非容差） ----
 
-        private static uint MixByte(uint h, byte b)
+        internal static uint MixByte(uint h, byte b)
         {
             return (h ^ b) * FnvPrime;
         }
 
-        private static uint MixUInt32(uint h, uint v)
+        internal static uint MixUInt32(uint h, uint v)
         {
             h = MixByte(h, (byte)(v & 0xFFu));
             h = MixByte(h, (byte)((v >> 8) & 0xFFu));
@@ -263,24 +209,24 @@ namespace LiteSim
             return h;
         }
 
-        private static uint MixInt32(uint h, int v)
+        internal static uint MixInt32(uint h, int v)
         {
             return MixUInt32(h, (uint)v);
         }
 
-        private static uint MixInt64(uint h, long v)
+        internal static uint MixInt64(uint h, long v)
         {
             return MixUInt64(h, (ulong)v);
         }
 
-        private static uint MixUInt64(uint h, ulong v)
+        internal static uint MixUInt64(uint h, ulong v)
         {
             h = MixUInt32(h, (uint)(v & 0xFFFFFFFFu));
             h = MixUInt32(h, (uint)(v >> 32));
             return h;
         }
 
-        private static uint MixFloat(uint h, float v)
+        internal static uint MixFloat(uint h, float v)
         {
             // 位型哈希：跨运行时逐位一致
             return MixUInt32(h, (uint)BitConverter.SingleToInt32Bits(v));

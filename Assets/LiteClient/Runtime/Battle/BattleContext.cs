@@ -48,6 +48,10 @@ namespace LiteClient
         /// <summary>本地预测/和解 Sim（StartGame 后可用；null = 对局尚未建立）。</summary>
         public RollbackSim Sim => _sim;
 
+        /// <summary>判定用地图（两端单源 <see cref="SimMapData.StandardBattleMap"/>；表现消费者读它——
+        /// 瞄准激光的障碍射线等 View 侧判定共享同一份，不另建第二事实源）。</summary>
+        public SimMapData Map => _map;
+
         /// <summary>最近一次收到的快照帧号（视点帧推导来源——SimView 消费）。</summary>
         public int LastSnapshotFrame => _battle.Client.LastSnapshotFrame;
 
@@ -134,7 +138,7 @@ namespace LiteClient
         /// </summary>
         public void AttachInput(IInputService provider) => _input = provider;
 
-        /// <summary>本地玩家**预测**位置（输入瞄准的参照原点——不读视图 Transform，避免平滑误差回灌输入）。
+        /// <summary>本地玩家**预测**位置（诊断/瞄准原点族——不读视图 Transform，避免平滑误差回灌输入）。
         /// 未对齐/未开局时返回原点。</summary>
         public SimVector3 LocalPosition
         {
@@ -142,6 +146,20 @@ namespace LiteClient
             {
                 if (_sim == null || _localEntityId == 0) return default;
                 return _sim.State.TryResolve(_localEntityId, out int slot) ? _sim.State.Entities[slot].Pos : default;
+            }
+        }
+
+        /// <summary>本地玩家**逻辑枪口**（输入瞄准的参照原点——子弹从枪口射向准心点 ⇒ 射线过准心正上方；
+        /// 由 Sim 预测态派生（Pos+Yaw 经 <see cref="LiteSim.CombatConfig.MuzzleOrigin"/> 单源），
+        /// 与服务器权威枪口同式——不读视图 Transform。未对齐/未开局时返回原点。</summary>
+        public SimVector3 LocalMuzzlePosition
+        {
+            get
+            {
+                if (_sim == null || _localEntityId == 0) return default;
+                if (!_sim.State.TryResolve(_localEntityId, out int slot)) return default;
+                ref EntitySlot e = ref _sim.State.Entities[slot];
+                return LiteSim.CombatConfig.MuzzleOrigin(e.Pos, e.Yaw);
             }
         }
 

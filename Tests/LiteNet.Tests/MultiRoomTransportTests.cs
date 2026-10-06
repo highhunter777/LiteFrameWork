@@ -26,9 +26,9 @@ namespace LiteNet.Tests
     [Trait(TestTrait.Category, TestCategory.Integration)]
     public sealed class MultiRoomTransportTests : IDisposable
     {
-        private const int Port = 28881;
+        private int Port => _host.BoundPort;   // 动态端口：宿主绑定后回读（Start(0) 由系统分配）
         private const string Config = @"{
-            ""port"": 28881, ""max_rooms"": 4, ""audience"": """",
+            ""port"": 0, ""max_rooms"": 4, ""audience"": """",
             ""default_template"": ""two"",
             ""rooms"": { ""two"": { ""expected_players"": 2 } }
         }";

@@ -67,7 +67,9 @@ namespace LiteGame
             var coordinator = new PatchCoordinator(
                 context.Require<ActivationTransactionStore>(),
                 candidateFiles,
-                new WriteProbeDiskSpaceProbe(UnityEngine.Application.persistentDataPath),
+                // 空间预检探**内容将写入的卷**——候选根即写入目标（FileSys 相对路径，
+                // 卷归属与 RootPath 同卷：RootPath = Application.persistentDataPath）。
+                new WriteProbeDiskSpaceProbe(candidateRoot),
                 fetcher,
                 new CompositeHealthCheck(
                     new CandidateConfigHealthProbe(candidateRoot, ReleaseLayout.ConfigPaths),

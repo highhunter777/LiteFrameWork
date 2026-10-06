@@ -132,3 +132,16 @@ MonoBehaviour:
         FilterRuleName: CollectAll
         AssetTags: 
         UserData: 
+    - GroupName: FX
+      GroupDesc: "\u6218\u6597\u7279\u6548\uFF08fx_*\uFF0C\u53EA\u6536\u96C6\u5B9E\u9645\u7528\u5230\u7684\u2014\u2014\u7981\u6574\u76EE\u5F55\u6536\u96C6\u7B2C\u4E09\u65B9\u5305\uFF09"
+      AssetTags: 
+      ActiveRuleName: EnableGroup
+      Collectors:
+      - CollectPath: Assets/FX
+        CollectorGUID: 5155224002b933e48b649ead227673de
+        CollectorType: 0
+        AddressRuleName: AddressByFileName
+        PackRuleName: PackDirectory
+        FilterRuleName: CollectAll
+        AssetTags: 
+        UserData: 

@@ -1,4 +1,6 @@
 using System;
+using System.Collections.Generic;
+using System.Reflection;
 using LiteNet.Protocol;
 using LiteSim;
 using Xunit;
@@ -21,6 +23,8 @@ namespace LiteNet.Tests
             s.Entities[slot0].Deaths = 1;
             s.Entities[slot0].SelectedWeapon = 1;
             s.Entities[slot1].FireStanceFrames = (byte)CombatConfig.FireStanceFrames;   // 开火驻留窗往返覆盖（公共面——回滚基线重建面）
+            s.Entities[slot1].CorpseFrames = (byte)CombatConfig.CorpseFrames;           // 尸体期往返覆盖（corpse_frames=20——
+            // 公共面且**进公共口径 checksum**：wire 缺失 ⇒ 客户端重建恒 0 ⇒ 尸体期内每帧假和解）
             s.Actions[slot0 * SimConfig.ActionSlotsPerEntity] = new ActionRuntime
             {
                 ActionId = 301, StartFrame = 120, Phase = ActionPhase.Active, CastToken = 7,
@@ -58,6 +62,7 @@ namespace LiteNet.Tests
                 Assert.Equal(e.Deaths, back.Deaths);
                 Assert.Equal(e.SelectedWeapon, back.SelectedWeapon);
                 Assert.Equal(e.FireStanceFrames, back.FireStanceFrames);   // 开火驻留窗（公共面往返）
+                Assert.Equal(e.CorpseFrames, back.CorpseFrames);           // 尸体期（公共面往返——公共口径 checksum 覆盖它）
 
                 // 主动作摘要（公共面——技能槽冷却/充能不在此，那是私有面）
                 ActionRuntime action = SnapshotCodec.ActiveActionFromDelta(wire);
@@ -90,6 +95,110 @@ namespace LiteNet.Tests
             Assert.Equal(1, msg.Match.Phase);
             Assert.Equal(10800, msg.Match.Timer);
             Assert.Equal(1, msg.Match.Round);
+        }
+
+        /// <summary>
+        /// **公共面字段全覆盖的 wire 往返守卫**（反射驱动，不逐字段手写）。
+        ///
+        /// 上面那条用例是逐字段断言的——**加字段忘了同步 codec 时它不会红**
+        /// （没有对应断言）。CorpseFrames 当初正是这样漏掉的：公共 checksum 覆盖它、
+        /// <c>SlotDelta</c> 却没有该字段，客户端重建恒 0 ⇒ 尸体期内每帧假和解。
+        ///
+        /// 本用例遍历 <see cref="EntitySlot"/> 上所有标注为 Public 的字段，
+        /// 逐个扰动后经 ToDelta→FromDelta 往返，断言值必须原样回来。
+        /// 新增公共面字段若漏改 codec，这里立刻失败。
+        /// </summary>
+        [Fact]
+        public void 公共面字段_逐字段wire往返_漏同步codec即红()
+        {
+            const BindingFlags Instance = BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic;
+            var checkedFields = new List<string>();
+
+            foreach (FieldInfo f in typeof(EntitySlot).GetFields(Instance))
+            {
+                if (f.GetCustomAttribute<StateLayerAttribute>()?.Layer != StateLayer.Public) continue;
+                if (!f.FieldType.IsValueType) continue;
+                checkedFields.Add(f.Name);
+
+                var world = new SimWorldState();
+                world.Spawn(new EntitySlot
+                {
+                    Hp = 100, Pos = new SimVector3(1f, 2f, 3f), Vel = new SimVector3(0.5f, 0f, -0.5f),
+                    Yaw = 0.25f, Flags = 3u, Shield = 10, Kills = 2, Deaths = 1,
+                    SelectedWeapon = 1, FireStanceFrames = 30, CorpseFrames = 12,
+                }, out int slot);
+
+                // 扰动该字段（值必须非默认，否则往返"零到零"会假绿）
+                object boxed = world.Entities[slot];
+                f.SetValue(boxed, Nudged(f, f.GetValue(boxed)));
+                world.Entities[slot] = (EntitySlot)boxed;
+
+                ref EntitySlot e = ref world.Entities[slot];
+                ref ActionRuntime active = ref world.Actions[slot * SimConfig.ActionSlotsPerEntity];
+                Proto.SlotDelta wire = SnapshotCodec.ToDelta(slot, in e, in active);
+                SnapshotCodec.FromDelta(wire, out _, out EntitySlot back);
+
+                object before = f.GetValue(e);
+                object after = f.GetValue(back);
+                Assert.True(SameValue(f.FieldType, before, after),
+                    $"公共面字段 {f.Name} 经 wire 往返后值变了（{before} -> {after}）——"
+                    + "SlotDelta/ToDelta/FromDelta 漏了它，客户端重建会恒为默认值");
+            }
+
+            Assert.True(checkedFields.Count >= 12, $"公共面字段数异常（{checkedFields.Count}）——标注体系可能被破坏");
+        }
+
+        private static bool SameValue(Type t, object a, object b)
+        {
+            if (t.Name == "SimVector3")
+            {
+                var va = (SimVector3)a; var vb = (SimVector3)b;
+                return Bits(va.X) == Bits(vb.X) && Bits(va.Y) == Bits(vb.Y) && Bits(va.Z) == Bits(vb.Z);
+            }
+            if (t == typeof(float)) return Bits((float)a) == Bits((float)b);
+            return Equals(a, b);
+        }
+
+        private static int Bits(float v) => BitConverter.SingleToInt32Bits(v);
+
+        private static object Nudged(FieldInfo f, object current)
+        {
+            switch (current)
+            {
+                case long v: return v + 1000L;
+                case int v: return v + 1000;
+                case uint v: return v + 1000u;
+                case byte v: return (byte)(v + 7);
+                case float v: return v + 1.25f;
+                case SimVector3 v: return new SimVector3(v.X + 1f, v.Y + 1f, v.Z + 1f);
+                default: throw new InvalidOperationException("未覆盖的字段类型：" + f.FieldType.Name);
+            }
+        }
+
+        [Fact]
+        public void 尸体期_经wire往返后公共口径checksum不变_否则尸体期内每帧假和解()
+        {
+            // 回归用例：corpse_frames 未进 wire 时，客户端 FromDelta 重建的 CorpseFrames 恒 0，
+            // 而 ComputePublicChecksum 混入该字段 ⇒ 尸体期 180 帧内权威 checksum 与本地预测值
+            // 结构性不等 ⇒ RollbackSim.OnAuthoritativeSnapshot 每帧判为不符 → 假和解 + 重放。
+            var s = BuildWorld();
+            s.Frame = 7;                                       // 公共口径 checksum 含 Frame——两端须同帧号
+            int dead = 0;
+            s.Entities[dead].Hp = 0;
+            s.Entities[dead].CorpseFrames = (byte)CombatConfig.CorpseFrames;   // 死亡帧置满（DamageSystem 同点）
+
+            Proto.StateSnapshot msg = SnapshotCodec.PackFull(frame: s.Frame, s: s, ackInput: 6);
+            var mirror = new SimWorldState();
+            SnapshotReassembler.Apply(msg, mirror, out uint authoritativeChecksum);
+
+            // 镜像必须真带上尸体期（否则下面两条 checksum 等式会靠"两端都是 0"侥幸成立，
+            // 测不出 wire 缺字段——这正是原缺陷的伪装形态）
+            Assert.Equal((byte)CombatConfig.CorpseFrames, mirror.Entities[dead].CorpseFrames);
+            Assert.True(mirror.IsAlive(dead));   // 尸体期未满：死者仍占槽位（期内零交互，期满才回收）
+
+            // 和解锚点的真实判据：本地预测态与权威镜像的公共口径 checksum 必须相等
+            Assert.Equal(SimChecksum.ComputePublicChecksum(s), authoritativeChecksum);
+            Assert.Equal(SimChecksum.ComputePublicChecksum(mirror), authoritativeChecksum);
         }
 
         [Fact]

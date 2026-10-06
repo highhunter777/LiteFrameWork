@@ -46,10 +46,14 @@ namespace RoomServer
         /// 入站合法包 = 冗余输入（4 帧 × ~50B）或 Join/重连信令，远小于此；超限按恶意包丢弃计数。</summary>
         public const int MaxInboundPacketBytes = 4096;
 
-        /// <summary>Join 字段 UTF-8 字节上限（P0-3：所有字符串限制 UTF-8 字节数——防超长串打爆日志/内存）。</summary>
-        public const int MaxRoomIdBytes = 64;
-        public const int MaxTokenBytes = 256;
-        public const int MaxBuildHashBytes = 128;
+        /// <summary>
+        /// Join 字段 UTF-8 字节上限（P0-3：所有字符串限制 UTF-8 字节数——防超长串打爆日志/内存）。
+        /// **权威已迁至 <see cref="JoinAdmissionGate"/>**（同值）——此处保留为公开常量仅供既有调用方/测试
+        /// 引用；新代码读准入门那份，避免两处漂移。
+        /// </summary>
+        public const int MaxRoomIdBytes = JoinAdmissionGate.MaxRoomIdBytes;
+        public const int MaxTokenBytes = JoinAdmissionGate.MaxTokenBytes;
+        public const int MaxBuildHashBytes = JoinAdmissionGate.MaxBuildHashBytes;
 
         private readonly IRoomTransport _transport;   // 窄端口（可替换性）
         private readonly SessionManager _sessions;
@@ -76,6 +80,13 @@ namespace RoomServer
 
         /// <summary>本服受众标识（票据 audience 比对；空 = 不做受众校验）。由装配方传入——本层不依赖 Meta 配置。</summary>
         private readonly string _audience;
+
+        /// <summary>
+        /// 入站准入门（§P0-6 判定链：频率/字段边界/token/版本/票据/账号频率）。
+        /// 独立于宿主——它是"消耗权威资源之前"的纯判定，抽出后可独立测（不必经建房路径）。
+        /// 排空红线**不在**门内：那是宿主状态（§12 第 2 步），由 <c>HandleJoin</c> 自行裁决。
+        /// </summary>
+        private readonly JoinAdmissionGate _admission;
 
         /// <summary>票据拒绝分类计数（OPS 输出；索引 = <see cref="JoinTicketRejection"/> 值）。</summary>
         private readonly int[] _ticketRejections = new int[16];
@@ -170,6 +181,14 @@ namespace RoomServer
         {
             get { return _serverConfig?.MaxRooms ?? 1; }
         }
+
+        /// <summary>
+        /// 实际监听端口（<see cref="Start"/> 之后有效；未启动 -1）。
+        /// 配置 <c>Port = 0</c> 时由系统分配空闲端口，客户端据此连接——
+        /// **测试与同机多实例必须走这条**：固定端口会与同机其他软件冲突
+        /// （实测本机 aTrustXtunnel 占 7777/7778，曾致传输用例偶发 Bind 失败）。
+        /// </summary>
+        public int BoundPort => _transport.BoundPort;
         /// <summary>命令输出复用缓冲与输入批量复用缓冲（热路径零分配）。</summary>
         private readonly List<RoomOutput> _outputs = new List<RoomOutput>();
         private readonly SimInputFrame[] _batchFrames = new SimInputFrame[ClientInputBatch.MaxFrames];
@@ -279,6 +298,9 @@ namespace RoomServer
             _audience = audience ?? _serverConfig?.Audience ?? string.Empty;
             _settlementOutbox = settlementOutbox;
             _rateLimit = rateLimiter ?? new RateLimiter(_serverConfig?.RateLimit ?? RateLimitSettings.Default);
+            // 准入门在限流器就位**之后**构造（它持限流器引用）——顺序不能颠倒。
+            _admission = new JoinAdmissionGate(_tickets, _rateLimit,
+                new TransportRemoteAddress(transport), ServerBuildHash, _audience);
             _workerPool = workerPool ?? (_serverConfig != null
                 ? new RoomWorkerPool(_serverConfig.WorkerCount, _serverConfig.MailboxCapacity, OnWorkerFailure)
                 : null);
@@ -581,32 +603,22 @@ namespace RoomServer
         {
             if (session.PlayerId >= 0 || session.JoinPending) return;         // 重复/排队中的 Join 忽略
 
-            // 分层限流·IP 维度·入场：先于验签与建房——频率校验在昂贵操作之前。
-            // 地址探测不到 → 放行；被限走统一 Reject（计数 + 日志，不回 JoinAck）。
-            if (!_rateLimit.TryAcquireIpEntry(_transport.GetRemoteAddress(session.ConnectionId), _nowMs))
+            // 准入链（IP 频率 → 字段边界 → token → 版本 → 票据 → 账号频率）已独立为
+            // JoinAdmissionGate：它是"消耗权威资源之前"的纯判定，不建房/不入队/不写 Session。
+            // 排空红线留在宿主——它是**宿主状态**（§12 第 2 步"停止接受新进房"），不属于准入判据。
+            //
+            // 排空红线放在字段边界**之后**（原注释口径保留）：超长包已由入站层按 PacketRejects
+            // 归类，不该在排空计数里再记一次。
+            var decision = _admission.Evaluate(in join, session.ConnectionId, _nowMs);
+            if (!decision.Admitted)
             {
-                RejectJoin(session, in join, DiagStage.Room, DiagCode.JoinRejectedAdmission, "IP 入场频率超限");
+                // 票据拒绝带分类计数（Ops 周期行）；其余拒绝只进通用 Rejects。
+                if (decision.TicketRejection.HasValue) CountTicketRejection(decision.TicketRejection.Value);
+                if (_draining && decision.Code == DiagCode.JoinRejectedAdmission) _ops.RejectsWhileDraining++;
+                RejectJoin(session, in join, decision.Stage, decision.Code, decision.Reason);
                 return;
             }
 
-            // P0-3 字符串边界：UTF-8 字节数上限（先于一切语义；拒绝日志不回显字段内容）
-            if (OverByteLimit(join.RoomId, MaxRoomIdBytes)
-                || OverByteLimit(join.Token, MaxTokenBytes)
-                || OverByteLimit(join.BuildHash, MaxBuildHashBytes))
-            {
-                RejectJoin(session, in join, DiagStage.Room, DiagCode.JoinRejectedAdmission, "Join 字段超长");
-                return;
-            }
-
-            if (string.IsNullOrEmpty(join.Token))                            // token 红线：空即拒绝
-            {
-                RejectJoin(session, in join, DiagStage.Room, DiagCode.JoinRejectedAdmission, "token 缺失");
-                return;
-            }
-
-            // 排空红线（§12 第 2 步"停止接受新 Join"）：置位后**任何**新进房都拒，含已在册房间。
-            // 既有对局的输入/重连不受影响（各自走 HandleInput / HandleReconnect）。
-            // 放在字段边界之后：超长包已按 PacketRejects 归类，不该在排空计数里再记一次。
             if (_draining)
             {
                 _ops.RejectsWhileDraining++;      // Rejects 由 Reject() 记，此处只记排空专属分类
@@ -614,15 +626,7 @@ namespace RoomServer
                 return;
             }
 
-            if (join.BuildHash != ServerBuildHash)                           // 版本红线：Sim/协议版本比对不符拒绝进房
-            {
-                // 版本红线：**Build 段**拒绝——记录带两端哈希对照，与客户端进房记录同键（全链诊断样例的注入点）
-                RejectJoin(session, in join, DiagStage.Build, DiagCode.JoinRejectedBuildHash,
-                    $"buildHash 不符：{join.BuildHash} != {ServerBuildHash}");
-                return;
-            }
-
-            // 已存在房间在票据验签前先做控制 lane admission 检查，避免队列满时消费
+            // 已存在房间在入队前先做控制 lane admission 检查，避免队列满时消费
             // 一次性 Join nonce。新房间尚不存在，创建后 mailbox 为空，不会落入满拒分支。
             RoomInstance existingRoom = GetRoomInstance(join.RoomId);
             if (_mailboxRouting && existingRoom != null
@@ -635,38 +639,7 @@ namespace RoomServer
                 return;
             }
 
-            // 票据验证（§P0-6）：装配了验证器就**逐一验签**——非空不再构成准入理由。
-            // 未装配（null）时保留原型行为；生产装配必须传入验证器。
-            //
-            // **顺序：票据先于建房**。动态建房下若先建房再验票，任何人拿垃圾 token 打不同 roomId
-            // 就能把房间表撑到容量上限（拒绝服务）。故票据的 roomId 绑定在**建房之前**比对。
-            JoinPrincipal previousPrincipal = session.Principal;
-            string previousBuildHash = session.BuildHash;
-            JoinPrincipal validatedPrincipal = null;
-            if (_tickets != null)
-            {
-                JoinPrincipal principal = _tickets.Validate(join.Token, new JoinContext(
-                    join.RoomId, ServerBuildHash, _audience, _nowMs));
-                if (principal == null || !principal.IsValid)
-                {
-                    JoinTicketRejection reason = principal == null
-                        ? JoinTicketRejection.Malformed
-                        : principal.Rejection;
-                    CountTicketRejection(reason);
-                    // 拒绝原因只打分类，**不打票据原文与字段值**（Meta 专项 §13.1 禁写 token/票据）
-                    RejectJoin(session, in join, DiagStage.Room, DiagCode.JoinRejectedTicket, $"票据拒绝：{reason}");
-                    return;
-                }
-                validatedPrincipal = principal;
-
-                // 分层限流·账号维度·入场：验签通过后才有 AccountId 可比对（验签前拿不到账号）。
-                // 注意 nonce 已在验签中消费——此处被限即该票据作废（合法客户端远够余量，见 RateLimitSettings.Default）。
-                if (!_rateLimit.TryAcquireAccountEntry(principal.AccountId, _nowMs))
-                {
-                    RejectJoin(session, in join, DiagStage.Room, DiagCode.JoinRejectedAdmission, "账号入场频率超限");
-                    return;
-                }
-            }
+            JoinPrincipal validatedPrincipal = decision.Principal;
 
             // 房间解析/创建（§6"一个 roomId 只能映射一个独立 RoomActor"；重复 roomId 复用既有房间）
             RoomInstance room = existingRoom;
@@ -696,6 +669,8 @@ namespace RoomServer
                 return;
             }
 
+            JoinPrincipal previousPrincipal = session.Principal;
+            string previousBuildHash = session.BuildHash;
             session.JoinPending = true;
             // 先完成队列准入，再写入可变 Session 身份字段；控制队列满不会吞票据/占房。
             if (!TrySubmitCommandTo(room, command, joinContext: session))
@@ -1800,12 +1775,6 @@ namespace RoomServer
                     break;
                 }
             }
-        }
-
-        /// <summary>字符串 UTF-8 字节数超限判定（P0-3：空串由各语义检查自理，此处只挡超长）。</summary>
-        private static bool OverByteLimit(string value, int maxBytes)
-        {
-            return value != null && System.Text.Encoding.UTF8.GetByteCount(value) > maxBytes;
         }
 
         /// <summary>

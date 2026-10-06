@@ -10,7 +10,19 @@ namespace LiteNet.Transport
     /// </summary>
     public interface IRoomTransport : IDisposable
     {
+        /// <summary>
+        /// 绑定并启动监听。<paramref name="port"/> = 0 时由**系统分配空闲端口**，
+        /// 实际端口经 <see cref="BoundPort"/> 回读——测试与多实例并行必须走这条（固定端口
+        /// 会与同机其他软件冲突：实测本机 aTrustXtunnel 占 7777/7778 曾致测试偶发失败）。
+        /// </summary>
         void Start(int port);
+
+        /// <summary>
+        /// 实际绑定的端口（<see cref="Start"/> 之后有效；未启动/假件返回 -1）。
+        /// 与 <c>Start(0)</c> 配合即"系统分配 + 回读"，调用方据此连接。
+        /// </summary>
+        int BoundPort { get; }
+
         void TickIncoming();
         void TickOutgoing();
 

@@ -52,6 +52,10 @@ namespace LiteGame
         private const string HipName = "Hip";
         private const string AdsName = "Ads";
 
+        /// <summary>瞄准激光束 prefab（内容包路径：Assets/FX 归置副本 fx_lazer_sight——KriptoFX Lazer 单源）。
+        /// 加载失败/缺 LineRenderer → 静默降级（warn 一次，无激光不失败——同准心 HUD 缺失口径）。</summary>
+        private const string LaserSightPrefab = "Assets/FX/fx_lazer_sight.prefab";
+
         private readonly IContentService _content;
         private readonly IVFXService _vfx;
         private readonly IInputService _input;       // 输入服务
@@ -65,6 +69,9 @@ namespace LiteGame
         private SimView _view;
         private CharacterLocomotionDriver _locomotion;   // 移动动画驱动（视图的消费者——先于视图拆除）
         private BattleCrosshairDriver _crosshair;       // 对局准心（战斗 HUD 第一件——场景 /Battle HUD，见 AttachCrosshair）
+        private BattleLaserDriver _laser;               // 瞄准激光（准心的世界空间兄弟件——开火射线的可见投影）
+        private GameObject _laserBeam;                 // 激光束实例（挂 _viewRoot，随离场拆；驱动只管显隐/端点）
+        private AssetLease<GameObject> _laserLease;    // 激光束 prefab 租约（登记进 _viewScope，随作用域归还）
         private Func<Vector3?> _aimPointOf;             // 瞄准点来源（世界坐标；null = 无设备形态——相机保持场景构图）
         private Transform _viewRoot;
         private GameObject _viewRootGo;
@@ -117,6 +124,7 @@ namespace LiteGame
                 if (Application.isPlaying) UnityEngine.Object.DontDestroyOnLoad(_viewRootGo);
                 _viewRoot = _viewRootGo.transform;
                 await AcquireEntityPrefabAsync(ct);
+                await AcquireLaserSightAsync(ct);
 
                 _context = new BattleContext(battleClient, _account);
                 UnityEngine.Debug.Log("[Battle] context-created (Match Scope built)");
@@ -201,6 +209,53 @@ namespace LiteGame
         }
 
         /// <summary>
+        /// 取瞄准激光束 prefab 并实例化（经内容服务租约，登记进视图作用域；实例挂 _viewRoot 随离场拆）。
+        /// 资源缺失/加载失败 → **静默降级**（只警告）：激光是表现增益，不把"缺特效资产"当对局失败
+        /// （同角色 prefab 灰盒/准心 HUD 缺失口径）。
+        /// </summary>
+        private async UniTask AcquireLaserSightAsync(CancellationToken ct)
+        {
+            try
+            {
+                _laserLease = await _content.AcquireAsync<GameObject>(LaserSightPrefab, ct: ct);
+                _viewScope.Register(_laserLease);
+                _laserBeam = UnityEngine.Object.Instantiate(_laserLease.Asset, _viewRoot);
+                _laserBeam.name = "LaserSight";
+                _laserBeam.SetActive(false);
+            }
+            catch (Exception ex) when (!(ex is OperationCanceledException))
+            {
+                UnityEngine.Debug.LogWarning($"[Battle] 激光束 prefab 缺失/加载失败，瞄准激光降级:{LaserSightPrefab}（{ex.Message}）");
+                _laserLease = null;
+                _laserBeam = null;
+            }
+        }
+
+        /// <summary>
+        /// 挂瞄准激光（<see cref="BattleLaserDriver"/>——端点判定与显隐归驱动；本方法只装配）。
+        /// 束实例缺 <see cref="UnityEngine.LineRenderer"/>（资产被改）或 Sim 未建（装配序理论不达——
+        /// <see cref="AttachView"/> 在 StartGame 之后）→ 警告并降级，不失败。
+        /// </summary>
+        private void AttachLaserSight()
+        {
+            if (_laserBeam == null) return;                      // 资产缺失已在取件处降级（警告过）
+            if (_context.Sim == null)
+            {
+                UnityEngine.Debug.LogWarning("[Battle] Sim 未建——瞄准激光本局降级（AttachView 早于 StartGame 的装配序）");
+                return;
+            }
+            var line = _laserBeam.GetComponent<UnityEngine.LineRenderer>();
+            if (line == null)
+            {
+                UnityEngine.Debug.LogWarning($"[Battle] 激光束 prefab 缺 LineRenderer——瞄准激光降级:{LaserSightPrefab}");
+                return;
+            }
+            _laser = new BattleLaserDriver(_view, _input, _context.Sim, _context.Map, line,
+                aimPointOf: _aimPointOf);                       // 瞄准地面点注入（准心同源——端点压准心）
+            UnityEngine.Debug.Log("[Battle] laser-attached");
+        }
+
+        /// <summary>
         /// 相机是否真的就绪（"有服务"不等于"接上了 vcam"——服务常驻，vcam 随场景）。
         /// **按需解析**：此刻视图还没建立、<see cref="ICameraService.Follow"/> 一次都没调过，
         /// 光读状态必然是"未接线"，所以这里主动让适配器再解析一次（场景可能刚被 Main 切到训练场）。
@@ -232,7 +287,8 @@ namespace LiteGame
             _locomotion = new CharacterLocomotionDriver(_view);   // 移动动画：视图速度 → 播放器 → Animator 后端（§7 更新次序的 Driver 段）
 
             AttachCrosshair();                                  // 对局准心（HUD 第一件——视图/输入均已就绪，场景对象按名解析）
-            _aimPointOf = AimPointOf(_input);                   // 瞄准点（世界）→ 相机瞄准构图 z 偏移曲线
+            _aimPointOf = AimPointOf(_input);                   // 瞄准点（世界）→ 相机构图 z 偏移曲线 + 激光收敛端点（准心同源）
+            AttachLaserSight();                                 // 瞄准激光（束实例已取，接线驱动——端点直落准心标记的地面点）
             AttachInput();
             UnityEngine.Debug.Log($"[Battle] view-attached prefab={EntityPrefab}");
         }
@@ -355,6 +411,10 @@ namespace LiteGame
             _locomotion = null;
             _crosshair?.Dispose();                // 准心驱动（还系统光标——同属视图消费者，先于视图本体拆）
             _crosshair = null;
+            _laser?.Dispose();                    // 激光驱动（束实例随 _viewRoot 销毁；租约随 _viewScope.Dispose 归还）
+            _laser = null;
+            _laserBeam = null;
+            _laserLease = null;
             _aimPointOf = null;                   // 瞄准点来源随本局设备源一起摘（方法组不跨局持有）
             _camera?.SetAiming(false);            // 瞄准机还原（优先级/Follow 归还场景值——离场不得遗留接管态）
             _context?.AttachInput(null);
@@ -390,15 +450,18 @@ namespace LiteGame
 #endif
 
             // ① 渲染帧采样（上下文门在此裁决：登记源任一成立 → 本帧输入为空，见 IInputService）。
-            //    瞄准参照原点取自 Sim 预测态——不读视图 Transform（平滑过的表现量会把误差回灌输入）。
+            //    瞄准参照原点 = **逻辑枪口**（Sim 预测态派生：Pos+Yaw 经 CombatConfig.MuzzleOrigin 单源——
+            //    不读视图 Transform，平滑量不回灌输入）——瞄准向量 = 枪口 → 准心地面点方向，
+            //    子弹（权威枪口同式出射）**过准心正上方**，消除本体锚点与枪口出射的平行差。
             //    瞄准相机：ADS 视角由 SetAiming 每帧喂本地预测态瞄准位，适配器抬场景 /Aim Camera
             //    优先级接管，跟随目标与主相机同源，不引用预制体参考点。
             if (_input != null && _context.Sim != null)
-                _input.SampleOnRenderFrame(_context.LocalPosition);
+                _input.SampleOnRenderFrame(_context.LocalMuzzlePosition);
 
             _context.Tick(elapseSeconds);         // ② 网络双泵 + 输入上行 + 预测推进 + 表现视图（唯一驱动入口）
             _locomotion?.Tick(elapseSeconds);    // 移动动画：视图位置已更新，再解析目标姿态（视图的下游消费者）
             _crosshair?.Tick();                  // 对局准心（HUD）：位置/形态/光标——视图状态的最后一个消费者
+            _laser?.Tick();                     // 瞄准激光（世界空间）：端点 = 开火射线（实体/障碍截停）——视图消费者
             _camera?.SetAiming(_aimGate.Feed(IsLocalAiming(), elapseSeconds)); // 瞄准相机接管（每帧幂等；适配器按沿生效——视图态已解析；滞回门控短按，防频繁点按来回重启混合）
             if (_camera != null)                  // 瞄准点（世界）→ 构图 z 偏移曲线（适配器按到焦点的前向投影换算）
             {

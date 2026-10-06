@@ -46,7 +46,7 @@ namespace LiteNet.Tests
             state.Spawn(new EntitySlot { Hp = CombatConfig.EntityHp, Pos = map.SpawnPoints[0] }, out _);
             state.Spawn(new EntitySlot { Hp = CombatConfig.EntityHp, Pos = map.SpawnPoints[1] }, out _);
             var ring = new SnapshotRing(SimConfig.LagCompHistory);
-            var lag = new LagCompensator(state, PlayerCount, ring);
+            var lag = new LagCompensator(state, map, PlayerCount, ring);
 
             // 目标沿 +X 匀速远离（射手不动），跑 20 帧（> 窗口 16，保证"当时位置"仍在窗口内）
             // 余量是必须的：目标"当时的位置"也要落在窗口内，否则回溯目标帧已在环外，
@@ -103,7 +103,7 @@ namespace LiteNet.Tests
             state.Spawn(new EntitySlot { Hp = CombatConfig.EntityHp, Pos = map.SpawnPoints[0] }, out _);
             state.Spawn(new EntitySlot { Hp = CombatConfig.EntityHp, Pos = map.SpawnPoints[1] }, out _);
             var ring = new SnapshotRing(SimConfig.LagCompHistory);
-            var lag = new LagCompensator(state, PlayerCount, ring);
+            var lag = new LagCompensator(state, map, PlayerCount, ring);
 
             for (int i = 0; i < 3; i++) StepWorld(state, map, ring, lag, 0f, 1f);
 
@@ -122,7 +122,7 @@ namespace LiteNet.Tests
             var state = new SimWorldState();
             state.Spawn(new EntitySlot { Hp = CombatConfig.EntityHp, Pos = map.SpawnPoints[0] }, out _);
             var ring = new SnapshotRing(SimConfig.LagCompHistory);
-            var lag = new LagCompensator(state, PlayerCount, ring);
+            var lag = new LagCompensator(state, map, PlayerCount, ring);
 
             LagCompensator.Outcome outcome = lag.CompensateFire(0, entityId: 12345L, viewFrame: 0, clientAckSnapshot: 0);
             Assert.Equal(LagCompensator.Outcome.InvalidShooter, outcome);
@@ -136,7 +136,7 @@ namespace LiteNet.Tests
             state.Spawn(new EntitySlot { Hp = CombatConfig.EntityHp, Pos = map.SpawnPoints[0] }, out _);
             state.Spawn(new EntitySlot { Hp = CombatConfig.EntityHp, Pos = map.SpawnPoints[1] }, out _);
             var ring = new SnapshotRing(SimConfig.LagCompHistory);
-            var lag = new LagCompensator(state, PlayerCount, ring);
+            var lag = new LagCompensator(state, map, PlayerCount, ring);
 
             for (int i = 0; i < 10; i++) StepWorld(state, map, ring, lag, 0f, 0f);
 

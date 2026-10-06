@@ -19,30 +19,38 @@ namespace LiteSim
     /// 公开/私有边界（§1 P0 阻塞项）：弹药/换弹等属**本人私有面**（PrivateStateSnapshot），不上公共 SlotDelta；
     /// 其他玩家只见 <see cref="EntitySlot.SelectedWeapon"/>。
     /// </summary>
-    public struct WeaponRuntime
+    public partial struct WeaponRuntime
     {
         /// <summary>武器定义 Id（Luban <c>tb_weapon.weapon_id</c>；0 = 空槽）。</summary>
+        [StateLayer(StateLayer.Private)]
         public int WeaponDefId;
 
         /// <summary>弹匣内弹药。</summary>
+        [StateLayer(StateLayer.Private)]
         public int MagAmmo;
 
         /// <summary>备弹。</summary>
+        [StateLayer(StateLayer.Private)]
         public int ReserveAmmo;
 
         /// <summary>下一帧可开火帧号（整数帧节拍：<c>fireInterval = ceil(60/rpm)</c>，禁止浮点倒计时）。</summary>
+        [StateLayer(StateLayer.Private)]
         public int NextFireFrame;
 
         /// <summary>换弹结束帧（0 = 未在换弹）。</summary>
+        [StateLayer(StateLayer.Private)]
         public int ReloadEndFrame;
 
         /// <summary>切枪/装备完成帧（0 = 无切换）。</summary>
+        [StateLayer(StateLayer.Private)]
         public int EquipEndFrame;
 
         /// <summary>槽位状态机（见 <see cref="WeaponSlotState"/>）。</summary>
+        [StateLayer(StateLayer.Private)]
         public WeaponSlotState State;
 
         /// <summary>开火序号（单调递增；VFX/事件对齐与回放去重锚点）。</summary>
+        [StateLayer(StateLayer.Private)]
         public int ShotSeq;
     }
 
@@ -65,24 +73,31 @@ namespace LiteSim
     /// 公开/私有边界：主动作槽的 <c>ActionId/Phase/StartFrame</c> 属公共动作摘要（SlotDelta）；
     /// 技能槽的 <c>CooldownEnd/Charges</c> 属本人私有面。
     /// </summary>
-    public struct ActionRuntime
+    public partial struct ActionRuntime
     {
-        /// <summary>动作定义 Id（Luban <c>tb_action</c>；0 = 无）。</summary>
+        /// <summary>动作定义 Id（Luban <c>tb_action</c>；0 = 无）。主动作槽（索引 0）属公共摘要。</summary>
+        [StateLayer(StateLayer.Public, onlySlotIndex: 0)]   // 槽 0 公共摘要；槽 1..3 私有
         public int ActionId;
 
-        /// <summary>动作起始帧（进度/表现对齐；主动作槽语义）。</summary>
+        /// <summary>动作起始帧（进度/表现对齐；主动作槽语义）。主动作槽（索引 0）属公共摘要。</summary>
+        [StateLayer(StateLayer.Public, onlySlotIndex: 0)]   // 槽 0 公共摘要；槽 1..3 私有
         public int StartFrame;
 
-        /// <summary>当前阶段。</summary>
+        /// <summary>当前阶段。主动作槽（索引 0）属公共摘要。</summary>
+        [StateLayer(StateLayer.Public, onlySlotIndex: 0)]   // 槽 0 公共摘要；槽 1..3 私有
         public ActionPhase Phase;
 
-        /// <summary>施放令牌（= 输入面 action_seq；服务器按 (playerId, frame, seq) 去重，§3.2）。</summary>
+        /// <summary>施放令牌（= 输入面 action_seq；服务器按 (playerId, frame, seq) 去重，§3.2）。
+        /// **私有面**：去重用的服务端内部账本，客户端不需要也不该看见。</summary>
+        [StateLayer(StateLayer.Private)]
         public int CastToken;
 
-        /// <summary>冷却结束帧（技能槽语义；0 = 无冷却）。</summary>
+        /// <summary>冷却结束帧（技能槽语义；0 = 无冷却）。**私有面**（本人技能账本）。</summary>
+        [StateLayer(StateLayer.Private)]
         public int CooldownEnd;
 
-        /// <summary>可用充能数（技能槽语义）。</summary>
+        /// <summary>可用充能数（技能槽语义）。**私有面**（本人技能账本）。</summary>
+        [StateLayer(StateLayer.Private)]
         public int Charges;
     }
 
@@ -93,15 +108,18 @@ namespace LiteSim
     /// 效果明细（Id/结束帧/参数）属本人私有面（PrivateStateSnapshot.status），远端只看投影值。
     /// EffectId = 0 表示空槽。
     /// </summary>
-    public struct StatusSlotData
+    public partial struct StatusSlotData
     {
-        /// <summary>效果定义 Id（0 = 空槽）。</summary>
+        /// <summary>效果定义 Id（0 = 空槽）。**私有面**：他人只见 <see cref="EntitySlot.Shield"/> 投影。</summary>
+        [StateLayer(StateLayer.Private)]
         public int EffectId;
 
-        /// <summary>效果结束帧。</summary>
+        /// <summary>效果结束帧。**私有面**（同上）。</summary>
+        [StateLayer(StateLayer.Private)]
         public int EndFrame;
 
-        /// <summary>效果参数（护盾=剩余护盾值；按效果释义）。</summary>
+        /// <summary>效果参数（护盾=剩余护盾值；按效果释义）。**私有面**（同上）。</summary>
+        [StateLayer(StateLayer.Private)]
         public int Param;
     }
 }

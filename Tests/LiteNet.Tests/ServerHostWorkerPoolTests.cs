@@ -169,6 +169,9 @@ namespace LiteNet.Tests
             {
                 if (ThrowOnStart) throw new InvalidOperationException("start failed");
             }
+
+            /// <summary>本类假件只验释放序，不涉及端口回读。</summary>
+            public int BoundPort => -1;
             public void TickIncoming() { }
             public void TickOutgoing() { }
             public void Disconnect(int connectionId) { }

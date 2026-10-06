@@ -336,7 +336,7 @@ namespace LiteGame.Tests.EditMode
                     Assert.That(_transport.CountOf(PacketType.Input), Is.EqualTo(0), "未进对局不上行输入");
 
                     _transport.Deliver(new StartGame { Seed = 12345, ConfigHash = 42, Frame = 0 }, PacketType.StartGame);
-                    inputService.SampleOnRenderFrame(context.LocalPosition); // 生产序：渲染帧采样 → 逻辑帧 Tick 取用/上行
+                    inputService.SampleOnRenderFrame(context.LocalMuzzlePosition); // 生产序：渲染帧采样（瞄准原点=逻辑枪口）→ 逻辑帧 Tick 取用/上行
                     context.Tick(1f / 60);                           // 首个对局 Tick：发输入（帧 1）+ 预测推进
                     Assert.That(_transport.CountOf(PacketType.Input), Is.EqualTo(1));
                     InputMessage input = (InputMessage)_transport.Sent.Find(s => s.type == PacketType.Input).msg;

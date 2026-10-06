@@ -7,15 +7,18 @@ namespace LiteSim
     /// 局内包曾无承载位，塞 Globals/CustomData 会重连分叉）。
     /// ItemDefId = 0 表示空格。
     /// </summary>
-    public struct MatchBagSlot
+    public partial struct MatchBagSlot
     {
-        /// <summary>物品定义 Id（Luban <c>tb_item</c>；0 = 空格）。</summary>
+        /// <summary>物品定义 Id（Luban <c>tb_item</c>；0 = 空格）。**私有面**（本人局内背包）。</summary>
+        [StateLayer(StateLayer.Private)]
         public int ItemDefId;
 
-        /// <summary>堆叠数量。</summary>
+        /// <summary>堆叠数量。**私有面**（同上）。</summary>
+        [StateLayer(StateLayer.Private)]
         public int Count;
 
-        /// <summary>快捷栏绑定（0 = 未绑定；1..4）。</summary>
+        /// <summary>快捷栏绑定（0 = 未绑定；1..4）。**私有面**（同上）。</summary>
+        [StateLayer(StateLayer.Private)]
         public int QuickSlot;
     }
 

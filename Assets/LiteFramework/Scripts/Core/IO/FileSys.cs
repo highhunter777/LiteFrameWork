@@ -168,6 +168,86 @@ namespace LiteFramework
             return !string.IsNullOrEmpty(relDir) && Directory.Exists(Combine(relDir));
         }
 
+        // ---- 磁盘余量(空间预检用)----
+
+        /// <summary>
+        /// 目标目录**所在卷**的可用字节;不可知 → -1(区别于 0 = 真的没空间)。
+        /// 契约沿用本门面纪律:返回值即可信度声明,-1 表示"探不到"而非"为零",
+        /// 调用方(如 <c>SpacePrecheck</c>)按不足处理(fail-closed),不让预检在未知态放行。
+        ///
+        /// **传相对目录**(如 <c>"."</c> = RootPath 所在卷,热更预检关心的是**内容将写入的卷**,
+        /// 根卷即答案);本方法不接受绝对路径——绝对路径会绕开 <see cref="ValidateRelPath"/> 的越界防护。
+        /// **平台支持差异**:依赖 <see cref="DriveInfo"/>——Unity 移动端/IL2CPP 下可能抛或不可用,
+        /// 一律归 -1,由调用方决定回退策略(如 <see cref="WriteProbe"/> 回退链)。
+        /// </summary>
+        public static long GetAvailableBytes(string relDir)
+        {
+            EnsureInit();
+            try
+            {
+                string full = Path.GetFullPath(Combine(relDir));
+                string root = Path.GetPathRoot(full);
+                if (string.IsNullOrEmpty(root)) return -1L;
+
+                var drive = new DriveInfo(root);
+                return drive.IsReady ? drive.AvailableFreeSpace : -1L;
+            }
+            catch (Exception)
+            {
+                return -1L;      // 平台不支持/权限不足/路径异常——"不可知"是合法答案,不是错误
+            }
+        }
+
+        /// <summary>
+        /// **写探针**:向 <paramref name="relDir"/> 逐块写入固定块直到失败或达上限,回报"至少能写多少"。
+        /// 用于 <see cref="GetAvailableBytes"/> 探不到的场合(移动端/受限平台)——以写入压力换跨平台可用性。
+        ///
+        /// **返回下界,不是真实余量**:写满 <paramref name="capBytes"/> 说明"至少能写这么多"
+        /// (非上限即余量,故不多报);中途失败则按已写入量折半(失败也可能来自配额/权限而非空间,
+        /// 宁可少报让 fail-closed 早生效);完全写不进 → -1 = 不可知。
+        ///
+        /// **副作用**:会创建目录(经 <see cref="EnsureDirFor"/> 语义)并删除探针文件;探针名带 Guid
+        /// 后缀,故并发调用互不干扰(各自独占文件、互不覆盖)。探针会实际占用磁盘,在低存储设备上
+        /// 可能触发系统清理,故上限应远低于真实容量。本方法不抛(IO 失败已折算为返回值)。
+        /// </summary>
+        public static long WriteProbe(string relDir, int blockBytes = 4 * 1024 * 1024, long capBytes = 512L * 1024 * 1024)
+        {
+            EnsureInit();
+            if (blockBytes <= 0) throw new ArgumentOutOfRangeException(nameof(blockBytes));
+            if (capBytes <= 0) return -1L;
+
+            string relProbe = CombineSlash(relDir, ".disk_probe." + Guid.NewGuid().ToString("N"));
+            string path = Combine(relProbe);
+            var block = new byte[blockBytes];
+            long written = 0;
+
+            try
+            {
+                EnsureDirFor(path);
+                using (var stream = new FileStream(path, FileMode.CreateNew, FileAccess.Write, FileShare.None))
+                {
+                    while (written < capBytes)
+                    {
+                        stream.Write(block, 0, blockBytes);
+                        written += blockBytes;
+                    }
+                    stream.Flush(true);
+                }
+                return capBytes;          // 写满自设上限 = 至少能写这么多(保守:不外推真实余量)
+            }
+            catch (Exception)
+            {
+                return written <= 0 ? -1L : written / 2;
+            }
+            finally
+            {
+                try { if (File.Exists(path)) File.Delete(path); }
+                catch (Exception) { /* 清理失败不影响已得结论 */ }
+            }
+        }
+
+
+
         // ---- JSON ----
 
         public static void WriteJson<T>(string relPath, T value)
@@ -324,6 +404,14 @@ namespace LiteFramework
         {
             ValidateRelPath(relPath);
             return Path.Combine(s_path.RootPath, relPath);
+        }
+
+        /// <summary>两段相对路径拼接(经 <see cref="ValidateRelPath"/> 逐段校验,与 <see cref="Combine"/> 同款越界防护)。
+        /// 用正斜杠连接:调用方持有的目录名约定为正斜杠(见 <see cref="GetFilesRecursive"/> 出口口径)。</summary>
+        private static string CombineSlash(string relDir, string name)
+        {
+            ValidateRelPath(relDir);
+            return relDir + "/" + name;
         }
 
         /// <summary>字符级零分配扫描:禁 .. 段(只认段边界,"a..b.json" 合法)、盘符、绝对开头。release 保留。</summary>

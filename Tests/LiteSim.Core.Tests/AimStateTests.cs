@@ -20,6 +20,9 @@ namespace LiteSim.Tests
         private static SimInputFrame[] Inputs(long id, float mx, float mz, float ax, float az, uint buttons = 0u)
             => new[] { new SimInputFrame { EntityId = id, MoveX = mx, MoveZ = mz, AimX = ax, AimZ = az, Buttons = buttons } };
 
+        /// <summary>空障碍图（这些用例只验窗/朝向/限速——不参与障碍遮挡判定）。</summary>
+        private static readonly SimMapData NoObstacles = new SimMapData();
+
         [Fact]
         public void 限速_瞄准移动降到走路档_松开窗内保持_窗尽恢复全速()
         {
@@ -114,7 +117,7 @@ namespace LiteSim.Tests
             InputSystem.Run(world, fire);
             Assert.True(world.Entities[slot].Vel.X == CombatConfig.MoveSpeed,
                 "置窗帧仍全速——窗在判定点才置，限速自次帧起生效（系统序：输入 → 射击判定）");
-            ShootingSystem.Run(world, fire);
+            ShootingSystem.Run(world, NoObstacles, fire);
             Assert.True(world.Entities[slot].FireStanceFrames == (byte)CombatConfig.FireStanceFrames,
                 "开火判定置满窗（事件刷新制——上限即窗长）");
 
@@ -132,7 +135,7 @@ namespace LiteSim.Tests
             long id2 = Spawn(out var world2, out int slot2);
             var fire2 = Inputs(id2, 1f, 0f, 1f, 0f, SimInputFrame.ButtonFire);
             var move2 = Inputs(id2, 1f, 0f, 1f, 0f);
-            InputSystem.Run(world2, fire2); ShootingSystem.Run(world2, fire2);
+            InputSystem.Run(world2, fire2); ShootingSystem.Run(world2, NoObstacles, fire2);
             InputSystem.Run(world2, move2);
             for (int i = 0; i < CombatConfig.FireStanceFrames; i++) InputSystem.Run(world2, move2);
             Assert.True(world.Entities[slot].FireStanceFrames == world2.Entities[slot2].FireStanceFrames,
@@ -149,14 +152,14 @@ namespace LiteSim.Tests
             var move = Inputs(id, 1f, 0f, 1f, 0f);
 
             InputSystem.Run(world, fire);
-            ShootingSystem.Run(world, fire);                       // 置满：60
+            ShootingSystem.Run(world, NoObstacles, fire);                       // 置满：60
 
             // 走 30 帧（窗 → 30）再开一枪 → 重置回满窗（上限即窗长，不累加）
             for (int i = 0; i < 30; i++) InputSystem.Run(world, move);
             Assert.True(world.Entities[slot].FireStanceFrames == (byte)(CombatConfig.FireStanceFrames - 30),
                 "不开火的帧逐帧递减");
             InputSystem.Run(world, fire);
-            ShootingSystem.Run(world, fire);
+            ShootingSystem.Run(world, NoObstacles, fire);
             Assert.True(world.Entities[slot].FireStanceFrames == (byte)CombatConfig.FireStanceFrames,
                 "事件刷新＝重置满窗（上限即窗长——持续射击窗不落）");
 
@@ -179,7 +182,7 @@ namespace LiteSim.Tests
             var gap = Inputs(id, 0f, 1f, -1f, 0f);                              // 间隙帧：同样移动/同样准星、不带开火位
 
             InputSystem.Run(world, fire);
-            ShootingSystem.Run(world, fire);                                    // 判定点置满窗 + 武装离场转向
+            ShootingSystem.Run(world, NoObstacles, fire);                                    // 判定点置满窗 + 武装离场转向
             float crosshairYaw = SimTrig.Atan2(0f, -1f);
             Assert.True(world.Entities[slot].Yaw == crosshairYaw, "开火帧朝准星");
 
@@ -225,7 +228,7 @@ namespace LiteSim.Tests
             var stillGap = Inputs(id, 0f, 0f, -1f, 0f);
 
             InputSystem.Run(world, fireStill);
-            ShootingSystem.Run(world, fireStill);
+            ShootingSystem.Run(world, NoObstacles, fireStill);
             float crosshairYaw = SimTrig.Atan2(0f, -1f);
             Assert.True(world.Entities[slot].Yaw == crosshairYaw);
 

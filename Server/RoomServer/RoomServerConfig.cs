@@ -48,11 +48,12 @@ namespace RoomServer
         /// <summary>
         /// 覆盖监听端口（命令行 `--port` 用；取值范围同装载期校验）。
         /// 端口是**宿主级**参数——所有房间共用，不是每房间一份。
+        /// <c>0</c> 合法 = 系统分配空闲端口（实际端口经 <c>ServerHost.BoundPort</c> 回读）。
         /// </summary>
         public void OverridePort(int port)
         {
-            if (port < 1 || port > 65535)
-                throw new ArgumentOutOfRangeException(nameof(port), port, "端口越界（允许 1..65535）");
+            if (port < 0 || port > 65535)
+                throw new ArgumentOutOfRangeException(nameof(port), port, "端口越界（允许 0..65535；0 = 系统分配）");
             _port = port;
         }
 
@@ -187,7 +188,9 @@ namespace RoomServer
             if (root.ValueKind != JsonValueKind.Object)
                 throw new InvalidDataException($"配置根必须是对象：{sourcePath}");
 
-            int port = RequireIntRange(root, "port", 1, 65535, sourcePath);
+            // port = 0 合法：**系统分配空闲端口**（实际端口经 ServerHost.BoundPort 回读）。
+            // 测试与同机多实例用 0 避免与常驻软件抢端口（实测本机 aTrustXtunnel 占 7777/7778）。
+            int port = RequireIntRange(root, "port", 0, 65535, sourcePath);
 
             // 房间容量：**必填**。§520/§600 明确不许把估算值写死；此处默认 0 = 未配置 → 直接拒。
             int maxRooms = RequireIntRange(root, "max_rooms", 1, 65535, sourcePath);
