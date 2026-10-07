@@ -25,8 +25,9 @@ namespace RoomServer.Runtime
     /// - **action_seq 纪律**：离散意图位（Reload/SwitchWeapon/Skill1..3/Pickup/UseItem）必须携带
     ///   **非零且逐玩家严格递增**的 seq——重放/迟到重复请求丢弃（同帧重复归同帧去重，seq 挡跨帧重放）。
     /// - **切枪槽位范围**：SwitchWeapon 意图的 selected_weapon_slot 越界丢弃（伪造武器槽拒绝）。
-    /// - **数值边界**（R0-P0-3：非法包不得进入权威状态）：Move/Aim 四浮点必须有限；
-    ///   Move 分量与长度 ≤ 1；Aim 分量与长度 ≤ 1；Fire/Skill 意图帧 Aim 必须非零（射击/施法没有方向 = 非法）。
+    /// - **数值边界**（R0-P0-3：非法包不得进入权威状态）：Move 与 AimPoint 浮点必须有限；
+    ///   Move 分量与长度 ≤ 1；Fire/Skill 意图帧 **AimPoint 必须非零**（全零 = 无点；无点开火 = 非法
+    ///   ——方向回退口径已随 AimPoint 单口径退役，《固定斜视角射击方案专项设计》§4）。
     ///
     /// 存储（R0-P0-2）：过闸输入进 <see cref="PendingInputRing"/> 定容环（(frame, player) 复合键语义不变——
     /// 2026-09-22 Sync-P0 已修多玩家同帧互顶缺陷；R0 把字典换定容环：零分配、容量有界、slot 复用全清）。
@@ -37,13 +38,22 @@ namespace RoomServer.Runtime
         public const int FutureFrameTolerance = 8;
 
         /// <summary>
-        /// Move/Aim 单分量绝对值上限（复述 <c>LiteNet.Protocol.ProtocolConstants.MoveComponentLimit</c>——
+        /// Move 单分量绝对值上限（复述 <c>LiteNet.Protocol.ProtocolConstants.MoveComponentLimit</c>——
         /// Runtime 层不得引用 LiteNet，一致性由 L1 契约用例钉死）。
         /// </summary>
         public const float MoveComponentLimit = 1f;
 
         /// <summary>
-        /// Move/Aim 向量长度平方上限（复述 <c>LiteNet.Protocol.ProtocolConstants.VectorLengthSquaredLimit</c>；
+        /// AimPoint 距离容差（× <c>CombatConfig.HitscanRange</c>）：AimPoint 是**客户端解算的世界点**，
+        /// 用平方比较不开方。1.1 = 射程 100m ⇒ 允许 110m——留一点裕量给"相机射线打到远处地面"
+        /// 这一正常形态（相机俯视时交点常在射程之外，但那不是威胁，只是打不到）。
+        /// **真正的反作弊底线**：点不可来自"任意远"——否则客户端能送一个超远点把服务器射线
+        /// 指向任意方向（含身后）。本闸把方向锁死在射程附近。
+        /// </summary>
+        public const float AimPointRangeTolerance = 1.1f;
+
+        /// <summary>
+        /// Move 向量长度平方上限（复述 <c>LiteNet.Protocol.ProtocolConstants.VectorLengthSquaredLimit</c>；
         /// 用平方比较避免开方——开方属超越函数纪律管辖区）。
         /// </summary>
         public const float VectorLengthSquaredLimit = 1f;
@@ -108,9 +118,14 @@ namespace RoomServer.Runtime
         /// 形状 → 帧号/按键/槽位（结构）→ 同帧去重 → seq → 数值边界 → 接受记账。
         /// 接受记账（_lastAcceptedFrame/_lastActionSeq）只在**全部通过**时更新——
         /// 非法包不烧帧槽/seq 槽（同帧的合法重发仍可被接受）。
+        ///
+        /// <paramref name="shooterPos"/>：射手当前世界位（**AimPoint 距离闸用**）。
+        /// 本类是纯校验器、**不持世界状态**，故由调用方传入；传 null =跳过该闸
+        /// （无世界形态/纯协议用例）。R11 纪律：不得为拿位置而给本类引入世界引用。
         /// </summary>
         public bool Store(in ClientInputBatch batch, int playerId, long entityId, int serverFrame,
-            out int acceptedFrame, out SimInputFrame acceptedInput)
+            out int acceptedFrame, out SimInputFrame acceptedInput,
+            SimVector3? shooterPos = null)
         {
             acceptedFrame = -1;
             acceptedInput = default;
@@ -195,7 +210,7 @@ namespace RoomServer.Runtime
 
             // 数值边界（R0-P0-3：非法浮点不得进入权威状态——NaN/Infinity 会毒化移动/射击判定）
             if (!float.IsFinite(wire.MoveX) || !float.IsFinite(wire.MoveZ)
-                || !float.IsFinite(wire.AimX) || !float.IsFinite(wire.AimY) || !float.IsFinite(wire.AimZ))
+                || !float.IsFinite(wire.AimPointX) || !float.IsFinite(wire.AimPointY) || !float.IsFinite(wire.AimPointZ))
             {
                 DroppedNonFinite++;
                 return false;
@@ -214,25 +229,34 @@ namespace RoomServer.Runtime
                 return false;
             }
 
-            // Aim：分量与长度 ≤ 1；Fire/Skill 意图帧必须非零（零方向开火/施法 = 非法，Sim 侧 atan2 也会失义）
-            // **三分量口径**（瞄准向量三维化——《俯视角三维命中与爆头判定专项设计》§3.2）：
-            // AimY 是Sim 弹道的一部分（仰角），**必须同受分量/长度闸约束**，否则客户端可
-            // 借AimY 送出超界方向（长度平方 > 1 的三维向量仍能通过二维闸门）——权威端
-            // 必须与采集侧 `IntentVectorLimit.EnsureWithinLengthLimit(ref,ref,ref)` 同判据。
-            if (wire.AimX > MoveComponentLimit || wire.AimX < -MoveComponentLimit
-                || wire.AimY > MoveComponentLimit || wire.AimY < -MoveComponentLimit
-                || wire.AimZ > MoveComponentLimit || wire.AimZ < -MoveComponentLimit)
+            // AimPoint：**全零 = 无点**（合法输入形态——相机未就绪/退化帧，不产命中）；
+            // Fire/Skill 意图帧必须带非零点（无点开火/施法 = 非法——瞄准方向字段已删，
+            // 点是非零契约的唯一载体；《固定斜视角射击方案专项设计》§4）。
+            bool aimPointZero = wire.AimPointX == 0f && wire.AimPointY == 0f && wire.AimPointZ == 0f;
+            bool aimNeeded = (wire.Buttons & AimRequiredButtons) != 0u;
+            if (aimNeeded && aimPointZero)   // lint-allow R3（点值为零 = 契约边界判定，非浮点精度比较）
             {
                 DroppedIllegalVector++;
                 return false;
             }
-            bool aimNeeded = (wire.Buttons & AimRequiredButtons) != 0u;
-            float aimLengthSquared = wire.AimX * wire.AimX + wire.AimY * wire.AimY + wire.AimZ * wire.AimZ;
-            if (aimLengthSquared > VectorLengthSquaredLimit
-                || (aimNeeded && aimLengthSquared <= 0f))   // lint-allow R3（长度平方与 0 常量比较，采集边界判定）
+
+            // **AimPoint 距离闸**（反作弊面）：客户端上报世界坐标点，
+            // 权威端必须约束它"打得到"——否则可送超远点让服务器从枪口朝任意方向扫射。
+            // 判据：全零 = 无点（跳过本闸）；非零则须落在
+            //「距射手 ≤ 射程 × 容差」的范围内。射手位由调用方传入（Gate 是纯校验器、不持世界状态；
+            // 无世界形态传 null ⇒ 跳过该闸）。
+            if (shooterPos != null && !aimPointZero)
             {
-                DroppedIllegalVector++;
-                return false;
+                float dxp = wire.AimPointX - shooterPos.Value.X;
+                float dyp = wire.AimPointY - shooterPos.Value.Y;
+                float dzp = wire.AimPointZ - shooterPos.Value.Z;
+                float distSq = dxp * dxp + dyp * dyp + dzp * dzp;
+                float maxAimPoint = CombatConfig.HitscanRange * AimPointRangeTolerance;
+                if (distSq > maxAimPoint * maxAimPoint)
+                {
+                    DroppedIllegalVector++;
+                    return false;
+                }
             }
 
             // 全部通过：接受记账 + 预存

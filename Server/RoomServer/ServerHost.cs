@@ -731,7 +731,10 @@ namespace RoomServer
                 {
                     EntityId = f.EntityId,
                     MoveX = f.MoveX, MoveZ = f.MoveZ,
-                    AimX = f.AimX, AimZ = f.AimZ,
+                    // **AimPoint 必须随行**（单口径：判定/爆头/朝向全读它——《固定斜视角射击方案
+                    // 专项设计》§4）。此前本拷贝漏了 AimY/AimPoint 六字段（真服链路断点，本地服却拷了
+                    // ——L3 直造 SimInputFrame 时暴露不出来）；单口径后只此三点，无再漏面。
+                    AimPointX = f.AimPointX, AimPointY = f.AimPointY, AimPointZ = f.AimPointZ,
                     Buttons = f.Buttons,
                     SelectedWeaponSlot = f.SelectedWeaponSlot,
                     TargetEntityId = f.TargetEntityId,

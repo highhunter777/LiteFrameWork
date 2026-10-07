@@ -113,6 +113,20 @@ namespace RoomServer.Runtime
             return seat != null;
         }
 
+        /// <summary>
+        /// 射手当前世界位（<b>AimPoint 距离闸</b>用）：按 playerId 解析实体 → 槽位 → 权威态位置。
+        /// 未开局/实体未解析/槽位越界 ⇒ false（调用方按"跳过该闸"处理，不拒输入）。
+        /// 只读权威态，<b>不改</b>（R11 纪律：本方法只取事实）。
+        /// </summary>
+        private bool TryResolveShooterPos(int playerId, out SimVector3 pos)
+        {
+            pos = default;
+            if (!AuthSim.TryResolve(_entityIds[playerId], out int slot)) return false;
+            if (slot < 0 || slot >= SimConfig.MaxEntities) return false;
+            pos = AuthSim.Entities[slot].Pos;
+            return true;
+        }
+
         /// <summary>成员号列表（App：JoinAck.Members；playerId 升序）。</summary>
         public int[] MemberIds()
         {
@@ -180,7 +194,8 @@ namespace RoomServer.Runtime
             if (seat == null) return;
 
             bool accepted = Gate.Store(batch, playerId, _entityIds[playerId], AuthSim.Frame,
-                out int _, out SimInputFrame acceptedInput);
+                out int _, out SimInputFrame acceptedInput,
+                shooterPos: TryResolveShooterPos(playerId, out SimVector3 sp) ? sp : null);
             if (!accepted) return;
 
             // 开火 + 带视点帧 → 记下待回溯判定（下一帧步进后执行——那时环里才有"开火帧"的历史态）。

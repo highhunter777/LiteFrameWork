@@ -50,7 +50,8 @@ namespace LiteSim.Tests
             // 朝向 0 = +X（Cos(0)=1）：目标在正前 10m，一击致死（Hp=1 < 伤害）
             var inputs = new[]
             {
-                new SimInputFrame { EntityId = shooter, AimX = 1f, AimZ = 0f, Buttons = SimInputFrame.ButtonFire },
+                // AimPoint 单口径：点取目标（10,0,0）正前方眼高位 ⇒ 弹道水平掠过目标（普通命中）
+                new SimInputFrame { EntityId = shooter, AimPointX = 10f, AimPointY = 1f, AimPointZ = 0f, Buttons = SimInputFrame.ButtonFire },
             };
 
             SimStep.Step(s, map, inputs);
@@ -86,7 +87,7 @@ namespace LiteSim.Tests
 
             var inputs = new[]
             {
-                new SimInputFrame { EntityId = shooter, AimX = 1f, AimZ = 0f, Buttons = SimInputFrame.ButtonFire },
+                new SimInputFrame { EntityId = shooter, AimPointX = 10f, AimPointY = 1f, AimPointZ = 0f, Buttons = SimInputFrame.ButtonFire },
             };
 
             SimStep.Step(s, map, inputs);
@@ -203,8 +204,8 @@ namespace LiteSim.Tests
             // 两玩家相距 40m 且相背而立：每帧都开火但互不命中（也无第三方）→ 每帧恰 2 个 Fire
             var inputs = new[]
             {
-                new SimInputFrame { EntityId = p0, AimX = 1f, AimZ = 0f, Buttons = SimInputFrame.ButtonFire },
-                new SimInputFrame { EntityId = p1, AimX = -1f, AimZ = 0f, Buttons = SimInputFrame.ButtonFire },
+                new SimInputFrame { EntityId = p0, AimPointX = 100f, AimPointY = 1f, AimPointZ = 0f, Buttons = SimInputFrame.ButtonFire },
+                new SimInputFrame { EntityId = p1, AimPointX = -60f, AimPointY = 1f, AimPointZ = 40f, Buttons = SimInputFrame.ButtonFire },
             };
 
             var driver = new FrameDriver();
@@ -241,8 +242,10 @@ namespace LiteSim.Tests
                 inputs[i].EntityId = players[i];
                 inputs[i].MoveX = rng.NextFloat01() * 2f - 1f;
                 inputs[i].MoveZ = rng.NextFloat01() * 2f - 1f;
-                inputs[i].AimX = 1f - 2f * rng.NextFloat01();
-                inputs[i].AimZ = 1f - 2f * rng.NextFloat01();
+                // 随机瞄准点（AimPoint 单口径；两笔随机数消耗与旧方向口径相同——对拍两世界同流）
+                inputs[i].AimPointX = (1f - 2f * rng.NextFloat01()) * 10f;
+                inputs[i].AimPointY = 1f;
+                inputs[i].AimPointZ = (1f - 2f * rng.NextFloat01()) * 10f;
                 inputs[i].Buttons = (rng.NextUInt32() & 1u) == 0u ? SimInputFrame.ButtonFire : 0u;
             }
         }

@@ -42,7 +42,7 @@ namespace LiteSim.Tests
             public IntentSample Sample(in SimVector3 localPos) => IntentSample.None;
         }
 
-        private static SimInputFrame Move(float x, float z) => new SimInputFrame { MoveX = x, MoveZ = z, AimX = 1f, AimZ = 0f };
+        private static SimInputFrame Move(float x, float z) => new SimInputFrame { MoveX = x, MoveZ = z };
 
         // ---- 上下文门 ----
 
@@ -244,7 +244,7 @@ namespace LiteSim.Tests
             var service = new InputService();
             var source = new FakeSource
             {
-                Next = new SimInputFrame { MoveX = float.NaN, MoveZ = 1f, AimX = float.PositiveInfinity, AimZ = 0f },
+                Next = new SimInputFrame { MoveX = float.NaN, MoveZ = 1f, AimPointX = float.PositiveInfinity, AimPointZ = 0f },
             };
             service.SetSource(source);
 
@@ -252,7 +252,7 @@ namespace LiteSim.Tests
 
             Assert.Equal(0f, service.Pending.MoveX);
             Assert.Equal(1f, service.Pending.MoveZ);            // 合法分量不受影响
-            Assert.Equal(0f, service.Pending.AimX);
+            Assert.Equal(0f, service.Pending.AimPointX);        // 非有限瞄准点清零 = 无点
         }
 
         // ---- 帧边界门 ----

@@ -12,16 +12,20 @@ message InputFrame {
   int64 entity_id = 1;   // 48 位 version + 16 位 slot
   float move_x = 2;
   float move_z = 3;
-  float aim_x = 4;       // 瞄准方向 X（XZ；非零，长度 ≤1 由采集侧保证；朝向不再上线）
-  float aim_z = 5;
-  uint32 buttons = 6;    // 按钮位：0 Fire / 1 Reload / 2 SwitchWeapon / 3..5 Skill1..3 / 6 Pickup / 7 UseItem / 8 Dodge(保留)
+  // 字段 4/5（旧 aim_x/aim_z 瞄准方向）与 10（旧 aim_y）**已删除**（《固定斜视角射击方案专项设计》§4：
+  // 瞄准收敛为 AimPoint 单口径——朝向与弹道方向两端同源自瞄准点派生）。保号 reserved 不重用。
+  reserved 4, 5, 10;
+  uint32 buttons = 6;    // 按钮位：0 Fire / 1 Reload / 2 SwitchWeapon / 3..5 Skill1..3 / 6 Pickup / 7 UseItem / 8 Dodge(保留) / 9 Aim
   // ---- P0 追加（《游戏业务系统总设计》§3.2；只增不改，字段号顺延）----
   int32 selected_weapon_slot = 7;  // SwitchWeapon 意图的目标武器槽（0..1）；仅 buttons 含 SwitchWeapon 时有效
   int64 target_entity_id = 8;     // 意图目标实体（Pickup 的拾取物等；0 = 无目标；语义解析在 Sim 内）
   uint32 action_seq = 9;          // 离散动作请求序号（逐玩家单调递增；服务器按 (playerId, seq) 去重防重放）
-  // ---- 俯视角三维命中（《俯视角三维命中与爆头判定专项设计》§3.2；只增不改，字段号顺延）----
-  float aim_y = 10;         // 瞄准方向 Y（三维化：0 = 水平射线=旧行为；非零 ⇒ 射线带上仰角/俯角，
-                            // 远距离命中点抬高 ⇒ 可命中头部带。平地爆头的唯一来源）
+  // ---- 瞄准点（AimPoint 单口径：判定点= 准心射线命中点，所见即所判；《固定斜视角射击方案专项设计》§3/§4）----
+  // 相机屏幕射线与「实体圆柱 → 地面」的交点（世界坐标）。**朝向（Yaw）与弹道方向以此点为准两端同源派生**；
+  // 全零 = 无点（不派生朝向、不产命中）。
+  float aim_point_x = 11;   // 瞄准点世界 X（命中实体时带高度；未命中为地面交点 y=0）
+  float aim_point_y = 12;   // 瞄准点世界 Y（★爆头判定的直接输入：落在头部带 ⇒ Crit）
+  float aim_point_z = 13;   // 瞄准点世界 Z
 }
 
 // ===== C→S 逐帧输入（Unreliable + ≤4 帧冗余）=====

@@ -53,7 +53,7 @@ namespace LiteNet.Tests
         {
             var message = new InputMessage { Frame = baseFrame, AckSnapshot = -1, ViewFrame = 0 };
             for (int i = 0; i < count; i++)
-                message.Frames.Add(new InputFrame { EntityId = 0, MoveX = moveX, AimX = 1f, AimZ = 0f });
+                message.Frames.Add(new InputFrame { EntityId = 0, MoveX = moveX });
             return PacketCodec.Encode(PacketType.Input, message);
         }
 

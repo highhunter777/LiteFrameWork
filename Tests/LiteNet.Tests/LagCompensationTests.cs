@@ -25,17 +25,30 @@ namespace LiteNet.Tests
             return map;
         }
 
-        /// <summary>把"两人都在动"的输入喂一步（EntityId 必带——缺省 0 会被判失效实体而整帧不生效）。</summary>
+        /// <summary>把"两人都在动"的输入喂一步（EntityId 必带——缺省 0 会被判失效实体而整帧不生效）。
+        /// <paramref name="shooterAimY"/>：射手瞄准点高度（AimPoint 单口径；缺省 1 = 眼高 ⇒ 弹道水平）；
+        /// <paramref name="shooterAimX"/>：瞄准点 X（缺省 50 = 远端——移动目标用例要射线延伸过历史位）。</summary>
         private static SimInputFrame[] StepWorld(SimWorldState s, SimMapData map, SnapshotRing ring, LagCompensator lag,
-            float shooterMoveX, float targetMoveX)
+            float shooterMoveX, float targetMoveX, float shooterAimY = 1f, float shooterAimX = 50f)
         {
             var inputs = new SimInputFrame[PlayerCount];
-            inputs[0] = new SimInputFrame { EntityId = s.Entities[0].Id, MoveX = shooterMoveX, AimX = 1f };
-            inputs[1] = new SimInputFrame { EntityId = s.Entities[1].Id, MoveX = targetMoveX, AimX = 1f };
+            inputs[0] = new SimInputFrame { EntityId = s.Entities[0].Id, MoveX = shooterMoveX, AimPointX = shooterAimX, AimPointY = shooterAimY, AimPointZ = 0f };
+            inputs[1] = new SimInputFrame { EntityId = s.Entities[1].Id, MoveX = targetMoveX };
             SimStep.Step(s, map, inputs);
             ring.Capture(s.Frame, s);
             lag.RecordInputs(s.Frame, inputs);
             return inputs;
+        }
+
+        /// <summary>远距爆头的瞄准点高度：目标轴 X=20 处高度 1.8m，落在头部带 [1.55, 2.0]。</summary>
+        private const float HeadAimY = 1.8f;
+
+        /// <summary>是否产出 <paramref name="kind"/> 事件。</summary>
+        private static bool HasEvent(SimWorldState s, FrameEventKind kind)
+        {
+            for (int i = 0; i < s.Events.Count; i++)
+                if (s.Events.Items[i].Kind == kind) return true;
+            return false;
         }
 
         [Fact]
@@ -113,6 +126,75 @@ namespace LiteNet.Tests
 
             Assert.Equal(LagCompensator.Outcome.DegradedFire, outcome);
             Assert.Equal(0L, lag.CompensatedCount);
+        }
+
+        /// <summary>
+        /// **回溯补判必须带历史瞄准点**（AimPoint 单口径，《固定斜视角射击方案专项设计》§4）：
+        /// 历史输入带头部带瞄准点 ⇒ 回溯判定命中头部带 ⇒ 产出 <see cref="FrameEventKind.Crit"/>，
+        /// 且 <see cref="LagCompensator.LastHit"/> 为真（爆头走 Crit，<c>HasHit</c> 只认 Hit 会漏计）。
+        /// 反例锁定：补判漏拷 AimPoint ⇒ 无点无效开火 ⇒ 无 Crit、<c>LastHit=false</c>。
+        /// </summary>
+        [Fact]
+        public void 回溯补判带历史瞄准点_远距命中头部带_爆头成立且计为命中()
+        {
+            var map = BuildMap();
+            var state = new SimWorldState { RngState = 5UL };
+            state.Spawn(new EntitySlot { Hp = CombatConfig.EntityHp, Pos = map.SpawnPoints[0] }, out _);
+            state.Spawn(new EntitySlot { Hp = CombatConfig.EntityHp, Pos = map.SpawnPoints[1] }, out _);
+            var ring = new SnapshotRing(SimConfig.LagCompHistory);
+            var lag = new LagCompensator(state, map, PlayerCount, ring);
+
+            // 全程不动（MoveX=0）——本例只验瞄准点口径，不掺移动；点取目标正上方头部带（20, 1.8）。
+            for (int i = 0; i < 6; i++) StepWorld(state, map, ring, lag, 0f, 0f, shooterAimY: HeadAimY, shooterAimX: 20f);
+
+            int serverFrame = state.Frame;
+            int target = serverFrame - 3;                                   // 回溯 3 帧前（窗口 16 内）
+            LagCompensator.Outcome outcome = lag.CompensateFire(0, state.Entities[0].Id,
+                target + SimConfig.InterpFrames, target);
+
+            Assert.Equal(LagCompensator.Outcome.Compensated, outcome);
+            Assert.Equal(target, lag.LastTargetFrame);
+            Assert.Equal(serverFrame, state.Frame);                          // 回溯不改现在
+
+            Assert.True(HasEvent(state, FrameEventKind.Crit),
+                $"历史瞄准点应参与回溯判定并命中头部带（事件 Kind 见断言消息）");
+            Assert.True(lag.LastHit, "**Crit 也必须计入命中**（HasHit 漏 Crit 会让爆头不计命中）");
+
+            // 爆头位级痕迹：伤害 = 基础 ×2（移位后必为偶数区间）
+            bool critDamage = false;
+            for (int i = 0; i < state.Cmds.Count; i++)
+                if (state.Cmds.Items[i].Kind == SimCommandKind.Damage
+                    && state.Cmds.Items[i].Target == state.Entities[1].Id)
+                    critDamage = state.Cmds.Items[i].Amount % (1 << CombatConfig.HeadshotDamageShift) == 0;
+            Assert.True(critDamage, "回溯爆头应产出移位后的伤害值");
+        }
+
+        /// <summary>
+        /// **退化路径必须用当前帧瞄准点**（同口径的另一半）：窗口外/关补偿时判定虽按当前帧，
+        /// 但瞄准点仍取当前帧输入——否则窗口外的玩家恒无点无效开火，永远打不出爆头，
+        /// 且与同帧客户端预测不一致。
+        /// </summary>
+        [Fact]
+        public void 窗口外退化_用当前帧瞄准点_爆头成立()
+        {
+            var map = BuildMap();
+            var state = new SimWorldState { RngState = 5UL };
+            state.Spawn(new EntitySlot { Hp = CombatConfig.EntityHp, Pos = map.SpawnPoints[0] }, out _);
+            state.Spawn(new EntitySlot { Hp = CombatConfig.EntityHp, Pos = map.SpawnPoints[1] }, out _);
+            var ring = new SnapshotRing(SimConfig.LagCompHistory);
+            var lag = new LagCompensator(state, map, PlayerCount, ring);
+
+            for (int i = 0; i < 3; i++) StepWorld(state, map, ring, lag, 0f, 0f, shooterAimY: HeadAimY, shooterAimX: 20f);
+
+            // 视角帧远早于窗口下界 → clamp 后无历史 → 退化（但当前帧瞄准点可得）
+            int reportedView = state.Frame - (SimConfig.LagCompHistory + 10);
+            LagCompensator.Outcome outcome = lag.CompensateFire(0, state.Entities[0].Id, reportedView, reportedView);
+
+            Assert.Equal(LagCompensator.Outcome.DegradedFire, outcome);
+            Assert.Equal(0L, lag.CompensatedCount);
+            Assert.True(HasEvent(state, FrameEventKind.Crit),
+                "退化路径应取当前帧瞄准点参与判定（否则无点开火、永远不爆头）");
+            Assert.True(lag.LastHit, "退化路径的 Crit 也计为命中");
         }
 
         [Fact]

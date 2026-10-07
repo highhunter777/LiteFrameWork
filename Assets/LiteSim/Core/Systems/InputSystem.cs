@@ -2,7 +2,7 @@ namespace LiteSim
 {
     /// <summary>
     /// 输入系统（《状态同步实施方案》§3.3 顺序第 1 位）：
-    /// 应用移动向量、**瞄准方向**与**瞄准态**到玩家实体——朝向（`Yaw`）在此派生；
+    /// 应用移动向量、**瞄准点**与**瞄准态**到玩家实体——朝向（`Yaw`）在此从 AimPoint 派生；
     /// 开火位由 ShootingSystem 直接读输入。
     /// 输入数组已由 SimStep 按 EntityId 升序排列（§3.3 同帧多请求的确定性来源）。
     ///
@@ -10,18 +10,19 @@ namespace LiteSim
     /// - **限速**：**瞄准中 ∨ 开火态**（开火态 = <see cref="EntitySlot.FireStanceFrames"/> &gt; 0
     ///   ——移动腰射按 aimwalk 移动）→ 移动上限
     ///   <see cref="CombatConfig.AimMoveSpeed"/>（= 走路档）；
-    /// - **朝向派生（债 #4 根治）**：
-    ///   **射击语境（瞄准 ∨ 开火帧 ∨ 窗内）且准星向量有效** → 朝准星（即时跟枪——点射间隙帧不回摆，
+    /// - **朝向派生（债 #4 根治；AimPoint 单口径——《固定斜视角射击方案专项设计》§3）**：
+    ///   **射击语境（瞄准 ∨ 开火帧 ∨ 窗内）且 AimPoint 有效**（非零值、水平距本体 &gt; ε）
+    ///   → `Yaw = Atan2(P − 本体XZ)` 朝准星（即时跟枪——点射间隙帧不回摆，
     ///   视图侧由此得到稳定的 AimWalk 四向权重）并**武装离场转向**；
     ///   否则移动 → 朝移动方向——武装态按 <see cref="CombatConfig.FaceTurnRadPerSec"/> 逐帧过渡
-    ///   （窗尽回转不瞬切），到位解除恢复即时跟向；都没有 → **保持上一帧 Yaw**（不拿零向量退化，
+    ///   （窗尽回转不瞬切），到位解除恢复即时跟向；都没有 → **保持上一帧 Yaw**（不拿零值退化，
     ///   且回放/重放可重建）；
     /// - **开火驻留窗递减**：Run 顶部对**全槽位**统一推进——缺席/空输入帧与死亡实体照常衰减
     ///   （整数计数 ⇒ 确定性）；窗随 <see cref="ShootingSystem"/> 判定点置满、本系统先跑 ⇒ 置窗次帧起限速生效。
     /// </summary>
     public static class InputSystem
     {
-        /// <summary>移动向量判定阈值（平方口径；低于此视为"没有移动意图"，不更新朝向）。</summary>
+        /// <summary>移动/瞄准点判定阈值（平方口径；低于此视为"没有移动意图/瞄准点退化"，不更新朝向）。</summary>
         private const float MoveEpsilonSquared = 1e-6f;
 
         public static void Run(SimWorldState s, SimInputFrame[] inputs)
@@ -58,14 +59,16 @@ namespace LiteSim
                 e.Vel.X = inputs[i].MoveX * speed;
                 e.Vel.Z = inputs[i].MoveZ * speed;
 
-                // 朝向派生（规则见类注释）：射击语境 → 朝准星——**准星向量必须有效**（Atan2(0,0) 无意义，
-                // 零向量不派生、落入保持）；窗内间隙帧不回移动向（点射"逐拍回摆"的根治面）
+                // 朝向派生（规则见类注释）：射击语境 → 朝准星——**AimPoint 必须有效**（非零值且
+                // 水平距本体 > ε；Atan2(0,0) 无意义，退化点不派生、落入保持）；窗内间隙帧不回移动向
+                // （点射"逐拍回摆"的根治面）
                 bool fireFrame = (buttons & (SimInputFrame.ButtonFire | SimInputFrame.ButtonFireFlag)) != 0u;
-                bool aimValid = SimMath.MulAdd2(inputs[i].AimX, inputs[i].AimX, inputs[i].AimZ, inputs[i].AimZ)
-                    > MoveEpsilonSquared;
+                float pdx = inputs[i].AimPointX - e.Pos.X;
+                float pdz = inputs[i].AimPointZ - e.Pos.Z;
+                bool aimValid = SimMath.MulAdd2(pdx, pdx, pdz, pdz) > MoveEpsilonSquared;
                 if ((aiming || fireFrame || e.FireStanceFrames > 0) && aimValid)
                 {
-                    e.Yaw = SimTrig.Atan2(inputs[i].AimZ, inputs[i].AimX);
+                    e.Yaw = SimTrig.Atan2(pdz, pdx);
                     e.FaceExitTurning = 1;   // 武装离场转向：语境解除后的首个移动帧起按速率平滑转回
                 }
                 else if (SimMath.MulAdd2(inputs[i].MoveX, inputs[i].MoveX, inputs[i].MoveZ, inputs[i].MoveZ)

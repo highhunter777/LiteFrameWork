@@ -109,14 +109,14 @@ namespace LiteNet.Tests
         private static ClientInputBatch FirePacket(int frame, int ackSnapshot)
         {
             var frames = new SimInputFrame[ClientInputBatch.MaxFrames];
-            frames[0] = new SimInputFrame { MoveX = 0f, MoveZ = 0f, AimX = 1f, AimZ = 0f, Buttons = SimInputFrame.ButtonFire };
+            frames[0] = new SimInputFrame { MoveX = 0f, MoveZ = 0f, AimPointX = 10f, AimPointY = 1f, AimPointZ = 0f, Buttons = SimInputFrame.ButtonFire };
             return new ClientInputBatch { Frame = frame, AckSnapshot = ackSnapshot, ViewFrame = 30, Count = 1, Frames = frames };
         }
 
         private static ClientInputBatch MovePacket(int frame, float moveX, int ackSnapshot)
         {
             var frames = new SimInputFrame[ClientInputBatch.MaxFrames];
-            frames[0] = new SimInputFrame { MoveX = moveX, MoveZ = 0f, AimX = 1f, AimZ = 0f, Buttons = 0u };
+            frames[0] = new SimInputFrame { MoveX = moveX, MoveZ = 0f };
             return new ClientInputBatch { Frame = frame, AckSnapshot = ackSnapshot, ViewFrame = 0, Count = 1, Frames = frames };
         }
 

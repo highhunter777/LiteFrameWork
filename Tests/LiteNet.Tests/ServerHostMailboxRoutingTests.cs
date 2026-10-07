@@ -218,8 +218,9 @@ namespace LiteNet.Tests
                     EntityId = 0,
                     MoveX = moveX,
                     MoveZ = 0f,
-                    AimX = 1f,
-                    AimZ = 0f,
+                    AimPointX = 10f,
+                    AimPointY = 1f,
+                    AimPointZ = 0f,
                 } },
             });
 

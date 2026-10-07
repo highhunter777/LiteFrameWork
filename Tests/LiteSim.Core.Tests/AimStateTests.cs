@@ -17,8 +17,9 @@ namespace LiteSim.Tests
             return world.Spawn(new EntitySlot { Hp = 100 }, out slot);
         }
 
+        /// <summary>瞄准输入（AimPoint 单口径：点 = 本体（默认原点）远处 + 方向 × 10 ⇒ 与旧方向口径同 Yaw）。</summary>
         private static SimInputFrame[] Inputs(long id, float mx, float mz, float ax, float az, uint buttons = 0u)
-            => new[] { new SimInputFrame { EntityId = id, MoveX = mx, MoveZ = mz, AimX = ax, AimZ = az, Buttons = buttons } };
+            => new[] { new SimInputFrame { EntityId = id, MoveX = mx, MoveZ = mz, AimPointX = ax * 10f, AimPointY = 1f, AimPointZ = az * 10f, Buttons = buttons } };
 
         /// <summary>空障碍图（这些用例只验窗/朝向/限速——不参与障碍遮挡判定）。</summary>
         private static readonly SimMapData NoObstacles = new SimMapData();

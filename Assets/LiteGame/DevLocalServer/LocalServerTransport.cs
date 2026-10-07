@@ -175,7 +175,7 @@ namespace LiteGame
                 {
                     EntityId = f.EntityId,
                     MoveX = f.MoveX, MoveZ = f.MoveZ,
-                    AimX = f.AimX, AimZ = f.AimZ,
+                    AimPointX = f.AimPointX, AimPointY = f.AimPointY, AimPointZ = f.AimPointZ,
                     Buttons = f.Buttons,
                     SelectedWeaponSlot = f.SelectedWeaponSlot,
                     TargetEntityId = f.TargetEntityId,

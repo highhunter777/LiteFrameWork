@@ -33,7 +33,7 @@ namespace LiteNet.Tests
         private static SimInputFrame[] Move(SimWorldState state, int playerId, float moveX)
         {
             var inputs = new SimInputFrame[2];
-            inputs[playerId] = new SimInputFrame { EntityId = state.Entities[playerId].Id, MoveX = moveX, AimX = 1f };
+            inputs[playerId] = new SimInputFrame { EntityId = state.Entities[playerId].Id, MoveX = moveX };
             return inputs;
         }
 
@@ -70,7 +70,7 @@ namespace LiteNet.Tests
                 for (int i = 0; i < 8; i++)
                 {
                     current[0] = default; current[1] = default;
-                    current[i % 2] = new SimInputFrame { EntityId = state.Entities[i % 2].Id, MoveX = i % 3 == 0 ? -1f : 1f, AimX = 1f };
+                    current[i % 2] = new SimInputFrame { EntityId = state.Entities[i % 2].Id, MoveX = i % 3 == 0 ? -1f : 1f };
                     pump.Step(1, state, map, current);
 
                     Proto.StateSnapshot msg = differ.Build(state.Frame, state, 0,
@@ -202,8 +202,8 @@ namespace LiteNet.Tests
             Assert.Equal(3, state.Frame);                         // 帧号连续推进（差分器不改帧号）
 
             var both = new SimInputFrame[2];                      // 两人反向移动 → 两个槽位都变化
-            both[0] = new SimInputFrame { EntityId = state.Entities[0].Id, MoveX = 1f, AimX = 1f };
-            both[1] = new SimInputFrame { EntityId = state.Entities[1].Id, MoveX = -1f, AimX = 1f };
+            both[0] = new SimInputFrame { EntityId = state.Entities[0].Id, MoveX = 1f };
+            both[1] = new SimInputFrame { EntityId = state.Entities[1].Id, MoveX = -1f };
             pump.Step(1, state, map, both);
             differ.Build(state.Frame, state, 0);
             Assert.Equal(2, differ.LastDeltaCount);

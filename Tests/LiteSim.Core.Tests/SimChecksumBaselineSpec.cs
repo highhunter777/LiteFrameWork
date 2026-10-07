@@ -75,7 +75,7 @@ namespace LiteSim.Tests
             SimWorldState snapshot = null;
             for (int f = 0; f < frames; f++)
             {
-                MakeInputs(ref inputRng, players, inputs);
+                MakeInputs(ref inputRng, s, players, inputs);
                 SimStep.Step(s, map, inputs);
                 seq[f] = SimChecksum.ComputeChecksum(s);
 
@@ -98,16 +98,27 @@ namespace LiteSim.Tests
         }
 
         /// <summary>脚本输入：外部 SimRng 生成（与世界 RngState 无关——玩家行为不属于逻辑状态）。
-        /// 注意：SimRng 是可变 struct，必须以 ref 传入推进调用方状态——按值传参会把输入流冻结在首帧。</summary>
-        private static void MakeInputs(ref SimRng rng, long[] players, SimInputFrame[] inputs)
+        /// 注意：SimRng 是可变 struct，必须以 ref 传入推进调用方状态——按值传参会把输入流冻结在首帧。
+        /// **AimPoint 单口径**：瞄准点 = 本体位置 + 随机方向 × 1、高度 = 眼高
+        /// （弹道水平——与旧方向口径的脚本行为最接近）；两笔随机数消耗与旧口径相同。</summary>
+        private static void MakeInputs(ref SimRng rng, SimWorldState s, long[] players, SimInputFrame[] inputs)
         {
             for (int i = 0; i < inputs.Length; i++)
             {
                 inputs[i].EntityId = players[i];
                 inputs[i].MoveX = rng.NextFloat01() * 2f - 1f;
                 inputs[i].MoveZ = rng.NextFloat01() * 2f - 1f;
-                inputs[i].AimX = 1f - 2f * rng.NextFloat01();
-                inputs[i].AimZ = 1f - 2f * rng.NextFloat01();
+                float ax = 1f - 2f * rng.NextFloat01();
+                float az = 1f - 2f * rng.NextFloat01();
+                // 存活才锚点（随机对射下玩家可能已死/换 Id——失效是正常路径，保持零值即可；
+                // 随机数消耗与存活与否无关，脚本流仍逐帧确定）
+                if (s.TryResolve(players[i], out int slot))
+                {
+                    ref EntitySlot e = ref s.Entities[slot];
+                    inputs[i].AimPointX = e.Pos.X + ax;
+                    inputs[i].AimPointY = e.Pos.Y + CombatConfig.MuzzleOffsetHeight;
+                    inputs[i].AimPointZ = e.Pos.Z + az;
+                }
                 inputs[i].Buttons = (rng.NextUInt32() & 3u) == 0u ? SimInputFrame.ButtonFire : 0u;
             }
         }

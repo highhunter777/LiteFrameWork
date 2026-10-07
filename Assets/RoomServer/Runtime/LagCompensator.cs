@@ -103,21 +103,25 @@ namespace RoomServer.Runtime
             fire.EntityId = entityId;
             fire.Buttons = SimInputFrame.ButtonFire | SimInputFrame.ButtonFireFlag;   // 回溯补判标记（服务器内部构造）
 
-            if (SimConfig.LagCompHistory <= 0 || targetFrame >= _auth.Frame) return RunDegraded(fire, targetFrame);
-            if (!_ring.ContainsFrame(targetFrame)) return RunDegraded(fire, targetFrame);
-            if (!TryGetHistorical(playerId, targetFrame, out SimInputFrame historical)) return RunDegraded(fire, targetFrame);
+            if (SimConfig.LagCompHistory <= 0 || targetFrame >= _auth.Frame) return RunDegraded(playerId, fire, targetFrame);
+            if (!_ring.ContainsFrame(targetFrame)) return RunDegraded(playerId, fire, targetFrame);
+            if (!TryGetHistorical(playerId, targetFrame, out SimInputFrame historical)) return RunDegraded(playerId, fire, targetFrame);
 
-            // 瞄准/移动取"当时所见"——补偿的全部意义所在（位置由环上的历史态给出，朝向由历史输入给出）
+            // 瞄准/移动取"当时所见"——补偿的全部意义所在（位置由环上的历史态给出，弹道由历史
+            // AimPoint 给出）。**AimPoint 必须带**（单口径：判定/爆头/朝向都读它——《固定斜视角
+            // 射击方案专项设计》§4）——漏带 ⇒ 回溯判定退化为"无点无效开火"、与客户端预测不一致
+            // （准心命中头部却判不中）。
             fire.MoveX = historical.MoveX;
             fire.MoveZ = historical.MoveZ;
-            fire.AimX = historical.AimX;
-            fire.AimZ = historical.AimZ;
+            fire.AimPointX = historical.AimPointX;
+            fire.AimPointY = historical.AimPointY;
+            fire.AimPointZ = historical.AimPointZ;
 
             _auth.CopyTo(_scratch);                          // ① 暂存权威当前态
             if (!_ring.TryRestore(targetFrame, _auth))       // ② 环竞态兜底（ContainsFrame 与 Restore 之间不可能变，防御）
             {
                 _scratch.CopyTo(_auth);
-                return RunDegraded(fire, targetFrame);
+                return RunDegraded(playerId, fire, targetFrame);
             }
 
             ulong rngBefore = _auth.RngState;                // 回溯判定不消费权威随机数（还原时一并回滚）
@@ -139,9 +143,26 @@ namespace RoomServer.Runtime
             return Set(Outcome.Compensated, targetFrame, hit || cmds.Count > 0);
         }
 
-        /// <summary>退化路径：不回溯，按当前帧判定（关闭补偿 / 窗口外 / 无历史的统一退路）。</summary>
-        private Outcome RunDegraded(SimInputFrame fire, int targetFrame)
+        /// <summary>
+        /// 退化路径：不回溯，按当前帧判定（关闭补偿 / 窗口外 / 无历史的统一退路）。
+        ///
+        /// **AimPoint 口径**：退化只放弃"位置回溯"，**不放弃瞄准点**——能用**当前帧**历史输入就取它
+        /// （补判的开火者就是当前帧的射手，其当前帧输入由 <see cref="RecordInputs"/> 记着），
+        /// 取不到（补偿关闭/本帧未记录）即保持零值 = **无点无效开火**（只写 Fire 不产命中）。
+        /// 否则退化路径会恒无瞄准点 ⇒ 窗口外/关补偿的玩家**永远打不出爆头**，
+        /// 且与同帧客户端预测不一致（《固定斜视角射击方案专项设计》§4）。
+        /// </summary>
+        private Outcome RunDegraded(int playerId, SimInputFrame fire, int targetFrame)
         {
+            // 当前帧 AimPoint 补齐（只补点，不补 EntityId/Buttons——那两项由调用方构造）。
+            // 失败（无当前帧历史）即保持零值，不阻断退化判定。
+            if (TryGetHistorical(playerId, _auth.Frame, out SimInputFrame current))
+            {
+                fire.AimPointX = current.AimPointX;
+                fire.AimPointY = current.AimPointY;
+                fire.AimPointZ = current.AimPointZ;
+            }
+
             ClearFireBuffers();
             _fireInputs[0] = fire;
             ShootingSystem.Run(_auth, _map, _fireInputs);
@@ -169,10 +190,16 @@ namespace RoomServer.Runtime
             return true;
         }
 
+        /// <summary>是否产出命中事件（<b>Hit 与 Crit 都算命中</b>——爆头走 <see cref="FrameEventKind.Crit"/>，
+        /// 只认 Hit 会让爆头在回溯/退化路径上不计命中，统计与反馈口径随之失真。
+        /// 三维化裁决见《固定斜视角射击方案专项设计》§5。 </summary>
         private static bool HasHit(FrameEventBuffer events, int count)
         {
             for (int i = 0; i < count; i++)
-                if (events.Items[i].Kind == FrameEventKind.Hit) return true;
+            {
+                FrameEventKind k = events.Items[i].Kind;
+                if (k == FrameEventKind.Hit || k == FrameEventKind.Crit) return true;
+            }
             return false;
         }
 

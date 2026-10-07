@@ -4,8 +4,8 @@ using Xunit;
 namespace LiteSim.Tests
 {
     /// <summary>
-    /// 爆头判定与伤害倍率：命中高度带（水平射线 → 命中高度 = 射手眼高，
-    /// 相对目标头部带 <see cref="CombatConfig.HeadHitLine"/>）× `2^HeadshotDamageShift` 位级倍率——
+    /// 爆头判定与伤害倍率：命中高度带（弹道 = 逻辑枪口 → AimPoint；爆头判据 = 判定高度落
+    /// 头部带 [<see cref="CombatConfig.HeadHitLine"/>, <see cref="CombatConfig.HitscanHeight"/>]）× `2^HeadshotDamageShift` 位级倍率——
     /// 倍率在命中判定处应用，Damage 命令/Hit 事件携带即最终值，结算侧零改动。
     /// 死亡守卫半边（同批）：死亡射手不开火 / 死亡目标不可命中 / 死亡实体输入作废（尸体不受操控）。
     /// </summary>
@@ -20,15 +20,15 @@ namespace LiteSim.Tests
             return (world, shooter, target, ss, ts);
         }
 
-        private static SimInputFrame[] FireAt(long id, float ax = 1f, float az = 0f)
-            => new[] { new SimInputFrame { EntityId = id, AimX = ax, AimZ = az, Buttons = SimInputFrame.ButtonFire } };
+        private static SimInputFrame[] FireAt(long id, float px = 10f, float py = 1f, float pz = 0f)
+            => new[] { new SimInputFrame { EntityId = id, AimPointX = px, AimPointY = py, AimPointZ = pz, Buttons = SimInputFrame.ButtonFire } };
 
         /// <summary>空障碍图（本组只验命中高度/倍率/死亡守卫——不参与障碍遮挡判定）。</summary>
         private static readonly SimMapData NoObstacles = new SimMapData();
 
         /// 命中事件的伤害值（取第一个指定 Kind 的事件；未找到 = -1）。
         /// <paramref name="kind"/> 默认取<see cref="FrameEventKind.Hit"/>——**爆头事件是
-        /// <see cref="FrameEventKind.Crit"/>**（三维化裁决，《俯视角三维命中与爆头判定专项设计》§4.2），
+        /// <see cref="FrameEventKind.Crit"/>**（三维化裁决，《固定斜视角射击方案专项设计》§5），
         /// 故爆头用例须显式传 Crit 取值，否则读不到（-1）。
         private static int EventValue(SimWorldState world, FrameEventKind kind = FrameEventKind.Hit)
         {
@@ -75,11 +75,11 @@ namespace LiteSim.Tests
         [Fact]
         public void 高差位命中头部带_倍率移位生效_伤害为偶数区间()
         {
-            // 射手高台（Y=1）→ 眼高 2.0 ≥ 目标头部带线 1.7 → 爆头
-            // （边界口径与 SimRaycast 的 Y 带闸一致：闭区间含端点——眼高恰等于身位顶仍算命中）
+            // 射手高台（Y=1）→ 枪口高 ≈2.29；瞄准点取 (10,1.7)（烘焙身高 1.8 的新头部带 [1.395,1.8] 内）
+            // ⇒ 弹道自枪口俯射、命中且判定高度 = AimPoint.Y = 1.7 ≥ HeadHitLine → 爆头。
             var (world, shooter, target, _, _) = SpawnPair(shooterY: 1f, targetY: 0f);
 
-            ShootingSystem.Run(world, NoObstacles, FireAt(shooter));
+            ShootingSystem.Run(world, NoObstacles, FireAt(shooter, py: 1.7f));
 
             int hit = HitValue(world);
             int lower = (CombatConfig.BaseDamage - CombatConfig.DamageSpread) << CombatConfig.HeadshotDamageShift;
@@ -101,31 +101,20 @@ namespace LiteSim.Tests
         }
 
         /// <summary>
-        /// **平地爆头**（本批核心目标，《俯视角三维命中与爆头判定专项设计》§4.2）：
-        /// 三维化前平地打不出爆头（射线恒水平、眼高 1.0m &lt; 爆头线 1.7m）；三维化后
-        /// 玩家抬高准心 ⇒ 射线带上仰角 ⇒ 命中点抬进头部带。
+        /// **平地爆头**（本批核心目标，《固定斜视角射击方案专项设计》§5）：
+        /// 瞄准点口径：准心压在目标头部 ⇒ 判定点（AimPoint）落进头部带 ⇒ 爆头
+        /// （点口径前方向-近弧口径在头部下沿会差出带外）。
         /// </summary>
         [Fact]
-        public void 平地远距_射线带上仰角_命中头部带爆头()
+        public void 平地远距_准心压在头部_命中头部带爆头()
         {
-            // 射手平地（Y=0，眼高 1.0）；目标在 X=10。给 dy>0 的瞄准向量⇒命中点随距离抬高。
-            // 取 tan(dy/dx) 使 X=10 处命中高度 ≈ 1.8m（落在头部带 [1.7, 2.0)）。
+            // 射手平地（Y=0，枪口高 ≈1.29）；目标在 X=10。准心（AimPoint）压在目标头部带内 ≈1.8m
+            // ⇒ 弹道自枪口抬向该点 ⇒ 命中点落进头部带（[1.55, 2.0]）。
             var world = new SimWorldState { RngState = 1UL };
             long shooter = world.Spawn(new EntitySlot { Hp = 100, Pos = new SimVector3(0f, 0f, 0f) }, out _);
             long target = world.Spawn(new EntitySlot { Hp = 100, Pos = new SimVector3(10f, 0f, 0f) }, out _);
 
-            // 单位化方向：水平 +X，dy/dx = 0.08 ⇒ X=10 处 y = 1.0 + 0.08*10 = 1.8
-            float invLen = 1f / (float)System.Math.Sqrt(1.0 + 0.08 * 0.08);
-            var frame = new SimInputFrame
-            {
-                EntityId = shooter,
-                AimX = invLen,
-                AimZ = 0f,
-                AimY = (float)(0.08 * invLen),
-                Buttons = SimInputFrame.ButtonFire,
-            };
-
-            ShootingSystem.Run(world, NoObstacles, new[] { frame });
+            ShootingSystem.Run(world, NoObstacles, FireAt(shooter, px: 10f, py: 1.8f, pz: 0f));
 
             Assert.True(HasEvent(world, FrameEventKind.Crit),
                 $"平地远距 + 仰角应爆头（事件={DescribeKinds(world)}）");
@@ -136,7 +125,7 @@ namespace LiteSim.Tests
         }
 
         /// <summary>
-        /// 平地**不抬枪**（dy=0）⇒ 命中点恒为眼高 1.0m，不进头部带⇒ **不爆头**
+        /// 平地**准心压在身位中部**（AimPoint.y=1.0）⇒ 判定高度 1.0 &lt; 1.55，不进头部带 ⇒ **不爆头**
         /// （对照组：证明爆头来自仰角而非"三维化让所有命中都变爆头"）。
         /// </summary>
         [Fact]
@@ -144,13 +133,138 @@ namespace LiteSim.Tests
         {
             var (world, shooter, target, _, _) = SpawnPair(shooterY: 0f, targetY: 0f);
 
-            ShootingSystem.Run(world, NoObstacles, FireAt(shooter));   // FireAt 的 AimY 恒0（水平）
+            ShootingSystem.Run(world, NoObstacles, FireAt(shooter));   // 点取身位中部（py=1）⇒ 判定高度 1.0
 
             Assert.False(HasEvent(world, FrameEventKind.Crit),
-                $"平地水平射线不应爆头（事件={DescribeKinds(world)}）");
+                $"平地水平弹道不应爆头（事件={DescribeKinds(world)}）");
             int hit = EventValue(world, FrameEventKind.Hit);
             Assert.InRange(hit, CombatConfig.BaseDamage - CombatConfig.DamageSpread,
                 CombatConfig.BaseDamage + CombatConfig.DamageSpread);
+        }
+
+        /// <summary>
+        /// **陡俯角近距离必须能命中**（区间闸回归，《固定斜视角射击方案专项设计》§5）：
+        /// 俯视相机射线自上方斜下，射入圆柱的"近弧"高度可能已高于柱顶，但射线继续下降确实穿过柱体。
+        /// 旧单点 Y 闸只看近弧高度 ⇒ 判"掠过头顶"而**完全打不中**（实测俯角 50°/相机 10m/目标 8m：
+        /// 近弧高 2.003 &gt; 柱顶 2.0 被拒）。修复后按区间交集判定 ⇒ 命中且落进头部带。
+        ///
+        /// 反例锁定：把单点闸改回 ⇒ 射手在 (−6.43, 7.66)、目标在 8m、射线向下命中头部带，
+        /// 本用例与下一条（大俯角普通命中）同时转红。
+        /// </summary>
+        [Fact]
+        public void 大俯角近距离_射线自上方斜下_仍命中头部带()
+        {
+            var world = new SimWorldState { RngState = 1UL };
+            // 射手高踞 (−10, 6)：枪口（本体+枪口高度 1.0）落在 (−9.65, 7.0)，俯视角相机射线
+            // 自上方斜下的等价几何。目标在原点 ⇒ 水平距离 ≈9.65m、落差 ≈5.2m（陡俯角）。
+            long shooter = world.Spawn(new EntitySlot { Hp = 100, Pos = new SimVector3(-10f, 6f, 0f) }, out _);
+            long target = world.Spawn(new EntitySlot { Hp = 100, Pos = new SimVector3(0f, 0f, 0f) }, out _);
+
+            // 瞄准点 = 目标头部带中心 (0, 1.85, 0)——自枪口斜下的陡俯角弹道（与相机解算的几何同构）
+            ShootingSystem.Run(world, NoObstacles, FireAt(shooter, px: 0f, py: 1.85f, pz: 0f));
+
+            Assert.True(HasEvent(world, FrameEventKind.Crit),
+                $"大俯角近距离应命中头部带爆头（事件={DescribeKinds(world)}）");
+            int crit = EventValue(world, FrameEventKind.Crit);
+            int lower = (CombatConfig.BaseDamage - CombatConfig.DamageSpread) << CombatConfig.HeadshotDamageShift;
+            int upper = (CombatConfig.BaseDamage + CombatConfig.DamageSpread) << CombatConfig.HeadshotDamageShift;
+            Assert.InRange(crit, lower, upper);
+            _ = target;
+        }
+
+        /// <summary>
+        /// **AimPoint 口径的核心契约**：准心射线命中头部下沿 ⇒ <b>必爆头</b>（所见即所判）。
+        ///
+        /// 这正是方向口径做不到的：方向口径下服务器从枪口<b>沿方向</b>求交，命中点是圆柱<b>近弧</b>，
+        /// 高度比准心命中点略低——俯角 30°/目标 20m/准心恰在下沿 1.70m 时命中 ≈1.67m ⇒ 跌出爆头带。
+        /// AimPoint 口径下服务器「从枪口<b>指向 P</b>」求交，命中点**就是 P**。
+        ///
+        /// 反例锁定：把 ShootingSystem 改回"沿方向求交" ⇒ 本用例转红（命中点落到带外）。
+        /// </summary>
+        [Fact]
+        public void AimPoint口径_准心命中头部下沿_必爆头()
+        {
+            var world = new SimWorldState { RngState = 1UL };
+            long shooter = world.Spawn(new EntitySlot { Hp = 100, Pos = new SimVector3(0f, 0f, 0f) }, out _);
+            world.Spawn(new EntitySlot { Hp = 100, Pos = new SimVector3(20f, 0f, 0f) }, out _);
+
+            // 准心射线命中点P：目标正前方、**恰好在头部带下沿**（含端点，闭区间）
+            float pY = CombatConfig.HeadHitLine;
+            ShootingSystem.Run(world, NoObstacles, new[] { new SimInputFrame
+            {
+                EntityId = shooter,
+                AimPointX = 20f, AimPointY = pY, AimPointZ = 0f,
+                Buttons = SimInputFrame.ButtonFire,
+            } });
+
+            Assert.True(HasEvent(world, FrameEventKind.Crit),
+                $"AimPoint 恰在下沿应爆头（事件={DescribeKinds(world)}）");
+            int crit = EventValue(world, FrameEventKind.Crit);
+            int lower = (CombatConfig.BaseDamage - CombatConfig.DamageSpread) << CombatConfig.HeadshotDamageShift;
+            int upper = (CombatConfig.BaseDamage + CombatConfig.DamageSpread) << CombatConfig.HeadshotDamageShift;
+            Assert.InRange(crit, lower, upper);
+        }
+
+        /// <summary>
+        /// AimPoint 口径下**掩体遮挡**：目标在点之后，但中间有墙⇒ 打墙（不穿墙、不爆头）。
+        /// 遮挡由「从枪口指向 P」的射线上障碍更近承担（与激光同源同向）。
+        /// </summary>
+        [Fact]
+        public void AimPoint口径_中间有墙_打墙不爆头()
+        {
+            var map = new SimMapData();
+            map.Obstacles[0] = new SimObstacle
+            {
+                Kind = SimObstacleKind.Box, Center = new SimVector3(10f, 0f, 0f),
+                HalfX = 0.5f, HalfZ = 20f, Height = 20f,
+            };
+            map.ObstacleCount = 1;
+
+            var world = new SimWorldState { RngState = 1UL };
+            long shooter = world.Spawn(new EntitySlot { Hp = 100, Pos = new SimVector3(0f, 0f, 0f) }, out _);
+            long target = world.Spawn(new EntitySlot { Hp = 100, Pos = new SimVector3(20f, 0f, 0f) }, out _);
+
+            ShootingSystem.Run(world, map, new[] { new SimInputFrame
+            {
+                EntityId = shooter,
+                AimPointX = 20f, AimPointY = CombatConfig.HeadHitLine, AimPointZ = 0f,
+                Buttons = SimInputFrame.ButtonFire,
+            } });
+
+            Assert.False(HasEvent(world, FrameEventKind.Crit), "墙在前⇒ 不应爆头（子弹不穿墙）");
+            Assert.False(HasEvent(world, FrameEventKind.Hit), "墙在前⇒ 不应命中墙后目标");
+            Assert.Equal(-1, DamageAmount(world));
+            _ = target;
+        }
+
+        /// <summary>
+        /// **自动验证件所用的那条契约**：AimPoint 压在头部带<b>中心</b> ⇒ 必爆头（最大容错）。
+        /// 端到端链路上任何一环把 AimPoint 送歪（协议丢字段/闸门拒收/回溯没带），
+        /// 都会在这里或真机对局里表现为"打不出爆头"。
+        /// </summary>
+        [Fact]
+        public void AimPoint口径_压头部带中心_必爆头()
+        {
+            var world = new SimWorldState { RngState = 1UL };
+            long shooter = world.Spawn(new EntitySlot { Hp = 100, Pos = new SimVector3(0f, 0f, 0f) }, out _);
+            world.Spawn(new EntitySlot { Hp = 100, Pos = new SimVector3(15f, 0f, 0f) }, out _);
+
+            float headCenter = CombatConfig.HeadHitLine
+                + (CombatConfig.HitscanHeight - CombatConfig.HeadHitLine) * 0.5f;
+
+            ShootingSystem.Run(world, NoObstacles, new[] { new SimInputFrame
+            {
+                EntityId = shooter,
+                AimPointX = 15f, AimPointY = headCenter, AimPointZ = 0f,
+                Buttons = SimInputFrame.ButtonFire,
+            } });
+
+            Assert.True(HasEvent(world, FrameEventKind.Crit),
+                $"压头部带中心应爆头（事件={DescribeKinds(world)}，中心高 {headCenter}）");
+            int crit = EventValue(world, FrameEventKind.Crit);
+            int lower = (CombatConfig.BaseDamage - CombatConfig.DamageSpread) << CombatConfig.HeadshotDamageShift;
+            int upper = (CombatConfig.BaseDamage + CombatConfig.DamageSpread) << CombatConfig.HeadshotDamageShift;
+            Assert.InRange(crit, lower, upper);
         }
 
         /// <summary>事件 Kind 列表（失败消息辅助——让"为什么没爆头"一眼可读）。</summary>
@@ -197,7 +311,7 @@ namespace LiteSim.Tests
 
             InputSystem.Run(world, new[] { new SimInputFrame
             {
-                EntityId = id, MoveX = 1f, AimX = 1f, AimZ = 0f,
+                EntityId = id, MoveX = 1f, AimPointX = 1f, AimPointY = 1f, AimPointZ = 0f,
                 Buttons = SimInputFrame.ButtonAim | SimInputFrame.ButtonFire,
             } });
 

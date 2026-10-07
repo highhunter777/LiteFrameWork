@@ -92,7 +92,7 @@ namespace LiteNet.Tests
                 Frame = second.AuthSim.Frame + 1,
                 AckSnapshot = -1,
                 ViewFrame = 0,
-                Frames = { new InputFrame { EntityId = 0, MoveX = 0.5f, AimX = 1f } },
+                Frames = { new InputFrame { EntityId = 0, MoveX = 0.5f } },
             }));
 
             Assert.Equal(acceptedBefore, second.Gate.AcceptedCount);

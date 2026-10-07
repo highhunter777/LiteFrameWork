@@ -9,8 +9,8 @@ namespace LiteSim.Tests
     {
         private static SimInputFrame Input(long id, float mx, float mz, float aimX, uint buttons)
         {
-            // AimZ 固定非零（瞄准契约要求非零向量；本用例只验证身份/差异语义）
-            return new SimInputFrame { EntityId = id, MoveX = mx, MoveZ = mz, AimX = aimX, AimZ = 0.5f, Buttons = buttons };
+            // AimPointZ 固定非零（AimPoint 单口径下点即瞄准表示；本用例只验证身份/差异语义）
+            return new SimInputFrame { EntityId = id, MoveX = mx, MoveZ = mz, AimPointX = aimX, AimPointY = 1f, AimPointZ = 0.5f, Buttons = buttons };
         }
 
         [Fact]

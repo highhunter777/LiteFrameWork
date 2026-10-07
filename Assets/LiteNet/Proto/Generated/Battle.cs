@@ -24,61 +24,62 @@ namespace LiteNet.Proto {
     static BattleReflection() {
       byte[] descriptorData = global::System.Convert.FromBase64String(
           string.Concat(
-            "CgxiYXR0bGUucHJvdG8SCmxpdGViYXR0bGUiyQEKCklucHV0RnJhbWUSEQoJ",
+            "CgxiYXR0bGUucHJvdG8SCmxpdGViYXR0bGUi7QEKCklucHV0RnJhbWUSEQoJ",
             "ZW50aXR5X2lkGAEgASgDEg4KBm1vdmVfeBgCIAEoAhIOCgZtb3ZlX3oYAyAB",
-            "KAISDQoFYWltX3gYBCABKAISDQoFYWltX3oYBSABKAISDwoHYnV0dG9ucxgG",
-            "IAEoDRIcChRzZWxlY3RlZF93ZWFwb25fc2xvdBgHIAEoBRIYChB0YXJnZXRf",
-            "ZW50aXR5X2lkGAggASgDEhIKCmFjdGlvbl9zZXEYCSABKA0SDQoFYWltX3kY",
-            "CiABKAIibwoMSW5wdXRNZXNzYWdlEg0KBWZyYW1lGAEgASgFEiYKBmZyYW1l",
-            "cxgCIAMoCzIWLmxpdGViYXR0bGUuSW5wdXRGcmFtZRIUCgxhY2tfc25hcHNo",
-            "b3QYAyABKAUSEgoKdmlld19mcmFtZRgEIAEoBSLnAgoJU2xvdERlbHRhEgwK",
-            "BHNsb3QYASABKAUSCgoCaWQYAiABKAMSDQoFcG9zX3gYAyABKAISDQoFcG9z",
-            "X3kYBCABKAISDQoFcG9zX3oYBSABKAISDQoFdmVsX3gYBiABKAISDQoFdmVs",
-            "X3kYByABKAISDQoFdmVsX3oYCCABKAISCwoDeWF3GAkgASgCEgoKAmhwGAog",
-            "ASgFEg0KBWZsYWdzGAsgASgNEg4KBnNoaWVsZBgMIAEoBRINCgVraWxscxgN",
-            "IAEoBRIOCgZkZWF0aHMYDiABKAUSFwoPc2VsZWN0ZWRfd2VhcG9uGA8gASgF",
-            "EhEKCWFjdGlvbl9pZBgQIAEoBRIUCgxhY3Rpb25fcGhhc2UYESABKAUSGgoS",
-            "YWN0aW9uX3N0YXJ0X2ZyYW1lGBIgASgFEhoKEmZpcmVfc3RhbmNlX2ZyYW1l",
-            "cxgTIAEoDRIVCg1jb3Jwc2VfZnJhbWVzGBQgASgNImsKD01hdGNoU3RhdGVE",
-            "ZWx0YRINCgVwaGFzZRgBIAEoBRIMCgR0ZWFtGAIgASgFEg0KBXNjb3JlGAMg",
-            "ASgFEg0KBXRpbWVyGAQgASgFEg0KBXJvdW5kGAUgASgFEg4KBndpbm5lchgG",
-            "IAEoAyK5AQoLV2VhcG9uRGVsdGESFQoNd2VhcG9uX2RlZl9pZBgBIAEoBRIQ",
-            "CghtYWdfYW1tbxgCIAEoBRIUCgxyZXNlcnZlX2FtbW8YAyABKAUSDQoFc3Rh",
-            "dGUYBCABKAUSFwoPbmV4dF9maXJlX2ZyYW1lGAUgASgFEhgKEHJlbG9hZF9l",
-            "bmRfZnJhbWUYBiABKAUSFwoPZXF1aXBfZW5kX2ZyYW1lGAcgASgFEhAKCHNo",
-            "b3Rfc2VxGAggASgFIkYKClNraWxsRGVsdGESEQoJYWN0aW9uX2lkGAEgASgF",
-            "EhQKDGNvb2xkb3duX2VuZBgCIAEoBRIPCgdjaGFyZ2VzGAMgASgFIkIKC1N0",
-            "YXR1c0RlbHRhEhEKCWVmZmVjdF9pZBgBIAEoBRIRCgllbmRfZnJhbWUYAiAB",
-            "KAUSDQoFcGFyYW0YAyABKAUiRgoMQmFnU2xvdERlbHRhEhMKC2l0ZW1fZGVm",
-            "X2lkGAEgASgFEg0KBWNvdW50GAIgASgFEhIKCnF1aWNrX3Nsb3QYAyABKAUi",
-            "2gEKEVByaXZhdGVTdGF0ZURlbHRhEhEKCWVudGl0eV9pZBgBIAEoAxIQCghy",
-            "ZXNvdXJjZRgCIAEoBRIoCgd3ZWFwb25zGAMgAygLMhcubGl0ZWJhdHRsZS5X",
-            "ZWFwb25EZWx0YRImCgZza2lsbHMYBCADKAsyFi5saXRlYmF0dGxlLlNraWxs",
-            "RGVsdGESJwoGc3RhdHVzGAUgAygLMhcubGl0ZWJhdHRsZS5TdGF0dXNEZWx0",
-            "YRIlCgNiYWcYBiADKAsyGC5saXRlYmF0dGxlLkJhZ1Nsb3REZWx0YSLcAQoN",
-            "U3RhdGVTbmFwc2hvdBINCgVmcmFtZRgBIAEoBRIPCgdpc19mdWxsGAIgASgI",
-            "EiQKBXNsb3RzGAMgAygLMhUubGl0ZWJhdHRsZS5TbG90RGVsdGESEAoIY2hl",
-            "Y2tzdW0YBCABKA0SEQoJYWNrX2lucHV0GAUgASgFEioKBW1hdGNoGAYgASgL",
-            "MhsubGl0ZWJhdHRsZS5NYXRjaFN0YXRlRGVsdGESNAoNcHJpdmF0ZV9zdGF0",
-            "ZRgHIAEoCzIdLmxpdGViYXR0bGUuUHJpdmF0ZVN0YXRlRGVsdGEiQQoLSm9p",
-            "blJlcXVlc3QSDwoHcm9vbV9pZBgBIAEoCRINCgV0b2tlbhgCIAEoCRISCgpi",
-            "dWlsZF9oYXNoGAMgASgJIpABCgdKb2luQWNrEhEKCXBsYXllcl9pZBgBIAEo",
-            "BRIPCgdtZW1iZXJzGAIgAygFEhcKD3JlY29ubmVjdF90b2tlbhgDIAEoCRIg",
-            "ChhyZWNvbm5lY3Rfd2luZG93X3NlY29uZHMYBCABKAUSEwoLc25hcHNob3Rf",
-            "aHoYBSABKAUSEQoJdGlja19yYXRlGAYgASgFIj0KCVN0YXJ0R2FtZRIMCgRz",
-            "ZWVkGAEgASgDEhMKC2NvbmZpZ19oYXNoGAIgASgNEg0KBWZyYW1lGAMgASgF",
-            "IgcKBUxlYXZlIiAKCUhlYXJ0YmVhdBITCgtjbGllbnRfdGltZRgBIAEoAyIq",
-            "ChBSZWNvbm5lY3RSZXF1ZXN0EhYKDm9uZV90aW1lX3Rva2VuGAEgASgJIr4B",
-            "ChFSZWNvbm5lY3RSZXNwb25zZRIKCgJvaxgBIAEoCBIOCgZyZWFzb24YBCAB",
-            "KAkSKwoIc25hcHNob3QYAiABKAsyGS5saXRlYmF0dGxlLlN0YXRlU25hcHNo",
-            "b3QSKQoHaGlzdG9yeRgDIAMoCzIYLmxpdGViYXR0bGUuSW5wdXRNZXNzYWdl",
-            "EgwKBHNlZWQYBSABKAMSEwoLY29uZmlnX2hhc2gYBiABKA0SEgoKYnVpbGRf",
-            "aGFzaBgHIAEoCSIRCg9SZXN0b3JlQ29tcGxldGUiHwoOTWlzbWF0Y2hSZXBv",
-            "cnQSDQoFZnJhbWUYASABKAVCEKoCDUxpdGVOZXQuUHJvdG9iBnByb3RvMw=="));
+            "KAISDwoHYnV0dG9ucxgGIAEoDRIcChRzZWxlY3RlZF93ZWFwb25fc2xvdBgH",
+            "IAEoBRIYChB0YXJnZXRfZW50aXR5X2lkGAggASgDEhIKCmFjdGlvbl9zZXEY",
+            "CSABKA0SEwoLYWltX3BvaW50X3gYCyABKAISEwoLYWltX3BvaW50X3kYDCAB",
+            "KAISEwoLYWltX3BvaW50X3oYDSABKAJKBAgEEAVKBAgFEAZKBAgKEAsibwoM",
+            "SW5wdXRNZXNzYWdlEg0KBWZyYW1lGAEgASgFEiYKBmZyYW1lcxgCIAMoCzIW",
+            "LmxpdGViYXR0bGUuSW5wdXRGcmFtZRIUCgxhY2tfc25hcHNob3QYAyABKAUS",
+            "EgoKdmlld19mcmFtZRgEIAEoBSLnAgoJU2xvdERlbHRhEgwKBHNsb3QYASAB",
+            "KAUSCgoCaWQYAiABKAMSDQoFcG9zX3gYAyABKAISDQoFcG9zX3kYBCABKAIS",
+            "DQoFcG9zX3oYBSABKAISDQoFdmVsX3gYBiABKAISDQoFdmVsX3kYByABKAIS",
+            "DQoFdmVsX3oYCCABKAISCwoDeWF3GAkgASgCEgoKAmhwGAogASgFEg0KBWZs",
+            "YWdzGAsgASgNEg4KBnNoaWVsZBgMIAEoBRINCgVraWxscxgNIAEoBRIOCgZk",
+            "ZWF0aHMYDiABKAUSFwoPc2VsZWN0ZWRfd2VhcG9uGA8gASgFEhEKCWFjdGlv",
+            "bl9pZBgQIAEoBRIUCgxhY3Rpb25fcGhhc2UYESABKAUSGgoSYWN0aW9uX3N0",
+            "YXJ0X2ZyYW1lGBIgASgFEhoKEmZpcmVfc3RhbmNlX2ZyYW1lcxgTIAEoDRIV",
+            "Cg1jb3Jwc2VfZnJhbWVzGBQgASgNImsKD01hdGNoU3RhdGVEZWx0YRINCgVw",
+            "aGFzZRgBIAEoBRIMCgR0ZWFtGAIgASgFEg0KBXNjb3JlGAMgASgFEg0KBXRp",
+            "bWVyGAQgASgFEg0KBXJvdW5kGAUgASgFEg4KBndpbm5lchgGIAEoAyK5AQoL",
+            "V2VhcG9uRGVsdGESFQoNd2VhcG9uX2RlZl9pZBgBIAEoBRIQCghtYWdfYW1t",
+            "bxgCIAEoBRIUCgxyZXNlcnZlX2FtbW8YAyABKAUSDQoFc3RhdGUYBCABKAUS",
+            "FwoPbmV4dF9maXJlX2ZyYW1lGAUgASgFEhgKEHJlbG9hZF9lbmRfZnJhbWUY",
+            "BiABKAUSFwoPZXF1aXBfZW5kX2ZyYW1lGAcgASgFEhAKCHNob3Rfc2VxGAgg",
+            "ASgFIkYKClNraWxsRGVsdGESEQoJYWN0aW9uX2lkGAEgASgFEhQKDGNvb2xk",
+            "b3duX2VuZBgCIAEoBRIPCgdjaGFyZ2VzGAMgASgFIkIKC1N0YXR1c0RlbHRh",
+            "EhEKCWVmZmVjdF9pZBgBIAEoBRIRCgllbmRfZnJhbWUYAiABKAUSDQoFcGFy",
+            "YW0YAyABKAUiRgoMQmFnU2xvdERlbHRhEhMKC2l0ZW1fZGVmX2lkGAEgASgF",
+            "Eg0KBWNvdW50GAIgASgFEhIKCnF1aWNrX3Nsb3QYAyABKAUi2gEKEVByaXZh",
+            "dGVTdGF0ZURlbHRhEhEKCWVudGl0eV9pZBgBIAEoAxIQCghyZXNvdXJjZRgC",
+            "IAEoBRIoCgd3ZWFwb25zGAMgAygLMhcubGl0ZWJhdHRsZS5XZWFwb25EZWx0",
+            "YRImCgZza2lsbHMYBCADKAsyFi5saXRlYmF0dGxlLlNraWxsRGVsdGESJwoG",
+            "c3RhdHVzGAUgAygLMhcubGl0ZWJhdHRsZS5TdGF0dXNEZWx0YRIlCgNiYWcY",
+            "BiADKAsyGC5saXRlYmF0dGxlLkJhZ1Nsb3REZWx0YSLcAQoNU3RhdGVTbmFw",
+            "c2hvdBINCgVmcmFtZRgBIAEoBRIPCgdpc19mdWxsGAIgASgIEiQKBXNsb3Rz",
+            "GAMgAygLMhUubGl0ZWJhdHRsZS5TbG90RGVsdGESEAoIY2hlY2tzdW0YBCAB",
+            "KA0SEQoJYWNrX2lucHV0GAUgASgFEioKBW1hdGNoGAYgASgLMhsubGl0ZWJh",
+            "dHRsZS5NYXRjaFN0YXRlRGVsdGESNAoNcHJpdmF0ZV9zdGF0ZRgHIAEoCzId",
+            "LmxpdGViYXR0bGUuUHJpdmF0ZVN0YXRlRGVsdGEiQQoLSm9pblJlcXVlc3QS",
+            "DwoHcm9vbV9pZBgBIAEoCRINCgV0b2tlbhgCIAEoCRISCgpidWlsZF9oYXNo",
+            "GAMgASgJIpABCgdKb2luQWNrEhEKCXBsYXllcl9pZBgBIAEoBRIPCgdtZW1i",
+            "ZXJzGAIgAygFEhcKD3JlY29ubmVjdF90b2tlbhgDIAEoCRIgChhyZWNvbm5l",
+            "Y3Rfd2luZG93X3NlY29uZHMYBCABKAUSEwoLc25hcHNob3RfaHoYBSABKAUS",
+            "EQoJdGlja19yYXRlGAYgASgFIj0KCVN0YXJ0R2FtZRIMCgRzZWVkGAEgASgD",
+            "EhMKC2NvbmZpZ19oYXNoGAIgASgNEg0KBWZyYW1lGAMgASgFIgcKBUxlYXZl",
+            "IiAKCUhlYXJ0YmVhdBITCgtjbGllbnRfdGltZRgBIAEoAyIqChBSZWNvbm5l",
+            "Y3RSZXF1ZXN0EhYKDm9uZV90aW1lX3Rva2VuGAEgASgJIr4BChFSZWNvbm5l",
+            "Y3RSZXNwb25zZRIKCgJvaxgBIAEoCBIOCgZyZWFzb24YBCABKAkSKwoIc25h",
+            "cHNob3QYAiABKAsyGS5saXRlYmF0dGxlLlN0YXRlU25hcHNob3QSKQoHaGlz",
+            "dG9yeRgDIAMoCzIYLmxpdGViYXR0bGUuSW5wdXRNZXNzYWdlEgwKBHNlZWQY",
+            "BSABKAMSEwoLY29uZmlnX2hhc2gYBiABKA0SEgoKYnVpbGRfaGFzaBgHIAEo",
+            "CSIRCg9SZXN0b3JlQ29tcGxldGUiHwoOTWlzbWF0Y2hSZXBvcnQSDQoFZnJh",
+            "bWUYASABKAVCEKoCDUxpdGVOZXQuUHJvdG9iBnByb3RvMw=="));
       descriptor = pbr::FileDescriptor.FromGeneratedCode(descriptorData,
           new pbr::FileDescriptor[] { },
           new pbr::GeneratedClrTypeInfo(null, null, new pbr::GeneratedClrTypeInfo[] {
-            new pbr::GeneratedClrTypeInfo(typeof(global::LiteNet.Proto.InputFrame), global::LiteNet.Proto.InputFrame.Parser, new[]{ "EntityId", "MoveX", "MoveZ", "AimX", "AimZ", "Buttons", "SelectedWeaponSlot", "TargetEntityId", "ActionSeq", "AimY" }, null, null, null, null),
+            new pbr::GeneratedClrTypeInfo(typeof(global::LiteNet.Proto.InputFrame), global::LiteNet.Proto.InputFrame.Parser, new[]{ "EntityId", "MoveX", "MoveZ", "Buttons", "SelectedWeaponSlot", "TargetEntityId", "ActionSeq", "AimPointX", "AimPointY", "AimPointZ" }, null, null, null, null),
             new pbr::GeneratedClrTypeInfo(typeof(global::LiteNet.Proto.InputMessage), global::LiteNet.Proto.InputMessage.Parser, new[]{ "Frame", "Frames", "AckSnapshot", "ViewFrame" }, null, null, null, null),
             new pbr::GeneratedClrTypeInfo(typeof(global::LiteNet.Proto.SlotDelta), global::LiteNet.Proto.SlotDelta.Parser, new[]{ "Slot", "Id", "PosX", "PosY", "PosZ", "VelX", "VelY", "VelZ", "Yaw", "Hp", "Flags", "Shield", "Kills", "Deaths", "SelectedWeapon", "ActionId", "ActionPhase", "ActionStartFrame", "FireStanceFrames", "CorpseFrames" }, null, null, null, null),
             new pbr::GeneratedClrTypeInfo(typeof(global::LiteNet.Proto.MatchStateDelta), global::LiteNet.Proto.MatchStateDelta.Parser, new[]{ "Phase", "Team", "Score", "Timer", "Round", "Winner" }, null, null, null, null),
@@ -141,13 +142,13 @@ namespace LiteNet.Proto {
       entityId_ = other.entityId_;
       moveX_ = other.moveX_;
       moveZ_ = other.moveZ_;
-      aimX_ = other.aimX_;
-      aimZ_ = other.aimZ_;
       buttons_ = other.buttons_;
       selectedWeaponSlot_ = other.selectedWeaponSlot_;
       targetEntityId_ = other.targetEntityId_;
       actionSeq_ = other.actionSeq_;
-      aimY_ = other.aimY_;
+      aimPointX_ = other.aimPointX_;
+      aimPointY_ = other.aimPointY_;
+      aimPointZ_ = other.aimPointZ_;
       _unknownFields = pb::UnknownFieldSet.Clone(other._unknownFields);
     }
 
@@ -196,38 +197,11 @@ namespace LiteNet.Proto {
       }
     }
 
-    /// <summary>Field number for the "aim_x" field.</summary>
-    public const int AimXFieldNumber = 4;
-    private float aimX_;
-    /// <summary>
-    /// 瞄准方向 X（XZ；非零，长度 ≤1 由采集侧保证；朝向不再上线）
-    /// </summary>
-    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
-    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
-    public float AimX {
-      get { return aimX_; }
-      set {
-        aimX_ = value;
-      }
-    }
-
-    /// <summary>Field number for the "aim_z" field.</summary>
-    public const int AimZFieldNumber = 5;
-    private float aimZ_;
-    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
-    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
-    public float AimZ {
-      get { return aimZ_; }
-      set {
-        aimZ_ = value;
-      }
-    }
-
     /// <summary>Field number for the "buttons" field.</summary>
     public const int ButtonsFieldNumber = 6;
     private uint buttons_;
     /// <summary>
-    /// 按钮位：0 Fire / 1 Reload / 2 SwitchWeapon / 3..5 Skill1..3 / 6 Pickup / 7 UseItem / 8 Dodge(保留)
+    /// 按钮位：0 Fire / 1 Reload / 2 SwitchWeapon / 3..5 Skill1..3 / 6 Pickup / 7 UseItem / 8 Dodge(保留) / 9 Aim
     /// </summary>
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
@@ -283,18 +257,50 @@ namespace LiteNet.Proto {
       }
     }
 
-    /// <summary>Field number for the "aim_y" field.</summary>
-    public const int AimYFieldNumber = 10;
-    private float aimY_;
+    /// <summary>Field number for the "aim_point_x" field.</summary>
+    public const int AimPointXFieldNumber = 11;
+    private float aimPointX_;
     /// <summary>
-    /// ---- 俯视角三维命中（《俯视角三维命中与爆头判定专项设计》§3.2；只增不改，字段号顺延）----
+    /// ---- 瞄准点（AimPoint 单口径：判定点= 准心射线命中点，所见即所判；《固定斜视角射击方案专项设计》§3/§4）----
+    /// 相机屏幕射线与「实体圆柱 → 地面」的交点（世界坐标）。**朝向（Yaw）与弹道方向以此点为准两端同源派生**；
+    /// 全零 = 无点（不派生朝向、不产命中）。
     /// </summary>
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
-    public float AimY {
-      get { return aimY_; }
+    public float AimPointX {
+      get { return aimPointX_; }
       set {
-        aimY_ = value;
+        aimPointX_ = value;
+      }
+    }
+
+    /// <summary>Field number for the "aim_point_y" field.</summary>
+    public const int AimPointYFieldNumber = 12;
+    private float aimPointY_;
+    /// <summary>
+    /// 瞄准点世界 Y（★爆头判定的直接输入：落在头部带 ⇒ Crit）
+    /// </summary>
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public float AimPointY {
+      get { return aimPointY_; }
+      set {
+        aimPointY_ = value;
+      }
+    }
+
+    /// <summary>Field number for the "aim_point_z" field.</summary>
+    public const int AimPointZFieldNumber = 13;
+    private float aimPointZ_;
+    /// <summary>
+    /// 瞄准点世界 Z
+    /// </summary>
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public float AimPointZ {
+      get { return aimPointZ_; }
+      set {
+        aimPointZ_ = value;
       }
     }
 
@@ -316,13 +322,13 @@ namespace LiteNet.Proto {
       if (EntityId != other.EntityId) return false;
       if (!pbc::ProtobufEqualityComparers.BitwiseSingleEqualityComparer.Equals(MoveX, other.MoveX)) return false;
       if (!pbc::ProtobufEqualityComparers.BitwiseSingleEqualityComparer.Equals(MoveZ, other.MoveZ)) return false;
-      if (!pbc::ProtobufEqualityComparers.BitwiseSingleEqualityComparer.Equals(AimX, other.AimX)) return false;
-      if (!pbc::ProtobufEqualityComparers.BitwiseSingleEqualityComparer.Equals(AimZ, other.AimZ)) return false;
       if (Buttons != other.Buttons) return false;
       if (SelectedWeaponSlot != other.SelectedWeaponSlot) return false;
       if (TargetEntityId != other.TargetEntityId) return false;
       if (ActionSeq != other.ActionSeq) return false;
-      if (!pbc::ProtobufEqualityComparers.BitwiseSingleEqualityComparer.Equals(AimY, other.AimY)) return false;
+      if (!pbc::ProtobufEqualityComparers.BitwiseSingleEqualityComparer.Equals(AimPointX, other.AimPointX)) return false;
+      if (!pbc::ProtobufEqualityComparers.BitwiseSingleEqualityComparer.Equals(AimPointY, other.AimPointY)) return false;
+      if (!pbc::ProtobufEqualityComparers.BitwiseSingleEqualityComparer.Equals(AimPointZ, other.AimPointZ)) return false;
       return Equals(_unknownFields, other._unknownFields);
     }
 
@@ -333,13 +339,13 @@ namespace LiteNet.Proto {
       if (EntityId != 0L) hash ^= EntityId.GetHashCode();
       if (MoveX != 0F) hash ^= pbc::ProtobufEqualityComparers.BitwiseSingleEqualityComparer.GetHashCode(MoveX);
       if (MoveZ != 0F) hash ^= pbc::ProtobufEqualityComparers.BitwiseSingleEqualityComparer.GetHashCode(MoveZ);
-      if (AimX != 0F) hash ^= pbc::ProtobufEqualityComparers.BitwiseSingleEqualityComparer.GetHashCode(AimX);
-      if (AimZ != 0F) hash ^= pbc::ProtobufEqualityComparers.BitwiseSingleEqualityComparer.GetHashCode(AimZ);
       if (Buttons != 0) hash ^= Buttons.GetHashCode();
       if (SelectedWeaponSlot != 0) hash ^= SelectedWeaponSlot.GetHashCode();
       if (TargetEntityId != 0L) hash ^= TargetEntityId.GetHashCode();
       if (ActionSeq != 0) hash ^= ActionSeq.GetHashCode();
-      if (AimY != 0F) hash ^= pbc::ProtobufEqualityComparers.BitwiseSingleEqualityComparer.GetHashCode(AimY);
+      if (AimPointX != 0F) hash ^= pbc::ProtobufEqualityComparers.BitwiseSingleEqualityComparer.GetHashCode(AimPointX);
+      if (AimPointY != 0F) hash ^= pbc::ProtobufEqualityComparers.BitwiseSingleEqualityComparer.GetHashCode(AimPointY);
+      if (AimPointZ != 0F) hash ^= pbc::ProtobufEqualityComparers.BitwiseSingleEqualityComparer.GetHashCode(AimPointZ);
       if (_unknownFields != null) {
         hash ^= _unknownFields.GetHashCode();
       }
@@ -370,14 +376,6 @@ namespace LiteNet.Proto {
         output.WriteRawTag(29);
         output.WriteFloat(MoveZ);
       }
-      if (AimX != 0F) {
-        output.WriteRawTag(37);
-        output.WriteFloat(AimX);
-      }
-      if (AimZ != 0F) {
-        output.WriteRawTag(45);
-        output.WriteFloat(AimZ);
-      }
       if (Buttons != 0) {
         output.WriteRawTag(48);
         output.WriteUInt32(Buttons);
@@ -394,9 +392,17 @@ namespace LiteNet.Proto {
         output.WriteRawTag(72);
         output.WriteUInt32(ActionSeq);
       }
-      if (AimY != 0F) {
-        output.WriteRawTag(85);
-        output.WriteFloat(AimY);
+      if (AimPointX != 0F) {
+        output.WriteRawTag(93);
+        output.WriteFloat(AimPointX);
+      }
+      if (AimPointY != 0F) {
+        output.WriteRawTag(101);
+        output.WriteFloat(AimPointY);
+      }
+      if (AimPointZ != 0F) {
+        output.WriteRawTag(109);
+        output.WriteFloat(AimPointZ);
       }
       if (_unknownFields != null) {
         _unknownFields.WriteTo(output);
@@ -420,14 +426,6 @@ namespace LiteNet.Proto {
         output.WriteRawTag(29);
         output.WriteFloat(MoveZ);
       }
-      if (AimX != 0F) {
-        output.WriteRawTag(37);
-        output.WriteFloat(AimX);
-      }
-      if (AimZ != 0F) {
-        output.WriteRawTag(45);
-        output.WriteFloat(AimZ);
-      }
       if (Buttons != 0) {
         output.WriteRawTag(48);
         output.WriteUInt32(Buttons);
@@ -444,9 +442,17 @@ namespace LiteNet.Proto {
         output.WriteRawTag(72);
         output.WriteUInt32(ActionSeq);
       }
-      if (AimY != 0F) {
-        output.WriteRawTag(85);
-        output.WriteFloat(AimY);
+      if (AimPointX != 0F) {
+        output.WriteRawTag(93);
+        output.WriteFloat(AimPointX);
+      }
+      if (AimPointY != 0F) {
+        output.WriteRawTag(101);
+        output.WriteFloat(AimPointY);
+      }
+      if (AimPointZ != 0F) {
+        output.WriteRawTag(109);
+        output.WriteFloat(AimPointZ);
       }
       if (_unknownFields != null) {
         _unknownFields.WriteTo(ref output);
@@ -467,12 +473,6 @@ namespace LiteNet.Proto {
       if (MoveZ != 0F) {
         size += 1 + 4;
       }
-      if (AimX != 0F) {
-        size += 1 + 4;
-      }
-      if (AimZ != 0F) {
-        size += 1 + 4;
-      }
       if (Buttons != 0) {
         size += 1 + pb::CodedOutputStream.ComputeUInt32Size(Buttons);
       }
@@ -485,7 +485,13 @@ namespace LiteNet.Proto {
       if (ActionSeq != 0) {
         size += 1 + pb::CodedOutputStream.ComputeUInt32Size(ActionSeq);
       }
-      if (AimY != 0F) {
+      if (AimPointX != 0F) {
+        size += 1 + 4;
+      }
+      if (AimPointY != 0F) {
+        size += 1 + 4;
+      }
+      if (AimPointZ != 0F) {
         size += 1 + 4;
       }
       if (_unknownFields != null) {
@@ -509,12 +515,6 @@ namespace LiteNet.Proto {
       if (other.MoveZ != 0F) {
         MoveZ = other.MoveZ;
       }
-      if (other.AimX != 0F) {
-        AimX = other.AimX;
-      }
-      if (other.AimZ != 0F) {
-        AimZ = other.AimZ;
-      }
       if (other.Buttons != 0) {
         Buttons = other.Buttons;
       }
@@ -527,8 +527,14 @@ namespace LiteNet.Proto {
       if (other.ActionSeq != 0) {
         ActionSeq = other.ActionSeq;
       }
-      if (other.AimY != 0F) {
-        AimY = other.AimY;
+      if (other.AimPointX != 0F) {
+        AimPointX = other.AimPointX;
+      }
+      if (other.AimPointY != 0F) {
+        AimPointY = other.AimPointY;
+      }
+      if (other.AimPointZ != 0F) {
+        AimPointZ = other.AimPointZ;
       }
       _unknownFields = pb::UnknownFieldSet.MergeFrom(_unknownFields, other._unknownFields);
     }
@@ -561,14 +567,6 @@ namespace LiteNet.Proto {
             MoveZ = input.ReadFloat();
             break;
           }
-          case 37: {
-            AimX = input.ReadFloat();
-            break;
-          }
-          case 45: {
-            AimZ = input.ReadFloat();
-            break;
-          }
           case 48: {
             Buttons = input.ReadUInt32();
             break;
@@ -585,8 +583,16 @@ namespace LiteNet.Proto {
             ActionSeq = input.ReadUInt32();
             break;
           }
-          case 85: {
-            AimY = input.ReadFloat();
+          case 93: {
+            AimPointX = input.ReadFloat();
+            break;
+          }
+          case 101: {
+            AimPointY = input.ReadFloat();
+            break;
+          }
+          case 109: {
+            AimPointZ = input.ReadFloat();
             break;
           }
         }
@@ -620,14 +626,6 @@ namespace LiteNet.Proto {
             MoveZ = input.ReadFloat();
             break;
           }
-          case 37: {
-            AimX = input.ReadFloat();
-            break;
-          }
-          case 45: {
-            AimZ = input.ReadFloat();
-            break;
-          }
           case 48: {
             Buttons = input.ReadUInt32();
             break;
@@ -644,8 +642,16 @@ namespace LiteNet.Proto {
             ActionSeq = input.ReadUInt32();
             break;
           }
-          case 85: {
-            AimY = input.ReadFloat();
+          case 93: {
+            AimPointX = input.ReadFloat();
+            break;
+          }
+          case 101: {
+            AimPointY = input.ReadFloat();
+            break;
+          }
+          case 109: {
+            AimPointZ = input.ReadFloat();
             break;
           }
         }

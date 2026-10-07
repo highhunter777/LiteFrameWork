@@ -95,8 +95,8 @@ namespace LiteNet.Tests
         {
             for (int t = 0; t < ticks; t++)
             {
-                a.EnqueueLocalInput(new SimInputFrame { EntityId = 0, MoveX = ax, AimX = 1f, AimZ = 0f });
-                b.EnqueueLocalInput(new SimInputFrame { EntityId = 0, MoveX = bx, AimX = 1f, AimZ = 0f });
+                a.EnqueueLocalInput(new SimInputFrame { EntityId = 0, MoveX = ax });
+                b.EnqueueLocalInput(new SimInputFrame { EntityId = 0, MoveX = bx });
                 _host.Pump();
                 a.Tick(1f / 60);
                 b.Tick(1f / 60);

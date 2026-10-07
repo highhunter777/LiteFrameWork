@@ -94,8 +94,8 @@ namespace LiteNet.Tests
                 // 丢包模拟：skipEvery > 0 时每 skipEvery 步跳过一次客户端发送（发送侧丢包）
                 if (skipEvery == 0 || t % skipEvery != 0)
                 {
-                    a.EnqueueLocalInput(new SimInputFrame { EntityId = 0, MoveX = 0.5f, AimX = 1f, AimZ = 0f });
-                    b.EnqueueLocalInput(new SimInputFrame { EntityId = 0, MoveX = -0.5f, AimX = 1f, AimZ = 0f });
+                    a.EnqueueLocalInput(new SimInputFrame { EntityId = 0, MoveX = 0.5f });
+                    b.EnqueueLocalInput(new SimInputFrame { EntityId = 0, MoveX = -0.5f });
                 }
                 else
                 {
@@ -151,8 +151,8 @@ namespace LiteNet.Tests
 
             for (int t = 0; t < 600; t++)
             {
-                a.EnqueueLocalInput(new SimInputFrame { EntityId = 0, MoveX = 0f, AimX = 1f, AimZ = 0f });
-                b.EnqueueLocalInput(new SimInputFrame { EntityId = 0, MoveX = 0.8f, AimX = 1f, AimZ = 0f });
+                a.EnqueueLocalInput(new SimInputFrame { EntityId = 0, MoveX = 0f });
+                b.EnqueueLocalInput(new SimInputFrame { EntityId = 0, MoveX = 0.8f });
                 _host.Pump();
                 a.Tick(1f / 60);
                 b.Tick(1f / 60);
@@ -227,8 +227,8 @@ namespace LiteNet.Tests
             long lastAccepted = _host.Room.Gate.AcceptedCount;
             while (watch.Elapsed.TotalMinutes < 5.0)
             {
-                a.EnqueueLocalInput(new SimInputFrame { EntityId = 0, MoveX = 0.5f, AimX = 1f, AimZ = 0f });
-                b.EnqueueLocalInput(new SimInputFrame { EntityId = 0, MoveX = -0.5f, AimX = 1f, AimZ = 0f });
+                a.EnqueueLocalInput(new SimInputFrame { EntityId = 0, MoveX = 0.5f });
+                b.EnqueueLocalInput(new SimInputFrame { EntityId = 0, MoveX = -0.5f });
                 _host.Pump();
                 a.Tick(1f / 60);
                 b.Tick(1f / 60);

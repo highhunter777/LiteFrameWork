@@ -275,9 +275,9 @@ namespace LiteNet.Tests
         public void 非有限值_NaN与正负Infinity拒之门外()
         {
             var gate = new InputGate(2);
-            Assert.False(gate.Store(Raw(11, float.NaN, 0f, 1f, 0f, 0u, 0u), PlayerId, EntityId, 10, out _, out _));
-            Assert.False(gate.Store(Raw(11, 0f, float.PositiveInfinity, 1f, 0f, 0u, 0u), PlayerId, EntityId, 10, out _, out _));
-            Assert.False(gate.Store(Raw(11, 0f, 0f, float.NegativeInfinity, 0f, 0u, 0u), PlayerId, EntityId, 10, out _, out _));
+            Assert.False(gate.Store(Raw(11, float.NaN, 0f, 1f, 1f, 0f, 0u, 0u), PlayerId, EntityId, 10, out _, out _));
+            Assert.False(gate.Store(Raw(11, 0f, float.PositiveInfinity, 1f, 1f, 0f, 0u, 0u), PlayerId, EntityId, 10, out _, out _));
+            Assert.False(gate.Store(Raw(11, 0f, 0f, float.NegativeInfinity, 1f, 0f, 0u, 0u), PlayerId, EntityId, 10, out _, out _));
             Assert.Equal(3, gate.DroppedNonFinite);
             Assert.Equal(0, gate.AcceptedCount);
 
@@ -290,31 +290,32 @@ namespace LiteNet.Tests
         public void 向量边界_分量与长度越界拒绝()
         {
             var gate = new InputGate(2);
-            Assert.False(gate.Store(Raw(11, 1.5f, 0f, 1f, 0f, 0u, 0u), PlayerId, EntityId, 10, out _, out _));   // Move 分量越界
-            Assert.False(gate.Store(Raw(12, 0.8f, 0.8f, 1f, 0f, 0u, 0u), PlayerId, EntityId, 11, out _, out _)); // Move 长度² = 1.28 越界
-            Assert.False(gate.Store(Raw(13, 1f, 0f, 0.8f, 0.8f, 0u, 0u), PlayerId, EntityId, 12, out _, out _)); // Aim 长度² 越界
+            Assert.False(gate.Store(Raw(11, 1.5f, 0f, 1f, 1f, 0f, 0u, 0u), PlayerId, EntityId, 10, out _, out _));   // Move 分量越界
+            Assert.False(gate.Store(Raw(12, 0.8f, 0.8f, 1f, 1f, 0f, 0u, 0u), PlayerId, EntityId, 11, out _, out _)); // Move 长度² = 1.28 越界
+            // 瞄准方向已收敛为 AimPoint（不再有方向量闸）——第三条越界面改为**开火零瞄准**（无点开火 = 非法）
+            Assert.False(gate.Store(Raw(13, 1f, 0f, 0f, 0f, 0f, SimInputFrame.ButtonFire, 0u), PlayerId, EntityId, 12, out _, out _));
             Assert.Equal(3, gate.DroppedIllegalVector);
             Assert.Equal(0, gate.AcceptedCount);
 
             // 对角满速（0.707…×2）合法：长度² = 0.5+0.5 = 1 恰在界内
             float diag = 0.70710677f;
-            Assert.True(gate.Store(Raw(14, diag, diag, diag, -diag, 0u, 0u), PlayerId, EntityId, 13, out _, out _));
+            Assert.True(gate.Store(Raw(14, diag, diag, diag, 1f, -diag, 0u, 0u), PlayerId, EntityId, 13, out _, out _));
         }
 
         [Fact]
         public void 开火帧零瞄准拒绝_无意图零瞄准放行()
         {
             var gate = new InputGate(2);
-            // Fire 需要方向：零 Aim 开火 = 非法
-            Assert.False(gate.Store(Raw(11, 0f, 0f, 0f, 0f, SimInputFrame.ButtonFire, 0u), PlayerId, EntityId, 10, out _, out _));
-            // Skill 同理（施法需要方向）
-            Assert.False(gate.Store(Raw(12, 0f, 0f, 0f, 0f, SimInputFrame.ButtonSkill1, 1u), PlayerId, EntityId, 11, out _, out _));
+            // Fire 需要瞄准点：全零（无点）开火 = 非法——方向回退口径已退役，点是非零契约的唯一载体
+            Assert.False(gate.Store(Raw(11, 0f, 0f, 0f, 0f, 0f, SimInputFrame.ButtonFire, 0u), PlayerId, EntityId, 10, out _, out _));
+            // Skill 同理（施法需要瞄准点）
+            Assert.False(gate.Store(Raw(12, 0f, 0f, 0f, 0f, 0f, SimInputFrame.ButtonSkill1, 1u), PlayerId, EntityId, 11, out _, out _));
             Assert.Equal(2, gate.DroppedIllegalVector);
 
-            // 纯移动帧零 Aim 合法（瞄准零 = 无意图，Sim 侧 atan2 只在开火帧被消费）
-            Assert.True(gate.Store(Raw(13, 0.5f, 0f, 0f, 0f, 0u, 0u), PlayerId, EntityId, 12, out _, out _));
-            // Reload/Pickup 不依赖 Aim（走槽位/目标语义）
-            Assert.True(gate.Store(Raw(14, 0f, 0f, 0f, 0f, SimInputFrame.ButtonReload, 2u), PlayerId, EntityId, 13, out _, out _));
+            // 纯移动帧零 AimPoint 合法（无点 = 无瞄准意图，Sim 侧不派生朝向、不产命中）
+            Assert.True(gate.Store(Raw(13, 0.5f, 0f, 0f, 0f, 0f, 0u, 0u), PlayerId, EntityId, 12, out _, out _));
+            // Reload/Pickup 不依赖 AimPoint（走槽位/目标语义）
+            Assert.True(gate.Store(Raw(14, 0f, 0f, 0f, 0f, 0f, SimInputFrame.ButtonReload, 2u), PlayerId, EntityId, 13, out _, out _));
             Assert.Equal(2, gate.AcceptedCount);
         }
 
@@ -341,13 +342,18 @@ namespace LiteNet.Tests
                 float mx = FloatBits(rng.Next());
                 float mz = FloatBits(rng.Next());
                 float ax = FloatBits(rng.Next());
+                float ay = FloatBits(rng.Next());
                 float az = FloatBits(rng.Next());
                 uint buttons = (uint)rng.Next();
-                ClientInputBatch msg = Packet(rng.Next(-2, 60), mx, mz, ax, az, ackSnapshot: rng.Next(-2, 60), buttons: buttons);
+                ClientInputBatch msg = Packet(rng.Next(-2, 60), mx, mz, 0f, 0f, ackSnapshot: rng.Next(-2, 60), buttons: buttons);
+                msg.Frames[0].AimPointX = ax;                  // 全谱坏瞄准点（NaN/Inf/超大/正常）
+                msg.Frames[0].AimPointY = ay;
+                msg.Frames[0].AimPointZ = az;
                 // 不抛即通过本条；被接受时值必须已通过全部边界（有限 + 范围 + 白名单 + 槽位 + seq）
                 if (gate.Store(msg, 0, EntityId, serverFrame: 30, out _, out SimInputFrame accepted))
                 {
-                    Assert.True(float.IsFinite(accepted.MoveX) && float.IsFinite(accepted.AimX));
+                    Assert.True(float.IsFinite(accepted.MoveX)
+                        && float.IsFinite(accepted.AimPointX) && float.IsFinite(accepted.AimPointY) && float.IsFinite(accepted.AimPointZ));
                     Assert.True(accepted.MoveX * accepted.MoveX + accepted.MoveZ * accepted.MoveZ <= ProtocolConstants.VectorLengthSquaredLimit + 1e-6f);
                     Assert.Equal(EntityId, accepted.EntityId);               // 防伪覆写恒成立
                     acceptedBefore++;
@@ -422,7 +428,8 @@ namespace LiteNet.Tests
         /// <summary>把随机 int 位型重解释为 float——制造 NaN/Infinity/超大/正常值的全谱坏输入。</summary>
         private static float FloatBits(int bits) => System.BitConverter.ToSingle(System.BitConverter.GetBytes(bits), 0);
 
-        /// <summary>构造一条窗口 [frame, frame-1, frame-2, frame-3] 的输入包（每帧内容各不相同）。</summary>
+        /// <summary>构造一条窗口 [frame, frame-1, frame-2, frame-3] 的输入包（每帧 MoveX 各不相同、
+        /// 瞄准点固定合法非零点——AimPoint 单口径，《固定斜视角射击方案专项设计》§4）。</summary>
         private static ClientInputBatch Packet(int frame, float m0, float m1, float m2, float m3,
             int ackSnapshot = 0, uint buttons = 0, uint actionSeq = 0, long target = 0)
         {
@@ -433,7 +440,8 @@ namespace LiteNet.Tests
                 frames[i] = new SimInputFrame
                 {
                     EntityId = 1,
-                    MoveX = moves[i], MoveZ = 0f, AimX = 1f, AimZ = 0f,
+                    MoveX = moves[i], MoveZ = 0f,
+                    AimPointX = 10f, AimPointY = 1f, AimPointZ = 0f,
                     Buttons = i == 0 ? buttons : 0u,
                     SelectedWeaponSlot = i == 0 ? 1 : 0,
                     TargetEntityId = i == 0 ? target : 0L,
@@ -447,11 +455,16 @@ namespace LiteNet.Tests
             };
         }
 
-        /// <summary>单帧裸包（向量边界用例用：Move/Aim 四浮点与按钮全可控）。</summary>
-        private static ClientInputBatch Raw(int frame, float moveX, float moveZ, float aimX, float aimZ, uint buttons, uint actionSeq)
+        /// <summary>单帧裸包（边界用例用：Move 两浮点、AimPoint 三分量与按钮全可控）。</summary>
+        private static ClientInputBatch Raw(int frame, float moveX, float moveZ, float aimX, float aimY, float aimZ, uint buttons, uint actionSeq)
         {
             var frames = new SimInputFrame[ClientInputBatch.MaxFrames];
-            frames[0] = new SimInputFrame { EntityId = 1, MoveX = moveX, MoveZ = moveZ, AimX = aimX, AimZ = aimZ, Buttons = buttons, ActionSeq = actionSeq };
+            frames[0] = new SimInputFrame
+            {
+                EntityId = 1, MoveX = moveX, MoveZ = moveZ,
+                AimPointX = aimX, AimPointY = aimY, AimPointZ = aimZ,
+                Buttons = buttons, ActionSeq = actionSeq,
+            };
             return new ClientInputBatch { Frame = frame, AckSnapshot = 0, ViewFrame = 0, Count = 1, Frames = frames };
         }
     }

@@ -19,10 +19,11 @@ namespace LiteNet.Protocol
 
         // ---- 输入数值边界（《商业级通用服务端框架总设计》§5 P0-3；两端同源旋钮，改值即改校验）----
 
-        /// <summary>Move/Aim 单分量绝对值上限（采集侧契约"长度 ≤1 由采集侧保证"的服务器侧强制值）。</summary>
+        /// <summary>Move 单分量绝对值上限（采集侧契约"长度 ≤1 由采集侧保证"的服务器侧强制值）。</summary>
         public const float MoveComponentLimit = 1f;
 
-        /// <summary>Move/Aim 向量长度平方上限（=1；用平方比较避免开方——开方属超越函数纪律管辖区）。</summary>
+        /// <summary>Move 向量长度平方上限（=1；用平方比较避免开方——开方属超越函数纪律管辖区）。
+        /// 瞄准已收敛为 AimPoint 世界点（《固定斜视角射击方案专项设计》§4），不再有方向量闸。</summary>
         public const float VectorLengthSquaredLimit = 1f;
 
         // ---- E1 背压降级（决策 11；《服务端架构设计》§10-E1：基线无背压，一个慢客户端会拖垮房间）----

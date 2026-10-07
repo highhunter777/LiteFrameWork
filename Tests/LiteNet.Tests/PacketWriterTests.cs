@@ -16,7 +16,7 @@ namespace LiteNet.Tests
         public void 与PacketCodec_逐字节一致()
         {
             var msg = new InputMessage { Frame = 42, AckSnapshot = 7, ViewFrame = 40 };
-            msg.Frames.Add(new InputFrame { EntityId = 3, MoveX = 1.5f, MoveZ = -2.25f, AimX = 0.5f, AimZ = -1f, Buttons = 1u });
+            msg.Frames.Add(new InputFrame { EntityId = 3, MoveX = 1.5f, MoveZ = -2.25f, AimPointX = 0.5f, AimPointY = 1f, AimPointZ = -1f, Buttons = 1u });
 
             byte[] expected = PacketCodec.Encode(PacketType.Input, msg);
 
@@ -35,7 +35,7 @@ namespace LiteNet.Tests
 
             var big = new InputMessage { Frame = 9999 };
             for (int i = 0; i < 20; i++)
-                big.Frames.Add(new InputFrame { EntityId = i, MoveX = i, MoveZ = i, AimX = 1f, AimZ = 1f });
+                big.Frames.Add(new InputFrame { EntityId = i, MoveX = i, MoveZ = i, AimPointX = 10f, AimPointY = 1f, AimPointZ = 0f });
             w.Write(PacketType.Input, big);                       // 先写一条大的（把缓冲撑大）
 
             var small = new JoinRequest { RoomId = "r", Token = "t", BuildHash = "h" };
@@ -60,7 +60,7 @@ namespace LiteNet.Tests
 
             var msg = new InputMessage { Frame = 1 };
             for (int i = 0; i < 64; i++)
-                msg.Frames.Add(new InputFrame { EntityId = i, MoveX = i * 0.5f, MoveZ = -i, AimX = 1f, AimZ = 0f });
+                msg.Frames.Add(new InputFrame { EntityId = i, MoveX = i * 0.5f, MoveZ = -i });
 
             ArraySegment<byte> seg = w.Write(PacketType.Input, msg);
 

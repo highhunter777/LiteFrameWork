@@ -162,12 +162,12 @@ namespace LiteNet.Tests
             var inputs = new SimInputFrame[2];
             for (int i = 0; i < 12; i++)
             {
-                inputs[0] = new SimInputFrame { EntityId = withAoi.Entities[0].Id, MoveX = 0.5f, AimX = 1f };
-                inputs[1] = new SimInputFrame { EntityId = withAoi.Entities[1].Id, MoveX = -0.5f, AimX = -1f };
+                inputs[0] = new SimInputFrame { EntityId = withAoi.Entities[0].Id, MoveX = 0.5f };
+                inputs[1] = new SimInputFrame { EntityId = withAoi.Entities[1].Id, MoveX = -0.5f };
                 SimStep.Step(withAoi, map, inputs);
 
-                inputs[0] = new SimInputFrame { EntityId = withoutAoi.Entities[0].Id, MoveX = 0.5f, AimX = 1f };
-                inputs[1] = new SimInputFrame { EntityId = withoutAoi.Entities[1].Id, MoveX = -0.5f, AimX = -1f };
+                inputs[0] = new SimInputFrame { EntityId = withoutAoi.Entities[0].Id, MoveX = 0.5f };
+                inputs[1] = new SimInputFrame { EntityId = withoutAoi.Entities[1].Id, MoveX = -0.5f };
                 SimStep.Step(withoutAoi, map, inputs);
 
                 differAoi.Build(withAoi.Frame, withAoi, 0, withAoi.Entities[0].Pos, SimConfig.AoiRadius, false);

@@ -36,8 +36,10 @@ namespace LiteSim.Tests
                     row[i].EntityId = players[i];
                     row[i].MoveX = rng.NextFloat01() * 2f - 1f;
                     row[i].MoveZ = rng.NextFloat01() * 2f - 1f;
-                    row[i].AimX = 1f - 2f * rng.NextFloat01();
-                    row[i].AimZ = 1f - 2f * rng.NextFloat01();
+                    // 随机瞄准点（AimPoint 单口径；两笔随机数消耗与旧方向口径相同）
+                    row[i].AimPointX = (1f - 2f * rng.NextFloat01()) * 10f;
+                    row[i].AimPointY = 1f;
+                    row[i].AimPointZ = (1f - 2f * rng.NextFloat01()) * 10f;
                     row[i].Buttons = (rng.NextUInt32() & 3u) == 0u ? SimInputFrame.ButtonFire : 0u;
                 }
                 script[f] = row;
@@ -54,10 +56,10 @@ namespace LiteSim.Tests
             {
                 script[f] = new[]
                 {
-                    // 零输入（含 Aim 零——本脚本不开火，与冷启动模板 IdentityTemplate 的零值逐位一致，
+                    // 零输入（含 AimPoint 零——本脚本不开火，与冷启动模板 IdentityTemplate 的零值逐位一致，
                     // 这正是"预测正确"用例的前提）
-                    new SimInputFrame { EntityId = players[0], MoveX = 0f, MoveZ = 0f, AimX = 0f, AimZ = 0f, Buttons = 0u },
-                    new SimInputFrame { EntityId = players[1], MoveX = 0f, MoveZ = 0f, AimX = 0f, AimZ = 0f, Buttons = 0u },
+                    new SimInputFrame { EntityId = players[0], MoveX = 0f, MoveZ = 0f, Buttons = 0u },
+                    new SimInputFrame { EntityId = players[1], MoveX = 0f, MoveZ = 0f, Buttons = 0u },
                 };
             }
             return script;
@@ -354,7 +356,7 @@ namespace LiteSim.Tests
             real[0] = new SimInputFrame
             {
                 EntityId = players[0],
-                MoveX = 0.5f, MoveZ = 0f, AimX = 1f, AimZ = 0f,
+                MoveX = 0.5f, MoveZ = 0f, AimPointX = 10f, AimPointY = 1f, AimPointZ = 0f,
                 Buttons = SimInputFrame.ButtonFire | SimInputFrame.ButtonAim,
             };
             real[1] = new SimInputFrame { EntityId = players[1] };

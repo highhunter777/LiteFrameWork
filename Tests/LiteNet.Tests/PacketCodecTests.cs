@@ -18,7 +18,7 @@ namespace LiteNet.Tests
                 (PacketType.JoinAck, new Proto.JoinAck { PlayerId = 3, Members = { 1, 2, 3 } }),
                 (PacketType.StartGame, new Proto.StartGame { Seed = 0x5EEDBEEF12345678L, ConfigHash = 42u }),
                 (PacketType.Input, new Proto.InputMessage { Frame = 99, AckSnapshot = 88, ViewFrame = 77,
-                    Frames = { new Proto.InputFrame { EntityId = 65537L, MoveX = 0.5f, MoveZ = -0.25f, AimX = 1.25f, AimZ = -0.5f, Buttons = 1u,
+                    Frames = { new Proto.InputFrame { EntityId = 65537L, MoveX = 0.5f, MoveZ = -0.25f, AimPointX = 1.25f, AimPointY = 1f, AimPointZ = -0.5f, Buttons = 1u,
                         SelectedWeaponSlot = 1, TargetEntityId = 131074L, ActionSeq = 9u } } }),
                 (PacketType.StateSnapshot, new Proto.StateSnapshot { Frame = 12, IsFull = true, Checksum = 123456u, AckInput = 11,
                     Slots = { new Proto.SlotDelta { Slot = 2, Id = 65538L, PosX = 1.5f, Hp = 75, Flags = 7u,
@@ -51,7 +51,7 @@ namespace LiteNet.Tests
         public void 信封_序列化确定性_两次编码逐字节一致()
         {
             var msg = new Proto.InputMessage { Frame = 7, AckSnapshot = 6, ViewFrame = 0 };
-            msg.Frames.Add(new Proto.InputFrame { EntityId = 1L, MoveX = 0.123f, MoveZ = -0.456f, AimX = 2.718f, AimZ = 0.5f, Buttons = 0u });
+            msg.Frames.Add(new Proto.InputFrame { EntityId = 1L, MoveX = 0.123f, MoveZ = -0.456f, AimPointX = 2.718f, AimPointY = 1f, AimPointZ = 0.5f, Buttons = 0u });
 
             byte[] a = PacketCodec.Encode(PacketType.Input, msg);
             byte[] b = PacketCodec.Encode(PacketType.Input, msg);

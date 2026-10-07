@@ -22,7 +22,7 @@ namespace LiteNet.Tests
         private static ClientInputBatch MoveInput(RoomRuntime room, int playerId, int frame, float moveX)
         {
             var frames = new SimInputFrame[ClientInputBatch.MaxFrames];
-            frames[0] = new SimInputFrame { EntityId = room.EntityIdOf(playerId), MoveX = moveX, AimX = 1f };
+            frames[0] = new SimInputFrame { EntityId = room.EntityIdOf(playerId), MoveX = moveX };
             return new ClientInputBatch { Frame = frame, AckSnapshot = 0, Count = 1, Frames = frames };
         }
 

@@ -107,8 +107,9 @@ namespace LiteSim
                 if (a.EntityId != real[i].EntityId) return true; // lint-allow R3（64 位整型 Id 判等，非浮点精度比较）
                 if (BitConverter.SingleToInt32Bits(a.MoveX) != BitConverter.SingleToInt32Bits(real[i].MoveX)) return true;
                 if (BitConverter.SingleToInt32Bits(a.MoveZ) != BitConverter.SingleToInt32Bits(real[i].MoveZ)) return true;
-                if (BitConverter.SingleToInt32Bits(a.AimX) != BitConverter.SingleToInt32Bits(real[i].AimX)) return true;
-                if (BitConverter.SingleToInt32Bits(a.AimZ) != BitConverter.SingleToInt32Bits(real[i].AimZ)) return true;
+                if (BitConverter.SingleToInt32Bits(a.AimPointX) != BitConverter.SingleToInt32Bits(real[i].AimPointX)) return true;
+                if (BitConverter.SingleToInt32Bits(a.AimPointY) != BitConverter.SingleToInt32Bits(real[i].AimPointY)) return true;
+                if (BitConverter.SingleToInt32Bits(a.AimPointZ) != BitConverter.SingleToInt32Bits(real[i].AimPointZ)) return true;
                 if (a.Buttons != real[i].Buttons) return true; // lint-allow R3（整型按键位判等，非浮点精度比较）
             }
             return false;

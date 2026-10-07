@@ -29,25 +29,54 @@ namespace LiteSim
                 // 死亡射手不开火（Hp≤0：窗/事件/命中判定全跳过——尸体不受操控）
                 if (shooter.Hp <= 0) continue;
 
-                // 射线方向 = 输入瞄准向量本身（Aim 即事实，省一次三角函数往返；
-                // 零向量不会命中任何目标——采集侧契约要求非零）
-                float dx = inputs[i].AimX;
-                float dz = inputs[i].AimZ;
-                // **三维化（俯视角爆头——《俯视角三维命中与爆头判定专项设计》§3.1/§4.1）**：
-                // 采集侧给出含 Y 分量的单位瞄准向量（旧口径恒 dy=0 ⇒ 射线恒水平）。
-                float dy = inputs[i].AimY;
-
+                // **判定方向 = 从逻辑枪口指向 AimPoint**（AimPoint 单口径，所见即所判——
+                // 《固定斜视角射击方案专项设计》§5/§4）。
+                //
+                // AimPoint = 相机屏幕射线与「实体圆柱 →（未命中）地面」的交点（采集侧解算）。
+                // 指向 P 求交：命中点**就是 P**（方向口径「从枪口沿方向」命中圆柱近弧、与准心所指
+                // 存在高度偏差的旧缺陷消亡——实测俯角 30°/目标 20m/准心恰在头部下沿时旧口径命中
+                // 1.672m ⇒「瞄着下沿却打不中」）。掩体天然处理：从枪口到 P 的射线上障碍更近即截停
+                // （子弹不穿墙，与激光同源同向）。
+                //
+                // **零值/退化点（无点帧）= 无效开火**：只写 Fire 事件与开火窗，不产命中——
+                // 方向字段已退役，不再有"回退方向口径"路径（旧客户端被 buildHash 门禁拒绝）。
                 // **逻辑枪口**（子弹出射点＝逻辑枪口而非本体中心）——<see cref="CombatConfig.MuzzleOrigin"/>
                 // 单源（服务器可重建、回溯用历史帧 Yaw）。视觉枪口位属表现层（服务器无模型/动画、
                 // 回溯无历史姿态）——常量偏移保留权威/确定/可回溯（朝向系 = 枪随身体转）。
-                SimVector3 muzzle = CombatConfig.MuzzleOrigin(shooter.Pos, shooter.Yaw);
+                var muzzle = CombatConfig.MuzzleOrigin(shooter.Pos, shooter.Yaw);
+
+                float dx = 0f, dy = 0f, dz = 0f;
+                bool hasPoint = SimMath.MulAdd3(inputs[i].AimPointX, inputs[i].AimPointX,
+                    inputs[i].AimPointY, inputs[i].AimPointY,
+                    inputs[i].AimPointZ, inputs[i].AimPointZ) > 0f;
+                if (hasPoint)
+                {
+                    double ax = inputs[i].AimPointX - muzzle.X;
+                    double ay = inputs[i].AimPointY - muzzle.Y;
+                    double az = inputs[i].AimPointZ - muzzle.Z;
+                    double len = SimMath.Sqrt((float)(ax * ax + ay * ay + az * az));
+                    if (len > 1e-6)
+                    {
+                        float inv = (float)(1.0 / len);
+                        dx = (float)ax * inv; dy = (float)ay * inv; dz = (float)az * inv;
+                    }
+                    else { hasPoint = false; }                     // 与枪口重合 → 无效开火
+                }
+
+                // 无效开火（无点/与枪口重合）：开火窗与 Fire 事件照写（节奏/表现语义不变），不产命中
+                if (!hasPoint)
+                {
+                    shooter.FireStanceFrames = (byte)CombatConfig.FireStanceFrames;
+                    s.Events.Write(FrameEventKind.Fire, shooter.Id, 0L, 0, shooter.Pos);
+                    continue;
+                }
 
                 // 判定单源（SimRaycast）：实体圆柱最近者 + 障碍最近者取近——
                 // 障碍更近 ⇒ 截停（实体命中与并列时实体优先：障碍仅以严格更近获胜）。
                 // **实体走三维入口（带 dy）**；障碍保持 2.5D（关卡障碍为地面级圆/盒，三维化无收益——
                 // 见专项设计 §4.1「仅实体圆柱三维化」）。
-                SimRaycast.RaycastEntities(s, shooterSlot, muzzle.X, muzzle.Y, muzzle.Z, dx, dz, dy,
-                    CombatConfig.HitscanRange, out int hitSlot, out float hitT);
+                SimRaycast.RaycastEntities(s, shooterSlot, in muzzle,
+                    new SimVector3(dx, dy, dz), CombatConfig.HitscanRange, out int hitSlot, out float hitT);
                 // 障碍仍在XZ 平面按水平距离求解⇒**须折回三维参数**才能与 hitT 同量纲比较
                 // （hitT 是沿三维单位方向的长度；障碍 t 是水平距离）。
                 bool blockedByObstacle = RaycastObstacles3D(map, muzzle.X, muzzle.Y, muzzle.Z,
@@ -78,17 +107,40 @@ namespace LiteSim
                         muzzle.Y + dy * hitT,
                         muzzle.Z + dz * hitT);
 
-                    // **爆头＝命中点落在头部带**（专项设计 §4.2）：头部带 = 身位顶部子区间
+                    // **爆头判定高度 = 准心射线命中点 AimPoint.Y**（"准心指到哪就按哪判"），
+                    // 而非子弹射线交点 hitPos.Y。
+                    //
+                    // **为什么不能用 hitPos.Y**：子弹射线自**枪口**出发，与相机屏幕射线**起点不同**
+                    // ⇒ 两者与目标圆柱的**首次交点（近弧）也不同**。实测俯角 30°/目标 20m/准心
+                    // 恰在头部下沿时：准心射线命中 1.70m，而子弹近弧落在 ≈1.67m ⇒ 跌出爆头带 ⇒
+                    //「明明瞄着头却只是普通命中」。AimPoint 携带的正是准心射线那一交点的高度。
+                    //
+                    // **两件事分工**：**命中谁**由子弹射线求交决定（含掩体遮挡——这正是
+                    // 「从枪口到 AimPoint 再做一次射线」的作用）；**爆头判定**用 AimPoint 的高度。
+                    //
+                    // **归属校验**：AimPoint 必须确实落在**这个**命中目标身上（水平距离 ≤ 半径），
+                    // 否则回退子弹交点——近处有遮挡物时子弹抓到的是它、而准心指着远处目标，
+                    // 拿远处的 AimPoint 去判近处的目标会误判。
+                    float judgeY = hitPos.Y;
+                    if (hasPoint)
+                    {
+                        float ddx = inputs[i].AimPointX - hit.Pos.X;
+                        float ddz = inputs[i].AimPointZ - hit.Pos.Z;
+                        if (SimMath.MulAdd2(ddx, ddx, ddz, ddz)
+                            <= CombatConfig.HitscanRadius * CombatConfig.HitscanRadius)
+                            judgeY = inputs[i].AimPointY;
+                    }
+
+                    // **爆头＝判定高度落在头部带**（专项设计 §4.2）：头部带 = 身位顶部子区间
                     // **[HeadHitLine, HitscanHeight]**（相对目标脚底，闭区间）——非 >= 单边。
                     // 单边 `>= HeadHitLine` 有漏洞：高差位俯射**越过头顶**仍被判爆头；
                     // 与 Duckov HitBox 语义一致（头是一个区间而非半空间）。
                     //
                     // **边界须与 SimRaycast 的 Y 带闸同口径（闭区间含端点）**：既有用例
-                    // 「高差位命中头部带」（射手 Y=1⇒ 眼高恰= 身位顶 2.0）依赖含端点语义——
-                    // 单方面把上界收紧为 `<` 会与Y 带闸分叉（闸放行、爆头判据落空 ⇒ 判为未命中）。
-                    // 上界"越过头顶"的漏洞由 SimRaycast 的 Y 带闸（`yHit > 顶` 排除）承担，
-                    // 此处只需 `>= 下沿`（`>` 上界不可能到达：命中点已过Y 带闸）。
-                    float relY = hitPos.Y - hit.Pos.Y;
+                    // 「高差位擦顶命中」（弹道掠过柱顶、区间恰好相交）依赖含端点语义——
+                    // 单方面把上界收紧为 `<` 会与 Y 带闸分叉（闸放行、爆头判据落空 ⇒ 判为未命中）。
+                    // 上界"越过头顶"的漏洞由 SimRaycast 的 Y 带闸（`yHit > 顶` 排除）承担。
+                    float relY = judgeY - hit.Pos.Y;
                     bool headshot = relY >= CombatConfig.HeadHitLine;
                     if (headshot) dmg <<= CombatConfig.HeadshotDamageShift;
 
@@ -97,7 +149,7 @@ namespace LiteSim
                     // ShootingSystem 从不写它；**不进 checksum、不进快照**（帧内瞬态），故协议/基线
                     // 零改动。表现层链路已通（HitFeedbackDispatcher 传 Kind →伤害数字 Crit 档 → 红字）。
                     s.Events.Write(headshot ? FrameEventKind.Crit : FrameEventKind.Hit,
-                        hit.Id, shooter.Id, dmg, hitPos);
+                        hit.Id, shooter.Id, dmg, new SimVector3(hitPos.X, judgeY, hitPos.Z));
                 }
             }
         }

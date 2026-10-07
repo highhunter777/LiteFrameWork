@@ -188,7 +188,7 @@ namespace LiteNet.Tests
             {
                 EntityId = 7,
                 MoveX = frame, MoveZ = -frame,
-                AimX = 1f, AimZ = 0f,
+                AimPointX = 10f, AimPointY = 1f, AimPointZ = 0f,
                 Buttons = buttons,
             };
         }

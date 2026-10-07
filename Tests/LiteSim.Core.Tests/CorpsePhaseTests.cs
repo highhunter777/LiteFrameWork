@@ -22,8 +22,8 @@ namespace LiteSim.Tests
             return (world, shooter, target, ss, ts);
         }
 
-        private static SimInputFrame[] FireAt(long id, float ax = 1f, float az = 0f)
-            => new[] { new SimInputFrame { EntityId = id, AimX = ax, AimZ = az, Buttons = SimInputFrame.ButtonFire } };
+        private static SimInputFrame[] FireAt(long id, float px = 3f, float pz = 0f)
+            => new[] { new SimInputFrame { EntityId = id, AimPointX = px, AimPointY = 1f, AimPointZ = pz, Buttons = SimInputFrame.ButtonFire } };
 
         private static bool HasEvent(SimWorldState world, FrameEventKind kind)
         {
@@ -57,7 +57,7 @@ namespace LiteSim.Tests
             var (world, shooter, target, _, targetSlot) = SpawnPair(targetHp: 1);
 
             // 先让目标跑起来（获得末速度），再打死——定身判据：清水平速度
-            SimStep.Step(world, Map(), new[] { new SimInputFrame { EntityId = target, MoveX = 1f, AimX = 1f } });
+            SimStep.Step(world, Map(), new[] { new SimInputFrame { EntityId = target, MoveX = 1f } });
             SimStep.Step(world, Map(), FireAt(shooter));
             Assert.True(world.Entities[targetSlot].Hp <= 0, "前置：目标已死");
 

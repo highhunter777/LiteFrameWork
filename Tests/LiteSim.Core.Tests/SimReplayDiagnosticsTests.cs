@@ -47,14 +47,14 @@ namespace LiteSim.Tests
                     {
                         EntityId = id0,
                         MoveX = (f % 5 == 0) ? 1f : 0f, MoveZ = 0f,
-                        AimX = 1f, AimZ = 0f,
+                        AimPointX = 10f, AimPointY = 1f, AimPointZ = 0f,
                         Buttons = firing ? SimInputFrame.ButtonFire : 0u,
                     },
                     new SimInputFrame
                     {
                         EntityId = id1,
                         MoveX = 0f, MoveZ = (f % 3 == 0) ? -1f : 0f,
-                        AimX = -1f, AimZ = 0f,
+                        AimPointX = -10f, AimPointY = 1f, AimPointZ = 0f,
                         Buttons = (f % 11 == 5) ? SimInputFrame.ButtonAim : 0u,
                     },
                 };
@@ -142,9 +142,9 @@ namespace LiteSim.Tests
             var record = RecordScripted(100, out _);
             const int tamperFrame = 42;                     // 0 基 → 分歧应报在第 43 帧（1 基）
 
-            // 篡改记录里的第 42 帧输入（改瞄准方向 → 必然改变该帧之后的走向）
+            // 篡改记录里的第 42 帧输入（改瞄准点 → 必然改变该帧之后的走向）
             record.TryGetFrame(tamperFrame, out SimInputFrame[] inputs, out _);
-            inputs[0].AimZ = 0.5f;                          // 原本 0
+            inputs[0].AimPointZ = 0.5f;                     // 原本 0
 
             var result = SimReplayRunner.Replay(record);
 

@@ -193,7 +193,7 @@ namespace LiteNet.Tests
                     new Proto.InputMessage
                     {
                         Frame = f,
-                        Frames = { new Proto.InputFrame { EntityId = 0, MoveX = 1f, MoveZ = 0f, AimX = 1f, AimZ = 0f, Buttons = 0u } },
+                        Frames = { new Proto.InputFrame { EntityId = 0, MoveX = 1f, MoveZ = 0f, AimPointX = 10f, AimPointY = 1f, Buttons = 0u } },
                         AckSnapshot = 0,
                     })), false);
                 PumpOne();
@@ -231,9 +231,9 @@ namespace LiteNet.Tests
 
             // 非法输入：负帧号 + 超前帧号（当前帧 + 100）
             c1.Send(new ArraySegment<byte>(PacketCodec.Encode(PacketType.Input,
-                new Proto.InputMessage { Frame = -5, Frames = { new Proto.InputFrame { EntityId = 0, MoveX = 9f, AimX = 1f, AimZ = 0f } }, AckSnapshot = 0 })), false);
+                new Proto.InputMessage { Frame = -5, Frames = { new Proto.InputFrame { EntityId = 0, MoveX = 9f } }, AckSnapshot = 0 })), false);
             c1.Send(new ArraySegment<byte>(PacketCodec.Encode(PacketType.Input,
-                new Proto.InputMessage { Frame = _host.Room.AuthSim.Frame + 100, Frames = { new Proto.InputFrame { EntityId = 0, MoveX = 9f, AimX = 1f, AimZ = 0f } }, AckSnapshot = 0 })), false);
+                new Proto.InputMessage { Frame = _host.Room.AuthSim.Frame + 100, Frames = { new Proto.InputFrame { EntityId = 0, MoveX = 9f } }, AckSnapshot = 0 })), false);
             Pump(200);
 
             // 权威循环不受垃圾输入影响（无异常、帧号正常推进）
