@@ -9,7 +9,8 @@ namespace LiteSim.View.Animation
     /// <summary>
     /// 移动根复合态（下层）：MoveBlend 独占 Locomotion 通道——进根提交（按当前速度权重）、
     /// 每帧就地调权重（同形态连续，不换句柄）、离根收口（覆盖开始：先停 Locomotion 再让战斗根开 FullBody）；
-    /// **瞄准建立 → 进战斗根**（覆盖开始）的入口裁决也在此（与战斗根的退根裁决对称——各根管各根的出界）。
+    /// **瞄准/换弹建立 → 进战斗根**（覆盖开始）的入口裁决也在此（与战斗根的退根裁决对称——
+    /// 各根管各根的出界）。
     /// </summary>
     internal sealed class LocomotionRootStage : IStage<CharacterAnimId, CombatAnimReq>
     {
@@ -28,6 +29,14 @@ namespace LiteSim.View.Animation
         public void OnUpdate(IStageHost<CharacterAnimId, CombatAnimReq> m, float elapseSeconds)
         {
             if (StageGate.Pending(m)) return;                 // 事件路由已挂（进 Fire 系优先于同帧 ADS 建立）
+
+            // 换弹事实 → 进战斗根 Reload 叶（覆盖开始——优先于瞄准：Sim 侧换弹期不可开火，
+            // 表现同优先级 死亡>换弹>开火/瞄准；战斗根内的保持/出场由根裁决）
+            if (_ctx.IsReloading)
+            {
+                m.Request(CharacterAnimId.Reloading);
+                return;
+            }
 
             // 瞄准建立 → 进战斗根（覆盖开始——按锁存选叶；fire 事件路径由驱动器直接 Request，不经此）
             if (_ctx.IsAiming)

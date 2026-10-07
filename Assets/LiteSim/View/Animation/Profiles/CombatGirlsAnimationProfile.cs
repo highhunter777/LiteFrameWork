@@ -31,7 +31,8 @@ namespace LiteSim.View.Animation
         /// 构建对局角色的动画 Profile（不可变共享数据——每实体播放器引用同一份）。
         /// **绑定 = 片段名**（`Rifle_Controller.animationClips` 已覆盖全部登记片段，`RequiresLoad:false`，
         /// 后端按「Clip 资源键」直驱——§4 允许的分支；控制器参数全是 Trigger，参数驱动不可用）。
-        /// 移动/瞄准态循环（§5"循环播放不会自然 Completed"）；开火/换弹/受击/死亡/回避均为一次性。
+        /// 移动/瞄准态循环（§5"循环播放不会自然 Completed"）；换弹/受击/死亡/回避均为一次性
+        /// （开火无专用片段——持 AimIdle 循环，见下）。
         /// **不预建无消费者的绑定**（Crouch×Aim 家族、PutGun/TakeGun/AimTurn、Stun、Hit2/Die2——
         /// 出现消费者再登记）。
         /// </summary>
@@ -46,16 +47,15 @@ namespace LiteSim.View.Animation
                     binding: "Run", loop: true, minSpeed: 0.01f, maxSpeed: 2f))
                 // 瞄准/开火两族 → **FullBody**（战斗动作全部全身接管——
                 // UpperBody 叠加机构保留但当前零消费者；窗内保持 clip）：
-                // - AimIdle 循环：既是瞄准·静止的形态，也是 FireIdle 窗内持枪站姿的填窗循环；
-                // - Fire 一次性：站姿射击片段（FireIdle 按事件重播；移动开火不播——无 AimWalk_Shoot
-                //   资产，债 #5，反馈由枪口特效承担）。
+                // - AimIdle 循环：握枪站姿的唯一形态——瞄准·静止、开火窗内（FireIdle/FireWalk）
+                //   与 ADS 瞄准共用（开火不播专用射击片段：包内 `AimIdle_Shoot` 后坐节奏与射速
+                //   表节拍对不上；开火反馈由枪口特效承担）；
+                // - Reload 一次性：Sim 换弹事实驱动（Reload 叶），播放倍率由驱动器按
+                //   `WeaponConfig.Default.ReloadFrames` 对齐片段时长；播完持末帧至事实清除。
                 .Register(new AnimationDefinition(CharacterAnimationIds.AimIdle, AnimationChannel.FullBody,
                     binding: "AimIdle", loop: true, minSpeed: 0.01f, maxSpeed: 2f))
-                .Register(new AnimationDefinition(CharacterAnimationIds.Fire, AnimationChannel.FullBody,
-                    binding: "AimIdle_Shoot", loop: false, minSpeed: 0.8f, maxSpeed: 2f))
-                // Reload 无消费者（接入时改绑 FullBody——不预建无消费者的绑定语义）
-                .Register(new AnimationDefinition(CharacterAnimationIds.Reload, AnimationChannel.UpperBody,
-                    binding: "Reload", loop: false, minSpeed: 0.5f, maxSpeed: 2f))
+                .Register(new AnimationDefinition(CharacterAnimationIds.Reload, AnimationChannel.FullBody,
+                    binding: "Reload", loop: false, minSpeed: 0.5f, maxSpeed: 2f, holdOnFinish: true))
                 // 全身覆盖：一次性
                 .Register(new AnimationDefinition(CharacterAnimationIds.Hit, AnimationChannel.FullBody,
                     binding: "Hit1", loop: false, minSpeed: 0.5f, maxSpeed: 2f))

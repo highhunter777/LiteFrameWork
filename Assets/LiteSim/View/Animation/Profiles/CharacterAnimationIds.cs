@@ -16,13 +16,9 @@ namespace LiteSim.View.Animation
         /// <summary>瞄准站姿（§13 首角色覆盖表"瞄准"；同为 Locomotion 通道——移动语义的一种）。</summary>
         public static readonly AnimationId AimIdle = new AnimationId("Locomotion.AimIdle");
 
-        // ---- 上半身叠加（UpperBody）----
-        /// <summary>开火（§13"开火"；只盖上半身，腿部继续走跑）。</summary>
-        public static readonly AnimationId Fire = new AnimationId("Combat.Fire");
-        /// <summary>换弹（§13"换弹"）。</summary>
-        public static readonly AnimationId Reload = new AnimationId("Combat.Reload");
-
         // ---- 全身覆盖（FullBody）----
+        /// <summary>换弹（§13"换弹"；一次性——时长按 Sim <c>ReloadFrames</c> 对齐播放倍率）。</summary>
+        public static readonly AnimationId Reload = new AnimationId("Combat.Reload");
         /// <summary>受击（§13"受击"）。</summary>
         public static readonly AnimationId Hit = new AnimationId("Combat.Hit");
         /// <summary>死亡（§13"死亡"）。</summary>

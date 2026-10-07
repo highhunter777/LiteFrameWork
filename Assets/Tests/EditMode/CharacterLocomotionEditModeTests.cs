@@ -677,7 +677,7 @@ namespace LiteGame.Tests.EditMode
             var ids = new[]
             {
                 CharacterAnimationIds.Idle, CharacterAnimationIds.Walk, CharacterAnimationIds.Run,
-                CharacterAnimationIds.AimIdle, CharacterAnimationIds.Fire, CharacterAnimationIds.Reload,
+                CharacterAnimationIds.AimIdle, CharacterAnimationIds.Reload,
                 CharacterAnimationIds.Hit, CharacterAnimationIds.Death, CharacterAnimationIds.Evade,
             };
 
@@ -867,7 +867,7 @@ namespace LiteGame.Tests.EditMode
 
         [Test]
         [Category(TestCategory.Contract)]
-        public void 驱动_帧事件开火_全身接管开火动作_同段连发不重提_窗尽退根()
+        public void 驱动_帧事件开火_全身接管持枪站姿_连发零重提交_窗尽退根()
         {
             var prefab = LoadPrefabOrIgnore();
             var world = new SimWorldState { RngState = 1UL };
@@ -894,17 +894,17 @@ namespace LiteGame.Tests.EditMode
             driver.Tick(dt);
             Assert.AreEqual(1, driver.AnimatedViews);
 
-            // 站定单发：跨根进 FireIdle——战斗根覆盖移动根（收 Locomotion、FireIdle 播 FullBody 片段；
+            // 站定单发：跨根进 FireIdle——战斗根覆盖移动根（收 Locomotion、FireIdle 持 AimIdle；
             // 事务序先停后播）。
             DeliverFire(view, world, selfId, firePos);
             Assert.AreEqual(0, view.SilencedEvents, "非静默段的事件必须放行");
             Assert.AreEqual(1, view.DeliveredEvents);
             driver.Tick(dt);
-            Assert.AreEqual(1, driver.FireSubmits, "首次 Fire 事件应提交开火动作");
             Assert.IsTrue(driver.TryGetAnimState(0, out var st1) && st1 == CharacterAnimId.FireIdle,
                 "站定开火按锁存路由进 FireIdle（门控即路由——v0.5）");
-            Assert.IsTrue(driver.TryGetCurrent(0, out var fireForm) && fireForm.Equals(CharacterAnimationIds.Fire),
-                "开火片段在播 = FullBody 当前形态");
+            Assert.IsTrue(driver.TryGetCurrent(0, out var fireForm) && fireForm.Equals(CharacterAnimationIds.AimIdle),
+                "开火窗持枪站姿 = AimIdle 循环（不播专用射击片段——反馈归枪口特效）");
+            Assert.IsTrue(driver.TryGetFormHandle(0, out var fireHandle), "站姿句柄可读");
 
             // 覆盖直证：Locomotion 被收（淡出后节点归零）→ 通道数回落 1——**仍处于射击窗内**（1s）。
             int settled = 0;
@@ -917,16 +917,12 @@ namespace LiteGame.Tests.EditMode
             Assert.Less(settled, 30, "全身接管：Locomotion 收口淡出后通道数必须回落 1（窗口 1s 内）");
             Assert.AreEqual("0", stats["truncatedBlends"], "首次提交不产生截断");
 
-            // 同段连发（上一发还在播——AimIdle_Shoot 0.967s @2× ≈ 29 帧）→ **不重提**（§8 合并规则）
-            for (int i = 0; i < 20; i++) { DeliverFire(view, world, selfId, firePos); driver.Tick(dt); }
-            Assert.AreEqual(1, driver.FireSubmits, "同段连发不得重提（重提会把动作按在第 0 帧 + 刷 Interrupted 终态）");
+            // 连发（10 发/秒量级）：事件只刷窗、不重提——**全程同句柄续播**（零重提交、零终态）
+            for (int i = 0; i < 120; i++) { DeliverFire(view, world, selfId, firePos); driver.Tick(dt); }
+            Assert.IsTrue(driver.TryGetFormHandle(0, out var holdHandle) && holdHandle.Equals(fireHandle),
+                "连发零重提交（同句柄续播——重提会按第 0 帧 + 刷 Interrupted 终态）");
             ((IModuleStats)driver).Snapshot(stats);
             Assert.AreEqual("0", stats["truncatedBlends"], "没有重提就没有截断");
-
-            // 持续开火跨过片段边界 → 每轮重起一次（连发表现）；窗随事件不断重置满窗不落
-            for (int i = 0; i < 300; i++) { DeliverFire(view, world, selfId, firePos); driver.Tick(dt); }
-            Assert.GreaterOrEqual(driver.FireSubmits, 2, "跨过片段边界后应重起新一轮（连发表现）");
-            Assert.LessOrEqual(driver.FireSubmits, 12, "重起应与「每轮一次」同量级（逐帧重提会是数百次）");
             Assert.IsTrue(driver.TryGetAnimState(0, out var st2) && st2 == CharacterAnimId.FireIdle,
                 "持续射击窗不断（事件刷新制）——战斗根不退");
 
@@ -940,10 +936,6 @@ namespace LiteGame.Tests.EditMode
             Assert.Less(released, 200, "停火后窗尽（≈1s）必须退根回移动层");
             Assert.IsTrue(driver.TryGetCurrent(0, out var back) && back.Equals(CharacterAnimationIds.MoveBlend),
                 "退根后回移动根形态（MoveBlend 重提交）");
-            int submitted = driver.FireSubmits;
-            for (int i = 0; i < 30; i++) driver.Tick(dt);
-            Assert.AreEqual(submitted, driver.FireSubmits, "没有新事件不得自行重起开火动作");
-
             driver.Dispose();
         }
 
@@ -951,7 +943,7 @@ namespace LiteGame.Tests.EditMode
 
         [Test]
         [Category(TestCategory.Contract)]
-        public void 驱动_射击窗1s_片段播完持枪站姿填窗_窗尽退回移动层()
+        public void 驱动_射击窗1s_单发持AimIdle整窗_窗尽退回移动层()
         {
             var prefab = LoadPrefabOrIgnore();
             var world = new SimWorldState { RngState = 1UL };
@@ -977,31 +969,29 @@ namespace LiteGame.Tests.EditMode
             Assert.IsTrue(driver.TryGetCurrent(0, out var before) && before.Equals(CharacterAnimationIds.MoveBlend),
                 "开火前：非瞄准 + 静止 = 移动轴混合");
 
-            // 单发（非瞄准、静止）→ FireIdle：进态即播站姿射击片段（2×）
+            // 单发（非瞄准、静止）→ FireIdle：进态即持 AimIdle 循环（不播专用射击片段）
             DeliverFire(view, world, selfId, new SimVector3(0f, 0f, 0f));
             driver.Tick(dt);
-            Assert.AreEqual(1, driver.FireSubmits, "单发应提交一轮开火动作");
             Assert.IsTrue(driver.TryGetAnimState(0, out var s1) && s1 == CharacterAnimId.FireIdle);
-            Assert.IsTrue(driver.TryGetCurrent(0, out var inClip) && inClip.Equals(CharacterAnimationIds.Fire),
-                "进态即播射击片段（FullBody 当前形态 = 开火语义）");
+            Assert.IsTrue(driver.TryGetCurrent(0, out var inClip) && inClip.Equals(CharacterAnimationIds.AimIdle),
+                "进态即持枪站姿循环（FullBody 当前形态 = AimIdle）");
 
-            // 片段播完（0.967s @2× ≈ 0.48s < 窗 1s）→ **不退态、不回移动层**：
-            // 窗内保持 clip——态内切持枪站姿循环填窗
+            // 窗内保持：0.8s 后仍在 FireIdle 持 AimIdle（不迁移、不退根）
             float elapsed = 0f;
             while (elapsed < 0.8f) { driver.Tick(dt); elapsed += dt; }
             Assert.IsTrue(driver.TryGetCurrent(0, out var held) && held.Equals(CharacterAnimationIds.AimIdle),
-                "片段播完窗在 → 持枪站姿循环填窗（窗内保持 clip）");
+                "窗内持枪站姿循环（窗内保持 clip）");
             Assert.IsTrue(driver.TryGetAnimState(0, out var s2) && s2 == CharacterAnimId.FireIdle,
-                "持枪站姿仍是 FireIdle 态（态内切 clip，不迁移）");
+                "窗内不迁移（持枪站姿仍是 FireIdle 态）");
 
-            // 窗尽（1s 独立常量）→ 退根回移动层：退根点是窗长 1s，不是片段时长 0.48s，也不是 2.0s 姿态窗
+            // 窗尽（1s 独立常量）→ 退根回移动层：退根点是窗长 1s
             while (elapsed < 2.5f)
             {
                 driver.Tick(dt);
                 elapsed += dt;
                 if (driver.TryGetAnimState(0, out var s3) && s3 == CharacterAnimId.Idle) break;
             }
-            Assert.Greater(elapsed, 0.8f, "窗尽前不得退根（窗 1s > 片段 0.48s——填窗段必须存在）");
+            Assert.Greater(elapsed, 0.8f, "窗尽前不得退根（窗 1s）");
             Assert.Less(elapsed, 1.6f, "退根应 ≈ 窗长 1s（CombatConfig.FireStanceFrames 单源）");
             Assert.IsTrue(driver.TryGetCurrent(0, out var after) && after.Equals(CharacterAnimationIds.MoveBlend),
                 "退根后回非瞄准移动形态");
@@ -1036,19 +1026,19 @@ namespace LiteGame.Tests.EditMode
             driver.Tick(dt);
             view.TryGetView(0, out var go);
 
-            // ① 站定开火 → FireIdle：播一轮站姿射击片段（FireSubmits=1）
+            // ① 站定开火 → FireIdle：持枪站姿（AimIdle 循环）
             DeliverFire(view, world, selfId, firePos);
             driver.Tick(dt);
             Assert.IsTrue(driver.TryGetAnimState(0, out var s1) && s1 == CharacterAnimId.FireIdle);
-            Assert.AreEqual(1, driver.FireSubmits, "站定开火播站姿片段");
+            Assert.IsTrue(driver.TryGetCurrent(0, out var stance) && stance.Equals(CharacterAnimationIds.AimIdle),
+                "站定开火持枪站姿（AimIdle 循环）");
 
-            // ② 起跑（≥ 进入阈 0.6 m/s）后开火 → FireWalk：**不播站姿片段**（无移动射击资产），
-            //    只开窗 + AimMoveBlend 四向（站姿片段连腿定格不可盖步态——门控即路由）
+            // ② 起跑（≥ 进入阈 0.6 m/s）后开火 → FireWalk：**不播站姿片段**，
+            //    只开窗 + AimMoveBlend 四向（站姿循环不可盖步态——门控即路由）
             float elapsed = 0f;
             while (elapsed < 1.2f) { driver.Tick(dt); elapsed += dt; }   // 首发的窗先走完 → 回移动层
             Assert.IsTrue(driver.TryGetAnimState(0, out var s2) && s2 == CharacterAnimId.Idle, "首发窗尽回移动层");
 
-            int submitsBefore = driver.FireSubmits;
             for (int i = 0; i < 3; i++) { go.transform.position += new Vector3(0.012f, 0f, 0f); driver.Tick(dt); }   // 0.72 m/s → 锁存置位
             Assert.IsTrue(driver.TryGetAnimState(0, out var s3) && s3 == CharacterAnimId.Moving, "移动根 Moving");
 
@@ -1056,7 +1046,6 @@ namespace LiteGame.Tests.EditMode
             driver.Tick(dt);
             Assert.IsTrue(driver.TryGetAnimState(0, out var s4) && s4 == CharacterAnimId.FireWalk,
                 "移动开火按锁存路由进 FireWalk");
-            Assert.AreEqual(submitsBefore, driver.FireSubmits, "移动开火不提交站姿片段（反馈归枪口特效）");
             Assert.IsTrue(driver.TryGetCurrent(0, out var form) && form.Equals(CharacterAnimationIds.AimMoveBlend),
                 "FireWalk 的保持 clip = AimMoveBlend 四向（firewalk 也一样）");
 
@@ -1094,21 +1083,18 @@ namespace LiteGame.Tests.EditMode
             DeliverFire(view, world, selfId, firePos);
             driver.Tick(dt);
             Assert.IsTrue(driver.TryGetAnimState(0, out var s1) && s1 == CharacterAnimId.FireIdle);
-            Assert.AreEqual(1, driver.FireSubmits);
 
-            // 起跑（锁存置位）→ FireWalk：停站姿片段、**窗不清**（限速语境保持）——不退战斗根
+            // 起跑（锁存置位）→ FireWalk：停站姿循环、**窗不清**（限速语境保持）——不退战斗根
             for (int i = 0; i < 3; i++) { go.transform.position += new Vector3(0.012f, 0f, 0f); driver.Tick(dt); }
             Assert.IsTrue(driver.TryGetAnimState(0, out var s2) && s2 == CharacterAnimId.FireWalk,
                 "起跑迁 FireWalk（窗保持——移动事实不触发退根）");
             Assert.IsTrue(driver.TryGetCurrent(0, out var walkForm) && walkForm.Equals(CharacterAnimationIds.AimMoveBlend),
-                "站姿片段让位 AimMoveBlend（同通道提交替换）");
-            Assert.AreEqual(1, driver.FireSubmits, "起跑不产生新的站姿片段提交");
+                "持枪站姿让位 AimMoveBlend（同通道提交替换）");
 
-            // 停步（锁存清零）→ 回 FireIdle：持枪站姿不重播（FireSubmits 不变——无新事件不重播片段）
+            // 停步（锁存清零）→ 回 FireIdle：同持枪站姿（无新事件不重播——态内幂等）
             for (int i = 0; i < 3; i++) driver.Tick(dt);
             Assert.IsTrue(driver.TryGetAnimState(0, out var s3) && s3 == CharacterAnimId.FireIdle,
                 "停步回 FireIdle（持枪站姿）——仍在战斗根");
-            Assert.AreEqual(1, driver.FireSubmits, "停步不重播站姿片段");
 
             // 窗内全程：状态机只在本根内切（FireIdle↔FireWalk），移动层无权打断；
             // 窗尽（≈1s，无瞄准）→ 退根路①：回移动根叶（静止 → Idle）
@@ -1163,15 +1149,15 @@ namespace LiteGame.Tests.EditMode
             Assert.IsTrue(driver.TryGetAnimState(0, out var s0) && s0 == CharacterAnimId.AimIdle,
                 "瞄准建立 → 进战斗根 AimIdle（覆盖开始）");
 
-            // 开火 → FireIdle（播片段）；片段播完 → 持枪站姿（AimIdle 循环）
+            // 开火 → FireIdle：与 AimIdle 态同一形态（同句柄续播——零闪动、零重提交）
             DeliverFire(view, world, selfId, firePos);
             driver.Tick(dt);
-            float elapsed = 0f;
-            while (elapsed < 0.8f) { driver.Tick(dt); elapsed += dt; }
             Assert.IsTrue(driver.TryGetAnimState(0, out var s1) && s1 == CharacterAnimId.FireIdle);
             Assert.IsTrue(driver.TryGetCurrent(0, out var held) && held.Equals(CharacterAnimationIds.AimIdle),
-                "窗内持枪站姿循环（与 AimIdle 态同一 clip）");
+                "开火窗持枪站姿循环（与 AimIdle 态同一 clip）");
             Assert.IsTrue(driver.TryGetFormHandle(0, out var holdHandle), "持枪站姿句柄可读");
+            float elapsed = 0f;
+            while (elapsed < 0.8f) { driver.Tick(dt); elapsed += dt; }
 
             // `IsAiming` 在场即充值窗（CombatRootStage.OnUpdate）——瞄准保持期内
             // 窗被持续充值、永不尽：**不降级、不退根**，FireIdle 持续持有站姿循环（同句柄、零重提交）
@@ -1202,6 +1188,158 @@ namespace LiteGame.Tests.EditMode
                 "退根后回移动根形态");
 
             driver.Dispose();
+        }
+
+        // ---- 换弹动画（Sim 私有面事实 → Reload 叶：全身接管 / 不可打断 / 事实清除回叶）----
+
+        [Test]
+        [Category(TestCategory.Contract)]
+        public void 驱动_换弹事实_Reload叶全身接管_播完持末帧_事实清除退根()
+        {
+            var prefab = LoadPrefabOrIgnore();
+            var world = new SimWorldState { RngState = 1UL };
+            long selfId = world.Spawn(new EntitySlot { Hp = 100, Pos = new SimVector3(0f, 0f, 0f), Yaw = 0f }, out int slot);
+
+            SimView view = new SimView(world, null,
+                factory: (loc, parent) =>
+                {
+                    var go = Object.Instantiate(prefab, parent);
+                    go.name = loc;
+                    Scope.Track(go);
+                    return go;
+                },
+                recycler: null);
+            view.AlignLocal(selfId);
+            var driver = new CharacterLocomotionDriver(view);
+            const float dt = 1f / 60f;
+            var stats = new Dictionary<string, string>();
+
+            view.Tick(dt);
+            driver.Tick(dt);
+            view.Tick(dt);
+            driver.Tick(dt);
+            Assert.AreEqual(1, driver.AnimatedViews);
+
+            // Sim 侧换弹真路径（懒装备 → 打掉一发 → Reload 边沿）：事实经 SimView.IsReloading 可读
+            int reloadEnd = StartReload(world, selfId, slot);
+            Assert.IsTrue(view.IsReloading(slot), "换弹事实可读（Sim 运行态——武器私有面投影）");
+
+            driver.Tick(dt);
+            Assert.IsTrue(driver.TryGetAnimState(0, out var s1) && s1 == CharacterAnimId.Reloading,
+                "换弹事实进 Reload 叶（全身接管）");
+            Assert.IsTrue(driver.TryGetCurrent(0, out var form) && form.Equals(CharacterAnimationIds.Reload),
+                "Reload 片段在播（FullBody 当前形态 = 换弹语义）");
+            Assert.IsTrue(driver.TryGetFormHandle(0, out var reloadHandle), "换弹句柄可读");
+
+            // 换弹期移动事实不改叶（换弹不可打断——Sim 侧也只有到帧完成一条出路）
+            view.TryGetView(0, out var go);
+            for (int i = 0; i < 3; i++) { go.transform.position += new Vector3(0.012f, 0f, 0f); driver.Tick(dt); }
+            Assert.IsTrue(driver.TryGetAnimState(0, out var s2) && s2 == CharacterAnimId.Reloading,
+                "移动不打断换弹叶");
+            Assert.IsTrue(driver.TryGetFormHandle(0, out var h2) && h2.Equals(reloadHandle),
+                "同句柄续播（不重提交——重提会按第 0 帧重播）");
+
+            // 片段播完（时长对齐 Sim ReloadFrames——倍率见装配）∧ 事实仍在 → 持末帧恒驻本叶
+            for (float e = 0f; e < 2.6f; e += dt) driver.Tick(dt);
+            Assert.IsTrue(driver.TryGetAnimState(0, out var s3) && s3 == CharacterAnimId.Reloading,
+                "片段播完事实仍在 → 持末帧恒驻本叶");
+            Assert.IsTrue(driver.TryGetFormHandle(0, out var h3) && h3.Equals(reloadHandle),
+                "播完不重发（同句柄 = 帧锁定，非重播）");
+            ((IModuleStats)driver).Snapshot(stats);
+            Assert.AreEqual("1", stats["channels"], "持末帧 FullBody 通道保持活跃（帧锁定——通道不停机）");
+
+            // 停步（锁存清零）→ 事实清除（到帧完成）→ 窗尽且未瞄准 → 退根回移动层
+            for (int i = 0; i < 3; i++) driver.Tick(dt);
+            world.Frame = reloadEnd;
+            WeaponSystem.Run(world, new[] { new SimInputFrame { EntityId = selfId } });
+            Assert.IsFalse(view.IsReloading(slot), "到帧完成——事实清除");
+            driver.Tick(dt);
+            Assert.IsTrue(driver.TryGetAnimState(0, out var s4) && s4 == CharacterAnimId.Idle,
+                "事实清除 → 窗尽未瞄准 → 退根回移动层（Idle 叶）");
+            ((IModuleStats)driver).Snapshot(stats);
+            Assert.AreEqual("1", stats["channels"],
+                "退根后 FullBody 通道交还（持帧句柄的 Stop = 通道释放——不悬挂不冻结）");
+
+            driver.Dispose();
+        }
+
+        [Test]
+        [Category(TestCategory.Contract)]
+        public void 驱动_换弹事实清除_窗在回Fire叶_瞄准中回持枪站姿()
+        {
+            var prefab = LoadPrefabOrIgnore();
+            var world = new SimWorldState { RngState = 1UL };
+            long selfId = world.Spawn(new EntitySlot { Hp = 100, Pos = new SimVector3(0f, 0f, 0f), Yaw = 0f }, out int slot);
+
+            SimView view = new SimView(world, null,
+                factory: (loc, parent) =>
+                {
+                    var go = Object.Instantiate(prefab, parent);
+                    go.name = loc;
+                    Scope.Track(go);
+                    return go;
+                },
+                recycler: null);
+            view.AlignLocal(selfId);
+            var driver = new CharacterLocomotionDriver(view);
+            const float dt = 1f / 60f;
+            var firePos = new SimVector3(0f, 0f, 0f);
+
+            view.Tick(dt);
+            driver.Tick(dt);
+            driver.Tick(dt);
+
+            // 站定开火（窗 1s）→ 换弹事实进场 → 全身接管；事实清除时窗仍在 → 回 Fire 叶（非退根）
+            DeliverFire(view, world, selfId, firePos);
+            driver.Tick(dt);
+            Assert.IsTrue(driver.TryGetAnimState(0, out var s1) && s1 == CharacterAnimId.FireIdle);
+
+            StartReload(world, selfId, slot);
+            driver.Tick(dt);
+            Assert.IsTrue(driver.TryGetAnimState(0, out var s2) && s2 == CharacterAnimId.Reloading,
+                "换弹压过开火窗（Sim 侧换弹期不可开火——表现跟随事实）");
+
+            world.Frame = world.Weapons[slot * SimConfig.WeaponSlotsPerEntity + world.Entities[slot].SelectedWeapon].ReloadEndFrame;
+            WeaponSystem.Run(world, new[] { new SimInputFrame { EntityId = selfId } });
+            driver.Tick(dt);
+            Assert.IsTrue(driver.TryGetAnimState(0, out var s3) && s3 == CharacterAnimId.FireIdle,
+                "事实清除 ∧ 窗在 → 回 Fire 叶持枪站姿（窗内不回移动层）");
+
+            // 瞄准建立后换弹：事实清除 → 窗被 ADS 充值 → 同样回 Fire 持枪站姿（与 AimIdle 同形态）
+            InputSystem.Run(world, new[]
+            {
+                new SimInputFrame { EntityId = selfId, AimPointX = 10f, AimPointY = 1f, AimPointZ = 0f, Buttons = SimInputFrame.ButtonAim },
+            });
+            driver.Tick(dt);
+            driver.Tick(dt);
+            StartReload(world, selfId, slot);
+            driver.Tick(dt);
+            Assert.IsTrue(driver.TryGetAnimState(0, out var s4) && s4 == CharacterAnimId.Reloading,
+                "瞄准保持期换弹——换弹叶压过开火/瞄准族（打断）");
+
+            world.Frame = world.Weapons[slot * SimConfig.WeaponSlotsPerEntity + world.Entities[slot].SelectedWeapon].ReloadEndFrame;
+            WeaponSystem.Run(world, new[] { new SimInputFrame { EntityId = selfId } });
+            driver.Tick(dt);
+            Assert.IsTrue(driver.TryGetAnimState(0, out var s5) && s5 == CharacterAnimId.FireIdle,
+                "事实清除 ∧ IsAiming 充值窗 → 回持枪站姿叶");
+            Assert.IsTrue(driver.TryGetCurrent(0, out var form) && form.Equals(CharacterAnimationIds.AimIdle),
+                "持枪站姿 = AimIdle（与瞄准叶同形态）");
+
+            driver.Dispose();
+        }
+
+        /// <summary>Sim 侧开始换弹真路径（懒装备 → 打掉一发 → Reload 边沿）；返回换弹结束帧。</summary>
+        private static int StartReload(SimWorldState world, long selfId, int slot)
+        {
+            WeaponSystem.Run(world, new[] { new SimInputFrame { EntityId = selfId } });     // 懒装备（默认步枪满弹）
+            ref WeaponRuntime w = ref world.Weapons[slot * SimConfig.WeaponSlotsPerEntity
+                + world.Entities[slot].SelectedWeapon];
+            w.MagAmmo = WeaponConfig.Default.MagazineSize - 1;                             // 打掉一发（非满弹才可换）
+            WeaponSystem.Run(world, new[]
+            {
+                new SimInputFrame { EntityId = selfId, Buttons = SimInputFrame.ButtonReload, ActionSeq = 1u },
+            });
+            return w.ReloadEndFrame;
         }
 
         /// <summary>按真实链路交付一个 Fire 事件（写入缓冲 → SimView 静默门 → EventSink → 消费者）。</summary>

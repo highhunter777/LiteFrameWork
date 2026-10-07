@@ -378,6 +378,22 @@ namespace LiteSim.View
             return _snapTo.Entities[slotIndex].Hp <= 0;
         }
 
+        /// <summary>
+        /// 实体是否在换弹（Sim 权威）：读本地 Sim 运行态 <c>WeaponRuntime.State == Reloading</c>。
+        /// **口径与 <see cref="IsAiming"/> 的差异**：弹药/换弹属本人私有面（不上公共快照），
+        /// 本地实体取预测态（与本地握手感同帧）；远端槽位在联机下无公共字段可读——本地 Sim 里
+        /// 远端武器行不被预测开火/换弹（恒 Ready），故不误报（远端换弹表现待公共位扩展，先不预建）。
+        /// 槽位越界 / 槽位死（未装备）/ 槽位号越界 → false。
+        /// </summary>
+        public bool IsReloading(int slotIndex)
+        {
+            if (slotIndex < 0 || slotIndex >= SimConfig.MaxEntities) return false;
+            int sel = _sim.Entities[slotIndex].SelectedWeapon;
+            if (sel < 0 || sel >= SimConfig.WeaponSlotsPerEntity) return false;
+            return _sim.Weapons[slotIndex * SimConfig.WeaponSlotsPerEntity + sel].State
+                == WeaponSlotState.Reloading;   // lint-allow R3（枚举判等，非浮点精度比较）
+        }
+
         // ---- 辅助 ----
 
         /// <summary>摆位：位置 1:1；旋转 = <see cref="FacingRotation"/>（模型视觉前沿约定 +Z）。</summary>

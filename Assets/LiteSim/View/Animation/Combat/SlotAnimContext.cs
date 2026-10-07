@@ -14,8 +14,9 @@ namespace LiteSim.View.Animation
 
         // ---- 开火装配（驱动器构造/建槽期注入）----
 
-        /// <summary>开火片段播放速度（2×——后坐节奏；窗长 ≥ 片段播放时长的不变式由它参与）。</summary>
-        public float FirePlaybackSpeed;
+        /// <summary>换弹片段播放倍率——片段时长对齐 Sim 换弹时长（`WeaponConfig.Default.ReloadFrames`
+        /// / TickRate），钳制在 Profile 登记的速度区间内（越界会被播放器拒绝）；未知片段时长 ⇒ 1×。</summary>
+        public float ReloadPlaybackSpeed = 1f;
 
         /// <summary>射击窗长（秒）＝ <see cref="CombatConfig.FireStanceFrames"/> / SimConfig.TickRate（1s 单源派生）。</summary>
         public float FireHoldSeconds;
@@ -24,6 +25,10 @@ namespace LiteSim.View.Animation
 
         /// <summary>瞄准中（SimView.IsAiming——Sim 权威；战斗根活跃判据之一）。</summary>
         public bool IsAiming;
+
+        /// <summary>换弹中（SimView.IsReloading——Sim 权威，武器私有面投影）：真时战斗根恒驻
+        /// Reload 叶（开火/瞄准事实让位）；假时同帧按窗/瞄准事实选叶。</summary>
+        public bool IsReloading;
 
         /// <summary>死亡事实（SimView.IsDead——Hp≤0 快照可重建；战斗根死亡裁决判据，
         /// 不可逆：置位后恒驻死亡叶，窗/退根/Aim 系全被守卫）。</summary>
@@ -61,15 +66,9 @@ namespace LiteSim.View.Animation
         public AnimationHandle BodyHandle;
         public bool BodyIsBlend;
 
-        // ---- 观测 ----
-
-        /// <summary>实际提交的**开火动作**次数（诊断/测试——同段连发只计一次，播完仍在开火才再计）。</summary>
-        public int FireSubmits;
-
-        // ---- 态引用（驱动器事件路由/窗刷新——装配期注入）----
+        // ---- 态引用（驱动器窗刷新——装配期注入）----
 
         internal CombatRootStage Root;
-        internal FireIdleStage FireIdleRef;
 
         // ---- FullBody 形态提交（战斗根叶共用）----
 

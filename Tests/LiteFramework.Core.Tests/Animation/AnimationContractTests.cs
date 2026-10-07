@@ -295,6 +295,35 @@ namespace LiteFramework.Tests.Animation
         }
 
         [Fact]
+        public void 终态_持帧完成的句柄_Stop只释放通道不重复通知()
+        {
+            // HoldOnFinish（帧锁定）：自然完成 ≠ 停机——通道保留、槽位保留（死亡/换弹"持末帧"的机制面）。
+            // 对这类句柄的 Stop 是**通道释放**（交还通道、不再采样末帧），不产生第二次终态。
+            var profile = Profile();
+            profile.Register(new AnimationDefinition(new AnimationId("hold"), AnimationChannel.FullBody,
+                "Full.Hold", loop: false, holdOnFinish: true));
+            var backend = new FakeBackend { FinishMask = AnimationChannelMask.FullBody };
+            var player = new CharacterAnimationPlayer(backend, profile);
+            int terminals = 0;
+            AnimationTerminalState last = AnimationTerminalState.None;
+            player.OnTerminal += (h, t) => { terminals++; last = t; };
+
+            var r = Play(player, "hold", AnimationChannel.FullBody);
+            Assert.True(r.Accepted);
+            player.Tick(0.016f);                                            // 自然完成 → 持帧
+            Assert.Equal(1, terminals);
+            Assert.Equal(AnimationTerminalState.Completed, last);
+            Assert.Empty(backend.Stopped);                                  // 帧锁定：完成时不停机
+
+            Assert.False(player.Stop(r.Handle, AnimationStopReason.Cancelled));   // 释放而非停止
+            Assert.Equal(1, terminals);                                     // 不再通知
+            Assert.Equal(new[] { AnimationChannel.FullBody }, backend.Stopped);   // 通道确实被交还
+
+            // 通道已交还：同通道可再次提交（换弹叶播完持帧 → 退根后再进战斗根的形态）
+            Assert.True(Play(player, "death", AnimationChannel.FullBody).Accepted);
+        }
+
+        [Fact]
         public void 句柄_旧Handle不能停止新播放()
         {
             var backend = new FakeBackend();

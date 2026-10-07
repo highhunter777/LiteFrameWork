@@ -189,17 +189,37 @@ namespace LiteFramework.Animation
         }
 
         /// <summary>
-        /// 停止。返回 false = 句柄不指向当前播放（重复 Stop / 旧句柄 / 未知）。
-        /// **不重复通知**：已终态的 Handle 再次 Stop 是 no-op。
+        /// 停止。返回 false = 句柄不指向当前播放（重复 Stop / 旧句柄 / 未知 / 持帧句柄），
+        /// **且不重复通知终态**。
+        /// **帧锁定例外**：定义声明 <c>HoldOnFinish</c> 的播放完成时"不停机不停用"——终态已报、
+        /// 通道仍被占位。对这类句柄的 Stop 是**通道释放**：停用占位（不再采样末帧）、清槽位，
+        /// 不产生新终态（返回值仍 false——它不是"停止了一次在播"）。这是终态叶之外
+        /// （如换弹叶播完持帧后退根）交还通道的唯一路径。
         /// </summary>
         public bool Stop(AnimationHandle handle, AnimationStopReason reason)
         {
             if (_disposed) return false;
-            if (IsTerminal(handle)) return false;                     // 重复 Stop 不重复通知
+            if (IsTerminal(handle))
+            {
+                ReleaseHeldChannel(handle);
+                return false;
+            }
             if (!TryFindCurrent(handle, out var channel, out var slot)) return false;   // 旧 Handle 不能停新播放
 
             Finish(channel, handle, slot.CurrentId, ToTerminal(reason));
             return true;
+        }
+
+        /// <summary>释放"完成但持帧"的通道占位（句柄须仍是该通道当前；不产生终态、不清终态记录）。
+        /// 非持帧的已终态句柄在收口时已清槽位——此处查不到即 no-op。</summary>
+        private void ReleaseHeldChannel(AnimationHandle handle)
+        {
+            if (!TryFindCurrent(handle, out var channel, out var slot)) return;
+            _backend.TryStop(channel);
+            slot.Current = default;
+            slot.CurrentId = default;
+            slot.Loading = false;
+            slot.Active = false;
         }
 
         /// <summary>查询播放状态。**终态记录有界保留**——过期/未知返回 false。</summary>

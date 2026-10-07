@@ -14,8 +14,9 @@ namespace LiteSim.View.Animation
     }
 
     /// <summary>
-    /// 战斗根复合态（上层）：射击窗持有者 + 退根/降级**单点裁决**（窗递减与
-    /// "窗尽 → 去哪"收在此处，叶只发层内轴请求且先让位）。
+    /// 战斗根复合态（上层）：射击窗持有者 + 退根/降级/换弹**单点裁决**（窗递减与
+    /// "窗尽 → 去哪"、换弹进叶/出叶都收在此处，叶只发层内轴请求且先让位）。
+    /// 优先级：死亡 &gt; 换弹 &gt; 开火/瞄准（窗）。
     /// </summary>
     internal sealed class CombatRootStage : IStage<CharacterAnimId, CombatAnimReq>
     {
@@ -50,19 +51,30 @@ namespace LiteSim.View.Animation
             if (StageGate.Pending(m)) return;                 // 事件路由已挂（进 Fire 系优先）——本帧不裁决
 
             // `IsAiming` 在场即充值窗（Sim 侧瞄准帧同步置窗——两层同源同长；
-            // 长按 ADS 的松开尾巴与点按瞄准的间隙尾巴同一语义：窗内不回移动层）
+            // 长按 ADS 的松开尾巴与点按瞄准的间隙尾巴同一语义：窗内不回移动层）。
+            // **窗先于换弹裁决更新**：Sim 侧 `FireStanceFrames` 在换弹期照常递减/瞄准充值——
+            // 两层同源同长，换弹期间也不许分叉（否则换弹结束时视图驻留与限速解除错位）
             if (_ctx.IsAiming) _window = _ctx.FireHoldSeconds;
             else if (_window > 0f) _window = Mathf.Max(0f, _window - elapseSeconds);
 
+            // 换弹裁决（**压过开火/瞄准**——Sim 侧换弹期不可开火，表现跟随事实）：
+            // 事实在场恒驻 Reload 叶；事实清除后同帧继续走下方窗裁决选叶
+            if (_ctx.IsReloading)
+            {
+                if (m.Current != CharacterAnimId.Reloading) m.Request(CharacterAnimId.Reloading);
+                return;
+            }
+
             // 退根/降级单点裁决（**全族同一条退根路**：窗尽 ∧ !IsAiming；
             // 移动事实永不触发退根，只选叶）：
-            //   窗尽 ∧ IsAiming → Fire* 降级 Aim 叶（同形态续播保相位；Aim 系无需请求——已在 Aim 叶）
+            //   窗尽 ∧ IsAiming → Fire*/Reloading 降级 Aim 叶（同形态续播保相位；Aim 系无需请求——已在 Aim 叶）
             //   窗尽 ∧ !IsAiming → 移动根叶（窗尽才离开——窗内"不能回移动层"）
             if (_window <= 0f)
             {
                 if (_ctx.IsAiming)
                 {
-                    if (m.Current == CharacterAnimId.FireIdle || m.Current == CharacterAnimId.FireWalk)
+                    if (m.Current == CharacterAnimId.FireIdle || m.Current == CharacterAnimId.FireWalk
+                        || m.Current == CharacterAnimId.Reloading)
                         m.Request(_ctx.IsMoving ? CharacterAnimId.AimWalk : CharacterAnimId.AimIdle);
                     // Aim 系 + IsAiming：已在瞄准叶——无动作
                 }
@@ -70,7 +82,12 @@ namespace LiteSim.View.Animation
                 {
                     m.Request(_ctx.IsMoving ? CharacterAnimId.Moving : CharacterAnimId.Idle);
                 }
+                return;
             }
+
+            // 窗在：换弹叶出（事实刚清除）→ 回 Fire 系持枪站姿（窗内不回移动层）
+            if (m.Current == CharacterAnimId.Reloading)
+                m.Request(_ctx.IsMoving ? CharacterAnimId.FireWalk : CharacterAnimId.FireIdle);
         }
 
         public void OnLeave(IStageHost<CharacterAnimId, CombatAnimReq> m)

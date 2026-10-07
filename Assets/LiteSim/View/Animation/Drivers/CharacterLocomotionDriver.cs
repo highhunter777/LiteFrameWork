@@ -12,31 +12,24 @@ namespace LiteSim.View.Animation
     /// <see cref="CombatAnimMachine"/>，本类只负责事实喂入、事件路由、槽位生命周期与诊断聚合）：
     /// - **速度/方向来源**：视图 Transform 的帧间位移——本地（预测+和解衰减）与远端（快照插值）同一来源，
     ///   不读 Sim 内部；插值/衰减的速度天然平滑；
-    /// - **IsAiming**：<see cref="SimView.IsAiming"/>（Sim 权威）；
+    /// - **IsAiming**：<see cref="SimView.IsAiming"/>（Sim 权威）；**IsReloading**：<see cref="SimView.IsReloading"/>
+    ///   （Sim 权威——武器账本私有面）；**IsDead**：<see cref="SimView.IsDead"/>；
     /// - **锁存**：迟滞公式单源 <see cref="LocomotionBlendMath.UpdateLatch"/>（进 0.6 / 出 0.3 m/s），
     ///   驱动器每帧算、作为事实喂状态机（机内无迟滞散字段）；
-    /// - **开火窗长**：单源 `CombatConfig.FireStanceFrames / SimConfig.TickRate`（1s——窗与开火动画时长解耦）；
-    ///   槽位装配期解析开火片段时长做**不变式校验**（窗长 ≥ 片段播放时长，
-    ///   违反记警告——防资产改长/倍率改值后常量没跟）；
+    /// - **开火窗长**：单源 `CombatConfig.FireStanceFrames / SimConfig.TickRate`（1s——窗与开火表现解耦）；
+    ///   **换弹倍率**：装配期按片段时长 / Sim `ReloadFrames` 求商（钳制在 Profile 区间——动画收势与
+    ///   弹药回国同帧）；
     /// - **帧事件**：本类实现 <see cref="IFrameEventAnimationConsumer"/> 并**自订阅**
-    ///   `SimView.EventSink`（构造时挂上、<see cref="Dispose"/> 时摘下）；Fire 事件按锁存路由进
-    ///   FireIdle（站定，播一轮站姿射击）/FireWalk（移动，开窗不播站姿片段——债 #5），
-    ///   Fire 系态内走合并口（续窗/在播吞/已完重起）；
+    ///   `SimView.EventSink`（构造时挂上、<see cref="Dispose"/> 时摘下）；Fire 事件只刷新射击窗
+    ///   （站姿由 Fire 族持 AimIdle 循环，无片段可重播），首次进入按锁存路由进 FireIdle/FireWalk；
     /// - **灰盒降级**：无 Animator 的视图不建播放器/状态机（与缺角色资源既有姿势一致）；
     ///   视图回收时旧播放器/机器随槽位消失，新占用者重建（Owner 代次语义由重建保证）。
     /// </summary>
     public sealed class CharacterLocomotionDriver : IDisposable, IModuleStats, IFrameEventAnimationConsumer
     {
-        /// <summary>开火片段播放速度（倍率）——后坐节奏（连发重起以它换算窗长不变式：窗 ≥ 片段时长/本值）。
-        /// Profile 区间上界即 2×。装配进战斗层 <see cref="SlotAnimContext.FirePlaybackSpeed"/>。</summary>
-        public const float FirePlaybackSpeed = 2f;
-
         private readonly SimView _view;
         private readonly AnimationProfile _profile;
         private readonly SlotAnim[] _slots = new SlotAnim[SimConfig.MaxEntities];
-
-        /// <summary>开火片段绑定名（Profile 单源）——槽位装配期按它向后端查片段时长（不变式校验）。</summary>
-        private readonly string _fireBinding;
 
         /// <summary>射击窗长（秒）＝ CombatConfig.FireStanceFrames / SimConfig.TickRate（1s 单源派生）。</summary>
         private readonly float _fireHoldSeconds;
@@ -64,34 +57,24 @@ namespace LiteSim.View.Animation
                 || aimBlend.Channel != AnimationChannel.FullBody)
                 throw new ArgumentException(
                     $"Profile 缺 {CharacterAnimationIds.AimMoveBlend} 的 4 槽位 FullBody 混合定义（形状 {{AimWalk_F,R,B,L}}）", nameof(profile));
-            if (!_profile.TryGetDefinition(CharacterAnimationIds.Fire, out var fireDef)
-                || fireDef.Channel != AnimationChannel.FullBody)
+            if (!_profile.TryGetDefinition(CharacterAnimationIds.Reload, out var reloadDef)
+                || reloadDef.Channel != AnimationChannel.FullBody)
                 throw new ArgumentException(
-                    $"Profile 开火语义须登记为 FullBody（全身接管替代上半身叠加）→ {CharacterAnimationIds.Fire}", nameof(profile));
+                    $"Profile 换弹语义须登记为 FullBody（全身接管）→ {CharacterAnimationIds.Reload}", nameof(profile));
+            if (reloadDef.Loop)
+                throw new ArgumentException(
+                    $"Profile 换弹语义须为一次性（播完持末帧至事实清除）→ {CharacterAnimationIds.Reload}", nameof(profile));
             if (!_profile.TryGetDefinition(CharacterAnimationIds.AimIdle, out var aimIdleDef)
                 || aimIdleDef.Channel != AnimationChannel.FullBody)
                 throw new ArgumentException(
                     $"Profile 瞄准站姿须登记为 FullBody → {CharacterAnimationIds.AimIdle}", nameof(profile));
             if (aimIdleDef.Loop == false)
                 throw new ArgumentException(
-                    $"Profile 瞄准站姿须为循环（FireIdle 窗内持枪站姿循环填窗）→ {CharacterAnimationIds.AimIdle}", nameof(profile));
+                    $"Profile 瞄准站姿须为循环（开火窗与瞄准态持同一循环）→ {CharacterAnimationIds.AimIdle}", nameof(profile));
 
-            _fireBinding = fireDef.Binding;
             _fireHoldSeconds = (float)CombatConfig.FireStanceFrames / SimConfig.TickRate;   // 60/60 = 1s（单源派生）
 
             _view.EventSink += OnFrameEvent;      // 自订阅（§8 接缝：接在静默门之后）；Dispose 时摘下
-        }
-
-        /// <summary>实际提交的**开火动作**次数（诊断/测试）：同段连发只计一次；片段播完仍在开火才再计。
-        /// 由战斗层 FireIdle 各槽位上下文聚合。</summary>
-        public int FireSubmits
-        {
-            get
-            {
-                int n = 0;
-                for (int i = 0; i < _slots.Length; i++) n += _slots[i]?.Ctx?.FireSubmits ?? 0;
-                return n;
-            }
         }
 
         /// <summary>当前有动画播放器的实体视图数（诊断/测试）。</summary>
@@ -106,7 +89,7 @@ namespace LiteSim.View.Animation
         }
 
         /// <summary>读槽位当前**形态**语义（诊断/HUD/测试）：移动根活跃 = MoveBlend；战斗根活跃 = FullBody 当前形态
-        /// （Fire 态内为开火片段，播完窗内持枪站姿切 AimIdle——"窗内保持 clip"）。无播放器/未开 → false。</summary>
+        /// （开火/瞄准族为 AimIdle/AimMoveBlend 循环，换弹为 Reload——"窗内保持 clip"）。无播放器/未开 → false。</summary>
         public bool TryGetCurrent(int slotIndex, out AnimationId id)
         {
             id = default;
@@ -200,28 +183,28 @@ namespace LiteSim.View.Animation
                     s.Backend = backend;
                     s.Player = new CharacterAnimationPlayer(backend, _profile);
 
-                    // 不变式校验：窗长 ≥ 开火片段播放时长——违反只警告（窗尽会
-                    // 截断在播片段），不改窗长（窗长单源在 CombatConfig.FireStanceFrames）
-                    backend.TryGetClipSeconds(_fireBinding, out float fireSeconds);
-                    float clipPlaySeconds = fireSeconds / FirePlaybackSpeed;
-                    if (fireSeconds > 0f && clipPlaySeconds > _fireHoldSeconds)
-                        Debug.LogWarning(
-                            $"[Anim][diag] slot {i} 不变式违反：窗长 {_fireHoldSeconds:0.###}s < 开火片段播放时长 {clipPlaySeconds:0.###}s"
-                            + $"（片段「{_fireBinding}」/{FirePlaybackSpeed:0.#}×）——窗尽会截断在播片段，改片段/倍率须同步 CombatConfig.FireStanceFrames");
+                    // 换弹倍率：片段时长 / Sim 换弹时长（WeaponConfig.Default.ReloadFrames / TickRate）——
+                    // 动画收势与弹药回国同帧；钳制在 Profile 登记区间（越界会被播放器拒绝）；未知片段时长 ⇒ 1×
+                    _profile.TryGetDefinition(CharacterAnimationIds.Reload, out var reloadDef);   // 构造期已校验在册
+                    backend.TryGetClipSeconds(reloadDef.Binding, out float reloadSeconds);
+                    float reloadTarget = (float)WeaponConfig.Default.ReloadFrames / SimConfig.TickRate;
+                    float reloadSpeed = reloadSeconds > 0f && reloadTarget > 0f
+                        ? Mathf.Clamp(reloadSeconds / reloadTarget, reloadDef.MinSpeed, reloadDef.MaxSpeed)
+                        : 1f;
 
                     s.Ctx = new SlotAnimContext
                     {
                         Player = s.Player,
                         MoveWeights = _moveWeights,               // 驱动器复用数组（零分配）
                         AimWeights = _aimWeights,
-                        FirePlaybackSpeed = FirePlaybackSpeed,
+                        ReloadPlaybackSpeed = reloadSpeed,
                         FireHoldSeconds = _fireHoldSeconds,
                     };
                     s.Machine = CombatAnimMachine.Build(s.Ctx);
                     s.Machine.Start(CharacterAnimId.LocomotionRoot);   // 初建提交 MoveBlend(Idle=1)——不开局 T-pose（提交/维护归移动根）
                     Debug.LogWarning($"[Anim][diag] slot {i} 播放器建立：view「{go.name}」animator「{animator.name}」"
                         + $"ctrl={animator.runtimeAnimatorController.name} layers={animator.layerCount}"
-                        + $" 窗长={_fireHoldSeconds:0.##}s（片段「{_fireBinding}」{clipPlaySeconds:0.###}s@{FirePlaybackSpeed:0.#}×）");
+                        + $" 窗长={_fireHoldSeconds:0.##}s 换弹倍率={reloadSpeed:0.##}×（片段「{reloadDef.Binding}」{reloadSeconds:0.###}s）");
                 }
 
                 if (s.HasPos && dt > 0f)
@@ -235,6 +218,7 @@ namespace LiteSim.View.Animation
                     if (s.DeadSeen && s.Machine.Current != CharacterAnimId.Dead)
                         s.Machine.Request(CharacterAnimId.Dead);   // 状态轮询路径：重建/迟到者按死亡事实强制进叶
                     s.Ctx.IsAiming = _view.IsAiming(i);
+                    s.Ctx.IsReloading = _view.IsReloading(i);  // 换弹事实（Sim 权威——武器私有面投影）
                     s.Ctx.IsMoving = s.MovingLatch;
                     s.Ctx.Speed = speed;
                     s.Ctx.MoveRelAngleDeg = moveDir == Vector3.zero
@@ -262,9 +246,9 @@ namespace LiteSim.View.Animation
         /// <summary>
         /// 帧事件消费（**逻辑帧边界**，由 <see cref="SimView.EventSink"/> 在静默门之后调用）：
         /// fire 事件即进 Fire 系——语义/通道由战斗层装配期从 Profile 单源解析
-        /// （构造期校验保留）；Hit/Death 待接入（未预建消费者）。
-        /// 路由：窗先行（根合并口刷新＝重置满窗）→ Fire 系态内合并（在播吞/已完重起）→ 否则按锁存
-        /// Request 进 Fire 叶（站定 FireIdle 播站姿片段、移动 FireWalk 只开窗——门控即路由）。
+        /// （构造期校验保留）；Hit/Evade 待接入（未预建消费者）。
+        /// 路由：窗先行（根合并口刷新＝重置满窗）→ Fire 族/换弹族态内只续窗（站姿循环由叶自维护，
+        /// 无片段可重播）→ 否则按锁存 Request 进 Fire 叶（站定 FireIdle / 移动 FireWalk）。
         /// </summary>
         public void OnFrameEvent(in FrameEvent e)
         {
@@ -296,13 +280,10 @@ namespace LiteSim.View.Animation
             s.Ctx.Root.RefreshWindow();                           // 事件即活动：窗重置满窗（先于一切路由）
 
             var cur = s.Machine.Current;
-            if (cur == CharacterAnimId.FireIdle)
-                s.Ctx.FireIdleRef.OnFireEvent();                  // 态内合并：续窗（已刷）+ 在播吞/已完重起/移动不播
-            else if (cur == CharacterAnimId.FireWalk)
-                return;                                           // 只续窗（窗已刷）——站姿片段不可盖步态
-            else
-                s.Machine.Request(s.Ctx.IsMoving ? CharacterAnimId.FireWalk : CharacterAnimId.FireIdle,
-                    new CombatAnimReq { IsFireEvent = true });
+            if (cur == CharacterAnimId.FireIdle || cur == CharacterAnimId.FireWalk
+                || cur == CharacterAnimId.Reloading)
+                return;                                           // 已在战斗根：窗已刷（持枪循环由叶自维护；换弹不可打断）
+            s.Machine.Request(s.Ctx.IsMoving ? CharacterAnimId.FireWalk : CharacterAnimId.FireIdle);
         }
 
         // ---- 内部：槽位生命周期与测量 ----

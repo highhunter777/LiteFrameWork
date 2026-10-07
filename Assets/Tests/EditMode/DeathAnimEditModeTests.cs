@@ -39,7 +39,6 @@ namespace LiteGame.Tests.EditMode
                 Player = player,
                 MoveWeights = new float[3],
                 AimWeights = new float[4],
-                FirePlaybackSpeed = CharacterLocomotionDriver.FirePlaybackSpeed,
                 FireHoldSeconds = (float)CombatConfig.FireStanceFrames / SimConfig.TickRate,
             };
             var machine = CombatAnimMachine.Build(ctx);
@@ -97,7 +96,7 @@ namespace LiteGame.Tests.EditMode
             var go = Scope.Track(Object.Instantiate(prefab));
             var (player, ctx, machine, backend) = BuildMachine(go);
 
-            machine.Request(CharacterAnimId.FireIdle, new CombatAnimReq { IsFireEvent = true });
+            machine.Request(CharacterAnimId.FireIdle);
             machine.Tick(0.1f);
             player.Tick(0.1f);
             Assert.AreEqual(CharacterAnimId.FireIdle, machine.Current, "前置：已在开火叶");
