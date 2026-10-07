@@ -59,16 +59,16 @@ namespace LiteGame
 
                 Vector3 foot = new Vector3(e.Pos.X, e.Pos.Y, e.Pos.Z);
                 Vector3 top = foot + Vector3.up * bodyTop;                        // 身位上沿（= 顶面）
-                Vector3 headLow = foot + Vector3.up * CombatConfig.HeadHitLineLive;   // 爆头带下沿（测试模式滑杆覆写随动）
-                float headR = CombatConfig.HeadshotRadiusLive;                    // 爆头柱半径（窄于命中柱；滑杆覆写随动）
+                Vector3 headLow = foot + Vector3.up * CombatConfig.HeadHitLineLive;   // 双柱分界（测试模式滑杆覆写随动）
+                float headR = CombatConfig.HeadshotRadiusLive;                    // 爆头柱半径（滑杆覆写随动）
 
-                // 服务端身位圆柱（完整判定几何——命中柱）：底/顶圈 + 全高母线
+                // 服务端命中几何＝双柱阶梯：灰＝身体柱 [0, 分界) × 命中柱全径（含台阶顶面圈）；
+                // 黄红＝爆头柱 [分界, 顶] × 爆头柱半径。分界以上的环状空隙按裁决不可命中——不画。
                 DrawCircle(foot, radius, BodyColor);
-                DrawCircle(top, radius, BodyColor);
-                DrawRibs(foot, top, radius, BodyColor);
+                DrawCircle(headLow, radius, BodyColor);                           // 身体柱顶面（= 双柱台阶）
+                DrawRibs(foot, headLow, radius, BodyColor);
 
-                // 爆头区强调（奖励区 = 头部带 × 爆头柱的窄柱切片）：下沿黄圈 + 带内黄竖线 + 上沿红圈
-                // ——半径用爆头柱（非命中柱全径），所见即所判：黄红圈之间才是 Crit 区
+                // 爆头柱切片（Crit 区）：下沿黄圈 + 带内黄竖线 + 上沿红圈
                 DrawCircle(headLow, headR, Color.yellow);
                 DrawCircle(top, headR, Color.red);
                 DrawRibs(headLow, top, headR, Color.yellow);

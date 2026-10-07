@@ -165,13 +165,15 @@ namespace LiteGame.EditorTools
             float hitR = LiteSim.CombatConfig.HitscanRadius;
             float height = LiteSim.CombatConfig.HitscanHeight;
 
-            DrawCylinder(foot, hitR, height, new Color(0.65f, 0.65f, 0.65f, 1f));   // 命中柱（灰，全径）
             DrawAnchorLines();                                                      // 模型锚点（蓝细线+标签）
 
-            // 爆头柱切片：下沿黄圈（可拖黄球竖直调）+ 上沿红圈 + 带内母线——半径用爆头柱（窄于灰柱）
+            // 双柱阶梯（与 SimRaycast 判定几何一致）：灰＝身体柱 [0, 分界) × 命中柱全径（含台阶顶面圈）
             float line = height * _ratio;
             Vector3 headLow = foot + Vector3.up * line;
             Vector3 top = foot + Vector3.up * height;
+            DrawCylinder(foot, headLow, hitR, new Color(0.65f, 0.65f, 0.65f, 1f));
+
+            // 爆头柱切片：下沿黄圈（可拖黄球竖直调）+ 带内母线 + 上沿红圈——半径用爆头柱（窄于灰柱）
             Handles.color = Color.yellow;
             Handles.DrawWireDisc(headLow, Vector3.up, _radius);
             Vector3 handlePos = headLow + new Vector3(_radius, 0f, 0f);
@@ -190,15 +192,15 @@ namespace LiteGame.EditorTools
             Handles.Label(top + Vector3.up * 0.05f, $"爆头柱半径 {_radius:F3} m（红圈=上沿）");
         }
 
-        private void DrawCylinder(Vector3 foot, float radius, float height, Color col)
+        private void DrawCylinder(Vector3 foot, Vector3 top, float radius, Color col)
         {
             Handles.color = col;
             Handles.DrawWireDisc(foot, Vector3.up, radius);
-            Handles.DrawWireDisc(foot + Vector3.up * height, Vector3.up, radius);
-            Handles.DrawLine(foot + new Vector3(radius, 0, 0), foot + new Vector3(radius, height, 0));
-            Handles.DrawLine(foot + new Vector3(-radius, 0, 0), foot + new Vector3(-radius, height, 0));
-            Handles.DrawLine(foot + new Vector3(0, 0, radius), foot + new Vector3(0, 0, radius) + Vector3.up * height);
-            Handles.DrawLine(foot + new Vector3(0, 0, -radius), foot + new Vector3(0, 0, -radius) + Vector3.up * height);
+            Handles.DrawWireDisc(top, Vector3.up, radius);
+            Handles.DrawLine(foot + new Vector3(radius, 0, 0), top + new Vector3(radius, 0, 0));
+            Handles.DrawLine(foot + new Vector3(-radius, 0, 0), top + new Vector3(-radius, 0, 0));
+            Handles.DrawLine(foot + new Vector3(0, 0, radius), top + new Vector3(0, 0, radius));
+            Handles.DrawLine(foot + new Vector3(0, 0, -radius), top + new Vector3(0, 0, -radius));
         }
 
         /// <summary>模型锚点参考（蓝细线）：颈骨 / 面顶 / 帽顶 / 发冠顶——拖带时对照"可见头从哪开始"。</summary>

@@ -131,39 +131,27 @@ namespace LiteSim
                     // 否则回退子弹交点——近处有遮挡物时子弹抓到的是它、而准心指着远处目标，
                     // 拿远处的 AimPoint 去判近处的目标会误判。
                     float judgeY = hitPos.Y;
-                    // 判定点的水平距（平方）：AimPoint 接管时 = 点到目标 XZ 距；否则 = 子弹交点到目标 XZ 距
-                    float judgeD2 = SimMath.MulAdd2(hitPos.X - hit.Pos.X, hitPos.X - hit.Pos.X,
-                                                   hitPos.Z - hit.Pos.Z, hitPos.Z - hit.Pos.Z);
                     if (hasPoint)
                     {
                         float ddx = inputs[i].AimPointX - hit.Pos.X;
                         float ddz = inputs[i].AimPointZ - hit.Pos.Z;
-                        float d2 = SimMath.MulAdd2(ddx, ddx, ddz, ddz);
-                        if (d2
+                        if (SimMath.MulAdd2(ddx, ddx, ddz, ddz)
                             <= CombatConfig.HitscanRadius * CombatConfig.HitscanRadius)
-                        {
                             judgeY = inputs[i].AimPointY;
-                            judgeD2 = d2;
-                        }
                     }
 
-                    // **爆头＝判定高度落在头部带**（专项设计 §4.2）：头部带 = 身位顶部子区间
-                    // **[HeadHitLine, HitscanHeight]**（相对目标脚底，闭区间）——非 >= 单边。
-                    // 单边 `>= HeadHitLine` 有漏洞：高差位俯射**越过头顶**仍被判爆头；
-                    // 与 Duckov HitBox 语义一致（头是一个区间而非半空间）。
+                    // **爆头＝判定高度落在头部带**（专项设计 §4.2/§5）：命中几何已是**双柱阶梯**
+                    // （<c>SimRaycast</c>——身体柱 [0,HeadHitLine)×HitscanRadius ＋ 爆头柱
+                    // [HeadHitLine,HitscanHeight]×HeadshotRadius）⇒ **判定点高度 ≥ 下沿 ⇔ 命中在爆头柱**，
+                    // 水平归属由几何承载——判定侧不再设事后水平闸（事后闸会拒掉"瞄头"的柱面 AimPoint：
+                    // 单柱下瞄头的射线在 0.45 柱面取点、水平距恒 ≈0.45，实测"准心瞄头打中却是白字"）。
                     //
                     // **边界须与 SimRaycast 的 Y 带闸同口径（闭区间含端点）**：既有用例
                     // 「高差位擦顶命中」（弹道掠过柱顶、区间恰好相交）依赖含端点语义——
                     // 单方面把上界收紧为 `<` 会与 Y 带闸分叉（闸放行、爆头判据落空 ⇒ 判为未命中）。
                     // 上界"越过头顶"的漏洞由 SimRaycast 的 Y 带闸（`yHit > 顶` 排除）承担。
-                    //
-                    // **水平闸＝爆头柱独立半径**（HeadshotRadius，窄于命中柱 0.45——"太宽"裁决）：
-                    // 爆头区 = 头部带 × 爆头柱切片，命中柱边缘（0.32~0.45 处）的高位命中只是普通命中
-                    // （头部可见轮廓 ≈0.28~0.35，命中柱全径切片会把整个上躯干圈成爆头区）。
                     float relY = judgeY - hit.Pos.Y;
-                    float headR = CombatConfig.HeadshotRadiusLive;             // Live：测试模式滑杆覆写优先（release 恒 = HeadshotRadius）
-                    bool headshot = relY >= CombatConfig.HeadHitLineLive       // Live：同上
-                        && judgeD2 <= headR * headR;
+                    bool headshot = relY >= CombatConfig.HeadHitLineLive;       // Live：测试模式滑杆覆写优先（release 恒 = HeadHitLine）
                     if (headshot) dmg <<= CombatConfig.HeadshotDamageShift;
 
                     s.Cmds.Write(SimCommandKind.Damage, hit.Id, shooter.Id, dmg);

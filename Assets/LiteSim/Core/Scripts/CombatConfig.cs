@@ -164,13 +164,15 @@ namespace LiteSim
 #endif
 
         /// <summary>
-        /// **爆头柱半径（m）——判定宽容裁决常量**（窄于命中柱 <see cref="HitscanRadius"/>）：头部带
-        /// <c>[HeadHitLine, HitscanHeight]</c> 的**水平范围**——爆头区是"窄柱切片"而非命中柱全径切片。
-        /// 头部可见轮廓实测 ≈0.28~0.35（帽 0.283/发冠），命中柱全径 0.45 会把整个上躯干圈成爆头区
-        /// （"太宽"裁决）。**消费**：爆头判据的水平闸（<see cref="ShootingSystem"/>——
-        /// 判定点水平距目标 ≤ 本值才计爆头，命中与否仍由命中柱 0.45 承担）。**进 digest**
-        /// （判定常量两端联机身份，同 <see cref="HitscanRadius"/> 先例）；重调 = 调带工具导出
-        /// <see cref="HeadBake.Radius"/>（编辑器滑杆 / 测试模式实时覆写同导出口径）。
+        /// **爆头柱半径（m）——双柱判定几何的上段柱径**（窄于身体柱 <see cref="HitscanRadius"/>，2026-10-07
+        /// "爆头柱/非爆头柱"裁决）：实体命中形状 = 身体柱 <c>[0, HeadHitLine) × HitscanRadius</c> ＋
+        /// 爆头柱 <c>[HeadHitLine, HitscanHeight] × 本值</c> 的竖直堆叠（<see cref="SimRaycast"/> 求交单源）。
+        /// **为什么是命中几何而不是事后水平闸**：AimPoint 是相机射线 ∩ 命中形状的表面点——单柱下瞄头的
+        /// 射线在宽柱面取点（水平距恒 ≈柱径），任何事后闸都会拒掉合法瞄头点（实测"瞄头白字"）；
+        /// 几何化后"命中爆头柱"即 Crit（<see cref="ShootingSystem"/> 按命中高度 ≥ 下沿判定，无水平闸）。
+        /// 头部可见轮廓 ≈0.28~0.35（帽 0.283/发冠）；上段 [本值, HitscanRadius) 的环状空隙按裁决不可命中。
+        /// **进 digest**（命中几何常量两端联机身份）；重调 = 调带工具导出 <see cref="HeadBake.Radius"/>
+        /// （编辑器滑杆 / 测试模式实时覆写同导出口径）。
         /// </summary>
         public const float HeadshotRadius = HeadBake.Radius;
 
