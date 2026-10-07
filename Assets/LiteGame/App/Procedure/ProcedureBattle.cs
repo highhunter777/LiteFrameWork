@@ -34,6 +34,10 @@ namespace LiteGame
         private const UnityEngine.KeyCode LeaveKey = UnityEngine.KeyCode.F10;
         /// <summary>测试模式传送键（传送到当前准心点）。</summary>
         private const UnityEngine.KeyCode TeleportKey = UnityEngine.KeyCode.T;
+        /// <summary>爆头判定点绘制开关键（运行中即时切；F10已被离场/进房占用）。</summary>
+        private const UnityEngine.KeyCode HeadshotDebugKey = UnityEngine.KeyCode.F11;
+        /// <summary>爆头自动验证开关键（替换输入源自动打爆头；F11/F10 已占用故取 F12）。</summary>
+        private const UnityEngine.KeyCode AutoHeadshotKey = UnityEngine.KeyCode.F12;
 #endif
 
         /// <summary>瞄准滞回的最小保持宽度——与 Brain DefaultBlend（EaseInOut 0.3s）对齐：
@@ -81,6 +85,10 @@ namespace LiteGame
         private AssetLease<GameObject> _damageNumberLease; // 飘字底件租约（实例由驱动工厂逐条实例化）
         private readonly LiteFramework.IWorldClock _worldClock;  // 世界钟（伤害数字寿命/合并窗——不累加渲染帧 delta，实测编辑器态会通胀）
         private Func<Vector3?> _aimPointOf;             // 瞄准点来源（世界坐标；null = 无设备形态——相机保持场景构图）
+#if UNITY_EDITOR || DEVELOPMENT_BUILD || LITEFRAMEWORK_DEBUG
+        private BattleHeadshotDebugDrawer _headshotDebug;   // 身位圆柱/爆头带常驻可视化（测试模式诊断件；release 剥离）
+        private AutoHeadshotRig _autoHeadshot;         // 爆头自动验证件（F12；release 剥离）
+#endif
         private Transform _viewRoot;
         private GameObject _viewRootGo;
         private GameObject _prefab;
@@ -368,6 +376,13 @@ namespace LiteGame
             AttachLaserSight();                                 // 瞄准激光（束实例已取，接线驱动——端点直落准心标记的地面点）
             _hitFeedback = new HitFeedbackDispatcher(_view);   // 命中分发骨架：EventSink 并列订阅——消费者随各自批注册
             AttachDamageNumbers();                             // 伤害数字（命中反馈首个消费者——只显本地造成/承受）
+#if UNITY_EDITOR || DEVELOPMENT_BUILD || LITEFRAMEWORK_DEBUG
+            // 爆头区域常驻可视化（测试模式诊断件）：只读预测态，不改判定；release 剥离
+            _headshotDebug = new BattleHeadshotDebugDrawer(_context.Sim);
+            // 爆头自动验证件（F12）：替换输入源 + 统计爆头/命中，用于真实对局端到端验链路
+            _autoHeadshot = new AutoHeadshotRig(_context.Sim.State, _context.LocalEntityId);
+            _hitFeedback?.Register(_autoHeadshot);
+#endif
             AttachInput();
             UnityEngine.Debug.Log($"[Battle] view-attached prefab={EntityPrefab}");
         }
@@ -416,14 +431,23 @@ namespace LiteGame
         }
 
         /// <summary>
-        /// 瞄准点来源：设备源适配器解算的鼠标→地面交点（世界坐标；与准心共用同一解算结果）。
-        /// 非该实现（测试替身/无设备形态）返回 null——相机保持场景构图。**不在此 import InputSystem**（R12）。
+        /// 瞄准点来源：**待上行输入帧**（<see cref="IInputService.Pending"/>）的 AimPoint 三分量——
+        /// 与准心/开火/上行同一份事实（AimPoint 单口径）。**为什么不绑具体设备源**：曾经绑定
+        /// "鼠标源实例"（开局抓取），自瞄验证件/触屏/测试替身换源后激光与构图仍追旧源（鼠标停在地面
+        /// ⇒ 激光"瞄地"、与真实弹道脱节）。改绑 Pending 后**任何意图源**（含 `AutoHeadshotRig`）下
+        /// "激光=准心=弹道"同源不失效。零值 = 无点（与判定同约定）→ null。
+        /// **不在此 import InputSystem**（R12）。
         /// </summary>
         private static Func<Vector3?> AimPointOf(IInputService input)
         {
-            return input != null && input.Source is NewInputIntentSource source
-                ? (Func<Vector3?>)(() => source.TryGetAimPoint(out Vector3 point) ? point : (Vector3?)null)
-                : null;
+            if (input == null) return null;
+            return () =>
+            {
+                SimInputFrame f = input.Pending;
+                return (f.AimPointX != 0f || f.AimPointY != 0f || f.AimPointZ != 0f)
+                    ? (Vector3?)new Vector3(f.AimPointX, f.AimPointY, f.AimPointZ)
+                    : null;
+            };
         }
 
         /// <summary>按子路径取对象（形态组缺失 = 单形态退化——准心驱动容忍 null）。</summary>
@@ -496,7 +520,14 @@ namespace LiteGame
             _laserLease = null;
             _damageNumbers?.Dispose();          // 伤害数字（消费者先于分发器拆——实例全归还池）
             _damageNumbers = null;
-            _hitFeedback?.Dispose();              // 命中分发（视图消费者——先于视图本体拆；消费者随各自批自管）
+#if UNITY_EDITOR || DEVELOPMENT_BUILD || LITEFRAMEWORK_DEBUG
+            // 爆头可视化件：纯每帧重绘（无持有状态），随分发器一并走
+            _headshotDebug = null;
+            // 自动验证件：**先关闭**（还原设备源）再弃引用——否则输入源会停留在替身态直到下次进房
+            _autoHeadshot?.Disable();
+            _autoHeadshot = null;
+#endif
+            _hitFeedback?.Dispose();              // 命中分发（视图消费者——先于视图本体拆；消费者随各自批自管)
             _hitFeedback = null;
             _aimPointOf = null;                   // 瞄准点来源随本局设备源一起摘（方法组不跨局持有）
             _camera?.SetAiming(false);            // 瞄准机还原（优先级/Follow 归还场景值——离场不得遗留接管态）
@@ -522,6 +553,24 @@ namespace LiteGame
 #if UNITY_EDITOR || DEVELOPMENT_BUILD || LITEFRAMEWORK_DEBUG
             // 主动离场热键（测试入口，与 ProcedureMain F9 进对局同门禁）：Leave → Ended(Leave) → 收尾回 Main。
             // 此处只留热键，不进正式 UI（正式离场入口由 UI 层提供）。
+
+            // 爆头区域常驻可视化（F11 切换；常驻跟随，开关关时零开销）
+            if (UnityEngine.Input.GetKeyDown(HeadshotDebugKey))
+            {
+                TestModeRuntime.DrawHeadshotDebug = !TestModeRuntime.DrawHeadshotDebug;
+                UnityEngine.Debug.Log($"[Battle] 身位/爆头区可视化={(TestModeRuntime.DrawHeadshotDebug ? "开" : "关")}（F11：服务端判定圆柱）");
+            }
+            _headshotDebug?.Tick();
+
+            // **F12 = 爆头自动验证**：替换输入源为「自动锁定最近敌人 + 瞄准头部带中心 + 持续开火」，
+            // 并统计爆头/命中次数。用于在真实对局里端到端验「AimPoint 上报 → 协议 → InputGate 闸门
+            // → 回溯补判 → 爆头判定 → Crit 事件」整条链——L1 覆盖不到采集侧与闸门这两段。
+            if (UnityEngine.Input.GetKeyDown(AutoHeadshotKey))
+            {
+                if (_autoHeadshot != null && _autoHeadshot.Active) _autoHeadshot.Disable();
+                else _autoHeadshot?.Enable(_input);
+            }
+            _autoHeadshot?.Tick();
             if (UnityEngine.Input.GetKeyDown(LeaveKey)) _context.Leave();
             if (UnityEngine.Input.GetKeyDown(TeleportKey)) TestModeRuntime.TeleportRequested = true;   // T = 传送到准心（测试模式）
             if (TestModeRuntime.ExitRequested)                                                          // GM 面板退出：离场并关模式
@@ -533,25 +582,25 @@ namespace LiteGame
 #endif
 
             // ① 渲染帧采样（上下文门在此裁决：登记源任一成立 → 本帧输入为空，见 IInputService）。
-            //    瞄准参照原点 = **本体位置**（Sim 预测态 `LocalPosition`——不读视图 Transform，
-            //    平滑量不回灌输入）。瞄准向量 = 本体 → 准心地面点方向。
+            //    瞄准 = **AimPoint 单口径**（《固定斜视角射击方案专项设计》§3）：设备源把准心射线与
+            //    预测世界求交（实体圆柱 → 地面兜底）解出目标点；朝向与弹道两端自该点派生
+            //    ——点不读 Yaw ⇒ "Yaw → 枪口 → 方向 → Yaw"闭环自激不存在，锚点选择问题整体消亡。
             //
-            //    **为什么不用逻辑枪口（MuzzleOrigin）作原点——闭环自激**：
-            //    逻辑枪口的 XZ 偏移是**朝向系**的（前向 0.35 + 右向 0.2），而 Yaw 又由瞄准向量
-            //    反推（InputSystem.cs:68）⇒ 「Yaw → 枪口位 → 瞄准向量 → Yaw」成正反馈闭环。
-            //    闭环增益 ≈ |MuzzleOffset| / |准心点 − 枪口|：准心远时收敛（无感），准心贴近角色时
-            //    d ≈ 0.4m、增益 ≫ 1 ⇒ Yaw 逐帧放大，角色原地摆头（近距抖动真因）。
-            //    改用不依赖 Yaw 的本体位置后闭环断开，抖动根治。
-            //
-            //    **弹道原点仍是逻辑枪口**（`ShootingSystem.cs:41` 与 `MuzzleOrigin` 同式，未改动）——
-            //    输入侧锚点与弹道侧出射点**解耦**是合理的：前者只决定"朝哪转"，后者决定"从哪打"，
-            //    权威/预测本就同式，两端一致不受影响。代价：不再有"子弹过准心正上方"的过冲修正
-            //    （从本体出发的射线与从枪口出发差一个 ≤0.4m 的平行差）。
+            //    **瞄准世界注入（§3）**：设备源要用**同一个 SimRaycast** 把准心射线与实体圆柱求交，
+            //    而世界所有权在流程层——设备源不缓存权威状态（否则是与裁决不同帧的陈旧世界）。
+            //    未对齐（LocalEntityId=0）时按 slot=-1 注入 ⇒ 设备源退化为纯地面点解算（合法退化）。
             //
             //    瞄准相机：ADS 视角由 SetAiming 每帧喂本地预测态瞄准位，适配器抬场景 /Aim Camera
             //    优先级接管，跟随目标与主相机同源，不引用预制体参考点。
             if (_input != null && _context.Sim != null)
+            {
+                // 解析失败一律给 -1（**不可沿用 TryResolve 的 out 值**：失败时它可能是 0，
+                // 而 0 是合法槽位——会让设备源跳过错误的实体）。
+                int localSlot = _context.LocalEntityId != 0
+                    && _context.Sim.State.TryResolve(_context.LocalEntityId, out int resolved) ? resolved : -1;
+                _input.SetAimWorld(_context.Sim.State, localSlot);
                 _input.SampleOnRenderFrame(_context.LocalPosition);
+            }
 
             _context.Tick(elapseSeconds);         // ② 网络双泵 + 输入上行 + 预测推进 + 表现视图（唯一驱动入口）
             _locomotion?.Tick(elapseSeconds);    // 移动动画：视图位置已更新，再解析目标姿态（视图的下游消费者）
@@ -559,7 +608,6 @@ namespace LiteGame
             _laser?.Tick();                     // 瞄准激光（世界空间）：端点 = 开火射线（实体/障碍截停）——视图消费者
             _damageNumbers?.Tick();             // 伤害数字：命中事件的视觉收尾（合并窗口/淡出/跟随）——世界钟取时
             _camera?.SetAiming(_aimGate.Feed(IsLocalAiming(), elapseSeconds)); // 瞄准相机接管（每帧幂等；适配器按沿生效——视图态已解析；滞回门控短按，防频繁点按来回重启混合）
-            _camera?.SetOrbitInputEnabled(!_view.IsLocalFireStance);          // 轨道输入门：腰射开火驻留窗内停鼠标驱动的相机旋转（窗尽恢复——稳定连点画面）
             if (_camera != null)                  // 瞄准点（世界）→ 构图 z 偏移曲线（适配器按到焦点的前向投影换算）
             {
                 Vector3? aimPoint = _aimPointOf?.Invoke();
