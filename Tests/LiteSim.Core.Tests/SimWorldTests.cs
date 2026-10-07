@@ -219,7 +219,9 @@ namespace LiteSim.Tests
             });
 
             Assert.Equal(5, deliveries);       // 5 个逻辑帧都交付（不只剩最后一帧，§3.7）
-            Assert.Equal(10, fireEvents);      // 每帧 2 个 Fire
+            // **武器节拍语义**：装备后按住开火受射速节拍约束（600rpm ⇒ 6 帧/发）——5 帧窗口内仅首帧真开火
+            // （2 名玩家 × 1 发 = 2 个 Fire；其余帧被武器门拦下，不产事件）。事件交付面（deliveries=5）与本断言正交。
+            Assert.Equal(2, fireEvents);       // 首帧 2 个 Fire，其余帧节拍拦截
             Assert.Equal(0, s.Events.Count);   // 每帧末消费后清空
             Assert.Equal(5, s.Frame);
             Assert.Equal(5, driver.StepsLastTick);

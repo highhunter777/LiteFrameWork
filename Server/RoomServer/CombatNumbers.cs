@@ -63,6 +63,7 @@ namespace RoomServer
                 $"hitscan={values.HitscanRange} hit={CombatConfig.HitscanRadius}(裁决) body={CombatConfig.BodyRadius}:{CombatConfig.HitscanHeight}(烘焙) " +
                 $"dmg={values.BaseDamage}±{values.DamageSpread} hp={values.EntityHp}");
             values.Apply();
+            ApplyWeaponTable(tables);
             return values;
         }
 
@@ -90,6 +91,27 @@ namespace RoomServer
             DamageSpread = row.DamageSpread,
             EntityHp = row.EntityHp,
         };
+
+        /// <summary>武器表回填（服务端与客户端同链——权威 Sim 的武器系统必须拿到同一份武器定义；
+        /// 缺默认步枪行即抛，fail-fast 与 tbcombatnum 同纪律）。</summary>
+        private static void ApplyWeaponTable(cfg.Tables tables)
+        {
+            if (tables.Tbweapon == null || tables.Tbweapon.GetOrDefault(WeaponConfig.DefaultRifleId) == null)
+                throw new InvalidDataException("tbweapon 缺默认步枪行（id=0）——武器系统懒装备依赖它");
+
+            int count = 0;
+            foreach (cfg.weapon row in tables.Tbweapon.DataList)
+            {
+                bool automatic = row.FireMode == "auto";
+                if (WeaponConfig.SetRow(row.Id, row.Damage, row.Rpm, row.MagazineSize, row.ReserveAmmo,
+                        row.ReloadFrames, row.Range, row.Spread, row.Pellets, row.SwitchFrames, automatic))
+                    count++;
+            }
+            WeaponDef rifle = WeaponConfig.Default;
+            Console.WriteLine(
+                $"[RoomServer] 武器表装载：{count} 行（默认步枪 dmg={rifle.Damage} rpm={rifle.Rpm} " +
+                $"mag={rifle.MagazineSize} 换弹={rifle.ReloadFrames}帧 节拍={rifle.FireIntervalFrames}帧）");
+        }
 
         /// <summary>仓库根定位：与测试侧同款标记（Assets + Tests/Tests.slnx），从程序目录向上找。</summary>
         internal static string FindRepoRoot()

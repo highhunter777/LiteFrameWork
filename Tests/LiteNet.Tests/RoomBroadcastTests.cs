@@ -150,9 +150,13 @@ namespace LiteNet.Tests
         {
             var (room, capture, s1, s2, pipeline) = BuildStartedRoom();
 
-            // 各玩家私有运行态不同（弹药数——只应出现在本人的快照里，业务总设计 §1 禁泄漏）
+            // 各玩家私有运行态不同（弹药数——只应出现在本人的快照里，业务总设计 §1 禁泄漏）。
+            // **已装备形态**（State=Ready——否则武器系统的懒装备会按默认步枪重铺满弹，覆盖本种子；
+            // 真实对局里开局懒装备之后就是该形态，换弹后的弹药数才有差异面）。
             room.AuthSim.Weapons[0 * SimConfig.WeaponSlotsPerEntity].MagAmmo = 30;
+            room.AuthSim.Weapons[0 * SimConfig.WeaponSlotsPerEntity].State = WeaponSlotState.Ready;
             room.AuthSim.Weapons[1 * SimConfig.WeaponSlotsPerEntity].MagAmmo = 8;
+            room.AuthSim.Weapons[1 * SimConfig.WeaponSlotsPerEntity].State = WeaponSlotState.Ready;
             room.AuthSim.Match = new MatchStateData { Phase = 1, Timer = 10800, Round = 1 };
 
             Step(room, pipeline, 4);

@@ -19,6 +19,7 @@ public partial class Tables
     public Tbmovementconfig Tbmovementconfig {get; }
     public Tbstrategy Tbstrategy {get; }
     public Tbuiform Tbuiform {get; }
+    public Tbweapon Tbweapon {get; }
 
     public Tables(System.Func<string, ByteBuf> loader)
     {
@@ -28,6 +29,7 @@ public partial class Tables
         Tbmovementconfig = new Tbmovementconfig(loader("tbmovementconfig"));
         Tbstrategy = new Tbstrategy(loader("tbstrategy"));
         Tbuiform = new Tbuiform(loader("tbuiform"));
+        Tbweapon = new Tbweapon(loader("tbweapon"));
         ResolveRef();
     }
     
@@ -39,6 +41,7 @@ public partial class Tables
         Tbmovementconfig.ResolveRef(this);
         Tbstrategy.ResolveRef(this);
         Tbuiform.ResolveRef(this);
+        Tbweapon.ResolveRef(this);
     }
 }
 

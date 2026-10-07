@@ -25,6 +25,7 @@ namespace LiteGame.Tests.EditMode
         private static readonly string[] DataFiles =
         {
             "tbitemconfig", "tbmovementconfig", "tbuiform", "tbcontententry", "tbstrategy", "tbcombatnum",
+            "tbweapon",
         };
 
         [Test]
@@ -62,6 +63,20 @@ namespace LiteGame.Tests.EditMode
             Assert.AreEqual(CombatConfig.BaseDamage, row.BaseDamage);
             Assert.AreEqual(CombatConfig.DamageSpread, row.DamageSpread);
             Assert.AreEqual(CombatConfig.EntityHp, row.EntityHp);
+
+            // 武器表（tb_weapon）与 Sim 侧运行时值一致——客户端表链路的武器面钉子
+            // （数值语义的完整对账另有 LiteNet.Tests/WeaponTableTests 双端守卫）
+            cfg.weapon gun = tables.Tbweapon.Get(WeaponConfig.DefaultRifleId);
+            Assert.IsNotNull(gun, "tbweapon 缺默认步枪行（id=0）");
+            Assert.AreEqual(WeaponConfig.Default.Damage, gun.Damage);
+            Assert.AreEqual(WeaponConfig.Default.Rpm, gun.Rpm);
+            Assert.AreEqual(WeaponConfig.Default.MagazineSize, gun.MagazineSize);
+            Assert.AreEqual(WeaponConfig.Default.ReserveAmmo, gun.ReserveAmmo);
+            Assert.AreEqual(WeaponConfig.Default.ReloadFrames, gun.ReloadFrames);
+            Assert.AreEqual(WeaponConfig.Default.Range, gun.Range, 1e-6f);
+            Assert.AreEqual(WeaponConfig.Default.Spread, gun.Spread, 1e-6f);
+            Assert.AreEqual(WeaponConfig.Default.Pellets, gun.Pellets);
+            Assert.AreEqual(WeaponConfig.Default.SwitchFrames, gun.SwitchFrames);
         }
 
         private static string ProjectRoot()

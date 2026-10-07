@@ -2,7 +2,7 @@ namespace LiteSim
 {
     /// <summary>
     /// Step 纯函数（《状态同步实施方案》§5.1 前提）：
-    /// 固定顺序编排——输入 → 移动/重力 → 射击判定 → 命令结算（固定轮次）→ 清理。
+    /// 固定顺序编排——输入 → 移动/重力 → **武器**（装备/换弹/节拍消费）→ 射击判定 → 命令结算（固定轮次）→ 清理。
     /// 不用自动扫描（系统集合编译期确定）；无任何状态同步专属假设（两范式同构）。
     /// 帧事件不在此清空——由驱动在消费后清。
     /// 注意：inputs 会被**就地按 EntityId 升序稳定排序**（§3.3"同帧多请求按 playerId 升序"，
@@ -16,6 +16,7 @@ namespace LiteSim
 
             InputSystem.Run(s, inputs);
             MovementSystem.Run(s.Entities, s.AliveBitmap, map);
+            WeaponSystem.Run(s, inputs);          // 武器：懒装备/换弹推进/换弹请求（节拍与弹匣在 ShootingSystem 经 TryConsumeShot 消费）
             ShootingSystem.Run(s, map, inputs);   // 射击判定参与障碍遮挡（SimRaycast 单源——子弹不穿墙）
 
             FlushCommands(s); // 伤害结算经命令缓冲（当帧延迟，§3.7）

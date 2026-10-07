@@ -131,6 +131,13 @@ namespace LiteClient
             // 但本地预测不该先脏。清零 = 该分量无输入。
             Sanitize(ref _pending);
 
+            // **离散意图 action_seq 产生**（《游戏业务系统总设计》§3.2：离散位必须携带逐玩家单调递增的
+            // seq——服务器按 (playerId, seq) 去重防重放）。产生点选在帧边界门内（本帧采样的唯一收口）：
+            // 只在含离散位的帧递增并写入；同一意图在追帧中被沿用帧复用不构成重放（沿用帧剥离离散位，
+            // RollbackSim 侧）；**不随 Reset 归零**（连接内单调——归零会被服务器判为回退 seq 拒收）。
+            if ((_pending.Buttons & SimInputFrame.DiscreteIntentButtons) != 0u)
+                _pending.ActionSeq = ++_actionSeq;
+
             _hasPending = true;
         }
 
@@ -163,6 +170,9 @@ namespace LiteClient
             _sampledThisRenderFrame = false;
             _lastPredictedFrame = -1;
         }
+
+        /// <summary>离散意图序号（会话内单调；见采样处的产生口径）。</summary>
+        private uint _actionSeq;
 
         public void ResetAll()
         {

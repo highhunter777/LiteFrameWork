@@ -73,6 +73,15 @@ namespace LiteClient
                     ""processors"": """",
                     ""interactions"": """",
                     ""initialStateCheck"": false
+                },
+                {
+                    ""name"": ""Reload"",
+                    ""type"": ""Button"",
+                    ""id"": ""7aa992c7-7038-42f2-861b-c162c1620da3"",
+                    ""expectedControlType"": """",
+                    ""processors"": """",
+                    ""interactions"": """",
+                    ""initialStateCheck"": false
                 }
             ],
             ""bindings"": [
@@ -185,6 +194,28 @@ namespace LiteClient
                     ""action"": ""Dash"",
                     ""isComposite"": false,
                     ""isPartOfComposite"": false
+                },
+                {
+                    ""name"": """",
+                    ""id"": ""99afa695-f50d-4385-8cc7-b0674d619dec"",
+                    ""path"": """",
+                    ""interactions"": """",
+                    ""processors"": """",
+                    ""groups"": """",
+                    ""action"": ""Reload"",
+                    ""isComposite"": false,
+                    ""isPartOfComposite"": false
+                },
+                {
+                    ""name"": """",
+                    ""id"": ""ebe2a20d-da57-4744-8c13-990a419b6e3d"",
+                    ""path"": ""<Keyboard>/r"",
+                    ""interactions"": """",
+                    ""processors"": """",
+                    ""groups"": """",
+                    ""action"": ""Reload"",
+                    ""isComposite"": false,
+                    ""isPartOfComposite"": false
                 }
             ]
         },
@@ -243,6 +274,7 @@ namespace LiteClient
             m_GamePlay_Look = m_GamePlay.FindAction("Look", throwIfNotFound: true);
             m_GamePlay_Aim = m_GamePlay.FindAction("Aim", throwIfNotFound: true);
             m_GamePlay_Dash = m_GamePlay.FindAction("Dash", throwIfNotFound: true);
+            m_GamePlay_Reload = m_GamePlay.FindAction("Reload", throwIfNotFound: true);
             // UI
             m_UI = asset.FindActionMap("UI", throwIfNotFound: true);
             m_UI_Newaction = m_UI.FindAction("New action", throwIfNotFound: true);
@@ -318,6 +350,7 @@ namespace LiteClient
         private readonly InputAction m_GamePlay_Look;
         private readonly InputAction m_GamePlay_Aim;
         private readonly InputAction m_GamePlay_Dash;
+        private readonly InputAction m_GamePlay_Reload;
         public struct GamePlayActions
         {
             private @PlayerInputActions m_Wrapper;
@@ -327,6 +360,7 @@ namespace LiteClient
             public InputAction @Look => m_Wrapper.m_GamePlay_Look;
             public InputAction @Aim => m_Wrapper.m_GamePlay_Aim;
             public InputAction @Dash => m_Wrapper.m_GamePlay_Dash;
+            public InputAction @Reload => m_Wrapper.m_GamePlay_Reload;
             public InputActionMap Get() { return m_Wrapper.m_GamePlay; }
             public void Enable() { Get().Enable(); }
             public void Disable() { Get().Disable(); }
@@ -351,6 +385,9 @@ namespace LiteClient
                 @Dash.started += instance.OnDash;
                 @Dash.performed += instance.OnDash;
                 @Dash.canceled += instance.OnDash;
+                @Reload.started += instance.OnReload;
+                @Reload.performed += instance.OnReload;
+                @Reload.canceled += instance.OnReload;
             }
 
             private void UnregisterCallbacks(IGamePlayActions instance)
@@ -370,6 +407,9 @@ namespace LiteClient
                 @Dash.started -= instance.OnDash;
                 @Dash.performed -= instance.OnDash;
                 @Dash.canceled -= instance.OnDash;
+                @Reload.started -= instance.OnReload;
+                @Reload.performed -= instance.OnReload;
+                @Reload.canceled -= instance.OnReload;
             }
 
             public void RemoveCallbacks(IGamePlayActions instance)
@@ -449,6 +489,7 @@ namespace LiteClient
             void OnLook(InputAction.CallbackContext context);
             void OnAim(InputAction.CallbackContext context);
             void OnDash(InputAction.CallbackContext context);
+            void OnReload(InputAction.CallbackContext context);
         }
         public interface IUIActions
         {

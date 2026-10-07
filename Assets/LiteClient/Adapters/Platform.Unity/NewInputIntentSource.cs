@@ -16,10 +16,10 @@ namespace LiteClient
     ///
     /// **职责边界**（三件里只管第 1 件）：
     /// - 上下文门与帧边界门归 <see cref="IInputService"/>；本类只回答"按键现在是什么"；
-    /// - **离散意图的按键沿在这里产生**：<c>Fire</c> 是连续意图（按住即持续），
-    ///   而 Reload/Switch/Skill/Pickup/UseItem 属 §3 第 3 件的"按键沿所在的一个逻辑帧才置位"，
-    ///   需要逐玩家单调递增的 <c>ActionSeq</c>。Action 资产里这些动作**尚未定义**，
-    ///   故本版只产出 Fire/Move/Aim，不伪造其它位；
+    /// - **离散意图的按键沿在这里产生**：<c>Fire</c>/<c>Aim</c> 是连续意图（按住即持续），
+    ///   而 <c>Reload</c> 属 §3 第 3 件的"按键沿所在的一个逻辑帧才置位"（`WasPressedThisFrame`），
+    ///   需要逐玩家单调递增的 <c>ActionSeq</c>。其余离散动作（Switch/Skill/Pickup/UseItem）
+    ///   Action 资产里尚未定义，出现消费者时按 Reload 同款追加；
     /// - 瞄准由**鼠标屏幕点 → 相机射线 → 与预测世界求交得瞄准目标点**解算（AimPoint 单口径，
     ///   《固定斜视角射击方案专项设计》§3：只产点、不产方向——朝向与弹道两端自点派生，
     ///   单向无环）；求交所需的世界与槽位经 <see cref="SetAimWorld"/> 注入（未注入则退化为纯地面点）；
@@ -243,6 +243,9 @@ namespace LiteClient
             frame.AimPointZ = _aimPointZ;
             frame.Buttons = _actions.GamePlay.Fire.IsPressed() ? SimInputFrame.ButtonFire : 0u;
             frame.Buttons |= _actions.GamePlay.Aim.IsPressed() ? SimInputFrame.ButtonAim : 0u;
+            // 换弹 = **按下沿**（离散意图——"按键沿所在的一个逻辑帧"由 InputService 帧边界门收敛；
+            // ActionSeq 由 InputService 在帧边界产生，设备源不产 seq）。
+            frame.Buttons |= _actions.GamePlay.Reload.WasPressedThisFrame() ? SimInputFrame.ButtonReload : 0u;
             return new IntentSample(frame);
         }
 

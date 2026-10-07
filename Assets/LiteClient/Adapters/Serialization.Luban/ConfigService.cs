@@ -50,6 +50,7 @@ namespace LiteClient
             "tbcontententry",
             "tbstrategy",
             "tbcombatnum",      // 玩法数值（单行表；装载后回填 CombatConfig——两端同源，见《玩法数值解耦审查与Luban表设计》）
+            "tbweapon",          // 武器表（多行；装载后回填 WeaponConfig——Sim 武器系统消费）
         };
 
         private readonly Func<string, CancellationToken, UniTask<byte[]>> _bytesProvider;
@@ -108,6 +109,7 @@ namespace LiteClient
             _snapshots.Publish(candidate);                 // 校验失败抛（保留旧版/空态），版本 +1
             ApplyCombatNumbers(candidate);                 // 校验已过（行存在性由 ValidateCandidate 保证）
             ApplyMovementNumbers(candidate);               // 移动数值（同上：一致性闸门在 ValidateCandidate）
+            ApplyWeaponTable(candidate);                   // 武器表（多行回填——WeaponSystem 消费）
             _tables = candidate;                           // 对外可见（发布成功后）
             Log.Info($"配置快照发布完成:{TableDataFiles.Length} 张表 version={Version}", "Config");
         }
@@ -122,6 +124,8 @@ namespace LiteClient
                 return "tbmovementconfig 缺 id=1 行（单行数值表）——表源被改坏或生成物过期";
             if (candidate.Tbitemconfig == null || candidate.Tbitemconfig.DataList.Count == 0)
                 return "tbitemconfig 空表——表源被改坏或生成物过期";
+            if (candidate.Tbweapon == null || candidate.Tbweapon.GetOrDefault(WeaponConfig.DefaultRifleId) == null)
+                return "tbweapon 缺默认步枪行（id=0）——武器系统懒装备依赖它";
             if (candidate.Tbmovementconfig.Get(1).Gravity != candidate.Tbcombatnum.Get(1).Gravity)
                 return "movementconfig.gravity 与 combatnum.gravity 不一致（重力双表位漂移——单源在 combatnum，MovementSystem 只读 CombatConfig.Gravity）";
             return null;
@@ -169,6 +173,24 @@ namespace LiteClient
                 $"移动数值装载：walk={row.WalkSpeed} run={row.RunSpeed} sprint={row.SprintSpeed} " +
                 $"slide={row.SlideSpeed}/{row.SlideFriction} jump={row.JumpSpeed}×{row.DoubleJumpCount + 1} " +
                 $"grapple={row.GrappleDistance}/{row.GrappleSpeed} blink={row.BlinkDistance}", "Config");
+        }
+
+        /// <summary>武器表回填（表 → <see cref="WeaponConfig"/>）：多行逐条 primitive 喂入；
+        /// 击发模式字符串在装载边界翻译成 bool（Sim 不认字符串语义）。</summary>
+        private static void ApplyWeaponTable(Tables tables)
+        {
+            int count = 0;
+            foreach (cfg.weapon row in tables.Tbweapon.DataList)
+            {
+                bool automatic = row.FireMode == "auto";
+                if (WeaponConfig.SetRow(row.Id, row.Damage, row.Rpm, row.MagazineSize, row.ReserveAmmo,
+                        row.ReloadFrames, row.Range, row.Spread, row.Pellets, row.SwitchFrames, automatic))
+                    count++;
+                else
+                    Log.Warning($"武器表行被忽略（id 越界）：id={row.Id} {row.Name}", "Config");
+            }
+            Log.Info($"武器表装载：{count} 行（默认步枪 dmg={WeaponConfig.Default.Damage} rpm={WeaponConfig.Default.Rpm} " +
+                $"mag={WeaponConfig.Default.MagazineSize} 节拍={WeaponConfig.Default.FireIntervalFrames}帧）", "Config");
         }
     }
 }
