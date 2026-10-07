@@ -6,8 +6,8 @@
 |---|---|---|
 | `gate/` | 质量门禁（CI 调用面） | `test.ps1`（L1/L3 dotnet 车道）、`l0-dep-scan.ps1`（纪律/密钥扫描）、`l2-unity-gate.ps1`（Unity 编译 + EditMode/PlayMode 门禁）、`nightly-gate.ps1`（夜间全量编排）、`restore-check.ps1`（环境还原校验）、`toolchain.json`（工具链清单） |
 | `content/` | 候选发布与本地 CDN | `gen-candidate.ps1`（签名信封生成）、`publish-candidate.ps1`（CDN 布局 + 签名一条龙）、`serve-cdn.ps1`（本地 CDN 起服）、`local-cdn.json` + `local-cdn.config.ps1`（服务目录/地址配置单源） |
-| `build/` | Player 构建与冒烟 | `build-player.ps1`、`player-smoke.ps1`（`-PlayerArgs` 透传部署参数） |
-| `codegen/` | 派生物生成 | `gen-proto.ps1`（协议重生成）、`gen-build-hash.py`（buildHash）、`refresh-hash.ps1`（基线刷新编排） |
+| `build/` | Player 构建与冒烟 | `build-player.ps1`（内含 buildHash `--check` 出包门禁，不可跳过）、`player-smoke.ps1`（`-PlayerArgs` 透传部署参数） |
+| `codegen/` | 派生物生成 | `gen-proto.ps1`（协议重生成）、`gen-build-hash.py`（buildHash 生成 + `--check` 构建前校验）、`refresh-hash.ps1`（基线刷新编排） |
 
 约定：
 

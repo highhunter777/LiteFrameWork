@@ -68,6 +68,19 @@ if (-not $SkipRestoreCheck) {
     if ($LASTEXITCODE -ne 0) { Write-Host 'l0-dep-scan failed - build aborted' -ForegroundColor Red; exit 1 }
 }
 
+# ── 1.5 buildHash pre-build check (unskippable) ─────────────────────────────
+# Recomputes the hash from current sources and compares it with the generated
+# constant; stale -> abort. This replaces the retired dev-time BuildHashTests
+# (2026-10-07): validation moved out of the dev loop, onto the build gate.
+# Never bypass it: a stale constant bakes a wrong version fingerprint into the
+# released client and the Join handshake is the only line left after shipping.
+Write-Host '== buildhash check ==' -ForegroundColor Cyan
+& python (Join-Path $ProjectPath 'scripts/codegen/gen-build-hash.py') --check
+if ($LASTEXITCODE -ne 0) {
+    Write-Host 'buildHash stale - run: python scripts/codegen/gen-build-hash.py - build aborted' -ForegroundColor Red
+    exit 1
+}
+
 # ── 2. read BuildProfile ─────────────────────────────────────────────────────
 $profilePath = if ([IO.Path]::IsPathRooted($Profile)) { $Profile } else { Join-Path $ProjectPath $Profile }
 if (-not (Test-Path $profilePath)) { Write-Host "profile missing: $profilePath" -ForegroundColor Red; exit 1 }
