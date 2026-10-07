@@ -50,17 +50,6 @@ namespace LiteSim.View
         /// </summary>
         void SetAiming(bool aiming);
 
-        /// <summary>
-        /// **轨道输入门**（腰射开火驻留窗的相机稳定语义）：false = 实现应**停用相机旋转的用户输入**
-        /// （鼠标/触摸驱动的轨道旋转——腰射连点时动鼠标相机不跟转），true = 恢复。
-        /// **语义态进端口、接管方式归实现**（Cinemachine = 切 vcam 上的 CinemachineInputProvider）；
-        /// 实现没有"输入驱动旋转"概念（无输入组件/替身）时如实 no-op。
-        /// 每渲染帧幂等调用（实现内部按变化沿生效——避免每帧写组件激活态）。
-        /// 与 <see cref="SetAiming"/> 正交：本语义只管**主相机**的用户输入门（腰射=主相机在场；
-        /// ADS 段瞄准机接管时主相机输入门无视觉影响）。
-        /// </summary>
-        void SetOrbitInputEnabled(bool enabled);
-
         /// <summary> 瞄准点通知（世界空间；本地解算的鼠标→地面交点）。每渲染帧幂等调用，仅瞄准期有意义； 
         /// hasPoint=false = 本帧无解算（无鼠标/无交点）→ 实现不得猜点（保持预放置位姿）。 
         /// 语义态进端口、用法归实现（与 SetAiming 同口径）。 

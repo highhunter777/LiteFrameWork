@@ -132,7 +132,6 @@ GameObject:
   m_Component:
   - component: {fileID: 96236240}
   - component: {fileID: 96236239}
-  - component: {fileID: 96236241}
   m_Layer: 0
   m_Name: Player Camera
   m_TagString: Untagged
@@ -195,22 +194,6 @@ Transform:
   - {fileID: 1099105409}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!114 &96236241
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 96236238}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: fb7194dc27b9df64c8beca7482ee8e0d, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  PlayerIndex: -1
-  AutoEnableInputs: 1
-  XYAxis: {fileID: 525328880570376260, guid: a279a3b893e80d944989e66d9ece735a, type: 3}
-  ZAxis: {fileID: 0}
 --- !u!1 &166572160
 GameObject:
   m_ObjectHideFlags: 0
@@ -355,7 +338,7 @@ MonoBehaviour:
   m_XAxis:
     Value: 0
     m_SpeedMode: 0
-    m_MaxSpeed: 150
+    m_MaxSpeed: 0
     m_AccelTime: 0.1
     m_DecelTime: 0.1
     m_InputAxisName: Mouse X
@@ -860,7 +843,7 @@ MonoBehaviour:
   m_XAxis:
     Value: 0
     m_SpeedMode: 0
-    m_MaxSpeed: 150
+    m_MaxSpeed: 0
     m_AccelTime: 0.1
     m_DecelTime: 0.1
     m_InputAxisName: Mouse X

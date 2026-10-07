@@ -46,10 +46,6 @@ namespace LiteClient
         private bool _shutdown;
         private string _lastResolveReason;
 
-        // ---- 轨道输入门（腰射开火驻留窗的相机稳定语义——实现侧：主 vcam 的 CinemachineInputProvider）----
-        private CinemachineInputProvider _orbitInput;   // 主 vcam 上的用户输入组件（鼠标 delta → 轨道轴）；无则 no-op
-        private bool _orbitInputEnabled = true;         // 当前语义态（变化沿生效——每帧幂等喂值不重写组件）
-
         // ---- 瞄准相机（ADS 接管，持续预放置形态：接线前置到绑定时刻，全程跟着玩家预先就位）----
         private CinemachineVirtualCamera _aimVcam;
         private CinemachineComposer _aimVcamAim;   // 构图器（TrackedObjectOffset.z = 瞄准曲线写入面）
@@ -180,9 +176,6 @@ namespace LiteClient
             _vcam.Follow = _target;
             if (_vcam.LookAt == null) _vcam.LookAt = _target;   // 已配置的 LookAt 不覆盖（可能是独立的看向目标）
 
-            _orbitInput = _vcam.GetComponent<CinemachineInputProvider>();   // 轨道输入门（主 vcam 上的鼠标→轨道轴组件；无则语义 no-op）
-            if (_orbitInput != null) _orbitInput.enabled = _orbitInputEnabled;   // 解析沿：把当前语义态落到新接线（跨场景重解析不丢门状态）
-
             BindAimCamera();                     // 瞄准机**绑定即预放置**（接线前置——不等右键）
 
             _lastResolveReason = null;
@@ -214,7 +207,6 @@ namespace LiteClient
             _target = null;
             _ownsTarget = false;
             _followAtBind = null;
-            _orbitInput = null;                  // 随接线释放；语义态（_orbitInputEnabled）保留——重解析时落回新接线
         }
 
         /// <summary>接管的 vcam 是否还有效（对象存活 + 场景仍已加载）。</summary>
@@ -366,21 +358,6 @@ namespace LiteClient
             _aimPoint = point;
             _hasAimPoint = hasPoint;
             if (_aiming) ApplyAimOffset();
-        }
-
-        /// <summary>
-        /// 轨道输入门（<see cref="ICameraService.SetOrbitInputEnabled"/> 契约；腰射开火驻留窗的相机稳定）：
-        /// 变化沿切换主 vcam 上的 <see cref="CinemachineInputProvider"/>（鼠标 delta → OrbitalTransposer
-        /// 轨道轴的直驱输入——**相机旋转的鼠标来源**，与 Follow 喂的焦点朝向正交）。每帧幂等喂值
-        /// 只在变化沿写组件（避免每帧写激活态）；无输入组件（场景没配/替身）如实 no-op。
-        /// </summary>
-        public void SetOrbitInputEnabled(bool enabled)
-        {
-            if (_shutdown || enabled == _orbitInputEnabled) return;   // 变化沿生效（幂等）
-
-            _orbitInputEnabled = enabled;
-            if (_orbitInput != null && !ReferenceEquals(_orbitInput, null))
-                _orbitInput.enabled = enabled;
         }
 
         /// <summary>按纯二次曲线把瞄准点距离写进构图 z 偏移（<see cref="AimOffsetCurve"/>）。

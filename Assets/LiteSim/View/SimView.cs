@@ -73,18 +73,6 @@ namespace LiteSim.View
         /// <summary>事件静默闸：帧号 ≤ 该值的帧事件不派发（回滚重放/和解去重的帧闸）。</summary>
         public int SilenceUntilFrame { get; private set; } = -1;
 
-        /// <summary>本地玩家是否处于**开火驻留窗**（`FireStanceFrames` 公共面，预测态即时镜像）。
-        /// 消费面＝流程：`ProcedureBattle` 据此喂相机端口 `SetOrbitInputEnabled`（腰射窗内停鼠标轨道旋转）。</summary>
-        public bool IsLocalFireStance
-        {
-            get
-            {
-                return _hasLocalDisplay
-                    && _sim.TryResolve(LocalEntityId, out int slot)
-                    && _sim.Entities[slot].FireStanceFrames > 0;
-            }
-        }
-
         /// <summary>本地玩家实体 Id（0 = 未对齐——对齐前无本地表现，相机也不跟）。</summary>
         public long LocalEntityId { get; set; }
 
@@ -304,9 +292,9 @@ namespace LiteSim.View
         /// 这里不建件、不设参，只解析＋为本地实例启用；远端实例在 <see cref="SyncViews"/> 建立时禁用）。
         /// 预制体没配 CC（灰盒视图/测试装配/尚未配置）→ 返回 null，<see cref="PlaceLocal"/> 退回
         /// <see cref="Place"/> 直落。
-        /// **耦合提示**：CC 胶囊参数（radius/height/center）是 Sim 身位（HitscanRadius/HitscanHeight）
-        /// 的第二处事实源——改 CombatConfig 身位常量时必须同步预制体（两端不一致时命中判定与
-        /// 视觉推挡会出现半径差）。</summary>
+        /// **耦合提示**：CC 胶囊参数是 Sim 物理体（BodyRadius/HitscanHeight）的**烘焙单源**——
+        /// 经工具 `BodyCylinderBaker` 生成 `BodyBake.g.cs` 供两端消费；改 CC 后重跑
+        /// `LiteGame/烘焙身位圆柱`，EditMode 对账用例（`BodyBakeEditModeTests`）卡漂移。</summary>
         private CharacterController EnsureLocalCc(GameObject view)
         {
             if (_localCc != null && !ReferenceEquals(_localCc, null)) return _localCc;
@@ -324,11 +312,8 @@ namespace LiteSim.View
             // 焦点 = 本地表现位置（角色根）。瞄准相机（ADS）由流程经 <see cref="ICameraService.SetAiming"/>
             // 接管，跟随目标与主相机同源（相机服务侧同一焦点），不引用预制体参考点。
             // 相机构图（肩偏移/阻尼/FOV）归 vcam 场景配置，代码里没有第二处事实源。
-            //
-            // 腰射开火驻留窗的相机稳定**不走本方法**——训练场 rig 实况（主相机 BindingMode=WorldSpace、
-            // Orbit Heading 不回正、旋转纯由 CinemachineInputProvider 鼠标驱动）：焦点朝向对主相机是
-            // 空操作；冻结它反而钉死瞄准机 Composer 的角色系肩偏移（ADS 开火窗内瞄准构图不跟转——回归）。
-            // 窗内旋转冻结唯一有效落点＝轨道输入门（流程喂 SetOrbitInputEnabled，见 ProcedureBattle）。
+            // 固定斜视角（无轨道旋转源——《固定斜视角射击方案专项设计》§7）：焦点朝向对主相机是
+            // 空操作，仍随焦点喂给实现——供瞄准机 Composer 的角色系构图偏移（TrackedObjectOffset）使用。
             _camera.Follow(LocalDisplayPosition, FacingRotation(_localYaw), dt);   // 平滑/档位归实现（Cinemachine 由 vcam 配置表达）
         }
 

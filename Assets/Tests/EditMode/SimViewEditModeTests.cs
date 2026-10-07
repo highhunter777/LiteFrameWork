@@ -365,11 +365,6 @@ namespace LiteGame.Tests.EditMode
             Assert.AreEqual(1, cam.FollowCount);
         }
 
-        // 腰射驻留窗相机冻结曾在此设两条用例（朝向锁存版）——随"焦点朝向冻结"拆除而移除：
-        // rig 实况（BindingMode=WorldSpace、Heading 不回正、旋转纯鼠标驱动）下焦点朝向对主相机是
-        // 空操作、且会钉死瞄准机肩偏移；窗内旋转冻结唯一有效落点是轨道输入门（流程级 SetOrbitInputEnabled，
-        // CameraProbe.OrbitInputEnabled 记录位供流程级用例断言）。
-
         /// <summary>相机端口替身：只记"喂了几次、喂的什么"（朝向随焦点一并记录；
         /// 瞄准态由流程喂，SimView 不碰——记录位供流程级用例断言）。</summary>
         private sealed class CameraProbe : ICameraService
@@ -382,7 +377,6 @@ namespace LiteGame.Tests.EditMode
             public int SetAimPointCount;
             public Vector3 LastAimPoint;
             public bool LastHasAimPoint;
-            public bool OrbitInputEnabled = true;   // 记录位（SimView 不调它——轨道输入门由流程喂；供流程级用例断言）
             public bool HasFocus { get; private set; }
             public Vector3 Focus => LastTarget;
 
@@ -398,11 +392,6 @@ namespace LiteGame.Tests.EditMode
             {
                 SetAimingCount++;
                 LastAiming = aiming;
-            }
-
-            public void SetOrbitInputEnabled(bool enabled)
-            {
-                OrbitInputEnabled = enabled;
             }
 
             public void SetAimPoint(in Vector3 point, bool hasPoint)
