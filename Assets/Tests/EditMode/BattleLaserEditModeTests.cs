@@ -11,9 +11,15 @@ namespace LiteGame.Tests.EditMode
 {
     /// <summary>
     /// 瞄准激光驱动（<see cref="BattleLaserDriver"/>，修订口径：**激光器装在武器上**）的
-    /// L2 EditMode 覆盖：束挂到武器挂载点（Weapon_Rifle/Muzzle）本地空间、方向=挂载点前向（**不追鼠标、
-    /// 不读瞄准输入**）、端点=挂载点前向上的截停距离（SimRaycast 单源——实体圆柱/障碍/射程取最近）、
+    /// L2 EditMode 覆盖：束挂到武器挂载点（Weapon_Rifle/Muzzle）本地空间；**两种端点模式**
+    /// （收敛=逻辑枪口→瞄准目标点的三维弹道终点／枪管=挂载点前向——AimPoint 单口径后方向回退已退役）；
+    /// 截停走 <c>SimRaycast</c> 单源（实体圆柱三维 + 障碍折回同量纲 + 射程取最近）；
     /// 可见性门（未对齐/死亡/被拦/未装备/不支持/**无挂载点**——灰盒无武器即无激光，诚实退化）。
+    ///
+    /// **夹具坐标系（易踩）**：本地视图**自带朝向**（<c>SimView</c> 按模型前沿 +Z 施加
+    /// <c>FacingRotation</c>，Yaw=0 时视图世界 yaw 已 90°），因此挂载点朝向一律用
+    /// <see cref="BuildMount"/> 的**世界 yaw** 表述（默认 90° ⇒ 前向 +X 且本地 +Z = 枪管轴）；
+    /// 用 <c>localRotation</c> 会两次相加得到世界 180°，射向与目标垂直、所有截停落空。
     /// 真 prefab/真枪口的手感对位归 PlayMode/手测。
     /// </summary>
     public sealed class BattleLaserEditModeTests : UnityTestBase
@@ -51,13 +57,37 @@ namespace LiteGame.Tests.EditMode
             return (world, sim, view, localView);
         }
 
-        /// <summary>武器激光挂载点（本地视图下的 "Muzzle" 锚点；yaw 90° ⇒ 前向 = 世界 +X）。</summary>
-        private Transform BuildMount(GameObject localView, Vector3 localPos, float yawDeg = 90f)
+        /// <summary>
+        /// 逐分量断言（含容差）。**不用 <c>Assert.AreEqual(Vector3, Vector3)</c>**——那是精确相等，
+        /// 三维求交链（归一化、InverseTransformPoint）必然产生浮点末位差异，会把语义正确的端点判成失败
+        /// （典型表现：期望与实得打印完全一样却仍红）。
+        /// </summary>
+        private static void AssertLocal(Vector3 actual, Vector3 expected, float tol, string msg = null)
+        {
+            Assert.AreEqual(expected.x, actual.x, tol, msg + "（本地 x）");
+            Assert.AreEqual(expected.y, actual.y, tol, msg + "（本地 y）");
+            Assert.AreEqual(expected.z, actual.z, tol, msg + "（本地 z）");
+        }
+
+        /// <summary>
+        /// 武器激光挂载点（本地视图下的 "Muzzle" 锚点），朝向按**世界 yaw** 给定（默认 90° = 前向 +X）。
+        ///
+        /// **为什么用 <c>transform.rotation</c> 而不是 <c>localRotation</c>**（坐标系陷阱）：
+        /// 本地视图**自带朝向**——<c>SimView</c> 按模型视觉前沿约定 +Z 施加 <c>FacingRotation</c>
+        /// （Sim Yaw=0 时视图世界 yaw 已是 90°）。若再叠一个 <c>localRotation</c>，两次旋转相加，
+        /// 传 90° 会得到世界 yaw 180°（前向 −Z）⇒ 射向与目标垂直、所有截停落空跑满射程。
+        /// 挂载点朝向必须以**世界**为准表述。
+        ///
+        /// **默认 90° 的意义**：使**本地 +Z = 枪管轴**（prefab <c>Weapon_Rifle/Muzzle</c> 的约定，
+        /// 枪管模式按"本地 +Z × 距离"写端点）。收敛/回退模式用 <c>InverseTransformPoint</c>，
+        /// 与挂载点朝向无关。
+        /// </summary>
+        private Transform BuildMount(GameObject localView, Vector3 localPos, float worldYawDeg = 90f)
         {
             var mountGo = Scope.CreateGameObject("Muzzle");
             mountGo.transform.SetParent(localView.transform, false);
             mountGo.transform.localPosition = localPos;
-            mountGo.transform.localRotation = Quaternion.Euler(0f, yawDeg, 0f);
+            mountGo.transform.rotation = Quaternion.Euler(0f, worldYawDeg, 0f);
             return mountGo.transform;
         }
 
@@ -65,7 +95,7 @@ namespace LiteGame.Tests.EditMode
             SimView view, RollbackSim sim, SimMapData map, Func<Vector3?> aimPointOf = null)
         {
             var input = new InputService();
-            input.SetSource(new FixedAimSource(1f, 0f));     // 兼装配：瞄准点注入可用时端点走准心点，此值仅回退路径消费
+            input.SetSource(new FixedAimSource());           // 兼装配：单口径下端点只由瞄准点注入源决定
             var beamGo = Scope.CreateGameObject("Beam", typeof(LineRenderer));
             LineRenderer beam = beamGo.GetComponent<LineRenderer>();
             var driver = new BattleLaserDriver(view, input, sim, map, beam, aimPointOf);
@@ -79,31 +109,34 @@ namespace LiteGame.Tests.EditMode
             // 收敛模式（瞄准语境 + 瞄准点注入可用）：端点 = 准心标记的地面点（同源注入）——点恰好压在准心上
             var map = NoObstacleMap();
             var (world, sim, view, localView) = BuildBattle(map);
-            BuildMount(localView, new Vector3(1f, 1f, 0f), yawDeg: 0f);
-            Vector3 aimPoint = new Vector3(10.35f, 0f, -0.2f);   // 在枪口射线上（aimDist=10，射程内）
+            BuildMount(localView, new Vector3(1f, 1f, 0f));
+            Vector3 aimPoint = new Vector3(10.35f, 0f, -0.2f);   // 准心射线在目标身上的点（带高度）
             var (input, driver, beam) = BuildDriver(view, sim, map, () => aimPoint);
             world.Entities[0].Flags |= EntityFlags.Aiming;
 
             SampleInput(input);
             driver.Tick();
 
+            // 三维化：端点 = 弹道终点（逻辑枪口 → 瞄准目标点），无遮挡 ⇒ 端点恰为该点（世界 (10.35, 0, −0.2)）。
+            // 挂载点世界位 = 视图 yaw90 作用于本地 (1,1,0) = (0,1,−1)；本地坐标经 InverseTransformPoint 表达。
             Vector3 p1 = beam.GetPosition(1);
             Assert.IsTrue(beam.gameObject.activeSelf, "支持武器 + 挂载点 + 瞄准点 → 显示");
-            Assert.AreEqual(9.35f, p1.x, 1e-4f, "端点=准心地面点（挂载点本地：10.35−1）");
-            Assert.AreEqual(-1f, p1.y, 1e-4f, "束落到地面（0−1）");
-            Assert.AreEqual(-0.2f, p1.z, 1e-4f);
+            Assert.AreEqual(-0.8f, p1.x, 1e-3f, "端点=瞄准目标点（挂载点本地 x）");
+            Assert.AreEqual(-1f, p1.y, 1e-3f, "束落到目标点高度 0（挂载点本地 y：0−1）");
+            Assert.AreEqual(10.35f, p1.z, 1e-3f, "沿枪管轴的本地 z 分量（目标点距挂载点）");
             driver.Dispose();
         }
 
         [Test]
         [Category(TestCategory.Contract)]
-        public void 激光_瞄准点被玩家挡路_端点按截停比例落束段()
+        public void 激光_瞄准点被玩家挡路_端点截停在玩家近弧()
         {
-            // 挡在枪口→准心点之间：水平截停 t=5（bot 近弧 5.5−0.5），aimDist=10 ⇒ f=0.5——
-            // 端点 = Lerp(挂载点(1,1,0), 准心点(10.35,0,−0.2), 0.5) = (5.675, 0.5, −0.1)
+            // 三维化：端点 = 弹道终点（逻辑枪口 → 瞄准点，沿途取最近交点）。
+            // bot 在 (5.85, 0, −0.2)，枪口（烘焙：0.774/1.295/−0.083）指向目标点 (10.35,0,−0.2) 的斜下弹道；
+            // 近弧 = 5.85 − 烘焙半径 0.32 ≈ 5.535，命中点高 ≈0.65。本地坐标经 InverseTransformPoint 表达。
             var map = NoObstacleMap();
             var (world, sim, view, localView) = BuildBattle(map, new Vector3(5.85f, 0f, -0.2f));
-            BuildMount(localView, new Vector3(1f, 1f, 0f), yawDeg: 0f);
+            BuildMount(localView, new Vector3(1f, 1f, 0f));
             Vector3 aimPoint = new Vector3(10.35f, 0f, -0.2f);
             var (input, driver, beam) = BuildDriver(view, sim, map, () => aimPoint);
             world.Entities[0].Flags |= EntityFlags.Aiming;
@@ -112,9 +145,9 @@ namespace LiteGame.Tests.EditMode
             driver.Tick();
 
             Vector3 p1 = beam.GetPosition(1);
-            Assert.AreEqual(5.675f, p1.x, 1e-3f, "被玩家截停——端点落在束段一半处");
-            Assert.AreEqual(0.5f, p1.y, 1e-3f);
-            Assert.AreEqual(-0.1f, p1.z, 1e-3f);
+            Assert.AreEqual(-0.859f, p1.x, 1e-3f, "被玩家截停（挂载点本地 x）");
+            Assert.AreEqual(-0.349f, p1.y, 1e-3f, "命中点高度 ≈0.65（挂载点本地 y）");
+            Assert.AreEqual(5.535f, p1.z, 1e-3f, "截停在玩家近弧 5.6−R（R=烘焙半径 0.32）");
             driver.Dispose();
         }
 
@@ -122,10 +155,11 @@ namespace LiteGame.Tests.EditMode
         [Category(TestCategory.Unit)]
         public void 激光_瞄准点超射程_按弹程截断()
         {
-            // aimDist=200 > 射程 100 ⇒ maxT=100、无遮挡 t=100 ⇒ f=0.5——端点只到束段一半（打不到的地方束到不了）
+            // 瞄准点 (200.35, 0, −0.2) 超射程 100 ⇒ 弹道被射程截断（打不到的地方束到不了）。
+            // 枪口（烘焙值）指向该点，方向不变；沿其走 100m ⇒ 世界端点约 (100.772, 0.65, −0.14)。
             var map = NoObstacleMap();
             var (world, sim, view, localView) = BuildBattle(map);
-            BuildMount(localView, new Vector3(1f, 1f, 0f), yawDeg: 0f);
+            BuildMount(localView, new Vector3(1f, 1f, 0f));
             Vector3 aimPoint = new Vector3(200.35f, 0f, -0.2f);
             var (input, driver, beam) = BuildDriver(view, sim, map, () => aimPoint);
             world.Entities[0].Flags |= EntityFlags.Aiming;
@@ -134,27 +168,31 @@ namespace LiteGame.Tests.EditMode
             driver.Tick();
 
             Vector3 p1 = beam.GetPosition(1);
-            Assert.AreEqual(100.675f, p1.x, 1e-2f, "超射程——按弹程比例截断（不到准心点）");
-            Assert.AreEqual(0.5f, p1.y, 1e-3f);
-            Assert.AreEqual(-0.1f, p1.z, 1e-3f);
+            Assert.AreEqual(-0.858f, p1.x, 1e-2f, "超射程（挂载点本地 x）");
+            Assert.AreEqual(-0.354f, p1.y, 1e-2f, "射程截断点高度（烘焙枪口高 1.295 − 射程内降幅）");
+            Assert.AreEqual(100.772f, p1.z, 1e-2f, "按弹程 100m 截断（不到瞄准点）");
             driver.Dispose();
         }
 
         [Test]
         [Category(TestCategory.Unit)]
-        public void 激光_语境内无瞄准点事实_回退开火射线终点()
+        public void 激光_语境内无瞄准点事实_落回枪管模式()
         {
-            // 瞄准点注入缺位（无鼠标设备/未采到）——回退瞄准向量版（与子弹同线）；本用例即回退路径锁
+            // 瞄准点注入缺位（相机未就绪/退化帧）——方向口径回退已随单口径退役（《固定斜视角射击方案专项设计》§6）：
+            // 无点即无准心事实，落回枪管模式（不猜方向）。
             var map = NoObstacleMap();
             var (world, sim, view, localView) = BuildBattle(map, new Vector3(10f, 0f, -0.2f));
-            BuildMount(localView, new Vector3(1f, 1f, 0f), yawDeg: 0f);
+            BuildMount(localView, new Vector3(1f, 1f, 0f));
             var (input, driver, beam) = BuildDriver(view, sim, map);   // 不注入瞄准点
             world.Entities[0].Flags |= EntityFlags.Aiming;
 
-            SampleInput(input);                                      // 瞄准向量 +X（FixedAimSource）
+            SampleInput(input);
             driver.Tick();
 
-            Assert.AreEqual(new Vector3(8.5f, 0f, -0.2f), beam.GetPosition(1), "回退：逻辑枪口 + 瞄准向量终点");
+            // 枪管模式：沿挂载点前向（世界 +X）从挂载点世界位 (0,1,−1) 出射——z=−1 恒定，
+            // bot（z=−0.2）垂距 0.8 > 半径 ⇒ 不命中 ⇒ 到射程。
+            Assert.AreEqual(new Vector3(0f, 0f, CombatConfig.HitscanRange), beam.GetPosition(1),
+                "无瞄准点事实 → 枪管模式（不猜方向）");
             driver.Dispose();
         }
 
@@ -233,7 +271,7 @@ namespace LiteGame.Tests.EditMode
 
             SampleInput(input);
             driver.Tick();
-            Assert.AreEqual(new Vector3(0f, 0f, 9.5f), beam.GetPosition(1));
+            Assert.AreEqual(new Vector3(0f, 0f, 10f - CombatConfig.HitscanRadius), beam.GetPosition(1));
             driver.Dispose();
         }
 
@@ -241,25 +279,33 @@ namespace LiteGame.Tests.EditMode
         [Category(TestCategory.Unit)]
         public void 激光_方向随枪不追鼠标_无输入也出束()
         {
-            // 两侧各一个目标；枪口（挂载点）转向谁就打谁——端点与瞄准输入无关
+            // 两侧各一个目标；枪口（挂载点）转向谁就打谁——端点与瞄准输入无关。
+            // **两个子场景各自独立构造挂载点**（而非构造后改 rotation）：EditMode 下运行时改
+            // Transform 朝向不会即时反映到同帧的 forward 读取，"转向"必须在 Tick 前就位——
+            // 这与"美术转锚点即转向"一致（转的是 prefab 上的挂载点，不是运行期临时摆动）。
             var map = NoObstacleMap();
             var (world, sim, view, localView) = BuildBattle(map,
                 new Vector3(10f, 0f, 0f), new Vector3(-10f, 0f, 0f));
-            Transform mount = BuildMount(localView, new Vector3(0f, 1f, 0f), yawDeg: 90f);   // 前向 +X
+            _ = world;
+
+            BuildMount(localView, new Vector3(0f, 1f, 0f), worldYawDeg: 90f);      // 枪口朝 +X
             var beamGo = Scope.CreateGameObject("Beam", typeof(LineRenderer));
             var driver = new BattleLaserDriver(view, null, sim, map, beamGo.GetComponent<LineRenderer>());
-            _ = world;
 
             driver.Tick();                                // 无输入服务：不拦、不读瞄准——照样出束
             Assert.IsTrue(beamGo.activeSelf, "无输入形态也显示（方向来自枪，不来自输入/鼠标）");
-            Assert.AreEqual(new Vector3(0f, 0f, 9.5f), beamGo.GetComponent<LineRenderer>().GetPosition(1),
+            Assert.AreEqual(new Vector3(0f, 0f, 10f - CombatConfig.HitscanRadius), beamGo.GetComponent<LineRenderer>().GetPosition(1),
                 "枪口朝 +X → 截停 +X 侧目标");
-
-            mount.localRotation = Quaternion.Euler(0f, -90f, 0f);    // 枪口转向 −X（美术转锚点即转向）
-            driver.Tick();
-            Assert.AreEqual(new Vector3(0f, 0f, 9.5f), beamGo.GetComponent<LineRenderer>().GetPosition(1),
-                "枪口朝 −X → 截停 −X 侧目标（端点随挂载点转向，与鼠标无关）");
             driver.Dispose();
+
+            BuildMount(localView, new Vector3(0f, 1f, 0f), worldYawDeg: -90f);     // 转锚点即转向 −X
+            var beamGo2 = Scope.CreateGameObject("Beam", typeof(LineRenderer));
+            var driver2 = new BattleLaserDriver(view, null, sim, map, beamGo2.GetComponent<LineRenderer>());
+
+            driver2.Tick();
+            Assert.AreEqual(new Vector3(0f, 0f, 10f - CombatConfig.HitscanRadius), beamGo2.GetComponent<LineRenderer>().GetPosition(1),
+                "枪口朝 −X → 截停 −X 侧目标（端点随挂载点朝向，与鼠标无关）");
+            driver2.Dispose();
         }
 
         [Test]
@@ -269,17 +315,19 @@ namespace LiteGame.Tests.EditMode
             // 射击语境（瞄准位）内：端点 = **逻辑枪口**（本体+朝向系偏移，与 ShootingSystem 同源）出发的
             // 开火射线截停点（子弹停点）——与枪管方向解耦。挂载点前向取 +Z（与瞄准方向 +X 不同轴）——两模式判然可分。
             var map = NoObstacleMap();
-            var (world, sim, view, localView) = BuildBattle(map, new Vector3(10f, 0f, -0.2f));  // 目标在偏移射线上
-            BuildMount(localView, new Vector3(1f, 1f, 0f), yawDeg: 0f);       // 前向 +Z（枪口指向 z 轴）
-            var (input, driver, beam) = BuildDriver(view, sim, map);
+            var (world, sim, view, localView) = BuildBattle(map, new Vector3(10f, 0f, -0.2f));  // 目标在射线上
+            BuildMount(localView, new Vector3(1f, 1f, 0f));       // 挂载点世界 yaw=90（本地 +Z = 枪管轴）
+            var (input, driver, beam) = BuildDriver(view, sim, map, () => new Vector3(10f, 1f, -0.2f)); // 瞄准点（准心同源）
             world.Entities[0].Flags |= EntityFlags.Aiming;                     // 射击语境（瞄准位）
 
-            SampleInput(input);                                                // 瞄准向量 +X（FixedAimSource）
+            SampleInput(input);
             driver.Tick();
 
-            // 收敛端点：逻辑枪口 (0.35,1,-0.2) +X → 目标圆柱近弧 t=10-0.35-0.5=9.15 ⇒ 世界 (9.5,1,-0.2)；
-            // 挂载点本地（位 (1,1,0)、identity 转向）= (8.5, 0, -0.2)——若走枪管模式会是 (0,0,100)（+Z 无遮挡）
-            Assert.AreEqual(new Vector3(8.5f, 0f, -0.2f), beam.GetPosition(1));
+            // 收敛端点 = 与子弹同线：逻辑枪口 (0.35,1,−0.2) 沿 +X 打 10m 处 bot 的近弧 ⇒ 世界 (9.5,1,−0.2)，
+            // 挂载点世界位 (0,1,−1) ⇒ 本地 (−0.8, 0, 9.5)。
+            // **两模式仍可分**：走枪管模式时沿 +X 出射，bot 的垂距 |−0.2−(−1)| = 0.8 > 半径 0.5 ⇒ 不命中，
+            // 端点会是 (0,0,100) 而非 9.5。
+            AssertLocal(beam.GetPosition(1), new Vector3(-0.804f, 0.01f, 10f - CombatConfig.HitscanRadius), 1e-3f);
             driver.Dispose();
         }
 
@@ -289,16 +337,16 @@ namespace LiteGame.Tests.EditMode
         {
             var map = NoObstacleMap();
             var (world, sim, view, localView) = BuildBattle(map, new Vector3(10f, 0f, -0.2f));
-            BuildMount(localView, new Vector3(1f, 1f, 0f), yawDeg: 0f);       // 前向 +Z
-            var (input, driver, beam) = BuildDriver(view, sim, map);
+            BuildMount(localView, new Vector3(1f, 1f, 0f));       // 挂载点世界 yaw=90（本地 +Z = 枪管轴）
+            var (input, driver, beam) = BuildDriver(view, sim, map, () => new Vector3(10f, 1f, -0.2f)); // 瞄准点（准心同源）
 
             // 开火驻留窗（无瞄准位）——同语境口径收敛
             world.Entities[0].FireStanceFrames = (byte)CombatConfig.FireStanceFrames;
             SampleInput(input);
             driver.Tick();
-            Assert.AreEqual(new Vector3(8.5f, 0f, -0.2f), beam.GetPosition(1), "开火窗内 → 收敛端点（子弹停点）");
+            AssertLocal(beam.GetPosition(1), new Vector3(-0.804f, 0.01f, 10f - CombatConfig.HitscanRadius), 1e-3f, "开火窗内 → 收敛端点（子弹停点）");
 
-            // 窗尽（无瞄准、无窗）→ 回枪管模式：沿枪口 +Z 出射——无遮挡到射程
+            // 窗尽（无瞄准、无窗）→ 回枪管模式：沿枪口 +Z（世界 +X）出射——bot 垂距 0.8 不命中，到射程
             world.Entities[0].FireStanceFrames = 0;
             SampleInput(input);
             driver.Tick();
@@ -309,19 +357,18 @@ namespace LiteGame.Tests.EditMode
 
         [Test]
         [Category(TestCategory.Unit)]
-        public void 激光_语境内零瞄准向量_落回枪管模式()
+        public void 激光_语境内瞄准点注入返回空_落回枪管模式()
         {
             var map = NoObstacleMap();
             var (world, sim, view, localView) = BuildBattle(map, new Vector3(10f, 0f, -0.2f));
-            BuildMount(localView, new Vector3(1f, 1f, 0f), yawDeg: 0f);       // 前向 +Z
-            var (input, driver, beam) = BuildDriver(view, sim, map);
-            input.SetSource(new FixedAimSource(0f, 0f));                      // 全零瞄准向量（被拦清零同款）
+            BuildMount(localView, new Vector3(1f, 1f, 0f));       // 挂载点世界 yaw=90（本地 +Z = 枪管轴）
+            var (input, driver, beam) = BuildDriver(view, sim, map, () => null);   // 注入源在场但本帧无解算点
             world.Entities[0].Flags |= EntityFlags.Aiming;
 
             SampleInput(input);
             driver.Tick();
             Assert.AreEqual(new Vector3(0f, 0f, CombatConfig.HitscanRange), beam.GetPosition(1),
-                "语境内但无瞄准向量（未采到/被拦）→ 回枪管模式，不猜方向");
+                "语境内但瞄准点无解算（未采到/被拦）→ 回枪管模式，不猜方向");
             driver.Dispose();
         }
 
@@ -461,13 +508,11 @@ namespace LiteGame.Tests.EditMode
             driver.Dispose();
         }
 
-        /// <summary>固定 Aim 的设备源替身（装配兼容保留——修订口径下驱动不读 Aim，此源不应影响结果）。</summary>
+        /// <summary>空载荷设备源替身（装配兼容保留——AimPoint 单口径下驱动不读瞄准输入，只读被拦门，此源不承载数据）。</summary>
         private sealed class FixedAimSource : IIntentSource
         {
-            private readonly SimInputFrame _frame;
-            public FixedAimSource(float ax, float az) => _frame = new SimInputFrame { AimX = ax, AimZ = az };
             public string Name => "fixed-aim";
-            public IntentSample Sample(in SimVector3 localPos) => new IntentSample(_frame);
+            public IntentSample Sample(in SimVector3 localPos) => new IntentSample(new SimInputFrame());
         }
     }
 }

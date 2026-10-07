@@ -60,7 +60,7 @@ namespace RoomServer
                                   ?? throw new InvalidDataException($"tbcombatnum 缺 id={SingleRowId} 行（单行数值表）"));
             Console.WriteLine(
                 $"[RoomServer] 玩法数值（bin 表）：move={values.MoveSpeed} gravity={values.Gravity} " +
-                $"hitscan={values.HitscanRange}/{values.HitscanRadius}/{values.HitscanHeight} " +
+                $"hitscan={values.HitscanRange} hit={CombatConfig.HitscanRadius}(裁决) body={CombatConfig.BodyRadius}:{CombatConfig.HitscanHeight}(烘焙) " +
                 $"dmg={values.BaseDamage}±{values.DamageSpread} hp={values.EntityHp}");
             values.Apply();
             return values;
@@ -86,8 +86,6 @@ namespace RoomServer
             MoveSpeed = row.MoveSpeed,
             Gravity = row.Gravity,
             HitscanRange = row.HitscanRange,
-            HitscanRadius = row.HitscanRadius,
-            HitscanHeight = row.HitscanHeight,
             BaseDamage = row.BaseDamage,
             DamageSpread = row.DamageSpread,
             EntityHp = row.EntityHp,
@@ -113,8 +111,6 @@ namespace RoomServer
         public float MoveSpeed;
         public float Gravity;
         public float HitscanRange;
-        public float HitscanRadius;
-        public float HitscanHeight;
         public int BaseDamage;
         public int DamageSpread;
         public int EntityHp;
@@ -123,8 +119,8 @@ namespace RoomServer
         /// 装载链 <see cref="CombatNumbers.LoadTableBytes"/>/<see cref="CombatNumbers.LoadFromRepo"/> 装载即调用）。</summary>
         public void Apply()
         {
-            CombatConfig.LoadFrom(MoveSpeed, Gravity, HitscanRange, HitscanRadius,
-                HitscanHeight, BaseDamage, DamageSpread, EntityHp);
+            CombatConfig.LoadFrom(MoveSpeed, Gravity, HitscanRange,
+                BaseDamage, DamageSpread, EntityHp);
         }
     }
 }

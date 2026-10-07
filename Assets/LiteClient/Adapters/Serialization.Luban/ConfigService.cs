@@ -130,7 +130,7 @@ namespace LiteClient
         /// <summary>
         /// 玩法数值回填（表 → `CombatConfig`）：LiteSim 是零依赖程序集，读表能力只能由外部喂 primitives。
         /// 表值即手感参数唯一真相；**本类的默认值须与表一致**（L1 守卫用例卡漂移）。
-        /// 服务端读同一表源的 json 产物（`RoomServer/Data/tbcombatnum.json`）——两端同值，受 buildHash 闭包保护。
+        /// 服务端直读同一份 .bytes（`RoomServer/CombatNumbers`）——两端同值，受 buildHash 闭包保护。
         /// 调用契约：<see cref="ValidateCandidate"/> 已通过（行存在性保证——本方法不再兜底判空）。
         /// </summary>
         private static void ApplyCombatNumbers(Tables tables)
@@ -138,13 +138,12 @@ namespace LiteClient
             cfg.combatnum row = tables.Tbcombatnum.Get(1);        // 单行表固定 id=1
 
             CombatConfig.LoadFrom(
-                row.MoveSpeed, row.Gravity,
-                row.HitscanRange, row.HitscanRadius, row.HitscanHeight,
+                row.MoveSpeed, row.Gravity, row.HitscanRange,
                 row.BaseDamage, row.DamageSpread, row.EntityHp);
 
             Log.Info(
                 $"玩法数值装载：move={row.MoveSpeed} gravity={row.Gravity} " +
-                $"hitscan={row.HitscanRange}/{row.HitscanRadius}/{row.HitscanHeight} " +
+                $"hitscan={row.HitscanRange} hit={CombatConfig.HitscanRadius}(裁决) body={CombatConfig.BodyRadius}:{CombatConfig.HitscanHeight}(烘焙) " +
                 $"dmg={row.BaseDamage}±{row.DamageSpread} hp={row.EntityHp}", "Config");
         }
 

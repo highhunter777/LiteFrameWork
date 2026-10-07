@@ -5,7 +5,7 @@ namespace LiteSim.Tests
 {
     /// <summary>
     /// 权威射击 × 静态障碍遮挡（子弹不穿墙——判定单源 <see cref="SimRaycast"/>）：
-    /// 墙后目标不可命中（无 Damage/无 Hit，只写 Fire）、矮盒恰在眼高带内挡弹、
+    /// 墙后目标不可命中（无 Damage/无 Hit，只写 Fire）、矮盒恰在弹道高度带内挡弹、
     /// 目标近于障碍仍正常命中、被截停不消耗 RngState、开火驻留窗照常置满。
     /// </summary>
     public sealed class ShootingObstacleTests
@@ -31,8 +31,10 @@ namespace LiteSim.Tests
             return (world, shooter, target);
         }
 
-        private static SimInputFrame[] FireAt(long id, float ax = 1f, float az = 0f)
-            => new[] { new SimInputFrame { EntityId = id, AimX = ax, AimZ = az, Buttons = SimInputFrame.ButtonFire } };
+        /// <summary>以**瞄准点**构造开火输入（AimPoint 单口径）。
+        /// 缺省点 (10,1,0) = 目标 (10,0,0) 正前方身位中部——弹道自烘焙枪口（高 ≈1.29）微降步进。</summary>
+        private static SimInputFrame[] FireAt(long id, float px = 10f, float pz = 0f)
+            => new[] { new SimInputFrame { EntityId = id, AimPointX = px, AimPointY = 1f, AimPointZ = pz, Buttons = SimInputFrame.ButtonFire } };
 
         private static bool HasDamage(SimWorldState world)
         {
@@ -91,15 +93,16 @@ namespace LiteSim.Tests
         }
 
         [Fact]
-        public void 矮盒恰在眼高带内_挡弹()
+        public void 矮盒恰在弹道高度带内_挡弹()
         {
-            // 训练场测试方块同源口径：盒高 1、底 0；眼高 = 0 + HitscanHeight/2 = 1.0 恰在带内（含端点）
+            // 训练场测试方块同源口径：盒底 0、盒顶 = 弹道原点高（含端点）⇒ 挡弹。
+            // 盒高取烘焙枪口高 ⇒ 本用例随枪口常量自动跟随（"恰在带内"的端点语义锁定）。
             var (world, shooter, target) = Pair();
-            var map = WallBetween(wallX: 5f, height: 1f, halfZ: 0.5f);
+            var map = WallBetween(wallX: 5f, height: CombatConfig.MuzzleOffsetHeight, halfZ: 0.5f);
 
             ShootingSystem.Run(world, map, FireAt(shooter));
 
-            Assert.False(HasDamage(world), "眼高在盒带内（含端点）——矮盒也挡弹");
+            Assert.False(HasDamage(world), "弹道原点高在盒带内（含端点）——矮盒也挡弹");
             _ = target;
         }
 
@@ -132,11 +135,8 @@ namespace LiteSim.Tests
             map.ObstacleCount = 1;
             long target = world.Spawn(new EntitySlot { Hp = 100, Pos = new SimVector3(10f, 0f, 5f) }, out _);
 
-            // 从逻辑枪口 (0.35,-0.2) 指向目标 (10,5) 的方向（归一化）
-            float mx = 10f - CombatConfig.MuzzleOffsetForward;
-            float mz = 5f + CombatConfig.MuzzleOffsetRight;
-            float len = SimMath.Sqrt(mx * mx + mz * mz);
-            ShootingSystem.Run(world, map, FireAt(shooter, mx / len, mz / len));
+            // 瞄准点取目标 (10,5) 正前方眼高位——从逻辑枪口 (0.35,-0.2) 指向该点的方向与旧方向口径逐位一致
+            ShootingSystem.Run(world, map, FireAt(shooter, 10f, 5f));
 
             Assert.True(HasDamage(world), "斜向射线走通道外——不受墙影响");
             _ = target;
@@ -145,19 +145,23 @@ namespace LiteSim.Tests
         [Fact]
         public void 逻辑枪口_右向偏移平移命中带_原点随朝向系()
         {
-            // 射手 Yaw=0（朝 +X，右手侧 = −Z）：逻辑枪口右偏 ⇒ 射线向 −Z 平移 0.2——
-            // z=+0.5 的目标（中心出射时恰擦中，垂距 0.5）变漏（垂距 0.7）；
-            // z=−0.7 的目标（中心出射时漏，垂距 0.7）变擦中（垂距恰 0.5）
+            // 射手 Yaw=0（朝 +X，右手侧 = −Z）：逻辑枪口右偏 r ⇒ 射线向 −Z 平移 r——
+            // 目标位按"中心出射命中带 |z|<R"构造（余量 2cm）：
+            //   oldBand z=+(R−0.01)（中心出射命中[余量 1cm]；右偏后垂距 R−0.01+r > R ⇒ 漏）
+            //   newBand z=−(r+R−0.02)（中心出射垂距 r+R−0.02 > R 漏；右偏后垂距 R−0.02 ⇒ 擦中）
+            float r = CombatConfig.MuzzleOffsetRight;
+            float R = CombatConfig.HitscanRadius;
             var world = new SimWorldState { RngState = 1UL };
             long shooter = world.Spawn(new EntitySlot { Hp = 100, Pos = new SimVector3(0f, 0f, 0f), Yaw = 0f }, out _);
-            long oldBand = world.Spawn(new EntitySlot { Hp = 100, Pos = new SimVector3(10f, 0f, 0.5f) }, out _);
-            long newBand = world.Spawn(new EntitySlot { Hp = 100, Pos = new SimVector3(10f, 0f, -0.7f) }, out _);
+            long oldBand = world.Spawn(new EntitySlot { Hp = 100, Pos = new SimVector3(10f, 0f, R - 0.01f) }, out _);
+            long newBand = world.Spawn(new EntitySlot { Hp = 100, Pos = new SimVector3(10f, 0f, -(r + R - 0.02f)) }, out _);
 
-            ShootingSystem.Run(world, new SimMapData(), FireAt(shooter));
+            // 瞄准点取"枪口 Z 延长线"（z = −MuzzleOffsetRight）⇒ 弹道严格沿 +X 平移过枪口
+            ShootingSystem.Run(world, new SimMapData(), FireAt(shooter, 10f, -CombatConfig.MuzzleOffsetRight));
 
-            Assert.True(HasDamage(world), "命中带随枪口右偏平移——新带（z=−0.7）擦中");
+            Assert.True(HasDamage(world), "命中带随枪口右偏平移——新带（z=−(r+R−0.02)）擦中");
             Assert.Equal(newBand, DamageTarget(world));
-            Assert.NotEqual(oldBand, DamageTarget(world));        // 旧擦中带（z=+0.5）已漏打
+            Assert.NotEqual(oldBand, DamageTarget(world));        // 旧带（z=+(R−0.01)）被右偏推出命中带
         }
 
         /// <summary>命中命令的目标实体 Id（无 = -1）。</summary>
@@ -171,16 +175,20 @@ namespace LiteSim.Tests
         [Fact]
         public void 逻辑枪口_朝向翻转偏移镜像_偏移系随身体转()
         {
-            // Yaw=π（朝 −X）：右向 = (sin π, −cos π) = +Z ⇒ 枪口 (−0.35, +0.2)——镜像而非世界固定。
-            // 打 −X：z=−0.5 的目标（中心出射恰擦中）变漏；z=+0.7 的目标（中心出射漏）变擦中。
+            // Yaw=π（朝 −X）：右向 = (sin π, −cos π) = +Z ⇒ 枪口 z = +r（镜像而非世界固定）。
+            // 打 −X：z=−(R−0.01)（中心出射命中[余量 1cm]；镜像右偏后垂距 R−0.01+r > R ⇒ 漏）；
+            // z=+(r+R−0.02)（中心出射漏；镜像右偏后垂距 R−0.02 ⇒ 擦中）。
+            float r = CombatConfig.MuzzleOffsetRight;
+            float R = CombatConfig.HitscanRadius;
             var world = new SimWorldState { RngState = 1UL };
             long shooter = world.Spawn(new EntitySlot { Hp = 100, Pos = new SimVector3(0f, 0f, 0f), Yaw = 3.14159274f }, out _);
-            world.Spawn(new EntitySlot { Hp = 100, Pos = new SimVector3(-10f, 0f, -0.5f) }, out _);
-            world.Spawn(new EntitySlot { Hp = 100, Pos = new SimVector3(-10f, 0f, 0.7f) }, out _);
+            world.Spawn(new EntitySlot { Hp = 100, Pos = new SimVector3(-10f, 0f, -(R - 0.01f)) }, out _);
+            world.Spawn(new EntitySlot { Hp = 100, Pos = new SimVector3(-10f, 0f, r + R - 0.02f) }, out _);
 
-            ShootingSystem.Run(world, new SimMapData(), FireAt(shooter, -1f, 0f));
+            // 瞄准点取 −X 方向、z = +MuzzleOffsetRight（Yaw=π 时枪口 z）⇒ 弹道严格沿 −X 平移过镜像枪口
+            ShootingSystem.Run(world, new SimMapData(), FireAt(shooter, -10f, CombatConfig.MuzzleOffsetRight));
 
-            Assert.True(HasDamage(world), "朝向翻转后偏移镜像——z=+0.7 侧目标擦中（偏移随身体转）");
+            Assert.True(HasDamage(world), "朝向翻转后偏移镜像——z=+(r+R−0.02) 侧目标擦中（偏移随身体转）");
         }
 
         [Fact]

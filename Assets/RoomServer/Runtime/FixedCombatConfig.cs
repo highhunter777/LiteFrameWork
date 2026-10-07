@@ -7,7 +7,7 @@ namespace RoomServer.Runtime
     /// "房间创建时固定不可变玩法配置，替代进程全局可变 CombatConfig"）。
     ///
     /// R1 口径（已定决策）：**宿主级快照**——RoomRuntime 构造时一次性复制 <see cref="CombatConfig"/>
-    /// 的 8 个字段并绑定规范化摘要；此后本房间的 Create 侧消费（出生 HP 等）一律读快照，
+    /// 的装载面 6 字段并绑定规范化摘要（身位/枪口为烘焙常量，不随快照——进程内编译期同值）；此后本房间的 Create 侧消费（出生 HP 等）一律读快照，
     /// 运行中被改的全局值不再影响已创建房间。Sim 系统内部仍读全局静态字段（其参数化迁移
     /// 归 G1 ConfigSnapshot/热更批）——单房间形态下两者一致，多房间差异在 R2 前不会出现。
     ///
@@ -19,8 +19,6 @@ namespace RoomServer.Runtime
         public readonly float MoveSpeed;
         public readonly float Gravity;
         public readonly float HitscanRange;
-        public readonly float HitscanRadius;
-        public readonly float HitscanHeight;
         public readonly int BaseDamage;
         public readonly int DamageSpread;
         public readonly int EntityHp;
@@ -28,14 +26,12 @@ namespace RoomServer.Runtime
         /// <summary>创建时刻的规范化配置摘要（SHA-256 低 32 位；proto uint32 口径）。</summary>
         public readonly uint Digest;
 
-        private FixedCombatConfig(float moveSpeed, float gravity, float hitscanRange, float hitscanRadius,
-            float hitscanHeight, int baseDamage, int damageSpread, int entityHp, uint digest)
+        private FixedCombatConfig(float moveSpeed, float gravity, float hitscanRange,
+            int baseDamage, int damageSpread, int entityHp, uint digest)
         {
             MoveSpeed = moveSpeed;
             Gravity = gravity;
             HitscanRange = hitscanRange;
-            HitscanRadius = hitscanRadius;
-            HitscanHeight = hitscanHeight;
             BaseDamage = baseDamage;
             DamageSpread = damageSpread;
             EntityHp = entityHp;
@@ -47,7 +43,6 @@ namespace RoomServer.Runtime
         {
             return new FixedCombatConfig(
                 CombatConfig.MoveSpeed, CombatConfig.Gravity, CombatConfig.HitscanRange,
-                CombatConfig.HitscanRadius, CombatConfig.HitscanHeight,
                 CombatConfig.BaseDamage, CombatConfig.DamageSpread, CombatConfig.EntityHp,
                 CombatConfigDigest.Compute());
         }

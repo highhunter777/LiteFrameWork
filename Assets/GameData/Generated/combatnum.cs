@@ -20,8 +20,6 @@ public sealed partial class combatnum : Luban.BeanBase
         MoveSpeed = _buf.ReadFloat();
         Gravity = _buf.ReadFloat();
         HitscanRange = _buf.ReadFloat();
-        HitscanRadius = _buf.ReadFloat();
-        HitscanHeight = _buf.ReadFloat();
         BaseDamage = _buf.ReadInt();
         DamageSpread = _buf.ReadInt();
         EntityHp = _buf.ReadInt();
@@ -49,14 +47,6 @@ public sealed partial class combatnum : Luban.BeanBase
     /// </summary>
     public readonly float HitscanRange;
     /// <summary>
-    /// [射击] 命中圆柱半径 m
-    /// </summary>
-    public readonly float HitscanRadius;
-    /// <summary>
-    /// [射击] 命中圆柱高度 m
-    /// </summary>
-    public readonly float HitscanHeight;
-    /// <summary>
     /// [伤害] 命中基础值
     /// </summary>
     public readonly int BaseDamage;
@@ -83,8 +73,6 @@ public sealed partial class combatnum : Luban.BeanBase
         + "moveSpeed:" + MoveSpeed + ","
         + "gravity:" + Gravity + ","
         + "hitscanRange:" + HitscanRange + ","
-        + "hitscanRadius:" + HitscanRadius + ","
-        + "hitscanHeight:" + HitscanHeight + ","
         + "baseDamage:" + BaseDamage + ","
         + "damageSpread:" + DamageSpread + ","
         + "entityHp:" + EntityHp + ","

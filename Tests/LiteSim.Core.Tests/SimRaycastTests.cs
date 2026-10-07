@@ -218,8 +218,9 @@ namespace LiteSim.Tests
             // 两目标同距且都恰压圆柱边缘（垂距 = 半径，切线命中）——原内联式"遍历升序 + 严格小于" ⇒ 低槽位胜
             var world = EmptyWorld();
             world.Spawn(new EntitySlot { Hp = 100, Pos = new SimVector3(0f, 0f, 0f) }, out int ss);
-            world.Spawn(new EntitySlot { Hp = 100, Pos = new SimVector3(10f, 0f, 0.5f) }, out int a);
-            world.Spawn(new EntitySlot { Hp = 100, Pos = new SimVector3(10f, 0f, -0.5f) }, out int b);
+            float R = CombatConfig.HitscanRadius;
+            world.Spawn(new EntitySlot { Hp = 100, Pos = new SimVector3(10f, 0f, R) }, out int a);
+            world.Spawn(new EntitySlot { Hp = 100, Pos = new SimVector3(10f, 0f, -R) }, out int b);
             _ = b;
 
             bool hit = SimRaycast.RaycastEntities(world, ss, 0f, 1f, 0f, 1f, 0f, 100f, out int hitSlot, out float t);

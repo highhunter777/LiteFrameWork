@@ -35,8 +35,8 @@ namespace LiteNet.Tests
             Assert.Equal(CombatConfig.MoveSpeed, v.MoveSpeed);
             Assert.Equal(CombatConfig.Gravity, v.Gravity);
             Assert.Equal(CombatConfig.HitscanRange, v.HitscanRange);
-            Assert.Equal(CombatConfig.HitscanRadius, v.HitscanRadius);
-            Assert.Equal(CombatConfig.HitscanHeight, v.HitscanHeight);
+            // 身位半径/高度不属表——烘焙常量（CombatConfig.HitscanRadius/HitscanHeight = BodyBake，
+            // 单源 = prefab CharacterController；表列已退役）
             Assert.Equal(CombatConfig.BaseDamage, v.BaseDamage);
             Assert.Equal(CombatConfig.DamageSpread, v.DamageSpread);
             Assert.Equal(CombatConfig.EntityHp, v.EntityHp);
@@ -90,8 +90,6 @@ namespace LiteNet.Tests
             Assert.Equal(v.MoveSpeed, CombatConfig.MoveSpeed);
             Assert.Equal(v.Gravity, CombatConfig.Gravity);
             Assert.Equal(v.HitscanRange, CombatConfig.HitscanRange);
-            Assert.Equal(v.HitscanRadius, CombatConfig.HitscanRadius);
-            Assert.Equal(v.HitscanHeight, CombatConfig.HitscanHeight);
             Assert.Equal(v.BaseDamage, CombatConfig.BaseDamage);
             Assert.Equal(v.DamageSpread, CombatConfig.DamageSpread);
             Assert.Equal(v.EntityHp, CombatConfig.EntityHp);
@@ -110,8 +108,6 @@ namespace LiteNet.Tests
                     MoveSpeed = 7.5f,
                     Gravity = -9.8f,
                     HitscanRange = 50f,
-                    HitscanRadius = 0.25f,
-                    HitscanHeight = 1.5f,
                     BaseDamage = 40,
                     DamageSpread = 0,
                     EntityHp = 130,
@@ -125,7 +121,7 @@ namespace LiteNet.Tests
             }
             finally
             {
-                CombatConfig.LoadFrom(5f, -20f, 100f, 0.5f, 2f, 25, 1, 100);   // 与表值同源的兜底
+                CombatConfig.LoadFrom(5f, -20f, 100f, 25, 1, 100);          // 与表值同源的兜底
                 Assert.Equal(oldMove, CombatConfig.MoveSpeed);
                 Assert.Equal(oldHp, CombatConfig.EntityHp);
             }

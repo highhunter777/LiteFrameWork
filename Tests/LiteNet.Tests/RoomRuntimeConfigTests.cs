@@ -24,8 +24,6 @@ namespace LiteNet.Tests
             Assert.Equal(CombatConfig.MoveSpeed, snap.MoveSpeed);
             Assert.Equal(CombatConfig.Gravity, snap.Gravity);
             Assert.Equal(CombatConfig.HitscanRange, snap.HitscanRange);
-            Assert.Equal(CombatConfig.HitscanRadius, snap.HitscanRadius);
-            Assert.Equal(CombatConfig.HitscanHeight, snap.HitscanHeight);
             Assert.Equal(CombatConfig.BaseDamage, snap.BaseDamage);
             Assert.Equal(CombatConfig.DamageSpread, snap.DamageSpread);
             Assert.Equal(CombatConfig.EntityHp, snap.EntityHp);
