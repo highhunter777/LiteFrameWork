@@ -40,7 +40,7 @@ namespace LiteSim
         /// <summary>技能资源/实体（本人私有面；技能消耗账本，P1 ActionSystem 消费）。</summary>
         public readonly int[] Resources;
 
-        // ---- 分型表（《实体分型表设计》§1）----
+        // ---- 分型表（《Sim组织专项设计》§2）----
         // 行有效 ⟺ 槽位活体且 EntityFlags.Kind* 置位（kind 位 = 迷你 archetype mask）。
         // 脊柱不动：这些是**平行行表**（每槽位一行），不是每实体子槽阵列——与 P0 运行态同一条
         // 布局纪律（定容值类型数组，#5），但寻址就是槽位索引本身。

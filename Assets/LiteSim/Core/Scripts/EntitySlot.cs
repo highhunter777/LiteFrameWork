@@ -110,7 +110,7 @@ namespace LiteSim
         /// <summary>瞄准态（右键 ADS；由 <c>InputSystem</c> 从输入位**每帧覆写**——连续状态，不是边沿）。</summary>
         public const uint Aiming = 1u << 0;
 
-        // ---- 分型 kind 位（《实体分型表设计》§1）----
+        // ---- 分型 kind 位（《Sim组织专项设计》§2）----
         // kind 位 = "该槽位持有哪张分型表行数据"的迷你 archetype mask：置位 ⟺ Items/Projectiles/Zones
         // 对应行有效。**只增不改不重排**（Flags 进 SimChecksum 与线上 SlotDelta.flags——跨端身份敏感，
         // 与输入位空间的纪律同款）。

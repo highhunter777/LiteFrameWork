@@ -70,7 +70,7 @@ namespace LiteSim
 
             h = MixMatchState(h, in s.Match);
 
-            // 分型表公共面（《实体分型表设计》§2）：道具/投掷物/区域是世界可见面（全端可重建），
+            // 分型表公共面（《Sim组织专项设计》§3）：道具/投掷物/区域是世界可见面（全端可重建），
             // 与活体位图同判——线上和解口径必须覆盖，漏了 = 该层分叉但和解不报的静默漂移。
             ItemState[] items = s.Items;
             for (int i = 0; i < items.Length; i++)
@@ -146,7 +146,7 @@ namespace LiteSim
             int[] resources = s.Resources;
             for (int i = 0; i < resources.Length; i++) h = MixInt32(h, resources[i]);
 
-            // 分型表（《实体分型表设计》§2：三个确定性面缺一即隐形分叉——这里是第一面）
+            // 分型表（《Sim组织专项设计》§3：三个确定性面缺一即隐形分叉——这里是第一面）
             ItemState[] items = s.Items;
             for (int i = 0; i < items.Length; i++)
             {

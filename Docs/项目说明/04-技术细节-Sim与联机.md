@@ -52,7 +52,7 @@
 | 算法 | 按相对路径 Ordinal 排序 → 逐个喂 `路径\0内容（行尾 CRLF/CR→LF 归一化）` → SHA-256 → 取前 16 个十六进制字符 |
 | 生成 | `python scripts/codegen/gen-build-hash.py` → `Assets/LiteNet/Protocol/BuildHash.g.cs` |
 | 握手 | `RoomClient.SendJoin → JoinRequest.build_hash`：两端不等 → 拒绝进房（**改 Sim/协议/表必须重跑生成器**） |
-| 守卫 | `Tests/LiteNet.Tests/BuildHashTests` 按同规则复算并与常量比对（L1 抓"忘了重跑"） |
+| 守卫 | **构建前校验**：`python scripts/codegen/gen-build-hash.py --check` 按同规则复算并与常量比对，不等即拒绝出包（挂在 `build-player.ps1` 门禁步，不可跳过；2026-10-07 起开发期不再设测试守卫——原 `BuildHashTests`/`BuildHashSourceSet.g.cs` 已退役，规则单源回归生成器脚本） |
 
 ## 3. 服务端房间：`Assets/RoomServer` + `Server/RoomServer/`
 
