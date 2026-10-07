@@ -56,6 +56,13 @@ namespace LiteGame
         private const string HipName = "Hip";
         private const string AdsName = "Ads";
 
+        /// <summary>HUD 面板组的场景子路径（/Battle HUD/Panel/{Vitals,Weapon}——构建器单源；技能栏为静态占位无数据面）。</summary>
+        private const string PanelPath = "Panel";
+        private const string VitalsFillPath = PanelPath + "/Vitals/Fill";
+        private const string VitalsHpTextPath = PanelPath + "/Vitals/HP";
+        private const string WeaponAmmoTextPath = PanelPath + "/Weapon/Ammo";
+        private const string WeaponReloadLabelPath = PanelPath + "/Weapon/Reload";
+
         /// <summary>瞄准激光束 prefab（内容包路径：Assets/FX 归置副本 fx_lazer_sight——KriptoFX Lazer 单源）。
         /// 加载失败/缺 LineRenderer → 静默降级（warn 一次，无激光不失败——同准心 HUD 缺失口径）。</summary>
         private const string LaserSightPrefab = "Assets/FX/fx_lazer_sight.prefab";
@@ -77,11 +84,14 @@ namespace LiteGame
         private SimView _view;
         private CharacterLocomotionDriver _locomotion;   // 移动动画驱动（视图的消费者——先于视图拆除）
         private BattleCrosshairDriver _crosshair;       // 对局准心（战斗 HUD 第一件——场景 /Battle HUD，见 AttachCrosshair）
+        private BattleHudDriver _hud;                   // HUD 面板（血条/弹药——战斗 HUD 第二件，见 AttachHud；技能栏静态占位）
         private BattleLaserDriver _laser;               // 瞄准激光（准心的世界空间兄弟件——开火射线的可见投影）
         private GameObject _laserBeam;                 // 激光束实例（挂 _viewRoot，随离场拆；驱动只管显隐/端点）
         private AssetLease<GameObject> _laserLease;    // 激光束 prefab 租约（登记进 _viewScope，随作用域归还）
         private HitFeedbackDispatcher _hitFeedback;    // 命中分发（帧事件 → 命中反馈消费者——伤害数字等；EventSink 并列订阅）
         private BattleDamageNumberDriver _damageNumbers;   // 伤害数字（命中反馈首个消费者——合并窗口/池/预算；世界钟驱动）
+        private BattleMuzzleFlashDriver _muzzleFlash;      // 枪口火光（Fire 帧事件 → 武器挂点跟随 VFX）
+        private BattleImpactFxDriver _impactFx;            // 敌人命中特效（我造成的 Hit/Crit → 受击点世界位 VFX）
         private AssetLease<GameObject> _damageNumberLease; // 飘字底件租约（实例由驱动工厂逐条实例化）
         private readonly LiteFramework.IWorldClock _worldClock;  // 世界钟（伤害数字寿命/合并窗——不累加渲染帧 delta，实测编辑器态会通胀）
         private Func<Vector3?> _aimPointOf;             // 瞄准点来源（世界坐标；null = 无设备形态——相机保持场景构图）
@@ -320,6 +330,22 @@ namespace LiteGame
             UnityEngine.Debug.Log("[Battle] damage-numbers-attached");
         }
 
+        /// <summary>战斗特效装配（帧事件路由的 VFX 消费者）：火光吃 Fire、命中特效吃本地 Caused 的 Hit/Crit；
+        /// VFX 服务由容器注入（缺服务整段降级——如实警告，不静默）。特效实例由 VfxService 池化/预算，
+        /// 随实体视图回收（StopAll 归各自宿主——火光 follow 挂点、弹着落世界容器）。</summary>
+        private void AttachCombatFx()
+        {
+            if (_vfx == null)
+            {
+                UnityEngine.Debug.LogWarning("[Battle] VFX 服务未注入——枪口火光/命中特效降级（装配缺口，见 ContainerModule）");
+                return;
+            }
+            _muzzleFlash = new BattleMuzzleFlashDriver(_view, _vfx);
+            _impactFx = new BattleImpactFxDriver(_vfx);
+            _hitFeedback?.Register(_muzzleFlash);
+            _hitFeedback?.Register(_impactFx);
+        }
+
         /// <summary>
         /// 对局**渲染相机**解析（伤害飘字 billboard 面用；每帧调，故须轻量且如实降级）：
         /// Cinemachine brain 的 <c>OutputCamera</c>——**不走 <c>Camera.main</c>**：叠加开发形态下
@@ -372,10 +398,12 @@ namespace LiteGame
             _locomotion = new CharacterLocomotionDriver(_view);   // 移动动画：视图速度 → 播放器 → Animator 后端（§7 更新次序的 Driver 段）
 
             AttachCrosshair();                                  // 对局准心（HUD 第一件——视图/输入均已就绪，场景对象按名解析）
+            AttachHud();                                        // HUD 面板（HUD 第二件：血条/弹药——同根场景对象，静默降级）
             _aimPointOf = AimPointOf(_input);                   // 瞄准点（世界）→ 相机构图 z 偏移曲线 + 激光收敛端点（准心同源）
             AttachLaserSight();                                 // 瞄准激光（束实例已取，接线驱动——端点直落准心标记的地面点）
             _hitFeedback = new HitFeedbackDispatcher(_view);   // 命中分发骨架：EventSink 并列订阅——消费者随各自批注册
             AttachDamageNumbers();                             // 伤害数字（命中反馈首个消费者——只显本地造成/承受）
+            AttachCombatFx();                                  // 枪口火光 + 敌人命中特效（帧事件路由的 VFX 消费者）
 #if UNITY_EDITOR || DEVELOPMENT_BUILD || LITEFRAMEWORK_DEBUG
             // 爆头区域常驻可视化（测试模式诊断件）：只读预测态，不改判定；release 剥离
             _headshotDebug = new BattleHeadshotDebugDrawer(_context.Sim);
@@ -416,6 +444,37 @@ namespace LiteGame
                 ads: FindChildGameObject(root, CrosshairPath + "/" + AdsName),
                 screenPosition: ScreenPositionOf(_input));           // 鼠标位来自设备源适配器（R12：InputSystem 只在边界内）
             UnityEngine.Debug.Log("[Battle] crosshair-attached");
+        }
+
+        /// <summary>
+        /// 挂 HUD 面板（战斗 HUD 第二件：血条/弹药——技能栏静态占位）：与准心同根
+        /// （<c>/Battle HUD/Panel</c>，构建器单源）按名解析；**缺失/结构不符静默降级**（只警告——
+        /// HUD 是表现增益，不把"场景没配面板"当对局失败，同准心口径）。驱动读本地**预测态**
+        /// （HP/已选武器/弹匣/换弹——本人私有面），值变化才写、未对齐整组隐藏。
+        /// </summary>
+        private void AttachHud()
+        {
+            GameObject root = GameObject.Find(HudRootName);
+            if (root == null)
+            {
+                UnityEngine.Debug.LogWarning($"[Battle] 场景缺 '{HudRootName}'——HUD 面板静默降级（玩法场景未配 HUD 对象）");
+                return;
+            }
+            GameObject panel = FindChildGameObject(root, PanelPath);
+            GameObject fill = FindChildGameObject(root, VitalsFillPath);
+            GameObject hpText = FindChildGameObject(root, VitalsHpTextPath);
+            GameObject ammoText = FindChildGameObject(root, WeaponAmmoTextPath);
+            if (panel == null || fill == null || hpText == null || ammoText == null)
+            {
+                UnityEngine.Debug.LogWarning($"[Battle] '{HudRootName}/{PanelPath}' 结构不符（缺 Vitals/Weapon 子件）——HUD 面板静默降级");
+                return;
+            }
+
+            _hud = new BattleHudDriver(_context.Sim.State, () => _view != null ? _view.LocalEntityId : 0L,
+                panel.GetComponent<CanvasGroup>(), fill.GetComponent<UnityEngine.UI.Image>(),
+                hpText.GetComponent<TMPro.TextMeshProUGUI>(), ammoText.GetComponent<TMPro.TextMeshProUGUI>(),
+                FindChildGameObject(root, WeaponReloadLabelPath));   // 缺标签件=驱动内静默降级（不显示换弹态）
+            UnityEngine.Debug.Log("[Battle] hud-attached");
         }
 
         /// <summary>
@@ -512,6 +571,8 @@ namespace LiteGame
             if (_input != null) _input.Reset();   // 离场即清派发状态（设备源与拦截源都是装配根的，不在此摘）
             _locomotion?.Dispose();               // 先停动画驱动（视图消费者），再拆视图本体
             _locomotion = null;
+            _hud?.Dispose();                      // HUD 面板（面板归零——视图消费者，先于准心拆）
+            _hud = null;
             _crosshair?.Dispose();                // 准心驱动（还系统光标——同属视图消费者，先于视图本体拆）
             _crosshair = null;
             _laser?.Dispose();                    // 激光驱动（束实例随 _viewRoot 销毁；租约随 _viewScope.Dispose 归还）
@@ -520,6 +581,10 @@ namespace LiteGame
             _laserLease = null;
             _damageNumbers?.Dispose();          // 伤害数字（消费者先于分发器拆——实例全归还池）
             _damageNumbers = null;
+            _muzzleFlash?.Dispose();            // 枪口火光/命中特效（同上——消费者先于分发器拆）
+            _muzzleFlash = null;
+            _impactFx?.Dispose();
+            _impactFx = null;
 #if UNITY_EDITOR || DEVELOPMENT_BUILD || LITEFRAMEWORK_DEBUG
             // 爆头可视化件：纯每帧重绘（无持有状态），随分发器一并走
             _headshotDebug = null;
@@ -605,6 +670,7 @@ namespace LiteGame
             _context.Tick(elapseSeconds);         // ② 网络双泵 + 输入上行 + 预测推进 + 表现视图（唯一驱动入口）
             _locomotion?.Tick(elapseSeconds);    // 移动动画：视图位置已更新，再解析目标姿态（视图的下游消费者）
             _crosshair?.Tick();                  // 对局准心（HUD）：位置/形态/光标——视图状态的最后一个消费者
+            _hud?.Tick();                        // HUD 面板：血条/弹药（预测态值变化写）——视图消费者（同拍准心）
             _laser?.Tick();                     // 瞄准激光（世界空间）：端点 = 开火射线（实体/障碍截停）——视图消费者
             _damageNumbers?.Tick();             // 伤害数字：命中事件的视觉收尾（合并窗口/淡出/跟随）——世界钟取时
             _camera?.SetAiming(_aimGate.Feed(IsLocalAiming(), elapseSeconds)); // 瞄准相机接管（每帧幂等；适配器按沿生效——视图态已解析；滞回门控短按，防频繁点按来回重启混合）
