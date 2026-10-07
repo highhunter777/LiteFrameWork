@@ -14,7 +14,9 @@ namespace LiteSim
     ///   + **窗长常量 1 字段** `FireStanceFrames`（Sim 消费它限速，进联机身份）
     ///   + **逻辑枪口 3 字段** `MuzzleOffsetForward/Right/Height`（子弹出射点＝本体+朝向系
     ///   **烘焙常量偏移**——`MuzzleBake.g.cs`：prefab Muzzle 锚点 @ AimIdle t=0；表化计划随 tb_weapon，
-    ///   故进联机身份））；
+    ///   故进联机身份）
+    ///   + **判定几何 3 字段** `HitscanRadius/HitscanHeight/HeadshotRadius`（烘焙/导出常量——
+    ///   两端同值由生成文件保证，仍进摘要兜底"改了生成文件只改一端"）；
     /// - float 用 InvariantCulture "R"（往返）格式——跨文化稳定（de-DE 的小数逗号不会改变摘要）；
     /// - 字段以 '\n' 分隔、无空白填充；数值后不带单位。
     /// 取 SHA-256 低 32 位作 proto uint32（StartGame.ConfigHash 字段位宽）。
@@ -32,6 +34,7 @@ namespace LiteSim
               .Append(CombatConfig.HitscanRange.ToString("R", CultureInfo.InvariantCulture)).Append('\n')
               .Append(CombatConfig.HitscanRadius.ToString("R", CultureInfo.InvariantCulture)).Append('\n')
               .Append(CombatConfig.HitscanHeight.ToString("R", CultureInfo.InvariantCulture)).Append('\n')
+              .Append(CombatConfig.HeadshotRadius.ToString("R", CultureInfo.InvariantCulture)).Append('\n')
               .Append(CombatConfig.BaseDamage.ToString(CultureInfo.InvariantCulture)).Append('\n')
               .Append(CombatConfig.DamageSpread.ToString(CultureInfo.InvariantCulture)).Append('\n')
               .Append(CombatConfig.EntityHp.ToString(CultureInfo.InvariantCulture)).Append('\n')

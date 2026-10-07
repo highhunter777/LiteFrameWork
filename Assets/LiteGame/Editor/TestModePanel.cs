@@ -42,28 +42,38 @@ namespace LiteGame.Editor
                 EditorUtility.SetDirty(_settings);               // 资产随库：可审查、队友共享
 
             EditorGUILayout.Space(6);
-            EditorGUILayout.LabelField("爆头带实时调（运行时覆写，不落盘）", EditorStyles.boldLabel);
+            EditorGUILayout.LabelField("爆头区实时调（运行时覆写，不落盘）", EditorStyles.boldLabel);
             float height = LiteSim.CombatConfig.HitscanHeight;
             float shown = LiteSim.CombatConfig.HeadHitLineDevOverride >= 0f
                 ? LiteSim.CombatConfig.HeadHitLineDevOverride : LiteSim.CombatConfig.HeadHitLine;
+            float radiusShown = LiteSim.CombatConfig.HeadshotRadiusDevOverride >= 0f
+                ? LiteSim.CombatConfig.HeadshotRadiusDevOverride : LiteSim.CombatConfig.HeadshotRadius;
             EditorGUI.BeginChangeCheck();
             float next = EditorGUILayout.Slider("爆头线下沿（m）", shown, 0.9f, height);
+            float nextRadius = EditorGUILayout.Slider("爆头柱半径（m，窄于命中柱 0.45）", radiusShown, 0.15f, 0.45f);
             if (EditorGUI.EndChangeCheck())
-                LiteSim.CombatConfig.HeadHitLineDevOverride = next;   // 判定与 F11 绘制同读 Live——本地服同进程同值
-            EditorGUILayout.LabelField($"比例 {shown / height:F3}    带高 {height - shown:F3} m    当前导出值下沿 {LiteSim.CombatConfig.HeadHitLine:F3} m");
+            {
+                // 判定与 F11 绘制同读 Live——本地服同进程同值，滑杆一动实弹即见 Crit 档变化
+                LiteSim.CombatConfig.HeadHitLineDevOverride = next;
+                LiteSim.CombatConfig.HeadshotRadiusDevOverride = nextRadius;
+            }
+            EditorGUILayout.LabelField($"比例 {shown / height:F3}    带高 {height - shown:F3} m    当前导出值：下沿 {LiteSim.CombatConfig.HeadHitLine:F3} m / 半径 {LiteSim.CombatConfig.HeadshotRadius:F3} m");
             using (new EditorGUILayout.HorizontalScope())
             {
                 if (GUILayout.Button("复位（回导出值）"))
-                    LiteSim.CombatConfig.HeadHitLineDevOverride = -1f;
-                if (GUILayout.Button("导出当前下沿到 HeadBake.g.cs"))
                 {
-                    string report = LiteGame.EditorTools.HeadHitLineTuner.Export(shown / height);
-                    EditorUtility.DisplayDialog("爆头带导出", report, "OK");
+                    LiteSim.CombatConfig.HeadHitLineDevOverride = -1f;
+                    LiteSim.CombatConfig.HeadshotRadiusDevOverride = -1f;
+                }
+                if (GUILayout.Button("导出当前爆头区到 HeadBake.g.cs"))
+                {
+                    string report = LiteGame.EditorTools.HeadHitLineTuner.Export(shown / height, radiusShown);
+                    EditorUtility.DisplayDialog("爆头区导出", report, "OK");
                 }
             }
             EditorGUILayout.HelpBox(
-                "对局内滑动即生效（判定与 F11 黄圈实时随动，可实弹试 Crit 档）；定型才导出。"
-                + "对局中点导出会触发重编译并中断对局（domain reload）——可先记下数值，出对局后再导。",
+                "对局内滑动即生效（判定与 F11 黄/红圈实时随动，可实弹试 Crit 档——黄红圈之间的窄柱切片才是爆头区）；"
+                + "定型才导出。对局中点导出会触发重编译并中断对局（domain reload）——可先记下数值，出对局后再导。",
                 MessageType.Info);
 
             EditorGUILayout.Space(6);

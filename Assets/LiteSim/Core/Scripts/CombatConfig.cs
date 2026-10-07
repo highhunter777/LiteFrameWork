@@ -164,6 +164,28 @@ namespace LiteSim
 #endif
 
         /// <summary>
+        /// **爆头柱半径（m）——判定宽容裁决常量**（窄于命中柱 <see cref="HitscanRadius"/>）：头部带
+        /// <c>[HeadHitLine, HitscanHeight]</c> 的**水平范围**——爆头区是"窄柱切片"而非命中柱全径切片。
+        /// 头部可见轮廓实测 ≈0.28~0.35（帽 0.283/发冠），命中柱全径 0.45 会把整个上躯干圈成爆头区
+        /// （"太宽"裁决）。**消费**：爆头判据的水平闸（<see cref="ShootingSystem"/>——
+        /// 判定点水平距目标 ≤ 本值才计爆头，命中与否仍由命中柱 0.45 承担）。**进 digest**
+        /// （判定常量两端联机身份，同 <see cref="HitscanRadius"/> 先例）；重调 = 调带工具导出
+        /// <see cref="HeadBake.Radius"/>（编辑器滑杆 / 测试模式实时覆写同导出口径）。
+        /// </summary>
+        public const float HeadshotRadius = HeadBake.Radius;
+
+#if UNITY_EDITOR || DEVELOPMENT_BUILD || LITEFRAMEWORK_DEBUG
+        /// <summary>测试模式实时预览覆写（爆头柱半径；&lt; 0 = 不覆写）——与 <see cref="HeadHitLineDevOverride"/> 同口径。</summary>
+        public static float HeadshotRadiusDevOverride = -1f;
+
+        /// <summary>爆头柱半径的**实时取值**：测试模式覆写优先，否则导出值。</summary>
+        public static float HeadshotRadiusLive => HeadshotRadiusDevOverride >= 0f ? HeadshotRadiusDevOverride : HeadshotRadius;
+#else
+        /// <summary>爆头柱半径的**实时取值**（release：恒 = <see cref="HeadshotRadius"/>——覆写面随三宏编译剥离）。</summary>
+        public static float HeadshotRadiusLive => HeadshotRadius;
+#endif
+
+        /// <summary>
         /// 爆头伤害倍率（移位数）：伤害 `&lt;&lt; HeadshotDamageShift`（×2^shift——位级精确，
         /// 与 AimMoveSpeed"乘 2 的幂"同约定）；0 = 无倍率。倍率在**命中判定处**应用——
         /// Damage 命令携带即最终值，结算侧无需知部位。**代码常量不进 digest**（表化随数值调参批）。

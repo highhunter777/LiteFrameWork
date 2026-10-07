@@ -29,6 +29,15 @@ namespace LiteSim
                 // 死亡射手不开火（Hp≤0：窗/事件/命中判定全跳过——尸体不受操控）
                 if (shooter.Hp <= 0) continue;
 
+                // **武器门**（WeaponSystem 单源）：已装备实体需过"节拍 ∧ 弹匣 ∧ 非换弹/切枪"——
+                // 拦截发生在**一切副作用之前**（不写 Fire 事件、不置开火窗、不消费 RngState）；
+                // 该帧不开火 = 整条跳过。伤害/射程随武器表（tb_weapon）。
+                // 未装备实体（测试/沙盒直调本系统的形态）：维持旧行为（逐帧可开火 + 兜底伤害/射程）。
+                bool equipped = WeaponSystem.IsEquipped(s, shooterSlot, out WeaponDef wdef, out _);
+                if (equipped && !WeaponSystem.TryConsumeShot(s, shooterSlot, s.Frame, out wdef)) continue;
+                float range = equipped ? wdef.Range : CombatConfig.HitscanRange;
+                int baseDamage = equipped ? wdef.Damage : CombatConfig.BaseDamage;
+
                 // **判定方向 = 从逻辑枪口指向 AimPoint**（AimPoint 单口径，所见即所判——
                 // 《固定斜视角射击方案专项设计》§5/§4）。
                 //
@@ -76,11 +85,11 @@ namespace LiteSim
                 // **实体走三维入口（带 dy）**；障碍保持 2.5D（关卡障碍为地面级圆/盒，三维化无收益——
                 // 见专项设计 §4.1「仅实体圆柱三维化」）。
                 SimRaycast.RaycastEntities(s, shooterSlot, in muzzle,
-                    new SimVector3(dx, dy, dz), CombatConfig.HitscanRange, out int hitSlot, out float hitT);
+                    new SimVector3(dx, dy, dz), range, out int hitSlot, out float hitT);
                 // 障碍仍在XZ 平面按水平距离求解⇒**须折回三维参数**才能与 hitT 同量纲比较
                 // （hitT 是沿三维单位方向的长度；障碍 t 是水平距离）。
                 bool blockedByObstacle = RaycastObstacles3D(map, muzzle.X, muzzle.Y, muzzle.Z,
-                    dx, dz, dy, CombatConfig.HitscanRange, out float obstacleT)
+                    dx, dz, dy, range, out float obstacleT)
                     && (hitSlot < 0 || obstacleT < hitT);
 
                 // 开火驻留窗置满（与 Fire 事件**同点**——View 侧窗口同触发同长度同刷新，
@@ -97,7 +106,7 @@ namespace LiteSim
                     // 伤害浮动 ±DamageSpread（消费 RngState——局部副本推进后写回，SimRng 使用约定）；
                     // base/spread 走 CombatConfig（数值参数化）。
                     var rng = new SimRng(s.RngState);
-                    int dmg = CombatConfig.BaseDamage + rng.NextRange(-CombatConfig.DamageSpread, CombatConfig.DamageSpread + 1);
+                    int dmg = baseDamage + rng.NextRange(-CombatConfig.DamageSpread, CombatConfig.DamageSpread + 1);
                     s.RngState = rng.State;
 
                     // **命中点取三维**（`+ dy * hitT`）：爆头判据的输入。旧 2.5D 恒用 muzzle.Y（水平），
@@ -122,13 +131,20 @@ namespace LiteSim
                     // 否则回退子弹交点——近处有遮挡物时子弹抓到的是它、而准心指着远处目标，
                     // 拿远处的 AimPoint 去判近处的目标会误判。
                     float judgeY = hitPos.Y;
+                    // 判定点的水平距（平方）：AimPoint 接管时 = 点到目标 XZ 距；否则 = 子弹交点到目标 XZ 距
+                    float judgeD2 = SimMath.MulAdd2(hitPos.X - hit.Pos.X, hitPos.X - hit.Pos.X,
+                                                   hitPos.Z - hit.Pos.Z, hitPos.Z - hit.Pos.Z);
                     if (hasPoint)
                     {
                         float ddx = inputs[i].AimPointX - hit.Pos.X;
                         float ddz = inputs[i].AimPointZ - hit.Pos.Z;
-                        if (SimMath.MulAdd2(ddx, ddx, ddz, ddz)
+                        float d2 = SimMath.MulAdd2(ddx, ddx, ddz, ddz);
+                        if (d2
                             <= CombatConfig.HitscanRadius * CombatConfig.HitscanRadius)
+                        {
                             judgeY = inputs[i].AimPointY;
+                            judgeD2 = d2;
+                        }
                     }
 
                     // **爆头＝判定高度落在头部带**（专项设计 §4.2）：头部带 = 身位顶部子区间
@@ -140,8 +156,14 @@ namespace LiteSim
                     // 「高差位擦顶命中」（弹道掠过柱顶、区间恰好相交）依赖含端点语义——
                     // 单方面把上界收紧为 `<` 会与 Y 带闸分叉（闸放行、爆头判据落空 ⇒ 判为未命中）。
                     // 上界"越过头顶"的漏洞由 SimRaycast 的 Y 带闸（`yHit > 顶` 排除）承担。
+                    //
+                    // **水平闸＝爆头柱独立半径**（HeadshotRadius，窄于命中柱 0.45——"太宽"裁决）：
+                    // 爆头区 = 头部带 × 爆头柱切片，命中柱边缘（0.32~0.45 处）的高位命中只是普通命中
+                    // （头部可见轮廓 ≈0.28~0.35，命中柱全径切片会把整个上躯干圈成爆头区）。
                     float relY = judgeY - hit.Pos.Y;
-                    bool headshot = relY >= CombatConfig.HeadHitLineLive;   // Live：测试模式滑杆覆写优先（release 恒 = HeadHitLine）
+                    float headR = CombatConfig.HeadshotRadiusLive;             // Live：测试模式滑杆覆写优先（release 恒 = HeadshotRadius）
+                    bool headshot = relY >= CombatConfig.HeadHitLineLive       // Live：同上
+                        && judgeD2 <= headR * headR;
                     if (headshot) dmg <<= CombatConfig.HeadshotDamageShift;
 
                     s.Cmds.Write(SimCommandKind.Damage, hit.Id, shooter.Id, dmg);

@@ -14,10 +14,11 @@ namespace LiteGame
     /// 于是"准心落在圈内即应命中"一眼可见，所见即所判。（物理半径 <c>BodyRadius</c>=0.32 更细，不画。）
     ///
     /// <list type="bullet">
-    /// <item><b>灰圈</b> = 身位圆柱的底面与顶面（脚底 / 头顶判定界）；</item>
-    /// <item><b>黄圈</b> = 爆头带<b>下沿</b>（<see cref="CombatConfig.HeadHitLine"/>）——打到这里及以上即爆头；</item>
-    /// <item><b>红圈</b> = 身位上沿（= 顶面，同 <see cref="CombatConfig.HitscanHeight"/>）——越过即头顶掠过打不到；</item>
-    /// <item>灰竖线 = 全高母线；黄竖线 = 爆头带段（黄圈与红圈之间）。</item>
+    /// <item><b>灰圈</b> = 命中柱的底面与顶面（<see cref="CombatConfig.HitscanRadius"/> 全径——命中判定界）；</item>
+    /// <item><b>黄圈</b> = 爆头柱<b>下沿</b>（<see cref="CombatConfig.HeadHitLineLive"/> 高 × <see cref="CombatConfig.HeadshotRadiusLive"/> 半径）；</item>
+    /// <item><b>红圈</b> = 爆头柱上沿（= 顶面高，半径同爆头柱）——黄红圈之间的<b>窄柱切片</b>才是 Crit 区
+    /// （命中柱内但爆头柱外的高位命中只是普通命中）；</item>
+    /// <item>灰竖线 = 全高母线；黄竖线 = 爆头柱切片段。</item>
     /// </list>
     ///
     /// **画所有活体**：打谁都能看到那根柱在哪（含本地自己与补位 bot）。死亡实体不画。
@@ -59,16 +60,18 @@ namespace LiteGame
                 Vector3 foot = new Vector3(e.Pos.X, e.Pos.Y, e.Pos.Z);
                 Vector3 top = foot + Vector3.up * bodyTop;                        // 身位上沿（= 顶面）
                 Vector3 headLow = foot + Vector3.up * CombatConfig.HeadHitLineLive;   // 爆头带下沿（测试模式滑杆覆写随动）
+                float headR = CombatConfig.HeadshotRadiusLive;                    // 爆头柱半径（窄于命中柱；滑杆覆写随动）
 
-                // 服务端身位圆柱（完整判定几何）：底/顶圈 + 全高母线
+                // 服务端身位圆柱（完整判定几何——命中柱）：底/顶圈 + 全高母线
                 DrawCircle(foot, radius, BodyColor);
                 DrawCircle(top, radius, BodyColor);
                 DrawRibs(foot, top, radius, BodyColor);
 
-                // 爆头带段强调（奖励区）：下沿黄圈 + 带内黄竖线（上沿即红圈=顶面）
-                DrawCircle(headLow, radius, Color.yellow);
-                DrawCircle(top, radius, Color.red);
-                DrawRibs(headLow, top, radius, Color.yellow);
+                // 爆头区强调（奖励区 = 头部带 × 爆头柱的窄柱切片）：下沿黄圈 + 带内黄竖线 + 上沿红圈
+                // ——半径用爆头柱（非命中柱全径），所见即所判：黄红圈之间才是 Crit 区
+                DrawCircle(headLow, headR, Color.yellow);
+                DrawCircle(top, headR, Color.red);
+                DrawRibs(headLow, top, headR, Color.yellow);
             }
         }
 
