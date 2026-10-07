@@ -46,8 +46,7 @@ namespace LiteGame
         private SimInputFrame[] _inputs;
         private long _playerId;
         private float _lastYaw;
-        private float _aimX = 1f;      // 瞄准方向（长度 ≤1 契约；默认朝 +X）
-        private float _aimZ;
+        private Vector3 _aimPointWorld = new Vector3(1f, CombatConfig.MuzzleOffsetHeight, 0f); // 瞄准点（AimPoint 单口径；默认朝 +X 眼高位）
         private bool _paused;
         private int _targetsLeft;
         private Camera _cam;
@@ -113,29 +112,31 @@ namespace LiteGame
 
             if (_cam != null && _state.TryResolve(_playerId, out int slot))
             {
+                // 瞄准点解算与生产采集侧同口径（《固定斜视角射击方案专项设计》§3）：相机射线先与
+                // **实体圆柱**求交（同一 SimRaycast），未命中落地面 y=0——命中实体时点**带高度**
+                // （准心在敌人头上 ⇒ 弹道抬进头部带，沙盒里也能打出爆头）。
                 var ray = _cam.ScreenPointToRay(Input.mousePosition);
-                if (_groundPlane.Raycast(ray, out float d))
+                if (SimRaycast.RaycastEntities(_state, slot,
+                        new SimVector3(ray.origin.x, ray.origin.y, ray.origin.z),
+                        new SimVector3(ray.direction.x, ray.direction.y, ray.direction.z),
+                        CombatConfig.HitscanRange, out _, out float t))
                 {
-                    var p = ray.GetPoint(d);
-                    ref EntitySlot e = ref _state.Entities[slot];
-                    float ax = p.x - e.Pos.X;
-                    float az = p.z - e.Pos.Z;
-                    float aimMag2 = ax * ax + az * az;
-                    if (aimMag2 > 0.000001f)
-                    {
-                        float inv = 1f / Mathf.Sqrt(aimMag2);        // 长度 ≤1 契约（采集侧归一化）
-                        _aimX = ax * inv;
-                        _aimZ = az * inv;
-                    }
-                    _lastYaw = Mathf.Atan2(_aimZ, _aimX);            // 仅供 Gizmos 显示（朝向由 Sim 派生）
+                    _aimPointWorld = ray.GetPoint(t);
                 }
+                else if (_groundPlane.Raycast(ray, out float d))
+                {
+                    _aimPointWorld = ray.GetPoint(d);
+                }
+                ref EntitySlot e = ref _state.Entities[slot];
+                _lastYaw = Mathf.Atan2(_aimPointWorld.z - e.Pos.Z, _aimPointWorld.x - e.Pos.X); // 仅供 Gizmos 显示（朝向由 Sim 派生）
             }
 
             _inputs[0].EntityId = _playerId;
             _inputs[0].MoveX = mx;
             _inputs[0].MoveZ = mz;
-            _inputs[0].AimX = _aimX;
-            _inputs[0].AimZ = _aimZ;
+            _inputs[0].AimPointX = _aimPointWorld.x;
+            _inputs[0].AimPointY = _aimPointWorld.y;
+            _inputs[0].AimPointZ = _aimPointWorld.z;
             _inputs[0].Buttons = Input.GetMouseButton(0) ? SimInputFrame.ButtonFire : 0u;
         }
 

@@ -149,20 +149,6 @@ namespace LiteClient
             }
         }
 
-        /// <summary>本地玩家**逻辑枪口**（输入瞄准的参照原点——子弹从枪口射向准心点 ⇒ 射线过准心正上方；
-        /// 由 Sim 预测态派生（Pos+Yaw 经 <see cref="LiteSim.CombatConfig.MuzzleOrigin"/> 单源），
-        /// 与服务器权威枪口同式——不读视图 Transform。未对齐/未开局时返回原点。</summary>
-        public SimVector3 LocalMuzzlePosition
-        {
-            get
-            {
-                if (_sim == null || _localEntityId == 0) return default;
-                if (!_sim.State.TryResolve(_localEntityId, out int slot)) return default;
-                ref EntitySlot e = ref _sim.State.Entities[slot];
-                return LiteSim.CombatConfig.MuzzleOrigin(e.Pos, e.Yaw);
-            }
-        }
-
         /// <summary>
         /// 每帧驱动（ProcedureBattle.OnUpdate 调——唯一驱动入口）：网络双泵 → 输入上行与预测推进 → 表现视图。
         /// Sim 未建（StartGame 未达）时只泵网络；输入只在对局中消费与发送。

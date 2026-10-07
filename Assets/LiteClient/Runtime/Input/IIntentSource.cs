@@ -37,6 +37,29 @@ namespace LiteClient
     }
 
     /// <summary>
+    /// **瞄准世界注入口**（可选能力，设备源按需实现；《固定斜视角射击方案专项设计》§3）。
+    ///
+    /// **为什么是可选能力而不是 <see cref="IIntentSource"/> 的成员**：核心接口不该为"某个设备源需要
+    /// 世界状态才能解算瞄准"而全体扩面——触屏/手柄源可能不需要。不实现本接口的设备源维持既有行为
+    /// （<see cref="Sample"/> 只用 <c>localPos</c>），实现者据此升级为三维瞄准解算。
+    ///
+    /// **为什么不让设备源自己找世界**：<see cref="IIntentSource"/> 的契约明确"不自缓存位置"——
+    /// 与裁决不同帧的陈旧世界会让爆头判定时灵时不灵。世界的所有权在流程层（它持有
+    /// <c>RollbackSim</c> 与本地槽位），逐帧经 <see cref="IInputService.SetAimWorld"/> 注入，
+    /// 与 <c>SetAimCamera</c> 同一范式：核心接口不认识实现依赖的引擎/世界类型。
+    /// </summary>
+    public interface IAimWorldSink
+    {
+        /// <summary>
+        /// 注入本地预测世界与本地玩家槽位（供瞄准解算求交用）。
+        /// <paramref name="world"/> 为 null 或 <paramref name="localSlot"/> &lt; 0 时设备源应
+        /// **退回二维口径**（只用参照原点解算，仰角恒 0）——那是合法退化（测试替身/未接线形态）。
+        /// 引用只读，不得改写世界。
+        /// </summary>
+        void SetAimWorld(SimWorldState world, int localSlot);
+    }
+
+    /// <summary>
     /// 一次设备采样的结果：意图 + **是否真的采到了**。
     /// <see cref="Frame"/> 的字段语义与 <see cref="SimInputFrame"/> 一致（移动/瞄准长度 ≤ 1 由设备侧保证）。
     /// </summary>

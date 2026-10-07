@@ -61,6 +61,19 @@ namespace LiteClient
         /// <summary>设置设备源（null = 清空设备）。切换设备不重置帧边界状态。</summary>
         void SetSource(IIntentSource source);
 
+        /// <summary>
+        /// 逐渲染帧注入本地**预测**世界与本地玩家槽位（瞄准解算用；流程层在
+        /// <see cref="SampleOnRenderFrame"/> 前调用）。
+        ///
+        /// **与 <see cref="SampleOnRenderFrame"/> 的 localOrigin 分工**：原点（本体位置）始终逐帧给出，
+        /// 世界与槽位只为**求交**而注入（弹道方向需要目标的圆柱高度与射手朝向才能解出仰角——
+        /// 见《固定斜视角射击方案专项设计》§3）。设备源未实现 <see cref="IAimWorldSink"/>
+        /// 时本调用是安全空操作（其瞄准维持二维口径）。
+        ///
+        /// **只读**：实现不得改写注入的世界。
+        /// </summary>
+        void SetAimWorld(SimWorldState world, int localSlot);
+
         /// <summary>登记/替换一个拦截源，返回是否**新增**（false = 覆盖了既有同名源——
         /// UI 重连、流程重进时用同一名字更新是常态，重名不抛错；需要严格判重请直用
         /// <see cref="IntentGate.Register"/> 的抛错语义）。</summary>

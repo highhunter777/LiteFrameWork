@@ -818,7 +818,7 @@ namespace LiteGame.Tests.EditMode
             // 瞄准输入进 Sim（与真实链路同源：InputSystem 写 EntityFlags.Aiming），此后按住不放
             InputSystem.Run(world, new[]
             {
-                new SimInputFrame { EntityId = selfId, AimX = 1f, AimZ = 0f, Buttons = SimInputFrame.ButtonAim },
+                new SimInputFrame { EntityId = selfId, AimPointX = 10f, AimPointY = 1f, AimPointZ = 0f, Buttons = SimInputFrame.ButtonAim },
             });
 
             view.Tick(dt);
@@ -1154,7 +1154,7 @@ namespace LiteGame.Tests.EditMode
             // 瞄准输入进 Sim（与真实链路同源：InputSystem 写 EntityFlags.Aiming），此后按住不放
             InputSystem.Run(world, new[]
             {
-                new SimInputFrame { EntityId = selfId, AimX = 1f, AimZ = 0f, Buttons = SimInputFrame.ButtonAim },
+                new SimInputFrame { EntityId = selfId, AimPointX = 10f, AimPointY = 1f, AimPointZ = 0f, Buttons = SimInputFrame.ButtonAim },
             });
 
             view.Tick(dt);

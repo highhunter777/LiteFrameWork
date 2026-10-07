@@ -58,6 +58,16 @@ namespace LiteClient
 
         public void SetSource(IIntentSource source) => _source = source;
 
+        /// <summary>
+        /// 逐帧注入预测世界与本地槽位（<see cref="IInputService.SetAimWorld"/>）。
+        /// **只做能力转发**：设备源未实现 <see cref="IAimWorldSink"/>（触屏/手柄等不需要瞄准求交的源）
+        /// 时是安全空操作——核心服务不因此认识世界类型，也不需要每个源都实现这个能力。
+        /// </summary>
+        public void SetAimWorld(SimWorldState world, int localSlot)
+        {
+            if (_source is IAimWorldSink sink) sink.SetAimWorld(world, localSlot);
+        }
+
         public bool RegisterBlocker(IntentGate.BlockerKey key, Func<bool> isBlocking)
         {
             bool added = _gate.Remove(key.Name) == false;   // 同名 = 覆盖（产品装配点的幂等语义）
@@ -170,8 +180,11 @@ namespace LiteClient
         {
             if (!IsFinite(input.MoveX)) input.MoveX = 0f;
             if (!IsFinite(input.MoveZ)) input.MoveZ = 0f;
-            if (!IsFinite(input.AimX)) input.AimX = 0f;
-            if (!IsFinite(input.AimZ)) input.AimZ = 0f;
+            // AimPoint（单口径——《固定斜视角射击方案专项设计》§3）：非有限一律清零——清零即"无点"：
+            // 不派生朝向（保持上帧）、不产命中（Sim 侧只写 Fire 事件）。
+            if (!IsFinite(input.AimPointX)) input.AimPointX = 0f;
+            if (!IsFinite(input.AimPointY)) input.AimPointY = 0f;
+            if (!IsFinite(input.AimPointZ)) input.AimPointZ = 0f;
         }
 
         private static bool IsFinite(float v) => !float.IsNaN(v) && !float.IsInfinity(v);

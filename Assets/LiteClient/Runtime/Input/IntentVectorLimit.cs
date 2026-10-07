@@ -28,6 +28,9 @@ namespace LiteClient
         /// 确保二维向量过闸（长度平方 ≤ 1）。仅当越界时按 <see cref="ShrinkFactor"/> 收缩；
         /// 界内值逐位不动（模拟量的部分偏移是真实输入，不得改写）。判据与
         /// <c>InputGate.Store</c> 同式同序（<c>x*x + z*z</c> 与 <c>1f</c> 比较，无超越函数）。
+        ///
+        /// 现状只有移动向量走本口——瞄准已收敛为 AimPoint 世界点（非长度受限向量，
+        /// 服务器侧改由距离闸约束；《固定斜视角射击方案专项设计》§4），原三维重载已退役。
         /// </summary>
         public static void EnsureWithinLengthLimit(ref float x, ref float z)
         {

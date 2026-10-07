@@ -58,7 +58,7 @@ namespace LiteGame
                 return new IntentSample(new SimInputFrame
                 {
                     MoveZ = 1f,
-                    AimZ = 1f,
+                    AimPointX = 1f,
                     Buttons = SimInputFrame.ButtonFire,
                 });
             }
