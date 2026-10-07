@@ -13,9 +13,9 @@ namespace LiteGame.Tests.EditMode
 {
     /// <summary>
     /// 伤害数字驱动（<see cref="BattleDamageNumberDriver"/>，《命中反馈与伤害数字专项设计》批B）的
-    /// L2 EditMode 覆盖：本地造成/承受过滤（旁观不产实例）、档位色（承受染红/造成白/暴击升级）、
-    /// 合并窗口（同目标二连击一条实例·文本累计）、预算淘汰（超限不静默丢）、到期收口（释放归池、
-    /// 复用不新建）、跟随（目标视图移动随锚）与 despawn 降级（冻结最后锚点继续淡出——不悬挂）。
+    /// L2 EditMode 覆盖：本地造成/承受过滤（旁观不产实例）、档位色（承受染红/造成白/爆头独立成条）、
+    /// 合并窗口（同目标**同档**二连击一条实例·文本累计；爆头/普通分离）、预算淘汰（超限不静默丢）、
+    /// 到期收口（释放归池、复用不新建）、受击点锚定（不随实体视图移动；视图消失无影响）。
     /// 路由/上下文解析由 HitFeedbackDispatcherEditModeTests 把守——此处直喂上下文。
     /// 时钟：FakeClock 拨针推进（世界钟口径——寿命/合并窗走 IWorldClock，变速/暂停语义内建）。
     /// </summary>
@@ -75,9 +75,9 @@ namespace LiteGame.Tests.EditMode
                 driver.OnHitFeedback(Hit(botA, 1, botA, 20, HitLocalRole.Bystander, Vector3.zero)); // bot 自残（旁观）
 
                 Assert.AreEqual(2, driver.ActiveCount, "造成+承受各一条，旁观不产实例");
-                Assert.IsNotNull(driver.TryGetActive(botA, HitLocalRole.Caused));
-                Assert.IsNotNull(driver.TryGetActive(self, HitLocalRole.Received));
-                Assert.IsNull(driver.TryGetActive(botA, HitLocalRole.Bystander), "旁观被口径过滤");
+                Assert.IsNotNull(driver.TryGetActive(botA, HitLocalRole.Caused, crit: false));
+                Assert.IsNotNull(driver.TryGetActive(self, HitLocalRole.Received, crit: false));
+                Assert.IsNull(driver.TryGetActive(botA, HitLocalRole.Bystander, crit: false), "旁观被口径过滤");
             }
         }
 
@@ -91,17 +91,27 @@ namespace LiteGame.Tests.EditMode
                 driver.OnHitFeedback(Hit(botA, 1, self, 30, HitLocalRole.Caused, Vector3.zero));
                 driver.OnHitFeedback(Hit(self, 0, botA, 25, HitLocalRole.Received, Vector3.zero));
 
-                Color caused = driver.TryGetActive(botA, HitLocalRole.Caused).color;
-                Color received = driver.TryGetActive(self, HitLocalRole.Received).color;
+                // **必须先 Tick 再读色/字号**：档位色与字号是**账本**（Active.R/G/B、FontSize），
+                // 驱动每帧 Tick 才把它们刷到 TMP 组件（BattleDamageNumberDriver.Tick 末段）。
+                // 不 Tick 就读组件，读到的是 TMP 默认白 + 默认字号 ⇒ 断言会把正确的承受档判成白色。
+                driver.Tick();
+
+                Color caused = driver.TryGetActive(botA, HitLocalRole.Caused, crit: false).color;
+                Color received = driver.TryGetActive(self, HitLocalRole.Received, crit: false).color;
                 Assert.Greater(caused.g, 0.9f, "造成档白色（绿分量≈1）");
                 Assert.Less(received.g, caused.g - 0.5f, "承受档染红（绿分量显著低）");
 
-                // 暴击粘滞升级：普通承受 → 追加暴击命中 → 字号放大
-                float before = driver.TryGetActive(self, HitLocalRole.Received).fontSize;
+                // 爆头独立成条（用户裁决"连击合并区分爆头/普通"）：普通条不被染红，爆头自成一条且字号更大
+                Color normalBefore = driver.TryGetActive(self, HitLocalRole.Received, crit: false).color;
                 driver.OnHitFeedback(new HitFeedbackContext(FrameEventKind.Crit, self, botA, 0, -1, 40,
                     Vector3.zero, HitLocalRole.Received));
-                float after = driver.TryGetActive(self, HitLocalRole.Received).fontSize;
-                Assert.Greater(after, before, "暴击命中并入后字号升级");
+                driver.Tick();                               // 新条目的档位同样要刷到 TMP
+                TextMeshPro normal = driver.TryGetActive(self, HitLocalRole.Received, crit: false);
+                TextMeshPro critTmp = driver.TryGetActive(self, HitLocalRole.Received, crit: true);
+                Assert.IsNotNull(normal, "普通条仍在（未被爆头合并/覆盖）");
+                Assert.IsNotNull(critTmp, "爆头独立成条");
+                Assert.Greater(critTmp.fontSize, normal.fontSize, "爆头档字号更大（独立条）");
+                Assert.AreEqual(normalBefore.g, normal.color.g, 1e-4f, "普通条颜色不被爆头污染");
             }
         }
 
@@ -117,8 +127,8 @@ namespace LiteGame.Tests.EditMode
                 clock.NowValue += 0.1f;                                      // 窗口内（0.45s）——世界钟拨针
                 driver.OnHitFeedback(Hit(botA, 1, self, 25, HitLocalRole.Caused, Vector3.zero));
 
-                Assert.AreEqual(1, driver.ActiveCount, "窗口内二连击合并为一条");
-                Assert.AreEqual("55", driver.TryGetActive(botA, HitLocalRole.Caused).text, "文本=累计值");
+                Assert.AreEqual(1, driver.ActiveCount, "窗口内同档二连击合并为一条");
+                Assert.AreEqual("55", driver.TryGetActive(botA, HitLocalRole.Caused, crit: false).text, "文本=累计值");
             }
         }
 
@@ -135,9 +145,9 @@ namespace LiteGame.Tests.EditMode
                 Assert.AreEqual(BattleDamageNumberDriver.Budget, driver.ActiveCount,
                     "超预算一条——淘汰最旧后恰为预算值");
 
-                TextMeshPro oldest = driver.TryGetActive(1000, HitLocalRole.Caused);
+                TextMeshPro oldest = driver.TryGetActive(1000, HitLocalRole.Caused, crit: false);
                 Assert.IsNull(oldest, "最旧条目（首个）被淘汰");
-                Assert.IsNotNull(driver.TryGetActive(1000 + BattleDamageNumberDriver.Budget, HitLocalRole.Caused),
+                Assert.IsNotNull(driver.TryGetActive(1000 + BattleDamageNumberDriver.Budget, HitLocalRole.Caused, crit: false),
                     "最新条目在场");
             }
         }
@@ -152,7 +162,7 @@ namespace LiteGame.Tests.EditMode
             {
                 driver.OnHitFeedback(Hit(botA, 1, self, 30, HitLocalRole.Caused, Vector3.zero));
                 driver.Tick();
-                TextMeshPro first = driver.TryGetActive(botA, HitLocalRole.Caused);
+                TextMeshPro first = driver.TryGetActive(botA, HitLocalRole.Caused, crit: false);
                 Assert.IsTrue(first.gameObject.activeSelf, "在场飘字激活");
 
                 clock.NowValue += DamageNumberMotion.FadeEndSeconds + 0.1f;   // 拨针过寿命
@@ -161,52 +171,57 @@ namespace LiteGame.Tests.EditMode
                 Assert.IsFalse(first.gameObject.activeSelf, "实例归池（翻转激活态隐藏）");
 
                 driver.OnHitFeedback(Hit(botA, 1, self, 30, HitLocalRole.Caused, Vector3.zero));
-                TextMeshPro reused = driver.TryGetActive(botA, HitLocalRole.Caused);
+                TextMeshPro reused = driver.TryGetActive(botA, HitLocalRole.Caused, crit: false);
                 Assert.AreSame(first, reused, "池复用——同实例不新建");
             }
         }
 
         [Test]
         [Category(TestCategory.Contract)]
-        public void 跟随_目标视图移动飘字随锚()
+        public void 锚定_受击点_不随视图移动()
         {
+            // 用户裁决："飘字应该在受击部位飘"——锚 = 命中事件世界位（弹道命中部位），不跟随实体。
             var (_, view, self, botA) = Build(new Vector3(5f, 1f, 0f));
+            var hitPos = new Vector3(5f, 1.2f, 0.4f);
             using (var driver = new BattleDamageNumberDriver(view, NewTmp, new FakeClock()))
             {
-                driver.OnHitFeedback(Hit(botA, 1, self, 30, HitLocalRole.Caused, Vector3.zero));
+                driver.OnHitFeedback(Hit(botA, 1, self, 30, HitLocalRole.Caused, hitPos));
                 driver.Tick();
-                Vector3 before = driver.TryGetActive(botA, HitLocalRole.Caused).transform.position;
+                Vector3 before = driver.TryGetActive(botA, HitLocalRole.Caused, crit: false).transform.position;
+                Assert.AreEqual(hitPos.x, before.x, DamageNumberMotion.PushDistance + 0.01f, "横向锚在受击点（±推挤）");
+                Assert.AreEqual(hitPos.z, before.z, DamageNumberMotion.PushDistance + 0.01f, "纵向锚在受击点（±推挤）");
 
                 Assert.IsTrue(view.TryGetView(1, out var botView), "bot 视图可解析");
-                botView.transform.position += new Vector3(5f, 0f, 0f);
+                botView.transform.position += new Vector3(5f, 0f, 0f);   // 目标移动 5m
                 driver.Tick();
-                Vector3 after = driver.TryGetActive(botA, HitLocalRole.Caused).transform.position;
+                Vector3 after = driver.TryGetActive(botA, HitLocalRole.Caused, crit: false).transform.position;
 
-                Assert.AreEqual(5f, after.x - before.x, 0.1f, "目标移动 5m——飘字随锚平移（推挤不变）");
+                Assert.AreEqual(before.x, after.x, 1e-3f, "不随实体移动（x 不动）");
+                Assert.AreEqual(before.z, after.z, 1e-3f, "不随实体移动（z 不动）");
             }
         }
 
         [Test]
         [Category(TestCategory.Unit)]
-        public void despawn降级_视图消失冻结最后锚点_继续淡出不悬挂()
+        public void 视图消失_受击点锚不受影响_照常淡出收口()
         {
             var (_, view, self, botA) = Build(new Vector3(5f, 1f, 0f));
             var clock = new FakeClock();
             using (var driver = new BattleDamageNumberDriver(view, NewTmp, clock))
             {
-                driver.OnHitFeedback(Hit(botA, 1, self, 30, HitLocalRole.Caused, Vector3.zero));
+                driver.OnHitFeedback(Hit(botA, 1, self, 30, HitLocalRole.Caused, new Vector3(5f, 1.2f, 0f)));
                 driver.Tick();
-                Vector3 before = driver.TryGetActive(botA, HitLocalRole.Caused).transform.position;
+                Vector3 before = driver.TryGetActive(botA, HitLocalRole.Caused, crit: false).transform.position;
 
                 Assert.IsTrue(view.TryGetView(1, out var botView));
                 Object.DestroyImmediate(botView);                              // 目标视图消失（despawn/回收）
 
                 clock.NowValue += 0.1f;
                 driver.Tick();
-                Vector3 during = driver.TryGetActive(botA, HitLocalRole.Caused).transform.position;
-                Assert.AreEqual(before.x, during.x, 0.05f, "横向冻结于最后锚点（不跳不漂）");
+                Vector3 during = driver.TryGetActive(botA, HitLocalRole.Caused, crit: false).transform.position;
+                Assert.AreEqual(before.x, during.x, 1e-3f, "受击点锚不受视图影响");
                 Assert.Greater(during.y, before.y, "升浮照常继续");
-                Assert.AreNotEqual(Vector3.zero, during, "不瞬移到原点/命中点——冻结非重锚");
+                Assert.AreNotEqual(Vector3.zero, during, "不瞬移到原点——锚定非重锚");
 
                 clock.NowValue += DamageNumberMotion.FadeEndSeconds + 0.2f;
                 driver.Tick();

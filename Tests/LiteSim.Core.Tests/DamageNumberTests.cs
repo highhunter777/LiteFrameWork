@@ -7,9 +7,9 @@ using Xunit;
 namespace LiteSim.Tests
 {
     /// <summary>
-    /// 伤害数字纯逻辑件验收（《命中反馈与伤害数字专项设计》批B §4.2/§8）：聚合器（合并窗口/暴击粘滞/
+    /// 伤害数字纯逻辑件验收（《命中反馈与伤害数字专项设计》批B §4.2/§8）：聚合器（合并窗口/爆头档分离/
     /// 双钟分离/账实分离）、轨道数学（升浮单调、淡出线性、抖动包络、出场缩放、推挤确定性）、
-    /// 样式常量表（承受染红/暴击橙深红/按值分带）、K 简写格式化。纯规则、零引擎（源链接）。
+    /// 样式常量表（承受染红/爆头红与深红/按值分带）、K 简写格式化。纯规则、零引擎（源链接）。
     /// 断言口径：数值一律 Assert.True + 显式容差（xunit 的 Equal(float,float,tolerance) 语义是
     /// 容差不是精度位，易误读——统一手写差值判据，消息即判据文档）。
     /// </summary>
@@ -39,20 +39,45 @@ namespace LiteSim.Tests
         }
 
         [Fact]
-        public void 聚合_窗口内二连击_并进既有_累计且暴击粘滞且双钟各司其职()
+        public void 聚合_窗口内同档二连击_并进既有_累计且双钟各司其职()
         {
             var agg = new DamageNumberAggregator(mergeWindowSeconds: 0.45f);
             agg.MergeOrSpawn(7L, HitLocalRole.Caused, 30, crit: false, now: 1.0, seed: 1);
 
-            var snap = agg.MergeOrSpawn(7L, HitLocalRole.Caused, 25, crit: true, now: 1.2, seed: 99);
+            var snap = agg.MergeOrSpawn(7L, HitLocalRole.Caused, 25, crit: false, now: 1.2, seed: 99);
 
-            Assert.True(snap.Merged, "窗口内命中并进既有条目");
+            Assert.True(snap.Merged, "窗口内同档命中并进既有条目");
             Assert.Equal(55, snap.Value);
-            Assert.True(snap.Crit, "暴击粘滞：普通条目被暴击命中后升级保持");
+            Assert.False(snap.Crit, "普通档合并后仍是普通（无粘滞升级）");
             Near(1.2, snap.LastMergeAt, "淡出钟重置（连击驻留）");
             Near(1.0, snap.SpawnedAt, "出场钟不重置（数字不跳回起点）");
             Assert.Equal(1, snap.Seed);
             Assert.Equal(1, agg.ActiveCount);
+        }
+
+        [Fact]
+        public void 聚合_爆头与普通_分离成条_各并各的()
+        {
+            // 用户裁决："连击合并区分爆头/普通，爆头合爆头的、普通合普通的"——爆头档进合并键。
+            var agg = new DamageNumberAggregator(mergeWindowSeconds: 0.45f);
+            agg.MergeOrSpawn(7L, HitLocalRole.Caused, 30, crit: false, now: 1.0, seed: 1);
+
+            var critFirst = agg.MergeOrSpawn(7L, HitLocalRole.Caused, 50, crit: true, now: 1.1, seed: 2);
+            Assert.False(critFirst.Merged, "爆头不并普通——独立成条");
+            Assert.True(critFirst.Crit);
+            Assert.Equal(50, critFirst.Value);
+            Assert.Equal(2, agg.ActiveCount);
+
+            var normalAgain = agg.MergeOrSpawn(7L, HitLocalRole.Caused, 20, crit: false, now: 1.2, seed: 3);
+            Assert.True(normalAgain.Merged, "普通只并普通");
+            Assert.Equal(50, normalAgain.Value);
+            Assert.False(normalAgain.Crit, "打头再打身体不得把普通条染红（旧粘滞已废）");
+
+            var critAgain = agg.MergeOrSpawn(7L, HitLocalRole.Caused, 10, crit: true, now: 1.3, seed: 4);
+            Assert.True(critAgain.Merged, "爆头只并爆头");
+            Assert.Equal(60, critAgain.Value);
+            Assert.True(critAgain.Crit);
+            Assert.Equal(2, agg.ActiveCount);
         }
 
         [Fact]
@@ -80,9 +105,9 @@ namespace LiteSim.Tests
             agg.MergeOrSpawn(7L, HitLocalRole.Received, 20, false, now: 1.1, seed: 2);
 
             Assert.Equal(2, agg.ActiveCount);
-            Assert.True(agg.TryGet(7L, HitLocalRole.Caused, out var caused), "造成账在册");
+            Assert.True(agg.TryGet(7L, HitLocalRole.Caused, crit: false, out var caused), "造成账在册");
             Assert.Equal(30, caused.Value);
-            Assert.True(agg.TryGet(7L, HitLocalRole.Received, out var received), "承受账在册");
+            Assert.True(agg.TryGet(7L, HitLocalRole.Received, crit: false, out var received), "承受账在册");
             Assert.Equal(20, received.Value);
         }
 
@@ -102,7 +127,7 @@ namespace LiteSim.Tests
             var agg = new DamageNumberAggregator();
             agg.MergeOrSpawn(7L, HitLocalRole.Caused, 10, false, now: 0.0, seed: 1);
 
-            var expired = new List<(long TargetId, HitLocalRole Role)>();
+            var expired = new List<(long TargetId, HitLocalRole Role, bool Crit)>();
             agg.CollectExpired(now: DamageNumberMotion.FadeEndSeconds - 0.01, expired);
             Assert.True(expired.Count == 0, "淡出终点前不到期");
 
@@ -110,9 +135,9 @@ namespace LiteSim.Tests
             // 边界断言用「终点前 1ms / 终点后 1ms」钉窗语义，不钉浮点表示的相等
             agg.CollectExpired(now: (double)DamageNumberMotion.FadeEndSeconds + 0.01, expired);
             Assert.True(expired.Count == 1, "过淡出终点即到期");
-            Assert.Equal((7L, HitLocalRole.Caused), expired[0]);
+            Assert.Equal((7L, HitLocalRole.Caused, false), expired[0]);
 
-            Assert.True(agg.Remove(7L, HitLocalRole.Caused), "摘账成功");
+            Assert.True(agg.Remove(7L, HitLocalRole.Caused, crit: false), "摘账成功");
             Assert.Equal(0, agg.ActiveCount);
 
             agg.CollectExpired(now: 1.11, expired);
@@ -123,7 +148,7 @@ namespace LiteSim.Tests
         public void 聚合_连击驻留_窗口内持续合并_期间永不到期()
         {
             var agg = new DamageNumberAggregator(mergeWindowSeconds: 0.45f);
-            var expired = new List<(long TargetId, HitLocalRole Role)>();
+            var expired = new List<(long TargetId, HitLocalRole Role, bool Crit)>();
 
             double now = 0.0;
             for (int i = 0; i < 5; i++)
@@ -134,7 +159,7 @@ namespace LiteSim.Tests
                 now += 0.4;
             }
 
-            Assert.True(agg.TryGet(7L, HitLocalRole.Caused, out var snap));
+            Assert.True(agg.TryGet(7L, HitLocalRole.Caused, crit: false, out var snap));
             Assert.Equal(50, snap.Value);
         }
 
@@ -154,7 +179,7 @@ namespace LiteSim.Tests
         // ---- 样式 ----
 
         [Fact]
-        public void 样式档_承受染红_造成白_暴击橙与深红且放大()
+        public void 样式档_承受染红_造成白_爆头红与深红且放大()
         {
             var r = new DamageNumberStyleResolver();
 
@@ -166,8 +191,10 @@ namespace LiteSim.Tests
             var received = r.Resolve(10, HitLocalRole.Received, crit: false);
             Assert.True(received.R > received.G + 0.5f, "承受档染红（红分量显著高于绿）");
 
+            // 爆头 = **亮红**（玩家口径"爆头飘字要红"）：红占绝对主导，且与承受档的暗砖红靠明度区分
             var critCaused = r.Resolve(10, HitLocalRole.Caused, crit: true);
-            Assert.True(critCaused.R > critCaused.B + 0.5f, "造成暴击 = 橙（红显著高于蓝）");
+            Assert.True(critCaused.R > critCaused.G + 0.5f, "造成爆头 = 红（红分量显著高于绿）");
+            Assert.True(critCaused.G < received.G, "爆头亮红的绿分量低于承受暗砖红（明度分层：爆头更亮）");
             Assert.True(critCaused.FontSize > caused.FontSize, "暴击放大字号");
 
             var critReceived = r.Resolve(10, HitLocalRole.Received, crit: true);

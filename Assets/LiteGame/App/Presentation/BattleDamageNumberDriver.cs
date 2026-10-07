@@ -22,16 +22,16 @@ namespace LiteGame
     /// 跟随与到期收口——**轨道数学/渲染件可替换**（§5 升级路径：TMP 直渲 → 网格提取 → 合批，
     /// 换渲染件不动本类之外的纯件）。
     ///
-    /// **跟随与朝向**：每帧把 TMP 摆到锚点上方并**转向渲染相机**（billboard）——底件 prefab
+    /// **锚定与朝向**：飘字**锚定受击点**（命中事件的世界位＝弹道命中部位；用户裁决"飘字应该在受击部位飘"，
+    /// 不随实体移动）；每帧把 TMP 摆在锚点上方并**转向渲染相机**（billboard）——底件 prefab
     /// 无 TMP_Billboard 组件、初始旋转 identity，故朝向必须由本驱动每帧写（对局相机是可旋转的
     /// Cinemachine 轨道机，烘焙朝向只在某机位下正确）。**可见正面朝本地 −Z**（TMP 契约），
     /// 故 billboard 传 <c>−toCam</c> 使 −Z 朝向相机；up 取世界上方向（跟随相机俯仰会侧翻）。
     /// 相机来源经<code>cameraOf</code> 注入（对局渲染相机），null 时回落 <c>Camera.main</c> 且不跟随朝向（诚实退化）。
     ///
     /// **生命周期**：实例经 <see cref="ObjectPool{T}"/> 池化（onGet/onRelease 只翻转激活态）；
-    /// 条目到期（聚合器裁决）→ 实例归还＋摘账（账实一致）；目标 despawn/视图回收 →
-    /// 冻结于最后锚点继续淡出（不悬挂、不瞬移）；同屏超 <see cref="Budget"/> → 淘汰最旧并**记日志**
-    /// （不静默丢）。
+    /// 条目到期（聚合器裁决）→ 实例归还＋摘账（账实一致）；受击点锚定后不依赖实体视图——目标
+    /// despawn 无影响（原位淡出，不悬挂）；同屏超 <see cref="Budget"/> → 淘汰最旧并**记日志**（不静默丢）。
     ///
     /// **时钟**：合并窗口与寿命走注入的 <see cref="IWorldClock"/>（世界时钟——VfxService 同款纪律），
     /// **不累加渲染帧 delta**——实测编辑器态 `Time.unscaledDeltaTime` 会整体通胀数倍（背景节流态
@@ -55,10 +55,10 @@ namespace LiteGame
         private readonly Func<Camera> _cameraOf;         // **对局渲染相机**（billboard 面——不是 Camera.main，见下）
         private readonly ObjectPool<GameObject> _pool;
         private readonly DamageNumberAggregator _aggregator = new DamageNumberAggregator();
-        private readonly Dictionary<(long TargetId, HitLocalRole Role), Active> _active =
-            new Dictionary<(long, HitLocalRole), Active>(16);
-        private readonly List<(long TargetId, HitLocalRole Role)> _expired = new List<(long, HitLocalRole)>(8);
-        private readonly List<(long TargetId, HitLocalRole Role)> _tickKeys = new List<(long, HitLocalRole)>(16);
+        private readonly Dictionary<(long TargetId, HitLocalRole Role, bool Crit), Active> _active =
+            new Dictionary<(long, HitLocalRole, bool), Active>(16);
+        private readonly List<(long TargetId, HitLocalRole Role, bool Crit)> _expired = new List<(long, HitLocalRole, bool)>(8);
+        private readonly List<(long TargetId, HitLocalRole Role, bool Crit)> _tickKeys = new List<(long, HitLocalRole, bool)>(16);
         private int _seedCounter;
         private bool _disposed;
         private bool _ticking;     // 诊断探针：Tick 期间命中到达 = 存在未定位的重入面（见 OnHitFeedback）
@@ -66,17 +66,17 @@ namespace LiteGame
         /// <summary>在册飘字数（诊断/预算断言面）。</summary>
         public int ActiveCount => _active.Count;
 
-        /// <summary>在册条目的 TMP 实例（诊断/测试读取面；无条目 = null——只读，不构成运行时依赖口）。</summary>
-        public TextMeshPro TryGetActive(long targetId, HitLocalRole role)
+        /// <summary>在册条目的 TMP 实例（诊断/测试读取面；无条目 = null——只读，不构成运行时依赖口）。
+        /// 爆头档进键：爆头与普通各成一条，读取时按档查询。</summary>
+        public TextMeshPro TryGetActive(long targetId, HitLocalRole role, bool crit)
         {
-            return _active.TryGetValue((targetId, role), out var a) ? a.Tmp : null;
+            return _active.TryGetValue((targetId, role, crit), out var a) ? a.Tmp : null;
         }
 
         private struct Active
         {
             public TextMeshPro Tmp;
-            public int Slot;               // 跟随槽位（-1 = 无跟随，锚定命中点）
-            public Vector3 LastAnchor;     // 最后锚点（槽位视图消失后冻结于此——不悬挂）
+            public Vector3 Anchor;         // 受击点锚（命中事件世界位——用户裁决；不随实体移动）
             public float R, G, B;          // 档位色（alpha 由轨道逐帧给——淡出归轨道数学）
             public float FontSize;
             public float ScaleBoost;
@@ -115,8 +115,8 @@ namespace LiteGame
             if (_ticking)
                 Debug.LogWarning("[Battle] 伤害数字：Tick 期间命中到达（重入面留证）——键快照已容错，请回溯本日志的调用栈");
 
-            // **同键旧代际收口（账实一致，必须在 `MergeOrSpawn` 之前）**：`_active` 的键是 (目标, 角色)，
-            // **同目标同角色的条目共用一键**。间隔射击（超出 `MergeWindowSeconds`）时本帧会起新条目
+            // **同键旧代际收口（账实一致，必须在 `MergeOrSpawn` 之前）**：`_active` 的键是 (目标, 角色, 爆头档)，
+            // **同目标同角色同档的条目共用一键**（爆头与普通各成一条——用户裁决"连击合并区分爆头/普通"）。间隔射击（超出 `MergeWindowSeconds`）时本帧会起新条目
             // （`Merged=false`），若直接覆盖赋值，旧条目的记录就被顶掉 ⇒
             //  ① 旧实例不再被 `Tick` 遍历 → alpha 永不再推进 ⇒ **淡出失效、数字永久残留屏幕**；
             //  ② 旧实例也再不会被 `Release` 按键查到 → **池实例永不归还（泄漏）**。
@@ -130,16 +130,17 @@ namespace LiteGame
             // 建新条目**；若反序（先 MergeOrSpawn 后 Release），会把刚写入的新账一并摘掉 ⇒ 新条目
             // 在 `_active` 有记录、聚合器却无账，`CollectExpired` 判到期后 `TryGet` 落空 ⇒ 淡出被跳过。
             // 收口走 `Release` 同一路径（与 `EvictOldest`/`Dispose` 一致），不新增第二套释放语义。
-            var key = (ctx.EntityId, ctx.LocalRole);
-            bool merging = _aggregator.WillMerge(ctx.EntityId, ctx.LocalRole, _clock.Now);
+            bool crit = ctx.Kind == FrameEventKind.Crit;
+            var key = (ctx.EntityId, ctx.LocalRole, crit);
+            bool merging = _aggregator.WillMerge(ctx.EntityId, ctx.LocalRole, crit, _clock.Now);
             if (!merging && _active.ContainsKey(key)) Release(key);
 
             var snap = _aggregator.MergeOrSpawn(ctx.EntityId, ctx.LocalRole, ctx.Value,
-                ctx.Kind == FrameEventKind.Crit, _clock.Now, _seedCounter++);
+                crit, _clock.Now, _seedCounter++);
 
             if (snap.Merged)
             {
-                ApplyEntry(key, in snap);       // 连击：更新既有条目（文本/档位升级）
+                ApplyEntry(key, in snap);       // 同档连击：更新既有条目（文本累计/按值分带缩放重解析）
                 return;
             }
 
@@ -148,16 +149,12 @@ namespace LiteGame
             var style = _style.Resolve(snap.Value, snap.Role, snap.Crit);
             TextMeshPro tmp = _pool.Acquire().GetComponent<TextMeshPro>();
 
-            // 跟随锚：槽位可解析 → 目标视图位；否则锚定命中点（诚实退化——不造第二视觉源）
-            Vector3 anchor = ctx.WorldPos;
-            if (ctx.Slot >= 0 && _view.TryGetView(ctx.Slot, out var v) && v != null)
-                anchor = v.transform.position;
-
+            // 受击点锚（用户裁决："飘字应该在受击部位飘"）——命中事件世界位（弹道命中部位），
+            // 不随实体移动；视图可用性/目标 despawn 均无影响（本驱动已不依赖实体视图）。
             _active[key] = new Active
             {
                 Tmp = tmp,
-                Slot = ctx.Slot,
-                LastAnchor = anchor,
+                Anchor = ctx.WorldPos,
                 R = style.R, G = style.G, B = style.B,
                 FontSize = style.FontSize,
                 ScaleBoost = style.ScaleBoost,
@@ -166,12 +163,12 @@ namespace LiteGame
             tmp.text = DamageNumberFormatter.Format(snap.Value);
         }
 
-        /// <summary>连击合并落既有实例：累计文本重写、暴击档升级（色/字号/缩放重解析）。</summary>
-        private void ApplyEntry((long, HitLocalRole) key, in DamageNumberSnapshot snap)
+        /// <summary>同档连击合并落既有实例：累计文本重写、样式重解析（爆头档恒定；按值分带缩放随累计值变）。</summary>
+        private void ApplyEntry((long, HitLocalRole, bool) key, in DamageNumberSnapshot snap)
         {
             if (!_active.TryGetValue(key, out var a))
             {
-                _aggregator.Remove(key.Item1, key.Item2);      // 账实对齐：实例已不在（理论不达——防御收账）
+                _aggregator.Remove(key.Item1, key.Item2, key.Item3);   // 账实对齐：实例已不在（理论不达——防御收账）
                 return;
             }
 
@@ -185,7 +182,7 @@ namespace LiteGame
 
         private void EvictOldest()
         {
-            (long, HitLocalRole) oldest = default;
+            (long, HitLocalRole, bool) oldest = default;
             double oldestAt = double.MaxValue;
             foreach (var kv in _active)
             {
@@ -225,20 +222,18 @@ namespace LiteGame
                 {
                     var key = _tickKeys[i];
                     if (!_active.TryGetValue(key, out var a)) continue;               // 快照后被移除（到期/淘汰/重入）→ 容错跳过
-                    if (!_aggregator.TryGet(key.Item1, key.Item2, out var snap)) continue;
+                    if (!_aggregator.TryGet(key.Item1, key.Item2, key.Item3, out var snap)) continue;
 
                     DamageNumberMotion.Evaluate(
                         (float)(now - snap.SpawnedAt), (float)(now - snap.LastMergeAt),
                         snap.Crit, snap.Seed,
                         out float rise, out float push, out float alpha, out float shake, out float pop);
 
-                    if (a.Slot >= 0 && _view.TryGetView(a.Slot, out var v) && v != null)
-                        a.LastAnchor = v.transform.position;                 // 跟随；despawn 后保持最后锚点
-
+                    // 受击点锚（定值——不随实体移动；升浮/推挤/抖动归轨道数学）
                     Vector3 pos = new Vector3(
-                        a.LastAnchor.x + push + shake,
-                        a.LastAnchor.y + DamageNumberMotion.HoverHeight + rise,
-                        a.LastAnchor.z);
+                        a.Anchor.x + push + shake,
+                        a.Anchor.y + DamageNumberMotion.HoverHeight + rise,
+                        a.Anchor.z);
 
                     float camScale = 1f;
                     if (cam != null)
@@ -280,11 +275,11 @@ namespace LiteGame
         }
 
         /// <summary>释放条目：实例归还池（翻转激活态）＋聚合器摘账。</summary>
-        private void Release((long TargetId, HitLocalRole Role) key)
+        private void Release((long TargetId, HitLocalRole Role, bool Crit) key)
         {
             if (!_active.TryGetValue(key, out var a)) return;
             _active.Remove(key);
-            _aggregator.Remove(key.TargetId, key.Role);
+            _aggregator.Remove(key.TargetId, key.Role, key.Crit);
             if (a.Tmp != null) _pool.Release(a.Tmp.gameObject);
         }
 
@@ -293,7 +288,7 @@ namespace LiteGame
             if (_disposed) return;
             _disposed = true;
 
-            var keys = new List<(long, HitLocalRole)>(_active.Keys);
+            var keys = new List<(long, HitLocalRole, bool)>(_active.Keys);
             for (int i = 0; i < keys.Count; i++) Release(keys[i]);
         }
     }

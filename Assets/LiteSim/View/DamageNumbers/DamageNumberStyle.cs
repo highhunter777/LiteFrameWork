@@ -32,13 +32,22 @@ namespace LiteSim.View.DamageNumbers
     }
 
     /// <summary>
-    /// 常量表初版（样式编辑器落地前的唯一单源）：**造成=白、造成暴击=橙、承受=红（染红区分口径）、
-    /// 承受暴击=深红放大**；旁观档落造成色兜底（驱动已滤，不构成第二事实源）。按值分带缩放单独可测。
+    /// 常量表初版（样式编辑器落地前的唯一单源）：**造成=白、爆头=红、承受=红（暗砖）、承受暴击=深红**；
+    /// 暴击档放大字号并带抖动（见 <see cref="DamageNumberMotion"/>）。旁观档落造成色兜底（驱动已滤，
+    /// 不构成第二事实源）。按值分带缩放单独可测。
+    ///
+    /// **爆头取红（玩家口径"爆头飘字要红"）**：<see cref="CausedCritRed"/> 用**亮红**、与
+    /// <see cref="ReceivedRed"/> 的**暗砖红**拉开明度，靠"亮红 + 放大字号 + 抖动"三合一识别。
+    /// **代价须知**：红被爆头与承受两档共用，敌我维度不再靠颜色单独区分（改为亮暗 + 字号 + 抖动）。
+    /// 若后续要完全解耦，应把承受档迁到另一色相（如青/紫）——那会变更既有可读性，须单独裁决。
     /// </summary>
     public sealed class DamageNumberStyleResolver : IDamageNumberStyleResolver
     {
         public static readonly DamageNumberStyle CausedWhite = new DamageNumberStyle(1f, 1f, 1f, 5f, 1f);
-        public static readonly DamageNumberStyle CausedCritOrange = new DamageNumberStyle(1f, 0.55f, 0.12f, 6.5f, 1f);
+
+        /// <summary>造成爆头 = **亮红**（醒目档；与承受档的暗砖红靠明度 + 字号 + 抖动区分）。</summary>
+        public static readonly DamageNumberStyle CausedCritRed = new DamageNumberStyle(1f, 0.14f, 0.14f, 6.5f, 1f);
+
         public static readonly DamageNumberStyle ReceivedRed = new DamageNumberStyle(0.95f, 0.22f, 0.18f, 5f, 1f);
         public static readonly DamageNumberStyle ReceivedCritDeepRed = new DamageNumberStyle(1f, 0.12f, 0.10f, 6.5f, 1f);
 
@@ -46,7 +55,7 @@ namespace LiteSim.View.DamageNumbers
         {
             DamageNumberStyle s = role == HitLocalRole.Received
                 ? (crit ? ReceivedCritDeepRed : ReceivedRed)
-                : (crit ? CausedCritOrange : CausedWhite);
+                : (crit ? CausedCritRed : CausedWhite);
 
             // 按值分带缩放与角色档正交（大伤害无论谁打都更大——"按值缩放"独立语义）
             return new DamageNumberStyle(s.R, s.G, s.B, s.FontSize, s.ScaleBoost * ValueScaleBoost(value));

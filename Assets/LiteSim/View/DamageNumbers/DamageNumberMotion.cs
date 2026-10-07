@@ -14,8 +14,10 @@ namespace LiteSim.View.DamageNumbers
     /// </summary>
     public static class DamageNumberMotion
     {
-        /// <summary>悬浮基高（目标锚点上方——头顶以上，米）。</summary>
-        public const float HoverHeight = 1.55f;
+        /// <summary>受击点上方抬升（米）——飘字**锚定受击部位**（用户裁决："飘字应该在受击部位飘"），
+        /// 本值只把文字抬离受击点一点避免压住命中处（原 1.55 是"实体脚下锚 + 头顶以上"时代的基高，
+        /// 锚点改为受击点后不再适用）。</summary>
+        public const float HoverHeight = 0.25f;
 
         /// <summary>上浮初速（m/s）。</summary>
         public const float RiseSpeed = 1.8f;
