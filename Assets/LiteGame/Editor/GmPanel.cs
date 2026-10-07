@@ -140,8 +140,13 @@ namespace LiteGame.Editor
 
             EditorGUILayout.LabelField(
                 $"免死={TestModeRuntime.NoDeath} 缩放={TestModeRuntime.TimeScale:0.##} 暂停={TestModeRuntime.Paused} "
-                + $"传送={TestModeRuntime.TeleportEnabled} 冻结={TestModeRuntime.BotFrozen} bot={TestModeRuntime.BotCount}",
+                + $"传送={TestModeRuntime.TeleportEnabled} 冻结={TestModeRuntime.BotFrozen} bot={TestModeRuntime.BotCount} "
+                + $"爆头框={TestModeRuntime.DrawHeadshotDebug}",
                 EditorStyles.wordWrappedLabel);
+            // 爆头区域可视化：**对局内现场切**（F11 同款，不必开面板/重进房）
+            bool drawDbg = GUILayout.Toggle(TestModeRuntime.DrawHeadshotDebug,
+                "  爆头区域可视化（黄=爆头线1.7m / 红=头顶2.0m，F11）");
+            if (drawDbg != TestModeRuntime.DrawHeadshotDebug) TestModeRuntime.DrawHeadshotDebug = drawDbg;
             if (Application.isPlaying
                 && UnityEngine.Object.FindObjectsByType<DebugTuner>(FindObjectsInactive.Exclude, FindObjectsSortMode.None).Length == 0)
                 EditorGUILayout.HelpBox("场景未挂 DebugTuner：时间缩放/暂停不会生效（其余开关不受影响）。", MessageType.Warning);

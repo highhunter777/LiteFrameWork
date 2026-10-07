@@ -36,6 +36,7 @@ namespace LiteGame.Editor
             _settings.Paused = EditorGUILayout.ToggleLeft("世界时钟暂停", _settings.Paused);
             _settings.TeleportEnabled = EditorGUILayout.ToggleLeft("定点传送（T 键 / GM 面板按钮 → 准心点）", _settings.TeleportEnabled);
             _settings.BotFrozen = EditorGUILayout.ToggleLeft("bot 冻结（位置每帧回写）", _settings.BotFrozen);
+            _settings.DrawHeadshotDebug = EditorGUILayout.ToggleLeft("爆头区域可视化（每个活体身上常驻画爆头带；F11 可局内切）", _settings.DrawHeadshotDebug);
             _settings.BotCount = EditorGUILayout.IntSlider("bot 数量（补位席位）", _settings.BotCount, 0, 7);
             if (EditorGUI.EndChangeCheck())
                 EditorUtility.SetDirty(_settings);               // 资产随库：可审查、队友共享
@@ -71,6 +72,7 @@ namespace LiteGame.Editor
                 TestModeRuntime.Paused = s.Paused;
                 TestModeRuntime.TeleportEnabled = s.TeleportEnabled;
                 TestModeRuntime.BotFrozen = s.BotFrozen;
+                TestModeRuntime.DrawHeadshotDebug = s.DrawHeadshotDebug;
                 TestModeRuntime.BotCount = s.BotCount;
             }
             TestModeRuntime.Configured = true;

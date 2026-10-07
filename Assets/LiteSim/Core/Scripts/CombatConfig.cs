@@ -9,7 +9,8 @@ namespace LiteSim
     ///   `Assets/GameData/Config/tbcombatnum.bytes`（双端同一份 bin，服务端直读不再有 json 产物）
     ///   → 启动装配调 <see cref="LoadFrom"/> 回填（客户端 `ConfigService`；服务端 `CombatNumbers`
     ///   装载链——**装载即回填**）。
-    ///   **本类的默认值必须与表值一致**（L1 守卫用例 `CombatNumbersTests` 卡住漂移）；装载后两端同值（表数据进 buildHash，不一致直接拒进房）。
+    ///   **表装面的默认值必须与表值一致**（L1 守卫用例 `CombatNumbersTests` 卡住漂移）；装载后两端同值（表数据进 buildHash，不一致直接拒进房）。
+/// - **身位几何（HitscanRadius/HitscanHeight）与逻辑枪口三常量为烘焙常量**（`BodyBake.g.cs`/`MuzzleBake.g.cs`，工具重烘）——不进表、不进 <see cref="LoadFrom"/>，两端同值由同一份生成文件保证。
     /// - 确定性：全部 float/int 常量语义不变（位级确定的输入，无运算）。
     /// </summary>
     public static class CombatConfig
@@ -67,26 +68,26 @@ namespace LiteSim
         public const float FaceTurnRadPerSec = 12f;
 
         // ---- 逻辑枪口（子弹出射点＝本体+朝向系常量偏移——消激光/准心与弹道的原点残差）----
+        // 三常量 = **烘焙值**（`MuzzleBake.g.cs`：采样 prefab 的 `Weapon_Rifle/Muzzle` 锚点 @ AimIdle t=0；
+        // 重烘 = Editor 工具 `MuzzleOffsetBaker`，美术调锚点/换枪后重跑）。
+        // **为何不是"动画枪口"**：枪口位是表现层（服务器无模型/动画；客户端上报＝伪造面＋确定性破坏；
+        // 回溯无历史姿态）——**静态烘焙常量**保留权威/确定/可回溯。参考姿态选 AimIdle 的单套依据：
+        // 射弹时刻视觉姿态单族（瞄准 = AimIdle；腰射开火窗 FireIdle 也以 AimIdle 循环填窗
+        // ——`CombatGirlsAnimationProfile`/`CombatAnimMachine`）。**表化计划**：tb_weapon（G2-P1）落
+        // per-weapon 列时迁表并经 <see cref="LoadFrom"/> 装载（故进 digest——同 FireStanceFrames 先例）。
+
+        /// <summary>逻辑枪口·前向偏移（m，朝向系——烘焙：prefab Weapon_Rifle/Muzzle 锚点 @ AimIdle t=0）。</summary>
+        public const float MuzzleOffsetForward = MuzzleBake.Forward;
+
+        /// <summary>逻辑枪口·右向偏移（m，朝向系右向 = forward 顺时针 90°——同上烘焙值）。</summary>
+        public const float MuzzleOffsetRight = MuzzleBake.Right;
 
         /// <summary>
-        /// 逻辑枪口·前向偏移（m，朝向系——射手 Yaw 前向）。子弹射线原点 = 本体 Pos + 前向×本值 +
-        /// 右向×<see cref="MuzzleOffsetRight"/> + 高度<see cref="MuzzleOffsetHeight"/>。
-        /// **为何不是"动画枪口"**：枪口位是表现层（服务器无模型/动画；客户端上报＝伪造面＋确定性破坏；
-        /// 回溯无历史姿态）——固定常量偏移保留权威/确定/可回溯。取值 ≈ 瞄准态持枪的枪口位
-        /// （视觉 <c>Weapon_Rifle/Muzzle</c> 锚点的近似）——观感校准项。
-        /// **表化计划**：tb_weapon（G2-P1）落 per-weapon 列时迁表并经 <see cref="LoadFrom"/> 装载
-        /// （故进 digest——同 <see cref="FireStanceFrames"/>"表化计划 ⇒ 进 digest"先例口径）。
+        /// 逻辑枪口·高度（m，相对脚底——同上烘焙值）。**由旧"眼高 1.0"常量改为瞄准持枪枪口实高**：
+        /// 命中圆柱 Y 带闸与水平弹道几何以射线原点高度为基准，本值抬高后"高差位水平弹道"的
+        /// 擦顶特例几何随之变化（登记于施工记录；爆头判定不受影响——判据走 AimPoint.Y）。
         /// </summary>
-        public const float MuzzleOffsetForward = 0.35f;
-
-        /// <summary>逻辑枪口·右向偏移（m，朝向系右向 = forward 顺时针 90°——枪在右手侧）。</summary>
-        public const float MuzzleOffsetRight = 0.2f;
-
-        /// <summary>
-        /// 逻辑枪口·高度（m，相对脚底）。**默认 = 眼高**——命中圆柱 y 带闸与爆头带判据
-        /// （<see cref="HeadHitLine"/>）都以射线眼高为基准；默认值保持既有爆头/带闸口径不变（只挪 XZ）。
-        /// </summary>
-        public const float MuzzleOffsetHeight = 1f;
+        public const float MuzzleOffsetHeight = MuzzleBake.Height;
 
         /// <summary>
         /// 逻辑枪口世界位（**出射点单源**——<see cref="ShootingSystem"/> 与瞄准激光收敛端点共用同一实现，
@@ -104,20 +105,45 @@ namespace LiteSim
                 pos.Z + sy * MuzzleOffsetForward - cy * MuzzleOffsetRight);
         }
 
-        /// <summary>命中圆柱半径（m）。</summary>
-        public static float HitscanRadius { get; private set; } = 0.5f;
-
-        /// <summary>命中圆柱高度（m，区间 [Pos.Y, Pos.Y + Height]）。</summary>
-        public static float HitscanHeight { get; private set; } = 2f;
+        /// <summary>
+        /// **命中柱半径（m）——判定宽容裁决常量**："所见即所判"——准心落在视觉角色身上即应可命中。
+        /// 战斗姿态视觉轮廓实测（BakeMesh 真变形、离轴最大半径）：下半身 0.27~0.43、上半身 0.6~0.8
+        /// （手臂/持枪/长发）；取 **0.45** 覆盖肢体与站姿、**放过**枪尖与长发尾（装饰性凸出物不追）。
+        /// 消费：命中判定（<see cref="SimRaycast"/>）、爆头 AimPoint 归属校验（<see cref="ShootingSystem"/>）。
+        /// **与物理半径 <see cref="BodyRadius"/> 解耦**（后者烘焙自 prefab CC、供移动去穿插与视图 CC）——
+        /// 判定宽容不与物理体宽绑定。表化计划：恢复 tb_combat_num.hitscan_radius 列时迁表（进 digest）。
+        /// </summary>
+        public const float HitscanRadius = 0.45f;
 
         /// <summary>
-        /// 爆头带线（m，相对目标脚底）：命中高度 ≥ 目标 Pos.Y + <see cref="HeadHitLine"/> 判爆头。
-        /// 当前 hitscan 为**水平射线**（命中高度 = 射手眼高）——同地平面对枪（眼高 ≈ 半身高 1.0m）
-        /// 永不达线，高差位（高台打低处）才有爆头；俯仰轴归输入面扩展（AimY 未实现）。
-        /// **代码常量（两端编译期同值）——与 <see cref="FaceTurnRadPerSec"/> 同口径刻意不进 digest**
-        /// （无表化计划；表化时改属性进 <see cref="LoadFrom"/> 并纳入 digest）。
+        /// **物理半径（m）——烘焙值**（= prefab CharacterController 半径；`BodyBake.g.cs`，
+        /// 重烘 = Editor 工具 `BodyCylinderBaker`）。消费：移动去穿插（<see cref="MovementSystem"/>）、
+        /// 本地视图 CC（prefab 实值）。**不是命中柱**——命中宽容见 <see cref="HitscanRadius"/>。
         /// </summary>
-        public const float HeadHitLine = 1.7f;   // = HitscanHeight(2f) × 0.85
+        public const float BodyRadius = BodyBake.Radius;
+
+        /// <summary>命中圆柱高度（m，区间 [Pos.Y, Pos.Y + Height]）——**烘焙值**（prefab CC height；
+        /// 物理与命中同高：站姿与判定体上沿一致）；头部带下沿按本值比例派生。</summary>
+        public const float HitscanHeight = BodyBake.Height;
+
+        /// <summary>
+        /// 爆头带线（m，相对目标脚底）——**头部带的下沿**：命中点相对高度 ≥ 本值判爆头。
+        /// 上沿由 <see cref="HitscanHeight"/> 承担（<see cref="SimRaycast"/> 的 Y 带闸把越过头顶的命中
+        /// 判为未命中）⇒ 头部带 = <c>[HeadHitLine, HitscanHeight]</c>，是**区间**而非半空间
+        /// （《固定斜视角射击方案专项设计》§5）。
+        ///
+        /// **三维化后平地可爆头**：弹道方向由「逻辑枪口 → AimPoint」解出（<see cref="SimInputFrame.AimPointY"/>
+        /// 携带准心射线命中点高度——采集侧瞄准点解算，《固定斜视角射击方案专项设计》§3），命中点高度随
+        /// 弹道抬起 ⇒ 同地平面对枪把准心置于目标头部带即爆头。旧二维口径（射线恒水平、命中高度 = 射手眼高
+        /// 1.0m）永远够不到本线。
+        ///
+        /// **取值 = <see cref="HitscanHeight"/> × 0.775（比例单源，≈身高的 22.5%）**：随烘焙身高自动缩放
+        /// （身高 1.8 ⇒ 头带 [1.395, 1.8]，高 0.405m）。俯视角可瞄性考量沿用旧口径：第一人称的 0.3m 窗口
+        /// 在俯视角下屏幕像素太少（"框画出来了但打不中"），按身高比例留 22.5% 仍明显小于躯干
+        /// （爆头应是少数 rewarded 的高难度命中）。调它零副作用：不进 digest，改它不触发两端拒进房。
+        /// **代码常量（两端编译期同值）——与 <see cref="FaceTurnRadPerSec"/> 同口径刻意不进 digest**。
+        /// </summary>
+        public const float HeadHitLine = HitscanHeight * 0.775f;
 
         /// <summary>
         /// 爆头伤害倍率（移位数）：伤害 `&lt;&lt; HeadshotDamageShift`（×2^shift——位级精确，
@@ -147,15 +173,14 @@ namespace LiteSim
         /// <summary>
         /// Luban 表装载接缝：tb_combat_num 读取后调用，逐字段覆写；
         /// 参数未做合法性钳制（来源是策划表而非外部输入）。
+        /// **不含身位几何**（HitscanRadius/HitscanHeight）——两者为烘焙常量（见 <see cref="BodyBake"/>）。
         /// </summary>
-        public static void LoadFrom(float moveSpeed, float gravity, float hitscanRange, float hitscanRadius,
-            float hitscanHeight, int baseDamage, int damageSpread, int entityHp)
+        public static void LoadFrom(float moveSpeed, float gravity, float hitscanRange,
+            int baseDamage, int damageSpread, int entityHp)
         {
             MoveSpeed = moveSpeed;
             Gravity = gravity;
             HitscanRange = hitscanRange;
-            HitscanRadius = hitscanRadius;
-            HitscanHeight = hitscanHeight;
             BaseDamage = baseDamage;
             DamageSpread = damageSpread;
             EntityHp = entityHp;

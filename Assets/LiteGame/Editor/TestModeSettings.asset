@@ -17,4 +17,5 @@ MonoBehaviour:
   Paused: 0
   TeleportEnabled: 1
   BotFrozen: 0
+  DrawHeadshotDebug: 1
   BotCount: 1

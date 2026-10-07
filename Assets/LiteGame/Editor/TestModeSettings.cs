@@ -21,6 +21,9 @@ namespace LiteGame.Editor
         [Tooltip("bot 冻结：权威侧每帧把补位 bot 位置回写到进房时快照（站桩加强，防推挤类漂移）")]
         public bool BotFrozen;
 
+        [Tooltip("爆头区域可视化：对局内在每个活体身上常驻画爆头判定带（黄=下沿1.7m / 红=上沿2.0m）；F11 可局内切")]
+        public bool DrawHeadshotDebug;
+
         [Tooltip("补位 bot 数量（总席位 = 1 + 本值）"), Min(0)]
         public int BotCount = 1;
 

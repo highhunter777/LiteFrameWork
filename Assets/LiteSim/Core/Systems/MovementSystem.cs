@@ -6,8 +6,9 @@ namespace LiteSim
     ///
     /// 障碍碰撞：
     /// - 判定半 = <see cref="SimObstacle"/>（圆/盒，XZ 平面 + y 区间闸）；视觉网格不参与判定（§18 视觉半）；
-    /// - 身体圆柱复用命中判定的同一身位（半径 <see cref="CombatConfig.HitscanRadius"/>、
-    ///   高 <see cref="CombatConfig.HitscanHeight"/>）——一套身体两种用途，不引第二组半径常量；
+    /// - 身体圆柱 = **物理半径**（<see cref="CombatConfig.BodyRadius"/>，烘焙自 prefab CC）与
+    ///   站姿高 <see cref="CombatConfig.HitscanHeight"/>——与命中柱（<see cref="CombatConfig.HitscanRadius"/>，
+    ///   判定宽容裁决常量）**解耦**：推挡/贴墙贴的是身体，不是判定宽容度；
     /// - 解析 = 逐障碍**去穿插**（推出而非预先阻挡）：速度不衰减，下帧输入照写——贴墙滑行是
     ///   积分与去穿插的固有产物，无需显式滑移逻辑；
     /// - 确定性：先全体积分、再统一解析（第二个循环——避免"谁先解析谁占便宜"的顺序耦合），
@@ -79,7 +80,7 @@ namespace LiteSim
             float obTop = ob.Center.Y + ob.Height;
             if (e.Pos.Y >= obTop || bodyTop <= ob.Center.Y) return;
 
-            float r = CombatConfig.HitscanRadius;
+            float r = CombatConfig.BodyRadius;
 
             switch (ob.Kind)
             {

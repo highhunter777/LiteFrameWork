@@ -20,12 +20,20 @@ namespace LiteGame
         public static bool Paused;                  // 世界时钟暂停
         public static bool TeleportEnabled = true;  // 定点传送（T 键 / GM 面板 → 准心点）
         public static bool BotFrozen;               // bot 冻结（权威侧位置每帧回写）
-        public static int BotCount = 1;             // 补位 bot 数量（总席位 = 1 + BotCount）
+        public static int BotCount = 1;             // 补位bot 数量（总席位 = 1 + BotCount）
+
+        /// <summary>
+        /// **身位/爆头调试绘制**开关（默认关）：打开后在每个活体身上常驻画**服务端身位圆柱**
+        /// （半径/高 = 烘焙判定常量，与命中判定同源）与爆头带段（黄圈=下沿、红圈=上沿）——
+        /// 肉眼核对"判定柱在哪、多高算爆头、贴墙距离多远"（绘制件 <see cref="BattleHeadshotDebugDrawer"/>）。
+        /// 纯诊断，不改任何判定；面板可现场开关，不必重进测试房。
+        /// </summary>
+        public static bool DrawHeadshotDebug;
 
         // ---- 请求桥（编辑器面板/热键 → 运行时；一次性标志）----
         public static bool EnterRequested;          // 进入测试模式（主菜单消费 → 进测试房）
         public static bool ExitRequested;           // 退出测试模式（对局内 = 请求离场并关模式）
-        public static bool TeleportRequested;       // 「传送到准心」请求（流程解析目标 → SimTestRules 分发）
+        public static bool TeleportRequested;       //「传送到准心」请求（流程解析目标 → SimTestRules 分发）
 
         /// <summary>默认口径（F10 快捷入口在未配置时套用）：免死开、其余不干预。</summary>
         public static void ApplyDefaults()
@@ -36,6 +44,7 @@ namespace LiteGame
             TeleportEnabled = true;
             BotFrozen = false;
             BotCount = 1;
+            DrawHeadshotDebug = false;
         }
     }
 }
