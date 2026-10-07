@@ -164,7 +164,7 @@ namespace LiteSim
 #endif
 
         /// <summary>
-        /// **爆头柱半径（m）——双柱判定几何的上段柱径**（窄于身体柱 <see cref="HitscanRadius"/>，2026-10-07
+        /// **爆头柱半径（m）——双柱判定几何的上段柱径**（窄于身体柱 <see cref="HitscanRadius"/>，
         /// "爆头柱/非爆头柱"裁决）：实体命中形状 = 身体柱 <c>[0, HeadHitLine) × HitscanRadius</c> ＋
         /// 爆头柱 <c>[HeadHitLine, HitscanHeight] × 本值</c> 的竖直堆叠（<see cref="SimRaycast"/> 求交单源）。
         /// **为什么是命中几何而不是事后水平闸**：AimPoint 是相机射线 ∩ 命中形状的表面点——单柱下瞄头的

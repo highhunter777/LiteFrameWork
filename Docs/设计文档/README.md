@@ -84,6 +84,7 @@
 ### 客户端 UI
 
 - [UI 框架总设计](client/ui/UI框架总设计.md)：Current/Target、冲突裁决、生命周期、资源、导航、验收与 U0～U4 唯一路线。
+- [UI 效果系统专项设计](client/ui/UI效果系统专项设计.md)：UI 动效/粒子/音效统一播放契约、数据化定义、槽位仲裁、预算降级与 E1～E3 分批收口；UiFx/AudioService 为既有通道后端，页面转场与世界 VFX 不在收口范围。
 - [UI 制作规范](client/ui/UI制作规范.md)：资产、布局、渲染、文本和提交规则。
 - [UI 控件 Lua API 参考](client/ui/UI控件LuaAPI参考.md)：现有入口与调用约定、已有 API 与目标 API 对照。
 - [UI 编辑器工具专项设计](client/ui/UI编辑器工具专项设计.md)：绑定生成、样式、校验与制作面板。
