@@ -42,6 +42,31 @@ namespace LiteGame.Editor
                 EditorUtility.SetDirty(_settings);               // 资产随库：可审查、队友共享
 
             EditorGUILayout.Space(6);
+            EditorGUILayout.LabelField("爆头带实时调（运行时覆写，不落盘）", EditorStyles.boldLabel);
+            float height = LiteSim.CombatConfig.HitscanHeight;
+            float shown = LiteSim.CombatConfig.HeadHitLineDevOverride >= 0f
+                ? LiteSim.CombatConfig.HeadHitLineDevOverride : LiteSim.CombatConfig.HeadHitLine;
+            EditorGUI.BeginChangeCheck();
+            float next = EditorGUILayout.Slider("爆头线下沿（m）", shown, 0.9f, height);
+            if (EditorGUI.EndChangeCheck())
+                LiteSim.CombatConfig.HeadHitLineDevOverride = next;   // 判定与 F11 绘制同读 Live——本地服同进程同值
+            EditorGUILayout.LabelField($"比例 {shown / height:F3}    带高 {height - shown:F3} m    当前导出值下沿 {LiteSim.CombatConfig.HeadHitLine:F3} m");
+            using (new EditorGUILayout.HorizontalScope())
+            {
+                if (GUILayout.Button("复位（回导出值）"))
+                    LiteSim.CombatConfig.HeadHitLineDevOverride = -1f;
+                if (GUILayout.Button("导出当前下沿到 HeadBake.g.cs"))
+                {
+                    string report = LiteGame.EditorTools.HeadHitLineTuner.Export(shown / height);
+                    EditorUtility.DisplayDialog("爆头带导出", report, "OK");
+                }
+            }
+            EditorGUILayout.HelpBox(
+                "对局内滑动即生效（判定与 F11 黄圈实时随动，可实弹试 Crit 档）；定型才导出。"
+                + "对局中点导出会触发重编译并中断对局（domain reload）——可先记下数值，出对局后再导。",
+                MessageType.Info);
+
+            EditorGUILayout.Space(6);
             using (new EditorGUILayout.HorizontalScope())
             {
                 if (GUILayout.Button("保存并应用"))

@@ -58,7 +58,7 @@ namespace LiteGame
 
                 Vector3 foot = new Vector3(e.Pos.X, e.Pos.Y, e.Pos.Z);
                 Vector3 top = foot + Vector3.up * bodyTop;                        // 身位上沿（= 顶面）
-                Vector3 headLow = foot + Vector3.up * CombatConfig.HeadHitLine;   // 爆头带下沿
+                Vector3 headLow = foot + Vector3.up * CombatConfig.HeadHitLineLive;   // 爆头带下沿（测试模式滑杆覆写随动）
 
                 // 服务端身位圆柱（完整判定几何）：底/顶圈 + 全高母线
                 DrawCircle(foot, radius, BodyColor);

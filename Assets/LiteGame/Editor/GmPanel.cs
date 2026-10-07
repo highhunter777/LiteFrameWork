@@ -143,9 +143,9 @@ namespace LiteGame.Editor
                 + $"传送={TestModeRuntime.TeleportEnabled} 冻结={TestModeRuntime.BotFrozen} bot={TestModeRuntime.BotCount} "
                 + $"爆头框={TestModeRuntime.DrawHeadshotDebug}",
                 EditorStyles.wordWrappedLabel);
-            // 爆头区域可视化：**对局内现场切**（F11 同款，不必开面板/重进房）
+            // 爆头区域可视化：**对局内现场切**（F11 同款，不必开面板/重进房）——标签数值动态读常量（随烘焙/导出值走，不再手写漂移）
             bool drawDbg = GUILayout.Toggle(TestModeRuntime.DrawHeadshotDebug,
-                "  爆头区域可视化（黄=爆头线1.7m / 红=头顶2.0m，F11）");
+                $"  爆头区域可视化（黄=爆头线{LiteSim.CombatConfig.HeadHitLineLive:F2}m / 红=头顶{LiteSim.CombatConfig.HitscanHeight:F1}m，F11）");
             if (drawDbg != TestModeRuntime.DrawHeadshotDebug) TestModeRuntime.DrawHeadshotDebug = drawDbg;
             if (Application.isPlaying
                 && UnityEngine.Object.FindObjectsByType<DebugTuner>(FindObjectsInactive.Exclude, FindObjectsSortMode.None).Length == 0)

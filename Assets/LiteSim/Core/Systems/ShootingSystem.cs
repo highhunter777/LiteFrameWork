@@ -141,7 +141,7 @@ namespace LiteSim
                     // 单方面把上界收紧为 `<` 会与 Y 带闸分叉（闸放行、爆头判据落空 ⇒ 判为未命中）。
                     // 上界"越过头顶"的漏洞由 SimRaycast 的 Y 带闸（`yHit > 顶` 排除）承担。
                     float relY = judgeY - hit.Pos.Y;
-                    bool headshot = relY >= CombatConfig.HeadHitLine;
+                    bool headshot = relY >= CombatConfig.HeadHitLineLive;   // Live：测试模式滑杆覆写优先（release 恒 = HeadHitLine）
                     if (headshot) dmg <<= CombatConfig.HeadshotDamageShift;
 
                     s.Cmds.Write(SimCommandKind.Damage, hit.Id, shooter.Id, dmg);

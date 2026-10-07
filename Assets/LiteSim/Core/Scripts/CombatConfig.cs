@@ -10,7 +10,7 @@ namespace LiteSim
     ///   → 启动装配调 <see cref="LoadFrom"/> 回填（客户端 `ConfigService`；服务端 `CombatNumbers`
     ///   装载链——**装载即回填**）。
     ///   **表装面的默认值必须与表值一致**（L1 守卫用例 `CombatNumbersTests` 卡住漂移）；装载后两端同值（表数据进 buildHash，不一致直接拒进房）。
-/// - **身位几何（HitscanRadius/HitscanHeight）与逻辑枪口三常量为烘焙常量**（`BodyBake.g.cs`/`MuzzleBake.g.cs`，工具重烘）——不进表、不进 <see cref="LoadFrom"/>，两端同值由同一份生成文件保证。
+/// - **身位几何（HitscanRadius/HitscanHeight）、逻辑枪口三常量与爆头带比例（HeadBake）为烘焙/导出常量**（`BodyBake.g.cs`/`MuzzleBake.g.cs`/`HeadBake.g.cs`，工具重烘）——不进表、不进 <see cref="LoadFrom"/>，两端同值由同一份生成文件保证。
     /// - 确定性：全部 float/int 常量语义不变（位级确定的输入，无运算）。
     /// </summary>
     public static class CombatConfig
@@ -137,13 +137,31 @@ namespace LiteSim
         /// 弹道抬起 ⇒ 同地平面对枪把准心置于目标头部带即爆头。旧二维口径（射线恒水平、命中高度 = 射手眼高
         /// 1.0m）永远够不到本线。
         ///
-        /// **取值 = <see cref="HitscanHeight"/> × 0.775（比例单源，≈身高的 22.5%）**：随烘焙身高自动缩放
-        /// （身高 1.8 ⇒ 头带 [1.395, 1.8]，高 0.405m）。俯视角可瞄性考量沿用旧口径：第一人称的 0.3m 窗口
-        /// 在俯视角下屏幕像素太少（"框画出来了但打不中"），按身高比例留 22.5% 仍明显小于躯干
+        /// **取值 = <see cref="HitscanHeight"/> × <see cref="HeadBake.Ratio"/>（比例单源）**：随烘焙身高自动缩放
+        /// （身高 1.8 × 0.775 ⇒ 头带 [1.395, 1.8]，高 0.405m）。俯视角可瞄性考量沿用旧口径：第一人称的 0.3m 窗口
+        /// 在俯视角下屏幕像素太少（"框画出来了但打不中"），按身高比例留带仍明显小于躯干
         /// （爆头应是少数 rewarded 的高难度命中）。调它零副作用：不进 digest，改它不触发两端拒进房。
-        /// **代码常量（两端编译期同值）——与 <see cref="FaceTurnRadPerSec"/> 同口径刻意不进 digest**。
+        /// **代码常量（两端编译期同值）——与 <see cref="FaceTurnRadPerSec"/> 同口径刻意不进 digest**；
+        /// 比例的重调 = 工具 <c>HeadHitLineTuner</c>（编辑器拖带 / 测试模式滑杆）导出 <see cref="HeadBake"/>。
         /// </summary>
-        public const float HeadHitLine = HitscanHeight * 0.775f;
+        public const float HeadHitLine = HitscanHeight * HeadBake.Ratio;
+
+#if UNITY_EDITOR || DEVELOPMENT_BUILD || LITEFRAMEWORK_DEBUG
+        /// <summary>
+        /// **测试模式实时预览覆写**（爆头线下沿，世界 Y；&lt; 0 = 不覆写）：对局内经测试面板滑杆实时调带——
+        /// 判定（<see cref="ShootingSystem"/>）与 F11 身位绘制同读 <see cref="HeadHitLineLive"/>，
+        /// 本地服与预测同进程同值，滑杆一动即见 Crit 档变化。**仅开发三宏内存在**（release 随宏编译剥离）；
+        /// 定型值经工具导出 <see cref="HeadBake"/>——覆写不落盘、不进 digest/快照（测试沙箱件，与免死/缩放同性质）；
+        /// 对局中改动后回滚重放按当帧值重判（沙箱可接受），复位按钮置回 -1。
+        /// </summary>
+        public static float HeadHitLineDevOverride = -1f;
+
+        /// <summary>爆头线下沿的**实时取值**：测试模式覆写优先，否则烘焙比例派生值。</summary>
+        public static float HeadHitLineLive => HeadHitLineDevOverride >= 0f ? HeadHitLineDevOverride : HeadHitLine;
+#else
+        /// <summary>爆头线下沿的**实时取值**（release：恒 = <see cref="HeadHitLine"/>——覆写面随三宏编译剥离）。</summary>
+        public static float HeadHitLineLive => HeadHitLine;
+#endif
 
         /// <summary>
         /// 爆头伤害倍率（移位数）：伤害 `&lt;&lt; HeadshotDamageShift`（×2^shift——位级精确，
