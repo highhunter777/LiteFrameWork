@@ -86,6 +86,13 @@ namespace LiteSim.View
 
         // ---- IVFXService ----
 
+        public VfxHandle PlayAt(string name, Vector3 position, float scale = 1f)
+        {
+            VfxHandle handle = Play(name, attach: null, follow: false, scale);
+            if (handle.IsValid) _table.SetPosition(handle.Id, position);
+            return handle;
+        }
+
         public VfxHandle Play(string name, Transform attach, bool follow, float scale = 1f)
         {
             if (IsShutdown)
@@ -296,6 +303,20 @@ namespace LiteSim.View
                 _created++;
                 return UnityEngine.Object.Instantiate(prefab);
             }, parent);
+
+            // 落位（池复用不残留）：
+            // - 跟随：挂点**本地归零**（束/火光贴挂点出射——池取回件可能带着上一轮的局部位/转）；
+            // - 非跟随 + 显式世界位（PlayAt）：写世界坐标（弹着"打哪留哪"）；
+            // - 非跟随 + 无位（旧 Play 形态）：保持池内原位——旧行为兼容。
+            if (inst.Follow && inst.Attach != null)
+            {
+                go.transform.localPosition = Vector3.zero;
+                go.transform.localRotation = Quaternion.identity;
+            }
+            else if (inst.HasPosition)
+            {
+                go.transform.position = inst.Position;
+            }
 
             go.transform.localScale = Vector3.one * inst.Scale;
             inst.Go = go;

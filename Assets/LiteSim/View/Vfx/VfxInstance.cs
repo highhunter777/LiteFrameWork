@@ -17,6 +17,13 @@ namespace LiteSim.View
         /// <summary>true = 跟随挂点（SetParent 挂点）；false = 落世界容器（不随实体移动）。</summary>
         public bool Follow;
 
+        /// <summary>显式世界落点（<c>PlayAt</c> 用；<see cref="HasPosition"/> = false 时忽略——
+        /// 旧 <c>Play(follow:false)</c> 形态不带位，保持池内原位）。</summary>
+        public UnityEngine.Vector3 Position;
+
+        /// <summary>是否带显式世界落点（落位时写一次；非跟随特效的"打哪留哪"）。</summary>
+        public bool HasPosition;
+
         public float Scale;
 
         /// <summary>实例对象；**null = 加载在途**（pending）。</summary>

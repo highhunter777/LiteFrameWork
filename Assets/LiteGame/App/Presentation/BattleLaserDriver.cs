@@ -190,7 +190,7 @@ namespace LiteGame
             if (_mount != null && _mountView == view) return _mount;
 
             _mountView = view;
-            _mount = FindDescendant(view.transform, "Muzzle");
+            _mount = WeaponMounts.FindMuzzle(view.transform);   // 挂点解析单源（枪口火光同用）
             return _mount;
         }
 
@@ -203,19 +203,6 @@ namespace LiteGame
             _beam.transform.localPosition = Vector3.zero;
             _beam.transform.localRotation = Quaternion.identity;
             _beam.transform.localScale = Vector3.one;
-        }
-
-        /// <summary>深度找子（Transform.Find 只认全路径；挂载点深度随骨架走——按名遍历）。</summary>
-        private static Transform FindDescendant(Transform root, string name)
-        {
-            for (int i = 0; i < root.childCount; i++)
-            {
-                Transform child = root.GetChild(i);
-                if (child.name == name) return child;
-                Transform found = FindDescendant(child, name);
-                if (found != null) return found;
-            }
-            return null;
         }
 
         public void Dispose()

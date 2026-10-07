@@ -24,6 +24,11 @@ namespace LiteSim.View
         /// <summary>播放：名 → 资源（"命名即引用"）。返回无效句柄 = 被降级跳过/超预算拒绝/名为空。</summary>
         VfxHandle Play(string name, Transform attach, bool follow, float scale = 1f);
 
+        /// <summary>世界位播放（不跟随）：落点固定在世界坐标 <paramref name="position"/>——
+        /// 弹着/爆炸这类"打在哪就留在哪"的一次性特效走本口（<see cref="Play"/> 的非跟随形态不带位）。
+        /// 返回无效句柄的语义同 <see cref="Play"/>。</summary>
+        VfxHandle PlayAt(string name, Vector3 position, float scale = 1f);
+
         /// <summary>停止并回收（**幂等**：无效句柄、已回收、从未存在都静默 no-op）。</summary>
         void Stop(VfxHandle handle);
 
