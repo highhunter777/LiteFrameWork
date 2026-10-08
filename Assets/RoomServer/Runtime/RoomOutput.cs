@@ -1,4 +1,6 @@
+using System;
 using System.Collections.Generic;
+using LiteSim;
 
 namespace RoomServer.Runtime
 {
@@ -104,15 +106,42 @@ namespace RoomServer.Runtime
         public readonly long Seed;
         public readonly int FinalFrame;
         public readonly ShutdownReason EndReason;
-        public readonly int[] SeatPlayerIds;
+        private readonly int[] _seatPlayerIds;
+        private readonly PlayerMatchResult[] _players;
+        public int[] SeatPlayerIds => (int[])_seatPlayerIds.Clone();
+        public PlayerMatchResult[] Players => (PlayerMatchResult[])_players.Clone();
+        public readonly long WinnerEntityId;
+        public readonly MatchEndReason GameplayEndReason;
 
-        public MatchResultSummary(string matchId, long seed, int finalFrame, ShutdownReason endReason, int[] seatPlayerIds)
+        public MatchResultSummary(string matchId, long seed, int finalFrame, ShutdownReason endReason, int[] seatPlayerIds,
+            long winnerEntityId = 0L, MatchEndReason gameplayEndReason = MatchEndReason.None,
+            PlayerMatchResult[] players = null)
         {
             MatchId = matchId;
             Seed = seed;
             FinalFrame = finalFrame;
             EndReason = endReason;
-            SeatPlayerIds = seatPlayerIds;
+            _seatPlayerIds = seatPlayerIds == null ? Array.Empty<int>() : (int[])seatPlayerIds.Clone();
+            _players = players == null ? Array.Empty<PlayerMatchResult>() : (PlayerMatchResult[])players.Clone();
+            WinnerEntityId = winnerEntityId;
+            GameplayEndReason = gameplayEndReason;
+        }
+    }
+
+    /// <summary>结算冻结的单玩家数据；只含值类型，输入/输出数组均与 Sim 分离。</summary>
+    public readonly struct PlayerMatchResult
+    {
+        public int PlayerId { get; }
+        public long EntityId { get; }
+        public int Kills { get; }
+        public int Deaths { get; }
+
+        public PlayerMatchResult(int playerId, long entityId, int kills, int deaths)
+        {
+            PlayerId = playerId;
+            EntityId = entityId;
+            Kills = kills;
+            Deaths = deaths;
         }
     }
 
@@ -140,12 +169,16 @@ namespace RoomServer.Runtime
         public readonly long Seed;
         public readonly int Frame;
         public readonly uint ConfigHash;
+        public readonly MatchStateData MatchState;
+        public readonly string MatchId;
 
-        public MatchStarted(long seed, int frame, uint configHash)
+        public MatchStarted(long seed, int frame, uint configHash, MatchStateData matchState = default, string matchId = null)
         {
             Seed = seed;
             Frame = frame;
             ConfigHash = configHash;
+            MatchState = matchState;
+            MatchId = matchId;
         }
     }
 

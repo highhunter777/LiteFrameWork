@@ -24,7 +24,7 @@ namespace LiteGame.Tests.EditMode
     {
         private static readonly string[] DataFiles =
         {
-            "tbitemconfig", "tbmovementconfig", "tbuiform", "tbcontententry", "tbstrategy", "tbcombatnum",
+            "tbitemconfig", "tbmovementconfig", "tbentityconfig", "tbuiform", "tbcontententry", "tbstrategy", "tbcombatnum",
             "tbweapon",
         };
 
@@ -57,12 +57,14 @@ namespace LiteGame.Tests.EditMode
             Assert.IsNotNull(row, "tbcombatnum 缺 id=1 行（单行数值表）");
 
             Assert.AreEqual(CombatConfig.MoveSpeed, row.MoveSpeed, 1e-6f);
-            Assert.AreEqual(CombatConfig.Gravity, row.Gravity, 1e-6f);
+            CombatValues values = SimConfigMapper.BuildCombatValues(tables.Tbcombatnum,
+                tables.Tbmovementconfig, tables.Tbentityconfig);
+            Assert.AreEqual(CombatConfig.Gravity, values.Gravity, 1e-6f);
             Assert.AreEqual(CombatConfig.HitscanRange, row.HitscanRange, 1e-6f);
             // 身位半径/高度不属表——烘焙常量（BodyBake：prefab CC 单源；表列已退役）
             Assert.AreEqual(CombatConfig.BaseDamage, row.BaseDamage);
             Assert.AreEqual(CombatConfig.DamageSpread, row.DamageSpread);
-            Assert.AreEqual(CombatConfig.EntityHp, row.EntityHp);
+            Assert.AreEqual(CombatConfig.EntityHp, values.EntityHp);
 
             // 武器表（tb_weapon）与 Sim 侧运行时值一致——客户端表链路的武器面钉子
             // （数值语义的完整对账另有 LiteNet.Tests/WeaponTableTests 双端守卫）

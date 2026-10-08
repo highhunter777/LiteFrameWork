@@ -40,6 +40,10 @@ namespace LiteNet.Protocol
                 CorpseFrames = e.CorpseFrames,             // 尸体期剩余（corpse_frames=20：公共面且进公共口径
                 //   checksum——不携带则客户端重建恒为 0，尸体期内每帧假和解）
                 ActionId = activeAction.ActionId,
+                SpawnPointIndex = e.SpawnPointIndex,
+                RespawnFrame = e.RespawnFrame,
+                InvulnerableUntilFrame = e.InvulnerableUntilFrame,
+                LifeStartFrame = e.LifeStartFrame,
                 ActionPhase = (int)activeAction.Phase,
                 ActionStartFrame = activeAction.StartFrame,
             };
@@ -70,6 +74,10 @@ namespace LiteNet.Protocol
                 FireStanceFrames = (byte)d.FireStanceFrames,   // 开火驻留窗（FromDelta 还原进 EntitySlot——回滚基线携带）
                 CorpseFrames = (byte)d.CorpseFrames,           // 尸体期（同上：公共口径 checksum 覆盖它，
                 //   还原缺失即和解锚点与权威值结构性不等）
+                SpawnPointIndex = d.SpawnPointIndex,
+                RespawnFrame = d.RespawnFrame,
+                InvulnerableUntilFrame = d.InvulnerableUntilFrame,
+                LifeStartFrame = d.LifeStartFrame,
             };
         }
 
@@ -109,15 +117,22 @@ namespace LiteNet.Protocol
 
         /// <summary>Match → wire（字段清单单源；客户端应用见 <see cref="SnapshotReassembler"/>）。</summary>
         public static Proto.MatchStateDelta PackMatch(SimWorldState s)
+            => PackMatch(s.Match);
+
+        public static Proto.MatchStateDelta PackMatch(in MatchStateData match)
         {
             return new Proto.MatchStateDelta
             {
-                Phase = s.Match.Phase,
-                Team = s.Match.Team,
-                Score = s.Match.Score,
-                Timer = s.Match.Timer,
-                Round = s.Match.Round,
-                Winner = s.Match.Winner,
+                Phase = match.Phase,
+                Team = match.Team,
+                Score = match.Score,
+                Timer = match.Timer,
+                Round = match.Round,
+                Winner = match.Winner,
+                KillLimit = match.KillLimit,
+                RespawnDelayFrames = match.RespawnDelayFrames,
+                SpawnProtectionFrames = match.SpawnProtectionFrames,
+                EndReason = (int)match.EndReason,
             };
         }
 

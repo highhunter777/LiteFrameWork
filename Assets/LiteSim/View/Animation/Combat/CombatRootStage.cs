@@ -41,10 +41,19 @@ namespace LiteSim.View.Animation
         public void OnUpdate(IStageHost<CharacterAnimId, CombatAnimReq> m, float elapseSeconds)
         {
             // 死亡裁决（**压过一切**——含已挂起的事件路由，last-wins 后发者赢）：
-            // 死亡不可逆 → 恒驻 Dead 叶；窗充值/退根/降级在死亡期全不发生
+            // 死亡期恒驻 Dead 叶；复活后按新的存活事实退出
             if (_ctx.IsDead)
             {
                 if (m.Current != CharacterAnimId.Dead) m.Request(CharacterAnimId.Dead);
+                return;
+            }
+
+            if (m.Current == CharacterAnimId.Dead)
+            {
+                _window = 0f;
+                m.Request(_ctx.IsAiming
+                    ? (_ctx.IsMoving ? CharacterAnimId.AimWalk : CharacterAnimId.AimIdle)
+                    : (_ctx.IsMoving ? CharacterAnimId.Moving : CharacterAnimId.Idle));
                 return;
             }
 

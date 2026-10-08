@@ -263,7 +263,7 @@ namespace LiteNet.Tests
             Assert.Equal(1, host.Ops.SettlementsReady);
             Assert.Equal(1, host.Ops.SettlementsJournaled);   // 销毁前输出已应用（结算事实不丢）
             Assert.Single(outbox.Entries);
-            Assert.Equal("Room-D", outbox.Entries[0].MatchId);
+            Assert.Equal(h.t.LastStartGame(1).MatchId, outbox.Entries[0].MatchId);
             Assert.Equal(0, host.RoomCount);                  // 终态房间已销毁（§42）
             Assert.Equal(1, host.Ops.RoomsDestroyed);
         }
@@ -293,7 +293,7 @@ namespace LiteNet.Tests
             Assert.True(host.WorkerPoolStopped);
             Assert.True(h.t.Disposed);
             Assert.Single(outbox.Entries);
-            Assert.Equal("Room-X", outbox.Entries[0].MatchId);
+            Assert.Equal(h.t.LastStartGame(1).MatchId, outbox.Entries[0].MatchId);
             Assert.Equal(ShutdownReason.AllPlayersLeft, outbox.Entries[0].EndReason);
         }
 

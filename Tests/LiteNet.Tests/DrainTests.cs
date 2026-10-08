@@ -342,7 +342,7 @@ namespace LiteNet.Tests
                 using (var restarted = FileSettlementOutbox.Open(journal, 16))
                 {
                     Assert.Equal(1, restarted.Count);
-                    Assert.Equal("Room-A", restarted.ListPending()[0].MatchId);
+                    Assert.Equal(t.LastStartGame(1).MatchId, restarted.ListPending()[0].MatchId);
                 }
             }
             finally

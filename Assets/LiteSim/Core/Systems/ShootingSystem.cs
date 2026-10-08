@@ -4,14 +4,27 @@ namespace LiteSim
     /// 射击判定系统（§3.3 顺序第 3 位，§3.4 hitscan）：
     /// 实体圆柱 + **静态障碍**取最近交点（几何单源 <see cref="SimRaycast"/>，与瞄准激光同源）；
     /// 命中实体 → Cmds.Write(Damage)；开火/命中 → Events.Write(Fire/Hit)；
-    /// **障碍更近 → 子弹被截停**（只写 Fire，不写 Damage/Hit——本批起子弹不再穿墙；
+    /// **障碍更近 → 子弹被截停**（只写 Fire，不写 Damage/Hit——子弹不穿墙；
     /// 与障碍并列（同 t）时实体优先——"墙面前的人"优先命中）。
-    /// 本系统是唯一消费 RngState 的系统（确定性审计写在签名上——伤害浮动 ±1）；
-    /// 打空/被墙截停不消耗 RngState（只有真实命中才进入伤害分支）。
+    ///
+    /// **本系统是唯一消费 RngState 的系统（确定性审计写在签名上）**，消费点两处：
+    /// ① **散布偏转**（每弹丸 2 笔：偏转角 + 方位角——<see cref="SimSpread"/>；spread=0 的武器
+    /// 零消耗、方向恒等）② **伤害浮动 ±DamageSpread**（每命中 1 笔）。
+    /// 打空/被墙截停不退散布笔（偏转在求交之前——被截停的弹丸已消费其偏转随机数）；
+    /// 无效开火（无点）两处都不消费。
+    ///
+    /// **多弹丸（tb_weapon.pellets）**：一次扣扳机 = 一次 <see cref="WeaponSystem.TryConsumeShot"/>
+    /// （弹药/节拍/ShotSeq/开火窗/Fire 事件各一次）+ **每弹丸独立**「散布偏转 → 实体/障碍求交 →
+    /// 伤害/爆头判定」——霰弹枪 8 弹丸逐条 Damage/Hit（弹丸序恒定 ⇒ 确定性）。
+    /// **散布口径**：表值 spread = 瞄准态最大偏转角（腰射 × <see cref="CombatConfig.HipSpreadFactor"/>；
+    /// "瞄准中"取 <see cref="EntityFlags.Aiming"/>——InputSystem 本帧先跑已覆写）。
     ///
     /// **服务器回溯**：LagCompensator 会把本系统**单独**跑在历史帧状态上（不 Step），
     /// 因此本系统必须满足两条：① 不改 Frame/时序；② 只读输入 + 写 Cmds/Events/RngState +
     /// 槽位开火窗（FireStanceFrames——与 Fire 事件同点置窗；回溯副本上的写入随副本丢弃，不入权威态）。
+    /// 回溯输入带 <see cref="SimInputFrame.ButtonFireFlag"/>：**跳过武器资源门**（节拍/弹匣/换弹/切枪/
+    /// 半自动——权威帧已消费过，回溯只补几何判定；不跳会被"视帧上节拍未到"拦截持续火力——
+    /// 600rpm 连发第 2 发起的回溯帧 NextFireFrame 在未来）。武器定义仍取回溯帧在册行（伤害/射程/弹丸数）。
     /// 回溯判定用**静态地图**（障碍不随帧变化——历史帧与当前帧同一份），实体位取历史帧位。
     /// 回调方负责还原 RngState（回溯判定不该消费权威随机数）。
     /// </summary>
@@ -20,6 +33,7 @@ namespace LiteSim
         public static void Run(SimWorldState s, in SimMapData map, SimInputFrame[] inputs, in CombatValues values,
             WeaponTable weapons)
         {
+            if (s.Match.Phase == SimMatchPhase.Finished) return; // lint-allow R3（整数阶段）
             for (int i = 0; i < inputs.Length; i++)
             {
                 if ((inputs[i].Buttons & SimInputFrame.ButtonFire) == 0u) continue;
@@ -30,14 +44,20 @@ namespace LiteSim
                 // 死亡射手不开火（Hp≤0：窗/事件/命中判定全跳过——尸体不受操控）
                 if (shooter.Hp <= 0) continue;
 
-                // **武器门**（WeaponSystem 单源）：已装备实体需过"节拍 ∧ 弹匣 ∧ 非换弹/切枪"——
+                // **武器门**（WeaponSystem 单源）：已装备实体需过"节拍 ∧ 弹匣 ∧ 非换弹/切枪 ∧ 半自动扳机"——
                 // 拦截发生在**一切副作用之前**（不写 Fire 事件、不置开火窗、不消费 RngState）；
-                // 该帧不开火 = 整条跳过。伤害/射程随武器表（tb_weapon）。
+                // 该帧不开火 = 整条跳过。伤害/射程/弹丸数随武器表（tb_weapon）。
+                // **回溯补判**（ButtonFireFlag）：跳过资源门只取武器定义——权威帧已扣过资源，
+                // 回溯帧上重查节拍/弹匣只会错杀（见类注释）。
                 // 未装备实体（测试/沙盒直调本系统的形态）：维持旧行为（逐帧可开火 + 兜底伤害/射程）。
+                bool fireFlag = (inputs[i].Buttons & SimInputFrame.ButtonFireFlag) != 0u;
                 bool equipped = WeaponSystem.IsEquipped(s, shooterSlot, weapons, out WeaponDef wdef, out _);
-                if (equipped && !WeaponSystem.TryConsumeShot(s, shooterSlot, s.Frame, weapons, out wdef)) continue;
+                if (equipped && !fireFlag && !WeaponSystem.TryConsumeShot(s, shooterSlot, s.Frame, weapons, out wdef)) continue;
+                if (!fireFlag) shooter.InvulnerableUntilFrame = 0;
                 float range = equipped ? wdef.Range : values.HitscanRange;
                 int baseDamage = equipped ? wdef.Damage : values.BaseDamage;
+                int pellets = equipped ? wdef.Pellets : 1;
+                if (pellets < 1) pellets = 1;
 
                 // **判定方向 = 从逻辑枪口指向 AimPoint**（AimPoint 单口径，所见即所判——
                 // 《固定斜视角射击方案专项设计》§5/§4）。
@@ -73,26 +93,6 @@ namespace LiteSim
                     else { hasPoint = false; }                     // 与枪口重合 → 无效开火
                 }
 
-                // 无效开火（无点/与枪口重合）：开火窗与 Fire 事件照写（节奏/表现语义不变），不产命中
-                if (!hasPoint)
-                {
-                    shooter.FireStanceFrames = (byte)CombatConfig.FireStanceFrames;
-                    s.Events.Write(FrameEventKind.Fire, shooter.Id, 0L, 0, shooter.Pos);
-                    continue;
-                }
-
-                // 判定单源（SimRaycast）：实体圆柱最近者 + 障碍最近者取近——
-                // 障碍更近 ⇒ 截停（实体命中与并列时实体优先：障碍仅以严格更近获胜）。
-                // **实体走三维入口（带 dy）**；障碍保持 2.5D（关卡障碍为地面级圆/盒，三维化无收益——
-                // 见专项设计 §4.1「仅实体圆柱三维化」）。
-                SimRaycast.RaycastEntities(s, shooterSlot, in muzzle,
-                    new SimVector3(dx, dy, dz), range, out int hitSlot, out float hitT);
-                // 障碍仍在XZ 平面按水平距离求解⇒**须折回三维参数**才能与 hitT 同量纲比较
-                // （hitT 是沿三维单位方向的长度；障碍 t 是水平距离）。
-                bool blockedByObstacle = RaycastObstacles3D(map, muzzle.X, muzzle.Y, muzzle.Z,
-                    dx, dz, dy, range, out float obstacleT)
-                    && (hitSlot < 0 || obstacleT < hitT);
-
                 // 开火驻留窗置满（与 Fire 事件**同点**——View 侧窗口同触发同长度同刷新，
                 // 事件刷新制重置满窗、上限即窗长；限速由 InputSystem 次帧起生效——本系统在输入之后跑）。
                 // 服务器回溯：本字段随回溯副本丢弃，不入权威态——契约见类注释②。
@@ -100,25 +100,63 @@ namespace LiteSim
 
                 s.Events.Write(FrameEventKind.Fire, shooter.Id, 0L, 0, shooter.Pos);
 
-                if (hitSlot >= 0 && !blockedByObstacle)
+                // 无效开火（无点/与枪口重合）：窗与 Fire 事件照写（节奏/表现语义不变），不产命中
+                if (!hasPoint) continue;
+
+                // **散布**（一次扣扳机算一次口径——每弹丸各自偏转；瞄准态取本帧 Flags，回溯取历史帧）：
+                // 表值 = 瞄准态最大偏转角；腰射 × HipSpreadFactor（"瞄准降低散布，腰射反之"）。
+                // spread=0 ⇒ 零随机消耗、每弹丸方向恒等（与无散布行为位级一致）。
+                float spreadDeg = equipped ? wdef.Spread : 0f;
+                if ((shooter.Flags & EntityFlags.Aiming) == 0u) spreadDeg *= CombatConfig.HipSpreadFactor;
+                float spreadRad = spreadDeg * SimSpread.DegToRad;
+
+                // **弹丸环**（pellets=1 即单弹丸原口径）：每弹丸独立「偏转 → 求交 → 伤害」；
+                // 弹丸序恒定（0..pellets-1）⇒ 随机流逐位确定。
+                var aimDir = new SimVector3(dx, dy, dz);
+                for (int p = 0; p < pellets; p++)
                 {
+                    var dir = aimDir;
+                    if (spreadRad > 0f)
+                    {
+                        var rng = new SimRng(s.RngState);
+                        float angle = rng.NextFloat01() * spreadRad;      // 偏转角：均匀 [0, spread]
+                        float azimuth = rng.NextFloat01() * SimTrig.TwoPi; // 方位角：均匀 [0, 2π)
+                        s.RngState = rng.State;
+                        dir = SimSpread.Deflect(in aimDir, angle, azimuth);
+                    }
+
+                    // 判定单源（SimRaycast）：实体圆柱最近者 + 障碍最近者取近——
+                    // 障碍更近 ⇒ 截停（实体命中与并列时实体优先：障碍仅以严格更近获胜）。
+                    // **实体走三维入口（带 dy）**；障碍保持 2.5D（关卡障碍为地面级圆/盒，三维化无收益——
+                    // 见专项设计 §4.1「仅实体圆柱三维化」）。
+                    SimRaycast.RaycastEntities(s, shooterSlot, in muzzle,
+                        in dir, range, out int hitSlot, out float hitT);
+                    // 障碍仍在XZ 平面按水平距离求解 ⇒ **须折回三维参数**才能与 hitT 同量纲比较
+                    // （hitT 是沿三维单位方向的长度；障碍 t 是水平距离）。
+                    bool blockedByObstacle = RaycastObstacles3D(map, muzzle.X, muzzle.Y, muzzle.Z,
+                        dir.X, dir.Z, dir.Y, range, out float obstacleT)
+                        && (hitSlot < 0 || obstacleT < hitT);
+
+                    if (hitSlot < 0 || blockedByObstacle) continue;       // 该弹丸未命中（截停/脱靶）
+
                     ref EntitySlot hit = ref s.Entities[hitSlot];
+                    if (s.Frame < hit.InvulnerableUntilFrame) continue; // 保护目标挡子弹，但不产命中/伤害
 
                     // 伤害浮动 ±DamageSpread（消费 RngState——局部副本推进后写回，SimRng 使用约定）；
                     // base/spread 走装载实例（数值参数化——债 #1 根治面）。
-                    var rng = new SimRng(s.RngState);
-                    int dmg = baseDamage + rng.NextRange(-values.DamageSpread, values.DamageSpread + 1);
-                    s.RngState = rng.State;
+                    var rngDmg = new SimRng(s.RngState);
+                    int dmg = baseDamage + rngDmg.NextRange(-values.DamageSpread, values.DamageSpread + 1);
+                    s.RngState = rngDmg.State;
 
-                    // **命中点取三维**（`+ dy * hitT`）：爆头判据的输入。旧 2.5D 恒用 muzzle.Y（水平），
-                    // 三维化后命中点高度随仰角与距离变化——**这正是平地可爆头的物理来源**。
+                    // **命中点取三维**（沿弹丸方向）：爆头判据的输入。
                     var hitPos = new SimVector3(
-                        muzzle.X + dx * hitT,
-                        muzzle.Y + dy * hitT,
-                        muzzle.Z + dz * hitT);
+                        muzzle.X + dir.X * hitT,
+                        muzzle.Y + dir.Y * hitT,
+                        muzzle.Z + dir.Z * hitT);
 
                     // **爆头判定高度 = 准心射线命中点 AimPoint.Y**（"准心指到哪就按哪判"），
-                    // 而非子弹射线交点 hitPos.Y。
+                    // 而非子弹射线交点 hitPos.Y。多弹丸下**口径不变**（每弹丸各自归属校验）——
+                    // 散布是"准心所指的邻域"，判带仍锚准心（所见即所判：瞄头时命中该目标的弹丸按头判）。
                     //
                     // **为什么不能用 hitPos.Y**：子弹射线自**枪口**出发，与相机屏幕射线**起点不同**
                     // ⇒ 两者与目标圆柱的**首次交点（近弧）也不同**。实测俯角 30°/目标 20m/准心
@@ -130,7 +168,7 @@ namespace LiteSim
                     //
                     // **归属校验**：AimPoint 必须确实落在**这个**命中目标身上（水平距离 ≤ 半径），
                     // 否则回退子弹交点——近处有遮挡物时子弹抓到的是它、而准心指着远处目标，
-                    // 拿远处的 AimPoint 去判近处的目标会误判。
+                    // 拿远处的 AimPoint 去判近处的目标会误判；散布弹丸命中非准心目标时同此回退。
                     float judgeY = hitPos.Y;
                     if (hasPoint)
                     {
@@ -155,6 +193,8 @@ namespace LiteSim
                     bool headshot = relY >= CombatConfig.HeadHitLineLive;       // Live：测试模式滑杆覆写优先（release 恒 = HeadHitLine）
                     if (headshot) dmg <<= CombatConfig.HeadshotDamageShift;
 
+                    // 回溯请求只延后命中副作用；权威帧的散布/随机流仍正常推进一次。
+                    if ((inputs[i].Buttons & SimInputFrame.ButtonDeferHit) != 0u) continue;
                     s.Cmds.Write(SimCommandKind.Damage, hit.Id, shooter.Id, dmg);
                     // **爆头发`Crit`、普通发 `Hit`**（专项设计 §4.2）：`Crit` 枚举早已预留且
                     // ShootingSystem 从不写它；**不进 checksum、不进快照**（帧内瞬态），故协议/基线

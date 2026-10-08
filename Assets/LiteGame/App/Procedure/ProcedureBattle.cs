@@ -697,6 +697,7 @@ namespace LiteGame
         /// <summary>等对局结束（Ended 恰好一次；ct 打断 = 宿主关闭路径）。</summary>
         private static async UniTask<BattleContext.EndReason> WaitEnded(BattleContext context, CancellationToken ct)
         {
+            if (context.EndedReason.HasValue) return context.EndedReason.Value;
             var ended = new UniTaskCompletionSource<BattleContext.EndReason>();
             void Handler(BattleContext.EndReason reason) => ended.TrySetResult(reason);
             context.Ended += Handler;

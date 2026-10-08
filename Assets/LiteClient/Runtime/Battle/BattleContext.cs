@@ -30,6 +30,7 @@ namespace LiteClient
             Leave = 0,
             /// <summary>会话失败（重连超时/被拒/版本不符——无票据的断线同归此类）。</summary>
             SessionFailed,
+            Completed,
         }
 
         /// <summary>房间规模（RoomConfig 默认 2 人房——两端 StartGame 世界重建的定容依据）。</summary>
@@ -37,10 +38,12 @@ namespace LiteClient
 
         /// <summary>对局结束（恰好一次；Dispose 不触发——那是清理不是结束）。</summary>
         public event Action<EndReason> Ended;
+        public EndReason? EndedReason { get; private set; }
 
         public ClientSessionPhase SessionPhase => _battle.Phase;
         public bool Connected => _battle.Connected;
         public int PlayerId => _battle.Client.PlayerId;
+        public LiteNet.Proto.MatchEnded MatchResult => _battle.Client.MatchResult;
 
         /// <summary>本地玩家实体 Id（0 = 尚未对齐——首份快照按 Slot==PlayerId 解析）。</summary>
         public long LocalEntityId => _localEntityId;
@@ -96,12 +99,14 @@ namespace LiteClient
             // 订阅 + 退订登记（LIFO：晚挂先退——Dispose 即拆，不靠调用方记得退订）
             _battle.Client.OnStartGame += OnStartGame;
             _battle.Client.OnSnapshot += OnSnapshot;
+            _battle.Client.OnMatchEnded += OnMatchEnded;
             _battle.Client.OnReconnectResponse += OnReconnectResponse;
             _battle.Client.OnPhaseChanged += OnPhaseChanged;
             _matchScope.Register(new DelegatedDisposable(() =>
             {
                 _battle.Client.OnStartGame -= OnStartGame;
                 _battle.Client.OnSnapshot -= OnSnapshot;
+                _battle.Client.OnMatchEnded -= OnMatchEnded;
                 _battle.Client.OnReconnectResponse -= OnReconnectResponse;
                 _battle.Client.OnPhaseChanged -= OnPhaseChanged;
             }));
@@ -111,6 +116,7 @@ namespace LiteClient
             // 停在"Sim 未建"：每帧只泵网络、不建世界、不发输入，表现为"进了对局但画面不动"。
             var late = _battle.Client.StartGame;
             if (late != null) OnStartGame(late);
+            if (_battle.Client.MatchResult != null) OnMatchEnded(_battle.Client.MatchResult);
         }
 
         /// <summary>
@@ -173,7 +179,7 @@ namespace LiteClient
             _battle.TickIncoming();
             _battle.TickOutgoing();
 
-            if (_sim == null) return;
+            if (_sim == null || _ended != 0) return;
 
             // [Diag] 临时哨位：逐渲染帧盯活体数——捕获杀死 bot 的**渲染帧时刻**与其时近事件（不依赖和解路径）
             int diagAlive = _sim.State.AliveCount();
@@ -247,6 +253,7 @@ namespace LiteClient
         private void End(EndReason reason)
         {
             if (Interlocked.Exchange(ref _ended, 1) != 0) return;   // 恰好一次
+            EndedReason = reason;
             Ended?.Invoke(reason);
         }
 
@@ -258,12 +265,14 @@ namespace LiteClient
             if (_disposed || _sim != null) return;   // 幂等（重连不重发 StartGame）
 
             var world = new SimWorldState { RngState = (ulong)sg.Seed };
+            if (sg.Match != null) world.Match = SnapshotReassembler.FromProto(sg.Match);
             CombatValues values = CombatConfig.Loaded;   // 装载实例（技术债 #1：房间/世界构造按实例取值）
             WeaponTable weapons = WeaponConfig.Loaded;   // 武器表实例（同链显式传递）
             for (int i = 0; i < ExpectedPlayers; i++)
             {
                 SimVector3 spawn = _map.SpawnPoints[i % _map.SpawnPointCount];
-                world.Spawn(new EntitySlot { Hp = values.EntityHp, Pos = spawn, Yaw = 0f }, out int _);
+                world.Spawn(new EntitySlot { Hp = values.EntityHp, Pos = spawn, Yaw = 0f,
+                    Flags = EntityFlags.Player, SpawnPointIndex = i % _map.SpawnPointCount }, out int _);
             }
 
             var template = new SimInputFrame[ExpectedPlayers];
@@ -287,6 +296,12 @@ namespace LiteClient
         /// 快照：镜像重建 → 和解（checksum 比对/覆盖/重放）→ 无和解时刷新非预测量（弹药/CD/比赛状态——
         /// P0 分层：不预测的量只能随包来）→ 视图插值源推进。首份快照对齐本地实体 Id。
         /// </summary>
+        private void OnMatchEnded(LiteNet.Proto.MatchEnded result)
+        {
+            if (_disposed) return;
+            End(EndReason.Completed);
+        }
+
         private void OnSnapshot(LiteNet.Proto.StateSnapshot snapshot)
         {
             if (_disposed || _sim == null) return;   // Sim 未建：丢弃（Reliable StartGame 随后即到）

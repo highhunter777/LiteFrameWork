@@ -87,13 +87,42 @@ namespace LiteSim
 
         /// <summary>
         /// 尸体期剩余（帧，0 = 不在尸体期）：死亡帧（Hp 跨线）由 <see cref="DamageSystem"/> 置满
-        /// <see cref="CombatConfig.CorpseFrames"/>，<see cref="CleanupSystem"/> 逐帧递减、归零才回收槽位——
-        /// 死亡表现（尸体动画/掉落/重连可见）的**权威载体窗**。期内零交互：InputSystem 输入作废、
+        /// <see cref="CombatConfig.CorpseFrames"/>，<see cref="CleanupSystem"/> 逐帧递减；非玩家归零回收、玩家保留到复活——
+        /// 死亡表现（尸体动画/掉落/重连接可见）的**权威载体窗**。期内零交互：InputSystem 输入作废、
         /// ShootingSystem 不可命中/不开火。**公共面**（尸体表现按快照重建——远端可见），
         /// 进公共快照（<c>corpse_frames=20</c>）与双口径 checksum（同 FireStanceFrames 先例）。
         /// </summary>
         [StateLayer(StateLayer.Public, wireType: "uint32")]
         public byte CorpseFrames;
+
+        /// <summary>
+        /// 半自动扳机已武装（1 = 可击发；0 = 自上次击发后未松开——按住不发第二发）：
+        /// <see cref="WeaponDef.Automatic"/> = false 的边沿门状态（"按住只发一发"）。
+        /// **武装规则**：未按住开火的帧 → 1（松开重臂）；装备/切枪完成 → 1（新武器扳机待击）。
+        /// **击发即解除**：<see cref="WeaponSystem.TryConsumeShot"/> 成功消费后清零——
+        /// 冷却内按压不浪费边沿（armed 保持，节拍到点后的下一次"松开-按压"击发）。
+        /// **仅确定性内部态**（<see cref="FaceExitTurning"/> 同款先例）：由输入历史派生（重放可重建），
+        /// 不上 wire、不占协议字段号；参与 Sim 判定 ⇒ 进全量口径 checksum（重放对账逐位一致）。
+        /// 自动武器不读本位（<see cref="WeaponDef.Automatic"/> = true 时边沿门旁路）。
+        /// </summary>
+        [StateLayer(StateLayer.Internal)]
+        public byte SemiFireArmed;
+
+        /// <summary>参赛玩家的固定出生点索引；只在 Player 标志位有效时使用。</summary>
+        [StateLayer(StateLayer.Public)]
+        public int SpawnPointIndex;
+
+        /// <summary>死亡后预定复活帧；0 = 未等待复活。公共面同时承担死亡结算幂等标记。</summary>
+        [StateLayer(StateLayer.Public)]
+        public int RespawnFrame;
+
+        /// <summary>保护截止帧（不含该帧）；成功开火即取消保护。</summary>
+        [StateLayer(StateLayer.Public)]
+        public int InvulnerableUntilFrame;
+
+        /// <summary>当前生命开始帧；历史命中不得作用于复活后的新生命。</summary>
+        [StateLayer(StateLayer.Public)]
+        public int LifeStartFrame;
 
     }
 
@@ -123,5 +152,8 @@ namespace LiteSim
 
         /// <summary>区域效果（<see cref="SimWorldState.Zones"/> 行有效）。</summary>
         public const uint KindZone = 1u << 3;
+
+        /// <summary>参赛玩家：死亡保留槽位，参与 FFA 计分与复活；分型实体不置此位。</summary>
+        public const uint Player = 1u << 4;
     }
 }

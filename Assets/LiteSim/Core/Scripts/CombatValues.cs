@@ -15,17 +15,19 @@ namespace LiteSim
     public struct CombatValues
     {
         public float MoveSpeed;
+        /// <summary>tbmovementconfig.gravity 投影；本局固定值，不在 combatnum 重复存储。</summary>
         public float Gravity;
         public float HitscanRange;
         public int BaseDamage;
         public int DamageSpread;
+        /// <summary>tbentityconfig.initial_hp 投影；本局默认角色的出生生命。</summary>
         public int EntityHp;
 
         /// <summary>瞄准态移动上限 = MoveSpeed × <see cref="CombatConfig.AimMoveSpeedFactor"/>
         /// （乘 2 的幂——位级精确）。参与 <see cref="CombatConfigDigest"/>（联机身份）。</summary>
         public float AimMoveSpeed => MoveSpeed * CombatConfig.AimMoveSpeedFactor;
 
-        /// <summary>构造（字段顺序与 tbcombatnum 单行表一致）。</summary>
+        /// <summary>构造固定对局数值；重力与出生生命由各自所属表装配。</summary>
         public CombatValues(float moveSpeed, float gravity, float hitscanRange,
             int baseDamage, int damageSpread, int entityHp)
         {
@@ -39,6 +41,7 @@ namespace LiteSim
 
         /// <summary>表装面默认值（必须与表值一致——漂移由装载闸门与 L1 守卫卡）。
         /// **属性而非静态字段**：每次取副本，防"共享静态可变存储"复辟（债 #1 的形态）。</summary>
-        public static CombatValues Default => new CombatValues(5f, -20f, 100f, 25, 1, 100);
+        public static CombatValues Default => new CombatValues(5f, MovementValues.Default.Gravity,
+            100f, 25, 1, EntityValues.Default.InitialHp);
     }
 }

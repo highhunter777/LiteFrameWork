@@ -47,7 +47,13 @@ namespace LiteSim
         /// <summary>回合号（从 1 起；0 = 未开赛）。</summary>
         public int Round;
 
-        /// <summary>胜者实体 Id（FFA）/队伍 Id（Team）；0 = 未定。</summary>
+        /// <summary>胜者实体 Id（FFA）/队伍 Id（Team）；0 = 未定或终局平局。</summary>
         public long Winner;
+
+        /// <summary>固定房间规则（公共快照）；0 = 不限击杀。</summary>
+        public int KillLimit;
+        public int RespawnDelayFrames;
+        public int SpawnProtectionFrames;
+        public MatchEndReason EndReason;
     }
 }

@@ -80,7 +80,7 @@ namespace LiteNet.Protocol
         }
 
         /// <summary>wire Match → Sim（与 <see cref="SnapshotCodec.PackMatch"/> 字段清单单源对齐）。</summary>
-        private static MatchStateData FromProto(Proto.MatchStateDelta d)
+        public static MatchStateData FromProto(Proto.MatchStateDelta d)
         {
             return new MatchStateData
             {
@@ -90,6 +90,10 @@ namespace LiteNet.Protocol
                 Timer = d.Timer,
                 Round = d.Round,
                 Winner = d.Winner,
+                KillLimit = d.KillLimit,
+                RespawnDelayFrames = d.RespawnDelayFrames,
+                SpawnProtectionFrames = d.SpawnProtectionFrames,
+                EndReason = (MatchEndReason)d.EndReason,
             };
         }
     }

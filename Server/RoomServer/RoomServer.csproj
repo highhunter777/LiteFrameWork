@@ -30,6 +30,7 @@
   <ItemGroup>
     <Compile Include="..\..\Packages\com.code-philosophy.luban\Runtime\*.cs" Link="LubanRuntime\%(Filename)%(Extension)" />
     <Compile Include="..\..\Assets\GameData\Generated\**\*.cs" Link="LubanGenerated\%(RecursiveDir)%(Filename)%(Extension)" />
+    <Compile Include="..\..\Assets\LiteClient\Adapters\Serialization.Luban\SimConfigMapper.cs" Link="LubanMappings\SimConfigMapper.cs" />
   </ItemGroup>
 
   <!-- 服务端 NuGet 登记处（依赖治理在服务端侧的承载）：l0-dep-scan 管 Unity manifest/lock 与密钥，

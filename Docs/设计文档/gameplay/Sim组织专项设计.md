@@ -71,7 +71,7 @@ public ZoneState[]     Zones;      // 区域效果：EMP/雷达/毒圈——半�
 
 `CombatConfigDigest` 不动（分型表是状态面，不是配置面）。
 
-**配置与状态的连接**：`ItemConfig`/`MovementConfig` 静态面是分型表与机制数值的数据源——**不新建配置面**，拾取/使用/效果数值全部按行读表；钩爪/传送走 `MovementConfig`，触发属输入位面（离散意图位），本设计不扩输入位。
+**配置与状态的连接**：拾取/使用/效果数值来自 Item 配置，钩爪/传送数值来自 Movement 配置；机制消费经装载实例参数传入，不直接读静态配置。重力只定义在 `tbmovementconfig`，出生生命只定义在 `tbentityconfig`；两端由共用映射投影到固定对局配置（见[玩法数值专项](玩法数值与Luban配置专项设计.md)）。触发属输入位面（离散意图位），本设计不扩输入位。
 
 ---
 
@@ -131,7 +131,7 @@ internal static class ActionBehaviorTable                   // 分发表：构�
 
 ### 6.1 SimStep 顺序插位
 
-目标固定顺序（分型系统消费面待接入）：`Input → Movement → Shooting → Item → Projectile → Zone → FlushCommands → Cleanup`——投掷物/区域在射击后、命令结算前（命中产伤害命令进当帧缓冲）。系统集合编译期确定，无自动扫描。
+当前固定顺序：`Respawn → Input → Movement → Weapon → Shooting → FlushCommands(Damage/Kill) → Cleanup → Frame++ → Match`。RoomRuntime 将 Match 裁决延至回溯命中全部落账之后。分型系统消费面待接入：`Item/Projectile/Zone` 位于射击后、命令结算前；系统集合编译期确定，无自动扫描。玩家死亡保留槽位等待复活，其他实体期满经 Despawn 清全部平行行表。
 
 ### 6.2 系统落位与行为粒度
 

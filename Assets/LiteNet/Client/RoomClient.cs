@@ -113,6 +113,10 @@ namespace LiteNet
         public event Action<Proto.JoinAck> OnJoinAck;
         public event Action<Proto.StartGame> OnStartGame;
         public event Action<Proto.StateSnapshot> OnSnapshot;
+        public event Action<Proto.MatchEnded> OnMatchEnded;
+        private Proto.MatchEnded _matchResult;
+        private string _activeMatchId;
+        public Proto.MatchEnded MatchResult => _matchResult?.Clone();
         /// <summary>重连响应（§5.6/§9.3：版本确认 + 权威快照[公共全量+比赛状态+本人私有] + 输入历史）。
         /// 应用原语见 <see cref="Protocol.SnapshotReassembler"/>（镜像 Apply + 输入历史喂 RollbackSim）。
         /// 契约：只有 <see cref="Phase"/> == <see cref="ClientSessionPhase.Restoring"/> 时本响应可应用——
@@ -143,6 +147,13 @@ namespace LiteNet
 
         public void SendJoin(string roomId, string token, string buildHash)
         {
+            _matchResult = null;
+            _hasStartGame = false;
+            _activeMatchId = null;
+            _startGame = null;
+            _recentCount = 0;
+            _recentFrame = -1;
+            LastSnapshotFrame = -1;
             _joinedBuildHash = buildHash;                 // 版本确认基准（§9.3 步骤 2：重连响应须同值）
             _joinAttemptRoomId = roomId;
             _joinAttemptPending = true;
@@ -166,6 +177,7 @@ namespace LiteNet
         /// </summary>
         public void SendInput(int frame, in SimInputFrame input, int viewFrame)
         {
+            if (_matchResult != null) return;
             RecordRecent(frame, input);
 
             for (int i = 0; i < _recentCount; i++)
@@ -193,6 +205,7 @@ namespace LiteNet
         public bool BeginReconnect()
         {
             if (_disposed) throw new ObjectDisposedException(nameof(RoomClient));
+            if (_matchResult != null) return false;
             if (_phase != ClientSessionPhase.SuspectedLost) return false;
 
             if (string.IsNullOrEmpty(_reconnectToken))
@@ -339,7 +352,7 @@ namespace LiteNet
                     DiagTrace.JoinKey(_joinAttemptRoomId, PlayerId, _joinedBuildHash),
                     "content=" + (string.IsNullOrEmpty(ContentContext) ? "-" : ContentContext));
             }
-            if (_phase == ClientSessionPhase.Connected || _phase == ClientSessionPhase.Restoring)
+            if (_matchResult == null && (_phase == ClientSessionPhase.Connected || _phase == ClientSessionPhase.Restoring))
                 Transition(ClientSessionPhase.SuspectedLost);
             OnDisconnected?.Invoke();
         }
@@ -360,12 +373,22 @@ namespace LiteNet
                 case PacketType.StartGame:
                     var start = (Proto.StartGame)msg;
                     _matchSeed = start.Seed;                     // §9.3 步骤 2：重连版本确认基准
+                    _activeMatchId = string.IsNullOrEmpty(start.MatchId) ? _joinAttemptRoomId : start.MatchId;
                     _matchConfigHash = start.ConfigHash;
                     _startGame = start;                          // 缓存载荷：晚订阅者靠它补发（见 StartGame 属性）
                     _hasStartGame = true;
                     OnStartGame?.Invoke(start);
                     break;
+                case PacketType.MatchEnded:
+                    if (_matchResult != null || !reliable) break;
+                    var ended = (Proto.MatchEnded)msg;
+                    if (ended.MatchId != _activeMatchId || !_hasStartGame) break;
+                    _matchResult = ended;
+                    _reconnectToken = null;
+                    OnMatchEnded?.Invoke(ended.Clone());
+                    break;
                 case PacketType.StateSnapshot:
+                    if (_matchResult != null) break;
                     var snapshot = (Proto.StateSnapshot)msg;
                     _lastInputAck = snapshot.AckInput;          // 诊断：服务器输入确认（不上报——上报的是快照帧）
                     LastSnapshotFrame = snapshot.Frame;

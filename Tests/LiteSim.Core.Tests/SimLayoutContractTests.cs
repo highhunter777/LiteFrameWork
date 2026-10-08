@@ -85,6 +85,19 @@ namespace LiteSim.Tests
             Assert.True(public1 == SimChecksum.ComputePublicChecksum(world),
                 "离场转向标记不进公共口径（可由窗+输入重推导——不占协议字段号）");
 
+            // 半自动击发沿（SemiFireArmed）：与离场转向标记同款 Internal 层——进全量口径（重放对账
+            // 逐位一致：armed 由输入历史派生、参与 TryConsumeShot 判定），不进公共口径（客户端
+            // 重建不了他人扳机态，进比对口径只会制造永假和解）。
+            uint full2 = SimChecksum.ComputeStateChecksum(world);
+            uint public2 = SimChecksum.ComputePublicChecksum(world);
+
+            world.Entities[slot].SemiFireArmed = 1;
+
+            Assert.True(full2 != SimChecksum.ComputeStateChecksum(world),
+                "半自动击发沿进全量口径（TryConsumeShot 判定输入——重放对账必含）");
+            Assert.True(public2 == SimChecksum.ComputePublicChecksum(world),
+                "半自动击发沿不进公共口径（可由输入历史重推导——不占协议字段号）");
+
             // 窗长/转向速率不数字钉：窗长是**用户实时调参项**（单源 CombatConfig.FireStanceFrames）；
             // 跨端一致性由 buildHash（源码）+ digest（联机身份）守卫——那才是系统级闸门
             Assert.True(CombatConfig.FireStanceFrames > 0 && CombatConfig.FaceTurnRadPerSec > 0f);

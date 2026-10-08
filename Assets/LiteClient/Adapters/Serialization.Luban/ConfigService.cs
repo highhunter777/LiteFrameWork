@@ -46,6 +46,7 @@ namespace LiteClient
         {
             "tbitemconfig",      // 道具表（类型 + 刷新/拾取/携带/使用 + 各类型效果数值）
             "tbmovementconfig",  // 移动数值（单行表；装载后产出 MovementValues 实例并发布读口——机制消费随系统落地接入）
+            "tbentityconfig",    // 实体定义（默认角色出生 HP；装载后投影到固定对局配置）
             "tbuiform",
             "tbcontententry",
             "tbstrategy",
@@ -118,16 +119,22 @@ namespace LiteClient
         private static string ValidateCandidate(Tables candidate)
         {
             if (candidate == null) return "候选表为 null";
-            if (candidate.Tbcombatnum == null || candidate.Tbcombatnum.Get(1) == null)
-                return "tbcombatnum 缺 id=1 行（单行数值表）——表源被改坏或生成物过期";
-            if (candidate.Tbmovementconfig == null || candidate.Tbmovementconfig.Get(1) == null)
-                return "tbmovementconfig 缺 id=1 行（单行数值表）——表源被改坏或生成物过期";
+            string valuesError = SimConfigMapper.Validate(candidate.Tbcombatnum,
+                candidate.Tbmovementconfig, candidate.Tbentityconfig);
+            if (valuesError != null) return valuesError;
             if (candidate.Tbitemconfig == null || candidate.Tbitemconfig.DataList.Count == 0)
                 return "tbitemconfig 空表——表源被改坏或生成物过期";
             if (candidate.Tbweapon == null || candidate.Tbweapon.GetOrDefault(WeaponConfig.DefaultRifleId) == null)
                 return "tbweapon 缺默认步枪行（id=0）——武器系统懒装备依赖它";
-            if (candidate.Tbmovementconfig.Get(1).Gravity != candidate.Tbcombatnum.Get(1).Gravity)
-                return "movementconfig.gravity 与 combatnum.gravity 不一致（重力双表位漂移——单源在 combatnum，消费读装载实例 CombatValues.Gravity）";
+            foreach (cfg.weapon row in candidate.Tbweapon.DataList)
+            {
+                if (row.FireMode != WeaponConfig.FireModeAuto && row.FireMode != WeaponConfig.FireModeSemi)
+                    return $"tbweapon id={row.Id} 非法 fire_mode：'{row.FireMode}'（合法集 auto/semi——两端同链映射 bool）";
+                if (row.Slot < 0 || row.Slot >= SimConfig.WeaponSlotsPerEntity)
+                    return $"tbweapon id={row.Id} slot 越界：{row.Slot}（槽数 {SimConfig.WeaponSlotsPerEntity}——切枪装备依赖槽位映射）";
+                if (row.Pellets < 1)
+                    return $"tbweapon id={row.Id} pellets 非法：{row.Pellets}（≥1——零弹丸＝哑枪，错表必两端分叉）";
+            }
             return null;
         }
 
@@ -140,23 +147,21 @@ namespace LiteClient
         /// </summary>
         private static void ApplyCombatNumbers(Tables tables)
         {
-            cfg.combatnum row = tables.Tbcombatnum.Get(1);        // 单行表固定 id=1
-
-            CombatConfig.Publish(new CombatValues(
-                row.MoveSpeed, row.Gravity, row.HitscanRange,
-                row.BaseDamage, row.DamageSpread, row.EntityHp));
+            CombatValues values = SimConfigMapper.BuildCombatValues(tables.Tbcombatnum,
+                tables.Tbmovementconfig, tables.Tbentityconfig);
+            CombatConfig.Publish(values);
 
             Log.Info(
-                $"玩法数值装载：move={row.MoveSpeed} gravity={row.Gravity} " +
-                $"hitscan={row.HitscanRange} hit={CombatConfig.HitscanRadius}(裁决) body={CombatConfig.BodyRadius}:{CombatConfig.HitscanHeight}(烘焙) " +
-                $"dmg={row.BaseDamage}±{row.DamageSpread} hp={row.EntityHp}", "Config");
+                $"玩法数值装载：move={values.MoveSpeed} gravity={values.Gravity} " +
+                $"hitscan={values.HitscanRange} hit={CombatConfig.HitscanRadius}(裁决) body={CombatConfig.BodyRadius}:{CombatConfig.HitscanHeight}(烘焙) " +
+                $"dmg={values.BaseDamage}±{values.DamageSpread} hp={values.EntityHp}", "Config");
         }
 
         /// <summary>
         /// 移动数值装载（表 → <see cref="MovementValues"/> 实例并发布读口）：与 ApplyCombatNumbers 同纪律——
         /// LiteSim 零依赖，由外部喂 primitives；表值即设计软值，硬护栏是代码常量 <see cref="CombatConfig.HardMaxSpeed"/>。
         /// 机制消费（走跑冲/滑铲/空中控制/跳跃/钩爪/闪现）随对应 Sim 系统落地逐项接入（接入时经参数传实例）。
-        /// 调用契约：<see cref="ValidateCandidate"/> 已通过（行存在性 + 重力双表位一致性均闸在前）。
+        /// 调用契约：<see cref="ValidateCandidate"/> 已通过（行存在性与重力合法性均闸在前）。
         /// </summary>
         private static void ApplyMovementNumbers(Tables tables)
         {
@@ -177,17 +182,22 @@ namespace LiteClient
         }
 
         /// <summary>武器表装载（表 → <see cref="WeaponTable"/> 实例并**原子发布读口**）：多行逐条 primitive 喂入；
-        /// 击发模式字符串在装载边界翻译成 bool（Sim 不认字符串语义）。机制经参数接收实例（技术债 #1 家族）。</summary>
+        /// 击发模式字符串在装载边界翻译成 bool（Sim 不认字符串语义），槽位默认映射（<c>slot</c> 列 → id）同窗注册
+        /// （切枪装备/懒装备的"槽位 → 定义"单源）。机制经参数接收实例（技术债 #1 家族）。
+        /// 调用契约：<see cref="ValidateCandidate"/> 已过（fire_mode/slot 合法性闸在前——此处不再兜底）。</summary>
         private static void ApplyWeaponTable(Tables tables)
         {
             var table = new WeaponTable();
             int count = 0;
             foreach (cfg.weapon row in tables.Tbweapon.DataList)
             {
-                bool automatic = row.FireMode == "auto";
+                bool automatic = row.FireMode == WeaponConfig.FireModeAuto;
                 if (table.SetRow(row.Id, row.Damage, row.Rpm, row.MagazineSize, row.ReserveAmmo,
                         row.ReloadFrames, row.Range, row.Spread, row.Pellets, row.SwitchFrames, automatic))
+                {
+                    table.SetSlotDefault(row.Slot, row.Id);
                     count++;
+                }
                 else
                     Log.Warning($"武器表行被忽略（id 越界）：id={row.Id} {row.Name}", "Config");
             }

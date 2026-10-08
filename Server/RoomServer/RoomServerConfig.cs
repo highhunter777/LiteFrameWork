@@ -157,6 +157,7 @@ namespace RoomServer
                 Seed = t.Seed,
                 MatchTimeLimitMs = t.MatchTimeLimitMs,
                 WaitingTimeoutMs = t.WaitingTimeoutMs,
+                Rules = t.Rules,
             };
         }
 
@@ -316,6 +317,7 @@ namespace RoomServer
             public long Seed;
             public long MatchTimeLimitMs;
             public long WaitingTimeoutMs;
+            public LiteSim.MatchRules Rules;
 
             public static RoomTemplate Parse(string name, JsonElement el, string sourcePath)
             {
@@ -326,12 +328,27 @@ namespace RoomServer
                 long waitTimeout = OptionalLong(el, "waiting_timeout_ms", 0);
                 if (timeLimit < 0 || waitTimeout < 0)
                     throw new InvalidDataException($"rooms.{name} 的时限不可为负：{sourcePath}");
+                LiteSim.MatchRules defaults = LiteSim.MatchRules.Default;
+                LiteSim.MatchRules rules;
+                try
+                {
+                    rules = new LiteSim.MatchRules(
+                        checked((int)OptionalLong(el, "match_duration_frames", defaults.DurationFrames)),
+                        checked((int)OptionalLong(el, "kill_limit", defaults.KillLimit)),
+                        checked((int)OptionalLong(el, "respawn_delay_frames", defaults.RespawnDelayFrames)),
+                        checked((int)OptionalLong(el, "spawn_protection_frames", defaults.SpawnProtectionFrames)));
+                }
+                catch (Exception ex) when (ex is ArgumentOutOfRangeException || ex is OverflowException)
+                {
+                    throw new InvalidDataException($"rooms.{name} 的玩法规则越界：{sourcePath}", ex);
+                }
                 return new RoomTemplate
                 {
                     ExpectedPlayers = players,
                     Seed = seed,
                     MatchTimeLimitMs = timeLimit,
                     WaitingTimeoutMs = waitTimeout,
+                    Rules = rules,
                 };
             }
         }

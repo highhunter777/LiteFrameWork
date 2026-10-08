@@ -7,8 +7,8 @@ namespace LiteSim
     ///   （机制接入随系统批；接入前本类无机制读者）；
     /// - 本类只保留**单世界表现/工具便捷读口**：装载链（客户端 `ConfigService`）解析表后
     ///   经 <see cref="Publish"/> 原子替换一次；服务端不经本槽（装载产物显式传入）；
-    /// - **默认值必须与表值一致**（漂移由装载闸门与对账守卫卡）；重力双表位一致性由
-    ///   `ConfigService.ValidateCandidate` 闸门卡死（单源在 combatnum——消费读 <see cref="CombatValues.Gravity"/>）。
+    /// - **默认值必须与表值一致**（漂移由装载闸门与对账守卫卡）；重力只来自移动表，
+    ///   对局配置中的 <see cref="CombatValues.Gravity"/> 由装载映射从同一行投影。
     ///
     /// 待表现面线程化（随 Unity 环境批）后本读口退役。
     /// </summary>

@@ -78,7 +78,7 @@ namespace LiteSim.Tests
             // 表A：射程 5 < 目标距离 20 → 打不中（Hp 不变）
             var shortRange = new WeaponTable();
             shortRange.SetRow(WeaponConfig.DefaultRifleId, damage: 40, rpm: 600, magazineSize: 30, reserveAmmo: 90,
-                reloadFrames: 132, range: 5f, spread: 1.2f, pellets: 1, switchFrames: 30, automatic: true);
+                reloadFrames: 132, range: 5f, spread: 0f, pellets: 1, switchFrames: 30, automatic: true);
             var worldA = new SimWorldState { RngState = 1UL };
             long shooterA = worldA.Spawn(new EntitySlot { Hp = 100, Pos = new SimVector3(0f, 0f, 0f) }, out _);
             long targetA = worldA.Spawn(new EntitySlot { Hp = 100, Pos = new SimVector3(20f, 0f, 0f) }, out _);
@@ -89,7 +89,7 @@ namespace LiteSim.Tests
             // 表B：射程 100 → 命中且伤害 = 表值 40（HP 100→60）
             var longRange = new WeaponTable();
             longRange.SetRow(WeaponConfig.DefaultRifleId, damage: 40, rpm: 600, magazineSize: 30, reserveAmmo: 90,
-                reloadFrames: 132, range: 100f, spread: 1.2f, pellets: 1, switchFrames: 30, automatic: true);
+                reloadFrames: 132, range: 100f, spread: 0f, pellets: 1, switchFrames: 30, automatic: true);
             var worldB = new SimWorldState { RngState = 1UL };
             long shooterB = worldB.Spawn(new EntitySlot { Hp = 100, Pos = new SimVector3(0f, 0f, 0f) }, out _);
             long targetB = worldB.Spawn(new EntitySlot { Hp = 100, Pos = new SimVector3(20f, 0f, 0f) }, out _);

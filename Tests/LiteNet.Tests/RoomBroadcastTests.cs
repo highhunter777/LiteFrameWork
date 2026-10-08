@@ -173,7 +173,7 @@ namespace LiteNet.Tests
                 Assert.Equal(0, snap.PrivateState.Weapons[1].MagAmmo);    // 另一武器槽空（不是别人的量）
                 Assert.NotNull(snap.Match);                                // 比赛状态层随广播
                 Assert.Equal(1, snap.Match.Phase);
-                Assert.Equal(10800, snap.Match.Timer);
+                Assert.Equal(10800 - snap.Frame, snap.Match.Timer);
             }
             foreach (StateSnapshot snap in b)
             {

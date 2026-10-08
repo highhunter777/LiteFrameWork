@@ -90,10 +90,14 @@ namespace LiteSim.Tests
         {
             // 快照契约的字段清单（契约冻结）。新增字段必须在此登记并同时打标注——
             // 本断言的存在意义就是"逼后来者做一次有意识的决定"，而不是默默加个字段。
+            // SemiFireArmed = Internal（半自动击发沿——输入历史可推导：不上 wire、进全量口径，
+            // FaceExitTurning 同款先例）。
             string[] expected = {
                 "Id", "Pos", "Vel", "Yaw", "Hp", "Flags",
                 "Shield", "Kills", "Deaths", "SelectedWeapon",
                 "FireStanceFrames", "FaceExitTurning", "CorpseFrames",
+                "SemiFireArmed",
+                "SpawnPointIndex", "RespawnFrame", "InvulnerableUntilFrame", "LifeStartFrame",
             };
 
             var actual = new List<string>();
@@ -114,6 +118,7 @@ namespace LiteSim.Tests
                 "Id", "Pos", "Vel", "Yaw", "Hp", "Flags",
                 "Shield", "Kills", "Deaths", "SelectedWeapon",
                 "FireStanceFrames", "CorpseFrames",
+                "SpawnPointIndex", "RespawnFrame", "InvulnerableUntilFrame", "LifeStartFrame",
             };
 
             var actual = new List<string>();

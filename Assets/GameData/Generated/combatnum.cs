@@ -18,11 +18,9 @@ public sealed partial class combatnum : Luban.BeanBase
     {
         Id = _buf.ReadInt();
         MoveSpeed = _buf.ReadFloat();
-        Gravity = _buf.ReadFloat();
         HitscanRange = _buf.ReadFloat();
         BaseDamage = _buf.ReadInt();
         DamageSpread = _buf.ReadInt();
-        EntityHp = _buf.ReadInt();
     }
 
     public static combatnum Deserializecombatnum(ByteBuf _buf)
@@ -39,10 +37,6 @@ public sealed partial class combatnum : Luban.BeanBase
     /// </summary>
     public readonly float MoveSpeed;
     /// <summary>
-    /// [移动] m/s&#178;（负值向下）
-    /// </summary>
-    public readonly float Gravity;
-    /// <summary>
     /// [射击] 射程 m
     /// </summary>
     public readonly float HitscanRange;
@@ -54,10 +48,6 @@ public sealed partial class combatnum : Luban.BeanBase
     /// [伤害] &#177; 浮动幅度（0=无浮动）
     /// </summary>
     public readonly int DamageSpread;
-    /// <summary>
-    /// [出生] 实体初始 HP
-    /// </summary>
-    public readonly int EntityHp;
    
     public const int __ID__ = -1813456878;
     public override int GetTypeId() => __ID__;
@@ -71,11 +61,9 @@ public sealed partial class combatnum : Luban.BeanBase
         return "{ "
         + "id:" + Id + ","
         + "moveSpeed:" + MoveSpeed + ","
-        + "gravity:" + Gravity + ","
         + "hitscanRange:" + HitscanRange + ","
         + "baseDamage:" + BaseDamage + ","
         + "damageSpread:" + DamageSpread + ","
-        + "entityHp:" + EntityHp + ","
         + "}";
     }
 }

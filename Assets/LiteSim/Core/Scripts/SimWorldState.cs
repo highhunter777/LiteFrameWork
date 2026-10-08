@@ -148,14 +148,21 @@ namespace LiteSim
             if (!TryResolve(id, out int slotIndex)) return;
             AliveBitmap[slotIndex >> 5] &= ~(1u << (slotIndex & 31));
             Entities[slotIndex] = default;
+            ResetCombatRuntime(slotIndex);
+            Array.Clear(MatchBag, slotIndex * SimConfig.MatchBagSlotsPerEntity, SimConfig.MatchBagSlotsPerEntity);
+            Items[slotIndex] = default;
+            Projectiles[slotIndex] = default;
+            Zones[slotIndex] = default;
+        }
+
+        /// <summary>死亡/复活清战斗账本；保留局内包，掉落规则由后续道具系统接入。</summary>
+        public void ResetCombatRuntime(int slotIndex)
+        {
             Array.Clear(Weapons, slotIndex * SimConfig.WeaponSlotsPerEntity, SimConfig.WeaponSlotsPerEntity);
             Array.Clear(Actions, slotIndex * SimConfig.ActionSlotsPerEntity, SimConfig.ActionSlotsPerEntity);
             Array.Clear(Status, slotIndex * SimConfig.StatusSlotsPerEntity, SimConfig.StatusSlotsPerEntity);
-            Array.Clear(MatchBag, slotIndex * SimConfig.MatchBagSlotsPerEntity, SimConfig.MatchBagSlotsPerEntity);
             Resources[slotIndex] = 0;
-            Items[slotIndex] = default;          // 分型表行随槽位清零（空槽校验值恒定，§3.6 同款前提）
-            Projectiles[slotIndex] = default;
-            Zones[slotIndex] = default;
+            Array.Clear(CustomData, slotIndex * SimConfig.CustomBytesPerEntity, SimConfig.CustomBytesPerEntity);
         }
 
         /// <summary>

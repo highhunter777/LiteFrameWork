@@ -190,6 +190,10 @@ namespace LiteSim
             h = MixInt32(h, m.Timer);
             h = MixInt32(h, m.Round);
             h = MixInt64(h, m.Winner);
+            h = MixInt32(h, m.KillLimit);
+            h = MixInt32(h, m.RespawnDelayFrames);
+            h = MixInt32(h, m.SpawnProtectionFrames);
+            h = MixInt32(h, (int)m.EndReason);
             return h;
         }
 

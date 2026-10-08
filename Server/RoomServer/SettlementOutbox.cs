@@ -130,6 +130,7 @@ namespace RoomServer
                     try { entry = JsonSerializer.Deserialize<JournalEntry>(line); }
                     catch (JsonException) { corrupt++; continue; }
                     if (entry == null || string.IsNullOrEmpty(entry.MatchId)) { corrupt++; continue; }
+                    if (entry.Players != null && Array.Exists(entry.Players, p => p == null)) { corrupt++; continue; }
 
                     if (entry.Kind == "c")
                     {
@@ -164,9 +165,7 @@ namespace RoomServer
             if (_seen.Contains(summary.MatchId)) return SettlementOutboxResult.Duplicate;
             if (_entries.Count >= _capacity) return SettlementOutboxResult.RejectedFull;
 
-            if (!TryAppend(new JournalEntry { Kind = "s", MatchId = summary.MatchId, Seed = summary.Seed,
-                FinalFrame = summary.FinalFrame, EndReason = (int)summary.EndReason,
-                SeatPlayerIds = summary.SeatPlayerIds }))
+            if (!TryAppend(ToEntry(summary)))
             {
                 return SettlementOutboxResult.Failed;
             }
@@ -308,19 +307,42 @@ namespace RoomServer
             public int FinalFrame { get; set; }
             public int EndReason { get; set; }
             public int[] SeatPlayerIds { get; set; }
+            public long WinnerEntityId { get; set; }
+            public int GameplayEndReason { get; set; }
+            public PlayerEntry[] Players { get; set; }
         }
 
-        private static JournalEntry ToEntry(MatchResultSummary s) => new JournalEntry
+        private sealed class PlayerEntry
         {
-            Kind = "s",
-            MatchId = s.MatchId,
-            Seed = s.Seed,
-            FinalFrame = s.FinalFrame,
-            EndReason = (int)s.EndReason,
-            SeatPlayerIds = s.SeatPlayerIds,
-        };
+            public int PlayerId { get; set; }
+            public long EntityId { get; set; }
+            public int Kills { get; set; }
+            public int Deaths { get; set; }
+        }
 
-        private static MatchResultSummary ToSummary(JournalEntry e) => new MatchResultSummary(
-            e.MatchId, e.Seed, e.FinalFrame, (ShutdownReason)e.EndReason, e.SeatPlayerIds ?? Array.Empty<int>());
+        private static JournalEntry ToEntry(MatchResultSummary s)
+        {
+            PlayerMatchResult[] results = s.Players;
+            var players = new PlayerEntry[results.Length];
+            for (int i = 0; i < players.Length; i++)
+                players[i] = new PlayerEntry { PlayerId = results[i].PlayerId, EntityId = results[i].EntityId,
+                    Kills = results[i].Kills, Deaths = results[i].Deaths };
+            return new JournalEntry
+            {
+                Kind = "s", MatchId = s.MatchId, Seed = s.Seed, FinalFrame = s.FinalFrame,
+                EndReason = (int)s.EndReason, SeatPlayerIds = s.SeatPlayerIds,
+                WinnerEntityId = s.WinnerEntityId, GameplayEndReason = (int)s.GameplayEndReason, Players = players,
+            };
+        }
+
+        private static MatchResultSummary ToSummary(JournalEntry e)
+        {
+            PlayerEntry[] source = e.Players ?? Array.Empty<PlayerEntry>();
+            var players = new PlayerMatchResult[source.Length];
+            for (int i = 0; i < players.Length; i++)
+                players[i] = new PlayerMatchResult(source[i].PlayerId, source[i].EntityId, source[i].Kills, source[i].Deaths);
+            return new MatchResultSummary(e.MatchId, e.Seed, e.FinalFrame, (ShutdownReason)e.EndReason,
+                e.SeatPlayerIds ?? Array.Empty<int>(), e.WinnerEntityId, (LiteSim.MatchEndReason)e.GameplayEndReason, players);
+        }
     }
 }

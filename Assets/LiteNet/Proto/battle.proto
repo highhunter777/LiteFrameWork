@@ -61,11 +61,15 @@ message SlotDelta {
   // ⇒ 窗内限速/朝向分叉 ⇒ 逐快照纠偏（橡皮筋/移不动，实测 2026-10-01）。0 = 不在开火态。
   uint32 fire_stance_frames = 19;
   // ---- 尸体期剩余（**只增字段号**追加；公共面——尸体期是死亡表现的权威载体窗）----
-  // 死亡跨线后逐帧递减、归零即回收槽位（CleanupSystem）。它进公共口径 checksum
+  // 死亡跨线后逐帧递减；非玩家归零回收，玩家保留槽位等待 respawn_frame。它进公共口径 checksum
   // （SimChecksum.ComputePublicChecksum），故 wire 必须携带——否则客户端 FromDelta 重建恒为 0，
   // 权威 checksum 与客户端预测值在尸体期内必不等 ⇒ 每帧假和解 + 重放。
   // 与 fire_stance_frames 同口径：公共化私有判定输入，保回滚/和解基线可重建。
   uint32 corpse_frames = 20;
+  int32 spawn_point_index = 21;
+  int32 respawn_frame = 22;
+  int32 invulnerable_until_frame = 23;
+  int32 life_start_frame = 24;
 }
 
 // 比赛状态层（MatchStateSnapshot 层）：room 级、全体可见；随每份快照全量携带（自带收敛，无需差分）
@@ -76,6 +80,10 @@ message MatchStateDelta {
   int32 timer = 4;                    // 倒计时剩余帧
   int32 round = 5;                    // 回合号
   int64 winner = 6;                   // 胜者实体/队伍 Id（0 = 未定）
+  int32 kill_limit = 7;               // 0 = 不限击杀数
+  int32 respawn_delay_frames = 8;
+  int32 spawn_protection_frames = 9;
+  int32 end_reason = 10;              // 0 无 / 1 时限 / 2 击杀目标 / 3 外部关闭
 }
 
 // 私有面（PrivateStateSnapshot 层）单元消息：只发本人（《游戏业务系统总设计》§1——禁止泄漏他人库存）
@@ -145,6 +153,8 @@ message StartGame         {
   int64 seed = 1;
   uint32 config_hash = 2;
   int32 frame = 3;                      // 开局时的权威帧号（批③ 追加；客户端据此锚定本地帧轴）
+  MatchStateDelta match = 4;            // 房间固定规则与倒计时，预测世界直接使用服务器装配值
+  string match_id = 5;                  // 独立于房间路由的本局身份/结算幂等键
 }
 message Leave            { }
 message Heartbeat        { int64 client_time = 1; }  // 连接保活由 kcp2k 内建 Ping 承担；此包留给 RTT 观测，M10 不强制发送
@@ -167,3 +177,19 @@ message RestoreComplete { }                 // 空载荷：Restoring → Active 
 // ===== C→S 和解上报（Unreliable；Ops 汇总和解率）=====
 
 message MismatchReport { int32 frame = 1; }
+
+// ===== S→C 冻结结果（Reliable；每局一次，结束后不再消费输入）=====
+message PlayerMatchResult {
+  int32 player_id = 1;
+  int64 entity_id = 2;
+  int32 kills = 3;
+  int32 deaths = 4;
+}
+message MatchEnded {
+  string match_id = 1;
+  int32 final_frame = 2;
+  int32 end_reason = 3;                  // RoomRuntime ShutdownReason
+  int32 gameplay_end_reason = 4;         // MatchEndReason
+  int64 winner_entity_id = 5;            // 0 = 平局
+  repeated PlayerMatchResult players = 6;
+}

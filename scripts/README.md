@@ -1,5 +1,7 @@
 # scripts/
 
+Luban 生成使用 `Luban/gen.bat` 或 `scripts/codegen/gen-luban.ps1 -PythonPath <python>`。入口按当前仓库推导路径，先在 `TestResults/luban-generation/` 生成 C#/binary/Lua/LuaKeys，再只发布变更文件，保留 Assets 下既有 asmdef/meta。改玩法表后仍需运行 `scripts/codegen/gen-build-hash.py`；Unity 导入与集成验收另走本机 Pipeline。
+
 按职责分类的工程脚本（可从任意 CWD 运行；CI 入口见 `.github/workflows/ci.yml`）。
 
 | 目录 | 职责 | 内容 |

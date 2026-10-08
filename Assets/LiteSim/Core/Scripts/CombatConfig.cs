@@ -46,7 +46,7 @@ namespace LiteSim
         /// 参与 <see cref="CombatConfigDigest"/>——**联机身份**：两端不一致会以摘要不符当场拒进房。</summary>
         public static float AimMoveSpeed => _loaded.AimMoveSpeed;
 
-        /// <summary>重力加速度（m/s²，y 轴向下，§3.5）。读口见类头。</summary>
+        /// <summary>重力加速度（m/s²），来自 tbmovementconfig.gravity 的固定对局配置投影。读口见类头。</summary>
         public static float Gravity => _loaded.Gravity;
 
         /// <summary>**最大速度硬上限**（m/s，水平合速度）——服务器代码兜底（"配置只做软上限"）：
@@ -208,6 +208,15 @@ namespace LiteSim
         public const int HeadshotDamageShift = 1;
 
         /// <summary>
+        /// 腰射散布倍率：表值 <c>spread</c> = **瞄准态**最大偏转角（《游戏业务系统总设计》§5——
+        /// "瞄准降低散布（腰射反之）"）；腰射（未按瞄准）= 表值 × 本值。取 **4 = 乘 2 的幂**
+        /// （位级精确——AimMoveSpeedFactor 同约定）：步枪 1.2° ⇒ 腰射 4.8°。
+        /// **进 digest**（与 FireStanceFrames 同判据：判定参数、且 per-weapon 腰射列已列数值调参批
+        /// 表化计划——常量届时让位）。表化随数值调参批（同 HeadshotDamageShift）。
+        /// </summary>
+        public const float HipSpreadFactor = 4f;
+
+        /// <summary>
         /// 尸体期（帧，@60Hz = 3s）：死亡跨线后槽位的保留期——尸体表现/掉落/重连可见的权威载体窗；
         /// 期内实体零交互（输入作废/不可命中/不开火），期满由 CleanupSystem 回收。
         /// **代码常量不进 digest**（表化随数值调参批——同 HeadshotDamageShift 口径）。
@@ -222,7 +231,7 @@ namespace LiteSim
         /// <summary>伤害浮动幅度（命中值 = Base + rng.NextRange(-Spread, Spread+1)；0 = 无浮动）。读口见类头。</summary>
         public static int DamageSpread => _loaded.DamageSpread;
 
-        /// <summary>出生 HP（实体初始生命）。**表字段 `entity_hp`**（实体表化前并入本表：单一职责暂借位）。读口见类头。</summary>
+        /// <summary>出生 HP，来自 tbentityconfig.initial_hp 的固定对局配置投影。读口见类头。</summary>
         public static int EntityHp => _loaded.EntityHp;
     }
 }

@@ -25,6 +25,17 @@ namespace LiteNet.Tests
             return map;
         }
 
+        /// <summary>零散布武器表（回溯组钉"历史位置/瞄准点"几何——不与散布随机耦合）。</summary>
+        private static WeaponTable NoSpreadTable()
+        {
+            var t = new WeaponTable();
+            WeaponDef d = WeaponConfig.DefaultRifle;
+            t.SetRow(d.Id, d.Damage, d.Rpm, d.MagazineSize, d.ReserveAmmo, d.ReloadFrames,
+                d.Range, 0f, d.Pellets, d.SwitchFrames, d.Automatic);
+            t.SetSlotDefault(0, d.Id);
+            return t;
+        }
+
         /// <summary>把"两人都在动"的输入喂一步（EntityId 必带——缺省 0 会被判失效实体而整帧不生效）。
         /// <paramref name="shooterAimY"/>：射手瞄准点高度（AimPoint 单口径；缺省 1 = 眼高 ⇒ 弹道水平）；
         /// <paramref name="shooterAimX"/>：瞄准点 X（缺省 50 = 远端——移动目标用例要射线延伸过历史位）。</summary>
@@ -34,7 +45,7 @@ namespace LiteNet.Tests
             var inputs = new SimInputFrame[PlayerCount];
             inputs[0] = new SimInputFrame { EntityId = s.Entities[0].Id, MoveX = shooterMoveX, AimPointX = shooterAimX, AimPointY = shooterAimY, AimPointZ = 0f };
             inputs[1] = new SimInputFrame { EntityId = s.Entities[1].Id, MoveX = targetMoveX };
-            SimStep.Step(s, map, inputs, CombatValues.Default, WeaponTable.Default);
+            SimStep.Step(s, map, inputs, CombatValues.Default, NoSpreadTable());
             ring.Capture(s.Frame, s);
             lag.RecordInputs(s.Frame, inputs);
             return inputs;
@@ -59,7 +70,7 @@ namespace LiteNet.Tests
             state.Spawn(new EntitySlot { Hp = CombatConfig.EntityHp, Pos = map.SpawnPoints[0] }, out _);
             state.Spawn(new EntitySlot { Hp = CombatConfig.EntityHp, Pos = map.SpawnPoints[1] }, out _);
             var ring = new SnapshotRing(SimConfig.LagCompHistory);
-            var lag = new LagCompensator(state, map, PlayerCount, ring, CombatValues.Default, WeaponTable.Default);
+            var lag = new LagCompensator(state, map, PlayerCount, ring, CombatValues.Default, NoSpreadTable());
 
             // 目标沿 +X 匀速远离（射手不动），跑 20 帧（> 窗口 16，保证"当时位置"仍在窗口内）
             // 余量是必须的：目标"当时的位置"也要落在窗口内，否则回溯目标帧已在环外，
@@ -116,7 +127,7 @@ namespace LiteNet.Tests
             state.Spawn(new EntitySlot { Hp = CombatConfig.EntityHp, Pos = map.SpawnPoints[0] }, out _);
             state.Spawn(new EntitySlot { Hp = CombatConfig.EntityHp, Pos = map.SpawnPoints[1] }, out _);
             var ring = new SnapshotRing(SimConfig.LagCompHistory);
-            var lag = new LagCompensator(state, map, PlayerCount, ring, CombatValues.Default, WeaponTable.Default);
+            var lag = new LagCompensator(state, map, PlayerCount, ring, CombatValues.Default, NoSpreadTable());
 
             for (int i = 0; i < 3; i++) StepWorld(state, map, ring, lag, 0f, 1f);
 
@@ -142,7 +153,7 @@ namespace LiteNet.Tests
             state.Spawn(new EntitySlot { Hp = CombatConfig.EntityHp, Pos = map.SpawnPoints[0] }, out _);
             state.Spawn(new EntitySlot { Hp = CombatConfig.EntityHp, Pos = map.SpawnPoints[1] }, out _);
             var ring = new SnapshotRing(SimConfig.LagCompHistory);
-            var lag = new LagCompensator(state, map, PlayerCount, ring, CombatValues.Default, WeaponTable.Default);
+            var lag = new LagCompensator(state, map, PlayerCount, ring, CombatValues.Default, NoSpreadTable());
 
             // 全程不动（MoveX=0）——本例只验瞄准点口径，不掺移动；点取目标正上方头部带（20, 1.8）。
             for (int i = 0; i < 6; i++) StepWorld(state, map, ring, lag, 0f, 0f, shooterAimY: HeadAimY, shooterAimX: 20f);
@@ -182,7 +193,7 @@ namespace LiteNet.Tests
             state.Spawn(new EntitySlot { Hp = CombatConfig.EntityHp, Pos = map.SpawnPoints[0] }, out _);
             state.Spawn(new EntitySlot { Hp = CombatConfig.EntityHp, Pos = map.SpawnPoints[1] }, out _);
             var ring = new SnapshotRing(SimConfig.LagCompHistory);
-            var lag = new LagCompensator(state, map, PlayerCount, ring, CombatValues.Default, WeaponTable.Default);
+            var lag = new LagCompensator(state, map, PlayerCount, ring, CombatValues.Default, NoSpreadTable());
 
             for (int i = 0; i < 3; i++) StepWorld(state, map, ring, lag, 0f, 0f, shooterAimY: HeadAimY, shooterAimX: 20f);
 
@@ -204,7 +215,7 @@ namespace LiteNet.Tests
             var state = new SimWorldState();
             state.Spawn(new EntitySlot { Hp = CombatConfig.EntityHp, Pos = map.SpawnPoints[0] }, out _);
             var ring = new SnapshotRing(SimConfig.LagCompHistory);
-            var lag = new LagCompensator(state, map, PlayerCount, ring, CombatValues.Default, WeaponTable.Default);
+            var lag = new LagCompensator(state, map, PlayerCount, ring, CombatValues.Default, NoSpreadTable());
 
             LagCompensator.Outcome outcome = lag.CompensateFire(0, entityId: 12345L, viewFrame: 0, clientAckSnapshot: 0);
             Assert.Equal(LagCompensator.Outcome.InvalidShooter, outcome);
@@ -218,7 +229,7 @@ namespace LiteNet.Tests
             state.Spawn(new EntitySlot { Hp = CombatConfig.EntityHp, Pos = map.SpawnPoints[0] }, out _);
             state.Spawn(new EntitySlot { Hp = CombatConfig.EntityHp, Pos = map.SpawnPoints[1] }, out _);
             var ring = new SnapshotRing(SimConfig.LagCompHistory);
-            var lag = new LagCompensator(state, map, PlayerCount, ring, CombatValues.Default, WeaponTable.Default);
+            var lag = new LagCompensator(state, map, PlayerCount, ring, CombatValues.Default, NoSpreadTable());
 
             for (int i = 0; i < 10; i++) StepWorld(state, map, ring, lag, 0f, 0f);
 
@@ -229,6 +240,54 @@ namespace LiteNet.Tests
 
             Assert.Equal(frameBefore, state.Frame);        // 帧号不动
             Assert.Equal(rngBefore, state.RngState);       // 随机数不被回溯判定消费（还原）
+        }
+
+        /// <summary>
+        /// **持续火力的回溯补判跳过武器资源门**（<see cref="SimInputFrame.ButtonFireFlag"/> 契约）：
+        /// 600rpm 连发第三发的"视帧"落在上一发的节拍窗内（视帧上 NextFireFrame 在未来）——
+        /// 补判若重查节拍会错杀整条持续火力（历史帧资源门 ≠ 权威帧事实：弹药/节拍权威帧已消费）。
+        /// 跳门后补判只补几何判定，仍产出对目标的伤害命令。
+        /// </summary>
+        [Fact]
+        public void 回溯补判_连发第三发_视帧节拍未到仍命中()
+        {
+            var map = BuildMap();
+            var state = new SimWorldState { RngState = 7UL };
+            state.Spawn(new EntitySlot { Hp = 1000, Pos = map.SpawnPoints[0] }, out _);
+            state.Spawn(new EntitySlot { Hp = 1000, Pos = map.SpawnPoints[1] }, out _);
+            var ring = new SnapshotRing(SimConfig.LagCompHistory);
+            var lag = new LagCompensator(state, map, PlayerCount, ring, CombatValues.Default, NoSpreadTable());
+            WeaponTable table = NoSpreadTable();
+
+            // 按住开火跑 13 帧（600rpm 节拍 ⇒ 0/6/12 三发权威击发）——每帧真实链：Step → Capture → Record
+            for (int f = 0; f < 13; f++)
+            {
+                var inputs = new SimInputFrame[PlayerCount];
+                inputs[0] = new SimInputFrame { EntityId = state.Entities[0].Id, AimPointX = 50f, AimPointY = 1f, AimPointZ = 0f, Buttons = SimInputFrame.ButtonFire };
+                inputs[1] = new SimInputFrame { EntityId = state.Entities[1].Id };
+                SimStep.Step(state, map, inputs, CombatValues.Default, table);
+                ring.Capture(state.Frame, state);
+                lag.RecordInputs(state.Frame, inputs);
+            }
+
+            // 第三发（frame 12）的视帧：客户端 lag 3 帧 ⇒ ack=9 ⇒ 回溯目标帧 9。
+            // frame 9 上 NextFireFrame = 12（第二发 frame 6 置的节拍窗）——**在视帧的未来**：
+            // 资源门重查必拦（本用例锁定的反例面）；补判按 ButtonFireFlag 跳门仍判定。
+            int ack = 12 - 3;
+            int reportedView = ack + SimConfig.InterpFrames;
+
+            LagCompensator.Outcome outcome = lag.CompensateFire(0, state.Entities[0].Id, reportedView, ack);
+
+            Assert.Equal(LagCompensator.Outcome.Compensated, outcome);
+            Assert.Equal(ack, lag.LastTargetFrame);
+            Assert.Equal(13, state.Frame);                                 // 权威帧号毫发无损
+
+            bool damageFound = false;
+            long targetId = state.Entities[1].Id;
+            for (int i = 0; i < state.Cmds.Count; i++)
+                if (state.Cmds.Items[i].Kind == SimCommandKind.Damage && state.Cmds.Items[i].Target == targetId)
+                    damageFound = true;
+            Assert.True(damageFound, "回溯补判跳过武器资源门——视帧节拍未到仍产出对目标的伤害命令");
         }
     }
 }

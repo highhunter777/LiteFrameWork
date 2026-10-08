@@ -4,6 +4,7 @@
 # 凡 `##var` 表头含 `lua_path` / `entry` 列即认定为注册表表（xlsx 改名/新增注册表表零改动；
 # 重命名 xlsx 的唯一联动点是 __tables__.xlsx 的 input_file 列，与本脚本无关）。
 # 按"根.名字"两段式校验（根限定 UI/Content/Strategies），未知根/重名直接抛（fail the build）。
+import argparse
 import glob
 import openpyxl
 import os
@@ -95,12 +96,15 @@ def emit(paths):
 
 
 def main():
+    parser = argparse.ArgumentParser(description="Generate registered Lua path constants")
+    parser.add_argument("--output", default=OUT_FILE)
+    output_file = os.path.abspath(parser.parse_args().output)
     paths = collect()
     content = emit(paths)
-    os.makedirs(os.path.dirname(OUT_FILE), exist_ok=True)
-    with open(OUT_FILE, "w", encoding="utf-8") as f:
+    os.makedirs(os.path.dirname(output_file), exist_ok=True)
+    with open(output_file, "w", encoding="utf-8", newline="\n") as f:
         f.write(content)
-    print("LuaKeys.g.cs written: %d paths -> %s" % (len(paths), OUT_FILE))
+    print("LuaKeys.g.cs written: %d paths -> %s" % (len(paths), output_file))
 
 
 if __name__ == "__main__":

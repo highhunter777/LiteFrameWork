@@ -54,7 +54,8 @@ namespace LiteSim.Tests
                 new SimInputFrame { EntityId = shooter, AimPointX = 10f, AimPointY = 1f, AimPointZ = 0f, Buttons = SimInputFrame.ButtonFire },
             };
 
-            SimStep.Step(s, map, inputs, CombatValues.Default, WeaponTable.Default);
+            // 零散布表：本用例钉"系统链时序"（Fire→Hit→Death 同帧）——命中几何不与散布随机耦合
+            SimStep.Step(s, map, inputs, CombatValues.Default, TestWeapons.NoSpread());
 
             // 顺序可观测：射击 → 命中 → 伤害结算 → 死亡事件，全部发生在同一逻辑帧
             Assert.Equal(1, s.Frame);
@@ -90,7 +91,7 @@ namespace LiteSim.Tests
                 new SimInputFrame { EntityId = shooter, AimPointX = 10f, AimPointY = 1f, AimPointZ = 0f, Buttons = SimInputFrame.ButtonFire },
             };
 
-            SimStep.Step(s, map, inputs, CombatValues.Default, WeaponTable.Default);
+            SimStep.Step(s, map, inputs, CombatValues.Default, TestWeapons.NoSpread());   // 零散布——钉系统链不钉弹道
 
             Assert.Equal(2, s.Events.Count); // Fire + Hit，无 Death
             Assert.True(s.IsAlive(targetSlot));

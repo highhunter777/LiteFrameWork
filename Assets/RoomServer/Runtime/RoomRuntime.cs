@@ -35,6 +35,8 @@ namespace RoomServer.Runtime
         public int ExpectedPlayers => Config.ExpectedPlayers;
 
         public readonly string RoomId;
+        /// <summary>宿主分配的局标识；直驱测试可显式注入，缺省沿用 RoomId。</summary>
+        public readonly string MatchId;
         public readonly SimWorldState AuthSim;          // 权威唯一真相
         public readonly SimMapData Map;
         public readonly SnapshotRing SnapshotHistory;   // 回溯环（容量 LagCompHistory）
@@ -43,6 +45,7 @@ namespace RoomServer.Runtime
 
         /// <summary>房间创建时刻固定的不可变玩法配置快照（§4/P0-5：替代进程全局可变 CombatConfig）。</summary>
         public readonly FixedCombatConfig FixedConfig;
+        public readonly MatchRules Rules;
 
         /// <summary>席位表：playerId → 席位（定容数组，下标即 playerId）。</summary>
         private readonly PlayerSession[] _seats;
@@ -83,15 +86,18 @@ namespace RoomServer.Runtime
         public long StepsCount;
         public long FireInputsProcessed;        // 走回溯路径的开火输入数
 
-        public RoomRuntime(RoomConfig config, CombatValues? combat = null, WeaponTable weapons = null)
+        public RoomRuntime(RoomConfig config, CombatValues? combat = null, WeaponTable weapons = null, string matchId = null)
         {
             Config = config ?? throw new ArgumentNullException(nameof(config));
             RoomId = config.RoomId;
+            MatchId = matchId ?? RoomId;
             // 玩法数值/武器表实例：装配方显式传入（技术债 #1——不再从全局静态面 capture）；缺省=默认表值
             // （嵌入式/测试形态）。生产链：HostAssembly.Inputs（必填）→ ServerHost → RoomInstance。
             CombatValues values = combat ?? CombatValues.Default;
             WeaponTable table = weapons ?? WeaponTable.Default;
             FixedConfig = FixedCombatConfig.Capture(values, table);   // 房间创建时固定（此后进程任何变化不改本房间）
+            Rules = new MatchRules(config.Rules.DurationFrames, config.Rules.KillLimit,
+                config.Rules.RespawnDelayFrames, config.Rules.SpawnProtectionFrames);
             Map = BuildStandardMap();
             AuthSim = new SimWorldState();
             SnapshotHistory = new SnapshotRing(SimConfig.LagCompHistory);
@@ -278,6 +284,12 @@ namespace RoomServer.Runtime
             }
 
             StepFrame();
+            if (AuthSim.Match.Phase == SimMatchPhase.Finished)
+            {
+                ShutdownReason reason = AuthSim.Match.EndReason == MatchEndReason.KillLimit
+                    ? ShutdownReason.KillLimit : ShutdownReason.TimeLimit;
+                Finish(reason, "gameplay:" + AuthSim.Match.EndReason, outputs);
+            }
         }
 
         private void ExecuteShutdown(ShutdownReason reason, long nowMs, List<RoomOutput> outputs)
@@ -285,7 +297,7 @@ namespace RoomServer.Runtime
             if (MatchStateMachine.IsTerminal(Match.Phase))
             {
                 // 幂等：终态重复关闭只记事件，不重迁移（§9.1）
-                outputs.Add(new MatchStateChangedOutput(Match.Phase, Match.Phase, "重复关闭（忽略）", RoomId, AuthSim.Frame, nowMs));
+                outputs.Add(new MatchStateChangedOutput(Match.Phase, Match.Phase, "重复关闭（忽略）", MatchId, AuthSim.Frame, nowMs));
                 return;
             }
 
@@ -299,8 +311,19 @@ namespace RoomServer.Runtime
         private void Finish(ShutdownReason reason, string detail, List<RoomOutput> outputs)
         {
             long now = _lastNowMs;
+            MatchSystem.Finish(AuthSim, reason == ShutdownReason.TimeLimit ? MatchEndReason.TimeLimit : MatchEndReason.External);
             Transition(MatchPhase.Finishing, detail, now, outputs);
-            outputs.Add(new SettlementReadyOutput(new MatchResultSummary(RoomId, Seed, AuthSim.Frame, reason, MemberIds())));
+            int[] members = MemberIds();
+            var players = new PlayerMatchResult[members.Length];
+            for (int i = 0; i < members.Length; i++)
+            {
+                int playerId = members[i];
+                AuthSim.TryResolve(_entityIds[playerId], out int slot);
+                EntitySlot e = slot >= 0 ? AuthSim.Entities[slot] : default;
+                players[i] = new PlayerMatchResult(playerId, _entityIds[playerId], e.Kills, e.Deaths);
+            }
+            outputs.Add(new SettlementReadyOutput(new MatchResultSummary(MatchId, Seed, AuthSim.Frame, reason, members,
+                AuthSim.Match.Winner, AuthSim.Match.EndReason, players)));
             Transition(MatchPhase.Settling, "settle", now, outputs);
             Transition(MatchPhase.Closed, "closed", now, outputs);
         }
@@ -317,10 +340,10 @@ namespace RoomServer.Runtime
             MatchPhase from = Match.Phase;
             if (!Match.TryTransition(to, reason, nowMs))
             {
-                outputs.Add(new MatchStateChangedOutput(from, from, "Rejected:" + reason, RoomId, AuthSim.Frame, nowMs));
+                outputs.Add(new MatchStateChangedOutput(from, from, "Rejected:" + reason, MatchId, AuthSim.Frame, nowMs));
                 return;
             }
-            outputs.Add(new MatchStateChangedOutput(from, to, reason, RoomId, AuthSim.Frame, nowMs));
+            outputs.Add(new MatchStateChangedOutput(from, to, reason, MatchId, AuthSim.Frame, nowMs));
         }
 
         /// <summary>
@@ -335,19 +358,21 @@ namespace RoomServer.Runtime
 
             Seed = Config.Seed != 0 ? Config.Seed : DeriveSeed(_lastNowMs);
             AuthSim.RngState = (ulong)Seed;
+            MatchSystem.Start(AuthSim, Rules);
 
             for (int i = 0; i < NextPlayerId; i++)
             {
                 PlayerSession seat = _seats[i];
                 if (seat == null) continue;
                 SimVector3 spawn = Map.SpawnPoints[i % Map.SpawnPointCount];
-                AuthSim.Spawn(new EntitySlot { Hp = FixedConfig.Values.EntityHp, Pos = spawn, Yaw = 0f }, out int slot);
+                AuthSim.Spawn(new EntitySlot { Hp = FixedConfig.Values.EntityHp, Pos = spawn, Yaw = 0f,
+                    Flags = EntityFlags.Player, SpawnPointIndex = i % Map.SpawnPointCount }, out int slot);
                 _entityIds[i] = AuthSim.Entities[slot].Id;
                 seat.EntityId = _entityIds[i];
             }
 
             Transition(MatchPhase.Running, "started", _lastNowMs, outputs);
-            outputs.Add(new SignalOutput(-1, new MatchStarted(Seed, AuthSim.Frame, FixedConfig.Digest)));
+            outputs.Add(new SignalOutput(-1, new MatchStarted(Seed, AuthSim.Frame, FixedConfig.Digest, AuthSim.Match, MatchId)));
         }
 
         /// <summary>
@@ -369,26 +394,40 @@ namespace RoomServer.Runtime
         /// </summary>
         private void StepFrame()
         {
+            AuthSim.Events.Clear();
             int frame = AuthSim.Frame + 1;   // 本步目标帧号（输入按帧号预存——inputDelay=1 语义）
             for (int i = 0; i < ExpectedPlayers; i++)
             {
                 // 缺席沿用：断线/未发包成员用空输入（§4.5-2；数组序即 playerId 升序——与帧号语义一致）
                 _frameInputs[i] = Gate.TryConsume(frame, i, out SimInputFrame stored) ? stored : default;
+                if (_hasPendingFire[i]) _frameInputs[i].Buttons |= SimInputFrame.ButtonDeferHit;
             }
 
-            SimStep.Step(AuthSim, Map, _frameInputs, FixedConfig.Values, FixedConfig.Weapons);
+            SimStep.Step(AuthSim, Map, _frameInputs, FixedConfig.Values, FixedConfig.Weapons, advanceMatch: false);
             StepsCount++;
+            // 只有通过本帧武器门并产 Fire 的请求可回溯；空仓/冷却/死亡输入不能旁路资源门。
+            for (int i = 0; i < ExpectedPlayers; i++)
+            {
+                bool fired = false;
+                for (int j = 0; j < AuthSim.Events.Count; j++)
+                    if (AuthSim.Events.Items[j].Kind == FrameEventKind.Fire
+                        && AuthSim.Events.Items[j].EntityId == _entityIds[i]) fired = true;
+                _hasPendingFire[i] &= fired;
+                _frameInputs[i].Buttons &= ~SimInputFrame.ButtonDeferHit;
+            }
             int steppedFrame = AuthSim.Frame;
             SnapshotHistory.Capture(steppedFrame, AuthSim);   // 每帧捕获（回溯基料）
             _recentInputs.Record(steppedFrame, _frameInputs, null);   // 重连补发基料（Step 已就地排序 → 规范形）
             LagComp.RecordInputs(steppedFrame, _frameInputs);
 
             ConsumePendingFire();                             // 回溯判定（本步产生开火输入时）
+            MatchSystem.Tick(AuthSim);                        // 整帧（含回溯）结算后才判胜
+            SnapshotHistory.Capture(steppedFrame, AuthSim);    // 覆盖本帧的最终计分/比赛状态
         }
 
         /// <summary>
         /// 回溯判定：开火帧的历史态现在已在环里（本步 Capture 覆盖到"开火帧"本身），
-        /// 因此可安全回溯到"玩家所见帧"判定，命中命令落到当前帧由下一次 FlushCommands 结算（当帧延迟语义）。
+        /// 因此可回溯到所见帧判定；每位射手的命中立即结算，本帧全部完成后再裁决对局结果。
         /// </summary>
         private void ConsumePendingFire()
         {
@@ -398,6 +437,7 @@ namespace RoomServer.Runtime
                 _hasPendingFire[playerId] = false;
 
                 LagComp.CompensateFire(playerId, _entityIds[playerId], _pendingFireView[playerId], _pendingFireAck[playerId]);
+                SimStep.FlushCommands(AuthSim); // 每位射手的命中当帧落账；后续射手不得清掉待结算命令
                 FireInputsProcessed++;
             }
         }

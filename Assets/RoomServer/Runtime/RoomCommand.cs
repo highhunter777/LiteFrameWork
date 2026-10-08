@@ -20,6 +20,8 @@ namespace RoomServer.Runtime
         WaitingTimeout,
         /// <summary>全员离场。</summary>
         AllPlayersLeft,
+        /// <summary>FFA 击杀目标到达。</summary>
+        KillLimit,
     }
 
     /// <summary>命令种类（§8.1：RoomRuntime 的**唯一**入口——Transport/时钟/IO 一概不得旁路进入）。</summary>

@@ -39,6 +39,9 @@ namespace RoomServer.Runtime
         /// <summary>等待玩家超时（毫秒）：WaitingForPlayers 超时 → Aborted（Reason=WaitingTimeout）。0 = 不限时。</summary>
         public long WaitingTimeoutMs = 0;
 
+        /// <summary>玩法规则；创建时复制到 Runtime，再通过开局/公共快照下发。</summary>
+        public LiteSim.MatchRules Rules = LiteSim.MatchRules.Default;
+
         public static RoomConfig Default() => new RoomConfig();
     }
 }

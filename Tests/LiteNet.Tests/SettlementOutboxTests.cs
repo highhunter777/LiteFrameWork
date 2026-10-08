@@ -429,7 +429,7 @@ namespace LiteNet.Tests
             Assert.Equal(1, host.Ops.SettlementsReady);
             Assert.Equal(1, host.Ops.SettlementsJournaled);
             Assert.Single(h.outbox.Entries);
-            Assert.Equal("Room-A", h.outbox.Entries[0].MatchId);
+            Assert.Equal(h.t.LastStartGame(1).MatchId, h.outbox.Entries[0].MatchId);
             Assert.Equal(ShutdownReason.DrainTimeout, h.outbox.Entries[0].EndReason);
             Assert.Equal(1, host.SettlementOutboxPending);
 

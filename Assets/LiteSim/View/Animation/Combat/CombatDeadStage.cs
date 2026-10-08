@@ -5,7 +5,7 @@ using LiteSim;
 namespace LiteSim.View.Animation
 {
     /// <summary>
-    /// 死亡叶（终态）：进态即提交 Death（Die2·一次性·非循环）——**完成后不重发、不退根、不降权**。
+    /// 死亡叶：死亡期间保持 Death 末帧；复活由根的存活事实裁决退出。
     ///
     /// 帧锁定的机制：
     /// - Death 定义声明 `holdOnFinish`——播放器完成收口按定义**豁免停机**（通道保持活跃），
@@ -14,7 +14,7 @@ namespace LiteSim.View.Animation
     /// - 根裁决按 <see cref="SlotAnimContext.IsDead"/> 恒驻本叶（窗充值/退根/降级全被守卫），
     ///   FullBody 通道权重保持、Locomotion 不回流——Idle 不会盖上来。
     ///
-    /// 死亡不可逆：进入来源 = 驱动器 Death 事件沿（即时）或状态轮询（Hp≤0 快照——重连/迟到加入者
+    /// 进入来源 = 驱动器 Death 事件沿（即时）或状态轮询（Hp≤0 快照——重连/迟到加入者
     /// 按状态进叶重播一次到末帧，事件不回放）。
     /// </summary>
     internal sealed class DeadStage : IStage<CharacterAnimId, CombatAnimReq>

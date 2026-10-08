@@ -1710,6 +1710,7 @@ namespace RoomServer
                     break;
                 case SettlementReadyOutput sr:
                     _ops.SettlementsReady++;
+                    SendMatchResult(sr.Summary);
                     Console.WriteLine($"[Settle] room={sr.Summary.MatchId} seed={sr.Summary.Seed} finalFrame={sr.Summary.FinalFrame} end={sr.Summary.EndReason} seats={sr.Summary.SeatPlayerIds.Length}");
                     // §11.3"本地持久 Outbox"：冻结事实入盒（幂等/有界/失败显式计数——不抛进权威循环，
                     // §6"持久化写入不得阻塞/炸掉 Room Worker"）。null = 未装配。
@@ -1735,6 +1736,24 @@ namespace RoomServer
                     }
                     break;
             }
+        }
+
+        private void SendMatchResult(MatchResultSummary summary)
+        {
+            RoomInstance room = _currentRoom ?? (_rooms.Count > 0 ? _rooms[0] : null);
+            if (room == null) return;
+            var message = new Proto.MatchEnded
+            {
+                MatchId = summary.MatchId, FinalFrame = summary.FinalFrame,
+                EndReason = (int)summary.EndReason, GameplayEndReason = (int)summary.GameplayEndReason,
+                WinnerEntityId = summary.WinnerEntityId,
+            };
+            foreach (RoomServer.Runtime.PlayerMatchResult result in summary.Players)
+                message.Players.Add(new Proto.PlayerMatchResult { PlayerId = result.PlayerId,
+                    EntityId = result.EntityId, Kills = result.Kills, Deaths = result.Deaths });
+            foreach (Session member in room.Seats)
+                if (member != null && !member.Disconnected)
+                    SendToSession(member, PacketType.MatchEnded, message, reliable: true);
         }
 
         private void ApplySignal(SignalOutput so, Session joinContext)
@@ -1778,6 +1797,8 @@ namespace RoomServer
                             Seed = ms.Seed,
                             ConfigHash = ms.ConfigHash,   // 房间创建时绑定的规范化摘要（§4/P0-5）
                             Frame = ms.Frame,
+                            MatchId = ms.MatchId ?? "",
+                            Match = SnapshotCodec.PackMatch(ms.MatchState),
                         }, reliable: true);
                     }
                     break;

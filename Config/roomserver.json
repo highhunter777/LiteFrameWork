@@ -36,13 +36,21 @@
       "expected_players": 2,
       "seed": 0,
       "match_time_limit_ms": 0,
-      "waiting_timeout_ms": 0
+      "waiting_timeout_ms": 0,
+      "match_duration_frames": 10800,
+      "kill_limit": 20,
+      "respawn_delay_frames": 180,
+      "spawn_protection_frames": 120
     },
     "four": {
       "expected_players": 4,
       "seed": 0,
       "match_time_limit_ms": 0,
-      "waiting_timeout_ms": 0
+      "waiting_timeout_ms": 0,
+      "match_duration_frames": 10800,
+      "kill_limit": 20,
+      "respawn_delay_frames": 180,
+      "spawn_protection_frames": 120
     }
   }
 }

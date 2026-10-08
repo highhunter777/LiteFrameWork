@@ -28,6 +28,10 @@ namespace LiteSim
             h = SimChecksum.MixInt32(h, e.SelectedWeapon);
             h = SimChecksum.MixByte(h, e.FireStanceFrames);
             h = SimChecksum.MixByte(h, e.CorpseFrames);
+            h = SimChecksum.MixInt32(h, e.SpawnPointIndex);
+            h = SimChecksum.MixInt32(h, e.RespawnFrame);
+            h = SimChecksum.MixInt32(h, e.InvulnerableUntilFrame);
+            h = SimChecksum.MixInt32(h, e.LifeStartFrame);
             return h;
         }
 
@@ -51,6 +55,11 @@ namespace LiteSim
             h = SimChecksum.MixByte(h, e.FireStanceFrames);
             h = SimChecksum.MixByte(h, e.FaceExitTurning);
             h = SimChecksum.MixByte(h, e.CorpseFrames);
+            h = SimChecksum.MixByte(h, e.SemiFireArmed);
+            h = SimChecksum.MixInt32(h, e.SpawnPointIndex);
+            h = SimChecksum.MixInt32(h, e.RespawnFrame);
+            h = SimChecksum.MixInt32(h, e.InvulnerableUntilFrame);
+            h = SimChecksum.MixInt32(h, e.LifeStartFrame);
             return h;
         }
 

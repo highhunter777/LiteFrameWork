@@ -112,12 +112,9 @@ namespace RoomServer.Runtime
 
             if (SimConfig.LagCompHistory <= 0 || targetFrame >= _auth.Frame) return RunDegraded(playerId, fire, targetFrame);
             if (!_ring.ContainsFrame(targetFrame)) return RunDegraded(playerId, fire, targetFrame);
-            if (!TryGetHistorical(playerId, targetFrame, out SimInputFrame historical)) return RunDegraded(playerId, fire, targetFrame);
+            if (!TryGetHistorical(playerId, entityId, _auth.Frame, out SimInputFrame historical)) return RunDegraded(playerId, fire, targetFrame);
 
-            // 瞄准/移动取"当时所见"——补偿的全部意义所在（位置由环上的历史态给出，弹道由历史
-            // AimPoint 给出）。**AimPoint 必须带**（单口径：判定/爆头/朝向都读它——《固定斜视角
-            // 射击方案专项设计》§4）——漏带 ⇒ 回溯判定退化为"无点无效开火"、与客户端预测不一致
-            // （准心命中头部却判不中）。
+            // 位置回溯到所见帧；瞄准点取本次已准入开火输入，不能套用视点帧的旧瞄准点。
             fire.MoveX = historical.MoveX;
             fire.MoveZ = historical.MoveZ;
             fire.AimPointX = historical.AimPointX;
@@ -131,10 +128,12 @@ namespace RoomServer.Runtime
                 return RunDegraded(playerId, fire, targetFrame);
             }
 
-            ulong rngBefore = _auth.RngState;                // 回溯判定不消费权威随机数（还原时一并回滚）
+            ulong rngBefore = _scratch.RngState;            // 恢复当前权威随机流，不能倒退到历史帧的 RNG
             ClearFireBuffers();
             _fireInputs[0] = fire;
-            ShootingSystem.Run(_auth, _map, _fireInputs, _values, _weapons);    // ③ 单系统执行（不 Step）
+            if (_scratch.Entities[shooterSlot].LifeStartFrame <= targetFrame)
+                ShootingSystem.Run(_auth, _map, _fireInputs, _values, _weapons); // 不接受上一生命的开火
+            FilterHistoricalResults(targetFrame);
 
             FrameEventBuffer events = _auth.Events;          // 值类型快照（Items 引用不变）
             CommandBuffer cmds = _auth.Cmds;
@@ -163,7 +162,7 @@ namespace RoomServer.Runtime
         {
             // 当前帧 AimPoint 补齐（只补点，不补 EntityId/Buttons——那两项由调用方构造）。
             // 失败（无当前帧历史）即保持零值，不阻断退化判定。
-            if (TryGetHistorical(playerId, _auth.Frame, out SimInputFrame current))
+            if (TryGetHistorical(playerId, fire.EntityId, _auth.Frame, out SimInputFrame current))
             {
                 fire.AimPointX = current.AimPointX;
                 fire.AimPointY = current.AimPointY;
@@ -189,12 +188,48 @@ namespace RoomServer.Runtime
             _auth.Events.Clear();
         }
 
-        private bool TryGetHistorical(int playerId, int frame, out SimInputFrame input)
+        /// <summary>历史射线只确认几何；当前生命/保护仍以当前权威态为准。</summary>
+        private void FilterHistoricalResults(int targetFrame)
+        {
+            int count = 0;
+            for (int i = 0; i < _auth.Cmds.Count; i++)
+            {
+                SimCommand cmd = _auth.Cmds.Items[i];
+                if (cmd.Kind == SimCommandKind.Damage && !CanApplyHistoricalHit(cmd.Target, targetFrame)) continue;
+                _auth.Cmds.Items[count++] = cmd;
+            }
+            _auth.Cmds.Count = count;
+            count = 0;
+            for (int i = 0; i < _auth.Events.Count; i++)
+            {
+                FrameEvent e = _auth.Events.Items[i];
+                if ((e.Kind == FrameEventKind.Hit || e.Kind == FrameEventKind.Crit)
+                    && !CanApplyHistoricalHit(e.EntityId, targetFrame)) continue;
+                _auth.Events.Items[count++] = e;
+            }
+            _auth.Events.Count = count;
+        }
+
+        private bool CanApplyHistoricalHit(long entityId, int targetFrame)
+        {
+            if (!_scratch.TryResolve(entityId, out int slot)) return false;
+            ref EntitySlot current = ref _scratch.Entities[slot];
+            return current.Hp > 0 && current.LifeStartFrame <= targetFrame
+                && _scratch.Frame >= current.InvulnerableUntilFrame;
+        }
+
+        private bool TryGetHistorical(int playerId, long entityId, int frame, out SimInputFrame input)
         {
             input = default;
             if (!_history[playerId].TryGet(frame, out SimInputFrame[] inputs, out bool[] _)) return false;
-            input = inputs[playerId];
-            return true;
+            // SimStep 将输入按 EntityId 排序；缺席玩家的默认输入会移到前面，数组下标不再等于 playerId。
+            for (int i = 0; i < inputs.Length; i++)
+            {
+                if (inputs[i].EntityId != entityId) continue;
+                input = inputs[i];
+                return true;
+            }
+            return false;
         }
 
         /// <summary>是否产出命中事件（<b>Hit 与 Crit 都算命中</b>——爆头走 <see cref="FrameEventKind.Crit"/>，

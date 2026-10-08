@@ -1,6 +1,7 @@
 using System;
 using System.IO;
 using LiteSim;
+using LiteClient;
 
 namespace RoomServer
 {
@@ -27,7 +28,7 @@ namespace RoomServer
         /// <summary>客户端表数据目录（相对仓库根；gen.bat Pass 1 产出，两端共用同一份文件）。</summary>
         public const string RelativeDir = "Assets/GameData/Config";
 
-        public const int SingleRowId = 1;   // 单行表固定 id
+        public const int SingleRowId = SimConfigMapper.DefaultRowId;
 
         /// <summary>
         /// 从仓库根装载客户端 .bytes 表目录（定位失败或缺表 → 抛，fail-fast）；返回装载实例。
@@ -58,8 +59,8 @@ namespace RoomServer
                 return new Luban.ByteBuf(File.ReadAllBytes(path));
             });
 
-            var values = ToValues(tables.Tbcombatnum.Get(SingleRowId)
-                                  ?? throw new InvalidDataException($"tbcombatnum 缺 id={SingleRowId} 行（单行数值表）"));
+            var values = ToValues(SimConfigMapper.BuildCombatValues(tables.Tbcombatnum,
+                tables.Tbmovementconfig, tables.Tbentityconfig));
             Console.WriteLine(
                 $"[RoomServer] 玩法数值（bin 表）：move={values.MoveSpeed} gravity={values.Gravity} " +
                 $"hitscan={values.HitscanRange} hit={CombatConfig.HitscanRadius}(裁决) body={CombatConfig.BodyRadius}:{CombatConfig.HitscanHeight}(烘焙) " +
@@ -71,22 +72,23 @@ namespace RoomServer
         }
 
         /// <summary>
-        /// 纯解析（可测）：tbcombatnum.bytes 字节 → 数值。坏格式/截断 → 抛
+        /// 纯解析（可测）：玩法、移动与实体表字节 → 固定对局数值。坏格式/截断 → 抛
         /// （不返回默认值——静默兜底会让"表没生成"变成"跑着默认值"的隐形分叉）。
-        /// 单表直读（不构造 Tables——那是全表装载器，顺序依赖没必要带进解析面）。
+        /// 只解析三张数值来源表，不要求武器或表现配置。
         /// </summary>
-        public static CombatNumValues Parse(byte[] combatnumBytes)
+        public static CombatNumValues Parse(byte[] combatnumBytes, byte[] movementconfigBytes,
+            byte[] entityconfigBytes)
         {
-            var table = new cfg.Tbcombatnum(new Luban.ByteBuf(combatnumBytes));
-            var row = table.Get(SingleRowId)
-                      ?? throw new InvalidDataException($"tbcombatnum.bytes 缺 id={SingleRowId} 行（单行数值表）");
-            return ToValues(row);
+            var combat = new cfg.Tbcombatnum(new Luban.ByteBuf(combatnumBytes));
+            var movement = new cfg.Tbmovementconfig(new Luban.ByteBuf(movementconfigBytes));
+            var entity = new cfg.Tbentityconfig(new Luban.ByteBuf(entityconfigBytes));
+            return ToValues(SimConfigMapper.BuildCombatValues(combat, movement, entity));
         }
 
-        /// <summary>表行 → 数值载体（<see cref="Parse"/> 与 <see cref="LoadTableBytes"/> 共用一份映射）。</summary>
-        private static CombatNumValues ToValues(cfg.combatnum row) => new CombatNumValues
+        /// <summary>共用映射产物 → 宿主载体；字段含跨表投影，非单张 combatnum 表行。</summary>
+        private static CombatNumValues ToValues(CombatValues row) => new CombatNumValues
         {
-            Id = row.Id,
+            Id = SingleRowId,
             MoveSpeed = row.MoveSpeed,
             Gravity = row.Gravity,
             HitscanRange = row.HitscanRange,
@@ -96,7 +98,9 @@ namespace RoomServer
         };
 
         /// <summary>武器表装载（服务端与客户端同链——权威 Sim 的武器系统必须拿到同一份武器定义；
-        /// 缺默认步枪行即抛，fail-fast 与 tbcombatnum 同纪律）。产出 <see cref="WeaponTable"/> 实例。</summary>
+        /// 缺默认步枪行即抛，fail-fast 与 tbcombatnum 同纪律）。产出 <see cref="WeaponTable"/> 实例。
+        /// fire_mode 合法集 {auto, semi}、slot 须在 <see cref="LiteSim.SimConfig.WeaponSlotsPerEntity"/> 内
+        /// ——越界即抛（错表必两端分叉，宁可起不来）。</summary>
         private static WeaponTable BuildWeaponTable(cfg.Tables tables)
         {
             if (tables.Tbweapon == null || tables.Tbweapon.GetOrDefault(WeaponConfig.DefaultRifleId) == null)
@@ -106,16 +110,26 @@ namespace RoomServer
             int count = 0;
             foreach (cfg.weapon row in tables.Tbweapon.DataList)
             {
-                bool automatic = row.FireMode == "auto";
+                if (row.FireMode != WeaponConfig.FireModeAuto && row.FireMode != WeaponConfig.FireModeSemi)
+                    throw new InvalidDataException($"tbweapon id={row.Id} 非法 fire_mode：'{row.FireMode}'（合法集 auto/semi）");
+                if (row.Slot < 0 || row.Slot >= SimConfig.WeaponSlotsPerEntity)
+                    throw new InvalidDataException($"tbweapon id={row.Id} slot 越界：{row.Slot}（槽数 {SimConfig.WeaponSlotsPerEntity}）");
+                if (row.Pellets < 1)
+                    throw new InvalidDataException($"tbweapon id={row.Id} pellets 非法：{row.Pellets}（≥1——零弹丸＝哑枪，错表必两端分叉）");
+                bool automatic = row.FireMode == WeaponConfig.FireModeAuto;
                 if (table.SetRow(row.Id, row.Damage, row.Rpm, row.MagazineSize, row.ReserveAmmo,
                         row.ReloadFrames, row.Range, row.Spread, row.Pellets, row.SwitchFrames, automatic))
+                {
+                    table.SetSlotDefault(row.Slot, row.Id);
                     count++;
+                }
             }
             if (!table.TryGet(WeaponConfig.DefaultRifleId, out WeaponDef rifle))
                 throw new InvalidDataException("tbweapon 默认步枪行未入表（id 越界？）");
+            table.TryGetSlotDefault(1, out int slot1Id);
             Console.WriteLine(
                 $"[RoomServer] 武器表装载：{count} 行（默认步枪 dmg={rifle.Damage} rpm={rifle.Rpm} " +
-                $"mag={rifle.MagazineSize} 换弹={rifle.ReloadFrames}帧 节拍={rifle.FireIntervalFrames}帧）");
+                $"mag={rifle.MagazineSize} 换弹={rifle.ReloadFrames}帧 节拍={rifle.FireIntervalFrames}帧；槽1默认 id={slot1Id}）");
             return table;
         }
 
@@ -148,7 +162,7 @@ namespace RoomServer
         }
     }
 
-    /// <summary>表行数值（纯数据载体；<see cref="ToValues"/> 产出 <see cref="CombatValues"/> 实例）。</summary>
+    /// <summary>组合数值载体，包含移动表重力与实体表出生生命的固定对局投影。</summary>
     public struct CombatNumValues
     {
         public int Id;

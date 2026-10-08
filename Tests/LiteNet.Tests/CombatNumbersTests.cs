@@ -31,7 +31,7 @@ namespace LiteNet.Tests
             Assert.True(File.Exists(path),
                 $"缺数值表产物：{TableRelativePath}（跑 Luban/gen.bat Pass 1——数值缺失等于两端分叉）");
 
-            CombatNumValues v = CombatNumbers.Parse(File.ReadAllBytes(path));
+            CombatNumValues v = Parse(File.ReadAllBytes(path));
 
             // 表 = 唯一真相；默认实例只是表不可用时的兜底——两者必须一致（漂移即 L1 红）
             Assert.Equal(CombatValues.Default.MoveSpeed, v.MoveSpeed);
@@ -60,14 +60,14 @@ namespace LiteNet.Tests
             byte[] full = File.ReadAllBytes(bin);
             var truncated = new byte[full.Length / 2];
             Array.Copy(full, truncated, truncated.Length);
-            Assert.ThrowsAny<Exception>(() => CombatNumbers.Parse(truncated));
+            Assert.ThrowsAny<Exception>(() => Parse(truncated));
         }
 
         [Fact]
         public void 解析_空行数抛()
         {
             // 全零字节：表头 id 解不出 1 行 → 抛（ByteBuf.ReadSize 读到 0 → 空表 → 缺行）
-            Assert.ThrowsAny<Exception>(() => CombatNumbers.Parse(new byte[16]));
+            Assert.ThrowsAny<Exception>(() => Parse(new byte[16]));
         }
 
         [Fact]
@@ -111,6 +111,14 @@ namespace LiteNet.Tests
             Assert.True(room.AuthSim.TryResolve(room.EntityIdOf(0), out int slot));
             Assert.Equal(130, room.AuthSim.Entities[slot].Hp);                          // 出生 HP = 实例值（≠ 默认 100）
             Assert.Equal(CombatConfigDigest.Compute(custom), room.FixedConfig.Digest);  // 摘要按实例计算
+        }
+
+        private static CombatNumValues Parse(byte[] combatBytes)
+        {
+            string dir = Path.Combine(RepoRoot(), "Assets", "GameData", "Config");
+            return CombatNumbers.Parse(combatBytes,
+                File.ReadAllBytes(Path.Combine(dir, "tbmovementconfig.bytes")),
+                File.ReadAllBytes(Path.Combine(dir, "tbentityconfig.bytes")));
         }
 
         private static string RepoRoot()

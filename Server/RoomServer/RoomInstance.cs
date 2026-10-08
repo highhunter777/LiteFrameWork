@@ -190,7 +190,8 @@ namespace RoomServer
             RoomId = config.RoomId;
             IsDynamic = isDynamic;
             WorkerExecution = workerExecution;
-            Runtime = new RoomRuntime(config, combat, weapons);
+            // 非确定性身份由宿主装配；Runtime 只消费已给定身份，固定 Seed 的新局也不得复用结算幂等键。
+            Runtime = new RoomRuntime(config, combat, weapons, config.RoomId + ":" + Guid.NewGuid().ToString("N"));
             Seats = new Session[Runtime.ExpectedPlayers];
             if (workerExecution)
             {

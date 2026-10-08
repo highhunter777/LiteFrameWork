@@ -37,6 +37,10 @@ namespace LiteSim
         public ActionPhase ActionPhase;
         public byte FireStanceFrames;
         public byte CorpseFrames;
+        public int SpawnPointIndex;
+        public int RespawnFrame;
+        public int InvulnerableUntilFrame;
+        public int LifeStartFrame;
 
         /// <summary>与另一槽位逐字段位级相等（RngState/Frame 不在此——它们在 <see cref="SimWorldStateSnapshot"/> 头部）。</summary>
         public static bool BitEqual(in EntitySnapshotEntry a, in EntitySnapshotEntry b)
@@ -50,7 +54,9 @@ namespace LiteSim
                 && a.SelectedWeapon == b.SelectedWeapon // lint-allow R3（整型判等，非浮点精度比较）
                 && a.ActionId == b.ActionId && a.ActionStartFrame == b.ActionStartFrame && a.ActionPhase == b.ActionPhase // lint-allow R3（整型/枚举判等，非浮点精度比较）
                 && a.FireStanceFrames == b.FireStanceFrames // lint-allow R3（byte 开火窗判等，非浮点精度比较）
-                && a.CorpseFrames == b.CorpseFrames; // lint-allow R3（byte 尸体期判等，非浮点精度比较）
+                && a.CorpseFrames == b.CorpseFrames // lint-allow R3（byte 尸体期判等，非浮点精度比较）
+                && a.SpawnPointIndex == b.SpawnPointIndex && a.RespawnFrame == b.RespawnFrame // lint-allow R3（整数帧/索引）
+                && a.InvulnerableUntilFrame == b.InvulnerableUntilFrame && a.LifeStartFrame == b.LifeStartFrame; // lint-allow R3（整数帧）
         }
     }
 
@@ -112,6 +118,10 @@ namespace LiteSim
             entry.SelectedWeapon = e.SelectedWeapon;
             entry.FireStanceFrames = e.FireStanceFrames;   // 开火驻留窗（差分基线与回放重建面）
             entry.CorpseFrames = e.CorpseFrames;           // 尸体期（死亡表现的权威载体窗——远端可见）
+            entry.SpawnPointIndex = e.SpawnPointIndex;
+            entry.RespawnFrame = e.RespawnFrame;
+            entry.InvulnerableUntilFrame = e.InvulnerableUntilFrame;
+            entry.LifeStartFrame = e.LifeStartFrame;
             entry.ActionId = a.ActionId;
             entry.ActionStartFrame = a.StartFrame;
             entry.ActionPhase = a.Phase;

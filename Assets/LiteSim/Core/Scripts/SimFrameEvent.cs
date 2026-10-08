@@ -30,6 +30,7 @@ namespace LiteSim
         Death = 2,
         Crit = 3,
         Explosion = 4,
+        Respawn = 5,
     }
 
     /// <summary>

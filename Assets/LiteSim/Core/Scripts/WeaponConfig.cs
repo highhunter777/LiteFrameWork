@@ -11,7 +11,8 @@ namespace LiteSim
         public readonly int ReserveAmmo;
         public readonly int ReloadFrames;
         public readonly float Range;
-        /// <summary>散布（度——瞄准收窄；实现后置，当前仅装载）。</summary>
+        /// <summary>散布（度）＝**瞄准态最大偏转角**（腰射 = 表值 × <see cref="CombatConfig.HipSpreadFactor"/>）；
+        /// 偏转几何单源 <see cref="SimSpread"/>，随机消费在 <see cref="ShootingSystem"/>（每弹丸 2 笔）。</summary>
         public readonly float Spread;
         /// <summary>单次击发弹丸数（霰弹枪 &gt;1；步枪 =1）。</summary>
         public readonly int Pellets;
@@ -20,7 +21,8 @@ namespace LiteSim
         /// （rpm = 发/分 ⇒ 每发间隔 = 60/rpm 秒 ⇒ ×TickRate 帧；600rpm @60Hz ⇒ 6 帧。）</summary>
         public readonly int FireIntervalFrames;
 
-        /// <summary>自动击发（按住连发）；false = 半自动（按住只发一发——边沿门后续补）。</summary>
+        /// <summary>自动击发（按住连发）；false = 半自动（按住只发一发——击发沿门
+        /// <see cref="EntitySlot.SemiFireArmed"/>：松开帧重臂、击发消费即解除、冷却内按压同样消费）。</summary>
         public readonly bool Automatic;
 
         public WeaponDef(int id, int damage, int rpm, int magazineSize, int reserveAmmo, int reloadFrames,
@@ -55,6 +57,13 @@ namespace LiteSim
     {
         /// <summary>默认步枪 id（懒装备与兜底用——**编译期常量，机制可读**）。</summary>
         public const int DefaultRifleId = 0;
+
+        /// <summary>击发模式表值：自动（按住连发——节拍门内逐发消费）。</summary>
+        public const string FireModeAuto = "auto";
+
+        /// <summary>击发模式表值：半自动（按住只发一发——扳机松开重臂，<see cref="WeaponDef.Automatic"/> = false）。
+        /// 合法集即 <see cref="FireModeAuto"/>/<see cref="FireModeSemi"/>——装载链据此映射 bool，越界值 fail-fast 拒装载。</summary>
+        public const string FireModeSemi = "semi";
 
         /// <summary>内置默认步枪定义（= tb_weapon.xlsx 步枪行；未装载兜底，L1 守卫卡漂移。**不可变常量面**）。</summary>
         public static readonly WeaponDef DefaultRifle =

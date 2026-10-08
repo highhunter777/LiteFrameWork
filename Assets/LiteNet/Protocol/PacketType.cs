@@ -16,5 +16,6 @@ namespace LiteNet.Protocol
         ReconnectRequest = 9,
         ReconnectResponse = 10,
         RestoreComplete = 11,     // §9.3 步骤 6：客户端恢复完成 ACK（Reliable）——Restoring → Active 门闩
+        MatchEnded = 12,
     }
 }
