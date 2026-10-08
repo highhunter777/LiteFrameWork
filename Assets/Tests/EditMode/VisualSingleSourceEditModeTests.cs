@@ -98,7 +98,7 @@ namespace LiteGame.Tests.EditMode
             List<VisualConstructionScanner.Violation> found =
                 VisualConstructionScanner.ScanDirectory(root,
                     "Assets/LiteClient/Runtime", "Assets/LiteGame/App",
-                    "Assets/LiteFramework/Scripts", "Assets/LiteSim/View");
+                    "Assets/LiteFramework/Scripts", "Assets/LiteView");
 
             if (found.Count > 0)
                 Assert.Fail("运行时视觉构建违规（§7 视觉单一来源）:\n" +

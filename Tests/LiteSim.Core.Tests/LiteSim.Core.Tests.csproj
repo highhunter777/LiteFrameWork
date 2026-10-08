@@ -23,7 +23,7 @@
     该文件本身零引擎依赖，故按源**链接编译**——单一来源，语义不可能在两侧漂移。
   -->
   <ItemGroup>
-    <Compile Include="..\..\Assets\LiteSim\View\ViewTransformMath.cs" Link="View\ViewTransformMath.cs" />
+    <Compile Include="..\..\Assets\LiteView\ViewTransformMath.cs" Link="View\ViewTransformMath.cs" />
   </ItemGroup>
 
   <!--
@@ -32,11 +32,11 @@
     格式化——全零引擎。角色键 HitLocalRole 独立成零引擎文件（HitFeedback.cs 含 Vector3，Unity 侧独编）。
   -->
   <ItemGroup>
-    <Compile Include="..\..\Assets\LiteSim\View\HitLocalRole.cs" Link="View\HitLocalRole.cs" />
-    <Compile Include="..\..\Assets\LiteSim\View\DamageNumbers\DamageNumberMotion.cs" Link="View\DamageNumbers\DamageNumberMotion.cs" />
-    <Compile Include="..\..\Assets\LiteSim\View\DamageNumbers\DamageNumberAggregator.cs" Link="View\DamageNumbers\DamageNumberAggregator.cs" />
-    <Compile Include="..\..\Assets\LiteSim\View\DamageNumbers\DamageNumberStyle.cs" Link="View\DamageNumbers\DamageNumberStyle.cs" />
-    <Compile Include="..\..\Assets\LiteSim\View\DamageNumbers\DamageNumberFormatter.cs" Link="View\DamageNumbers\DamageNumberFormatter.cs" />
+    <Compile Include="..\..\Assets\LiteView\HitLocalRole.cs" Link="View\HitLocalRole.cs" />
+    <Compile Include="..\..\Assets\LiteView\DamageNumbers\DamageNumberMotion.cs" Link="View\DamageNumbers\DamageNumberMotion.cs" />
+    <Compile Include="..\..\Assets\LiteView\DamageNumbers\DamageNumberAggregator.cs" Link="View\DamageNumbers\DamageNumberAggregator.cs" />
+    <Compile Include="..\..\Assets\LiteView\DamageNumbers\DamageNumberStyle.cs" Link="View\DamageNumbers\DamageNumberStyle.cs" />
+    <Compile Include="..\..\Assets\LiteView\DamageNumbers\DamageNumberFormatter.cs" Link="View\DamageNumbers\DamageNumberFormatter.cs" />
   </ItemGroup>
 
   <!--

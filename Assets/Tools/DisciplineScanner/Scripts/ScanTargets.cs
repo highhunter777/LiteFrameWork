@@ -98,7 +98,6 @@ namespace Tools.DisciplineScan
         /// + 三个读口定义文件（定义面自含 Publish/Loaded 声明，非消费）。</summary>
         public static readonly string[] ConfigPortExcludes =
         {
-            "Assets/LiteSim/View",
             "Assets/LiteSim/Core/Scripts/CombatConfig.cs",
             "Assets/LiteSim/Core/Scripts/MovementConfig.cs",
             "Assets/LiteSim/Core/Scripts/WeaponConfig.cs",
@@ -113,11 +112,10 @@ namespace Tools.DisciplineScan
             LintRule.R11RuntimePurity,
         };
 
-        /// <summary>LiteSim 下不适用确定性规则的表现层子根（View 跑引擎、有 GameObject，
-        /// 与 Sim 的定点/纯 C# 约束是两回事；只守 R6 原生协程）。</summary>
+        /// <summary>LiteSim 扫描目标下的确定性规则排除面（当前为空——表现层在 <c>Assets/LiteView</c>
+        /// 独立目标只守 R6，LiteSim 根纯 Sim；本表供 Sim 根下未来例外登记）。</summary>
         public static readonly string[] SimLayerExcludes =
         {
-            "Assets/LiteSim/View",
         };
 
         /// <summary>MetaServer 的宿主装配层：合法使用 Kestrel/Web/IO/Console（服务端总设计 §12 Generic Host），
@@ -170,7 +168,7 @@ namespace Tools.DisciplineScan
         public static readonly ScanTarget[] Default =
         {
             new ScanTarget("Assets/LiteSim", SimRules, SimLayerExcludes),
-            new ScanTarget("Assets/LiteSim/View", UnityRules),                                 // 表现层：只守 R6
+            new ScanTarget("Assets/LiteView", UnityRules),                                 // 表现层：只守 R6
             new ScanTarget("Assets/LiteNet", NetRules),
             new ScanTarget("Assets/LiteFramework/Scripts/Core", CoreRules),
             new ScanTarget("Assets/LiteFramework/Scripts/Unity", UnityRules),
@@ -233,13 +231,14 @@ namespace Tools.DisciplineScan
             "Server/MetaServer/MetaServer.csproj",
         };
 
-        /// <summary>服务端宿主工程不得引用的客户端面程序集关键字（出现在 ProjectReference 即违规）。</summary>
+        /// <summary>服务端宿主工程不得引用的客户端面程序集关键字（出现在 ProjectReference 即违规）。
+        /// View 用**程序集名**作标记（目录无关——csproj 名为 LiteSim.View，住 Assets/LiteView）。</summary>
         public static readonly string[] ClientSideProjectMarkers =
         {
             "LiteFramework",
             "LiteGame",
             "LiteClient",
-            "LiteSim/View",
+            "LiteSim.View",
         };
 
         /// <summary>
