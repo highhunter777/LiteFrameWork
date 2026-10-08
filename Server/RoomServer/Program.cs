@@ -20,6 +20,8 @@ const long DrainGraceMs = 5_000;
 //   --combat-table <dir>   玩法数值表目录（缺省走 CombatNumbers.LoadFromRepo 的仓库路径 Assets/GameData/Config）
 //   其余：--port / --duration <ms> / --quiet / --ticket-key <kid>:<base64> / --audience <id>
 //   --envelope-key <base64>（或环境变量 LITENET_SECURE_ENVELOPE_KEY）
+//   --lobby-instance-key <base64>（或环境变量 LITENET_LOBBY_INSTANCE_KEY；配置 lobby.url 时必填——
+//     实例注册凭据，与 Meta 的 LobbyInstanceKeyBase64 同值）
 //   --allow-insecure-local（仅本机联调，显式允许裸 KCP；公网/共享环境禁止）
 //
 // **房间形态**：单进程多房间 + 动态创建（§6"一个 roomId 只能映射一个独立 RoomActor"）。
@@ -37,6 +39,7 @@ string combatTableDir = null;
 var ticketKeys = new List<JoinTicketKey>();
 string audienceOverride = null;
 string envelopeKeyBase64 = Environment.GetEnvironmentVariable("LITENET_SECURE_ENVELOPE_KEY");
+string lobbyInstanceKeyBase64 = Environment.GetEnvironmentVariable("LITENET_LOBBY_INSTANCE_KEY");
 bool allowInsecureLocal = false;
 
 for (int i = 0; i < args.Length; i++)
@@ -48,6 +51,7 @@ for (int i = 0; i < args.Length; i++)
         case "--quiet": quiet = true; break;
         case "--audience": if (i + 1 < args.Length) audienceOverride = args[++i]; break;
         case "--envelope-key": if (i + 1 < args.Length) envelopeKeyBase64 = args[++i]; break;
+        case "--lobby-instance-key": if (i + 1 < args.Length) lobbyInstanceKeyBase64 = args[++i]; break;
         case "--allow-insecure-local": allowInsecureLocal = true; break;
         case "--combat-table": if (i + 1 < args.Length) combatTableDir = args[++i]; break;
         case "--ticket-key":
@@ -85,6 +89,34 @@ WeaponTable weapons = load.Weapons;
 // 票据验证器装配：生产**必须**传 key（fail-closed）。缺 key 不静默退回——显式告警（§6"不能悄悄退回 fake"）。
 if (portOverride.HasValue) serverConfig.OverridePort(portOverride.Value);
 
+// Lobby 注册参数（配置了 lobby.url 才组装）：实例密钥经环境变量/命令行注入（不进配置文件，
+// 《上云测试专项设计》§5"密钥经环境变量/Secret"——命令行明文仅本机联调）。
+LobbyRegistrationClient.Settings lobbySettings = null;
+if (serverConfig.LobbyEnabled)
+{
+    if (string.IsNullOrWhiteSpace(lobbyInstanceKeyBase64))
+        throw new InvalidOperationException(
+            "RoomServer 已配置 Lobby 注册（lobby.url）但缺实例密钥：请提供 --lobby-instance-key 或环境变量 LITENET_LOBBY_INSTANCE_KEY。");
+    byte[] lobbyKey;
+    try
+    {
+        lobbyKey = Convert.FromBase64String(lobbyInstanceKeyBase64);
+    }
+    catch (FormatException)
+    {
+        throw new InvalidOperationException("Lobby 实例密钥必须是 Base64（原值不回显）。");
+    }
+    lobbySettings = new LobbyRegistrationClient.Settings
+    {
+        Url = serverConfig.LobbyUrl,
+        InstanceId = serverConfig.LobbyInstanceId,
+        InstanceKey = lobbyKey,
+        AdvertiseHost = serverConfig.LobbyAdvertiseHost,
+        HeartbeatIntervalMs = (int)serverConfig.LobbyHeartbeatIntervalMs,
+        RequestTimeoutMs = 5000,
+    };
+}
+
 IJoinTicketValidator ticketValidator = null;
 string audience = audienceOverride ?? serverConfig.Audience;
 if (ticketKeys.Count > 0)
@@ -116,6 +148,7 @@ HostAssembly.Register(services, new HostAssembly.Inputs
     EnvelopeOptions = envelopeOptions,
     CombatValues = combat,
     Weapons = weapons,
+    Lobby = lobbySettings,
 });
 using var provider = HostAssembly.Build(services);
 
@@ -136,6 +169,16 @@ Console.WriteLine(envelopeOptions == null
 
 var host = provider.GetRequiredService<ServerHost>();
 host.Ops.PrintEnabled = !quiet;
+
+// Lobby 注册客户端（解析在宿主之后——创建序=解析序，释放逆序天然"先停心跳、再收宿主"）。
+// 排空期间心跳继续（快照 Draining=true）——Lobby 立即停止分配新对局（§7 drain 协同），
+// 直到进程退出才停止上报。
+LobbyRegistrationClient lobbyClient = provider.GetService<LobbyRegistrationClient>();
+if (lobbyClient != null)
+{
+    Console.WriteLine($"[RoomServer] Lobby 注册已启用：url={serverConfig.LobbyUrl} instance={serverConfig.LobbyInstanceId} advertise={serverConfig.LobbyAdvertiseHost}:{host.BoundPort} 心跳={serverConfig.LobbyHeartbeatIntervalMs}ms");
+    lobbyClient.Start();
+}
 
 // --port 是宿主级覆盖（配置文件里的 port 是同一个值的来源；此处允许验收脚本临时换端口）。
 // 通过配置对象自身复用来覆盖：ServerHost 从 RoomServerConfig.Port 取监听端口。

@@ -34,4 +34,14 @@
     <PackageReference Include="MongoDB.Driver" Version="3.12.0" />
   </ItemGroup>
 
+  <ItemGroup>
+    <!--
+      Join Ticket 线格式**单源**（《Meta 服务专项设计》§6.2/§7、《上云测试专项设计》§2）：
+      Meta 签发端与 RoomServer 验签端必须同一份形状规则（"物理上不会漂"）。以源链接共编——
+      与 RoomServer 工程链接 Luban/SimConfigMapper 同款惯例；**不得**在本工程另写第二份拼串。
+      本文件只依赖 BCL（System/Security.Cryptography/Text），不引入 LiteNet/proto。
+    -->
+    <Compile Include="..\..\Assets\RoomServer\Application\JoinTicketFormat.cs" Link="Shared\JoinTicketFormat.cs" />
+  </ItemGroup>
+
 </Project>

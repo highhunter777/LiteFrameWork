@@ -56,6 +56,9 @@ namespace MetaServer.Tests
 
         public MetaConfig Config => _app.Services.GetRequiredService<IOptions<MetaConfig>>().Value;
 
+        /// <summary>宿主服务面（Lobby 用例解析 AccessTokenService 等真实服务——与生产同一装配路径）。</summary>
+        public IServiceProvider Services => _app.Services;
+
         public async ValueTask DisposeAsync()
         {
             await _app.StopAsync();

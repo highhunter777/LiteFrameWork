@@ -1,5 +1,7 @@
 using System;
 using System.Collections.Generic;
+using System.Text;
+using System.Text.RegularExpressions;
 using MongoDB.Driver;
 
 namespace MetaServer
@@ -77,6 +79,38 @@ namespace MetaServer
 
         /// <summary>访问令牌有效期（秒）。</summary>
         public int AuthTokenTtlSeconds { get; set; } = 600;
+
+        // ---- Lobby（R3：实例注册 + Join Ticket 签发；§6.2/§7）----
+
+        /// <summary>
+        /// Lobby 实例注册凭据（Base64；**空 = Lobby 功能关闭**）。房间端以同值
+        /// 作 Bearer 调用注册端点（常量时间比较）；本值只作凭据，不解码为其它用途。
+        /// </summary>
+        public string LobbyInstanceKeyBase64 { get; set; } = "";
+
+        /// <summary>
+        /// Join Ticket HMAC 密钥（Base64；空 = Lobby 功能关闭）。**须与房间端
+        /// `--ticket-key &lt;kid&gt;:&lt;base64&gt;` 的密钥一致**——Meta 签发、房间验签同 key。
+        /// </summary>
+        public string LobbyTicketKeyBase64 { get; set; } = "";
+
+        /// <summary>票据密钥标识（须与房间端 `--ticket-key` 的 kid 一致；轮换期间两端同改）。</summary>
+        public string LobbyTicketKeyId { get; set; } = "l1";
+
+        /// <summary>票据受众（须与房间端 `--audience` 一致；空 = 房间端不校验）。</summary>
+        public string LobbyTicketAudience { get; set; } = "lobby";
+
+        /// <summary>票据有效期（秒）——短期（§6.2"有效期短期"）。</summary>
+        public int LobbyTicketTtlSeconds { get; set; } = 300;
+
+        /// <summary>心跳存活时限（秒）：超时未心跳即从可分配集合移除（回告实例，两端口径同源）。</summary>
+        public int LobbyHeartbeatTtlSeconds { get; set; } = 30;
+
+        /// <summary>注册表容量上限（§13"任何队列/缓存…必须有显式容量"；满拒新实例）。</summary>
+        public int LobbyRegistryCapacity { get; set; } = 64;
+
+        /// <summary>默认房间号（请求未带 roomId 时使用；空 = 必须由请求给出）。</summary>
+        public string LobbyDefaultRoomId { get; set; } = "";
 
         public static MetaConfig Default() => new MetaConfig();
 
@@ -174,7 +208,48 @@ namespace MetaServer
             if (AuthTokenTtlSeconds < 60 || AuthTokenTtlSeconds > 604800)
                 errors.Add("AuthTokenTtlSeconds 必须在 60..604800，实际：" + AuthTokenTtlSeconds);
 
+            // ---- Lobby（R3）：半段配置 = 配置错误（宁可不启动，也不带"以为开了"的 Lobby 运行）----
+            bool lobbyConfigured = !string.IsNullOrWhiteSpace(LobbyInstanceKeyBase64)
+                || !string.IsNullOrWhiteSpace(LobbyTicketKeyBase64);
+            if (lobbyConfigured)
+            {
+                if (!IsUsableKey(LobbyInstanceKeyBase64))
+                    errors.Add("LobbyInstanceKeyBase64 必须是合法 Base64 且解码后至少 32 字节（原值不回显）");
+                if (!IsUsableKey(LobbyTicketKeyBase64))
+                    errors.Add("LobbyTicketKeyBase64 必须是合法 Base64 且解码后至少 32 字节（原值不回显）");
+                if (string.IsNullOrWhiteSpace(AuthSigningKeyBase64))
+                    errors.Add("配置 Lobby 时必须同时配置 AuthSigningKeyBase64——签发端点以访问令牌鉴权，缺 Auth 时 Lobby 不可用");
+                if (string.IsNullOrEmpty(LobbyTicketKeyId) || LobbyTicketKeyId.Length > 32
+                    || !LobbyTicketKeyIdPattern.IsMatch(LobbyTicketKeyId))
+                    errors.Add("LobbyTicketKeyId 只允许 [A-Za-z0-9_-]{1,32}（不得含票据分隔符 '.'）");
+                if (LobbyTicketAudience == null || LobbyTicketAudience.Length > 128)
+                    errors.Add("LobbyTicketAudience 不得为 null 且不得超过 128 个字符");
+                if (LobbyTicketTtlSeconds < 30 || LobbyTicketTtlSeconds > 3600)
+                    errors.Add("LobbyTicketTtlSeconds 必须在 30..3600，实际：" + LobbyTicketTtlSeconds);
+                if (LobbyHeartbeatTtlSeconds < 1 || LobbyHeartbeatTtlSeconds > 3600)
+                    errors.Add("LobbyHeartbeatTtlSeconds 必须在 1..3600，实际：" + LobbyHeartbeatTtlSeconds);
+                if (LobbyRegistryCapacity < 1 || LobbyRegistryCapacity > 4096)
+                    errors.Add("LobbyRegistryCapacity 必须在 1..4096，实际：" + LobbyRegistryCapacity);
+                if (!string.IsNullOrEmpty(LobbyDefaultRoomId)
+                    && Encoding.UTF8.GetByteCount(LobbyDefaultRoomId) > 64)
+                    errors.Add("LobbyDefaultRoomId 不得超过 64 UTF-8 字节（与房间端房间号上限同口径）");
+            }
+
             return errors;
+        }
+
+        /// <summary>Key 形状与 Auth 同口径：Base64 可解码且 ≥32 字节（原值不回显）。</summary>
+        private static bool IsUsableKey(string base64)
+        {
+            if (string.IsNullOrWhiteSpace(base64)) return false;
+            try
+            {
+                return Convert.FromBase64String(base64).Length >= 32;
+            }
+            catch (FormatException)
+            {
+                return false;
+            }
         }
 
         private static bool IsParsableMongoUri(string value)
@@ -197,5 +272,9 @@ namespace MetaServer
             return System.Net.IPAddress.TryParse(bind.Host, out System.Net.IPAddress ip)
                    && System.Net.IPAddress.IsLoopback(ip);
         }
+
+        /// <summary>票据 kid 形状（与房间端 JoinTicketKey 的同款约束——含分隔符会让票据拆段错位）。</summary>
+        private static readonly Regex LobbyTicketKeyIdPattern =
+            new Regex(@"^[A-Za-z0-9_-]{1,32}$", RegexOptions.Compiled);
     }
 }

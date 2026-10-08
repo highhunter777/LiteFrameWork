@@ -8,6 +8,7 @@ using MetaServer.Contracts.Persistence;
 using MetaServer.Infrastructure.Persistence;
 using MetaServer.Infrastructure.Persistence.Mongo;
 using MetaServer.Modules.Auth;
+using MetaServer.Modules.Lobby;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Http;
@@ -110,6 +111,39 @@ namespace MetaServer
                 });
             }
 
+            // ---- Lobby（R3：实例注册 + Join Ticket 签发；配置密钥才启用，消费值同走 IOptions）----
+            bool lobbyConfigured = !string.IsNullOrWhiteSpace(boot.LobbyInstanceKeyBase64)
+                && !string.IsNullOrWhiteSpace(boot.LobbyTicketKeyBase64);
+            if (lobbyConfigured)
+            {
+                builder.Services.AddSingleton(sp =>
+                {
+                    MetaConfig meta = sp.GetRequiredService<IOptions<MetaConfig>>().Value;
+                    return new InstanceRegistry(
+                        meta.LobbyRegistryCapacity,
+                        meta.LobbyHeartbeatTtlSeconds * 1000L,
+                        () => DateTimeOffset.UtcNow.ToUnixTimeMilliseconds());
+                });
+                builder.Services.AddSingleton(sp =>
+                {
+                    MetaConfig meta = sp.GetRequiredService<IOptions<MetaConfig>>().Value;
+                    return new LobbyTicketSigner(
+                        meta.LobbyTicketKeyId,
+                        Convert.FromBase64String(meta.LobbyTicketKeyBase64),
+                        meta.LobbyTicketAudience);
+                });
+                builder.Services.AddSingleton(sp =>
+                {
+                    MetaConfig meta = sp.GetRequiredService<IOptions<MetaConfig>>().Value;
+                    return new JoinTicketIssueUseCase(
+                        sp.GetRequiredService<InstanceRegistry>(),
+                        sp.GetRequiredService<LobbyTicketSigner>(),
+                        meta.LobbyDefaultRoomId,
+                        meta.LobbyTicketTtlSeconds * 1000L,
+                        () => DateTimeOffset.UtcNow.ToUnixTimeMilliseconds());
+                });
+            }
+
             // ---- 持久化装配（M0-c 批二）----
             // 功能门：配置了 Mongo 连接串才注册（§10"缺真实依赖拒绝启动或拒绝相应功能"——
             // 本处取后者：功能关闭＝样例端点 503、/ready 不检存储）。**门读**用 ConfigurationBinder
@@ -165,6 +199,7 @@ namespace MetaServer
             MapHealthEndpoints(app);
             SampleEndpoints.Map(app);
             AuthEndpoints.Map(app);
+            LobbyEndpoints.Map(app);
             return app;
         }
 

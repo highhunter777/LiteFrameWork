@@ -8,6 +8,9 @@
     "rate_limit = R2 安全批③分层限流（§343 桶容量上限+周期清理；§595 可按 IP/账号/Session 生效）。",
     "  ip = IP 维度·连接（OnConnected）、entry = IP 维度·入场（Join/Reconnect）、account = 账号维度（验签后）、session = 单连接包速率；",
     "  *_burst/*_per_sec = 令牌桶突发/稳态速率，buckets = 每 lane 键表容量上限，idle_ms = 空闲桶回收阈值；整段可省略走缺省。",
+    "lobby = R3 实例注册（《Meta 服务专项设计》§7）：url 为 Meta 注册端点完整地址，空 = 不注册（单机/离线形态）。",
+    "  url 非空时 instance_id（实例唯一标识，重启保持稳定）与 advertise_host（客户端可达 host，端口用实际监听端口）必填；",
+    "  实例密钥不在本文件：经环境变量 LITENET_LOBBY_INSTANCE_KEY 或 --lobby-instance-key 注入（与 Meta 的 LobbyInstanceKeyBase64 同值）。",
     "改本文件必须重启生效：启动时快照，运行中不重读（§188 房间创建时固定不可变玩法配置）。"
   ],
 
@@ -29,6 +32,10 @@
     "session_per_sec": 128,
     "buckets": 8192,
     "idle_ms": 120000
+  },
+
+  "lobby": {
+    "url": ""
   },
 
   "rooms": {

@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
+using System.Text;
 using System.Text.Json;
 using LiteSim;
 using RoomServer.Application;
@@ -98,12 +99,35 @@ namespace RoomServer
         /// </summary>
         public readonly RateLimitSettings RateLimit;
 
+        /// <summary>
+        /// Lobby 注册端点**完整 URL**（《Meta 服务专项设计》§7 实例注册；空 = 不注册——
+        /// 单机/离线形态）。示例：<c>https://meta.example.com/lobby/instances/register</c>。
+        /// 实例密钥**不在此**（密钥走环境变量/命令行注入，见 Program）。
+        /// </summary>
+        public readonly string LobbyUrl;
+
+        /// <summary>实例唯一标识（lobby.url 配置时必填；重启保持稳定）。</summary>
+        public readonly string LobbyInstanceId;
+
+        /// <summary>对客户端通告的 host（端口用宿主实际监听端口回读——配置端口 0 时不可自证）。</summary>
+        public readonly string LobbyAdvertiseHost;
+
+        /// <summary>心跳间隔（毫秒；应显著小于 Meta 回告的存活时限）。</summary>
+        public readonly long LobbyHeartbeatIntervalMs;
+
+        /// <summary>是否启用 Lobby 注册（配置了端点即启用）。</summary>
+        public bool LobbyEnabled
+        {
+            get { return !string.IsNullOrEmpty(LobbyUrl); }
+        }
+
         private readonly string _sourcePath;
 
         private RoomServerConfig(string sourcePath, int port, int maxRooms, string audience,
             Dictionary<string, RoomTemplate> rooms, string defaultTemplateId,
             int workerCount, int mailboxCapacity,
-            string settlementJournalPath, int settlementOutboxCapacity, RateLimitSettings rateLimit)
+            string settlementJournalPath, int settlementOutboxCapacity, RateLimitSettings rateLimit,
+            string lobbyUrl, string lobbyInstanceId, string lobbyAdvertiseHost, long lobbyHeartbeatMs)
         {
             _sourcePath = sourcePath;
             _port = port;
@@ -116,6 +140,10 @@ namespace RoomServer
             SettlementJournalPath = settlementJournalPath;
             SettlementOutboxCapacity = settlementOutboxCapacity;
             RateLimit = rateLimit ?? RateLimitSettings.Default;
+            LobbyUrl = lobbyUrl ?? string.Empty;
+            LobbyInstanceId = lobbyInstanceId ?? string.Empty;
+            LobbyAdvertiseHost = lobbyAdvertiseHost ?? string.Empty;
+            LobbyHeartbeatIntervalMs = lobbyHeartbeatMs;
 
             int widest = 0;
             foreach (RoomTemplate t in rooms.Values)
@@ -258,8 +286,51 @@ namespace RoomServer
 
             RateLimitSettings rateLimit = ParseRateLimit(root, sourcePath);
 
+            // ---- Lobby 注册（可选分区；url 空 = 不注册）----
+            string lobbyUrl = string.Empty;
+            string lobbyInstanceId = string.Empty;
+            string lobbyAdvertiseHost = string.Empty;
+            long lobbyHeartbeatMs = 10_000;
+            if (root.TryGetProperty("lobby", out JsonElement lobbyEl))
+            {
+                if (lobbyEl.ValueKind != JsonValueKind.Object)
+                    throw new InvalidDataException($"lobby 分区必须是对象：{sourcePath}");
+                lobbyUrl = OptionalString(lobbyEl, "url") ?? string.Empty;
+                if (!string.IsNullOrEmpty(lobbyUrl))
+                {
+                    if (!Uri.TryCreate(lobbyUrl, UriKind.Absolute, out Uri lobbyUri)
+                        || (lobbyUri.Scheme != Uri.UriSchemeHttp && lobbyUri.Scheme != Uri.UriSchemeHttps))
+                        throw new InvalidDataException($"lobby.url 必须是绝对 http/https URL：{sourcePath}");
+
+                    lobbyInstanceId = OptionalString(lobbyEl, "instance_id") ?? string.Empty;
+                    if (string.IsNullOrWhiteSpace(lobbyInstanceId)
+                        || Encoding.UTF8.GetByteCount(lobbyInstanceId) > 64)
+                        throw new InvalidDataException(
+                            $"lobby.url 配置时 lobby.instance_id 必填且不超过 64 UTF-8 字节：{sourcePath}");
+
+                    lobbyAdvertiseHost = OptionalString(lobbyEl, "advertise_host") ?? string.Empty;
+                    if (string.IsNullOrWhiteSpace(lobbyAdvertiseHost)
+                        || Encoding.UTF8.GetByteCount(lobbyAdvertiseHost) > 128)
+                        throw new InvalidDataException(
+                            $"lobby.url 配置时 lobby.advertise_host 必填（客户端可达地址的 host，端口用实际监听端口）：{sourcePath}");
+
+                    lobbyHeartbeatMs = OptionalLong(lobbyEl, "heartbeat_interval_ms", 10_000);
+                    if (lobbyHeartbeatMs < 1_000 || lobbyHeartbeatMs > 300_000)
+                        throw new InvalidDataException(
+                            $"lobby.heartbeat_interval_ms 越界（允许 1000..300000）：{lobbyHeartbeatMs}：{sourcePath}");
+                }
+                else if (lobbyEl.TryGetProperty("instance_id", out _)
+                    || lobbyEl.TryGetProperty("advertise_host", out _)
+                    || lobbyEl.TryGetProperty("heartbeat_interval_ms", out _))
+                {
+                    // 半段配置：url 空时其余字段无意义——宁可起不来，不让"以为在上报"成为假象
+                    throw new InvalidDataException($"lobby.url 为空时不应配置 lobby 其余字段（半段配置）：{sourcePath}");
+                }
+            }
+
             return new RoomServerConfig(sourcePath, port, maxRooms, audience, rooms, defaultId,
-                workerCount, mailboxCapacity, journal, outboxCapacity, rateLimit);
+                workerCount, mailboxCapacity, journal, outboxCapacity, rateLimit,
+                lobbyUrl, lobbyInstanceId, lobbyAdvertiseHost, lobbyHeartbeatMs);
         }
 
         /// <summary>
@@ -390,14 +461,15 @@ namespace RoomServer
         public string Describe()
         {
             return string.Format(CultureInfo.InvariantCulture,
-                "port={0} maxRooms={1} workerCount={2} mailboxCapacity={3} audience={4} rooms=[{5}] default={6} settlementJournal={7} settlementCapacity={8} rateLimit=[ip={9} entry={10} account={11} session={12} buckets={13} idleMs={14}]",
+                "port={0} maxRooms={1} workerCount={2} mailboxCapacity={3} audience={4} rooms=[{5}] default={6} settlementJournal={7} settlementCapacity={8} rateLimit=[ip={9} entry={10} account={11} session={12} buckets={13} idleMs={14}] lobby=[url={15} instance={16} advertise={17} heartbeatMs={18}]",
                 Port, MaxRooms, WorkerCount, MailboxCapacity,
                 string.IsNullOrEmpty(Audience) ? "(不校验)" : Audience,
                 string.Join(",", _rooms.Keys), _defaultTemplateId, SettlementJournalPath,
                 SettlementOutboxCapacity,
                 LaneText(RateLimit.IpConnect), LaneText(RateLimit.IpEntry),
                 LaneText(RateLimit.AccountEntry), LaneText(RateLimit.SessionPackets),
-                RateLimit.Buckets, RateLimit.IdleTtlMs);
+                RateLimit.Buckets, RateLimit.IdleTtlMs,
+                LobbyEnabled ? LobbyUrl : "(不注册)", LobbyInstanceId, LobbyAdvertiseHost, LobbyHeartbeatIntervalMs);
         }
 
         private static string LaneText(RateLimitSettings.Lane lane)

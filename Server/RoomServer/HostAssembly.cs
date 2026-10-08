@@ -40,6 +40,12 @@ namespace RoomServer
             /// <summary>武器表实例（**必填**——服务端必须显式传入装载产物 `ServerTableLoad.Weapons`；
             /// 缺失即拒装配——与 CombatValues 同纪律）。</summary>
             public WeaponTable Weapons;
+
+            /// <summary>
+            /// Lobby 注册参数（可 null = 不注册——单机/离线形态）。密钥已由 Program 从环境变量/命令行
+            /// 组装（不进配置文件）；配置了 lobby.url 但缺密钥由 Program 先行 fail-closed。
+            /// </summary>
+            public LobbyRegistrationClient.Settings Lobby;
         }
 
         /// <summary>
@@ -102,6 +108,27 @@ namespace RoomServer
                 host.LoopStats = loop.Stats;                       // Ops 行节拍/掉债观测入口
                 return loop;
             });
+
+            // Lobby 注册客户端（《Meta 服务专项设计》§7；《服务端宿主装配收敛专项设计》批2 首批新对象）：
+            // 工厂惰性——Program 在宿主之后解析，创建序=解析序（释放逆序先停心跳、再收宿主）。
+            // 快照读宿主事实（buildHash/容量/占用/排空位），不接受估算值。
+            if (inputs.Lobby != null)
+            {
+                services.AddSingleton(sp =>
+                {
+                    ServerHost host = sp.GetRequiredService<ServerHost>();
+                    return new LobbyRegistrationClient(inputs.Lobby, () => new LobbyRegistrationClient.Snapshot
+                    {
+                        BuildHash = ServerHost.ServerBuildHash,
+                        MaxRooms = host.MaxRooms,
+                        RoomCount = host.RoomCount,
+                        MaxPlayers = host.MaxRooms * config.MaxExpectedPlayers,
+                        PlayerCount = host.OccupiedPlayerCount,
+                        Draining = host.Draining,
+                        Port = host.BoundPort,
+                    }, Console.WriteLine);
+                });
+            }
         }
 
         /// <summary>

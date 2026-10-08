@@ -24,6 +24,15 @@
     -->
     <ProjectReference Include="..\..\Server\MetaServer\MetaServer.csproj" />
     <ProjectReference Include="..\..\Assets\LiteTesting\LiteTesting.Core.csproj" />
+    <!--
+      房间端票据验证器（L3 跨端闭环：Meta 签发 → RoomServer 验签 同源证明）。测试项目专用引用，
+      不改变生产依赖边界（MetaServer.exe 本身不引用房间程序集——签发走源链接的 JoinTicketFormat 单源）。
+      注意：JoinTicketFormat 类型同时存在于两个程序集（源链接共编），**测试代码不得直接命名该类型**
+      （CS0433）；断言走字符串拆段或直接走验证器。
+    -->
+    <ProjectReference Include="..\..\Assets\RoomServer\Application\RoomServer.Application.Runtime.csproj" />
+    <!-- 房间侧注册客户端（L3 闭环：真 LobbyRegistrationClient → 真 Meta HTTP）。同为测试项目专用引用。 -->
+    <ProjectReference Include="..\..\Server\RoomServer\RoomServer.csproj" />
   </ItemGroup>
 
 </Project>

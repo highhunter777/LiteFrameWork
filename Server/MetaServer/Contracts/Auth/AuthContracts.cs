@@ -42,6 +42,9 @@ namespace MetaServer.Contracts.Auth
 
         /// <summary>功能不可用（存储/配置缺位）的消息键。</summary>
         public const string MessageKeyUnavailable = "meta.auth.unavailable";
+
+        /// <summary>访问令牌无效/过期/不符的消息键（Lobby 首个受保护端点起消费）。</summary>
+        public const string MessageKeyUnauthorized = "meta.auth.unauthorized";
     }
 
     /// <summary>

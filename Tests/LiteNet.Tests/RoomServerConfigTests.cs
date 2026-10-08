@@ -340,6 +340,74 @@ namespace LiteNet.Tests
             Assert.NotEqual(a.ExpectedPlayers, b.ExpectedPlayers);   // 房间参数可以不同
         }
 
+        // ---- Lobby 注册分区（R3：实例注册；url 空 = 不注册）----
+
+        [Fact]
+        public void Lobby分区_缺省不注册()
+        {
+            var c = RoomServerConfig.Parse(Good);
+
+            Assert.False(c.LobbyEnabled);
+            Assert.Contains("lobby=[url=(不注册)", c.Describe());
+        }
+
+        [Fact]
+        public void Lobby分区_url为空_不注册()
+        {
+            string json = Good.Replace(@"""audience"": ""cluster-1"",",
+                @"""audience"": ""cluster-1"", ""lobby"": { ""url"": """" }, ");
+
+            var c = RoomServerConfig.Parse(json);
+            Assert.False(c.LobbyEnabled);
+        }
+
+        [Fact]
+        public void Lobby分区_完整配置_字段就位()
+        {
+            string json = Good.Replace(@"""audience"": ""cluster-1"",",
+                @"""audience"": ""cluster-1"", ""lobby"": {
+                    ""url"": ""https://meta.example.com/lobby/instances/register"",
+                    ""instance_id"": ""room-a"", ""advertise_host"": ""203.0.113.7"",
+                    ""heartbeat_interval_ms"": 5000
+                  }, ");
+
+            var c = RoomServerConfig.Parse(json);
+
+            Assert.True(c.LobbyEnabled);
+            Assert.Equal("https://meta.example.com/lobby/instances/register", c.LobbyUrl);
+            Assert.Equal("room-a", c.LobbyInstanceId);
+            Assert.Equal("203.0.113.7", c.LobbyAdvertiseHost);
+            Assert.Equal(5000, c.LobbyHeartbeatIntervalMs);
+            Assert.Contains("lobby=[url=https://meta.example.com/lobby/instances/register instance=room-a advertise=203.0.113.7 heartbeatMs=5000]", c.Describe());
+        }
+
+        [Theory]
+        [InlineData(@"{ ""url"": """" , ""instance_id"": ""room-a"" }")]                       // 半段：url 空带字段
+        [InlineData(@"{ ""url"": """" , ""advertise_host"": ""203.0.113.7"" }")]
+        [InlineData(@"{ ""url"": """" , ""heartbeat_interval_ms"": 5000 }")]
+        [InlineData(@"{ ""url"": ""not-a-url"", ""instance_id"": ""a"", ""advertise_host"": ""h"" }")]   // 非绝对 URL
+        [InlineData(@"{ ""url"": ""ftp://x/register"", ""instance_id"": ""a"", ""advertise_host"": ""h"" }")] // 非 http/https
+        [InlineData(@"{ ""url"": ""https://x/r"", ""advertise_host"": ""h"" }")]                 // 缺 instance_id
+        [InlineData(@"{ ""url"": ""https://x/r"", ""instance_id"": ""a"" }")]                    // 缺 advertise_host
+        [InlineData(@"{ ""url"": ""https://x/r"", ""instance_id"": ""a"", ""advertise_host"": ""h"", ""heartbeat_interval_ms"": 999 }")]     // 心跳过密
+        [InlineData(@"{ ""url"": ""https://x/r"", ""instance_id"": ""a"", ""advertise_host"": ""h"", ""heartbeat_interval_ms"": 300001 }")]  // 心跳过疏
+        public void Lobby分区_半段或非法_拒绝(string lobbyJson)
+        {
+            string json = Good.Replace(@"""audience"": ""cluster-1"",",
+                @"""audience"": ""cluster-1"", ""lobby"": " + lobbyJson + ", ");
+
+            Assert.ThrowsAny<System.Exception>(() => RoomServerConfig.Parse(json));
+        }
+
+        [Fact]
+        public void Lobby分区_非对象拒绝()
+        {
+            string json = Good.Replace(@"""audience"": ""cluster-1"",",
+                @"""audience"": ""cluster-1"", ""lobby"": 5, ");
+
+            Assert.ThrowsAny<System.Exception>(() => RoomServerConfig.Parse(json));
+        }
+
         [Fact]
         public void 仓库自带配置_可解析且自洽()
         {

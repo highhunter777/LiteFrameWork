@@ -109,7 +109,7 @@ R2 行亦写"RoomServer 侧：Join Ticket **本地验签**"。Meta 侧只**签�
 - Outbox 容量检查与插入非原子：并发窗口可短暂越界——容量是显式承诺不是硬不变量（契约注释声明）。
 - M0-c 记录中的样例端点是样例⑤载体**非业务 API**（错误形状简化为 code+data；§5.2 正式
   `{code,messageKey,args}` 归 G3 Contracts）。
-- R3-Auth-1 游客登录已独立落地，真实 Auth 的正式账号/刷新吊销、Lobby/Profile 仍归后续 R3 批次。
+- R3-Auth-1 游客登录与 **R3-Lobby（实例注册/容量分配/Join Ticket 签发端）已独立落地**（2026-10-08，[服务端R3-Lobby](服务端R3-Lobby.md)）；真实 Auth 的正式账号/刷新吊销（R3-Auth-2）、Profile 仍归后续 R3 批次。
 - Redis、TLS/Dockerfile/Secret Provider/编排面归 R4；`BuildHash` 占位未接（§P0-5）。
 
 ### 2026-09-30 · M0-c 持久化接缝（批一：契约面 + L1 语义段）
@@ -190,7 +190,7 @@ R2 行亦写"RoomServer 侧：Join Ticket **本地验签**"。Meta 侧只**签�
 | L3 | `scripts/test.ps1 -Lane L3` | **57 通过 / 0 失败**（LiteNet.Tests 由 9 → **51**，+42 即本批；MetaServer 6） |
 | L1 | `scripts/test.ps1 -Lane L1` | **761 通过 / 0 失败**（本批用例标 `Integration`，按分层归 **L3** 不占 L1） |
 
-**未完成**：Meta 侧 Join Ticket 签发端（后续 R3-Lobby）；非对称验签（R2 可选）；~~重连票据 CSPRNG 化（R2）~~ 已于 2026-09-30 交付（[服务端R2安全](服务端R2安全.md)）；~~远端限流~~ 已交付（同上），~~**安全信封仍缺（另立专项）**~~ **批1 已于 2026-10-03 交付（[安全信封](安全信封.md)）；批2 运维接缝随 R4**。
+**未完成**：~~Meta 侧 Join Ticket 签发端（后续 R3-Lobby）~~ **已于 R3-Lobby 交付（2026-10-08，[服务端R3-Lobby](服务端R3-Lobby.md)——签发单源走 `JoinTicketFormat` 源链接共编）**；非对称验签（R2 可选）；~~重连票据 CSPRNG 化（R2）~~ 已于 2026-09-30 交付（[服务端R2安全](服务端R2安全.md)）；~~远端限流~~ 已交付（同上），~~**安全信封仍缺（另立专项）**~~ **批1 已于 2026-10-03 交付（[安全信封](安全信封.md)）；批2 运维接缝随 R4**。
 
 ### 2026-09-25 · 宿主骨架交付（含三处实测缺陷修正）
 
@@ -255,12 +255,13 @@ R2 行亦写"RoomServer 侧：Join Ticket **本地验签**"。Meta 侧只**签�
 
 ## 已知边界
 
-- **M0-c 已完成（2026-09-30，批一契约面＋批二真 Mongo 实存储）**：存储端口/约束/夹具/样例全部落地，重启恢复报告见批二记录（§14 矩阵逐项）。后置边界：OS 级杀进程矩阵归 G4 真机；R3-Auth-1 游客登录已另批落地，正式身份、Lobby/Profile、Redis/编排面仍按后续 R3/R4 批次执行。
+- **M0-c 已完成（2026-09-30，批一契约面＋批二真 Mongo 实存储）**：存储端口/约束/夹具/样例全部落地，重启恢复报告见批二记录（§14 矩阵逐项）。后置边界：OS 级杀进程矩阵归 G4 真机；R3-Auth-1 游客登录与 R3-Lobby 已另批落地（[服务端R3-Lobby](服务端R3-Lobby.md)），正式身份、Profile、Redis/编排面仍按后续 R3/R4 批次执行。
 - **M0-d 已交付但范围有限**：交付的是**验证接缝 + HMAC-SHA256 参考实现 + 非法票据矩阵**，落在 RoomServer 侧。
   - **算法是共享密钥 HMAC，不是非对称签名**。§P0-6 允许"本地公钥**或共享验证器**"，框架期 Meta/RoomServer
     同信任域故取后者；换非对称只替换 `HmacJoinTicketValidator` 一个类，接口与消费者不变。
   - **密钥由部署注入**（`--ticket-key <kid>:<base64>`），仓库内**没有**密钥生成/登记工具——
-    Meta 侧签发端的实现归 G3（Auth/Lobby），本批只交消费端。
+    ~~Meta 侧签发端的实现归 G3（Auth/Lobby），本批只交消费端~~ **Meta 侧签发端已交付（R3-Lobby，
+    2026-10-08，[服务端R3-Lobby](服务端R3-Lobby.md)：`LobbyTicketSigner` 走 `JoinTicketFormat` 源链接单源，与本节验证器同 key）。**
   - **未装配验证器时退回原型级非空校验**：这是刻意保留的联调形态（否则全部历史用例与本地联调齐断），
     但**未验证 ≠ 已验证**——`Session.Principal` 保持 null，且启动时打印显式告警（§6"不能悄悄退回 fake"）。
     生产装配**必须**传 `--ticket-key`。

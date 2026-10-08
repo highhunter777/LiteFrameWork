@@ -26,6 +26,10 @@ namespace MetaServer
 
         private long _httpRejected;
 
+        private long _lobbyInstanceRegisters;
+
+        private long _ticketsIssued;
+
         /// <summary>drain 状态：true = 已停止接受外部写，/ready 必须报未就绪（§10 优雅关闭第 1 步）。</summary>
         public volatile bool Draining;
 
@@ -35,11 +39,23 @@ namespace MetaServer
         /// <summary>拒绝计数（4xx/5xx；并发安全）。</summary>
         public void CountRejected() => Interlocked.Increment(ref _httpRejected);
 
+        /// <summary>实例注册/心跳接受计数（§11.2 <c>instance_registered</c> 口径；并发安全）。</summary>
+        public void CountInstanceRegister() => Interlocked.Increment(ref _lobbyInstanceRegisters);
+
+        /// <summary>Join Ticket 签发计数（§11.2 <c>ticket_issue_total</c>；并发安全）。</summary>
+        public void CountTicketIssued() => Interlocked.Increment(ref _ticketsIssued);
+
         /// <summary>HTTP 请求总数（读面；写入只走 <see cref="CountRequest"/>）。</summary>
         public long HttpRequests => Interlocked.Read(ref _httpRequests);
 
         /// <summary>被拒绝的请求数（读面；写入只走 <see cref="CountRejected"/>）。</summary>
         public long HttpRejected => Interlocked.Read(ref _httpRejected);
+
+        /// <summary>实例注册/心跳接受总数（读面）。</summary>
+        public long LobbyInstanceRegisters => Interlocked.Read(ref _lobbyInstanceRegisters);
+
+        /// <summary>已签发 Join Ticket 总数（读面）。</summary>
+        public long TicketsIssued => Interlocked.Read(ref _ticketsIssued);
 
         /// <summary>
         /// 指标文本出口（/metrics）。
@@ -48,11 +64,15 @@ namespace MetaServer
         /// </summary>
         public string FormatMetrics()
         {
-            return new StringBuilder(256)
+            return new StringBuilder(512)
                 .Append("# TYPE meta_http_request_total counter\n")
                 .Append("meta_http_request_total ").Append(HttpRequests).Append('\n')
                 .Append("# TYPE meta_http_rejected_total counter\n")
                 .Append("meta_http_rejected_total ").Append(HttpRejected).Append('\n')
+                .Append("# TYPE meta_lobby_instance_register_total counter\n")
+                .Append("meta_lobby_instance_register_total ").Append(LobbyInstanceRegisters).Append('\n')
+                .Append("# TYPE meta_ticket_issue_total counter\n")
+                .Append("meta_ticket_issue_total ").Append(TicketsIssued).Append('\n')
                 .Append("# TYPE meta_draining gauge\n")
                 .Append("meta_draining ").Append(Draining ? 1 : 0).Append('\n')
                 .Append("# TYPE meta_uptime_seconds gauge\n")

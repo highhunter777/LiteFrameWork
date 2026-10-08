@@ -262,6 +262,21 @@ namespace RoomServer
             get { return _rooms.Count; }
         }
 
+        /// <summary>
+        /// 当前已进房玩家席位占用数（Lobby 容量上报面——未进房的连接不计入"占用"）。
+        /// O(会话表)；低频心跳调用，不在权威循环热路径。
+        /// </summary>
+        public int OccupiedPlayerCount
+        {
+            get
+            {
+                int count = 0;
+                foreach (Session session in _sessions.All())
+                    if (session.PlayerId >= 0) count++;
+                return count;
+            }
+        }
+
         /// <summary>当前房间号快照（诊断用；顺序 = 插入序）。</summary>
         public string[] RoomIds
         {

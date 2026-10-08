@@ -1,8 +1,8 @@
 # Meta 服务专项设计
 
 > 状态：现行专项设计（目标契约层；实现进度见 Docs/施工进度/）
-> 版本：1.0
-> 更新日期：2026-10-01
+> 版本：1.1
+> 更新日期：2026-10-08
 > 适用范围：`MetaServer`（Auth/Lobby/Profile）、Meta 与 RoomServer 的接缝、Meta 与客户端的接口契约、宿主选型、存储与结算幂等、Meta 测试矩阵
 > Owner：Meta/数据；服务端架构负责宿主与边界接缝，客户端流程/UI Owner 负责消费端契约
 > 依赖：`SignatureVerifier`（签名原语）、`Protocol`/`PacketCodec`（版本字段）、`LiteNet.Contracts` 版本契约、热更专项的 ReleaseCatalog/兼容策略、Mongo/Redis 部署环境
@@ -36,7 +36,7 @@ Meta 是战斗服之外的**局外权威**：账号、身份、大厅、进度�
 
 ## 2. 当前进度状况
 
-Meta 当前处于**骨架＋持久化接缝＋R3 Auth 首批**阶段：宿主骨架（Generic Host + Options 校验 + 健康检查 + 优雅关闭）、Join 票据验签接缝、持久化端口与 Mongo 适配器已落地；Auth 已落地游客登录的契约、访问令牌、Mongo 账号 get-or-create、迁移与 `POST /auth/guest` 接线。正式账号绑定/刷新吊销、Lobby、Profile 与 Meta 侧结算 Outbox 仍按后续批次实施。证据见[施工进度](../../施工进度/README.md)、[Meta 服务宿主](../../施工进度/Meta服务宿主.md)与[R3 首批](../../施工进度/服务端R3首批.md)。
+Meta 当前处于**骨架＋持久化接缝＋R3 Auth 首批＋R3-Lobby**阶段：宿主骨架（Generic Host + Options 校验 + 健康检查 + 优雅关闭）、Join 票据验签接缝、持久化端口与 Mongo 适配器已落地；Auth 已落地游客登录的契约、访问令牌、Mongo 账号 get-or-create、迁移与 `POST /auth/guest` 接线；**Lobby 已落地实例注册/心跳（TTL 清扫、有界）、容量驱动分配（drain 协同、版本准入）、Join Ticket 签发（`JoinTicketFormat` 源链接单源）与房间投影查询，RoomServer 侧注册客户端（含排空上报）已接线**。正式账号绑定/刷新吊销、Profile 与 Meta 侧结算 Outbox 仍按后续批次实施。证据见[施工进度](../../施工进度/README.md)、[Meta 服务宿主](../../施工进度/Meta服务宿主.md)、[R3 首批](../../施工进度/服务端R3首批.md)与 [R3-Lobby](../../施工进度/服务端R3-Lobby.md)。
 
 本文其余章节均为目标契约。
 
@@ -170,6 +170,8 @@ Join Ticket 是 Meta 与 RoomServer 之间**唯一**的身份接缝，必须满�
 - 拒绝语义 **fail-closed**：任何校验失败即作废该票据，不降级为"仅警告"。
 - `KCP cookie` 只解决连接探测，**不等同**业务身份、加密或完整性保护（§P0-6 末段）——不得以 cookie 存在宣称身份已校验。
 
+**实装口径（R3-Lobby，2026-10-08）**：本期签发/验签为 **HMAC-SHA256 共享密钥**（框架期 Meta 与 RoomServer 同信任域，§P0-6 允许"本地公钥**或共享验证器**"）；§6.3 的 RSA 非对称留正式身份/公网开放阶段，切换只替换签发器与验证器两侧实现，接口与票据形状不变。签发端形状单源 = `JoinTicketFormat`（源链接共编进 MetaServer），不得另写拼串。
+
 ### 6.3 签名原语、密钥与轮换
 
 **裁决：RSA-2048 + PKCS#1 v1.5 + SHA-256，与 `SignatureVerifier` 同源。**
@@ -191,6 +193,8 @@ Join Ticket 是 Meta 与 RoomServer 之间**唯一**的身份接缝，必须满�
 - **匹配**：首版只做"有容量即可加入"的最小分配，不做评分匹配；具体策略按产品需要扩展，不在框架期冻结。
 - **Join Ticket 在此签发**：Lobby 完成分配后签发 §6.2 的票据，与 `roomId`/`matchId` 一并下发。
 - **Match 状态投影**：Lobby 展示的房间/对局状态是 RoomServer 上报事实的**投影**，不是权威；投影过期即降级显示，不猜状态。
+
+**R3-Lobby 已按本节落地（实装口径）**：`POST /lobby/instances/register`（实例密钥 Bearer——常量时间比较；注册即心跳，TTL 超时移出、表满拒新）、`POST /lobby/join-ticket`（访问令牌鉴权——Lobby 为首个受保护端点；分配 → 按实例构建哈希盖章签发）与 `GET /lobby/rooms`（投影查询，同实例密钥鉴权）。分配排序**确定**（玩家占用 → 房间占用 → Ordinal 实例标识）；版本准入分两态：声明构建与可用实例不符 → `lobby.version-mismatch`，无可用实例/容量 → `lobby.no-capacity`。签发端形状单源 = `Assets/RoomServer/Application/JoinTicketFormat.cs`（源链接共编进 MetaServer），与房间端同 key 验签（HMAC 共享密钥——框架期同信任域，换非对称只替换两端签发/验证器）。注册表当前驻 Meta 进程内存（单实例形态；多实例部署需 Redis 级共享注册表——§9.2"可丢失/可重建"数据），drain 上报由 RoomServer 心跳携带（排空期间持续上报至进程退出）。
 
 ## 8. Profile：进度、库存与结算
 
@@ -340,11 +344,11 @@ CI 仍以 `scripts/gate/test.ps1` 为唯一入口；HTTP/数据库夹具随实�
 | --- | --- | --- |
 | **G1** | 只建**接缝**：必要存储端口、迁移/事务/幂等约束、故障夹具、**一个持久化样例**；Join Ticket **验证器接口**与非法票据测试 | 框架先行 §4"持久化"行与 §5-4；不建真实 Meta 业务 |
 | **R2** | RoomServer 侧：Generic Host、Join Ticket **本地验签**、实例注册与容量上报、drain | 与 §4.1/§6.2/§7 对接；本文为 Meta 侧定义，R2 为房间侧消费 |
-| **G3** | MetaServer 本体：Auth/Lobby/Profile、Mongo Ledger、Reservation、Settlement Outbox/Archive；客户端 `MetaClient` 与 Login/Lobby/Result（C2 批③） | R3 Auth 首批已先落地游客登录与账号持久化；正式账号、Lobby、Profile、结算提交与客户端入口仍按后续批次接入 |
+| **G3** | MetaServer 本体：Auth/Lobby/Profile、Mongo Ledger、Reservation、Settlement Outbox/Archive；客户端 `MetaClient` 与 Login/Lobby/Result（C2 批③） | R3 Auth 首批已先落地游客登录与账号持久化；**R3-Lobby（实例注册/容量分配/Join Ticket 签发端）已交付**；正式账号、Profile、结算提交与客户端入口仍按后续批次接入 |
 | **R4 / G4** | OpenTelemetry、Dashboard、告警、Docker、实例调度、灰度与回滚、长稳与故障注入 | §11/§12/§14 的运维面收口 |
 | **后置** | Chat/Guild；完整运营后台；微服务拆分 | §1.1 选型裁定；不进入首个战斗服 Beta |
 
-**G1 只建接缝**：存储端口、幂等约束、故障夹具与持久化样例，加上票据验证器接口。G3 已按 R3 批次开始落地真实 Auth；尚未实施的 Lobby/Profile 语义不得以空壳模块提前占位，也不在客户端 `ProcedureId` 中预置空阶段。
+**G1 只建接缝**：存储端口、幂等约束、故障夹具与持久化样例，加上票据验证器接口。G3 已按 R3 批次开始落地真实 Auth 与 Lobby；尚未实施的 Profile 语义不得以空壳模块提前占位，也不在客户端 `ProcedureId` 中预置空阶段。
 
 ## 16. 禁止的做法
 

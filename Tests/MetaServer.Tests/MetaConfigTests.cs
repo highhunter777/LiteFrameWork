@@ -193,6 +193,117 @@ namespace MetaServer.Tests
             Assert.Contains(config.Validate(), error => error.Contains("AuthTokenTtlSeconds"));
         }
 
+        // ---- Lobby 配置（R3：实例注册 + Join Ticket 签发）----
+
+        private static MetaConfig LobbyReady()
+        {
+            var config = MetaConfig.Default();
+            config.AuthSigningKeyBase64 = Convert.ToBase64String(new byte[32]);
+            config.LobbyInstanceKeyBase64 = Convert.ToBase64String(new byte[32]);
+            config.LobbyTicketKeyBase64 = Convert.ToBase64String(new byte[32]);
+            return config;
+        }
+
+        [Fact]
+        [Trait(TestTrait.Category, TestCategory.Contract)]
+        public void 默认配置_Lobby未启用_通过校验()
+        {
+            Assert.Empty(MetaConfig.Default().Validate());      // 缺省 = 功能关闭，不是半段配置
+            Assert.Empty(LobbyReady().Validate());
+        }
+
+        [Fact]
+        [Trait(TestTrait.Category, TestCategory.Contract)]
+        public void Lobby半段配置_拒绝启动()
+        {
+            var config = MetaConfig.Default();
+            config.LobbyInstanceKeyBase64 = Convert.ToBase64String(new byte[32]);   // 只有一半
+            Assert.Contains(config.Validate(), error => error.Contains("LobbyTicketKeyBase64"));
+
+            config = MetaConfig.Default();
+            config.LobbyTicketKeyBase64 = Convert.ToBase64String(new byte[32]);
+            Assert.Contains(config.Validate(), error => error.Contains("LobbyInstanceKeyBase64"));
+        }
+
+        [Fact]
+        [Trait(TestTrait.Category, TestCategory.Contract)]
+        public void Lobby配置_缺Auth令牌密钥_拒绝启动()
+        {
+            var config = LobbyReady();
+            config.AuthSigningKeyBase64 = "";                   // 签发端点以访问令牌鉴权，缺 Auth 不可用
+            Assert.Contains(config.Validate(), error => error.Contains("AuthSigningKeyBase64"));
+        }
+
+        [Fact]
+        [Trait(TestTrait.Category, TestCategory.Contract)]
+        public void Lobby密钥_非法Base64或过短_拒绝_原值不回显()
+        {
+            var config = LobbyReady();
+            config.LobbyInstanceKeyBase64 = "not-base64";
+            IReadOnlyList<string> errors = config.Validate();
+            Assert.Contains(errors, error => error.Contains("LobbyInstanceKeyBase64"));
+            Assert.DoesNotContain("not-base64", string.Join(";", errors));
+
+            config = LobbyReady();
+            config.LobbyTicketKeyBase64 = Convert.ToBase64String(new byte[31]);
+            Assert.Contains(config.Validate(), error => error.Contains("32 字节"));
+        }
+
+        [Fact]
+        [Trait(TestTrait.Category, TestCategory.Contract)]
+        public void Lobby票据kid_形状约束_拒绝含分隔符()
+        {
+            var config = LobbyReady();
+            config.LobbyTicketKeyId = "l.1";
+            Assert.Contains(config.Validate(), error => error.Contains("LobbyTicketKeyId"));
+
+            config = LobbyReady();
+            config.LobbyTicketKeyId = new string('k', 33);
+            Assert.Contains(config.Validate(), error => error.Contains("LobbyTicketKeyId"));
+        }
+
+        [Theory]
+        [Trait(TestTrait.Category, TestCategory.Contract)]
+        [InlineData(29)]
+        [InlineData(3601)]
+        public void Lobby票据有效期越界_被拒(int ttl)
+        {
+            var config = LobbyReady();
+            config.LobbyTicketTtlSeconds = ttl;
+            Assert.Contains(config.Validate(), error => error.Contains("LobbyTicketTtlSeconds"));
+        }
+
+        [Theory]
+        [Trait(TestTrait.Category, TestCategory.Contract)]
+        [InlineData(0)]
+        [InlineData(3601)]
+        public void Lobby心跳时限越界_被拒(int ttl)
+        {
+            var config = LobbyReady();
+            config.LobbyHeartbeatTtlSeconds = ttl;
+            Assert.Contains(config.Validate(), error => error.Contains("LobbyHeartbeatTtlSeconds"));
+        }
+
+        [Theory]
+        [Trait(TestTrait.Category, TestCategory.Contract)]
+        [InlineData(0)]
+        [InlineData(4097)]
+        public void Lobby注册表容量越界_被拒(int capacity)
+        {
+            var config = LobbyReady();
+            config.LobbyRegistryCapacity = capacity;
+            Assert.Contains(config.Validate(), error => error.Contains("LobbyRegistryCapacity"));
+        }
+
+        [Fact]
+        [Trait(TestTrait.Category, TestCategory.Contract)]
+        public void Lobby默认房间号_超字节上限_拒绝()
+        {
+            var config = LobbyReady();
+            config.LobbyDefaultRoomId = new string('c', 65);
+            Assert.Contains(config.Validate(), error => error.Contains("LobbyDefaultRoomId"));
+        }
+
         // ---- 以下三项为配置校验的回归钉 ----
 
         /// <summary>
