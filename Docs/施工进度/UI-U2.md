@@ -301,9 +301,10 @@ U1 交付段预告"per-form 缓存策略列随 U2 表扩展"——本批把 §5.
 
 ## 已知边界
 
-- **U2-⑤b/⑤d 与 ⑦ 未交付**（字体与 SafeArea、打字机、焦点；Dialog/Loading/Error 反馈面 ⑥a/b/c 与缓存策略列 ⑧ 已交付）。
-  U2 退出条件"大厅、长列表、HUD、确认弹窗四个真实消费者闭环 + 中英/输入/异常用例通过"**远未达到**；
-  已交付的是导航、模态、LText 服务层与控件接入四个接缝；字体族与打字机尚未接通。
+- ~~**U2-⑤b/⑤d 与 ⑦ 未交付**（字体与 SafeArea、打字机、焦点）~~ **已于 2026-10-09 交付**（见文末批段）；
+  U2 退出条件"大厅、长列表、HUD、确认弹窗四个真实消费者闭环 + 中英/输入/异常用例通过"仍待
+  真实消费者页面（大厅/结算归 G3 消费者批）；已交付接缝 = 导航、模态、LText 服务层与控件接入、
+  字体族 fallback、SafeArea 模板应用、打字机、焦点协调。
 - ~~**无 PlayMode**：本批为 EditMode 全替身验证；真资源场景下的导航/模态行为未验证（L2 PlayMode lane 未建）。~~
   **已于 2026-09-25 消解**：`Assets/Tests/UI/PlayMode` 建成并接入同一门禁；**反馈面归位批的 Loading/Toast/错误弹窗已补真 prefab + 真转场 PlayMode 用例**（3 例），
   另覆盖真 Lua 页面生命周期、暂停/覆盖状态语义、动画资源组合。见 [框架先行记录](框架先行.md)。
@@ -321,3 +322,29 @@ U1 交付段预告"per-form 缓存策略列随 U2 表扩展"——本批把 §5.
 - **运行侧（既有 §7 不变）**：代码触碰视觉的唯一合法形态是**运行时逻辑驱动**——随状态/输入/瞄准点在 prefab 实例上写派生值（位置/参数/可见性/混合权重），不构建结构（不 new GameObject/不 AddComponent 视觉件）。
 
 已同步：[UI 框架总设计 §7](../设计文档/client/ui/UI框架总设计.md)（制作侧同规并入视觉单一来源条目）、[修改指南「跨域接入」UI 行](../开发导航/修改指南.md)（扩展点改为手工 prefab + tbuiform 条目 + UIBindIndex，构建器标注为框架期先例）。
+
+### 2026-10-09 · U2 余部（⑤b/⑤d/⑦）：字体族 / SafeArea / 打字机 / 焦点
+
+> 状态：**已完成（附验证证据）**（EditMode 新用例 30 例已编译进包、留夜间 L2 跑）
+
+**⑤b 字体族**：TMP 全局 fallback 链挂 `Assets/Fonts/NotoSansSC-Regular SDF`（7189 字形）并把图集改 **Dynamic + 多图集**（fallback 的"缺字动态补图集"标准形态；经用户裁决复用现有资产而非技能默认新建）。`Assets/Fonts/` 与 `Assets/TextMesh Pro/` 按资源规范不入 VCS——**配置契约由 `UiFontFamilyEditModeTests` 钉死**（干净克隆缺资产即红、按断言提示补配）；OFL 许可文件随资产归位。新增 `FontGlyphAudit`（§9"检查缺字"）：主字体→fallback 逐级覆盖判定（与 TMP 运行时查找序一致）、控制字符不计、按字符去重、报告可读；文本表（tbtext）落库后由装载侧平铺全量文本进审计入口。
+
+**⑤b SafeArea**：`ListScreen.VirtualList` 挂 `SafeAreaReceiver`（贴边交互容器——UIMain/SafeArea 节先例同型；Dialog/Loading/Toast 均为居中内容不触边，不强挂）。EditMode 四形态（§7"至少覆盖常规横屏、超宽屏、刘海、窗口缩放"）经 `ISafeAreaStrategy` 注入缝：锚点归一数学、变化即重算不残留旧锚点、offset 归零锚点式几何；另钉模板契约（UIMain.SafeArea 与 ListScreen.VirtualList 必须挂接收器）。
+
+**⑤d 打字机**：`LTextLabel`（§9"LTextLabel 打字机为表现行为，关闭/语言变化取消旧任务；不改变业务数据"）——TMP/UGUI 双目标（解析序与绑定层同口径）、`UiAnimationClock.Delta` 步进（UIClock 分域）、AutoTick/外部 Tick 单驱动者（双驱动 Debug 显性报错）、隐藏时 Reveal 登记**待播**（OnEnable 起播——不在暗处跑完）、取消落全量（数据不变——重开不残留半截）、**富文本截点不落标签内**（中间态无半截标签）。路由：`UIBindIndex.SetText`（命令式/本地化路径）经 Reveal 进打字机，**绑定路径（BindText/WriteTextRaw）恒瞬时**（数值不走表现行为）；语言变更经绑定重写文本自然取消旧任务。节点挂组件=行为声明，既有页面零影响（模板未挂即直写不变）。
+
+**⑦ 焦点**：`UIFocusCoordinator`（§6.2"焦点保存/恢复、键盘/手柄 Submit/Cancel 和平台返回统一处理"）——焦点事实单源 = EventSystem 选择（焦点可见走 Selectable Selected 原生过渡态，不建第二套视觉）；打开接管首个可交互件（深度优先序确定性）、遮盖/暂停让出并保存、揭示/续跑**不抢占**恢复（他页持焦点时不动）、关闭摘除并清本页选择；EventSystem 解析缝注入（EditMode 直测——`EventSystem.current` 在编辑器不更新，实测）。`UiInput`（`Assets/LiteGame/UI/Input/`）输入底座：`[UIEventSystem]` 幂等建位 + `InputSystemUIInputModule.AssignDefaultActions()` 默认动作集（键盘/手柄导航与 Submit/Cancel 的引擎半部）+ 平台返回键直读（桌面先行口径 = ESC）；**§7 输入基础设施例外**入视觉扫描器白名单（与 [UIRoot] 层级骨架同判据）+ 总设计 §7 判据同步；**R12 边界表加 `Assets/LiteGame/UI/Input/` 判例**（同 `UI/Anim` 的 DOTween——游戏侧专属适配住专属子目录，InputSystem 直读收敛在一个文件）。平台返回统一口径：ESC 轮询（UIService.Tick）→ 协调者 → `UiShellModule` 装配点接 `UINavigationController.BackAsync`（Back 目标推导/BackInterceptor 拦截链归导航器，不重复实现）。
+
+**用例**：`UiFontFamilyEditModeTests`（5：fallback 配置契约/中英代表文本全覆盖/逐级命中/缺字检出+控制字符+去重/报告）、`SafeAreaEditModeTests`（6：四形态+变化刷新+模板契约）、`LTextTypewriterEditModeTests`（9：节拍/完成一致恰一次/富文本配平×2/新 Reveal 取消/隐藏取消落全量/速率非正/待播/命令式路由/绑定恒瞬时/语言变更重入）、`UIFocusEditModeTests`（10：接管/无件不动/遮盖揭示/暂停续跑/不抢占/关闭摘除/不误清他页/无底座安全/平台返回转发/Tick 安全）——共 **30 例**，随夜间 L2 EditMode 段首跑。
+
+**验证证据**（2026-10-09，白天门禁口径）：
+- Unity 编译：pipeline `recompile` → `recompile_status = {"status":"completed","failed":false,"errors":[]}`（并行线 TestMode 重构 WIP 一度断编——`TestModeRuntime` 成员改走而 DebugTuner/ProcedureMain 悬空，其收敛后全量绿；期间 refresh 通道静默不编译、陈旧 DLL 掩盖 R12 表更新——`recompile` 强制后实证）。
+- 纪律扫描：`RunDisciplineScan.All` → **lint OK（0 violations）**（R12 新边界生效后复跑）。
+- L1：本批未动 dotnet 侧（LiteGame.UI 不在 L1 源集）——沿用 1531/1531（2026-10-09 输入链批时点实测）。
+- L2（EditMode/PlayMode）未跑，留夜间流水线（用户裁决：白天批不跑 Unity 用例）。
+
+**遗留登记**：
+- **ESC→BackAsync 的运行期行为**（真按键→导航器 Back 链→页面关闭）与 **InputSystemUIInputModule 默认动作集**（键盘/手柄导航、Submit/Cancel）为引擎半部——实机/PlayMode 验证归夜间与 G2 真实对局段；EditMode 已钉簿记与转发语义。
+- **根页面 Back 策略**（仅剩主页时按 ESC 的产品行为——退出确认/忽略）未裁决：现走导航器 BackInterceptor 优先链的既有语义（无拦截即关闭栈顶），产品策略随大厅批。
+- **Android 返回键**随平台适配批接 InputSystem Action（现桌面先行口径 = ESC 直读）。
+- **打字机速率/焦点序的页面级配置**（如 UIFormInfo 声明初始焦点控件/叙事 cps）未做——按"随消费者"留真实叙事页批。
