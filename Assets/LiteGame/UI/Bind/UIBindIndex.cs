@@ -94,13 +94,24 @@ namespace LiteGame
             DetachLocale();
         }
 
-        /// <summary>命令式写文本（所有权登记：与 Bind 互斥）。</summary>
+        /// <summary>命令式写文本（所有权登记：与 Bind 互斥）。
+        /// 目标节点挂 <see cref="LTextLabel"/> 时经打字机（Reveal——叙事文本的表现行为，§9；
+        /// 关闭/语言变化取消旧任务由组件承担）；否则直接写全量。</summary>
         public void SetText(string name, string value)
         {
             MarkDriver(name, ControlDriver.Command);
-            if (TryGet<TMPro.TMP_Text>(name, out var tmp)) { tmp.text = value; return; }
-            if (TryGet<UnityEngine.UI.Text>(name, out var legacy)) { legacy.text = value; return; }
+            if (TryGet<TMPro.TMP_Text>(name, out var tmp)) { RevealOrSetText(tmp.gameObject, value); return; }
+            if (TryGet<UnityEngine.UI.Text>(name, out var legacy)) { RevealOrSetText(legacy.gameObject, value); return; }
             throw new InvalidOperationException($"绑定索引[{name}] 无 Text/TMP_Text 组件");
+        }
+
+        /// <summary>命令式路径的打字机路由（绑定路径 <see cref="WriteTextRaw"/> 恒瞬时——数值不走打字机）。</summary>
+        private void RevealOrSetText(GameObject owner, string value)
+        {
+            var label = owner.GetComponent<LTextLabel>();
+            if (label != null) { label.Reveal(value); return; }
+            if (owner.GetComponent<TMPro.TMP_Text>() != null) owner.GetComponent<TMPro.TMP_Text>().text = value;
+            else owner.GetComponent<UnityEngine.UI.Text>().text = value;
         }
 
         // ---- LText：按 key 设文本 + 语言变更自动刷新（《UI框架总设计》§9）----

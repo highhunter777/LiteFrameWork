@@ -37,7 +37,9 @@ namespace LiteGame
                 // 在此注入真实现。不传 = 页面瞬时切换（功能正确、无动效）。
                 transitionStrategy: new FadeSlideTransition());
             context.Put(_uiService);
-            context.Put(new UINavigationController(_uiService));   // 产品导航的单写者入口
+            var nav = new UINavigationController(_uiService);        // 产品导航的单写者入口
+            _uiService.Focus.PlatformBack = () => nav.BackAsync(); // 平台返回统一口径（§6.2）：ESC→协调者→导航器 Back 链
+            context.Put(nav);
             return UniTask.CompletedTask;
         }
 

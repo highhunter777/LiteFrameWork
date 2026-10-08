@@ -178,8 +178,10 @@ namespace Tools.DisciplineScan
             // XLua：宿主（env/预载/校验）住框架侧 Adapters；**Lua 桥**（生命周期/数据门面/注册表）是产品侧绑定层，
             // 住 `Assets/LiteGame/LuaBridge/`——同守本边界
             ("XLua", new[] { "Assets/LiteClient/Adapters/Scripting.XLua/", "Assets/LiteGame/LuaBridge/" }),
-            // Unity.InputSystem：输入设备适配——设备源是它的唯一消费者
-            ("UnityEngine.InputSystem", new[] { "Assets/LiteClient/Adapters/Platform.Unity/" }),
+            // Unity.InputSystem：输入设备适配——框架侧设备源只认 Platform.Unity；**UI 输入适配**
+            // （EventSystem/输入模块建位 + 平台返回键直读）随 UI 壳归游戏侧（同下 DOTween 的
+            // `UI/Anim` 判例——游戏侧专属适配住专属子目录，收敛在一个文件）
+            ("UnityEngine.InputSystem", new[] { "Assets/LiteClient/Adapters/Platform.Unity/", "Assets/LiteGame/UI/Input/" }),
             // Cinemachine：相机适配（同上）——消费者只认 ICameraService 端口，不认识这个包
             ("Cinemachine", new[] { "Assets/LiteClient/Adapters/Platform.Unity/" }),
             // DG.Tweening：UI 动效适配。**不在 Adapters 层**——它是 `Game-specific UI`（§5 框图的

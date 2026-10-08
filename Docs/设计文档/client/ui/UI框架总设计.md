@@ -187,7 +187,7 @@
 - 目录继续使用 `Assets/UI/Screens|Widgets|Patches`，字体继续在 `Assets/Fonts`；YooAsset Screens/Widgets 收集路径不互相包含，tag `ui`。具体规则由制作规范与校验器维护。
 - 世界 VFX 归表现服务。UI 动效、UI 粒子与 UI 音效的播放契约、数据化定义、编排与仲裁收口于[UI 效果系统专项设计](UI效果系统专项设计.md)——通道后端为 UiFx（保持唯一 DOTween 入口）、AudioService.Group.Ui 与模板化粒子，不另建第二套 UI 特效/音效服务。所有播放都进入展示作用域，不携带玩法判定。
 
-**视觉单一来源**：用户可见的 UI 视觉一律来自 `Assets/UI/Screens|Widgets` 的模板；运行时代码不得构建视觉结构——不 `new GameObject` 造 Canvas/Graphic/Text/Button，不 `AddComponent` 挂视觉组件。服务层只持有实例并驱动其状态，不参与外观搭建。层容器节点（`UIRoot` 与各层节点）是层级骨架不是视觉，不在此限。**测试夹具同样适用**：夹具从测试专用 prefab 加载，不拼装，见[UI 测试开发专项设计 §7.2](../../quality/UI测试开发专项设计.md)。 **制作侧同规（2026-10-04 业务期裁决）**：业务 UI 视觉**不走代码生成**——页面/控件一律**编辑器手工制作 prefab 资产**（视觉单一来源的含义覆盖到制作端，构建器生成是框架期测试先例不是业务期路径）；代码触碰视觉的唯一合法形态是**运行时逻辑驱动**——随状态/输入/瞄准点在 prefab 实例上写派生值（位置/参数/可见性/混合权重），不得构建结构、不得绕过模板。
+**视觉单一来源**：用户可见的 UI 视觉一律来自 `Assets/UI/Screens|Widgets` 的模板；运行时代码不得构建视觉结构——不 `new GameObject` 造 Canvas/Graphic/Text/Button，不 `AddComponent` 挂视觉组件。服务层只持有实例并驱动其状态，不参与外观搭建。层容器节点（`UIRoot` 与各层节点）是层级骨架不是视觉，不在此限。**输入底座同判（U2-⑦，2026-10-09）**：`[UIEventSystem]`（EventSystem + InputSystemUIInputModule 默认动作集）由 `Assets/LiteGame/UI/Input/UiInput.cs` 运行时幂等建位——输入基础设施不是视觉结构（无 Graphic/Canvas、不承载外观），与层容器节点同判据；该文件在 `VisualConstructionScanner` 例外表登记，InputSystem 直读边界（R12）同样收敛在该目录（同 `UI/Anim` 的 DOTween 判例）。**测试夹具同样适用**：夹具从测试专用 prefab 加载，不拼装，见[UI 测试开发专项设计 §7.2](../../quality/UI测试开发专项设计.md)。 **制作侧同规（2026-10-04 业务期裁决）**：业务 UI 视觉**不走代码生成**——页面/控件一律**编辑器手工制作 prefab 资产**（视觉单一来源的含义覆盖到制作端，构建器生成是框架期测试先例不是业务期路径）；代码触碰视觉的唯一合法形态是**运行时逻辑驱动**——随状态/输入/瞄准点在 prefab 实例上写派生值（位置/参数/可见性/混合权重），不得构建结构、不得绕过模板。
 
 **引导期错误界面——唯一例外**：`ProcedureError` 的兜底界面可在资源系统不可用时以代码构建，须同时满足：
 

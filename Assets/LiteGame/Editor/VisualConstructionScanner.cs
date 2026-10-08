@@ -14,9 +14,9 @@ namespace LiteGame.Editor
     /// **层容器节点不在此限**：`UIService` 建 `[UIRoot]` 与各语义层节点是**层级骨架不是视觉**
     /// （§7 原文），这些调用不带视觉组件参数，故按"是否构造视觉组件"判定而非按 `new GameObject` 判定。
     ///
-    /// **唯一例外**：引导期错误界面（`ProcedureError`）——资源系统不可用时的兜底，判据见 §7：
-    /// 仅限初始化不变量路径 + 绑冒烟标记 + 不得被常规运行路径复用。例外在
-    /// <see cref="AllowedFiles"/> 显式登记，新增例外必须同时改设计文档与其判据。
+    /// **例外由文件名唯一标识**：引导期错误界面（`ProcedureError`——§7 判据）与 UI 输入底座
+    /// （`UiInput`——§7 输入基础设施例外，与层容器骨架同判据）。
+    /// 新增例外须同时改设计文档与其判据。
     ///
     /// 纯函数式：输入源码文本 → 违规列表，便于用例喂合成负例（§4.2"违规负例"）。
     /// </summary>
@@ -47,6 +47,9 @@ namespace LiteGame.Editor
         {
             // 引导期错误界面：内置资源不可用时仍要能显示（§7）；绑冒烟标记 BootstrapError
             "ProcedureError.cs",
+            // UI 输入底座：EventSystem/UI 输入模块是输入基础设施非视觉（§7 基础设施例外——
+            // 与 [UIRoot] 层级骨架同判据，见 Assets/LiteGame/UI/Input/UiInput.cs 类注释）
+            "UiInput.cs",
         };
 
         public sealed class Violation

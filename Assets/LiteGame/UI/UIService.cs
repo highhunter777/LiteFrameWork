@@ -61,6 +61,11 @@ namespace LiteGame
         private readonly Transform _root;
         private readonly UITransitionRunner _transitions;                  // 转场编排层（§1.5，不注册 ITickable）
         private readonly UIModalStack _modals;                             // 模态栈/射线遮蔽/Back 目标（§6.2 独立子域）
+        private readonly UIFocusCoordinator _focus;                        // 焦点协调（§6.2——保存/恢复/平台返回；U2-⑦）
+
+        /// <summary>焦点协调者（平台返回的输入侧接线点：装配层把 <c>UINavigationController.BackAsync</c>
+        /// 挂 <c>Focus.PlatformBack</c>——语义侧推导在导航器，见 <see cref="UIFocusCoordinator"/>）。</summary>
+        public UIFocusCoordinator Focus => _focus;
         private readonly IPopInterceptor _pop;
         private readonly Func<UIFormInfo, IUIFormLogic> _logicResolver;
         private readonly Func<string, CancellationToken, UniTask<IUIPrefabLease>> _loadPrefab;
@@ -105,6 +110,8 @@ namespace LiteGame
                     layerStrategy ?? new DefaultLayerStrategy());
             }
             _modals = new UIModalStack(this);      // 查询口 = 本类（暴露"谁开着/某层栈顶"两个窄事实）
+            _focus = new UIFocusCoordinator();    // 焦点协调（§6.2——保存/恢复/平台返回；U2-⑦）
+            UiInput.EnsureEventSystem();          // 输入底座（幂等；§7 基础设施例外见 UiInput 判据）
             Log.Info("UI 壳就绪:层级组 Bottom/Window/Top（策略三件默认实现）", "UI");
         }
 
@@ -302,6 +309,7 @@ namespace LiteGame
                 CloseFormInternal(outgoing);            // 切换：旧界面在转场收尾后关闭（转场期间被显式关掉则不动）
 
             _modals.RecomputeBlocking();                  // 模态射线遮蔽随打开/替换收尾重算（§6.2）
+            _focus.OnFormActivated(form);                 // 打开接管：聚焦首个可交互件（转场收尾后——锁期内本就无输入）
 
             Log.Info($"UIForm[{form.Id}] 打开（{group.Name}@{form.Canvas.sortingOrder}，{mode}）", "UI");
             return form;
@@ -454,12 +462,14 @@ namespace LiteGame
         {
             var form = RequireOpen(formId);
             form.EnterPaused();
+            _focus.OnFormSuspended(form);                   // 暂停页让出焦点（§6.2）
         }
 
         public void Resume(int formId)
         {
             var form = RequireOpen(formId);
             form.EnterActiveFromPaused();
+            _focus.OnFormRevealed(form);                    // 续跑页恢复焦点（不抢占）
         }
 
         /// <summary>置顶（§6.2 BringToFront）：组内移到栈顶并统一重排序。
@@ -601,8 +611,16 @@ namespace LiteGame
                 bool shouldCover = g.BaseDepth < coverThreshold;
                 foreach (var f in g.Stack.Open)
                 {
-                    if (shouldCover && f.State == UIFormState.Active) f.EnterCovered();
-                    else if (!shouldCover && f.State == UIFormState.Covered) f.EnterActiveFromCovered();
+                    if (shouldCover && f.State == UIFormState.Active)
+                    {
+                        f.EnterCovered();
+                        _focus.OnFormSuspended(f);            // 被遮页让出焦点（键盘不驱动不可交互页）
+                    }
+                    else if (!shouldCover && f.State == UIFormState.Covered)
+                    {
+                        f.EnterActiveFromCovered();
+                        _focus.OnFormRevealed(f);             // 揭示页不抢占地恢复焦点
+                    }
                 }
             }
         }
@@ -659,6 +677,7 @@ namespace LiteGame
         private void CloseFormInternal(UIForm form)
         {
             form.EnterClosing();
+            _focus.OnFormClosed(form);                    // 摘保存焦点 + 清本页选择（在重算遮盖前——底层揭示恢复可接管）
             var group = GetGroup(form.Info.Layer);
             group.Stack.Remove(form);
             group.RecalculateOrders();                        // 移除后统一重算（紧缩——不复用 order 也不留洞）
@@ -729,6 +748,8 @@ namespace LiteGame
 
         public void Tick(float deltaTime)
         {
+            _focus.Tick();                                // 平台返回键轮询（输入侧；语义侧在导航器 Back 链）
+
             // 快照迭代（§4.3 重入正确性）：OnUpdate 内发起开/关/销毁不得在枚举 _forms 时改集合；
             // 本帧新建的界面下帧起参与驱动（新开的页面同帧不需要 OnUpdate）。
             _tickSnapshot.Clear();

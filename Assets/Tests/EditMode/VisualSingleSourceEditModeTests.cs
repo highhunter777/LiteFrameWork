@@ -60,7 +60,7 @@ namespace LiteGame.Tests.EditMode
         [Test]
         public void 正例_登记例外不判违规()
         {
-            // 引导期错误界面：唯一例外（§7 判据）——显式登记在 AllowedFileNames。
+            // 引导期错误界面：例外（§7 判据）——显式登记在 AllowedFileNames。
             // 按**文件名**登记，故此处路径随目录迁移变化不影响放行。
             var v = VisualConstructionScanner.ScanSource(
                 "Assets/LiteGame/App/Procedure/ProcedureError.cs",
