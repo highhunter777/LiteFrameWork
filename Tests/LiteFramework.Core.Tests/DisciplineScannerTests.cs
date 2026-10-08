@@ -344,9 +344,9 @@ namespace LiteFramework.Tests
             Assert.Equal(0, Count("using LiteSim;", LintRule.R11RuntimePurity));
             Assert.Equal(0, Count("var v = SimMath.MulAdd2(a, b, c, d);", LintRule.R11RuntimePurity));
             Assert.Equal(0, Count("AuthSim.RngState = (ulong)Seed;", LintRule.R11RuntimePurity));
-            Assert.Equal(0, Count("var ring = new PendingInputRing(16);", LintRule.R11RuntimePurity));
+            Assert.Equal(0, Count("var ring = new PendingInputRing(32);", LintRule.R11RuntimePurity));
             // 常量复述不引用 LiteNet（ClientInputBatch.MaxFrames 的既定形态）
-            Assert.Equal(0, Count("public const int MaxFrames = 4;", LintRule.R11RuntimePurity));
+            Assert.Equal(0, Count("public const int MaxFrames = 16;", LintRule.R11RuntimePurity));
             // 注释里的禁用 API 名不算违规
             Assert.Equal(0, Count("// 不打印 Console、不读 DateTime.Now（§8.1 禁止项）", LintRule.R11RuntimePurity));
             // 规则号命名 + 门控（R11 只对 RoomServer/Runtime 目标启用，其他根的文本不经过本规则）

@@ -133,6 +133,29 @@ namespace LiteSim.Tests
             Assert.Equal(SimConfig.MaxCatchUp + 1, s.Frame);
         }
 
+        [Fact]
+        public void FrameDriver_PeekSteps与实推步数逐点一致且不改状态()
+        {
+            var s = new SimWorldState();
+            var driver = new FrameDriver();
+            var map = SimChecksumBaselineSpec.BuildMap();
+            var empty = new SimInputFrame[0];
+            float[] deltas = { 0.5f * SimConfig.Dt, 1f * SimConfig.Dt, 2.5f * SimConfig.Dt, 0.3f * SimConfig.Dt, 100f * SimConfig.Dt };
+
+            foreach (float delta in deltas)
+            {
+                // 连查两次：纯查询（幂等、不消耗累加器/不推帧）
+                int peek1 = driver.PeekSteps(delta);
+                int peek2 = driver.PeekSteps(delta);
+                Assert.Equal(peek1, peek2);
+
+                int frameBefore = s.Frame;
+                driver.Tick(delta, s, map, empty, CombatValues.Default, WeaponTable.Default);
+                Assert.Equal(peek1, driver.StepsLastTick);              // 预发口径 == 实推步数
+                Assert.Equal(frameBefore + peek1, s.Frame);
+            }
+        }
+
         // ---- 辅助 ----
 
         private static string BaselinePath()

@@ -42,7 +42,7 @@
 | 输入位打包 | `Protocol/InputPacker.cs` |
 | 快照 | `SnapshotDiffer`（差分）→ `SnapshotCodec`（编解码）→ `SnapshotReassembler`（重组）；`AoiFilter`（按兴趣域裁剪） |
 | 传输 | `Transport/KcpTransportClient.cs` + `Vendor/kcp2k`（KCP V1.41）；快照走 **Unreliable**、`StartGame` 等信令走 **Reliable** |
-| 上行冗余 | 客户端在最近 **≤4 帧窗口**重复发送输入（抗丢包） |
+| 上行冗余 | 客户端在**未确认段**（最近快照帧+1 起，容量 16 帧）重复发送输入（抗丢包）；段锚快照——预测领先不会把服务器所需帧甩出窗外 |
 
 ### buildHash（两端一致性红线）
 

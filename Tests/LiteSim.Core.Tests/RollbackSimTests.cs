@@ -153,6 +153,40 @@ namespace LiteSim.Tests
             AssertWorldsElementWiseEqual(sim.State, truthFinal);
         }
 
+        [Fact]
+        public void 多步渲染帧_额外帧执行值等于预发沿用形()
+        {
+            // 预发契约（客户端在步进前上行"即将执行的沿用帧"）：本渲染帧走 2 步时——
+            // 第 1 步执行真实输入、第 2 步执行沿用形（Buttons 只留连续意图位）。
+            // 本案钉"本地执行值 == 预发值"，否则进程内权威先走完的第 2 步会与本地执行逐位分叉（每份快照都和解）。
+            var (map, players) = Scenario();
+            var sim = new RollbackSim(SimChecksumBaselineSpec.BuildWorld(), map, IdentityTemplate(players),
+                CombatValues.Default, WeaponTable.Default);
+
+            var want = new SimInputFrame
+            {
+                MoveX = 1f, MoveZ = -0.5f,
+                AimPointX = 10f, AimPointY = 1f, AimPointZ = 0f,
+                Buttons = SimInputFrame.ButtonFire | SimInputFrame.ButtonAim,
+            };
+            var row = new SimInputFrame[players.Length];
+            row[0] = want;
+            row[0].EntityId = players[0];
+            row[1] = new SimInputFrame { EntityId = players[1] };
+            sim.OnRealInput(1, row);                               // 第 1 帧真实输入（含开火位与瞄准）
+
+            Assert.Equal(2, sim.PeekSteps(2.5f * SimConfig.Dt));   // 预发帧数口径：本渲染帧 2 步
+            sim.Tick(2.5f * SimConfig.Dt);
+
+            Assert.True(sim.TryGetExecutedInput(1, players[0], out SimInputFrame f1));
+            Assert.True(sim.TryGetExecutedInput(2, players[0], out SimInputFrame f2));
+            Assert.Equal(want.Buttons, f1.Buttons);                                   // 第 1 步 = 真实输入（开火位在）
+            Assert.Equal(want.Buttons & SimInputFrame.PredictedButtons, f2.Buttons);   // 第 2 步 = 预发沿用形（离散位剥离）
+            Assert.Equal(want.MoveX, f2.MoveX, 1e-6f);                                 // 连续量（移动/瞄准）随沿用
+            Assert.Equal(want.AimPointX, f2.AimPointX, 1e-6f);
+            Assert.Equal(want.AimPointZ, f2.AimPointZ, 1e-6f);
+        }
+
         // ---- §9 M9 验收②③：回滚深度 8 可用；超出深度正确退化 ----
 
         [Fact]
@@ -363,7 +397,7 @@ namespace LiteSim.Tests
             sim.OnRealInput(1, real);
             sim.Tick(SimConfig.Dt);                       // 执行第 1 帧（真实输入）
 
-            Assert.True(sim.TryGetExecutedInput(1, 0, out var usedReal));
+            Assert.True(sim.TryGetExecutedInput(1, players[0], out var usedReal));
             Assert.Equal(0.5f, usedReal.MoveX);
             Assert.Equal(SimInputFrame.ButtonFire | SimInputFrame.ButtonAim, usedReal.Buttons);
 
@@ -372,28 +406,29 @@ namespace LiteSim.Tests
 
             // 沿用帧读回的就是本地实际执行的那份：移动沿用、开火被 PredictedButtons 掩掉——
             // 补发它们，服务器才不会对这些帧按空输入兜底执行（移动中分叉）。
-            Assert.True(sim.TryGetExecutedInput(2, 0, out var used2));
+            Assert.True(sim.TryGetExecutedInput(2, players[0], out var used2));
             Assert.Equal(0.5f, used2.MoveX);
             Assert.Equal(SimInputFrame.ButtonAim, used2.Buttons);
-            Assert.True(sim.TryGetExecutedInput(3, 0, out var used3));
+            Assert.True(sim.TryGetExecutedInput(3, players[0], out var used3));
             Assert.Equal(0.5f, used3.MoveX);
             Assert.Equal(SimInputFrame.ButtonAim, used3.Buttons);
             Assert.Equal(players[0], used2.EntityId);     // 身份随输入数组槽位携带（EntityId 不丢）
         }
 
         [Fact]
-        public void 补发读取_未执行帧与越界玩家一律拒绝()
+        public void 补发读取_未执行帧与未知实体一律拒绝()
         {
             var (map, players) = Scenario();
             var sim = new RollbackSim(SimChecksumBaselineSpec.BuildWorld(), map, IdentityTemplate(players), CombatValues.Default, WeaponTable.Default);
             sim.Tick(SimConfig.Dt);                       // 执行第 1 帧（沿用零输入）
             Assert.Equal(1, sim.State.Frame);
 
-            Assert.False(sim.TryGetExecutedInput(0, 0, out _), "帧 0 是初始锚定，不是已执行步");
-            Assert.False(sim.TryGetExecutedInput(2, 0, out _), "未来帧不在史里");
-            Assert.False(sim.TryGetExecutedInput(1, -1, out _), "负槽位拒绝");
-            Assert.False(sim.TryGetExecutedInput(1, players.Length, out _), "越界槽位拒绝");
-            Assert.True(sim.TryGetExecutedInput(1, 0, out _));   // 边界内的照常可读
+            Assert.False(sim.TryGetExecutedInput(0, players[0], out _), "帧 0 是初始锚定，不是已执行步");
+            Assert.False(sim.TryGetExecutedInput(2, players[0], out _), "未来帧不在史里");
+            Assert.False(sim.TryGetExecutedInput(1, 0, out _), "无目标（Id=0）拒绝");
+            Assert.False(sim.TryGetExecutedInput(1, -1, out _), "未知实体拒绝");
+            Assert.False(sim.TryGetExecutedInput(1, 999_999L, out _), "不存在的实体 Id 拒绝");
+            Assert.True(sim.TryGetExecutedInput(1, players[0], out _));   // 史内实体照常可读
         }
     }
 }

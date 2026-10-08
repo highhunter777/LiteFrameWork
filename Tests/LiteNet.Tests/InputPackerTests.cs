@@ -5,7 +5,7 @@ using Xunit;
 
 namespace LiteNet.Tests
 {
-    /// <summary>输入冗余打包用例（《M10 实施指导》§3：4 帧冗余窗口 / 位级精确往返）。</summary>
+    /// <summary>输入冗余打包用例（《M10 实施指导》§3：未确认段冗余窗口（容量 16） / 位级精确往返）。</summary>
     public class InputPackerTests
     {
         private static SimInputFrame Make(long id, float x)
@@ -14,9 +14,9 @@ namespace LiteNet.Tests
         }
 
         [Fact]
-        public void 冗余_最多带四帧且首帧为最新()
+        public void 冗余_容量封顶且首帧为最新()
         {
-            var recent = new SimInputFrame[6]; // 6 帧历史 → 只打包最近 4
+            var recent = new SimInputFrame[20]; // 20 帧历史 → 只打包容量上限 16 帧
             for (int i = 0; i < recent.Length; i++) recent[i] = Make(100 + i, i);
 
             var msg = InputPacker.Pack(frame: 60, recent: recent, ackSnapshot: 55, viewFrame: 58);
@@ -25,8 +25,8 @@ namespace LiteNet.Tests
             Assert.Equal(55, msg.AckSnapshot);
             Assert.Equal(58, msg.ViewFrame);
             Assert.Equal(InputPacker.MaxRedundancy, msg.Frames.Count);
-            Assert.Equal(100, msg.Frames[0].EntityId); // recent[0] = 最新帧
-            Assert.Equal(103, msg.Frames[3].EntityId); // 滑出 4 帧窗口的更早帧被裁
+            Assert.Equal(100, msg.Frames[0].EntityId);                              // recent[0] = 最新帧
+            Assert.Equal(115, msg.Frames[InputPacker.MaxRedundancy - 1].EntityId);  // 滑出窗口的更早帧被裁
         }
 
         [Fact]

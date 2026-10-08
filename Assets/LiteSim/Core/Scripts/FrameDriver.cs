@@ -17,6 +17,23 @@ namespace LiteSim
         public int StepsLastTick { get; private set; }
 
         /// <summary>
+        /// 本帧将推进的逻辑帧数（**纯查询**——与 <see cref="Tick"/> 同判据，不改累加器/不推帧）。
+        /// 预发用：多步渲染帧要提前上行"沿用帧"的输入（进程内权威与客户端共用累加器、且先于
+        /// 客户端步进，多出的帧会被权威用空输入消费）；帧数精确已知 = 只发额外帧、不发未来帧。
+        /// </summary>
+        public int PeekSteps(float realDelta)
+        {
+            float accumulator = _accumulator + realDelta;
+            int steps = 0;
+            while (steps < SimConfig.MaxCatchUp && accumulator >= SimConfig.Dt)
+            {
+                accumulator -= SimConfig.Dt;
+                steps++;
+            }
+            return steps;
+        }
+
+        /// <summary>
         /// 推进逻辑帧。<paramref name="onLogicalFrame"/> 在每个逻辑帧 Step 结束后、事件清空前回调
         /// （消费帧事件的唯一时机——追帧时每帧的事件都能交付，§3.7）。
         /// </summary>

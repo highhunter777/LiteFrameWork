@@ -10,8 +10,8 @@ namespace LiteNet.Tests
     /// <summary>
     /// `RoomClient` 输入冗余与生命周期：
     ///
-    /// 1. **冗余窗口是真历史**：包里带 frame、frame−1、frame−2…，每帧**各自的内容**——
-    ///    丢一包仍能从后续包补帧。
+    /// 1. **冗余窗口是真历史且锚"未确认段"**：包内带 frame、frame−1、frame−2…，每帧**各自的内容**，
+    ///    下界锚在"最近快照帧 + 1"——服务器已广播确认的帧不再重复携带；丢一包仍能从后续包补帧。
     /// 2. **开火位随帧保留**：Buttons 属于各自那一帧。
     /// 3. **退订**：Dispose 后传输事件不再回调 RoomClient（用假传输验，不碰真实网络）。
     /// 4. **不接管传输所有权**：Dispose 不释放注入的传输。
@@ -21,7 +21,7 @@ namespace LiteNet.Tests
     public sealed class RoomClientInputTests
     {
         [Fact]
-        public void 冗余窗口_带真实历史帧且各帧内容独立()
+        public void 冗余窗口_锚快照_只带未确认段且各帧内容独立()
         {
             var t = new FakeTransport();
             var c = new RoomClient(t);
@@ -29,18 +29,41 @@ namespace LiteNet.Tests
             for (int frame = 1; frame <= 5; frame++)
                 c.SendInput(frame, Input(frame, buttons: frame == 5 ? 1u : 0u), viewFrame: 0);
 
-            // 最后一包 = frame 5，应带 5/4/3/2 四帧（窗口上限 4）
-            Proto.InputMessage last = t.LastInput();
-            Assert.Equal(5, last.Frame);
-            Assert.Equal(4, last.Frames.Count);
-            Assert.Equal(4, c.RedundancyWindowSize);
+            // 未收快照：窗口 = 环内连续可用段（1..5）
+            Proto.InputMessage before = t.LastInput();
+            Assert.Equal(5, before.Frames.Count);
+            Assert.True(InputPacker.TryGetFrame(before, 1, out _));
 
-            // 逐帧取用（服务器侧口径）：frame 2 的内容仍能从这个包里取到 → 丢包可补帧
-            Assert.True(InputPacker.TryGetFrame(last, 5, out SimInputFrame f5));
-            Assert.True(InputPacker.TryGetFrame(last, 2, out SimInputFrame f2));
-            Assert.Equal(2f, f2.MoveX, 1e-6f);          // 每帧各自的内容，不是同一份
-            Assert.Equal(5f, f5.MoveX, 1e-6f);
-            Assert.False(InputPacker.TryGetFrame(last, 1, out _));   // 窗口外（只带 4 帧）
+            // 收到快照（服务器已确认到帧 3）→ 下一包只带未确认段 [4,5,6]
+            t.RaiseSnapshot(3);
+            c.SendInput(6, Input(6, buttons: 0), viewFrame: 0);
+
+            Proto.InputMessage last = t.LastInput();
+            Assert.Equal(6, last.Frame);
+            Assert.Equal(3, last.Frames.Count);
+            Assert.Equal(3, c.RedundancyWindowSize);
+
+            Assert.True(InputPacker.TryGetFrame(last, 4, out SimInputFrame f4));
+            Assert.Equal(4f, f4.MoveX, 1e-6f);           // 每帧各自的内容，不是同一份
+            Assert.False(InputPacker.TryGetFrame(last, 3, out _));   // 已确认段不再携带
+        }
+
+        [Fact]
+        public void 预测领先_窗口仍覆盖服务器所需帧()
+        {
+            var t = new FakeTransport();
+            var c = new RoomClient(t);
+
+            // 客户端预测领先：本地已推进到帧 8，而服务器最近广播快照只到帧 3。
+            // 领先 5 帧时"最近 N 帧"式窗口会甩掉服务器要的帧 4——锚快照的未确认段必须把它带上。
+            for (int frame = 1; frame <= 8; frame++) c.SendInput(frame, Input(frame, 0), 0);
+            t.RaiseSnapshot(3);
+            c.SendInput(9, Input(9, 0), 0);
+
+            Proto.InputMessage last = t.LastInput();
+            Assert.True(InputPacker.TryGetFrame(last, 4, out SimInputFrame f4));   // 服务器当前帧 3 → 所需帧 4
+            Assert.Equal(4f, f4.MoveX, 1e-6f);
+            Assert.Equal(6, last.Frames.Count);          // 未确认段 [4..9]
         }
 
         [Fact]
@@ -223,6 +246,11 @@ namespace LiteNet.Tests
             public void RaiseDisconnected() => OnDisconnected?.Invoke();
 
             public void RaiseData(byte[] packet) => OnData?.Invoke(new ArraySegment<byte>(packet), true);
+
+            /// <summary>注入一份权威快照（未确认段锚点来源）：Frame = 服务器已广播帧号。</summary>
+            public void RaiseSnapshot(int frame)
+                => RaiseData(Protocol.PacketCodec.Encode(Protocol.PacketType.StateSnapshot,
+                    new LiteNet.Proto.StateSnapshot { Frame = frame }));
 
             public Proto.InputMessage LastInput()
             {

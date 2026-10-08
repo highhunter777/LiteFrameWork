@@ -28,7 +28,8 @@ namespace LiteNet
 
     /// <summary>
     /// 房间客户端（§4.5 协议矩阵的 C→S 侧封装）：
-    /// Join/输入（**最近 ≤4 帧冗余窗口**）/MismatchReport 上报 + JoinAck/StartGame/StateSnapshot 事件化。
+    /// Join/输入（**未确认段冗余窗口**——锚"最近快照帧+1"，容量 16 帧）/MismatchReport 上报
+    /// + JoinAck/StartGame/StateSnapshot 事件化。
     /// 传输走窄端口 <see cref="IClientTransport"/>（双通道：信令 Reliable / 输入与快照 Unreliable）。
     /// 纯会话与打包——Sim 预测/和解不在此（客户端 Sim 侧由 RollbackSim 承担，M10 全量预测形态）。
     ///
@@ -53,6 +54,7 @@ namespace LiteNet
         private readonly SimInputFrame[] _window = new SimInputFrame[InputPacker.MaxRedundancy]; // 打包用连续窗口
         private int _recentFrame = -1;      // 最近记录的逻辑帧（-1 = 尚未记录）
         private int _recentCount;           // 从 _recentFrame 往回**连续**可用的帧数（跳帧即重置为 1）
+        private int _lastWindowCount;       // 最近一包实际携带的冗余帧数（未确认段长度，诊断/测试用）
         private int _lastInputAck;          // 最近收到的"输入确认"（服务器 AckInput 字段——诊断用，不上报）
         private bool _disposed;
 
@@ -107,8 +109,8 @@ namespace LiteNet
         /// </summary>
         public Proto.StartGame StartGame => _startGame;
 
-        /// <summary>当前冗余窗口可带的帧数（诊断/测试用：= 从最新帧往回连续可用的输入帧数，≤ 4）。</summary>
-        public int RedundancyWindowSize => _recentCount;
+        /// <summary>最近一包携带的冗余帧数（诊断/测试用：= 未确认段长度（含本帧），≤ <see cref="InputPacker.MaxRedundancy"/>）。</summary>
+        public int RedundancyWindowSize => _lastWindowCount;
 
         public event Action<Proto.JoinAck> OnJoinAck;
         public event Action<Proto.StartGame> OnStartGame;
@@ -166,9 +168,14 @@ namespace LiteNet
         }
 
         /// <summary>
-        /// 发送逐帧输入（**最近 ≤4 帧冗余**）；viewFrame = 开火时刻所见帧（延迟补偿回溯点，§3.4.1）。
+        /// 发送逐帧输入（**未确认段冗余**；viewFrame = 开火时刻所见帧，延迟补偿回溯点，§3.4.1）。
         ///
-        /// 冗余语义：包里带的是**本帧 + 往回连续的历史帧**（每帧各自的内容与开火位），
+        /// 冗余语义：包里带的是**本帧 + 往回连续的历史帧**（每帧各自的内容与开火位），窗口下界
+        /// 锚在"<see cref="LastSnapshotFrame"/> + 1"——服务器已广播确认的帧之后都可能还没被消费。
+        /// 为什么锚快照而不是固定"最近 N 帧"：预测领先（本地帧 − 权威帧）在本形态是常态，
+        /// 固定窗一旦被领先甩出，服务器要的 `serverFrame + 1` 永远不在窗内 → 整包被判"越界"丢弃、
+        /// 输入链锁死（现场实测：接受数冻结、越界按包增长、客户端不停和解回滚）。
+        /// 上界双约束：环内连续可用帧数（跳帧后绝不用陈旧帧冒充缺失帧）与窗口容量。
         /// 服务器按 `InputPacker.TryGetFrame(msg, frame)` 逐帧取用 → 丢一包仍能从后续包补帧。
         /// 打包统一走 <see cref="InputPacker.Pack"/>（协议单源）。
         ///
@@ -180,11 +187,18 @@ namespace LiteNet
             if (_matchResult != null) return;
             RecordRecent(frame, input);
 
-            for (int i = 0; i < _recentCount; i++)
+            // 未确认段帧数（frame .. 最近快照帧+1）；无快照（-1）时退化为"最近连续可用段"。
+            int span = frame - LastSnapshotFrame;
+            int count = span < _recentCount ? span : _recentCount;
+            if (count < 1) count = 1;
+            if (count > InputPacker.MaxRedundancy) count = InputPacker.MaxRedundancy;
+            _lastWindowCount = count;
+
+            for (int i = 0; i < count; i++)
                 _window[i] = _ring[RingIndex(frame - i)];
 
             int ackSnapshot = LastSnapshotFrame >= 0 ? LastSnapshotFrame : 0;
-            var msg = InputPacker.Pack(frame, new ReadOnlySpan<SimInputFrame>(_window, 0, _recentCount),
+            var msg = InputPacker.Pack(frame, new ReadOnlySpan<SimInputFrame>(_window, 0, count),
                 ackSnapshot, viewFrame);
             Send(PacketType.Input, msg, reliable: false);
         }

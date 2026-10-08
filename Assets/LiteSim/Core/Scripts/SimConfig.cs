@@ -21,6 +21,14 @@ namespace LiteSim
         /// <summary>单次 Tick 最多追帧数（§3.2 FrameDriver）。</summary>
         public const int MaxCatchUp = 5;
 
+        /// <summary>
+        /// 预测领先上限（帧）：权威快照和解的重放**不得**把本地帧号带过「快照帧 + 本值」。
+        /// 卡顿帧的"同步采纳 + 本地步进"会逐次把领先顶高——越过输入冗余覆盖范围后，
+        /// 服务器再也找不到自己要的帧号（输入整包判"越界"丢弃、回滚锁死，现场实测形态）。
+        /// 取 MaxCatchUp + 1：单次卡顿最多顶 MaxCatchUp 帧，+1 吸收"客户端发未来帧"的余量。
+        /// </summary>
+        public const int MaxPredictionLead = MaxCatchUp + 1;
+
         /// <summary>回滚深度（SnapshotRing 容量对齐）。</summary>
         public const int MaxRollbackFrames = 8;
 

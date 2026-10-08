@@ -80,21 +80,37 @@ namespace LiteSim
         public SnapshotRing Ring => _ring;
 
         /// <summary>
+        /// 本渲染帧将推进的逻辑帧数（纯查询，见 <see cref="FrameDriver.PeekSteps"/>）——
+        /// 预发"即将执行的沿用帧"用：多步渲染帧要把额外帧的输入**先于步进**上行，
+        /// 否则进程内权威先走完的那几帧只能吃空输入兜底（与本地沿用逐帧分叉）。
+        /// </summary>
+        public int PeekSteps(float realDelta) => _driver.PeekSteps(realDelta);
+
+        /// <summary>
         /// 读取某帧**已执行**的某玩家输入（追帧补发用）。追帧沿用帧（<see cref="PrepareNext"/> 的
         /// baseInputs 续行）与真实输入帧同读——多逻辑帧渲染帧里，未上行的沿用帧会让服务器按空输入
         /// 兜底执行，产生"本地在动、权威已停"的分叉（《状态同步专项设计》两端同帧同值前提），
         /// 调用方（BattleContext）须把这些帧同样 SendInput。
-        /// <paramref name="playerIndex"/> 为输入数组槽位（= playerId）。frame 必须 ≤ 当前已执行帧
-        /// （未来帧不在史里）；超出史窗/未记录/越界槽位 = false。
+        ///
+        /// **按实体 Id 查找**（不是数组下标）：历史数组由 SimStep **就地按 EntityId 排序**（规范形），
+        /// 而远端槽位的输入常携带零身份（客户端填不出远端 Id）——零身份排在数组最前，会把
+        /// "本地玩家在数组里的下标"挤位，按下标读会取到别人的行（旧口径的错）。
+        /// <paramref name="entityId"/> = 目标实体 Id（0 = 无目标，返回 false）。frame 必须 ≤ 当前已执行帧
+        /// （未来帧不在史里）；超出史窗/未记录/未找到 = false。
         /// </summary>
-        public bool TryGetExecutedInput(int frame, int playerIndex, out SimInputFrame input)
+        public bool TryGetExecutedInput(int frame, long entityId, out SimInputFrame input)
         {
             input = default;
             if (frame <= 0 || frame > _state.Frame) return false;   // 只读已执行帧（0 = 初始锚定，未执行）
-            if (playerIndex < 0 || playerIndex >= _playerCount) return false;
+            if (entityId == 0) return false;
             if (!_history.TryGet(frame, out var stored, out var _)) return false;
-            input = stored[playerIndex];
-            return true;
+            for (int i = 0; i < _playerCount; i++)
+            {
+                if (stored[i].EntityId != entityId) continue;   // lint-allow R3（64 位整型 Id 判等，非浮点精度比较）
+                input = stored[i];
+                return true;
+            }
+            return false;
         }
 
         /// <summary>预测推进。停预测（越界退化）期间不推进——§5.4 强制等待。</summary>
@@ -212,6 +228,7 @@ namespace LiteSim
         /// - **环内**：本地预测@frame 的 **公共口径 checksum**（<see cref="SimChecksum.ComputePublicChecksum"/>，
         ///   线上 StateSnapshot.checksum 只覆盖"快照可重建 + 可预测"层）与权威比对——一致 = 零和解；
         ///   不符 = Restore 权威 + 重放 frame+1..last（全体输入：本地真实 + 远端沿用——远端误差由下一次快照再纠）。
+        ///   重放终点另行截到**预测领先上限**（<see cref="SimConfig.MaxPredictionLead"/>，见下方注释）。
         ///   私有面（他人弹药/技能 CD/背包/资源、RngState、状态明细）客户端永远无法重建，不进比对口径——
         ///   否则每份快照必假和解（见 SimChecksum 类注释）。
         ///
@@ -238,10 +255,14 @@ namespace LiteSim
 
             if (localChecksum == authoritativeChecksum) return false;   // 预测正确——零和解（lint-allow R3：uint 位级判等，非浮点精度比较）
 
-            // 不符：权威覆盖 + 重放本地历史（frame+1..last）
+            // 不符：权威覆盖 + 重放本地历史（frame+1..last；终点截到**预测领先上限**——
+            // 重放不得把本地帧号带过 快照帧 + MaxPredictionLead：领先随卡顿累积、越过输入冗余
+            // 覆盖范围后服务器再也找不到要的帧号，输入整包判"越界"、回滚锁死（现场实测形态）。
+            // 被截掉的帧留在历史里，本地随后按原输入自然重演（状态等价，仅帧号回退到上限）。
             int last = _state.Frame;
+            int replayEnd = last < frame + SimConfig.MaxPredictionLead ? last : frame + SimConfig.MaxPredictionLead;
             authoritative.CopyTo(_state);
-            for (int f = frame + 1; f <= last; f++)
+            for (int f = frame + 1; f <= replayEnd; f++)
             {
                 if (!_history.TryGet(f, out var inputs, out var _)) break;   // 历史窗口外（不应达——32 > 深度）
                 SimStep.Step(_state, _map, inputs, _values, _weapons);

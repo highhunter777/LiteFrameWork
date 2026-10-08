@@ -4,15 +4,17 @@ using LiteSim;
 namespace LiteNet.Protocol
 {
     /// <summary>
-    /// 输入打包/解包（§4.2 冗余：每包带最近 ≤4 帧输入；frames[0] = frame 最新帧，早帧在后）。
-    /// 服务器解包按"帧号 → 冗余窗口偏移"取帧：丢一包仍能从后续包补帧。
+    /// 输入打包/解包（§4.2 冗余：每包带**未确认段**输入——<see cref="MaxRedundancy"/> 帧封顶；
+    /// frames[0] = frame 最新帧，早帧在后）。段起点由客户端锚在"最近快照帧 + 1"上（见 `RoomClient.SendInput`）：
+    /// 预测领先是常态，固定"最近 N 帧"窗会被领先甩出，服务器要的帧号随之永远取不到
+    /// （整包判越界丢弃、输入链锁死）。服务器解包按"帧号 → 冗余窗口偏移"取帧：丢一包仍能从后续包补帧。
     /// SimInputFrame ↔ Proto.InputFrame 字段一一对应——protobuf float = IEEE 32 位，位级精确往返
     /// （和解机制依赖位级一致；EntityId 由服务器按会话覆写，打包侧原样携带）。
     /// </summary>
     public static class InputPacker
     {
-        /// <summary>冗余帧数上限（§4.2）。</summary>
-        public const int MaxRedundancy = 4;
+        /// <summary>冗余窗口帧数上限（§4.2）：未确认段长度封顶（含本帧）。</summary>
+        public const int MaxRedundancy = 16;
 
         /// <summary>打包：recent[0] = frame 的输入，recent[i] = frame - i（调用方维护最近帧环形序列）。</summary>
         public static Proto.InputMessage Pack(int frame, ReadOnlySpan<SimInputFrame> recent, int ackSnapshot, int viewFrame)

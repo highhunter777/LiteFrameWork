@@ -13,11 +13,11 @@ namespace RoomServer.Runtime
     public struct ClientInputBatch
     {
         /// <summary>
-        /// 冗余窗口帧数上限 = <c>LiteNet.Protocol.InputPacker.MaxRedundancy</c>（4）。
+        /// 冗余窗口帧数上限 = <c>LiteNet.Protocol.InputPacker.MaxRedundancy</c>（16）。
         /// Runtime 层不得引用 LiteNet（R1 纯化红线），故在此**复述常量**；两端一致性由
         /// L1 契约用例钉死（`ClientInputBatch.MaxFrames == InputPacker.MaxRedundancy`）——改一处必红另一处。
         /// </summary>
-        public const int MaxFrames = 4;
+        public const int MaxFrames = 16;
 
         /// <summary>客户端声明的最新帧号（窗口最新端；InputMessage.Frame）。</summary>
         public int Frame;

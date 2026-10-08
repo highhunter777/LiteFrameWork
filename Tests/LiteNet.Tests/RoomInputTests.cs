@@ -63,6 +63,35 @@ namespace LiteNet.Tests
             Assert.Equal(1, room.FireInputsProcessed);            // 同帧去重 + 每玩家一次
         }
 
+        [Fact]
+        public void 预测领先_锚定窗口的输入仍被接受并推进权威()
+        {
+            (RoomRuntime room, Session s1, _) = BuildStartedRoom();
+            int serverFrame = room.AuthSim.Frame;
+            EntitySlot before = SlotOf(room, 0);
+
+            // 现场实测形态：客户端预测领先 6 帧（本包最新帧 = 服务器当前帧 + 6），
+            // 窗口锚在"服务器当前帧 + 1"（未确认段）。修复前（固定"最近 4 帧"窗口）所需帧
+            // 落在窗外 → 整包被判"越界"丢弃 → 输入链锁死、客户端按快照频率回滚不停。
+            var frames = new SimInputFrame[ClientInputBatch.MaxFrames];
+            for (int i = 0; i < 6; i++)
+                frames[i] = new SimInputFrame { MoveX = i == 5 ? 1f : 0f };   // 帧 serverFrame+1 在窗内最旧槽
+            var batch = new ClientInputBatch
+            {
+                Frame = serverFrame + 6, AckSnapshot = serverFrame, ViewFrame = 0,
+                Count = 6, Frames = frames,
+            };
+
+            Input(room, s1, batch);
+
+            Assert.Equal(6, room.Gate.AcceptedCount);             // 主帧 + 未来帧预存（窗口内未确认段一并入库）
+            Assert.Equal(0, room.Gate.DroppedOutOfRange);
+
+            Step(room);
+            EntitySlot after = SlotOf(room, 0);
+            Assert.NotEqual(before.Pos.X, after.Pos.X);           // 真的推进了（不是"空输入沿用"）
+        }
+
         // ---- 命令面装配（App 层映射的测试等价物）----
 
         private static (RoomRuntime room, Session s1, Session s2) BuildStartedRoom()

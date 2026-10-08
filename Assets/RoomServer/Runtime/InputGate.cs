@@ -15,7 +15,10 @@ namespace RoomServer.Runtime
     /// 本类按帧号**预存**，权威帧推进到位时由 <see cref="RoomRuntime"/> 消费）：
     /// - **消息形状**（R0-P0-3）：repeated frames 数量超冗余窗上限 = 恶意/损坏包，整条丢弃。
     /// - **帧号合法性**：frame ≤ 0 或 frame > 服务器当前帧 + 容忍窗（未来帧时钟攻击面）丢弃。
-    /// - **同帧去重**：每帧每玩家至多 1 条（首条生效——冗余包重复不重复消费）。
+    /// - **同帧更新（未消费则后到生效）**：每帧每玩家一条**预存位**，未消费前允许覆盖——
+    ///   客户端的"最新采样"与之一致；重复只计数（重复账），不重复消费。
+    /// - **未来帧预存**：窗口内 (serverFrame, serverFrame+容忍窗] 的帧逐帧校验后一并入库——
+    ///   客户端"沿用帧预发"（步进前上行即将执行的多余帧）靠它落进预存；超出容忍窗不进。
     /// - **EntityId 防伪**：客户端上报的 EntityId 一律**覆写**为该会话所属实体 Id。
     /// - **ackSnapshot**：合法性记账（负值/超前**钳位 + 计数，不丢输入**；语义 ACK 的可信化在
     ///   App 层会话（发送 ledger 验证）；本处钳位值只供回溯窗口对齐参考）。
@@ -66,6 +69,7 @@ namespace RoomServer.Runtime
 
         /// <summary>非法/冗余输入的丢弃计数（Ops：按原因分列——P0-3"统一拒绝并计数"）。</summary>
         public long DroppedIllegalFrame;
+        /// <summary>同帧重发计数（未消费时走"后到生效"更新路径——只计数、不丢弃；用于冗余/重发观测）。</summary>
         public long DroppedDuplicateFrame;
         public long DroppedOutOfRange;
         /// <summary>帧号已消费（≤ 服务器当前帧）——不入预存（否则永不消费的滞留项）。</summary>
@@ -102,6 +106,8 @@ namespace RoomServer.Runtime
         private readonly int[] _lastAcceptedFrame;
         /// <summary>各玩家最近被接受的离散动作 seq（严格递增判定的基准）。</summary>
         private readonly uint[] _lastActionSeq;
+        /// <summary>各玩家最近被接受的离散动作 seq 所在帧（同帧同 seq 的冗余重发 = 良性，见 seq 判定）。</summary>
+        private readonly int[] _lastActionSeqFrame;
 
         public InputGate(int playerCount, CombatValues? combat = null)
         {
@@ -110,7 +116,8 @@ namespace RoomServer.Runtime
             _pending = new PendingInputRing(playerCount);
             _lastAcceptedFrame = new int[playerCount];
             _lastActionSeq = new uint[playerCount];
-            for (int i = 0; i < playerCount; i++) _lastAcceptedFrame[i] = -1;
+            _lastActionSeqFrame = new int[playerCount];
+            for (int i = 0; i < playerCount; i++) { _lastAcceptedFrame[i] = -1; _lastActionSeqFrame[i] = -1; }
         }
 
         /// <summary>
@@ -156,7 +163,16 @@ namespace RoomServer.Runtime
                 return false;
             }
 
-            // 冗余窗口取帧：优先"服务器当前帧+1"（inputDelay 正常形态），退而取窗口内**未消费的**最大帧
+            // 包内最新帧超容忍窗：整条丢弃（时钟攻击面口径不变——预发/冗余的有效帧都在窗内）
+            if (batch.Frame > serverFrame + FutureFrameTolerance)
+            {
+                DroppedOutOfRange++;
+                return false;
+            }
+
+            // 冗余窗口取帧：优先"服务器当前帧+1"（inputDelay 正常形态），退而取窗口内已消费帧
+            // （只为识别"整包已消费"，不在本包入库）。每包**只把 ≤ 服务器当前帧+1 的帧当作主帧**，
+            // 更高的帧走下面的"未来帧预存"。
             int frame = -1;
             bool found = false;
             SimInputFrame wire = default;
@@ -172,13 +188,68 @@ namespace RoomServer.Runtime
                 return false;
             }
 
-            // 已消费帧：权威只前进（帧号 = 已执行步数），≤ serverFrame 的帧永不再被 TryConsume → 不入预存
+            // 已消费帧：权威只前进（帧号 = 已执行步数），≤ serverFrame 的帧永不再被 TryConsume → 不入预存。
+            // 此时窗口整体 ≤ serverFrame（主帧是窗内最大的可取帧）——未来帧预存也必为空，直接整包拒绝。
             if (frame <= serverFrame)
             {
                 DroppedStaleFrame++;
                 return false;
             }
 
+            // 主帧校验（任一违规整条丢弃——安全口径不变；**重复帧不再整条丢弃**：未消费则后到生效）
+            if (!ValidateWire(wire, frame, playerId, shooterPos)) return false;
+
+            // 接受记账：**同帧未消费 = 更新**（客户端"最新采样"与"后到生效"对齐）——只计数、不丢弃
+            if (frame <= _lastAcceptedFrame[playerId]) DroppedDuplicateFrame++;   // 冗余重发计数（值照常覆盖）
+            else _lastAcceptedFrame[playerId] = frame;
+            if ((wire.Buttons & SimInputFrame.DiscreteIntentButtons) != 0u && wire.ActionSeq > _lastActionSeq[playerId])
+            {
+                _lastActionSeq[playerId] = wire.ActionSeq;
+                _lastActionSeqFrame[playerId] = frame;
+            }
+
+            var input = wire;
+            input.EntityId = entityId;                                  // EntityId 防伪覆写
+            _pending.Store(frame, playerId, input);
+            AcceptedCount++;
+            acceptedFrame = frame;
+            acceptedInput = input;
+
+            // 未来帧预存：窗口内 (serverFrame+1, serverFrame+容忍窗] 的帧逐帧校验后一并入库。
+            // 客户端"沿用帧预发"（步进前上行即将执行的多余帧）靠这里落进预存——**只发额外帧、不发未来帧**，
+            // 且预发帧与本地沿用逐位同值（见 BattleContext.FeedAndSendInputs）；超出容忍窗的帧不进预存
+            // （时钟攻击面口径不变）。违规帧跳过并计数，不影响主帧与其余帧。
+            int futureMax = serverFrame + FutureFrameTolerance;
+            for (int f = serverFrame + 2; f <= futureMax && f <= batch.Frame; f++)
+            {
+                int offset = batch.Frame - f;
+                if (offset < 0 || offset >= batch.Count) continue;      // 不在窗口
+                SimInputFrame extra = batch.Frames[offset];
+                if (!ValidateWire(extra, f, playerId, shooterPos)) continue;
+
+                if (f <= _lastAcceptedFrame[playerId]) DroppedDuplicateFrame++;
+                else _lastAcceptedFrame[playerId] = f;
+                if ((extra.Buttons & SimInputFrame.DiscreteIntentButtons) != 0u && extra.ActionSeq > _lastActionSeq[playerId])
+                {
+                    _lastActionSeq[playerId] = extra.ActionSeq;
+                    _lastActionSeqFrame[playerId] = f;
+                }
+
+                extra.EntityId = entityId;                              // EntityId 防伪覆写（同主帧口径）
+                _pending.Store(f, playerId, extra);
+                AcceptedCount++;
+            }
+            return true;
+        }
+
+        /// <summary>
+        /// 单帧逐项校验（主帧与预存未来帧同口径；违规即按原因计数并返回 false）：
+        /// 按键白名单 → 武器槽范围 → 离散 seq 纪律 → 数值边界（有限/向量/瞄准点）。
+        /// 帧号相关的检查（形状/窗口/已消费）归调用方——本方法只看单帧内容（<paramref name="frame"/>
+        /// 仅用于 seq 判定的"同帧同 seq 良性重发"配对）。
+        /// </summary>
+        private bool ValidateWire(in SimInputFrame wire, int frame, int playerId, SimVector3? shooterPos)
+        {
             // 按键位白名单：未定义位（含服务器内部位的伪造上报）一律丢弃——否则伪造 ButtonFireFlag 可绕过回溯补判语义
             if ((wire.Buttons & ~AllowedButtons) != 0u)
             {
@@ -194,21 +265,17 @@ namespace RoomServer.Runtime
                 return false;
             }
 
-            // 同帧去重：每帧每玩家至多 1 条（首条生效）——先于 seq 判定：
-            // 冗余重发（同帧同 seq）是良性重复，归这里；seq 判定只挡**跨帧**重放（§4.2 冗余窗口补帧恢复依赖此顺序）
-            if (frame <= _lastAcceptedFrame[playerId])
-            {
-                DroppedDuplicateFrame++;
-                return false;
-            }
-
-            // 离散意图 seq 纪律（§3.2/§5.4）：离散位必带非零 seq；seq 不严格递增 = 重放/迟到 → 丢弃
+            // 离散意图 seq 纪律（§3.2/§5.4）：离散位必带非零 seq；seq 不严格递增 = 重放/迟到 → 丢弃。
+            // **同帧同 seq 例外**：那是同一请求的冗余重发（未消费时按"后到生效"更新，值本身逐位相同）。
             uint seq = wire.ActionSeq;
-            if ((wire.Buttons & SimInputFrame.DiscreteIntentButtons) != 0u
-                && (seq == 0u || seq <= _lastActionSeq[playerId]))
+            if ((wire.Buttons & SimInputFrame.DiscreteIntentButtons) != 0u)
             {
-                DroppedIllegalActionSeq++;
-                return false;
+                bool sameRequestRepeat = seq == _lastActionSeq[playerId] && frame == _lastActionSeqFrame[playerId];
+                if (seq == 0u || seq < _lastActionSeq[playerId] || (seq == _lastActionSeq[playerId] && !sameRequestRepeat))
+                {
+                    DroppedIllegalActionSeq++;
+                    return false;
+                }
             }
 
             // 数值边界（R0-P0-3：非法浮点不得进入权威状态——NaN/Infinity 会毒化移动/射击判定）
@@ -261,17 +328,6 @@ namespace RoomServer.Runtime
                     return false;
                 }
             }
-
-            // 全部通过：接受记账 + 预存
-            _lastAcceptedFrame[playerId] = frame;
-            if ((wire.Buttons & SimInputFrame.DiscreteIntentButtons) != 0u) _lastActionSeq[playerId] = seq;
-
-            var input = wire;
-            input.EntityId = entityId;                                  // EntityId 防伪覆写
-            _pending.Store(frame, playerId, input);
-            AcceptedCount++;
-            acceptedFrame = frame;
-            acceptedInput = input;
             return true;
         }
 

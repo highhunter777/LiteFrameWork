@@ -57,6 +57,7 @@ namespace LiteGame
         // ---- 测试模式钩子（bot 冻结 / 传送分发）；按最大席位定容，避免热路径分配 ----
         private readonly SimVector3[] _botHomePos = new SimVector3[16];
         private readonly bool[] _botHomeCaptured = new bool[16];
+        private long _diagSteps;                     // [Diag] 临时哨位：回滚排查——权威步进计数（每 120 步汇总一行闸门计数）
 
         public bool Connected => _connected;
 
@@ -271,6 +272,19 @@ namespace LiteGame
                     seatBroadcastable: p => _seats[p] != null && !_seats[p].Disconnected);
 
                 FlushOutbox();
+
+                // [Diag] 临时哨位：权威帧/闸门计数汇总（回滚排查——输入是否按帧号到齐；核完删）
+                _diagSteps++;
+                if (_diagSteps % 120 == 0)
+                {
+                    InputGate gate = _runtime.Gate;
+                    UnityEngine.Debug.LogWarning(
+                        $"[Diag] 本地服哨位 {_diagSteps}步: 权威帧={_runtime.AuthSim.Frame} 快照={SnapshotsSent}"
+                        + $" | 输入 接受={gate.AcceptedCount} 过期={gate.DroppedStaleFrame} 重复={gate.DroppedDuplicateFrame}"
+                        + $" 越界={gate.DroppedOutOfRange} 非法帧={gate.DroppedIllegalFrame}"
+                        + $" | 拒绝 向量={gate.DroppedIllegalVector} 按键={gate.DroppedIllegalButtons}"
+                        + $" seq={gate.DroppedIllegalActionSeq} 非有限={gate.DroppedNonFinite}");
+                }
             }
         }
 

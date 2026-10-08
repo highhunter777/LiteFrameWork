@@ -53,6 +53,23 @@ namespace LiteNet.Tests
         }
 
         [Fact]
+        public void 预测领先_窗口覆盖所需帧时仍取服务器所需帧()
+        {
+            var gate = new InputGate(2);
+            // 客户端预测领先：最新帧 = 16（服务器当前帧 10 —— 领先 6 帧，现场实测形态）。
+            // 窗口 = 未确认段 [11..16]（客户端锚"最近快照帧+1"）——所需帧 11 在窗内（偏移 5），照常取用。
+            var frames = new SimInputFrame[ClientInputBatch.MaxFrames];
+            for (int i = 0; i < 6; i++)
+                frames[i] = new SimInputFrame { EntityId = 1, MoveX = i == 5 ? 0.9f : 0f, AimPointX = 10f, AimPointY = 1f };
+            var msg = new ClientInputBatch { Frame = 16, AckSnapshot = 0, ViewFrame = 0, Count = 6, Frames = frames };
+
+            Assert.True(gate.Store(msg, PlayerId, EntityId, serverFrame: 10, out int frame, out SimInputFrame input));
+            Assert.Equal(11, frame);                          // 取的是服务器当前帧+1（不是包内最新的 16）
+            Assert.Equal(0.9f, input.MoveX, 1e-6f);           // 且是 11 那一帧的独立内容
+            Assert.Equal(0, gate.DroppedOutOfRange);          // 不得再落"越界"（领先不再是拒绝条件）
+        }
+
+        [Fact]
         public void 超前ack_不丢输入_只计数并钳位()
         {
             var gate = new InputGate(2);
@@ -85,15 +102,30 @@ namespace LiteNet.Tests
         }
 
         [Fact]
-        public void 同帧去重_首条生效()
+        public void 同帧更新_未消费则后到生效()
         {
             var gate = new InputGate(2);
             Assert.True(gate.Store(Packet(11, 1f, 0f, 0f, 0f), PlayerId, EntityId, 10, out _, out _));
-            // 同帧重发（内容不同但**合法**——向量边界下非法内容会被记为 vector 违纪而非重复）→ 丢弃（首条生效）
-            Assert.False(gate.Store(Packet(11, 0.5f, 0f, 0f, 0f), PlayerId, EntityId, 10, out _, out _));
-            Assert.Equal(1, gate.DroppedDuplicateFrame);
+            // 同帧重发（内容不同但**合法**——向量边界下非法内容会被记为 vector 违纪而非重复）→ 未消费 = 更新
+            Assert.True(gate.Store(Packet(11, 0.5f, 0f, 0f, 0f), PlayerId, EntityId, 10, out _, out _));
+            Assert.Equal(1, gate.DroppedDuplicateFrame);      // 重复只计数、不丢弃
             Assert.True(gate.TryConsume(11, PlayerId, out SimInputFrame kept));
-            Assert.Equal(1f, kept.MoveX, 1e-6f);
+            Assert.Equal(0.5f, kept.MoveX, 1e-6f);            // 后到者生效（与客户端"最新采样"对齐）
+        }
+
+        [Fact]
+        public void 未来帧预存_窗口内未确认帧一并入库()
+        {
+            var gate = new InputGate(2);
+            // 预发形态：包内最新帧 = 服务器+2，窗口 [12,11,10,…]——主帧仍取 11，未来帧 12 一并预存
+            var msg = Packet(12, 0.5f, 1f, 0f, 0f);           // m0 属最新帧 12，m1 属主帧 11
+            Assert.True(gate.Store(msg, PlayerId, EntityId, serverFrame: 10, out int frame, out SimInputFrame input));
+
+            Assert.Equal(11, frame);                          // 主帧 = 服务器当前帧+1（出参口径不变）
+            Assert.Equal(1f, input.MoveX, 1e-6f);             // 主帧取帧 11 自己的内容
+            Assert.True(gate.TryConsume(12, PlayerId, out SimInputFrame extra));   // 未来帧已就位（多步渲染帧靠它）
+            Assert.Equal(0.5f, extra.MoveX, 1e-6f);           // 各自的内容（预发沿用帧与本地逐位同值）
+            Assert.Equal(0, gate.DroppedOutOfRange);
         }
 
         [Fact]
@@ -171,15 +203,16 @@ namespace LiteNet.Tests
         }
 
         [Fact]
-        public void seq窗口_冗余同帧重复由同帧去重处理_不误伤后帧()
+        public void seq窗口_冗余同帧重复走同帧更新_不误伤后帧()
         {
             var gate = new InputGate(2);
-            // 冗余包语义：同帧同 seq 重发 → 同帧去重（首条生效）；下一帧的新请求用新 seq 正常过
+            // 冗余包语义：同帧同 seq 重发 = 同一请求（走同帧更新，只计数）；下一帧的新请求用新 seq 正常过
             Assert.True(gate.Store(Packet(11, 1f, 0f, 0f, 0f, buttons: SimInputFrame.ButtonReload, actionSeq: 5),
                 PlayerId, EntityId, 10, out _, out _));
-            Assert.False(gate.Store(Packet(11, 1f, 0f, 0f, 0f, buttons: SimInputFrame.ButtonReload, actionSeq: 5),
+            Assert.True(gate.Store(Packet(11, 1f, 0f, 0f, 0f, buttons: SimInputFrame.ButtonReload, actionSeq: 5),
                 PlayerId, EntityId, 10, out _, out _));
             Assert.Equal(1, gate.DroppedDuplicateFrame);
+            Assert.Equal(0, gate.DroppedIllegalActionSeq);    // 同帧同 seq 不是重放（跨帧重放才拒）
 
             Assert.True(gate.Store(Packet(12, 0f, 0f, 0f, 0f, buttons: SimInputFrame.ButtonPickup, actionSeq: 6,
                 target: 88L), PlayerId, EntityId, 11, out int frame, out SimInputFrame input));
@@ -336,7 +369,7 @@ namespace LiteNet.Tests
             // P0-3 验收（压缩版）：固定种子的伪随机坏输入——不抛、不进 Sim、有计数
             var rng = new System.Random(20260922);
             var gate = new InputGate(2);
-            long acceptedBefore = 0;
+            long acceptedPackets = 0;
             for (int i = 0; i < 256; i++)
             {
                 float mx = FloatBits(rng.Next());
@@ -350,17 +383,22 @@ namespace LiteNet.Tests
                 msg.Frames[0].AimPointY = ay;
                 msg.Frames[0].AimPointZ = az;
                 // 不抛即通过本条；被接受时值必须已通过全部边界（有限 + 范围 + 白名单 + 槽位 + seq）
+                long before = gate.AcceptedCount;
                 if (gate.Store(msg, 0, EntityId, serverFrame: 30, out _, out SimInputFrame accepted))
                 {
+                    Assert.True(gate.AcceptedCount > before);                // 接受必有入库（主帧 + 可选未来帧预存）
                     Assert.True(float.IsFinite(accepted.MoveX)
                         && float.IsFinite(accepted.AimPointX) && float.IsFinite(accepted.AimPointY) && float.IsFinite(accepted.AimPointZ));
                     Assert.True(accepted.MoveX * accepted.MoveX + accepted.MoveZ * accepted.MoveZ <= ProtocolConstants.VectorLengthSquaredLimit + 1e-6f);
                     Assert.Equal(EntityId, accepted.EntityId);               // 防伪覆写恒成立
-                    acceptedBefore++;
+                    acceptedPackets++;
+                }
+                else
+                {
+                    Assert.Equal(before, gate.AcceptedCount);                // 拒绝不烧帧槽
                 }
             }
-            Assert.True(acceptedBefore < 256, "随机坏输入不应全数被接受");
-            Assert.True(gate.AcceptedCount == acceptedBefore);
+            Assert.True(acceptedPackets < 256, "随机坏输入不应全数被接受");
         }
 
         // ---- 契约：Runtime 复述常量与协议单源一致（改一处必红另一处）----
@@ -435,7 +473,7 @@ namespace LiteNet.Tests
         {
             var frames = new SimInputFrame[ClientInputBatch.MaxFrames];
             float[] moves = { m0, m1, m2, m3 };
-            for (int i = 0; i < ClientInputBatch.MaxFrames; i++)
+            for (int i = 0; i < moves.Length; i++)
             {
                 frames[i] = new SimInputFrame
                 {
@@ -451,7 +489,7 @@ namespace LiteNet.Tests
             return new ClientInputBatch
             {
                 Frame = frame, AckSnapshot = ackSnapshot, ViewFrame = 0,
-                Count = ClientInputBatch.MaxFrames, Frames = frames,
+                Count = moves.Length, Frames = frames,
             };
         }
 
