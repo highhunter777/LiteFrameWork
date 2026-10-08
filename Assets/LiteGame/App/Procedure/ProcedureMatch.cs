@@ -34,14 +34,14 @@ namespace LiteGame
         /// <summary>JoinAck 等待预算（毫秒）——超时进 Error（确定失败态，不静默重试）。</summary>
         public const int JoinTimeoutMs = 10_000;
 
-        private readonly ClientScope _rootScope;
+        private readonly IAccountSessionFactory _accounts;
 
         /// <summary>本阶段在途的会话（<see cref="OnUpdate"/> 据它驱动传输泵；未连接时为 null）。</summary>
         private BattleClient _pending;
 
-        public ProcedureMatch(ClientScope rootScope, CancellationToken rootToken = default) : base(rootToken)
+        public ProcedureMatch(IAccountSessionFactory accounts, CancellationToken rootToken = default) : base(rootToken)
         {
-            _rootScope = rootScope ?? throw new ArgumentNullException(nameof(rootScope));
+            _accounts = accounts ?? throw new ArgumentNullException(nameof(accounts));
         }
 
         /// <summary>
@@ -76,22 +76,21 @@ namespace LiteGame
 
         private async UniTask RunAsyncCore(IStageHost<ProcedureId, ProcedureArgs> m, CancellationToken ct, bool testRoom)
         {
-            ClientScope account = null;
+            AccountSession account = null;
             BattleClient battle = null;
             try
             {
-                account = _rootScope.CreateChild("Account");
-                battle = account.Register(new BattleClient(TestHost, TestPort,
-                        testRoom ? TestRoomId : DefaultRoomId, TestToken,
-                        LiteNet.BuildHash.Value, transport: CreateTransport(testRoom)));
+                account = _accounts.Create(TestHost, TestPort,
+                    testRoom ? TestRoomId : DefaultRoomId, TestToken, LiteNet.BuildHash.Value, testRoom);
+                battle = account.Battle;
                 _pending = battle;                        // 交给 OnUpdate 驱动泵（握手/收发全靠它推进）
 
                 await WaitJoined(battle, ct);
                 UnityEngine.Debug.Log("[Battle] joined (JoinAck)");
 
                 _pending = null;                          // 泵交棒给 BattleContext.Tick（不双泵）
-                // 移交所有权：Account Scope + BattleClient 随迁移进 Battle（离场收尾在 Battle）
-                m.Request(ProcedureId.Battle, new ProcedureArgs(battleClient: battle, accountScope: account));
+                // 移交所有权：AccountSession 随迁移进 Battle（离场收尾在 Battle）。
+                m.Request(ProcedureId.Battle, new ProcedureArgs(accountSession: account));
             }
             catch (OperationCanceledException)
             {
@@ -117,7 +116,7 @@ namespace LiteGame
         /// **测试房不提供 KCP 形态**：免死规则靠"客户端预测与进程内服务器同进程同源"（<see cref="LiteSim.SimTestRules"/>），
         /// 真服务器的房间级规则下发未做。
         /// </summary>
-        private static LiteNet.Transport.IClientTransport CreateTransport(bool testRoom)
+        internal static LiteNet.Transport.IClientTransport CreateTransportForFactory(bool testRoom)
         {
 #if UNITY_EDITOR || DEVELOPMENT_BUILD || LITEFRAMEWORK_DEBUG
             LiteSim.SimTestRules.NoDeath   = testRoom && TestModeRuntime.NoDeath;   // 规则随入口设置：常规入口（F9）一律复位

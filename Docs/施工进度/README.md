@@ -10,6 +10,7 @@
 
 | 文件 | 范围 |
 |---|---|
+| [客户端DI升级.md](客户端DI升级.md) | 《客户端依赖注入专项设计》四批：DI-1 统一 Root 装配/导航实例/依赖预检/所有权/显式帧驱动、DI-2 Scoped/Transient 作用域与生命周期校验、**DI-3（2026-10-08 接手收尾）Account/Match 工厂拆两件并迁移真实消费者**（Account 半边零引擎依赖、L1 源链接直测 5/5——离场/失败/再进房无残留；Match 半边 BattleContext 归 DI-4）；DI-4 Unity/AOT 验收待本机。L1 1453/1453 |
 | [对局规则闭环.md](对局规则闭环.md) | FFA 死亡/复活/KD/比分与帧时限结束；固定规则随开局及快照下发，独立 MatchId 的冻结结果经可靠通知与 Outbox 持久化；新增回归 54 项，全量 L1 1404/0，本地 Outbox/排空集成 28/0；Unity 导入与表现待本机验收 |
 | [配置单源化.md](配置单源化.md) | 重力只留 tbmovementconfig，出生 HP 迁 tbentityconfig；两端共用 SimConfigMapper 投影到固定对局配置，缺行/非法值拒装载；Luban 生成入口相对路径化并使用 Assets 外暂存目录保护 asmdef/meta。新增 .NET 回归 14 项通过，当前工作区 L1 1353/0；Unity 导入/编译/集成待本机验收 |
 | [客户端C0.md](客户端C0.md) | 《商业级通用客户端框架总设计》C0：可复制构建与 Player 启动 |

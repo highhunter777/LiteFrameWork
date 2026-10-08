@@ -1,5 +1,4 @@
 using System;
-using System.Collections;
 using System.Collections.Generic;
 
 
@@ -7,12 +6,19 @@ namespace LiteFramework
 {
     public interface IServiceContainer
     {
-        void Register<TInterface, TImpl>() where TImpl : TInterface;   // 仅单例；首次 Resolve 时构造
-        void RegisterInstance<TInterface>(TInterface instance);
-        void RegisterFactory<TInterface>(Func<IServiceContainer, TInterface> factory);  // 延迟构造，结果同样按单例缓存
+        void Register<TInterface, TImpl>(ServiceLifetime lifetime = ServiceLifetime.Singleton) where TImpl : TInterface;
+        void RegisterInstance<TInterface>(TInterface instance, ServiceOwnership ownership = ServiceOwnership.Borrowed);
+        void RegisterInstance<TInterface>(TInterface instance, ServiceLifetime lifetime, ServiceOwnership ownership = ServiceOwnership.Borrowed);
+        void RegisterFactory<TInterface>(Func<IServiceContainer, TInterface> factory, params Type[] dependencies);
+        void RegisterFactory<TInterface>(Func<IServiceContainer, TInterface> factory, ServiceLifetime lifetime, params Type[] dependencies);
+        IServiceContainer CreateScope(string name);
         T Resolve<T>();
-        void Seal();                          // 装配密封：此后一切 Register* 抛；由装配根模块在装配末尾调用
-        IReadOnlyList<ITickable> Tickables { get; }   // 注册即发现：注册顺序 = 驱动顺序
+        bool TryResolve<T>(out T service);
+        bool TryGetInstance<T>(out T instance); // 只查询已有实例，不构造；装配面同引用检查
+        void Validate();                       // 只校验声明图，无构造/工厂副作用
+        void SetTickOrder(params Type[] serviceTypes);
+        void Seal();                          // 预检后密封；此后一切 Register* 抛
+        IReadOnlyList<ITickable> Tickables { get; }   // 显式驱动序；未设置时按注册序发现
         IReadOnlyList<IModuleStats> Stats { get; }  // 同上，HUD 数据源
     }
 }

@@ -35,6 +35,7 @@ namespace LiteFramework
         private int _initializedCount;                    // 已成功初始化的模块数（回滚/关闭的边界）
         private int _state;                                // 0=构造未启动 1=初始化中 2=运行 3=关闭中 4=已关闭
         private bool _shutdownRequested;
+        private bool _scopeFailuresReported;
 
         /// <summary>模块初始化/关闭事件（诊断：模块名 + 阶段）。
         /// 字段而非 event：引导适配器整钩替换（= 赋值）+ Host 内部 invoke，订阅语义由使用方自理。</summary>
@@ -129,6 +130,7 @@ namespace LiteFramework
                     lock (_gate) _initializedCount = i + 1;
                 }
 
+                if (!_context.Services.IsSealed) _context.Services.Seal();
                 lock (_gate) _state = 2;
             }
             catch (Exception)
@@ -206,7 +208,7 @@ namespace LiteFramework
             }
 
             // ④ 根 Scope 释放（LIFO 资源逆序 + 根取消）+ 终态
-            _rootScope?.Dispose();
+            DisposeRoot();
             lock (_gate) _state = 4;
         }
 
@@ -281,7 +283,20 @@ namespace LiteFramework
                 }
             }
 
+            DisposeRoot();
+        }
+
+        /// <summary>资源域与服务域的同步释放异常统一进入宿主诊断；重复关闭不重复上报。</summary>
+        private void DisposeRoot()
+        {
             _rootScope?.Dispose();
+            lock (_gate)
+            {
+                if (_scopeFailuresReported) return;
+                _scopeFailuresReported = true;
+                if (_rootScope != null) _shutdownFailures.AddRange(_rootScope.DisposeFailures);
+                if (_context != null) _shutdownFailures.AddRange(_context.Services.DisposeFailures);
+            }
         }
 
         /// <summary>

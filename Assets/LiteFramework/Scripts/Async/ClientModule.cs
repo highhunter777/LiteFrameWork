@@ -1,5 +1,4 @@
 using System;
-using System.Collections.Generic;
 using System.Threading;
 using Cysharp.Threading.Tasks;
 
@@ -25,13 +24,12 @@ namespace LiteFramework
     }
 
     /// <summary>
-    /// 启动上下文：Host 建立的公共设施 + 模块间产物传递面。
-    /// 设计取舍：**不用字典做服务定位**——模块产物按类型写入/读取，装配关系在编译期可见；冲突写入即抛（同类型两个产物 = 装配错误，显性失败）。
+    /// 启动装配上下文：模块产物与 Root 服务容器共享同一来源。
+    /// 同类型同引用可重复暴露，换引用当场拒绝；业务运行期只持注入的能力。
     /// </summary>
     public sealed class ClientContext
     {
-        private readonly object _gate = new object();
-        private readonly Dictionary<Type, object> _byType = new Dictionary<Type, object>();
+        public ServiceContainer Services { get; }
 
         /// <summary>Host 持有的根作用域（根取消源；模块登记长生命周期资源于此）。</summary>
         public ClientScope RootScope { get; }
@@ -39,26 +37,24 @@ namespace LiteFramework
         public ClientContext(ClientScope rootScope)
         {
             RootScope = rootScope ?? throw new ArgumentNullException(nameof(rootScope));
+            Services = new ServiceContainer(rootScope);
+            Services.RegisterInstance(Services);
+            Services.RegisterInstance<IServiceContainer>(Services);
+            Services.RegisterInstance(rootScope);
         }
 
         /// <summary>按类型登记模块产物（同类型重复登记即装配错误）。</summary>
         public void Put<T>(T product) where T : class
         {
-            lock (_gate)
-            {
-                if (_byType.TryGetValue(typeof(T), out object existing) && !ReferenceEquals(existing, product))
-                    throw new InvalidOperationException($"ClientContext 重复登记类型 {typeof(T).Name}（装配错误：同型产物只能有一个）");
-                _byType[typeof(T)] = product;
-            }
+            if (product == null) throw new ArgumentNullException(nameof(product));
+            if (!Services.IsSealed && Services.TryGetInstance<T>(out T existing) && ReferenceEquals(existing, product)) return;
+            Services.RegisterInstance(product);
         }
 
         /// <summary>按类型取产物；缺失返回 null（缺失 = 依赖顺序错误或未装配，由消费方决定 fail-fast 语义）。</summary>
         public T Get<T>() where T : class
         {
-            lock (_gate)
-            {
-                return _byType.TryGetValue(typeof(T), out object v) ? (T)v : null;
-            }
+            return Services.TryResolve<T>(out T product) ? product : null;
         }
 
         /// <summary>按类型取产物；缺失即抛（fail-fast 依赖声明——比返回 null 后再 NRE 更可定位）。</summary>

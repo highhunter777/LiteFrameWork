@@ -13,24 +13,19 @@ namespace LiteGame
         /// <summary>失败原因（`ProcedureId.Error` 阶段读；其余阶段为 null）。</summary>
         public readonly Exception Error;
 
-        /// <summary>对局会话（`ProcedureId.Match` 产出 → `Battle` 消费——跨阶段迁移数据，非服务定位器：
-        /// 实例由 Match 阶段创建、随迁移移交所有权，Battle 离场时负责其 Scope 收尾）。</summary>
-        public readonly BattleClient BattleClient;
-
-        /// <summary>Account 作用域（与 <see cref="BattleClient"/> 一同移交；Battle 离场 Dispose——关闭序
-        /// BattleContext.Dispose → Match Scope → Account Scope，§6.2）。</summary>
-        public readonly ClientScope AccountScope;
+        /// <summary>Account 会话（`ProcedureId.Match` 产出 → `Battle` 消费——跨阶段移交所有权，
+        /// Battle 离场时由 MatchSession/AccountSession 负责其域收尾）。</summary>
+        public readonly AccountSession AccountSession;
 
         /// <summary>测试房意图（`Main` F10 → `Match` 读）：强制本地服 + 房号 Room-Test + 全房免死
         /// （<see cref="LiteSim.SimTestRules.NoDeath"/>）——开发/测试专用，正式包无该入口。</summary>
         public readonly bool TestRoom;
 
-        public ProcedureArgs(Exception error = null, BattleClient battleClient = null, ClientScope accountScope = null,
+        public ProcedureArgs(Exception error = null, AccountSession accountSession = null,
             bool testRoom = false)
         {
             Error = error;
-            BattleClient = battleClient;
-            AccountScope = accountScope;
+            AccountSession = accountSession;
             TestRoom = testRoom;
         }
     }

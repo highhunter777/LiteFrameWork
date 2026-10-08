@@ -45,6 +45,7 @@
 ### 架构
 
 - [商业级通用客户端框架总设计](architecture/商业级通用客户端框架总设计.md)
+- [客户端依赖注入专项设计](architecture/客户端依赖注入专项设计.md)：统一 Root 装配、声明依赖图预检、所有权与帧驱动；Account/Match 服务作用域及类型化工厂的升级契约。
 - [商业级通用服务端框架总设计](architecture/商业级通用服务端框架总设计.md)
 - [对象池专项设计](architecture/对象池专项设计.md)
 - [事件中心专项设计](architecture/事件中心专项设计.md)

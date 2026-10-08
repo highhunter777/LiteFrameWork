@@ -77,8 +77,10 @@ namespace LiteGame
         private readonly ICameraService _camera;     // 相机服务（Cinemachine 适配器；装配根建、跨对局复用）
         private readonly AimHoldGate _aimGate = new AimHoldGate(AimMinHoldSeconds);   // 瞄准态滞回：短按保完整摆动、连点不翻转
         private readonly bool _requireCamera;        // 缺相机 = 装配缺口（见 ctor 注释）
+        private readonly IMatchSessionFactory _matchSessions;
 
         private BattleContext _context;
+        private MatchSession _matchSession;
         private ClientScope _account;
         private ClientScope _viewScope;          // 视图资源（prefab 租约/视图根）自有作用域
         private SimView _view;
@@ -116,7 +118,7 @@ namespace LiteGame
         /// 这种最难的静默失效变成显性失败，而不是进了对局才发现画面纹丝不动。</param>
         public ProcedureBattle(IContentService content, IInputService input, ICameraService camera,
             IVFXService vfx = null, CancellationToken rootToken = default, bool requireCamera = false,
-            LiteFramework.IWorldClock worldClock = null)
+            LiteFramework.IWorldClock worldClock = null, IMatchSessionFactory matchSessions = null)
             : base(rootToken)
         {
             _content = content ?? throw new ArgumentNullException(nameof(content));
@@ -125,20 +127,23 @@ namespace LiteGame
             _vfx = vfx;
             _requireCamera = requireCamera;
             _worldClock = worldClock;
+            _matchSessions = matchSessions ?? throw new ArgumentNullException(nameof(matchSessions));
         }
 
         protected override void RunAsync(IStageHost<ProcedureId, ProcedureArgs> m, in ProcedureArgs req, CancellationToken ct)
-            => RunAsyncCore(m, req.BattleClient, req.AccountScope, ct).Forget();   // 一行转发，仅此而已——禁止 async void
+            => RunAsyncCore(m, req.AccountSession, ct).Forget();   // 一行转发，仅此而已——禁止 async void
 
         /// <summary>async 方法不能带 <c>in</c> 参数（CS1988）——payload 在转发处取值，async 体只收所需字段。</summary>
-        private async UniTask RunAsyncCore(IStageHost<ProcedureId, ProcedureArgs> m, BattleClient battleClient,
-            ClientScope accountScope, CancellationToken ct)
+        private async UniTask RunAsyncCore(IStageHost<ProcedureId, ProcedureArgs> m, AccountSession accountSession,
+            CancellationToken ct)
         {
             ProcedureId? next = null;
             ProcedureArgs nextArgs = default;
             try
             {
-                _account = accountScope ?? throw new InvalidOperationException("Battle 阶段缺少 Account Scope（必须由 Match 移交）");
+                accountSession = accountSession ?? throw new InvalidOperationException("Battle 阶段缺少 AccountSession（必须由 Match 移交）");
+                _account = accountSession.Scope;
+                BattleClient battleClient = accountSession.Battle;
                 // 相机缺失 = 装配缺口（场景没配 vcam / 进对局前没切到玩法场景）：
                 // 不静默降级成"跑得动但看不见"的对局，在开打前显性失败。
                 if (_requireCamera && !CameraReady())
@@ -155,7 +160,9 @@ namespace LiteGame
                 await AcquireLaserSightAsync(ct);
                 await AcquireDamageNumberAsync(ct);
 
-                _context = new BattleContext(battleClient, _account);
+                _matchSession = _matchSessions?.Create(accountSession)
+                    ?? throw new InvalidOperationException("缺少 MatchSessionFactory（完整 DI 装配要求由工厂创建 Match 域）");
+                _context = _matchSession.Context;
                 UnityEngine.Debug.Log("[Battle] context-created (Match Scope built)");
 
                 await WaitStartGame(battleClient, ct);        // Sim 就绪 = 视图可建（SimView 要读预测态）
@@ -179,9 +186,10 @@ namespace LiteGame
             {
                 // 关闭序（§6.2）：输入接线 → 视图（含租约/实例）→ BattleContext（Match Scope 一并 Dispose）→ Account Scope
                 DetachView();
-                _context?.Dispose();
+                _matchSession?.Dispose();
+                _matchSession = null;
                 _context = null;
-                _account?.Dispose();
+                accountSession?.Dispose();
                 _account = null;
             }
 

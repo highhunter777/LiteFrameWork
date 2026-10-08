@@ -41,7 +41,7 @@ namespace LiteGame
         private CancellationTokenSource _bootCts;
         private bool _active;
 
-        /// <summary>把装配完成的服务容器交给流程消费。**装配与 Seal 均在装配根**（Bootstrap/ContainerModule）——流程不参与注册（§5.1：注册是装配职责）。</summary>
+        /// <summary>引导与开发工具取得已装配的根容器；业务流程只消费注入的能力。</summary>
         public ServiceContainer TakeContainer()
         {
             if (_container == null) throw new InvalidOperationException("未装配");
@@ -134,8 +134,8 @@ namespace LiteGame
         /// 模块装配序列（《客户端总设计》§6.1"按依赖顺序初始化，失败时只关闭已经成功初始化的模块"）。
         ///
         /// **注册顺序 = 初始化顺序 = 关闭逆序**：模块间依赖只能引用更早模块的产物（经
-        /// <see cref="ClientContext"/> 的 Put/Require 传递——不用字典做服务定位，同型唯一、
-        /// 类型编译期可见，装配错误显性失败）。这份调用序**就是**依赖图，Host 不推断。
+        /// <see cref="ClientContext"/> 的 Put/Require 传递，与根容器共享实例来源）。
+        /// 模块序表达异步初始化/关闭依赖；服务声明图由容器预检，帧驱动序由装配根显式声明。
         /// </summary>
         private void RegisterModules(ClientHost host)
         {

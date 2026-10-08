@@ -22,4 +22,12 @@
     <ProjectReference Include="..\..\Assets\LiteFramework\LiteFramework.Core.csproj" />
   </ItemGroup>
 
+  <!-- DI-3 会话工厂 L1 直测：Account 半边（工厂 + BattleClient）零引擎依赖，按源链接惯例纳入——
+       测**真工厂**非复制品（与 LiteSim.Core.Tests 链接 Input 件同款纪律）。
+       Match 半边依赖 BattleContext（SimView → UnityEngine），Unity 面，验收归 DI-4。 -->
+  <ItemGroup>
+    <Compile Include="..\..\Assets\LiteGame\App\Procedure\AccountSessionFactory.cs" Link="Session\AccountSessionFactory.cs" />
+    <Compile Include="..\..\Assets\LiteClient\Runtime\Battle\BattleClient.cs" Link="Session\BattleClient.cs" />
+  </ItemGroup>
+
 </Project>
