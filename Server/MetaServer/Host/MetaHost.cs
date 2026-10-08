@@ -3,8 +3,11 @@ using System.Collections.Generic;
 using System.IO;
 using System.Threading;
 using System.Threading.Tasks;
+using MetaServer.Contracts.Auth;
+using MetaServer.Contracts.Persistence;
 using MetaServer.Infrastructure.Persistence;
 using MetaServer.Infrastructure.Persistence.Mongo;
+using MetaServer.Modules.Auth;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Http;
@@ -24,8 +27,7 @@ namespace MetaServer
     /// <summary>
     /// Meta 宿主装配（《Meta 服务专项设计》§4.1/§4.2、服务端总设计 §12）。
     ///
-    /// 本批为**宿主骨架**（§15 施工映射的 G1 行）：Generic Host、Options 校验、健康检查、
-    /// 优雅关闭与 drain。**不含任何业务模块**——Auth/Lobby/Profile 归 G3，不提前实现空壳模块。
+    /// 本宿主承载基础设施与已落地的 Auth 首批（游客登录）；Lobby/Profile 仍按 G3 逐项接入。
     ///
     /// 与 RoomServer 的关系：两条线共用同一套 Host/Options/`IHostedService`/Cancellation/优雅关闭
     /// 纪律（§4.1 依据 2）；`RoomServer.Host` 的 Generic Host 化归 R2，届时可反向参照本文件。
@@ -87,14 +89,31 @@ namespace MetaServer
                 .Configure<IOptions<MetaConfig>>((host, meta) =>
                     host.ShutdownTimeout = TimeSpan.FromSeconds(meta.Value.ShutdownTimeoutSeconds));
 
+            // 功能门只用于决定是否注册真实存储/业务服务；消费值仍从 IOptions 读取。
+            MetaConfig boot = builder.Configuration.GetSection(ConfigSection).Get<MetaConfig>() ?? new MetaConfig();
+
             // ---- 观测面（§11.2）：进程级单例，计数就地累加 ----
             builder.Services.AddSingleton<Ops>();
+
+            // ---- Auth 首批（配置密钥才启用；真实账号存储在 Mongo 装配块内）----
+            if (!string.IsNullOrWhiteSpace(boot.AuthSigningKeyBase64))
+            {
+                builder.Services.AddSingleton(sp =>
+                {
+                    MetaConfig meta = sp.GetRequiredService<IOptions<MetaConfig>>().Value;
+                    return new AccessTokenService(
+                        Convert.FromBase64String(meta.AuthSigningKeyBase64),
+                        meta.AuthKeyId,
+                        meta.AuthAudience,
+                        meta.AuthTokenTtlSeconds,
+                        () => DateTimeOffset.UtcNow.ToUnixTimeMilliseconds());
+                });
+            }
 
             // ---- 持久化装配（M0-c 批二）----
             // 功能门：配置了 Mongo 连接串才注册（§10"缺真实依赖拒绝启动或拒绝相应功能"——
             // 本处取后者：功能关闭＝样例端点 503、/ready 不检存储）。**门读**用 ConfigurationBinder
             // 绑同一节，**消费值**一律经 IOptions（避免 2026-09-25 实测过的双实例失效——见 MetaConfig 注释）。
-            MetaConfig boot = builder.Configuration.GetSection(ConfigSection).Get<MetaConfig>() ?? new MetaConfig();
             if (!string.IsNullOrWhiteSpace(boot.MongoConnectionString))
             {
                 builder.Services.AddSingleton(sp =>
@@ -110,6 +129,10 @@ namespace MetaServer
                     .GetDatabase(sp.GetRequiredService<IOptions<MetaConfig>>().Value.MongoDatabaseName));
                 builder.Services.AddSingleton<MetaServer.Contracts.Persistence.ISettlementLedger>(sp =>
                     new MongoSettlementLedger(sp.GetRequiredService<MongoDB.Driver.IMongoDatabase>()));
+                builder.Services.AddSingleton<IAccountStore>(sp =>
+                    new MongoAccountStore(
+                        sp.GetRequiredService<MongoDB.Driver.IMongoDatabase>(),
+                        () => DateTime.UtcNow));
                 builder.Services.AddSingleton<MetaServer.Contracts.Persistence.IOutboxStore>(sp =>
                     new MongoOutboxStore(
                         sp.GetRequiredService<MongoDB.Driver.IMongoDatabase>(),
@@ -122,6 +145,14 @@ namespace MetaServer
                         sp.GetRequiredService<MetaServer.Contracts.Persistence.ISchemaVersionStore>()));
                 builder.Services.AddSingleton<SettlementSampleUseCase>();
                 builder.Services.AddHostedService<MigrationStartupService>();
+
+                if (!string.IsNullOrWhiteSpace(boot.AuthSigningKeyBase64))
+                {
+                    builder.Services.AddSingleton(sp => new GuestLoginUseCase(
+                        sp.GetRequiredService<IAccountStore>(),
+                        sp.GetRequiredService<AccessTokenService>(),
+                        () => DateTime.UtcNow));
+                }
             }
 
             WebApplication app = builder.Build();
@@ -133,6 +164,7 @@ namespace MetaServer
             app.Use(CountRequestsAsync);
             MapHealthEndpoints(app);
             SampleEndpoints.Map(app);
+            AuthEndpoints.Map(app);
             return app;
         }
 

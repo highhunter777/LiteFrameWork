@@ -64,6 +64,20 @@ namespace MetaServer
         /// <summary>持久 Outbox 容量上界（§11.2"任何队列必须有显式容量"；满则入队显式拒绝）。</summary>
         public int OutboxCapacity { get; set; } = 1024;
 
+        // ---- Auth（R3 首批：游客登录 + 访问令牌）----
+
+        /// <summary>Auth 访问令牌 HMAC 密钥（Base64；空 = Auth 功能关闭，不把假密钥带入生产）。</summary>
+        public string AuthSigningKeyBase64 { get; set; } = "";
+
+        /// <summary>访问令牌密钥标识；轮换期间由签发/校验双方按 kid 选择密钥。</summary>
+        public string AuthKeyId { get; set; } = "k1";
+
+        /// <summary>访问令牌固定受众。</summary>
+        public string AuthAudience { get; set; } = "meta";
+
+        /// <summary>访问令牌有效期（秒）。</summary>
+        public int AuthTokenTtlSeconds { get; set; } = 600;
+
         public static MetaConfig Default() => new MetaConfig();
 
         /// <summary>
@@ -137,6 +151,28 @@ namespace MetaServer
             {
                 errors.Add("OutboxCapacity 必须在 1..1048576，实际：" + OutboxCapacity);
             }
+
+            bool authConfigured = !string.IsNullOrWhiteSpace(AuthSigningKeyBase64);
+            if (authConfigured)
+            {
+                try
+                {
+                    byte[] secret = Convert.FromBase64String(AuthSigningKeyBase64);
+                    if (secret.Length < 32)
+                        errors.Add("AuthSigningKeyBase64 解码后至少需要 32 字节");
+                }
+                catch (FormatException)
+                {
+                    errors.Add("AuthSigningKeyBase64 必须是合法 Base64（原值不回显）");
+                }
+            }
+
+            if (string.IsNullOrWhiteSpace(AuthKeyId) || AuthKeyId.Length > 64 || AuthKeyId.Contains('.'))
+                errors.Add("AuthKeyId 必须为 1..64 个字符且不得包含 '.'");
+            if (string.IsNullOrWhiteSpace(AuthAudience) || AuthAudience.Length > 128)
+                errors.Add("AuthAudience 必须为 1..128 个字符");
+            if (AuthTokenTtlSeconds < 60 || AuthTokenTtlSeconds > 604800)
+                errors.Add("AuthTokenTtlSeconds 必须在 60..604800，实际：" + AuthTokenTtlSeconds);
 
             return errors;
         }

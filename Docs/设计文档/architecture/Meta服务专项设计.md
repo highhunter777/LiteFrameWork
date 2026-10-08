@@ -36,7 +36,7 @@ Meta 是战斗服之外的**局外权威**：账号、身份、大厅、进度�
 
 ## 2. 当前进度状况
 
-Meta 当前处于**骨架＋持久化接缝**阶段：宿主骨架（Generic Host + Options 校验 + 健康检查 + 优雅关闭）、Join 票据验签接缝、持久化端口与 Mongo 适配器已落地；Auth/Lobby/Profile 业务、Redis 与 Meta 侧结算 Outbox 仍为设计。证据见[施工进度](../../施工进度/README.md)与[Meta 服务宿主](../../施工进度/Meta服务宿主.md)。
+Meta 当前处于**骨架＋持久化接缝＋R3 Auth 首批**阶段：宿主骨架（Generic Host + Options 校验 + 健康检查 + 优雅关闭）、Join 票据验签接缝、持久化端口与 Mongo 适配器已落地；Auth 已落地游客登录的契约、访问令牌、Mongo 账号 get-or-create、迁移与 `POST /auth/guest` 接线。正式账号绑定/刷新吊销、Lobby、Profile 与 Meta 侧结算 Outbox 仍按后续批次实施。证据见[施工进度](../../施工进度/README.md)、[Meta 服务宿主](../../施工进度/Meta服务宿主.md)与[R3 首批](../../施工进度/服务端R3首批.md)。
 
 本文其余章节均为目标契约。
 
@@ -154,6 +154,9 @@ Meta  ◄──RoomServer 实例注册/容量/心跳──  Lobby
 ### 6.1 访问令牌
 
 - 登录产出的访问令牌绑定 `accountId`、签发时刻、过期时刻、`audience` 与令牌版本；校验必须验证**签名、过期、audience 与用途**，任一项失败即拒绝（fail-closed）。
+- R3 Auth 首批的游客登录以 `deviceId` 为 get-or-create 业务键：同设备重复请求返回同一 `accountId`，首次创建由 Mongo 唯一索引 `ux_account_device` 裁决并由存储端赋予创建时刻；账号 ID 由签发端 CSPRNG 生成。
+- 首批访问令牌采用 `v1.kid.accountId.jti.audience.purpose.iatMs.expMs.sig` 线格式，HMAC-SHA256 签名，`kid`/`audience`/TTL 由宿主配置注入；密钥缺失时 Auth 功能关闭，不回退内存存储。
+- HTTP 入口为 `POST /auth/guest`，成功返回 `accountId`、Bearer 访问令牌与 `expiresAtMs`；缺少真实密钥或 Mongo 依赖时返回稳定 503 错误码，非法请求返回稳定 400 错误码。
 - 令牌**不进日志**（§13.1 禁止项）。
 - 刷新与吊销：刷新令牌与访问令牌分离；吊销以 `jti`/版本号在服务端可判定，不依赖客户端配合。
 
@@ -337,11 +340,11 @@ CI 仍以 `scripts/gate/test.ps1` 为唯一入口；HTTP/数据库夹具随实�
 | --- | --- | --- |
 | **G1** | 只建**接缝**：必要存储端口、迁移/事务/幂等约束、故障夹具、**一个持久化样例**；Join Ticket **验证器接口**与非法票据测试 | 框架先行 §4"持久化"行与 §5-4；不建真实 Meta 业务 |
 | **R2** | RoomServer 侧：Generic Host、Join Ticket **本地验签**、实例注册与容量上报、drain | 与 §4.1/§6.2/§7 对接；本文为 Meta 侧定义，R2 为房间侧消费 |
-| **G3** | MetaServer 本体：Auth/Lobby/Profile、Mongo Ledger、Reservation、Settlement Outbox/Archive；客户端 `MetaClient` 与 Login/Lobby/Result（C2 批③） | 本文件的主体在此时落地 |
+| **G3** | MetaServer 本体：Auth/Lobby/Profile、Mongo Ledger、Reservation、Settlement Outbox/Archive；客户端 `MetaClient` 与 Login/Lobby/Result（C2 批③） | R3 Auth 首批已先落地游客登录与账号持久化；正式账号、Lobby、Profile、结算提交与客户端入口仍按后续批次接入 |
 | **R4 / G4** | OpenTelemetry、Dashboard、告警、Docker、实例调度、灰度与回滚、长稳与故障注入 | §11/§12/§14 的运维面收口 |
 | **后置** | Chat/Guild；完整运营后台；微服务拆分 | §1.1 选型裁定；不进入首个战斗服 Beta |
 
-**G1 只建接缝**：存储端口、幂等约束、故障夹具与持久化样例，加上票据验证器接口。真实 Auth/Lobby/Profile 语义归《待办总览》G3，不提前实现空壳模块，也不在客户端 `ProcedureId` 中预置空阶段。
+**G1 只建接缝**：存储端口、幂等约束、故障夹具与持久化样例，加上票据验证器接口。G3 已按 R3 批次开始落地真实 Auth；尚未实施的 Lobby/Profile 语义不得以空壳模块提前占位，也不在客户端 `ProcedureId` 中预置空阶段。
 
 ## 16. 禁止的做法
 

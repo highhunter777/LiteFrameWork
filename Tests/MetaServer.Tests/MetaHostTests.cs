@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Net;
 using System.Net.Http;
+using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using LiteTesting;
@@ -173,6 +174,42 @@ namespace MetaServer.Tests
             using var http = new HttpClient();
             Assert.Equal(HttpStatusCode.OK, (await http.GetAsync(a.BaseAddress + "/live")).StatusCode);
             Assert.Equal(HttpStatusCode.OK, (await http.GetAsync(b.BaseAddress + "/live")).StatusCode);
+        }
+
+        [Fact]
+        public async Task Auth首批_无存储时显式返回功能不可用()
+        {
+            await using var host = await MetaHostFixture.StartAsync(overrides =>
+            {
+                overrides[MetaHost.ConfigSection + ":AuthSigningKeyBase64"] =
+                    Convert.ToBase64String(new byte[32]);
+            });
+            using var http = new HttpClient();
+            using var body = new StringContent(
+                "{\"requestId\":\"r1\",\"deviceId\":\"device-a\"}",
+                Encoding.UTF8, "application/json");
+
+            HttpResponseMessage response = await http.PostAsync(host.BaseAddress + "/auth/guest", body);
+
+            Assert.Equal(HttpStatusCode.ServiceUnavailable, response.StatusCode);
+            string json = await response.Content.ReadAsStringAsync();
+            Assert.Contains("auth.store-unavailable", json);
+        }
+
+        [Fact]
+        public async Task Auth首批_未配置密钥时显式关闭()
+        {
+            await using var host = await MetaHostFixture.StartAsync();
+            using var http = new HttpClient();
+            using var body = new StringContent(
+                "{\"requestId\":\"r1\",\"deviceId\":\"device-a\"}",
+                Encoding.UTF8, "application/json");
+
+            HttpResponseMessage response = await http.PostAsync(host.BaseAddress + "/auth/guest", body);
+
+            Assert.Equal(HttpStatusCode.ServiceUnavailable, response.StatusCode);
+            string json = await response.Content.ReadAsStringAsync();
+            Assert.Contains("auth.disabled", json);
         }
     }
 

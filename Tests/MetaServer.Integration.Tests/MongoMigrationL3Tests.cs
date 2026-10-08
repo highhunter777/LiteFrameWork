@@ -49,7 +49,7 @@ namespace MetaServer.IntegrationTests
                 .MigrateAsync(MongoMigrations.LatestVersion, CancellationToken.None);
 
             var completed = Assert.IsType<MigrationOutcome.Completed>(outcome);
-            Assert.Equal(new long[] { 1, 2 }, completed.AppliedVersions);
+            Assert.Equal(new long[] { 1, 2, 3 }, completed.AppliedVersions);
 
             // 真实结构事实：唯一索引由迁移创建（集合自动建不算证据）
             using IAsyncCursor<MongoDB.Bson.BsonDocument> indexes =
@@ -64,6 +64,17 @@ namespace MetaServer.IntegrationTests
                 }
             }
             Assert.Contains("ux_settlement_key", names);
+
+            using IAsyncCursor<MongoDB.Bson.BsonDocument> accountIndexes =
+                await database.GetCollection<MongoDB.Bson.BsonDocument>(
+                    MongoCollectionNames.Accounts).Indexes.ListAsync();
+            var accountNames = new System.Collections.Generic.List<string>();
+            while (await accountIndexes.MoveNextAsync())
+            {
+                foreach (MongoDB.Bson.BsonDocument index in accountIndexes.Current)
+                    accountNames.Add(index["name"].AsString);
+            }
+            Assert.Contains("ux_account_device", accountNames);
         }
 
         [SkippableFact]

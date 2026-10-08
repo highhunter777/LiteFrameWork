@@ -84,7 +84,7 @@ namespace MetaServer.Infrastructure.Persistence.Mongo
     public static class MongoMigrations
     {
         /// <summary>目标版本＝步骤表末位。宿主启动迁移用此值（失败即拒绝启动，§9.1）。</summary>
-        public const long LatestVersion = 2;
+        public const long LatestVersion = 3;
 
         public static IReadOnlyList<IMigrationStep> All(IMongoDatabase database)
         {
@@ -120,6 +120,19 @@ namespace MetaServer.Infrastructure.Persistence.Mongo
                         ct),
                     rollback: ct => DropIndexIfExistsAsync<OutboxDoc>(
                         database, MongoCollectionNames.Outbox, "ix_outbox_pending", ct)),
+
+                new MongoStep(
+                    version: 3,
+                    description: "accounts 建集 + deviceId 唯一索引（游客登录 get-or-create）",
+                    migrate: ct => EnsureCollectionWithIndexAsync(
+                        database,
+                        MongoCollectionNames.Accounts,
+                        "ux_account_device",
+                        Builders<AccountDoc>.IndexKeys.Ascending(d => d.DeviceId),
+                        unique: true,
+                        ct),
+                    rollback: ct => DropIndexIfExistsAsync<AccountDoc>(
+                        database, MongoCollectionNames.Accounts, "ux_account_device", ct)),
             };
         }
 

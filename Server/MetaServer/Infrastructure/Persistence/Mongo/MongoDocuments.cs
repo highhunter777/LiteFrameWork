@@ -23,6 +23,9 @@ namespace MetaServer.Infrastructure.Persistence.Mongo
 
         /// <summary>schema 版本文档（_id 固定 "meta"；迁移确认点）。</summary>
         public const string SchemaVersion = "schema_version";
+
+        /// <summary>账号文档（_id = accountId；deviceId 唯一索引见迁移 v3）。</summary>
+        public const string Accounts = "accounts";
     }
 
     // =====================================================================
@@ -98,5 +101,16 @@ namespace MetaServer.Infrastructure.Persistence.Mongo
         public string Name;
 
         public long Version;
+    }
+
+    /// <summary>游客账号文档。CreatedUtc 由存储适配器赋值，调用方只提供业务身份。</summary>
+    [BsonIgnoreExtraElements]
+    public sealed class AccountDoc
+    {
+        [BsonId]
+        public string AccountId;
+
+        public string DeviceId;
+        public DateTime CreatedUtc;
     }
 }

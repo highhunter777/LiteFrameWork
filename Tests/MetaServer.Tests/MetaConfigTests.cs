@@ -165,6 +165,34 @@ namespace MetaServer.Tests
             }
         }
 
+        [Fact]
+        [Trait(TestTrait.Category, TestCategory.Contract)]
+        public void Auth密钥长度与编码_非法拒绝_原值不回显()
+        {
+            var config = MetaConfig.Default();
+            config.AuthSigningKeyBase64 = "not-base64";
+            Assert.Contains(config.Validate(), error => error.Contains("AuthSigningKeyBase64"));
+            Assert.DoesNotContain("not-base64", string.Join(";", config.Validate()));
+
+            config.AuthSigningKeyBase64 = Convert.ToBase64String(new byte[31]);
+            Assert.Contains(config.Validate(), error => error.Contains("32 字节"));
+
+            config = MetaConfig.Default();
+            config.AuthKeyId = "k.1";
+            Assert.Contains(config.Validate(), error => error.Contains("AuthKeyId"));
+        }
+
+        [Theory]
+        [Trait(TestTrait.Category, TestCategory.Contract)]
+        [InlineData(59)]
+        [InlineData(604801)]
+        public void Auth令牌有效期越界_被拒(int ttl)
+        {
+            var config = MetaConfig.Default();
+            config.AuthTokenTtlSeconds = ttl;
+            Assert.Contains(config.Validate(), error => error.Contains("AuthTokenTtlSeconds"));
+        }
+
         // ---- 以下三项为配置校验的回归钉 ----
 
         /// <summary>
