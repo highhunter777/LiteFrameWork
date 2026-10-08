@@ -11,7 +11,7 @@
   1. **权威模拟核心保持 DOD 不动摇**——确定性、快照可拷、零分配回滚三条硬约束不因逻辑复杂化而放松。
   2. **数据面：脊柱不动、分型表平行展开、不上 ECS**——ECS 的组合性收益用"同槽位索引的平行数组"取得；结构变更/快照重写/确定性重证的成本不付。
   3. **逻辑面：逻辑按 OOP 组织、状态按 DOD 存放**——组合性行为（技能/状态效果/投掷物/区域）由无状态静态策略类承载，运行态全部留在既有平行值类型数组。
-  4. 模拟外一切（LiteSim/View 表现层、LiteGame App 编排、LiteNet 传输、局外系统）维持面向对象规范，不在本文管辖。
+  4. 模拟外一切（LiteView 表现层、LiteGame App 编排、LiteNet 传输、局外系统）维持面向对象规范，不在本文管辖。
 
 > 当前进度：数据面——分型表首批（kind 位 + 三表接入 CopyTo/Checksum/Despawn 三面）已交付；系统消费面（Item/Projectile/ZoneSystem、CustomData blob 退役、EntityHp 归还）未开始，见[施工进度](../../施工进度/实体分型与配置归拢.md)。逻辑面——现行五系统（Input/Movement/Shooting/Damage/Cleanup）事实符合本设计；策略外壳显式契约与 P1 四系统落法未施工。
 
