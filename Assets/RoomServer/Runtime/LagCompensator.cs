@@ -40,6 +40,10 @@ namespace RoomServer.Runtime
         private readonly SnapshotRing _ring;
         private readonly int _playerCount;
         private readonly int _historyCapacity;
+        /// <summary>房间玩法数值实例（回溯单系统共享同一装载值——技术债 #1：不读全局静态面）。</summary>
+        private readonly CombatValues _values;
+        /// <summary>房间武器表实例（回溯单系统同链——武器门/伤害/射程的判定依据）。</summary>
+        private readonly WeaponTable _weapons;
 
         /// <summary>历史输入：玩家 → 帧号 → 该帧实际消费的输入（窗口容量 = LagCompHistory + 1）。</summary>
         private readonly InputHistory[] _history;
@@ -55,11 +59,14 @@ namespace RoomServer.Runtime
         public long CompensatedCount;
         public long DegradedCount;
 
-        public LagCompensator(SimWorldState auth, in SimMapData map, int playerCount, SnapshotRing ring)
+        public LagCompensator(SimWorldState auth, in SimMapData map, int playerCount, SnapshotRing ring,
+            in CombatValues values, WeaponTable weapons)
         {
             _auth = auth;
             _map = map;                                  // 障碍是静态判定数据（回溯窗内逐帧同值——历史帧与当前帧同一份）
             _playerCount = playerCount;
+            _values = values;
+            _weapons = weapons;
             _ring = ring;                                   // 与 RoomRuntime.SnapshotHistory 同一份（权威循环每帧 Capture）
             _scratch = new SimWorldState();
             _fireInputs = new SimInputFrame[playerCount];
@@ -127,7 +134,7 @@ namespace RoomServer.Runtime
             ulong rngBefore = _auth.RngState;                // 回溯判定不消费权威随机数（还原时一并回滚）
             ClearFireBuffers();
             _fireInputs[0] = fire;
-            ShootingSystem.Run(_auth, _map, _fireInputs);    // ③ 单系统执行（不 Step）
+            ShootingSystem.Run(_auth, _map, _fireInputs, _values, _weapons);    // ③ 单系统执行（不 Step）
 
             FrameEventBuffer events = _auth.Events;          // 值类型快照（Items 引用不变）
             CommandBuffer cmds = _auth.Cmds;
@@ -165,7 +172,7 @@ namespace RoomServer.Runtime
 
             ClearFireBuffers();
             _fireInputs[0] = fire;
-            ShootingSystem.Run(_auth, _map, _fireInputs);
+            ShootingSystem.Run(_auth, _map, _fireInputs, _values, _weapons);
 
             FrameEventBuffer events = _auth.Events;
             CommandBuffer cmds = _auth.Cmds;

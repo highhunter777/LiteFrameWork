@@ -164,11 +164,11 @@ namespace LiteNet.Tests
             {
                 inputs[0] = new SimInputFrame { EntityId = withAoi.Entities[0].Id, MoveX = 0.5f };
                 inputs[1] = new SimInputFrame { EntityId = withAoi.Entities[1].Id, MoveX = -0.5f };
-                SimStep.Step(withAoi, map, inputs);
+                SimStep.Step(withAoi, map, inputs, CombatValues.Default, WeaponTable.Default);
 
                 inputs[0] = new SimInputFrame { EntityId = withoutAoi.Entities[0].Id, MoveX = 0.5f };
                 inputs[1] = new SimInputFrame { EntityId = withoutAoi.Entities[1].Id, MoveX = -0.5f };
-                SimStep.Step(withoutAoi, map, inputs);
+                SimStep.Step(withoutAoi, map, inputs, CombatValues.Default, WeaponTable.Default);
 
                 differAoi.Build(withAoi.Frame, withAoi, 0, withAoi.Entities[0].Pos, SimConfig.AoiRadius, false);
                 differFull.Build(withoutAoi.Frame, withoutAoi, 0, SimVector3.Zero, 0f, false);

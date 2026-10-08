@@ -15,6 +15,7 @@
 |---|---|---|
 | **BuildHash 源集** | 改动 `Assets/LiteSim/Core/{Scripts,Systems}`、`Assets/LiteNet/{Proto,Protocol}` 或两端表数据 | 这些内容参与两端版本哈希——**改完必须重跑 `python scripts/codegen/gen-build-hash.py`**，否则客户端/服务器 buildHash 不一致，Join 被拒进房（这是设计内红线，不是 bug） |
 | **R11 纯化纪律** | 在 `Assets/RoomServer/Runtime/` 下写代码 | 房间内核**禁** Console / 系统时钟 / 文件 IO / proto / LiteNet 引用——违反会被 L1 纪律扫描（`DisciplineScannerTests`）打红；扫描目标清单在 `Assets/Tools/DisciplineScanner/Scripts/ScanTargets.cs` |
+| **R13 数值读口纪律** | 在机制面写代码（`Assets/LiteSim`（除 View）/`Assets/RoomServer/{Runtime,Application}`/`Server/RoomServer`） | **禁读静态读口可变值**（`CombatConfig` 装载面 6 字段+AimMoveSpeed+Loaded/Publish、`MovementConfig` 全体、`WeaponConfig` 的 Default/TryGet/Loaded/Publish）——值经 `CombatValues`/`MovementValues`/`WeaponTable` 实例参数传递；consts 豁免；违反被纪律扫描打红（技术债 #1 防复辟线） |
 | **Unity 序列化资产** | 场景 / Prefab / Material / AnimatorController / `.meta` / 工程设置 | **一律走 unity-pipeline CLI**（见 `UNITY-GUIDE.md`），直接改文件违规；纯文本（.cs/JSON/md）可直接编辑 |
 
 ## 维护约定

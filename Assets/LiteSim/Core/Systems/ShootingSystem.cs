@@ -17,7 +17,8 @@ namespace LiteSim
     /// </summary>
     public static class ShootingSystem
     {
-        public static void Run(SimWorldState s, in SimMapData map, SimInputFrame[] inputs)
+        public static void Run(SimWorldState s, in SimMapData map, SimInputFrame[] inputs, in CombatValues values,
+            WeaponTable weapons)
         {
             for (int i = 0; i < inputs.Length; i++)
             {
@@ -33,10 +34,10 @@ namespace LiteSim
                 // 拦截发生在**一切副作用之前**（不写 Fire 事件、不置开火窗、不消费 RngState）；
                 // 该帧不开火 = 整条跳过。伤害/射程随武器表（tb_weapon）。
                 // 未装备实体（测试/沙盒直调本系统的形态）：维持旧行为（逐帧可开火 + 兜底伤害/射程）。
-                bool equipped = WeaponSystem.IsEquipped(s, shooterSlot, out WeaponDef wdef, out _);
-                if (equipped && !WeaponSystem.TryConsumeShot(s, shooterSlot, s.Frame, out wdef)) continue;
-                float range = equipped ? wdef.Range : CombatConfig.HitscanRange;
-                int baseDamage = equipped ? wdef.Damage : CombatConfig.BaseDamage;
+                bool equipped = WeaponSystem.IsEquipped(s, shooterSlot, weapons, out WeaponDef wdef, out _);
+                if (equipped && !WeaponSystem.TryConsumeShot(s, shooterSlot, s.Frame, weapons, out wdef)) continue;
+                float range = equipped ? wdef.Range : values.HitscanRange;
+                int baseDamage = equipped ? wdef.Damage : values.BaseDamage;
 
                 // **判定方向 = 从逻辑枪口指向 AimPoint**（AimPoint 单口径，所见即所判——
                 // 《固定斜视角射击方案专项设计》§5/§4）。
@@ -104,9 +105,9 @@ namespace LiteSim
                     ref EntitySlot hit = ref s.Entities[hitSlot];
 
                     // 伤害浮动 ±DamageSpread（消费 RngState——局部副本推进后写回，SimRng 使用约定）；
-                    // base/spread 走 CombatConfig（数值参数化）。
+                    // base/spread 走装载实例（数值参数化——债 #1 根治面）。
                     var rng = new SimRng(s.RngState);
-                    int dmg = baseDamage + rng.NextRange(-CombatConfig.DamageSpread, CombatConfig.DamageSpread + 1);
+                    int dmg = baseDamage + rng.NextRange(-values.DamageSpread, values.DamageSpread + 1);
                     s.RngState = rng.State;
 
                     // **命中点取三维**（`+ dy * hitT`）：爆头判据的输入。旧 2.5D 恒用 muzzle.Y（水平），

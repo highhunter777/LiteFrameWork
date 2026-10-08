@@ -4,7 +4,7 @@ namespace LiteSim
     public readonly struct WeaponDef
     {
         public readonly int Id;
-        /// <summary>单发伤害（爆头 ×2 在命中判定处应用；±浮动走 CombatConfig.DamageSpread）。</summary>
+        /// <summary>单发伤害（爆头 ×2 在命中判定处应用；±浮动走装载实例的 DamageSpread）。</summary>
         public readonly int Damage;
         public readonly int Rpm;
         public readonly int MagazineSize;
@@ -42,53 +42,38 @@ namespace LiteSim
     }
 
     /// <summary>
-    /// 武器表装载面（《玩法数值与 Luban 配置专项设计》：玩法数值进表、Sim 只接受已解析的 primitive 值）。
-    /// 两端同链：客户端 `ConfigService` / 服务端 `CombatNumbers` 读**同一份** tbweapon.bytes 逐行回填
-    /// （L1 守卫卡"默认值 = 表值"漂移）。**默认表内置步枪**（表未装载时的兜底——与 tb_weapon.xlsx 同值）。
+    /// 武器常量与读口（技术债 #1 家族收尾——静态可变装载面已拆除）：
+    ///
+    /// - **机制消费经参数接收 <see cref="WeaponTable"/> 实例**（`SimStep`→`WeaponSystem`/`ShootingSystem`；
+    ///   房间快照 `FixedCombatConfig` 携带；回溯/回放/纯驱动同链）；
+    /// - 本类只留**编译期常量**（<see cref="DefaultRifleId"/>、内置默认步枪 <see cref="DefaultRifle"/>）
+    ///   与**客户端单世界读口**（<see cref="Publish"/>/<see cref="Loaded"/> 及兼容便捷读
+    ///   <see cref="Default"/>/<see cref="TryGet"/>——表现面读，**机制禁读：纪律扫描 R13 把守**）；
+    /// - "内置默认 = 表值"漂移由 L1 守卫卡（<see cref="WeaponTable"/> 装载产物同在册面同钉）。
     /// </summary>
     public static class WeaponConfig
     {
-        /// <summary>默认步枪 id（懒装备与兜底用）。</summary>
+        /// <summary>默认步枪 id（懒装备与兜底用——**编译期常量，机制可读**）。</summary>
         public const int DefaultRifleId = 0;
 
-        /// <summary>内置默认（= tb_weapon.xlsx 步枪行；L1 守卫卡漂移）。</summary>
-        private static readonly WeaponDef DefaultRifle =
+        /// <summary>内置默认步枪定义（= tb_weapon.xlsx 步枪行；未装载兜底，L1 守卫卡漂移。**不可变常量面**）。</summary>
+        public static readonly WeaponDef DefaultRifle =
             new WeaponDef(id: 0, damage: 16, rpm: 600, magazineSize: 30, reserveAmmo: 90,
                 reloadFrames: 132, range: 100f, spread: 1.2f, pellets: 1, switchFrames: 30, automatic: true);
 
-        private static readonly WeaponDef[] _defs = new WeaponDef[16];
-        private static readonly bool[] _has = new bool[16];
+        private static WeaponTable _loaded = WeaponTable.Default;
 
-        static WeaponConfig()
-        {
-            _defs[DefaultRifleId] = DefaultRifle;
-            _has[DefaultRifleId] = true;
-        }
+        /// <summary>发布装载表（**客户端单世界读口**的原子替换；服务端**不经本槽**——
+        /// 装载产物经 `HostAssembly.Inputs` 显式传入）。</summary>
+        public static void Publish(WeaponTable table) { _loaded = table; }
 
-        /// <summary>表行回填（逐行；重复 id 覆盖）。id 越界（&lt;0 或 ≥16）忽略并返回 false。</summary>
-        public static bool SetRow(int id, int damage, int rpm, int magazineSize, int reserveAmmo, int reloadFrames,
-            float range, float spread, int pellets, int switchFrames, bool automatic)
-        {
-            if (id < 0 || id >= _defs.Length) return false;
-            _defs[id] = new WeaponDef(id, damage, rpm, magazineSize, reserveAmmo, reloadFrames,
-                range, spread, pellets, switchFrames, automatic);
-            _has[id] = true;
-            return true;
-        }
+        /// <summary>当前装载表（表现/工具读口；**机制消费禁读**——经 <see cref="WeaponTable"/> 参数接收）。</summary>
+        public static WeaponTable Loaded => _loaded;
 
-        /// <summary>查武器定义（未装载的 id → false；默认步枪恒在册）。</summary>
-        public static bool TryGet(int id, out WeaponDef def)
-        {
-            if (id >= 0 && id < _defs.Length && _has[id])
-            {
-                def = _defs[id];
-                return true;
-            }
-            def = default;
-            return false;
-        }
+        /// <summary>兼容读口：默认步枪定义（表现面/工具便捷读；未在册回落内置默认，同值）。</summary>
+        public static WeaponDef Default => _loaded.TryGet(DefaultRifleId, out WeaponDef d) ? d : DefaultRifle;
 
-        /// <summary>内置默认步枪定义（懒装备/兜底单源）。</summary>
-        public static WeaponDef Default => DefaultRifle;
+        /// <summary>兼容读口：查武器定义（表现面/工具便捷读；机制用传入表的 <see cref="WeaponTable.TryGet"/>）。</summary>
+        public static bool TryGet(int id, out WeaponDef def) => _loaded.TryGet(id, out def);
     }
 }

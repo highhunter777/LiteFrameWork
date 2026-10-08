@@ -45,11 +45,11 @@ namespace LiteClient
         public static readonly string[] TableDataFiles =
         {
             "tbitemconfig",      // 道具表（类型 + 刷新/拾取/携带/使用 + 各类型效果数值）
-            "tbmovementconfig",  // 移动数值（单行表；装载后回填 MovementConfig——机制消费随系统落地接入）
+            "tbmovementconfig",  // 移动数值（单行表；装载后产出 MovementValues 实例并发布读口——机制消费随系统落地接入）
             "tbuiform",
             "tbcontententry",
             "tbstrategy",
-            "tbcombatnum",      // 玩法数值（单行表；装载后回填 CombatConfig——两端同源，见《玩法数值解耦审查与Luban表设计》）
+            "tbcombatnum",      // 玩法数值（单行表；装载后产出 CombatValues 实例并发布读口——两端同源，见《玩法数值与Luban配置专项设计》）
             "tbweapon",          // 武器表（多行；装载后回填 WeaponConfig——Sim 武器系统消费）
         };
 
@@ -127,23 +127,24 @@ namespace LiteClient
             if (candidate.Tbweapon == null || candidate.Tbweapon.GetOrDefault(WeaponConfig.DefaultRifleId) == null)
                 return "tbweapon 缺默认步枪行（id=0）——武器系统懒装备依赖它";
             if (candidate.Tbmovementconfig.Get(1).Gravity != candidate.Tbcombatnum.Get(1).Gravity)
-                return "movementconfig.gravity 与 combatnum.gravity 不一致（重力双表位漂移——单源在 combatnum，MovementSystem 只读 CombatConfig.Gravity）";
+                return "movementconfig.gravity 与 combatnum.gravity 不一致（重力双表位漂移——单源在 combatnum，消费读装载实例 CombatValues.Gravity）";
             return null;
         }
 
         /// <summary>
-        /// 玩法数值回填（表 → `CombatConfig`）：LiteSim 是零依赖程序集，读表能力只能由外部喂 primitives。
-        /// 表值即手感参数唯一真相；**本类的默认值须与表一致**（L1 守卫用例卡漂移）。
+        /// 玩法数值装载（表 → <see cref="CombatValues"/> 实例并**原子发布读口**）：LiteSim 是零依赖程序集，
+        /// 读表能力只能由外部喂 primitives。表值即手感参数唯一真相；**本类的默认值须与表一致**（L1 守卫用例卡漂移）。
         /// 服务端直读同一份 .bytes（`RoomServer/CombatNumbers`）——两端同值，受 buildHash 闭包保护。
+        /// 机制消费经参数传递（技术债 #1）；<see cref="CombatConfig.Publish"/> 只服务单世界表现面便捷读。
         /// 调用契约：<see cref="ValidateCandidate"/> 已通过（行存在性保证——本方法不再兜底判空）。
         /// </summary>
         private static void ApplyCombatNumbers(Tables tables)
         {
             cfg.combatnum row = tables.Tbcombatnum.Get(1);        // 单行表固定 id=1
 
-            CombatConfig.LoadFrom(
+            CombatConfig.Publish(new CombatValues(
                 row.MoveSpeed, row.Gravity, row.HitscanRange,
-                row.BaseDamage, row.DamageSpread, row.EntityHp);
+                row.BaseDamage, row.DamageSpread, row.EntityHp));
 
             Log.Info(
                 $"玩法数值装载：move={row.MoveSpeed} gravity={row.Gravity} " +
@@ -152,22 +153,22 @@ namespace LiteClient
         }
 
         /// <summary>
-        /// 移动数值回填（表 → <see cref="MovementConfig"/>）：与 ApplyCombatNumbers 同纪律——LiteSim 零依赖，
-        /// 由外部喂 primitives；表值即设计软值，硬护栏是代码常量 <see cref="CombatConfig.HardMaxSpeed"/>。
-        /// 机制消费（走跑冲/滑铲/空中控制/跳跃/钩爪/闪现）随对应 Sim 系统落地逐项接入。
+        /// 移动数值装载（表 → <see cref="MovementValues"/> 实例并发布读口）：与 ApplyCombatNumbers 同纪律——
+        /// LiteSim 零依赖，由外部喂 primitives；表值即设计软值，硬护栏是代码常量 <see cref="CombatConfig.HardMaxSpeed"/>。
+        /// 机制消费（走跑冲/滑铲/空中控制/跳跃/钩爪/闪现）随对应 Sim 系统落地逐项接入（接入时经参数传实例）。
         /// 调用契约：<see cref="ValidateCandidate"/> 已通过（行存在性 + 重力双表位一致性均闸在前）。
         /// </summary>
         private static void ApplyMovementNumbers(Tables tables)
         {
             cfg.movementconfig row = tables.Tbmovementconfig.Get(1);        // 单行表固定 id=1
 
-            MovementConfig.LoadFrom(
+            MovementConfig.Publish(new MovementValues(
                 row.WalkSpeed, row.RunSpeed, row.SprintSpeed, row.Acceleration, row.SprintDuration,
                 row.SlideSpeed, row.SlideFriction, row.SlideTurnPenalty,
                 row.AirControl, row.Gravity,
                 row.JumpSpeed, row.DoubleJumpCount, row.DoubleJumpSpeed,
                 row.GrappleDistance, row.GrappleSpeed, row.GrappleCooldown,
-                row.BlinkDistance, row.BlinkCooldown);
+                row.BlinkDistance, row.BlinkCooldown));
 
             Log.Info(
                 $"移动数值装载：walk={row.WalkSpeed} run={row.RunSpeed} sprint={row.SprintSpeed} " +
@@ -175,22 +176,26 @@ namespace LiteClient
                 $"grapple={row.GrappleDistance}/{row.GrappleSpeed} blink={row.BlinkDistance}", "Config");
         }
 
-        /// <summary>武器表回填（表 → <see cref="WeaponConfig"/>）：多行逐条 primitive 喂入；
-        /// 击发模式字符串在装载边界翻译成 bool（Sim 不认字符串语义）。</summary>
+        /// <summary>武器表装载（表 → <see cref="WeaponTable"/> 实例并**原子发布读口**）：多行逐条 primitive 喂入；
+        /// 击发模式字符串在装载边界翻译成 bool（Sim 不认字符串语义）。机制经参数接收实例（技术债 #1 家族）。</summary>
         private static void ApplyWeaponTable(Tables tables)
         {
+            var table = new WeaponTable();
             int count = 0;
             foreach (cfg.weapon row in tables.Tbweapon.DataList)
             {
                 bool automatic = row.FireMode == "auto";
-                if (WeaponConfig.SetRow(row.Id, row.Damage, row.Rpm, row.MagazineSize, row.ReserveAmmo,
+                if (table.SetRow(row.Id, row.Damage, row.Rpm, row.MagazineSize, row.ReserveAmmo,
                         row.ReloadFrames, row.Range, row.Spread, row.Pellets, row.SwitchFrames, automatic))
                     count++;
                 else
                     Log.Warning($"武器表行被忽略（id 越界）：id={row.Id} {row.Name}", "Config");
             }
-            Log.Info($"武器表装载：{count} 行（默认步枪 dmg={WeaponConfig.Default.Damage} rpm={WeaponConfig.Default.Rpm} " +
-                $"mag={WeaponConfig.Default.MagazineSize} 节拍={WeaponConfig.Default.FireIntervalFrames}帧）", "Config");
+            WeaponConfig.Publish(table);   // 原子发布（客户端单世界读口；机制经参数接收——R13 纪律把守）
+
+            if (table.TryGet(WeaponConfig.DefaultRifleId, out WeaponDef rifle))
+                Log.Info($"武器表装载：{count} 行（默认步枪 dmg={rifle.Damage} rpm={rifle.Rpm} " +
+                    $"mag={rifle.MagazineSize} 节拍={rifle.FireIntervalFrames}帧）", "Config");
         }
     }
 }

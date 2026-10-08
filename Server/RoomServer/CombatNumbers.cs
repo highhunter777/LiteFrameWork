@@ -5,17 +5,19 @@ using LiteSim;
 namespace RoomServer
 {
     /// <summary>
-    /// 服务端玩法数值装载（《玩法数值解耦审查与Luban表设计》§3.2）：
-    /// 服务端跑**权威 Sim**，必须与客户端拿到**同一份手感数值**——否则同一份输入两端算出不同结果，
-    /// 表现为和解风暴。
+    /// 服务端玩法数值/武器表装载（《玩法数值与Luban配置专项设计》）：
+    /// 服务端跑**权威 Sim**，必须与客户端拿到**同一份手感数值与武器定义**——否则同一份输入两端算出
+    /// 不同结果，表现为和解风暴。
     ///
     /// **主源链路**：本类直读**客户端同一份 .bytes**（`Assets/GameData/Config/*.bytes`，gen.bat Pass 1 产出；
     /// 缺省走 `LoadFromRepo` 仓库路径，`--combat-table <目录>` 显式覆盖）。两端同代码（生成物源链接共编）
     /// 同数据（同一份二进制），物理上不可能漂移。
     ///
-    /// **装载即回填**：`LoadTableBytes`/`LoadFromRepo` 装载后立即经 <see cref="CombatNumValues.Apply"/> 回填权威数值面
-    /// （客户端 `ConfigService` 同语义）——装载与回填是同一契约的两半，拆开即"服务端跑默认值、客户端跑表值"的静默分叉；
-    /// <see cref="Parse"/> 保持纯解析（不触碰静态面）。L1 钉子：`CombatNumbersTests.装载即回填_运行面读到表值`。
+    /// **装载即产出实例**：`LoadTableBytes`/`LoadFromRepo` 返回 <see cref="ServerTableLoad"/>
+    /// （数值行 `ToValues()` → <see cref="CombatValues"/> 实例；武器行 → <see cref="WeaponTable"/> 实例）——
+    /// 调用方**显式传入**宿主/房间（技术债 #1：不再回填全局静态面）。装载与传递是同一契约的两半，
+    /// 丢弃返回值即"服务端跑默认值"分叉的复辟面；结构性防线 = `HostAssembly.Inputs` 必填校验（缺即拒装配）。
+    /// <see cref="Parse"/> 保持纯解析。L1 钉子：`CombatNumbersTests`/`WeaponTableTests`（装载产物 = 表值实例）。
     ///
     /// **一致性双保险**：① 两端数值同源（同一 .bytes）② 表数据进 buildHash
     /// （`scripts/codegen/gen-build-hash.py`），版本不一致直接在 Join 握手被拒。
@@ -28,10 +30,10 @@ namespace RoomServer
         public const int SingleRowId = 1;   // 单行表固定 id
 
         /// <summary>
-        /// 从仓库根装载客户端 .bytes 表目录（定位失败或缺表 → 抛，fail-fast）；装载即回填，返回表行数值。
+        /// 从仓库根装载客户端 .bytes 表目录（定位失败或缺表 → 抛，fail-fast）；返回装载实例。
         /// 数值错了必然分叉——宁可起不来，也不要带着错数值跑权威局。
         /// </summary>
-        public static CombatNumValues LoadFromRepo()
+        public static ServerTableLoad LoadFromRepo()
         {
             string root = FindRepoRoot()
                           ?? throw new InvalidOperationException(
@@ -40,10 +42,10 @@ namespace RoomServer
         }
 
         /// <summary>
-        /// 从指定表目录装载并**回填权威数值面**（表目录 = 客户端 GameData/Config；表清单与客户端
-        /// <c>ConfigService.TableDataFiles</c> 同源——Tables 构造器逐表取字节），返回表行数值（观测/断言用）。
+        /// 从指定表目录装载并返回**装载实例**（表目录 = 客户端 GameData/Config；表清单与客户端
+        /// <c>ConfigService.TableDataFiles</c> 同源——Tables 构造器逐表取字节）。
         /// </summary>
-        public static CombatNumValues LoadTableBytes(string configDir)
+        public static ServerTableLoad LoadTableBytes(string configDir)
         {
             if (!Directory.Exists(configDir))
                 throw new DirectoryNotFoundException($"表数据目录缺失：{configDir}（跑 Luban/gen.bat Pass 1）");
@@ -62,9 +64,10 @@ namespace RoomServer
                 $"[RoomServer] 玩法数值（bin 表）：move={values.MoveSpeed} gravity={values.Gravity} " +
                 $"hitscan={values.HitscanRange} hit={CombatConfig.HitscanRadius}(裁决) body={CombatConfig.BodyRadius}:{CombatConfig.HitscanHeight}(烘焙) " +
                 $"dmg={values.BaseDamage}±{values.DamageSpread} hp={values.EntityHp}");
-            values.Apply();
-            ApplyWeaponTable(tables);
-            return values;
+
+            WeaponTable weapons = BuildWeaponTable(tables);
+            // 装载产物经返回值交给组合根显式传递（技术债 #1：不再回填全局静态面）。
+            return new ServerTableLoad(values, weapons);
         }
 
         /// <summary>
@@ -92,25 +95,28 @@ namespace RoomServer
             EntityHp = row.EntityHp,
         };
 
-        /// <summary>武器表回填（服务端与客户端同链——权威 Sim 的武器系统必须拿到同一份武器定义；
-        /// 缺默认步枪行即抛，fail-fast 与 tbcombatnum 同纪律）。</summary>
-        private static void ApplyWeaponTable(cfg.Tables tables)
+        /// <summary>武器表装载（服务端与客户端同链——权威 Sim 的武器系统必须拿到同一份武器定义；
+        /// 缺默认步枪行即抛，fail-fast 与 tbcombatnum 同纪律）。产出 <see cref="WeaponTable"/> 实例。</summary>
+        private static WeaponTable BuildWeaponTable(cfg.Tables tables)
         {
             if (tables.Tbweapon == null || tables.Tbweapon.GetOrDefault(WeaponConfig.DefaultRifleId) == null)
                 throw new InvalidDataException("tbweapon 缺默认步枪行（id=0）——武器系统懒装备依赖它");
 
+            var table = new WeaponTable();
             int count = 0;
             foreach (cfg.weapon row in tables.Tbweapon.DataList)
             {
                 bool automatic = row.FireMode == "auto";
-                if (WeaponConfig.SetRow(row.Id, row.Damage, row.Rpm, row.MagazineSize, row.ReserveAmmo,
+                if (table.SetRow(row.Id, row.Damage, row.Rpm, row.MagazineSize, row.ReserveAmmo,
                         row.ReloadFrames, row.Range, row.Spread, row.Pellets, row.SwitchFrames, automatic))
                     count++;
             }
-            WeaponDef rifle = WeaponConfig.Default;
+            if (!table.TryGet(WeaponConfig.DefaultRifleId, out WeaponDef rifle))
+                throw new InvalidDataException("tbweapon 默认步枪行未入表（id 越界？）");
             Console.WriteLine(
                 $"[RoomServer] 武器表装载：{count} 行（默认步枪 dmg={rifle.Damage} rpm={rifle.Rpm} " +
                 $"mag={rifle.MagazineSize} 换弹={rifle.ReloadFrames}帧 节拍={rifle.FireIntervalFrames}帧）");
+            return table;
         }
 
         /// <summary>仓库根定位：与测试侧同款标记（Assets + Tests/Tests.slnx），从程序目录向上找。</summary>
@@ -126,7 +132,23 @@ namespace RoomServer
         }
     }
 
-    /// <summary>表行数值（纯数据载体；<see cref="Apply"/> 回填 LiteSim 的静态消费面）。</summary>
+    /// <summary>装载产物（数值行 + 武器表实例；由装配方持有并显式传递——无静态面）。</summary>
+    public readonly struct ServerTableLoad
+    {
+        /// <summary>玩法数值行（`ToValues()` → <see cref="CombatValues"/> 实例）。</summary>
+        public readonly CombatNumValues Combat;
+
+        /// <summary>武器表实例（tb_weapon 行）。</summary>
+        public readonly WeaponTable Weapons;
+
+        public ServerTableLoad(CombatNumValues combat, WeaponTable weapons)
+        {
+            Combat = combat;
+            Weapons = weapons;
+        }
+    }
+
+    /// <summary>表行数值（纯数据载体；<see cref="ToValues"/> 产出 <see cref="CombatValues"/> 实例）。</summary>
     public struct CombatNumValues
     {
         public int Id;
@@ -137,12 +159,11 @@ namespace RoomServer
         public int DamageSpread;
         public int EntityHp;
 
-        /// <summary>回填 `CombatConfig`——**唯一写入口**（消费点遍布 Sim 系统，静态面只此一处被改写；
-        /// 装载链 <see cref="CombatNumbers.LoadTableBytes"/>/<see cref="CombatNumbers.LoadFromRepo"/> 装载即调用）。</summary>
-        public void Apply()
+        /// <summary>表行 → 玩法数值实例（装载产物；由调用方**显式传入**宿主/房间——
+        /// 技术债 #1：不再回填全局静态面）。</summary>
+        public CombatValues ToValues()
         {
-            CombatConfig.LoadFrom(MoveSpeed, Gravity, HitscanRange,
-                BaseDamage, DamageSpread, EntityHp);
+            return new CombatValues(MoveSpeed, Gravity, HitscanRange, BaseDamage, DamageSpread, EntityHp);
         }
     }
 }

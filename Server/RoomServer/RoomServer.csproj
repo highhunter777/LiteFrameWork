@@ -32,4 +32,11 @@
     <Compile Include="..\..\Assets\GameData\Generated\**\*.cs" Link="LubanGenerated\%(RecursiveDir)%(Filename)%(Extension)" />
   </ItemGroup>
 
+  <!-- 服务端 NuGet 登记处（依赖治理在服务端侧的承载）：l0-dep-scan 管 Unity manifest/lock 与密钥，
+       不管服务端 PackageReference——本 ItemGroup 即登记位置。
+       2026-10-08 装配收敛批1（《服务端宿主装配收敛专项设计》）：宿主组合根 MS DI，版本显式钉死。 -->
+  <ItemGroup>
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="8.0.1" />
+  </ItemGroup>
+
 </Project>

@@ -60,7 +60,7 @@ namespace LiteNet.Tests
 
             // 镜像：从权威第 1 帧的全量快照起步，之后**只靠收到的快照** (Restore) 追赶；
             // 权威：用本轮真实输入继续演算。两边都以 1 帧/次的定次节拍推进（FramePump —— 网络对跑形态）
-            pump.Step(1, state, map, Move(state, 0, 1f));
+            pump.Step(1, state, map, Move(state, 0, 1f), CombatValues.Default, WeaponTable.Default);
             SnapshotReassembler.Apply(differ.Build(state.Frame, state, 0), mirror, out _);
 
             var current = new SimInputFrame[2];
@@ -71,7 +71,7 @@ namespace LiteNet.Tests
                 {
                     current[0] = default; current[1] = default;
                     current[i % 2] = new SimInputFrame { EntityId = state.Entities[i % 2].Id, MoveX = i % 3 == 0 ? -1f : 1f };
-                    pump.Step(1, state, map, current);
+                    pump.Step(1, state, map, current, CombatValues.Default, WeaponTable.Default);
 
                     Proto.StateSnapshot msg = differ.Build(state.Frame, state, 0,
                         state.Entities[0].Pos, radius, forceFull: false);
@@ -104,10 +104,10 @@ namespace LiteNet.Tests
             var pump = new FramePump();
 
             // 让 p1 远离 p0（AOI 半径 30m 之外），p0 留在原地
-            for (int i = 0; i < 20; i++) pump.Step(1, state, map, Move(state, 1, 1f));
+            for (int i = 0; i < 20; i++) pump.Step(1, state, map, Move(state, 1, 1f), CombatValues.Default, WeaponTable.Default);
 
             // 再跑几帧：p1 继续远离（不可见，不发），p0 不动
-            for (int i = 0; i < 5; i++) pump.Step(1, state, map, Move(state, 1, 1f));
+            for (int i = 0; i < 5; i++) pump.Step(1, state, map, Move(state, 1, 1f), CombatValues.Default, WeaponTable.Default);
             Proto.StateSnapshot msg = differ.Build(state.Frame, state, 0, state.Entities[0].Pos, SimConfig.AoiRadius, false);
 
             // 可见槽位（p0）必须准确；整体槽位数 < 活体数（p1 被裁）
@@ -170,7 +170,7 @@ namespace LiteNet.Tests
             var local = new SimWorldState { RngState = state.RngState };
             local.Spawn(new EntitySlot { Hp = CombatConfig.EntityHp, Pos = new SimVector3(-10f, 0f, 0f) }, out _);
             local.Spawn(new EntitySlot { Hp = CombatConfig.EntityHp, Pos = new SimVector3(10f, 0f, 0f) }, out _);
-            var rollback = new RollbackSim(local, map, NoInput);
+            var rollback = new RollbackSim(local, map, NoInput, CombatValues.Default, WeaponTable.Default);
 
             // 预测先行一步（真分叉：本地帧 1 超前权威快照帧 0）→ 和解必然采纳镜像
             rollback.OnRealInput(1, Move(rollback.State, 0, 1f));
@@ -195,7 +195,7 @@ namespace LiteNet.Tests
 
             for (int i = 0; i < 3; i++)                           // 重力到贴地静止（每步都广播，模拟真实的每帧广播）
             {
-                pump.Step(1, state, map, NoInput);
+                pump.Step(1, state, map, NoInput, CombatValues.Default, WeaponTable.Default);
                 differ.Build(state.Frame, state, 0);
             }
             Assert.Equal(0, differ.LastDeltaCount);               // 完全静止：零槽位
@@ -204,7 +204,7 @@ namespace LiteNet.Tests
             var both = new SimInputFrame[2];                      // 两人反向移动 → 两个槽位都变化
             both[0] = new SimInputFrame { EntityId = state.Entities[0].Id, MoveX = 1f };
             both[1] = new SimInputFrame { EntityId = state.Entities[1].Id, MoveX = -1f };
-            pump.Step(1, state, map, both);
+            pump.Step(1, state, map, both, CombatValues.Default, WeaponTable.Default);
             differ.Build(state.Frame, state, 0);
             Assert.Equal(2, differ.LastDeltaCount);
         }
@@ -219,13 +219,13 @@ namespace LiteNet.Tests
             Assert.Equal(2, state.AliveCount());
 
             state.Despawn(state.Entities[1].Id);                  // 缺席 = 未变化 的语义无法表达"死了" → 必须全量
-            pump.Step(1, state, map, NoInput);
+            pump.Step(1, state, map, NoInput, CombatValues.Default, WeaponTable.Default);
             Proto.StateSnapshot msg = differ.Build(state.Frame, state, 0);
             Assert.True(msg.IsFull, "活体集合变化后必须转全量");
             Assert.Single(msg.Slots);
 
             state.Spawn(new EntitySlot { Hp = 50, Pos = new SimVector3(3f, 0f, 3f) }, out _);
-            pump.Step(1, state, map, NoInput);
+            pump.Step(1, state, map, NoInput, CombatValues.Default, WeaponTable.Default);
             msg = differ.Build(state.Frame, state, 0);
             Assert.True(msg.IsFull, "新生成实体后必须转全量");
             Assert.Equal(2, msg.Slots.Count);

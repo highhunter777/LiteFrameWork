@@ -76,7 +76,7 @@ namespace LiteSim.Tests
             for (int f = 0; f < frames; f++)
             {
                 MakeInputs(ref inputRng, s, players, inputs);
-                SimStep.Step(s, map, inputs);
+                SimStep.Step(s, map, inputs, CombatValues.Default, WeaponTable.Default);
                 seq[f] = SimChecksum.ComputeChecksum(s);
 
                 if (f == snapshotFrame)

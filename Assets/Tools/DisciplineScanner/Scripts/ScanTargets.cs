@@ -78,10 +78,30 @@ namespace Tools.DisciplineScan
         };
 
         /// <summary>RoomServer/Runtime：R11 纯化（《商业级通用服务端框架总设计》§8.1 禁止项——
-        /// Transport/墙钟/Console/文件/proto 引用一概不得进入纯运行时层）。</summary>
+        /// Transport/墙钟/Console/文件/proto 引用一概不得进入纯运行时层）＋ R13 数值读口禁读
+        /// （机制面：内核不读静态读口——值经房间快照参数传递）。</summary>
         public static readonly LintRule[] RuntimePurityRules =
         {
             LintRule.R11RuntimePurity,
+            LintRule.R13StaticConfigPort,
+        };
+
+        /// <summary>R13 数值读口禁读（机制面）——技术债 #1 防复辟：机制代码不读静态读口
+        /// （`CombatConfig` 可变值 / `MovementConfig` / `WeaponConfig.Default|TryGet|Loaded|Publish`；
+        /// 值经 `CombatValues`/`MovementValues`/`WeaponTable` 实例参数传递）。</summary>
+        public static readonly LintRule[] ConfigPortRules =
+        {
+            LintRule.R13StaticConfigPort,
+        };
+
+        /// <summary>R13 在 LiteSim 大根上的排除：表现层（View——读口服务表现面，线程化退役随 Unity 环境批）
+        /// + 三个读口定义文件（定义面自含 Publish/Loaded 声明，非消费）。</summary>
+        public static readonly string[] ConfigPortExcludes =
+        {
+            "Assets/LiteSim/View",
+            "Assets/LiteSim/Core/Scripts/CombatConfig.cs",
+            "Assets/LiteSim/Core/Scripts/MovementConfig.cs",
+            "Assets/LiteSim/Core/Scripts/WeaponConfig.cs",
         };
 
         /// <summary>MetaServer：R11 同类把守（《Meta 服务专项设计》§3.2/§4.2）——
@@ -161,6 +181,9 @@ namespace Tools.DisciplineScan
             new ScanTarget("Assets/LiteGame/UI", ShellUiRules),                                // R10 薄壳/UI 不发业务包
             // 该目标的存在性由 `纪律_R12_已接入真实扫描目标_且目标路径存在` 钉住。
             new ScanTarget("Assets/RoomServer/Runtime", RuntimePurityRules),                  // R1 纯运行时层（R1《服务端总设计》§8.1）
+            new ScanTarget("Assets/LiteSim", ConfigPortRules, ConfigPortExcludes),             // R13 数值读口禁读（机制面；表现层与读口定义文件除外）
+            new ScanTarget("Assets/RoomServer/Application", ConfigPortRules),                  // R13（Application 无 IO 子集同守）
+            new ScanTarget("Server/RoomServer", ConfigPortRules),                              // R13（宿主链——装载产物显式传递，不读读口）
             new ScanTarget("Server/MetaServer", MetaPurityRules, MetaHostExcludes),                    // Meta 模块/契约层（《Meta 服务专项设计》§4.2）
         };
 

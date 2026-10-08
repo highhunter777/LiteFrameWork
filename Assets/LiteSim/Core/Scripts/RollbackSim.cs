@@ -23,6 +23,8 @@ namespace LiteSim
         private readonly SnapshotRing _ring;
         private readonly InputHistory _history;
         private readonly FrameDriver _driver;
+        private readonly CombatValues _values;          // 玩法数值实例（装载传入——技术债 #1：运行期不读全局）
+        private readonly WeaponTable _weapons;          // 武器表实例（同上——同族参数化）
         private readonly SimInputFrame[] _tickInputs;   // 当前逻辑帧使用的输入（帧间经 OnLogicalFrame 刷新）
         private readonly bool[] _tickPredicted;
         private bool _halted;
@@ -50,10 +52,13 @@ namespace LiteSim
         /// </summary>
         public Action<SimWorldState> OnFrameEvents;
 
-        public RollbackSim(SimWorldState initialState, SimMapData map, SimInputFrame[] inputTemplate)
+        public RollbackSim(SimWorldState initialState, SimMapData map, SimInputFrame[] inputTemplate,
+            in CombatValues values, WeaponTable weapons)
         {
             _state = initialState;
             _map = map;
+            _values = values;
+            _weapons = weapons;
             _playerCount = inputTemplate.Length;
             _ring = new SnapshotRing(SimConfig.MaxRollbackFrames + 1);
             _history = new InputHistory(SimConfig.MaxInputHistory, inputTemplate.Length);
@@ -99,7 +104,7 @@ namespace LiteSim
 
             PrepareNext(_state.Frame + 1);   // 每渲染帧预备下一帧输入（幂等：历史未变则结果不变）
             _rollbacksThisFrame = 0;         // 渲染帧边界（单帧回滚上限的计数窗口）
-            _driver.Tick(realDelta, _state, _map, _tickInputs, OnLogicalFrame);
+            _driver.Tick(realDelta, _state, _map, _tickInputs, _values, _weapons, OnLogicalFrame);
         }
 
         /// <summary>
@@ -188,7 +193,7 @@ namespace LiteSim
                     return;
                 }
 
-                SimStep.Step(_state, _map, inputs);
+                SimStep.Step(_state, _map, inputs, _values, _weapons);
                 _ring.Capture(_state.Frame, _state);          // 重放段快照同步更新（后续回滚的基点）
                 _state.Events.Clear();                        // 重放期事件不消费即清
             }
@@ -239,7 +244,7 @@ namespace LiteSim
             for (int f = frame + 1; f <= last; f++)
             {
                 if (!_history.TryGet(f, out var inputs, out var _)) break;   // 历史窗口外（不应达——32 > 深度）
-                SimStep.Step(_state, _map, inputs);
+                SimStep.Step(_state, _map, inputs, _values, _weapons);
                 _state.Events.Clear();                          // 重放期事件不消费即清
             }
 

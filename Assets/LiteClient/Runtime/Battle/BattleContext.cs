@@ -258,16 +258,18 @@ namespace LiteClient
             if (_disposed || _sim != null) return;   // 幂等（重连不重发 StartGame）
 
             var world = new SimWorldState { RngState = (ulong)sg.Seed };
+            CombatValues values = CombatConfig.Loaded;   // 装载实例（技术债 #1：房间/世界构造按实例取值）
+            WeaponTable weapons = WeaponConfig.Loaded;   // 武器表实例（同链显式传递）
             for (int i = 0; i < ExpectedPlayers; i++)
             {
                 SimVector3 spawn = _map.SpawnPoints[i % _map.SpawnPointCount];
-                world.Spawn(new EntitySlot { Hp = CombatConfig.EntityHp, Pos = spawn, Yaw = 0f }, out int _);
+                world.Spawn(new EntitySlot { Hp = values.EntityHp, Pos = spawn, Yaw = 0f }, out int _);
             }
 
             var template = new SimInputFrame[ExpectedPlayers];
             for (int i = 0; i < ExpectedPlayers; i++) template[i].EntityId = i;   // 服务器覆写防伪；本地预测按 playerId 对齐
 
-            _sim = new RollbackSim(world, _map, template);
+            _sim = new RollbackSim(world, _map, template, values, weapons);
 
             // 视图若已挂（AttachView 早于 StartGame），补上回滚/和解/帧事件接线
             if (View != null)

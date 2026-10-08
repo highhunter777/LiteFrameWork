@@ -64,10 +64,12 @@ namespace LiteSim
 
         /// <summary>
         /// 回放并逐帧比对 checksum（**轻量路径**：只定位首个分歧帧号，不需要记录方世界）。
+        /// <paramref name="values"/>/<paramref name="weapons"/> = 记录期的玩法数值与武器表实例
+        /// （必须与记录源一致，否则复算必然分歧）。
         /// </summary>
-        public static Result Replay(SimRunRecord record)
+        public static Result Replay(SimRunRecord record, in CombatValues values, WeaponTable weapons)
         {
-            return ReplayCore(record, null);
+            return ReplayCore(record, null, values, weapons);
         }
 
         /// <summary>
@@ -77,11 +79,12 @@ namespace LiteSim
         /// 这是排查的推荐入口——不必由调用方另外导出"记录方该帧的世界"。
         /// 分歧帧已被环覆盖时退化为 <see cref="Replay"/> 的等价形态（报告为 null，只给帧号）。
         /// </summary>
-        public static Result ReplayWithRecordedWorlds(SimRunRecord record)
+        public static Result ReplayWithRecordedWorlds(SimRunRecord record, in CombatValues values,
+            WeaponTable weapons)
         {
             if (record == null) throw new ArgumentNullException(nameof(record));
             return ReplayCore(record, frame =>
-                record.TryGetWorld(frame, out SimWorldState world) ? world : null);
+                record.TryGetWorld(frame, out SimWorldState world) ? world : null, values, weapons);
         }
 
         /// <summary>
@@ -94,12 +97,14 @@ namespace LiteSim
         /// **这是刻意的取舍**：存全世界 = 体积 O(帧数 × 世界)，存 checksum = O(帧数)。
         /// 排查时用"记录方在同一输入下重跑并导出该帧世界"补齐对比对象。
         /// </summary>
-        public static Result ReplayAndCompare(SimRunRecord record, Func<int, SimWorldState> expectedWorldAt)
+        public static Result ReplayAndCompare(SimRunRecord record, Func<int, SimWorldState> expectedWorldAt,
+            in CombatValues values, WeaponTable weapons)
         {
-            return ReplayCore(record, expectedWorldAt);
+            return ReplayCore(record, expectedWorldAt, values, weapons);
         }
 
-        private static Result ReplayCore(SimRunRecord record, Func<int, SimWorldState> expectedWorldAt)
+        private static Result ReplayCore(SimRunRecord record, Func<int, SimWorldState> expectedWorldAt,
+            in CombatValues values, WeaponTable weapons)
         {
             if (record == null) throw new ArgumentNullException(nameof(record));
             if (record.FrameCount == 0) throw new ArgumentException("记录为空——没有可回放的帧", nameof(record));
@@ -126,7 +131,7 @@ namespace LiteSim
                 // 直接喂记录内部数组会改写记录（回放不可重复）。这是本类最易踩的坑。
                 Array.Copy(inputs, buffer, record.PlayerCount);
 
-                SimStep.Step(state, map, buffer);
+                SimStep.Step(state, map, buffer, values, weapons);
                 result.ReplayedFrames++;
 
                 uint actual = SimChecksum.ComputeChecksum(state);
@@ -151,7 +156,8 @@ namespace LiteSim
         /// 逐帧 checksum 序列复算（**不做早停**——用于要完整比对的场合，如导出全序列做归档对照）。
         /// 返回序列长度 = 记录帧数；<paramref name="firstMismatchFrame"/> = 首个不符帧号（1 基，-1 = 全符）。
         /// </summary>
-        public static IReadOnlyList<uint> ReplayAllChecksums(SimRunRecord record, out int firstMismatchFrame)
+        public static IReadOnlyList<uint> ReplayAllChecksums(SimRunRecord record, out int firstMismatchFrame,
+            in CombatValues values, WeaponTable weapons)
         {
             if (record == null) throw new ArgumentNullException(nameof(record));
             firstMismatchFrame = -1;
@@ -168,7 +174,7 @@ namespace LiteSim
             {
                 record.TryGetFrame(i, out SimInputFrame[] inputs, out uint expected);
                 Array.Copy(inputs, buffer, record.PlayerCount);
-                SimStep.Step(state, map, buffer);
+                SimStep.Step(state, map, buffer, values, weapons);
 
                 uint c = SimChecksum.ComputeChecksum(state);
                 actual.Add(c);

@@ -54,7 +54,7 @@ namespace LiteSim.Tests
                 new SimInputFrame { EntityId = shooter, AimPointX = 10f, AimPointY = 1f, AimPointZ = 0f, Buttons = SimInputFrame.ButtonFire },
             };
 
-            SimStep.Step(s, map, inputs);
+            SimStep.Step(s, map, inputs, CombatValues.Default, WeaponTable.Default);
 
             // 顺序可观测：射击 → 命中 → 伤害结算 → 死亡事件，全部发生在同一逻辑帧
             Assert.Equal(1, s.Frame);
@@ -90,7 +90,7 @@ namespace LiteSim.Tests
                 new SimInputFrame { EntityId = shooter, AimPointX = 10f, AimPointY = 1f, AimPointZ = 0f, Buttons = SimInputFrame.ButtonFire },
             };
 
-            SimStep.Step(s, map, inputs);
+            SimStep.Step(s, map, inputs, CombatValues.Default, WeaponTable.Default);
 
             Assert.Equal(2, s.Events.Count); // Fire + Hit，无 Death
             Assert.True(s.IsAlive(targetSlot));
@@ -123,8 +123,8 @@ namespace LiteSim.Tests
                 shuffled[1] = asc[0];
                 shuffled[2] = asc[1];
 
-                SimStep.Step(a, map, shuffled);
-                SimStep.Step(b, map, asc);
+                SimStep.Step(a, map, shuffled, CombatValues.Default, WeaponTable.Default);
+                SimStep.Step(b, map, asc, CombatValues.Default, WeaponTable.Default);
 
                 Assert.Equal(SimChecksum.ComputeChecksum(a), SimChecksum.ComputeChecksum(b));
             }
@@ -212,7 +212,7 @@ namespace LiteSim.Tests
             int deliveries = 0;
             int fireEvents = 0;
 
-            driver.Tick(5f * SimConfig.Dt, s, map, inputs, w =>
+            driver.Tick(5f * SimConfig.Dt, s, map, inputs, CombatValues.Default, WeaponTable.Default, w =>
             {
                 deliveries++;
                 fireEvents += w.Events.Count;

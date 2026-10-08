@@ -94,6 +94,8 @@ namespace RoomServer.Runtime
             SimInputFrame.ButtonFire | SimInputFrame.ButtonSkill1 | SimInputFrame.ButtonSkill2 | SimInputFrame.ButtonSkill3;
 
         private readonly int _playerCount;
+        /// <summary>房间玩法数值实例（AimPoint 距离闸用——技术债 #1：由房间显式传入，不读全局静态面）。</summary>
+        private readonly CombatValues _combat;
         /// <summary>预存输入：定容环，(frame, player) 复合语义（P0 修复多人同帧互顶；R0 换有界存储）。</summary>
         private readonly PendingInputRing _pending;
         /// <summary>各玩家最近被接受的输入帧号（同帧去重）。</summary>
@@ -101,9 +103,10 @@ namespace RoomServer.Runtime
         /// <summary>各玩家最近被接受的离散动作 seq（严格递增判定的基准）。</summary>
         private readonly uint[] _lastActionSeq;
 
-        public InputGate(int playerCount)
+        public InputGate(int playerCount, CombatValues? combat = null)
         {
             _playerCount = playerCount;
+            _combat = combat ?? CombatValues.Default;   // 直构形态（纯协议用例）= 默认表值；生产经 RoomRuntime 传入
             _pending = new PendingInputRing(playerCount);
             _lastAcceptedFrame = new int[playerCount];
             _lastActionSeq = new uint[playerCount];
@@ -251,7 +254,7 @@ namespace RoomServer.Runtime
                 float dyp = wire.AimPointY - shooterPos.Value.Y;
                 float dzp = wire.AimPointZ - shooterPos.Value.Z;
                 float distSq = dxp * dxp + dyp * dyp + dzp * dzp;
-                float maxAimPoint = CombatConfig.HitscanRange * AimPointRangeTolerance;
+                float maxAimPoint = _combat.HitscanRange * AimPointRangeTolerance;
                 if (distSq > maxAimPoint * maxAimPoint)
                 {
                     DroppedIllegalVector++;

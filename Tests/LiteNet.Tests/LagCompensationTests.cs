@@ -34,7 +34,7 @@ namespace LiteNet.Tests
             var inputs = new SimInputFrame[PlayerCount];
             inputs[0] = new SimInputFrame { EntityId = s.Entities[0].Id, MoveX = shooterMoveX, AimPointX = shooterAimX, AimPointY = shooterAimY, AimPointZ = 0f };
             inputs[1] = new SimInputFrame { EntityId = s.Entities[1].Id, MoveX = targetMoveX };
-            SimStep.Step(s, map, inputs);
+            SimStep.Step(s, map, inputs, CombatValues.Default, WeaponTable.Default);
             ring.Capture(s.Frame, s);
             lag.RecordInputs(s.Frame, inputs);
             return inputs;
@@ -59,7 +59,7 @@ namespace LiteNet.Tests
             state.Spawn(new EntitySlot { Hp = CombatConfig.EntityHp, Pos = map.SpawnPoints[0] }, out _);
             state.Spawn(new EntitySlot { Hp = CombatConfig.EntityHp, Pos = map.SpawnPoints[1] }, out _);
             var ring = new SnapshotRing(SimConfig.LagCompHistory);
-            var lag = new LagCompensator(state, map, PlayerCount, ring);
+            var lag = new LagCompensator(state, map, PlayerCount, ring, CombatValues.Default, WeaponTable.Default);
 
             // 目标沿 +X 匀速远离（射手不动），跑 20 帧（> 窗口 16，保证"当时位置"仍在窗口内）
             // 余量是必须的：目标"当时的位置"也要落在窗口内，否则回溯目标帧已在环外，
@@ -116,7 +116,7 @@ namespace LiteNet.Tests
             state.Spawn(new EntitySlot { Hp = CombatConfig.EntityHp, Pos = map.SpawnPoints[0] }, out _);
             state.Spawn(new EntitySlot { Hp = CombatConfig.EntityHp, Pos = map.SpawnPoints[1] }, out _);
             var ring = new SnapshotRing(SimConfig.LagCompHistory);
-            var lag = new LagCompensator(state, map, PlayerCount, ring);
+            var lag = new LagCompensator(state, map, PlayerCount, ring, CombatValues.Default, WeaponTable.Default);
 
             for (int i = 0; i < 3; i++) StepWorld(state, map, ring, lag, 0f, 1f);
 
@@ -142,7 +142,7 @@ namespace LiteNet.Tests
             state.Spawn(new EntitySlot { Hp = CombatConfig.EntityHp, Pos = map.SpawnPoints[0] }, out _);
             state.Spawn(new EntitySlot { Hp = CombatConfig.EntityHp, Pos = map.SpawnPoints[1] }, out _);
             var ring = new SnapshotRing(SimConfig.LagCompHistory);
-            var lag = new LagCompensator(state, map, PlayerCount, ring);
+            var lag = new LagCompensator(state, map, PlayerCount, ring, CombatValues.Default, WeaponTable.Default);
 
             // 全程不动（MoveX=0）——本例只验瞄准点口径，不掺移动；点取目标正上方头部带（20, 1.8）。
             for (int i = 0; i < 6; i++) StepWorld(state, map, ring, lag, 0f, 0f, shooterAimY: HeadAimY, shooterAimX: 20f);
@@ -182,7 +182,7 @@ namespace LiteNet.Tests
             state.Spawn(new EntitySlot { Hp = CombatConfig.EntityHp, Pos = map.SpawnPoints[0] }, out _);
             state.Spawn(new EntitySlot { Hp = CombatConfig.EntityHp, Pos = map.SpawnPoints[1] }, out _);
             var ring = new SnapshotRing(SimConfig.LagCompHistory);
-            var lag = new LagCompensator(state, map, PlayerCount, ring);
+            var lag = new LagCompensator(state, map, PlayerCount, ring, CombatValues.Default, WeaponTable.Default);
 
             for (int i = 0; i < 3; i++) StepWorld(state, map, ring, lag, 0f, 0f, shooterAimY: HeadAimY, shooterAimX: 20f);
 
@@ -204,7 +204,7 @@ namespace LiteNet.Tests
             var state = new SimWorldState();
             state.Spawn(new EntitySlot { Hp = CombatConfig.EntityHp, Pos = map.SpawnPoints[0] }, out _);
             var ring = new SnapshotRing(SimConfig.LagCompHistory);
-            var lag = new LagCompensator(state, map, PlayerCount, ring);
+            var lag = new LagCompensator(state, map, PlayerCount, ring, CombatValues.Default, WeaponTable.Default);
 
             LagCompensator.Outcome outcome = lag.CompensateFire(0, entityId: 12345L, viewFrame: 0, clientAckSnapshot: 0);
             Assert.Equal(LagCompensator.Outcome.InvalidShooter, outcome);
@@ -218,7 +218,7 @@ namespace LiteNet.Tests
             state.Spawn(new EntitySlot { Hp = CombatConfig.EntityHp, Pos = map.SpawnPoints[0] }, out _);
             state.Spawn(new EntitySlot { Hp = CombatConfig.EntityHp, Pos = map.SpawnPoints[1] }, out _);
             var ring = new SnapshotRing(SimConfig.LagCompHistory);
-            var lag = new LagCompensator(state, map, PlayerCount, ring);
+            var lag = new LagCompensator(state, map, PlayerCount, ring, CombatValues.Default, WeaponTable.Default);
 
             for (int i = 0; i < 10; i++) StepWorld(state, map, ring, lag, 0f, 0f);
 

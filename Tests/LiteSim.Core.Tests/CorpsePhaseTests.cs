@@ -41,7 +41,7 @@ namespace LiteSim.Tests
         {
             var (world, shooter, target, _, targetSlot) = SpawnPair(targetHp: 1);
 
-            SimStep.Step(world, Map(), FireAt(shooter));
+            SimStep.Step(world, Map(), FireAt(shooter), CombatValues.Default, WeaponTable.Default);
 
             // Step 后（Cleanup 已跑）事件缓冲仍含 Death——事件交付在逻辑帧边界，未被清理吞掉
             Assert.True(HasEvent(world, FrameEventKind.Death), "死亡帧应写出 Death 事件");
@@ -57,8 +57,8 @@ namespace LiteSim.Tests
             var (world, shooter, target, _, targetSlot) = SpawnPair(targetHp: 1);
 
             // 先让目标跑起来（获得末速度），再打死——定身判据：清水平速度
-            SimStep.Step(world, Map(), new[] { new SimInputFrame { EntityId = target, MoveX = 1f } });
-            SimStep.Step(world, Map(), FireAt(shooter));
+            SimStep.Step(world, Map(), new[] { new SimInputFrame { EntityId = target, MoveX = 1f } }, CombatValues.Default, WeaponTable.Default);
+            SimStep.Step(world, Map(), FireAt(shooter), CombatValues.Default, WeaponTable.Default);
             Assert.True(world.Entities[targetSlot].Hp <= 0, "前置：目标已死");
 
             float velX = world.Entities[targetSlot].Vel.X;
@@ -67,10 +67,10 @@ namespace LiteSim.Tests
             // 尸体期内：被打不命中、自己开火无产出（InputSystem/ShootingSystem 双守卫）。
             // 事件缓冲由驱动消费后清（测试里手动模拟驱动清空——否则上一段的事件会污染断言）
             world.Events.Clear();
-            SimStep.Step(world, Map(), FireAt(target));           // 尸体扣扳机
+            SimStep.Step(world, Map(), FireAt(target), CombatValues.Default, WeaponTable.Default);           // 尸体扣扳机
             Assert.False(HasEvent(world, FrameEventKind.Fire), "尸体不开火");
             world.Events.Clear();
-            SimStep.Step(world, Map(), FireAt(shooter));          // 活人打尸体
+            SimStep.Step(world, Map(), FireAt(shooter), CombatValues.Default, WeaponTable.Default);          // 活人打尸体
             Assert.False(HasEvent(world, FrameEventKind.Hit), "尸体不可命中");
         }
 
@@ -80,11 +80,11 @@ namespace LiteSim.Tests
             var (world, shooter, target, _, targetSlot) = SpawnPair(targetHp: 1);
             long targetId = target;
 
-            SimStep.Step(world, Map(), FireAt(shooter));
+            SimStep.Step(world, Map(), FireAt(shooter), CombatValues.Default, WeaponTable.Default);
             Assert.True(Alive(world, targetSlot), "前置：尸体期内存活");
 
             for (int i = 0; i < CombatConfig.CorpseFrames; i++)
-                SimStep.Step(world, Map(), new SimInputFrame[0]);  // 空输入推进——含死亡帧本身的一次递减
+                SimStep.Step(world, Map(), new SimInputFrame[0], CombatValues.Default, WeaponTable.Default);  // 空输入推进——含死亡帧本身的一次递减
 
             Assert.False(Alive(world, targetSlot), "期满回收（bitmap 清）");
             Assert.Equal(default, world.Entities[targetSlot]);   // 槽位清零——空槽校验值恒定（§3.6）
@@ -102,7 +102,7 @@ namespace LiteSim.Tests
         public void 尸体期_快照携带死亡状态_远端可重建()
         {
             var (world, shooter, target, _, targetSlot) = SpawnPair(targetHp: 1);
-            SimStep.Step(world, Map(), FireAt(shooter));
+            SimStep.Step(world, Map(), FireAt(shooter), CombatValues.Default, WeaponTable.Default);
 
             var snap = new SimWorldState();
             world.CopyTo(snap);

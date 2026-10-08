@@ -176,6 +176,16 @@ namespace RoomServer
 
         private readonly RoomServerConfig _serverConfig;
 
+        /// <summary>
+        /// 玩法数值实例（技术债 #1：装配方显式传入——生产链 `HostAssembly`（必填）→ 本宿主 → 各房间
+        /// `RoomRuntime`；缺省 = <see cref="CombatValues.Default"/> 供嵌入式/测试直构形态。
+        /// 房间创建时捕获进 <c>FixedCombatConfig</c>，此后进程任何变化不改已建房间。
+        /// </summary>
+        private readonly CombatValues _combat;
+
+        /// <summary>武器表实例（同链显式传入；缺省 = <see cref="WeaponTable.Default"/> 兜底）。</summary>
+        private readonly WeaponTable _weapons;
+
         /// <summary>房间容量上限（配置项；§429 范围校验在装载期完成）。</summary>
         public int MaxRooms
         {
@@ -289,10 +299,12 @@ namespace RoomServer
             RoomServerConfig roomServerConfig = null, ISettlementOutbox settlementOutbox = null,
             RoomWorkerPool workerPool = null, bool mailboxRouting = false,
             bool drainMailboxesImmediately = true, RateLimiter rateLimiter = null,
-            bool workerExecution = false)
+            bool workerExecution = false, CombatValues? combatValues = null, WeaponTable weapons = null)
         {
             _transport = transport ?? throw new ArgumentNullException(nameof(transport));
             _serverConfig = roomServerConfig;
+            _combat = combatValues ?? CombatValues.Default;
+            _weapons = weapons ?? WeaponTable.Default;
             Config = config ?? RoomConfig.Default();
             _tickets = ticketValidator;
             _audience = audience ?? _serverConfig?.Audience ?? string.Empty;
@@ -2043,8 +2055,8 @@ namespace RoomServer
         {
             int mailboxCapacity = _serverConfig?.MailboxCapacity ?? RoomInstance.DefaultMailboxCapacity;
             RoomInstance inst = _workerExecution
-                ? new RoomInstance(cfg, mailboxCapacity, mailboxCapacity, mailboxCapacity, dynamic, true)
-                : new RoomInstance(cfg, mailboxCapacity, dynamic);
+                ? new RoomInstance(cfg, mailboxCapacity, mailboxCapacity, mailboxCapacity, dynamic, true, _combat, _weapons)
+                : new RoomInstance(cfg, mailboxCapacity, dynamic, _combat, _weapons);
             if (_workerExecution)
             {
                 // Worker 执行形态：房间在宿主线程建立，随后按 roomId 交给归属 Worker 驱动；

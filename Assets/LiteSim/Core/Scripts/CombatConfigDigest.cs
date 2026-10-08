@@ -10,7 +10,9 @@ namespace LiteSim
     /// SHA-256；禁止运行时哈希（GetHashCode 有进程随机种子，跨进程必不一致）进入协议）。
     ///
     /// 规范化规则（固定，两端同源——本类同时是服务端 StartGame.ConfigHash 与客户端校验的单源）：
-    /// - 字段顺序固定（<see cref="CombatConfig"/>：装载面 6 字段 + **派生 1 字段** `AimMoveSpeed`
+    /// - 入参 = <see cref="CombatValues"/> 实例（技术债 #1 根治后不再读全局——摘要按实例计算，
+    ///   **字段序/格式与旧口径逐字节一致**：同值同摘要，联机身份判据不变）；
+    /// - 字段顺序固定：实例装载面 6 字段 + **派生 1 字段** `AimMoveSpeed`
     ///   + **窗长常量 1 字段** `FireStanceFrames`（Sim 消费它限速，进联机身份）
     ///   + **逻辑枪口 3 字段** `MuzzleOffsetForward/Right/Height`（子弹出射点＝本体+朝向系
     ///   **烘焙常量偏移**——`MuzzleBake.g.cs`：prefab Muzzle 锚点 @ AimIdle t=0；表化计划随 tb_weapon，
@@ -25,20 +27,20 @@ namespace LiteSim
     /// </summary>
     public static class CombatConfigDigest
     {
-        /// <summary>规范化文本（诊断/测试用：装载后调用两端应逐字节一致）。</summary>
-        public static string CanonicalText()
+        /// <summary>规范化文本（诊断/测试用：同一 <paramref name="values"/> 两端应逐字节一致）。</summary>
+        public static string CanonicalText(in CombatValues values)
         {
             var sb = new StringBuilder(128);
-            sb.Append(CombatConfig.MoveSpeed.ToString("R", CultureInfo.InvariantCulture)).Append('\n')
-              .Append(CombatConfig.Gravity.ToString("R", CultureInfo.InvariantCulture)).Append('\n')
-              .Append(CombatConfig.HitscanRange.ToString("R", CultureInfo.InvariantCulture)).Append('\n')
+            sb.Append(values.MoveSpeed.ToString("R", CultureInfo.InvariantCulture)).Append('\n')
+              .Append(values.Gravity.ToString("R", CultureInfo.InvariantCulture)).Append('\n')
+              .Append(values.HitscanRange.ToString("R", CultureInfo.InvariantCulture)).Append('\n')
               .Append(CombatConfig.HitscanRadius.ToString("R", CultureInfo.InvariantCulture)).Append('\n')
               .Append(CombatConfig.HitscanHeight.ToString("R", CultureInfo.InvariantCulture)).Append('\n')
               .Append(CombatConfig.HeadshotRadius.ToString("R", CultureInfo.InvariantCulture)).Append('\n')
-              .Append(CombatConfig.BaseDamage.ToString(CultureInfo.InvariantCulture)).Append('\n')
-              .Append(CombatConfig.DamageSpread.ToString(CultureInfo.InvariantCulture)).Append('\n')
-              .Append(CombatConfig.EntityHp.ToString(CultureInfo.InvariantCulture)).Append('\n')
-              .Append(CombatConfig.AimMoveSpeed.ToString("R", CultureInfo.InvariantCulture)).Append('\n')
+              .Append(values.BaseDamage.ToString(CultureInfo.InvariantCulture)).Append('\n')
+              .Append(values.DamageSpread.ToString(CultureInfo.InvariantCulture)).Append('\n')
+              .Append(values.EntityHp.ToString(CultureInfo.InvariantCulture)).Append('\n')
+              .Append(values.AimMoveSpeed.ToString("R", CultureInfo.InvariantCulture)).Append('\n')
               .Append(CombatConfig.FireStanceFrames.ToString(CultureInfo.InvariantCulture)).Append('\n')
               .Append(CombatConfig.MuzzleOffsetForward.ToString("R", CultureInfo.InvariantCulture)).Append('\n')
               .Append(CombatConfig.MuzzleOffsetRight.ToString("R", CultureInfo.InvariantCulture)).Append('\n')
@@ -46,14 +48,14 @@ namespace LiteSim
             return sb.ToString();
         }
 
-        /// <summary>SHA-256 低 32 位（proto uint32 口径；跨进程一致——同一份装载值必得同一摘要）。</summary>
-        public static uint Compute()
+        /// <summary>SHA-256 低 32 位（proto uint32 口径；跨进程一致——同一份实例值必得同一摘要）。</summary>
+        public static uint Compute(in CombatValues values)
         {
-            return Compute(CanonicalText());
+            return Compute(CanonicalText(values));
         }
 
-        /// <summary>给定规范化文本的摘要（<see cref="CanonicalText"/> 同规文本的摘要入口——
-        /// 测试/工具用：两份不同配置文本必得不同摘要，无需改写全局装载状态）。</summary>
+        /// <summary>给定规范化文本的摘要（<see cref="CanonicalText(in CombatValues)"/> 同规文本的摘要入口——
+        /// 测试/工具用：两份不同配置文本必得不同摘要，无需构造实例）。</summary>
         public static uint Compute(string canonicalText)
         {
             byte[] bytes = Encoding.UTF8.GetBytes(canonicalText);

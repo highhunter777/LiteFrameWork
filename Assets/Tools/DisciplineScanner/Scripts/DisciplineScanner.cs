@@ -51,6 +51,14 @@ namespace Tools.DisciplineScan
         /// DG.Tweening → `UI/Anim/**`（动效适配）。
         /// 例外行用 `lint-allow R12` 标注并写明理由（如"该文件本身就是场景适配器"）。</summary>
         R12AdapterBoundary = 12,
+
+        /// <summary>R13 数值读口禁读（机制面）——技术债 #1 根治的防复辟线（《玩法数值与Luban配置专项设计》数值实例化段）：
+        /// 机制代码（Sim Core / 房间内核 / RoomServer 宿主）不得读静态读口的**可变值**——
+        /// `CombatConfig` 装载面 6 字段+AimMoveSpeed+Loaded/Publish、`MovementConfig` 全类、
+        /// `WeaponConfig` 的 Default/TryGet/Loaded/Publish；**常量面豁免**（FireStanceFrames/烘焙几何/
+        /// DefaultRifleId 等 const——两端编译期同值）。值一律经 `CombatValues`/`MovementValues`/`WeaponTable`
+        /// 实例参数传递。例外行 lint-allow R13 并写明理由。</summary>
+        R13StaticConfigPort = 13,
     }
 
     /// <summary>一条纪律违规。</summary>
@@ -143,6 +151,18 @@ namespace Tools.DisciplineScan
         private static readonly Regex R12Regex = new Regex(
             @"^\s*using\s+(YooAsset|XLua|DG\.Tweening|UnityEngine\.InputSystem|Cinemachine)\b",
             RegexOptions.Compiled | RegexOptions.Multiline);
+
+        /// <summary>
+        /// R13：数值读口禁读（机制面）——技术债 #1 防复辟（见枚举注释）。命中即违规：
+        /// `CombatConfig` 的可变/派生值（MoveSpeed/Gravity/HitscanRange/BaseDamage/DamageSpread/EntityHp/
+        /// AimMoveSpeed/Loaded/Publish）、`MovementConfig` 任意成员、`WeaponConfig` 的
+        /// Default/TryGet/Loaded/Publish。词边界保证常量面不误伤（`AimMoveSpeedFactor`/`DefaultRifleId`）。
+        /// </summary>
+        private static readonly Regex R13Regex = new Regex(
+            @"\bCombatConfig\s*\.\s*(?:MoveSpeed|Gravity|HitscanRange|BaseDamage|DamageSpread|EntityHp|AimMoveSpeed|Loaded|Publish)\b" +
+            @"|\bMovementConfig\s*\.\s*\w+" +
+            @"|\bWeaponConfig\s*\.\s*(?:Default|TryGet|Loaded|Publish)\b",
+            RegexOptions.Compiled);
 
         /// <summary>
         /// R12 边界表：适配器 → 允许 import 它的目录前缀（相对**项目根**，正斜杠）。
@@ -241,6 +261,7 @@ namespace Tools.DisciplineScan
             LintRule.R10ShellSendsBusinessPacket,
             LintRule.R11RuntimePurity,
             LintRule.R12AdapterBoundary,
+            LintRule.R13StaticConfigPort,
         };
 
         public static string RuleId(LintRule rule)
@@ -259,6 +280,7 @@ namespace Tools.DisciplineScan
                 case LintRule.R10ShellSendsBusinessPacket: return "R10";
                 case LintRule.R11RuntimePurity: return "R11";
                 case LintRule.R12AdapterBoundary: return "R12";
+                case LintRule.R13StaticConfigPort: return "R13";
                 default: return "R?";
             }
         }
@@ -443,6 +465,7 @@ namespace Tools.DisciplineScan
                     // 适配器 import 行：只有落在该适配器的边界目录内才放行
                     return !IsAdapterBoundaryAllowed(fileName, adapter);
                 }
+                case LintRule.R13StaticConfigPort: return R13Regex.IsMatch(code);
                 default: return false;
             }
         }

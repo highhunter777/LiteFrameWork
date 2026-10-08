@@ -11,29 +11,31 @@ namespace LiteNet.Tests
     /// - 房间创建时**固定**不可变玩法配置并绑定规范化摘要（此后进程改全局不影响本房间的值消费）；
     /// - seed=0 时由 Tick 注入的单调时间派生（Runtime 不再读系统墙钟——纯化红线）。
     ///
-    /// 纪律：不写全局 <see cref="CombatConfig"/> 装载状态（会与其他用例竞态），
+    /// 纪律：数值一律经**实例**传入（技术债 #1 根治后无全局装载面可写、无还原需求），
     /// 只做"同刻绑定/派生行为"的断言。
     /// </summary>
     public sealed class RoomRuntimeConfigTests
     {
         [Fact]
-        public void 配置快照_与全局装载值同刻绑定()
+        public void 配置快照_与传入实例同刻绑定()
         {
-            FixedCombatConfig snap = FixedCombatConfig.Capture();
+            CombatValues values = CombatValues.Default;
+            FixedCombatConfig snap = FixedCombatConfig.Capture(values, WeaponTable.Default);
 
-            Assert.Equal(CombatConfig.MoveSpeed, snap.MoveSpeed);
-            Assert.Equal(CombatConfig.Gravity, snap.Gravity);
-            Assert.Equal(CombatConfig.HitscanRange, snap.HitscanRange);
-            Assert.Equal(CombatConfig.BaseDamage, snap.BaseDamage);
-            Assert.Equal(CombatConfig.DamageSpread, snap.DamageSpread);
-            Assert.Equal(CombatConfig.EntityHp, snap.EntityHp);
-            Assert.Equal(CombatConfigDigest.Compute(), snap.Digest);   // 摘要同刻绑定（§4/P0-5）
+            Assert.Equal(values.MoveSpeed, snap.Values.MoveSpeed);
+            Assert.Equal(values.Gravity, snap.Values.Gravity);
+            Assert.Equal(values.HitscanRange, snap.Values.HitscanRange);
+            Assert.Equal(values.BaseDamage, snap.Values.BaseDamage);
+            Assert.Equal(values.DamageSpread, snap.Values.DamageSpread);
+            Assert.Equal(values.EntityHp, snap.Values.EntityHp);
+            Assert.Equal(CombatConfigDigest.Compute(values), snap.Digest);   // 摘要同刻绑定（§4/P0-5）
         }
 
         [Fact]
         public void 开局使用房间快照数值_并下发绑定的配置摘要()
         {
-            var room = new RoomRuntime(new RoomConfig { RoomId = "Cfg", ExpectedPlayers = 1, Seed = 77 });
+            var custom = new CombatValues(7.5f, -9.8f, 50f, 40, 0, 130);   // 自定义实例：证明数值经参数入房（债 #1）
+            var room = new RoomRuntime(new RoomConfig { RoomId = "Cfg", ExpectedPlayers = 1, Seed = 77 }, custom);
             var outputs = new List<RoomOutput>();
             room.Execute(RoomCommand.Join(1), outputs);
 
@@ -42,12 +44,12 @@ namespace LiteNet.Tests
                 if (o is SignalOutput { Signal: MatchStarted ms }) started = ms;
 
             Assert.NotNull(started);
-            Assert.Equal(room.FixedConfig.Digest, started.ConfigHash);   // 下发"本局数值身份"= 创建时绑定摘要
+            Assert.Equal(CombatConfigDigest.Compute(custom), started.ConfigHash);   // 下发"本局数值身份"= 按实例计算摘要
             Assert.Equal(77L, started.Seed);
 
-            // 出生 HP 取自房间快照（而非运行中可能被改的全局静态）
+            // 出生 HP 取自房间快照（实例值直达——技术债 #1：无全局静态面）
             Assert.True(room.AuthSim.TryResolve(room.EntityIdOf(0), out int slot));
-            Assert.Equal(room.FixedConfig.EntityHp, room.AuthSim.Entities[slot].Hp);
+            Assert.Equal(custom.EntityHp, room.AuthSim.Entities[slot].Hp);
         }
 
         [Fact]

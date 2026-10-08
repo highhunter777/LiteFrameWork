@@ -83,17 +83,21 @@ namespace RoomServer.Runtime
         public long StepsCount;
         public long FireInputsProcessed;        // 走回溯路径的开火输入数
 
-        public RoomRuntime(RoomConfig config)
+        public RoomRuntime(RoomConfig config, CombatValues? combat = null, WeaponTable weapons = null)
         {
             Config = config ?? throw new ArgumentNullException(nameof(config));
             RoomId = config.RoomId;
-            FixedConfig = FixedCombatConfig.Capture();   // 房间创建时固定（此后进程改配置不改本房间）
+            // 玩法数值/武器表实例：装配方显式传入（技术债 #1——不再从全局静态面 capture）；缺省=默认表值
+            // （嵌入式/测试形态）。生产链：HostAssembly.Inputs（必填）→ ServerHost → RoomInstance。
+            CombatValues values = combat ?? CombatValues.Default;
+            WeaponTable table = weapons ?? WeaponTable.Default;
+            FixedConfig = FixedCombatConfig.Capture(values, table);   // 房间创建时固定（此后进程任何变化不改本房间）
             Map = BuildStandardMap();
             AuthSim = new SimWorldState();
             SnapshotHistory = new SnapshotRing(SimConfig.LagCompHistory);
             int players = ExpectedPlayers;                     // 配置定容（席位/输入槽/实体表/回溯环一致）
-            Gate = new InputGate(players);
-            LagComp = new LagCompensator(AuthSim, Map, players, SnapshotHistory);
+            Gate = new InputGate(players, values);
+            LagComp = new LagCompensator(AuthSim, Map, players, SnapshotHistory, values, table);
             _seats = new PlayerSession[players];
             _entityIds = new long[players];
             _frameInputs = new SimInputFrame[players];
@@ -337,7 +341,7 @@ namespace RoomServer.Runtime
                 PlayerSession seat = _seats[i];
                 if (seat == null) continue;
                 SimVector3 spawn = Map.SpawnPoints[i % Map.SpawnPointCount];
-                AuthSim.Spawn(new EntitySlot { Hp = FixedConfig.EntityHp, Pos = spawn, Yaw = 0f }, out int slot);
+                AuthSim.Spawn(new EntitySlot { Hp = FixedConfig.Values.EntityHp, Pos = spawn, Yaw = 0f }, out int slot);
                 _entityIds[i] = AuthSim.Entities[slot].Id;
                 seat.EntityId = _entityIds[i];
             }
@@ -372,7 +376,7 @@ namespace RoomServer.Runtime
                 _frameInputs[i] = Gate.TryConsume(frame, i, out SimInputFrame stored) ? stored : default;
             }
 
-            SimStep.Step(AuthSim, Map, _frameInputs);
+            SimStep.Step(AuthSim, Map, _frameInputs, FixedConfig.Values, FixedConfig.Weapons);
             StepsCount++;
             int steppedFrame = AuthSim.Frame;
             SnapshotHistory.Capture(steppedFrame, AuthSim);   // 每帧捕获（回溯基料）

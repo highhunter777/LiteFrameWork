@@ -47,7 +47,7 @@ namespace LiteGame.Tests.EditMode
             long self = world.Spawn(new EntitySlot { Hp = 100, Pos = new SimVector3(0f, 0f, 0f) }, out _);
             foreach (Vector3 o in others)
                 world.Spawn(new EntitySlot { Hp = 100, Pos = new SimVector3(o.x, o.y, o.z) }, out _);
-            var sim = new RollbackSim(world, map, new[] { new SimInputFrame { EntityId = self } });
+            var sim = new RollbackSim(world, map, new[] { new SimInputFrame { EntityId = self } }, CombatValues.Default, WeaponTable.Default);
             SimView view = new SimView(world, null,
                 factory: (loc, parent) => Scope.CreateGameObject(loc),
                 recycler: null);
@@ -496,7 +496,7 @@ namespace LiteGame.Tests.EditMode
             var map = NoObstacleMap();
             var world = new SimWorldState { RngState = 1UL };
             long self = world.Spawn(new EntitySlot { Hp = 100, Pos = new SimVector3(0f, 0f, 0f) }, out _);
-            var sim = new RollbackSim(world, map, new[] { new SimInputFrame { EntityId = self } });
+            var sim = new RollbackSim(world, map, new[] { new SimInputFrame { EntityId = self } }, CombatValues.Default, WeaponTable.Default);
             SimView view = new SimView(world, null,
                 factory: (loc, parent) => Scope.CreateGameObject(loc),
                 recycler: null);                           // 未 AlignLocal：LocalEntityId=0、HasLocalDisplay=false

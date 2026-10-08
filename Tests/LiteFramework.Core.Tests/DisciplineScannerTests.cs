@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Text;
 using Tools.DisciplineScan;
@@ -167,6 +168,55 @@ namespace LiteFramework.Tests
             // 只排宿主层的 Host/ 子目录；模块与契约层必须留在扫描内
             Assert.DoesNotContain("Server/MetaServer/Modules", meta.ExcludeRoots);
             Assert.DoesNotContain("Server/MetaServer/Contracts", meta.ExcludeRoots);
+        }
+
+        [Fact]
+        public void 纪律_R13_数值读口被命中()
+        {
+            Assert.Equal(1, Count("var v = CombatConfig.MoveSpeed;", LintRule.R13StaticConfigPort));
+            Assert.Equal(1, Count("var v = CombatConfig.AimMoveSpeed;", LintRule.R13StaticConfigPort));
+            Assert.Equal(1, Count("var v = CombatConfig.Loaded;", LintRule.R13StaticConfigPort));
+            Assert.Equal(1, Count("CombatConfig.Publish(values);", LintRule.R13StaticConfigPort));
+            Assert.Equal(1, Count("var v = MovementConfig.WalkSpeed;", LintRule.R13StaticConfigPort));
+            Assert.Equal(1, Count("MovementConfig.Publish(mv);", LintRule.R13StaticConfigPort));
+            Assert.Equal(1, Count("var d = WeaponConfig.Default;", LintRule.R13StaticConfigPort));
+            Assert.Equal(1, Count("WeaponConfig.TryGet(0, out var d);", LintRule.R13StaticConfigPort));
+            Assert.Equal(1, Count("WeaponConfig.Publish(t);", LintRule.R13StaticConfigPort));
+        }
+
+        [Fact]
+        public void 纪律_R13_常量面与实例不误报()
+        {
+            // 常量面豁免（两端编译期同值——机制可读）
+            Assert.Equal(0, Count("var f = CombatConfig.FireStanceFrames;", LintRule.R13StaticConfigPort));
+            Assert.Equal(0, Count("var x = CombatConfig.AimMoveSpeedFactor;", LintRule.R13StaticConfigPort));   // AimMoveSpeed 词边界不吞 Factor
+            Assert.Equal(0, Count("var r = CombatConfig.HitscanRadius;", LintRule.R13StaticConfigPort));
+            Assert.Equal(0, Count("var id = WeaponConfig.DefaultRifleId;", LintRule.R13StaticConfigPort));      // Default 词边界不吞 DefaultRifleId
+            // 实例参数面不误报
+            Assert.Equal(0, Count("var v = values.MoveSpeed;", LintRule.R13StaticConfigPort));
+            Assert.Equal(0, Count("var c = CombatValues.Default;", LintRule.R13StaticConfigPort));
+            Assert.Equal(0, Count("var t = WeaponTable.Default;", LintRule.R13StaticConfigPort));
+            // 注释剔除
+            Assert.Equal(0, Count("// CombatConfig.MoveSpeed 机制禁读（注释不算）", LintRule.R13StaticConfigPort));
+        }
+
+        [Fact]
+        public void 纪律_R13_受守根已登记()
+        {
+            bool sim = false, runtime = false, app = false, host = false;
+            for (int i = 0; i < ScanTargets.Default.Length; i++)
+            {
+                ScanTarget t = ScanTargets.Default[i];
+                if (Array.IndexOf(t.Rules, LintRule.R13StaticConfigPort) < 0) continue;
+                if (t.Root == "Assets/LiteSim") sim = true;
+                if (t.Root == "Assets/RoomServer/Runtime") runtime = true;
+                if (t.Root == "Assets/RoomServer/Application") app = true;
+                if (t.Root == "Server/RoomServer") host = true;
+            }
+            Assert.True(sim, "R13 缺 Assets/LiteSim 受守根——Sim 机制面将不受纪律扫描把守");
+            Assert.True(runtime, "R13 缺 Assets/RoomServer/Runtime 受守根");
+            Assert.True(app, "R13 缺 Assets/RoomServer/Application 受守根");
+            Assert.True(host, "R13 缺 Server/RoomServer 受守根");
         }
 
         [Fact]

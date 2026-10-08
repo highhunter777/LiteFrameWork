@@ -44,7 +44,7 @@ namespace LiteSim.Tests
         public void 懒装备_首帧装备默认步枪_满弹就绪()
         {
             var (world, id, slot) = Spawn();
-            WeaponSystem.Run(world, Idle(id));
+            WeaponSystem.Run(world, Idle(id), WeaponTable.Default);
 
             ref WeaponRuntime w = ref WeaponOf(world, slot);
             WeaponDef def = WeaponConfig.Default;
@@ -58,20 +58,20 @@ namespace LiteSim.Tests
         public void 节拍_600rpm为6帧_连帧开火只首帧打出()
         {
             var (world, id, slot) = Spawn();
-            WeaponSystem.Run(world, Idle(id));
+            WeaponSystem.Run(world, Idle(id), WeaponTable.Default);
             ref WeaponRuntime w = ref WeaponOf(world, slot);
             Assert.Equal(6, WeaponConfig.Default.FireIntervalFrames);   // 600rpm @60Hz ⇒ 6 帧/发
 
             for (int f = 0; f < 5; f++)
             {
                 world.Frame = f;
-                ShootingSystem.Run(world, NoObstacles, Fire(id));
+                ShootingSystem.Run(world, NoObstacles, Fire(id), CombatValues.Default, WeaponTable.Default);
             }
             Assert.Equal(1, FireEvents(world));                    // 5 帧窗口内仅首帧真开火
             Assert.Equal(WeaponConfig.Default.MagazineSize - 1, w.MagAmmo);
 
             world.Frame = 6;                                       // 节拍到帧 → 第二发
-            ShootingSystem.Run(world, NoObstacles, Fire(id));
+            ShootingSystem.Run(world, NoObstacles, Fire(id), CombatValues.Default, WeaponTable.Default);
             Assert.Equal(2, FireEvents(world));
             Assert.Equal(WeaponConfig.Default.MagazineSize - 2, w.MagAmmo);
         }
@@ -80,18 +80,18 @@ namespace LiteSim.Tests
         public void 弹匣_打空后不开火_无Fire事件()
         {
             var (world, id, slot) = Spawn();
-            WeaponSystem.Run(world, Idle(id));
+            WeaponSystem.Run(world, Idle(id), WeaponTable.Default);
             ref WeaponRuntime w = ref WeaponOf(world, slot);
             w.MagAmmo = 1;
             w.NextFireFrame = 0;
 
             world.Frame = 10;
-            ShootingSystem.Run(world, NoObstacles, Fire(id));
+            ShootingSystem.Run(world, NoObstacles, Fire(id), CombatValues.Default, WeaponTable.Default);
             Assert.Equal(1, FireEvents(world));
             Assert.Equal(0, w.MagAmmo);
 
             world.Frame = 20;
-            ShootingSystem.Run(world, NoObstacles, Fire(id));
+            ShootingSystem.Run(world, NoObstacles, Fire(id), CombatValues.Default, WeaponTable.Default);
             Assert.Equal(1, FireEvents(world));                    // 打空：不开火（不写 Fire 事件）
         }
 
@@ -99,7 +99,7 @@ namespace LiteSim.Tests
         public void 换弹_时长到帧完成_弹匣回满备弹扣减_换弹中不可开火()
         {
             var (world, id, slot) = Spawn();
-            WeaponSystem.Run(world, Idle(id));
+            WeaponSystem.Run(world, Idle(id), WeaponTable.Default);
             ref WeaponRuntime w = ref WeaponOf(world, slot);
             WeaponDef def = WeaponConfig.Default;
 
@@ -107,22 +107,22 @@ namespace LiteSim.Tests
             w.MagAmmo = def.MagazineSize - fired;
 
             world.Frame = 100;
-            WeaponSystem.Run(world, Reload(id));
+            WeaponSystem.Run(world, Reload(id), WeaponTable.Default);
             Assert.Equal(WeaponSlotState.Reloading, w.State);
             Assert.Equal(100 + def.ReloadFrames, w.ReloadEndFrame);
 
             // 换弹中开火被拦（副作用之前——无 Fire 事件、不扣弹）
-            ShootingSystem.Run(world, NoObstacles, Fire(id));
+            ShootingSystem.Run(world, NoObstacles, Fire(id), CombatValues.Default, WeaponTable.Default);
             Assert.Equal(0, FireEvents(world));
             Assert.Equal(def.MagazineSize - fired, w.MagAmmo);
 
             // 到帧前 1 帧仍未完成；到帧完成转移弹药
             world.Frame = 100 + def.ReloadFrames - 1;
-            WeaponSystem.Run(world, Idle(id));
+            WeaponSystem.Run(world, Idle(id), WeaponTable.Default);
             Assert.Equal(WeaponSlotState.Reloading, w.State);
 
             world.Frame = 100 + def.ReloadFrames;
-            WeaponSystem.Run(world, Idle(id));
+            WeaponSystem.Run(world, Idle(id), WeaponTable.Default);
             Assert.Equal(WeaponSlotState.Ready, w.State);
             Assert.Equal(def.MagazineSize, w.MagAmmo);
             Assert.Equal(def.ReserveAmmo - fired, w.ReserveAmmo);
@@ -132,16 +132,16 @@ namespace LiteSim.Tests
         public void 换弹_备弹不足只装余量()
         {
             var (world, id, slot) = Spawn();
-            WeaponSystem.Run(world, Idle(id));
+            WeaponSystem.Run(world, Idle(id), WeaponTable.Default);
             ref WeaponRuntime w = ref WeaponOf(world, slot);
             WeaponDef def = WeaponConfig.Default;
 
             w.MagAmmo = 0;
             w.ReserveAmmo = 5;
             world.Frame = 0;
-            WeaponSystem.Run(world, Reload(id));
+            WeaponSystem.Run(world, Reload(id), WeaponTable.Default);
             world.Frame = def.ReloadFrames;
-            WeaponSystem.Run(world, Idle(id));
+            WeaponSystem.Run(world, Idle(id), WeaponTable.Default);
 
             Assert.Equal(5, w.MagAmmo);
             Assert.Equal(0, w.ReserveAmmo);
@@ -152,16 +152,16 @@ namespace LiteSim.Tests
         public void 换弹_满弹与零备弹不触发()
         {
             var (world, id, slot) = Spawn();
-            WeaponSystem.Run(world, Idle(id));
+            WeaponSystem.Run(world, Idle(id), WeaponTable.Default);
             ref WeaponRuntime w = ref WeaponOf(world, slot);
 
             world.Frame = 0;
-            WeaponSystem.Run(world, Reload(id));                   // 满弹 → 不换
+            WeaponSystem.Run(world, Reload(id), WeaponTable.Default);                   // 满弹 → 不换
             Assert.Equal(WeaponSlotState.Ready, w.State);
 
             w.MagAmmo = 0;
             w.ReserveAmmo = 0;
-            WeaponSystem.Run(world, Reload(id));                   // 零备弹 → 不换
+            WeaponSystem.Run(world, Reload(id), WeaponTable.Default);                   // 零备弹 → 不换
             Assert.Equal(WeaponSlotState.Ready, w.State);
         }
 
@@ -170,13 +170,13 @@ namespace LiteSim.Tests
         {
             var (world, id, slot) = Spawn();
             world.Entities[slot].Hp = 0;
-            WeaponSystem.Run(world, new[] { Idle(id)[0], Reload(id)[0] });
+            WeaponSystem.Run(world, new[] { Idle(id)[0], Reload(id)[0] }, WeaponTable.Default);
             Assert.Equal(WeaponSlotState.Unequipped, WeaponOf(world, slot).State);
 
             // 复活（槽位换 Id 重生的等价形态）：Despawn 清武器行 → 再跑装备
             world.Despawn(id);
             long reborn = world.Spawn(new EntitySlot { Hp = 100, Pos = new SimVector3(1f, 0f, 1f) }, out int slot2);
-            WeaponSystem.Run(world, Idle(reborn));
+            WeaponSystem.Run(world, Idle(reborn), WeaponTable.Default);
             ref WeaponRuntime w = ref WeaponOf(world, slot2);
             Assert.Equal(WeaponSlotState.Ready, w.State);
             Assert.Equal(WeaponConfig.Default.MagazineSize, w.MagAmmo);
@@ -194,8 +194,8 @@ namespace LiteSim.Tests
             for (int f = 0; f < 600; f++)
             {
                 world.Frame = f;
-                WeaponSystem.Run(world, fire);
-                ShootingSystem.Run(world, NoObstacles, fire);
+                WeaponSystem.Run(world, fire, WeaponTable.Default);
+                ShootingSystem.Run(world, NoObstacles, fire, CombatValues.Default, WeaponTable.Default);
             }
             Assert.Equal(def.MagazineSize, FireEvents(world));      // 30 发封顶
             Assert.Equal(0, w.MagAmmo);
@@ -212,16 +212,16 @@ namespace LiteSim.Tests
                 },
             };
             world.Frame = 600;
-            WeaponSystem.Run(world, reloadHeld);
-            ShootingSystem.Run(world, NoObstacles, reloadHeld);
+            WeaponSystem.Run(world, reloadHeld, WeaponTable.Default);
+            ShootingSystem.Run(world, NoObstacles, reloadHeld, CombatValues.Default, WeaponTable.Default);
             Assert.Equal(WeaponSlotState.Reloading, w.State);
             Assert.Equal(before, FireEvents(world));
 
             for (int f = 601; f <= 600 + def.ReloadFrames; f++)     // 含到帧完成帧（732）
             {
                 world.Frame = f;
-                WeaponSystem.Run(world, fire);
-                ShootingSystem.Run(world, NoObstacles, fire);
+                WeaponSystem.Run(world, fire, WeaponTable.Default);
+                ShootingSystem.Run(world, NoObstacles, fire, CombatValues.Default, WeaponTable.Default);
             }
             // 到帧完成同帧：换弹先回满（WeaponSystem 在 ShootingSystem 之前跑）→ 按住立即续射首发
             Assert.Equal(before + 1, FireEvents(world));
@@ -231,13 +231,13 @@ namespace LiteSim.Tests
             for (int f = 733; f < 738; f++)
             {
                 world.Frame = f;
-                WeaponSystem.Run(world, fire);
-                ShootingSystem.Run(world, NoObstacles, fire);
+                WeaponSystem.Run(world, fire, WeaponTable.Default);
+                ShootingSystem.Run(world, NoObstacles, fire, CombatValues.Default, WeaponTable.Default);
             }
             Assert.Equal(before + 1, FireEvents(world));            // 节拍未到——不发
             world.Frame = 738;
-            WeaponSystem.Run(world, fire);
-            ShootingSystem.Run(world, NoObstacles, fire);
+            WeaponSystem.Run(world, fire, WeaponTable.Default);
+            ShootingSystem.Run(world, NoObstacles, fire, CombatValues.Default, WeaponTable.Default);
             Assert.Equal(before + 2, FireEvents(world));            // 节拍到点——续射第二发
         }
 
@@ -249,7 +249,7 @@ namespace LiteSim.Tests
             for (int f = 0; f < 5; f++)
             {
                 world.Frame = f;
-                ShootingSystem.Run(world, NoObstacles, Fire(id));
+                ShootingSystem.Run(world, NoObstacles, Fire(id), CombatValues.Default, WeaponTable.Default);
             }
             Assert.Equal(5, FireEvents(world));
         }

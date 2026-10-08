@@ -57,7 +57,7 @@ namespace LiteSim.Tests
             var map = WallBetween(wallX: 5f);
             ulong rngBefore = world.RngState;
 
-            ShootingSystem.Run(world, map, FireAt(shooter));
+            ShootingSystem.Run(world, map, FireAt(shooter), CombatValues.Default, WeaponTable.Default);
 
             Assert.Equal(1, world.Events.Count);                    // 只有 Fire
             Assert.Equal(FrameEventKind.Fire, world.Events.Items[0].Kind);
@@ -74,7 +74,7 @@ namespace LiteSim.Tests
             var (world, shooter, _) = Pair();
             var map = WallBetween(wallX: 5f);
 
-            ShootingSystem.Run(world, map, FireAt(shooter));
+            ShootingSystem.Run(world, map, FireAt(shooter), CombatValues.Default, WeaponTable.Default);
 
             Assert.Equal((byte)CombatConfig.FireStanceFrames, world.Entities[0].FireStanceFrames);
         }
@@ -84,7 +84,7 @@ namespace LiteSim.Tests
         {
             var (world, shooter, target) = Pair();
             var map = WallBetween(wallX: 12f);                       // 墙近面 11.5 在目标命中弧（9.5）之后——墙挡的是"更远处"
-            ShootingSystem.Run(world, map, FireAt(shooter));
+            ShootingSystem.Run(world, map, FireAt(shooter), CombatValues.Default, WeaponTable.Default);
 
             Assert.True(HasDamage(world), "目标近于障碍——正常命中（障碍不改变墙前判定）");
             Assert.True(HasHitEvent(world));
@@ -100,7 +100,7 @@ namespace LiteSim.Tests
             var (world, shooter, target) = Pair();
             var map = WallBetween(wallX: 5f, height: CombatConfig.MuzzleOffsetHeight, halfZ: 0.5f);
 
-            ShootingSystem.Run(world, map, FireAt(shooter));
+            ShootingSystem.Run(world, map, FireAt(shooter), CombatValues.Default, WeaponTable.Default);
 
             Assert.False(HasDamage(world), "弹道原点高在盒带内（含端点）——矮盒也挡弹");
             _ = target;
@@ -113,7 +113,7 @@ namespace LiteSim.Tests
             var (world, shooter, target) = Pair();
             var map = WallBetween(wallX: 5f, height: 0.5f, halfZ: 0.5f);
 
-            ShootingSystem.Run(world, map, FireAt(shooter));
+            ShootingSystem.Run(world, map, FireAt(shooter), CombatValues.Default, WeaponTable.Default);
 
             Assert.True(HasDamage(world), "眼高在障碍带外——子弹越过");
             _ = target;
@@ -136,7 +136,7 @@ namespace LiteSim.Tests
             long target = world.Spawn(new EntitySlot { Hp = 100, Pos = new SimVector3(10f, 0f, 5f) }, out _);
 
             // 瞄准点取目标 (10,5) 正前方眼高位——从逻辑枪口 (0.35,-0.2) 指向该点的方向与旧方向口径逐位一致
-            ShootingSystem.Run(world, map, FireAt(shooter, 10f, 5f));
+            ShootingSystem.Run(world, map, FireAt(shooter, 10f, 5f), CombatValues.Default, WeaponTable.Default);
 
             Assert.True(HasDamage(world), "斜向射线走通道外——不受墙影响");
             _ = target;
@@ -157,7 +157,7 @@ namespace LiteSim.Tests
             long newBand = world.Spawn(new EntitySlot { Hp = 100, Pos = new SimVector3(10f, 0f, -(r + R - 0.02f)) }, out _);
 
             // 瞄准点取"枪口 Z 延长线"（z = −MuzzleOffsetRight）⇒ 弹道严格沿 +X 平移过枪口
-            ShootingSystem.Run(world, new SimMapData(), FireAt(shooter, 10f, -CombatConfig.MuzzleOffsetRight));
+            ShootingSystem.Run(world, new SimMapData(), FireAt(shooter, 10f, -CombatConfig.MuzzleOffsetRight), CombatValues.Default, WeaponTable.Default);
 
             Assert.True(HasDamage(world), "命中带随枪口右偏平移——新带（z=−(r+R−0.02)）擦中");
             Assert.Equal(newBand, DamageTarget(world));
@@ -186,7 +186,7 @@ namespace LiteSim.Tests
             world.Spawn(new EntitySlot { Hp = 100, Pos = new SimVector3(-10f, 0f, r + R - 0.02f) }, out _);
 
             // 瞄准点取 −X 方向、z = +MuzzleOffsetRight（Yaw=π 时枪口 z）⇒ 弹道严格沿 −X 平移过镜像枪口
-            ShootingSystem.Run(world, new SimMapData(), FireAt(shooter, -10f, CombatConfig.MuzzleOffsetRight));
+            ShootingSystem.Run(world, new SimMapData(), FireAt(shooter, -10f, CombatConfig.MuzzleOffsetRight), CombatValues.Default, WeaponTable.Default);
 
             Assert.True(HasDamage(world), "朝向翻转后偏移镜像——z=+(r+R−0.02) 侧目标擦中（偏移随身体转）");
         }
@@ -197,7 +197,7 @@ namespace LiteSim.Tests
             var (world, shooter, target) = Pair();
             var map = new SimMapData();                             // ObstacleCount = 0
 
-            ShootingSystem.Run(world, map, FireAt(shooter));
+            ShootingSystem.Run(world, map, FireAt(shooter), CombatValues.Default, WeaponTable.Default);
 
             Assert.True(HasDamage(world), "空图——既有命中行为不变");
             Assert.Equal(2, world.Events.Count);

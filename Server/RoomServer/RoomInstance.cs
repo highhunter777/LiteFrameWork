@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using LiteSim;
 using RoomServer.Application;
 using RoomServer.Runtime;
 
@@ -147,19 +148,20 @@ namespace RoomServer
             return Runtime.TryGetSeat(playerId, out PlayerSession seat) && seat.Phase == SeatPhase.Active;
         }
 
-        public RoomInstance(RoomConfig config)
-            : this(config, DefaultMailboxCapacity, false)
+        public RoomInstance(RoomConfig config, CombatValues? combat = null, WeaponTable weapons = null)
+            : this(config, DefaultMailboxCapacity, false, combat, weapons)
         {
         }
 
         /// <summary>以统一容量创建房间 Mailbox；三条 lane 各自拥有该容量。</summary>
-        public RoomInstance(RoomConfig config, int mailboxCapacity)
-            : this(config, mailboxCapacity, false)
+        public RoomInstance(RoomConfig config, int mailboxCapacity, CombatValues? combat = null, WeaponTable weapons = null)
+            : this(config, mailboxCapacity, false, combat, weapons)
         {
         }
 
-        public RoomInstance(RoomConfig config, int mailboxCapacity, bool isDynamic)
-            : this(config, mailboxCapacity, mailboxCapacity, mailboxCapacity, isDynamic)
+        public RoomInstance(RoomConfig config, int mailboxCapacity, bool isDynamic, CombatValues? combat = null,
+            WeaponTable weapons = null)
+            : this(config, mailboxCapacity, mailboxCapacity, mailboxCapacity, isDynamic, combat, weapons)
         {
         }
 
@@ -167,27 +169,28 @@ namespace RoomServer
         /// 以独立 lane 容量创建房间 Mailbox。宿主配置当前只有一个统一容量，保留此
         /// 重载供后续按优先级配置输入/控制/出站配额。
         /// </summary>
-        public RoomInstance(RoomConfig config, int inputCapacity, int controlCapacity, int outboundCapacity)
-            : this(config, inputCapacity, controlCapacity, outboundCapacity, false)
+        public RoomInstance(RoomConfig config, int inputCapacity, int controlCapacity, int outboundCapacity,
+            CombatValues? combat = null, WeaponTable weapons = null)
+            : this(config, inputCapacity, controlCapacity, outboundCapacity, false, combat, weapons)
         {
         }
 
         public RoomInstance(RoomConfig config, int inputCapacity, int controlCapacity, int outboundCapacity,
-            bool isDynamic)
-            : this(config, inputCapacity, controlCapacity, outboundCapacity, isDynamic, false)
+            bool isDynamic, CombatValues? combat = null, WeaponTable weapons = null)
+            : this(config, inputCapacity, controlCapacity, outboundCapacity, isDynamic, false, combat, weapons)
         {
         }
 
         /// <summary>Worker 执行形态：管线吃房间本地的广播席位槽（连接事实来自 Runtime 席位）。</summary>
         public RoomInstance(RoomConfig config, int inputCapacity, int controlCapacity, int outboundCapacity,
-            bool isDynamic, bool workerExecution)
+            bool isDynamic, bool workerExecution, CombatValues? combat = null, WeaponTable weapons = null)
         {
             if (config == null) throw new ArgumentNullException(nameof(config));
             Config = config;
             RoomId = config.RoomId;
             IsDynamic = isDynamic;
             WorkerExecution = workerExecution;
-            Runtime = new RoomRuntime(config);
+            Runtime = new RoomRuntime(config, combat, weapons);
             Seats = new Session[Runtime.ExpectedPlayers];
             if (workerExecution)
             {

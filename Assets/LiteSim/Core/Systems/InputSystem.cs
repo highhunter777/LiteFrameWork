@@ -25,7 +25,7 @@ namespace LiteSim
         /// <summary>移动/瞄准点判定阈值（平方口径；低于此视为"没有移动意图/瞄准点退化"，不更新朝向）。</summary>
         private const float MoveEpsilonSquared = 1e-6f;
 
-        public static void Run(SimWorldState s, SimInputFrame[] inputs)
+        public static void Run(SimWorldState s, SimInputFrame[] inputs, in CombatValues values)
         {
             // 开火驻留窗统一递减（全槽位——含缺席/死亡：窗自然衰减，死亡不特判；"离开开火态即取消"的自然结束面）
             EntitySlot[] entities = s.Entities;
@@ -54,8 +54,8 @@ namespace LiteSim
                 // 移动：瞄准 ∨ 开火态 → 限速走路档（瞄准倍率 0.5 = 乘 2 的幂，位级精确；
                 // 开火态限速改写 Vel ⇒ 窗计数是**判定输入**——已进全量 checksum，见 EntitySlot.FireStanceFrames）
                 float speed = aiming || e.FireStanceFrames > 0
-                    ? CombatConfig.AimMoveSpeed
-                    : CombatConfig.MoveSpeed;
+                    ? values.AimMoveSpeed
+                    : values.MoveSpeed;
                 e.Vel.X = inputs[i].MoveX * speed;
                 e.Vel.Z = inputs[i].MoveZ * speed;
 

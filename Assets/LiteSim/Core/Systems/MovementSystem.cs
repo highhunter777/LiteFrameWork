@@ -16,7 +16,7 @@ namespace LiteSim
     /// </summary>
     public static class MovementSystem
     {
-        public static void Run(EntitySlot[] entities, uint[] aliveBitmap, in SimMapData map)
+        public static void Run(EntitySlot[] entities, uint[] aliveBitmap, in SimMapData map, in CombatValues values)
         {
             for (int i = 0; i < SimConfig.MaxEntities; i++)
             {
@@ -41,7 +41,7 @@ namespace LiteSim
                 e.Pos.Z += e.Vel.Z * SimConfig.Dt;
 
                 // y 轴：重力积分 + 地面钳制（§3.5 原式）
-                e.Vel.Y += CombatConfig.Gravity * SimConfig.Dt;
+                e.Vel.Y += values.Gravity * SimConfig.Dt;
                 e.Pos.Y += e.Vel.Y * SimConfig.Dt;
                 if (e.Pos.Y <= map.GroundY)
                 {

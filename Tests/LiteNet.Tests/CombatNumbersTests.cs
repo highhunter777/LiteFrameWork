@@ -1,23 +1,25 @@
 using System;
+using System.Collections.Generic;
 using System.IO;
 using LiteSim;
 using RoomServer;
+using RoomServer.Runtime;
 using Xunit;
 
 namespace LiteNet.Tests
 {
     /// <summary>
-    /// 玩法数值链路守卫（《玩法数值解耦审查与Luban表设计》②）：
+    /// 玩法数值链路守卫（《玩法数值与Luban配置专项设计》）：
     ///
-    /// 1. **表 → 代码默认值一致**：`CombatConfig` 的兜底值必须等于表值——否则表没生成/没装载时会
-    ///    静默跑默认值，两端在同一份表下算出不同结果（隐形的行为分叉，最难查）。
+    /// 1. **表 → 默认值一致**：`CombatValues.Default` 的兜底值必须等于表值——否则表没生成/没装载时
+    ///    两端在同一份表下算出不同结果（隐形的行为分叉，最难查）。
     /// 2. **服务端解析**（`CombatNumbers.Parse`，bytes 形态）：正常 / 截断 / 缺行 → 抛（fail-fast，
     ///    不静默兜底）。
-    /// 3. **回填生效**：`LoadFrom` 后消费点读到新值（改表即生效，无需改代码）。
+    /// 3. **装载产出实例**：`LoadTableBytes` 返回的表行经 `ToValues()` 产出 <see cref="CombatValues"/>
+    ///    实例（技术债 #1：不再回填全局——实例由装配方显式传递，`HostAssembly.Inputs` 必填卡"丢弃返回值"）。
     ///
-    /// 注：修改 `CombatConfig` 静态面会影响其它用例 → 本类禁并行 + 用 finally 还原。
+    /// 注：**本类不触碰任何全局面**（技术债 #1 根治后无串行集/还原需求——数值一律经实例传递）。
     /// </summary>
-    [Collection("CombatConfigStatic")]
     public sealed class CombatNumbersTests
     {
         private const string TableRelativePath = "Assets/GameData/Config/tbcombatnum.bytes";
@@ -31,15 +33,15 @@ namespace LiteNet.Tests
 
             CombatNumValues v = CombatNumbers.Parse(File.ReadAllBytes(path));
 
-            // 表 = 唯一真相；代码默认值只是表不可用时的兜底——两者必须一致（漂移即 L1 红）
-            Assert.Equal(CombatConfig.MoveSpeed, v.MoveSpeed);
-            Assert.Equal(CombatConfig.Gravity, v.Gravity);
-            Assert.Equal(CombatConfig.HitscanRange, v.HitscanRange);
+            // 表 = 唯一真相；默认实例只是表不可用时的兜底——两者必须一致（漂移即 L1 红）
+            Assert.Equal(CombatValues.Default.MoveSpeed, v.MoveSpeed);
+            Assert.Equal(CombatValues.Default.Gravity, v.Gravity);
+            Assert.Equal(CombatValues.Default.HitscanRange, v.HitscanRange);
             // 身位半径/高度不属表——烘焙常量（CombatConfig.HitscanRadius/HitscanHeight = BodyBake，
             // 单源 = prefab CharacterController；表列已退役）
-            Assert.Equal(CombatConfig.BaseDamage, v.BaseDamage);
-            Assert.Equal(CombatConfig.DamageSpread, v.DamageSpread);
-            Assert.Equal(CombatConfig.EntityHp, v.EntityHp);
+            Assert.Equal(CombatValues.Default.BaseDamage, v.BaseDamage);
+            Assert.Equal(CombatValues.Default.DamageSpread, v.DamageSpread);
+            Assert.Equal(CombatValues.Default.EntityHp, v.EntityHp);
             Assert.Equal(CombatNumbers.SingleRowId, v.Id);
         }
 
@@ -76,55 +78,39 @@ namespace LiteNet.Tests
         }
 
         /// <summary>
-        /// 装载链路钉：装载与回填是同一契约的两半——`LoadTableBytes` 返回后运行面必须等于表值。
-        /// 缺此钉则"装载返回值被丢弃、不回填"的服务端会跑硬编码默认值而握手照常通过
-        /// （表数据进 buildHash 两端同变），一旦改表即客户端用表值/服务端用默认值的静默分叉。
-        /// 与用例①合围：本用例卡"运行面 = 表值"，用例①卡"默认值 = 表值"。
+        /// 装载链路钉：装载与传递是同一契约的两半——`LoadTableBytes` 返回的表行经 `ToValues()` 产出的
+        /// 实例必须等于表值（服务端装配经 `HostAssembly.Inputs.CombatValues` 必填传入；缺此钉则
+        /// "装载产物被丢弃"会表现为跑默认值而握手照常通过——表数据进 buildHash 两端同变）。
+        /// 与用例①合围：本用例卡"装载产物 = 表值"，用例①卡"默认值 = 表值"。
         /// </summary>
         [Fact]
-        public void 装载即回填_运行面读到表值()
+        public void 装载产出实例_字段与表值一致()
         {
             string dir = Path.Combine(RepoRoot(), "Assets", "GameData", "Config");
-            CombatNumValues v = CombatNumbers.LoadTableBytes(dir);
+            CombatNumValues v = CombatNumbers.LoadTableBytes(dir).Combat;
+            CombatValues values = v.ToValues();
 
-            Assert.Equal(v.MoveSpeed, CombatConfig.MoveSpeed);
-            Assert.Equal(v.Gravity, CombatConfig.Gravity);
-            Assert.Equal(v.HitscanRange, CombatConfig.HitscanRange);
-            Assert.Equal(v.BaseDamage, CombatConfig.BaseDamage);
-            Assert.Equal(v.DamageSpread, CombatConfig.DamageSpread);
-            Assert.Equal(v.EntityHp, CombatConfig.EntityHp);
+            Assert.Equal(v.MoveSpeed, values.MoveSpeed);
+            Assert.Equal(v.Gravity, values.Gravity);
+            Assert.Equal(v.HitscanRange, values.HitscanRange);
+            Assert.Equal(v.BaseDamage, values.BaseDamage);
+            Assert.Equal(v.DamageSpread, values.DamageSpread);
+            Assert.Equal(v.EntityHp, values.EntityHp);
         }
 
-        /// <summary>回填生效：改表值 → 消费点（Sim 系统读的静态面）立即变；finally 还原避免污染其它用例。</summary>
+        /// <summary>实例直传：自定义数值实例经参数直达房间（技术债 #1——无全局装载、无还原面；
+        /// 机制级证明见 `LiteSim.Core.Tests/ValuesParameterizationTests`）。</summary>
         [Fact]
-        public void 回填生效_消费点读到表值()
+        public void 自定义实例经参数直达房间_无全局面参与()
         {
-            float oldMove = CombatConfig.MoveSpeed;
-            int oldHp = CombatConfig.EntityHp;
-            try
-            {
-                new CombatNumValues
-                {
-                    MoveSpeed = 7.5f,
-                    Gravity = -9.8f,
-                    HitscanRange = 50f,
-                    BaseDamage = 40,
-                    DamageSpread = 0,
-                    EntityHp = 130,
-                }.Apply();
+            var custom = new CombatValues(7.5f, -9.8f, 50f, 40, 0, 130);
+            var room = new RoomRuntime(new RoomConfig { RoomId = "CfgInst", ExpectedPlayers = 1, Seed = 9 }, custom);
+            var outputs = new List<RoomOutput>();
+            room.Execute(RoomCommand.Join(1), outputs);
 
-                Assert.Equal(7.5f, CombatConfig.MoveSpeed);
-                Assert.Equal(-9.8f, CombatConfig.Gravity);
-                Assert.Equal(40, CombatConfig.BaseDamage);
-                Assert.Equal(0, CombatConfig.DamageSpread);
-                Assert.Equal(130, CombatConfig.EntityHp);
-            }
-            finally
-            {
-                CombatConfig.LoadFrom(5f, -20f, 100f, 25, 1, 100);          // 与表值同源的兜底
-                Assert.Equal(oldMove, CombatConfig.MoveSpeed);
-                Assert.Equal(oldHp, CombatConfig.EntityHp);
-            }
+            Assert.True(room.AuthSim.TryResolve(room.EntityIdOf(0), out int slot));
+            Assert.Equal(130, room.AuthSim.Entities[slot].Hp);                          // 出生 HP = 实例值（≠ 默认 100）
+            Assert.Equal(CombatConfigDigest.Compute(custom), room.FixedConfig.Digest);  // 摘要按实例计算
         }
 
         private static string RepoRoot()

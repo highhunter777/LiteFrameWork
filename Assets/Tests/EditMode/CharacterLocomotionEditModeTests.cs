@@ -819,7 +819,7 @@ namespace LiteGame.Tests.EditMode
             InputSystem.Run(world, new[]
             {
                 new SimInputFrame { EntityId = selfId, AimPointX = 10f, AimPointY = 1f, AimPointZ = 0f, Buttons = SimInputFrame.ButtonAim },
-            });
+            }, CombatValues.Default);
 
             view.Tick(dt);
             driver.Tick(dt);                                           // 首帧：建播放器（速度未知）
@@ -1141,7 +1141,7 @@ namespace LiteGame.Tests.EditMode
             InputSystem.Run(world, new[]
             {
                 new SimInputFrame { EntityId = selfId, AimPointX = 10f, AimPointY = 1f, AimPointZ = 0f, Buttons = SimInputFrame.ButtonAim },
-            });
+            }, CombatValues.Default);
 
             view.Tick(dt);
             driver.Tick(dt);
@@ -1171,7 +1171,7 @@ namespace LiteGame.Tests.EditMode
 
             // 松 ADS（InputSystem 覆写标志位）→ !IsAiming → 窗不再充值、开始递减；窗尾（≈1s）内
             // 保持战斗根形态（窗内不回移动层——统一退根路）→ 窗尽才退根回移动根叶
-            InputSystem.Run(world, new[] { new SimInputFrame { EntityId = selfId } });
+            InputSystem.Run(world, new[] { new SimInputFrame { EntityId = selfId } }, CombatValues.Default);
             float releaseElapsed = 0f;
             for (; releaseElapsed < 2.5f; )
             {
@@ -1251,7 +1251,7 @@ namespace LiteGame.Tests.EditMode
             // 停步（锁存清零）→ 事实清除（到帧完成）→ 窗尽且未瞄准 → 退根回移动层
             for (int i = 0; i < 3; i++) driver.Tick(dt);
             world.Frame = reloadEnd;
-            WeaponSystem.Run(world, new[] { new SimInputFrame { EntityId = selfId } });
+            WeaponSystem.Run(world, new[] { new SimInputFrame { EntityId = selfId } }, WeaponTable.Default);
             Assert.IsFalse(view.IsReloading(slot), "到帧完成——事实清除");
             driver.Tick(dt);
             Assert.IsTrue(driver.TryGetAnimState(0, out var s4) && s4 == CharacterAnimId.Idle,
@@ -1300,7 +1300,7 @@ namespace LiteGame.Tests.EditMode
                 "换弹压过开火窗（Sim 侧换弹期不可开火——表现跟随事实）");
 
             world.Frame = world.Weapons[slot * SimConfig.WeaponSlotsPerEntity + world.Entities[slot].SelectedWeapon].ReloadEndFrame;
-            WeaponSystem.Run(world, new[] { new SimInputFrame { EntityId = selfId } });
+            WeaponSystem.Run(world, new[] { new SimInputFrame { EntityId = selfId } }, WeaponTable.Default);
             driver.Tick(dt);
             Assert.IsTrue(driver.TryGetAnimState(0, out var s3) && s3 == CharacterAnimId.FireIdle,
                 "事实清除 ∧ 窗在 → 回 Fire 叶持枪站姿（窗内不回移动层）");
@@ -1309,7 +1309,7 @@ namespace LiteGame.Tests.EditMode
             InputSystem.Run(world, new[]
             {
                 new SimInputFrame { EntityId = selfId, AimPointX = 10f, AimPointY = 1f, AimPointZ = 0f, Buttons = SimInputFrame.ButtonAim },
-            });
+            }, CombatValues.Default);
             driver.Tick(dt);
             driver.Tick(dt);
             StartReload(world, selfId, slot);
@@ -1318,7 +1318,7 @@ namespace LiteGame.Tests.EditMode
                 "瞄准保持期换弹——换弹叶压过开火/瞄准族（打断）");
 
             world.Frame = world.Weapons[slot * SimConfig.WeaponSlotsPerEntity + world.Entities[slot].SelectedWeapon].ReloadEndFrame;
-            WeaponSystem.Run(world, new[] { new SimInputFrame { EntityId = selfId } });
+            WeaponSystem.Run(world, new[] { new SimInputFrame { EntityId = selfId } }, WeaponTable.Default);
             driver.Tick(dt);
             Assert.IsTrue(driver.TryGetAnimState(0, out var s5) && s5 == CharacterAnimId.FireIdle,
                 "事实清除 ∧ IsAiming 充值窗 → 回持枪站姿叶");
@@ -1331,14 +1331,14 @@ namespace LiteGame.Tests.EditMode
         /// <summary>Sim 侧开始换弹真路径（懒装备 → 打掉一发 → Reload 边沿）；返回换弹结束帧。</summary>
         private static int StartReload(SimWorldState world, long selfId, int slot)
         {
-            WeaponSystem.Run(world, new[] { new SimInputFrame { EntityId = selfId } });     // 懒装备（默认步枪满弹）
+            WeaponSystem.Run(world, new[] { new SimInputFrame { EntityId = selfId } }, WeaponTable.Default);     // 懒装备（默认步枪满弹）
             ref WeaponRuntime w = ref world.Weapons[slot * SimConfig.WeaponSlotsPerEntity
                 + world.Entities[slot].SelectedWeapon];
             w.MagAmmo = WeaponConfig.Default.MagazineSize - 1;                             // 打掉一发（非满弹才可换）
             WeaponSystem.Run(world, new[]
             {
                 new SimInputFrame { EntityId = selfId, Buttons = SimInputFrame.ButtonReload, ActionSeq = 1u },
-            });
+            }, WeaponTable.Default);
             return w.ReloadEndFrame;
         }
 

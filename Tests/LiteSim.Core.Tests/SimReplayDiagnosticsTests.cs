@@ -75,7 +75,7 @@ namespace LiteSim.Tests
             for (int f = 0; f < frames; f++)
             {
                 Array.Copy(scripted[f], buffer, 2);
-                SimStep.Step(world, map, buffer);
+                SimStep.Step(world, map, buffer, CombatValues.Default, WeaponTable.Default);
                 record.Capture(world, buffer);
             }
             return record;
@@ -87,7 +87,7 @@ namespace LiteSim.Tests
         public void 记录_同输入重放_逐帧一致()
         {
             var record = RecordScripted(120, out _);
-            var result = SimReplayRunner.Replay(record);
+            var result = SimReplayRunner.Replay(record, CombatValues.Default, WeaponTable.Default);
 
             Assert.True(result.Matches, result.ToText());
             Assert.Equal(-1, result.FirstDivergenceFrame);
@@ -114,8 +114,8 @@ namespace LiteSim.Tests
             // 记录会被改写——第二次回放结论可能不同。这条用例钉死这个坑。
             var record = RecordScripted(60, out _);
 
-            var first = SimReplayRunner.Replay(record);
-            var second = SimReplayRunner.Replay(record);
+            var first = SimReplayRunner.Replay(record, CombatValues.Default, WeaponTable.Default);
+            var second = SimReplayRunner.Replay(record, CombatValues.Default, WeaponTable.Default);
 
             Assert.True(first.Matches);
             Assert.True(second.Matches);
@@ -126,7 +126,7 @@ namespace LiteSim.Tests
         public void 全序列复算_与记录逐帧相符()
         {
             var record = RecordScripted(80, out _);
-            var actual = SimReplayRunner.ReplayAllChecksums(record, out int firstMismatch);
+            var actual = SimReplayRunner.ReplayAllChecksums(record, out int firstMismatch, CombatValues.Default, WeaponTable.Default);
 
             Assert.Equal(-1, firstMismatch);
             Assert.Equal(record.FrameCount, actual.Count);
@@ -146,7 +146,7 @@ namespace LiteSim.Tests
             record.TryGetFrame(tamperFrame, out SimInputFrame[] inputs, out _);
             inputs[0].AimPointZ = 0.5f;                     // 原本 0
 
-            var result = SimReplayRunner.Replay(record);
+            var result = SimReplayRunner.Replay(record, CombatValues.Default, WeaponTable.Default);
 
             Assert.False(result.Matches);
             Assert.Equal(tamperFrame + 1, result.FirstDivergenceFrame);
@@ -162,7 +162,7 @@ namespace LiteSim.Tests
             record.Seed = 0u;                               // 记录声称的种子与实际初始态不符
             record.InitialState.RngState = 0UL;             // 真正改复现起点
 
-            var result = SimReplayRunner.Replay(record);
+            var result = SimReplayRunner.Replay(record, CombatValues.Default, WeaponTable.Default);
 
             Assert.False(result.Matches);
             Assert.Equal(1, result.FirstDivergenceFrame);   // 种子进第 1 帧 checksum（MixUInt32(Frame) 后跟全量）
@@ -177,7 +177,7 @@ namespace LiteSim.Tests
             Assert.True(record.InitialState.IsAlive(slot));
             record.InitialState.Entities[slot].Pos.X += 0.5f;
 
-            var result = SimReplayRunner.Replay(record);
+            var result = SimReplayRunner.Replay(record, CombatValues.Default, WeaponTable.Default);
             Assert.False(result.Matches);
             Assert.Equal(1, result.FirstDivergenceFrame);
         }
@@ -322,7 +322,7 @@ namespace LiteSim.Tests
             for (int f = 0; f < 60; f++)
             {
                 Array.Copy(scripted[f], buffer, 2);
-                SimStep.Step(world, map, buffer);
+                SimStep.Step(world, map, buffer, CombatValues.Default, WeaponTable.Default);
                 record.Capture(world, buffer);
                 if (f + 1 == 30)
                 {
@@ -336,7 +336,7 @@ namespace LiteSim.Tests
             inputs[0].MoveZ = 1f;
 
             var result = SimReplayRunner.ReplayAndCompare(record, frame =>
-                frame == 30 ? worldAt30 : null);
+                frame == 30 ? worldAt30 : null, CombatValues.Default, WeaponTable.Default);
 
             Assert.False(result.Matches);
             Assert.Equal(30, result.FirstDivergenceFrame);
@@ -371,14 +371,14 @@ namespace LiteSim.Tests
             for (int f = 0; f < 40; f++)
             {
                 Array.Copy(scripted[f], buffer, 2);
-                SimStep.Step(world, map, buffer);
+                SimStep.Step(world, map, buffer, CombatValues.Default, WeaponTable.Default);
                 record.Capture(world, buffer);
             }
 
             Assert.True(record.HasWorlds);
             Assert.Equal(64, record.WorldRingCapacity);
 
-            var result = SimReplayRunner.ReplayWithRecordedWorlds(record);
+            var result = SimReplayRunner.ReplayWithRecordedWorlds(record, CombatValues.Default, WeaponTable.Default);
             Assert.True(result.Matches, result.ToText());
         }
 
@@ -394,7 +394,7 @@ namespace LiteSim.Tests
             for (int f = 0; f < 50; f++)
             {
                 Array.Copy(scripted[f], buffer, 2);
-                SimStep.Step(world, map, buffer);
+                SimStep.Step(world, map, buffer, CombatValues.Default, WeaponTable.Default);
                 record.Capture(world, buffer);
             }
 
@@ -403,7 +403,7 @@ namespace LiteSim.Tests
             inputs[0].MoveZ = 1f;
 
             // 一键：不需要调用方另外导出"记录方该帧的世界"
-            var result = SimReplayRunner.ReplayWithRecordedWorlds(record);
+            var result = SimReplayRunner.ReplayWithRecordedWorlds(record, CombatValues.Default, WeaponTable.Default);
 
             Assert.False(result.Matches);
             Assert.Equal(20, result.FirstDivergenceFrame);
@@ -426,7 +426,7 @@ namespace LiteSim.Tests
             for (int f = 0; f < 10; f++)
             {
                 Array.Copy(scripted[f], buffer, 2);
-                SimStep.Step(world, map, buffer);
+                SimStep.Step(world, map, buffer, CombatValues.Default, WeaponTable.Default);
                 record.Capture(world, buffer);
             }
 
@@ -459,7 +459,7 @@ namespace LiteSim.Tests
         {
             var world = NewWorld(out _, out _);
             var record = SimRunRecord.Begin(world, Map(), playerCount: 2);
-            Assert.Throws<ArgumentException>(() => SimReplayRunner.Replay(record));
+            Assert.Throws<ArgumentException>(() => SimReplayRunner.Replay(record, CombatValues.Default, WeaponTable.Default));
         }
     }
 }

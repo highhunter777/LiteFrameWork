@@ -88,13 +88,13 @@ namespace LiteGame
                 if (Input.GetKeyDown(KeyCode.N)) // 单步：恰一逻辑帧（dt = 1 步长 → 累加器推进一步后归零）
                 {
                     BuildInput();
-                    _driver.Tick(SimConfig.Dt, _state, _map, _inputs, OnLogicalFrame);
+                    _driver.Tick(SimConfig.Dt, _state, _map, _inputs, CombatConfig.Loaded, WeaponConfig.Loaded, OnLogicalFrame);
                 }
                 return;
             }
 
             BuildInput();
-            _driver.Tick(Time.deltaTime, _state, _map, _inputs, OnLogicalFrame);
+            _driver.Tick(Time.deltaTime, _state, _map, _inputs, CombatConfig.Loaded, WeaponConfig.Loaded, OnLogicalFrame);
         }
 
         /// <summary>键盘+鼠标 → SimInputFrame（采集侧契约：移动向量长度 ≤ 1）。</summary>

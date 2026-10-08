@@ -101,7 +101,7 @@ namespace LiteNet.Tests
                 SimVector3 spawn = _map.SpawnPoints[i % _map.SpawnPointCount];
                 world.Spawn(new EntitySlot { Hp = CombatConfig.EntityHp, Pos = spawn, Yaw = 0f }, out int _);
             }
-            _sim = new RollbackSim(world, _map, IdentityTemplateFor(PlayerId, 2));
+            _sim = new RollbackSim(world, _map, IdentityTemplateFor(PlayerId, 2), CombatValues.Default, WeaponTable.Default);
         }
 
         /// <summary>身份模板：EntityId = 各玩家槽位实体（占位——JoinAck 后按 PlayerId 对齐；真实 Id 由快照 SlotDelta 携带）。</summary>

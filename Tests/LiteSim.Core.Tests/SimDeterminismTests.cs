@@ -97,7 +97,7 @@ namespace LiteSim.Tests
         {
             var s = new SimWorldState();
             var driver = new FrameDriver();
-            driver.Tick(0.5f * SimConfig.Dt, s, SimChecksumBaselineSpec.BuildMap(), new SimInputFrame[0]);
+            driver.Tick(0.5f * SimConfig.Dt, s, SimChecksumBaselineSpec.BuildMap(), new SimInputFrame[0], CombatValues.Default, WeaponTable.Default);
             Assert.Equal(0, driver.StepsLastTick);
             Assert.Equal(0, s.Frame);
         }
@@ -107,13 +107,13 @@ namespace LiteSim.Tests
         {
             var s = new SimWorldState();
             var driver = new FrameDriver();
-            driver.Tick(2.5f * SimConfig.Dt, s, SimChecksumBaselineSpec.BuildMap(), new SimInputFrame[0]);
+            driver.Tick(2.5f * SimConfig.Dt, s, SimChecksumBaselineSpec.BuildMap(), new SimInputFrame[0], CombatValues.Default, WeaponTable.Default);
             Assert.Equal(2, driver.StepsLastTick);
             Assert.Equal(2, s.Frame);
 
             // 余量（~0.5 帧）保留并参与后续累计：再给 2 帧量 → 2.5 帧余量 → 推进 2 帧
             // （用整帧量验证余量，避免半帧累加恰好压在浮点比较边界上）
-            driver.Tick(2f * SimConfig.Dt, s, SimChecksumBaselineSpec.BuildMap(), new SimInputFrame[0]);
+            driver.Tick(2f * SimConfig.Dt, s, SimChecksumBaselineSpec.BuildMap(), new SimInputFrame[0], CombatValues.Default, WeaponTable.Default);
             Assert.Equal(2, driver.StepsLastTick);
             Assert.Equal(4, s.Frame);
         }
@@ -123,12 +123,12 @@ namespace LiteSim.Tests
         {
             var s = new SimWorldState();
             var driver = new FrameDriver();
-            driver.Tick(100f * SimConfig.Dt, s, SimChecksumBaselineSpec.BuildMap(), new SimInputFrame[0]);
+            driver.Tick(100f * SimConfig.Dt, s, SimChecksumBaselineSpec.BuildMap(), new SimInputFrame[0], CombatValues.Default, WeaponTable.Default);
             Assert.Equal(SimConfig.MaxCatchUp, driver.StepsLastTick);
             Assert.Equal(SimConfig.MaxCatchUp, s.Frame);
 
             // 余量已丢弃（防死亡螺旋）：再来 1 帧量只推进 1 帧，不继续追旧账
-            driver.Tick(1f * SimConfig.Dt, s, SimChecksumBaselineSpec.BuildMap(), new SimInputFrame[0]);
+            driver.Tick(1f * SimConfig.Dt, s, SimChecksumBaselineSpec.BuildMap(), new SimInputFrame[0], CombatValues.Default, WeaponTable.Default);
             Assert.Equal(1, driver.StepsLastTick);
             Assert.Equal(SimConfig.MaxCatchUp + 1, s.Frame);
         }

@@ -63,7 +63,7 @@ namespace LiteSim.Tests
         {
             var (world, shooter, target, _, _) = SpawnPair(shooterY: 0f, targetY: 0f);
 
-            ShootingSystem.Run(world, NoObstacles, FireAt(shooter));
+            ShootingSystem.Run(world, NoObstacles, FireAt(shooter), CombatValues.Default, WeaponTable.Default);
 
             int hit = HitValue(world);
             Assert.InRange(hit, CombatConfig.BaseDamage - CombatConfig.DamageSpread,
@@ -79,7 +79,7 @@ namespace LiteSim.Tests
             // ⇒ 弹道自枪口俯射、命中且判定高度 = AimPoint.Y = 1.7 ≥ HeadHitLine → 爆头。
             var (world, shooter, target, _, _) = SpawnPair(shooterY: 1f, targetY: 0f);
 
-            ShootingSystem.Run(world, NoObstacles, FireAt(shooter, py: 1.7f));
+            ShootingSystem.Run(world, NoObstacles, FireAt(shooter, py: 1.7f), CombatValues.Default, WeaponTable.Default);
 
             int hit = HitValue(world);
             int lower = (CombatConfig.BaseDamage - CombatConfig.DamageSpread) << CombatConfig.HeadshotDamageShift;
@@ -114,7 +114,7 @@ namespace LiteSim.Tests
             long shooter = world.Spawn(new EntitySlot { Hp = 100, Pos = new SimVector3(0f, 0f, 0f) }, out _);
             long target = world.Spawn(new EntitySlot { Hp = 100, Pos = new SimVector3(10f, 0f, 0f) }, out _);
 
-            ShootingSystem.Run(world, NoObstacles, FireAt(shooter, px: 10f, py: 1.8f, pz: 0f));
+            ShootingSystem.Run(world, NoObstacles, FireAt(shooter, px: 10f, py: 1.8f, pz: 0f), CombatValues.Default, WeaponTable.Default);
 
             Assert.True(HasEvent(world, FrameEventKind.Crit),
                 $"平地远距 + 仰角应爆头（事件={DescribeKinds(world)}）");
@@ -133,7 +133,7 @@ namespace LiteSim.Tests
         {
             var (world, shooter, target, _, _) = SpawnPair(shooterY: 0f, targetY: 0f);
 
-            ShootingSystem.Run(world, NoObstacles, FireAt(shooter));   // 点取身位中部（py=1）⇒ 判定高度 1.0
+            ShootingSystem.Run(world, NoObstacles, FireAt(shooter), CombatValues.Default, WeaponTable.Default);   // 点取身位中部（py=1）⇒ 判定高度 1.0
 
             Assert.False(HasEvent(world, FrameEventKind.Crit),
                 $"平地水平弹道不应爆头（事件={DescribeKinds(world)}）");
@@ -161,7 +161,7 @@ namespace LiteSim.Tests
             long target = world.Spawn(new EntitySlot { Hp = 100, Pos = new SimVector3(0f, 0f, 0f) }, out _);
 
             // 瞄准点 = 目标头部带中心 (0, 1.85, 0)——自枪口斜下的陡俯角弹道（与相机解算的几何同构）
-            ShootingSystem.Run(world, NoObstacles, FireAt(shooter, px: 0f, py: 1.85f, pz: 0f));
+            ShootingSystem.Run(world, NoObstacles, FireAt(shooter, px: 0f, py: 1.85f, pz: 0f), CombatValues.Default, WeaponTable.Default);
 
             Assert.True(HasEvent(world, FrameEventKind.Crit),
                 $"大俯角近距离应命中头部带爆头（事件={DescribeKinds(world)}）");
@@ -195,7 +195,7 @@ namespace LiteSim.Tests
                 EntityId = shooter,
                 AimPointX = 20f, AimPointY = pY, AimPointZ = 0f,
                 Buttons = SimInputFrame.ButtonFire,
-            } });
+            } }, CombatValues.Default, WeaponTable.Default);
 
             Assert.True(HasEvent(world, FrameEventKind.Crit),
                 $"AimPoint 恰在下沿应爆头（事件={DescribeKinds(world)}）");
@@ -229,7 +229,7 @@ namespace LiteSim.Tests
                 EntityId = shooter,
                 AimPointX = 20f, AimPointY = CombatConfig.HeadHitLine, AimPointZ = 0f,
                 Buttons = SimInputFrame.ButtonFire,
-            } });
+            } }, CombatValues.Default, WeaponTable.Default);
 
             Assert.False(HasEvent(world, FrameEventKind.Crit), "墙在前⇒ 不应爆头（子弹不穿墙）");
             Assert.False(HasEvent(world, FrameEventKind.Hit), "墙在前⇒ 不应命中墙后目标");
@@ -257,7 +257,7 @@ namespace LiteSim.Tests
                 EntityId = shooter,
                 AimPointX = 15f, AimPointY = headCenter, AimPointZ = 0f,
                 Buttons = SimInputFrame.ButtonFire,
-            } });
+            } }, CombatValues.Default, WeaponTable.Default);
 
             Assert.True(HasEvent(world, FrameEventKind.Crit),
                 $"压头部带中心应爆头（事件={DescribeKinds(world)}，中心高 {headCenter}）");
@@ -285,7 +285,7 @@ namespace LiteSim.Tests
             var (world, shooter, target, shooterSlot, _) = SpawnPair(shooterY: 0f, targetY: 0f);
             world.Entities[shooterSlot].Hp = 0;            // 死亡事实（Hp≤0）
 
-            ShootingSystem.Run(world, NoObstacles, FireAt(shooter));
+            ShootingSystem.Run(world, NoObstacles, FireAt(shooter), CombatValues.Default, WeaponTable.Default);
 
             Assert.Equal(0, world.Events.Count);
             Assert.Equal(0, world.Cmds.Count);
@@ -296,7 +296,7 @@ namespace LiteSim.Tests
         {
             var (world, shooter, target, _, _) = SpawnPair(shooterY: 0f, targetY: 0f, targetHp: 0);
 
-            ShootingSystem.Run(world, NoObstacles, FireAt(shooter));
+            ShootingSystem.Run(world, NoObstacles, FireAt(shooter), CombatValues.Default, WeaponTable.Default);
 
             Assert.Equal(1, world.Events.Count);           // 只有 Fire（无 Hit）
             Assert.Equal(FrameEventKind.Fire, world.Events.Items[0].Kind);
@@ -313,7 +313,7 @@ namespace LiteSim.Tests
             {
                 EntityId = id, MoveX = 1f, AimPointX = 1f, AimPointY = 1f, AimPointZ = 0f,
                 Buttons = SimInputFrame.ButtonAim | SimInputFrame.ButtonFire,
-            } });
+            } }, CombatValues.Default);
 
             Assert.Equal(0f, world.Entities[slot].Vel.X, 4);
             Assert.Equal(0, world.Entities[slot].FireStanceFrames);

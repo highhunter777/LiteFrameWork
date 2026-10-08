@@ -73,7 +73,7 @@ namespace LiteSim.Tests
             for (int f = 1; f <= n; f++)
             {
                 var inputs = (SimInputFrame[])script[f].Clone(); // Step 就地排序——不污染脚本
-                SimStep.Step(world, map, inputs);
+                SimStep.Step(world, map, inputs, CombatValues.Default, WeaponTable.Default);
                 seq[f] = SimChecksum.ComputeChecksum(world);
             }
             return (seq, world);
@@ -91,7 +91,7 @@ namespace LiteSim.Tests
         private static RollbackSim RunDelayed(SimInputFrame[][] script, SimMapData map, long[] players, int delay)
         {
             int n = script.Length - 1;
-            var sim = new RollbackSim(SimChecksumBaselineSpec.BuildWorld(), map, IdentityTemplate(players));
+            var sim = new RollbackSim(SimChecksumBaselineSpec.BuildWorld(), map, IdentityTemplate(players), CombatValues.Default, WeaponTable.Default);
 
             for (int t = 0; t < n; t++)
             {
@@ -161,7 +161,7 @@ namespace LiteSim.Tests
             var (map, players) = Scenario();
             var script = MakeScript(ScriptSeed, 30, players);
 
-            var sim = new RollbackSim(SimChecksumBaselineSpec.BuildWorld(), map, IdentityTemplate(players));
+            var sim = new RollbackSim(SimChecksumBaselineSpec.BuildWorld(), map, IdentityTemplate(players), CombatValues.Default, WeaponTable.Default);
             for (int t = 0; t <= 10; t++)
             {
                 int k = t - Delay;                                 // 延迟 9：tick t 确认步 k = t-8（Frame==t）
@@ -193,7 +193,7 @@ namespace LiteSim.Tests
             var (map, players) = Scenario();
             var script = MakeScript(ScriptSeed, 10, players);
 
-            var sim = new RollbackSim(SimChecksumBaselineSpec.BuildWorld(), map, IdentityTemplate(players));
+            var sim = new RollbackSim(SimChecksumBaselineSpec.BuildWorld(), map, IdentityTemplate(players), CombatValues.Default, WeaponTable.Default);
             for (int t = 0; t < 5; t++) sim.Tick(SimConfig.Dt);     // 步 1..5 全预测推进（Frame=5，环持帧 0..5）
 
             // 同一渲染帧内 3 次不符确认 → 恰回滚 2 次、第 3 次丢弃
@@ -297,7 +297,7 @@ namespace LiteSim.Tests
         public void 和解口径_私有面差异不触发和解()
         {
             var (map, players) = Scenario();
-            var sim = new RollbackSim(SimChecksumBaselineSpec.BuildWorld(), map, IdentityTemplate(players));
+            var sim = new RollbackSim(SimChecksumBaselineSpec.BuildWorld(), map, IdentityTemplate(players), CombatValues.Default, WeaponTable.Default);
             for (int t = 0; t < 5; t++) sim.Tick(SimConfig.Dt);   // 帧 0..5（环内）
             int frame = sim.State.Frame;
 
@@ -323,7 +323,7 @@ namespace LiteSim.Tests
         public void 和解口径_公共面差异触发和解并采纳权威()
         {
             var (map, players) = Scenario();
-            var sim = new RollbackSim(SimChecksumBaselineSpec.BuildWorld(), map, IdentityTemplate(players));
+            var sim = new RollbackSim(SimChecksumBaselineSpec.BuildWorld(), map, IdentityTemplate(players), CombatValues.Default, WeaponTable.Default);
             for (int t = 0; t < 5; t++) sim.Tick(SimConfig.Dt);
             int frame = sim.State.Frame;
 
@@ -349,7 +349,7 @@ namespace LiteSim.Tests
         public void 补发读取_真实输入帧与追帧沿用帧都取得到_值与执行时一致()
         {
             var (map, players) = Scenario();
-            var sim = new RollbackSim(SimChecksumBaselineSpec.BuildWorld(), map, IdentityTemplate(players));
+            var sim = new RollbackSim(SimChecksumBaselineSpec.BuildWorld(), map, IdentityTemplate(players), CombatValues.Default, WeaponTable.Default);
 
             // 第 1 帧真实输入（早到入史）——含开火位，验证沿用帧的开火不预测掩码
             var real = new SimInputFrame[players.Length];
@@ -385,7 +385,7 @@ namespace LiteSim.Tests
         public void 补发读取_未执行帧与越界玩家一律拒绝()
         {
             var (map, players) = Scenario();
-            var sim = new RollbackSim(SimChecksumBaselineSpec.BuildWorld(), map, IdentityTemplate(players));
+            var sim = new RollbackSim(SimChecksumBaselineSpec.BuildWorld(), map, IdentityTemplate(players), CombatValues.Default, WeaponTable.Default);
             sim.Tick(SimConfig.Dt);                       // 执行第 1 帧（沿用零输入）
             Assert.Equal(1, sim.State.Frame);
 

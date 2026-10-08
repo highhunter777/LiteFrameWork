@@ -15,8 +15,8 @@ namespace LiteSim.Tests
         [Fact]
         public void 摘要_同值跨调用一致_非零()
         {
-            uint a = CombatConfigDigest.Compute();
-            uint b = CombatConfigDigest.Compute();
+            uint a = CombatConfigDigest.Compute(CombatValues.Default);
+            uint b = CombatConfigDigest.Compute(CombatValues.Default);
             Assert.NotEqual(0u, a);
             Assert.Equal(a, b);                            // 同一装载值 → 同一摘要（无进程随机种子——跨进程亦然）
         }
@@ -44,7 +44,7 @@ namespace LiteSim.Tests
         [Fact]
         public void 规范化文本_与装载值绑定_文化无关()
         {
-            string text = CombatConfigDigest.CanonicalText();
+            string text = CombatConfigDigest.CanonicalText(CombatValues.Default);
 
             // 绑定：文本逐字段含当前装载值（InvariantCulture "R"/整型——配置装载面的完整快照）
             Assert.Contains(CombatConfig.MoveSpeed.ToString("R", CultureInfo.InvariantCulture), text);
@@ -61,7 +61,7 @@ namespace LiteSim.Tests
             try
             {
                 CultureInfo.CurrentCulture = new CultureInfo("de-DE");
-                Assert.Equal(text, CombatConfigDigest.CanonicalText());
+                Assert.Equal(text, CombatConfigDigest.CanonicalText(CombatValues.Default));
             }
             catch (CultureNotFoundException) { }
             finally

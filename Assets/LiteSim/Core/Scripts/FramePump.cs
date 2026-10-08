@@ -17,11 +17,11 @@ namespace LiteSim
     {
         /// <summary>推进 <paramref name="steps"/> 个逻辑帧（steps ≤ 0 为无操作）。</summary>
         public void Step(int steps, SimWorldState s, in SimMapData map, SimInputFrame[] inputs,
-            Action<SimWorldState> onLogicalFrame = null)
+            in CombatValues values, WeaponTable weapons, Action<SimWorldState> onLogicalFrame = null)
         {
             for (int i = 0; i < steps; i++)
             {
-                SimStep.Step(s, map, inputs);
+                SimStep.Step(s, map, inputs, values, weapons);
                 if (onLogicalFrame != null) onLogicalFrame(s);
                 s.Events.Clear();   // 帧内瞬态：消费后清
             }

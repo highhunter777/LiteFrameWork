@@ -7,12 +7,11 @@ using Xunit;
 namespace LiteNet.Tests
 {
     /// <summary>
-    /// 武器表链路守卫（tb_weapon ↔ WeaponConfig，两端同源纪律同 <see cref="CombatNumbersTests"/>）：
+    /// 武器表链路守卫（tb_weapon ↔ <see cref="WeaponTable"/> 实例，两端同源纪律同 <see cref="CombatNumbersTests"/>）：
     /// ① 表产物存在且**默认步枪行与内置默认逐字段一致**（表未装载时的兜底不得漂移）；
-    /// ② 服务端装载链（<see cref="CombatNumbers.LoadTableBytes"/>）回填后 WeaponConfig 读到表值。
-    /// 触碰 CombatConfig 全局静态（装载即回填的副作用）→ 同集合禁并行。
+    /// ② 服务端装载链（<see cref="CombatNumbers.LoadTableBytes"/>）产出的 <see cref="WeaponTable"/> 实例在册读到表值。
+    /// 数值/武器表经实例传递（技术债 #1）——本类不触碰任何全局面，无串行集/还原需求。
     /// </summary>
-    [Collection("CombatConfigStatic")]
     public sealed class WeaponTableTests
     {
         private const string TableRelativePath = "Assets/GameData/Config/tbweapon.bytes";
@@ -28,7 +27,8 @@ namespace LiteNet.Tests
             cfg.weapon row = table.GetOrDefault(WeaponConfig.DefaultRifleId);
             Assert.NotNull(row);
 
-            WeaponDef def = WeaponConfig.Default;
+            // 兜底面 = WeaponTable.Default（内置默认步枪单行表）；必须与表行逐字段一致（漂移即 L1 红）
+            Assert.True(WeaponTable.Default.TryGet(WeaponConfig.DefaultRifleId, out WeaponDef def));
             Assert.Equal(def.Damage, row.Damage);
             Assert.Equal(def.Rpm, row.Rpm);
             Assert.Equal(def.MagazineSize, row.MagazineSize);
@@ -41,13 +41,17 @@ namespace LiteNet.Tests
         }
 
         [Fact]
-        public void 服务端装载链_回填后读到表值()
+        public void 服务端装载链产出实例_表值在册()
         {
             string dir = Path.Combine(RepoRoot(), "Assets", "GameData", "Config");
-            CombatNumbers.LoadTableBytes(dir);            // 装载即回填（含武器表）
+            ServerTableLoad load = CombatNumbers.LoadTableBytes(dir);   // 装载产出实例（数值行 + 武器表）
 
-            Assert.True(WeaponConfig.TryGet(WeaponConfig.DefaultRifleId, out WeaponDef def), "默认步枪行应在册");
+            Assert.True(load.Weapons.TryGet(WeaponConfig.DefaultRifleId, out WeaponDef def), "默认步枪行应在册");
             Assert.True(def.FireIntervalFrames > 0, "节拍帧应为正（ceil(TickRate×60/rpm)）");
+            Assert.True(load.Weapons.LoadedCount >= 1, "至少默认步枪行");
+            // 数值行经 ToValues() 同链可得（与武器表同一次装载——同一契约的两半）
+            CombatValues values = load.Combat.ToValues();
+            Assert.Equal(load.Combat.EntityHp, values.EntityHp);
         }
 
         private static string RepoRoot()

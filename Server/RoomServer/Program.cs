@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Threading;
 using LiteSim;
 using LiteNet.Transport;
+using Microsoft.Extensions.DependencyInjection;
 using RoomServer;
 using RoomServer.Application;
 using RoomServer.Runtime;
@@ -23,6 +24,10 @@ const long DrainGraceMs = 5_000;
 //
 // **房间形态**：单进程多房间 + 动态创建（§6"一个 roomId 只能映射一个独立 RoomActor"）。
 // 房间参数来自配置模板，玩法数值为**进程级共享**（Sim 静态读 CombatConfig——参数化迁 G1）。
+//
+// **装配（2026-10-08 批1）**：组合根走 MS DI（《服务端宿主装配收敛专项设计》）——
+// 对象图注册/构建在 HostAssembly；解析序=创建序（outbox → transport → host），
+// 容器按创建序逆序释放，与历史 using 声明序（host→transport→outbox）等价。
 var serverConfig = RoomServerConfig.Load(ResolveConfigPath(args));
 
 long durationMs = 0;
@@ -68,10 +73,14 @@ else if (!allowInsecureLocal)
     throw new InvalidOperationException("RoomServer 默认拒绝裸 KCP：请提供 --envelope-key 或 LITENET_SECURE_ENVELOPE_KEY；仅本机联调可显式使用 --allow-insecure-local。");
 }
 
-// 玩法数值装载（.bytes 表——与客户端同一份文件；fail-fast：数值缺失宁可起不来）。
-// 装载即回填 CombatConfig 权威面（客户端 ConfigService 同语义）——Sim 消费的数值就是表值。
-if (combatTableDir != null) CombatNumbers.LoadTableBytes(combatTableDir);
-else CombatNumbers.LoadFromRepo();
+// 玩法数值/武器表装载（.bytes 表——与客户端同一份文件；fail-fast：数值缺失宁可起不来）。
+// 装载产物 = CombatValues/WeaponTable 实例（技术债 #1：不再回填全局静态面）——经 HostAssembly.Inputs
+// 显式传入宿主/房间；缺失会在装配入口被拒（必填校验），"丢弃返回值跑默认值"的分叉面结构性消失。
+ServerTableLoad load = combatTableDir != null
+    ? CombatNumbers.LoadTableBytes(combatTableDir)
+    : CombatNumbers.LoadFromRepo();
+CombatValues combat = load.Combat.ToValues();
+WeaponTable weapons = load.Weapons;
 
 // 票据验证器装配：生产**必须**传 key（fail-closed）。缺 key 不静默退回——显式告警（§6"不能悄悄退回 fake"）。
 if (portOverride.HasValue) serverConfig.OverridePort(portOverride.Value);
@@ -91,34 +100,47 @@ else
 Console.WriteLine($"[RoomServer] 配置：{serverConfig.Describe()}（{serverConfig.SourcePath}）");
 Console.WriteLine($"[RoomServer] 启动（端口 {serverConfig.Port} / 容量 {serverConfig.MaxRooms} 房 / 模板 [{string.Join(",", serverConfig.TemplateIds)}] / {SimConfig.TickRate}Hz 权威步 / {SimConfig.SnapshotHz}Hz 快照）");
 Console.WriteLine($"[RoomServer] buildHash={ServerHost.ServerBuildHash}（源码内容哈希——Sim 或协议一改即变）");
-Console.WriteLine($"[RoomServer] 玩法数值（进程级共享，所有房间同一份）：move={LiteSim.CombatConfig.MoveSpeed} " +
-    $"gravity={LiteSim.CombatConfig.Gravity} hp={LiteSim.CombatConfig.EntityHp} dmg={LiteSim.CombatConfig.BaseDamage}±{LiteSim.CombatConfig.DamageSpread}");
+Console.WriteLine($"[RoomServer] 玩法数值（装载实例——所有房间同一份）：move={combat.MoveSpeed} " +
+    $"gravity={combat.Gravity} hp={combat.EntityHp} dmg={combat.BaseDamage}±{combat.DamageSpread}");
 
 // 预置房间：**不预置**——单进程多房间下所有房间首次进房时按配置模板创建（懒创建），
 // 容量上限 max_rooms 就是全部房间数。预置一个房间会白占一格，且"该预置哪个 roomId"没有依据。
 
+// ---- 组合根（2026-10-08 批1：MS DI）——对象图装配在 HostAssembly，见《服务端宿主装配收敛专项设计》----
+var services = new ServiceCollection();
+HostAssembly.Register(services, new HostAssembly.Inputs
+{
+    Config = serverConfig,
+    Audience = audience,
+    TicketValidator = ticketValidator,
+    EnvelopeOptions = envelopeOptions,
+    CombatValues = combat,
+    Weapons = weapons,
+});
+using var provider = HostAssembly.Build(services);
+
+// 解析序=创建序：outbox → transport → host。容器按创建序**逆序**释放（host→transport→outbox），
+// 与历史 using 声明序等价（排空第 5 步手验基线）。**不得先解析 host**——否则创建序会变成
+// transport→outbox→host、释放序漂移为 host→outbox→transport。
+
 // 结算 Outbox（§11.3"本地持久 Outbox"；排空第 4 步的落地面）。启动时续接既有日志：
 // 进程重启后待提交条目不丢（重启恢复面）；坏行（崩溃半行）跳过并计数。
-using var settlementOutbox = FileSettlementOutbox.Open(
-    serverConfig.SettlementJournalPath, serverConfig.SettlementOutboxCapacity);
+var settlementOutbox = provider.GetRequiredService<FileSettlementOutbox>();
 if (settlementOutbox.Count > 0 || settlementOutbox.SkippedCorruptLines > 0)
     Console.WriteLine($"[RoomServer] 结算日志重放：待提交 {settlementOutbox.Count} 条（坏行跳过 {settlementOutbox.SkippedCorruptLines}）");
 
-using var transport = CreateTransport(envelopeOptions);
+_ = provider.GetRequiredService<IRoomTransport>();      // 仅锁定创建序（宿主工厂取回同一单例）
 Console.WriteLine(envelopeOptions == null
     ? "[RoomServer] !! 安全信封未启用：仅允许本机联调，不得暴露公网"
     : "[RoomServer] 安全信封已启用（AES-256-GCM / HKDF-SHA256 / 64 位重放窗口）");
-// workerExecution: true = 生产形态（§8.2）：房间命令与快照广播在 hash 归属的 Worker 上执行，
-// 宿主只做 Transport IO、准入与回传应用（Outbound lane）。嵌入式/历史用例保持默认的宿主 owner 直驱形态。
-using var host = new ServerHost(transport, null, ticketValidator, audience, serverConfig, settlementOutbox,
-    mailboxRouting: true, drainMailboxesImmediately: false, workerExecution: true);
+
+var host = provider.GetRequiredService<ServerHost>();
 host.Ops.PrintEnabled = !quiet;
 
 // --port 是宿主级覆盖（配置文件里的 port 是同一个值的来源；此处允许验收脚本临时换端口）。
 // 通过配置对象自身复用来覆盖：ServerHost 从 RoomServerConfig.Port 取监听端口。
 
-var loop = new ServerLoop(host);
-host.LoopStats = loop.Stats;                    // Ops 行带上节拍/掉债观测（常驻过载时可见）
+var loop = provider.GetRequiredService<ServerLoop>();   // LoopStats 接线在装配工厂内
 if (durationMs > 0)
 {
     loop.Run(durationMs);                       // 验收形态：跑满时长即退出
@@ -158,12 +180,6 @@ else
     Console.WriteLine(host.DrainComplete
         ? $"[RoomServer] 排空完成（{drainWatch.ElapsedMilliseconds}ms）：房间数={host.RoomCount} drainTimeout={host.Ops.RoomsDrainTimedOut} 结算在盒={host.SettlementOutboxPending}（待提交）"
         : $"[RoomServer] 排空未在时限内完成（{drainWatch.ElapsedMilliseconds}ms）——按超时退出（结算在盒={host.SettlementOutboxPending}）");
-}
-
-static IRoomTransport CreateTransport(SecureEnvelopeOptions options)
-{
-    var kcp = new KcpTransportServer();
-    return options == null ? kcp : new SecureEnvelopeRoomTransport(kcp, options);
 }
 
 /// <summary>取 --config 的值；缺省用配置类给出的相对路径（相对工作目录）。</summary>

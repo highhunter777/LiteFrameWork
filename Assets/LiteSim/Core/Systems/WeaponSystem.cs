@@ -16,7 +16,7 @@ namespace LiteSim
     /// </summary>
     public static class WeaponSystem
     {
-        public static void Run(SimWorldState s, SimInputFrame[] inputs)
+        public static void Run(SimWorldState s, SimInputFrame[] inputs, WeaponTable table)
         {
             // ① 懒装备（先于输入/换弹——本帧装备、本帧即可开火，省一帧延迟）
             for (int i = 0; i < SimConfig.MaxEntities; i++)
@@ -26,7 +26,7 @@ namespace LiteSim
                 if (e.Hp <= 0) continue;                                  // 尸体不装备
                 ref WeaponRuntime w = ref s.Weapons[i * SimConfig.WeaponSlotsPerEntity];
                 if (w.State != WeaponSlotState.Unequipped) continue;      // 已装备形态不动（含换弹/切枪中） // lint-allow R3（枚举判等，非浮点精度比较）
-                EquipDefault(ref e, ref w);
+                EquipDefault(ref e, ref w, table);
             }
 
             // ② 换弹到帧完成（全槽位推进——与输入无关，整数帧确定性）
@@ -36,7 +36,7 @@ namespace LiteSim
                 if ((s.AliveBitmap[i >> 5] & (1u << (i & 31))) == 0u) continue;
                 ref WeaponRuntime w = ref s.Weapons[i * SimConfig.WeaponSlotsPerEntity];
                 if (w.State != WeaponSlotState.Reloading || frame < w.ReloadEndFrame) continue;   // lint-allow R3（枚举/整型判等）
-                CompleteReload(ref w);
+                CompleteReload(ref w, table);
             }
 
             // ③ 换弹请求（离散边沿；同帧重复请求自然被 State 条件吸收）
@@ -46,16 +46,17 @@ namespace LiteSim
                 if (!s.TryResolve(inputs[i].EntityId, out int slot)) continue;
                 ref EntitySlot e = ref s.Entities[slot];
                 if (e.Hp <= 0) continue;
-                if (!IsEquipped(s, slot, out WeaponDef def, out int wi)) continue;
+                if (!IsEquipped(s, slot, table, out WeaponDef def, out int wi)) continue;
                 ref WeaponRuntime w = ref s.Weapons[wi];
                 TryStartReload(ref w, in def, frame);
             }
         }
 
         /// <summary>默认步枪满弹装备（懒装备单点）。</summary>
-        private static void EquipDefault(ref EntitySlot e, ref WeaponRuntime w)
+        private static void EquipDefault(ref EntitySlot e, ref WeaponRuntime w, WeaponTable table)
         {
-            WeaponDef def = WeaponConfig.Default;
+            // 表恒含默认步枪行（装载链 fail-fast）；防御性回落内置默认（同值）
+            if (!table.TryGet(WeaponConfig.DefaultRifleId, out WeaponDef def)) def = WeaponConfig.DefaultRifle;
             e.SelectedWeapon = WeaponConfig.DefaultRifleId;
             w.WeaponDefId = def.Id;
             w.MagAmmo = def.MagazineSize;
@@ -68,7 +69,7 @@ namespace LiteSim
         }
 
         /// <summary>本槽选中武器是否已装备（State ≠ Unequipped、槽位合法、表行在册）。</summary>
-        public static bool IsEquipped(SimWorldState s, int slotIndex, out WeaponDef def, out int weaponIndex)
+        public static bool IsEquipped(SimWorldState s, int slotIndex, WeaponTable table, out WeaponDef def, out int weaponIndex)
         {
             weaponIndex = -1;
             def = default;
@@ -78,7 +79,7 @@ namespace LiteSim
             int wi = slotIndex * SimConfig.WeaponSlotsPerEntity + sel;
             ref WeaponRuntime w = ref s.Weapons[wi];
             if (w.State == WeaponSlotState.Unequipped) return false;   // lint-allow R3（枚举判等，非浮点精度比较）
-            if (!WeaponConfig.TryGet(w.WeaponDefId, out def)) return false;
+            if (!table.TryGet(w.WeaponDefId, out def)) return false;
             weaponIndex = wi;
             return true;
         }
@@ -87,9 +88,9 @@ namespace LiteSim
         /// 开火消费（ShootingSystem 判定点调用）：Ready ∧ 节拍到帧 ∧ 有弹 → 扣弹、推进 <see cref="WeaponRuntime.NextFireFrame"/>、
         /// <see cref="WeaponRuntime.ShotSeq"/>++，返回 true 并给武器定义；否则返回 false（该帧不开火——无 Fire 事件、无 RngState 消费）。
         /// </summary>
-        public static bool TryConsumeShot(SimWorldState s, int slotIndex, int frame, out WeaponDef def)
+        public static bool TryConsumeShot(SimWorldState s, int slotIndex, int frame, WeaponTable table, out WeaponDef def)
         {
-            if (!IsEquipped(s, slotIndex, out def, out int wi)) return false;
+            if (!IsEquipped(s, slotIndex, table, out def, out int wi)) return false;
             ref WeaponRuntime w = ref s.Weapons[wi];
             if (w.State != WeaponSlotState.Ready) return false;           // 换弹/切枪中不可开火 // lint-allow R3（枚举判等）
             if (frame < w.NextFireFrame) return false;                    // 射速节拍
@@ -109,9 +110,9 @@ namespace LiteSim
             w.ReloadEndFrame = frame + def.ReloadFrames;
         }
 
-        private static void CompleteReload(ref WeaponRuntime w)
+        private static void CompleteReload(ref WeaponRuntime w, WeaponTable table)
         {
-            if (WeaponConfig.TryGet(w.WeaponDefId, out WeaponDef def))
+            if (table.TryGet(w.WeaponDefId, out WeaponDef def))
             {
                 int need = def.MagazineSize - w.MagAmmo;
                 if (need < 0) need = 0;

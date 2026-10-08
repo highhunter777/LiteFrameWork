@@ -43,7 +43,16 @@ namespace LiteNet.Tests
         public void TickOutgoing() { }
         public void Disconnect(int connectionId) => Disconnects.Add(connectionId);
         public void Broadcast(ArraySegment<byte> data, bool reliable) { }
-        public void Dispose() => Disposed = true;
+
+        /// <summary>首个 Dispose 调用回调（装配收敛用例的释放序观测；默认 null = 无行为）。</summary>
+        public Action OnDisposed;
+
+        public void Dispose()
+        {
+            if (Disposed) return;                 // 宿主接管 + 装配层收尾的双释放是既有形态——只记首个
+            Disposed = true;
+            OnDisposed?.Invoke();
+        }
 
         public string GetRemoteAddress(int connectionId)
             => _remoteAddresses.TryGetValue(connectionId, out string address) ? address : null;
