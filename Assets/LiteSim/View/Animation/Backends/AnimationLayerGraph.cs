@@ -46,13 +46,14 @@ namespace LiteSim.View.Animation
         private readonly AnimationPlayableOutput _output;
         private bool _defaultPoseConnected;      // 基础层仍挂控制器默认姿态（开局不露 T-pose）
 
-        /// <param name="animator">视图实例上的 Animator（必须已挂 RuntimeAnimatorController——缺控制器的
-        /// 灰盒视图不建后端，由驱动层跳过，表现为无动画而非报错）。</param>
+        /// <param name="animator">视图实例上的 Animator（**不要求 RuntimeAnimatorController**——
+        /// 直 Clip 模型（带片段、无控制器资产）不建默认姿态位：T-pose 风险由驱动层
+        /// "机 Start 即提交 MoveBlend(Idle=1)" 的同帧落位兜底；控制器存在时仍占基础层作默认姿态）。
+        /// 缺 Animator 的灰盒视图不建后端，由驱动层跳过，表现为无动画而非报错。</param>
         public AnimationLayerGraph(Animator animator)
         {
             _graph = PlayableGraph.Create("CharacterAnimation");
             _graph.SetTimeUpdateMode(DirectorUpdateMode.Manual);          // 只由后端 Tick 推进（§7）
-            _controller = AnimatorControllerPlayable.Create(_graph, animator.runtimeAnimatorController);
             _mixer = AnimationLayerMixerPlayable.Create(_graph, InputCount);
             _output = AnimationPlayableOutput.Create(_graph, "CharacterAnim", animator);
             _output.SetSourcePlayable(_mixer);
@@ -62,9 +63,14 @@ namespace LiteSim.View.Animation
             _mixer.SetInputWeight(LocomotionCurrent, 1f);
             for (int i = 1; i < InputCount; i++) _mixer.SetInputWeight(i, 0f);
 
-            // 开局默认姿态：控制器 playable 占基础层（首帧不露 T-pose）；第一次播放后让位给片段
-            _mixer.ConnectInput(LocomotionCurrent, _controller, 0);
-            _defaultPoseConnected = true;
+            // 开局默认姿态（可选，仅控制器存在时）：控制器 playable 占基础层（首帧不露 T-pose），
+            // 第一次播放后让位给片段；直 Clip 模型无控制器——基础层空起，由驱动层机 Start 即时提交兜底。
+            if (animator.runtimeAnimatorController != null)
+            {
+                _controller = AnimatorControllerPlayable.Create(_graph, animator.runtimeAnimatorController);
+                _mixer.ConnectInput(LocomotionCurrent, _controller, 0);
+                _defaultPoseConnected = true;
+            }
         }
 
         /// <summary>基础层是否仍挂控制器默认姿态（诊断：无节点时 source 报 "controller"）。</summary>

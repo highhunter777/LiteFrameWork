@@ -8,9 +8,12 @@ using UnityEngine.Playables;   // PlayableExtensions：GetTime/SetTime/SetInputW
 namespace LiteSim.View.Animation
 {
     /// <summary>
-    /// Animator 后端（《动画模块专项设计》§7"首版角色后端用 AnimatorControllerPlayable 承载控制器，
-    /// PlayableGraph 采用 Manual 更新"）：把已解析的播放方案落到 PlayableGraph，姿态推进只经
-    /// <see cref="Tick"/>（Graph.Evaluate——§7"Graph Evaluate 只由一个驱动器调用"）。
+    /// Animator 后端（《动画模块专项设计》§7"PlayableGraph 采用 Manual 更新"）：**Clip 直驱**——
+    /// 绑定键 → <see cref="AnimationClip"/> → 片段 Playable 直连分层图（§4 允许的「Clip 资源键」分支，
+    /// 不走控制器参数/Trigger 驱动）。**RuntimeAnimatorController 可选**：存在时①占图基础层作开局
+    /// 默认姿态②其片段自动按名索引（便利源）；缺失时（**直 Clip 模型**——带片段无控制器资产）无默认姿态位、
+    /// 片段经 <see cref="RegisterClip"/> 外部登记（T-pose 由驱动层"机 Start 即提交"的同帧落位兜底）。
+    /// 姿态推进只经 <see cref="Tick"/>（Graph.Evaluate——§7"Graph Evaluate 只由一个驱动器调用"）。
     ///
     /// **本类只做编排 + 能力声明 + 诊断聚合**，机制各有归属：
     /// - 图拓扑 / 层序 / 层权重 / 开局默认姿态 → <see cref="AnimationLayerGraph"/>（固定 6 输入，反复打断不增长）；
@@ -63,8 +66,10 @@ namespace LiteSim.View.Animation
         /// 已分发给每个通道（<see cref="ChannelState.BlendSeconds"/>），淡化数学不读任何常量。</summary>
         public float BlendSeconds { get; }
 
-        /// <param name="animator">视图实例上的 Animator（必须已挂 RuntimeAnimatorController——缺控制器的
-        /// 灰盒视图不建后端，由驱动层跳过，表现为无动画而非报错）。</param>
+        /// <param name="animator">视图实例上的 Animator。**不要求 RuntimeAnimatorController**：
+        /// 控制器存在时——①占图基础层作开局默认姿态（首帧不露 T-pose）②其片段自动按名索引（便利源）；
+        /// 控制器缺失时（**直 Clip 模型**）——无默认姿态位，片段必须经 <see cref="RegisterClip"/>
+        /// 外部登记（T-pose 由驱动层"机 Start 即提交"的同帧落位兜底）。</param>
         /// <param name="blendSeconds">淡入/淡出时长（秒）：**当作必填对待**——默认值只是常见手感的兜底，
         /// 调用方应显式给（0 = 瞬时落位，测试与"直接切"用）。该值在构造时分发给每个通道，
         /// 每个通道的淡化数学只用自己的那一份。</param>
@@ -75,16 +80,15 @@ namespace LiteSim.View.Animation
             IReadOnlyList<string> upperBodyMaskExclusions = null)
         {
             _animator = animator ?? throw new ArgumentNullException(nameof(animator));
-            if (_animator.runtimeAnimatorController == null)
-                throw new ArgumentException("Animator 缺少 RuntimeAnimatorController——无法建动画后端", nameof(animator));
             if (float.IsNaN(blendSeconds) || float.IsInfinity(blendSeconds) || blendSeconds < 0f)
                 throw new ArgumentOutOfRangeException(nameof(blendSeconds), blendSeconds,
                     "混合时长必须 ≥ 0 且有限（0 = 瞬时落位）");
             BlendSeconds = blendSeconds;
 
-            _layers = new AnimationLayerGraph(_animator);
+            _layers = new AnimationLayerGraph(_animator);          // 控制器可选（默认姿态/片段索引见类注释）
 
-            RegisterControllerClips();
+            if (_animator.runtimeAnimatorController != null)
+                RegisterControllerClips();                         // 控制器片段索引（便利源；直 Clip 模型跳过）
 
             _locomotion = new ChannelState(AnimationChannel.Locomotion, isBase: true,
                 AnimationLayerGraph.LocomotionCurrent, AnimationLayerGraph.LocomotionTail, BlendSeconds);
@@ -173,10 +177,11 @@ namespace LiteSim.View.Animation
 
         // ---- 提交 / 停止 ----
 
-        /// <summary>登记控制器引用到的全部片段（按片段名索引）——"播放任意 Clip"的基本盘：
-        /// 控制器用到的片段无需外部加载即可直驱。</summary>
+        /// <summary>登记控制器引用到的全部片段（按片段名索引）——控制器存在时的"播放任意 Clip"便利源；
+        /// 直 Clip 模型无控制器，片段走 <see cref="RegisterClip"/> 外部登记。</summary>
         private void RegisterControllerClips()
         {
+            if (_animator.runtimeAnimatorController == null) return;      // 直 Clip 模型：无便利源
             foreach (var clip in _animator.runtimeAnimatorController.animationClips)
             {
                 if (clip == null) continue;
