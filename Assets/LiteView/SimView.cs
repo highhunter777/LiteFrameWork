@@ -3,7 +3,7 @@ using LiteFramework;
 using LiteSim;
 using UnityEngine;
 
-namespace LiteSim.View
+namespace LiteView
 {
     /// <summary>
     /// 战斗表现视图（《联机战斗演示专项设计》§3"SimView 负责槽位镜像、远端插值、本地和解衰减和事件静默"；

@@ -462,7 +462,7 @@ namespace LiteFramework.Tests
         }
 
         /// <summary>D1 守卫（《客户端与服务端共享代码范围专项设计》§3）：服务端宿主工程的
-        /// `ProjectReference` **不得**指向客户端面（`LiteFramework`/`LiteGame`/`LiteClient`/`LiteSim.View`
+        /// `ProjectReference` **不得**指向客户端面（`LiteFramework`/`LiteGame`/`LiteClient`/`LiteView`
         /// ——View 用**程序集名**作标记，目录无关：住 `Assets/LiteView`）。
         ///
         /// 本用例把它钉成判据，

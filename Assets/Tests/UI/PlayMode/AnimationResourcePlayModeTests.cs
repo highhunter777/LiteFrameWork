@@ -5,8 +5,8 @@ using LiteFramework;
 using LiteFramework.Animation;   // 动画契约（Player/Request/Channel）统一在 LiteFramework.Animation
 using LiteGame;
 using LiteSim;
-using LiteSim.View;
-using LiteSim.View.Animation;
+using LiteView;
+using LiteView.Animation;
 using LiteTesting;
 using LiteTesting.Unity;
 using NUnit.Framework;

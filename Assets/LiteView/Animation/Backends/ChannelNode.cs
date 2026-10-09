@@ -4,7 +4,7 @@ using UnityEngine;
 using UnityEngine.Animations;
 using UnityEngine.Playables;
 
-namespace LiteSim.View.Animation
+namespace LiteView.Animation
 {
     /// <summary>
     /// 通道上的一个节点（当前/尾部共用同一表示）：**单片段**（<see cref="AnimationClipPlayable"/>）或

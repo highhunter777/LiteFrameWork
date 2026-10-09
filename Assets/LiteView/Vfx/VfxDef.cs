@@ -1,4 +1,4 @@
-namespace LiteSim.View
+namespace LiteView
 {
     /// <summary>
     /// 一条特效定义（"命名即引用"：**不做 Luban 表**，名字直接映射资源地址，见 <see cref="VfxCatalog"/>）。

@@ -1,4 +1,4 @@
-namespace LiteSim.View
+namespace LiteView
 {
     /// <summary>
     /// 特效句柄（《VFX服务实施指导》§1 决策 2）：**单调递增、永不复用**——旧句柄绝不会命中新实例（防 ABA）。

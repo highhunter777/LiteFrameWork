@@ -1,7 +1,7 @@
 using LiteFramework;
 using LiteFramework.Animation;
 
-namespace LiteSim.View.Animation
+namespace LiteView.Animation
 {
     /// <summary>移动根·静止叶（形态归移动根——本叶只做迟滞轴迁移）。</summary>
     internal sealed class IdleStage : IStage<CharacterAnimId, CombatAnimReq>

@@ -1,7 +1,7 @@
 using System;
 using System.Collections.Generic;
 using LiteSim;
-using LiteSim.View;
+using LiteView;
 using UnityEngine;
 
 namespace LiteGame

@@ -1,6 +1,6 @@
 using System.Collections.Generic;
 
-namespace LiteSim.View
+namespace LiteView
 {
     /// <summary>
     /// 句柄 → 实例表（《VFX服务实施指导》§2.2 第 3 件）：活跃登记 + 到期扫描。

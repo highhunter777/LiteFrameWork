@@ -1,6 +1,6 @@
 using System.Collections.Generic;
 
-namespace LiteSim.View
+namespace LiteView
 {
     /// <summary>
     /// 名 → 定义（《VFX服务实施指导》§1 决策 3：**命名即引用、不做 Luban 表**）：

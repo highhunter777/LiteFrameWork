@@ -4,7 +4,7 @@ using LiteFramework.Animation;
 using LiteSim;
 using UnityEngine;
 
-namespace LiteSim.View.Animation
+namespace LiteView.Animation
 {
     /// <summary>
     /// 移动根复合态（下层）：MoveBlend 独占 Locomotion 通道——进根提交（按当前速度权重）、

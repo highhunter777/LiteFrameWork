@@ -5,7 +5,7 @@ using UnityEngine;
 using UnityEngine.Animations;
 using UnityEngine.Playables;   // PlayableExtensions：GetTime/SetTime/SetInputWeight/Pause 等扩展方法都在这
 
-namespace LiteSim.View.Animation
+namespace LiteView.Animation
 {
     /// <summary>
     /// Animator 后端（《动画模块专项设计》§7"PlayableGraph 采用 Manual 更新"）：**Clip 直驱**——

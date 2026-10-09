@@ -1,4 +1,4 @@
-using LiteSim.View;
+using LiteView;
 using NUnit.Framework;
 
 namespace LiteGame.Tests.EditMode

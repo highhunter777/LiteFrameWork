@@ -1,6 +1,6 @@
 using LiteClient;
 using LiteSim;
-using LiteSim.View;
+using LiteView;
 using UnityEngine;
 
 namespace LiteGame

@@ -18,7 +18,7 @@
         "LiteNet",
         "LiteSim.Core",
         "LiteSim.Core.Editor",
-        "LiteSim.View",
+        "LiteView",
         "LiteTesting.Core",
         "LiteTesting.Unity.Editor",
         "Luban.Runtime",

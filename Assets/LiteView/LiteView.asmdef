@@ -1,6 +1,6 @@
 {
-    "name": "LiteSim.View",
-    "rootNamespace": "LiteSim.View",
+    "name": "LiteView",
+    "rootNamespace": "LiteView",
     "references": [
         "LiteFramework.Async",
         "LiteFramework.Core",

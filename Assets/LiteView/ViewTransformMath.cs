@@ -1,6 +1,7 @@
 using System;
+using LiteSim;
 
-namespace LiteSim.View
+namespace LiteView
 {
     /// <summary>
     /// 表现变换数学（《联机战斗演示专项设计》§2.4 C3：插值/衰减抽成纯函数
@@ -8,7 +9,7 @@ namespace LiteSim.View
     /// 只能靠肉眼验"）：
     ///
     /// **本文件零引擎依赖**——只用 <see cref="SimVector3"/> 与 System.Math。它同时被
-    /// `LiteSim.View`（Unity 运行时）与 `Tests/LiteSim.Core.Tests`（L1，经 csproj Link 编译）使用，
+    /// `LiteView`（Unity 运行时）与 `Tests/LiteSim.Core.Tests`（L1，经 csproj Link 编译）使用，
     /// 保持单一来源（同一份语义不可能在两侧漂移）。
     ///
     /// 纪律（《状态同步专项设计》§6.2 / 红线）：本类**只做表现换算**，不携带任何判定——

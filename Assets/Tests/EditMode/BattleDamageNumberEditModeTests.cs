@@ -1,8 +1,8 @@
 using System.Collections.Generic;
 using LiteFramework;
 using LiteSim;
-using LiteSim.View;
-using LiteSim.View.DamageNumbers;
+using LiteView;
+using LiteView.DamageNumbers;
 using LiteTesting;
 using LiteTesting.Unity;
 using NUnit.Framework;

@@ -232,13 +232,13 @@ namespace Tools.DisciplineScan
         };
 
         /// <summary>服务端宿主工程不得引用的客户端面程序集关键字（出现在 ProjectReference 即违规）。
-        /// View 用**程序集名**作标记（目录无关——csproj 名为 LiteSim.View，住 Assets/LiteView）。</summary>
+        /// View 用**程序集名**作标记（目录无关——csproj 名为 LiteView，住 Assets/LiteView）。</summary>
         public static readonly string[] ClientSideProjectMarkers =
         {
             "LiteFramework",
             "LiteGame",
             "LiteClient",
-            "LiteSim.View",
+            "LiteView",
         };
 
         /// <summary>

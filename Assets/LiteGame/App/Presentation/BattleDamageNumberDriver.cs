@@ -2,8 +2,8 @@ using System;
 using System.Collections.Generic;
 using LiteFramework;
 using LiteSim;
-using LiteSim.View;
-using LiteSim.View.DamageNumbers;
+using LiteView;
+using LiteView.DamageNumbers;
 using TMPro;
 using UnityEngine;
 

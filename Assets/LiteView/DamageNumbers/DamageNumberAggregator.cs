@@ -1,6 +1,6 @@
 using System.Collections.Generic;
 
-namespace LiteSim.View.DamageNumbers
+namespace LiteView.DamageNumbers
 {
     /// <summary>
     /// 聚合条目快照（驱动按快照驱动 TMP 实例——**聚合器不持实例**，只管合并窗口与账目；

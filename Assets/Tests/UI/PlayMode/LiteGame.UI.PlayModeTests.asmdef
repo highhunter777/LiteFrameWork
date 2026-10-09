@@ -15,7 +15,7 @@
         "LiteGame.LuaBridge",
         "LiteGame.UI",
         "LiteSim.Core",
-        "LiteSim.View",
+        "LiteView",
         "LiteTesting.Core",
         "LiteTesting.Runtime",
         "UniTask",

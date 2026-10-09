@@ -5,7 +5,7 @@ using Cysharp.Threading.Tasks;
 using LiteFramework;
 using UnityEngine;
 
-namespace LiteSim.View
+namespace LiteView
 {
     /// <summary>
     /// VFX 服务实现（《VFX服务实施指导》§2）：加载 / 池化 / 挂点跟随 / 预算降级 / 到期回收 / 关闭释放面。

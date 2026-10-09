@@ -4,7 +4,7 @@ using LiteFramework;
 using LiteNet;
 using LiteNet.Protocol;
 using LiteSim;
-using LiteSim.View;
+using LiteView;
 
 namespace LiteClient
 {

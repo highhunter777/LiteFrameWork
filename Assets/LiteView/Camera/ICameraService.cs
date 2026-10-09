@@ -1,6 +1,6 @@
 using UnityEngine;
 
-namespace LiteSim.View
+namespace LiteView
 {
     /// <summary>
     /// 相机服务端口（《商业级通用客户端框架总设计》§5 框图 `Platform.Unity` 适配器块的抽象面；
@@ -10,7 +10,7 @@ namespace LiteSim.View
     /// "有个相机在跟这个表现位置"，不该认识 Cinemachine 这个包——同 <see cref="IVFXService"/> 的处置
     /// （表现层定端口、适配器实现、消费者只认端口）。换掉相机后端只换适配器，SimView 与流程零改动。
     ///
-    /// **为什么住 `LiteSim.View` 而不是 `LiteFramework.Core`**：本接口带 <c>UnityEngine.Vector3</c>，
+    /// **为什么住 `LiteView` 而不是 `LiteFramework.Core`**：本接口带 <c>UnityEngine.Vector3</c>，
     /// 而 Core 声明了 `noEngineReferences: true`（核心机制不依赖引擎，是硬约束）。表现层端口归表现层。
     ///
     /// 契约：

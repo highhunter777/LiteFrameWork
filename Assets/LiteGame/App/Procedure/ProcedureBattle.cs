@@ -3,8 +3,8 @@ using System.Threading;
 using Cysharp.Threading.Tasks;
 using LiteFramework;
 using LiteSim;
-using LiteSim.View;
-using LiteSim.View.Animation;
+using LiteView;
+using LiteView.Animation;
 using UnityEngine;
 using LiteClient;
 

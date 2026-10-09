@@ -1,6 +1,6 @@
 using System.Globalization;
 
-namespace LiteSim.View.DamageNumbers
+namespace LiteView.DamageNumbers
 {
     /// <summary>
     /// 伤害数字文本格式化（位数/K 简写——《命中反馈与伤害数字专项设计》§4.2；DNP ProcessIntegers

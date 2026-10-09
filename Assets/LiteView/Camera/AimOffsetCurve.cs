@@ -1,4 +1,4 @@
-namespace LiteSim.View
+namespace LiteView
 {
     /// <summary>
     /// 瞄准机构图 z 偏移曲线（纯二次）：<c>Z(d) = d² / zBase</c>（d &lt; zBase），d ≥ zBase 不干预（回 zBase）。

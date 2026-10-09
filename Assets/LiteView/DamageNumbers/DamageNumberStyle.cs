@@ -1,4 +1,4 @@
-namespace LiteSim.View.DamageNumbers
+namespace LiteView.DamageNumbers
 {
     /// <summary>伤害数字样式档（纯数据——Unity 驱动换算 TMP 字号/颜色；零引擎）。</summary>
     public readonly struct DamageNumberStyle

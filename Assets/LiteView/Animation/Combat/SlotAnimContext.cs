@@ -2,7 +2,7 @@ using System;
 using LiteFramework.Animation;
 using LiteSim;
 
-namespace LiteSim.View.Animation
+namespace LiteView.Animation
 {
     /// <summary>
     /// 槽位上下文（各态对"播放器 + 事实 + 双通道形态跟踪"的窄面——按槽位重建，不持槽数组引用；

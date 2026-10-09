@@ -1,6 +1,6 @@
 using UnityEngine;
 
-namespace LiteSim.View.Animation
+namespace LiteView.Animation
 {
     /// <summary>
     /// 移动混合权重数学（《动画模块专项设计》§4"权重由 Driver 给"的**纯计算面**）：

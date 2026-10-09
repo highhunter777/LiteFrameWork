@@ -3,11 +3,11 @@ using Cysharp.Threading.Tasks;
 using LiteFramework;
 using UnityEngine;
 
-namespace LiteSim.View
+namespace LiteView
 {
     /// <summary>
     /// 特效资源加载口（可注入）。装配点绑定 <c>AssetService.LoadAssetAsync&lt;GameObject&gt;</c>。
-    /// **为什么用委托而不是直接调 AssetService**：① LiteSim.View 不依赖 LiteGame（防程序集环）
+    /// **为什么用委托而不是直接调 AssetService**：① LiteView 不依赖 LiteGame（防程序集环）
     /// ② EditMode 测试可注入替身，零素材验证。
     /// </summary>
     public delegate UniTask<GameObject> VfxAssetLoader(string location, CancellationToken ct);

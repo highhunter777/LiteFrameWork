@@ -8,7 +8,7 @@
         "LiteFramework.Async",
         "LiteFramework.Core",
         "LiteSim.Core",
-        "LiteSim.View",
+        "LiteView",
         "UniTask",
         "Unity.InputSystem"
     ],

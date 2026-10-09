@@ -1,6 +1,6 @@
 using LiteFramework.Animation;
 
-namespace LiteSim.View.Animation
+namespace LiteView.Animation
 {
     /// <summary>
     /// 角色动画语义 ID（§4"游戏层定义语义，框架只处理类型化 ID"）。

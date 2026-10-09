@@ -3,7 +3,7 @@ using LiteFramework.Animation;
 using LiteSim;
 using UnityEngine;
 
-namespace LiteSim.View.Animation
+namespace LiteView.Animation
 {
     /// <summary>叶/根共用的语境让位检查：已有挂起请求（事件路由进 Fire 系 / 根的退根降级）时
     /// 本帧不再发自己的请求——last-wins 语义下"后来的赢"，让位保证已挂的更高级裁决不被覆盖。</summary>

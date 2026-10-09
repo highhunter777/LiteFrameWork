@@ -1,6 +1,6 @@
 using LiteFramework.Animation;
 
-namespace LiteSim.View.Animation
+namespace LiteView.Animation
 {
     /// <summary>
     /// CombatGirls 角色动画 Profile（《动画模块专项设计》§3/§4：ID → 控制器状态绑定的唯一登记点；

@@ -2,7 +2,7 @@ using UnityEngine;
 using UnityEngine.Animations;
 using UnityEngine.Playables;
 
-namespace LiteSim.View.Animation
+namespace LiteView.Animation
 {
     /// <summary>
     /// 固定 6 输入的分层混合图（《动画模块专项设计》§7"PlayableGraph 采用 Manual 更新"、§12"节点数有界"）：

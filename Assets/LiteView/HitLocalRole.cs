@@ -1,4 +1,4 @@
-namespace LiteSim.View
+namespace LiteView
 {
     /// <summary>
     /// 本地玩家与帧事件的相对角色（命中反馈的过滤键——《命中反馈与伤害数字专项设计》§4.1）。

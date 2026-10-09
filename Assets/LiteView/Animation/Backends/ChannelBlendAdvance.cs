@@ -1,6 +1,6 @@
 using UnityEngine;
 
-namespace LiteSim.View.Animation
+namespace LiteView.Animation
 {
     /// <summary>
     /// 通道层权重的推进与回收（《动画模块专项设计》§5 淡入淡出、§12"混合尾部必须有固定上限"）：
