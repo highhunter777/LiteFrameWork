@@ -29,3 +29,18 @@
 - **buildHash 开发期不重跑**（用户裁决）：路径参与哈希——源集含 View 路径的成员在下次出包时由 `build-player.ps1 --check` 门禁拦截重录（设计内流程）。
 - **程序集名/命名空间对齐**（`LiteSim.View` → 如 `Lite.View`）：未裁决——名字迁移是独立批（asmdef 4 消费者引用按名不变，命名空间 40+ 文件面），随通用框架提取（G6/C5）或用户裁决时做。
 - AgentScripts 下 `patch_vfx_p1/p2.py` 为历史一次性补丁脚本（gitignore 本地件），路径引用未同步——不复活即无影响。
+
+### 续批：程序集名/命名空间对齐（LiteSim.View → LiteView）
+
+> 状态：**已完成（附验证证据）**（用户裁决"程序集名/命名空间要对齐"——批内即时执行）
+
+**改动**（"每程序集一个命名空间"约定——目录 `Assets/LiteView` ⇒ 程序集 `LiteView` ⇒ 命名空间 `LiteView.*`）：
+
+- **asmdef**：`LiteSim.View.asmdef` → `LiteView.asmdef`（Pipeline `MoveAsset`，meta 随迁保 GUID）；name/rootNamespace → `LiteView`。
+- **代码**：76 文件 88 处替换（命名空间声明/using/限定引用/cref 文档注释/asmdef 引用者 4 件/纪律扫描 D1 客户面标记/测试文件）。
+- **父级可见性补偿**：原 `namespace LiteSim.View(.X)` 下 `LiteSim.*` 类型（SimVector3/FrameEventKind/FrameEvent）靠**外围命名空间隐式可见**，改名后断链——HitFeedback/ViewTransformMath/FrameEventAnimationSeam 三件补 `using LiteSim;`（ViewTransformMath 双编 L1 侧同口径可用）。
+- **文档**：七份现行文档程序集名引用同步（待办总览/代码地图/程序集引用图/项目总览/动画专项/状态同步/命中反馈）；历史记录与归档不动。
+
+**本批实测教训（工具坑，本会话二连）**：`.gitignore` L77 `Assets/Animation/`（顶层美术资产目录的忽略规则）使 **ripgrep 目录搜索静默跳过 `Assets/LiteView/Animation/` 子树全部 18 个文件**（git 本身不忽略它们——`git check-ignore` 为空；显式传文件参数或不带 ignore 搜索才可见）——首轮批量替换因此漏掉整个 Animation 子树，编译红暴露。**批量替换/搜索一律 `--no-ignore` 起手**，与既有教训（"搜 gitignore 清单内文件用 Select-String"）合并为一条：**对本仓做批量文本操作时显式绕开 ignore 层**。
+
+**验证证据**：L1 **1532/1532**（源链接 View 纯逻辑件双编面命名空间同步后全绿）；Unity 编译 **0 错误**（含父级可见性补偿后）；纪律扫描 **0 违规**（D1 标记改 `LiteView` 生效）；`--no-ignore` 残留复查为零。
