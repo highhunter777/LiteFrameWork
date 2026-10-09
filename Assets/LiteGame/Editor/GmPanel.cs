@@ -11,10 +11,11 @@ using LiteClient;
 namespace LiteGame.Editor
 {
     /// <summary>
-    /// GM 面板（编辑器）：测试模式入口 + 配置链路。
-    /// 测试模式区——进入/退出测试模式（本地服 Room-Test）、传送到准心、生效开关一览；
-    /// 配置链路四区——运行状态（Play 中 0.5s 刷新）/ 表查询（表清单反射自 cfg.Tables）/
-    /// 场景操作（加载/卸载/叠加语义验证）/ 产物核对（TableDataFiles 逐项 File.Exists）。
+    /// GM 面板（编辑器）：**局内可调调试面**唯一入口。
+    /// ① 测试模式——进入/退出/传送到准心（进入前把场景 DebugTuner 的启动配置快照进运行时）+ 现场开关（无限子弹/爆头框/瞄准激光/伤害数字，即时生效）+ 爆头区实时调；
+    /// ② 命令与审计——CommandCenter 发现面（GetRegisteredInfos）列出 + 无参命令执行（走权限门/拦截器/审计）+ 审计环（GetAuditLog）；
+    /// ③ 运行状态 / ④ 表查询 / ⑤ 场景操作 / ⑥ 产物核对——配置链路四区（Play 中 0.5s 刷新）。
+    /// **静态启动配置不在本面板**：免死/人数/冻结/传送/时钟等旋钮与进房初值在场景 DebugTuner（Inspector）上编辑。
     /// 配置持久化走 EditorPrefs；正式断言权威在测试项目（Luban.Runtime 带引擎依赖进不了 xUnit 双轨）。
     /// </summary>
     public sealed class GmPanel : EditorWindow
@@ -45,10 +46,6 @@ namespace LiteGame.Editor
         private string _sceneResult = "(未操作)";
         private bool _sceneBusy;
 
-        // 调参区（DebugTuner 收纳：直读/直写场景组件字段）
-        private DebugTuner _tuner;
-        private double _nextTunerFind;
-
         [MenuItem("LiteGame/测试/GM 面板")]
         private static void Open()
         {
@@ -77,19 +74,15 @@ namespace LiteGame.Editor
 
         private void Update()
         {
-            if (_tuner == null || _tuner.Equals(null))              // 场景/Play 切换后引用可能失效：2s 节流重寻
-            {
-                if (EditorApplication.timeSinceStartup >= _nextTunerFind)
-                {
-                    _nextTunerFind = EditorApplication.timeSinceStartup + 2;
-                    _tuner = FindTuner();
-                    Repaint();
-                }
-            }
             if (!Application.isPlaying || EditorApplication.timeSinceStartup < _nextRefresh) return;
             _nextRefresh = EditorApplication.timeSinceStartup + RefreshInterval;
             RefreshStatus();
             RefreshSceneState();
+            if (_cmdAutoRefresh && EditorApplication.timeSinceStartup >= _nextCmdRefresh)
+            {
+                _nextCmdRefresh = EditorApplication.timeSinceStartup + 1.0;
+                RefreshCommands();                 // 审计环低频轮询（发现面注释口径）
+            }
             Repaint();
         }
 
@@ -99,7 +92,7 @@ namespace LiteGame.Editor
 
             DrawTestModeSection();
             EditorGUILayout.Space(6);
-            DrawTunerSection();
+            DrawCommandSection();
             EditorGUILayout.Space(6);
             DrawStatusSection();
             EditorGUILayout.Space(6);
@@ -116,7 +109,7 @@ namespace LiteGame.Editor
             EditorGUILayout.EndScrollView();
         }
 
-        // ---- ⓪ 测试模式 ----
+        // ---- ① 测试模式（启动配置在场景 DebugTuner；本区只管进入/退出与局内可调项）----
 
         private void DrawTestModeSection()
         {
@@ -125,80 +118,166 @@ namespace LiteGame.Editor
 
             using (new EditorGUILayout.HorizontalScope())
             {
-                if (GUILayout.Button("进入测试模式"))
-                {
-                    TestModePanel.Apply();                  // 资产快照 → 运行时（未配置时套默认口径）
-                    TestModeRuntime.EnterRequested = true;  // 主菜单消费 → 进测试房
-                }
-                if (GUILayout.Button("退出测试模式"))
-                    TestModeRuntime.ExitRequested = true;   // 对局内 = 离场并关模式；主菜单 = 只关模式
-                if (GUILayout.Button("传送到准心"))
-                    TestModeRuntime.TeleportRequested = true;
+                // 进入前把场景 DebugTuner 的启动配置快照进运行时（未挂则套默认口径）；F10 同一条链
+                if (GUILayout.Button("进入测试模式")) { DebugTuner.ApplySnapshotOrDefaults(); TestModeRuntime.EnterRequested = true; }
+                if (GUILayout.Button("退出测试模式")) TestModeRuntime.ExitRequested = true;              // 对局内 = 离场并关模式；主菜单 = 只关模式
+                if (GUILayout.Button("传送到准心")) TestModeRuntime.TeleportRequested = true;
             }
-            if (GUILayout.Button("打开测试面板（配置开关）"))
-                EditorWindow.GetWindow<TestModePanel>("测试面板");
+            EditorGUILayout.HelpBox(
+                "启动项（免死/bot 数/冻结/传送）与表现类开关的**进房初值**都在场景 DebugTuner 上编辑（Inspector，随场景保存）；"
+                + "本节以下是**局内可调**项，即时生效。", MessageType.Info);
 
-            EditorGUILayout.LabelField(
-                $"免死={TestModeRuntime.NoDeath} 缩放={TestModeRuntime.TimeScale:0.##} 暂停={TestModeRuntime.Paused} "
-                + $"传送={TestModeRuntime.TeleportEnabled} 冻结={TestModeRuntime.BotFrozen} bot={TestModeRuntime.BotCount} "
-                + $"爆头框={TestModeRuntime.DrawHeadshotDebug}",
-                EditorStyles.wordWrappedLabel);
-            // 爆头区域可视化：**对局内现场切**（F11 同款，不必开面板/重进房）——标签数值动态读常量（随烘焙/导出值走，不再手写漂移）
-            bool drawDbg = GUILayout.Toggle(TestModeRuntime.DrawHeadshotDebug,
-                $"  爆头区域可视化（黄=爆头线{LiteSim.CombatConfig.HeadHitLineLive:F2}m / 红=头顶{LiteSim.CombatConfig.HitscanHeight:F1}m，F11）");
-            if (drawDbg != TestModeRuntime.DrawHeadshotDebug) TestModeRuntime.DrawHeadshotDebug = drawDbg;
+            EditorGUILayout.LabelField("现场开关（即时生效，不必重进房）", EditorStyles.miniBoldLabel);
+            // 开关清单/显示名/写点全部经 TestModeOptions（新增开关只改那张表——本面板零改动）
+            foreach (TestModeOptions.Info option in TestModeOptions.All)
+            {
+                if (option.Group != TestModeOptions.Group.Live) continue;      // 启动项在 DebugTuner（下方只读一览）
+                bool value = GUILayout.Toggle(TestModeOptions.Get(option.Id), "  " + option.Label);
+                if (value != TestModeOptions.Get(option.Id)) TestModeOptions.Set(option.Id, value);
+            }
+
+            var startup = new System.Text.StringBuilder("启动项（进房时快照）：");
+            foreach (TestModeOptions.Info option in TestModeOptions.All)
+            {
+                if (option.Group != TestModeOptions.Group.Startup) continue;
+                startup.Append(' ').Append(option.Id).Append('=').Append(TestModeOptions.Get(option.Id) ? "开" : "关");
+            }
+            startup.Append(" bot=").Append(TestModeRuntime.BotCount);
+            EditorGUILayout.LabelField(startup.ToString(), EditorStyles.wordWrappedLabel);
+            using (new EditorGUILayout.HorizontalScope())
+            {
+                if (GUILayout.Button("选中场景 DebugTuner", GUILayout.Width(150)))
+                {
+                    var tuner = UnityEngine.Object.FindAnyObjectByType<DebugTuner>(FindObjectsInactive.Include);
+                    if (tuner != null) Selection.activeObject = tuner;
+                }
+                EditorGUILayout.LabelField("启动配置在 Inspector 改（随场景保存）；改完再进房生效。", EditorStyles.miniLabel);
+            }
             if (Application.isPlaying
                 && UnityEngine.Object.FindObjectsByType<DebugTuner>(FindObjectsInactive.Exclude, FindObjectsSortMode.None).Length == 0)
-                EditorGUILayout.HelpBox("场景未挂 DebugTuner：时间缩放/暂停不会生效（其余开关不受影响）。", MessageType.Warning);
+                EditorGUILayout.HelpBox("场景未挂 DebugTuner：启动配置不可用（进房套默认口径），时钟旋钮也不生效。", MessageType.Warning);
+
+            DrawHeadTuneBlock();
         }
 
-        // ---- 调参（DebugTuner 收纳：读/写场景组件字段）----
-
-        private void DrawTunerSection()
+        /// <summary>爆头区实时调（运行时覆写，不落盘；判定与身位可视化同读 Live——本地服同进程同值，滑杆一动实弹即见 Crit 档变化）。</summary>
+        private static void DrawHeadTuneBlock()
         {
-            EditorGUILayout.LabelField("调参（DebugTuner）", EditorStyles.boldLabel);
-            if (_tuner == null || _tuner.Equals(null))
+            EditorGUILayout.Space(6);
+            EditorGUILayout.LabelField("爆头区实时调（运行时覆写，不落盘）", EditorStyles.boldLabel);
+            float height = LiteSim.CombatConfig.HitscanHeight;
+            float shown = LiteSim.CombatConfig.HeadHitLineDevOverride >= 0f
+                ? LiteSim.CombatConfig.HeadHitLineDevOverride : LiteSim.CombatConfig.HeadHitLine;
+            float radiusShown = LiteSim.CombatConfig.HeadshotRadiusDevOverride >= 0f
+                ? LiteSim.CombatConfig.HeadshotRadiusDevOverride : LiteSim.CombatConfig.HeadshotRadius;
+            EditorGUI.BeginChangeCheck();
+            float next = EditorGUILayout.Slider("爆头线下沿（m）", shown, 0.9f, height);
+            float nextRadius = EditorGUILayout.Slider("爆头柱半径（m，窄于命中柱 0.45）", radiusShown, 0.15f, 0.45f);
+            if (EditorGUI.EndChangeCheck())
             {
-                if (GUILayout.Button("查找场景中的 DebugTuner"))
-                    _tuner = FindTuner();
-                EditorGUILayout.HelpBox(
-                    "未找到 DebugTuner（与 GameEntry 同对象）——时间缩放/暂停、事件严格模式等旋钮需它落钟；挂上后本区自动接管调参。",
-                    MessageType.Info);
+                LiteSim.CombatConfig.HeadHitLineDevOverride = next;
+                LiteSim.CombatConfig.HeadshotRadiusDevOverride = nextRadius;
+            }
+            EditorGUILayout.LabelField($"比例 {shown / height:F3}    带高 {height - shown:F3} m    当前导出值：下沿 {LiteSim.CombatConfig.HeadHitLine:F3} m / 半径 {LiteSim.CombatConfig.HeadshotRadius:F3} m");
+            using (new EditorGUILayout.HorizontalScope())
+            {
+                if (GUILayout.Button("复位（回导出值）"))
+                {
+                    LiteSim.CombatConfig.HeadHitLineDevOverride = -1f;
+                    LiteSim.CombatConfig.HeadshotRadiusDevOverride = -1f;
+                }
+                if (GUILayout.Button("导出当前爆头区到 HeadBake.g.cs"))
+                {
+                    string report = LiteGame.EditorTools.HeadHitLineTuner.Export(shown / height, radiusShown);
+                    EditorUtility.DisplayDialog("爆头区导出", report, "OK");
+                }
+            }
+            EditorGUILayout.HelpBox(
+                "对局内滑动即生效（判定与身位可视化的黄/红圈实时随动，可实弹试 Crit 档——黄红圈之间的窄柱切片才是爆头区）；"
+                + "定型才导出。对局中点导出会触发重编译并中断对局（domain reload）——可先记下数值，出对局后再导。",
+                MessageType.Info);
+        }
+
+        // ---- ② 命令与审计（CommandCenter 发现/执行/审计面——《命令中心专项设计》§6）----
+
+        private readonly List<CommandInfo> _cmds = new List<CommandInfo>();
+        private readonly List<CommandAuditEntry> _audit = new List<CommandAuditEntry>();
+        private string _cmdResult = "(未刷新)";
+        private bool _cmdAutoRefresh = true;
+        private double _nextCmdRefresh;
+
+        private void DrawCommandSection()
+        {
+            EditorGUILayout.LabelField("命令与审计（CommandCenter）", EditorStyles.boldLabel);
+            using (new EditorGUILayout.HorizontalScope())
+            {
+                if (GUILayout.Button("刷新", GUILayout.Width(60))) RefreshCommands();
+                _cmdAutoRefresh = EditorGUILayout.ToggleLeft("自动刷新（1s，Play 中）", _cmdAutoRefresh, GUILayout.Width(190));
+                EditorGUILayout.LabelField(_cmdResult, EditorStyles.miniLabel);
+            }
+
+            CommandCenter center = GetCommandCenter();
+            if (center == null)
+            {
+                EditorGUILayout.HelpBox("命令中心未装配（需 Play 且容器就绪）——列出/执行/审计均不可用。", MessageType.Info);
                 return;
             }
 
-            using (new EditorGUILayout.HorizontalScope())
+            EditorGUILayout.LabelField("已注册命令（发现面清单，按注册序）", EditorStyles.miniBoldLabel);
+            if (_cmds.Count == 0) EditorGUILayout.LabelField("(暂无注册命令——进 Play 后刷新)");
+            foreach (CommandInfo info in _cmds)
             {
-                if (GUILayout.Button("选中对象", GUILayout.Width(80)))
-                    Selection.activeObject = _tuner;
-                EditorGUILayout.LabelField(Application.isPlaying ? "Play 中（即时生效）" : "编辑模式（改的是场景配置）");
+                using (new EditorGUILayout.HorizontalScope())
+                {
+                    EditorGUILayout.LabelField($"{(info.GmOnly ? "[GM] " : "")}{info.CommandType.Name}", GUILayout.Width(220));
+                    EditorGUILayout.LabelField(string.IsNullOrEmpty(info.Description) ? "—" : info.Description);
+                    if (info.CommandType.GetConstructor(Type.EmptyTypes) == null)
+                        EditorGUILayout.LabelField("需专面板", EditorStyles.miniLabel, GUILayout.Width(64));
+                    else if (GUILayout.Button("执行", GUILayout.Width(48)))
+                        RunDiscoveredCommand(center, info.CommandType);
+                }
             }
 
-            EditorGUI.BeginChangeCheck();
-            _tuner.SyncEnabled = EditorGUILayout.ToggleLeft("时钟同步（关 = 滑杆停管，时钟归程序直控）", _tuner.SyncEnabled);
-            _tuner.WorldTimeScale = EditorGUILayout.Slider("世界缩放", _tuner.WorldTimeScale, 0f, 2f);
-            _tuner.WorldPaused = EditorGUILayout.ToggleLeft("世界暂停", _tuner.WorldPaused);
-            _tuner.UiPaused = EditorGUILayout.ToggleLeft("UI 暂停", _tuner.UiPaused);
-            _tuner.StrictMode = EditorGUILayout.ToggleLeft("事件严格模式", _tuner.StrictMode);
-            _tuner.UseLocalServer = EditorGUILayout.ToggleLeft("本地服务器（F9 进对局走进程内 RoomRuntime）", _tuner.UseLocalServer);
-            if (EditorGUI.EndChangeCheck() && !Application.isPlaying)
-            {
-                EditorUtility.SetDirty(_tuner);                     // 编辑模式：标脏组件与场景（值随场景保存）
-                UnityEditor.SceneManagement.EditorSceneManager.MarkSceneDirty(_tuner.gameObject.scene);
-            }
-
-            if (TestModeRuntime.Active)
-                EditorGUILayout.HelpBox("测试模式激活中：世界缩放/暂停由测试面板快照接管（本节对应滑杆停管）。", MessageType.Info);
+            EditorGUILayout.LabelField("审计环（最近 32 条，旧→新）", EditorStyles.miniBoldLabel);
+            if (_audit.Count == 0) EditorGUILayout.LabelField("(暂无审计记录)");
+            foreach (CommandAuditEntry entry in _audit)
+                EditorGUILayout.LabelField(
+                    $"#{entry.Seq} {entry.CommandType?.Name} {(entry.Ok ? "OK" : $"拒:{entry.Reason}")} {entry.Detail}",
+                    EditorStyles.miniLabel);
         }
 
-        private static DebugTuner FindTuner()
+        private void RefreshCommands()
         {
-            var all = UnityEngine.Object.FindObjectsByType<DebugTuner>(
-                FindObjectsInactive.Include, FindObjectsSortMode.None);
-            return all.Length > 0 ? all[0] : null;
+            CommandCenter center = GetCommandCenter();
+            _cmds.Clear();
+            _audit.Clear();
+            if (center == null) { _cmdResult = "(未装配：需 Play)"; return; }
+            _cmds.AddRange(center.GetRegisteredInfos());
+            _audit.AddRange(center.GetAuditLog());
+            _cmdResult = $"命令 {_cmds.Count} 条｜审计 {_audit.Count} 条｜{DateTime.Now:HH:mm:ss}";
         }
 
-        // ---- ① 运行状态 ----
+        /// <summary>执行发现的**无参**命令：Activator 构造 + 反射 Send&lt;TCommand&gt;（编辑器工具豁免；
+        /// 带参命令在列表标注"需专面板"不在此执行）。权限门/拦截器/审计链零改动——GmOnly 拦截自然进审计环。</summary>
+        private void RunDiscoveredCommand(CommandCenter center, Type commandType)
+        {
+            try
+            {
+                object command = Activator.CreateInstance(commandType);
+                MethodInfo typed = typeof(CommandCenter).GetMethod(nameof(CommandCenter.Send)).MakeGenericMethod(commandType);
+                var result = (CommandResult)typed.Invoke(center, new[] { command });
+                _cmdResult = $"{commandType.Name} → {(result.Ok ? $"成功：{result.Detail}" : $"拒（{result.Reason}）：{result.Detail}")}";
+            }
+            catch (Exception ex)
+            {
+                _cmdResult = $"{commandType.Name} 执行异常：{Unwrap(ex).Message}";
+            }
+            RefreshCommands();
+        }
+
+        private static CommandCenter GetCommandCenter() => ResolveFromContainer<ICommandCenter>() as CommandCenter;
+
+        // ---- ③ 运行状态（Play 中 0.5s 刷新）----
 
         private void DrawStatusSection()
         {
@@ -228,7 +307,7 @@ namespace LiteGame.Editor
                       + $"｜配置={configText}｜FSM={fsmState}｜ErrorCount={Log.ErrorCount}";
         }
 
-        // ---- ② 表查询 ----
+        // ---- ④ 表查询 ----
 
         private void DrawQuerySection()
         {
@@ -352,7 +431,7 @@ namespace LiteGame.Editor
             if (_writeLog) Log.Info(text.Replace("\r\n", " | "), "Smoke");
         }
 
-        // ---- ③ 场景服务（加载机制验证：单场景切换 / 叠加） ----
+        // ---- ⑤ 场景服务（加载机制验证：单场景切换 / 叠加） ----
 
         private void DrawSceneSection()
         {
@@ -458,7 +537,7 @@ namespace LiteGame.Editor
 
         private ISceneService GetSceneService() => ResolveFromContainer<ISceneService>();
 
-        // ---- ④ 产物核对 ----
+        // ---- ⑥ 产物核对 ----
 
         private void DrawFilesSection()
         {

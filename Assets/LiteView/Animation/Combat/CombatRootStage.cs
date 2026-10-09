@@ -101,7 +101,7 @@ namespace LiteView.Animation
 
         public void OnLeave(IStageHost<CharacterAnimId, CombatAnimReq> m)
         {
-            // 退根收口：FullBody 通道所有权终止（次根同帧提交替换/淡出——事务序先退后进）；
+            // 退根收口：Override 通道所有权终止（次根同帧提交替换/淡出——事务序先退后进）；
             // 窗语义随离场清零（再进战斗根必经事件刷新或 ADS 建立）
             if (_ctx.BodyHandle.IsValid)
                 _ctx.Player.Stop(_ctx.BodyHandle, AnimationStopReason.Cancelled);

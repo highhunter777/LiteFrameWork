@@ -9,21 +9,21 @@ namespace LiteView.Animation
     /// </summary>
     public static class CharacterAnimationIds
     {
-        // ---- 基础移动（Locomotion）----
+        // ---- 基础移动（Base 通道；语义命名空间 "Locomotion.*" 为游戏层移动族词汇）----
         public static readonly AnimationId Idle = new AnimationId("Locomotion.Idle");
         public static readonly AnimationId Walk = new AnimationId("Locomotion.Walk");
         public static readonly AnimationId Run = new AnimationId("Locomotion.Run");
-        /// <summary>瞄准站姿（§13 首角色覆盖表"瞄准"；同为 Locomotion 通道——移动语义的一种）。</summary>
+        /// <summary>瞄准站姿（§13 首角色覆盖表"瞄准"；同为 Base 通道——移动语义的一种）。</summary>
         public static readonly AnimationId AimIdle = new AnimationId("Locomotion.AimIdle");
 
-        // ---- 全身覆盖（FullBody）----
+        // ---- 全身覆盖（Override 通道）----
         /// <summary>换弹（§13"换弹"；一次性——时长按 Sim <c>ReloadFrames</c> 对齐播放倍率）。</summary>
         public static readonly AnimationId Reload = new AnimationId("Combat.Reload");
         /// <summary>受击（§13"受击"）。</summary>
         public static readonly AnimationId Hit = new AnimationId("Combat.Hit");
         /// <summary>死亡（§13"死亡"）。</summary>
         public static readonly AnimationId Death = new AnimationId("Combat.Death");
-        /// <summary>回避（§13 附列；同包已有独立片段，也是 FullBody 打断的天然消费者）。</summary>
+        /// <summary>回避（§13 附列；同包已有独立片段，也是 Override 打断的天然消费者）。</summary>
         public static readonly AnimationId Evade = new AnimationId("Combat.Evade");
 
         // ---- 混合形态（同通道多片段按权重；**权重由 Driver 给**——《动画模块专项设计》§4）----

@@ -17,7 +17,7 @@
         "LiteGame.UI",
         "LiteNet",
         "LiteSim.Core",
-        "LiteSim.View",
+        "LiteView",
         "Luban.Runtime",
         "Luban.Tables",
         "UniTask",

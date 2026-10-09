@@ -1,6 +1,6 @@
 # UI-U2 产品闭环：施工进度
 
-> 依据：[《UI框架总设计》](../design/client/ui/UI框架总设计.md) §4.3（单写者导航：队列上限/等待超时/可观测拒绝）、§6.2（模态栈/射线遮蔽/平台返回统一处理）、§9（本地化、文本与可访问性）、§13 U2（产品闭环）；[《动画模块专项设计》](../design/client/animation/动画模块专项设计.md) §14（UiFx 原语中断复位）。
+> 依据：[《UI框架总设计》](../设计文档/client/ui/UI框架总设计.md) §4.3（单写者导航：队列上限/等待超时/可观测拒绝）、§6.2（模态栈/射线遮蔽/平台返回统一处理）、§9（本地化、文本与可访问性）、§13 U2（产品闭环）；[《动画模块专项设计》](../设计文档/client/animation/动画模块专项设计.md) §14（UiFx 原语中断复位）。
 > 本文件只记录施工状态与证据；目标与验收以设计为准，不在此重复定义。
 
 ## 批次规划
@@ -222,6 +222,7 @@ Flash 回**原色**（原实现回落固定色，属缺陷）、Slide 回原位�
 3. **构建器 ↔ prefab 长期不同步**：HEAD 的 `WidgetPrefabBuilder` 已硬编码 `0.25,0.45,0.75`，
    而提交的 `StateButton.prefab` 是 `UiStyle.Accent` 的 `0.3,0.7,0.95`——"确定性生成"已不成立。
    经裁决**以生成器为准**，19 件模板按构建器重建（含外观/结构差异）。
+   （**2026-10-10 订正**：该构建器已随提交 `45aa839` 删除，本条为历史缺陷记录，重建产物作为 prefab 资产保留。）
 4. **`UIForm.cs` 隐藏兜底**：prefab 缺 Canvas/CanvasGroup 时 `AddComponent` 静默补齐，把装配错误
    藏到表现层——改**缺失即 fail-fast**（制作规范 §2 本就要求页面根自带）。
 5. **buildHash 闭包过宽**：`DATA_TARGETS` 把 UI 表单也算进联机版本哈希——加一行反馈面即令
@@ -294,7 +295,7 @@ U1 交付段预告"per-form 缓存策略列随 U2 表扩展"——本批把 §5.
 | 项 | 命令 | 结果 |
 |---|---|---|
 | L1 | `powershell -NoProfile -File scripts/test.ps1 -Lane L1 -Profile PullRequest` | **761 通过 / 0 失败**（本批 +48 例） |
-| L2 | `powershell -NoProfile -File scripts/l2-unity-gate.ps1` | **通过**——12042 个 .meta GUID 全合法；Unity 编译零错误；EditMode **189/189**（含新增 `Screens/Dialog.prefab`） |
+| L2 | `powershell -NoProfile -File scripts/gate/l2-unity-gate.ps1` | **通过**——12042 个 .meta GUID 全合法；Unity 编译零错误；EditMode **189/189**（含新增 `Screens/Dialog.prefab`） |
 | L2（反馈面归位批） | `unity command run_tests --mode editor` | EditMode **217/217**（+10 FeedbackService、+7 视觉单一来源）；Unity 编译零错误 |
 | L1（反馈面归位批） | `powershell -NoProfile -File scripts/test.ps1 -Lane L1 -Profile PullRequest` | **761 通过 / 0 失败**（含 buildHash 闭包调整后的复算守卫） |
 | L2（缓存策略批 U2-⑧，2026-09-26） | `unity command run_tests --mode editor` / `--mode playmode` | EditMode **225/225**（装配批 222 + 本批 3）；PlayMode **12/12**；Unity 编译零错误。L1 778（本批未动 dotnet 侧，沿用两次一致实测） |

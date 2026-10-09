@@ -72,11 +72,11 @@ namespace LiteGame
 
             // 会话工厂（DI-3）：Account 半边零引擎依赖（L1 源链接直测）；Match 半边 Unity 面（DI-4 验收）。
             // 传输裁决经委托留给产品装配根（ProcedureMatch.CreateTransportForFactory——工厂不认识测试开关语义）。
+            // 注册面＝服务接口（消费者经构造注入解析；Put 与 RegisterInstance 写同一容器——接口键只注册一次，
+            // 具体类型无产物消费者不占键）。
             var accounts = new AccountSessionFactory(context.RootScope, _services,
                 testRoom => ProcedureMatch.CreateTransportForFactory(testRoom));
             var matches = new MatchSessionFactory(context.Require<IInputService>());
-            context.Put<IAccountSessionFactory>(accounts);
-            context.Put<IMatchSessionFactory>(matches);
             _services.RegisterInstance<IAccountSessionFactory>(accounts);
             _services.RegisterInstance<IMatchSessionFactory>(matches);
 
@@ -96,11 +96,13 @@ namespace LiteGame
             context.Put(fsm);
 
             // 帧驱动表独立于模块产物登记序；每个别名仍指向统一来源中的同一实例。
+            // CommandCenter 置流程机前：排队/延迟命令到期派发先于机器 Tick——命令对流程机的 Request 当帧可被应用。
             _services.SetTickOrder(
                 typeof(IMainThreadDispatcher), typeof(IWorldClock), typeof(IUIClock),
                 typeof(DotweenUiClockDriver), typeof(IEventCenter), typeof(UIService),
                 typeof(ILogicScheduler), typeof(IUIScheduler), typeof(ITimelineRunner),
                 typeof(IVFXService), typeof(DialogService), typeof(ToastTicker),
+                typeof(ICommandCenter),
                 typeof(StageMachine<ProcedureId, ProcedureArgs>));
             _services.Seal();
         }

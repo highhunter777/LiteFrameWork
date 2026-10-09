@@ -4,7 +4,7 @@ using System.Collections.Generic;
 namespace LiteFramework.Animation
 {
     /// <summary>
-    /// 角色动画播放器。
+    /// 动画播放器。
     ///
     /// 职责边界：**只解决视觉通道归属**（业务优先级由 Sim/Driver 解释；播放器只解决视觉通道归属）。
     /// 它不认识"角色是否允许换弹"、不扣弹、不写 Sim，也不碰 VFX/Audio。
@@ -22,7 +22,7 @@ namespace LiteFramework.Animation
     /// 时钟：本类不持有分域时钟——由调用方（Driver/容器）按既定更新次序把已缩放的
     /// delta 交给 <c>Tick</c>；播放器**不再次乘 TimeScale**（避免重复缩放）。
     /// </summary>
-    public sealed class CharacterAnimationPlayer : IDisposable
+    public sealed class AnimationPlayer : IDisposable
     {
         /// <summary>终态记录上限（有界保留；超出按最旧淘汰，淘汰计数留痕）。</summary>
         public const int TerminalRetentionCapacity = 64;
@@ -69,7 +69,7 @@ namespace LiteFramework.Animation
 
         public bool IsDisposed => _disposed;
 
-        public CharacterAnimationPlayer(IAnimationBackend backend, AnimationProfile profile, int ownerGeneration = 0)
+        public AnimationPlayer(IAnimationBackend backend, AnimationProfile profile, int ownerGeneration = 0)
         {
             _backend = backend ?? throw new ArgumentNullException(nameof(backend));
             _profile = profile ?? throw new ArgumentNullException(nameof(profile));
@@ -327,7 +327,10 @@ namespace LiteFramework.Animation
             AnimationBackendCapabilities caps = _backend.Capabilities;
             if (startNormalized > 0f && (caps & AnimationBackendCapabilities.StartAtNormalized) == 0) return false;
             if (speed != 1f && (caps & AnimationBackendCapabilities.SpeedOverride) == 0) return false;
-            if (channel != AnimationChannel.Locomotion && (caps & AnimationBackendCapabilities.LayeredChannels) == 0) return false;
+            // 逐通道能力门（对称拆位）：覆盖层不需 Mask（任何 rig 可用）、叠加层需后端构造出 Mask——
+            // 各查各的能力位，缺失即提交前拒绝（不静默降级；§4 能力位诚实声明）
+            if (channel == AnimationChannel.Override && (caps & AnimationBackendCapabilities.OverrideChannel) == 0) return false;
+            if (channel == AnimationChannel.Overlay && (caps & AnimationBackendCapabilities.OverlayChannel) == 0) return false;
             return true;
         }
 

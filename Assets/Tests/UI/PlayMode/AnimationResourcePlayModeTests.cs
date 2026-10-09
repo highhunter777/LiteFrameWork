@@ -22,9 +22,10 @@ namespace LiteGame.Tests.UI.PlayMode
     ///
     /// **按资源可用性分流断言**——`CombatGirlsCharacterPack` 当前未入库（176MB，用户选择不入 VCS），
     /// 所以干净检出上真角色不可用。两条分支都必须**各自成立**：
-    /// - 有包：真角色 prefab 经真加载链路实例化 → 动画后端就位 → 驱动按速度切 Idle/Walk/Run；
-    /// - 无包：驱动**明确跳过**（不建播放器、不报错）——这正是《动画专项》§4"缺控制器的灰盒视图
-    ///   由驱动层跳过，表现为无动画而非报错"的记录契约，值得断言而非跳过。
+    /// - 有包：真角色 prefab（**直 Clip 形态**：挂绑定组件、无控制器）经真加载链路实例化 →
+    ///   清单登记供片 → 动画后端就位；
+    /// - 无包：驱动**明确跳过**（不建播放器、不报错）——无绑定组件的灰盒视图由驱动层跳过、
+    ///   表现为无动画而非报错的记录契约，值得断言而非跳过。
     ///
     /// 这不是放宽断言：`Assert.Ignore` 会让整个用例在干净检出上消失，而降级行为本身是要验的。
     /// </summary>
@@ -63,17 +64,17 @@ namespace LiteGame.Tests.UI.PlayMode
 
             if (!packAvailable)
             {
-                // 无包分支：断言**降级契约**（灰盒视图无控制器时不建播放器、不抛）
+                // 无包分支：断言**降级契约**（灰盒视图无绑定组件时不建播放器、不抛）
                 GameObject greybox = _scope.CreateGameObject("GreyboxView");
                 var viewRoot = _scope.CreateGameObject("ViewRoot").transform;
                 var sim = new SimWorldState();
                 greybox.transform.SetParent(viewRoot, false);
 
                 using (var driver = new CharacterLocomotionDriver(
-                           new SimView(sim, viewRoot, (loc, parent) => greybox)))
+                           new SimView(sim, viewRoot, (loc, parent) => greybox), ProductionProfile()))
                 {
-                    Assert.DoesNotThrow(() => driver.Tick(0.02f), "无控制器视图不得抛（灰盒降级，§4）");
-                    Assert.AreEqual(0, driver.AnimatedViews, "无控制器的视图不建播放器（AnimatedViews=0）");
+                    Assert.DoesNotThrow(() => driver.Tick(0.02f), "无绑定组件视图不得抛（灰盒降级，§4）");
+                    Assert.AreEqual(0, driver.AnimatedViews, "无绑定组件的视图不建播放器（AnimatedViews=0）");
                 }
                 yield break;
             }
@@ -85,21 +86,28 @@ namespace LiteGame.Tests.UI.PlayMode
 
             Animator animator = avatar.GetComponentInChildren<Animator>(true);
             Assert.IsNotNull(animator, "真角色视图应带 Animator");
-            Assert.IsNotNull(animator.runtimeAnimatorController, "真角色视图应带 RuntimeAnimatorController");
+            Assert.IsNotNull(avatar.GetComponentInChildren<LiteAnimator>(true), "真角色视图应挂绑定组件（直 Clip 形态发现面）");
+            Assert.IsNull(animator.runtimeAnimatorController, "直 Clip 模型：视图不挂控制器（片源走清单）");
 
-            // 后端契约直接验（真控制器 + 真状态名）
+            // 直 Clip 供片：经清单登记（与生产驱动同一登记面）
+            var loadManifest = AssetService.LoadAssetAsync<AnimationClipManifest>(CombatGirlsAnimationProfile.ClipManifestPath);
+            yield return Wait(loadManifest, 60f);
+            var manifest = loadManifest.Status == UniTaskStatus.Succeeded ? loadManifest.GetAwaiter().GetResult() : null;
+            Assert.IsNotNull(manifest, $"片段清单应可加载:{CombatGirlsAnimationProfile.ClipManifestPath}");
+
             var backend = new AnimatorAnimationBackend(animator);
-            var player = new CharacterAnimationPlayer(
-                backend, CombatGirlsAnimationProfile.Build());
+            backend.RegisterManifest(manifest);
+            var player = new AnimationPlayer(
+                backend, AnimationProfileTableSource.Load(ConfigService.DataDir, CombatGirlsAnimationProfile.ModelFamily));
             bool accepted = player.Play(new AnimationRequest(
-                CharacterAnimationIds.Run, AnimationChannel.Locomotion)).Accepted;
-            Assert.IsTrue(accepted, "真控制器中存在 Run 状态（Profile 绑定与包一致）");
-            Assert.IsTrue(backend.IsChannelActive(AnimationChannel.Locomotion),
-                "提交后 Locomotion 通道激活");
+                CharacterAnimationIds.Run, AnimationChannel.Base)).Accepted;
+            Assert.IsTrue(accepted, "清单应含 Run 绑定（Profile 绑定与清单一致）");
+            Assert.IsTrue(backend.IsChannelActive(AnimationChannel.Base),
+                "提交后 Base 通道激活");
 
             for (int i = 0; i < 20; i++) player.Tick(0.05f);
             yield return null;                                  // 让出一帧：真实 PlayerLoop
-            Assert.IsTrue(backend.IsChannelActive(AnimationChannel.Locomotion),
+            Assert.IsTrue(backend.IsChannelActive(AnimationChannel.Base),
                 "循环移动状态不自然结束（§5）");
 
             player.Dispose();                                   // §9 销毁序：释放后端（Graph.Destroy）
@@ -138,10 +146,10 @@ namespace LiteGame.Tests.UI.PlayMode
                 greybox.transform.SetParent(viewRoot, false);
 
                 using (var driver = new CharacterLocomotionDriver(
-                           new SimView(new SimWorldState(), viewRoot, (loc, parent) => greybox)))
+                           new SimView(new SimWorldState(), viewRoot, (loc, parent) => greybox), ProductionProfile()))
                 {
-                    Assert.DoesNotThrow(() => driver.Tick(0.02f), "无控制器视图不得抛（灰盒降级）");
-                    Assert.AreEqual(0, driver.AnimatedViews, "无控制器的视图不建播放器");
+                    Assert.DoesNotThrow(() => driver.Tick(0.02f), "无绑定组件视图不得抛（灰盒降级）");
+                    Assert.AreEqual(0, driver.AnimatedViews, "无绑定组件的视图不建播放器");
                 }
                 yield break;
             }
@@ -151,10 +159,16 @@ namespace LiteGame.Tests.UI.PlayMode
             avatar.transform.SetParent(root, false);
 
             Animator animator = avatar.GetComponentInChildren<Animator>(true);
-            Assert.IsNotNull(animator?.runtimeAnimatorController, "真角色应带 RuntimeAnimatorController");
+            Assert.IsNotNull(animator, "真角色视图应带 Animator（绑定组件 RequireComponent 保证）");
+
+            var loadManifest = AssetService.LoadAssetAsync<AnimationClipManifest>(CombatGirlsAnimationProfile.ClipManifestPath);
+            yield return Wait(loadManifest, 60f);
+            var manifest = loadManifest.Status == UniTaskStatus.Succeeded ? loadManifest.GetAwaiter().GetResult() : null;
+            Assert.IsNotNull(manifest, "片段清单应可加载");
 
             var backend = new AnimatorAnimationBackend(animator);
-            var player = new CharacterAnimationPlayer(backend, CombatGirlsAnimationProfile.Build());
+            backend.RegisterManifest(manifest);
+            var player = new AnimationPlayer(backend, AnimationProfileTableSource.Load(ConfigService.DataDir, CombatGirlsAnimationProfile.ModelFamily));
 
             // 记录终态（OnTerminal 是打断判据的出口——§6"旧待提交一并终止"）
             var terminals = new System.Collections.Generic.List<(AnimationHandle h, AnimationTerminalState t)>();
@@ -162,15 +176,15 @@ namespace LiteGame.Tests.UI.PlayMode
 
             // ① 先起 Run
             AnimationStartResult first = player.Play(new AnimationRequest(
-                CharacterAnimationIds.Run, AnimationChannel.Locomotion));
-            Assert.IsTrue(first.Accepted, "真控制器应有 Run 状态");
+                CharacterAnimationIds.Run, AnimationChannel.Base));
+            Assert.IsTrue(first.Accepted, "清单应含 Run 绑定");
 
             for (int i = 0; i < 5; i++) { player.Tick(0.05f); player.Tick(0.05f); }
 
             // ② 同通道再起 Walk → Run 应得 **Interrupted**（被接受的新播放接管替换）
             AnimationStartResult second = player.Play(new AnimationRequest(
-                CharacterAnimationIds.Walk, AnimationChannel.Locomotion));
-            Assert.IsTrue(second.Accepted, "真控制器应有 Walk 状态");
+                CharacterAnimationIds.Walk, AnimationChannel.Base));
+            Assert.IsTrue(second.Accepted, "清单应含 Walk 绑定");
 
             yield return null;                                  // 让真实 PlayerLoop 转一帧
 
@@ -178,7 +192,7 @@ namespace LiteGame.Tests.UI.PlayMode
                 "同通道替换必须让旧播放得 Interrupted 终态（§6 打断语义）");
 
             // ③ 通道归新播放所有（不是"两边都在跑"）
-            Assert.IsTrue(backend.IsChannelActive(AnimationChannel.Locomotion),
+            Assert.IsTrue(backend.IsChannelActive(AnimationChannel.Base),
                 "通道应仍处于激活态（新播放接管）");
             Assert.IsTrue(player.TryGetState(second.Handle, out AnimationPlaybackState state)
                           && state.Terminal == AnimationTerminalState.None,
@@ -189,10 +203,10 @@ namespace LiteGame.Tests.UI.PlayMode
             {
                 player.Play(new AnimationRequest(
                     i % 2 == 0 ? CharacterAnimationIds.Idle : CharacterAnimationIds.Run,
-                    AnimationChannel.Locomotion));
+                    AnimationChannel.Base));
                 player.Tick(0.02f);
             }
-            Assert.LessOrEqual(terminals.Count, CharacterAnimationPlayer.TerminalRetentionCapacity,
+            Assert.LessOrEqual(terminals.Count, AnimationPlayer.TerminalRetentionCapacity,
                 "反复打断的终态记录必须有界（§12：不能无限累积）");
 
             player.Dispose();
@@ -212,13 +226,19 @@ namespace LiteGame.Tests.UI.PlayMode
             var root = _scope.CreateGameObject("DisposeRoot").transform;
             avatar.transform.SetParent(root, false);
 
+            var loadManifest = AssetService.LoadAssetAsync<AnimationClipManifest>(CombatGirlsAnimationProfile.ClipManifestPath);
+            yield return Wait(loadManifest, 60f);
+            var manifest = loadManifest.Status == UniTaskStatus.Succeeded ? loadManifest.GetAwaiter().GetResult() : null;
+            Assert.IsNotNull(manifest, "片段清单应可加载");
+
             var backend = new AnimatorAnimationBackend(avatar.GetComponentInChildren<Animator>(true));
-            var player = new CharacterAnimationPlayer(backend, CombatGirlsAnimationProfile.Build());
+            backend.RegisterManifest(manifest);
+            var player = new AnimationPlayer(backend, AnimationProfileTableSource.Load(ConfigService.DataDir, CombatGirlsAnimationProfile.ModelFamily));
 
             AnimationTerminalState? terminal = null;
             player.OnTerminal += (h, t) => terminal = t;
 
-            player.Play(new AnimationRequest(CharacterAnimationIds.Run, AnimationChannel.Locomotion));
+            player.Play(new AnimationRequest(CharacterAnimationIds.Run, AnimationChannel.Base));
             for (int i = 0; i < 5; i++) player.Tick(0.05f);
 
             player.Dispose();                                    // Owner 释放
@@ -230,7 +250,7 @@ namespace LiteGame.Tests.UI.PlayMode
 
             // Owner 释放后不得再接受新播放
             AnimationStartResult after = player.Play(new AnimationRequest(
-                CharacterAnimationIds.Idle, AnimationChannel.Locomotion));
+                CharacterAnimationIds.Idle, AnimationChannel.Base));
             Assert.IsFalse(after.Accepted, "已释放的播放器不得接受新播放");
             Assert.AreEqual(AnimationStartResult.Reason.OwnerUnavailable, after.RejectReason,
                 "拒绝原因应为 OwnerUnavailable（稳定可诊断）");
@@ -238,23 +258,27 @@ namespace LiteGame.Tests.UI.PlayMode
         }
 
         [UnityTest]
-        public IEnumerator 动画_驱动对无控制器视图_跳过且不报错()
+        public IEnumerator 动画_驱动对无绑定组件视图_跳过且不报错()
         {
-            // 与资源可用性**无关**的契约：无控制器的视图必须被驱动层跳过（灰盒降级）。
-            // 该分支在有无角色包时都应成立，所以单独一条不依赖包。
-            var viewGo = _scope.CreateGameObject("NoControllerView");
+            // 与资源可用性**无关**的契约：无绑定组件的视图必须被驱动层跳过（灰盒降级——
+            // 发现面＝视图绑定组件，唯一判据）。该分支在有无角色包时都应成立，所以单独一条不依赖包。
+            var viewGo = _scope.CreateGameObject("NoBindingView");
             var root = _scope.CreateGameObject("Root").transform;
             viewGo.transform.SetParent(root, false);
 
             var sim = new SimWorldState();
-            using (var driver = new CharacterLocomotionDriver(new SimView(sim, root, (loc, parent) => viewGo)))
+            using (var driver = new CharacterLocomotionDriver(new SimView(sim, root, (loc, parent) => viewGo), ProductionProfile()))
             {
                 Assert.DoesNotThrow(() => driver.Tick(0.02f));
                 Assert.AreEqual(0, driver.AnimatedViews,
-                    "无 RuntimeAnimatorController 的视图不建播放器（§4 灰盒降级）");
+                    "无 LiteAnimator 的视图不建播放器（§4 灰盒降级）");
             }
             yield return null;
         }
+
+        /// <summary>生产形态 Profile（tbanimationprofile 表直载——与运行时同表同装载器，驱动器灰盒用例的实参）。</summary>
+        private static LiteFramework.Animation.AnimationProfile ProductionProfile()
+            => AnimationProfileTableSource.Load(ConfigService.DataDir, CombatGirlsAnimationProfile.ModelFamily);
 
         private static IEnumerator Wait(UniTask task, float timeoutSeconds)
         {

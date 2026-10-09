@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Threading;
 using Cysharp.Threading.Tasks;
 using LiteFramework;
+using LiteFramework.Animation;
 using LiteSim;
 using Luban;
 using cfg;
@@ -52,6 +53,7 @@ namespace LiteClient
             "tbstrategy",
             "tbcombatnum",      // 玩法数值（单行表；装载后产出 CombatValues 实例并发布读口——两端同源，见《玩法数值与Luban配置专项设计》）
             "tbweapon",          // 武器表（多行；装载后回填 WeaponConfig——Sim 武器系统消费）
+            "tbanimationprofile",// 动画 Profile 登记行（多族共存；装载后投影为 Core 行并发布读口——消费方经 AnimationProfileLoader 按族装配）
         };
 
         private readonly Func<string, CancellationToken, UniTask<byte[]>> _bytesProvider;
@@ -111,6 +113,7 @@ namespace LiteClient
             ApplyCombatNumbers(candidate);                 // 校验已过（行存在性由 ValidateCandidate 保证）
             ApplyMovementNumbers(candidate);               // 移动数值（同上：一致性闸门在 ValidateCandidate）
             ApplyWeaponTable(candidate);                   // 武器表（多行回填——WeaponSystem 消费）
+            ApplyAnimationProfile(candidate);               // 动画 Profile 行（投影为 Core 行并发布读口——对局装配/构建器/测试消费）
             _tables = candidate;                           // 对外可见（发布成功后）
             Log.Info($"配置快照发布完成:{TableDataFiles.Length} 张表 version={Version}", "Config");
         }
@@ -134,6 +137,23 @@ namespace LiteClient
                     return $"tbweapon id={row.Id} slot 越界：{row.Slot}（槽数 {SimConfig.WeaponSlotsPerEntity}——切枪装备依赖槽位映射）";
                 if (row.Pellets < 1)
                     return $"tbweapon id={row.Id} pellets 非法：{row.Pellets}（≥1——零弹丸＝哑枪，错表必两端分叉）";
+            }
+
+            // 动画 Profile 行：翻译边界（类别/通道字符串）+ 全族装载演练——语义校验
+            // （速度区间/两栖/回退防环/空绑定）全部前置到启动，错表炸在 Preload 而非对局装配
+            if (candidate.Tbanimationprofile == null || candidate.Tbanimationprofile.DataList.Count == 0)
+                return "tbanimationprofile 空表——表源被改坏或生成物过期";
+            try
+            {
+                var animRows = AnimationProfileTableMapper.ToRows(candidate.Tbanimationprofile);
+                var families = new HashSet<string>();
+                foreach (var row in animRows) families.Add(row.ModelFamily);
+                foreach (string family in families)
+                    AnimationProfileLoader.FromRows(animRows, family);   // 装载演练：结果丢弃，只为把语义错误炸在此处
+            }
+            catch (Exception ex)
+            {
+                return $"tbanimationprofile: {ex.Message}";
             }
             return null;
         }
@@ -206,6 +226,21 @@ namespace LiteClient
             if (table.TryGet(WeaponConfig.DefaultRifleId, out WeaponDef rifle))
                 Log.Info($"武器表装载：{count} 行（默认步枪 dmg={rifle.Damage} rpm={rifle.Rpm} " +
                     $"mag={rifle.MagazineSize} 节拍={rifle.FireIntervalFrames}帧）", "Config");
+        }
+
+        /// <summary>动画 Profile 行装载（表 → Core <see cref="AnimationProfileRow"/> 列表并**原子发布读口**）：
+        /// 生成行的字符串语义已在翻译边界转枚举、语义校验已在 <see cref="ValidateCandidate"/> 全族演练过——
+        /// 此处只投影与发布（消费方：对局装配/构建器/测试——经
+        /// <see cref="AnimationProfileLoader.FromRows"/> 按模型族装配，失败炸在装配期）。
+        /// 调用契约：<see cref="ValidateCandidate"/> 已过（行存在性与语义合法性闸在前）。</summary>
+        private static void ApplyAnimationProfile(Tables tables)
+        {
+            var rows = AnimationProfileTableMapper.ToRows(tables.Tbanimationprofile);
+            AnimationProfileConfig.Publish(rows);
+
+            var families = new HashSet<string>();
+            foreach (var row in rows) families.Add(row.ModelFamily);
+            Log.Info($"动画 Profile 行装载：{rows.Count} 行/{families.Count} 族（读口 AnimationProfileConfig.Rows）", "Config");
         }
     }
 }

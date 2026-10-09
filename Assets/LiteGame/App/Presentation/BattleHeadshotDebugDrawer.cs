@@ -6,7 +6,7 @@ namespace LiteGame
 #if UNITY_EDITOR || DEVELOPMENT_BUILD || LITEFRAMEWORK_DEBUG
     /// <summary>
     /// **服务端身位碰撞体常驻可视化**（测试模式诊断件，release 整段剥离；开关
-    /// <see cref="TestModeRuntime.DrawHeadshotDebug"/>，对局内 <b>F11</b> 即时切）。
+    /// <see cref="TestModeRuntime.DrawHeadshotDebug"/>，对局内由 GM 面板现场开合）。
     ///
     /// **画的就是服务端判定几何**：每个活体角色画一根**竖直圆柱**——半径取
     /// <see cref="CombatConfig.HitscanRadius"/>（命中柱：判定宽容裁决常量 0.45）、高取

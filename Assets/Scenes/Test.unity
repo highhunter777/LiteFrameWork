@@ -219,6 +219,15 @@ MonoBehaviour:
   UiPaused: 0
   StrictMode: 1
   UseLocalServer: 1
+  NoDeath: 1
+  InfiniteAmmo: 0
+  LaserSight: 1
+  DamageNumbers: 1
+  AutoHeadshot: 0
+  DrawHeadshotDebug: 0
+  TeleportEnabled: 1
+  BotFrozen: 0
+  BotCount: 1
 --- !u!114 &1304298841
 MonoBehaviour:
   m_ObjectHideFlags: 0

@@ -20,7 +20,7 @@ namespace LiteFramework.Animation
     /// 回退链**限制深度**并禁止成环（限制回退深度，禁止环）。
     /// 单片段与混合**各有一张 ID 表**（同 ID 不得两栖——解析形态会歧义，登记期即拒绝）；
     /// 回退链只作用于单片段路径（混合形态不同，不做跨形态回退）。
-    /// **上半身 Mask 排除子树**（通道之间的 Mask 由 Profile 固定）：遮罩默认由后端从骨架
+    /// **叠加层 Mask 排除子树**（通道之间的 Mask 由 Profile 固定）：遮罩默认由后端从骨架
     /// 自动派生（人形部位位 + 非腿骨全收），Profile 只登记**按域排除**的子树（布料域骨——
     /// 动画曲线与布料解算器争抢会让表现打架）。rig 特有知识与绑定同源，后端只消费不散写。
     /// </summary>
@@ -36,7 +36,7 @@ namespace LiteFramework.Animation
         private readonly Dictionary<AnimationId, AnimationDefinition> _defs = new Dictionary<AnimationId, AnimationDefinition>();
         private readonly Dictionary<AnimationId, AnimationBlendDefinition> _blends = new Dictionary<AnimationId, AnimationBlendDefinition>();
         private readonly Dictionary<AnimationId, AnimationId> _fallback = new Dictionary<AnimationId, AnimationId>();
-        private readonly List<string> _upperBodyMaskExclusions = new List<string>();
+        private readonly List<string> _overlayMaskExclusions = new List<string>();
 
         public FallbackPolicy Policy { get; }
 
@@ -45,10 +45,10 @@ namespace LiteFramework.Animation
         /// <summary>已登记的混合定义数。</summary>
         public int BlendCount => _blends.Count;
 
-        /// <summary>上半身 Mask 的排除子树路径（相对动画机根，与片段曲线路径同规；子树语义——
-        /// 命中路径自身与全部后代一并排除）。消费方：后端构造 <c>UpperBodyMaskFactory.TryBuild</c>——
+        /// <summary>叠加层 Mask 的排除子树路径（相对动画机根，与片段曲线路径同规；子树语义——
+        /// 命中路径自身与全部后代一并排除）。消费方：后端构造 <c>OverlayMaskFactory.TryBuild</c>——
         /// 骨架自动派生的纳入面里减掉这些子树（布料域骨等）。</summary>
-        public IReadOnlyList<string> UpperBodyMaskExclusions => _upperBodyMaskExclusions;
+        public IReadOnlyList<string> OverlayMaskExclusions => _overlayMaskExclusions;
 
         public AnimationProfile(FallbackPolicy policy = FallbackPolicy.Reject)
         {
@@ -118,18 +118,18 @@ namespace LiteFramework.Animation
             return this;
         }
 
-        /// <summary>登记上半身 Mask 排除子树（链式；空串显性拒绝——登记即校验）。子树语义：
+        /// <summary>登记叠加层 Mask 排除子树（链式；空串显性拒绝——登记即校验）。子树语义：
         /// 命中路径自身与全部后代一并排除。只追加不去重（重复登记对 Mask 无损）。</summary>
-        public AnimationProfile RegisterUpperBodyMaskExclusions(params string[] subtreePaths)
+        public AnimationProfile RegisterOverlayMaskExclusions(params string[] subtreePaths)
         {
             if (subtreePaths == null)
                 throw new ArgumentNullException(nameof(subtreePaths));
             foreach (var path in subtreePaths)
             {
                 if (string.IsNullOrWhiteSpace(path))
-                    throw new ArgumentException("上半身 Mask 排除路径为空串", nameof(subtreePaths));
+                    throw new ArgumentException("叠加层 Mask 排除路径为空串", nameof(subtreePaths));
             }
-            _upperBodyMaskExclusions.AddRange(subtreePaths);
+            _overlayMaskExclusions.AddRange(subtreePaths);
             return this;
         }
 
@@ -169,7 +169,7 @@ namespace LiteFramework.Animation
             }
 
             // 通道以后端绑定所在定义为权威（状态路径绑死在某通道上）；请求通道与之不符时以请求为准会让
-            // "上半身动作被塞进全身通道"这类错误静默生效——故按定义通道提交，调用方可用 TryGetDefinition 自查。
+            // "叠加层动作被塞进覆盖层通道"这类错误静默生效——故按定义通道提交，调用方可用 TryGetDefinition 自查。
             resolved = new AnimationResolvedPlayback(def.Id, def.Channel, def.Binding,
                 request.StartNormalized, request.Speed, def.RequiresLoad, def.Loop);
             return true;
@@ -191,6 +191,14 @@ namespace LiteFramework.Animation
         public bool TryGetDefinition(AnimationId id, out AnimationDefinition def) => _defs.TryGetValue(id, out def);
 
         public bool TryGetBlendDefinition(AnimationId id, out AnimationBlendDefinition def) => _blends.TryGetValue(id, out def);
+
+        /// <summary>全部已登记的单片段定义（**装配校验消费面**：片源登记方据此核对"每个绑定键都有
+        /// 片段可解析"，防 Profile 与片源两处登记面漂移——只读遍历，不提供改表途径；
+        /// 遍历次序不保证，消费方不得依赖次序做语义）。</summary>
+        public IReadOnlyCollection<AnimationDefinition> Definitions => _defs.Values;
+
+        /// <summary>全部已登记的混合定义（同 <see cref="Definitions"/>——校验面须连同槽位绑定一起覆盖）。</summary>
+        public IReadOnlyCollection<AnimationBlendDefinition> BlendDefinitions => _blends.Values;
 
         /// <summary>
         /// 解析混合请求 → 混合方案。与 <see cref="TryResolve"/> 同一纪律：**先字段校验再查定义**，

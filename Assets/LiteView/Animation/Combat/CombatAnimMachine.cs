@@ -15,7 +15,7 @@ namespace LiteView.Animation
         /// <summary>战斗根（复合态①——上层）：射击窗持有者 + 退根/降级**单点裁决**者。</summary>
         CombatRoot = 0,
 
-        /// <summary>移动根（复合态②——下层）：默认移动，MoveBlend 独占 Locomotion 通道。</summary>
+        /// <summary>移动根（复合态②——下层）：默认移动，MoveBlend 独占 Base 通道。</summary>
         LocomotionRoot = 1,
 
         /// <summary>开火·静止：持 AimIdle 循环（开火不播专用片段——反馈归枪口特效）。</summary>
@@ -62,7 +62,7 @@ namespace LiteView.Animation
     ///   事件刷新＝重置满窗；**窗内保持 clip**——Fire 族持 AimIdle 家族循环（开火不播专用片段，
     ///   见 <see cref="CombatGirlsAnimationProfile"/>）；窗尽 = 保持 clip 的终点（同形态次态续播保相位、
     ///   异形态提交替换）；
-    /// - **通道接管**：各根自管本根通道（移动根收/建 Locomotion、战斗根收 FullBody）——事务序
+    /// - **通道接管**：各根自管本根通道（移动根收/建 Base、战斗根收 Override）——事务序
     ///   （先深→浅退出、再浅→深进入）结构性保证先停旧通道再开新通道。
     /// </summary>
     public static class CombatAnimMachine

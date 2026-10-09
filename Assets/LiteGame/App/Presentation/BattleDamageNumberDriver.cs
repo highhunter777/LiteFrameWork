@@ -108,6 +108,10 @@ namespace LiteGame
             if (_disposed) return;
             if (ctx.Kind != FrameEventKind.Hit && ctx.Kind != FrameEventKind.Crit) return;   // 死亡/开火不进飘字
             if (ctx.LocalRole == HitLocalRole.Bystander) return;                             // 口径：只显本地造成/承受
+#if UNITY_EDITOR || DEVELOPMENT_BUILD || LITEFRAMEWORK_DEBUG
+            // 测试模式开关：飘字是正式特性（非测试模式恒显），测试房内可由 GM 面板现场开合
+            if (TestModeRuntime.Active && !TestModeRuntime.DamageNumbers) return;
+#endif
 
             // 诊断探针（真机实测 Tick 枚举曾被中途修改——InvalidOperation 一次，静态排查枚举体内
             // 全部外部调用均为纯读，重入面未定位）：命中本应只在逻辑帧边界（Tick 外）到达；

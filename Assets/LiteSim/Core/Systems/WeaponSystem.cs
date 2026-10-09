@@ -140,15 +140,18 @@ namespace LiteSim
             if (frame < w.NextFireFrame) return false;                    // 射速节拍
             if (w.MagAmmo <= 0) return false;                             // 空仓（备弹有余时已由上次末发自动换弹）
 
-            w.MagAmmo--;
+            // 测试模式无限子弹：不扣弹、也不会打空（末发自动换弹随之不触发）——满弹状态下换弹请求亦被 ② 拒
+            if (!SimTestRules.InfiniteAmmo)
+            {
+                w.MagAmmo--;
+                if (w.MagAmmo == 0 && w.ReserveAmmo > 0)                  // 末发自动换弹（打空即补）
+                {
+                    w.State = WeaponSlotState.Reloading;
+                    w.ReloadEndFrame = frame + def.ReloadFrames;
+                }
+            }
             w.NextFireFrame = frame + def.FireIntervalFrames;
             w.ShotSeq++;
-
-            if (w.MagAmmo == 0 && w.ReserveAmmo > 0)                      // 末发自动换弹（打空即补）
-            {
-                w.State = WeaponSlotState.Reloading;
-                w.ReloadEndFrame = frame + def.ReloadFrames;
-            }
             return true;
         }
 

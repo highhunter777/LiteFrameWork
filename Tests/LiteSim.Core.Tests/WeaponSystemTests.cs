@@ -288,6 +288,38 @@ namespace LiteSim.Tests
         }
 
         [Fact]
+        public void 无限子弹_连射不扣弹_不触发末发自动换弹_换弹请求被拒()
+        {
+            var (world, id, slot) = Spawn();
+            WeaponSystem.Run(world, Idle(id), WeaponTable.Default);
+            ref WeaponRuntime w = ref WeaponOf(world, slot);
+            WeaponDef def = WeaponConfig.Default;
+
+            SimTestRules.InfiniteAmmo = true;                       // 测试模式规则（用例毕复位，防跨用例污染）
+            try
+            {
+                for (int i = 0; i < def.MagazineSize * 2; i++)      // 连射两倍弹匣量
+                {
+                    world.Frame = i * def.FireIntervalFrames;
+                    ShootingSystem.Run(world, NoObstacles, Fire(id), CombatValues.Default, WeaponTable.Default);
+                }
+                Assert.Equal(def.MagazineSize, w.MagAmmo);          // 弹匣不降
+                Assert.Equal(WeaponSlotState.Ready, w.State);       // 也不进入末发自动换弹
+                Assert.Equal(def.ReserveAmmo, w.ReserveAmmo);       // 备弹未动
+                Assert.Equal(def.MagazineSize * 2, FireEvents(world));   // 每发都真打出
+
+                world.Frame += 1;
+                WeaponSystem.Run(world, Reload(id), WeaponTable.Default);
+                Assert.Equal(WeaponSlotState.Ready, w.State);       // 换弹请求：满弹被拒（不进入 Reloading）
+                Assert.Equal(def.MagazineSize, w.MagAmmo);
+            }
+            finally
+            {
+                SimTestRules.InfiniteAmmo = false;                  // 静态规则：用例毕复位
+            }
+        }
+
+        [Fact]
         public void 未装备实体_不经武器门_维持旧路径()
         {
             // 直调 ShootingSystem（不跑 WeaponSystem）＝测试/沙盒形态：装备前逐帧可开火（旧行为）

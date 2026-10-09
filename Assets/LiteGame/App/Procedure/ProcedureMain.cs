@@ -55,14 +55,13 @@ namespace LiteGame
             // 门禁与 SimSandbox 同口径：开发/编辑器可用，正式包无该入口（不塞进 Release 玩家）。
             if (UnityEngine.Input.GetKeyDown(UnityEngine.KeyCode.F9))
                 m.Request(ProcedureId.Match);
-            // F10 = 测试模式快捷入口（GM 面板等效）：未配置过时套默认口径；进入即本地服 Room-Test。
+            // F10 = 测试模式快捷入口（GM 面板等效）：把场景 DebugTuner 的启动配置快照进运行时（未挂则套默认口径）；进入即本地服 Room-Test。
             if (UnityEngine.Input.GetKeyDown(UnityEngine.KeyCode.F10))
             {
-                if (!TestModeRuntime.Configured) TestModeRuntime.ApplyDefaults();
-                TestModeRuntime.Active = true;
+                DebugTuner.ApplySnapshotOrDefaults();
                 TestModeRuntime.EnterRequested = true;
             }
-            if (TestModeRuntime.EnterRequested)                 // GM 面板/测试面板同一条链
+            if (TestModeRuntime.EnterRequested)                 // GM 面板/F10 同一条链
             {
                 TestModeRuntime.EnterRequested = false;
                 TestModeRuntime.Active = true;

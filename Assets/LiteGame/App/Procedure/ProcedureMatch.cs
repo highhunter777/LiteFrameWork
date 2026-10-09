@@ -120,6 +120,7 @@ namespace LiteGame
         {
 #if UNITY_EDITOR || DEVELOPMENT_BUILD || LITEFRAMEWORK_DEBUG
             LiteSim.SimTestRules.NoDeath   = testRoom && TestModeRuntime.NoDeath;   // 规则随入口设置：常规入口（F9）一律复位
+            LiteSim.SimTestRules.InfiniteAmmo = testRoom && TestModeRuntime.InfiniteAmmo;
             LiteSim.SimTestRules.Active    = testRoom;                             // 本地服宿主钩子（冻结/传送）开关
             LiteSim.SimTestRules.BotFrozen = testRoom && TestModeRuntime.BotFrozen;
             LiteSim.SimTestRules.TeleportDispatch = false;                         // 进房清残留请求

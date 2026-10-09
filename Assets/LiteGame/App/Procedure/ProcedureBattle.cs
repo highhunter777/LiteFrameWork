@@ -2,6 +2,7 @@ using System;
 using System.Threading;
 using Cysharp.Threading.Tasks;
 using LiteFramework;
+using LiteFramework.Animation;
 using LiteSim;
 using LiteView;
 using LiteView.Animation;
@@ -34,10 +35,6 @@ namespace LiteGame
         private const UnityEngine.KeyCode LeaveKey = UnityEngine.KeyCode.F10;
         /// <summary>测试模式传送键（传送到当前准心点）。</summary>
         private const UnityEngine.KeyCode TeleportKey = UnityEngine.KeyCode.T;
-        /// <summary>爆头判定点绘制开关键（运行中即时切；F10已被离场/进房占用）。</summary>
-        private const UnityEngine.KeyCode HeadshotDebugKey = UnityEngine.KeyCode.F11;
-        /// <summary>爆头自动验证开关键（替换输入源自动打爆头；F11/F10 已占用故取 F12）。</summary>
-        private const UnityEngine.KeyCode AutoHeadshotKey = UnityEngine.KeyCode.F12;
 #endif
 
         /// <summary>瞄准滞回的最小保持宽度——与 Brain DefaultBlend（EaseInOut 0.3s）对齐：
@@ -71,6 +68,11 @@ namespace LiteGame
         /// 加载失败 → 静默降级（warn 一次，无飘字不失败——同准心/激光缺失口径）。</summary>
         private const string DamageNumberPrefab = "Assets/FX/fx_damage_number.prefab";
 
+        /// <summary>角色片段清单（去 AC 主路径的片源：键→Clip 显式引用的纯配置资产，随 prefab 同收集组；
+        /// 路径单源在动画 Profile——角色族配置归一处）。加载失败 → 静默降级（warn 一次）：
+        /// 驱动回退控制器便利源，不把"缺清单"当对局失败（同激光/飘字/角色 prefab 灰盒口径）。</summary>
+        private const string ClipManifestPath = CombatGirlsAnimationProfile.ClipManifestPath;
+
         private readonly IContentService _content;
         private readonly IVFXService _vfx;
         private readonly IInputService _input;       // 输入服务
@@ -95,11 +97,12 @@ namespace LiteGame
         private BattleMuzzleFlashDriver _muzzleFlash;      // 枪口火光（Fire 帧事件 → 武器挂点跟随 VFX）
         private BattleImpactFxDriver _impactFx;            // 敌人命中特效（我造成的 Hit/Crit → 受击点世界位 VFX）
         private AssetLease<GameObject> _damageNumberLease; // 飘字底件租约（实例由驱动工厂逐条实例化）
+        private AssetLease<AnimationClipManifest> _clipManifestLease;    // 片段清单租约（驱动装配期逐键登记；随 _viewScope 归还）
         private readonly LiteFramework.IWorldClock _worldClock;  // 世界钟（伤害数字寿命/合并窗——不累加渲染帧 delta，实测编辑器态会通胀）
         private Func<Vector3?> _aimPointOf;             // 瞄准点来源（世界坐标；null = 无设备形态——相机保持场景构图）
 #if UNITY_EDITOR || DEVELOPMENT_BUILD || LITEFRAMEWORK_DEBUG
         private BattleHeadshotDebugDrawer _headshotDebug;   // 身位圆柱/爆头带常驻可视化（测试模式诊断件；release 剥离）
-        private AutoHeadshotRig _autoHeadshot;         // 爆头自动验证件（F12；release 剥离）
+        private AutoHeadshotRig _autoHeadshot;         // 爆头自动验证件（GM 面板现场开关；release 剥离）
 #endif
         private Transform _viewRoot;
         private GameObject _viewRootGo;
@@ -159,6 +162,7 @@ namespace LiteGame
                 await AcquireEntityPrefabAsync(ct);
                 await AcquireLaserSightAsync(ct);
                 await AcquireDamageNumberAsync(ct);
+                await AcquireClipManifestAsync(ct);
 
                 _matchSession = _matchSessions?.Create(accountSession)
                     ?? throw new InvalidOperationException("缺少 MatchSessionFactory（完整 DI 装配要求由工厂创建 Match 域）");
@@ -312,6 +316,26 @@ namespace LiteGame
         }
 
         /// <summary>
+        /// 取角色片段清单（去 AC 主路径的片源——键→Clip 显式引用的纯配置，键单源在动画 Profile）。
+        /// 资源缺失/加载失败 → **静默降级**（只警告）：驱动回退控制器便利源（有控制器的模型不受影响），
+        /// 不把"缺清单"当对局失败（同激光/飘字/角色 prefab 灰盒口径）。清单在则驱动按 Profile 绑定
+        /// 做全覆盖校验——清单与 Profile 不同步属配置错误，由驱动构造期显性失败。
+        /// </summary>
+        private async UniTask AcquireClipManifestAsync(CancellationToken ct)
+        {
+            try
+            {
+                _clipManifestLease = await _content.AcquireAsync<AnimationClipManifest>(ClipManifestPath, ct: ct);
+                _viewScope.Register(_clipManifestLease);
+            }
+            catch (Exception ex) when (!(ex is OperationCanceledException))
+            {
+                UnityEngine.Debug.LogWarning($"[Battle] 片段清单缺失/加载失败，动画回退控制器便利源:{ClipManifestPath}（{ex.Message}）");
+                _clipManifestLease = null;
+            }
+        }
+
+        /// <summary>
         /// 挂伤害数字（<see cref="BattleDamageNumberDriver"/>——命中反馈首个消费者；文本/位形/池归驱动；
         /// 寿命与合并窗走世界钟——变速/暂停语义内建）。底件缺 <see cref="TMPro.TextMeshPro"/>（资产被改）
         /// 或世界钟未注入（装配缺口）→ 警告并降级，不失败。
@@ -403,7 +427,11 @@ namespace LiteGame
                 camera: _camera);
             _context.AttachView(_view);
 
-            _locomotion = new CharacterLocomotionDriver(_view);   // 移动动画：视图速度 → 播放器 → Animator 后端（§7 更新次序的 Driver 段）
+            // 动画 Profile：表单源（读口行 → 按模型族装载——缺行/坏行在装配期显性失败）
+            var animationProfile = AnimationProfileLoader.FromRows(
+                AnimationProfileConfig.Rows, CombatGirlsAnimationProfile.ModelFamily);
+            _locomotion = new CharacterLocomotionDriver(_view, animationProfile,
+                manifest: _clipManifestLease?.Asset);   // 移动动画：视图速度 → 播放器 → 后端（清单在 = 去 AC 主路径供片；缺清单回退控制器便利源）
 
             AttachCrosshair();                                  // 对局准心（HUD 第一件——视图/输入均已就绪，场景对象按名解析）
             AttachHud();                                        // HUD 面板（HUD 第二件：血条/弹药——同根场景对象，静默降级）
@@ -415,7 +443,7 @@ namespace LiteGame
 #if UNITY_EDITOR || DEVELOPMENT_BUILD || LITEFRAMEWORK_DEBUG
             // 爆头区域常驻可视化（测试模式诊断件）：只读预测态，不改判定；release 剥离
             _headshotDebug = new BattleHeadshotDebugDrawer(_context.Sim);
-            // 爆头自动验证件（F12）：替换输入源 + 统计爆头/命中，用于真实对局端到端验链路
+            // 爆头自动验证件（GM 面板现场开关）：替换输入源 + 统计爆头/命中，用于真实对局端到端验链路
             _autoHeadshot = new AutoHeadshotRig(_context.Sim.State, _context.LocalEntityId);
             _hitFeedback?.Register(_autoHeadshot);
 #endif
@@ -615,6 +643,7 @@ namespace LiteGame
             _viewRoot = null;
             _prefab = null;
             _prefabLease = null;                                  // 租约随 _viewScope.Dispose 归还
+            _clipManifestLease = null;                            // 同上（清单租约只持引用——登记面已在驱动装配完成）
             _viewScope?.Dispose();
             _viewScope = null;
         }
@@ -627,21 +656,19 @@ namespace LiteGame
             // 主动离场热键（测试入口，与 ProcedureMain F9 进对局同门禁）：Leave → Ended(Leave) → 收尾回 Main。
             // 此处只留热键，不进正式 UI（正式离场入口由 UI 层提供）。
 
-            // 爆头区域常驻可视化（F11 切换；常驻跟随，开关关时零开销）
-            if (UnityEngine.Input.GetKeyDown(HeadshotDebugKey))
-            {
-                TestModeRuntime.DrawHeadshotDebug = !TestModeRuntime.DrawHeadshotDebug;
-                UnityEngine.Debug.Log($"[Battle] 身位/爆头区可视化={(TestModeRuntime.DrawHeadshotDebug ? "开" : "关")}（F11：服务端判定圆柱）");
-            }
+            // 爆头区域常驻可视化（GM 面板现场开关；常驻跟随，开关关时零开销）
             _headshotDebug?.Tick();
 
-            // **F12 = 爆头自动验证**：替换输入源为「自动锁定最近敌人 + 瞄准头部带中心 + 持续开火」，
+            // **爆头自动验证（GM 面板现场开关）**：替换输入源为「自动锁定最近敌人 + 瞄准头部带中心 + 持续开火」，
             // 并统计爆头/命中次数。用于在真实对局里端到端验「AimPoint 上报 → 协议 → InputGate 闸门
             // → 回溯补判 → 爆头判定 → Crit 事件」整条链——L1 覆盖不到采集侧与闸门这两段。
-            if (UnityEngine.Input.GetKeyDown(AutoHeadshotKey))
+            if (TestModeRuntime.AutoHeadshot)
             {
-                if (_autoHeadshot != null && _autoHeadshot.Active) _autoHeadshot.Disable();
-                else _autoHeadshot?.Enable(_input);
+                if (_autoHeadshot != null && !_autoHeadshot.Active) _autoHeadshot.Enable(_input);
+            }
+            else if (_autoHeadshot != null && _autoHeadshot.Active)
+            {
+                _autoHeadshot.Disable();               // 还原设备源（与离场清理同一路径）
             }
             _autoHeadshot?.Tick();
             if (UnityEngine.Input.GetKeyDown(LeaveKey)) _context.Leave();

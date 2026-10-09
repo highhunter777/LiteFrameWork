@@ -1,7 +1,7 @@
 # 04 · 技术细节：Sim、联机与服务端
 
 > 本文件的三个主题其实是**一份源码的三种用法**：`Assets/LiteSim/Core`（判定）与 `Assets/RoomServer/Runtime`（房间内核）**两端共编**，`Assets/LiteNet` 提供两端的协议与传输。
-> 设计契约以 [状态同步专项设计](../design/networking/状态同步专项设计.md)、[服务端总设计](../design/architecture/商业级通用服务端框架总设计.md)、[Meta 服务专项设计](../design/architecture/Meta服务专项设计.md) 为准。
+> 设计契约以 [状态同步专项设计](../设计文档/networking/状态同步专项设计.md)、[服务端总设计](../设计文档/architecture/商业级通用服务端框架总设计.md)、[Meta 服务专项设计](../设计文档/architecture/Meta服务专项设计.md) 为准。
 
 ## 1. 确定性 Sim：`Assets/LiteSim/Core`
 
@@ -10,8 +10,26 @@
 | 件 | 用途 |
 |---|---|
 | `FrameDriver.Tick(realDelta, …)` | **渲染帧 → 逻辑帧**：累加器按固定 dt 追帧，单帧最多追 `MaxCatchUp`（超限丢余量而不是雪崩）；每个逻辑帧末回调消费事件再清缓冲 |
-| `FramePump.Step` | **定次步进**：要几帧给几帧——服务端与无头客户端用它 1:1 步进，避免帧号与输入序列漂移 |
-| `SimStep.Step/FlushCommands` | 单个逻辑帧内的**固定顺序**：Input → Movement → Shooting → 伤害命令结算（固定轮次）→ Cleanup；输入就地按 `EntityId` 升序排序 |
+| `SimStep.Step/FlushCommands` | 单个逻辑帧内的**固定顺序**（顺序的唯一来源，见 §1.4）；输入就地按 `EntityId` 升序排序（零分配插入排序，R4 合规） |
+| `FramePump.Step` | **定次步进**（要几帧给几帧，1:1 不补不丢）——**当前零调用点**：类注释设想给"网络对跑/服务器权威步进/无头客户端"，但服务端 `RoomRuntime.StepFrame`（`RoomRuntime.cs:406`）与客户端 `RollbackSim` 走的都是 `SimStep.Step` 直调 / `FrameDriver`。属**已实现但未接线**件，不是生产路径 |
+
+### 1.1.1 `SimStep.Step` 的确切顺序（2026-10-10 逐行核对）
+
+`Assets/LiteSim/Core/Scripts/SimStep.cs:21-33`，**纯硬编码直线调用**——没有数组/枚举/特性驱动的系统注册表（类注释明示"不用自动扫描，系统集合编译期确定"）：
+
+```
+前置：Match.Phase == Finished → 清命令缓冲并 return
+SortInputs（按 EntityId 升序稳定插入）
+1 RespawnSystem.Run      2 InputSystem.Run       3 MovementSystem.Run
+4 WeaponSystem.Run       5 ShootingSystem.Run
+6 FlushCommands（固定最多 3 轮，每轮 DamageSystem.Run → ScoreSystem.Run，轮末清缓冲）
+7 CleanupSystem.Run      8 s.Frame++            9 if (advanceMatch) MatchSystem.Tick
+```
+
+**两处与文档/注释不一致的实现事实**：
+
+- **生产路径的 `Match` 不在 `Step` 内**：`RoomRuntime.StepFrame` 传 `advanceMatch: false`，改为在 `ConsumePendingFire()`（服务器回溯 `LagCompensator` 判定）**之后**单独调 `MatchSystem.Tick`，并对同帧 `SnapshotHistory.Capture` **二次捕获**以覆盖最终计分/比赛状态。即"Match 放最后"仅在默认 `advanceMatch: true` 形态成立；生产形态是"回溯判定之后"。
+- **各系统类注释里的"§3.3 顺序第 N 位"编号互相冲突且都不等于实际位置**：`InputSystem` 自称第 1 位、`MovementSystem` 第 2 位、`ShootingSystem` 第 3 位、`DamageSystem` 第 4 位，而实际是 Respawn 在 Input 之前、Shooting 在 Weapon 之后、Damage 在命令轮次内。以 `SimStep.cs` 为唯一准绳。
 
 ### 1.2 "确定性"靠什么守住
 
@@ -22,6 +40,18 @@
 | 定长数组 + 深拷 | `SimWorldState.CopyTo` 逐数组拷贝；`EntitySlot` 为 blittable 值类型；槽位 Id **版本化**（防复用误命中） |
 | 跨运行时逐位对账 | `IeeeProbe`（两端探针）+ `Core/Editor/IeeeBaselineChecker`（编辑器对账）+ L1 用例 `IeeeBoundaryTests` / `SimDeterminismTests` / `SimLayoutContractTests` |
 | 状态摘要 | `SimChecksum`：FNV-1a 32 位、float 按位混合；**两个口径**——全量（基线/重放/归档）与**公共**（线上和解用，只含公共可重建字段） |
+
+### 1.2.1 数值面：实例化到什么程度（2026-10-10 逐件核对）
+
+技术债 #1 的根治是"静态可变装载面 → 按值传递的实例"。**已根治的**：`CombatValues`（6 字段，经 `SimStep.Step(..., in CombatValues values, ...)` 显式传入每个系统）、`WeaponTable`（定容行表 + 槽位默认映射）。**未完成的**：
+
+| 件 | 状态 |
+|---|---|
+| `MovementValues`（`tbmovementconfig` 单行 18 字段） | **无任何机制消费方**——`MovementSystem.Run` 收的是 `CombatValues`，移动表只经 `Gravity` 一个字段投影进 `CombatValues`。走/跑/冲、滑铲、空中控制、二段跳、钩爪、闪现共 17 个字段**已装载但无机制读取**。`MovementValues.cs` 类注释自陈"机制消费随对应 Sim 系统落地逐项接入" |
+| `MovementConfig` 18 个便捷读口属性 | **零生产读者**（写入方仅 `ConfigService.Publish`，读取方无）——同类读口里 `CombatConfig`/`WeaponConfig` 各有 2 处生产读者（`SimSandbox`、`BattleContext` 构造期取实例再下传），`MovementConfig` 一处也没有 |
+| `EntityValues`（1 字段） | 仅 `CombatValues.Default` 内引用一次，无独立消费 |
+
+摘要侧一处**覆盖不对称**（值得记账）：`CombatConfigDigest` 的 15 行规范化文本里 `HeadshotRadius` **进了**摘要（理由是"两端同值由生成文件保证，仍进摘要兜底只改一端"），而同文件同源的 `HeadHitLine` **刻意不进**（`CombatConfig.cs:156` 声明"代码常量两端编译期同值"）。二者同属 `HeadBake.g.cs` 的同一份产物、同一套论证，却一进一出——改动 `HeadBake.Ratio` 不会被两端拒进房拦截。
 
 ### 1.3 预测 · 回滚 · 和解（客户端侧）
 
@@ -48,7 +78,7 @@
 
 | 项 | 内容 |
 |---|---|
-| 覆盖 | `Assets/LiteSim/Core/Scripts`、`Assets/LiteSim/Core/Systems`、`Assets/LiteNet/Proto`、`Assets/LiteNet/Protocol` ＋ **玩法表数据**（`Assets/GameData/Config/*.bytes`——**两端同读这一份**；服务端 `RoomServer/Data` json 已退役 2026-09-28；UI 表如 `tbuiform` 显式排除） |
+| 覆盖 | `Assets/LiteSim/Core/Scripts`、`Assets/LiteSim/Core/Systems`、`Assets/LiteNet/Proto`、`Assets/LiteNet/Protocol`、`Assets/LiteNet/Transport/Security`（安全信封——密文帧形状/握手版本变更即两端 wire 不兼容）＋ **玩法表数据**（`Assets/GameData/Config/*.bytes`——**两端同读这一份**；服务端 `RoomServer/Data` json 已退役 2026-09-28；UI 表如 `tbuiform` 显式排除） |
 | 算法 | 按相对路径 Ordinal 排序 → 逐个喂 `路径\0内容（行尾 CRLF/CR→LF 归一化）` → SHA-256 → 取前 16 个十六进制字符 |
 | 生成 | `python scripts/codegen/gen-build-hash.py` → `Assets/LiteNet/Protocol/BuildHash.g.cs` |
 | 握手 | `RoomClient.SendJoin → JoinRequest.build_hash`：两端不等 → 拒绝进房（**改 Sim/协议/表必须重跑生成器**） |

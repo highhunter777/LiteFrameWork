@@ -1,0 +1,15 @@
+return
+{
+["Locomotion.Idle"] = {id="Locomotion.Idle",model_family="CombatGirls",kind="single",channel="base",binding="Idle",bindings="",loop=true,min_speed=0.01,max_speed=2,hold_on_finish=false,requires_load=false,fallback_id="",},
+["Locomotion.Walk"] = {id="Locomotion.Walk",model_family="CombatGirls",kind="single",channel="base",binding="Walk",bindings="",loop=true,min_speed=0.01,max_speed=2,hold_on_finish=false,requires_load=false,fallback_id="",},
+["Locomotion.Run"] = {id="Locomotion.Run",model_family="CombatGirls",kind="single",channel="base",binding="Run",bindings="",loop=true,min_speed=0.01,max_speed=2,hold_on_finish=false,requires_load=false,fallback_id="",},
+["Locomotion.AimIdle"] = {id="Locomotion.AimIdle",model_family="CombatGirls",kind="single",channel="override",binding="AimIdle",bindings="",loop=true,min_speed=0.01,max_speed=2,hold_on_finish=false,requires_load=false,fallback_id="",},
+["Combat.Reload"] = {id="Combat.Reload",model_family="CombatGirls",kind="single",channel="override",binding="Reload",bindings="",loop=false,min_speed=0.5,max_speed=2,hold_on_finish=true,requires_load=false,fallback_id="",},
+["Combat.Hit"] = {id="Combat.Hit",model_family="CombatGirls",kind="single",channel="override",binding="Hit1",bindings="",loop=false,min_speed=0.5,max_speed=2,hold_on_finish=false,requires_load=false,fallback_id="",},
+["Combat.Death"] = {id="Combat.Death",model_family="CombatGirls",kind="single",channel="override",binding="Die2",bindings="",loop=false,min_speed=0.5,max_speed=1.5,hold_on_finish=true,requires_load=false,fallback_id="",},
+["Combat.Evade"] = {id="Combat.Evade",model_family="CombatGirls",kind="single",channel="override",binding="Evade",bindings="",loop=false,min_speed=0.7,max_speed=1.5,hold_on_finish=false,requires_load=false,fallback_id="",},
+["Locomotion.MoveBlend"] = {id="Locomotion.MoveBlend",model_family="CombatGirls",kind="blend",channel="base",binding="",bindings="Idle,Walk,Run",loop=false,min_speed=0.01,max_speed=2,hold_on_finish=false,requires_load=false,fallback_id="",},
+["Locomotion.AimMoveBlend"] = {id="Locomotion.AimMoveBlend",model_family="CombatGirls",kind="blend",channel="override",binding="",bindings="AimWalk_F,AimWalk_R,AimWalk_B,AimWalk_L",loop=false,min_speed=0.01,max_speed=2,hold_on_finish=false,requires_load=false,fallback_id="",},
+["root/pelvis/spine_01/spine_02/spine_03/add_chest_l01"] = {id="root/pelvis/spine_01/spine_02/spine_03/add_chest_l01",model_family="CombatGirls",kind="mask",channel="",binding="",bindings="",loop=false,min_speed=0,max_speed=0,hold_on_finish=false,requires_load=false,fallback_id="",},
+["root/pelvis/spine_01/spine_02/spine_03/add_chest_r01"] = {id="root/pelvis/spine_01/spine_02/spine_03/add_chest_r01",model_family="CombatGirls",kind="mask",channel="",binding="",bindings="",loop=false,min_speed=0,max_speed=0,hold_on_finish=false,requires_load=false,fallback_id="",},
+}

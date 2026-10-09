@@ -5,7 +5,7 @@ using UnityEngine;
 namespace LiteView.Animation
 {
     /// <summary>
-    /// 上半身 LayerMask 的构造工厂（《动画模块专项设计》§6"通道之间的 Mask、覆盖和混合关系由 Profile 固定"）。
+    /// 叠加层 LayerMask 的构造工厂（《动画模块专项设计》§6"通道之间的 Mask、覆盖和混合关系由 Profile 固定"）。
     ///
     /// **自动派生**：
     /// - humanoid 部位位：开 Body/Head/双臂/手指，关双腿与各 IK；<b>Root 位关闭</b>（Body 已含髋部，
@@ -20,12 +20,12 @@ namespace LiteView.Animation
     /// 多纳入不产生任何输出，少纳入才出"开火枪不动、前臂拧歪"这类静默失效；人形映射骨走部位位，
     /// 其 transform 项对 humanoid 片段同样惰性（人形骨只存肌肉曲线，不存原始曲线）。rig 加骨/改名
     /// 由此零维护。前提 <c>avatar != null &amp;&amp; avatar.isHuman</c>——否则返回 null（调用方据此
-    /// **不声明** <c>LayeredChannels</c>，UpperBody 请求被显性拒绝，§4）。
+    /// **不声明** <c>OverlayChannel</c>（叠加层能力位），Overlay 请求被显性拒绝，§4）。
     /// 注意 <c>new AvatarMask()</c> 默认**全 false**——漏设即"叠加层无输出"的静默失效，故逐位显式设置。
     /// </summary>
-    public static class UpperBodyMaskFactory
+    public static class OverlayMaskFactory
     {
-        /// <summary>按动画机构造上半身 Mask；非 humanoid 返回 null（不静默降级）。
+        /// <summary>按动画机构造叠加层 Mask；非 humanoid 返回 null（不静默降级）。
         /// <paramref name="excludedPaths"/> 为 Profile 登记的排除子树（可 null = 无排除；
         /// 子树语义：命中路径自身与全部后代一并排除，路径书写与片段曲线路径同规——相对动画机根）。</summary>
         public static AvatarMask TryBuild(Animator animator, IReadOnlyList<string> excludedPaths = null)
@@ -52,7 +52,7 @@ namespace LiteView.Animation
                 foreach (var path in excludedPaths)
                 {
                     if (string.IsNullOrWhiteSpace(path))
-                        throw new ArgumentException("上半身 Mask 排除路径为空串", nameof(excludedPaths));
+                        throw new ArgumentException("叠加层 Mask 排除路径为空串", nameof(excludedPaths));
                 }
             }
 
@@ -70,7 +70,7 @@ namespace LiteView.Animation
                 foreach (var ex in excludedPaths)
                 {
                     if (animator.transform.Find(ex) == null)
-                        Debug.LogWarning($"[Anim][diag] 上半身 Mask 排除路径在骨架上不存在：{ex}（Profile 与 rig 不匹配）");
+                        Debug.LogWarning($"[Anim][diag] 叠加层 Mask 排除路径在骨架上不存在：{ex}（Profile 与 rig 不匹配）");
                 }
             }
 

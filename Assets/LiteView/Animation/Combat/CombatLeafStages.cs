@@ -69,7 +69,7 @@ namespace LiteView.Animation
         public void OnLeave(IStageHost<CharacterAnimId, CombatAnimReq> m) { }
     }
 
-    /// <summary>瞄准·静止：AimIdle 单片段循环（FullBody 覆盖；窗无涉——活跃判据只 IsAiming）。</summary>
+    /// <summary>瞄准·静止：AimIdle 单片段循环（Override 覆盖；窗无涉——活跃判据只 IsAiming）。</summary>
     internal sealed class AimIdleStage : IStage<CharacterAnimId, CombatAnimReq>
     {
         private readonly SlotAnimContext _ctx;

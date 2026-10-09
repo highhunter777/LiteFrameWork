@@ -69,6 +69,8 @@
 
 目标实例阶段为 `Loading → Ready → Open → Closing → Cached → Disposed`。加载/初始化失败进入统一释放终态；缓存打开从 Cached 进入同一打开管线。阶段命名是目标模型。
 
+> **2026-10-10 与实现的差异（代码为准）**：上列是本文的**目标命名**；实现已落地但用词不同——`UIFormState` 实际七态是 `Loading / Active / Covered / Paused / Closing / Recycled / Disposed`（即目标模型的 `Open`≒`Active`、`Cached`≒`Recycled`，并多出 `Covered`/`Paused` 两个**展示状态**，与"实例阶段与展示状态分离"的 §1.1 裁决一致——`Covered`/`Paused` 在实现里同时承担两义）。本文 §4.1 的"展示状态独立记录 Visible/Covered/Paused/InputEnabled"在实现中体现为 `UIForm.IsOpen`（= Active∪Covered∪Paused）＋ `CanvasGroup` 的 interactable/blocksRaycasts 两轴。
+
 展示状态独立记录 Visible、Covered、Paused、InputEnabled。Covered/Paused 可同时成立；暂停解除不自动解除遮盖；遮盖不自动清除暂停。转场仍是表现阶段，不能成为唯一的清理依据。
 
 - 所有 Open 页面均可关闭，含 Covered/Paused。尚在 Loading 的页面可取消；已 Closing 的调用共享收尾；Cached 的 Close 幂等返回已关闭。
@@ -128,6 +130,8 @@
 ### 5.2 资源租约与缓存
 
 与客户端 `IContentService` 对齐，UI loader 返回 `AssetLease<T>` 或等价可释放句柄；Unity 对象引用不能代替包引用计数。
+
+> **2026-10-10 实现形态（代码为准）**：UI 侧不直接消费 `AssetLease<T>`，而是经 `IUIPrefabLease` 抽象——`ContentPrefabLease`（生产，包 `AssetLease<GameObject>`）与 `UIPrefabLeases.Unowned`（测试/工具，`Release` 只断引用）。`UIService` 构造的 `loadPrefab` **必填**，为 null 即抛——租约语义是硬边界，不允许"先返回对象、事后补租约"。
 
 - Prefab 租约从加载完成持有至最后一个依赖实例销毁。缓存实例也算使用者；销毁已安排但 Unity 尚未完成销毁时不得提前卸载依赖。
 - 可共享 Prefab 租约，但必须有实例引用计数；关闭缓存页只释放展示期资源，不能把实例依赖提前释放。

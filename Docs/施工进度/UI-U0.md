@@ -42,7 +42,7 @@
 **验证证据**（2026-09-23 本机实测，工作区含并行 C0 线未提交改动）：
 
 - `dotnet test Tests/Tests.slnx`：**416 通过 / 0 失败**（LiteTesting 7 + LiteFramework 205（含 SafeCall.TryInvoke 新增 2 例）+ LiteSim 83 + LiteNet 121）。
-- `powershell -NoProfile -File scripts/l2-unity-gate.ps1`：**L2 通过，exit 0**——meta 扫描 11689 个全合法；Unity 编译 completed 无失败；控制台 0 条 CS 错误；**EditMode 36/36**（原 30 + 本批 6）。
+- `powershell -NoProfile -File scripts/gate/l2-unity-gate.ps1`：**L2 通过，exit 0**——meta 扫描 11689 个全合法；Unity 编译 completed 无失败；控制台 0 条 CS 错误；**EditMode 36/36**（原 30 + 本批 6）。
 - 退出条件逐条对账：
   - 真 Lua 首开/关闭/复用成功 ✅（`真Lua页面_首开_关闭_复用_实例与self契约`：真 tbuiform 投影 + 真 `UIMain.prefab` + 真 `UIMain.lua`，OnShow 计数首开 1 次/复用 1 次，`module.new()` 实例与共享模块非同表、`self.ui` 挂实例、BtnClose 点击经 Lua 闭包无错误）；
   - 列表可往返 ✅（`虚拟列表_窗口复用_首尾往返_缩容_刷新不重绑`：500 条 13 节点、滚尾滚回首条重新入窗、缩容解绑、窗口不变时 Refresh 5 次零重绑）；

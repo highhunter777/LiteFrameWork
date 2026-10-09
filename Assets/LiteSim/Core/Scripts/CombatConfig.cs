@@ -161,8 +161,8 @@ namespace LiteSim
 
 #if UNITY_EDITOR || DEVELOPMENT_BUILD || LITEFRAMEWORK_DEBUG
         /// <summary>
-        /// **测试模式实时预览覆写**（爆头线下沿，世界 Y；&lt; 0 = 不覆写）：对局内经测试面板滑杆实时调带——
-        /// 判定（<see cref="ShootingSystem"/>）与 F11 身位绘制同读 <see cref="HeadHitLineLive"/>，
+        /// **测试模式实时预览覆写**（爆头线下沿，世界 Y；&lt; 0 = 不覆写）：对局内经 GM 面板滑杆实时调带——
+        /// 判定（<see cref="ShootingSystem"/>）与身位可视化同读 <see cref="HeadHitLineLive"/>，
         /// 本地服与预测同进程同值，滑杆一动即见 Crit 档变化。**仅开发三宏内存在**（release 随宏编译剥离）；
         /// 定型值经工具导出 <see cref="HeadBake"/>——覆写不落盘、不进 digest/快照（测试沙箱件，与免死/缩放同性质）；
         /// 对局中改动后回滚重放按当帧值重判（沙箱可接受），复位按钮置回 -1。

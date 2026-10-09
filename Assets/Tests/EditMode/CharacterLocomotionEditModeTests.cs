@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using LiteClient;
 using LiteFramework;
 using LiteFramework.Animation;
 using LiteSim;
@@ -15,9 +16,9 @@ using UnityEngine.Playables;
 namespace LiteGame.Tests.EditMode
 {
     /// <summary>
-    /// 角色移动动画首版（《动画模块专项设计》§7 首版角色后端：AnimatorControllerPlayable +
-    /// Manual PlayableGraph；Driver = 视图速度 → 移动语义）。真资源（包内控制器）驱动，
-    /// 缺包克隆 Ignore 跳过（灰盒视图无 Animator → 驱动不建播放器的降级由真机冒烟覆盖）。
+    /// 角色移动动画首版（《动画模块专项设计》直 Clip 主路径：片段清单供片 + Animator 后端 Manual
+    /// PlayableGraph；Driver = 视图速度 → 移动语义）。真资源（prefab 无控制器、片源＝片段清单）驱动，
+    /// 缺包克隆 Ignore 跳过（灰盒视图无绑定组件 → 驱动不建播放器的降级由真机冒烟覆盖）。
     /// </summary>
     public sealed class CharacterLocomotionEditModeTests : UnityTestBase
     {
@@ -29,38 +30,66 @@ namespace LiteGame.Tests.EditMode
         }
 
         /// <summary>测试用 ID（语义 ID 与片段名解耦，同一片段可按不同 Loop 定义登记——§5 判定归定义）。</summary>
-        private static readonly AnimationId UpperLoop = new AnimationId("Test.UpperLoop");
+        private static readonly AnimationId OverlayLoop = new AnimationId("Test.OverlayLoop");
 
-        /// <summary>测试用混合 ID：Walk↔Run 双槽位（Locomotion——普通混合器的典型用途，§4 Blend）。</summary>
+        /// <summary>测试用混合 ID：Walk↔Run 双槽位（Base——普通混合器的典型用途，§4 Blend）。</summary>
         private static readonly AnimationId TestMoveBlend = new AnimationId("Test.MoveBlend");
 
-        /// <summary>测试用混合 ID：单槽位 Reload（UpperBody——验证混合路径的层权重淡入）。</summary>
-        private static readonly AnimationId TestUpperBlend = new AnimationId("Test.UpperBlend");
+        /// <summary>测试用混合 ID：单槽位 Reload（Overlay——验证混合路径的层权重淡入）。</summary>
+        private static readonly AnimationId TestOverlayBlend = new AnimationId("Test.OverlayBlend");
 
         /// <summary>测试 Profile：真实片段名 + 可控 Loop（覆盖"定义与资产 loop 相反"两个方向）+ 两个混合定义。</summary>
         private static AnimationProfile TestProfile()
             => new AnimationProfile()
-                .Register(new AnimationDefinition(CharacterAnimationIds.Idle, AnimationChannel.Locomotion,
+                .Register(new AnimationDefinition(CharacterAnimationIds.Idle, AnimationChannel.Base,
                     "Idle", loop: true, minSpeed: 0.1f, maxSpeed: 2f))
-                .Register(new AnimationDefinition(CharacterAnimationIds.Walk, AnimationChannel.Locomotion,
+                .Register(new AnimationDefinition(CharacterAnimationIds.Walk, AnimationChannel.Base,
                     "Walk", loop: true, minSpeed: 0.1f, maxSpeed: 2f))
-                .Register(new AnimationDefinition(CharacterAnimationIds.Run, AnimationChannel.Locomotion,
+                .Register(new AnimationDefinition(CharacterAnimationIds.Run, AnimationChannel.Base,
                     "Run", loop: true, minSpeed: 0.1f, maxSpeed: 2f))
-                .Register(new AnimationDefinition(UpperLoop, AnimationChannel.UpperBody,
+                .Register(new AnimationDefinition(OverlayLoop, AnimationChannel.Overlay,
                     "Reload", loop: true, minSpeed: 0.1f, maxSpeed: 2f))          // 循环定义 × 一次性资产
-                .Register(new AnimationDefinition(CharacterAnimationIds.Reload, AnimationChannel.UpperBody,
+                .Register(new AnimationDefinition(CharacterAnimationIds.Reload, AnimationChannel.Overlay,
                     "Reload", loop: false, minSpeed: 0.1f, maxSpeed: 2f))
-                .Register(new AnimationDefinition(CharacterAnimationIds.Death, AnimationChannel.FullBody,
-                    "Die1", loop: false, minSpeed: 0.1f, maxSpeed: 2f))
-                .RegisterBlend(new AnimationBlendDefinition(TestMoveBlend, AnimationChannel.Locomotion,
+                .Register(new AnimationDefinition(CharacterAnimationIds.Death, AnimationChannel.Override,
+                    "Die2", loop: false, minSpeed: 0.1f, maxSpeed: 2f))
+                .RegisterBlend(new AnimationBlendDefinition(TestMoveBlend, AnimationChannel.Base,
                     new[] { "Walk", "Run" }, minSpeed: 0.1f, maxSpeed: 2f))
-                .RegisterBlend(new AnimationBlendDefinition(TestUpperBlend, AnimationChannel.UpperBody,
+                .RegisterBlend(new AnimationBlendDefinition(TestOverlayBlend, AnimationChannel.Overlay,
                     new[] { "Reload" }, minSpeed: 0.1f, maxSpeed: 2f));
 
         /// <summary>经 Profile/播放器提交混合（权重槽位序 = 定义槽位序；唯一混合入口）。</summary>
-        private static AnimationStartResult PlayBlend(CharacterAnimationPlayer player, AnimationId id,
+        private static AnimationStartResult PlayBlend(AnimationPlayer player, AnimationId id,
             AnimationChannel channel, params float[] weights)
             => player.PlayBlend(new AnimationBlendRequest(id, channel, weights));
+
+        /// <summary>生产形态 Profile（tbanimationprofile 表直载——与运行时同表同装载器，驱动器用例的实参）。</summary>
+        private static AnimationProfile ProductionProfile()
+            => AnimationProfileTableSource.Load(ConfigService.DataDir, CombatGirlsAnimationProfile.ModelFamily);
+
+        // ---- 直 Clip 后端构造面（视图 prefab 无控制器——片源走片段清单）----
+
+        private static AnimationClipManifest _manifest;
+
+        /// <summary>片段清单资产（缓存；键单源在 Profile。缺包克隆时键在引用断——本文件用例均先
+        /// <see cref="LoadPrefabOrIgnore"/> 挡前置，清单断引用由登记计数面观测）。</summary>
+        private static AnimationClipManifest Manifest()
+            => _manifest ?? (_manifest = AssetDatabase.LoadAssetAtPath<AnimationClipManifest>(
+                   CombatGirlsAnimationProfile.ClipManifestPath));
+
+        /// <summary>构造后端并登记清单（直 Clip 模型的供片形态——生产驱动同一路径：
+        /// <c>AnimatorAnimationBackend.RegisterManifest</c>）。</summary>
+        private static AnimatorAnimationBackend Backend(Animator animator,
+            float blendSeconds = AnimatorAnimationBackend.DefaultBlendSeconds)
+        {
+            var backend = new AnimatorAnimationBackend(animator, blendSeconds);
+            backend.RegisterManifest(Manifest());
+            return backend;
+        }
+
+        private static AnimatorAnimationBackend Backend(GameObject go,
+            float blendSeconds = AnimatorAnimationBackend.DefaultBlendSeconds)
+            => Backend(go.GetComponentInChildren<Animator>(true), blendSeconds);
 
         // ---- 后端契约 ----
 
@@ -70,15 +99,15 @@ namespace LiteGame.Tests.EditMode
         {
             var prefab = LoadPrefabOrIgnore();
             var go = Scope.Track(Object.Instantiate(prefab));
-            var backend = new AnimatorAnimationBackend(go.GetComponentInChildren<Animator>(true));
-            var player = new CharacterAnimationPlayer(backend, CombatGirlsAnimationProfile.Build());
+            var backend = Backend(go);
+            var player = new AnimationPlayer(backend, AnimationProfileTableSource.Load(ConfigService.DataDir, CombatGirlsAnimationProfile.ModelFamily));
 
-            var ok = player.Play(new AnimationRequest(CharacterAnimationIds.Run, AnimationChannel.Locomotion));
+            var ok = player.Play(new AnimationRequest(CharacterAnimationIds.Run, AnimationChannel.Base));
             Assert.IsTrue(ok.Accepted, "已登记且控制器存在的状态必须被接受");
-            Assert.IsTrue(backend.IsChannelActive(AnimationChannel.Locomotion));
+            Assert.IsTrue(backend.IsChannelActive(AnimationChannel.Base));
 
             for (int i = 0; i < 30; i++) player.Tick(0.1f);                 // 3s：Run 为循环状态
-            Assert.IsTrue(backend.IsChannelActive(AnimationChannel.Locomotion), "循环移动状态不产生 Completed（§5）");
+            Assert.IsTrue(backend.IsChannelActive(AnimationChannel.Base), "循环移动状态不产生 Completed（§5）");
 
             player.Dispose();                                               // §9 销毁序：释放后端（Graph.Destroy）
         }
@@ -93,13 +122,13 @@ namespace LiteGame.Tests.EditMode
             var goDie = Scope.Track(Object.Instantiate(prefab));
             var dieId = new AnimationId("Locomotion.Die");
             var dieProfile = new AnimationProfile()
-                .Register(new AnimationDefinition(dieId, AnimationChannel.Locomotion, "Die1", loop: false, minSpeed: 1f, maxSpeed: 1f));
-            var diePlayer = new CharacterAnimationPlayer(
-                new AnimatorAnimationBackend(goDie.GetComponentInChildren<Animator>(true)), dieProfile);
+                .Register(new AnimationDefinition(dieId, AnimationChannel.Base, "Die2", loop: false, minSpeed: 1f, maxSpeed: 1f));
+            var diePlayer = new AnimationPlayer(
+                Backend(goDie), dieProfile);
             AnimationTerminalState? dieTerminal = null;
             diePlayer.OnTerminal += (h, t) => dieTerminal = t;
 
-            Assert.IsTrue(diePlayer.Play(new AnimationRequest(dieId, AnimationChannel.Locomotion)).Accepted);
+            Assert.IsTrue(diePlayer.Play(new AnimationRequest(dieId, AnimationChannel.Base)).Accepted);
             for (int i = 0; i < 60 && dieTerminal == null; i++) diePlayer.Tick(0.1f);   // ≤6s：死亡动画时长有界
             Assert.AreEqual(AnimationTerminalState.Completed, dieTerminal, "一次性状态到边界应收 Completed");
 
@@ -112,13 +141,13 @@ namespace LiteGame.Tests.EditMode
             var goBad = Scope.Track(Object.Instantiate(prefab));
             var badId = new AnimationId("Locomotion.NoSuch");
             var badProfile = new AnimationProfile()
-                .Register(new AnimationDefinition(badId, AnimationChannel.Locomotion, "NoSuchState", loop: true, minSpeed: 1f, maxSpeed: 1f));
-            var badBackend = new AnimatorAnimationBackend(goBad.GetComponentInChildren<Animator>(true));
-            var badPlayer = new CharacterAnimationPlayer(badBackend, badProfile);
+                .Register(new AnimationDefinition(badId, AnimationChannel.Base, "NoSuchState", loop: true, minSpeed: 1f, maxSpeed: 1f));
+            var badBackend = Backend(goBad);
+            var badPlayer = new AnimationPlayer(badBackend, badProfile);
             AnimationTerminalState? badTerminal = null;
             badPlayer.OnTerminal += (h, t) => badTerminal = t;
 
-            Assert.IsTrue(badPlayer.Play(new AnimationRequest(badId, AnimationChannel.Locomotion)).Accepted, "播放器接受（绑定由后端执行时裁决）");
+            Assert.IsTrue(badPlayer.Play(new AnimationRequest(badId, AnimationChannel.Base)).Accepted, "播放器接受（绑定由后端执行时裁决）");
             Assert.AreEqual(AnimationTerminalState.Failed, badTerminal, "控制器无该状态——后端执行失败必须回报（§3）");
             Assert.AreEqual(1, badBackend.UnknownBindings, "未知绑定必须计数（§13-4 诊断）");
             badPlayer.Dispose();
@@ -128,7 +157,7 @@ namespace LiteGame.Tests.EditMode
 
         [Test]
         [Category(TestCategory.Contract)]
-        public void 分层_Locomotion与UpperBody共存_叠加层只盖上半身()
+        public void 分层_Base与Overlay共存_叠加层只盖上半身()
         {
             var prefab = LoadPrefabOrIgnore();
             var profile = TestProfile();
@@ -136,28 +165,28 @@ namespace LiteGame.Tests.EditMode
             // 对照实例 A：只有基础移动
             var goA = Scope.Track(Object.Instantiate(prefab));
             var animA = goA.GetComponentInChildren<Animator>(true);
-            var playerA = new CharacterAnimationPlayer(new AnimatorAnimationBackend(animA), profile);
+            var playerA = new AnimationPlayer(Backend(animA), profile);
 
-            // 被测实例 B：基础移动 + 上半身叠加
+            // 被测实例 B：基础移动 + 叠加层
             var goB = Scope.Track(Object.Instantiate(prefab));
             var animB = goB.GetComponentInChildren<Animator>(true);
-            var backendB = new AnimatorAnimationBackend(animB);
-            var playerB = new CharacterAnimationPlayer(backendB, profile);
+            var backendB = Backend(animB);
+            var playerB = new AnimationPlayer(backendB, profile);
 
             if (animB.avatar == null || !animB.avatar.isHuman)
-                Assert.Ignore("Avatar 非 humanoid——上半身 Mask 不可用（能力位拒绝路径由「能力」用例覆盖）");
-            Assert.IsTrue(backendB.HasUpperBodyMask, "humanoid Avatar 必须构造出上半身 LayerMask");
+                Assert.Ignore("Avatar 非 humanoid——叠加层 Mask 不可用（能力位拒绝路径由「能力」用例覆盖）");
+            Assert.IsTrue(backendB.HasOverlayMask, "humanoid Avatar 必须构造出叠加层 LayerMask");
 
-            Assert.IsTrue(playerA.Play(new AnimationRequest(CharacterAnimationIds.Walk, AnimationChannel.Locomotion)).Accepted);
-            Assert.IsTrue(playerB.Play(new AnimationRequest(CharacterAnimationIds.Walk, AnimationChannel.Locomotion)).Accepted);
-            Assert.IsTrue(playerB.Play(new AnimationRequest(UpperLoop, AnimationChannel.UpperBody)).Accepted,
-                "UpperBody 通道必须被接受（不得只占一半——§6）");
+            Assert.IsTrue(playerA.Play(new AnimationRequest(CharacterAnimationIds.Walk, AnimationChannel.Base)).Accepted);
+            Assert.IsTrue(playerB.Play(new AnimationRequest(CharacterAnimationIds.Walk, AnimationChannel.Base)).Accepted);
+            Assert.IsTrue(playerB.Play(new AnimationRequest(OverlayLoop, AnimationChannel.Overlay)).Accepted,
+                "Overlay 通道必须被接受（不得只占一半——§6）");
 
             // 两实例同片段同相位；先跑完淡入（BlendSeconds=0.12s）
             for (int i = 0; i < 20; i++) { playerA.Tick(0.05f); playerB.Tick(0.05f); }
 
-            Assert.AreEqual(2, backendB.ActiveChannels, "Locomotion + UpperBody 应各自占用通道");
-            Assert.IsTrue(backendB.TryGetChannelDebug(AnimationChannel.UpperBody, out var ub) && ub.Active);
+            Assert.AreEqual(2, backendB.ActiveChannels, "Base + Overlay 应各自占用通道");
+            Assert.IsTrue(backendB.TryGetChannelDebug(AnimationChannel.Overlay, out var ub) && ub.Active);
             Assert.AreEqual(1f, ub.Weight, 1e-3f, "叠加层淡入完成，权重应为 1");
 
             Transform legA = animA.GetBoneTransform(HumanBodyBones.LeftUpperLeg);
@@ -175,8 +204,8 @@ namespace LiteGame.Tests.EditMode
                 armMax = Mathf.Max(armMax, Quaternion.Angle(armA.localRotation, armB.localRotation));
             }
 
-            Assert.Less(legMax, 5f, "腿部姿态必须来自基层（上半身 LayerMask 不得覆盖腿）");
-            Assert.Greater(armMax, 5f, "手臂必须被上半身叠加层改写");
+            Assert.Less(legMax, 5f, "腿部姿态必须来自基层（叠加层 LayerMask 不得覆盖腿）");
+            Assert.Greater(armMax, 5f, "手臂必须被叠加层改写");
 
             playerA.Dispose();
             playerB.Dispose();
@@ -196,10 +225,10 @@ namespace LiteGame.Tests.EditMode
             if (animator.avatar == null || !animator.avatar.isHuman)
                 Assert.Ignore("Avatar 非 humanoid——手骨不可取");
 
-            var backend = new AnimatorAnimationBackend(animator);
-            var player = new CharacterAnimationPlayer(backend, TestProfile());
+            var backend = Backend(animator);
+            var player = new AnimationPlayer(backend, TestProfile());
             Assert.IsTrue(player.Play(new AnimationRequest(
-                CharacterAnimationIds.Run, AnimationChannel.Locomotion)).Accepted);
+                CharacterAnimationIds.Run, AnimationChannel.Base)).Accepted);
 
             Transform hand = animator.GetBoneTransform(HumanBodyBones.RightHand);
             Assume.That(hand != null, "humanoid 骨架应含右手骨");
@@ -211,7 +240,7 @@ namespace LiteGame.Tests.EditMode
                 maxDelta = Mathf.Max(maxDelta, Quaternion.Angle(first, hand.localRotation));
             }
 
-            Assert.IsTrue(backend.TryGetChannelDebug(AnimationChannel.Locomotion, out var loco));
+            Assert.IsTrue(backend.TryGetChannelDebug(AnimationChannel.Base, out var loco));
             Assert.AreEqual(1f, loco.Weight, 1e-3f,
                 "基础层在混合器上的实际权重必须为 1（默认 0 → 基础层不输出、姿态不落地）");
             Assert.Greater(maxDelta, 5f,
@@ -231,29 +260,29 @@ namespace LiteGame.Tests.EditMode
             // 参照实例 A：单片段直驱 Walk
             var goA = Scope.Track(Object.Instantiate(prefab));
             var animA = goA.GetComponentInChildren<Animator>(true);
-            var playerA = new CharacterAnimationPlayer(
-                new AnimatorAnimationBackend(animA, blendSeconds: 0f), TestProfile());
+            var playerA = new AnimationPlayer(
+                Backend(animA, 0f), TestProfile());
             Assert.IsTrue(playerA.Play(new AnimationRequest(
-                CharacterAnimationIds.Walk, AnimationChannel.Locomotion)).Accepted);
+                CharacterAnimationIds.Walk, AnimationChannel.Base)).Accepted);
 
             // 被测实例 B：**经 Profile/播放器**的普通混合器（Walk/Run 两槽位）
             var goB = Scope.Track(Object.Instantiate(prefab));
             var animB = goB.GetComponentInChildren<Animator>(true);
-            var backendB = new AnimatorAnimationBackend(animB, blendSeconds: 0f);
+            var backendB = Backend(animB, 0f);
             Assert.IsTrue((backendB.Capabilities & AnimationBackendCapabilities.ClipBlending) != 0,
                 "后端必须诚实声明 ClipBlending（§4）");
-            var playerB = new CharacterAnimationPlayer(backendB, TestProfile());
+            var playerB = new AnimationPlayer(backendB, TestProfile());
 
             Transform legA = animA.GetBoneTransform(HumanBodyBones.RightUpperLeg);
             Transform legB = animB.GetBoneTransform(HumanBodyBones.RightUpperLeg);
             Assume.That(legA != null && legB != null, "humanoid 骨架应含右大腿骨");
 
             // ① 权重 Walk=1, Run=0（语义 ID → 槽位绑定由 Profile 解析）→ 与 A 的姿态差应很小
-            var accepted = PlayBlend(playerB, TestMoveBlend, AnimationChannel.Locomotion, 1f, 0f);
+            var accepted = PlayBlend(playerB, TestMoveBlend, AnimationChannel.Base, 1f, 0f);
             Assert.IsTrue(accepted.Accepted, "已登记的混合必须被接受");
             Assert.AreEqual(AnimationStartResult.Reason.None, accepted.RejectReason, "接受时不应带拒绝原因");
-            Assert.IsTrue(backendB.IsChannelActive(AnimationChannel.Locomotion), "混合提交后通道激活");
-            Assert.IsTrue(backendB.TryGetChannelDebug(AnimationChannel.Locomotion, out var blendDbg));
+            Assert.IsTrue(backendB.IsChannelActive(AnimationChannel.Base), "混合提交后通道激活");
+            Assert.IsTrue(backendB.TryGetChannelDebug(AnimationChannel.Base, out var blendDbg));
             Assert.AreEqual(1f, blendDbg.Weight, 1e-3f, "基础层权重必须为 1（层 0 显式置 1）");
             StringAssert.StartsWith("mixer(", blendDbg.Source, "诊断源应标明这是普通混合器节点（含输入数）");
 
@@ -266,7 +295,7 @@ namespace LiteGame.Tests.EditMode
             Assert.Less(walkDiff, 3f, "Walk=1 的混合应与单片段直驱 Walk 几乎一致（混合路径确实播到了骨架上）");
 
             // ② 交换权重（Walk=0, Run=1）→ 同一相位下姿态必须明显不同（权重真的在选片段）
-            Assert.IsTrue(PlayBlend(playerB, TestMoveBlend, AnimationChannel.Locomotion, 0f, 1f).Accepted,
+            Assert.IsTrue(PlayBlend(playerB, TestMoveBlend, AnimationChannel.Base, 0f, 1f).Accepted,
                 "交换权重后仍应被接受（同通道替换走同一套仲裁）");
             float runDiff = 0f;
             for (int i = 0; i < 15; i++)
@@ -286,45 +315,45 @@ namespace LiteGame.Tests.EditMode
         {
             var prefab = LoadPrefabOrIgnore();
             var go = Scope.Track(Object.Instantiate(prefab));
-            var backend = new AnimatorAnimationBackend(go.GetComponentInChildren<Animator>(true), blendSeconds: 0f);
-            var player = new CharacterAnimationPlayer(backend, TestProfile());
+            var backend = Backend(go, 0f);
+            var player = new AnimationPlayer(backend, TestProfile());
 
             Assert.IsTrue(player.Play(new AnimationRequest(
-                CharacterAnimationIds.Walk, AnimationChannel.Locomotion)).Accepted);
+                CharacterAnimationIds.Walk, AnimationChannel.Base)).Accepted);
             for (int i = 0; i < 5; i++) player.Tick(0.05f);
-            Assert.IsTrue(backend.TryGetChannelDebug(AnimationChannel.Locomotion, out var before));
+            Assert.IsTrue(backend.TryGetChannelDebug(AnimationChannel.Base, out var before));
 
             // ① 解析期整组拒绝（InvalidRequest）：权重数目不符 / 负权重 / 全零 / 起点越界
             Assert.AreEqual(AnimationStartResult.Reason.InvalidRequest,
-                PlayBlend(player, TestMoveBlend, AnimationChannel.Locomotion, 1f).RejectReason, "权重数目与槽位不符");
+                PlayBlend(player, TestMoveBlend, AnimationChannel.Base, 1f).RejectReason, "权重数目与槽位不符");
             Assert.AreEqual(AnimationStartResult.Reason.InvalidRequest,
-                PlayBlend(player, TestMoveBlend, AnimationChannel.Locomotion, 1f, -1f).RejectReason, "负权重");
+                PlayBlend(player, TestMoveBlend, AnimationChannel.Base, 1f, -1f).RejectReason, "负权重");
             Assert.AreEqual(AnimationStartResult.Reason.InvalidRequest,
-                PlayBlend(player, TestMoveBlend, AnimationChannel.Locomotion, 0f, 0f).RejectReason, "全零权重");
+                PlayBlend(player, TestMoveBlend, AnimationChannel.Base, 0f, 0f).RejectReason, "全零权重");
             Assert.AreEqual(AnimationStartResult.Reason.InvalidRequest,
-                player.PlayBlend(new AnimationBlendRequest(TestMoveBlend, AnimationChannel.Locomotion,
+                player.PlayBlend(new AnimationBlendRequest(TestMoveBlend, AnimationChannel.Base,
                     new[] { 1f, 1f }, startNormalized: 1.5f)).RejectReason, "起点越界");
 
             // ② 未登记的混合 ID → InvalidDefinition（混合不参与单片段回退链）
             Assert.AreEqual(AnimationStartResult.Reason.InvalidDefinition,
-                PlayBlend(player, new AnimationId("Test.NoSuchBlend"), AnimationChannel.Locomotion, 1f).RejectReason);
+                PlayBlend(player, new AnimationId("Test.NoSuchBlend"), AnimationChannel.Base, 1f).RejectReason);
 
             // ③ 原子性：通道仍是原来那一次播放（没被半途改成混合——§6 不能只占一半）
-            Assert.IsTrue(backend.TryGetChannelDebug(AnimationChannel.Locomotion, out var after));
+            Assert.IsTrue(backend.TryGetChannelDebug(AnimationChannel.Base, out var after));
             Assert.AreEqual(before.Source, after.Source, "拒绝不得改变通道当前播放");
-            Assert.IsTrue(backend.IsChannelActive(AnimationChannel.Locomotion));
+            Assert.IsTrue(backend.IsChannelActive(AnimationChannel.Base));
 
             // ④ 未知绑定（Profile 认得形态、后端不认得片段）→ 后端显性失败：Failed 终态 + 计数（§13-4）
             var badBlend = new AnimationId("Test.BadBlend");
             var badProfile = new AnimationProfile()
-                .RegisterBlend(new AnimationBlendDefinition(badBlend, AnimationChannel.Locomotion, new[] { "NoSuchClip" }));
+                .RegisterBlend(new AnimationBlendDefinition(badBlend, AnimationChannel.Base, new[] { "NoSuchClip" }));
             var goBad = Scope.Track(Object.Instantiate(prefab));
-            var badBackend = new AnimatorAnimationBackend(goBad.GetComponentInChildren<Animator>(true), blendSeconds: 0f);
-            var badPlayer = new CharacterAnimationPlayer(badBackend, badProfile);
+            var badBackend = Backend(goBad, 0f);
+            var badPlayer = new AnimationPlayer(badBackend, badProfile);
             AnimationTerminalState? badTerminal = null;
             badPlayer.OnTerminal += (h, t) => badTerminal = t;
 
-            Assert.IsTrue(PlayBlend(badPlayer, badBlend, AnimationChannel.Locomotion, 1f).Accepted,
+            Assert.IsTrue(PlayBlend(badPlayer, badBlend, AnimationChannel.Base, 1f).Accepted,
                 "播放器接受（绑定由后端执行时裁决）");
             Assert.AreEqual(AnimationTerminalState.Failed, badTerminal, "未知绑定：后端执行失败必须回报（§3）");
             Assert.AreEqual(1, badBackend.UnknownBindings, "未知绑定必须计数（§13-4 诊断）");
@@ -343,23 +372,22 @@ namespace LiteGame.Tests.EditMode
             var goInstant = Scope.Track(Object.Instantiate(prefab));
             var animInstant = goInstant.GetComponentInChildren<Animator>(true);
             if (animInstant.avatar == null || !animInstant.avatar.isHuman)
-                Assert.Ignore("Avatar 非 humanoid——上半身 Mask 不可用（改测基础层即可，本用例跳过）");
-            var backendInstant = new AnimatorAnimationBackend(animInstant, blendSeconds: 0f);
+                Assert.Ignore("Avatar 非 humanoid——叠加层 Mask 不可用（改测基础层即可，本用例跳过）");
+            var backendInstant = Backend(animInstant, 0f);
             Assert.AreEqual(0f, backendInstant.BlendSeconds, "构造值必须原样可读");
-            var playerInstant = new CharacterAnimationPlayer(backendInstant, TestProfile());
-            Assert.IsTrue(PlayBlend(playerInstant, TestUpperBlend, AnimationChannel.UpperBody, 1f).Accepted);
+            var playerInstant = new AnimationPlayer(backendInstant, TestProfile());
+            Assert.IsTrue(PlayBlend(playerInstant, TestOverlayBlend, AnimationChannel.Overlay, 1f).Accepted);
             playerInstant.Tick(0.02f);
-            Assert.IsTrue(backendInstant.TryGetChannelDebug(AnimationChannel.UpperBody, out var instant));
+            Assert.IsTrue(backendInstant.TryGetChannelDebug(AnimationChannel.Overlay, out var instant));
             Assert.AreEqual(1f, instant.Weight, 1e-3f, "BlendSeconds=0 时上层权重应一帧内直接到 1（瞬时落位）");
 
             // ② 构造值 0.12（默认手感）→ 同一帧只淡入一小步（证明参数真的被用、不是常量写死）
             var goSmooth = Scope.Track(Object.Instantiate(prefab));
-            var backendSmooth = new AnimatorAnimationBackend(
-                goSmooth.GetComponentInChildren<Animator>(true), blendSeconds: 0.12f);
-            var playerSmooth = new CharacterAnimationPlayer(backendSmooth, TestProfile());
-            Assert.IsTrue(PlayBlend(playerSmooth, TestUpperBlend, AnimationChannel.UpperBody, 1f).Accepted);
+            var backendSmooth = Backend(goSmooth, 0.12f);
+            var playerSmooth = new AnimationPlayer(backendSmooth, TestProfile());
+            Assert.IsTrue(PlayBlend(playerSmooth, TestOverlayBlend, AnimationChannel.Overlay, 1f).Accepted);
             playerSmooth.Tick(0.02f);
-            Assert.IsTrue(backendSmooth.TryGetChannelDebug(AnimationChannel.UpperBody, out var smooth));
+            Assert.IsTrue(backendSmooth.TryGetChannelDebug(AnimationChannel.Overlay, out var smooth));
             Assert.Greater(smooth.Weight, 0f, "淡入应已开始");
             Assert.Less(smooth.Weight, 0.5f, "0.12s 淡入在 0.02s 内只能走一小步（不是瞬时）");
 
@@ -379,10 +407,10 @@ namespace LiteGame.Tests.EditMode
             var go = Scope.Track(Object.Instantiate(prefab));
             // 用**默认淡化时长**（非 0）：尾部在帧间断续存在，反复提交才真的打断"在途尾部"——
             // 0.12s 的尾部才是 §12 截断计数的观察对象（0 时长瞬时落位，尾部活不过一个 Tick）。
-            var backend = new AnimatorAnimationBackend(go.GetComponentInChildren<Animator>(true));
-            var player = new CharacterAnimationPlayer(backend, TestProfile());
+            var backend = Backend(go);
+            var player = new AnimationPlayer(backend, TestProfile());
 
-            Assert.IsTrue(PlayBlend(player, TestMoveBlend, AnimationChannel.Locomotion, 0.5f, 0.5f).Accepted);
+            Assert.IsTrue(PlayBlend(player, TestMoveBlend, AnimationChannel.Base, 0.5f, 0.5f).Accepted);
             for (int i = 0; i < 10; i++) player.Tick(0.02f);
             int baseline = backend.PlayableCount;          // 不硬编码：基线由控制器内部节点数决定
 
@@ -394,23 +422,23 @@ namespace LiteGame.Tests.EditMode
                 {
                     weights[0] = 1f - i * 0.01f;
                     weights[1] = i * 0.01f;
-                    Assert.IsTrue(PlayBlend(player, TestMoveBlend, AnimationChannel.Locomotion, weights).Accepted);
+                    Assert.IsTrue(PlayBlend(player, TestMoveBlend, AnimationChannel.Base, weights).Accepted);
                 }
                 else
                 {
                     Assert.IsTrue(player.Play(new AnimationRequest(
                         i % 4 == 1 ? CharacterAnimationIds.Idle : CharacterAnimationIds.Run,
-                        AnimationChannel.Locomotion)).Accepted);
+                        AnimationChannel.Base)).Accepted);
                 }
                 player.Tick(0.02f);
             }
 
             // 收尾回到与基线**同形态**（2 槽位混合）再比节点数——否则"混合 ↔ 单片段"的节点数本就不同
-            Assert.IsTrue(PlayBlend(player, TestMoveBlend, AnimationChannel.Locomotion, 0.5f, 0.5f).Accepted);
+            Assert.IsTrue(PlayBlend(player, TestMoveBlend, AnimationChannel.Base, 0.5f, 0.5f).Accepted);
             for (int i = 0; i < 10; i++) player.Tick(0.02f);
             Assert.AreEqual(baseline, backend.PlayableCount,
                 "反复提交混合节点后节点数必须回基线（§12：混合节点与其输入片段都要被回收）");
-            Assert.IsTrue(backend.IsChannelActive(AnimationChannel.Locomotion));
+            Assert.IsTrue(backend.IsChannelActive(AnimationChannel.Base));
             Assert.Greater(backend.TruncatedBlends, 0, "在途混合尾部被打断必须计数（§12 确定截断策略）");
 
             player.Dispose();
@@ -422,20 +450,20 @@ namespace LiteGame.Tests.EditMode
         {
             var prefab = LoadPrefabOrIgnore();
             var go = Scope.Track(Object.Instantiate(prefab));
-            var backend = new AnimatorAnimationBackend(go.GetComponentInChildren<Animator>(true));   // 默认淡化时长
-            var player = new CharacterAnimationPlayer(backend, TestProfile());
+            var backend = Backend(go);   // 默认淡化时长
+            var player = new AnimationPlayer(backend, TestProfile());
 
             int terminals = 0;
             AnimationTerminalState last = AnimationTerminalState.None;
             player.OnTerminal += (h, t) => { terminals++; last = t; };
 
-            var info = PlayBlend(player, TestMoveBlend, AnimationChannel.Locomotion, 0.5f, 0.5f);
+            var info = PlayBlend(player, TestMoveBlend, AnimationChannel.Base, 0.5f, 0.5f);
             Assert.IsTrue(info.Accepted);
             for (int i = 0; i < 200; i++) player.Tick(0.05f);                  // 10s ≫ 片段时长
 
             Assert.AreEqual(0, terminals, "混合集合没有单一结束边界：永不 Completed（§5）");
             Assert.IsTrue(player.TryGetState(info.Handle, out var state) && state.IsPlaying, "混合应仍在播");
-            Assert.IsTrue(backend.IsChannelActive(AnimationChannel.Locomotion));
+            Assert.IsTrue(backend.IsChannelActive(AnimationChannel.Base));
 
             player.Dispose();                                                  // 释放才收终态（§9）
             Assert.AreEqual(AnimationTerminalState.OwnerDisposed, last, "混合的终态只来自替换/停止/释放");
@@ -450,21 +478,21 @@ namespace LiteGame.Tests.EditMode
             var prefab = LoadPrefabOrIgnore();
             var go = Scope.Track(Object.Instantiate(prefab));
             var anim = go.GetComponentInChildren<Animator>(true);
-            var backend = new AnimatorAnimationBackend(anim, blendSeconds: 0f);
-            var player = new CharacterAnimationPlayer(backend, TestProfile());
+            var backend = Backend(anim, 0f);
+            var player = new AnimationPlayer(backend, TestProfile());
 
-            var accepted = PlayBlend(player, TestMoveBlend, AnimationChannel.Locomotion, 1f, 0f);
+            var accepted = PlayBlend(player, TestMoveBlend, AnimationChannel.Base, 1f, 0f);
             Assert.IsTrue(accepted.Accepted, "混合提交应被接受");
-            Assert.IsTrue(backend.TryGetChannelDebug(AnimationChannel.Locomotion, out var d0), "混合提交后通道诊断可读");
+            Assert.IsTrue(backend.TryGetChannelDebug(AnimationChannel.Base, out var d0), "混合提交后通道诊断可读");
             Assert.AreEqual(1f, d0.Speed, 1e-3f, "提交后应为原生 1×");
 
             Assert.IsTrue(player.TrySetBlendSpeed(accepted.Handle, 2f), "就地倍率更新应被接受");
-            Assert.IsTrue(backend.TryGetChannelDebug(AnimationChannel.Locomotion, out var d1), "就地更新后通道诊断可读");
+            Assert.IsTrue(backend.TryGetChannelDebug(AnimationChannel.Base, out var d1), "就地更新后通道诊断可读");
             Assert.AreEqual(2f, d1.Speed, 1e-3f, "倍率应乘在混合器节点上（引擎 SetSpeed 真值）");
 
             Assert.IsFalse(player.TrySetBlendSpeed(accepted.Handle, 0f), "非正倍率必须拒绝");
             Assert.IsFalse(player.TrySetBlendSpeed(accepted.Handle, float.NaN), "NaN 倍率必须拒绝");
-            Assert.IsTrue(backend.TryGetChannelDebug(AnimationChannel.Locomotion, out var d2), "拒绝后通道诊断可读");
+            Assert.IsTrue(backend.TryGetChannelDebug(AnimationChannel.Base, out var d2), "拒绝后通道诊断可读");
             Assert.AreEqual(2f, d2.Speed, 1e-3f, "拒绝后倍率不变");
 
             Assert.IsFalse(player.TrySetBlendSpeed(default, 2f), "未知句柄必须拒绝");
@@ -478,21 +506,21 @@ namespace LiteGame.Tests.EditMode
         {
             var prefab = LoadPrefabOrIgnore();
             var go = Scope.Track(Object.Instantiate(prefab));
-            var backend = new AnimatorAnimationBackend(go.GetComponentInChildren<Animator>(true));
-            var player = new CharacterAnimationPlayer(backend, TestProfile());
+            var backend = Backend(go);
+            var player = new AnimationPlayer(backend, TestProfile());
 
-            Assert.IsTrue(player.Play(new AnimationRequest(CharacterAnimationIds.Walk, AnimationChannel.Locomotion)).Accepted);
+            Assert.IsTrue(player.Play(new AnimationRequest(CharacterAnimationIds.Walk, AnimationChannel.Base)).Accepted);
             for (int i = 0; i < 10; i++) player.Tick(0.05f);
-            Assert.IsTrue(backend.TryGetChannelDebug(AnimationChannel.Locomotion, out var move1));
+            Assert.IsTrue(backend.TryGetChannelDebug(AnimationChannel.Base, out var move1));
             float t1 = move1.Time;
 
             AnimationTerminalState? terminal = null;
             player.OnTerminal += (h, t) => terminal = t;
-            Assert.IsTrue(player.Play(new AnimationRequest(CharacterAnimationIds.Death, AnimationChannel.FullBody)).Accepted);
+            Assert.IsTrue(player.Play(new AnimationRequest(CharacterAnimationIds.Death, AnimationChannel.Override)).Accepted);
             Assert.AreEqual(2, backend.ActiveChannels, "FullBody 覆盖期应两通道并存");
 
             player.Tick(0.05f);
-            Assert.IsTrue(backend.TryGetChannelDebug(AnimationChannel.Locomotion, out var move2));
+            Assert.IsTrue(backend.TryGetChannelDebug(AnimationChannel.Base, out var move2));
             Assert.AreNotEqual(t1, move2.Time, "FullBody 覆盖期间 Locomotion 时间仍在推进（无需恢复过期旧动作——§6）");
 
             for (int i = 0; i < 200 && terminal == null; i++) player.Tick(0.05f);
@@ -500,7 +528,7 @@ namespace LiteGame.Tests.EditMode
 
             for (int i = 0; i < 10; i++) player.Tick(0.05f);                  // 让权重淡出跑完
             Assert.AreEqual(1, backend.ActiveChannels, "FullBody 释放后只剩 Locomotion");
-            Assert.IsTrue(backend.TryGetChannelDebug(AnimationChannel.FullBody, out var fb) && fb.Weight <= 1e-3f,
+            Assert.IsTrue(backend.TryGetChannelDebug(AnimationChannel.Override, out var fb) && fb.Weight <= 1e-3f,
                 "FullBody 权重必须归零（姿态自动回当前移动语义）");
 
             player.Dispose();
@@ -512,20 +540,20 @@ namespace LiteGame.Tests.EditMode
         {
             var prefab = LoadPrefabOrIgnore();
             var go = Scope.Track(Object.Instantiate(prefab));
-            var backend = new AnimatorAnimationBackend(go.GetComponentInChildren<Animator>(true));
-            var player = new CharacterAnimationPlayer(backend, TestProfile());
+            var backend = Backend(go);
+            var player = new AnimationPlayer(backend, TestProfile());
 
             // 单次播放落位后的节点基线（混合器 + AnimatorControllerPlayable 内部节点 + 当前片段）。
             // 不硬编码节点数——控制器内部节点数由 Unity 决定，本用例只关心"反复打断后是否回基线"。
             Assert.IsTrue(player.Play(new AnimationRequest(
-                CharacterAnimationIds.Idle, AnimationChannel.Locomotion)).Accepted);
+                CharacterAnimationIds.Idle, AnimationChannel.Base)).Accepted);
             for (int i = 0; i < 20; i++) player.Tick(0.05f);
             int baseline = backend.PlayableCount;
 
             for (int i = 0; i < 200; i++)
             {
                 player.Play(new AnimationRequest(
-                    i % 2 == 0 ? CharacterAnimationIds.Idle : CharacterAnimationIds.Run, AnimationChannel.Locomotion));
+                    i % 2 == 0 ? CharacterAnimationIds.Idle : CharacterAnimationIds.Run, AnimationChannel.Base));
                 player.Tick(0.016f);
             }
             Assert.Greater(backend.TruncatedBlends, 0, "在途混合尾部被打断必须计数（§12 确定截断策略）");
@@ -538,7 +566,7 @@ namespace LiteGame.Tests.EditMode
             for (int i = 0; i < 100; i++)
             {
                 player.Play(new AnimationRequest(
-                    i % 2 == 0 ? CharacterAnimationIds.Run : CharacterAnimationIds.Idle, AnimationChannel.Locomotion));
+                    i % 2 == 0 ? CharacterAnimationIds.Run : CharacterAnimationIds.Idle, AnimationChannel.Base));
                 player.Tick(0.016f);
             }
             for (int i = 0; i < 20; i++) player.Tick(0.05f);
@@ -554,8 +582,8 @@ namespace LiteGame.Tests.EditMode
         public void 完成判定_一次性_UpperBody与FullBody各恰好一次()
         {
             var prefab = LoadPrefabOrIgnore();
-            AssertCompletedOnce(prefab, CharacterAnimationIds.Reload, AnimationChannel.UpperBody);
-            AssertCompletedOnce(prefab, CharacterAnimationIds.Death, AnimationChannel.FullBody);
+            AssertCompletedOnce(prefab, CharacterAnimationIds.Reload, AnimationChannel.Overlay);
+            AssertCompletedOnce(prefab, CharacterAnimationIds.Death, AnimationChannel.Override);
         }
 
         [Test]
@@ -564,17 +592,17 @@ namespace LiteGame.Tests.EditMode
         {
             var prefab = LoadPrefabOrIgnore();
             var go = Scope.Track(Object.Instantiate(prefab));
-            var backend = new AnimatorAnimationBackend(go.GetComponentInChildren<Animator>(true));
-            var player = new CharacterAnimationPlayer(backend, TestProfile());
+            var backend = Backend(go);
+            var player = new AnimationPlayer(backend, TestProfile());
 
             int terminals = 0;
             player.OnTerminal += (h, t) => terminals++;
-            Assert.IsTrue(player.Play(new AnimationRequest(UpperLoop, AnimationChannel.UpperBody)).Accepted);
+            Assert.IsTrue(player.Play(new AnimationRequest(OverlayLoop, AnimationChannel.Overlay)).Accepted);
 
             for (int i = 0; i < 100; i++)                                     // 5s ≫ 片段时长
             {
                 player.Tick(0.05f);
-                Assert.IsTrue(backend.TryGetChannelDebug(AnimationChannel.UpperBody, out var d));
+                Assert.IsTrue(backend.TryGetChannelDebug(AnimationChannel.Overlay, out var d));
                 Assert.LessOrEqual(d.Time, d.Length + 1e-3f, "循环定义即使在资产不循环时也必须回绕（不越界）");
             }
 
@@ -589,16 +617,16 @@ namespace LiteGame.Tests.EditMode
             var prefab = LoadPrefabOrIgnore();
             var oneShot = new AnimationId("Test.IdleOnce");
             var profile = new AnimationProfile()
-                .Register(new AnimationDefinition(oneShot, AnimationChannel.Locomotion,
+                .Register(new AnimationDefinition(oneShot, AnimationChannel.Base,
                     "Idle", loop: false, minSpeed: 0.1f, maxSpeed: 2f));      // 一次性定义 × 循环资产
 
             var go = Scope.Track(Object.Instantiate(prefab));
-            var player = new CharacterAnimationPlayer(
-                new AnimatorAnimationBackend(go.GetComponentInChildren<Animator>(true)), profile);
+            var player = new AnimationPlayer(
+                Backend(go), profile);
 
             AnimationTerminalState? terminal = null;
             player.OnTerminal += (h, t) => terminal = t;
-            Assert.IsTrue(player.Play(new AnimationRequest(oneShot, AnimationChannel.Locomotion)).Accepted);
+            Assert.IsTrue(player.Play(new AnimationRequest(oneShot, AnimationChannel.Base)).Accepted);
 
             for (int i = 0; i < 200 && terminal == null; i++) player.Tick(0.05f);
             Assert.AreEqual(AnimationTerminalState.Completed, terminal,
@@ -616,12 +644,12 @@ namespace LiteGame.Tests.EditMode
 
             // ① SpeedOverride：同片段 2× 速度，时间按倍率推进（Tick 不再重复缩放——§7）
             var goFast = Scope.Track(Object.Instantiate(prefab));
-            var fastBackend = new AnimatorAnimationBackend(goFast.GetComponentInChildren<Animator>(true));
-            var fastPlayer = new CharacterAnimationPlayer(fastBackend, TestProfile());
+            var fastBackend = Backend(goFast);
+            var fastPlayer = new AnimationPlayer(fastBackend, TestProfile());
             Assert.IsTrue(fastPlayer.Play(new AnimationRequest(
-                CharacterAnimationIds.Death, AnimationChannel.FullBody, 0f, 2f)).Accepted);
+                CharacterAnimationIds.Death, AnimationChannel.Override, 0f, 2f)).Accepted);
             for (int i = 0; i < 2; i++) fastPlayer.Tick(0.05f);               // 0.1s × 2 = 0.2s
-            Assert.IsTrue(fastBackend.TryGetChannelDebug(AnimationChannel.FullBody, out var fast));
+            Assert.IsTrue(fastBackend.TryGetChannelDebug(AnimationChannel.Override, out var fast));
             Assert.AreEqual(2f, fast.Speed, 1e-3f);
             Assume.That(fast.Length > 0.3f, "测速窗口不越片段边界");
             Assert.AreEqual(0.2f, fast.Time, 0.03f, "速度倍率必须经 SetSpeed 生效");
@@ -629,31 +657,33 @@ namespace LiteGame.Tests.EditMode
 
             // ② StartAtNormalized：按归一化起点提交，采样时间落在该点
             var goStart = Scope.Track(Object.Instantiate(prefab));
-            var startBackend = new AnimatorAnimationBackend(goStart.GetComponentInChildren<Animator>(true));
-            var startPlayer = new CharacterAnimationPlayer(startBackend, TestProfile());
+            var startBackend = Backend(goStart);
+            var startPlayer = new AnimationPlayer(startBackend, TestProfile());
             Assert.IsTrue(startPlayer.Play(new AnimationRequest(
-                CharacterAnimationIds.Idle, AnimationChannel.Locomotion, 0.5f)).Accepted);
+                CharacterAnimationIds.Idle, AnimationChannel.Base, 0.5f)).Accepted);
             startPlayer.Tick(0f);
-            Assert.IsTrue(startBackend.TryGetChannelDebug(AnimationChannel.Locomotion, out var started));
+            Assert.IsTrue(startBackend.TryGetChannelDebug(AnimationChannel.Base, out var started));
             Assert.AreEqual(0.5f * started.Length, started.Time, 0.02f, "起点必须落在归一化位置");
             startPlayer.Dispose();
 
-            // ③ 无 humanoid Avatar → 无上半身 Mask：不声明 LayeredChannels，UpperBody 显性拒绝
+            // ③ 无 humanoid Avatar → 无叠加层 Mask：不声明 OverlayChannel（叠加层能力位），Overlay 显性拒绝——
+            //    覆盖层（Override）不需 Mask，任何 rig 都声明 OverrideChannel（分层模式）
+            //    （直 Clip 模型：裸 Animator 经清单供片——能力面与片源解耦，不再借控制器）
             var goNoAvatar = Scope.CreateGameObject("NoAvatarAnimator");
             var bareAnimator = goNoAvatar.AddComponent<Animator>();
-            bareAnimator.runtimeAnimatorController =
-                AssetDatabase.LoadAssetAtPath<RuntimeAnimatorController>(CombatGirlsAnimationProfile.ControllerPath);
-            Assert.IsNotNull(bareAnimator.runtimeAnimatorController, "包内控制器应可加载");
 
             var bareBackend = new AnimatorAnimationBackend(bareAnimator);
-            Assert.IsFalse(bareBackend.HasUpperBodyMask, "非 humanoid 不构造上半身 Mask");
+            bareBackend.RegisterManifest(Manifest());
+            Assert.IsFalse(bareBackend.HasOverlayMask, "非 humanoid 不构造叠加层 Mask");
             Assert.AreEqual(AnimationBackendCapabilities.None,
-                bareBackend.Capabilities & AnimationBackendCapabilities.LayeredChannels,
-                "Mask 不可用时不得声明 LayeredChannels（§4 诚实声明）");
+                bareBackend.Capabilities & AnimationBackendCapabilities.OverlayChannel,
+                "Mask 不可用时不得声明 OverlayChannel（§4 诚实声明）");
+            Assert.IsTrue(bareBackend.Capabilities.HasFlag(AnimationBackendCapabilities.OverrideChannel),
+                "覆盖层不需 Mask——任何 rig 声明 OverrideChannel（分层模式）");
 
-            var barePlayer = new CharacterAnimationPlayer(bareBackend, TestProfile());
-            var rejected = barePlayer.Play(new AnimationRequest(CharacterAnimationIds.Reload, AnimationChannel.UpperBody));
-            Assert.IsFalse(rejected.Accepted, "无叠加能力时 UpperBody 必须被拒绝（不静默降级）");
+            var barePlayer = new AnimationPlayer(bareBackend, TestProfile());
+            var rejected = barePlayer.Play(new AnimationRequest(CharacterAnimationIds.Reload, AnimationChannel.Overlay));
+            Assert.IsFalse(rejected.Accepted, "无叠加层能力位时 Overlay 必须被拒绝（不静默降级）");
             Assert.AreEqual(AnimationStartResult.Reason.UnsupportedCapability, rejected.RejectReason);
             barePlayer.Dispose();
         }
@@ -662,18 +692,19 @@ namespace LiteGame.Tests.EditMode
 
         [Test]
         [Category(TestCategory.Contract)]
-        public void Profile_每条绑定命中控制器片段表()
+        public void Profile_每条绑定命中片段清单()
         {
             var prefab = LoadPrefabOrIgnore();
-            var animator = prefab.GetComponentInChildren<Animator>(true);
-            var controller = animator.runtimeAnimatorController;
-            Assume.That(controller != null, "prefab 应带 RuntimeAnimatorController");
+            Assert.IsNotNull(prefab.GetComponentInChildren<LiteAnimator>(true), "视图 prefab 应挂绑定组件（直 Clip 形态）");
+            var manifest = AssetDatabase.LoadAssetAtPath<AnimationClipManifest>(CombatGirlsAnimationProfile.ClipManifestPath);
+            Assume.That(manifest != null, "片段清单资产应存在");
+            Assume.That(manifest.EntryCount > 0, "片段清单应有登记条目");
 
             var available = new HashSet<string>();
-            foreach (var c in controller.animationClips) if (c != null) available.Add(c.name);
-            Assume.That(available.Count > 0, "控制器应引用片段");
+            for (int i = 0; i < manifest.EntryCount; i++)
+                if (manifest.TryGetEntry(i, out var e) && e.Clip != null) available.Add(e.Key);
 
-            var profile = CombatGirlsAnimationProfile.Build();
+            var profile = AnimationProfileTableSource.Load(ConfigService.DataDir, CombatGirlsAnimationProfile.ModelFamily);
             var ids = new[]
             {
                 CharacterAnimationIds.Idle, CharacterAnimationIds.Walk, CharacterAnimationIds.Run,
@@ -685,29 +716,42 @@ namespace LiteGame.Tests.EditMode
             {
                 Assert.IsTrue(profile.TryGetDefinition(id, out var def), $"Profile 应登记 {id}");
                 Assert.IsTrue(available.Contains(def.Binding),
-                    $"绑定「{def.Binding}」（{id}）不在控制器片段表——可用：{string.Join("/", available)}");
+                    $"绑定「{def.Binding}」（{id}）不在片段清单——可用：{string.Join("/", available)}");
             }
 
-            // 生产 Profile 的混合槽位也必须命中片段表（速度轴 {Idle,Walk,Run} 与 4 向 AimWalk 都在控制器内）
+            // 词汇表全行覆盖：CharacterAnimationIds 的每个常量在表中都有行（表与词汇表漂移的守门）
+            foreach (var id in new[]
+            {
+                CharacterAnimationIds.Idle, CharacterAnimationIds.Walk, CharacterAnimationIds.Run,
+                CharacterAnimationIds.AimIdle, CharacterAnimationIds.Reload,
+                CharacterAnimationIds.Hit, CharacterAnimationIds.Death, CharacterAnimationIds.Evade,
+                CharacterAnimationIds.MoveBlend, CharacterAnimationIds.AimMoveBlend,
+            })
+            {
+                Assert.IsTrue(profile.TryGetDefinition(id, out _) || profile.TryGetBlendDefinition(id, out _),
+                    $"语义 {id} 在 tbanimationprofile 表中无行——词汇表与表行漂移");
+            }
+
+            // 生产 Profile 的混合槽位也必须命中清单（速度轴 {Idle,Walk,Run} 与 4 向 AimWalk）
             foreach (var blendId in new[] { CharacterAnimationIds.MoveBlend, CharacterAnimationIds.AimMoveBlend })
             {
                 Assert.IsTrue(profile.TryGetBlendDefinition(blendId, out var prodBlend), $"生产 Profile 应登记混合 {blendId}");
                 for (int slot = 0; slot < prodBlend.SlotCount; slot++)
                 {
                     Assert.IsTrue(available.Contains(prodBlend.Bindings[slot]),
-                        $"混合「{blendId}」槽位 {slot} 的绑定「{prodBlend.Bindings[slot]}」不在控制器片段表");
+                        $"混合「{blendId}」槽位 {slot} 的绑定「{prodBlend.Bindings[slot]}」不在片段清单");
                 }
             }
 
-            // 测试 Profile 的混合槽位同样必须命中片段表（§11 资源键校验对混合路径一样成立）
+            // 测试 Profile 的混合槽位同样必须命中清单（§11 资源键校验对混合路径一样成立）
             var blendProfile = TestProfile();
-            foreach (var blendId in new[] { TestMoveBlend, TestUpperBlend })
+            foreach (var blendId in new[] { TestMoveBlend, TestOverlayBlend })
             {
                 Assert.IsTrue(blendProfile.TryGetBlendDefinition(blendId, out var blend), $"测试 Profile 应登记混合 {blendId}");
                 for (int slot = 0; slot < blend.SlotCount; slot++)
                 {
                     Assert.IsTrue(available.Contains(blend.Bindings[slot]),
-                        $"混合「{blendId}」槽位 {slot} 的绑定「{blend.Bindings[slot]}」不在控制器片段表");
+                        $"混合「{blendId}」槽位 {slot} 的绑定「{blend.Bindings[slot]}」不在片段清单");
                 }
             }
         }
@@ -715,8 +759,8 @@ namespace LiteGame.Tests.EditMode
         private void AssertCompletedOnce(GameObject prefab, AnimationId id, AnimationChannel channel)
         {
             var go = Scope.Track(Object.Instantiate(prefab));
-            var player = new CharacterAnimationPlayer(
-                new AnimatorAnimationBackend(go.GetComponentInChildren<Animator>(true)), TestProfile());
+            var player = new AnimationPlayer(
+                Backend(go), TestProfile());
 
             AnimationTerminalState? terminal = null;
             int count = 0;
@@ -751,7 +795,7 @@ namespace LiteGame.Tests.EditMode
                     return go;
                 },
                 recycler: null);                                            // 自有池：回收 = 停用入池
-            var driver = new CharacterLocomotionDriver(view);
+            var driver = new CharacterLocomotionDriver(view, ProductionProfile(), manifest: Manifest());
             const float dt = 1f / 60f;
             var weights = new float[4];
 
@@ -811,7 +855,7 @@ namespace LiteGame.Tests.EditMode
                 },
                 recycler: null);
             view.AlignLocal(selfId);                                    // 本地实体：IsAiming 走预测态分支
-            var driver = new CharacterLocomotionDriver(view);
+            var driver = new CharacterLocomotionDriver(view, ProductionProfile(), manifest: Manifest());
             const float dt = 1f / 60f;
             var weights = new float[4];
 
@@ -883,7 +927,7 @@ namespace LiteGame.Tests.EditMode
                 },
                 recycler: null);
             view.AlignLocal(selfId);
-            var driver = new CharacterLocomotionDriver(view);       // 构造即自订阅 EventSink（§8 接缝）
+            var driver = new CharacterLocomotionDriver(view, ProductionProfile(), manifest: Manifest());       // 构造即自订阅 EventSink（§8 接缝）
             const float dt = 1f / 60f;
             var stats = new Dictionary<string, string>();
             var firePos = new SimVector3(0f, 0f, 0f);
@@ -894,7 +938,7 @@ namespace LiteGame.Tests.EditMode
             driver.Tick(dt);
             Assert.AreEqual(1, driver.AnimatedViews);
 
-            // 站定单发：跨根进 FireIdle——战斗根覆盖移动根（收 Locomotion、FireIdle 持 AimIdle；
+            // 站定单发：跨根进 FireIdle——战斗根覆盖移动根（收 Base、FireIdle 持 AimIdle；
             // 事务序先停后播）。
             DeliverFire(view, world, selfId, firePos);
             Assert.AreEqual(0, view.SilencedEvents, "非静默段的事件必须放行");
@@ -906,7 +950,7 @@ namespace LiteGame.Tests.EditMode
                 "开火窗持枪站姿 = AimIdle 循环（不播专用射击片段——反馈归枪口特效）");
             Assert.IsTrue(driver.TryGetFormHandle(0, out var fireHandle), "站姿句柄可读");
 
-            // 覆盖直证：Locomotion 被收（淡出后节点归零）→ 通道数回落 1——**仍处于射击窗内**（1s）。
+            // 覆盖直证：Base 被收（淡出后节点归零）→ 通道数回落 1——**仍处于射击窗内**（1s）。
             int settled = 0;
             for (; settled < 30; settled++)
             {
@@ -914,7 +958,7 @@ namespace LiteGame.Tests.EditMode
                 ((IModuleStats)driver).Snapshot(stats);
                 if (stats["channels"] == "1") break;
             }
-            Assert.Less(settled, 30, "全身接管：Locomotion 收口淡出后通道数必须回落 1（窗口 1s 内）");
+            Assert.Less(settled, 30, "全身接管：Base 收口淡出后通道数必须回落 1（窗口 1s 内）");
             Assert.AreEqual("0", stats["truncatedBlends"], "首次提交不产生截断");
 
             // 连发（10 发/秒量级）：事件只刷窗、不重提——**全程同句柄续播**（零重提交、零终态）
@@ -959,7 +1003,7 @@ namespace LiteGame.Tests.EditMode
                 },
                 recycler: null);
             view.AlignLocal(selfId);
-            var driver = new CharacterLocomotionDriver(view);
+            var driver = new CharacterLocomotionDriver(view, ProductionProfile(), manifest: Manifest());
             const float dt = 1f / 60f;
 
             view.Tick(dt);
@@ -974,7 +1018,7 @@ namespace LiteGame.Tests.EditMode
             driver.Tick(dt);
             Assert.IsTrue(driver.TryGetAnimState(0, out var s1) && s1 == CharacterAnimId.FireIdle);
             Assert.IsTrue(driver.TryGetCurrent(0, out var inClip) && inClip.Equals(CharacterAnimationIds.AimIdle),
-                "进态即持枪站姿循环（FullBody 当前形态 = AimIdle）");
+                "进态即持枪站姿循环（Override 当前形态 = AimIdle）");
 
             // 窗内保持：0.8s 后仍在 FireIdle 持 AimIdle（不迁移、不退根）
             float elapsed = 0f;
@@ -1017,7 +1061,7 @@ namespace LiteGame.Tests.EditMode
                 },
                 recycler: null);
             view.AlignLocal(selfId);
-            var driver = new CharacterLocomotionDriver(view);
+            var driver = new CharacterLocomotionDriver(view, ProductionProfile(), manifest: Manifest());
             const float dt = 1f / 60f;
             var firePos = new SimVector3(0f, 0f, 0f);
 
@@ -1070,7 +1114,7 @@ namespace LiteGame.Tests.EditMode
                 },
                 recycler: null);
             view.AlignLocal(selfId);
-            var driver = new CharacterLocomotionDriver(view);
+            var driver = new CharacterLocomotionDriver(view, ProductionProfile(), manifest: Manifest());
             const float dt = 1f / 60f;
             var firePos = new SimVector3(0f, 0f, 0f);
 
@@ -1133,7 +1177,7 @@ namespace LiteGame.Tests.EditMode
                 },
                 recycler: null);
             view.AlignLocal(selfId);                                    // 本地实体：IsAiming 走预测态分支
-            var driver = new CharacterLocomotionDriver(view);
+            var driver = new CharacterLocomotionDriver(view, ProductionProfile(), manifest: Manifest());
             const float dt = 1f / 60f;
             var firePos = new SimVector3(0f, 0f, 0f);
 
@@ -1210,7 +1254,7 @@ namespace LiteGame.Tests.EditMode
                 },
                 recycler: null);
             view.AlignLocal(selfId);
-            var driver = new CharacterLocomotionDriver(view);
+            var driver = new CharacterLocomotionDriver(view, ProductionProfile(), manifest: Manifest());
             const float dt = 1f / 60f;
             var stats = new Dictionary<string, string>();
 
@@ -1228,7 +1272,7 @@ namespace LiteGame.Tests.EditMode
             Assert.IsTrue(driver.TryGetAnimState(0, out var s1) && s1 == CharacterAnimId.Reloading,
                 "换弹事实进 Reload 叶（全身接管）");
             Assert.IsTrue(driver.TryGetCurrent(0, out var form) && form.Equals(CharacterAnimationIds.Reload),
-                "Reload 片段在播（FullBody 当前形态 = 换弹语义）");
+                "Reload 片段在播（Override 当前形态 = 换弹语义）");
             Assert.IsTrue(driver.TryGetFormHandle(0, out var reloadHandle), "换弹句柄可读");
 
             // 换弹期移动事实不改叶（换弹不可打断——Sim 侧也只有到帧完成一条出路）
@@ -1246,7 +1290,7 @@ namespace LiteGame.Tests.EditMode
             Assert.IsTrue(driver.TryGetFormHandle(0, out var h3) && h3.Equals(reloadHandle),
                 "播完不重发（同句柄 = 帧锁定，非重播）");
             ((IModuleStats)driver).Snapshot(stats);
-            Assert.AreEqual("1", stats["channels"], "持末帧 FullBody 通道保持活跃（帧锁定——通道不停机）");
+            Assert.AreEqual("1", stats["channels"],                 "持末帧 Override 通道保持活跃（帧锁定——通道不停机）");
 
             // 停步（锁存清零）→ 事实清除（到帧完成）→ 窗尽且未瞄准 → 退根回移动层
             for (int i = 0; i < 3; i++) driver.Tick(dt);
@@ -1258,7 +1302,7 @@ namespace LiteGame.Tests.EditMode
                 "事实清除 → 窗尽未瞄准 → 退根回移动层（Idle 叶）");
             ((IModuleStats)driver).Snapshot(stats);
             Assert.AreEqual("1", stats["channels"],
-                "退根后 FullBody 通道交还（持帧句柄的 Stop = 通道释放——不悬挂不冻结）");
+                "退根后 Override 通道交还（持帧句柄的 Stop = 通道释放——不悬挂不冻结）");
 
             driver.Dispose();
         }
@@ -1281,7 +1325,7 @@ namespace LiteGame.Tests.EditMode
                 },
                 recycler: null);
             view.AlignLocal(selfId);
-            var driver = new CharacterLocomotionDriver(view);
+            var driver = new CharacterLocomotionDriver(view, ProductionProfile(), manifest: Manifest());
             const float dt = 1f / 60f;
             var firePos = new SimVector3(0f, 0f, 0f);
 
@@ -1423,7 +1467,7 @@ namespace LiteGame.Tests.EditMode
             SimView view = new SimView(world, null,
                 factory: (loc, parent) => Scope.CreateGameObject(loc),      // 灰盒形态：无 Animator
                 recycler: null);
-            var driver = new CharacterLocomotionDriver(view);
+            var driver = new CharacterLocomotionDriver(view, ProductionProfile(), manifest: Manifest());
             const float dt = 1f / 60f;
 
             view.Tick(dt);

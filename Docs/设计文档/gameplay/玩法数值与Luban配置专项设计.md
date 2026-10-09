@@ -29,26 +29,34 @@ Luban xlsx
 
 客户端和 RoomServer 必须来自同一份表源；缺表或关键行缺失时拒绝候选，首次启动无可用版本则进入恢复态，不能静默回退默认值。验证完成前不得发布 Tables 或发布玩法数值实例（实例是"装载后运行态数值"的唯一载体——客户端原子发布读口、服务端装配输入；静态装载面已拆除，见下）。
 
-**数值实例化（技术债 #1 根治，2026-10-08）**：装载产出 `CombatValues`/`MovementValues`/`WeaponTable` 只读实例；服务端 `CombatNumbers` → `ServerTableLoad` → `HostAssembly.Inputs`（必填）→ 宿主/房间快照；客户端 `ConfigService` 装载校验后原子发布读口（表现面便捷读，机制禁读）；Sim 机制（`SimStep`→系统/回溯/回放）一律经参数接收实例。摘要（`CombatConfigDigest`）按数值实例计算，字段序/格式与旧口径逐字节一致（同值同摘要）。**防复辟纪律 = 纪律扫描 R13**（机制面禁读静态读口可变值，常量面豁免；受守根与例外见 `ScanTargets.cs`）。施工与证据见[配置实例化](../施工进度/配置实例化.md)。
+**数值实例化（技术债 #1 根治，2026-10-08）**：装载产出 `CombatValues`/`MovementValues`/`WeaponTable` 只读实例；服务端 `CombatNumbers` → `ServerTableLoad` → `HostAssembly.Inputs`（必填）→ 宿主/房间快照；客户端 `ConfigService` 装载校验后原子发布读口（表现面便捷读，机制禁读）；Sim 机制（`SimStep`→系统/回溯/回放）一律经参数接收实例。摘要（`CombatConfigDigest`）按数值实例计算，字段序/格式与旧口径逐字节一致（同值同摘要）。**防复辟纪律 = 纪律扫描 R13**（机制面禁读静态读口可变值，常量面豁免；受守根与例外见 `ScanTargets.cs`）。施工与证据见[配置实例化](../../施工进度/配置实例化.md)。
 
-**单源映射**：`combatnum` 不再存储重力和出生生命。`tbmovementconfig.gravity` 是重力唯一表源；`tbentityconfig.initial_hp` 是实体出生生命唯一表源，当前消费者为 id=1 默认角色。`SimConfigMapper` 放在 `LiteClient.Serialization.Luban`，RoomServer 只源链接该无 Unity/UniTask 依赖文件，两端共用必要行与数值校验及投影。`CombatValues.Gravity/EntityHp` 是固定对局配置中的投影值，不构成第二套可编辑表源；Sim 不直接读表或静态配置。所属表行缺失、非有限重力或非正出生生命必须拒绝装载，不回退代码默认值。同值的 `CombatConfigDigest` 文本和摘要保持一致，schema 迁移通过重生成 buildHash 保护准入。
+**单源映射**：`combatnum` 不再存储重力和出生生命。`tbmovementconfig.gravity` 是重力唯一表源；`tbentityconfig.initial_hp` 是实体出生生命唯一表源，当前消费者为 id=1 默认角色。`SimConfigMapper` 放在 `LiteClient/Adapters/Serialization.Luban/`（文件所在程序集名为 `LiteClient.Serialization.Luban`，但**声明的命名空间是 `LiteClient`**），RoomServer 只源链接该无 Unity/UniTask 依赖文件，两端共用必要行与数值校验及投影。`CombatValues.Gravity/EntityHp` 是固定对局配置中的投影值，不构成第二套可编辑表源；Sim 不直接读表或静态配置。所属表行缺失、非有限重力或非正出生生命必须拒绝装载，不回退代码默认值。同值的 `CombatConfigDigest` 文本和摘要保持一致，schema 迁移通过重生成 buildHash 保护准入。
 
 **生成入口**：`Luban/gen.bat` 委托 `scripts/codegen/gen-luban.ps1`，路径从仓库根推导。Luban 先在 `TestResults/luban-generation/<run>/` 生成 C#/binary/Lua；成功后只发布相应文件类型且跳过内容相同的文件，保留现有文本行尾，binary 不做文本归一化。生成器不清空 Assets 输出目录，也不通过 Git 恢复 asmdef 或 `.meta`。Unity 导入与资源收集验证仍由本机 Pipeline 执行。
 
 ## 3. 表设计
 
-| 表 | 关键字段 |
-|---|---|
-| `tbcombatnum`（已落地） | id、move_speed、hitscan_range、base_damage、damage_spread；重力/出生生命不在此表 |
-| `tbmovementconfig`（已落地） | 走跑冲/滑铲/空中/跳跃/位移数值，gravity 为唯一重力表列；当前机制通过对局快照消费重力 |
-| `tbentityconfig`（已落地） | id、initial_hp；默认角色 id=1，其他实体定义随真实消费者扩展 |
-| `tb_weapon`（**已落地**） | id、类型、射速、弹匣、备弹、换弹帧、伤害、射程、散布、弹丸、弹药类型、切枪帧、表现引用 |
-| `tb_action` | id、category、时间轴/轨、优先级、中断规则、效果引用 |
-| `tb_action_num` | 前摇/生效/后摇、冷却、消耗、伤害、半径、持续、位移、护盾 |
-| `tb_item` | 类型、堆叠上限、使用方式、装备槽、稀有度、价值 |
-| `tb_status` | 效果、持续帧、叠层、属性修改、互斥组 |
+> **表名口径**：落地表名为 `Tables.Tb<name>` / `<name>.bytes`（如 `tbweapon` / `tbweapon.bytes`，**无下划线**）；下表的 `tb_weapon` 等写法是设计口语，代码/生成物一律用无下划线形式。
 
-所有参与 Sim 的时间量用整数帧；Timeline 导出校验 `round(seconds*60)` 和误差 `<1e-4`。
+| 表 | 状态 | 关键字段 |
+|---|---|---|
+| `tbcombatnum` | **已落地** | id、move_speed、hitscan_range、base_damage、damage_spread；重力/出生生命不在此表 |
+| `tbmovementconfig` | **已落地** | 走跑冲/滑铲/空中/跳跃/位移数值（19 字段），gravity 为唯一重力表列 |
+| `tbentityconfig` | **已落地** | id、initial_hp；默认角色 id=1 |
+| `tbweapon` | **已落地** | id、name、archetype、slot（槽位默认映射单源）、fire_mode（auto/semi→bool）、damage/rpm/magazine_size/reserve_ammo/reload_frames/range/spread/pellets/ammo_type/switch_frames、vfx/sfx |
+| `tbitemconfig` | **已落地** | 道具表（类型 + 刷新/拾取/携带/使用 + 各类型效果数值）；**空表即拒装载** |
+| `tbuiform` | **已落地** | UI 表单投影（lua_path/prefab/layer/full_screen）；**排除在 buildHash 外**（纯表现） |
+| `tbcontententry` | **已落地** | 内容入口表（样例①真实资源包段的入口 location 单源） |
+| `tbstrategy` | **已落地** | 策略表 |
+| `tbanimationprofile` | **已落地** | 动画 Profile 登记行（id＝行键〔定义语义 ID/回退源 ID/Mask 路径〕、model_family 分派键、kind〔single/blend/fallback/mask〕、channel〔base/overlay/override→枚举〕、binding、bindings〔逗号分隔串——拆分在装载边界〕、loop、min/max_speed、hold_on_finish、requires_load、fallback_id）；**空表即拒装载**，类别/通道字符串与全族语义校验（FromRows 演练）在装载门 |
+| `tb_action` | **未落地（目标态）** | id、category、时间轴/轨、优先级、中断规则、效果引用——`Luban/Data/` 无同名 xlsx、无 `Tb*` 类、无 `.bytes`；目前仅 `SimCombatRuntime` 注释提及 |
+| `tb_action_num` | **未落地（目标态）** | 前摇/生效/后摇、冷却、消耗、伤害、半径、持续、位移、护盾 |
+| `tb_status` | **未落地（目标态）** | 效果、持续帧、叠层、属性修改、互斥组 |
+
+装载门（`ConfigService.ValidateCandidate`）：全部表在 `TableDataFiles` 登记；缺表/空表、`tbweapon` 缺 id=0 默认步枪、`fire_mode` 非法、`slot` 越界、`pellets < 1`、`tbanimationprofile` 空表/非法类别/通道串/全族装载演练失败一律拒绝装载并抛明确原因。
+
+所有参与 Sim 的时间量用整数帧；Timeline 导出校验 `round(seconds*60)` 和误差 `<1e-4`（**随 `tb_action` 落表才有实现可校验**）。
 
 ## 4. 校验和版本
 

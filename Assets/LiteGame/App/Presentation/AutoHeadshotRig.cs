@@ -7,7 +7,7 @@ namespace LiteGame
 {
 #if UNITY_EDITOR || DEVELOPMENT_BUILD || LITEFRAMEWORK_DEBUG
     /// <summary>
-    /// **爆头链路自动验证件**（测试模式诊断，release 整段剥离；<b>F12</b> 开关）。
+    /// **爆头链路自动验证件**（测试模式诊断，release 整段剥离；GM 面板现场开关）。
     ///
     /// **做什么**：把设备源换成自动瞄准源——每帧锁定<b>最近的非自身活体</b>，把 <c>AimPoint</c> 压到它
     /// <b>头部带中心</b>（[HeadHitLine, HitscanHeight] 的中点），并<b>持续按住开火</b>
@@ -133,7 +133,7 @@ private readonly AutoAimHeadshotSource _source;
             input.SetSource(_source);                     // 换源（键鼠源原样留存在 _original）
             Active = true;
             _nextReport = Time.unscaledTime;
-            Debug.Log("[AutoHeadshot] 已启用：自动锁定最近敌人 + 瞄准头部带中心 + 持续开火（F12 关闭）");
+            Debug.Log("[AutoHeadshot] 已启用：自动锁定最近敌人 + 瞄准头部带中心 + 持续开火（GM 面板关闭）");
         }
 
         /// <summary>关闭（还原原设备源；幂等）。</summary>

@@ -7,8 +7,8 @@ using UnityEngine;
 namespace LiteView.Animation
 {
     /// <summary>
-    /// 移动根复合态（下层）：MoveBlend 独占 Locomotion 通道——进根提交（按当前速度权重）、
-    /// 每帧就地调权重（同形态连续，不换句柄）、离根收口（覆盖开始：先停 Locomotion 再让战斗根开 FullBody）；
+    /// 移动根复合态（下层）：MoveBlend 独占 Base 通道——进根提交（按当前速度权重）、
+    /// 每帧就地调权重（同形态连续，不换句柄）、离根收口（覆盖开始：先停 Base 再让战斗根开 Override）；
     /// **瞄准/换弹建立 → 进战斗根**（覆盖开始）的入口裁决也在此（与战斗根的退根裁决对称——
     /// 各根管各根的出界）。
     /// </summary>
@@ -57,7 +57,7 @@ namespace LiteView.Animation
 
         public void OnLeave(IStageHost<CharacterAnimId, CombatAnimReq> m)
         {
-            // 覆盖开始：收 Locomotion 通道——事务序（先深→浅退出、再浅→深进入）保证先停后播
+            // 覆盖开始：收 Base 通道——事务序（先深→浅退出、再浅→深进入）保证先停后播
             if (_ctx.LocoHandle.IsValid)
                 _ctx.Player.Stop(_ctx.LocoHandle, AnimationStopReason.Cancelled);
             _ctx.LocoHandle = default;
@@ -67,7 +67,7 @@ namespace LiteView.Animation
         {
             LocomotionBlendMath.BuildSpeedWeights(_ctx.Speed, _ctx.MoveWeights);
             var r = _ctx.Player.PlayBlend(new AnimationBlendRequest(
-                CharacterAnimationIds.MoveBlend, AnimationChannel.Locomotion, _ctx.MoveWeights));
+                CharacterAnimationIds.MoveBlend, AnimationChannel.Base, _ctx.MoveWeights));
             if (!r.Accepted) return;                          // 拒绝不推进——OnUpdate 自愈重试
             _ctx.LocoHandle = r.Handle;
             Array.Copy(_ctx.MoveWeights, _ctx.LocoWeightsCopy, _ctx.MoveWeights.Length);

@@ -16,25 +16,32 @@ namespace LiteView.Animation
     /// 姿态推进只经 <see cref="Tick"/>（Graph.Evaluate——§7"Graph Evaluate 只由一个驱动器调用"）。
     ///
     /// **本类只做编排 + 能力声明 + 诊断聚合**，机制各有归属：
-    /// - 图拓扑 / 层序 / 层权重 / 开局默认姿态 → <see cref="AnimationLayerGraph"/>（固定 6 输入，反复打断不增长）；
+    /// - 图拓扑 / 层序 / 层权重 / 开局默认姿态 → <see cref="AnimationLayerGraph"/>（分层 6 输入 / 不分层 2 输入——
+    ///   按构造模式取，均有界；反复打断不增长）；
     /// - 节点两形态（单片段 / 普通混合器）、通道运行态、断线与销毁 → <see cref="ChannelNode"/>；
     /// - 层权重推进与落位回收 → <see cref="ChannelBlendAdvance"/>；
     /// - 结束边界判定 → Core 的 <see cref="ClipCompletionTracker"/>（读定义的 Loop，不读资产 loop 设置）。
     ///
     /// **分层混合（三通道）**：在 Clip 直驱（可播任意 Clip）之上引入
-    /// AnimationLayerMixerPlayable——通道叠加/上半身混合落地，同时保持"不回到控制器参数/Trigger 驱动"
+    /// AnimationLayerMixerPlayable——通道叠加/叠加层混合落地，同时保持"不回到控制器参数/Trigger 驱动"
     /// （该资产参数全是 Trigger、多层无 Mask，§7 字面的控制器参数驱动在本资产上不成立，
     /// 走 §4 允许的「Clip 资源键」分支）。
-    /// **FullBody 不需要"记忆并恢复旧移动动作"**：Locomotion 从未离开层 0、时间持续推进，
-    /// FullBody 权重归零即自然回到当前移动姿态（不引 shadow、不恢复过期旧动作——§6）。
+    /// **Override 不需要"记忆并恢复旧移动动作"**：Base 从未离开层 0、时间持续推进，
+    /// Override 权重归零即自然回到当前移动姿态（不引 shadow、不恢复过期旧动作——§6）。
     ///
-    /// **能力位诚实声明（§4）**：<c>Looping | StartAtNormalized | SpeedOverride | ClipBlending</c>，
-    /// **仅当上半身 Mask 构造成功才追加 <c>LayeredChannels</c>**（非 humanoid 时 UpperBody 被显性拒绝）。
+    /// **能力位诚实声明（§4）**：<c>Looping | StartAtNormalized | SpeedOverride | ClipBlending</c>
+    /// ＋分层模式下的 <c>OverrideChannel</c>（覆盖层不需 Mask——任何 rig 可用）＋Mask 构造成功时的
+    /// <c>OverlayChannel</c>（非 humanoid 无 Mask ⇒ 叠加层请求被播放器提交前拒绝）。
     /// 速度经 <c>SetSpeed</c>；<see cref="Tick"/> 只把已缩放的 delta 交给 Evaluate，不再乘 Speed（§7 归属分离）。
+    ///
+    /// **构造模式（分层/不分层）**：`layered: true`（默认）＝三通道分层图（6 输入）＋Mask 叠加——多通道消费者
+    /// （角色等）的形态；`layered: false`＝**仅基础通道**（2 输入图：当前+尾部交叉淡化——淡化是单通道内
+    /// 新旧交替，不属于分层）＋跳过 Mask 构造（省骨架遍历）——门/物件等单通道直放消费者的精简形态，
+    /// Override/Overlay 通道请求经 <see cref="ChannelOf"/> 返回 null 被显性拒绝（非分层不声明两位能力位）。
     ///
     /// **普通混合器（同通道多片段按权重混合）**：<see cref="TryPlayBlend"/> 用 <c>AnimationMixerPlayable</c>
     /// （无 Mask、纯权重，典型用途 Walk↔Run 按速度连续混合），**且是唯一的混合提交入口**——
-    /// 语义 ID → 槽位绑定的解析归 Profile，经 <c>CharacterAnimationPlayer.PlayBlend</c> 进入本方法
+    /// 语义 ID → 槽位绑定的解析归 Profile，经 <c>AnimationPlayer.PlayBlend</c> 进入本方法
     /// （不存在"绕过播放器直接按名字播"的第二条路径）；**混合节点按循环对待，不产生 Completed**。
     /// **淡化时长**：由构造函数显式传入（<see cref="DefaultBlendSeconds"/> 只是默认值，**不是**淡化数学里的常量），
     /// 并在构造时分发给每个通道（<see cref="ChannelState.BlendSeconds"/>）；`0` = 瞬时落位。
@@ -55,10 +62,11 @@ namespace LiteView.Animation
         private readonly Animator _animator;
         private readonly AnimationLayerGraph _layers;
         private readonly Dictionary<string, AnimationClip> _clips = new Dictionary<string, AnimationClip>(StringComparer.Ordinal);
-        private readonly AvatarMask _upperBodyMask;
-        private readonly ChannelState _locomotion;
-        private readonly ChannelState _fullBody;
-        private readonly ChannelState _upperBody;
+        private readonly bool _layered;
+        private readonly AvatarMask _overlayMask;
+        private readonly ChannelState _base;
+        private readonly ChannelState _override;
+        private readonly ChannelState _overlay;
 
         private bool _disposed;
 
@@ -73,36 +81,44 @@ namespace LiteView.Animation
         /// <param name="blendSeconds">淡入/淡出时长（秒）：**当作必填对待**——默认值只是常见手感的兜底，
         /// 调用方应显式给（0 = 瞬时落位，测试与"直接切"用）。该值在构造时分发给每个通道，
         /// 每个通道的淡化数学只用自己的那一份。</param>
-        /// <param name="upperBodyMaskExclusions">上半身 Mask 的排除子树（Profile 登记面，见
-        /// <see cref="UpperBodyMaskFactory"/>；null/空 = 无排除——transform 段由骨架自动派生，
-        /// 排除面只承载"动画层不得触碰"的域，典型为布料骨）。</param>
+        /// <param name="overlayMaskExclusions">叠加层 Mask 的排除子树（Profile 登记面，见
+        /// <see cref="OverlayMaskFactory"/>；null/空 = 无排除——transform 段由骨架自动派生，
+        /// 排除面只承载"动画层不得触碰"的域，典型为布料骨。仅在分层模式下消费）。</param>
+        /// <param name="layered">构造模式：true（默认）＝三通道分层图＋Mask 叠加；false＝仅基础通道
+        /// （2 输入精简图、不构造 Mask、不声明 <c>OverrideChannel</c>/<c>OverlayChannel</c>——
+        /// 门/物件等单通道直放消费者的精简形态，误用非基础通道被显性拒绝）。</param>
         public AnimatorAnimationBackend(Animator animator, float blendSeconds = DefaultBlendSeconds,
-            IReadOnlyList<string> upperBodyMaskExclusions = null)
+            IReadOnlyList<string> overlayMaskExclusions = null, bool layered = true)
         {
             _animator = animator ?? throw new ArgumentNullException(nameof(animator));
             if (float.IsNaN(blendSeconds) || float.IsInfinity(blendSeconds) || blendSeconds < 0f)
                 throw new ArgumentOutOfRangeException(nameof(blendSeconds), blendSeconds,
                     "混合时长必须 ≥ 0 且有限（0 = 瞬时落位）");
             BlendSeconds = blendSeconds;
+            _layered = layered;
 
-            _layers = new AnimationLayerGraph(_animator);          // 控制器可选（默认姿态/片段索引见类注释）
+            // 图拓扑按构造模式取界（分层 6 输入 / 不分层 2 输入，见 AnimationLayerGraph）
+            _layers = new AnimationLayerGraph(_animator, layered); // 控制器可选（默认姿态/片段索引见类注释）
 
             if (_animator.runtimeAnimatorController != null)
                 RegisterControllerClips();                         // 控制器片段索引（便利源；直 Clip 模型跳过）
 
-            _locomotion = new ChannelState(AnimationChannel.Locomotion, isBase: true,
-                AnimationLayerGraph.LocomotionCurrent, AnimationLayerGraph.LocomotionTail, BlendSeconds);
-            _fullBody = new ChannelState(AnimationChannel.FullBody, isBase: false,
-                AnimationLayerGraph.FullBodyCurrent, AnimationLayerGraph.FullBodyTail, BlendSeconds);
-            _upperBody = new ChannelState(AnimationChannel.UpperBody, isBase: false,
-                AnimationLayerGraph.UpperBodyCurrent, AnimationLayerGraph.UpperBodyTail, BlendSeconds);
-
-            // 纯函数（含排除路径存在性诊断），见 UpperBodyMaskFactory
-            _upperBodyMask = UpperBodyMaskFactory.TryBuild(_animator, upperBodyMaskExclusions);
-            if (_upperBodyMask != null)
+            _base = new ChannelState(AnimationChannel.Base, isBase: true,
+                AnimationLayerGraph.BaseCurrent, AnimationLayerGraph.BaseTail, BlendSeconds);
+            if (layered)
             {
-                _layers.ApplyUpperBodyMask(AnimationLayerGraph.UpperBodyCurrent, _upperBodyMask);
-                _layers.ApplyUpperBodyMask(AnimationLayerGraph.UpperBodyTail, _upperBodyMask);
+                _override = new ChannelState(AnimationChannel.Override, isBase: false,
+                    AnimationLayerGraph.OverrideCurrent, AnimationLayerGraph.OverrideTail, BlendSeconds);
+                _overlay = new ChannelState(AnimationChannel.Overlay, isBase: false,
+                    AnimationLayerGraph.OverlayCurrent, AnimationLayerGraph.OverlayTail, BlendSeconds);
+
+                // 纯函数（含排除路径存在性诊断），见 OverlayMaskFactory——不分层跳过（省骨架遍历）
+                _overlayMask = OverlayMaskFactory.TryBuild(_animator, overlayMaskExclusions);
+                if (_overlayMask != null)
+                {
+                    _layers.ApplyOverlayMask(AnimationLayerGraph.OverlayCurrent, _overlayMask);
+                    _layers.ApplyOverlayMask(AnimationLayerGraph.OverlayTail, _overlayMask);
+                }
             }
         }
 
@@ -113,7 +129,8 @@ namespace LiteView.Animation
              | AnimationBackendCapabilities.StartAtNormalized
              | AnimationBackendCapabilities.SpeedOverride
              | AnimationBackendCapabilities.ClipBlending                                  // 普通混合器路径（TryPlayBlend）
-             | (_upperBodyMask != null ? AnimationBackendCapabilities.LayeredChannels : AnimationBackendCapabilities.None);
+             | (_layered ? AnimationBackendCapabilities.OverrideChannel : AnimationBackendCapabilities.None)      // 覆盖层不需 Mask——任何 rig
+             | (_overlayMask != null ? AnimationBackendCapabilities.OverlayChannel : AnimationBackendCapabilities.None); // 叠加层需 Mask 构造成功
 
         // ---- 诊断（§11；零分配，调用方复用容器）----
 
@@ -123,15 +140,15 @@ namespace LiteView.Animation
         /// <summary>混合尾部被确定性截断的次数（§12"确定截断策略"——新请求打断在途尾部）。</summary>
         public int TruncatedBlends { get; private set; }
 
-        /// <summary>当前占用中的通道数（0..3）。</summary>
+        /// <summary>当前占用中的通道数（0..分层 3 / 不分层 1）。</summary>
         public int ActiveChannels
         {
             get
             {
                 int n = 0;
-                if (_locomotion.Active) n++;
-                if (_fullBody.Active) n++;
-                if (_upperBody.Active) n++;
+                if (_base.Active) n++;
+                if (_override != null && _override.Active) n++;
+                if (_overlay != null && _overlay.Active) n++;
                 return n;
             }
         }
@@ -139,8 +156,8 @@ namespace LiteView.Animation
         /// <summary>图内 playable 节点数（§12 节点稳定用例的观测量）。</summary>
         public int PlayableCount => _layers.PlayableCount;
 
-        /// <summary>上半身 LayerMask 是否可用（false = 非 humanoid，UpperBody 通道不可用）。</summary>
-        public bool HasUpperBodyMask => _upperBodyMask != null;
+        /// <summary>叠加层 LayerMask 是否可用（false = 非 humanoid，Overlay 通道不可用）。</summary>
+        public bool HasOverlayMask => _overlayMask != null;
 
         /// <summary>单通道诊断读数（纯值，零分配）。</summary>
         public bool TryGetChannelDebug(AnimationChannel channel, out AnimationChannelDebug debug)
@@ -196,6 +213,25 @@ namespace LiteView.Animation
             _clips[key] = clip;
         }
 
+        /// <summary>清单内未能登记的条目计数（键越界防御 + 片段引用缺失——缺包克隆的资源态观测；
+        /// 恒 0 = 片源健康）。</summary>
+        public int MissingManifestClips { get; private set; }
+
+        /// <summary>
+        /// 装配期逐键登记片段清单（去 AC 主路径——§4 片源载体裁决的唯一登记面）：键→Clip 显式引用。
+        /// 引用缺失（null）是资源缺失态（缺包克隆）——跳过并计数，不猜、不拦其余键生效。
+        /// 与控制器便利源并存时**后注册为权威**（构造期索引先行、本方法覆盖同名键——清单是声明的配置面）。
+        /// </summary>
+        public void RegisterManifest(AnimationClipManifest manifest)
+        {
+            if (manifest == null) return;
+            for (int i = 0; i < manifest.EntryCount; i++)
+            {
+                if (!manifest.TryGetEntry(i, out var entry) || entry.Clip == null) { MissingManifestClips++; continue; }
+                RegisterClip(entry.Key, entry.Clip);
+            }
+        }
+
         /// <summary>
         /// 查询已登记绑定的**片段时长**（秒）——消费方：驱动器装配期派生**换弹播放倍率**
         /// （倍率 = 片段时长 ÷ Sim 换弹时长，使动画收势与弹药回国同帧；见
@@ -219,7 +255,7 @@ namespace LiteView.Animation
 
             ChannelState ch = ChannelOf(playback.Channel);
             if (ch == null) return false;                                          // 未知通道：显性拒绝
-            if (playback.Channel == AnimationChannel.UpperBody && _upperBodyMask == null)
+            if (playback.Channel == AnimationChannel.Overlay && _overlayMask == null)
                 return false;                                                      // 无 Mask 不叠加（不静默降级）
 
             if (!_clips.TryGetValue(playback.Binding, out AnimationClip clip) || clip == null)
@@ -240,7 +276,7 @@ namespace LiteView.Animation
         /// **唯一的混合提交入口**（<see cref="IAnimationBackend.TryPlayBlend"/>）——语义 ID → 绑定的解析归 Profile，
         /// 不存在"绕过播放器直接按名字播"的第二条路径。
         ///
-        /// **原子性**（§6"不能只占一半"）：任何一条不合法（通道未知 / UpperBody 无 Mask / 条目数 0 或超过
+        /// **原子性**（§6"不能只占一半"）：任何一条不合法（通道未知 / Overlay 无 Mask / 条目数 0 或超过
         /// <see cref="MaxBlendInputs"/> / 权重数与条目数不符 / 起点或速度非法 / 任一绑定未知 / 任一权重非有限或为负 /
         /// 权重和为 0）→ **整组拒绝**，通道保持原播放不动、不建任何节点。
         ///
@@ -260,7 +296,7 @@ namespace LiteView.Animation
 
             ChannelState ch = ChannelOf(blend.Channel);
             if (ch == null) return false;                                          // 未知通道：显性拒绝
-            if (blend.Channel == AnimationChannel.UpperBody && _upperBodyMask == null)
+            if (blend.Channel == AnimationChannel.Overlay && _overlayMask == null)
                 return false;                                                      // 无 Mask 不叠加（不静默降级）
             if (float.IsNaN(blend.StartNormalized) || blend.StartNormalized < 0f || blend.StartNormalized > 1f) return false;
             if (float.IsNaN(blend.Speed) || float.IsInfinity(blend.Speed) || blend.Speed <= 0f) return false;
@@ -326,7 +362,7 @@ namespace LiteView.Animation
         }
 
         /// <summary>释放通道（幂等）。基础层保持当前帧（无下层可回退，重新提交即恢复推进）；
-        /// 上层权重淡出到 0，露出下方 Locomotion（§3"释放即权重淡出"）。
+        /// 上层权重淡出到 0，露出下方基础层（§3"释放即权重淡出"）。
         /// 若此时仍有在途混合尾部，丢弃它即一次确定性截断（§12"截断策略并计数"）——尾部一旦存续
         /// 就说明交叉淡化尚未落位（落位会在 <see cref="ChannelBlendAdvance.Advance"/> 里自行销毁）。</summary>
         public bool TryStop(AnimationChannel channel)
@@ -349,7 +385,7 @@ namespace LiteView.Animation
             }
 
             ch.DestroyTail(_layers);                              // 淡出不再需要旧片段在下层保持
-            ch.TargetWeight = 0f;                                 // 权重淡出 → 露出 Locomotion
+            ch.TargetWeight = 0f;                                 // 权重淡出 → 露出基础层
             return true;
         }
 
@@ -369,16 +405,16 @@ namespace LiteView.Animation
 
             float dt = deltaSeconds > 0f ? deltaSeconds : 0f;
 
-            ChannelBlendAdvance.Advance(_locomotion, _layers, dt);
-            ChannelBlendAdvance.Advance(_fullBody, _layers, dt);
-            ChannelBlendAdvance.Advance(_upperBody, _layers, dt);
+            ChannelBlendAdvance.Advance(_base, _layers, dt);
+            if (_override != null) ChannelBlendAdvance.Advance(_override, _layers, dt);
+            if (_overlay != null) ChannelBlendAdvance.Advance(_overlay, _layers, dt);
 
             _layers.Evaluate(dt);                                  // 每帧恰好一次（多通道也不重复推进时间）
 
             AnimationChannelMask done = AnimationChannelMask.None;
-            if (CheckCompletion(_locomotion)) done |= AnimationChannelMask.Locomotion;
-            if (CheckCompletion(_fullBody)) done |= AnimationChannelMask.FullBody;
-            if (CheckCompletion(_upperBody)) done |= AnimationChannelMask.UpperBody;
+            if (CheckCompletion(_base)) done |= AnimationChannelMask.Base;
+            if (_override != null && CheckCompletion(_override)) done |= AnimationChannelMask.Override;
+            if (_overlay != null && CheckCompletion(_overlay)) done |= AnimationChannelMask.Overlay;
             return done;
         }
 
@@ -473,9 +509,9 @@ namespace LiteView.Animation
         private ChannelState ChannelOf(AnimationChannel channel)
             => channel switch
             {
-                AnimationChannel.Locomotion => _locomotion,
-                AnimationChannel.UpperBody => _upperBody,
-                AnimationChannel.FullBody => _fullBody,
+                AnimationChannel.Base => _base,
+                AnimationChannel.Overlay => _overlay,
+                AnimationChannel.Override => _override,
                 _ => null,
             };
     }

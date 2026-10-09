@@ -73,3 +73,16 @@ DI-3 仍需把 `ProcedureMatch` 的 Account 服务和 `BattleContext` 的 Match 
 
 - **Unity 编译/EditMode/PlayMode 未跑**（无 Unity 环境）：`MatchSessionFactory`（BattleContext 面）、`ContainerModule` 装配两件、`ProcedureMatch/ProcedureBattle/ProcedureArgs` 为静态核查（grep 清零）+ 同装配 `.NET` 面共证；本机 Unity 验收（编译/资源绑定/生命周期循环/IL2CPP）归 **DI-4**。
 - `AccountSessionFactory`（源链接件）与 `MatchSessionFactory` 接口签名在 Unity 侧的编译一致性由 DI-4 首跑确认。
+
+## DI-3 缺陷修复（2026-10-09，Unity 首跑暴露——DI-4 验收前收口）
+
+> 2026-10-09 用户真机 Play 首次跑 Unity 引导（DI 批后首次），连爆两个**该批潜伏缺陷**（.NET 面单测/静态核查覆盖不到装配序，正是 DI-4 登记的验收缺口）；逐个修复并以 Play Mode 实跑核证。
+
+| # | 缺陷 | 根因 | 修复 |
+| --- | --- | --- | --- |
+| 1 | `重复注册:IAccountSessionFactory——同类型只能有一个装配来源`（引导失败→`未装配`） | DI-1 起 `ClientContext.Put` 直写统一容器（`Put<T>`＝按 T 键注册），而 `ContainerModule` 沿用旧形态在 `Put<IAccountSessionFactory>` 之外又显式 `RegisterInstance<IAccountSessionFactory>`——**同键二次注册**，`Add` 守卫当场抛 | 删除两行冗余 `Put`（注册面收敛为服务接口 `RegisterInstance`；具体类型无产物消费者不占键）——同文件 `CommandCenter` 形态（具体键 `Put` + 接口键注册）不受影响 |
+| 2 | `驱动服务未编排:CommandCenter`（修 #1 后暴露） | `ValidateTickOrder` 要求**全部已注册 tickable 必须进驱动表**；命令中心批3（SendQueued/SendAsync 到期派发）给 `CommandCenter` 加了 `ITickable`，`ContainerModule.SetTickOrder` 清单未随动 | 驱动表补 `ICommandCenter`（置 ToastTicker 后、流程机前——排队命令对机器的 Request 当帧可被 Advance 应用）；设计文档 §5 驱动序同步 |
+
+**验证（Play Mode 实跑）**：`[Host]` 模块迹 11/11 `init:done`（含此前必炸的 `Container init:done`）＋ 控制台 **0 error/0 exception**；`GameEntry.TakeContainer` 反射探针装配成功。`未装配`（`TakeContainer` 抛）为引导失败的下游症状，随引导修复消失。
+
+**边界（如实）**：DI-4 余部（资源绑定/生命周期循环/IL2CPP/AOT）仍未验收；本修复只覆盖 Unity 引导链——批3 命令中心文档（§5 驱动序）与代码已同步。

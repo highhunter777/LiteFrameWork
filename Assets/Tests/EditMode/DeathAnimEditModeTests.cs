@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using LiteClient;
 using LiteFramework;
 using LiteFramework.Animation;
 using LiteSim;
@@ -14,9 +15,9 @@ namespace LiteGame.Tests.EditMode
 {
     /// <summary>
     /// 死亡叶与帧锁定（die2 一次性·非循环，播完停末帧）：
-    /// 真资源机器级用例（真 Profile + 真控制器 + 层次机），缺包克隆 Ignore 跳过（同移动动画先例）。
+    /// 真资源机器级用例（真 Profile + 真清单供片 + 层次机），缺包克隆 Ignore 跳过（同移动动画先例）。
     /// 判据：①进叶播 Die2 到 Completed；②完成后恒驻 Dead 叶（不重发/不退根/不降权——句柄不变、
-    /// FullBody 保持、Locomotion 不回流）；③死亡裁决压制开火（窗内死亡 → 强制迁移且不回退）。
+    /// Override 保持、Base 不回流）；③死亡裁决压制开火（窗内死亡 → 强制迁移且不回退）。
     /// </summary>
     public sealed class DeathAnimEditModeTests : UnityTestBase
     {
@@ -28,12 +29,14 @@ namespace LiteGame.Tests.EditMode
         }
 
         /// <summary>真资源机器（真 Profile——Death 绑定 Die2；真控制器片段）。</summary>
-        private (CharacterAnimationPlayer player, SlotAnimContext ctx,
+        private (AnimationPlayer player, SlotAnimContext ctx,
             HierarchicalStageMachine<CharacterAnimId, CombatAnimReq> machine, AnimatorAnimationBackend backend)
             BuildMachine(GameObject go)
         {
             var backend = new AnimatorAnimationBackend(go.GetComponentInChildren<Animator>(true));
-            var player = new CharacterAnimationPlayer(backend, CombatGirlsAnimationProfile.Build());
+            backend.RegisterManifest(AssetDatabase.LoadAssetAtPath<AnimationClipManifest>(
+                CombatGirlsAnimationProfile.ClipManifestPath));   // 直 Clip 模型：清单供片（prefab 无控制器便利源）
+            var player = new AnimationPlayer(backend, AnimationProfileTableSource.Load(ConfigService.DataDir, CombatGirlsAnimationProfile.ModelFamily));
             var ctx = new SlotAnimContext
             {
                 Player = player,
@@ -83,8 +86,8 @@ namespace LiteGame.Tests.EditMode
 
             Assert.AreEqual(CharacterAnimId.Dead, machine.Current, "完成后恒驻死亡叶（不退根）");
             Assert.AreEqual(handleAtEnd, ctx.BodyHandle, "句柄不变 = 无重发（重发会按第 0 帧重播，尸体抽搐）");
-            Assert.IsTrue(backend.IsChannelActive(AnimationChannel.FullBody), "FullBody 保持（姿态不丢）");
-            Assert.IsFalse(backend.IsChannelActive(AnimationChannel.Locomotion), "移动根已退出不回流（Idle 不盖上来）");
+            Assert.IsTrue(backend.IsChannelActive(AnimationChannel.Override), "Override 保持（姿态不丢）");
+            Assert.IsFalse(backend.IsChannelActive(AnimationChannel.Base), "移动根已退出不回流（Idle 不盖上来）");
             player.Dispose();
         }
 

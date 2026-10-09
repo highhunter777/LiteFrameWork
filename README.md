@@ -30,7 +30,7 @@
 | `Assets/RoomServer` | 权威房间内核（`Runtime` 纯化 / `Application` 编排） |
 | `Assets/LiteGame` | 业务与装配（`App` 引导与流程、`Runtime` 会话/输入、`UI`、`Adapters`） |
 | `Assets/Plugins/UniTask` | 框架唯一第三方依赖（随库内置） |
-| `Docs` | 文档中心：`design/`（目标架构）、`施工进度/`（证据）、`开发导航/`（代码地图）、`项目说明/`（本文档集） |
+| `Docs` | 文档中心：`设计文档/`（目标架构）、`施工进度/`（证据）、`开发导航/`（代码地图）、`项目说明/`（本文档集） |
 | `Assets/LiteTesting` | Unity/.NET 双轨测试基础设施 |
 | `Tests` | dotnet 测试（xUnit，net8.0） |
 | `RoomServer/`、`MetaServer/`、`scripts/` | .NET 服务端宿主、构建与门禁脚本 |
@@ -48,4 +48,4 @@ powershell -NoProfile -File scripts/gate/test.ps1 -Lane L3 -Profile PullRequest
 powershell -NoProfile -File scripts/gate/test.ps1 -Lane L2 -Profile PullRequest
 ```
 
-客户端商业化、运行闭环和发布门槛见 [商业级通用客户端框架总设计](Docs/design/architecture/商业级通用客户端框架总设计.md)；共享测试分层、分类约定、确定性与 CI 基础见 [测试开发框架总设计](Docs/design/quality/测试开发框架总设计.md)。
+客户端商业化、运行闭环和发布门槛见 [商业级通用客户端框架总设计](Docs/设计文档/architecture/商业级通用客户端框架总设计.md)；共享测试分层、分类约定、确定性与 CI 基础见 [测试开发框架总设计](Docs/设计文档/quality/测试开发框架总设计.md)。

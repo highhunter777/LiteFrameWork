@@ -93,12 +93,15 @@ Lua `OnHide` 会解绑全部按钮，复用不重跑 `OnInit`，因此按钮绑�
 
 当前限制：
 
+- **`SetTextKey` / `SetTextKeyArgs` / `SetTextKeyPlural` 在当前装配下必抛**（2026-10-10 代码核对）：`UIBindIndex` 的这三个方法首行即校验 `_locale == null` 就抛 `InvalidOperationException`（"需先 BindLocale"），而 **`BindLocale` 在生产链路没有任何调用点**——`LuaBehaviourAdapter.OnInit` 只做 `BindIndexBuilder.Build`，不注入语言服务；全 Assets 搜 `BindLocale` 的调用点只落在 EditMode 用例。即这三个 shim 是**已实现但未接线**的入口，不能在业务脚本里当可用方法写。
+- **`Pulse` 默认强度两侧不一致**（2026-10-10 代码核对）：C# 侧 `UIBindIndex.Pulse(strength = 0.2f, duration = 0.16f)`，而 Lua shim 的 `UiApiShim` 里 `strength or 1.2`——**默认强度 6 倍差**（时长一致）。Lua 侧省略 strength 会得到明显更强的脉冲；需显式传参或先统一两侧默认值。
 - 未命中/类型不符多数路径抛 KeyNotFoundException 或 InvalidOperationException；部分装饰入口采用日志降级，不能统称“所有失败必抛”。具体实现以 UIBindIndex 为准。
 - 未知派发方法目前静默忽略；目标开发期报告 UnknownMethod，不能在 API 演进中悄悄吞拼写错误。
 - MarkDriver 当前按控件登记命令式/绑定式所有权；目标逐属性协调，避免动效与数据争写。
 - Button 解绑当前使用 RemoveAllListeners；目标只移除框架自有监听。
 - OnButton 派发持有 payload 并在点击时取 LuaFunction；目标为展示作用域持有的明确回调句柄，关闭/换表释放，不能无限滞留 Lua 引用。
 - 连续 TMP 淡入淡出不要使用当前 Graphic 颜色口，按制作规范增加 CanvasGroup 专用路径。
+- `SetAnchoredPosition` / `BindText<T>` / `Has` / `Get<T>` / `MarkDriver` / `ResolveGraphic` / `ResolveRect` / `UnbindAll` 未被 Lua 适配器使用（它们是 C# 侧 `UIBindBase` 与诊断面入口）。
 
 ## 4. 控件与 API 对照
 

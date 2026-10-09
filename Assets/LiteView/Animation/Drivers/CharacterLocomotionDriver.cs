@@ -22,13 +22,22 @@ namespace LiteView.Animation
     /// - **帧事件**：本类实现 <see cref="IFrameEventAnimationConsumer"/> 并**自订阅**
     ///   `SimView.EventSink`（构造时挂上、<see cref="Dispose"/> 时摘下）；Fire 事件只刷新射击窗
     ///   （站姿由 Fire 族持 AimIdle 循环，无片段可重播），首次进入按锁存路由进 FireIdle/FireWalk；
-    /// - **灰盒降级**：无 Animator 的视图不建播放器/状态机（与缺角色资源既有姿势一致）；
-    ///   视图回收时旧播放器/机器随槽位消失，新占用者重建（Owner 代次语义由重建保证）。
+    /// - **片源（去 AC 主路径）**：<see cref="AnimationClipManifest"/>（键→Clip 显式引用的纯配置）经
+    ///   <c>AnimatorAnimationBackend.RegisterManifest</c> 装配期逐键登记——**控制器可选**：有控制器时
+    ///   其片段索引只是便利源（清单后注册，同名键以清单为权威）；无控制器（直 Clip 模型）由清单独立供片；
+    ///   两皆缺 = 无片源，视同灰盒跳过；
+    /// - **发现面＝<see cref="LiteAnimator"/>**：视图挂绑定组件（完整动画配置面：清单/可选控制器/
+    ///   Avatar/RootMotion/UpdateMode/Culling）才是可动画视图（组件 RequireComponent 自动补
+    ///   Animator 并持有全部配置）——无组件即灰盒，裸 Animator 不构成判据；
+    /// - **灰盒降级**：无绑定组件、或无任何片源（控制器与清单皆空）的视图不建播放器/状态机
+    ///   （与缺角色资源既有姿势一致）；视图回收时旧播放器/机器随槽位消失，新占用者重建（Owner 代次
+    ///   语义由重建保证）。
     /// </summary>
     public sealed class CharacterLocomotionDriver : IDisposable, IModuleStats, IFrameEventAnimationConsumer
     {
         private readonly SimView _view;
         private readonly AnimationProfile _profile;
+        private readonly AnimationClipManifest _manifest;
         private readonly SlotAnim[] _slots = new SlotAnim[SimConfig.MaxEntities];
 
         /// <summary>射击窗长（秒）＝ CombatConfig.FireStanceFrames / SimConfig.TickRate（1s 单源派生）。</summary>
@@ -40,37 +49,58 @@ namespace LiteView.Animation
 
         private bool _disposed;
 
-        public CharacterLocomotionDriver(SimView view, AnimationProfile profile = null)
+        public CharacterLocomotionDriver(SimView view, AnimationProfile profile,
+            AnimationClipManifest manifest = null)
         {
             _view = view ?? throw new ArgumentNullException(nameof(view));
-            _profile = profile ?? CombatGirlsAnimationProfile.Build();
+            _profile = profile ?? throw new ArgumentNullException(nameof(profile),
+                "Profile 必填——单源在 tbanimationprofile 表：运行时经读口 AnimationProfileConfig.Rows + FromRows(模型族) 装配");
+            _manifest = manifest;
 
             // 形状校验（配置错误构造期显性失败，不等到运行时逐帧静默失败）：
-            // MoveBlend 三槽走 Locomotion；开火/瞄准站姿/瞄准移动三形走 FullBody（战斗动作全身接管）
+            // MoveBlend 三槽走 Base；开火/瞄准站姿/瞄准移动三形走 Override（战斗动作全身接管）
             if (!_profile.TryGetBlendDefinition(CharacterAnimationIds.MoveBlend, out var moveBlend)
                 || moveBlend.SlotCount != 3
-                || moveBlend.Channel != AnimationChannel.Locomotion)
+                || moveBlend.Channel != AnimationChannel.Base)
                 throw new ArgumentException(
-                    $"Profile 缺 {CharacterAnimationIds.MoveBlend} 的 3 槽位 Locomotion 混合定义（形状 {{Idle,Walk,Run}}）", nameof(profile));
+                    $"Profile 缺 {CharacterAnimationIds.MoveBlend} 的 3 槽位 Base 混合定义（形状 {{Idle,Walk,Run}}）", nameof(profile));
             if (!_profile.TryGetBlendDefinition(CharacterAnimationIds.AimMoveBlend, out var aimBlend)
                 || aimBlend.SlotCount != 4
-                || aimBlend.Channel != AnimationChannel.FullBody)
+                || aimBlend.Channel != AnimationChannel.Override)
                 throw new ArgumentException(
-                    $"Profile 缺 {CharacterAnimationIds.AimMoveBlend} 的 4 槽位 FullBody 混合定义（形状 {{AimWalk_F,R,B,L}}）", nameof(profile));
+                    $"Profile 缺 {CharacterAnimationIds.AimMoveBlend} 的 4 槽位 Override 混合定义（形状 {{AimWalk_F,R,B,L}}）", nameof(profile));
             if (!_profile.TryGetDefinition(CharacterAnimationIds.Reload, out var reloadDef)
-                || reloadDef.Channel != AnimationChannel.FullBody)
+                || reloadDef.Channel != AnimationChannel.Override)
                 throw new ArgumentException(
-                    $"Profile 换弹语义须登记为 FullBody（全身接管）→ {CharacterAnimationIds.Reload}", nameof(profile));
+                    $"Profile 换弹语义须登记为 Override（全身接管）→ {CharacterAnimationIds.Reload}", nameof(profile));
             if (reloadDef.Loop)
                 throw new ArgumentException(
                     $"Profile 换弹语义须为一次性（播完持末帧至事实清除）→ {CharacterAnimationIds.Reload}", nameof(profile));
             if (!_profile.TryGetDefinition(CharacterAnimationIds.AimIdle, out var aimIdleDef)
-                || aimIdleDef.Channel != AnimationChannel.FullBody)
+                || aimIdleDef.Channel != AnimationChannel.Override)
                 throw new ArgumentException(
-                    $"Profile 瞄准站姿须登记为 FullBody → {CharacterAnimationIds.AimIdle}", nameof(profile));
+                    $"Profile 瞄准站姿须登记为 Override → {CharacterAnimationIds.AimIdle}", nameof(profile));
             if (aimIdleDef.Loop == false)
                 throw new ArgumentException(
                     $"Profile 瞄准站姿须为循环（开火窗与瞄准态持同一循环）→ {CharacterAnimationIds.AimIdle}", nameof(profile));
+
+            // 片源覆盖校验（§4 片源载体裁决"装配期逐键 RegisterClip 入后端并经校验后才放行播放"）：
+            // Profile 两张登记表的全部绑定键都必须能在清单解析——缺键 = 清单与 Profile 不同步
+            // （配置错误），构造期显性失败，不等到运行时逐提交静默失败。片段引用缺失（null）不在此判：
+            // 那是资源缺失态（缺包克隆），由槽位登记计数观测、不阻止装配。
+            if (manifest != null)
+            {
+                var missing = new List<string>();
+                foreach (var def in _profile.Definitions)
+                    if (!manifest.ContainsKey(def.Binding)) missing.Add($"{def.Id}:{def.Binding}");
+                foreach (var blend in _profile.BlendDefinitions)
+                    for (int slot = 0; slot < blend.SlotCount; slot++)
+                        if (!manifest.ContainsKey(blend.Bindings[slot])) missing.Add($"{blend.Id}:槽{slot}:{blend.Bindings[slot]}");
+                if (missing.Count > 0)
+                    throw new ArgumentException(
+                        $"片段清单缺 {missing.Count} 个 Profile 绑定键（{string.Join(", ", missing.ToArray())}）"
+                        + "——清单须与 Profile 同步（键单源在 Profile）", nameof(manifest));
+            }
 
             _fireHoldSeconds = (float)CombatConfig.FireStanceFrames / SimConfig.TickRate;   // 60/60 = 1s（单源派生）
 
@@ -88,7 +118,19 @@ namespace LiteView.Animation
             }
         }
 
-        /// <summary>读槽位当前**形态**语义（诊断/HUD/测试）：移动根活跃 = MoveBlend；战斗根活跃 = FullBody 当前形态
+        /// <summary>清单条目未能登记的计数（聚合全部在役后端——片段引用缺失是缺包克隆的资源态观测；
+        /// 恒 0 = 片源健康；后端换代重建后计数随旧后端回收，观测口径为当前在役面）。</summary>
+        public int MissingManifestClips
+        {
+            get
+            {
+                int n = 0;
+                for (int i = 0; i < _slots.Length; i++) n += _slots[i]?.Backend?.MissingManifestClips ?? 0;
+                return n;
+            }
+        }
+
+        /// <summary>读槽位当前**形态**语义（诊断/HUD/测试）：移动根活跃 = MoveBlend；战斗根活跃 = Override 当前形态
         /// （开火/瞄准族为 AimIdle/AimMoveBlend 循环，换弹为 Reload——"窗内保持 clip"）。无播放器/未开 → false。</summary>
         public bool TryGetCurrent(int slotIndex, out AnimationId id)
         {
@@ -101,7 +143,7 @@ namespace LiteView.Animation
                 id = CharacterAnimationIds.MoveBlend;             // 移动根恒 MoveBlend（同形态换权重）
                 return true;
             }
-            if (!s.Ctx.BodyForm.IsValid) return false;            // 战斗根：FullBody 当前形态
+            if (!s.Ctx.BodyForm.IsValid) return false;            // 战斗根：Override 当前形态
             id = s.Ctx.BodyForm;
             return true;
         }
@@ -140,7 +182,7 @@ namespace LiteView.Animation
             return true;
         }
 
-        /// <summary>读槽位 FullBody 当前形态句柄（测试观察"同形态续播不换句柄"——跨态续播的直证面）。</summary>
+        /// <summary>读槽位 Override 当前形态句柄（测试观察"同形态续播不换句柄"——跨态续播的直证面）。</summary>
         public bool TryGetFormHandle(int slotIndex, out AnimationHandle handle)
         {
             handle = default;
@@ -169,19 +211,27 @@ namespace LiteView.Animation
                 var s = _slots[i] ?? (_slots[i] = new SlotAnim());
                 if (s.Player == null)
                 {
-                    var animator = go.GetComponentInChildren<Animator>(true);
-                    if (animator == null || animator.runtimeAnimatorController == null)
+                    // 发现面＝视图绑定组件（直 Clip 形态的视图入口）：无组件＝灰盒——
+                    // 裸 Animator 不构成"可动画视图"判据；组件含 RequireComponent，Animator 不可被单独剥除。
+                    // 片源优先取组件声明的清单（视图自含），装配传入清单作回退——两者同资产时等价。
+                    var binding = go.GetComponentInChildren<LiteAnimator>(true);
+                    var animator = binding?.Animator;
+                    var manifest = binding != null ? binding.Manifest : null;
+                    if (manifest == null) manifest = _manifest;
+                    if (animator == null || (animator.runtimeAnimatorController == null && manifest == null))
                     {
-                        // 灰盒视图：无动画面——只记位置（保持速度判断的帧间基准），不建播放器/机器。
-                        // 不打日志：每帧路径不得刷屏；降级事实由 IModuleStats（views 计数）与用例承担观测。
+                        // 灰盒视图：无绑定组件/无 Animator、或无任何片源（控制器与清单皆空）——只记位置
+                        // （保持速度判断的帧间基准），不建播放器/机器。不打日志：每帧路径不得刷屏；
+                        // 降级事实由 IModuleStats（views 计数）与用例承担观测。
                         RememberPosition(s, go);
                         continue;
                     }
 
                     var backend = new AnimatorAnimationBackend(animator,
-                        AnimatorAnimationBackend.DefaultBlendSeconds, _profile.UpperBodyMaskExclusions);
+                        AnimatorAnimationBackend.DefaultBlendSeconds, _profile.OverlayMaskExclusions);
+                    backend.RegisterManifest(manifest);   // 装配期逐键登记（后注册＝清单为权威；引用缺失后端计数）
                     s.Backend = backend;
-                    s.Player = new CharacterAnimationPlayer(backend, _profile);
+                    s.Player = new AnimationPlayer(backend, _profile);
 
                     // 换弹倍率：片段时长 / Sim 换弹时长（WeaponConfig.Default.ReloadFrames / TickRate）——
                     // 动画收势与弹药回国同帧；钳制在 Profile 登记区间（越界会被播放器拒绝）；未知片段时长 ⇒ 1×
@@ -201,9 +251,10 @@ namespace LiteView.Animation
                         FireHoldSeconds = _fireHoldSeconds,
                     };
                     s.Machine = CombatAnimMachine.Build(s.Ctx);
-                    s.Machine.Start(CharacterAnimId.LocomotionRoot);   // 初建提交 MoveBlend(Idle=1)——不开局 T-pose（提交/维护归移动根）
+                    s.Machine.Start(CharacterAnimId.LocomotionRoot);   // 初建提交 MoveBlend(Idle=1)——不开局 T-pose（提交/维护归移动根；无控制器时即唯一落位兜底）
                     Debug.LogWarning($"[Anim][diag] slot {i} 播放器建立：view「{go.name}」animator「{animator.name}」"
-                        + $"ctrl={animator.runtimeAnimatorController.name} layers={animator.layerCount}"
+                        + $"ctrl={(animator.runtimeAnimatorController != null ? animator.runtimeAnimatorController.name : "none")}"
+                        + $" manifest={(_manifest != null ? "on" : "off")} layers={animator.layerCount}"
                         + $" 窗长={_fireHoldSeconds:0.##}s 换弹倍率={reloadSpeed:0.##}×（片段「{reloadDef.Binding}」{reloadSeconds:0.###}s）");
                 }
 
@@ -353,12 +404,13 @@ namespace LiteView.Animation
             into["nodesMax"] = nodesMax.ToString();       // 单后端峰值：节点稳定性（§12）的观测值
             into["unknownBindings"] = unknown.ToString();
             into["truncatedBlends"] = truncated.ToString();
+            into["missingManifestClips"] = MissingManifestClips.ToString();
         }
 
         /// <summary>槽位内运行时（驱动器私有）：播放器/后端/机器/事实——随视图同生共死。</summary>
         private sealed class SlotAnim
         {
-            public CharacterAnimationPlayer Player;
+            public AnimationPlayer Player;
             public AnimatorAnimationBackend Backend;
             public SlotAnimContext Ctx;
             public HierarchicalStageMachine<CharacterAnimId, CombatAnimReq> Machine;

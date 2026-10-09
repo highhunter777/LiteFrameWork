@@ -10,7 +10,7 @@ namespace LiteView.Animation
     /// </summary>
     public sealed class SlotAnimContext
     {
-        public CharacterAnimationPlayer Player;
+        public AnimationPlayer Player;
 
         // ---- 开火装配（驱动器构造/建槽期注入）----
 
@@ -56,11 +56,11 @@ namespace LiteView.Animation
         public readonly float[] LocoWeightsCopy = new float[3];
         public readonly float[] BodyWeightsCopy = new float[4];
 
-        // ---- Locomotion 通道（移动根独占：进根建、离根收）----
+        // ---- Base 通道（移动根独占：进根建、离根收）----
 
         public AnimationHandle LocoHandle;
 
-        // ---- FullBody 通道（战斗根叶共用："同 ID 在播即续播、异 ID 提交替换"）----
+        // ---- Override 通道（战斗根叶共用："同 ID 在播即续播、异 ID 提交替换"）----
 
         public AnimationId BodyForm;
         public AnimationHandle BodyHandle;
@@ -70,16 +70,16 @@ namespace LiteView.Animation
 
         internal CombatRootStage Root;
 
-        // ---- FullBody 形态提交（战斗根叶共用）----
+        // ---- Override 形态提交（战斗根叶共用）----
 
-        /// <summary>提交单片段形态（FullBody）：同 ID **仍在播** → 续播保相位（不重提交——重提交会按
+        /// <summary>提交单片段形态（Override）：同 ID **仍在播** → 续播保相位（不重提交——重提交会按
         /// 第 0 帧并刷终态）；不在播/异 ID → 提交（旧形态由通道仲裁替换）。拒绝返回 false（调用方自愈重试）。</summary>
         public bool PlayBodySingle(AnimationId id, float speed = 1f)
         {
             if (BodyForm.Equals(id) && BodyHandle.IsValid
                 && (!Player.TryGetState(BodyHandle, out var st) || st.IsPlaying))
                 return true;
-            var r = Player.Play(new AnimationRequest(id, AnimationChannel.FullBody, speed: speed));
+            var r = Player.Play(new AnimationRequest(id, AnimationChannel.Override, speed: speed));
             if (!r.Accepted) return false;
             BodyForm = id;
             BodyHandle = r.Handle;
@@ -87,12 +87,12 @@ namespace LiteView.Animation
             return true;
         }
 
-        /// <summary>提交混合形态（FullBody）：同 ID 在播 → **就地调权重续播**（跨态同形态——
+        /// <summary>提交混合形态（Override）：同 ID 在播 → **就地调权重续播**（跨态同形态——
         /// AimWalk↔FireWalk、窗尽降级，不换句柄零淡化）；否则提交。拒绝返回 false。</summary>
         public bool PlayBodyBlend(AnimationId id, float[] weights)
         {
             if (BodyForm.Equals(id) && UpdateBodyBlendWeights(weights)) return true;
-            var r = Player.PlayBlend(new AnimationBlendRequest(id, AnimationChannel.FullBody, weights));
+            var r = Player.PlayBlend(new AnimationBlendRequest(id, AnimationChannel.Override, weights));
             if (!r.Accepted) return false;
             BodyForm = id;
             BodyHandle = r.Handle;
@@ -101,7 +101,7 @@ namespace LiteView.Animation
             return true;
         }
 
-        /// <summary>FullBody 混合权重就地更新（句柄失效/非混合 → false）。</summary>
+        /// <summary>Override 混合权重就地更新（句柄失效/非混合 → false）。</summary>
         public bool UpdateBodyBlendWeights(float[] weights)
         {
             if (!BodyIsBlend || !BodyHandle.IsValid) return false;

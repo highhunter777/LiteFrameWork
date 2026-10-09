@@ -12,7 +12,7 @@ namespace LiteView.Animation
     ///   非循环资产（Die2 导入 loopTime=0）采样停在末帧——姿态冻结；
     /// - 本叶 OnUpdate 空转（不重发请求——重发会按第 0 帧重播，尸体反复抽搐）；
     /// - 根裁决按 <see cref="SlotAnimContext.IsDead"/> 恒驻本叶（窗充值/退根/降级全被守卫），
-    ///   FullBody 通道权重保持、Locomotion 不回流——Idle 不会盖上来。
+    ///   Override 通道权重保持、Base 不回流——Idle 不会盖上来。
     ///
     /// 进入来源 = 驱动器 Death 事件沿（即时）或状态轮询（Hp≤0 快照——重连/迟到加入者
     /// 按状态进叶重播一次到末帧，事件不回放）。

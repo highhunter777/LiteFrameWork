@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using LiteFramework.Animation;
 using Xunit;
@@ -14,10 +15,10 @@ namespace LiteFramework.Tests.Animation
         private static AnimationProfile Profile(FallbackPolicy policy = FallbackPolicy.Reject)
         {
             var p = new AnimationProfile(policy);
-            p.Register(new AnimationDefinition(new AnimationId("idle"), AnimationChannel.Locomotion, "Base Layer.Idle", loop: true));
-            p.Register(new AnimationDefinition(new AnimationId("run"), AnimationChannel.Locomotion, "Base Layer.Run", loop: true));
-            p.Register(new AnimationDefinition(new AnimationId("reload"), AnimationChannel.UpperBody, "Upper.Reload"));
-            p.Register(new AnimationDefinition(new AnimationId("death"), AnimationChannel.FullBody, "Full.Death"));
+            p.Register(new AnimationDefinition(new AnimationId("idle"), AnimationChannel.Base, "Base Layer.Idle", loop: true));
+            p.Register(new AnimationDefinition(new AnimationId("run"), AnimationChannel.Base, "Base Layer.Run", loop: true));
+            p.Register(new AnimationDefinition(new AnimationId("reload"), AnimationChannel.Overlay, "Upper.Reload"));
+            p.Register(new AnimationDefinition(new AnimationId("death"), AnimationChannel.Override, "Full.Death"));
             return p;
         }
 
@@ -27,7 +28,8 @@ namespace LiteFramework.Tests.Animation
         {
             public AnimationBackendCapabilities Capabilities { get; set; } =
                 AnimationBackendCapabilities.Looping | AnimationBackendCapabilities.SpeedOverride |
-                AnimationBackendCapabilities.StartAtNormalized | AnimationBackendCapabilities.LayeredChannels |
+                AnimationBackendCapabilities.StartAtNormalized | AnimationBackendCapabilities.OverrideChannel
+                | AnimationBackendCapabilities.OverlayChannel |
                 AnimationBackendCapabilities.ClipBlending;
 
             public readonly List<AnimationResolvedPlayback> Played = new List<AnimationResolvedPlayback>();
@@ -96,8 +98,8 @@ namespace LiteFramework.Tests.Animation
             public void Dispose() => Disposed = true;
         }
 
-        private static AnimationStartResult Play(CharacterAnimationPlayer player, string id,
-            AnimationChannel channel = AnimationChannel.Locomotion, float start = 0f, float speed = 1f)
+        private static AnimationStartResult Play(AnimationPlayer player, string id,
+            AnimationChannel channel = AnimationChannel.Base, float start = 0f, float speed = 1f)
             => player.Play(new AnimationRequest(new AnimationId(id), channel, start, speed));
 
         // ---- Resolver / 字段校验 ----
@@ -107,12 +109,12 @@ namespace LiteFramework.Tests.Animation
         {
             var profile = Profile();
             bool ok = profile.TryResolve(
-                new AnimationRequest(new AnimationId("run"), AnimationChannel.Locomotion),
+                new AnimationRequest(new AnimationId("run"), AnimationChannel.Base),
                 out var resolved, out var reason);
 
             Assert.True(ok);
             Assert.Equal("Base Layer.Run", resolved.Binding);
-            Assert.Equal(AnimationChannel.Locomotion, resolved.Channel);
+            Assert.Equal(AnimationChannel.Base, resolved.Channel);
             Assert.Equal(AnimationStartResult.Reason.None, reason);
         }
 
@@ -121,7 +123,7 @@ namespace LiteFramework.Tests.Animation
         {
             var profile = Profile();
             bool ok = profile.TryResolve(
-                new AnimationRequest(new AnimationId("no-such"), AnimationChannel.Locomotion),
+                new AnimationRequest(new AnimationId("no-such"), AnimationChannel.Base),
                 out _, out var reason);
 
             Assert.False(ok);
@@ -135,7 +137,7 @@ namespace LiteFramework.Tests.Animation
         {
             var profile = Profile();
             bool ok = profile.TryResolve(
-                new AnimationRequest(new AnimationId("run"), AnimationChannel.Locomotion, 0f, speed),
+                new AnimationRequest(new AnimationId("run"), AnimationChannel.Base, 0f, speed),
                 out _, out var reason);
 
             Assert.False(ok);
@@ -147,7 +149,7 @@ namespace LiteFramework.Tests.Animation
         {
             var profile = Profile();
             bool ok = profile.TryResolve(
-                new AnimationRequest(new AnimationId("run"), AnimationChannel.Locomotion, 0f, float.NaN),
+                new AnimationRequest(new AnimationId("run"), AnimationChannel.Base, 0f, float.NaN),
                 out _, out var reason);
 
             Assert.False(ok);
@@ -158,7 +160,7 @@ namespace LiteFramework.Tests.Animation
         public void 解析_越界起点_拒绝()
         {
             var profile = Profile();
-            Assert.False(profile.TryResolve(new AnimationRequest(new AnimationId("run"), AnimationChannel.Locomotion, 1.5f),
+            Assert.False(profile.TryResolve(new AnimationRequest(new AnimationId("run"), AnimationChannel.Base, 1.5f),
                 out _, out var reason));
             Assert.Equal(AnimationStartResult.Reason.InvalidRequest, reason);
         }
@@ -167,10 +169,10 @@ namespace LiteFramework.Tests.Animation
         public void 解析_速度超出定义区间_拒绝为能力不支持_不静默夹取()
         {
             var profile = new AnimationProfile();
-            profile.Register(new AnimationDefinition(new AnimationId("slow"), AnimationChannel.Locomotion, "B.Slow",
+            profile.Register(new AnimationDefinition(new AnimationId("slow"), AnimationChannel.Base, "B.Slow",
                 minSpeed: 0.5f, maxSpeed: 1.5f));
 
-            bool ok = profile.TryResolve(new AnimationRequest(new AnimationId("slow"), AnimationChannel.Locomotion, 0f, 3f),
+            bool ok = profile.TryResolve(new AnimationRequest(new AnimationId("slow"), AnimationChannel.Base, 0f, 3f),
                 out _, out var reason);
 
             Assert.False(ok);
@@ -185,7 +187,7 @@ namespace LiteFramework.Tests.Animation
             var profile = Profile(FallbackPolicy.Reject);
             profile.RegisterFallback(new AnimationId("missing"), new AnimationId("idle"));
 
-            Assert.False(profile.TryResolve(new AnimationRequest(new AnimationId("missing"), AnimationChannel.Locomotion),
+            Assert.False(profile.TryResolve(new AnimationRequest(new AnimationId("missing"), AnimationChannel.Base),
                 out _, out var reason));
             Assert.Equal(AnimationStartResult.Reason.InvalidDefinition, reason);
         }
@@ -194,10 +196,10 @@ namespace LiteFramework.Tests.Animation
         public void 回退_策略为UseFallback时落到已登记的回退定义()
         {
             var profile = new AnimationProfile(FallbackPolicy.UseFallback);
-            profile.Register(new AnimationDefinition(new AnimationId("idle"), AnimationChannel.Locomotion, "Base.Idle", loop: true));
+            profile.Register(new AnimationDefinition(new AnimationId("idle"), AnimationChannel.Base, "Base.Idle", loop: true));
             profile.RegisterFallback(new AnimationId("missing"), new AnimationId("idle"));
 
-            Assert.True(profile.TryResolve(new AnimationRequest(new AnimationId("missing"), AnimationChannel.Locomotion),
+            Assert.True(profile.TryResolve(new AnimationRequest(new AnimationId("missing"), AnimationChannel.Base),
                 out var resolved, out _));
             Assert.Equal("Base.Idle", resolved.Binding);
         }
@@ -225,9 +227,9 @@ namespace LiteFramework.Tests.Animation
             for (int i = 0; i < ids.Length; i++) ids[i] = new AnimationId("f" + i);
 
             for (int i = 0; i + 1 < ids.Length; i++) profile.RegisterFallback(ids[i], ids[i + 1]);
-            profile.Register(new AnimationDefinition(ids[ids.Length - 1], AnimationChannel.Locomotion, "B.Tail"));
+            profile.Register(new AnimationDefinition(ids[ids.Length - 1], AnimationChannel.Base, "B.Tail"));
 
-            Assert.False(profile.TryResolve(new AnimationRequest(ids[0], AnimationChannel.Locomotion), out _, out var reason),
+            Assert.False(profile.TryResolve(new AnimationRequest(ids[0], AnimationChannel.Base), out _, out var reason),
                 "回退深度受限：超出上限即拒绝");
             Assert.Equal(AnimationStartResult.Reason.InvalidDefinition, reason);
         }
@@ -237,9 +239,9 @@ namespace LiteFramework.Tests.Animation
         {
             var profile = new AnimationProfile();
             Assert.Throws<System.ArgumentException>(() =>
-                profile.Register(new AnimationDefinition(new AnimationId("x"), AnimationChannel.Locomotion, binding: "")));
+                profile.Register(new AnimationDefinition(new AnimationId("x"), AnimationChannel.Base, binding: "")));
             Assert.Throws<System.ArgumentException>(() =>
-                profile.Register(new AnimationDefinition(default, AnimationChannel.Locomotion, "B.X")));
+                profile.Register(new AnimationDefinition(default, AnimationChannel.Base, "B.X")));
         }
 
         // ---- 终态恰好一次 / 句柄身份 ----
@@ -247,8 +249,8 @@ namespace LiteFramework.Tests.Animation
         [Fact]
         public void 终态_正常结束_Completed恰好一次()
         {
-            var backend = new FakeBackend { FinishMask = AnimationChannelMask.Locomotion };
-            var player = new CharacterAnimationPlayer(backend, Profile());
+            var backend = new FakeBackend { FinishMask = AnimationChannelMask.Base };
+            var player = new AnimationPlayer(backend, Profile());
             int terminals = 0;
             AnimationTerminalState last = AnimationTerminalState.None;
             player.OnTerminal += (h, t) => { terminals++; last = t; };
@@ -268,7 +270,7 @@ namespace LiteFramework.Tests.Animation
         public void 终态_循环播放不自然Completed()
         {
             var backend = new FakeBackend();                                // 掩码为空 = 无通道自然到达结束边界
-            var player = new CharacterAnimationPlayer(backend, Profile());
+            var player = new AnimationPlayer(backend, Profile());
             int terminals = 0;
             player.OnTerminal += (h, t) => terminals++;
 
@@ -283,7 +285,7 @@ namespace LiteFramework.Tests.Animation
         public void 终态_重复Stop不重复通知()
         {
             var backend = new FakeBackend();
-            var player = new CharacterAnimationPlayer(backend, Profile());
+            var player = new AnimationPlayer(backend, Profile());
             int terminals = 0;
             player.OnTerminal += (h, t) => terminals++;
 
@@ -300,15 +302,15 @@ namespace LiteFramework.Tests.Animation
             // HoldOnFinish（帧锁定）：自然完成 ≠ 停机——通道保留、槽位保留（死亡/换弹"持末帧"的机制面）。
             // 对这类句柄的 Stop 是**通道释放**（交还通道、不再采样末帧），不产生第二次终态。
             var profile = Profile();
-            profile.Register(new AnimationDefinition(new AnimationId("hold"), AnimationChannel.FullBody,
+            profile.Register(new AnimationDefinition(new AnimationId("hold"), AnimationChannel.Override,
                 "Full.Hold", loop: false, holdOnFinish: true));
-            var backend = new FakeBackend { FinishMask = AnimationChannelMask.FullBody };
-            var player = new CharacterAnimationPlayer(backend, profile);
+            var backend = new FakeBackend { FinishMask = AnimationChannelMask.Override };
+            var player = new AnimationPlayer(backend, profile);
             int terminals = 0;
             AnimationTerminalState last = AnimationTerminalState.None;
             player.OnTerminal += (h, t) => { terminals++; last = t; };
 
-            var r = Play(player, "hold", AnimationChannel.FullBody);
+            var r = Play(player, "hold", AnimationChannel.Override);
             Assert.True(r.Accepted);
             player.Tick(0.016f);                                            // 自然完成 → 持帧
             Assert.Equal(1, terminals);
@@ -317,17 +319,17 @@ namespace LiteFramework.Tests.Animation
 
             Assert.False(player.Stop(r.Handle, AnimationStopReason.Cancelled));   // 释放而非停止
             Assert.Equal(1, terminals);                                     // 不再通知
-            Assert.Equal(new[] { AnimationChannel.FullBody }, backend.Stopped);   // 通道确实被交还
+            Assert.Equal(new[] { AnimationChannel.Override }, backend.Stopped);   // 通道确实被交还
 
             // 通道已交还：同通道可再次提交（换弹叶播完持帧 → 退根后再进战斗根的形态）
-            Assert.True(Play(player, "death", AnimationChannel.FullBody).Accepted);
+            Assert.True(Play(player, "death", AnimationChannel.Override).Accepted);
         }
 
         [Fact]
         public void 句柄_旧Handle不能停止新播放()
         {
             var backend = new FakeBackend();
-            var player = new CharacterAnimationPlayer(backend, Profile());
+            var player = new AnimationPlayer(backend, Profile());
             int terminals = 0;
             player.OnTerminal += (h, t) => terminals++;
 
@@ -345,7 +347,7 @@ namespace LiteFramework.Tests.Animation
         public void 句柄_Owner换代后旧句柄全体失效()
         {
             var backend = new FakeBackend();
-            var player = new CharacterAnimationPlayer(backend, Profile());
+            var player = new AnimationPlayer(backend, Profile());
             var stale = Play(player, "run");
 
             int generation = player.BumpOwnerGeneration();          // 对象被池化复用（§9）
@@ -362,17 +364,17 @@ namespace LiteFramework.Tests.Animation
         public void 通道_不同通道互不替换()
         {
             var backend = new FakeBackend();
-            var player = new CharacterAnimationPlayer(backend, Profile());
+            var player = new AnimationPlayer(backend, Profile());
             int terminals = 0;
             player.OnTerminal += (h, t) => terminals++;
 
-            var move = Play(player, "run", AnimationChannel.Locomotion);
-            var act = Play(player, "reload", AnimationChannel.UpperBody);
+            var move = Play(player, "run", AnimationChannel.Base);
+            var act = Play(player, "reload", AnimationChannel.Overlay);
 
             Assert.Equal(0, terminals);                             // 两通道各自持有，无替换
             Assert.True(player.Stop(move.Handle, AnimationStopReason.Cancelled));
             Assert.Equal(1, terminals);
-            Assert.True(player.Stop(act.Handle, AnimationStopReason.Cancelled));   // 上半身未受影响
+            Assert.True(player.Stop(act.Handle, AnimationStopReason.Cancelled));   // 叠加层未受影响
             Assert.Equal(2, terminals);
         }
 
@@ -380,7 +382,7 @@ namespace LiteFramework.Tests.Animation
         public void 通道_同通道替换_旧播放得Interrupted()
         {
             var backend = new FakeBackend();
-            var player = new CharacterAnimationPlayer(backend, Profile());
+            var player = new AnimationPlayer(backend, Profile());
             AnimationTerminalState last = AnimationTerminalState.None;
             player.OnTerminal += (h, t) => last = t;
 
@@ -395,20 +397,20 @@ namespace LiteFramework.Tests.Animation
         {
             var backend = new FakeBackend();
             var profile = new AnimationProfile();
-            profile.Register(new AnimationDefinition(new AnimationId("loadA"), AnimationChannel.Locomotion, "B.A", requiresLoad: true));
-            profile.Register(new AnimationDefinition(new AnimationId("loadB"), AnimationChannel.Locomotion, "B.B", requiresLoad: true));
-            var player = new CharacterAnimationPlayer(backend, profile);
+            profile.Register(new AnimationDefinition(new AnimationId("loadA"), AnimationChannel.Base, "B.A", requiresLoad: true));
+            profile.Register(new AnimationDefinition(new AnimationId("loadB"), AnimationChannel.Base, "B.B", requiresLoad: true));
+            var player = new AnimationPlayer(backend, profile);
 
             AnimationTerminalState firstTerminal = AnimationTerminalState.None;
             var loading = Play(player, "loadA");
             player.OnTerminal += (h, t) => { if (h.Equals(loading.Handle)) firstTerminal = t; };
             Assert.Empty(backend.Played);                           // 需装载：尚未提交
 
-            var replacement = Play(player, "loadB", AnimationChannel.Locomotion);
+            var replacement = Play(player, "loadB", AnimationChannel.Base);
             Assert.Equal(AnimationTerminalState.Interrupted, firstTerminal);   // §6 旧待提交一并终止
 
             // 迟到装载回填：不得抢回通道
-            profile.TryResolve(new AnimationRequest(new AnimationId("loadA"), AnimationChannel.Locomotion), out var stale, out _);
+            profile.TryResolve(new AnimationRequest(new AnimationId("loadA"), AnimationChannel.Base), out var stale, out _);
             player.CompleteLoad(loading.Handle, loadSucceeded: true, stale);
             Assert.Empty(backend.Played);                           // 迟到结果只释放自己的资源，不提交
 
@@ -420,14 +422,14 @@ namespace LiteFramework.Tests.Animation
         {
             var backend = new FakeBackend();
             var profile = new AnimationProfile();
-            profile.Register(new AnimationDefinition(new AnimationId("loadA"), AnimationChannel.Locomotion, "B.A", requiresLoad: true));
-            var player = new CharacterAnimationPlayer(backend, profile);
+            profile.Register(new AnimationDefinition(new AnimationId("loadA"), AnimationChannel.Base, "B.A", requiresLoad: true));
+            var player = new AnimationPlayer(backend, profile);
 
             AnimationTerminalState terminal = AnimationTerminalState.None;
             var loading = Play(player, "loadA");
             player.OnTerminal += (h, t) => terminal = t;
 
-            profile.TryResolve(new AnimationRequest(new AnimationId("loadA"), AnimationChannel.Locomotion), out var resolved, out _);
+            profile.TryResolve(new AnimationRequest(new AnimationId("loadA"), AnimationChannel.Base), out var resolved, out _);
             player.CompleteLoad(loading.Handle, loadSucceeded: false, resolved);
 
             Assert.Equal(AnimationTerminalState.Failed, terminal);
@@ -439,7 +441,7 @@ namespace LiteFramework.Tests.Animation
         public void 拒绝_未登记ID不影响现有播放()
         {
             var backend = new FakeBackend();
-            var player = new CharacterAnimationPlayer(backend, Profile());
+            var player = new AnimationPlayer(backend, Profile());
             int terminals = 0;
             player.OnTerminal += (h, t) => terminals++;
 
@@ -456,21 +458,54 @@ namespace LiteFramework.Tests.Animation
         public void 拒绝_后端不支持的能力_显性拒绝不静默降级()
         {
             var backend = new FakeBackend { Capabilities = AnimationBackendCapabilities.Looping };   // 无 Layer/Speed/StartAt
-            var player = new CharacterAnimationPlayer(backend, Profile());
+            var player = new AnimationPlayer(backend, Profile());
 
             Assert.Equal(AnimationStartResult.Reason.UnsupportedCapability,
                 Play(player, "run", speed: 2f).RejectReason);        // 速度不支持
             Assert.Equal(AnimationStartResult.Reason.UnsupportedCapability,
                 Play(player, "run", start: 0.5f).RejectReason);      // 起点不支持
             Assert.Equal(AnimationStartResult.Reason.UnsupportedCapability,
-                Play(player, "reload", AnimationChannel.UpperBody).RejectReason);   // 叠加层不支持
+                Play(player, "reload", AnimationChannel.Overlay).RejectReason);   // 叠加层不支持
+        }
+
+        [Fact]
+        public void 能力_非基础通道逐通道独立_覆盖层不需Mask叠加层需要()
+        {
+            // 只有覆盖层能力位（无叠加层）——Override 放行、Overlay 提交前拒绝
+            var overrideOnly = new FakeBackend
+            {
+                Capabilities = AnimationBackendCapabilities.Looping
+                    | AnimationBackendCapabilities.StartAtNormalized
+                    | AnimationBackendCapabilities.SpeedOverride
+                    | AnimationBackendCapabilities.OverrideChannel,
+            };
+            var playerO = new AnimationPlayer(overrideOnly, Profile());
+            Assert.True(Play(playerO, "death", AnimationChannel.Override).Accepted,   // 覆盖层：与骨架/Mask 无关
+                "覆盖层能力位在——Override 请求放行（任何 rig）");
+            Assert.Equal(AnimationStartResult.Reason.UnsupportedCapability,
+                Play(playerO, "reload", AnimationChannel.Overlay).RejectReason);      // 叠加层：缺能力位拒绝
+            playerO.Dispose();
+
+            // 只有叠加层能力位（无覆盖层）——对称方向
+            var overlayOnly = new FakeBackend
+            {
+                Capabilities = AnimationBackendCapabilities.Looping
+                    | AnimationBackendCapabilities.StartAtNormalized
+                    | AnimationBackendCapabilities.SpeedOverride
+                    | AnimationBackendCapabilities.OverlayChannel,
+            };
+            var playerV = new AnimationPlayer(overlayOnly, Profile());
+            Assert.Equal(AnimationStartResult.Reason.UnsupportedCapability,
+                Play(playerV, "death", AnimationChannel.Override).RejectReason);
+            Assert.True(Play(playerV, "reload", AnimationChannel.Overlay).Accepted);
+            playerV.Dispose();
         }
 
         [Fact]
         public void 拒绝_后端执行失败_该Handle得Failed终态()
         {
             var backend = new FakeBackend { PlaySucceeds = false };
-            var player = new CharacterAnimationPlayer(backend, Profile());
+            var player = new AnimationPlayer(backend, Profile());
 
             AnimationTerminalState terminal = AnimationTerminalState.None;
             player.OnTerminal += (h, t) => terminal = t;
@@ -486,7 +521,7 @@ namespace LiteFramework.Tests.Animation
         public void 释放_当前播放得OwnerDisposed_后端被释放_幂等()
         {
             var backend = new FakeBackend();
-            var player = new CharacterAnimationPlayer(backend, Profile());
+            var player = new AnimationPlayer(backend, Profile());
 
             bool terminalFired = false;
             var r = Play(player, "run");
@@ -505,7 +540,7 @@ namespace LiteFramework.Tests.Animation
         public void 终态_回调重入安全_不二次触发()
         {
             var backend = new FakeBackend();
-            var player = new CharacterAnimationPlayer(backend, Profile());
+            var player = new AnimationPlayer(backend, Profile());
             int terminals = 0;
             player.OnTerminal += (h, t) =>
             {
@@ -522,7 +557,7 @@ namespace LiteFramework.Tests.Animation
         public void 释放_回调内重入Dispose不重复触发终态()
         {
             var backend = new FakeBackend();
-            var player = new CharacterAnimationPlayer(backend, Profile());
+            var player = new AnimationPlayer(backend, Profile());
             int terminals = 0;
             player.OnTerminal += (h, t) =>
             {
@@ -541,10 +576,10 @@ namespace LiteFramework.Tests.Animation
         public void 终态保留_有界淘汰_过期查询返回未找到()
         {
             var backend = new FakeBackend();
-            var player = new CharacterAnimationPlayer(backend, Profile());
+            var player = new AnimationPlayer(backend, Profile());
 
             AnimationHandle first = default;
-            for (int i = 0; i < CharacterAnimationPlayer.TerminalRetentionCapacity + 5; i++)
+            for (int i = 0; i < AnimationPlayer.TerminalRetentionCapacity + 5; i++)
             {
                 var r = Play(player, "run");
                 if (i == 0) first = r.Handle;
@@ -559,7 +594,7 @@ namespace LiteFramework.Tests.Animation
         public void 查询_在播与终态都可读()
         {
             var backend = new FakeBackend();
-            var player = new CharacterAnimationPlayer(backend, Profile());
+            var player = new AnimationPlayer(backend, Profile());
 
             var r = Play(player, "run");
             Assert.True(player.TryGetState(r.Handle, out var playing));
@@ -578,7 +613,7 @@ namespace LiteFramework.Tests.Animation
         public void Tick_唯一驱动入口_按传入delta推进不自行缩放()
         {
             var backend = new FakeBackend();
-            var player = new CharacterAnimationPlayer(backend, Profile());
+            var player = new AnimationPlayer(backend, Profile());
 
             Play(player, "run");
             player.Tick(0.5f);                                      // 播放器不乘 TimeScale——原样交给后端
@@ -590,11 +625,11 @@ namespace LiteFramework.Tests.Animation
         public void Tick_单次驱动_三通道激活也只驱动一次()
         {
             var backend = new FakeBackend();
-            var player = new CharacterAnimationPlayer(backend, Profile());
+            var player = new AnimationPlayer(backend, Profile());
 
-            Play(player, "run", AnimationChannel.Locomotion);
-            Play(player, "reload", AnimationChannel.UpperBody);
-            Play(player, "death", AnimationChannel.FullBody);
+            Play(player, "run", AnimationChannel.Base);
+            Play(player, "reload", AnimationChannel.Overlay);
+            Play(player, "death", AnimationChannel.Override);
 
             player.Tick(0.016f);
 
@@ -608,9 +643,9 @@ namespace LiteFramework.Tests.Animation
         {
             var backend = new FakeBackend
             {
-                FinishMask = AnimationChannelMask.Locomotion | AnimationChannelMask.UpperBody,
+                FinishMask = AnimationChannelMask.Base | AnimationChannelMask.Overlay,
             };
-            var player = new CharacterAnimationPlayer(backend, Profile());
+            var player = new AnimationPlayer(backend, Profile());
             var completed = new Dictionary<AnimationChannel, int>();
             player.OnTerminal += (h, t) =>
             {
@@ -620,19 +655,19 @@ namespace LiteFramework.Tests.Animation
                 completed[s.Channel] = n + 1;
             };
 
-            var move = Play(player, "run", AnimationChannel.Locomotion);
-            var act = Play(player, "reload", AnimationChannel.UpperBody);
-            var full = Play(player, "death", AnimationChannel.FullBody);   // 掩码未标：不得被收
+            var move = Play(player, "run", AnimationChannel.Base);
+            var act = Play(player, "reload", AnimationChannel.Overlay);
+            var full = Play(player, "death", AnimationChannel.Override);   // 掩码未标：不得被收
 
             player.Tick(0.016f);
 
-            Assert.Equal(1, completed[AnimationChannel.Locomotion]);
-            Assert.Equal(1, completed[AnimationChannel.UpperBody]);
-            Assert.False(completed.ContainsKey(AnimationChannel.FullBody), "掩码里没有的通道不得收 Completed");
+            Assert.Equal(1, completed[AnimationChannel.Base]);
+            Assert.Equal(1, completed[AnimationChannel.Overlay]);
+            Assert.False(completed.ContainsKey(AnimationChannel.Override), "掩码里没有的通道不得收 Completed");
 
             player.Tick(0.016f);                                    // 已终态：不产生第二次
-            Assert.Equal(1, completed[AnimationChannel.Locomotion]);
-            Assert.Equal(1, completed[AnimationChannel.UpperBody]);
+            Assert.Equal(1, completed[AnimationChannel.Base]);
+            Assert.Equal(1, completed[AnimationChannel.Overlay]);
 
             Assert.True(player.TryGetState(move.Handle, out var mv) && !mv.IsPlaying);
             Assert.True(player.TryGetState(act.Handle, out var ac) && !ac.IsPlaying);
@@ -642,10 +677,10 @@ namespace LiteFramework.Tests.Animation
         [Fact]
         public void Tick_加载中不收集完成_也不提交后端()
         {
-            var backend = new FakeBackend { FinishMask = AnimationChannelMask.Locomotion };
+            var backend = new FakeBackend { FinishMask = AnimationChannelMask.Base };
             var profile = new AnimationProfile();
-            profile.Register(new AnimationDefinition(new AnimationId("loadA"), AnimationChannel.Locomotion, "B.A", requiresLoad: true));
-            var player = new CharacterAnimationPlayer(backend, profile);
+            profile.Register(new AnimationDefinition(new AnimationId("loadA"), AnimationChannel.Base, "B.A", requiresLoad: true));
+            var player = new AnimationPlayer(backend, profile);
             int terminals = 0;
             player.OnTerminal += (h, t) => terminals++;
 
@@ -663,11 +698,11 @@ namespace LiteFramework.Tests.Animation
         {
             var profile = Profile();
 
-            Assert.True(profile.TryResolve(new AnimationRequest(new AnimationId("run"), AnimationChannel.Locomotion),
+            Assert.True(profile.TryResolve(new AnimationRequest(new AnimationId("run"), AnimationChannel.Base),
                 out var looping, out _));
             Assert.True(looping.Loop, "循环定义必须把 Loop 传进方案（后端不读资产 loop 设置）");
 
-            Assert.True(profile.TryResolve(new AnimationRequest(new AnimationId("reload"), AnimationChannel.UpperBody),
+            Assert.True(profile.TryResolve(new AnimationRequest(new AnimationId("reload"), AnimationChannel.Overlay),
                 out var once, out _));
             Assert.False(once.Loop);
         }
@@ -677,35 +712,35 @@ namespace LiteFramework.Tests.Animation
         private static AnimationProfile BlendProfile()
         {
             var p = new AnimationProfile();
-            p.RegisterBlend(new AnimationBlendDefinition(new AnimationId("move"), AnimationChannel.Locomotion,
+            p.RegisterBlend(new AnimationBlendDefinition(new AnimationId("move"), AnimationChannel.Base,
                 new[] { "Walk", "Run" }));
-            p.RegisterBlend(new AnimationBlendDefinition(new AnimationId("upper"), AnimationChannel.UpperBody,
+            p.RegisterBlend(new AnimationBlendDefinition(new AnimationId("upper"), AnimationChannel.Overlay,
                 new[] { "Aim", "Shoot" }, minSpeed: 0.5f, maxSpeed: 1.5f));
             return p;
         }
 
-        private static AnimationStartResult Blend(CharacterAnimationPlayer player, string id,
-            AnimationChannel channel = AnimationChannel.Locomotion, params float[] weights)
+        private static AnimationStartResult Blend(AnimationPlayer player, string id,
+            AnimationChannel channel = AnimationChannel.Base, params float[] weights)
             => player.PlayBlend(new AnimationBlendRequest(new AnimationId(id), channel, weights));
 
         /// <summary>单片段 + 混合共存的 Profile（验证跨形态替换走同一套通道仲裁）。</summary>
         private static AnimationProfile MixedProfile()
             => BlendProfile()
-                .Register(new AnimationDefinition(new AnimationId("run"), AnimationChannel.Locomotion, "B.Run", loop: true))
-                .Register(new AnimationDefinition(new AnimationId("idle"), AnimationChannel.Locomotion, "B.Idle", loop: true));
+                .Register(new AnimationDefinition(new AnimationId("run"), AnimationChannel.Base, "B.Run", loop: true))
+                .Register(new AnimationDefinition(new AnimationId("idle"), AnimationChannel.Base, "B.Idle", loop: true));
 
         [Fact]
         public void 解析_混合_按槽位序解析绑定与权重_通道以定义为权威()
         {
             var profile = BlendProfile();
             bool ok = profile.TryResolveBlend(
-                new AnimationBlendRequest(new AnimationId("move"), AnimationChannel.FullBody, new[] { 1f, 2f }),
+                new AnimationBlendRequest(new AnimationId("move"), AnimationChannel.Override, new[] { 1f, 2f }),
                 out var resolved, out var reason);
 
             Assert.True(ok);
             Assert.Equal(new[] { "Walk", "Run" }, resolved.Bindings);
             Assert.Equal(new[] { 1f, 2f }, resolved.Weights);
-            Assert.Equal(AnimationChannel.Locomotion, resolved.Channel);   // 请求通道与定义不符：以定义通道为权威
+            Assert.Equal(AnimationChannel.Base, resolved.Channel);   // 请求通道与定义不符：以定义通道为权威
             Assert.Equal(2, resolved.SlotCount);
             Assert.Equal(AnimationStartResult.Reason.None, reason);
         }
@@ -716,12 +751,12 @@ namespace LiteFramework.Tests.Animation
             var profile = BlendProfile();
 
             Assert.False(profile.TryResolveBlend(
-                new AnimationBlendRequest(new AnimationId("move"), AnimationChannel.Locomotion, new[] { 1f }),
+                new AnimationBlendRequest(new AnimationId("move"), AnimationChannel.Base, new[] { 1f }),
                 out _, out var reason));
             Assert.Equal(AnimationStartResult.Reason.InvalidRequest, reason);
 
             Assert.False(profile.TryResolveBlend(
-                new AnimationBlendRequest(new AnimationId("move"), AnimationChannel.Locomotion, null),
+                new AnimationBlendRequest(new AnimationId("move"), AnimationChannel.Base, null),
                 out _, out var nullReason), "权重数组为 null 必须拒绝");
             Assert.Equal(AnimationStartResult.Reason.InvalidRequest, nullReason);
         }
@@ -742,7 +777,7 @@ namespace LiteFramework.Tests.Animation
             foreach (var weights in bad)
             {
                 Assert.False(profile.TryResolveBlend(
-                    new AnimationBlendRequest(new AnimationId("move"), AnimationChannel.Locomotion, weights),
+                    new AnimationBlendRequest(new AnimationId("move"), AnimationChannel.Base, weights),
                     out _, out var reason), $"权重 [{string.Join(",", weights)}] 必须整组拒绝");
                 Assert.Equal(AnimationStartResult.Reason.InvalidRequest, reason);
             }
@@ -752,11 +787,11 @@ namespace LiteFramework.Tests.Animation
         public void 解析_混合_未登记ID_拒绝为InvalidDefinition_不参与回退链()
         {
             var profile = new AnimationProfile(FallbackPolicy.UseFallback);
-            profile.Register(new AnimationDefinition(new AnimationId("idle"), AnimationChannel.Locomotion, "B.Idle", loop: true));
+            profile.Register(new AnimationDefinition(new AnimationId("idle"), AnimationChannel.Base, "B.Idle", loop: true));
             profile.RegisterFallback(new AnimationId("move"), new AnimationId("idle"));   // 只对单片段路径有效
 
             Assert.False(profile.TryResolveBlend(
-                new AnimationBlendRequest(new AnimationId("move"), AnimationChannel.Locomotion, new[] { 1f }),
+                new AnimationBlendRequest(new AnimationId("move"), AnimationChannel.Base, new[] { 1f }),
                 out _, out var reason));
             Assert.Equal(AnimationStartResult.Reason.InvalidDefinition, reason);
         }
@@ -770,13 +805,13 @@ namespace LiteFramework.Tests.Animation
             var profile = BlendProfile();
 
             // 字段本身非法（≤0/NaN）→ InvalidRequest；合法但超出定义区间 → 能力不支持（不静默夹取）
-            var request = new AnimationBlendRequest(new AnimationId("upper"), AnimationChannel.UpperBody,
+            var request = new AnimationBlendRequest(new AnimationId("upper"), AnimationChannel.Overlay,
                 new[] { 1f, 1f }, 0f, speed);
             Assert.False(profile.TryResolveBlend(request, out _, out var reason));
             Assert.Equal(AnimationStartResult.Reason.InvalidRequest, reason);
 
             Assert.False(profile.TryResolveBlend(new AnimationBlendRequest(new AnimationId("upper"),
-                AnimationChannel.UpperBody, new[] { 1f, 1f }, 0f, 3f), out _, out var rangeReason));
+                AnimationChannel.Overlay, new[] { 1f, 1f }, 0f, 3f), out _, out var rangeReason));
             Assert.Equal(AnimationStartResult.Reason.UnsupportedCapability, rangeReason);
         }
 
@@ -785,7 +820,7 @@ namespace LiteFramework.Tests.Animation
         {
             var profile = BlendProfile();
             Assert.False(profile.TryResolveBlend(new AnimationBlendRequest(new AnimationId("move"),
-                AnimationChannel.Locomotion, new[] { 1f, 1f }, 1.5f), out _, out var reason));
+                AnimationChannel.Base, new[] { 1f, 1f }, 1.5f), out _, out var reason));
             Assert.Equal(AnimationStartResult.Reason.InvalidRequest, reason);
         }
 
@@ -795,31 +830,31 @@ namespace LiteFramework.Tests.Animation
             var profile = new AnimationProfile();
 
             Assert.Throws<System.ArgumentException>(() =>                                  // 空槽位
-                profile.RegisterBlend(new AnimationBlendDefinition(new AnimationId("b"), AnimationChannel.Locomotion, new string[0])));
+                profile.RegisterBlend(new AnimationBlendDefinition(new AnimationId("b"), AnimationChannel.Base, new string[0])));
             Assert.Throws<System.ArgumentException>(() =>                                  // 超上限
-                profile.RegisterBlend(new AnimationBlendDefinition(new AnimationId("b"), AnimationChannel.Locomotion,
+                profile.RegisterBlend(new AnimationBlendDefinition(new AnimationId("b"), AnimationChannel.Base,
                     new string[AnimationProfile.MaxBlendSlots + 1])));
             Assert.Throws<System.ArgumentException>(() =>                                  // 槽位缺绑定
-                profile.RegisterBlend(new AnimationBlendDefinition(new AnimationId("b"), AnimationChannel.Locomotion,
+                profile.RegisterBlend(new AnimationBlendDefinition(new AnimationId("b"), AnimationChannel.Base,
                     new[] { "Walk", "" })));
             Assert.Throws<System.ArgumentException>(() =>                                  // 非法速度区间
-                profile.RegisterBlend(new AnimationBlendDefinition(new AnimationId("b"), AnimationChannel.Locomotion,
+                profile.RegisterBlend(new AnimationBlendDefinition(new AnimationId("b"), AnimationChannel.Base,
                     new[] { "Walk" }, minSpeed: 2f, maxSpeed: 1f)));
 
             // 同一 ID 不能既是单片段又是混合（解析形态会歧义）
             var shared = new AnimationId("both");
-            profile.Register(new AnimationDefinition(shared, AnimationChannel.Locomotion, "B.Idle", loop: true));
+            profile.Register(new AnimationDefinition(shared, AnimationChannel.Base, "B.Idle", loop: true));
             Assert.Throws<System.ArgumentException>(() =>
-                profile.RegisterBlend(new AnimationBlendDefinition(shared, AnimationChannel.Locomotion, new[] { "Walk" })));
+                profile.RegisterBlend(new AnimationBlendDefinition(shared, AnimationChannel.Base, new[] { "Walk" })));
 
             var blendOnly = new AnimationId("blendOnly");
-            profile.RegisterBlend(new AnimationBlendDefinition(blendOnly, AnimationChannel.Locomotion, new[] { "Walk" }));
+            profile.RegisterBlend(new AnimationBlendDefinition(blendOnly, AnimationChannel.Base, new[] { "Walk" }));
             Assert.Throws<System.ArgumentException>(() =>
-                profile.Register(new AnimationDefinition(blendOnly, AnimationChannel.Locomotion, "B.Idle")));
+                profile.Register(new AnimationDefinition(blendOnly, AnimationChannel.Base, "B.Idle")));
 
             // 登记时克隆槽位数组：事后改写调用方数组不得影响定义
             var slots = new[] { "Walk", "Run" };
-            profile.RegisterBlend(new AnimationBlendDefinition(new AnimationId("clone"), AnimationChannel.Locomotion, slots));
+            profile.RegisterBlend(new AnimationBlendDefinition(new AnimationId("clone"), AnimationChannel.Base, slots));
             slots[0] = "Mutated";
             Assert.True(profile.TryGetBlendDefinition(new AnimationId("clone"), out var def));
             Assert.Equal("Walk", def.Bindings[0]);
@@ -828,10 +863,10 @@ namespace LiteFramework.Tests.Animation
         [Fact]
         public void 混合_后端无ClipBlending能力_显性拒绝不静默降级()
         {
-            var backend = new FakeBackend { Capabilities = AnimationBackendCapabilities.Looping | AnimationBackendCapabilities.LayeredChannels };
-            var player = new CharacterAnimationPlayer(backend, BlendProfile());
+            var backend = new FakeBackend { Capabilities = AnimationBackendCapabilities.Looping | AnimationBackendCapabilities.OverrideChannel };
+            var player = new AnimationPlayer(backend, BlendProfile());
 
-            var result = Blend(player, "move", AnimationChannel.Locomotion, 1f, 1f);
+            var result = Blend(player, "move", AnimationChannel.Base, 1f, 1f);
 
             Assert.False(result.Accepted);
             Assert.Equal(AnimationStartResult.Reason.UnsupportedCapability, result.RejectReason);
@@ -842,12 +877,12 @@ namespace LiteFramework.Tests.Animation
         public void 混合_同通道替换_旧播放Interrupted_跨形态互相打断()
         {
             var backend = new FakeBackend();
-            var player = new CharacterAnimationPlayer(backend, MixedProfile());
+            var player = new AnimationPlayer(backend, MixedProfile());
             var terminals = new List<AnimationTerminalState>();
             player.OnTerminal += (h, t) => terminals.Add(t);
 
             var single = Play(player, "run");                               // 单片段 → 混合
-            var blend = Blend(player, "move", AnimationChannel.Locomotion, 1f, 0f);
+            var blend = Blend(player, "move", AnimationChannel.Base, 1f, 0f);
             Assert.True(blend.Accepted);
             Assert.Equal(AnimationTerminalState.Interrupted, Assert.Single(terminals));
             Assert.Single(backend.Blended);                                 // 混合被真正提交
@@ -865,11 +900,11 @@ namespace LiteFramework.Tests.Animation
         public void 混合_后端拒绝_得Failed终态_不假装在播()
         {
             var backend = new FakeBackend { BlendSucceeds = false };
-            var player = new CharacterAnimationPlayer(backend, BlendProfile());
+            var player = new AnimationPlayer(backend, BlendProfile());
             AnimationTerminalState terminal = AnimationTerminalState.None;
             player.OnTerminal += (h, t) => terminal = t;
 
-            var result = Blend(player, "move", AnimationChannel.Locomotion, 1f, 1f);
+            var result = Blend(player, "move", AnimationChannel.Base, 1f, 1f);
 
             Assert.True(result.Accepted);                                   // 已接受……
             Assert.Equal(AnimationTerminalState.Failed, terminal);          // ……但后端失败必须收 Failed（§5）
@@ -880,12 +915,12 @@ namespace LiteFramework.Tests.Animation
         public void 混合_未登记的混合ID_拒绝_且不影响现有播放()
         {
             var backend = new FakeBackend();
-            var player = new CharacterAnimationPlayer(backend, BlendProfile());
+            var player = new AnimationPlayer(backend, BlendProfile());
             int terminals = 0;
             player.OnTerminal += (h, t) => terminals++;
 
-            var current = Blend(player, "move", AnimationChannel.Locomotion, 1f, 1f);
-            var rejected = Blend(player, "no-such-blend", AnimationChannel.Locomotion, 1f);
+            var current = Blend(player, "move", AnimationChannel.Base, 1f, 1f);
+            var rejected = Blend(player, "no-such-blend", AnimationChannel.Base, 1f);
 
             Assert.False(rejected.Accepted);
             Assert.Equal(AnimationStartResult.Reason.InvalidDefinition, rejected.RejectReason);
@@ -898,11 +933,11 @@ namespace LiteFramework.Tests.Animation
         {
             // 连续调参路径（速度/方向权重逐帧变化）：不得表现成"反复打断"
             var backend = new FakeBackend();
-            var player = new CharacterAnimationPlayer(backend, MixedProfile());
+            var player = new AnimationPlayer(backend, MixedProfile());
             int terminals = 0;
             player.OnTerminal += (h, t) => terminals++;
 
-            var current = Blend(player, "move", AnimationChannel.Locomotion, 1f, 0f);
+            var current = Blend(player, "move", AnimationChannel.Base, 1f, 0f);
             Assert.True(player.UpdateBlendWeights(current.Handle, new[] { 0.25f, 0.75f }));
 
             Assert.Single(backend.Blended);                       // 没有第二次提交
@@ -922,9 +957,9 @@ namespace LiteFramework.Tests.Animation
         public void 混合_后端拒绝就地更新_返回false且句柄仍在播()
         {
             var backend = new FakeBackend { SetWeightsSucceeds = false };
-            var player = new CharacterAnimationPlayer(backend, BlendProfile());
+            var player = new AnimationPlayer(backend, BlendProfile());
 
-            var current = Blend(player, "move", AnimationChannel.Locomotion, 1f, 0f);
+            var current = Blend(player, "move", AnimationChannel.Base, 1f, 0f);
 
             Assert.False(player.UpdateBlendWeights(current.Handle, new[] { 1f, 0f }), "后端拒绝 = false（调用方据此回退到重新提交）");
             Assert.True(player.TryGetState(current.Handle, out var state) && state.IsPlaying, "拒绝不得改变现有播放");
@@ -935,11 +970,11 @@ namespace LiteFramework.Tests.Animation
         {
             // 步频同步路径（移动腰射：混合片段原生步频 × 倍率 = 实际脚程）：同"就地调参"纪律
             var backend = new FakeBackend();
-            var player = new CharacterAnimationPlayer(backend, MixedProfile());
+            var player = new AnimationPlayer(backend, MixedProfile());
             int terminals = 0;
             player.OnTerminal += (h, t) => terminals++;
 
-            var current = Blend(player, "move", AnimationChannel.Locomotion, 1f, 0f);
+            var current = Blend(player, "move", AnimationChannel.Base, 1f, 0f);
             Assert.True(player.TrySetBlendSpeed(current.Handle, 2f));
 
             Assert.Single(backend.Blended);                       // 没有第二次提交
@@ -957,9 +992,9 @@ namespace LiteFramework.Tests.Animation
         public void 混合_后端拒绝倍率更新_返回false且句柄仍在播()
         {
             var backend = new FakeBackend { SetBlendSpeedSucceeds = false };
-            var player = new CharacterAnimationPlayer(backend, BlendProfile());
+            var player = new AnimationPlayer(backend, BlendProfile());
 
-            var current = Blend(player, "move", AnimationChannel.Locomotion, 1f, 0f);
+            var current = Blend(player, "move", AnimationChannel.Base, 1f, 0f);
 
             Assert.False(player.TrySetBlendSpeed(current.Handle, 2f), "后端拒绝 = false");
             Assert.True(player.TryGetState(current.Handle, out var state) && state.IsPlaying, "拒绝不得改变现有播放");
@@ -970,7 +1005,7 @@ namespace LiteFramework.Tests.Animation
         {
             // 零分配路径：调用方复用同一数组逐帧调权重——播放器/后端只在提交内读取，不保留引用
             var backend = new FakeBackend();
-            var player = new CharacterAnimationPlayer(backend, BlendProfile());
+            var player = new AnimationPlayer(backend, BlendProfile());
             var weights = new[] { 1f, 0f };
 
             Assert.True(BlendWeighted(player, weights).Accepted);
@@ -981,8 +1016,95 @@ namespace LiteFramework.Tests.Animation
             Assert.Equal(new[] { 1f, 0f }, backend.Blended[0].Weights);
             Assert.Equal(new[] { 0.25f, 0.75f }, backend.Blended[1].Weights);
 
-            static AnimationStartResult BlendWeighted(CharacterAnimationPlayer p, float[] w)
-                => p.PlayBlend(new AnimationBlendRequest(new AnimationId("move"), AnimationChannel.Locomotion, w));
+            static AnimationStartResult BlendWeighted(AnimationPlayer p, float[] w)
+                => p.PlayBlend(new AnimationBlendRequest(new AnimationId("move"), AnimationChannel.Base, w));
+        }
+
+        [Fact]
+        public void 枚举面_单片段与混合定义可遍历_覆盖校验消费面()
+        {
+            var profile = new AnimationProfile()
+                .Register(new AnimationDefinition(new AnimationId("idle"), AnimationChannel.Base, "Idle", loop: true))
+                .Register(new AnimationDefinition(new AnimationId("die"), AnimationChannel.Override, "Die"))
+                .RegisterBlend(new AnimationBlendDefinition(new AnimationId("move"), AnimationChannel.Base,
+                    new[] { "Idle", "Walk", "Run" }));
+
+            Assert.Equal(2, profile.Definitions.Count);
+            Assert.Equal(1, profile.BlendDefinitions.Count);
+
+            // 校验面语义：两张表遍历并集 = 全部登记绑定（Idle 同时是单片段与混合槽位——按绑定键去重后核对片源）
+            var bindings = new HashSet<string>();
+            foreach (var def in profile.Definitions) bindings.Add(def.Binding);
+            foreach (var blend in profile.BlendDefinitions)
+                for (int slot = 0; slot < blend.SlotCount; slot++) bindings.Add(blend.Bindings[slot]);
+
+            Assert.Equal(new HashSet<string> { "Idle", "Die", "Walk", "Run" }, bindings);
+        }
+
+        // ---- 行装载器（配置面唯一装载路径——两遍扫逐行 Register，校验全复用）----
+
+        private static AnimationProfileRow Row(string family, AnimationProfileRowKind kind, string id,
+            AnimationChannel channel = AnimationChannel.Base, string binding = "", string[] bindings = null,
+            bool loop = false, float min = 0.01f, float max = 4f, bool hold = false, bool load = false,
+            string fallback = "")
+            => new AnimationProfileRow
+            {
+                ModelFamily = family, Kind = kind, Id = id, Channel = channel, Binding = binding,
+                Bindings = bindings ?? System.Array.Empty<string>(), Loop = loop, MinSpeed = min, MaxSpeed = max,
+                HoldOnFinish = hold, RequiresLoad = load, FallbackId = fallback,
+            };
+
+        [Fact]
+        public void 装载_四面分流与模型族过滤_逐行登记生效()
+        {
+            var rows = new[]
+            {
+                Row("CombatGirls", AnimationProfileRowKind.Single, "idle", AnimationChannel.Base, "Idle", loop: true, min: 0.01f, max: 2f),
+                Row("Other", AnimationProfileRowKind.Single, "ghost", AnimationChannel.Base, "Ghost"),   // 他族行：跳过不登记
+                Row("CombatGirls", AnimationProfileRowKind.Blend, "move", AnimationChannel.Base, bindings: new[] { "Idle", "Walk" }, min: 0.01f, max: 2f),
+                Row("CombatGirls", AnimationProfileRowKind.Fallback, "crouch", fallback: "idle"),       // 源无定义——回退链可触发
+                Row("CombatGirls", AnimationProfileRowKind.MaskExclusion, "root/pelvis/spine"),          // Mask 行：id 即排除子树路径
+            };
+
+            var profile = AnimationProfileLoader.FromRows(rows, "CombatGirls", FallbackPolicy.UseFallback);
+
+            Assert.Equal(1, profile.Count);                                    // ghost 未进本族表
+            Assert.True(profile.TryGetDefinition(new AnimationId("idle"), out var def));
+            Assert.True(def.Loop);
+            Assert.True(profile.TryGetBlendDefinition(new AnimationId("move"), out var blend));
+            Assert.Equal(2, blend.SlotCount);
+            Assert.Single(profile.OverlayMaskExclusions);
+            Assert.True(profile.TryResolve(                                   // 回退链：crouch 未登记 → 落到 idle
+                new AnimationRequest(new AnimationId("crouch"), AnimationChannel.Base), out var via, out _));
+            Assert.Equal("Idle", via.Binding);                                // 解析结果即回退目标的绑定
+        }
+
+        [Fact]
+        public void 装载_非法行带行号上下文抛_不留半份()
+        {
+            var rows = new[]
+            {
+                Row("F", AnimationProfileRowKind.Single, "ok", binding: "B"),                       // 合法行在前
+                Row("F", AnimationProfileRowKind.Single, "bad", binding: "B", min: 2f, max: 1f),   // 区间非法
+            };
+
+            var ex = Assert.Throws<InvalidOperationException>(() => AnimationProfileLoader.FromRows(rows, "F"));
+            Assert.Contains("第 2 行", ex.Message);
+            Assert.Contains("bad", ex.Message);
+
+            Assert.Throws<ArgumentException>(() => AnimationProfileLoader.FromRows(rows, ""));    // 族参数为空显性拒绝
+        }
+
+        [Fact]
+        public void 装载_回退防环经行路径生效()
+        {
+            var rows = new[]
+            {
+                Row("F", AnimationProfileRowKind.Fallback, "a", fallback: "b"),
+                Row("F", AnimationProfileRowKind.Fallback, "b", fallback: "a"),         // 成环
+            };
+
+            Assert.Throws<InvalidOperationException>(() => AnimationProfileLoader.FromRows(rows, "F"));
         }
     }
 }

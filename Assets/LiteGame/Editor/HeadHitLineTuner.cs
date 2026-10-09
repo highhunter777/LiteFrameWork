@@ -13,9 +13,9 @@ namespace LiteGame.EditorTools
     /// 锚点参考线（颈/面顶/帽顶/发冠顶），**拖黄球或滑杆**调爆头带下沿、**滑杆**调爆头柱半径（窄于命中柱），
     /// 导出写 <c>HeadBake.g.cs</c>（下沿比例随烘焙身高缩放；半径独立值）。
     ///
-    /// 双模式口径：本窗口（编辑器模式）与**测试面板**（对局内滑杆 + 导出按钮）共用同一导出
+    /// 双模式口径：本窗口（编辑器模式）与**GM 面板**（对局内滑杆 + 导出按钮）共用同一导出
     /// <see cref="Export"/>；对局内实时预调走 <c>CombatConfig.HeadHitLineDevOverride</c>/
-    /// <c>CombatConfig.HeadshotRadiusDevOverride</c>（判定与 F11 绘制同读 Live，滑杆一动即见 Crit 档变化），
+    /// <c>CombatConfig.HeadshotRadiusDevOverride</c>（判定与身位可视化同读 Live，滑杆一动即见 Crit 档变化），
     /// 定型才导出落盘。prefab 不入版本管理——本工具需本地 prefab（同 BodyCylinderBaker 前提）。
     /// </summary>
     public sealed class HeadHitLineTuner : EditorWindow
@@ -97,7 +97,7 @@ namespace LiteGame.EditorTools
             }
 
             EditorGUILayout.HelpBox(
-                "对局内实机调：F9 进测试模式 → F11 开身位可视化 → 测试面板拖「爆头线下沿/爆头柱半径」滑杆（判定实时随动），"
+                "对局内实机调：F9 进测试模式 → GM 面板开身位可视化 → 拖「爆头线下沿/爆头柱半径」滑杆（判定实时随动），"
                 + "定型后回本窗口/面板「导出」。buildHash 开发期不重跑——出包时由 build-player.ps1 --check 门禁拦截。",
                 MessageType.Info);
         }
@@ -112,14 +112,14 @@ namespace LiteGame.EditorTools
             float height = LiteSim.CombatConfig.HitscanHeight;
             return $"已导出：下沿比例 {ratio:R}（下沿 {height * ratio:F3} m，带高 {height * (1f - ratio):F3} m）；爆头柱半径 {radius:R} m\n"
                 + $"输出：{OutputPath}\n"
-                + "后续：F9+F11 实机复核；buildHash 开发期不重跑（出包时 --check 门禁拦截）。";
+                + "后续：F9 进测试模式 + GM 面板开身位可视化实机复核；buildHash 开发期不重跑（出包时 --check 门禁拦截）。";
         }
 
         private static string BuildText(float ratio, float radius)
         {
             var inv = CultureInfo.InvariantCulture;
             var sb = new StringBuilder();
-            sb.AppendLine("// 本文件由 HeadHitLineTuner 生成（菜单 LiteGame/调整爆头带 → 导出，或测试面板导出按钮）——勿手改。");
+            sb.AppendLine("// 本文件由 HeadHitLineTuner 生成（菜单 LiteGame/调整爆头带 → 导出，或 GM 面板导出按钮）——勿手改。");
             sb.AppendLine("// 语义：爆头带下沿 = HitscanHeight × Ratio（比例单源，随烘焙身高自动缩放——《固定斜视角射击方案专项设计》§5）；");
             sb.AppendLine("//       爆头柱半径 = Radius（窄于命中柱 0.45——头部带是窄柱切片，非命中柱全径切片）。");
             sb.AppendLine("// 消费：CombatConfig.HeadHitLine / HeadshotRadius（爆头判据竖直下沿 + 水平闸）。");

@@ -7,8 +7,9 @@ namespace LiteGame
     /// <see cref="BattleLaserDriver"/>）。按 <see cref="LiteSim.WeaponRuntime.WeaponDefId"/> 集合判定
     /// "哪些武器带激光"——tb_weapon（G2-P1 武器战斗）落地后迁列进表，届时只改本类。
     ///
-    /// **测试模式直通**：<see cref="TestModeRuntime.Active"/> 置位期间任何武器都支持
-    /// （测试面板/F10 进测试房即生效；TestModeRuntime 整段剥离于 release——见同款 #if 守卫）。
+    /// **测试模式**：<see cref="TestModeRuntime.Active"/> 置位期间由快照开关
+    /// <see cref="TestModeRuntime.LaserSight"/> 决定（测试面板/GM 面板可对局中现场开合；
+    /// TestModeRuntime 整段剥离于 release——见同款 #if 守卫）；非测试模式走 def id 支持位。
     /// </summary>
     public static class LaserSightPolicy
     {
@@ -17,11 +18,11 @@ namespace LiteGame
         /// 故先入集合；真实 def id 随 tb_weapon 落表后在此替换。</summary>
         private static readonly HashSet<int> SupportedDefIds = new HashSet<int> { 0 };
 
-        /// <summary>该武器是否支持瞄准激光（测试模式下任何武器都支持——见类注释）。</summary>
+        /// <summary>该武器是否支持瞄准激光（测试模式由快照开关决定——见类注释）。</summary>
         public static bool Supports(int weaponDefId)
         {
 #if UNITY_EDITOR || DEVELOPMENT_BUILD || LITEFRAMEWORK_DEBUG
-            if (TestModeRuntime.Active) return true;
+            if (TestModeRuntime.Active) return TestModeRuntime.LaserSight;
 #endif
             return SupportedDefIds.Contains(weaponDefId);
         }

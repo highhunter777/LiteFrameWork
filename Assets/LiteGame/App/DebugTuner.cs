@@ -5,9 +5,10 @@ using UnityEngine;
 
 namespace LiteGame
 {
-    /// <summary>调试调参组件：Inspector 拖滑条实时调节运行时旋钮（§12.5）。
-    /// GameEntry 装配期注入目标；Update 同步字段 → 目标（每帧几次赋值，零成本）。
-    /// 挂 GameEntry 同 GameObject，随 DontDestroyOnLoad 常驻。release 构建零残留（条件编译）。</summary>
+    /// <summary>调试调参组件：**静态启动配置与旋钮**（Inspector 编辑，场景序列化，进 Play 前定好；
+/// Play 中改 Inspector 值同样即时生效）。GameEntry 装配期注入目标；Update 同步字段 → 目标。
+/// 挂 GameEntry 同 GameObject，随 DontDestroyOnLoad 常驻。**局内可调项在 GM 面板**（测试模式现场开关）。
+/// release 构建零残留（条件编译）。</summary>
     public sealed class DebugTuner : MonoBehaviour
     {
         private IWorldClock _world;
@@ -34,6 +35,26 @@ namespace LiteGame
                  "弱网、断线重连真实性、多房间隔离与真实多人交互仍须在真服务器上验。")]
         public bool UseLocalServer;
 
+        [Header("测试模式启动配置（进房时快照进运行时；局内可调项在 GM 面板）")]
+        [Tooltip("全房免死：跨死线 Hp 保底 1、不写 Kill/Death——目标不消失，命中/受击反馈保留")]
+        public bool NoDeath = true;
+        [Tooltip("无限子弹：进房初值；对局中可在 GM 面板现场开合")]
+        public bool InfiniteAmmo;
+        [Tooltip("瞄准激光：进房初值；对局中可在 GM 面板现场开合")]
+        public bool LaserSight = true;
+        [Tooltip("伤害数字：进房初值；对局中可在 GM 面板现场开合")]
+        public bool DamageNumbers = true;
+        [Tooltip("爆头自动验证：替换输入源自动打爆头（进房初值；对局中可在 GM 面板现场开合）")]
+        public bool AutoHeadshot;
+        [Tooltip("爆头区域可视化：进房初值；对局中可在 GM 面板现场开合")]
+        public bool DrawHeadshotDebug;
+        [Tooltip("定点传送：T 键 / GM 面板按钮 → 传送到当前准心点")]
+        public bool TeleportEnabled = true;
+        [Tooltip("bot 冻结：权威侧每帧把补位 bot 位置回写到进房时快照（站桩加强，防推挤类漂移）")]
+        public bool BotFrozen;
+        [Tooltip("补位 bot 数量（总席位 = 1 + 本值）"), Min(0)]
+        public int BotCount = 1;
+
         /// <summary>本地服务器开关的全局读点（流程层不认识 DebugTuner）。</summary>
         /// <remarks>
         /// 静态是因为消费者 `ProcedureMatch` 由装配根构造，而 DebugTuner 是**场景里可选挂**的调试组件
@@ -42,6 +63,31 @@ namespace LiteGame
         /// 此处的静态是调试开关、随 #if 整段消失）。
         /// </remarks>
         public static bool UseLocalServerEnabled;
+
+        /// <summary>把**本组件的启动配置**快照进运行时并置位测试模式（GM 面板"进入测试模式"/主菜单 F10 共用）；
+        /// 场景未挂 DebugTuner 时套默认口径（<see cref="TestModeRuntime.ApplyDefaults"/>）。
+        /// 逐项经 <see cref="TestModeOptions.Set"/> 落值（副作用收口在该表）。</summary>
+        public static void ApplySnapshotOrDefaults()
+        {
+            var tuner = UnityEngine.Object.FindAnyObjectByType<DebugTuner>(FindObjectsInactive.Include);
+            if (tuner == null)
+            {
+                TestModeRuntime.ApplyDefaults();
+            }
+            else
+            {
+                TestModeOptions.Set(TestModeOptions.Id.NoDeath, tuner.NoDeath);
+                TestModeOptions.Set(TestModeOptions.Id.InfiniteAmmo, tuner.InfiniteAmmo);
+                TestModeOptions.Set(TestModeOptions.Id.LaserSight, tuner.LaserSight);
+                TestModeOptions.Set(TestModeOptions.Id.DamageNumbers, tuner.DamageNumbers);
+                TestModeOptions.Set(TestModeOptions.Id.AutoHeadshot, tuner.AutoHeadshot);
+                TestModeOptions.Set(TestModeOptions.Id.DrawHeadshotDebug, tuner.DrawHeadshotDebug);
+                TestModeOptions.Set(TestModeOptions.Id.TeleportEnabled, tuner.TeleportEnabled);
+                TestModeOptions.Set(TestModeOptions.Id.BotFrozen, tuner.BotFrozen);
+                TestModeRuntime.BotCount = tuner.BotCount;               // 数量项不在开关表（int）
+            }
+            TestModeRuntime.Active = true;
+        }
 
         public void Inject(IWorldClock world, IUIClock ui, EventCenter events, CommandCenter commands)
         {
@@ -62,9 +108,8 @@ namespace LiteGame
             UseLocalServerEnabled = UseLocalServer;      // 开关全局同步（见上面静态字段的说明）
 
             if (_world == null || !SyncEnabled) return;    // 关同步：滑杆停管，时钟归程序直控
-            bool testMode = TestModeRuntime.Active;        // 测试模式：时间缩放/暂停由测试面板快照直落（滑条停管）
-            _world.TimeScale = testMode ? TestModeRuntime.TimeScale : WorldTimeScale;
-            _world.Paused   = testMode ? TestModeRuntime.Paused : WorldPaused;
+            _world.TimeScale = WorldTimeScale;
+            _world.Paused   = WorldPaused;
             _ui.Paused      = UiPaused;
             _events.StrictMode = StrictMode;
         }
