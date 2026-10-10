@@ -39,7 +39,7 @@ namespace LiteGame.UI
         {
             if (!pressFx) return;
             var graphic = GetComponent<Graphic>();
-            if (graphic != null) UiFx.Pulse(graphic, 1.2f, 0.08f);
+            if (graphic != null) UiFx.Pulse(graphic, 0.2f, 0.08f);
         }
 
         /// <summary>点击语义（派生类覆写；如 StateButton 覆写为空——按压动效已并入其连点保护路径）。</summary>
