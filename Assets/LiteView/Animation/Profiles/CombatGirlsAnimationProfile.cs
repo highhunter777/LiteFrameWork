@@ -23,10 +23,10 @@ namespace LiteView.Animation
         /// <summary>对局实体视图 prefab（缺包克隆走 SimView 灰盒兜底降级）。
         /// 位于 `Assets/Prefab/`（+MagicaCloth 布料/头发物理；依赖资产在 `CombatGirlsCharacterPack/`
         /// ——收集组需同时覆盖两处）。
-        /// **必须与 <see cref="SimView.DefaultEntityPrefab"/> 同值**——两处都是"对局实体用哪个 prefab"
-        /// 的单源，分叉会让动画绑定与实际视图对不上（绑定按名字解析，换 prefab 后状态名不变，
-        /// 但视图与动画配置指向不同文件时排查成本高）。</summary>
-        public const string ViewPrefabPath = "Assets/Prefab/Player(Rifle).prefab";
+        /// **单源＝<see cref="SimView.DefaultEntityPrefab"/>**：本族的视图 prefab 就是 SimView 的
+        /// 对局默认件——引用同一常量，"两处各写一份同值"的分叉口被结构性消灭（绑定按名字解析，
+        /// 视图与动画配置若指向不同文件排查成本高）。</summary>
+        public const string ViewPrefabPath = SimView.DefaultEntityPrefab;
 
         /// <summary>该角色族的片段清单资产（去 AC 主路径的片源载体——键→Clip 显式引用的纯配置）。
         /// 键单源在 tbanimationprofile 表行；改绑定键后经构建器（`AgentScripts/BuildClipManifestAssets.cs`）

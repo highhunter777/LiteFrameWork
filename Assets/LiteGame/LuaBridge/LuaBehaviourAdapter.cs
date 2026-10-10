@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using LiteFramework;
+using LiteGame.UI;
 using UnityEngine;
 using XLua;
 
@@ -35,8 +36,10 @@ namespace LiteGame
     /// </summary>
     public sealed class LuaBehaviourAdapter : IUIFormLogic
     {
-        /// <summary>ui-API 通用派发方法名（payload 表协议见 Dispatch）。</summary>
-        private const string UiApiShim = @"
+        /// <summary>ui-API 派发 shim 模板（payload 表协议见 <see cref="Dispatch"/>）。
+        /// 动效/气泡缺省时长经占位符注入——单源＝<see cref="UiFxDefaults"/>，改默认不碰本模板
+        /// （杜绝 Lua 侧再持一份默认值副本）。</summary>
+        private const string UiApiShimTemplate = @"
 local c = __ui_api_c
 __ui_api_c = nil
 return {
@@ -57,12 +60,23 @@ return {
     StartCountdown = function(_, name, seconds) c('startCountdown', { name = name, seconds = seconds }) end,
     StopCountdown = function(_, name) c('stopCountdown', { name = name }) end,
     ShowToast = function(_, text) c('showToast', { text = text }) end,
-    ShowBubble = function(_, name, text, duration) c('showBubble', { name = name, text = text, duration = duration or 1.5 }) end,
+    ShowBubble = function(_, name, text, duration) c('showBubble', { name = name, text = text, duration = duration or %FxBubbleDuration% }) end,
     ShowFlyText = function(_, name, text) c('showFlyText', { name = name, text = text }) end,
-    Pulse = function(_, name, strength, duration) c('pulse', { name = name, strength = strength or 0.2, duration = duration or 0.16 }) end,
-    Flash = function(_, name, duration) c('flash', { name = name, duration = duration or 0.3 }) end,
-    Slide = function(_, name, ox, oy, duration) c('slide', { name = name, ox = ox or 0, oy = oy or 0, duration = duration or 0.25 }) end,
+    Pulse = function(_, name, strength, duration) c('pulse', { name = name, strength = strength or %FxPulseStrength%, duration = duration or %FxPulseDuration% }) end,
+    Flash = function(_, name, duration) c('flash', { name = name, duration = duration or %FxFlashDuration% }) end,
+    Slide = function(_, name, ox, oy, duration) c('slide', { name = name, ox = ox or 0, oy = oy or 0, duration = duration or %FxSlideDuration% }) end,
 }";
+
+        private static readonly string UiApiShim = UiApiShimTemplate
+            .Replace("%FxPulseStrength%", ToLuaLiteral(UiFxDefaults.PulseStrength))
+            .Replace("%FxPulseDuration%", ToLuaLiteral(UiFxDefaults.PulseDuration))
+            .Replace("%FxFlashDuration%", ToLuaLiteral(UiFxDefaults.FlashDuration))
+            .Replace("%FxSlideDuration%", ToLuaLiteral(UiFxDefaults.SlideDuration))
+            .Replace("%FxBubbleDuration%", ToLuaLiteral(UiFxDefaults.BubbleDuration));
+
+        /// <summary>float → Lua 数字字面量（InvariantCulture：跨区域环境小数点恒定）。</summary>
+        private static string ToLuaLiteral(float v)
+            => v.ToString(System.Globalization.CultureInfo.InvariantCulture);
 
         private readonly LuaEnv _env;
         private readonly LuaTable _module;                 // 注册表拥有的共享模块（不 Dispose）

@@ -1,7 +1,5 @@
 # scripts/
 
-Luban 生成使用 `Luban/gen.bat` 或 `scripts/codegen/gen-luban.ps1 -PythonPath <python>`。入口按当前仓库推导路径，先在 `TestResults/luban-generation/` 生成 C#/binary/Lua/LuaKeys，再只发布变更文件，保留 Assets 下既有 asmdef/meta。改玩法表后仍需运行 `scripts/codegen/gen-build-hash.py`；Unity 导入与集成验收另走本机 Pipeline。
-
 按职责分类的工程脚本（可从任意 CWD 运行；CI 入口见 `.github/workflows/ci.yml`）。
 
 | 目录 | 职责 | 内容 |
@@ -9,7 +7,7 @@ Luban 生成使用 `Luban/gen.bat` 或 `scripts/codegen/gen-luban.ps1 -PythonPat
 | `gate/` | 质量门禁（CI 调用面） | `test.ps1`（L1/L3 dotnet 车道）、`l0-dep-scan.ps1`（纪律/密钥扫描）、`l2-unity-gate.ps1`（Unity 编译 + EditMode/PlayMode 门禁）、`nightly-gate.ps1`（夜间全量编排）、`restore-check.ps1`（环境还原校验）、`toolchain.json`（工具链清单） |
 | `content/` | 候选发布与本地 CDN | `gen-candidate.ps1`（签名信封生成）、`publish-candidate.ps1`（CDN 布局 + 签名一条龙）、`serve-cdn.ps1`（本地 CDN 起服）、`local-cdn.json` + `local-cdn.config.ps1`（服务目录/地址配置单源） |
 | `build/` | Player 构建与冒烟 | `build-player.ps1`（内含 buildHash `--check` 出包门禁，不可跳过）、`player-smoke.ps1`（`-PlayerArgs` 透传部署参数） |
-| `codegen/` | 派生物生成 | `gen-proto.ps1`（协议重生成）、`gen-build-hash.py`（buildHash 生成 + `--check` 构建前校验）、`refresh-hash.ps1`（基线刷新编排） |
+| `codegen/` | 派生物生成（**生成器工具箱**） | 统一入口 `toolbox.ps1`（build-hash / proto / luban / sync-code / refresh-hash）+ 共享单源 `_common.ps1`；工具形态与操作权威见 [生成器工具箱专项设计](../Docs/设计文档/architecture/生成器工具箱专项设计.md)。`Luban/gen.bat` 为 luban 别名 shim；`build-player.ps1` 门禁仍直调 `gen-build-hash.py --check` |
 
 约定：
 

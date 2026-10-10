@@ -22,6 +22,8 @@ namespace LiteView.Animation
     /// - **帧事件**：本类实现 <see cref="IFrameEventAnimationConsumer"/> 并**自订阅**
     ///   `SimView.EventSink`（构造时挂上、<see cref="Dispose"/> 时摘下）；Fire 事件只刷新射击窗
     ///   （站姿由 Fire 族持 AimIdle 循环，无片段可重播），首次进入按锁存路由进 FireIdle/FireWalk；
+    /// - **换弹＝Overlay 上半身叠加**：不进战斗根（接管会停 Base MoveBlend → 滑步），由本类每帧
+    ///   按 Sim 换弹事实提交/释放叠加层（<see cref="SlotAnimContext.UpdateReloadUpper"/>），腿照常出步；
     /// - **片源（去 AC 主路径）**：<see cref="AnimationClipManifest"/>（键→Clip 显式引用的纯配置）经
     ///   <c>AnimatorAnimationBackend.RegisterManifest</c> 装配期逐键登记——**控制器可选**：有控制器时
     ///   其片段索引只是便利源（清单后注册，同名键以清单为权威）；无控制器（直 Clip 模型）由清单独立供片；
@@ -70,9 +72,9 @@ namespace LiteView.Animation
                 throw new ArgumentException(
                     $"Profile 缺 {CharacterAnimationIds.AimMoveBlend} 的 4 槽位 Override 混合定义（形状 {{AimWalk_F,R,B,L}}）", nameof(profile));
             if (!_profile.TryGetDefinition(CharacterAnimationIds.Reload, out var reloadDef)
-                || reloadDef.Channel != AnimationChannel.Override)
+                || reloadDef.Channel != AnimationChannel.Overlay)
                 throw new ArgumentException(
-                    $"Profile 换弹语义须登记为 Override（全身接管）→ {CharacterAnimationIds.Reload}", nameof(profile));
+                    $"Profile 换弹语义须登记为 Overlay（上半身叠加——Override 全身接管会停掉 Base 移动，脚定住即滑步）→ {CharacterAnimationIds.Reload}", nameof(profile));
             if (reloadDef.Loop)
                 throw new ArgumentException(
                     $"Profile 换弹语义须为一次性（播完持末帧至事实清除）→ {CharacterAnimationIds.Reload}", nameof(profile));
@@ -131,7 +133,8 @@ namespace LiteView.Animation
         }
 
         /// <summary>读槽位当前**形态**语义（诊断/HUD/测试）：移动根活跃 = MoveBlend；战斗根活跃 = Override 当前形态
-        /// （开火/瞄准族为 AimIdle/AimMoveBlend 循环，换弹为 Reload——"窗内保持 clip"）。无播放器/未开 → false。</summary>
+        /// （开火/瞄准族为 AimIdle/AimMoveBlend 循环）。**换弹不在此列**——它不发起根迁移，走 Overlay 叠加层，
+        /// 用 <see cref="TryGetReloadUpper"/> 读。无播放器/未开 → false。</summary>
         public bool TryGetCurrent(int slotIndex, out AnimationId id)
         {
             id = default;
@@ -188,6 +191,24 @@ namespace LiteView.Animation
             handle = default;
             if (!TrySlot(slotIndex, out var s) || !s.Machine.Started || !s.Ctx.BodyHandle.IsValid) return false;
             handle = s.Ctx.BodyHandle;
+            return true;
+        }
+
+        /// <summary>读槽位**换弹上半身叠加层**是否在场（诊断/测试：换弹不再发起根迁移，
+        /// 腿照常由 Base MoveBlend 走——故换弹态只能从叠加层读，不能从形态读）。
+        /// 无播放器/未建上下文 → false。</summary>
+        public bool TryGetReloadUpper(int slotIndex)
+        {
+            if (!TrySlot(slotIndex, out var s)) return false;
+            return s.Ctx.ReloadSubmitted;
+        }
+
+        /// <summary>读槽位换弹叠加层句柄（测试观察"同一事实期不重提交"）。无叠加层 → false。</summary>
+        public bool TryGetReloadHandle(int slotIndex, out AnimationHandle handle)
+        {
+            handle = default;
+            if (!TrySlot(slotIndex, out var s) || !s.Ctx.ReloadSubmitted) return false;
+            handle = s.Ctx.ReloadHandle;
             return true;
         }
 
@@ -252,9 +273,22 @@ namespace LiteView.Animation
                     };
                     s.Machine = CombatAnimMachine.Build(s.Ctx);
                     s.Machine.Start(CharacterAnimId.LocomotionRoot);   // 初建提交 MoveBlend(Idle=1)——不开局 T-pose（提交/维护归移动根；无控制器时即唯一落位兜底）
+
+                    // 持枪约束（可选，视图私有配置面）：换弹叠加层在场时武器骨跟随躯干。
+                    // 无偏移资产/骨解析不到 → 不建（显性跳过，不静默假装生效）。
+                    var grip = binding?.GripOffset != null ? new WeaponGripConstraint(animator, binding.GripOffset) : null;
+                    if (grip != null && !grip.IsValid)
+                    {
+                        Debug.LogWarning($"[Anim][diag] slot {i} 持枪偏移不可用（骨路径在骨架上不存在）"
+                            + $"：view「{go.name}」——换弹期枪将完全由片段曲线驱动");
+                        grip = null;
+                    }
+                    s.Grip = grip;
+
                     Debug.LogWarning($"[Anim][diag] slot {i} 播放器建立：view「{go.name}」animator「{animator.name}」"
                         + $"ctrl={(animator.runtimeAnimatorController != null ? animator.runtimeAnimatorController.name : "none")}"
                         + $" manifest={(_manifest != null ? "on" : "off")} layers={animator.layerCount}"
+                        + $" 持枪约束={(grip != null ? "on" : "off")}"
                         + $" 窗长={_fireHoldSeconds:0.##}s 换弹倍率={reloadSpeed:0.##}×（片段「{reloadDef.Binding}」{reloadSeconds:0.###}s）");
                 }
 
@@ -267,7 +301,10 @@ namespace LiteView.Animation
                     if (_view.IsDead(i)) s.DeadSeen = true;   // 死亡不可逆锁存（快照状态——重连/迟到者同路径）
                     s.Ctx.IsDead = s.DeadSeen;
                     if (s.DeadSeen && s.Machine.Current != CharacterAnimId.Dead)
+                    {
+                        s.Ctx.ReleaseReloadUpper();      // 死亡压过一切：换弹叠加层让位（下帧前即释放，不等轮询兜底）
                         s.Machine.Request(CharacterAnimId.Dead);   // 状态轮询路径：重建/迟到者按死亡事实强制进叶
+                    }
                     s.Ctx.IsAiming = _view.IsAiming(i);
                     s.Ctx.IsReloading = _view.IsReloading(i);  // 换弹事实（Sim 权威——武器私有面投影）
                     s.Ctx.IsMoving = s.MovingLatch;
@@ -277,10 +314,20 @@ namespace LiteView.Animation
                         : Vector3.SignedAngle(go.transform.rotation * Vector3.forward, moveDir, Vector3.up);
 
                     s.Machine.Tick(dt);                   // 根→叶 OnUpdate + 事务帧末应用（一帧一事务）
+
+                    // 换弹：Overlay 上半身一次性叠加（**不进战斗根**——战斗根接管会停 Base MoveBlend，
+                    // 脚定住而世界位移照旧即滑步；叠加层只盖上半身，腿继续由 MoveBlend 走）。
+                    // 放在机 Tick 之后：机不再因换弹迁根，腿的权重维护与叠加层提交互不干扰。
+                    s.Ctx.UpdateReloadUpper(s.Ctx.IsReloading, s.Ctx.IsDead);
                 }
 
                 RememberPosition(s, go);
                 s.Player?.Tick(dt);                        // 唯一驱动入口（§7）
+
+                // 持枪约束：**必须在播放器 Tick 之后**——Graph.Evaluate 刚把本帧动画姿态写完，
+                // 此刻读到的武器骨局部变换就是"动画本该给的值"，约束按幅度缩放覆写它
+                // （单一写者契约：换弹期这根骨归约束；退出即停写，动画下帧自然接管）。
+                s.Grip?.Update(s.Ctx?.ReloadSubmitted ?? false);
             }
         }
 
@@ -298,7 +345,7 @@ namespace LiteView.Animation
         /// 帧事件消费（**逻辑帧边界**，由 <see cref="SimView.EventSink"/> 在静默门之后调用）：
         /// fire 事件即进 Fire 系——语义/通道由战斗层装配期从 Profile 单源解析
         /// （构造期校验保留）；Hit/Evade 待接入（未预建消费者）。
-        /// 路由：窗先行（根合并口刷新＝重置满窗）→ Fire 族/换弹族态内只续窗（站姿循环由叶自维护，
+        /// 路由：窗先行（根合并口刷新＝重置满窗）→ Fire 族态内只续窗（站姿循环由叶自维护，
         /// 无片段可重播）→ 否则按锁存 Request 进 Fire 叶（站定 FireIdle / 移动 FireWalk）。
         /// </summary>
         public void OnFrameEvent(in FrameEvent e)
@@ -315,6 +362,7 @@ namespace LiteView.Animation
                 if (d?.Machine == null || !d.Machine.Started || d.Ctx == null) return;   // 灰盒/未启动：无动画面
                 d.DeadSeen = true;
                 d.Ctx.IsDead = true;
+                d.Ctx.ReleaseReloadUpper();     // 死亡压过一切：换弹叠加层立即让位（死亡是全身 Override）
                 if (d.Machine.Current != CharacterAnimId.Dead)
                     d.Machine.Request(CharacterAnimId.Dead);
                 return;
@@ -331,9 +379,8 @@ namespace LiteView.Animation
             s.Ctx.Root.RefreshWindow();                           // 事件即活动：窗重置满窗（先于一切路由）
 
             var cur = s.Machine.Current;
-            if (cur == CharacterAnimId.FireIdle || cur == CharacterAnimId.FireWalk
-                || cur == CharacterAnimId.Reloading)
-                return;                                           // 已在战斗根：窗已刷（持枪循环由叶自维护；换弹不可打断）
+            if (cur == CharacterAnimId.FireIdle || cur == CharacterAnimId.FireWalk)
+                return;                                           // 已在战斗根：窗已刷（持枪循环由叶自维护）
             s.Machine.Request(s.Ctx.IsMoving ? CharacterAnimId.FireWalk : CharacterAnimId.FireIdle);
         }
 
@@ -362,6 +409,7 @@ namespace LiteView.Animation
             s.Player?.Dispose();                          // 销毁序：代次失效 → 终态 → 释放后端（Graph.Destroy）
             s.Player = null;
             s.Backend = null;
+            s.Grip = null;                               // 约束无外部持有（每帧写、无持久状态）
             s.Machine = null;                             // 机器随播放器同生共死（无独立 Dispose 面）
             s.Ctx = null;
             s.LastPos = default;
@@ -412,6 +460,7 @@ namespace LiteView.Animation
         {
             public AnimationPlayer Player;
             public AnimatorAnimationBackend Backend;
+            public WeaponGripConstraint Grip;              // 持枪约束（可选：视图未声明偏移或骨缺失时为 null）
             public SlotAnimContext Ctx;
             public HierarchicalStageMachine<CharacterAnimId, CombatAnimReq> Machine;
             public Vector3 LastPos;

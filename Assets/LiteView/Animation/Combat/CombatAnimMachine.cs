@@ -39,10 +39,6 @@ namespace LiteView.Animation
         /// <summary>死亡叶（终态）：进态即播 Death（一次性·非循环）——完成后不重发/不退根/不降权
         /// （playable 停在末帧 = 帧锁定；根裁决按 IsDead 恒驻本叶）。</summary>
         Dead = 8,
-
-        /// <summary>换弹叶：Sim 换弹事实（<c>WeaponRuntime.State == Reloading</c>）驱动——
-        /// 进态播一次性 Reload（倍率对齐 Sim 时长）、播完持末帧；事实清除由根裁决换叶。</summary>
-        Reloading = 9,
     }
 
     /// <summary>
@@ -57,7 +53,10 @@ namespace LiteView.Animation
     /// 单机双根角色动画层次机装配（《层次动画机设计》§1/§2）：
     /// - **互斥覆盖**：战斗根（上层）任一态激活 = 覆盖移动根（框架多根 = 互斥平级根，跨根 = 全退全进）；
     /// - **战斗层不可被移动层打断**：退根只有两条路——Fire*：窗尽 ∧ !IsAiming；Aim*：!IsAiming（单点裁决）；
-    ///   移动事实只驱动层内 idle↔walk 轴（两族）与退根叶选择；换弹/死亡事实由根裁决**打断**（优先级路由）；
+    ///   移动事实只驱动层内 idle↔walk 轴（两族）与退根叶选择；死亡事实由根裁决**打断**（优先级路由）；
+    /// - **换弹不在本机内**：它走 Overlay 通道的上半身一次性叠加（见
+    ///   <see cref="SlotAnimContext.UpdateReloadUpper"/>）——进战斗根会停掉移动根的 Base MoveBlend、
+    ///   脚定住即滑步；叠加层只盖上半身，腿继续由 MoveBlend 走，故换弹既不发起根迁移也不打断窗；
     /// - **射击窗**：窗长 = <see cref="CombatConfig.FireStanceFrames"/>/TickRate（1s 独立常量），
     ///   事件刷新＝重置满窗；**窗内保持 clip**——Fire 族持 AimIdle 家族循环（开火不播专用片段，
     ///   见 <see cref="CombatGirlsAnimationProfile"/>）；窗尽 = 保持 clip 的终点（同形态次态续播保相位、
@@ -83,17 +82,15 @@ namespace LiteView.Animation
                     (CharacterAnimId.Idle, new IdleStage(ctx)),
                     (CharacterAnimId.Moving, new MovingStage(ctx)),
                     (CharacterAnimId.Dead, new DeadStage(ctx)),
-                    (CharacterAnimId.Reloading, new ReloadStage(ctx)),
                 },
                 composites: new CompositeSpec<CharacterAnimId>[]
                 {
-                    // 初始子态仅形式性存在（战斗根进入恒由事件/ADS/换弹显式 Request 叶）；无历史——
+                    // 初始子态仅形式性存在（战斗根进入恒由事件/ADS 显式 Request 叶）；无历史——
                     // 窗尽降级与 ADS 进入都按事实选叶，不复活旧子页（不引入历史语义）
                     new CompositeSpec<CharacterAnimId>(CharacterAnimId.CombatRoot, CharacterAnimId.AimIdle,
                         HistoryMode.None,
                         CharacterAnimId.FireIdle, CharacterAnimId.FireWalk,
-                        CharacterAnimId.AimIdle, CharacterAnimId.AimWalk, CharacterAnimId.Dead,
-                        CharacterAnimId.Reloading),
+                        CharacterAnimId.AimIdle, CharacterAnimId.AimWalk, CharacterAnimId.Dead),
                     new CompositeSpec<CharacterAnimId>(CharacterAnimId.LocomotionRoot, CharacterAnimId.Idle,
                         HistoryMode.None,
                         CharacterAnimId.Idle, CharacterAnimId.Moving),

@@ -10,7 +10,7 @@
 |---|---|
 | 这是什么 | 一个 **Unity 2022.3 客户端 + .NET 8 服务端**的工程：自研"商业级通用客户端框架"（C0～C5）＋一个**确定性联机射击 Demo**（G0～G6 关口）作为框架的首个真实业务 |
 | 怎么跑起来 | Unity 打开本工程 → 运行 `Assets/Scenes/Test.unity` → 启动件 `GameEntry` 起宿主与流程机；`Launch→Patch→Preload→Main` 后可玩 |
-| 现在能玩到什么 | 进 Main 后加载**训练场**场景；进对局是**开发热键 `F9`**（离开 `F10`，仅编辑器/Development 构建）。**正式主菜单/登录/结算入口未交付**（归 U2/G3） |
+| 现在能玩到什么 | 进 Main 后加载 **TrainingGround** 玩法场景；进对局是**开发热键 `F9`**（离开 `F10`，仅编辑器/Development 构建）。**正式主菜单/登录/结算入口未交付**（归 U2/G3） |
 | 权威在哪 | 判定逻辑在 `Assets/LiteSim/Core`（纯 C#、两端共编）；服务端权威在 `Assets/RoomServer`；表现只读 Sim 与事件 |
 | 改完怎么验 | 纯逻辑 `scripts/gate/test.ps1 -Lane L1`；含 Unity/资源 `scripts/gate/l2-unity-gate.ps1`；**改 Sim/协议/玩法表必须重跑 `python scripts/codegen/gen-build-hash.py`** |
 | 当前关口 | 《框架先行》准入**未达成**（前置件已清零；**五样例已全部成链**；剩余缺口：样例③ 真实美术素材段、Player/真机内存与生命周期证据、框架联合验收编排、发布侧登记项）——以 [待办总览](../待办总览.md) 为准 |

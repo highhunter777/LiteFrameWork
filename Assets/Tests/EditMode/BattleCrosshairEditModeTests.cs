@@ -13,7 +13,7 @@ namespace LiteGame.Tests.EditMode
     /// 对局准心驱动的 L2 EditMode 覆盖：位置换算（注入屏幕点 → 画布中心系）、
     /// 形态切换（本地预测态 Aiming 位 → Hip/Ads 两组）、可见性与系统光标（上下文门被拦 → 藏准心还光标；
     /// 本地表现未建 → 整体隐藏；Dispose 恢复光标）。位置与光标走注入位——EditMode 无鼠标/画布依赖，确定性。
-    /// 真场景（训练场 /Battle HUD）与真鼠标的手感对位归 PlayMode/手测；构建器幂等另由 run_script 验收。
+    /// 真场景（TrainingGround /Battle HUD）与真鼠标的手感对位归 PlayMode/手测；构建器幂等另由 run_script 验收。
     /// </summary>
     public sealed class BattleCrosshairEditModeTests : UnityTestBase
     {

@@ -1,8 +1,4 @@
-using System;
 using LiteFramework;
-using LiteFramework.Animation;
-using LiteSim;
-using UnityEngine;
 
 namespace LiteView.Animation
 {
@@ -113,36 +109,5 @@ namespace LiteView.Animation
             AimWalkForm.Maintain(_ctx);
         }
         public void OnLeave(IStageHost<CharacterAnimId, CombatAnimReq> m) { }
-    }
-
-    /// <summary>
-    /// 换弹叶：进态提交一次性 Reload（倍率见 <see cref="SlotAnimContext.ReloadPlaybackSpeed"/>——
-    /// 片段时长对齐 Sim <c>ReloadFrames</c>，动画收势与弹药回国同帧），播完持末帧
-    /// （定义声明 `holdOnFinish`）至换弹事实清除；**期间移动/瞄准事实不改叶**——
-    /// 换弹不可被打断（Sim 侧也只有到帧完成一条出路），事实清除由根裁决换叶。
-    /// </summary>
-    internal sealed class ReloadStage : IStage<CharacterAnimId, CombatAnimReq>
-    {
-        private readonly SlotAnimContext _ctx;
-        private bool _submitted;                               // 已接受一次提交（含播完持末帧）——不重发
-
-        internal ReloadStage(SlotAnimContext ctx) { _ctx = ctx; }
-
-        public void OnInit(IStageHost<CharacterAnimId, CombatAnimReq> m) { }
-
-        public void OnEnter(IStageHost<CharacterAnimId, CombatAnimReq> m, in CombatAnimReq req)
-            => _submitted = Submit();
-
-        public void OnUpdate(IStageHost<CharacterAnimId, CombatAnimReq> m, float elapseSeconds)
-        {
-            if (StageGate.Pending(m)) return;
-            if (_submitted) return;                            // 在播/持末帧：不重发（重发会按第 0 帧重播）
-            _submitted = Submit();                             // 提交被拒的自愈重试（下一个渲染帧）
-        }
-
-        public void OnLeave(IStageHost<CharacterAnimId, CombatAnimReq> m) { }
-
-        private bool Submit()
-            => _ctx.PlayBodySingle(CharacterAnimationIds.Reload, _ctx.ReloadPlaybackSpeed);
     }
 }

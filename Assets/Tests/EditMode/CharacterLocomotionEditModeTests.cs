@@ -1234,11 +1234,11 @@ namespace LiteGame.Tests.EditMode
             driver.Dispose();
         }
 
-        // ---- 换弹动画（Sim 私有面事实 → Reload 叶：全身接管 / 不可打断 / 事实清除回叶）----
+        // ---- 换弹动画（Sim 私有面事实 → Overlay 上半身叠加：腿照常出步 / 不迁根 / 事实清除释放）----
 
         [Test]
         [Category(TestCategory.Contract)]
-        public void 驱动_换弹事实_Reload叶全身接管_播完持末帧_事实清除退根()
+        public void 驱动_换弹事实_上半身叠加层接管_腿继续走Base_事实清除释放()
         {
             var prefab = LoadPrefabOrIgnore();
             var world = new SimWorldState { RngState = 1UL };
@@ -1269,47 +1269,46 @@ namespace LiteGame.Tests.EditMode
             Assert.IsTrue(view.IsReloading(slot), "换弹事实可读（Sim 运行态——武器私有面投影）");
 
             driver.Tick(dt);
-            Assert.IsTrue(driver.TryGetAnimState(0, out var s1) && s1 == CharacterAnimId.Reloading,
-                "换弹事实进 Reload 叶（全身接管）");
-            Assert.IsTrue(driver.TryGetCurrent(0, out var form) && form.Equals(CharacterAnimationIds.Reload),
-                "Reload 片段在播（Override 当前形态 = 换弹语义）");
-            Assert.IsTrue(driver.TryGetFormHandle(0, out var reloadHandle), "换弹句柄可读");
+            Assert.IsTrue(driver.TryGetReloadUpper(0), "换弹事实 → Overlay 上半身叠加层在场");
+            Assert.IsTrue(driver.TryGetReloadHandle(0, out var reloadHandle), "换弹叠加层句柄可读");
+            Assert.IsTrue(driver.TryGetCurrent(0, out var form) && form.Equals(CharacterAnimationIds.MoveBlend),
+                "换弹**不发起根迁移**：仍是移动根 MoveBlend（Base 持续出步——停即滑步）");
+            ((IModuleStats)driver).Snapshot(stats);
+            Assert.AreEqual("2", stats["channels"], "Base(MoveBlend) + Overlay(Reload) 两通道并存");
 
-            // 换弹期移动事实不改叶（换弹不可打断——Sim 侧也只有到帧完成一条出路）
+            // 换弹期持续移动：腿照常跟位移（Base 权重就地维护），叠加层不重提交
             view.TryGetView(0, out var go);
             for (int i = 0; i < 3; i++) { go.transform.position += new Vector3(0.012f, 0f, 0f); driver.Tick(dt); }
-            Assert.IsTrue(driver.TryGetAnimState(0, out var s2) && s2 == CharacterAnimId.Reloading,
-                "移动不打断换弹叶");
-            Assert.IsTrue(driver.TryGetFormHandle(0, out var h2) && h2.Equals(reloadHandle),
-                "同句柄续播（不重提交——重提会按第 0 帧重播）");
+            Assert.IsTrue(driver.TryGetReloadHandle(0, out var h2) && h2.Equals(reloadHandle),
+                "同一事实期不重提交（重发会按第 0 帧重播）");
+            Assert.IsTrue(driver.TryGetAnimState(0, out var s2) && s2 == CharacterAnimId.Moving,
+                "移动锁存成立（Base 侧照常走移动叶——脚不停）");
 
-            // 片段播完（时长对齐 Sim ReloadFrames——倍率见装配）∧ 事实仍在 → 持末帧恒驻本叶
+            // 片段播完（时长对齐 Sim ReloadFrames——倍率见装配）∧ 事实仍在 → 持末帧恒驻叠加层
             for (float e = 0f; e < 2.6f; e += dt) driver.Tick(dt);
-            Assert.IsTrue(driver.TryGetAnimState(0, out var s3) && s3 == CharacterAnimId.Reloading,
-                "片段播完事实仍在 → 持末帧恒驻本叶");
-            Assert.IsTrue(driver.TryGetFormHandle(0, out var h3) && h3.Equals(reloadHandle),
+            Assert.IsTrue(driver.TryGetReloadHandle(0, out var h3) && h3.Equals(reloadHandle),
                 "播完不重发（同句柄 = 帧锁定，非重播）");
             ((IModuleStats)driver).Snapshot(stats);
-            Assert.AreEqual("1", stats["channels"],                 "持末帧 Override 通道保持活跃（帧锁定——通道不停机）");
+            Assert.AreEqual("2", stats["channels"], "持末帧叠加层保持活跃（通道不停机）");
 
-            // 停步（锁存清零）→ 事实清除（到帧完成）→ 窗尽且未瞄准 → 退根回移动层
+            // 停步（锁存清零）→ 事实清除（到帧完成）→ 叠加层释放，退回纯移动层
             for (int i = 0; i < 3; i++) driver.Tick(dt);
             world.Frame = reloadEnd;
             WeaponSystem.Run(world, new[] { new SimInputFrame { EntityId = selfId } }, WeaponTable.Default);
             Assert.IsFalse(view.IsReloading(slot), "到帧完成——事实清除");
             driver.Tick(dt);
+            Assert.IsFalse(driver.TryGetReloadUpper(0), "事实清除 → 叠加层释放（上半身回到 Base 姿态）");
             Assert.IsTrue(driver.TryGetAnimState(0, out var s4) && s4 == CharacterAnimId.Idle,
-                "事实清除 → 窗尽未瞄准 → 退根回移动层（Idle 叶）");
+                "退根态不变（移动根 Idle 叶）");
             ((IModuleStats)driver).Snapshot(stats);
-            Assert.AreEqual("1", stats["channels"],
-                "退根后 Override 通道交还（持帧句柄的 Stop = 通道释放——不悬挂不冻结）");
+            Assert.AreEqual("1", stats["channels"], "释放后只剩 Base 通道（持帧占位的 Stop = 通道释放——不悬挂不冻结）");
 
             driver.Dispose();
         }
 
         [Test]
         [Category(TestCategory.Contract)]
-        public void 驱动_换弹事实清除_窗在回Fire叶_瞄准中回持枪站姿()
+        public void 驱动_开火瞄准期换弹_战斗根形态不变_叠加层独立叠加()
         {
             var prefab = LoadPrefabOrIgnore();
             var world = new SimWorldState { RngState = 1UL };
@@ -1333,23 +1332,25 @@ namespace LiteGame.Tests.EditMode
             driver.Tick(dt);
             driver.Tick(dt);
 
-            // 站定开火（窗 1s）→ 换弹事实进场 → 全身接管；事实清除时窗仍在 → 回 Fire 叶（非退根）
+            // 站定开火（窗 1s）→ 换弹事实进场：战斗根形态**不受影响**，换弹走上半身叠加层
             DeliverFire(view, world, selfId, firePos);
             driver.Tick(dt);
             Assert.IsTrue(driver.TryGetAnimState(0, out var s1) && s1 == CharacterAnimId.FireIdle);
 
             StartReload(world, selfId, slot);
             driver.Tick(dt);
-            Assert.IsTrue(driver.TryGetAnimState(0, out var s2) && s2 == CharacterAnimId.Reloading,
-                "换弹压过开火窗（Sim 侧换弹期不可开火——表现跟随事实）");
+            Assert.IsTrue(driver.TryGetReloadUpper(0), "换弹 → 叠加层在场（上半身压住持枪姿态）");
+            Assert.IsTrue(driver.TryGetAnimState(0, out var s2) && s2 == CharacterAnimId.FireIdle,
+                "换弹不再抢占 Override 形态（不进战斗根迁叶——窗内持枪循环继续）");
 
             world.Frame = world.Weapons[slot * SimConfig.WeaponSlotsPerEntity + world.Entities[slot].SelectedWeapon].ReloadEndFrame;
             WeaponSystem.Run(world, new[] { new SimInputFrame { EntityId = selfId } }, WeaponTable.Default);
             driver.Tick(dt);
+            Assert.IsFalse(driver.TryGetReloadUpper(0), "事实清除 → 叠加层释放");
             Assert.IsTrue(driver.TryGetAnimState(0, out var s3) && s3 == CharacterAnimId.FireIdle,
-                "事实清除 ∧ 窗在 → 回 Fire 叶持枪站姿（窗内不回移动层）");
+                "窗在 → 仍回 Fire 叶持枪站姿（换弹全程未离开该叶）");
 
-            // 瞄准建立后换弹：事实清除 → 窗被 ADS 充值 → 同样回 Fire 持枪站姿（与 AimIdle 同形态）
+            // 瞄准建立后换弹：形态同样不动，事实清除后仍是持枪站姿
             InputSystem.Run(world, new[]
             {
                 new SimInputFrame { EntityId = selfId, AimPointX = 10f, AimPointY = 1f, AimPointZ = 0f, Buttons = SimInputFrame.ButtonAim },
@@ -1358,14 +1359,14 @@ namespace LiteGame.Tests.EditMode
             driver.Tick(dt);
             StartReload(world, selfId, slot);
             driver.Tick(dt);
-            Assert.IsTrue(driver.TryGetAnimState(0, out var s4) && s4 == CharacterAnimId.Reloading,
-                "瞄准保持期换弹——换弹叶压过开火/瞄准族（打断）");
+            Assert.IsTrue(driver.TryGetReloadUpper(0), "瞄准保持期换弹 → 叠加层在场");
+            Assert.IsTrue(driver.TryGetAnimState(0, out var s4) && s4 == CharacterAnimId.FireIdle,
+                "瞄准期换弹同样不迁叶（Override 形态与换弹叠加层互不干扰）");
 
             world.Frame = world.Weapons[slot * SimConfig.WeaponSlotsPerEntity + world.Entities[slot].SelectedWeapon].ReloadEndFrame;
             WeaponSystem.Run(world, new[] { new SimInputFrame { EntityId = selfId } }, WeaponTable.Default);
             driver.Tick(dt);
-            Assert.IsTrue(driver.TryGetAnimState(0, out var s5) && s5 == CharacterAnimId.FireIdle,
-                "事实清除 ∧ IsAiming 充值窗 → 回持枪站姿叶");
+            Assert.IsFalse(driver.TryGetReloadUpper(0), "事实清除 → 叠加层释放");
             Assert.IsTrue(driver.TryGetCurrent(0, out var form) && form.Equals(CharacterAnimationIds.AimIdle),
                 "持枪站姿 = AimIdle（与瞄准叶同形态）");
 

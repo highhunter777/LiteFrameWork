@@ -37,7 +37,8 @@ namespace LiteView
         public delegate void FrameEventSink(in FrameEvent e);
 
         /// <summary>对局实体视图 prefab（模型只用 CombatGirlsCharacterPack——真角色视图由该包模型 +
-        /// 该包 Rifle_Controller 构成，见 CombatGirlsAnimationProfile.ViewPrefabPath）。
+        /// 该包 Rifle_Controller 构成；动画侧 CombatGirlsAnimationProfile.ViewPrefabPath 引用本常量——
+        /// prefab 路径单源在此）。
         /// prefab 本体住 `Assets/Prefab/`，**不在 `Assets/CombatGirlsCharacterPack/` 内**——该包只是它的
         /// **依赖来源**（贴图/网格/动画/Avatar 全在该包内），故收集组必须**额外覆盖 `Assets/Prefab`**，
         /// 否则 YooAsset 拿不到它（收集按目录走）；依赖资产仍由 `Assets/CombatGirlsCharacterPack/Runtime` 收。

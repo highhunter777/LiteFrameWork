@@ -18,6 +18,9 @@
 #   ② **行尾归一化**（CRLF/CR → LF）——否则不同机器 clone（git autocrlf）会算出不同 hash
 #   ③ 排除自身输出（BuildHash.g.cs）与 bin/obj/.dotnet/.meta
 #
+# Toolbox entry:  pwsh scripts/codegen/toolbox.ps1 build-hash [--check]
+# Direct entry:   python scripts/codegen/gen-build-hash.py [--check]
+#
 # 两个模式（2026-10-07 起校验时点 = 构建前，开发期不校验——`BuildHashTests`/
 # `BuildHashSourceSet.g.cs` 随之退役，规则单源回归本脚本）：
 #   生成（默认）  python scripts/codegen/gen-build-hash.py
@@ -156,24 +159,20 @@ def main():
     if check_only:
         current = read_baked_constant()
         if current is None:
-            print('CHECK FAILED: BuildHash.g.cs missing or hash constant unreadable')
+            print('[codegen/build-hash] CHECK FAILED: BuildHash.g.cs missing or hash constant unreadable')
             return 1
         if current != value:
-            print('CHECK FAILED: BuildHash.g.cs stale - baked %s != recomputed %s' % (current, value))
+            print('[codegen/build-hash] CHECK FAILED: BuildHash.g.cs stale - baked %s != recomputed %s' % (current, value))
             print('  rerun: python scripts/codegen/gen-build-hash.py')
             return 1
-        print('CHECK OK: buildHash %s matches current sources (%d files)' % (value, len(files)))
+        print('[codegen/build-hash] CHECK OK: buildHash %s matches current sources (%d files)' % (value, len(files)))
         return 0
 
     with open(OUT_FILE, 'w', encoding='utf-8', newline='\n') as f:
         f.write(TEMPLATE % value)
-    print('BuildHash.g.cs written: %s (%d files)' % (value, len(files)))
+    print('[codegen/build-hash] BuildHash.g.cs written: %s (%d files)' % (value, len(files)))
     return 0
 
 
 if __name__ == '__main__':
     sys.exit(main())
-
-
-if __name__ == '__main__':
-    main()

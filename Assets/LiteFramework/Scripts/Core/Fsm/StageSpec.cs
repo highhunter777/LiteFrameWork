@@ -58,7 +58,7 @@ namespace LiteFramework
 
     /// <summary>
     /// 驻留看门狗声明（可选接口，《状态机专项设计》§3.2）：当前阶段驻留帧数超限且无挂起时，
-    /// 机器在 Tick 统一裁决并 <see cref="StageMachine{TId,TReq}.ForceState"/> 强制迁往 <see cref="TimeoutTarget"/>。
+    /// 机器在 Tick 统一裁决并 <see cref="StageMachineCore{TId,TReq}.ForceState"/> 强制迁往 <see cref="TimeoutTarget"/>。
     /// 定位是**驻留异常升级**（流程卡死、AI 卡态）——编排级超时兜底（如 UI 转场收尾）归各自编排层，两者正交。
     /// </summary>
     public interface IStageTimeout<TId> where TId : struct

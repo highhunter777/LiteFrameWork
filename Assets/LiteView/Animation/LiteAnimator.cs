@@ -40,6 +40,11 @@ namespace LiteView.Animation
         /// Base/Override 任何 rig 照常直驱）。</summary>
         [SerializeField] private Avatar avatar;
 
+        /// <summary>持枪偏移（**可选**表现参数）：换弹上半身叠加期间武器骨跟随躯干的姿态覆写参数
+        /// （<c>WeaponGripOffset</c> 资产，由烘焙工具生成）。为空 = 不启用该约束（枪完全由片段曲线驱动）。
+        /// 视图私有配置面——与清单/控制器同属"这个角色怎么演"的声明。</summary>
+        [SerializeField] private WeaponGripOffset gripOffset;
+
         /// <summary>是否应用根运动（对局实体的权威位移归 Sim——联机角色保持关，见 §8）。</summary>
         [SerializeField] private bool applyRootMotion;
 
@@ -73,6 +78,9 @@ namespace LiteView.Animation
 
         /// <summary>本视图声明的 Avatar（诊断/校验用读面）。</summary>
         public Avatar Avatar => avatar;
+
+        /// <summary>本视图声明的持枪偏移（可空 = 不启用换弹期持枪约束）。</summary>
+        public WeaponGripOffset GripOffset => gripOffset;
 
         private void OnEnable() => ApplySettings();
 

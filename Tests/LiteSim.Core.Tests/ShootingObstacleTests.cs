@@ -95,7 +95,7 @@ namespace LiteSim.Tests
         [Fact]
         public void 矮盒恰在弹道高度带内_挡弹()
         {
-            // 训练场测试方块同源口径：盒底 0、盒顶 = 弹道原点高（含端点）⇒ 挡弹。
+            // TrainingGround 测试方块同源口径：盒底 0、盒顶 = 弹道原点高（含端点）⇒ 挡弹。
             // 盒高取烘焙枪口高 ⇒ 本用例随枪口常量自动跟随（"恰在带内"的端点语义锁定）。
             var (world, shooter, target) = Pair();
             var map = WallBetween(wallX: 5f, height: CombatConfig.MuzzleOffsetHeight, halfZ: 0.5f);

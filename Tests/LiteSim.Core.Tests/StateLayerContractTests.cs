@@ -167,10 +167,13 @@ namespace LiteSim.Tests
         [Fact]
         public void 运行态结构体_字段必须全部显式表态()
         {
-            // 与 EntitySlot 同纪律：结构体的每个字段都要有层次表态（防漏标）
+            // 与 EntitySlot 同纪律：结构体的每个字段都要有层次表态（防漏标）——分型表同守
             AssertAllAnnotated(typeof(ActionRuntime));
             AssertAllAnnotated(typeof(StatusSlotData));
             AssertAllAnnotated(typeof(MatchBagSlot));
+            AssertAllAnnotated(typeof(ItemState));
+            AssertAllAnnotated(typeof(ProjectileState));
+            AssertAllAnnotated(typeof(ZoneState));
         }
 
         [Fact]

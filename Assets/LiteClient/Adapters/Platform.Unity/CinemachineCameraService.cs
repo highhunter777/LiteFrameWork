@@ -24,7 +24,7 @@ namespace LiteClient
     /// **场景切换后的重新解析（本类的关键行为）**：虚拟相机是**场景对象**，随场景加载/卸载而生灭
     /// （Single 模式切场景后，启动场景里的 vcam 会被一并销毁）。因此本类在每次
     /// <see cref="Follow"/> 时做一次**廉价有效性检查**，发现接管的 vcam 所在场景已失效就重新解析并
-    /// 重新接线。这样"启动场景配 vcam""训练场配 vcam""叠加加载"三种形态都能工作，不需要调用方
+    /// 重新接线。这样"启动场景配 vcam""TrainingGround 配 vcam""叠加加载"三种形态都能工作，不需要调用方
     /// 在切场景后记得手动重建服务（那种"记得调"的约定迟早会漏）。
     ///
     /// **本服务不创建虚拟相机**：解析不到就是装配缺口，如实回报
@@ -33,7 +33,7 @@ namespace LiteClient
     /// </summary>
     public sealed class CinemachineCameraService : ICameraService
     {
-        /// <summary>瞄准 vcam 的场景约定名（训练场 `/Aim Camera`；构图/基础优先级归场景配置）。
+        /// <summary>瞄准 vcam 的场景约定名（TrainingGround `/Aim Camera`；构图/基础优先级归场景配置）。
         /// 主相机解析时**排除**它——瞄准接管期间它优先级被抬到主之上，不排除会在场景切换重解析时
         /// 把主跟随错误地绑到瞄准机上。</summary>
         private const string AimCameraName = "Aim Camera";

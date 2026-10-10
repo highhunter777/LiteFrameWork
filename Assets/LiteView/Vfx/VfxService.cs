@@ -86,14 +86,19 @@ namespace LiteView
 
         // ---- IVFXService ----
 
+        /// <summary>
+        /// 世界位播放（"打哪留哪"）。**位置必须在实例登记前落定**：<see cref="Play"/> 命中
+        /// prefab 缓存时**同步** Materialize，事后 <c>SetPosition</c> 补写只会躺进表里没人再读
+        /// （特效留在池内原位＝世界原点）——故走带位的内部重载，不做事后补写。
+        /// </summary>
         public VfxHandle PlayAt(string name, Vector3 position, float scale = 1f)
-        {
-            VfxHandle handle = Play(name, attach: null, follow: false, scale);
-            if (handle.IsValid) _table.SetPosition(handle.Id, position);
-            return handle;
-        }
+            => PlayInternal(name, attach: null, follow: false, scale, position, hasPosition: true);
 
         public VfxHandle Play(string name, Transform attach, bool follow, float scale = 1f)
+            => PlayInternal(name, attach, follow, scale, default, hasPosition: false);
+
+        private VfxHandle PlayInternal(string name, Transform attach, bool follow, float scale,
+            Vector3 position, bool hasPosition)
         {
             if (IsShutdown)
             {
@@ -138,6 +143,8 @@ namespace LiteView
                 Follow = follow,
                 Scale = scale <= 0f ? 1f : scale,
                 ExpireAt = float.PositiveInfinity,
+                Position = position,                              // 落点在登记前就位——同步/异步两条
+                HasPosition = hasPosition,                        // Materialize 路径都读得到（无事后补写）
             };
             _table.Add(inst);                                     // 先登记后加载：竞态窗口从一开始就被表覆盖
             if (attach != null) Track(attach, inst.Id);

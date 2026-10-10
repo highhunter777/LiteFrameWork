@@ -26,8 +26,9 @@ namespace LiteView.Animation
         /// <summary>瞄准中（SimView.IsAiming——Sim 权威；战斗根活跃判据之一）。</summary>
         public bool IsAiming;
 
-        /// <summary>换弹中（SimView.IsReloading——Sim 权威，武器私有面投影）：真时战斗根恒驻
-        /// Reload 叶（开火/瞄准事实让位）；假时同帧按窗/瞄准事实选叶。</summary>
+        /// <summary>换弹中（SimView.IsReloading——Sim 权威，武器私有面投影）：真时由
+        /// <see cref="UpdateReloadUpper"/> 提交 Overlay 上半身叠加（**不进战斗根**——移动根照常出步）；
+        /// 死亡或事实清除时叠加层释放。</summary>
         public bool IsReloading;
 
         /// <summary>死亡事实（SimView.IsDead——Hp≤0 快照可重建；战斗根死亡裁决判据，
@@ -65,6 +66,17 @@ namespace LiteView.Animation
         public AnimationId BodyForm;
         public AnimationHandle BodyHandle;
         public bool BodyIsBlend;
+
+        // ---- Overlay 通道（换弹：上半身叠加，腿继续走 Base MoveBlend）----
+
+        /// <summary>换弹叠加层句柄（default = 未提交）；<see cref="ReloadSubmitted"/> 才是权威在播标志
+        /// （句柄在自然完成后仍留作持帧占位，单看句柄判不出"还在不在换弹"）。</summary>
+        public AnimationHandle ReloadHandle;
+
+        private bool _reloadSubmitted;
+
+        /// <summary>换弹叠加层已提交且未释放（诊断/测试读值）。</summary>
+        public bool ReloadSubmitted => _reloadSubmitted;
 
         // ---- 态引用（驱动器窗刷新——装配期注入）----
 
@@ -108,6 +120,45 @@ namespace LiteView.Animation
             if (!Player.UpdateBlendWeights(BodyHandle, weights)) return false;
             Array.Copy(weights, BodyWeightsCopy, weights.Length);
             return true;
+        }
+
+        // ---- 换弹：Overlay 通道一次性上半身叠加（**不进战斗根**）----
+
+        /// <summary>
+        /// 换弹事实 → 上半身叠加层的一次性提交（Overlay 通道），由驱动器每帧喂事实调用。
+        ///
+        /// **为什么换弹不进战斗根**：战斗根接管会把移动根的 Base MoveBlend 停掉——脚定住而世界位移照旧，
+        /// 即滑步。走叠加层则 AvatarMask 只盖上半身（Root 位与双腿关闭，见 <c>OverlayMaskFactory</c>），
+        /// 腿继续由 Base 通道的 MoveBlend 走。换弹因此**不参与根裁决**，也不打断开火/瞄准的 Override 形态
+        /// （叠加层权重 1 天然压住上半身）。
+        ///
+        /// 同一事实期只提交一次（重发会按第 0 帧重播）；提交被拒（无 humanoid Mask 等能力位缺失）→
+        /// 不记已提交，下帧自愈重试。
+        /// </summary>
+        public void UpdateReloadUpper(bool isReloading, bool isDead)
+        {
+            if (isDead || !isReloading)
+            {
+                ReleaseReloadUpper();
+                return;
+            }
+            if (_reloadSubmitted) return;
+
+            var r = Player.Play(new AnimationRequest(
+                CharacterAnimationIds.Reload, AnimationChannel.Overlay, speed: ReloadPlaybackSpeed));
+            if (!r.Accepted) return;                    // 被拒：保持"未提交"，下一渲染帧重试
+            ReloadHandle = r.Handle;
+            _reloadSubmitted = true;
+        }
+
+        /// <summary>释放换弹叠加层（事实清除/死亡）：权重淡出、露出下方姿态。幂等——
+        /// 未提交时 no-op；已自然完成（持帧占位）时经播放器释放通道占位，等效权重淡出。</summary>
+        public void ReleaseReloadUpper()
+        {
+            if (!_reloadSubmitted) return;
+            _reloadSubmitted = false;
+            if (ReloadHandle.IsValid) Player.Stop(ReloadHandle, AnimationStopReason.Cancelled);
+            ReloadHandle = default;
         }
     }
 }

@@ -58,8 +58,9 @@ namespace LiteGame.UI
     /// </summary>
     public static class UiFx
     {
-        /// <summary>脉冲：透明度快速呼吸两次（图标/红点提醒）。完成态 = 原透明度。</summary>
-        public static UiFxHandle Pulse(Graphic g, float strength = 0.2f, float duration = 0.16f)
+        /// <summary>脉冲：透明度快速呼吸两次（图标/红点提醒）。完成态 = 原透明度。
+        /// 缺省参单源＝<see cref="UiFxDefaults"/>（Lua shim 同表引用）。</summary>
+        public static UiFxHandle Pulse(Graphic g, float strength = UiFxDefaults.PulseStrength, float duration = UiFxDefaults.PulseDuration)
         {
             var baseAlpha = g.color.a;
             return new UiFxHandle(g.DOFade(baseAlpha * strength, duration)
@@ -70,7 +71,7 @@ namespace LiteGame.UI
 
         /// <summary>闪烁：一次性高亮回落（白 → 原色）。完成态 = 原色——
         /// 与 <see cref="UiFxHandle"/> 的"完成态即基线"复位契约一致。</summary>
-        public static UiFxHandle Flash(Graphic g, float duration = 0.3f)
+        public static UiFxHandle Flash(Graphic g, float duration = UiFxDefaults.FlashDuration)
         {
             var c = g.color;
             return new UiFxHandle(g.DOColor(c, duration)
@@ -81,7 +82,7 @@ namespace LiteGame.UI
 
         /// <summary>位移入场：从 offset 相对位滑回原位。完成态 = 原 anchoredPosition。
         /// 起点 = 原位 + offset、终点 = 原位（显式 <c>.From(原位 + offset)</c>，"完成态即基线"可证）。</summary>
-        public static UiFxHandle Slide(RectTransform rt, Vector2 offset, float duration = 0.25f)
+        public static UiFxHandle Slide(RectTransform rt, Vector2 offset, float duration = UiFxDefaults.SlideDuration)
         {
             Vector2 origin = rt.anchoredPosition;
             return new UiFxHandle(rt.DOAnchorPos(origin, duration)

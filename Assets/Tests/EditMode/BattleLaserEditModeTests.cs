@@ -24,6 +24,20 @@ namespace LiteGame.Tests.EditMode
     /// </summary>
     public sealed class BattleLaserEditModeTests : UnityTestBase
     {
+        /// <summary>
+        /// **静态态隔离（每例前置复位）**：<see cref="LaserSightPolicy.Supports"/> 在
+        /// <c>TestModeRuntime.Active</c> 置位时**绕过 def id 集合**直接返回快照开关——若前序用例
+        /// （含同夹具的测试模式用例、或任何触发 <c>DebugTuner.ApplySnapshotOrDefaults</c> 的路径）
+        /// 留下 Active=true，后续「不支持武器应隐藏」这类用例会拿到"支持"而被误判失败。
+        /// 故每例开工前把该静态快照复位到**非测试模式默认口径**（用例内自行置位的仍可覆盖）。
+        /// </summary>
+        [SetUp]
+        public void ResetTestModeSnapshot()
+        {
+            TestModeRuntime.Active = false;
+            TestModeRuntime.LaserSight = true;
+        }
+
         private static SimMapData NoObstacleMap() => new SimMapData();
 
         /// <summary>横墙（覆盖 z 向通道）：近面 = x − 0.5。</summary>
@@ -323,10 +337,12 @@ namespace LiteGame.Tests.EditMode
             SampleInput(input);
             driver.Tick();
 
-            // 收敛端点 = 与子弹同线：逻辑枪口 (0.35,1,−0.2) 沿 +X 打 10m 处 bot 的近弧 ⇒ 世界 (9.5,1,−0.2)，
+            // 收敛端点 = 与子弹同线：逻辑枪口沿 +X 打 10m 处 bot 的近弧 ⇒ 世界 (9.5,1,−0.2)，
             // 挂载点世界位 (0,1,−1) ⇒ 本地 (−0.8, 0, 9.5)。
             // **两模式仍可分**：走枪管模式时沿 +X 出射，bot 的垂距 |−0.2−(−1)| = 0.8 > 半径 0.5 ⇒ 不命中，
             // 端点会是 (0,0,100) 而非 9.5。
+            // **已知未收口（登记）**：本行期望硬编码 −0.804，实测 −0.8057（差 1.7 mm）——属判定几何
+            // 常量重校后期望未跟的既有面（会话开始时即红，与本次动画/VFX 改动无关）；权威推导式待定后再改。
             AssertLocal(beam.GetPosition(1), new Vector3(-0.804f, 0.01f, 10f - CombatConfig.HitscanRadius), 1e-3f);
             driver.Dispose();
         }
@@ -344,6 +360,7 @@ namespace LiteGame.Tests.EditMode
             world.Entities[0].FireStanceFrames = (byte)CombatConfig.FireStanceFrames;
             SampleInput(input);
             driver.Tick();
+            // 同上例：期望硬编码待重校（既有面，非本次改动引入）
             AssertLocal(beam.GetPosition(1), new Vector3(-0.804f, 0.01f, 10f - CombatConfig.HitscanRadius), 1e-3f, "开火窗内 → 收敛端点（子弹停点）");
 
             // 窗尽（无瞄准、无窗）→ 回枪管模式：沿枪口 +Z（世界 +X）出射——bot 垂距 0.8 不命中，到射程

@@ -6,6 +6,16 @@ namespace LiteGame
     {
         public static class UI
         {
+            /// <summary>UI.Page_Lobby</summary>
+            public const string Page_Lobby = "UI.Page_Lobby";
+            /// <summary>UI.Page_Login</summary>
+            public const string Page_Login = "UI.Page_Login";
+            /// <summary>UI.Page_Result</summary>
+            public const string Page_Result = "UI.Page_Result";
+            /// <summary>UI.Page_Room</summary>
+            public const string Page_Room = "UI.Page_Room";
+            /// <summary>UI.Page_Settings</summary>
+            public const string Page_Settings = "UI.Page_Settings";
             /// <summary>UI.UIMain</summary>
             public const string UIMain = "UI.UIMain";
         }

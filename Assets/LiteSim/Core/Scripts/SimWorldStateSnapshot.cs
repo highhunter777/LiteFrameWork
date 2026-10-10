@@ -15,7 +15,7 @@ namespace LiteSim
     /// - **不含**：分配器 _versions/_nextFree（非逻辑字段，不进 checksum）；FaceExitTurning
     ///   （离场转向标记——可由窗+输入在重放中重推导，不占用协议字段号；1 帧边界误差可接受）。
     ///
-    /// float 字段按**位型**比较（<c>SingleToInt32Bits</c>）——+0/-0 位型不同即算变化：
+    /// float 字段按**位型**比较（<see cref="BitUtil.Equal"/>——位级比较唯一入口）——+0/-0 位型不同即算变化：
     /// 差分漏发一位就分叉（和解机制的位级前提），宁可多发不比错。
     /// </summary>
     public struct EntitySnapshotEntry
@@ -129,10 +129,13 @@ namespace LiteSim
         }
     }
 
-    /// <summary>float 位型工具（位级比较的唯一入口，防各处写法漂移；±0 位型不同即视为不同值）。</summary>
+    /// <summary>float 位型工具（位级比较与位型转换的唯一入口，防各处写法漂移；±0 位型不同即视为不同值）。</summary>
     public static class BitUtil
     {
         public static bool Equal(float a, float b) =>
             System.BitConverter.SingleToInt32Bits(a) == System.BitConverter.SingleToInt32Bits(b);
+
+        /// <summary>位型视图（int32）——哈希折叠、差异报告等需要位面证据的场合取位的唯一入口。</summary>
+        public static int Bits(float v) => System.BitConverter.SingleToInt32Bits(v);
     }
 }

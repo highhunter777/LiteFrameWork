@@ -35,7 +35,7 @@ namespace LiteFramework
     /// 记录点全部在热路径上的低频事件（迁移/进入/拒绝——一帧至多一次），读取面（GetAudit/GetStageInfos）
     /// 分配只发生在调用时。诊断统计**不进快照**（§3.4 结构态不含；Restore 不动诊断历史）。
     /// </summary>
-    internal sealed class FsmAudit<TId> where TId : struct
+    public sealed class FsmAudit<TId> where TId : struct
     {
         /// <summary>审计环容量（对齐命令中心审计环）。</summary>
         public const int Capacity = 32;

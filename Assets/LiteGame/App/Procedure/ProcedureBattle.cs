@@ -47,7 +47,7 @@ namespace LiteGame
         /// </summary>
         private const string EntityPrefab = SimView.DefaultEntityPrefab;
 
-        /// <summary>对局准心的场景对象名与子路径（训练场 /Battle HUD/Crosshair/{Hip,Ads}——构建器单源）。</summary>
+        /// <summary>对局准心的场景对象名与子路径（TrainingGround /Battle HUD/Crosshair/{Hip,Ads}——构建器单源）。</summary>
         private const string HudRootName = "Battle HUD";
         private const string CrosshairPath = "Crosshair";
         private const string HipName = "Hip";
@@ -401,7 +401,7 @@ namespace LiteGame
         /// <summary>
         /// 相机是否真的就绪（"有服务"不等于"接上了 vcam"——服务常驻，vcam 随场景）。
         /// **按需解析**：此刻视图还没建立、<see cref="ICameraService.Follow"/> 一次都没调过，
-        /// 光读状态必然是"未接线"，所以这里主动让适配器再解析一次（场景可能刚被 Main 切到训练场）。
+        /// 光读状态必然是"未接线"，所以这里主动让适配器再解析一次（场景可能刚被 Main 切到 TrainingGround）。
         /// 非 Cinemachine 实现（测试替身等）视为就绪——由它自己保证。
         /// </summary>
         private bool CameraReady()
@@ -452,7 +452,7 @@ namespace LiteGame
         }
 
         /// <summary>
-        /// 挂对局准心（战斗 HUD 第一件）：场景对象（训练场 <c>/Battle HUD</c>——
+        /// 挂对局准心（战斗 HUD 第一件）：场景对象（TrainingGround <c>/Battle HUD</c>——
         /// 构建器确定性生成，AgentScripts/BuildBattleHud.cs）由本阶段按名解析；**缺失静默降级**
         /// （只警告）——HUD 是表现增益，不把"场景没配 HUD"当对局失败（同角色 prefab 灰盒降级口径）。
         /// 准心画布无 GraphicRaycaster 且 CanvasGroup 不拦射线——**永不参与输入**；上下文门被拦

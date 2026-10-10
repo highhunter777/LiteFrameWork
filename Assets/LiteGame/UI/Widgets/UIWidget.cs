@@ -34,12 +34,13 @@ namespace LiteGame.UI
             OnClick();
         }
 
-        /// <summary>按压微动效（默认 UiFx.Pulse；子类可覆写，禁引第二套 tween 路径）。</summary>
+        /// <summary>按压微动效（默认 UiFx.Pulse——缺省参走 <see cref="UiFxDefaults"/> 单源；
+        /// 子类可覆写，禁引第二套 tween 路径）。</summary>
         public virtual void PlayPressFx()
         {
             if (!pressFx) return;
             var graphic = GetComponent<Graphic>();
-            if (graphic != null) UiFx.Pulse(graphic, 0.2f, 0.08f);
+            if (graphic != null) UiFx.Pulse(graphic);
         }
 
         /// <summary>点击语义（派生类覆写；如 StateButton 覆写为空——按压动效已并入其连点保护路径）。</summary>

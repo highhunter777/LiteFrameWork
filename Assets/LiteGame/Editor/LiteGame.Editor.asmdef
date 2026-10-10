@@ -17,6 +17,7 @@
         "LiteGame.LuaBridge",
         "LiteGame.UI",
         "LiteSim.Core",
+        "LiteView",
         "Luban.Tables",
         "UniTask",
         "Unity.TextMeshPro",

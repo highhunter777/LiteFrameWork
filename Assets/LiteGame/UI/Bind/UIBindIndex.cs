@@ -286,22 +286,23 @@ namespace LiteGame
         // 纪律：动效只写表现（透明度/位置），不携带任何判定；原语层的 SetUpdate(true)/SetLink(KillOnDisable)
         // 已写死在 UiFx 里（UIClock 轨 + 界面隐藏即杀）。所有权：与 SetText 等同属命令式驱动。
 
-        /// <summary>脉冲：透明度快速呼吸两次（图标/红点提醒）。返回 true = tween 已创建。G20。</summary>
-        public bool Pulse(string name, float strength = 0.2f, float duration = 0.16f)
+        /// <summary>脉冲：透明度快速呼吸两次（图标/红点提醒）。返回 true = tween 已创建。G20。
+        /// 缺省参单源＝<see cref="UiFxDefaults"/>（与 Lua shim 同表）。</summary>
+        public bool Pulse(string name, float strength = UiFxDefaults.PulseStrength, float duration = UiFxDefaults.PulseDuration)
         {
             MarkDriver(name, ControlDriver.Command);
             return UiFx.Pulse(ResolveGraphic(name), strength, duration) != null;
         }
 
         /// <summary>闪烁：一次性高亮回落。G20。</summary>
-        public bool Flash(string name, float duration = 0.3f)
+        public bool Flash(string name, float duration = UiFxDefaults.FlashDuration)
         {
             MarkDriver(name, ControlDriver.Command);
             return UiFx.Flash(ResolveGraphic(name), duration) != null;
         }
 
         /// <summary>位移入场：从 offset 相对位滑回原位。G20。</summary>
-        public bool Slide(string name, Vector2 offset, float duration = 0.25f)
+        public bool Slide(string name, Vector2 offset, float duration = UiFxDefaults.SlideDuration)
         {
             MarkDriver(name, ControlDriver.Command);
             return UiFx.Slide(ResolveRect(name), offset, duration) != null;

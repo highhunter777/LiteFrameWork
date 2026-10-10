@@ -90,7 +90,7 @@ namespace LiteSim
 
         /// <summary>
         /// 该帧存储输入与给定真实输入是否**逐位不同**（回滚判定用）。
-        /// 位级判等经 BitConverter 位型转换（豁免 R3——回滚一致性语义要求逐位一致，非近似比较）；
+        /// float 位级判等走 BitUtil.Equal（位型比较唯一入口——回滚一致性语义要求逐位一致，非近似比较）；
         /// 两数组均假定 playerId 升序规范形（Step 就地排序后的形态）。
         /// 帧未记录返回 true（防御：未模拟帧不应进入回滚判定——由调用方先挡）。
         /// </summary>
@@ -105,11 +105,11 @@ namespace LiteSim
             {
                 ref SimInputFrame a = ref _inputs[slot][i];
                 if (a.EntityId != real[i].EntityId) return true; // lint-allow R3（64 位整型 Id 判等，非浮点精度比较）
-                if (BitConverter.SingleToInt32Bits(a.MoveX) != BitConverter.SingleToInt32Bits(real[i].MoveX)) return true;
-                if (BitConverter.SingleToInt32Bits(a.MoveZ) != BitConverter.SingleToInt32Bits(real[i].MoveZ)) return true;
-                if (BitConverter.SingleToInt32Bits(a.AimPointX) != BitConverter.SingleToInt32Bits(real[i].AimPointX)) return true;
-                if (BitConverter.SingleToInt32Bits(a.AimPointY) != BitConverter.SingleToInt32Bits(real[i].AimPointY)) return true;
-                if (BitConverter.SingleToInt32Bits(a.AimPointZ) != BitConverter.SingleToInt32Bits(real[i].AimPointZ)) return true;
+                if (!BitUtil.Equal(a.MoveX, real[i].MoveX)) return true;
+                if (!BitUtil.Equal(a.MoveZ, real[i].MoveZ)) return true;
+                if (!BitUtil.Equal(a.AimPointX, real[i].AimPointX)) return true;
+                if (!BitUtil.Equal(a.AimPointY, real[i].AimPointY)) return true;
+                if (!BitUtil.Equal(a.AimPointZ, real[i].AimPointZ)) return true;
                 if (a.Buttons != real[i].Buttons) return true; // lint-allow R3（整型按键位判等，非浮点精度比较）
             }
             return false;

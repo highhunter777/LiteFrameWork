@@ -47,6 +47,9 @@ namespace LiteSim.Tests
             AssertAllAnnotatedFieldsAffectFull(typeof(ActionRuntime), "Actions");
             AssertAllAnnotatedFieldsAffectFull(typeof(StatusSlotData), "Status");
             AssertAllAnnotatedFieldsAffectFull(typeof(MatchBagSlot), "MatchBag");
+            AssertAllAnnotatedFieldsAffectFull(typeof(ItemState), "Items");
+            AssertAllAnnotatedFieldsAffectFull(typeof(ProjectileState), "Projectiles");
+            AssertAllAnnotatedFieldsAffectFull(typeof(ZoneState), "Zones");
         }
 
         /// <summary>逐字段扰动：改了它，全量 checksum 必变（= 确实被生成物折叠进去了）。</summary>
@@ -71,6 +74,31 @@ namespace LiteSim.Tests
                 Assert.True(before != SimChecksum.ComputeChecksum(world),   // lint-allow R3
                     $"{elementType.Name}.{f.Name} 标注了同步层次，但改动后全量 checksum 未变——"
                     + "生成物没覆盖它（跑 scripts/codegen/gen-sync-code.ps1 后重试）");
+            }
+        }
+
+        /// <summary>逐字段扰动：改了它，公共口径 checksum 必变（= 分型表公共面字段逐个可观测）。</summary>
+        private static void AssertAnnotatedFieldsAffectPublic(Type elementType, string arrayName)
+        {
+            FieldInfo arrField = typeof(SimWorldState).GetField(arrayName, Instance);
+            Assert.NotNull(arrField);
+
+            foreach (FieldInfo f in elementType.GetFields(Instance))
+            {
+                if (f.GetCustomAttribute<StateLayerAttribute>() == null) continue;   // 未标注 = 不同步
+                if (!f.FieldType.IsValueType) continue;
+
+                var world = NewWorld();
+                uint before = SimChecksum.ComputePublicChecksum(world);
+
+                Array arr = (Array)arrField.GetValue(world);
+                object boxed = arr.GetValue(0);
+                f.SetValue(boxed, Nudged(f, f.GetValue(boxed)));
+                arr.SetValue(boxed, 0);
+
+                Assert.True(before != SimChecksum.ComputePublicChecksum(world),   // lint-allow R3
+                    $"{elementType.Name}.{f.Name} 标注为公共面，但改动后公共口径 checksum 未变——"
+                    + "该字段的分叉对线上和解不可见（静默漂移）");
             }
         }
 
@@ -151,20 +179,11 @@ namespace LiteSim.Tests
         [Fact]
         public void 公共口径_分型表必进()
         {
-            // 道具/投掷物/区域是世界可见面（全端可重建）——线上和解口径必须覆盖
-            var world = NewWorld();
-
-            uint c0 = SimChecksum.ComputePublicChecksum(world);
-            world.Items[2].Count = 3;
-            Assert.True(c0 != SimChecksum.ComputePublicChecksum(world), "Items 未进公共口径");   // lint-allow R3
-
-            uint c1 = SimChecksum.ComputePublicChecksum(world);
-            world.Projectiles[1].Speed = 20f;
-            Assert.True(c1 != SimChecksum.ComputePublicChecksum(world), "Projectiles 未进公共口径");   // lint-allow R3
-
-            uint c2 = SimChecksum.ComputePublicChecksum(world);
-            world.Zones[0].Radius = 5f;
-            Assert.True(c2 != SimChecksum.ComputePublicChecksum(world), "Zones 未进公共口径");   // lint-allow R3
+            // 道具/投掷物/区域是世界可见面（全端可重建）——线上和解口径必须覆盖；
+            // 逐字段扰动：漏一个 = 该字段分叉但和解不报的静默漂移。
+            AssertAnnotatedFieldsAffectPublic(typeof(ItemState), "Items");
+            AssertAnnotatedFieldsAffectPublic(typeof(ProjectileState), "Projectiles");
+            AssertAnnotatedFieldsAffectPublic(typeof(ZoneState), "Zones");
         }
 
         [Fact]

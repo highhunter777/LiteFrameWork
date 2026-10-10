@@ -72,35 +72,18 @@ namespace LiteSim
 
             // 分型表公共面（《Sim组织专项设计》§3）：道具/投掷物/区域是世界可见面（全端可重建），
             // 与活体位图同判——线上和解口径必须覆盖，漏了 = 该层分叉但和解不报的静默漂移。
+            // 字段清单由 [StateLayer] 标注生成（EntitySlot.Sync.g.cs）——加字段只改结构体一处。
             ItemState[] items = s.Items;
             for (int i = 0; i < items.Length; i++)
-            {
-                ref ItemState it = ref items[i];
-                h = MixInt32(h, it.ItemDefId);
-                h = MixInt32(h, it.Count);
-                h = MixInt64(h, it.OwnerId);
-                h = MixInt32(h, it.AgeFrames);
-            }
+                h = ItemState.MixPublic(h, in items[i]);
 
             ProjectileState[] projectiles = s.Projectiles;
             for (int i = 0; i < projectiles.Length; i++)
-            {
-                ref ProjectileState p = ref projectiles[i];
-                h = MixInt32(h, p.ItemDefId);
-                h = MixFloat(h, p.Speed);
-                h = MixInt32(h, p.DetonateFrame);
-                h = MixInt64(h, p.OwnerId);
-            }
+                h = ProjectileState.MixPublic(h, in projectiles[i]);
 
             ZoneState[] zones = s.Zones;
             for (int i = 0; i < zones.Length; i++)
-            {
-                ref ZoneState z = ref zones[i];
-                h = MixInt32(h, z.ItemDefId);
-                h = MixFloat(h, z.Radius);
-                h = MixInt32(h, z.RemainingFrames);
-                h = MixInt64(h, z.OwnerId);
-            }
+                h = ZoneState.MixPublic(h, in zones[i]);
             return h;
         }
 
@@ -146,36 +129,19 @@ namespace LiteSim
             int[] resources = s.Resources;
             for (int i = 0; i < resources.Length; i++) h = MixInt32(h, resources[i]);
 
-            // 分型表（《Sim组织专项设计》§3：三个确定性面缺一即隐形分叉——这里是第一面）
+            // 分型表（《Sim组织专项设计》§3：三个确定性面缺一即隐形分叉——这里是第一面）。
+            // 字段清单由 [StateLayer] 标注生成（见 EntitySlot.Sync.g.cs）——加字段只改结构体一处。
             ItemState[] items = s.Items;
             for (int i = 0; i < items.Length; i++)
-            {
-                ref ItemState it = ref items[i];
-                h = MixInt32(h, it.ItemDefId);
-                h = MixInt32(h, it.Count);
-                h = MixInt64(h, it.OwnerId);
-                h = MixInt32(h, it.AgeFrames);
-            }
+                h = ItemState.MixFull(h, in items[i]);
 
             ProjectileState[] projectiles = s.Projectiles;
             for (int i = 0; i < projectiles.Length; i++)
-            {
-                ref ProjectileState p = ref projectiles[i];
-                h = MixInt32(h, p.ItemDefId);
-                h = MixFloat(h, p.Speed);
-                h = MixInt32(h, p.DetonateFrame);
-                h = MixInt64(h, p.OwnerId);
-            }
+                h = ProjectileState.MixFull(h, in projectiles[i]);
 
             ZoneState[] zones = s.Zones;
             for (int i = 0; i < zones.Length; i++)
-            {
-                ref ZoneState z = ref zones[i];
-                h = MixInt32(h, z.ItemDefId);
-                h = MixFloat(h, z.Radius);
-                h = MixInt32(h, z.RemainingFrames);
-                h = MixInt64(h, z.OwnerId);
-            }
+                h = ZoneState.MixFull(h, in zones[i]);
 
             h = MixMatchState(h, in s.Match);
             return h;
@@ -232,8 +198,8 @@ namespace LiteSim
 
         internal static uint MixFloat(uint h, float v)
         {
-            // 位型哈希：跨运行时逐位一致
-            return MixUInt32(h, (uint)BitConverter.SingleToInt32Bits(v));
+            // 位型哈希：跨运行时逐位一致（取位走 BitUtil.Bits——位型转换唯一入口）
+            return MixUInt32(h, (uint)BitUtil.Bits(v));
         }
     }
 }

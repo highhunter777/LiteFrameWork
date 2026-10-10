@@ -14,7 +14,7 @@ namespace LiteFramework
     /// - 阶段钩子内发起的迁移一律放行（"自身推进"——与平面抢占机同判例）；
     /// - 被抢占的最深活动态若声明 `Resume` → 入恢复栈（**栈存 id**：`TryResume` 走层级机原生
     ///   Request 管线，路径按历史/初始展开，无需路径快照）；
-    /// - <see cref="TryResume"/> **绕过准入**；被拒是正常路径（false + <see cref="HierarchicalStageMachine{TId,TReq}.LastReject"/>）；
+    /// - <see cref="TryResume"/> **绕过准入**；被拒是正常路径（false + <see cref="StageMachineCore{TId,TReq}.LastReject"/>）；
     /// - 事件冒泡 × 抢占并存：sink 消费不产生迁移；迁移裁决只来自迁移边/显式请求/看门狗。
     ///
     /// 选型：复合状态树 + 角色动作抢占（如"战斗根/移动根下的动作态可被受击抢占后恢复"）用本类；
@@ -51,7 +51,7 @@ namespace LiteFramework
             => RequestCore(target, in req, priorityOverride);
 
         /// <summary>抢占判定（转调共用件）：问最深活动态；阶段自身推进一律放行。</summary>
-        protected override bool CanAcceptRequest(TId target, int priority)
+        protected override bool CanAccept(TId target, int priority)
         {
             if (!PreemptionCore<TId, TReq>.CanAdmit(DeepestStage, target, GetStage(target),
                     priority, InStageCallback, out var reason))
@@ -63,7 +63,7 @@ namespace LiteFramework
         }
 
         /// <summary>事务退出段开始前：被迁走的最深活动态若声明"要恢复"，入恢复栈（存 id）。</summary>
-        protected override void OnDeepestPreempted(TId outgoingDeepest)
+        protected override void OnStagePreempted(TId outgoingDeepest)
         {
             if (DeepestStage is IResumeStage rs && rs.Resume == ResumeMode.Resume)
                 _core.PushResume(outgoingDeepest);

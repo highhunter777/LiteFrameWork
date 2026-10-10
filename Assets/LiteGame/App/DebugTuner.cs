@@ -30,7 +30,7 @@ namespace LiteGame
         public bool StrictMode = true;
 
         [Header("联机（离线隔离开发）")]
-        [Tooltip("本地服务器：对局在**本进程内**跑真 RoomRuntime 内核，不连 127.0.0.1:17777，也不需要起 RoomServer 进程。\n" +
+        [Tooltip("本地服务器：对局在**本进程内**跑真 RoomRuntime 内核，不连独立 RoomServer 进程（联调端点常量＝ProcedureMatch.TestHost/TestPort——此处不抄地址，改端口不撒谎），也不需要起 RoomServer 进程。\n" +
                  "真实边界：真 Sim/真 InputGate/真快照差分与协议；**无 Socket（无丢包/延迟/MTU）、无票据验签、单房间、剩余席位自动补位（站桩对手）**。\n" +
                  "弱网、断线重连真实性、多房间隔离与真实多人交互仍须在真服务器上验。")]
         public bool UseLocalServer;

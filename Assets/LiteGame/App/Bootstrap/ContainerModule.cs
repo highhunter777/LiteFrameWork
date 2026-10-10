@@ -92,7 +92,7 @@ namespace LiteGame
             context.Require<IInputService>().RegisterBlocker(
                 new IntentGate.BlockerKey("ui.modal", "模态 UI 打开——游戏意图被拦截"), () => ui.IsModalOpen);
 
-            var fsm = CreateMachine(context, content, config, lua, nav, uiRegistry, contentRegistry, strategyRegistry);
+            var fsm = CreateMachine(context, content, config, lua, uiRegistry, contentRegistry, strategyRegistry);
             context.Put(fsm);
 
             // 帧驱动表独立于模块产物登记序；每个别名仍指向统一来源中的同一实例。
@@ -115,19 +115,18 @@ namespace LiteGame
         }
 
         private StageMachine<ProcedureId, ProcedureArgs> CreateMachine(ClientContext context,
-            IContentService content, ConfigService config, LuaComponent lua, UINavigationController nav,
+            IContentService content, ConfigService config, LuaComponent lua,
             UiLuaRegistry uiRegistry, ContentLuaRegistry contentRegistry, StrategyLuaRegistry strategyRegistry)
         {
             var filler = new RegistryFiller(config, lua, uiRegistry, contentRegistry, strategyRegistry);
             var rootToken = context.RootScope.Token;
-            Func<int, CancellationToken, UniTask> openUi = (formId, ct) => nav.GoAsync(formId, ct: ct);
             return new StageMachine<ProcedureId, ProcedureArgs>("Procedure",
                 (ProcedureId.Launch, new ProcedureLaunch(rootToken)),
                 (ProcedureId.Patch, new ProcedurePatch(content, context.Require<ActivationTransactionStore>(),
                     context.Require<PatchRunner>(), rootToken, context.Require<AssetsHealthProbe>())),
                 (ProcedureId.Preload, new ProcedurePreload(content, config, lua, filler,
                     context.Require<EventCenter>(), () => ListLuaAssetPaths(content), rootToken)),
-                (ProcedureId.Main, new ProcedureMain(openUi, _scenes, rootToken)),
+                (ProcedureId.Main, new ProcedureMain(_scenes, rootToken)),
                 (ProcedureId.Match, new ProcedureMatch(context.Require<IAccountSessionFactory>(), rootToken)),
                 (ProcedureId.Battle, new ProcedureBattle(content, context.Require<IInputService>(),
                     context.Require<ICameraService>(), context.Require<VfxService>(),

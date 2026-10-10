@@ -16,7 +16,8 @@ namespace LiteSim
     ///
     /// **覆盖范围与 <see cref="SimChecksum.ComputeChecksum"/> 对齐**：实体槽 + 全部分型表行
     /// + 运行态数组 + Globals/CustomData + Match + 头部（Frame/RngState）。
-    /// 新增进 checksum 的字段必须同步扩展本类——否则报告会漏掉它（漏检 = 回到"不知道为什么"）。
+    /// 新增进 checksum 的字段必须同步扩展本类——否则报告会漏掉它（漏检 = 回到"不知道为什么"）；
+    /// 此契约由 SimWorldDiffCoverageTests 以扰动法守卫（每个进 checksum 的字段在报告里必须可见）。
     /// </summary>
     public static class SimWorldDiff
     {
@@ -96,6 +97,11 @@ namespace LiteSim
                 if (ea.FireStanceFrames != eb.FireStanceFrames) Add($"{p}.FireStanceFrames", I(ea.FireStanceFrames), I(eb.FireStanceFrames));   // lint-allow R3（整型/枚举判等，非浮点精度比较——诊断工具不做容差）
                 if (ea.FaceExitTurning != eb.FaceExitTurning) Add($"{p}.FaceExitTurning", I(ea.FaceExitTurning), I(eb.FaceExitTurning));   // lint-allow R3（整型/枚举判等，非浮点精度比较——诊断工具不做容差）
                 if (ea.CorpseFrames != eb.CorpseFrames) Add($"{p}.CorpseFrames", I(ea.CorpseFrames), I(eb.CorpseFrames));   // lint-allow R3（整型/枚举判等，非浮点精度比较——诊断工具不做容差）
+                if (ea.SemiFireArmed != eb.SemiFireArmed) Add($"{p}.SemiFireArmed", I(ea.SemiFireArmed), I(eb.SemiFireArmed));   // lint-allow R3（byte 扳机武装判等，非浮点精度比较——诊断工具不做容差）
+                if (ea.SpawnPointIndex != eb.SpawnPointIndex) Add($"{p}.SpawnPointIndex", I(ea.SpawnPointIndex), I(eb.SpawnPointIndex));   // lint-allow R3（整型判等，非浮点精度比较——诊断工具不做容差）
+                if (ea.RespawnFrame != eb.RespawnFrame) Add($"{p}.RespawnFrame", I(ea.RespawnFrame), I(eb.RespawnFrame));   // lint-allow R3（整型判等，非浮点精度比较——诊断工具不做容差）
+                if (ea.InvulnerableUntilFrame != eb.InvulnerableUntilFrame) Add($"{p}.InvulnerableUntilFrame", I(ea.InvulnerableUntilFrame), I(eb.InvulnerableUntilFrame));   // lint-allow R3（整型判等，非浮点精度比较——诊断工具不做容差）
+                if (ea.LifeStartFrame != eb.LifeStartFrame) Add($"{p}.LifeStartFrame", I(ea.LifeStartFrame), I(eb.LifeStartFrame));   // lint-allow R3（整型判等，非浮点精度比较——诊断工具不做容差）
             }
 
             // ---- 平行行表（分型表；行有效性与槽位活体一致，同槽位比对）----
@@ -156,6 +162,35 @@ namespace LiteSim
                     if (ba.Count != bb.Count) Add($"{p}.Count", I(ba.Count), I(bb.Count));   // lint-allow R3（整型/枚举判等，非浮点精度比较——诊断工具不做容差）
                     if (ba.QuickSlot != bb.QuickSlot) Add($"{p}.QuickSlot", I(ba.QuickSlot), I(bb.QuickSlot));   // lint-allow R3（整型/枚举判等，非浮点精度比较——诊断工具不做容差）
                 }
+
+                // ---- 分型表（行有效性与槽位活体一致；死槽行由 Despawn 清零——死槽差异已由位图表达）----
+                {
+                    string tp = $"Items[{i}]";
+                    ref ItemState ia = ref a.Items[i];
+                    ref ItemState ib = ref b.Items[i];
+                    if (ia.ItemDefId != ib.ItemDefId) Add($"{tp}.ItemDefId", I(ia.ItemDefId), I(ib.ItemDefId));   // lint-allow R3（整型判等，非浮点精度比较——诊断工具不做容差）
+                    if (ia.Count != ib.Count) Add($"{tp}.Count", I(ia.Count), I(ib.Count));   // lint-allow R3（整型判等，非浮点精度比较——诊断工具不做容差）
+                    if (ia.OwnerId != ib.OwnerId) Add($"{tp}.OwnerId", Hex(ia.OwnerId), Hex(ib.OwnerId));   // lint-allow R3（64 位整型 Id 判等，非浮点精度比较——诊断工具不做容差）
+                    if (ia.AgeFrames != ib.AgeFrames) Add($"{tp}.AgeFrames", I(ia.AgeFrames), I(ib.AgeFrames));   // lint-allow R3（整型判等，非浮点精度比较——诊断工具不做容差）
+                }
+                {
+                    string tp = $"Projectiles[{i}]";
+                    ref ProjectileState pa = ref a.Projectiles[i];
+                    ref ProjectileState pb = ref b.Projectiles[i];
+                    if (pa.ItemDefId != pb.ItemDefId) Add($"{tp}.ItemDefId", I(pa.ItemDefId), I(pb.ItemDefId));   // lint-allow R3（整型判等，非浮点精度比较——诊断工具不做容差）
+                    F(tp, "Speed", pa.Speed, pb.Speed, Add);
+                    if (pa.DetonateFrame != pb.DetonateFrame) Add($"{tp}.DetonateFrame", I(pa.DetonateFrame), I(pb.DetonateFrame));   // lint-allow R3（整型判等，非浮点精度比较——诊断工具不做容差）
+                    if (pa.OwnerId != pb.OwnerId) Add($"{tp}.OwnerId", Hex(pa.OwnerId), Hex(pb.OwnerId));   // lint-allow R3（64 位整型 Id 判等，非浮点精度比较——诊断工具不做容差）
+                }
+                {
+                    string tp = $"Zones[{i}]";
+                    ref ZoneState za = ref a.Zones[i];
+                    ref ZoneState zb = ref b.Zones[i];
+                    if (za.ItemDefId != zb.ItemDefId) Add($"{tp}.ItemDefId", I(za.ItemDefId), I(zb.ItemDefId));   // lint-allow R3（整型判等，非浮点精度比较——诊断工具不做容差）
+                    F(tp, "Radius", za.Radius, zb.Radius, Add);
+                    if (za.RemainingFrames != zb.RemainingFrames) Add($"{tp}.RemainingFrames", I(za.RemainingFrames), I(zb.RemainingFrames));   // lint-allow R3（整型判等，非浮点精度比较——诊断工具不做容差）
+                    if (za.OwnerId != zb.OwnerId) Add($"{tp}.OwnerId", Hex(za.OwnerId), Hex(zb.OwnerId));   // lint-allow R3（64 位整型 Id 判等，非浮点精度比较——诊断工具不做容差）
+                }
             }
 
             // ---- 平面 blob ----
@@ -169,6 +204,10 @@ namespace LiteSim
             if (a.Match.Timer != b.Match.Timer) Add("Match.Timer", I(a.Match.Timer), I(b.Match.Timer));   // lint-allow R3（整型/枚举判等，非浮点精度比较——诊断工具不做容差）
             if (a.Match.Round != b.Match.Round) Add("Match.Round", I(a.Match.Round), I(b.Match.Round));   // lint-allow R3（整型/枚举判等，非浮点精度比较——诊断工具不做容差）
             if (a.Match.Winner != b.Match.Winner) Add("Match.Winner", Hex(a.Match.Winner), Hex(b.Match.Winner));   // lint-allow R3（整型/枚举判等，非浮点精度比较——诊断工具不做容差）
+            if (a.Match.KillLimit != b.Match.KillLimit) Add("Match.KillLimit", I(a.Match.KillLimit), I(b.Match.KillLimit));   // lint-allow R3（整型判等，非浮点精度比较——诊断工具不做容差）
+            if (a.Match.RespawnDelayFrames != b.Match.RespawnDelayFrames) Add("Match.RespawnDelayFrames", I(a.Match.RespawnDelayFrames), I(b.Match.RespawnDelayFrames));   // lint-allow R3（整型判等，非浮点精度比较——诊断工具不做容差）
+            if (a.Match.SpawnProtectionFrames != b.Match.SpawnProtectionFrames) Add("Match.SpawnProtectionFrames", I(a.Match.SpawnProtectionFrames), I(b.Match.SpawnProtectionFrames));   // lint-allow R3（整型判等，非浮点精度比较——诊断工具不做容差）
+            if (a.Match.EndReason != b.Match.EndReason) Add("Match.EndReason", a.Match.EndReason.ToString(), b.Match.EndReason.ToString());   // lint-allow R3（枚举判等，非浮点精度比较——诊断工具不做容差）
 
             return new Report(diffs, truncated, a, b);
         }
@@ -245,9 +284,8 @@ namespace LiteSim
         /// 报告同时给字面量与位型十六进制：字面量看不出差别时（1-ulp）位型就是证据。</summary>
         private static void F(string prefix, string field, float left, float right, AddFn add)
         {
-            int bl = BitConverter.SingleToInt32Bits(left);
-            int br = BitConverter.SingleToInt32Bits(right);
-            if (bl != br) add($"{prefix}.{field}", FloatText(left, bl), FloatText(right, br));   // lint-allow R3（整型/枚举判等，非浮点精度比较——诊断工具不做容差）
+            if (!BitUtil.Equal(left, right))       // 位级比较唯一入口（确定性分歧就是位级分歧——不做容差）
+                add($"{prefix}.{field}", FloatText(left, BitUtil.Bits(left)), FloatText(right, BitUtil.Bits(right)));
         }
 
         private static string FloatText(float v, int bits)

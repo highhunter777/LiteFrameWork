@@ -17,8 +17,8 @@ namespace LiteGame.UI
 
         private CancellationTokenSource _hideCts;
 
-        /// <summary>在气泡控件上显示文本，duration 后自动隐藏。</summary>
-        public void Show(string text, float duration = 1.5f)
+        /// <summary>在气泡控件上显示文本，duration 后自动隐藏（缺省＝<see cref="UiFxDefaults.BubbleDuration"/>）。</summary>
+        public void Show(string text, float duration = UiFxDefaults.BubbleDuration)
         {
             if (Label != null) Label.text = text;
             gameObject.SetActive(true);

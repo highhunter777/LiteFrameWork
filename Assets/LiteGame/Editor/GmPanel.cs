@@ -609,10 +609,8 @@ namespace LiteGame.Editor
         {
             var entry = UnityEngine.Object.FindAnyObjectByType<GameEntry>();
             if (entry == null) return null;
-            FieldInfo field = typeof(GameEntry).GetField("s_container", BindingFlags.NonPublic | BindingFlags.Static);
-            if (field?.GetValue(null) is not ServiceContainer container) return null;
-            try { return container.Resolve<T>(); }
-            catch (Exception) { return null; }
+            try { return entry.TakeContainer().Resolve<T>(); }
+            catch (Exception) { return null; }   // 未装配（引导未完成）/未注册：面板各区显示空态
         }
 
         private static Exception Unwrap(Exception ex)

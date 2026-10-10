@@ -123,7 +123,7 @@ namespace LiteGame.Tests.EditMode
                     "Run", loop: true, minSpeed: 0.01f, maxSpeed: 2f))
                 .Register(new AnimationDefinition(CharacterAnimationIds.AimIdle, AnimationChannel.Override,
                     "AimIdle", loop: true, minSpeed: 0.01f, maxSpeed: 2f))
-                .Register(new AnimationDefinition(CharacterAnimationIds.Reload, AnimationChannel.Override,
+                .Register(new AnimationDefinition(CharacterAnimationIds.Reload, AnimationChannel.Overlay,
                     "Reload", loop: false, minSpeed: 0.01f, maxSpeed: 2f))
                 .RegisterBlend(new AnimationBlendDefinition(CharacterAnimationIds.MoveBlend, AnimationChannel.Base,
                     new[] { "Idle", "Walk", "Run" }, minSpeed: 0.01f, maxSpeed: 2f))

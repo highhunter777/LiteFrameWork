@@ -7,7 +7,7 @@ namespace LiteGame
 {
     /// <summary>
     /// 对局准心驱动（战斗 HUD 第一件：仅形态切换、最小可用、场景内对象）：
-    /// 纯 View 层——每渲染帧把场景里的准心（训练场 <c>/Battle HUD</c>）摆到鼠标屏幕点，并按本地
+    /// 纯 View 层——每渲染帧把场景里的准心（TrainingGround <c>/Battle HUD</c>）摆到鼠标屏幕点，并按本地
     /// 预测态瞄准位（<see cref="SimView.IsAiming"/>，右键 ADS）切换腰射/瞄准两组视觉。
     ///
     /// **数据源单向流**（《角色状态与动作专项设计》§1 层级边界——HUD 归 View，禁止回写 Sim）：

@@ -65,7 +65,7 @@ try {
             @{ Pattern = 'ghp_[A-Za-z0-9]{36}';                                   Name = 'GitHub token' },
             @{ Pattern = '(?i)(api[_-]?key|secret|password)\s*[:=]\s*["''][A-Za-z0-9+/=_.-]{24,}["'']'; Name = 'hardcoded credential' }
         )
-        $secretExcludes = @('l0-dep-scan.ps1')  # self (contains pattern text)
+        $secretExcludes = @('l0-dep-scan.ps1', 'JoinAdmissionGateTests.cs')  # self (contains pattern text); JoinAdmissionGateTests.cs = fake fixture token for the no-echo assertion, not a credential
         foreach ($file in $textTargets) {
             if ($secretExcludes -contains (Split-Path $file -Leaf)) { continue }
             $content = $null

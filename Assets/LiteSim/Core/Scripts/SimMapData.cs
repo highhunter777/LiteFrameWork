@@ -76,7 +76,7 @@ namespace LiteSim
 
         /// <summary>
         /// 标准灰盒对战地图（C2 单源）：200×200 判定边界（半宽 ±100）
-        /// + 16 网格出生点（4×4、10m 间距）+ **周边围墙障碍**（与训练场
+        /// + 16 网格出生点（4×4、10m 间距）+ **周边围墙障碍**（与 TrainingGround
         /// Environment 同源数据化——地面 140×140、围栏外沿 ±69；墙高 20 等价"不可越过"，玩家无跳跃）。
         /// 服务端（RoomRuntime 开局生成）与客户端（BattleContext 预测世界重建）**必须**共用同一构造——
         /// 两端地图不一致 = 出生点错位/碰撞分叉 = 预测永不分叉收敛。
@@ -96,7 +96,7 @@ namespace LiteSim
             map.Obstacles[1] = new SimObstacle { Kind = SimObstacleKind.Box, Center = new SimVector3(0f, 0f, 69f), HalfX = 70f, HalfZ = 1f, Height = 20f };
             map.Obstacles[2] = new SimObstacle { Kind = SimObstacleKind.Box, Center = new SimVector3(-69f, 0f, 0f), HalfX = 1f, HalfZ = 70f, Height = 20f };
             map.Obstacles[3] = new SimObstacle { Kind = SimObstacleKind.Box, Center = new SimVector3(69f, 0f, 0f), HalfX = 1f, HalfZ = 70f, Height = 20f };
-            // 测试方块（训练场 /Cube 同源：位置 (5, 0.5, 0) 的单位立方体，底贴地）——
+            // 测试方块（TrainingGround /Cube 同源：位置 (5, 0.5, 0) 的单位立方体，底贴地）——
             // SimObstacle 的 y 是底部高度：底 0、半宽 0.5、高 1。距最近出生点 (5,±5) 有 4m 通道。
             map.Obstacles[4] = new SimObstacle { Kind = SimObstacleKind.Box, Center = new SimVector3(5f, 0f, 0f), HalfX = 0.5f, HalfZ = 0.5f, Height = 1f };
             map.ObstacleCount = 5;

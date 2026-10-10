@@ -77,6 +77,36 @@ namespace LiteGame.Tests.EditMode
 
         // ---- API 跑通 ----
 
+        /// <summary>
+        /// <c>PlayAt</c> 世界位落位（回归卡）：**prefab 已缓存（第二次起）时 Play 内同步 Materialize**——
+        /// 落点必须在实例登记前就位，事后补写只会躺进表里没人再应用，特效留在池内原位（世界原点）。
+        /// 故连播两次：首次走异步加载、第二次走缓存同步路径，两次都必须落在指定世界位。
+        /// </summary>
+        [Test]
+        [Category(TestCategory.Contract)]
+        public void VFX_PlayAt_世界位落位_缓存命中同步路径同样生效()
+        {
+            var rig = NewRig();
+            var svc = rig.Make();
+            var at = new Vector3(3f, 1.5f, -7f);
+
+            var first = svc.PlayAt("fx_hit", at);
+            Assert.IsTrue(first.IsValid);
+            var go1 = rig.World.transform.GetChild(0);
+            Assert.AreEqual(at.x, go1.position.x, 1e-4f, "首次（异步加载）落位正确");
+            Assert.AreEqual(at.z, go1.position.z, 1e-4f);
+
+            var second = svc.PlayAt("fx_hit", new Vector3(-2f, 4f, 9f));
+            Assert.IsTrue(second.IsValid);
+            var go2 = rig.World.transform.GetChild(1);
+            Assert.AreEqual(-2f, go2.position.x, 1e-4f, "prefab 缓存命中（同步 Materialize）落位同样正确");
+            Assert.AreEqual(4f, go2.position.y, 1e-4f);
+            Assert.AreEqual(9f, go2.position.z, 1e-4f);
+
+            svc.Stop(first);
+            svc.Stop(second);
+        }
+
         [Test]
         [Category(TestCategory.Contract)]
         public void VFX_Play_跟随挂点_实例挂到挂点下()

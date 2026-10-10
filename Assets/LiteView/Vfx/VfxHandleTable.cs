@@ -15,16 +15,6 @@ namespace LiteView
 
         public void Add(VfxInstance inst) => _byId[inst.Id] = inst;
 
-        /// <summary>写显式世界落点（<c>PlayAt</c> 的加载先于落位也成立：Materialize 续体读本字段）。</summary>
-        public void SetPosition(int id, UnityEngine.Vector3 position)
-        {
-            if (_byId.TryGetValue(id, out var inst))
-            {
-                inst.Position = position;
-                inst.HasPosition = true;
-            }
-        }
-
         /// <summary>取走并移除（幂等：不存在返回 false）。</summary>
         public bool TryTake(int id, out VfxInstance inst)
         {

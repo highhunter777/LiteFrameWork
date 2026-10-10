@@ -143,4 +143,76 @@ namespace LiteSim
 
     }
 
+    public partial struct ItemState
+    {
+        /// <summary>Public-profile checksum fold (order = field declaration order).</summary>
+        internal static uint MixPublic(uint h, in ItemState e)
+        {
+            h = SimChecksum.MixInt32(h, e.ItemDefId);
+            h = SimChecksum.MixInt32(h, e.Count);
+            h = SimChecksum.MixInt64(h, e.OwnerId);
+            h = SimChecksum.MixInt32(h, e.AgeFrames);
+            return h;
+        }
+
+        /// <summary>Full-profile fold (ordered by enum value; iterates all sub-slots).</summary>
+        internal static uint MixFull(uint h, in ItemState e)
+        {
+            h = SimChecksum.MixInt32(h, e.ItemDefId);
+            h = SimChecksum.MixInt32(h, e.Count);
+            h = SimChecksum.MixInt64(h, e.OwnerId);
+            h = SimChecksum.MixInt32(h, e.AgeFrames);
+            return h;
+        }
+
+    }
+
+    public partial struct ProjectileState
+    {
+        /// <summary>Public-profile checksum fold (order = field declaration order).</summary>
+        internal static uint MixPublic(uint h, in ProjectileState e)
+        {
+            h = SimChecksum.MixInt32(h, e.ItemDefId);
+            h = SimChecksum.MixFloat(h, e.Speed);
+            h = SimChecksum.MixInt32(h, e.DetonateFrame);
+            h = SimChecksum.MixInt64(h, e.OwnerId);
+            return h;
+        }
+
+        /// <summary>Full-profile fold (ordered by enum value; iterates all sub-slots).</summary>
+        internal static uint MixFull(uint h, in ProjectileState e)
+        {
+            h = SimChecksum.MixInt32(h, e.ItemDefId);
+            h = SimChecksum.MixFloat(h, e.Speed);
+            h = SimChecksum.MixInt32(h, e.DetonateFrame);
+            h = SimChecksum.MixInt64(h, e.OwnerId);
+            return h;
+        }
+
+    }
+
+    public partial struct ZoneState
+    {
+        /// <summary>Public-profile checksum fold (order = field declaration order).</summary>
+        internal static uint MixPublic(uint h, in ZoneState e)
+        {
+            h = SimChecksum.MixInt32(h, e.ItemDefId);
+            h = SimChecksum.MixFloat(h, e.Radius);
+            h = SimChecksum.MixInt32(h, e.RemainingFrames);
+            h = SimChecksum.MixInt64(h, e.OwnerId);
+            return h;
+        }
+
+        /// <summary>Full-profile fold (ordered by enum value; iterates all sub-slots).</summary>
+        internal static uint MixFull(uint h, in ZoneState e)
+        {
+            h = SimChecksum.MixInt32(h, e.ItemDefId);
+            h = SimChecksum.MixFloat(h, e.Radius);
+            h = SimChecksum.MixInt32(h, e.RemainingFrames);
+            h = SimChecksum.MixInt64(h, e.OwnerId);
+            return h;
+        }
+
+    }
+
 }

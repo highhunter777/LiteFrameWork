@@ -326,15 +326,14 @@ namespace LiteFramework.Tests
         }
 
         /// <summary>
-        /// 空值占位符是 <c>"\0null"</c>（NUL + null），**不是** <c>" null"</c>。
+        /// 空值占位符是字面量 <c>"null"</c>——与空串 <c>""</c> 在摘要中可区分。
         ///
-        /// 它与空格形式在"区分 null 与空串"上**能力等价**。
-        ///
-        /// 本用例的价值是**防止顺手修正**：把 NUL 改成空格会改变摘要 → 所有既有激活记录失效
-        /// → 用户丢已确认版本。若将来确实要改，必须同时升 <c>SchemaVersion</c> 并接受一次失效。
+        /// 本用例的价值是**防止随手改写**：占位符/规范化规则的任何改动都会改变摘要
+        /// → 所有既有激活记录校验失效 → 用户丢已确认版本。若将来确实要改，
+        /// 必须接受一次全量失效并升 <c>SchemaVersion</c>。
         /// </summary>
         [Fact]
-        public void 空值占位符_以NUL为前缀_改动会使既有记录失效()
+        public void 空值占位符_字面量null_改动会使既有记录失效()
         {
             var record = new ActivationRecord
             {
