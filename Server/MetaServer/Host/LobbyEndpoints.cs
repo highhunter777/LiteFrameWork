@@ -1,5 +1,4 @@
 using System;
-using System.Security.Cryptography;
 using MetaServer.Contracts.Auth;
 using MetaServer.Contracts.Lobby;
 using MetaServer.Modules.Auth;
@@ -185,34 +184,16 @@ namespace MetaServer
             }, statusCode: StatusCodes.Status401Unauthorized);
         }
 
-        /// <summary>实例密钥比对：Bearer 原文按 Base64 解码后**常量时间**比较（防时序侧信道）。</summary>
+        /// <summary>实例密钥比对：Bearer 原文按 Base64 解码后**常量时间**比较（与结算提交共用凭据校验）。</summary>
         private static bool InstanceKeyMatches(HttpContext context, string expectedBase64)
         {
-            string provided = ReadBearer(context);
-            if (provided == null || string.IsNullOrWhiteSpace(expectedBase64)) return false;
-            byte[] expected;
-            byte[] actual;
-            try
-            {
-                expected = Convert.FromBase64String(expectedBase64);
-                actual = Convert.FromBase64String(provided);
-            }
-            catch (FormatException)
-            {
-                return false;
-            }
-            return CryptographicOperations.FixedTimeEquals(expected, actual);
+            return InstanceKeyAuth.Matches(context, expectedBase64);
         }
 
         /// <summary>读取 Bearer 凭据（缺失/坏形状返回 null——统一走鉴权失败路径，不区分对待）。</summary>
         private static string ReadBearer(HttpContext context)
         {
-            string header = context.Request.Headers["Authorization"];
-            const string prefix = "Bearer ";
-            if (string.IsNullOrEmpty(header) || header.Length <= prefix.Length
-                || !header.StartsWith(prefix, StringComparison.OrdinalIgnoreCase))
-                return null;
-            return header.Substring(prefix.Length).Trim();
+            return InstanceKeyAuth.ReadBearer(context);
         }
     }
 }

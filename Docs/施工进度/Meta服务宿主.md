@@ -109,7 +109,7 @@ R2 行亦写"RoomServer 侧：Join Ticket **本地验签**"。Meta 侧只**签�
 - Outbox 容量检查与插入非原子：并发窗口可短暂越界——容量是显式承诺不是硬不变量（契约注释声明）。
 - M0-c 记录中的样例端点是样例⑤载体**非业务 API**（错误形状简化为 code+data；§5.2 正式
   `{code,messageKey,args}` 归 G3 Contracts）。
-- R3-Auth-1 游客登录与 **R3-Lobby（实例注册/容量分配/Join Ticket 签发端）已独立落地**（2026-10-08，[服务端R3-Lobby](服务端R3-Lobby.md)）；真实 Auth 的正式账号/刷新吊销（R3-Auth-2）、Profile 仍归后续 R3 批次。
+- R3-Auth-1 游客登录、R3-Lobby（实例注册/容量分配/Join Ticket 签发端）与 **R3-Profile（结算提交消费/结果归档查询/提交管道，2026-10-10，[服务端R3-Profile](服务端R3-Profile.md)）已独立落地**；真实 Auth 的正式账号/刷新吊销（R3-Auth-2）仍归后续 R3 批次。
 - Redis、TLS/Dockerfile/Secret Provider/编排面归 R4；`BuildHash` 占位未接（§P0-5）。
 
 ### 2026-09-30 · M0-c 持久化接缝（批一：契约面 + L1 语义段）

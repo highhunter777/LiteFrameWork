@@ -30,6 +30,10 @@ namespace MetaServer
 
         private long _ticketsIssued;
 
+        private long _matchResultsStored;
+
+        private long _matchResultsDuplicates;
+
         /// <summary>drain 状态：true = 已停止接受外部写，/ready 必须报未就绪（§10 优雅关闭第 1 步）。</summary>
         public volatile bool Draining;
 
@@ -45,6 +49,12 @@ namespace MetaServer
         /// <summary>Join Ticket 签发计数（§11.2 <c>ticket_issue_total</c>；并发安全）。</summary>
         public void CountTicketIssued() => Interlocked.Increment(ref _ticketsIssued);
 
+        /// <summary>对局结果首次落库计数（并发安全）。</summary>
+        public void CountMatchResultStore() => Interlocked.Increment(ref _matchResultsStored);
+
+        /// <summary>对局结果重复提交命中计数（提交管道重试的"恰好一次"证据；并发安全）。</summary>
+        public void CountMatchResultDuplicate() => Interlocked.Increment(ref _matchResultsDuplicates);
+
         /// <summary>HTTP 请求总数（读面；写入只走 <see cref="CountRequest"/>）。</summary>
         public long HttpRequests => Interlocked.Read(ref _httpRequests);
 
@@ -56,6 +66,12 @@ namespace MetaServer
 
         /// <summary>已签发 Join Ticket 总数（读面）。</summary>
         public long TicketsIssued => Interlocked.Read(ref _ticketsIssued);
+
+        /// <summary>对局结果首次落库总数（读面）。</summary>
+        public long MatchResultsStored => Interlocked.Read(ref _matchResultsStored);
+
+        /// <summary>对局结果重复提交命中总数（读面；稳定增长 = 提交管道重试在幂等面上收敛）。</summary>
+        public long MatchResultsDuplicates => Interlocked.Read(ref _matchResultsDuplicates);
 
         /// <summary>
         /// 指标文本出口（/metrics）。
@@ -73,6 +89,10 @@ namespace MetaServer
                 .Append("meta_lobby_instance_register_total ").Append(LobbyInstanceRegisters).Append('\n')
                 .Append("# TYPE meta_ticket_issue_total counter\n")
                 .Append("meta_ticket_issue_total ").Append(TicketsIssued).Append('\n')
+                .Append("# TYPE meta_match_result_store_total counter\n")
+                .Append("meta_match_result_store_total ").Append(MatchResultsStored).Append('\n')
+                .Append("# TYPE meta_match_result_duplicate_total counter\n")
+                .Append("meta_match_result_duplicate_total ").Append(MatchResultsDuplicates).Append('\n')
                 .Append("# TYPE meta_draining gauge\n")
                 .Append("meta_draining ").Append(Draining ? 1 : 0).Append('\n')
                 .Append("# TYPE meta_uptime_seconds gauge\n")

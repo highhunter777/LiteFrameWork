@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Runtime.InteropServices;
 using System.Threading;
 using LiteSim;
 using LiteNet.Transport;
@@ -117,6 +118,33 @@ if (serverConfig.LobbyEnabled)
     };
 }
 
+// 结算提交参数（配置了 settlement.submit_url 才组装）：与 Lobby 注册共用实例密钥
+// （同一条房间侧→Meta 服务通道）。
+SettlementSubmitService.Settings settlementSettings = null;
+if (serverConfig.SettlementEnabled)
+{
+    if (string.IsNullOrWhiteSpace(lobbyInstanceKeyBase64))
+        throw new InvalidOperationException(
+            "RoomServer 已配置结算提交管道（settlement.submit_url）但缺实例密钥：请提供 --lobby-instance-key 或环境变量 LITENET_LOBBY_INSTANCE_KEY。");
+    byte[] settlementKey;
+    try
+    {
+        settlementKey = Convert.FromBase64String(lobbyInstanceKeyBase64);
+    }
+    catch (FormatException)
+    {
+        throw new InvalidOperationException("结算提交实例密钥必须是 Base64（原值不回显）。");
+    }
+    settlementSettings = new SettlementSubmitService.Settings
+    {
+        Url = serverConfig.SettlementSubmitUrl,
+        InstanceKey = settlementKey,
+        IntervalMs = (int)serverConfig.SettlementIntervalMs,
+        MaxBackoffMs = (int)serverConfig.SettlementMaxBackoffMs,
+        RequestTimeoutMs = (int)serverConfig.SettlementTimeoutMs,
+    };
+}
+
 IJoinTicketValidator ticketValidator = null;
 string audience = audienceOverride ?? serverConfig.Audience;
 if (ticketKeys.Count > 0)
@@ -149,6 +177,7 @@ HostAssembly.Register(services, new HostAssembly.Inputs
     CombatValues = combat,
     Weapons = weapons,
     Lobby = lobbySettings,
+    Settlement = settlementSettings,
 });
 using var provider = HostAssembly.Build(services);
 
@@ -180,6 +209,15 @@ if (lobbyClient != null)
     lobbyClient.Start();
 }
 
+// 结算提交管道（解析在 Lobby 之后——释放逆序先停提交、再停心跳、再收宿主）。
+// 启动即从日志待提交面续投（重启恢复面：条目在 Outbox 日志，不在本服务内存）。
+SettlementSubmitService settlementSubmit = provider.GetService<SettlementSubmitService>();
+if (settlementSubmit != null)
+{
+    Console.WriteLine($"[RoomServer] 结算提交管道已启用：url={serverConfig.SettlementSubmitUrl} 待提交={settlementSubmit.PendingCount} 间隔={serverConfig.SettlementIntervalMs}ms 退避上限={serverConfig.SettlementMaxBackoffMs}ms");
+    settlementSubmit.Start();
+}
+
 // --port 是宿主级覆盖（配置文件里的 port 是同一个值的来源；此处允许验收脚本临时换端口）。
 // 通过配置对象自身复用来覆盖：ServerHost 从 RoomServerConfig.Port 取监听端口。
 
@@ -203,6 +241,8 @@ else
         e.Cancel = true;                    // 不让默认行为直接杀进程——先排空
         shutdown.Set();
     };
+    // 容器 stop/K8s 默认发 SIGTERM（≠Ctrl+C）——《上云测试专项设计》§5：同排空路径。
+    using var sigterm = TryRegisterSigterm(shutdown);
 
     loop.Start();
     Console.WriteLine($"[RoomServer] 常驻中（Ctrl+C 优雅关闭；排空时限 {DrainGraceMs}ms；结算日志 {serverConfig.SettlementJournalPath}）");
@@ -231,4 +271,25 @@ static string ResolveConfigPath(string[] argv)
     for (int i = 0; i < argv.Length; i++)
         if (argv[i] == "--config" && i + 1 < argv.Length) return argv[i + 1];
     return RoomServerConfig.DefaultRelativePath;
+}
+
+/// <summary>
+/// SIGTERM 排空接线（《上云测试专项设计》§5）：容器 stop/K8s 停止信号与 Ctrl+C 走同一排空路径
+/// （BeginDrain → DrainComplete → Flush → Dispose）。Windows 等不支持该信号的平台返回 null
+/// （本地常驻形态仍由 Ctrl+C 承担）；注册本身失败不致命——如实降级不阻断启动。
+/// </summary>
+static PosixSignalRegistration TryRegisterSigterm(ManualResetEventSlim shutdown)
+{
+    try
+    {
+        return PosixSignalRegistration.Create(PosixSignal.SIGTERM, context =>
+        {
+            context.Cancel = true;          // 阻止默认终止——交给排空链收尾
+            shutdown.Set();
+        });
+    }
+    catch (Exception)
+    {
+        return null;
+    }
 }

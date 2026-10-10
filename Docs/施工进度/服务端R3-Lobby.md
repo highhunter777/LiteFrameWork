@@ -11,7 +11,7 @@
 | R3-Auth-1 游客登录 | 访问令牌/游客账号/`POST /auth/guest`（见[服务端R3首批](服务端R3首批.md)） | 已完成（附验证证据） |
 | **R3-Lobby** | 实例注册/心跳（TTL 清扫、有界）、容量驱动分配（跳过排空/满员）、版本准入、**Join Ticket 签发**（`JoinTicketFormat` 单源）、房间投影查询、RoomServer 注册客户端（含排空上报） | **已完成（附验证证据）** |
 | R3-Auth-2 正式身份 | 账号绑定、刷新令牌、吊销与受保护端点中间件 | 未开始 |
-| R3-Profile | 结算提交消费、Ledger/Inventory、结果查询与 Archive | 未开始 |
+| R3-Profile | 结算提交消费、Ledger/Inventory、结果查询与 Archive | **已完成（附验证证据）**——见[服务端R3-Profile](服务端R3-Profile.md) |
 
 ## 施工记录
 
@@ -64,4 +64,4 @@
 - Meta 侧**未做限流分层**（§12）：封闭测试由 IP 白名单 + 规模约束覆盖；正式公网接入前需补（随 Auth-2 或 R4）。
 - Lobby 完整语义未做：实例心跳在途健康判定降级、实例再平衡、`MatchStartSnapshot`（归 R3-Profile）。「Join Ticket 签发与查询」的"查询"落为房间投影 `GET /lobby/rooms`。
 - 进程级 Ctrl+C 排空手验沿用 2026-10-04 三场景基线（[服务端多房间](服务端多房间.md)）；本批"排空位上报"以两侧证：L1 载荷透传 + L3 排空实例拒分配；未重跑进程级全链。
-- 客户端一键游客入口与结果页（《上云测试》批 C）需 Unity 环境；`POST /matches/result`、`GET /matches`、RoomServer 提交管道与 SIGTERM 排空（批 A 剩余项）归 R3-Profile。
+- 客户端一键游客入口与结果页（《上云测试》批 C）需 Unity 环境；`POST /matches/result`、`GET /matches`、RoomServer 提交管道与 SIGTERM 排空（批 A 剩余项）归 R3-Profile——**已于 R3-Profile 交付（2026-10-10，[服务端R3-Profile](服务端R3-Profile.md)）**。

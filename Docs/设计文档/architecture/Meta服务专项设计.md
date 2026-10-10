@@ -1,8 +1,8 @@
 # Meta 服务专项设计
 
 > 状态：现行专项设计（目标契约层；实现进度见 Docs/施工进度/）
-> 版本：1.1
-> 更新日期：2026-10-08
+> 版本：1.2
+> 更新日期：2026-10-10
 > 适用范围：`MetaServer`（Auth/Lobby/Profile）、Meta 与 RoomServer 的接缝、Meta 与客户端的接口契约、宿主选型、存储与结算幂等、Meta 测试矩阵
 > Owner：Meta/数据；服务端架构负责宿主与边界接缝，客户端流程/UI Owner 负责消费端契约
 > 依赖：`SignatureVerifier`（签名原语）、`Protocol`/`PacketCodec`（版本字段）、`LiteNet.Contracts` 版本契约、热更专项的 ReleaseCatalog/兼容策略、Mongo/Redis 部署环境
@@ -36,7 +36,7 @@ Meta 是战斗服之外的**局外权威**：账号、身份、大厅、进度�
 
 ## 2. 当前进度状况
 
-Meta 当前处于**骨架＋持久化接缝＋R3 Auth 首批＋R3-Lobby**阶段：宿主骨架（Generic Host + Options 校验 + 健康检查 + 优雅关闭）、Join 票据验签接缝、持久化端口与 Mongo 适配器已落地；Auth 已落地游客登录的契约、访问令牌、Mongo 账号 get-or-create、迁移与 `POST /auth/guest` 接线；**Lobby 已落地实例注册/心跳（TTL 清扫、有界）、容量驱动分配（drain 协同、版本准入）、Join Ticket 签发（`JoinTicketFormat` 源链接单源）与房间投影查询，RoomServer 侧注册客户端（含排空上报）已接线**。正式账号绑定/刷新吊销、Profile 与 Meta 侧结算 Outbox 仍按后续批次实施。证据见[施工进度](../../施工进度/README.md)、[Meta 服务宿主](../../施工进度/Meta服务宿主.md)、[R3 首批](../../施工进度/服务端R3首批.md)与 [R3-Lobby](../../施工进度/服务端R3-Lobby.md)。
+Meta 当前处于**骨架＋持久化接缝＋R3 Auth 首批＋R3-Lobby＋R3-Profile**阶段：宿主骨架（Generic Host + Options 校验 + 健康检查 + 优雅关闭）、Join 票据验签接缝、持久化端口与 Mongo 适配器已落地；Auth 已落地游客登录的契约、访问令牌、Mongo 账号 get-or-create、迁移与 `POST /auth/guest` 接线；Lobby 已落地实例注册/心跳（TTL 清扫、有界）、容量驱动分配（drain 协同、版本准入）、Join Ticket 签发（`JoinTicketFormat` 源链接单源）与房间投影查询，RoomServer 侧注册客户端（含排空上报）已接线；**Profile 已落地结算提交消费（账本 Apply：追加模式/双维度幂等/fan-out）、对局结果归档与按账号查询（`match_results`/迁移 v4）、`POST /matches/result` 与 `GET /matches` 端点；RoomServer 侧结算提交管道（重试/退避/重启续投）与 SIGTERM 排空已接线**。正式账号绑定/刷新吊销仍按后续批次实施。证据见[施工进度](../../施工进度/README.md)、[Meta 服务宿主](../../施工进度/Meta服务宿主.md)、[R3 首批](../../施工进度/服务端R3首批.md)、[R3-Lobby](../../施工进度/服务端R3-Lobby.md)与 [R3-Profile](../../施工进度/服务端R3-Profile.md)。
 
 本文其余章节均为目标契约。
 
@@ -223,6 +223,8 @@ RoomRuntime 冻结 MatchResult
 - **重启恢复**：进程重启后 Outbox 可恢复并继续提交；已确认的结算不丢、不重。
 - **可观测**：`settlement_outbox_pending`、`settlement_retry_total`、`settlement_idempotent_hit_total` 为必备指标（§13.2）——`idempotent_hit_total` 持续增长是上游重试异常的早期信号。
 
+**实装口径（R3-Profile，2026-10-10）**：`POST /matches/result` 一条提交承载**双侧落库**——①**归档面**（`match_results`，`_id`=matchId 即幂等裁判、存储端赋值完成时刻、`players.accountId` 索引）：承载"重复提交只落一条"与 `GET /matches` 按账号查询（访问令牌——按令牌账号查，`limit` 1..100；裁决点③）；②**账本面**：逐玩家 `ISettlementLedger.ApplyAsync` 追加模式（操作号缺省 `match:{matchId}:{playerId}` 确定性派生；裁决点①的账号映射随载荷）。提交方 = RoomServer **结算提交管道**（`SettlementSubmitService`：实例密钥与 Lobby 注册共用服务凭据；200 即标记 Outbox 完成——Meta 幂等是最终裁判；失败保持待提交 + 指数退避；重启从日志待提交面续投）。结算载荷含 `SeatAccountIds`（Outbox 追加字段，**旧行空数组**兼容）。封闭测试期无经济系统：逐玩家 delta=0 占位（revision 推进、余额不变），真实 RewardDelta 换算在提交方完成、归 P4。**SIGTERM（容器 stop/K8s）与 Ctrl+C 同排空路径**。
+
 ## 9. 存储与依赖
 
 ### 9.1 MongoDB
@@ -344,7 +346,7 @@ CI 仍以 `scripts/gate/test.ps1` 为唯一入口；HTTP/数据库夹具随实�
 | --- | --- | --- |
 | **G1** | 只建**接缝**：必要存储端口、迁移/事务/幂等约束、故障夹具、**一个持久化样例**；Join Ticket **验证器接口**与非法票据测试 | 框架先行 §4"持久化"行与 §5-4；不建真实 Meta 业务 |
 | **R2** | RoomServer 侧：Generic Host、Join Ticket **本地验签**、实例注册与容量上报、drain | 与 §4.1/§6.2/§7 对接；本文为 Meta 侧定义，R2 为房间侧消费 |
-| **G3** | MetaServer 本体：Auth/Lobby/Profile、Mongo Ledger、Reservation、Settlement Outbox/Archive；客户端 `MetaClient` 与 Login/Lobby/Result（C2 批③） | R3 Auth 首批已先落地游客登录与账号持久化；**R3-Lobby（实例注册/容量分配/Join Ticket 签发端）已交付**；正式账号、Profile、结算提交与客户端入口仍按后续批次接入 |
+| **G3** | MetaServer 本体：Auth/Lobby/Profile、Mongo Ledger、Reservation、Settlement Outbox/Archive；客户端 `MetaClient` 与 Login/Lobby/Result（C2 批③） | R3 Auth 首批已先落地游客登录与账号持久化；**R3-Lobby（实例注册/容量分配/Join Ticket 签发端）与 R3-Profile（结算提交消费/结果归档与查询/提交管道/SIGTERM）已交付**；正式账号与客户端入口仍按后续批次接入 |
 | **R4 / G4** | OpenTelemetry、Dashboard、告警、Docker、实例调度、灰度与回滚、长稳与故障注入 | §11/§12/§14 的运维面收口 |
 | **后置** | Chat/Guild；完整运营后台；微服务拆分 | §1.1 选型裁定；不进入首个战斗服 Beta |
 

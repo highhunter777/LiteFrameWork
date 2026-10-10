@@ -22,19 +22,44 @@ namespace RoomServer
     }
 
     /// <summary>
+    /// 待提交结算条目：冻结摘要 + **席位账号映射**（《上云测试专项设计》§4 裁决点①
+    /// "结算载荷补 SeatAccountIds"——宿主在 SettlementReady 时从会话取得，随日志持久化，
+    /// 重启续投不丢账号归属）。<see cref="SeatAccountIds"/> 与 <c>Summary.Players</c> **同序等长**；
+    /// 旧日志行无该字段 → 空数组（提交时按无账号计，Meta 侧如实拒绝）。
+    /// </summary>
+    public sealed class PendingSettlement
+    {
+        public readonly MatchResultSummary Summary;
+        public readonly string[] SeatAccountIds;
+
+        public PendingSettlement(MatchResultSummary summary, string[] seatAccountIds)
+        {
+            Summary = summary ?? throw new ArgumentNullException(nameof(summary));
+            SeatAccountIds = seatAccountIds == null ? Array.Empty<string>() : (string[])seatAccountIds.Clone();
+        }
+
+        /// <summary>幂等键（日志/标记/测试断言的便利投影）。</summary>
+        public string MatchId
+        {
+            get { return Summary.MatchId; }
+        }
+    }
+
+    /// <summary>
     /// 本地持久结算 Outbox 端口（《商业级通用服务端框架总设计》§7 钦定接口名 ISettlementOutbox、
     /// §11.3"RoomRuntime 冻结 MatchResult → … → **本地持久 Outbox** → 后台提交 Profile.Apply →
     /// **Outbox 标记完成**"、§6"需要持久化的结果先写入**有界** Outbox"）。
     ///
-    /// 载荷为 <see cref="MatchResultSummary"/>（SettlementReadyOutput）。
+    /// 载荷为 <see cref="MatchResultSummary"/>（SettlementReadyOutput）＋席位账号映射。
     ///
     /// **同步签名**对应宿主单循环形态（§10.2——命令直投、ApplyOutput 在 Pump 线程上）；
     /// 入盒/完成标记都是低频事件（一局至多一次、一行一条）。
     /// </summary>
     public interface ISettlementOutbox
     {
-        /// <summary>入盒一条结算记录（幂等键 = matchId）。</summary>
-        SettlementOutboxResult Enqueue(MatchResultSummary summary);
+        /// <summary>入盒一条结算记录（幂等键 = matchId）。
+        /// <paramref name="seatAccountIds"/> 与摘要 <c>Players</c> 同序等长（缺省 = 空，无账号归属）。</summary>
+        SettlementOutboxResult Enqueue(MatchResultSummary summary, string[] seatAccountIds = null);
 
         /// <summary>
         /// 标记已完成（§11.3"Outbox 标记完成"——后台提交方拿到存储侧幂等确认后调用）。
@@ -47,7 +72,7 @@ namespace RoomServer
         int Count { get; }
 
         /// <summary>待提交条目（重放/审计面；已完成条目不在其中）。</summary>
-        IReadOnlyList<MatchResultSummary> ListPending();
+        IReadOnlyList<PendingSettlement> ListPending();
 
         /// <summary>§12 第 4 步"刷新 Outbox 到持久介质"（幂等；WriteThrough 形态下为收口确认）。
         /// 自上次压实后存在完成标记时顺带**压实日志**（重写为仅含待提交行）。</summary>
@@ -77,7 +102,7 @@ namespace RoomServer
         private const int CompactThresholdMarks = 1024;
 
         private readonly string _journalPath;
-        private readonly List<MatchResultSummary> _entries;   // 待提交（容量判据）
+        private readonly List<PendingSettlement> _entries;   // 待提交（容量判据）
         private readonly int _capacity;
         private HashSet<string> _seen;                        // 曾入盒的全部 matchId（含已完成；压实后收敛为待提交）
         private HashSet<string> _completed;                   // 已标记完成（压实后清空）
@@ -95,7 +120,7 @@ namespace RoomServer
         public int CompactionFailures { get; private set; }
 
         private FileSettlementOutbox(string journalPath, FileStream stream, HashSet<string> seen,
-            HashSet<string> completed, List<MatchResultSummary> entries, int capacity)
+            HashSet<string> completed, List<PendingSettlement> entries, int capacity)
         {
             _journalPath = journalPath;
             _stream = stream;
@@ -119,7 +144,7 @@ namespace RoomServer
 
             var seen = new HashSet<string>(StringComparer.Ordinal);
             var completed = new HashSet<string>(StringComparer.Ordinal);
-            var entries = new List<MatchResultSummary>();
+            var entries = new List<PendingSettlement>();
             int corrupt = 0;
             if (File.Exists(path))
             {
@@ -141,7 +166,7 @@ namespace RoomServer
                         continue;
                     }
                     if (!completed.Contains(entry.MatchId) && seen.Add(entry.MatchId))
-                        entries.Add(ToSummary(entry));              // 结算行（旧格式无 Kind 同此）
+                        entries.Add(ToPending(entry));              // 结算行（旧格式无 Kind/无账号同此）
                 }
             }
 
@@ -158,20 +183,21 @@ namespace RoomServer
             get { return _entries.Count; }
         }
 
-        public SettlementOutboxResult Enqueue(MatchResultSummary summary)
+        public SettlementOutboxResult Enqueue(MatchResultSummary summary, string[] seatAccountIds = null)
         {
             if (_disposed) throw new ObjectDisposedException(nameof(FileSettlementOutbox));
             if (summary == null || string.IsNullOrEmpty(summary.MatchId)) return SettlementOutboxResult.Failed;
             if (_seen.Contains(summary.MatchId)) return SettlementOutboxResult.Duplicate;
             if (_entries.Count >= _capacity) return SettlementOutboxResult.RejectedFull;
 
-            if (!TryAppend(ToEntry(summary)))
+            var pending = new PendingSettlement(summary, seatAccountIds);
+            if (!TryAppend(ToEntry(pending)))
             {
                 return SettlementOutboxResult.Failed;
             }
 
             _seen.Add(summary.MatchId);
-            _entries.Add(summary);
+            _entries.Add(pending);
             return SettlementOutboxResult.Appended;
         }
 
@@ -196,7 +222,7 @@ namespace RoomServer
             return true;
         }
 
-        public IReadOnlyList<MatchResultSummary> ListPending()
+        public IReadOnlyList<PendingSettlement> ListPending()
         {
             return _entries.ToArray();
         }
@@ -254,7 +280,7 @@ namespace RoomServer
                 using (var temp = new FileStream(tempPath, FileMode.Create, FileAccess.Write, FileShare.None,
                     bufferSize: 4096, FileOptions.WriteThrough))
                 {
-                    foreach (MatchResultSummary e in _entries)
+                    foreach (PendingSettlement e in _entries)
                     {
                         byte[] line = Encoding.UTF8.GetBytes(JsonSerializer.Serialize(ToEntry(e)));
                         temp.Write(line, 0, line.Length);
@@ -270,7 +296,7 @@ namespace RoomServer
                     bufferSize: 4096, FileOptions.WriteThrough);
 
                 var seen = new HashSet<string>(StringComparer.Ordinal);
-                foreach (MatchResultSummary e in _entries) seen.Add(e.MatchId);
+                foreach (PendingSettlement e in _entries) seen.Add(e.MatchId);
                 _seen = seen;
                 _completed.Clear();
                 _marksSinceCompaction = 0;
@@ -297,7 +323,8 @@ namespace RoomServer
         }
 
         // ---- 线格式（JSONL；字段名稳定——日志是可回放产物，不做版本协商前不改字段名。
-        //      Kind 为追加字段：s=结算行 / c=完成标记行；缺省(null) = 结算行（既有日志兼容））----
+        //      Kind 为追加字段：s=结算行 / c=完成标记行；缺省(null) = 结算行（既有日志兼容）；
+        //      SeatAccountIds 同为追加字段：缺省(null) = 旧行无账号归属（提交时按空计）。）----
 
         private sealed class JournalEntry
         {
@@ -310,6 +337,7 @@ namespace RoomServer
             public long WinnerEntityId { get; set; }
             public int GameplayEndReason { get; set; }
             public PlayerEntry[] Players { get; set; }
+            public string[] SeatAccountIds { get; set; }
         }
 
         private sealed class PlayerEntry
@@ -320,8 +348,9 @@ namespace RoomServer
             public int Deaths { get; set; }
         }
 
-        private static JournalEntry ToEntry(MatchResultSummary s)
+        private static JournalEntry ToEntry(PendingSettlement pending)
         {
+            MatchResultSummary s = pending.Summary;
             PlayerMatchResult[] results = s.Players;
             var players = new PlayerEntry[results.Length];
             for (int i = 0; i < players.Length; i++)
@@ -332,7 +361,13 @@ namespace RoomServer
                 Kind = "s", MatchId = s.MatchId, Seed = s.Seed, FinalFrame = s.FinalFrame,
                 EndReason = (int)s.EndReason, SeatPlayerIds = s.SeatPlayerIds,
                 WinnerEntityId = s.WinnerEntityId, GameplayEndReason = (int)s.GameplayEndReason, Players = players,
+                SeatAccountIds = pending.SeatAccountIds,
             };
+        }
+
+        private static PendingSettlement ToPending(JournalEntry e)
+        {
+            return new PendingSettlement(ToSummary(e), e.SeatAccountIds);
         }
 
         private static MatchResultSummary ToSummary(JournalEntry e)

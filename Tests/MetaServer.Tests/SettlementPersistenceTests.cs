@@ -205,5 +205,75 @@ namespace MetaServer.Tests
             Assert.IsType<SampleCommandResult.DuplicateHit>(afterRestart);
             Assert.Single(state.ByOperationId);
         }
+
+        // ---- 追加模式（ExpectedRevision = -1：结算落账路径——§11.3 幂等由唯一索引承载，无 CAS 期望）----
+
+        private const long AppendMode = -1L;
+
+        private static ValueTask<SettlementOutcome> ApplyAsync(
+            ISettlementLedger ledger, string operationId, string playerId, string matchId,
+            long expectedRevision, long delta)
+        {
+            return ledger.ApplyAsync(new SettlementWrite(
+                operationId, new SettlementKey(playerId, matchId, "match"), expectedRevision, delta),
+                CancellationToken.None);
+        }
+
+        [Fact]
+        [Trait(TestTrait.Category, TestCategory.Contract)]
+        public async Task 追加模式_首笔建文档_次笔不同局推进_余额累积()
+        {
+            var state = new FakeLedgerState();
+            var ledger = new FakeSettlementLedger(state);
+
+            SettlementOutcome first = await ApplyAsync(ledger, "op-1", "p1", "m1", AppendMode, 10);
+            SettlementOutcome second = await ApplyAsync(ledger, "op-2", "p1", "m2", AppendMode, 5);
+
+            var firstApplied = Assert.IsType<SettlementOutcome.FirstApplied>(first);
+            var secondApplied = Assert.IsType<SettlementOutcome.FirstApplied>(second);
+            Assert.Equal(1, firstApplied.Record.AppliedRevision);
+            Assert.Equal(2, secondApplied.Record.AppliedRevision);   // 只增不比——不持修订号也推进
+            Assert.Equal(10, firstApplied.Record.BalanceAfter);
+            Assert.Equal(15, secondApplied.Record.BalanceAfter);
+        }
+
+        [Fact]
+        [Trait(TestTrait.Category, TestCategory.Contract)]
+        public async Task 追加模式_不产生冲突_而显式期望不符仍走CAS()
+        {
+            var state = new FakeLedgerState();
+            var ledger = new FakeSettlementLedger(state);
+            await ApplyAsync(ledger, "op-1", "p1", "m1", AppendMode, 10);
+
+            // 追加模式在任意修订号上都推进（提交方不持修订号也不会陷入冲突循环）
+            SettlementOutcome appended = await ApplyAsync(ledger, "op-2", "p1", "m2", AppendMode, 3);
+            Assert.IsType<SettlementOutcome.FirstApplied>(appended);
+
+            // 显式 CAS 期望不符（期望 99，实际 2）——仍按冲突整笔不落
+            SettlementOutcome conflict = await ApplyAsync(ledger, "op-3", "p1", "m3", 99, 1);
+            var rejected = Assert.IsType<SettlementOutcome.RevisionConflict>(conflict);
+            Assert.Equal(99, rejected.Expected);
+            Assert.Equal(2, rejected.Actual);
+            Assert.Equal(2, state.Revisions["p1"]);          // 冲突笔不推进
+        }
+
+        [Fact]
+        [Trait(TestTrait.Category, TestCategory.Contract)]
+        public async Task 追加模式_同局重投_双维度命中首次账目不重复发奖()
+        {
+            var state = new FakeLedgerState();
+            var ledger = new FakeSettlementLedger(state);
+            await ApplyAsync(ledger, "match:m1:p1", "p1", "m1", AppendMode, 10);
+
+            // 同操作号重投（响应丢失重试）
+            SettlementOutcome byOperation = await ApplyAsync(ledger, "match:m1:p1", "p1", "m1", AppendMode, 999);
+            // 同业务键换头重提（Outbox 压实后重枚举——派生键恒同；此处显式换号模拟上游重复签发）
+            SettlementOutcome byKey = await ApplyAsync(ledger, "op-reissue", "p1", "m1", AppendMode, 999);
+
+            Assert.IsType<SettlementOutcome.Duplicate>(byOperation);
+            Assert.IsType<SettlementOutcome.Duplicate>(byKey);
+            Assert.Equal(10, state.Balances["p1"]);           // 999 均未采纳——不重复发奖
+            Assert.Single(state.ByOperationId);               // 介质上只有首笔（重提均不落账）
+        }
     }
 }

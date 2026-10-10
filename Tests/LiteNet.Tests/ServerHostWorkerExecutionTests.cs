@@ -303,13 +303,18 @@ namespace LiteNet.Tests
 
             public int Count => Entries.Count;
 
-            public SettlementOutboxResult Enqueue(MatchResultSummary summary)
+            public SettlementOutboxResult Enqueue(MatchResultSummary summary, string[] seatAccountIds = null)
             {
                 Entries.Add(summary);
                 return SettlementOutboxResult.Appended;
             }
 
-            public IReadOnlyList<MatchResultSummary> ListPending() => Entries;
+            public IReadOnlyList<PendingSettlement> ListPending()
+            {
+                var list = new List<PendingSettlement>(Entries.Count);
+                for (int i = 0; i < Entries.Count; i++) list.Add(new PendingSettlement(Entries[i], null));
+                return list;
+            }
 
             public bool TryMarkCompleted(string matchId) => false;
 

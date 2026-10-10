@@ -9,6 +9,7 @@ using MetaServer.Infrastructure.Persistence;
 using MetaServer.Infrastructure.Persistence.Mongo;
 using MetaServer.Modules.Auth;
 using MetaServer.Modules.Lobby;
+using MetaServer.Modules.Profile;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Http;
@@ -177,6 +178,13 @@ namespace MetaServer
                     new SchemaMigrationRunner(
                         MongoMigrations.All(sp.GetRequiredService<MongoDB.Driver.IMongoDatabase>()),
                         sp.GetRequiredService<MetaServer.Contracts.Persistence.ISchemaVersionStore>()));
+                builder.Services.AddSingleton<MetaServer.Contracts.Persistence.IMatchResultArchive>(sp =>
+                    new MongoMatchResultArchive(
+                        sp.GetRequiredService<MongoDB.Driver.IMongoDatabase>(),
+                        () => DateTime.UtcNow));
+                builder.Services.AddSingleton(sp => new ApplyMatchResultUseCase(
+                    sp.GetRequiredService<MetaServer.Contracts.Persistence.ISettlementLedger>(),
+                    sp.GetRequiredService<MetaServer.Contracts.Persistence.IMatchResultArchive>()));
                 builder.Services.AddSingleton<SettlementSampleUseCase>();
                 builder.Services.AddHostedService<MigrationStartupService>();
 
@@ -200,6 +208,7 @@ namespace MetaServer
             SampleEndpoints.Map(app);
             AuthEndpoints.Map(app);
             LobbyEndpoints.Map(app);
+            SettlementEndpoints.Map(app);
             return app;
         }
 

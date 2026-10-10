@@ -32,7 +32,7 @@ namespace LiteNet.Tests
                 }
                 using (var reopened = FileSettlementOutbox.Open(path, 2))
                 {
-                    MatchResultSummary saved = Assert.Single(reopened.ListPending());
+                    MatchResultSummary saved = Assert.Single(reopened.ListPending()).Summary;
                     Assert.Equal(65536L, saved.WinnerEntityId);
                     Assert.Equal(MatchEndReason.KillLimit, saved.GameplayEndReason);
                     Assert.Equal(3, saved.Players[0].Kills);
@@ -53,11 +53,45 @@ namespace LiteNet.Tests
                 File.WriteAllText(path, "{\"Kind\":\"s\",\"MatchId\":\"old\",\"Seed\":42,\"FinalFrame\":100,"
                     + "\"EndReason\":1,\"SeatPlayerIds\":[0,1]}\n");
                 using var outbox = FileSettlementOutbox.Open(path, 2);
-                MatchResultSummary saved = Assert.Single(outbox.ListPending());
+                MatchResultSummary saved = Assert.Single(outbox.ListPending()).Summary;
                 Assert.Equal("old", saved.MatchId);
                 Assert.Empty(saved.Players);
                 Assert.Equal(0L, saved.WinnerEntityId);
                 Assert.Equal(MatchEndReason.None, saved.GameplayEndReason);
+            }
+            finally { if (File.Exists(path)) File.Delete(path); }
+        }
+
+        [Fact]
+        public void SeatAccountIdsSurviveJournalRestart_OldRowsDefaultEmpty()
+        {
+            string path = Path.Combine(Path.GetTempPath(), "litegame_acc_match_" + Guid.NewGuid().ToString("N") + ".jsonl");
+            try
+            {
+                var result = new MatchResultSummary("m-acc", 7, 100, ShutdownReason.KillLimit,
+                    new[] { 0, 1 }, 1L, MatchEndReason.KillLimit,
+                    new[] { new PlayerMatchResult(0, 1L, 2, 0), new PlayerMatchResult(1, 2L, 0, 2) });
+                using (var outbox = FileSettlementOutbox.Open(path, 2))
+                {
+                    // 席位账号映射随行落盘（裁决点①）：与 Players 同序等长
+                    Assert.Equal(SettlementOutboxResult.Appended,
+                        outbox.Enqueue(result, new[] { "acc-0", "acc-1" }));
+                }
+
+                using (var reopened = FileSettlementOutbox.Open(path, 2))
+                {
+                    PendingSettlement pending = Assert.Single(reopened.ListPending());
+                    Assert.Equal(new[] { "acc-0", "acc-1" }, pending.SeatAccountIds);
+                }
+
+                // 旧行（无 SeatAccountIds 字段）→ 空数组：装载兼容、不炸
+                File.WriteAllText(path, "{\"Kind\":\"s\",\"MatchId\":\"old-nocc\",\"Seed\":1,\"FinalFrame\":2,"
+                    + "\"EndReason\":1,\"SeatPlayerIds\":[0]}\n");
+                using (var old = FileSettlementOutbox.Open(path, 2))
+                {
+                    PendingSettlement pending = Assert.Single(old.ListPending());
+                    Assert.Empty(pending.SeatAccountIds);
+                }
             }
             finally { if (File.Exists(path)) File.Delete(path); }
         }

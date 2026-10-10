@@ -60,11 +60,14 @@ namespace MetaServer.Tests
                 return ValueTask.FromResult<SettlementOutcome>(new SettlementOutcome.Duplicate(byKey));
             }
 
-            // CAS：账目写入与修订推进必须同一原子边界——冲突则整笔不落
             long current = _state.Revisions.TryGetValue(write.Key.PlayerId, out long revision)
                 ? revision
                 : 0;
-            if (write.ExpectedRevision != current)
+
+            // CAS：账目写入与修订推进必须同一原子边界——冲突则整笔不落。
+            // 追加模式（-1）不做期望比对——修订号只增不比，幂等由上方双维度字典承载
+            // （与 Mongo 适配器的唯一索引承载同语义）。
+            if (write.ExpectedRevision != AppendMode && write.ExpectedRevision != current)
             {
                 return ValueTask.FromResult<SettlementOutcome>(
                     new SettlementOutcome.RevisionConflict(write.ExpectedRevision, current));
@@ -85,6 +88,9 @@ namespace MetaServer.Tests
 
             return ValueTask.FromResult<SettlementOutcome>(new SettlementOutcome.FirstApplied(record));
         }
+
+        /// <summary>追加模式哨兵（与 MongoSettlementLedger.AppendMode 同值同义）。</summary>
+        public const long AppendMode = -1L;
     }
 
     /// <summary>
@@ -122,6 +128,30 @@ namespace MetaServer.Tests
             SettlementOutcome outcome = await _inner.ApplyAsync(write, ct);
             // 内层已真实落账；此处丢弃结果并失联——调用方视角是"未确认"
             throw new SettlementStoreUnavailableException("注入：提交成功但响应丢失");
+        }
+    }
+
+    /// <summary>
+    /// 前 <see cref="SucceedCount"/> 次真实落账、之后失联——模拟**多玩家 fan-out 中途**的存储中断：
+    /// 已应用项在介质上、未应用项没有（§8.2"已应用也可能没有"的 Unconfirmed 语义测试形态）。
+    /// </summary>
+    public sealed class PartialFaultLedger : ISettlementLedger
+    {
+        private readonly ISettlementLedger _inner;
+        public int SucceedCount;
+
+        public PartialFaultLedger(ISettlementLedger inner, int succeedCount)
+        {
+            _inner = inner ?? throw new ArgumentNullException(nameof(inner));
+            SucceedCount = succeedCount;
+        }
+
+        public async ValueTask<SettlementOutcome> ApplyAsync(SettlementWrite write, CancellationToken ct)
+        {
+            if (SucceedCount <= 0)
+                throw new SettlementStoreUnavailableException("注入：fan-out 中途存储失联");
+            SucceedCount--;
+            return await _inner.ApplyAsync(write, ct);
         }
     }
 
@@ -307,6 +337,60 @@ namespace MetaServer.Tests
                 throw _rollbackFailure;
             }
             return ValueTask.CompletedTask;
+        }
+    }
+
+    /// <summary>
+    /// 对局结果归档替身（与 Mongo 适配器同语义：<c>MatchId</c> 幂等、完成时刻单调递增、按账号倒序查询）。
+    /// 时钟由替身内部单调推进——用例断言不依赖真实时间。
+    /// </summary>
+    public sealed class FakeMatchResultArchive : IMatchResultArchive
+    {
+        private readonly Dictionary<string, MatchResultArchiveEntry> _entries = new Dictionary<string, MatchResultArchiveEntry>(StringComparer.Ordinal);
+        private readonly Dictionary<string, DateTime> _finishedUtc = new Dictionary<string, DateTime>(StringComparer.Ordinal);
+        private DateTime _now = new DateTime(2026, 1, 1, 0, 0, 0, DateTimeKind.Utc);
+
+        /// <summary>落库调用次数（含 duplicate 命中——用例断"拒绝先于存储"用）。</summary>
+        public int StoreCalls;
+
+        public int Count
+        {
+            get { return _entries.Count; }
+        }
+
+        public ValueTask<MatchResultStoreOutcome> StoreAsync(MatchResultArchiveEntry entry, CancellationToken ct)
+        {
+            StoreCalls++;
+            if (_entries.TryGetValue(entry.MatchId, out _))
+            {
+                return ValueTask.FromResult<MatchResultStoreOutcome>(
+                    new MatchResultStoreOutcome.Duplicate(new StoredMatchResult(entry.MatchId, _finishedUtc[entry.MatchId])));
+            }
+
+            _now = _now.AddMinutes(1);
+            _entries[entry.MatchId] = entry;
+            _finishedUtc[entry.MatchId] = _now;
+            return ValueTask.FromResult<MatchResultStoreOutcome>(
+                new MatchResultStoreOutcome.Stored(new StoredMatchResult(entry.MatchId, _now)));
+        }
+
+        public ValueTask<IReadOnlyList<AccountMatchResult>> ListByAccountAsync(string accountId, int limit, CancellationToken ct)
+        {
+            var list = new List<AccountMatchResult>();
+            foreach (KeyValuePair<string, MatchResultArchiveEntry> kv in _entries)
+            {
+                MatchResultArchiveEntry entry = kv.Value;
+                for (int i = 0; i < entry.Players.Count; i++)
+                {
+                    if (!string.Equals(entry.Players[i].AccountId, accountId, StringComparison.Ordinal)) continue;
+                    list.Add(new AccountMatchResult(entry.MatchId, entry.Players[i].Kills, entry.Players[i].Deaths,
+                        entry.EndReason, entry.GameplayEndReason, _finishedUtc[entry.MatchId]));
+                    break;
+                }
+            }
+            list.Sort((a, b) => b.FinishedUtc.CompareTo(a.FinishedUtc));
+            if (list.Count > limit) list.RemoveRange(limit, list.Count - limit);
+            return ValueTask.FromResult<IReadOnlyList<AccountMatchResult>>(list);
         }
     }
 }

@@ -121,13 +121,36 @@ namespace RoomServer
             get { return !string.IsNullOrEmpty(LobbyUrl); }
         }
 
+        /// <summary>
+        /// 结算提交端点**完整 URL**（《上云测试专项设计》§2"后台服务读本地 Outbox → Meta 幂等端点"；
+        /// 空 = 提交管道关闭）。示例：<c>https://meta.example.com/matches/result</c>。
+        /// 实例密钥同 Lobby 注册（环境变量注入，见 Program）。
+        /// </summary>
+        public readonly string SettlementSubmitUrl;
+
+        /// <summary>提交管道空闲轮询间隔（毫秒）。</summary>
+        public readonly long SettlementIntervalMs;
+
+        /// <summary>连续失败退避上限（毫秒）。</summary>
+        public readonly long SettlementMaxBackoffMs;
+
+        /// <summary>单次提交请求超时（毫秒）。</summary>
+        public readonly long SettlementTimeoutMs;
+
+        /// <summary>是否启用结算提交管道（配置了端点即启用）。</summary>
+        public bool SettlementEnabled
+        {
+            get { return !string.IsNullOrEmpty(SettlementSubmitUrl); }
+        }
+
         private readonly string _sourcePath;
 
         private RoomServerConfig(string sourcePath, int port, int maxRooms, string audience,
             Dictionary<string, RoomTemplate> rooms, string defaultTemplateId,
             int workerCount, int mailboxCapacity,
             string settlementJournalPath, int settlementOutboxCapacity, RateLimitSettings rateLimit,
-            string lobbyUrl, string lobbyInstanceId, string lobbyAdvertiseHost, long lobbyHeartbeatMs)
+            string lobbyUrl, string lobbyInstanceId, string lobbyAdvertiseHost, long lobbyHeartbeatMs,
+            string settlementSubmitUrl, long settlementIntervalMs, long settlementMaxBackoffMs, long settlementTimeoutMs)
         {
             _sourcePath = sourcePath;
             _port = port;
@@ -144,6 +167,10 @@ namespace RoomServer
             LobbyInstanceId = lobbyInstanceId ?? string.Empty;
             LobbyAdvertiseHost = lobbyAdvertiseHost ?? string.Empty;
             LobbyHeartbeatIntervalMs = lobbyHeartbeatMs;
+            SettlementSubmitUrl = settlementSubmitUrl ?? string.Empty;
+            SettlementIntervalMs = settlementIntervalMs;
+            SettlementMaxBackoffMs = settlementMaxBackoffMs;
+            SettlementTimeoutMs = settlementTimeoutMs;
 
             int widest = 0;
             foreach (RoomTemplate t in rooms.Values)
@@ -328,9 +355,50 @@ namespace RoomServer
                 }
             }
 
+            // ---- 结算提交管道（可选分区；submit_url 空 = 关闭）----
+            string settlementUrl = string.Empty;
+            long settlementIntervalMs = 5_000;
+            long settlementMaxBackoffMs = 60_000;
+            long settlementTimeoutMs = 5_000;
+            if (root.TryGetProperty("settlement", out JsonElement settlementEl))
+            {
+                if (settlementEl.ValueKind != JsonValueKind.Object)
+                    throw new InvalidDataException($"settlement 分区必须是对象：{sourcePath}");
+                settlementUrl = OptionalString(settlementEl, "submit_url") ?? string.Empty;
+                if (!string.IsNullOrEmpty(settlementUrl))
+                {
+                    if (!Uri.TryCreate(settlementUrl, UriKind.Absolute, out Uri settlementUri)
+                        || (settlementUri.Scheme != Uri.UriSchemeHttp && settlementUri.Scheme != Uri.UriSchemeHttps))
+                        throw new InvalidDataException($"settlement.submit_url 必须是绝对 http/https URL：{sourcePath}");
+
+                    settlementIntervalMs = OptionalLong(settlementEl, "submit_interval_ms", 5_000);
+                    if (settlementIntervalMs < 1_000 || settlementIntervalMs > 300_000)
+                        throw new InvalidDataException(
+                            $"settlement.submit_interval_ms 越界（允许 1000..300000）：{settlementIntervalMs}：{sourcePath}");
+
+                    settlementMaxBackoffMs = OptionalLong(settlementEl, "submit_max_backoff_ms", 60_000);
+                    if (settlementMaxBackoffMs < settlementIntervalMs || settlementMaxBackoffMs > 600_000)
+                        throw new InvalidDataException(
+                            $"settlement.submit_max_backoff_ms 越界（允许 {settlementIntervalMs}..600000）：{settlementMaxBackoffMs}：{sourcePath}");
+
+                    settlementTimeoutMs = OptionalLong(settlementEl, "submit_timeout_ms", 5_000);
+                    if (settlementTimeoutMs < 500 || settlementTimeoutMs > 60_000)
+                        throw new InvalidDataException(
+                            $"settlement.submit_timeout_ms 越界（允许 500..60000）：{settlementTimeoutMs}：{sourcePath}");
+                }
+                else if (settlementEl.TryGetProperty("submit_interval_ms", out _)
+                    || settlementEl.TryGetProperty("submit_max_backoff_ms", out _)
+                    || settlementEl.TryGetProperty("submit_timeout_ms", out _))
+                {
+                    // 半段配置：submit_url 空时其余字段无意义——宁可起不来
+                    throw new InvalidDataException($"settlement.submit_url 为空时不应配置 settlement 其余字段（半段配置）：{sourcePath}");
+                }
+            }
+
             return new RoomServerConfig(sourcePath, port, maxRooms, audience, rooms, defaultId,
                 workerCount, mailboxCapacity, journal, outboxCapacity, rateLimit,
-                lobbyUrl, lobbyInstanceId, lobbyAdvertiseHost, lobbyHeartbeatMs);
+                lobbyUrl, lobbyInstanceId, lobbyAdvertiseHost, lobbyHeartbeatMs,
+                settlementUrl, settlementIntervalMs, settlementMaxBackoffMs, settlementTimeoutMs);
         }
 
         /// <summary>
@@ -461,7 +529,7 @@ namespace RoomServer
         public string Describe()
         {
             return string.Format(CultureInfo.InvariantCulture,
-                "port={0} maxRooms={1} workerCount={2} mailboxCapacity={3} audience={4} rooms=[{5}] default={6} settlementJournal={7} settlementCapacity={8} rateLimit=[ip={9} entry={10} account={11} session={12} buckets={13} idleMs={14}] lobby=[url={15} instance={16} advertise={17} heartbeatMs={18}]",
+                "port={0} maxRooms={1} workerCount={2} mailboxCapacity={3} audience={4} rooms=[{5}] default={6} settlementJournal={7} settlementCapacity={8} rateLimit=[ip={9} entry={10} account={11} session={12} buckets={13} idleMs={14}] lobby=[url={15} instance={16} advertise={17} heartbeatMs={18}] settlement=[url={19} intervalMs={20} backoffMs={21} timeoutMs={22}]",
                 Port, MaxRooms, WorkerCount, MailboxCapacity,
                 string.IsNullOrEmpty(Audience) ? "(不校验)" : Audience,
                 string.Join(",", _rooms.Keys), _defaultTemplateId, SettlementJournalPath,
@@ -469,7 +537,9 @@ namespace RoomServer
                 LaneText(RateLimit.IpConnect), LaneText(RateLimit.IpEntry),
                 LaneText(RateLimit.AccountEntry), LaneText(RateLimit.SessionPackets),
                 RateLimit.Buckets, RateLimit.IdleTtlMs,
-                LobbyEnabled ? LobbyUrl : "(不注册)", LobbyInstanceId, LobbyAdvertiseHost, LobbyHeartbeatIntervalMs);
+                LobbyEnabled ? LobbyUrl : "(不注册)", LobbyInstanceId, LobbyAdvertiseHost, LobbyHeartbeatIntervalMs,
+                SettlementEnabled ? SettlementSubmitUrl : "(关闭)", SettlementIntervalMs,
+                SettlementMaxBackoffMs, SettlementTimeoutMs);
         }
 
         private static string LaneText(RateLimitSettings.Lane lane)

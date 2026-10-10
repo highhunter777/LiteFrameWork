@@ -26,6 +26,9 @@
   <ItemGroup>
     <ProjectReference Include="..\..\Server\MetaServer\MetaServer.csproj" />
     <ProjectReference Include="..\..\Assets\LiteTesting\LiteTesting.Core.csproj" />
+    <!-- 结算链闭环（《上云测试》§6）：房间侧提交管道（Outbox→SettlementSubmitService）接真 Meta——
+        测试项目专用引用，不改变生产依赖边界（集成测试在进程内同时持有两侧）。 -->
+    <ProjectReference Include="..\..\Server\RoomServer\RoomServer.csproj" />
   </ItemGroup>
 
   <ItemGroup>

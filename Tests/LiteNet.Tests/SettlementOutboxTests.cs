@@ -86,10 +86,10 @@ namespace LiteNet.Tests
                 using (var restarted = FileSettlementOutbox.Open(path, 16))
                 {
                     Assert.Equal(2, restarted.Count);
-                    IReadOnlyList<MatchResultSummary> pending = restarted.ListPending();
+                    IReadOnlyList<PendingSettlement> pending = restarted.ListPending();
                     Assert.Equal("m-1", pending[0].MatchId);
-                    Assert.Equal(7, pending[0].Seed);
-                    Assert.Equal(100, pending[0].FinalFrame);
+                    Assert.Equal(7, pending[0].Summary.Seed);
+                    Assert.Equal(100, pending[0].Summary.FinalFrame);
                     Assert.Equal("m-2", pending[1].MatchId);
 
                     // 追加新条目接在既有内容之后（续接不覆盖）
@@ -226,7 +226,7 @@ namespace LiteNet.Tests
                     Assert.False(outbox.TryMarkCompleted("m-1"));   // 已完成（幂等，不写盘）
                     Assert.Equal(2, outbox.Count);
 
-                    IReadOnlyList<MatchResultSummary> pending = outbox.ListPending();
+                    IReadOnlyList<PendingSettlement> pending = outbox.ListPending();
                     Assert.Equal(2, pending.Count);
                     Assert.Equal("m-2", pending[0].MatchId);
                     Assert.Equal("m-3", pending[1].MatchId);
@@ -376,18 +376,25 @@ namespace LiteNet.Tests
         private sealed class RecordingOutbox : ISettlementOutbox
         {
             public readonly List<MatchResultSummary> Entries = new List<MatchResultSummary>();
+            public string[] LastSeatAccountIds;
             public SettlementOutboxResult NextResult = SettlementOutboxResult.Appended;
             public int FlushCalls;
 
             public int Count => Entries.Count;
 
-            public SettlementOutboxResult Enqueue(MatchResultSummary summary)
+            public SettlementOutboxResult Enqueue(MatchResultSummary summary, string[] seatAccountIds = null)
             {
+                LastSeatAccountIds = seatAccountIds;
                 if (NextResult == SettlementOutboxResult.Appended) Entries.Add(summary);
                 return NextResult;
             }
 
-            public IReadOnlyList<MatchResultSummary> ListPending() => Entries;
+            public IReadOnlyList<PendingSettlement> ListPending()
+            {
+                var list = new List<PendingSettlement>(Entries.Count);
+                for (int i = 0; i < Entries.Count; i++) list.Add(new PendingSettlement(Entries[i], null));
+                return list;
+            }
 
             public bool TryMarkCompleted(string matchId) => false;
 

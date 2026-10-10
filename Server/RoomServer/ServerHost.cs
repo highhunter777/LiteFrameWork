@@ -1731,7 +1731,10 @@ namespace RoomServer
                     // §6"持久化写入不得阻塞/炸掉 Room Worker"）。null = 未装配。
                     if (_settlementOutbox != null)
                     {
-                        switch (_settlementOutbox.Enqueue(sr.Summary))
+                        // 席位账号映射（《上云测试》裁决点①）：从当前房间席位会话取得、随行持久化——
+                        // 提交管道重启续投不丢账号归属；取不到（旧会话/未认证）→ 空串（Meta 如实拒绝）。
+                        string[] seatAccountIds = BuildSeatAccountIds(_currentRoom, sr.Summary);
+                        switch (_settlementOutbox.Enqueue(sr.Summary, seatAccountIds))
                         {
                             case SettlementOutboxResult.Appended:
                                 _ops.SettlementsJournaled++;
@@ -1769,6 +1772,26 @@ namespace RoomServer
             foreach (Session member in room.Seats)
                 if (member != null && !member.Disconnected)
                     SendToSession(member, PacketType.MatchEnded, message, reliable: true);
+        }
+
+        /// <summary>
+        /// 席位账号映射（《上云测试》裁决点① "结算载荷补 SeatAccountIds"）：与
+        /// <see cref="MatchResultSummary.Players"/> **同序等长**（按席位 playerId 查会话）；
+        /// 查不到（座位空/会话已清）→ 空串——各端按同一序对齐，Meta 侧缺账号如实拒绝。
+        /// </summary>
+        private static string[] BuildSeatAccountIds(RoomInstance room, MatchResultSummary summary)
+        {
+            RoomServer.Runtime.PlayerMatchResult[] players = summary.Players;
+            var ids = new string[players.Length];
+            for (int i = 0; i < players.Length; i++)
+            {
+                int playerId = players[i].PlayerId;
+                Session seat = null;
+                if (room != null && playerId >= 0 && playerId < room.Seats.Length)
+                    seat = room.Seats[playerId];
+                ids[i] = seat?.Principal?.AccountId ?? string.Empty;
+            }
+            return ids;
         }
 
         private void ApplySignal(SignalOutput so, Session joinContext)

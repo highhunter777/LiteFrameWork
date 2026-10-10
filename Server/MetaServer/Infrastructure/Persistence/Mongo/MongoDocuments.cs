@@ -26,6 +26,9 @@ namespace MetaServer.Infrastructure.Persistence.Mongo
 
         /// <summary>账号文档（_id = accountId；deviceId 唯一索引见迁移 v3）。</summary>
         public const string Accounts = "accounts";
+
+        /// <summary>对局结果归档（_id = matchId——一局一条，幂等由 _id 承载；账号查询索引见迁移 v4）。</summary>
+        public const string MatchResults = "match_results";
     }
 
     // =====================================================================
@@ -112,5 +115,37 @@ namespace MetaServer.Infrastructure.Persistence.Mongo
 
         public string DeviceId;
         public DateTime CreatedUtc;
+    }
+
+    /// <summary>
+    /// 对局结果归档文档（一局一条；<c>_id</c> = matchId 即幂等裁判）。
+    /// <c>FinishedUtc</c> 由存储适配器赋值（服务端时钟），调用方不播种。
+    /// </summary>
+    [BsonIgnoreExtraElements]
+    public sealed class MatchResultDoc
+    {
+        [BsonId]
+        public string MatchId;
+
+        public long Seed;
+        public int FinalFrame;
+        public int EndReason;
+        public int GameplayEndReason;
+        public long WinnerEntityId;
+
+        /// <summary>首次落库时刻（UTC——§5.2"时间字段一律 UTC"）。</summary>
+        public DateTime FinishedUtc;
+
+        public MatchResultPlayerDoc[] Players;
+    }
+
+    /// <summary>归档文档的单玩家条目（账号映射随提交载荷——裁决点①）。</summary>
+    [BsonIgnoreExtraElements]
+    public sealed class MatchResultPlayerDoc
+    {
+        public string PlayerId;
+        public string AccountId;
+        public int Kills;
+        public int Deaths;
     }
 }

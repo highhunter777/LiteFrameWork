@@ -46,6 +46,12 @@ namespace RoomServer
             /// 组装（不进配置文件）；配置了 lobby.url 但缺密钥由 Program 先行 fail-closed。
             /// </summary>
             public LobbyRegistrationClient.Settings Lobby;
+
+            /// <summary>
+            /// 结算提交管道参数（可 null = 不提交——单机/离线形态）。密钥与 Lobby 注册共用
+            /// （同一条房间侧→Meta 服务通道）；配置了 settlement.submit_url 但缺密钥由 Program fail-closed。
+            /// </summary>
+            public SettlementSubmitService.Settings Settlement;
         }
 
         /// <summary>
@@ -128,6 +134,16 @@ namespace RoomServer
                         Port = host.BoundPort,
                     }, Console.WriteLine);
                 });
+            }
+
+            // 结算提交管道（《上云测试专项设计》§2；《服务端宿主装配收敛专项设计》批2 第二批新对象）：
+            // 消费 ISettlementOutbox 待提交面；工厂惰性、解析序在 host/lobby 之后（释放逆序先停提交）。
+            if (inputs.Settlement != null)
+            {
+                services.AddSingleton(sp => new SettlementSubmitService(
+                    inputs.Settlement,
+                    sp.GetRequiredService<ISettlementOutbox>(),
+                    Console.WriteLine));
             }
         }
 

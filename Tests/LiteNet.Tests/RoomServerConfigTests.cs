@@ -408,6 +408,65 @@ namespace LiteNet.Tests
             Assert.ThrowsAny<System.Exception>(() => RoomServerConfig.Parse(json));
         }
 
+        // ---- 结算提交分区（R3-Profile：submit_url 空 = 关闭）----
+
+        [Fact]
+        public void 结算分区_缺省关闭()
+        {
+            var c = RoomServerConfig.Parse(Good);
+
+            Assert.False(c.SettlementEnabled);
+            Assert.Contains("settlement=[url=(关闭)", c.Describe());
+        }
+
+        [Fact]
+        public void 结算分区_完整配置_字段就位()
+        {
+            string json = Good.Replace(@"""audience"": ""cluster-1"",",
+                @"""audience"": ""cluster-1"", ""settlement"": {
+                    ""submit_url"": ""https://meta.example.com/matches/result"",
+                    ""submit_interval_ms"": 4000,
+                    ""submit_max_backoff_ms"": 30000,
+                    ""submit_timeout_ms"": 3000
+                  }, ");
+
+            var c = RoomServerConfig.Parse(json);
+
+            Assert.True(c.SettlementEnabled);
+            Assert.Equal("https://meta.example.com/matches/result", c.SettlementSubmitUrl);
+            Assert.Equal(4000, c.SettlementIntervalMs);
+            Assert.Equal(30000, c.SettlementMaxBackoffMs);
+            Assert.Equal(3000, c.SettlementTimeoutMs);
+            Assert.Contains("settlement=[url=https://meta.example.com/matches/result intervalMs=4000 backoffMs=30000 timeoutMs=3000]", c.Describe());
+        }
+
+        [Theory]
+        [InlineData(@"{ ""submit_url"": """", ""submit_interval_ms"": 4000 }")]                             // 半段：url 空带字段
+        [InlineData(@"{ ""submit_url"": ""not-a-url"" }")]                                                  // 非绝对 URL
+        [InlineData(@"{ ""submit_url"": ""ftp://x/matches/result"" }")]                                     // 非 http/https
+        [InlineData(@"{ ""submit_url"": ""https://x/m"", ""submit_interval_ms"": 999 }")]                   // 轮询过密
+        [InlineData(@"{ ""submit_url"": ""https://x/m"", ""submit_interval_ms"": 300001 }")]                // 轮询过疏
+        [InlineData(@"{ ""submit_url"": ""https://x/m"", ""submit_interval_ms"": 5000, ""submit_max_backoff_ms"": 4000 }")]   // 退避上限 < 间隔
+        [InlineData(@"{ ""submit_url"": ""https://x/m"", ""submit_max_backoff_ms"": 600001 }")]             // 退避越顶
+        [InlineData(@"{ ""submit_url"": ""https://x/m"", ""submit_timeout_ms"": 499 }")]                    // 超时过短
+        [InlineData(@"{ ""submit_url"": ""https://x/m"", ""submit_timeout_ms"": 60001 }")]                  // 超时过长
+        public void 结算分区_半段或非法_拒绝(string settlementJson)
+        {
+            string json = Good.Replace(@"""audience"": ""cluster-1"",",
+                @"""audience"": ""cluster-1"", ""settlement"": " + settlementJson + ", ");
+
+            Assert.ThrowsAny<System.Exception>(() => RoomServerConfig.Parse(json));
+        }
+
+        [Fact]
+        public void 结算分区_非对象拒绝()
+        {
+            string json = Good.Replace(@"""audience"": ""cluster-1"",",
+                @"""audience"": ""cluster-1"", ""settlement"": 5, ");
+
+            Assert.ThrowsAny<System.Exception>(() => RoomServerConfig.Parse(json));
+        }
+
         [Fact]
         public void 仓库自带配置_可解析且自洽()
         {

@@ -18,7 +18,13 @@ namespace MetaServer.Contracts.Persistence
     /// 一次结算写的全部事实（服务端总设计 §11.3"Profile 事务内写唯一 Ledger + 更新库存/进度"）。
     ///
     /// 增量而非绝对值——Meta 只接受受验证的 RewardDelta，不接受客户端上报绝对数量（§11.2）。
-    /// <see cref="ExpectedRevision"/> 是 revision CAS 的期望值（§11.2）；0 = 允许创建。
+    /// <see cref="ExpectedRevision"/> 两种模式：
+    /// - **≥0：revision CAS**（§11.2）——期望值与实际不符即整笔回滚（<see cref="SettlementOutcome.RevisionConflict"/>），
+    ///   供并发写竞争的库存/进度操作使用（P4）；
+    /// - **-1：追加模式**——不做期望比对，修订号只增不比（适配器按 <c>$inc</c> 推进）；
+    ///   供**结算落账**使用：提交方（Outbox 后台提交器）不持有玩家修订号，幂等完全由
+    ///   账目唯一索引（<see cref="OperationId"/> ＋ <see cref="SettlementKey"/> 双维度）在
+    ///   同一事务内承载——§11.3"推荐唯一键"即幂等裁判，结算无 CAS 要求。
     /// </summary>
     public sealed record SettlementWrite(
         string OperationId, SettlementKey Key, long ExpectedRevision, long Delta);

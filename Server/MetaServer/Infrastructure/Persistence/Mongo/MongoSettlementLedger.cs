@@ -21,6 +21,9 @@ namespace MetaServer.Infrastructure.Persistence.Mongo
     /// </summary>
     public sealed class MongoSettlementLedger : ISettlementLedger
     {
+        /// <summary>追加模式哨兵（<see cref="SettlementWrite.ExpectedRevision"/> = -1：不做 CAS 期望比对）。</summary>
+        public const long AppendMode = -1L;
+
         private readonly IMongoDatabase _database;
 
         public MongoSettlementLedger(IMongoDatabase database)
@@ -68,7 +71,7 @@ namespace MetaServer.Infrastructure.Persistence.Mongo
                 long balanceAfter;
                 if (current == null)
                 {
-                    if (write.ExpectedRevision != 0)
+                    if (write.ExpectedRevision != 0 && write.ExpectedRevision != AppendMode)
                     {
                         // 账目无残留（事务回滚）：文档不存在即实际修订号为 0
                         await AbortQuietlyAsync(session, ct);
@@ -83,19 +86,24 @@ namespace MetaServer.Infrastructure.Persistence.Mongo
                         null,
                         ct);
                 }
-                else if (current.Revision != write.ExpectedRevision)
+                else if (write.ExpectedRevision != AppendMode && current.Revision != write.ExpectedRevision)
                 {
                     await AbortQuietlyAsync(session, ct);
                     return new SettlementOutcome.RevisionConflict(write.ExpectedRevision, current.Revision);
                 }
                 else
                 {
-                    // 条件推进：filter 钉住期望修订号，并发下匹配不到即 CAS 失败。
+                    // 条件推进：CAS 模式 filter 钉住期望修订号，并发下匹配不到即 CAS 失败；
+                    // 追加模式（-1）不做期望比对——修订号只增不比，幂等由账目唯一索引承载。
                     // 事务快照隔离下 ModifiedCount==1 即文档确在期望修订号上（FindOneAndUpdate
                     // 的表达式重载在驱动 3.x 有二义性，UpdateOneAsync 无此问题且语义等价）。
+                    FilterDefinition<ProfileRevisionDoc> advanceFilter = write.ExpectedRevision == AppendMode
+                        ? Builders<ProfileRevisionDoc>.Filter.Eq(d => d.PlayerId, write.Key.PlayerId)
+                        : Builders<ProfileRevisionDoc>.Filter.Where(
+                            d => d.PlayerId == write.Key.PlayerId && d.Revision == write.ExpectedRevision);
                     UpdateResult advanced = await revision.UpdateOneAsync(
                         session,
-                        d => d.PlayerId == write.Key.PlayerId && d.Revision == write.ExpectedRevision,
+                        advanceFilter,
                         Builders<ProfileRevisionDoc>.Update
                             .Inc(d => d.Revision, 1)
                             .Inc(d => d.Balance, write.Delta),

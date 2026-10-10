@@ -49,7 +49,7 @@ namespace MetaServer.IntegrationTests
                 .MigrateAsync(MongoMigrations.LatestVersion, CancellationToken.None);
 
             var completed = Assert.IsType<MigrationOutcome.Completed>(outcome);
-            Assert.Equal(new long[] { 1, 2, 3 }, completed.AppliedVersions);
+            Assert.Equal(new long[] { 1, 2, 3, 4 }, completed.AppliedVersions);
 
             // 真实结构事实：唯一索引由迁移创建（集合自动建不算证据）
             using IAsyncCursor<MongoDB.Bson.BsonDocument> indexes =
@@ -75,6 +75,18 @@ namespace MetaServer.IntegrationTests
                     accountNames.Add(index["name"].AsString);
             }
             Assert.Contains("ux_account_device", accountNames);
+
+            // v4：对局结果归档集合的账号查询索引（"按账号可查"的结构证据）
+            using IAsyncCursor<MongoDB.Bson.BsonDocument> resultIndexes =
+                await database.GetCollection<MongoDB.Bson.BsonDocument>(
+                    MongoCollectionNames.MatchResults).Indexes.ListAsync();
+            var resultNames = new System.Collections.Generic.List<string>();
+            while (await resultIndexes.MoveNextAsync())
+            {
+                foreach (MongoDB.Bson.BsonDocument index in resultIndexes.Current)
+                    resultNames.Add(index["name"].AsString);
+            }
+            Assert.Contains("ix_match_result_account", resultNames);
         }
 
         [SkippableFact]

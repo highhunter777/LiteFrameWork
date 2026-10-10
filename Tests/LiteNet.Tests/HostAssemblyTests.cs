@@ -87,10 +87,10 @@ namespace LiteNet.Tests
 
             public RecordingOutbox(Action onDisposed) { _onDisposed = onDisposed; }
 
-            public SettlementOutboxResult Enqueue(MatchResultSummary summary) => SettlementOutboxResult.Appended;
+            public SettlementOutboxResult Enqueue(MatchResultSummary summary, string[] seatAccountIds = null) => SettlementOutboxResult.Appended;
             public bool TryMarkCompleted(string matchId) => true;
             public int Count => 0;
-            public IReadOnlyList<MatchResultSummary> ListPending() => Array.Empty<MatchResultSummary>();
+            public IReadOnlyList<PendingSettlement> ListPending() => Array.Empty<PendingSettlement>();
             public void Flush() { }
 
             public void Dispose()
