@@ -1,8 +1,8 @@
 # UI 效果系统专项设计
 
-> 状态：现行专项设计；目标契约尚未实施——UiFx/UIClock 适配/AudioService 为既有可复用件，统一契约、定义与编排层未开工（见 §2、§11）
-> 版本：1.0
-> 更新日期：2026-10-07
+> 状态：现行专项设计；目标契约尚未实施——UiFx/UIClock 适配/AudioService 为既有可复用件，统一契约、定义与编排层未开工（见 §2、§11）；声明式作者面 `UiEffectBinder` 规格见 §5.1（目标）
+> 版本：1.1
+> 更新日期：2026-10-10
 > 适用范围：UI 动效（Tween/序列帧）、UI 粒子、UI 音效的播放契约、数据化定义、编排、槽位仲裁、预算与验收
 > Owner：客户端 UI
 > 上位设计：[UI框架总设计](UI框架总设计.md)（页面生命周期、层序、操作协议）；概念同源：[动画模块专项设计](../animation/动画模块专项设计.md)（Owner/Handle/终态概念同源、不共享类型）
@@ -23,6 +23,7 @@ UI 效果 = UI 层对一次语义事件的多通道表现响应，通道为**动
 | DOTween 入口 | UiFx 保持唯一 DOTween 后端，效果系统是它的消费者；转场代码直用 DOTween 属待收编现状（§7.4、§11 E3） |
 | 动效与数据争写 | 播放侧按槽位仲裁（§6）；数据写入所有权仍归页面/控件（总设计 §8.1 单一数据所有者） |
 | Lua 暴露面 | 归 [UI控件LuaAPI参考](UI控件LuaAPI参考.md)；现有 Pulse/Flash/Slide shim 语义不变（§7.5） |
+| 效果声明的作者形态 | 节点级声明组件 `UiEffectBinder`（三通道独立可选、**空=无**）为声明式作者面；运行时归一化为效果定义、经 Registry/Player——不自建播放实现（§5.1） |
 
 ## 2. Current：可复用基础与未实现边界
 
@@ -42,7 +43,7 @@ UI 效果 = UI 层对一次语义事件的多通道表现响应，通道为**动
 
 ```mermaid
 flowchart TD
-    C[UIForm / Widget / Lua shim 语义事件] --> P[UiEffectPlayer 编排]
+    C[UIForm / Widget / Lua shim / UiEffectBinder 语义事件] --> P[UiEffectPlayer 编排]
     R[UiEffectRegistry 定义登记与校验] --> P
     P --> T[Tween 通道]
     P --> A[Audio 通道]
@@ -83,6 +84,7 @@ Assets/LiteGame/UI/Effects/
         AudioEffectChannel.cs       → AudioService.Group.Ui（语义键门面）
         ParticleEffectChannel.cs    → 模板 prefab 实例化
         SequenceEffectChannel.cs    → AnimatedImage
+    UiEffectBinder.cs           声明式作者面（挂节点组件；E2）
 ```
 
 分层纪律：`Contract/` 零引擎依赖（仿 `Core/Animation`），纯规则可独立抽取测试；Unity 类型只出现在 `Channels/` 与 Player；DOTween 引用最终只出现在 UiFx（转场直用 DOTween 的收编归 §11 E3）。
@@ -115,6 +117,29 @@ Assets/LiteGame/UI/Effects/
 - 首版形态：**C# 登记件 + 注册表**（与 CombatGirlsAnimationProfile 登记纪律同源）；资产化（ScriptableObject/表）随制作侧工具演进——登记数据结构一次立全，形态迁移不改契约。
 - 校验（每类规则至少一个违规负例）：通道类型已注册；资源键/语义键有效；时长/循环值合法；除纯音效定义外槽位声明非空；同定义内同属性类不重复声明。
 - 版本：定义随内容版本键走；打开上下文固定所用版本，不在播放中替换底层定义（与动画 Profile 同则）。
+
+### 5.1 声明式作者面 `UiEffectBinder`（目标）
+
+节点级**声明式作者面**：把"简单自动效果"从逐页代码/Lua 胶水降为编辑器声明——挂目标节点、三通道独立可选、**空则无对应效果**。它只产生"语义事件/声明"，**播放出口全部委托**（不自建通道实现）：声明运行时归一化为一条效果定义，经 Registry 校验、Player 仲裁播放——与 §5 的 C# 登记件走**同一契约**，不另立校验/播放路径。
+
+| 字段 | 形态 | 说明 |
+| --- | --- | --- |
+| `Trigger` | enum `OnShow / Click / Manual`（Hover 预留） | OnShow=展示作用域起点；Click=同节点 Selectable 点击（无 Selectable 则该触发不可用并显性提示）；Manual=受控面显式触发 |
+| 动画通道 | enum 原语 `Pulse / Flash / Slide / CountUp` + 参数（强度/偏移/时长/from/to/format） | 槽位声明由原语派生（Pulse→Alpha、Flash→Color、Slide→Position、CountUp→Text）；**不放 AnimationClip/序列资产**（新原语先落 UiFx 再引用，禁第二套 tween） |
+| 音效通道 | 语义键（字符串） | → `AudioService.Group.Ui`；**不放 AudioClip、不挂 AudioSource** |
+| 特效通道 | `ParticleSystem` 子件引用 | 播放/停止/清理子件；粒子来自 `Assets/UI` 模板（视觉单一来源） |
+
+行为约定（必须）：
+
+- **空通道 = 无轨**：三通道相互独立，未填的通道不产生轨道、不占槽位。
+- **复位与生命周期**：动画持 `UiFxHandle`（收尾 `Stop(true)` 复位）；粒子 `Stop + Clear`（防池化复用残留）；音效 Stop 句柄。Owner=展示作用域，页面关闭/池化回收统一收尾；`OnDisable`/KillOnDisable 是兜底不是清理（§8）。
+- **重入**：同节点同通道单播——在播中重复触发默认忽略。
+- **时钟域**：动画=UIClock（UiFx 内建）；音效=UI 轨（Ui 组）；粒子为引擎时间——**循环装饰不走本组件**（自播件直接挂 prefab/`AnimatedImage`）。
+- **E2 前的最小可行**：动画通道经 UiFx 直通（与 `UIWidget.pressFx` 同构——同一后端，不构成第二套 tween 路径）；音效通道未接线时**显性可观测**（不静默），不得以直挂 AudioSource 兜底；粒子通道直用子件。E2 后三通道统一切经 Player（仲裁/预算/终态可用）。
+- **与控件自持表现的关系**：`UIWidget.pressFx`（按压 Pulse）是控件基类内置特例，与本组件出口同源；是否并入随 §7.5/E3 收编裁决。
+- **示例**：按钮点击音（音效键）、开面板滑入（Slide）、结算数字滚动（CountUp）、Toast 出现（Slide+音效键）；跨节点复用的复杂效果仍走定义登记（§5），本组件只承"简单内联声明"。
+
+落点与批次：挂节点组件落 `Assets/LiteGame/UI/Effects/UiEffectBinder.cs`；实现归 **E2**（作者面与通道接入同批，五页为"真实页面消费者闭环"的首批载体）。
 
 ## 6. 编排与槽位仲裁
 
@@ -169,7 +194,7 @@ Toast/RedDot/Countdown 等控件的内部动效**分批**迁入统一播放入�
 | 层级 | 覆盖内容 | 判定 |
 | --- | --- | --- |
 | L1 纯规则 | 槽位仲裁（让位/复位次序）、终态恰好一次、Handle 代次、预算拒绝 | 失败不抢占；重复 Stop 幂等；旧 Handle 无写入权；打断不累积 |
-| L2 EditMode | 定义校验负例（每规则一负例）；fake 通道分域暂停/打断/迟到回调/清理；prefab 夹具（[UI 测试专项 §7.2](../../quality/UI测试开发专项设计.md)） | 违规红且可定位资产/字段；暂停不误判失败 |
+| L2 EditMode | 定义校验负例（每规则一负例）；fake 通道分域暂停/打断/迟到回调/清理；`UiEffectBinder` 空通道无行为/复位/重入/未接线可观测；prefab 夹具（[UI 测试专项 §7.2](../../quality/UI测试开发专项设计.md)） | 违规红且可定位资产/字段；暂停不误判失败 |
 | L2 PlayMode | 真页面开关复用残留复位、质量档、取消/超时/作用域退出清理归零、Lua shim 三入口 | 无悬挂 Tween/粒子/发声；无迟到写入；清理后计数回基线 |
 
 回归序列：同槽位打断风暴 ×N 后 Handle/Tween/粒子回基线；页面 A/B/A 往返；UI 暂停/恢复不重复推进；质量档切换不改页面操作结果；音效语义键缺失可观测不抛崩溃。
@@ -181,7 +206,7 @@ Toast/RedDot/Countdown 等控件的内部动效**分批**迁入统一播放入�
 | 批次 | 交付 | 退出条件 |
 | --- | --- | --- |
 | E1 契约与编排 | Contract + Registry + Player + fake 通道 + L1/L2 用例 | 仲裁/终态/代次/预算全绿；稳定帧 0 GC |
-| E2 通道接入 | Tween/Audio/Particle/Sequence 四通道 + 展示作用域接线 + Lua shim 换底 | 真实页面消费者闭环；分域暂停与清理用例通过 |
+| E2 通道接入 | Tween/Audio/Particle/Sequence 四通道 + 展示作用域接线 + Lua shim 换底 + `UiEffectBinder` 作者面 | 真实页面消费者闭环；分域暂停与清理用例通过 |
 | E3 收编与迁移 | 转场表现段消费效果定义（可选）；控件内部动效分批迁移；转场直用 DOTween 收编 | UI 层"唯一 DOTween 入口"成立并可静态检查 |
 
 ## 12. 文档职责边界
