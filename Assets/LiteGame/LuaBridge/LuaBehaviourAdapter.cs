@@ -59,7 +59,7 @@ return {
     ShowToast = function(_, text) c('showToast', { text = text }) end,
     ShowBubble = function(_, name, text, duration) c('showBubble', { name = name, text = text, duration = duration or 1.5 }) end,
     ShowFlyText = function(_, name, text) c('showFlyText', { name = name, text = text }) end,
-    Pulse = function(_, name, strength, duration) c('pulse', { name = name, strength = strength or 1.2, duration = duration or 0.16 }) end,
+    Pulse = function(_, name, strength, duration) c('pulse', { name = name, strength = strength or 0.2, duration = duration or 0.16 }) end,
     Flash = function(_, name, duration) c('flash', { name = name, duration = duration or 0.3 }) end,
     Slide = function(_, name, ox, oy, duration) c('slide', { name = name, ox = ox or 0, oy = oy or 0, duration = duration or 0.25 }) end,
 }";

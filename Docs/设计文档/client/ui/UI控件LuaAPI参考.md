@@ -94,7 +94,7 @@ Lua `OnHide` 会解绑全部按钮，复用不重跑 `OnInit`，因此按钮绑�
 当前限制：
 
 - **`SetTextKey` / `SetTextKeyArgs` / `SetTextKeyPlural` 在当前装配下必抛**（2026-10-10 代码核对）：`UIBindIndex` 的这三个方法首行即校验 `_locale == null` 就抛 `InvalidOperationException`（"需先 BindLocale"），而 **`BindLocale` 在生产链路没有任何调用点**——`LuaBehaviourAdapter.OnInit` 只做 `BindIndexBuilder.Build`，不注入语言服务；全 Assets 搜 `BindLocale` 的调用点只落在 EditMode 用例。即这三个 shim 是**已实现但未接线**的入口，不能在业务脚本里当可用方法写。
-- **`Pulse` 默认强度两侧不一致**（2026-10-10 代码核对）：C# 侧 `UIBindIndex.Pulse(strength = 0.2f, duration = 0.16f)`，而 Lua shim 的 `UiApiShim` 里 `strength or 1.2`——**默认强度 6 倍差**（时长一致）。Lua 侧省略 strength 会得到明显更强的脉冲；需显式传参或先统一两侧默认值。
+- ~~**`Pulse` 默认强度两侧不一致**~~ **已修复（2026-10-10）**：`LuaBehaviourAdapter` shim 默认随 `UIBindIndex.Pulse` 统一为 `0.2`（时长 `0.16` 两侧本就一致）。注意 `strength` 语义 = **目标 alpha 倍率**（`baseAlpha × strength`）：`0.2`＝呼吸至 20% 再回；`>1` 为提亮方向，不透明对象上基本不可见——需要提亮脉冲时显式传参。
 - 未命中/类型不符多数路径抛 KeyNotFoundException 或 InvalidOperationException；部分装饰入口采用日志降级，不能统称“所有失败必抛”。具体实现以 UIBindIndex 为准。
 - 未知派发方法目前静默忽略；目标开发期报告 UnknownMethod，不能在 API 演进中悄悄吞拼写错误。
 - MarkDriver 当前按控件登记命令式/绑定式所有权；目标逐属性协调，避免动效与数据争写。
