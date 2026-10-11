@@ -23,14 +23,14 @@ namespace LiteGame.Tests.EditMode
     {
         private static Dictionary<string, byte[]> ReadTableBytes()
         {
-            // 表数据目录从 ConfigService 单源取
+            // 表数据目录从 ConfigService 单源取；位置=领域相对路径、缓存键=裸表名（Luban loader 契约）
             string dir = Path.Combine(ProjectRoot(), ConfigService.DataDir);
             var cache = new Dictionary<string, byte[]>(ConfigService.TableDataFiles.Length);
             foreach (string f in ConfigService.TableDataFiles)
             {
                 string path = Path.Combine(dir, f + ".bytes");
                 Assert.IsTrue(File.Exists(path), $"缺表数据：{path}（跑 Luban/gen.bat）");
-                cache[f] = File.ReadAllBytes(path);
+                cache[TableLayout.TableName(f)] = File.ReadAllBytes(path);
             }
             return cache;
         }
@@ -41,7 +41,7 @@ namespace LiteGame.Tests.EditMode
             string dir = ConfigService.DataDir;
             const string ext = ".bytes";
             string file = location.Substring(dir.Length, location.Length - dir.Length - ext.Length);
-            return cache.TryGetValue(file, out var bytes)
+            return cache.TryGetValue(TableLayout.TableName(file), out var bytes)
                 ? UniTask.FromResult(bytes)
                 : UniTask.FromException<byte[]>(new FileNotFoundException(location));
         }

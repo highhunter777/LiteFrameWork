@@ -80,6 +80,8 @@ namespace LiteClient
             if (_tables != null) return;                   // 幂等：重复 Load 直接返回
 
             // ① 候选字节预取（缺表 fail-fast，报错带 location）
+            // **键 = 裸表名（Luban 生成物 cfg.Tables 按裸名回调 loader）；位置 = 领域相对路径**
+            // ——两者都从 TableLayout 单源派生（与 RoomServer.CombatNumbers 同范式）。
             var cache = new Dictionary<string, byte[]>(TableDataFiles.Length);
             foreach (string file in TableDataFiles)
             {
@@ -87,7 +89,7 @@ namespace LiteClient
                 string location = TableLayout.TableDataPath(file);
                 try
                 {
-                    cache[file] = await _bytesProvider(location, ct);
+                    cache[TableLayout.TableName(file)] = await _bytesProvider(location, ct);
                 }
                 catch (Exception ex) when (ex is not OperationCanceledException)
                 {

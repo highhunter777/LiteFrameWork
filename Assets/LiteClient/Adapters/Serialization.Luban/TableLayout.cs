@@ -31,5 +31,15 @@ namespace LiteClient
         /// <summary>表数据文件完整 location（<see cref="DataDir"/> + file + ".bytes" 拼接口径单源）——
         /// 装载（<see cref="ConfigService"/>）、服务端直读与编辑器产物核对共用，禁第二份拼接。</summary>
         public static string TableDataPath(string file) => DataDir + file + ".bytes";
+
+        /// <summary>
+        /// Luban 装载键（**裸表名**——生成物 <c>cfg.Tables</c> 构造按裸名逐表回调 loader，
+        /// 见 Generated/Tables.cs）：从 <see cref="Files"/> 的领域相对路径取末段单源派生。
+        /// 装载缓存的键一律用它（领域路径只作位置）；键/位置两侧对不上即 "key not present"。</summary>
+        public static string TableName(string file)
+        {
+            int slash = file.LastIndexOf('/');
+            return slash < 0 ? file : file.Substring(slash + 1);
+        }
     }
 }

@@ -22,7 +22,8 @@ namespace LiteGame.Tests.EditMode
     /// </summary>
     public sealed class CombatNumbersEditModeTests : UnityTestBase
     {
-        private static readonly string[] DataFiles =
+        /// <summary>玩法数值链路必须齐备的**裸表名**（清单条目为领域相对路径——见 <see cref="TableLayout"/>）。</summary>
+        private static readonly string[] RequiredTableNames =
         {
             "tbitemconfig", "tbmovementconfig", "tbentityconfig", "tbuiform", "tbcontententry", "tbstrategy", "tbcombatnum",
             "tbweapon",
@@ -32,24 +33,26 @@ namespace LiteGame.Tests.EditMode
         [Category(TestCategory.Contract)]
         public void 预取清单_含玩法数值表()
         {
-            CollectionAssert.Contains(ConfigService.TableDataFiles, "tbcombatnum",
+            var names = new HashSet<string>();
+            foreach (string f in ConfigService.TableDataFiles) names.Add(TableLayout.TableName(f));
+            Assert.IsTrue(names.Contains("tbcombatnum"),
                 "ConfigService 预取清单缺 tbcombatnum → 启动不会装载数值（表生成了也没用）");
-            foreach (string f in DataFiles)
-                CollectionAssert.Contains(ConfigService.TableDataFiles, f, $"预取清单缺 {f}");
+            foreach (string f in RequiredTableNames)
+                Assert.IsTrue(names.Contains(f), $"预取清单缺 {f}");
         }
 
         [Test]
         [Category(TestCategory.Asset)]
         public void 数值表_可建表且与运行时值一致()
         {
-            // 表数据目录从 ConfigService 单源取
+            // 表数据目录从 ConfigService 单源取；位置=领域相对路径、缓存键=裸表名（Luban loader 契约）
             string dir = Path.Combine(ProjectRoot(), ConfigService.DataDir);
-            var cache = new Dictionary<string, byte[]>(DataFiles.Length);
-            foreach (string f in DataFiles)
+            var cache = new Dictionary<string, byte[]>(ConfigService.TableDataFiles.Length);
+            foreach (string f in ConfigService.TableDataFiles)
             {
                 string path = Path.Combine(dir, f + ".bytes");
                 Assert.IsTrue(File.Exists(path), $"缺表数据：{path}（跑 Luban/gen.bat）");
-                cache[f] = File.ReadAllBytes(path);
+                cache[TableLayout.TableName(f)] = File.ReadAllBytes(path);
             }
 
             var tables = new cfg.Tables(file => new ByteBuf(cache[file]));   // 与 ConfigService 同款 loader

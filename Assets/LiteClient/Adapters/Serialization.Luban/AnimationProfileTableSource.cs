@@ -26,7 +26,7 @@ namespace LiteClient
                 string path = $"{dataDir}{file}.bytes";
                 if (!File.Exists(path))
                     throw new System.IO.FileNotFoundException($"表字节缺失：{path}（先跑 Luban\\gen.bat 生成）", path);
-                cache[file] = File.ReadAllBytes(path);
+                cache[TableLayout.TableName(file)] = File.ReadAllBytes(path);   // 键=裸表名（Luban loader 契约）
             }
 
             var tables = new cfg.Tables(name => new ByteBuf(cache[name]));

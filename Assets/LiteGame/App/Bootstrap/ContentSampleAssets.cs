@@ -7,7 +7,7 @@ namespace LiteGame
     /// 样例构建器共用。
     ///
     /// 标记素材位于**共享资源目录** `Assets/ShareResource/SampleContent/`——它只存在于候选资产包
-    /// （收集组按 `Assets/ShareResource` 整目录收集，内置包不含）；入口探针能加载出来即证明
+    /// （收集组按 `Assets/ShareResource/SampleContent` 收集，内置包不含）；入口探针能加载出来即证明
     /// 资源来自**候选包根**而非内置包（详见《样例①真实资源包段-运行手册》）。
     /// </summary>
     public static class ContentSampleAssets

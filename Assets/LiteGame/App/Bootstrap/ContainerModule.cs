@@ -59,9 +59,8 @@ namespace LiteGame
                 false
 #endif
             );
-            context.Put(commands);
-            _services.RegisterInstance<ICommandCenter>(commands);
-            _services.RegisterInstance<CommandCenter>(commands);   // 具体键：批3 执行形态（SendQueued/Undo/Redo）消费者用
+            context.Put(commands);                                 // 产物登记＝具体键 CommandCenter（执行形态消费者经 Require<CommandCenter> 取）
+            _services.RegisterInstance<ICommandCenter>(commands);  // 接口键（引擎面消费者/帧驱动表用——同实例、别名键）
             _services.RegisterInstance<IConfigTableSource>(config);
             _services.RegisterInstance<IConfigService>(config);
             _services.RegisterInstance<IUILuaRegistry>(uiRegistry);

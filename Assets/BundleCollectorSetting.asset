@@ -124,7 +124,7 @@ MonoBehaviour:
       AssetTags: 
       ActiveRuleName: EnableGroup
       Collectors:
-      - CollectPath: Assets/ShareResource
+      - CollectPath: Assets/ShareResource/SampleContent
         CollectorGUID: 
         CollectorType: 0
         AddressRuleName: AddressByFileName
