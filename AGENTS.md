@@ -97,6 +97,12 @@ Unity 交互（改场景/Prefab/跑 PlayMode）一律走 unity-pipeline CLI，�
 ## 工作约定
 
 - PowerShell 脚本统一用 `pwsh`。
+- **Agent 命令执行环境约定（2026-10-11，按本会话实测坑位沉淀）**：
+  - 跑门禁/项目 `.ps1` 脚本 → `pwsh`（勿用 powershell 5.1）；GBK/乱码读面也用 `pwsh Get-Content`；
+  - 文件手术（批量替换/改名/编码雷区/CRLF 保留）→ **python heredoc 字节模式**（`python - <<'EOF'`）——仓库存在 GBK/UTF-8 混编文件，禁无编码假设的整文件重写；写回用 `newline=''`/`'\r\n'` 保行尾；
+  - git/快查用默认 Git Bash——坑：**MSYS 路径转换**（Windows 路径参数前缀 `MSYS_NO_PATHCONV=1`）、`/tmp` 为虚拟路径勿跨工具交换文件、grep 为 ugrep；
+  - `.bat` 入口 → `cmd //c xxx.bat`；解析 `unity`/pipeline 的 JSON 输出 → python（`raw_decode` 容忍尾随数据）；
+  - Unity 一切操作只走 unity-pipeline CLI（与 shell 无关）；深度嵌套引号的 eval 改用 run_script 落文件。
 - 设计文档与施工进度分开：设计文档只描述最新设计，进度文档只保留最新进度。
 - 文档与代码不一致：以代码为准，并顺手修文档。
 - 目录搬动当批同步：`ScanTargets.cs`（纪律目标）、YooAsset 收集组、`Tests.slnx`/csproj、构建器路径、[Docs/开发导航/代码地图.md](Docs/开发导航/代码地图.md)。
