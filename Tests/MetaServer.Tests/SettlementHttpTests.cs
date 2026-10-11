@@ -36,6 +36,9 @@ namespace MetaServer.Tests
                 map[MetaHost.ConfigSection + ":AuthSigningKeyBase64"] = Convert.ToBase64String(AuthKey);
                 map[MetaHost.ConfigSection + ":LobbyInstanceKeyBase64"] = Convert.ToBase64String(InstanceKey);
                 map[MetaHost.ConfigSection + ":LobbyTicketKeyBase64"] = Convert.ToBase64String(LobbyTicketKey);
+                // 结算凭据与注册凭据分权（P1②）：/matches/result 只认这一份（本组宿主未配结算凭据时
+                // 该端点也是 503 功能关闭——与"存储未配置"同形，故此处补齐以便区分两条关闭原因）。
+                map[MetaHost.ConfigSection + ":SettlementInstanceKeyBase64"] = Convert.ToBase64String(InstanceKey);
             });
         }
 

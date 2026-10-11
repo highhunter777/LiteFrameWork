@@ -25,8 +25,12 @@ namespace RoomServer.Application
         /// <summary>nonce 一次性消费窗口默认容量（条目数）。</summary>
         public const int DefaultNonceWindow = 4096;
 
-        /// <summary>票据字符串字节上限（P0-3 解析前限制长度：超限不解析直接拒）。</summary>
-        public const int DefaultMaxTokenBytes = 2048;
+        /// <summary>
+        /// 票据字符串字节上限（P0-3 解析前限制长度：超限不解析直接拒）。
+        /// **与准入门同源**（P2）：<see cref="JoinFieldLimits.TokenBytes"/>——准入先拦 256 字节，
+        /// 验签器此前自钉 2048 永远够不着（等于"第二道闸"形同虚设，且让"上限到底是多少"有两个答案）。
+        /// </summary>
+        public const int DefaultMaxTokenBytes = JoinFieldLimits.TokenBytes;
 
         private readonly Dictionary<string, JoinTicketKey> _keysByKid =
             new Dictionary<string, JoinTicketKey>(StringComparer.Ordinal);

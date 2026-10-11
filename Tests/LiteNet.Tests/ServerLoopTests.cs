@@ -43,6 +43,48 @@ namespace LiteNet.Tests
             return new ServerLoop(clock, new VirtualDelay(clock), pump: () => { }, tickRate: tickRate);
         }
 
+        // ---- P0-2 验收：帧体异常被吸收（线程不得死）+ 上报节流 ----
+
+        /// <summary>
+        /// 帧体每帧必抛（= 坏配置在生产里的形态：33+ 席位让 RoomRuntime 构造抛）：循环必须**继续推进**
+        /// 且把异常记成可见计数。旧行为是异常窜出 <c>LoopBody</c> 直接杀死 IsBackground 线程——
+        /// 进程既不推进对局也不退出（僵尸），且没有日志说明发生了什么。
+        /// </summary>
+        [Fact]
+        public void 帧体持续抛异常_循环不中断_计数与首败加每百次上报()
+        {
+            var clock = new VirtualClock();
+            int pumped = 0;
+            var reported = new System.Collections.Generic.List<System.Exception>();
+            var loop = new ServerLoop(clock, new VirtualDelay(clock),
+                pump: () => { pumped++; throw new System.InvalidOperationException("每帧必抛（坏配置形态）"); },
+                tickRate: 60,
+                onPumpError: reported.Add);
+
+            loop.Run(2000);                                   // 虚拟 2s = 120 帧
+
+            Assert.Equal(120, pumped);                        // 循环未中断（旧行为：第 1 帧即杀线程）
+            Assert.Equal(120L, loop.Stats.Ticks);             // Ticks = 帧体调用次数（含抛错的帧）
+            Assert.Equal(120L, loop.Stats.PumpFailures);      // 失败另计，Ops 可见
+            Assert.Equal(2, reported.Count);                  // 首败必报 + 第 100 次（其余节流）
+            Assert.Contains("每帧必抛", loop.Stats.LastPumpError);
+        }
+
+        /// <summary>未注入上报口 = 只计数不日志（嵌入式/用例形态）：仍不得中断循环。</summary>
+        [Fact]
+        public void 帧体抛异常_无上报口_仅计数不中断()
+        {
+            var clock = new VirtualClock();
+            var loop = new ServerLoop(clock, new VirtualDelay(clock),
+                pump: () => throw new System.InvalidOperationException("boom"), tickRate: 60);
+
+            loop.Run(100);
+
+            Assert.True(loop.Stats.PumpFailures > 0, "异常必须计数（否则静默吞掉）");
+            Assert.Equal(loop.Stats.Ticks, loop.Stats.PumpFailures);
+            Assert.Contains("boom", loop.Stats.LastPumpError);
+        }
+
         // ---- P0-1 验收：虚拟 10 分钟精确 36,000 tick；30/60/120Hz 参数化无累计漂移 ----
 
         [Theory]

@@ -9,9 +9,6 @@ using RoomServer;
 using RoomServer.Application;
 using RoomServer.Runtime;
 
-// 排空宽限：收到停止信号后等待对局自然收敛的时长（§12 第 3 步"在配置时限内完成对局"）。
-const long DrainGraceMs = 5_000;
-
 // RoomServer 入口（权威循环 + 快照/回溯/Ops）。
 // 节拍由 ServerLoop 绝对锚定（60Hz，防漂移累积）。
 //
@@ -23,6 +20,9 @@ const long DrainGraceMs = 5_000;
 //   --envelope-key <base64>（或环境变量 LITENET_SECURE_ENVELOPE_KEY）
 //   --lobby-instance-key <base64>（或环境变量 LITENET_LOBBY_INSTANCE_KEY；配置 lobby.url 时必填——
 //     实例注册凭据，与 Meta 的 LobbyInstanceKeyBase64 同值）
+//   --settlement-instance-key <base64>（或环境变量 LITENET_SETTLEMENT_INSTANCE_KEY；配置
+//     settlement.submit_url 时必填——**结算凭据与实例注册分权**（P1②），与 Meta 的
+//     SettlementInstanceKeyBase64 同值：注册实例 ≠ 写结算账本，两权限面不共用凭据）
 //   --allow-insecure-local（仅本机联调，显式允许裸 KCP；公网/共享环境禁止）
 //
 // **房间形态**：单进程多房间 + 动态创建（§6"一个 roomId 只能映射一个独立 RoomActor"）。
@@ -32,6 +32,9 @@ const long DrainGraceMs = 5_000;
 // 对象图注册/构建在 HostAssembly；解析序=创建序（outbox → transport → host），
 // 容器按创建序逆序释放，与历史 using 声明序（host→transport→outbox）等价。
 var serverConfig = RoomServerConfig.Load(ResolveConfigPath(args));
+// 宿主运行期调参（P2 批二）：排空宽限/看门狗/Ops 间隔/A 会话清理/重连票据/压实阈值一律走配置
+// （`host_tuning` 分区可选，缺省 = 迁移前的字面量常量）——部署形态下调参不再需要改代码。
+HostTuning tuning = serverConfig.HostTuning;
 
 long durationMs = 0;
 bool quiet = false;
@@ -39,8 +42,9 @@ int? portOverride = null;
 string combatTableDir = null;
 var ticketKeys = new List<JoinTicketKey>();
 string audienceOverride = null;
-string envelopeKeyBase64 = Environment.GetEnvironmentVariable("LITENET_SECURE_ENVELOPE_KEY");
-string lobbyInstanceKeyBase64 = Environment.GetEnvironmentVariable("LITENET_LOBBY_INSTANCE_KEY");
+string envelopeKeyBase64 = Environment.GetEnvironmentVariable(EnvVars.EnvelopeKey);
+string lobbyInstanceKeyBase64 = Environment.GetEnvironmentVariable(EnvVars.LobbyInstanceKey);
+string settlementInstanceKeyBase64 = Environment.GetEnvironmentVariable(EnvVars.SettlementInstanceKey);
 bool allowInsecureLocal = false;
 
 for (int i = 0; i < args.Length; i++)
@@ -53,6 +57,7 @@ for (int i = 0; i < args.Length; i++)
         case "--audience": if (i + 1 < args.Length) audienceOverride = args[++i]; break;
         case "--envelope-key": if (i + 1 < args.Length) envelopeKeyBase64 = args[++i]; break;
         case "--lobby-instance-key": if (i + 1 < args.Length) lobbyInstanceKeyBase64 = args[++i]; break;
+        case "--settlement-instance-key": if (i + 1 < args.Length) settlementInstanceKeyBase64 = args[++i]; break;
         case "--allow-insecure-local": allowInsecureLocal = true; break;
         case "--combat-table": if (i + 1 < args.Length) combatTableDir = args[++i]; break;
         case "--ticket-key":
@@ -114,22 +119,26 @@ if (serverConfig.LobbyEnabled)
         InstanceKey = lobbyKey,
         AdvertiseHost = serverConfig.LobbyAdvertiseHost,
         HeartbeatIntervalMs = (int)serverConfig.LobbyHeartbeatIntervalMs,
-        RequestTimeoutMs = 5000,
+        // 超时可配（P2 批二：此前写死 5000，与结算管道的 settlement.timeout_ms 口径不一）
+        RequestTimeoutMs = tuning.LobbyRequestTimeoutMs,
     };
 }
 
-// 结算提交参数（配置了 settlement.submit_url 才组装）：与 Lobby 注册共用实例密钥
-// （同一条房间侧→Meta 服务通道）。
+// 结算提交参数（配置了 settlement.submit_url 才组装）：**独立凭据**（P1②）
+// ——结算写账本与实例注册是两条权限面，不共用实例密钥；缺结算凭据即拒启（fail-closed，
+// 与 Lobby 注册同款：不静默退回 lobby 密钥，那等于把分权又抹平一次）。
 SettlementSubmitService.Settings settlementSettings = null;
 if (serverConfig.SettlementEnabled)
 {
-    if (string.IsNullOrWhiteSpace(lobbyInstanceKeyBase64))
+    if (string.IsNullOrWhiteSpace(settlementInstanceKeyBase64))
         throw new InvalidOperationException(
-            "RoomServer 已配置结算提交管道（settlement.submit_url）但缺实例密钥：请提供 --lobby-instance-key 或环境变量 LITENET_LOBBY_INSTANCE_KEY。");
+            "RoomServer 已配置结算提交管道（settlement.submit_url）但缺**结算**实例密钥："
+            + "请提供 --settlement-instance-key 或环境变量 LITENET_SETTLEMENT_INSTANCE_KEY"
+            + "（与 Meta 的 SettlementInstanceKeyBase64 同值；结算与 Lobby 注册分权，不复用 --lobby-instance-key）。");
     byte[] settlementKey;
     try
     {
-        settlementKey = Convert.FromBase64String(lobbyInstanceKeyBase64);
+        settlementKey = Convert.FromBase64String(settlementInstanceKeyBase64);
     }
     catch (FormatException)
     {
@@ -226,8 +235,9 @@ if (durationMs > 0)
 {
     loop.Run(durationMs);                       // 验收形态：跑满时长即退出
 var stats = loop.Stats;
-    Console.WriteLine($"[RoomServer] 跑满 {durationMs}ms：房间数={host.RoomCount} ticks={stats.Ticks} " +
-        $"掉时债={stats.DroppedTimeMs}ms 放弃追帧={stats.CatchUpAbandoned}");
+Console.WriteLine($"[RoomServer] 跑满 {durationMs}ms：房间数={host.RoomCount} ticks={stats.Ticks} " +
+    $"掉时债={stats.DroppedTimeMs}ms 放弃追帧={stats.CatchUpAbandoned} 泵失败={stats.PumpFailures}"
+    + (stats.LastPumpError != null ? $"（最近：{stats.LastPumpError}）" : string.Empty));
 }
 else
 {
@@ -245,13 +255,16 @@ else
     using var sigterm = TryRegisterSigterm(shutdown);
 
     loop.Start();
-    Console.WriteLine($"[RoomServer] 常驻中（Ctrl+C 优雅关闭；排空时限 {DrainGraceMs}ms；结算日志 {serverConfig.SettlementJournalPath}）");
+    Console.WriteLine($"[RoomServer] 常驻中（Ctrl+C 优雅关闭；排空时限 {tuning.DrainGraceMs}ms"
+        + $"（看门狗 +{tuning.DrainWatchdogExtraMs}ms）；结算日志 {serverConfig.SettlementJournalPath}）");
     shutdown.Wait();
 
     Console.WriteLine("[RoomServer] 收到停止信号 → 开始排空");
-    host.BeginDrain(host.CurrentMs + DrainGraceMs);
+    // §12 第 3 步"在配置时限内完成对局"：时限本身可配（host_tuning.drain_grace_ms）
+    host.BeginDrain(host.CurrentMs + tuning.DrainGraceMs);
     var drainWatch = System.Diagnostics.Stopwatch.StartNew();
-    while (!host.DrainComplete && drainWatch.ElapsedMilliseconds < DrainGraceMs + 2_000)
+    while (!host.DrainComplete
+        && drainWatch.ElapsedMilliseconds < tuning.DrainGraceMs + tuning.DrainWatchdogExtraMs)
     {
         Thread.Sleep(50);
     }
@@ -292,4 +305,16 @@ static PosixSignalRegistration TryRegisterSigterm(ManualResetEventSlim shutdown)
     {
         return null;
     }
+}
+
+/// <summary>
+/// 房间侧环境变量名（P2 批二收口）：名字是**部署契约**——部署脚本与文档必须与代码同名，
+/// 字面量散在多处时改名会静默漏改（表现为"密钥注入了但服务说没注入"）。
+/// 声明置于顶级语句之后：顶级语句文件的局部函数属于顶级语句，类型声明不能插在它们之间。
+/// </summary>
+static class EnvVars
+{
+    public const string EnvelopeKey = "LITENET_SECURE_ENVELOPE_KEY";
+    public const string LobbyInstanceKey = "LITENET_LOBBY_INSTANCE_KEY";
+    public const string SettlementInstanceKey = "LITENET_SETTLEMENT_INSTANCE_KEY";
 }

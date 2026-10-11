@@ -42,11 +42,12 @@ namespace RoomServer.Application
 
         /// <summary>
         /// Join 字段 UTF-8 字节上限（P0-3：所有字符串限制 UTF-8 字节数——防超长串打爆日志/内存）。
-        /// **本类是这三个上限的唯一权威**（原在 ServerHost，判定链下沉时一并迁入）。
+        /// **别名**：上限表单源 = 共享侧 <see cref="JoinFieldLimits"/>（P2——此前本类与验签器各钉一份，
+        /// 票据上限两处不同值）。宿主 <c>ServerHost.Max*Bytes</c> 同样指向本处，三级同源。
         /// </summary>
-        public const int MaxRoomIdBytes = 64;
-        public const int MaxTokenBytes = 256;
-        public const int MaxBuildHashBytes = 128;
+        public const int MaxRoomIdBytes = JoinFieldLimits.RoomIdBytes;
+        public const int MaxTokenBytes = JoinFieldLimits.TokenBytes;
+        public const int MaxBuildHashBytes = JoinFieldLimits.BuildHashBytes;
 
         /// <param name="ticketValidator">票据验证器；null = 未装配（退回原型级非空校验，生产必须装配）。</param>
         /// <param name="rateLimit">分层限流器（IP/账号两个入场维度）。</param>

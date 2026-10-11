@@ -40,11 +40,14 @@ namespace RoomServer
     {
         /// <summary>服务器版本锚点 = 源码内容哈希（Sim 或协议一改，握手即拒）。</summary>
         public const string ServerBuildHash = BuildHash.Value;
-        public const long OpsIntervalMs = 5000;
 
-        /// <summary>入包长度上限（字节）：《服务端总设计》§5 P0-3——protobuf 解析**之前**的硬边界。
-        /// 入站合法包 = 冗余输入（4 帧 × ~50B）或 Join/重连信令，远小于此；超限按恶意包丢弃计数。</summary>
-        public const int MaxInboundPacketBytes = 4096;
+        /// <summary>Ops 周期行间隔**缺省值**（毫秒）——可配，见 <see cref="HostTuning.OpsIntervalMs"/>（P2 批二）。</summary>
+        public const long OpsIntervalMs = HostTuning.DefaultOpsIntervalMs;
+
+        /// <summary>入包长度上限**缺省值**（字节）：《服务端总设计》§5 P0-3——protobuf 解析**之前**的硬边界。
+        /// 入站合法包 = 冗余输入（4 帧 × ~50B）或 Join/重连信令，远小于此；超限按恶意包丢弃计数。
+        /// 可配，见 <see cref="HostTuning.MaxInboundPacketBytes"/>（P2 批二）。</summary>
+        public const int MaxInboundPacketBytes = HostTuning.DefaultMaxInboundPacketBytes;
 
         /// <summary>
         /// Join 字段 UTF-8 字节上限（P0-3：所有字符串限制 UTF-8 字节数——防超长串打爆日志/内存）。
@@ -57,7 +60,11 @@ namespace RoomServer
 
         private readonly IRoomTransport _transport;   // 窄端口（可替换性）
         private readonly SessionManager _sessions;
-        private readonly ReconnectService _reconnects = new ReconnectService();
+        private readonly ReconnectService _reconnects;
+
+        /// <summary>宿主运行期调参（P2 批二）：Ops 间隔 / 入包上限 / 会话清理节拍与静默 / 重连票据 /
+        /// 压实阈值。来源 = 配置的 <c>host_tuning</c> 分区（缺省 <see cref="HostTuning.Default"/>）。</summary>
+        private readonly HostTuning _tuning;
 
         /// <summary>
         /// 分层限流：IP 维度（连接/入场）+ 账号维度（入场）+ Session 维度（包速率）。
@@ -88,11 +95,14 @@ namespace RoomServer
         /// </summary>
         private readonly JoinAdmissionGate _admission;
 
-        /// <summary>票据拒绝分类计数（OPS 输出；索引 = <see cref="JoinTicketRejection"/> 值）。</summary>
-        private readonly int[] _ticketRejections = new int[16];
+        /// <summary>票据拒绝分类计数（OPS 输出；索引 = <see cref="JoinTicketRejection"/> 值）。
+        /// 槽位数**由枚举推出**（P2 批二：原为字面量 16——枚举加分类时数组会静默截断/越界归零）。</summary>
+        private readonly int[] _ticketRejections =
+            new int[Enum.GetValues(typeof(JoinTicketRejection)).Length];
 
-        /// <summary>会话周期清理节拍（600 tick ≈ 10s @60Hz）。</summary>
-        public const int SessionCleanupIntervalTicks = 600;
+        /// <summary>会话周期清理节拍**缺省值**（600 tick ≈ 10s @60Hz）——可配，见
+        /// <see cref="HostTuning.SessionCleanupIntervalTicks"/>（P2 批二）。</summary>
+        public const int SessionCleanupIntervalTicks = HostTuning.DefaultSessionCleanupIntervalTicks;
         private int _ticksSinceCleanup;
 
         // ---- 房间表（§6"一个 roomId 只能映射一个独立 RoomActor"）----
@@ -362,7 +372,13 @@ namespace RoomServer
             int sessionCapacity = _serverConfig != null
                 ? 4 * _serverConfig.MaxRooms * _serverConfig.MaxExpectedPlayers
                 : 4 * (first != null ? first.Runtime.ExpectedPlayers : 2);
-            _sessions = new SessionManager(sessionCapacity);
+            // 运行期调参（P2 批二）：缺省 = HostTuning.Default = 迁移前的字面量常量
+            _tuning = _serverConfig?.HostTuning ?? HostTuning.Default;
+            _sessions = new SessionManager(sessionCapacity,
+                disconnectedTtlMs: _tuning.ReconnectTicketTtlMs,
+                unseatedIdleTtlMs: _tuning.SessionUnseatedIdleTtlMs);
+            // 重连票据：TTL 与会话的"断线保留"同源（重连窗口内不清，窗口外必清）
+            _reconnects = new ReconnectService(_tuning.ReconnectCapacity, ttlMs: _tuning.ReconnectTicketTtlMs);
 
             _transport.OnConnected += OnTransportConnected;
             _transport.OnData += OnTransportData;
@@ -567,7 +583,7 @@ namespace RoomServer
             _nowMs = NowMs();
 
             // P0-3 包体硬边界：长度限制在 protobuf 解析**之前**（超长包不进解析器 = 不给"解析耗尽内存"留门）
-            if (data.Count > MaxInboundPacketBytes)
+            if (data.Count > _tuning.MaxInboundPacketBytes)
             {
                 _ops.PacketOversized++;
                 return;
@@ -747,27 +763,11 @@ namespace RoomServer
             if (!_mailboxRouting)
                 _ops.CountAck(session.TryAcceptAck(msg.AckSnapshot));
 
-            // proto → 纯数据（App 职责；Runtime 不见 proto）。Count 传原始条数——
-            // 超冗余窗的整条拒绝由闸门判定（形状纪律不在 App 预筛，避免两处口径漂移）。
-            int raw = msg.Frames.Count;
-            int copy = raw <= ClientInputBatch.MaxFrames ? raw : ClientInputBatch.MaxFrames;
-            for (int i = 0; i < copy; i++)
-            {
-                Proto.InputFrame f = msg.Frames[i];
-                _batchFrames[i] = new SimInputFrame
-                {
-                    EntityId = f.EntityId,
-                    MoveX = f.MoveX, MoveZ = f.MoveZ,
-                    // **AimPoint 必须随行**（单口径：判定/爆头/朝向全读它——《固定斜视角射击方案
-                    // 专项设计》§4）。此前本拷贝漏了 AimY/AimPoint 六字段（真服链路断点，本地服却拷了
-                    // ——L3 直造 SimInputFrame 时暴露不出来）；单口径后只此三点，无再漏面。
-                    AimPointX = f.AimPointX, AimPointY = f.AimPointY, AimPointZ = f.AimPointZ,
-                    Buttons = f.Buttons,
-                    SelectedWeaponSlot = f.SelectedWeaponSlot,
-                    TargetEntityId = f.TargetEntityId,
-                    ActionSeq = f.ActionSeq,
-                };
-            }
+            // proto → 纯数据（App 职责；Runtime 不见 proto）。**逐字段映射单源在
+            // LiteNet.Protocol.InputPacker**（P0-3）：此前真服/本地服各手抄一份，AimPoint 六字段
+            // 已真实漂移过一次（真服链路断点而本地服照常）；共享 mapper 后该类漂移结构性消除。
+            // Count 传原始条数——超冗余窗的整条拒绝由闸门判定（形状纪律不在 App 预筛，避免两处口径漂移）。
+            int raw = InputPacker.UnpackFrames(msg, _batchFrames);
             _inputBatch.Frame = msg.Frame;
             _inputBatch.AckSnapshot = msg.AckSnapshot;
             _inputBatch.ViewFrame = msg.ViewFrame;
@@ -1816,7 +1816,7 @@ namespace RoomServer
                         PlayerId = pa.PlayerId,
                         Members = { pa.Members },
                         ReconnectToken = ticket,
-                        ReconnectWindowSeconds = (int)(ReconnectService.TicketTtlMs / 1000),
+                        ReconnectWindowSeconds = (int)(_reconnects.TtlMs / 1000),
                         SnapshotHz = SimConfig.SnapshotHz,
                         TickRate = SimConfig.TickRate,
                     }, reliable: true);
@@ -1946,7 +1946,7 @@ namespace RoomServer
                 // （结算入盒等），此处先移除再调整下标，下一轮不再遍历本房间。
                 if (TryDestroyTerminalRoom(room)) i--;
             }
-            if (++_ticksSinceCleanup >= SessionCleanupIntervalTicks)
+            if (++_ticksSinceCleanup >= _tuning.SessionCleanupIntervalTicks)
             {
                 _ticksSinceCleanup = 0;
                 _ops.SessionsCleaned += _sessions.Cleanup(_nowMs);   // §9.2 周期清理（容量+时效）
@@ -2093,20 +2093,23 @@ namespace RoomServer
                 return null;
             }
 
-            RoomConfig cfg;
             try
             {
-                cfg = _serverConfig.BuildRoomConfig(null, roomId);   // 无模板参数 → 配置的 default_template
+                // 无模板参数 → 配置的 default_template
+                RoomConfig cfg = _serverConfig.BuildRoomConfig(null, roomId);
+                // **内核构造也在 try 内**（P0-2）：此前 try 只包配置解析，AddRoom → RoomRuntime
+                // 构造抛出的异常会一路窜上权威循环线程（现成触发源：expected_players 超过内核容量，
+                // 现两侧已同源校验；此处是不依赖上游校验的兜底）。构造失败时房间尚未登记（登记是
+                // AddRoom 的最后两步），故直接拒绝即可，无半成品残留。
+                return AddRoom(cfg, dynamic: true).Runtime;
             }
             catch (Exception ex)
             {
-                // 配置错误不炸宿主：拒绝该房号并计数（§429 范围校验在装载期已挡掉大部分，此处兜底）
+                // 配置/构造错误不炸宿主：拒绝该房号并计数（§429 范围校验在装载期已挡掉大部分，此处兜底）
                 _ops.RoomsRejectedBadConfig++;
                 Console.WriteLine($"[Room] 建房被拒 room={roomId}: {ex.Message}");
                 return null;
             }
-
-            return AddRoom(cfg, dynamic: true).Runtime;
         }
 
         /// <summary>登记一个房间（构造预置与 <see cref="OpenRoom"/> 共用）。</summary>
@@ -2229,7 +2232,7 @@ namespace RoomServer
         private void MaybePrintOps()
         {
             if (!_ops.PrintEnabled) return;
-            if (_nowMs - _ops.LastPrintMs < OpsIntervalMs) return;
+            if (_nowMs - _ops.LastPrintMs < _tuning.OpsIntervalMs) return;
             _ops.LastPrintMs = _nowMs;
 
             for (int i = 0; i < _rooms.Count; i++)

@@ -1,10 +1,10 @@
 using System;
 using System.Collections.Generic;
-using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using MetaServer.Contracts.Persistence;
 using MetaServer.Contracts.Profile;
+using MetaServer.Contracts.Validation;
 
 namespace MetaServer.Modules.Profile
 {
@@ -36,8 +36,8 @@ namespace MetaServer.Modules.Profile
         /// <summary>本端点的结算类型（§11.3 推荐唯一键的第三维；后续局外发放类型按需扩表）。</summary>
         public const string SettlementType = "match";
 
-        /// <summary>单字段长度上界（§P0-3"解析后限制长度"同款纪律）。</summary>
-        public const int MaxFieldBytes = 64;
+        /// <summary>单字段长度上界（**别名**：上限表单源 <see cref="FieldLimits.BusinessKeyBytes"/>）。</summary>
+        public const int MaxFieldBytes = FieldLimits.BusinessKeyBytes;
 
         /// <summary>单提交玩家数上界（对局上限 8 人留余量；防单请求放大事务量）。</summary>
         public const int MaxPlayers = 64;
@@ -201,8 +201,8 @@ namespace MetaServer.Modules.Profile
                 return errors;
             }
 
-            ValidateField(errors, "requestId", submission.RequestId, 128);
-            ValidateField(errors, "matchId", submission.MatchId, MaxFieldBytes);
+            FieldValidation.Append(errors, "requestId", submission.RequestId, FieldLimits.ShortIdBytes);
+            FieldValidation.Append(errors, "matchId", submission.MatchId, MaxFieldBytes);
             if (submission.Seed < 0) errors.Add("seed 不得为负");
             if (submission.FinalFrame < 0) errors.Add("finalFrame 不得为负");
             if (submission.EndReason < 0) errors.Add("endReason 不得为负");
@@ -228,8 +228,8 @@ namespace MetaServer.Modules.Profile
                         errors.Add("players[" + i + "] 为空");
                         continue;
                     }
-                    ValidateField(errors, "players[" + i + "].playerId", entry.PlayerId, MaxFieldBytes);
-                    ValidateField(errors, "players[" + i + "].accountId", entry.AccountId, MaxFieldBytes);
+                    FieldValidation.Append(errors, "players[" + i + "].playerId", entry.PlayerId, MaxFieldBytes);
+                    FieldValidation.Append(errors, "players[" + i + "].accountId", entry.AccountId, MaxFieldBytes);
                     if (entry.Kills < 0)
                     {
                         errors.Add("players[" + i + "].kills 不得为负");
@@ -246,10 +246,12 @@ namespace MetaServer.Modules.Profile
                     {
                         errors.Add("players[" + i + "].expectedRevision 只允许 -1（追加）或 ≥0（CAS 期望）");
                     }
+                    // operationId 可空（服务端按 match:{matchId}:{playerId} 确定性派生）；非空才校验上限
                     if (!string.IsNullOrEmpty(entry.OperationId)
-                        && Encoding.UTF8.GetByteCount(entry.OperationId) > 256)
+                        && !FieldValidation.IsValid(entry.OperationId, FieldLimits.OperationIdBytes))
                     {
-                        errors.Add("players[" + i + "].operationId 不得超过 256 UTF-8 字节");
+                        errors.Add("players[" + i + "].operationId 不得超过 "
+                            + FieldLimits.OperationIdBytes + " UTF-8 字节");
                     }
                     if (!string.IsNullOrEmpty(entry.PlayerId) && !seen.Add(entry.PlayerId))
                     {
@@ -261,16 +263,5 @@ namespace MetaServer.Modules.Profile
             return errors;
         }
 
-        private static void ValidateField(List<string> errors, string name, string value, int maxBytes)
-        {
-            if (string.IsNullOrEmpty(value))
-            {
-                errors.Add(name + " 不得为空");
-            }
-            else if (Encoding.UTF8.GetByteCount(value) > maxBytes)
-            {
-                errors.Add(name + " 不得超过 " + maxBytes + " UTF-8 字节");
-            }
-        }
     }
 }

@@ -17,13 +17,17 @@ namespace RoomServer.Application
         private readonly IMonotonicClock _clock;
         private readonly IDelayStrategy _delay;
         private readonly Action _pump;
+        private readonly Action<Exception> _onPumpError;
         private readonly Thread _thread;
         private volatile bool _running;
+
+        /// <summary>帧体异常上报节流步长（首败必报，其后每 N 次报一次——坏配置这类"每帧必抛"不得刷屏）。</summary>
+        private const long PumpErrorReportEvery = 100;
 
         /// <summary>节拍统计（常驻线程写、外部读——用 <see cref="LoopStats"/> 聚合，避免逐字段竞态读）。</summary>
         public sealed class LoopStats
         {
-            /// <summary>实际跑过的权威帧数（= Pump 次数，含补帧）。</summary>
+            /// <summary>实际跑过的权威帧数（= 帧体调用次数，含补帧与**抛错的帧**）。</summary>
             public long Ticks;
 
             /// <summary>累计丢弃的时间债（毫秒；>0 = 服务器跟不上，Ops 观测项）。</summary>
@@ -31,6 +35,12 @@ namespace RoomServer.Application
 
             /// <summary>因超过 <see cref="MaxCatchUp"/> 而放弃追帧的次数。</summary>
             public long CatchUpAbandoned;
+
+            /// <summary>帧体抛异常被吸收的次数（P0-2：>0 = 权威循环已吞掉异常，必须查 <see cref="LastPumpError"/>）。</summary>
+            public long PumpFailures;
+
+            /// <summary>最近一次被吸收的帧体异常描述（<c>类型: 消息</c>；null = 从未失败）。</summary>
+            public string LastPumpError;
         }
 
         private readonly LoopStats _stats = new LoopStats();
@@ -39,19 +49,23 @@ namespace RoomServer.Application
         public LoopStats Stats => _stats;
 
         /// <summary>生产装配：真实时钟 + 真实等待 + 60Hz（便捷构造，host.Pump 为默认帧体）。</summary>
-        public ServerLoop(ServerHost host, Action pumpOverride = null)
+        /// <param name="onPumpError">帧体异常上报口（宿主注入日志；见 <see cref="PumpOnce"/>）。</param>
+        public ServerLoop(ServerHost host, Action pumpOverride = null, Action<Exception> onPumpError = null)
             : this(StopwatchClock.Instance, ThreadSleepDelay.Instance,
                   (pumpOverride ?? (host ?? throw new ArgumentNullException(nameof(host))).Pump),
-                  SimTickHz)
+                  SimTickHz,
+                  onPumpError)
         {
         }
 
         /// <summary>调度器核心装配（L1 用虚拟时钟/虚拟延迟驱动；生产勿接真实环境以外的时钟）。</summary>
-        public ServerLoop(IMonotonicClock clock, IDelayStrategy delay, Action pump, int tickRate = SimTickHz)
+        public ServerLoop(IMonotonicClock clock, IDelayStrategy delay, Action pump, int tickRate = SimTickHz,
+            Action<Exception> onPumpError = null)
         {
             _clock = clock ?? throw new ArgumentNullException(nameof(clock));
             _delay = delay ?? throw new ArgumentNullException(nameof(delay));
             _pump = pump ?? throw new ArgumentNullException(nameof(pump));
+            _onPumpError = onPumpError;
             if (tickRate <= 0) throw new ArgumentOutOfRangeException(nameof(tickRate), tickRate, "帧率必须为正");
             TickRate = tickRate;
             _thread = new Thread(LoopBody) { IsBackground = true, Name = "RoomServer.Loop" };
@@ -75,15 +89,15 @@ namespace RoomServer.Application
                 long next = Anchor(start, tick);
                 if (next >= end) break;
                 _delay.DelayUntil(_clock, next);
-                _pump();
-                _stats.Ticks++;              // 累计（跨多次 Run 调用/常驻全程）
+                PumpOnce();                  // 帧体异常一律吸收（Run 与 LoopBody 同一纪律）
                 tick++;
 
                 StepCatchUp(ref start, ref tick, running: () => true);
             }
         }
 
-        /// <summary>常驻循环：与 <see cref="Run(long)"/> 同一套锚定/追赶/丢债规则。</summary>
+        /// <summary>常驻循环：与 <see cref="Run(long)"/> 同一套锚定/追赶/丢债规则 + 帧体异常吸收
+        /// （<see cref="PumpOnce"/>——线程不得因帧体异常死亡）。</summary>
         private void LoopBody()
         {
             long start = _clock.Timestamp;
@@ -91,8 +105,7 @@ namespace RoomServer.Application
             while (_running)
             {
                 _delay.DelayUntil(_clock, Anchor(start, tick));
-                _pump();
-                _stats.Ticks++;
+                PumpOnce();
                 tick++;
 
                 StepCatchUp(ref start, ref tick, running: () => _running);
@@ -105,6 +118,31 @@ namespace RoomServer.Application
         }
 
         /// <summary>
+        /// 跑一帧权威帧体：**异常一律吸收**（P0-2），绝不让一根异常杀死循环线程——
+        /// 本线程是 <c>IsBackground</c>，线程死亡 = 进程变僵尸：既不推进对局、也不退出、继续占资源，
+        /// 且没有任何日志说明发生了什么。对照 <c>RoomWorkerPool</c> 的 worker 异常隔离——同系统同一纪律。
+        ///
+        /// 记账口径：<see cref="LoopStats.Ticks"/> 数**帧体调用次数**（含抛错的帧），与
+        /// <see cref="StepCatchUp"/> 的追帧计数同源；失败另计 <see cref="LoopStats.PumpFailures"/>。
+        /// 上报节流：首败必报，其后每 <see cref="PumpErrorReportEvery"/> 次报一次（"每帧必抛"的坏配置
+        /// 不得刷屏，但也不能静默——Opus/Ops 行读 <see cref="LoopStats.PumpFailures"/> 即知）。
+        /// </summary>
+        private void PumpOnce()
+        {
+            try
+            {
+                _pump();
+            }
+            catch (Exception ex)
+            {
+                long failures = ++_stats.PumpFailures;
+                _stats.LastPumpError = ex.GetType().Name + ": " + ex.Message;
+                if (failures == 1 || failures % PumpErrorReportEvery == 0) _onPumpError?.Invoke(ex);
+            }
+            _stats.Ticks++;
+        }
+
+        /// <summary>
         /// 有界追赶 + 丢债（Run 与 LoopBody 共用同一份规则——两处手抄必漂移）：
         /// 落后则连续补跑（不跳帧），上限 <see cref="MaxCatchUp"/>；超限即把锚点前移到当前时刻
         /// （丢掉的时间债记账进 <see cref="LoopStats.DroppedTimeMs"/>）。
@@ -114,8 +152,7 @@ namespace RoomServer.Application
             int catchUp = 0;
             while (running() && _clock.Timestamp > Anchor(start, tick) && catchUp < MaxCatchUp)
             {
-                _pump();
-                _stats.Ticks++;
+                PumpOnce();
                 tick++;
                 catchUp++;
             }

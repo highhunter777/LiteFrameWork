@@ -35,6 +35,24 @@ namespace LiteNet.Protocol
             return true;
         }
 
+        /// <summary>
+        /// 解包**整批**进调用方复用数组（proto → 纯数据，零分配）：拷 <c>min(条数, <see cref="MaxRedundancy"/>)</c>
+        /// 条到 <paramref name="into"/>，返回**原始条数**（调用方按原始条数填 <c>Count</c>——
+        /// 超冗余窗的整条拒绝由闸门判定，形状纪律不在 App 预筛，避免两处口径漂移）。
+        ///
+        /// **两端宿主唯一映射路径**（P0-3）：服务端宿主 <c>ServerHost.HandleInput</c> 与离线本地服
+        /// <c>LocalServerTransport.HandleInput</c> 曾各自手抄一份逐字段拷贝，AimPoint 六字段已真实漂移过一次
+        /// （真服链路断点而本地服照常——本地绿掩盖真服红）。字段面归本方法后，加/删字段只改一处，
+        /// 该类漂移在结构上不可能再发生。
+        /// </summary>
+        public static int UnpackFrames(Proto.InputMessage msg, SimInputFrame[] into)
+        {
+            int raw = msg.Frames.Count;
+            int copy = Math.Min(raw, MaxRedundancy);
+            for (int i = 0; i < copy; i++) into[i] = FromProto(msg.Frames[i]);
+            return raw;
+        }
+
         public static Proto.InputFrame ToProto(in SimInputFrame src)
         {
             return new Proto.InputFrame

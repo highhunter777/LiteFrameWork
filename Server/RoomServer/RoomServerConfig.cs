@@ -143,6 +143,13 @@ namespace RoomServer
             get { return !string.IsNullOrEmpty(SettlementSubmitUrl); }
         }
 
+        /// <summary>
+        /// 宿主运行期调参（排空宽限 / Ops 间隔 / 入包上限 / 会话清理与静默 / 重连票据 / 压实阈值）。
+        /// 分区 <c>host_tuning</c> 可选：缺省 = <see cref="HostTuning.Default"/>（= 迁移前的字面量常量）。
+        /// **这些值原先改代码才能改**（P2 批二）——部署形态下调参不该动代码。
+        /// </summary>
+        public readonly HostTuning HostTuning;
+
         private readonly string _sourcePath;
 
         private RoomServerConfig(string sourcePath, int port, int maxRooms, string audience,
@@ -150,7 +157,8 @@ namespace RoomServer
             int workerCount, int mailboxCapacity,
             string settlementJournalPath, int settlementOutboxCapacity, RateLimitSettings rateLimit,
             string lobbyUrl, string lobbyInstanceId, string lobbyAdvertiseHost, long lobbyHeartbeatMs,
-            string settlementSubmitUrl, long settlementIntervalMs, long settlementMaxBackoffMs, long settlementTimeoutMs)
+            string settlementSubmitUrl, long settlementIntervalMs, long settlementMaxBackoffMs, long settlementTimeoutMs,
+            HostTuning hostTuning)
         {
             _sourcePath = sourcePath;
             _port = port;
@@ -171,6 +179,7 @@ namespace RoomServer
             SettlementIntervalMs = settlementIntervalMs;
             SettlementMaxBackoffMs = settlementMaxBackoffMs;
             SettlementTimeoutMs = settlementTimeoutMs;
+            HostTuning = hostTuning ?? HostTuning.Default;
 
             int widest = 0;
             foreach (RoomTemplate t in rooms.Values)
@@ -395,10 +404,16 @@ namespace RoomServer
                 }
             }
 
+            // ---- 宿主运行期调参（可选分区；缺省 = 迁移前的字面量常量，行为零变化）----
+            HostTuning hostTuning = root.TryGetProperty("host_tuning", out JsonElement tuningEl)
+                ? HostTuning.Parse(tuningEl, sourcePath)
+                : HostTuning.Default;
+
             return new RoomServerConfig(sourcePath, port, maxRooms, audience, rooms, defaultId,
                 workerCount, mailboxCapacity, journal, outboxCapacity, rateLimit,
                 lobbyUrl, lobbyInstanceId, lobbyAdvertiseHost, lobbyHeartbeatMs,
-                settlementUrl, settlementIntervalMs, settlementMaxBackoffMs, settlementTimeoutMs);
+                settlementUrl, settlementIntervalMs, settlementMaxBackoffMs, settlementTimeoutMs,
+                hostTuning);
         }
 
         /// <summary>
@@ -460,8 +475,12 @@ namespace RoomServer
 
             public static RoomTemplate Parse(string name, JsonElement el, string sourcePath)
             {
-                // ExpectedPlayers 必填且 ≥1（配置错误 vs 缺省：满员开局依赖它，缺省会让房间永远不开局）
-                int players = RequireIntRange(el, "expected_players", 1, 64, $"{sourcePath} rooms.{name}");
+                // ExpectedPlayers 必填且 ≥1（配置错误 vs 缺省：满员开局依赖它，缺省会让房间永远不开局）。
+                // **上界 = 内核容量**（PendingInputRing.MaxPlayerCapacity，单 uint 有效位图宽度）：
+                // 两侧各写死过一次（此处 64 / 内核 32），33+ 席位配置会在 RoomRuntime 构造抛异常
+                // 并窜上权威循环线程（P0-2）——装载期即按内核真相拒绝，不留运行期触发面。
+                int players = RequireIntRange(el, "expected_players", 1,
+                    RoomServer.Runtime.PendingInputRing.MaxPlayerCapacity, $"{sourcePath} rooms.{name}");
                 long seed = OptionalLong(el, "seed", 0);
                 long timeLimit = OptionalLong(el, "match_time_limit_ms", 0);
                 long waitTimeout = OptionalLong(el, "waiting_timeout_ms", 0);

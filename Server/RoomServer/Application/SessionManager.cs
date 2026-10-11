@@ -14,19 +14,29 @@ namespace RoomServer.Application
     /// </summary>
     public sealed class SessionManager
     {
-        /// <summary>断线会话保留时长（毫秒）——与重连票据 TTL 同量级（重连窗口内不清，窗口外必清）。</summary>
+        /// <summary>断线会话保留时长**缺省值**（毫秒）——与重连票据 TTL 同量级（重连窗口内不清，窗口外必清）。
+        /// 可配：宿主经 <see cref="HostTuning.ReconnectTicketTtlMs"/> 与重连票据同步注入（P2 批二）。</summary>
         public const long DisconnectedTtlMs = ReconnectService.TicketTtlMs;
 
-        /// <summary>未进房连接的静默上限（毫秒）：连上但从不 Join/发包的会话（探测/半开）到期清理。</summary>
+        /// <summary>未进房连接的静默上限**缺省值**（毫秒）：连上但从不 Join/发包的会话（探测/半开）到期清理。
+        /// 可配：宿主经 <see cref="HostTuning.SessionUnseatedIdleTtlMs"/> 注入。</summary>
         public const long UnseatedIdleTtlMs = 60 * 1000;
 
         private readonly Dictionary<int, Session> _byConnection = new Dictionary<int, Session>();
         private readonly int _capacity;
+        private readonly long _disconnectedTtlMs;
+        private readonly long _unseatedIdleTtlMs;
         private long _nextEpoch;
 
-        public SessionManager(int capacity)
+        /// <param name="capacity">会话表容量上限（超限拒新会话）。</param>
+        /// <param name="disconnectedTtlMs">断线会话保留时长（缺省 <see cref="DisconnectedTtlMs"/>）。</param>
+        /// <param name="unseatedIdleTtlMs">未进房静默上限（缺省 <see cref="UnseatedIdleTtlMs"/>）。</param>
+        public SessionManager(int capacity, long disconnectedTtlMs = DisconnectedTtlMs,
+            long unseatedIdleTtlMs = UnseatedIdleTtlMs)
         {
             _capacity = capacity > 0 ? capacity : 1;
+            _disconnectedTtlMs = disconnectedTtlMs > 0 ? disconnectedTtlMs : DisconnectedTtlMs;
+            _unseatedIdleTtlMs = unseatedIdleTtlMs > 0 ? unseatedIdleTtlMs : UnseatedIdleTtlMs;
         }
 
         public int Count => _byConnection.Count;
@@ -94,8 +104,8 @@ namespace RoomServer.Application
                 Session s = kv.Value;
                 long idle = nowMs - s.LastSeenMs;
                 bool expired = s.Disconnected
-                    ? idle > DisconnectedTtlMs
-                    : (s.PlayerId < 0 && idle > UnseatedIdleTtlMs);
+                    ? idle > _disconnectedTtlMs
+                    : (s.PlayerId < 0 && idle > _unseatedIdleTtlMs);
                 if (!expired) continue;
                 (dead ??= new List<int>()).Add(kv.Key);
             }

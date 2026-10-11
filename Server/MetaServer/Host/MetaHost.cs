@@ -36,7 +36,9 @@ namespace MetaServer
     /// </summary>
     public static class MetaHost
     {
-        /// <summary>供日志与产物标识的构建身份（§P0-5）。</summary>
+        /// <summary>供日志与产物标识的构建身份（§P0-5）= 本工程源集摘要，**生成物**
+        /// （`Host/BuildHash.g.cs`，由 `scripts/codegen/gen-build-hash.py` 产出——P1④ 取代旧手写占位）。
+        /// 与两端握手红线的 <c>LiteNet.BuildHash</c> 不是一回事：本值不参与任何准入判定。</summary>
         public const string BuildIdentity = BuildHash.Value;
 
         /// <summary>配置文件中的配置节名（§10 版本化文件 / 环境变量）。</summary>
@@ -204,7 +206,9 @@ namespace MetaServer
             app.Urls.Add(effective.BindAddress);
 
             app.Use(CountRequestsAsync);
-            MapHealthEndpoints(app);
+            // 挂载形态统一（P2 批二）：健康端点与业务端点同走 XxxEndpoints.Map——
+            // 宿主只留挂载序，不再有"私有方法挂载的一类端点"。
+            HealthEndpoints.Map(app);
             SampleEndpoints.Map(app);
             AuthEndpoints.Map(app);
             LobbyEndpoints.Map(app);
@@ -229,54 +233,6 @@ namespace MetaServer
             {
                 if (context.Response.StatusCode >= 400) ops.CountRejected();
             }
-        }
-
-        /// <summary>
-        /// 健康检查（§11.3）。
-        ///
-        /// 语义分工是硬要求：`/live` 只证进程事件循环仍能响应；`/ready` 证配置与依赖正常**且未处于 drain**。
-        /// 二者不可合并——把 drain 混进 live 会让编排器误杀进程而不是摘流量。
-        ///
-        /// M0-c 批二起 `/ready` 包含真实依赖：配置了存储时 ping Mongo（§10"/ready 的判定必须包含
-        /// 真实依赖（Mongo 可达）"）；功能关闭（未配置连接串）时无依赖可检，仍返回 ready。
-        /// </summary>
-        private static void MapHealthEndpoints(WebApplication app)
-        {
-            app.MapGet("/live", () => Results.Text("live", "text/plain"));
-
-            app.MapGet("/ready", async Task<IResult> (HttpContext context, Ops ops) =>
-            {
-                if (ops.Draining)
-                {
-                    return Results.Text("draining", "text/plain",
-                        statusCode: StatusCodes.Status503ServiceUnavailable);
-                }
-
-                IMongoDatabase database = context.RequestServices.GetService<IMongoDatabase>();
-                if (database != null)
-                {
-                    // ping 超时可配（硬化批 2026-10-03；原硬编码 2s）——健康检查必须 bounded
-                    MetaConfig meta = context.RequestServices
-                        .GetRequiredService<IOptions<MetaConfig>>().Value;
-                    using var timeout = new CancellationTokenSource(
-                        TimeSpan.FromMilliseconds(meta.ReadyPingTimeoutMs));
-                    try
-                    {
-                        await database.RunCommandAsync(
-                            new BsonDocumentCommand<BsonDocument>(new BsonDocument("ping", 1)),
-                            cancellationToken: timeout.Token);
-                    }
-                    catch
-                    {
-                        return Results.Text("store-unreachable", "text/plain",
-                            statusCode: StatusCodes.Status503ServiceUnavailable);
-                    }
-                }
-
-                return Results.Text("ready", "text/plain");
-            });
-
-            app.MapGet("/metrics", (Ops ops) => Results.Text(ops.FormatMetrics(), "text/plain"));
         }
 
         /// <summary>

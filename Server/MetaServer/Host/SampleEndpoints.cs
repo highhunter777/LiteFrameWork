@@ -1,5 +1,4 @@
 using System;
-using System.Text.Json;
 using System.Threading.Tasks;
 using MetaServer.Contracts.Persistence;
 using MetaServer.Infrastructure.Persistence;
@@ -32,18 +31,20 @@ namespace MetaServer
                         statusCode: StatusCodes.Status503ServiceUnavailable);
                 }
 
-                SampleSettlementCommand command;
-                try
-                {
-                    command = await context.Request.ReadFromJsonAsync<SampleSettlementCommand>();
-                    if (command == null)
-                    {
-                        return Results.Json(
-                            new SampleError { Code = "invalid-json" },
-                            statusCode: StatusCodes.Status400BadRequest);
-                    }
-                }
-                catch (JsonException)
+                // 解析收口与其它端点同源（P2）：坏 JSON / 非 JSON content-type / 形状失败一律 400。
+                //
+                // **响应形状边界（P2 批二裁决）**：本端点**保持**样例专用形状
+                // {code[, reason | expected/actual | errors]}，不并入 {code,messageKey,args}：
+                // (a) 它是**非业务端点**且已定"出生产构建"（审计 §三），业务面统一由
+                //     Auth/Lobby/Settlement 三家承担（三家早经 <see cref="MetaResults"/> 单源）；
+                // (b) 409 冲突必须回 expected/actual **数字**（调用方据此修正 revision），
+                //     压进 args 字符串会降契约质量；
+                // (c) 该形状的断言在 L3（真 Mongo）——改形状须同批改断言，而 L3 在本机不可执行，
+                //     不在盲态下改对外契约。
+                // 判据（三条边界一次写清，避免"到底该用哪种"再被重新讨论）：
+                // **业务端点一律 {code,messageKey,args}；探针端点 text/plain（编排器消费）；样例端点随出构建消失。**
+                SampleSettlementCommand command = await MetaResults.TryReadJsonAsync<SampleSettlementCommand>(context);
+                if (command == null)
                 {
                     return Results.Json(
                         new SampleError { Code = "invalid-json" },

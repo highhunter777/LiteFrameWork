@@ -19,6 +19,15 @@ namespace RoomServer.Runtime
         /// <summary>环容量（2 的幂；推导见类注释——改容忍窗/冗余窗时必须同步重推）。</summary>
         public const int Capacity = 32;
 
+        /// <summary>
+        /// 玩家容量上限（= 单 uint 有效位图的位数；见构造校验）。**对外的唯一单源**：
+        /// 宿主侧 <c>RoomServerConfig</c> 的 <c>expected_players</c> 范围校验必须以本常量为上界——
+        /// 曾经两侧各自写死（配置 1..64 / 内核 1..32），33+ 席位配置会让 RoomRuntime 构造抛异常，
+        /// 而宿主建房的 try 只包了配置解析，异常一路窜上 60Hz 权威循环线程（P0-2）。
+        /// 改本值须同步重推位图宽度（当前实现恒为单 uint）。
+        /// </summary>
+        public const int MaxPlayerCapacity = 32;
+
         private const int CapacityMask = Capacity - 1;
 
         private readonly int _playerCapacity;
@@ -29,9 +38,9 @@ namespace RoomServer.Runtime
 
         public PendingInputRing(int playerCapacity)
         {
-            if (playerCapacity <= 0 || playerCapacity > 32)
+            if (playerCapacity <= 0 || playerCapacity > MaxPlayerCapacity)
                 throw new System.ArgumentOutOfRangeException(nameof(playerCapacity), playerCapacity,
-                    "玩家容量必须在 1..32（valid 位图为单 uint）");
+                    "玩家容量必须在 1.." + MaxPlayerCapacity + "（valid 位图为单 uint）");
             _playerCapacity = playerCapacity;
             _validWordCount = 1;
             for (int i = 0; i < Capacity; i++)

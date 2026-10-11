@@ -18,19 +18,18 @@ namespace MetaServer
     /// 对局结果提交（幂等落库＝归档面 + 账本面）与按账号查询。
     ///
     /// 鉴权分两类（与 Lobby 同款纪律——§12 中间件链的鉴权段在本层显式化）：
-    /// - `POST /matches/result`：**实例密钥**（房间侧提交管道；与 Lobby 注册共用凭据）；
+    /// - `POST /matches/result`：**结算实例密钥**（房间侧提交管道；**与 Lobby 注册分权**，P1②）；
     /// - `GET /matches`：**访问令牌**（游客登录签发的 v1 令牌——按令牌账号查询，不接收账号参数）。
     ///
     /// 幂等语义：一局一条（MatchId 唯一）——重复提交同一局返回 200 + <c>duplicate:true</c>（归档面命中）
     /// 且逐玩家账本项 duplicate 命中，提交方据此标记本地 Outbox 完成（§6 验收"同一结果重复提交
     /// 100 次只落一条"）。任一玩家 CAS conflict 时整响应 409（已处理项照常携带，整包重试收敛）。
+    ///
+    /// **错误体与解析经 <see cref="MetaResults"/> 单源**（P2）：本类不再持有
+    /// `Disabled/InstanceUnauthorized/StoreUnconfirmed` 私有助手（与 Lobby 双份同构的那三个）。
     /// </summary>
     public static class SettlementEndpoints
     {
-        /// <summary>查询条数缺省与上限（有界——§13"任何队列/缓存…必须有显式容量"同款口径）。</summary>
-        public const int DefaultQueryLimit = 20;
-        public const int MaxQueryLimit = 100;
-
         public static void Map(WebApplication app)
         {
             app.MapPost("/matches/result", async (HttpContext context) =>
@@ -39,24 +38,14 @@ namespace MetaServer
                 if (useCase == null) return Disabled();
 
                 MetaConfig meta = context.RequestServices.GetRequiredService<IOptions<MetaConfig>>().Value;
-                if (string.IsNullOrWhiteSpace(meta.LobbyInstanceKeyBase64)) return Disabled();
-                if (!InstanceKeyAuth.Matches(context, meta.LobbyInstanceKeyBase64))
+                // **结算凭据与 Lobby 注册凭据分权**（P1②）：/matches/result 写的是账本，
+                // 不该由"能注册实例"这一权限面直接覆盖；未配置结算凭据 = 该端点不提供（稳定 503）。
+                if (string.IsNullOrWhiteSpace(meta.SettlementInstanceKeyBase64)) return Disabled();
+                if (!InstanceKeyAuth.Matches(context, meta.SettlementInstanceKeyBase64))
                     return InstanceUnauthorized();
 
-                MatchResultSubmission submission;
-                try
-                {
-                    submission = await context.Request.ReadFromJsonAsync<MatchResultSubmission>();
-                }
-                catch (OperationCanceledException)
-                {
-                    throw;                                        // 请求中止随管道传播
-                }
-                catch (Exception)
-                {
-                    // 坏 JSON / 非 JSON content-type / 长度/形状解码失败——一律按无效请求收口（不 500）
-                    submission = null;
-                }
+                // 解析收口：坏 JSON / 非 JSON content-type / 形状解码失败 → null（由用例按字段校验收口）
+                MatchResultSubmission submission = await MetaResults.TryReadJsonAsync<MatchResultSubmission>(context);
 
                 ApplyMatchResultUseCase.Result result =
                     await useCase.ExecuteAsync(submission, context.RequestAborted);
@@ -76,12 +65,9 @@ namespace MetaServer
                             : StatusCodes.Status200OK);
                     case ApplyMatchResultUseCase.Result.Rejected rejected:
                         // 字段级错误回显（错误文案只含字段名与上界数字，不含字段原值）
-                        return Results.Json(new MetaError
-                        {
-                            Code = ProfileErrorCodes.InvalidRequest,
-                            MessageKey = ProfileErrorCodes.MessageKeyInvalidRequest,
-                            Args = rejected.Errors,
-                        }, statusCode: StatusCodes.Status400BadRequest);
+                        return MetaResults.InvalidRequest(
+                            ProfileErrorCodes.InvalidRequest, ProfileErrorCodes.MessageKeyInvalidRequest,
+                            rejected.Errors);
                     default:
                         return StoreUnconfirmed();
                 }
@@ -97,26 +83,22 @@ namespace MetaServer
                 AccessTokenFormat.Rejection rejection = tokens.Validate(token, out AccessTokenFormat.Claims claims);
                 if (rejection != AccessTokenFormat.Rejection.None)
                 {
-                    return Results.Json(new MetaError
-                    {
-                        Code = AuthErrorCodes.Unauthorized,
-                        MessageKey = AuthErrorCodes.MessageKeyUnauthorized,
-                        Args = new[] { rejection.ToString() },
-                    }, statusCode: StatusCodes.Status401Unauthorized);
+                    // 拒绝分类进 args（非敏感）
+                    return MetaResults.Error(StatusCodes.Status401Unauthorized,
+                        AuthErrorCodes.Unauthorized, AuthErrorCodes.MessageKeyUnauthorized, rejection.ToString());
                 }
 
-                int limit = DefaultQueryLimit;
+                // 分页边界进配置（P2 批二：此前是端点里的字面量常量）；每条请求读一次（IOptions 缓存实例）
+                MetaConfig meta = context.RequestServices.GetRequiredService<IOptions<MetaConfig>>().Value;
+                int limit = meta.SettlementDefaultQueryLimit;
                 string rawLimit = context.Request.Query["limit"];
                 if (!string.IsNullOrEmpty(rawLimit))
                 {
-                    if (!int.TryParse(rawLimit, out limit) || limit < 1 || limit > MaxQueryLimit)
+                    if (!int.TryParse(rawLimit, out limit) || limit < 1 || limit > meta.SettlementMaxQueryLimit)
                     {
-                        return Results.Json(new MetaError
-                        {
-                            Code = ProfileErrorCodes.InvalidRequest,
-                            MessageKey = ProfileErrorCodes.MessageKeyInvalidRequest,
-                            Args = new[] { "limit 必须在 1.." + MaxQueryLimit },
-                        }, statusCode: StatusCodes.Status400BadRequest);
+                        return MetaResults.InvalidRequest(
+                            ProfileErrorCodes.InvalidRequest, ProfileErrorCodes.MessageKeyInvalidRequest,
+                            "limit 必须在 1.." + meta.SettlementMaxQueryLimit);
                     }
                 }
 
@@ -156,33 +138,20 @@ namespace MetaServer
         /// <summary>功能未配置（服务缺席）——稳定 503，不回退假数据（§10）。</summary>
         private static IResult Disabled()
         {
-            return Results.Json(new MetaError
-            {
-                Code = ProfileErrorCodes.Disabled,
-                MessageKey = ProfileErrorCodes.MessageKeyUnavailable,
-                Args = Array.Empty<string>(),
-            }, statusCode: StatusCodes.Status503ServiceUnavailable);
+            return MetaResults.Disabled(ProfileErrorCodes.Disabled, ProfileErrorCodes.MessageKeyUnavailable);
         }
 
         private static IResult InstanceUnauthorized()
         {
-            return Results.Json(new MetaError
-            {
-                Code = ProfileErrorCodes.InstanceUnauthorized,
-                MessageKey = ProfileErrorCodes.MessageKeyUnauthorized,
-                Args = Array.Empty<string>(),
-            }, statusCode: StatusCodes.Status401Unauthorized);
+            return MetaResults.InstanceUnauthorized(
+                ProfileErrorCodes.InstanceUnauthorized, ProfileErrorCodes.MessageKeyUnauthorized);
         }
 
         /// <summary>存储未确认（重试安全——幂等保证重试收敛；§8.2）。</summary>
         private static IResult StoreUnconfirmed()
         {
-            return Results.Json(new MetaError
-            {
-                Code = ProfileErrorCodes.StoreUnconfirmed,
-                MessageKey = ProfileErrorCodes.MessageKeyUnavailable,
-                Args = Array.Empty<string>(),
-            }, statusCode: StatusCodes.Status503ServiceUnavailable);
+            return MetaResults.StoreUnconfirmed(
+                ProfileErrorCodes.StoreUnconfirmed, ProfileErrorCodes.MessageKeyUnavailable);
         }
     }
 }

@@ -45,8 +45,8 @@ def main():
 
     root = repo_root()
 
-    # -- 1. rerun the buildHash generator ----------------------------------------
-    info(TOOL, 'step 1/4 rerun buildHash generator')
+    # -- 1. rerun the buildHash generator (shared + meta targets, P1④) -----------
+    info(TOOL, 'step 1/4 rerun buildHash generator (shared constant + meta build identity)')
     gen_script = os.path.join(root, 'scripts', 'codegen', 'gen-build-hash.py')
     if subprocess.run([sys.executable, gen_script]).returncode != 0:
         fail(TOOL, 'gen-build-hash.py failed')

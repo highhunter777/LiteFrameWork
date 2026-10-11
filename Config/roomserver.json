@@ -11,8 +11,15 @@
     "lobby = R3 实例注册（《Meta 服务专项设计》§7）：url 为 Meta 注册端点完整地址，空 = 不注册（单机/离线形态）。",
     "  url 非空时 instance_id（实例唯一标识，重启保持稳定）与 advertise_host（客户端可达 host，端口用实际监听端口）必填；",
     "  实例密钥不在本文件：经环境变量 LITENET_LOBBY_INSTANCE_KEY 或 --lobby-instance-key 注入（与 Meta 的 LobbyInstanceKeyBase64 同值）。",
+    "host_tuning = 宿主运行期调参（整段可省略走缺省；逐字段范围校验，越界装载期即拒）：",
+    "  drain_grace_ms=5000 排空宽限、drain_watchdog_extra_ms=2000 排空看门狗、ops_interval_ms=5000 Ops 行间隔、",
+    "  max_inbound_packet_bytes=4096 入包上限、session_cleanup_interval_ticks=600 会话清理节拍、",
+    "  session_unseated_idle_ttl_ms=60000 未进房静默上限、lobby_request_timeout_ms=5000 注册心跳超时、",
+    "  reconnect_ticket_ttl_ms=300000 重连票据有效期、reconnect_capacity=256 票据表容量、",
+    "  outbox_compact_threshold_marks=1024 结算日志压实阈值。",
     "settlement = R3 结算提交管道（《上云测试专项设计》§2）：submit_url 为 Meta 提交端点完整地址，空 = 关闭（单机/离线形态）。",
-    "  管道读本地 Outbox 待提交面 → 幂等提交（同一实例密钥）→ 完成标记；失败指数退避、重启续投。",
+    "  管道读本地 Outbox 待提交面 → 幂等提交 → 完成标记；失败指数退避、重启续投。",
+    "  结算凭据不在本文件且**与实例注册分权**（写账本 ≠ 注册实例）：经环境变量 LITENET_SETTLEMENT_INSTANCE_KEY 或 --settlement-instance-key 注入（与 Meta 的 SettlementInstanceKeyBase64 同值）；缺则启动即拒。",
     "改本文件必须重启生效：启动时快照，运行中不重读（§188 房间创建时固定不可变玩法配置）。"
   ],
 

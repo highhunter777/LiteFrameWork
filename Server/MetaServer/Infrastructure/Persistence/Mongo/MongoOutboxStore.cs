@@ -88,7 +88,7 @@ namespace MetaServer.Infrastructure.Persistence.Mongo
             {
                 await outbox.InsertOneAsync(doc, null, ct);
             }
-            catch (MongoWriteException ex) when (IsDuplicateKey(ex))
+            catch (MongoWriteException ex) when (MongoWriteErrors.IsDuplicateKey(ex))
             {
                 // 并发重复入队：唯一 _id 是最终裁判，返回已存在条目
                 OutboxDoc raced = await outbox
@@ -147,12 +147,6 @@ namespace MetaServer.Infrastructure.Persistence.Mongo
                     Builders<OutboxDoc>.Update.Set(d => d.LastFailureUtc, _utcNow())),
                 null,
                 ct);
-        }
-
-        private static bool IsDuplicateKey(MongoWriteException ex)
-        {
-            return ex.WriteError != null
-                   && ex.WriteError.Category == ServerErrorCategory.DuplicateKey;
         }
 
         private static OutboxEnvelope ToEnvelope(OutboxDoc doc)

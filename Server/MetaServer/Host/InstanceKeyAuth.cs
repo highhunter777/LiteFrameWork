@@ -5,9 +5,14 @@ using Microsoft.AspNetCore.Http;
 namespace MetaServer
 {
     /// <summary>
-    /// 房间侧→Meta 的服务凭据（实例密钥）比对与 Bearer 读取——《Meta 服务专项设计》§7/§8.2：
-    /// Lobby 实例注册与结算提交是**同一条服务通道**的两种调用，共用一份凭据（Meta 配置的
-    /// <c>LobbyInstanceKeyBase64</c>，房间端经环境变量注入）；日后若需分权再拆独立密钥。
+    /// 房间侧→Meta 的服务凭据（实例密钥）比对与 Bearer 读取——《Meta 服务专项设计》§7/§8.2。
+    ///
+    /// **凭据按权限面分离**（P1②）：
+    /// - Lobby 实例注册 → <c>LobbyInstanceKeyBase64</c>（房间端 `--lobby-instance-key`）；
+    /// - 结算提交 `/matches/result` → <c>SettlementInstanceKeyBase64</c>（房间端 `--settlement-instance-key`）。
+    ///
+    /// 两者是不同权限面（"注册实例" ≠ "写结算账本"），本类只提供比对原语，**由调用方传入对应面的
+    /// 期望值**——端点不得再交叉引用另一面的 key。
     /// </summary>
     internal static class InstanceKeyAuth
     {

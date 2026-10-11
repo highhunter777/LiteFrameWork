@@ -54,6 +54,12 @@ namespace RoomServer
     ///
     /// **同步签名**对应宿主单循环形态（§10.2——命令直投、ApplyOutput 在 Pump 线程上）；
     /// 入盒/完成标记都是低频事件（一局至多一次、一行一条）。
+    ///
+    /// **线程契约（P0-1）**：调用来自三条线程——<see cref="Enqueue"/> 在 ServerLoop 权威循环上
+    /// （ApplyOutput 内）、<see cref="ListPending"/><see cref="TryMarkCompleted"/><see cref="Count"/>
+    /// 在 SettlementSubmitService 后台线程上、<see cref="Flush"/> 在排空收尾路径上。
+    /// **实现必须对此并发安全**（文件实现经单一临界区；见 <c>FileSettlementOutbox._gate</c>）；
+    /// HTTP/网络不得进入实现内部（提交方在锁外做，见 <c>SettlementSubmitService.TrySubmitNext</c>）。
     /// </summary>
     public interface ISettlementOutbox
     {
@@ -90,16 +96,21 @@ namespace RoomServer
     ///   判重集合随之收敛为待提交——此后同 matchId 再入盒会作为新待提交接受，
     ///   "重复提交不重复发奖"由 Meta 台账唯一索引兜底（§11.2 唯一索引 = 最终幂等裁判）；
     /// - **有界**：容量上限（配置）按**待提交**数计——标记即释放，长跑不因已完成条数涨满；
-    ///   内存判重集合随**压实**收敛（自动：连续标记达 <see cref="CompactThresholdMarks"/>；
+    ///   内存判重集合随**压实**收敛（自动：连续标记达 <see cref="DefaultCompactThresholdMarks"/>；
     ///   收口：`Flush` 有未压实标记时）——长跑内存不无界增长；
     /// - **路径红线**：必须 <c>.journal</c> 后缀（<see cref="RoomServerConfig"/> 装载期强制）——
     ///   RoomServer/Data 的 .json 参与 buildHash 哈希闭包，日志若落在那里会随对局漂移、
-    ///   两端握手全拒。缺省路径 Outbox/settlements.journal（.gitignore 已登记）。
+    ///   两端握手全拒。缺省路径 Outbox/settlements.journal（.gitignore 已登记）；
+    /// - **跨线程安全（P0-1）**：入盒在权威循环线程、标记/取待提交在提交后台线程、收口压实走排空路径——
+    ///   全部可变状态经单一临界区（<c>_gate</c>）；提交方在锁外做 HTTP（分步语义：快照 → POST → 按 id 标记）。
     /// </summary>
     public sealed class FileSettlementOutbox : ISettlementOutbox, IDisposable
     {
-        /// <summary>自动压实阈值：连续完成标记达该数即重写日志（防判重集合随长跑无界增长）。</summary>
-        private const int CompactThresholdMarks = 1024;
+        /// <summary>自动压实阈值**缺省值**：连续完成标记达该数即重写日志（防判重集合随长跑无界增长）。
+        /// 可配——宿主经 <see cref="HostTuning.OutboxCompactThresholdMarks"/> 注入（P2 批二）。</summary>
+        public const int DefaultCompactThresholdMarks = 1024;
+
+        private readonly int _compactThresholdMarks;
 
         private readonly string _journalPath;
         private readonly List<PendingSettlement> _entries;   // 待提交（容量判据）
@@ -109,6 +120,22 @@ namespace RoomServer
         private FileStream _stream;
         private int _marksSinceCompaction;
         private bool _disposed;
+
+        /// <summary>
+        /// 跨线程临界区（P0-1）：本类是**两条线程的汇合点**——入盒走 ServerLoop 线程
+        /// （<c>ServerHost.ApplyOutput</c> 内，60Hz 权威循环），标记完成/取待提交走
+        /// SettlementSubmitService 后台线程，排空收口 <c>Flush</c> 走宿主线程。
+        /// <c>_entries/_seen/_completed/_marksSinceCompaction/_stream</c> 全部可变状态都在这把锁下访问
+        /// （容器集合裸并发 = 集合结构损坏或枚举中改动抛异常，且损坏点事后无法定位）。
+        ///
+        /// **锁内只做内存 + 单行追加写**（write-through 本就同步落盘，量级 KB）；
+        /// **HTTP 不在锁内**——提交方先 <see cref="ListPending"/> 取快照、锁外 POST、再按 matchId
+        /// 调 <see cref="TryMarkCompleted"/>（接口语义天然支持该分步：标记按 id 幂等，不依赖先前快照）。
+        /// 残留代价：后台线程触发压实（重写全日志）时权威循环的 Enqueue 会等锁——压实每
+        /// <see cref="DefaultCompactThresholdMarks"/> 条完成标记才发生一次，量级毫秒；若将来成为抖动源，
+        /// 再改"压实出临界区"（当前不做：那会把原子性问题换成一致性问题）。
+        /// </summary>
+        private readonly object _gate = new object();
 
         /// <summary>装载期跳过的坏行数（崩溃半行等；重启不炸——显式计数可观测）。</summary>
         public int SkippedCorruptLines { get; private set; }
@@ -120,7 +147,7 @@ namespace RoomServer
         public int CompactionFailures { get; private set; }
 
         private FileSettlementOutbox(string journalPath, FileStream stream, HashSet<string> seen,
-            HashSet<string> completed, List<PendingSettlement> entries, int capacity)
+            HashSet<string> completed, List<PendingSettlement> entries, int capacity, int compactThresholdMarks)
         {
             _journalPath = journalPath;
             _stream = stream;
@@ -128,16 +155,21 @@ namespace RoomServer
             _completed = completed;
             _entries = entries;
             _capacity = capacity;
+            _compactThresholdMarks = compactThresholdMarks;
         }
 
         /// <summary>
         /// 打开（或续接）日志：目录不存在则建；既有内容装载入内存（坏行跳过计数，完成标记行合并进完成集），
         /// 新写入**追加**在既有内容之后——进程重启后既有待提交条目不丢（§12 第 4 步的恢复面）。
         /// </summary>
-        public static FileSettlementOutbox Open(string path, int capacity)
+        public static FileSettlementOutbox Open(string path, int capacity,
+            int compactThresholdMarks = DefaultCompactThresholdMarks)
         {
             if (string.IsNullOrWhiteSpace(path)) throw new ArgumentException("日志路径不能为空", nameof(path));
             if (capacity < 1) throw new ArgumentOutOfRangeException(nameof(capacity), capacity, "Outbox 容量必须为正");
+            if (compactThresholdMarks < 1)
+                throw new ArgumentOutOfRangeException(nameof(compactThresholdMarks), compactThresholdMarks,
+                    "压实阈值必须为正");
 
             string directory = Path.GetDirectoryName(Path.GetFullPath(path));
             if (!string.IsNullOrEmpty(directory)) Directory.CreateDirectory(directory);
@@ -172,7 +204,7 @@ namespace RoomServer
 
             var stream = new FileStream(path, FileMode.Append, FileAccess.Write, FileShare.Read,
                 bufferSize: 4096, FileOptions.WriteThrough);
-            return new FileSettlementOutbox(path, stream, seen, completed, entries, capacity)
+            return new FileSettlementOutbox(path, stream, seen, completed, entries, capacity, compactThresholdMarks)
             {
                 SkippedCorruptLines = corrupt,
             };
@@ -180,25 +212,28 @@ namespace RoomServer
 
         public int Count
         {
-            get { return _entries.Count; }
+            get { lock (_gate) { return _entries.Count; } }
         }
 
         public SettlementOutboxResult Enqueue(MatchResultSummary summary, string[] seatAccountIds = null)
         {
-            if (_disposed) throw new ObjectDisposedException(nameof(FileSettlementOutbox));
-            if (summary == null || string.IsNullOrEmpty(summary.MatchId)) return SettlementOutboxResult.Failed;
-            if (_seen.Contains(summary.MatchId)) return SettlementOutboxResult.Duplicate;
-            if (_entries.Count >= _capacity) return SettlementOutboxResult.RejectedFull;
-
-            var pending = new PendingSettlement(summary, seatAccountIds);
-            if (!TryAppend(ToEntry(pending)))
+            lock (_gate)
             {
-                return SettlementOutboxResult.Failed;
-            }
+                if (_disposed) throw new ObjectDisposedException(nameof(FileSettlementOutbox));
+                if (summary == null || string.IsNullOrEmpty(summary.MatchId)) return SettlementOutboxResult.Failed;
+                if (_seen.Contains(summary.MatchId)) return SettlementOutboxResult.Duplicate;
+                if (_entries.Count >= _capacity) return SettlementOutboxResult.RejectedFull;
 
-            _seen.Add(summary.MatchId);
-            _entries.Add(pending);
-            return SettlementOutboxResult.Appended;
+                var pending = new PendingSettlement(summary, seatAccountIds);
+                if (!TryAppend(ToEntry(pending)))
+                {
+                    return SettlementOutboxResult.Failed;
+                }
+
+                _seen.Add(summary.MatchId);
+                _entries.Add(pending);
+                return SettlementOutboxResult.Appended;
+            }
         }
 
         /// <summary>
@@ -207,39 +242,48 @@ namespace RoomServer
         /// </summary>
         public bool TryMarkCompleted(string matchId)
         {
-            if (_disposed) throw new ObjectDisposedException(nameof(FileSettlementOutbox));
-            if (string.IsNullOrEmpty(matchId)) return false;
-            if (!_seen.Contains(matchId) || _completed.Contains(matchId)) return false;
-            int idx = _entries.FindIndex(e => e.MatchId == matchId);
-            if (idx < 0) return false;                          // seen 与 entries 恒一致；防御性口径
+            lock (_gate)
+            {
+                if (_disposed) throw new ObjectDisposedException(nameof(FileSettlementOutbox));
+                if (string.IsNullOrEmpty(matchId)) return false;
+                if (!_seen.Contains(matchId) || _completed.Contains(matchId)) return false;
+                int idx = _entries.FindIndex(e => e.MatchId == matchId);
+                if (idx < 0) return false;                          // seen 与 entries 恒一致；防御性口径
 
-            if (!TryAppend(new JournalEntry { Kind = "c", MatchId = matchId })) return false;
+                if (!TryAppend(new JournalEntry { Kind = "c", MatchId = matchId })) return false;
 
-            _entries.RemoveAt(idx);
-            _completed.Add(matchId);
-            _marksSinceCompaction++;
-            if (_marksSinceCompaction >= CompactThresholdMarks) Compact();
-            return true;
+                _entries.RemoveAt(idx);
+                _completed.Add(matchId);
+                _marksSinceCompaction++;
+                if (_marksSinceCompaction >= _compactThresholdMarks) Compact();
+                return true;
+            }
         }
 
         public IReadOnlyList<PendingSettlement> ListPending()
         {
-            return _entries.ToArray();
+            lock (_gate) { return _entries.ToArray(); }   // 快照：调用方（后台提交线程）在锁外消费
         }
 
         public void Flush()
         {
-            if (_disposed) return;
-            if (_marksSinceCompaction > 0 && _stream.CanWrite) Compact();   // 收口即压实（有未压实标记时）
-            if (_stream.CanWrite) _stream.Flush();
+            lock (_gate)
+            {
+                if (_disposed) return;
+                if (_marksSinceCompaction > 0 && _stream.CanWrite) Compact();   // 收口即压实（有未压实标记时）
+                if (_stream.CanWrite) _stream.Flush();
+            }
         }
 
         public void Dispose()
         {
-            if (_disposed) return;
-            _disposed = true;
-            try { _stream.Flush(); } catch { /* 收尾失败不掩盖既有结果 */ }
-            _stream.Dispose();
+            lock (_gate)
+            {
+                if (_disposed) return;
+                _disposed = true;
+                try { _stream.Flush(); } catch { /* 收尾失败不掩盖既有结果 */ }
+                _stream.Dispose();
+            }
         }
 
         /// <summary>追加一行并落盘（write-through）。失败返回 false，内存集合不动（与四态口径一致）。</summary>
@@ -267,6 +311,7 @@ namespace RoomServer
 
         /// <summary>
         /// 压实：日志重写为仅含**待提交**行（temp 写全 + File.Replace 原子替换），判重集合收敛为待提交。
+        /// **调用方须持有 <c>_gate</c>**（重写期间不得有并发追加/标记）。
         /// 已完成行被移除的安全语义：完成 = 提交方已拿到存储侧幂等确认，此后即便同 matchId 重入盒重提交，
         /// Meta 台账唯一索引兜底返回首次结果（§11.2）。介质故障路径：不抛、计 <see cref="CompactionFailures"/>，
         /// 内存语义不变、下次收口重试；日志保持追加原样（最坏回退 = 不压实，不改正确性）。

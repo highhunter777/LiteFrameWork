@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
+using MetaServer.Contracts.Validation;
 
 namespace MetaServer.Contracts.Persistence
 {
@@ -25,8 +26,9 @@ namespace MetaServer.Contracts.Persistence
         string MatchId, long Seed, int FinalFrame, int EndReason, int GameplayEndReason, long WinnerEntityId,
         IReadOnlyList<MatchResultPlayerEntry> Players)
     {
-        /// <summary>单字段长度上界（对齐服务端解析前限长口径 §P0-3）。</summary>
-        public const int MaxFieldLength = 64;
+        /// <summary>单字段长度上界——**别名**：上限表单源 <see cref="FieldLimits.BusinessKeyBytes"/>
+        /// （P2：本记录此前按**字符数**判，与其它五处按 UTF-8 字节判的口径不一致）。</summary>
+        public const int MaxFieldLength = FieldLimits.BusinessKeyBytes;
 
         /// <summary>单局玩家条目上限（对齐房间容量口径）。</summary>
         public const int MaxPlayers = 64;
@@ -35,7 +37,7 @@ namespace MetaServer.Contracts.Persistence
         public IReadOnlyList<string> Validate()
         {
             var errors = new List<string>();
-            ValidateField(errors, nameof(MatchId), MatchId);
+            FieldValidation.Append(errors, nameof(MatchId), MatchId, MaxFieldLength);
             if (Seed < 0) errors.Add("Seed 不得为负：" + Seed);
             if (FinalFrame < 0) errors.Add("FinalFrame 不得为负：" + FinalFrame);
             if (WinnerEntityId < 0) errors.Add("WinnerEntityId 不得为负：" + WinnerEntityId);
@@ -59,8 +61,8 @@ namespace MetaServer.Contracts.Persistence
                         errors.Add("Players[" + i + "] 不得为空");
                         continue;
                     }
-                    ValidateField(errors, "Players[" + i + "].PlayerId", p.PlayerId);
-                    ValidateField(errors, "Players[" + i + "].AccountId", p.AccountId);
+                    FieldValidation.Append(errors, "Players[" + i + "].PlayerId", p.PlayerId, MaxFieldLength);
+                    FieldValidation.Append(errors, "Players[" + i + "].AccountId", p.AccountId, MaxFieldLength);
                     if (p.Kills < 0) errors.Add("Players[" + i + "].Kills 不得为负：" + p.Kills);
                     if (p.Deaths < 0) errors.Add("Players[" + i + "].Deaths 不得为负：" + p.Deaths);
                     if (!string.IsNullOrEmpty(p.PlayerId) && !seen.Add(p.PlayerId))
@@ -70,17 +72,6 @@ namespace MetaServer.Contracts.Persistence
             return errors;
         }
 
-        private static void ValidateField(List<string> errors, string name, string value)
-        {
-            if (string.IsNullOrWhiteSpace(value))
-            {
-                errors.Add(name + " 不得为空");
-            }
-            else if (value.Length > MaxFieldLength)
-            {
-                errors.Add(name + " 长度不得超 " + MaxFieldLength + "，实际：" + value.Length);
-            }
-        }
     }
 
     /// <summary>首次落库快照（重复提交**原样返回**这一份，不重新计算——同账本口径）。</summary>

@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using MetaServer.Contracts.Validation;
 
 namespace MetaServer.Contracts.Persistence
 {
@@ -15,8 +16,9 @@ namespace MetaServer.Contracts.Persistence
         string OperationId, string PlayerId, string MatchId, string SettlementType,
         long ExpectedRevision, long Delta)
     {
-        /// <summary>单字段长度上界——服务端侧"解析后限制长度"（§P0-3）的同款纪律。</summary>
-        public const int MaxFieldLength = 64;
+        /// <summary>单字段长度上界——**别名**：上限表单源 <see cref="FieldLimits.BusinessKeyBytes"/>
+        /// （P2：本记录此前按**字符数**判，与其它五处按 UTF-8 字节判的口径不一致——多字节字符下形同虚设）。</summary>
+        public const int MaxFieldLength = FieldLimits.BusinessKeyBytes;
 
         /// <summary>
         /// 形状边界（落库前拒绝）。返回全部违规项、一次报全——与 <c>MetaConfig.Validate</c> 同款口径。
@@ -25,10 +27,10 @@ namespace MetaServer.Contracts.Persistence
         public IReadOnlyList<string> Validate()
         {
             var errors = new List<string>();
-            ValidateField(errors, nameof(OperationId), OperationId);
-            ValidateField(errors, nameof(PlayerId), PlayerId);
-            ValidateField(errors, nameof(MatchId), MatchId);
-            ValidateField(errors, nameof(SettlementType), SettlementType);
+            FieldValidation.Append(errors, nameof(OperationId), OperationId, MaxFieldLength);
+            FieldValidation.Append(errors, nameof(PlayerId), PlayerId, MaxFieldLength);
+            FieldValidation.Append(errors, nameof(MatchId), MatchId, MaxFieldLength);
+            FieldValidation.Append(errors, nameof(SettlementType), SettlementType, MaxFieldLength);
 
             if (ExpectedRevision < 0)
             {
@@ -38,16 +40,5 @@ namespace MetaServer.Contracts.Persistence
             return errors;
         }
 
-        private static void ValidateField(List<string> errors, string name, string value)
-        {
-            if (string.IsNullOrWhiteSpace(value))
-            {
-                errors.Add(name + " 不得为空");
-            }
-            else if (value.Length > MaxFieldLength)
-            {
-                errors.Add(name + " 长度不得超 " + MaxFieldLength + "，实际：" + value.Length);
-            }
-        }
     }
 }

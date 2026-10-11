@@ -187,7 +187,8 @@ namespace RoomServer.Application
             if (loop != null)
                 _sb.Append(" | loop: ticks=").Append(loop.Ticks)
                    .Append(" debt=").Append(loop.DroppedTimeMs).Append("ms")
-                   .Append(" abandoned=").Append(loop.CatchUpAbandoned);
+                   .Append(" abandoned=").Append(loop.CatchUpAbandoned)
+                   .Append(" pumpFail=").Append(loop.PumpFailures);   // >0 = 权威帧体在抛且已被吸收（P0-2）
             return _sb.ToString();
         }
     }

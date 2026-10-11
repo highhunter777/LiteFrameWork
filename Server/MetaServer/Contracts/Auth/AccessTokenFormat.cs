@@ -171,35 +171,12 @@ namespace MetaServer.Contracts.Auth
         /// <summary>kid 段（验签方按 kid 选密钥；未知 kid = 拒绝，不遍历兜底）。</summary>
         public static string KidOf(string[] parts) { return parts[IdxKid]; }
 
-        /// <summary>Base64Url 编码（去 padding、<c>+</c>→<c>-</c>、<c>/</c>→<c>_</c>——故不含 <c>.</c>）。</summary>
-        public static string Encode(string value)
-        {
-            if (value == null) value = string.Empty;
-            return Convert.ToBase64String(Encoding.UTF8.GetBytes(value))
-                .TrimEnd('=').Replace('+', '-').Replace('/', '_');
-        }
+        /// <summary>Base64Url 编码（去 padding、<c>+</c>→<c>-</c>、<c>/</c>→<c>_</c>——故不含 <c>.</c>）。
+        /// **实现单源 <c>RoomServer.Application.Base64Url</c>**（P2：与票据线格式共一份，源链接共编）。</summary>
+        public static string Encode(string value) => RoomServer.Application.Base64Url.EncodeText(value);
 
-        /// <summary>Base64Url 解码；失败返回 null（不抛）。</summary>
-        public static string Decode(string base64Url)
-        {
-            if (base64Url == null) return null;
-            if (base64Url.Length == 0) return string.Empty;
-            string s = base64Url.Replace('-', '+').Replace('_', '/');
-            switch (s.Length % 4)
-            {
-                case 2: s += "=="; break;
-                case 3: s += "="; break;
-                case 1: return null;      // 长度模 4 为 1 不是合法 base64
-            }
-            try
-            {
-                return Encoding.UTF8.GetString(Convert.FromBase64String(s));
-            }
-            catch (FormatException)
-            {
-                return null;
-            }
-        }
+        /// <summary>Base64Url 解码；失败返回 null（不抛）。实现单源 <c>RoomServer.Application.Base64Url</c>。</summary>
+        public static string Decode(string base64Url) => RoomServer.Application.Base64Url.DecodeText(base64Url);
 
         /// <summary>严格十进制整数（拒绝 "+1"、" 1"、"1_0" 等宽松形式——避免歧义编码绕过比对）。</summary>
         public static bool TryParseLong(string s, out long value)

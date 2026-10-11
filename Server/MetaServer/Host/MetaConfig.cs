@@ -112,6 +112,32 @@ namespace MetaServer
         /// <summary>默认房间号（请求未带 roomId 时使用；空 = 必须由请求给出）。</summary>
         public string LobbyDefaultRoomId { get; set; } = "";
 
+        // ---- 结算提交凭据（P1②：与 Lobby 注册分权）----
+
+        /// <summary>
+        /// 结算提交凭据（Base64；**空 = `/matches/result` 拒绝服务**）。房间端以同值作 Bearer
+        /// 调用结算端点（常量时间比较）。
+        ///
+        /// **为什么必须与 <see cref="LobbyInstanceKeyBase64"/> 分开**：这是两条权限面——
+        /// 「注册一个实例」与「给任意玩家发奖并落账」的能力完全不同。共用一份凭据等于"能注册的
+        /// 实例即可写结算账本"，任何一处凭据泄露（配置分发/进程环境）都同时放大到资金面。
+        /// 宿主侧配套 = 房间端 `--settlement-instance-key` / `LITENET_SETTLEMENT_INSTANCE_KEY`。
+        /// </summary>
+        public string SettlementInstanceKeyBase64 { get; set; } = "";
+
+        /// <summary>结算查询缺省条数（`/matches` 未带 limit 时）——默认 <see cref="DefaultSettlementQueryLimit"/>。</summary>
+        public int SettlementDefaultQueryLimit { get; set; } = DefaultSettlementQueryLimit;
+
+        /// <summary>结算查询条数上限（有界——§13"任何队列/缓存…必须有显式容量"）——默认
+        /// <see cref="DefaultSettlementMaxQueryLimit"/>。P2 批二起进配置（此前是端点里的字面量常量）。</summary>
+        public int SettlementMaxQueryLimit { get; set; } = DefaultSettlementMaxQueryLimit;
+
+        /// <summary>结算查询缺省条数缺省值（P2 批二迁自 <c>SettlementEndpoints</c> 的字面量常量）。</summary>
+        public const int DefaultSettlementQueryLimit = 20;
+
+        /// <summary>结算查询条数上限缺省值（P2 批二迁自 <c>SettlementEndpoints</c> 的字面量常量）。</summary>
+        public const int DefaultSettlementMaxQueryLimit = 100;
+
         public static MetaConfig Default() => new MetaConfig();
 
         /// <summary>
@@ -234,6 +260,20 @@ namespace MetaServer
                     && Encoding.UTF8.GetByteCount(LobbyDefaultRoomId) > 64)
                     errors.Add("LobbyDefaultRoomId 不得超过 64 UTF-8 字节（与房间端房间号上限同口径）");
             }
+
+            // ---- 结算提交（P1②：与 Lobby 注册分权）——给了就必须合法（半段配置 = 配置错误）----
+            if (!string.IsNullOrWhiteSpace(SettlementInstanceKeyBase64)
+                && !IsUsableKey(SettlementInstanceKeyBase64))
+                errors.Add("SettlementInstanceKeyBase64 必须是合法 Base64 且解码后至少 32 字节（原值不回显）");
+
+            // ---- 结算查询分页（P2 批二：字面量常量进配置）——两条硬边界：各自范围 + 缺省不得大于上限
+            if (SettlementDefaultQueryLimit < 1 || SettlementDefaultQueryLimit > 1_000)
+                errors.Add("SettlementDefaultQueryLimit 越界（允许 1..1000）");
+            if (SettlementMaxQueryLimit < 1 || SettlementMaxQueryLimit > 1_000)
+                errors.Add("SettlementMaxQueryLimit 越界（允许 1..1000）");
+            else if (SettlementDefaultQueryLimit > SettlementMaxQueryLimit)
+                errors.Add("SettlementDefaultQueryLimit 不得大于 SettlementMaxQueryLimit"
+                    + "（否则不带 limit 的请求必然越界）");
 
             return errors;
         }

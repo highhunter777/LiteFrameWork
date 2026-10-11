@@ -1,8 +1,8 @@
 using System;
 using System.Collections.Generic;
-using System.Text;
 using System.Threading;
 using MetaServer.Contracts.Lobby;
+using MetaServer.Contracts.Validation;
 
 namespace MetaServer.Modules.Lobby
 {
@@ -26,10 +26,10 @@ namespace MetaServer.Modules.Lobby
     /// </summary>
     public sealed class InstanceRegistry
     {
-        /// <summary>字段边界（对齐 §P0-3"解析前限制长度"；与房间端 JoinAdmissionGate 的字段上限同数量级）。</summary>
-        public const int MaxInstanceIdBytes = 64;
-        public const int MaxBuildHashBytes = 64;
-        public const int MaxAddressBytes = 128;
+        /// <summary>字段边界（对齐 §P0-3"解析前限制长度"；**别名**——上限表单源 <see cref="FieldLimits"/>）。</summary>
+        public const int MaxInstanceIdBytes = FieldLimits.BusinessKeyBytes;
+        public const int MaxBuildHashBytes = FieldLimits.BusinessKeyBytes;
+        public const int MaxAddressBytes = FieldLimits.AddressBytes;
 
         /// <summary>结构上限（越界 = 上报事实不可信，拒绝而不是裁剪）。</summary>
         public const int MaxRoomsCeiling = 65535;
@@ -115,9 +115,9 @@ namespace MetaServer.Modules.Lobby
         {
             reason = null;
             if (command == null) { reason = "payload-missing"; return RegisterResult.InvalidFields; }
-            if (!ValidField(command.InstanceId, MaxInstanceIdBytes)) { reason = "instanceId"; return RegisterResult.InvalidFields; }
-            if (!ValidField(command.BuildHash, MaxBuildHashBytes)) { reason = "buildHash"; return RegisterResult.InvalidFields; }
-            if (!ValidField(command.Address, MaxAddressBytes) || !TryParseHostPort(command.Address)) { reason = "address"; return RegisterResult.InvalidFields; }
+            if (!FieldValidation.IsValid(command.InstanceId, MaxInstanceIdBytes)) { reason = "instanceId"; return RegisterResult.InvalidFields; }
+            if (!FieldValidation.IsValid(command.BuildHash, MaxBuildHashBytes)) { reason = "buildHash"; return RegisterResult.InvalidFields; }
+            if (!FieldValidation.IsValid(command.Address, MaxAddressBytes) || !TryParseHostPort(command.Address)) { reason = "address"; return RegisterResult.InvalidFields; }
             if (command.MaxRooms < 1 || command.MaxRooms > MaxRoomsCeiling) { reason = "maxRooms"; return RegisterResult.InvalidFields; }
             if (command.RoomCount < 0 || command.RoomCount > command.MaxRooms) { reason = "roomCount"; return RegisterResult.InvalidFields; }
             if (command.MaxPlayers < 1 || command.MaxPlayers > MaxPlayersCeiling) { reason = "maxPlayers"; return RegisterResult.InvalidFields; }
@@ -235,12 +235,6 @@ namespace MetaServer.Modules.Lobby
             if (dead == null) return;
             for (int i = 0; i < dead.Count; i++) _byId.Remove(dead[i]);
             Interlocked.Add(ref _sweptExpired, dead.Count);
-        }
-
-        private static bool ValidField(string value, int maxBytes)
-        {
-            if (string.IsNullOrEmpty(value)) return false;
-            return Encoding.UTF8.GetByteCount(value) <= maxBytes;
         }
 
         /// <summary>地址形状：<c>host:port</c>（host 非空、port 十进制 1..65535）。</summary>

@@ -80,7 +80,8 @@ namespace RoomServer
             // 结算 Outbox：文件实装（宿主层 IO）。concrete + 接口前向——Program 取 concrete 打重放信息，
             // 宿主经接口消费；两处解析到同一单例。
             services.AddSingleton(_ => FileSettlementOutbox.Open(
-                config.SettlementJournalPath, config.SettlementOutboxCapacity));
+                config.SettlementJournalPath, config.SettlementOutboxCapacity,
+                config.HostTuning.OutboxCompactThresholdMarks));   // 压实阈值可配（P2 批二）
             services.AddSingleton<ISettlementOutbox>(sp => sp.GetRequiredService<FileSettlementOutbox>());
 
             // 传输：默认 KCP；配了信封选项则装饰（与客户端侧装配同构）。
@@ -110,8 +111,11 @@ namespace RoomServer
             services.AddSingleton(sp =>
             {
                 ServerHost host = sp.GetRequiredService<ServerHost>();
-                var loop = new ServerLoop(host);
-                host.LoopStats = loop.Stats;                       // Ops 行节拍/掉债观测入口
+                // 帧体异常上报：ServerLoop 只吸收+计数，日志落点归宿主（Shell 层才允许 Console）。
+                var loop = new ServerLoop(host, onPumpError: ex =>
+                    Console.WriteLine("[RoomServer] 权威帧体异常（已吸收，循环继续）："
+                        + ex.GetType().Name + ": " + ex.Message));
+                host.LoopStats = loop.Stats;                       // Ops 行节拍/掉债/泵失败观测入口
                 return loop;
             });
 

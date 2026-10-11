@@ -75,7 +75,10 @@ if (-not $SkipRestoreCheck) {
 # Never bypass it: a stale constant bakes a wrong version fingerprint into the
 # released client and the Join handshake is the only line left after shipping.
 Write-Host '== buildhash check ==' -ForegroundColor Cyan
-& python (Join-Path $ProjectPath 'scripts/codegen/gen-build-hash.py') --check
+# --check-shared（P1④）：出包门禁只把守**握手红线**那一个常量（共享源集）。Meta 的构建身份
+# 是另一个生成目标（Server/MetaServer/Host/BuildHash.g.cs），它是**独立产物**的日志标识、
+# 不参与准入判定，Meta 常量陈旧不该拦客户端出包——其把守点 = 发布 Meta 前跑 `--check`（两个都查）。
+& python (Join-Path $ProjectPath 'scripts/codegen/gen-build-hash.py') --check-shared
 if ($LASTEXITCODE -ne 0) {
     Write-Host 'buildHash stale - run: python scripts/codegen/gen-build-hash.py - build aborted' -ForegroundColor Red
     exit 1

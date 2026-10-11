@@ -1,6 +1,7 @@
 using System;
 using LiteNet.Diagnostics;
 using LiteNet.Proto;
+using RoomServer;
 using RoomServer.Application;
 using Xunit;
 
@@ -208,6 +209,24 @@ namespace LiteNet.Tests
             Assert.Equal(64, JoinAdmissionGate.MaxRoomIdBytes);
             Assert.Equal(256, JoinAdmissionGate.MaxTokenBytes);
             Assert.Equal(128, JoinAdmissionGate.MaxBuildHashBytes);
+        }
+
+        /// <summary>
+        /// P2：上限**三级同源**——上限表（共享侧 <see cref="JoinFieldLimits"/>）→ 准入门 → 宿主公开常量，
+        /// 且验签器的默认票据上限与准入门**同一道闸**（此前验签器自钉 2048，准入先拦 256 ⇒ 第二道闸永远够不着）。
+        /// </summary>
+        [Fact]
+        public void 字段上限_上限表到准入门到宿主三级同源_验签器同一道闸()
+        {
+            Assert.Equal(JoinFieldLimits.RoomIdBytes, JoinAdmissionGate.MaxRoomIdBytes);
+            Assert.Equal(JoinFieldLimits.TokenBytes, JoinAdmissionGate.MaxTokenBytes);
+            Assert.Equal(JoinFieldLimits.BuildHashBytes, JoinAdmissionGate.MaxBuildHashBytes);
+
+            Assert.Equal(JoinAdmissionGate.MaxRoomIdBytes, ServerHost.MaxRoomIdBytes);
+            Assert.Equal(JoinAdmissionGate.MaxTokenBytes, ServerHost.MaxTokenBytes);
+            Assert.Equal(JoinAdmissionGate.MaxBuildHashBytes, ServerHost.MaxBuildHashBytes);
+
+            Assert.Equal(JoinFieldLimits.TokenBytes, HmacJoinTicketValidator.DefaultMaxTokenBytes);
         }
 
         private static void AssertRejected(JoinAdmissionGate.Decision d, string expectedCode)

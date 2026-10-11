@@ -13,10 +13,10 @@ namespace RoomServer
         /// <summary>无待提交条目（空闲）。</summary>
         Idle = 0,
 
-        /// <summary>头部条目已提交并被 Meta 接纳（200——含 duplicate 幂等命中），已标记完成。</summary>
+        /// <summary>头部条目已提交并被 Meta 接纳（**2xx**——含 duplicate 幂等命中），已标记完成。</summary>
         Submitted = 1,
 
-        /// <summary>提交失败（HTTP 非 200 / 传输异常）；条目保持待提交（重试安全）。</summary>
+        /// <summary>提交失败（HTTP 非 2xx / 传输异常）；条目保持待提交（重试安全）。</summary>
         Failed = 2,
     }
 
@@ -25,7 +25,7 @@ namespace RoomServer
     /// 完成标记/重启续投"；《Meta 服务专项设计》§8.2 结算链的 RoomServer 半边）。
     ///
     /// - **只读日志、不改日志语义**：逐条取 <see cref="ISettlementOutbox.ListPending"/> 头部 → POST
-    ///   Meta `/matches/result`（实例密钥 Bearer——与 Lobby 注册共用服务凭据）→ 200 即
+    ///   Meta `/matches/result`（结算实例密钥 Bearer——**与 Lobby 注册分权**，见 P1②）→ **2xx** 即
     ///   <see cref="ISettlementOutbox.TryMarkCompleted"/>（Meta 侧幂等是最终裁判：duplicate 同样算完成）；
     /// - **重启续投**：不做任何内存进度记账——启动即从日志待提交面重建（引擎语义在 Outbox 里）；
     /// - **重试与退避**：失败条目保持待提交，下一轮重试；连续失败按指数退避封顶
@@ -35,7 +35,7 @@ namespace RoomServer
     ///
     /// HTTP handler 可注入——L1 用伪造 handler 断言载荷、完成标记与失败保持。
     /// </summary>
-    public sealed class SettlementSubmitService : IDisposable
+    public sealed class SettlementSubmitService : HttpSubmitWorker
     {
         /// <summary>管道参数（Program 从 RoomServerConfig + 环境密钥组装）。</summary>
         public sealed class Settings
@@ -43,7 +43,8 @@ namespace RoomServer
             /// <summary>Meta 结算提交端点完整 URL（如 <c>https://meta.example.com/matches/result</c>）。</summary>
             public string Url;
 
-            /// <summary>实例密钥（Bearer 原文以其 Base64 串编码——与 Meta 配置同值）。</summary>
+            /// <summary>**结算**实例密钥（Bearer 原文以其 Base64 串编码——与 Meta 的
+            /// <c>SettlementInstanceKeyBase64</c> 同值；**与 Lobby 注册凭据分权**，P1②）。</summary>
             public byte[] InstanceKey;
 
             /// <summary>空闲轮询间隔（毫秒）。</summary>
@@ -90,33 +91,29 @@ namespace RoomServer
         private readonly Settings _settings;
         private readonly ISettlementOutbox _outbox;
         private readonly Action<string> _log;
-        private readonly HttpClient _http;
-        private readonly ManualResetEventSlim _stop = new ManualResetEventSlim(false);
-        private Thread _thread;
         private long _submitted;
         private long _failed;
         private int _consecutiveFailures;
-        private bool _disposed;
 
         public SettlementSubmitService(Settings settings, ISettlementOutbox outbox, Action<string> log,
             HttpMessageHandler handler = null)
+            // URL/密钥校验与线程骨架归基类（P2 批二）；实参序保证 settings 的 null 校验先于其余取值
+            : base(CheckedUrl(settings), "结算提交 URL", CheckedKey(settings), "SettlementSubmit",
+                   settings?.RequestTimeoutMs ?? 0, handler)
         {
-            if (settings == null) throw new ArgumentNullException(nameof(settings));
-            if (string.IsNullOrWhiteSpace(settings.Url)
-                || !Uri.TryCreate(settings.Url, UriKind.Absolute, out Uri parsed)
-                || (parsed.Scheme != Uri.UriSchemeHttp && parsed.Scheme != Uri.UriSchemeHttps))
-                throw new ArgumentException("结算提交 URL 必须是绝对 http/https 地址", nameof(settings));
-            if (settings.InstanceKey == null || settings.InstanceKey.Length == 0)
-                throw new ArgumentException("实例密钥不能为空", nameof(settings));
             if (settings.IntervalMs < 1000)
                 throw new ArgumentException("空闲轮询间隔不得低于 1000ms", nameof(settings));
 
             _settings = settings;
             _outbox = outbox ?? throw new ArgumentNullException(nameof(outbox));
             _log = log ?? throw new ArgumentNullException(nameof(log));
-            _http = handler != null ? new HttpClient(handler) : new HttpClient();
-            _http.Timeout = TimeSpan.FromMilliseconds(settings.RequestTimeoutMs > 0 ? settings.RequestTimeoutMs : 5000);
         }
+
+        /// <summary>URL 取值（含 settings 的 null 前置校验——在 <c>base(...)</c> 实参序最前）。</summary>
+        private static string CheckedUrl(Settings settings)
+            => (settings ?? throw new ArgumentNullException(nameof(settings))).Url;
+
+        private static byte[] CheckedKey(Settings settings) => settings.InstanceKey;
 
         /// <summary>已被 Meta 接纳的条目数（含 duplicate 幂等命中；诊断/测试断言）。</summary>
         public long Submitted
@@ -136,31 +133,11 @@ namespace RoomServer
             get { return _outbox.Count; }
         }
 
-        /// <summary>启动后台提交循环（启动即刻消费；重复调用无操作）。</summary>
-        public void Start()
+        /// <summary>提交循环（骨架：启动/停止/释放归 <see cref="HttpSubmitWorker"/>；此处只留策略——
+        /// 排空式消费 + 失败指数退避）。</summary>
+        protected override void Loop()
         {
-            if (_disposed) return;
-            if (_thread != null) return;
-            _thread = new Thread(Loop)
-            {
-                IsBackground = true,
-                Name = "SettlementSubmit",
-            };
-            _thread.Start();
-        }
-
-        /// <summary>停止提交循环（有界等待——不因网络卡死拖住进程退出；幂等）。</summary>
-        public void Stop()
-        {
-            _stop.Set();
-            Thread thread = _thread;
-            _thread = null;
-            thread?.Join(TimeSpan.FromSeconds(2));
-        }
-
-        private void Loop()
-        {
-            while (!_stop.IsSet)
+            while (!StopRequested)
             {
                 SettlementSubmitStep step = TrySubmitNext(out _);
                 switch (step)
@@ -168,11 +145,11 @@ namespace RoomServer
                     case SettlementSubmitStep.Submitted:
                         continue;                                  // 立刻下一单（排空式消费）
                     case SettlementSubmitStep.Idle:
-                        _stop.Wait(_settings.IntervalMs);
+                        WaitStop(_settings.IntervalMs);
                         break;
                     default:
                         // 连续失败计数归 RecordFailure（全路径唯一递增点）
-                        _stop.Wait(BackoffMs(_consecutiveFailures, _settings.IntervalMs, _settings.MaxBackoffMs));
+                        WaitStop(BackoffMs(_consecutiveFailures, _settings.IntervalMs, _settings.MaxBackoffMs));
                         break;
                 }
             }
@@ -192,17 +169,20 @@ namespace RoomServer
 
                 PendingSettlement entry = pending[0];
                 using var request = new HttpRequestMessage(HttpMethod.Post, _settings.Url);
-                request.Headers.TryAddWithoutValidation("Authorization",
-                    "Bearer " + Convert.ToBase64String(_settings.InstanceKey));
+                HttpWorkerSupport.AddBearer(request, _settings.InstanceKey);   // Bearer 构造单源（P2）
                 request.Content = new StringContent(
                     JsonSerializer.Serialize(BuildPayload(entry), WebJson), Encoding.UTF8, "application/json");
 
-                using HttpResponseMessage response = _http
+                using HttpResponseMessage response = Http
                     .SendAsync(request, HttpCompletionOption.ResponseContentRead)
                     .GetAwaiter().GetResult();
 
-                if ((int)response.StatusCode == 200)
+                if (response.IsSuccessStatusCode)
                 {
+                    // **2xx 区间**（P1①）：只认 200 会把同义的 201/202/204 当失败反复重投。
+                    // 注：非 2xx 仍按失败保持待提交（与 §2"失败保持待提交"一致），其中包括
+                    // 409（Meta 侧台账冲突）与 400（载荷非法）这类**确定性**拒绝——重投不收敛
+                    // 且头阻塞后续条目，处置另立（审计登记"确定性拒绝的头阻塞"）。
                     // Meta 已接纳（首次或幂等命中）——标记完成；标记失败（介质故障）则保持待提交，
                     // 重投时 Meta duplicate 兜底（不重复落库）
                     if (!_outbox.TryMarkCompleted(entry.MatchId))
@@ -273,20 +253,12 @@ namespace RoomServer
         {
             Interlocked.Increment(ref _failed);
             int consecutive = Interlocked.Increment(ref _consecutiveFailures);
-            if (consecutive == 1 || consecutive % 20 == 0)
+            if (HttpWorkerSupport.ShouldReportFailure(consecutive))   // 节流节奏单源（P2）
             {
                 _log("[Settle] 提交失败（连续 " + consecutive + " 次）：" + error
                     + "（条目保持待提交；对局服务不受影响）");
             }
         }
 
-        public void Dispose()
-        {
-            if (_disposed) return;
-            _disposed = true;
-            Stop();
-            _http.Dispose();
-            _stop.Dispose();
-        }
     }
 }

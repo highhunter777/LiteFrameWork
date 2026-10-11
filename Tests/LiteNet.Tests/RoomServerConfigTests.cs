@@ -264,6 +264,69 @@ namespace LiteNet.Tests
             Assert.ThrowsAny<System.Exception>(() => RoomServerConfig.Parse(json));
         }
 
+        /// <summary>
+        /// P2 批二：宿主运行期调参进配置（`host_tuning` 可选分区）——缺省 = 迁移前的字面量常量
+        /// （**行为零变化**），给了即生效，越界/坏形状**装载期即拒**（与 rooms/rate_limit 同款 fail-fast）。
+        /// </summary>
+        [Fact]
+        public void 宿主调参_缺省等于迁移前常量_给了即生效_越界拒绝()
+        {
+            RoomServerConfig defaults = RoomServerConfig.Parse(Good);
+            Assert.Equal(HostTuning.DefaultDrainGraceMs, defaults.HostTuning.DrainGraceMs);
+            Assert.Equal(HostTuning.DefaultSessionCleanupIntervalTicks,
+                defaults.HostTuning.SessionCleanupIntervalTicks);
+            Assert.Equal(HostTuning.DefaultReconnectTicketTtlMs, defaults.HostTuning.ReconnectTicketTtlMs);
+            Assert.Equal(HostTuning.DefaultOutboxCompactThresholdMarks,
+                defaults.HostTuning.OutboxCompactThresholdMarks);
+            Assert.Equal(HostTuning.DefaultMaxInboundPacketBytes, defaults.HostTuning.MaxInboundPacketBytes);
+
+            // 给了即生效（四个真运营项：排空宽限 / 重连窗口 / 压实阈值 / Ops 间隔）
+            string tuned = Good.Replace(@"""max_rooms"": 4",
+                @"""host_tuning"": { ""drain_grace_ms"": 15000, ""reconnect_ticket_ttl_ms"": 60000,"
+                + @" ""outbox_compact_threshold_marks"": 8, ""ops_interval_ms"": 2000 }, ""max_rooms"": 4");
+            RoomServerConfig cfg = RoomServerConfig.Parse(tuned);
+            Assert.Equal(15000, cfg.HostTuning.DrainGraceMs);
+            Assert.Equal(60000, cfg.HostTuning.ReconnectTicketTtlMs);
+            Assert.Equal(8, cfg.HostTuning.OutboxCompactThresholdMarks);
+            Assert.Equal(2000, cfg.HostTuning.OpsIntervalMs);
+            Assert.Equal(HostTuning.DefaultLobbyRequestTimeoutMs, cfg.HostTuning.LobbyRequestTimeoutMs);  // 未给 = 缺省
+
+            // 越界装载期即拒（不让越界值活到运行期）
+            string bad = Good.Replace(@"""max_rooms"": 4",
+                @"""host_tuning"": { ""drain_grace_ms"": 999999999 }, ""max_rooms"": 4");
+            Assert.ThrowsAny<System.Exception>(() => RoomServerConfig.Parse(bad));
+
+            // 分区形状不对也拒（不是对象 / 字段不是整数）
+            string badType = Good.Replace(@"""max_rooms"": 4", @"""host_tuning"": 5, ""max_rooms"": 4");
+            Assert.ThrowsAny<System.Exception>(() => RoomServerConfig.Parse(badType));
+
+            string badField = Good.Replace(@"""max_rooms"": 4",
+                @"""host_tuning"": { ""ops_interval_ms"": ""soon"" }, ""max_rooms"": 4");
+            Assert.ThrowsAny<System.Exception>(() => RoomServerConfig.Parse(badField));
+        }
+
+        /// <summary>
+        /// P0-2：<c>expected_players</c> 的上界必须**等于内核容量**（<see cref="PendingInputRing.MaxPlayerCapacity"/>，
+        /// 单 uint 有效位图宽度）——两侧曾各自写死（配置 1..64 / 内核 1..32），33+ 席位配置让
+        /// RoomRuntime 构造抛异常并窜上权威循环线程。上界单源后，越界配置在**装载期**即拒。
+        /// </summary>
+        [Fact]
+        public void 单房间人数超内核容量_装载期拒绝_边界值合法()
+        {
+            int capacity = PendingInputRing.MaxPlayerCapacity;
+
+            string tooMany = Good.Replace(@"{ ""expected_players"": 2 }",
+                "{ \"expected_players\": " + (capacity + 1) + " }");
+            Assert.ThrowsAny<System.Exception>(() => RoomServerConfig.Parse(tooMany));
+
+            // 边界值本身合法（恰好等于内核容量：valid 位图刚好填满）
+            string atLimit = Good.Replace(@"{ ""expected_players"": 2 }",
+                "{ \"expected_players\": " + capacity + " }");
+            RoomServerConfig parsed = RoomServerConfig.Parse(atLimit);
+            Assert.Equal(capacity, parsed.MaxExpectedPlayers);
+            Assert.Equal(capacity, parsed.BuildRoomConfig(null, "Any").ExpectedPlayers);
+        }
+
         // ---- 结构与引用完整性 ----
 
         [Fact]

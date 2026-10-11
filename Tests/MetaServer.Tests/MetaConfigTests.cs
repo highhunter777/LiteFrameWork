@@ -249,6 +249,65 @@ namespace MetaServer.Tests
             Assert.Contains(config.Validate(), error => error.Contains("32 字节"));
         }
 
+        // ---- 结算提交凭据（P1②：与 Lobby 注册分权）----
+
+        [Fact]
+        [Trait(TestTrait.Category, TestCategory.Contract)]
+        public void 结算凭据_缺省功能关闭_非法即拒绝_原值不回显()
+        {
+            Assert.Empty(MetaConfig.Default().Validate());       // 空 = 结算端点不提供（与 Lobby 同款"空即关闭"）
+
+            var config = MetaConfig.Default();
+            config.SettlementInstanceKeyBase64 = "not-base64";
+            IReadOnlyList<string> errors = config.Validate();
+            Assert.Contains(errors, error => error.Contains("SettlementInstanceKeyBase64"));
+            Assert.DoesNotContain("not-base64", string.Join(";", errors));   // 原值不回显（密钥面统一口径）
+
+            config = MetaConfig.Default();
+            config.SettlementInstanceKeyBase64 = Convert.ToBase64String(new byte[31]);   // 可解码但不足 32 字节
+            Assert.Contains(config.Validate(), error => error.Contains("32 字节"));
+        }
+
+        /// <summary>
+        /// P2 批二：结算查询分页边界进配置——缺省值合法；越界或"缺省 &gt; 上限"（不带 limit 的请求必然越界）
+        /// 一律拒（§13"任何队列/缓存必须有显式容量"同款）。
+        /// </summary>
+        [Fact]
+        [Trait(TestTrait.Category, TestCategory.Contract)]
+        public void 结算查询分页_缺省合法_越界或缺省超上限即拒绝()
+        {
+            var config = MetaConfig.Default();
+            Assert.Equal(MetaConfig.DefaultSettlementQueryLimit, config.SettlementDefaultQueryLimit);
+            Assert.Equal(MetaConfig.DefaultSettlementMaxQueryLimit, config.SettlementMaxQueryLimit);
+            Assert.Empty(config.Validate());
+
+            config = MetaConfig.Default();
+            config.SettlementMaxQueryLimit = 1_001;
+            Assert.Contains(config.Validate(), e => e.Contains("SettlementMaxQueryLimit"));
+
+            config = MetaConfig.Default();
+            config.SettlementDefaultQueryLimit = 0;
+            Assert.Contains(config.Validate(), e => e.Contains("SettlementDefaultQueryLimit"));
+
+            // 缺省 > 上限：不带 limit 的请求必然越界——配置自相矛盾，装载期即拒
+            config = MetaConfig.Default();
+            config.SettlementDefaultQueryLimit = 50;
+            config.SettlementMaxQueryLimit = 10;
+            Assert.Contains(config.Validate(), e => e.Contains("不得大于"));
+        }
+
+        [Fact]
+        [Trait(TestTrait.Category, TestCategory.Contract)]
+        public void 结算凭据_与Lobby凭据是两个独立字段_不因Lobby配置而被要求()
+        {
+            // 分权的事实面：Lobby 配好（含注册凭据）也不代表结算凭据被填——两者互不推导，
+            // 结算端点缺凭据时稳定 503（功能关闭），不会"顺手"用 Lobby 凭据顶替。
+            var config = LobbyReady();
+            Assert.False(string.IsNullOrEmpty(config.LobbyInstanceKeyBase64));
+            Assert.True(string.IsNullOrEmpty(config.SettlementInstanceKeyBase64));
+            Assert.Empty(config.Validate());
+        }
+
         [Fact]
         [Trait(TestTrait.Category, TestCategory.Contract)]
         public void Lobby票据kid_形状约束_拒绝含分隔符()

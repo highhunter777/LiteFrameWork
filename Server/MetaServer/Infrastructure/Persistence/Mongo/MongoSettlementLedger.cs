@@ -127,7 +127,7 @@ namespace MetaServer.Infrastructure.Persistence.Mongo
                 {
                     await ledger.InsertOneAsync(session, ToDocument(record), null, ct);
                 }
-                catch (MongoWriteException ex) when (IsDuplicateKey(ex))
+                catch (MongoWriteException ex) when (MongoWriteErrors.IsDuplicateKey(ex))
                 {
                     // 并发同笔落账：唯一索引是最终裁判——整笔回滚后返回首次的账目
                     await AbortQuietlyAsync(session, ct);
@@ -175,12 +175,6 @@ namespace MetaServer.Infrastructure.Persistence.Mongo
                            && d.MatchId == write.Key.MatchId
                            && d.SettlementType == write.Key.SettlementType)
                 .FirstOrDefaultAsync(ct);
-        }
-
-        private static bool IsDuplicateKey(MongoWriteException ex)
-        {
-            return ex.WriteError != null
-                   && ex.WriteError.Category == ServerErrorCategory.DuplicateKey;
         }
 
         private static async Task AbortQuietlyAsync(IClientSessionHandle session, CancellationToken ct)

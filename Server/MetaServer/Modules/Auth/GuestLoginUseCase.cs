@@ -1,9 +1,9 @@
 using System;
-using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using MetaServer.Contracts.Auth;
 using MetaServer.Contracts.Persistence;
+using MetaServer.Contracts.Validation;
 
 namespace MetaServer.Modules.Auth
 {
@@ -20,8 +20,8 @@ namespace MetaServer.Modules.Auth
     /// </summary>
     public sealed class GuestLoginUseCase
     {
-        /// <summary>requestId/deviceId 的 UTF-8 字节上限（与端点侧字段限一致；§P0-3）。</summary>
-        public const int MaxFieldBytes = 128;
+        /// <summary>requestId/deviceId 的 UTF-8 字节上限（**别名**：上限表单源 <see cref="FieldLimits.ShortIdBytes"/>）。</summary>
+        public const int MaxFieldBytes = FieldLimits.ShortIdBytes;
 
         private readonly IAccountStore _accounts;
         private readonly AccessTokenService _tokens;
@@ -60,7 +60,8 @@ namespace MetaServer.Modules.Auth
 
         public async Task<Result> ExecuteAsync(GuestLoginCommand command, CancellationToken ct)
         {
-            if (!ValidField(command?.RequestId) || !ValidField(command.DeviceId))
+            if (!FieldValidation.IsValid(command?.RequestId, MaxFieldBytes)
+                || !FieldValidation.IsValid(command.DeviceId, MaxFieldBytes))
                 return new Result.Rejected
                 {
                     ErrorCode = AuthErrorCodes.InvalidRequest,
@@ -104,13 +105,6 @@ namespace MetaServer.Modules.Auth
                 // 存储故障归基础设施异常面（端点映射 503；不打日志面——宿主/端点统一记录）
                 return new Result.StoreUnavailable { Reason = "account-store-failure" };
             }
-        }
-
-        /// <summary>字段边界（非空且 UTF-8 字节数 ≤128；null/空串/超界都不进存储）。</summary>
-        private static bool ValidField(string value)
-        {
-            if (string.IsNullOrEmpty(value)) return false;
-            return Encoding.UTF8.GetByteCount(value) <= MaxFieldBytes;
         }
 
         private static string NewAccountId()

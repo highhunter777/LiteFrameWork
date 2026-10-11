@@ -61,7 +61,7 @@ namespace MetaServer.Infrastructure.Persistence.Mongo
             {
                 await _collection.InsertOneAsync(doc, null, ct);
             }
-            catch (MongoWriteException ex) when (IsDuplicateKey(ex))
+            catch (MongoWriteException ex) when (MongoWriteErrors.IsDuplicateKey(ex))
             {
                 // 并发同局提交：唯一索引是最终裁判——读回首次快照
                 MatchResultDoc first = await _collection
@@ -147,10 +147,5 @@ namespace MetaServer.Infrastructure.Persistence.Mongo
             return new StoredMatchResult(doc.MatchId, doc.FinishedUtc);
         }
 
-        private static bool IsDuplicateKey(MongoWriteException ex)
-        {
-            return ex.WriteError != null
-                   && ex.WriteError.Category == ServerErrorCategory.DuplicateKey;
-        }
     }
 }

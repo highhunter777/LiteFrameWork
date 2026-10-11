@@ -1,6 +1,6 @@
 using System;
-using System.Text;
 using MetaServer.Contracts.Lobby;
+using MetaServer.Contracts.Validation;
 
 namespace MetaServer.Modules.Lobby
 {
@@ -18,14 +18,15 @@ namespace MetaServer.Modules.Lobby
     /// </summary>
     public sealed class JoinTicketIssueUseCase
     {
-        /// <summary>requestId/accountId 的 UTF-8 字节上限（与游客登录同口径，§P0-3）。</summary>
-        public const int MaxFieldBytes = 128;
+        /// <summary>requestId/accountId 的 UTF-8 字节上限（**别名**：上限表单源 <see cref="FieldLimits.ShortIdBytes"/>）。</summary>
+        public const int MaxFieldBytes = FieldLimits.ShortIdBytes;
 
-        /// <summary>房间号 UTF-8 字节上限（与房间端 JoinAdmissionGate.MaxRoomIdBytes 同值——跨端各自钉死，不互相引用）。</summary>
-        public const int MaxRoomIdBytes = 64;
+        /// <summary>房间号 UTF-8 字节上限（**别名** <see cref="FieldLimits.BusinessKeyBytes"/>；与房间端
+        /// JoinAdmissionGate.MaxRoomIdBytes 同值——跨端各自钉死，不互相引用）。</summary>
+        public const int MaxRoomIdBytes = FieldLimits.BusinessKeyBytes;
 
-        /// <summary>声明构建哈希的 UTF-8 字节上限（同房间端 MaxBuildHashBytes 数量级）。</summary>
-        public const int MaxBuildHashBytes = 64;
+        /// <summary>声明构建哈希的 UTF-8 字节上限（**别名** <see cref="FieldLimits.BusinessKeyBytes"/>）。</summary>
+        public const int MaxBuildHashBytes = FieldLimits.BusinessKeyBytes;
 
         private readonly InstanceRegistry _registry;
         private readonly LobbyTicketSigner _signer;
@@ -74,13 +75,15 @@ namespace MetaServer.Modules.Lobby
 
         public Result Issue(string accountId, JoinTicketCommand command)
         {
-            if (!ValidField(accountId, MaxFieldBytes) || !ValidField(command?.RequestId, MaxFieldBytes))
+            if (!FieldValidation.IsValid(accountId, MaxFieldBytes)
+                || !FieldValidation.IsValid(command?.RequestId, MaxFieldBytes))
                 return Invalid();
 
             string roomId = string.IsNullOrEmpty(command.RoomId) ? _defaultRoomId : command.RoomId;
-            if (!ValidField(roomId, MaxRoomIdBytes))
+            if (!FieldValidation.IsValid(roomId, MaxRoomIdBytes))
                 return Invalid();
-            if (!string.IsNullOrEmpty(command.BuildHash) && !ValidField(command.BuildHash, MaxBuildHashBytes))
+            if (!string.IsNullOrEmpty(command.BuildHash)
+                && !FieldValidation.IsValid(command.BuildHash, MaxBuildHashBytes))
                 return Invalid();
 
             if (!_registry.TryAllocate(command.BuildHash, out InstanceRegistry.Entry chosen, out bool versionConflict))
@@ -116,10 +119,5 @@ namespace MetaServer.Modules.Lobby
             };
         }
 
-        private static bool ValidField(string value, int maxBytes)
-        {
-            if (string.IsNullOrEmpty(value)) return false;
-            return Encoding.UTF8.GetByteCount(value) <= maxBytes;
-        }
     }
 }

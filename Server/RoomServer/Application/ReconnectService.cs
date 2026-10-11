@@ -23,10 +23,13 @@ namespace RoomServer.Application
     /// </summary>
     public sealed class ReconnectService
     {
-        /// <summary>票据有效期（毫秒）：5 分钟（《联机Demo设计》断线宽容窗口）。</summary>
+        /// <summary>票据有效期**缺省值**（毫秒）：5 分钟（《联机Demo设计》断线宽容窗口）。
+        /// 可配——宿主经 <see cref="HostTuning.ReconnectTicketTtlMs"/> 注入（P2 批二：此前是硬编码常量，
+        /// 部署形态改不了重连窗口）；本常量保留为缺省值与既有调用方（含测试）的引用点。</summary>
         public const long TicketTtlMs = 5 * 60 * 1000;
 
-        /// <summary>票据表容量上限（默认 256——房间席位规模下远超在途票据数，超限淘汰最老）。</summary>
+        /// <summary>票据表容量上限（默认 256——房间席位规模下远超在途票据数，超限淘汰最老）。
+        /// 可配——宿主经 <see cref="HostTuning.ReconnectCapacity"/> 注入。</summary>
         public const int DefaultCapacity = 256;
 
         /// <summary>票据熵字节数：16 B = 128 bit（§P0-6"至少 128 bit 熵"），base64url 后 22 字符。</summary>
@@ -43,11 +46,23 @@ namespace RoomServer.Application
         private readonly Queue<string> _issuedOrder = new Queue<string>();   // 签发序（淘汰最老用）
         private readonly IMonotonicClock _clock;
         private readonly int _capacity;
+        private readonly long _ttlMs;
 
-        public ReconnectService(int capacity = DefaultCapacity, IMonotonicClock clock = null)
+        /// <param name="capacity">票据表容量上限（超限淘汰最老）。</param>
+        /// <param name="clock">单调时钟（缺省真实时钟；L1 注入虚拟时钟）。</param>
+        /// <param name="ttlMs">票据有效期（毫秒；缺省 <see cref="TicketTtlMs"/>，可配见 <see cref="HostTuning"/>）。</param>
+        public ReconnectService(int capacity = DefaultCapacity, IMonotonicClock clock = null,
+            long ttlMs = TicketTtlMs)
         {
             _capacity = capacity > 0 ? capacity : 1;
             _clock = clock ?? StopwatchClock.Instance;
+            _ttlMs = ttlMs > 0 ? ttlMs : TicketTtlMs;
+        }
+
+        /// <summary>本实例的票据有效期（毫秒）——诊断读值。</summary>
+        public long TtlMs
+        {
+            get { return _ttlMs; }
         }
 
         /// <summary>注入时钟的单调毫秒（无墙钟——L1 虚拟时钟可用）。</summary>
@@ -63,7 +78,7 @@ namespace RoomServer.Application
             }
 
             string token = NewToken();
-            _tickets[token] = new Ticket { PlayerId = playerId, RoomId = roomId, ExpireAtMs = NowMs() + TicketTtlMs };
+            _tickets[token] = new Ticket { PlayerId = playerId, RoomId = roomId, ExpireAtMs = NowMs() + _ttlMs };
             _issuedOrder.Enqueue(token);
             return token;
         }
@@ -75,8 +90,7 @@ namespace RoomServer.Application
         private static string NewToken()
         {
             byte[] bytes = RandomNumberGenerator.GetBytes(TokenEntropyBytes);
-            return System.Convert.ToBase64String(bytes)
-                .TrimEnd('=').Replace('+', '-').Replace('/', '_');
+            return Base64Url.Encode(bytes);      // 编解码单源（P2：与票据/令牌线格式共一份）
         }
 
         /// <summary>消费票据（一次性 + 时效）：成功则移除并返回席位；失败不改状态。</summary>

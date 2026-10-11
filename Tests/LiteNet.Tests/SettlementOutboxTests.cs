@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Threading;
 using LiteTesting;
 using LiteNet.Protocol;
 using LiteNet.Proto;
@@ -347,6 +348,96 @@ namespace LiteNet.Tests
 
                     Assert.Equal(SettlementOutboxResult.Appended, outbox.Enqueue(Summary("m-final")));
                     Assert.Equal(1, outbox.Count);
+                }
+            }
+            finally
+            {
+                Cleanup(path);
+            }
+        }
+
+        /// <summary>
+        /// P0-1 回归：**入盒（权威循环线程）与标记/取待提交（提交后台线程）并发**——
+        /// 全类曾零锁裸并发（<c>_entries/_seen/_completed/_stream</c>），是服务端唯一会造成真实介质损坏的缺陷。
+        /// 断言面：① 无异常（裸并发下 <c>List</c>/<c>HashSet</c> 结构损坏或枚举中改动必抛）；
+        /// ② 每条入盒都被接纳（无莫名 Duplicate/Failed）；③ 全部标记后待提交面归零；
+        /// ④ **日志行无坏行**（并发追加若无临界区会出现交错半行——重启装载即报坏行）。
+        /// </summary>
+        [Fact]
+        public void 并发入盒与标记_无结构损坏_账目自洽_日志无坏行()
+        {
+            string path = TempJournal();
+            const int producers = 2, perProducer = 200, markers = 2;
+            var failures = new List<Exception>();
+            var results = new List<SettlementOutboxResult>();
+            int finishedProducers = 0;
+            try
+            {
+                using (var outbox = FileSettlementOutbox.Open(path, 4096))
+                {
+                    var threads = new List<Thread>();
+                    for (int p = 0; p < producers; p++)
+                    {
+                        int producer = p;
+                        threads.Add(new Thread(() =>
+                        {
+                            try
+                            {
+                                for (int i = 0; i < perProducer; i++)
+                                {
+                                    SettlementOutboxResult r = outbox.Enqueue(Summary("m-" + producer + "-" + i));
+                                    lock (results) results.Add(r);
+                                }
+                            }
+                            catch (Exception ex) { lock (failures) failures.Add(ex); }
+                            finally { Interlocked.Increment(ref finishedProducers); }
+                        }));
+                    }
+
+                    // 提交后台线程形态（×2）：**全程与入盒重叠**地取快照 → 按 id 标记 → 收口/诊断读。
+                    // 读写并发正是隐患暴露面：裸并发下 List<T>/HashSet<T> 的"枚举中改动"必抛或静默损坏。
+                    for (int m = 0; m < markers; m++)
+                    {
+                        threads.Add(new Thread(() =>
+                        {
+                            try
+                            {
+                                long spins = 0;
+                                while (Volatile.Read(ref finishedProducers) < producers)
+                                {
+                                    IReadOnlyList<PendingSettlement> pending = outbox.ListPending();
+                                    if (pending.Count > 0) outbox.TryMarkCompleted(pending[0].MatchId);
+                                    if ((++spins & 15) == 0) outbox.Flush();   // 收口路径（可与入盒并发）
+                                    _ = outbox.Count;                          // 诊断读（Ops 行同款）
+                                }
+                            }
+                            catch (Exception ex) { lock (failures) failures.Add(ex); }
+                        }));
+                    }
+
+                    foreach (Thread t in threads) t.Start();
+                    foreach (Thread t in threads) t.Join();
+
+                    Assert.Empty(failures);                       // ① 无结构损坏/索引越界/枚举中改动类异常
+                    Assert.Equal(producers * perProducer, results.Count);
+                    Assert.All(results, r => Assert.Equal(SettlementOutboxResult.Appended, r));   // ② 全部接纳
+
+                    // 收口：把剩余待提交标记完（提交方排空形态），待提交面必须精确归零
+                    for (IReadOnlyList<PendingSettlement> left = outbox.ListPending(); left.Count > 0;
+                         left = outbox.ListPending())
+                    {
+                        for (int i = 0; i < left.Count; i++) Assert.True(outbox.TryMarkCompleted(left[i].MatchId));
+                    }
+                    outbox.Flush();
+                    Assert.Equal(0, outbox.Count);                // ③ 账目自洽（无幽灵/丢失条目）
+                    Assert.Equal(producers * perProducer, results.Count);
+                }
+
+                // ④ 重放面：并发追加后的日志必须行行可解析（无交错半行）
+                using (var reopened = FileSettlementOutbox.Open(path, 4096))
+                {
+                    Assert.Equal(0, reopened.SkippedCorruptLines);
+                    Assert.Equal(0, reopened.Count);               // 全部已完成 → 无待提交（压实后日志为空）
                 }
             }
             finally

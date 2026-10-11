@@ -20,7 +20,7 @@ namespace RoomServer
     ///
     /// HTTP 客户端可注入 <see cref="HttpMessageHandler"/>——L1 用伪造 handler 断言载荷与失败路径。
     /// </summary>
-    public sealed class LobbyRegistrationClient : IDisposable
+    public sealed class LobbyRegistrationClient : HttpSubmitWorker
     {
         /// <summary>注册参数（Program 从 RoomServerConfig + 环境/命令行密钥组装；密钥经装配注入）。</summary>
         public sealed class Settings
@@ -31,7 +31,8 @@ namespace RoomServer
             /// <summary>实例唯一标识（重启保持稳定——同一实例的心跳是更新，不是新登记）。</summary>
             public string InstanceId;
 
-            /// <summary>实例密钥（Bearer 原文以其 Base64 串编码——与 Meta 配置同值）。</summary>
+            /// <summary>**注册**实例密钥（Bearer 原文以其 Base64 串编码——与 Meta 的
+            /// <c>LobbyInstanceKeyBase64</c> 同值；结算提交另有独立凭据，P1②）。</summary>
             public byte[] InstanceKey;
 
             /// <summary>客户端可达 host（端口用宿主实际 <c>BoundPort</c>——不信任配置端口值）。</summary>
@@ -75,28 +76,20 @@ namespace RoomServer
         private readonly Settings _settings;
         private readonly Func<Snapshot> _snapshot;
         private readonly Action<string> _log;
-        private readonly HttpClient _http;
-        private readonly ManualResetEventSlim _stop = new ManualResetEventSlim(false);
-        private Thread _thread;
         private long _sent;
         private long _failed;
         private long _lastHeartbeatTtlMs;
         private int _consecutiveFailures;
         private int _ttlWarned;
-        private bool _disposed;
 
         public LobbyRegistrationClient(Settings settings, Func<Snapshot> snapshot, Action<string> log,
             HttpMessageHandler handler = null)
+            // URL/密钥校验与线程骨架归基类（P2 批二）；实参序保证 settings 的 null 校验先于其余取值
+            : base(CheckedUrl(settings), "Lobby 注册 URL", CheckedKey(settings), "LobbyHeartbeat",
+                   settings?.RequestTimeoutMs ?? 0, handler)
         {
-            if (settings == null) throw new ArgumentNullException(nameof(settings));
-            if (string.IsNullOrWhiteSpace(settings.Url)
-                || !Uri.TryCreate(settings.Url, UriKind.Absolute, out Uri parsed)
-                || (parsed.Scheme != Uri.UriSchemeHttp && parsed.Scheme != Uri.UriSchemeHttps))
-                throw new ArgumentException("Lobby 注册 URL 必须是绝对 http/https 地址", nameof(settings));
             if (string.IsNullOrWhiteSpace(settings.InstanceId))
                 throw new ArgumentException("实例标识不能为空", nameof(settings));
-            if (settings.InstanceKey == null || settings.InstanceKey.Length == 0)
-                throw new ArgumentException("实例密钥不能为空", nameof(settings));
             if (string.IsNullOrWhiteSpace(settings.AdvertiseHost))
                 throw new ArgumentException("对客户端通告的 host 不能为空", nameof(settings));
             if (settings.HeartbeatIntervalMs < 1000)
@@ -105,9 +98,13 @@ namespace RoomServer
             _settings = settings;
             _snapshot = snapshot ?? throw new ArgumentNullException(nameof(snapshot));
             _log = log ?? throw new ArgumentNullException(nameof(log));
-            _http = handler != null ? new HttpClient(handler) : new HttpClient();
-            _http.Timeout = TimeSpan.FromMilliseconds(settings.RequestTimeoutMs > 0 ? settings.RequestTimeoutMs : 5000);
         }
+
+        /// <summary>URL 取值（含 settings 的 null 前置校验——在 <c>base(...)</c> 实参序最前）。</summary>
+        private static string CheckedUrl(Settings settings)
+            => (settings ?? throw new ArgumentNullException(nameof(settings))).Url;
+
+        private static byte[] CheckedKey(Settings settings) => settings.InstanceKey;
 
         /// <summary>已成功送达的心跳数（诊断/测试断言）。</summary>
         public long Sent
@@ -127,34 +124,14 @@ namespace RoomServer
             get { return Interlocked.Read(ref _lastHeartbeatTtlMs); }
         }
 
-        /// <summary>启动周期心跳（启动即刻首发；重复调用无操作）。</summary>
-        public void Start()
+        /// <summary>心跳循环（骨架：启动/停止/释放归 <see cref="HttpSubmitWorker"/>；此处只留策略——
+        /// 定间隔心跳，启动即刻首发）。</summary>
+        protected override void Loop()
         {
-            if (_disposed) return;
-            if (_thread != null) return;
-            _thread = new Thread(Loop)
-            {
-                IsBackground = true,
-                Name = "LobbyHeartbeat",
-            };
-            _thread.Start();
-        }
-
-        /// <summary>停止周期心跳（有界等待——不因网络卡死拖住进程退出；幂等）。</summary>
-        public void Stop()
-        {
-            _stop.Set();
-            Thread thread = _thread;
-            _thread = null;
-            thread?.Join(TimeSpan.FromSeconds(2));
-        }
-
-        private void Loop()
-        {
-            while (!_stop.IsSet)
+            while (!StopRequested)
             {
                 TrySendOnce(out _);
-                _stop.Wait(_settings.HeartbeatIntervalMs);
+                WaitStop(_settings.HeartbeatIntervalMs);
             }
         }
 
@@ -182,18 +159,19 @@ namespace RoomServer
                 };
 
                 using var request = new HttpRequestMessage(HttpMethod.Post, _settings.Url);
-                request.Headers.TryAddWithoutValidation("Authorization",
-                    "Bearer " + Convert.ToBase64String(_settings.InstanceKey));
+                HttpWorkerSupport.AddBearer(request, _settings.InstanceKey);   // Bearer 构造单源（P2）
                 request.Content = new StringContent(
                     JsonSerializer.Serialize(payload, WebJson), Encoding.UTF8, "application/json");
 
                 // 专用心跳线程上同步等待异步发送（无同步上下文，不可能死锁）——
                 // 该形态同时兼容覆写 SendAsync 的测试替身与真实 SocketsHttpHandler。
-                using HttpResponseMessage response = _http
+                using HttpResponseMessage response = Http
                     .SendAsync(request, HttpCompletionOption.ResponseContentRead)
                     .GetAwaiter().GetResult();
-                if ((int)response.StatusCode != 200)
+                if (!response.IsSuccessStatusCode)
                 {
+                    // **2xx 区间**（P1①）：只认 200 会把同义的 201/202/204 当失败，反复重投——
+                    // 端点换实现（Created/NoContent）即触发，且症状是"心跳看起来一直在重试"。
                     error = "HTTP " + (int)response.StatusCode;
                     RecordFailure(error);
                     return false;
@@ -229,7 +207,7 @@ namespace RoomServer
         {
             Interlocked.Increment(ref _failed);
             int consecutive = Interlocked.Increment(ref _consecutiveFailures);
-            if (consecutive == 1 || consecutive % 20 == 0)
+            if (HttpWorkerSupport.ShouldReportFailure(consecutive))   // 节流节奏单源（P2）
             {
                 _log("[Lobby] 注册心跳失败（连续 " + consecutive + " 次）：" + error
                     + "（对局服务不受影响；恢复后自动继续）");
@@ -252,13 +230,5 @@ namespace RoomServer
             }
         }
 
-        public void Dispose()
-        {
-            if (_disposed) return;
-            _disposed = true;
-            Stop();
-            _http.Dispose();
-            _stop.Dispose();
-        }
     }
 }
