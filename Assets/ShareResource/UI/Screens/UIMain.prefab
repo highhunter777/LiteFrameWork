@@ -14,7 +14,7 @@ GameObject:
   - component: {fileID: 188668495167635334}
   - component: {fileID: 5253654339088132487}
   m_Layer: 0
-  m_Name: BtnClose
+  m_Name: Button_Close
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -150,7 +150,7 @@ GameObject:
   - component: {fileID: 3723236310359777439}
   - component: {fileID: 8290076654871994802}
   m_Layer: 0
-  m_Name: Label
+  m_Name: Txt_Label
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -244,7 +244,7 @@ GameObject:
   - component: {fileID: 7401108593024025453}
   - component: {fileID: 4993092641248703627}
   m_Layer: 0
-  m_Name: Bg
+  m_Name: _Bg
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -415,7 +415,7 @@ GameObject:
   - component: {fileID: 1470104226620935598}
   - component: {fileID: 8041832793275950421}
   m_Layer: 0
-  m_Name: SafeArea
+  m_Name: _SafeArea
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0

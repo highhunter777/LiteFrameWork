@@ -17,14 +17,14 @@ namespace LiteGame.UI
     /// </summary>
     public class UIDemoPage : MonoBehaviour
     {
-        /// <summary>模板清单（与构建器产物一一对应）。</summary>
+        /// <summary>模板清单（与模板资产一一对应；文件名 `Tmp_<控件类型>`，§9.3）。</summary>
         private static readonly string[] Templates =
         {
-            "StateButton", "Dialog", "Toast", "Bubble",
-            "VirtualList", "SimpleList", "TabGroup", "BottomNav",
-            "ProgressBar", "HpBar", "StarRating", "CountText", "Countdown", "AnimatedImage", "AvatarFrame",
-            "InputField", "Slider", "Toggle", "Dropdown", "Stepper",
-            "RedDot", "FlyText", "GuideHighlight", "EventRelay", "SafeArea",
+            "Tmp_StateButton", "Tmp_Dialog", "Tmp_Toast", "Tmp_Bubble",
+            "Tmp_VirtualList", "Tmp_SimpleList", "Tmp_TabGroup", "Tmp_BottomNav",
+            "Tmp_ProgressBar", "Tmp_HpBar", "Tmp_StarRating", "Tmp_CountText", "Tmp_Countdown", "Tmp_AnimatedImage", "Tmp_AvatarFrame",
+            "Tmp_InputField", "Tmp_Slider", "Tmp_Toggle", "Tmp_Dropdown", "Tmp_Stepper",
+            "Tmp_RedDot", "Tmp_FlyText", "Tmp_GuideHighlight", "Tmp_EventRelay", "Tmp_SafeArea",
         };
 
         private const string WidgetDir = "Assets/ShareResource/UI/Widgets";   // UI 控件模板目录（共享资源层）

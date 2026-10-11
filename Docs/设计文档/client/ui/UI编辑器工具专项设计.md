@@ -13,6 +13,10 @@
 
 > **2026-10-11 UI 工具链第一步交付**：**校验核心**落地（`Assets/LiteGame/Editor/UiTools/Validation/`）——统一报告模型 `UiReport/UiIssue{ruleId,severity,asset,node,message,fixHint}` + 规则端口 `IUiRule` + 双侧上下文 `UiValidationContext`（源码面 + 资产面）+ 核心 `UiValidator`（菜单 `LiteGame/UI/校验/校验 UI 资产` / CLI `-executeMethod …RunCli` 非零退出 / EditMode 三入口共用）。**首条规则＝渲染/适配族的视觉单一来源**（`Rules/RuntimeVisualRule`——包既有 `VisualConstructionScanner`，源码面）；**其余五族（绑定/资源/文本/行为/性能）在报告显式列为"待接入"，不冒充通过**（§4 明文）。后续步：绑定标记工具 → 样式对账扩 `Screens/` → 校验进 CI → 编排面板 → UIPatch。施工记录见 [UI工具链](../../../施工进度/UI工具链.md)。
 
+> **2026-10-11 UI 工具链第二步交付（绑定标记工具·底层两项）**：**①词表单源** `UiTools/Naming/UiNamingWords.cs`（C# 常量表——《命名词表与控件清单》机器可读副本：角色词/控件段/模板段/`Tmp_`/语义词 + §9.2 文法正则单源 + `TryParse`/`IsKnownPrefix`）；**②绑定命名规则** `Rules/BindingNamingRule.cs`（`ui.binding-naming`，资产面）——判据：节点名过 §9.2 文法、前缀段属词表（未登记=Warning）、`_` 私有件（模板内合法/页面节点禁）、根名（`Page_`/`Hud_`/`Tmp_`，存量页面根=Warning 待页面批次）；**UGUI 契约件**（Slider fill/handle、ScrollRect viewport/content、Toggle graphic/target）与**模板实例内部件**按身份豁免。绑定族 `implemented=true`。
+> **同步命名整改批**（§9.6"随模板批次整形"）：全仓 UI prefab 命名合规化——**模板/夹具根改文件名** `Tmp_<控件类型>`（27 件 Widgets + 6 件 Screens 夹具，`AssetDatabase.MoveAsset` 保 guid，实例不断链）；**内部件**词缀化（`OkButton→Button_Ok`、`Label→Txt_Label`、`Blocker→_Blocker`）；**克隆条目模板** `_Template/_ItemTemplate→Clone_Template/Clone_Item`（§9.6）；业务节点 `UIMain/BtnClose→Button_Close`（同批同步 `BindName`）。整改后规则 **0 Error**（仅 `UIMain` 根 Warning——§9.6 登记的页面根债，随页面批次）。`UIDemoPage.Templates[]` 随文件名同步。详见施工记录。
+
+
 
 > **2026-10-10 代码现状订正**：原清单中的 `WidgetPrefabBuilder`（1477 行）与 `UICollectCheckMenu`、`WidgetDemoMenu` 已随提交 `45aa839`「输入服务余部与场景资源杂项（接管并行线）」**从仓库删除**，不再是"已存在"工具。`Assets/UI/Widgets/` 下 25 件模板 prefab 作为已产出资产保留；结构/行为断言改由 [VisualConstructionScanner](../../../../Assets/LiteGame/Editor/VisualConstructionScanner.cs) 与 `Assets/Tests/EditMode/VisualSingleSourceEditModeTests.cs` 承担。业务 UI 页面按《UI-U2》裁决走编辑器手工制作，不依赖已删除的确定性构建器。
 

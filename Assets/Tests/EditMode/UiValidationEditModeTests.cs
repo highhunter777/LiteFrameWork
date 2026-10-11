@@ -4,6 +4,7 @@ using System.Linq;
 using LiteGame.Editor.UiTools.Validation;
 using LiteGame.Editor.UiTools.Validation.Rules;
 using NUnit.Framework;
+using UnityEngine;
 
 namespace LiteGame.Tests.EditMode
 {
@@ -75,8 +76,10 @@ namespace LiteGame.Tests.EditMode
             var report = UiValidator.Run(ContextWithSource("var x = 1;\n"));
             var pending = report.Families.Where(f => !f.Implemented).Select(f => f.Family).ToList();
             Assert.IsNotEmpty(pending, "未接入的族必须在报告里列出");
-            Assert.Contains("绑定", pending, "绑定族本步未接入——须显式列出");
-            Assert.Contains("文本", pending);
+            Assert.Contains("文本", pending, "文本族未接入——须显式列出");
+            Assert.Contains("资源", pending);
+            Assert.IsFalse(pending.Contains("绑定"), "绑定族本步已接入——不应再列待接入");
+            Assert.IsFalse(pending.Contains("渲染/适配"), "渲染/适配族已接入——不应再列待接入");
         }
 
         // ---- 规则端口 ----
@@ -87,6 +90,81 @@ namespace LiteGame.Tests.EditMode
             var rule = new RuntimeVisualRule();
             Assert.AreEqual("ui.runtime-visual", rule.RuleId);
             Assert.AreEqual("渲染/适配", rule.Family);
+        }
+
+        // ---- 绑定命名规则（资产面；造临时 prefab 喂规则） ----
+
+        [Test]
+        public void 绑定命名_端口标识与族()
+        {
+            var rule = new BindingNamingRule();
+            Assert.AreEqual("ui.binding-naming", rule.RuleId);
+            Assert.AreEqual("绑定", rule.Family);
+        }
+
+        [Test]
+        public void 绑定命名_合法名通过_违规名报错()
+        {
+            var ok = RunOnTempPrefab("Tmp_Fixture", root =>
+            {
+                AddChild(root, "Cot_Panel", typeof(RectTransform));
+                AddChild(root, "Txt_Title", typeof(RectTransform), typeof(TMPro.TextMeshProUGUI));
+            });
+            Assert.AreEqual(0, ok.ErrorCount, "合法名不应报错：\n" + ok.Render());
+
+            var bad = RunOnTempPrefab("Tmp_Fixture", root =>
+            {
+                AddChild(root, "A_B_C", typeof(RectTransform));      // 多下划线
+                AddChild(root, "Lst_Foo", typeof(RectTransform));    // 自造段（非词表）
+            });
+            Assert.AreEqual(1, bad.ErrorCount, "多下划线应报 Error：\n" + bad.Render());
+            Assert.AreEqual(1, bad.WarningCount, "自造段应报 Warning：\n" + bad.Render());
+        }
+
+        [Test]
+        public void 绑定命名_页面节点禁下划线前缀_模板内允许()
+        {
+            var page = RunOnTempPrefab("Page_Test", root =>
+                AddChild(root, "_Bg", typeof(RectTransform)));
+            Assert.AreEqual(1, page.ErrorCount, "页面节点 `_` 前缀应报 Error：\n" + page.Render());
+
+            var tpl = RunOnTempPrefab("Tmp_Test", root =>
+                AddChild(root, "_Bg", typeof(RectTransform)));
+            Assert.AreEqual(0, tpl.ErrorCount, "模板内 `_` 私有件合法：\n" + tpl.Render());
+        }
+
+        /// <summary>造临时 prefab（Assets 下——规则经 AssetDatabase 装载），跑规则后删除。</summary>
+        private static UiReport RunOnTempPrefab(string rootName, System.Action<GameObject> build)
+        {
+            string dir = "Assets/TempUiValidationTests";
+            if (!UnityEditor.AssetDatabase.IsValidFolder(dir))
+                UnityEditor.AssetDatabase.CreateFolder("Assets", "TempUiValidationTests");
+            string path = $"{dir}/{rootName}.prefab";
+            var go = new GameObject(rootName, typeof(RectTransform));
+            build(go);
+            UnityEditor.PrefabUtility.SaveAsPrefabAsset(go, path);
+            Object.DestroyImmediate(go);
+            try
+            {
+                var ctx = new UiValidationContext(UiValidator.ProjectRoot, null, new[] { path });
+                return UiValidator.Run(ctx);
+            }
+            finally
+            {
+                UnityEditor.AssetDatabase.DeleteAsset(path);
+                // 夹目录空了则删（避免测试留痕）
+                if (UnityEditor.AssetDatabase.IsValidFolder(dir)
+                    && UnityEditor.AssetDatabase.FindAssets("", new[] { dir }).Length == 0)
+                    UnityEditor.AssetDatabase.DeleteAsset(dir);
+            }
+        }
+
+        private static void AddChild(GameObject parent, string name, params System.Type[] comps)
+        {
+            var all = new List<System.Type> { typeof(RectTransform) };
+            foreach (var c in comps) if (c != typeof(RectTransform)) all.Add(c);
+            var go = new GameObject(name, all.ToArray());
+            go.transform.SetParent(parent.transform, false);
         }
     }
 }

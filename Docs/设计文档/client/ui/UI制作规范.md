@@ -178,11 +178,11 @@ EditMode 结构检查不能替代依赖 Awake/OnEnable 的行为测试。已有�
 
 | 资产/节点 | 现状 | 目标 | 备注 |
 | --- | --- | --- | --- |
-| `UIMain/BtnClose` | `BtnClose` | `Button_Close` | 同批同步 `BindName` 与 `UIMain.lua` 引用 |
-| 存量页面根（`UIMain` 等） | 无前缀 | `Page_<语义>` | 牵动流程/表引用，随页面批次裁决 |
-| `_Template`（Toast/FlyText/Dropdown）、`_ItemTemplate`（VirtualList/SimpleList） | 两套私有名 | `Clone_<语义>` | 容器脚本 `Template` 字段接线不变 |
-| 27 件控件模板（`Dialog`/`Toast`… 根与内部节点；清单见[UI 命名词表与控件清单](UI命名词表与控件清单.md)） | 裸类型名/旧式节点名 | 根 `Tmp_<控件类型>`（文件同名）；内部节点不强制业务命名、随模板批次整形 | 随模板批次 |
-| `Stepper/Value` | `Value` | `Txt_Value` | |
+| `UIMain/BtnClose` | `BtnClose` | `Button_Close` | ✅ 已整改（UI 工具链命名批，`BindName` 同步） |
+| 存量页面根（`UIMain` 等） | 无前缀 | `Page_<语义>` | 牵动流程/表引用，随页面批次裁决（**未整改**——`UIMain` 根仍无前缀，校验报 Warning） |
+| `_Template`（Toast/FlyText/Dropdown）、`_ItemTemplate`（VirtualList/SimpleList） | 两套私有名 | `Clone_<语义>` | ✅ 已整改（`Clone_Template`/`Clone_Item`；容器脚本 `Template` 字段接线不变） |
+| 27 件控件模板（`Dialog`/`Toast`… 根与内部节点；清单见[UI 命名词表与控件清单](UI命名词表与控件清单.md)） | 裸类型名/旧式节点名 | 根 `Tmp_<控件类型>`（文件同名）；内部节点不强制业务命名、随模板批次整形 | ✅ 已整改（UI 工具链命名批：**文件改名** `Tmp_<控件类型>` 保 guid；内部件词缀化/`_` 私有化） |
+| `Stepper/Value` | `Value` | `Txt_Value` | ✅ 已整改 |
 
 ### 9.7 校验归属
 

@@ -30,11 +30,12 @@ namespace LiteGame.Editor.UiTools.Validation
         /// <summary>UI 资产扫描面（模板 prefab 所在，供资产面规则用）。</summary>
         public const string ScreensDir = "Assets/ShareResource/UI/Screens";
         public const string WidgetsDir = "Assets/ShareResource/UI/Widgets";
+        public const string HudDir = "Assets/ShareResource/UI/Hud";
 
         /// <summary>规则族全表（§4 六族）。未实现的族以 <c>implemented=false</c> 登记，报告"待接入"栏。</summary>
         public static readonly UiRuleFamily[] Families =
         {
-            new UiRuleFamily("绑定", false, "命名作用域与文法（§9）、类型、缺组件、生成物 hash"),
+            new UiRuleFamily("绑定", true, "命名文法/前缀词表/私有件（§9.2/§9.4 硬约束子集）——已接入；BindName 同文/同页同词/编号连续性待接入"),
             new UiRuleFamily("资源", false, "缺引用、收集组、图集/字体/sprite 名册、生产包排除调试补丁"),
             new UiRuleFamily("文本", false, "key/占位符/语言列、富文本白名单、fallback 与缺字、样式覆盖"),
             new UiRuleFamily("渲染/适配", true, "视觉单一来源（运行时不得构建视觉，§7）——首条已接入"),
@@ -46,6 +47,7 @@ namespace LiteGame.Editor.UiTools.Validation
         private static readonly IUiRule[] Rules =
         {
             new RuntimeVisualRule(),
+            new BindingNamingRule(),
         };
 
         /// <summary>工程根（Assets 之上）。</summary>
@@ -66,12 +68,13 @@ namespace LiteGame.Editor.UiTools.Validation
             return report;
         }
 
-        /// <summary>默认上下文：源码扫描面 + UI 资产（Screens/Widgets）路径集。</summary>
+        /// <summary>默认上下文：源码扫描面 + UI 资产（Screens/Widgets/Hud）路径集。</summary>
         public static UiValidationContext BuildDefaultContext()
         {
             var assets = new List<string>();
             assets.AddRange(FindPrefabs(ScreensDir));
             assets.AddRange(FindPrefabs(WidgetsDir));
+            assets.AddRange(FindPrefabs(HudDir));
             return new UiValidationContext(ProjectRoot, SourceScanDirs, assets);
         }
 

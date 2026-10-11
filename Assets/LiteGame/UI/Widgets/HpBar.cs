@@ -6,7 +6,7 @@ using UnityEngine.UI;
 namespace LiteGame.UI
 {
     /// <summary>
-    /// 血条控件（模板 `Assets/ShareResource/UI/Widgets/HpBar.prefab` = `Tmp_HpBar`）：双条血格——
+    /// 血条控件（模板 `Assets/ShareResource/UI/Widgets/Tmp_HpBar.prefab`）：双条血格——
     /// **前条**（UGUI <see cref="Slider"/> 的 <see cref="Slider.fillRect"/>）瞬时响应，**后条**
     /// （<see cref="BackFill"/>，前条几何的半透明克隆层）延迟滑落（打击感标准做法）。
     /// 视觉形态对齐战斗 HUD 现役血条（Synty 军事风皮肤 + IconBox + 数值文本）。
