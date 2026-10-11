@@ -39,3 +39,30 @@
 - 实机观感手测（F9：血条/弹药/换弹标签/准心双形态）待本机——逻辑面测试已绿；
 - `BuildHudPrefab/2.cs` 迁移脚本留 AgentScripts（未入库）供复跑；
 - 技能栏数据面（批 C）按 UI 框架 U2 节奏另行点单。
+
+## 血条正式化（随批收口，2026-10-11）
+
+批 A 产出的 HUD 里，血条遗留两态并存：旧构建器框条（`Image_HpFrame`/`Image_HpFill`/旧 `Txt_Hp`，Filled 图形血条）与用户手工粘贴的 Synty 共享件 `HUD_MilitaryCombat_StatsList_Item_05`（草名 `Item_00`，内含 UGUI `Slider`）。驱动已接 `Slider`，但旧框条仍挂在 prefab 上、`Item_00` 未合规范。本批收口：
+
+| 面 | 落点 |
+|---|---|
+| 血条正式化 | `Cot_Panel/Cot_Vitals/Item_00` → **`HpBar_Player`**（§9 词表段 `HpBar_`——命名词表 §1.3 已登记血条类型段，业务层实例＝`<类型段>_<语义>`，对齐现役 `HpBar` 控件模板） |
+| 内部子件词缀化 | `Bar`/`IconBox`/`ICON`/`Label_Stat` → `Cot_Bar`/`Cot_IconBox`/`Icon_Health`/`Txt_Hp`；UGUI `Slider` 及其固定子结构（Background/Fill Area/Fill/Handle Slide Area/Handle）**保留原名**（组件契约，改名即断 UGUI 引用） |
+| 旧血条退役 | `Image_HpFrame`/`Image_HpFill`/旧 `Txt_Hp` 删除；`Cot_Panel` 全屏空 Image（`m_Sprite={fileID:0}` 纯射线面）同时清除——HUD 整组显隐走 CanvasGroup，不需射线面 |
+| Slider 基线 | `interactable=false`（纯显示）、`value=1`（满值制作基线）；子树射线兜底关闭（Vitals 剩余 raycastTarget=0） |
+| 接线 | `BattleHudView._hpSlider`→`Slider`、`_hpText`→新 `Txt_Hp`（SerializedObject 重连；8 字段全部有效） |
+
+### 验证证据
+
+| 项 | 结果 |
+|---|---|
+| 结构复验 | `HpBar_Player`/`Cot_Bar/Slider`/`Cot_IconBox/Icon_Health`/`Txt_Hp` 全 `OK`；旧件 `frame/fill/item00残留` 全 `false` |
+| 组件完整性 | 全树无 `[MISSING!]` 组件/丢引用；`BattleHudView` 8 字段全部解析（`_hpSlider=Slider`、`_hpText=Txt_Hp`） |
+| L1 | **1594/1594 通过** |
+| `BattleHudEditModeTests` | 3/4（`弹药_装备槽弹匣数与换弹态_未装备显示占位` 失败——**基线复算确认与本次改动无关**：stash prefab 后同测试同失败，属驱动默认武器态既有问题，另立） |
+| 执行脚本 | `AgentScripts/AdaptHudHpBar3.cs`（未入库，幂等） |
+
+### 遗留（如实）
+
+- 上述 EditMode 1 例失败为**既有**（`BattleHudDriver` 在未装备判定前先走武器分支写出 `"0"` 而非 `"--"`），非本批引入——按本文档"如实"原则登记，待单独批次处置；
+- 观感调参（血条尺寸/配色定稿）待实机手测后按需微调 prefab。
