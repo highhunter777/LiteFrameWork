@@ -18,14 +18,14 @@
 #   ② **行尾归一化**（CRLF/CR → LF）——否则不同机器 clone（git autocrlf）会算出不同 hash
 #   ③ 排除自身输出（BuildHash.g.cs）与 bin/obj/.dotnet/.meta
 #
-# Toolbox entry:  pwsh scripts/codegen/toolbox.ps1 build-hash [--check]
+# Toolbox entry:  python scripts/codegen/toolbox.py build-hash [--check]
 # Direct entry:   python scripts/codegen/gen-build-hash.py [--check]
 #
 # 两个模式（2026-10-07 起校验时点 = 构建前，开发期不校验——`BuildHashTests`/
 # `BuildHashSourceSet.g.cs` 随之退役，规则单源回归本脚本）：
 #   生成（默认）  python scripts/codegen/gen-build-hash.py
 #       改了 Sim/协议/表后重跑，产出 `Assets/LiteNet/Protocol/BuildHash.g.cs`；
-#       RoomServer 重建 + Unity 重编译把新常量各自烤进产物（refresh-hash.ps1 编排这三步）。
+#       RoomServer 重建 + Unity 重编译把新常量各自烤进产物（refresh_hash.py 编排这三步）。
 #   校验 --check  python scripts/codegen/gen-build-hash.py --check
 #       按同规则**复算**当前源码并与已生成常量比对，不等即 exit 1——挂在
 #       `scripts/build/build-player.ps1` 出包门禁步（不可跳过），拦"改了源忘了重跑"。

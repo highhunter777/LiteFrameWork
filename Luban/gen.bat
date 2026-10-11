@@ -1,4 +1,4 @@
 @echo off
 setlocal
-powershell -NoProfile -ExecutionPolicy Bypass -File "%~dp0..\scripts\codegen\gen-luban.ps1" %*
+python "%~dp0..\scripts\codegen\gen_luban.py" %*
 exit /b %errorlevel%
