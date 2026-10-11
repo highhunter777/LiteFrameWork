@@ -9,6 +9,9 @@ namespace LiteSim
         public readonly int Rpm;
         public readonly int MagazineSize;
         public readonly int ReserveAmmo;
+        /// <summary>备弹上限（tb_weapon <c>max_reserve_ammo</c>；0 = 无限）。装填只把备弹补到本上限
+        /// （<see cref="ReserveAmmo"/> 是**初始值**、非上限）——P3 局内背包接弹药补给时按它封顶。</summary>
+        public readonly int MaxReserveAmmo;
         public readonly int ReloadFrames;
         public readonly float Range;
         /// <summary>散布（度）＝**瞄准态最大偏转角**（腰射 = 表值 × <see cref="CombatConfig.HipSpreadFactor"/>）；
@@ -25,14 +28,15 @@ namespace LiteSim
         /// <see cref="EntitySlot.SemiFireArmed"/>：松开帧重臂、击发消费即解除、冷却内按压同样消费）。</summary>
         public readonly bool Automatic;
 
-        public WeaponDef(int id, int damage, int rpm, int magazineSize, int reserveAmmo, int reloadFrames,
-            float range, float spread, int pellets, int switchFrames, bool automatic)
+        public WeaponDef(int id, int damage, int rpm, int magazineSize, int reserveAmmo, int maxReserveAmmo,
+            int reloadFrames, float range, float spread, int pellets, int switchFrames, bool automatic)
         {
             Id = id;
             Damage = damage;
             Rpm = rpm;
             MagazineSize = magazineSize;
             ReserveAmmo = reserveAmmo;
+            MaxReserveAmmo = maxReserveAmmo;
             ReloadFrames = reloadFrames;
             Range = range;
             Spread = spread;
@@ -67,7 +71,7 @@ namespace LiteSim
 
         /// <summary>内置默认步枪定义（= tb_weapon.xlsx 步枪行；未装载兜底，L1 守卫卡漂移。**不可变常量面**）。</summary>
         public static readonly WeaponDef DefaultRifle =
-            new WeaponDef(id: 0, damage: 16, rpm: 600, magazineSize: 30, reserveAmmo: 90,
+            new WeaponDef(id: 0, damage: 16, rpm: 600, magazineSize: 30, reserveAmmo: 90, maxReserveAmmo: 90,
                 reloadFrames: 132, range: 100f, spread: 1.2f, pellets: 1, switchFrames: 30, automatic: true);
 
         private static WeaponTable _loaded = WeaponTable.Default;

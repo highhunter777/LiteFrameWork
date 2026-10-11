@@ -205,7 +205,7 @@ namespace LiteClient
             foreach (cfg.weapon row in tables.Tbweapon.DataList)
             {
                 bool automatic = row.FireMode == WeaponConfig.FireModeAuto;
-                if (table.SetRow(row.Id, row.Damage, row.Rpm, row.MagazineSize, row.ReserveAmmo,
+                if (table.SetRow(row.Id, row.Damage, row.Rpm, row.MagazineSize, row.ReserveAmmo, row.MaxReserveAmmo,
                         row.ReloadFrames, row.Range, row.Spread, row.Pellets, row.SwitchFrames, automatic))
                 {
                     table.SetSlotDefault(row.Slot, row.Id);

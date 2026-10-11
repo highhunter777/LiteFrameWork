@@ -13,7 +13,7 @@ namespace LiteSim.Tests
         {
             var t = new WeaponTable();
             WeaponDef d = WeaponConfig.DefaultRifle;
-            t.SetRow(d.Id, d.Damage, d.Rpm, d.MagazineSize, d.ReserveAmmo, d.ReloadFrames,
+            t.SetRow(d.Id, d.Damage, d.Rpm, d.MagazineSize, d.ReserveAmmo, d.MaxReserveAmmo, d.ReloadFrames,
                 d.Range, 0f, d.Pellets, d.SwitchFrames, d.Automatic);
             t.SetSlotDefault(0, d.Id);
             return t;
@@ -21,10 +21,12 @@ namespace LiteSim.Tests
 
         /// <summary>单行自定义表（id/slot 显式给——霰弹槽 1 / 半自动 / 多弹丸用例的装载面）。</summary>
         public static WeaponTable WithRow(int id, int damage, int rpm, int magazineSize, int reserveAmmo,
-            int reloadFrames, float range, float spread, int pellets, int switchFrames, bool automatic, int slot)
+            int maxReserveAmmo, int reloadFrames, float range, float spread, int pellets, int switchFrames,
+            bool automatic, int slot)
         {
             var t = new WeaponTable();
-            t.SetRow(id, damage, rpm, magazineSize, reserveAmmo, reloadFrames, range, spread, pellets, switchFrames, automatic);
+            t.SetRow(id, damage, rpm, magazineSize, reserveAmmo, maxReserveAmmo, reloadFrames, range, spread,
+                pellets, switchFrames, automatic);
             t.SetSlotDefault(slot, id);
             return t;
         }

@@ -18,7 +18,7 @@ namespace LiteSim.Tests
         {
             int rpm = SimConfig.TickRate * 60 / intervalFrames;     // 与 FireIntervalFrames 反推一致（600rpm @6 帧）
             return TestWeapons.WithRow(0, damage: 16, rpm: rpm, magazineSize: 30, reserveAmmo: 90,
-                reloadFrames: 132, range: 100f, spread: 0f, pellets: 1, switchFrames: 30,
+                maxReserveAmmo: 90, reloadFrames: 132, range: 100f, spread: 0f, pellets: 1, switchFrames: 30,
                 automatic: false, slot: 0);
         }
 

@@ -232,7 +232,7 @@ namespace LiteNet.Tests
         {
             var weapons = new WeaponTable();
             WeaponDef d = WeaponConfig.DefaultRifle;
-            weapons.SetRow(d.Id, 25, 600, 30, 90, 60, 100f, 0f, 1, 2, true);
+            weapons.SetRow(d.Id, 25, 600, 30, 90, 90, 60, 100f, 0f, 1, 2, true);
             weapons.SetSlotDefault(0, d.Id);
             var room = new RoomRuntime(new RoomConfig { RoomId = "Rules", ExpectedPlayers = 2,
                 Rules = new MatchRules(0, 0, 3, 0) }, weapons: weapons);
@@ -275,7 +275,7 @@ namespace LiteNet.Tests
             var map = new SimMapData { GroundY = 0, HalfWidth = 100, HalfDepth = 100 };
             var weapons = new WeaponTable();
             WeaponDef def = WeaponConfig.DefaultRifle;
-            weapons.SetRow(def.Id, 25, 600, 30, 90, 60, 100f, 0f, 1, 2, true);
+            weapons.SetRow(def.Id, 25, 600, 30, 90, 90, 60, 100f, 0f, 1, 2, true);
             weapons.SetSlotDefault(0, def.Id);
             world.Spawn(new EntitySlot { Hp = 100 }, out _);
             world.Spawn(new EntitySlot { Hp = 100, Pos = new SimVector3(20, 0, 0) }, out _);
@@ -303,7 +303,7 @@ namespace LiteNet.Tests
         {
             var weapons = new WeaponTable();
             WeaponDef def = WeaponConfig.DefaultRifle;
-            weapons.SetRow(def.Id, 1000, 600, 30, 90, 60, 100f, 0f, 1, 2, true);
+            weapons.SetRow(def.Id, 1000, 600, 30, 90, 90, 60, 100f, 0f, 1, 2, true);
             weapons.SetSlotDefault(0, def.Id);
             var room = new RoomRuntime(new RoomConfig { Rules = new MatchRules(7, 1, 3, 0) }, weapons: weapons);
             var outputs = new List<RoomOutput>();

@@ -19,7 +19,7 @@ namespace LiteSim.Tests
         /// 槽 0 注册（懒装备直达）——切枪语义由 <see cref="WeaponSwitchTests"/> 钉，本组只验弹道。</summary>
         private static WeaponTable ShotgunSpread(float spread = 3f, bool automatic = false)
             => TestWeapons.WithRow(1, damage: 8, rpm: 75, magazineSize: 8, reserveAmmo: 24,
-                reloadFrames: 168, range: 30f, spread: spread, pellets: 8, switchFrames: 40,
+                maxReserveAmmo: 24, reloadFrames: 168, range: 30f, spread: spread, pellets: 8, switchFrames: 40,
                 automatic: automatic, slot: 0);
 
         private static (SimWorldState world, long shooter, long target, int targetSlot)

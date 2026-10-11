@@ -10,6 +10,7 @@
 
 | 文件 | 范围 |
 |---|---|
+| [武器备弹上限.md](武器备弹上限.md) | 《游戏业务系统总设计》§5 武器表跟进批（2026-10-12）：**tb_weapon 新增 `max_reserve_ammo`（0=无限）+ `icon` 列，`vfx`/`sfx` 首次落值**（步枪行：90 / fx_muzzle_flash / sfx_gun_fire_rifle_01 / ICON_SM_Wep_Preset_B_Rifle_03_Military_Clean；霰弹行只补 max_reserve=24）；`WeaponDef.MaxReserveAmmo`+`SetRow` 增参+双端装载（0 或 ≥reserve fail-fast）+守卫；**第三方资源归位**（Synty HUD 直引 6 处 → 复制件 + 改引，`ShareResource/UI/Icons/Weapons/` 复制件 gitignore 不入库）；vfx/sfx/icon 有意不进 `WeaponDef`（Sim 零字符串）；★ BuildHash `2cfa40effa0e9073`→**`191f1143d32017bc`**；**L1 1595/1595**；两 prefab 对象数零丢失、0 Synty 残留。切枪/霰弹表现列/补给消费归后续批 |
 | [UI工具链.md](UI工具链.md) | 《UI编辑器工具专项设计》落地（步 1 已交付，2026-10-11）：**校验核心** `Assets/LiteGame/Editor/UiTools/Validation/`（报告模型 `UiIssue{ruleId,severity,asset,node,message,fixHint}` + 规则端口 `IUiRule` + 双侧上下文 + 核心 `UiValidator` 菜单/CLI/测试三入口共用）；**首条规则＝渲染/适配族视觉单一来源**（包既有 `VisualConstructionScanner`，源码面）；其余五族显式列"待接入"不冒充通过。执行顺序（绑定标记→样式→CI→编排面板→UIPatch）见该记录。`UiValidationEditModeTests` 6/6 · L1 1594/1594 |
 | [UI工作台W1.md](UI工作台W1.md) | 《UI工作台设计》W1（2026-10-11）：`LoadingScope.Report`/`ReportLoading` 契约落地（首写不丢/后写胜出/复位写全量）+ `CurrentLoadingMessage` 回读 + Loading 表单模板补视觉（原空壳）+ 工作台进度演示步进；FeedbackService 回归 11/11 |
 | [UI工作台W0.md](UI工作台W0.md) | 《UI工作台设计》W0（2026-10-11）：`UiWorkbench.unity`（原 HUDDesign 改造）+ `UIWorkbenchDriver`（TakeContainer 轮询/Loaded∧Main 门控/目录行按 Tbuiform 克隆一键开关〔系统面置灰〕/演示组五钮/状态行节流）+ WorkbenchPanel 手制；DevHUD asmdef 补三引用。实机手测待本机（dev 件不做自动断言） |

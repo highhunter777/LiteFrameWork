@@ -33,6 +33,7 @@ namespace LiteNet.Tests
             Assert.Equal(def.Rpm, row.Rpm);
             Assert.Equal(def.MagazineSize, row.MagazineSize);
             Assert.Equal(def.ReserveAmmo, row.ReserveAmmo);
+            Assert.Equal(def.MaxReserveAmmo, row.MaxReserveAmmo);
             Assert.Equal(def.ReloadFrames, row.ReloadFrames);
             Assert.Equal(def.Range, row.Range);          // float 表值 = 常量（同字面量，无运算）
             Assert.Equal(def.Spread, row.Spread);
@@ -69,6 +70,7 @@ namespace LiteNet.Tests
             Assert.Equal(48, sg.FireIntervalFrames);      // ceil(60×60/75) = 48 帧 @60Hz
             Assert.Equal(8, sg.MagazineSize);
             Assert.Equal(24, sg.ReserveAmmo);
+            Assert.Equal(24, sg.MaxReserveAmmo);           // 备弹上限列落值（本行 = 初始备弹）
             Assert.Equal(168, sg.ReloadFrames);
             Assert.Equal(30f, sg.Range);
             Assert.Equal(3f, sg.Spread);
@@ -81,6 +83,28 @@ namespace LiteNet.Tests
             Assert.Equal(WeaponConfig.DefaultRifleId, slot0Id);
             Assert.True(load.Weapons.TryGetSlotDefault(1, out int slot1Id));
             Assert.Equal(ShotgunId, slot1Id);
+        }
+
+        /// <summary>表现列（vfx/sfx/icon）+ 备弹上限落值且被客户端装载链读到（表现面按名寻址——
+        /// vfx→`ShareResource/FX/{vfx}.prefab`"命名即引用"；icon→`ShareResource/UI/Icons/Weapons/{icon}.png`）。
+        /// **这些列不进 <see cref="WeaponDef"/>**（Sim 确定性层不持表现字符串）——经生成行直读。</summary>
+        [Fact]
+        public void 表现列与备弹上限_步枪行落值()
+        {
+            string dir = Path.Combine(RepoRoot(), "Assets", "GameData", "Config");
+            ServerTableLoad load = CombatNumbers.LoadTableBytes(dir);
+            Assert.True(load.Weapons.TryGet(WeaponConfig.DefaultRifleId, out WeaponDef def));
+
+            // 表源（生成物）直读——表现列是装载即得的字符串，机制不消费
+            string path = Path.Combine(RepoRoot(), TableRelativePath.Replace('/', Path.DirectorySeparatorChar));
+            var table = new cfg.Tbweapon(new Luban.ByteBuf(File.ReadAllBytes(path)));
+            cfg.weapon row = table.GetOrDefault(WeaponConfig.DefaultRifleId);
+
+            Assert.Equal("fx_muzzle_flash", row.Vfx);                 // 枪口特效（VfxCatalog 命名即引用）
+            Assert.Equal("sfx_gun_fire_rifle_01", row.Sfx);           // 开火音效（Sound 库文件名）
+            Assert.False(string.IsNullOrEmpty(row.Icon), "icon 列应有值（武器图标资源名）");
+            Assert.Equal(90, row.MaxReserveAmmo);                     // 备弹上限列
+            Assert.Equal(90, def.MaxReserveAmmo);                     // 同值进 WeaponDef（Sim 侧可读）
         }
 
         /// <summary>装载闸门：fire_mode 越界值拒装载（fail-fast——错表必两端分叉）。

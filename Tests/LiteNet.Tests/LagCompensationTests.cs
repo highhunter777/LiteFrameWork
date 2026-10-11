@@ -30,7 +30,7 @@ namespace LiteNet.Tests
         {
             var t = new WeaponTable();
             WeaponDef d = WeaponConfig.DefaultRifle;
-            t.SetRow(d.Id, d.Damage, d.Rpm, d.MagazineSize, d.ReserveAmmo, d.ReloadFrames,
+            t.SetRow(d.Id, d.Damage, d.Rpm, d.MagazineSize, d.ReserveAmmo, d.MaxReserveAmmo, d.ReloadFrames,
                 d.Range, 0f, d.Pellets, d.SwitchFrames, d.Automatic);
             t.SetSlotDefault(0, d.Id);
             return t;

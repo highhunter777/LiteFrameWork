@@ -33,6 +33,8 @@ public sealed partial class weapon : Luban.BeanBase
         SwitchFrames = _buf.ReadInt();
         Vfx = _buf.ReadString();
         Sfx = _buf.ReadString();
+        MaxReserveAmmo = _buf.ReadInt();
+        Icon = _buf.ReadString();
     }
 
     public static weapon Deserializeweapon(ByteBuf _buf)
@@ -108,6 +110,14 @@ public sealed partial class weapon : Luban.BeanBase
     /// 音效（表现后置）
     /// </summary>
     public readonly string Sfx;
+    /// <summary>
+    /// 备弹上限（0=无限）
+    /// </summary>
+    public readonly int MaxReserveAmmo;
+    /// <summary>
+    /// 图标资源名（表现后置）
+    /// </summary>
+    public readonly string Icon;
    
     public const int __ID__ = -791821796;
     public override int GetTypeId() => __ID__;
@@ -136,6 +146,8 @@ public sealed partial class weapon : Luban.BeanBase
         + "switchFrames:" + SwitchFrames + ","
         + "vfx:" + Vfx + ","
         + "sfx:" + Sfx + ","
+        + "maxReserveAmmo:" + MaxReserveAmmo + ","
+        + "icon:" + Icon + ","
         + "}";
     }
 }

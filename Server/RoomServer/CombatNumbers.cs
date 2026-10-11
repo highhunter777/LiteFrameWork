@@ -123,8 +123,10 @@ namespace RoomServer
                     throw new InvalidDataException($"tbweapon id={row.Id} slot 越界：{row.Slot}（槽数 {SimConfig.WeaponSlotsPerEntity}）");
                 if (row.Pellets < 1)
                     throw new InvalidDataException($"tbweapon id={row.Id} pellets 非法：{row.Pellets}（≥1——零弹丸＝哑枪，错表必两端分叉）");
+                if (row.MaxReserveAmmo != 0 && row.MaxReserveAmmo < row.ReserveAmmo)
+                    throw new InvalidDataException($"tbweapon id={row.Id} max_reserve_ammo 非法：{row.MaxReserveAmmo}（0=无限；否则 ≥ reserve_ammo {row.ReserveAmmo}）");
                 bool automatic = row.FireMode == WeaponConfig.FireModeAuto;
-                if (table.SetRow(row.Id, row.Damage, row.Rpm, row.MagazineSize, row.ReserveAmmo,
+                if (table.SetRow(row.Id, row.Damage, row.Rpm, row.MagazineSize, row.ReserveAmmo, row.MaxReserveAmmo,
                         row.ReloadFrames, row.Range, row.Spread, row.Pellets, row.SwitchFrames, automatic))
                 {
                     table.SetSlotDefault(row.Slot, row.Id);

@@ -77,6 +77,7 @@ namespace LiteGame.Tests.EditMode
             Assert.AreEqual(WeaponConfig.Default.Rpm, gun.Rpm);
             Assert.AreEqual(WeaponConfig.Default.MagazineSize, gun.MagazineSize);
             Assert.AreEqual(WeaponConfig.Default.ReserveAmmo, gun.ReserveAmmo);
+            Assert.AreEqual(WeaponConfig.Default.MaxReserveAmmo, gun.MaxReserveAmmo);
             Assert.AreEqual(WeaponConfig.Default.ReloadFrames, gun.ReloadFrames);
             Assert.AreEqual(WeaponConfig.Default.Range, gun.Range, 1e-6f);
             Assert.AreEqual(WeaponConfig.Default.Spread, gun.Spread, 1e-6f);

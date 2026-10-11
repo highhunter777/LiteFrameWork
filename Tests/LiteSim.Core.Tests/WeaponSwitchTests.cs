@@ -17,9 +17,9 @@ namespace LiteSim.Tests
         private static WeaponTable TwoSlotTable()
         {
             var t = new WeaponTable();
-            t.SetRow(0, damage: 16, rpm: 600, magazineSize: 30, reserveAmmo: 90, reloadFrames: 132,
+            t.SetRow(0, damage: 16, rpm: 600, magazineSize: 30, reserveAmmo: 90, maxReserveAmmo: 90, reloadFrames: 132,
                 range: 100f, spread: 0f, pellets: 1, switchFrames: 30, automatic: true);
-            t.SetRow(1, damage: 8, rpm: 75, magazineSize: 8, reserveAmmo: 24, reloadFrames: 168,
+            t.SetRow(1, damage: 8, rpm: 75, magazineSize: 8, reserveAmmo: 24, maxReserveAmmo: 24, reloadFrames: 168,
                 range: 30f, spread: 0f, pellets: 8, switchFrames: 40, automatic: false);
             t.SetSlotDefault(0, 0);
             t.SetSlotDefault(1, 1);

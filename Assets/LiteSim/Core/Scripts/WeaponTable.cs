@@ -27,11 +27,11 @@ namespace LiteSim
         public int LoadedCount => _count;
 
         /// <summary>行回填（装载期唯一写入窗；重复 id 覆盖）。id 越界忽略并返回 false。</summary>
-        public bool SetRow(int id, int damage, int rpm, int magazineSize, int reserveAmmo, int reloadFrames,
-            float range, float spread, int pellets, int switchFrames, bool automatic)
+        public bool SetRow(int id, int damage, int rpm, int magazineSize, int reserveAmmo, int maxReserveAmmo,
+            int reloadFrames, float range, float spread, int pellets, int switchFrames, bool automatic)
         {
             if (id < 0 || id >= MaxRows) return false;
-            _defs[id] = new WeaponDef(id, damage, rpm, magazineSize, reserveAmmo, reloadFrames,
+            _defs[id] = new WeaponDef(id, damage, rpm, magazineSize, reserveAmmo, maxReserveAmmo, reloadFrames,
                 range, spread, pellets, switchFrames, automatic);
             _has[id] = true;
             _count++;
@@ -82,7 +82,7 @@ namespace LiteSim
             {
                 var table = new WeaponTable();
                 WeaponDef d = WeaponConfig.DefaultRifle;
-                table.SetRow(d.Id, d.Damage, d.Rpm, d.MagazineSize, d.ReserveAmmo, d.ReloadFrames,
+                table.SetRow(d.Id, d.Damage, d.Rpm, d.MagazineSize, d.ReserveAmmo, d.MaxReserveAmmo, d.ReloadFrames,
                     d.Range, d.Spread, d.Pellets, d.SwitchFrames, d.Automatic);
                 table.SetSlotDefault(0, d.Id);
                 return table;

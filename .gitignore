@@ -231,6 +231,14 @@ Assets/TextMesh Pro.meta
 Assets/ShareResource/SampleContent/
 Assets/ShareResource/SampleContent.meta
 
+# ===== 第三方资源引用规范（AGENTS.md）：第三方资源复制件照常不入库（随打包机本地还原）=====
+# 产品资产不得直引第三方原始库（Assets/Synty/ 等）；复制进 ShareResource/模块目录再引用，
+# 但复制件是第三方付费资源 → 仍不入版本管理（原始库 `Assets/Synty/` 只作可复制来源）。
+# 注：该目录可能同时存在自有可入库件——如未来加自有图标，需用 `git add -f <路径>` 显式入库。
+Assets/ShareResource/UI/Icons/Weapons/
+Assets/ShareResource/UI/Icons/Weapons.meta
+Assets/ShareResource/UI/Icons.meta
+
 # ===== 密钥材料（绝不入库；2026-09-26 实测：测试跑出的 RSA 私钥落在 Tests/ 且未被忽略）=====
 # key_ras 含 <D>/<P>/<Q> 私钥指数——一旦提交进 public 仓库即等同泄露。
 # 信任锚的公钥应经 ContentTrustAnchors 生成流程内置，不靠提交私钥文件。
@@ -258,5 +266,5 @@ Assets/MagicaCloth2.meta
 # ===== LocalCDN/（本地 CDN 发布根——签名信封与候选内容，机器私有不入库）=====
 LocalCDN/
 
-# ===== screenshots/��agent ����¼��/��ͼ�������˽�в���⣩=====
+# ===== screenshots/��agent ����¼��/��ͼ�������˽�в���⣩=====
 screenshots/
