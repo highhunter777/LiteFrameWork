@@ -51,6 +51,8 @@ namespace LiteGame.UI
         private int _loadingDepth;
         private CancellationTokenSource _loadingCts;
         private UIForm _loadingForm;
+        private string _loadingMessage = "加载中…";   // 加载文案缓存（首写不丢/开面后写全量——通用加载页 §3）
+        private float? _loadingProgress;               // null = 不定态
         private UIForm _toastForm;
         private Toast _toast;
         private bool _disposed;
@@ -101,7 +103,9 @@ namespace LiteGame.UI
             if (_loadingDepth == 0)
             {
                 _loadingCts = new CancellationTokenSource();
-                OpenLoadingAsync(message).Forget();
+                _loadingMessage = string.IsNullOrEmpty(message) ? "加载中…" : message;   // 写全量复位（不留上次残留）
+                _loadingProgress = null;                                                  // 开场默认不定态
+                OpenLoadingAsync(_loadingMessage).Forget();
             }
             _loadingDepth++;
             return new LoadingScope(this);
@@ -115,7 +119,7 @@ namespace LiteGame.UI
                 var mask = _loadingForm.Root.GetComponentInChildren<LoadingMask>(true);
                 if (mask != null)
                 {
-                    mask.SetMessage(message);
+                    mask.SetStatus(_loadingMessage, _loadingProgress);   // 首写不丢：开面完成写缓存全量
                     mask.SetBlocking(true);
                 }
                 else
@@ -127,6 +131,23 @@ namespace LiteGame.UI
                 // 反馈面失败不该吞掉被门控操作——只落日志（§6.1"请求失败的反馈可观察"）
                 Log.Error($"加载遮罩打开失败[{_loadingFormId}]:{ex.Message}", "UI");
             }
+        }
+
+        /// <summary>当前加载文案（工作台/诊断回读——缓存值，非活动期回落默认文案）。</summary>
+        public string CurrentLoadingMessage => _loadingMessage ?? string.Empty;
+
+        /// <summary>
+        /// 推送加载状态（<see cref="LoadingScope.Report"/>——主线程推送式，服务不建每帧泵）。
+        /// 语义（《通用加载页设计》§3）：嵌套期各作用域写同一面**后写胜出**；开面前调用落缓存
+        /// （首写不丢——开面完成时写全量）；文案 null/空回落"加载中…"，progress01 null = 不定态。
+        /// </summary>
+        public void ReportLoading(string message, float? progress01)
+        {
+            _loadingMessage = string.IsNullOrEmpty(message) ? "加载中…" : message;
+            _loadingProgress = progress01;
+            if (_loadingForm == null) return;
+            _loadingForm.Root.GetComponentInChildren<LoadingMask>(true)
+                ?.SetStatus(_loadingMessage, _loadingProgress);
         }
 
         /// <summary>Back 拦截（导航链首位）：阻断中取消当前操作并消费本次返回；未阻断 = 不消费。</summary>
@@ -144,6 +165,8 @@ namespace LiteGame.UI
             if (_loadingDepth <= 0)
             {
                 _loadingDepth = 0;
+                _loadingMessage = "加载中…";      // 复位（下次开面写全量）
+                _loadingProgress = null;
                 _loadingCts?.Dispose();
                 _loadingCts = null;
                 CloseLoadingAsync().Forget();
@@ -220,6 +243,10 @@ namespace LiteGame.UI
             internal LoadingScope(FeedbackService owner) => _owner = owner;
 
             public void Dispose() => _owner?.EndLoading();
+
+            /// <summary>推送加载状态（文案/进度——语义见 <see cref="FeedbackService.ReportLoading"/>）。</summary>
+            public void Report(string message = null, float? progress01 = null)
+                => _owner?.ReportLoading(message, progress01);
         }
 
         public void Dispose()
