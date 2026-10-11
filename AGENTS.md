@@ -82,10 +82,10 @@
 # 验证基线（白天代码批，一切改动的底线）
 pwsh scripts/gate/test.ps1 -Lane L1 -Profile PullRequest     # L1 纯逻辑（含纪律扫描/表守卫/BuildHash 守卫）
 pwsh scripts/gate/l0-dep-scan.ps1                            # 依赖与秘密扫描
-pwsh scripts/codegen/toolbox.ps1                             # 生成器工具箱（build-hash/proto/luban/sync-code/refresh-hash 统一入口；形态见专项设计）
+python scripts/codegen/toolbox.py                            # 生成器工具箱（build-hash/proto/luban/sync-code/refresh-hash 统一入口；形态见专项设计）
 python scripts/codegen/gen-build-hash.py                     # ★ 共享源集改动后必跑
 python scripts/codegen/gen-build-hash.py --check             # 出包前复算比对
-scripts/codegen/gen-proto.ps1 -ProtocPath <protoc.exe>       # ★ 改 .proto 后
+python scripts/codegen/gen_proto.py --protoc <protoc.exe>    # ★ 改 .proto 后
 Luban/gen.bat                                                # ★ 改表源后（双端重生成）
 pwsh scripts/gate/l2-unity-gate.ps1                          # L2 Unity 门禁（夜间）
 pwsh scripts/gate/restore-check.ps1                          # 环境可复现检查
