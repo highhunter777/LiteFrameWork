@@ -51,7 +51,7 @@
 
 ## 核心红线速查
 
-1. **BuildHash 源集**：改 `Assets/LiteSim/Core/{Scripts,Systems}`、`Assets/LiteNet/{Proto,Protocol,Transport/Security}`、两端表数据 → ★ `python scripts/codegen/gen-build-hash.py`（权威清单＝该脚本 TARGETS/DATA_TARGETS）；漏跑＝出包门禁被拦、两端常量不同步时 Join 握手拒进房（2026-10-07 起开发期不校验，守卫在 build-player.ps1 门禁步 --check）。
+1. **BuildHash 源集**：改 `Assets/LiteSim/Core/{Scripts,Systems}`、`Assets/LiteNet/{Proto,Protocol,Transport/Security}`、两端表数据 → ★ `python scripts/codegen/gen-build-hash.py`（权威清单＝该脚本 `SHARED_TARGETS/SHARED_DATA_TARGETS`）；漏跑＝出包门禁被拦、两端常量不同步时 Join 握手拒进房（2026-10-07 起开发期不校验，守卫在 build-player.ps1 门禁步 `--check-shared`）。**同一脚本还产出第二个目标**：`Server/MetaServer/Host/BuildHash.g.cs`（Meta 构建身份＝`META_TARGETS` 源集摘要，启动日志 `build=` 用它；**不参与准入判定**，故不挂出包门禁——发布 Meta 产物前跑 `--check` 复算两个常量）。
 2. **R11 房间内核纯度**：`Assets/RoomServer/Runtime/` 禁 Console/系统时钟/文件 IO/proto/LiteNet。
 3. **R13 数值读口**：机制面禁读静态读口可变值，数值经实例参数传递（consts 豁免）。
 4. **Unity 序列化资产**（场景/Prefab/Material/.meta）：一律走 unity-pipeline CLI（`UNITY-GUIDE.md`），禁直改文件。
@@ -83,8 +83,9 @@
 pwsh scripts/gate/test.ps1 -Lane L1 -Profile PullRequest     # L1 纯逻辑（含纪律扫描/表守卫/BuildHash 守卫）
 pwsh scripts/gate/l0-dep-scan.ps1                            # 依赖与秘密扫描
 python scripts/codegen/toolbox.py                            # 生成器工具箱（build-hash/proto/luban/sync-code/refresh-hash 统一入口；形态见专项设计）
-python scripts/codegen/gen-build-hash.py                     # ★ 共享源集改动后必跑
-python scripts/codegen/gen-build-hash.py --check             # 出包前复算比对
+python scripts/codegen/gen-build-hash.py                     # ★ 共享源集/表数据/Meta 源集改动后必跑（一次写两常量）
+python scripts/codegen/gen-build-hash.py --check             # 复算比对两个常量（发布 Meta 前）
+python scripts/codegen/gen-build-hash.py --check-shared      # 只复算共享源集常量（出包门禁用的是这个）
 python scripts/codegen/gen_proto.py --protoc <protoc.exe>    # ★ 改 .proto 后
 Luban/gen.bat                                                # ★ 改表源后（双端重生成）
 pwsh scripts/gate/l2-unity-gate.ps1                          # L2 Unity 门禁（夜间）

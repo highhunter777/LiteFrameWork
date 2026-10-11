@@ -69,7 +69,7 @@ SortInputs（按 EntityId 升序稳定插入）
 |---|---|
 | 协议单源 | `Proto/battle.proto` → `Proto/Generated/Battle.cs`（生成脚本 `scripts/codegen/gen_proto.py --protoc <protoc.exe>`） |
 | 信封与编解码 | `Protocol/PacketCodec.cs`：`[1B PacketType][proto payload]`；`PacketWriter`、`PacketType` |
-| 输入位打包 | `Protocol/InputPacker.cs` |
+| 输入位打包/解包 | `Protocol/InputPacker.cs`——`Pack`/`ToProto`/`FromProto`/`TryGetFrame`/`UnpackFrames`。**`SimInputFrame ↔ Proto.InputFrame` 的逐字段映射单源在此**（P0-3）：真服宿主 `ServerHost.HandleInput` 与进程内本地服 `LocalServerTransport.HandleInput` 都调 `UnpackFrames`（此前各手抄一份，AimPoint 六字段已真实漂移过一次——真服断点而本地服照常） |
 | 快照 | `SnapshotDiffer`（差分）→ `SnapshotCodec`（编解码）→ `SnapshotReassembler`（重组）；`AoiFilter`（按兴趣域裁剪） |
 | 传输 | `Transport/KcpTransportClient.cs` + `Vendor/kcp2k`（KCP V1.41）；快照走 **Unreliable**、`StartGame` 等信令走 **Reliable** |
 | 上行冗余 | 客户端在**未确认段**（最近快照帧+1 起，容量 16 帧）重复发送输入（抗丢包）；段锚快照——预测领先不会把服务器所需帧甩出窗外 |
@@ -80,9 +80,10 @@ SortInputs（按 EntityId 升序稳定插入）
 |---|---|
 | 覆盖 | `Assets/LiteSim/Core/Scripts`、`Assets/LiteSim/Core/Systems`、`Assets/LiteNet/Proto`、`Assets/LiteNet/Protocol`、`Assets/LiteNet/Transport/Security`（安全信封——密文帧形状/握手版本变更即两端 wire 不兼容）＋ **玩法表数据**（`Assets/GameData/Config/*.bytes`——**两端同读这一份**；服务端 `RoomServer/Data` json 已退役 2026-09-28；UI 表如 `tbuiform` 显式排除） |
 | 算法 | 按相对路径 Ordinal 排序 → 逐个喂 `路径\0内容（行尾 CRLF/CR→LF 归一化）` → SHA-256 → 取前 16 个十六进制字符 |
-| 生成 | `python scripts/codegen/gen-build-hash.py` → `Assets/LiteNet/Protocol/BuildHash.g.cs` |
+| 生成 | `python scripts/codegen/gen-build-hash.py` → `Assets/LiteNet/Protocol/BuildHash.g.cs`（共享源集）**＋ `Server/MetaServer/Host/BuildHash.g.cs`（Meta 构建身份，P1④）** |
 | 握手 | `RoomClient.SendJoin → JoinRequest.build_hash`：两端不等 → 拒绝进房（**改 Sim/协议/表必须重跑生成器**） |
-| 守卫 | **构建前校验**：`python scripts/codegen/gen-build-hash.py --check` 按同规则复算并与常量比对，不等即拒绝出包（挂在 `build-player.ps1` 门禁步，不可跳过；2026-10-07 起开发期不再设测试守卫——原 `BuildHashTests`/`BuildHashSourceSet.g.cs` 已退役，规则单源回归生成器脚本） |
+| Meta 身份 | `MetaServer/Host/BuildHash.g.cs` = `Server/MetaServer/**` 源集（含源链接件 `JoinTicketFormat.cs`）摘要，仅供启动日志 `build=`（§P0-5）——**不参与任何准入判定**：Lobby 版本准入与票据盖章消费的是**房间实例上报的** `LiteNet.BuildHash.Value`（`InstanceRegistry.Entry.BuildHash`）。旧的手写占位 `"meta-0.0.0-unwired"` 已随 P1④ 删除 |
+| 守卫 | **构建前校验**：`--check` 复算**两个**常量并比对，不等即失败；`--check-shared` 只查共享源集那个——**出包门禁步（`build-player.ps1`）用后者**（Meta 是独立产物，其常量陈旧不拦客户端出包；发布 Meta 前跑 `--check`）。2026-10-07 起开发期不再设测试守卫（原 `BuildHashTests`/`BuildHashSourceSet.g.cs` 已退役，规则单源回归生成器脚本） |
 
 ## 3. 服务端房间：`Assets/RoomServer` + `Server/RoomServer/`
 

@@ -29,7 +29,8 @@ namespace LiteGame
     /// 平色写为诚实兜底（底件未开渐变时仍按顶色 + alpha 淡出，不静默失去淡出）。
     ///
     /// **锚定与朝向**：飘字**锚定受击点**（命中事件的世界位＝弹道命中部位；用户裁决"飘字应该在受击部位飘"，
-    /// 不随实体移动）；每帧把 TMP 摆在锚点上方并**转向渲染相机**（billboard）——底件 prefab
+    /// 不随实体移动）——**合并时锚点目标改最新受击点**（平滑追随最新命中处，恒速靠近、不瞬跳——
+    /// 见 Tick 追随步）；每帧把 TMP 摆在锚点上方并**转向渲染相机**（billboard）——底件 prefab
     /// 无 TMP_Billboard 组件、初始旋转 identity，故朝向必须由本驱动每帧写（对局相机是可旋转的
     /// Cinemachine 轨道机，烘焙朝向只在某机位下正确）。**可见正面朝本地 −Z**（TMP 契约），
     /// 故 billboard 传 <c>−toCam</c> 使 −Z 朝向相机；up 取世界上方向（跟随相机俯仰会侧翻）。
@@ -67,6 +68,7 @@ namespace LiteGame
         private readonly List<(long TargetId, HitLocalRole Role, bool Crit)> _expired = new List<(long, HitLocalRole, bool)>(8);
         private readonly List<(long TargetId, HitLocalRole Role, bool Crit)> _tickKeys = new List<(long, HitLocalRole, bool)>(16);
         private int _seedCounter;
+        private double _lastTickNow;   // 上帧世界钟读数（锚点追随步长 dt 的来源）
         private bool _disposed;
 
         /// <summary>在册飘字数（诊断/预算断言面）。</summary>
@@ -82,7 +84,8 @@ namespace LiteGame
         private struct Active
         {
             public TextMeshPro Tmp;
-            public Vector3 Anchor;         // 受击点锚（命中事件世界位——用户裁决；不随实体移动）
+            public Vector3 Anchor;         // 受击点锚（当场位置——向 AnchorTarget 恒速靠近；不随实体移动）
+            public Vector3 AnchorTarget;   // 锚点目标（起条目 = 该发受击点；合并 = 最新一发受击点）
             public float TopR, TopG, TopB;          // 渐变顶色（alpha 由轨道逐帧给——淡出归轨道数学）
             public float BottomR, BottomG, BottomB; // 渐变底色（上下同值即平色）
             public float FontSize;
@@ -149,7 +152,10 @@ namespace LiteGame
 
             if (snap.Merged)
             {
-                ApplyEntry(key, in snap);       // 同档连击：更新既有条目（文本累计/按值分带缩放重解析）
+                // 同档连击：更新既有条目（文本累计/按值分带缩放重解析）＋**锚点目标改最新受击点**
+                // ——合并时数字挪向最新命中处（平滑追随，不瞬跳；见 Tick 的恒速靠近步）。
+                // 仍锚"受击点"语义（最新一发的），不跟随实体。
+                ApplyEntry(key, in snap, ctx.WorldPos);
                 return;
             }
 
@@ -162,12 +168,14 @@ namespace LiteGame
             // 池实例上一世代的材质会被此处覆盖（不依赖"归还时还原"——那要求记住底件默认值，多一份状态）。
             if (_materials != null) tmp.fontSharedMaterial = _materials.For(style.Tier);
 
-            // 受击点锚（用户裁决："飘字应该在受击部位飘"）——命中事件世界位（弹道命中部位），
-            // 不随实体移动；视图可用性/目标 despawn 均无影响（本驱动已不依赖实体视图）。
+            // 受击点锚（用户裁决："飘字应该在受击部位飘"）——命中事件世界位（弹道命中部位）；
+            // 起条目时 Anchor=AnchorTarget=该发受击点；此后锚点向目标恒速靠近（合并时目标改最新）
+            // ——不随实体移动，视图可用性/目标 despawn 均无影响（本驱动不依赖实体视图）。
             _active[key] = new Active
             {
                 Tmp = tmp,
                 Anchor = ctx.WorldPos,
+                AnchorTarget = ctx.WorldPos,
                 TopR = style.TopR, TopG = style.TopG, TopB = style.TopB,
                 BottomR = style.BottomR, BottomG = style.BottomG, BottomB = style.BottomB,
                 FontSize = style.FontSize,
@@ -177,8 +185,9 @@ namespace LiteGame
             tmp.text = DamageNumberFormatter.Format(snap.Value);
         }
 
-        /// <summary>同档连击合并落既有实例：累计文本重写、样式重解析（爆头档恒定；按值分带缩放随累计值变）。</summary>
-        private void ApplyEntry((long, HitLocalRole, bool) key, in DamageNumberSnapshot snap)
+        /// <summary>同档连击合并落既有实例：累计文本重写、样式重解析（爆头档恒定；按值分带缩放随累计值变）、
+        /// **锚点目标改最新受击点**（<paramref name="anchorTarget"/>——Tick 里以恒速靠近，数字平滑滑向最新命中处）。</summary>
+        private void ApplyEntry((long, HitLocalRole, bool) key, in DamageNumberSnapshot snap, Vector3 anchorTarget)
         {
             if (!_active.TryGetValue(key, out var a))
             {
@@ -191,6 +200,7 @@ namespace LiteGame
             a.BottomR = style.BottomR; a.BottomG = style.BottomG; a.BottomB = style.BottomB;
             a.FontSize = style.FontSize;
             a.ScaleBoost = style.ScaleBoost;
+            a.AnchorTarget = anchorTarget;
             _active[key] = a;
             a.Tmp.text = DamageNumberFormatter.Format(snap.Value);
         }
@@ -221,6 +231,11 @@ namespace LiteGame
             if (_disposed) return;
             double now = _clock.Now;
 
+            // 渲染帧步长（锚点追随用——世界钟读数差；夹 [0, 0.1s]：首帧/时钟回拨不吃负步长，
+            // 大间隔只按 0.1s 追一步，不瞬跳）。追踪的是**锚点位置**，升降浮等归轨道数学。
+            float dt = Mathf.Clamp((float)(now - _lastTickNow), 0f, 0.1f);
+            _lastTickNow = now;
+
             // ① 到期收口：聚合器裁决（淡出钟），实例归还 + 摘账——账实一致
             _aggregator.CollectExpired(now, _expired);
             for (int i = 0; i < _expired.Count; i++) Release(_expired[i]);
@@ -242,7 +257,12 @@ namespace LiteGame
                     snap.Crit, snap.Seed,
                     out float rise, out float push, out float alpha, out float shake, out float pop);
 
-                // 受击点锚（定值——不随实体移动；升浮/推挤/抖动归轨道数学）
+                // 锚点追随（合并时目标=最新受击点）：恒速靠近——数字平滑滑向最新命中处（不瞬跳）。
+                // 起条目时 Anchor==AnchorTarget，此步为空转；向量 != 用近似比较，到点即停。
+                if (dt > 0f && a.Anchor != a.AnchorTarget)
+                    a.Anchor = Vector3.MoveTowards(a.Anchor, a.AnchorTarget, DamageNumberMotion.AnchorFollowSpeed * dt);
+
+                // 受击点锚位置（不随实体移动；升浮/推挤/抖动归轨道数学叠在锚上）
                 Vector3 pos = new Vector3(
                     a.Anchor.x + push + shake,
                     a.Anchor.y + DamageNumberMotion.HoverHeight + rise,

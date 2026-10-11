@@ -4,8 +4,9 @@
 # 输出:命中时按客户端 schema 注入提醒——ZCode 读 ZCODE_PROJECT_DIR → 平铺 {"additionalContext":...};
 #       Claude Code 读 CLAUDE_PROJECT_DIR → 嵌套 {"hookSpecificOutput":{hookEventName,additionalContext}};
 #       未命中或任何异常静默退出 0,绝不阻塞会话。
-# 源集清单权威 = scripts/codegen/gen-build-hash.py 的 TARGETS/DATA_TARGETS(单源);
-# 本脚本是提醒面不是守卫面,守卫单源在该脚本的 --check(出包门禁步),改 TARGETS 时同步此处路径前缀。
+# 源集清单权威 = scripts/codegen/gen-build-hash.py 的 SHARED_TARGETS/SHARED_DATA_TARGETS/META_TARGETS(单源);
+# 本脚本是提醒面不是守卫面,守卫单源在该脚本的 --check/--check-shared(出包门禁步用后者),
+# 改 TARGETS 时同步此处路径前缀。
 # 覆盖红线:AGENTS.md 红线 1(BuildHash 源集)、红线 4(Unity 序列化资产)。
 $ErrorActionPreference = 'Stop'
 try {
@@ -46,6 +47,9 @@ try {
     elseif ($p -like 'assets\litesim\core\scripts\*' -or $p -like 'assets\litesim\core\systems\*' -or
         $p -like 'assets\litenet\protocol\*' -or $p -like 'assets\litenet\transport\security\*') {
         $msg = "[红线1] 触碰 BuildHash 共享源集,收尾必跑: $buildHash ——漏跑=出包门禁被拦/两端常量不同步时 Join 拒进房。详见 skill: build-hash-sync"
+    }
+    elseif ($p -like 'server\metaserver\*' -and $p -match '\.(cs|csproj)$') {
+        $msg = "[P1④] 触碰 Meta 源集:Meta 构建身份(Server/MetaServer/Host/BuildHash.g.cs,启动日志 build= 那个)由 $buildHash 生成,收尾必跑(一次写两个常量:共享握手红线 + Meta 身份;发布 Meta 前跑 --check 复算)。"
     }
     elseif ($p -like 'luban\data\*' -or $p -like 'luban\defines\*' -or
         $p -like 'assets\gamedata\config\*' -or $p -like 'assets\litegame\lua\cfg\*') {

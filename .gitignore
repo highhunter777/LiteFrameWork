@@ -146,9 +146,15 @@ Assets/Readme.asset
 Assets/Readme.asset.meta
 Assets/Resources/
 Assets/Resources.meta
-Assets/Scenes/
-Assets/Scenes.meta
 Assets/StreamingAssets.meta
+
+# ===== 历史场景（不入库；2026-10-11 原 Assets/Scenes/ 死排除规则收窄至此——TrainingGround/UiWorkbench 入库）=====
+Assets/Scenes/Boot.unity
+Assets/Scenes/Boot.unity.meta
+Assets/Scenes/GuideScene.unity
+Assets/Scenes/GuideScene.unity.meta
+Assets/Scenes/SimSandbox.unity
+Assets/Scenes/SimSandbox.unity.meta
 Assets/StreamingAssets/
 Assets/UniversalRenderPipelineGlobalSettings.asset
 Assets/UniversalRenderPipelineGlobalSettings.asset.meta

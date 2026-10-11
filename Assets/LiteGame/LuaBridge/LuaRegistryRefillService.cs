@@ -97,6 +97,7 @@ namespace LiteGame
 
         void IModuleStats.Snapshot(Dictionary<string, string> into)
         {
+            into.Clear();                                    // 契约：实现 Clear + 填（HUD 不清，全实现统一）
             into["纪元"] = Generations.ToString();
             into["填充"] = LastReport != null ? $"{LastReport.Filled}/{LastReport.Total}" : "-";
             into["失败"] = LastReport != null ? LastReport.Failed.ToString() : "-";

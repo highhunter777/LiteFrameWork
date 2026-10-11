@@ -31,7 +31,8 @@ namespace MetaServer.IntegrationTests
     [Trait(TestTrait.Category, TestCategory.Integration)]
     public sealed class SettlementL3Tests : IAsyncLifetime
     {
-        private static readonly byte[] InstanceKey = Filled(0x44);
+        private static readonly byte[] InstanceKey = Filled(0x44);          // Lobby 实例注册凭据
+        private static readonly byte[] SettlementKey = Filled(0x66);        // 结算提交凭据（P1②：与注册分权）
         private static readonly byte[] AuthKey = Filled(0x33);
         private static readonly byte[] LobbyTicketKey = Filled(0x55);
 
@@ -86,8 +87,10 @@ namespace MetaServer.IntegrationTests
                 [MetaHost.ConfigSection + ":MongoDatabaseName"] = databaseName,
                 [MetaHost.ConfigSection + ":AuthSigningKeyBase64"] = Convert.ToBase64String(AuthKey),
                 [MetaHost.ConfigSection + ":LobbyInstanceKeyBase64"] = Convert.ToBase64String(InstanceKey),
-                // Lobby 两密钥成对（半段配置拒启）——结算提交与 Lobby 注册共用实例密钥，
-                // 部署形态两者同开；此处补齐使宿主通过配置门。
+                // 结算凭据**独立于**注册凭据（P1②）——部署形态两者同开但不同值；
+                // 分权正证见 `鉴权与形状_稳定错误码`（Lobby 凭据写结算账本必 401）。
+                [MetaHost.ConfigSection + ":SettlementInstanceKeyBase64"] = Convert.ToBase64String(SettlementKey),
+                // Lobby 两密钥成对（半段配置拒启）；此处补齐使宿主通过配置门。
                 [MetaHost.ConfigSection + ":LobbyTicketKeyBase64"] = Convert.ToBase64String(LobbyTicketKey),
             };
 
@@ -156,7 +159,7 @@ namespace MetaServer.IntegrationTests
             (WebApplication app, string baseAddress) =
                 await StartHostAsync(_fixture.CreateDatabaseName());
             string token = app.Services.GetRequiredService<AccessTokenService>().Issue("acc-idem-1", out _);
-            string key = Convert.ToBase64String(InstanceKey);
+            string key = Convert.ToBase64String(SettlementKey);      // 结算凭据（P1②）
             string matchId = "m-idem-" + Guid.NewGuid().ToString("N");
             string body = Submission(matchId, players: new[] { ("p0", "acc-idem-1", 5, 2), ("p1", "acc-idem-2", 1, 5) });
 
@@ -195,7 +198,7 @@ namespace MetaServer.IntegrationTests
                 await StartHostAsync(_fixture.CreateDatabaseName());
             string token = app.Services.GetRequiredService<AccessTokenService>().Issue("acc-q-1", out _);
             string otherToken = app.Services.GetRequiredService<AccessTokenService>().Issue("acc-q-other", out _);
-            string key = Convert.ToBase64String(InstanceKey);
+            string key = Convert.ToBase64String(SettlementKey);      // 结算凭据（P1②）
 
             using var http = new HttpClient();
             foreach ((string matchId, int kills) in new[] { ("m-q-1", 3), ("m-q-2", 9) })
@@ -247,7 +250,14 @@ namespace MetaServer.IntegrationTests
             Assert.Equal(HttpStatusCode.Unauthorized, wrongKey.StatusCode);
             Assert.Contains("profile.instance-unauthorized", await wrongKey.Content.ReadAsStringAsync());
 
-            string key = Convert.ToBase64String(InstanceKey);
+            // 分权正证（P1②）：**Lobby 注册凭据不能写结算账本**——"能注册实例"≠"能发奖落账"。
+            HttpResponseMessage lobbyKeyOnSettlement = await http.SendAsync(Authorized(HttpMethod.Post,
+                baseAddress + "/matches/result", Convert.ToBase64String(InstanceKey),
+                Submission("m-a-split", players: new[] { ("p0", "acc-a-1", 1, 0) })));
+            Assert.Equal(HttpStatusCode.Unauthorized, lobbyKeyOnSettlement.StatusCode);
+            Assert.Contains("profile.instance-unauthorized", await lobbyKeyOnSettlement.Content.ReadAsStringAsync());
+
+            string key = Convert.ToBase64String(SettlementKey);      // 结算凭据（P1②）
             HttpResponseMessage emptyPlayers = await http.SendAsync(Authorized(HttpMethod.Post,
                 baseAddress + "/matches/result", key,
                 "{\"requestId\":\"r\",\"matchId\":\"m-a-2\",\"players\":[]}"));
@@ -287,7 +297,7 @@ namespace MetaServer.IntegrationTests
             var serviceSettings = new SettlementSubmitService.Settings
             {
                 Url = baseAddress + "/matches/result",
-                InstanceKey = InstanceKey,
+                InstanceKey = SettlementKey,        // 结算凭据（P1②：房间端 --settlement-instance-key）
                 IntervalMs = 5_000,
                 MaxBackoffMs = 60_000,
                 RequestTimeoutMs = 5_000,

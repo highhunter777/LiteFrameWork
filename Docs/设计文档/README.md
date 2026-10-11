@@ -90,6 +90,8 @@
 ### 客户端 UI
 
 - [UI 框架总设计](client/ui/UI框架总设计.md)：Current/Target、冲突裁决、生命周期、资源、导航、验收与 U0～U4 唯一路线。
+- [战斗HUD专项设计](client/ui/战斗HUD专项设计.md)：战斗 HUD 重规划（2026-10-11）——模板 prefab 收编 L3 `ShareResource/UI/Hud`（件级热更）、通路裁决（HUD 属对局表现域不走页面导航）、`BattleViewRig` 装配拆分（god class 减负）、序列化引用替代六条场景路径 Find；迁移批 A/B/C 待点单。
+- [战斗HUD层级设计](client/ui/战斗HUD层级设计.md)：`Hud_Battle.prefab` 层级/命名/暴露定稿——`Hud_` 根前缀（命名词表 §1.1 新增）、完整节点树（锚点/尺寸/素材一比一取自构建器）、BattleHudView 八字段映射、制作与迁移路径、新旧改名映射表。
 - [UI 效果系统专项设计](client/ui/UI效果系统专项设计.md)：UI 动效/粒子/音效统一播放契约、数据化定义、槽位仲裁、预算降级与 E1～E3 分批收口；UiFx/AudioService 为既有通道后端，页面转场与世界 VFX 不在收口范围。
 - [UI 制作规范](client/ui/UI制作规范.md)：资产、命名（§9 层级与节点命名）、布局、渲染、文本和提交规则。
 - [UI 控件 Lua API 参考](client/ui/UI控件LuaAPI参考.md)：现有入口与调用约定、已有 API 与目标 API 对照。

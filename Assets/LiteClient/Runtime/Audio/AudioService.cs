@@ -58,6 +58,21 @@ namespace LiteClient
             _uiClock = ui;
         }
 
+        /// <summary>
+        /// 是否已关闭（<see cref="Shutdown"/> 幂等判据即 <c>_root</c> 置空）。
+        /// 关闭后再调用 <see cref="Play"/>/<see cref="Play3D"/> 或写组音量/静音 → 抛
+        /// <see cref="ObjectDisposedException"/>（与 EntityService/SceneService/VfxService 姊妹服务统一契约）；
+        /// <see cref="Stop"/> / <see cref="StopAll"/> / <see cref="Snapshot"/> 保持安全幂等（收尾/诊断可后置调用）。
+        /// </summary>
+        public bool IsShutdown => _root == null;
+
+        /// <summary>关闭守卫（写面统一入口）：关闭后写操作显性失败，不落 KeyNotFoundException 这类隐晦形态。</summary>
+        private void ThrowIfShutdown()
+        {
+            if (IsShutdown)
+                throw new ObjectDisposedException(nameof(AudioService), "音频壳已关闭——不再接受播放/组写操作");
+        }
+
         /// <summary>组 → 时钟域（Effect/Voice 走世界轨；Ui/Bgm 走 UI 轨——UI 暂停不该掐掉战斗音效）。</summary>
         private float DeltaSeconds(Group group)
         {
@@ -112,6 +127,7 @@ namespace LiteClient
         private int PlayInternal(Group group, AudioClip clip, float volume, bool loop, int priority,
             float spatialBlend, Vector3? position, float fadeIn)
         {
+            ThrowIfShutdown();
             if (clip == null) throw new ArgumentNullException(nameof(clip));
             var g = _groups[group];
 
@@ -192,6 +208,7 @@ namespace LiteClient
         /// <summary>组音量（实时作用于组内全部代理；叠加音效一起变）。</summary>
         public void SetGroupVolume(Group group, float volume)
         {
+            ThrowIfShutdown();
             var g = _groups[group];
             g.Volume = Mathf.Clamp01(volume);
             foreach (var p in g.Proxies) ApplyVolume(g, p, 1f);
@@ -200,12 +217,17 @@ namespace LiteClient
         /// <summary>组静音（Source.mute——播放状态保留，解除静音无缝续播）。</summary>
         public void SetGroupMute(Group group, bool mute)
         {
+            ThrowIfShutdown();
             var g = _groups[group];
             g.Mute = mute;
             foreach (var p in g.Proxies) p.Source.mute = mute;
         }
 
-        public bool IsGroupMuted(Group group) => _groups[group].Mute;
+        public bool IsGroupMuted(Group group)
+        {
+            ThrowIfShutdown();
+            return _groups[group].Mute;
+        }
 
         /// <summary>全局停止（Audio 总线统一停止面）——全部组全部在播代理立即停
         /// （系统路径不等淡出表现；失效句柄语义不变）。用户语义的逐句柄淡出走 <see cref="Stop"/>。</summary>
@@ -237,6 +259,7 @@ namespace LiteClient
 
         public void Snapshot(Dictionary<string, string> into)
         {
+            into.Clear();                                    // 契约：实现 Clear + 填（HUD 不清，全实现统一）
             foreach (var kv in _groups)
             {
                 int busy = 0;
