@@ -11,6 +11,7 @@
 | 前缀 | 类别 | 例 |
 | --- | --- | --- |
 | `Page_` | 页面根（= prefab 文件名） | `Page_Login` |
+| `Hud_` | 对局 HUD 根（= prefab 文件名；表现域，不走 tbuiform/导航） | `Hud_Battle` |
 | `Cot_` | 容器/分组（含列表容器、SafeArea） | `Cot_TradePanel` |
 | `Bg_` | 背景/底板 | `Bg_Shop` |
 | `Txt_` | 文本 | `Txt_Title` |
