@@ -98,10 +98,11 @@ namespace LiteGame
                 case Id.BotFrozen: TestModeRuntime.BotFrozen = value; break;
             }
 
-            // 副作用：无限子弹要同步 Sim 静态（同进程两端同值；非测试模式一律不武装）。
-            // 面板写值落在渲染帧之间——不会在 tick 中途换口径。
-            if (id == Id.InfiniteAmmo)
-                LiteSim.SimTestRules.InfiniteAmmo = TestModeRuntime.Active && value;
+            // 副作用：无限子弹写**当前活动局**的规则持有件（客户端预测与本地服同实例——同进程两端同值；
+            // 面板写值落在渲染帧之间，不会在 tick 中途换口径）。非测试模式一律不武装；无活动局（未进对局）
+            // 时只记 TestModeRuntime 初值，下次进房生效。
+            if (id == Id.InfiniteAmmo && TestModeRuntime.Active && LiteSim.SimTestRules.ActiveMatch != null)
+                LiteSim.SimTestRules.ActiveMatch.InfiniteAmmo = value;
         }
 
         /// <summary>套本表默认口径（<see cref="TestModeRuntime.ApplyDefaults"/> 的数据源）。</summary>

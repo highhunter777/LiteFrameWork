@@ -23,11 +23,19 @@ namespace LiteSim
         /// <summary>tbentityconfig.initial_hp 投影；本局默认角色的出生生命。</summary>
         public int EntityHp;
 
+        /// <summary>进房初值的免死规则（测试房；运行态经 <see cref="MatchTestRules"/> 注入——见该类注释）。
+        /// 进联机身份摘要与重放装载值；常规对局恒 false。</summary>
+        public bool NoDeath;
+
+        /// <summary>进房初值的无限子弹规则（测试房；同上）。常规对局恒 false。</summary>
+        public bool InfiniteAmmo;
+
         /// <summary>瞄准态移动上限 = MoveSpeed × <see cref="CombatConfig.AimMoveSpeedFactor"/>
         /// （乘 2 的幂——位级精确）。参与 <see cref="CombatConfigDigest"/>（联机身份）。</summary>
         public float AimMoveSpeed => MoveSpeed * CombatConfig.AimMoveSpeedFactor;
 
-        /// <summary>构造固定对局数值；重力与出生生命由各自所属表装配。</summary>
+        /// <summary>构造固定对局数值；重力与出生生命由各自所属表装配（测试规则初值恒 false——
+        /// 测试房由入口经 <see cref="MatchTestRules"/> 叠加）。</summary>
         public CombatValues(float moveSpeed, float gravity, float hitscanRange,
             int baseDamage, int damageSpread, int entityHp)
         {
@@ -37,6 +45,8 @@ namespace LiteSim
             BaseDamage = baseDamage;
             DamageSpread = damageSpread;
             EntityHp = entityHp;
+            NoDeath = false;
+            InfiniteAmmo = false;
         }
 
         /// <summary>表装面默认值（必须与表值一致——漂移由装载闸门与 L1 守卫卡）。

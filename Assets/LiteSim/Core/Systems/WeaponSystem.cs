@@ -19,7 +19,8 @@ namespace LiteSim
     /// </summary>
     public static class WeaponSystem
     {
-        public static void Run(SimWorldState s, SimInputFrame[] inputs, WeaponTable table)
+        /// <summary><paramref name="rules"/> = 本局测试规则（null = 无规则——无限子弹关闭）。</summary>
+        public static void Run(SimWorldState s, SimInputFrame[] inputs, WeaponTable table, MatchTestRules rules = null)
         {
             int frame = s.Frame;
 
@@ -126,7 +127,9 @@ namespace LiteSim
         /// **打空自动换弹**：末发消费后弹匣归零且备弹有余 → 同帧进入 Reloading（打空即补；
         /// 备弹零则保持空仓 Ready）。
         /// </summary>
-        public static bool TryConsumeShot(SimWorldState s, int slotIndex, int frame, WeaponTable table, out WeaponDef def)
+        /// <summary>（<paramref name="rules"/> 由 Run 注入传递——测试规则实例热路径唯一读点之一）。</summary>
+        public static bool TryConsumeShot(SimWorldState s, int slotIndex, int frame, WeaponTable table, out WeaponDef def,
+            MatchTestRules rules = null)
         {
             if (!IsEquipped(s, slotIndex, table, out def, out int wi)) return false;
             ref EntitySlot e = ref s.Entities[slotIndex];
@@ -140,8 +143,8 @@ namespace LiteSim
             if (frame < w.NextFireFrame) return false;                    // 射速节拍
             if (w.MagAmmo <= 0) return false;                             // 空仓（备弹有余时已由上次末发自动换弹）
 
-            // 测试模式无限子弹：不扣弹、也不会打空（末发自动换弹随之不触发）——满弹状态下换弹请求亦被 ② 拒
-            if (!SimTestRules.InfiniteAmmo)
+            // 测试模式无限子弹（注入规则）：不扣弹、也不会打空（末发自动换弹随之不触发）——满弹状态下换弹请求亦被 ② 拒
+            if (rules == null || !rules.InfiniteAmmo)
             {
                 w.MagAmmo--;
                 if (w.MagAmmo == 0 && w.ReserveAmmo > 0)                  // 末发自动换弹（打空即补）

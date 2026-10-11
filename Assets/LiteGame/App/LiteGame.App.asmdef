@@ -3,9 +3,7 @@
     "rootNamespace": "LiteGame",
     "references": [
         "LiteClient.Abstractions",
-        "LiteClient.Content.YooAsset",
-        "LiteClient.Network.Kcp",
-        "LiteClient.Platform.Unity",
+        "LiteClient.Content.YooAsset",        "LiteClient.Platform.Unity",
         "LiteClient.Runtime",
         "LiteClient.Scripting.XLua",
         "LiteClient.Serialization.Luban",

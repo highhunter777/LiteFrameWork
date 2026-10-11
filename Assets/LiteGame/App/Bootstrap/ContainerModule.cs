@@ -61,6 +61,7 @@ namespace LiteGame
             );
             context.Put(commands);
             _services.RegisterInstance<ICommandCenter>(commands);
+            _services.RegisterInstance<CommandCenter>(commands);   // 具体键：批3 执行形态（SendQueued/Undo/Redo）消费者用
             _services.RegisterInstance<IConfigTableSource>(config);
             _services.RegisterInstance<IConfigService>(config);
             _services.RegisterInstance<IUILuaRegistry>(uiRegistry);
@@ -80,7 +81,7 @@ namespace LiteGame
             _services.RegisterInstance<IAccountSessionFactory>(accounts);
             _services.RegisterInstance<IMatchSessionFactory>(matches);
 
-            var dialogs = new DialogService(ui);
+            var dialogs = new DialogService(ui, nav: nav);
             _services.RegisterInstance(dialogs, ServiceOwnership.ContainerOwned);
             var feedback = new FeedbackService(ui, dialogs, nav);
             _services.RegisterInstance(feedback, ServiceOwnership.ContainerOwned);
@@ -89,6 +90,7 @@ namespace LiteGame
             Bridge.Bind(() => config.Tables);
             Bridge.BindRegistries(uiRegistry, contentRegistry);
             Bridge.BindUIService(ui);
+            Bridge.BindNavigation(nav);
             context.Require<IInputService>().RegisterBlocker(
                 new IntentGate.BlockerKey("ui.modal", "模态 UI 打开——游戏意图被拦截"), () => ui.IsModalOpen);
 
@@ -131,7 +133,8 @@ namespace LiteGame
                 (ProcedureId.Battle, new ProcedureBattle(content, context.Require<IInputService>(),
                     context.Require<ICameraService>(), context.Require<VfxService>(),
                     rootToken, requireCamera: true, worldClock: context.Require<IWorldClock>(),
-                    matchSessions: context.Require<IMatchSessionFactory>())),
+                    matchSessions: context.Require<IMatchSessionFactory>(),
+                    audio: context.Require<AudioService>(), commands: context.Require<CommandCenter>())),
                 (ProcedureId.Error, new ProcedureError(rootToken)));
         }
 

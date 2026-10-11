@@ -65,11 +65,9 @@ namespace LiteGame
             }
             s_booted = true;
             _active = true;
-            Debug.Log("[GE] awake begin");                  // 临时诊断：Player 启动卡点定位
 
             // ClientHost + 平台桥（AppLifetime 同 GameObject：接管 Pause/Focus/LowMemory/Quit 与退出善后）
             _host = new ClientHost();
-            _host.ModuleTrace = (name, phase) => UnityEngine.Debug.Log($"[Host] {name} {phase}");
             gameObject.AddComponent<AppLifetime>().Bind(_host);
 
             // 装配（§6.1：注册顺序 = 初始化顺序 = 关闭逆序——依赖图由调用序表达）
@@ -88,11 +86,9 @@ namespace LiteGame
         {
             try
             {
-                Debug.Log("[GE] bootstrap start");              // 临时诊断
                 await _host.InitializeAsync(ct);
                 _container = _host.Product<ServiceContainer>();
                 _fsm = _host.Product<StageMachine<ProcedureId, ProcedureArgs>>();
-                Debug.Log("[GE] bootstrap done");               // 临时诊断
 #if UNITY_EDITOR || DEVELOPMENT_BUILD || LITEFRAMEWORK_DEBUG
                 // 调试组件注入（同 GameObject；可选——未挂即跳过；守卫与定义处一致：release Player 下类型被条件编译移除）
                 GetComponent<DebugTuner>()?.Inject(_host.Product<IWorldClock>(), _host.Product<IUIClock>(), _host.Product<EventCenter>(), _host.Product<CommandCenter>());
@@ -164,7 +160,6 @@ namespace LiteGame
             if (!_active) return;                            // 重复引导件销毁前的最后一步不参与
             _bootCts?.Cancel();                              // 引导期残留异步取消（AppLifetime 负责完整关闭）
             _active = false;
-            Debug.Log("[GE] destroyed");                     // 临时诊断
         }
     }
 }

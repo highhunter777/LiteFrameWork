@@ -30,8 +30,9 @@ namespace LiteSim
     /// </summary>
     public static class ShootingSystem
     {
+        /// <summary><paramref name="rules"/> = 本局测试规则（null = 无规则——沿传 WeaponSystem.TryConsumeShot）。</summary>
         public static void Run(SimWorldState s, in SimMapData map, SimInputFrame[] inputs, in CombatValues values,
-            WeaponTable weapons)
+            WeaponTable weapons, MatchTestRules rules = null)
         {
             if (s.Match.Phase == SimMatchPhase.Finished) return; // lint-allow R3（整数阶段）
             for (int i = 0; i < inputs.Length; i++)
@@ -52,7 +53,7 @@ namespace LiteSim
                 // 未装备实体（测试/沙盒直调本系统的形态）：维持旧行为（逐帧可开火 + 兜底伤害/射程）。
                 bool fireFlag = (inputs[i].Buttons & SimInputFrame.ButtonFireFlag) != 0u;
                 bool equipped = WeaponSystem.IsEquipped(s, shooterSlot, weapons, out WeaponDef wdef, out _);
-                if (equipped && !fireFlag && !WeaponSystem.TryConsumeShot(s, shooterSlot, s.Frame, weapons, out wdef)) continue;
+                if (equipped && !fireFlag && !WeaponSystem.TryConsumeShot(s, shooterSlot, s.Frame, weapons, out wdef, rules)) continue;
                 if (!fireFlag) shooter.InvulnerableUntilFrame = 0;
                 float range = equipped ? wdef.Range : values.HitscanRange;
                 int baseDamage = equipped ? wdef.Damage : values.BaseDamage;
@@ -130,7 +131,7 @@ namespace LiteSim
                     // **实体走三维入口（带 dy）**；障碍保持 2.5D（关卡障碍为地面级圆/盒，三维化无收益——
                     // 见专项设计 §4.1「仅实体圆柱三维化」）。
                     SimRaycast.RaycastEntities(s, shooterSlot, in muzzle,
-                        in dir, range, out int hitSlot, out float hitT);
+                        in dir, range, out int hitSlot, out float hitT, rules);
                     // 障碍仍在XZ 平面按水平距离求解 ⇒ **须折回三维参数**才能与 hitT 同量纲比较
                     // （hitT 是沿三维单位方向的长度；障碍 t 是水平距离）。
                     bool blockedByObstacle = RaycastObstacles3D(map, muzzle.X, muzzle.Y, muzzle.Z,
@@ -190,7 +191,7 @@ namespace LiteSim
                     // 单方面把上界收紧为 `<` 会与 Y 带闸分叉（闸放行、爆头判据落空 ⇒ 判为未命中）。
                     // 上界"越过头顶"的漏洞由 SimRaycast 的 Y 带闸（`yHit > 顶` 排除）承担。
                     float relY = judgeY - hit.Pos.Y;
-                    bool headshot = relY >= CombatConfig.HeadHitLineLive;       // Live：测试模式滑杆覆写优先（release 恒 = HeadHitLine）
+                    bool headshot = relY >= MatchTestRules.ResolveHeadHitLine(rules);   // 覆写经 rules 注入（null = 烘焙导出值——release/常规入口恒导出值）
                     if (headshot) dmg <<= CombatConfig.HeadshotDamageShift;
 
                     // 回溯请求只延后命中副作用；权威帧的散布/随机流仍正常推进一次。

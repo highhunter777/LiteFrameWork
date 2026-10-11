@@ -15,12 +15,12 @@
   "python": {
     "minVersion": "3.10",
     "packages": ["openpyxl"],
-    "purpose": "Luban/gen_lua_keys.py（gen.bat 第三步）"
+    "purpose": "Luban/gen_lua_keys.py + scripts/codegen/ 生成器工具箱全家族（build-hash/proto/luban/sync-code/refresh-hash）"
   },
   "generators": {
-    "luban": "vendored: Luban/（gen.bat，表链唯一生成入口）",
+    "luban": "vendored: Luban/（gen.bat → scripts/codegen/gen_luban.py，表链唯一生成入口）",
     "xlua": "self-provided: Tools/（XLuaGenerate.exe，重生成 xLua 适配代码时需要）",
-    "protobuf": "scripts/codegen/gen-proto.ps1（协议重新生成时需要 protoc）"
+    "protobuf": "scripts/codegen/gen_proto.py --protoc <protoc.exe>（协议重新生成时需要 protoc，版本须与运行时 Google.Protobuf 对齐）"
   },
   "packages": {
     "vendored": [

@@ -40,7 +40,7 @@ namespace LiteNet
     /// RestoreComplete（Reliable）→ 回 Connected。拒绝/版本不符/超时 → Failed（不自动重试——应用层决策）。
     ///
     /// **生命周期**：传输是**注入依赖、所有权归创建方**——`Dispose` 只退订与
-    /// 释放自身缓冲，**不 Dispose 传输**（`KcpNetworkService` 会持有并管理它）。
+    /// 释放自身缓冲，**不 Dispose 传输**（持有方〔如 BattleClient〕负责它的生命周期）。
     /// </summary>
     public sealed class RoomClient : IDisposable
     {

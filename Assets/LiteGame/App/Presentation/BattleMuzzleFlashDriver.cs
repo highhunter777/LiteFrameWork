@@ -21,7 +21,7 @@ namespace LiteGame
     /// </summary>
     public sealed class BattleMuzzleFlashDriver : IHitFeedbackConsumer, IDisposable
     {
-        /// <summary>火光资源名（VfxCatalog"命名即引用"→ `Assets/FX/fx_muzzle_flash.prefab`）。</summary>
+        /// <summary>火光资源名（VfxCatalog"命名即引用"→ `Assets/ShareResource/FX/fx_muzzle_flash.prefab`）。</summary>
         public const string EffectName = "fx_muzzle_flash";
 
         /// <summary>观感缩放（KriptoFX 件按整枪尺度作者化——单点常量，美术可调；换件归构建器）。</summary>

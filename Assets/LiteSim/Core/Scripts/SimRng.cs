@@ -44,11 +44,5 @@ namespace LiteSim
             uint range = (uint)(maxExclusive - minInclusive);
             return minInclusive + (int)(NextUInt32() % range);
         }
-
-        /// <summary>[min, max) 浮点。</summary>
-        public float NextRange(float min, float max)
-        {
-            return min + (max - min) * NextFloat01();
-        }
     }
 }

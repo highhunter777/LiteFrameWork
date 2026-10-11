@@ -175,15 +175,6 @@ namespace LiteSim.Tests
             Assert.False(ViewTransformMath.ShouldSnap(from, V(1000f, 0f, 0f), -5f));
         }
 
-        // ---- PlanarDistance ----
-
-        [Fact]
-        public void PlanarDistance_忽略Y轴()
-        {
-            Assert.Equal(5f, ViewTransformMath.PlanarDistance(V(0f, 100f, 0f), V(3f, -100f, 4f)), 4);
-            Assert.Equal(0f, ViewTransformMath.PlanarDistance(V(1f, 5f, 2f), V(1f, -9f, 2f)), 4);
-        }
-
         /// <summary>SimVector3 未实现 IEquatable——逐分量比较器（xunit 默认按字段反射亦可，此处显式以便诊断）。</summary>
         private sealed class SimVector3Comparer : System.Collections.Generic.IEqualityComparer<SimVector3>
         {

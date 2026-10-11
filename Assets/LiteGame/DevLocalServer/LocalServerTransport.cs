@@ -57,7 +57,6 @@ namespace LiteGame
         // ---- 测试模式钩子（bot 冻结 / 传送分发）；按最大席位定容，避免热路径分配 ----
         private readonly SimVector3[] _botHomePos = new SimVector3[16];
         private readonly bool[] _botHomeCaptured = new bool[16];
-        private long _diagSteps;                     // [Diag] 临时哨位：回滚排查——权威步进计数（每 120 步汇总一行闸门计数）
 
         public bool Connected => _connected;
 
@@ -69,11 +68,25 @@ namespace LiteGame
         public long InputsAccepted;
         public long SnapshotsSent;
 
+        /// <summary>测试房规则持有件（null = 常规对局）——盖初值进数值快照 + 注入权威步进。</summary>
+        private readonly MatchTestRules _testRules;
+
         /// <param name="roomConfig">房间配置（人数/种子/时限——与真服务端同类型）。</param>
-        public LocalServerTransport(RoomConfig roomConfig)
+        /// <param name="testRules">测试房规则持有件（null = 常规对局）——盖初值进数值快照 + 注入权威步进。</param>
+        public LocalServerTransport(RoomConfig roomConfig, MatchTestRules testRules = null)
         {
             if (roomConfig == null) throw new ArgumentNullException(nameof(roomConfig));
-            _runtime = new RoomRuntime(roomConfig);
+            _testRules = testRules;
+            CombatValues? combat = null;
+            if (testRules != null)
+            {
+                // 初值盖章进房间数值快照：测试房与常规房联机身份可区分（摘要随 Capture 同刻绑定）
+                var stamped = CombatValues.Default;
+                stamped.NoDeath = testRules.NoDeath;
+                stamped.InfiniteAmmo = testRules.InfiniteAmmo;
+                combat = stamped;
+            }
+            _runtime = new RoomRuntime(roomConfig, combat, testRules: testRules);
             _seats = new Session[_runtime.ExpectedPlayers];
             _pipeline = new SnapshotPipeline(_seats)
             {
@@ -92,12 +105,14 @@ namespace LiteGame
         /// 多房间/票据/排空（见类注释"真实性边界"），没有需要按房间调的参数。
         /// </summary>
         /// <param name="expectedPlayers">总席位（0 = 房间默认 2）；测试模式按 bot 数量配置。</param>
-        public static LocalServerTransport ForRoom(string roomId, int expectedPlayers = 0)
+        /// <param name="testRules">测试房规则持有件（null = 常规对局）；初值同时盖进房间数值快照
+        /// （联机身份摘要可见），运行态经持有件注入权威步进（与客户端预测同实例）。</param>
+        public static LocalServerTransport ForRoom(string roomId, int expectedPlayers = 0, MatchTestRules testRules = null)
         {
             if (string.IsNullOrEmpty(roomId)) throw new ArgumentException("房间号不得为空", nameof(roomId));
             var config = new RoomConfig { RoomId = roomId };
             if (expectedPlayers > 0) config.ExpectedPlayers = expectedPlayers;
-            return new LocalServerTransport(config);
+            return new LocalServerTransport(config, testRules);
         }
 
         public void Connect(string address, int port)
@@ -272,19 +287,6 @@ namespace LiteGame
                     seatBroadcastable: p => _seats[p] != null && !_seats[p].Disconnected);
 
                 FlushOutbox();
-
-                // [Diag] 临时哨位：权威帧/闸门计数汇总（回滚排查——输入是否按帧号到齐；核完删）
-                _diagSteps++;
-                if (_diagSteps % 120 == 0)
-                {
-                    InputGate gate = _runtime.Gate;
-                    UnityEngine.Debug.LogWarning(
-                        $"[Diag] 本地服哨位 {_diagSteps}步: 权威帧={_runtime.AuthSim.Frame} 快照={SnapshotsSent}"
-                        + $" | 输入 接受={gate.AcceptedCount} 过期={gate.DroppedStaleFrame} 重复={gate.DroppedDuplicateFrame}"
-                        + $" 越界={gate.DroppedOutOfRange} 非法帧={gate.DroppedIllegalFrame}"
-                        + $" | 拒绝 向量={gate.DroppedIllegalVector} 按键={gate.DroppedIllegalButtons}"
-                        + $" seq={gate.DroppedIllegalActionSeq} 非有限={gate.DroppedNonFinite}");
-                }
             }
         }
 

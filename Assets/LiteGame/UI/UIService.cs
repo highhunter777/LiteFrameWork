@@ -213,7 +213,7 @@ namespace LiteGame
 
                 var root = UnityEngine.Object.Instantiate(lease.Prefab, group.Root);
                 form = new UIForm(info, root);
-                form.Logic = ResolveLogic(info);
+                form.Logic = ResolveLogic(info, root);
                 form.PrepareForShow();
                 _forms[op.FormId] = form;
                 _leases[op.FormId] = lease;                           // 所有权移交：租约由 UIService 持有到实例真正销毁
@@ -546,7 +546,7 @@ namespace LiteGame
             if (!_staleLogic.Remove(form.Id)) return;
 
             form.Logic?.Release();   // 通用钩子——UI 服务不认识脚本适配器（§5.1）
-            form.Logic = ResolveLogic(form.Info);
+            form.Logic = ResolveLogic(form.Info, form.Root);
             if (form.State == UIFormState.Recycled) form.NeedsReinit = true;
         }
 
@@ -591,7 +591,7 @@ namespace LiteGame
         {
             if (!form.NeedsReinit) return;
             if (!ReferenceEquals(form.Logic, NullUIFormLogic.Instance)) return;
-            form.Logic = ResolveLogic(form.Info);
+            form.Logic = ResolveLogic(form.Info, form.Root);
         }
 
         /// <summary>遮盖重算（幂等）：以"**仍逻辑打开**的最高全屏界面"所在组为界（含 Covered/Paused——
@@ -625,8 +625,16 @@ namespace LiteGame
             }
         }
 
-        private IUIFormLogic ResolveLogic(UIFormInfo info)
+        private IUIFormLogic ResolveLogic(UIFormInfo info, UnityEngine.GameObject root)
         {
+            // **prefab 自带 C# 逻辑组件优先**（路径 B 接线口：UIBindBase 派生页挂 prefab 根，
+            // Designer/生成器登记控件——显式挂件优先于表行 Lua 逻辑）。
+            if (root != null)
+            {
+                var carried = root.GetComponentInChildren<IUIFormLogic>(true);
+                if (carried != null) return carried;
+            }
+
             // 空 LuaPath = 无业务逻辑的展示面（Loading/Toast/错误弹窗）：
             // **正常降级，不打日志**。若无此分支会落到下方 catch 打 Error，而测试专项 §8.2 把
             // "Console 新增 Error" 判为 UI Lane 失败——纯展示面会凭空制造门禁红灯。

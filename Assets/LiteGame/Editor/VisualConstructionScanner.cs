@@ -8,7 +8,7 @@ namespace LiteGame.Editor
     /// <summary>
     /// 运行时视觉构建扫描器（《UI框架总设计》§7"视觉单一来源"；《UI制作规范》§8 资产静态检查）。
     ///
-    /// 规则：用户可见的 UI 视觉一律来自 `Assets/UI/Screens|Widgets` 的模板；运行时代码不得构建
+    /// 规则：用户可见的 UI 视觉一律来自 `Assets/ShareResource/UI/Screens` 与 `Assets/ShareResource/UI/Widgets` 的模板；运行时代码不得构建
     /// 视觉结构——不 `new GameObject` 造 Canvas/Graphic/Text/Button，不 `AddComponent` 挂视觉组件。
     ///
     /// **层容器节点不在此限**：`UIService` 建 `[UIRoot]` 与各语义层节点是**层级骨架不是视觉**

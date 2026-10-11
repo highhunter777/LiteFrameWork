@@ -22,6 +22,12 @@ namespace LiteGame
         public static bool BotFrozen;               // bot 冻结（权威侧位置每帧回写）
         public static int BotCount = 1;             // 补位bot 数量（总席位 = 1 + BotCount）
 
+        /// <summary>爆头带试验覆写的**跨局待用值**（&lt; 0 = 不覆写）：GM 面板滑杆/爆头带调带工具在**无活动局**
+        /// 时的写点——进房由 ProcedureMatch 种子进 <see cref="MatchTestRules"/>（有活动局时面板直写活动局实例
+        /// 并同步本值，供下次进房延续）。不落盘、不进摘要（测试沙箱件）。</summary>
+        public static float HeadHitLineOverride = -1f;
+        public static float HeadshotRadiusOverride = -1f;
+
         /// <summary>
         /// **身位/爆头调试绘制**开关（默认关）：打开后在每个活体身上常驻画**服务端身位圆柱**
         /// （半径/高 = 烘焙判定常量，与命中判定同源）与爆头带段（黄圈=下沿、红圈=上沿）——

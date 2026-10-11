@@ -295,28 +295,22 @@ namespace LiteSim.Tests
             ref WeaponRuntime w = ref WeaponOf(world, slot);
             WeaponDef def = WeaponConfig.Default;
 
-            SimTestRules.InfiniteAmmo = true;                       // 测试模式规则（用例毕复位，防跨用例污染）
-            try
+            // 测试规则经注入（每局持有件——无静态污染面；ShootingSystem 沿传 WeaponSystem）
+            var rules = new MatchTestRules { InfiniteAmmo = true };
+            for (int i = 0; i < def.MagazineSize * 2; i++)      // 连射两倍弹匣量
             {
-                for (int i = 0; i < def.MagazineSize * 2; i++)      // 连射两倍弹匣量
-                {
-                    world.Frame = i * def.FireIntervalFrames;
-                    ShootingSystem.Run(world, NoObstacles, Fire(id), CombatValues.Default, WeaponTable.Default);
-                }
-                Assert.Equal(def.MagazineSize, w.MagAmmo);          // 弹匣不降
-                Assert.Equal(WeaponSlotState.Ready, w.State);       // 也不进入末发自动换弹
-                Assert.Equal(def.ReserveAmmo, w.ReserveAmmo);       // 备弹未动
-                Assert.Equal(def.MagazineSize * 2, FireEvents(world));   // 每发都真打出
+                world.Frame = i * def.FireIntervalFrames;
+                ShootingSystem.Run(world, NoObstacles, Fire(id), CombatValues.Default, WeaponTable.Default, rules);
+            }
+            Assert.Equal(def.MagazineSize, w.MagAmmo);          // 弹匣不降
+            Assert.Equal(WeaponSlotState.Ready, w.State);       // 也不进入末发自动换弹
+            Assert.Equal(def.ReserveAmmo, w.ReserveAmmo);       // 备弹未动
+            Assert.Equal(def.MagazineSize * 2, FireEvents(world));   // 每发都真打出
 
-                world.Frame += 1;
-                WeaponSystem.Run(world, Reload(id), WeaponTable.Default);
-                Assert.Equal(WeaponSlotState.Ready, w.State);       // 换弹请求：满弹被拒（不进入 Reloading）
-                Assert.Equal(def.MagazineSize, w.MagAmmo);
-            }
-            finally
-            {
-                SimTestRules.InfiniteAmmo = false;                  // 静态规则：用例毕复位
-            }
+            world.Frame += 1;
+            WeaponSystem.Run(world, Reload(id), WeaponTable.Default, rules);
+            Assert.Equal(WeaponSlotState.Ready, w.State);       // 换弹请求：满弹被拒（不进入 Reloading）
+            Assert.Equal(def.MagazineSize, w.MagAmmo);
         }
 
         [Fact]

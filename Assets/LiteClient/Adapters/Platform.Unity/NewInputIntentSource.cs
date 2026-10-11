@@ -139,7 +139,7 @@ namespace LiteClient
                 && SimRaycast.RaycastEntities(_aimWorld, _localSlot,
                     new SimVector3(ray.origin.x, ray.origin.y, ray.origin.z),
                     new SimVector3(ray.direction.x, ray.direction.y, ray.direction.z),
-                    CombatConfig.HitscanRange, out _, out float t))
+                    CombatConfig.HitscanRange, out _, out float t, SimTestRules.ActiveMatch))
             {
                 point = ray.GetPoint(t);
                 return true;

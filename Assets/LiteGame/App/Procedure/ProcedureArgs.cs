@@ -18,7 +18,7 @@ namespace LiteGame
         public readonly AccountSession AccountSession;
 
         /// <summary>测试房意图（`Main` F10 → `Match` 读）：强制本地服 + 房号 Room-Test + 全房免死
-        /// （<see cref="LiteSim.SimTestRules.NoDeath"/>）——开发/测试专用，正式包无该入口。</summary>
+        /// （规则持有件 <see cref="LiteSim.MatchTestRules"/>——见 ProcedureMatch 入口口径）——开发/测试专用，正式包无该入口。</summary>
         public readonly bool TestRoom;
 
         public ProcedureArgs(Exception error = null, AccountSession accountSession = null,

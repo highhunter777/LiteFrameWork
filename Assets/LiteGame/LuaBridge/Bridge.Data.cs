@@ -20,6 +20,7 @@ namespace LiteGame
         private static IUILuaRegistry s_uiRegistry;
         private static IContentLuaRegistry s_contentRegistry;
         private static UIService s_uiService;
+        private static UINavigationController s_nav;           // Lua 侧打开的单写者后端（三通道收口）
 
         /// <summary>绑定查表入口（经 IConfigService.Tables；未加载时其 Tables 访问器会抛）。</summary>
         public static void Bind(Func<Tables> tables)
@@ -36,6 +37,12 @@ namespace LiteGame
         public static void BindUIService(UIService uiService)
         {
             s_uiService = uiService ?? throw new ArgumentNullException(nameof(uiService));
+        }
+
+        /// <summary>装配期注入导航单写者（Lua 侧 Show 的后端——打开收口到单写者队列，三通道口径）。</summary>
+        public static void BindNavigation(UINavigationController nav)
+        {
+            s_nav = nav ?? throw new ArgumentNullException(nameof(nav));
         }
 
         /// <summary>
@@ -139,13 +146,13 @@ namespace LiteGame
         }
 
         /// <summary>ui 门面（真实语义）：Show/Close/IsOpen(id)——**Lua 不碰 GameObject**。
-        /// Show 为 fire-and-forget（Lua 无 await），错误经日志观测。</summary>
+        /// Show 经导航单写者排队（产品打开三通道收口口径），fire-and-forget（Lua 无 await），错误经日志观测。</summary>
         public static class Ui
         {
-            /// <summary>打开界面：id → tbuiform 行；data 为 Lua 表（包装成 LuaUIData 传入生命周期）。</summary>
+            /// <summary>打开界面：id → tbuiform 行（经单写者队列）；data 为 Lua 表（包装成 LuaUIData 传入生命周期）。</summary>
             public static void Show(int id, LuaTable data)
             {
-                var aw = s_uiService.ShowAsync(id, data == null ? null : new LuaUIData(data)).GetAwaiter();
+                var aw = s_nav.GoAsync(id, data == null ? null : new LuaUIData(data)).GetAwaiter();
                 aw.OnCompleted(() =>
                 {
                     try { aw.GetResult(); }

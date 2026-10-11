@@ -56,7 +56,7 @@
 - [框架先行建设与业务接入专项设计](architecture/框架先行建设与业务接入专项设计.md)：框架先建范围、必要后续基础能力前置、五个最小样例及业务准入；保持 G0～G6/C/R/U 编号，状态仍由待办与施工记录维护。
 - [客户端与服务端共享代码范围专项设计](architecture/客户端与服务端共享代码范围专项设计.md)：双端共享的五档划分（S0 判定同源／S1 机制共享／S2 契约共享／S3 工具共享／S4 客户端专属）、各档同源义务、方向规则与准入流程、守卫设计。
 - [服务端宿主装配收敛专项设计](architecture/服务端宿主装配收敛专项设计.md)：RoomServer 宿主装配收敛到 MS DI——容器只在装配层（内核零容器感知）、运行期零解析、释放序等价、R3 新对象不再新增手工散点。**批1 装配等价已实施（2026-10-08，[记录](../施工进度/服务端宿主装配收敛.md)）**；批2 随 R3 首批执行。
-- [生成器工具箱专项设计](architecture/生成器工具箱专项设计.md)：五件 CLI 生成器（buildHash/协议/表链/同步代码/刷新编排）的统一形态——统一入口 `scripts/codegen/toolbox.ps1`、共享单源 `_common.ps1`（根推导/输出三档/SHA256）、`[codegen/<tool>]` 输出与 `FAILED + exit 1` 失败契约、ASCII-only 红线、工具清单与扩展约定；吸收 `scripts/README` 的 codegen 操作知识（原文归档 `Docs/归档记录/2026-10-11/`）。
+- [生成器工具箱专项设计](architecture/生成器工具箱专项设计.md)：五件 CLI 生成器（buildHash/协议/表链/同步代码/刷新编排）的统一形态——统一入口 `scripts/codegen/toolbox.py`、共享单源 `_codegen.py`（根推导/输出三档/run_tool 失败契约）、`[codegen/<tool>]` 输出与 `FAILED + exit 1` 契约、五工具全 Python（v1.1）、工具清单与扩展约定；吸收 `scripts/README` 的 codegen 操作知识（原文归档 `Docs/归档记录/2026-10-11/`）。
 
 ### 游戏业务
 

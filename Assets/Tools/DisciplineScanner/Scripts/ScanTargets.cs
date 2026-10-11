@@ -428,7 +428,6 @@ namespace Tools.DisciplineScan
             "Assets/LiteClient/Abstractions/LiteClient.Abstractions.asmdef",
             "Assets/LiteClient/Runtime/LiteClient.Runtime.asmdef",
             "Assets/LiteClient/Adapters/Content.YooAsset/LiteClient.Content.YooAsset.asmdef",
-            "Assets/LiteClient/Adapters/Network.Kcp/LiteClient.Network.Kcp.asmdef",
             "Assets/LiteClient/Adapters/Platform.Unity/LiteClient.Platform.Unity.asmdef",
             "Assets/LiteClient/Adapters/Scripting.XLua/LiteClient.Scripting.XLua.asmdef",
             "Assets/LiteClient/Adapters/Serialization.Luban/LiteClient.Serialization.Luban.asmdef",

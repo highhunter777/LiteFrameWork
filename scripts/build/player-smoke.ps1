@@ -58,7 +58,7 @@ if (Test-Path $playerLog) { Remove-Item $playerLog -Force -ErrorAction SilentlyC
 
 $proc = Start-Process -FilePath $exe -WorkingDirectory (Split-Path $exe -Parent) -PassThru -ArgumentList $PlayerArgs
 
-$markers = @('BootstrapError', '[Asset] ready', '[UI] main open')
+$markers = @('BootstrapError', '[Asset] ready')
 if ($MemLoop) {
     # MemLoop mode: probe waits for content-ready itself (retry loop up to 180s inside the
     # player), so the outer poll needs a much larger budget than a plain startup smoke.

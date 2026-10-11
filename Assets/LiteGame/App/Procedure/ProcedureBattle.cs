@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Threading;
 using Cysharp.Threading.Tasks;
 using LiteFramework;
@@ -62,11 +63,18 @@ namespace LiteGame
 
         /// <summary>瞄准激光束 prefab（内容包路径：Assets/FX 归置副本 fx_lazer_sight——KriptoFX Lazer 单源）。
         /// 加载失败/缺 LineRenderer → 静默降级（warn 一次，无激光不失败——同准心 HUD 缺失口径）。</summary>
-        private const string LaserSightPrefab = "Assets/FX/fx_lazer_sight.prefab";
+        private const string LaserSightPrefab = "Assets/ShareResource/FX/fx_lazer_sight.prefab";
 
         /// <summary>伤害数字底件 prefab（Assets/FX——世界空间 TMP 飘字；实例由驱动按预算逐条实例化）。
         /// 加载失败 → 静默降级（warn 一次，无飘字不失败——同准心/激光缺失口径）。</summary>
-        private const string DamageNumberPrefab = "Assets/FX/fx_damage_number.prefab";
+        private const string DamageNumberPrefab = "Assets/ShareResource/FX/fx_damage_number.prefab";
+
+        /// <summary>伤害数字逐档材质（批C 观感：黑描边+软影+按档光晕；面部颜色归顶点渐变，不进材质）。
+        /// **四档路径与 builder（AgentScripts/BuildDamageNumberAssets）单源同串**——任缺整组不注入（见取件）。</summary>
+        private const string DamageNumberMatCaused = "Assets/ShareResource/FX/fx_damage_number_caused.mat";
+        private const string DamageNumberMatCausedCrit = "Assets/ShareResource/FX/fx_damage_number_caused_crit.mat";
+        private const string DamageNumberMatReceived = "Assets/ShareResource/FX/fx_damage_number_received.mat";
+        private const string DamageNumberMatReceivedCrit = "Assets/ShareResource/FX/fx_damage_number_received_crit.mat";
 
         /// <summary>角色片段清单（去 AC 主路径的片源：键→Clip 显式引用的纯配置资产，随 prefab 同收集组；
         /// 路径单源在动画 Profile——角色族配置归一处）。加载失败 → 静默降级（warn 一次）：
@@ -75,6 +83,8 @@ namespace LiteGame
 
         private readonly IContentService _content;
         private readonly IVFXService _vfx;
+        private readonly AudioService _audio;        // 声音壳（装配根注册；对局音效的组+代理后端）
+        private readonly CommandCenter _commands;    // 命令中心（传送命令化：撤销/重做/排队派发）
         private readonly IInputService _input;       // 输入服务
         private readonly ICameraService _camera;     // 相机服务（Cinemachine 适配器；装配根建、跨对局复用）
         private readonly AimHoldGate _aimGate = new AimHoldGate(AimMinHoldSeconds);   // 瞄准态滞回：短按保完整摆动、连点不翻转
@@ -96,7 +106,11 @@ namespace LiteGame
         private BattleDamageNumberDriver _damageNumbers;   // 伤害数字（命中反馈首个消费者——合并窗口/池/预算；世界钟驱动）
         private BattleMuzzleFlashDriver _muzzleFlash;      // 枪口火光（Fire 帧事件 → 武器挂点跟随 VFX）
         private BattleImpactFxDriver _impactFx;            // 敌人命中特效（我造成的 Hit/Crit → 受击点世界位 VFX）
+        private BattleAudioDriver _battleAudio;            // 对局音效（Fire/Hit/Crit/Death → Effect 组；帧事件路由消费者）
+        private readonly List<AssetLease<AudioClip>> _audioLeases = new List<AssetLease<AudioClip>>(4);   // 音效租约（登记 _viewScope 随离场归还）
+        private IDisposable _teleportReg;                  // 传送命令处理器注册（进房登记 / 离场注销）
         private AssetLease<GameObject> _damageNumberLease; // 飘字底件租约（实例由驱动工厂逐条实例化）
+        private DamageNumberMaterialSet _damageNumberMaterials;   // 飘字逐档材质（批C；四档不齐则不注入——驱动走底件默认档）
         private AssetLease<AnimationClipManifest> _clipManifestLease;    // 片段清单租约（驱动装配期逐键登记；随 _viewScope 归还）
         private readonly LiteFramework.IWorldClock _worldClock;  // 世界钟（伤害数字寿命/合并窗——不累加渲染帧 delta，实测编辑器态会通胀）
         private Func<Vector3?> _aimPointOf;             // 瞄准点来源（世界坐标；null = 无设备形态——相机保持场景构图）
@@ -121,13 +135,16 @@ namespace LiteGame
         /// 这种最难的静默失效变成显性失败，而不是进了对局才发现画面纹丝不动。</param>
         public ProcedureBattle(IContentService content, IInputService input, ICameraService camera,
             IVFXService vfx = null, CancellationToken rootToken = default, bool requireCamera = false,
-            LiteFramework.IWorldClock worldClock = null, IMatchSessionFactory matchSessions = null)
+            LiteFramework.IWorldClock worldClock = null, IMatchSessionFactory matchSessions = null,
+            AudioService audio = null, CommandCenter commands = null)
             : base(rootToken)
         {
             _content = content ?? throw new ArgumentNullException(nameof(content));
             _input = input;
             _camera = camera;
             _vfx = vfx;
+            _audio = audio;
+            _commands = commands ?? throw new ArgumentNullException(nameof(commands));
             _requireCamera = requireCamera;
             _worldClock = worldClock;
             _matchSessions = matchSessions ?? throw new ArgumentNullException(nameof(matchSessions));
@@ -162,7 +179,9 @@ namespace LiteGame
                 await AcquireEntityPrefabAsync(ct);
                 await AcquireLaserSightAsync(ct);
                 await AcquireDamageNumberAsync(ct);
+                await AcquireDamageNumberMaterialsAsync(ct);
                 await AcquireClipManifestAsync(ct);
+                await AcquireAudioClipsAsync(ct);
 
                 _matchSession = _matchSessions?.Create(accountSession)
                     ?? throw new InvalidOperationException("缺少 MatchSessionFactory（完整 DI 装配要求由工厂创建 Match 域）");
@@ -316,6 +335,39 @@ namespace LiteGame
         }
 
         /// <summary>
+        /// 取伤害数字逐档材质（批C 观感：黑描边/软影/按档光晕）。**整组注入**：任缺一档 → 整组不注入
+        /// （警告），飘字退回底件默认材质——不做部分档位的混合观感（"为什么这发没有光晕"会变成
+        /// 不可解释的随机）。取件序 = <see cref="DamageNumberMaterialSet"/> 构造参数序（enum 序）。
+        /// </summary>
+        private async UniTask AcquireDamageNumberMaterialsAsync(CancellationToken ct)
+        {
+            string[] locations =
+            {
+                DamageNumberMatCaused,
+                DamageNumberMatCausedCrit,
+                DamageNumberMatReceived,
+                DamageNumberMatReceivedCrit,
+            };
+            var materials = new Material[locations.Length];
+            for (int i = 0; i < locations.Length; i++)
+            {
+                try
+                {
+                    AssetLease<Material> lease = await _content.AcquireAsync<Material>(locations[i], ct: ct);
+                    _viewScope.Register(lease);
+                    materials[i] = lease.Asset;
+                }
+                catch (Exception ex) when (!(ex is OperationCanceledException))
+                {
+                    UnityEngine.Debug.LogWarning($"[Battle] 伤害数字材质缺失/加载失败，飘字退回默认材质:{locations[i]}（{ex.Message}）");
+                    return;                                  // 整组不注入（已取件租约已登记，随 _viewScope 归还）
+                }
+            }
+            _damageNumberMaterials = new DamageNumberMaterialSet(
+                materials[0], materials[1], materials[2], materials[3]);
+        }
+
+        /// <summary>
         /// 取角色片段清单（去 AC 主路径的片源——键→Clip 显式引用的纯配置，键单源在动画 Profile）。
         /// 资源缺失/加载失败 → **静默降级**（只警告）：驱动回退控制器便利源（有控制器的模型不受影响），
         /// 不把"缺清单"当对局失败（同激光/飘字/角色 prefab 灰盒口径）。清单在则驱动按 Profile 绑定
@@ -333,6 +385,64 @@ namespace LiteGame
                 UnityEngine.Debug.LogWarning($"[Battle] 片段清单缺失/加载失败，动画回退控制器便利源:{ClipManifestPath}（{ex.Message}）");
                 _clipManifestLease = null;
             }
+        }
+
+        /// <summary>
+        /// 取对局音效 clip 租约（开火/命中/爆头/死亡——逐条独立降级，单条缺失只静默该 kind）。
+        /// 与四份既有 Acquire* 同形，但这里是**成组循环**（同构样板不再复制第四/五份）。
+        /// </summary>
+        private async UniTask AcquireAudioClipsAsync(CancellationToken ct)
+        {
+            string[] locations =
+            {
+                BattleAudioDriver.FireClipLocation,
+                BattleAudioDriver.HitClipLocation,
+                BattleAudioDriver.CritClipLocation,
+                BattleAudioDriver.DeathClipLocation,
+            };
+            foreach (string location in locations)
+            {
+                try
+                {
+                    AssetLease<AudioClip> lease = await _content.AcquireAsync<AudioClip>(location, ct: ct);
+                    _viewScope.Register(lease);
+                    _audioLeases.Add(lease);
+                }
+                catch (Exception ex) when (!(ex is OperationCanceledException))
+                {
+                    UnityEngine.Debug.LogWarning($"[Battle] 音效缺失/加载失败，该音降级:{location}（{ex.Message}）");
+                }
+            }
+        }
+
+        /// <summary>按 location 反查已取得的 clip（缺 = null——驱动按 kind 降级）。</summary>
+        private AudioClip LeasedClip(string location)
+        {
+            for (int i = 0; i < _audioLeases.Count; i++)
+                if (_audioLeases[i].Key == location)
+                    return _audioLeases[i].Asset;
+            return null;
+        }
+
+        /// <summary>
+        /// 挂对局音效（<see cref="BattleAudioDriver"/>——命中反馈消费者；并发预算归 AudioService Effect 组）。
+        /// Audio 服务未注入（装配缺口）或全部 clip 缺失 → 警告并整段降级，不失败。
+        /// </summary>
+        private void AttachAudio()
+        {
+            if (_audio == null)
+            {
+                UnityEngine.Debug.LogWarning("[Battle] Audio 服务未注入——对局音效降级（装配缺口，见 ContainerModule）");
+                return;
+            }
+            if (_audioLeases.Count == 0) return;                 // 全缺已在取件处逐条警告
+
+            _battleAudio = new BattleAudioDriver(_audio,
+                fire: LeasedClip(BattleAudioDriver.FireClipLocation),
+                hit: LeasedClip(BattleAudioDriver.HitClipLocation),
+                crit: LeasedClip(BattleAudioDriver.CritClipLocation),
+                death: LeasedClip(BattleAudioDriver.DeathClipLocation));
+            _hitFeedback?.Register(_battleAudio);
         }
 
         /// <summary>
@@ -357,7 +467,8 @@ namespace LiteGame
             }
 
             _damageNumbers = new BattleDamageNumberDriver(_view, NewDamageNumber, _worldClock,
-                cameraOf: RenderCameraOf());      // billboard 面对局渲染相机（非 Camera.main——叠加形态会拿错）
+                cameraOf: RenderCameraOf(),       // billboard 面对局渲染相机（非 Camera.main——叠加形态会拿错）
+                materials: _damageNumberMaterials);   // 逐档材质（批C；四档不齐 = null 走底件默认，取件处已警告）
             _hitFeedback?.Register(_damageNumbers);
             UnityEngine.Debug.Log("[Battle] damage-numbers-attached");
         }
@@ -440,6 +551,7 @@ namespace LiteGame
             _hitFeedback = new HitFeedbackDispatcher(_view);   // 命中分发骨架：EventSink 并列订阅——消费者随各自批注册
             AttachDamageNumbers();                             // 伤害数字（命中反馈首个消费者——只显本地造成/承受）
             AttachCombatFx();                                  // 枪口火光 + 敌人命中特效（帧事件路由的 VFX 消费者）
+            AttachAudio();                                     // 对局音效（帧事件路由的 Audio 消费者）
 #if UNITY_EDITOR || DEVELOPMENT_BUILD || LITEFRAMEWORK_DEBUG
             // 爆头区域常驻可视化（测试模式诊断件）：只读预测态，不改判定；release 剥离
             _headshotDebug = new BattleHeadshotDebugDrawer(_context.Sim);
@@ -448,7 +560,26 @@ namespace LiteGame
             _hitFeedback?.Register(_autoHeadshot);
 #endif
             AttachInput();
+            _teleportReg = _commands?.RegisterUndoable(new TeleportToAimHandler(
+                aimOf: () => _aimPointOf?.Invoke(),
+                originOf: ReadLocalOrigin,
+                dispatch: DispatchTeleport));                       // 传送命令化：撤销/重做随命令中心可用
             UnityEngine.Debug.Log($"[Battle] view-attached prefab={EntityPrefab}");
+        }
+
+        /// <summary>本地实体当前位置（传送出发位；未就绪 = null——处理器拒绝并留因）。</summary>
+        private SimVector3? ReadLocalOrigin()
+        {
+            if (_context == null || _context.Sim == null || _context.LocalEntityId == 0) return null;
+            if (!_context.Sim.State.TryResolve(_context.LocalEntityId, out int slot)) return null;
+            return _context.Sim.State.Entities[slot].Pos;
+        }
+
+        /// <summary>传送分发单点：写宿主钩子（本地服宿主循环消费——T 键/GM 面板/撤销共用同一通道）。</summary>
+        private void DispatchTeleport(SimVector3 pos)
+        {
+            SimTestRules.TeleportTarget = pos;
+            SimTestRules.TeleportDispatch = true;      // 交权威侧（本地服宿主）执行
         }
 
         /// <summary>
@@ -617,10 +748,16 @@ namespace LiteGame
             _laserLease = null;
             _damageNumbers?.Dispose();          // 伤害数字（消费者先于分发器拆——实例全归还池）
             _damageNumbers = null;
+            _damageNumberMaterials = null;      // 材质引用随驱动拆弃（租约本体已登记 _viewScope，作用域统一归还）
             _muzzleFlash?.Dispose();            // 枪口火光/命中特效（同上——消费者先于分发器拆）
             _muzzleFlash = null;
             _impactFx?.Dispose();
             _impactFx = null;
+            _battleAudio?.Dispose();            // 对局音效（消费者先于分发器/作用域拆；在播代理自然播完）
+            _battleAudio = null;
+            _audioLeases.Clear();               // 租约本体已登记 _viewScope（作用域统一归还）
+            _teleportReg?.Dispose();            // 传送命令处理器（随本局装配注销——下局重登记）
+            _teleportReg = null;
 #if UNITY_EDITOR || DEVELOPMENT_BUILD || LITEFRAMEWORK_DEBUG
             // 爆头可视化件：纯每帧重绘（无持有状态），随分发器一并走
             _headshotDebug = null;
@@ -715,16 +852,12 @@ namespace LiteGame
                 _camera.SetAimPoint(aimPoint ?? default, aimPoint.HasValue);
             }
 #if UNITY_EDITOR || DEVELOPMENT_BUILD || LITEFRAMEWORK_DEBUG
-            if (TestModeRuntime.TeleportRequested)               // 测试模式传送：解析准心点 → 交权威侧（本地服）分发
+            if (TestModeRuntime.TeleportRequested)               // 测试模式传送：入队命令（帧边界派发 + 可撤销）
             {
                 TestModeRuntime.TeleportRequested = false;
-                if (TestModeRuntime.Active && TestModeRuntime.TeleportEnabled
-                    && _aimPointOf != null && _aimPointOf() is Vector3 target)
-                {
-                    SimTestRules.TeleportTarget = new SimVector3(target.x, target.y, target.z);
-                    SimTestRules.TeleportDispatch = true;      // 交权威侧（本地服宿主）执行
-                }
-                else UnityEngine.Debug.LogWarning("[TestMode] 传送请求忽略（未开测试模式/未启用/无瞄准点）");
+                if (TestModeRuntime.Active && TestModeRuntime.TeleportEnabled)
+                    _commands.SendQueued(new TeleportToAimCommand());
+                else UnityEngine.Debug.LogWarning("[TestMode] 传送请求忽略（未开测试模式/未启用）");
             }
 #endif
         }

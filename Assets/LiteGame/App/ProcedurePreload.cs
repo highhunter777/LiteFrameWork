@@ -40,7 +40,6 @@ namespace LiteGame
         {
             try
             {
-                UnityEngine.Debug.Log("[Preload] begin");        // 临时诊断
                 // 资源包初始化在 Patch 流程完成（§7.1 Patch 先于 Preload）
                 await _config.LoadAsync(ct);
 

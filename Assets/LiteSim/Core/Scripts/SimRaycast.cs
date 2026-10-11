@@ -66,19 +66,22 @@ namespace LiteSim
         /// <param name="dz">射线方向 Z（同上）。</param>
         /// <param name="dy">射线方向 Y（**0 = 水平射线**，等价旧 2.5D 行为）。</param>
         /// <param name="maxT">射程上界（沿三维方向的长度）。</param>
+        /// <param name="rules">本局测试规则（爆头带试验覆写随动；null = 烘焙导出值）。判定链经 SimStep 注入；
+        /// 可视化调用方传 <see cref="SimTestRules.ActiveMatch"/>——与真实弹道同值。</param>
         /// <param name="hitSlot">命中槽位（未命中 = -1）。</param>
         /// <param name="t">命中距离（未命中 = maxT）。</param>
         public static bool RaycastEntities(SimWorldState s, int skipSlot,
             float ox, float oy, float oz, float dx, float dz, float dy, float maxT,
-            out int hitSlot, out float t)
+            out int hitSlot, out float t, MatchTestRules rules = null)
         {
             hitSlot = -1;
             float hitT = maxT;
 
-            // 双柱几何（每目标同刻取值——测试模式滑杆覆写随动）
+            // 双柱几何（每目标同刻取值——爆头带试验覆写经 rules 注入随动；null = 烘焙导出值）
             float bodyR2 = CombatConfig.HitscanRadius * CombatConfig.HitscanRadius;
-            float headR2 = CombatConfig.HeadshotRadiusLive * CombatConfig.HeadshotRadiusLive;
-            float headLine = CombatConfig.HeadHitLineLive;
+            float headR = MatchTestRules.ResolveHeadshotRadius(rules);
+            float headR2 = headR * headR;
+            float headLine = MatchTestRules.ResolveHeadHitLine(rules);
             float bodyTop = CombatConfig.HitscanHeight;
 
             // 三维化关键：**XZ 平面内的参数化被 dy 拉伸**。方向 (dx,dy,dz) 单位化后，
@@ -227,8 +230,9 @@ namespace LiteSim
         /// 无需改调用点（新增三维能力的入口见上方重载）。
         /// </summary>
         public static bool RaycastEntities(SimWorldState s, int skipSlot,
-            float ox, float oy, float oz, float dx, float dz, float maxT, out int hitSlot, out float t)
-            => RaycastEntities(s, skipSlot, ox, oy, oz, dx, dz, 0f, maxT, out hitSlot, out t);
+            float ox, float oy, float oz, float dx, float dz, float maxT, out int hitSlot, out float t,
+            MatchTestRules rules = null)
+            => RaycastEntities(s, skipSlot, ox, oy, oz, dx, dz, 0f, maxT, out hitSlot, out t, rules);
 
         /// <summary>
         /// 实体圆柱射线·**SimVector3 便捷入口**（三维）——**形参序不可能传错**：三维重载的
@@ -237,8 +241,9 @@ namespace LiteSim
         /// 激光瞄地"）。凡持方向的调用方一律走本入口；语义与本类三维重载逐项一致。
         /// </summary>
         public static bool RaycastEntities(SimWorldState s, int skipSlot,
-            in SimVector3 origin, in SimVector3 dir, float maxT, out int hitSlot, out float t)
-            => RaycastEntities(s, skipSlot, origin.X, origin.Y, origin.Z, dir.X, dir.Z, dir.Y, maxT, out hitSlot, out t);
+            in SimVector3 origin, in SimVector3 dir, float maxT, out int hitSlot, out float t,
+            MatchTestRules rules = null)
+            => RaycastEntities(s, skipSlot, origin.X, origin.Y, origin.Z, dir.X, dir.Z, dir.Y, maxT, out hitSlot, out t, rules);
 
         /// <summary>
         /// 静态障碍射线（XZ 平面 + y 区间闸）：最近交点；起点在障碍内 → t=0。

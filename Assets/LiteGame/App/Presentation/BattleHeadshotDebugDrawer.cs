@@ -15,7 +15,7 @@ namespace LiteGame
     ///
     /// <list type="bullet">
     /// <item><b>灰圈</b> = 命中柱的底面与顶面（<see cref="CombatConfig.HitscanRadius"/> 全径——命中判定界）；</item>
-    /// <item><b>黄圈</b> = 爆头柱<b>下沿</b>（<see cref="CombatConfig.HeadHitLineLive"/> 高 × <see cref="CombatConfig.HeadshotRadiusLive"/> 半径）；</item>
+    /// <item><b>黄圈</b> = 爆头柱<b>下沿</b>（<see cref="MatchTestRules.ResolveHeadHitLine"/> 高 × <see cref="MatchTestRules.ResolveHeadshotRadius"/> 半径——随活动局覆写）；</item>
     /// <item><b>红圈</b> = 爆头柱上沿（= 顶面高，半径同爆头柱）——黄红圈之间的<b>窄柱切片</b>才是 Crit 区
     /// （命中柱内但爆头柱外的高位命中只是普通命中）；</item>
     /// <item>灰竖线 = 全高母线；黄竖线 = 爆头柱切片段。</item>
@@ -59,8 +59,8 @@ namespace LiteGame
 
                 Vector3 foot = new Vector3(e.Pos.X, e.Pos.Y, e.Pos.Z);
                 Vector3 top = foot + Vector3.up * bodyTop;                        // 身位上沿（= 顶面）
-                Vector3 headLow = foot + Vector3.up * CombatConfig.HeadHitLineLive;   // 双柱分界（测试模式滑杆覆写随动）
-                float headR = CombatConfig.HeadshotRadiusLive;                    // 爆头柱半径（滑杆覆写随动）
+                Vector3 headLow = foot + Vector3.up * MatchTestRules.ResolveHeadHitLine(SimTestRules.ActiveMatch);   // 双柱分界（测试模式滑杆覆写随动）
+                float headR = MatchTestRules.ResolveHeadshotRadius(SimTestRules.ActiveMatch);                    // 爆头柱半径（滑杆覆写随动）
 
                 // 服务端命中几何＝双柱阶梯：灰＝身体柱 [0, 分界) × 命中柱全径（含台阶顶面圈）；
                 // 黄红＝爆头柱 [分界, 顶] × 爆头柱半径。分界以上的环状空隙按裁决不可命中——不画。

@@ -159,23 +159,8 @@ namespace LiteSim
         /// </summary>
         public const float HeadHitLine = HitscanHeight * HeadBake.Ratio;
 
-#if UNITY_EDITOR || DEVELOPMENT_BUILD || LITEFRAMEWORK_DEBUG
-        /// <summary>
-        /// **测试模式实时预览覆写**（爆头线下沿，世界 Y；&lt; 0 = 不覆写）：对局内经 GM 面板滑杆实时调带——
-        /// 判定（<see cref="ShootingSystem"/>）与身位可视化同读 <see cref="HeadHitLineLive"/>，
-        /// 本地服与预测同进程同值，滑杆一动即见 Crit 档变化。**仅开发三宏内存在**（release 随宏编译剥离）；
-        /// 定型值经工具导出 <see cref="HeadBake"/>——覆写不落盘、不进 digest/快照（测试沙箱件，与免死/缩放同性质）；
-        /// 对局中改动后回滚重放按当帧值重判（沙箱可接受），复位按钮置回 -1。
-        /// </summary>
-        public static float HeadHitLineDevOverride = -1f;
-
-        /// <summary>爆头线下沿的**实时取值**：测试模式覆写优先，否则烘焙比例派生值。</summary>
-        public static float HeadHitLineLive => HeadHitLineDevOverride >= 0f ? HeadHitLineDevOverride : HeadHitLine;
-#else
-        /// <summary>爆头线下沿的**实时取值**（release：恒 = <see cref="HeadHitLine"/>——覆写面随三宏编译剥离）。</summary>
-        public static float HeadHitLineLive => HeadHitLine;
-#endif
-
+        // 爆头带试验覆写面在 MatchTestRules（每局持有件，经 SimStep 注入；TestModeRuntime 持跨局待用值）——
+        // 判定路径不读任何静态可变状态，含 dev 宏内（修改指南 §1.3）。
         /// <summary>
         /// **爆头柱半径（m）——双柱判定几何的上段柱径**（窄于身体柱 <see cref="HitscanRadius"/>，
         /// "爆头柱/非爆头柱"裁决）：实体命中形状 = 身体柱 <c>[0, HeadHitLine) × HitscanRadius</c> ＋
@@ -189,17 +174,7 @@ namespace LiteSim
         /// </summary>
         public const float HeadshotRadius = HeadBake.Radius;
 
-#if UNITY_EDITOR || DEVELOPMENT_BUILD || LITEFRAMEWORK_DEBUG
-        /// <summary>测试模式实时预览覆写（爆头柱半径；&lt; 0 = 不覆写）——与 <see cref="HeadHitLineDevOverride"/> 同口径。</summary>
-        public static float HeadshotRadiusDevOverride = -1f;
-
-        /// <summary>爆头柱半径的**实时取值**：测试模式覆写优先，否则导出值。</summary>
-        public static float HeadshotRadiusLive => HeadshotRadiusDevOverride >= 0f ? HeadshotRadiusDevOverride : HeadshotRadius;
-#else
-        /// <summary>爆头柱半径的**实时取值**（release：恒 = <see cref="HeadshotRadius"/>——覆写面随三宏编译剥离）。</summary>
-        public static float HeadshotRadiusLive => HeadshotRadius;
-#endif
-
+        // 爆头柱半径试验覆写同爆头线下沿——运行态落点在 MatchTestRules.HeadshotRadiusOverride。
         /// <summary>
         /// 爆头伤害倍率（移位数）：伤害 `&lt;&lt; HeadshotDamageShift`（×2^shift——位级精确，
         /// 与 AimMoveSpeed"乘 2 的幂"同约定）；0 = 无倍率。倍率在**命中判定处**应用——

@@ -113,17 +113,27 @@ namespace LiteGame
         /// **只在开发/编辑器/开发包可用**——`DebugTuner` 整体在 `#if` 内，release 下该静态不存在，
         /// 故此处也包在同一门禁里，正式包恒走真 KCP（不给"悄悄退化成假服务器"留窗口，
         /// 框架先行 §6"生产配置缺真实依赖时拒绝启动或拒绝相应功能，不能悄悄退回 fake"）。
-        /// **测试房不提供 KCP 形态**：免死规则靠"客户端预测与进程内服务器同进程同源"（<see cref="LiteSim.SimTestRules"/>），
+        /// **测试房不提供 KCP 形态**：免死规则靠"客户端预测与进程内服务器同持一个规则实例"
+        /// （<see cref="LiteSim.MatchTestRules"/> 经 <see cref="LiteSim.SimTestRules.ActiveMatch"/> 登记），
         /// 真服务器的房间级规则下发未做。
         /// </summary>
         internal static LiteNet.Transport.IClientTransport CreateTransportForFactory(bool testRoom)
         {
 #if UNITY_EDITOR || DEVELOPMENT_BUILD || LITEFRAMEWORK_DEBUG
-            LiteSim.SimTestRules.NoDeath   = testRoom && TestModeRuntime.NoDeath;   // 规则随入口设置：常规入口（F9）一律复位
-            LiteSim.SimTestRules.InfiniteAmmo = testRoom && TestModeRuntime.InfiniteAmmo;
-            LiteSim.SimTestRules.Active    = testRoom;                             // 本地服宿主钩子（冻结/传送）开关
+            // 每局规则持有件：初值随入口定（常规入口一律 false——与既有"随入口复位"同语义），
+            // 登记后客户端预测（BattleContext.StartGame 绑定）与本地服（ForRoom 注入）同实例。
+            // 爆头带覆写随 TestModeRuntime 待用值（本地服形态的调参延续；真服务器无此链——「在线房间级下发未做」）。
+            var rules = new LiteSim.MatchTestRules
+            {
+                NoDeath = testRoom && TestModeRuntime.NoDeath,
+                InfiniteAmmo = testRoom && TestModeRuntime.InfiniteAmmo,
+                HeadHitLineOverride = TestModeRuntime.HeadHitLineOverride,
+                HeadshotRadiusOverride = TestModeRuntime.HeadshotRadiusOverride,
+            };
+            LiteSim.SimTestRules.ActiveMatch = rules;             // 活动局登记口（GM 中局开合的写通道；判定路径不读）
+            LiteSim.SimTestRules.Active = testRoom;                // 宿主钩子（冻结/传送）开关
             LiteSim.SimTestRules.BotFrozen = testRoom && TestModeRuntime.BotFrozen;
-            LiteSim.SimTestRules.TeleportDispatch = false;                         // 进房清残留请求
+            LiteSim.SimTestRules.TeleportDispatch = false;         // 进房清残留请求
             if (testRoom || DebugTuner.UseLocalServerEnabled)
             {
                 UnityEngine.Debug.Log(testRoom
@@ -131,7 +141,7 @@ namespace LiteGame
                     : "[Match] **本地服务器**：对局在进程内跑真 RoomRuntime 内核"
                         + "（无 Socket / 无票据 / 单房间 / 剩余席位自动补位站桩——弱网、重连真实性与真实多人交互仍须真服务器验证）");
                 int players = testRoom ? 1 + UnityEngine.Mathf.Max(0, TestModeRuntime.BotCount) : 0;   // 0 = 房间默认
-                return LocalServerTransport.ForRoom(testRoom ? TestRoomId : DefaultRoomId, players);
+                return LocalServerTransport.ForRoom(testRoom ? TestRoomId : DefaultRoomId, players, rules);
             }
 #endif
             return new LiteNet.Transport.SecureEnvelopeClientTransport(

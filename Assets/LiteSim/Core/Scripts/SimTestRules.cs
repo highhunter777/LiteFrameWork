@@ -1,22 +1,23 @@
 namespace LiteSim
 {
     /// <summary>
-    /// 测试模式规则（本地测试形态专用）：随房入口设置——客户端预测与进程内服务器同进程读同一静态，
-    /// 两端确定性由"同一入口同一值"保证；常规入口进房时复位 false。**无限子弹允许对局中现场开合**
-    /// （GM 面板直写静态，editor 侧写值落在渲染帧之间，两端仍取同值）。**在线房间级下发未做**——
+    /// 测试模式宿主钩子（本地测试形态专用）＋**活动局规则登记口**。
+    ///
+    /// **宿主钩子四件**（<see cref="Active"/>/<see cref="BotFrozen"/>/<see cref="TeleportDispatch"/>/
+    /// <see cref="TeleportTarget"/>）：由 LiteGame 入口设置、**本地服宿主循环**（非确定性判定路径）读取
+    /// ——进程内服务器据此执行冻结/传送动作；常规入口进房时复位。**在线房间级下发未做**——
     /// 真 KCP 形态不提供测试房（见 ProcedureMatch 的入口口径）。
+    ///
+    /// **免死/无限子弹已迁出静态**：运行态单源是每局 <see cref="MatchTestRules"/> 持有件——
+    /// 经 <see cref="SimStep"/> 脊柱注入确定性系统（DamageSystem/WeaponSystem 不再读静态）；
+    /// 进房初值随 <see cref="CombatValues"/> 进联机身份摘要；<see cref="ActiveMatch"/> 只作
+    /// "当前活动局持有件"的登记口（客户端预测绑定 + GM 面板中局开合的写通道）——
+    /// 确定性判定路径不读本类的任何静态。
     /// 读取方横跨程序集（Sim 系统 + 本地服宿主 DevLocalServer），故住 LiteSim.Core 而非 LiteGame。
     /// </summary>
     public static class SimTestRules
     {
-        /// <summary>全房免死：跨死亡线时 Hp 保底 1、不写 Kill/Death——命中/受击反馈保留，目标永不消失。</summary>
-        public static bool NoDeath;
-
-        /// <summary>无限子弹：开火不扣弹匣（也不触发末发自动换弹）、换弹请求因满弹被拒——仅测试模式；
-        /// GM 面板可对局中现场开合（见类注释）。</summary>
-        public static bool InfiniteAmmo;
-
-        // ---- 运行时行为钩子（写入方：LiteGame 入口/流程；读取方：本地服宿主循环）----
+        // ---- 宿主钩子（写入方：LiteGame 入口/流程；读取方：本地服宿主循环）----
         /// <summary>测试模式进行中（本地服形态）——宿主循环据此执行冻结/传送钩子。</summary>
         public static bool Active;
 
@@ -28,5 +29,9 @@ namespace LiteSim
 
         /// <summary>传送目标点（世界）。</summary>
         public static SimVector3 TeleportTarget;
+
+        // ---- 活动局登记口（进房写入、StartGame 绑定、GM 中局开合写它；判定路径不读）----
+        /// <summary>当前活动局的测试规则持有件（每局新建替换；null = 无活动局）。</summary>
+        public static MatchTestRules ActiveMatch;
     }
 }

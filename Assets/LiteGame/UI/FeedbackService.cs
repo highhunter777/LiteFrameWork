@@ -38,10 +38,11 @@ namespace LiteGame.UI
         private readonly int _loadingFormId;
         private readonly int _toastFormId;
 
-        /// <summary>反馈面打开口（默认经 <see cref="UIService.ShowAsync"/>；测试可注入替身以脱离真表与真资源）。</summary>
+        /// <summary>反馈面打开口（默认经导航单写者 <see cref="UINavigationController.GoAsync"/>——
+        /// 产品面打开全走单写者队列，三通道收口口径；测试可注入替身以脱离真表与真资源）。</summary>
         private readonly Func<int, UniTask<UIForm>> _open;
 
-        /// <summary>反馈面关闭口（默认经 <see cref="UIService.CloseAsync"/>）。</summary>
+        /// <summary>反馈面关闭口（默认经 <see cref="UIService.CloseAsync"/>；按 id 定向关闭——导航只辖打开序与 Back）。</summary>
         private readonly Func<int, UniTask> _close;
 
         /// <summary>表单是否仍打开（默认经 <see cref="UIService.IsOpen"/>）。</summary>
@@ -72,7 +73,7 @@ namespace LiteGame.UI
             _errorFormId = errorFormId;
             _loadingFormId = loadingFormId;
             _toastFormId = toastFormId;
-            _open = open ?? (id => _ui.ShowAsync(id, null));
+            _open = open ?? (id => _nav.GoAsync(id));
             _close = close ?? (id => _ui.CloseAsync(id, UIService.CloseReason.User));
             _isOpen = isOpen ?? _ui.IsOpen;
 

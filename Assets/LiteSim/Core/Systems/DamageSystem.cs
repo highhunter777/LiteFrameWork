@@ -3,13 +3,15 @@ namespace LiteSim
     /// <summary>
     /// 伤害结算系统（§3.3 顺序第 4 位，§3.7 当帧延迟命令的消费者）：
     /// 结算 Damage 命令 → 扣血 → 跨越死亡线（Hp 由正变非正）时写 Kill 命令 + Death 帧事件；
-    /// 测试房（<see cref="SimTestRules.NoDeath"/>）下跨死线保底 Hp=1、不写 Kill/Death（命中反馈保留）。
+    /// 测试房免死（<see cref="MatchTestRules.NoDeath"/>，经 <see cref="SimStep"/> 注入）下跨死线保底 Hp=1、
+    /// 不写 Kill/Death（命中反馈保留）。
     /// Kill 由 ScoreSystem 在下一轮登记 K/D 与复活时刻；掉落由后续道具系统接入。
     /// </summary>
     public static class DamageSystem
     {
-        /// <summary>结算 [commandStart, commandEnd) 区段内的 Damage 命令（轮次窗口，见 SimStep.FlushCommands）。</summary>
-        public static void Run(SimWorldState s, int commandStart, int commandEnd)
+        /// <summary>结算 [commandStart, commandEnd) 区段内的 Damage 命令（轮次窗口，见 SimStep.FlushCommands）。
+        /// <paramref name="rules"/> = 本局测试规则（null = 无规则）。</summary>
+        public static void Run(SimWorldState s, int commandStart, int commandEnd, MatchTestRules rules = null)
         {
             if (s.Match.Phase == SimMatchPhase.Finished) return; // lint-allow R3（整数阶段）
             for (int i = commandStart; i < commandEnd; i++)
@@ -19,14 +21,14 @@ namespace LiteSim
                 switch (cmd.Kind)
                 {
                     case SimCommandKind.Damage:
-                        ApplyDamage(s, cmd);
+                        ApplyDamage(s, cmd, rules);
                         break;
                     // Kill 归 ScoreSystem；SpawnPickup/AddScore 由后续道具/团队规则消费。
                 }
             }
         }
 
-        private static void ApplyDamage(SimWorldState s, in SimCommand cmd)
+        private static void ApplyDamage(SimWorldState s, in SimCommand cmd, MatchTestRules rules)
         {
             // 目标已死 = 引用失效 = 正常路径（#7），命令作废
             if (!s.TryResolve(cmd.Target, out int slotIndex)) return;
@@ -36,8 +38,8 @@ namespace LiteSim
             int hpBefore = e.Hp;
             e.Hp = cmd.Amount >= e.Hp ? 0 : e.Hp - cmd.Amount;
 
-            // 测试房全房免死：跨死亡线保底 1、不写 Kill/Death（命中/受击反馈在命中帧照旧）
-            if (SimTestRules.NoDeath && hpBefore > 0 && e.Hp <= 0)
+            // 测试房全房免死（注入规则）：跨死亡线保底 1、不写 Kill/Death（命中/受击反馈在命中帧照旧）
+            if (rules != null && rules.NoDeath && hpBefore > 0 && e.Hp <= 0)
             {
                 e.Hp = 1;
                 return;

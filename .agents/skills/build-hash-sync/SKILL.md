@@ -17,7 +17,7 @@ description: 共享源集改动后的生成物重生成流程(BuildHash / 协议
 | 改了什么 | 必跑 |
 |---|---|
 | `Assets/LiteSim/Core/{Scripts,Systems}`、`Assets/LiteNet/{Proto,Protocol,Transport/Security}`、表数据 | ★ `python scripts/codegen/gen-build-hash.py` |
-| `.proto`(源在 `Assets/LiteNet/Proto/*.proto`) | ★ `scripts/codegen/gen-proto.ps1 -ProtocPath <protoc.exe>` **再** ★ BuildHash 重跑 |
+| `.proto`(源在 `Assets/LiteNet/Proto/*.proto`) | ★ `python scripts/codegen/gen_proto.py --protoc <protoc.exe>` **再** ★ BuildHash 重跑 |
 | 表源(`Luban/Data/*.xlsx`、`Luban/Defines/` schema) | ★ `Luban/gen.bat`(双端重生成 C#/binary/Lua)**再** ★ BuildHash 重跑 |
 | 出包前 | `python scripts/codegen/gen-build-hash.py --check`(复算比对;`build-player.ps1` 门禁步也会做) |
 
@@ -25,7 +25,7 @@ description: 共享源集改动后的生成物重生成流程(BuildHash / 协议
 
 1. **先改源、后重生成,顺序不能反**:重生成以当前源内容为输入,生成后源又有改动必须重跑。
 2. **生成物勿手改**:`Assets/LiteNet/Proto/Generated/`、`Assets/LiteNet/Protocol/BuildHash.g.cs`、`Assets/GameData/Config/*.bytes`、`Assets/LiteGame/Lua/Cfg/*.lua` 都是生成物——要改行为就改它的源(表源 / .proto / 共享源),再重生成。
-3. **统一入口**:`pwsh scripts/codegen/toolbox.ps1 <tool> [args...]`,与上表单脚本直调等价;工具形态/失败语义的权威是 `Docs/设计文档/architecture/生成器工具箱专项设计.md`。
+3. **统一入口**:`python scripts/codegen/toolbox.py <tool> [args...]`,与上表单脚本直调等价(2026-10-11 起五工具全 Python);工具形态/失败语义的权威是 `Docs/设计文档/architecture/生成器工具箱专项设计.md`。
 4. protoc 来自 nuget `Google.Protobuf.Tools`,版本须与运行时对齐;`Proto/Generated/Battle.cs` 勿手改。
 5. 改表数值同时涉及代码默认值的:表值与默认值必须一致(L1 表守卫钉住);机制面禁读静态读口(R13,见修改指南 §1.3)。
 

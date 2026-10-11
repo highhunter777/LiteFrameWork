@@ -8,8 +8,8 @@ namespace LiteFramework
     /// 场景服务契约（**场景能力归 Client.Runtime，
     /// YooAsset 实现归 Adapter**；先形成逻辑边界和依赖测试）。
     ///
-    /// **住 LiteFramework.Unity 而非 LiteGame**：与 `INetworkService` 同类——
-    /// 框架侧的**服务端口**。放在游戏侧会让"适配器程序集实现它"必须反向引用游戏程序集；
+    /// **住 LiteFramework.Unity 而非 LiteGame**：框架侧的**服务端口**
+    /// ——放在游戏侧会让"适配器程序集实现它"必须反向引用游戏程序集；
     /// 框架侧则天然被两边引用（`LiteFramework.Core` 被适配器引、`LiteFramework.Unity` 被 Runtime 引）。
     ///
     /// **为什么需要这层抽象**：`SceneService` 是 YooAsset 适配器（持 `SceneHandle`），

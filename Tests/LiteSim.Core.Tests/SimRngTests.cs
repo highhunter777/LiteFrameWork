@@ -86,17 +86,6 @@ namespace LiteSim.Tests
         }
 
         [Fact]
-        public void SimRng_NextRange浮点_不越界()
-        {
-            var rng = new SimRng(43UL);
-            for (int i = 0; i < 100000; i++)
-            {
-                float v = rng.NextRange(-1f, 1f);
-                Assert.True(v >= -1f && v < 1f, "NextRange(float) 越界: " + v);
-            }
-        }
-
-        [Fact]
         public void SimRng_NextRange_分桶粗检不偏斜()
         {
             // 仅粗检：分桶计数不应严重偏斜（不做统计强断言）。

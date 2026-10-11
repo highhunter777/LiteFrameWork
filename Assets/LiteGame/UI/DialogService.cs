@@ -78,6 +78,7 @@ namespace LiteGame.UI
         }
 
         private readonly UIService _ui;
+        private readonly UINavigationController _nav;      // 产品形态非空：打开经单写者；null = 工具/测试直调
         private readonly List<Entry> _queue = new List<Entry>(8);                        // 排队（跨组共用，出队按组+优先级筛选）
         private readonly Dictionary<string, Entry> _activeByGroup = new Dictionary<string, Entry>(2);  // 组 → 展示中条目
         private readonly HashSet<string> _openingGroups = new HashSet<string>(2);        // 打开在途占组（formId 未定时先占）
@@ -95,9 +96,12 @@ namespace LiteGame.UI
         public int ActiveCount => _activeByGroup.Count;
 
         /// <param name="queueCapacity">排队容量（默认 8——候选配置，目标设备验证后调整，同导航口径）。</param>
-        public DialogService(UIService ui, int queueCapacity = 8)
+        /// <param name="nav">导航单写者（产品装配必传——弹窗表单打开收口到单写者队列，三通道口径）；
+        /// null = 直调 <see cref="UIService.ShowAsync"/>（工具/测试形态，同导航类注释"直接 ShowAsync 仍可用"）。</param>
+        public DialogService(UIService ui, int queueCapacity = 8, UINavigationController nav = null)
         {
             _ui = ui ?? throw new ArgumentNullException(nameof(ui));
+            _nav = nav;
             QueueCapacity = queueCapacity > 0 ? queueCapacity : 1;
             _ui.FormClosed += OnFormClosed;               // 与 UIService 同生命周期（同一容器装配）；Dispose 退订
         }
@@ -154,13 +158,18 @@ namespace LiteGame.UI
             return best;
         }
 
+        /// <summary>打开弹窗表单：产品形态经导航单写者排队（三通道收口口径）；
+        /// null 导航（工具/测试）直调 <see cref="UIService.ShowAsync"/>。</summary>
+        private UniTask<UIForm> OpenFormAsync(int formId)
+            => _nav != null ? _nav.GoAsync(formId) : _ui.ShowAsync(formId, null);
+
         private async UniTaskVoid ShowCoreAsync(Entry entry)
         {
             string group = entry.Request.Group;
             try
             {
                 // 打开（加载/实例化/初始化可能失败或被权威取消——全部落为该条目的失败/取消）
-                UIForm form = await _ui.ShowAsync(entry.Request.FormId, null);
+                UIForm form = await OpenFormAsync(entry.Request.FormId);
                 _openingGroups.Remove(group);
 
                 UIDialog dialog = form.Root.GetComponentInChildren<UIDialog>(true);

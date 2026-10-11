@@ -38,10 +38,10 @@ try {
         $msg = '[红线1] BuildHash.g.cs 是生成物,勿手改——由 gen-build-hash.py 从共享源重生成。'
     }
     elseif ($p -like '*.proto') {
-        $msg = "[红线1] 改了 .proto:先 scripts/codegen/gen-proto.ps1 重生成,再 $buildHash 。Proto/Generated 生成物勿手改。"
+        $msg = "[红线1] 改了 .proto:先 python scripts/codegen/gen_proto.py --protoc <protoc.exe> 重生成,再 $buildHash 。Proto/Generated 生成物勿手改。"
     }
     elseif ($p -like 'assets\litenet\proto\generated\*') {
-        $msg = '[红线1] Proto/Generated 是 gen-proto.ps1 的产物,勿手改;改行为去改 .proto 源再重生成。'
+        $msg = '[红线1] Proto/Generated 是 gen_proto.py 的产物,勿手改;改行为去改 .proto 源再重生成。'
     }
     elseif ($p -like 'assets\litesim\core\scripts\*' -or $p -like 'assets\litesim\core\systems\*' -or
         $p -like 'assets\litenet\protocol\*' -or $p -like 'assets\litenet\transport\security\*') {

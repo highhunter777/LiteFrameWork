@@ -274,12 +274,12 @@ namespace LiteView.Animation
                     s.Machine = CombatAnimMachine.Build(s.Ctx);
                     s.Machine.Start(CharacterAnimId.LocomotionRoot);   // 初建提交 MoveBlend(Idle=1)——不开局 T-pose（提交/维护归移动根；无控制器时即唯一落位兜底）
 
-                    // 持枪约束（可选，视图私有配置面）：换弹叠加层在场时武器骨跟随躯干。
-                    // 无偏移资产/骨解析不到 → 不建（显性跳过，不静默假装生效）。
-                    var grip = binding?.GripOffset != null ? new WeaponGripConstraint(animator, binding.GripOffset) : null;
-                    if (grip != null && !grip.IsValid)
+                    // 持枪约束：换弹叠加层在场时武器骨跟随持枪手（GripBake 烘焙常量直连——
+                    // 无序列化资产面）。骨路径在当前模型族上解析不到 → 不建（显性跳过，不静默假装生效）。
+                    var grip = new WeaponGripConstraint(animator);
+                    if (!grip.IsValid)
                     {
-                        Debug.LogWarning($"[Anim][diag] slot {i} 持枪偏移不可用（骨路径在骨架上不存在）"
+                        Debug.LogWarning($"[Anim][diag] slot {i} 持枪常量骨路径在骨架上不存在"
                             + $"：view「{go.name}」——换弹期枪将完全由片段曲线驱动");
                         grip = null;
                     }

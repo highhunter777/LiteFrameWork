@@ -10,7 +10,7 @@ namespace LiteGame
     /// <summary>
     /// 武器瞄准激光驱动（**激光器装在武器上**：束实例挂到武器挂载点、沿枪管方向出射，
     /// 不追鼠标；**射击语境内收敛**——瞄准/开火窗内端点收敛到开火射线终点，根治激光与
-    /// 准心的偏移）：纯 View 层——每渲染帧把 <see cref="LineRenderer"/>（Assets/FX/fx_lazer_sight.prefab——
+    /// 准心的偏移）：纯 View 层——每渲染帧把 <see cref="LineRenderer"/>（Assets/ShareResource/FX/fx_lazer_sight.prefab——
     /// KriptoFX Lazer 的 fx 归置副本，纯视觉资产零脚本）从枪口挂载点铺到端点（模式见 TryResolveFacts）。
     ///
     /// **挂载与方向**（用户口径："做在武器上、只从武器激光挂载点射出"）：
@@ -150,7 +150,7 @@ namespace LiteGame
 
             Vector3 origin = mount.position;
             float range2 = CombatConfig.HitscanRange;
-            SimRaycast.RaycastEntities(_sim.State, slot, origin.x, origin.y, origin.z, bx, bz, range2, out _, out float t2);
+            SimRaycast.RaycastEntities(_sim.State, slot, origin.x, origin.y, origin.z, bx, bz, range2, out _, out float t2, SimTestRules.ActiveMatch);
             if (SimRaycast.RaycastObstacles(_map, origin.x, origin.y, origin.z, bx, bz, range2, out float tOb2)
                 && tOb2 < t2)
                 t2 = tOb2;
@@ -168,7 +168,7 @@ namespace LiteGame
         private float TraceBeam(float ox, float oy, float oz, float dx, float dz, float dy, float maxT, int skipSlot)
         {
             SimRaycast.RaycastEntities(_sim.State, skipSlot,
-                new SimVector3(ox, oy, oz), new SimVector3(dx, dy, dz), maxT, out _, out float t);
+                new SimVector3(ox, oy, oz), new SimVector3(dx, dy, dz), maxT, out _, out float t, SimTestRules.ActiveMatch);
 
             float h = Mathf.Sqrt(dx * dx + dz * dz);
             if (h > SimRaycast.ParallelEpsilon)

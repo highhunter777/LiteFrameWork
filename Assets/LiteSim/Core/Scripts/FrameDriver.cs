@@ -36,16 +36,18 @@ namespace LiteSim
         /// <summary>
         /// 推进逻辑帧。<paramref name="onLogicalFrame"/> 在每个逻辑帧 Step 结束后、事件清空前回调
         /// （消费帧事件的唯一时机——追帧时每帧的事件都能交付，§3.7）。
+        /// <paramref name="rules"/> = 本局测试规则（null = 无规则）。
         /// </summary>
         public void Tick(float realDelta, SimWorldState s, in SimMapData map, SimInputFrame[] inputs,
-            in CombatValues values, WeaponTable weapons, Action<SimWorldState> onLogicalFrame = null)
+            in CombatValues values, WeaponTable weapons, Action<SimWorldState> onLogicalFrame = null,
+            MatchTestRules rules = null)
         {
             _accumulator += realDelta;
 
             int steps = 0;
             while (steps < SimConfig.MaxCatchUp && _accumulator >= SimConfig.Dt)
             {
-                SimStep.Step(s, map, inputs, values, weapons);
+                SimStep.Step(s, map, inputs, values, weapons, rules: rules);
 
                 if (onLogicalFrame != null) onLogicalFrame(s);
                 s.Events.Clear(); // 消费后清空（无消费方也清——帧事件是帧内瞬态）

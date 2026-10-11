@@ -161,21 +161,15 @@ namespace LiteSim.Tests
             var s = new SimWorldState();
             long id = s.Spawn(new EntitySlot { Hp = CombatConfig.EntityHp }, out int slot);
 
-            SimTestRules.NoDeath = true;
-            try
-            {
-                s.Cmds.Write(SimCommandKind.Damage, id, 0L, CombatConfig.EntityHp + 50);
-                SimStep.FlushCommands(s);
+            // 测试规则经注入（每局持有件——无静态污染面）
+            var rules = new MatchTestRules { NoDeath = true };
+            s.Cmds.Write(SimCommandKind.Damage, id, 0L, CombatConfig.EntityHp + 50);
+            SimStep.FlushCommands(s, rules);
 
-                Assert.Equal(1, s.Entities[slot].Hp);   // 保命不消失：跨死线保底 1
-                Assert.Equal(0, s.Events.Count);        // 无 Death 事件
-                Assert.Equal(0, s.Cmds.Count);          // 无 Kill 产出
-                Assert.True(s.IsAlive(slot));
-            }
-            finally
-            {
-                SimTestRules.NoDeath = false;           // 静态规则：用例毕复位（防跨用例污染）
-            }
+            Assert.Equal(1, s.Entities[slot].Hp);   // 保命不消失：跨死线保底 1
+            Assert.Equal(0, s.Events.Count);        // 无 Death 事件
+            Assert.Equal(0, s.Cmds.Count);          // 无 Kill 产出
+            Assert.True(s.IsAlive(slot));
         }
 
         [Fact]

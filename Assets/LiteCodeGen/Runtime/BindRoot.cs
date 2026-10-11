@@ -28,7 +28,7 @@ namespace LiteCodeGen
         [Tooltip("主类(Xxx.cs,手动逻辑文件)的基类完整名,如 MyGame.MyBaseComponent;留空默认 MonoBehaviour")]
         public string BaseClassFullName = string.Empty;
 
-        [Tooltip("Designer 文件是否生成 Awake 登记代码(逐字段调用基类 RegisterControl)。仅当基类提供 RegisterControl(string, Component) 时勾选;默认关闭,勾选后 Designer 才与运行期标记索引汇合")]
+        [Tooltip("Designer 文件是否生成 CollectControls 登记代码(逐字段调用基类 RegisterControl)。仅当基类提供 RegisterControl(string, Component) 时勾选;默认关闭,勾选后 Designer 才与运行期标记索引汇合")]
         public bool EmitRegisterControl = false;
 
         /// <summary>在编辑器中已生成过的类型名(用于编译完成后自动把组件挂到根上并回填引用)</summary>

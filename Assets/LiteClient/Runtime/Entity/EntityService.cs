@@ -274,12 +274,6 @@ namespace LiteClient
             Log.Info($"实体[{childHandle}] 已脱离挂接", "Entity");
         }
 
-        /// <summary>容器可枚举：宿主的直接挂件（只读快照）。</summary>
-        public IReadOnlyList<int> GetAttachments(int parentHandle)
-            => _attachments.TryGetValue(parentHandle, out var list)
-                ? (IReadOnlyList<int>)list.ToArray()
-                : Array.Empty<int>();
-
         /// <summary>隐藏实体：连锁收子件 → 脱离父容器 → 回收。加载在途 → 竞态表；未知句柄 = 幂等 no-op + 计数。</summary>
         public void Hide(int handleId)
         {

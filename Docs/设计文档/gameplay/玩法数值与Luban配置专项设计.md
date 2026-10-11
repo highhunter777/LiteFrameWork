@@ -33,7 +33,7 @@ Luban xlsx
 
 **单源映射**：`combatnum` 不再存储重力和出生生命。`tbmovementconfig.gravity` 是重力唯一表源；`tbentityconfig.initial_hp` 是实体出生生命唯一表源，当前消费者为 id=1 默认角色。`SimConfigMapper` 放在 `LiteClient/Adapters/Serialization.Luban/`（文件所在程序集名为 `LiteClient.Serialization.Luban`，但**声明的命名空间是 `LiteClient`**），RoomServer 只源链接该无 Unity/UniTask 依赖文件，两端共用必要行与数值校验及投影。`CombatValues.Gravity/EntityHp` 是固定对局配置中的投影值，不构成第二套可编辑表源；Sim 不直接读表或静态配置。所属表行缺失、非有限重力或非正出生生命必须拒绝装载，不回退代码默认值。同值的 `CombatConfigDigest` 文本和摘要保持一致，schema 迁移通过重生成 buildHash 保护准入。
 
-**生成入口**：`Luban/gen.bat` 委托 `scripts/codegen/gen-luban.ps1`，路径从仓库根推导。Luban 先在 `TestResults/luban-generation/<run>/` 生成 C#/binary/Lua；成功后只发布相应文件类型且跳过内容相同的文件，保留现有文本行尾，binary 不做文本归一化。生成器不清空 Assets 输出目录，也不通过 Git 恢复 asmdef 或 `.meta`。Unity 导入与资源收集验证仍由本机 Pipeline 执行。
+**生成入口**：`Luban/gen.bat` 委托 `scripts/codegen/gen_luban.py`，路径从仓库根推导。Luban 先在 `TestResults/luban-generation/<run>/` 生成 C#/binary/Lua；成功后只发布相应文件类型且跳过内容相同的文件，保留现有文本行尾，binary 不做文本归一化。生成器不清空 Assets 输出目录，也不通过 Git 恢复 asmdef 或 `.meta`。Unity 导入与资源收集验证仍由本机 Pipeline 执行。
 
 ## 3. 表设计
 

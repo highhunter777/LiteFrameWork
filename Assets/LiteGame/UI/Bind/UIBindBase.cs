@@ -7,26 +7,41 @@ namespace LiteGame
 {
     /// <summary>
     /// UI 绑定基类：C# 界面逻辑的受控 API 承载件（设计方案 §4.6——不裸抛 GameObject）。
-    /// 双模式索引：A) OnInit 时经 BindIndexBuilder 读 BindNode 标记构建；B) Designer 生成类构造期
-    /// RegisterControl 登记（LiteCodeGen 路径 B）。两模式自动选择——登记非空即走 B。
+    /// **MonoBehaviour 形态**：页面组件挂 prefab 根（Designer 拖引用或 BindNode 标记），
+    /// UIService 实例化 prefab 时经"自带 IUIFormLogic 组件"解析缝取用（挂件即被驱动——路径 B 接线口）。
+    /// 双模式索引：A) 经 BindIndexBuilder 读 BindNode 标记构建；B) 生成类覆写 <see cref="CollectControls"/>
+    /// 登记字段（LiteCodeGen EmitRegisterControl 产物调 RegisterControl——OnInit 内先收集再选型，
+    /// 与 Unity Awake 派发解耦）。两模式自动选择——登记非空即走 B。
     /// 七回调拆成 protected virtual（子类覆写业务，本类承接 IUIFormLogic 转发）；
     /// OnButton 返回注销委托（事件语义 §7.3）。
     /// </summary>
-    public abstract class UIBindBase : IUIFormLogic
+    public abstract class UIBindBase : MonoBehaviour, IUIFormLogic
     {
-        private readonly Dictionary<string, Component> _designer = new Dictionary<string, Component>(16);
+        // **惰性初始化**（非 readonly）：Unity Instantiate 不跑字段初始化器/构造器——
+        // prefab 挂件页被克隆后本字典为 null，登记口与选型口都必须容 null（首个登记即建）。
+        private Dictionary<string, Component> _designer;
         private UIBindIndex _index = UIBindIndex.Empty;
+
+        /// <summary>登记字典（惰性——首个 RegisterControl 即建）。</summary>
+        private Dictionary<string, Component> Designer => _designer ??= new Dictionary<string, Component>(16);
 
         protected UIForm Form { get; private set; }
 
-        /// <summary>路径 B：Designer 生成类构造期登记字段（LiteCodeGen 生成代码调用）。</summary>
+        /// <summary>路径 B：逐控件登记字段（生成类覆写 <see cref="CollectControls"/> 时调用；手写页同形）。</summary>
         protected void RegisterControl(string name, Component component)
-            => _designer[name] = component ?? throw new ArgumentNullException(nameof(component));
+            => Designer[name] = component ?? throw new ArgumentNullException(nameof(component));
+
+        /// <summary>路径 B 收集钩子：生成类覆写并逐字段 <see cref="RegisterControl"/>（基类在索引选型之前调用）。
+        /// 默认空 = 走路径 A（BindNode 标记索引）。</summary>
+        protected virtual void CollectControls() { }
 
         void IUIFormLogic.OnInit(UIForm form, IUIData data)
         {
             Form = form ?? throw new ArgumentNullException(nameof(form));
-            _index = _designer.Count > 0 ? new UIBindIndex(_designer) : BindIndexBuilder.Build(form.Root);
+            CollectControls();
+            _index = _designer != null && _designer.Count > 0
+                ? new UIBindIndex(_designer)
+                : BindIndexBuilder.Build(form.Root);
             OnInit(data);
         }
 

@@ -11,8 +11,7 @@ namespace LiteNet.Protocol
         Input = 4,
         StateSnapshot = 5,
         MismatchReport = 6,
-        Heartbeat = 7,
-        Leave = 8,
+        Leave = 8,              // 优雅离场（服务端 HandleLeave → Disconnect 命令；客户端发送方随离场批接线）
         ReconnectRequest = 9,
         ReconnectResponse = 10,
         RestoreComplete = 11,     // §9.3 步骤 6：客户端恢复完成 ACK（Reliable）——Restoring → Active 门闩

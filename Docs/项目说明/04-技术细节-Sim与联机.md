@@ -67,7 +67,7 @@ SortInputs（按 EntityId 升序稳定插入）
 
 | 件 | 说明 |
 |---|---|
-| 协议单源 | `Proto/battle.proto` → `Proto/Generated/Battle.cs`（生成脚本 `scripts/codegen/gen-proto.ps1`） |
+| 协议单源 | `Proto/battle.proto` → `Proto/Generated/Battle.cs`（生成脚本 `scripts/codegen/gen_proto.py --protoc <protoc.exe>`） |
 | 信封与编解码 | `Protocol/PacketCodec.cs`：`[1B PacketType][proto payload]`；`PacketWriter`、`PacketType` |
 | 输入位打包 | `Protocol/InputPacker.cs` |
 | 快照 | `SnapshotDiffer`（差分）→ `SnapshotCodec`（编解码）→ `SnapshotReassembler`（重组）；`AoiFilter`（按兴趣域裁剪） |

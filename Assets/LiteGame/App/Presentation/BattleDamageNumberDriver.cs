@@ -22,6 +22,12 @@ namespace LiteGame
     /// 跟随与到期收口——**轨道数学/渲染件可替换**（§5 升级路径：TMP 直渲 → 网格提取 → 合批，
     /// 换渲染件不动本类之外的纯件）。
     ///
+    /// **批C 观感（逐档材质 + 顶点渐变）**：颜色为顶→底渐变——驱动每帧写
+    /// <c>colorGradient</c> 四角（含 alpha 淡出；上下同值即平色），描边/光晕走**逐档材质**
+    /// （<see cref="DamageNumberMaterialSet"/> 调色板注入；null = 不换材质——测试/降级形态，
+    /// 底件默认材质即造成档）。顶点渐变开启归底件（builder 置 <c>enableVertexGradient</c>）；
+    /// 平色写为诚实兜底（底件未开渐变时仍按顶色 + alpha 淡出，不静默失去淡出）。
+    ///
     /// **锚定与朝向**：飘字**锚定受击点**（命中事件的世界位＝弹道命中部位；用户裁决"飘字应该在受击部位飘"，
     /// 不随实体移动）；每帧把 TMP 摆在锚点上方并**转向渲染相机**（billboard）——底件 prefab
     /// 无 TMP_Billboard 组件、初始旋转 identity，故朝向必须由本驱动每帧写（对局相机是可旋转的
@@ -52,6 +58,7 @@ namespace LiteGame
         private readonly Func<TextMeshPro> _factory;
         private readonly IWorldClock _clock;
         private readonly IDamageNumberStyleResolver _style;
+        private readonly DamageNumberMaterialSet _materials;   // 逐档材质（null = 不换材质——底件默认档；测试/降级形态）
         private readonly Func<Camera> _cameraOf;         // **对局渲染相机**（billboard 面——不是 Camera.main，见下）
         private readonly ObjectPool<GameObject> _pool;
         private readonly DamageNumberAggregator _aggregator = new DamageNumberAggregator();
@@ -61,7 +68,6 @@ namespace LiteGame
         private readonly List<(long TargetId, HitLocalRole Role, bool Crit)> _tickKeys = new List<(long, HitLocalRole, bool)>(16);
         private int _seedCounter;
         private bool _disposed;
-        private bool _ticking;     // 诊断探针：Tick 期间命中到达 = 存在未定位的重入面（见 OnHitFeedback）
 
         /// <summary>在册飘字数（诊断/预算断言面）。</summary>
         public int ActiveCount => _active.Count;
@@ -77,19 +83,24 @@ namespace LiteGame
         {
             public TextMeshPro Tmp;
             public Vector3 Anchor;         // 受击点锚（命中事件世界位——用户裁决；不随实体移动）
-            public float R, G, B;          // 档位色（alpha 由轨道逐帧给——淡出归轨道数学）
+            public float TopR, TopG, TopB;          // 渐变顶色（alpha 由轨道逐帧给——淡出归轨道数学）
+            public float BottomR, BottomG, BottomB; // 渐变底色（上下同值即平色）
             public float FontSize;
             public float ScaleBoost;
             public double SpawnedAt;       // 淘汰"最旧"的判据
         }
 
         public BattleDamageNumberDriver(SimView view, Func<TextMeshPro> factory, IWorldClock clock,
-            IDamageNumberStyleResolver style = null, Func<Camera> cameraOf = null)
+            IDamageNumberStyleResolver style = null, Func<Camera> cameraOf = null,
+            DamageNumberMaterialSet materials = null)
         {
             _view = view ?? throw new ArgumentNullException(nameof(view));
             _factory = factory ?? throw new ArgumentNullException(nameof(factory));
             _clock = clock ?? throw new ArgumentNullException(nameof(clock));
             _style = style ?? new DamageNumberStyleResolver();
+            // **逐档材质调色板**（批C）：装配点整组注入（缺档即不注入——见 ProcedureBattle 取件）；
+            // null = 保持底件默认材质（测试装配/降级形态——观感回到批B 平色，行为不失效）。
+            _materials = materials;
             // **相机来源可注入**（billboard 面）：优先由装配点给对局渲染相机（Cinemachine brain 的
             // OutputCamera）；null = 无设备形态（如测试装配），此时回落 Camera.main，camScale 恒 1、
             // 朝向不跟随（诚实退化——不猜相机）。同 `ProcedureBattle` 给设备源注入相机的同一口径。
@@ -112,12 +123,6 @@ namespace LiteGame
             // 测试模式开关：飘字是正式特性（非测试模式恒显），测试房内可由 GM 面板现场开合
             if (TestModeRuntime.Active && !TestModeRuntime.DamageNumbers) return;
 #endif
-
-            // 诊断探针（真机实测 Tick 枚举曾被中途修改——InvalidOperation 一次，静态排查枚举体内
-            // 全部外部调用均为纯读，重入面未定位）：命中本应只在逻辑帧边界（Tick 外）到达；
-            // 若 Tick 期间到达，键快照遍历已结构性容错（本条同帧入账/新键下帧拾取），此日志留证溯源。
-            if (_ticking)
-                Debug.LogWarning("[Battle] 伤害数字：Tick 期间命中到达（重入面留证）——键快照已容错，请回溯本日志的调用栈");
 
             // **同键旧代际收口（账实一致，必须在 `MergeOrSpawn` 之前）**：`_active` 的键是 (目标, 角色, 爆头档)，
             // **同目标同角色同档的条目共用一键**（爆头与普通各成一条——用户裁决"连击合并区分爆头/普通"）。间隔射击（超出 `MergeWindowSeconds`）时本帧会起新条目
@@ -153,13 +158,18 @@ namespace LiteGame
             var style = _style.Resolve(snap.Value, snap.Role, snap.Crit);
             TextMeshPro tmp = _pool.Acquire().GetComponent<TextMeshPro>();
 
+            // 逐档材质（批C）：档位含爆头键 ⇒ 新条目按档取材质（同一条目档恒定，合并无需换）。
+            // 池实例上一世代的材质会被此处覆盖（不依赖"归还时还原"——那要求记住底件默认值，多一份状态）。
+            if (_materials != null) tmp.fontSharedMaterial = _materials.For(style.Tier);
+
             // 受击点锚（用户裁决："飘字应该在受击部位飘"）——命中事件世界位（弹道命中部位），
             // 不随实体移动；视图可用性/目标 despawn 均无影响（本驱动已不依赖实体视图）。
             _active[key] = new Active
             {
                 Tmp = tmp,
                 Anchor = ctx.WorldPos,
-                R = style.R, G = style.G, B = style.B,
+                TopR = style.TopR, TopG = style.TopG, TopB = style.TopB,
+                BottomR = style.BottomR, BottomG = style.BottomG, BottomB = style.BottomB,
                 FontSize = style.FontSize,
                 ScaleBoost = style.ScaleBoost,
                 SpawnedAt = snap.SpawnedAt,
@@ -177,7 +187,8 @@ namespace LiteGame
             }
 
             var style = _style.Resolve(snap.Value, snap.Role, snap.Crit);
-            a.R = style.R; a.G = style.G; a.B = style.B;
+            a.TopR = style.TopR; a.TopG = style.TopG; a.TopB = style.TopB;
+            a.BottomR = style.BottomR; a.BottomG = style.BottomG; a.BottomB = style.BottomB;
             a.FontSize = style.FontSize;
             a.ScaleBoost = style.ScaleBoost;
             _active[key] = a;
@@ -209,72 +220,72 @@ namespace LiteGame
         {
             if (_disposed) return;
             double now = _clock.Now;
-            _ticking = true;
-            try
+
+            // ① 到期收口：聚合器裁决（淡出钟），实例归还 + 摘账——账实一致
+            _aggregator.CollectExpired(now, _expired);
+            for (int i = 0; i < _expired.Count; i++) Release(_expired[i]);
+
+            // ② 视觉推进：轨道数学 → 位形/透明度；跟随槽位视图（消失 → 冻结最后锚点）
+            // 相机解析**每帧一次**并复用：billboard 朝向与 camScale 都以它为基准。
+            Camera cam = _cameraOf != null ? _cameraOf() : Camera.main;
+
+            _tickKeys.Clear();
+            foreach (var key in _active.Keys) _tickKeys.Add(key);   // 收集段：纯 Add，无外部调用——无重入窗口
+            for (int i = 0; i < _tickKeys.Count; i++)
             {
-                // ① 到期收口：聚合器裁决（淡出钟），实例归还 + 摘账——账实一致
-                _aggregator.CollectExpired(now, _expired);
-                for (int i = 0; i < _expired.Count; i++) Release(_expired[i]);
+                var key = _tickKeys[i];
+                if (!_active.TryGetValue(key, out var a)) continue;               // 快照后被移除（到期/淘汰/重入）→ 容错跳过
+                if (!_aggregator.TryGet(key.Item1, key.Item2, key.Item3, out var snap)) continue;
 
-                // ② 视觉推进：轨道数学 → 位形/透明度；跟随槽位视图（消失 → 冻结最后锚点）
-                // 相机解析**每帧一次**并复用：billboard 朝向与 camScale 都以它为基准。
-                Camera cam = _cameraOf != null ? _cameraOf() : Camera.main;
+                DamageNumberMotion.Evaluate(
+                    (float)(now - snap.SpawnedAt), (float)(now - snap.LastMergeAt),
+                    snap.Crit, snap.Seed,
+                    out float rise, out float push, out float alpha, out float shake, out float pop);
 
-                _tickKeys.Clear();
-                foreach (var key in _active.Keys) _tickKeys.Add(key);   // 收集段：纯 Add，无外部调用——无重入窗口
-                for (int i = 0; i < _tickKeys.Count; i++)
+                // 受击点锚（定值——不随实体移动；升浮/推挤/抖动归轨道数学）
+                Vector3 pos = new Vector3(
+                    a.Anchor.x + push + shake,
+                    a.Anchor.y + DamageNumberMotion.HoverHeight + rise,
+                    a.Anchor.z);
+
+                float camScale = 1f;
+                if (cam != null)
                 {
-                    var key = _tickKeys[i];
-                    if (!_active.TryGetValue(key, out var a)) continue;               // 快照后被移除（到期/淘汰/重入）→ 容错跳过
-                    if (!_aggregator.TryGet(key.Item1, key.Item2, key.Item3, out var snap)) continue;
-
-                    DamageNumberMotion.Evaluate(
-                        (float)(now - snap.SpawnedAt), (float)(now - snap.LastMergeAt),
-                        snap.Crit, snap.Seed,
-                        out float rise, out float push, out float alpha, out float shake, out float pop);
-
-                    // 受击点锚（定值——不随实体移动；升浮/推挤/抖动归轨道数学）
-                    Vector3 pos = new Vector3(
-                        a.Anchor.x + push + shake,
-                        a.Anchor.y + DamageNumberMotion.HoverHeight + rise,
-                        a.Anchor.z);
-
-                    float camScale = 1f;
-                    if (cam != null)
-                    {
-                        float d = Vector3.Distance(cam.transform.position, pos);
-                        camScale = Mathf.Clamp(d / CameraReferenceDistance, CameraScaleMin, CameraScaleMax);
-                    }
-
-                    a.Tmp.transform.position = pos;
-
-                    // **billboard：每帧把飘字转向渲染相机**（此前**从未写过 rotation**——底件
-                    // `fx_damage_number.prefab` 只有 Transform+MeshRenderer+TextMeshPro 三个组件、
-                    // 无 TMP_Billboard、初始旋转 identity，故 TMP 恒保持烘焙朝向）。
-                    // 对局相机是 Cinemachine 轨道机（可旋转），烘焙朝向只在某机位下正确 ⇒ 飘字歪。
-                    //
-                    // **朝向轴取 −Z（TMP 的可见正面朝本地 −Z）**：用 `LookRotation(toCam, up)`会让
-                    // **+Z** 指向相机，等于把背面转向观察者 ⇒ 文字呈镜像/反向（第一版踩过）。
-                    // 故这里传 **−toCam**，使 **−Z**（正面）朝向相机。
-                    // up取世界上方向而非相机 up：相机在飘字上方俯视，跟随相机俯仰会让文字侧翻。
-                    // 相机恰在同高时退化（不写rotation）—— LookRotation 的退化轴在此无解。
-                    if (cam != null)
-                    {
-                        Vector3 toCam = cam.transform.position - pos;
-                        if (toCam.sqrMagnitude > 1e-6f)
-                            a.Tmp.transform.rotation = Quaternion.LookRotation(-toCam, Vector3.up);
-                    }
-
-                    float scale = pop * a.ScaleBoost * camScale;
-                    a.Tmp.transform.localScale = new Vector3(scale, scale, scale);
-                    a.Tmp.fontSize = a.FontSize;
-                    a.Tmp.color = new Color(a.R, a.G, a.B, alpha);
-                    _active[key] = a;                                        // 键经 TryGetValue 刚确认在册——纯值更新
+                    float d = Vector3.Distance(cam.transform.position, pos);
+                    camScale = Mathf.Clamp(d / CameraReferenceDistance, CameraScaleMin, CameraScaleMax);
                 }
-            }
-            finally
-            {
-                _ticking = false;
+
+                a.Tmp.transform.position = pos;
+
+                // **billboard：每帧把飘字转向渲染相机**（此前**从未写过 rotation**——底件
+                // `fx_damage_number.prefab` 只有 Transform+MeshRenderer+TextMeshPro 三个组件、
+                // 无 TMP_Billboard、初始旋转 identity，故 TMP 恒保持烘焙朝向）。
+                // 对局相机是 Cinemachine 轨道机（可旋转），烘焙朝向只在某机位下正确 ⇒ 飘字歪。
+                //
+                // **朝向轴取 −Z（TMP 的可见正面朝本地 −Z）**：用 `LookRotation(toCam, up)`会让
+                // **+Z** 指向相机，等于把背面转向观察者 ⇒ 文字呈镜像/反向（第一版踩过）。
+                // 故这里传 **−toCam**，使 **−Z**（正面）朝向相机。
+                // up取世界上方向而非相机 up：相机在飘字上方俯视，跟随相机俯仰会让文字侧翻。
+                // 相机恰在同高时退化（不写rotation）—— LookRotation 的退化轴在此无解。
+                if (cam != null)
+                {
+                    Vector3 toCam = cam.transform.position - pos;
+                    if (toCam.sqrMagnitude > 1e-6f)
+                        a.Tmp.transform.rotation = Quaternion.LookRotation(-toCam, Vector3.up);
+                }
+
+                float scale = pop * a.ScaleBoost * camScale;
+                a.Tmp.transform.localScale = new Vector3(scale, scale, scale);
+                a.Tmp.fontSize = a.FontSize;
+
+                // 颜色（批C：顶→底顶点渐变——**权威面**；四角含 alpha，淡出随顶点色全链生效——
+                // 已核 TMP_SDF.shader：顶点色 alpha 乘到最终输出，描边/光晕/软影一并淡出，不残留）。
+                // 上下同值即平色；`color` 平色写为诚实兜底（底件未开顶点渐变时仍按顶色 + alpha 淡出）。
+                Color top = new Color(a.TopR, a.TopG, a.TopB, alpha);
+                Color bottom = new Color(a.BottomR, a.BottomG, a.BottomB, alpha);
+                a.Tmp.colorGradient = new VertexGradient(top, top, bottom, bottom);
+                a.Tmp.color = top;
+                _active[key] = a;                                        // 键经 TryGetValue 刚确认在册——纯值更新
             }
         }
 

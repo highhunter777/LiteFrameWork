@@ -86,7 +86,7 @@ namespace LiteCodeGen.EditorTools
                 if (emitRegisterControl)
                 {
                     cb.Line();
-                    cb.Line("private void Awake()");
+                    cb.Line("protected override void CollectControls()");
                     cb.Open();
                     var registered = 0;
                     for (var i = 0; i < marks.Count; i++)

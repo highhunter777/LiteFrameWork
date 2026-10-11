@@ -87,13 +87,5 @@ namespace LiteView
             float dz = to.Z - from.Z;
             return dx * dx + dy * dy + dz * dz > snapDistance * snapDistance;
         }
-
-        /// <summary>平面（XZ）距离——俯视角相机夹取/吸附判据用；Y 不参与。</summary>
-        public static float PlanarDistance(in SimVector3 a, in SimVector3 b)
-        {
-            float dx = b.X - a.X;
-            float dz = b.Z - a.Z;
-            return (float)Math.Sqrt(dx * dx + dz * dz);
-        }
     }
 }

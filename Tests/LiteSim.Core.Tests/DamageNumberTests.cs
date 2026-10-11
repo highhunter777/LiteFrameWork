@@ -7,9 +7,10 @@ using Xunit;
 namespace LiteSim.Tests
 {
     /// <summary>
-    /// 伤害数字纯逻辑件验收（《命中反馈与伤害数字专项设计》批B §4.2/§8）：聚合器（合并窗口/爆头档分离/
-    /// 双钟分离/账实分离）、轨道数学（升浮单调、淡出线性、抖动包络、出场缩放、推挤确定性）、
-    /// 样式常量表（承受染红/爆头红与深红/按值分带）、K 简写格式化。纯规则、零引擎（源链接）。
+    /// 伤害数字纯逻辑件验收（《命中反馈与伤害数字专项设计》批B §4.2/§8；批C 扩样式渐变/材质档）：
+    /// 聚合器（合并窗口/爆头档分离/双钟分离/账实分离）、轨道数学（升浮单调、淡出线性、抖动包络、
+    /// 出场缩放、推挤确定性）、样式常量表（承受染红/爆头红与深红/按值分带/**顶亮底暗渐变与材质档**）、
+    /// K 简写格式化。纯规则、零引擎（源链接）。
     /// 断言口径：数值一律 Assert.True + 显式容差（xunit 的 Equal(float,float,tolerance) 语义是
     /// 容差不是精度位，易误读——统一手写差值判据，消息即判据文档）。
     /// </summary>
@@ -178,28 +179,61 @@ namespace LiteSim.Tests
 
         // ---- 样式 ----
 
+        /// <summary>顶色相对亮度（0.2126R+0.7152G+0.0722B——"明度分层"断言用）。</summary>
+        private static double TopLuminance(in DamageNumberStyle s)
+            => 0.2126 * s.TopR + 0.7152 * s.TopG + 0.0722 * s.TopB;
+
         [Fact]
-        public void 样式档_承受染红_造成白_爆头红与深红且放大()
+        public void 样式档_四档渐变与材质档_造成白_爆头亮红_承受暗砖红_深红()
         {
             var r = new DamageNumberStyleResolver();
 
             var caused = r.Resolve(10, HitLocalRole.Caused, crit: false);
-            Near(1f, caused.R, "造成档红分量 = 1（白）");
-            Near(1f, caused.G, "造成档绿分量 = 1（白）");
-            Near(1f, caused.B, "造成档蓝分量 = 1（白）");
+            Assert.Equal(DamageNumberTier.Caused, caused.Tier);
+            Assert.True(caused.TopR >= 0.99f && caused.TopG >= 0.99f && caused.TopB >= 0.99f, "造成档顶色近白");
+            Assert.True(caused.BottomR >= 0.8f && caused.BottomG >= 0.8f && caused.BottomB >= 0.8f,
+                "造成档底色仍白（浅冷灰——渐变不换色相）");
 
+            // 承受 = 暗砖红（两端都红主导；顶亮度低于爆头档的"亮红"）
             var received = r.Resolve(10, HitLocalRole.Received, crit: false);
-            Assert.True(received.R > received.G + 0.5f, "承受档染红（红分量显著高于绿）");
+            Assert.Equal(DamageNumberTier.Received, received.Tier);
+            Assert.True(received.TopR > received.TopG + 0.4f, "承受档顶色染红（砖红）");
+            Assert.True(received.BottomR > received.BottomG + 0.4f, "承受档底色染红");
 
-            // 爆头 = **亮红**（玩家口径"爆头飘字要红"）：红占绝对主导，且与承受档的暗砖红靠明度区分
+            // 爆头 = **亮红**（玩家口径"爆头飘字要红"，批C 复核保留）：红占绝对主导，且顶亮度显著高于承受档
             var critCaused = r.Resolve(10, HitLocalRole.Caused, crit: true);
-            Assert.True(critCaused.R > critCaused.G + 0.5f, "造成爆头 = 红（红分量显著高于绿）");
-            Assert.True(critCaused.G < received.G, "爆头亮红的绿分量低于承受暗砖红（明度分层：爆头更亮）");
+            Assert.Equal(DamageNumberTier.CausedCrit, critCaused.Tier);
+            Assert.True(critCaused.TopR > critCaused.TopG + 0.5f, "造成爆头 = 红（红分量显著高于绿）");
+            Assert.True(TopLuminance(critCaused) > TopLuminance(received),
+                "爆头亮红顶部亮度高于承受暗砖红（明度分层：爆头更亮）");
             Assert.True(critCaused.FontSize > caused.FontSize, "暴击放大字号");
 
             var critReceived = r.Resolve(10, HitLocalRole.Received, crit: true);
+            Assert.Equal(DamageNumberTier.ReceivedCrit, critReceived.Tier);
+            Assert.True(critReceived.TopR > critReceived.TopG + 0.5f, "承受爆头 = 深红");
+            Assert.True(TopLuminance(critReceived) < TopLuminance(received), "承受爆头比承受档更深（亮度更低）");
             Assert.True(critReceived.FontSize > received.FontSize, "承受暴击同放大");
-            Assert.True(critReceived.R > critReceived.G + 0.7f, "承受暴击 = 深红");
+        }
+
+        [Fact]
+        public void 样式_全档顶亮底暗_各通道单调下渐_同色系明度差不换色相()
+        {
+            var r = new DamageNumberStyleResolver();
+            DamageNumberStyle[] all =
+            {
+                r.Resolve(10, HitLocalRole.Caused, crit: false),
+                r.Resolve(10, HitLocalRole.Caused, crit: true),
+                r.Resolve(10, HitLocalRole.Received, crit: false),
+                r.Resolve(10, HitLocalRole.Received, crit: true),
+            };
+
+            foreach (DamageNumberStyle s in all)
+            {
+                Assert.True(TopLuminance(s) > 0.2126 * s.BottomR + 0.7152 * s.BottomG + 0.0722 * s.BottomB,
+                    $"{s.Tier} 档顶亮底暗（光源在上——DNP Gold 同向）");
+                Assert.True(s.TopR >= s.BottomR && s.TopG >= s.BottomG && s.TopB >= s.BottomB,
+                    $"{s.Tier} 档各通道顶 ≥ 底（明度差渐变，不换色相）");
+            }
         }
 
         [Theory]
@@ -221,7 +255,7 @@ namespace LiteSim.Tests
             var r = new DamageNumberStyleResolver();
             var big = r.Resolve(100, HitLocalRole.Caused, crit: false);
             Near(1.20f, big.ScaleBoost, "大伤害（≥100）带缩放");
-            Near(1f, big.R, "色仍白（分带缩放与角色档正交）");
+            Near(1f, big.TopR, "色仍白（分带缩放与角色档正交）");
         }
 
         // ---- 轨道数学 ----

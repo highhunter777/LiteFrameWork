@@ -22,8 +22,4 @@ function M:OnHide()
     log.info("UIMain:OnHide")
 end
 
-function M:OnClick(btnId)
-    log.info("UIMain:OnClick " .. tostring(btnId))
-end
-
 return M

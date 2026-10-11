@@ -228,12 +228,6 @@ namespace LiteSim
             dst._nextFree = _nextFree;
         }
 
-        /// <summary>活体槽位零分配遍历（#9）：升序跳空槽，顺序恒定。</summary>
-        public EntityIt IterateAlive()
-        {
-            return new EntityIt(this);
-        }
-
         /// <summary>
         /// 外部重建态（客户端快照和解）的**分配器状态修复**：把位图/槽位设好后调用。
         /// 两件事：① 逐活体槽位把 <c>_versions</c> 从 <c>Id &gt;&gt; 16</c> 反推回来——

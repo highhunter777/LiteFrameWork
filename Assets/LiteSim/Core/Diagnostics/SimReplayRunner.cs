@@ -115,6 +115,9 @@ namespace LiteSim
             var map = new SimMapData();
             record.Map.CopyTo(map);
 
+            // 测试规则随装载值回放（进房初值进 CombatValues——重放对账同口径；中局开合不可重放，与既有口径一致）
+            var rules = new MatchTestRules { NoDeath = values.NoDeath, InfiniteAmmo = values.InfiniteAmmo };
+
             var result = new Result
             {
                 RecordedFrames = record.FrameCount,
@@ -131,7 +134,7 @@ namespace LiteSim
                 // 直接喂记录内部数组会改写记录（回放不可重复）。这是本类最易踩的坑。
                 Array.Copy(inputs, buffer, record.PlayerCount);
 
-                SimStep.Step(state, map, buffer, values, weapons);
+                SimStep.Step(state, map, buffer, values, weapons, rules: rules);
                 result.ReplayedFrames++;
 
                 uint actual = SimChecksum.ComputeChecksum(state);
@@ -166,6 +169,7 @@ namespace LiteSim
             record.InitialState.CopyTo(state);
             var map = new SimMapData();
             record.Map.CopyTo(map);
+            var rules = new MatchTestRules { NoDeath = values.NoDeath, InfiniteAmmo = values.InfiniteAmmo };   // 随装载值回放（同 ReplayCore 口径）
 
             var actual = new List<uint>(record.FrameCount);
             var buffer = new SimInputFrame[record.PlayerCount];
@@ -174,7 +178,7 @@ namespace LiteSim
             {
                 record.TryGetFrame(i, out SimInputFrame[] inputs, out uint expected);
                 Array.Copy(inputs, buffer, record.PlayerCount);
-                SimStep.Step(state, map, buffer, values, weapons);
+                SimStep.Step(state, map, buffer, values, weapons, rules: rules);
 
                 uint c = SimChecksum.ComputeChecksum(state);
                 actual.Add(c);

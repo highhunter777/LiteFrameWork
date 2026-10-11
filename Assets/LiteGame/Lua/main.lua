@@ -3,7 +3,6 @@
 -- Windows 下 require 不区分；跨平台打包前（M6）统一为小写。
 
 require("Core.class")
-require("Core.eventer")
 
 -- 单界面逻辑表（M4 UI 壳消费；M3 验收 = 可寻址、可 require）
 UI = UI or {}

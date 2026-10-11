@@ -24,8 +24,6 @@ namespace LiteFramework
             public ServiceLifetime Lifetime;
         }
 
-        public static bool EnableRegistrationTrace;
-
         private readonly Dictionary<Type, Entry> _entries = new();
         private readonly List<Entry> _order = new();
         private IReadOnlyList<ITickable> _tickables = Array.Empty<ITickable>();
@@ -127,8 +125,6 @@ namespace LiteFramework
                 throw new InvalidOperationException($"父域已注册:{entry.Interface.Name}——子域不得覆盖 Root 服务");
             _entries.Add(entry.Interface, entry);
             _order.Add(entry);
-            if (EnableRegistrationTrace)
-                Log.Info($"{entry.Interface.Name} → {(entry.Impl != null ? entry.Impl.Name : "(实例/工厂)")}", "DI");
         }
 
         public T Resolve<T>() => (T)Resolve(typeof(T));

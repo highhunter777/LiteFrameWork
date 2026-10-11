@@ -82,11 +82,18 @@ namespace RoomServer.Runtime
         /// <summary>最近一次 Tick 携带的单调毫秒（seed 派生/批② 超时判定的时间来源）。</summary>
         private long _lastNowMs;
 
+        /// <summary>测试房规则持有件（null = 常规对局）——与客户端预测同实例（GM 中局开合两端同值）。</summary>
+        private readonly MatchTestRules _testRules;
+
         // ---- Ops 计数 ----
         public long StepsCount;
         public long FireInputsProcessed;        // 走回溯路径的开火输入数
 
-        public RoomRuntime(RoomConfig config, CombatValues? combat = null, WeaponTable weapons = null, string matchId = null)
+        /// <summary><paramref name="testRules"/> = 测试房规则持有件（LiteGame 本地服形态注入；
+        /// null = 常规对局——免死/无限子弹关闭）。进 <see cref="FixedCombatConfig"/> 摘要的初值由装配方
+        /// 在 <paramref name="combat"/> 里盖章（测试房），运行态读持有件（GM 中局开合同实例生效）。</summary>
+        public RoomRuntime(RoomConfig config, CombatValues? combat = null, WeaponTable weapons = null, string matchId = null,
+            MatchTestRules testRules = null)
         {
             Config = config ?? throw new ArgumentNullException(nameof(config));
             RoomId = config.RoomId;
@@ -95,6 +102,7 @@ namespace RoomServer.Runtime
             // （嵌入式/测试形态）。生产链：HostAssembly.Inputs（必填）→ ServerHost → RoomInstance。
             CombatValues values = combat ?? CombatValues.Default;
             WeaponTable table = weapons ?? WeaponTable.Default;
+            _testRules = testRules;
             FixedConfig = FixedCombatConfig.Capture(values, table);   // 房间创建时固定（此后进程任何变化不改本房间）
             Rules = new MatchRules(config.Rules.DurationFrames, config.Rules.KillLimit,
                 config.Rules.RespawnDelayFrames, config.Rules.SpawnProtectionFrames);
@@ -403,7 +411,7 @@ namespace RoomServer.Runtime
                 if (_hasPendingFire[i]) _frameInputs[i].Buttons |= SimInputFrame.ButtonDeferHit;
             }
 
-            SimStep.Step(AuthSim, Map, _frameInputs, FixedConfig.Values, FixedConfig.Weapons, advanceMatch: false);
+            SimStep.Step(AuthSim, Map, _frameInputs, FixedConfig.Values, FixedConfig.Weapons, advanceMatch: false, rules: _testRules);
             StepsCount++;
             // 只有通过本帧武器门并产 Fire 的请求可回溯；空仓/冷却/死亡输入不能旁路资源门。
             for (int i = 0; i < ExpectedPlayers; i++)

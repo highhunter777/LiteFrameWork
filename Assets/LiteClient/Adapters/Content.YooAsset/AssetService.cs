@@ -51,8 +51,6 @@ namespace LiteClient
         {
             if (s_initialized) return;
 
-            UnityEngine.Debug.Log($"[Asset] init begin root={(string.IsNullOrEmpty(builtinPackageRoot) ? "builtin" : builtinPackageRoot)}");   // 临时诊断
-
 #if UNITY_EDITOR
             if (!YooAssets.IsInitialized) YooAssets.Initialize();
             if (!YooAssets.TryGetPackage(packageName, out var package))
@@ -93,8 +91,9 @@ namespace LiteClient
             await manifestOp.AsUniTask(ct);
 
             s_initialized = true;
-            UnityEngine.Debug.Log($"[Asset] ready package={packageName} version={package.GetPackageVersion()} root={(string.IsNullOrEmpty(builtinPackageRoot) ? "builtin" : builtinPackageRoot)}");   // 临时诊断：冒烟标记（与 Log.Info 双打）
-            Log.Info($"AssetService 就绪:package \"{packageName}\" version {package.GetPackageVersion()}", "Asset");
+            // 冒烟标记（player-smoke.ps1 判据）：release Player 下 Log.Info 不落 Player.log，
+            // 健康分支须用 Debug.Log 直打——非诊断残留，勿删（C1-⑩ 口径）。
+            UnityEngine.Debug.Log($"[Asset] ready package={packageName} version={package.GetPackageVersion()} root={(string.IsNullOrEmpty(builtinPackageRoot) ? "builtin" : builtinPackageRoot)}");
         }
 
         /// <summary>加载资源对象。失败抛（含 location），句柄内部 Release。</summary>

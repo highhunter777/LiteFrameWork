@@ -7,13 +7,15 @@ namespace LiteSim
     /// 帧事件不在此清空——由驱动在消费后清。
     /// **玩法数值实例 <paramref name="values"/> 与武器表实例 <paramref name="weapons"/> 由调用方显式传入**
     /// （技术债 #1：不再读全局静态——服务端传房间快照值、客户端传装载实例、测试自由构造；系统签名见各 Run）。
+    /// 测试规则持有件 <paramref name="rules"/> 同链注入（null = 无测试规则——免死/无限子弹关闭；
+    /// 确定性系统不读静态，见 <see cref="MatchTestRules"/>）。
     /// 注意：inputs 会被**就地按 EntityId 升序稳定排序**（§3.3"同帧多请求按 playerId 升序"，
     /// 由此乱序输入与升序输入结果一致——数组顺序不是处理顺序的来源）。
     /// </summary>
     public static class SimStep
     {
         public static void Step(SimWorldState s, in SimMapData map, SimInputFrame[] inputs, in CombatValues values,
-            WeaponTable weapons, bool advanceMatch = true)
+            WeaponTable weapons, bool advanceMatch = true, MatchTestRules rules = null)
         {
             if (s.Match.Phase == SimMatchPhase.Finished) { s.Cmds.Clear(); return; } // lint-allow R3（整数阶段）
             SortInputs(inputs);
@@ -22,10 +24,10 @@ namespace LiteSim
 
             InputSystem.Run(s, inputs, values);
             MovementSystem.Run(s.Entities, s.AliveBitmap, map, values);
-            WeaponSystem.Run(s, inputs, weapons);         // 武器：懒装备/换弹与切枪到帧推进/切枪·换弹请求/半自动重臂（节拍与弹匣在 ShootingSystem 经 TryConsumeShot 消费）
-            ShootingSystem.Run(s, map, inputs, values, weapons);   // 射击判定参与障碍遮挡（SimRaycast 单源——子弹不穿墙；散布偏转 + 多弹丸）
+            WeaponSystem.Run(s, inputs, weapons, rules);   // 武器：懒装备/换弹与切枪到帧推进/切枪·换弹请求/半自动重臂（节拍与弹匣在 ShootingSystem 经 TryConsumeShot 消费）
+            ShootingSystem.Run(s, map, inputs, values, weapons, rules);   // 射击判定参与障碍遮挡（SimRaycast 单源——子弹不穿墙；散布偏转 + 多弹丸）
 
-            FlushCommands(s); // 伤害结算经命令缓冲（当帧延迟，§3.7）
+            FlushCommands(s, rules); // 伤害结算经命令缓冲（当帧延迟，§3.7）
 
             CleanupSystem.Run(s);
 
@@ -39,7 +41,7 @@ namespace LiteSim
         /// 空轮无任何效果，提前收敛与固定跑满 3 轮等价（确定性不受影响）。
         /// 第一轮处理伤害，下一轮消费死亡产生的 Kill；其余命令类型由后续系统接入。
         /// </summary>
-        public static void FlushCommands(SimWorldState s)
+        public static void FlushCommands(SimWorldState s, MatchTestRules rules = null)
         {
             int start = 0;
             for (int round = 0; round < 3; round++)
@@ -47,7 +49,7 @@ namespace LiteSim
                 int end = s.Cmds.Count;
                 if (end <= start) break;
 
-                DamageSystem.Run(s, start, end);
+                DamageSystem.Run(s, start, end, rules);
                 ScoreSystem.Run(s, start, end);
                 start = end;
             }
