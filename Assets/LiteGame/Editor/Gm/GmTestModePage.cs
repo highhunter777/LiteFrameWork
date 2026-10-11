@@ -23,6 +23,7 @@ namespace LiteGame.Editor
         public void Draw()
         {
             DrawTestModeSection();
+            DrawBotOpsBlock();
             DrawHeadTuneBlock();
             DrawGripTuneBlock();
         }
@@ -74,6 +75,27 @@ namespace LiteGame.Editor
             if (Application.isPlaying
                 && UnityEngine.Object.FindObjectsByType<DebugTuner>(FindObjectsInactive.Exclude, FindObjectsSortMode.None).Length == 0)
                 EditorGUILayout.HelpBox("场景未挂 DebugTuner：启动配置不可用（进房套默认口径），时钟旋钮也不生效。", MessageType.Warning);
+        }
+
+        // ---- bot 操作（测试房补位假人：重置 + 无限生命开关指引）----
+
+        private static void DrawBotOpsBlock()
+        {
+            EditorGUILayout.Space(6);
+            EditorGUILayout.LabelField("bot 操作", EditorStyles.boldLabel);
+            using (new EditorGUILayout.HorizontalScope())
+            {
+                if (GUILayout.Button("重置假人（满血回出生点）")) LiteSim.SimTestRules.BotResetRequested = true;
+            }
+            EditorGUILayout.LabelField(
+                "「bot 无限生命」开关在上方「现场开关」清单（当前 "
+                + (TestModeRuntime.BotInfiniteHp ? "开" : "关")
+                + "）——开启后假人每帧回满、永不死（命中/飘字反馈照常）；两项都只作用于补位假人。",
+                EditorStyles.wordWrappedLabel);
+            EditorGUILayout.HelpBox(
+                "重置假人：对局内即点即生效（本地服权威侧满血回出生点 + 动画按新生命退出死亡叶，不用重进房）；"
+                + "未在对局中点击会挂起到进房后执行。",
+                MessageType.Info);
         }
 
         // ---- 爆头区实时调（运行态覆写；判定与身位可视化同读注入实例）----

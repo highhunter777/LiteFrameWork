@@ -25,6 +25,7 @@ namespace LiteGame
             DrawHeadshotDebug,
             TeleportEnabled,
             BotFrozen,
+            BotInfiniteHp,
         }
 
         /// <summary>生效方式分组。</summary>
@@ -64,6 +65,7 @@ namespace LiteGame
             new Info(Id.DrawHeadshotDebug, "爆头区域可视化（服务端判定圆柱 + 爆头带）", Group.Live, false),
             new Info(Id.TeleportEnabled, "定点传送（T 键 / 面板按钮 → 准心点）", Group.Startup, true),
             new Info(Id.BotFrozen, "bot 冻结（权威侧位置每帧回写）", Group.Startup, false),
+            new Info(Id.BotInfiniteHp, "bot 无限生命（权威侧每帧回满——假人永不死；命中/飘字反馈照常）", Group.Live, false),
         };
 
         /// <summary>读当前值（运行时快照）。</summary>
@@ -79,6 +81,7 @@ namespace LiteGame
                 case Id.DrawHeadshotDebug: return TestModeRuntime.DrawHeadshotDebug;
                 case Id.TeleportEnabled: return TestModeRuntime.TeleportEnabled;
                 case Id.BotFrozen: return TestModeRuntime.BotFrozen;
+                case Id.BotInfiniteHp: return TestModeRuntime.BotInfiniteHp;
                 default: return false;
             }
         }
@@ -96,6 +99,7 @@ namespace LiteGame
                 case Id.DrawHeadshotDebug: TestModeRuntime.DrawHeadshotDebug = value; break;
                 case Id.TeleportEnabled: TestModeRuntime.TeleportEnabled = value; break;
                 case Id.BotFrozen: TestModeRuntime.BotFrozen = value; break;
+                case Id.BotInfiniteHp: TestModeRuntime.BotInfiniteHp = value; break;
             }
 
             // 副作用：无限子弹写**当前活动局**的规则持有件（客户端预测与本地服同实例——同进程两端同值；
@@ -103,6 +107,11 @@ namespace LiteGame
             // 时只记 TestModeRuntime 初值，下次进房生效。
             if (id == Id.InfiniteAmmo && TestModeRuntime.Active && LiteSim.SimTestRules.ActiveMatch != null)
                 LiteSim.SimTestRules.ActiveMatch.InfiniteAmmo = value;
+
+            // bot 无限生命（Live）：同步写宿主钩子（本地服宿主循环读取——同帧起效；进房镜像兜底在
+            // ProcedureMatch）。非测试模式一律不武装（同 InfiniteAmmo 口径）。
+            if (id == Id.BotInfiniteHp)
+                LiteSim.SimTestRules.BotInfiniteHp = TestModeRuntime.Active && value;
         }
 
         /// <summary>套本表默认口径（<see cref="TestModeRuntime.ApplyDefaults"/> 的数据源）。</summary>

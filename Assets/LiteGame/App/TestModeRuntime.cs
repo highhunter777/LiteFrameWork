@@ -20,6 +20,7 @@ namespace LiteGame
         public static bool AutoHeadshot;            // 爆头自动验证（替换输入源自动打爆头；运行中可切）
         public static bool TeleportEnabled = true;  // 定点传送（T 键 / GM 面板 → 准心点）
         public static bool BotFrozen;               // bot 冻结（权威侧位置每帧回写）
+        public static bool BotInfiniteHp;           // bot 无限生命（权威侧每帧回满——假人永不死；命中/飘字反馈照常）
         public static int BotCount = 1;             // 补位bot 数量（总席位 = 1 + BotCount）
 
         /// <summary>爆头带试验覆写的**跨局待用值**（&lt; 0 = 不覆写）：GM 面板滑杆/爆头带调带工具在**无活动局**
@@ -40,6 +41,8 @@ namespace LiteGame
         public static bool EnterRequested;          // 进入测试模式（主菜单消费 → 进测试房）
         public static bool ExitRequested;           // 退出测试模式（对局内 = 请求离场并关模式）
         public static bool TeleportRequested;       //「传送到准心」请求（流程解析目标 → SimTestRules 分发）
+        // 「重置假人」是一次性宿主钩子（SimTestRules.BotResetRequested，面板直写、本地服消费即清）——
+        // 宿主不持本类的引用（程序集方向），故不在此设桥。
 
         /// <summary>默认口径（未挂 DebugTuner 时的进房兜底）：数据源是 <see cref="TestModeOptions.All"/>（单一来源）。</summary>
         public static void ApplyDefaults()

@@ -71,6 +71,9 @@ namespace LiteGame
         /// <summary>测试房规则持有件（null = 常规对局）——盖初值进数值快照 + 注入权威步进。</summary>
         private readonly MatchTestRules _testRules;
 
+        /// <summary>满血基准（bot 无限生命/重置假人的回满值——与房间构造取值同口径 combat ?? Default）。</summary>
+        private readonly int _botRefillHp;
+
         /// <param name="roomConfig">房间配置（人数/种子/时限——与真服务端同类型）。</param>
         /// <param name="testRules">测试房规则持有件（null = 常规对局）——盖初值进数值快照 + 注入权威步进。</param>
         public LocalServerTransport(RoomConfig roomConfig, MatchTestRules testRules = null)
@@ -87,6 +90,7 @@ namespace LiteGame
                 combat = stamped;
             }
             _runtime = new RoomRuntime(roomConfig, combat, testRules: testRules);
+            _botRefillHp = (combat ?? CombatValues.Default).EntityHp;   // 与 RoomRuntime 取值同口径（combat ?? Default）
             _seats = new Session[_runtime.ExpectedPlayers];
             _pipeline = new SnapshotPipeline(_seats)
             {
@@ -179,25 +183,12 @@ namespace LiteGame
             FlushOutbox();
         }
 
-        /// <summary>输入包：proto → 纯数据（与 ServerHost.HandleInput 同口径——Runtime 不见 proto）。</summary>
+        /// <summary>输入包：proto → 纯数据。**逐字段映射与真服同一份单源**
+        /// （<see cref="InputPacker.UnpackFrames"/>——P0-3：此处曾与 ServerHost 各手抄一份，
+        /// AimPoint 六字段漂移过一次，且本地服"照常工作"掩盖了真服断点）。</summary>
         private void HandleInput(InputMessage msg)
         {
-            int raw = msg.Frames.Count;
-            int copy = raw <= ClientInputBatch.MaxFrames ? raw : ClientInputBatch.MaxFrames;
-            for (int i = 0; i < copy; i++)
-            {
-                InputFrame f = msg.Frames[i];
-                _batchFrames[i] = new SimInputFrame
-                {
-                    EntityId = f.EntityId,
-                    MoveX = f.MoveX, MoveZ = f.MoveZ,
-                    AimPointX = f.AimPointX, AimPointY = f.AimPointY, AimPointZ = f.AimPointZ,
-                    Buttons = f.Buttons,
-                    SelectedWeaponSlot = f.SelectedWeaponSlot,
-                    TargetEntityId = f.TargetEntityId,
-                    ActionSeq = f.ActionSeq,
-                };
-            }
+            int raw = InputPacker.UnpackFrames(msg, _batchFrames);
             _inputBatch.Frame = msg.Frame;
             _inputBatch.AckSnapshot = msg.AckSnapshot;
             _inputBatch.ViewFrame = msg.ViewFrame;
@@ -234,9 +225,10 @@ namespace LiteGame
             }
         }
 
-        /// <summary>测试模式钩子（本地服 = 权威侧）：bot 冻结（位置回写进房快照）与传送分发
-        /// （本地玩家实体移到准心目标点；客户端经快照硬切对齐）。规则读 <see cref="SimTestRules"/>
-        /// （LiteSim.Core——本节与宿主同程序集可见；默认 false 即无操作）。</summary>
+        /// <summary>测试模式钩子（本地服 = 权威侧）：bot 冻结（位置回写进房快照）、传送分发、
+        /// **bot 无限生命（每帧回满）**与**重置假人**（满血回出生点+新生命）。
+        /// 规则读 <see cref="SimTestRules"/> 宿主钩子与 <see cref="TestModeRuntime"/> 现场开关
+        /// （均为开发面静态，读取方=宿主循环非判定路径；写入的 Sim 字段照常进快照/校验——两端一致）。</summary>
         private void ApplyTestModeOverrides()
         {
             if (!SimTestRules.Active || !_joined) return;
@@ -261,6 +253,58 @@ namespace LiteGame
                 if (id != 0 && sim.TryResolve(id, out int slot))
                     sim.Entities[slot].Pos = SimTestRules.TeleportTarget;
             }
+
+            // bot 无限生命（GM 现场开关，Live）：补位席位每帧回满——单帧伤害量恒小于满血 ⇒ 永不跨死线
+            // （命中/飘字反馈走命中链不经 HP）。已死（尸体期 Hp≤0）者跳过——让它走完复活链自然回满：
+            // 直写 HP 复活会绕过 RespawnSystem 的"生命更替"语义（动画侧按 LifeStartFrame 判复活）。
+            if (SimTestRules.BotInfiniteHp)
+            {
+                for (int p = 0; p < _runtime.ExpectedPlayers; p++)
+                {
+                    if (p == _playerId) continue;
+                    long id = _runtime.EntityIdOf(p);
+                    if (id == 0 || !sim.TryResolve(id, out int slot)) continue;
+                    ref EntitySlot e = ref sim.Entities[slot];
+                    if (e.Hp > 0) e.Hp = _botRefillHp;
+                }
+            }
+
+            // 「重置假人」（GM 现场操作）：补位席位满血回出生点、清死亡/尸体/复活账——等效"重新生成一个干净假人"。
+            // 生命起始帧改写 ⇒ 视图侧死亡锁存按"新生命"复位（动画退出死亡叶，不用重进房）。
+            if (SimTestRules.BotResetRequested)
+            {
+                SimTestRules.BotResetRequested = false;
+                for (int p = 0; p < _runtime.ExpectedPlayers; p++)
+                {
+                    if (p == _playerId) continue;
+                    long id = _runtime.EntityIdOf(p);
+                    if (id == 0 || !sim.TryResolve(id, out int slot)) continue;
+                    ResetBotSeat(sim, slot);
+                }
+            }
+        }
+
+        /// <summary>席位复位为"新生命"（重置假人用——镜像 RespawnSystem 的复活写法：保留 Id/K/D 与
+        /// 出生点索引，满血回出生点，清战斗运行态与死亡/尸体/复活账；`LifeStartFrame` 更新为当前帧
+        /// ⇒ 视图/动画侧按"新生命"复位死亡锁存（<c>CharacterLocomotionDriver</c> 的复活判据）。</summary>
+        private void ResetBotSeat(SimWorldState sim, int slot)
+        {
+            ref EntitySlot e = ref sim.Entities[slot];
+            long id = e.Id;
+            int kills = e.Kills, deaths = e.Deaths, spawnIndex = e.SpawnPointIndex;
+            SimMapData map = _runtime.Map;
+            sim.ResetCombatRuntime(slot);
+            e = new EntitySlot
+            {
+                Id = id,
+                Hp = _botRefillHp,
+                Kills = kills,
+                Deaths = deaths,
+                Flags = EntityFlags.Player,
+                SpawnPointIndex = spawnIndex,
+                Pos = map.SpawnPoints[spawnIndex],
+                LifeStartFrame = sim.Frame,
+            };
         }
 
         /// <summary>权威步进（`RoomClient.TickOutgoing` → 这里 → 内核与快照）。</summary>

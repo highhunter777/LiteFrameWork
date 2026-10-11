@@ -131,9 +131,11 @@ namespace LiteGame
                 HeadshotRadiusOverride = TestModeRuntime.HeadshotRadiusOverride,
             };
             LiteSim.SimTestRules.ActiveMatch = rules;             // 活动局登记口（GM 中局开合的写通道；判定路径不读）
-            LiteSim.SimTestRules.Active = testRoom;                // 宿主钩子（冻结/传送）开关
+            LiteSim.SimTestRules.Active = testRoom;                // 宿主钩子（冻结/传送/假人操作）开关
             LiteSim.SimTestRules.BotFrozen = testRoom && TestModeRuntime.BotFrozen;
+            LiteSim.SimTestRules.BotInfiniteHp = testRoom && TestModeRuntime.BotInfiniteHp;   // 进房初值镜像（Live 开关另有 Set 时镜像）
             LiteSim.SimTestRules.TeleportDispatch = false;         // 进房清残留请求
+            LiteSim.SimTestRules.BotResetRequested = false;        // 同上（进房前的面板误点不带到对局）
             if (testRoom || DebugTuner.UseLocalServerEnabled)
             {
                 UnityEngine.Debug.Log(testRoom
@@ -150,20 +152,12 @@ namespace LiteGame
         }
 
         /// <summary>等 JoinAck（RoomClient 相位 Idle → Connected；超时 = 确定失败态）。</summary>
-        private static async UniTask WaitJoined(BattleClient battle, CancellationToken ct)
-        {
-            var joined = new UniTaskCompletionSource();
-            void Handler(JoinAck _) => joined.TrySetResult();
-            battle.Client.OnJoinAck += Handler;
-            try
-            {
-                await joined.Task.AttachExternalCancellation(ct)
-                    .Timeout(TimeSpan.FromMilliseconds(JoinTimeoutMs));
-            }
-            finally
-            {
-                battle.Client.OnJoinAck -= Handler;       // 临时订阅必须退——持久订阅归 BattleContext
-            }
-        }
+        private static UniTask WaitJoined(BattleClient battle, CancellationToken ct)
+            => StageSignal.Wait<JoinAck>(
+                h => battle.Client.OnJoinAck += h,
+                h => battle.Client.OnJoinAck -= h,       // 临时订阅必须退——持久订阅归 BattleContext
+                alreadyDone: false,
+                ct,
+                timeoutMs: JoinTimeoutMs);
     }
 }
