@@ -90,9 +90,9 @@ namespace LiteView.DamageNumbers
         public static readonly DamageNumberStyle CausedCritRed =
             new DamageNumberStyle(1f, 0.36f, 0.24f, 0.88f, 0.05f, 0.04f, 6.5f, 1f, DamageNumberTier.CausedCrit);
 
-        /// <summary>承受 = **暗砖红**（顶暗砖 → 底更深——整体明度低于爆头档）。</summary>
+        /// <summary>承受 = **暗砖红**（顶暗砖 → 底更深——整体明度低于爆头档、仍有清晰读数）。</summary>
         public static readonly DamageNumberStyle ReceivedRed =
-            new DamageNumberStyle(0.85f, 0.26f, 0.20f, 0.55f, 0.08f, 0.06f, 5f, 1f, DamageNumberTier.Received);
+            new DamageNumberStyle(0.95f, 0.30f, 0.24f, 0.62f, 0.10f, 0.08f, 5f, 1f, DamageNumberTier.Received);
 
         /// <summary>承受爆头 = **深红**（四档中最深——靠字号 + 抖动 + 深红光晕材质识别）。</summary>
         public static readonly DamageNumberStyle ReceivedCritDeepRed =
