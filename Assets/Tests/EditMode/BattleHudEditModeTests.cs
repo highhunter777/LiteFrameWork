@@ -4,6 +4,7 @@ using LiteTesting.Unity;
 using NUnit.Framework;
 using TMPro;
 using UnityEngine;
+using UnityEngine;
 using UnityEngine.UI;
 
 namespace LiteGame.Tests.EditMode
@@ -16,22 +17,23 @@ namespace LiteGame.Tests.EditMode
     /// </summary>
     public sealed class BattleHudEditModeTests : UnityTestBase
     {
-        private (CanvasGroup Panel, Image Fill, TextMeshProUGUI Hp, TextMeshProUGUI Ammo, GameObject Reload) BuildPanel()
+        private (CanvasGroup Panel, Slider Bar, TextMeshProUGUI Hp, TextMeshProUGUI Ammo, GameObject Reload) BuildPanel()
         {
             GameObject panelGo = Scope.CreateGameObject("Panel", typeof(RectTransform), typeof(CanvasGroup));
-            GameObject fillGo = Scope.CreateGameObject("Fill", typeof(RectTransform), typeof(Image));
-            fillGo.GetComponent<Image>().type = Image.Type.Filled;
+            GameObject barGo = Scope.CreateGameObject("Bar", typeof(RectTransform), typeof(Slider));
+            var bar = barGo.GetComponent<Slider>();
+            bar.interactable = false;
             GameObject hpGo = Scope.CreateGameObject("HP", typeof(RectTransform), typeof(TextMeshProUGUI));
             GameObject ammoGo = Scope.CreateGameObject("Ammo", typeof(RectTransform), typeof(TextMeshProUGUI));
             GameObject reloadGo = Scope.CreateGameObject("Reload", typeof(RectTransform));
             reloadGo.SetActive(false);
-            return (panelGo.GetComponent<CanvasGroup>(), fillGo.GetComponent<Image>(),
+            return (panelGo.GetComponent<CanvasGroup>(), bar,
                 hpGo.GetComponent<TextMeshProUGUI>(), ammoGo.GetComponent<TextMeshProUGUI>(), reloadGo);
         }
 
         private static BattleHudDriver BuildDriver(SimWorldState world, long selfId,
-            CanvasGroup panel, Image fill, TextMeshProUGUI hp, TextMeshProUGUI ammo, GameObject reload)
-            => new BattleHudDriver(world, () => selfId, panel, fill, hp, ammo, reload);
+            CanvasGroup panel, Slider bar, TextMeshProUGUI hp, TextMeshProUGUI ammo, GameObject reload)
+            => new BattleHudDriver(world, () => selfId, panel, bar, hp, ammo, reload);
 
         [Test]
         [Category(TestCategory.Contract)]
@@ -39,18 +41,18 @@ namespace LiteGame.Tests.EditMode
         {
             var world = new SimWorldState { RngState = 1UL };
             long selfId = world.Spawn(new EntitySlot { Hp = 100, Pos = new SimVector3(0f, 0f, 0f) }, out int slot);
-            var (panel, fill, hp, ammo, reload) = BuildPanel();
-            var driver = BuildDriver(world, selfId, panel, fill, hp, ammo, reload);
+            var (panel, bar, hp, ammo, reload) = BuildPanel();
+            var driver = BuildDriver(world, selfId, panel, bar, hp, ammo, reload);
 
             driver.Tick();
             Assert.AreEqual("100", hp.text);
-            Assert.AreEqual(1f, fill.fillAmount, 0.0001f);
+            Assert.AreEqual(1f, bar.value, 0.0001f);
 
             hp.text = "sentinel";                       // 下一帧同值必须跳过（不重写）
             world.Entities[slot].Hp = 73;
             driver.Tick();
             Assert.AreEqual("73", hp.text);             // 值变化才重写
-            Assert.AreEqual(0.73f, fill.fillAmount, 0.01f);
+            Assert.AreEqual(0.73f, bar.value, 0.01f);
         }
 
         [Test]
@@ -59,8 +61,8 @@ namespace LiteGame.Tests.EditMode
         {
             var world = new SimWorldState { RngState = 1UL };
             long selfId = world.Spawn(new EntitySlot { Hp = 100, Pos = new SimVector3(0f, 0f, 0f) }, out int slot);
-            var (panel, fill, hp, ammo, reload) = BuildPanel();
-            var driver = BuildDriver(world, selfId, panel, fill, hp, ammo, reload);
+            var (panel, bar, hp, ammo, reload) = BuildPanel();
+            var driver = BuildDriver(world, selfId, panel, bar, hp, ammo, reload);
 
             driver.Tick();
             Assert.AreEqual("--", ammo.text);           // 未装备（懒装备前）
@@ -83,8 +85,8 @@ namespace LiteGame.Tests.EditMode
         {
             var world = new SimWorldState { RngState = 1UL };
             world.Spawn(new EntitySlot { Hp = 100, Pos = new SimVector3(0f, 0f, 0f) }, out _);
-            var (panel, fill, hp, ammo, reload) = BuildPanel();
-            var driver = BuildDriver(world, 0L, panel, fill, hp, ammo, reload);   // Id=0：未对齐
+            var (panel, bar, hp, ammo, reload) = BuildPanel();
+            var driver = BuildDriver(world, 0L, panel, bar, hp, ammo, reload);   // Id=0：未对齐
 
             driver.Tick();
             Assert.AreEqual(0f, panel.alpha, "未对齐整组隐藏");
@@ -96,8 +98,8 @@ namespace LiteGame.Tests.EditMode
         {
             var world = new SimWorldState { RngState = 1UL };
             long selfId = world.Spawn(new EntitySlot { Hp = 100, Pos = new SimVector3(0f, 0f, 0f) }, out _);
-            var (panel, fill, hp, ammo, reload) = BuildPanel();
-            var driver = BuildDriver(world, selfId, panel, fill, hp, ammo, reload);
+            var (panel, bar, hp, ammo, reload) = BuildPanel();
+            var driver = BuildDriver(world, selfId, panel, bar, hp, ammo, reload);
             driver.Tick();
             Assert.AreEqual(1f, panel.alpha);
 

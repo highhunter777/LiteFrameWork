@@ -29,7 +29,7 @@ namespace LiteGame
         private readonly SimWorldState _state;
         private readonly Func<long> _localEntityId;
         private readonly CanvasGroup _panel;
-        private readonly Image _hpFill;
+        private readonly UnityEngine.UI.Slider _hpSlider;
         private readonly TextMeshProUGUI _hpText;
         private readonly TextMeshProUGUI _ammoText;
         private readonly GameObject _reloadLabel;
@@ -40,13 +40,14 @@ namespace LiteGame
         private bool _disposed;
 
         public BattleHudDriver(SimWorldState state, Func<long> localEntityId,
-            CanvasGroup panel, Image hpFill, TextMeshProUGUI hpText,
+            CanvasGroup panel, UnityEngine.UI.Slider hpSlider, TextMeshProUGUI hpText,
             TextMeshProUGUI ammoText, GameObject reloadLabel)
         {
             _state = state ?? throw new ArgumentNullException(nameof(state));
             _localEntityId = localEntityId ?? throw new ArgumentNullException(nameof(localEntityId));
             _panel = panel ?? throw new ArgumentNullException(nameof(panel));
-            _hpFill = hpFill ?? throw new ArgumentNullException(nameof(hpFill));
+            _hpSlider = hpSlider ?? throw new ArgumentNullException(nameof(hpSlider));
+            _hpSlider.interactable = false;   // 纯显示——血条不参与交互
             _hpText = hpText ?? throw new ArgumentNullException(nameof(hpText));
             _ammoText = ammoText ?? throw new ArgumentNullException(nameof(ammoText));
             _reloadLabel = reloadLabel;                    // null = 场景缺标签件（静默降级：不显示换弹态）
@@ -74,7 +75,7 @@ namespace LiteGame
                 _lastHp = e.Hp;
                 _hpText.SetText("{0}", e.Hp);
                 float max = CombatConfig.EntityHp;
-                _hpFill.fillAmount = max > 0 ? e.Hp / max : 0f;
+                _hpSlider.value = max > 0 ? e.Hp / max : 0f;   // Slider 0..1（分段滑条血条——Item_00 改造）
             }
 
             int sel = e.SelectedWeapon;

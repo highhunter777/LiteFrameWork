@@ -20,7 +20,7 @@ namespace LiteGame
 
         [Header("面板（BattleHudDriver）")]
         [SerializeField] private CanvasGroup _panelGroup;
-        [SerializeField] private UnityEngine.UI.Image _hpFill;
+        [SerializeField] private UnityEngine.UI.Slider _hpSlider;
         [SerializeField] private TextMeshProUGUI _hpText;
         [SerializeField] private TextMeshProUGUI _ammoText;
         [SerializeField] private GameObject _reloadLabel;
@@ -29,7 +29,7 @@ namespace LiteGame
         public GameObject HipForm => _hipForm;
         public GameObject AdsForm => _adsForm;
         public CanvasGroup PanelGroup => _panelGroup;
-        public UnityEngine.UI.Image HpFill => _hpFill;
+        public UnityEngine.UI.Slider HpSlider => _hpSlider;
         public TextMeshProUGUI HpText => _hpText;
         public TextMeshProUGUI AmmoText => _ammoText;
         public GameObject ReloadLabel => _reloadLabel;
