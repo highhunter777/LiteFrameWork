@@ -36,7 +36,7 @@ namespace RoomServer
     /// **传输解耦**：构造参数是窄端口 <see cref="IRoomTransport"/>——换传输框架只需新写适配器 + 装配一行。
     /// **所有权**：宿主**接管**传入的传输（构造即 `Start`、`Dispose` 即释放）。
     /// </summary>
-    public sealed class ServerHost : IDisposable
+    public sealed class ServerHost : IDisposable, IRoomWorkerHost
     {
         /// <summary>服务器版本锚点 = 源码内容哈希（Sim 或协议一改，握手即拒）。</summary>
         public const string ServerBuildHash = BuildHash.Value;
@@ -143,6 +143,14 @@ namespace RoomServer
         /// 配置形态（<see cref="RoomServerConfig"/>）自动创建，测试/嵌入式形态可显式注入。
         /// </summary>
         private readonly RoomWorkerPool _workerPool;
+
+        /// <summary>
+        /// Worker 驱动体（P4 外提件，见 <see cref="RoomWorkerDriver"/>）：本类只保留**生产侧**
+        /// （<see cref="ScheduleRoomPump"/>/<see cref="SubmitWorkerTick"/>）与**回传应用侧**
+        /// （<c>ApplyOutboundEnvelope</c> 族）——驱动体在归属 Worker 线程上跑，两者线程归属不同。
+        /// </summary>
+        private readonly RoomWorkerDriver _workerDriver;
+
         private long _workerFailures;
         private long _workerCommands;
         private long _workerPumps;
@@ -251,6 +259,25 @@ namespace RoomServer
         /// <summary>Worker 执行形态下已完成的房间驱动轮次（观测用）。</summary>
         public long WorkerPumps => Interlocked.Read(ref _workerPumps);
 
+        // ---- IRoomWorkerHost（P4：向 RoomWorkerDriver 提供的**窄端口**）----
+        // 显式实现：驱动体够用即可，不把"内部计数怎么加"这类细节摊到本类公共面上。
+
+        RoomWorkerPool IRoomWorkerHost.Pool => _workerPool;
+
+        Ops IRoomWorkerHost.Ops => _ops;
+
+        long IRoomWorkerHost.NowMs => _nowMs;
+
+        string IRoomWorkerHost.BuildHash => ServerBuildHash;
+
+        void IRoomWorkerHost.NoteWorkerCommand() => Interlocked.Increment(ref _workerCommands);
+
+        void IRoomWorkerHost.NoteWorkerPump() => Interlocked.Increment(ref _workerPumps);
+
+        void IRoomWorkerHost.NoteWorkerFailure() => Interlocked.Increment(ref _workerFailures);
+
+        void IRoomWorkerHost.NoteMailboxStale() => Interlocked.Increment(ref _mailboxStale);
+
         /// <summary>是否启用了每房间 Mailbox 入站路由。</summary>
         public bool MailboxRoutingEnabled => _mailboxRouting;
 
@@ -341,6 +368,8 @@ namespace RoomServer
             _workerPool = workerPool ?? (_serverConfig != null
                 ? new RoomWorkerPool(_serverConfig.WorkerCount, _serverConfig.MailboxCapacity, OnWorkerFailure)
                 : null);
+            // 驱动体在首个房间建立（AddRoom 会绑定 DriveAction）之前就位——它只在被调用时读端口
+            _workerDriver = new RoomWorkerDriver(this);
             _mailboxRouting = mailboxRouting;
             _drainMailboxesImmediately = mailboxRouting && drainMailboxesImmediately;
 
@@ -460,7 +489,7 @@ namespace RoomServer
         private void OnWorkerFailure(Exception ex)
         {
             Interlocked.Increment(ref _workerFailures);
-            Console.WriteLine($"[Worker] 工作项异常已隔离：{ex.GetType().Name}");
+            HostLog.Error("Worker", "工作项异常已隔离：" + ex.GetType().Name);
         }
 
         private long NowMs() => _clock.ElapsedMilliseconds;
@@ -480,7 +509,7 @@ namespace RoomServer
             if (!_sessions.TryAddNew(connectionId, _nowMs, out _))
             {
                 // 会话容量上限（§9.2）：超限不登记并断开——未认证连接不能把记账表撑成无界内存
-                _ops.SessionsRejected++;
+                _ops.NoteSessionRejected();
                 _transport.Disconnect(connectionId);
             }
         }
@@ -585,7 +614,7 @@ namespace RoomServer
             // P0-3 包体硬边界：长度限制在 protobuf 解析**之前**（超长包不进解析器 = 不给"解析耗尽内存"留门）
             if (data.Count > _tuning.MaxInboundPacketBytes)
             {
-                _ops.PacketOversized++;
+                _ops.NotePacketOversized();
                 return;
             }
 
@@ -600,7 +629,7 @@ namespace RoomServer
 
             if (!PacketCodec.TryDecode(data, out PacketType type, out IMessage message))
             {
-                _ops.PacketRejects++;                                     // 未知类型/截断/坏 proto：计数（P0-3 统一拒绝并计数）
+                _ops.NotePacketRejected();                                     // 未知类型/截断/坏 proto：计数（P0-3 统一拒绝并计数）
                 return;
             }
 
@@ -657,14 +686,14 @@ namespace RoomServer
             {
                 // 票据拒绝带分类计数（Ops 周期行）；其余拒绝只进通用 Rejects。
                 if (decision.TicketRejection.HasValue) CountTicketRejection(decision.TicketRejection.Value);
-                if (_draining && decision.Code == DiagCode.JoinRejectedAdmission) _ops.RejectsWhileDraining++;
+                if (_draining && decision.Code == DiagCode.JoinRejectedAdmission) _ops.NoteRejectWhileDraining();
                 RejectJoin(session, in join, decision.Stage, decision.Code, decision.Reason);
                 return;
             }
 
             if (_draining)
             {
-                _ops.RejectsWhileDraining++;      // Rejects 由 Reject() 记，此处只记排空专属分类
+                _ops.NoteRejectWhileDraining();      // Rejects 由 Reject() 记，此处只记排空专属分类
                 RejectJoin(session, in join, DiagStage.Room, DiagCode.JoinRejectedAdmission, "服务排空中：不接受新进房");
                 return;
             }
@@ -736,15 +765,10 @@ namespace RoomServer
         {
             int i = (int)reason;
             _ticketRejections[i >= 0 && i < _ticketRejections.Length ? i : 0]++;
-
-            _ops.TicketRejected++;
-            switch (reason)
-            {
-                case JoinTicketRejection.BadSignature: _ops.TicketRejectedBadSignature++; break;
-                case JoinTicketRejection.Expired: _ops.TicketRejectedExpired++; break;
-                case JoinTicketRejection.Replayed: _ops.TicketRejectedReplayed++; break;
-                case JoinTicketRejection.UnknownKey: _ops.TicketRejectedUnknownKey++; break;
-            }
+            // 本数组按**全分类**计数（含 Malformed——供 ServerHost.TicketRejections 查询），
+            // Ops 侧只观测四类 + 总数：映射单源在 Ops.NoteTicketRejection（原先散在这里的 switch，
+            // 新增分类要同时改枚举/宿主 switch/Ops 三处）。
+            _ops.NoteTicketRejection(reason);
         }
 
         /// <summary>某拒绝分类的累计次数（Ops 观测）。</summary>
@@ -794,8 +818,35 @@ namespace RoomServer
         private void HandleMismatch(Session session, Proto.MismatchReport report)
         {
             if (session.PlayerId < 0) return;
-            _ops.MismatchReports++;
-            if (report.Frame > _ops.LastMismatchFrame) _ops.LastMismatchFrame = report.Frame;
+            _ops.NoteMismatch(report.Frame);
+        }
+
+        /// <summary>
+        /// 消费一次性重连票据（**唯一入口**，P4）。此前三条路径（直驱 / Worker 工厂 / 宿主 owner 工厂）
+        /// 各自手写 <c>TryConsume(request.OneTimeToken, …)</c>：票据字段名与"一次性"语义有三份拷贝，
+        /// 任一份漏改（例如票据载体换成别的字段）都会让另一条路径静默失效。
+        /// </summary>
+        private bool TryConsumeReconnectTicket(Proto.ReconnectRequest request, out int playerId, out string roomId)
+            => _reconnects.TryConsume(request.OneTimeToken, out playerId, out roomId);
+
+        /// <summary>
+        /// 在 Mailbox 容量锁内消费票据并构造控制信封（Worker 形态与宿主 owner 形态**共用**）：
+        /// 容量已满/已关闭时 factory 根本不会被调用，票据因而不会被吞掉（仍可重试）。
+        /// 绑定不一致（peek 出的席位/房间 ≠ 真正消费到的）→ 抛竞态异常，由调用方回拒绝响应——
+        /// 这条校验此前在两条路径上各写一遍，漏写即"绑了别处的票据静默通过"。
+        /// </summary>
+        private RoomControlEnvelope ConsumeTicketInLock(RoomInstance instance, Session session,
+            Proto.ReconnectRequest request, int playerId, string roomId, RoomCommand command,
+            bool expectRebindResponse)
+        {
+            if (!_reconnects.TryConsume(request.OneTimeToken, out int consumedPlayer, out string consumedRoom)
+                || consumedPlayer != playerId
+                || !string.Equals(consumedRoom, roomId, StringComparison.Ordinal))
+                throw new ReconnectTicketRaceException();
+
+            return RoomControlEnvelope.FromCommand(
+                instance.RoomId, session.ConnectionId, playerId, session.Epoch,
+                _nowMs, command, expectRebindResponse);
         }
 
         /// <summary>
@@ -815,7 +866,7 @@ namespace RoomServer
                 HandleReconnectMailbox(session, request);
                 return;
             }
-            if (!_reconnects.TryConsume(request.OneTimeToken, out int playerId, out string roomId))
+            if (!TryConsumeReconnectTicket(request, out int playerId, out string roomId))
             {
                 SendToSession(session, PacketType.ReconnectResponse, new Proto.ReconnectResponse { Ok = false, Reason = "票据无效或已过期" }, reliable: true);
                 return;
@@ -855,7 +906,7 @@ namespace RoomServer
             // 客户端应用完毕发 RestoreComplete（§9.3 步骤 6），席位回 Active 后广播管线恢复投递。
             SendToSession(session, PacketType.ReconnectResponse,
                 ReconnectResponder.Build(room, playerId, ServerBuildHash), reliable: true);
-            _ops.ReconnectsServed++;
+            _ops.NoteReconnectServed();
         }
 
         /// <summary>
@@ -908,17 +959,8 @@ namespace RoomServer
                 try
                 {
                     workerAdmission = instance.Mailbox.TryEnqueueControl(() =>
-                    {
-                        if (!_reconnects.TryConsume(request.OneTimeToken,
-                            out int consumedPlayer, out string consumedRoom)
-                            || consumedPlayer != playerId
-                            || !string.Equals(consumedRoom, roomId, StringComparison.Ordinal))
-                            throw new ReconnectTicketRaceException();
-
-                        return RoomControlEnvelope.FromCommand(
-                            instance.RoomId, session.ConnectionId, playerId, session.Epoch,
-                            _nowMs, workerRebind, expectRebindResponse: true);
-                    });
+                        ConsumeTicketInLock(instance, session, request, playerId, roomId, workerRebind,
+                            expectRebindResponse: true));
                 }
                 catch (ReconnectTicketRaceException)
                 {
@@ -969,17 +1011,8 @@ namespace RoomServer
             try
             {
                 admission = instance.Mailbox.TryEnqueueControl(() =>
-                {
-                    if (!_reconnects.TryConsume(request.OneTimeToken,
-                        out int consumedPlayer, out string consumedRoom)
-                        || consumedPlayer != playerId
-                        || !string.Equals(consumedRoom, roomId, StringComparison.Ordinal))
-                        throw new ReconnectTicketRaceException();
-
-                    return RoomControlEnvelope.FromCommand(
-                        instance.RoomId, session.ConnectionId, playerId, session.Epoch,
-                        _nowMs, command);
-                });
+                    ConsumeTicketInLock(instance, session, request, playerId, roomId, command,
+                        expectRebindResponse: false));
             }
             catch (ReconnectTicketRaceException)
             {
@@ -1019,7 +1052,7 @@ namespace RoomServer
 
             SendToSession(session, PacketType.ReconnectResponse,
                 ReconnectResponder.Build(room, playerId, ServerBuildHash), reliable: true);
-            _ops.ReconnectsServed++;
+            _ops.NoteReconnectServed();
         }
 
         /// <summary>恢复完成 ACK（§9.3 步骤 6）：席位 Restoring → Active——增量广播自此恢复该席位。</summary>
@@ -1067,8 +1100,8 @@ namespace RoomServer
 
         private void Reject(Session session, string reason)
         {
-            _ops.Rejects++;
-            Console.WriteLine($"[Reject] conn {session.ConnectionId}: {reason}");   // 只打原因，不回显 token/payload（P0-3）
+            _ops.NoteReject();
+            HostLog.Warn("Reject", $"conn {session.ConnectionId}: {reason}");   // 只打原因，不回显 token/payload（P0-3）
         }
 
         /// <summary>
@@ -1311,9 +1344,9 @@ namespace RoomServer
         private void ScheduleRoomPump(RoomInstance room)
         {
             if (room == null || _workerPool == null || room.DriveAction == null) return;
-            if (Interlocked.CompareExchange(ref room.PumpScheduled, 1, 0) != 0) return;   // 已有在途驱动
+            if (!room.TrySchedulePump()) return;               // 已有在途驱动
             if (_workerPool.TryEnqueue(room.RoomId, room.DriveAction)) return;
-            Interlocked.Exchange(ref room.PumpScheduled, 0);   // 池已停/队列满：留给下一次命令再唤醒
+            room.ClearPumpScheduled();                         // 池已停/队列满：留给下一次命令再唤醒
             Interlocked.Increment(ref _workerFailures);
         }
 
@@ -1323,231 +1356,19 @@ namespace RoomServer
         /// </summary>
         private void SubmitWorkerTick(RoomInstance room)
         {
-            if (Interlocked.CompareExchange(ref room.PendingTicks, 1, 0) != 0)
+            if (!room.TryQueueTick())
             {
-                _ops.TicksCoalesced++;
+                _ops.NoteTickCoalesced();
                 return;
             }
             if (!TrySubmitCommandTo(room, RoomCommand.Tick(_nowMs)))
-                Interlocked.Exchange(ref room.PendingTicks, 0);
+                room.ClearPendingTick();
         }
 
-        /// <summary>
-        /// 房间 Worker 驱动体：消费本房间 Control/Input 两条入站 lane（每步 Control 优先），
-        /// 执行 Runtime 命令与快照广播，产出经 Outbound lane **回传宿主**。
-        /// **Outbound 归宿主消费**——Worker 绝不读它。
-        /// </summary>
-        private void DriveRoomWorker(RoomInstance room)
-        {
-            Interlocked.Increment(ref _workerPumps);
-            Interlocked.Increment(ref room.WorkerInFlight);
-            try
-            {
-                DriveRoomWorkerCore(room);
-            }
-            finally
-            {
-                // 在重新登记（若发生）之后才递减：宿主以"在途=0 且无待驱动"判定房间静默。
-                Interlocked.Decrement(ref room.WorkerInFlight);
-            }
-        }
-
-        private void DriveRoomWorkerCore(RoomInstance room)
-        {
-            while (true)
-            {
-                Interlocked.Exchange(ref room.PumpScheduled, 0);
-
-                while (true)
-                {
-                    if (room.Mailbox.TryDequeueControl(out RoomControlEnvelope control))
-                    {
-                        Interlocked.Increment(ref _workerCommands);
-                        ExecuteControlOnWorker(room, control);
-                        continue;
-                    }
-                    if (room.Mailbox.TryDequeueInput(out RoomInputEnvelope input))
-                    {
-                        Interlocked.Increment(ref _workerCommands);
-                        ExecuteInputOnWorker(room, input);
-                        continue;
-                    }
-                    break;
-                }
-
-                if (room.Mailbox.ControlCount == 0 && room.Mailbox.InputCount == 0) return;
-                if (room.Mailbox.IsClosed) continue;   // Complete 后的残留（宿主 Dispose 收口）：本工作项内消费到空
-                if (Interlocked.CompareExchange(ref room.PumpScheduled, 1, 0) != 0) return;
-                if (!_workerPool.TryEnqueue(room.RoomId, room.DriveAction))
-                {
-                    Interlocked.Exchange(ref room.PumpScheduled, 0);
-                    Interlocked.Increment(ref _workerFailures);
-                    return;
-                }
-                return;
-            }
-        }
-
-        /// <summary>Worker 侧执行一条控制命令并回传输出（入盒前的会话/路由校验归宿主）。</summary>
-        private void ExecuteControlOnWorker(RoomInstance room, RoomControlEnvelope envelope)
-        {
-            RoomCommandKind kind = envelope.Command.Kind;
-            if (kind == RoomCommandKind.Tick)
-                Interlocked.Exchange(ref room.PendingTicks, 0);
-
-            // 重连握手（Rebind）：席位/开局校验在 Worker 侧（宿主不读 Runtime 状态），走专用路径。
-            if (kind == RoomCommandKind.Rebind && envelope.ExpectRebindResponse)
-            {
-                ExecuteReconnectRebindOnWorker(room, envelope);
-                return;
-            }
-
-            room.WorkerOutputs.Clear();
-            room.Runtime.Execute(envelope.Command, room.WorkerOutputs);
-            ApplyControlSideEffectsOnWorker(room, envelope, kind);      // 先扫输出（含 PlayerAdmitted 的席位绑定）
-            EnqueueWorkerOutputs(room, envelope.ConnectionId, envelope.SessionEpoch, room.WorkerOutputs);   // 再入盒回传
-
-            if (kind == RoomCommandKind.Tick)
-                BroadcastOnWorker(room);
-        }
-
-        /// <summary>
-        /// 重连换绑（Worker 侧）：校验席位存在且对局进行中 → 执行 Rebind → 回传
-        /// SeatRebound（宿主更新会话映射/计 Ops）+ 成功响应；校验失败回传拒绝响应。
-        /// 换绑重置本席位广播记账（新连接没有历史发送记录）。
-        /// </summary>
-        private void ExecuteReconnectRebindOnWorker(RoomInstance room, RoomControlEnvelope envelope)
-        {
-            int playerId = envelope.PlayerId;
-            PlayerSession seat = room.Runtime.SeatOf(playerId);
-            string rejectReason = null;
-            if (seat == null) rejectReason = "席位不存在";
-            else if (!room.Runtime.Started) rejectReason = "房间不在进行中";
-
-            if (rejectReason != null)
-            {
-                EnqueueWorkerSend(room, envelope.ConnectionId, envelope.SessionEpoch,
-                    PacketType.ReconnectResponse, new Proto.ReconnectResponse { Ok = false, Reason = rejectReason },
-                    reliable: true);
-                return;
-            }
-
-            int oldConnectionId = seat.ConnectionId;
-            room.WorkerOutputs.Clear();
-            room.Runtime.Execute(envelope.Command, room.WorkerOutputs);
-            EnqueueWorkerOutputs(room, envelope.ConnectionId, envelope.SessionEpoch, room.WorkerOutputs);
-
-            // 落定顺序与宿主 owner 形态一致：映射/旧连接失效先于响应发送（同一 lane FIFO）。
-            EnqueueWorkerOutbound(room, RoomOutboundEnvelope.FromSeatRebound(room.RoomId,
-                NextWorkerSequence(room), envelope.ConnectionId, envelope.SessionEpoch,
-                new RoomSeatReboundItem(playerId, oldConnectionId, envelope.ConnectionId)));
-            EnqueueWorkerSend(room, envelope.ConnectionId, envelope.SessionEpoch, PacketType.ReconnectResponse,
-                ReconnectResponder.Build(room.Runtime, playerId, ServerBuildHash), reliable: true);
-
-            BindWorkerSeat(room, playerId, envelope.ConnectionId, envelope.SessionEpoch, resetAccount: true);
-        }
-
-        /// <summary>
-        /// Worker 侧执行一条输入：先用 **Runtime 席位（唯一真相）** 做迟到校验（连接/相位），
-        /// 再执行；ACK 记账进本席位广播记账（与宿主 owner 形态同一语义、同一实现）。
-        /// </summary>
-        private void ExecuteInputOnWorker(RoomInstance room, RoomInputEnvelope envelope)
-        {
-            PlayerSession seat = room.Runtime.SeatOf(envelope.PlayerId);
-            if (seat == null || seat.ConnectionId != envelope.ConnectionId
-                || seat.Phase == SeatPhase.Disconnected)
-            {
-                Interlocked.Increment(ref _mailboxStale);
-                return;
-            }
-
-            long acceptedBefore = room.Runtime.Gate.AcceptedCount;
-            room.WorkerOutputs.Clear();
-            room.Runtime.Execute(envelope.Command, room.WorkerOutputs);
-            if (room.WorkerOutputs.Count > 0)   // 输入命令当前不产输出；防御性保留回传路径
-                EnqueueWorkerOutputs(room, envelope.ConnectionId, envelope.SessionEpoch, room.WorkerOutputs);
-
-            _ops.CountAck(room.WorkerSeats[envelope.PlayerId].Broadcast.TryAcceptAck(envelope.Command.Input.AckSnapshot));
-            if (room.Runtime.Gate.AcceptedCount > acceptedBefore)
-                _ops.CountAcceptedInput();
-        }
-
-        /// <summary>命令执行后的席位侧效应（Worker 单线程）：进房/恢复刷新广播席位槽；断线刷新全部席位。</summary>
-        private void ApplyControlSideEffectsOnWorker(RoomInstance room, RoomControlEnvelope envelope, RoomCommandKind kind)
-        {
-            if (kind == RoomCommandKind.Disconnect)
-            {
-                // Runtime 断线会移除 connection→player 映射，只能全量刷新（断线低频，代价可忽略）。
-                for (int p = 0; p < room.WorkerSeats.Length; p++) RefreshWorkerSeatFromRuntime(room, p);
-                return;
-            }
-            if (kind != RoomCommandKind.AuthenticatedJoin) return;
-
-            for (int i = 0; i < room.WorkerOutputs.Count; i++)
-            {
-                if (room.WorkerOutputs[i] is SignalOutput signal && signal.Signal is PlayerAdmitted admitted)
-                    BindWorkerSeat(room, admitted.PlayerId, envelope.ConnectionId, envelope.SessionEpoch, resetAccount: true);
-            }
-        }
-
-        /// <summary>Worker 侧广播：权威步进后拉取（§8.2 房间单线程；Restoring 席位抑制由 Runtime 相位判定）。</summary>
-        private void BroadcastOnWorker(RoomInstance room)
-        {
-            if (!room.Runtime.Started) return;
-            room.Pipeline.BroadcastIfDue(room.Runtime.AuthSim.Frame, room.Runtime.AuthSim,
-                room.Runtime.Gate, room.Runtime.EntityIdOf, room.SeatBroadcastable);
-        }
-
-        /// <summary>把 Runtime 纯输出包成回传项入 Outbound（来源=产出它的命令连接/代次）。</summary>
-        private void EnqueueWorkerOutputs(RoomInstance room, int originConnectionId, long originSessionEpoch,
-            List<RoomOutput> outputs)
-        {
-            for (int i = 0; i < outputs.Count; i++)
-                EnqueueWorkerOutbound(room, RoomOutboundEnvelope.FromOutput(room.RoomId,
-                    NextWorkerSequence(room), originConnectionId, originSessionEpoch, outputs[i]));
-            outputs.Clear();
-        }
-
-        /// <summary>发送意图入 Outbound（快照/响应；宿主解析会话、编码并经 Transport 发送）。</summary>
-        private void EnqueueWorkerSend(RoomInstance room, int connectionId, long sessionEpoch,
-            PacketType type, IMessage message, bool reliable)
-        {
-            if (connectionId == RoomOutboundEnvelope.NoConnectionId) return;   // 未绑定连接：没有发送对象
-            EnqueueWorkerOutbound(room, RoomOutboundEnvelope.FromSend(room.RoomId, NextWorkerSequence(room),
-                new RoomSendItem(connectionId, sessionEpoch, type, message, reliable)));
-        }
-
-        /// <summary>
-        /// 回传入盒（有界，满/关闭显式计数不静默丢）。快照的发送记账已在管线内前推——
-        /// 入盒被拒的帧按"已发出"计（背压偏保守：宁可多压不放松）。
-        /// </summary>
-        private void EnqueueWorkerOutbound(RoomInstance room, in RoomOutboundEnvelope envelope)
-        {
-            if (room.Mailbox.EnqueueOutbound(envelope) != RoomMailboxEnqueueResult.Accepted)
-                Interlocked.Increment(ref room.OutboundRejected);
-        }
-
-        private static long NextWorkerSequence(RoomInstance room) => ++room.OutboundSequence;
-
-        /// <summary>绑定广播席位槽到连接（进房/换绑；代次随命令信封）。</summary>
-        private static void BindWorkerSeat(RoomInstance room, int playerId, int connectionId,
-            long sessionEpoch, bool resetAccount)
-        {
-            RoomBroadcastSeat view = room.WorkerSeats[playerId];
-            view.ConnectionId = connectionId;
-            view.SessionEpoch = sessionEpoch;
-            view.Disconnected = false;
-            if (resetAccount) view.Broadcast.Reset();
-        }
-
-        /// <summary>从 Runtime 席位刷新广播席位槽的连接事实（断线等；连接未变时代次保留）。</summary>
-        private static void RefreshWorkerSeatFromRuntime(RoomInstance room, int playerId)
-        {
-            PlayerSession seat = room.Runtime.SeatOf(playerId);
-            RoomBroadcastSeat view = room.WorkerSeats[playerId];
-            view.ConnectionId = seat?.ConnectionId ?? RoomOutboundEnvelope.NoConnectionId;
-            view.Disconnected = seat == null || seat.Phase == SeatPhase.Disconnected;
-        }
+        // **Worker 驱动体外提（P4）**：驱动核心、命令执行（含重连换绑/输入）、席位侧效应与回传出盒
+        // 已整体搬到 `RoomWorkerDriver.cs`（按线程归属切分：宿主只留**生产侧** ScheduleRoomPump/
+        // SubmitWorkerTick 与**回传应用侧** ApplyOutboundEnvelope 族）。调用点两处：
+        // 建房时 BindDriveAction 绑 `_workerDriver.Drive`，管线 SendTo 绑 `_workerDriver.Send`。
 
         /// <summary>应用一条回传事实（宿主主线程；<c>_currentRoom</c> 指向该房间供既有应用路径定位）。</summary>
         private void ApplyOutboundEnvelope(RoomInstance room, in RoomOutboundEnvelope envelope)
@@ -1634,7 +1455,7 @@ namespace RoomServer
             session.PlayerId = rebound.PlayerId;
             session.RoomId = room.RoomId;
             room.Seats[rebound.PlayerId] = session;
-            _ops.ReconnectsServed++;
+            _ops.NoteReconnectServed();
         }
 
         /// <summary>
@@ -1646,7 +1467,7 @@ namespace RoomServer
         {
             Interlocked.Increment(ref _mailboxStale);
             if (room == null) return;
-            room.StaleJoinRollbackPending = 1;
+            room.MarkStaleJoinRollback();
             if (originConnectionId != RoomOutboundEnvelope.NoOrigin)
                 TrySubmitCommandTo(room, RoomCommand.Disconnect(originConnectionId));
         }
@@ -1666,7 +1487,7 @@ namespace RoomServer
         /// </summary>
         private bool TryRollbackStaleReservation(RoomInstance room)
         {
-            if (room == null || room.StaleJoinRollbackPending == 0) return false;
+            if (room == null || !room.StaleJoinRollbackPending) return false;
             if (!room.IsDynamic || room.Runtime.Started
                 || room.Mailbox.ControlCount != 0 || room.Mailbox.InputCount != 0
                 || AnyJoinPending())
@@ -1681,7 +1502,7 @@ namespace RoomServer
             _rooms.Remove(room);
             room.Mailbox.Complete();
             while (room.Mailbox.TryDequeue(out _)) { }
-            room.StaleJoinRollbackPending = 0;
+            room.ClearStaleJoinRollback();
             return true;
         }
 
@@ -1708,25 +1529,22 @@ namespace RoomServer
                             rejectedSession.BuildHash = null;
                         }
                     }
-                    _ops.Rejects++;
-                    Console.WriteLine($"[Reject] conn {jr.ConnectionId}: {jr.Reason}");   // 只打原因（P0-3）
+                    _ops.NoteReject();
+                    HostLog.Warn("Reject", $"conn {jr.ConnectionId}: {jr.Reason}");   // 只打原因（P0-3）
                     // 动态房间是在 Join admission 时预留的；若 Runtime 在消费
                     // 命令时拒绝（例如房间已在排空/终态），释放仍为空的预留，
                     // 避免无效 roomId 占满 MaxRooms。已有状态或非动态房间不会被回收。
                     RemoveEmptyRoom(rejectedRoom);
                     break;
-                case CloseConnectionOutput cc:
-                    _transport.Disconnect(cc.ConnectionId);
-                    break;
                 case MatchStateChangedOutput mcs:
                     // §9.1/§13.1 结构化事件：低频迁移只在日志记录，不进指标高基数标签
-                    _ops.MatchStateChanges++;
-                    Console.WriteLine($"[Match] room={mcs.MatchId} {mcs.From}->{mcs.To} reason={mcs.Reason} frame={mcs.Frame} nowMs={mcs.NowMs}");
+                    _ops.NoteMatchStateChanged();
+                    HostLog.Info("Match", $"room={mcs.MatchId} {mcs.From}->{mcs.To} reason={mcs.Reason} frame={mcs.Frame} nowMs={mcs.NowMs}");
                     break;
                 case SettlementReadyOutput sr:
-                    _ops.SettlementsReady++;
+                    _ops.NoteSettlementReady();
                     SendMatchResult(sr.Summary);
-                    Console.WriteLine($"[Settle] room={sr.Summary.MatchId} seed={sr.Summary.Seed} finalFrame={sr.Summary.FinalFrame} end={sr.Summary.EndReason} seats={sr.Summary.SeatPlayerIds.Length}");
+                    HostLog.Info("Settle", $"room={sr.Summary.MatchId} seed={sr.Summary.Seed} finalFrame={sr.Summary.FinalFrame} end={sr.Summary.EndReason} seats={sr.Summary.SeatPlayerIds.Length}");
                     // §11.3"本地持久 Outbox"：冻结事实入盒（幂等/有界/失败显式计数——不抛进权威循环，
                     // §6"持久化写入不得阻塞/炸掉 Room Worker"）。null = 未装配。
                     if (_settlementOutbox != null)
@@ -1737,18 +1555,18 @@ namespace RoomServer
                         switch (_settlementOutbox.Enqueue(sr.Summary, seatAccountIds))
                         {
                             case SettlementOutboxResult.Appended:
-                                _ops.SettlementsJournaled++;
+                                _ops.NoteSettlementJournaled();
                                 break;
                             case SettlementOutboxResult.Duplicate:
-                                _ops.SettlementsOutboxDuplicates++;
+                                _ops.NoteSettlementOutboxDuplicate();
                                 break;
                             case SettlementOutboxResult.RejectedFull:
-                                _ops.SettlementsOutboxRejected++;
-                                Console.WriteLine($"[Settle] !! Outbox 容量满拒（计数不丢）：{sr.Summary.MatchId}");
+                                _ops.NoteSettlementOutboxRejected();
+                                HostLog.Warn("Settle", $"Outbox 容量满拒（计数不丢）：{sr.Summary.MatchId}");
                                 break;
                             default:
-                                _ops.SettlementsOutboxFailed++;
-                                Console.WriteLine($"[Settle] !! Outbox 写入失败（介质故障，计数不丢）：{sr.Summary.MatchId}");
+                                _ops.NoteSettlementOutboxFailed();
+                                HostLog.Error("Settle", $"Outbox 写入失败（介质故障，计数不丢）：{sr.Summary.MatchId}");
                                 break;
                         }
                     }
@@ -1843,7 +1661,7 @@ namespace RoomServer
                 }
                 case SeatRestored:
                 {
-                    _ops.RestoresCompleted++;              // §9.3 步骤 6：席位回 Active——增量广播恢复
+                    _ops.NoteRestoreCompleted();              // §9.3 步骤 6：席位回 Active——增量广播恢复
                     RoomInstance room = _currentRoom ?? (_rooms.Count > 0 ? _rooms[0] : null);
                     room?.Pipeline.RequestFullSnapshot();  // 重锚广播链：抑制期间基线已越过重连快照帧，整帧全量补齐 (N_r, B] 缝
                     break;
@@ -1874,18 +1692,18 @@ namespace RoomServer
                 // 排空期间若某房间未在时限内自然收敛，此处强制关闭，避免永久停在排空态。
                 // 两种形态都只负责**投递 Shutdown 命令**；执行者按形态而定。
                 if (room.DrainDeadlineMs >= 0 && _nowMs >= room.DrainDeadlineMs
-                    && !room.Runtime.Closed && room.DrainTimeoutIssued == 0)
+                    && !room.Runtime.Closed && room.TryIssueDrainTimeout())
                 {
-                    room.DrainTimeoutIssued = 1;   // 超时关闭只投递一次（重复投递会放大计数并挤占控制 lane）
+                    // 超时关闭只投递一次（CAS 在 TryIssueDrainTimeout 内；重复投递会放大计数并挤占控制 lane）
                     if (_workerExecution)
                     {
                         // Worker 形态：命令入盒即计（执行由 Worker 完成；重复关闭在 Runtime 幂等）
                         if (TrySubmitCommandTo(room, RoomCommand.Shutdown(ShutdownReason.DrainTimeout)))
-                            _ops.RoomsDrainTimedOut++;
+                            _ops.NoteRoomDrainTimedOut();
                     }
                     else
                     {
-                        _ops.RoomsDrainTimedOut++;
+                        _ops.NoteRoomDrainTimedOut();
                         SubmitCommandTo(room, RoomCommand.Shutdown(ShutdownReason.DrainTimeout));
                     }
                 }
@@ -1949,7 +1767,7 @@ namespace RoomServer
             if (++_ticksSinceCleanup >= _tuning.SessionCleanupIntervalTicks)
             {
                 _ticksSinceCleanup = 0;
-                _ops.SessionsCleaned += _sessions.Cleanup(_nowMs);   // §9.2 周期清理（容量+时效）
+                _ops.NoteSessionsCleaned(_sessions.Cleanup(_nowMs));   // §9.2 周期清理（容量+时效）
                 _reconnects.PurgeExpired();
                 _rateLimit.PurgeIdle(_nowMs);                        // §343 限流桶同节奏周期清理
             }
@@ -1998,11 +1816,10 @@ namespace RoomServer
             {
                 RoomInstance room = _rooms[i];
                 if (room.Runtime.Closed) continue;                     // 终态房间不必排空
-                // 取更早的截止时刻：排空期限只可前移，不可被后一次调用延后
-                if (room.DrainDeadlineMs < 0 || deadlineMs < room.DrainDeadlineMs)
-                    room.DrainDeadlineMs = deadlineMs;
+                // 取更早的截止时刻：排空期限只可前移，不可被后一次调用延后（规则收在 SetDrainDeadline 内）
+                room.SetDrainDeadline(deadlineMs);
             }
-            Console.WriteLine($"[RoomServer] 开始排空：在册 {_rooms.Count} 房，截止 +{deadlineMs}ms（单调时钟）");
+            HostLog.Info("Drain", $"开始排空：在册 {_rooms.Count} 房，截止 +{deadlineMs}ms（单调时钟）");
         }
 
         /// <summary>是否已进入排空（§12 第 1–2 步：不再接受新 Join／新房间）。</summary>
@@ -2089,7 +1906,7 @@ namespace RoomServer
             if (_serverConfig == null) return null;
             if (_rooms.Count >= _serverConfig.MaxRooms)
             {
-                _ops.RoomsRejectedAtCapacity++;
+                _ops.NoteRoomRejectedAtCapacity();
                 return null;
             }
 
@@ -2106,8 +1923,8 @@ namespace RoomServer
             catch (Exception ex)
             {
                 // 配置/构造错误不炸宿主：拒绝该房号并计数（§429 范围校验在装载期已挡掉大部分，此处兜底）
-                _ops.RoomsRejectedBadConfig++;
-                Console.WriteLine($"[Room] 建房被拒 room={roomId}: {ex.Message}");
+                _ops.NoteRoomRejectedBadConfig();
+                HostLog.Warn("Room", $"建房被拒 room={roomId}: {ex.Message}");
                 return null;
             }
         }
@@ -2123,9 +1940,9 @@ namespace RoomServer
             {
                 // Worker 执行形态：房间在宿主线程建立，随后按 roomId 交给归属 Worker 驱动；
                 // 广播发送入 Outbound 回传（宿主解析会话、编码并经 Transport 发送）。
-                inst.DriveAction = () => DriveRoomWorker(inst);
+                inst.BindDriveAction(() => _workerDriver.Drive(inst));
                 inst.Pipeline.SendTo = (seat, type, message, reliable) =>
-                    EnqueueWorkerSend(inst, seat.ConnectionId, seat.SessionEpoch, type, message, reliable);
+                    _workerDriver.Send(inst, seat, type, message, reliable);
             }
             else
             {
@@ -2185,8 +2002,7 @@ namespace RoomServer
             //（Worker 执行 Shutdown 与宿主观察到 Closed 之间有一个回传窗口）。
             if (_workerExecution)
             {
-                if (Volatile.Read(ref room.WorkerInFlight) != 0 || Volatile.Read(ref room.PumpScheduled) != 0)
-                    return false;
+                if (room.HasPendingWork) return false;   // 登记位或在途计数任一非零 = 未静默
                 DrainRoomOutbound(room);   // 静默后收口最后一次回传（结算入盒等）
                 if (room.Mailbox.Count != 0) return false;
             }
@@ -2213,8 +2029,8 @@ namespace RoomServer
             _rooms.Remove(room);
             room.Mailbox.Complete();
             while (room.Mailbox.TryDequeue(out _)) { }   // 残余控制/输入/出站消息随房间终态丢弃
-            _ops.RoomsDestroyed++;
-            Console.WriteLine($"[Room] 终态房间已销毁：{room.RoomId}（在册 {_rooms.Count}/{MaxRooms}）");
+            _ops.NoteRoomDestroyed();
+            HostLog.Info("Room", $"终态房间已销毁：{room.RoomId}（在册 {_rooms.Count}/{MaxRooms}）");
             return true;
         }
 
@@ -2232,14 +2048,14 @@ namespace RoomServer
         private void MaybePrintOps()
         {
             if (!_ops.PrintEnabled) return;
-            if (_nowMs - _ops.LastPrintMs < _tuning.OpsIntervalMs) return;
-            _ops.LastPrintMs = _nowMs;
+            if (!_ops.TryBeginPrint(_nowMs, _tuning.OpsIntervalMs)) return;   // 节流判据归 Ops（P4）
 
             for (int i = 0; i < _rooms.Count; i++)
             {
                 RoomInstance room = _rooms[i];
-                Console.WriteLine(_ops.Format(room.RoomId, room.Runtime, room.Pipeline, _sessions,
-                    _rooms.Count, i == 0 ? LoopStats : null, i == 0 ? _rateLimit : null));
+                HostLog.Info("Ops", _ops.Format(room.RoomId, room.Runtime, room.Pipeline, _sessions,
+                    _rooms.Count, i == 0 ? LoopStats : null, i == 0 ? _rateLimit : null,
+                    room.OutboundRejectedCount));   // P4：回传拒绝数接进 Ops 行（原先只增不读）
             }
         }
 

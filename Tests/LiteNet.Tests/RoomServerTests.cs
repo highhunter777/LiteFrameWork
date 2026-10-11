@@ -204,7 +204,7 @@ namespace LiteNet.Tests
             var gate = _host.Room.Gate;
             // 位移断言：出生点 x=-15（SpawnPoints[0]），向 +X 移动 ≈ 0.83m（10 帧 × MoveSpeed × dt）
             Assert.True(player0.Pos.X > -15f + 0.5f,
-                $"玩家 0 未按输入移动（pos.x={player0.Pos.X:F3}，期望 > -14.5）Gate 计数：acc={gate.AcceptedCount} dup={gate.DroppedDuplicateFrame} oor={gate.DroppedOutOfRange} illegal={gate.DroppedIllegalFrame} ack={gate.DroppedAckSnapshot}");
+                $"玩家 0 未按输入移动（pos.x={player0.Pos.X:F3}，期望 > -14.5）Gate 计数：acc={gate.AcceptedCount} dup={gate.DroppedDuplicateFrame} oor={gate.DroppedOutOfRange} stale={gate.DroppedStaleFrame} ack={gate.DroppedAckSnapshot}");
 
             // 掉线沿用（§4.5-2）：单人掉线不停帧——其余成员仍在，权威循环继续推帧
             int frameBefore = _host.Room.AuthSim.Frame;

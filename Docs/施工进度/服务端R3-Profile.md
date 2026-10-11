@@ -31,7 +31,7 @@
 
 - `SettlementOutbox.cs`：新增 `PendingSettlement`（摘要 + **SeatAccountIds 与 Players 同序等长**）；`Enqueue(summary, seatAccountIds)`；`ListPending()` 返回待提交记录；日志追加字段 `SeatAccountIds`（**旧行兼容**：缺省 null → 空数组，先例＝`Kind` 字段）。
 - `ServerHost`：SettlementReady 时 `BuildSeatAccountIds`——从当前房间席位会话取账号（查不到 → 空串），随行持久化（重启续投不丢归属）。
-- `SettlementSubmitService.cs`（本批建）：Outbox 待提交头部 → POST Meta（实例密钥）→ 200 即 `TryMarkCompleted`（duplicate 同样算完成——Meta 幂等是最终裁判）；失败保持待提交 + **指数退避封顶**（日志节流）；**重启续投零内存记账**（进度全在日志）；载荷 delta=0 占位（无经济，P4 接真实 RewardDelta）。
+- `SettlementSubmitService.cs`（本批建）：Outbox 待提交头部 → POST Meta（实例密钥）→ 200 即 `TryMarkCompleted`（duplicate 同样算完成——Meta 幂等是最终裁判）；失败保持待提交 + **指数退避封顶**（日志节流）；**重启续投零内存记账**（进度全在日志）；载荷 delta 经**注入的奖励策略**换算（P3 起：`ISettlementRewardPolicy` + `NoEconomyRewardPolicy` = 无经济口径 0；当时为隐式占位，P4 定口径后只改装配一行）。
 - `RoomServerConfig`：`settlement` 分区（`submit_url` 空 = 关闭；非绝对 URL/半段配置/区间越界拒启）；`HostAssembly` 注册（**装配收敛批2 第二批对象**）；`Program` fail-closed（启用但缺实例密钥拒启）+ 启动日志（含待提交数）。
 - **SIGTERM 排空接线**：`Program` 常驻分支注册 `PosixSignalRegistration(SIGTERM)`——容器 stop/K8s 与 Ctrl+C 同排空路径（`context.Cancel=true` 阻止默认终止）；不支持该信号的平台如实降级 null（本地仍由 Ctrl+C 承担）。
 - `Config/roomserver.json`：settlement 说明 + 占位（url 空默认关闭）。
@@ -62,7 +62,7 @@
 ## 边界与下一批
 
 - 本批不启动 Unity（L2/EditMode/PlayMode 未跑——本机无 Unity 环境）；`buildHash` 重录与 Unity 重编译对齐随出包门禁（承接夜批裁决）。
-- **结算增量 delta=0 占位**：封闭测试无经济系统——账本 revision 推进/余额不变；真实 RewardDelta 换算归 P4（换算在提交方，Meta 不接受客户端上报）。
+- **结算增量**：封闭测试无经济系统——账本 revision 推进/余额不变。**P3 已把它从"隐式 0 占位"改为"显式接缝"**：`ISettlementRewardPolicy`（唯一换算点，`BuildPayload` 只经它取 delta）+ `NoEconomyRewardPolicy`（当前口径）+ `Settings.RewardPolicy` 装配注入；真实 RewardDelta 口径归 P4（换算在提交方，Meta 不接受客户端上报也不重算），落定时只改装配一行。**不在此之前自造数字**：设计只定义了 RewardDelta 的形状与归属，全仓无奖励口径（§520/§600"不把估算值写死为事实"）。
 - 完整 §6 端到端（真实 KCP 双客户端 + 登录→进房→对局→可查→**杀进程重启**→重放）未整体重跑：本批以"②闭环（真 HTTP+真 Mongo+真管道+重启续投）+ 既有 KCP 对局级用例（LiteNet.Tests 真传输/真 Runtime→Outbox）"两段衔接取证；**完整进程级冒烟归批B 部署前执行**（SIGTERM 亦在该环境实证——本机 Windows 无法注入 SIGTERM）。
 - 已知边界：提交管道头部条目若被 Meta 永久拒绝（如旧行无账号），会以退避持续重试并显式计数（不静默丢弃、不阻塞对账；封闭测试全新环境不产生此类行）。
 - 并行线合并说明：其账本半部语义（AppendMode/双维度幂等/fan-out）原样保留；本批新增归档面挂在同一用例内（"一条提交、双侧落库"），错误码沿用其 `profile.*` 族——不另立第二套结算错误码。

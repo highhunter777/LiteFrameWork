@@ -34,8 +34,18 @@ namespace MetaServer
 
         private long _matchResultsDuplicates;
 
-        /// <summary>drain 状态：true = 已停止接受外部写，/ready 必须报未就绪（§10 优雅关闭第 1 步）。</summary>
-        public volatile bool Draining;
+        private volatile bool _draining;
+
+        /// <summary>drain 状态：true = 已停止接受外部写，/ready 必须报未就绪（§10 优雅关闭第 1 步）。
+        /// **只读**：置位只经 <see cref="BeginDrain"/>——本类其余状态早已方法化，此项原先独留裸字段
+        /// （P4 计数面封装同款口径：状态写入是事件，给它一个方法名）。</summary>
+        public bool Draining
+        {
+            get { return _draining; }
+        }
+
+        /// <summary>进入 drain（§10 优雅关闭第 1 步；幂等——重复调用无副作用）。</summary>
+        public void BeginDrain() => _draining = true;
 
         /// <summary>请求计数（含健康检查；并发安全）。</summary>
         public void CountRequest() => Interlocked.Increment(ref _httpRequests);

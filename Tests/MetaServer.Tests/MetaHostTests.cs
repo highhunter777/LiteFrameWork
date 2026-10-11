@@ -101,7 +101,7 @@ namespace MetaServer.Tests
             // drain 前就绪
             Assert.Equal(HttpStatusCode.OK, (await http.GetAsync(host.BaseAddress + "/ready")).StatusCode);
 
-            host.Ops.Draining = true;
+            host.Ops.BeginDrain();
 
             // §11.3 语义分工：live 只证进程事件循环可响应，**不因 drain 失败**（否则编排器会误杀而非摘流量）
             Assert.Equal(HttpStatusCode.OK, (await http.GetAsync(host.BaseAddress + "/live")).StatusCode);

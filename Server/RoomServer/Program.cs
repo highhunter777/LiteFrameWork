@@ -151,6 +151,10 @@ if (serverConfig.SettlementEnabled)
         IntervalMs = (int)serverConfig.SettlementIntervalMs,
         MaxBackoffMs = (int)serverConfig.SettlementMaxBackoffMs,
         RequestTimeoutMs = (int)serverConfig.SettlementTimeoutMs,
+        // 奖励换算（P3：占位改显式接缝）——当前口径 = 无经济（逐玩家 delta 0）。设计只规定了
+        // RewardDelta 的形状与归属、未定义奖励数值（全仓无 reward 字段），故不在此自造数字；
+        // 经济口径落地后**只改这一行**（换一个 ISettlementRewardPolicy），管道与 Meta 侧零改动。
+        RewardPolicy = NoEconomyRewardPolicy.Instance,
     };
 }
 

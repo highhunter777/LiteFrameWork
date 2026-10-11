@@ -111,9 +111,9 @@ namespace RoomServer
             services.AddSingleton(sp =>
             {
                 ServerHost host = sp.GetRequiredService<ServerHost>();
-                // 帧体异常上报：ServerLoop 只吸收+计数，日志落点归宿主（Shell 层才允许 Console）。
+                // 帧体异常上报：ServerLoop 只吸收+计数，日志落点归宿主（P4：走 HostLog，级别=Error）。
                 var loop = new ServerLoop(host, onPumpError: ex =>
-                    Console.WriteLine("[RoomServer] 权威帧体异常（已吸收，循环继续）："
+                    HostLog.Error("Loop", "权威帧体异常（已吸收，循环继续）："
                         + ex.GetType().Name + ": " + ex.Message));
                 host.LoopStats = loop.Stats;                       // Ops 行节拍/掉债/泵失败观测入口
                 return loop;
@@ -136,7 +136,7 @@ namespace RoomServer
                         PlayerCount = host.OccupiedPlayerCount,
                         Draining = host.Draining,
                         Port = host.BoundPort,
-                    }, Console.WriteLine);
+                    }, msg => HostLog.Info("Lobby", msg));   // P4：客户端日志经 HostLog（可接管）
                 });
             }
 
@@ -147,7 +147,7 @@ namespace RoomServer
                 services.AddSingleton(sp => new SettlementSubmitService(
                     inputs.Settlement,
                     sp.GetRequiredService<ISettlementOutbox>(),
-                    Console.WriteLine));
+                    msg => HostLog.Info("Settle", msg)));   // P4：客户端日志经 HostLog（可接管）
             }
         }
 

@@ -170,11 +170,14 @@ namespace MetaServer
                     new MongoAccountStore(
                         sp.GetRequiredService<MongoDB.Driver.IMongoDatabase>(),
                         () => DateTime.UtcNow));
-                builder.Services.AddSingleton<MetaServer.Contracts.Persistence.IOutboxStore>(sp =>
-                    new MongoOutboxStore(
-                        sp.GetRequiredService<MongoDB.Driver.IMongoDatabase>(),
-                        sp.GetRequiredService<IOptions<MetaConfig>>().Value.OutboxCapacity,
-                        () => DateTime.UtcNow));
+                // **Outbox/Inbox 端口「装配退役」（P3）**：`IOutboxStore` + `MongoOutboxStore` 是 G1 的
+                // "只建接缝"交付物（Meta 专项 §14-G1：必要存储端口 + 迁移/幂等约束 + 故障夹具），
+                // 端口契约与实现均已就绪、L1（内存替身）+ L3（真 Mongo，含重启/唯一索引）已实证——
+                // 但**当前没有任何生产消费者**：Meta 的结算路径是"事务内落账 + 由 RoomServer 侧 Outbox
+                // 承担重试"，Meta 自身没有外发写，因此不需要自己的 Outbox。
+                // 一个注册了却没人解析的服务，会让人以为该功能已在跑（审计 P3 点名的"死装配"），
+                // 故**不在此注册**。G3 接入 Meta 外发写时：此处补一行 `AddSingleton<IOutboxStore>`，
+                // 并在 §10 优雅关闭第 3 步（刷新 Outbox）与 `/ready`（Outbox 未超阈）处接线。
                 builder.Services.AddSingleton<MetaServer.Contracts.Persistence.ISchemaVersionStore, MongoSchemaVersionStore>();
                 builder.Services.AddSingleton<MetaServer.Contracts.Persistence.ISchemaMigrator>(sp =>
                     new SchemaMigrationRunner(
@@ -187,7 +190,9 @@ namespace MetaServer
                 builder.Services.AddSingleton(sp => new ApplyMatchResultUseCase(
                     sp.GetRequiredService<MetaServer.Contracts.Persistence.ISettlementLedger>(),
                     sp.GetRequiredService<MetaServer.Contracts.Persistence.IMatchResultArchive>()));
-                builder.Services.AddSingleton<SettlementSampleUseCase>();
+                // 样例链路（P3：出生产构建）——缺省不装配（`EnableSampleEndpoints` 缺省 false）：
+                // 开启才注册用例，配合下面的端点门控，整条链路在生产配置里不存在。
+                if (boot.EnableSampleEndpoints) builder.Services.AddSingleton<SettlementSampleUseCase>();
                 builder.Services.AddHostedService<MigrationStartupService>();
 
                 if (!string.IsNullOrWhiteSpace(boot.AuthSigningKeyBase64))
@@ -209,7 +214,9 @@ namespace MetaServer
             // 挂载形态统一（P2 批二）：健康端点与业务端点同走 XxxEndpoints.Map——
             // 宿主只留挂载序，不再有"私有方法挂载的一类端点"。
             HealthEndpoints.Map(app);
-            SampleEndpoints.Map(app);
+            // 样例链路默认不挂载（P3：出生产构建）——未显式开启时该路径**不存在**（404），
+            // 不留"能打进来但必然 503"的误导面（与用例注册同一门：boot 门读 + 同一配置节）。
+            if (boot.EnableSampleEndpoints) SampleEndpoints.Map(app);
             AuthEndpoints.Map(app);
             LobbyEndpoints.Map(app);
             SettlementEndpoints.Map(app);
@@ -251,7 +258,7 @@ namespace MetaServer
 
             lifetime.ApplicationStopping.Register(() =>
             {
-                ops.Draining = true;
+                ops.BeginDrain();
                 logger.LogInformation("[MetaServer] drain：readiness 置 false，等待在途请求完成（时限 {Seconds}s）",
                     app.Services.GetRequiredService<IOptions<MetaConfig>>().Value.ShutdownTimeoutSeconds);
             });

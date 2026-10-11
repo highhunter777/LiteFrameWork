@@ -68,8 +68,8 @@ namespace RoomServer
 
             var values = ToValues(SimConfigMapper.BuildCombatValues(tables.Tbcombatnum,
                 tables.Tbmovementconfig, tables.Tbentityconfig));
-            Console.WriteLine(
-                $"[RoomServer] 玩法数值（bin 表）：move={values.MoveSpeed} gravity={values.Gravity} " +
+            HostLog.Info("Tables",
+                $"玩法数值（bin 表）：move={values.MoveSpeed} gravity={values.Gravity} " +
                 $"hitscan={values.HitscanRange} hit={CombatConfig.HitscanRadius}(裁决) body={CombatConfig.BodyRadius}:{CombatConfig.HitscanHeight}(烘焙) " +
                 $"dmg={values.BaseDamage}±{values.DamageSpread} hp={values.EntityHp}");
 
@@ -134,8 +134,8 @@ namespace RoomServer
             if (!table.TryGet(WeaponConfig.DefaultRifleId, out WeaponDef rifle))
                 throw new InvalidDataException("tbweapon 默认步枪行未入表（id 越界？）");
             table.TryGetSlotDefault(1, out int slot1Id);
-            Console.WriteLine(
-                $"[RoomServer] 武器表装载：{count} 行（默认步枪 dmg={rifle.Damage} rpm={rifle.Rpm} " +
+            HostLog.Info("Tables",
+                $"武器表装载：{count} 行（默认步枪 dmg={rifle.Damage} rpm={rifle.Rpm} " +
                 $"mag={rifle.MagazineSize} 换弹={rifle.ReloadFrames}帧 节拍={rifle.FireIntervalFrames}帧；槽1默认 id={slot1Id}）");
             return table;
         }

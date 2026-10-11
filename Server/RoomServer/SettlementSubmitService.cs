@@ -30,8 +30,10 @@ namespace RoomServer
     /// - **重启续投**：不做任何内存进度记账——启动即从日志待提交面重建（引擎语义在 Outbox 里）；
     /// - **重试与退避**：失败条目保持待提交，下一轮重试；连续失败按指数退避封顶
     ///   （<see cref="Settings.MaxBackoffMs"/>）——不静默丢弃、不无界刷屏（日志节流）；
-    /// - **结算增量**：封闭测试无经济系统——逐玩家 delta = 0 占位（账本 revision 推进、
-    ///   余额不变）；真实 RewardDelta 换算归 P4，换算在提交方完成（Meta 不接受客户端上报）。
+    /// - **结算增量（P3：占位改显式接缝）**：换算归提交方（Meta 不接受客户端上报、也不重算），
+    ///   经 <see cref="ISettlementRewardPolicy"/> 单点注入；当前实现 = <see cref="NoEconomyRewardPolicy"/>
+    ///   （逐玩家 delta 0：账本 revision 推进、余额不变）。**不是"忘了填的 0"**：设计未定义奖励口径
+    ///   （无字段可依），凭空定数等于把估算当事实——经济口径落地时换一个实现即可，管道零改动。
     ///
     /// HTTP handler 可注入——L1 用伪造 handler 断言载荷、完成标记与失败保持。
     /// </summary>
@@ -55,6 +57,10 @@ namespace RoomServer
 
             /// <summary>单次请求超时（毫秒）。</summary>
             public int RequestTimeoutMs;
+
+            /// <summary>奖励换算策略（缺省 <see cref="NoEconomyRewardPolicy"/> = 逐玩家 delta 0；
+            /// 经济口径落地后注入真实实现——见 <see cref="ISettlementRewardPolicy"/>）。</summary>
+            public ISettlementRewardPolicy RewardPolicy;
         }
 
         private sealed class SubmitPlayer
@@ -64,7 +70,7 @@ namespace RoomServer
             public int Kills { get; set; }
             public int Deaths { get; set; }
 
-            /// <summary>奖励增量（无经济占位 0——见类注释）。</summary>
+            /// <summary>奖励增量（由 <see cref="ISettlementRewardPolicy"/> 换算；当前无经济口径 → 0）。</summary>
             public long Delta { get; set; }
 
             /// <summary>追加模式（提交方不持有玩家修订号——幂等由 Meta 账本唯一索引承载）。</summary>
@@ -91,6 +97,7 @@ namespace RoomServer
         private readonly Settings _settings;
         private readonly ISettlementOutbox _outbox;
         private readonly Action<string> _log;
+        private readonly ISettlementRewardPolicy _rewardPolicy;
         private long _submitted;
         private long _failed;
         private int _consecutiveFailures;
@@ -107,6 +114,7 @@ namespace RoomServer
             _settings = settings;
             _outbox = outbox ?? throw new ArgumentNullException(nameof(outbox));
             _log = log ?? throw new ArgumentNullException(nameof(log));
+            _rewardPolicy = settings.RewardPolicy ?? NoEconomyRewardPolicy.Instance;   // 缺省 = 无经济口径
         }
 
         /// <summary>URL 取值（含 settings 的 null 前置校验——在 <c>base(...)</c> 实参序最前）。</summary>
@@ -211,7 +219,7 @@ namespace RoomServer
         }
 
         /// <summary>载荷组装（测试经伪造 handler 捕获 JSON 断言字段形状与账号映射对齐）。</summary>
-        private static SubmitPayload BuildPayload(PendingSettlement entry)
+        private SubmitPayload BuildPayload(PendingSettlement entry)
         {
             MatchResultSummary summary = entry.Summary;
             PlayerMatchResult[] results = summary.Players;
@@ -225,7 +233,8 @@ namespace RoomServer
                     AccountId = accountId ?? string.Empty,
                     Kills = results[i].Kills,
                     Deaths = results[i].Deaths,
-                    Delta = 0L,
+                    // 唯一的奖励换算点（P3：占位改显式接缝）——仅在此调用策略，别处不得自算 delta
+                    Delta = _rewardPolicy.RewardDelta(results[i].PlayerId, results[i].Kills, results[i].Deaths),
                 };
             }
             return new SubmitPayload

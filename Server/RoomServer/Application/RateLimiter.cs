@@ -101,23 +101,35 @@ namespace RoomServer.Application
         private readonly Dictionary<string, Bucket> _accountEntry = new Dictionary<string, Bucket>();
         private readonly Dictionary<int, Bucket> _sessionPackets = new Dictionary<int, Bucket>();
 
+        // ---- 计数面（P4 同款收口）：私有 + 只读属性，写点全在本类的锁内 ----
+        //
+        // 这六个数此前是 public 可变字段，而写入还以 `ref` 传进 TryAcquire——等于把计数器的
+        // 写权限同时交给"任何拿到 limiter 的代码"。收口后读面（`Ops.Format`/诊断/用例）零改动。
+
+        private long _rejectedIpConnect;
+        private long _rejectedIpEntry;
+        private long _rejectedAccountEntry;
+        private long _rejectedSessionPackets;
+        private long _rejectedTableFull;
+        private long _bucketsPurged;
+
         /// <summary>IP 维度·连接被限数（宿主拒绝的 OnConnected）。</summary>
-        public long RejectedIpConnect;
+        public long RejectedIpConnect => _rejectedIpConnect;
 
         /// <summary>IP 维度·入场被限数（Join / Reconnect 尝试）。</summary>
-        public long RejectedIpEntry;
+        public long RejectedIpEntry => _rejectedIpEntry;
 
         /// <summary>账号维度·入场被限数。</summary>
-        public long RejectedAccountEntry;
+        public long RejectedAccountEntry => _rejectedAccountEntry;
 
         /// <summary>Session 维度·入包被限数（丢弃，不回应）。</summary>
-        public long RejectedSessionPackets;
+        public long RejectedSessionPackets => _rejectedSessionPackets;
 
         /// <summary>键表满导致的新键拒绝数（任一 lane 的子原因，同时计入对应 lane 计数；&gt;0 = 容量与来源规模不匹配）。</summary>
-        public long RejectedTableFull;
+        public long RejectedTableFull => _rejectedTableFull;
 
         /// <summary>累计被清理的空闲桶数。</summary>
-        public long BucketsPurged;
+        public long BucketsPurged => _bucketsPurged;
 
         public RateLimiter(RateLimitSettings settings)
         {
@@ -127,21 +139,21 @@ namespace RoomServer.Application
         /// <summary>IP 维度·连接：OnConnected 时消耗。null/空地址放行（看不见的地址限不了，见端口契约）。</summary>
         public bool TryAcquireIpConnect(string address, long nowMs)
             => string.IsNullOrEmpty(address)
-                || TryAcquire(_ipConnect, address, _settings.IpConnect, nowMs, ref RejectedIpConnect);
+                || TryAcquire(_ipConnect, address, _settings.IpConnect, nowMs, ref _rejectedIpConnect);
 
         /// <summary>IP 维度·入场：Join / Reconnect 尝试时消耗。null/空地址放行。</summary>
         public bool TryAcquireIpEntry(string address, long nowMs)
             => string.IsNullOrEmpty(address)
-                || TryAcquire(_ipEntry, address, _settings.IpEntry, nowMs, ref RejectedIpEntry);
+                || TryAcquire(_ipEntry, address, _settings.IpEntry, nowMs, ref _rejectedIpEntry);
 
         /// <summary>账号维度·入场：仅验签通过后的 Join 调用（验签前无 AccountId）。null/空放行。</summary>
         public bool TryAcquireAccountEntry(string accountId, long nowMs)
             => string.IsNullOrEmpty(accountId)
-                || TryAcquire(_accountEntry, accountId, _settings.AccountEntry, nowMs, ref RejectedAccountEntry);
+                || TryAcquire(_accountEntry, accountId, _settings.AccountEntry, nowMs, ref _rejectedAccountEntry);
 
         /// <summary>Session 维度·包速率：每入包消耗（键 = connectionId，int 键零分配）。</summary>
         public bool TryAcquireSessionPacket(int connectionId, long nowMs)
-            => TryAcquire(_sessionPackets, connectionId, _settings.SessionPackets, nowMs, ref RejectedSessionPackets);
+            => TryAcquire(_sessionPackets, connectionId, _settings.SessionPackets, nowMs, ref _rejectedSessionPackets);
 
         /// <summary>当前在册桶总数（诊断；各 lane 求和）。</summary>
         public int BucketCount
@@ -160,7 +172,7 @@ namespace RoomServer.Application
             {
                 int removed = PurgeTable(_ipConnect, nowMs) + PurgeTable(_ipEntry, nowMs)
                     + PurgeTable(_accountEntry, nowMs) + PurgeTable(_sessionPackets, nowMs);
-                BucketsPurged += removed;
+                _bucketsPurged += removed;
                 return removed;
             }
         }
@@ -175,7 +187,7 @@ namespace RoomServer.Application
                     if (table.Count >= _settings.Buckets)
                     {
                         // 表满：拒绝新键，不淘汰旧桶（安全 > 可用；淘汰 = 替攻击者清欠账）。
-                        RejectedTableFull++;
+                        _rejectedTableFull++;
                         rejected++;
                         return false;
                     }

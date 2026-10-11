@@ -24,23 +24,47 @@ namespace RoomServer.Application
         /// <summary>帧体异常上报节流步长（首败必报，其后每 N 次报一次——坏配置这类"每帧必抛"不得刷屏）。</summary>
         private const long PumpErrorReportEvery = 100;
 
-        /// <summary>节拍统计（常驻线程写、外部读——用 <see cref="LoopStats"/> 聚合，避免逐字段竞态读）。</summary>
+        /// <summary>节拍统计（由循环线程写、外部读）。P4 计数面收口：状态私有、只读属性 + 写入方法——
+        /// 外部（Ops 行/启动日志/用例）一律读，不碰字段；<c>PumpFailure</c> 返回累计次数供节流上报用。</summary>
         public sealed class LoopStats
         {
+            private long _ticks;
+            private long _droppedTimeMs;
+            private long _catchUpAbandoned;
+            private long _pumpFailures;
+            private string _lastPumpError;
+
             /// <summary>实际跑过的权威帧数（= 帧体调用次数，含补帧与**抛错的帧**）。</summary>
-            public long Ticks;
+            public long Ticks => _ticks;
 
             /// <summary>累计丢弃的时间债（毫秒；>0 = 服务器跟不上，Ops 观测项）。</summary>
-            public long DroppedTimeMs;
+            public long DroppedTimeMs => _droppedTimeMs;
 
-            /// <summary>因超过 <see cref="MaxCatchUp"/> 而放弃追帧的次数。</summary>
-            public long CatchUpAbandoned;
+            /// <summary>因超过 <see cref="ServerLoop.MaxCatchUp"/> 而放弃追帧的次数。</summary>
+            public long CatchUpAbandoned => _catchUpAbandoned;
 
             /// <summary>帧体抛异常被吸收的次数（P0-2：>0 = 权威循环已吞掉异常，必须查 <see cref="LastPumpError"/>）。</summary>
-            public long PumpFailures;
+            public long PumpFailures => _pumpFailures;
 
             /// <summary>最近一次被吸收的帧体异常描述（<c>类型: 消息</c>；null = 从未失败）。</summary>
-            public string LastPumpError;
+            public string LastPumpError => _lastPumpError;
+
+            /// <summary>记一帧（含被吸收异常的帧——记账口径与 <see cref="Ticks"/> 同源）。</summary>
+            public void NoteTick() => _ticks++;
+
+            /// <summary>记一次"放弃追帧 + 丢债"（时间债与次数是同一事件，必须一起记）。</summary>
+            public void NoteCatchUpAbandoned(long droppedTimeMs)
+            {
+                _droppedTimeMs += droppedTimeMs;
+                _catchUpAbandoned++;
+            }
+
+            /// <summary>记一次被吸收的帧体异常（返回累计次数，供上报节流判断）。</summary>
+            public long NotePumpFailure(string description)
+            {
+                _lastPumpError = description;
+                return ++_pumpFailures;
+            }
         }
 
         private readonly LoopStats _stats = new LoopStats();
@@ -135,11 +159,10 @@ namespace RoomServer.Application
             }
             catch (Exception ex)
             {
-                long failures = ++_stats.PumpFailures;
-                _stats.LastPumpError = ex.GetType().Name + ": " + ex.Message;
+                long failures = _stats.NotePumpFailure(ex.GetType().Name + ": " + ex.Message);
                 if (failures == 1 || failures % PumpErrorReportEvery == 0) _onPumpError?.Invoke(ex);
             }
-            _stats.Ticks++;
+            _stats.NoteTick();
         }
 
         /// <summary>
@@ -161,8 +184,7 @@ namespace RoomServer.Application
                 long debt = _clock.Timestamp - Anchor(start, tick);
                 if (debt > 0)
                 {
-                    _stats.DroppedTimeMs += debt * 1000L / _clock.Frequency;
-                    _stats.CatchUpAbandoned++;
+                    _stats.NoteCatchUpAbandoned(debt * 1000L / _clock.Frequency);
                     start += debt;                        // 锚点前移：把丢掉的债从时间轴上去掉（下一锚 = 现在）
                 }
             }

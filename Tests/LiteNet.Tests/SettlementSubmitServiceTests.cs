@@ -155,9 +155,68 @@ namespace LiteNet.Tests
                 Assert.Equal("acc-0", players[0].GetProperty("accountId").GetString());
                 Assert.Equal(4, players[0].GetProperty("kills").GetInt32());
                 Assert.Equal(1, players[0].GetProperty("deaths").GetInt32());
-                Assert.Equal(0, players[0].GetProperty("delta").GetInt64());      // 无经济占位
+                Assert.Equal(0, players[0].GetProperty("delta").GetInt64());      // 无经济口径（P3 接缝缺省）
                 Assert.Equal(-1, players[0].GetProperty("expectedRevision").GetInt64());  // 追加模式
                 Assert.Equal("acc-1", players[1].GetProperty("accountId").GetString());
+            }
+            finally { Cleanup(path); }
+        }
+
+        /// <summary>测试用奖励策略（每杀 10——只为证明"delta 来自策略"，不代表任何经济口径）。</summary>
+        private sealed class KillsRewardPolicy : ISettlementRewardPolicy
+        {
+            public long RewardDelta(int playerId, int kills, int deaths) => kills * 10L;
+        }
+
+        /// <summary>
+        /// P3：奖励换算**单点接缝**——管道只经 <see cref="ISettlementRewardPolicy"/> 取 delta，
+        /// 自己不乘不除（策略换实现即改口径，管道与 Meta 侧零改动）。
+        /// </summary>
+        [Fact]
+        public void 奖励换算_经注入策略取值_管道不自算()
+        {
+            string path = TempJournal();
+            try
+            {
+                var handler = new FakeHandler(_ => Ok());
+                using var outbox = FileSettlementOutbox.Open(path, 8);
+                SettlementSubmitService.Settings settings = Settings();
+                settings.RewardPolicy = new KillsRewardPolicy();
+                using var service = new SettlementSubmitService(settings, outbox, _ => { }, handler);
+                outbox.Enqueue(Summary("m-r"), new[] { "acc-0", "acc-1" });
+
+                Assert.Equal(SettlementSubmitStep.Submitted, service.TrySubmitNext(out _));
+
+                using var payload = JsonDocument.Parse(handler.LastBody);
+                JsonElement players = payload.RootElement.GetProperty("players");
+                Assert.Equal(40L, players[0].GetProperty("delta").GetInt64());   // 4 kills × 10
+                Assert.Equal(10L, players[1].GetProperty("delta").GetInt64());   // 1 kill × 10
+            }
+            finally { Cleanup(path); }
+        }
+
+        /// <summary>
+        /// P3：未注入策略时的缺省必须是**显式的无经济实现**（delta 0），而不是"没填的 0"——
+        /// 缺省行为由 <see cref="NoEconomyRewardPolicy"/> 单点定义，装配处也显式传入同一单例。
+        /// </summary>
+        [Fact]
+        public void 奖励换算_未注入策略_缺省无经济即零()
+        {
+            string path = TempJournal();
+            try
+            {
+                var handler = new FakeHandler(_ => Ok());
+                using var outbox = FileSettlementOutbox.Open(path, 8);
+                using var service = new SettlementSubmitService(Settings(), outbox, _ => { }, handler);
+                outbox.Enqueue(Summary("m-n"), new[] { "acc-0", "acc-1" });
+
+                Assert.Equal(SettlementSubmitStep.Submitted, service.TrySubmitNext(out _));
+
+                using var payload = JsonDocument.Parse(handler.LastBody);
+                JsonElement players = payload.RootElement.GetProperty("players");
+                Assert.Equal(0L, players[0].GetProperty("delta").GetInt64());
+                Assert.Equal(0L, players[1].GetProperty("delta").GetInt64());
+                Assert.Equal(0L, NoEconomyRewardPolicy.Instance.RewardDelta(0, 99, 99));
             }
             finally { Cleanup(path); }
         }

@@ -64,7 +64,7 @@ R2 行亦写"RoomServer 侧：Join Ticket **本地验签**"。Meta 侧只**签�
 | `Host/MetaConfig.cs` | `MongoConnectionString`/`MongoDatabaseName`/`OutboxCapacity` 三项＋范围校验（连接串形状/配套库名/容量界） |
 | `Host/MetaHost.cs` | 装配：连接串非空→注册 Mongo 家族（客户端/库/三端口/迁移执行器/样例用例/HostedService）；**功能门读**经 ConfigurationBinder 绑同节、**消费值**一律 IOptions（避开 2026-09-25 双实例失效）；`/ready` 在配置存储时 ping Mongo（2s 超时） |
 | `Host/MigrationStartupService.cs` | 启动迁移；失败/被拒/存储异常统一 `InvalidOperationException` → **宿主拒绝启动（fail-closed，§9.1）** |
-| `Host/SampleEndpoints.cs` | `POST /sample/settlement`——样例⑤"简单测试命令"HTTP 载体：accepted/duplicate 200（首次快照）、conflict 409、invalid 400、store-unavailable 503；**未配置存储→503 store-not-configured**（拒绝相应功能，不退回替身） |
+| `Host/SampleEndpoints.cs` | `POST /sample/settlement`——样例⑤"简单测试命令"HTTP 载体：accepted/duplicate 200（首次快照）、conflict 409（**领域体** `SampleConflict`：expected/actual 数字）、invalid 400、未配置存储/未确认 503。**错误体经 `MetaResults` 统一形状**（P2 批二）：`profile.disabled` / `profile.invalid-request`（违规清单进 `args`）/ `profile.store-unconfirmed`（内部 reason 不出体）——与 `SettlementEndpoints` 同一张 `ProfileErrorCodes` 表；判据=协议级错误→`{code,messageKey,args}`、领域结果（含 409）→领域 DTO。**缺省不挂载（P3）**：`EnableSampleEndpoints` 缺省 false——生产形态下该路径**不存在（404）**、`SettlementSampleUseCase` 也不注册；本地联调/L3 用例显式开启 |
 | `Tests/MetaServer.Integration.Tests/`（5 件） | `MongoFixture`（MONGO_TEST_URI→探活→docker 自起容器含 rs.initiate；用例级独立库＋统一清理；`Xunit.SkippableFact` 显式跳过）＋四组 26 例 L3 |
 | `scripts/test.ps1` | **命名契约守卫**（见下——防再次静默漏跑） |
 | `Tests.slnx`/`.gitignore` | 新工程登记（含 csproj 白名单） |
@@ -122,7 +122,7 @@ R2 行亦写"RoomServer 侧：Join Ticket **本地验签**"。Meta 侧只**签�
 | 文件 | 内容 |
 | --- | --- |
 | `Contracts/Persistence/SettlementLedger.cs` | 结算账本端口 `ISettlementLedger`：**双维度幂等**（operationId + (playerId, matchId, settlementType)，唯一索引为最终裁判，§11.2/§11.3）、首次应用 = 唯一账目 + revision CAS 推进的**同一原子边界**（CAS 冲突整笔回滚不残留）、`Duplicate` 携带**首次快照**（重复提交不重新计算）、`SettlementStoreUnavailableException` = 未确认语义（不冒充成功、重试安全） |
-| `Contracts/Persistence/Outbox.cs` | 持久 Outbox 端口 `IOutboxStore`：**有界容量**（满则显式 `RejectedFull`，§11.2"任何队列必须有显式容量与清理策略"）、入队幂等（Confirmed 条目不复活不重投）、**失败保持可重试**只累加计数（§10"未提交项保持可重试状态"）；`OutboxStatus` 刻意两态——失败不落独立状态，重试语义由状态本身承载 |
+| `Contracts/Persistence/Outbox.cs` | 持久 Outbox 端口 `IOutboxStore`：**有界容量**（满则显式 `RejectedFull`，§11.2"任何队列必须有显式容量与清理策略"）、入队幂等（Confirmed 条目不复活不重投）、**失败保持可重试**只累加计数（§10"未提交项保持可重试状态"）；`OutboxStatus` 刻意两态——失败不落独立状态，重试语义由状态本身承载。**装配状态（P3）**：宿主 DI **不再注册**（无可接消费者——Meta 结算路径是事务内落账、重试归 RoomServer 侧 Outbox）；端口/实现/L1+L3 用例保留为 §14-G1"接缝"交付物，G3 接通 Meta 外发写时补一行注册 + 关闭第 3 步刷新 + `/ready` 未超阈 |
 | `Contracts/Persistence/SchemaMigration.cs` | 迁移契约：`IMigrationStep`（Migrate/Rollback 必须互逆、Migrate 可重复应用）、`ISchemaVersionStore`（**版本写回 = 确认点**，任意一步后进程终止、重启从最后确认版本继续）、`MigrationOutcome` 四态（失败显式报告"哪一步、回到哪版、回滚是否失败"——§9.1 不静默半迁移） |
 | `Contracts/Persistence/SampleSettlementCommand.cs` | 样例⑤"简单测试命令"DTO + `Validate()` 一次报全（与 `MetaConfig.Validate` 同口径）；**非业务模型**——§5-5 不冻结库存/奖励语义 |
 | `Infrastructure/Persistence/SettlementSampleUseCase.cs` | 样例命令消费者：验证 → 原子应用 → `SampleCommandResult` 五态（Accepted/DuplicateHit/Conflict/Rejected/Unconfirmed）；**非业务模块**（Auth/Lobby/Profile 归 G3；生产装配缺真实存储时拒绝启动、不悄悄退回替身） |

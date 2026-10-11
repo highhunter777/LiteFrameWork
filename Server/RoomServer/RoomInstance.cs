@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Threading;
 using LiteSim;
 using RoomServer.Application;
 using RoomServer.Runtime;
@@ -65,35 +66,126 @@ namespace RoomServer
         /// </summary>
         public readonly RoomMailbox<RoomInputEnvelope, RoomControlEnvelope, RoomOutboundEnvelope> Mailbox;
 
-        /// <summary>Worker 驱动去重标记（0 = 无待驱动，1 = 已登记/正在驱动；见 ServerHost.ScheduleRoomPump）。</summary>
-        public int PumpScheduled;
+        // ---- 宿主 ↔ Worker 同步协议（P4：状态私有，只经下列方法访问）----
+        //
+        // **为什么不再用 public 字段**：这组值**跨线程**（宿主主线程 ↔ 归属 Worker），同步原语必须与
+        // 状态绑死。字段公开时，"这里该用 Interlocked 还是裸 ++、谁写谁读"只能靠注释纪律——编译器不设防
+        // （审计 §五实例：`OutboundSequence` 裸写、同类字段部分 Interlocked 部分裸 ++）。
+        // 收成方法后：**哪些操作是原子 RMW**（CAS/Inc/Exchange）、**哪些值只有单侧线程可见**（普通读写），
+        // 由 API 与文档承载；改名/漏改会编译不过，而不是静默退化。
+
+        private int _pumpScheduled;                 // 0/1（宿主登记 ↔ Worker 复位，双向 CAS）
+        private int _workerInFlight;                // 0/1（Worker 写，宿主判静默时读）
+        private int _pendingTicks;                  // 0/1（宿主入盒，Worker 消费）
+        private readonly List<RoomOutput> _workerOutputs = new List<RoomOutput>();
+        private int _staleJoinRollbackPending;      // 宿主自写自读（迟到 Join 回收待办）
+        private long _outboundSequence;             // Worker 写、宿主读（诊断）
+        private long _outboundRejected;             // Worker 递增、宿主观测
+        private long _drainDeadlineMs = -1;         // 宿主自写自读（-1 = 未排空）
+        private int _drainTimeoutIssued;            // 宿主自写自读（超时 Shutdown 只投一次）
 
         /// <summary>
-        /// 房间 Worker 在途驱动数（0/1）。Worker 在驱动体入口递增、**在重新登记之后**递减——
-        /// 宿主据此与 <see cref="PumpScheduled"/> 配合判定房间静默（销毁前提，见 ServerHost.TryDestroyTerminalRoom）。
+        /// Worker 驱动入口（缓存委托，避免每帧分配；仅 Worker 执行形态装配，装配后不再变）。
+        /// 读取即 <c>!= null</c> 判定"本房间是否已绑定驱动"。
         /// </summary>
-        public int WorkerInFlight;
+        public Action DriveAction { get; private set; }
 
-        /// <summary>在途 Tick 标记（合并节流：宿主每 Pump 至多入盒一条 Tick，Worker 执行后清零）。</summary>
-        public int PendingTicks;
-
-        /// <summary>Worker 驱动入口（缓存委托，避免每帧分配；仅 Worker 执行形态装配）。</summary>
-        public Action DriveAction;
-
-        /// <summary>Worker 侧命令输出复用缓冲（每房间一份：房间 Worker 单线程写，宿主不碰）。</summary>
-        public readonly List<RoomOutput> WorkerOutputs = new List<RoomOutput>();
+        /// <summary>绑定 Worker 驱动入口（建房时一次性；重复绑定 = 装配错误，直接抛）。</summary>
+        public void BindDriveAction(Action drive)
+        {
+            if (drive == null) throw new ArgumentNullException(nameof(drive));
+            if (DriveAction != null)
+                throw new InvalidOperationException("房间驱动入口已绑定（每房间只绑定一次——重复绑定会静默丢弃旧委托）");
+            DriveAction = drive;
+        }
 
         /// <summary>
-        /// 迟到 Join 的回滚待办标记（宿主写读）：回传应用发现"座位已占但发起连接已不在"时置位，
-        /// 由宿主在后续 Pump 中尝试回收动态预留（见 ServerHost.TryRollbackStaleReservation）。
+        /// 尝试登记一次房间驱动（0→1）。返回 false = **已有在途驱动**，调用方直接跳过
+        /// （见 ServerHost.ScheduleRoomPump：去重靠这次 CAS，不靠调用方先读后写）。
         /// </summary>
-        public int StaleJoinRollbackPending;
+        public bool TrySchedulePump() => Interlocked.CompareExchange(ref _pumpScheduled, 1, 0) == 0;
 
-        /// <summary>出站回传序号（Worker 写，宿主读；诊断用，不参与语义）。</summary>
-        public long OutboundSequence;
+        /// <summary>撤销登记（池已停/队列满）——留给下一次命令再唤醒。</summary>
+        public void ClearPumpScheduled() => Interlocked.Exchange(ref _pumpScheduled, 0);
 
-        /// <summary>Outbound lane 满/关闭导致的回传拒绝数（Worker 递增；宿主观测）。</summary>
-        public long OutboundRejected;
+        /// <summary>驱动体收尾复位（Worker 侧）：登记与在途计数一并归零，房间才可能被判定静默。</summary>
+        public void CompletePump()
+        {
+            Interlocked.Exchange(ref _pumpScheduled, 0);
+            Interlocked.Decrement(ref _workerInFlight);
+        }
+
+        /// <summary>进入 Worker 驱动体（在途计数 +1）。</summary>
+        public void EnterWorkerDrive() => Interlocked.Increment(ref _workerInFlight);
+
+        /// <summary>
+        /// 是否仍有在途驱动（登记位或在途计数非零）——**销毁前提**的静默判据
+        /// （见 ServerHost.TryDestroyTerminalRoom）。两个值都在这里读，避免调用方各读各的漏一个。
+        /// </summary>
+        public bool HasPendingWork
+        {
+            get
+            {
+                return Volatile.Read(ref _pumpScheduled) != 0 || Volatile.Read(ref _workerInFlight) != 0;
+            }
+        }
+
+        /// <summary>
+        /// 合并节流：宿主每 Pump 至多入盒一条 Tick。返回 false = 本 Pump 已有在途 Tick，跳过。
+        /// </summary>
+        public bool TryQueueTick() => Interlocked.CompareExchange(ref _pendingTicks, 1, 0) == 0;
+
+        /// <summary>消费 Tick 标记（Worker 执行后清零；也用于丢弃未入盒的那条）。</summary>
+        public void ClearPendingTick() => Interlocked.Exchange(ref _pendingTicks, 0);
+
+        /// <summary>
+        /// 跑一条房间命令并把产出留在本房间的输出缓冲里（**Worker 侧单线程**：缓冲的 Clear 与 Execute
+        /// 必须成对且无重入，故收进此处而不暴露缓冲本身）。返回的列表即本房间的复用缓冲，
+        /// 调用方应当次即刻消费、不得留存。
+        /// </summary>
+        public IReadOnlyList<RoomOutput> ExecuteCommand(RoomCommand command)
+        {
+            _workerOutputs.Clear();
+            Runtime.Execute(command, _workerOutputs);
+            return _workerOutputs;
+        }
+
+        /// <summary>取下一个出站回传序号（诊断用；原为裸 <c>++</c>，P4 收进类内）。</summary>
+        public long NextOutboundSequence() => Interlocked.Increment(ref _outboundSequence);
+
+        /// <summary>累计出站回传拒绝数（Outbound lane 满/关闭；Worker 递增）。</summary>
+        public long OutboundRejectedCount => Interlocked.Read(ref _outboundRejected);
+
+        /// <summary>记一次出站回传被拒（lane 满/关闭）。</summary>
+        public void NoteOutboundRejected() => Interlocked.Increment(ref _outboundRejected);
+
+        /// <summary>置迟到 Join 的回滚待办（宿主写读）——见 ServerHost.TryRollbackStaleReservation。</summary>
+        public void MarkStaleJoinRollback() => _staleJoinRollbackPending = 1;
+
+        /// <summary>是否有待办的迟到 Join 回收（宿主 Pump 的快速判据）。</summary>
+        public bool StaleJoinRollbackPending => _staleJoinRollbackPending != 0;
+
+        /// <summary>清除迟到 Join 待办（回收尝试结束后，无论成败——失败留待下次命令再唤醒）。</summary>
+        public void ClearStaleJoinRollback() => _staleJoinRollbackPending = 0;
+
+        /// <summary>
+        /// 排空截止时刻（单调毫秒；-1 = 未在排空）。设置只取**更早**的截止时刻
+        /// （重复 BeginDrain 不得把已开始的排空往后推）。
+        /// </summary>
+        public void SetDrainDeadline(long deadlineMs)
+        {
+            if (_drainDeadlineMs < 0 || deadlineMs < _drainDeadlineMs) _drainDeadlineMs = deadlineMs;
+        }
+
+        /// <summary>排空截止时刻（-1 = 未在排空）。</summary>
+        public long DrainDeadlineMs => _drainDeadlineMs;
+
+        /// <summary>
+        /// 尝试登记"排空超时 Shutdown 已投递"（0→1 返回 true）。到点未终态时宿主每 Pump 都会看到，
+        /// 不设标记就会每帧重复发 Shutdown——既放大超时计数，也挤占控制 lane
+        /// （重复关闭在 Runtime 幂等，但投递只需一次）。
+        /// </summary>
+        public bool TryIssueDrainTimeout() => Interlocked.CompareExchange(ref _drainTimeoutIssued, 1, 0) == 0;
 
         /// <summary>三条 lane 使用的统一容量（细分容量可从 <see cref="MailboxCounts"/> 观测）。</summary>
         public int MailboxCapacity => Mailbox.InputCapacity;
@@ -118,19 +210,6 @@ namespace RoomServer
 
         /// <summary>累计因 lane 满而拒绝的入队条数。</summary>
         public long MailboxRejectedFullCount => Mailbox.RejectedFullCount;
-
-        /// <summary>
-        /// 排空截止时刻（单调毫秒；-1 = 未在排空）。由 <see cref="ServerHost.BeginDrain"/> 置位，
-        /// 到点仍未终态则由 Pump 发 Shutdown 命令（§12 第 3 步）。
-        /// </summary>
-        public long DrainDeadlineMs = -1;
-
-        /// <summary>
-        /// 排空超时 Shutdown 是否已投递（0/1，宿主写读）。Worker 执行形态下到达截止时刻后
-        /// 宿主每 Pump 都会看到"未终态"，不设标记就会每帧重复发 Shutdown——既放大超时计数，
-        /// 也让控制 lane 被重复命令挤占（重复关闭在 Runtime 幂等，但投递只需一次）。
-        /// </summary>
-        public int DrainTimeoutIssued;
 
         /// <summary>是否处于排空（§12 第 2 步：停止接受新 Join，已在对局内的继续跑）。</summary>
         public bool Draining
