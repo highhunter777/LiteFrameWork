@@ -1,21 +1,21 @@
 using System;
 using LiteSim;
+using LiteGame.UI;
 using TMPro;
 using UnityEngine;
-using UnityEngine.UI;
 
 namespace LiteGame
 {
     /// <summary>
-    /// 对局 HUD 面板驱动（战斗 HUD 第二件：血条/弹药/技能栏——场景 <c>/Battle HUD/Panel</c>，
-    /// 构建器 AgentScripts/BuildBattleHud.cs 确定性生成）：纯 View 层——每渲染帧把本地**预测态**
+    /// 对局 HUD 面板驱动（战斗 HUD 第二件：血条/弹药/技能栏——prefab <c>Hud_Battle</c>，
+    /// 血条走 <see cref="HpBar"/> 控件模板 <c>Tmp_HpBar</c>）：纯 View 层——每渲染帧把本地**预测态**
     /// （HP/已选武器/弹匣/换弹态）写到面板控件；**禁止回写 Sim**（HUD 归 View，数据源单向流同准心）。
     ///
     /// **数据源**（《UI框架总设计》§8.1 高频 HUD 口径——C# 直读，不跨 Lua）：
-    /// - <see cref="EntitySlot.Hp"/> / <see cref="CombatConfig.EntityHp"/>（满值——表装载值）；
+    /// - <see cref="EntitySlot.Hp"/> / <see cref="CombatConfig.EntityHp"/>（满值——表装载值）→ <see cref="HpBar.Set"/>；
     /// - <see cref="EntitySlot.SelectedWeapon"/> + <see cref="WeaponRuntime"/>（弹匣/换弹态——本人私有面，
     ///   本地预测态直读）；未装备显示 <c>--</c>。
-    /// - 技能栏为**静态占位**（技能系统未做——构建器生成暗态框，无数据面）。
+    /// - 技能栏为**静态占位**（技能系统未做，无数据面）。
     ///
     /// **写入纪律**（制作规范 §7 同值跳过 + §4 转场基线）：文本/填充只在**值变化**时写；
     /// 本地未对齐（StartGame 未达/首快照未对齐）整组 CanvasGroup 归零隐藏（比 SetActive 省重建）；
@@ -29,8 +29,7 @@ namespace LiteGame
         private readonly SimWorldState _state;
         private readonly Func<long> _localEntityId;
         private readonly CanvasGroup _panel;
-        private readonly UnityEngine.UI.Slider _hpSlider;
-        private readonly TextMeshProUGUI _hpText;
+        private readonly HpBar _hpBar;
         private readonly TextMeshProUGUI _ammoText;
         private readonly GameObject _reloadLabel;
         private int _lastHp = int.MinValue;
@@ -40,15 +39,12 @@ namespace LiteGame
         private bool _disposed;
 
         public BattleHudDriver(SimWorldState state, Func<long> localEntityId,
-            CanvasGroup panel, UnityEngine.UI.Slider hpSlider, TextMeshProUGUI hpText,
-            TextMeshProUGUI ammoText, GameObject reloadLabel)
+            CanvasGroup panel, HpBar hpBar, TextMeshProUGUI ammoText, GameObject reloadLabel)
         {
             _state = state ?? throw new ArgumentNullException(nameof(state));
             _localEntityId = localEntityId ?? throw new ArgumentNullException(nameof(localEntityId));
             _panel = panel ?? throw new ArgumentNullException(nameof(panel));
-            _hpSlider = hpSlider ?? throw new ArgumentNullException(nameof(hpSlider));
-            _hpSlider.interactable = false;   // 纯显示——血条不参与交互
-            _hpText = hpText ?? throw new ArgumentNullException(nameof(hpText));
+            _hpBar = hpBar ?? throw new ArgumentNullException(nameof(hpBar));
             _ammoText = ammoText ?? throw new ArgumentNullException(nameof(ammoText));
             _reloadLabel = reloadLabel;                    // null = 场景缺标签件（静默降级：不显示换弹态）
         }
@@ -73,9 +69,7 @@ namespace LiteGame
             if (e.Hp != _lastHp)
             {
                 _lastHp = e.Hp;
-                _hpText.SetText("{0}", e.Hp);
-                float max = CombatConfig.EntityHp;
-                _hpSlider.value = max > 0 ? e.Hp / max : 0f;   // Slider 0..1（分段滑条血条——Item_00 改造）
+                _hpBar.Set(e.Hp, CombatConfig.EntityHp);   // HpBar 控件 API（前条瞬时 + 后条延迟滑落）
             }
 
             int sel = e.SelectedWeapon;

@@ -519,7 +519,7 @@ namespace LiteGame
             }
 
             _hud = new BattleHudDriver(_context.Sim.State, () => _view != null ? _view.LocalEntityId : 0L,
-                _hudView.PanelGroup, _hudView.HpSlider, _hudView.HpText, _hudView.AmmoText,
+                _hudView.PanelGroup, _hudView.HpBar, _hudView.AmmoText,
                 _hudView.ReloadLabel);                              // 缺标签件=驱动内静默降级（不显示换弹态）
             Log.Info("hud-attached", "Battle");
         }

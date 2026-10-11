@@ -1,12 +1,14 @@
 using UnityEngine;
 using TMPro;
+using LiteGame.UI;
 
 namespace LiteGame
 {
     /// <summary>
     /// 战斗 HUD 引用件（《战斗HUD层级设计》§3——序列化引用即契约）：挂在 <c>Hud_Battle.prefab</code> 根上，
-    /// 持驱动读写的 8 个暴露节点——运行时零 Find（六条场景路径常量随 prefab 化退役）。
+    /// 持驱动读写的暴露节点——运行时零 Find（六条场景路径常量随 prefab 化退役）。
     /// HUD 属对局表现域（专项设计 §2.2）：实例由 <c>ProcedureBattle</c> 经内容服务租约创建/销毁。
+    /// 血条走 <see cref="HpBar"/> 控件 API（模板 <c>Tmp_HpBar</c> 实例）——单点组件引用，避免嵌套深层字段 override。
     /// </summary>
     public sealed class BattleHudView : MonoBehaviour
     {
@@ -20,8 +22,7 @@ namespace LiteGame
 
         [Header("面板（BattleHudDriver）")]
         [SerializeField] private CanvasGroup _panelGroup;
-        [SerializeField] private UnityEngine.UI.Slider _hpSlider;
-        [SerializeField] private TextMeshProUGUI _hpText;
+        [SerializeField] private HpBar _hpBar;
         [SerializeField] private TextMeshProUGUI _ammoText;
         [SerializeField] private GameObject _reloadLabel;
 
@@ -29,8 +30,7 @@ namespace LiteGame
         public GameObject HipForm => _hipForm;
         public GameObject AdsForm => _adsForm;
         public CanvasGroup PanelGroup => _panelGroup;
-        public UnityEngine.UI.Slider HpSlider => _hpSlider;
-        public TextMeshProUGUI HpText => _hpText;
+        public HpBar HpBar => _hpBar;
         public TextMeshProUGUI AmmoText => _ammoText;
         public GameObject ReloadLabel => _reloadLabel;
     }

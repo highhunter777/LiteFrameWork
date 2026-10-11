@@ -82,3 +82,32 @@
 
 - `Cot_Panel`（全屏组）上有一 `sprite=null`、`raycastTarget=true` 的空 Image（制作侧作**面板边界对照**用）——制作侧声明**自行删除**，本批不动；删除前该件会拦全屏输入（违《层级设计》§0 事件隔离），**发布前必须清除**（回归登记，见下条）；
 - 制作侧称此后仍会手工调整血条，prefab 以制作侧实况为准。
+
+## 血条模板化（2026-10-11）
+
+用户裁决：血条**不再是 HUD 私有结构**，改为**控件模板 `Tmp_HpBar` 的使用变体**——模板＝血条单一形态来源。本批将上一段的解包产物**回落为模板 PrefabInstance**，并把模板本身重建为 HUD 现役形态。
+
+| 面 | 落点 |
+|---|---|
+| **模板重建** | `Assets/ShareResource/UI/Widgets/HpBar.prefab`（`Tmp_HpBar`）重建为 HUD 形态：`HpBar` 根 + `_Bar/Slider`（`_Background`/`_FillArea/_Fill`/`_HandleArea/_Handle`，§9.4 `_` 私有）+ **`_FillArea/_BackFill`（半透明后条·延迟滑落）** + `Cot_IconBox/Icon_Health` + `Txt_Hp`；根挂 `LiteGame.UI.HpBar` + `BindNode`。几何/Sprite/颜色一比一取自 HUD 现役血条 |
+| **驱动改写** | `LiteGame.UI.HpBar` 改由 **UGUI `Slider`** 驱动前条（取代原 `FrontFill` `fillAmount`）；后条 `BackFill` 按 `BackLerpSpeed` 逐帧滑落追赶（**计时改走 `UiAnimationClock.Delta`**——§5／红线 9）；上升瞬时跟上。**公开 API `Set(current,max)` 与 `HpBar` 类型不变**——`UIDemoPage`/`UIBindIndex.SetHp` 零改动 |
+| **HUD 改实例** | `Hud_Battle` 的 `Cot_Panel/Cot_Vitals/HpBar_Player` 替换为 `Tmp_HpBar` 的 **PrefabInstance**（只 override 位置/尺寸 540×70 @ (342,35)＋根名） |
+| **HUD 接线** | `BattleHudView` 的 `_hpSlider`+`_hpText` 两字段 → 单个 **`HpBar _hpBar`**（指实例根组件）；`BattleHudDriver` 构造收 `HpBar`、`Tick` 调 `hpBar.Set(hp,max)`；`BattleViewRig` 随改。**单点组件引用——避免嵌套深层字段 override 的脆弱性** |
+
+### 验证证据
+
+| 项 | 结果 |
+|---|---|
+| 模板/实例树一致 | 两者逐节点比对**全同**（含 `_Fill`/`_BackFill`/`_Handle`/`_Background` rect）；全树无 `[MISSING!]` 组件 |
+| `BattleHudView` 字段 | 7 字段全部有效（`_hpBar=HpBar_Player(HpBar)`） |
+| 射线隔离 | Vitals 子树 raycastTarget=0（全关） |
+| L1 | **1594/1594** |
+| `VisualSingleSourceEditModeTests` | **8/8** |
+| `BattleHudEditModeTests` | 3/4（`弹药_装备槽弹匣数与换弹态_未装备显示占位` 失败——**既有**，与本批无关，见上节登记；HP 用例已随新 `HpBar` API 改绿） |
+| 执行脚本 | `AgentScripts/BuildHpBarTemplate.cs` + `WireHudHpBarInstance.cs`（未入库，幂等） |
+
+### 遗留（如实）
+
+- 实例带若干**良性 no-op override**（`_Fill`/`_Handle` 的 anchor 记录，实测与模板值全同、不影响渲染）——Unity 生成，无法在不破坏实例的前提下剥离，登记备查；
+- `HpBar.cs` 后条走自驱 `Update`（控件自身动画），计时已收敛 `UiAnimationClock`；对《UI框架总设计》U3「HUD 分级驱动/DirtySet」目标项留待批 C；
+- 双条后条 `_BackFill` 透明度基线 0.35，待实机目视定档。

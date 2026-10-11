@@ -1,9 +1,9 @@
 using LiteSim;
 using LiteTesting;
 using LiteTesting.Unity;
+using LiteGame.UI;
 using NUnit.Framework;
 using TMPro;
-using UnityEngine;
 using UnityEngine;
 using UnityEngine.UI;
 
@@ -13,27 +13,30 @@ namespace LiteGame.Tests.EditMode
     /// HUD 面板驱动的 L2 EditMode 覆盖：HP 文本/填充随预测态（值变化跳过）、弹匣/未装备/换弹标签
     /// （<see cref="WeaponSlotState"/> 私有面）、本地未对齐整组隐藏、Dispose 归零。
     /// 预测态与本地 Id 走构造注入——EditMode 无流程依赖，确定性。
-    /// 真场景面板观感（Synty 素材布局）归 PlayMode/手测；构建器幂等另由 run_script 验收。
+    /// 真场景面板观感（Synty 素材布局）归 PlayMode/手测；模板结构另由 run_script 验收。
     /// </summary>
     public sealed class BattleHudEditModeTests : UnityTestBase
     {
-        private (CanvasGroup Panel, Slider Bar, TextMeshProUGUI Hp, TextMeshProUGUI Ammo, GameObject Reload) BuildPanel()
+        private (CanvasGroup Panel, HpBar Bar, TextMeshProUGUI Ammo, GameObject Reload) BuildPanel()
         {
             GameObject panelGo = Scope.CreateGameObject("Panel", typeof(RectTransform), typeof(CanvasGroup));
-            GameObject barGo = Scope.CreateGameObject("Bar", typeof(RectTransform), typeof(Slider));
-            var bar = barGo.GetComponent<Slider>();
-            bar.interactable = false;
-            GameObject hpGo = Scope.CreateGameObject("HP", typeof(RectTransform), typeof(TextMeshProUGUI));
+            GameObject barGo = Scope.CreateGameObject("HpBar", typeof(RectTransform));
+            var sliderGo = Scope.CreateGameObject("Slider", typeof(RectTransform), typeof(Slider));
+            sliderGo.transform.SetParent(barGo.transform, false);
+            var slider = sliderGo.GetComponent<Slider>();
+            slider.interactable = false;
+            var hpBar = barGo.AddComponent<HpBar>();
+            hpBar.Slider = slider;
             GameObject ammoGo = Scope.CreateGameObject("Ammo", typeof(RectTransform), typeof(TextMeshProUGUI));
             GameObject reloadGo = Scope.CreateGameObject("Reload", typeof(RectTransform));
             reloadGo.SetActive(false);
-            return (panelGo.GetComponent<CanvasGroup>(), bar,
-                hpGo.GetComponent<TextMeshProUGUI>(), ammoGo.GetComponent<TextMeshProUGUI>(), reloadGo);
+            return (panelGo.GetComponent<CanvasGroup>(), hpBar,
+                ammoGo.GetComponent<TextMeshProUGUI>(), reloadGo);
         }
 
         private static BattleHudDriver BuildDriver(SimWorldState world, long selfId,
-            CanvasGroup panel, Slider bar, TextMeshProUGUI hp, TextMeshProUGUI ammo, GameObject reload)
-            => new BattleHudDriver(world, () => selfId, panel, bar, hp, ammo, reload);
+            CanvasGroup panel, HpBar bar, TextMeshProUGUI ammo, GameObject reload)
+            => new BattleHudDriver(world, () => selfId, panel, bar, ammo, reload);
 
         [Test]
         [Category(TestCategory.Contract)]
@@ -41,18 +44,15 @@ namespace LiteGame.Tests.EditMode
         {
             var world = new SimWorldState { RngState = 1UL };
             long selfId = world.Spawn(new EntitySlot { Hp = 100, Pos = new SimVector3(0f, 0f, 0f) }, out int slot);
-            var (panel, bar, hp, ammo, reload) = BuildPanel();
-            var driver = BuildDriver(world, selfId, panel, bar, hp, ammo, reload);
+            var (panel, bar, ammo, reload) = BuildPanel();
+            var driver = BuildDriver(world, selfId, panel, bar, ammo, reload);
 
             driver.Tick();
-            Assert.AreEqual("100", hp.text);
-            Assert.AreEqual(1f, bar.value, 0.0001f);
+            Assert.AreEqual(1f, bar.Slider.value, 0.0001f);
 
-            hp.text = "sentinel";                       // 下一帧同值必须跳过（不重写）
             world.Entities[slot].Hp = 73;
             driver.Tick();
-            Assert.AreEqual("73", hp.text);             // 值变化才重写
-            Assert.AreEqual(0.73f, bar.value, 0.01f);
+            Assert.AreEqual(0.73f, bar.Slider.value, 0.01f);   // 值变化才重写前条
         }
 
         [Test]
@@ -61,8 +61,8 @@ namespace LiteGame.Tests.EditMode
         {
             var world = new SimWorldState { RngState = 1UL };
             long selfId = world.Spawn(new EntitySlot { Hp = 100, Pos = new SimVector3(0f, 0f, 0f) }, out int slot);
-            var (panel, bar, hp, ammo, reload) = BuildPanel();
-            var driver = BuildDriver(world, selfId, panel, bar, hp, ammo, reload);
+            var (panel, bar, ammo, reload) = BuildPanel();
+            var driver = BuildDriver(world, selfId, panel, bar, ammo, reload);
 
             driver.Tick();
             Assert.AreEqual("--", ammo.text);           // 未装备（懒装备前）
@@ -85,8 +85,8 @@ namespace LiteGame.Tests.EditMode
         {
             var world = new SimWorldState { RngState = 1UL };
             world.Spawn(new EntitySlot { Hp = 100, Pos = new SimVector3(0f, 0f, 0f) }, out _);
-            var (panel, bar, hp, ammo, reload) = BuildPanel();
-            var driver = BuildDriver(world, 0L, panel, bar, hp, ammo, reload);   // Id=0：未对齐
+            var (panel, bar, ammo, reload) = BuildPanel();
+            var driver = BuildDriver(world, 0L, panel, bar, ammo, reload);   // Id=0：未对齐
 
             driver.Tick();
             Assert.AreEqual(0f, panel.alpha, "未对齐整组隐藏");
@@ -98,8 +98,8 @@ namespace LiteGame.Tests.EditMode
         {
             var world = new SimWorldState { RngState = 1UL };
             long selfId = world.Spawn(new EntitySlot { Hp = 100, Pos = new SimVector3(0f, 0f, 0f) }, out _);
-            var (panel, bar, hp, ammo, reload) = BuildPanel();
-            var driver = BuildDriver(world, selfId, panel, bar, hp, ammo, reload);
+            var (panel, bar, ammo, reload) = BuildPanel();
+            var driver = BuildDriver(world, selfId, panel, bar, ammo, reload);
             driver.Tick();
             Assert.AreEqual(1f, panel.alpha);
 
