@@ -73,34 +73,34 @@ namespace RoomServer.Application
         /// <summary>本连接的快照广播记账（水位/ledger/ACK/背压档；见 <see cref="BroadcastAccount"/>）。</summary>
         public readonly BroadcastAccount Broadcast = new BroadcastAccount();
 
-        // ---- 广播记账转发成员（历史直用字段的调用面保持不变；语义见 BroadcastAccount）----
+        // ---- 广播记账转发成员（历史直用字段的**读**面保持不变；语义与写面见 BroadcastAccount）----
+        //
+        // P4 计数面封装：这组转发原先**每个都带 setter**，等于把 BroadcastAccount 的私有化重新打开
+        // （十个转发属性放大面积）；七个无人调用的 setter 已删除，只留一个有真实调用方的写口
+        // （BackpressureTier——用例需要"从指定档位起跑"，区间由 BroadcastAccount 夹住）。
 
-        /// <summary>E1 背压水位（累计已发快照字节数）。</summary>
+        /// <summary>E1 背压水位（累计已发快照字节数）——写只在 <see cref="BroadcastAccount.RecordSnapshotSend"/>。</summary>
         public long SendQueueBytes
         {
             get { return Broadcast.SendQueueBytes; }
-            set { Broadcast.SendQueueBytes = value; }
         }
 
-        /// <summary>客户端已确认消化的下行字节（累计口径）。</summary>
+        /// <summary>客户端已确认消化的下行字节（累计口径）——写只在验证通过的 ACK 路径。</summary>
         public long AckedBytes
         {
             get { return Broadcast.AckedBytes; }
-            set { Broadcast.AckedBytes = value; }
         }
 
         /// <summary>最近一次实际发出的快照帧号。</summary>
         public int LastSentSnapshotFrame
         {
             get { return Broadcast.LastSentSnapshotFrame; }
-            set { Broadcast.LastSentSnapshotFrame = value; }
         }
 
         /// <summary>最近一次验证通过的 ACK 帧号（单调）。</summary>
         public int LastAcceptedAckFrame
         {
             get { return Broadcast.LastAcceptedAckFrame; }
-            set { Broadcast.LastAcceptedAckFrame = value; }
         }
 
         /// <summary>快照发送 ledger（有界环）。</summary>
@@ -116,28 +116,25 @@ namespace RoomServer.Application
         public int BackpressureDrops
         {
             get { return Broadcast.BackpressureDrops; }
-            set { Broadcast.BackpressureDrops = value; }
         }
 
-        /// <summary>当前背压档位（0 全速；1 抽帧 / 2 收缩 AOI / 3 裁实体）。</summary>
+        /// <summary>当前背压档位（0 全速；1 抽帧 / 2 收缩 AOI / 3 裁实体）。写口 = 直置（用例从指定档位起跑）。</summary>
         public int BackpressureTier
         {
             get { return Broadcast.BackpressureTier; }
-            set { Broadcast.BackpressureTier = value; }
+            set { Broadcast.ForceBackpressureTier(value); }
         }
 
-        /// <summary>档位恢复的滞留起点帧（-1 = 未在恢复观察中）。</summary>
+        /// <summary>档位恢复的滞留起点帧（-1 = 未在恢复观察中）——写只在背压判定内。</summary>
         public int RecoverSinceFrame
         {
             get { return Broadcast.RecoverSinceFrame; }
-            set { Broadcast.RecoverSinceFrame = value; }
         }
 
         /// <summary>客户端已收的最新快照帧号（Input.ackSnapshot 上报；-1 = 尚无）。</summary>
         public int LastAckSnapshot
         {
             get { return Broadcast.LastAckSnapshot; }
-            set { Broadcast.LastAckSnapshot = value; }
         }
 
         /// <summary>广播记账视图（<see cref="IBroadcastSeat"/>；宿主 owner 形态下即本会话）。</summary>

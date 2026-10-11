@@ -169,9 +169,8 @@ namespace RoomServer.Application
 
             if (queued > ProtocolConstants.BackpressureQueueLimitBytes)
             {
-                if (account.BackpressureTier < 3) account.BackpressureTier++;
-                account.BackpressureDrops++;
-                account.RecoverSinceFrame = -1;
+                // 升档是一个完整事件（档位+1 封顶 / 降级计数 / 退出恢复观察）——写面收在 BroadcastAccount 内
+                account.RaiseBackpressureTier();
                 return;
             }
 
@@ -179,16 +178,13 @@ namespace RoomServer.Application
             {
                 if (queued <= ProtocolConstants.BackpressureQueueLimitBytes * ProtocolConstants.BackpressureRecoverRatio)
                 {
-                    if (account.RecoverSinceFrame < 0) account.RecoverSinceFrame = frame;
+                    if (account.RecoverSinceFrame < 0) account.MarkRecoverObservation(frame);
                     else if (frame - account.RecoverSinceFrame >= ProtocolConstants.RecoverHoldMillis * SimConfig.TickRate / 1000)
-                    {
-                        account.BackpressureTier--;
-                        account.RecoverSinceFrame = -1;
-                    }
+                        account.LowerBackpressureTier();
                 }
                 else
                 {
-                    account.RecoverSinceFrame = -1;
+                    account.ClearRecoverObservation();
                 }
             }
         }

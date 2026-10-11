@@ -15,7 +15,7 @@ namespace RoomServer.Runtime
     /// 历史输入来源：<see cref="RecordInputs"/> 每帧记下"该帧实际消费的输入"（缺席 = 空输入）——
     /// 回溯用的是**当时真正用的那一份**，不是重新采一份（否则判定与权威史不符）。
     ///
-    /// 退化路径（关闭 / 窗口外 / 无历史）：不回溯，按**当前帧**判定（<see cref="Outcome.OutOfWindow"/>）——
+    /// 退化路径（关闭 / 窗口外 / 无历史）：不回溯，按**当前帧**判定（<see cref="Outcome.DegradedFire"/>）——
     /// 行为等价于"没有补偿"，是 §3.4.1 的指定退路。
     /// </summary>
     public sealed class LagCompensator
@@ -23,16 +23,16 @@ namespace RoomServer.Runtime
         /// <summary>一次回溯判定的结果（诊断/Ops；也是用例断言点）。</summary>
         public enum Outcome
         {
-            /// <summary>无开火位（玩家没按开火）。</summary>
+            /// <summary>无开火位（玩家没按开火；也是 <see cref="LastOutcome"/> 的初始值）。</summary>
             NoFire = 0,
             /// <summary>回溯成功并执行了判定。</summary>
             Compensated = 1,
-            /// <summary>超出回溯窗口 / 补偿关闭 → 退化为当前帧判定（打开火的走 <see cref="Outcome.DegradedFire"/>）。</summary>
-            OutOfWindow = 2,
-            /// <summary>退化路径下确实执行了判定（当前帧开火）。</summary>
-            DegradedFire = 3,
+            /// <summary>退化路径下执行了判定（当前帧开火）——**超窗/补偿关闭/无历史都归此值**：
+            /// 退化路径只在"确实有一条开火要判"时才被调用，故不存在"退化了但没开火"的第四态
+            /// （原 `OutOfWindow` 值全项目从不返回，P3 退役）。</summary>
+            DegradedFire = 2,
             /// <summary>输入里的实体无法解析（已死亡/伪造）→ 不判定。</summary>
-            InvalidShooter = 4,
+            InvalidShooter = 3,
         }
 
         private readonly SimWorldState _auth;

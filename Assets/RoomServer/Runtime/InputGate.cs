@@ -62,30 +62,95 @@ namespace RoomServer.Runtime
         public const float VectorLengthSquaredLimit = 1f;
 
         /// <summary>最近一次收包中（钳位后的）ackSnapshot——审计/回溯窗口对齐用，判定不依赖。</summary>
-        public int LastClampedAckSnapshot = -1;
+        public int LastClampedAckSnapshot { get; private set; } = -1;
+
+        // ---- 计数面（P4 同款收口，与 Ops/BroadcastAccount 同口径）----
+        //
+        // 状态私有、只经 <c>Note*</c> 递增：这些是**只增的观测计数**，让它们保持 public 可变字段等于
+        // 允许任意调用点直接改写/清零（Ops 行会打印一个被伪造的数）；"为什么是 0"必须只来自
+        // "没有发生过"。闸门单线程（权威循环内），故用普通读写即可（不引 Interlocked——那只会
+        // 让人误以为它跨线程）。
+
+        private long _acceptedCount;
+        private long _droppedDuplicateFrame;
+        private long _droppedOutOfRange;
+        private long _droppedStaleFrame;
+        private long _droppedAckSnapshot;
+        private long _droppedIllegalButtons;
+        private long _droppedIllegalActionSeq;
+        private long _droppedIllegalWeaponSlot;
+        private long _droppedNonFinite;
+        private long _droppedIllegalVector;
+        private long _droppedOversizedMessage;
 
         /// <summary>合法输入的接收计数（Ops）。</summary>
-        public long AcceptedCount;
+        public long AcceptedCount => _acceptedCount;
 
-        /// <summary>非法/冗余输入的丢弃计数（Ops：按原因分列——P0-3"统一拒绝并计数"）。</summary>
-        public long DroppedIllegalFrame;
         /// <summary>同帧重发计数（未消费时走"后到生效"更新路径——只计数、不丢弃；用于冗余/重发观测）。</summary>
-        public long DroppedDuplicateFrame;
-        public long DroppedOutOfRange;
+        public long DroppedDuplicateFrame => _droppedDuplicateFrame;
+
+        /// <summary>帧号落在容忍窗外 / 空包 / 窗口取不到可用帧（含 <c>frame ≤ 0</c>，P4 起并入此分类）。</summary>
+        public long DroppedOutOfRange => _droppedOutOfRange;
+
         /// <summary>帧号已消费（≤ 服务器当前帧）——不入预存（否则永不消费的滞留项）。</summary>
-        public long DroppedStaleFrame;
-        public long DroppedAckSnapshot;
-        public long DroppedIllegalButtons;
+        public long DroppedStaleFrame => _droppedStaleFrame;
+
+        /// <summary>ackSnapshot 越界（只钳位 + 计数，**不丢输入**；M10 审查定案）。</summary>
+        public long DroppedAckSnapshot => _droppedAckSnapshot;
+
+        /// <summary>按键位未定义（含未定义位一律丢弃）。</summary>
+        public long DroppedIllegalButtons => _droppedIllegalButtons;
+
         /// <summary>离散动作 seq 违纪（seq=0 带离散位 / seq 不递增——重放）丢弃计数。</summary>
-        public long DroppedIllegalActionSeq;
+        public long DroppedIllegalActionSeq => _droppedIllegalActionSeq;
+
         /// <summary>切枪槽位越界（伪造武器槽）丢弃计数。</summary>
-        public long DroppedIllegalWeaponSlot;
+        public long DroppedIllegalWeaponSlot => _droppedIllegalWeaponSlot;
+
         /// <summary>非有限浮点（NaN/±Infinity）丢弃计数。</summary>
-        public long DroppedNonFinite;
+        public long DroppedNonFinite => _droppedNonFinite;
+
         /// <summary>Move/Aim 分量或长度越界、开火帧零瞄准丢弃计数。</summary>
-        public long DroppedIllegalVector;
+        public long DroppedIllegalVector => _droppedIllegalVector;
+
         /// <summary>消息形状非法（repeated frames 超冗余窗上限）丢弃计数。</summary>
-        public long DroppedOversizedMessage;
+        public long DroppedOversizedMessage => _droppedOversizedMessage;
+
+        /// <summary>记一次接受。</summary>
+        public void NoteAccepted() => _acceptedCount++;
+
+        /// <summary>记一次同帧重发（只计数、不丢弃）。</summary>
+        public void NoteDuplicateFrame() => _droppedDuplicateFrame++;
+
+        /// <summary>记一次帧号/窗口类丢弃。</summary>
+        public void NoteOutOfRange() => _droppedOutOfRange++;
+
+        /// <summary>记一次"帧号已消费"。</summary>
+        public void NoteStaleFrame() => _droppedStaleFrame++;
+
+        /// <summary>记一次 ackSnapshot 越界（并置钳位后的值——两件事必须同一个原子步骤，故合一个入口）。</summary>
+        public void NoteAckSnapshotClamped(int clamped) { _droppedAckSnapshot++; LastClampedAckSnapshot = clamped; }
+
+        /// <summary>记录钳位后的 ackSnapshot（未越界时也照常前推）。</summary>
+        public void SetClampedAckSnapshot(int clamped) => LastClampedAckSnapshot = clamped;
+
+        /// <summary>记一次按键位违规丢弃。</summary>
+        public void NoteIllegalButtons() => _droppedIllegalButtons++;
+
+        /// <summary>记一次离散动作 seq 违规。</summary>
+        public void NoteIllegalActionSeq() => _droppedIllegalActionSeq++;
+
+        /// <summary>记一次武器槽越界。</summary>
+        public void NoteIllegalWeaponSlot() => _droppedIllegalWeaponSlot++;
+
+        /// <summary>记一次非有限浮点。</summary>
+        public void NoteNonFinite() => _droppedNonFinite++;
+
+        /// <summary>记一次向量越界。</summary>
+        public void NoteIllegalVector() => _droppedIllegalVector++;
+
+        /// <summary>记一次消息形状非法（超冗余窗上限）。</summary>
+        public void NoteOversizedMessage() => _droppedOversizedMessage++;
 
         /// <summary>已定义按键位掩码：未定义位一律丢弃（客户端不能凭上报任意位影响判定；服务器内部位 ClientUnreportable 见 <see cref="SimInputFrame.ButtonFireFlag"/>）。</summary>
         public const uint AllowedButtons =
@@ -143,30 +208,29 @@ namespace RoomServer.Runtime
             // ackSnapshot 记账：越界只钳 + 计数，**不丢输入**（M10 审查定案；语义 ACK 验证在会话层）
             if (batch.AckSnapshot < 0 || batch.AckSnapshot > serverFrame)
             {
-                DroppedAckSnapshot++;
-                LastClampedAckSnapshot = Math.Clamp(batch.AckSnapshot, 0, serverFrame);
+                NoteAckSnapshotClamped(Math.Clamp(batch.AckSnapshot, 0, serverFrame));
             }
             else
             {
-                LastClampedAckSnapshot = batch.AckSnapshot;
+                SetClampedAckSnapshot(batch.AckSnapshot);
             }
 
             // 消息形状（P0-3）：repeated 超冗余窗上限 = 恶意/损坏——整条丢弃（索引前）
             if (batch.Count > ClientInputBatch.MaxFrames)
             {
-                DroppedOversizedMessage++;
+                NoteOversizedMessage();
                 return false;
             }
             if (batch.Frames == null || batch.Count > batch.Frames.Length)
             {
-                DroppedOutOfRange++;      // 空包/装载不足：无可用帧（与"窗口不含所需帧"同归类）
+                NoteOutOfRange();      // 空包/装载不足：无可用帧（与"窗口不含所需帧"同归类）
                 return false;
             }
 
             // 包内最新帧超容忍窗：整条丢弃（时钟攻击面口径不变——预发/冗余的有效帧都在窗内）
             if (batch.Frame > serverFrame + FutureFrameTolerance)
             {
-                DroppedOutOfRange++;
+                NoteOutOfRange();
                 return false;
             }
 
@@ -184,7 +248,7 @@ namespace RoomServer.Runtime
 
             if (!found || frame <= 0 || frame > serverFrame + FutureFrameTolerance)
             {
-                DroppedOutOfRange++;
+                NoteOutOfRange();
                 return false;
             }
 
@@ -192,7 +256,7 @@ namespace RoomServer.Runtime
             // 此时窗口整体 ≤ serverFrame（主帧是窗内最大的可取帧）——未来帧预存也必为空，直接整包拒绝。
             if (frame <= serverFrame)
             {
-                DroppedStaleFrame++;
+                NoteStaleFrame();
                 return false;
             }
 
@@ -200,7 +264,7 @@ namespace RoomServer.Runtime
             if (!ValidateWire(wire, frame, playerId, shooterPos)) return false;
 
             // 接受记账：**同帧未消费 = 更新**（客户端"最新采样"与"后到生效"对齐）——只计数、不丢弃
-            if (frame <= _lastAcceptedFrame[playerId]) DroppedDuplicateFrame++;   // 冗余重发计数（值照常覆盖）
+            if (frame <= _lastAcceptedFrame[playerId]) NoteDuplicateFrame();   // 冗余重发计数（值照常覆盖）
             else _lastAcceptedFrame[playerId] = frame;
             if ((wire.Buttons & SimInputFrame.DiscreteIntentButtons) != 0u && wire.ActionSeq > _lastActionSeq[playerId])
             {
@@ -211,7 +275,7 @@ namespace RoomServer.Runtime
             var input = wire;
             input.EntityId = entityId;                                  // EntityId 防伪覆写
             _pending.Store(frame, playerId, input);
-            AcceptedCount++;
+            NoteAccepted();
             acceptedFrame = frame;
             acceptedInput = input;
 
@@ -227,7 +291,7 @@ namespace RoomServer.Runtime
                 SimInputFrame extra = batch.Frames[offset];
                 if (!ValidateWire(extra, f, playerId, shooterPos)) continue;
 
-                if (f <= _lastAcceptedFrame[playerId]) DroppedDuplicateFrame++;
+                if (f <= _lastAcceptedFrame[playerId]) NoteDuplicateFrame();
                 else _lastAcceptedFrame[playerId] = f;
                 if ((extra.Buttons & SimInputFrame.DiscreteIntentButtons) != 0u && extra.ActionSeq > _lastActionSeq[playerId])
                 {
@@ -237,7 +301,7 @@ namespace RoomServer.Runtime
 
                 extra.EntityId = entityId;                              // EntityId 防伪覆写（同主帧口径）
                 _pending.Store(f, playerId, extra);
-                AcceptedCount++;
+                NoteAccepted();
             }
             return true;
         }
@@ -253,7 +317,7 @@ namespace RoomServer.Runtime
             // 按键位白名单：未定义位（含服务器内部位的伪造上报）一律丢弃——否则伪造 ButtonFireFlag 可绕过回溯补判语义
             if ((wire.Buttons & ~AllowedButtons) != 0u)
             {
-                DroppedIllegalButtons++;
+                NoteIllegalButtons();
                 return false;
             }
 
@@ -261,7 +325,7 @@ namespace RoomServer.Runtime
             if ((wire.Buttons & SimInputFrame.ButtonSwitchWeapon) != 0u
                 && (wire.SelectedWeaponSlot < 0 || wire.SelectedWeaponSlot >= SimConfig.WeaponSlotsPerEntity))
             {
-                DroppedIllegalWeaponSlot++;
+                NoteIllegalWeaponSlot();
                 return false;
             }
 
@@ -273,7 +337,7 @@ namespace RoomServer.Runtime
                 bool sameRequestRepeat = seq == _lastActionSeq[playerId] && frame == _lastActionSeqFrame[playerId];
                 if (seq == 0u || seq < _lastActionSeq[playerId] || (seq == _lastActionSeq[playerId] && !sameRequestRepeat))
                 {
-                    DroppedIllegalActionSeq++;
+                    NoteIllegalActionSeq();
                     return false;
                 }
             }
@@ -282,7 +346,7 @@ namespace RoomServer.Runtime
             if (!float.IsFinite(wire.MoveX) || !float.IsFinite(wire.MoveZ)
                 || !float.IsFinite(wire.AimPointX) || !float.IsFinite(wire.AimPointY) || !float.IsFinite(wire.AimPointZ))
             {
-                DroppedNonFinite++;
+                NoteNonFinite();
                 return false;
             }
 
@@ -290,12 +354,12 @@ namespace RoomServer.Runtime
             if (wire.MoveX > MoveComponentLimit || wire.MoveX < -MoveComponentLimit
                 || wire.MoveZ > MoveComponentLimit || wire.MoveZ < -MoveComponentLimit)
             {
-                DroppedIllegalVector++;
+                NoteIllegalVector();
                 return false;
             }
             if (wire.MoveX * wire.MoveX + wire.MoveZ * wire.MoveZ > VectorLengthSquaredLimit)
             {
-                DroppedIllegalVector++;
+                NoteIllegalVector();
                 return false;
             }
 
@@ -306,7 +370,7 @@ namespace RoomServer.Runtime
             bool aimNeeded = (wire.Buttons & AimRequiredButtons) != 0u;
             if (aimNeeded && aimPointZero)   // lint-allow R3（点值为零 = 契约边界判定，非浮点精度比较）
             {
-                DroppedIllegalVector++;
+                NoteIllegalVector();
                 return false;
             }
 
@@ -324,7 +388,7 @@ namespace RoomServer.Runtime
                 float maxAimPoint = _combat.HitscanRange * AimPointRangeTolerance;
                 if (distSq > maxAimPoint * maxAimPoint)
                 {
-                    DroppedIllegalVector++;
+                    NoteIllegalVector();
                     return false;
                 }
             }

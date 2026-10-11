@@ -51,19 +51,6 @@ namespace RoomServer.Runtime
         }
     }
 
-    /// <summary>强制断开传输连接（席位失效/非法输入等；App 映射为 transport.Disconnect）。</summary>
-    public sealed class CloseConnectionOutput : RoomOutput
-    {
-        public readonly int ConnectionId;
-        public readonly string Reason;
-
-        public CloseConnectionOutput(int connectionId, string reason)
-        {
-            ConnectionId = connectionId;
-            Reason = reason;
-        }
-    }
-
     /// <summary>
     /// 状态迁移事件（§9.1：每次迁移记录 from/to/reason/matchId/frame/nowMs；非法迁移以
     /// Reason=Rejected 输出而不抛——单条坏命令不能炸掉权威循环）。
