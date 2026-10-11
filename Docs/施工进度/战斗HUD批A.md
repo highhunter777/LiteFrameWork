@@ -111,3 +111,11 @@
 - 实例带若干**良性 no-op override**（`_Fill`/`_Handle` 的 anchor 记录，实测与模板值全同、不影响渲染）——Unity 生成，无法在不破坏实例的前提下剥离，登记备查；
 - `HpBar.cs` 后条走自驱 `Update`（控件自身动画），计时已收敛 `UiAnimationClock`；对《UI框架总设计》U3「HUD 分级驱动/DirtySet」目标项留待批 C；
 - 双条后条 `_BackFill` 透明度基线 0.35，待实机目视定档。
+
+### 绑定体系澄清（随批补，2026-10-11）
+
+改造中浮现一个真实张力：**血条被模板化后，模板根挂了 `BindNode`（无人消费）**——HUD 侧走 `BattleHudView` 序列化引用、不读 `BindNode`。用户质询"为何 UI 控制脚本不用框架绑定生成"，核查后**确认为设计裁决而非漏用**，据此澄清（不改代码）：
+
+- HUD 归**对局表现域**（专项设计 §2.2），不走 `UINavigationController`／无 `UIForm` 承载，故绑定体系（`UIBindBase` A/B 路径——`BindIndexBuilder` 扫 `BindNode` 建索引／生成类 `CollectControls` 登记）**不适用**；
+- `Tmp_HpBar` 模板根的 `BindNode` 为**未来页面消费者**（队伍血条、设置页血量预览等）预留——届时由页面按 §9 填 `BindName`；模板不留非空 `BindName`（§9.4）与"HUD 不读 BindNode"自洽；
+- 逐条对照表 + 边界写入《战斗HUD层级设计》§2.1.1；《战斗HUD专项设计》§2.4 补交叉引用。

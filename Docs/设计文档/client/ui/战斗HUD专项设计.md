@@ -41,7 +41,7 @@
 
 - prefab 根挂轻量引用件 `BattleHudView`（MonoBehaviour，序列化字段持有 `CanvasGroup/RectTransform/Image/TMP_Text` 各件）——**构建期引用，运行时零 Find**；六条路径常量与 `FindChildGameObject` 退役。
 - 驱动构造改收 `BattleHudView`（引用面单点）；`BattleCrosshairDriver` 同改（Hip/Ads 引用字段）。
-- 与 `UIBindIndex` 绑定体系的关系：HUD 不进 BindNode 表驱动（它是固定结构、无动态列表），**序列化引用即契约**；若未来 HUD 出现数据驱动子件（技能 CD 环）再评估入 Bind 体系（U2 目标项"技能 CD"归 UI 框架节奏）。
+- 与 `UIBindIndex` 绑定体系的关系：HUD 不进 BindNode 表驱动（它是固定结构、无动态列表），**序列化引用即契约**——**这是有意裁决，不是漏用框架**（绑定体系服务页面体系：`UIForm` 生命周期 + `BindName` 索引 + Lua 按名取；HUD 归表现域不走导航，故不适用；逐条对照见《[战斗HUD层级设计](战斗HUD层级设计.md)》§2.1.1）；若未来 HUD 出现数据驱动子件（技能 CD 环）再评估入 Bind 体系（U2 目标项"技能 CD"归 UI 框架节奏）。
 
 ### 2.5 纪律对齐清单（红线逐条）
 

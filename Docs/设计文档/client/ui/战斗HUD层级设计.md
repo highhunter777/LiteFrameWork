@@ -87,6 +87,20 @@ Hud_Battle                          Canvas(Overlay, order 0) + CanvasScaler(1920
 - **后条几何**：与 Slider `fillRect` 同锚/枢轴/尺寸，`HpBar.SetBackAnchor` 只改 `anchorMax.x`（与 UGUI Slider 对 fillRect 的可视更新同款手势）。
 - 消费者兼容：公开 API `HpBar.Set(current,max)` 与 `HpBar` 类型不变——`UIDemoPage` / `UIBindIndex.SetHp` 零改动。
 
+### 2.1.1 为什么 HUD 血条不走绑定生成（裁决，非遗漏）
+
+框架的绑定体系（`UIBindBase` 路径 A/B：`BindIndexBuilder` 扫 `BindNode` 建索引，或生成类 `CollectControls` 登记字段）**服务的是页面体系**——经 `UINavigationController` 打开、有 `UIForm` 生命周期、经 `BindName` 受控 API（`SetText`/`OnButton`）取件、供 Lua 按名访问。**HUD 被裁定归对局表现域**（§2.2：不走导航、无 `UIForm` 承载、随对局生命周期建/还），故不入该体系——这是 §2.4「序列化引用即契约」的落地，**是有意裁决，不是漏用框架**。
+
+| 面 | 绑定生成（页面体系） | HUD 血条（表现域） |
+| --- | --- | --- |
+| 生命周期 | `UIForm`（导航开/关） | 对局 Scope（`BattleViewRig` 租约建/还） |
+| 取件 | `BindName` 索引 / 生成类字段 | **序列化引用**（`BattleHudView._hpBar` 直连 `HpBar` 组件） |
+| 适合结构 | 可变、动态列表、Lua 按名取 | **固定结构**（节点数写死，无动态列表） |
+| 驱动 | `UIBindIndex.Get<T>(name)` | 强类型组件引用（编译期校验，零字符串键） |
+
+- **`BindNode` 保留的用途**：`Tmp_HpBar` 模板根所挂 `BindNode`**不为 HUD 消费**——HUD 侧直持 `HpBar` 组件（上表第 4 行）；该标记为**未来页面消费者**（队伍血条、设置页血量预览等经页面体系使用的场景）预留——届时由页面按 §9 填 `BindName` 入索引。模板不留非空 `BindName`（§9.4），故 HUD 实例无绑定键、与「HUD 不读 BindNode」自洽。
+- **边界**：若 HUD 未来出现**数据驱动子件**（技能 CD 环等），再评估该子件入 Bind 体系（U2 目标项归 UI 框架节奏）。
+
 ## 4. 制作与迁移路径（批 A 执行序）
 
 1. 构建器 `BuildDesign()` 在 HUDDesign 场景产树（现实现，零改动）→ 整树另存为 prefab；
