@@ -21,12 +21,16 @@ namespace LiteGame
     /// （§4.3）：在途打开操作合流（并发 Show 共享一份工作，不返回 null）；数据冲突 Busy；
     /// 调用方 token 只取消本人、全员退出撤工作；Close 对在途加载发权威取消；失败类型化（<see cref="UIOpenException"/>）。
     ///
-    /// **职责边界（单一职责）**：本类只做**实例生命周期编排**——池化/租约/LRU、开关注入转场、
-    /// 打开并发合流、遮盖推导、Lua 逻辑换表。**模态栈/射线遮蔽/Back 目标**是独立的输入协调子域，
-    /// 已抽出 <see cref="UIModalStack"/>（本类经 <see cref="UIModalStack.IUIFormQuery"/> 提供窄查询口，
-    /// 上面的 RegisterModal/IsModalOpen/TryGetBackTarget 等是**转发面**——公共 API 不变）。
-    /// 逻辑换表（<see cref="MarkLogicStale"/> 族）与遮盖（<see cref="RecomputeCovering"/>）
-    /// 仍留本类：前者是实例生命周期的一环（复用前必须换表），后者与开/关管线同事务序。
+    /// **职责边界（单一职责）**：本类只做**开关管线编排**（校验 → 取/建实例 → 转场 → 落池 →
+    /// 重算遮盖/模态遮蔽）+ 逻辑换表。四个协作件各管一件，本类不重复它们的机制：
+    /// - <see cref="UIFormStore"/>（实例 + 租约 + LRU 记账 + 淘汰候选）——缓存域；
+    /// - <see cref="UICoverageResolver"/>（遮盖推导与焦点联动）——在开关事务序内调用；
+    /// - <see cref="UIModalStack"/>（模态栈/射线遮蔽/Back 目标）——独立输入协调子域，
+    ///   本类经 <see cref="UIModalStack.IUIFormQuery"/> 提供窄查询口（RegisterModal/IsModalOpen/
+    ///   TryGetBackTarget 等是**转发面**——公共 API 不变）；
+    /// - <see cref="UITransitionRunner"/>（转场状态机 + 排队 + 超时兜底）。
+    /// 逻辑换表（<see cref="MarkLogicStale"/> 族）仍留本类：它是实例生命周期的一环
+    /// （复用前必须换表，与 <see cref="CloseFormInternal"/> 的 OnHide 时序绑定）。
     /// </summary>
     public sealed class UIService : ITickable, IModuleStats, UIModalStack.IUIFormQuery
     {
@@ -50,18 +54,18 @@ namespace LiteGame
         }
 
         private readonly IUIFormCatalog _catalog;
-        private readonly Dictionary<int, UIForm> _forms = new Dictionary<int, UIForm>(16);   // id → 实例（含池中）
+        private readonly UIFormStore _store = new UIFormStore();             // 实例 + 租约 + LRU 记账（缓存域）
         private readonly Dictionary<int, OpenOperation> _openOps = new Dictionary<int, OpenOperation>(4);   // 在途打开操作（并发合流）
-        private readonly Dictionary<int, IUIPrefabLease> _leases = new Dictionary<int, IUIPrefabLease>(8);  // 实例租约（持到真正销毁）
-        private readonly Dictionary<int, long> _lastUsed = new Dictionary<int, long>(8);     // 最近使用序号（LRU 淘汰判据）
         private readonly HashSet<int> _closing = new HashSet<int>();                         // 关闭在途（转场动画期间防并发 Close 重入）
         private readonly HashSet<int> _staleLogic = new HashSet<int>();   // 逻辑待更新（运行期增量重填，§2.3）
         private readonly List<UIForm> _tickSnapshot = new List<UIForm>(16);   // Tick 快照（§4.3 重入正确性：回调内开关界面不改枚举集合）
+        private readonly List<(int id, long used)> _evictCandidates = new List<(int id, long used)>(16);   // 淘汰候选（复用，零分配）
         private readonly UILayerGroup[] _groups;
         private readonly Transform _root;
         private readonly UITransitionRunner _transitions;                  // 转场编排层（§1.5，不注册 ITickable）
         private readonly UIModalStack _modals;                             // 模态栈/射线遮蔽/Back 目标（§6.2 独立子域）
         private readonly UIFocusCoordinator _focus;                        // 焦点协调（§6.2——保存/恢复/平台返回；U2-⑦）
+        private readonly UICoverageResolver _coverage;                      // 遮盖推导（§6.2 组级批量暂停的灰盒形态）
 
         /// <summary>焦点协调者（平台返回的输入侧接线点：装配层把 <c>UINavigationController.BackAsync</c>
         /// 挂 <c>Focus.PlatformBack</c>——语义侧推导在导航器，见 <see cref="UIFocusCoordinator"/>）。</summary>
@@ -69,7 +73,6 @@ namespace LiteGame
         private readonly IPopInterceptor _pop;
         private readonly Func<UIFormInfo, IUIFormLogic> _logicResolver;
         private readonly Func<string, CancellationToken, UniTask<IUIPrefabLease>> _loadPrefab;
-        private long _useCounter;
         private bool _shutdown;
 
         /// <summary>缓存实例数预算（池中 Recycled 计数上限；超预算淘汰最久未用的非打开实例）。</summary>
@@ -111,6 +114,7 @@ namespace LiteGame
             }
             _modals = new UIModalStack(this);      // 查询口 = 本类（暴露"谁开着/某层栈顶"两个窄事实）
             _focus = new UIFocusCoordinator();    // 焦点协调（§6.2——保存/恢复/平台返回；U2-⑦）
+            _coverage = new UICoverageResolver(_groups, _focus);   // 遮盖推导（开/关事务序内调用）
             UiInput.EnsureEventSystem();          // 输入底座（幂等；§7 基础设施例外见 UiInput 判据）
             Log.Info("UI 壳就绪:层级组 Bottom/Window/Top（策略三件默认实现）", "UI");
         }
@@ -133,7 +137,7 @@ namespace LiteGame
                 throw new UIOpenException(UIOpenFailure.Rejected, formId,
                     $"层级组[{group.Name}] 容量不足（{UILayerGroup.DepthStride}）——拒绝打开（§6.2：禁止复用正在使用的 order）");
 
-            if (_forms.TryGetValue(formId, out var existing))
+            if (_store.TryGet(formId, out var existing))
             {
                 switch (existing.State)
                 {
@@ -215,8 +219,7 @@ namespace LiteGame
                 form = new UIForm(info, root);
                 form.Logic = ResolveLogic(info, root);
                 form.PrepareForShow();
-                _forms[op.FormId] = form;
-                _leases[op.FormId] = lease;                           // 所有权移交：租约由 UIService 持有到实例真正销毁
+                _store.Register(op.FormId, form, lease);              // 所有权移交：租约由本表持有到实例真正销毁
                 lease = null;                                         // 登记成功——失败路径不就地释放
                 group.Stack.Push(form);
                 group.RecalculateOrders();                            // 开序即深序（统一重算）
@@ -226,8 +229,8 @@ namespace LiteGame
                     // 打开回滚（§4.1）：撤销登记 → 释放逻辑/Lua 引用 → 销毁对象 → 对外报失败
                     // （禁止"Active + NullLogic 伪装成功"）。租约同步释放（§4.4 所有权清理——
                     // 登记后 lease 已置 null，finally 兜底不覆盖此路径，必须就地释放）
-                    _forms.Remove(op.FormId);
-                    if (_leases.Remove(op.FormId, out IUIPrefabLease failedLease)) failedLease.Release();
+                    _store.Unregister(op.FormId, out _, out IUIPrefabLease failedLease);
+                    failedLease?.Release();
                     group.Stack.Remove(form);
                     form.DisposeFailedOpen();
                     throw new UIOpenException(UIOpenFailure.InitFailed, op.FormId,
@@ -242,8 +245,8 @@ namespace LiteGame
                 // 权威取消（Close 对在途 / 全员退出）：半成品就地回滚，全部等待者收类型化取消
                 if (form != null)
                 {
-                    _forms.Remove(op.FormId);
-                    if (_leases.Remove(op.FormId, out IUIPrefabLease canceledLease)) canceledLease.Release();
+                    _store.Unregister(op.FormId, out _, out IUIPrefabLease canceledLease);
+                    canceledLease?.Release();
                     group.Stack.Remove(form);
                     form.DisposeFailedOpen();
                 }
@@ -330,7 +333,7 @@ namespace LiteGame
                 return;
             }
 
-            if (!_forms.TryGetValue(formId, out var form))
+            if (!_store.TryGet(formId, out var form))
                 throw new KeyNotFoundException($"UIForm 表存在但未打开:{formId}（§3.4 fail-fast）");
             if (!form.IsOpen)
                 throw new InvalidOperationException(
@@ -379,8 +382,7 @@ namespace LiteGame
         public async UniTask CloseAllOpen(CloseReason reason = CloseReason.ScopeExit)
         {
             var ids = new List<int>();
-            foreach (var kv in _forms)
-                if (kv.Value.IsOpen) ids.Add(kv.Key);
+            _store.CollectOpenIds(ids);
             foreach (var id in ids)
             {
                 try { await CloseAsync(id, reason); }
@@ -395,7 +397,7 @@ namespace LiteGame
         /// </summary>
         public void Destroy(int formId)
         {
-            if (!_forms.TryGetValue(formId, out var form))
+            if (!_store.TryGet(formId, out var form))
                 return;                                    // 幂等：不存在 = 已销毁
             if (form.IsOpen || _openOps.ContainsKey(formId))
                 throw new InvalidOperationException(
@@ -425,7 +427,8 @@ namespace LiteGame
             await CloseAllOpen(CloseReason.Shutdown);
 
             // ④ 销毁全部缓存实例 + 释放全部租约（完整销毁路径）
-            var cachedIds = new List<int>(_forms.Keys);
+            var cachedIds = new List<int>(_store.Count);
+            foreach (var f in _store.All) cachedIds.Add(f.Id);
             foreach (var id in cachedIds) DestroyFormInternal(id);
 
             // ⑤ 销毁 DDoL Root
@@ -448,13 +451,13 @@ namespace LiteGame
         /// </summary>
         public void DropAllLogic()
         {
-            foreach (var kv in _forms)
+            foreach (var form in _store.All)
             {
-                kv.Value.DropLogic();
-                kv.Value.NeedsReinit = true;
+                form.DropLogic();
+                form.NeedsReinit = true;
             }
             _staleLogic.Clear();                              // 待更新标记已被"落空 + 重解析"承接
-            Log.Info($"UI 逻辑已全部落空（env 重建前置）：{_forms.Count} 件待重解析", "UI");
+            Log.Info($"UI 逻辑已全部落空（env 重建前置）：{_store.Count} 件待重解析", "UI");
         }
 
         /// <summary>手动暂停（Active → Paused；恢复走 <see cref="Resume"/>）。</summary>
@@ -485,7 +488,7 @@ namespace LiteGame
         }
 
         /// <summary>查询打开状态（IsOpen = Active/Covered/Paused——对 Lua 语义"界面上没关"）。</summary>
-        public bool IsOpen(int formId) => _forms.TryGetValue(formId, out var f) && f.IsOpen;
+        public bool IsOpen(int formId) => _store.TryGet(formId, out var f) && f.IsOpen;
 
         // ---- 模态栈（§6.2）----
         // 模态登记/顶模态推导/射线遮蔽/Back 目标是一套自洽的输入协调子域，已独立为 UIModalStack
@@ -519,7 +522,7 @@ namespace LiteGame
         /// </summary>
         public void MarkLogicStale()
         {
-            foreach (var kv in _forms) _staleLogic.Add(kv.Key);
+            foreach (var form in _store.All) _staleLogic.Add(form.Id);
         }
 
         /// <summary>单界面打标（调试口用）。</summary>
@@ -530,8 +533,8 @@ namespace LiteGame
         /// </summary>
         public void ApplyStaleLogic()
         {
-            foreach (var kv in _forms)
-                if (kv.Value.State == UIFormState.Recycled) SwapIfStale(kv.Value);
+            foreach (var form in _store.All)
+                if (form.State == UIFormState.Recycled) SwapIfStale(form);
         }
 
         /// <summary>仍带"待更新"标记的界面数（HUD 读数：>0 = 新逻辑尚未在该界面生效）。</summary>
@@ -558,8 +561,8 @@ namespace LiteGame
 
         void UIModalStack.IUIFormQuery.CollectOpen(List<UIForm> into)
         {
-            foreach (var kv in _forms)
-                if (kv.Value != null && kv.Value.IsOpen) into.Add(kv.Value);
+            foreach (var form in _store.All)
+                if (form != null && form.IsOpen) into.Add(form);
         }
 
         IReadOnlyList<UIForm> UIModalStack.IUIFormQuery.StackOf(int layer)
@@ -578,7 +581,7 @@ namespace LiteGame
 
         private UIForm RequireOpen(int formId)
         {
-            if (!_forms.TryGetValue(formId, out var form) || !form.IsOpen)
+            if (!_store.TryGet(formId, out var form) || !form.IsOpen)
                 throw new InvalidOperationException($"UIForm[{formId}] 未打开（当前:{(form?.State.ToString() ?? "无")})");
             return form;
         }
@@ -597,33 +600,7 @@ namespace LiteGame
         /// <summary>遮盖重算（幂等）：以"**仍逻辑打开**的最高全屏界面"所在组为界（含 Covered/Paused——
         /// §6.2：遮盖从仍打开且有遮盖能力的全部页面推导，不能只看 Active），**严格更低**的组全遮、其余照常；
         /// 逐界面按目标态做最小迁移（Active↔Covered 配对回调不重复触发，Paused 不被遮盖改写）。</summary>
-        private void RecomputeCovering()
-        {
-            int coverThreshold = -1;                    // 严格低于该深度的组全遮
-            foreach (var g in _groups)
-                foreach (var f in g.Stack.Open)
-                    if (f.IsOpen && f.Info.FullScreen)
-                        coverThreshold = Math.Max(coverThreshold, g.BaseDepth);
-
-            for (int i = _groups.Length - 1; i >= 0; i--)
-            {
-                var g = _groups[i];
-                bool shouldCover = g.BaseDepth < coverThreshold;
-                foreach (var f in g.Stack.Open)
-                {
-                    if (shouldCover && f.State == UIFormState.Active)
-                    {
-                        f.EnterCovered();
-                        _focus.OnFormSuspended(f);            // 被遮页让出焦点（键盘不驱动不可交互页）
-                    }
-                    else if (!shouldCover && f.State == UIFormState.Covered)
-                    {
-                        f.EnterActiveFromCovered();
-                        _focus.OnFormRevealed(f);             // 揭示页不抢占地恢复焦点
-                    }
-                }
-            }
-        }
+        private void RecomputeCovering() => _coverage.Recompute();
 
         private IUIFormLogic ResolveLogic(UIFormInfo info, UnityEngine.GameObject root)
         {
@@ -703,7 +680,7 @@ namespace LiteGame
                 return;
             }
 
-            _lastUsed[form.Id] = ++_useCounter;            // LRU 记账（最近使用序号）
+            _store.MarkUsed(form.Id);                      // LRU 记账（最近使用序号）
             EvictBeyondBudget();
             FormClosed?.Invoke(form.Id);
         }
@@ -713,26 +690,20 @@ namespace LiteGame
         private void EvictBeyondBudget()
         {
             int cached = 0;
-            foreach (var kv in _forms)
-                if (kv.Value.State == UIFormState.Recycled) cached++;
+            foreach (var form in _store.All)
+                if (form.State == UIFormState.Recycled) cached++;
             if (cached <= CacheBudget) return;
 
             // 候选 = 池中 LRU 策略实例（Resident 不淘汰），按最近使用序升序（最旧先淘汰）
-            var candidates = new List<(int id, long used)>(cached);
-            foreach (var kv in _forms)
-            {
-                if (kv.Value.State != UIFormState.Recycled) continue;
-                if (kv.Value.Info.CacheStrategy == UICacheStrategy.Resident) continue;
-                if (_lastUsed.TryGetValue(kv.Key, out long used))
-                    candidates.Add((kv.Key, used));
-            }
-            candidates.Sort((a, b) => a.used.CompareTo(b.used));
+            _evictCandidates.Clear();
+            _store.CollectEvictionCandidates(_evictCandidates);
+            _evictCandidates.Sort((a, b) => a.used.CompareTo(b.used));
 
             int toEvict = cached - CacheBudget;
-            for (int i = 0; i < toEvict && i < candidates.Count; i++)
+            for (int i = 0; i < toEvict && i < _evictCandidates.Count; i++)
             {
-                DestroyFormInternal(candidates[i].id);
-                Log.Info($"UIForm[{candidates[i].id}] 缓存超出预算 {CacheBudget}——LRU 淘汰（租约释放）", "UI");
+                DestroyFormInternal(_evictCandidates[i].id);
+                Log.Info($"UIForm[{_evictCandidates[i].id}] 缓存超出预算 {CacheBudget}——LRU 淘汰（租约释放）", "UI");
             }
         }
 
@@ -740,16 +711,10 @@ namespace LiteGame
         /// 终态 Disposed——不可再复用（再次 Show = 全新实例与全新租约）。</summary>
         private void DestroyFormInternal(int formId)
         {
-            if (!_forms.TryGetValue(formId, out var form)) return;
-            _forms.Remove(formId);
+            if (!_store.Detach(formId, out var form, out var lease)) return;   // 幂等：不在册 = 已销毁
             _staleLogic.Remove(formId);
-            _lastUsed.Remove(formId);
             form.DestroyInstance();
-            if (_leases.TryGetValue(formId, out var lease))
-            {
-                _leases.Remove(formId);
-                lease.Release();                           // 最后一个依赖实例已销毁——底层引用归零（§5.2）
-            }
+            lease?.Release();                              // 最后一个依赖实例已销毁——底层引用归零（§5.2）
         }
 
         // ---- ITickable / IModuleStats ----
@@ -758,10 +723,10 @@ namespace LiteGame
         {
             _focus.Tick();                                // 平台返回键轮询（输入侧；语义侧在导航器 Back 链）
 
-            // 快照迭代（§4.3 重入正确性）：OnUpdate 内发起开/关/销毁不得在枚举 _forms 时改集合；
+            // 快照迭代（§4.3 重入正确性）：OnUpdate 内发起开/关/销毁不得在枚举实例表时改集合；
             // 本帧新建的界面下帧起参与驱动（新开的页面同帧不需要 OnUpdate）。
             _tickSnapshot.Clear();
-            _tickSnapshot.AddRange(_forms.Values);
+            _tickSnapshot.AddRange(_store.All);
             for (int i = 0; i < _tickSnapshot.Count; i++)
             {
                 var form = _tickSnapshot[i];
@@ -777,8 +742,9 @@ namespace LiteGame
 
         public void Snapshot(Dictionary<string, string> into)
         {
+            into.Clear();                                    // 契约：实现 Clear + 填（HUD 不清，全实现统一）
             int active = 0, covered = 0, paused = 0, recycled = 0, loading = 0;
-            foreach (var form in _forms.Values)
+            foreach (var form in _store.All)
             {
                 switch (form.State)
                 {

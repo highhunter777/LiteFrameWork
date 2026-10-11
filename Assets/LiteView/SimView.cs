@@ -380,6 +380,29 @@ namespace LiteView
         }
 
         /// <summary>
+        /// 槽位当前**生命的起始帧**（<see cref="EntitySlot.LifeStartFrame"/>）——生命更替（复活）的唯一
+        /// 可靠判据（死亡表现锁存的复位信号；本值在复活的同一帧被 RespawnSystem 改写）。
+        /// 取数口径同 <see cref="IsDead"/>：本地取预测态、远端取最新权威快照（公共快照可重建——重连/
+        /// 迟到加入者同路径）；槽位越界 / 首快照未到 / 尚未见到该槽位 → false（调用方应保持现状不判"新生命"）。
+        /// </summary>
+        public bool TryGetLifeStartFrame(int slotIndex, out int lifeStartFrame)
+        {
+            lifeStartFrame = 0;
+            if (slotIndex < 0 || slotIndex >= SimConfig.MaxEntities) return false;
+
+            if (LocalEntityId != 0 && _sim.TryResolve(LocalEntityId, out int localSlot) && localSlot == slotIndex)
+            {
+                lifeStartFrame = _sim.Entities[slotIndex].LifeStartFrame;
+                return true;
+            }
+
+            if (_snapTo == null) return false;
+            if ((_snapTo.AliveBitmap[slotIndex >> 5] & (1u << (slotIndex & 31))) == 0u) return false;
+            lifeStartFrame = _snapTo.Entities[slotIndex].LifeStartFrame;
+            return true;
+        }
+
+        /// <summary>
         /// 实体是否在换弹（Sim 权威）：读本地 Sim 运行态 <c>WeaponRuntime.State == Reloading</c>。
         /// **口径与 <see cref="IsAiming"/> 的差异**：弹药/换弹属本人私有面（不上公共快照），
         /// 本地实体取预测态（与本地握手感同帧）；远端槽位在联机下无公共字段可读——本地 Sim 里

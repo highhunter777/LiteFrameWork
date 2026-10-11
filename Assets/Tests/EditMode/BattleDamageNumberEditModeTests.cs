@@ -191,6 +191,38 @@ namespace LiteGame.Tests.EditMode
         }
 
         [Test]
+        [Category(TestCategory.Contract)]
+        public void 合并_锚点目标改最新受击点_平滑追随不瞬跳()
+        {
+            // 合并时数字挪向**最新受击点**——恒速靠近（平滑滑行，不瞬跳）。
+            var (_, view, self, botA) = Build(new Vector3(5f, 1f, 0f));
+            var clock = new FakeClock();
+            using (var driver = new BattleDamageNumberDriver(view, NewTmp, clock))
+            {
+                driver.OnHitFeedback(Hit(botA, 1, self, 30, HitLocalRole.Caused, new Vector3(5f, 1.2f, 0f)));
+                driver.Tick();                                    // 首帧（dt=0——无追随）
+                float z0 = driver.TryGetActive(botA, HitLocalRole.Caused, crit: false).transform.position.z;
+
+                clock.NowValue += 0.1f;                           // 窗内二连击：命中点在 3m 外（z 方向）
+                driver.OnHitFeedback(Hit(botA, 1, self, 25, HitLocalRole.Caused, new Vector3(5f, 1.2f, 3f)));
+                Assert.AreEqual(1, driver.ActiveCount, "窗内同档合并为一条（改锚点目标，不起新条）");
+
+                driver.Tick();                                    // dt=0.1 → 靠近 1.4m（14 m/s）
+                float zAfterOne = driver.TryGetActive(botA, HitLocalRole.Caused, crit: false).transform.position.z;
+                Assert.Greater(zAfterOne, z0, "数字向最新受击点移动（z 方向）");
+                Assert.Less(zAfterOne, 2.99f, "平滑追随——单帧不瞬跳到目标");
+
+                for (int i = 0; i < 60; i++)                      // 60 帧（各 1/60s）——足够追平
+                {
+                    clock.NowValue += 1f / 60f;
+                    driver.Tick();
+                }
+                float zSettled = driver.TryGetActive(botA, HitLocalRole.Caused, crit: false).transform.position.z;
+                Assert.AreEqual(3f, zSettled, 0.01f, "追平后停在最新受击点");
+            }
+        }
+
+        [Test]
         [Category(TestCategory.Unit)]
         public void 预算_超限淘汰最旧_实例归池不静默丢()
         {

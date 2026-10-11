@@ -326,6 +326,7 @@ namespace LiteClient
 
         public void Snapshot(Dictionary<string, string> into)
         {
+            into.Clear();                                    // 契约：实现 Clear + 填（HUD 不清，全实现统一）
             into["活跃"] = _active.Count.ToString();
             into["加载中"] = _inFlight.Count.ToString();
             into["池中"] = _pool.PooledTotal.ToString();

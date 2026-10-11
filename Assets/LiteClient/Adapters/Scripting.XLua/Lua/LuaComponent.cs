@@ -209,6 +209,7 @@ namespace LiteClient
 
         void IModuleStats.Snapshot(Dictionary<string, string> into)
         {
+            into.Clear();                                    // 契约：实现 Clear + 填（HUD 不清，全实现统一）
             into["Files"] = (_preloader?.Count ?? 0).ToString();
             into["MainExecuted"] = _mainExecuted.ToString();
             into["TickEnabled"] = _tickEnabled.ToString();

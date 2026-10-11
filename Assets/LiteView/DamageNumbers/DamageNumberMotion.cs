@@ -40,6 +40,10 @@ namespace LiteView.DamageNumbers
         /// <summary>水平推挤距离（种子确定性散开——防叠字；俯视角垂直上浮＋横向散布即 DNP"推挤"的对应物）。</summary>
         public const float PushDistance = 0.28f;
 
+        /// <summary>锚点追随速度（m/s——合并时锚点目标改最新受击点，驱动以恒速靠近：数字平滑滑向
+        /// 最新命中处，不瞬跳）。</summary>
+        public const float AnchorFollowSpeed = 14f;
+
         /// <summary>暴击抖动窗（秒，自出场起）。</summary>
         public const float CritShakeSeconds = 0.22f;
 

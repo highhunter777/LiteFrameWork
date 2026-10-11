@@ -290,6 +290,7 @@ namespace LiteGame
 
         public void Snapshot(Dictionary<string, string> into)
         {
+            into.Clear();                                    // 契约：实现 Clear + 填（HUD 不清，全实现统一）
             into["阶段"] = _machine.Current.ToString();
             into["阶段时长"] = _machine.StageTime.ToString("0.0");
             into["忙"] = Busy ? "是" : "否";

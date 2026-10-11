@@ -101,10 +101,8 @@ namespace LiteView
             Vector3 position, bool hasPosition)
         {
             if (IsShutdown)
-            {
-                Log.Warning("VFX 已关闭——拒绝新播放（fail-fast）", Tag);
-                return default;
-            }
+                throw new ObjectDisposedException(nameof(VfxService),
+                    "VFX 服务已关闭——不再接受新播放（同 EntityService/SceneService/AudioService 口径）");
 
             var def = _catalog.Resolve(name);
             if (!def.IsValid)
@@ -194,7 +192,8 @@ namespace LiteView
         /// 先行取消在途加载（<see cref="LifetimeToken"/>——真取消，不靠等待丢弃）→ 回收全部活体
         /// （与正常 Stop 同一路径，不留第二套语义）→ 清挂点表 → 排空池（销毁自建池根）→
         /// 清 prefab 缓存引用（**租约释放归装配层** `PrefabLeaseCache.ReleaseAll`——本服务只持引用）→
-        /// 销毁自建世界容器。幂等；关闭后 <see cref="Play"/> 拒绝（fail-fast）。
+        /// 销毁自建世界容器。幂等；关闭后 <see cref="Play"/> 抛 <see cref="ObjectDisposedException"/>
+        /// （姊妹服务统一契约：EntityService/SceneService/AudioService 同为"关闭即抛"）。
         /// </summary>
         public void Shutdown()
         {
@@ -247,6 +246,7 @@ namespace LiteView
 
         public void Snapshot(Dictionary<string, string> into)
         {
+            into.Clear();                                    // 契约：实现 Clear + 填（HUD 不清，全实现统一）
             into["活跃"] = _table.ActiveCount.ToString();
             into["池中"] = _pool.PooledTotal.ToString();
             into["新建"] = _created.ToString();

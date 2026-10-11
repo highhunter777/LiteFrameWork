@@ -287,6 +287,7 @@ namespace LiteFramework
 
         void IModuleStats.Snapshot(Dictionary<string, string> into)
         {
+            into.Clear();                                    // 契约：实现 Clear + 填（HUD 不清，全实现统一）
             into["Created"] = CreatedCount.ToString();
             into["Acquired"] = AcquiredCount.ToString();
             into["Released"] = ReleasedCount.ToString();

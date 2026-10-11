@@ -120,8 +120,8 @@ namespace LiteGame.Tests.EditMode
                 audio.Shutdown();                                // 释放面：停止 + 根销毁
                 Assert.DoesNotThrow(() => audio.Shutdown(), "幂等");
 
-                Assert.Catch<Exception>(() =>
-                    audio.Play(AudioService.Group.Effect, clip), "关闭后拒绝播放");
+                Assert.Throws<ObjectDisposedException>(() =>
+                    audio.Play(AudioService.Group.Effect, clip), "关闭后拒绝播放（统一契约：抛 ObjectDisposedException）");
             }
             finally
             {

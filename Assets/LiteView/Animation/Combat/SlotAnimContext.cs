@@ -5,82 +5,157 @@ using LiteSim;
 namespace LiteView.Animation
 {
     /// <summary>
-    /// 槽位上下文（各态对"播放器 + 事实 + 双通道形态跟踪"的窄面——按槽位重建，不持槽数组引用；
-    /// 单机单上下文）。**层间不引用**：跨层事实（IsAiming/锁存/速度/夹角）全部由驱动器喂入。
+    /// 驱动器每帧喂入的跨层事实（不可变值——**唯一写入入口** <see cref="SlotAnimContext.Feed"/>）。
+    /// 事实整体替换（非逐项赋值），故不存在"喂一半"的中间态；读取方为各 Stage
+    /// （层间不引用：跨层事实全部经此单点传递）。
+    /// </summary>
+    public readonly struct SlotAnimFacts
+    {
+        /// <summary>瞄准中（SimView.IsAiming——Sim 权威；战斗根活跃判据之一）。</summary>
+        public readonly bool IsAiming;
+
+        /// <summary>换弹中（SimView.IsReloading——Sim 权威，武器私有面投影）：真时由
+        /// <see cref="SlotAnimContext.UpdateReloadUpper"/> 提交 Overlay 上半身叠加（**不进战斗根**）。</summary>
+        public readonly bool IsReloading;
+
+        /// <summary>死亡事实（SimView.IsDead——Hp≤0 快照可重建；战斗根死亡裁决判据。
+        /// **生命更替（复活）即复位**：驱动器按 LifeStartFrame 变化清锁存——单条生命内不可逆）。</summary>
+        public readonly bool IsDead;
+
+        /// <summary>移动事实锁存（迟滞公式单源 <see cref="LocomotionBlendMath.UpdateLatch"/>）。</summary>
+        public readonly bool IsMoving;
+
+        /// <summary>视图帧间位移速度（m/s）。</summary>
+        public readonly float Speed;
+
+        /// <summary>移动方向 vs 朝向的夹角（度；正 = 朝向右侧——AimWalk 四向权重）。</summary>
+        public readonly float MoveRelAngleDeg;
+
+        public SlotAnimFacts(bool isAiming = false, bool isReloading = false, bool isDead = false,
+            bool isMoving = false, float speed = 0f, float moveRelAngleDeg = 0f)
+        {
+            IsAiming = isAiming;
+            IsReloading = isReloading;
+            IsDead = isDead;
+            IsMoving = isMoving;
+            Speed = speed;
+            MoveRelAngleDeg = moveRelAngleDeg;
+        }
+    }
+
+    /// <summary>
+    /// 槽位上下文（各态对"播放器 + 事实 + 双通道形态跟踪 + 射击窗"的窄面——按槽位新建，不持槽数组引用；
+    /// 单机单上下文）。**层间不引用**：跨层事实由驱动器经 <see cref="Feed"/> 整体喂入（只读读口
+    /// <see cref="Facts"/>）；**不反向引用宿主**（窗状态归本类，根阶段只调本类的窗三态入口）。
+    ///
+    /// **属主**（本类不设 public 可变字段）：
+    /// - 播放器/权重容器/窗长/换弹倍率 = 构造期注入（驱动器持有，本类只持引用）；
+    /// - 事实（<see cref="Facts"/>）= 驱动器每帧唯一写者；
+    /// - 通道状态（<see cref="LocoHandle"/>/<see cref="BodyForm"/>/<see cref="BodyHandle"/>/
+    ///   <see cref="BodyIsBlend"/>/<see cref="ReloadHandle"/>）= 状态机（各根/叶）写、外部只读；
+    /// - 射击窗（<see cref="FireWindow"/>）= 裁决与推进都在战斗根，本类只提供三态入口。
     /// </summary>
     public sealed class SlotAnimContext
     {
-        public AnimationPlayer Player;
-
-        // ---- 开火装配（驱动器构造/建槽期注入）----
-
-        /// <summary>换弹片段播放倍率——片段时长对齐 Sim 换弹时长（`WeaponConfig.Default.ReloadFrames`
-        /// / TickRate），钳制在 Profile 登记的速度区间内（越界会被播放器拒绝）；未知片段时长 ⇒ 1×。</summary>
-        public float ReloadPlaybackSpeed = 1f;
+        /// <summary>播放器（构造期注入；本类不拥有其生命周期）。</summary>
+        public AnimationPlayer Player { get; }
 
         /// <summary>射击窗长（秒）＝ <see cref="CombatConfig.FireStanceFrames"/> / SimConfig.TickRate（1s 单源派生）。</summary>
-        public float FireHoldSeconds;
+        public float FireHoldSeconds { get; }
 
-        // ---- 输入事实（驱动器每帧喂）----
+        /// <summary>换弹片段播放倍率——片段时长对齐 Sim 换弹时长（<c>WeaponConfig.Default.ReloadFrames</c>
+        /// / TickRate），钳制在 Profile 登记的速度区间内（越界会被播放器拒绝）；未知片段时长 ⇒ 1×。</summary>
+        public float ReloadPlaybackSpeed { get; }
 
-        /// <summary>瞄准中（SimView.IsAiming——Sim 权威；战斗根活跃判据之一）。</summary>
-        public bool IsAiming;
+        /// <summary>MoveBlend 槽位权重容器（序 {Idle, Walk, Run}；驱动器复用数组，零分配）。</summary>
+        internal float[] MoveWeights { get; }
 
-        /// <summary>换弹中（SimView.IsReloading——Sim 权威，武器私有面投影）：真时由
-        /// <see cref="UpdateReloadUpper"/> 提交 Overlay 上半身叠加（**不进战斗根**——移动根照常出步）；
-        /// 死亡或事实清除时叠加层释放。</summary>
-        public bool IsReloading;
+        /// <summary>AimMoveBlend 槽位权重容器（序 {F, R, B, L}；同上）。</summary>
+        internal float[] AimWeights { get; }
 
-        /// <summary>死亡事实（SimView.IsDead——Hp≤0 快照可重建；战斗根死亡裁决判据，
-        /// 不可逆：置位后恒驻死亡叶，窗/退根/Aim 系全被守卫）。</summary>
-        public bool IsDead;
+        /// <summary>最近一次提交/更新的权重副本（诊断读回——<c>TryGetMotion</c> 的读值）。</summary>
+        internal readonly float[] LocoWeightsCopy = new float[3];
+        internal readonly float[] BodyWeightsCopy = new float[4];
 
-        /// <summary>移动事实锁存（迟滞公式单源 <see cref="LocomotionBlendMath.UpdateLatch"/>）。</summary>
-        public bool IsMoving;
+        private SlotAnimFacts _facts;
 
-        /// <summary>视图帧间位移速度（m/s）。</summary>
-        public float Speed;
+        /// <summary>事实唯一写入口（驱动器每帧调；整体替换，不提供逐项写口）。</summary>
+        public void Feed(in SlotAnimFacts facts) => _facts = facts;
 
-        /// <summary>移动方向 vs 朝向的夹角（度；正 = 朝向右侧——AimWalk 四向权重）。</summary>
-        public float MoveRelAngleDeg;
+        /// <summary>死亡锁存（不可逆）：死亡事件沿在帧中即时置位——压过一切已挂起路由（last-wins
+        /// 语义下"后发者赢"必须让死亡先落位）。下帧 <see cref="Feed"/> 由驱动器 DeadSeen 锁存带来
+        /// 同一事实，两路同值不冲突。</summary>
+        internal void LatchDead()
+            => _facts = new SlotAnimFacts(_facts.IsAiming, _facts.IsReloading, isDead: true,
+                _facts.IsMoving, _facts.Speed, _facts.MoveRelAngleDeg);
 
-        // ---- 权重容器（驱动器复用数组注入——零分配路径；播放器只在提交内读取不保留引用）----
+        /// <summary>瞄准中（读口——见 <see cref="SlotAnimFacts.IsAiming"/>）。</summary>
+        public bool IsAiming => _facts.IsAiming;
 
-        /// <summary>MoveBlend 槽位权重（序 {Idle, Walk, Run}）。</summary>
-        public float[] MoveWeights;
+        /// <summary>换弹中（读口——见 <see cref="SlotAnimFacts.IsReloading"/>）。</summary>
+        public bool IsReloading => _facts.IsReloading;
 
-        /// <summary>AimMoveBlend 槽位权重（序 {F, R, B, L}）。</summary>
-        public float[] AimWeights;
+        /// <summary>死亡事实（读口——见 <see cref="SlotAnimFacts.IsDead"/>）。</summary>
+        public bool IsDead => _facts.IsDead;
 
-        // ---- 诊断读回（最近一次提交/更新的权重副本——TryGetMotion 的读值）----
+        /// <summary>移动事实锁存（读口——见 <see cref="SlotAnimFacts.IsMoving"/>）。</summary>
+        public bool IsMoving => _facts.IsMoving;
 
-        public readonly float[] LocoWeightsCopy = new float[3];
-        public readonly float[] BodyWeightsCopy = new float[4];
+        /// <summary>视图帧间位移速度 m/s（读口——见 <see cref="SlotAnimFacts.Speed"/>）。</summary>
+        public float Speed => _facts.Speed;
 
-        // ---- Base 通道（移动根独占：进根建、离根收）----
+        /// <summary>移动方向 vs 朝向夹角（读口——见 <see cref="SlotAnimFacts.MoveRelAngleDeg"/>）。</summary>
+        public float MoveRelAngleDeg => _facts.MoveRelAngleDeg;
 
-        public AnimationHandle LocoHandle;
+        // ---- 射击窗（战斗根裁决单点；本类只存状态 + 提供三态入口）----
 
-        // ---- Override 通道（战斗根叶共用："同 ID 在播即续播、异 ID 提交替换"）----
+        /// <summary>射击窗剩余（秒）——0 = 窗不在（诊断/测试读值）。</summary>
+        public float FireWindow { get; private set; }
 
-        public AnimationId BodyForm;
-        public AnimationHandle BodyHandle;
-        public bool BodyIsBlend;
+        /// <summary>事件刷新＝重置满窗（上限即窗长，不累加）。</summary>
+        internal void RefreshFireWindow() => FireWindow = FireHoldSeconds;
 
-        // ---- Overlay 通道（换弹：上半身叠加，腿继续走 Base MoveBlend）----
+        /// <summary>按帧递减（钳制到 0——窗不欠账）。</summary>
+        internal void AdvanceFireWindow(float elapsedSeconds)
+            => FireWindow = Math.Max(0f, FireWindow - elapsedSeconds);
+
+        /// <summary>窗清零（退根/离场收口）。</summary>
+        internal void ClearFireWindow() => FireWindow = 0f;
+
+        // ---- 通道状态（状态机写、外部只读）----
+
+        /// <summary>Base 通道句柄（移动根独占：进根建、离根收）。</summary>
+        internal AnimationHandle LocoHandle { get; set; }
+
+        /// <summary>Override 通道当前形态 id（战斗根叶共用："同 ID 在播即续播、异 ID 提交替换"）。</summary>
+        public AnimationId BodyForm { get; internal set; }
+
+        /// <summary>Override 通道当前句柄。</summary>
+        public AnimationHandle BodyHandle { get; internal set; }
+
+        /// <summary>Override 当前形态是否为混合形态（诊断/权重就地更新判据）。</summary>
+        public bool BodyIsBlend { get; internal set; }
 
         /// <summary>换弹叠加层句柄（default = 未提交）；<see cref="ReloadSubmitted"/> 才是权威在播标志
         /// （句柄在自然完成后仍留作持帧占位，单看句柄判不出"还在不在换弹"）。</summary>
-        public AnimationHandle ReloadHandle;
+        public AnimationHandle ReloadHandle { get; private set; }
 
         private bool _reloadSubmitted;
 
         /// <summary>换弹叠加层已提交且未释放（诊断/测试读值）。</summary>
         public bool ReloadSubmitted => _reloadSubmitted;
 
-        // ---- 态引用（驱动器窗刷新——装配期注入）----
-
-        internal CombatRootStage Root;
+        public SlotAnimContext(AnimationPlayer player, float[] moveWeights, float[] aimWeights,
+            float fireHoldSeconds, float reloadPlaybackSpeed = 1f)
+        {
+            Player = player ?? throw new ArgumentNullException(nameof(player));
+            MoveWeights = moveWeights ?? throw new ArgumentNullException(nameof(moveWeights));
+            AimWeights = aimWeights ?? throw new ArgumentNullException(nameof(aimWeights));
+            if (moveWeights.Length < 3) throw new ArgumentException("MoveBlend 权重容器至少 3 槽", nameof(moveWeights));
+            if (aimWeights.Length < 4) throw new ArgumentException("AimMoveBlend 权重容器至少 4 槽", nameof(aimWeights));
+            FireHoldSeconds = fireHoldSeconds;
+            ReloadPlaybackSpeed = reloadPlaybackSpeed;
+        }
 
         // ---- Override 形态提交（战斗根叶共用）----
 

@@ -426,6 +426,7 @@ namespace LiteFramework
         public string StatsName => "DI";
         public void Snapshot(Dictionary<string, string> into)
         {
+            into.Clear();                                    // 契约：实现 Clear + 填（HUD 不清，全实现统一）
             int built = 0;
             foreach (var entry in _order) if (entry.Constructed) built++;
             into["注册数"] = _entries.Count.ToString();

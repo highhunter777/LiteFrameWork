@@ -92,9 +92,9 @@ namespace LiteView
 
             if (view == null) return;
 
-            // [Diag] 临时诊断哨位：对局中视图回收 = 罕见事件，任何一次都留痕
-            UnityEngine.Debug.LogWarning(
-                $"[Diag] 视图回收 slot={slotIndex} name={view.name} active={view.activeSelf} pos={view.transform.position}");
+            // 视图回收是对局的罕见事件（死亡/传送/离场），每次留痕便于定位实例归属
+            Log.Warning(
+                $"视图回收 slot={slotIndex} name={view.name} active={view.activeSelf} pos={view.transform.position}", "View");
 
             if (_recycler != null)
             {

@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using Cysharp.Threading.Tasks;
 using LiteFramework;
@@ -359,8 +360,8 @@ namespace LiteGame.Tests.EditMode
             Assert.AreEqual("0", Snap(svc, "池中"), "池已排空");
             Assert.DoesNotThrow(() => svc.Shutdown(), "重复关闭幂等");
 
-            var h3 = svc.Play("fx_c", null, false);
-            Assert.IsFalse(h3.IsValid, "关闭后拒绝新播放（fail-fast）");
+            Assert.Throws<ObjectDisposedException>(() => svc.Play("fx_c", null, false),
+                "关闭后拒绝新播放（姊妹服务统一契约：关闭即抛）");
             Assert.AreEqual("0", Snap(svc, "活跃"), "拒绝的播放不得登记");
         }
 

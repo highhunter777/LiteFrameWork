@@ -30,7 +30,8 @@
 
 - 契约 `IGmPage`（`Editor/Gm/`）：`OnShow` / `OnHide` / `Draw` / `Poll`——壳在翻页/开窗时调生命周期，`Poll` **仅活动页**在 Play 中按 0.5s 节拍被调（非活动页不轮询）。
 - 壳 `GmPanel` 职责仅三件：页签生命周期、轮询调度、页签记忆（EditorPrefs **统一前缀 `LiteGame.Gm.*`**）。
-- 四页：测试模式（请求桥+开关+爆头/持枪调参）、命令与审计（发现面/无参执行/审计环）、场景操作（SceneService 加载机制验证，忙碌守卫）、配置诊断（运行状态+表查询+产物核对）。
+- 四页：测试模式（请求桥+开关+爆头/持枪调参+**bot 操作**）、命令与审计（发现面/无参执行/审计环）、场景操作（SceneService 加载机制验证，忙碌守卫）、配置诊断（运行状态+表查询+产物核对）。
+- **bot 操作（测试模式页）**：补位假人两项——**bot 无限生命**（`TestModeOptions` 现场开关，Live；权威侧宿主钩子 `SimTestRules.BotInfiniteHp` 每帧回满 ⇒ 假人永不死、命中/飘字反馈照常）与**重置假人**（一次性宿主钩子 `SimTestRules.BotResetRequested`：补位席位满血回出生点 + `LifeStartFrame` 生命更替 ⇒ 动画按"新生命"退出死亡叶；进房清残留同 TeleportDispatch 口径）。假人=补位席位（本地玩家不受两项管辖）。**未做（挂账）**：房内**追加**新假人——需放开"固定 2 座"世界规模（客户端定容重建/预测口径），归 G2 8 人基线面另立批。
 - 诊断取件单源：`GmEditorResolve.ResolveFromContainer<T>`（`GameEntry.TakeContainer()` 口径——编辑器工具豁免形态，业务侧禁）；未装配按空态显示。
 - 产物核对路径 = `TableLayout.TableDataPath` **单源**（领域分类布局——装载/服务端直读/编辑器预检三面共用，禁第二份拼接）。
 - 页件范式承自烘焙工具箱：一页一职责、说明→操作→报告自包含；寄宿件（如 `HeadHitLineTuner`）被页与窗口共享。

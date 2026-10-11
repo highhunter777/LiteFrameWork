@@ -1,7 +1,5 @@
 using LiteFramework;
 using LiteFramework.Animation;
-using LiteSim;
-using UnityEngine;
 
 namespace LiteView.Animation
 {
@@ -22,19 +20,8 @@ namespace LiteView.Animation
     internal sealed class CombatRootStage : IStage<CharacterAnimId, CombatAnimReq>
     {
         private readonly SlotAnimContext _ctx;
-        private float _window;
 
-        internal CombatRootStage(SlotAnimContext ctx)
-        {
-            _ctx = ctx;
-            ctx.Root = this;
-        }
-
-        /// <summary>射击窗剩余（秒）——测试/诊断读值（0 = 窗不在）。</summary>
-        internal float Window => _window;
-
-        /// <summary>事件刷新＝重置满窗（上限即窗长，不累加）——驱动器在事件路由前调用（窗先于一切门控）。</summary>
-        internal void RefreshWindow() => _window = _ctx.FireHoldSeconds;
+        internal CombatRootStage(SlotAnimContext ctx) => _ctx = ctx;
 
         public void OnInit(IStageHost<CharacterAnimId, CombatAnimReq> m) { }
         public void OnEnter(IStageHost<CharacterAnimId, CombatAnimReq> m, in CombatAnimReq req) { }
@@ -51,7 +38,7 @@ namespace LiteView.Animation
 
             if (m.Current == CharacterAnimId.Dead)
             {
-                _window = 0f;
+                _ctx.ClearFireWindow();
                 m.Request(_ctx.IsAiming
                     ? (_ctx.IsMoving ? CharacterAnimId.AimWalk : CharacterAnimId.AimIdle)
                     : (_ctx.IsMoving ? CharacterAnimId.Moving : CharacterAnimId.Idle));
@@ -62,14 +49,14 @@ namespace LiteView.Animation
 
             // `IsAiming` 在场即充值窗（Sim 侧瞄准帧同步置窗——两层同源同长；
             // 长按 ADS 的松开尾巴与点按瞄准的间隙尾巴同一语义：窗内不回移动层）。
-            if (_ctx.IsAiming) _window = _ctx.FireHoldSeconds;
-            else if (_window > 0f) _window = Mathf.Max(0f, _window - elapseSeconds);
+            if (_ctx.IsAiming) _ctx.RefreshFireWindow();
+            else if (_ctx.FireWindow > 0f) _ctx.AdvanceFireWindow(elapseSeconds);
 
             // 退根/降级单点裁决（**全族同一条退根路**：窗尽 ∧ !IsAiming；
             // 移动事实永不触发退根，只选叶）：
             //   窗尽 ∧ IsAiming → Fire* 降级 Aim 叶（同形态续播保相位；Aim 系无需请求——已在 Aim 叶）
             //   窗尽 ∧ !IsAiming → 移动根叶（窗尽才离开——窗内"不能回移动层"）
-            if (_window <= 0f)
+            if (_ctx.FireWindow <= 0f)
             {
                 if (_ctx.IsAiming)
                 {
@@ -94,7 +81,7 @@ namespace LiteView.Animation
             _ctx.BodyForm = default;
             _ctx.BodyHandle = default;
             _ctx.BodyIsBlend = false;
-            _window = 0f;
+            _ctx.ClearFireWindow();
         }
     }
 }

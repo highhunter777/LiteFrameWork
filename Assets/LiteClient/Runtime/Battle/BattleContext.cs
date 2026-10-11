@@ -9,10 +9,14 @@ using LiteView;
 namespace LiteClient
 {
     /// <summary>
-    /// 对局上下文：一局对局的**全部运行态编排**——网络事件 → 持久镜像重建（协议单源 SnapshotReassembler）→
+    /// 对局上下文：一局对局的**运行态编排**——网络事件 → 持久镜像重建（协议单源 SnapshotReassembler）→
     /// 预测/和解（RollbackSim）→ 表现视图（SimView/相机/动画）→ 输入上行。传输由 <see cref="BattleClient"/>
     /// 持有、地图走 <see cref="SimMapData.StandardBattleMap"/> 单源、生命周期挂 Match Scope（本类创建并持有，
     /// Dispose 即拆——离场无 Match 残留的载体）。
+    ///
+    /// **两个协作件**（各管一件，本类只编排）：
+    /// <see cref="BattleInputPipeline"/>（输入三件的顺序与上行——必须在本地服步进之前）、
+    /// <see cref="BattleSnapshotMirror"/>（持久镜像 + 和解判定 + 视图插值源）。
     ///
     /// **断线恢复策略**：SuspectedLost 即自动 <see cref="BattleClient.BeginReconnect"/>（凭 JoinAck 票据）；
     /// Failed（重连超时/拒绝/版本不符）→ <see cref="Ended"/>(SessionFailed) 交流程层裁决回主菜单——
@@ -64,13 +68,10 @@ namespace LiteClient
         private readonly BattleClient _battle;
         private readonly ClientScope _matchScope;
         private readonly SimMapData _map;
-        private IInputService _input;                    // 帧对齐后的本地输入源
-        private readonly SimInputFrame[] _localInputs;   // 送进预测/上行的那一份（复用，零分配）
+        private readonly BattleInputPipeline _inputs;      // 输入三件（顺序与上行）
+        private readonly BattleSnapshotMirror _mirror = new BattleSnapshotMirror();   // 持久镜像 + 和解 + 插值源
 
         private RollbackSim _sim;
-        private SimWorldState _mirror;                       // 持久权威镜像（增量快照只在它上面累积才完整，§5.5）
-        private readonly SimWorldStateSnapshot[] _viewSnapshots = new SimWorldStateSnapshot[2];   // 视图插值源（轮转：上一份/最新一份）
-        private int _viewSnapWrite;                          // 下一次写入下标（0/1 轮转）
         private long _localEntityId;
         private long _reconcileCount;
         private bool _disposed;
@@ -86,12 +87,8 @@ namespace LiteClient
         {
             _battle = battle ?? throw new ArgumentNullException(nameof(battle));
             if (accountScope == null) throw new ArgumentNullException(nameof(accountScope));
-            _input = inputProvider;
             _map = map ?? SimMapData.StandardBattleMap();
-
-            // 本地输入的规范形载体：Sim 只接受"全体玩家一帧"的数组（SimStep 按 EntityId 就地排序），
-            // 缺席槽位 = 空输入（EntityId=0 解析不到实体 → InputSystem 自然丢弃）。
-            _localInputs = new SimInputFrame[ExpectedPlayers];
+            _inputs = new BattleInputPipeline(_battle, inputProvider, ExpectedPlayers);
             _matchScope = accountScope.CreateChild("Match");
 
             // 订阅 + 退订登记（LIFO：晚挂先退——Dispose 即拆，不靠调用方记得退订）
@@ -119,7 +116,7 @@ namespace LiteClient
 
         /// <summary>
         /// 挂上表现视图（须在 StartGame 之后调用：SimView 要本地预测态 <see cref="RollbackSim.State"/>）。
-        /// 视图生命周期由调用方（ProcedureBattle）随 Match Scope 收尾；本方法只做接线与首帧对齐。
+        /// 视图生命周期由调用方（ProcedureBattle 的视图域）随 Match Scope 收尾；本方法只做接线与首帧对齐。
         /// </summary>
         public void AttachView(SimView view)
         {
@@ -140,7 +137,7 @@ namespace LiteClient
         /// 挂输入源（<see cref="IInputService"/> 的注入点；null = 恢复空输入）。
         /// 与 ctor 的 inputProvider 同义，供"视图建在上下文之后"的装配序使用。
         /// </summary>
-        public void AttachInput(IInputService provider) => _input = provider;
+        public void AttachInput(IInputService provider) => _inputs.Input = provider;
 
         /// <summary>本地玩家**预测**位置（诊断/瞄准原点族——不读视图 Transform，避免平滑误差回灌输入）。
         /// 未对齐/未开局时返回原点。</summary>
@@ -154,37 +151,23 @@ namespace LiteClient
         }
 
         /// <summary>
-        /// 每帧驱动（ProcedureBattle.OnUpdate 调——唯一驱动入口）：网络双泵 → 输入上行与预测推进 → 表现视图。
+        /// 每帧驱动（唯一驱动入口）：网络双泵 → 输入上行与预测推进 → 表现视图。
         /// Sim 未建（StartGame 未达）时只泵网络；输入只在对局中消费与发送。
         ///
-        /// **输入的门与顺序**（《角色状态与动作专项设计》§3 输入三件）：
-        /// 采样与上下文门已在渲染帧由 <see cref="IInputService.SampleOnRenderFrame"/> 完成（拦截源成立
-        /// → 本帧输入为全零，照常上行）。本方法按"网络泵 → 输入三件 → 本地服步进 → 预测推进 → 追帧补发"
-        /// 的次序做（见 <see cref="FeedAndSendInputs"/> 与各段注释，顺序不可换）：
-        /// <list type="number">
-        /// <item><b>第 F 帧输入送进预测</b>——<c>RollbackSim.OnRealInput(F, …)</c> 早到即入史，
-        ///   于是第 F 步用的是真实输入而非沿用（否则"发了但没预测"会让下一份权威快照判定不符 → 自造回滚）；</item>
-        /// <item><b>同一份输入上行</b>——预览帧号 <c>F</c> 与本地将要执行的步一致（两端同帧同值）；</item>
-        /// <item><b>沿用帧预发</b>——本渲染帧将走 ≥2 个逻辑帧时，额外帧（F+1..）的沿用形提前上行
-        ///   （<c>RollbackSim.PeekSteps</c> 精确给出步数）——进程内权威先于客户端步进，不预发就会用
-        ///   空输入兜底执行这几帧（与本地沿用逐位分叉 → 每份快照都和解）；</item>
-        /// <item><b>追帧沿用帧补发</b>——<c>Tick</c> 跑完后用 <c>RollbackSim.TryGetExecutedInput</c>
-        ///   取回实际执行的那几帧补发（预发未覆盖的边角，如 halt 解除当帧；真服务器路径的主要兜底）。</item>
-        /// </list>
-        /// 逻辑帧消费门（同一帧只取一次）与上行节流都在服务内，本方法只按 <c>Frame+1</c> 请求。
+        /// **输入的门与顺序**（《角色状态与动作专项设计》§3 输入三件）：采样与上下文门已在渲染帧由
+        /// <see cref="IInputService.SampleOnRenderFrame"/> 完成（拦截源成立 → 本帧输入为全零，照常上行）。
+        /// 本方法按"网络泵 → 输入三件（<see cref="BattleInputPipeline.FeedAndSendInputs"/>，**先于本地服步进**）
+        /// → 本地服步进 → 预测推进 → 追帧补发（<see cref="BattleInputPipeline.ResendCarriedFrames"/>）"的次序做，
+        /// 顺序不可换。逻辑帧消费门（同一帧只取一次）与上行节流都在服务内，本方法只按 <c>Frame+1</c> 请求。
         /// </summary>
         public void Tick(float realDelta)
         {
             if (_disposed) return;
             _battle.TickIncoming();
 
-            // ① 输入三件（采样入史 → 同一份上行 → **沿用帧预发**）——必须**先于**本地服步进：
-            //    进程内本地服与客户端共用同一累加器、且在同一渲染帧里**先**步进（TickOutgoing），
-            //    一个渲染帧走 2+ 逻辑帧时，多出的帧在客户端尚未产生输入就被权威消费（缺席空输入兜底），
-            //    本机沿用预测与权威逐位分叉 → 每个受影响的快照都和解（低帧率下成快照频率的橡皮筋）。
-            //    预发沿用形与 PrepareNext 的沿用一致（Buttons 只留连续意图位），故权威取到与本地执行逐位相同。
+            // ① 输入三件（采样入史 → 同一份上行 → 沿用帧预发）——必须**先于**本地服步进（顺序理由见管线类注释）
             int inputFrame = _sim != null ? _sim.State.Frame + 1 : -1;
-            if (_sim != null) FeedAndSendInputs(inputFrame, realDelta);
+            if (_sim != null) _inputs.FeedAndSendInputs(_sim, _localEntityId, inputFrame, realDelta);
 
             _battle.TickOutgoing();          // ② 本地服步进（含快照同步投递）
 
@@ -197,71 +180,9 @@ namespace LiteClient
 
             _sim.Tick(realDelta);
 
-            // 追帧补发：本渲染帧跑了 ≥2 个逻辑帧时，多出的帧本地以
-            // "沿用上一帧"推进（RollbackSim.PrepareNext）——这些帧**同样必须上行**：服务器对缺席帧的
-            // 唯一读法是空输入兜底（RoomRuntime 缺席沿用 default），漏发即"本地在动、权威已停"，
-            // 移动中每份快照都和解回拉（低帧率下成快照频率的持续橡皮筋）。帧号从 inputFrame+1
-            // 补到本渲染帧实际执行到的帧；每帧各自发包（InputGate 每包只取 serverFrame+1 一帧，
-            // 追几帧就得发几包），最近帧窗口会自动携带更早帧兜丢包。
-            if (_input != null && _battle.Connected && _localEntityId != 0)
-            {
-                for (int f = inputFrame + 1; f <= _sim.State.Frame; f++)
-                {
-                    // 按**实体 Id** 读回（历史数组按 EntityId 就地排序，远端槽位常带零身份——下标不可靠）
-                    if (!_sim.TryGetExecutedInput(f, _localEntityId, out SimInputFrame carried)) break;   // 理论不达（本渲染帧刚执行刚入史）
-                    carried.EntityId = _localEntityId;                       // 服务器 InputGate 覆写防伪；与主路径同口径
-                    _battle.Client.SendInput(f, carried, viewFrame: viewFrame);
-                }
-            }
+            _inputs.ResendCarriedFrames(_sim, _localEntityId, inputFrame, viewFrame);
 
             View?.Tick(realDelta);               // 表现视图（网络/Sim 之后：本帧权威已应用）
-        }
-
-        /// <summary>
-        /// 输入三件（《角色状态与动作专项设计》§3；<b>必须在本地服步进之前</b>调用）：
-        /// ① 本帧采样入史（<see cref="RollbackSim.OnRealInput"/>）——第 F 步用真实输入而非沿用；
-        /// ② 同一份上行（<see cref="RoomClient.SendInput"/>）——两端同帧同值；
-        /// ③ **沿用帧预发**——本渲染帧将走 steps 个逻辑帧时，把额外帧（F+1..F+steps-1）的沿用形
-        ///    **提前**上行：进程内权威先于客户端步进，一个渲染帧走 2+ 帧时多出的帧本来只能吃
-        ///    "缺席空输入"（与本地沿用逐位分叉 → 每份快照都和解）；预发后权威取到与本地执行
-        ///    **逐位相同**的输入（沿用形 = Buttons 只留连续意图位，与 <see cref="RollbackSim"/>
-        ///    PrepareNext 的沿用同口径）。steps 由 <see cref="RollbackSim.PeekSteps"/> 精确给出
-        ///    （与 FrameDriver 同判据）——只发额外帧、不发未来帧，且沿用帧不会覆盖主路径的采样。
-        /// </summary>
-        private void FeedAndSendInputs(int inputFrame, float realDelta)
-        {
-            if (_input == null) return;
-
-            SimInputFrame local = default;
-            if (_input.TryTakeForPrediction(inputFrame, out SimInputFrame taken)) local = taken;   // 帧边界门在本帧的输入
-            else local = _input.Pending;                                                         // 本帧已消费过：沿用同一份（追帧不产生额外输入）
-            local.EntityId = _localEntityId;                                                     // 服务器 InputGate 覆写防伪；本地预测按 slot 实体对齐
-
-            FillLocalInputs(local);
-            _sim.OnRealInput(inputFrame, _localInputs);      // 真实输入入史（≈ RTT/2 后到达服务器，其间本地按另一条路径预测）
-
-            if (!_battle.Connected || !_input.TryTakeForSend(out _)) return;
-
-            int viewFrame = _battle.Client.LastSnapshotFrame >= 0
-                ? _battle.Client.LastSnapshotFrame + SimConfig.InterpFrames
-                : 0;
-            _battle.Client.SendInput(inputFrame, local, viewFrame: viewFrame);   // 发**同一份**（含 EntityId 对齐）
-
-            int steps = _sim.PeekSteps(realDelta);
-            if (steps < 2) return;                           // 单步/零步：没有额外帧
-
-            SimInputFrame carried = local;
-            carried.Buttons &= SimInputFrame.PredictedButtons;   // 沿用形（与 PrepareNext 同口径，掩码幂等）
-            for (int f = inputFrame + 1; f < inputFrame + steps; f++)
-                _battle.Client.SendInput(f, carried, viewFrame: viewFrame);
-        }
-
-        /// <summary>把本地意图摊进"全体玩家一帧"的规范数组（其余槽位空输入——Sim 按 EntityId 解析，空槽自然跳过）。</summary>
-        private void FillLocalInputs(in SimInputFrame local)
-        {
-            for (int i = 0; i < _localInputs.Length; i++) _localInputs[i] = default;
-            int slot = _battle.Client.PlayerId;
-            if (slot >= 0 && slot < _localInputs.Length) _localInputs[slot] = local;
         }
 
         /// <summary>主动离场（幂等）——流程层据 <see cref="Ended"/> 收尾回 Main。</summary>
@@ -316,35 +237,26 @@ namespace LiteClient
             }
         }
 
-        /// <summary>
-        /// 快照：镜像重建 → 和解（checksum 比对/覆盖/重放）→ 无和解时刷新非预测量（弹药/CD/比赛状态——
-        /// P0 分层：不预测的量只能随包来）→ 视图插值源推进。首份快照对齐本地实体 Id。
-        /// </summary>
         private void OnMatchEnded(LiteNet.Proto.MatchEnded result)
         {
             if (_disposed) return;
             End(EndReason.Completed);
         }
 
+        /// <summary>快照：镜像重建 → 和解（比对/覆盖/重放）→ 视图插值源推进。首份快照对齐本地实体 Id。</summary>
         private void OnSnapshot(LiteNet.Proto.StateSnapshot snapshot)
         {
             if (_disposed || _sim == null) return;   // Sim 未建：丢弃（Reliable StartGame 随后即到）
 
             ResolveLocalEntity(snapshot);
 
-            _mirror = _mirror ?? new SimWorldState();
-            SnapshotReassembler.Apply(snapshot, _mirror, out uint checksum);
-            if (_sim.OnAuthoritativeSnapshot(snapshot.Frame, _mirror, checksum))
+            if (_mirror.ApplyAndReconcile(_sim, snapshot))
             {
                 _reconcileCount++;
                 _battle.Client.SendMismatch(snapshot.Frame);
             }
-            else
-            {
-                SnapshotReassembler.OverlayPrivateAndMatch(snapshot, _sim.State);
-            }
 
-            PushViewSnapshot();                      // 视图插值源：上一份/最新一份轮转
+            _mirror.PushToView(View);                // 视图插值源：上一份/最新一份轮转
         }
 
         /// <summary>
@@ -356,39 +268,15 @@ namespace LiteClient
             if (_disposed) return;
             if (!response.Ok || _battle.Phase != ClientSessionPhase.Restoring) return;
 
-            _mirror = _mirror ?? new SimWorldState();
-            SnapshotReassembler.Apply(response.Snapshot, _mirror, out uint checksum);
-
             if (_localEntityId == 0 && _battle.Client.PlayerId >= 0)
                 ResolveLocalEntity(response.Snapshot);
 
-            if (_sim != null)
-                _sim.OnAuthoritativeSnapshot(response.Snapshot.Frame, _mirror, checksum);
+            _mirror.ApplyReconnect(_sim, response.Snapshot);
 
-            PushViewSnapshot();                      // 恢复快照同样是插值源（重连后不跳帧）
+            _mirror.PushToView(View);                // 恢复快照同样是插值源（重连后不跳帧）
             View?.AlignLocal(_localEntityId);        // 重连可能换了实体/复活的命：重新落位
 
             _battle.Client.CompleteRestore();
-        }
-
-        /// <summary>
-        /// 把当前镜像拷进视图插值源（两块轮转）。用 <see cref="SimWorldStateSnapshot.CaptureFull"/>
-        /// 而非增量摘要——视图要的是**完整**槽位，而 <c>SnapshotReassembler</c> 只保证"缺席 = 未变化"
-        /// （增量包的槽位可能没被这帧指到，必须从持久镜像整体取）。
-        /// </summary>
-        private void PushViewSnapshot()
-        {
-            if (View == null) return;
-            var snap = _viewSnapshots[_viewSnapWrite];
-            if (snap == null)
-            {
-                snap = new SimWorldStateSnapshot();
-                _viewSnapshots[_viewSnapWrite] = snap;
-            }
-            snap.CaptureFull(_mirror);
-            _viewSnapWrite ^= 1;                     // 轮转：下一份写另一块，保留当前这份供插值
-
-            View.OnAuthoritativeSnapshot(snap);
         }
 
         /// <summary>相位迁移：断线自动重连（凭票据）；Failed → 对局终结（流程层裁决去留）。</summary>
@@ -406,6 +294,7 @@ namespace LiteClient
             }
         }
 
+        /// <summary>首份快照按 <c>Slot == PlayerId</c> 解析本地实体 Id（视图首帧直接落位——不从上一条命的位置飞过去）。</summary>
         private void ResolveLocalEntity(LiteNet.Proto.StateSnapshot snapshot)
         {
             if (_localEntityId != 0 || _battle.Client.PlayerId < 0) return;
@@ -414,7 +303,7 @@ namespace LiteClient
                 if (slot.Slot == _battle.Client.PlayerId)
                 {
                     _localEntityId = slot.Id;
-                    View?.AlignLocal(_localEntityId);     // 视图首帧直接落位（不从上一条命的位置飞过去）
+                    View?.AlignLocal(_localEntityId);
                     break;
                 }
             }
@@ -426,7 +315,7 @@ namespace LiteClient
             if (_disposed) return;
             _disposed = true;
             _sim = null;
-            _mirror = null;
+            _mirror.Reset();
             _matchScope.Dispose();                        // 订阅退订经 Scope 登记面执行（含 DisposeFailures 聚合）
         }
     }

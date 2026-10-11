@@ -304,10 +304,11 @@ namespace LiteGame.Tests.UI.PlayMode
             Assert.AreEqual("0", snap["活跃"], "关闭后不得有活体残留");
             Assert.IsTrue(_vfx.IsShutdown);
 
-            // 关闭后拒绝新播放：**返回无效句柄**（不是抛异常——语义由各实现定，测试照实钉；
-            // 对照 SceneService 那边是 ObjectDisposedException）。
-            VfxHandle afterShutdown = _vfx.Play("fx_a", attach, follow: true);
-            Assert.IsFalse(afterShutdown.IsValid, "已关闭的 VFX 服务不得接受新播放");
+            // 关闭后拒绝新播放：**抛 ObjectDisposedException**（姊妹服务统一契约——EntityService/
+            // SceneService/AudioService 同为"关闭即抛"，不再返回无效句柄）。
+            Assert.Throws<ObjectDisposedException>(
+                () => _vfx.Play("fx_a", attach, follow: true),
+                "已关闭的 VFX 服务不得接受新播放（关闭即抛）");
         }
 
         // ---- 租约故障段（设计点名「卸载中仍有租约」）----

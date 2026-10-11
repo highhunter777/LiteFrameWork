@@ -37,13 +37,8 @@ namespace LiteGame.Tests.EditMode
             backend.RegisterManifest(AssetDatabase.LoadAssetAtPath<AnimationClipManifest>(
                 CombatGirlsAnimationProfile.ClipManifestPath));   // 直 Clip 模型：清单供片（prefab 无控制器便利源）
             var player = new AnimationPlayer(backend, AnimationProfileTableSource.Load(ConfigService.DataDir, CombatGirlsAnimationProfile.ModelFamily));
-            var ctx = new SlotAnimContext
-            {
-                Player = player,
-                MoveWeights = new float[3],
-                AimWeights = new float[4],
-                FireHoldSeconds = (float)CombatConfig.FireStanceFrames / SimConfig.TickRate,
-            };
+            var ctx = new SlotAnimContext(player, new float[3], new float[4],
+                (float)CombatConfig.FireStanceFrames / SimConfig.TickRate);
             var machine = CombatAnimMachine.Build(ctx);
             machine.Start(CharacterAnimId.LocomotionRoot);
             return (player, ctx, machine, backend);
@@ -57,7 +52,7 @@ namespace LiteGame.Tests.EditMode
             var go = Scope.Track(Object.Instantiate(prefab));
             var (player, ctx, machine, backend) = BuildMachine(go);
 
-            ctx.IsDead = true;
+            ctx.Feed(new SlotAnimFacts(isDead: true));
             machine.Request(CharacterAnimId.Dead);
 
             // 终态按**句柄**跟踪：死亡进叶会连带取消移动根的 MoveBlend 播放（通道收口的预期行为）——
@@ -67,7 +62,7 @@ namespace LiteGame.Tests.EditMode
             bool deathCompleted = false;
             for (int i = 0; i < 60 && !deathCompleted; i++)
             {
-                ctx.IsDead = true;
+                ctx.Feed(new SlotAnimFacts(isDead: true));
                 machine.Tick(0.1f);
                 player.Tick(0.1f);
                 deathCompleted = terminals.Exists(t =>
@@ -104,7 +99,7 @@ namespace LiteGame.Tests.EditMode
             player.Tick(0.1f);
             Assert.AreEqual(CharacterAnimId.FireIdle, machine.Current, "前置：已在开火叶");
 
-            ctx.IsDead = true;                              // 死亡事实（窗内到达）
+            ctx.Feed(new SlotAnimFacts(isDead: true));      // 死亡事实（窗内到达）
             machine.Tick(0.1f);
             player.Tick(0.1f);
             Assert.AreEqual(CharacterAnimId.Dead, machine.Current, "根裁决压过窗与开火叶");

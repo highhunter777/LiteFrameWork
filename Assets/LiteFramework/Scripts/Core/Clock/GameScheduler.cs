@@ -127,6 +127,7 @@ namespace LiteFramework
 
         public void Snapshot(Dictionary<string, string> into)
         {
+            into.Clear();                                    // 契约：实现 Clear + 填（HUD 不清，全实现统一）
             into["待触发"] = (_itemsById.Count - _canceledPendingCleanup).ToString();
             into["已取消待清理"] = _canceledPendingCleanup.ToString();
         }

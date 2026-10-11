@@ -405,6 +405,33 @@ namespace LiteGame.Tests.EditMode
             public void Shutdown() { }
         }
 
+        // ---- 生命更替读口（动画死亡锁存复位信号；本地=预测态 / 远端=权威快照）----
+
+        [Test]
+        public void 新生命读口_本地预测态_远端快照_未见槽位为假()
+        {
+            var world = NewWorld(new SimVector3(1f, 0f, 0f), new SimVector3(5f, 0f, 0f));
+            var counter = new ViewCounter();
+            var view = NewView(world, counter);
+            view.AlignLocal(world.Entities[0].Id);
+            view.Tick(1f / 60f);
+
+            Assert.IsTrue(view.TryGetLifeStartFrame(0, out int localLife), "本地槽位可读（预测态）");
+            Assert.AreEqual(0, localLife, "初次出生（未复活）生命起始帧 = 0");
+            Assert.IsFalse(view.TryGetLifeStartFrame(99, out _), "越界槽位为假");
+
+            Assert.IsFalse(view.TryGetLifeStartFrame(1, out _), "远端首快照未到 → 假（不得误判新生命）");
+            var snap = new SimWorldStateSnapshot();
+            snap.CaptureFull(world);
+            view.OnAuthoritativeSnapshot(snap);
+            Assert.IsTrue(view.TryGetLifeStartFrame(1, out int remoteLife), "快照到达后远端槽位可读");
+            Assert.AreEqual(0, remoteLife, "快照值直读");
+
+            world.Entities[0].LifeStartFrame = 600;           // RespawnSystem 语义：复活改写生命起始帧
+            Assert.IsTrue(view.TryGetLifeStartFrame(0, out int revived));
+            Assert.AreEqual(600, revived, "生命更替后读口返回新值（死亡锁存复位的唯一信号）");
+        }
+
         // ---- 输入设备源 ----
         // 设备源由 Platform.Unity 适配器的 NewInputIntentSource 承担（New Input System：读 InputAction，
         // 需要真实设备与 Action 资产，归 Player/真机验证）。三个门（上下文门/帧边界门/采样节流）与设备源

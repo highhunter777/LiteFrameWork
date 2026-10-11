@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using LiteFramework;
 using UnityEngine;
 
 namespace LiteView.Animation
@@ -70,7 +71,7 @@ namespace LiteView.Animation
                 foreach (var ex in excludedPaths)
                 {
                     if (animator.transform.Find(ex) == null)
-                        Debug.LogWarning($"[Anim][diag] 叠加层 Mask 排除路径在骨架上不存在：{ex}（Profile 与 rig 不匹配）");
+                        Log.Warning($"叠加层 Mask 排除路径在骨架上不存在：{ex}（Profile 与 rig 不匹配）", "Anim");
                 }
             }
 

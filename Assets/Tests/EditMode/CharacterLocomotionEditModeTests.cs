@@ -1478,5 +1478,56 @@ namespace LiteGame.Tests.EditMode
 
             driver.Dispose();
         }
+
+        [Test]
+        [Category(TestCategory.Contract)]
+        public void 驱动_死亡后复活_按新生命事实退出死亡叶_不滞留尸体姿态()
+        {
+            // 复活（RespawnSystem 语义：满血 + LifeStartFrame 更替）必须复位死亡锁存——不然尸体姿态
+            // 永久滞留（假人"放死亡动画不复位"）。本地走预测态、远端走权威快照，同一条读口（SimView）。
+            var prefab = LoadPrefabOrIgnore();
+            var world = new SimWorldState { RngState = 1UL };
+            long selfId = world.Spawn(new EntitySlot { Hp = 100, Pos = new SimVector3(0f, 0f, 0f), Yaw = 0f }, out _);
+
+            SimView view = new SimView(world, null,
+                factory: (loc, parent) =>
+                {
+                    var go = Object.Instantiate(prefab, parent);
+                    go.name = loc;
+                    Scope.Track(go);
+                    return go;
+                },
+                recycler: null);
+            view.AlignLocal(selfId);
+            var driver = new CharacterLocomotionDriver(view, ProductionProfile(), manifest: Manifest());
+            const float dt = 1f / 60f;
+
+            view.Tick(dt);
+            driver.Tick(dt);
+            driver.Tick(dt);
+            Assert.IsTrue(driver.TryGetCurrent(0, out var alive) && !alive.Equals(CharacterAnimationIds.Death),
+                "前置：存活流动画（MoveBlend 系）");
+
+            // 死亡（本地预测态 Hp≤0——与远端快照路径同判据）→ 锁存进死亡叶
+            world.Entities[0].Hp = 0;
+            world.Entities[0].CorpseFrames = 60;
+            view.Tick(dt);
+            driver.Tick(dt);
+            driver.Tick(dt);
+            bool hasDead = driver.TryGetCurrent(0, out var dead);
+            Assert.IsTrue(hasDead && dead.Equals(CharacterAnimationIds.Death),
+                $"死亡事实锁存 → 恒驻死亡叶（has={hasDead} cur={dead} viewDead={view.IsDead(0)} hp={world.Entities[0].Hp}）");
+
+            // 复活 = 新生命：满血 + LifeStartFrame 更替（RespawnSystem 同款输出）→ 锁存复位、退出死亡叶
+            world.Entities[0].Hp = 100;
+            world.Entities[0].CorpseFrames = 0;
+            world.Entities[0].LifeStartFrame = 600;
+            view.Tick(dt);
+            driver.Tick(dt);
+            driver.Tick(dt);
+            Assert.IsTrue(driver.TryGetCurrent(0, out var revived) && !revived.Equals(CharacterAnimationIds.Death),
+                "新生命事实（LifeStartFrame 变化）必须退出死亡叶——不复位即本断言红");
+            driver.Dispose();
+        }
     }
 }

@@ -263,14 +263,8 @@ namespace LiteView.Animation
                         ? Mathf.Clamp(reloadSeconds / reloadTarget, reloadDef.MinSpeed, reloadDef.MaxSpeed)
                         : 1f;
 
-                    s.Ctx = new SlotAnimContext
-                    {
-                        Player = s.Player,
-                        MoveWeights = _moveWeights,               // 驱动器复用数组（零分配）
-                        AimWeights = _aimWeights,
-                        ReloadPlaybackSpeed = reloadSpeed,
-                        FireHoldSeconds = _fireHoldSeconds,
-                    };
+                    // 上下文窄面构造：播放器 + 权重容器（驱动器复用数组，零分配）+ 窗长/换弹倍率
+                    s.Ctx = new SlotAnimContext(s.Player, _moveWeights, _aimWeights, _fireHoldSeconds, reloadSpeed);
                     s.Machine = CombatAnimMachine.Build(s.Ctx);
                     s.Machine.Start(CharacterAnimId.LocomotionRoot);   // 初建提交 MoveBlend(Idle=1)——不开局 T-pose（提交/维护归移动根；无控制器时即唯一落位兜底）
 
@@ -279,17 +273,17 @@ namespace LiteView.Animation
                     var grip = new WeaponGripConstraint(animator);
                     if (!grip.IsValid)
                     {
-                        Debug.LogWarning($"[Anim][diag] slot {i} 持枪常量骨路径在骨架上不存在"
-                            + $"：view「{go.name}」——换弹期枪将完全由片段曲线驱动");
+                        Log.Warning($"slot {i} 持枪常量骨路径在骨架上不存在"
+                            + $"：view「{go.name}」——换弹期枪将完全由片段曲线驱动", "Anim");
                         grip = null;
                     }
                     s.Grip = grip;
 
-                    Debug.LogWarning($"[Anim][diag] slot {i} 播放器建立：view「{go.name}」animator「{animator.name}」"
+                    Log.Info($"slot {i} 播放器建立：view「{go.name}」animator「{animator.name}」"
                         + $"ctrl={(animator.runtimeAnimatorController != null ? animator.runtimeAnimatorController.name : "none")}"
                         + $" manifest={(_manifest != null ? "on" : "off")} layers={animator.layerCount}"
                         + $" 持枪约束={(grip != null ? "on" : "off")}"
-                        + $" 窗长={_fireHoldSeconds:0.##}s 换弹倍率={reloadSpeed:0.##}×（片段「{reloadDef.Binding}」{reloadSeconds:0.###}s）");
+                        + $" 窗长={_fireHoldSeconds:0.##}s 换弹倍率={reloadSpeed:0.##}×（片段「{reloadDef.Binding}」{reloadSeconds:0.###}s）", "Anim");
                 }
 
                 if (s.HasPos && dt > 0f)
@@ -297,21 +291,30 @@ namespace LiteView.Animation
                     float speed = MeasureSpeed(s, go.transform.position, dt, out Vector3 moveDir);
                     s.MovingLatch = LocomotionBlendMath.UpdateLatch(s.MovingLatch, speed);   // 锁存公式单源
 
-                    // 事实喂入（单机单上下文——层间不引用，全部经 ctx 单点）
-                    if (_view.IsDead(i)) s.DeadSeen = true;   // 死亡不可逆锁存（快照状态——重连/迟到者同路径）
-                    s.Ctx.IsDead = s.DeadSeen;
+                    // 事实喂入（单机单上下文——层间不引用，全部经 ctx 单点**整体替换**，无半更新态）
+                    // **新生命事实（复活）**：生命起始帧变化 ⇒ 清除死亡锁存——复活由 Sim 的
+                    // RespawnSystem 在同一帧改写 LifeStartFrame，两端同链（本地=预测态、远端=权威快照，
+                    // 快照可重建）；这是死亡锁存复位的**唯一可靠信号**（复活无客户端事件沿、远端更没有）。
+                    if (_view.TryGetLifeStartFrame(i, out int lifeStart) && s.LifeSeen != lifeStart)
+                    {
+                        s.LifeSeen = lifeStart;
+                        s.DeadSeen = false;
+                    }
+                    if (_view.IsDead(i)) s.DeadSeen = true;   // 死亡锁存（快照状态——重连/迟到者同路径）
+                    s.Ctx.Feed(new SlotAnimFacts(
+                        isAiming: _view.IsAiming(i),
+                        isReloading: _view.IsReloading(i),  // 换弹事实（Sim 权威——武器私有面投影）
+                        isDead: s.DeadSeen,
+                        isMoving: s.MovingLatch,
+                        speed: speed,
+                        moveRelAngleDeg: moveDir == Vector3.zero
+                            ? 0f
+                            : Vector3.SignedAngle(go.transform.rotation * Vector3.forward, moveDir, Vector3.up)));
                     if (s.DeadSeen && s.Machine.Current != CharacterAnimId.Dead)
                     {
                         s.Ctx.ReleaseReloadUpper();      // 死亡压过一切：换弹叠加层让位（下帧前即释放，不等轮询兜底）
                         s.Machine.Request(CharacterAnimId.Dead);   // 状态轮询路径：重建/迟到者按死亡事实强制进叶
                     }
-                    s.Ctx.IsAiming = _view.IsAiming(i);
-                    s.Ctx.IsReloading = _view.IsReloading(i);  // 换弹事实（Sim 权威——武器私有面投影）
-                    s.Ctx.IsMoving = s.MovingLatch;
-                    s.Ctx.Speed = speed;
-                    s.Ctx.MoveRelAngleDeg = moveDir == Vector3.zero
-                        ? 0f
-                        : Vector3.SignedAngle(go.transform.rotation * Vector3.forward, moveDir, Vector3.up);
 
                     s.Machine.Tick(dt);                   // 根→叶 OnUpdate + 事务帧末应用（一帧一事务）
 
@@ -352,7 +355,8 @@ namespace LiteView.Animation
         {
             if (_disposed) return;
 
-            // Death：死亡不可逆锁存 + 立即进死亡叶（**压过一切挂起路由**——last-wins；
+            // Death：死亡锁存 + 立即进死亡叶（**压过一切挂起路由**——last-wins；
+            // 锁存随**生命更替（复活）复位**——轮询路径按 LifeStartFrame 变化清锁存，见 Tick；
             // 迟到/重连无事件者由状态轮询路径补进：IsDead 事实 → 根裁决强制迁移）
             if (e.Kind == FrameEventKind.Death)
             {
@@ -361,7 +365,7 @@ namespace LiteView.Animation
                 var d = _slots[deadSlot];
                 if (d?.Machine == null || !d.Machine.Started || d.Ctx == null) return;   // 灰盒/未启动：无动画面
                 d.DeadSeen = true;
-                d.Ctx.IsDead = true;
+                d.Ctx.LatchDead();              // 帧中即时锁存：压过一切已挂起路由（窗/退根/降级全被守卫）
                 d.Ctx.ReleaseReloadUpper();     // 死亡压过一切：换弹叠加层立即让位（死亡是全身 Override）
                 if (d.Machine.Current != CharacterAnimId.Dead)
                     d.Machine.Request(CharacterAnimId.Dead);
@@ -376,7 +380,7 @@ namespace LiteView.Animation
             var s = _slots[slotIndex];
             if (s?.Player == null || s.Machine == null || !s.Machine.Started) return;   // 灰盒/未启动：无动画面
 
-            s.Ctx.Root.RefreshWindow();                           // 事件即活动：窗重置满窗（先于一切路由）
+            s.Ctx.RefreshFireWindow();                            // 事件即活动：窗重置满窗（先于一切路由）
 
             var cur = s.Machine.Current;
             if (cur == CharacterAnimId.FireIdle || cur == CharacterAnimId.FireWalk)
@@ -466,7 +470,8 @@ namespace LiteView.Animation
             public Vector3 LastPos;
             public bool HasPos;
             public bool MovingLatch;                       // 移动事实锁存（公式单源 LocomotionBlendMath）
-            public bool DeadSeen;                          // 死亡不可逆锁存（事件沿/快照状态——置位后恒真）
+            public bool DeadSeen;                          // 死亡锁存（事件沿/快照状态；**生命更替即复位**——见 LifeSeen）
+            public int LifeSeen;                           // 已见生命起始帧（快照/预测可重建；变化 = 复活 ⇒ 清 DeadSeen）
         }
     }
 }
