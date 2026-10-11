@@ -9,7 +9,10 @@
 
 ## 1. Current 与工具边界
 
-已存在 [UiStyle/UiStyleTool](../../../../Assets/LiteGame/Editor/Style/UiStyleTool.cs)、视觉构建反例扫描器 [VisualConstructionScanner](../../../../Assets/LiteGame/Editor/VisualConstructionScanner.cs)，以及运行时 [BindIndexBuilder](../../../../Assets/LiteGame/UI/Bind/BindIndexBuilder.cs)、[UIBindBase](../../../../Assets/LiteGame/UI/Bind/UIBindBase.cs)。完整标记工具、编排器、样式窗口和 CI 规则仍未交付。
+已存在 [UiStyle/UiStyleTool](../../../../Assets/LiteGame/Editor/Style/UiStyleTool.cs)、视觉构建反例扫描器 [VisualConstructionScanner](../../../../Assets/LiteGame/Editor/VisualConstructionScanner.cs)、**UI 校验核心** [UiValidator](../../../../Assets/LiteGame/Editor/UiTools/Validation/UiValidator.cs)，以及运行时 [BindIndexBuilder](../../../../Assets/LiteGame/UI/Bind/BindIndexBuilder.cs)、[UIBindBase](../../../../Assets/LiteGame/UI/Bind/UIBindBase.cs)。完整标记工具、编排器、样式窗口和 CI 规则仍未交付。
+
+> **2026-10-11 UI 工具链第一步交付**：**校验核心**落地（`Assets/LiteGame/Editor/UiTools/Validation/`）——统一报告模型 `UiReport/UiIssue{ruleId,severity,asset,node,message,fixHint}` + 规则端口 `IUiRule` + 双侧上下文 `UiValidationContext`（源码面 + 资产面）+ 核心 `UiValidator`（菜单 `LiteGame/UI/校验/校验 UI 资产` / CLI `-executeMethod …RunCli` 非零退出 / EditMode 三入口共用）。**首条规则＝渲染/适配族的视觉单一来源**（`Rules/RuntimeVisualRule`——包既有 `VisualConstructionScanner`，源码面）；**其余五族（绑定/资源/文本/行为/性能）在报告显式列为"待接入"，不冒充通过**（§4 明文）。后续步：绑定标记工具 → 样式对账扩 `Screens/` → 校验进 CI → 编排面板 → UIPatch。施工记录见 [UI工具链](../../../施工进度/UI工具链.md)。
+
 
 > **2026-10-10 代码现状订正**：原清单中的 `WidgetPrefabBuilder`（1477 行）与 `UICollectCheckMenu`、`WidgetDemoMenu` 已随提交 `45aa839`「输入服务余部与场景资源杂项（接管并行线）」**从仓库删除**，不再是"已存在"工具。`Assets/UI/Widgets/` 下 25 件模板 prefab 作为已产出资产保留；结构/行为断言改由 [VisualConstructionScanner](../../../../Assets/LiteGame/Editor/VisualConstructionScanner.cs) 与 `Assets/Tests/EditMode/VisualSingleSourceEditModeTests.cs` 承担。业务 UI 页面按《UI-U2》裁决走编辑器手工制作，不依赖已删除的确定性构建器。
 
