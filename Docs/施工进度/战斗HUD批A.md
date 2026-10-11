@@ -66,3 +66,19 @@
 
 - 上述 EditMode 1 例失败为**既有**（`BattleHudDriver` 在未装备判定前先走武器分支写出 `"0"` 而非 `"--"`），非本批引入——按本文档"如实"原则登记，待单独批次处置；
 - 观感调参（血条尺寸/配色定稿）待实机手测后按需微调 prefab。
+
+## 血条解包收口（2026-10-11）
+
+制作侧将 `HpBar_Player` 子树由 Synty 共享件 `HUD_MilitaryCombat_StatsList_Item_05` 的嵌套实例**完全解包**为普通对象（制作侧手工操作）——prefab 自持全部视觉与几何，去嵌套依赖。
+
+| 面 | 结果 |
+|---|---|
+| 形态 | 全树 `PrefabInstance` 归零（无 `m_CorrespondingSourceObject` 非零引用、无 `stripped` 块、无嵌套实例）；`HpBar_Player`/`Cot_Bar`/`Slider`/`Cot_IconBox`/`Icon_Health`/`Txt_Hp` 均为普通节点 |
+| 几何 | 位置/尺寸为制作侧手调实况（`HpBar_Player` 540×70 @ (342,35)）——**prefab 实况即权威**，不以文档旧值回改 |
+| 接线 | `BattleHudView` 8 字段仍全部有效（`_hpSlider`→`Slider`、`_hpText`→`Txt_Hp`，经重载复验） |
+| 素材依赖 | 展平后为直接 sprite 引用（Synty `Sprites/**` 6 件 + 准心 2 件 + TMP/UGUI 内建），无断链 |
+
+### 遗留（如实）
+
+- `Cot_Panel`（全屏组）上有一 `sprite=null`、`raycastTarget=true` 的空 Image（制作侧作**面板边界对照**用）——制作侧声明**自行删除**，本批不动；删除前该件会拦全屏输入（违《层级设计》§0 事件隔离），**发布前必须清除**（回归登记，见下条）；
+- 制作侧称此后仍会手工调整血条，prefab 以制作侧实况为准。

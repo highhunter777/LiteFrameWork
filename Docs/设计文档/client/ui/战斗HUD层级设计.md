@@ -1,6 +1,6 @@
 # 战斗HUD层级设计
 
-> 状态：**已实施（2026-10-11 批 A 落地；同日晚血条正式化批更新）**——`Hud_Battle.prefab` 制作/接线/收集/场景退役全部完成；批 B 装配拆分已由并行 BattleViewRig 批完成；**血条正式化**（旧 Filled 框条退役 → Synty 共享件血条 `HpBar_Player` 正式化）同日落位
+> 状态：**已实施（2026-10-11 批 A 落地；同日晚血条正式化批更新；血条解包收口）**——`Hud_Battle.prefab` 制作/接线/收集/场景退役全部完成；批 B 装配拆分已由并行 BattleViewRig 批完成；**血条正式化**（旧 Filled 框条退役 → Synty 血条 `HpBar_Player` 正式化）＋**嵌套件解包**（`HpBar_Player` 子树由 Synty 共享件实例展平为普通对象，去嵌套依赖）同日落位
 > 范围：对局战斗 HUD 单件——`Hud_Battle.prefab`（准心 + 血条/弹药/技能栏面板）
 > 上位：[战斗HUD专项设计](战斗HUD专项设计.md)（资产/通路/装配裁决）；[UI制作规范](UI制作规范.md) §9（命名）；[UI框架总设计](UI框架总设计.md)（HUD 分级驱动目标项）
 > 命名依据：§9 角色词表——本批新增 `Hud_` 根前缀（对局 HUD 根，表现域，不走 tbuiform/导航；已登记命名词表 §1.1）；容器/文本/图像沿用 `Cot_`/`Txt_`/`Image_`/`Icon_`
@@ -36,7 +36,7 @@ Hud_Battle                          Canvas(Overlay, order 0) + CanvasScaler(1920
 │  └─ Icon_Ads                      瞄准准星 Image(…/aim) 64×64（**用户裁决改 64**——原构建器 38）◄View
 └─ Cot_Panel                        全屏铺开 + CanvasGroup（整组显隐）                ◄View
    ├─ Cot_Vitals                    锚(0,0)+偏移(32,32)——左下角组点
-   │  └─ HpBar_Player               血条（Synty 共享件 HUD_MilitaryCombat_StatsList_Item_05 实例）◄View
+   │  └─ HpBar_Player               血条（Synty 件 HUD_MilitaryCombat_StatsList_Item_05 解包展平——普通对象，无嵌套实例）◄View
    │     ├─ Cot_Bar                 分段条容器
    │     │  └─ Slider               UGUI Slider（纯显示，满值基线；**内部固定子结构 Slider/Background/Fill Area/Fill/Handle Slide Area/Handle 保留原名——UGUI 组件契约**）◄View
    │     ├─ Cot_IconBox             血条左端图标盒
@@ -55,7 +55,7 @@ Hud_Battle                          Canvas(Overlay, order 0) + CanvasScaler(1920
       │               └─ Txt_Hotkey      TMP 22 左上(4,4) "1"/"2"/"3"
 ```
 
-尺寸/偏移常量一比一取自构建器（`HipIconSize=64/AdsIconSize=38/Edge=32/WeaponIconSize=96/AmmoTextSize=54/ReloadTextSize=20/SkillSlotSize=96/SkillGap=112/HotkeyTextSize=22`）——prefab 制作后这些常量随构建器退役，**prefab 即唯一事实源**。血条（原构建器常量 `HpBarW=420/HpBarH=56/HpFillInset=14/HpTextSize=26`）在**血条正式化批**（2026-10-11）改为 Synty 共享件 `HUD_MilitaryCombat_StatsList_Item_05` 实例——尺寸/外观由该共享件承载，上述旧常量随之作废。
+尺寸/偏移常量一比一取自构建器（`HipIconSize=64/AdsIconSize=38/Edge=32/WeaponIconSize=96/AmmoTextSize=54/ReloadTextSize=20/SkillSlotSize=96/SkillGap=112/HotkeyTextSize=22`）——prefab 制作后这些常量随构建器退役，**prefab 即唯一事实源**。血条（原构建器常量 `HpBarW=420/HpBarH=56/HpFillInset=14/HpTextSize=26`）在**血条正式化批**（2026-10-11）改为 Synty 件 `HUD_MilitaryCombat_StatsList_Item_05` 承载视觉，上述旧常量随之作废；**解包收口**（同日晚）将该件展平为普通对象（`HpBar_Player` 子树不再有 PrefabInstance）——prefab 自持全部视觉与几何，零嵌套依赖（制作侧手工调参：位置/尺寸以 prefab 实况为准）。
 
 ## 3. BattleHudView 字段映射（暴露 → 消费）
 
@@ -89,7 +89,7 @@ Hud_Battle                          Canvas(Overlay, order 0) + CanvasScaler(1920
 | `Panel` | `Cot_Panel` | 显隐组容器 |
 | `Vitals` / `Weapon` / `Skills` | `Cot_Vitals` / `Cot_Weapon` / `Cot_Skills` | 角组容器 |
 | `Frame` / `Fill` / `HP`（旧框条） | ~~`Image_HpFrame` / `Image_HpFill` / `Txt_Hp`~~ | **已退役**（血条正式化批：旧 Filled 图形血条删除） |
-| `Item_00`（旧粘贴草名／Synty 实例） | `HpBar_Player` | **词表段 `HpBar_`**（命名词表 §1.3 已登记血条类型段，例 `HpBar_Player`）——业务层实例＝`<类型段>_<语义>`（§9.3） |
+| `Item_00`（旧粘贴草名／Synty 件） | `HpBar_Player` | **词表段 `HpBar_`**（命名词表 §1.3 已登记血条类型段，例 `HpBar_Player`）——业务层实例＝`<类型段>_<语义>`（§9.3）；同批解包展平，去嵌套实例 |
 | `Bar` / `IconBox` / `ICON` / `Label_Stat`（血条内） | `Cot_Bar` / `Cot_IconBox` / `Icon_Health` / `Txt_Hp` | 词缀化暴露件；UGUI Slider 内部固定子结构保留原名 |
 | `HP` / `Ammo` / `Reload` | `Txt_Hp` / `Txt_Ammo` / `Txt_Reload` | 文本词缀 |
 | `Icon`（Weapon 下） | `Icon_Weapon` | 消除与词缀 Icon_ 的歧义 |
