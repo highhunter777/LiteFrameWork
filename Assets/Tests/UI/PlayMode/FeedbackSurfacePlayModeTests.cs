@@ -39,9 +39,9 @@ namespace LiteGame.Tests.UI.PlayMode
         {
             return new StaticCatalog(new[]
             {
-                new UIFormInfo { Id = ErrorFormId, Layer = 3, FullScreen = false, LuaPath = "", Location = "Assets/UI/Screens/Dialog.prefab" },
-                new UIFormInfo { Id = LoadingFormId, Layer = 3, FullScreen = false, LuaPath = "", Location = "Assets/UI/Screens/Loading.prefab" },
-                new UIFormInfo { Id = ToastFormId,   Layer = 3, FullScreen = false, LuaPath = "", Location = "Assets/UI/Screens/Toast.prefab" },
+                new UIFormInfo { Id = ErrorFormId, Layer = 3, FullScreen = false, LuaPath = "", Location = "Assets/ShareResource/UI/Screens/Dialog.prefab" },
+                new UIFormInfo { Id = LoadingFormId, Layer = 3, FullScreen = false, LuaPath = "", Location = "Assets/ShareResource/UI/Screens/Loading.prefab" },
+                new UIFormInfo { Id = ToastFormId,   Layer = 3, FullScreen = false, LuaPath = "", Location = "Assets/ShareResource/UI/Screens/Toast.prefab" },
             });
         }
 

@@ -30,7 +30,6 @@ namespace LiteNet.Tests
                         Status = { new Proto.StatusDelta { EffectId = 51, EndFrame = 900, Param = 60 } },
                         Bag = { new Proto.BagSlotDelta { ItemDefId = 701, Count = 3, QuickSlot = 4 } } } }),
                 (PacketType.MismatchReport, new Proto.MismatchReport { Frame = 34 }),
-                (PacketType.Heartbeat, new Proto.Heartbeat { ClientTime = 123456789L }),
                 (PacketType.Leave, new Proto.Leave()),
                 (PacketType.ReconnectRequest, new Proto.ReconnectRequest { OneTimeToken = "one-time" }),
                 (PacketType.ReconnectResponse, new Proto.ReconnectResponse { Ok = true,

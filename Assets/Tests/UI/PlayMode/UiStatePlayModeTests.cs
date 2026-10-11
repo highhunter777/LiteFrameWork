@@ -92,8 +92,8 @@ namespace LiteGame.Tests.UI.PlayMode
             }
 
             var catalog = new StaticCatalog();
-            catalog.Add(PageA, layer: 0, fullScreen: true, "Assets/UI/Screens/BaselineA.prefab");
-            catalog.Add(PageB, layer: 2, fullScreen: true, "Assets/UI/Screens/BaselineB.prefab");
+            catalog.Add(PageA, layer: 0, fullScreen: true, "Assets/ShareResource/UI/Screens/BaselineA.prefab");
+            catalog.Add(PageB, layer: 2, fullScreen: true, "Assets/ShareResource/UI/Screens/BaselineB.prefab");
 
             _logics.Clear();
             _ui = new UIService(catalog,

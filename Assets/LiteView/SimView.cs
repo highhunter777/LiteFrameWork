@@ -39,11 +39,11 @@ namespace LiteView
         /// <summary>对局实体视图 prefab（模型只用 CombatGirlsCharacterPack——真角色视图由该包模型 +
         /// 该包 Rifle_Controller 构成；动画侧 CombatGirlsAnimationProfile.ViewPrefabPath 引用本常量——
         /// prefab 路径单源在此）。
-        /// prefab 本体住 `Assets/Prefab/`，**不在 `Assets/CombatGirlsCharacterPack/` 内**——该包只是它的
-        /// **依赖来源**（贴图/网格/动画/Avatar 全在该包内），故收集组必须**额外覆盖 `Assets/Prefab`**，
+        /// prefab 本体住 `Assets/ShareResource/Characters/`，**不在 `Assets/CombatGirlsCharacterPack/` 内**——该包只是它的
+        /// **依赖来源**（贴图/网格/动画/Avatar 全在该包内），故收集组必须**额外覆盖 `Assets/ShareResource/Characters`**，
         /// 否则 YooAsset 拿不到它（收集按目录走）；依赖资产仍由 `Assets/CombatGirlsCharacterPack/Runtime` 收。
         /// 资源包未入库的克隆加载失败 → ProcedureBattle 回退程序化灰盒（可复现降级，勿删兜底）。</summary>
-        public const string DefaultEntityPrefab = "Assets/Prefab/Player(Rifle).prefab";
+        public const string DefaultEntityPrefab = "Assets/ShareResource/Characters/Player(Rifle).prefab";
 
         /// <summary>快照间隔（秒）——插值窗口时长，由 <see cref="SimConfig.SnapshotHz"/> 派生。</summary>
         public static float SnapshotInterval => 1f / SimConfig.SnapshotHz;

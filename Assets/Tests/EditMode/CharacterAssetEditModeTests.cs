@@ -99,7 +99,7 @@ namespace LiteGame.Tests.EditMode
             // 期望值从**单源**推：运行时角色 prefab（`CombatGirlsAnimationProfile.ViewPrefabPath`）所在目录
             // 必须被 Characters 组收集——否则角色进不了内容包。不硬编码目录字面量，prefab 换位置时断言跟着走。
             //
-            // 收集组为单条 `Assets/Prefab`（运行时 prefab 所在目录）；模型/动画依赖在
+            // 收集组为单条 `Assets/ShareResource/Characters`（运行时 prefab 所在目录）；模型/动画依赖在
             // `CombatGirlsCharacterPack` 内由 **YooAsset 依赖链自动收集**（见组描述），本用例断言 prefab 目录。
             string expectedDir = System.IO.Path.GetDirectoryName(CombatGirlsAnimationProfile.ViewPrefabPath)
                 .Replace('\\', '/');

@@ -38,7 +38,7 @@ namespace LiteGame.Tests.EditMode
         /// <summary>假字节通道：从预读缓存应答（缺文件 = FileNotFoundException——与真实通道缺表同语义）。</summary>
         private static UniTask<byte[]> FromCache(Dictionary<string, byte[]> cache, string location, CancellationToken ct)
         {
-            const string dir = ConfigService.DataDir;
+            string dir = ConfigService.DataDir;
             const string ext = ".bytes";
             string file = location.Substring(dir.Length, location.Length - dir.Length - ext.Length);
             return cache.TryGetValue(file, out var bytes)

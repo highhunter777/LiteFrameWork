@@ -136,10 +136,17 @@ namespace LiteNet.Tests
 
         private static byte[] Read(string table)
         {
-            for (var dir = new DirectoryInfo(AppContext.BaseDirectory); dir != null; dir = dir.Parent)
-                if (File.Exists(Path.Combine(dir.FullName, "Tests", "Tests.slnx")))
-                    return File.ReadAllBytes(Path.Combine(dir.FullName, CombatNumbers.RelativeDir, table + ".bytes"));
-            throw new DirectoryNotFoundException("找不到仓库根");
+            // 领域相对路径单源 = TableLayout.Files（表名 → 领域子目录），与 CombatNumbers/ConfigService 同源。
+            foreach (string entry in TableLayout.Files)
+            {
+                int slash = entry.IndexOf('/');
+                if (entry[(slash + 1)..] != table) continue;
+                for (var dir = new DirectoryInfo(AppContext.BaseDirectory); dir != null; dir = dir.Parent)
+                    if (File.Exists(Path.Combine(dir.FullName, "Tests", "Tests.slnx")))
+                        return File.ReadAllBytes(Path.Combine(dir.FullName, CombatNumbers.RelativeDir, entry[..slash], table + ".bytes"));
+                throw new DirectoryNotFoundException("找不到仓库根");
+            }
+            throw new FileNotFoundException($"TableLayout 无此表：{table}");
         }
     }
 }

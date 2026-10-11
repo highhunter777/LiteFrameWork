@@ -281,7 +281,7 @@ namespace LiteNet.Tests
             h.t.RaiseData(2, Join("Room-X"));
             PumpUntil(host, () => host.TryGetRoom("Room-X", out RoomRuntime room) && room.Started, "满员应由 Worker 开局");
             // 真实客户端在收到 JoinAck 后才会有后续动作：等宿主把两份回传都应用完，
-            // 否则会话尚未绑定房间（RoomId 为空），Leave 会按"未进房"丢弃。
+            // 否则会话尚未绑定房间（RoomId 为空），后续包会按"未进房"丢弃。
             PumpUntil(host, () => h.t.LastJoinAck(1) != null && h.t.LastJoinAck(2) != null, "两端应收到 JoinAck");
 
             // 全员离场命令刚入盒即释放：Dispose 必须先让 Worker 把已接受的命令执行完

@@ -19,7 +19,7 @@ namespace LiteGame.Tests.EditMode
             var host = new GameObject("FlyTextHost", typeof(RectTransform));
             var pool = host.AddComponent<FlyTextPool>();
 
-            // 模板结构与真 prefab 一致（Assets/UI/Widgets/FlyText.prefab）：_Template 单节点、
+            // 模板结构与真 prefab 一致（Assets/ShareResource/UI/Widgets/FlyText.prefab）：_Template 单节点、
             // TMP_Text 直接挂在该节点上、非激活——create 即 Instantiate(Template).GetComponent<TMP_Text>()。
             var tpl = new GameObject("_Template", typeof(RectTransform));
             tpl.transform.SetParent(host.transform, false);

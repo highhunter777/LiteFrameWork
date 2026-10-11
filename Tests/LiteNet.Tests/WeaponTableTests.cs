@@ -14,7 +14,7 @@ namespace LiteNet.Tests
     /// </summary>
     public sealed class WeaponTableTests
     {
-        private const string TableRelativePath = "Assets/GameData/Config/tbweapon.bytes";
+        private const string TableRelativePath = "Assets/GameData/Config/Combat/tbweapon.bytes";
 
         [Fact]
         public void 表文件存在且默认步枪行与内置默认一致()

@@ -324,7 +324,7 @@ namespace LiteGame.Tests.UI.PlayMode
             yield return Wait(init, 60f);
             Assert.IsFalse(init.Status == UniTaskStatus.Pending, "内容服务初始化超时");
 
-            const string location = "Assets/UI/Screens/BaselineA.prefab";
+            const string location = "Assets/ShareResource/UI/Screens/BaselineA.prefab";
             var cache = new PrefabLeaseCache(content);
 
             var first = cache.GetAsync(location);
@@ -370,7 +370,7 @@ namespace LiteGame.Tests.UI.PlayMode
             // 先释放，再取 —— 走的是「已释放」分支（与竞态分支同样必须上抛）
             cache.ReleaseAll();
             Assert.Throws<InvalidOperationException>(
-                () => cache.GetAsync("Assets/UI/Screens/BaselineA.prefab").GetAwaiter().GetResult(),
+                () => cache.GetAsync("Assets/ShareResource/UI/Screens/BaselineA.prefab").GetAwaiter().GetResult(),
                 "已释放后取 prefab 必须上抛（含 location 诊断）");
 
             var shutdown = content.ShutdownAsync();

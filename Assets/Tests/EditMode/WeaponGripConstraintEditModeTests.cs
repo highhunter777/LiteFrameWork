@@ -9,29 +9,33 @@ using UnityEngine;
 namespace LiteGame.Tests.EditMode
 {
     /// <summary>
-    /// 持枪约束（换弹上半身叠加期间武器骨跟随躯干）EditMode 用例：真角色 prefab + 真偏移资产 +
-    /// 真片段，走生产路径（后端分层图 → 动画 Evaluate → 约束覆写）。
+    /// 持枪约束（换弹上半身叠加期间武器骨跟随持枪手）EditMode 用例：真角色 prefab +
+    /// <see cref="GripBake"/> 烘焙常量（编译期同值，无资产环境依赖）+ 真片段，走生产路径
+    /// （后端分层图 → 动画 Evaluate → 约束覆写）。
     ///
-    /// **断言口径一律绝对事实**（期望位姿由跟随骨变换乘偏移的解析式算出，不用相对比较）——
+    /// **断言口径一律绝对事实**（期望位姿由跟随骨变换乘烘焙偏移的解析式算出，不用相对比较）——
     /// 相对断言在历史缺陷（武器脱手悬空）上曾全绿放行。
     /// </summary>
     public sealed class WeaponGripConstraintEditModeTests : UnityTestBase
     {
-        private const string OffsetPath = "Assets/Prefab/WeaponGripOffset.asset";
+        [SetUp]
+        public void ResetDevOverride()
+        {
+            // 幅度断言依赖烘焙值；GM 面板的实时覆写是跨用例全局面——进用例前显性复位。
+            GripTuning.TorsoWeightDevOverride = -1f;
+        }
+
+        [TearDown]
+        public void RestoreDevOverride()
+        {
+            GripTuning.TorsoWeightDevOverride = -1f;
+        }
 
         private GameObject LoadPrefabOrIgnore()
         {
             var prefab = AssetDatabase.LoadAssetAtPath<GameObject>(CombatGirlsAnimationProfile.ViewPrefabPath);
             if (prefab == null) Assert.Ignore("CombatGirlsCharacterPack 未入库——真角色动画用例跳过");
             return prefab;
-        }
-
-        private WeaponGripOffset LoadOffsetOrIgnore()
-        {
-            var offset = AssetDatabase.LoadAssetAtPath<WeaponGripOffset>(OffsetPath);
-            if (offset == null || !offset.IsComplete)
-                Assert.Ignore("持枪偏移资产缺失或未烘焙（先跑 WeaponGripBaker）");
-            return offset;
         }
 
         private static AnimationProfile Profile()
@@ -50,11 +54,14 @@ namespace LiteGame.Tests.EditMode
             return backend;
         }
 
-        private static void ExpectGripPose(Transform follow, Transform weapon, WeaponGripOffset offset,
+        private static Vector3 BakedOffsetPos => new Vector3(GripBake.LocalPosX, GripBake.LocalPosY, GripBake.LocalPosZ);
+        private static Quaternion BakedOffsetRot => Quaternion.Euler(GripBake.LocalEulerX, GripBake.LocalEulerY, GripBake.LocalEulerZ);
+
+        private static void ExpectGripPose(Transform follow, Transform weapon,
             out Vector3 localPos, out Quaternion localRot)
         {
-            localPos = weapon.parent.InverseTransformPoint(follow.TransformPoint(offset.LocalPosition));
-            localRot = Quaternion.Inverse(weapon.parent.rotation) * (follow.rotation * offset.LocalRotation);
+            localPos = weapon.parent.InverseTransformPoint(follow.TransformPoint(BakedOffsetPos));
+            localRot = Quaternion.Inverse(weapon.parent.rotation) * (follow.rotation * BakedOffsetRot);
         }
 
         private static void PlayBaseAndReload(AnimatorAnimationBackend backend)
@@ -65,20 +72,19 @@ namespace LiteGame.Tests.EditMode
 
         [Test]
         [Category(TestCategory.Contract)]
-        public void 换弹期_武器骨位姿等于跟随骨乘偏移_退出即交还动画()
+        public void 换弹期_武器骨位姿等于跟随骨乘烘焙偏移_退出即交还动画()
         {
             var prefab = LoadPrefabOrIgnore();
-            var offset = LoadOffsetOrIgnore();
             var go = Scope.Track(Object.Instantiate(prefab));
             var animator = go.GetComponentInChildren<Animator>(true);
-            var follow = animator.transform.Find(offset.FollowBonePath);
-            var weapon = animator.transform.Find(offset.WeaponBonePath);
-            Assert.IsNotNull(follow, "跟随骨路径在真骨架上存在");
-            Assert.IsNotNull(weapon, "武器骨路径在真骨架上存在");
+            var follow = animator.transform.Find(GripBake.FollowPath);
+            var weapon = animator.transform.Find(GripBake.WeaponPath);
+            Assert.IsNotNull(follow, "跟随骨路径（烘焙常量）在真骨架上存在");
+            Assert.IsNotNull(weapon, "武器骨路径（烘焙常量）在真骨架上存在");
 
             var backend = MakeBackend(animator, Profile());
-            var grip = new WeaponGripConstraint(animator, offset);
-            Assert.IsTrue(grip.IsValid, "偏移资产在真骨架上可解析");
+            var grip = new WeaponGripConstraint(animator);
+            Assert.IsTrue(grip.IsValid, "烘焙常量骨路径在真骨架上可解析");
             PlayBaseAndReload(backend);
 
             const float step = 1f / 60f;
@@ -90,11 +96,11 @@ namespace LiteGame.Tests.EditMode
                 grip.Update(true);
             }
 
-            ExpectGripPose(follow, weapon, offset, out var wantPos, out var wantRot);
-            Assert.AreEqual(wantPos.x, weapon.localPosition.x, 1e-4f, "枪骨位置 = 跟随骨变换 x 偏移（X）");
-            Assert.AreEqual(wantPos.y, weapon.localPosition.y, 1e-4f, "枪骨位置 = 跟随骨变换 x 偏移（Y）");
-            Assert.AreEqual(wantPos.z, weapon.localPosition.z, 1e-4f, "枪骨位置 = 跟随骨变换 x 偏移（Z）");
-            Assert.Less(Quaternion.Angle(wantRot, weapon.localRotation), 0.5f, "枪骨旋转 = 跟随骨旋转 x 偏移");
+            ExpectGripPose(follow, weapon, out var wantPos, out var wantRot);
+            Assert.AreEqual(wantPos.x, weapon.localPosition.x, 1e-4f, "枪骨位置 = 跟随骨变换 x 烘焙偏移（X）");
+            Assert.AreEqual(wantPos.y, weapon.localPosition.y, 1e-4f, "枪骨位置 = 跟随骨变换 x 烘焙偏移（Y）");
+            Assert.AreEqual(wantPos.z, weapon.localPosition.z, 1e-4f, "枪骨位置 = 跟随骨变换 x 烘焙偏移（Z）");
+            Assert.Less(Quaternion.Angle(wantRot, weapon.localRotation), 0.5f, "枪骨旋转 = 跟随骨旋转 x 烘焙偏移");
             Assert.Greater(grip.AppliedFrames, 0, "换弹期确实覆写过帧");
 
             grip.Update(false);
@@ -110,14 +116,14 @@ namespace LiteGame.Tests.EditMode
         public void 幅度缩放_一等于完全跟随且确实偏离动画值()
         {
             var prefab = LoadPrefabOrIgnore();
-            var offset = LoadOffsetOrIgnore();
             var go = Scope.Track(Object.Instantiate(prefab));
             var animator = go.GetComponentInChildren<Animator>(true);
-            var follow = animator.transform.Find(offset.FollowBonePath);
-            var weapon = animator.transform.Find(offset.WeaponBonePath);
+            var follow = animator.transform.Find(GripBake.FollowPath);
+            var weapon = animator.transform.Find(GripBake.WeaponPath);
+            Assert.GreaterOrEqual(GripBake.TorsoWeight, 1f, "烘焙幅度 = 1（完全跟随）；调权重走 GM 覆写，不进烘焙值");
 
             var backend = MakeBackend(animator, Profile());
-            var grip = new WeaponGripConstraint(animator, offset);
+            var grip = new WeaponGripConstraint(animator);
             PlayBaseAndReload(backend);
 
             const float step = 1f / 60f;
@@ -128,8 +134,8 @@ namespace LiteGame.Tests.EditMode
                 animValue = weapon.localPosition;
                 grip.Update(true);
             }
-            ExpectGripPose(follow, weapon, offset, out var fullPos, out _);
-            Assert.Less(Vector3.Distance(fullPos, weapon.localPosition), 1e-4f, "权重 1 = 完全跟随偏移");
+            ExpectGripPose(follow, weapon, out var fullPos, out _);
+            Assert.Less(Vector3.Distance(fullPos, weapon.localPosition), 1e-4f, "权重 1 = 完全跟随烘焙偏移");
             Assert.Greater(Vector3.Distance(animValue, weapon.localPosition), 1e-4f,
                 "全跟随时确已偏离动画值（否则断言是空转）");
 
@@ -141,13 +147,12 @@ namespace LiteGame.Tests.EditMode
         public void 非换弹期_约束零写入_动画值原样()
         {
             var prefab = LoadPrefabOrIgnore();
-            var offset = LoadOffsetOrIgnore();
             var go = Scope.Track(Object.Instantiate(prefab));
             var animator = go.GetComponentInChildren<Animator>(true);
-            var weapon = animator.transform.Find(offset.WeaponBonePath);
+            var weapon = animator.transform.Find(GripBake.WeaponPath);
 
             var backend = MakeBackend(animator, Profile());
-            var grip = new WeaponGripConstraint(animator, offset);
+            var grip = new WeaponGripConstraint(animator);
             backend.TryPlay(new AnimationResolvedPlayback(default, AnimationChannel.Base, "Idle", 0f, 1f, false, true));
 
             const float step = 1f / 60f;

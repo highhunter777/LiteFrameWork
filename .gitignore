@@ -82,12 +82,12 @@ Assets/Model/
 Assets/Model.meta
 Assets/Sound/
 Assets/Sound.meta
-Assets/Fonts/
-Assets/Fonts.meta
+Assets/ShareResource/Fonts/
+Assets/ShareResource/Fonts.meta
 Assets/Animator/
 Assets/Animator.meta
-Assets/Prefab/
-Assets/Prefab.meta
+Assets/ShareResource/Characters/
+Assets/ShareResource/Characters.meta
 Assets/LiteGame/Fonts/
 Assets/LiteGame/Fonts.meta
 Assets/LiteGame/Art/
@@ -100,8 +100,8 @@ Assets/TutorialInfo/
 Assets/TutorialInfo.meta
 Assets/Settings/
 Assets/Settings.meta
-Assets/Prefab/
-Assets/Prefab.meta
+Assets/ShareResource/Characters/
+Assets/ShareResource/Characters.meta
 Assets/Animator/
 Assets/Animator.meta
 Assets/StateMachine/
@@ -220,8 +220,10 @@ Assets/Temp.meta
 # Assets/ShareResource（内容样例）；TestModeSettings.asset 属配置资源，恢复入库。
 Assets/TextMesh Pro/
 Assets/TextMesh Pro.meta
-Assets/ShareResource/
-Assets/ShareResource.meta
+# 2026-10-11 资源三层模型：ShareResource 为共享进包资源目录（Fonts/UI 等随迁移入库）；
+# 仅内容样例维持下架（原“内容样例下架”裁决收窄至此）。
+Assets/ShareResource/SampleContent/
+Assets/ShareResource/SampleContent.meta
 
 # ===== 密钥材料（绝不入库；2026-09-26 实测：测试跑出的 RSA 私钥落在 Tests/ 且未被忽略）=====
 # key_ras 含 <D>/<P>/<Q> 私钥指数——一旦提交进 public 仓库即等同泄露。

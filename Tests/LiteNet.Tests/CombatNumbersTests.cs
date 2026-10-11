@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using LiteClient;
 using LiteSim;
 using RoomServer;
 using RoomServer.Runtime;
@@ -22,7 +23,7 @@ namespace LiteNet.Tests
     /// </summary>
     public sealed class CombatNumbersTests
     {
-        private const string TableRelativePath = "Assets/GameData/Config/tbcombatnum.bytes";
+        private const string TableRelativePath = "Assets/GameData/Config/Combat/tbcombatnum.bytes";
 
         [Fact]
         public void 表文件存在且与代码默认值一致()
@@ -48,7 +49,7 @@ namespace LiteNet.Tests
         [Fact]
         public void 客户端bin产物存在()
         {
-            string bin = Path.Combine(RepoRoot(), "Assets", "GameData", "Config", "tbcombatnum.bytes");
+            string bin = TableBin("tbcombatnum");
             Assert.True(File.Exists(bin), "缺客户端数值 bin（gen.bat Pass 1）——ConfigService 预取会直接抛");
         }
 
@@ -56,7 +57,7 @@ namespace LiteNet.Tests
         public void 解析_截断字节_抛()
         {
             // 真实表字节截半——ByteBuf 越界读必须抛（格式对不上就不能装载数值，fail-fast）
-            string bin = Path.Combine(RepoRoot(), "Assets", "GameData", "Config", "tbcombatnum.bytes");
+            string bin = TableBin("tbcombatnum");
             byte[] full = File.ReadAllBytes(bin);
             var truncated = new byte[full.Length / 2];
             Array.Copy(full, truncated, truncated.Length);
@@ -115,10 +116,21 @@ namespace LiteNet.Tests
 
         private static CombatNumValues Parse(byte[] combatBytes)
         {
-            string dir = Path.Combine(RepoRoot(), "Assets", "GameData", "Config");
             return CombatNumbers.Parse(combatBytes,
-                File.ReadAllBytes(Path.Combine(dir, "tbmovementconfig.bytes")),
-                File.ReadAllBytes(Path.Combine(dir, "tbentityconfig.bytes")));
+                File.ReadAllBytes(TableBin("tbmovementconfig")),
+                File.ReadAllBytes(TableBin("tbentityconfig")));
+        }
+
+        /// <summary>领域相对路径单源 = TableLayout.Files（与 ConfigService/CombatNumbers 同源）。</summary>
+        private static string TableBin(string table)
+        {
+            foreach (string entry in TableLayout.Files)
+            {
+                int slash = entry.IndexOf('/');
+                if (entry[(slash + 1)..] == table)
+                    return Path.Combine(RepoRoot(), "Assets", "GameData", "Config", entry[..slash], table + ".bytes");
+            }
+            throw new FileNotFoundException($"TableLayout 无此表：{table}");
         }
 
         private static string RepoRoot()

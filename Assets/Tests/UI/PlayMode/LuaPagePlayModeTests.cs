@@ -32,7 +32,7 @@ namespace LiteGame.Tests.UI.PlayMode
     public sealed class LuaPagePlayModeTests
     {
         private const int UIMainFormId = 1;
-        private const string UIMainLocation = "Assets/UI/Screens/UIMain.prefab";
+        private const string UIMainLocation = "Assets/ShareResource/UI/Screens/UIMain.prefab";
         private const string UIMainRequire = "UI.UIMain";
 
         private sealed class StaticCatalog : IUIFormCatalog

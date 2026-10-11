@@ -8,7 +8,7 @@ namespace LiteGame.Tests.EditMode
 {
     /// <summary>
     /// 视觉单一来源（《UI框架总设计》§7）：运行时代码不得构建用户可见视觉，
-    /// 一律取 `Assets/UI/Screens|Widgets` 模板。
+    /// 一律取 `Assets/ShareResource/UI/Screens|Widgets` 模板。
     ///
     /// 本用例是该规则的**可执行载体**（《UI制作规范》§8"资产静态检查"；
     /// 《UI测试开发专项设计》§4.2"每个规则至少一个合法正例和一个违规负例"）：

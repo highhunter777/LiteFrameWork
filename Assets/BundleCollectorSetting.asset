@@ -71,7 +71,7 @@ MonoBehaviour:
       AssetTags: 
       ActiveRuleName: EnableGroup
       Collectors:
-      - CollectPath: Assets/UI/Screens
+      - CollectPath: Assets/ShareResource/UI/Screens
         CollectorGUID: 
         CollectorType: 0
         AddressRuleName: AddressByFileName
@@ -84,7 +84,7 @@ MonoBehaviour:
       AssetTags: 
       ActiveRuleName: EnableGroup
       Collectors:
-      - CollectPath: Assets/UI/Widgets
+      - CollectPath: Assets/ShareResource/UI/Widgets
         CollectorGUID: 
         CollectorType: 0
         AddressRuleName: AddressByFileName
@@ -97,7 +97,7 @@ MonoBehaviour:
       AssetTags: 
       ActiveRuleName: EnableGroup
       Collectors:
-      - CollectPath: Assets/Fonts
+      - CollectPath: Assets/ShareResource/Fonts
         CollectorGUID: 
         CollectorType: 0
         AddressRuleName: AddressByFileName
@@ -111,7 +111,7 @@ MonoBehaviour:
       AssetTags: 
       ActiveRuleName: EnableGroup
       Collectors:
-      - CollectPath: Assets/Prefab
+      - CollectPath: Assets/ShareResource/Characters
         CollectorGUID: 
         CollectorType: 0
         AddressRuleName: AddressByFileName
@@ -137,8 +137,22 @@ MonoBehaviour:
       AssetTags: 
       ActiveRuleName: EnableGroup
       Collectors:
-      - CollectPath: Assets/FX
+      - CollectPath: Assets/ShareResource/FX
         CollectorGUID: 5155224002b933e48b649ead227673de
+        CollectorType: 0
+        AddressRuleName: AddressByFileName
+        PackRuleName: PackDirectory
+        FilterRuleName: CollectAll
+        AssetTags: 
+        UserData: 
+    - GroupName: Sound
+      GroupDesc: "\u97F3\u6548\u5E93\uFF08Assets/Sound \u5206\u7C7B\u76EE\u5F55\uFF1B\u6309\u6587\u4EF6\u540D\u5BFB\u5740\uFF0CBattleAudioDriver
+        \u6D88\u8D39\uFF09"
+      AssetTags: 
+      ActiveRuleName: EnableGroup
+      Collectors:
+      - CollectPath: Assets/Sound
+        CollectorGUID: 
         CollectorType: 0
         AddressRuleName: AddressByFileName
         PackRuleName: PackDirectory

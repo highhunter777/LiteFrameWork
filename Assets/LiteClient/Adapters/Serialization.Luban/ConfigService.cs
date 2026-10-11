@@ -39,22 +39,13 @@ namespace LiteClient
     /// </summary>
     public sealed class ConfigService : IConfigService
     {
-        /// <summary>表数据收集目录（YooAsset location 前缀；跨平台恒为 Assets 路径，与物理盘符无关）。</summary>
-        public const string DataDir = "Assets/GameData/Config/";
+        /// <summary>表数据收集目录（YooAsset location 前缀；跨平台恒为 Assets 路径，与物理盘符无关）。
+        /// 单源在 <see cref="TableLayout"/>（领域分类布局，服务端源链接共编）。</summary>
+        public static readonly string DataDir = TableLayout.DataDir;
 
-        /// <summary>gen.bat 第一遍产出的表数据文件名（GameData/Config 下，不带扩展名）——与 Tables.cs 的 loader 键一一对应。</summary>
-        public static readonly string[] TableDataFiles =
-        {
-            "tbitemconfig",      // 道具表（类型 + 刷新/拾取/携带/使用 + 各类型效果数值）
-            "tbmovementconfig",  // 移动数值（单行表；装载后产出 MovementValues 实例并发布读口——机制消费随系统落地接入）
-            "tbentityconfig",    // 实体定义（默认角色出生 HP；装载后投影到固定对局配置）
-            "tbuiform",
-            "tbcontententry",
-            "tbstrategy",
-            "tbcombatnum",      // 玩法数值（单行表；装载后产出 CombatValues 实例并发布读口——两端同源，见《玩法数值与Luban配置专项设计》）
-            "tbweapon",          // 武器表（多行；装载后回填 WeaponConfig——Sim 武器系统消费）
-            "tbanimationprofile",// 动画 Profile 登记行（多族共存；装载后投影为 Core 行并发布读口——消费方经 AnimationProfileLoader 按族装配）
-        };
+        /// <summary>gen.bat 产出的表数据文件清单（**领域相对路径**：领域子目录/表名，不带扩展名）
+        /// ——单源在 <see cref="TableLayout.Files"/>，gen_luban.py 据此分域归位 bin 产物。</summary>
+        public static readonly string[] TableDataFiles = TableLayout.Files;
 
         private readonly Func<string, CancellationToken, UniTask<byte[]>> _bytesProvider;
         private readonly ConfigSnapshotService<Tables> _snapshots;   // 原子发布（候选校验→替换→版本单调）
@@ -93,7 +84,7 @@ namespace LiteClient
             foreach (string file in TableDataFiles)
             {
                 ct.ThrowIfCancellationRequested();
-                string location = $"{DataDir}{file}.bytes";
+                string location = TableLayout.TableDataPath(file);
                 try
                 {
                     cache[file] = await _bytesProvider(location, ct);

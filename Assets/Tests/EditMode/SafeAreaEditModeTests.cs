@@ -127,13 +127,13 @@ namespace LiteGame.Tests.EditMode
         [Category(TestCategory.Contract)]
         public void 模板契约_UIMain与ListScreen内容容器挂SafeAreaReceiver()
         {
-            var main = UnityEditor.AssetDatabase.LoadAssetAtPath<GameObject>("Assets/UI/Screens/UIMain.prefab");
+            var main = UnityEditor.AssetDatabase.LoadAssetAtPath<GameObject>("Assets/ShareResource/UI/Screens/UIMain.prefab");
             Assert.IsNotNull(main, "UIMain 模板缺失");
             var safeNode = main.transform.Find("SafeArea");
             Assert.IsNotNull(safeNode, "UIMain 需有 SafeArea 内容容器节点");
             Assert.IsNotNull(safeNode.GetComponent<SafeAreaReceiver>(), "UIMain.SafeArea 挂 SafeAreaReceiver");
 
-            var list = UnityEditor.AssetDatabase.LoadAssetAtPath<GameObject>("Assets/UI/Screens/ListScreen.prefab");
+            var list = UnityEditor.AssetDatabase.LoadAssetAtPath<GameObject>("Assets/ShareResource/UI/Screens/ListScreen.prefab");
             Assert.IsNotNull(list, "ListScreen 模板缺失");
             var listNode = list.transform.Find("VirtualList");
             Assert.IsNotNull(listNode, "ListScreen 需有 VirtualList 交互容器节点");

@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.IO;
 using LiteSim;
 using LiteClient;
@@ -43,17 +44,23 @@ namespace RoomServer
         }
 
         /// <summary>
-        /// 从指定表目录装载并返回**装载实例**（表目录 = 客户端 GameData/Config；表清单与客户端
-        /// <c>ConfigService.TableDataFiles</c> 同源——Tables 构造器逐表取字节）。
+        /// 从指定表目录装载并返回**装载实例**（表目录 = 客户端 GameData/Config 根，文件按
+        /// <c>TableLayout.Files</c> 的领域相对路径取——源链接共编单源；Tables 构造器逐表取字节）。
         /// </summary>
         public static ServerTableLoad LoadTableBytes(string configDir)
         {
             if (!Directory.Exists(configDir))
                 throw new DirectoryNotFoundException($"表数据目录缺失：{configDir}（跑 Luban/gen.bat Pass 1）");
 
+            var domainByTable = new Dictionary<string, string>();
+            foreach (string entry in TableLayout.Files)
+            {
+                int slash = entry.IndexOf('/');
+                domainByTable[entry[(slash + 1)..]] = entry[..slash];
+            }
             var tables = new cfg.Tables(file =>
             {
-                string path = Path.Combine(configDir, file + ".bytes");
+                string path = Path.Combine(Path.Combine(configDir, domainByTable[file]), file + ".bytes");
                 if (!File.Exists(path))
                     throw new FileNotFoundException($"配置表缺失：{path}（跑 Luban/gen.bat Pass 1——数值缺失等于两端分叉）", path);
                 return new Luban.ByteBuf(File.ReadAllBytes(path));

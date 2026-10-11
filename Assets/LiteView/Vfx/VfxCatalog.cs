@@ -11,11 +11,10 @@ namespace LiteView
     {
         /// <summary>
         /// 特效 prefab 根目录（与《联机Demo美术资源清单》§0-6 的 `fx_` 命名约定配套）：
-        /// 工程**既有的顶层资源目录** `Assets/FX/`。注意 `Assets/FX/` 下现为第三方原包结构
-        /// （`ParticlePack/`、`LuffyEffect/`），项目自制的 `fx_*` prefab 按"命名即引用"
-        /// **扁平放在该根下**。
+        /// 共享资源层 `Assets/ShareResource/FX/`——**只放在用的自研 `fx_*` prefab**（FX 组收集这里，
+        /// CollectAll 即精确收集）；顶层 `Assets/FX/` 是 L1 原始资源库（第三方原包/参考素材，不进收集）。
         /// </summary>
-        public const string DefaultRoot = "Assets/FX/";
+        public const string DefaultRoot = "Assets/ShareResource/FX/";
 
         private readonly Dictionary<string, VfxDef> _defs = new Dictionary<string, VfxDef>(16);
         private readonly string _root;

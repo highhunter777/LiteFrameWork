@@ -29,7 +29,7 @@ namespace LiteGame.Tests.EditMode
     /// </summary>
     public sealed class UiU0EditModeTests : UnityTestBase
     {
-        private const string UIMainPrefab = "Assets/UI/Screens/UIMain.prefab";
+        private const string UIMainPrefab = "Assets/ShareResource/UI/Screens/UIMain.prefab";
         private const string UIMainRequire = "UI.UIMain";
 
         [TearDown]

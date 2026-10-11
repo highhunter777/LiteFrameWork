@@ -22,8 +22,8 @@ namespace LiteGame.Tests.EditMode
         {
             var content = new YooAssetContentService();
             var ex = Assert.Throws<InvalidOperationException>(() =>
-                content.AcquireAsync<GameObject>("Assets/UI/Widgets/any.prefab").GetAwaiter().GetResult());
-            StringAssert.Contains("Assets/UI/Widgets/any.prefab", ex.Message);   // 契约：失败含 location
+                content.AcquireAsync<GameObject>("Assets/ShareResource/UI/Widgets/any.prefab").GetAwaiter().GetResult());
+            StringAssert.Contains("Assets/ShareResource/UI/Widgets/any.prefab", ex.Message);   // 契约：失败含 location
         }
 
         [Test]

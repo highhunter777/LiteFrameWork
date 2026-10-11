@@ -105,7 +105,7 @@ namespace LiteGame.Tests.EditMode
         {
             var loader = new FakeLoader();
             var service = new EntityService(loader.Load);
-            var handle = service.ShowAsync("Assets/Prefab/A.prefab").GetAwaiter().GetResult();
+            var handle = service.ShowAsync("Assets/ShareResource/Characters/A.prefab").GetAwaiter().GetResult();
 
             Assert.IsNotNull(handle, "池未命中 → 加载并显示");
             Assert.IsNotNull(handle.Scope, "实体持自有作用域（取消源）");
@@ -122,7 +122,7 @@ namespace LiteGame.Tests.EditMode
         {
             var loader = new FakeLoader();
             var service = new EntityService(loader.Load);
-            var handle = service.ShowAsync("Assets/Prefab/A.prefab").GetAwaiter().GetResult();
+            var handle = service.ShowAsync("Assets/ShareResource/Characters/A.prefab").GetAwaiter().GetResult();
 
             service.Hide(handle.Id);
             Assert.DoesNotThrow(() => service.Hide(handle.Id), "重复归还 = 幂等 no-op");
@@ -136,8 +136,8 @@ namespace LiteGame.Tests.EditMode
             var loader = new FakeLoader();
             var service = new EntityService(loader.Load);
 
-            var h1 = service.ShowAsync("Assets/Prefab/A.prefab").GetAwaiter().GetResult();
-            service.ShowAsync("Assets/Prefab/B.prefab").GetAwaiter().GetResult();
+            var h1 = service.ShowAsync("Assets/ShareResource/Characters/A.prefab").GetAwaiter().GetResult();
+            service.ShowAsync("Assets/ShareResource/Characters/B.prefab").GetAwaiter().GetResult();
             service.Hide(h1.Id);                                     // 归还一件进池
             Assert.Greater(service.PooledTotal, 0, "池中有闲置件");
 
@@ -155,8 +155,8 @@ namespace LiteGame.Tests.EditMode
             var loader = new FakeLoader();
             var service = new EntityService(loader.Load);
 
-            var parent = service.ShowAsync("Assets/Prefab/P.prefab").GetAwaiter().GetResult();
-            var child = service.ShowAsync("Assets/Prefab/C.prefab").GetAwaiter().GetResult();
+            var parent = service.ShowAsync("Assets/ShareResource/Characters/P.prefab").GetAwaiter().GetResult();
+            var child = service.ShowAsync("Assets/ShareResource/Characters/C.prefab").GetAwaiter().GetResult();
             service.Attach(child.Id, parent.Id);
 
             Assert.DoesNotThrow(() => service.Shutdown(), "带挂接链的关闭必须走通（级联 + 快照去重）");
@@ -171,7 +171,7 @@ namespace LiteGame.Tests.EditMode
             using (var host = new ClientScope("Match"))
             {
                 var service = new EntityService(loader.Load) { HostScope = host };
-                var handle = service.ShowAsync("Assets/Prefab/A.prefab").GetAwaiter().GetResult();
+                var handle = service.ShowAsync("Assets/ShareResource/Characters/A.prefab").GetAwaiter().GetResult();
                 CancellationToken token = handle.Scope.Token;
 
                 host.Dispose();                                      // 宿主退出（离场）
@@ -186,7 +186,7 @@ namespace LiteGame.Tests.EditMode
             // Debug 三宏下当场抛，release 记错误（EntityHandle.Subscriptions 契约）。
             var loader = new FakeLoader();
             var service = new EntityService(loader.Load);
-            var handle = service.ShowAsync("Assets/Prefab/A.prefab").GetAwaiter().GetResult();
+            var handle = service.ShowAsync("Assets/ShareResource/Characters/A.prefab").GetAwaiter().GetResult();
             service.Hide(handle.Id);
 
             InvalidOperationException ex = Assert.Throws<InvalidOperationException>(
@@ -201,10 +201,10 @@ namespace LiteGame.Tests.EditMode
             // 对象级故障（§3.4 fail-fast）：同一句柄在用时再 Show = 状态竞争——显性拒绝，不静默顶替。
             var loader = new FakeLoader();
             var service = new EntityService(loader.Load);
-            var handle = service.ShowAsync("Assets/Prefab/A.prefab").GetAwaiter().GetResult();
+            var handle = service.ShowAsync("Assets/ShareResource/Characters/A.prefab").GetAwaiter().GetResult();
 
             Assert.Throws<InvalidOperationException>(
-                () => service.ShowAsync(handle.Id, "Assets/Prefab/B.prefab").GetAwaiter().GetResult(),
+                () => service.ShowAsync(handle.Id, "Assets/ShareResource/Characters/B.prefab").GetAwaiter().GetResult(),
                 "活句柄重复 Show 必须抛");
             Assert.AreEqual(1, service.ActiveCount, "拒绝后活体不变");
         }

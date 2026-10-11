@@ -12,8 +12,9 @@ using UnityEngine;
 namespace LiteGame.Tests.EditMode
 {
     /// <summary>
-    /// 伤害数字驱动（<see cref="BattleDamageNumberDriver"/>，《命中反馈与伤害数字专项设计》批B）的
-    /// L2 EditMode 覆盖：本地造成/承受过滤（旁观不产实例）、档位色（承受染红/造成白/爆头独立成条）、
+    /// 伤害数字驱动（<see cref="BattleDamageNumberDriver"/>，《命中反馈与伤害数字专项设计》批B；批C 扩
+    /// 顶点渐变/逐档材质）的 L2 EditMode 覆盖：本地造成/承受过滤（旁观不产实例）、档位色（承受染红/
+    /// 造成白/爆头独立成条、顶点渐变四角）、逐档材质调色板（按档取材质/无调色板不碰底件）、
     /// 合并窗口（同目标**同档**二连击一条实例·文本累计；爆头/普通分离）、预算淘汰（超限不静默丢）、
     /// 到期收口（释放归池、复用不新建）、受击点锚定（不随实体视图移动；视图消失无影响）。
     /// 路由/上下文解析由 HitFeedbackDispatcherEditModeTests 把守——此处直喂上下文。
@@ -91,18 +92,22 @@ namespace LiteGame.Tests.EditMode
                 driver.OnHitFeedback(Hit(botA, 1, self, 30, HitLocalRole.Caused, Vector3.zero));
                 driver.OnHitFeedback(Hit(self, 0, botA, 25, HitLocalRole.Received, Vector3.zero));
 
-                // **必须先 Tick 再读色/字号**：档位色与字号是**账本**（Active.R/G/B、FontSize），
+                // **必须先 Tick 再读色/字号**：档位色与字号是**账本**（Active 渐变四色、FontSize），
                 // 驱动每帧 Tick 才把它们刷到 TMP 组件（BattleDamageNumberDriver.Tick 末段）。
                 // 不 Tick 就读组件，读到的是 TMP 默认白 + 默认字号 ⇒ 断言会把正确的承受档判成白色。
+                // 批C 起颜色走**顶点渐变四角**（colorGradient；`.color` 平色为底件未开渐变时的兜底）。
                 driver.Tick();
 
-                Color caused = driver.TryGetActive(botA, HitLocalRole.Caused, crit: false).color;
-                Color received = driver.TryGetActive(self, HitLocalRole.Received, crit: false).color;
-                Assert.Greater(caused.g, 0.9f, "造成档白色（绿分量≈1）");
-                Assert.Less(received.g, caused.g - 0.5f, "承受档染红（绿分量显著低）");
+                Color causedTop = driver.TryGetActive(botA, HitLocalRole.Caused, crit: false).colorGradient.topLeft;
+                TextMeshPro receivedTmp = driver.TryGetActive(self, HitLocalRole.Received, crit: false);
+                Color receivedTop = receivedTmp.colorGradient.topLeft;
+                Assert.Greater(causedTop.g, 0.9f, "造成档白色（顶色绿分量≈1）");
+                Assert.Less(receivedTop.g, causedTop.g - 0.5f, "承受档染红（顶色绿分量显著低）");
+                Assert.Less(receivedTmp.colorGradient.bottomLeft.g, receivedTmp.colorGradient.topLeft.g,
+                    "顶点渐变生效（顶亮底暗——批C 渐变已写入四角）");
 
                 // 爆头独立成条（用户裁决"连击合并区分爆头/普通"）：普通条不被染红，爆头自成一条且字号更大
-                Color normalBefore = driver.TryGetActive(self, HitLocalRole.Received, crit: false).color;
+                Color normalBefore = driver.TryGetActive(self, HitLocalRole.Received, crit: false).colorGradient.topLeft;
                 driver.OnHitFeedback(new HitFeedbackContext(FrameEventKind.Crit, self, botA, 0, -1, 40,
                     Vector3.zero, HitLocalRole.Received));
                 driver.Tick();                               // 新条目的档位同样要刷到 TMP
@@ -111,7 +116,60 @@ namespace LiteGame.Tests.EditMode
                 Assert.IsNotNull(normal, "普通条仍在（未被爆头合并/覆盖）");
                 Assert.IsNotNull(critTmp, "爆头独立成条");
                 Assert.Greater(critTmp.fontSize, normal.fontSize, "爆头档字号更大（独立条）");
-                Assert.AreEqual(normalBefore.g, normal.color.g, 1e-4f, "普通条颜色不被爆头污染");
+                Assert.AreEqual(normalBefore.g, normal.colorGradient.topLeft.g, 1e-4f, "普通条颜色不被爆头污染");
+            }
+        }
+
+        [Test]
+        [Category(TestCategory.Contract)]
+        public void 材质_逐档调色板注入_按档取材质_无调色板不碰底件材质()
+        {
+            // 批C：逐档材质（描边/光晕）由装配点整组注入；驱动按 (角色, 爆头档) 档位取材质。
+            var (_, view, self, botA) = Build(new Vector3(5f, 1f, 0f));
+            Shader shader = Shader.Find("TextMeshPro/Distance Field");
+            var causedMat = new Material(shader);
+            var causedCritMat = new Material(shader);
+            var receivedMat = new Material(shader);
+            var receivedCritMat = new Material(shader);
+            try
+            {
+                var set = new DamageNumberMaterialSet(causedMat, causedCritMat, receivedMat, receivedCritMat);
+                using (var driver = new BattleDamageNumberDriver(view, NewTmp, new FakeClock(), materials: set))
+                {
+                    driver.OnHitFeedback(Hit(botA, 1, self, 30, HitLocalRole.Caused, Vector3.zero));
+                    driver.OnHitFeedback(new HitFeedbackContext(FrameEventKind.Crit, botA, self, 1, -1, 40,
+                        Vector3.zero, HitLocalRole.Caused));
+                    driver.OnHitFeedback(Hit(self, 0, botA, 25, HitLocalRole.Received, Vector3.zero));
+                    driver.OnHitFeedback(new HitFeedbackContext(FrameEventKind.Crit, self, botA, 0, -1, 40,
+                        Vector3.zero, HitLocalRole.Received));
+
+                    Assert.AreSame(causedMat,
+                        driver.TryGetActive(botA, HitLocalRole.Caused, crit: false).fontSharedMaterial, "造成档材质");
+                    Assert.AreSame(causedCritMat,
+                        driver.TryGetActive(botA, HitLocalRole.Caused, crit: true).fontSharedMaterial, "造成爆头档材质");
+                    Assert.AreSame(receivedMat,
+                        driver.TryGetActive(self, HitLocalRole.Received, crit: false).fontSharedMaterial, "承受档材质");
+                    Assert.AreSame(receivedCritMat,
+                        driver.TryGetActive(self, HitLocalRole.Received, crit: true).fontSharedMaterial, "承受爆头档材质");
+                }
+
+                // 无调色板（测试装配/降级形态）：驱动不碰材质——底件默认材质即造成档
+                TextMeshPro controlled = NewTmp();
+                Material before = controlled.fontSharedMaterial;
+                using (var plain = new BattleDamageNumberDriver(view, () => controlled, new FakeClock()))
+                {
+                    plain.OnHitFeedback(new HitFeedbackContext(FrameEventKind.Crit, botA, self, 1, -1, 40,
+                        Vector3.zero, HitLocalRole.Caused));
+                    Assert.AreSame(before, plain.TryGetActive(botA, HitLocalRole.Caused, crit: true).fontSharedMaterial,
+                        "无调色板形态：驱动不换材质（诚实降级——平色/渐变写入仍生效）");
+                }
+            }
+            finally
+            {
+                Object.DestroyImmediate(causedMat);
+                Object.DestroyImmediate(causedCritMat);
+                Object.DestroyImmediate(receivedMat);
+                Object.DestroyImmediate(receivedCritMat);
             }
         }
 
