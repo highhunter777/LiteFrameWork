@@ -1,7 +1,5 @@
 using System.Globalization;
-using System.IO;
 using System.Text;
-using UnityEditor;
 using UnityEngine;
 
 namespace LiteGame.EditorTools
@@ -35,28 +33,27 @@ namespace LiteGame.EditorTools
                 if (Mathf.Abs(baseOffset) > 1e-4f)
                     return $"ABORT CC center.y({cc.center.y:F4}) ≠ height/2({cc.height * 0.5f:F4})——圆柱底不在脚底，不烘（对齐后再跑）";
 
-                string text = BuildText(cc.radius, cc.height);
-                File.WriteAllText(BakeTargets.BodyBakeOutput, text);
-                AssetDatabase.ImportAsset(BakeTargets.BodyBakeOutput);
+                string write = BakeTargets.WriteGenerated(BakeTargets.BodyBakeOutput, nameof(BodyCylinderBaker),
+                    new[]
+                    {
+                        $"// 来源：{BakeTargets.PrefabPath} 的 CharacterController（美术调 CC 后重跑即重烘；该 prefab 不入版本管理，重烘需本地 prefab）。",
+                        "// 语义：Sim 物理体竖直圆柱 [pos.Y, pos.Y + Height]（CC center.y 已校验 == Height/2）。",
+                        "// 消费：CombatConfig.BodyRadius（移动去穿插）+ HitscanHeight（站姿高/头带比例基底）+ 视图 CC。",
+                        "// 注意：命中柱半径 HitscanRadius（0.45）是判定宽容裁决常量，不是本产物。",
+                    }, BuildBody(cc.radius, cc.height));
 
                 sb.AppendLine($"已烘焙：Radius={cc.radius:R} Height={cc.height:R}（center.y 校验通过）");
                 sb.AppendLine($"来源：{BakeTargets.PrefabPath} 的 CharacterController");
-                sb.AppendLine($"输出：{BakeTargets.BodyBakeOutput}");
+                sb.AppendLine(write);
             }
             return sb.ToString();
         }
 
-        /// <summary>生成文本（R 格式逐位往返；注释不含日期/批次痕迹——遵守注释卫生）。</summary>
-        private static string BuildText(float radius, float height)
+        /// <summary>常量体（R 格式逐位往返；注释不含日期/批次痕迹——遵守注释卫生）。</summary>
+        private static string BuildBody(float radius, float height)
         {
             var inv = CultureInfo.InvariantCulture;
             var sb = new StringBuilder();
-            sb.AppendLine("// 本文件由 BodyCylinderBaker 生成（烘焙工具箱：菜单 LiteGame/烘焙工具箱，或 run_script 调用）——勿手改。");
-            sb.AppendLine($"// 来源：{BakeTargets.PrefabPath} 的 CharacterController（美术调 CC 后重跑即重烘；");
-            sb.AppendLine("//       该 prefab 不入版本管理，重烘需本地 prefab）。");
-            sb.AppendLine("// 语义：Sim 物理体竖直圆柱 [pos.Y, pos.Y + Height]（CC center.y 已校验 == Height/2）。");
-            sb.AppendLine("// 消费：CombatConfig.BodyRadius（移动去穿插）+ HitscanHeight（站姿高/头带比例基底）+ 视图 CC。");
-            sb.AppendLine("// 注意：命中柱半径 HitscanRadius（0.45）是判定宽容裁决常量，不是本产物。");
             sb.AppendLine("namespace LiteSim");
             sb.AppendLine("{");
             sb.AppendLine("    /// <summary>身位圆柱常量（烘焙值；= prefab CharacterController 的 radius/height）。</summary>");

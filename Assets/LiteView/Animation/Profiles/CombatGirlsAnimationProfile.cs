@@ -21,7 +21,7 @@ namespace LiteView.Animation
         public const string ControllerPath = "Assets/CombatGirlsCharacterPack/RifleGirl/Animations/Rifle_Controller.controller";
 
         /// <summary>对局实体视图 prefab（缺包克隆走 SimView 灰盒兜底降级）。
-        /// 位于 `Assets/Prefab/`（+MagicaCloth 布料/头发物理；依赖资产在 `CombatGirlsCharacterPack/`
+        /// 位于 `Assets/ShareResource/Characters/`（+MagicaCloth 布料/头发物理；依赖资产在 `CombatGirlsCharacterPack/`
         /// ——收集组需同时覆盖两处）。
         /// **单源＝<see cref="SimView.DefaultEntityPrefab"/>**：本族的视图 prefab 就是 SimView 的
         /// 对局默认件——引用同一常量，"两处各写一份同值"的分叉口被结构性消灭（绑定按名字解析，
@@ -30,8 +30,8 @@ namespace LiteView.Animation
 
         /// <summary>该角色族的片段清单资产（去 AC 主路径的片源载体——键→Clip 显式引用的纯配置）。
         /// 键单源在 tbanimationprofile 表行；改绑定键后经构建器（`AgentScripts/BuildClipManifestAssets.cs`）
-        /// 从 <see cref="ControllerPath"/> 同表重建。与 <see cref="ViewPrefabPath"/> 同置 `Assets/Prefab/`
+        /// 从 <see cref="ControllerPath"/> 同表重建。与 <see cref="ViewPrefabPath"/> 同置 `Assets/ShareResource/Characters/`
         /// （Characters 收集组——随包进 Player）。</summary>
-        public const string ClipManifestPath = "Assets/Prefab/CombatGirlsAnimationClips.asset";
+        public const string ClipManifestPath = "Assets/ShareResource/Characters/CombatGirlsAnimationClips.asset";
     }
 }

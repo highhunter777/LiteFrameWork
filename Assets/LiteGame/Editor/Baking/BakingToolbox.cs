@@ -5,11 +5,11 @@ using UnityEngine;
 namespace LiteGame.EditorTools
 {
     /// <summary>
-    /// 烘焙工具箱（菜单 <c>LiteGame/烘焙工具箱</c>——四件烘焙/调带工具的**统一入口与统一形态**）：
+    /// 烘焙工具箱（菜单 <c>LiteGame/烘焙工具箱</c>——五件烘焙/调带工具的**统一入口与统一形态**）：
     /// 每件工具一页（说明 + 执行 + 报告），共享目标单源 <see cref="BakeTargets"/>；执行面统一为
-    /// 「静态 <c>All()</c> 返回多行报告文本，预期失败返回 <c>ABORT</c> 报告不抛异常」。原四个独立菜单
-    /// （烘焙身位圆柱/烘焙枪口偏移/烘焙持枪偏移/调整爆头带）收敛于此；run_script 仍可直调各类
-    /// <c>All()</c>/<see cref="HeadHitLineTuner.Export"/>。
+    /// 「静态 <c>All()</c> 返回多行报告文本，预期失败返回 <c>ABORT</c> 报告不抛异常」。原独立菜单
+    /// （烘焙身位圆柱/烘焙枪口偏移/烘焙持枪偏移/调整爆头带/LiteSim 根位移烘焙）收敛于此；
+    /// run_script 仍可直调各类 <c>All()</c>/<see cref="HeadHitLineTuner.Export"/>。
     /// </summary>
     public sealed class BakingToolbox : EditorWindow
     {
@@ -21,6 +21,7 @@ namespace LiteGame.EditorTools
             new GUIContent("枪口偏移"),
             new GUIContent("持枪偏移"),
             new GUIContent("爆头带调带"),
+            new GUIContent("根位移"),
         };
 
         private int _tab;
@@ -57,6 +58,7 @@ namespace LiteGame.EditorTools
                 case 1: DrawMuzzlePage(); break;
                 case 2: DrawGripPage(); break;
                 case 3: DrawHeadPage(); break;
+                case 4: DrawRootMotionPage(); break;
             }
         }
 
@@ -86,9 +88,21 @@ namespace LiteGame.EditorTools
         {
             EditorGUILayout.HelpBox(
                 "持枪偏移：参考持枪姿态（AimIdle t=0）下采样「武器骨 add_weapon_r 相对持枪手（RightHand）」的局部变换，"
-                + "写 WeaponGripOffset 资产——换弹期枪位姿态覆写（WeaponGripConstraint）的唯一来源。\n"
-                + "重跑时机：换绑定骨/换枪后（重烘前无需改资产）；观感幅度在资产面板调 Torso Weight。", MessageType.Info);
-            if (GUILayout.Button("烘焙 WeaponGripOffset.asset")) Run(WeaponGripBaker.All);
+                + "烘成 GripBake.g.cs 常量（落 LiteView——纯表现参数，刻意不进 BuildHash 源集）——换弹期枪位姿态覆写（WeaponGripConstraint）的唯一来源。\n"
+                + "重跑时机：换绑定骨/换枪后；对局内观感幅度走 GM 面板「持枪幅度」滑杆（GripTuning 覆写，不落盘）。", MessageType.Info);
+            if (GUILayout.Button("烘焙 GripBake.g.cs")) Run(WeaponGripBaker.All);
+            DrawReport();
+        }
+
+        // ---- 根位移页（片段采样族——来源是 RootMotionBakeConfig 引用的动作片段，非 prefab）----
+
+        private void DrawRootMotionPage()
+        {
+            EditorGUILayout.HelpBox(
+                "根位移：按 RootMotionBakeConfig 逐动作登记（ActionId/片段/策略），采样人形 RootT 曲线 60Hz 帧间差分"
+                + "→ 毫米量化 → fail-fast 校验（NaN/超速/重复 ID）→ RootMotionData.g.cs（两端共享，进 BuildHash 源集）+ digest。\n"
+                + "重跑时机：改片段/导入设置/配置登记后；同配置重烘逐字节一致。片段包不入版本管理——需本地在位。", MessageType.Info);
+            if (GUILayout.Button("烘焙 RootMotionData.g.cs")) Run(RootMotionBaker.All);
             DrawReport();
         }
 

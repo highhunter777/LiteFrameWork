@@ -20,12 +20,12 @@ namespace LiteGame.EditorTools.UI
     /// - 对账（ReportDrift）：报告**不命中任何 token** 的颜色（手调/漂移检测）。
     /// - 菜单：LiteGame/UI/样式工具/刷新模板颜色（按主题）、LiteGame/UI/样式工具/对账模板颜色（漂移报告）。
     ///
-    /// 边界：只动 Assets/UI/Widgets/ 下的模板 prefab；不挂组件、不进运行时、不改结构；
+    /// 边界：只动 Assets/ShareResource/UI/Widgets/ 下的模板 prefab；不挂组件、不进运行时、不改结构；
     /// 手作模板为唯一维护路径。
     /// </summary>
     public static class UiStyleTool
     {
-        private const string WidgetsDir = "Assets/UI/Widgets";  // UI 控件模板目录（顶层 Assets/UI）
+        private const string WidgetsDir = "Assets/ShareResource/UI/Widgets";  // UI 控件模板目录（共享资源层）
 
         /// <summary>命中阈值：颜色到 token 的平方距离 ≤ 此值视为该 token 的实例（吸收浮点噪声与离散变体）。</summary>
         private const float HitEpsilon = 1e-4f;

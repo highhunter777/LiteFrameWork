@@ -1,7 +1,5 @@
 using System.Globalization;
-using System.IO;
 using System.Text;
-using UnityEditor;
 using UnityEngine;
 
 namespace LiteGame.EditorTools
@@ -41,27 +39,27 @@ namespace LiteGame.EditorTools
                 clip.SampleAnimation(scope.Contents, 0f);      // t=0 净姿态（避开呼吸/后坐段）
                 Vector3 off = rootT.InverseTransformPoint(muzzle.position);
 
-                string text = BuildText(off);
-                File.WriteAllText(BakeTargets.MuzzleBakeOutput, text);
-                AssetDatabase.ImportAsset(BakeTargets.MuzzleBakeOutput);
+                string write = BakeTargets.WriteGenerated(BakeTargets.MuzzleBakeOutput, nameof(MuzzleOffsetBaker),
+                    new[]
+                    {
+                        $"// 来源：{BakeTargets.PrefabPath} 的 Weapon_Rifle/Muzzle 锚点，",
+                        "//       参考动画姿态 AimIdle t=0（射弹时刻视觉姿态单族：瞄准=AimIdle、腰射开火窗亦以 AimIdle 填窗）。",
+                        "// 坐标：相对 prefab 根的视觉局部系（+Z 前 → Sim 前向；+X 右 → Sim 右向；+Y → 高度），",
+                        "//       与 SimView 的 FacingRotation（yaw → 旋转 90°−yaw）配套。",
+                    }, BuildBody(off));
 
                 sb.AppendLine($"已烘焙：F={off.z:R} R={off.x:R} H={off.y:R}");
                 sb.AppendLine($"来源：{BakeTargets.PrefabPath} 的 Weapon_Rifle/Muzzle @ {BakeTargets.ReferenceClip} t=0");
-                sb.AppendLine($"输出：{BakeTargets.MuzzleBakeOutput}");
+                sb.AppendLine(write);
             }
             return sb.ToString();
         }
 
-        /// <summary>生成文本（R 格式逐位往返；注释不含日期/批次痕迹——遵守注释卫生）。</summary>
-        private static string BuildText(Vector3 off)
+        /// <summary>常量体（R 格式逐位往返；注释不含日期/批次痕迹——遵守注释卫生）。</summary>
+        private static string BuildBody(Vector3 off)
         {
             var inv = CultureInfo.InvariantCulture;
             var sb = new StringBuilder();
-            sb.AppendLine("// 本文件由 MuzzleOffsetBaker 生成（烘焙工具箱：菜单 LiteGame/烘焙工具箱，或 run_script 调用）——勿手改。");
-            sb.AppendLine($"// 来源：{BakeTargets.PrefabPath} 的 Weapon_Rifle/Muzzle 锚点，");
-            sb.AppendLine("//       参考动画姿态 AimIdle t=0（射弹时刻视觉姿态单族：瞄准=AimIdle、腰射开火窗亦以 AimIdle 填窗）。");
-            sb.AppendLine("// 坐标：相对 prefab 根的视觉局部系（+Z 前 → Sim 前向；+X 右 → Sim 右向；+Y → 高度），");
-            sb.AppendLine("//       与 SimView 的 FacingRotation（yaw → 旋转 90°−yaw）配套。");
             sb.AppendLine("namespace LiteSim");
             sb.AppendLine("{");
             sb.AppendLine("    /// <summary>逻辑枪口常量（烘焙值；消费见 CombatConfig.MuzzleOrigin——三常量进 CombatConfigDigest）。</summary>");

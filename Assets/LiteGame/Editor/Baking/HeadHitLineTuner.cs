@@ -1,5 +1,4 @@
 using System.Globalization;
-using System.IO;
 using System.Text;
 using UnityEditor;
 using UnityEngine;
@@ -13,8 +12,8 @@ namespace LiteGame.EditorTools
     /// **滑杆**调爆头柱半径（窄于命中柱），导出写 <see cref="BakeTargets.HeadBakeOutput"/>（下沿比例随烘焙身高缩放；半径独立值）。
     ///
     /// 双模式口径：本工具（编辑器模式）与**GM 面板**（对局内滑杆 + 导出按钮）共用同一导出
-    /// <see cref="Export"/>；对局内实时预调走 <c>CombatConfig.HeadHitLineDevOverride</c>/
-    /// <c>CombatConfig.HeadshotRadiusDevOverride</c>（判定与身位可视化同读 Live，滑杆一动即见 Crit 档变化），
+    /// <see cref="Export"/>；对局内实时预调走 <c>MatchTestRules</c> 爆头带覆写（<c>HeadHitLineOverride</c>/
+    /// <c>HeadshotRadiusOverride</c>——判定与身位可视化同读注入实例，滑杆一动即见 Crit 档变化），
     /// 定型才导出落盘。prefab 不入版本管理——本工具需本地 prefab（同 BodyCylinderBaker 前提）。
     ///
     /// **形态**：独立菜单已并入 <see cref="BakingToolbox"/>（统一入口）；本类是可寄宿工具件——
@@ -76,15 +75,24 @@ namespace LiteGame.EditorTools
                 }
                 if (GUILayout.Button("取当前覆写值"))
                 {
-                    if (LiteSim.CombatConfig.HeadHitLineDevOverride >= 0f)
-                        _ratio = Mathf.Clamp(LiteSim.CombatConfig.HeadHitLineDevOverride / height, RatioMin, RatioMax);
-                    if (LiteSim.CombatConfig.HeadshotRadiusDevOverride >= 0f)
-                        _radius = Mathf.Clamp(LiteSim.CombatConfig.HeadshotRadiusDevOverride, RadiusMin, RadiusMax);
+                    var match = LiteSim.SimTestRules.ActiveMatch;
+                    float lineNow = match != null
+                        ? LiteSim.MatchTestRules.ResolveHeadHitLine(match)
+                        : TestModeRuntime.HeadHitLineOverride;
+                    if (lineNow >= 0f)
+                        _ratio = Mathf.Clamp(lineNow / height, RatioMin, RatioMax);
+                    float radiusNow = match != null
+                        ? LiteSim.MatchTestRules.ResolveHeadshotRadius(match)
+                        : TestModeRuntime.HeadshotRadiusOverride;
+                    if (radiusNow >= 0f)
+                        _radius = Mathf.Clamp(radiusNow, RadiusMin, RadiusMax);
                 }
                 if (GUILayout.Button("复位覆写"))
                 {
-                    LiteSim.CombatConfig.HeadHitLineDevOverride = -1f;
-                    LiteSim.CombatConfig.HeadshotRadiusDevOverride = -1f;
+                    TestModeRuntime.HeadHitLineOverride = -1f;
+                    TestModeRuntime.HeadshotRadiusOverride = -1f;
+                    var live = LiteSim.SimTestRules.ActiveMatch;
+                    if (live != null) { live.HeadHitLineOverride = -1f; live.HeadshotRadiusOverride = -1f; }
                 }
             }
 
@@ -95,27 +103,29 @@ namespace LiteGame.EditorTools
         }
 
         /// <summary>导出口径（编辑器调带器与测试面板共用）：下沿比例 + 爆头柱半径写 HeadBake.g.cs，触发重编译。</summary>
-        internal static string Export(float ratio, float radius)
+        public static string Export(float ratio, float radius)
         {
             ratio = Mathf.Clamp(ratio, RatioMin, RatioMax);
             radius = Mathf.Clamp(radius, RadiusMin, RadiusMax);
-            File.WriteAllText(BakeTargets.HeadBakeOutput, BuildText(ratio, radius));
-            AssetDatabase.ImportAsset(BakeTargets.HeadBakeOutput);
+            string write = BakeTargets.WriteGenerated(BakeTargets.HeadBakeOutput, nameof(HeadHitLineTuner),
+                new[]
+                {
+                    "// 语义：爆头带下沿 = HitscanHeight × Ratio（比例单源，随烘焙身高自动缩放——《固定斜视角射击方案专项设计》§5）；",
+                    "//       爆头柱半径 = Radius（窄于命中柱 0.45——头部带是窄柱切片，非命中柱全径切片）。",
+                    "// 消费：CombatConfig.HeadHitLine / HeadshotRadius（爆头判据竖直下沿 + 水平闸）。",
+                    "// 来源：视觉调带裁决值（编辑器 Scene 视图拖带 / 测试模式实机滑杆，二者共用同一导出口径）。",
+                }, BuildBody(ratio, radius));
             float height = LiteSim.CombatConfig.HitscanHeight;
             return $"已导出：下沿比例 {ratio:R}（下沿 {height * ratio:F3} m，带高 {height * (1f - ratio):F3} m）；爆头柱半径 {radius:R} m\n"
-                + $"输出：{BakeTargets.HeadBakeOutput}\n"
+                + $"{write}\n"
                 + "后续：F9 进测试模式 + GM 面板开身位可视化实机复核；buildHash 开发期不重跑（出包时 --check 门禁拦截）。";
         }
 
-        private static string BuildText(float ratio, float radius)
+        /// <summary>常量体（R 格式逐位往返；注释不含日期/批次痕迹——遵守注释卫生）。</summary>
+        private static string BuildBody(float ratio, float radius)
         {
             var inv = CultureInfo.InvariantCulture;
             var sb = new StringBuilder();
-            sb.AppendLine("// 本文件由 HeadHitLineTuner 生成（烘焙工具箱：菜单 LiteGame/烘焙工具箱 → 爆头带调带页导出，或 GM 面板导出按钮）——勿手改。");
-            sb.AppendLine("// 语义：爆头带下沿 = HitscanHeight × Ratio（比例单源，随烘焙身高自动缩放——《固定斜视角射击方案专项设计》§5）；");
-            sb.AppendLine("//       爆头柱半径 = Radius（窄于命中柱 0.45——头部带是窄柱切片，非命中柱全径切片）。");
-            sb.AppendLine("// 消费：CombatConfig.HeadHitLine / HeadshotRadius（爆头判据竖直下沿 + 水平闸）。");
-            sb.AppendLine("// 来源：视觉调带裁决值（编辑器 Scene 视图拖带 / 测试模式实机滑杆，二者共用同一导出口径）。");
             sb.AppendLine("namespace LiteSim");
             sb.AppendLine("{");
             sb.AppendLine("    /// <summary>爆头区常量（视觉裁决值；重调 = 烘焙工具箱爆头带页拖带后导出）。</summary>");
