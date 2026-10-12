@@ -43,17 +43,15 @@ namespace LiteGame
             if (UnityEngine.Input.GetKeyDown(UnityEngine.KeyCode.F10))
             {
                 DebugTuner.ApplySnapshotOrDefaults();
-                TestModeRuntime.EnterRequested = true;
+                TestModeRuntime.RequestEnter();
             }
-            if (TestModeRuntime.EnterRequested)                 // GM 面板/F10 同一条链
+            if (TestModeRuntime.TakeEnterRequest())             // GM 面板/F10 同一条链（读即清）
             {
-                TestModeRuntime.EnterRequested = false;
                 TestModeRuntime.Active = true;
                 m.Request(ProcedureId.Match, new ProcedureArgs(testRoom: true));
             }
-            if (TestModeRuntime.ExitRequested)                  // 主菜单里点退出：只关模式（对局内由 Battle 消费=离场）
+            if (TestModeRuntime.TakeExitRequest())              // 主菜单里点退出：只关模式（对局内由 Battle 消费=离场）
             {
-                TestModeRuntime.ExitRequested = false;
                 TestModeRuntime.Active = false;
             }
 #endif

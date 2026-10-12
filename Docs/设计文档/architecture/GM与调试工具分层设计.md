@@ -15,9 +15,9 @@
 
 ## 2. 动作三分口径（命令化边界）
 
-1. **pre-Play 请求桥**：进入/退出测试模式、传送请求——容器尚不存在，直发一次性标志（`TestModeRuntime.EnterRequested/ExitRequested/TeleportRequested`）；传送在对局内的实际派发经 `ProcedureBattle` → `SendQueued(TeleportToAimCommand)` **进审计环且可撤销**。
-2. **Play 中低频动作**：命令中心派发（审计全覆盖）——样例 `GmResetClockCommand`（时钟复位）、`TeleportToAimCommand`（传送，IUndoable）。新增 GM 动作默认走此形态：命令类型 + 处理器 + `CommandOptions(gmOnly: true, description)`，发现面自动列出。
-3. **高频旋钮不命令化**：现场开关（`TestModeOptions.Set`）、爆头/持枪滑杆——审计环 32 条会被滑杆刷屏；连续旋钮不强行命令化（`GmResetClock` 与 `DebugTuner` 连续旋钮并存的既有先例同口径）。
+1. **pre-Play 请求桥**：进入/退出测试模式、传送请求——容器尚不存在，直发一次性请求（写侧 `TestModeRuntime.RequestEnter/RequestExit/RequestTeleport`，消费侧 `TakeEnterRequest/TakeExitRequest/TakeTeleportRequest` **读即清——一次性语义编译期保证**）；传送在对局内的实际派发经 `ProcedureBattle` → `SendQueued(TeleportToAimCommand)` **进审计环且可撤销**。
+2. **Play 中低频动作**：命令中心派发（审计全覆盖）——样例 `GmResetClockCommand`（时钟复位）、`TeleportToAimCommand`（传送，IUndoable）、**场景命令四件**（`GmLoadSingleScene/GmLoadAdditiveScene/GmUnloadSingleScene/GmUnloadAdditiveScene`——带参+异步形态首个落地：`IAsyncCommandHandler` 经 `ISceneService` 执行，注册点 `ContainerModule` 装配期〔dev 三宏，不依赖 DebugTuner 是否挂〕，场景页即带参命令的专面板）。新增 GM 动作默认走此形态：命令类型 + 处理器 + `CommandOptions(gmOnly: true, description)`，发现面自动列出。
+3. **只读诊断与高频旋钮不命令化**：现场开关（`TestModeOptions.Set`）、爆头/持枪滑杆——审计环 32 条会被滑杆刷屏；连续旋钮不强行命令化（`GmResetClock` 与 `DebugTuner` 连续旋钮并存的既有先例同口径）。**只读投影同口径**（2026-10-12 裁决）：配置诊断页的运行状态/表查询/产物核对为零状态突变的只读面——命令化只刷审计噪音，维持直调。
 
 ## 3. 覆写面治理（沙箱件统一口径）
 
@@ -30,7 +30,7 @@
 
 - 契约 `IGmPage`（`Editor/Gm/`）：`OnShow` / `OnHide` / `Draw` / `Poll`——壳在翻页/开窗时调生命周期，`Poll` **仅活动页**在 Play 中按 0.5s 节拍被调（非活动页不轮询）。
 - 壳 `GmPanel` 职责仅三件：页签生命周期、轮询调度、页签记忆（EditorPrefs **统一前缀 `LiteGame.Gm.*`**）。
-- 四页：测试模式（请求桥+开关+爆头/持枪调参+**bot 操作**）、命令与审计（发现面/无参执行/审计环）、场景操作（SceneService 加载机制验证，忙碌守卫）、配置诊断（运行状态+表查询+产物核对）。
+- 四页：测试模式（请求桥+开关+爆头/持枪调参+**bot 操作**）、命令与审计（发现面/无参执行/审计环）、场景操作（SceneService 加载机制验证——经场景命令 `SendAsync` 派发，忙碌守卫）、配置诊断（运行状态+表查询+产物核对）。
 - **bot 操作（测试模式页）**：补位假人两项——**bot 无限生命**（`TestModeOptions` 现场开关，Live；权威侧宿主钩子 `SimTestRules.BotInfiniteHp` 每帧回满 ⇒ 假人永不死、命中/飘字反馈照常）与**重置假人**（一次性宿主钩子 `SimTestRules.BotResetRequested`：补位席位满血回出生点 + `LifeStartFrame` 生命更替 ⇒ 动画按"新生命"退出死亡叶；进房清残留同 TeleportDispatch 口径）。假人=补位席位（本地玩家不受两项管辖）。**未做（挂账）**：房内**追加**新假人——需放开"固定 2 座"世界规模（客户端定容重建/预测口径），归 G2 8 人基线面另立批。
 - 诊断取件单源：`GmEditorResolve.ResolveFromContainer<T>`（`GameEntry.TakeContainer()` 口径——编辑器工具豁免形态，业务侧禁）；未装配按空态显示。
 - 产物核对路径 = `TableLayout.TableDataPath` **单源**（领域分类布局——装载/服务端直读/编辑器预检三面共用，禁第二份拼接）。
@@ -42,7 +42,7 @@
 
 ## 6. 边界（如实）
 
-- 场景操作/表查询**未命令化**（带参+异步；现状页件直调 + 忙碌守卫；需要审计时再议）。
+- ~~场景操作/表查询未命令化（待议）~~ **已议落定**（2026-10-12）：场景操作四件**已命令化**（带参+异步 GmOnly——加载/卸载进审计环，场景页 SendAsync 派发，L1 源链接直测派发协议）；表查询/运行状态/产物核对**裁决维持直调**（只读投影零状态突变——§2.3）。
 - 审计环不覆盖 pre-Play 请求桥与高频旋钮（§2 取舍，非遗漏）。
 - `MatchTestRules` 链路依赖"客户端预测与进程内服务器同进程同实例"——**测试房/本地服形态专属**；真 KCP 不提供测试房，在线房间级规则下发未做（`ProcedureMatch` 入口口径）。
 - GM 面板对局中导出爆头区会触发 domain reload 中断对局（既有行为，页内 HelpBox 已提示）。

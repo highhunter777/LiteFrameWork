@@ -7,6 +7,10 @@
     <ImplicitUsings>disable</ImplicitUsings>
     <IsTestProject>true</IsTestProject>
     <IsPackable>false</IsPackable>
+    <!-- GmSceneCommands（源链接纳入，见下方链接组）的三宏守卫激活：与 LiteFramework.Core.csproj 同用
+         LITEFRAMEWORK_DEBUG。宏影响面已核查——既有测试源无条件编译段（DisciplineScannerTests 的 #if 命中
+         是字符串字面量）；Core/Async 经 ProjectReference 编译不受本工程宏影响。 -->
+    <DefineConstants>$(DefineConstants);LITEFRAMEWORK_DEBUG</DefineConstants>
   </PropertyGroup>
 
   <ItemGroup>
@@ -20,6 +24,18 @@
     <ProjectReference Include="..\..\Assets\LiteFramework\Scripts\Async\LiteFramework.Async.csproj" />
     <ProjectReference Include="..\..\Assets\Tools\DisciplineScanner\DisciplineScanner.csproj" />
     <ProjectReference Include="..\..\Assets\LiteTesting\LiteTesting.Core.csproj" />
+  </ItemGroup>
+
+  <!--
+    GM 场景命令的 L1 覆盖（《GM 与调试工具分层设计》§2 场景操作命令化批）：按源链接纳入——
+    ISceneService 是 LiteFramework.Unity 的服务端口（零引擎依赖，UniTask 经 LiteFramework.Async 双轨提供）；
+    GmSceneCommands（命令族+处理器+注册面）住 LiteGame App，同份 .cs 两侧编译（ViewTransform 先例）。
+    只覆盖命令派发与注册协议（参数校验/对应操作派发/权限门/审计）；SceneService 实现（YooAsset 适配器）
+    归 L2——机制不在本测试工程。
+  -->
+  <ItemGroup>
+    <Compile Include="..\..\Assets\LiteFramework\Scripts\Unity\Scene\ISceneService.cs" Link="Gm\ISceneService.cs" />
+    <Compile Include="..\..\Assets\LiteGame\App\Commands\GmSceneCommands.cs" Link="Gm\GmSceneCommands.cs" />
   </ItemGroup>
 
 </Project>

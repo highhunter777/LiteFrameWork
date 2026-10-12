@@ -6,6 +6,9 @@ namespace LiteGame
     /// <summary>测试模式的运行时快照与控制桥（开发/编辑器/开发包专用；release 整段剥离）。
     /// **启动配置在场景 DebugTuner**（免死/人数/冻结/传送/三个表现开关的进房初值——进房时快照进来）；
     /// **局内可调项在 GM 面板**（直接读写本快照的现场开关）。进入/退出由 GM 面板或 F10 发起。
+    /// **请求桥（进/退/传送）经 <see cref="RequestEnter"/>/<see cref="RequestExit"/>/<see cref="RequestTeleport"/>
+    /// 与 <see cref="TakeEnterRequest"/>/<see cref="TakeExitRequest"/>/<see cref="TakeTeleportRequest"/>
+    /// 类型化读写对收口**——消费侧读即清，一次性语义编译期保证（静态标志不再对外裸露）。
     /// 对局行为全部由本快照驱动——测试模式恒为本地服形态，两端同进程同源。</summary>
     public static class TestModeRuntime
     {
@@ -37,10 +40,29 @@ namespace LiteGame
         /// </summary>
         public static bool DrawHeadshotDebug;
 
-        // ---- 请求桥（编辑器面板/热键 → 运行时；一次性标志）----
-        public static bool EnterRequested;          // 进入测试模式（主菜单消费 → 进测试房）
-        public static bool ExitRequested;           // 退出测试模式（对局内 = 请求离场并关模式）
-        public static bool TeleportRequested;       //「传送到准心」请求（流程解析目标 → SimTestRules 分发）
+        // ---- 请求桥（编辑器面板/热键 → 运行时；一次性语义经类型化读写对编译期强制——根治审计中债）----
+        private static bool _enterRequested;        // 进入测试模式（主菜单消费 → 进测试房）
+        private static bool _exitRequested;          // 退出测试模式（对局内 = 请求离场并关模式；主菜单 = 只关模式）
+        private static bool _teleportRequested;      //「传送到准心」请求（流程解析目标 → SimTestRules 分发）
+
+        /// <summary>请求进入测试模式（写侧：GM 面板按钮 / F10 热键）。</summary>
+        public static void RequestEnter() => _enterRequested = true;
+
+        /// <summary>请求退出测试模式（写侧：GM 面板；对局内=离场并关模式，主菜单=只关模式）。</summary>
+        public static void RequestExit() => _exitRequested = true;
+
+        /// <summary>请求传送到准心（写侧：T 热键 / GM 面板）。</summary>
+        public static void RequestTeleport() => _teleportRequested = true;
+
+        /// <summary>消费进入请求（读即清——一次性语义由本方法强制：忘清零/二次消费皆不可能）。</summary>
+        public static bool TakeEnterRequest() { bool v = _enterRequested; _enterRequested = false; return v; }
+
+        /// <summary>消费退出请求（读即清；主菜单与对局两流程各持一次 Take，流程态互斥 ⇒ 恰一者见 true）。</summary>
+        public static bool TakeExitRequest() { bool v = _exitRequested; _exitRequested = false; return v; }
+
+        /// <summary>消费传送请求（读即清——消费即移交派发权）。</summary>
+        public static bool TakeTeleportRequest() { bool v = _teleportRequested; _teleportRequested = false; return v; }
+
         // 「重置假人」是一次性宿主钩子（SimTestRules.BotResetRequested，面板直写、本地服消费即清）——
         // 宿主不持本类的引用（程序集方向），故不在此设桥。
 

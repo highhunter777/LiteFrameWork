@@ -174,6 +174,7 @@ namespace RoomServer.Runtime
                 case RoomCommandKind.Disconnect: ExecuteDisconnect(cmd.ConnectionId, outputs); break;
                 case RoomCommandKind.Rebind: ExecuteRebind(cmd.PlayerId, cmd.NewConnectionId, outputs); break;
                 case RoomCommandKind.RestoreAck: ExecuteRestoreAck(cmd.PlayerId, outputs); break;
+                case RoomCommandKind.StartEarly: ExecuteStartEarly(cmd.PlayerId, outputs); break;
                 case RoomCommandKind.Tick: ExecuteTick(cmd.NowMs, outputs); break;
                 case RoomCommandKind.Shutdown: ExecuteShutdown(cmd.Reason, cmd.NowMs, outputs); break;
             }
@@ -184,6 +185,15 @@ namespace RoomServer.Runtime
             if (MatchStateMachine.IsTerminal(Match.Phase))
             {
                 outputs.Add(new JoinRejectedOutput(connectionId, "房间已关闭"));
+                return;
+            }
+            // 对局中拒加入（开房裁决）：StartMatch 只给**开局时已入座**的席位生成实体，
+            // 中途加入者会拿到无实体的空席位（EntityId 恒 0——射击/快照/结算全对不上）。
+            // 进房只允许在 Created/WaitingForPlayers 阶段；Running/Finishing/Settling 一律拒。
+            if (Match.Phase == MatchPhase.Starting || Match.Phase == MatchPhase.Running
+                || Match.Phase == MatchPhase.Finishing || Match.Phase == MatchPhase.Settling)
+            {
+                outputs.Add(new JoinRejectedOutput(connectionId, "对局进行中，无法加入"));
                 return;
             }
             if (NextPlayerId >= ExpectedPlayers)
@@ -197,12 +207,36 @@ namespace RoomServer.Runtime
 
             int playerId = NextPlayerId++;
             var seat = new PlayerSession(playerId, connectionId);
+            seat.IsOwner = playerId == 0;                                // 开房者 = 首个入座者（owner 位，随 JoinAck 下发）
             _seats[playerId] = seat;
             _connectionToPlayer[connectionId] = playerId;
-            outputs.Add(new SignalOutput(playerId, new PlayerAdmitted(playerId, MemberIds())));
+            outputs.Add(new SignalOutput(playerId, new PlayerAdmitted(playerId, MemberIds(), seat.IsOwner)));
 
             if (Match.Phase == MatchPhase.WaitingForPlayers && NextPlayerId >= ExpectedPlayers)
                 StartMatch(outputs);                                     // 满员 → Starting → Running
+        }
+
+        /// <summary>
+        /// 房主提前开局（开房裁决）：WaitingForPlayers 下 owner 席位触发 → 未满员立即
+        /// <see cref="StartMatch"/>（世界只生成已入座实体，缺席席位沿用空输入——内核天然支持）。
+        /// 拒绝面：<see cref="StartRejectedOutput"/>（非 owner / 席位无效），App 映射为
+        /// <c>StartMatchResponse</c> 信令回发起者；Running 后幂等忽略（重复点击/迟到包不炸循环）。
+        /// </summary>
+        private void ExecuteStartEarly(int playerId, List<RoomOutput> outputs)
+        {
+            if (Match.Phase != MatchPhase.WaitingForPlayers)
+                return;                                                   // 已开局/已关闭：幂等忽略（无反馈——UI 状态本就不该可点）
+            if (playerId < 0 || playerId >= ExpectedPlayers || _seats[playerId] == null)
+            {
+                outputs.Add(new StartRejectedOutput(playerId, "席位无效"));
+                return;
+            }
+            if (!_seats[playerId].IsOwner)
+            {
+                outputs.Add(new StartRejectedOutput(playerId, "只有房主可以开始对局"));
+                return;
+            }
+            StartMatch(outputs, "owner-start");                          // 区别于满员 "full"——审计可辨开局来源
         }
 
         private void ExecuteInput(int playerId, in ClientInputBatch batch)
@@ -359,10 +393,11 @@ namespace RoomServer.Runtime
         /// 世界按种子生成，玩家落出生点。
         /// seed 策略：<see cref="RoomConfig.Seed"/> 非 0 用之；为 0 时由最近一次 Tick 的 nowMs 派生
         /// （R1：系统墙钟兜底已删除，时间只从命令进入）。
+        /// <paramref name="reason"/> = 迁移审计原因（"full" 满员自动 / "owner-start" 房主提前）。
         /// </summary>
-        private void StartMatch(List<RoomOutput> outputs)
+        private void StartMatch(List<RoomOutput> outputs, string reason = "full")
         {
-            Transition(MatchPhase.Starting, "full", _lastNowMs, outputs);
+            Transition(MatchPhase.Starting, reason, _lastNowMs, outputs);
 
             Seed = Config.Seed != 0 ? Config.Seed : DeriveSeed(_lastNowMs);
             AuthSim.RngState = (ulong)Seed;

@@ -137,16 +137,32 @@ namespace RoomServer.Runtime
     {
     }
 
-    /// <summary>席位就位（App：JoinAck——Members 为当前全员快照，playerId 升序）。</summary>
+    /// <summary>席位就位（App：JoinAck——Members 为当前全员快照，playerId 升序；
+    /// <see cref="IsOwner"/> → JoinAck.is_owner〔开房裁决：开房者=首个入座者〕）。</summary>
     public sealed class PlayerAdmitted : RoomSignal
     {
         public readonly int PlayerId;
         public readonly int[] Members;
+        public readonly bool IsOwner;
 
-        public PlayerAdmitted(int playerId, int[] members)
+        public PlayerAdmitted(int playerId, int[] members, bool isOwner = false)
         {
             PlayerId = playerId;
             Members = members;
+            IsOwner = isOwner;
+        }
+    }
+
+    /// <summary>提前开局被拒（App：StartMatchResponse{ok=false, reason} 回发起者；开房裁决）。</summary>
+    public sealed class StartRejectedOutput : RoomOutput
+    {
+        public readonly int PlayerId;
+        public readonly string Reason;
+
+        public StartRejectedOutput(int playerId, string reason)
+        {
+            PlayerId = playerId;
+            Reason = reason;
         }
     }
 

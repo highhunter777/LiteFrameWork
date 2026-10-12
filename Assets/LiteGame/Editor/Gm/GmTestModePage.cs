@@ -7,7 +7,7 @@ namespace LiteGame.Editor
     /// GM 工具箱·测试模式页：进入/退出/传送到准心 + 现场开关（即时生效）+ 爆头区/持枪幅度实时调。
     /// **静态启动配置不在本页**——在场景 DebugTuner（Inspector 随场景保存，进房快照）；本页只管进入/退出与局内可调项。
     /// 分层裁决：现场开关清单/显示名/写口全部经 <see cref="TestModeOptions"/>（新增开关只改那张表——本页零改动）；
-    /// 进入/退出/传送 = 一次性请求桥（<see cref="TestModeRuntime"/> 标志——**pre-Play 容器尚不存在**，不走命令中心；
+    /// 进入/退出/传送 = 一次性请求桥（<see cref="TestModeRuntime"/> 的 Request*/Take* 类型化读写对——**pre-Play 容器尚不存在**，不走命令中心；
     /// 传送的实际派发在对局内经 ProcedureBattle → <c>SendQueued(TeleportToAimCommand)</c> 进审计环）；
     /// 爆头带覆写写通道 = <see cref="MatchTestRules"/> 活动局实例 + <see cref="TestModeRuntime"/> 待用值双落
     /// （判定路径读注入实例——确定性判定不读静态，含 dev 宏内）。
@@ -38,9 +38,9 @@ namespace LiteGame.Editor
             using (new EditorGUILayout.HorizontalScope())
             {
                 // 进入前把场景 DebugTuner 的启动配置快照进运行时（未挂则套默认口径）；F10 同一条链
-                if (GUILayout.Button("进入测试模式")) { DebugTuner.ApplySnapshotOrDefaults(); TestModeRuntime.EnterRequested = true; }
-                if (GUILayout.Button("退出测试模式")) TestModeRuntime.ExitRequested = true;              // 对局内 = 离场并关模式；主菜单 = 只关模式
-                if (GUILayout.Button("传送到准心")) TestModeRuntime.TeleportRequested = true;
+                if (GUILayout.Button("进入测试模式")) { DebugTuner.ApplySnapshotOrDefaults(); TestModeRuntime.RequestEnter(); }
+                if (GUILayout.Button("退出测试模式")) TestModeRuntime.RequestExit();              // 对局内 = 离场并关模式；主菜单 = 只关模式
+                if (GUILayout.Button("传送到准心")) TestModeRuntime.RequestTeleport();
             }
             EditorGUILayout.HelpBox(
                 "启动项（免死/bot 数/冻结/传送）与表现类开关的**进房初值**都在场景 DebugTuner 上编辑（Inspector，随场景保存）；"

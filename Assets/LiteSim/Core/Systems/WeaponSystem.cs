@@ -116,7 +116,7 @@ namespace LiteSim
         }
 
         /// <summary>
-        /// 开火消费（ShootingSystem 判定点调用）：Ready ∧ 半自动击发沿 ∧ 节拍到帧 ∧ 有弹 →
+        /// 开火消费（ShootingSystem 判定点调用）：Ready ∧ 半自动击发沿 ∧ 节拍到帧 ∧ （有弹 ∨ 无限子弹）→
         /// 扣弹、推进 <see cref="WeaponRuntime.NextFireFrame"/>、<see cref="WeaponRuntime.ShotSeq"/>++，
         /// 返回 true 并给武器定义；否则返回 false（该帧不开火——无 Fire 事件、无 RngState 消费）。
         ///
@@ -125,7 +125,8 @@ namespace LiteSim
         /// 冷却/换弹中按压同样消费击发沿（按住不放不会在冷却结束时自动击发——半自动要求逐次按压），
         /// 松开帧由 ③ 重臂。自动武器（true）整段旁路。
         /// **打空自动换弹**：末发消费后弹匣归零且备弹有余 → 同帧进入 Reloading（打空即补；
-        /// 备弹零则保持空仓 Ready）。
+        /// 备弹零则保持空仓 Ready）。**空仓门对无限子弹放行**：规则开启后弹匣 0 也可开火
+        /// （不扣弹、不凭空造弹）——彻底干涸的枪现场开开关即复活，无需换弹/切枪恢复动作。
         /// </summary>
         /// <summary>（<paramref name="rules"/> 由 Run 注入传递——测试规则实例热路径唯一读点之一）。</summary>
         public static bool TryConsumeShot(SimWorldState s, int slotIndex, int frame, WeaponTable table, out WeaponDef def,
@@ -141,10 +142,11 @@ namespace LiteSim
             }
             if (w.State != WeaponSlotState.Ready) return false;           // 换弹/切枪中不可开火 // lint-allow R3（枚举判等）
             if (frame < w.NextFireFrame) return false;                    // 射速节拍
-            if (w.MagAmmo <= 0) return false;                             // 空仓（备弹有余时已由上次末发自动换弹）
+            bool infinite = rules != null && rules.InfiniteAmmo;          // 无限子弹（注入规则）——空仓门与扣弹共用
+            if (w.MagAmmo <= 0 && !infinite) return false;                // 空仓（备弹有余时已由上次末发自动换弹）；无限子弹放行——干涸枪现场开开关即复活
 
             // 测试模式无限子弹（注入规则）：不扣弹、也不会打空（末发自动换弹随之不触发）——满弹状态下换弹请求亦被 ② 拒
-            if (rules == null || !rules.InfiniteAmmo)
+            if (!infinite)
             {
                 w.MagAmmo--;
                 if (w.MagAmmo == 0 && w.ReserveAmmo > 0)                  // 末发自动换弹（打空即补）

@@ -174,19 +174,10 @@ namespace RoomServer
         private long _mailboxStale;
 
         /// <summary>
-        /// Control lane 满载时暂存断线事实，待 owner 消费已有控制命令后再按 FIFO 入盒。
-        /// 断线不能直接旁路执行，否则会越过同房间其他连接已经排队的 Join/Rebind。
+        /// Control lane 满载时暂存断线事实，待 owner 消费已有控制命令后再按 FIFO 入盒
+        /// （判据切分批外提 <see cref="PendingDisconnectQueue"/>——语义与线程契约零变化，语义注释归该类）。
         /// </summary>
-        private readonly object _pendingDisconnectGate = new object();
-        private readonly List<PendingDisconnect> _pendingDisconnects = new List<PendingDisconnect>();
-
-        private struct PendingDisconnect
-        {
-            public RoomInstance Room;
-            public Session Session;
-            public int ConnectionId;
-            public long SessionEpoch;
-        }
+        private readonly PendingDisconnectQueue _pendingDisconnects;
 
         private sealed class ReconnectTicketRaceException : Exception
         {
@@ -370,6 +361,9 @@ namespace RoomServer
                 : null);
             // 驱动体在首个房间建立（AddRoom 会绑定 DriveAction）之前就位——它只在被调用时读端口
             _workerDriver = new RoomWorkerDriver(this);
+            // 断线暂存队列：提交端口 = 控制命令是否成功入盒（满载暂存、FIFO、Mailbox 关闭丢弃——见该类注释）
+            _pendingDisconnects = new PendingDisconnectQueue(
+                (room, connectionId, session) => TrySubmitCommandTo(room, RoomCommand.Disconnect(connectionId), session));
             _mailboxRouting = mailboxRouting;
             _drainMailboxesImmediately = mailboxRouting && drainMailboxesImmediately;
 
@@ -535,75 +529,7 @@ namespace RoomServer
                 // 再重试入盒，避免直接旁路打破 Control FIFO。
                 room.Mailbox.DiscardControls(e => e.ConnectionId == connectionId);
                 if (!TrySubmitCommandTo(room, command, disconnectedSession))
-                    QueuePendingDisconnect(room, disconnectedSession);
-            }
-        }
-
-        private void QueuePendingDisconnect(RoomInstance room, Session session)
-        {
-            if (room == null || session == null) return;
-            lock (_pendingDisconnectGate)
-            {
-                for (int i = 0; i < _pendingDisconnects.Count; i++)
-                {
-                    PendingDisconnect pending = _pendingDisconnects[i];
-                    if (ReferenceEquals(pending.Room, room)
-                        && pending.ConnectionId == session.ConnectionId
-                        && pending.SessionEpoch == session.Epoch)
-                        return;
-                }
-                _pendingDisconnects.Add(new PendingDisconnect
-                {
-                    Room = room,
-                    Session = session,
-                    ConnectionId = session.ConnectionId,
-                    SessionEpoch = session.Epoch,
-                });
-            }
-        }
-
-        /// <summary>
-        /// 重试控制队列满载时暂存的断线事实。只在入盒成功后移除；不做 owner 旁路，
-        /// 因而仍保持同一 Control lane 的 FIFO。Mailbox 关闭时丢弃未处理的排队事实，
-        /// 因为宿主已经进入释放阶段。
-        /// </summary>
-        private void FlushPendingDisconnects(RoomInstance onlyRoom = null)
-        {
-            PendingDisconnect[] pending;
-            lock (_pendingDisconnectGate)
-                pending = _pendingDisconnects.ToArray();
-
-            for (int i = 0; i < pending.Length; i++)
-            {
-                PendingDisconnect item = pending[i];
-                if (onlyRoom != null && !ReferenceEquals(onlyRoom, item.Room)) continue;
-
-                if (item.Room == null || item.Room.Mailbox.IsClosed)
-                {
-                    RemovePendingDisconnect(item);
-                    continue;
-                }
-
-                if (TrySubmitCommandTo(item.Room,
-                    RoomCommand.Disconnect(item.ConnectionId), item.Session))
-                    RemovePendingDisconnect(item);
-            }
-        }
-
-        private void RemovePendingDisconnect(PendingDisconnect item)
-        {
-            lock (_pendingDisconnectGate)
-            {
-                for (int i = 0; i < _pendingDisconnects.Count; i++)
-                {
-                    PendingDisconnect current = _pendingDisconnects[i];
-                    if (!ReferenceEquals(current.Room, item.Room)
-                        || current.ConnectionId != item.ConnectionId
-                        || current.SessionEpoch != item.SessionEpoch)
-                        continue;
-                    _pendingDisconnects.RemoveAt(i);
-                    return;
-                }
+                    _pendingDisconnects.Enqueue(room, disconnectedSession);
             }
         }
 
@@ -652,6 +578,9 @@ namespace RoomServer
                     break;
                 case PacketType.Leave:
                     HandleLeave(session);
+                    break;
+                case PacketType.StartMatchRequest:
+                    HandleStartMatchRequest(session);
                     break;
             }
         }
@@ -1077,13 +1006,27 @@ namespace RoomServer
                 // Leave 与传输断线具有相同的控制面语义；满载时保留事实，
                 // 等 owner 按 Control FIFO 重试，不静默丢失。
                 session.Disconnected = true;
-                QueuePendingDisconnect(room, session);
+                _pendingDisconnects.Enqueue(room, session);
             }
         }
 
         private void SendToSession(Session session, PacketType type, IMessage message, bool reliable)
         {
             _transport.SendTo(session.ConnectionId, new ArraySegment<byte>(PacketCodec.Encode(type, message)), reliable);
+        }
+
+        /// <summary>
+        /// 房主提前开局请求（开房裁决）：会话已入座且房间在册才投递
+        /// <see cref="RoomCommand.StartEarly"/>——owner 判定在 Runtime（"开房者=首入座者"），
+        /// 拒绝经 <see cref="StartRejectedOutput"/> → StartMatchResponse 信令回本会话。
+        /// 未入座/房间不在册：静默忽略（无席位可反馈，同 Leave 的守卫口径）。
+        /// </summary>
+        private void HandleStartMatchRequest(Session session)
+        {
+            if (session.PlayerId < 0 || session.JoinPending) return;      // 未入座/进房中：无发起资格
+            RoomInstance room = GetRoomInstance(session.RoomId);
+            if (room == null) return;
+            TrySubmitCommandTo(room, RoomCommand.StartEarly(session.PlayerId), session);
         }
 
         /// <summary>
@@ -1513,6 +1456,17 @@ namespace RoomServer
                 case SignalOutput so:
                     ApplySignal(so, joinContext);
                     break;
+                case StartRejectedOutput sr:                         // 开房裁决：提前开局被拒 → 回发起者信令
+                {
+                    RoomInstance room = _currentRoom ?? (_rooms.Count > 0 ? _rooms[0] : null);
+                    Session starter = room != null && sr.PlayerId >= 0 && sr.PlayerId < room.Seats.Length
+                        ? room.Seats[sr.PlayerId]
+                        : null;
+                    if (starter != null && !starter.Disconnected)
+                        SendToSession(starter, PacketType.StartMatchResponse,
+                            new Proto.StartMatchResponse { Ok = false, Reason = sr.Reason }, reliable: true);
+                    break;
+                }
                 case JoinRejectedOutput jr:
                     RoomInstance rejectedRoom = _currentRoom;
                     if (_sessions.TryGet(jr.ConnectionId, out Session rejectedSession))
@@ -1637,6 +1591,7 @@ namespace RoomServer
                         ReconnectWindowSeconds = (int)(_reconnects.TtlMs / 1000),
                         SnapshotHz = SimConfig.SnapshotHz,
                         TickRate = SimConfig.TickRate,
+                        IsOwner = pa.IsOwner,             // 开房裁决：开房者=首入座者——UI 据此亮"开始对局"
                     }, reliable: true);
                     break;
                 }
@@ -1679,7 +1634,7 @@ namespace RoomServer
             _nowMs = NowMs();
             _transport.TickIncoming();
             if (_mailboxRouting)
-                FlushPendingDisconnects();
+                _pendingDisconnects.Flush();
 
             // 逐房间推进（§8.2"一个 Worker 顺序驱动多个 RoomActor"）。
             // 宿主 owner 形态：宿主主线程即唯一执行者；Worker 执行形态：宿主只投递命令并应用回传。
@@ -1739,7 +1694,7 @@ namespace RoomServer
                     // 先清空已经在 Control lane 中的消息，再重试暂存的断线事实，
                     // 最后才消费 Input/Outbound；这样重试命令不会越过同批输入。
                     DrainRoomControlMailbox(room);
-                    FlushPendingDisconnects(room);
+                    _pendingDisconnects.Flush(room);
                     DrainRoomMailbox(room);
                 }
 

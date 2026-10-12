@@ -212,6 +212,28 @@ Console.WriteLine(envelopeOptions == null
 var host = provider.GetRequiredService<ServerHost>();
 host.Ops.PrintEnabled = !quiet;
 
+// /metrics 零依赖文本出口（R4 第一批）：metrics_port > 0 启用（缺省 0 = 关闭，行为零变化）。
+// 房间数 gauge 经委托注入（Ops 住 Application 层不认识宿主）；Start 失败走**告警降级**——
+// 可观测面不打断宿主可用性（Windows 非管理员绑 + 前缀需 netsh urlacl）。
+host.Ops.BindRoomsGauge(() => host.RoomCount);
+using var metrics = serverConfig.MetricsPort > 0
+    ? new MetricsHttpListener(() => host.Ops.FormatMetrics())
+    : null;
+if (metrics != null)
+{
+    try
+    {
+        metrics.Start(serverConfig.MetricsPort);
+        Console.WriteLine($"[RoomServer] 指标出口：http://+:{serverConfig.MetricsPort}/metrics（Prometheus 文本子集，计数单源 Ops.FormatMetrics）");
+    }
+    catch (Exception ex)
+    {
+        Console.WriteLine($"[RoomServer] !! 指标出口启动失败（端口 {serverConfig.MetricsPort}：{ex.Message}）"
+            + "——宿主继续运行，无 /metrics（Windows 非管理员需 netsh http add urlacl 或改用已授权端口）");
+        metrics.Dispose();
+    }
+}
+
 // Lobby 注册客户端（解析在宿主之后——创建序=解析序，释放逆序天然"先停心跳、再收宿主"）。
 // 排空期间心跳继续（快照 Draining=true）——Lobby 立即停止分配新对局（§7 drain 协同），
 // 直到进程退出才停止上报。

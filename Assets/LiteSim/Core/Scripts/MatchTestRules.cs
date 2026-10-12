@@ -18,7 +18,8 @@ namespace LiteSim
         /// <summary>全房免死：跨死亡线时 Hp 保底 1、不写 Kill/Death——命中/受击反馈保留，目标永不消失。</summary>
         public bool NoDeath;
 
-        /// <summary>无限子弹：开火不扣弹匣（也不触发末发自动换弹）、换弹请求因满弹被拒——仅测试模式。</summary>
+        /// <summary>无限子弹：开火不扣弹匣（也不触发末发自动换弹）、空仓亦可开火（弹匣 0 放行——
+        /// 彻底干涸的枪开开关即复活）、换弹请求因满弹被拒——仅测试模式。</summary>
         public bool InfiniteAmmo;
 
         /// <summary>爆头线下沿试验覆写（m；&lt; 0 = 不覆写，用 <see cref="CombatConfig.HeadHitLine"/> 导出值）：

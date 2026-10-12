@@ -47,6 +47,8 @@ namespace LiteNet.Protocol
                     case PacketType.ReconnectResponse: message = Proto.ReconnectResponse.Parser.ParseFrom(payload); return true;
                     case PacketType.RestoreComplete: message = Proto.RestoreComplete.Parser.ParseFrom(payload); return true;
                     case PacketType.MatchEnded: message = Proto.MatchEnded.Parser.ParseFrom(payload); return true;
+                    case PacketType.StartMatchRequest: message = Proto.StartMatchRequest.Parser.ParseFrom(payload); return true;   // 开房裁决
+                    case PacketType.StartMatchResponse: message = Proto.StartMatchResponse.Parser.ParseFrom(payload); return true;
                     default: return false;
                 }
             }

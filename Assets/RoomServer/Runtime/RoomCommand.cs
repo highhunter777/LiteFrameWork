@@ -35,6 +35,9 @@ namespace RoomServer.Runtime
         Shutdown,
         /// <summary>恢复完成 ACK（R1 批③，§9.3 步骤 6）：席位 Restoring → Active 的门闩。</summary>
         RestoreAck,
+        /// <summary>房主提前开局（未满员 StartMatch）：仅 WaitingForPlayers 有效、仅 owner 席位可触发；
+        /// Running 后幂等忽略。App 校验"发请求的连接确属该席位"后构造。</summary>
+        StartEarly,
     }
 
     /// <summary>
@@ -115,5 +118,13 @@ namespace RoomServer.Runtime
         /// </summary>
         public static RoomCommand RestoreAck(int playerId)
             => new RoomCommand(RoomCommandKind.RestoreAck, -1, playerId, -1, 0, ShutdownReason.None, default);
+
+        /// <summary>
+        /// 房主提前开局请求（PlayerId = 发起席位；owner 判定在 Runtime——"开房者 = 首个入座者"）。
+        /// 未满员立即 StartMatch（世界只生成已入座实体，缺席席位沿用空输入）；
+        /// 非 WaitingForPlayers 幂等忽略、非 owner 拒绝（App 回 <c>StartMatchResponse</c> 信令）。
+        /// </summary>
+        public static RoomCommand StartEarly(int playerId)
+            => new RoomCommand(RoomCommandKind.StartEarly, -1, playerId, -1, 0, ShutdownReason.None, default);
     }
 }

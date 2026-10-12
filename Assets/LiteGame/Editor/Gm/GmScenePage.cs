@@ -10,8 +10,9 @@ namespace LiteGame.Editor
 {
     /// <summary>
     /// GM 工具箱·场景操作页：SceneService 加载机制验证（单场景切换 / 叠加 / 卸载）。
-    /// 场景下拉取 EditorBuildSettings 清单（可加载前提之一）；操作走 fire-and-forget + 忙碌守卫，
-    /// 异常不外泄到编辑器、结果落面板。位置记忆走 EditorPrefs（统一前缀 LiteGame.Gm.*）。
+    /// 场景下拉取 EditorBuildSettings 清单（可加载前提之一）；操作经命令中心派发（GmOnly 带参+异步
+    /// 场景命令的专面板——权限门/拦截器/审计环全覆盖；忙碌守卫保留），异常不外泄到编辑器、结果落面板。
+    /// 位置记忆走 EditorPrefs（统一前缀 LiteGame.Gm.*）。
     /// </summary>
     internal sealed class GmScenePage : IGmPage
     {
@@ -53,10 +54,10 @@ namespace LiteGame.Editor
             using (new EditorGUI.DisabledScope(!ready))
             using (new EditorGUILayout.HorizontalScope())
             {
-                if (GUILayout.Button("单场景加载")) RunSceneOp(() => GetSceneService().LoadSingleAsync(_sceneLocation), "单场景加载").Forget();
-                if (GUILayout.Button("叠加加载")) RunSceneOp(() => GetSceneService().LoadAdditiveAsync(_sceneLocation), "叠加加载").Forget();
-                if (GUILayout.Button("卸载单场景")) RunSceneOp(() => GetSceneService().UnloadSingleAsync(), "卸载单场景").Forget();
-                if (GUILayout.Button("卸载叠加")) RunSceneOp(() => GetSceneService().UnloadAdditiveAsync(_sceneLocation), "卸载叠加").Forget();
+                if (GUILayout.Button("单场景加载")) RunSceneOp(new GmLoadSingleSceneCommand { Location = _sceneLocation }, "单场景加载").Forget();
+                if (GUILayout.Button("叠加加载")) RunSceneOp(new GmLoadAdditiveSceneCommand { Location = _sceneLocation }, "叠加加载").Forget();
+                if (GUILayout.Button("卸载单场景")) RunSceneOp(new GmUnloadSingleSceneCommand(), "卸载单场景").Forget();
+                if (GUILayout.Button("卸载叠加")) RunSceneOp(new GmUnloadAdditiveSceneCommand { Location = _sceneLocation }, "卸载叠加").Forget();
             }
 
             if (!Application.isPlaying) EditorGUILayout.HelpBox("场景操作需 Play（AssetService 初始化后才可加载）", MessageType.Info);
@@ -68,22 +69,25 @@ namespace LiteGame.Editor
             EditorGUILayout.HelpBox("本页为加载机制的机制级验证（加载/卸载/叠加语义），不承担业务流程跳转。", MessageType.Info);
         }
 
-        /// <summary>场景操作（fire-and-forget + 忙碌守卫 + 结果落面板；异常不外泄到编辑器）。</summary>
-        private async UniTaskVoid RunSceneOp(Func<UniTask> op, string label)
+        /// <summary>场景操作经命令中心（SendAsync：权限门/拦截器/审计链全覆盖——加载/卸载进审计环；
+        /// 运行态失败以结果返回，编程错误兜底不外泄到编辑器；忙碌守卫与结果落面板保留）。</summary>
+        private async UniTaskVoid RunSceneOp<TCommand>(TCommand command, string label) where TCommand : ICommand
         {
-            ISceneService scene = GetSceneService();
-            if (scene == null) { _sceneResult = $"{label}失败：SceneService 未装配"; return; }
+            CommandCenter center = GetCommandCenter();
+            if (center == null) { _sceneResult = $"{label}失败：CommandCenter 未装配"; return; }
 
             _sceneBusy = true;
             _sceneResult = $"{label}中……";
             try
             {
-                await op();
-                _sceneResult = $"{label}完成：{DescribeScenes(scene)}";
+                CommandResult result = await center.SendAsync(command);
+                _sceneResult = result.Ok
+                    ? $"{label}完成：{result.Detail}"
+                    : $"{label}拒（{result.Reason}）：{result.Detail}";
             }
             catch (Exception ex)
             {
-                _sceneResult = $"{label}失败：{ex.Message}";
+                _sceneResult = $"{label}失败：{ex.Message}";   // 无处理器/类型错配等编程错误——兜底不外泄
             }
             finally
             {
@@ -135,5 +139,7 @@ namespace LiteGame.Editor
         }
 
         private ISceneService GetSceneService() => GmEditorResolve.ResolveFromContainer<ISceneService>();
+
+        private static CommandCenter GetCommandCenter() => GmEditorResolve.ResolveFromContainer<ICommandCenter>() as CommandCenter;
     }
 }

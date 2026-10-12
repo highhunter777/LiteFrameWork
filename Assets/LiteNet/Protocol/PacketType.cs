@@ -16,5 +16,7 @@ namespace LiteNet.Protocol
         ReconnectResponse = 10,
         RestoreComplete = 11,     // §9.3 步骤 6：客户端恢复完成 ACK（Reliable）——Restoring → Active 门闩
         MatchEnded = 12,
+        StartMatchRequest = 13,   // C→S 房主提前开局（Reliable；开房裁决——owner 判定在 Runtime）
+        StartMatchResponse = 14,  // S→C 提前开局反馈（Reliable；仅拒绝时携带原因——成功以 StartGame 广播为准）
     }
 }

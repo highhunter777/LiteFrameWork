@@ -88,6 +88,9 @@ namespace LiteClient
         /// <summary>发起重连（SuspectedLost → Reconnecting；无票据/相位不符返回 false——Failed 终态唯一出路是重建会话）。</summary>
         public bool BeginReconnect() => _client.BeginReconnect();
 
+        /// <summary>房主提前开局请求（开房裁决：转发 RoomClient——相位守卫/被拒反馈/成功广播归它）。</summary>
+        public void SendStartMatchRequest() => _client.SendStartMatchRequest();
+
         /// <summary>主动断开（离场路径；相位迁移由 RoomClient 状态机裁决）。</summary>
         public void Disconnect() => _client.Disconnect();
 

@@ -116,6 +116,10 @@ namespace LiteNet
         public event Action<Proto.StartGame> OnStartGame;
         public event Action<Proto.StateSnapshot> OnSnapshot;
         public event Action<Proto.MatchEnded> OnMatchEnded;
+
+        /// <summary>提前开局被拒反馈（开房裁决：非房主/席位无效——UI 据此提示；
+        /// 成功路径以 <see cref="OnStartGame"/> 广播为准，本事件只在被拒时到达）。</summary>
+        public event Action<Proto.StartMatchResponse> OnStartMatchResponse;
         private Proto.MatchEnded _matchResult;
         private string _activeMatchId;
         public Proto.MatchEnded MatchResult => _matchResult?.Clone();
@@ -165,6 +169,18 @@ namespace LiteNet
                 DiagTrace.JoinKey(roomId, PlayerId, buildHash),
                 "content=" + (string.IsNullOrEmpty(ContentContext) ? "-" : ContentContext));
             Send(PacketType.Join, new Proto.JoinRequest { RoomId = roomId, Token = token, BuildHash = buildHash }, reliable: true);
+        }
+
+        /// <summary>
+        /// 发送房主提前开局请求（开房裁决：Reliable 空载荷——服务器按会话映射席位，
+        /// owner 判定在 Runtime）。未入房（Phase != Connected）调用为 no-op（UI 按相位禁用按钮，
+        /// 这里再守一道——迟到点击不产生垃圾包）。被拒反馈见 <see cref="OnStartMatchResponse"/>；
+        /// 成功即 <see cref="OnStartGame"/> 广播。
+        /// </summary>
+        public void SendStartMatchRequest()
+        {
+            if (Phase != ClientSessionPhase.Connected) return;
+            Send(PacketType.StartMatchRequest, new Proto.StartMatchRequest(), reliable: true);
         }
 
         /// <summary>
@@ -410,6 +426,9 @@ namespace LiteNet
                     break;
                 case PacketType.ReconnectResponse:
                     HandleReconnectResponse((Proto.ReconnectResponse)msg);
+                    break;
+                case PacketType.StartMatchResponse:                     // 开房裁决：提前开局被拒反馈
+                    OnStartMatchResponse?.Invoke((Proto.StartMatchResponse)msg);
                     break;
             }
         }

@@ -314,6 +314,34 @@ namespace LiteSim.Tests
         }
 
         [Fact]
+        public void 无限子弹_空仓放行_干涸弹匣照常开火不扣弹_零备弹换弹仍拒()
+        {
+            var (world, id, slot) = Spawn();
+            WeaponSystem.Run(world, Idle(id), WeaponTable.Default);
+            ref WeaponRuntime w = ref WeaponOf(world, slot);
+            WeaponDef def = WeaponConfig.Default;
+
+            // 彻底干涸：弹匣 0 + 备弹 0（打空自动换弹也救不回的形态）——GM 现场开无限子弹的场景
+            w.MagAmmo = 0;
+            w.ReserveAmmo = 0;
+
+            var rules = new MatchTestRules { InfiniteAmmo = true };
+            for (int i = 0; i < 3; i++)
+            {
+                world.Frame = i * def.FireIntervalFrames;
+                ShootingSystem.Run(world, NoObstacles, Fire(id), CombatValues.Default, WeaponTable.Default, rules);
+            }
+            Assert.Equal(3, FireEvents(world));                   // 空仓门对无限子弹放行——干涸枪当场复活
+            Assert.Equal(0, w.MagAmmo);                           // 不扣弹（无弹可扣、也不凭空造弹）
+            Assert.Equal(0, w.ReserveAmmo);
+            Assert.Equal(WeaponSlotState.Ready, w.State);         // 不进末发自动换弹（没消费过末发）
+
+            world.Frame += 1;
+            WeaponSystem.Run(world, Reload(id), WeaponTable.Default, rules);
+            Assert.Equal(WeaponSlotState.Ready, w.State);         // 换弹门不受无限子弹影响：零备弹仍拒
+        }
+
+        [Fact]
         public void 未装备实体_不经武器门_维持旧路径()
         {
             // 直调 ShootingSystem（不跑 WeaponSystem）＝测试/沙盒形态：装备前逐帧可开火（旧行为）

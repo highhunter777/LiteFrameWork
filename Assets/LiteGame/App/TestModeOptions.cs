@@ -58,7 +58,7 @@ namespace LiteGame
         public static readonly Info[] All =
         {
             new Info(Id.NoDeath, "全房免死（Hp 保底 1、目标不消失）", Group.Startup, true),
-            new Info(Id.InfiniteAmmo, "无限子弹（开火不扣弹匣、不触发末发自动换弹；Sim 规则两端同源）", Group.Live, false),
+            new Info(Id.InfiniteAmmo, "无限子弹（开火不扣弹匣、空仓也可开火、不触发末发自动换弹；Sim 规则两端同源）", Group.Live, false),
             new Info(Id.LaserSight, "瞄准激光（测试房内显示；非测试模式按武器支持位）", Group.Live, true),
             new Info(Id.DamageNumbers, "伤害数字（测试房内飘字；非测试模式恒显）", Group.Live, true),
             new Info(Id.AutoHeadshot, "自动爆头（替换输入源：锁最近敌人头部带 + 持续开火，端到端验爆头链）", Group.Live, false),

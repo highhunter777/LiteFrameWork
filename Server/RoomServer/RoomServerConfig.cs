@@ -62,6 +62,15 @@ namespace RoomServer
         public readonly int MaxRooms;
 
         /// <summary>
+        /// 指标出口端口（R4 第一批：/metrics 零依赖文本出口——Prometheus 子集，计数单源在
+        /// <c>Ops.FormatMetrics</c>）。<c>0</c> = **关闭**（缺省，行为零变化）；&gt;0 时 Program
+        /// 在该端口起 HttpListener。宿主级参数（同 <see cref="Port"/> 语义，不随房间变）。
+        /// Windows 非管理员绑定 <c>+</c> 前缀需 <c>netsh http urlacl</c>——启动失败走**告警降级**
+        /// （宿主照常运行，无 /metrics），不给可观测面打断服务可用性。
+        /// </summary>
+        public readonly int MetricsPort;
+
+        /// <summary>
         /// 所有模板里最大的 <c>expected_players</c>（装载期算好）。
         /// 用途：会话表容量必须按**全服潜在连接数**算，不能按单个房间算——
         /// 多房间下"按首房间 ×4"会让第二个房间的连接被会话上限拒掉。
@@ -158,11 +167,12 @@ namespace RoomServer
             string settlementJournalPath, int settlementOutboxCapacity, RateLimitSettings rateLimit,
             string lobbyUrl, string lobbyInstanceId, string lobbyAdvertiseHost, long lobbyHeartbeatMs,
             string settlementSubmitUrl, long settlementIntervalMs, long settlementMaxBackoffMs, long settlementTimeoutMs,
-            HostTuning hostTuning)
+            HostTuning hostTuning, int metricsPort)
         {
             _sourcePath = sourcePath;
             _port = port;
             MaxRooms = maxRooms;
+            MetricsPort = metricsPort;
             Audience = audience ?? string.Empty;
             WorkerCount = workerCount;
             MailboxCapacity = mailboxCapacity;
@@ -409,11 +419,17 @@ namespace RoomServer
                 ? HostTuning.Parse(tuningEl, sourcePath)
                 : HostTuning.Default;
 
+            // ---- 指标出口端口（可选；0 = 关闭——缺省行为零变化；范围同 port）----
+            long metricsPortValue = OptionalLong(root, "metrics_port", 0);
+            if (metricsPortValue < 0 || metricsPortValue > 65535)
+                throw new InvalidDataException(
+                    $"metrics_port 越界（允许 0..65535；0 = 关闭）：{metricsPortValue}：{sourcePath}");
+
             return new RoomServerConfig(sourcePath, port, maxRooms, audience, rooms, defaultId,
                 workerCount, mailboxCapacity, journal, outboxCapacity, rateLimit,
                 lobbyUrl, lobbyInstanceId, lobbyAdvertiseHost, lobbyHeartbeatMs,
                 settlementUrl, settlementIntervalMs, settlementMaxBackoffMs, settlementTimeoutMs,
-                hostTuning);
+                hostTuning, (int)metricsPortValue);
         }
 
         /// <summary>
@@ -548,7 +564,7 @@ namespace RoomServer
         public string Describe()
         {
             return string.Format(CultureInfo.InvariantCulture,
-                "port={0} maxRooms={1} workerCount={2} mailboxCapacity={3} audience={4} rooms=[{5}] default={6} settlementJournal={7} settlementCapacity={8} rateLimit=[ip={9} entry={10} account={11} session={12} buckets={13} idleMs={14}] lobby=[url={15} instance={16} advertise={17} heartbeatMs={18}] settlement=[url={19} intervalMs={20} backoffMs={21} timeoutMs={22}]",
+                "port={0} maxRooms={1} workerCount={2} mailboxCapacity={3} audience={4} rooms=[{5}] default={6} settlementJournal={7} settlementCapacity={8} rateLimit=[ip={9} entry={10} account={11} session={12} buckets={13} idleMs={14}] lobby=[url={15} instance={16} advertise={17} heartbeatMs={18}] settlement=[url={19} intervalMs={20} backoffMs={21} timeoutMs={22}] metricsPort={23}",
                 Port, MaxRooms, WorkerCount, MailboxCapacity,
                 string.IsNullOrEmpty(Audience) ? "(不校验)" : Audience,
                 string.Join(",", _rooms.Keys), _defaultTemplateId, SettlementJournalPath,
@@ -558,7 +574,7 @@ namespace RoomServer
                 RateLimit.Buckets, RateLimit.IdleTtlMs,
                 LobbyEnabled ? LobbyUrl : "(不注册)", LobbyInstanceId, LobbyAdvertiseHost, LobbyHeartbeatIntervalMs,
                 SettlementEnabled ? SettlementSubmitUrl : "(关闭)", SettlementIntervalMs,
-                SettlementMaxBackoffMs, SettlementTimeoutMs);
+                SettlementMaxBackoffMs, SettlementTimeoutMs, MetricsPort);
         }
 
         private static string LaneText(RateLimitSettings.Lane lane)

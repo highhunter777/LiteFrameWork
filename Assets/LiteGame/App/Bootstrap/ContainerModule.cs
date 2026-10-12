@@ -17,6 +17,9 @@ namespace LiteGame
     {
         private SceneService _scenes;
         private ServiceContainer _services;
+#if UNITY_EDITOR || DEVELOPMENT_BUILD || LITEFRAMEWORK_DEBUG
+        private IDisposable _gmSceneCommands;   // GM 场景命令注册（场景操作命令化批）——随模块 Shutdown 释放
+#endif
 
         public string Name => "Container";
 
@@ -61,6 +64,11 @@ namespace LiteGame
             );
             context.Put(commands);                                 // 产物登记＝具体键 CommandCenter（执行形态消费者经 Require<CommandCenter> 取）
             _services.RegisterInstance<ICommandCenter>(commands);  // 接口键（引擎面消费者/帧驱动表用——同实例、别名键）
+#if UNITY_EDITOR || DEVELOPMENT_BUILD || LITEFRAMEWORK_DEBUG
+            // GM 场景命令（带参+异步，GmOnly）：注册即进发现面——场景页从直调改命令派发（加载/卸载进审计环）。
+            // 注册点=装配期（app 生命周期，不依赖场景 DebugTuner 是否挂——GM 发现面在 dev 构建恒可用）。
+            _gmSceneCommands = GmSceneCommands.RegisterAll(commands, _scenes);
+#endif
             _services.RegisterInstance<IConfigTableSource>(config);
             _services.RegisterInstance<IConfigService>(config);
             _services.RegisterInstance<IUILuaRegistry>(uiRegistry);
@@ -110,6 +118,10 @@ namespace LiteGame
 
         public UniTask ShutdownAsync(CancellationToken ct)
         {
+#if UNITY_EDITOR || DEVELOPMENT_BUILD || LITEFRAMEWORK_DEBUG
+            _gmSceneCommands?.Dispose();          // 注销先于容器释放（注册/注销对称——幂等注销器）
+            _gmSceneCommands = null;
+#endif
             _services?.Dispose();
             _scenes?.ReleaseAll();
             return UniTask.CompletedTask;

@@ -1,3 +1,4 @@
+using System;
 using System.Text;
 using System.Threading;
 using LiteSim;
@@ -470,5 +471,94 @@ namespace RoomServer.Application
                    .Append(" pumpFail=").Append(loop.PumpFailures);   // >0 = 权威帧体在抛且已被吸收（P0-2）
             return _sb.ToString();
         }
+
+        // ---- /metrics 文本出口（R4 第一批：零依赖 Prometheus 子集，同 MetaServer Ops 先例）----
+
+        /// <summary>
+        /// 指标文本出口（Prometheus 文本格式的最小子集，`name value` 行）——计数值**逐项**
+        /// 对照 <c>Format</c> 周期行的同名字段（周期行与 metrics 同源，肉眼可对账）。
+        /// 刻意不含高基数字段（roomId/连接号——同 MetaServer Ops §11.2 红线口径）与
+        /// 房间内瞬时量（帧号/快照长——归周期行，每房间一行才能定位）；只出**进程级累计计数**
+        /// 与两个 gauge（当前房间数、最后和解帧）。
+        /// 低频出口（数秒一次）逐调用 new StringBuilder——不与 <see cref="Format"/> 的复用缓冲互踩。
+        /// </summary>
+        public string FormatMetrics()
+        {
+            return new StringBuilder(2048)
+                .Append("# TYPE roomserver_rooms gauge\n")
+                .Append("roomserver_rooms ").Append(_roomsGaugeProvider != null ? _roomsGaugeProvider() : 0).Append('\n')
+                .Append("# TYPE roomserver_input_packets_total counter\n")
+                .Append("roomserver_input_packets_total ").Append(InputPackets).Append('\n')
+                .Append("# TYPE roomserver_rejects_total counter\n")
+                .Append("roomserver_rejects_total ").Append(Rejects).Append('\n')
+                .Append("# TYPE roomserver_reconnects_served_total counter\n")
+                .Append("roomserver_reconnects_served_total ").Append(ReconnectsServed).Append('\n')
+                .Append("# TYPE roomserver_restores_completed_total counter\n")
+                .Append("roomserver_restores_completed_total ").Append(RestoresCompleted).Append('\n')
+                .Append("# TYPE roomserver_mismatch_reports_total counter\n")
+                .Append("roomserver_mismatch_reports_total ").Append(MismatchReports).Append('\n')
+                .Append("# TYPE roomserver_mismatch_last_frame gauge\n")
+                .Append("roomserver_mismatch_last_frame ").Append(LastMismatchFrame).Append('\n')
+                .Append("# TYPE roomserver_match_state_changes_total counter\n")
+                .Append("roomserver_match_state_changes_total ").Append(MatchStateChanges).Append('\n')
+                .Append("# TYPE roomserver_rooms_rejected_at_capacity_total counter\n")
+                .Append("roomserver_rooms_rejected_at_capacity_total ").Append(RoomsRejectedAtCapacity).Append('\n')
+                .Append("# TYPE roomserver_rooms_rejected_bad_config_total counter\n")
+                .Append("roomserver_rooms_rejected_bad_config_total ").Append(RoomsRejectedBadConfig).Append('\n')
+                .Append("# TYPE roomserver_rooms_destroyed_total counter\n")
+                .Append("roomserver_rooms_destroyed_total ").Append(RoomsDestroyed).Append('\n')
+                .Append("# TYPE roomserver_rejects_while_draining_total counter\n")
+                .Append("roomserver_rejects_while_draining_total ").Append(RejectsWhileDraining).Append('\n')
+                .Append("# TYPE roomserver_rooms_drain_timed_out_total counter\n")
+                .Append("roomserver_rooms_drain_timed_out_total ").Append(RoomsDrainTimedOut).Append('\n')
+                .Append("# TYPE roomserver_ticks_coalesced_total counter\n")
+                .Append("roomserver_ticks_coalesced_total ").Append(TicksCoalesced).Append('\n')
+                .Append("# TYPE roomserver_ticket_rejected_total counter\n")
+                .Append("roomserver_ticket_rejected_total ").Append(TicketRejected).Append('\n')
+                .Append("# TYPE roomserver_ticket_rejected_bad_signature_total counter\n")
+                .Append("roomserver_ticket_rejected_bad_signature_total ").Append(TicketRejectedBadSignature).Append('\n')
+                .Append("# TYPE roomserver_ticket_rejected_expired_total counter\n")
+                .Append("roomserver_ticket_rejected_expired_total ").Append(TicketRejectedExpired).Append('\n')
+                .Append("# TYPE roomserver_ticket_rejected_replayed_total counter\n")
+                .Append("roomserver_ticket_rejected_replayed_total ").Append(TicketRejectedReplayed).Append('\n')
+                .Append("# TYPE roomserver_ticket_rejected_unknown_key_total counter\n")
+                .Append("roomserver_ticket_rejected_unknown_key_total ").Append(TicketRejectedUnknownKey).Append('\n')
+                .Append("# TYPE roomserver_sessions_rejected_total counter\n")
+                .Append("roomserver_sessions_rejected_total ").Append(SessionsRejected).Append('\n')
+                .Append("# TYPE roomserver_sessions_cleaned_total counter\n")
+                .Append("roomserver_sessions_cleaned_total ").Append(SessionsCleaned).Append('\n')
+                .Append("# TYPE roomserver_settlements_ready_total counter\n")
+                .Append("roomserver_settlements_ready_total ").Append(SettlementsReady).Append('\n')
+                .Append("# TYPE roomserver_settlements_journaled_total counter\n")
+                .Append("roomserver_settlements_journaled_total ").Append(SettlementsJournaled).Append('\n')
+                .Append("# TYPE roomserver_settlements_outbox_duplicates_total counter\n")
+                .Append("roomserver_settlements_outbox_duplicates_total ").Append(SettlementsOutboxDuplicates).Append('\n')
+                .Append("# TYPE roomserver_settlements_outbox_rejected_total counter\n")
+                .Append("roomserver_settlements_outbox_rejected_total ").Append(SettlementsOutboxRejected).Append('\n')
+                .Append("# TYPE roomserver_settlements_outbox_failed_total counter\n")
+                .Append("roomserver_settlements_outbox_failed_total ").Append(SettlementsOutboxFailed).Append('\n')
+                .Append("# TYPE roomserver_packet_rejects_total counter\n")
+                .Append("roomserver_packet_rejects_total ").Append(PacketRejects).Append('\n')
+                .Append("# TYPE roomserver_packet_oversized_total counter\n")
+                .Append("roomserver_packet_oversized_total ").Append(PacketOversized).Append('\n')
+                .Append("# TYPE roomserver_ack_rejected_total counter\n")
+                .Append("roomserver_ack_rejected_total ").Append(AckRejected).Append('\n')
+                .Append("# TYPE roomserver_ack_rejected_stale_total counter\n")
+                .Append("roomserver_ack_rejected_stale_total ").Append(AckRejectedStale).Append('\n')
+                .Append("# TYPE roomserver_ack_rejected_future_total counter\n")
+                .Append("roomserver_ack_rejected_future_total ").Append(AckRejectedFuture).Append('\n')
+                .Append("# TYPE roomserver_ack_rejected_evicted_total counter\n")
+                .Append("roomserver_ack_rejected_evicted_total ").Append(AckRejectedEvicted).Append('\n')
+                .ToString();
+        }
+
+        private Func<int> _roomsGaugeProvider;
+
+        /// <summary>
+        /// 绑定房间数 gauge 源（Program 装配时注入 <c>host.RoomCount</c>——Ops 住 Application 层不认识宿主，
+        /// 依赖经委托反转）。不绑定则 <c>roomserver_rooms</c> 恒 0（嵌入式/用例形态）。
+        /// </summary>
+        public void BindRoomsGauge(Func<int> rooms)
+            => _roomsGaugeProvider = rooms;
     }
 }

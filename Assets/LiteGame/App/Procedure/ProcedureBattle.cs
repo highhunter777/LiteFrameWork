@@ -183,10 +183,9 @@ namespace LiteGame
             // 主动离场热键（测试入口，与 ProcedureMain F9 进对局同门禁）：Leave → Ended(Leave) → 收尾回 Main。
             // 此处只留热键，不进正式 UI（正式离场入口由 UI 层提供）。
             if (UnityEngine.Input.GetKeyDown(LeaveKey)) _context.Leave();
-            if (UnityEngine.Input.GetKeyDown(TeleportKey)) TestModeRuntime.TeleportRequested = true;   // T = 传送到准心（测试模式）
-            if (TestModeRuntime.ExitRequested)                                                          // GM 面板退出：离场并关模式
+            if (UnityEngine.Input.GetKeyDown(TeleportKey)) TestModeRuntime.RequestTeleport();      // T = 传送到准心（测试模式）
+            if (TestModeRuntime.TakeExitRequest())                                                          // GM 面板退出：离场并关模式（读即清）
             {
-                TestModeRuntime.ExitRequested = false;
                 TestModeRuntime.Active = false;
                 _context.Leave();
             }
@@ -217,9 +216,8 @@ namespace LiteGame
             _rig?.Tick(elapseSeconds);            // ③ 视图消费者（动画/准心/HUD/激光/飘字/瞄准相机）——权威已应用
 
 #if UNITY_EDITOR || DEVELOPMENT_BUILD || LITEFRAMEWORK_DEBUG
-            if (TestModeRuntime.TeleportRequested)               // 测试模式传送：入队命令（帧边界派发 + 可撤销）
+            if (TestModeRuntime.TakeTeleportRequest())            // 测试模式传送：入队命令（帧边界派发 + 可撤销；读即清）
             {
-                TestModeRuntime.TeleportRequested = false;
                 if (TestModeRuntime.Active && TestModeRuntime.TeleportEnabled)
                     _commands.SendQueued(new TeleportToAimCommand());
                 else Log.Warning("[TestMode] 传送请求忽略（未开测试模式/未启用）", "Battle");

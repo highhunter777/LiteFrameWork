@@ -148,6 +148,7 @@ message JoinAck           {
   int32 reconnect_window_seconds = 4;   // 票据有效期（秒）
   int32 snapshot_hz = 5;                // 服务器当前快照频率（客户端插值/预测参数自举，防两端常量漂移）
   int32 tick_rate = 6;                  // 服务器逻辑帧率
+  bool is_owner = 7;                     // 房主位（开房裁决：开房者=首入座者——UI 据此只对房主亮"开始对局"）
 }
 message StartGame         {
   int64 seed = 1;
@@ -173,6 +174,17 @@ message ReconnectResponse {
 // ===== C→S 恢复完成 ACK（Reliable；R1《服务端总设计》§9.3 步骤 6：客户端恢复完成后服务器才恢复该席位增量广播）=====
 
 message RestoreComplete { }                 // 空载荷：Restoring → Active 的门闩；到达前服务器抑制该席位增量快照
+
+// ===== C→S 房主提前开局请求（Reliable；开房裁决：未满员由房主开局）=====
+
+message StartMatchRequest { }                // 空载荷：服务器按连接映射席位，owner 判定在 Runtime
+
+// ===== S→C 提前开局反馈（Reliable；仅拒绝时携带原因——成功路径以 StartGame 广播为准）=====
+
+message StartMatchResponse {
+  bool ok = 1;                              // false = 被拒（非房主/席位无效）
+  string reason = 2;                        // 拒绝原因（客户端 UI 反馈）
+}
 
 // ===== C→S 和解上报（Unreliable；Ops 汇总和解率）=====
 
