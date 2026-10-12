@@ -21,6 +21,8 @@ public sealed partial class combatnum : Luban.BeanBase
         HitscanRange = _buf.ReadFloat();
         BaseDamage = _buf.ReadInt();
         DamageSpread = _buf.ReadInt();
+        AimMoveSpeed = _buf.ReadFloat();
+        FireStanceFrames = _buf.ReadInt();
     }
 
     public static combatnum Deserializecombatnum(ByteBuf _buf)
@@ -48,6 +50,14 @@ public sealed partial class combatnum : Luban.BeanBase
     /// [伤害] &#177; 浮动幅度（0=无浮动）
     /// </summary>
     public readonly int DamageSpread;
+    /// <summary>
+    /// 瞄准/开火态移动上限 m/s（原 MoveSpeed &#215; CombatConfig.AimMoveSpeedFactor=0.5 的落表值；脱离派生，改本列不再随 move_speed 联动）
+    /// </summary>
+    public readonly float AimMoveSpeed;
+    /// <summary>
+    /// 射击窗长（帧@60Hz）＝开火态时间；进 EntitySlot.FireStanceFrames(byte) 故须 1..255
+    /// </summary>
+    public readonly int FireStanceFrames;
    
     public const int __ID__ = -1813456878;
     public override int GetTypeId() => __ID__;
@@ -64,6 +74,8 @@ public sealed partial class combatnum : Luban.BeanBase
         + "hitscanRange:" + HitscanRange + ","
         + "baseDamage:" + BaseDamage + ","
         + "damageSpread:" + DamageSpread + ","
+        + "aimMoveSpeed:" + AimMoveSpeed + ","
+        + "fireStanceFrames:" + FireStanceFrames + ","
         + "}";
     }
 }

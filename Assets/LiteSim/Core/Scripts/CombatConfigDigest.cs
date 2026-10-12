@@ -45,7 +45,7 @@ namespace LiteSim
               .Append(values.DamageSpread.ToString(CultureInfo.InvariantCulture)).Append('\n')
               .Append(values.EntityHp.ToString(CultureInfo.InvariantCulture)).Append('\n')
               .Append(values.AimMoveSpeed.ToString("R", CultureInfo.InvariantCulture)).Append('\n')
-              .Append(CombatConfig.FireStanceFrames.ToString(CultureInfo.InvariantCulture)).Append('\n')
+              .Append(values.FireStanceFrames.ToString(CultureInfo.InvariantCulture)).Append('\n')
               .Append(CombatConfig.MuzzleOffsetForward.ToString("R", CultureInfo.InvariantCulture)).Append('\n')
               .Append(CombatConfig.MuzzleOffsetRight.ToString("R", CultureInfo.InvariantCulture)).Append('\n')
               .Append(CombatConfig.MuzzleOffsetHeight.ToString("R", CultureInfo.InvariantCulture)).Append('\n')

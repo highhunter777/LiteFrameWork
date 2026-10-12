@@ -21,7 +21,7 @@ namespace LiteSim.Tests
         public void 实例移速_直达SimStep()
         {
             var world = WorldWithSpawn(100, out long id);
-            var values = new CombatValues(7.5f, -20f, 100f, 25, 1, 100);
+            var values = new CombatValues(7.5f, -20f, 100f, 25, 1, 100, 2.5f, 60);
             var inputs = new[] { new SimInputFrame { EntityId = id, MoveX = 1f } };
 
             Assert.True(world.TryResolve(id, out int slot));
@@ -34,13 +34,16 @@ namespace LiteSim.Tests
         public void 实例瞄准限速_直达SimStep()
         {
             var world = WorldWithSpawn(100, out long id);
-            var values = new CombatValues(7.5f, -20f, 100f, 25, 1, 100);
+            // 限速档**独立于** MoveSpeed：moveSpeed 给 7.5（默认 5），aim_move_speed 给 2.5。
+            // 旧式口径 MoveSpeed × 0.5（=3.75）已随表化退役——现直落最终速度，
+            // 代价是调 move_speed 不再带动限速档——本用例即钉这条语义（见 CombatValues.AimMoveSpeed）。
+            var values = new CombatValues(7.5f, -20f, 100f, 25, 1, 100, 2.5f, 60);
             var inputs = new[] { new SimInputFrame { EntityId = id, MoveX = 1f, Buttons = SimInputFrame.ButtonAim } };
 
             Assert.True(world.TryResolve(id, out int slot));
             SimStep.Step(world, SimChecksumBaselineSpec.BuildMap(), inputs, values, WeaponTable.Default);
 
-            Assert.Equal(3.75f, world.Entities[slot].Vel.X, 4);          // 7.5 × AimMoveSpeedFactor(0.5)，位级精确
+            Assert.Equal(2.5f, world.Entities[slot].Vel.X, 4);      // = aim_move_speed 表值，**非** 7.5 × 0.5
         }
 
         [Fact]
@@ -48,7 +51,7 @@ namespace LiteSim.Tests
         {
             var world = new SimWorldState();
             long id = world.Spawn(new EntitySlot { Hp = 100, Pos = new SimVector3(0f, 10f, 0f) }, out int _);
-            var values = new CombatValues(5f, -9.8f, 100f, 25, 1, 100);
+            var values = new CombatValues(5f, -9.8f, 100f, 25, 1, 100, 2.5f, 60);
 
             Assert.True(world.TryResolve(id, out int slot));
             MovementSystem.Run(world.Entities, world.AliveBitmap, SimChecksumBaselineSpec.BuildMap(), values);
@@ -59,9 +62,9 @@ namespace LiteSim.Tests
         [Fact]
         public void 摘要按实例_同值同摘要异值异摘要()
         {
-            var a = new CombatValues(7.5f, -9.8f, 50f, 40, 0, 130);
-            var b = new CombatValues(7.5f, -9.8f, 50f, 40, 0, 130);
-            var c = new CombatValues(7.5f, -9.8f, 50f, 40, 0, 131);
+            var a = new CombatValues(7.5f, -9.8f, 50f, 40, 0, 130, 2.5f, 60);
+            var b = new CombatValues(7.5f, -9.8f, 50f, 40, 0, 130, 2.5f, 60);
+            var c = new CombatValues(7.5f, -9.8f, 50f, 40, 0, 131, 2.5f, 60);
 
             Assert.Equal(CombatConfigDigest.Compute(a), CombatConfigDigest.Compute(b));
             Assert.NotEqual(CombatConfigDigest.Compute(a), CombatConfigDigest.Compute(c));
@@ -72,7 +75,7 @@ namespace LiteSim.Tests
         public void 实例武器表_直达SimStep()
         {
             // 同一射手/目标几何，两套自定义武器表 → 命中与否沿表值分岔（无任何全局装载/还原）
-            var values = new CombatValues(5f, -20f, 100f, 25, 0, 100);   // spread=0：伤害确定 = 武器表值
+            var values = new CombatValues(5f, -20f, 100f, 25, 0, 100, 2.5f, 60);   // spread=0：伤害确定 = 武器表值
             var map = new SimMapData { GroundY = 0f, HalfWidth = 50f, HalfDepth = 50f };
 
             // 表A：射程 5 < 目标距离 20 → 打不中（Hp 不变）

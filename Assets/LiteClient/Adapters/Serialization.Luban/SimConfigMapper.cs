@@ -14,6 +14,15 @@ namespace LiteClient
         {
             if (combat == null || combat.GetOrDefault(DefaultRowId) == null)
                 return "tbcombatnum 缺 id=1 行（玩法数值）";
+            cfg.combatnum row = combat.GetOrDefault(DefaultRowId);
+            if (float.IsNaN(row.MoveSpeed) || float.IsInfinity(row.MoveSpeed) || row.MoveSpeed <= 0f)
+                return "tbcombatnum id=1 move_speed 必须为正有限数值";
+            if (float.IsNaN(row.AimMoveSpeed) || float.IsInfinity(row.AimMoveSpeed) || row.AimMoveSpeed < 0f)
+                return "tbcombatnum id=1 aim_move_speed 必须为非负有限数值";
+            // 窗长落进 EntitySlot.FireStanceFrames（public byte，且进公共快照/双口径 checksum/proto）——
+            // 越界会在强转处静默截断，故在装载闸门 fail-fast，不让错表起得来。
+            if (row.FireStanceFrames < 1 || row.FireStanceFrames > byte.MaxValue)
+                return "tbcombatnum id=1 fire_stance_frames 必须落在 1..255（落 EntitySlot.FireStanceFrames 的 byte）";
             cfg.movementconfig move = movement?.GetOrDefault(DefaultRowId);
             if (move == null)
                 return "tbmovementconfig 缺 id=1 行（重力唯一表源）";
@@ -35,7 +44,8 @@ namespace LiteClient
             if (error != null) throw new InvalidDataException(error);
             cfg.combatnum row = combat.Get(DefaultRowId);
             return new CombatValues(row.MoveSpeed, movement.Get(DefaultRowId).Gravity, row.HitscanRange,
-                row.BaseDamage, row.DamageSpread, entity.Get(DefaultRowId).InitialHp);
+                row.BaseDamage, row.DamageSpread, entity.Get(DefaultRowId).InitialHp,
+                row.AimMoveSpeed, row.FireStanceFrames);
         }
     }
 }

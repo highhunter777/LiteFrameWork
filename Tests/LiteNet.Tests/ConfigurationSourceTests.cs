@@ -27,7 +27,7 @@ namespace LiteNet.Tests
         public void 真实表映射_数值与默认摘要保持一致()
         {
             CombatValues values = Parse(Read("tbmovementconfig"), Read("tbentityconfig"));
-            var previous = new CombatValues(5f, -20f, 100f, 25, 1, 100);
+            var previous = new CombatValues(5f, -20f, 100f, 25, 1, 100, 2.5f, 60);
             Assert.Equal(CombatConfigDigest.CanonicalText(previous), CombatConfigDigest.CanonicalText(values));
             Assert.Equal(CombatConfigDigest.Compute(previous), CombatConfigDigest.Compute(values));
         }

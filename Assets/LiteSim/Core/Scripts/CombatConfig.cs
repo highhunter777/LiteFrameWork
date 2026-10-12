@@ -5,7 +5,7 @@ namespace LiteSim
     /// 与装载面读口；SimConfig 只装"确定性架构怎么搭"；两者生命周期不同：前者可调表迭代，后者编译期锁死）。
     ///
     /// **数值面已实例化（技术债 #1 根治）**：
-    /// - 装载面 6 字段（移速/重力/射程/伤害/浮动/HP）住 <see cref="CombatValues"/> 实例——装载链
+    /// - 装载面 8 字段（移速/重力/射程/伤害/浮动/HP/瞄准限速档/射击窗长）住 <see cref="CombatValues"/> 实例——装载链
     ///   （客户端 `ConfigService`、服务端 `CombatNumbers`）解析表产出实例，**经参数显式传入机制消费**
     ///   （`SimStep`→系统、房间快照），不再有"装载即回填全局"的顺序问题；
     /// - 本类的同名只读属性 = **客户端单世界读口**（`Publish` 原子替换）——机制消费不得读，
@@ -34,16 +34,14 @@ namespace LiteSim
         public static float MoveSpeed => _loaded.MoveSpeed;
 
         /// <summary>
-        /// 瞄准态移速倍率（右键 ADS 期间移动上限 = <see cref="CombatValues.MoveSpeed"/> × 本值）。
-        /// **取 0.5 = 乘 2 的幂**：位级精确、不引舍入（确定性纪律）。5 × 0.5 = **2.5 m/s**，
-        /// 恰好等于视图 Walk 档上界（`LocomotionBlendMath.WalkFullMps`）——限速后"瞄准移动"
-        /// 只需要 `AimWalk_*` 一套片段，不需要 AimJog。
-        /// **表化待补**：数值表加列 `aim_move_speed` 后本常量让位（登记在《角色状态与动作专项设计》§7）。
+        /// 瞄准态移动速度上限（m/s）= <see cref="CombatValues.AimMoveSpeed"/>（表值 tb_combatnum.aim_move_speed）。
+        /// 参与 <see cref="CombatConfigDigest"/>——**联机身份**：两端不一致会以摘要不符当场拒进房。
+        ///
+        /// **表化口径（勿按旧式派生推断）**：直接落最终速度（表列 aim_move_speed），不再由
+        /// <see cref="MoveSpeed"/> × 倍率派生——旧倍率常量（0.5，取 2 的幂保位级精确）已退役：
+        /// 直落最终值后无乘法、无舍入面。代价：不随 <see cref="MoveSpeed"/> 联动
+        /// （口径见 CombatValues.AimMoveSpeed）。
         /// </summary>
-        public const float AimMoveSpeedFactor = 0.5f;
-
-        /// <summary>瞄准态移动速度上限（m/s）= <see cref="CombatValues.AimMoveSpeed"/>（实例派生）。
-        /// 参与 <see cref="CombatConfigDigest"/>——**联机身份**：两端不一致会以摘要不符当场拒进房。</summary>
         public static float AimMoveSpeed => _loaded.AimMoveSpeed;
 
         /// <summary>重力加速度（m/s²），来自 tbmovementconfig.gravity 的固定对局配置投影。读口见类头。</summary>
@@ -61,15 +59,17 @@ namespace LiteSim
         public static float HitscanRange => _loaded.HitscanRange;
 
         /// <summary>
-        /// 射击窗长（逻辑帧数）——**开火态时间**（**1s @60Hz = 60 帧独立常量**，
-        /// 与开火动画时长解耦；事件刷新＝重置满窗，上限即窗长）。
+        /// 射击窗长（逻辑帧数）——**开火态时间**（默认表值 1s @60Hz = 60 帧，
+        /// 与开火动画时长解耦；事件刷新＝重置满窗，上限即窗长）。表值
+        /// tb_combatnum.fire_stance_frames，落在 <see cref="CombatValues.FireStanceFrames"/>——
+        /// **改窗长只动表**（本行是表现面读口；机制面读传入的实例）。
         /// `EntitySlot.FireStanceFrames` 在 `ShootingSystem`
         /// 判定点置满、`InputSystem` 逐帧统一递减，并按"瞄准 ∨ 开火态"限速 `AimMoveSpeed`——进
         /// `CombatConfigDigest`（联机身份）。View 侧驻留窗按 `FireStanceFrames / SimConfig.TickRate`
-        /// **同源派生**（改窗长只动此处）。**不变式：窗长 ≥ 开火片段播放时长**（防事件后窗先尽截断
-        /// 在播射击片段——装配期校验，见 CharacterLocomotionDriver）。
+        /// **同源派生**。**不变式：窗长 ≥ 开火片段播放时长**（防事件后窗先尽截断
+        /// 在播射击片段——装配期校验，见 CharacterLocomotionDriver）；且须 1..255（落 byte，L1 守卫卡）。
         /// </summary>
-        public const int FireStanceFrames = 60;
+        public static int FireStanceFrames => _loaded.FireStanceFrames;
 
         /// <summary>
         /// 离场转向速率（rad/秒）——射击语境（瞄准 ∨ 开火帧 ∨ 窗内）解除后，朝向从准星转回移动方向

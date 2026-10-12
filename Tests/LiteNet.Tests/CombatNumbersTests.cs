@@ -104,7 +104,7 @@ namespace LiteNet.Tests
         [Fact]
         public void 自定义实例经参数直达房间_无全局面参与()
         {
-            var custom = new CombatValues(7.5f, -9.8f, 50f, 40, 0, 130);
+            var custom = new CombatValues(7.5f, -9.8f, 50f, 40, 0, 130, 2.5f, 60);
             var room = new RoomRuntime(new RoomConfig { RoomId = "CfgInst", ExpectedPlayers = 1, Seed = 9 }, custom);
             var outputs = new List<RoomOutput>();
             room.Execute(RoomCommand.Join(1), outputs);

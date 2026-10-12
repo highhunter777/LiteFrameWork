@@ -102,6 +102,8 @@ namespace RoomServer
             BaseDamage = row.BaseDamage,
             DamageSpread = row.DamageSpread,
             EntityHp = row.EntityHp,
+            AimMoveSpeed = row.AimMoveSpeed,
+            FireStanceFrames = row.FireStanceFrames,
         };
 
         /// <summary>武器表装载（服务端与客户端同链——权威 Sim 的武器系统必须拿到同一份武器定义；
@@ -181,12 +183,15 @@ namespace RoomServer
         public int BaseDamage;
         public int DamageSpread;
         public int EntityHp;
+        public float AimMoveSpeed;
+        public int FireStanceFrames;
 
         /// <summary>表行 → 玩法数值实例（装载产物；由调用方**显式传入**宿主/房间——
         /// 技术债 #1：不再回填全局静态面）。</summary>
         public CombatValues ToValues()
         {
-            return new CombatValues(MoveSpeed, Gravity, HitscanRange, BaseDamage, DamageSpread, EntityHp);
+            return new CombatValues(MoveSpeed, Gravity, HitscanRange, BaseDamage, DamageSpread, EntityHp,
+                AimMoveSpeed, FireStanceFrames);
         }
     }
 }

@@ -54,8 +54,8 @@ namespace Tools.DisciplineScan
 
         /// <summary>R13 数值读口禁读（机制面）——技术债 #1 根治的防复辟线（《玩法数值与Luban配置专项设计》数值实例化段）：
         /// 机制代码（Sim Core / 房间内核 / RoomServer 宿主）不得读静态读口的**可变值**——
-        /// `CombatConfig` 装载面 6 字段+AimMoveSpeed+Loaded/Publish、`MovementConfig` 全类、
-        /// `WeaponConfig` 的 Default/TryGet/Loaded/Publish；**常量面豁免**（FireStanceFrames/烘焙几何/
+        /// `CombatConfig` 装载面 6 字段+AimMoveSpeed+FireStanceFrames+Loaded/Publish、`MovementConfig` 全类、
+        /// `WeaponConfig` 的 Default/TryGet/Loaded/Publish；**常量面豁免**（烘焙几何/HardMaxSpeed/
         /// DefaultRifleId 等 const——两端编译期同值）。值一律经 `CombatValues`/`MovementValues`/`WeaponTable`
         /// 实例参数传递。例外行 lint-allow R13 并写明理由。</summary>
         R13StaticConfigPort = 13,
@@ -154,12 +154,12 @@ namespace Tools.DisciplineScan
 
         /// <summary>
         /// R13：数值读口禁读（机制面）——技术债 #1 防复辟（见枚举注释）。命中即违规：
-        /// `CombatConfig` 的可变/派生值（MoveSpeed/Gravity/HitscanRange/BaseDamage/DamageSpread/EntityHp/
-        /// AimMoveSpeed/Loaded/Publish）、`MovementConfig` 任意成员、`WeaponConfig` 的
-        /// Default/TryGet/Loaded/Publish。词边界保证常量面不误伤（`AimMoveSpeedFactor`/`DefaultRifleId`）。
+        /// `CombatConfig` 的可变值（MoveSpeed/Gravity/HitscanRange/BaseDamage/DamageSpread/EntityHp/
+        /// AimMoveSpeed/FireStanceFrames/Loaded/Publish）、`MovementConfig` 任意成员、`WeaponConfig` 的
+        /// Default/TryGet/Loaded/Publish。词边界保证常量面与更长名不误伤（`DefaultRifleId` 不被 `Default` 吞）。
         /// </summary>
         private static readonly Regex R13Regex = new Regex(
-            @"\bCombatConfig\s*\.\s*(?:MoveSpeed|Gravity|HitscanRange|BaseDamage|DamageSpread|EntityHp|AimMoveSpeed|Loaded|Publish)\b" +
+            @"\bCombatConfig\s*\.\s*(?:MoveSpeed|Gravity|HitscanRange|BaseDamage|DamageSpread|EntityHp|AimMoveSpeed|FireStanceFrames|Loaded|Publish)\b" +
             @"|\bMovementConfig\s*\.\s*\w+" +
             @"|\bWeaponConfig\s*\.\s*(?:Default|TryGet|Loaded|Publish)\b",
             RegexOptions.Compiled);

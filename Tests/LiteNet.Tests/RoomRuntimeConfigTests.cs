@@ -34,7 +34,7 @@ namespace LiteNet.Tests
         [Fact]
         public void 开局使用房间快照数值_并下发绑定的配置摘要()
         {
-            var custom = new CombatValues(7.5f, -9.8f, 50f, 40, 0, 130);   // 自定义实例：证明数值经参数入房（债 #1）
+            var custom = new CombatValues(7.5f, -9.8f, 50f, 40, 0, 130, 2.5f, 60);   // 自定义实例：证明数值经参数入房（债 #1）
             var room = new RoomRuntime(new RoomConfig { RoomId = "Cfg", ExpectedPlayers = 1, Seed = 77 }, custom);
             var outputs = new List<RoomOutput>();
             room.Execute(RoomCommand.Join(1), outputs);

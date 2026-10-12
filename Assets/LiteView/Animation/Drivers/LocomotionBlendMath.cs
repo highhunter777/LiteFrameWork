@@ -19,7 +19,7 @@ namespace LiteView.Animation
         public const float IdleBelowMps = 0.5f;
 
         /// <summary>速度轴锚点（m/s）：Walk 权重到 1、开始并入 Run——同时也是**瞄准限速后的满速**
-        /// （`CombatConfig.MoveSpeed × AimMoveSpeedFactor` = 2.5）。</summary>
+        /// （表列 aim_move_speed 默认值 = 2.5）。</summary>
         public const float WalkFullMps = 2.5f;
 
         /// <summary>速度轴锚点（m/s）：Run 权重到 1（略低于 <c>CombatConfig.MoveSpeed</c> = 5，给斜向/边界留余量）。</summary>

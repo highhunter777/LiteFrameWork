@@ -175,6 +175,7 @@ namespace LiteFramework.Tests
         {
             Assert.Equal(1, Count("var v = CombatConfig.MoveSpeed;", LintRule.R13StaticConfigPort));
             Assert.Equal(1, Count("var v = CombatConfig.AimMoveSpeed;", LintRule.R13StaticConfigPort));
+            Assert.Equal(1, Count("var f = CombatConfig.FireStanceFrames;", LintRule.R13StaticConfigPort));   // 表化后由常量面转入可变读口
             Assert.Equal(1, Count("var v = CombatConfig.Loaded;", LintRule.R13StaticConfigPort));
             Assert.Equal(1, Count("CombatConfig.Publish(values);", LintRule.R13StaticConfigPort));
             Assert.Equal(1, Count("var v = MovementConfig.WalkSpeed;", LintRule.R13StaticConfigPort));
@@ -188,8 +189,8 @@ namespace LiteFramework.Tests
         public void 纪律_R13_常量面与实例不误报()
         {
             // 常量面豁免（两端编译期同值——机制可读）
-            Assert.Equal(0, Count("var f = CombatConfig.FireStanceFrames;", LintRule.R13StaticConfigPort));
-            Assert.Equal(0, Count("var x = CombatConfig.AimMoveSpeedFactor;", LintRule.R13StaticConfigPort));   // AimMoveSpeed 词边界不吞 Factor
+            Assert.Equal(0, Count("var f = CombatConfig.FaceTurnRadPerSec;", LintRule.R13StaticConfigPort));
+            Assert.Equal(0, Count("var x = CombatConfig.AimMoveSpeedFactor;", LintRule.R13StaticConfigPort));   // 词边界：AimMoveSpeed 不吞更长后缀名（历史成员名示例）
             Assert.Equal(0, Count("var r = CombatConfig.HitscanRadius;", LintRule.R13StaticConfigPort));
             Assert.Equal(0, Count("var id = WeaponConfig.DefaultRifleId;", LintRule.R13StaticConfigPort));      // Default 词边界不吞 DefaultRifleId
             // 实例参数面不误报

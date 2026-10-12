@@ -97,7 +97,7 @@ namespace LiteSim
                 // 开火驻留窗置满（与 Fire 事件**同点**——View 侧窗口同触发同长度同刷新，
                 // 事件刷新制重置满窗、上限即窗长；限速由 InputSystem 次帧起生效——本系统在输入之后跑）。
                 // 服务器回溯：本字段随回溯副本丢弃，不入权威态——契约见类注释②。
-                shooter.FireStanceFrames = (byte)CombatConfig.FireStanceFrames;
+                shooter.FireStanceFrames = (byte)values.FireStanceFrames;
 
                 s.Events.Write(FrameEventKind.Fire, shooter.Id, 0L, 0, shooter.Pos);
 
