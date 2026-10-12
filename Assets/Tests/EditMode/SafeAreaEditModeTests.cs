@@ -129,16 +129,16 @@ namespace LiteGame.Tests.EditMode
         {
             var main = UnityEditor.AssetDatabase.LoadAssetAtPath<GameObject>("Assets/ShareResource/UI/Screens/UIMain.prefab");
             Assert.IsNotNull(main, "UIMain 模板缺失");
-            var safeNode = main.transform.Find("SafeArea");
-            Assert.IsNotNull(safeNode, "UIMain 需有 SafeArea 内容容器节点");
-            Assert.IsNotNull(safeNode.GetComponent<SafeAreaReceiver>(), "UIMain.SafeArea 挂 SafeAreaReceiver");
+            var safeNode = main.transform.Find("_SafeArea");
+            Assert.IsNotNull(safeNode, "UIMain 需有 _SafeArea 内容容器节点");
+            Assert.IsNotNull(safeNode.GetComponent<SafeAreaReceiver>(), "UIMain._SafeArea 挂 SafeAreaReceiver");
 
-            var list = UnityEditor.AssetDatabase.LoadAssetAtPath<GameObject>("Assets/ShareResource/UI/Screens/ListScreen.prefab");
-            Assert.IsNotNull(list, "ListScreen 模板缺失");
-            var listNode = list.transform.Find("VirtualList");
-            Assert.IsNotNull(listNode, "ListScreen 需有 VirtualList 交互容器节点");
+            var list = UnityEditor.AssetDatabase.LoadAssetAtPath<GameObject>("Assets/ShareResource/UI/Screens/Tmp_ListScreen.prefab");
+            Assert.IsNotNull(list, "Tmp_ListScreen 模板缺失");
+            var listNode = list.transform.Find("VirtualList_Rooms");
+            Assert.IsNotNull(listNode, "ListScreen 需有 VirtualList_Rooms 交互容器节点");
             Assert.IsNotNull(listNode.GetComponent<SafeAreaReceiver>(),
-                "ListScreen.VirtualList 挂 SafeAreaReceiver（列表贴边——安全区必须避让）");
+                "ListScreen.VirtualList_Rooms 挂 SafeAreaReceiver（列表贴边——安全区必须避让）");
         }
     }
 }

@@ -26,7 +26,7 @@ namespace LiteGame.Tests.UI.PlayMode
     /// `Assets/{Art,Model,Animation,FX,Sound}` 与 `CombatGirlsCharacterPack` **均不入库**
     /// （`环境恢复指南` §3 第 5 条：demo 内容不入库；176MB 角色包由用户选择不入 VCS）。
     /// 故本组用**干净检出上必然存在**的素材走完整链：
-    /// - **场景**：`Assets/Scenes/Test.unity`（入库）
+    /// - **场景**：`Assets/Scenes/Boot.unity`（入库）
     /// - **角色**：引擎基本体（**灰盒形态**——`GreyboxEntity` 是《表现基础》明写的对局可见性兜底件，
     ///   "能看见、能朝向"的替身；不是伪装成美术方案）
     /// - **动画**：`AnimatorAnimationBackend` 需真控制器（属角色包，不入库）→ 本组**不接动画**，
@@ -40,7 +40,7 @@ namespace LiteGame.Tests.UI.PlayMode
     [Category(TestCategory.Contract)]
     public sealed class SampleTripleChainPlayModeTests
     {
-        private const string TestScene = "Assets/Scenes/Test.unity";
+        private const string TestScene = "Assets/Scenes/Boot.unity";
 
         private PlayModeTestScope _scope;
         private bool _assetsReady;

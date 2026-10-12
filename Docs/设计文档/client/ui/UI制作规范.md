@@ -170,7 +170,7 @@ EditMode 结构检查不能替代依赖 Awake/OnEnable 的行为测试。已有�
 
 - `BindNode` Inspector 命名面提供**类别前缀预设**：下拉选前缀（9.3 词表）+ 只填语义名 → 组合为 `前缀_语义`，一次写入 `BindName` 并同步重命名节点（同文由工具构造性保证，不存在只改一处的手工路径）；已带前缀的节点回显解析为「前缀下拉 + 语义输入」两控件。
 - 起名动作收敛为“选前缀、填名字”；层级手工改名仍合法，暴露与改名以后一次经 Inspector 写入为准。
-- 工具现状：现 Inspector 为自由文本索引名，预设未实现——实现进[工具专项 §2](UI编辑器工具专项设计.md)；未实现前按 9.2 手工命名并自查。
+- 工具现状：前缀预设已落地于[绑定标记工具窗口](../../../../Assets/LiteGame/Editor/UiTools/Binding/UiBindingWindow.cs)（菜单 `LiteGame/UI/绑定/绑定标记工具`——组合后一次写节点名与 BindName，构造性同文；改名预览随附 Lua/C# 字符串引用点清单）。预设不进 BindNode 组件 Inspector：LiteCodeGen 保持零 LiteGame 依赖，词表单源不外泄；层级手工改名仍合法。
 
 ### 9.6 存量差异与整改登记
 
@@ -178,7 +178,7 @@ EditMode 结构检查不能替代依赖 Awake/OnEnable 的行为测试。已有�
 
 | 资产/节点 | 现状 | 目标 | 备注 |
 | --- | --- | --- | --- |
-| `UIMain/BtnClose` | `BtnClose` | `Button_Close` | ✅ 已整改（UI 工具链命名批，`BindName` 同步） |
+| `UIMain/BtnClose` | `BtnClose` | `Button_Close` | 节点名已整改（UI 工具链命名批）；**`BindName` 未同步**——prefab 仍 `BtnClose`/`Label`、Lua 仍 `OnButton("BtnClose")`（功能链 Lua↔BindName 自洽不断链，属同文漂移非断链；2026-10-12 勘误——此前误记"BindName 同步"）。随页面批次连 Lua 同批收口 |
 | 存量页面根（`UIMain` 等） | 无前缀 | `Page_<语义>` | 牵动流程/表引用，随页面批次裁决（**未整改**——`UIMain` 根仍无前缀，校验报 Warning） |
 | `_Template`（Toast/FlyText/Dropdown）、`_ItemTemplate`（VirtualList/SimpleList） | 两套私有名 | `Clone_<语义>` | ✅ 已整改（`Clone_Template`/`Clone_Item`；容器脚本 `Template` 字段接线不变） |
 | 27 件控件模板（`Dialog`/`Toast`… 根与内部节点；清单见[UI 命名词表与控件清单](UI命名词表与控件清单.md)） | 裸类型名/旧式节点名 | 根 `Tmp_<控件类型>`（文件同名）；内部节点不强制业务命名、随模板批次整形 | ✅ 已整改（UI 工具链命名批：**文件改名** `Tmp_<控件类型>` 保 guid；内部件词缀化/`_` 私有化） |

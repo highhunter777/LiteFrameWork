@@ -35,7 +35,7 @@ namespace LiteGame.Tests.UI.PlayMode
     public sealed class SceneAndPresentationPlayModeTests
     {
         /// <summary>已入库的受控场景（`Assets/Scenes/`；非美术内容，随库分发）。</summary>
-        private const string TestScene = "Assets/Scenes/Test.unity";
+        private const string TestScene = "Assets/Scenes/Boot.unity";
 
         private PlayModeTestScope _scope;
         private bool _assetsReady;
@@ -325,7 +325,7 @@ namespace LiteGame.Tests.UI.PlayMode
             yield return Wait(init, 60f);
             Assert.IsFalse(init.Status == UniTaskStatus.Pending, "内容服务初始化超时");
 
-            const string location = "Assets/ShareResource/UI/Screens/BaselineA.prefab";
+            const string location = "Assets/ShareResource/UI/Screens/Tmp_BaselineA.prefab";
             var cache = new PrefabLeaseCache(content);
 
             var first = cache.GetAsync(location);
@@ -371,7 +371,7 @@ namespace LiteGame.Tests.UI.PlayMode
             // 先释放，再取 —— 走的是「已释放」分支（与竞态分支同样必须上抛）
             cache.ReleaseAll();
             Assert.Throws<InvalidOperationException>(
-                () => cache.GetAsync("Assets/ShareResource/UI/Screens/BaselineA.prefab").GetAwaiter().GetResult(),
+                () => cache.GetAsync("Assets/ShareResource/UI/Screens/Tmp_BaselineA.prefab").GetAwaiter().GetResult(),
                 "已释放后取 prefab 必须上抛（含 location 诊断）");
 
             var shutdown = content.ShutdownAsync();

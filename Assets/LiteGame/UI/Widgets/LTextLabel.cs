@@ -20,12 +20,13 @@ namespace LiteGame.UI
     /// - **驱动者唯一**（§8.1"AutoTick 与外部 Tick，任一时刻只有一个驱动者"）：AutoTick 由
     ///   <c>Update</c> 自驱（步进取 <see cref="UiAnimationClock.Delta"/>——UIClock 分域时钟语义）；
     ///   关闭 AutoTick 后由外部 ticker 调 <see cref="Tick"/>（双驱动 Debug 下显性报错并忽略）；
-    /// - **富文本安全**：可见截点不在 `<…>` 标签内部截断（作者文本允许富文本标签——§9），
-    ///   中间态不会把半截标签当字面显示。
+    /// - **富文本安全**：截点既不落 `<…>` 标签内部（半截标签不当字面显示），也不在开标签未闭合期间
+    ///   截断（可见段富文本始终配平——中间态不留未闭合开标签；作者文本允许富文本标签——§9）；
     ///
     /// 路由：节点挂本组件时，<c>UIBindIndex.SetText</c>（命令式/本地化路径）经 <see cref="Reveal"/>
     /// 进打字机；**数据绑定路径（BindText）保持瞬时**——数值类文本不走打字机（表现行为只属于叙事文本）。
     /// </summary>
+    [ExecuteAlways]
     public sealed class LTextLabel : MonoBehaviour
     {
         [Tooltip("自驱（Update 步进）——关闭后由外部 ticker 调 Tick（单驱动者）")]
@@ -70,7 +71,9 @@ namespace LiteGame.UI
             _progress = 0f;
             _pending = false;
 
-            if (charsPerSecond <= 0f || _cutPoints.Length <= 1)
+            // 截点表 = [0 哨兵, 首截点, …, 末截点]（BuildCutPoints）：≤2 项即无步进意义——
+            // 空文本 [0]、或首个可见截点已是全量 [0, 全长]（单截点）→ 直接全量（完成语义）。
+            if (charsPerSecond <= 0f || _cutPoints.Length <= 2)
             {
                 Finish();                                       // 无步进意义：直接全量（完成语义）
                 return;
@@ -112,6 +115,7 @@ namespace LiteGame.UI
 
         private void Update()
         {
+            if (!Application.isPlaying) return;   // 编辑器态不步进（ExecuteAlways 仅为开关态语义；打字机是运行时表现）
             if (!AutoTick || !_playing) return;
             Advance(UiAnimationClock.Delta);
         }
@@ -123,18 +127,20 @@ namespace LiteGame.UI
             StartPlaying();
         }
 
-        /// <summary>取消（页面关闭/隐藏）：任务停、文本落全量（数据不变——重开不残留半截）、不触发完成事件。</summary>
+        /// <summary>取消（页面关闭/隐藏）：任务停、文本落全量（数据不变——重开不残留半截）、不触发完成事件。
+        /// **有任务才落**：无任务（编辑器装载/卸载 prefab 的装载期开关态）不写——不碰资产文本。</summary>
         private void OnDisable()
         {
+            bool hadTask = _playing || _pending;
             _playing = false;
             _pending = false;
-            WriteTarget(_full);                                  // 无目标则解析一次再落（终态一致性）
+            if (hadTask) WriteTarget(_full);
         }
 
         private void StartPlaying()
         {
             _playing = true;
-            _cutIndex = 1;                                       // 起播即显示首个安全截点（≥1 字符）
+            _cutIndex = 1;                                       // 下标 1 = 首个可见截点（表首 0 为"未显示"哨兵）
             _progress = 0f;
             ShowAt(_cutIndex);
         }
@@ -147,9 +153,9 @@ namespace LiteGame.UI
             while (_progress >= 1f && _playing)
             {
                 _progress -= 1f;
-                int next = _cutIndex + 1;
-                if (next >= _cutPoints.Length) { Finish(); return; }
-                _cutIndex = next;
+                _cutIndex++;
+                // 推进到末截点下标（Length-1 = 全量可见）即完成——不必等再一次步进去"越过"它
+                if (_cutIndex >= _cutPoints.Length - 1) { Finish(); return; }
                 ShowAt(_cutIndex);
             }
         }
@@ -199,21 +205,40 @@ namespace LiteGame.UI
             => full.Substring(0, visibleChars);
 
         /// <summary>
-        /// 安全截点表（升序；每项 = 可见到的字符数）：可见字符每 +1 一项；处于 `<…>` 标签内部的
-        /// 索引**不是**截点（截断会把半截标签当字面显示）。空文本 = [0]（无步进意义）。
+        /// 安全截点表（升序；每项 = 可见到的字符数）。**首项恒 0＝"未显示"哨兵**——
+        /// 下标即推进进度（0 = 未显示，1 = 首个可见截点），起播/推进按下标寻值不偏一。
+        ///
+        /// 合法截点两条（缺一不可）：
+        /// ①不在 `<…>` 标签内部——半截标签会当字面显示；
+        /// ②可见段富文本**配平**——开标签未闭合期间不截（`&lt;color=red&gt;红` 这类留下未闭合
+        /// 开标签的中间态不合法，须截到对应闭合标签之后）。自闭合标签（`&lt;sprite… /&gt;`）净计数为零。
+        /// 空文本 = [0]；无配平截点的文本（作者未闭合标签）= [0]——皆无步进意义（Reveal 直接全量）。
         /// </summary>
         private static int[] BuildCutPoints(string text)
         {
-            var cuts = new List<int>(text.Length + 1);
+            var cuts = new List<int>(text.Length + 1) { 0 };   // 0 位哨兵：未显示
             bool inTag = false;
+            bool tagClosing = false;                             // "</" 开头 = 闭合标签
+            bool tagFirst = false;                               // 处于 '<' 后首字符位
+            int openTags = 0;                                    // 已开未闭标签数
             for (int i = 0; i < text.Length; i++)
             {
                 char c = text[i];
-                if (c == '<') inTag = true;
-                else if (c == '>') inTag = false;
-                if (!inTag) cuts.Add(i + 1);                    // 标签闭合后的位置才可截
+                if (!inTag)
+                {
+                    if (c == '<') { inTag = true; tagClosing = false; tagFirst = true; }
+                    else if (openTags == 0) cuts.Add(i + 1);    // 标签外普通字符：开标签全闭合才可截
+                }
+                else if (c == '>')
+                {
+                    inTag = false;
+                    openTags += tagClosing ? -1 : 1;
+                    if (openTags == 0) cuts.Add(i + 1);          // 开标签全部闭合（含闭合标签收口）才可截
+                }
+                else if (tagFirst && c == '/') tagClosing = true;
+                if (inTag || c == '<') tagFirst = c == '<';
             }
-            return cuts.Count > 0 ? cuts.ToArray() : new[] { 0 };
+            return cuts.ToArray();
         }
     }
 }

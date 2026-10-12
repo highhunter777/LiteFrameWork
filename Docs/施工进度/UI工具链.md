@@ -8,7 +8,7 @@
 |---|---|---|---|
 | 1 | **校验核心** | **已交付（2026-10-11）** | §4 |
 | 2 | **绑定标记工具（底层两项：词表单源 + 绑定命名规则）+ 全仓命名整改** | **已交付（2026-10-11）** | §2 |
-| 3 | 绑定标记工具（窗口/前缀预设 UI/批量重命名/引用点提示/生成物 hash） | 待做 | §2 |
+| 3 | **绑定标记工具（窗口/前缀预设 UI/批量重命名/引用点提示/生成物 hash）** | **已交付（2026-10-12）** | §2 |
 | 4 | 样式工具补齐（`UiTextStyleRef` 文字档 + 对账扩 `Screens/`） | 待做 | §3 |
 | 5 | 校验进 CI（生成物 hash 对账 + 门禁接入 + **资源族规则「表内 prefab 路径必须存在」**——步 2 改名漏跟表引用即该族缺席所致） | 待做 | §4 + 修改指南 §2.3 |
 | 6 | 编排面板（控件库/绑定树/受控属性/校验生成） | 待做 | §5 |
@@ -83,11 +83,56 @@
 
 ### 遗留（如实）
 
-- **表/代码的按路径引用未跟改名（2026-10-12 快进后实测；本批未修，交制作侧）**：本批改的是 prefab **文件**名（`AssetDatabase.MoveAsset` 保 guid，序列化引用不断链），但**按路径**消费的两面漏同步——
-  - 表：源 `Luban/Data/#uiform.xlsx` 与生成物 `Assets/LiteGame/Lua/Cfg/tbuiform.lua:9-14` 的 **201/202/203/204/205/206** 仍写改名前的 `ShareResource/UI/Screens/{Dialog,Loading,Toast,BaselineA,BaselineB}.prefab`（磁盘上现只剩 `Tmp_*` 同名件）；`UIFormCatalog` 的 `Location="Assets/"+row.Prefab` 是路径加载，打开这些 id 会倒在内容加载；
-  - 码与夹具：`Assets/LiteGame/App/Bootstrap/InputModalProbe.cs:37`（`BaselineB.prefab`）、`Assets/Tests/UI/PlayMode/FeedbackSurfacePlayModeTests.cs:42-44`、`NavigationPlayModeTests.cs:133-135`、`SceneAndPresentationPlayModeTests.cs:328,374`、`UiStatePlayModeTests.cs:95-96`（手写表按旧路径 Load，**下次 L2 夜间批会红**）；`Assets/LiteGame/UI/FeedbackService.cs:67` 的默认 201/202/203 随之失效。
-  - 修面：表源 6 行 → `Tmp_*` + 重生成三件（`python scripts/codegen/toolbox.py`）+ 探针/4 夹具常量同步 + L2 实跑复核。**同类第二次**（`Docs/施工进度/上云五页制作.md` 记 201 自 2026-09-25 起出生即悬空）——根因是"表内资源路径存在性"无门禁，已挂到执行顺序步 5；
+- **表/代码的按路径引用未跟改名**——**已修（2026-10-12 表路径前置批，见下节）**：文件改名保 guid 不断序列化链，按路径消费面（表 201-206、探针、夹具）已全量同步；且清扫面**超出本登记**——`ListPlayModeTests`、`SafeAreaEditModeTests`（路径＋两处节点名断言）、`UiU0EditModeTests`（节点查找）、`FlyTextPoolEditModeTests`（注释口径）同为漏网者（"审计面≠消费者面"第 N 次实锤）。"表内资源路径存在性"门禁仍留步 5；
 - **`UIMain` 根名**未改（§9.6 明载"牵动流程/表引用，随页面批次裁决"）——规则报 Warning 追踪；
 - **`Hud_Battle.prefab` 含制作侧未提交的 sprite 改动**（Synty → 自制 `Icons/`），本批对其只做 `Txt_/`→`Txt_Slash` 一处命名修正，**文件整体未随批提交**（随制作侧 sprite 批一并入）；
 - 中途一次**误操作**（首版"盘上树规划 + 加载树按序改名"遍历序失配，弄乱 5 个 prefab）——已 `git checkout HEAD` 全部回滚，改**单一树**方案重跑，0 MISSING 佐证无残留；
-- 窗口树/前缀预设 UI/批量重命名交互/引用点提示/生成物 hash 留**步 3**。
+- 窗口树/前缀预设 UI/批量重命名交互/引用点提示/生成物 hash——已随**步 3** 交付（见下）。
+
+## uiform 表路径悬空修复（2026-10-12，步 3 前置批）
+
+表源 201-206 六行 → `Tmp_*` → `toolbox.py luban` 重生成（bytes+lua 发布）→ `gen-build-hash.py` 重跑（shared+meta 双端）→ 按路径引用全量同步（探针 + 4 夹具 + 清扫出的 4 处漏网，清单见上节勘误后的登记项）。
+
+**另修一桩双 LoadingMask**：`Screens/Tmp_Loading.prefab` 自 W1 起同时带壳根本地 mask+视觉与嵌套模板实例 mask——服务写入面 `GetComponentInChildren` 命中壳根、测试读取面 `FindObjectOfType` 命中嵌套，文案永远对不上（被路径红掩盖，PlayMode 首跑暴露）。按《通用加载页设计》§2 清壳：根只留 Canvas+CanvasGroup+嵌套实例（`Loading_Block` 单一 mask），W1 错置在壳上的本地视觉一并退场（批 A 手工制作时在模板本体重建）。
+
+**验证**：L2 PlayMode 全量 **37/40**——本批涉及面全绿（FeedbackSurface 3/3〔含双 mask 修复〕、ListPlayMode 3/3、Navigation 4/4、UiState 3/3、租约组中非 Test.unity 依赖项全绿）；3 红＝Test.unity 既有债（见步 3 遗留）。EditMode 428 中改名跟随面全绿（SafeArea/FlyTextPool/UiU0/UiValidation）。
+
+## 步 3：绑定标记工具（已交付）
+
+**落点**：`Assets/LiteGame/Editor/UiTools/Binding/`
+
+| 件 | 职责 |
+|---|---|
+| `UiBindingRename.cs` | 命名引擎：树构建（页面/列表项〔Clone_ 子树〕作用域分列）、前缀组合（§9.5 词表下拉+仅填语义名，构造性过 §9.2 文法）、改名计划（节点名与 BindName **同批同写**——§9.1 同文；空 BindName 模板标记不发明索引名；漂移面按新名收口）、计划校验（文法+同批重名+现存兄弟占用，应用前挡）、应用（**深度序**——父改名不踩子路径） |
+| `UiBindingReferenceScan.cs` | 引用点扫描：改名联动的 Lua/C# 字符串字面量清单（只提示不代改——§9.2 联动面是作者责任）；默认扫描根＝Lua/UI/App/Tests，命中带 file:line |
+| `UiBindGenerationHash.cs` | 生成物 hash（§2.1.5）：绑定面指纹（BindRoot 配置 + BindSearch 同一遍历语义，嵌套生成根独立）＋清单（Editor 域 JSON，键=prefab GUID 改名不断链）＋对账（NotRecorded/Stale/GeneratedMissing=Error、OrphanEntry=Warning；GUIDToAssetPath 同 tick 删除缓存滞后→再核磁盘真身）；菜单 `LiteGame/UI/绑定/生成物 hash/记录（选中/全部）` |
+| `Validation/Rules/UiBindingHashRule.cs` | `ui.binding-hash`（绑定族）：hash 对账进**校验核心三入口**（菜单/CLI/EditMode 共用）——CI 走既有 `UiValidator.RunCli`，不另起旁路；**记录是作者动作**，规则只判漂移不代记录（未记录/漂移显红，不冒充通过） |
+| `UiBindingWindow.cs` | 窗口（菜单 `LiteGame/UI/绑定/绑定标记工具`）：树展示（BindName/类型徽标、**同文漂移显形**、Clone_ 作用域标记、生成根标记）、前缀预设（回显解析现名→前缀下拉+语义输入→预览所选）、批量（换前缀保留语义〔自造段可治愈到词表段〕／同文修复 BindName:=节点名）、**预览先行**（计划表+引用点清单+错误挡板）、生成物 hash 面板（状态+记录+校验） |
+| `IUiRule.cs`（扩展） | `UiValidationContext.BindManifestPath`——清单注入缝（测试用临时清单隔离全局清单状态） |
+
+**写入通道**（§1"撤销用 Prefab Stage；资产写入经 Pipeline API"）：目标 prefab 开 Prefab Stage → 编辑 Stage 实例**全程 Unity Undo**（保存归 Stage）；未开 Stage → `LoadPrefabContents` 改后 `SaveAsPrefabAsset`（资产文件写无编辑器级 Undo——预览先行兜底；选择/勾选变动即作废旧预览）。
+
+### 验证证据
+
+| 项 | 结果 |
+|---|---|
+| Unity recompile | 0 错误 |
+| `UiBindingToolsEditModeTests` | **12/12**：组合文法／计划同文三形态（同步·空不发明·漂移收口）／批量换前缀（含自造段治愈、语义非法跳过）／重名挡应用前／父子同批深度序落位／引用扫描（cs+lua 合成件、真实 `UIMain.lua` 命中）／hash 同内容稳定+绑定面敏感+嵌套根独立／记录-校验-漂移-重记录-生成物缺失闭环（经校验核心规则面）／孤儿条目／规则端口／窗口绑定建树冒烟 |
+| 全量 EditMode | **417/428**——新增 12 全绿；11 红为本批前既有（见遗留），本批零新增 |
+| L1 门禁 | `test.ps1 -Lane L1 -Profile PullRequest` **[PASS] 1636**（LiteSim 343 · LiteNet 543 · LiteTesting 7 · LiteFramework 715〔**纪律扫描在内，新文件零违规**〕· MetaServer 139〔PR 过滤口径；直跑全量另得 160/160〕） |
+| 真实资产规则重跑 | `PASSED=True errors=0 warnings=1`——唯一 Warning 即 §9.6 的 UIMain 根名债（页面批次追踪中）；hash 规则零问题（现役 BindRoot=0 的诚实空态） |
+| PlayMode | 步 3 批面 37/40（3 红为 Test.unity 既有债）；**2026-10-13 收口批后全量 40/40**（见遗留节清账） |
+
+### 遗留（如实）
+
+- **窗口交互面属手测**：IMGUI 壳无自动化覆盖（冒烟用例只盖绑定/建树逻辑）；真实改名的走查随制作侧使用反馈，逐步 6 编排面板批一并打磨；
+- **预设面落点＝工具窗口**（非 BindNode 组件 Inspector）——保 LiteCodeGen 零 LiteGame 依赖（词表单源不外泄）；《制作规范》§9.5 工具现状行已随批改口径；
+- **同文修复批操作未对现役漂移点执行**：`UIMain` 的 BtnClose/Label 漂移收口归**页面批次**（须连 Lua `OnButton("BtnClose")` 同批改——工具只出引用点清单不代改）；
+- **步 2 记录勘误**：步 2 曾登记「UIMain/BtnClose→Button_Close，BindName 同步」——与真身不符，**BindName 未同步**（§9.6 表行已勘误；功能链自洽，属同文漂移非断链）；
+- **既有红——已清零（2026-10-13 收口批，EditMode 428/428 · PlayMode 40/40）**：
+  - `Test.unity` 经用户改名 `Boot.unity`：**场景入库**（gitignore 例外移除）+ 全仓消费者改指（两条 PlayMode 用例、`BuildProfiles` 双端构建清单〔构建现场断链同批修复〕、三处活文档）——"删共享资产前全仓消费者清扫"的实锤案例；
+  - `LTextTypewriter`×7＝**组件实缺非用例错**：截点表缺 0 哨兵（起播偏一显示两字符）、富文本截点未配平（`<color=red>红` 留未闭合开标签）、完成晚一拍（须越过末截点才收）、生命周期非 ExecuteAlways（隐藏取消/待播激活语义 EditMode 不触发）——修组件；另加守卫：无任务不落文本（编辑器装载/卸载 prefab 不碰资产文本）；
+  - `BattleLaser`×3＝**用例字面量手推口径错**：命中柱半径 `HitscanRadius=0.45`（注释误写视觉身位 BodyBake 0.32——近弧差 0.13 是 z 漂移主因）+ 全精度烘焙常量斜率；按 SimRaycast 同式复算逐位对账后重校（判定几何权威守卫在 L1 `AimParallaxHitTests`，本组用例职责＝View 层端点映射）；
+  - `BattleHud.弹药`＝用例笔误：未装备约定 `SelectedWeapon=-1` 须显式置位（C# int 默认 0＝装备槽 0 非未装备）；
+  - 遗留一条**弱断言债**：`租约_取到即被释放的竞态` 只断言异常类型——"已释放"与"未初始化"两分支同过（级联根因已随场景修复消失，断言强度债仍在）；
+- **生成物 hash 首个真实消费者待路径 B 启用**（BindRoot 现役 0）：记录/校验链路已就绪，步 5 CI 接线直接可用；「表内 prefab 路径必须存在」资源族规则仍留步 5。

@@ -60,12 +60,13 @@ namespace LiteGame.Tests.EditMode
         public void 弹药_装备槽弹匣数与换弹态_未装备显示占位()
         {
             var world = new SimWorldState { RngState = 1UL };
-            long selfId = world.Spawn(new EntitySlot { Hp = 100, Pos = new SimVector3(0f, 0f, 0f) }, out int slot);
+            // 未装备 = SelectedWeapon -1（约定见 EntitySlot）——显式置位表达意图；C# int 默认 0 是"装备槽 0"而非未装备
+            long selfId = world.Spawn(new EntitySlot { Hp = 100, Pos = new SimVector3(0f, 0f, 0f), SelectedWeapon = -1 }, out int slot);
             var (panel, bar, ammo, reload) = BuildPanel();
             var driver = BuildDriver(world, selfId, panel, bar, ammo, reload);
 
             driver.Tick();
-            Assert.AreEqual("--", ammo.text);           // 未装备（懒装备前）
+            Assert.AreEqual("--", ammo.text);           // 未装备 → 占位"--"
 
             world.Entities[slot].SelectedWeapon = 0;    // 装备槽 0：弹匣 17、换弹中
             world.Weapons[slot * SimConfig.WeaponSlotsPerEntity].MagAmmo = 17;

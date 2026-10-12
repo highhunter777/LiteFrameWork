@@ -34,7 +34,7 @@ namespace LiteGame
     public static class InputModalProbe
     {
         private const string Arg = "-inputmodal";
-        private const string ModalFormPrefab = "ShareResource/UI/Screens/BaselineB.prefab";
+        private const string ModalFormPrefab = "ShareResource/UI/Screens/Tmp_BaselineB.prefab";
         private const int FramesPerPhase = 8;
         private const float ReadyTimeoutSec = 180f;
         private const float RetryIntervalSec = 1f;

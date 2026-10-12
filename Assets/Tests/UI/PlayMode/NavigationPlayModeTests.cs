@@ -130,9 +130,9 @@ namespace LiteGame.Tests.UI.PlayMode
                     new UIFormInfo { Id = PageMain, Layer = 0, FullScreen = true,
                         LuaPath = "UI.UIMain", Location = "Assets/ShareResource/UI/Screens/UIMain.prefab" },
                     new UIFormInfo { Id = PageA, Layer = 1, FullScreen = true,
-                        LuaPath = "", Location = "Assets/ShareResource/UI/Screens/BaselineA.prefab" },
+                        LuaPath = "", Location = "Assets/ShareResource/UI/Screens/Tmp_BaselineA.prefab" },
                     new UIFormInfo { Id = PageB, Layer = 1, FullScreen = true,
-                        LuaPath = "", Location = "Assets/ShareResource/UI/Screens/BaselineB.prefab" },
+                        LuaPath = "", Location = "Assets/ShareResource/UI/Screens/Tmp_BaselineB.prefab" },
                 }),
                 transitionStrategy: _transition,
                 logicResolver: info => string.IsNullOrEmpty(info.LuaPath)

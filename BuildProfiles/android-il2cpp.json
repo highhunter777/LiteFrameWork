@@ -8,7 +8,7 @@
   "buildTargetGroup": "Android",
   "backend": "IL2CPP",
   "architecture": "ARM64",
-  "scenes": ["Assets/Scenes/Test.unity"],
+  "scenes": ["Assets/Scenes/Boot.unity"],
   "defines": [],
   "contentMode": "OfflineBundles",
   "endpoints": {},

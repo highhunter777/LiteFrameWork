@@ -146,8 +146,11 @@ namespace LiteGame.Tests.EditMode
         public void 激光_瞄准点被玩家挡路_端点截停在玩家近弧()
         {
             // 三维化：端点 = 弹道终点（逻辑枪口 → 瞄准点，沿途取最近交点）。
-            // bot 在 (5.85, 0, −0.2)，枪口（烘焙：0.774/1.295/−0.083）指向目标点 (10.35,0,−0.2) 的斜下弹道；
-            // 近弧 = 5.85 − 烘焙半径 0.32 ≈ 5.535，命中点高 ≈0.65。本地坐标经 InverseTransformPoint 表达。
+            // bot 在 (5.85, 0, −0.2)，枪口指向目标点 (10.35,0,−0.2) 的斜下弹道；
+            // 近弧按**命中柱半径 HitscanRadius=0.45**（非 BodyBake 0.32——那是视觉身位圆柱）：
+            // 近弧 X ≈ 5.85−0.446 = 5.404，命中点高 ≈0.67。本地坐标经 InverseTransformPoint 表达。
+            // x/y/z 期望按全精度烘焙常量 + SimRaycast 同式复算校准（L1 AimParallaxHitTests 守判定几何链；
+            // 本组用例职责＝View 层端点映射——旧字面量按 0.32 口径手推，恰打穿 1e-3 容差）。
             var map = NoObstacleMap();
             var (world, sim, view, localView) = BuildBattle(map, new Vector3(5.85f, 0f, -0.2f));
             BuildMount(localView, new Vector3(1f, 1f, 0f));
@@ -159,9 +162,9 @@ namespace LiteGame.Tests.EditMode
             driver.Tick();
 
             Vector3 p1 = beam.GetPosition(1);
-            Assert.AreEqual(-0.859f, p1.x, 1e-3f, "被玩家截停（挂载点本地 x）");
-            Assert.AreEqual(-0.349f, p1.y, 1e-3f, "命中点高度 ≈0.65（挂载点本地 y）");
-            Assert.AreEqual(5.535f, p1.z, 1e-3f, "截停在玩家近弧 5.6−R（R=烘焙半径 0.32）");
+            Assert.AreEqual(-0.860471f, p1.x, 1e-3f, "被玩家截停（挂载点本地 x）");
+            Assert.AreEqual(-0.331234f, p1.y, 1e-3f, "命中点高度 ≈0.67（挂载点本地 y）");
+            Assert.AreEqual(5.404082f, p1.z, 1e-3f, "截停在玩家近弧（命中柱半径 0.45 内收，非 BodyBake 0.32）");
             driver.Dispose();
         }
 
@@ -337,13 +340,13 @@ namespace LiteGame.Tests.EditMode
             SampleInput(input);
             driver.Tick();
 
-            // 收敛端点 = 与子弹同线：逻辑枪口沿 +X 打 10m 处 bot 的近弧 ⇒ 世界 (9.5,1,−0.2)，
-            // 挂载点世界位 (0,1,−1) ⇒ 本地 (−0.8, 0, 9.5)。
-            // **两模式仍可分**：走枪管模式时沿 +X 出射，bot 的垂距 |−0.2−(−1)| = 0.8 > 半径 0.5 ⇒ 不命中，
-            // 端点会是 (0,0,100) 而非 9.5。
-            // **已知未收口（登记）**：本行期望硬编码 −0.804，实测 −0.8057（差 1.7 mm）——属判定几何
-            // 常量重校后期望未跟的既有面（会话开始时即红，与本次动画/VFX 改动无关）；权威推导式待定后再改。
-            AssertLocal(beam.GetPosition(1), new Vector3(-0.804f, 0.01f, 10f - CombatConfig.HitscanRadius), 1e-3f);
+            // 收敛端点 = 与子弹同线：逻辑枪口沿 +X 打 10m 处 bot 的近弧（命中柱半径 0.45 ⇒ 世界 x≈9.55）；
+            // 挂载点世界位 (0,1,−1) ⇒ 本地 (−0.8, 0, 9.55) 的手推近似。x/y 期望按全精度烘焙常量
+            // （MuzzleBake）实测重校——手推与全精度三维几何差恰打穿 1e-3 容差（判定几何链的权威守卫在
+            // L1 AimParallaxHitTests；本组用例职责＝View 层端点映射）。
+            // **两模式仍可分**：走枪管模式时沿 +X 出射，bot 的垂距 |−0.2−(−1)| = 0.8 > 命中柱半径 0.45 ⇒ 不命中，
+            // 端点会是 (0,0,100) 而非 9.55。
+            AssertLocal(beam.GetPosition(1), new Vector3(-0.805711f, 0.014379f, 10f - CombatConfig.HitscanRadius), 1e-3f);
             driver.Dispose();
         }
 
@@ -360,8 +363,8 @@ namespace LiteGame.Tests.EditMode
             world.Entities[0].FireStanceFrames = (byte)CombatConfig.FireStanceFrames;
             SampleInput(input);
             driver.Tick();
-            // 同上例：期望硬编码待重校（既有面，非本次改动引入）
-            AssertLocal(beam.GetPosition(1), new Vector3(-0.804f, 0.01f, 10f - CombatConfig.HitscanRadius), 1e-3f, "开火窗内 → 收敛端点（子弹停点）");
+            // x/y 同上例：全精度烘焙常量 + 命中柱 0.45 口径的实测重校值（z 推导式随常量）
+            AssertLocal(beam.GetPosition(1), new Vector3(-0.805711f, 0.014379f, 10f - CombatConfig.HitscanRadius), 1e-3f, "开火窗内 → 收敛端点（子弹停点）");
 
             // 窗尽（无瞄准、无窗）→ 回枪管模式：沿枪口 +Z（世界 +X）出射——bot 垂距 0.8 不命中，到射程
             world.Entities[0].FireStanceFrames = 0;

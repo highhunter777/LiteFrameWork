@@ -8,7 +8,7 @@
   "buildTargetGroup": "Standalone",
   "backend": "IL2CPP",
   "architecture": "x86_64",
-  "scenes": ["Assets/Scenes/Test.unity"],
+  "scenes": ["Assets/Scenes/Boot.unity"],
   "defines": [],
   "contentMode": "OfflineBundles",
   "endpoints": {},

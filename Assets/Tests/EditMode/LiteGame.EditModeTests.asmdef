@@ -6,6 +6,7 @@
         "LiteClient.Content.YooAsset",        "LiteClient.Runtime",
         "LiteClient.Scripting.XLua",
         "LiteClient.Serialization.Luban",
+        "LiteCodeGen.Runtime",
         "LiteFramework.Async",
         "LiteFramework.Core",
         "LiteFramework.Unity",

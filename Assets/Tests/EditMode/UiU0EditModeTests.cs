@@ -237,8 +237,8 @@ return m";
                 Assert.AreEqual(1f, trans.AlphaAtShowEntry, 0.0001f, "首开入场前 alpha 应为 1");
 
                 // 按钮真的绑上了：点击走 Lua 闭包 → self.ui:Flash（无新错误即成功路径）
-                var btn = FindButton(form.Root, "BtnClose");
-                Assert.IsNotNull(btn, "prefab 应有 BtnClose");
+                var btn = FindButton(form.Root, "Button_Close");
+                Assert.IsNotNull(btn, "prefab 应有 Button_Close");
                 int errBefore = LiteFramework.Log.ErrorCount;
                 btn.onClick.Invoke();
                 Assert.AreEqual(errBefore, LiteFramework.Log.ErrorCount, "Lua 按钮回调不应产生错误");

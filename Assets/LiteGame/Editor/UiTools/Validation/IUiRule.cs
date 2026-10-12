@@ -22,13 +22,19 @@ namespace LiteGame.Editor.UiTools.Validation
         /// <summary>资产路径集（工程根相对，如 prefab 路径）——资产面规则用。</summary>
         public IReadOnlyList<string> AssetPaths { get; }
 
+        /// <summary>生成物 hash 清单路径（工程根相对）——绑定族 hash 规则用；缺省＝<see cref="UiBindGenerationHash.DefaultManifestPath"/>。
+        /// 测试可注入临时清单（隔离全局清单状态）。</summary>
+        public string BindManifestPath { get; }
+
         public UiValidationContext(string projectRoot,
             IReadOnlyList<string> sourceDirs = null,
-            IReadOnlyList<string> assetPaths = null)
+            IReadOnlyList<string> assetPaths = null,
+            string bindManifestPath = null)
         {
             ProjectRoot = projectRoot;
             SourceDirs = sourceDirs ?? new List<string>();
             AssetPaths = assetPaths ?? new List<string>();
+            BindManifestPath = bindManifestPath;
         }
     }
 
