@@ -192,4 +192,13 @@ namespace RoomServer.Runtime
 
         public SeatRestored(int playerId) => PlayerId = playerId;
     }
+
+    /// <summary>房主迁移（开房裁决续批：原房主离席 → owner 位转最低 playerId 席位——人在座才算房主；
+    /// App：OwnerChanged 广播，UI 换"开始对局"按钮归属。旧房主重连**不夺回**〔确定性——席位保留语义〕）。</summary>
+    public sealed class OwnerChanged : RoomSignal
+    {
+        public readonly int PlayerId;
+
+        public OwnerChanged(int playerId) => PlayerId = playerId;
+    }
 }

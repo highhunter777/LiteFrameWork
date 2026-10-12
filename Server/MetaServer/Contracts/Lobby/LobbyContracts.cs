@@ -72,6 +72,31 @@ namespace MetaServer.Contracts.Lobby
 
         /// <summary>实例是否已进入排空（true = Lobby 立即停止向其分配新对局，§7"drain 协同"）。</summary>
         public bool Draining { get; set; }
+
+        /// <summary>
+        /// 房间明细（可选——房间列表批：缺省/空 = 该实例未上报明细，旧实例兼容）。
+        /// 上限 = <see cref="MaxRooms"/>；终态房间（已销毁）不报。
+        /// </summary>
+        public List<RoomReport> Rooms { get; set; }
+    }
+
+    /// <summary>
+    /// 单房间明细上报（RoomServer → Lobby，随心跳；投影"上报事实的投影，不是权威"）。
+    /// phase = RoomRuntime.MatchPhase 数值（0 Created/1 WaitingForPlayers/2 Starting/3 Running/4 Finishing/5 Settling）。
+    /// </summary>
+    public sealed class RoomReport
+    {
+        /// <summary>房间号（1..64 UTF-8 字节——与进房路由键同口径）。</summary>
+        public string RoomId { get; set; }
+
+        /// <summary>对局阶段（MatchPhase 数值；列表消费者按 ≤ WaitingForPlayers 语义理解"等待中可进"）。</summary>
+        public int Phase { get; set; }
+
+        /// <summary>当前在座玩家数（已入座席位，含断线保留席）。</summary>
+        public int Players { get; set; }
+
+        /// <summary>模板期望人数（0 = 房间未配置）。</summary>
+        public int ExpectedPlayers { get; set; }
     }
 
     /// <summary>实例注册响应：心跳存活时限（Meta 判定"可分配"的时效——客户端心跳间隔应显著小于它）。</summary>
@@ -148,5 +173,17 @@ namespace MetaServer.Contracts.Lobby
 
         /// <summary>距最近一次心跳的毫秒数（投影新鲜度——过期即从投影消失，不猜状态）。</summary>
         public long LastSeenAgeMs { get; set; }
+
+        /// <summary>房间明细投影（房间列表批；空 = 实例未上报明细）。</summary>
+        public IReadOnlyList<RoomView> Rooms { get; set; }
+    }
+
+    /// <summary>房间明细投影视图（字段同 <see cref="RoomReport"/>——上报事实直映）。</summary>
+    public sealed class RoomView
+    {
+        public string RoomId { get; set; }
+        public int Phase { get; set; }
+        public int Players { get; set; }
+        public int ExpectedPlayers { get; set; }
     }
 }

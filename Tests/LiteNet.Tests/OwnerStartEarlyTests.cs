@@ -102,6 +102,62 @@ namespace LiteNet.Tests
         }
 
         [Fact]
+        public void 房主离席_owner位转最低在座席位_新房主可开局()
+        {
+            var room = new RoomRuntime(new RoomConfig { RoomId = "R", ExpectedPlayers = 4, Seed = 7 });
+            Run(room, RoomCommand.Join(101));                              // p0 = owner
+            Run(room, RoomCommand.Join(202));
+            Run(room, RoomCommand.Join(303));
+
+            var outputs = Run(room, RoomCommand.Disconnect(101));          // 房主退房
+
+            var changed = outputs.OfType<SignalOutput>().Select(s => s.Signal).OfType<OwnerChanged>().Single();
+            Assert.Equal(1, changed.PlayerId);                            // 转给最低 playerId 的其余席位
+            Assert.Equal(MatchPhase.WaitingForPlayers, Phase(room));
+
+            var start = Run(room, RoomCommand.StartEarly(1));              // 新房主开局成功
+            Assert.Contains(start, o => o is SignalOutput s && s.Signal is MatchStarted);
+        }
+
+        [Fact]
+        public void 旧房主重连不夺回_非owner离席不触发迁移()
+        {
+            var room = new RoomRuntime(new RoomConfig { RoomId = "R", ExpectedPlayers = 4, Seed = 7 });
+            Run(room, RoomCommand.Join(101));                              // p0 = owner
+            Run(room, RoomCommand.Join(202));
+
+            var nonOwner = Run(room, RoomCommand.Disconnect(202));          // 非 owner 离席：无迁移广播
+            Assert.Empty(nonOwner.OfType<SignalOutput>().Where(s => s.Signal is OwnerChanged));
+
+            Run(room, RoomCommand.Disconnect(101));                        // 房主离席 → p1 继承
+            Run(room, RoomCommand.Rebind(0, 909));                         // 旧房主重连（重绑回席位 0）
+
+            var retry = Run(room, RoomCommand.StartEarly(0));               // 旧房主夺不回：被拒
+            Assert.Contains(retry, o => o is StartRejectedOutput);
+            Assert.Equal(MatchPhase.WaitingForPlayers, Phase(room));
+
+            var newOwner = Run(room, RoomCommand.StartEarly(1));            // 房主位仍在 p1
+            Assert.Contains(newOwner, o => o is SignalOutput s && s.Signal is MatchStarted);
+        }
+
+        [Fact]
+        public void 独房主离席保持owner_全断线时转给最低席位()
+        {
+            var solo = new RoomRuntime(new RoomConfig { RoomId = "S", ExpectedPlayers = 2, Seed = 7 });
+            Run(solo, RoomCommand.Join(101));
+            var out1 = Run(solo, RoomCommand.Disconnect(101));               // 只剩房主一人：保持原位
+            Assert.Empty(out1.OfType<SignalOutput>().Where(s => s.Signal is OwnerChanged));
+
+            var multi = new RoomRuntime(new RoomConfig { RoomId = "M", ExpectedPlayers = 4, Seed = 7 });
+            Run(multi, RoomCommand.Join(101));                               // p0=owner
+            Run(multi, RoomCommand.Join(202));
+            Run(multi, RoomCommand.Disconnect(202));                         // p1 先断
+            var out2 = Run(multi, RoomCommand.Disconnect(101));              // 房主再断（其余席位全 Disconnected）
+            var changed = out2.OfType<SignalOutput>().Select(s => s.Signal).OfType<OwnerChanged>().Single();
+            Assert.Equal(1, changed.PlayerId);                              // 仍转给最低其余席位（断线席位——回来即房主）
+        }
+
+        [Fact]
         public void 对局中拒加入_不再发放无实体空席位()
         {
             var room = new RoomRuntime(new RoomConfig { RoomId = "R", ExpectedPlayers = 4, Seed = 7 });

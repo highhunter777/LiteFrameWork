@@ -57,6 +57,18 @@ namespace RoomServer
 
             /// <summary>宿主实际监听端口（<c>BoundPort</c>；0 配置经内核分配后回读）。</summary>
             public int Port;
+
+            /// <summary>房间明细（房间列表批；null/空 = 不上报明细——注册表按"未上报"兼容）。</summary>
+            public ServerHost.RoomSummary[] Rooms;
+        }
+
+        /// <summary>单房间明细的 wire DTO（camelCase——与 Meta 的 <c>RoomReport</c> 契约逐字段对应）。</summary>
+        private sealed class RoomDetailDto
+        {
+            public string RoomId { get; set; }
+            public int Phase { get; set; }
+            public int Players { get; set; }
+            public int ExpectedPlayers { get; set; }
         }
 
         private sealed class RegisterPayload
@@ -69,6 +81,7 @@ namespace RoomServer
             public int MaxPlayers { get; set; }
             public int PlayerCount { get; set; }
             public bool Draining { get; set; }
+            public RoomDetailDto[] Rooms { get; set; }
         }
 
         private static readonly JsonSerializerOptions WebJson = new JsonSerializerOptions(JsonSerializerDefaults.Web);
@@ -156,6 +169,7 @@ namespace RoomServer
                     MaxPlayers = snapshot.MaxPlayers,
                     PlayerCount = snapshot.PlayerCount,
                     Draining = snapshot.Draining,
+                    Rooms = ToRoomDtos(snapshot.Rooms),
                 };
 
                 using var request = new HttpRequestMessage(HttpMethod.Post, _settings.Url);
@@ -212,6 +226,24 @@ namespace RoomServer
                 _log("[Lobby] 注册心跳失败（连续 " + consecutive + " 次）：" + error
                     + "（对局服务不受影响；恢复后自动继续）");
             }
+        }
+
+        /// <summary>宿主明细 → wire DTO（null 保持 null——"未上报"语义两端一致）。</summary>
+        private static RoomDetailDto[] ToRoomDtos(ServerHost.RoomSummary[] rooms)
+        {
+            if (rooms == null) return null;
+            var result = new RoomDetailDto[rooms.Length];
+            for (int i = 0; i < rooms.Length; i++)
+            {
+                result[i] = new RoomDetailDto
+                {
+                    RoomId = rooms[i].RoomId,
+                    Phase = rooms[i].Phase,
+                    Players = rooms[i].Players,
+                    ExpectedPlayers = rooms[i].ExpectedPlayers,
+                };
+            }
+            return result;
         }
 
         private static long ReadHeartbeatTtlMs(string body)

@@ -186,6 +186,12 @@ message StartMatchResponse {
   string reason = 2;                        // 拒绝原因（客户端 UI 反馈）
 }
 
+// ===== S→C 房主迁移广播（Reliable；原房主离席 → 最低 playerId 席位继承——人在座才算房主）=====
+
+message OwnerChanged {
+  int32 player_id = 1;                       // 新房主席位（UI 换"开始对局"按钮归属；旧房主重连不夺回）
+}
+
 // ===== C→S 和解上报（Unreliable；Ops 汇总和解率）=====
 
 message MismatchReport { int32 frame = 1; }

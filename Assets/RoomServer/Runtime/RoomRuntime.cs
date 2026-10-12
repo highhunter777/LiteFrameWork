@@ -270,9 +270,28 @@ namespace RoomServer.Runtime
             seat.Phase = SeatPhase.Disconnected;                              // 席位保留（重连窗口内可重绑）
             seat.ConnectionId = -1;
 
+            // 房主离席 → owner 位转给最低 playerId 的**其余席位**（任何相位——全断线时也转，
+            // 防"回来的人都不是房主"死局）；只剩房主一人则保持（空房无人可转）。旧房主重连不夺回——确定性优先。
+            if (seat.IsOwner)
+                TransferOwner(playerId, outputs);
+
             // 全员离场且对局进行中 → 收尾（冻结结果并关闭；Aborted 只留给错误/运维终止）
             if (Match.Phase == MatchPhase.Running && AllSeatsDisconnected())
                 Finish(ShutdownReason.AllPlayersLeft, "all-players-left", outputs);
+        }
+
+        /// <summary>owner 位迁移（原房主 <paramref name="departing"/> 离席）：转给最低 playerId 的其余席位，
+        /// 广播 <see cref="OwnerChanged"/> 供 UI 换按钮归属。无其余席位 = no-op（保持原位）。</summary>
+        private void TransferOwner(int departing, List<RoomOutput> outputs)
+        {
+            for (int i = 0; i < NextPlayerId; i++)
+            {
+                if (i == departing || _seats[i] == null) continue;
+                _seats[departing].IsOwner = false;
+                _seats[i].IsOwner = true;
+                outputs.Add(new SignalOutput(-1, new OwnerChanged(i)));
+                return;
+            }
         }
 
         private bool AllSeatsDisconnected()

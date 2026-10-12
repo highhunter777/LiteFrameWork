@@ -56,6 +56,9 @@ namespace MetaServer.Modules.Lobby
             public bool Draining;
             public long LastSeenMs;
 
+            /// <summary>房间明细（房间列表批；null = 未上报。换对象语义——每次注册换新表）。</summary>
+            public List<RoomView> Rooms;
+
             /// <summary>是否仍有玩家容量（分配硬闸之一）。</summary>
             public bool HasCapacity
             {
@@ -123,6 +126,23 @@ namespace MetaServer.Modules.Lobby
             if (command.MaxPlayers < 1 || command.MaxPlayers > MaxPlayersCeiling) { reason = "maxPlayers"; return RegisterResult.InvalidFields; }
             if (command.PlayerCount < 0 || command.PlayerCount > command.MaxPlayers) { reason = "playerCount"; return RegisterResult.InvalidFields; }
 
+            // 房间明细（房间列表批；可空 = 未上报——旧实例兼容）。越界 = 上报事实不可信，拒绝不裁剪。
+            List<RoomView> rooms = null;
+            if (command.Rooms != null)
+            {
+                if (command.Rooms.Count > command.MaxRooms) { reason = "rooms"; return RegisterResult.InvalidFields; }
+                rooms = new List<RoomView>(command.Rooms.Count);
+                for (int i = 0; i < command.Rooms.Count; i++)
+                {
+                    RoomReport r = command.Rooms[i];
+                    if (r == null || !FieldValidation.IsValid(r.RoomId, MaxInstanceIdBytes)) { reason = "rooms[" + i + "].roomId"; return RegisterResult.InvalidFields; }
+                    if (r.Phase < 0 || r.Phase > 5) { reason = "rooms[" + i + "].phase"; return RegisterResult.InvalidFields; }   // 0..5 = Created..Settling
+                    if (r.Players < 0 || r.Players > MaxPlayersCeiling) { reason = "rooms[" + i + "].players"; return RegisterResult.InvalidFields; }
+                    if (r.ExpectedPlayers < 0 || r.ExpectedPlayers > MaxPlayersCeiling) { reason = "rooms[" + i + "].expectedPlayers"; return RegisterResult.InvalidFields; }
+                    rooms.Add(new RoomView { RoomId = r.RoomId, Phase = r.Phase, Players = r.Players, ExpectedPlayers = r.ExpectedPlayers });
+                }
+            }
+
             lock (_gate)
             {
                 long now = _nowMs();
@@ -147,6 +167,7 @@ namespace MetaServer.Modules.Lobby
                     PlayerCount = command.PlayerCount,
                     Draining = command.Draining,
                     LastSeenMs = now,
+                    Rooms = rooms,                                   // 房间列表批：未上报（null）保持未上报语义
                 };
                 return RegisterResult.Accepted;
             }
@@ -209,6 +230,7 @@ namespace MetaServer.Modules.Lobby
                         PlayerCount = e.PlayerCount,
                         Draining = e.Draining,
                         LastSeenAgeMs = now - e.LastSeenMs,
+                        Rooms = e.Rooms,                               // 房间列表批：明细直映（null = 未上报）
                     });
                 }
                 list.Sort((a, b) => string.CompareOrdinal(a.InstanceId, b.InstanceId));

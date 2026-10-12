@@ -95,5 +95,28 @@ namespace LiteNet.Tests
             Assert.Null(h.t.LastJoinAck(3));
             Assert.Equal(1, host.Ops.Rejects);                               // 房间侧拒绝计数进 Ops
         }
+
+        [Fact]
+        public void 房主离席_在座者收到OwnerChanged信令_新方案开局()
+        {
+            var h = NewHost();
+            using var host = h.host;
+
+            h.t.RaiseConnected(1);
+            h.t.RaiseData(1, Join("Room-A"));
+            h.t.RaiseConnected(2);
+            h.t.RaiseData(2, Join("Room-A"));
+            Assert.True(h.t.LastJoinAck(1).IsOwner);
+
+            h.t.RaiseData(1, PacketCodec.Encode(PacketType.Leave, new Leave()));   // 房主退房
+
+            var changed = (LiteNet.Proto.OwnerChanged)h.t.Last(2, PacketType.OwnerChanged);
+            Assert.NotNull(changed);
+            Assert.Equal(1, changed.PlayerId);                                // 转给最低 playerId 的其余席位
+            // 注：离席者同批也可能收到广播（ApplyOutput 先于 session.Disconnected 落地）——无害，不断言
+
+            h.t.RaiseData(2, StartRequest());                                  // 新房主开局成功（wire 全链）
+            Assert.NotNull(h.t.LastStartGame(2));
+        }
     }
 }

@@ -113,6 +113,27 @@ namespace MetaServer
 
                 return Results.Json(new LobbyRoomsResponse { Rooms = registry.ProjectRooms() });
             });
+
+            // 房间列表批：**玩家可见**的实例+房间明细投影（Bearer = 玩家访问令牌——与票据签发同凭据类别；
+            // 客户端据此发现"哪台服务器有哪些房间在等待"，挑 roomId → 换票 → 进房）。
+            // 字段与实例面端点同源（ProjectRooms 单次投影，含 address/buildHash——玩家进房要用）。
+            app.MapGet("/lobby/rooms/public", (HttpContext context) =>
+            {
+                InstanceRegistry registry = context.RequestServices.GetService<InstanceRegistry>();
+                AccessTokenService tokens = context.RequestServices.GetService<AccessTokenService>();
+                if (registry == null || tokens == null) return Disabled();
+
+                string token = InstanceKeyAuth.ReadBearer(context);
+                AccessTokenFormat.Rejection rejection = tokens.Validate(token, out AccessTokenFormat.Claims claims);
+                if (rejection != AccessTokenFormat.Rejection.None)
+                {
+                    return MetaResults.Error(StatusCodes.Status401Unauthorized,
+                        AuthErrorCodes.Unauthorized, AuthErrorCodes.MessageKeyUnauthorized, rejection.ToString());
+                }
+                _ = claims;                                  // 鉴权即用（不按账号维度过滤——实例/房间不含个人数据）
+
+                return Results.Json(new LobbyRoomsResponse { Rooms = registry.ProjectRooms() });
+            });
         }
 
         /// <summary>功能未配置（服务缺席）——稳定 503，不回退假数据（§10）。</summary>

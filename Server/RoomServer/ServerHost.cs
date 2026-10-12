@@ -291,6 +291,45 @@ namespace RoomServer
         }
 
         /// <summary>
+        /// 房间明细快照（房间列表批——Lobby 心跳上报的"房间号/阶段/在座/期望"投影）。
+        /// **近似快照**（与 OccupiedPlayerCount 同口径）：心跳线程读、权威线程写——字段级引用/int 读，
+        /// 房间表 List 扩容瞬间的撕裂以 catch 兜底（下跳再报，投影本就是"上报事实"非权威）。
+        /// O(在册房间)；低频心跳调用，不在权威循环热路径。
+        /// </summary>
+        public RoomSummary[] RoomSummaries()
+        {
+            RoomInstance[] rooms;
+            try { rooms = _rooms.ToArray(); }
+            catch { return Array.Empty<RoomSummary>(); }          // 扩容竞态（AddRoom 同帧）：本跳放弃，不炸心跳线程
+
+            var list = new RoomSummary[rooms.Length];
+            int n = 0;
+            for (int i = 0; i < rooms.Length; i++)
+            {
+                RoomInstance room = rooms[i];
+                if (room?.Runtime == null) continue;
+                list[n++] = new RoomSummary
+                {
+                    RoomId = room.RoomId,
+                    Phase = (int)room.Runtime.Match.Phase,
+                    Players = room.Runtime.NextPlayerId,
+                    ExpectedPlayers = room.Runtime.ExpectedPlayers,
+                };
+            }
+            if (n != list.Length) Array.Resize(ref list, n);
+            return list;
+        }
+
+        /// <summary>房间明细投影单元（Lobby 房间列表——上报事实，随心跳）。</summary>
+        public struct RoomSummary
+        {
+            public string RoomId;
+            public int Phase;
+            public int Players;
+            public int ExpectedPlayers;
+        }
+
+        /// <summary>
         /// 当前已进房玩家席位占用数（Lobby 容量上报面——未进房的连接不计入"占用"）。
         /// O(会话表)；低频心跳调用，不在权威循环热路径。
         /// </summary>
@@ -1619,6 +1658,19 @@ namespace RoomServer
                     _ops.NoteRestoreCompleted();              // §9.3 步骤 6：席位回 Active——增量广播恢复
                     RoomInstance room = _currentRoom ?? (_rooms.Count > 0 ? _rooms[0] : null);
                     room?.Pipeline.RequestFullSnapshot();  // 重锚广播链：抑制期间基线已越过重连快照帧，整帧全量补齐 (N_r, B] 缝
+                    break;
+                }
+                case RoomServer.Runtime.OwnerChanged oc:                  // 房主迁移：可靠广播——UI 换"开始对局"按钮归属
+                {                                                        // （限定信号类型——与 Proto.OwnerChanged 同名二义）
+                    RoomInstance room = _currentRoom ?? (_rooms.Count > 0 ? _rooms[0] : null);
+                    if (room == null) break;
+                    for (int p = 0; p < room.Seats.Length; p++)
+                    {
+                        Session member = room.Seats[p];
+                        if (member == null || member.Disconnected) continue;
+                        SendToSession(member, PacketType.OwnerChanged,
+                            new Proto.OwnerChanged { PlayerId = oc.PlayerId }, reliable: true);
+                    }
                     break;
                 }
             }

@@ -49,6 +49,7 @@ namespace LiteNet.Protocol
                     case PacketType.MatchEnded: message = Proto.MatchEnded.Parser.ParseFrom(payload); return true;
                     case PacketType.StartMatchRequest: message = Proto.StartMatchRequest.Parser.ParseFrom(payload); return true;   // 开房裁决
                     case PacketType.StartMatchResponse: message = Proto.StartMatchResponse.Parser.ParseFrom(payload); return true;
+                    case PacketType.OwnerChanged: message = Proto.OwnerChanged.Parser.ParseFrom(payload); return true;            // 房主迁移
                     default: return false;
                 }
             }

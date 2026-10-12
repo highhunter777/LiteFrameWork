@@ -136,6 +136,7 @@ namespace RoomServer
                         PlayerCount = host.OccupiedPlayerCount,
                         Draining = host.Draining,
                         Port = host.BoundPort,
+                        Rooms = host.RoomSummaries(),          // 房间列表批：明细随心跳上报（近似快照，见该读面注释）
                     }, msg => HostLog.Info("Lobby", msg));   // P4：客户端日志经 HostLog（可接管）
                 });
             }

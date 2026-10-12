@@ -18,5 +18,6 @@ namespace LiteNet.Protocol
         MatchEnded = 12,
         StartMatchRequest = 13,   // C→S 房主提前开局（Reliable；开房裁决——owner 判定在 Runtime）
         StartMatchResponse = 14,  // S→C 提前开局反馈（Reliable；仅拒绝时携带原因——成功以 StartGame 广播为准）
+        OwnerChanged = 15,        // S→C 房主迁移广播（Reliable；原房主离席 → 最低 playerId 席位继承）
     }
 }

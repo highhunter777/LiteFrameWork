@@ -120,6 +120,10 @@ namespace LiteNet
         /// <summary>提前开局被拒反馈（开房裁决：非房主/席位无效——UI 据此提示；
         /// 成功路径以 <see cref="OnStartGame"/> 广播为准，本事件只在被拒时到达）。</summary>
         public event Action<Proto.StartMatchResponse> OnStartMatchResponse;
+
+        /// <summary>房主迁移广播（原房主离席 → 本消息带新房主席位——UI 换"开始对局"按钮归属；
+        /// 旧房主重连不夺回——服务器侧确定性裁决，客户端只消费事实）。</summary>
+        public event Action<Proto.OwnerChanged> OnOwnerChanged;
         private Proto.MatchEnded _matchResult;
         private string _activeMatchId;
         public Proto.MatchEnded MatchResult => _matchResult?.Clone();
@@ -429,6 +433,9 @@ namespace LiteNet
                     break;
                 case PacketType.StartMatchResponse:                     // 开房裁决：提前开局被拒反馈
                     OnStartMatchResponse?.Invoke((Proto.StartMatchResponse)msg);
+                    break;
+                case PacketType.OwnerChanged:                          // 房主迁移：UI 换按钮归属
+                    OnOwnerChanged?.Invoke((Proto.OwnerChanged)msg);
                     break;
             }
         }
