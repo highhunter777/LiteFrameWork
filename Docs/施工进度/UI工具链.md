@@ -10,7 +10,7 @@
 | 2 | **绑定标记工具（底层两项：词表单源 + 绑定命名规则）+ 全仓命名整改** | **已交付（2026-10-11）** | §2 |
 | 3 | 绑定标记工具（窗口/前缀预设 UI/批量重命名/引用点提示/生成物 hash） | 待做 | §2 |
 | 4 | 样式工具补齐（`UiTextStyleRef` 文字档 + 对账扩 `Screens/`） | 待做 | §3 |
-| 5 | 校验进 CI（生成物 hash 对账 + 门禁接入） | 待做 | §4 + 修改指南 §2.3 |
+| 5 | 校验进 CI（生成物 hash 对账 + 门禁接入 + **资源族规则「表内 prefab 路径必须存在」**——步 2 改名漏跟表引用即该族缺席所致） | 待做 | §4 + 修改指南 §2.3 |
 | 6 | 编排面板（控件库/绑定树/受控属性/校验生成） | 待做 | §5 |
 | 7 | UIPatch 调试补丁 | 待做（随 U4 消费者） | §6 |
 
@@ -83,6 +83,10 @@
 
 ### 遗留（如实）
 
+- **表/代码的按路径引用未跟改名（2026-10-12 快进后实测；本批未修，交制作侧）**：本批改的是 prefab **文件**名（`AssetDatabase.MoveAsset` 保 guid，序列化引用不断链），但**按路径**消费的两面漏同步——
+  - 表：源 `Luban/Data/#uiform.xlsx` 与生成物 `Assets/LiteGame/Lua/Cfg/tbuiform.lua:9-14` 的 **201/202/203/204/205/206** 仍写改名前的 `ShareResource/UI/Screens/{Dialog,Loading,Toast,BaselineA,BaselineB}.prefab`（磁盘上现只剩 `Tmp_*` 同名件）；`UIFormCatalog` 的 `Location="Assets/"+row.Prefab` 是路径加载，打开这些 id 会倒在内容加载；
+  - 码与夹具：`Assets/LiteGame/App/Bootstrap/InputModalProbe.cs:37`（`BaselineB.prefab`）、`Assets/Tests/UI/PlayMode/FeedbackSurfacePlayModeTests.cs:42-44`、`NavigationPlayModeTests.cs:133-135`、`SceneAndPresentationPlayModeTests.cs:328,374`、`UiStatePlayModeTests.cs:95-96`（手写表按旧路径 Load，**下次 L2 夜间批会红**）；`Assets/LiteGame/UI/FeedbackService.cs:67` 的默认 201/202/203 随之失效。
+  - 修面：表源 6 行 → `Tmp_*` + 重生成三件（`python scripts/codegen/toolbox.py`）+ 探针/4 夹具常量同步 + L2 实跑复核。**同类第二次**（`Docs/施工进度/上云五页制作.md` 记 201 自 2026-09-25 起出生即悬空）——根因是"表内资源路径存在性"无门禁，已挂到执行顺序步 5；
 - **`UIMain` 根名**未改（§9.6 明载"牵动流程/表引用，随页面批次裁决"）——规则报 Warning 追踪；
 - **`Hud_Battle.prefab` 含制作侧未提交的 sprite 改动**（Synty → 自制 `Icons/`），本批对其只做 `Txt_/`→`Txt_Slash` 一处命名修正，**文件整体未随批提交**（随制作侧 sprite 批一并入）；
 - 中途一次**误操作**（首版"盘上树规划 + 加载树按序改名"遍历序失配，弄乱 5 个 prefab）——已 `git checkout HEAD` 全部回滚，改**单一树**方案重跑，0 MISSING 佐证无残留；
