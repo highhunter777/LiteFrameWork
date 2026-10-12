@@ -74,6 +74,14 @@ namespace RoomServer
         /// </summary>
         bool TryMarkCompleted(string matchId);
 
+        /// <summary>
+        /// 弃置（**终态处置**——确定性拒绝：载荷级 4xx，重投同一载荷不可能收敛；设计 §2"提交失败处置分级"）：
+        /// 追加弃置标记行（<c>Kind="x"</c>，含原因）并退出待提交面——**让位**后续条目
+        /// （防"一行毒死整条队列"的头阻塞）。幂等与介质失败口径同 <see cref="TryMarkCompleted"/>
+        /// （未知/已标记/写失败 → false，条目保持待提交，可重试）。
+        /// </summary>
+        bool TryAbandon(string matchId, string reason);
+
         /// <summary>当前**待提交**条数（容量判据；标记完成后回落）。</summary>
         int Count { get; }
 
@@ -140,6 +148,9 @@ namespace RoomServer
         /// <summary>装载期跳过的坏行数（崩溃半行等；重启不炸——显式计数可观测）。</summary>
         public int SkippedCorruptLines { get; private set; }
 
+        /// <summary>弃置条数（确定性拒绝终态处置；装载期自 "x" 标记行重建 + 运行时累加——诊断）。</summary>
+        public int Abandoned { get; private set; }
+
         /// <summary>压实执行次数（诊断：长跑应随完成标记低频增长）。</summary>
         public int Compactions { get; private set; }
 
@@ -178,6 +189,7 @@ namespace RoomServer
             var completed = new HashSet<string>(StringComparer.Ordinal);
             var entries = new List<PendingSettlement>();
             int corrupt = 0;
+            int abandoned = 0;
             if (File.Exists(path))
             {
                 foreach (string line in File.ReadLines(path))
@@ -189,9 +201,11 @@ namespace RoomServer
                     if (entry == null || string.IsNullOrEmpty(entry.MatchId)) { corrupt++; continue; }
                     if (entry.Players != null && Array.Exists(entry.Players, p => p == null)) { corrupt++; continue; }
 
-                    if (entry.Kind == "c")
+                    if (entry.Kind == "c" || entry.Kind == "x")
                     {
-                        // 完成标记行：退出待提交面（正常时序中随后于其结算行）
+                        // 完成/弃置标记行：退出待提交面（正常时序中随后于其结算行；
+                        // 弃置 = 确定性拒绝终态——重放不得复活）
+                        if (entry.Kind == "x") abandoned++;
                         completed.Add(entry.MatchId);
                         seen.Add(entry.MatchId);
                         entries.RemoveAll(e => e.MatchId == entry.MatchId);
@@ -207,6 +221,7 @@ namespace RoomServer
             return new FileSettlementOutbox(path, stream, seen, completed, entries, capacity, compactThresholdMarks)
             {
                 SkippedCorruptLines = corrupt,
+                Abandoned = abandoned,
             };
         }
 
@@ -254,6 +269,32 @@ namespace RoomServer
 
                 _entries.RemoveAt(idx);
                 _completed.Add(matchId);
+                _marksSinceCompaction++;
+                if (_marksSinceCompaction >= _compactThresholdMarks) Compact();
+                return true;
+            }
+        }
+
+        /// <summary>
+        /// 弃置（确定性拒绝的终态处置；设计 §2"提交失败处置分级"）：**标记行写先行**——崩溃
+        /// 自愈口径同完成标记（盘有标记、内存未及 → 重启重放收敛）；写失败内存不动（保持待提交，
+        /// 可重试）。退出待提交面即**让位**后续条目——原实现下队首一条永不收敛的条目会阻塞全部。
+        /// </summary>
+        public bool TryAbandon(string matchId, string reason)
+        {
+            lock (_gate)
+            {
+                if (_disposed) throw new ObjectDisposedException(nameof(FileSettlementOutbox));
+                if (string.IsNullOrEmpty(matchId)) return false;
+                if (!_seen.Contains(matchId) || _completed.Contains(matchId)) return false;
+                int idx = _entries.FindIndex(e => e.MatchId == matchId);
+                if (idx < 0) return false;
+
+                if (!TryAppend(new JournalEntry { Kind = "x", MatchId = matchId, Reason = reason })) return false;
+
+                _entries.RemoveAt(idx);
+                _completed.Add(matchId);
+                Abandoned++;
                 _marksSinceCompaction++;
                 if (_marksSinceCompaction >= _compactThresholdMarks) Compact();
                 return true;
@@ -368,8 +409,8 @@ namespace RoomServer
         }
 
         // ---- 线格式（JSONL；字段名稳定——日志是可回放产物，不做版本协商前不改字段名。
-        //      Kind 为追加字段：s=结算行 / c=完成标记行；缺省(null) = 结算行（既有日志兼容）；
-        //      SeatAccountIds 同为追加字段：缺省(null) = 旧行无账号归属（提交时按空计）。）----
+        //      Kind 为追加字段：s=结算行 / c=完成标记行 / x=弃置标记行；缺省(null) = 结算行（既有日志兼容）；
+        //      SeatAccountIds/Reason 同为追加字段：缺省(null) = 旧行无账号归属（提交时按空计）/无弃置原因。----
 
         private sealed class JournalEntry
         {
@@ -383,6 +424,9 @@ namespace RoomServer
             public int GameplayEndReason { get; set; }
             public PlayerEntry[] Players { get; set; }
             public string[] SeatAccountIds { get; set; }
+
+            /// <summary>弃置原因（<c>Kind="x"</c> 标记行；追加字段——旧行缺省 null）。</summary>
+            public string Reason { get; set; }
         }
 
         private sealed class PlayerEntry

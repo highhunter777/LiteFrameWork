@@ -1,0 +1,73 @@
+{
+  "_comment": [
+    "RoomServer 容器形态部署配置（《上云测试专项设计》§3 批B；deploy/compose.yaml 挂载到 /app/Config/roomserver.json）。",
+    "与仓库根 Config/roomserver.json 同构；部署差异只三处：audience 对齐票据受众、lobby.url 指向 metaserver 服务名、settlement.submit_url 指向 metaserver。",
+    "advertise_host = 客户端可达 host：本机验收用 127.0.0.1；云主机部署改成对外 IP（端口用实际监听端口）。",
+    "密钥（信封/实例/票据）不在本文件——经 LITENET_* 环境变量注入（设计 §5 密钥红线）。",
+    "改本文件必须重启容器生效：启动时快照，运行中不重读。"
+  ],
+
+  "port": 17777,
+  "max_rooms": 8,
+  "worker_count": 1,
+  "mailbox_capacity": 1024,
+  "audience": "lobby",
+  "default_template": "standard",
+  "metrics_port": 9100,
+
+  "rate_limit": {
+    "ip_burst": 32,
+    "ip_per_sec": 4,
+    "entry_burst": 32,
+    "entry_per_sec": 8,
+    "account_burst": 16,
+    "account_per_sec": 2,
+    "session_burst": 256,
+    "session_per_sec": 128,
+    "buckets": 8192,
+    "idle_ms": 120000
+  },
+
+  "lobby": {
+    "url": "http://metaserver:5000/lobby/instances/register",
+    "instance_id": "room-1",
+    "advertise_host": "127.0.0.1"
+  },
+
+  "settlement": {
+    "submit_url": "http://metaserver:5000/matches/result"
+  },
+
+  "rooms": {
+    "standard": {
+      "expected_players": 2,
+      "seed": 0,
+      "match_time_limit_ms": 0,
+      "waiting_timeout_ms": 0,
+      "match_duration_frames": 10800,
+      "kill_limit": 20,
+      "respawn_delay_frames": 180,
+      "spawn_protection_frames": 120
+    },
+    "four": {
+      "expected_players": 4,
+      "seed": 0,
+      "match_time_limit_ms": 0,
+      "waiting_timeout_ms": 0,
+      "match_duration_frames": 10800,
+      "kill_limit": 20,
+      "respawn_delay_frames": 180,
+      "spawn_protection_frames": 120
+    },
+    "eight": {
+      "expected_players": 8,
+      "seed": 0,
+      "match_time_limit_ms": 0,
+      "waiting_timeout_ms": 0,
+      "match_duration_frames": 10800,
+      "kill_limit": 20,
+      "respawn_delay_frames": 180,
+      "spawn_protection_frames": 120
+    }
+  }
+}

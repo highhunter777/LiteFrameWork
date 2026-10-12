@@ -16,7 +16,7 @@ using RoomServer.Runtime;
 // （与客户端同一份二进制——两端同代码同数据，物理上不可漂移）。
 //   --config <path>        配置文件路径（默认 Config/roomserver.json）
 //   --combat-table <dir>   玩法数值表目录（缺省走 CombatNumbers.LoadFromRepo 的仓库路径 Assets/GameData/Config）
-//   其余：--port / --duration <ms> / --quiet / --ticket-key <kid>:<base64> / --audience <id>
+//   其余：--port / --duration <ms> / --quiet / --ticket-key <kid>:<base64>（或环境变量 LITENET_TICKET_KEY） / --audience <id>
 //   --envelope-key <base64>（或环境变量 LITENET_SECURE_ENVELOPE_KEY）
 //   --lobby-instance-key <base64>（或环境变量 LITENET_LOBBY_INSTANCE_KEY；配置 lobby.url 时必填——
 //     实例注册凭据，与 Meta 的 LobbyInstanceKeyBase64 同值）
@@ -45,6 +45,7 @@ string audienceOverride = null;
 string envelopeKeyBase64 = Environment.GetEnvironmentVariable(EnvVars.EnvelopeKey);
 string lobbyInstanceKeyBase64 = Environment.GetEnvironmentVariable(EnvVars.LobbyInstanceKey);
 string settlementInstanceKeyBase64 = Environment.GetEnvironmentVariable(EnvVars.SettlementInstanceKey);
+string ticketKeySpec = Environment.GetEnvironmentVariable(EnvVars.TicketKey);
 bool allowInsecureLocal = false;
 
 for (int i = 0; i < args.Length; i++)
@@ -60,18 +61,12 @@ for (int i = 0; i < args.Length; i++)
         case "--settlement-instance-key": if (i + 1 < args.Length) settlementInstanceKeyBase64 = args[++i]; break;
         case "--allow-insecure-local": allowInsecureLocal = true; break;
         case "--combat-table": if (i + 1 < args.Length) combatTableDir = args[++i]; break;
-        case "--ticket-key":
-            if (i + 1 < args.Length)
-            {
-                string spec = args[++i];
-                int sep = spec.IndexOf(':');
-                if (sep <= 0 || sep == spec.Length - 1)
-                    throw new ArgumentException($"--ticket-key 需要 <kid>:<base64>，收到：{spec}");
-                ticketKeys.Add(JoinTicketKey.FromBase64(spec.Substring(0, sep), spec.Substring(sep + 1)));
-            }
-            break;
+        case "--ticket-key": if (i + 1 < args.Length) ticketKeys.Add(ParseTicketKeySpec(args[++i])); break;
     }
 }
+
+// 票据密钥环境变量形态（部署红线：密钥禁命令行明文——容器只经 env 注入，与另外三条密钥同款）
+if (!string.IsNullOrWhiteSpace(ticketKeySpec)) ticketKeys.Add(ParseTicketKeySpec(ticketKeySpec));
 
 SecureEnvelopeOptions envelopeOptions = null;
 if (!string.IsNullOrWhiteSpace(envelopeKeyBase64))
@@ -297,6 +292,18 @@ static string ResolveConfigPath(string[] argv)
 }
 
 /// <summary>
+/// 票据验签密钥 <c>&lt;kid&gt;:&lt;base64&gt;</c>（--ticket-key 与 LITENET_TICKET_KEY 共用解析——
+/// 部署形态走环境变量）。格式错也不把密钥原文带进异常（原值不回显）。
+/// </summary>
+static JoinTicketKey ParseTicketKeySpec(string spec)
+{
+    int sep = (spec ?? string.Empty).IndexOf(':');
+    if (sep <= 0 || sep == spec.Length - 1)
+        throw new ArgumentException("票据密钥需要 <kid>:<base64>（原值不回显）。");
+    return JoinTicketKey.FromBase64(spec.Substring(0, sep), spec.Substring(sep + 1));
+}
+
+/// <summary>
 /// 实例密钥 Base64 解码（两条凭据分权各自提供——报错文案经 <paramref name="label"/> 区分）；
 /// 非 Base64 即拒启，原值不回显（《上云测试专项设计》§5 密钥纪律）。
 /// </summary>
@@ -343,4 +350,5 @@ static class EnvVars
     public const string EnvelopeKey = "LITENET_SECURE_ENVELOPE_KEY";
     public const string LobbyInstanceKey = "LITENET_LOBBY_INSTANCE_KEY";
     public const string SettlementInstanceKey = "LITENET_SETTLEMENT_INSTANCE_KEY";
+    public const string TicketKey = "LITENET_TICKET_KEY";
 }

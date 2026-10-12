@@ -1,0 +1,15 @@
+# MetaServer 镜像（《上云测试专项设计》§3 批B）。
+# 构建上下文 = 仓库根（MetaServer.csproj 有跨目录源链接件——JoinTicketFormat/Base64Url/MatchStateMachine）。
+# 本机经代理拉 NuGet 时由 compose 传 HTTP(S)_PROXY 构建参数（host.docker.internal:7897 形态）；云构建留空直连。
+FROM mcr.microsoft.com/dotnet/sdk:8.0 AS build
+ARG HTTP_PROXY
+ARG HTTPS_PROXY
+WORKDIR /src
+COPY . .
+RUN dotnet publish Server/MetaServer/MetaServer.csproj -c Release -o /out/meta
+
+FROM mcr.microsoft.com/dotnet/aspnet:8.0 AS runtime
+WORKDIR /app
+COPY --from=build /out/meta/ .
+# 配置全部走 META_Meta__* 环境变量/Secret（设计 §5 密钥红线，严禁命令行明文）；appsettings.json 不内置。
+ENTRYPOINT ["dotnet", "MetaServer.dll"]

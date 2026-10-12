@@ -1,0 +1,5 @@
+# HTTPS 反代（《上云测试专项设计》批B §5）：云 LB 证书形态的替代。启用：docker compose --profile tls up -d
+# 前置：deploy/.env 提供 DOMAIN（DNS A 记录已指向本机）。无域名时走云 LB 证书形态、本文件不用。
+{$DOMAIN} {
+	reverse_proxy metaserver:5000
+}

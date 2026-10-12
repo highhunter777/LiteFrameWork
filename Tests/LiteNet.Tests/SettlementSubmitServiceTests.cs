@@ -286,6 +286,99 @@ namespace LiteNet.Tests
         }
 
         [Fact]
+        public void 确定性拒绝400_弃置并让位_后续条目照常提交_重开不复活()
+        {
+            string path = TempJournal();
+            try
+            {
+                HttpStatusCode status = HttpStatusCode.BadRequest;
+                var handler = new FakeHandler(_ => new HttpResponseMessage(status));
+                var logs = new List<string>();
+                using (var outbox = FileSettlementOutbox.Open(path, 8))
+                using (var service = new SettlementSubmitService(Settings(), outbox, logs.Add, handler))
+                {
+                    outbox.Enqueue(Summary("m-poison"), new[] { "acc-0", "acc-1" });
+                    outbox.Enqueue(Summary("m-good"), new[] { "acc-0", "acc-1" });
+
+                    // 队首确定性拒绝 → 弃置让位（修复前：永驻队首、后续全部阻塞）
+                    Assert.Equal(SettlementSubmitStep.Abandoned, service.TrySubmitNext(out string error));
+                    Assert.Equal("HTTP 400", error);
+                    Assert.Equal(1, service.Abandoned);
+                    Assert.Equal(0, service.Failed);                 // 弃置 ≠ 失败（不推退避）
+                    Assert.Equal(1, outbox.Count);                   // 弃置即退出待提交面（容量释放）
+                    Assert.Equal(1, outbox.Abandoned);
+                    Assert.Equal("m-good", outbox.ListPending()[0].MatchId);
+                    Assert.Contains(logs, l => l.Contains("弃置条目 m-poison"));
+
+                    // 让位后：后一条照常提交（头阻塞消除）
+                    status = HttpStatusCode.OK;
+                    Assert.Equal(SettlementSubmitStep.Submitted, service.TrySubmitNext(out _));
+                    Assert.Equal(0, outbox.Count);
+                }
+
+                // "重启"：弃置由 "x" 标记行重建——不复活、不重投（handler 不再被调用）
+                using (var restarted = FileSettlementOutbox.Open(path, 8))
+                using (var service = new SettlementSubmitService(Settings(), restarted, _ => { }, handler))
+                {
+                    Assert.Equal(1, restarted.Abandoned);
+                    Assert.Equal(0, restarted.Count);
+                    Assert.Equal(SettlementSubmitStep.Idle, service.TrySubmitNext(out _));
+                    Assert.Equal(2, handler.Calls);                  // 只发过 400 + 200 两次，无重投
+                }
+            }
+            finally { Cleanup(path); }
+        }
+
+        [Fact]
+        public void 确定性拒绝409_台账冲突_弃置让位()
+        {
+            string path = TempJournal();
+            try
+            {
+                HttpStatusCode status = HttpStatusCode.Conflict;
+                var handler = new FakeHandler(_ => new HttpResponseMessage(status));
+                using var outbox = FileSettlementOutbox.Open(path, 8);
+                using var service = new SettlementSubmitService(Settings(), outbox, _ => { }, handler);
+                outbox.Enqueue(Summary("m-conflict"));
+                outbox.Enqueue(Summary("m-good"));
+
+                Assert.Equal(SettlementSubmitStep.Abandoned, service.TrySubmitNext(out string error));
+                Assert.Equal("HTTP 409", error);
+
+                status = HttpStatusCode.OK;
+                Assert.Equal(SettlementSubmitStep.Submitted, service.TrySubmitNext(out _));
+                Assert.Equal(0, outbox.Count);
+                Assert.Equal(1, service.Abandoned);
+                Assert.Equal(1, service.Submitted);
+            }
+            finally { Cleanup(path); }
+        }
+
+        /// <summary>可重试边界：凭据/部署面 4xx（401/403/404）**不得**弃置——那是运维可修复
+        /// 状态，弃置会把"修好部署后本可收敛"的结算静默丢账（设计 §2"提交失败处置分级"）。</summary>
+        [Fact]
+        public void 可重试边界401_保持待提交_不弃置()
+        {
+            string path = TempJournal();
+            try
+            {
+                HttpStatusCode status = HttpStatusCode.Unauthorized;
+                var handler = new FakeHandler(_ => new HttpResponseMessage(status));
+                using var outbox = FileSettlementOutbox.Open(path, 8);
+                using var service = new SettlementSubmitService(Settings(), outbox, _ => { }, handler);
+                outbox.Enqueue(Summary("m-auth"));
+
+                Assert.Equal(SettlementSubmitStep.Failed, service.TrySubmitNext(out string error));
+                Assert.Equal("HTTP 401", error);
+                Assert.Equal(1, outbox.Count);                   // 条目保持待提交（不丢）
+                Assert.Equal(0, service.Abandoned);
+                Assert.Equal(0, outbox.Abandoned);
+                Assert.Equal(1, service.Failed);
+            }
+            finally { Cleanup(path); }
+        }
+
+        [Fact]
         public void 重启续投_重启后从未标记面继续_不丢不重()
         {
             string path = TempJournal();
@@ -350,6 +443,7 @@ namespace LiteNet.Tests
             public SettlementOutboxResult Enqueue(MatchResultSummary summary, string[] seatAccountIds = null)
                 => SettlementOutboxResult.Failed;
             public bool TryMarkCompleted(string matchId) => false;
+            public bool TryAbandon(string matchId, string reason) => false;
             public int Count => 0;
             public IReadOnlyList<PendingSettlement> ListPending() => Array.Empty<PendingSettlement>();
             public void Flush() { }

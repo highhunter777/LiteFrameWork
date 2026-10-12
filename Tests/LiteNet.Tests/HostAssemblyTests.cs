@@ -89,6 +89,7 @@ namespace LiteNet.Tests
 
             public SettlementOutboxResult Enqueue(MatchResultSummary summary, string[] seatAccountIds = null) => SettlementOutboxResult.Appended;
             public bool TryMarkCompleted(string matchId) => true;
+            public bool TryAbandon(string matchId, string reason) => false;
             public int Count => 0;
             public IReadOnlyList<PendingSettlement> ListPending() => Array.Empty<PendingSettlement>();
             public void Flush() { }

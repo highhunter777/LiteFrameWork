@@ -1,0 +1,100 @@
+# 封闭测试部署编排（《上云测试专项设计》§3 批B）。
+# 用法：cd deploy && cp .env.example .env（填值）→ docker compose up -d --build
+#   TLS 形态另开：docker compose --profile tls up -d（需 .env 提供 DOMAIN 且 DNS 已指向本机）
+# 密钥红线（设计 §5）：全部经 .env → 容器环境变量注入；严禁写进 compose/命令行明文；deploy/.env 已 gitignore。
+name: litegame-closed-test
+
+services:
+  mongo:
+    image: mongo:8.0
+    # 单节点副本集（事务依赖；与 L3 夹具 MongoFixture.cs 同口径）
+    command: ["mongod", "--replSet", "rs0", "--bind_ip_all"]
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "mongosh", "--quiet", "--eval", "db.adminCommand('ping').ok"]
+      interval: 5s
+      timeout: 5s
+      retries: 30
+    volumes:
+      - mongo-data:/data/db
+
+  mongo-init:
+    # 一次性初始化：rs.initiate（成员 host 用服务名——容器内解析；try/catch 容错与夹具同款）
+    image: mongo:8.0
+    depends_on:
+      mongo:
+        condition: service_healthy
+    entrypoint: ["mongosh", "--host", "mongo:27017", "--quiet", "--eval",
+      "try{rs.initiate({_id:'rs0',members:[{_id:0,host:'mongo:27017'}]})}catch(e){}; print('rs ok');"]
+    restart: "no"
+
+  metaserver:
+    build:
+      context: ..
+      dockerfile: deploy/Dockerfile.metaserver
+      args:
+        HTTP_PROXY: ${DOCKER_BUILD_HTTP_PROXY:-}
+        HTTPS_PROXY: ${DOCKER_BUILD_HTTP_PROXY:-}
+    depends_on:
+      mongo-init:
+        condition: service_completed_successfully
+    restart: unless-stopped
+    environment:
+      META_Meta__MongoConnectionString: mongodb://mongo:27017/?replicaSet=rs0
+      META_Meta__MongoDatabaseName: ${LITEGAME_MONGO_DB:-litegame}
+      META_Meta__BindAddress: http://0.0.0.0:5000
+      # 封闭测试私网形态（TLS 由 Caddy/云 LB 终止）；非回环 HTTP 需显式放行——本行即该标注
+      META_Meta__AllowNonLoopbackHttp: "true"
+      META_Meta__AuthSigningKeyBase64: ${META_AUTH_SIGNING_KEY}
+      META_Meta__LobbyInstanceKeyBase64: ${LITENET_LOBBY_INSTANCE_KEY}
+      META_Meta__LobbyTicketKeyId: l1
+      META_Meta__LobbyTicketKeyBase64: ${TICKET_KEY_BASE64}
+      META_Meta__SettlementInstanceKeyBase64: ${LITENET_SETTLEMENT_INSTANCE_KEY}
+    ports:
+      - "5000:5000"      # 云形态改绑内网或由 Caddy 反代（见 deploy/README.md 云侧清单）
+
+  roomserver:
+    build:
+      context: ..
+      dockerfile: deploy/Dockerfile.roomserver
+      args:
+        HTTP_PROXY: ${DOCKER_BUILD_HTTP_PROXY:-}
+        HTTPS_PROXY: ${DOCKER_BUILD_HTTP_PROXY:-}
+    depends_on:
+      - metaserver
+    restart: unless-stopped
+    stop_grace_period: 30s        # 排空 5 步预算（drain_grace 5s + 看门狗 2s，留足余量）
+    environment:
+      LITENET_SECURE_ENVELOPE_KEY: ${LITENET_SECURE_ENVELOPE_KEY}
+      LITENET_LOBBY_INSTANCE_KEY: ${LITENET_LOBBY_INSTANCE_KEY}
+      LITENET_SETTLEMENT_INSTANCE_KEY: ${LITENET_SETTLEMENT_INSTANCE_KEY}
+      LITENET_TICKET_KEY: l1:${TICKET_KEY_BASE64}   # 与 Meta LobbyTicketKeyBase64 单源（同一 .env 值拼 kid）
+    volumes:
+      - ./roomserver.container.json:/app/Config/roomserver.json:ro
+      - room-outbox:/app/Outbox
+    ports:
+      - "17777:17777/udp"
+      - "9100:9100"     # /metrics（Prometheus 文本子集）
+
+  caddy:
+    # HTTPS 反代形态（可选；用云 LB 证书时不启用本服务）
+    image: caddy:2
+    profiles: ["tls"]
+    depends_on:
+      - metaserver
+    restart: unless-stopped
+    environment:
+      DOMAIN: ${DOMAIN:-}
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy-data:/data
+      - caddy-config:/config
+    ports:
+      - "80:80"
+      - "443:443"
+
+volumes:
+  mongo-data:
+  room-outbox:
+  caddy-data:
+  caddy-config:

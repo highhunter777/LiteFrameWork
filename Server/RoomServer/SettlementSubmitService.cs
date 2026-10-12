@@ -16,8 +16,12 @@ namespace RoomServer
         /// <summary>头部条目已提交并被 Meta 接纳（**2xx**——含 duplicate 幂等命中），已标记完成。</summary>
         Submitted = 1,
 
-        /// <summary>提交失败（HTTP 非 2xx / 传输异常）；条目保持待提交（重试安全）。</summary>
+        /// <summary>提交失败（可重试面：传输异常 / 401·403·404 / 408·429 / 5xx）；条目保持待提交（重试安全）。</summary>
         Failed = 2,
+
+        /// <summary>确定性拒绝（载荷级 4xx：400/409/413/422——重投同一载荷不可能收敛）：条目已**弃置**
+        /// （Outbox 弃置标记行）并让位后续——不重投（设计 §2"提交失败处置分级"）。</summary>
+        Abandoned = 3,
     }
 
     /// <summary>
@@ -28,8 +32,10 @@ namespace RoomServer
     ///   Meta `/matches/result`（结算实例密钥 Bearer——**与 Lobby 注册分权**，见 P1②）→ **2xx** 即
     ///   <see cref="ISettlementOutbox.TryMarkCompleted"/>（Meta 侧幂等是最终裁判：duplicate 同样算完成）；
     /// - **重启续投**：不做任何内存进度记账——启动即从日志待提交面重建（引擎语义在 Outbox 里）；
-    /// - **重试与退避**：失败条目保持待提交，下一轮重试；连续失败按指数退避封顶
-    ///   （<see cref="Settings.MaxBackoffMs"/>）——不静默丢弃、不无界刷屏（日志节流）；
+    /// - **失败处置分级（设计 §2"提交失败处置分级"）**：**可重试失败**（传输异常、401·403·404、
+    ///   408·429、5xx）保持待提交 + 指数退避封顶（<see cref="Settings.MaxBackoffMs"/>）——不静默丢弃、
+    ///   不无界刷屏（日志节流）；**确定性拒绝**（载荷级 4xx：400/409/413/422）**弃置**并让位
+    ///   （Outbox 弃置标记行 + <see cref="Abandoned"/> 计数 + 警告日志）——防"一行毒死整条队列"；
     /// - **结算增量（P3：占位改显式接缝）**：换算归提交方（Meta 不接受客户端上报、也不重算），
     ///   经 <see cref="ISettlementRewardPolicy"/> 单点注入；当前实现 = <see cref="NoEconomyRewardPolicy"/>
     ///   （逐玩家 delta 0：账本 revision 推进、余额不变）。**不是"忘了填的 0"**：设计未定义奖励口径
@@ -100,6 +106,7 @@ namespace RoomServer
         private readonly ISettlementRewardPolicy _rewardPolicy;
         private long _submitted;
         private long _failed;
+        private long _abandoned;
         private int _consecutiveFailures;
 
         public SettlementSubmitService(Settings settings, ISettlementOutbox outbox, Action<string> log,
@@ -129,10 +136,16 @@ namespace RoomServer
             get { return Interlocked.Read(ref _submitted); }
         }
 
-        /// <summary>失败次数（诊断；持续增长说明 Meta 不可达或载荷/凭据不符）。</summary>
+        /// <summary>失败次数（诊断；持续增长说明 Meta 不可达或凭据/部署配置不符）。</summary>
         public long Failed
         {
             get { return Interlocked.Read(ref _failed); }
+        }
+
+        /// <summary>弃置条数（确定性拒绝终态处置；增长 = 载荷侧有实缺陷，须人工查）。</summary>
+        public long Abandoned
+        {
+            get { return Interlocked.Read(ref _abandoned); }
         }
 
         /// <summary>当前待提交条数（= Outbox 待提交面）。</summary>
@@ -152,6 +165,8 @@ namespace RoomServer
                 {
                     case SettlementSubmitStep.Submitted:
                         continue;                                  // 立刻下一单（排空式消费）
+                    case SettlementSubmitStep.Abandoned:
+                        continue;                                  // 弃置即让位——立刻试下一条（防头阻塞）
                     case SettlementSubmitStep.Idle:
                         WaitStop(_settings.IntervalMs);
                         break;
@@ -188,9 +203,7 @@ namespace RoomServer
                 if (response.IsSuccessStatusCode)
                 {
                     // **2xx 区间**（P1①）：只认 200 会把同义的 201/202/204 当失败反复重投。
-                    // 注：非 2xx 仍按失败保持待提交（与 §2"失败保持待提交"一致），其中包括
-                    // 409（Meta 侧台账冲突）与 400（载荷非法）这类**确定性**拒绝——重投不收敛
-                    // 且头阻塞后续条目，处置另立（审计登记"确定性拒绝的头阻塞"）。
+                    // 非 2xx 的分级处置见下方（设计 §2"提交失败处置分级"：可重试保持待提交，载荷级 4xx 弃置让位）。
                     // Meta 已接纳（首次或幂等命中）——标记完成；标记失败（介质故障）则保持待提交，
                     // 重投时 Meta duplicate 兜底（不重复落库）
                     if (!_outbox.TryMarkCompleted(entry.MatchId))
@@ -206,6 +219,20 @@ namespace RoomServer
                 }
 
                 error = "HTTP " + (int)response.StatusCode;
+                if (IsDeterministicRejection(response.StatusCode))
+                {
+                    // 载荷级 4xx：重投同一载荷不可能收敛——弃置并让位（原实现下永驻队首、阻塞全部）。
+                    // 介质写失败 → 按可重试失败处理（事实不丢：条目仍在待提交面）。
+                    if (_outbox.TryAbandon(entry.MatchId, error))
+                    {
+                        Interlocked.Increment(ref _abandoned);
+                        _consecutiveFailures = 0;          // 弃置 ≠ 端点不健康——不推高退避
+                        _log("[Settle] 确定性拒绝（" + error + "）→ 弃置条目 " + entry.MatchId
+                            + "（让位后续条目；载荷级拒绝重投不收敛）");
+                        return SettlementSubmitStep.Abandoned;
+                    }
+                    error += "（弃置标记写入失败）";
+                }
                 RecordFailure(error);
                 return SettlementSubmitStep.Failed;
             }
@@ -248,6 +275,17 @@ namespace RoomServer
                 WinnerEntityId = summary.WinnerEntityId,
                 Players = players,
             };
+        }
+
+        /// <summary>
+        /// 确定性拒绝判据（设计 §2"提交失败处置分级"）：**载荷级 4xx**——重投同一载荷不可能收敛，
+        /// 弃置让位。401/403/404（凭据/部署面）与 408/429、5xx 一律可重试：那些是运维可修复状态，
+        /// 弃置会把"修好部署后本可收敛"的结算静默丢账。
+        /// </summary>
+        private static bool IsDeterministicRejection(System.Net.HttpStatusCode code)
+        {
+            int c = (int)code;
+            return c == 400 || c == 409 || c == 413 || c == 422;
         }
 
         /// <summary>指数退避（首次失败 = 基础间隔；封顶 <paramref name="maxMs"/>）。</summary>

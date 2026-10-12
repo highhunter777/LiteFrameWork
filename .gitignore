@@ -268,3 +268,6 @@ LocalCDN/
 
 # ===== screenshots/��agent ����¼��/��ͼ�������˽�в���⣩=====
 screenshots/
+
+# ===== deploy/.env（封闭测试部署密钥，机器私有不入库）=====
+deploy/.env

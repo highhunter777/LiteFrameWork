@@ -445,6 +445,43 @@ namespace LiteNet.Tests
                 Cleanup(path);
             }
         }
+
+        [Fact]
+        public void 弃置_标记行落盘_重开不复活_让位后续()
+        {
+            string path = TempJournal();
+            try
+            {
+                using (var outbox = FileSettlementOutbox.Open(path, 16))
+                {
+                    outbox.Enqueue(Summary("m-1"));
+                    outbox.Enqueue(Summary("m-2"));
+
+                    Assert.True(outbox.TryAbandon("m-1", "HTTP 400"));
+                    Assert.Equal(1, outbox.Abandoned);
+                    Assert.Equal(1, outbox.Count);                     // 弃置即退出待提交面（容量释放）
+                    Assert.Equal("m-2", outbox.ListPending()[0].MatchId);
+                    Assert.False(outbox.TryAbandon("m-1", "HTTP 400")); // 已标记（幂等，不写盘）
+                    Assert.False(outbox.TryAbandon("m-x", "HTTP 400")); // 未知 matchId
+
+                    string[] lines = ReadJournalLines(path);
+                    Assert.Contains(lines, l => l.Contains("\"Kind\":\"x\"") && l.Contains("m-1")
+                        && l.Contains("HTTP 400"));
+                }
+
+                // "重启"：弃置由 "x" 标记行重建——不复活、不重投
+                using (var restarted = FileSettlementOutbox.Open(path, 16))
+                {
+                    Assert.Equal(1, restarted.Abandoned);
+                    Assert.Equal(1, restarted.Count);
+                    Assert.Equal("m-2", restarted.ListPending()[0].MatchId);
+                }
+            }
+            finally
+            {
+                Cleanup(path);
+            }
+        }
     }
 
     /// <summary>
@@ -488,6 +525,7 @@ namespace LiteNet.Tests
             }
 
             public bool TryMarkCompleted(string matchId) => false;
+            public bool TryAbandon(string matchId, string reason) => false;
 
             public void Flush() => FlushCalls++;
         }

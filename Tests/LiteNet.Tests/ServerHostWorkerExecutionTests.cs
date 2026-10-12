@@ -317,6 +317,7 @@ namespace LiteNet.Tests
             }
 
             public bool TryMarkCompleted(string matchId) => false;
+            public bool TryAbandon(string matchId, string reason) => false;
 
             public void Flush() { }
         }

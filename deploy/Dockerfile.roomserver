@@ -1,0 +1,17 @@
+# RoomServer 镜像（《上云测试专项设计》§3 批B）。
+# 构建上下文 = 仓库根（RoomServer.csproj 引用 LiteNet/LiteSim + Assets/RoomServer 双轨 + Luban 生成物）。
+FROM mcr.microsoft.com/dotnet/sdk:8.0 AS build
+ARG HTTP_PROXY
+ARG HTTPS_PROXY
+WORKDIR /src
+COPY . .
+RUN dotnet publish Server/RoomServer/RoomServer.csproj -c Release -o /out/room
+
+FROM mcr.microsoft.com/dotnet/runtime:8.0 AS runtime
+WORKDIR /app
+COPY --from=build /out/room/ .
+# 玩法数值表（与客户端同一份 .bytes——两端同读；--combat-table 指向此处，绕开仓库根定位）
+COPY Assets/GameData/Config/ /app/GameData/Config/
+# 内置缺省配置 = 单机离线形态（lobby/settlement 均关）；compose 挂载部署配置覆盖
+COPY Config/roomserver.json /app/Config/roomserver.json
+ENTRYPOINT ["dotnet", "RoomServer.dll", "--config", "/app/Config/roomserver.json", "--combat-table", "/app/GameData/Config"]
