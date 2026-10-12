@@ -28,7 +28,10 @@ XLuaSamples/
 *.booproj
 *.svd
 *.pdb
-*.mdb
+# 2026-10-13 放开入库（用户裁决）：`*.mdb` 原被忽略，但 DOTween 两个 `.mdb.meta` 早已入库
+# （c3e1082）——实体永远缺失 ⇒ meta 永远是孤儿 ⇒ Unity 一开就删它并刷警告
+# （见 Docs/非作者机恢复与验证记录.md §1.2(b)）。放开后实体随 meta 入库，孤儿警告消失。
+# `*.pdb` 维持忽略：其 meta 未入库，不存在同型孤儿。
 *.opendb
 *.VC.db
 *.csproj
@@ -70,6 +73,9 @@ Thumbs.db
 # ===== 美术/素材资源（仅 demo、资源不入库；如需备份请显式 git add -f 添加）=====
 # 说明：本项目仅作 demo（不商用），第三方素材包与美术资源一律不入库——
 #       仓库只保留自研框架代码、预制品与文档；下方目录如需入库请用 `git add -f <路径>`。
+# 例外（2026-10-13，用户裁决）：TMP 中文字体 NotoSansSC 与 URP 管线资产改为入库——
+#       前者是 75 处文本引用的视觉单一来源、后者属配置资源且被已入库的 ProjectSettings 按 GUID 引用；
+#       例外条目见下方各注记与「URP 管线资产」段。金楷系列等其余素材维持不入库。
 Assets/Art/
 Assets/Art.meta
 Assets/Map/
@@ -82,14 +88,18 @@ Assets/Model/
 Assets/Model.meta
 Assets/Sound/
 Assets/Sound.meta
-Assets/ShareResource/Fonts/
-Assets/ShareResource/Fonts.meta
+# 2026-10-13 放开入库（用户裁决）：NotoSansSC TMP SDF ×2（SIL OFL，许可文件 NotoSansSC-OFL.txt
+# 同批入库）——75 处文本引用的视觉单一来源，7 个 EditMode 用例按真实字体资产加载。
+# 金楷系列维持不入库（迁移批一裁决不变：110MB、全仓零引用、再分发许可未核实）：
+Assets/ShareResource/Fonts/11月金楷系列/
+Assets/ShareResource/Fonts/11月金楷系列.meta
+# 死规则清理（2026-10-13）：Assets/LiteGame/Fonts 已于 2026-10-11 迁移批一迁至
+# ShareResource/Fonts，原两条忽略规则无对应路径（restore-check 的字体 WARN 同批改指真路径）。
+# 同批去重：Assets/Animator、Assets/ShareResource/Characters 原各出现两次，各保留一份。
 Assets/Animator/
 Assets/Animator.meta
 Assets/ShareResource/Characters/
 Assets/ShareResource/Characters.meta
-Assets/LiteGame/Fonts/
-Assets/LiteGame/Fonts.meta
 Assets/LiteGame/Art/
 Assets/LiteGame/Art.meta
 Assets/GameFramework/
@@ -98,14 +108,15 @@ Assets/GameMain/
 Assets/GameMain.meta
 Assets/TutorialInfo/
 Assets/TutorialInfo.meta
-Assets/Settings/
-Assets/Settings.meta
-Assets/ShareResource/Characters/
-Assets/ShareResource/Characters.meta
-Assets/Animator/
-Assets/Animator.meta
 Assets/StateMachine/
 Assets/StateMachine.meta
+
+# ===== URP 管线资产（2026-10-13 放开入库；配置资源）=====
+# Assets/Settings/ = URP 三档管线资产 + 渲染器 + 后处理 profile；
+# UniversalRenderPipelineGlobalSettings.asset = URP 全局设置（GraphicsSettings.m_SRPDefaultSettings 引用它）。
+# 入库理由：ProjectSettings/GraphicsSettings.asset 与 QualitySettings.asset 均已入库（2026-09-26）
+# 并按 GUID 引用这批资产——不随库分发时干净克隆解析不到，工程退回 Built-in 兜底
+# （见 Docs/非作者机恢复与验证记录.md §2）。放开后 §2.1 的 4 个 URP 占位缺口一并消解。
 
 # ===== 工程配置与工具链（不入库；环境恢复见 Docs/环境恢复指南.md）=====
 # 说明：仓库只保留自研框架代码/预制品/文档。以下为工程配置与本地工具链：
@@ -155,8 +166,7 @@ Assets/Scenes/GuideScene.unity.meta
 Assets/Scenes/SimSandbox.unity
 Assets/Scenes/SimSandbox.unity.meta
 Assets/StreamingAssets/
-Assets/UniversalRenderPipelineGlobalSettings.asset
-Assets/UniversalRenderPipelineGlobalSettings.asset.meta
+# （UniversalRenderPipelineGlobalSettings.asset 两条已移入上方「URP 管线资产」段，2026-10-13 放开入库）
 .vsconfig
 
 # ===== 本地留档（个人参考用，不入库）=====

@@ -114,12 +114,20 @@ else { Miss 'UniTask missing: Assets/Plugins/UniTask (runtime required; should s
 if (Test-Path (Join-Path $ProjectPath 'Assets\Plugins\xlua.bundle')) { Ok 'xLua native plugin present' }
 else { Miss 'xlua.bundle missing: Assets/Plugins/xlua.bundle (runtime required; should ship with repo)' }
 
-# -- 5. Content items (WARN: not blocking for development) --------------------
-if (Test-Path (Join-Path $ProjectPath 'Assets\LiteGame\Fonts')) { Ok 'Fonts dir present' }
-else { Warn 'Assets/LiteGame/Fonts missing - CJK TMP text will render tofu (content not in repo; see restore guide)' }
+# -- 5. Tracked UI/render assets (shipped since 2026-10-13) -------------------
+# These became tracked on 2026-10-13 (was: content assets not in repo). Missing
+# means an incomplete checkout, so they are blocking like other tracked assets.
+if (Test-Path (Join-Path $ProjectPath 'Assets\ShareResource\Fonts\NotoSansSC-Regular SDF.asset')) {
+    Ok 'TMP CJK font present (Assets/ShareResource/Fonts, tracked)'
+} else { Miss 'TMP CJK font missing: Assets/ShareResource/Fonts/NotoSansSC-Regular SDF.asset (tracked since 2026-10-13; incomplete checkout - see restore guide)' }
 
-if ((Test-Path (Join-Path $ProjectPath 'Assets\Scenes\Boot.unity')) -or (Test-Path (Join-Path $ProjectPath 'Assets\Scenes\Test.unity'))) {
-    Ok 'At least one scene present (Test.unity is tracked)'
+if (Test-Path (Join-Path $ProjectPath 'Assets\Settings\URP-Balanced.asset')) {
+    Ok 'URP pipeline assets present (Assets/Settings, tracked)'
+} else { Miss 'URP pipeline assets missing: Assets/Settings (tracked since 2026-10-13; ProjectSettings/GraphicsSettings references them by GUID - see restore guide)' }
+
+# -- 6. Content items (WARN: not blocking for development) --------------------
+if ((Test-Path (Join-Path $ProjectPath 'Assets\Scenes\Boot.unity')) -or (Test-Path (Join-Path $ProjectPath 'Assets\Scenes\TrainingGround.unity'))) {
+    Ok 'At least one scene present (Boot.unity is tracked)'
 } else { Warn 'Assets/Scenes missing - cannot run directly' }
 
 if (-not (Get-Command 'java' -ErrorAction SilentlyContinue)) {
