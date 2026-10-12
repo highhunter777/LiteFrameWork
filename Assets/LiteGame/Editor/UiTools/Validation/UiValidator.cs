@@ -36,7 +36,7 @@ namespace LiteGame.Editor.UiTools.Validation
         public static readonly UiRuleFamily[] Families =
         {
             new UiRuleFamily("绑定", true, "命名文法/前缀词表/私有件（§9.2/§9.4）+ 生成物 hash 对账（§2.1.5）——已接入；BindName 同文/同页同词/编号连续性待接入"),
-            new UiRuleFamily("资源", false, "缺引用、收集组、图集/字体/sprite 名册、生产包排除调试补丁"),
+            new UiRuleFamily("资源", true, "表内资源路径存在性（.prefab/.unity 通用反射面——步 5 接入）；缺引用其余子项/收集组/图集字体名册/生产包排除待接入"),
             new UiRuleFamily("文本", false, "key/占位符/语言列、富文本白名单、fallback 与缺字、样式覆盖"),
             new UiRuleFamily("渲染/适配", true, "视觉单一来源（运行时不得构建视觉，§7）——首条已接入"),
             new UiRuleFamily("行为", false, "复用视觉、输入穿透、焦点、列表重绑、语言变更、取消"),
@@ -49,6 +49,7 @@ namespace LiteGame.Editor.UiTools.Validation
             new RuntimeVisualRule(),
             new BindingNamingRule(),
             new UiBindingHashRule(),
+            new AssetTablePathRule(),
         };
 
         /// <summary>工程根（Assets 之上）。</summary>

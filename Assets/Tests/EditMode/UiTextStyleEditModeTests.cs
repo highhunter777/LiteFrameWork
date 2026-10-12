@@ -1,0 +1,231 @@
+using System.Linq;
+using LiteGame.EditorTools.UI;
+using LiteGame.UI;
+using NUnit.Framework;
+using TMPro;
+using UnityEditor;
+using UnityEngine;
+using UnityEngine.UI;
+
+namespace LiteGame.Tests.EditMode
+{
+    /// <summary>
+    /// 样式工具步 4（《UI编辑器工具专项设计》§3）的 L2 覆盖：文字档基线表（§3.1 数字）、
+    /// 按标记精确应用（TMP/UGUI 双组件映射 + 幂等）、对账三类（未标记/属性漂移/引用失效）、
+    /// 扫描根注入缝。合成临时 prefab 喂工具——真实资产面的对账基线由菜单首跑登记（手测）。
+    /// </summary>
+    [Category(LiteTesting.TestCategory.Contract)]
+    public sealed class UiTextStyleEditModeTests
+    {
+        private const string TempDir = "Assets/TempUiStyleTests";
+        private static readonly string[] TempDirs = { TempDir };
+
+        [SetUp]
+        public void EnsureTempDir()
+        {
+            if (!AssetDatabase.IsValidFolder(TempDir))
+                AssetDatabase.CreateFolder("Assets", "TempUiStyleTests");
+        }
+
+        [TearDown]
+        public void CleanupTempDir()
+        {
+            if (AssetDatabase.IsValidFolder(TempDir))
+                AssetDatabase.DeleteAsset(TempDir);
+        }
+
+        // ---- 基线表（§3.1） ----
+
+        [Test]
+        public void 基线_五角色齐全且值与设计表一致()
+        {
+            Assert.AreEqual(5, UiTextStyle.All.Length, "§3.1 初始五角色");
+            Assert.IsTrue(UiTextStyle.All.SequenceEqual(UiTextStyle.All.OrderBy(d => (int)d.Role)), "全集顺序稳定（供遍历单源）");
+
+            var title = UiTextStyle.All.First(d => d.Role == UiTextRole.Title);
+            Assert.AreEqual(24f, title.FontSize);
+            Assert.IsFalse(title.WordWrap, "标题不换行");
+            Assert.IsTrue(title.Truncate, "标题初始 Truncate");
+            Assert.IsFalse(title.Bold);
+
+            var body = UiTextStyle.All.First(d => d.Role == UiTextRole.Body);
+            Assert.AreEqual(20f, body.FontSize);
+            Assert.IsTrue(body.WordWrap);
+            Assert.IsFalse(body.Truncate, "正文初始 Overflow（扩展由容器承担）");
+
+            var caption = UiTextStyle.All.First(d => d.Role == UiTextRole.Caption);
+            Assert.AreEqual(14f, caption.FontSize);
+            Assert.AreEqual(TextAlignmentOptions.MidlineLeft, caption.TmpAlignment, "说明文字左对齐");
+            Assert.AreEqual(TextAnchor.MiddleLeft, caption.LegacyAlignment);
+
+            var labelSingle = UiTextStyle.All.First(d => d.Role == UiTextRole.LabelSingle);
+            Assert.IsFalse(labelSingle.WordWrap, "单行标签不换行");
+            Assert.IsTrue(labelSingle.Truncate, "单行标签 Truncate");
+
+            var emphasis = UiTextStyle.All.First(d => d.Role == UiTextRole.Emphasis);
+            Assert.IsTrue(emphasis.Bold, "强调文本加粗（五角色唯一加粗档）");
+            Assert.IsTrue(UiTextStyle.All.Count(d => d.Bold) == 1);
+
+            Assert.IsFalse(UiTextStyle.TryGet((UiTextRole)99, out _), "未知角色不猜");
+        }
+
+        // ---- 应用（精确写入 + 幂等） ----
+
+        [Test]
+        public void 应用_TMP全属性写入且幂等()
+        {
+            string path = MakeTempPrefab("Page_TmpApply", node =>
+            {
+                var tmp = node.AddComponent<TextMeshProUGUI>();
+                tmp.fontSize = 99f;                                  // 漂移态：全属性偏离 Title 档
+                tmp.alignment = TextAlignmentOptions.TopLeft;
+                tmp.enableWordWrapping = true;
+                tmp.overflowMode = TextOverflowModes.Ellipsis;
+                tmp.fontStyle = FontStyles.Italic;
+                node.AddComponent<UiTextStyleRef>().Role = UiTextRole.Title;
+            });
+
+            var (prefabs, writes) = UiTextStyleTool.ApplyTextStyles(TempDirs);
+            Assert.AreEqual(1, prefabs, "一个 prefab 被改");
+            Assert.AreEqual(4, writes, "字号/对齐/换行/溢出四项写入（Italic 无 Bold 位——字重档合规零写）");
+
+            var reloaded = AssetDatabase.LoadAssetAtPath<GameObject>(path);
+            var tmp2 = reloaded.GetComponentInChildren<TMP_Text>(true);
+            Assert.AreEqual(24f, tmp2.fontSize, "字号精确应用");
+            Assert.AreEqual(TextAlignmentOptions.Center, tmp2.alignment);
+            Assert.IsFalse(tmp2.enableWordWrapping);
+            Assert.AreEqual(TextOverflowModes.Truncate, tmp2.overflowMode);
+            Assert.AreEqual(FontStyles.Italic, tmp2.fontStyle, "非加粗档不碰既有 Italic 位——只清/置 Bold 位");
+
+            var (prefabs2, writes2) = UiTextStyleTool.ApplyTextStyles(TempDirs);
+            Assert.AreEqual(0, prefabs2, "幂等：重跑零改动");
+            Assert.AreEqual(0, writes2);
+        }
+
+        [Test]
+        public void 应用_UGUI映射与加粗()
+        {
+            MakeTempPrefab("Page_LegacyApply", node =>
+            {
+                var legacy = node.AddComponent<Text>();
+                legacy.fontSize = 9;                                  // UGUI Text.fontSize 为 int
+                legacy.alignment = TextAnchor.UpperRight;
+                legacy.horizontalOverflow = HorizontalWrapMode.Overflow;
+                legacy.fontStyle = FontStyle.Normal;
+                node.AddComponent<UiTextStyleRef>().Role = UiTextRole.Caption;
+            });
+            MakeTempPrefab("Page_LegacyBold", node =>
+            {
+                var legacy = node.AddComponent<Text>();
+                node.AddComponent<UiTextStyleRef>().Role = UiTextRole.Emphasis;
+            });
+
+            UiTextStyleTool.ApplyTextStyles(TempDirs);
+
+            var caption = LoadTemp("Page_LegacyApply").GetComponentInChildren<Text>(true);
+            Assert.AreEqual(14, caption.fontSize, "字号精确应用（UGUI int 口径）");
+            Assert.AreEqual(TextAnchor.MiddleLeft, caption.alignment);
+            Assert.AreEqual(HorizontalWrapMode.Wrap, caption.horizontalOverflow);
+            Assert.AreEqual(FontStyle.Normal, caption.fontStyle);
+
+            var emphasis = LoadTemp("Page_LegacyBold").GetComponentInChildren<Text>(true);
+            Assert.AreEqual(FontStyle.Bold, emphasis.fontStyle, "Emphasis 加粗写入 UGUI fontStyle");
+            Assert.AreEqual(20, emphasis.fontSize);
+        }
+
+        [Test]
+        public void 应用_加粗位只动Bold不动斜体()
+        {
+            MakeTempPrefab("Page_TmpBoldKeepItalic", node =>
+            {
+                var tmp = node.AddComponent<TextMeshProUGUI>();
+                tmp.fontStyle = FontStyles.Bold | FontStyles.Italic;
+                node.AddComponent<UiTextStyleRef>().Role = UiTextRole.Body;   // 非加粗档
+            });
+
+            UiTextStyleTool.ApplyTextStyles(TempDirs);
+
+            var tmp2 = LoadTemp("Page_TmpBoldKeepItalic").GetComponentInChildren<TMP_Text>(true);
+            Assert.AreEqual(FontStyles.Italic, tmp2.fontStyle, "档位清 Bold 位但保留 Italic——字重档只辖 Bold");
+        }
+
+        // ---- 对账（三类） ----
+
+        [Test]
+        public void 对账_未标记文本报告不冒充()
+        {
+            MakeTempPrefab("Page_Unmarked", node => node.AddComponent<TextMeshProUGUI>());
+
+            var issues = UiTextStyleTool.ReportTextDrift(TempDirs);
+            Assert.AreEqual(1, issues.Count, "未标记文本必须出现在整改清单");
+            Assert.AreEqual(UiTextIssueKind.Unmarked, issues[0].Kind);
+            StringAssert.Contains("无 UiTextStyleRef", issues[0].Detail);
+        }
+
+        [Test]
+        public void 对账_属性漂移按档位报明细()
+        {
+            MakeTempPrefab("Page_Drift", node =>
+            {
+                var tmp = node.AddComponent<TextMeshProUGUI>();
+                tmp.fontSize = 99f;                                  // 唯一漂移项
+                node.AddComponent<UiTextStyleRef>().Role = UiTextRole.Body;
+            });
+
+            var issues = UiTextStyleTool.ReportTextDrift(TempDirs);
+            Assert.AreEqual(1, issues.Count);
+            Assert.AreEqual(UiTextIssueKind.Mismatch, issues[0].Kind);
+            StringAssert.Contains("字号", issues[0].Detail, "漂移明细点名偏离项");
+        }
+
+        [Test]
+        public void 对账_引用失效两类()
+        {
+            // TMP font 缺失——节点须**非激活**：TMP OnEnable 会把 null font 自愈为 TMP Settings 默认字体，
+            // 装载期激活节点的缺失态保不住；非激活节点装载不跑 OnEnable，null 原样保留
+            MakeTempPrefab("Page_FontMissing", node =>
+            {
+                node.SetActive(false);
+                var tmp = node.AddComponent<TextMeshProUGUI>();
+                tmp.font = null;
+                node.AddComponent<UiTextStyleRef>().Role = UiTextRole.Body;
+            });
+            // 标记节点无文本组件（应用面跳过项——对账补查）
+            MakeTempPrefab("Page_RefNoTarget", node => node.AddComponent<UiTextStyleRef>());
+
+            var fontMissing = UiTextStyleTool.ReportTextDrift(TempDirs)
+                .Where(i => i.Kind == UiTextIssueKind.BrokenRef).ToList();
+            Assert.AreEqual(1, fontMissing.Count, "font 缺失＝引用失效");
+            StringAssert.Contains("font", fontMissing[0].Detail);
+
+            var noTarget = UiTextStyleTool.ReportBrokenRefs(TempDirs);
+            Assert.AreEqual(1, noTarget.Count, "标记无文本组件＝引用失效（补查面）");
+            StringAssert.Contains("无 TMP_Text/Text", noTarget[0].Detail);
+        }
+
+        [Test]
+        public void 对账_扫描根注入缝隔离()
+        {
+            MakeTempPrefab("Page_ScopeA", node => node.AddComponent<TextMeshProUGUI>());   // 无标记（将报未标记）
+            var issues = UiTextStyleTool.ReportTextDrift(new[] { TempDir });
+            Assert.IsTrue(issues.All(i => i.Asset.StartsWith(TempDir)), "注入扫描根只扫临时面——真实资产不进合成用例报告");
+        }
+
+        // ---- 辅助 ----
+
+        private static GameObject LoadTemp(string name)
+            => AssetDatabase.LoadAssetAtPath<GameObject>($"{TempDir}/{name}.prefab");
+
+        private static string MakeTempPrefab(string name, System.Action<GameObject> buildNode)
+        {
+            var root = new GameObject(name, typeof(RectTransform));
+            var node = new GameObject("Txt_Node", typeof(RectTransform));
+            node.transform.SetParent(root.transform, false);
+            buildNode(node);
+            string path = $"{TempDir}/{name}.prefab";
+            PrefabUtility.SaveAsPrefabAsset(root, path);
+            Object.DestroyImmediate(root);
+            return path;
+        }
+    }
+}

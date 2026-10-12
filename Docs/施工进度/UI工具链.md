@@ -9,8 +9,8 @@
 | 1 | **校验核心** | **已交付（2026-10-11）** | §4 |
 | 2 | **绑定标记工具（底层两项：词表单源 + 绑定命名规则）+ 全仓命名整改** | **已交付（2026-10-11）** | §2 |
 | 3 | **绑定标记工具（窗口/前缀预设 UI/批量重命名/引用点提示/生成物 hash）** | **已交付（2026-10-12）** | §2 |
-| 4 | 样式工具补齐（`UiTextStyleRef` 文字档 + 对账扩 `Screens/`） | 待做 | §3 |
-| 5 | 校验进 CI（生成物 hash 对账 + 门禁接入 + **资源族规则「表内 prefab 路径必须存在」**——步 2 改名漏跟表引用即该族缺席所致） | 待做 | §4 + 修改指南 §2.3 |
+| 4 | **样式工具补齐（`UiTextStyleRef` 文字档 + 对账扩 `Screens/`）** | **已交付（2026-10-13）** | §3 |
+| 5 | **校验进 CI（生成物 hash 对账 + 门禁接入 + 资源族规则「表内 prefab 路径必须存在」）** | **已交付（2026-10-13）** | §4 + 修改指南 §2.3 |
 | 6 | 编排面板（控件库/绑定树/受控属性/校验生成） | 待做 | §5 |
 | 7 | UIPatch 调试补丁 | 待做（随 U4 消费者） | §6 |
 
@@ -135,4 +135,59 @@
   - `BattleLaser`×3＝**用例字面量手推口径错**：命中柱半径 `HitscanRadius=0.45`（注释误写视觉身位 BodyBake 0.32——近弧差 0.13 是 z 漂移主因）+ 全精度烘焙常量斜率；按 SimRaycast 同式复算逐位对账后重校（判定几何权威守卫在 L1 `AimParallaxHitTests`，本组用例职责＝View 层端点映射）；
   - `BattleHud.弹药`＝用例笔误：未装备约定 `SelectedWeapon=-1` 须显式置位（C# int 默认 0＝装备槽 0 非未装备）；
   - 遗留一条**弱断言债**：`租约_取到即被释放的竞态` 只断言异常类型——"已释放"与"未初始化"两分支同过（级联根因已随场景修复消失，断言强度债仍在）；
-- **生成物 hash 首个真实消费者待路径 B 启用**（BindRoot 现役 0）：记录/校验链路已就绪，步 5 CI 接线直接可用；「表内 prefab 路径必须存在」资源族规则仍留步 5。
+- **生成物 hash 首个真实消费者待路径 B 启用**（BindRoot 现役 0）：记录/校验链路已就绪，步 5 已随门禁测试接入夜门；「表内 prefab 路径必须存在」资源族规则已随步 5 交付（见下）。
+
+## 步 4：样式工具补齐（已交付）
+
+**落点**：`Assets/LiteGame/UI/Style/`（运行时标记）+ `Assets/LiteGame/Editor/Style/`（档位单源与工具）
+
+| 件 | 职责 |
+|---|---|
+| `UI/Style/UiTextStyleRef.cs` | 运行时**声明标记**（自有组件无 Odin）：`UiTextRole` 五角色（Title/Body/Caption/LabelSingle/Emphasis）；只声明不驱动——工具按声明应用/对账，运行时按状态改实例合法 |
+| `Editor/Style/UiTextStyle.cs` | 文字档**单源**（与 UiStyle 颜色 token 同构分工——不复制颜色值）：§3.1 基线表 = 字号 24/20/14/20/20、对齐（完整对齐——垂直统一中行）、换行关/关/开/关/开、初始溢出 Truncate/Overflow/Overflow/Truncate/Overflow、Emphasis 唯一加粗档；TMP/UGUI 双映射 |
+| `Editor/Style/UiTextStyleTool.cs` | **应用**（按标记精确写入，逐项比对跳过→幂等；失效标记/未知角色不猜不改）+ **对账**（三类：未标记〔整改清单〕/属性漂移〔逐项明细〕/引用失效〔font 缺失 + 标记无文本组件〕）；菜单「应用文字档/对账文字档」；扫描根可注入（测试用） |
+| `Editor/Style/UiStyleTool.cs`（改） | 颜色面**扩 Screens**（§3.2 作用域 Widgets+Screens）；扫描根可注入；菜单文案随作用域改「刷新 UI 颜色/对账 UI 颜色」；对账返回结构化清单 |
+
+### 验证证据
+
+| 项 | 结果 |
+|---|---|
+| Unity recompile | 0 错误 |
+| `UiTextStyleEditModeTests` | **8/8**：基线表值逐项核对（§3.1 数字）/ TMP 全属性写入+幂等（含 Italic 位不受字重档干扰）/ UGUI 映射（int 字号/加粗）/ 加粗位只动 Bold / 未标记报告不冒充 / 属性漂移报明细 / 引用失效两类（font 缺失须**非激活节点**——TMP OnEnable 自愈 null font 实证）/ 扫描根注入隔离 |
+| 全量 EditMode | **436/436**（428 + 8 新增，零新增红） |
+| 真实资产对账首跑基线 | 文字档：**未标记 77 / 属性漂移 0 / 引用失效 0**（标记面从零起步的诚实基线）；颜色（扩面后）：漂移 76 处（既有手调/非 token 色——报告不擅改） |
+| L1 门禁 | `test.ps1 -Lane L1 -Profile PullRequest` **[PASS] 1636**（纪律扫描在内，新文件零违规） |
+
+### 遗留（如实）
+
+- **标记面从零起步**：现役 33 个 prefab 的 77 处文本全部未标记（首跑基线）——整改清单随制作侧逐批标记（"未标记先报告，按整改清单收口"，§3.2）；对账/应用对未标记文本零副作用；
+- **"声明覆盖"类报告待 SO 覆盖机制**（§3.2 第四类漂移分类）：基线即唯一声明面，合法偏离基线的覆盖声明随换肤/主题需求接 SO 资产（UiStyleAsset 同款先例）；
+- **AutoSizing 范围声明**（§3.1"必须声明范围与验证样例"）待首个真实用例接入；
+- **UGUI 无水平 Truncate**：不换行档映射 HorizontalOverflow=Overflow、水平截断由容器/Mask 承担（与 TMP Truncate 的视觉等价物是容器职责——口径已在工具注释登记）；
+- 字号阶梯是**校验参考**不自动改值（§3.1"不把 22 等数值不看页面就自动改成 24"）——标记+应用是显式动作。
+
+## 步 5：校验进 CI（已交付）
+
+**落点**：`Assets/LiteGame/Editor/UiTools/Validation/`（新规则）+ `UiValidator`（注册与族登记）+ `LiteGame.Editor.asmdef`（补 `Luban.Runtime` 引用——规则装载表产物用 ByteBuf）
+
+| 件 | 职责 |
+|---|---|
+| `Rules/AssetTablePathRule.cs`（`ui.asset-table-paths`，资源族首条） | **表内资源路径存在性**——装载全部 Luban 表，反射每行公开字符串字段，`.prefab`/`.unity` 结尾即资产路径（无 `Assets/` 前缀按表内惯例补前），盘上不存在＝Error（行定位键随报告）；**通用反射面不枚举列**——未来任何表加路径列即被同一门禁罩住（uiform 悬空两次实锤的机制化，非点位补丁）；表目录整体缺席＝非工程上下文跳过（合成测试根）、单件产物缺失＝Warning；`CheckPaths` 纯核对面供合成负例直喂 |
+| `UiValidator`（改） | 资源族 `implemented=true`（"表内路径存在性已接入；其余子项待接入"）+ 规则注册表加 `AssetTablePathRule` |
+| 门禁测试 `门禁_真实资产面_命名hash表路径零Error` | **CI 接线本体**：三条资产面规则（命名/hash/表路径）跑真实数据断言零 Error——随 L2 门禁的 EditMode 段自动进夜门（Pipeline 模式 A / batchmode 模式 B 同入口）；视觉面由 `VisualSingleSourceEditModeTests` 既有用例单守（不重复 53s 全量源码扫描）；既有 `RunCli`（`-executeMethod` 非零退出）保留为 CI 批处理备用入口 |
+
+### 验证证据
+
+| 项 | 结果 |
+|---|---|
+| Unity recompile | 0 错误 |
+| `UiValidationEditModeTests` | **14/14**（原 9 + 新 5：规则端口／路径判据不误伤 LuaPath／核对面悬空×2 报 Error 且在盘零误报／**真实表装载提取零悬空**（uiform 修复的回归钉，≥11 行实提取）／门禁真实资产面三规则零 Error＋唯一 Warning＝UIMain 根名债） |
+| 既有契约用例随动 | 「资源族不再列待接入」断言翻转、「合成上下文零噪声」由表目录缺席跳过守卫保证（`报告项_五字段齐全` 复绿） |
+| 全量 EditMode | **441/441**（436 + 5 新增，零新增红） |
+| L1 门禁 | `test.ps1 -Lane L1 -Profile PullRequest` **[PASS] 1636** |
+
+### 遗留（如实）
+
+- **资源族其余子项待接入**（缺引用其余面/收集组/图集字体名册/生产包排除调试补丁——§4 资源族清单），随真实需求逐条接；
+- 表清单为**显式登记**（九表 `(file, type)` 数组）——新表入 `Tables.cs` 后须同批补 `AssetTablePathRule.Tables` 一行（漏登记＝该表不在门禁罩内；"新表接入四件"清单已含 ConfigService 校验门，此为第五件）；
+- 门禁测试断言 **Error=0 + Warning=1**——Warning 数随页面批次（UIMain 根名）收口后应改回 0 基线，届时同批更新。

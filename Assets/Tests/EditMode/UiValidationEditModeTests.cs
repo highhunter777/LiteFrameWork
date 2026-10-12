@@ -77,8 +77,8 @@ namespace LiteGame.Tests.EditMode
             var pending = report.Families.Where(f => !f.Implemented).Select(f => f.Family).ToList();
             Assert.IsNotEmpty(pending, "未接入的族必须在报告里列出");
             Assert.Contains("文本", pending, "文本族未接入——须显式列出");
-            Assert.Contains("资源", pending);
-            Assert.IsFalse(pending.Contains("绑定"), "绑定族本步已接入——不应再列待接入");
+            Assert.IsFalse(pending.Contains("资源"), "资源族步 5 已接入（表内路径存在性）——不应再列待接入");
+            Assert.IsFalse(pending.Contains("绑定"), "绑定族已接入——不应再列待接入");
             Assert.IsFalse(pending.Contains("渲染/适配"), "渲染/适配族已接入——不应再列待接入");
         }
 
@@ -131,6 +131,76 @@ namespace LiteGame.Tests.EditMode
             var tpl = RunOnTempPrefab("Tmp_Test", root =>
                 AddChild(root, "_Bg", typeof(RectTransform)));
             Assert.AreEqual(0, tpl.ErrorCount, "模板内 `_` 私有件合法：\n" + tpl.Render());
+        }
+
+        // ---- 表内资源路径规则（步 5：资源族首条） ----
+
+        [Test]
+        public void 表路径_端口标识与族()
+        {
+            var rule = new AssetTablePathRule();
+            Assert.AreEqual("ui.asset-table-paths", rule.RuleId);
+            Assert.AreEqual("资源", rule.Family);
+        }
+
+        [Test]
+        public void 表路径_判据_路径形态识别不误伤()
+        {
+            Assert.IsTrue(AssetTablePathRule.IsPathLike("ShareResource/UI/Screens/Tmp_Dialog.prefab"));
+            Assert.IsTrue(AssetTablePathRule.IsPathLike("Assets/Scenes/Boot.unity"));
+            Assert.IsFalse(AssetTablePathRule.IsPathLike("UI.UIMain"), "LuaPath 点分模块名不是资产路径");
+            Assert.IsFalse(AssetTablePathRule.IsPathLike(""));
+        }
+
+        [Test]
+        public void 表路径_核对面_悬空报Error_在盘通过()
+        {
+            string root = UiValidator.ProjectRoot;
+            var entries = new List<AssetTablePathRule.PathEntry>
+            {
+                new AssetTablePathRule.PathEntry("UI/tbuiform.bytes", "Prefab", "Id=999",
+                    "ShareResource/UI/Screens/Tmp_Dialog.prefab"),        // 在盘（真实资产）——不应报
+                new AssetTablePathRule.PathEntry("UI/tbuiform.bytes", "Prefab", "Id=998",
+                    "ShareResource/UI/Screens/NoSuch.prefab"),           // 悬空（uiform 病类合成形态）
+                new AssetTablePathRule.PathEntry("X/dummy.bytes", "Scene", "Id=997",
+                    "Assets/Scenes/NoSuch.unity"),                        // 带 Assets/ 前缀形态的悬空
+            };
+
+            var issues = AssetTablePathRule.CheckPaths(root, entries, new (string, System.Type)[0]);
+            var errors = issues.Where(i => i.Severity == UiSeverity.Error).ToList();
+            Assert.AreEqual(2, errors.Count, "两条悬空路径各报一条 Error");
+            Assert.IsTrue(errors.All(i => i.RuleId == "ui.asset-table-paths"), "报告项带稳定规则标识");
+            StringAssert.Contains("NoSuch.prefab", errors[0].Message, "报文点名悬空值");
+            Assert.AreEqual(0, issues.Count(i => i.Node == "Id=999"), "在盘路径零误报");
+        }
+
+        [Test]
+        public void 表路径_真实表装载提取_零悬空()
+        {
+            // uiform 悬空两次实锤后的回归钉：现役全部表装载提取，路径形态值全部在盘
+            var entries = AssetTablePathRule.ExtractPathEntries(UiValidator.ProjectRoot);
+            Assert.IsTrue(entries.Count >= 11, "现役 tbuiform 至少 11 行带 prefab 路径（装载面真实提取），实得 " + entries.Count);
+            var issues = AssetTablePathRule.CollectMissingPaths(UiValidator.ProjectRoot);
+            Assert.AreEqual(0, issues.Count(i => i.Severity == UiSeverity.Error),
+                "真实表零悬空：\n" + string.Join("\n", issues.Select(i => i.ToString())));
+        }
+
+        // ---- 门禁接线：真实资产面全量校验（步 5——视觉面由 VisualSingleSourceEditModeTests 既有用例单守，此处不重复扫源码） ----
+
+        [Test]
+        public void 门禁_真实资产面_命名hash表路径零Error()
+        {
+            // 三条资产面规则（命名/hash/表路径）跑真实数据：Error＝0（Warning 是 §9.6 登记的 UIMain 根名债，随页面批次）
+            var assetsOnly = new UiValidationContext(UiValidator.ProjectRoot,
+                sourceDirs: null,
+                assetPaths: UiValidator.BuildDefaultContext().AssetPaths);
+            var report = UiValidator.Run(assetsOnly);
+
+            Assert.AreEqual(0, report.ErrorCount, "真实资产面不得有 Error：\n" + report.Render());
+            Assert.AreEqual(0, report.Issues.Count(i => i.RuleId == "ui.binding-naming" && i.Severity == UiSeverity.Error), "命名规则零 Error");
+            Assert.AreEqual(0, report.Issues.Count(i => i.RuleId == "ui.binding-hash"), "hash 对账零问题");
+            Assert.AreEqual(0, report.Issues.Count(i => i.RuleId == "ui.asset-table-paths" && i.Severity == UiSeverity.Error), "表路径零悬空");
+            Assert.AreEqual(1, report.WarningCount, "唯一 Warning＝UIMain 根名债（§9.6 登记随页面批次）");
         }
 
         /// <summary>造临时 prefab（Assets 下——规则经 AssetDatabase 装载），跑规则后删除。</summary>

@@ -17,6 +17,7 @@
         "LiteSim.Core",
         "LiteView",
         "Luban.Tables",
+        "Luban.Runtime",
         "UniTask",
         "Unity.TextMeshPro",
         "xLuaMain",

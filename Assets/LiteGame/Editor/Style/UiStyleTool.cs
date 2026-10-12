@@ -16,27 +16,35 @@ namespace LiteGame.EditorTools.UI
     /// 阈值 1e-4（逐通道差平方和）——只吸收浮点噪声与"同一意图的离散变体"，手调出的新色不受影响，
     /// 由"对账"报告暴露。
     ///
-    /// - 刷新（ApplyColors）：把 25 件控件模板 prefab 中**命中 token** 的 Graphic 颜色改写为 token 现值。
+    /// - 刷新（ApplyColors）：把扫描面（Widgets + Screens）prefab 中**命中 token** 的 Graphic 颜色改写为 token 现值。
     /// - 对账（ReportDrift）：报告**不命中任何 token** 的颜色（手调/漂移检测）。
-    /// - 菜单：LiteGame/UI/样式工具/刷新模板颜色（按主题）、LiteGame/UI/样式工具/对账模板颜色（漂移报告）。
+    /// - 菜单：LiteGame/UI/样式工具/刷新 UI 颜色（按 token 收敛）、LiteGame/UI/样式工具/对账 UI 颜色（漂移报告）。
     ///
-    /// 边界：只动 Assets/ShareResource/UI/Widgets/ 下的模板 prefab；不挂组件、不进运行时、不改结构；
+    /// 边界：作用域＝共享资源层的控件模板与页面夹具（§3.2）；不挂组件、不进运行时、不改结构；
     /// 手作模板为唯一维护路径。
     /// </summary>
     public static class UiStyleTool
     {
-        private const string WidgetsDir = "Assets/ShareResource/UI/Widgets";  // UI 控件模板目录（共享资源层）
+        /// <summary>颜色对账作用域（§3.2——控件模板 + 页面夹具；扫描根可注入，测试用）。</summary>
+        public static readonly string[] DefaultScanDirs =
+        {
+            "Assets/ShareResource/UI/Widgets",
+            "Assets/ShareResource/UI/Screens",
+        };
 
         /// <summary>命中阈值：颜色到 token 的平方距离 ≤ 此值视为该 token 的实例（吸收浮点噪声与离散变体）。</summary>
         private const float HitEpsilon = 1e-4f;
 
-        [MenuItem("LiteGame/UI/样式工具/刷新模板颜色（按 token 收敛）")]
-        public static void ApplyColors()
+        [MenuItem("LiteGame/UI/样式工具/刷新 UI 颜色（按 token 收敛）")]
+        public static void ApplyColors() => ApplyColors(DefaultScanDirs);
+
+        /// <summary>刷新（扫描根可注入）：命中 token 的 Graphic 颜色改写为 token 现值。返回 (改动 prefab 数, 改动颜色数)。</summary>
+        public static (int prefabs, int graphics) ApplyColors(IReadOnlyList<string> scanDirs)
         {
             var log = new StringBuilder();
             int changedPrefabs = 0, changedGraphics = 0;
 
-            foreach (string path in PrefabPaths())
+            foreach (string path in PrefabPaths(scanDirs))
             {
                 GameObject root = PrefabUtility.LoadPrefabContents(path);
                 bool dirty = false;
@@ -62,32 +70,45 @@ namespace LiteGame.EditorTools.UI
                 PrefabUtility.UnloadPrefabContents(root);
             }
 
-            Debug.Log($"[UiStyleTool] 刷新完成：{changedPrefabs} 个模板 / {changedGraphics} 处颜色收敛到 token 现值\n{log}");
-            AssetDatabase.SaveAssets();
+            if (changedPrefabs > 0) AssetDatabase.SaveAssets();
+            Debug.Log($"[UiStyleTool] 刷新完成：{changedPrefabs} 个 prefab / {changedGraphics} 处颜色收敛到 token 现值\n{log}");
+            return (changedPrefabs, changedGraphics);
         }
 
-        [MenuItem("LiteGame/UI/样式工具/对账模板颜色（漂移报告）")]
-        public static void ReportDrift()
+        [MenuItem("LiteGame/UI/样式工具/对账 UI 颜色（漂移报告）")]
+        public static void MenuReportDrift()
         {
+            var drifts = ReportDrift(DefaultScanDirs);
+            if (drifts.Count == 0)
+            {
+                Debug.Log("[UiStyleTool] 对账通过：扫描面颜色全部命中 token 集（零漂移基线成立）");
+                return;
+            }
             var log = new StringBuilder();
-            int drift = 0;
+            foreach (var (asset, node, color) in drifts)
+                log.AppendLine($"{System.IO.Path.GetFileName(asset)} :: {node} = {color:F3}（不在 token 集——手调值或漂移，仅报告不擅改）");
+            Debug.LogWarning($"[UiStyleTool] 漂移 {drifts.Count} 处（手调值不擅改，仅报告）：\n{log}");
+        }
 
-            foreach (string path in PrefabPaths())
+        /// <summary>颜色对账（扫描根可注入）：返回不命中 token 集的颜色（手调值或漂移——报告不擅改）。</summary>
+        public static List<(string asset, string node, Color color)> ReportDrift(IReadOnlyList<string> scanDirs)
+        {
+            var drifts = new List<(string, string, Color)>();
+            foreach (string path in PrefabPaths(scanDirs))
             {
                 GameObject root = PrefabUtility.LoadPrefabContents(path);
-                foreach (var graphic in root.GetComponentsInChildren<Graphic>(true))
+                try
                 {
-                    if (!TryMatch(graphic.color, out _))
-                    {
-                        drift++;
-                        log.AppendLine($"{System.IO.Path.GetFileName(path)} :: {graphic.transform.name} = {graphic.color:F3}（不在 token 集——手调值或漂移，仅报告不擅改）");
-                    }
+                    foreach (var graphic in root.GetComponentsInChildren<Graphic>(true))
+                        if (!TryMatch(graphic.color, out _))
+                            drifts.Add((path, graphic.transform.name, graphic.color));
                 }
-                PrefabUtility.UnloadPrefabContents(root);
+                finally
+                {
+                    PrefabUtility.UnloadPrefabContents(root);
+                }
             }
-
-            if (drift == 0) Debug.Log("[UiStyleTool] 对账通过：全部模板颜色都命中 token 集（零漂移基线成立）");
-            else Debug.LogWarning($"[UiStyleTool] 漂移 {drift} 处（手调值不擅改，仅报告）：\n{log}");
+            return drifts;
         }
 
         // ---- 辅助 ----
@@ -111,11 +132,16 @@ namespace LiteGame.EditorTools.UI
             return hit;
         }
 
-        private static IEnumerable<string> PrefabPaths()
+        private static IEnumerable<string> PrefabPaths(IReadOnlyList<string> scanDirs)
         {
-            var guids = AssetDatabase.FindAssets("t:Prefab", new[] { WidgetsDir });
-            var paths = new List<string>(guids.Length);
-            foreach (var guid in guids) paths.Add(AssetDatabase.GUIDToAssetPath(guid));
+            var dirs = scanDirs ?? DefaultScanDirs;
+            var paths = new List<string>();
+            foreach (var dir in dirs)
+            {
+                if (!AssetDatabase.IsValidFolder(dir)) continue;
+                var guids = AssetDatabase.FindAssets("t:Prefab", new[] { dir });
+                foreach (var guid in guids) paths.Add(AssetDatabase.GUIDToAssetPath(guid));
+            }
             paths.Sort(System.StringComparer.Ordinal);
             return paths;
         }
