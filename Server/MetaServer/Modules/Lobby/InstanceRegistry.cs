@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Threading;
 using MetaServer.Contracts.Lobby;
 using MetaServer.Contracts.Validation;
+using RoomServer.Runtime;
 
 namespace MetaServer.Modules.Lobby
 {
@@ -136,7 +137,13 @@ namespace MetaServer.Modules.Lobby
                 {
                     RoomReport r = command.Rooms[i];
                     if (r == null || !FieldValidation.IsValid(r.RoomId, MaxInstanceIdBytes)) { reason = "rooms[" + i + "].roomId"; return RegisterResult.InvalidFields; }
-                    if (r.Phase < 0 || r.Phase > 5) { reason = "rooms[" + i + "].phase"; return RegisterResult.InvalidFields; }   // 0..5 = Created..Settling
+                    // 相位闸引内核单源（MatchPhase/MatchStateMachine 经 MetaServer.csproj 源链接共编）：值域与
+                    // 终态判据均由枚举派生——内核新增相位时本闸自动跟随（此前的字面量 0..5 绑注释，属静默漂移面）。
+                    // 终态（Closed/Aborted）按契约"终态房间不报"（LobbyContracts.RoomReport）恒不该出现——
+                    // 房间侧读面已过滤，此处为防御面，拒绝粒度维持整次注册（与实例级字段同款）。
+                    if (r.Phase < (int)MatchPhase.Created || r.Phase > (int)MatchPhase.Aborted
+                        || MatchStateMachine.IsTerminal((MatchPhase)r.Phase))
+                    { reason = "rooms[" + i + "].phase"; return RegisterResult.InvalidFields; }
                     if (r.Players < 0 || r.Players > MaxPlayersCeiling) { reason = "rooms[" + i + "].players"; return RegisterResult.InvalidFields; }
                     if (r.ExpectedPlayers < 0 || r.ExpectedPlayers > MaxPlayersCeiling) { reason = "rooms[" + i + "].expectedPlayers"; return RegisterResult.InvalidFields; }
                     rooms.Add(new RoomView { RoomId = r.RoomId, Phase = r.Phase, Players = r.Players, ExpectedPlayers = r.ExpectedPlayers });

@@ -103,15 +103,7 @@ if (serverConfig.LobbyEnabled)
     if (string.IsNullOrWhiteSpace(lobbyInstanceKeyBase64))
         throw new InvalidOperationException(
             "RoomServer 已配置 Lobby 注册（lobby.url）但缺实例密钥：请提供 --lobby-instance-key 或环境变量 LITENET_LOBBY_INSTANCE_KEY。");
-    byte[] lobbyKey;
-    try
-    {
-        lobbyKey = Convert.FromBase64String(lobbyInstanceKeyBase64);
-    }
-    catch (FormatException)
-    {
-        throw new InvalidOperationException("Lobby 实例密钥必须是 Base64（原值不回显）。");
-    }
+    byte[] lobbyKey = DecodeInstanceKeyOrFail(lobbyInstanceKeyBase64, "Lobby 实例密钥");
     lobbySettings = new LobbyRegistrationClient.Settings
     {
         Url = serverConfig.LobbyUrl,
@@ -135,15 +127,7 @@ if (serverConfig.SettlementEnabled)
             "RoomServer 已配置结算提交管道（settlement.submit_url）但缺**结算**实例密钥："
             + "请提供 --settlement-instance-key 或环境变量 LITENET_SETTLEMENT_INSTANCE_KEY"
             + "（与 Meta 的 SettlementInstanceKeyBase64 同值；结算与 Lobby 注册分权，不复用 --lobby-instance-key）。");
-    byte[] settlementKey;
-    try
-    {
-        settlementKey = Convert.FromBase64String(settlementInstanceKeyBase64);
-    }
-    catch (FormatException)
-    {
-        throw new InvalidOperationException("结算提交实例密钥必须是 Base64（原值不回显）。");
-    }
+    byte[] settlementKey = DecodeInstanceKeyOrFail(settlementInstanceKeyBase64, "结算提交实例密钥");
     settlementSettings = new SettlementSubmitService.Settings
     {
         Url = serverConfig.SettlementSubmitUrl,
@@ -310,6 +294,22 @@ static string ResolveConfigPath(string[] argv)
     for (int i = 0; i < argv.Length; i++)
         if (argv[i] == "--config" && i + 1 < argv.Length) return argv[i + 1];
     return RoomServerConfig.DefaultRelativePath;
+}
+
+/// <summary>
+/// 实例密钥 Base64 解码（两条凭据分权各自提供——报错文案经 <paramref name="label"/> 区分）；
+/// 非 Base64 即拒启，原值不回显（《上云测试专项设计》§5 密钥纪律）。
+/// </summary>
+static byte[] DecodeInstanceKeyOrFail(string base64, string label)
+{
+    try
+    {
+        return Convert.FromBase64String(base64);
+    }
+    catch (FormatException)
+    {
+        throw new InvalidOperationException(label + "必须是 Base64（原值不回显）。");
+    }
 }
 
 /// <summary>

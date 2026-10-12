@@ -67,6 +67,11 @@ META_TARGETS = [
 ]
 META_EXTRA_FILES = [
     'Assets/RoomServer/Application/JoinTicketFormat.cs',   # 源链接共编（MetaServer.csproj）
+    # 2026-10-12 两处修正：Base64Url.cs 链接自 P2 引入起漏登记（改它 Meta 身份不动 = 静默失联）；
+    # MatchStateMachine.cs 为房间明细批新增链接（相位闸单源）。登记规则：csproj 每加一条
+    # <Compile Include> 出树链接，这里必须同批加对应条目。
+    'Assets/RoomServer/Application/Base64Url.cs',
+    'Assets/RoomServer/Runtime/MatchStateMachine.cs',
 ]
 DATA_EXTS = ('.bytes',)     # .meta 由 endswith('.meta') 排除（不会命中此白名单，双保险）
 

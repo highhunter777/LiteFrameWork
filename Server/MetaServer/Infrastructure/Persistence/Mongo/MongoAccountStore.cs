@@ -25,10 +25,17 @@ namespace MetaServer.Infrastructure.Persistence.Mongo
         public async ValueTask<AccountRecord> FindByDeviceIdAsync(string deviceId, CancellationToken ct)
         {
             if (string.IsNullOrEmpty(deviceId)) return null;
-            AccountDoc doc = await _database.GetCollection<AccountDoc>(MongoCollectionNames.Accounts)
-                .Find(d => d.DeviceId == deviceId)
-                .FirstOrDefaultAsync(ct);
-            return doc == null ? null : ToRecord(doc);
+            try
+            {
+                AccountDoc doc = await _database.GetCollection<AccountDoc>(MongoCollectionNames.Accounts)
+                    .Find(d => d.DeviceId == deviceId)
+                    .FirstOrDefaultAsync(ct);
+                return doc == null ? null : ToRecord(doc);
+            }
+            catch (MongoException ex)
+            {
+                throw new AccountStoreUnavailableException("账号查询失败：" + ex.Message, ex);
+            }
         }
 
         public async ValueTask<AccountRecord> CreateAsync(AccountRecord record, CancellationToken ct)
@@ -54,10 +61,15 @@ namespace MetaServer.Infrastructure.Persistence.Mongo
             catch (MongoWriteException ex) when (ex.WriteError?.Code == 11000)
             {
                 // 设备唯一键撞入是并发 get-or-create 的正常分支；若是 accountId 撞键，
-                // 先按设备重读，仍不存在则把异常交给上层作为未确认故障。
+                // 先按设备重读，仍不存在则归未确认故障（可重试，不冒充成功也不冒充编程错误）。
                 AccountRecord existing = await FindByDeviceIdAsync(record.DeviceId, ct);
                 if (existing != null) return null;
-                throw;
+                throw new AccountStoreUnavailableException(
+                    "账号插入撞键且按设备重读仍不存在（accountId 撞键）：" + record.AccountId, ex);
+            }
+            catch (MongoException ex)
+            {
+                throw new AccountStoreUnavailableException("账号创建失败：" + ex.Message, ex);
             }
         }
 

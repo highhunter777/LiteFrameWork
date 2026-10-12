@@ -2,7 +2,6 @@ using System;
 using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
-using MetaServer.Contracts.Validation;
 
 namespace MetaServer.Contracts.Persistence
 {
@@ -17,61 +16,14 @@ namespace MetaServer.Contracts.Persistence
     /// §4 裁决点①③，由 Profile 结算用例从提交载荷映射——归档端口不与线 DTO 耦合）。
     /// **幂等键 = MatchId**（一局一条，唯一性由 _id 承载）。
     ///
-    /// 形状边界（落库前拒绝，一次报全——与 <c>SampleSettlementCommand.Validate</c> 同款口径）：
-    /// 字段非空且 ≤<see cref="MaxFieldLength"/>、玩家条目 1..<see cref="MaxPlayers"/>、
-    /// 击杀/死亡/帧号非负、PlayerId 不重复、AccountId 非空（结算归属账号——缺账号的提交被
-    /// 如实拒绝，不静默落一条无主账目）。
+    /// 形状边界（落库前拒绝，一次报全）：由**映射方** <c>ApplyMatchResultUseCase.Validate</c> 承担
+    /// ——线载荷校验覆盖本记录全部字段边界（Id 非空与 UTF-8 字节上限、玩家条目 1..64、
+    /// 击杀/死亡/帧号非负、PlayerId 不重复、AccountId 非空）。本记录不再自持第二份校验。
     /// </summary>
     public sealed record MatchResultArchiveEntry(
         string MatchId, long Seed, int FinalFrame, int EndReason, int GameplayEndReason, long WinnerEntityId,
         IReadOnlyList<MatchResultPlayerEntry> Players)
     {
-        /// <summary>单字段长度上界——**别名**：上限表单源 <see cref="FieldLimits.BusinessKeyBytes"/>
-        /// （P2：本记录此前按**字符数**判，与其它五处按 UTF-8 字节判的口径不一致）。</summary>
-        public const int MaxFieldLength = FieldLimits.BusinessKeyBytes;
-
-        /// <summary>单局玩家条目上限（对齐房间容量口径）。</summary>
-        public const int MaxPlayers = 64;
-
-        /// <summary>形状边界（落库前拒绝）。返回全部违规项；空列表 = 通过。</summary>
-        public IReadOnlyList<string> Validate()
-        {
-            var errors = new List<string>();
-            FieldValidation.Append(errors, nameof(MatchId), MatchId, MaxFieldLength);
-            if (Seed < 0) errors.Add("Seed 不得为负：" + Seed);
-            if (FinalFrame < 0) errors.Add("FinalFrame 不得为负：" + FinalFrame);
-            if (WinnerEntityId < 0) errors.Add("WinnerEntityId 不得为负：" + WinnerEntityId);
-
-            if (Players == null || Players.Count == 0)
-            {
-                errors.Add("Players 不得为空");
-            }
-            else if (Players.Count > MaxPlayers)
-            {
-                errors.Add("Players 数量不得超 " + MaxPlayers + "，实际：" + Players.Count);
-            }
-            else
-            {
-                var seen = new HashSet<string>(StringComparer.Ordinal);
-                for (int i = 0; i < Players.Count; i++)
-                {
-                    MatchResultPlayerEntry p = Players[i];
-                    if (p == null)
-                    {
-                        errors.Add("Players[" + i + "] 不得为空");
-                        continue;
-                    }
-                    FieldValidation.Append(errors, "Players[" + i + "].PlayerId", p.PlayerId, MaxFieldLength);
-                    FieldValidation.Append(errors, "Players[" + i + "].AccountId", p.AccountId, MaxFieldLength);
-                    if (p.Kills < 0) errors.Add("Players[" + i + "].Kills 不得为负：" + p.Kills);
-                    if (p.Deaths < 0) errors.Add("Players[" + i + "].Deaths 不得为负：" + p.Deaths);
-                    if (!string.IsNullOrEmpty(p.PlayerId) && !seen.Add(p.PlayerId))
-                        errors.Add("Players[" + i + "].PlayerId 重复：" + p.PlayerId);
-                }
-            }
-            return errors;
-        }
-
     }
 
     /// <summary>首次落库快照（重复提交**原样返回**这一份，不重新计算——同账本口径）。</summary>

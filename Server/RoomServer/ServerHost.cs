@@ -218,10 +218,10 @@ namespace RoomServer
 
         public SessionManager Sessions => _sessions;
 
-        /// <summary>首房间配置（兼容只读投影；多房间下"哪个房间"见 <see cref="Rooms"/> / <see cref="TryGetOrCreateRoom"/>）。</summary>
+        /// <summary>首房间配置（兼容只读投影；多房间下"哪个房间"见 <see cref="Rooms"/> / <see cref="TryGetRoom"/>）。</summary>
         public RoomConfig Config { get; }
 
-        /// <summary>首房间运行时（兼容投影；等价 <c>TryGetOrCreateRoom(Config.RoomId)</c> 的结果）。
+        /// <summary>首房间运行时（兼容投影；按房号取用 <see cref="TryGetRoom"/>）。
         /// 终态房间会被销毁（<see cref="TryDestroyTerminalRoom"/>），此后本投影为 null——
         /// 需要跨越终态的引用请提前持有或改用 <see cref="TryGetRoom"/>。</summary>
         public RoomRuntime Room => _rooms.Count > 0 ? _rooms[0].Runtime : null;
@@ -294,6 +294,9 @@ namespace RoomServer
         /// 房间明细快照（房间列表批——Lobby 心跳上报的"房间号/阶段/在座/期望"投影）。
         /// **近似快照**（与 OccupiedPlayerCount 同口径）：心跳线程读、权威线程写——字段级引用/int 读，
         /// 房间表 List 扩容瞬间的撕裂以 catch 兜底（下跳再报，投影本就是"上报事实"非权威）。
+        /// **终态房间不报**（契约：LobbyContracts.RoomReport"终态房间（已销毁）不报"）——房间终态到
+        /// <see cref="TryDestroyTerminalRoom"/> 销毁之间仍在册，不过滤会把 phase=6/7 送上上报面
+        /// （Meta 相位闸对整次注册拒绝——一行终态房间毒死整条心跳）。
         /// O(在册房间)；低频心跳调用，不在权威循环热路径。
         /// </summary>
         public RoomSummary[] RoomSummaries()
@@ -307,7 +310,7 @@ namespace RoomServer
             for (int i = 0; i < rooms.Length; i++)
             {
                 RoomInstance room = rooms[i];
-                if (room?.Runtime == null) continue;
+                if (room?.Runtime == null || room.Runtime.Closed) continue;   // 终态不报（判据 = 内核 IsTerminal；销毁在随后的 Pump）
                 list[n++] = new RoomSummary
                 {
                     RoomId = room.RoomId,
@@ -2068,11 +2071,5 @@ namespace RoomServer
 
         /// <summary>节拍统计来源（宿主装配 ServerLoop 后注入；null = 不打印节拍段——用例/嵌入式用法）。</summary>
         public ServerLoop.LoopStats LoopStats { get; set; }
-
-        /// <summary>
-        /// 按房间号取房间；**不存在则创建**（OpenRoom 语义的别名）。
-        /// 单房间形态下它等价于"取预置房间"（不存在时返回 null，因为该形态下容量为 1 且无模板）。
-        /// </summary>
-        public RoomRuntime TryGetOrCreateRoom(string roomId) => OpenRoom(roomId);
     }
 }

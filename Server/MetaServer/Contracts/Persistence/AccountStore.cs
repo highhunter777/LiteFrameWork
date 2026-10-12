@@ -18,6 +18,23 @@ namespace MetaServer.Contracts.Persistence
     }
 
     /// <summary>
+    /// 账号存储不可达/提交失败（未确认语义，重试安全）。**唯一基础设施异常面**：用例/端点只捕
+    /// 本类归 503；其余异常（编程错误等）如实上抛，不冒充存储故障。
+    /// （与 <see cref="SettlementStoreUnavailableException"/> 同款纪律——不吞、不冒充成功。）
+    /// </summary>
+    public sealed class AccountStoreUnavailableException : Exception
+    {
+        public AccountStoreUnavailableException(string message) : base(message)
+        {
+        }
+
+        public AccountStoreUnavailableException(string message, Exception innerException)
+            : base(message, innerException)
+        {
+        }
+    }
+
+    /// <summary>
     /// 账号存储端口（M0-c 同款端口纪律：契约层零 Mongo 依赖；L1 用测试双打，L3 用真适配器）。
     /// </summary>
     public interface IAccountStore
@@ -26,7 +43,8 @@ namespace MetaServer.Contracts.Persistence
         ValueTask<AccountRecord> FindByDeviceIdAsync(string deviceId, CancellationToken ct);
 
         /// <summary>插入新账号。**deviceId 已存在 → 返回 null**（由调用方重读——唯一索引是
-        /// get-or-create 竞态的最终裁判，§5.3"数据库唯一键是最终幂等裁判"）；基础设施故障抛异常。</summary>
+        /// get-or-create 竞态的最终裁判，§5.3"数据库唯一键是最终幂等裁判"）；基础设施故障抛
+        /// <see cref="AccountStoreUnavailableException"/>。</summary>
         ValueTask<AccountRecord> CreateAsync(AccountRecord record, CancellationToken ct);
     }
 }

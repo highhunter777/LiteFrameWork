@@ -12,7 +12,8 @@ namespace MetaServer.Tests
     /// <summary>
     /// 游客登录用例（<see cref="GuestLoginUseCase"/>）L1：《Meta 服务专项设计》§6.1/§5.3——
     /// deviceId 唯一键 get-or-create 幂等、并发撞键重读收敛、字段边界 fail-closed、
-    /// 存储故障归 StoreUnavailable（端点映射 503）。存储用本工程内建双打（M0-c 同款纪律）。
+    /// 存储故障归 StoreUnavailable（端点映射 503）；编程错误如实上抛（分级纪律，与
+    /// ApplyMatchResultUseCase 同款）。存储用本工程内建双打（M0-c 同款纪律）。
     /// </summary>
     public sealed class GuestLoginUseCaseTests
     {
@@ -123,7 +124,7 @@ namespace MetaServer.Tests
         {
             var store = new InMemoryAccountStore
             {
-                ThrowOnCreate = new InvalidOperationException("mongo down"),
+                ThrowOnCreate = new AccountStoreUnavailableException("mongo down"),
             };
             var useCase = new GuestLoginUseCase(store, NewTokenService(), Now());
 
@@ -132,6 +133,20 @@ namespace MetaServer.Tests
                 as GuestLoginUseCase.Result.StoreUnavailable;
             Assert.NotNull(result);
             Assert.Equal("account-store-failure", result.Reason);
+        }
+
+        [Fact]
+        public async Task 编程错误如实上抛_不冒充存储故障()
+        {
+            var store = new InMemoryAccountStore
+            {
+                ThrowOnCreate = new InvalidOperationException("bug（非存储故障）"),
+            };
+            var useCase = new GuestLoginUseCase(store, NewTokenService(), Now());
+
+            // 分级纪律：只有 AccountStoreUnavailableException 归 503；编程错误必须穿透（端点 500）
+            await Assert.ThrowsAsync<InvalidOperationException>(
+                () => useCase.ExecuteAsync(Cmd("r1", "device-a"), CancellationToken.None));
         }
 
         [Fact]

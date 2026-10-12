@@ -1,6 +1,24 @@
 namespace RoomServer.Runtime
 {
     /// <summary>
+    /// 对局阶段（《商业级通用服务端框架总设计》§9.1 Match 状态机）。
+    /// 相位词汇与状态机同文件 = 唯一出处；Meta 侧相位闸经 MetaServer.csproj 源链接共编引本枚举——
+    /// 新增相位时两端自动跟随，不存在"字面量绑注释"的静默漂移。
+    /// </summary>
+    public enum MatchPhase
+    {
+        Created = 0,
+        WaitingForPlayers,
+        Starting,
+        Running,
+        Finishing,
+        Settling,
+        Closed,
+        /// <summary>不可恢复错误/运维终止（任意阶段可达）。</summary>
+        Aborted,
+    }
+
+    /// <summary>
     /// Match 状态机（《商业级通用服务端框架总设计》§9.1）：
     /// <c>Created → WaitingForPlayers → Starting → Running → Finishing → Settling → Closed</c>；
     /// 任意阶段可 → <see cref="MatchPhase.Aborted"/>（不可恢复错误 / 运维终止 / 未开局即放弃）。

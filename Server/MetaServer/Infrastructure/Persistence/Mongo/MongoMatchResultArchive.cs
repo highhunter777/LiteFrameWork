@@ -22,22 +22,25 @@ namespace MetaServer.Infrastructure.Persistence.Mongo
     public sealed class MongoMatchResultArchive : IMatchResultArchive
     {
         private readonly IMongoDatabase _database;
-        private readonly IMongoCollection<MatchResultDoc> _collection;
         private readonly Func<DateTime> _utcNow;
 
         public MongoMatchResultArchive(IMongoDatabase database, Func<DateTime> utcNow)
         {
             _database = database ?? throw new ArgumentNullException(nameof(database));
             _utcNow = utcNow ?? throw new ArgumentNullException(nameof(utcNow));
-            _collection = database.GetCollection<MatchResultDoc>(MongoCollectionNames.MatchResults);
         }
 
         public async ValueTask<MatchResultStoreOutcome> StoreAsync(MatchResultArchiveEntry entry, CancellationToken ct)
         {
             if (entry == null) throw new ArgumentNullException(nameof(entry));
 
+            // 集合获取与姊妹适配器（账本/Outbox/账号/schema）同款：每次调用 GetCollection，
+            // 不在构造器缓存字段（同层同契约）。
+            IMongoCollection<MatchResultDoc> collection =
+                _database.GetCollection<MatchResultDoc>(MongoCollectionNames.MatchResults);
+
             // 幂等快路径：已存在即原样返回首次快照（与账本"幂等判定先于写入"同序）
-            MatchResultDoc existing = await _collection
+            MatchResultDoc existing = await collection
                 .Find(d => d.MatchId == entry.MatchId)
                 .FirstOrDefaultAsync(ct);
             if (existing != null)
@@ -59,12 +62,12 @@ namespace MetaServer.Infrastructure.Persistence.Mongo
 
             try
             {
-                await _collection.InsertOneAsync(doc, null, ct);
+                await collection.InsertOneAsync(doc, null, ct);
             }
             catch (MongoWriteException ex) when (MongoWriteErrors.IsDuplicateKey(ex))
             {
                 // 并发同局提交：唯一索引是最终裁判——读回首次快照
-                MatchResultDoc first = await _collection
+                MatchResultDoc first = await collection
                     .Find(d => d.MatchId == entry.MatchId)
                     .FirstOrDefaultAsync(ct);
                 if (first != null)
@@ -89,9 +92,11 @@ namespace MetaServer.Infrastructure.Persistence.Mongo
             if (string.IsNullOrEmpty(accountId)) throw new ArgumentException("accountId 不能为空", nameof(accountId));
             if (limit < 1) throw new ArgumentOutOfRangeException(nameof(limit), limit, "limit 必须为正");
 
+            IMongoCollection<MatchResultDoc> collection =
+                _database.GetCollection<MatchResultDoc>(MongoCollectionNames.MatchResults);
             try
             {
-                List<MatchResultDoc> docs = await _collection
+                List<MatchResultDoc> docs = await collection
                     .Find(Builders<MatchResultDoc>.Filter.Eq("Players.AccountId", accountId))
                     .Sort(Builders<MatchResultDoc>.Sort.Descending(d => d.FinishedUtc))
                     .Limit(limit)

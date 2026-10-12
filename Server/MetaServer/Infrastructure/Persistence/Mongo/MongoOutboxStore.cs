@@ -64,7 +64,7 @@ namespace MetaServer.Infrastructure.Persistence.Mongo
             OutboxSeqDoc counter = await IMongoCollectionExtensions
                 .FindOneAndUpdateAsync<OutboxSeqDoc, OutboxSeqDoc>(
                     seq,
-                    d => d.Name == "outbox",
+                    d => d.Name == MongoDocumentNames.OutboxSeq,
                     Builders<OutboxSeqDoc>.Update.Inc(d => d.Value, 1),
                     new FindOneAndUpdateOptions<OutboxSeqDoc, OutboxSeqDoc>
                     {

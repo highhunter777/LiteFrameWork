@@ -4,20 +4,6 @@ using LiteSim;
 
 namespace RoomServer.Runtime
 {
-    /// <summary>对局阶段（《商业级通用服务端框架总设计》§9.1 Match 状态机）。</summary>
-    public enum MatchPhase
-    {
-        Created = 0,
-        WaitingForPlayers,
-        Starting,
-        Running,
-        Finishing,
-        Settling,
-        Closed,
-        /// <summary>不可恢复错误/运维终止（任意阶段可达）。</summary>
-        Aborted,
-    }
-
     /// <summary>房间输出（§8.1 RoomOutput）：Runtime 只产纯数据事件，编码与发送归 App。
     /// 低频事件族（进房/开局/状态迁移/关闭），sealed class 即可；热路径（逐帧快照）不经此——
     /// 快照由 App 层 SnapshotPipeline 直接从 AuthSim 构建（§19 禁第二套快照 DTO 的自然推论）。</summary>

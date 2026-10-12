@@ -82,7 +82,8 @@ namespace MetaServer.Contracts.Lobby
 
     /// <summary>
     /// 单房间明细上报（RoomServer → Lobby，随心跳；投影"上报事实的投影，不是权威"）。
-    /// phase = RoomRuntime.MatchPhase 数值（0 Created/1 WaitingForPlayers/2 Starting/3 Running/4 Finishing/5 Settling）。
+    /// phase = RoomRuntime.MatchPhase 数值——值域与终态判据两端同源（MetaServer.csproj 源链接共编
+    /// 内核 MatchPhase/MatchStateMachine）；**终态（Closed/Aborted）不报**（读面过滤 + Meta 侧防御拒）。
     /// </summary>
     public sealed class RoomReport
     {

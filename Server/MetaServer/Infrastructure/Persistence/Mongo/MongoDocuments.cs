@@ -18,10 +18,10 @@ namespace MetaServer.Infrastructure.Persistence.Mongo
         /// <summary>持久 Outbox 条目（_id = operationId）。</summary>
         public const string Outbox = "outbox";
 
-        /// <summary>Outbox 单调序号计数文档（_id 固定 "outbox"；ListPending 的次序承载）。</summary>
+        /// <summary>Outbox 单调序号计数文档（_id 固定，见 <see cref="MongoDocumentNames.OutboxSeq"/>；ListPending 的次序承载）。</summary>
         public const string OutboxSeq = "outbox_seq";
 
-        /// <summary>schema 版本文档（_id 固定 "meta"；迁移确认点）。</summary>
+        /// <summary>schema 版本文档（_id 固定，见 <see cref="MongoDocumentNames.SchemaVersion"/>；迁移确认点）。</summary>
         public const string SchemaVersion = "schema_version";
 
         /// <summary>账号文档（_id = accountId；deviceId 唯一索引见迁移 v3）。</summary>
@@ -29,6 +29,19 @@ namespace MetaServer.Infrastructure.Persistence.Mongo
 
         /// <summary>对局结果归档（_id = matchId——一局一条，幂等由 _id 承载；账号查询索引见迁移 v4）。</summary>
         public const string MatchResults = "match_results";
+    }
+
+    /// <summary>
+    /// 固定 _id 文档名单源（单文档集合）：适配器与迁移共用——查询/upsert 里散字面量必然漂移，
+    /// 与集合名单源同一条纪律。
+    /// </summary>
+    public static class MongoDocumentNames
+    {
+        /// <summary>Outbox 单调序号计数文档（<c>outbox_seq</c> 集合内）。</summary>
+        public const string OutboxSeq = "outbox";
+
+        /// <summary>schema 版本文档（<c>schema_version</c> 集合内；迁移确认点）。</summary>
+        public const string SchemaVersion = "meta";
     }
 
     // =====================================================================

@@ -9,7 +9,7 @@ namespace MetaServer.Infrastructure.Persistence.Mongo
 {
     /// <summary>
     /// schema 版本存储的真 Mongo 适配器（M0-c 批二；§9.1"索引与迁移显式版本化"）。
-    /// 单文档（_id 固定 "meta"）承载当前版本；**版本写回 = 迁移确认点**——
+    /// 单文档（_id 固定，见 <see cref="MongoDocumentNames.SchemaVersion"/>）承载当前版本；**版本写回 = 迁移确认点**——
     /// 任意一步后进程终止，重启从最后确认版本继续。
     /// </summary>
     public sealed class MongoSchemaVersionStore : ISchemaVersionStore
@@ -27,7 +27,7 @@ namespace MetaServer.Infrastructure.Persistence.Mongo
                 _database.GetCollection<SchemaVersionDoc>(MongoCollectionNames.SchemaVersion);
 
             SchemaVersionDoc doc = await versions
-                .Find(d => d.Name == "meta")
+                .Find(d => d.Name == MongoDocumentNames.SchemaVersion)
                 .FirstOrDefaultAsync(ct);
             return doc == null ? 0 : doc.Version;
         }
@@ -39,7 +39,7 @@ namespace MetaServer.Infrastructure.Persistence.Mongo
 
             // upsert：条件钉住单文档，避免多版本文档并存
             await versions.UpdateOneAsync(
-                d => d.Name == "meta",
+                d => d.Name == MongoDocumentNames.SchemaVersion,
                 Builders<SchemaVersionDoc>.Update.Set(d => d.Version, version),
                 new UpdateOptions { IsUpsert = true },
                 ct);

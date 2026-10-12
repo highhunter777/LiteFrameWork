@@ -99,6 +99,34 @@ namespace LiteNet.Tests
         }
 
         [Fact]
+        public void 终态房间_销毁前_上报面不报终态明细()
+        {
+            var h = NewHost();
+            using var host = h.host;
+
+            h.t.RaiseConnected(1);
+            h.t.RaiseData(1, Join("Room-A"));
+            Assert.True(host.TryGetRoom("Room-A", out RoomRuntime room));
+
+            // 非终态在册：上报面含该房间（正证——过滤不是把明细整个抹掉）
+            ServerHost.RoomSummary[] running = host.RoomSummaries();
+            Assert.Single(running);
+            Assert.Equal("Room-A", running[0].RoomId);
+            Assert.Equal((int)MatchPhase.Running, running[0].Phase);
+
+            // 终态后、销毁前（销毁在随后的 Pump）：房间仍在册，但上报面必须不报——
+            // 契约"终态房间（已销毁）不报"；不过滤会把 phase=6/7 送 Meta 相位闸（整次注册拒绝）。
+            h.t.RaiseData(1, PacketCodec.Encode(PacketType.Leave, new Proto.Leave()));
+            Assert.True(room.Closed, "全员离场应收尾到终态");
+            Assert.Equal(1, host.RoomCount);                  // 尚未销毁：仍在房间表
+            Assert.Empty(host.RoomSummaries());               // 但上报面已过滤（本用例的修复点）
+
+            host.Pump();
+            Assert.Equal(0, host.RoomCount);
+            Assert.Empty(host.RoomSummaries());
+        }
+
+        [Fact]
         public void 未终态房间_不销毁()
         {
             var h = NewHost();

@@ -14,7 +14,9 @@ namespace MetaServer.Modules.Auth
     ///   并发同设备双登 → 一方插入、另一方撞唯一键重读，收敛到同一账号。
     /// - **字段边界 fail-closed**：requestId/deviceId 缺失或超 128 UTF-8 字节 → 拒绝
     ///   （§5 P0-3"长度在解析前限制"的用例侧半边——HTTP 侧还有请求体上限）。
-    /// - **结果型返回**（不抛业务异常——异常面只承载基础设施故障，端点按结果映射 HTTP）。
+    /// - **结果型返回**（不抛业务异常——异常面只承载基础设施故障，端点按结果映射 HTTP）；
+    ///   存储故障（<see cref="AccountStoreUnavailableException"/>）归 StoreUnavailable，其余异常如实上抛
+    ///   （编程错误不冒充 503——与 <c>ApplyMatchResultUseCase</c> 同款分捕纪律）。
     /// - accountId：签发端 CSPRNG（"a"+20 hex）——全局唯一性由随机空间保证，无自增表依赖。
     /// - **令牌/账号 Id 不写日志**（§11.1；本类不持日志面——requestId 的落日志归端点/中间件）。
     /// </summary>
@@ -96,15 +98,16 @@ namespace MetaServer.Modules.Auth
                     ExpiresAtMs = expiresAtMs,
                 };
             }
-            catch (OperationCanceledException)
-            {
-                throw;                                    // 取消不吞——端点侧随请求管道传播
-            }
-            catch (Exception)
+            catch (AccountStoreUnavailableException)
             {
                 // 存储故障归基础设施异常面（端点映射 503；不打日志面——宿主/端点统一记录）
                 return new Result.StoreUnavailable { Reason = "account-store-failure" };
             }
+            catch (OperationCanceledException)
+            {
+                throw;                                    // 取消不吞——端点侧随请求管道传播
+            }
+            // 其余异常如实上抛（编程错误不得冒充 503——与 ApplyMatchResultUseCase 同款分捕纪律）
         }
 
         private static string NewAccountId()
