@@ -1,6 +1,6 @@
 [CmdletBinding()]
 param(
-    [ValidateSet('L1', 'L2', 'L3', 'All')]
+    [ValidateSet('L1', 'L2', 'L3', 'All', 'Doc')]
     [string]$Lane = 'L1',
 
     [ValidateSet('PullRequest', 'Nightly', 'Release')]
@@ -120,7 +120,7 @@ function Invoke-DotNetLane([string]$name, [string]$filter, [string]$hangTimeout)
 
 function Invoke-DocLint {
     # Documentation hygiene: design-vs-progress separation + audit-table status backfill.
-    # Rule source of truth: scripts/gate/doc-lint.py (wired into L1 so it cannot be skipped).
+    # Rule source of truth: scripts/gate/doc-lint.py (standalone gate; run via -Lane Doc).
     Write-Host "`n=== doc-lint | $Profile ===" -ForegroundColor Cyan
     $script = Join-Path $ProjectPath 'scripts/gate/doc-lint.py'
     if (-not (Test-Path $script)) { throw "doc-lint script missing: $script" }
@@ -138,8 +138,6 @@ function Invoke-DocLint {
 }
 
 function Invoke-L1 {
-    # Documentation discipline gate runs first (cheap whole-repo text scan).
-    Invoke-DocLint
     # Untagged tests deliberately remain in L1.
     $filter = 'Category!=Integration&Category!=EndToEnd&Category!=Performance&Category!=Quarantine&Duration!=LongRunning'
     Invoke-DotNetLane 'L1' $filter '5m'
@@ -175,6 +173,7 @@ try {
         'L1' { Invoke-L1 }
         'L2' { Invoke-L2 }
         'L3' { Invoke-L3 }
+        'Doc' { Invoke-DocLint }
         'All' {
             Invoke-L1
             Invoke-L3
