@@ -4,7 +4,8 @@ using System.Collections.Generic;
 namespace LiteFramework
 {
     /// <summary>
-    /// LText 表数据装载（文本链 `#text.xlsx → 生成 key/语言数据 → LText 服务`）。
+    /// LText 表数据装载（文本链 `Luban 表源 → tbltext 生成物 → LText 服务`；
+    /// 生产装载经装配层 LTextCatalog 直读 cfg.Tables，本 JSON 解析口供候选校验等文本形态消费）。
     ///
     /// **数据形态**与既有 Luban 表产物一致（`GameData/Config/*.bytes`，JSON 数组对象）：
     /// <code>[{"key":"UI.Main.Title","zh-CN":"标题","en":"Title"}, ...]</code>

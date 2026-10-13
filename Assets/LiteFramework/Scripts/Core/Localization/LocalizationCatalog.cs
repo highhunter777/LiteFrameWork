@@ -4,8 +4,8 @@ using System.Collections.Generic;
 namespace LiteFramework
 {
     /// <summary>
-    /// 本地化目录（目标文本链为 `#text.xlsx → 生成 key/语言数据 → LText 服务 →
-    /// LTextLabel/页面模型`）。
+    /// 本地化目录（目标文本链为 `Luban 表源 #ltext.xlsx → tbltext 生成物 → 装配层投射（LTextCatalog）→
+    /// LText 服务 → LTextLabel/页面模型`）。
     ///
     /// **单一来源**：一张 key → (locale → 文本) 的表，按 locale 索引。不可变构造后只读——
     /// 语言切换只换查询的 locale，不重建目录（语言变更刷新本地化组件…不重跑 OnShow）。
@@ -16,6 +16,10 @@ namespace LiteFramework
     {
         /// <summary>源语言（缺 key 时的回退目标——发布期先回退源语言，再显示可诊断占位）。</summary>
         public const string SourceLocale = "zh-CN";
+
+        /// <summary>英语 locale（复数规则覆盖面 zh-CN + en 的另一半；表列 zh/en → BCP-47 的映射单源在
+        /// LiteGame 侧 LTextCatalog——Core 不认识表）。</summary>
+        public const string EnglishLocale = "en";
 
         private readonly Dictionary<string, Dictionary<string, string>> _byKey;
 

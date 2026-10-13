@@ -73,6 +73,7 @@ namespace LiteGame
         private readonly IPopInterceptor _pop;
         private readonly Func<UIFormInfo, IUIFormLogic> _logicResolver;
         private readonly Func<string, CancellationToken, UniTask<IUIPrefabLease>> _loadPrefab;
+        private readonly Func<ILocalizationService> _localeProvider;    // LText 装配缝（批C-②——null = 不注入）
         private bool _shutdown;
 
         /// <summary>缓存实例数预算（池中 Recycled 计数上限；超预算淘汰最久未用的非打开实例）。</summary>
@@ -83,6 +84,8 @@ namespace LiteGame
         /// <param name="loadPrefab">界面 prefab 租约加载口（**必填**——返回可释放句柄；
         /// 生产绑定内容服务（<see cref="ContentPrefabLease"/>），测试/工具用 <see cref="UIPrefabLeases.Unowned"/>）。</param>
         /// <param name="cacheBudget">缓存实例数预算（默认 <see cref="DefaultCacheBudget"/>）。</param>
+        /// <param name="localeProvider">语言服务工厂（批C-② 装配缝：页面经 <see cref="ILocaleBound"/>
+        /// 收注入、文案键自动随语言切换刷新；null = 不注入——测试/工具装配，此时 SetTextKey 由索引抛）。</param>
         public UIService(IUIFormCatalog catalog,
             ILayerStrategy layerStrategy = null,
             ITransitionStrategy transitionStrategy = null,
@@ -91,7 +94,8 @@ namespace LiteGame
             IReplaceTransition replaceTransition = null,
             float transitionMaxDuration = UITransitionRunner.DefaultMaxDuration,
             Func<string, CancellationToken, UniTask<IUIPrefabLease>> loadPrefab = null,
-            int cacheBudget = DefaultCacheBudget)
+            int cacheBudget = DefaultCacheBudget,
+            Func<ILocalizationService> localeProvider = null)
         {
             _catalog = catalog ?? throw new ArgumentNullException(nameof(catalog));
             _transitions = new UITransitionRunner(transitionStrategy ?? new InstantTransition(),   // 默认零动效：通用层不认识动效适配器（§5.1）；生产装配显式传 FadeSlideTransition
@@ -100,6 +104,7 @@ namespace LiteGame
             _logicResolver = logicResolver;
             _loadPrefab = loadPrefab ?? throw new ArgumentNullException(nameof(loadPrefab),
                 "UI prefab 加载口必填（租约语义——生产绑内容服务，测试绑 Unowned）");
+            _localeProvider = localeProvider;
             CacheBudget = cacheBudget > 0 ? cacheBudget : DefaultCacheBudget;
 
             _root = new GameObject("[UIRoot]").transform;
@@ -218,6 +223,7 @@ namespace LiteGame
                 var root = UnityEngine.Object.Instantiate(lease.Prefab, group.Root);
                 form = new UIForm(info, root);
                 form.Logic = ResolveLogic(info, root);
+                form.LocaleProvider = _localeProvider;      // 语言服务注入缝（ILocaleBound——批C-②；null = 未装配不注入）
                 form.PrepareForShow();
                 _store.Register(op.FormId, form, lease);              // 所有权移交：租约由本表持有到实例真正销毁
                 lease = null;                                         // 登记成功——失败路径不就地释放

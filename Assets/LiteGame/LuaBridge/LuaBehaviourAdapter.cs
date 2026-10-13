@@ -34,7 +34,7 @@ namespace LiteGame
     /// ⑥ **所有权分开（§5.1）**：注册表拥有模块引用，页面拥有实例与回调引用——<see cref="Release"/>
     ///    只释放实例/回调/ui 门面表，**绝不 Dispose 共享模块**。
     /// </summary>
-    public sealed class LuaBehaviourAdapter : IUIFormLogic
+    public sealed class LuaBehaviourAdapter : IUIFormLogic, ILocaleBound
     {
         /// <summary>ui-API 派发 shim 模板（payload 表协议见 <see cref="Dispatch"/>）。
         /// 动效/气泡缺省时长经占位符注入——单源＝<see cref="UiFxDefaults"/>，改默认不碰本模板
@@ -156,6 +156,12 @@ return {
             _index?.UnbindAll();                              // 池化复用跨环境安全垫：旧 fn 监听全部移除
             CallSelf(_onHide);
         }
+
+        /// <summary>语言服务注入（<see cref="ILocaleBound"/> 可选能力）：转发绑定索引——
+        /// 注入时机归 <see cref="UIForm"/>（OnInit 后、OnShow 前）；index 未建/已释放 = no-op。
+        /// 池化复用不重跑 OnInit——绑定随索引留存；换表重建索引后由 UIForm 再注入一次。</summary>
+        public void BindLocale(ILocalizationService localization)
+            => _index?.BindLocale(localization);
 
         /// <summary>页面实例（诊断/换表释放用）。</summary>
         public LuaTable Logic => _instance;

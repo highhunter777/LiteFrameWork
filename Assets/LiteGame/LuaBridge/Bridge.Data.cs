@@ -8,8 +8,9 @@ using cfg;
 namespace LiteGame
 {
     /// <summary>
-    /// 服务桥根类型：Lua 全局表三件（data/ui/content）的宿主。启动时绑定成 Lua 全局表，
-    /// **白名单只此三件**——ILuaRegistry/玩法系统一律不导出（设计方案 §4.3 服务桥纪律）。
+    /// 服务桥根类型：Lua 全局表四件（data/ui/content/text）的宿主。启动时绑定成 Lua 全局表，
+    /// **白名单只此四件**——ILuaRegistry/玩法系统一律不导出（设计方案 §4.3 服务桥纪律）；
+    /// text 为 LText 受控门面（《UI框架总设计》§9 文本链：Get/Format/SetLocale/Locale，批C-②）。
     /// 绑定形态：不走生成 wrapper——门面方法以白名单委托（Func&lt;int, LuaTable&gt;）注册，
     /// 行字段在 Runtime 层手工展开（Lua 不触碰 Luban 类型，§1d）；注册表实例经 BindRegistries
     /// 装配期注入（装配根）。
@@ -21,6 +22,7 @@ namespace LiteGame
         private static IContentLuaRegistry s_contentRegistry;
         private static UIService s_uiService;
         private static UINavigationController s_nav;           // Lua 侧打开的单写者后端（三通道收口）
+        private static Func<ILocalizationService> s_localeProvider;   // LText 门面后端（懒建工厂——表装载在 Preload）
 
         /// <summary>绑定查表入口（经 IConfigService.Tables；未加载时其 Tables 访问器会抛）。</summary>
         public static void Bind(Func<Tables> tables)
@@ -45,10 +47,16 @@ namespace LiteGame
             s_nav = nav ?? throw new ArgumentNullException(nameof(nav));
         }
 
+        /// <summary>装配期注入语言服务工厂（text 门面后端；与页面索引 BindLocale 共用同一实例——UiShellModule）。</summary>
+        public static void BindText(Func<ILocalizationService> localeProvider)
+        {
+            s_localeProvider = localeProvider ?? throw new ArgumentNullException(nameof(localeProvider));
+        }
+
         /// <summary>
-        /// 绑定 Bridge 三门面为 Lua 全局表：
+        /// 绑定 Bridge 四门面为 Lua 全局表：
         /// 由装配点/编辑器工具经 <c>LuaComponent.Init</c> 注入——宿主（LiteClient.Scripting.XLua）不认识 Bridge，
-        /// 依赖方向 = 产品 → 框架。门面方法全走白名单委托 Func&lt;int, LuaTable&gt;；只导出三门面，
+        /// 依赖方向 = 产品 → 框架。门面方法全走白名单委托；只导出四门面（data/ui/content/text），
         /// ILuaRegistry/玩法系统一律不导出；禁止 CS. 直引业务类型。
         /// </summary>
         public static void BindGlobals(LuaEnv env)
@@ -63,10 +71,16 @@ namespace LiteGame
             ui.Set("IsOpen", new Func<int, bool>(Ui.IsOpen));
             var content = env.NewTable();
             content.Set("GetProcessor", new Func<int, LuaTable>(Content.GetProcessor));
+            var text = env.NewTable();
+            text.Set("Get", new Func<string, string>(Text.Get));
+            text.Set("Format", new Func<string, object, object, object, object, string>(Text.Format));
+            text.Set("SetLocale", new Action<string>(Text.SetLocale));
+            text.Set("Locale", new Func<string>(() => Text.Locale));
             var bridge = env.NewTable();
             bridge.Set("data", data);
             bridge.Set("ui", ui);
             bridge.Set("content", content);
+            bridge.Set("text", text);
             env.Global.Set("Bridge", bridge);
         }
 
@@ -175,6 +189,39 @@ namespace LiteGame
         {
             /// <summary>内容条目 id → Entry → Content 注册表处理器表。</summary>
             public static LuaTable GetProcessor(int id) => s_contentRegistry.Get(Data.GetContentEntry(id).Entry);
+        }
+
+        /// <summary>
+        /// text 门面（LText 受控面，批C-②）：Get/Format 取文案（Toast/动态拼接用——**控件文案仍走
+        /// <c>self.ui:SetTextKey</c>**，语言切换自动刷新）；SetLocale/Locale 供设置页语言切换。
+        /// 参数上限 4 个具名位（与 Lua shim 的 LText 参数口径一致，MaxLuaFormatArgs）。
+        /// </summary>
+        public static class Text
+        {
+            private static ILocalizationService Service()
+                => s_localeProvider != null
+                    ? s_localeProvider()
+                    : throw new InvalidOperationException("Bridge.text 需先 BindText（装配点未注入语言服务）");
+
+            /// <summary>取安全文本（缺 key 走缺 key 策略——开发期显 [key]、发布期占位）。</summary>
+            public static string Get(string key) => Service().Get(key);
+
+            /// <summary>取文本并填参（{0}..{3} 编号占位；nil 位跳过）。</summary>
+            public static string Format(string key, object a0 = null, object a1 = null,
+                object a2 = null, object a3 = null)
+            {
+                if (a0 == null) return Service().Format(key);
+                if (a1 == null) return Service().Format(key, a0);
+                if (a2 == null) return Service().Format(key, a0, a1);
+                if (a3 == null) return Service().Format(key, a0, a1, a2);
+                return Service().Format(key, a0, a1, a2, a3);
+            }
+
+            /// <summary>切换语言（同值无操作；切换经页面索引自动重刷已绑定文案）。</summary>
+            public static void SetLocale(string locale) => Service().SetLocale(locale);
+
+            /// <summary>当前语言（BCP-47）。</summary>
+            public static string Locale => Service().Locale;
         }
     }
 }

@@ -111,6 +111,7 @@ namespace LiteGame
         {
             Transit(UIFormState.Loading, UIFormState.Active);
             if (!SafeCall.TryInvoke(() => Logic.OnInit(this, data), $"UIForm[{Id}].OnInit")) return false;
+            ApplyLocale();                                 // OnInit 后（索引已建）、OnShow 前（页内 SetTextKey 当即有效）
             if (!SafeCall.TryInvoke(() => Logic.OnShow(data), $"UIForm[{Id}].OnShow")) return false;
             return true;
         }
@@ -124,12 +125,27 @@ namespace LiteGame
             {
                 NeedsReinit = false;
                 SafeCall.Invoke(() => Logic.OnInit(this, data), $"UIForm[{Id}].OnInit(换表重建)");
+                ApplyLocale();                             // 换表重建索引后补注入（旧索引的语言订阅随旧索引一起丢弃）
             }
             SafeCall.Invoke(() => Logic.OnShow(data), $"UIForm[{Id}].OnShow");
         }
 
         /// <summary>复用前是否需补跑 OnInit（仅在"逻辑换表"后置真，见 <see cref="UIService.MarkLogicStale"/>）。</summary>
         internal bool NeedsReinit { get; set; }
+
+        /// <summary>语言服务工厂（<see cref="UIService"/> 装配时转发到本实例；null = 不注入——测试/工具装配）。
+        /// 经 <see cref="ILocaleBound"/> 可选能力注入逻辑；注入时机 = OnInit 之后（绑定索引已建）——
+        /// 池化复用不重跑 OnInit（绑定随索引留存），换表重建索引后再注入一次。</summary>
+        internal Func<ILocalizationService> LocaleProvider { get; set; }
+
+        /// <summary>注入语言服务（两个 OnInit 调用点后各一次；实现 ILocaleBound 的逻辑才生效）。</summary>
+        private void ApplyLocale()
+        {
+            Func<ILocalizationService> provider = LocaleProvider;
+            if (provider == null) return;
+            if (Logic is ILocaleBound bound)
+                SafeCall.Invoke(() => bound.BindLocale(provider()), $"UIForm[{Id}].BindLocale");
+        }
 
         /// <summary>是否仍逻辑打开（Active/Covered/Paused）：§4.1 展示状态独立于"可否关闭"——
         /// 遮盖与暂停都不改变关得掉的事实。</summary>
