@@ -82,11 +82,20 @@ namespace LiteGame
             // 传输裁决经委托留给产品装配根（ProcedureMatch.CreateTransportForFactory——工厂不认识测试开关语义）。
             // 注册面＝服务接口（消费者经构造注入解析；Put 与 RegisterInstance 写同一容器——接口键只注册一次，
             // 具体类型无产物消费者不占键）。
+            var deploy = MetaDeployConfig.Load();          // 联机部署注入（-meta.url/-envelope.key——命令行单次快照）
             var accounts = new AccountSessionFactory(context.RootScope, _services,
-                testRoom => ProcedureMatch.CreateTransportForFactory(testRoom));
+                testRoom => ProcedureMatch.CreateTransportForFactory(testRoom, deploy));
             var matches = new MatchSessionFactory(context.Require<IInputService>());
             _services.RegisterInstance<IAccountSessionFactory>(accounts);
             _services.RegisterInstance<IMatchSessionFactory>(matches);
+
+            // 联机入口编排件（批C-③）：未配置 Meta 基址 = client 置空（IsConfigured false——页面显性拒绝），
+            // 不造"指向空址"的客户端；设备标识注入 Unity 面（服务本体零引擎依赖可直测）。
+            // 消费者＝Bridge.meta 门面（MetaBridge.Bind 直接装订——不占容器键，无容器解析点）。
+            var metaEntry = new MetaEntryService(
+                deploy.HasMeta ? new UnityMetaClient(deploy.MetaUrl, deploy.TimeoutSeconds) : null,
+                () => UnityEngine.SystemInfo.deviceUniqueIdentifier,
+                deploy.MetaUrl);
 
             var dialogs = new DialogService(ui, nav: nav);
             _services.RegisterInstance(dialogs, ServiceOwnership.ContainerOwned);
@@ -98,11 +107,13 @@ namespace LiteGame
             Bridge.BindRegistries(uiRegistry, contentRegistry);
             Bridge.BindUIService(ui);
             Bridge.BindNavigation(nav);
+            MetaBridge.Bind(metaEntry);                   // Lua 联机门面后端（Bridge.meta——批C-③；装订经 ProductBridges）
             context.Require<IInputService>().RegisterBlocker(
                 new IntentGate.BlockerKey("ui.modal", "模态 UI 打开——游戏意图被拦截"), () => ui.IsModalOpen);
 
             var fsm = CreateMachine(context, content, config, lua, uiRegistry, contentRegistry, strategyRegistry);
             context.Put(fsm);
+            metaEntry.BindMachine(fsm);                   // 进房 = Request(Match, MetaJoin)——走既有 Join 管道
 
             // 帧驱动表独立于模块产物登记序；每个别名仍指向统一来源中的同一实例。
             // CommandCenter 置流程机前：排队/延迟命令到期派发先于机器 Tick——命令对流程机的 Request 当帧可被应用。

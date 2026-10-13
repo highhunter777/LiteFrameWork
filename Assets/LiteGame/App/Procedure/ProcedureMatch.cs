@@ -60,28 +60,35 @@ namespace LiteGame
 
         protected override void RunAsync(IStageHost<ProcedureId, ProcedureArgs> m, in ProcedureArgs req, CancellationToken ct)
         {
+            // 联机路径（批C）：Meta 签发的真实票据——开发与正式构建同链（区别于下面的测试身份门禁）。
+            // 票据经验服务端验签才能进房；参数由 MetaEntryService 换票后经 ProcedureArgs 移交。
+            if (req.MetaJoin.Ticket != null)
+            {
+                var join = req.MetaJoin;
+                RunAsyncCore(m, ct, join.Host, join.Port, join.RoomId, join.Ticket, testRoom: false).Forget();
+                return;
+            }
 #if UNITY_EDITOR || DEVELOPMENT_BUILD || LITEFRAMEWORK_DEBUG
-            RunAsyncCore(m, ct, req.TestRoom).Forget();          // 一行转发，仅此而已——禁止 async void
+            RunAsyncCore(m, ct, TestHost, TestPort,
+                req.TestRoom ? TestRoomId : DefaultRoomId, TestToken, req.TestRoom).Forget();   // 一行转发，仅此而已——禁止 async void
 #else
             // 生产配置缺真实依赖时拒绝启动或拒绝相应功能，不能悄悄退回 fake：
-            // 正式包未接入真实登录——**拒绝进房**并进确定错误态。
-            // 当前正式包本无进房入口（F9 已被同门禁编译排除），此处是第二道防线：
-            // 任何入口到达本阶段都必须显式失败，不得用测试身份连服务器。
+            // 正式包未接入真实登录——**拒绝以测试身份进房**（联机路径已在上方放行——真实票据不受此门禁）。
             var ex = new InvalidOperationException(
-                "正式构建未接入真实登录——拒绝以测试身份进房（框架先行 §6）");
+                "正式构建拒绝以测试身份进房——真实进房走 Meta 票据（框架先行 §6；上云批C）");
             Fail(m, ex, nameof(RunAsync));
             m.Request(ProcedureId.Error, new ProcedureArgs(ex));
 #endif
         }
 
-        private async UniTask RunAsyncCore(IStageHost<ProcedureId, ProcedureArgs> m, CancellationToken ct, bool testRoom)
+        private async UniTask RunAsyncCore(IStageHost<ProcedureId, ProcedureArgs> m, CancellationToken ct,
+            string host, int port, string roomId, string token, bool testRoom)
         {
             AccountSession account = null;
             BattleClient battle = null;
             try
             {
-                account = _accounts.Create(TestHost, TestPort,
-                    testRoom ? TestRoomId : DefaultRoomId, TestToken, LiteNet.BuildHash.Value, testRoom);
+                account = _accounts.Create(host, port, roomId, token, LiteNet.BuildHash.Value, testRoom);
                 battle = account.Battle;
                 _pending = battle;                        // 交给 OnUpdate 驱动泵（握手/收发全靠它推进）
 
@@ -116,8 +123,12 @@ namespace LiteGame
         /// **测试房不提供 KCP 形态**：免死规则靠"客户端预测与进程内服务器同持一个规则实例"
         /// （<see cref="LiteSim.MatchTestRules"/> 经 <see cref="LiteSim.SimTestRules.ActiveMatch"/> 登记），
         /// 真服务器的房间级规则下发未做。
+        ///
+        /// 信封 PSK 注入口（批C）：<paramref name="deploy"/> 带 <c>-envelope.key</c> 时优先（构建期/启动参数注入）；
+        /// 空 = 回落 <c>LITENET_SECURE_ENVELOPE_KEY</c> 环境变量既有口（两道注入口不互斥——与部署侧同 key）。
         /// </summary>
-        internal static LiteNet.Transport.IClientTransport CreateTransportForFactory(bool testRoom)
+        internal static LiteNet.Transport.IClientTransport CreateTransportForFactory(bool testRoom,
+            MetaEntryConfig deploy = null)
         {
 #if UNITY_EDITOR || DEVELOPMENT_BUILD || LITEFRAMEWORK_DEBUG
             // 每局规则持有件：初值随入口定（常规入口一律 false——与既有"随入口复位"同语义），
@@ -148,7 +159,9 @@ namespace LiteGame
 #endif
             return new LiteNet.Transport.SecureEnvelopeClientTransport(
                 new LiteNet.Transport.KcpTransportClient(),
-                LiteNet.Transport.SecureEnvelopeOptions.FromEnvironment());
+                string.IsNullOrEmpty(deploy?.EnvelopeKeyBase64)
+                    ? LiteNet.Transport.SecureEnvelopeOptions.FromEnvironment()   // 既有口（部署侧 env 注入）
+                    : LiteNet.Transport.SecureEnvelopeOptions.FromBase64(deploy.EnvelopeKeyBase64));  // -envelope.key 优先
         }
 
         /// <summary>等 JoinAck（RoomClient 相位 Idle → Connected；超时 = 确定失败态）。</summary>

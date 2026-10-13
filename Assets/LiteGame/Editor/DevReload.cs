@@ -59,7 +59,7 @@ namespace LiteGame.Editor
                 DevReloadBytesAsync,   // 磁盘直读：响应编辑器里刚改的 .lua（不走资源包）
                 ListLuaFilesOnDisk);   // 磁盘枚举：同上
             await preloader.PreloadAllAsync();             // ④ 重预载：改动后的 .lua 进缓存
-            lua.Init(preloader, events, Bridge.BindGlobals);   //    env 重建 + 事件桥/游戏桥重绑（桥由产品侧注入）
+            lua.Init(preloader, events, ProductBridges.BindGlobals);   //    env 重建 + 事件桥/游戏桥重绑（产品门面单源装订——与 Preload 同口）
             lua.DoMain();                                  // ⑤ 重跑 main.lua
 
             var filler = new LiteGame.RegistryFiller(config, lua, ui, content, strategy);

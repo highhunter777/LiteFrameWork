@@ -9,8 +9,10 @@ namespace LiteGame
 {
     /// <summary>
     /// 服务桥根类型：Lua 全局表四件（data/ui/content/text）的宿主。启动时绑定成 Lua 全局表，
-    /// **白名单只此四件**——ILuaRegistry/玩法系统一律不导出（设计方案 §4.3 服务桥纪律）；
-    /// text 为 LText 受控门面（《UI框架总设计》§9 文本链：Get/Format/SetLocale/Locale，批C-②）。
+    /// **白名单只此四件**——ILuaRegistry/玩法系统一律不导出（设计方案 §4.3 服务桥纪律）。
+    /// 产品侧另有联机门面（meta）经 App 的 <c>ProductBridges/MetaBridge</c> 装订（批C-③——
+    /// 依赖方向不可反向：LuaBridge 不引用 App，见 asmdef 图）；两路 env 重建（Preload/DevReload）
+    /// 共用 <c>ProductBridges.BindGlobals</c> 单源。
     /// 绑定形态：不走生成 wrapper——门面方法以白名单委托（Func&lt;int, LuaTable&gt;）注册，
     /// 行字段在 Runtime 层手工展开（Lua 不触碰 Luban 类型，§1d）；注册表实例经 BindRegistries
     /// 装配期注入（装配根）。
@@ -58,6 +60,7 @@ namespace LiteGame
         /// 由装配点/编辑器工具经 <c>LuaComponent.Init</c> 注入——宿主（LiteClient.Scripting.XLua）不认识 Bridge，
         /// 依赖方向 = 产品 → 框架。门面方法全走白名单委托；只导出四门面（data/ui/content/text），
         /// ILuaRegistry/玩法系统一律不导出；禁止 CS. 直引业务类型。
+        /// 产品侧扩展门面（meta）经 <c>ProductBridges.BindGlobals</c> 同 env 装订（见类头注释）。
         /// </summary>
         public static void BindGlobals(LuaEnv env)
         {

@@ -21,12 +21,17 @@ namespace LiteGame
         /// （规则持有件 <see cref="LiteSim.MatchTestRules"/>——见 ProcedureMatch 入口口径）——开发/测试专用，正式包无该入口。</summary>
         public readonly bool TestRoom;
 
+        /// <summary>联机进房参数（批C：Meta 签发的 Join Ticket——真实身份经服务端验签；
+        /// 开发与正式构建同链，区别于 TestRoom 的测试身份）。形状见 <see cref="MetaJoin"/>。</summary>
+        public readonly MetaJoin MetaJoin;
+
         public ProcedureArgs(Exception error = null, AccountSession accountSession = null,
-            bool testRoom = false)
+            bool testRoom = false, MetaJoin metaJoin = default)
         {
             Error = error;
             AccountSession = accountSession;
             TestRoom = testRoom;
+            MetaJoin = metaJoin;
         }
     }
 }
