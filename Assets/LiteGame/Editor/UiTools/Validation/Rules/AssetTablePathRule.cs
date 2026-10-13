@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Reflection;
+using LiteClient;
 
 namespace LiteGame.Editor.UiTools.Validation.Rules
 {
@@ -19,22 +20,29 @@ namespace LiteGame.Editor.UiTools.Validation.Rules
         public string RuleId => "ui.asset-table-paths";
         public string Family => "资源";
 
-        /// <summary>表数据目录（Luban bytes 产物落点）。</summary>
-        public const string TableDataDir = "Assets/GameData/Config";
+        /// <summary>表数据目录（Luban bytes 产物落点；尾斜杠口径与 <see cref="TableLayout.DataDir"/> 单源一致）。</summary>
+        public static string TableDataDir => TableLayout.DataDir;
 
-        // 表清单 = 生成域全部表（bytes 文件, 生成表类）——新表入 Tables.cs 后此处随批补登记
-        private static readonly (string file, Type type)[] Tables =
+        // 表清单 = TableLayout.Files 单源派生（领域路径 + 裸表名→cfg 表类名约定解析）——
+        // 本类曾持手写第二份清单（审计登记：新表只入单源即在此漏登记），改布局常量驱动后不可能漂；
+        // 类名解析失败 fail-fast（布局与生成物漂移当场暴露，不静默跳过）。
+        private static readonly (string file, Type type)[] Tables = BuildTables();
+
+        private static (string file, Type type)[] BuildTables()
         {
-            ("UI/tbuiform.bytes", typeof(cfg.Tbuiform)),
-            ("Animation/tbanimationprofile.bytes", typeof(cfg.Tbanimationprofile)),
-            ("Combat/tbcombatnum.bytes", typeof(cfg.Tbcombatnum)),
-            ("Combat/tbweapon.bytes", typeof(cfg.Tbweapon)),
-            ("Content/tbcontententry.bytes", typeof(cfg.Tbcontententry)),
-            ("Entity/tbentityconfig.bytes", typeof(cfg.Tbentityconfig)),
-            ("Item/tbitemconfig.bytes", typeof(cfg.Tbitemconfig)),
-            ("Movement/tbmovementconfig.bytes", typeof(cfg.Tbmovementconfig)),
-            ("Strategy/tbstrategy.bytes", typeof(cfg.Tbstrategy)),
-        };
+            var tables = new (string file, Type type)[TableLayout.Files.Length];
+            Assembly assembly = typeof(cfg.Tables).Assembly;
+            for (int i = 0; i < TableLayout.Files.Length; i++)
+            {
+                string file = TableLayout.Files[i];              // 领域相对路径（如 "UI/tbuiform"）
+                string name = TableLayout.TableName(file);       // 裸表名（如 "tbuiform"）
+                string typeName = "cfg." + char.ToUpperInvariant(name[0]) + name.Substring(1);
+                tables[i] = (file, assembly.GetType(typeName)
+                    ?? throw new InvalidOperationException(
+                        $"表类缺失:{typeName}——TableLayout.Files 与生成物漂移（先跑 toolbox.py luban，再核对类名约定）"));
+            }
+            return tables;
+        }
 
         public IEnumerable<UiIssue> Check(UiValidationContext context)
         {
@@ -47,7 +55,7 @@ namespace LiteGame.Editor.UiTools.Validation.Rules
         /// <summary>一处表内路径条目（装载面提取；核对面纯消费——测试可合成直喂）。</summary>
         public readonly struct PathEntry
         {
-            public readonly string TableFile;   // 相对 TableDataDir（如 "UI/tbuiform.bytes"）
+            public readonly string TableFile;   // 表源条目（TableLayout 领域相对名，如 "UI/tbuiform"）
             public readonly string Field;
             public readonly string RowKey;       // 行定位（如 "Id=201"）
             public readonly string Value;        // 表内原值（可能无 Assets/ 前缀）
@@ -70,7 +78,7 @@ namespace LiteGame.Editor.UiTools.Validation.Rules
             foreach (var (file, type) in tables ?? Tables)
             {
                 string path = Path.Combine(projectRoot,
-                    (TableDataDir + "/" + file).Replace('/', Path.DirectorySeparatorChar));
+                    TableLayout.TableDataPath(file).Replace('/', Path.DirectorySeparatorChar));   // 拼接口径单源
                 if (!File.Exists(path)) continue;               // 缺产物由 CollectMissingPaths 报，提取面跳过
 
                 var table = Activator.CreateInstance(type, new object[] { new Luban.ByteBuf(File.ReadAllBytes(path)) });
@@ -98,10 +106,10 @@ namespace LiteGame.Editor.UiTools.Validation.Rules
             if (!TableDirExists(projectRoot)) return issues;       // 表目录整体缺席＝非工程上下文，跳过
             foreach (var (file, _) in tables ?? Tables)
             {
-                string path = Path.Combine(projectRoot,
-                    (TableDataDir + "/" + file).Replace('/', Path.DirectorySeparatorChar));
+                string location = TableLayout.TableDataPath(file);                       // 拼接口径单源
+                string path = Path.Combine(projectRoot, location.Replace('/', Path.DirectorySeparatorChar));
                 if (!File.Exists(path))
-                    issues.Add(Make(TableDataDir + "/" + file, "-", UiSeverity.Warning,
+                    issues.Add(Make(location, "-", UiSeverity.Warning,
                         "表数据文件缺失（Luban 产物未生成？）", "跑 toolbox.py luban 重生成表产物"));
             }
 
@@ -130,11 +138,12 @@ namespace LiteGame.Editor.UiTools.Validation.Rules
                && (value.EndsWith(".prefab", StringComparison.OrdinalIgnoreCase)
                    || value.EndsWith(".unity", StringComparison.OrdinalIgnoreCase));
 
-        /// <summary>表数据目录是否在场（缺席＝非工程上下文——合成测试根；整目录缺不报，单件缺才 Warning）。</summary>
+        /// <summary>表数据目录是否在场（缺席＝非工程上下文——合成测试根；整目录缺不报，单件缺才 Warning）。
+        /// 目录口径 = <see cref="TableLayout.DataDir"/> 单源（含尾斜杠——Path.Combine 兼容）。</summary>
         private static bool TableDirExists(string projectRoot)
             => !string.IsNullOrEmpty(projectRoot)
                && Directory.Exists(Path.Combine(projectRoot,
-                   TableDataDir.Replace('/', Path.DirectorySeparatorChar)));
+                   TableLayout.DataDir.Replace('/', Path.DirectorySeparatorChar)));
 
         private static string RowKey(object row)
         {
