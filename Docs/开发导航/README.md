@@ -1,7 +1,7 @@
 # 开发导航
 
 > 面向"要在本仓库里改代码/资源"的人：先看[代码地图](代码地图.md)知道**东西在哪**，再用[修改指南](../修改指南.md)查**我想改 X 应该动哪个文件、改完要跑什么**（含代码实现规范与修改流程）。
-> 本目录只回答"在哪、去哪改"；设计契约、验收标准、执行口径分别归 `Docs/设计文档/`、`Docs/待办总览.md`、`Docs/施工进度/`——不在本目录重复，冲突时以它们为准。
+> 本目录只回答"在哪、去哪改"；设计契约、验收标准、执行口径分别归 `Docs/设计文档/`、`Docs/待办总览.md`、`Docs/施工进度/`——不在本目录重复，冲突时以它们为准。文档权威层级的单一权威表见 [项目说明/06 §2](../项目说明/06-环境与协作纪律.md)。
 
 ## 阅读顺序
 
@@ -9,14 +9,9 @@
 2. **[修改指南](../修改指南.md)**——任务导向：玩法数值 / 帧率 / 地图 / 输入 / 相机 / 协议 / 服务端 / UI / 配置表 / 测试……每条给出**改动文件**与**改完必跑的验证**（含 BuildHash 源集这类"不改生成器就握手拒进房"的红线联动）；另含 **§1 代码实现规范（红线）** 与 **§2 修改规范（流程）**。
 3. **[程序集引用图](程序集引用图.md)**——双端全量程序集引用关系（mermaid，2026-10-03 时点）：①双轨共享 ②客户端运行时 ③服务端宿主 ④编辑器/工具 ⑤Unity 测试 ⑥dotnet 测试；箭头=引用方向，`⊕`=程序集外依赖。新增/改引用程序集后当批同步。
 
-## 三条最容易踩的全局红线（先记住再看地图）
+## 全局红线
 
-| 红线 | 触发条件 | 后果/动作 |
-|---|---|---|
-| **BuildHash 源集** | 改动 `Assets/LiteSim/Core/{Scripts,Systems}`、`Assets/LiteNet/{Proto,Protocol}` 或两端表数据 | 这些内容参与两端版本哈希——**改完必须重跑 `python scripts/codegen/gen-build-hash.py`**，否则客户端/服务器 buildHash 不一致，Join 被拒进房（这是设计内红线，不是 bug） |
-| **R11 纯化纪律** | 在 `Assets/RoomServer/Runtime/` 下写代码 | 房间内核**禁** Console / 系统时钟 / 文件 IO / proto / LiteNet 引用——违反会被 L1 纪律扫描（`DisciplineScannerTests`）打红；扫描目标清单在 `Assets/Tools/DisciplineScanner/Scripts/ScanTargets.cs` |
-| **R13 数值读口纪律** | 在机制面写代码（`Assets/LiteSim`（除 View）/`Assets/RoomServer/{Runtime,Application}`/`Server/RoomServer`） | **禁读静态读口可变值**（`CombatConfig` 装载面 6 字段+AimMoveSpeed+Loaded/Publish、`MovementConfig` 全体、`WeaponConfig` 的 Default/TryGet/Loaded/Publish）——值经 `CombatValues`/`MovementValues`/`WeaponTable` 实例参数传递；consts 豁免；违反被纪律扫描打红（技术债 #1 防复辟线） |
-| **Unity 序列化资产** | 场景 / Prefab / Material / AnimatorController / `.meta` / 工程设置 | **一律走 unity-pipeline CLI**（见 `UNITY-GUIDE.md`），直接改文件违规；纯文本（.cs/JSON/md）可直接编辑 |
+**权威＝[`Docs/修改指南.md` §1 代码实现规范（红线）`](../修改指南.md)`**（入口速查见 `AGENTS.md`「核心红线速查」）。本目录不复述红线清单——BuildHash 源集、R11 房间内核纯度、R13 数值读口、Unity 序列化资产等的触发与动作细则一律以 §1 为准，避免多副本分叉。
 
 ## 维护约定
 

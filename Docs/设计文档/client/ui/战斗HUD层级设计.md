@@ -37,12 +37,13 @@ Hud_Battle                          Canvas(Overlay, order 0) + CanvasScaler(1920
 └─ Cot_Panel                        全屏铺开 + CanvasGroup（整组显隐）                ◄View
    ├─ Cot_Vitals                    锚(0,0)+偏移(32,32)——左下角组点
    │  └─ HpBar_Player               血条＝**控件模板 `Tmp_HpBar` 的实例**（业务变体＝`<类型段>_<语义>`）◄View
-   │     │（结构＝模板，见《UI命名词表与控件清单》§1.3 `HpBar`／模板 `Assets/ShareResource/UI/Widgets/HpBar.prefab`）
+   │     │（结构＝模板，见《UI命名词表与控件清单》§1.3 `HpBar`／模板 `Assets/ShareResource/UI/Widgets/Tmp_HpBar.prefab`）
    │     ├─ _Bar                    分段条容器（模板内件，`_` 私有前缀）
-   │     │  ├─ Slider               UGUI Slider（前条驱动面：`value` 0..1，纯显示）   ◄View(经 HpBar 组件)
-   │     │  ├─ _FillArea/_BackFill  后条（半透明克隆层，延迟滑落——双条血格）
-   │     │  ├─ _FillArea/_Fill      前条（Slider fillRect）
-   │     │  └─ _HandleArea/_Handle  滑块
+   │     │  ├─ _Slider               UGUI Slider（前条驱动面：`value` 0..1，纯显示）   ◄View(经 HpBar 组件)
+   │     │  ├─ _Background           底槽
+   │     │  └─ _FillArea             前/后条容器（fillRect）
+   │     │     ├─ _Fill              前条
+   │     │     └─ _BackFill          后条（半透明克隆层，延迟滑落——双条血格）
    │     ├─ Cot_IconBox             血条左端图标盒
    │     │  └─ Icon_Health          ICON_MilitaryCombat_Status_Health_02_Underlay
    │     └─ Txt_Hp                  TMP 血量数值（值变化才写）                        ◄View(经 HpBar 组件)
@@ -80,7 +81,7 @@ Hud_Battle                          Canvas(Overlay, order 0) + CanvasScaler(1920
 
 | 层 | 资产 | 命名 | 说明 |
 | --- | --- | --- | --- |
-| 模板 | `UI/Widgets/HpBar.prefab` | 根 `HpBar`；内部件 `_Bar`/`_Background`/`_FillArea`/`_Fill`/`_BackFill`/`_HandleArea`/`_Handle`（§9.4 私有）；暴露件 `Cot_IconBox`/`Icon_Health`/`Txt_Hp` | 挂 `LiteGame.UI.HpBar` + `BindNode`；收集组 UIWidgets |
+| 模板 | `ShareResource/UI/Widgets/Tmp_HpBar.prefab` | 根 `Tmp_HpBar`；内部件 `_Bar`/`_Slider`/`_Background`/`_FillArea`/`_Fill`/`_BackFill`（§9.4 私有）；暴露件 `Cot_IconBox`/`Icon_Health`/`Txt_Hp` | 挂 `LiteGame.UI.HpBar` + `BindNode`；收集组 UIWidgets |
 | 业务实例 | `Hud_Battle` 的 `Cot_Panel/Cot_Vitals/HpBar_Player` | `HpBar_Player`（§9.3 业务变体＝`<类型段>_<语义>`） | 模板 PrefabInstance；只 override 位置/尺寸 |
 
 - **驱动**：`LiteGame.UI.HpBar` 持 `Slider`（前条）+ `BackFill`（后条）+ `ValueText`；`Set(current, max)` 写前条 `Slider.value`、后条按 `BackLerpSpeed` 逐帧滑落追赶（计时走 `UiAnimationClock.Delta`——§5／红线 9）。后条仅在数值**下降**时滑落，上升瞬时跟上。

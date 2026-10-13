@@ -19,7 +19,7 @@ UI 效果 = UI 层对一次语义事件的多通道表现响应，通道为**动
 | 是否统一为一个大类/万能 Play API | 否——契约统一（Handle/终态/时钟/作用域同源），通道分立接口；与[动画模块专项设计 §1](../animation/动画模块专项设计.md) 同源裁决，通道数量可扩 |
 | 收口范围 | 动画、UI 粒子、UI 音效三通道及编排。**页面转场不收**（Runner 是页面生命周期语义，§7.4）；**世界 VFX 不收**（归表现服务，[动作与特效专项设计](../../gameplay/动作与特效专项设计.md)） |
 | UI 音效归口 | `AudioService.Group.Ui` 为唯一底层；UI 层以语义键经音效通道接入，页面/控件不得直挂 AudioSource 或直摸 AudioService 组 |
-| UI 粒子是否建独立服务 | 不建——粒子是效果系统的一个通道；视觉单一来源不变，粒子从 `Assets/UI` 模板 prefab 实例化 |
+| UI 粒子是否建独立服务 | 不建——粒子是效果系统的一个通道；视觉单一来源不变，粒子从 `Assets/ShareResource/UI` 模板 prefab 实例化 |
 | DOTween 入口 | UiFx 保持唯一 DOTween 后端，效果系统是它的消费者；转场代码直用 DOTween 属待收编现状（§7.4、§11 E3） |
 | 动效与数据争写 | 播放侧按槽位仲裁（§6）；数据写入所有权仍归页面/控件（总设计 §8.1 单一数据所有者） |
 | Lua 暴露面 | 归 [UI控件LuaAPI参考](UI控件LuaAPI参考.md)；现有 Pulse/Flash/Slide shim 语义不变（§7.5） |
@@ -128,7 +128,7 @@ Assets/LiteGame/UI/Effects/
 | `Trigger` | enum `OnShow / Click / Manual`（Hover 预留） | OnShow=展示作用域起点；Click=同节点 Selectable 点击（无 Selectable 则该触发不可用并显性提示）；Manual=受控面显式触发 |
 | 动画通道 | enum 原语 `Pulse / Flash / Slide / CountUp` + 参数（强度/偏移/时长/from/to/format） | 槽位声明由原语派生（Pulse→Alpha、Flash→Color、Slide→Position、CountUp→Text）；**不放 AnimationClip/序列资产**（新原语先落 UiFx 再引用，禁第二套 tween） |
 | 音效通道 | 语义键（字符串） | → `AudioService.Group.Ui`；**不放 AudioClip、不挂 AudioSource** |
-| 特效通道 | `ParticleSystem` 子件引用 | 播放/停止/清理子件；粒子来自 `Assets/UI` 模板（视觉单一来源） |
+| 特效通道 | `ParticleSystem` 子件引用 | 播放/停止/清理子件；粒子来自 `Assets/ShareResource/UI` 模板（视觉单一来源） |
 
 行为约定（必须）：
 
@@ -157,7 +157,7 @@ Play 管线：校验定义 → 通道能力/容量检查 → **槽位仲裁** �
 | --- | --- | --- | --- | --- |
 | Tween | UiFx | UIClock 轨（Manual 派发） | 代码原语 | 新原语先落 UiFx 再被定义引用；UiFx 唯一 DOTween 入口不变 |
 | Audio | AudioService.Group.Ui | UI 轨（淡变随 UI 暂停） | 语义键 → clip（内容服务资源键） | 页面/控件不直挂 AudioSource；语义键登记进定义 |
-| Particle | 模板 prefab 实例化 | UIClock | `Assets/UI` 模板（视觉单一来源） | 页内排序占受限偏移区间（总设计 §6.2）；`raycastTarget=false`；RectMask2D 裁剪不假定（制作规范 §5） |
+| Particle | 模板 prefab 实例化 | UIClock | `Assets/ShareResource/UI` 模板（视觉单一来源） | 页内排序占受限偏移区间（总设计 §6.2）；`raycastTarget=false`；RectMask2D 裁剪不假定（制作规范 §5） |
 | Sequence | AnimatedImage | UIClock | 帧名册 | 停播/复位随通道终态，不自由运行 |
 
 各通道必有的路径：播放、停止（区分终态原因）、**复位**（推广"完成态即基线"——Tween 跳终值、粒子回收、音效 Stop、序列帧按定义回首/停帧）、禁用兜底（KillOnDisable/OnDisable 停播，但它是兜底不是清理）。

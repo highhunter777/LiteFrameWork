@@ -12,13 +12,13 @@
 | U2-③ 真实消费者接线 | `ProcedureMain` 改走导航；`ProcedureBattle` 用模态作游戏输入门 | **已完成**（2026-09-25） |
 | U2-④ UiFx 中断复位 | `Pulse`/`Flash`/`Slide` 中断即复位回基线 | **已完成**（2026-09-25） |
 | U2-⑤a LText 核心 | `LocalizationCatalog` / `LocalizationService` / `LocalizationTable`：回退链、缺 key 策略、复数、转义、key 校验、覆盖率 | **已完成**（2026-09-25） |
-| U2-⑤b 字体/SafeArea | 字体族与 fallback 链、缺字检查、SafeArea 细化 | **未开始** |
+| U2-⑤b 字体/SafeArea | 字体族与 fallback 链、缺字检查、SafeArea 细化 | **已完成**（2026-10-09，见「U2 余部」） |
 | U2-⑤c LText 控件接入 | `UIBindIndex` 按 key 设文本 + 语言变更自动刷新；Lua 门面 `SetTextKey/SetTextKeyArgs/SetTextKeyPlural/UnbindTextKey` | **已完成**（2026-09-25） |
-| U2-⑤d 打字机 | LTextLabel 可取消打字机（§9 末条） | **未开始** |
+| U2-⑤d 打字机 | LTextLabel 可取消打字机（§9 末条） | **已完成**（2026-10-09，见「U2 余部」） |
 | U2-⑥a 弹窗形态裁决 | 用户 2026-09-25 裁决：弹窗分两类（独立 Canvas 类走服务 / 页面独有类页面自理）；新建页面级 `Screens/Dialog.prefab` | **已完成**（prefab 已探针验证可打开） |
 | U2-⑥b Dialog 服务 | `DialogService`（结果/队列/优先级/互斥组/取消）+ `UIDialog` 等待式 + `UIService` 两接缝 | **已完成**（2026-09-25 接手交付，11/11；"Pending 之谜"已破案，见下） |
 | U2-⑥c Loading/Error 页 | 加载/错误页统一入口 | **已完成**（2026-09-25：FeedbackService——Loading 嵌套阻断 + Back 首位拦截取消、Error/重试经 DialogService、Toast 计时面；空状态随大厅消费者落地）。**视觉已归位**：三面改走 System 层模板 form，见「反馈面归位」 |
-| U2-⑦ 焦点 | 手柄/键盘焦点导航 | **未开始** |
+| U2-⑦ 焦点 | 手柄/键盘焦点导航 | **已完成**（2026-10-09，见「U2 余部」） |
 | U2-⑧ per-form 缓存策略列（U1 余项，§5.2） | `UICacheStrategy`（Lru 默认/Resident 不淘汰/DestroyOnClose 关即销毁）的壳消费面 | **已完成**（2026-09-26，壳面 3 例；tbuiform 表列与投影接线未做，生产页面暂全默认 LRU） |
 | U2-⑨ 导航 Replace + 包③覆盖度余部（§6.1/§4.3） | `UINavigationController.ReplaceAsync`（显式替换当前记录：关当前顶再开新页，目标即顶幂等）+ PlayMode 补段（导航 Go/Back/Replace 真资源段、转场输入锁、列表真滚动、DevReload 环境重建、循环计数、诊断关联） | **已完成**（2026-09-26，EditMode +2、PlayMode 10 例；修 UIService 回滚租约泄漏与 VirtualList.Offset 符号两处真缺陷，见记录） |
 
@@ -322,7 +322,7 @@ U1 交付段预告"per-form 缓存策略列随 U2 表扩展"——本批把 §5.
 - **制作侧**：业务 UI 页面/控件一律**编辑器手工制作 prefab 资产**——`WidgetPrefabBuilder.BuildListScreens` 确定性生成是**框架期测试先例**（BaselineA/B、ListScreen），不是业务期路径；
 - **运行侧（既有 §7 不变）**：代码触碰视觉的唯一合法形态是**运行时逻辑驱动**——随状态/输入/瞄准点在 prefab 实例上写派生值（位置/参数/可见性/混合权重），不构建结构（不 new GameObject/不 AddComponent 视觉件）。
 
-已同步：[UI 框架总设计 §7](../设计文档/client/ui/UI框架总设计.md)（制作侧同规并入视觉单一来源条目）、[修改指南「跨域接入」UI 行](../开发导航/修改指南.md)（扩展点改为手工 prefab + tbuiform 条目 + UIBindIndex，构建器标注为框架期先例）。
+已同步：[UI 框架总设计 §7](../设计文档/client/ui/UI框架总设计.md)（制作侧同规并入视觉单一来源条目）、[修改指南「跨域接入」UI 行](../修改指南.md)（扩展点改为手工 prefab + tbuiform 条目 + UIBindIndex，构建器标注为框架期先例）。
 
 ### 2026-10-09 · U2 余部（⑤b/⑤d/⑦）：字体族 / SafeArea / 打字机 / 焦点
 

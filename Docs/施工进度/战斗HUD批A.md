@@ -89,7 +89,7 @@
 
 | 面 | 落点 |
 |---|---|
-| **模板重建** | `Assets/ShareResource/UI/Widgets/HpBar.prefab`（`Tmp_HpBar`）重建为 HUD 形态：`HpBar` 根 + `_Bar/Slider`（`_Background`/`_FillArea/_Fill`/`_HandleArea/_Handle`，§9.4 `_` 私有）+ **`_FillArea/_BackFill`（半透明后条·延迟滑落）** + `Cot_IconBox/Icon_Health` + `Txt_Hp`；根挂 `LiteGame.UI.HpBar` + `BindNode`。几何/Sprite/颜色一比一取自 HUD 现役血条 |
+| **模板重建** | `Assets/ShareResource/UI/Widgets/Tmp_HpBar.prefab` 重建为 HUD 形态：`Tmp_HpBar` 根 + `_Bar`（`_Slider`/`_Background`/`_FillArea{_Fill,_BackFill}`，§9.4 `_` 私有）+ **`_BackFill`（半透明后条·延迟滑落）** + `Cot_IconBox/Icon_Health` + `Txt_Hp`；根挂 `LiteGame.UI.HpBar` + `BindNode`。几何/Sprite/颜色一比一取自 HUD 现役血条 |
 | **驱动改写** | `LiteGame.UI.HpBar` 改由 **UGUI `Slider`** 驱动前条（取代原 `FrontFill` `fillAmount`）；后条 `BackFill` 按 `BackLerpSpeed` 逐帧滑落追赶（**计时改走 `UiAnimationClock.Delta`**——§5／红线 9）；上升瞬时跟上。**公开 API `Set(current,max)` 与 `HpBar` 类型不变**——`UIDemoPage`/`UIBindIndex.SetHp` 零改动 |
 | **HUD 改实例** | `Hud_Battle` 的 `Cot_Panel/Cot_Vitals/HpBar_Player` 替换为 `Tmp_HpBar` 的 **PrefabInstance**（只 override 位置/尺寸 540×70 @ (342,35)＋根名） |
 | **HUD 接线** | `BattleHudView` 的 `_hpSlider`+`_hpText` 两字段 → 单个 **`HpBar _hpBar`**（指实例根组件）；`BattleHudDriver` 构造收 `HpBar`、`Tick` 调 `hpBar.Set(hp,max)`；`BattleViewRig` 随改。**单点组件引用——避免嵌套深层字段 override 的脆弱性** |

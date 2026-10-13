@@ -5,7 +5,7 @@ description: Unity 序列化资产与工程操作的强制管线。只要任务�
 
 # Unity 资产操作管线(红线 4)
 
-**为什么存在**:Unity 序列化资产(.unity/.prefab/.mat/.asset/.controller/.anim/.meta)携带 GUID 与序列化格式,文件系统直改会破坏引用、丢 .meta、产生不可合并的脏 diff。权威规范是仓库根 `UNITY-GUIDE.md`,本 skill 是其执行摘要,冲突以原文为准。
+**为什么存在**:Unity 序列化资产(.unity/.prefab/.mat/.asset/.controller/.anim/.meta)携带 GUID 与序列化格式,文件系统直改会破坏引用、丢 .meta、产生不可合并的脏 diff。权威规范是 `Docs/UNITY-GUIDE.md`,本 skill 是其执行摘要,冲突以原文为准。
 
 ## 判定表
 

@@ -5,7 +5,7 @@
 > 更新日期：2026-10-01
 > 归属：[测试开发框架总设计](测试开发框架总设计.md)
 > 适用范围：Unity UGUI/TMP 页面、UIService、Lua 页面、UI Prefab、输入与导航、列表、动效及其发布性能。
-> 执行入口：逻辑上统一使用 `scripts/gate/test.ps1`；Unity 交互遵循根目录 `UNITY-GUIDE.md`。
+> 执行入口：逻辑上统一使用 `scripts/gate/test.ps1`；Unity 交互遵循 `Docs/UNITY-GUIDE.md`。
 > 权威预算：[UI 框架总设计第 12 节](../client/ui/UI框架总设计.md#12-验收预算与观测)。
 
 本文把 UI 的**界面测试、自动化测试和性能测试**收纳到现有测试开发框架，不新建一套脱离 `LiteTesting` 的测试体系。本文定义 UI 测试的边界、目录、元数据、夹具、断言、执行 Profile、性能口径和交付证据；产品 UI 契约仍由 [UI 框架总设计](../client/ui/UI框架总设计.md) 与 [UI 制作规范](../client/ui/UI制作规范.md) 负责。
@@ -370,7 +370,7 @@ UI 性能指标的预算以 [UI 框架总设计第 12 节](../client/ui/UI框架
 
 夹具 prefab 的存放与判定：
 
-- 按第 2.2 节目录放在测试专属位置（`Assets/Tests/UI/Fixtures/`），**不进** `Assets/UI/Screens|Widgets` 的 YooAsset 收集路径，不参与产品打包；
+- 按第 2.2 节目录放在测试专属位置（`Assets/Tests/UI/Fixtures/`），**不进** `Assets/ShareResource/UI/Screens|Widgets` 的 YooAsset 收集路径，不参与产品打包；
 - 需要屏上事件（点击/拖拽/焦点）的 PlayMode 用例才加载含 EventSystem/InputModule 的夹具；不上屏的夹具不带屏上依赖，避免把 PlayMode 专属结构漏进 EditMode；
 - 夹具 prefab 的结构本身纳入界面契约用例（第 4.2 节），有正例和违规负例。
 

@@ -56,7 +56,7 @@
 1. **BuildHash 源集**：改 `Assets/LiteSim/Core/{Scripts,Systems}`、`Assets/LiteNet/{Proto,Protocol,Transport/Security}`、两端表数据 → ★ `python scripts/codegen/gen-build-hash.py`（权威清单＝该脚本 `SHARED_TARGETS/SHARED_DATA_TARGETS`）；漏跑＝出包门禁被拦、两端常量不同步时 Join 握手拒进房（2026-10-07 起开发期不校验，守卫在 build-player.ps1 门禁步 `--check-shared`）。**同一脚本还产出第二个目标**：`Server/MetaServer/Host/BuildHash.g.cs`（Meta 构建身份＝`META_TARGETS` 源集摘要，启动日志 `build=` 用它；**不参与准入判定**，故不挂出包门禁——发布 Meta 产物前跑 `--check` 复算两个常量）。
 2. **R11 房间内核纯度**：`Assets/RoomServer/Runtime/` 禁 Console/系统时钟/文件 IO/proto/LiteNet。
 3. **R13 数值读口**：机制面禁读静态读口可变值，数值经实例参数传递（consts 豁免）。
-4. **Unity 序列化资产**（场景/Prefab/Material/.meta）：一律走 unity-pipeline CLI（`UNITY-GUIDE.md`），禁直改文件。
+4. **Unity 序列化资产**（场景/Prefab/Material/.meta）：一律走 unity-pipeline CLI（`Docs/UNITY-GUIDE.md`），禁直改文件。
 5. **禁硬编码**：魔法数字/字符串进常量或表；跨层共享常量 C# 单源权威，Lua shim/工具引用它；生成器引用运行时常量；"必须与 X 一致"只靠注释＝违规，要机制化（单源/生成/守卫测试三选一）。
 6. **禁新增 public static 可变状态**（豁免名单封闭）；确定性判定路径（伤害/弹药/命中/checksum）禁读任何静态可变值——包括 dev 宏内。
 7. **错误契约统一**：已关闭服务再调用抛 `ObjectDisposedException`；程序员错误 fail-fast、内容降级 Log.Warning+默认值；同层姊妹服务同契约。
@@ -68,7 +68,7 @@
 
 ## Skill 索引（按任务触发，ZCode）
 
-下列流程性规范已抽为通用级 skill（`.agents/skills/`，ZCode/Claude Code 等跨工具标准位），ZCode 会话中按任务自动加载；本文件的红线条目保留（同时服务无 skill 机制的其他工具）。另有 PostToolUse 提醒 hook：脚本单源在 `scripts/hooks/shared-source-reminder.ps1`（客户端中立），由 `.zcode/config.json`（ZCode）与 `.claude/settings.json`（Claude Code）各自挂载，在编辑器触碰共享源集/表/Unity 序列化资产时即时提醒，不依赖模型自觉。
+下列流程性规范已抽为通用级 skill（`.agents/skills/`，ZCode/Claude Code 等跨工具标准位），ZCode 会话中按任务自动加载；本文件的红线条目保留（同时服务无 skill 机制的其他工具）。另有 PostToolUse 提醒 hook：脚本单源在 `scripts/hooks/shared-source-reminder.ps1`（客户端中立），由 `.zcode/config.json`（ZCode）与 `.claude/settings.json`（Claude Code）各自挂载，在编辑器触碰共享源集/表/Unity 序列化资产时即时提醒，不依赖模型自觉。文档纪律（设计与进度分离 / 状态只由 git 事实回填）的守卫面是 `scripts/gate/doc-lint.py`，已接入 L1 门禁（`test.ps1 -Lane L1` 首步）。
 
 | skill | 触发 |
 |---|---|
@@ -77,6 +77,7 @@
 | `directory-move-sync` | 目录搬动（六面同步 + unity-pipeline） |
 | `batch-wrapup` | 一批改动收尾/提交前（修改指南 §2.3 必跑 + §2.4 回写） |
 | `audit-debt-check` | 动源码文件前查两份质量登记表（修改指南 §2.1 第 3 步） |
+| `unity-pipeline` | 驱动运行中的 Unity Editor/开发 Player（CLI 包 `unity-pipeline`：装包、后台保活、edit→recompile→run_tests 环、eval C#、运行时热改码）——红线 4 的 CLI 执行层 |
 
 ## 常用命令
 
@@ -94,7 +95,7 @@ pwsh scripts/gate/l2-unity-gate.ps1                          # L2 Unity 门禁�
 pwsh scripts/gate/restore-check.ps1                          # 环境可复现检查
 ```
 
-Unity 交互（改场景/Prefab/跑 PlayMode）一律走 unity-pipeline CLI，见 `UNITY-GUIDE.md`。
+Unity 交互（改场景/Prefab/跑 PlayMode）一律走 unity-pipeline CLI，见 `Docs/UNITY-GUIDE.md`。
 
 ## 工作约定
 

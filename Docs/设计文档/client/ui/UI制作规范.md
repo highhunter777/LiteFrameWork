@@ -17,10 +17,10 @@
 
 | 内容 | 位置/约定 |
 | --- | --- |
-| 页面 | `Assets/UI/Screens/`；YooAsset 独立页面打包按依赖分析配置 |
-| 控件模板 | `Assets/UI/Widgets/`；同族可用 Prefab Variant |
-| 调试属性补丁 | `Assets/UI/Patches/`；只在 Editor/dev 使用，生产包排除 |
-| 字体 | `Assets/Fonts/`；字体族与 fallback 受统一配置管理 |
+| 页面 | `Assets/ShareResource/UI/Screens/`；YooAsset 独立页面打包按依赖分析配置 |
+| 控件模板 | `Assets/ShareResource/UI/Widgets/`（27 件 `Tmp_*`）；同族可用 Prefab Variant |
+| 调试属性补丁 | `Assets/ShareResource/UI/Patches/`（待建，随 UIPatch 批）；只在 Editor/dev 使用，生产包排除 |
+| 字体 | `Assets/ShareResource/Fonts/`；字体族与 fallback 受统一配置管理 |
 | 运行时 | `Assets/LiteGame/UI/`；Lua 桥在 `Assets/LiteGame/LuaBridge/`；内容等适配在 `Assets/LiteClient/Adapters/` |
 | 编辑器 | `Assets/LiteGame/Editor/`，样式在 `Style/` |
 
@@ -35,7 +35,7 @@
 - 控件模板不直接依赖具体玩法、Transport 或 Sim。业务通过 ViewModel/受控 API 驱动。
 - **运行时代码不得构建用户可见视觉效果**：不 `new GameObject` 造 Canvas/Graphic/Text/Button，不 `AddComponent` 挂视觉组件；一律引用本目录模板。唯一例外是引导期错误界面（判据见[总设计第 7 节](UI框架总设计.md#7-渲染适配与制作边界)）——它是"资源不可用时仍要能显示"的兜底，不是可援引的先例。层容器节点（`UIRoot` 与各层节点）是骨架不是视觉，不在此限。**测试夹具同受此约束**：从测试专用 prefab 加载，不进 Screens/Widgets 收集路径，见[UI 测试开发专项设计 §7.2](../../quality/UI测试开发专项设计.md)。
 - 反馈面（Loading/Toast/错误重试）落在 System 语义层并经统一排序器分配 order；不得自建 Canvas 或私有 sortingOrder 跨层。
-- Prefab/asset/meta 变更经 Unity 编辑器或项目 Pipeline，遵循根目录 `UNITY-GUIDE.md`；工具保留 Undo 和差异预览，不手改序列化文本。
+- Prefab/asset/meta 变更经 Unity 编辑器或项目 Pipeline，遵循 `Docs/UNITY-GUIDE.md`；工具保留 Undo 和差异预览，不手改序列化文本。
 
 建议：模板采用清晰层级结构；命名（业务层 `<前缀>_<语义>`、模板层 `Tmp_<控件类型>`）、类别前缀词表与内部节点 `_` 前缀规则统见第 9 节（命名单源）。层级尽量浅，但不以统一“最多五层”阻止合法组合。图标选择 Simple；需要九宫格拉伸的背景才选 Sliced；进度按需要选 Filled。
 
@@ -151,7 +151,7 @@ EditMode 结构检查不能替代依赖 Awake/OnEnable 的行为测试。已有�
 | `Icon_` | 图标 | `Icon_Coin` |
 | `Clone_` | 克隆条目模板 | `Clone_Item` |
 
-**控件类业务节点（类型段）**：判据——交互控件（UGUI）与控件模板 → 类型段；展示/结构角色词 → 词表；控件名一律写全称。交互控件如 `Button`/`Toggle`/`Slider`/`Dropdown`/`InputField`/`ScrollRect`/`Scrollbar`；模板名即 `Assets/UI/Widgets` 去 `Tmp_` 清单——判据即成集，不另建登记。出处定段：节点由模板实例化/变体而来 → 模板段（`StateButton_Ok`——StateButton 模板做出来的按钮）；直接使用的 UGUI 控件 → 控件段（`Button_Ok`）。例：`Dialog_Trade`、`Toggle_Sound`、`StateButton_Close`、`Button_Close`。
+**控件类业务节点（类型段）**：判据——交互控件（UGUI）与控件模板 → 类型段；展示/结构角色词 → 词表；控件名一律写全称。交互控件如 `Button`/`Toggle`/`Slider`/`Dropdown`/`InputField`/`ScrollRect`/`Scrollbar`；模板名即 `Assets/ShareResource/UI/Widgets` 去 `Tmp_` 清单——判据即成集，不另建登记。出处定段：节点由模板实例化/变体而来 → 模板段（`StateButton_Ok`——StateButton 模板做出来的按钮）；直接使用的 UGUI 控件 → 控件段（`Button_Ok`）。例：`Dialog_Trade`、`Toggle_Sound`、`StateButton_Close`、`Button_Close`。
 
 **模板命名（模板层）**：预制体模板本体不用业务语义、不占词表——原型按 `Tmp_<控件类型>`（`Tmp_Dialog`、`Tmp_Toast`）；特化语义模板按 `Tmp_<控件类型>_<语义>`——大量页面复用同一语义件时抽出（如 `Tmp_Button_HeroLevelUp`），建议阈值：同一语义件被 ≥2 个页面使用（或已明确跨模块复用）即抽并登记，单页专用不抽；跨页面复用入模板层，单业务用途的变体留业务层。使用处（业务层）命名 = 去掉 `Tmp_` 前缀的 `<控件类型>_<语义>`（与上段控件类口径一致：`Dialog_Trade`、`Button_HeroLevelUp`）。`Tmp_` 仅供模板资产，业务节点不得使用；`Clone_`（9.4）是节点级克隆模板，与 `Tmp_` 模板资产区分。
 

@@ -10,13 +10,13 @@
 
 - 工作台 = **人工目检与制作迭代**载体：眼睛与手感归它；断言与证据归 L2 自动化（夜间门禁）——两者互不替代（[UI测试开发专项设计 §1.1](../../quality/UI测试开发专项设计.md) 三类测试职责）。
 - **不旁路装配**：场景跑**真装配根**（GameEntry → ClientHost → 全模块 → 流程机 Launch→Patch→Preload→Main 真跑），只换"落点"——开工作台面板而非玩法页/业务首屏。禁止自建 UIService/假加载器（"替身让真链路缺陷隐形"教训，[UI-U2](../../../施工进度/UI-U2.md)）。
-- 面板本体 = **场景内 UI + 驱动件**，**不是 tbuiform 页面**（"独立工作台场景"裁决的直接读法）：免去 dev 页进 `Assets/UI/Screens` 收集路径与表行的生产污染（BaselineA/B 在 Screens 内属框架期先例，不构成业务期路径——业务 UI 不走代码生成，2026-10-04 裁决）。
+- 面板本体 = **场景内 UI + 驱动件**，**不是 tbuiform 页面**（"独立工作台场景"裁决的直接读法）：免去 dev 页进 `Assets/ShareResource/UI/Screens` 收集路径与表行的生产污染（BaselineA/B 在 Screens 内属框架期先例，不构成业务期路径——业务 UI 不走代码生成，2026-10-04 裁决）。
 - 默认仅编辑器 Play 使用；是否进开发档 Build Settings、发布剥离口径随 DevHUD/SimSandbox 现状登记（见 §5），本设计不另开机制。
 
 ## 1. 场景与装配
 
 - 场景 `Assets/Scenes/UiWorkbench.unity`（**已就位**——2026-10-11 由 `HUDDesign.unity` 改造：pipeline rename 保持 GUID，旧 HUD 树已清，`GameEntry`+主相机已挂）：
-  - 最小件 = **GameEntry（引导件）+ 主相机**（对照 `Test.unity` 启动场景同款最小形态）；输入底座 `[UIEventSystem]` 由 `UiInput.EnsureEventSystem()` 运行时幂等建位，无需场景 EventSystem 对象。
+  - 最小件 = **GameEntry（引导件）+ 主相机**（对照 `Boot.unity` 启动场景同款最小形态）；输入底座 `[UIEventSystem]` 由 `UiInput.EnsureEventSystem()` 运行时幂等建位，无需场景 EventSystem 对象。
 - 驱动件 `UIWorkbenchDriver.cs` 落 `Assets/LiteGame/DevHUD/`（既有 dev 程序集 `LiteGame.DevHUD`，已引 `LiteGame.App/UI`——SimSandbox 同款；**零产品程序集、零产品码分支**；2026-10-11 asmdef 补 `UniTask`/`Unity.TextMeshPro`/`Luban.Tables` 三引用）：
   - **取根**：`GameEntry.TakeContainer()`（公开口，注释明言"引导与开发工具取得已装配的根容器"）——Update 轮询至装配完成。
   - **就绪门控**：`StageMachine.Current == ProcedureId.Main` 后按钮启用（= 内容已初始化，开页安全）；未就绪置灰 + 状态行提示（如"启动中：Patch/Preload"）。
@@ -63,7 +63,7 @@ WorkbenchPanel                 场景面板根（Canvas + CanvasGroup；排序�
 ## 5. 边界与防锈
 
 - **dev-only**：不担产品职责（SimSandbox 同款标注）；发布剥离随 DevHUD/SimSandbox 现状口径（现状 `Assets/Scenes` 收集组整目录收集，Boot/GuideScene/SimSandbox 同列——工作台继承同口径，生产"开发内容排除"职责在发布管道，随发布批核对）。
-- **防锈登记**：owner = 客户端 UI 线；失效条件 = ① L2 PlayMode 已覆盖其手测场景，或 ② 制作线出现更顺的页面预览工具；到期未用即退役（防 Boot/GuideScene 式历史场景累积；[代码地图](../../开发导航/代码地图.md) 已标"历史场景"）。
+- **防锈登记**：owner = 客户端 UI 线；失效条件 = ① L2 PlayMode 已覆盖其手测场景，或 ② 制作线出现更顺的页面预览工具；到期未用即退役（防 Boot/GuideScene 式历史场景累积；[代码地图](../../../开发导航/代码地图.md) 已标"历史场景"）。
 - **不做整场景运行时保存**：Play 态真装配链的运行时生成物不得烤进场景资产（视觉单一来源/脏 diff/不代存三重违反）；需要的固化走 prefab 回写（W2）——场景与 prefab 的分工：场景不承载可调视觉，prefab 承载。
 - 不新增第二个"打开任意页"入口：F9/F10 测试对局入口语义不变；本件只管 UI 页。
 
@@ -71,6 +71,6 @@ WorkbenchPanel                 场景面板根（Canvas + CanvasGroup；排序�
 
 | 批 | 交付 | 依赖 |
 | --- | --- | --- |
-| W0 场景+驱动 | **已完成（2026-10-11）**：场景（GameEntry+相机+WorkbenchPanel）+ `UIWorkbenchDriver`（TakeContainer 轮询取根、Loaded∧Main 门控置灰、目录行按 Tbuiform 克隆与开关〔系统面 201/202/203 置灰走演示组〕、演出组 Loading/错误/Toast、状态行 0.5s 节流）。实机手测待本机 | — |
-| W1 进度演示接线 | **已完成（2026-10-11）**：`LoadingScope.Report`/`ReportLoading` 落地（FeedbackService，写全量/首写不丢/后写胜出）+ Loading 表单模板补视觉（原空壳）+ 驱动演示按 0.25 步进 + 状态行文案回读 | — |
+| W0 场景+驱动 | 场景（GameEntry+相机+WorkbenchPanel）+ `UIWorkbenchDriver`（TakeContainer 轮询取根、Loaded∧Main 门控置灰、目录行按 Tbuiform 克隆与开关〔系统面 201/202/203 置灰走演示组〕、演出组 Loading/错误/Toast、状态行 0.5s 节流）。实机手测待本机 | — |
+| W1 进度演示接线 | `LoadingScope.Report`/`ReportLoading` 落地（FeedbackService，写全量/首写不丢/后写胜出）+ Loading 表单模板补视觉（原空壳）+ 驱动演示按 0.25 步进 + 状态行文案回读 | — |
 | W2（可选，随真实需求） | 语言切换行、状态注入（空列表/长文本）、场景名门控跳过玩法场景、发布剥离口径核对、**prefab 改动回写工具**（Play 内勾选直写、屏蔽驱动写面——UI 效果调参闭环的固化环节）、HUD 预览开关（实例化 `Hud_Battle.prefab`） | 效果参数数据化（回写范围=序列化面） |

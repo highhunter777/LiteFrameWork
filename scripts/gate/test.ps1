@@ -118,7 +118,28 @@ function Invoke-DotNetLane([string]$name, [string]$filter, [string]$hangTimeout)
     Write-Host "  [PASS] $name completed $total tests." -ForegroundColor Green
 }
 
+function Invoke-DocLint {
+    # Documentation hygiene: design-vs-progress separation + audit-table status backfill.
+    # Rule source of truth: scripts/gate/doc-lint.py (wired into L1 so it cannot be skipped).
+    Write-Host "`n=== doc-lint | $Profile ===" -ForegroundColor Cyan
+    $script = Join-Path $ProjectPath 'scripts/gate/doc-lint.py'
+    if (-not (Test-Path $script)) { throw "doc-lint script missing: $script" }
+    $prevPyIo = $env:PYTHONIOENCODING
+    $env:PYTHONIOENCODING = 'utf-8'
+    try {
+        & python $script --root $ProjectPath
+    }
+    finally {
+        if ($null -eq $prevPyIo) { Remove-Item Env:PYTHONIOENCODING -ErrorAction SilentlyContinue }
+        else { $env:PYTHONIOENCODING = $prevPyIo }
+    }
+    if ($LASTEXITCODE -ne 0) { throw "doc-lint failed with exit code $LASTEXITCODE (see output above)." }
+    Write-Host "  [PASS] doc-lint completed." -ForegroundColor Green
+}
+
 function Invoke-L1 {
+    # Documentation discipline gate runs first (cheap whole-repo text scan).
+    Invoke-DocLint
     # Untagged tests deliberately remain in L1.
     $filter = 'Category!=Integration&Category!=EndToEnd&Category!=Performance&Category!=Quarantine&Duration!=LongRunning'
     Invoke-DotNetLane 'L1' $filter '5m'

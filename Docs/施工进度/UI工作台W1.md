@@ -8,7 +8,7 @@
 |---|---|
 | 契约落地 | `FeedbackService.ReportLoading(message, progress01)`（缓存首写不丢/嵌套后写胜出/开面后写全量）+ `LoadingScope.Report` + `CurrentLoadingMessage` 回读；`BeginLoading` 复位写全量；`EndLoading` 清缓存 |
 | 控件 | `LoadingMask` 补 `ProgressFill`（Filled/Horizontal）+ `SetStatus(message, progress01)`（写全量：文案回落"加载中…"、进度 null=不定态隐藏） |
-| 模板补齐 | `Assets/ShareResource/UI/Screens/Loading.prefab`（原空壳：无 Mask 无视觉）——Blocker（全屏阻断）/Txt_Message/ProgressBar_Load（底槽+Filled）+ 挂 LoadingMask 接线（pipeline，Type.GetType+SerializedObject） |
+| 模板补齐 | `Assets/ShareResource/UI/Widgets/Tmp_Loading.prefab`（原空壳：无 Mask 无视觉）——`_Blocker`（全屏阻断）/`Txt_Message` + `LoadingMask` 接线（pipeline，Type.GetType+SerializedObject）；202 壳 `Screens/Tmp_Loading.prefab` 只留 Canvas+CanvasGroup+嵌套实例 |
 | 工作台 | `Button_Progress` 接 `Report`（0.25 步进演示，未开 Loading 时提示先开）；状态行补加载文案回读 |
 
 ## 验证证据

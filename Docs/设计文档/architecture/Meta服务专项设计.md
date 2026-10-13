@@ -346,7 +346,7 @@ CI 仍以 `scripts/gate/test.ps1` 为唯一入口；HTTP/数据库夹具随实�
 | --- | --- | --- |
 | **G1** | 只建**接缝**：必要存储端口、迁移/事务/幂等约束、故障夹具、**一个持久化样例**；Join Ticket **验证器接口**与非法票据测试 | 框架先行 §4"持久化"行与 §5-4；不建真实 Meta 业务 |
 | **R2** | RoomServer 侧：Generic Host、Join Ticket **本地验签**、实例注册与容量上报、drain | 与 §4.1/§6.2/§7 对接；本文为 Meta 侧定义，R2 为房间侧消费 |
-| **G3** | MetaServer 本体：Auth/Lobby/Profile、Mongo Ledger、Reservation、Settlement Outbox/Archive；客户端 `MetaClient` 与 Login/Lobby/Result（C2 批③） | R3 Auth 首批已先落地游客登录与账号持久化；**R3-Lobby（实例注册/容量分配/Join Ticket 签发端）与 R3-Profile（结算提交消费/结果归档与查询/提交管道/SIGTERM）已交付**；正式账号与客户端入口仍按后续批次接入 |
+| **G3** | MetaServer 本体：Auth/Lobby/Profile、Mongo Ledger、Reservation、Settlement Outbox/Archive；客户端 `MetaClient` 与 Login/Lobby/Result（C2 批③） | R3 Auth 首批已先落地游客登录与账号持久化；**R3-Lobby（实例注册/容量分配/Join Ticket 签发端）与 R3-Profile（结算提交消费/结果归档与查询/提交管道/SIGTERM）**；正式账号与客户端入口仍按后续批次接入 |
 | **R4 / G4** | OpenTelemetry、Dashboard、告警、Docker、实例调度、灰度与回滚、长稳与故障注入 | §11/§12/§14 的运维面收口 |
 | **后置** | Chat/Guild；完整运营后台；微服务拆分 | §1.1 选型裁定；不进入首个战斗服 Beta |
 

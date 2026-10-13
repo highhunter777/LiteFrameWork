@@ -18,14 +18,14 @@
 
 
 
-> **2026-10-10 代码现状订正**：原清单中的 `WidgetPrefabBuilder`（1477 行）与 `UICollectCheckMenu`、`WidgetDemoMenu` 已随提交 `45aa839`「输入服务余部与场景资源杂项（接管并行线）」**从仓库删除**，不再是"已存在"工具。`Assets/UI/Widgets/` 下 25 件模板 prefab 作为已产出资产保留；结构/行为断言改由 [VisualConstructionScanner](../../../../Assets/LiteGame/Editor/VisualConstructionScanner.cs) 与 `Assets/Tests/EditMode/VisualSingleSourceEditModeTests.cs` 承担。业务 UI 页面按《UI-U2》裁决走编辑器手工制作，不依赖已删除的确定性构建器。
+> **2026-10-10 代码现状订正**：原清单中的 `WidgetPrefabBuilder`（1477 行）与 `UICollectCheckMenu`、`WidgetDemoMenu` 已随提交 `45aa839`「输入服务余部与场景资源杂项（接管并行线）」**从仓库删除**，不再是"已存在"工具。`Assets/ShareResource/UI/Widgets/` 下 27 件 `Tmp_*` 模板 prefab 作为已产出资产保留；结构/行为断言改由 [VisualConstructionScanner](../../../../Assets/LiteGame/Editor/VisualConstructionScanner.cs) 与 `Assets/Tests/EditMode/VisualSingleSourceEditModeTests.cs` 承担。业务 UI 页面按《UI-U2》裁决走编辑器手工制作，不依赖已删除的确定性构建器。
 
 工具服务标准资产和受控运行时：
 
 - 画布、几何、层级、锚点和撤销使用 Unity Prefab Stage；不造第二套画布或运行时布局格式。
 - 生成链沿用 Luban/LiteCodeGen/运行时绑定索引；产物可重建、可对账，不能由编辑器私有格式绕过制作校验。
 - Odin 仅作 Editor 呈现适配，运行时标记用自有组件/attribute，不依赖 Sirenix。独立 Validator 是否可用按实际环境确认，校验核心必须能脱离付费面板在 CI 执行。
-- Prefab/asset/meta 写入经 Unity/Pipeline API，遵循 `UNITY-GUIDE.md`。批量改动有预览、Undo、目标清单与结果报告；不得覆盖用户未保存编辑内容。
+- Prefab/asset/meta 写入经 Unity/Pipeline API，遵循 `Docs/UNITY-GUIDE.md`。批量改动有预览、Undo、目标清单与结果报告；不得覆盖用户未保存编辑内容。
 - 状态、优先级、所有权、动效播放决定由运行时负责；工具只声明配置、预览和验证。运行时播放不以先经过编辑器面板为许可条件。
 
 ## 2. 绑定标记与生成
@@ -70,7 +70,7 @@ Middle、字距/行距 0 是默认，不是所有语言硬限制。字号阶梯�
 ### 3.2 应用与对账
 
 - 颜色可用最近 token 匹配与 1e-4 阈值收敛；文字枚举/字号精确应用。改变 token/档位后重跑应幂等。
-- 作用域为 `Assets/UI/Widgets/**`（**当前实现只扫 Widgets——`UiStyleTool` 的 `WidgetsDir` 常量，`Assets/UI/Screens/**` 尚未纳入**）。只修改已标记的目标属性；结构、锚点/尺寸、shader 替换是另一项明确操作。
+- 作用域为 `Assets/ShareResource/UI/Widgets/**` + `Assets/ShareResource/UI/Screens/**`（`UiStyleTool.DefaultScanDirs` 两常量；文字档工具扫描根可注入）。只修改已标记的目标属性；结构、锚点/尺寸、shader 替换是另一项明确操作。
 - 未标记组件先报告，按整改清单收口；不能静默跳过却报告全工程已一致。
 - 漂移报告区分标记缺失、声明覆盖、属性不符和资源引用失效；运行时实例变化不进入资产漂移。
 - 字体检查目标字体族/fallback/语言覆盖，不以“全 UI 唯一字体”为目标。共享材质优先，实例材质要有所有权与预算。
