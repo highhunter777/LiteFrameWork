@@ -22,6 +22,17 @@ namespace LiteGame.Tests.EditMode
             new Dictionary<string, (int, byte[])>();
         private readonly Dictionary<string, int> _hits = new Dictionary<string, int>();
         private readonly Dictionary<string, int> _failTimes = new Dictionary<string, int>();
+        private readonly Dictionary<string, List<CapturedRequest>> _captured =
+            new Dictionary<string, List<CapturedRequest>>();
+
+        /// <summary>单次请求的捕获面（方法/头/体——请求侧断言用：鉴权头、请求体形状）。</summary>
+        public sealed class CapturedRequest
+        {
+            public string Method;
+            public string Authorization;
+            public string Body;
+        }
+
 
         /// <summary>监听基址（末尾不带 /）。</summary>
         public string BaseUrl { get; }
@@ -53,6 +64,13 @@ namespace LiteGame.Tests.EditMode
         /// <summary>该路径已被请求的次数（未请求过 = 0）。</summary>
         public int HitCount(string path) => _hits.TryGetValue(path, out int n) ? n : 0;
 
+        /// <summary>该路径的请求捕获（按到达序；含方法/鉴权头/请求体）。</summary>
+        public IReadOnlyList<CapturedRequest> Captured(string path)
+            => _captured.TryGetValue(path, out List<CapturedRequest> list)
+                ? list
+                : (IReadOnlyList<CapturedRequest>)Array.Empty<CapturedRequest>();
+
+
         public void Dispose()
         {
             try { _listener.Stop(); _listener.Close(); } catch (Exception) { }
@@ -69,6 +87,26 @@ namespace LiteGame.Tests.EditMode
 
                 string path = ctx.Request.Url.AbsolutePath;
                 _hits[path] = HitCount(path) + 1;
+
+                // 请求捕获（请求面断言：方法/鉴权头/体）。体须在应答前读完。
+                string requestBody = null;
+                if (ctx.Request.HasEntityBody)
+                {
+                    using (var reader = new System.IO.StreamReader(ctx.Request.InputStream, Encoding.UTF8))
+                        requestBody = reader.ReadToEnd();
+                }
+                if (!_captured.TryGetValue(path, out List<CapturedRequest> list))
+                {
+                    list = new List<CapturedRequest>();
+                    _captured[path] = list;
+                }
+                list.Add(new CapturedRequest
+                {
+                    Method = ctx.Request.HttpMethod,
+                    Authorization = ctx.Request.Headers["Authorization"],
+                    Body = requestBody,
+                });
+
 
                 if (_routes.TryGetValue(path, out var route))
                 {
