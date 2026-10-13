@@ -29,9 +29,9 @@ Luban xlsx
 
 客户端和 RoomServer 必须来自同一份表源；缺表或关键行缺失时拒绝候选，首次启动无可用版本则进入恢复态，不能静默回退默认值。验证完成前不得发布 Tables 或发布玩法数值实例（实例是"装载后运行态数值"的唯一载体——客户端原子发布读口、服务端装配输入；静态装载面已拆除，见下）。
 
-**数值实例化（技术债 #1 根治，2026-10-08）**：装载产出 `CombatValues`/`MovementValues`/`WeaponTable` 只读实例；服务端 `ServerTableLoader` → `ServerTableLoad` → `HostAssembly.Inputs`（必填）→ 宿主/房间快照；客户端 `ConfigService` 装载校验后原子发布读口（表现面便捷读，机制禁读）；Sim 机制（`SimStep`→系统/回溯/回放）一律经参数接收实例。摘要（`CombatConfigDigest`）按数值实例计算，字段序/格式与旧口径逐字节一致（同值同摘要）。**防复辟纪律 = 纪律扫描 R13**（机制面禁读静态读口可变值，常量面豁免；受守根与例外见 `ScanTargets.cs`）。施工与证据见[配置实例化](../../施工进度/配置实例化.md)。
+**数值实例化（技术债 #1 根治，2026-10-08）**：装载产出 `CombatValues`/`MovementValues`/`WeaponTable` 只读实例；服务端 `ServerTableLoader` → `ServerTableLoad` → `HostAssembly.Inputs`（必填）→ 宿主/房间快照；客户端 `ConfigService` 装载校验后原子发布读口（表现面便捷读，机制禁读）；Sim 机制（`SimStep`→系统/回溯/回放）一律经参数接收实例。摘要（`CombatConfigDigest`）按**判定面表字节 + 本局规则位**计算（覆盖面单源 = `TableLayout.JudgmentDomains`；客户端装载后复算比对 `StartGame.ConfigHash`，不等拒局）——表值两端热更不出包，漏更/回退一端当场可判。**防复辟纪律 = 纪律扫描 R13**（机制面禁读静态读口可变值，常量面豁免；受守根与例外见 `ScanTargets.cs`）。施工与证据见[配置实例化](../../施工进度/配置实例化.md)。
 
-**单源映射**：`combatnum` 不再存储重力和出生生命。`tbmovementconfig.gravity` 是重力唯一表源；`tbentityconfig.initial_hp` 是实体出生生命唯一表源，当前消费者为 id=1 默认角色。`SimConfigMapper` 放在 `LiteClient/Adapters/Serialization.Luban/`（文件所在程序集名为 `LiteClient.Serialization.Luban`，但**声明的命名空间是 `LiteClient`**），RoomServer 只源链接该无 Unity/UniTask 依赖文件，两端共用必要行与数值校验及投影。`CombatValues.Gravity/EntityHp` 是固定对局配置中的投影值，不构成第二套可编辑表源；Sim 不直接读表或静态配置。所属表行缺失、非有限重力或非正出生生命必须拒绝装载，不回退代码默认值。同值的 `CombatConfigDigest` 文本和摘要保持一致，schema 迁移通过重生成 buildHash 保护准入。
+**单源映射**：`combatnum` 不再存储重力和出生生命。`tbmovementconfig.gravity` 是重力唯一表源；`tbentityconfig.initial_hp` 是实体出生生命唯一表源，当前消费者为 id=1 默认角色。`SimConfigMapper` 放在 `LiteClient/Adapters/Serialization.Luban/`（文件所在程序集名为 `LiteClient.Serialization.Luban`，但**声明的命名空间是 `LiteClient`**），RoomServer 只源链接该无 Unity/UniTask 依赖文件，两端共用必要行与数值校验及投影。`CombatValues.Gravity/EntityHp` 是固定对局配置中的投影值，不构成第二套可编辑表源；Sim 不直接读表或静态配置。所属表行缺失、非有限重力或非正出生生命必须拒绝装载，不回退代码默认值。schema 迁移通过重生成 buildHash（`Assets/GameData/Generated` 生成读码面在闭包内）与表字节同批发布共同保护准入。
 
 **生成入口**：`Luban/gen.bat` 委托 `scripts/codegen/gen_luban.py`，路径从仓库根推导。Luban 先在 `TestResults/luban-generation/<run>/` 生成 C#/binary/Lua；成功后只发布相应文件类型且跳过内容相同的文件，保留现有文本行尾，binary 不做文本归一化。生成器不清空 Assets 输出目录，也不通过 Git 恢复 asmdef 或 `.meta`。Unity 导入与资源收集验证仍由本机 Pipeline 执行。
 

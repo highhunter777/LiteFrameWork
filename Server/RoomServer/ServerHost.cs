@@ -195,6 +195,13 @@ namespace RoomServer
         /// <summary>武器表实例（同链显式传入；缺省 = <see cref="WeaponTable.Default"/> 兜底）。</summary>
         private readonly WeaponTable _weapons;
 
+        /// <summary>
+        /// 判定面表字节**基摘要**（生产链 `HostAssembly.Inputs.GameplayDigestBase` ← `ServerTableLoad.Digest`；
+        /// 缺省 0 = 无表身份形态，供嵌入式/测试直构）。房间创建时随数值/武器同刻捕获进 `FixedCombatConfig`
+        /// ——客户端按本地装载字节复算比对（批 E），忘传的表现是**首局即被客户端拒**（显性，不静默）。
+        /// </summary>
+        private readonly uint _gameplayDigestBase;
+
         /// <summary>房间容量上限（配置项；§429 范围校验在装载期完成）。</summary>
         public int MaxRooms
         {
@@ -384,12 +391,14 @@ namespace RoomServer
             RoomServerConfig roomServerConfig = null, ISettlementOutbox settlementOutbox = null,
             RoomWorkerPool workerPool = null, bool mailboxRouting = false,
             bool drainMailboxesImmediately = true, RateLimiter rateLimiter = null,
-            bool workerExecution = false, CombatValues? combatValues = null, WeaponTable weapons = null)
+            bool workerExecution = false, CombatValues? combatValues = null, WeaponTable weapons = null,
+            uint gameplayDigestBase = 0)
         {
             _transport = transport ?? throw new ArgumentNullException(nameof(transport));
             _serverConfig = roomServerConfig;
             _combat = combatValues ?? CombatValues.Default;
             _weapons = weapons ?? WeaponTable.Default;
+            _gameplayDigestBase = gameplayDigestBase;
             Config = config ?? RoomConfig.Default();
             _tickets = ticketValidator;
             _audience = audience ?? _serverConfig?.Audience ?? string.Empty;
@@ -1944,8 +1953,8 @@ namespace RoomServer
         {
             int mailboxCapacity = _serverConfig?.MailboxCapacity ?? RoomInstance.DefaultMailboxCapacity;
             RoomInstance inst = _workerExecution
-                ? new RoomInstance(cfg, mailboxCapacity, mailboxCapacity, mailboxCapacity, dynamic, true, _combat, _weapons)
-                : new RoomInstance(cfg, mailboxCapacity, dynamic, _combat, _weapons);
+                ? new RoomInstance(cfg, mailboxCapacity, mailboxCapacity, mailboxCapacity, dynamic, true, _combat, _weapons, _gameplayDigestBase)
+                : new RoomInstance(cfg, mailboxCapacity, dynamic, _combat, _weapons, _gameplayDigestBase);
             if (_workerExecution)
             {
                 // Worker 执行形态：房间在宿主线程建立，随后按 roomId 交给归属 Worker 驱动；

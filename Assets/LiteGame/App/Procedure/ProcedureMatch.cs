@@ -126,9 +126,13 @@ namespace LiteGame
         ///
         /// 信封 PSK 注入口（批C）：<paramref name="deploy"/> 带 <c>-envelope.key</c> 时优先（构建期/启动参数注入）；
         /// 空 = 回落 <c>LITENET_SECURE_ENVELOPE_KEY</c> 环境变量既有口（两道注入口不互斥——与部署侧同 key）。
+        ///
+        /// <paramref name="gameplayDigestBase"/>（批 E）= 本地装载产物的玩法数据身份基摘要提供者：本地服形态
+        /// 的**房间身份必须与客户端同源**（同进程同一份装载 —— 客户端 `BattleContext` 校验点按它复算 `StartGame.ConfigHash`），
+        /// 故由装配根传同一提供者；null = 测试/未配置形态（摘要按 0 基值，双方一致即可——见 `LocalServerTransport`）。
         /// </summary>
         internal static LiteNet.Transport.IClientTransport CreateTransportForFactory(bool testRoom,
-            MetaEntryConfig deploy = null)
+            MetaEntryConfig deploy = null, Func<uint> gameplayDigestBase = null)
         {
 #if UNITY_EDITOR || DEVELOPMENT_BUILD || LITEFRAMEWORK_DEBUG
             // 每局规则持有件：初值随入口定（常规入口一律 false——与既有"随入口复位"同语义），
@@ -154,7 +158,8 @@ namespace LiteGame
                     : "[Match] **本地服务器**：对局在进程内跑真 RoomRuntime 内核"
                         + "（无 Socket / 无票据 / 单房间 / 剩余席位自动补位站桩——弱网、重连真实性与真实多人交互仍须真服务器验证）");
                 int players = testRoom ? 1 + UnityEngine.Mathf.Max(0, TestModeRuntime.BotCount) : 0;   // 0 = 房间默认
-                return LocalServerTransport.ForRoom(testRoom ? TestRoomId : DefaultRoomId, players, rules);
+                return LocalServerTransport.ForRoom(testRoom ? TestRoomId : DefaultRoomId, players, rules,
+                    gameplayDigestBase?.Invoke() ?? 0u);   // 房间身份与客户端同源（同进程同一份装载——批 E）
             }
 #endif
             return new LiteNet.Transport.SecureEnvelopeClientTransport(

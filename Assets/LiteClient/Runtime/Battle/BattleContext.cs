@@ -68,6 +68,7 @@ namespace LiteClient
         private readonly BattleClient _battle;
         private readonly ClientScope _matchScope;
         private readonly SimMapData _map;
+        private readonly uint _gameplayDigestBase;        // 本地装载产物的玩法数据身份基摘要（批 E 校验点用）
         private readonly BattleInputPipeline _inputs;      // 输入三件（顺序与上行）
         private readonly BattleSnapshotMirror _mirror = new BattleSnapshotMirror();   // 持久镜像 + 和解 + 插值源
 
@@ -82,12 +83,17 @@ namespace LiteClient
 
         /// <param name="inputProvider">本地输入源（<see cref="IInputService"/>：
         /// 采样/上下文门/帧边界门都在服务里；本类只按逻辑帧推进并取用。null = 空输入——纯会话/测试形态）。</param>
+        /// <param name="gameplayDigestBase">本地装载产物的玩法数据身份**基摘要**
+        /// （`ConfigService.GameplayDigestBase`——装配经 `MatchSessionFactory` 注入；见
+        /// <see cref="OnStartGame"/> 校验点）。0 = 无表身份形态（测试直构）——与真服务端的房间摘要比对必不等的
+        /// 形态由 L1 用例显式构造，生产链恒为装载产物。</param>
         public BattleContext(BattleClient battle, ClientScope accountScope,
-            IInputService inputProvider = null, SimMapData map = null)
+            IInputService inputProvider = null, SimMapData map = null, uint gameplayDigestBase = 0)
         {
             _battle = battle ?? throw new ArgumentNullException(nameof(battle));
             if (accountScope == null) throw new ArgumentNullException(nameof(accountScope));
             _map = map ?? SimMapData.StandardBattleMap();
+            _gameplayDigestBase = gameplayDigestBase;
             _inputs = new BattleInputPipeline(_battle, inputProvider, ExpectedPlayers);
             _matchScope = accountScope.CreateChild("Match");
 
@@ -197,7 +203,8 @@ namespace LiteClient
 
         // ---- 网络事件处理 ----
 
-        /// <summary>StartGame：按服务器 seed 重建同构世界（预测的前提——两端世界构造必须逐位一致）。</summary>
+        /// <summary>StartGame：先过**玩法数据身份校验**（与服务器 `ConfigHash` 复算比对，不等即拒局——
+        /// 见方法内注释），再按服务器 seed 重建同构世界（预测的前提——两端世界构造必须逐位一致）。</summary>
         private void OnStartGame(LiteNet.Proto.StartGame sg)
         {
             if (_disposed || _sim != null) return;   // 幂等（重连不重发 StartGame）
@@ -214,6 +221,22 @@ namespace LiteClient
             {
                 values.NoDeath = rules.NoDeath;
                 values.InfiniteAmmo = rules.InfiniteAmmo;
+            }
+
+            // **玩法数据身份校验（批 E）**：服务端 `StartGame.ConfigHash` = 房间固定快照摘要
+            // （判定面表字节 + 本局规则位，见 `CombatConfigDigest`）；本地按同一算法、同一份**本地装载字节**
+            // 复算——不等 = 两端判据不同源（表数据漏更/回退一端：服务端换表未同批、客户端内容热更滞后……）。
+            // 带着分叉数据开局必然和解风暴，故**拒局**：留 Error 痕迹（双方摘要 + 基摘要）→ Ended(SessionFailed)
+            // 交流程层回 Main（与"版本不符"同口径——该原因的处理路径已存在）。
+            uint expectedDigest = CombatConfigDigest.WithTestRules(_gameplayDigestBase, values.NoDeath, values.InfiniteAmmo);
+            if (sg.ConfigHash != expectedDigest)
+            {
+                Log.Error(
+                    $"玩法数据身份不符:StartGame.ConfigHash=0x{sg.ConfigHash:x8} 本地复算=0x{expectedDigest:x8}" +
+                    $"（本地基摘要=0x{_gameplayDigestBase:x8} noDead={values.NoDeath} infiniteAmmo={values.InfiniteAmmo}）" +
+                    "——两端判定面表数据不同源（服务端换表重启与客户端内容热更未同批？）；本局拒绝建立", "Battle");
+                End(EndReason.SessionFailed);
+                return;
             }
 
             for (int i = 0; i < ExpectedPlayers; i++)

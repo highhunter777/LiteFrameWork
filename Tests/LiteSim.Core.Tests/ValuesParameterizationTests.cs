@@ -60,15 +60,19 @@ namespace LiteSim.Tests
         }
 
         [Fact]
-        public void 摘要按实例_同值同摘要异值异摘要()
+        public void 摘要终值_随本局规则初值区分_与基摘要绑定()
         {
-            var a = new CombatValues(7.5f, -9.8f, 50f, 40, 0, 130, 2.5f, 60);
-            var b = new CombatValues(7.5f, -9.8f, 50f, 40, 0, 130, 2.5f, 60);
-            var c = new CombatValues(7.5f, -9.8f, 50f, 40, 0, 131, 2.5f, 60);
+            // 批 E 起身份输入 = 判定面表字节（基摘要）+ 本局规则初值（终值）——不再按值投影字段；
+            // 本用例钉"规则初值经实例进身份"（测试房与常规房可区分）：值侧入口只剩 NoDeath/InfiniteAmmo。
+            var plain = CombatValues.Default;
+            var noDeath = CombatValues.Default;
+            noDeath.NoDeath = true;
 
-            Assert.Equal(CombatConfigDigest.Compute(a), CombatConfigDigest.Compute(b));
-            Assert.NotEqual(CombatConfigDigest.Compute(a), CombatConfigDigest.Compute(c));
-            Assert.NotEqual(CombatConfigDigest.Compute(CombatValues.Default), CombatConfigDigest.Compute(a));
+            uint a = CombatConfigDigest.WithTestRules(0x1234u, plain.NoDeath, plain.InfiniteAmmo);
+            uint b = CombatConfigDigest.WithTestRules(0x1234u, noDeath.NoDeath, noDeath.InfiniteAmmo);
+
+            Assert.Equal(a, CombatConfigDigest.WithTestRules(0x1234u, false, false));   // 确定性
+            Assert.NotEqual(a, b);                                                      // 规则初值改变房间身份
         }
 
         [Fact]

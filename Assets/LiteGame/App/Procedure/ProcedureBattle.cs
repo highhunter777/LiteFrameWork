@@ -115,8 +115,18 @@ namespace LiteGame
                 Log.Info("context-created (Match Scope built)", "Battle");
 
                 await WaitStartGame(battleClient, ct);        // Sim 就绪 = 视图可建（SimView 要读预测态）
-                _rig.Attach(_context);
-                _pages?.CloseRoomIfOpen();                   // 开局 → 关房间页（批C-④；对局场景接管画面）
+                if (_context.Sim != null)
+                {
+                    _rig.Attach(_context);
+                    _pages?.CloseRoomIfOpen();               // 开局 → 关房间页（批C-④；对局场景接管画面）
+                }
+                else
+                {
+                    // **StartGame 被拒**（批 E：玩法数据身份不符——`BattleContext` 校验点已 End(SessionFailed)）：
+                    // SimView 构造要读预测态，无 Sim 进 Attach 必炸——按会话失败收尾，不把"数据分叉拒局"变成错误态。
+                    // 下面的 WaitEnded 经 earlyResult 立即拿到原因（Ended 已在上游发出）。
+                    Log.Warning("StartGame 未建立解读世界（玩法数据身份不符/被拒）——跳过视图建立，按会话失败收尾", "Battle");
+                }
 
                 BattleContext.EndReason reason = await WaitEnded(_context, ct);
                 Log.Info($"ended reason={reason} reconciles={_context.ReconcileCount}", "Battle");

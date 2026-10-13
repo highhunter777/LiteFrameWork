@@ -41,6 +41,12 @@ namespace RoomServer
             /// 缺失即拒装配——与 CombatValues 同纪律）。</summary>
             public WeaponTable Weapons;
 
+            /// <summary>判定面表字节基摘要（= `ServerTableLoad.Digest`——生产链恒由装载产出；批 E：
+            /// 房间 `StartGame.ConfigHash` = 它 + 本局规则初值，客户端按本地装载字节复算比对）。
+            /// 与 CombatValues/Weapons 同属"装载产物显式传递"链：**漏传不静默**——首局即被客户端拒
+            /// （客户端复算 ≠ 房间摘要），表现为确定的拒局日志而非悄悄跑错数据。</summary>
+            public uint GameplayDigestBase;
+
             /// <summary>
             /// Lobby 注册参数（可 null = 不注册——单机/离线形态）。密钥已由 Program 从环境变量/命令行
             /// 组装（不进配置文件）；配置了 lobby.url 但缺密钥由 Program 先行 fail-closed。
@@ -106,7 +112,8 @@ namespace RoomServer
                 drainMailboxesImmediately: false,
                 workerExecution: true,
                 combatValues: combat,
-                weapons: weapons));
+                weapons: weapons,
+                gameplayDigestBase: inputs.GameplayDigestBase));
 
             services.AddSingleton(sp =>
             {

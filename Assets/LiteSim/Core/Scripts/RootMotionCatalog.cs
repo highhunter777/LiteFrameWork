@@ -71,7 +71,7 @@ namespace LiteSim
         public const int TickRate = SimConfig.TickRate;
 
         /// <summary>烘焙产物摘要（64 位 hex）——对规范化样本、动作帧数与全部影响判定的策略求摘要（§3
-        /// ContentDigest）；对局准入两端校验。≠ CombatConfigDigest（那个只覆盖数值装载面）。</summary>
+        /// ContentDigest）；对局准入两端校验。≠ CombatConfigDigest（那个覆盖判定面表字节 + 本局规则位）。</summary>
         public static string ContentDigest => RootMotionDigest.Compute(Entries);
     }
 

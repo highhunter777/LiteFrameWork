@@ -35,8 +35,8 @@ namespace LiteSim
 
         /// <summary>
         /// 瞄准态移动速度上限（m/s）= <see cref="CombatValues.AimMoveSpeed"/>（表值 tb_combatnum.aim_move_speed）。
-        /// 参与 <see cref="CombatConfigDigest"/>——**联机身份**：两端数值一致性当前由 buildHash（数据进编译期闭包）
-        /// 在 Join 握手拦；摘要由服务端随 `StartGame`/`ReconnectResponse` 下发，客户端校验点未接（缺口见审计表登记）。
+        /// 所在的**判定面表**（tbcombatnum）参与 <see cref="CombatConfigDigest"/>——**联机身份**：
+        /// 服务端随 `StartGame`/`ReconnectResponse` 下发房间摘要，客户端按本地装载表字节复算比对（批 E 已接）。
         ///
         /// **表化口径（勿按旧式派生推断）**：直接落最终速度（表列 aim_move_speed），不再由
         /// <see cref="MoveSpeed"/> × 倍率派生——旧倍率常量（0.5，取 2 的幂保位级精确）已退役：
@@ -65,8 +65,8 @@ namespace LiteSim
         /// tb_combatnum.fire_stance_frames，落在 <see cref="CombatValues.FireStanceFrames"/>——
         /// **改窗长只动表**（本行是表现面读口；机制面读传入的实例）。
         /// `EntitySlot.FireStanceFrames` 在 `ShootingSystem`
-        /// 判定点置满、`InputSystem` 逐帧统一递减，并按"瞄准 ∨ 开火态"限速 `AimMoveSpeed`——进
-        /// `CombatConfigDigest`（联机身份）。View 侧驻留窗按 `FireStanceFrames / SimConfig.TickRate`
+        /// 判定点置满、`InputSystem` 逐帧统一递减，并按"瞄准 ∨ 开火态"限速 `AimMoveSpeed`——所在判定表
+        /// （tbcombatnum）进 `CombatConfigDigest`（联机身份）。View 侧驻留窗按 `FireStanceFrames / SimConfig.TickRate`
         /// **同源派生**。**不变式：窗长 ≥ 开火片段播放时长**（防事件后窗先尽截断
         /// 在播射击片段——装配期校验，见 CharacterLocomotionDriver）；且须 1..255（落 byte，L1 守卫卡）。
         /// </summary>

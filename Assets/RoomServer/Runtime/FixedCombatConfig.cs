@@ -12,9 +12,9 @@ namespace RoomServer.Runtime
     /// 此后本房间的一切消费（Create 侧出生 HP、权威 Sim Step、回溯单系统、准入 AimPoint 距离闸、
     /// 武器懒装备/节拍/换弹）一律读本快照值——进程内任何后续变化都不可能影响已创建房间。
     ///
-    /// <see cref="Digest"/> = 创建时刻按数值实例计算的规范化摘要
-    /// （<see cref="CombatConfigDigest.Compute(in CombatValues)"/>）：随 StartGame 下发，
-    /// 客户端据此比对"本局数值身份"（武器表行同受 buildHash 表字节保护，不进本摘要）。
+    /// <see cref="Digest"/> = 创建时刻按**装载产物的判定面表字节基摘要** + 本局规则初值计算的规范化摘要
+    /// （<see cref="CombatConfigDigest.WithTestRules"/>——算法/覆盖面单源在该类）：随 StartGame 下发，
+    /// 客户端按同一份本地装载字节复算比对（批 E 校验点；不等即拒局）。
     /// </summary>
     public readonly struct FixedCombatConfig
     {
@@ -34,10 +34,13 @@ namespace RoomServer.Runtime
             Digest = digest;
         }
 
-        /// <summary>从装载实例捕获（房间创建时调用一次；摘要同刻绑定——不读全局静态面）。</summary>
-        public static FixedCombatConfig Capture(in CombatValues values, WeaponTable weapons)
+        /// <summary>从装载实例 + 基摘要捕获（房间创建时调用一次；摘要同刻绑定——不读全局静态面）。
+        /// <paramref name="gameplayDigestBase"/> = 装载链产出的判定面表字节基摘要
+        /// （`ServerTableLoad.Digest`——生产链恒为真表集；测试直构形态传 0 = 无表身份形态）。</summary>
+        public static FixedCombatConfig Capture(in CombatValues values, WeaponTable weapons, uint gameplayDigestBase)
         {
-            return new FixedCombatConfig(values, weapons, CombatConfigDigest.Compute(values));
+            return new FixedCombatConfig(values, weapons,
+                CombatConfigDigest.WithTestRules(gameplayDigestBase, values.NoDeath, values.InfiniteAmmo));
         }
     }
 }

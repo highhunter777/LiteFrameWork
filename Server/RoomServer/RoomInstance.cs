@@ -227,20 +227,21 @@ namespace RoomServer
             return Runtime.TryGetSeat(playerId, out PlayerSession seat) && seat.Phase == SeatPhase.Active;
         }
 
-        public RoomInstance(RoomConfig config, CombatValues? combat = null, WeaponTable weapons = null)
-            : this(config, DefaultMailboxCapacity, false, combat, weapons)
+        public RoomInstance(RoomConfig config, CombatValues? combat = null, WeaponTable weapons = null, uint gameplayDigestBase = 0)
+            : this(config, DefaultMailboxCapacity, false, combat, weapons, gameplayDigestBase)
         {
         }
 
         /// <summary>以统一容量创建房间 Mailbox；三条 lane 各自拥有该容量。</summary>
-        public RoomInstance(RoomConfig config, int mailboxCapacity, CombatValues? combat = null, WeaponTable weapons = null)
-            : this(config, mailboxCapacity, false, combat, weapons)
+        public RoomInstance(RoomConfig config, int mailboxCapacity, CombatValues? combat = null, WeaponTable weapons = null,
+            uint gameplayDigestBase = 0)
+            : this(config, mailboxCapacity, false, combat, weapons, gameplayDigestBase)
         {
         }
 
         public RoomInstance(RoomConfig config, int mailboxCapacity, bool isDynamic, CombatValues? combat = null,
-            WeaponTable weapons = null)
-            : this(config, mailboxCapacity, mailboxCapacity, mailboxCapacity, isDynamic, combat, weapons)
+            WeaponTable weapons = null, uint gameplayDigestBase = 0)
+            : this(config, mailboxCapacity, mailboxCapacity, mailboxCapacity, isDynamic, combat, weapons, gameplayDigestBase)
         {
         }
 
@@ -249,20 +250,21 @@ namespace RoomServer
         /// 重载供后续按优先级配置输入/控制/出站配额。
         /// </summary>
         public RoomInstance(RoomConfig config, int inputCapacity, int controlCapacity, int outboundCapacity,
-            CombatValues? combat = null, WeaponTable weapons = null)
-            : this(config, inputCapacity, controlCapacity, outboundCapacity, false, combat, weapons)
+            CombatValues? combat = null, WeaponTable weapons = null, uint gameplayDigestBase = 0)
+            : this(config, inputCapacity, controlCapacity, outboundCapacity, false, combat, weapons, gameplayDigestBase)
         {
         }
 
         public RoomInstance(RoomConfig config, int inputCapacity, int controlCapacity, int outboundCapacity,
-            bool isDynamic, CombatValues? combat = null, WeaponTable weapons = null)
-            : this(config, inputCapacity, controlCapacity, outboundCapacity, isDynamic, false, combat, weapons)
+            bool isDynamic, CombatValues? combat = null, WeaponTable weapons = null, uint gameplayDigestBase = 0)
+            : this(config, inputCapacity, controlCapacity, outboundCapacity, isDynamic, false, combat, weapons, gameplayDigestBase)
         {
         }
 
         /// <summary>Worker 执行形态：管线吃房间本地的广播席位槽（连接事实来自 Runtime 席位）。</summary>
         public RoomInstance(RoomConfig config, int inputCapacity, int controlCapacity, int outboundCapacity,
-            bool isDynamic, bool workerExecution, CombatValues? combat = null, WeaponTable weapons = null)
+            bool isDynamic, bool workerExecution, CombatValues? combat = null, WeaponTable weapons = null,
+            uint gameplayDigestBase = 0)
         {
             if (config == null) throw new ArgumentNullException(nameof(config));
             Config = config;
@@ -270,7 +272,8 @@ namespace RoomServer
             IsDynamic = isDynamic;
             WorkerExecution = workerExecution;
             // 非确定性身份由宿主装配；Runtime 只消费已给定身份，固定 Seed 的新局也不得复用结算幂等键。
-            Runtime = new RoomRuntime(config, combat, weapons, config.RoomId + ":" + Guid.NewGuid().ToString("N"));
+            Runtime = new RoomRuntime(config, combat, weapons, config.RoomId + ":" + Guid.NewGuid().ToString("N"),
+                testRules: null, gameplayDigestBase: gameplayDigestBase);
             Seats = new Session[Runtime.ExpectedPlayers];
             if (workerExecution)
             {

@@ -91,9 +91,11 @@ namespace RoomServer.Runtime
 
         /// <summary><paramref name="testRules"/> = 测试房规则持有件（LiteGame 本地服形态注入；
         /// null = 常规对局——免死/无限子弹关闭）。进 <see cref="FixedCombatConfig"/> 摘要的初值由装配方
-        /// 在 <paramref name="combat"/> 里盖章（测试房），运行态读持有件（GM 中局开合同实例生效）。</summary>
+        /// 在 <paramref name="combat"/> 里盖章（测试房），运行态读持有件（GM 中局开合同实例生效）；
+        /// <paramref name="gameplayDigestBase"/> = 判定面表字节基摘要（`ServerTableLoad.Digest` 经宿主装配
+        /// 显式传入——技术债 #1 同纪律：身份来自装载产物、不经读口；测试直构传 0 = 无表身份形态）。</summary>
         public RoomRuntime(RoomConfig config, CombatValues? combat = null, WeaponTable weapons = null, string matchId = null,
-            MatchTestRules testRules = null)
+            MatchTestRules testRules = null, uint gameplayDigestBase = 0)
         {
             Config = config ?? throw new ArgumentNullException(nameof(config));
             RoomId = config.RoomId;
@@ -103,7 +105,8 @@ namespace RoomServer.Runtime
             CombatValues values = combat ?? CombatValues.Default;
             WeaponTable table = weapons ?? WeaponTable.Default;
             _testRules = testRules;
-            FixedConfig = FixedCombatConfig.Capture(values, table);   // 房间创建时固定（此后进程任何变化不改本房间）
+            // 房间创建时固定（此后进程任何变化不改本房间）；摘要 = 表字节基摘要 + 本局规则初值同刻绑定。
+            FixedConfig = FixedCombatConfig.Capture(values, table, gameplayDigestBase);
             Rules = new MatchRules(config.Rules.DurationFrames, config.Rules.KillLimit,
                 config.Rules.RespawnDelayFrames, config.Rules.SpawnProtectionFrames);
             Map = BuildStandardMap();

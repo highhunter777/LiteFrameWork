@@ -93,6 +93,18 @@ namespace LiteGame.Tests.EditMode
 
         private FakeClientTransport _transport;
 
+        /// <summary>StartGame 信令（ConfigHash 按**本地装载复算**——批 E 起 BattleContext 校验它）：
+        /// 基摘要 = 本测试直构形态的 0（测试不装载配置），规则位取 <see cref="SimTestRules.ActiveMatch"/>
+        /// ——与 BattleContext.OnStartGame 的绑定源同一处（不是"抄一个魔数"）。
+        /// <paramref name="configHashOverride"/> = 显式伪造（拒局用例构造"两端不同源"）。</summary>
+        private static StartGame StartGameMessage(long seed, uint baseDigest = 0u, uint? configHashOverride = null)
+        {
+            MatchTestRules rules = SimTestRules.ActiveMatch;
+            uint expected = CombatConfigDigest.WithTestRules(baseDigest,
+                rules != null && rules.NoDeath, rules != null && rules.InfiniteAmmo);
+            return new StartGame { Seed = seed, ConfigHash = configHashOverride ?? expected, Frame = 0 };
+        }
+
         private BattleClient NewClient(string buildHash = null)
         {
             _transport = new FakeClientTransport();
@@ -197,7 +209,7 @@ namespace LiteGame.Tests.EditMode
                 try
                 {
                     Assert.That(context.Sim, Is.Null);
-                    _transport.Deliver(new StartGame { Seed = 12345, ConfigHash = 42, Frame = 0 }, PacketType.StartGame);
+                    _transport.Deliver(StartGameMessage(12345), PacketType.StartGame);
                     Assert.That(context.Sim, Is.Not.Null, "StartGame 后按 seed 重建同构世界");
                     Assert.That(context.Sim.State.Frame, Is.EqualTo(0));
 
@@ -263,7 +275,7 @@ namespace LiteGame.Tests.EditMode
                 BattleContext.EndReason reason = BattleContext.EndReason.Leave;
                 context.Ended += r => { endedCount++; reason = r; };
 
-                _transport.Deliver(new StartGame { Seed = 1, ConfigHash = 1, Frame = 0 }, PacketType.StartGame);
+                _transport.Deliver(StartGameMessage(1), PacketType.StartGame);
                 _transport.DropConnection();                          // SuspectedLost → 自动 BeginReconnect
                 Assert.That(_transport.ConnectCalls, Is.EqualTo(2), "断线自动重连（C2 会话子集策略）");
 
@@ -301,7 +313,7 @@ namespace LiteGame.Tests.EditMode
                     context.Dispose();
                     context.Ended += _ => snapshotsAfterDispose++;   // Dispose 后 Ended 不再触发（订阅已拆）
                     context.Leave();
-                    _transport.Deliver(new StartGame { Seed = 9, ConfigHash = 9, Frame = 0 }, PacketType.StateSnapshot);
+                    _transport.Deliver(StartGameMessage(9), PacketType.StateSnapshot);
 
                     Assert.That(snapshotsAfterDispose, Is.EqualTo(0), "Dispose 后事件面全部短路");
                     Assert.That(account.OwnedCount, Is.EqualTo(1), "Account Scope 只剩 BattleClient（Match 归 BattleContext 自有 Scope）");
@@ -314,6 +326,35 @@ namespace LiteGame.Tests.EditMode
                 finally
                 {
                     context.Dispose();                               // 幂等
+                }
+            }
+        }
+
+        [Test]
+        [Category(TestCategory.Contract)]
+        public void StartGame数据身份不符_拒局不建Sim_Ended为SessionFailed()
+        {
+            BattleClient battle = JoinedClient();
+            using (var account = new ClientScope("Account"))
+            {
+                account.Register(battle);
+                var context = new BattleContext(battle, account);
+                int endedCount = 0;
+                BattleContext.EndReason reason = BattleContext.EndReason.Leave;
+                context.Ended += r => { endedCount++; reason = r; };
+                try
+                {
+                    // 服务端摘要 = 本地复算再翻一位（模拟"表数据漏更/回退一端"）
+                    uint local = StartGameMessage(12345).ConfigHash;
+                    _transport.Deliver(StartGameMessage(12345, configHashOverride: local ^ 1u), PacketType.StartGame);
+
+                    Assert.That(context.Sim, Is.Null, "数据身份不符：不建立解释世界（防带分叉数据开局）");
+                    Assert.That(endedCount, Is.EqualTo(1));
+                    Assert.That(reason, Is.EqualTo(BattleContext.EndReason.SessionFailed));
+                }
+                finally
+                {
+                    context.Dispose();
                 }
             }
         }
@@ -335,7 +376,7 @@ namespace LiteGame.Tests.EditMode
                     Assert.That(context.Sim, Is.Null);
                     Assert.That(_transport.CountOf(PacketType.Input), Is.EqualTo(0), "未进对局不上行输入");
 
-                    _transport.Deliver(new StartGame { Seed = 12345, ConfigHash = 42, Frame = 0 }, PacketType.StartGame);
+                    _transport.Deliver(StartGameMessage(12345), PacketType.StartGame);
                     inputService.SampleOnRenderFrame(context.LocalPosition);   // 生产序：渲染帧采样（瞄准原点=本体位置）→ 逻辑帧 Tick 取用/上行
                     context.Tick(1f / 60);                           // 首个对局 Tick：发输入（帧 1）+ 预测推进
                     Assert.That(_transport.CountOf(PacketType.Input), Is.EqualTo(1));

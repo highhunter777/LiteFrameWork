@@ -78,7 +78,7 @@ namespace LiteGame.EditorTools
         {
             EditorGUILayout.HelpBox(
                 "枪口偏移：采样 prefab 的 Weapon_Rifle/Muzzle 锚点 @ AimIdle t=0（射弹时刻视觉姿态单族），"
-                + "输出相对 prefab 根的 Sim 系三常量 → MuzzleBake.g.cs（进 CombatConfigDigest）。\n"
+                + "输出相对 prefab 根的 Sim 系三常量 → MuzzleBake.g.cs（随代码进 buildHash 闭包）。\n"
                 + "重跑时机：美术调锚点/换枪/换参考姿态后。", MessageType.Info);
             if (GUILayout.Button("烘焙 MuzzleBake.g.cs")) Run(MuzzleOffsetBaker.All);
             DrawReport();

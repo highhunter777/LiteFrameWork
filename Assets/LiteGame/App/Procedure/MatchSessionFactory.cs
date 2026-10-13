@@ -49,10 +49,16 @@ namespace LiteGame
     public sealed class MatchSessionFactory : IMatchSessionFactory
     {
         private readonly IInputService _input;
+        private readonly Func<uint> _gameplayDigestBase;
 
-        public MatchSessionFactory(IInputService input)
+        /// <param name="gameplayDigestBase">本地装载产物的玩法数据身份基摘要提供者
+        /// （装配点绑定 `ConfigService.GameplayDigestBase`——**惰性读**:本工厂在 Preload 之前构造，
+        /// 首次取值发生在 Create（进房，恒在装载之后）；经 BattleContext 校验 `StartGame.ConfigHash`，
+        /// 见该类批 E 校验点）。</param>
+        public MatchSessionFactory(IInputService input, Func<uint> gameplayDigestBase)
         {
             _input = input;
+            _gameplayDigestBase = gameplayDigestBase ?? throw new ArgumentNullException(nameof(gameplayDigestBase));
         }
 
         public MatchSession Create(AccountSession account)
@@ -66,7 +72,8 @@ namespace LiteGame
                     c =>
                     {
                         var battle = c.Resolve<BattleClient>();
-                        return new BattleContext(battle, account.Scope, _input);
+                        return new BattleContext(battle, account.Scope, _input,
+                            gameplayDigestBase: _gameplayDigestBase());
                     },
                     ServiceLifetime.Scoped, typeof(BattleClient));
                 matchServices.Seal();

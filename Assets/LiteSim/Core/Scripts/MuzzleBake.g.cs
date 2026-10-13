@@ -5,7 +5,7 @@
 //       与 SimView 的 FacingRotation（yaw → 旋转 90°−yaw）配套。
 namespace LiteSim
 {
-    /// <summary>逻辑枪口常量（烘焙值；消费见 CombatConfig.MuzzleOrigin——三常量进 CombatConfigDigest）。</summary>
+    /// <summary>逻辑枪口常量（烘焙值；消费见 CombatConfig.MuzzleOrigin——三常量随代码进 buildHash 闭包——AOT 稳定层，运行期摘要只覆盖判定面表字节）。</summary>
     public static class MuzzleBake
     {
         public const float Forward = 0.7739859f;

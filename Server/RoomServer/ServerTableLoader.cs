@@ -21,8 +21,10 @@ namespace RoomServer
     /// 丢弃返回值即"服务端跑默认值"分叉的复辟面；结构性防线 = `HostAssembly.Inputs` 必填校验（缺即拒装配）。
     /// <see cref="Parse"/> 保持纯解析。L1 钉子：`CombatNumbersTests`/`WeaponTableTests`（装载产物 = 表值实例）。
     ///
-    /// **一致性双保险**：① 两端数值同源（同一 .bytes）② 表数据进 buildHash
-    /// （`scripts/codegen/gen-build-hash.py`），版本不一致直接在 Join 握手被拒。
+    /// **一致性守卫（批 E 起）**：① 两端数值同源（同一 .bytes）；② 判定面表字节基摘要随
+    /// `ServerTableLoad.Digest` → 房间 `StartGame.ConfigHash`（+ 本局规则），客户端按本地装载字节复算比对——
+    /// **不等即拒局**（此前靠"表数据进 buildHash 编译期闭包 + Join 握手"，2026-10-14 闭包重划后
+    /// 数据面守卫单点归运行期摘要：数据可两端热更，守卫在装载后当场生效）。
     /// </summary>
     public static class ServerTableLoader
     {
@@ -46,25 +48,23 @@ namespace RoomServer
         /// <summary>
         /// 从指定表目录装载并返回**装载实例**（表目录 = 客户端 GameData/Config 根，文件按
         /// <c>TableLayout.Files</c> 的领域相对路径取——源链接共编单源；Tables 构造器逐表取字节）。
+        /// 预读缓存与客户端 <c>ConfigService.LoadAsync</c> 同形：**裸表名 → 字节**（判定面摘要与建表共用同一批字节）。
         /// </summary>
         public static ServerTableLoad LoadTableBytes(string configDir)
         {
             if (!Directory.Exists(configDir))
                 throw new DirectoryNotFoundException($"表数据目录缺失：{configDir}（跑 Luban/gen.bat Pass 1）");
 
-            var domainByTable = new Dictionary<string, string>();
+            var cache = new Dictionary<string, byte[]>(TableLayout.Files.Length);
             foreach (string entry in TableLayout.Files)
             {
-                int slash = entry.IndexOf('/');
-                domainByTable[entry[(slash + 1)..]] = entry[..slash];
-            }
-            var tables = new cfg.Tables(file =>
-            {
-                string path = Path.Combine(Path.Combine(configDir, domainByTable[file]), file + ".bytes");
+                string path = Path.Combine(configDir, entry.Replace('/', Path.DirectorySeparatorChar) + ".bytes");
                 if (!File.Exists(path))
                     throw new FileNotFoundException($"配置表缺失：{path}（跑 Luban/gen.bat Pass 1——数值缺失等于两端分叉）", path);
-                return new Luban.ByteBuf(File.ReadAllBytes(path));
-            });
+                cache[TableLayout.TableName(entry)] = File.ReadAllBytes(path);
+            }
+
+            var tables = new cfg.Tables(file => new Luban.ByteBuf(cache[file]));
 
             var values = ToValues(SimConfigMapper.BuildCombatValues(tables.Tbcombatnum,
                 tables.Tbmovementconfig, tables.Tbentityconfig));
@@ -74,8 +74,13 @@ namespace RoomServer
                 $"dmg={values.BaseDamage}±{values.DamageSpread} hp={values.EntityHp}");
 
             WeaponTable weapons = BuildWeaponTable(tables);
+            // 判定面表字节基摘要（批 E）：与客户端同一清单/同一顺序/同一份字节 → 同摘要；
+            // 房间摘要 = 它 + 本局规则初值（`FixedCombatConfig.Capture`）——客户端据此复算拒局。
+            uint digest = TableLayout.ComputeGameplayDigestBase(cache);
+            HostLog.Info("Tables",
+                $"玩法数据身份基摘要:0x{digest:x8}（判定面 {TableLayout.JudgmentFiles.Length} 表——客户端装载后复算比对）");
             // 装载产物经返回值交给组合根显式传递（技术债 #1：不再回填全局静态面）。
-            return new ServerTableLoad(values, weapons);
+            return new ServerTableLoad(values, weapons, digest);
         }
 
         /// <summary>
@@ -157,7 +162,7 @@ namespace RoomServer
         }
     }
 
-    /// <summary>装载产物（数值行 + 武器表实例；由装配方持有并显式传递——无静态面）。</summary>
+    /// <summary>装载产物（数值行 + 武器表实例 + 判定面表字节基摘要；由装配方持有并显式传递——无静态面）。</summary>
     public readonly struct ServerTableLoad
     {
         /// <summary>玩法数值行（`ToValues()` → <see cref="CombatValues"/> 实例）。</summary>
@@ -166,10 +171,15 @@ namespace RoomServer
         /// <summary>武器表实例（tb_weapon 行）。</summary>
         public readonly WeaponTable Weapons;
 
-        public ServerTableLoad(CombatNumValues combat, WeaponTable weapons)
+        /// <summary>判定面表字节基摘要（批 E——`TableLayout.ComputeGameplayDigestBase`；
+        /// 经 `HostAssembly.Inputs.GameplayDigestBase` 显式传入宿主/房间）。</summary>
+        public readonly uint Digest;
+
+        public ServerTableLoad(CombatNumValues combat, WeaponTable weapons, uint digest)
         {
             Combat = combat;
             Weapons = weapons;
+            Digest = digest;
         }
     }
 

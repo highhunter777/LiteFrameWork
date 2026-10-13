@@ -105,13 +105,15 @@ namespace LiteNet.Tests
         public void 自定义实例经参数直达房间_无全局面参与()
         {
             var custom = new CombatValues(7.5f, -9.8f, 50f, 40, 0, 130, 2.5f, 60);
-            var room = new RoomRuntime(new RoomConfig { RoomId = "CfgInst", ExpectedPlayers = 1, Seed = 9 }, custom);
+            var room = new RoomRuntime(new RoomConfig { RoomId = "CfgInst", ExpectedPlayers = 1, Seed = 9 }, custom,
+                gameplayDigestBase: 0x00C0FFEEu);                                       // 基摘要同链显式传入（批 E）
             var outputs = new List<RoomOutput>();
             room.Execute(RoomCommand.Join(1), outputs);
 
             Assert.True(room.AuthSim.TryResolve(room.EntityIdOf(0), out int slot));
             Assert.Equal(130, room.AuthSim.Entities[slot].Hp);                          // 出生 HP = 实例值（≠ 默认 100）
-            Assert.Equal(CombatConfigDigest.Compute(custom), room.FixedConfig.Digest);  // 摘要按实例计算
+            // 房间身份 = 传入基摘要 + 本局规则初值（值侧只剩规则位——批 E 扩面后不再按值投影算摘要）
+            Assert.Equal(CombatConfigDigest.WithTestRules(0x00C0FFEEu, false, false), room.FixedConfig.Digest);
         }
 
         private static CombatNumValues Parse(byte[] combatBytes)

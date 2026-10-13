@@ -8,8 +8,9 @@ namespace LiteSim
     ///
     /// - **按值传递**；持有点构造后不得再改（约定——实例可自由复制，无共享可变面）。
     /// - <see cref="Default"/> = 表装面默认值（灰盒实测值），必须与表值一致（L1 守卫卡漂移）。
-    /// - 联机身份（摘要）见 <see cref="CombatConfigDigest.Compute(in CombatValues)"/>——摘要按实例计算，
-    ///   字段序/格式与旧口径逐字节一致（同值同摘要，两端拒进房判据不变）。
+    /// - 联机身份（摘要）见 <see cref="CombatConfigDigest"/>——**批 E 起按判定面表字节计算**（本实例的字段
+    ///   是那些表的投影：值相同 ⇔ 表相同；值侧唯一独立输入是本局的 <see cref="NoDeath"/>/<see cref="InfiniteAmmo"/>
+    ///   规则位，经 `WithTestRules` 进终值）。
     /// - 编译期常量（枪口烘焙/判定几何等）**不在**本实例——它们留在 <see cref="CombatConfig"/>。
     ///   （射击窗长为表化值——原编译期常量已迁入本实例。）
     /// </summary>
@@ -25,14 +26,14 @@ namespace LiteSim
         public int EntityHp;
 
         /// <summary>进房初值的免死规则（测试房；运行态经 <see cref="MatchTestRules"/> 注入——见该类注释）。
-        /// 进联机身份摘要与重放装载值；常规对局恒 false。</summary>
+        /// 进联机身份摘要（终值规则位）与重放装载值；常规对局恒 false。</summary>
         public bool NoDeath;
 
         /// <summary>进房初值的无限子弹规则（测试房；同上）。常规对局恒 false。</summary>
         public bool InfiniteAmmo;
 
         /// <summary>瞄准态（ADS）移动上限（m/s），表值 tb_combatnum.aim_move_speed。
-        /// 参与 <see cref="CombatConfigDigest"/>（联机身份）。
+        /// 所在判定表进 <see cref="CombatConfigDigest"/>（联机身份）。
         ///
         /// **语义（勿按旧式派生推断）**：本值**不是** <see cref="MoveSpeed"/> 的派生——直接落表
         /// （旧口径 `MoveSpeed × 0.5`、倍率取 2 的幂保位级精确，已随表化退役：直落最终值无乘法、
@@ -43,7 +44,7 @@ namespace LiteSim
 
         /// <summary>射击窗长（逻辑帧数）＝开火态时间，表值 tb_combatnum.fire_stance_frames。
         /// 在 <c>ShootingSystem</c> 判定点置满、<c>InputSystem</c> 逐帧统一递减，
-        /// 并按"瞄准 ∨ 开火态"限速 <see cref="AimMoveSpeed"/>。参与 <see cref="CombatConfigDigest"/>（联机身份）。
+        /// 并按"瞄准 ∨ 开火态"限速 <see cref="AimMoveSpeed"/>。所在判定表进 <see cref="CombatConfigDigest"/>（联机身份）。
         /// View 侧驻留窗按 <c>本值 / SimConfig.TickRate</c> 同源派生。
         ///
         /// **不变式**：<c>1 &lt;= 本值 &lt;= 255</c>——落进 <c>EntitySlot.FireStanceFrames</c>（<c>public byte</c>，

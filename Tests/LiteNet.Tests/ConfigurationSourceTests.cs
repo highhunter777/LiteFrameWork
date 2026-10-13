@@ -24,12 +24,18 @@ namespace LiteNet.Tests
         }
 
         [Fact]
-        public void 真实表映射_数值与默认摘要保持一致()
+        public void 真实表映射_数值与默认实例一致()
         {
             CombatValues values = Parse(Read("tbmovementconfig"), Read("tbentityconfig"));
-            var previous = new CombatValues(5f, -20f, 100f, 25, 1, 100, 2.5f, 60);
-            Assert.Equal(CombatConfigDigest.CanonicalText(previous), CombatConfigDigest.CanonicalText(values));
-            Assert.Equal(CombatConfigDigest.Compute(previous), CombatConfigDigest.Compute(values));
+            var expected = new CombatValues(5f, -20f, 100f, 25, 1, 100, 2.5f, 60);
+            Assert.Equal(expected.MoveSpeed, values.MoveSpeed);
+            Assert.Equal(expected.Gravity, values.Gravity);
+            Assert.Equal(expected.HitscanRange, values.HitscanRange);
+            Assert.Equal(expected.BaseDamage, values.BaseDamage);
+            Assert.Equal(expected.DamageSpread, values.DamageSpread);
+            Assert.Equal(expected.EntityHp, values.EntityHp);
+            Assert.Equal(expected.AimMoveSpeed, values.AimMoveSpeed);
+            Assert.Equal(expected.FireStanceFrames, values.FireStanceFrames);
         }
 
         [Fact]
@@ -37,7 +43,12 @@ namespace LiteNet.Tests
         {
             CombatValues values = Parse(MovementBytes(-9.8f), Read("tbentityconfig"));
             Assert.Equal(-9.8f, values.Gravity);
-            Assert.NotEqual(CombatConfigDigest.Compute(CombatValues.Default), CombatConfigDigest.Compute(values));
+            // 批 E：身份按**表字节**算——改重力字节即摘要变（不再是值投影进摘要）
+            uint original = CombatConfigDigest.ComputeBase(
+                new[] { new CombatConfigDigest.Entry("Movement/tbmovementconfig", Read("tbmovementconfig")) });
+            uint changed = CombatConfigDigest.ComputeBase(
+                new[] { new CombatConfigDigest.Entry("Movement/tbmovementconfig", MovementBytes(-9.8f)) });
+            Assert.NotEqual(original, changed);
 
             var world = new SimWorldState();
             long id = world.Spawn(new EntitySlot { Hp = values.EntityHp, Pos = new SimVector3(0f, 10f, 0f) }, out _);
@@ -50,13 +61,65 @@ namespace LiteNet.Tests
         public void 实体表改生命_直达房间出生与固定快照()
         {
             CombatValues values = Parse(Read("tbmovementconfig"), EntityBytes(1, 240));
-            var room = new RoomRuntime(new RoomConfig { RoomId = "EntitySource", ExpectedPlayers = 1, Seed = 9 }, values);
+            uint baseDigest = CombatConfigDigest.ComputeBase(
+                new[] { new CombatConfigDigest.Entry("Entity/tbentityconfig", EntityBytes(1, 240)) });
+            var room = new RoomRuntime(new RoomConfig { RoomId = "EntitySource", ExpectedPlayers = 1, Seed = 9 }, values,
+                gameplayDigestBase: baseDigest);
             room.Execute(RoomCommand.Join(1), new List<RoomOutput>());
             Assert.True(room.AuthSim.TryResolve(room.EntityIdOf(0), out int slot));
             Assert.Equal(240, room.AuthSim.Entities[slot].Hp);
             Assert.Equal(240, room.FixedConfig.Values.EntityHp);
-            Assert.Equal(CombatConfigDigest.Compute(values), room.FixedConfig.Digest);
-            Assert.NotEqual(CombatConfigDigest.Compute(CombatValues.Default), room.FixedConfig.Digest);
+            // 房间身份 = 装载基摘要 + 本局规则初值（规则位由 values 盖章——此处常规房 = false/false）
+            Assert.Equal(CombatConfigDigest.WithTestRules(baseDigest, false, false), room.FixedConfig.Digest);
+        }
+
+        /// <summary>
+        /// **批 E 核心不变量**：判定面表字节基摘要两端取数同源——
+        /// 服务端盘上直读（`ServerTableLoader`）与客户端装载缓存形（`ConfigService` 同形缓存）算出同一摘要；
+        /// 判定表改一字节 → 变；表现/内容表（`tbanimationprofile`——用户裁决"也要可热更"）改一字节 → 不变。
+        /// </summary>
+        [Fact]
+        public void 判定面表字节基摘要_两端同源_判定表敏感_表现表不敏感()
+        {
+            string dir = Path.Combine(RepoRoot(), ServerTableLoader.RelativeDir);
+            ServerTableLoad load = ServerTableLoader.LoadTableBytes(dir);      // 服务端取数（盘上直读）
+            Dictionary<string, byte[]> cache = ReadCache(dir);                 // 客户端取数（裸表名 → 字节）
+
+            Assert.Equal(TableLayout.ComputeGameplayDigestBase(cache), load.Digest);
+
+            // 判定表（Combat/tbweapon）改一字节 → 身份变
+            Dictionary<string, byte[]> weaponTouched = ReadCache(dir);
+            weaponTouched["tbweapon"][0] ^= 0xFF;
+            Assert.NotEqual(load.Digest, TableLayout.ComputeGameplayDigestBase(weaponTouched));
+
+            // 表现面表（Animation/tbanimationprofile 与 UI/tbltext）改字节 → 身份不动（单端热更不换联机身份）
+            Dictionary<string, byte[]> presentationTouched = ReadCache(dir);
+            presentationTouched["tbanimationprofile"][0] ^= 0xFF;
+            presentationTouched["tbltext"][0] ^= 0xFF;
+            Assert.Equal(load.Digest, TableLayout.ComputeGameplayDigestBase(presentationTouched));
+        }
+
+        /// <summary>判定面清单 = 表清单按域过滤（无漏无多）——"新增表落域即入面"的守卫，
+        /// 禁第二份人工清单漂移（修改指南 §1.2 单源纪律）。</summary>
+        [Fact]
+        public void 判定面清单_按域过滤派生_域内无表即红()
+        {
+            var expected = new List<string>();
+            foreach (string file in TableLayout.Files)
+            {
+                string domain = file.Substring(0, file.IndexOf('/'));
+                foreach (string judgment in TableLayout.JudgmentDomains)
+                    if (domain == judgment) { expected.Add(file); break; }
+            }
+            Assert.Equal(expected, TableLayout.JudgmentFiles);
+
+            foreach (string domain in TableLayout.JudgmentDomains)
+            {
+                bool any = false;
+                foreach (string file in TableLayout.Files)
+                    if (file.StartsWith(domain + "/", StringComparison.Ordinal)) { any = true; break; }
+                Assert.True(any, $"判定面域 '{domain}' 在 Files 里没有任何表——域名单源漂移");
+            }
         }
 
         [Theory]
@@ -139,14 +202,30 @@ namespace LiteNet.Tests
             // 领域相对路径单源 = TableLayout.Files（表名 → 领域子目录），与 ServerTableLoader/ConfigService 同源。
             foreach (string entry in TableLayout.Files)
             {
-                int slash = entry.IndexOf('/');
-                if (entry[(slash + 1)..] != table) continue;
-                for (var dir = new DirectoryInfo(AppContext.BaseDirectory); dir != null; dir = dir.Parent)
-                    if (File.Exists(Path.Combine(dir.FullName, "Tests", "Tests.slnx")))
-                        return File.ReadAllBytes(Path.Combine(dir.FullName, ServerTableLoader.RelativeDir, entry[..slash], table + ".bytes"));
-                throw new DirectoryNotFoundException("找不到仓库根");
+                if (TableLayout.TableName(entry) != table) continue;
+                return File.ReadAllBytes(Path.Combine(RepoRoot(), ServerTableLoader.RelativeDir,
+                    entry.Replace('/', Path.DirectorySeparatorChar) + ".bytes"));
             }
             throw new FileNotFoundException($"TableLayout 无此表：{table}");
+        }
+
+        /// <summary>仓库根定位（与 ServerTableLoader/测试侧同款标记：Assets + Tests/Tests.slnx）。</summary>
+        private static string RepoRoot()
+        {
+            for (var dir = new DirectoryInfo(AppContext.BaseDirectory); dir != null; dir = dir.Parent)
+                if (File.Exists(Path.Combine(dir.FullName, "Tests", "Tests.slnx")))
+                    return dir.FullName;
+            throw new DirectoryNotFoundException("找不到仓库根");
+        }
+
+        /// <summary>装载缓存形（裸表名 → 字节）——与客户端 `ConfigService.LoadAsync` 预取缓存同形（可改字节后复算）。</summary>
+        private static Dictionary<string, byte[]> ReadCache(string configDir)
+        {
+            var cache = new Dictionary<string, byte[]>();
+            foreach (string entry in TableLayout.Files)
+                cache[TableLayout.TableName(entry)] =
+                    File.ReadAllBytes(Path.Combine(configDir, entry.Replace('/', Path.DirectorySeparatorChar) + ".bytes"));
+            return cache;
         }
     }
 }

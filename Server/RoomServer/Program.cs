@@ -168,6 +168,7 @@ HostAssembly.Register(services, new HostAssembly.Inputs
     EnvelopeOptions = envelopeOptions,
     CombatValues = combat,
     Weapons = weapons,
+    GameplayDigestBase = load.Digest,
     Lobby = lobbySettings,
     Settlement = settlementSettings,
 });

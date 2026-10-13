@@ -20,7 +20,8 @@ namespace LiteNet.Tests
         public void 配置快照_与传入实例同刻绑定()
         {
             CombatValues values = CombatValues.Default;
-            FixedCombatConfig snap = FixedCombatConfig.Capture(values, WeaponTable.Default);
+            const uint Base = 0x00C0FFEEu;                  // 装载基摘要（生产链 = ServerTableLoad.Digest）
+            FixedCombatConfig snap = FixedCombatConfig.Capture(values, WeaponTable.Default, Base);
 
             Assert.Equal(values.MoveSpeed, snap.Values.MoveSpeed);
             Assert.Equal(values.Gravity, snap.Values.Gravity);
@@ -28,14 +29,17 @@ namespace LiteNet.Tests
             Assert.Equal(values.BaseDamage, snap.Values.BaseDamage);
             Assert.Equal(values.DamageSpread, snap.Values.DamageSpread);
             Assert.Equal(values.EntityHp, snap.Values.EntityHp);
-            Assert.Equal(CombatConfigDigest.Compute(values), snap.Digest);   // 摘要同刻绑定（§4/P0-5）
+            // 摘要同刻绑定（§4/P0-5）：装载基摘要 + 本局规则初值（常规房 = false/false）
+            Assert.Equal(CombatConfigDigest.WithTestRules(Base, false, false), snap.Digest);
         }
 
         [Fact]
         public void 开局使用房间快照数值_并下发绑定的配置摘要()
         {
             var custom = new CombatValues(7.5f, -9.8f, 50f, 40, 0, 130, 2.5f, 60);   // 自定义实例：证明数值经参数入房（债 #1）
-            var room = new RoomRuntime(new RoomConfig { RoomId = "Cfg", ExpectedPlayers = 1, Seed = 77 }, custom);
+            const uint Base = 0x00C0FFEEu;
+            var room = new RoomRuntime(new RoomConfig { RoomId = "Cfg", ExpectedPlayers = 1, Seed = 77 }, custom,
+                gameplayDigestBase: Base);
             var outputs = new List<RoomOutput>();
             room.Execute(RoomCommand.Join(1), outputs);
 
@@ -44,7 +48,8 @@ namespace LiteNet.Tests
                 if (o is SignalOutput { Signal: MatchStarted ms }) started = ms;
 
             Assert.NotNull(started);
-            Assert.Equal(CombatConfigDigest.Compute(custom), started.ConfigHash);   // 下发"本局数值身份"= 按实例计算摘要
+            // 下发"本局身份"= 装载基摘要 + 本局规则初值（批 E：客户端按本地装载字节复算比对）
+            Assert.Equal(CombatConfigDigest.WithTestRules(Base, false, false), started.ConfigHash);
             Assert.Equal(77L, started.Seed);
 
             // 出生 HP 取自房间快照（实例值直达——技术债 #1：无全局静态面）

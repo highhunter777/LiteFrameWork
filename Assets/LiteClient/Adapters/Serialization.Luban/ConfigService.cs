@@ -35,7 +35,8 @@ namespace LiteClient
     /// 本类不感知资源方案——构造收字节委托（装配点绑定 IContentService 租约通道——代次/引用统一）；
     /// 表清单显式登记在 <see cref="TableDataFiles"/>（新增 Luban 表时加一行）；
     /// 加载失败 fail-fast 抛（损坏/缺失不静默），由流程 Fail() 接——存档损坏不能炸启动，配置缺失必须炸。
-    /// 运行态重发布（热更安全窗口）、完整版本身份（GameplayDigest/Release 归属）与对局固定快照均未实现。
+    /// 运行态重发布（热更安全窗口）、Release 归属与对局固定快照均未实现；
+    /// **玩法数据身份摘要已产出**（<see cref="GameplayDigestBase"/>——批 E：判定面表字节全量，两端复算比对）。
     /// </summary>
     public sealed class ConfigService : IConfigService
     {
@@ -64,6 +65,15 @@ namespace LiteClient
 
         /// <summary>当前已发布快照（未发布为 null——与 <see cref="Loaded"/> 同判据）。</summary>
         public Tables CurrentSnapshot => _snapshots.Current;
+
+        /// <summary>
+        /// 玩法数据身份**基摘要**（判定面表字节全量；算法/清单单源 = <c>CombatConfigDigest.ComputeBase</c>
+        /// + <see cref="TableLayout.JudgmentFiles"/>）——与本次装载**同一批字节**同刻算出（装载热更/回退即变）。
+        /// 消费面（经装配注入，不作静态读口）：`MatchSessionFactory` → `BattleContext` 的
+        /// `StartGame.ConfigHash` 校验点；本地服形态 `LocalServerTransport`（同进程房间身份）。
+        /// 未装载前访问返回 0——装配序上消费点（Match/Battle）恒在 `LoadAsync` 之后（Preload 尾部放行）。
+        /// </summary>
+        public uint GameplayDigestBase { get; private set; }
 
         public Tables Tables
         {
@@ -103,12 +113,14 @@ namespace LiteClient
 
             // ③ 校验 + 原子发布 + 回填（顺序钉死：发布失败 → Loaded 保持 false、CombatConfig 不动）
             _snapshots.Publish(candidate);                 // 校验失败抛（保留旧版/空态），版本 +1
+            GameplayDigestBase = TableLayout.ComputeGameplayDigestBase(cache);   // 数据身份基摘要（与本次装载同一批字节；发布后同刻绑定）
             ApplyCombatNumbers(candidate);                 // 校验已过（行存在性由 ValidateCandidate 保证）
             ApplyMovementNumbers(candidate);               // 移动数值（同上：一致性闸门在 ValidateCandidate）
             ApplyWeaponTable(candidate);                   // 武器表（多行回填——WeaponSystem 消费）
             ApplyAnimationProfile(candidate);               // 动画 Profile 行（投影为 Core 行并发布读口——对局装配/构建器/测试消费）
             _tables = candidate;                           // 对外可见（发布成功后）
-            Log.Info($"配置快照发布完成:{TableDataFiles.Length} 张表 version={Version}", "Config");
+            Log.Info($"配置快照发布完成:{TableDataFiles.Length} 张表 version={Version} " +
+                     $"digest={GameplayDigestBase:x8}（判定面 {TableLayout.JudgmentFiles.Length} 表）", "Config");
         }
 
         /// <summary>候选校验（发布闸门——返回 null 通过，非 null 为拒绝原因上抛）。</summary>

@@ -1,11 +1,11 @@
 ---
 name: build-hash-sync
-description: 共享源集改动后的生成物重生成流程(BuildHash / 协议 / Luban 表)。只要动过或即将动 Assets/LiteSim/Core/{Scripts,Systems}、Assets/LiteNet/{Proto,Protocol,Transport/Security}、.proto 文件、Luban 表源(Luban/Data、Luban/Defines)、Assets/GameData/Config 表数据,或用户提到 BuildHash、握手、生成物、重生成、出包前检查,就必须先加载本 skill——漏跑 = 出包门禁被拦/两端常量不同步时 Join 拒进房。
+description: 共享源集改动后的生成物重生成流程(BuildHash / 协议 / Luban 表)。只要动过或即将动 Assets/LiteSim/Core/{Scripts,Systems}、Assets/LiteNet/{Proto,Protocol,Transport/Security}、Assets/GameData/Generated(生成读码面)、.proto 文件、Luban 表源(Luban/Data、Luban/Defines)、Assets/GameData/Config 表数据,或用户提到 BuildHash、握手、生成物、重生成、出包前检查,就必须先加载本 skill——漏跑 = 出包门禁被拦/两端常量不同步时 Join 拒进房。
 ---
 
 # 共享源集与生成物同步(BuildHash / 协议 / 表)
 
-**为什么存在**:`BuildHash.g.cs` 把两端共享源(Sim 内核、协议、安全信封、表数据)的内容指纹编译成常量,**随各自编译烤进两端程序集**;客户端与服务器 Join 时比对哈希,不等直接拒进房。改了源不重生成 = 本地联机(两端都旧)不会立刻炸,炸点在出包门禁被拦(返工一轮:重生成+双端重建+重打包)或两端构建不同步时握手失败——这正是修改指南 §3.9 称它"最容易被忘的收尾"的原因。权威细则在 `Docs/修改指南.md` §3.9 与《生成器工具箱专项设计》;源集清单权威 = `scripts/codegen/gen-build-hash.py` 的 TARGETS/DATA_TARGETS。
+**为什么存在**:`BuildHash.g.cs` 把两端共享源(Sim 内核、协议、安全信封、Luban 生成读码面、源链接共编映射件)的内容指纹编译成常量,**随各自编译烤进两端程序集**;客户端与服务器 Join 时比对哈希,不等直接拒进房。改了源不重生成 = 本地联机(两端都旧)不会立刻炸,炸点在出包门禁被拦(返工一轮:重生成+双端重建+重打包)或两端构建不同步时握手失败——这正是修改指南 §3.9 称它"最容易被忘的收尾"的原因。权威细则在 `Docs/修改指南.md` §3.9 与《生成器工具箱专项设计》;源集清单权威 = `scripts/codegen/gen-build-hash.py` 的 `SHARED_TARGETS`/`SHARED_LINK_FILES`。**表数值(`Assets/GameData/Config/*.bytes`)已移出闭包**(2026-10-14 批 E)——数据面守卫是装载后运行期摘要(`CombatConfigDigest` + 客户端 `StartGame.ConfigHash` 校验点),表值两端热更不出包;但改表源后仍要 `Luban/gen.bat` 重生成读码面(`Assets/GameData/Generated` 在闭包内)。
 
 ## 校验时点(2026-10-07 起)
 
@@ -16,9 +16,10 @@ description: 共享源集改动后的生成物重生成流程(BuildHash / 协议
 
 | 改了什么 | 必跑 |
 |---|---|
-| `Assets/LiteSim/Core/{Scripts,Systems}`、`Assets/LiteNet/{Proto,Protocol,Transport/Security}`、表数据 | ★ `python scripts/codegen/gen-build-hash.py` |
+| `Assets/LiteSim/Core/{Scripts,Systems}`、`Assets/LiteNet/{Proto,Protocol,Transport/Security}`、`Assets/GameData/Generated`、源链接共编件(`SHARED_LINK_FILES`) | ★ `python scripts/codegen/gen-build-hash.py` |
+| `Assets/GameData/Config/*.bytes`(表**数值**) | 不必跑(数据面守卫＝运行期摘要)；两端发布顺序见修改指南 §3.9 |
 | `.proto`(源在 `Assets/LiteNet/Proto/*.proto`) | ★ `python scripts/codegen/gen_proto.py --protoc <protoc.exe>` **再** ★ BuildHash 重跑 |
-| 表源(`Luban/Data/*.xlsx`、`Luban/Defines/` schema) | ★ `Luban/gen.bat`(双端重生成 C#/binary/Lua)**再** ★ BuildHash 重跑 |
+| 表源(`Luban/Data/*.xlsx`、`Luban/Defines/` schema) | ★ `Luban/gen.bat`(双端重生成 C#/binary/Lua)**再** ★ BuildHash 重跑(读码面在闭包内——只改数值也随 gen.bat 重生成同一份读码,常量不动) |
 | 出包前 | `python scripts/codegen/gen-build-hash.py --check`(复算比对;`build-player.ps1` 门禁步也会做) |
 
 ## 规则

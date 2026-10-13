@@ -76,7 +76,10 @@ namespace LiteGame
 
         /// <param name="roomConfig">房间配置（人数/种子/时限——与真服务端同类型）。</param>
         /// <param name="testRules">测试房规则持有件（null = 常规对局）——盖初值进数值快照 + 注入权威步进。</param>
-        public LocalServerTransport(RoomConfig roomConfig, MatchTestRules testRules = null)
+        /// <param name="gameplayDigestBase">判定面表字节基摘要（批 E）= 客户端 `ConfigService.GameplayDigestBase`
+        /// ——本地房间身份必须与客户端同源（客户端 `BattleContext` 按同一提供者复算 `StartGame.ConfigHash`；
+        /// 本形态的房间数值取 `CombatValues.Default`＝表值，L1 守卫钉住两者一致）。</param>
+        public LocalServerTransport(RoomConfig roomConfig, MatchTestRules testRules = null, uint gameplayDigestBase = 0)
         {
             if (roomConfig == null) throw new ArgumentNullException(nameof(roomConfig));
             _testRules = testRules;
@@ -89,7 +92,7 @@ namespace LiteGame
                 stamped.InfiniteAmmo = testRules.InfiniteAmmo;
                 combat = stamped;
             }
-            _runtime = new RoomRuntime(roomConfig, combat, testRules: testRules);
+            _runtime = new RoomRuntime(roomConfig, combat, testRules: testRules, gameplayDigestBase: gameplayDigestBase);
             _botRefillHp = (combat ?? CombatValues.Default).EntityHp;   // 与 RoomRuntime 取值同口径（combat ?? Default）
             _seats = new Session[_runtime.ExpectedPlayers];
             _pipeline = new SnapshotPipeline(_seats)
@@ -111,12 +114,15 @@ namespace LiteGame
         /// <param name="expectedPlayers">总席位（0 = 房间默认 2）；测试模式按 bot 数量配置。</param>
         /// <param name="testRules">测试房规则持有件（null = 常规对局）；初值同时盖进房间数值快照
         /// （联机身份摘要可见），运行态经持有件注入权威步进（与客户端预测同实例）。</param>
-        public static LocalServerTransport ForRoom(string roomId, int expectedPlayers = 0, MatchTestRules testRules = null)
+        /// <param name="gameplayDigestBase">判定面表字节基摘要（批 E——装配根传 `ConfigService.GameplayDigestBase`
+        /// 同一提供者；摘要不等 = 客户端拒局，见类头"联机身份"与 `BattleContext` 校验点）。</param>
+        public static LocalServerTransport ForRoom(string roomId, int expectedPlayers = 0, MatchTestRules testRules = null,
+            uint gameplayDigestBase = 0)
         {
             if (string.IsNullOrEmpty(roomId)) throw new ArgumentException("房间号不得为空", nameof(roomId));
             var config = new RoomConfig { RoomId = roomId };
             if (expectedPlayers > 0) config.ExpectedPlayers = expectedPlayers;
-            return new LocalServerTransport(config, testRules);
+            return new LocalServerTransport(config, testRules, gameplayDigestBase);
         }
 
         public void Connect(string address, int port)

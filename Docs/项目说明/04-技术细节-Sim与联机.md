@@ -51,7 +51,7 @@ SortInputs（按 EntityId 升序稳定插入）
 | `MovementConfig` 18 个便捷读口属性 | **零生产读者**（写入方仅 `ConfigService.Publish`，读取方无）——同类读口里 `CombatConfig`/`WeaponConfig` 各有 2 处生产读者（`SimSandbox`、`BattleContext` 构造期取实例再下传），`MovementConfig` 一处也没有 |
 | `EntityValues`（1 字段） | 仅 `CombatValues.Default` 内引用一次，无独立消费 |
 
-摘要侧一处**覆盖不对称**（值得记账）：`CombatConfigDigest` 的 15 行规范化文本里 `HeadshotRadius` **进了**摘要（理由是"两端同值由生成文件保证，仍进摘要兜底只改一端"），而同文件同源的 `HeadHitLine` **刻意不进**（`CombatConfig.cs:156` 声明"代码常量两端编译期同值"）。二者同属 `HeadBake.g.cs` 的同一份产物、同一套论证，却一进一出——改动 `HeadBake.Ratio` 不会被两端拒进房拦截。
+摘要侧口径（原"`HeadshotRadius` 进 / `HeadHitLine` 不进"的不对称已收口）：**代码侧判定常量**（`HeadBake`/`MuzzleBake`/`BodyBake` 等烘焙导出、算法常量）统一归 **buildHash 闭包**（随代码走 Join 握手），**运行期摘要（`CombatConfigDigest`）只守数据面**——判定面**表字节** + 本局规则位，客户端装载后复算 `StartGame.ConfigHash` 比对（不等拒局）。三档输入各归其守卫（代码=/握手；数据=/摘要；表现内容=/内容发布链），不再有"同一份产物一半进摘要一半不进"。
 
 ### 1.3 预测 · 回滚 · 和解（客户端侧）
 
@@ -78,10 +78,10 @@ SortInputs（按 EntityId 升序稳定插入）
 
 | 项 | 内容 |
 |---|---|
-| 覆盖 | `Assets/LiteSim/Core/Scripts`、`Assets/LiteSim/Core/Systems`、`Assets/LiteNet/Proto`、`Assets/LiteNet/Protocol`、`Assets/LiteNet/Transport/Security`（安全信封——密文帧形状/握手版本变更即两端 wire 不兼容）＋ **玩法表数据**（`Assets/GameData/Config/*.bytes`——**两端同读这一份**；服务端 `RoomServer/Data` json 已退役 2026-09-28；UI 表如 `tbuiform` 显式排除） |
+| 覆盖 | `Assets/LiteSim/Core/Scripts`、`Assets/LiteSim/Core/Systems`、`Assets/LiteNet/Proto`、`Assets/LiteNet/Protocol`、`Assets/LiteNet/Transport/Security`（安全信封——密文帧形状/握手版本变更即两端 wire 不兼容）＋ `Assets/GameData/Generated`（Luban 生成读码面——列/类型/schema 身份）＋ 源链接共编件（`SimConfigMapper.cs`/`TableLayout.cs`——服务端 csproj 出树 `<Compile Include>`）。**表数值（`Assets/GameData/Config/*.bytes`）已移出闭包**：数据面守卫＝装载后运行期摘要（见 §1.2 摘要口径与《热更与内容发布专项设计》§2.2），表值可两端热更不出包 |
 | 算法 | 按相对路径 Ordinal 排序 → 逐个喂 `路径\0内容（行尾 CRLF/CR→LF 归一化）` → SHA-256 → 取前 16 个十六进制字符 |
 | 生成 | `python scripts/codegen/gen-build-hash.py` → `Assets/LiteNet/Protocol/BuildHash.g.cs`（共享源集）**＋ `Server/MetaServer/Host/BuildHash.g.cs`（Meta 构建身份，P1④）** |
-| 握手 | `RoomClient.SendJoin → JoinRequest.build_hash`：两端不等 → 拒绝进房（**改 Sim/协议/表必须重跑生成器**） |
+| 握手 | `RoomClient.SendJoin → JoinRequest.build_hash`：两端不等 → 拒绝进房（**改 Sim/协议/生成读码面/源链接共编件必须重跑生成器**）；表**数值**差异不走这里——`StartGame.ConfigHash` 数据面校验（客户端复算比对，不等拒局） |
 | Meta 身份 | `MetaServer/Host/BuildHash.g.cs` = `Server/MetaServer/**` 源集（含源链接件 `JoinTicketFormat.cs`）摘要，仅供启动日志 `build=`（§P0-5）——**不参与任何准入判定**：Lobby 版本准入与票据盖章消费的是**房间实例上报的** `LiteNet.BuildHash.Value`（`InstanceRegistry.Entry.BuildHash`）。旧的手写占位 `"meta-0.0.0-unwired"` 已随 P1④ 删除 |
 | 守卫 | **构建前校验**：`--check` 复算**两个**常量并比对，不等即失败；`--check-shared` 只查共享源集那个——**出包门禁步（`build-player.ps1`）用后者**（Meta 是独立产物，其常量陈旧不拦客户端出包；发布 Meta 前跑 `--check`）。2026-10-07 起开发期不再设测试守卫（原 `BuildHashTests`/`BuildHashSourceSet.g.cs` 已退役，规则单源回归生成器脚本） |
 
