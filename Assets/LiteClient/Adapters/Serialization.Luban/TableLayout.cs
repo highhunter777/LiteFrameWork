@@ -5,7 +5,7 @@ namespace LiteClient
     /// 领域分类目录（《资源收集目录专项设计》§5.1）下的表清单与位置。
     ///
     /// **单源纪律**：gen_luban.py 解析本文件的 <see cref="Files"/> 做 bin 产物的分域归位（生成器引用运行时常量）；
-    /// 客户端 <see cref="ConfigService"/> 与服务端 <see cref="RoomServer.CombatNumbers"/> 的装载路径都从本类取——
+    /// 客户端 <see cref="ConfigService"/> 与服务端 <see cref="RoomServer.ServerTableLoader"/> 的装载路径都从本类取——
     /// 新增表 = 在 <see cref="Files"/> 加一行"领域/表名"，再跑 gen.bat + gen-build-hash.py。
     /// </summary>
     public static class TableLayout

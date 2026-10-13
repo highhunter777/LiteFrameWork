@@ -98,6 +98,18 @@ namespace LiteGame
             return await _client.ListRecentMatchesAsync(_accessToken, limit);
         }
 
+        /// <summary>
+        /// 离房/离局（进房的逆操作，同一窄接口同一管道）：请求流程机回 Main——在途阶段
+        /// （Match 等 JoinAck / Battle 对局）被取消，资源释放归各自 finally（离场无残留的既有流程侧保证）。
+        /// 未绑定流程机 = 无操作（false；与 <see cref="EnterRoomAsync"/> 的显性失败同判据）。
+        /// </summary>
+        public bool LeaveMatch()
+        {
+            if (_machine == null) return false;
+            _machine.Request(ProcedureId.Main);
+            return true;
+        }
+
         private static MetaCall<T> NotConfigured<T>()
             => MetaCall<T>.Failed(MetaFailure.Rejected(0, "entry.not-configured", "未配置服务器地址（-meta.url）"));
 

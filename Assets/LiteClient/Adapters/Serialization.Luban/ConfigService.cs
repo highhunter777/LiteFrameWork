@@ -81,7 +81,7 @@ namespace LiteClient
 
             // ① 候选字节预取（缺表 fail-fast，报错带 location）
             // **键 = 裸表名（Luban 生成物 cfg.Tables 按裸名回调 loader）；位置 = 领域相对路径**
-            // ——两者都从 TableLayout 单源派生（与 RoomServer.CombatNumbers 同范式）。
+            // ——两者都从 TableLayout 单源派生（与 RoomServer.ServerTableLoader 同范式）。
             var cache = new Dictionary<string, byte[]>(TableDataFiles.Length);
             foreach (string file in TableDataFiles)
             {
@@ -154,7 +154,7 @@ namespace LiteClient
         /// <summary>
         /// 玩法数值装载（表 → <see cref="CombatValues"/> 实例并**原子发布读口**）：LiteSim 是零依赖程序集，
         /// 读表能力只能由外部喂 primitives。表值即手感参数唯一真相；**本类的默认值须与表一致**（L1 守卫用例卡漂移）。
-        /// 服务端直读同一份 .bytes（`RoomServer/CombatNumbers`）——两端同值，受 buildHash 闭包保护。
+        /// 服务端直读同一份 .bytes（`RoomServer/ServerTableLoader`）——两端同值，受 buildHash 闭包保护。
         /// 机制消费经参数传递（技术债 #1）；<see cref="CombatConfig.Publish"/> 只服务单世界表现面便捷读。
         /// 调用契约：<see cref="ValidateCandidate"/> 已通过（行存在性保证——本方法不再兜底判空）。
         /// </summary>

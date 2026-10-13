@@ -14,7 +14,7 @@ namespace LiteNet.Tests
     ///
     /// 1. **表 → 默认值一致**：`CombatValues.Default` 的兜底值必须等于表值——否则表没生成/没装载时
     ///    两端在同一份表下算出不同结果（隐形的行为分叉，最难查）。
-    /// 2. **服务端解析**（`CombatNumbers.Parse`，bytes 形态）：正常 / 截断 / 缺行 → 抛（fail-fast，
+    /// 2. **服务端解析**（`ServerTableLoader.Parse`，bytes 形态）：正常 / 截断 / 缺行 → 抛（fail-fast，
     ///    不静默兜底）。
     /// 3. **装载产出实例**：`LoadTableBytes` 返回的表行经 `ToValues()` 产出 <see cref="CombatValues"/>
     ///    实例（技术债 #1：不再回填全局——实例由装配方显式传递，`HostAssembly.Inputs` 必填卡"丢弃返回值"）。
@@ -43,7 +43,7 @@ namespace LiteNet.Tests
             Assert.Equal(CombatValues.Default.BaseDamage, v.BaseDamage);
             Assert.Equal(CombatValues.Default.DamageSpread, v.DamageSpread);
             Assert.Equal(CombatValues.Default.EntityHp, v.EntityHp);
-            Assert.Equal(CombatNumbers.SingleRowId, v.Id);
+            Assert.Equal(ServerTableLoader.SingleRowId, v.Id);
         }
 
         [Fact]
@@ -75,7 +75,7 @@ namespace LiteNet.Tests
         public void 缺目录装载_抛()
         {
             string missing = Path.Combine(RepoRoot(), "RoomServer", "Data", "__not_exist__");
-            Assert.ThrowsAny<Exception>(() => CombatNumbers.LoadTableBytes(missing));
+            Assert.ThrowsAny<Exception>(() => ServerTableLoader.LoadTableBytes(missing));
         }
 
         /// <summary>
@@ -88,7 +88,7 @@ namespace LiteNet.Tests
         public void 装载产出实例_字段与表值一致()
         {
             string dir = Path.Combine(RepoRoot(), "Assets", "GameData", "Config");
-            CombatNumValues v = CombatNumbers.LoadTableBytes(dir).Combat;
+            CombatNumValues v = ServerTableLoader.LoadTableBytes(dir).Combat;
             CombatValues values = v.ToValues();
 
             Assert.Equal(v.MoveSpeed, values.MoveSpeed);
@@ -116,12 +116,12 @@ namespace LiteNet.Tests
 
         private static CombatNumValues Parse(byte[] combatBytes)
         {
-            return CombatNumbers.Parse(combatBytes,
+            return ServerTableLoader.Parse(combatBytes,
                 File.ReadAllBytes(TableBin("tbmovementconfig")),
                 File.ReadAllBytes(TableBin("tbentityconfig")));
         }
 
-        /// <summary>领域相对路径单源 = TableLayout.Files（与 ConfigService/CombatNumbers 同源）。</summary>
+        /// <summary>领域相对路径单源 = TableLayout.Files（与 ConfigService/ServerTableLoader 同源）。</summary>
         private static string TableBin(string table)
         {
             foreach (string entry in TableLayout.Files)

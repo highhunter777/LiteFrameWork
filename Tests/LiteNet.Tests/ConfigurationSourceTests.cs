@@ -68,7 +68,7 @@ namespace LiteNet.Tests
             byte[] combat = emptyTable == "tbcombatnum" ? new byte[] { 0 } : Read("tbcombatnum");
             byte[] movement = emptyTable == "tbmovementconfig" ? new byte[] { 0 } : Read("tbmovementconfig");
             byte[] entity = emptyTable == "tbentityconfig" ? new byte[] { 0 } : Read("tbentityconfig");
-            var ex = Assert.Throws<InvalidDataException>(() => CombatNumbers.Parse(combat, movement, entity));
+            var ex = Assert.Throws<InvalidDataException>(() => ServerTableLoader.Parse(combat, movement, entity));
             Assert.Contains(emptyTable, ex.Message);
         }
 
@@ -110,7 +110,7 @@ namespace LiteNet.Tests
         }
 
         private static CombatValues Parse(byte[] movement, byte[] entity)
-            => CombatNumbers.Parse(Read("tbcombatnum"), movement, entity).ToValues();
+            => ServerTableLoader.Parse(Read("tbcombatnum"), movement, entity).ToValues();
 
         private static byte[] EntityBytes(int id, int hp)
         {
@@ -136,14 +136,14 @@ namespace LiteNet.Tests
 
         private static byte[] Read(string table)
         {
-            // 领域相对路径单源 = TableLayout.Files（表名 → 领域子目录），与 CombatNumbers/ConfigService 同源。
+            // 领域相对路径单源 = TableLayout.Files（表名 → 领域子目录），与 ServerTableLoader/ConfigService 同源。
             foreach (string entry in TableLayout.Files)
             {
                 int slash = entry.IndexOf('/');
                 if (entry[(slash + 1)..] != table) continue;
                 for (var dir = new DirectoryInfo(AppContext.BaseDirectory); dir != null; dir = dir.Parent)
                     if (File.Exists(Path.Combine(dir.FullName, "Tests", "Tests.slnx")))
-                        return File.ReadAllBytes(Path.Combine(dir.FullName, CombatNumbers.RelativeDir, entry[..slash], table + ".bytes"));
+                        return File.ReadAllBytes(Path.Combine(dir.FullName, ServerTableLoader.RelativeDir, entry[..slash], table + ".bytes"));
                 throw new DirectoryNotFoundException("找不到仓库根");
             }
             throw new FileNotFoundException($"TableLayout 无此表：{table}");

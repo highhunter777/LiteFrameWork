@@ -16,6 +16,7 @@ namespace LiteClient
         public Setting<int> Quality { get; }
         public Setting<string> Language { get; }
         public Setting<bool> Fullscreen { get; }
+        public Setting<bool> SoundEnabled { get; }
 
         public GameSettings(SettingService svc)
         {
@@ -24,6 +25,8 @@ namespace LiteClient
             Quality      = new Setting<int>(svc, "quality", 2, v => Math.Clamp(v, 0, 3));
             Language     = new Setting<string>(svc, "lang", "zh-CN");
             Fullscreen   = new Setting<bool>(svc, "fullscreen", true);
+            // 音效开关（批C-⑥ 增项）：关 = Effect 组静音（Ui/Voice/Bgm 不受影响——"音效"语义面）
+            SoundEnabled = new Setting<bool>(svc, "sfx", true);
         }
     }
 }

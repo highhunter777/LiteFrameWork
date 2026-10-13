@@ -9,7 +9,7 @@ namespace LiteNet.Tests
     /// <summary>
     /// 武器表链路守卫（tb_weapon ↔ <see cref="WeaponTable"/> 实例，两端同源纪律同 <see cref="CombatNumbersTests"/>）：
     /// ① 表产物存在且**默认步枪行与内置默认逐字段一致**（表未装载时的兜底不得漂移）；
-    /// ② 服务端装载链（<see cref="CombatNumbers.LoadTableBytes"/>）产出的 <see cref="WeaponTable"/> 实例在册读到表值。
+    /// ② 服务端装载链（<see cref="ServerTableLoader.LoadTableBytes"/>）产出的 <see cref="WeaponTable"/> 实例在册读到表值。
     /// 数值/武器表经实例传递（技术债 #1）——本类不触碰任何全局面，无串行集/还原需求。
     /// </summary>
     public sealed class WeaponTableTests
@@ -45,7 +45,7 @@ namespace LiteNet.Tests
         public void 服务端装载链产出实例_表值在册()
         {
             string dir = Path.Combine(RepoRoot(), "Assets", "GameData", "Config");
-            ServerTableLoad load = CombatNumbers.LoadTableBytes(dir);   // 装载产出实例（数值行 + 武器表）
+            ServerTableLoad load = ServerTableLoader.LoadTableBytes(dir);   // 装载产出实例（数值行 + 武器表）
 
             Assert.True(load.Weapons.TryGet(WeaponConfig.DefaultRifleId, out WeaponDef def), "默认步枪行应在册");
             Assert.True(def.FireIntervalFrames > 0, "节拍帧应为正（ceil(TickRate×60/rpm)）");
@@ -61,7 +61,7 @@ namespace LiteNet.Tests
         public void 霰弹枪行_表值与半自动映射与槽位默认在册()
         {
             string dir = Path.Combine(RepoRoot(), "Assets", "GameData", "Config");
-            ServerTableLoad load = CombatNumbers.LoadTableBytes(dir);
+            ServerTableLoad load = ServerTableLoader.LoadTableBytes(dir);
 
             const int ShotgunId = 1;
             Assert.True(load.Weapons.TryGet(ShotgunId, out WeaponDef sg), "霰弹枪行（id=1）应在册");
@@ -92,7 +92,7 @@ namespace LiteNet.Tests
         public void 表现列与备弹上限_步枪行落值()
         {
             string dir = Path.Combine(RepoRoot(), "Assets", "GameData", "Config");
-            ServerTableLoad load = CombatNumbers.LoadTableBytes(dir);
+            ServerTableLoad load = ServerTableLoader.LoadTableBytes(dir);
             Assert.True(load.Weapons.TryGet(WeaponConfig.DefaultRifleId, out WeaponDef def));
 
             // 表源（生成物）直读——表现列是装载即得的字符串，机制不消费

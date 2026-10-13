@@ -6,7 +6,7 @@ namespace LiteSim
     ///
     /// **数值面已实例化（技术债 #1 根治）**：
     /// - 装载面 8 字段（移速/重力/射程/伤害/浮动/HP/瞄准限速档/射击窗长）住 <see cref="CombatValues"/> 实例——装载链
-    ///   （客户端 `ConfigService`、服务端 `CombatNumbers`）解析表产出实例，**经参数显式传入机制消费**
+    ///   （客户端 `ConfigService`、服务端 `ServerTableLoader`）解析表产出实例，**经参数显式传入机制消费**
     ///   （`SimStep`→系统、房间快照），不再有"装载即回填全局"的顺序问题；
     /// - 本类的同名只读属性 = **客户端单世界读口**（`Publish` 原子替换）——机制消费不得读，
     ///   默认 = <see cref="CombatValues.Default"/>（必须与表值一致，L1 守卫卡漂移）；
@@ -35,7 +35,8 @@ namespace LiteSim
 
         /// <summary>
         /// 瞄准态移动速度上限（m/s）= <see cref="CombatValues.AimMoveSpeed"/>（表值 tb_combatnum.aim_move_speed）。
-        /// 参与 <see cref="CombatConfigDigest"/>——**联机身份**：两端不一致会以摘要不符当场拒进房。
+        /// 参与 <see cref="CombatConfigDigest"/>——**联机身份**：两端数值一致性当前由 buildHash（数据进编译期闭包）
+        /// 在 Join 握手拦；摘要由服务端随 `StartGame`/`ReconnectResponse` 下发，客户端校验点未接（缺口见审计表登记）。
         ///
         /// **表化口径（勿按旧式派生推断）**：直接落最终速度（表列 aim_move_speed），不再由
         /// <see cref="MoveSpeed"/> × 倍率派生——旧倍率常量（0.5，取 2 的幂保位级精确）已退役：

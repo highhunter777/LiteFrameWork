@@ -22,10 +22,19 @@ namespace LiteGame
         /// <summary>场景切换（可空 = 不切场景，测试装配）。</summary>
         private readonly ISceneService _scenes;
 
-        public ProcedureMain(ISceneService scenes = null, CancellationToken rootToken = default)
+        /// <summary>五页页面流（批C-④；可空 = 测试装配不接 UI）。</summary>
+        private readonly PageFlow _pages;
+
+        /// <summary>联机入口编排件（判"是否配置了 Meta 基址"——入口页只在配置形态开；可空 = 离线装配）。</summary>
+        private readonly MetaEntryService _meta;
+
+        public ProcedureMain(ISceneService scenes = null, CancellationToken rootToken = default,
+            PageFlow pages = null, MetaEntryService meta = null)
             : base(rootToken)
         {
             _scenes = scenes;
+            _pages = pages;
+            _meta = meta;
         }
 
         protected override void RunAsync(IStageHost<ProcedureId, ProcedureArgs> m, in ProcedureArgs req, CancellationToken ct)
@@ -62,6 +71,11 @@ namespace LiteGame
             try
             {
                 await EnterBattleSceneAsync(ct);
+
+                // 上云入口（批C-④）：配置了 Meta 基址 → 首进 Main 开登录页（五页入口，《上云测试页面层级设计》§1）；
+                // 未配置（离线/本地开发形态）零变化。**只开一次**——对局结束/离场返回 Main 不重开入口
+                // （页面流接管：结算页或大厅在场，见 PageFlow.OpenEntryOnce）。
+                if (_pages != null && _meta != null && _meta.IsConfigured) _pages.OpenEntryOnce();
             }
             catch (OperationCanceledException) { /* 正常取消，静默 */ }
             catch (Exception ex)

@@ -12,7 +12,7 @@ namespace LiteNet.Tests
     /// 范围校验"；§520/§600"不把估算值写死为事实""不在设计阶段虚构固定房间数"）。
     ///
     /// 本组钉住的是**配置错误必须响亮地失败**：坏文件/坏字段/越界一律抛，不静默兜底——
-    /// 兜底会让配置错误变成线上的隐形分叉（与 <see cref="CombatNumbers"/> 同一口径）。
+    /// 兜底会让配置错误变成线上的隐形分叉（与 <see cref="ServerTableLoader"/> 同一口径）。
     /// combat 内联分区不受支持（玩法数值走 .bytes 表，见 CombatNumbersTests）。
     /// </summary>
     [Trait(TestTrait.Category, TestCategory.Contract)]
@@ -332,7 +332,7 @@ namespace LiteNet.Tests
         [Fact]
         public void combat分区已废弃_出现即拒绝()
         {
-            // 玩法数值走 .bytes 表（CombatNumbers）；内联分区留着只会变成第二真相源——显性拒绝。
+            // 玩法数值走 .bytes 表（ServerTableLoader）；内联分区留着只会变成第二真相源——显性拒绝。
             string json = @"{
                 ""port"": 17777, ""max_rooms"": 1,
                 ""combat"": [{""id"":1}],

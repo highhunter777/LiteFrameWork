@@ -2,7 +2,7 @@ namespace LiteSim
 {
     /// <summary>
     /// 玩法数值实例（**技术债 #1 根治面**）：装载面 8 字段从"全局可变静态 + LoadFrom 回填"
-    /// 改为**按值传递的实例**——装载链（服务端 `CombatNumbers`／客户端 `ConfigService`）解析表产出本实例，
+    /// 改为**按值传递的实例**——装载链（服务端 `ServerTableLoader`／客户端 `ConfigService`）解析表产出本实例，
     /// 经参数显式传入机制消费（`SimStep` → 系统；房间快照 `FixedCombatConfig`）。
     /// 不再有"装载即回填全局"的顺序问题，测试不再需要串行集 + finally 还原。
     ///

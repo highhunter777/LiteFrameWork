@@ -24,7 +24,7 @@ namespace RoomServer
     /// **一致性双保险**：① 两端数值同源（同一 .bytes）② 表数据进 buildHash
     /// （`scripts/codegen/gen-build-hash.py`），版本不一致直接在 Join 握手被拒。
     /// </summary>
-    public static class CombatNumbers
+    public static class ServerTableLoader
     {
         /// <summary>客户端表数据目录（相对仓库根；gen.bat Pass 1 产出，两端共用同一份文件）。</summary>
         public const string RelativeDir = "Assets/GameData/Config";

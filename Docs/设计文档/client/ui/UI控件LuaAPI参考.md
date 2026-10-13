@@ -68,7 +68,7 @@ Lua `OnHide` 会解绑全部按钮，复用不重跑 `OnInit`，因此按钮绑�
 
 ## 3. 已有 self.ui 方法
 
-当前 shim 声明 20 个方法。所有控件名来自页面 `BindNode.BindName`；模板不预设非空名字。
+当前 shim 声明 **32 个方法**（批C-④ 前 20 + 批C-⑥ 控件族/列表 12）。所有控件名来自页面 `BindNode.BindName`；模板不预设非空名字。
 
 | 方法 | 当前语义/参数 |
 | --- | --- |
@@ -88,15 +88,24 @@ Lua `OnHide` 会解绑全部按钮，复用不重跑 `OnInit`，因此按钮绑�
 | `Pulse(name, strength, duration)` | shim 缺省 1.2/0.16s；Graphic 透明度呼吸，完成/中断回原透明度 |
 | `Flash(name, duration)` | shim 缺省 0.3s；Graphic 颜色高亮回落，完成/中断回原色 |
 | `Slide(name, ox, oy, duration)` | offset 缺省 0/0，duration 缺省 0.25s；完成/中断回原位 |
+| `SetSlider(name, value01)` / `GetSlider(name)` | G15（批C-⑥）：设值 0~1（程序 Set **不触发**变化回调）；读取回当前值 |
+| `OnSliderChanged(name, fn(value))` | G15：**用户拖动**才回调（带值）；同名重复登记 = 替换；`nil` = 仅退订；`UnbindAll` 退订全部 |
+| `SetToggle(name, on)` / `GetToggle(name)` | G16（批C-⑥）：同上（`SetIsOnWithoutNotify`） |
+| `OnToggleChanged(name, fn(on))` | G16：用户点击才回调（带值） |
+| `SetDropdownOptions(name, options)` | G17（批C-⑥）：选项文本由页面给**已本地化**文本（语言切换时页面重设——下拉项是引擎组件，不随 LText 自动刷新）；值保持 |
+| `SetDropdown(name, index)` / `GetDropdown(name)` | G17：设值（程序 Set 不触发回调）/ 读当前索引 |
+| `OnDropdownChanged(name, fn(index))` | G17：用户选择才回调（带索引） |
+| `SetList(name, rows)` | G6（批C-⑥）：行表 `{ { key=..., <子节点名>=值\|{key=..., arg0..arg3} , ... }, ... }`——**整表替换语义**（换数据再调一次；更新/缩容同入口）；行字段按**条目子节点名**寻址（缺节点 = 该字段不显）；行含文案键而语言服务未注入 = 装配期抛；语言切换整表重绑刷新行文案 |
+| `OnListClick(name, fn(key, action))` | G6：行点击回传**稳定 key** + 点击的按钮节点名（条目根按钮 = 空串）；可在 `SetList` 前后登记（后登记对已实体化条目补挂） |
 
 实现经 `Action<string, LuaTable>` 派发，不向 Lua 暴露 GetControl。Pulse/Flash 的 Graphic 解析是自身 → Button.targetGraphic → 组件/子级 Graphic；Slide 使用组件 Transform 的 RectTransform。
 
 当前限制：
 
-- **`SetTextKey` / `SetTextKeyArgs` / `SetTextKeyPlural` 在当前装配下必抛**（2026-10-10 代码核对）：`UIBindIndex` 的这三个方法首行即校验 `_locale == null` 就抛 `InvalidOperationException`（"需先 BindLocale"），而 **`BindLocale` 在生产链路没有任何调用点**——`LuaBehaviourAdapter.OnInit` 只做 `BindIndexBuilder.Build`，不注入语言服务；全 Assets 搜 `BindLocale` 的调用点只落在 EditMode 用例。即这三个 shim 是**已实现但未接线**的入口，不能在业务脚本里当可用方法写。
+- **`SetTextKey` / `SetTextKeyArgs` / `SetTextKeyPlural` 已生产可用**（批C-② 装配 `BindLocale`——`UiShellModule` 建语言服务经 `UIService localeProvider` 注入页面索引；批C-④ 起五页全量在用）。缺语言服务仍按"需先 BindLocale"抛（装配错误 fail-fast）；`SetList` 的行含文案键同样在装配期拦。
 - **`Pulse` 全链统一 `0.2`（2026-10-10 裁决）**：`UiFx.Pulse`/`UIBindIndex.Pulse` 默认、`LuaBehaviourAdapter` shim 默认、以及原显式传参的两处调用点（`UIMain.lua`、`UIWidget.PlayPressFx`）全部为 `0.2`——呼吸至 20% 再回。`strength` 语义 = **目标 alpha 倍率**（`baseAlpha × strength`）：`>1` 为提亮方向、不透明对象上基本不可见，不用作默认/常规按压。
 - 未命中/类型不符多数路径抛 KeyNotFoundException 或 InvalidOperationException；部分装饰入口采用日志降级，不能统称“所有失败必抛”。具体实现以 UIBindIndex 为准。
-- 未知派发方法目前静默忽略；目标开发期报告 UnknownMethod，不能在 API 演进中悄悄吞拼写错误。
+- 未知派发方法**开发期告警**（批C-⑥：`Log.Warning` 报 UnknownMethod；release 静默）——不吞拼写错误。
 - MarkDriver 当前按控件登记命令式/绑定式所有权；目标逐属性协调，避免动效与数据争写。
 - Button 解绑当前使用 RemoveAllListeners；目标只移除框架自有监听。
 - OnButton 派发持有 payload 并在点击时取 LuaFunction；目标为展示作用域持有的明确回调句柄，关闭/换表释放，不能无限滞留 Lua 引用。
@@ -112,12 +121,12 @@ Lua `OnHide` 会解绑全部按钮，复用不重跑 `OnInit`，因此按钮绑�
 | Toast/Bubble/FlyText | ShowToast/ShowBubble/ShowFlyText | 多条并存、超限淘汰与复位；Scope 取消、宿主所有权 |
 | ProgressBar/HpBar | SetProgress/SetProgressRange/SetHp | 更新去重、统一时钟、收敛停更 |
 | Countdown | StartCountdown/StopCountdown | 显示秒去重、关闭期取消 |
-| VirtualList/SimpleList | 无 Lua 数据源门面 | G6 SetList（C# 内核已为窗口复用） |
+| VirtualList/SimpleList | **`SetList(name, rows)` + `OnListClick(name, fn)`（G6，批C-⑥）**——行字段按条目子节点名、稳定 key 回传、整表替换语义 | 选择态由页面自持（无框架选择 API）；行内多按钮各回自己的节点名 |
 | RedDot | 无专用 Lua 入口 | G4 BindRedDot(name, key) |
 | StarRating/CountText | CountText 可通过 Label 静态设值 | G8 SetStars；G9 RollCount |
 | Stepper | 可操作暴露文本节点 | G13 SetStepper/变化通知 |
 | InputField | SetInteractable；SetText 只改命中标签，不等于输入模型赋值 | G14 GetInput/SetInput/提交与变更 |
-| Slider/Toggle/Dropdown | SetInteractable | G15～G17 设值、读取/变化通知 |
+| Slider/Toggle/Dropdown | **Set/Get/On*Changed（G15～G17，批C-⑥）**：程序 Set 不触发回调、变化通知带值、退订随 `UnbindAll` | 下拉项文本需页面在语言切换时重设（引擎组件不随 LText 刷新） |
 | TabGroup/BottomNav | 入口按钮可绑定 | G5 SelectTab 与导航适配 |
 | AnimatedImage/AvatarFrame | 可操作暴露节点 | G11 PlayAnim/StopAnim；G12 SetAvatar 与租约 |
 | UIEventRelay/GuideHighlight | 可见性 | G18 OnClickArea；G19 GuideTo |
@@ -130,11 +139,11 @@ G 编号用于追溯；总设计 U0～U4 决定实施顺序。
 
 本节为尚未实现的目标入口，名称为设计建议；实施时须同步 C# 接口、shim、生成与测试。
 
-- 导航：`Bridge.ui.Go/Back/Replace` 提供请求标识与完成通知；Lua 无原生 await 不等于只能 fire-and-forget。用受控回调/事件返回 Success/Blocked/Busy/Cancelled/Failed，页面退出后停止交付。
+- 导航：`Bridge.ui.Show/Replace/Close/IsOpen`（按 lua_path，批C-④ 落地 `Replace`）；请求标识与完成通知（Success/Blocked/Busy/Cancelled/Failed）**仍为目标**——现为 fire-and-forget + 日志观测。
 - 弹窗：类型化等待由 C# 承载，Lua 接受结果通知；确认、取消、ScopeExit 区分，不暴露 Unity 对象。
 - 本地化：`Bridge.text.Get/Format` 与 LTextLabel；字符串转义和参数校验在服务收口。
-- G6：`self.ui:SetList(name, rows)`，数据行有稳定 key；C# 持数据源，滚动绑定不逐帧回 Lua。行交互回传 key/行为。选择、更新和数据缩容均有明确语义。
-- 输入控件：程序 Set 默认不触发用户变化回调，需通知时显式指定；回调带值，关闭退订，防递归循环。
+- ~~G6~~ **已实现（批C-⑥）**：`self.ui:SetList(name, rows)`（详见 §3 表）；行有稳定 key、C# 持数据源、滚动绑定不逐帧回 Lua、行交互回传 (key, 按钮名)、整表替换语义（更新/缩容同入口）。选择态由页面自持。
+- ~~输入控件~~ **已实现（批C-⑥）**：程序 Set 不触发回调（`Set*WithoutNotify`）、变化通知带值、关闭（UnbindAll）退订、防递归（Set 静默）——见 §3 表。
 - 图标/头像：引用内容地址，C# 加载租约并检查展示/绑定代次；Lua 不接收原始 AssetHandle。
 - 所有事件绑定返回或内部持有可注销句柄，挂展示作用域；新的 API 不再扩散手动清理责任。
 - 效果播放：语义化播放 UI 效果定义（Handle/终态/取消语义；见 [UI 效果系统专项设计](UI效果系统专项设计.md)）；现有 Pulse/Flash/Slide 语义保持、底层换通道实现，不新增并行动效入口。

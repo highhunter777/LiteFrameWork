@@ -19,7 +19,7 @@ namespace RoomServer
     /// - <c>rooms</c>：房间**模板**。动态建房时按模板取值——每个 roomId 一份（§6"一个 roomId
     ///   只能映射一个独立 RoomActor"）。模板缺失/字段缺失 → **拒绝建房**，不静默兜底。
     /// - 玩法数值**不在本文件**：服务端与客户端同读 `Assets/GameData/Config/*.bytes`
-    ///   （<see cref="CombatNumbers"/>——数值走单源表格式）。
+    ///   （<see cref="ServerTableLoader"/>——数值走单源表格式）。
     /// - <c>rate_limit</c>：**进程级共享**分层限流参（可选，缺省见
     ///   <see cref="RateLimitSettings.Default"/>）。
     ///
@@ -27,7 +27,7 @@ namespace RoomServer
     /// 本类在启动时**快照** json 文本，此后不再读文件——运行中改盘上文件不影响已建房间，
     /// 也不影响将来的房间（要生效必须重启）。这条同时消除"建房时文件正被改写"的竞态。
     ///
-    /// **fail-fast**：坏文件/坏字段/越界一律抛（同 <see cref="CombatNumbers"/>"数值错了必然分叉——
+    /// **fail-fast**：坏文件/坏字段/越界一律抛（同 <see cref="ServerTableLoader"/>"数值错了必然分叉——
     /// 宁可起不来"）。静默兜底会让配置错误变成线上的隐形分叉。
     /// </summary>
     public sealed class RoomServerConfig
@@ -286,10 +286,10 @@ namespace RoomServer
                     $"mailbox_capacity 越界（允许 1..1000000）：{mailboxCapacityValue}：{sourcePath}");
             int mailboxCapacity = (int)mailboxCapacityValue;
 
-            // combat 内联分区不受支持：玩法数值走 .bytes 表（CombatNumbers）。
+            // combat 内联分区不受支持：玩法数值走 .bytes 表（ServerTableLoader）。
             if (root.TryGetProperty("combat", out JsonElement legacyCombat))
                 throw new InvalidDataException(
-                    $"combat 分区不受支持（玩法数值走 Assets/GameData/Config/*.bytes 表——见 CombatNumbers）：{sourcePath}");
+                    $"combat 分区不受支持（玩法数值走 Assets/GameData/Config/*.bytes 表——见 ServerTableLoader）：{sourcePath}");
 
             if (!root.TryGetProperty("rooms", out JsonElement roomsEl) || roomsEl.ValueKind != JsonValueKind.Object)
                 throw new InvalidDataException($"配置缺 rooms 分区（房间模板表）：{sourcePath}");

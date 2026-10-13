@@ -26,8 +26,10 @@ namespace LiteSim
     /// - float 用 InvariantCulture "R"（往返）格式——跨文化稳定（de-DE 的小数逗号不会改变摘要）；
     /// - 字段以 '\n' 分隔、无空白填充；数值后不带单位。
     /// 取 SHA-256 低 32 位作 proto uint32（StartGame.ConfigHash 字段位宽）。
-    /// 语义边界：buildHash 已覆盖"代码+协议+表数据"的构建一致性；本摘要覆盖**装载后运行态数值**——
-    /// 表装载失败/漏装载在两端只表现为默认值一致与否，本摘要可当场发现。
+    /// 语义边界：buildHash 覆盖"代码+协议+表数据"的构建一致性（数据在编译期闭包内，Join 握手拦）；
+    /// 本摘要覆盖**装载后运行态数值**，供"数据不经重编译下发"时当场发现装载分叉。
+    /// 生产者：服务端 `StartGame.ConfigHash`/`ReconnectResponse`；**消费者（客户端校验点）未接**——
+    /// 缺口与处置归《代码质量审计-客户端》§三"数值联机身份摘要"条。
     /// </summary>
     public static class CombatConfigDigest
     {

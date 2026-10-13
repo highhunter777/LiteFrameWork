@@ -128,8 +128,8 @@ namespace MetaServer.IntegrationTests
                 // 房间端验签器 = 真 HmacJoinTicketValidator（与 Meta 签发端同源 JoinTicketFormat）
                 TicketValidator = new HmacJoinTicketValidator(new[] { new JoinTicketKey(TicketKid, TicketKey) }),
                 EnvelopeOptions = new SecureEnvelopeOptions(EnvelopeKey),
-                CombatValues = CombatNumbers.LoadFromRepo().Combat.ToValues(),
-                Weapons = CombatNumbers.LoadFromRepo().Weapons,
+                CombatValues = ServerTableLoader.LoadFromRepo().Combat.ToValues(),
+                Weapons = ServerTableLoader.LoadFromRepo().Weapons,
                 Lobby = new LobbyRegistrationClient.Settings
                 {
                     Url = metaBase + "/lobby/instances/register",

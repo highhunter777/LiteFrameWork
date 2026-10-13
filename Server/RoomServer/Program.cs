@@ -15,7 +15,7 @@ using RoomServer.Runtime;
 // 配置来源：宿主参数走配置文件 + 命令行覆盖；**玩法数值走 .bytes 表**
 // （与客户端同一份二进制——两端同代码同数据，物理上不可漂移）。
 //   --config <path>        配置文件路径（默认 Config/roomserver.json）
-//   --combat-table <dir>   玩法数值表目录（缺省走 CombatNumbers.LoadFromRepo 的仓库路径 Assets/GameData/Config）
+//   --combat-table <dir>   玩法数值表目录（缺省走 ServerTableLoader.LoadFromRepo 的仓库路径 Assets/GameData/Config）
 //   其余：--port / --duration <ms> / --quiet / --ticket-key <kid>:<base64>（或环境变量 LITENET_TICKET_KEY） / --audience <id>
 //   --envelope-key <base64>（或环境变量 LITENET_SECURE_ENVELOPE_KEY）
 //   --lobby-instance-key <base64>（或环境变量 LITENET_LOBBY_INSTANCE_KEY；配置 lobby.url 时必填——
@@ -82,8 +82,8 @@ else if (!allowInsecureLocal)
 // 装载产物 = CombatValues/WeaponTable 实例（技术债 #1：不再回填全局静态面）——经 HostAssembly.Inputs
 // 显式传入宿主/房间；缺失会在装配入口被拒（必填校验），"丢弃返回值跑默认值"的分叉面结构性消失。
 ServerTableLoad load = combatTableDir != null
-    ? CombatNumbers.LoadTableBytes(combatTableDir)
-    : CombatNumbers.LoadFromRepo();
+    ? ServerTableLoader.LoadTableBytes(combatTableDir)
+    : ServerTableLoader.LoadFromRepo();
 CombatValues combat = load.Combat.ToValues();
 WeaponTable weapons = load.Weapons;
 

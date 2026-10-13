@@ -68,10 +68,11 @@ namespace LiteGame
             data.Set("GetItem", new Func<int, LuaTable>(id => Data.GetItemLua(env, id)));
             data.Set("GetUIForm", new Func<int, LuaTable>(id => Data.GetUIFormLua(env, id)));
             var ui = env.NewTable();
-            ui.Set("GetLogic", new Func<int, LuaTable>(Ui.GetLogic));
-            ui.Set("Show", new Action<int, LuaTable>(Ui.Show));          // 真实门面（委托需 Generate Code）
-            ui.Set("Close", new Action<int>(Ui.Close));
-            ui.Set("IsOpen", new Func<int, bool>(Ui.IsOpen));
+            ui.Set("GetLogic", new Func<string, LuaTable>(Ui.GetLogic));
+            ui.Set("Show", new Action<string, LuaTable>(Ui.Show));          // 真实门面（委托需 Generate Code）
+            ui.Set("Replace", new Action<string, LuaTable>(Ui.Replace));    // 替换打开（返回栈不残留）
+            ui.Set("Close", new Action<string>(Ui.Close));
+            ui.Set("IsOpen", new Func<string, bool>(Ui.IsOpen));
             var content = env.NewTable();
             content.Set("GetProcessor", new Func<int, LuaTable>(Content.GetProcessor));
             var text = env.NewTable();
@@ -106,8 +107,9 @@ namespace LiteGame
             // ---- Lua 侧入口（§2.5）：行字段手工展开为 LuaTable + 按行缓存 ----
             // DevReload 时旧 env 的 LuaTable 引用全失效——ClearLuaCaches 由 §2.7 编排调用（顺序钉死）。
 
-            private static readonly Dictionary<int, LuaTable> s_itemLua = new Dictionary<int, LuaTable>(16);
-            private static readonly Dictionary<int, LuaTable> s_uiFormLua = new Dictionary<int, LuaTable>(16);
+        private static readonly Dictionary<int, LuaTable> s_itemLua = new Dictionary<int, LuaTable>(16);
+        private static readonly Dictionary<int, LuaTable> s_uiFormLua = new Dictionary<int, LuaTable>(16);
+        private static readonly Dictionary<string, int> s_uiFormIdByPath = new Dictionary<string, int>(16);
 
             /// <summary>Lua 侧查道具表：同 id 恒返回同一 LuaTable 实例（缓存命中）。
             /// 全字段展开（19 列）——道具玩法（拾取/使用/投掷）在 Lua 侧落地时按需取用。</summary>
@@ -154,37 +156,93 @@ namespace LiteGame
                 return t;
             }
 
-            /// <summary>DevReload 专用（§2.7）：env 重建后旧 LuaTable 引用全失效，缓存必须清空。</summary>
-            public static void ClearLuaCaches()
+        /// <summary>
+        /// lua_path → tbuiform id（**表驱动反查 + 会话内缓存**；未登记返回 -1）。
+        /// 页面寻址的单源解析口——页面脚本与产品流程（PageFlow）都按 lua_path 寻址（如 `UI.Page_Lobby`，
+        /// 与 <c>LuaKeys</c> 常量同文），magic id 不进脚本（禁硬编码）。
+        /// 未登记是装配错误：负结果同样缓存（重查无益），调用方按 -1 显性失败。
+        /// </summary>
+        public static int ResolveUIFormId(string luaPath)
+        {
+            if (string.IsNullOrEmpty(luaPath)) return -1;
+            if (s_uiFormIdByPath.TryGetValue(luaPath, out int hit)) return hit;
+            int found = -1;
+            foreach (cfg.uiform row in Tables().Tbuiform.DataList)
             {
-                s_itemLua.Clear();
-                s_uiFormLua.Clear();
+                if (string.Equals(row.LuaPath, luaPath, StringComparison.Ordinal))
+                {
+                    found = row.Id;
+                    break;
+                }
             }
+            s_uiFormIdByPath[luaPath] = found;
+            return found;
         }
 
-        /// <summary>ui 门面（真实语义）：Show/Close/IsOpen(id)——**Lua 不碰 GameObject**。
-        /// Show 经导航单写者排队（产品打开三通道收口口径），fire-and-forget（Lua 无 await），错误经日志观测。</summary>
+        /// <summary>DevReload 专用（§2.7）：env 重建后旧 LuaTable 引用全失效，缓存必须清空。</summary>
+        public static void ClearLuaCaches()
+        {
+            s_itemLua.Clear();
+            s_uiFormLua.Clear();
+            s_uiFormIdByPath.Clear();
+        }
+        }
+
+        /// <summary>ui 门面（真实语义）：Show/Replace/Close/IsOpen/GetLogic——**Lua 不碰 GameObject**。
+        /// **按 lua_path 寻址**（如 `UI.Page_Lobby`，与 LuaKeys 常量同文）：id 反查走 tbuiform 单源
+        /// （<see cref="Data.ResolveUIFormId"/>），magic id 不进脚本。
+        /// Show/Replace 经导航单写者排队（产品打开三通道收口口径），fire-and-forget（Lua 无 await），错误经日志观测。</summary>
         public static class Ui
         {
-            /// <summary>打开界面：id → tbuiform 行（经单写者队列）；data 为 Lua 表（包装成 LuaUIData 传入生命周期）。</summary>
-            public static void Show(int id, LuaTable data)
+            /// <summary>打开界面（压栈）：lua_path → tbuiform 行（经单写者队列）；data 为 Lua 表（包装成 LuaUIData 传入生命周期）。</summary>
+            public static void Show(string pagePath, LuaTable data)
             {
+                if (!TryResolve(pagePath, "Show", out int id)) return;
                 var aw = s_nav.GoAsync(id, data == null ? null : new LuaUIData(data)).GetAwaiter();
-                aw.OnCompleted(() =>
-                {
-                    try { aw.GetResult(); }
-                    catch (Exception ex) { Log.Error($"Bridge.ui.Show[{id}]:{ex.Message}", "UI"); }
-                });
+                aw.OnCompleted(() => Observe(aw, "Show", pagePath));
             }
 
-            /// <summary>关闭界面（经出栈拦截 + 离场转场）。fire-and-forget 显式化（CS4014 收口）。</summary>
-            public static void Close(int id) => s_uiService.CloseAsync(id).Forget();
+            /// <summary>替换打开（关当前顶再开新页——返回栈不残留，《上云测试页面层级设计》§1 登录成功/进房/返回大厅口径）。</summary>
+            public static void Replace(string pagePath, LuaTable data)
+            {
+                if (!TryResolve(pagePath, "Replace", out int id)) return;
+                var aw = s_nav.ReplaceAsync(id, data == null ? null : new LuaUIData(data)).GetAwaiter();
+                aw.OnCompleted(() => Observe(aw, "Replace", pagePath));
+            }
+
+            /// <summary>关闭界面（经出栈拦截 + 离场转场）。未打开 = no-op（页面离场幂等——CloseAsync 对未打开 fail-fast）。</summary>
+            public static void Close(string pagePath)
+            {
+                if (!TryResolve(pagePath, "Close", out int id) || !s_uiService.IsOpen(id)) return;
+                s_uiService.CloseAsync(id).Forget();               // fire-and-forget 显式化（CS4014 收口）
+            }
 
             /// <summary>是否打开（Active/Covered/Paused 任一）。</summary>
-            public static bool IsOpen(int id) => s_uiService.IsOpen(id);
+            public static bool IsOpen(string pagePath)
+                => TryResolve(pagePath, "IsOpen", out int id) && s_uiService.IsOpen(id);
 
-            /// <summary>界面 id → 逻辑表查询（骨架口；适配器链路经 UIService 解析器，不常走此口）。</summary>
-            public static LuaTable GetLogic(int id) => s_uiRegistry.Get(Data.GetUIForm(id).LuaPath);
+            /// <summary>界面 lua_path → 逻辑表查询（骨架口；适配器链路经 UIService 解析器，不常走此口）。</summary>
+            public static LuaTable GetLogic(string pagePath) => s_uiRegistry.Get(pagePath);
+
+            /// <summary>lua_path → id；未登记/装配缺失 → 错误日志 + false（Lua 侧调用不得炸壳）。</summary>
+            private static bool TryResolve(string pagePath, string method, out int id)
+            {
+                if (s_nav == null || s_uiService == null)
+                {
+                    Log.Error($"Bridge.ui.{method}: 装配缺失（BindNavigation/BindUIService 未调）", "UI");
+                    id = -1;
+                    return false;
+                }
+                id = Data.ResolveUIFormId(pagePath);
+                if (id < 0) Log.Error($"Bridge.ui.{method}: 未登记的 lua_path '{pagePath}'（核对 tbuiform）", "UI");
+                return id >= 0;
+            }
+
+            private static void Observe(UniTask<UIForm>.Awaiter aw, string method, string pagePath)
+            {
+                try { aw.GetResult(); }
+                catch (Exception ex) { Log.Error($"Bridge.ui.{method}[{pagePath}]:{ex.Message}", "UI"); }
+            }
         }
 
         /// <summary>content 骨架门面（注册表查询入口）。</summary>

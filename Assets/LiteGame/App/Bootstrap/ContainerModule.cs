@@ -111,7 +111,12 @@ namespace LiteGame
             context.Require<IInputService>().RegisterBlocker(
                 new IntentGate.BlockerKey("ui.modal", "模态 UI 打开——游戏意图被拦截"), () => ui.IsModalOpen);
 
-            var fsm = CreateMachine(context, content, config, lua, uiRegistry, contentRegistry, strategyRegistry);
+            var pageFlow = new PageFlow(nav, ui, lua);    // 五页页面流（批C-④）：入口/开局关房/结算三处流程×页面接缝
+            var appSettings = new ProductSettings(context.Require<GameSettings>(),
+                context.Require<SettingService>(), context.Require<AudioService>());
+            ProductSettings.Bind(appSettings);            // Lua 设置门面后端（Bridge.settings——批C-⑥；构造即应用持久化值）
+            var fsm = CreateMachine(context, content, config, lua, uiRegistry, contentRegistry, strategyRegistry,
+                pageFlow, metaEntry);
             context.Put(fsm);
             metaEntry.BindMachine(fsm);                   // 进房 = Request(Match, MetaJoin)——走既有 Join 管道
 
@@ -140,7 +145,8 @@ namespace LiteGame
 
         private StageMachine<ProcedureId, ProcedureArgs> CreateMachine(ClientContext context,
             IContentService content, ConfigService config, LuaComponent lua,
-            UiLuaRegistry uiRegistry, ContentLuaRegistry contentRegistry, StrategyLuaRegistry strategyRegistry)
+            UiLuaRegistry uiRegistry, ContentLuaRegistry contentRegistry, StrategyLuaRegistry strategyRegistry,
+            PageFlow pageFlow, MetaEntryService metaEntry)
         {
             var filler = new RegistryFiller(config, lua, uiRegistry, contentRegistry, strategyRegistry);
             var rootToken = context.RootScope.Token;
@@ -150,13 +156,14 @@ namespace LiteGame
                     context.Require<PatchRunner>(), rootToken, context.Require<AssetsHealthProbe>())),
                 (ProcedureId.Preload, new ProcedurePreload(content, config, lua, filler,
                     context.Require<EventCenter>(), () => ListLuaAssetPaths(content), rootToken)),
-                (ProcedureId.Main, new ProcedureMain(_scenes, rootToken)),
+                (ProcedureId.Main, new ProcedureMain(_scenes, rootToken, pageFlow, metaEntry)),
                 (ProcedureId.Match, new ProcedureMatch(context.Require<IAccountSessionFactory>(), rootToken)),
                 (ProcedureId.Battle, new ProcedureBattle(content, context.Require<IInputService>(),
                     context.Require<ICameraService>(), context.Require<VfxService>(),
                     rootToken, requireCamera: true, worldClock: context.Require<IWorldClock>(),
                     matchSessions: context.Require<IMatchSessionFactory>(),
-                    audio: context.Require<AudioService>(), commands: context.Require<CommandCenter>())),
+                    audio: context.Require<AudioService>(), commands: context.Require<CommandCenter>(),
+                    pages: pageFlow)),
                 (ProcedureId.Error, new ProcedureError(rootToken)));
         }
 

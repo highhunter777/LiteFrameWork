@@ -46,6 +46,7 @@ namespace LiteGame
         private readonly bool _requireCamera;        // 缺相机 = 装配缺口（见 ctor 注释）
         private readonly LiteFramework.IWorldClock _worldClock;   // 世界钟（伤害数字寿命/合并窗）
         private readonly IMatchSessionFactory _matchSessions;
+        private readonly PageFlow _pages;            // 五页页面流（批C-④；可空 = 测试装配不接 UI）
 
         private BattleViewRig _rig;                  // 视图域（资源租约 / 视图与消费者 / 逆序拆除）
         private BattleContext _context;
@@ -65,7 +66,7 @@ namespace LiteGame
         public ProcedureBattle(IContentService content, IInputService input, ICameraService camera,
             IVFXService vfx = null, CancellationToken rootToken = default, bool requireCamera = false,
             LiteFramework.IWorldClock worldClock = null, IMatchSessionFactory matchSessions = null,
-            AudioService audio = null, CommandCenter commands = null)
+            AudioService audio = null, CommandCenter commands = null, PageFlow pages = null)
             : base(rootToken)
         {
             _content = content ?? throw new ArgumentNullException(nameof(content));
@@ -77,6 +78,7 @@ namespace LiteGame
             _requireCamera = requireCamera;
             _worldClock = worldClock;
             _matchSessions = matchSessions ?? throw new ArgumentNullException(nameof(matchSessions));
+            _pages = pages;
         }
 
         protected override void RunAsync(IStageHost<ProcedureId, ProcedureArgs> m, in ProcedureArgs req, CancellationToken ct)
@@ -88,6 +90,9 @@ namespace LiteGame
         {
             ProcedureId? next = null;
             ProcedureArgs nextArgs = default;
+            bool completed = false;                                       // 正常结束（MatchEnded 冻结结果在）——结算页判据
+            LiteNet.Proto.MatchEnded matchResult = null;
+            int localPlayerId = -1;
             try
             {
                 accountSession = accountSession ?? throw new InvalidOperationException("Battle 阶段缺少 AccountSession（必须由 Match 移交）");
@@ -111,9 +116,13 @@ namespace LiteGame
 
                 await WaitStartGame(battleClient, ct);        // Sim 就绪 = 视图可建（SimView 要读预测态）
                 _rig.Attach(_context);
+                _pages?.CloseRoomIfOpen();                   // 开局 → 关房间页（批C-④；对局场景接管画面）
 
                 BattleContext.EndReason reason = await WaitEnded(_context, ct);
                 Log.Info($"ended reason={reason} reconciles={_context.ReconcileCount}", "Battle");
+                completed = reason == BattleContext.EndReason.Completed;
+                matchResult = _context.MatchResult;          // 冻结结果（MatchEnded → 结算页数据源；批C-④）
+                localPlayerId = _context.PlayerId;
                 next = ProcedureId.Main;              // 会话失败也回 Main（日志已留痕）
             }
             catch (OperationCanceledException)
@@ -138,6 +147,10 @@ namespace LiteGame
             }
 
             if (next.HasValue) m.Request(next.Value, nextArgs);
+
+            // 页面流（批C-④）：正常结束 → 结算页（带本局结果）；失败/主动离场 → 房间页在则替换回大厅。
+            // 在 finally 之后（对局资源已收尾，页面切换不与之竞争）；错误态路径（next=Error）不动页面。
+            if (next == ProcedureId.Main) _pages?.OnMatchEnded(completed, matchResult, localPlayerId);
         }
 
         /// <summary>

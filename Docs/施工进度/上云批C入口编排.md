@@ -38,7 +38,7 @@
 
 ## 边界与备注（如实）
 
-- **页面接线批（批C-④）挂账**：五页 Lua 骨架现为空实现——`Bridge.meta` 调用点、页面跳转（Login→Lobby→Room→Result）与文案键启用（LText 链已就绪，`SetTextKey` 现可用）归批 C-④；`MetaBridge` 类头已挂批号。
+- ~~**页面接线批（批C-④）挂账**：五页 Lua 骨架现为空实现——`Bridge.meta` 调用点、页面跳转（Login→Lobby→Room→Result）与文案键启用（LText 链已就绪，`SetTextKey` 现可用）归批 C-④；`MetaBridge` 类头已挂批号。~~ **已交付（批C-④，2026-10-13）**：见[上云批C页面接线](上云批C页面接线.md)——五页接线 + 跳转链 + 文案键启用；控件/列表协议挂批C-⑥。
 - 批C-②（`5e8634a` BindLocale 生产装配）与 uitools 表清单单源化（`5e7fe22`）尚无施工记录/索引行——按其提交自述挂批C-⑤ 收尾批补记。
 - 存量债同型（如实）：`MetaBridge.s_meta` 静态装订沿用 `Bridge.Data` 静态定位器范式（《代码质量审计-客户端》[中] 债同族）；登录态跨 env 重建存活为有意语义。
 - 未跑 L2 全量（EditMode 全量/PlayMode 归夜间流水线）；本批为 C# 装配面 + EditMode 定向，未触碰序列化资产与 Lua。

@@ -65,6 +65,18 @@ return {
     Pulse = function(_, name, strength, duration) c('pulse', { name = name, strength = strength or %FxPulseStrength%, duration = duration or %FxPulseDuration% }) end,
     Flash = function(_, name, duration) c('flash', { name = name, duration = duration or %FxFlashDuration% }) end,
     Slide = function(_, name, ox, oy, duration) c('slide', { name = name, ox = ox or 0, oy = oy or 0, duration = duration or %FxSlideDuration% }) end,
+    SetSlider = function(_, name, value) c('setSlider', { name = name, value = value }) end,
+    GetSlider = function(_, name) return c('getSlider', { name = name }) end,
+    OnSliderChanged = function(_, name, fn) c('onSliderChanged', { name = name, fn = fn }) end,
+    SetToggle = function(_, name, on) c('setToggle', { name = name, on = on }) end,
+    GetToggle = function(_, name) return c('getToggle', { name = name }) end,
+    OnToggleChanged = function(_, name, fn) c('onToggleChanged', { name = name, fn = fn }) end,
+    SetDropdownOptions = function(_, name, options) c('setDropdownOptions', { name = name, options = options }) end,
+    SetDropdown = function(_, name, index) c('setDropdown', { name = name, index = index }) end,
+    GetDropdown = function(_, name) return c('getDropdown', { name = name }) end,
+    OnDropdownChanged = function(_, name, fn) c('onDropdownChanged', { name = name, fn = fn }) end,
+    SetList = function(_, name, rows) c('setList', { name = name, rows = rows }) end,
+    OnListClick = function(_, name, fn) c('onListClick', { name = name, fn = fn }) end,
 }";
 
         private static readonly string UiApiShim = UiApiShimTemplate
@@ -128,8 +140,8 @@ return {
             _index = BindIndexBuilder.Build(form.Root);       // 路径 A：Lua 界面恒走标记索引
 
             var api = _env.NewTable();
-            var dispatch = new Action<string, LuaTable>(Dispatch);
-            _env.Global.Set<string, Action<string, LuaTable>>("__ui_api_c", dispatch);
+            var dispatch = new Func<string, LuaTable, object>(Dispatch);
+            _env.Global.Set<string, Func<string, LuaTable, object>>("__ui_api_c", dispatch);
             var shim = _env.DoString(UiApiShim, "ui_api_shim");
             _env.DoString("__ui_api_c = nil");
             if (shim != null && shim.Length > 0 && shim[0] is LuaTable apiTable)
@@ -221,10 +233,15 @@ return {
         /// setProgress{name,value} / setProgressRange{name,cur,max} / setHp{name,cur,max} /
         /// startCountdown{name,seconds} / stopCountdown{name} / showToast{text} /
         /// showBubble{name,text,duration} / showFlyText{name,text} /
-        /// pulse{name,strength,duration} / flash{name,duration} / slide{name,ox,oy,duration}。未识别方法静默忽略。</summary>
-        private void Dispatch(string method, LuaTable payload)
+        /// pulse{name,strength,duration} / flash{name,duration} / slide{name,ox,oy,duration} /
+        /// setSlider{name,value} / getSlider{name}→number / onSliderChanged{name,fn(value)} /
+        /// setToggle{name,on} / getToggle{name}→boolean / onToggleChanged{name,fn(on)} /
+        /// setDropdownOptions{name,options:字符串数组} / setDropdown{name,index} / getDropdown{name}→number /
+        /// onDropdownChanged{name,fn(index)} / setList{name,rows} / onListClick{name,fn(key,action)}。
+        /// **返回值**：仅 get* 系回值（其余回 nil）；未知方法开发期告警（不静默吞拼写错误）。</summary>
+        private object Dispatch(string method, LuaTable payload)
         {
-            if (_index == null || payload == null) return;
+            if (_index == null || payload == null) return null;
             switch (method)
             {
                 case "onButton":
@@ -279,7 +296,64 @@ return {
                                  new Vector2(payload.Get<string, float>("ox"), payload.Get<string, float>("oy")),
                                  payload.Get<string, float>("duration"));
                     break;
+                // ---- 输入控件族（G15～G17，《UI控件Lua API 参考》§4）----
+                case "setSlider": _index.SetSlider(Text(payload, "name"), payload.Get<string, float>("value")); break;
+                case "getSlider": return _index.GetSlider(Text(payload, "name"));
+                case "onSliderChanged":
+                    _index.OnSliderChanged(Text(payload, "name"), Arg1<float>(payload, (fn, v) => fn.Call(v)));
+                    break;
+                case "setToggle": _index.SetToggle(Text(payload, "name"), payload.Get<string, bool>("on")); break;
+                case "getToggle": return _index.GetToggle(Text(payload, "name"));
+                case "onToggleChanged":
+                    _index.OnToggleChanged(Text(payload, "name"), Arg1<bool>(payload, (fn, v) => fn.Call(v)));
+                    break;
+                case "setDropdownOptions": _index.SetDropdownOptions(Text(payload, "name"), ReadStrings(payload, "options")); break;
+                case "setDropdown": _index.SetDropdownValue(Text(payload, "name"), payload.Get<string, int>("index")); break;
+                case "getDropdown": return _index.GetDropdownValue(Text(payload, "name"));
+                case "onDropdownChanged":
+                    _index.OnDropdownChanged(Text(payload, "name"), Arg1<int>(payload, (fn, v) => fn.Call(v)));
+                    break;
+                // ---- 列表（G6）----
+                case "setList":
+                    _index.SetList(Text(payload, "name"),
+                        new LuaListRows(payload.Get<string, LuaTable>("rows")));
+                    break;
+                case "onListClick":
+                    {
+                        LuaFunction fn = payload.Get<LuaFunction>("fn");
+                        _index.OnListClick(Text(payload, "name"),
+                            fn == null ? (Action<string, string>)null : (key, action) => fn.Call(key, action));
+                    }
+                    break;
+#if UNITY_EDITOR || DEVELOPMENT_BUILD || LITEFRAMEWORK_DEBUG
+                default:
+                    Log.Warning($"ui-API 未知方法:{method}（拼写错误不得静默吞——《UI控件Lua API 参考》§3）", "UI");
+                    break;
+#endif
             }
+            return null;
+        }
+
+        /// <summary>取字符串载荷位（缺 = 空串）。</summary>
+        private static string Text(LuaTable payload, string field)
+            => payload.Get<string, string>(field) ?? string.Empty;
+
+        /// <summary>取 Lua 字符串数组载荷位（空表/缺省 = 空列表）。</summary>
+        private static IReadOnlyList<string> ReadStrings(LuaTable payload, string field)
+        {
+            LuaTable table = payload.Get<string, LuaTable>(field);
+            if (table == null) return Array.Empty<string>();
+            int n = table.Length;
+            var list = new List<string>(n);
+            for (int i = 1; i <= n; i++) list.Add(table.Get<int, string>(i) ?? string.Empty);
+            return list;
+        }
+
+        /// <summary>回调取件（缺 fn = null → 退订语义）；单参回调形（带值）。</summary>
+        private static Action<T> Arg1<T>(LuaTable payload, Action<LuaFunction, T> invoke)
+        {
+            LuaFunction fn = payload.Get<LuaFunction>("fn");
+            return fn == null ? null : (Action<T>)(v => invoke(fn, v));
         }
 
         private LuaFunction GetFn(string name) => _instance.Get<LuaFunction>(name);

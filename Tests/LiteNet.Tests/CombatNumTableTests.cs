@@ -48,7 +48,7 @@ namespace LiteNet.Tests
         public void 服务端装载链产出实例_表值在册()
         {
             string dir = Path.Combine(RepoRoot(), "Assets", "GameData", "Config");
-            ServerTableLoad load = CombatNumbers.LoadTableBytes(dir);
+            ServerTableLoad load = ServerTableLoader.LoadTableBytes(dir);
 
             CombatValues values = load.Combat.ToValues();
             Assert.Equal(load.Combat.MoveSpeed, values.MoveSpeed);

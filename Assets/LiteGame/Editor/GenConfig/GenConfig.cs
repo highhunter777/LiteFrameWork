@@ -19,12 +19,27 @@ namespace LiteGame.Editor
         [CSharpCallLua]
         public static List<System.Type> CSharpCallLua = new List<System.Type>
         {
-            typeof(System.Action),
-            typeof(System.Action<string>),
-            typeof(System.Func<int, XLua.LuaTable>),        // Bridge.data 查表适配（LuaComponent 注册）
-            typeof(System.Action<int>),                     // Bridge.ui.Close
-            typeof(System.Action<int, XLua.LuaTable>),      // Bridge.ui.Show(id, dataTable)
-            typeof(System.Func<int, bool>),                 // Bridge.ui.IsOpen
+            // 门面导出面（Bridge.Data.BindGlobals / ProductBridges + MetaBridge + ProductSettings 装订）用到的
+            // **全部**委托形——批C-④ 五页首次成为真实 Lua 消费者，此处补齐：IL2CPP 下未登记形只能走 Mono 反射兜底（不可靠）。
+            // 批C-⑥：ui 派发改带返回值（Func——get* 系回值）；新增 settings 门面的 float/bool/int 形。
+            typeof(System.Func<string, XLua.LuaTable, object>),  // self.ui 派发口（__ui_api_c——get* 回值，其余 nil）
+            typeof(System.Action),                          // Bridge.meta.LeaveMatch / Bridge.settings.Save
+            typeof(System.Action<string>),                  // Bridge.text.SetLocale / Bridge.ui.Close
+            typeof(System.Func<string>),                    // Bridge.text.Locale / Bridge.meta.AccountId/ServerUrl/Version
+            typeof(System.Func<bool>),                      // Bridge.meta.IsConfigured / Bridge.settings.SoundEnabled
+            typeof(System.Action<bool>),                    // Bridge.settings.SetSoundEnabled
+            typeof(System.Func<float>),                     // Bridge.settings.Volume
+            typeof(System.Action<float>),                   // Bridge.settings.SetVolume
+            typeof(System.Func<int>),                       // Bridge.settings.Quality
+            typeof(System.Action<int>),                     // Bridge.settings.SetQuality
+            typeof(System.Func<string, string>),            // Bridge.text.Get
+            typeof(System.Func<string, bool>),              // Bridge.ui.IsOpen
+            typeof(System.Func<int, XLua.LuaTable>),        // Bridge.data.GetItem/GetUIForm、Bridge.content.GetProcessor
+            typeof(System.Func<string, XLua.LuaTable>),     // Bridge.ui.GetLogic
+            typeof(System.Func<string, object, object, object, object, string>),   // Bridge.text.Format
+            typeof(System.Action<string, XLua.LuaTable>),   // Bridge.ui.Show/Replace(path, dataTable)
+            typeof(System.Action<XLua.LuaFunction>),        // Bridge.meta 回调形（GuestLogin/ListRooms/QuickEnter/ListRecords）
+            typeof(System.Action<string, XLua.LuaFunction>),// Bridge.meta.EnterRoom(roomId, cb)
         };
     }
 }
