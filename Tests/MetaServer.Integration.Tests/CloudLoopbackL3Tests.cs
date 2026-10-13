@@ -244,6 +244,110 @@ namespace MetaServer.IntegrationTests
         }
 
         // ══════════════════════════════════════════════════════════════════════════════
+        // 外接模式（进程级验证）：指向**已起的真服务器进程**，不再起进程内宿主
+        //   启用：LITELOOP_META_URL=http://127.0.0.1:5000  LITELOOP_ROOM_PORT=17777
+        //   可选：LITELOOP_KILL_LIMIT=3（须与外部房间配置一致）
+        //   —— 与同进程用例的差别：无进程内权威态可读，**唯一可观测面 = 客户端镜像**；
+        //      对账降为两面对账（客户端观测 ↔ Meta 落库），权威面由外部服务器的日志/指标印证。
+        // ══════════════════════════════════════════════════════════════════════════════
+
+        [SkippableFact]
+        public async Task 上云回环_外接进程_真链跑通()
+        {
+            string metaUrl = Environment.GetEnvironmentVariable("LITELOOP_META_URL");
+            string roomPortRaw = Environment.GetEnvironmentVariable("LITELOOP_ROOM_PORT");
+            Skip.If(string.IsNullOrWhiteSpace(metaUrl) || string.IsNullOrWhiteSpace(roomPortRaw),
+                "外接模式未启用（设 LITELOOP_META_URL / LITELOOP_ROOM_PORT 指向已起的真服务器进程）");
+
+            string metaBase = metaUrl.TrimEnd('/');
+            int roomPort = int.Parse(roomPortRaw);
+            int killLimit = int.TryParse(Environment.GetEnvironmentVariable("LITELOOP_KILL_LIMIT"), out int kl) ? kl : KillLimit;
+
+            string tag = Guid.NewGuid().ToString("N").Substring(0, 6);
+            string accountA = await GuestLoginAsync(metaBase, "ext-loop-A-" + tag);
+            string accountB = await GuestLoginAsync(metaBase, "ext-loop-B-" + tag);
+
+            LoopbackClient a = await JoinAsync(metaBase, accountA, roomPort, expectPlayerId: 0);
+            LoopbackClient b = await JoinAsync(metaBase, accountB, roomPort, expectPlayerId: 1);
+            _cleanup.Add(a);
+            _cleanup.Add(b);
+
+            Assert.True(WaitFor(() => a.HasStartGame && b.HasStartGame, 20_000), "StartGame 未达（外接进程）");
+
+            int kills = DriveKillsViaMirror(a, targetSlot: 1, budgetMs: 60_000, killLimit: killLimit);
+            Assert.True(kills >= 1, $"真击杀未发生（mirror Kills={kills}）");
+
+            // 结算回流：轮询 Meta 按账号查询直到本局出现（房关 + 提交管道 + 落库三段的可观察终点）
+            JsonElement rowA = default;
+            bool found = WaitForJson(async () =>
+            {
+                JsonElement rows = await QueryMatchesAsync(metaBase, accountA);
+                foreach (JsonElement row in rows.EnumerateArray())
+                {
+                    if (row.GetProperty("kills").GetInt32() >= 1) { rowA = row; return true; }
+                }
+                return false;
+            }, 60_000);
+            Assert.True(found, "结算未在 Meta 落库可查（外接进程）");
+
+            string matchId = rowA.GetProperty("matchId").GetString();
+            Assert.Equal(killLimit, rowA.GetProperty("kills").GetInt32());        // 打满上限
+            Assert.Equal(0, rowA.GetProperty("deaths").GetInt32());              // A 本人未死
+            Assert.Equal(1, CountMatches(await QueryMatchesAsync(metaBase, accountA), matchId));  // 幂等只落一份
+
+            JsonElement loserRow = await FindMatchAsync(metaBase, accountB, matchId);
+            Assert.Equal(0, loserRow.GetProperty("kills").GetInt32());
+            Assert.Equal(killLimit, loserRow.GetProperty("deaths").GetInt32());
+        }
+
+        /// <summary>外接模式驱动：**唯一可观测面=客户端镜像**——目标位取镜像、帧号取镜像最新帧+2（恒领先）。</summary>
+        private int DriveKillsViaMirror(LoopbackClient shooter, int targetSlot, int budgetMs, int killLimit)
+        {
+            var watch = Stopwatch.StartNew();
+            int kills = 0, sent = 0, skippedDead = 0, nextFrame = 0;
+            while (watch.ElapsedMilliseconds < budgetMs)
+            {
+                kills = shooter.Mirror.Entities[0].Kills;
+                if (kills >= killLimit) break;
+
+                if (shooter.HasStartGame && TryGetMirrorPos(shooter, targetSlot, out SimVector3 aim))
+                {
+                    int floor = shooter.Mirror.Frame + 2;
+                    if (nextFrame < floor) nextFrame = floor;
+                    var input = new SimInputFrame
+                    {
+                        AimPointX = aim.X,
+                        AimPointY = aim.Y + 1.0f,   // 躯干中部（爆头带下沿 1.449 → 普通命中）
+                        AimPointZ = aim.Z,
+                        Buttons = SimInputFrame.ButtonFire,
+                    };
+                    shooter.SendInput(nextFrame, input);
+                    nextFrame++;
+                    sent++;
+                }
+                else
+                {
+                    skippedDead++;
+                }
+
+                PumpAll();
+                Thread.Sleep(8);
+            }
+
+            Assert.True(sent > 0, $"从未发出开火输入（外接，跳过={skippedDead}）");
+            return kills;
+        }
+
+        private static bool TryGetMirrorPos(LoopbackClient viewer, int slot, out SimVector3 pos)
+        {
+            pos = default;
+            ref EntitySlot e = ref viewer.Mirror.Entities[slot];
+            if (e.Id == 0L || e.Hp <= 0) return false;
+            pos = e.Pos;
+            return true;
+        }
+
+        // ══════════════════════════════════════════════════════════════════════════════
         // 击杀驱动
         // ══════════════════════════════════════════════════════════════════════════════
 
