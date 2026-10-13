@@ -81,6 +81,7 @@ DATA_EXTS = ('.bytes',)     # .meta 由 endswith('.meta') 排除（不会命中�
 # 新增排除必须落在同一判据上：该表是否参与判定/协议。UI 布局、文本、图标属表现层。
 DATA_EXCLUDE_NAMES = (
     'tbuiform.bytes',   # UI 表单：层级/路径/全屏——纯表现
+    'tbltext.bytes',    # LText 文案（key→zh/en，批C 本地化链）：纯表现——改文案不得拒进房（同 tbuiform 判据）
 )
 SHARED_OUT_FILE = os.path.join(ROOT, 'Assets', 'LiteNet', 'Protocol', 'BuildHash.g.cs')
 META_OUT_FILE = os.path.join(ROOT, 'Server', 'MetaServer', 'Host', 'BuildHash.g.cs')

@@ -21,6 +21,8 @@ namespace LiteClient
             "Movement/tbmovementconfig", // 移动数值（单行表；装载后产出 MovementValues 实例并发布读口）
             "Entity/tbentityconfig",   // 实体定义（默认角色出生 HP；装载后投影到固定对局配置）
             "UI/tbuiform",
+            "UI/tbltext",               // LText 文案表（key→zh/en；BindLocale 数据源——表现层，进 BuildHash 表现层排除）。
+                                       // 表源 #ltext.xlsx：Luban 生成名派生自输入文件名，而 #text.xlsx 是其 L10N 保留名、不可用
             "Content/tbcontententry",
             "Strategy/tbstrategy",
             "Combat/tbcombatnum",      // 玩法数值（单行表；装载后产出 CombatValues 实例并发布读口——两端同源）

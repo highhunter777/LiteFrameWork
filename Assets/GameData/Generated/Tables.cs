@@ -18,6 +18,7 @@ public partial class Tables
     public Tbcontententry Tbcontententry {get; }
     public Tbentityconfig Tbentityconfig {get; }
     public Tbitemconfig Tbitemconfig {get; }
+    public Tbltext Tbltext {get; }
     public Tbmovementconfig Tbmovementconfig {get; }
     public Tbstrategy Tbstrategy {get; }
     public Tbuiform Tbuiform {get; }
@@ -30,6 +31,7 @@ public partial class Tables
         Tbcontententry = new Tbcontententry(loader("tbcontententry"));
         Tbentityconfig = new Tbentityconfig(loader("tbentityconfig"));
         Tbitemconfig = new Tbitemconfig(loader("tbitemconfig"));
+        Tbltext = new Tbltext(loader("tbltext"));
         Tbmovementconfig = new Tbmovementconfig(loader("tbmovementconfig"));
         Tbstrategy = new Tbstrategy(loader("tbstrategy"));
         Tbuiform = new Tbuiform(loader("tbuiform"));
@@ -44,6 +46,7 @@ public partial class Tables
         Tbcontententry.ResolveRef(this);
         Tbentityconfig.ResolveRef(this);
         Tbitemconfig.ResolveRef(this);
+        Tbltext.ResolveRef(this);
         Tbmovementconfig.ResolveRef(this);
         Tbstrategy.ResolveRef(this);
         Tbuiform.ResolveRef(this);
