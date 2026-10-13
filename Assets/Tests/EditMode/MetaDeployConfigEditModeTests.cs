@@ -4,17 +4,17 @@ using NUnit.Framework;
 namespace LiteGame.Tests.EditMode
 {
     /// <summary>
-    /// 上云入口部署配置解析（纯函数面——命令行 → <see cref="CloudEntryConfig"/>）。
-    /// 语义锚点：**未配置 Meta 基址 = 云入口显性拒绝**（HasMeta=false，消费端不连任何地址）；
+    /// 联机入口部署配置解析（纯函数面——命令行 → <see cref="MetaEntryConfig"/>）。
+    /// 语义锚点：**未配置 Meta 基址 = 联机入口显性拒绝**（HasMeta=false，消费端不连任何地址）；
     /// 非法值静默保持默认（部署参数不是攻击面——令牌/票据效力由服务端验签把守，
     /// 但也不让它让启动失败）；信封密钥空 = 不注入（回落环境变量口，由装配侧裁决）。
     /// </summary>
-    public sealed class CloudDeployConfigEditModeTests
+    public sealed class MetaDeployConfigEditModeTests
     {
         [Test]
         public void 无参数_全默认_即未配置()
         {
-            CloudEntryConfig c = CloudDeployConfig.Parse(null);
+            MetaEntryConfig c = MetaDeployConfig.Parse(null);
 
             Assert.IsFalse(c.HasMeta);
             Assert.AreEqual("", c.MetaUrl);
@@ -25,7 +25,7 @@ namespace LiteGame.Tests.EditMode
         [Test]
         public void 等号形态_基址剥尾斜杠()
         {
-            CloudEntryConfig c = CloudDeployConfig.Parse(new[]
+            MetaEntryConfig c = MetaDeployConfig.Parse(new[]
             {
                 "-meta.url=https://meta.example.com/",
                 "-envelope.key=AAECAwQFBgcICQ==",
@@ -39,7 +39,7 @@ namespace LiteGame.Tests.EditMode
         [Test]
         public void 空格形态_取下一参数为值()
         {
-            CloudEntryConfig c = CloudDeployConfig.Parse(new[]
+            MetaEntryConfig c = MetaDeployConfig.Parse(new[]
             {
                 "-meta.url", "https://meta.example.com",
                 "-meta.timeout", "20",
@@ -54,7 +54,7 @@ namespace LiteGame.Tests.EditMode
         [Test]
         public void 值位是另一参数开关_不吞开关_该键保持默认()
         {
-            CloudEntryConfig c = CloudDeployConfig.Parse(new[]
+            MetaEntryConfig c = MetaDeployConfig.Parse(new[]
             {
                 "-meta.url", "-meta.timeout", "20",
             });
@@ -66,7 +66,7 @@ namespace LiteGame.Tests.EditMode
         [Test]
         public void 非法超时_静默保持默认()
         {
-            CloudEntryConfig c = CloudDeployConfig.Parse(new[]
+            MetaEntryConfig c = MetaDeployConfig.Parse(new[]
             {
                 "-meta.timeout", "abc",
                 "-meta.timeout", "0",
@@ -78,7 +78,7 @@ namespace LiteGame.Tests.EditMode
         [Test]
         public void 未知参数_被忽略()
         {
-            CloudEntryConfig c = CloudDeployConfig.Parse(new[] { "-batchmode", "-nographics", "42" });
+            MetaEntryConfig c = MetaDeployConfig.Parse(new[] { "-batchmode", "-nographics", "42" });
 
             Assert.IsFalse(c.HasMeta);
             Assert.AreEqual(15, c.TimeoutSeconds);
@@ -87,7 +87,7 @@ namespace LiteGame.Tests.EditMode
         [Test]
         public void 密钥显式空值_保持未注入()
         {
-            CloudEntryConfig c = CloudDeployConfig.Parse(new[] { "-envelope.key=" });
+            MetaEntryConfig c = MetaDeployConfig.Parse(new[] { "-envelope.key=" });
 
             Assert.AreEqual("", c.EnvelopeKeyBase64, "显式空值 = 保持默认（回落环境变量口）");
         }

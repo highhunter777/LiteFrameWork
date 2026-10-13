@@ -24,7 +24,7 @@ namespace LiteGame
         private readonly int _timeoutSeconds;
         private readonly Func<string> _requestIdFactory;
 
-        /// <param name="baseUrl">Meta 基址（末尾不带 /；空 = 抛——装配面 fail-fast，云入口缺配置在上游显性拒绝）。</param>
+        /// <param name="baseUrl">Meta 基址（末尾不带 /；空 = 抛——装配面 fail-fast，联机入口缺配置在上游显性拒绝）。</param>
         /// <param name="timeoutSeconds">单请求超时（秒；&lt;1 抛）。</param>
         /// <param name="requestIdFactory">请求标识工厂（缺省时间戳+随机；注入便于测试对数）。</param>
         public UnityMetaClient(string baseUrl, int timeoutSeconds, Func<string> requestIdFactory = null)
