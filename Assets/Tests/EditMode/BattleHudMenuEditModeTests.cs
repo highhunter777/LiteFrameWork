@@ -13,7 +13,8 @@ namespace LiteGame.Tests.EditMode
     /// ① Hud_Battle——菜单角组"单独开射线"不变量（§0 事件隔离：根组不拦射线、全树唯一
     /// GraphicRaycaster 在 Cot_Settings、其 CanvasGroup ignoreParentGroups、唯一 raycastTarget=菜单钮；
     /// 引用件 _settingsButton 接线）；② Page_Settings——退场钮在位、缺省隐藏、BindName 同文（§9.1）；
-    /// ③ Page_Room——房主开局钮在位、缺省隐藏（房主事实回放才显）、BindName 同文。
+    /// ③ Page_Room——房主开局钮在位、缺省隐藏（房主事实回放才显）、BindName 同文；
+    /// ④ Page_Lobby——创房钮在位、BindName 同文、三钮并排；⑤ Hud_Battle 排行榜——8 格预置、引用件齐备、零新射线。
     /// 直接读 prefab 资产（不实例化——结构与接线是资产事实）。
     /// </summary>
     public sealed class BattleHudMenuEditModeTests : UnityTestBase
@@ -150,6 +151,36 @@ namespace LiteGame.Tests.EditMode
             Assert.AreEqual(0f, ((RectTransform)create).anchoredPosition.x, 0.01f, "创房钮居中位");
             Assert.AreEqual(-420f, quick.anchoredPosition.x, 0.01f, "快速进入左位（同批重排）");
             Assert.AreEqual(420f, records.anchoredPosition.x, 0.01f, "战绩右位（同批重排）");
+        }
+
+        [Test]
+        public void HUD_排行榜_八格预置_引用件已接_零新射线()
+        {
+            GameObject root = AssetDatabase.LoadAssetAtPath<GameObject>(HudPath);
+            Assert.IsNotNull(root, "Hud_Battle.prefab 在库");
+
+            Transform board = FindDeep(root.transform, "Cot_Rankboard");
+            Assert.IsNotNull(board, "排行榜容器在位（FFA 比分＝击杀）");
+
+            var view = root.GetComponent<BattleHudView>();
+            Assert.IsNotNull(view, "BattleHudView 引用件在位");
+            Assert.IsTrue(view.HasRankboard, "8 格名字/击杀/高亮引用齐备（缺件则装配期静默降级）");
+            Assert.IsNotNull(view.RankboardRoot, "排行榜容器引用已接");
+            Assert.IsNotNull(view.TeamScoreText, "Txt_Score（团队比分预留）引用已接");
+            Assert.IsFalse(view.TeamScoreText.gameObject.activeSelf, "团队比分预留节点缺省隐藏（FFA 不显示假 0）");
+
+            for (int i = 1; i <= BattleRankboardDriver.CellCount; i++)
+            {
+                Transform cell = FindDeep(board, "Cot_RankCell" + i);
+                Assert.IsNotNull(cell, $"第 {i} 格在位（**预置**——运行时代码禁建视觉元素）");
+                Assert.IsNotNull(FindDeep(cell, "Txt_Name"), $"第 {i} 格名字件");
+                Assert.IsNotNull(FindDeep(cell, "Txt_Kills"), $"第 {i} 格击杀件");
+                Transform plate = FindDeep(cell, "Image_Highlight");
+                Assert.IsNotNull(plate, $"第 {i} 格高亮件");
+                var graphic = plate.GetComponent<Graphic>();
+                Assert.IsNotNull(graphic, $"第 {i} 格高亮件是 Graphic");
+                Assert.IsFalse(graphic.raycastTarget, $"第 {i} 格高亮不拦射线（HUD 唯一射线件仍是菜单钮）");
+            }
         }
 
         private static Transform FindDeep(Transform parent, string name)

@@ -17,6 +17,7 @@
 - **素材**：Synty InterfaceMilitaryCombatHUD（`Assets/Synty/InterfaceMilitaryCombatHUD/Sprites/`，第三方付费包不入库——打包机本地还原）＋准心图 `Assets/Art/Crosshair/{normal,aim}.png`。
 - **本地化**：HP/Ammo 为数值（Invariant 拼接，`SetText` 语义——由驱动直写）；`Txt_Reload` 当前为固定英文标签"RELOADING"（技能/本地化系统落地时再评估 SetTextKey，本批不做）。
 - **技能栏**：静态占位（技能系统未做）——图标位留空，仅 Underlay/Frame/Hotkey。
+- **比分（FFA）＝实时排行榜**（排行榜批，2026-10-15 用户裁决）：死亡竞赛下"比分"即**击杀数**——`Cot_Rankboard` 顶部横列 **8 格**（= `eight` 模板上限，**prefab 预置不运行时建**），每格 **上 `Txt_Name` / 下 `Txt_Kills`**，**第一名在最左**（格位固定、内容按 `Kills 降序 → EntityId 升序` 填入，全序防同分抖动）；**自己那格**点亮 `Image_Highlight`。名字本批为**占位 `玩家{k}`**（k = 参赛玩家按 EntityId 升序序号，局内稳定；真名字/昵称归 G3 Profile）。`MatchStateData.Score`（FFA 恒 0，只承载团队模式）仅作 `Txt_Score` **预留节点、缺省隐藏**（`Team=1` 落地即启用）。
 
 ## 1. 资产与场景关系
 
@@ -47,6 +48,12 @@ Hud_Battle                          Canvas(Overlay, order 0) + CanvasScaler(1920
    │     ├─ Cot_IconBox             血条左端图标盒
    │     │  └─ Icon_Health          ICON_MilitaryCombat_Status_Health_02_Underlay
    │     └─ Txt_Hp                  TMP 血量数值（值变化才写）                        ◄View(经 HpBar 组件)
+   ├─ Cot_Rankboard                 锚(0.5,1)+偏移(0,-16)——顶部中组点（FFA 比分=击杀排行榜）
+   │  ├─ Cot_RankCell1..8           8 格横排（140×56，中心 x = -490 + 140·n）——格位固定、内容按排行序填
+   │  │  ├─ Image_Highlight         格底高亮件（**仅自己那格**点亮；缺省非激活）
+   │  │  ├─ Txt_Name                TMP 20 居中（上）——占位"玩家{k}"（真名字归 G3 Profile）
+   │  │  └─ Txt_Kills               TMP 24 居中（下）——击杀数
+   │  └─ Txt_Score                  团队比分（**预留**：Team=1 才显；FFA 缺省隐藏）   ◄View
    ├─ Cot_Weapon                    锚(1,0)+偏移(-32,32)——右下角组点
    │  ├─ Icon_Weapon                ICON_SM_Wep_Rifle_01_Military 96×96
    │  ├─ Txt_Ammo                   TMP 54 右对齐 "30"（图标左侧 16、底缘上抬 8）      ◄View
@@ -76,8 +83,11 @@ Hud_Battle                          Canvas(Overlay, order 0) + CanvasScaler(1920
 | `Txt_Ammo` | `TMP_Text AmmoText` | BattleHudDriver | 弹匣数（值变化才写） |
 | `Txt_Reload` | `GameObject ReloadLabel` | BattleHudDriver | 按 `WeaponSlotState.Reloading` 开关 |
 | `Button_Settings` | `Button SettingsButton` | BattleViewRig（装配期接 onClick → `PageFlow.OpenBattleSettings`，拆装期摘） | 对局设置入口（退场链）——点击开设置页（对局中导航数据带 `battleExit`，ESC 空栈同源） |
+| `Cot_Rankboard` | `RectTransform RankboardRoot` | BattleRankboardDriver | 排行榜容器（日志口；显隐随对局） |
+| `Cot_RankCell1..8` | `TMP_Text[] RankNames` / `TMP_Text[] RankKills` / `GameObject[] RankHighlights` | BattleRankboardDriver | 格位固定；按 `Kills 降序 → EntityId 升序` 从左往右填（左=第一）；高亮仅自己格；人数 < 8 尾部空格隐藏 |
+| `Txt_Score` | `TMP_Text TeamScoreText` | BattleRankboardDriver | 团队比分**预留**（`Team==0` 隐藏——FFA 恒 0 不显示假数据） |
 
-暴露共 8 项=驱动的全部读写面；血条走 `LiteGame.UI.HpBar` 组件 API（单点引用，避免嵌套深层字段 override）；`Cot_Vitals/Cot_Weapon/Cot_Skills` 及装饰件不暴露（`Cot_Settings` 组件不暴露——按钮即交互面）。技能槽无数据面（占位），数据面落地时随批 C 扩展（届时评估技能 CD 走 UI 框架 U2 控件；技能数据面已按裁决移出批 C——待技能系统）。
+暴露共 8 项=面板/准心/菜单驱动的读写面；**排行榜批（2026-10-15）追加 4 项**（容器 + 名字/击杀/高亮三数组 + `Txt_Score` 预留），由 `BattleRankboardDriver` 独担（单一职责——不与面板驱动混装）。血条走 `LiteGame.UI.HpBar` 组件 API（单点引用，避免嵌套深层字段 override）；`Cot_Vitals/Cot_Weapon/Cot_Skills/Cot_Rankboard` 容器及装饰件不暴露（`Cot_Settings` 组件不暴露——按钮即交互面）。技能槽无数据面（占位），数据面落地时随批 C 扩展（届时评估技能 CD 走 UI 框架 U2 控件；技能数据面已按裁决移出批 C——待技能系统）。
 
 ## 2.1 血条形态来源：控件模板 `Tmp_HpBar`
 
@@ -129,3 +139,4 @@ Hud_Battle                          Canvas(Overlay, order 0) + CanvasScaler(1920
 | `HP` / `Ammo` / `Reload` | `Txt_Hp` / `Txt_Ammo` / `Txt_Reload` | 文本词缀 |
 | `Icon`（Weapon 下） | `Icon_Weapon` | 消除与词缀 Icon_ 的歧义 |
 | `Slot1..3` / `Underlay` / `Hotkey` | `Cot_Skill1..3` / `Image_Underlay` / `Txt_Hotkey` | 词缀化 |
+| —（新增） | `Cot_Rankboard` / `Cot_RankCell1..8` / `Txt_Name` / `Txt_Kills` / `Image_Highlight` / `Txt_Score` | 排行榜批（2026-10-15）：FFA 比分=击杀（无旧名，全新件） |

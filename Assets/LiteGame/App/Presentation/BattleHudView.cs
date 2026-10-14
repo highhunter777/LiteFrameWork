@@ -30,6 +30,13 @@ namespace LiteGame
         [Header("菜单（对局退场链——Cot_Settings 角组，子 Canvas 单独开射线）")]
         [SerializeField] private Button _settingsButton;
 
+        [Header("排行榜（排行榜批；FFA 比分＝击杀——8 格预置，禁运行时建视觉元素）")]
+        [SerializeField] private RectTransform _rankboardRoot;
+        [SerializeField] private TextMeshProUGUI _teamScoreText;                    // 团队比分预留（Team 模式；FFA 隐藏）
+        [SerializeField] private TextMeshProUGUI[] _rankNames = new TextMeshProUGUI[8];
+        [SerializeField] private TextMeshProUGUI[] _rankKills = new TextMeshProUGUI[8];
+        [SerializeField] private GameObject[] _rankHighlights = new GameObject[8];
+
         public RectTransform CrosshairRoot => _crosshairRoot;
         public GameObject HipForm => _hipForm;
         public GameObject AdsForm => _adsForm;
@@ -38,5 +45,17 @@ namespace LiteGame
         public TextMeshProUGUI AmmoText => _ammoText;
         public GameObject ReloadLabel => _reloadLabel;
         public Button SettingsButton => _settingsButton;
+        public RectTransform RankboardRoot => _rankboardRoot;
+        public TextMeshProUGUI TeamScoreText => _teamScoreText;
+        public TextMeshProUGUI[] RankNames => _rankNames;
+        public TextMeshProUGUI[] RankKills => _rankKills;
+        public GameObject[] RankHighlights => _rankHighlights;
+
+        /// <summary>排行榜格是否齐备（名字/击杀/高亮件各 <see cref="BattleRankboardDriver.CellCount"/> 件）
+        /// ——装配期判据，缺件走静默降级（不把"旧 prefab"当对局失败）。</summary>
+        public bool HasRankboard =>
+            _rankNames != null && _rankNames.Length == BattleRankboardDriver.CellCount
+            && _rankKills != null && _rankKills.Length == BattleRankboardDriver.CellCount
+            && _rankHighlights != null && _rankHighlights.Length == BattleRankboardDriver.CellCount;
     }
 }

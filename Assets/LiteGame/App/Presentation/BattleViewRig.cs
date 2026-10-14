@@ -70,6 +70,7 @@ namespace LiteGame
         private CharacterLocomotionDriver _locomotion;   // 移动动画驱动（视图的消费者——先于视图拆除）
         private BattleCrosshairDriver _crosshair;       // 对局准心（Hud_Battle prefab）
         private BattleHudDriver _hud;                   // HUD 面板（血条/弹药——技能栏静态占位）
+        private BattleRankboardDriver _rankboard;       // 局内排行榜（FFA 比分＝击杀——镜像公共面）
         private UnityEngine.Events.UnityAction _menuClick;   // 菜单钮监听（装配期加、拆除期摘——存实例供移除）
         private BattleLaserDriver _laser;               // 瞄准激光（准心的世界空间兄弟件）
         private GameObject _laserBeam;                  // 激光束实例（挂 _viewRoot，随离场拆）
@@ -330,6 +331,7 @@ namespace LiteGame
 
             AttachCrosshair();                                  // 对局准心（视图/输入均已就绪，场景对象按名解析）
             AttachHud();                                        // HUD 面板（血条/弹药——同根场景对象，静默降级）
+            AttachRankboard();                                  // 局内排行榜（FFA 比分＝击杀——8 格预置，静默降级）
             _aimPointOf = AimPointOf(_input);                   // 瞄准点（世界）→ 相机构图 z 偏移 + 激光收敛端点
             AttachLaserSight();                                 // 瞄准激光（束实例已取，接线驱动）
             _hitFeedback = new HitFeedbackDispatcher(_view);   // 命中分发骨架：EventSink 并列订阅
@@ -358,6 +360,7 @@ namespace LiteGame
             _locomotion?.Tick(elapseSeconds);    // 移动动画：视图位置已更新，再解析目标姿态
             _crosshair?.Tick();                  // 对局准心（HUD）：位置/形态/光标
             _hud?.Tick();                        // HUD 面板：血条/弹药（预测态值变化写）
+            _rankboard?.Tick();                  // 局内排行榜：击杀分布变化才重排/写（镜像公共面）
             _laser?.Tick();                      // 瞄准激光：端点 = 开火射线（实体/障碍截停）
             _damageNumbers?.Tick();              // 伤害数字：命中事件的视觉收尾（合并窗口/淡出/跟随）
 
@@ -418,6 +421,8 @@ namespace LiteGame
         {
             _locomotion?.Dispose();               // 先停动画驱动（视图消费者），再拆视图本体
             _locomotion = null;
+            _rankboard?.Dispose();                // 排行榜（格归位——同属视图消费者）
+            _rankboard = null;
             _hud?.Dispose();                      // HUD 面板（面板归零——视图消费者，先于准心拆）
             _hud = null;
             _crosshair?.Dispose();                // 准心驱动（还系统光标——同属视图消费者）
@@ -532,6 +537,27 @@ namespace LiteGame
             if (_hudView.SettingsButton != null && _menuClick != null)
                 _hudView.SettingsButton.onClick.AddListener(_menuClick);   // 对局菜单钮 → 流程层开设置页（退场链）
             Log.Info("hud-attached", "Battle");
+        }
+
+        /// <summary>
+        /// 挂局内排行榜（<see cref="BattleRankboardDriver"/>——FFA "比分"＝击杀，排行榜批）：
+        /// 读**镜像公共面**（参赛玩家 <see cref="EntityFlags.Player"/> ＋ <see cref="EntitySlot.Kills"/>），
+        /// **8 格全部 prefab 预置** → 驱动只显隐/写值（禁运行时建视觉元素）。格件不齐（旧 prefab /
+        /// 结构变更）→ **静默降级**（只警告）：排行榜是表现增益，不影响 HUD 其余面。
+        /// </summary>
+        private void AttachRankboard()
+        {
+            if (_hudView == null) return;                  // HUD 已整体降级（AttachHud/准心处已警告）
+            if (!_hudView.HasRankboard)
+            {
+                Log.Warning("HUD prefab 排行榜格不齐（名字/击杀/高亮）×8——排行榜静默降级", "Battle");
+                return;
+            }
+            _rankboard = new BattleRankboardDriver(_context.Sim.State,
+                () => _view != null ? _view.LocalEntityId : 0L,
+                _hudView.RankNames, _hudView.RankKills, _hudView.RankHighlights,
+                _hudView.TeamScoreText);                   // 团队比分预留节点（缺 = 驱动内跳过）
+            Log.Info("rankboard-attached", "Battle");
         }
 
         /// <summary>
