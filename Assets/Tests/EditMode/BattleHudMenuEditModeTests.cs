@@ -9,16 +9,18 @@ using UnityEngine.UI;
 namespace LiteGame.Tests.EditMode
 {
     /// <summary>
-    /// HUD 批C 退场链：两件 prefab 的**结构守卫**（构建器产物钉住——防"顺手把射线开了"/接线漂移）：
+    /// 结构守卫（构建器产物钉住——防"顺手改坏/接线漂移"）：
     /// ① Hud_Battle——菜单角组"单独开射线"不变量（§0 事件隔离：根组不拦射线、全树唯一
     /// GraphicRaycaster 在 Cot_Settings、其 CanvasGroup ignoreParentGroups、唯一 raycastTarget=菜单钮；
-    /// 引用件 _settingsButton 接线）；② Page_Settings——退场钮在位、缺省隐藏、BindName 同文（§9.1）。
+    /// 引用件 _settingsButton 接线）；② Page_Settings——退场钮在位、缺省隐藏、BindName 同文（§9.1）；
+    /// ③ Page_Room——房主开局钮在位、缺省隐藏（房主事实回放才显）、BindName 同文。
     /// 直接读 prefab 资产（不实例化——结构与接线是资产事实）。
     /// </summary>
     public sealed class BattleHudMenuEditModeTests : UnityTestBase
     {
         private const string HudPath = "Assets/ShareResource/UI/Hud/Hud_Battle.prefab";
         private const string SettingsPath = "Assets/ShareResource/UI/Screens/Page_Settings.prefab";
+        private const string RoomPath = "Assets/ShareResource/UI/Screens/Page_Room.prefab";
 
         [Test]
         public void HUD_菜单角组_单独开射线_其余零射线()
@@ -88,6 +90,31 @@ namespace LiteGame.Tests.EditMode
             var labelBind = label.GetComponent("BindNode");
             Assert.IsNotNull(labelBind, "标签有 BindNode（SetTextKey 寻址）");
             Assert.AreEqual("Exit", new SerializedObject(labelBind).FindProperty("BindName").stringValue,
+                "标签 BindName 同文");
+        }
+
+        [Test]
+        public void 房间页_开局钮在位_缺省隐藏_BindName同文()
+        {
+            GameObject root = AssetDatabase.LoadAssetAtPath<GameObject>(RoomPath);
+            Assert.IsNotNull(root, "Page_Room.prefab 在库");
+
+            Transform start = FindDeep(root.transform, "Button_StartMatch");
+            Assert.IsNotNull(start, "房主开局钮在位（克隆 Button_Leave 形态）");
+            Assert.IsFalse(start.gameObject.activeSelf, "缺省隐藏——房主事实（Bridge.room 回放）才显，非房主/未进房不闪现");
+            Assert.IsNotNull(start.GetComponent<Button>(), "Button 组件在位");
+
+            var bind = start.GetComponent("BindNode");
+            Assert.IsNotNull(bind, "开局钮有 BindNode 标记（路径 A 索引）");
+            Assert.AreEqual("StartMatch", new SerializedObject(bind).FindProperty("BindName").stringValue,
+                "BindName 与节点语义同文（§9.1）");
+
+            var label = start.GetComponentInChildren<TMP_Text>(true);
+            Assert.IsNotNull(label, "开局钮标签在位");
+            Assert.AreEqual("Txt_StartMatch", label.gameObject.name, "标签名随克隆同文改名");
+            var labelBind = label.GetComponent("BindNode");
+            Assert.IsNotNull(labelBind, "标签有 BindNode（SetTextKey 寻址）");
+            Assert.AreEqual("StartMatch", new SerializedObject(labelBind).FindProperty("BindName").stringValue,
                 "标签 BindName 同文");
         }
 

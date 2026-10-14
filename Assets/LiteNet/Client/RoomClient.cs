@@ -75,6 +75,11 @@ namespace LiteNet
         public bool Connected => _transport.Connected;
         public int PlayerId { get; private set; } = -1;
 
+        /// <summary>本机是否房主（开房裁决 owner 位 + 房主迁移续批——**协议派生态单源**）：
+        /// JoinAck.IsOwner 定初值；OwnerChanged 广播维护（PlayerId == 本机席位）。
+        /// UI 的"开始对局"按钮归属按此事实（迁移后旧主重连不夺回——服务器侧确定性裁决，本端只消费）。</summary>
+        public bool IsOwner { get; private set; }
+
         /// <summary>当前会话相位（§9.3 状态机的观测面）。</summary>
         public ClientSessionPhase Phase => _phase;
 
@@ -399,6 +404,7 @@ namespace LiteNet
                 case PacketType.JoinAck:
                     var ack = (Proto.JoinAck)msg;
                     PlayerId = ack.PlayerId;
+                    IsOwner = ack.IsOwner;                     // 房主位随 JoinAck 定初值（重连重进同源刷新——迁移后旧主不夺回）
                     _joinAttemptPending = false;                // 进房已有应答（诊断判定用）
                     _reconnectToken = string.IsNullOrEmpty(ack.ReconnectToken) ? null : ack.ReconnectToken;
                     Transition(ClientSessionPhase.Connected);   // 进房/重新 Join 均以 JoinAck 为准
@@ -435,6 +441,7 @@ namespace LiteNet
                     OnStartMatchResponse?.Invoke((Proto.StartMatchResponse)msg);
                     break;
                 case PacketType.OwnerChanged:                          // 房主迁移：UI 换按钮归属
+                    IsOwner = ((Proto.OwnerChanged)msg).PlayerId == PlayerId;   // 事实重算（迁移后旧主失位/新主到位）
                     OnOwnerChanged?.Invoke((Proto.OwnerChanged)msg);
                     break;
             }

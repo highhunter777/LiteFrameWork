@@ -95,10 +95,16 @@ settings.Quality = function() return settings.quality end
 settings.SetQuality = function(i) settings.quality = i; calls[#calls + 1] = 'SetQuality:' .. tostring(i) end
 settings.Save = function() calls[#calls + 1] = 'Save' end
 
+-- room 面（点调用；全局——房主开局批：页面订阅房主事实/发提前开局；测试手动驱动 owner_fn 模拟回放与迁移）
+room = {}
+room.OnOwner = function(fn) room.owner_fn = fn end
+room.StartMatch = function(cb) calls[#calls + 1] = 'StartMatch'; room.start_fn = cb end
+
 Bridge = {
     ui = bridgeUi,
     meta = meta,
     settings = settings,
+    room = room,
     text = {
         Get = function(key) return '[' .. key .. ']' end,
         Format = function(key, a0) return '[' .. key .. ':' .. tostring(a0) .. ']' end,
@@ -513,6 +519,72 @@ page:OnShow({ roomId = 'Room-A' })");
                 string calls = Calls(env);
                 StringAssert.Contains("Visible:Txt_State=true", calls);
                 StringAssert.Contains("KeyArgs:Txt_State=UI.Room.Waiting(3,8)", calls, "等待人数 = 投影回查（无新协议）");
+            }
+        }
+
+        // ---- 房主开局（HUD 批C·房主开局批：Bridge.room 订阅 + 防重入 + 被拒反馈 + 迁移换归属）----
+
+        [Test]
+        public void 房间页_房主回放亮钮_点击防重入_被拒Toast复位()
+        {
+            using (var env = NewEnv())
+            {
+                env.DoString(@"
+page = NewPage('UI.Page_Room')
+page:OnShow({ roomId = 'Room-A' })");
+                string init = Calls(env);
+                StringAssert.Contains("Visible:Button_StartMatch=false", init, "缺省隐藏（回放前不显）");
+                StringAssert.Contains("Key:Txt_StartMatch=UI.Room.StartMatch", init, "开局钮文案键");
+
+                env.DoString("room.owner_fn(true)");          // 房主事实回放（门面 OnOwner）
+                StringAssert.Contains("Visible:Button_StartMatch=true", Calls(env), "房主回放亮钮");
+
+                env.DoString("buttons['Button_StartMatch']()");
+                string clicked = Calls(env);
+                StringAssert.Contains("StartMatch", clicked, "点击 → Bridge.room.StartMatch");
+                StringAssert.Contains("Interact:Button_StartMatch=false", clicked, "在途锁钮（防重入）");
+
+                env.DoString("room.start_fn(false, '只有房主可以开始对局')");
+                string denied = Calls(env);
+                StringAssert.Contains("Interact:Button_StartMatch=true", denied, "被拒回调后复位可再点");
+                StringAssert.Contains("Toast:[UI.Room.StartDenied:只有房主可以开始对局]", denied,
+                    "被拒 reason 经 Toast（UI.Room.StartDenied 带参——五页反馈口径）");
+            }
+        }
+
+        [Test]
+        public void 房间页_非房主隐藏_迁移失位同路径摘钮()
+        {
+            using (var env = NewEnv())
+            {
+                env.DoString(@"
+page = NewPage('UI.Page_Room')
+page:OnShow({ roomId = 'Room-A' })
+room.owner_fn(false)");
+                Assert.AreEqual(0, Regex.Matches(Calls(env), @"Visible:Button_StartMatch=true").Count,
+                    "非房主：开钮全程不亮");
+
+                env.DoString("room.owner_fn(true)");           // 迁移到位（新主）
+                Assert.AreEqual(1, Regex.Matches(Calls(env), @"Visible:Button_StartMatch=true").Count,
+                    "迁移到位亮钮（同一订阅路径）");
+
+                env.DoString("room.owner_fn(false)");          // 再迁移失位（旧主让位）
+                Assert.AreEqual(1, Regex.Matches(Calls(env), @"Visible:Button_StartMatch=true").Count,
+                    "失位即摘钮——迁移推送与回放同一路径，不残留");
+            }
+        }
+
+        [Test]
+        public void 房间页_OnHide退订房主事实()
+        {
+            using (var env = NewEnv())
+            {
+                env.DoString(@"
+page = NewPage('UI.Page_Room')
+page:OnShow({ roomId = 'Room-A' })
+page:OnHide()
+assert(room.owner_fn == nil, 'OnHide 应退订（门面持引用纪律——页面关闭即放手）')");
+                Assert.Pass("退订断言在 Lua 侧（owner_fn == nil）");
             }
         }
 

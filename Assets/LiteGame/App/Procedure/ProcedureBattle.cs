@@ -112,6 +112,7 @@ namespace LiteGame
                 _matchSession = _matchSessions?.Create(accountSession)
                     ?? throw new InvalidOperationException("缺少 MatchSessionFactory（完整 DI 装配要求由工厂创建 Match 域）");
                 _context = _matchSession.Context;
+                RoomBridge.BindSession(new RoomSessionFace(battleClient));   // 房间会话门面（房主开局批）——页面经 Bridge.room 读房主事实/发提前开局；收尾必摘
                 Log.Info("context-created (Match Scope built)", "Battle");
 
                 await WaitStartGame(battleClient, ct);        // Sim 就绪 = 视图可建（SimView 要读预测态）
@@ -191,9 +192,10 @@ namespace LiteGame
             return cinemachine != null ? cinemachine.EnsureCamera() : true;
         }
 
-        /// <summary>离场收尾：摘对局菜单 Back 策略 → 清输入派发状态 → 拆视图域（逆序：消费者 → 视图 → 租约作用域）。</summary>
+        /// <summary>离场收尾：摘房间会话门面 → 摘对局菜单 Back 策略 → 清输入派发状态 → 拆视图域（逆序：消费者 → 视图 → 租约作用域）。</summary>
         private void DetachView()
         {
+            RoomBridge.UnbindSession();            // 会话门面先摘（页面订阅不得命中死会话——未在途回调随作废）
             _pages?.DisableBattleMenuBack();   // 对局菜单 Back 随视图拆除（ESC 恢复原 Back 链——对局外不得开设置页）
             _input?.Reset();   // 离场即清派发状态（设备源与拦截源都是装配根的，不在此摘）
             _rig?.Dispose();

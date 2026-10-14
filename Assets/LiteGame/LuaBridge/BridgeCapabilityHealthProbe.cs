@@ -46,13 +46,15 @@ namespace LiteGame
         /// 靠反射扫描自动生成会让"新增一个公开类型 = 自动对 Lua 开放"，与白名单纪律相悖。
         ///
         /// 当前包含 <c>Bridge.BindGlobals</c> 与产品装订面（<c>ProductBridges.BindGlobals</c>）实际绑定的
-        /// **六个门面**（data/ui/content/text/meta/settings）。**新增 Bridge 绑定时必须同步在此登记**——
+        /// **七个门面**（data/ui/content/text/meta/settings/room）。**新增 Bridge 绑定时必须同步在此登记**——
         /// 漏登记会让 Lua 在运行时才发现能力缺失（正是 §10 要避免的）。
         /// ApiVersion 2（批C-⑥）：ui 门面改按 lua_path 寻址并增 Replace；新增输入控件族（G15～G17）、
         /// 列表（G6）与 settings 门面——Lua 侧可见面变更，候选清单据此下限比较。
+        /// ApiVersion 3（房主开局批）：新增 room 门面（IsOwner/OnOwner/StartMatch——委托形全在
+        /// GenConfig 白名单在册，零新增生成形）。
         /// </summary>
         public static BridgeCapabilitySet Default() => new BridgeCapabilitySet(
-            apiVersion: 2,
+            apiVersion: 3,
             capabilities: new[]
             {
                 "bridge.data",      // Bridge.data 门面（配置/数值读取）
@@ -61,6 +63,7 @@ namespace LiteGame
                 "bridge.text",      // Bridge.text 门面（LText 取文/切语言——批C-②）
                 "bridge.meta",      // Bridge.meta 门面（联机入口链路——批C-③）
                 "bridge.settings",  // Bridge.settings 门面（音量/音效/画质——批C-⑥）
+                "bridge.room",      // Bridge.room 门面（房间会话：房主事实/提前开局——房主开局批）
             });
     }
 
