@@ -87,6 +87,11 @@ ServerTableLoad load = combatTableDir != null
 CombatValues combat = load.Combat.ToValues();
 WeaponTable weapons = load.Weapons;
 
+// 判定地图装载（《地图数据专项设计》§7：与数值/武器同一份 .bytes 目录；fail-fast——无图不得起权威局，D22）。
+SimMapData map = combatTableDir != null
+    ? MapNumbers.LoadTableBytes(combatTableDir)
+    : MapNumbers.LoadFromRepo();
+
 // 票据验证器装配：生产**必须**传 key（fail-closed）。缺 key 不静默退回——显式告警（§6"不能悄悄退回 fake"）。
 if (portOverride.HasValue) serverConfig.OverridePort(portOverride.Value);
 
@@ -168,6 +173,7 @@ HostAssembly.Register(services, new HostAssembly.Inputs
     EnvelopeOptions = envelopeOptions,
     CombatValues = combat,
     Weapons = weapons,
+    Map = map,
     GameplayDigestBase = load.Digest,
     Lobby = lobbySettings,
     Settlement = settlementSettings,

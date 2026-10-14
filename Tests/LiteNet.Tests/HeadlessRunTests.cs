@@ -7,6 +7,7 @@ using LiteNet;
 using LiteNet.Protocol;
 using LiteNet.Transport;
 using LiteSim;
+using LiteSim.Tests;
 using RoomServer;
 using RoomServer.Runtime;
 using Xunit;
@@ -42,7 +43,7 @@ namespace LiteNet.Tests
         {
             _serverTransport = new KcpTransportServer();
             // 端口 0 = 系统分配（构造期不能读 Port 属性——那时 _host 还没赋值）
-            _host = new ServerHost(_serverTransport, new RoomConfig { Port = 0 });
+            _host = new ServerHost(_serverTransport, new RoomConfig { Map = TestMaps.Greybox(), Port = 0 }, map: TestMaps.Greybox());
         }
 
         public void Dispose()

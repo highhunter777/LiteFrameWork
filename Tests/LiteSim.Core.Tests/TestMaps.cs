@@ -3,7 +3,8 @@ using LiteSim;
 namespace LiteSim.Tests
 {
     /// <summary>
-    /// 测试地图夹具（测试侧单源）：灰盒值域与既有 `StandardBattleMap` **逐值一致**
+    /// 测试地图夹具（测试侧单源）：灰盒值域与旧 `StandardBattleMap` **逐值一致**（该方法已随批4 退役；
+    /// 本夹具承接其测试场景角色）
     /// （±100 边界 / 围墙 ±69 厚 2 高 20 / 测试方块 (5,0,0) / 16 网格出生点）——
     /// 供 L1 用例在该方法退役后继续以同一地图驱动断言；构建走 <see cref="SimMapBuilder"/>（越界/NaN fail-fast）。
     /// LiteNet.Tests 经 csproj 源链接共编本文件（同一份夹具）。

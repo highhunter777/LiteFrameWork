@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using LiteSim;
+using LiteSim.Tests;
 using RoomServer;
 using RoomServer.Application;
 using RoomServer.Runtime;
@@ -96,7 +97,7 @@ namespace LiteNet.Tests
 
         private static (RoomRuntime room, Session s1, Session s2) BuildStartedRoom()
         {
-            var room = new RoomRuntime(new RoomConfig { RoomId = "InputTest", Seed = SharedSeed });
+            var room = new RoomRuntime(new RoomConfig { Map = TestMaps.Greybox(), RoomId = "InputTest", Seed = SharedSeed });
             var seats = new Session[room.ExpectedPlayers];
             var pipeline = new SnapshotPipeline(seats);   // 空 SendTo：只驱动记账，不关心下行
 

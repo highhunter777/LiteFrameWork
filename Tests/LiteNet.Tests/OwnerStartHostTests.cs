@@ -3,6 +3,7 @@ using LiteNet.Proto;
 using RoomServer;
 using RoomServer.Runtime;
 using Xunit;
+using LiteSim.Tests;
 
 namespace LiteNet.Tests
 {
@@ -23,7 +24,7 @@ namespace LiteNet.Tests
         private static (ServerHost host, FakeRoomTransport t) NewHost()
         {
             var t = new FakeRoomTransport();
-            return (new ServerHost(t, null, null, null, RoomServerConfig.Parse(Config)), t);
+            return (new ServerHost(t, null, null, null, RoomServerConfig.Parse(Config), map: TestMaps.Greybox()), t);
         }
 
         private static byte[] Join(string roomId)

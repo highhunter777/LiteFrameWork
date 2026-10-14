@@ -4,6 +4,7 @@ using RoomServer;
 using RoomServer.Application;
 using RoomServer.Runtime;
 using Xunit;
+using LiteSim.Tests;
 
 namespace LiteNet.Tests
 {
@@ -117,7 +118,7 @@ namespace LiteNet.Tests
         [Fact]
         public void 空载实钟一秒_帧率约60Hz且无掉债()
         {
-            using var host = new ServerHost(new KcpTransportServer(), new RoomConfig { Port = 0 });
+            using var host = new ServerHost(new KcpTransportServer(), new RoomConfig { Map = TestMaps.Greybox(), Port = 0 }, map: TestMaps.Greybox());
             host.Ops.PrintEnabled = false;
             var loop = new ServerLoop(host);
 
@@ -136,7 +137,7 @@ namespace LiteNet.Tests
         [Fact]
         public void 跑满时长即停_不因追赶而超出()
         {
-            using var host = new ServerHost(new KcpTransportServer(), new RoomConfig { Port = 0 });
+            using var host = new ServerHost(new KcpTransportServer(), new RoomConfig { Map = TestMaps.Greybox(), Port = 0 }, map: TestMaps.Greybox());
             host.Ops.PrintEnabled = false;
             var loop = new ServerLoop(host);
 
@@ -152,7 +153,7 @@ namespace LiteNet.Tests
         [Fact]
         public void 过载时_追赶有上界并记账丢债_不会无界满核()
         {
-            using var host = new ServerHost(new KcpTransportServer(), new RoomConfig { Port = 0 });
+            using var host = new ServerHost(new KcpTransportServer(), new RoomConfig { Map = TestMaps.Greybox(), Port = 0 }, map: TestMaps.Greybox());
             host.Ops.PrintEnabled = false;
             // 单帧体 20ms（模拟过载：> 16.67ms 锚点周期，必然持续落后）。
             // 注：跨平台 CI——注入强度须大于两平台定时器粒度之和（Linux 1ms 精度下 8ms 不构成过载）。

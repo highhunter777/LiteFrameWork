@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using LiteSim;
+using LiteSim.Tests;
 using RoomServer.Runtime;
 using Xunit;
 
@@ -30,7 +31,7 @@ namespace LiteNet.Tests
         [Fact]
         public void 首入座者为房主_随就位信号下发()
         {
-            var room = new RoomRuntime(new RoomConfig { RoomId = "R", ExpectedPlayers = 4, Seed = 7 });
+            var room = new RoomRuntime(new RoomConfig { Map = TestMaps.Greybox(), RoomId = "R", ExpectedPlayers = 4, Seed = 7 });
 
             var first = Run(room, RoomCommand.Join(101));               // [0]=迁移事件，就位信号在 OfType 里
             var second = Run(room, RoomCommand.Join(202));
@@ -45,7 +46,7 @@ namespace LiteNet.Tests
         [Fact]
         public void 房主提前开局_未满员即开_只生成已入座实体()
         {
-            var room = new RoomRuntime(new RoomConfig { RoomId = "R", ExpectedPlayers = 4, Seed = 7 });
+            var room = new RoomRuntime(new RoomConfig { Map = TestMaps.Greybox(), RoomId = "R", ExpectedPlayers = 4, Seed = 7 });
             Run(room, RoomCommand.Join(101));
             Run(room, RoomCommand.Join(202));
 
@@ -59,7 +60,7 @@ namespace LiteNet.Tests
             Assert.Equal(0L, room.EntityIdOf(2));
             Assert.Equal(0L, room.EntityIdOf(3));
             // 满员开局照旧（回归钉子）：满员自动路径不受 owner 开局影响
-            var full = new RoomRuntime(new RoomConfig { RoomId = "F", ExpectedPlayers = 2, Seed = 7 });
+            var full = new RoomRuntime(new RoomConfig { Map = TestMaps.Greybox(), RoomId = "F", ExpectedPlayers = 2, Seed = 7 });
             Run(full, RoomCommand.Join(1));
             var fullOut = Run(full, RoomCommand.Join(2));
             Assert.Contains(fullOut, o => o is SignalOutput s && s.Signal is MatchStarted);
@@ -69,7 +70,7 @@ namespace LiteNet.Tests
         [Fact]
         public void 非房主开局被拒_带原因输出()
         {
-            var room = new RoomRuntime(new RoomConfig { RoomId = "R", ExpectedPlayers = 4, Seed = 7 });
+            var room = new RoomRuntime(new RoomConfig { Map = TestMaps.Greybox(), RoomId = "R", ExpectedPlayers = 4, Seed = 7 });
             Run(room, RoomCommand.Join(101));
             Run(room, RoomCommand.Join(202));
 
@@ -84,7 +85,7 @@ namespace LiteNet.Tests
         [Fact]
         public void 开局后重复请求幂等忽略_无效席位拒绝()
         {
-            var room = new RoomRuntime(new RoomConfig { RoomId = "R", ExpectedPlayers = 2, Seed = 7 });
+            var room = new RoomRuntime(new RoomConfig { Map = TestMaps.Greybox(), RoomId = "R", ExpectedPlayers = 2, Seed = 7 });
             Run(room, RoomCommand.Join(101));
             Run(room, RoomCommand.StartEarly(0));
 
@@ -95,7 +96,7 @@ namespace LiteNet.Tests
             var ghost = Run(room, RoomCommand.StartEarly(99));             // 无效席位在 Running 外同样忽略
             Assert.Empty(ghost);
 
-            var waiting = new RoomRuntime(new RoomConfig { RoomId = "W", ExpectedPlayers = 4, Seed = 7 });
+            var waiting = new RoomRuntime(new RoomConfig { Map = TestMaps.Greybox(), RoomId = "W", ExpectedPlayers = 4, Seed = 7 });
             Run(waiting, RoomCommand.Join(1));                             // WaitingForPlayers 前置（Created 期无人可反馈）
             var invalid = Run(waiting, RoomCommand.StartEarly(5));        // WaitingForPlayers 下无效席位 → 拒绝输出
             Assert.IsType<StartRejectedOutput>(Assert.Single(invalid));
@@ -104,7 +105,7 @@ namespace LiteNet.Tests
         [Fact]
         public void 房主离席_owner位转最低在座席位_新房主可开局()
         {
-            var room = new RoomRuntime(new RoomConfig { RoomId = "R", ExpectedPlayers = 4, Seed = 7 });
+            var room = new RoomRuntime(new RoomConfig { Map = TestMaps.Greybox(), RoomId = "R", ExpectedPlayers = 4, Seed = 7 });
             Run(room, RoomCommand.Join(101));                              // p0 = owner
             Run(room, RoomCommand.Join(202));
             Run(room, RoomCommand.Join(303));
@@ -122,7 +123,7 @@ namespace LiteNet.Tests
         [Fact]
         public void 旧房主重连不夺回_非owner离席不触发迁移()
         {
-            var room = new RoomRuntime(new RoomConfig { RoomId = "R", ExpectedPlayers = 4, Seed = 7 });
+            var room = new RoomRuntime(new RoomConfig { Map = TestMaps.Greybox(), RoomId = "R", ExpectedPlayers = 4, Seed = 7 });
             Run(room, RoomCommand.Join(101));                              // p0 = owner
             Run(room, RoomCommand.Join(202));
 
@@ -143,12 +144,12 @@ namespace LiteNet.Tests
         [Fact]
         public void 独房主离席保持owner_全断线时转给最低席位()
         {
-            var solo = new RoomRuntime(new RoomConfig { RoomId = "S", ExpectedPlayers = 2, Seed = 7 });
+            var solo = new RoomRuntime(new RoomConfig { Map = TestMaps.Greybox(), RoomId = "S", ExpectedPlayers = 2, Seed = 7 });
             Run(solo, RoomCommand.Join(101));
             var out1 = Run(solo, RoomCommand.Disconnect(101));               // 只剩房主一人：保持原位
             Assert.Empty(out1.OfType<SignalOutput>().Where(s => s.Signal is OwnerChanged));
 
-            var multi = new RoomRuntime(new RoomConfig { RoomId = "M", ExpectedPlayers = 4, Seed = 7 });
+            var multi = new RoomRuntime(new RoomConfig { Map = TestMaps.Greybox(), RoomId = "M", ExpectedPlayers = 4, Seed = 7 });
             Run(multi, RoomCommand.Join(101));                               // p0=owner
             Run(multi, RoomCommand.Join(202));
             Run(multi, RoomCommand.Disconnect(202));                         // p1 先断
@@ -160,7 +161,7 @@ namespace LiteNet.Tests
         [Fact]
         public void 对局中拒加入_不再发放无实体空席位()
         {
-            var room = new RoomRuntime(new RoomConfig { RoomId = "R", ExpectedPlayers = 4, Seed = 7 });
+            var room = new RoomRuntime(new RoomConfig { Map = TestMaps.Greybox(), RoomId = "R", ExpectedPlayers = 4, Seed = 7 });
             Run(room, RoomCommand.Join(101));
             Run(room, RoomCommand.StartEarly(0));                          // 房主开 4 人房（只 1 人在座）
 
@@ -172,7 +173,7 @@ namespace LiteNet.Tests
             Assert.Equal(0L, room.EntityIdOf(1));                          // 无实体席位被开出去
 
             // 房间关闭语义照旧（回归钉子）
-            var closed = new RoomRuntime(new RoomConfig { RoomId = "C", ExpectedPlayers = 2, Seed = 7 });
+            var closed = new RoomRuntime(new RoomConfig { Map = TestMaps.Greybox(), RoomId = "C", ExpectedPlayers = 2, Seed = 7 });
             Run(closed, RoomCommand.Join(1));
             Run(closed, RoomCommand.Shutdown(ShutdownReason.Operator));
             var closedOut = Run(closed, RoomCommand.Join(9));

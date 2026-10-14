@@ -1,6 +1,7 @@
 using LiteNet.Protocol;
 using LiteNet.Proto;
 using LiteSim;
+using LiteSim.Tests;
 using RoomServer;
 using RoomServer.Application;
 using RoomServer.Runtime;
@@ -19,8 +20,8 @@ namespace LiteNet.Tests
         {
             var transport = new FakeRoomTransport();
             using var host = new ServerHost(transport,
-                new RoomConfig { Port = 40201, RoomId = "MailboxRoom", ExpectedPlayers = 2 },
-                mailboxRouting: true, drainMailboxesImmediately: true);
+                new RoomConfig { Map = TestMaps.Greybox(), Port = 40201, RoomId = "MailboxRoom", ExpectedPlayers = 2 },
+                mailboxRouting: true, drainMailboxesImmediately: true, map: TestMaps.Greybox());
 
             transport.RaiseConnected(1);
             transport.RaiseConnected(2);
@@ -44,8 +45,8 @@ namespace LiteNet.Tests
         {
             var transport = new FakeRoomTransport();
             using var host = new ServerHost(transport,
-                new RoomConfig { Port = 40202, RoomId = "DeferredRoom", ExpectedPlayers = 2 },
-                mailboxRouting: true, drainMailboxesImmediately: false);
+                new RoomConfig { Map = TestMaps.Greybox(), Port = 40202, RoomId = "DeferredRoom", ExpectedPlayers = 2 },
+                mailboxRouting: true, drainMailboxesImmediately: false, map: TestMaps.Greybox());
 
             transport.RaiseConnected(1);
             transport.RaiseData(1, JoinPacket("DeferredRoom"));
@@ -62,8 +63,8 @@ namespace LiteNet.Tests
         {
             var transport = new FakeRoomTransport();
             using var host = new ServerHost(transport,
-                new RoomConfig { Port = 40203, RoomId = "PriorityRoom", ExpectedPlayers = 2 },
-                mailboxRouting: true, drainMailboxesImmediately: false);
+                new RoomConfig { Map = TestMaps.Greybox(), Port = 40203, RoomId = "PriorityRoom", ExpectedPlayers = 2 },
+                mailboxRouting: true, drainMailboxesImmediately: false, map: TestMaps.Greybox());
 
             transport.RaiseConnected(1);
             transport.RaiseConnected(2);
@@ -88,7 +89,7 @@ namespace LiteNet.Tests
             var transport = new FakeRoomTransport();
             var config = ConfigWithMailboxCapacity(1);
             using var host = new ServerHost(transport, null, null, null, config, null, null,
-                mailboxRouting: true, drainMailboxesImmediately: false);
+                mailboxRouting: true, drainMailboxesImmediately: false, map: TestMaps.Greybox());
 
             transport.RaiseConnected(1);
             transport.RaiseConnected(2);
@@ -114,8 +115,8 @@ namespace LiteNet.Tests
         {
             var transport = new FakeRoomTransport();
             using var host = new ServerHost(transport,
-                new RoomConfig { Port = 40206, RoomId = "ReconnectMailboxRoom", ExpectedPlayers = 2 },
-                mailboxRouting: true, drainMailboxesImmediately: true);
+                new RoomConfig { Map = TestMaps.Greybox(), Port = 40206, RoomId = "ReconnectMailboxRoom", ExpectedPlayers = 2 },
+                mailboxRouting: true, drainMailboxesImmediately: true, map: TestMaps.Greybox());
 
             transport.RaiseConnected(1);
             transport.RaiseConnected(2);
@@ -146,7 +147,7 @@ namespace LiteNet.Tests
             var transport = new FakeRoomTransport();
             var config = ConfigWithMailboxCapacity(1);
             using var host = new ServerHost(transport, null, null, null, config, null, null,
-                mailboxRouting: true, drainMailboxesImmediately: false);
+                mailboxRouting: true, drainMailboxesImmediately: false, map: TestMaps.Greybox());
 
             transport.RaiseConnected(1);
             transport.RaiseConnected(2);
@@ -178,7 +179,7 @@ namespace LiteNet.Tests
             var transport = new FakeRoomTransport();
             var config = ConfigWithMailboxCapacity(1);
             using var host = new ServerHost(transport, null, null, null, config, null, null,
-                mailboxRouting: true, drainMailboxesImmediately: false);
+                mailboxRouting: true, drainMailboxesImmediately: false, map: TestMaps.Greybox());
 
             transport.RaiseConnected(1);
             transport.RaiseConnected(2);

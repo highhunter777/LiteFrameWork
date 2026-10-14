@@ -4,6 +4,7 @@ using Google.Protobuf;
 using LiteNet.Protocol;
 using LiteNet.Proto;
 using LiteSim;
+using LiteSim.Tests;
 using LiteTesting;
 using RoomServer;
 using RoomServer.Application;
@@ -80,7 +81,7 @@ namespace LiteNet.Tests
         {
             var f = new RoomFixture
             {
-                Room = new RoomRuntime(new RoomConfig { RoomId = roomId, Seed = SharedSeed }),
+                Room = new RoomRuntime(new RoomConfig { Map = TestMaps.Greybox(), RoomId = roomId, Seed = SharedSeed }),
             };
             f.Seats = new Session[f.Room.ExpectedPlayers];
             f.Pipeline = new SnapshotPipeline(f.Seats);

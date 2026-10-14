@@ -7,6 +7,7 @@ using LiteNet;
 using LiteNet.Protocol;
 using LiteNet.Transport;
 using LiteSim;
+using LiteSim.Tests;
 using RoomServer;
 using RoomServer.Runtime;
 using Xunit;
@@ -51,7 +52,7 @@ namespace LiteNet.Tests
         {
             var cfg = RoomServerConfig.Parse(Config);
             _serverTransport = new KcpTransportServer();
-            _host = new ServerHost(_serverTransport, null, null, null, cfg);
+            _host = new ServerHost(_serverTransport, null, null, null, cfg, map: TestMaps.Greybox());
         }
 
         public void Dispose()

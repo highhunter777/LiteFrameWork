@@ -42,6 +42,14 @@ namespace RoomServer.Runtime
         /// <summary>玩法规则；创建时复制到 Runtime，再通过开局/公共快照下发。</summary>
         public LiteSim.MatchRules Rules = LiteSim.MatchRules.Default;
 
+        /// <summary>
+        /// 判定地图（**必填注入**——D22：回退位已删）。来源链：宿主/装配层经 `MapNumbers` 装载
+        /// `.bytes` → `HostAssembly.Inputs.Map` → `ServerHost` 参数（或直接写本字段）→ 房间构造。
+        /// 两处皆缺由 <c>RoomRuntime</c> 构造 fail-fast（不静默兜底——无图 = 两端判定不同源）。
+        /// 单图常量（`MapTableProjection.DefaultMapId`）；多图批次再议。
+        /// </summary>
+        public LiteSim.SimMapData Map;
+
         public static RoomConfig Default() => new RoomConfig();
     }
 }

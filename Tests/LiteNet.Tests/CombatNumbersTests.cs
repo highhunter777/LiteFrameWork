@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using LiteClient;
 using LiteSim;
+using LiteSim.Tests;
 using RoomServer;
 using RoomServer.Runtime;
 using Xunit;
@@ -105,7 +106,7 @@ namespace LiteNet.Tests
         public void 自定义实例经参数直达房间_无全局面参与()
         {
             var custom = new CombatValues(7.5f, -9.8f, 50f, 40, 0, 130, 2.5f, 60);
-            var room = new RoomRuntime(new RoomConfig { RoomId = "CfgInst", ExpectedPlayers = 1, Seed = 9 }, custom,
+            var room = new RoomRuntime(new RoomConfig { Map = TestMaps.Greybox(), RoomId = "CfgInst", ExpectedPlayers = 1, Seed = 9 }, custom,
                 gameplayDigestBase: 0x00C0FFEEu);                                       // 基摘要同链显式传入（批 E）
             var outputs = new List<RoomOutput>();
             room.Execute(RoomCommand.Join(1), outputs);

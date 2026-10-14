@@ -6,6 +6,7 @@ using RoomServer;
 using RoomServer.Application;
 using RoomServer.Runtime;
 using Xunit;
+using LiteSim.Tests;
 
 namespace LiteNet.Tests
 {
@@ -31,7 +32,7 @@ namespace LiteNet.Tests
             var cfg = RoomServerConfig.Parse(Config.Replace(@"""max_rooms"": 2", $@"""max_rooms"": {maxRooms}"));
             var t = new FakeRoomTransport();
             // 配置驱动形态：**不预置房间**——所有房间首次进房时按模板创建，容量上限就是全部房间数。
-            var host = new ServerHost(t, null, null, null, cfg);
+            var host = new ServerHost(t, null, null, null, cfg, map: TestMaps.Greybox());
             return (host, t, cfg);
         }
 
@@ -148,7 +149,7 @@ namespace LiteNet.Tests
         {
             // 未装配 RoomServerConfig：只认预置房间，别的 roomId 一律拒绝（嵌入式与本机联调通道）
             var t = new FakeRoomTransport();
-            using var host = new ServerHost(t, new RoomConfig { Port = 45002, RoomId = "Only", ExpectedPlayers = 2 });
+            using var host = new ServerHost(t, new RoomConfig { Map = TestMaps.Greybox(), Port = 45002, RoomId = "Only", ExpectedPlayers = 2 }, map: TestMaps.Greybox());
 
             t.RaiseConnected(1);
             t.RaiseData(1, JoinPacket("Only"));
@@ -187,7 +188,7 @@ namespace LiteNet.Tests
             var cfg = RoomServerConfig.Parse(Config);
             var t = new FakeRoomTransport();
             using var host = new ServerHost(t, null,
-                new HmacJoinTicketValidator(new[] { issuer.AsValidatorKey() }), "", cfg);
+                new HmacJoinTicketValidator(new[] { issuer.AsValidatorKey() }), "", cfg, map: TestMaps.Greybox());
 
             t.RaiseConnected(1);
             string ticketForB = issuer.Issue("p1", "Room-B", ServerHost.ServerBuildHash, 0,
@@ -210,7 +211,7 @@ namespace LiteNet.Tests
             var cfg = RoomServerConfig.Parse(Config);
             var t = new FakeRoomTransport();
             using var host = new ServerHost(t, null,
-                new HmacJoinTicketValidator(new[] { issuer.AsValidatorKey() }), "", cfg);
+                new HmacJoinTicketValidator(new[] { issuer.AsValidatorKey() }), "", cfg, map: TestMaps.Greybox());
 
             for (int i = 0; i < 20; i++)
             {

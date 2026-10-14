@@ -5,6 +5,7 @@ using RoomServer;
 using RoomServer.Application;
 using RoomServer.Runtime;
 using Xunit;
+using LiteSim.Tests;
 
 namespace LiteNet.Tests
 {
@@ -39,8 +40,8 @@ namespace LiteNet.Tests
         public void IP连接限流_同址第二连接被断开_空地址放行()
         {
             var t = new FakeRoomTransport();
-            using var host = new ServerHost(t, new RoomConfig { Port = 40211, RoomId = "RateConnect" },
-                rateLimiter: new RateLimiter(Lanes(One, Big, Big, Big)));
+            using var host = new ServerHost(t, new RoomConfig { Map = TestMaps.Greybox(), Port = 40211, RoomId = "RateConnect" },
+                rateLimiter: new RateLimiter(Lanes(One, Big, Big, Big)), map: TestMaps.Greybox());
 
             t.SetRemoteAddress(1, "9.9.9.9");
             t.SetRemoteAddress(2, "9.9.9.9");
@@ -60,8 +61,8 @@ namespace LiteNet.Tests
         public void IP入场限流_同址第二Join被拒()
         {
             var t = new FakeRoomTransport();
-            using var host = new ServerHost(t, new RoomConfig { Port = 40212, RoomId = "RateEntry" },
-                rateLimiter: new RateLimiter(Lanes(Big, One, Big, Big)));
+            using var host = new ServerHost(t, new RoomConfig { Map = TestMaps.Greybox(), Port = 40212, RoomId = "RateEntry" },
+                rateLimiter: new RateLimiter(Lanes(Big, One, Big, Big)), map: TestMaps.Greybox());
 
             t.SetRemoteAddress(1, "9.9.9.9");
             t.SetRemoteAddress(2, "9.9.9.9");
@@ -83,9 +84,9 @@ namespace LiteNet.Tests
             var issuer = TestTicketIssuer.Random("k1");
             var t = new FakeRoomTransport();
             using var host = new ServerHost(t,
-                new RoomConfig { Port = 40213, RoomId = "AcctRoom", ExpectedPlayers = 2 },
+                new RoomConfig { Map = TestMaps.Greybox(), Port = 40213, RoomId = "AcctRoom", ExpectedPlayers = 2 },
                 new HmacJoinTicketValidator(new[] { issuer.AsValidatorKey() }), "aud",
-                rateLimiter: new RateLimiter(Lanes(Big, Big, One, Big)));
+                rateLimiter: new RateLimiter(Lanes(Big, Big, One, Big)), map: TestMaps.Greybox());
 
             t.SetRemoteAddress(1, "1.1.1.1");
             t.SetRemoteAddress(2, "2.2.2.2");                     // 不同来源 IP：排除 IP 维度混淆
@@ -118,8 +119,8 @@ namespace LiteNet.Tests
         public void 重连入场限流_超限请求静默丢弃()
         {
             var t = new FakeRoomTransport();
-            using var host = new ServerHost(t, new RoomConfig { Port = 40214, RoomId = "RateReconnect" },
-                rateLimiter: new RateLimiter(Lanes(Big, One, Big, Big)));
+            using var host = new ServerHost(t, new RoomConfig { Map = TestMaps.Greybox(), Port = 40214, RoomId = "RateReconnect" },
+                rateLimiter: new RateLimiter(Lanes(Big, One, Big, Big)), map: TestMaps.Greybox());
 
             t.SetRemoteAddress(1, "9.9.9.9");
             t.RaiseConnected(1);
@@ -139,8 +140,8 @@ namespace LiteNet.Tests
         public void Session包限流_超速包静默丢弃_前段包照常处理()
         {
             var t = new FakeRoomTransport();
-            using var host = new ServerHost(t, new RoomConfig { Port = 40215, RoomId = "RatePackets" },
-                rateLimiter: new RateLimiter(Lanes(Big, Big, Big, new RateLimitSettings.Lane(4, 0))));
+            using var host = new ServerHost(t, new RoomConfig { Map = TestMaps.Greybox(), Port = 40215, RoomId = "RatePackets" },
+                rateLimiter: new RateLimiter(Lanes(Big, Big, Big, new RateLimitSettings.Lane(4, 0))), map: TestMaps.Greybox());
 
             t.RaiseConnected(1);
             // buildHash 故意不符：前 4 包走正常拒绝路径（可数），第 5 包应被包速率闸门静默丢弃
@@ -168,7 +169,7 @@ namespace LiteNet.Tests
                 ""rate_limit"": { ""session_burst"": 1, ""session_per_sec"": 0.1 }
             }");
             var t = new FakeRoomTransport();
-            using var host = new ServerHost(t, null, null, null, cfg);
+            using var host = new ServerHost(t, null, null, null, cfg, map: TestMaps.Greybox());
 
             t.RaiseConnected(1);
             byte[] packet = PacketCodec.Encode(PacketType.Join, new JoinRequest

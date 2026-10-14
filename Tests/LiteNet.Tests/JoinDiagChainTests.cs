@@ -11,6 +11,7 @@ using LiteNet.Transport;
 using LiteTesting;
 using RoomServer;
 using Xunit;
+using LiteSim.Tests;
 
 namespace LiteNet.Tests
 {
@@ -44,7 +45,7 @@ namespace LiteNet.Tests
 
         public JoinDiagChainTests()
         {
-            _host = new ServerHost(new KcpTransportServer(), null, null, null, RoomServerConfig.Parse(Config));
+            _host = new ServerHost(new KcpTransportServer(), null, null, null, RoomServerConfig.Parse(Config), map: TestMaps.Greybox());
             DiagTrace.ResetForTesting();
         }
 

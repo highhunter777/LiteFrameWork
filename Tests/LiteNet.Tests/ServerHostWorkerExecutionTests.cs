@@ -8,6 +8,7 @@ using RoomServer;
 using RoomServer.Application;
 using RoomServer.Runtime;
 using Xunit;
+using LiteSim.Tests;
 
 namespace LiteNet.Tests
 {
@@ -35,7 +36,7 @@ namespace LiteNet.Tests
             var t = new FakeRoomTransport();
             // 生产装配形态：路由 + 延迟排空 + Worker 执行。
             var host = new ServerHost(t, null, null, null, cfg, outbox, null,
-                mailboxRouting: true, drainMailboxesImmediately: false, workerExecution: true);
+                mailboxRouting: true, drainMailboxesImmediately: false, workerExecution: true, map: TestMaps.Greybox());
             host.Ops.PrintEnabled = false;
             return (host, t);
         }
@@ -101,19 +102,19 @@ namespace LiteNet.Tests
         {
             // 没有 Mailbox 路由 → Worker 拿不到命令
             Assert.Throws<ArgumentException>(() => new ServerHost(new FakeRoomTransport(),
-                new RoomConfig { Port = 45311, RoomId = "W", ExpectedPlayers = 2 },
-                workerPool: new RoomWorkerPool(1, 8), workerExecution: true));
+                new RoomConfig { Map = TestMaps.Greybox(), Port = 45311, RoomId = "W", ExpectedPlayers = 2 },
+                workerPool: new RoomWorkerPool(1, 8), workerExecution: true, map: TestMaps.Greybox()));
 
             // 立即排空（宿主同栈执行）与"执行 owner 是 Worker"直接冲突
             Assert.Throws<ArgumentException>(() => new ServerHost(new FakeRoomTransport(),
-                new RoomConfig { Port = 45312, RoomId = "W", ExpectedPlayers = 2 },
-                workerPool: new RoomWorkerPool(1, 8), mailboxRouting: true, workerExecution: true));
+                new RoomConfig { Map = TestMaps.Greybox(), Port = 45312, RoomId = "W", ExpectedPlayers = 2 },
+                workerPool: new RoomWorkerPool(1, 8), mailboxRouting: true, workerExecution: true, map: TestMaps.Greybox()));
 
             // 合法组合：路由 + 延迟排空 + 显式池
             var pool = new RoomWorkerPool(1, 8);
             using var host = new ServerHost(new FakeRoomTransport(),
-                new RoomConfig { Port = 45313, RoomId = "W", ExpectedPlayers = 2 },
-                workerPool: pool, mailboxRouting: true, drainMailboxesImmediately: false, workerExecution: true);
+                new RoomConfig { Map = TestMaps.Greybox(), Port = 45313, RoomId = "W", ExpectedPlayers = 2 },
+                workerPool: pool, mailboxRouting: true, drainMailboxesImmediately: false, workerExecution: true, map: TestMaps.Greybox());
             Assert.True(host.WorkerExecutionEnabled);
             Assert.True(host.WorkerPoolStarted);
         }

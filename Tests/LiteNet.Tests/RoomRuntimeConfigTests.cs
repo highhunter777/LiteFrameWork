@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using LiteSim;
+using LiteSim.Tests;
 using RoomServer;
 using RoomServer.Runtime;
 using Xunit;
@@ -38,7 +39,7 @@ namespace LiteNet.Tests
         {
             var custom = new CombatValues(7.5f, -9.8f, 50f, 40, 0, 130, 2.5f, 60);   // 自定义实例：证明数值经参数入房（债 #1）
             const uint Base = 0x00C0FFEEu;
-            var room = new RoomRuntime(new RoomConfig { RoomId = "Cfg", ExpectedPlayers = 1, Seed = 77 }, custom,
+            var room = new RoomRuntime(new RoomConfig { Map = TestMaps.Greybox(), RoomId = "Cfg", ExpectedPlayers = 1, Seed = 77 }, custom,
                 gameplayDigestBase: Base);
             var outputs = new List<RoomOutput>();
             room.Execute(RoomCommand.Join(1), outputs);
@@ -60,7 +61,7 @@ namespace LiteNet.Tests
         [Fact]
         public void seed为零_由Tick时间派生_不读系统墙钟()
         {
-            var room = new RoomRuntime(new RoomConfig { RoomId = "Seed", ExpectedPlayers = 1, Seed = 0 });
+            var room = new RoomRuntime(new RoomConfig { Map = TestMaps.Greybox(), RoomId = "Seed", ExpectedPlayers = 1, Seed = 0 });
             var outputs = new List<RoomOutput>();
 
             room.Execute(RoomCommand.Tick(123456), outputs);         // App 注入的单调毫秒（虚拟时钟形态）
@@ -70,7 +71,7 @@ namespace LiteNet.Tests
             Assert.NotEqual(0L, room.Seed);                          // 派生出非零种子（无需 DateTime.Now）
 
             // 同刻同输入派生同值（确定性——不依赖墙钟）
-            var room2 = new RoomRuntime(new RoomConfig { RoomId = "Seed", ExpectedPlayers = 1, Seed = 0 });
+            var room2 = new RoomRuntime(new RoomConfig { Map = TestMaps.Greybox(), RoomId = "Seed", ExpectedPlayers = 1, Seed = 0 });
             var outputs2 = new List<RoomOutput>();
             room2.Execute(RoomCommand.Tick(123456), outputs2);
             room2.Execute(RoomCommand.Join(1), outputs2);
@@ -80,7 +81,7 @@ namespace LiteNet.Tests
         [Fact]
         public void 关闭命令_收尾迁移且幂等停步()
         {
-            var room = new RoomRuntime(new RoomConfig { RoomId = "Shut", ExpectedPlayers = 1, Seed = 5 });
+            var room = new RoomRuntime(new RoomConfig { Map = TestMaps.Greybox(), RoomId = "Shut", ExpectedPlayers = 1, Seed = 5 });
             var outputs = new List<RoomOutput>();
             room.Execute(RoomCommand.Join(1), outputs);            // 满员自动开局（Running）
             outputs.Clear();

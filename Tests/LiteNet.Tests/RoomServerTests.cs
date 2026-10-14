@@ -8,6 +8,7 @@ using LiteNet.Transport;
 using RoomServer;
 using RoomServer.Runtime;
 using Xunit;
+using LiteSim.Tests;
 
 namespace LiteNet.Tests
 {
@@ -27,7 +28,7 @@ namespace LiteNet.Tests
         /// 不用固定端口：同机常驻软件可能占用（实测 aTrustXtunnel 占 7777/7778 曾致本类偶发 Bind 失败）。</summary>
         private int Port => _host.BoundPort;
 
-        public RoomServerTests() => _host = new ServerHost(new KcpTransportServer(), new RoomConfig { Port = 0 });
+        public RoomServerTests() => _host = new ServerHost(new KcpTransportServer(), new RoomConfig { Map = TestMaps.Greybox(), Port = 0 }, map: TestMaps.Greybox());
 
         /// <summary>
         /// 房间容量由配置决定：
@@ -37,7 +38,7 @@ namespace LiteNet.Tests
         [Fact]
         public void 房间容量_由配置决定_四人房满员且第五人被拒()
         {
-            var config = new RoomConfig { RoomId = "Four", ExpectedPlayers = 4, Seed = 12345 };
+            var config = new RoomConfig { Map = TestMaps.Greybox(), RoomId = "Four", ExpectedPlayers = 4, Seed = 12345 };
             var room = new RoomRuntime(config);
 
             Assert.Equal(4, room.ExpectedPlayers);

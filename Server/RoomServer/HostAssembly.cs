@@ -44,6 +44,10 @@ namespace RoomServer
             /// 缺失即拒装配——与 CombatValues 同纪律）。</summary>
             public WeaponTable Weapons;
 
+            /// <summary>判定地图实例（**必填**——服务端必须显式传入 `MapNumbers` 装载产物 `SimMapData`；
+            /// 缺失即拒装配（D22：无回退地图）——与 CombatValues/Weapons 同纪律，丢弃返回值 = 房间无图）。</summary>
+            public SimMapData Map;
+
             /// <summary>判定面表字节基摘要（= `ServerTableLoad.Digest`——生产链恒由装载产出；批 E：
             /// 房间 `StartGame.ConfigHash` = 它 + 本局规则初值，客户端按本地装载字节复算比对）。
             /// 与 CombatValues/Weapons 同属"装载产物显式传递"链：**漏传不静默**——首局即被客户端拒
@@ -80,6 +84,10 @@ namespace RoomServer
             WeaponTable weapons = inputs.Weapons
                 ?? throw new ArgumentException(
                     "装配输入 Weapons 不能为空——服务端必须显式传入武器表装载产物（不得静默跑默认表）",
+                    nameof(inputs));
+            SimMapData map = inputs.Map
+                ?? throw new ArgumentException(
+                    "装配输入 Map 不能为空——服务端必须显式传入地图装载产物（MapNumbers；D22：无回退地图）",
                     nameof(inputs));
 
             services.AddSingleton(config);
@@ -140,6 +148,7 @@ namespace RoomServer
                 workerExecution: true,
                 combatValues: combat,
                 weapons: weapons,
+                map: map,
                 gameplayDigestBase: inputs.GameplayDigestBase));
 
             services.AddSingleton(sp =>

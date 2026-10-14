@@ -4,6 +4,7 @@ using Google.Protobuf;
 using LiteNet.Protocol;
 using LiteNet.Proto;
 using LiteSim;
+using LiteSim.Tests;
 using RoomServer;
 using RoomServer.Application;
 using RoomServer.Runtime;
@@ -69,7 +70,7 @@ namespace LiteNet.Tests
 
         private static (RoomRuntime room, Capture capture, Session s1, Session s2, SnapshotPipeline pipeline) BuildStartedRoom()
         {
-            var room = new RoomRuntime(new RoomConfig { RoomId = "TestRoom", Seed = SharedSeed });
+            var room = new RoomRuntime(new RoomConfig { Map = TestMaps.Greybox(), RoomId = "TestRoom", Seed = SharedSeed });
             var seats = new Session[room.ExpectedPlayers];
             var pipeline = new SnapshotPipeline(seats);
             var capture = new Capture();
@@ -274,7 +275,7 @@ namespace LiteNet.Tests
         [Fact]
         public void 重连席位Restoring_抑制增量_恢复ACK后整帧全量重锚()
         {
-            var room = new RoomRuntime(new RoomConfig { RoomId = "TestRoom", Seed = SharedSeed });
+            var room = new RoomRuntime(new RoomConfig { Map = TestMaps.Greybox(), RoomId = "TestRoom", Seed = SharedSeed });
             var seats = new Session[room.ExpectedPlayers];
             var pipeline = new SnapshotPipeline(seats);
             var capture = new Capture();

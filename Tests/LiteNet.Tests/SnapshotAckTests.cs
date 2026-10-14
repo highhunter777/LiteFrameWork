@@ -3,6 +3,7 @@ using RoomServer;
 using RoomServer.Application;
 using RoomServer.Runtime;
 using Xunit;
+using LiteSim.Tests;
 
 namespace LiteNet.Tests
 {
@@ -18,7 +19,7 @@ namespace LiteNet.Tests
     {
         private static (RoomRuntime room, Session s, SnapshotPipeline pipeline) BuildRoom(int expectedPlayers = 1)
         {
-            var room = new RoomRuntime(new RoomConfig { RoomId = "AckTest", ExpectedPlayers = expectedPlayers });
+            var room = new RoomRuntime(new RoomConfig { Map = TestMaps.Greybox(), RoomId = "AckTest", ExpectedPlayers = expectedPlayers });
             var seats = new Session[room.ExpectedPlayers];
             var pipeline = new SnapshotPipeline(seats);
             var s = new Session(1, 0);

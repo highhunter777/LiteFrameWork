@@ -9,6 +9,7 @@ using LiteNet.Transport;
 using RoomServer;
 using RoomServer.Runtime;
 using Xunit;
+using LiteSim.Tests;
 
 namespace LiteNet.Tests
 {
@@ -374,7 +375,7 @@ namespace LiteNet.Tests
             var cfg = RoomServerConfig.Parse(Config);
             _host = new ServerHost(
                 new SecureEnvelopeRoomTransport(new KcpTransportServer(), new SecureEnvelopeOptions(key)),
-                null, null, null, cfg);
+                null, null, null, cfg, map: TestMaps.Greybox());
             _client = new SecureEnvelopeClientTransport(
                 new KcpTransportClient(), new SecureEnvelopeOptions(key));
         }

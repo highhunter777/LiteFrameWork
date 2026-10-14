@@ -87,9 +87,11 @@ namespace LiteGame
             // 取值点=进房/LocalServer 建房，恒在装载之后）；生产消费者=Match 会话工厂 + 本地服房
             // 来源同源（同一 ConfigService 实例）——两端摘要由构造保证同源。
             Func<uint> gameplayDigestBase = () => config.GameplayDigestBase;
+            var maps = new MapProvider(config);            // 地图提供者（D9）：已装载表链 → 判定图（两端同源投影）
+            _services.RegisterInstance<IMapProvider>(maps);
             var accounts = new AccountSessionFactory(context.RootScope, _services,
-                testRoom => ProcedureMatch.CreateTransportForFactory(testRoom, deploy, gameplayDigestBase));
-            var matches = new MatchSessionFactory(context.Require<IInputService>(), gameplayDigestBase);
+                testRoom => ProcedureMatch.CreateTransportForFactory(testRoom, deploy, gameplayDigestBase, maps));
+            var matches = new MatchSessionFactory(context.Require<IInputService>(), gameplayDigestBase, maps);
             _services.RegisterInstance<IAccountSessionFactory>(accounts);
             _services.RegisterInstance<IMatchSessionFactory>(matches);
 

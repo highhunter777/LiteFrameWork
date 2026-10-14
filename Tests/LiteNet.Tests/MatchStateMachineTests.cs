@@ -2,6 +2,7 @@ using System.Collections.Generic;
 using RoomServer;
 using RoomServer.Runtime;
 using Xunit;
+using LiteSim.Tests;
 
 namespace LiteNet.Tests
 {
@@ -89,8 +90,7 @@ namespace LiteNet.Tests
         [Fact]
         public void 等待超时_中止且不产出结算()
         {
-            var room = new RoomRuntime(new RoomConfig
-            {
+            var room = new RoomRuntime(new RoomConfig { Map = TestMaps.Greybox(),
                 RoomId = "WaitTimeout", ExpectedPlayers = 2, Seed = 1, WaitingTimeoutMs = 1000,
             });
             var outputs = new List<RoomOutput>();
@@ -109,8 +109,7 @@ namespace LiteNet.Tests
         [Fact]
         public void 对局时限_收尾迁移并冻结摘要()
         {
-            var room = new RoomRuntime(new RoomConfig
-            {
+            var room = new RoomRuntime(new RoomConfig { Map = TestMaps.Greybox(),
                 RoomId = "TimeLimit", ExpectedPlayers = 2, Seed = 42, MatchTimeLimitMs = 1000,
             });
             var outputs = new List<RoomOutput>();
@@ -151,7 +150,7 @@ namespace LiteNet.Tests
         [Fact]
         public void 全员离场_收尾并清算()
         {
-            var room = new RoomRuntime(new RoomConfig { RoomId = "AllLeft", ExpectedPlayers = 2, Seed = 7 });
+            var room = new RoomRuntime(new RoomConfig { Map = TestMaps.Greybox(), RoomId = "AllLeft", ExpectedPlayers = 2, Seed = 7 });
             var outputs = new List<RoomOutput>();
             room.Execute(RoomCommand.Join(1), outputs);
             room.Execute(RoomCommand.Join(2), outputs);
@@ -174,7 +173,7 @@ namespace LiteNet.Tests
         [Fact]
         public void 未开局关闭_走中止而非结算()
         {
-            var room = new RoomRuntime(new RoomConfig { RoomId = "AbortEarly", ExpectedPlayers = 2, Seed = 3 });
+            var room = new RoomRuntime(new RoomConfig { Map = TestMaps.Greybox(), RoomId = "AbortEarly", ExpectedPlayers = 2, Seed = 3 });
             var outputs = new List<RoomOutput>();
             room.Execute(RoomCommand.Join(1), outputs);                  // 只进 1 人
             outputs.Clear();
@@ -187,7 +186,7 @@ namespace LiteNet.Tests
         [Fact]
         public void 终态拒绝再进房()
         {
-            var room = new RoomRuntime(new RoomConfig { RoomId = "ClosedJoin", ExpectedPlayers = 1, Seed = 9 });
+            var room = new RoomRuntime(new RoomConfig { Map = TestMaps.Greybox(), RoomId = "ClosedJoin", ExpectedPlayers = 1, Seed = 9 });
             var outputs = new List<RoomOutput>();
             room.Execute(RoomCommand.Join(1), outputs);
             room.Execute(RoomCommand.Shutdown(ShutdownReason.Operator), outputs);

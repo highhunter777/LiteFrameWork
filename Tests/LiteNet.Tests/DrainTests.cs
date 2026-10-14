@@ -5,6 +5,7 @@ using LiteNet.Proto;
 using RoomServer;
 using RoomServer.Runtime;
 using Xunit;
+using LiteSim.Tests;
 
 namespace LiteNet.Tests
 {
@@ -33,7 +34,7 @@ namespace LiteNet.Tests
         {
             var cfg = RoomServerConfig.Parse(Config);
             var t = new FakeRoomTransport();
-            return (new ServerHost(t, null, null, null, cfg), t, cfg);
+            return (new ServerHost(t, null, null, null, cfg, map: TestMaps.Greybox()), t, cfg);
         }
 
         private static byte[] Join(string roomId) => PacketCodec.Encode(PacketType.Join,
@@ -308,7 +309,7 @@ namespace LiteNet.Tests
             var cfg = RoomServerConfig.Parse(Config);
             var t = new FakeRoomTransport();
             using (var outbox = FileSettlementOutbox.Open(journal, 16))
-            using (var host = new ServerHost(t, null, null, null, cfg, outbox))
+            using (var host = new ServerHost(t, null, null, null, cfg, outbox, map: TestMaps.Greybox()))
             {
                 host.Ops.PrintEnabled = false;
 

@@ -64,7 +64,7 @@ namespace LiteNet.Tests
             CombatValues values = Parse(Read("tbmovementconfig"), EntityBytes(1, 240));
             uint baseDigest = CombatConfigDigest.ComputeBase(
                 new[] { new CombatConfigDigest.Entry("Entity/tbentityconfig", EntityBytes(1, 240)) });
-            var room = new RoomRuntime(new RoomConfig { RoomId = "EntitySource", ExpectedPlayers = 1, Seed = 9 }, values,
+            var room = new RoomRuntime(new RoomConfig { Map = TestMaps.Greybox(), RoomId = "EntitySource", ExpectedPlayers = 1, Seed = 9 }, values,
                 gameplayDigestBase: baseDigest);
             room.Execute(RoomCommand.Join(1), new List<RoomOutput>());
             Assert.True(room.AuthSim.TryResolve(room.EntityIdOf(0), out int slot));

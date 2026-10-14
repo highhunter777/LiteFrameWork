@@ -8,6 +8,7 @@ using RoomServer;
 using RoomServer.Application;
 using RoomServer.Runtime;
 using Xunit;
+using LiteSim.Tests;
 
 namespace LiteNet.Tests
 {
@@ -24,7 +25,7 @@ namespace LiteNet.Tests
         public void 窄端口换实现_ServerHost零改动跑通装配到开局()
         {
             var t = new FakeRoomTransport();
-            using var host = new ServerHost(t, new RoomConfig { Port = 33333, RoomId = "Fake" });
+            using var host = new ServerHost(t, new RoomConfig { Map = TestMaps.Greybox(), Port = 33333, RoomId = "Fake" }, map: TestMaps.Greybox());
 
             Assert.Equal(33333, t.StartedPort);                        // 构造即 Start（宿主接管传输）
 
@@ -51,7 +52,7 @@ namespace LiteNet.Tests
         public void 窄端口换实现_版本红线与输入路由不受影响()
         {
             var t = new FakeRoomTransport();
-            using var host = new ServerHost(t, new RoomConfig { Port = 33334, RoomId = "Fake" });
+            using var host = new ServerHost(t, new RoomConfig { Map = TestMaps.Greybox(), Port = 33334, RoomId = "Fake" }, map: TestMaps.Greybox());
             t.RaiseConnected(1);
 
             // buildHash 不符 → 拒绝（不发明文 JoinAck），走 Ops rejects 记账
@@ -70,7 +71,7 @@ namespace LiteNet.Tests
         public void 房间号不符或缺失_拒绝进房()
         {
             var t = new FakeRoomTransport();
-            using var host = new ServerHost(t, new RoomConfig { Port = 33336, RoomId = "Room-A" });
+            using var host = new ServerHost(t, new RoomConfig { Map = TestMaps.Greybox(), Port = 33336, RoomId = "Room-A" }, map: TestMaps.Greybox());
             t.RaiseConnected(1);
 
             // ① 请求了别的房间（--room 可配后，这不能再靠"恰好只有一个房间"蒙过去）
@@ -97,7 +98,7 @@ namespace LiteNet.Tests
         public void 宿主持有所有权_Dispose释放传输()
         {
             var t = new FakeRoomTransport();
-            var host = new ServerHost(t, new RoomConfig { Port = 33335, RoomId = "Fake" });
+            var host = new ServerHost(t, new RoomConfig { Map = TestMaps.Greybox(), Port = 33335, RoomId = "Fake" }, map: TestMaps.Greybox());
             host.Dispose();
             Assert.True(t.Disposed, "ServerHost 接管传输所有权：Dispose 应释放它");
         }
@@ -108,7 +109,7 @@ namespace LiteNet.Tests
         public void 超长入包_解析前硬边界拒绝并计数_不崩溃()
         {
             var t = new FakeRoomTransport();
-            using var host = new ServerHost(t, new RoomConfig { Port = 33337, RoomId = "Fake" });
+            using var host = new ServerHost(t, new RoomConfig { Map = TestMaps.Greybox(), Port = 33337, RoomId = "Fake" }, map: TestMaps.Greybox());
             t.RaiseConnected(1);
 
             // 超过 MaxInboundPacketBytes 的"Join"包（内容合法但体量越界）——解析前直接丢弃
@@ -129,7 +130,7 @@ namespace LiteNet.Tests
         public void Join字段超长_按UTF8字节上限拒绝()
         {
             var t = new FakeRoomTransport();
-            using var host = new ServerHost(t, new RoomConfig { Port = 33338, RoomId = "Room-A" });
+            using var host = new ServerHost(t, new RoomConfig { Map = TestMaps.Greybox(), Port = 33338, RoomId = "Room-A" }, map: TestMaps.Greybox());
             t.RaiseConnected(1);
 
             // token 超 256 UTF-8 字节（多字节字符——字节数 ≠ 字符数）
@@ -157,7 +158,7 @@ namespace LiteNet.Tests
         public void 坏包计数_未知类型与随机字节不污染会话()
         {
             var t = new FakeRoomTransport();
-            using var host = new ServerHost(t, new RoomConfig { Port = 33339, RoomId = "Fake" });
+            using var host = new ServerHost(t, new RoomConfig { Map = TestMaps.Greybox(), Port = 33339, RoomId = "Fake" }, map: TestMaps.Greybox());
             t.RaiseConnected(1);
 
             t.RaiseData(1, new byte[] { 200, 1, 2, 3 });          // 未定义 packet type
@@ -179,7 +180,7 @@ namespace LiteNet.Tests
         public void 重连闭环_重绑Restoring抑制增量_恢复ACK后整帧全量重锚()
         {
             var t = new FakeRoomTransport();
-            using var host = new ServerHost(t, new RoomConfig { Port = 33341, RoomId = "Fake", ExpectedPlayers = 2 });
+            using var host = new ServerHost(t, new RoomConfig { Map = TestMaps.Greybox(), Port = 33341, RoomId = "Fake", ExpectedPlayers = 2 }, map: TestMaps.Greybox());
             t.RaiseConnected(1);
             t.RaiseConnected(2);
             t.RaiseData(1, JoinPacket());
@@ -267,8 +268,8 @@ namespace LiteNet.Tests
         {
             var issuer = TestTicketIssuer.Random("k1");
             var t = new FakeRoomTransport();
-            var host = new ServerHost(t, new RoomConfig { Port = 40001, RoomId = Room, ExpectedPlayers = 2 },
-                new HmacJoinTicketValidator(new[] { issuer.AsValidatorKey() }), audience);
+            var host = new ServerHost(t, new RoomConfig { Map = TestMaps.Greybox(), Port = 40001, RoomId = Room, ExpectedPlayers = 2 },
+                new HmacJoinTicketValidator(new[] { issuer.AsValidatorKey() }), audience, map: TestMaps.Greybox());
             return (host, issuer, t);
         }
 
@@ -384,7 +385,7 @@ namespace LiteNet.Tests
             // 兼容形态：嵌入式与本地联调不受影响；但 Principal 必须为 null——
             // 未验证不等于已验证（不得留下可被误当身份的残留）。
             var t = new FakeRoomTransport();
-            using var host = new ServerHost(t, new RoomConfig { Port = 40002, RoomId = Room, ExpectedPlayers = 2 });
+            using var host = new ServerHost(t, new RoomConfig { Map = TestMaps.Greybox(), Port = 40002, RoomId = Room, ExpectedPlayers = 2 }, map: TestMaps.Greybox());
             t.RaiseConnected(1);
 
             t.RaiseData(1, JoinWith("plain-token"));

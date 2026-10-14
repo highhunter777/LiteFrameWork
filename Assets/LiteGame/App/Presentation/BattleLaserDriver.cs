@@ -34,7 +34,7 @@ namespace LiteGame
         private readonly SimView _view;
         private readonly IInputService _input;          // 仅被拦门（模态 UI）；null = 无输入形态（不拦）
         private readonly RollbackSim _sim;             // 本地预测态（SelectedWeapon/WeaponDefId——只读）
-        private readonly SimMapData _map;              // 障碍射线用图（两端单源 StandardBattleMap）
+        private readonly SimMapData _map;              // 障碍射线用图（两端单源：同份 tbmap 投影——经 BattleContext 注入）
         private readonly LineRenderer _beam;
         private readonly Func<Vector3?> _aimPointOf;   // 瞄准目标点注入源（准心同源——TryGetAimPoint，**三维**：命中实体时带高度）；null = 无该事实
         private bool _disposed;

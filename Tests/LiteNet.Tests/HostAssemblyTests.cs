@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using Microsoft.Extensions.DependencyInjection;
 using LiteNet.Transport;
 using LiteSim;
+using LiteSim.Tests;
 using RoomServer;
 using RoomServer.Application;
 using RoomServer.Runtime;
@@ -35,6 +36,7 @@ namespace LiteNet.Tests
                 Audience = "",
                 CombatValues = CombatValues.Default,
                 Weapons = WeaponTable.Default,
+                Map = TestMaps.Greybox(),
             });
             var order = new List<string>();
             var transport = new FakeRoomTransport { OnDisposed = () => order.Add("transport") };
@@ -78,6 +80,14 @@ namespace LiteNet.Tests
                     Config = RoomServerConfig.Parse(OneRoomConfig),
                     CombatValues = CombatValues.Default,
                 }));
+            // 地图必填（D22："回退地图"结构性防线）：数值/武器齐而缺图同样拒装配
+            Assert.Throws<ArgumentException>(() => HostAssembly.Register(new ServiceCollection(),
+                new HostAssembly.Inputs
+                {
+                    Config = RoomServerConfig.Parse(OneRoomConfig),
+                    CombatValues = CombatValues.Default,
+                    Weapons = WeaponTable.Default,
+                }));
         }
 
         [Fact]
@@ -92,6 +102,7 @@ namespace LiteNet.Tests
                 Audience = "",
                 CombatValues = CombatValues.Default,
                 Weapons = WeaponTable.Default,
+                Map = TestMaps.Greybox(),
             });
             var transport = new FakeRoomTransport();
             var outbox = new RecordingOutbox(() => { });
@@ -124,13 +135,22 @@ namespace LiteNet.Tests
             // 嵌入式/测试通道（批3 口径）：不传协作对象端口——宿主按单源构造公式自建，
             // 容量公式与迁移前一致；直接 new 的既有契约不变。
             var config = RoomServerConfig.Parse(OneRoomConfig);
-            using var host = new ServerHost(new FakeRoomTransport(), roomServerConfig: config, mailboxRouting: true);
+            using var host = new ServerHost(new FakeRoomTransport(), roomServerConfig: config, mailboxRouting: true, map: TestMaps.Greybox());
             host.Ops.PrintEnabled = false;
 
             Assert.NotNull(host.Ops);
             Assert.NotNull(host.Admission);
             Assert.NotNull(host.Reconnects);
             Assert.Equal(4 * config.MaxRooms * config.MaxExpectedPlayers, host.Sessions.Capacity);
+        }
+
+        [Fact]
+        public void DirectNew_NoMap_Rejected()
+        {
+            // D22：宿主参数与 RoomConfig 两处皆缺地图 → 构造即拒（无回退地图——不静默兜底）
+            var config = RoomServerConfig.Parse(OneRoomConfig);
+            Assert.Throws<ArgumentException>(() =>
+                new ServerHost(new FakeRoomTransport(), roomServerConfig: config, mailboxRouting: true));
         }
 
         [Fact]
@@ -148,7 +168,7 @@ namespace LiteNet.Tests
 
             using var host = new ServerHost(transport, roomServerConfig: config, mailboxRouting: true,
                 ops: ops, rateLimiter: rateLimiter, admission: admission,
-                sessions: sessions, reconnects: reconnects);
+                sessions: sessions, reconnects: reconnects, map: TestMaps.Greybox());
             host.Ops.PrintEnabled = false;
 
             Assert.Same(ops, host.Ops);

@@ -8,6 +8,7 @@ using LiteNet.Proto;
 using RoomServer;
 using RoomServer.Runtime;
 using Xunit;
+using LiteSim.Tests;
 
 namespace LiteNet.Tests
 {
@@ -550,7 +551,7 @@ namespace LiteNet.Tests
             var outbox = new RecordingOutbox();
             var cfg = RoomServerConfig.Parse(Config);
             var t = new FakeRoomTransport();
-            return (new ServerHost(t, null, null, null, cfg, outbox), t, outbox);
+            return (new ServerHost(t, null, null, null, cfg, outbox, map: TestMaps.Greybox()), t, outbox);
         }
 
         [Fact]
@@ -624,7 +625,7 @@ namespace LiteNet.Tests
         {
             var cfg = RoomServerConfig.Parse(Config);
             var t = new FakeRoomTransport();
-            using var host = new ServerHost(t, null, null, null, cfg);   // 无 outbox
+            using var host = new ServerHost(t, null, null, null, cfg, map: TestMaps.Greybox());   // 无 outbox
             host.Ops.PrintEnabled = false;
 
             RunToSettlement(host, t);

@@ -4,6 +4,7 @@ using RoomServer;
 using RoomServer.Application;
 using RoomServer.Runtime;
 using Xunit;
+using LiteSim.Tests;
 
 namespace LiteNet.Tests
 {
@@ -26,7 +27,7 @@ namespace LiteNet.Tests
         {
             var cfg = RoomServerConfig.Parse(Config);
             var t = new FakeRoomTransport();
-            return (new ServerHost(t, null, null, null, cfg), t);
+            return (new ServerHost(t, null, null, null, cfg, map: TestMaps.Greybox()), t);
         }
 
         private static byte[] Join(string roomId) => PacketCodec.Encode(PacketType.Join,

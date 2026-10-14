@@ -197,6 +197,13 @@ namespace RoomServer
         private readonly WeaponTable _weapons;
 
         /// <summary>
+        /// 判定地图注入（生产链 `HostAssembly.Inputs.Map` ← `MapNumbers` 装载产物）。房间建立时写入
+        /// `RoomConfig.Map`（配置自带者优先——单图批次恒空）；**无缺省兜底**（D22）：宿主参数与
+        /// 房间配置两处皆缺由房间构造 fail-fast。
+        /// </summary>
+        private readonly SimMapData _map;
+
+        /// <summary>
         /// 判定面表字节**基摘要**（生产链 `HostAssembly.Inputs.GameplayDigestBase` ← `ServerTableLoad.Digest`；
         /// 缺省 0 = 无表身份形态，供嵌入式/测试直构）。房间创建时随数值/武器同刻捕获进 `FixedCombatConfig`
         /// ——客户端按本地装载字节复算比对（批 E），忘传的表现是**首局即被客户端拒**（显性，不静默）。
@@ -407,14 +414,19 @@ namespace RoomServer
             bool workerExecution = false, CombatValues? combatValues = null, WeaponTable weapons = null,
             uint gameplayDigestBase = 0,
             Ops ops = null, JoinAdmissionGate admission = null, SessionManager sessions = null,
-            ReconnectService reconnects = null)
+            ReconnectService reconnects = null, SimMapData map = null)
         {
             _transport = transport ?? throw new ArgumentNullException(nameof(transport));
             _serverConfig = roomServerConfig;
             _combat = combatValues ?? CombatValues.Default;
             _weapons = weapons ?? WeaponTable.Default;
+            _map = map;
             _gameplayDigestBase = gameplayDigestBase;
             Config = config ?? RoomConfig.Default();
+            if (_map == null && Config.Map == null)
+                throw new ArgumentException(
+                    "地图必填（D22）：宿主 map 参数或 RoomConfig.Map 须注入其一——生产链经 MapNumbers 装载（无回退地图）",
+                    nameof(map));
             _tickets = ticketValidator;
             _audience = ResolveAudience(audience, roomServerConfig);
             _settlementOutbox = settlementOutbox;
@@ -2017,6 +2029,7 @@ namespace RoomServer
         /// <summary>登记一个房间（构造预置与 <see cref="OpenRoom"/> 共用）。</summary>
         private RoomInstance AddRoom(RoomConfig cfg, bool dynamic = false)
         {
+            cfg.Map ??= _map;   // 宿主注入地图落进房间配置（配置自带者优先）——RoomRuntime 据此必填读取（D22）
             int mailboxCapacity = _serverConfig?.MailboxCapacity ?? RoomInstance.DefaultMailboxCapacity;
             RoomInstance inst = _workerExecution
                 ? new RoomInstance(cfg, mailboxCapacity, mailboxCapacity, mailboxCapacity, dynamic, true, _combat, _weapons, _gameplayDigestBase)

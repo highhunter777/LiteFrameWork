@@ -116,11 +116,15 @@ namespace LiteGame
         /// （联机身份摘要可见），运行态经持有件注入权威步进（与客户端预测同实例）。</param>
         /// <param name="gameplayDigestBase">判定面表字节基摘要（批 E——装配根传 `ConfigService.GameplayDigestBase`
         /// 同一提供者；摘要不等 = 客户端拒局，见类头"联机身份"与 `BattleContext` 校验点）。</param>
+        /// <param name="map">判定图（**必填**——装配根经 `IMapProvider` 传入，与客户端逐位同图：
+        /// 出生点/碰撞/遮挡；D22：无回退地图）。</param>
         public static LocalServerTransport ForRoom(string roomId, int expectedPlayers = 0, MatchTestRules testRules = null,
-            uint gameplayDigestBase = 0)
+            uint gameplayDigestBase = 0, SimMapData map = null)
         {
             if (string.IsNullOrEmpty(roomId)) throw new ArgumentException("房间号不得为空", nameof(roomId));
-            var config = new RoomConfig { RoomId = roomId };
+            if (map == null)
+                throw new ArgumentException("地图必填——装配根经 IMapProvider 注入（D22：无回退地图）", nameof(map));
+            var config = new RoomConfig { RoomId = roomId, Map = map };
             if (expectedPlayers > 0) config.ExpectedPlayers = expectedPlayers;
             return new LocalServerTransport(config, testRules, gameplayDigestBase);
         }

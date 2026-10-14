@@ -9,6 +9,7 @@ using LiteNet.Transport;
 using RoomServer;
 using RoomServer.Runtime;
 using Xunit;
+using LiteSim.Tests;
 
 namespace LiteNet.Tests
 {
@@ -37,7 +38,7 @@ namespace LiteNet.Tests
         {
             var cfg = RoomServerConfig.Parse(Config);
             _host = new ServerHost(new KcpTransportServer(), null, null, null, cfg, null, null,
-                mailboxRouting: true, drainMailboxesImmediately: false, workerExecution: true);
+                mailboxRouting: true, drainMailboxesImmediately: false, workerExecution: true, map: TestMaps.Greybox());
         }
 
         public void Dispose()

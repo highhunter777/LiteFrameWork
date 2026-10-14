@@ -205,7 +205,7 @@ namespace LiteGame.Tests.EditMode
             using (var account = new ClientScope("Account"))
             {
                 account.Register(battle);                        // 生产形态：Account Scope 拥有会话（离场 Dispose 释放）
-                var context = new BattleContext(battle, account);
+                var context = new BattleContext(battle, account, map: GreyboxMap());
                 try
                 {
                     Assert.That(context.Sim, Is.Null);
@@ -245,7 +245,7 @@ namespace LiteGame.Tests.EditMode
             using (var account = new ClientScope("Account"))
             {
                 account.Register(battle);                        // 生产形态：Account Scope 拥有会话（离场 Dispose 释放）
-                var context = new BattleContext(battle, account);
+                var context = new BattleContext(battle, account, map: GreyboxMap());
                 try
                 {
                     var sim = new SimWorldState { RngState = 1UL };
@@ -270,7 +270,7 @@ namespace LiteGame.Tests.EditMode
             using (var account = new ClientScope("Account"))
             {
                 account.Register(battle);                        // 生产形态：Account Scope 拥有会话（离场 Dispose 释放）
-                var context = new BattleContext(battle, account);
+                var context = new BattleContext(battle, account, map: GreyboxMap());
                 int endedCount = 0;
                 BattleContext.EndReason reason = BattleContext.EndReason.Leave;
                 context.Ended += r => { endedCount++; reason = r; };
@@ -296,7 +296,7 @@ namespace LiteGame.Tests.EditMode
             using (var account = new ClientScope("Account"))
             {
                 account.Register(battle);                        // 生产形态：Account Scope 拥有会话（离场 Dispose 释放）
-                var context = new BattleContext(battle, account);
+                var context = new BattleContext(battle, account, map: GreyboxMap());
                 try
                 {
                     // 兄弟 Scope（非 BattleContext 所有）：验证 BattleContext 的 Dispose 不越权动父级
@@ -338,7 +338,7 @@ namespace LiteGame.Tests.EditMode
             using (var account = new ClientScope("Account"))
             {
                 account.Register(battle);
-                var context = new BattleContext(battle, account);
+                var context = new BattleContext(battle, account, map: GreyboxMap());
                 int endedCount = 0;
                 BattleContext.EndReason reason = BattleContext.EndReason.Leave;
                 context.Ended += r => { endedCount++; reason = r; };
@@ -369,7 +369,7 @@ namespace LiteGame.Tests.EditMode
                 account.Register(battle);                        // 生产形态：Account Scope 拥有会话（离场 Dispose 释放）
                 var inputService = new InputService();
                 inputService.SetSource(new StubIntentSource());      // 设备替身：输入链路完整（null 输入 = 不上行）
-                var context = new BattleContext(battle, account, inputService);
+                var context = new BattleContext(battle, account, inputService, map: GreyboxMap());
                 try
                 {
                     context.Tick(1f / 60);                           // StartGame 未达：只泵网络，不抛
@@ -388,6 +388,19 @@ namespace LiteGame.Tests.EditMode
                 {
                     context.Dispose();
                 }
+            }
+        }
+
+        [Test]
+        [Category(TestCategory.Contract)]
+        public void 无图拒构_D22必填注入()
+        {
+            // D22：回退位（StandardBattleMap）已删——装配点必须经 IMapProvider 注入；缺图构造即拒
+            BattleClient battle = JoinedClient();
+            using (var account = new ClientScope("Account"))
+            {
+                account.Register(battle);
+                Assert.Throws<ArgumentException>(() => new BattleContext(battle, account));
             }
         }
 

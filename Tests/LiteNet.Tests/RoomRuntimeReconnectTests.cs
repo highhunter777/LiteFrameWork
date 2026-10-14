@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using LiteSim;
+using LiteSim.Tests;
 using RoomServer;
 using RoomServer.Runtime;
 using Xunit;
@@ -35,8 +36,7 @@ namespace LiteNet.Tests
         /// <summary>开局到 Running（2 人满员）。</summary>
         private static RoomRuntime StartRunning(string roomId, long timeLimitMs = 0)
         {
-            var room = new RoomRuntime(new RoomConfig
-            {
+            var room = new RoomRuntime(new RoomConfig { Map = TestMaps.Greybox(),
                 RoomId = roomId, ExpectedPlayers = 2, Seed = SharedSeed, MatchTimeLimitMs = timeLimitMs,
             });
             var outputs = new List<RoomOutput>();

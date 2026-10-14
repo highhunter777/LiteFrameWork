@@ -5,6 +5,7 @@ using LiteNet.Transport;
 using RoomServer;
 using RoomServer.Runtime;
 using Xunit;
+using LiteSim.Tests;
 
 namespace LiteNet.Tests
 {
@@ -20,8 +21,8 @@ namespace LiteNet.Tests
             var pool = new RoomWorkerPool(1, 4);
             var transport = new FakeRoomTransport();
             using (var host = new ServerHost(transport,
-                new RoomConfig { Port = 40101, RoomId = "WorkerRoom", ExpectedPlayers = 2 },
-                workerPool: pool))
+                new RoomConfig { Map = TestMaps.Greybox(), Port = 40101, RoomId = "WorkerRoom", ExpectedPlayers = 2 },
+                workerPool: pool, map: TestMaps.Greybox()))
             {
                 Assert.Same(pool, host.WorkerPool);
                 Assert.True(host.WorkerPoolStarted);
@@ -50,8 +51,8 @@ namespace LiteNet.Tests
             var pool = new RoomWorkerPool(1, 4);
             var transport = new DisposeOrderTransport(() => pool.IsStopped);
             var host = new ServerHost(transport,
-                new RoomConfig { Port = 40102, RoomId = "WorkerRoom", ExpectedPlayers = 2 },
-                workerPool: pool);
+                new RoomConfig { Map = TestMaps.Greybox(), Port = 40102, RoomId = "WorkerRoom", ExpectedPlayers = 2 },
+                workerPool: pool, map: TestMaps.Greybox());
 
             host.Dispose();
 
@@ -69,8 +70,8 @@ namespace LiteNet.Tests
             var pool = new RoomWorkerPool(1, 4);
             var transport = new DisposeOrderTransport(() => Volatile.Read(ref completed) == 2);
             var host = new ServerHost(transport,
-                new RoomConfig { Port = 40105, RoomId = "WorkerRoom", ExpectedPlayers = 2 },
-                workerPool: pool);
+                new RoomConfig { Map = TestMaps.Greybox(), Port = 40105, RoomId = "WorkerRoom", ExpectedPlayers = 2 },
+                workerPool: pool, map: TestMaps.Greybox());
 
             Assert.True(pool.TryEnqueue("WorkerRoom", () =>
             {
@@ -110,7 +111,7 @@ namespace LiteNet.Tests
             var config = RoomServerConfig.Parse(json);
             var transport = new FakeRoomTransport();
 
-            using (var host = new ServerHost(transport, null, null, null, config))
+            using (var host = new ServerHost(transport, null, null, null, config, map: TestMaps.Greybox()))
             {
                 Assert.NotNull(host.WorkerPool);
                 Assert.Equal(2, host.WorkerPool.WorkerCount);
@@ -128,8 +129,8 @@ namespace LiteNet.Tests
             var transport = new DisposeOrderTransport(() => pool.IsStopped) { ThrowOnStart = true };
 
             Assert.Throws<InvalidOperationException>(() => new ServerHost(transport,
-                new RoomConfig { Port = 40106, RoomId = "WorkerRoom", ExpectedPlayers = 2 },
-                workerPool: pool));
+                new RoomConfig { Map = TestMaps.Greybox(), Port = 40106, RoomId = "WorkerRoom", ExpectedPlayers = 2 },
+                workerPool: pool, map: TestMaps.Greybox()));
 
             Assert.True(pool.IsStopped);
             Assert.True(transport.DisposeSawWorkerStopped);
@@ -141,7 +142,7 @@ namespace LiteNet.Tests
         {
             var transport = new FakeRoomTransport();
             using var host = new ServerHost(transport,
-                new RoomConfig { Port = 40103, RoomId = "SingleRoom", ExpectedPlayers = 2 });
+                new RoomConfig { Map = TestMaps.Greybox(), Port = 40103, RoomId = "SingleRoom", ExpectedPlayers = 2 }, map: TestMaps.Greybox());
 
             Assert.Null(host.WorkerPool);
             Assert.False(host.WorkerPoolStarted);

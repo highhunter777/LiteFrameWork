@@ -50,15 +50,19 @@ namespace LiteGame
     {
         private readonly IInputService _input;
         private readonly Func<uint> _gameplayDigestBase;
+        private readonly IMapProvider _maps;
 
         /// <param name="gameplayDigestBase">本地装载产物的玩法数据身份基摘要提供者
         /// （装配点绑定 `ConfigService.GameplayDigestBase`——**惰性读**:本工厂在 Preload 之前构造，
         /// 首次取值发生在 Create（进房，恒在装载之后）；经 BattleContext 校验 `StartGame.ConfigHash`，
         /// 见该类批 E 校验点）。</param>
-        public MatchSessionFactory(IInputService input, Func<uint> gameplayDigestBase)
+        /// <param name="maps">地图提供者（D9）：进房装配点经它取判定图传给 BattleContext（D22：无回退地图；
+        /// 取值同刻于 Create——恒在装载之后；表缺 Map 域即抛）。</param>
+        public MatchSessionFactory(IInputService input, Func<uint> gameplayDigestBase, IMapProvider maps)
         {
             _input = input;
             _gameplayDigestBase = gameplayDigestBase ?? throw new ArgumentNullException(nameof(gameplayDigestBase));
+            _maps = maps ?? throw new ArgumentNullException(nameof(maps));
         }
 
         public MatchSession Create(AccountSession account)
@@ -72,7 +76,7 @@ namespace LiteGame
                     c =>
                     {
                         var battle = c.Resolve<BattleClient>();
-                        return new BattleContext(battle, account.Scope, _input,
+                        return new BattleContext(battle, account.Scope, _input, _maps.GetMap(),
                             gameplayDigestBase: _gameplayDigestBase());
                     },
                     ServiceLifetime.Scoped, typeof(BattleClient));

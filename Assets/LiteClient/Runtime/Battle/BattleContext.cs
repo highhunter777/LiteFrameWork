@@ -11,8 +11,8 @@ namespace LiteClient
     /// <summary>
     /// 对局上下文：一局对局的**运行态编排**——网络事件 → 持久镜像重建（协议单源 SnapshotReassembler）→
     /// 预测/和解（RollbackSim）→ 表现视图（SimView/相机/动画）→ 输入上行。传输由 <see cref="BattleClient"/>
-    /// 持有、地图走 <see cref="SimMapData.StandardBattleMap"/> 单源、生命周期挂 Match Scope（本类创建并持有，
-    /// Dispose 即拆——离场无 Match 残留的载体）。
+    /// 持有、地图经装配注入（`IMapProvider` 从同一份 `Map/tbmap` 投影——D22 无回退）、生命周期挂
+    /// Match Scope（本类创建并持有，Dispose 即拆——离场无 Match 残留的载体）。
     ///
     /// **两个协作件**（各管一件，本类只编排）：
     /// <see cref="BattleInputPipeline"/>（输入三件的顺序与上行——必须在本地服步进之前）、
@@ -55,7 +55,8 @@ namespace LiteClient
         /// <summary>本地预测/和解 Sim（StartGame 后可用；null = 对局尚未建立）。</summary>
         public RollbackSim Sim => _sim;
 
-        /// <summary>判定用地图（两端单源 <see cref="SimMapData.StandardBattleMap"/>；表现消费者读它——
+        /// <summary>判定用地图（两端单源：同一份 `Map/tbmap.bytes` 经共享投影 `MapTableProjection` 产出
+        /// ——服务端 `MapNumbers`／客户端 `IMapProvider` 同代码同数据；表现消费者读它——
         /// 瞄准激光的障碍射线等 View 侧判定共享同一份，不另建第二事实源）。</summary>
         public SimMapData Map => _map;
 
@@ -83,6 +84,8 @@ namespace LiteClient
 
         /// <param name="inputProvider">本地输入源（<see cref="IInputService"/>：
         /// 采样/上下文门/帧边界门都在服务里；本类只按逻辑帧推进并取用。null = 空输入——纯会话/测试形态）。</param>
+        /// <param name="map">判定地图（**必填**——装配点经 `IMapProvider` 注入；D22：无回退地图，
+        /// 测试直构须显式传图——Unity 侧无 TestMaps 源链接，就地同值构建）。</param>
         /// <param name="gameplayDigestBase">本地装载产物的玩法数据身份**基摘要**
         /// （`ConfigService.GameplayDigestBase`——装配经 `MatchSessionFactory` 注入；见
         /// <see cref="OnStartGame"/> 校验点）。0 = 无表身份形态（测试直构）——与真服务端的房间摘要比对必不等的
@@ -92,7 +95,8 @@ namespace LiteClient
         {
             _battle = battle ?? throw new ArgumentNullException(nameof(battle));
             if (accountScope == null) throw new ArgumentNullException(nameof(accountScope));
-            _map = map ?? SimMapData.StandardBattleMap();
+            _map = map ?? throw new ArgumentException(
+                "地图必填——装配经 IMapProvider 注入（D22：无回退地图）", nameof(map));
             _gameplayDigestBase = gameplayDigestBase;
             _inputs = new BattleInputPipeline(_battle, inputProvider, ExpectedPlayers);
             _matchScope = accountScope.CreateChild("Match");

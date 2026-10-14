@@ -4,6 +4,7 @@ using System.IO;
 using LiteNet.Protocol;
 using LiteNet.Transport;
 using LiteSim;
+using LiteSim.Tests;
 using RoomServer;
 using RoomServer.Runtime;
 using Xunit;
@@ -14,7 +15,7 @@ namespace LiteNet.Tests
     {
         private static RoomRuntime Room(MatchRules? rules = null)
         {
-            var room = new RoomRuntime(new RoomConfig { RoomId = "Rules", Seed = 42, ExpectedPlayers = 2,
+            var room = new RoomRuntime(new RoomConfig { Map = TestMaps.Greybox(), RoomId = "Rules", Seed = 42, ExpectedPlayers = 2,
                 Rules = rules ?? new MatchRules(0, 1, 3, 2) });
             var outputs = new List<RoomOutput>();
             room.Execute(RoomCommand.Join(1), outputs);
@@ -28,7 +29,7 @@ namespace LiteNet.Tests
         [Fact]
         public void NewRoomInstancesHaveIndependentSettlementIdsEvenWithSameRoomAndSeed()
         {
-            var config = new RoomConfig { RoomId = "Rules", Seed = 42 };
+            var config = new RoomConfig { Map = TestMaps.Greybox(), RoomId = "Rules", Seed = 42 };
             var first = new RoomInstance(config);
             var second = new RoomInstance(config);
             Assert.NotEqual(first.Runtime.MatchId, second.Runtime.MatchId);
@@ -100,7 +101,7 @@ namespace LiteNet.Tests
         [Fact]
         public void RoomRulesAreCapturedBeforeConfigMutation()
         {
-            var config = new RoomConfig { ExpectedPlayers = 1, Rules = new MatchRules(2, 4, 3, 5) };
+            var config = new RoomConfig { Map = TestMaps.Greybox(), ExpectedPlayers = 1, Rules = new MatchRules(2, 4, 3, 5) };
             var room = new RoomRuntime(config);
             config.Rules = new MatchRules(0, 0, 30, 50);
             var outputs = new List<RoomOutput>();
@@ -188,7 +189,7 @@ namespace LiteNet.Tests
                 + "\"expected_players\":1,\"match_duration_frames\":4,\"kill_limit\":7,"
                 + "\"respawn_delay_frames\":11,\"spawn_protection_frames\":13}}}");
             var transport = new FakeRoomTransport();
-            using var host = new ServerHost(transport, config.BuildRoomConfig("standard", "Rules"));
+            using var host = new ServerHost(transport, config.BuildRoomConfig("standard", "Rules"), map: TestMaps.Greybox());
             Join(transport, 1);
             Proto.StartGame start = transport.LastStartGame(1);
             Assert.NotNull(start.Match);
@@ -210,7 +211,7 @@ namespace LiteNet.Tests
         {
             var transport = new FakeRoomTransport();
             using var host = new ServerHost(transport,
-                new RoomConfig { RoomId = "Rules", Seed = 42, Rules = new MatchRules(0, 1, 3, 2) });
+                new RoomConfig { Map = TestMaps.Greybox(), RoomId = "Rules", Seed = 42, Rules = new MatchRules(0, 1, 3, 2) }, map: TestMaps.Greybox());
             Join(transport, 1);
             Join(transport, 2);
             Damage(host.Room);
@@ -234,7 +235,7 @@ namespace LiteNet.Tests
             WeaponDef d = WeaponConfig.DefaultRifle;
             weapons.SetRow(d.Id, 25, 600, 30, 90, 90, 60, 100f, 0f, 1, 2, true);
             weapons.SetSlotDefault(0, d.Id);
-            var room = new RoomRuntime(new RoomConfig { RoomId = "Rules", ExpectedPlayers = 2,
+            var room = new RoomRuntime(new RoomConfig { Map = TestMaps.Greybox(), RoomId = "Rules", ExpectedPlayers = 2,
                 Rules = new MatchRules(0, 0, 3, 0) }, weapons: weapons);
             var outputs = new List<RoomOutput>();
             room.Execute(RoomCommand.Join(1), outputs);
@@ -305,7 +306,7 @@ namespace LiteNet.Tests
             WeaponDef def = WeaponConfig.DefaultRifle;
             weapons.SetRow(def.Id, 1000, 600, 30, 90, 90, 60, 100f, 0f, 1, 2, true);
             weapons.SetSlotDefault(0, def.Id);
-            var room = new RoomRuntime(new RoomConfig { Rules = new MatchRules(7, 1, 3, 0) }, weapons: weapons);
+            var room = new RoomRuntime(new RoomConfig { Map = TestMaps.Greybox(), Rules = new MatchRules(7, 1, 3, 0) }, weapons: weapons);
             var outputs = new List<RoomOutput>();
             room.Execute(RoomCommand.Join(1), outputs);
             room.Execute(RoomCommand.Join(2), outputs);
