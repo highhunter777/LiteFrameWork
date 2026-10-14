@@ -74,8 +74,8 @@ namespace LiteGame.Tests.EditMode
             Assert.AreEqual("3", board.Kills[1].text);
             Assert.AreEqual("1", board.Kills[2].text);
             // 名字 = 身份序号（按 EntityId 升序）——不随击杀变化（占位口径，真名字归 G3）
-            Assert.AreEqual(BattleRankboardDriver.PlaceholderNamePrefix + "2", board.Names[0].text, "B 的身份序号 2（排第一）");
-            Assert.AreEqual(BattleRankboardDriver.PlaceholderNamePrefix + "1", board.Names[2].text, "A 的身份序号 1（排第三）");
+            Assert.AreEqual(PlayerIdentity.PlaceholderNamePrefix + "2", board.Names[0].text, "B 的身份序号 2（排第一）");
+            Assert.AreEqual(PlayerIdentity.PlaceholderNamePrefix + "1", board.Names[2].text, "A 的身份序号 1（排第三）");
             Assert.AreEqual(3, ActiveCells(board), "仅 3 格在显");
         }
 
@@ -90,11 +90,11 @@ namespace LiteGame.Tests.EditMode
             BattleRankboardDriver driver = BuildDriver(board, world, idA);
 
             driver.Tick();
-            Assert.AreEqual(BattleRankboardDriver.PlaceholderNamePrefix + "1", board.Names[0].text, "同分 → EntityId 升序（A 在前）");
-            Assert.AreEqual(BattleRankboardDriver.PlaceholderNamePrefix + "2", board.Names[1].text);
+            Assert.AreEqual(PlayerIdentity.PlaceholderNamePrefix + "1", board.Names[0].text, "同分 → EntityId 升序（A 在前）");
+            Assert.AreEqual(PlayerIdentity.PlaceholderNamePrefix + "2", board.Names[1].text);
 
             driver.Tick();                                  // 数据未变 —— 不写
-            Assert.AreEqual(BattleRankboardDriver.PlaceholderNamePrefix + "1", board.Names[0].text);
+            Assert.AreEqual(PlayerIdentity.PlaceholderNamePrefix + "1", board.Names[0].text);
         }
 
         [Test]
@@ -111,7 +111,7 @@ namespace LiteGame.Tests.EditMode
             board.Kills[1].text = "SENTINEL";              // 人为改值（模拟外部写）
             driver.Tick();                                 // 击杀分布未变 —— 应跳过写
             Assert.AreEqual("SENTINEL", board.Kills[1].text, "值未变不重写（脏位）");
-            Assert.AreEqual(BattleRankboardDriver.PlaceholderNamePrefix + "1", board.Names[1].text, "确实跑到了该格（非整体跳过）");
+            Assert.AreEqual(PlayerIdentity.PlaceholderNamePrefix + "1", board.Names[1].text, "确实跑到了该格（非整体跳过）");
         }
 
         [Test]

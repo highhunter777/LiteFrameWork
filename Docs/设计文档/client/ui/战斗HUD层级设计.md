@@ -18,6 +18,7 @@
 - **本地化**：HP/Ammo 为数值（Invariant 拼接，`SetText` 语义——由驱动直写）；`Txt_Reload` 当前为固定英文标签"RELOADING"（技能/本地化系统落地时再评估 SetTextKey，本批不做）。
 - **技能栏**：静态占位（技能系统未做）——图标位留空，仅 Underlay/Frame/Hotkey。
 - **比分（FFA）＝实时排行榜**（排行榜批，2026-10-15 用户裁决）：死亡竞赛下"比分"即**击杀数**——`Cot_Rankboard` 顶部横列 **8 格**（= `eight` 模板上限，**prefab 预置不运行时建**），每格 **上 `Txt_Name` / 下 `Txt_Kills`**，**第一名在最左**（格位固定、内容按 `Kills 降序 → EntityId 升序` 填入，全序防同分抖动）；**自己那格**点亮 `Image_Highlight`。名字本批为**占位 `玩家{k}`**（k = 参赛玩家按 EntityId 升序序号，局内稳定；真名字/昵称归 G3 Profile）。`MatchStateData.Score`（FFA 恒 0，只承载团队模式）仅作 `Txt_Score` **预留节点、缺省隐藏**（`Team=1` 落地即启用）。
+- **死亡/复活表现**（阵亡批，2026-10-15 用户裁决）：① **中央复活倒计时**——`Cot_Respawn`（屏幕中央）：`Txt_RespawnTitle`（"已阵亡"，带归属时"被 玩家{k} 击杀"）/ `Txt_RespawnCountdown`（秒 = `RespawnFrame − Frame` 的整秒，**秒粒度才写**；`!IsDead` 即隐藏）；② **阵亡归属**——`Death` 帧事件且 `role==Received`（我阵亡）→ 标题带击杀者身份序号（**占位名单源与排行榜共用**）；③ **保护期角标** `Cot_Protection`（底中）：本地 `Frame < InvulnerableUntilFrame` 显示（**开火即取消**／超时自然结束）；④ **3D 保护壳**：`fx_spawn_protection`（**金色**半透明包裹壳）挂本地角色视图根跟随——取件租约＋实例（激光束同款），缺件/灰盒静默降级。
 
 ## 1. 资产与场景关系
 
@@ -54,6 +55,11 @@ Hud_Battle                          Canvas(Overlay, order 0) + CanvasScaler(1920
    │  │  ├─ Txt_Name                TMP 20 居中（上）——占位"玩家{k}"（真名字归 G3 Profile）
    │  │  └─ Txt_Kills               TMP 24 居中（下）——击杀数
    │  └─ Txt_Score                  团队比分（**预留**：Team=1 才显；FFA 缺省隐藏）   ◄View
+   ├─ Cot_Respawn                   锚(0.5,0.5)——屏幕中央（死亡等待期显示）
+   │  ├─ Txt_RespawnTitle           TMP 40 居中"已阵亡"（有归属 → "被 玩家{k} 击杀"）  ◄View
+   │  └─ Txt_RespawnCountdown       TMP 72 居中 剩余秒数（秒粒度才写）                  ◄View
+   ├─ Cot_Protection                锚(0.5,0)+偏移(0,120)——底中（复活保护期角标，缺省隐藏）
+   │  └─ Txt_Protection             TMP 24 居中"保护中"                                ◄View
    ├─ Cot_Weapon                    锚(1,0)+偏移(-32,32)——右下角组点
    │  ├─ Icon_Weapon                ICON_SM_Wep_Rifle_01_Military 96×96
    │  ├─ Txt_Ammo                   TMP 54 右对齐 "30"（图标左侧 16、底缘上抬 8）      ◄View
@@ -86,8 +92,12 @@ Hud_Battle                          Canvas(Overlay, order 0) + CanvasScaler(1920
 | `Cot_Rankboard` | `RectTransform RankboardRoot` | BattleRankboardDriver | 排行榜容器（日志口；显隐随对局） |
 | `Cot_RankCell1..8` | `TMP_Text[] RankNames` / `TMP_Text[] RankKills` / `GameObject[] RankHighlights` | BattleRankboardDriver | 格位固定；按 `Kills 降序 → EntityId 升序` 从左往右填（左=第一）；高亮仅自己格；人数 < 8 尾部空格隐藏 |
 | `Txt_Score` | `TMP_Text TeamScoreText` | BattleRankboardDriver | 团队比分**预留**（`Team==0` 隐藏——FFA 恒 0 不显示假数据） |
+| `Cot_Respawn` | `RectTransform RespawnRoot` | BattleRespawnHudDriver | 死亡等待面板显隐（`SimView.IsDead` 开关） |
+| `Txt_RespawnTitle` | `TMP_Text RespawnTitle` | BattleRespawnHudDriver | "已阵亡"／带归属"被 玩家{k} 击杀"（`Death` 帧事件 `role==Received` 驱动，事件到达才写） |
+| `Txt_RespawnCountdown` | `TMP_Text RespawnCountdown` | BattleRespawnHudDriver | 剩余秒（`RespawnFrame − Frame` 取整秒；**秒粒度才写**） |
+| `Cot_Protection` | `RectTransform ProtectionRoot` | BattleRespawnHudDriver | 保护期角标显隐（`Frame < InvulnerableUntilFrame`；开火取消/超时自然结束） |
 
-暴露共 8 项=面板/准心/菜单驱动的读写面；**排行榜批（2026-10-15）追加 4 项**（容器 + 名字/击杀/高亮三数组 + `Txt_Score` 预留），由 `BattleRankboardDriver` 独担（单一职责——不与面板驱动混装）。血条走 `LiteGame.UI.HpBar` 组件 API（单点引用，避免嵌套深层字段 override）；`Cot_Vitals/Cot_Weapon/Cot_Skills/Cot_Rankboard` 容器及装饰件不暴露（`Cot_Settings` 组件不暴露——按钮即交互面）。技能槽无数据面（占位），数据面落地时随批 C 扩展（届时评估技能 CD 走 UI 框架 U2 控件；技能数据面已按裁决移出批 C——待技能系统）。
+暴露共 8 项=面板/准心/菜单驱动的读写面；**排行榜批（2026-10-15）追加 4 项**（容器 + 名字/击杀/高亮三数组 + `Txt_Score` 预留），由 `BattleRankboardDriver` 独担；**阵亡批（2026-10-15）追加 5 项**（`Cot_Respawn` 面板 3 件 + `Cot_Protection` 角标 2 件），由 `BattleRespawnHudDriver` 独担（单一职责——不与面板/排行榜驱动混装）。血条走 `LiteGame.UI.HpBar` 组件 API（单点引用，避免嵌套深层字段 override）；`Cot_Vitals/Cot_Weapon/Cot_Skills/Cot_Rankboard/Cot_Respawn/Cot_Protection` 容器及装饰件不暴露（`Cot_Settings` 组件不暴露——按钮即交互面）。技能槽无数据面（占位），数据面落地时随批 C 扩展（届时评估技能 CD 走 UI 框架 U2 控件；技能数据面已按裁决移出批 C——待技能系统）。
 
 ## 2.1 血条形态来源：控件模板 `Tmp_HpBar`
 
@@ -140,3 +150,4 @@ Hud_Battle                          Canvas(Overlay, order 0) + CanvasScaler(1920
 | `Icon`（Weapon 下） | `Icon_Weapon` | 消除与词缀 Icon_ 的歧义 |
 | `Slot1..3` / `Underlay` / `Hotkey` | `Cot_Skill1..3` / `Image_Underlay` / `Txt_Hotkey` | 词缀化 |
 | —（新增） | `Cot_Rankboard` / `Cot_RankCell1..8` / `Txt_Name` / `Txt_Kills` / `Image_Highlight` / `Txt_Score` | 排行榜批（2026-10-15）：FFA 比分=击杀（无旧名，全新件） |
+| —（新增） | `Cot_Respawn` / `Txt_RespawnTitle` / `Txt_RespawnCountdown` / `Cot_Protection` / `Txt_Protection` | 阵亡批（2026-10-15）：死亡等待倒计时 + 保护期角标（无旧名，全新件）；3D 保护壳见 `Assets/ShareResource/FX/fx_spawn_protection.prefab`（金色，表现域不走本表） |

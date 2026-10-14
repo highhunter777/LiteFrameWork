@@ -183,6 +183,23 @@ namespace LiteGame.Tests.EditMode
             }
         }
 
+        [Test]
+        public void HUD_死亡复活面_预置_引用件已接_缺省非激活()
+        {
+            GameObject root = AssetDatabase.LoadAssetAtPath<GameObject>(HudPath);
+            Assert.IsNotNull(root, "Hud_Battle.prefab 在库");
+            var view = root.GetComponent<BattleHudView>();
+            Assert.IsNotNull(view, "BattleHudView 引用件在位");
+
+            Assert.IsTrue(view.HasRespawnHud, "死亡/复活件齐备（中央面板 3 件）");
+            Assert.IsFalse(view.RespawnRoot.gameObject.activeSelf, "中央面板缺省非激活（驱动按事实开关——避免加载闪一下）");
+            Assert.IsNotNull(FindDeep(root.transform, "Txt_RespawnTitle"), "阵亡标题件在位");
+            Assert.IsNotNull(FindDeep(root.transform, "Txt_RespawnCountdown"), "复活倒计物件在位");
+            Assert.IsNotNull(view.ProtectionRoot, "保护角标引用已接");
+            Assert.IsFalse(view.ProtectionRoot.gameObject.activeSelf, "保护角标缺省非激活");
+            Assert.IsNotNull(FindDeep(root.transform, "Txt_Protection"), "保护角标文案件在位");
+        }
+
         private static Transform FindDeep(Transform parent, string name)
         {
             foreach (Transform child in parent)

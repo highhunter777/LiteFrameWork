@@ -23,9 +23,6 @@ namespace LiteGame
     /// </summary>
     public sealed class BattleRankboardDriver : IDisposable
     {
-        /// <summary>占位名前缀（真名字面落地时只换本处来源，格结构与排序不变）。</summary>
-        public const string PlaceholderNamePrefix = "玩家";
-
         /// <summary>格数（= <c>eight</c> 房间模板上限——>8 人裁剪，见审计登记）。</summary>
         public const int CellCount = 8;
 
@@ -129,8 +126,7 @@ namespace LiteGame
             for (int slot = 0; slot < entities.Length; slot++)
             {
                 ref EntitySlot e = ref entities[slot];
-                if (e.Id == 0L) continue;                 // 空槽
-                if ((e.Flags & EntityFlags.Player) == 0u) continue;   // 非参赛（bot/道具/投射物等）
+                if (!PlayerIdentity.IsPlayer(in e)) continue;   // 空槽/非参赛（bot 以外的道具/投射物等）
                 _slots[_count] = slot;
                 _ids[_count] = e.Id;
                 _killCounts[_count] = e.Kills;
@@ -195,7 +191,7 @@ namespace LiteGame
                 int idx = _display[cell];
                 long id = _ids[idx];
                 int kills = _killCounts[idx];
-                string name = PlaceholderNamePrefix + OrdinalOf(idx);   // 序号取自规范序（局内稳定）
+                string name = PlayerIdentity.PlaceholderName(_state, id);   // 身份序号（与阵亡归属共用单源）
 
                 if (_cellId[cell] != id || _cellName[cell] != name)
                 {
@@ -227,14 +223,6 @@ namespace LiteGame
         private void ClearAllCells()
         {
             for (int cell = 0; cell < CellCount; cell++) HideCell(cell);
-        }
-
-        /// <summary>规范序中的 1-based 序号（同一局内不随击杀变化——占位名的稳定口径）。</summary>
-        private int OrdinalOf(int bufferIndex)
-        {
-            for (int i = 0; i < _count; i++)
-                if (_canonical[i] == bufferIndex) return i + 1;
-            return _count;                                 // 理论不达（调用方取自同集合）
         }
 
         private static void SetText(TextMeshProUGUI text, string value)

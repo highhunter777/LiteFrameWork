@@ -44,6 +44,9 @@ namespace LiteGame
         /// <summary>伤害数字底件 prefab（世界空间 TMP 飘字；实例由驱动按预算逐条实例化）。</summary>
         private const string DamageNumberPrefab = "Assets/ShareResource/FX/fx_damage_number.prefab";
 
+        /// <summary>出生保护壳件 prefab（阵亡批；**金色**半透明包裹壳——表现件走 ShareResource/FX，收集组件级热更）。</summary>
+        private const string ProtectionShellPrefab = "Assets/ShareResource/FX/fx_spawn_protection.prefab";
+
         /// <summary>伤害数字逐档材质（黑描边+软影+按档光晕；面部颜色归顶点渐变，不进材质）。
         /// **四档路径与 builder（AgentScripts/BuildDamageNumberAssets）单源同串**——任缺整组不注入。</summary>
         private const string DamageNumberMatCaused = "Assets/ShareResource/FX/fx_damage_number_caused.mat";
@@ -71,6 +74,10 @@ namespace LiteGame
         private BattleCrosshairDriver _crosshair;       // 对局准心（Hud_Battle prefab）
         private BattleHudDriver _hud;                   // HUD 面板（血条/弹药——技能栏静态占位）
         private BattleRankboardDriver _rankboard;       // 局内排行榜（FFA 比分＝击杀——镜像公共面）
+        private BattleRespawnHudDriver _respawnHud;      // 死亡/复活 HUD（中央倒计时 + 归属 + 保护角标）
+        private BattleProtectionFxDriver _protectionFx;  // 出生保护壳（金色包裹壳跟随本地角色）
+        private GameObject _protectionShell;             // 保护壳实例（挂 _viewRoot，随离场拆）
+        private AssetLease<GameObject> _protectionShellLease;   // 保护壳租约（登记 _viewScope）
         private UnityEngine.Events.UnityAction _menuClick;   // 菜单钮监听（装配期加、拆除期摘——存实例供移除）
         private BattleLaserDriver _laser;               // 瞄准激光（准心的世界空间兄弟件）
         private GameObject _laserBeam;                  // 激光束实例（挂 _viewRoot，随离场拆）
@@ -128,6 +135,7 @@ namespace LiteGame
             await AcquireEntityPrefabAsync(ct);
             await AcquireLaserSightAsync(ct);
             await AcquireHudAsync(ct);
+            await AcquireProtectionShellAsync(ct);
             await AcquireDamageNumberAsync(ct);
             await AcquireDamageNumberMaterialsAsync(ct);
             await AcquireClipManifestAsync(ct);
@@ -208,6 +216,30 @@ namespace LiteGame
             }
         }
 
+        /// <summary>
+        /// 取出生保护壳件并实例化（阵亡批；挂 `_viewRoot`、缺省收起——实例随离场拆）。资源缺失/加载失败 →
+        /// **静默降级**（只警告）：保护特效是表现增益，不把"缺件"当对局失败。
+        /// </summary>
+        private async UniTask AcquireProtectionShellAsync(CancellationToken ct)
+        {
+            try
+            {
+                _protectionShellLease = await _content.AcquireAsync<GameObject>(ProtectionShellPrefab, ct: ct);
+                _viewScope.Register(_protectionShellLease);
+                _protectionShell = UnityEngine.Object.Instantiate(_protectionShellLease.Asset, _viewRoot);
+                _protectionShell.name = "SpawnProtection";
+                _protectionShell.SetActive(false);
+            }
+            catch (Exception ex) when (!(ex is OperationCanceledException))
+            {
+                Log.Warning($"出生保护壳缺失/加载失败，保护特效降级:{ProtectionShellPrefab}（{ex.Message}）", "Battle");
+                _protectionShellLease = null;
+                _protectionShell = null;
+            }
+        }
+
+        /// <summary>取伤害数字底件 prefab（只取租约不实例化——实例由驱动工厂按预算逐条实例化）。
+        /// 资源缺失/加载失败 → **静默降级**（只警告）。</summary>
         private async UniTask AcquireDamageNumberAsync(CancellationToken ct)
         {
             try
@@ -334,7 +366,9 @@ namespace LiteGame
             AttachRankboard();                                  // 局内排行榜（FFA 比分＝击杀——8 格预置，静默降级）
             _aimPointOf = AimPointOf(_input);                   // 瞄准点（世界）→ 相机构图 z 偏移 + 激光收敛端点
             AttachLaserSight();                                 // 瞄准激光（束实例已取，接线驱动）
+            AttachProtectionFx();                              // 出生保护壳（阵亡批；金色包裹壳跟随本地角色）
             _hitFeedback = new HitFeedbackDispatcher(_view);   // 命中分发骨架：EventSink 并列订阅
+            AttachRespawnHud();                               // 死亡/复活 HUD（阵亡批；归属走帧事件消费）
             AttachDamageNumbers();                             // 伤害数字（命中反馈首个消费者）
             AttachCombatFx();                                  // 枪口火光 + 敌人命中特效（帧事件路由的 VFX 消费者）
             AttachAudio();                                     // 对局音效（帧事件路由的 Audio 消费者）
@@ -361,6 +395,8 @@ namespace LiteGame
             _crosshair?.Tick();                  // 对局准心（HUD）：位置/形态/光标
             _hud?.Tick();                        // HUD 面板：血条/弹药（预测态值变化写）
             _rankboard?.Tick();                  // 局内排行榜：击杀分布变化才重排/写（镜像公共面）
+            _respawnHud?.Tick();                 // 死亡/复活：阵亡倒计时/归属/保护角标（值变化才写）
+            _protectionFx?.Tick();               // 出生保护壳：保护态内跟随本地角色显隐
             _laser?.Tick();                      // 瞄准激光：端点 = 开火射线（实体/障碍截停）
             _damageNumbers?.Tick();              // 伤害数字：命中事件的视觉收尾（合并窗口/淡出/跟随）
 
@@ -425,10 +461,16 @@ namespace LiteGame
             _rankboard = null;
             _hud?.Dispose();                      // HUD 面板（面板归零——视图消费者，先于准心拆）
             _hud = null;
+            _respawnHud?.Dispose();               // 死亡/复活 HUD（帧事件消费者——先于分发器摘）
+            _respawnHud = null;
             _crosshair?.Dispose();                // 准心驱动（还系统光标——同属视图消费者）
             _crosshair = null;
             _laser?.Dispose();                    // 激光驱动（束实例随 _viewRoot 销毁；租约随 _viewScope.Dispose 归还）
             _laser = null;
+            _protectionFx?.Dispose();             // 保护壳驱动（实例同样随 _viewRoot 销毁、租约随作用域归还）
+            _protectionFx = null;
+            _protectionShell = null;
+            _protectionShellLease = null;
             _laserBeam = null;
             _laserLease = null;
             if (_hudInstance != null)             // HUD 根件（ScreenSpace Canvas——随离场销毁）
@@ -558,6 +600,39 @@ namespace LiteGame
                 _hudView.RankNames, _hudView.RankKills, _hudView.RankHighlights,
                 _hudView.TeamScoreText);                   // 团队比分预留节点（缺 = 驱动内跳过）
             Log.Info("rankboard-attached", "Battle");
+        }
+
+        /// <summary>
+        /// 挂死亡/复活 HUD（<see cref="BattleRespawnHudDriver"/>——阵亡批）：中央复活倒计时 ＋ 阵亡归属
+        /// ＋ 保护期角标。中央面板件不齐（旧 prefab / 结构变更）→ **静默降级**（只警告）；保护角标可缺
+        /// （驱动内跳过）。归属走帧事件（注册进 <see cref="HitFeedbackDispatcher"/>——只吃 Death×我阵亡）。
+        /// </summary>
+        private void AttachRespawnHud()
+        {
+            if (_hudView == null) return;                  // HUD 已整体降级（AttachHud/准心处已警告）
+            if (!_hudView.HasRespawnHud)
+            {
+                Log.Warning("HUD prefab 死亡/复活件不齐（中央面板 3 件）——死亡等待面板静默降级", "Battle");
+                return;
+            }
+            _respawnHud = new BattleRespawnHudDriver(_context.Sim.State,
+                LocalSlot, IsLocalDead,
+                _hudView.RespawnRoot, _hudView.RespawnTitle, _hudView.RespawnCountdown,
+                _hudView.ProtectionRoot);
+            _hitFeedback?.Register(_respawnHud);
+            Log.Info("respawn-hud-attached", "Battle");
+        }
+
+        /// <summary>
+        /// 挂出生保护壳（<see cref="BattleProtectionFxDriver"/>——阵亡批；金色包裹壳）：保护态内**跟随本地
+        /// 角色视图根**显隐（壳件挂 `_viewRoot`——不挂角色视图，避免回池复用把壳留给别的实体）。
+        /// 壳件未取（缺件已警告）→ 本段静默跳过。
+        /// </summary>
+        private void AttachProtectionFx()
+        {
+            if (_protectionShell == null) return;          // 取件降级已警告
+            _protectionFx = new BattleProtectionFxDriver(_context.Sim.State, LocalSlot, ViewOf, _protectionShell);
+            Log.Info("protection-fx-attached", "Battle");
         }
 
         /// <summary>
@@ -708,6 +783,24 @@ namespace LiteGame
                     : null;
             };
         }
+
+        /// <summary>本地槽位（未对齐/解析失败 = -1）——死亡 HUD / 保护壳驱动的注入缝。</summary>
+        private int LocalSlot()
+        {
+            if (_view == null || _view.LocalEntityId == 0L) return -1;
+            return _view.TryGetSlot(_view.LocalEntityId, out int slot) ? slot : -1;
+        }
+
+        /// <summary>本地是否阵亡（预测态锁存判据——<see cref="SimView.IsDead"/> 单源）。</summary>
+        private bool IsLocalDead()
+        {
+            int slot = LocalSlot();
+            return slot >= 0 && _view.IsDead(slot);
+        }
+
+        /// <summary>槽位 → 角色视图（保护壳跟随目标；缺 = null）。</summary>
+        private GameObject ViewOf(int slot)
+            => _view != null && _view.TryGetView(slot, out GameObject view) ? view : null;
 
         /// <summary>按子路径取对象（形态组缺失 = 单形态退化——准心驱动容忍 null）。</summary>
         /// <summary>

@@ -37,6 +37,12 @@ namespace LiteGame
         [SerializeField] private TextMeshProUGUI[] _rankKills = new TextMeshProUGUI[8];
         [SerializeField] private GameObject[] _rankHighlights = new GameObject[8];
 
+        [Header("死亡/复活（阵亡批：中央倒计时 + 保护期角标）")]
+        [SerializeField] private RectTransform _respawnRoot;
+        [SerializeField] private TextMeshProUGUI _respawnTitle;
+        [SerializeField] private TextMeshProUGUI _respawnCountdown;
+        [SerializeField] private RectTransform _protectionRoot;
+
         public RectTransform CrosshairRoot => _crosshairRoot;
         public GameObject HipForm => _hipForm;
         public GameObject AdsForm => _adsForm;
@@ -50,6 +56,14 @@ namespace LiteGame
         public TextMeshProUGUI[] RankNames => _rankNames;
         public TextMeshProUGUI[] RankKills => _rankKills;
         public GameObject[] RankHighlights => _rankHighlights;
+        public RectTransform RespawnRoot => _respawnRoot;
+        public TextMeshProUGUI RespawnTitle => _respawnTitle;
+        public TextMeshProUGUI RespawnCountdown => _respawnCountdown;
+        public RectTransform ProtectionRoot => _protectionRoot;
+
+        /// <summary>死亡/复活件是否齐备（中央面板 3 件；保护角标可缺——驱动内静默降级）。</summary>
+        public bool HasRespawnHud =>
+            _respawnRoot != null && _respawnTitle != null && _respawnCountdown != null;
 
         /// <summary>排行榜格是否齐备（名字/击杀/高亮件各 <see cref="BattleRankboardDriver.CellCount"/> 件）
         /// ——装配期判据，缺件走静默降级（不把"旧 prefab"当对局失败）。</summary>
