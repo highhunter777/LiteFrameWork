@@ -4,8 +4,8 @@ using Xunit;
 namespace LiteSim.Tests
 {
     /// <summary>地图内容摘要（<see cref="SimMapDigest"/>）：确定性、对几何敏感、规范文本稳定。
-    /// 钉住的固定值 = `Luban/Data/map.json` 行内 content_digest 的口径锚（规范文本/算法任何变动都会红——
-    /// 变动须联动重烘与两端投影，勿轻易改格式）。</summary>
+    /// 钉住的固定值 = **灰盒夹具自身**的口径锚（规范文本/算法任何变动都会红——变动须联动重烘与两端投影，勿轻易改格式）；
+    /// 首图 Arena01 快照的实烘锚（== `Luban/Data/map.json` content_digest）见 <see cref="TestMapsTests"/>。</summary>
     public sealed class SimMapDigestTests
     {
         [Fact]
@@ -19,9 +19,9 @@ namespace LiteSim.Tests
         }
 
         [Fact]
-        public void 灰盒夹具_摘要与烘焙占位行一致()
+        public void 灰盒夹具_摘要口径锚定()
         {
-            // 与 Luban/Data/map.json 的 content_digest 同值（烘焙器/投影两侧复算的同一口径锚）。
+            // 灰盒夹具摘要的冻结锚（批2 起未变）；首图 Arena01 的行内值已由批3 实烘接管——见 TestMapsTests。
             Assert.Equal("5217bcaf52048108", SimMapDigest.Compute(TestMaps.Greybox()));
         }
 

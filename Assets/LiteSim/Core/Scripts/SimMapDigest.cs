@@ -57,8 +57,9 @@ namespace LiteSim
             return sb.ToString();
         }
 
-        /// <summary>数值格式单源（"0.###"、InvariantCulture；0/-0 归一为 "0"）。</summary>
-        private static string Fmt(float value)
+        /// <summary>数值格式单源（"0.###"、InvariantCulture；0/-0 归一为 "0"）——规范文本与烘焙 JSON 产出共用，
+        /// 保证"写进 map.json 的数值文本"与"摘要复算读到的数值文本"逐字一致。</summary>
+        public static string Fmt(float value)
             => value == 0f ? "0" : value.ToString("0.###", CultureInfo.InvariantCulture);
     }
 }

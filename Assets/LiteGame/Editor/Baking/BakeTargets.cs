@@ -7,10 +7,11 @@ namespace LiteGame.EditorTools
 {
         /// <summary>
         /// 烘焙工具箱共享单源：目标资产路径、参考片段、层级查找与预制体编辑域。
-        /// 五件烘焙/调带工具（<see cref="BodyCylinderBaker"/>/<see cref="MuzzleOffsetBaker"/>/
-        /// <see cref="WeaponGripBaker"/>/<see cref="HeadHitLineTuner"/>/<see cref="RootMotionBaker"/>）共用的
-        /// 常量与原语**全部收口在此**——任何工具不得再私有复制同值路径字面量（修改指南 §1.1/§1.2）。
-        /// 两族来源：prefab 采样族（PrefabPath/ControllerPath/ReferenceClip）与片段采样族（RootMotionConfigPath）。
+        /// 六件烘焙/调带工具（<see cref="BodyCylinderBaker"/>/<see cref="MuzzleOffsetBaker"/>/
+        /// <see cref="WeaponGripBaker"/>/<see cref="HeadHitLineTuner"/>/<see cref="RootMotionBaker"/>/
+        /// <see cref="SimMapBaker"/>）共用的常量与原语**全部收口在此**——任何工具不得再私有复制同值路径字面量（修改指南 §1.1/§1.2）。
+        /// 三族来源：prefab 采样族（PrefabPath/ControllerPath/ReferenceClip）、片段采样族（RootMotionConfigPath）
+        /// 与场景采样族（MapScenePath——地图烘焙）。
         /// </summary>
     internal static class BakeTargets
     {
@@ -41,11 +42,54 @@ namespace LiteGame.EditorTools
         public const string RootMotionConfigPath = "Assets/LiteGame/Editor/Baking/RootMotionBakeConfig.asset";
         public const string RootMotionOutput = "Assets/LiteSim/Core/Scripts/RootMotionData.g.cs";
 
+        // ---- 场景采样族（地图烘焙——来源是地图场景，非 prefab/片段）----
+
+        /// <summary>地图场景（首图母版）：判定几何（<see cref="MapCollisionRoot"/> 代理树）＋出生标记（<see cref="SpawnPrefix"/>）＋边界（<see cref="MapBoundsObject"/>）。</summary>
+        public const string MapScenePath = "Assets/Scenes/Arena01.unity";
+
+        /// <summary>地图产物：Luban 数据源 JSON（非 .g.cs 通道——写盘走 <see cref="WriteArtifact"/>；不自动跑 gen.bat，见 <see cref="SimMapBaker"/>）。</summary>
+        public const string MapOutput = "Luban/Data/map.json";
+
+        /// <summary>行身份（D3/D10：单图常量 map_id=1；多图批次再议）。</summary>
+        public const int MapId = 1;
+
+        /// <summary>行名（与首图场景同源——首图 = <c>Arena01.unity</c>）。</summary>
+        public const string MapName = "arena01";
+
+        // ---- 地图场景拓扑约定（烘焙器读取面；场景制作方同守）----
+
+        /// <summary>采集根对象名（地图场景根下唯一）。</summary>
+        public const string MapCollisionRoot = "MapCollision";
+
+        /// <summary>边界标注对象名（挂 <see cref="LiteGame.MapBoundsMarker"/>）。</summary>
+        public const string MapBoundsObject = "map_bounds";
+
+        /// <summary>出生标记名前缀（按名 Ordinal 排序定 index）。</summary>
+        public const string SpawnPrefix = "spawn_";
+
+        /// <summary>表面类型前缀（`surf_&lt;surface&gt;_...`；无前缀 = Default）。</summary>
+        public const string SurfacePrefix = "surf_";
+
         /// <summary>
-        /// 统一产物 emit（四工具唯一写盘面）：固定头（生成器名 + 工具箱入口 + 勿手改）→ 工具语义注释行 → 代码体。
-        /// LF 行尾、UTF-8 无 BOM、R 格式由调用方保证；**write-if-changed**——与既有产物逐字节一致则不动文件
-        /// （重烘不触碰源集文件，防"重烘即抖"），变化才写盘 + ImportAsset 触发重编译。
-        /// 返回落盘结论行（up to date / written），由工具拼进报告。
+        /// write-if-changed 写盘原语（全部产物的唯一写盘面）：与既有文件逐字节一致则不动文件
+        /// （重烘不触碰产物文件，防"重烘即抖"）。UTF-8 无 BOM。返回是否实际写盘。
+        /// </summary>
+        private static bool WriteIfChanged(string outputPath, string text)
+        {
+            if (File.Exists(outputPath) && File.ReadAllText(outputPath) == text) return false;
+            File.WriteAllText(outputPath, text);
+            return true;
+        }
+
+        /// <summary>非 .g.cs 产物统一 emit（数据通道，如地图 Luban JSON）：write-if-changed；
+        /// 产物在 Assets 外、无 ImportAsset。返回落盘结论行（up to date / written），由工具拼进报告。</summary>
+        public static string WriteArtifact(string outputPath, string text)
+            => (WriteIfChanged(outputPath, text) ? "written：" : "up to date：") + outputPath;
+
+        /// <summary>
+        /// .g.cs 产物统一 emit（各烘焙器唯一代码产物写盘面）：固定头（生成器名 + 工具箱入口 + 勿手改）→ 工具语义注释行 → 代码体。
+        /// LF 行尾、UTF-8 无 BOM、R 格式由调用方保证；**write-if-changed**——与既有产物逐字节一致则不动文件，
+        /// 变化才写盘 + ImportAsset 触发重编译。返回落盘结论行（up to date / written），由工具拼进报告。
         /// </summary>
         public static string WriteGenerated(string outputPath, string generatorName, string[] semanticLines, string body)
         {
@@ -55,11 +99,9 @@ namespace LiteGame.EditorTools
             sb.Append(body);
             string text = sb.ToString().Replace("\r\n", "\n");   // AppendLine 在 Windows 是 CRLF；产物统一 LF（BuildHash 侧行尾归一化，两者等价）
 
-            if (File.Exists(outputPath) && File.ReadAllText(outputPath) == text)
-                return "up to date：" + outputPath;
-            File.WriteAllText(outputPath, text);
-            AssetDatabase.ImportAsset(outputPath);
-            return "written：" + outputPath;
+            bool wrote = WriteIfChanged(outputPath, text);
+            if (wrote) AssetDatabase.ImportAsset(outputPath);
+            return (wrote ? "written：" : "up to date：") + outputPath;
         }
 
         /// <summary>在 <paramref name="root"/> 子树内按名深搜（含根）——四工具共用一份实现。</summary>

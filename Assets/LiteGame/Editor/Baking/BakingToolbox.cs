@@ -5,10 +5,11 @@ using UnityEngine;
 namespace LiteGame.EditorTools
 {
     /// <summary>
-    /// 烘焙工具箱（菜单 <c>LiteGame/烘焙工具箱</c>——五件烘焙/调带工具的**统一入口与统一形态**）：
+    /// 烘焙工具箱（菜单 <c>LiteGame/烘焙工具箱</c>——六件烘焙/调带工具的**统一入口与统一形态**）：
     /// 每件工具一页（说明 + 执行 + 报告），共享目标单源 <see cref="BakeTargets"/>；执行面统一为
     /// 「静态 <c>All()</c> 返回多行报告文本，预期失败返回 <c>ABORT</c> 报告不抛异常」。原独立菜单
     /// （烘焙身位圆柱/烘焙枪口偏移/烘焙持枪偏移/调整爆头带/LiteSim 根位移烘焙）收敛于此；
+    /// 场景采样族「地图」（<see cref="SimMapBaker"/>）直落本箱第六页；
     /// run_script 仍可直调各类 <c>All()</c>/<see cref="HeadHitLineTuner.Export"/>。
     /// </summary>
     public sealed class BakingToolbox : EditorWindow
@@ -22,6 +23,7 @@ namespace LiteGame.EditorTools
             new GUIContent("持枪偏移"),
             new GUIContent("爆头带调带"),
             new GUIContent("根位移"),
+            new GUIContent("地图"),
         };
 
         private int _tab;
@@ -59,6 +61,7 @@ namespace LiteGame.EditorTools
                 case 2: DrawGripPage(); break;
                 case 3: DrawHeadPage(); break;
                 case 4: DrawRootMotionPage(); break;
+                case 5: DrawMapPage(); break;
             }
         }
 
@@ -103,6 +106,20 @@ namespace LiteGame.EditorTools
                 + "→ 毫米量化 → fail-fast 校验（NaN/超速/重复 ID）→ RootMotionData.g.cs（两端共享，进 BuildHash 源集）+ digest。\n"
                 + "重跑时机：改片段/导入设置/配置登记后；同配置重烘逐字节一致。片段包不入版本管理——需本地在位。", MessageType.Info);
             if (GUILayout.Button("烘焙 RootMotionData.g.cs")) Run(RootMotionBaker.All);
+            DrawReport();
+        }
+
+        // ---- 地图页（场景采样族——来源是地图场景，非 prefab/片段）----
+
+        private void DrawMapPage()
+        {
+            EditorGUILayout.HelpBox(
+                "地图烘焙：采集首图场景 " + BakeTargets.MapScenePath + " 的判定几何（MapCollision 代理树：Box/Sphere/Capsule；"
+                + "MeshCollider 默认拒载）＋出生点（spawn_*，按名排序定 index）＋边界（map_bounds），"
+                + "经校验（fail-fast→不产半成品）→毫米量化→digest，写 Luban 数据源 " + BakeTargets.MapOutput + "（write-if-changed；勿手改——改布局＝改场景重烘）。\n"
+                + "产物是数据源不是 .bytes：需手动跑 Luban/gen.bat 生成 Map/tbmap.bytes，跑完重跑 python scripts/codegen/gen-build-hash.py。\n"
+                + "重跑时机：改地图场景（代理/出生/边界）后；代理名前缀 surf_<surface>_ 标表面（无前缀＝Default）。", MessageType.Info);
+            if (GUILayout.Button("烘焙 " + BakeTargets.MapOutput)) Run(SimMapBaker.All);
             DrawReport();
         }
 
