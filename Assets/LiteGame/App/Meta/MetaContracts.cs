@@ -125,6 +125,7 @@ namespace LiteGame
     {
         public const string GuestLogin = "/auth/guest";
         public const string JoinTicket = "/lobby/join-ticket";
+        public const string CreateRoom = "/lobby/create-room";
         public const string RoomsPublic = "/lobby/rooms/public";
         public const string Matches = "/matches";
     }

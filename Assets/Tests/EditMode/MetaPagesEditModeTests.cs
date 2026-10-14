@@ -79,6 +79,7 @@ meta.Version = function() return meta.version end
 meta.GuestLogin = function(cb) meta.cb_guest = cb end
 meta.ListRooms = function(cb) meta.cb_rooms = cb end
 meta.QuickEnter = function(cb) meta.cb_enter = cb end
+meta.CreateRoom = function(cb) calls[#calls + 1] = 'CreateRoom'; meta.cb_create = cb end
 meta.EnterRoom = function(roomId, cb)
     calls[#calls + 1] = 'EnterRoom:' .. tostring(roomId)
     meta.cb_enter = cb
@@ -234,6 +235,31 @@ page:OnShow(nil)
 buttons['Button_QuickEnter']()
 meta.cb_enter(false, 'Network')");
                 StringAssert.Contains("Toast:[UI.Lobby.EnterFailed]", Calls(env), "进房失败 Toast 兜底");
+            }
+        }
+
+        [Test]
+        public void 大厅页_创建房间_在途到替换房间页带新号()
+        {
+            using (var env = NewEnv())
+            {
+                env.DoString(@"
+page = NewPage('UI.Page_Lobby')
+page:OnShow(nil)
+buttons['Button_CreateRoom']()");
+                string mid = Calls(env);
+                StringAssert.Contains("Key:Txt_Status=UI.Lobby.Creating", mid, "在途给 Creating 键");
+                StringAssert.Contains("Interact:Button_CreateRoom=false", mid, "在途禁钮（防重入）");
+                StringAssert.Contains("CreateRoom", mid, "走服务端出号（Bridge.meta.CreateRoom）");
+
+                env.DoString("meta.cb_create(true, 'R-NEW001')");
+                StringAssert.Contains("Replace:UI.Page_Room#R-NEW001", Calls(env), "成功替换房间页 + 新房号随导航数据（§1/§3）");
+
+                env.DoString(@"
+page:OnShow(nil)
+buttons['Button_CreateRoom']()
+meta.cb_create(false, 'Network')");
+                StringAssert.Contains("Toast:[UI.Lobby.CreateFailed]", Calls(env), "创建失败 Toast 兜底");
             }
         }
 

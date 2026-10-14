@@ -40,6 +40,7 @@ namespace LiteGame
             meta.Set("GuestLogin", new Action<LuaFunction>(GuestLogin));
             meta.Set("ListRooms", new Action<LuaFunction>(cb => ListRooms(env, cb)));
             meta.Set("QuickEnter", new Action<LuaFunction>(QuickEnter));
+            meta.Set("CreateRoom", new Action<LuaFunction>(CreateRoom));
             meta.Set("EnterRoom", new Action<string, LuaFunction>(EnterRoom));
             meta.Set("ListRecords", new Action<LuaFunction>(cb => ListRecords(env, cb)));
             env.Global.Get<LuaTable>("Bridge").Set("meta", meta);
@@ -68,6 +69,11 @@ namespace LiteGame
         /// <summary>快速进入（空 roomId = 服务端缺省房/容量分配）。成功载荷 = 换票结果的房号（房间页展示用）。</summary>
         public static void QuickEnter(LuaFunction cb)
             => Run(s_meta.EnterRoomAsync(""), cb, r => r.Value.RoomId).Forget();
+
+        /// <summary>创建房间（服务端出唯一新号 → 票据即达，客户端不发明房号）。成功载荷 = 新房号
+        /// （房间页展示用）——与 <see cref="QuickEnter"/>/<see cref="EnterRoom"/> 同：成功后流程机接管进房。</summary>
+        public static void CreateRoom(LuaFunction cb)
+            => Run(s_meta.CreateRoomAsync(), cb, r => r.Value.RoomId).Forget();
 
         /// <summary>选择式进房（房间列表行点击——列表行协议挂批C-⑥）。成功载荷 = 房号（同 QuickEnter）。</summary>
         public static void EnterRoom(string roomId, LuaFunction cb)

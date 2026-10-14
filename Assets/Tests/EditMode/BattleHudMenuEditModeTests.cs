@@ -21,6 +21,7 @@ namespace LiteGame.Tests.EditMode
         private const string HudPath = "Assets/ShareResource/UI/Hud/Hud_Battle.prefab";
         private const string SettingsPath = "Assets/ShareResource/UI/Screens/Page_Settings.prefab";
         private const string RoomPath = "Assets/ShareResource/UI/Screens/Page_Room.prefab";
+        private const string LobbyPath = "Assets/ShareResource/UI/Screens/Page_Lobby.prefab";
 
         [Test]
         public void HUD_菜单角组_单独开射线_其余零射线()
@@ -106,16 +107,49 @@ namespace LiteGame.Tests.EditMode
 
             var bind = start.GetComponent("BindNode");
             Assert.IsNotNull(bind, "开局钮有 BindNode 标记（路径 A 索引）");
-            Assert.AreEqual("StartMatch", new SerializedObject(bind).FindProperty("BindName").stringValue,
-                "BindName 与节点语义同文（§9.1）");
+            Assert.AreEqual("Button_StartMatch", new SerializedObject(bind).FindProperty("BindName").stringValue,
+                "BindName 与节点名同文（UIBindIndex 只按 BindName 寻址——Lua `OnButton(\"Button_StartMatch\")`；"
+                + "原为 `StartMatch` 致运行时 KeyNotFound，创房批顺手修）");
 
             var label = start.GetComponentInChildren<TMP_Text>(true);
             Assert.IsNotNull(label, "开局钮标签在位");
             Assert.AreEqual("Txt_StartMatch", label.gameObject.name, "标签名随克隆同文改名");
             var labelBind = label.GetComponent("BindNode");
             Assert.IsNotNull(labelBind, "标签有 BindNode（SetTextKey 寻址）");
-            Assert.AreEqual("StartMatch", new SerializedObject(labelBind).FindProperty("BindName").stringValue,
-                "标签 BindName 同文");
+            Assert.AreEqual("Txt_StartMatch", new SerializedObject(labelBind).FindProperty("BindName").stringValue,
+                "标签 BindName 与节点名同文（Lua `SetTextKey(\"Txt_StartMatch\")`）");
+        }
+
+        [Test]
+        public void 大厅页_创房钮在位_BindName同文_三钮并排()
+        {
+            GameObject root = AssetDatabase.LoadAssetAtPath<GameObject>(LobbyPath);
+            Assert.IsNotNull(root, "Page_Lobby.prefab 在库");
+
+            Transform create = FindDeep(root.transform, "Button_CreateRoom");
+            Assert.IsNotNull(create, "创房钮在位（克隆 Button_QuickEnter 形态）");
+            Assert.IsTrue(create.gameObject.activeSelf, "创房钮缺省可见（大厅常驻入口——无房主式门控）");
+            Assert.IsNotNull(create.GetComponent<Button>(), "Button 组件在位");
+
+            var bind = create.GetComponent("BindNode");
+            Assert.IsNotNull(bind, "创房钮有 BindNode 标记（路径 A 索引）");
+            Assert.AreEqual("Button_CreateRoom", new SerializedObject(bind).FindProperty("BindName").stringValue,
+                "BindName 与节点名同文（UIBindIndex 按该名寻址——Lua `OnButton(\"Button_CreateRoom\")`）");
+
+            var label = create.GetComponentInChildren<TMP_Text>(true);
+            Assert.IsNotNull(label, "创房钮标签在位");
+            Assert.AreEqual("Txt_CreateRoom", label.gameObject.name, "标签名随克隆同文改名");
+            var labelBind = label.GetComponent("BindNode");
+            Assert.IsNotNull(labelBind, "标签有 BindNode（SetTextKey 寻址）");
+            Assert.AreEqual("Txt_CreateRoom", new SerializedObject(labelBind).FindProperty("BindName").stringValue,
+                "标签 BindName 与节点名同文");
+
+            // 三钮并排（-420/0/+420，各 400 宽 + 20 间距）：QuickEnter 与 Records 同批重排
+            var quick = (RectTransform)FindDeep(root.transform, "Button_QuickEnter");
+            var records = (RectTransform)FindDeep(root.transform, "Button_Records");
+            Assert.AreEqual(0f, ((RectTransform)create).anchoredPosition.x, 0.01f, "创房钮居中位");
+            Assert.AreEqual(-420f, quick.anchoredPosition.x, 0.01f, "快速进入左位（同批重排）");
+            Assert.AreEqual(420f, records.anchoredPosition.x, 0.01f, "战绩右位（同批重排）");
         }
 
         private static Transform FindDeep(Transform parent, string name)

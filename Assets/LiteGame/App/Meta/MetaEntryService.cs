@@ -73,12 +73,27 @@ namespace LiteGame
         {
             if (!IsConfigured) return NotConfigured<JoinTicketInfo>();
             if (_accessToken == null) return NotLoggedIn<JoinTicketInfo>();
-            if (_machine == null)
-                return MetaCall<JoinTicketInfo>.Failed(
-                    MetaFailure.Invalid("流程机未绑定（装配面缺 BindMachine）"));
+            if (_machine == null) return MachineUnbound<JoinTicketInfo>();
 
-            MetaCall<JoinTicketInfo> call =
-                await _client.RequestJoinTicketAsync(_accessToken, roomId ?? "", LiteNet.BuildHash.Value);
+            return JoinWith(await _client.RequestJoinTicketAsync(
+                _accessToken, roomId ?? "", LiteNet.BuildHash.Value));
+        }
+
+        /// <summary>创建房间（**服务端出号 → 票据即达**）：调 create-room 拿唯一新号票据，随后与换票进房
+        /// 同链——走 <see cref="JoinWith"/> 的 <c>Request(Match, MetaJoin)</c> 管道（客户端**不发明房号**）。</summary>
+        public async UniTask<MetaCall<JoinTicketInfo>> CreateRoomAsync()
+        {
+            if (!IsConfigured) return NotConfigured<JoinTicketInfo>();
+            if (_accessToken == null) return NotLoggedIn<JoinTicketInfo>();
+            if (_machine == null) return MachineUnbound<JoinTicketInfo>();
+
+            return JoinWith(await _client.CreateRoomAsync(_accessToken, LiteNet.BuildHash.Value));
+        }
+
+        /// <summary>门票 → 进房（换票进房与创建房间的**共用尾段**——两处同为"按号签发"，防漂移）：
+        /// 解析票据实例地址 → 派 <c>Request(Match, MetaJoin)</c>。失败原样返回（未到手/地址不可解析不进管道）。</summary>
+        private MetaCall<JoinTicketInfo> JoinWith(MetaCall<JoinTicketInfo> call)
+        {
             if (!call.Ok) return call;
 
             if (!RoomEndpoint.TryParse(call.Value.Address, out RoomEndpoint endpoint, out string reason))
@@ -115,5 +130,9 @@ namespace LiteGame
 
         private MetaCall<T> NotLoggedIn<T>()
             => MetaCall<T>.Failed(MetaFailure.Rejected(0, "entry.not-logged-in", "未登录"));
+
+        /// <summary>流程机未绑定（装配面缺 <c>BindMachine</c>）——进房/创建房间同判据。</summary>
+        private static MetaCall<T> MachineUnbound<T>()
+            => MetaCall<T>.Failed(MetaFailure.Invalid("流程机未绑定（装配面缺 BindMachine）"));
     }
 }

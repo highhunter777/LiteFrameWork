@@ -914,7 +914,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   Comment: 
   CustomTypeName: 
-  BindName: StartMatch
+  BindName: Txt_StartMatch
 --- !u!1 &6329903052814375604
 GameObject:
   m_ObjectHideFlags: 0
@@ -1179,7 +1179,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   Comment: 
   CustomTypeName: 
-  BindName: StartMatch
+  BindName: Button_StartMatch
 --- !u!1 &8835073512039937579
 GameObject:
   m_ObjectHideFlags: 0

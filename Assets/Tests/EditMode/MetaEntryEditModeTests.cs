@@ -29,6 +29,8 @@ namespace LiteGame.Tests.EditMode
                 new GuestLoginInfo { AccountId = "acc-1", AccessToken = "tok-1", ExpiresAtMs = 1 });
             public MetaCall<JoinTicketInfo> JoinTicket = MetaCall<JoinTicketInfo>.OkResult(
                 new JoinTicketInfo { InstanceId = "ins-1", Address = "203.0.113.7:17777", RoomId = "Room-A", Ticket = "tkt-1", ExpiresAtMs = 2 });
+            public MetaCall<JoinTicketInfo> CreateRoomResult = MetaCall<JoinTicketInfo>.OkResult(
+                new JoinTicketInfo { InstanceId = "ins-2", Address = "203.0.113.7:17778", RoomId = "R-NEW001", Ticket = "tkt-2", ExpiresAtMs = 3 });
             public MetaCall<IReadOnlyList<LobbyInstanceView>> Rooms;
             public MetaCall<IReadOnlyList<MatchRecordInfo>> Records;
 
@@ -36,6 +38,7 @@ namespace LiteGame.Tests.EditMode
             public string SeenRoomId;
             public string SeenBuildHash;
             public int TicketCalls;
+            public int CreateRoomCalls;
 
             public UniTask<MetaCall<GuestLoginInfo>> GuestLoginAsync(string deviceId, System.Threading.CancellationToken ct = default)
             {
@@ -50,6 +53,14 @@ namespace LiteGame.Tests.EditMode
                 SeenRoomId = roomId;
                 SeenBuildHash = buildHash;
                 return UniTask.FromResult(JoinTicket);
+            }
+
+            public UniTask<MetaCall<JoinTicketInfo>> CreateRoomAsync(string accessToken, string buildHash,
+                System.Threading.CancellationToken ct = default)
+            {
+                CreateRoomCalls++;
+                SeenBuildHash = buildHash;
+                return UniTask.FromResult(CreateRoomResult);
             }
 
             public UniTask<MetaCall<IReadOnlyList<LobbyInstanceView>>> ListRoomsAsync(string accessToken,
@@ -189,6 +200,84 @@ namespace LiteGame.Tests.EditMode
             Assert.IsFalse(call.Ok);
             Assert.AreEqual(MetaFailureKind.InvalidResponse, call.Failure.Kind);
             StringAssert.Contains("BindMachine", call.Failure.Detail, "失败点名装配面缺口");
+        }
+
+        // ---- 创建房间（服务端出号 → 与进房同一管道）----
+
+        [Test]
+        public void 创建房间_服务端出号_精确移交Match_与进房同管道()
+        {
+            var client = new FakeMetaClient();
+            var machine = new FakeStageHost();
+            var service = Service(client, machine);
+            service.GuestLoginAsync().GetAwaiter().GetResult();
+
+            MetaCall<JoinTicketInfo> call = service.CreateRoomAsync().GetAwaiter().GetResult();
+
+            Assert.IsTrue(call.Ok);
+            Assert.AreEqual(1, client.CreateRoomCalls, "创建房间走客户端 create-room（客户端不发明房号）");
+            Assert.AreEqual(LiteNet.BuildHash.Value, client.SeenBuildHash, "版本准入随创建——两端同源常量");
+            Assert.AreEqual("R-NEW001", call.Value.RoomId, "房号 = 服务端出号（响应透传）");
+
+            Assert.IsNotNull(machine.LastRequest, "创建房间成功 = Request(Match)——与换票进房同管道");
+            Assert.AreEqual(ProcedureId.Match, machine.LastRequest.Value.id);
+            MetaJoin join = machine.LastRequest.Value.args.MetaJoin;
+            Assert.AreEqual("203.0.113.7", join.Host);
+            Assert.AreEqual(17778, join.Port);
+            Assert.AreEqual("R-NEW001", join.RoomId);
+            Assert.AreEqual("tkt-2", join.Ticket);
+        }
+
+        [Test]
+        public void 创建房间_地址不可解析_确定性失败_零Request()
+        {
+            var client = new FakeMetaClient
+            {
+                CreateRoomResult = MetaCall<JoinTicketInfo>.OkResult(new JoinTicketInfo
+                    { InstanceId = "ins-2", Address = "no-port", RoomId = "R-NEW001", Ticket = "tkt-2", ExpiresAtMs = 3 }),
+            };
+            var machine = new FakeStageHost();
+            var service = Service(client, machine);
+            service.GuestLoginAsync().GetAwaiter().GetResult();
+
+            MetaCall<JoinTicketInfo> call = service.CreateRoomAsync().GetAwaiter().GetResult();
+
+            Assert.IsFalse(call.Ok);
+            Assert.IsNull(machine.LastRequest, "地址不可解析不得发 Request——避免连到错误端点");
+        }
+
+        [Test]
+        public void 未登录_创建房间被拒_零create调用()
+        {
+            var client = new FakeMetaClient();
+            var service = Service(client, new FakeStageHost());
+
+            MetaCall<JoinTicketInfo> call = service.CreateRoomAsync().GetAwaiter().GetResult();
+
+            Assert.IsFalse(call.Ok);
+            Assert.AreEqual("entry.not-logged-in", call.Failure.Code);
+            Assert.AreEqual(0, client.CreateRoomCalls, "门禁在客户端调用之前");
+        }
+
+        [Test]
+        public void 门面_CreateRoom回调_成功带新房号()
+        {
+            using (var env = new LuaEnv())
+            {
+                ProductBridges.BindGlobals(env);
+                var client = new FakeMetaClient();
+                var service = Service(client, new FakeStageHost());
+                MetaBridge.Bind(service);
+                service.GuestLoginAsync().GetAwaiter().GetResult();      // 令牌就位
+
+                env.DoString(@"
+                    create_ok, create_room = nil, nil
+                    Bridge.meta.CreateRoom(function(ok, roomId) create_ok = ok; create_room = roomId end)");
+
+                Assert.IsTrue(env.Global.Get<bool>("create_ok"));
+                Assert.AreEqual("R-NEW001", env.Global.Get<string>("create_room"), "成功载荷 = 新房号（房间页展示用）");
+                Assert.AreEqual(1, client.CreateRoomCalls);
+            }
         }
 
         // ---- Bridge.meta 门面（真 LuaEnv；替身同步完成 → 回调同步可断言） ----

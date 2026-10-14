@@ -24,8 +24,9 @@ namespace LiteGame.Tests.EditMode
     {
         /// <summary>表源现役键数（增删文案键须同批核对本值——《上云测试页面层级设计》§8 总表 + 批C 增补；
         /// 批C-④ 增 `UI.Lobby.ListFailed`（41 → 42）；批C-⑥ 增 `UI.Result.Rank`（42 → 43）；
-        /// HUD 批C 退场链增 `Common.Confirm/Cancel`、`UI.Settings.Exit/ExitConfirmTitle/ExitConfirmMessage`（43 → 48））。</summary>
-        private const int ExpectedKeyCount = 48;
+        /// HUD 批C 退场链增 `Common.Confirm/Cancel`、`UI.Settings.Exit/ExitConfirmTitle/ExitConfirmMessage`（43 → 48）；
+        /// 创房批增 `UI.Lobby.CreateRoom/Creating/CreateFailed`（48 → 51））。</summary>
+        private const int ExpectedKeyCount = 51;
 
         private static cfg.Tables LoadRealTables()
         {
