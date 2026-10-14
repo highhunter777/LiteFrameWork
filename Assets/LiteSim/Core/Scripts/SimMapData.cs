@@ -9,6 +9,22 @@ namespace LiteSim
         Box = 1,
     }
 
+    /// <summary>障碍表面类型（烘焙面 surface 列单源；1–10 对齐 KriptoFX Impacts 十档——命中特效分流的取值参考，判定不读）。</summary>
+    public enum SimObstacleSurface : byte
+    {
+        Default = 0,
+        Brick = 1,
+        Concrete = 2,
+        Dirt = 3,
+        Foliage = 4,
+        Glass = 5,
+        Metal = 6,
+        Plaster = 7,
+        Rock = 8,
+        Water = 9,
+        Wood = 10,
+    }
+
     /// <summary>
     /// 静态障碍（判定半，§18）：Circle = Center + Radius（y 区间 [Center.Y, Center.Y + Height]）；
     /// Box = Center + HalfX/HalfZ（同 y 区间）。只冻结数据结构，碰撞分桶系统留后续里程碑空位（#12）。
@@ -31,6 +47,9 @@ namespace LiteSim
 
         /// <summary>高度（y 区间上界 = Center.Y + Height）。</summary>
         public float Height;
+
+        /// <summary>表面类型（命中特效分流的取值面；判定不读）。</summary>
+        public SimObstacleSurface Surface;
     }
 
     /// <summary>
@@ -40,7 +59,7 @@ namespace LiteSim
     /// </summary>
     public sealed class SimMapData
     {
-        public const int MaxObstacles = 64;
+        public const int MaxObstacles = 256;
         public const int MaxSpawnPoints = 16;
 
         /// <summary>有效障碍数（Obstacles 前 N 项有效）。</summary>

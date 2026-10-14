@@ -138,8 +138,8 @@ namespace LiteSim.Tests
         [Fact]
         public void 标准地图_围墙_向四壁推进均停在墙内沿()
         {
-            var map = SimMapData.StandardBattleMap();
-            Assert.Equal(5, map.ObstacleCount);   // 4 段围墙 + 1 个测试方块（TrainingGround /Cube 同源）
+            var map = TestMaps.Greybox();
+            Assert.Equal(5, map.ObstacleCount);   // 4 段围墙 + 1 个测试方块（TestMaps.Greybox 夹具）
 
             // 北墙（−Z 面 −68）：从 −55 向 −Z 持续走 600 帧（50m > 12.5m 行程）应停在 −68 + 身位
             float r = CombatConfig.BodyRadius;
@@ -164,7 +164,7 @@ namespace LiteSim.Tests
         [Fact]
         public void 标准地图_出生网格不在任何障碍内()
         {
-            var map = SimMapData.StandardBattleMap();
+            var map = TestMaps.Greybox();
             float r = CombatConfig.BodyRadius;
             for (int i = 0; i < map.SpawnPointCount; i++)
             {
@@ -182,7 +182,7 @@ namespace LiteSim.Tests
         [Fact]
         public void 障碍_确定性_同输入双跑逐位一致()
         {
-            var map = SimMapData.StandardBattleMap();
+            var map = TestMaps.Greybox();
 
             uint a = RunTenFrames(map, seed: 123UL);
             uint b = RunTenFrames(map, seed: 123UL);

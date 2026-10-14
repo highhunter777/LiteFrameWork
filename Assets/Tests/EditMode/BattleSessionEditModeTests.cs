@@ -215,7 +215,7 @@ namespace LiteGame.Tests.EditMode
 
                     // 权威快照：实体位于出生点（与客户端同构世界一致——预测成立，不该误报和解）
                     var authoritative = new SimWorldState { RngState = 12345UL };
-                    SimMapData map = SimMapData.StandardBattleMap();
+                    SimMapData map = GreyboxMap();
                     for (int i = 0; i < 2; i++)
                         authoritative.Spawn(new EntitySlot
                         {
@@ -389,6 +389,24 @@ namespace LiteGame.Tests.EditMode
                     context.Dispose();
                 }
             }
+        }
+
+        /// <summary>灰盒地图夹具（与 .NET 侧 TestMaps.Greybox 同值：±100 边界 / 围墙 ±69 厚 2 高 20 /
+        /// 测试方块 (5,0,0) / 16 网格出生点）——Unity 侧测试无法源链接 Tests/ 下夹具文件，本处就地构建同值。</summary>
+        private static SimMapData GreyboxMap()
+        {
+            var obstacles = new SimObstacle[5];
+            obstacles[0] = new SimObstacle { Kind = SimObstacleKind.Box, Center = new SimVector3(0f, 0f, -69f), HalfX = 70f, HalfZ = 1f, Height = 20f };
+            obstacles[1] = new SimObstacle { Kind = SimObstacleKind.Box, Center = new SimVector3(0f, 0f, 69f), HalfX = 70f, HalfZ = 1f, Height = 20f };
+            obstacles[2] = new SimObstacle { Kind = SimObstacleKind.Box, Center = new SimVector3(-69f, 0f, 0f), HalfX = 1f, HalfZ = 70f, Height = 20f };
+            obstacles[3] = new SimObstacle { Kind = SimObstacleKind.Box, Center = new SimVector3(69f, 0f, 0f), HalfX = 1f, HalfZ = 70f, Height = 20f };
+            obstacles[4] = new SimObstacle { Kind = SimObstacleKind.Box, Center = new SimVector3(5f, 0f, 0f), HalfX = 0.5f, HalfZ = 0.5f, Height = 1f };
+
+            var spawns = new SimVector3[SimMapData.MaxSpawnPoints];
+            for (int i = 0; i < spawns.Length; i++)
+                spawns[i] = new SimVector3(((i % 4) - 1.5f) * 10f, 0f, ((i / 4) - 1.5f) * 10f);
+
+            return SimMapBuilder.Build(0f, 100f, 100f, obstacles, obstacles.Length, spawns, spawns.Length);
         }
     }
 }

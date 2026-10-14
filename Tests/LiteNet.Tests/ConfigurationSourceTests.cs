@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using LiteClient;
 using LiteSim;
+using LiteSim.Tests;
 using Luban;
 using RoomServer;
 using RoomServer.Runtime;
@@ -53,7 +54,7 @@ namespace LiteNet.Tests
             var world = new SimWorldState();
             long id = world.Spawn(new EntitySlot { Hp = values.EntityHp, Pos = new SimVector3(0f, 10f, 0f) }, out _);
             Assert.True(world.TryResolve(id, out int slot));
-            MovementSystem.Run(world.Entities, world.AliveBitmap, SimMapData.StandardBattleMap(), values);
+            MovementSystem.Run(world.Entities, world.AliveBitmap, TestMaps.Greybox(), values);
             Assert.Equal(-9.8f * SimConfig.Dt, world.Entities[slot].Vel.Y);
         }
 

@@ -1,0 +1,4 @@
+return
+{
+[1] = {map_id=1,name="training_ground",content_digest="5217bcaf52048108",ground_y=0,half_width=100,half_depth=100,obstacles={{kind=1,x=0,y=0,z=-69,radius=0,half_x=70,half_z=1,height=20,surface=0,},{kind=1,x=0,y=0,z=69,radius=0,half_x=70,half_z=1,height=20,surface=0,},{kind=1,x=-69,y=0,z=0,radius=0,half_x=1,half_z=70,height=20,surface=0,},{kind=1,x=69,y=0,z=0,radius=0,half_x=1,half_z=70,height=20,surface=0,},{kind=1,x=5,y=0,z=0,radius=0,half_x=0.5,half_z=0.5,height=1,surface=0,},},spawns={{x=-15,y=0,z=-15,},{x=-5,y=0,z=-15,},{x=5,y=0,z=-15,},{x=15,y=0,z=-15,},{x=-15,y=0,z=-5,},{x=-5,y=0,z=-5,},{x=5,y=0,z=-5,},{x=15,y=0,z=-5,},{x=-15,y=0,z=5,},{x=-5,y=0,z=5,},{x=5,y=0,z=5,},{x=15,y=0,z=5,},{x=-15,y=0,z=15,},{x=-5,y=0,z=15,},{x=5,y=0,z=15,},{x=15,y=0,z=15,},},},
+}

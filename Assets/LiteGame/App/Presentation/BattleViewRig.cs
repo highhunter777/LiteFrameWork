@@ -68,7 +68,7 @@ namespace LiteGame
         private BattleContext _context;
         private SimView _view;
         private CharacterLocomotionDriver _locomotion;   // 移动动画驱动（视图的消费者——先于视图拆除）
-        private BattleCrosshairDriver _crosshair;       // 对局准心（场景 /Battle HUD）
+        private BattleCrosshairDriver _crosshair;       // 对局准心（Hud_Battle prefab）
         private BattleHudDriver _hud;                   // HUD 面板（血条/弹药——技能栏静态占位）
         private UnityEngine.Events.UnityAction _menuClick;   // 菜单钮监听（装配期加、拆除期摘——存实例供移除）
         private BattleLaserDriver _laser;               // 瞄准激光（准心的世界空间兄弟件）

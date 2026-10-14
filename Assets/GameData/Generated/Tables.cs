@@ -13,6 +13,7 @@ namespace cfg
 {
 public partial class Tables
 {
+    public Tbmap Tbmap {get; }
     public Tbanimationprofile Tbanimationprofile {get; }
     public Tbcombatnum Tbcombatnum {get; }
     public Tbcontententry Tbcontententry {get; }
@@ -26,6 +27,7 @@ public partial class Tables
 
     public Tables(System.Func<string, ByteBuf> loader)
     {
+        Tbmap = new Tbmap(loader("tbmap"));
         Tbanimationprofile = new Tbanimationprofile(loader("tbanimationprofile"));
         Tbcombatnum = new Tbcombatnum(loader("tbcombatnum"));
         Tbcontententry = new Tbcontententry(loader("tbcontententry"));
@@ -41,6 +43,7 @@ public partial class Tables
     
     private void ResolveRef()
     {
+        Tbmap.ResolveRef(this);
         Tbanimationprofile.ResolveRef(this);
         Tbcombatnum.ResolveRef(this);
         Tbcontententry.ResolveRef(this);

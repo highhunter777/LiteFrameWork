@@ -10,7 +10,7 @@ using TMPro;
 namespace LiteGame
 {
     /// <summary>
-    /// UI 工作台驱动（《UI工作台设计》W0——dev-only，SimSandbox 同款"不担产品职责"）：
+    /// UI 工作台驱动（《UI工作台设计》W0——dev-only，DevHUD 族"不担产品职责"）：
     /// 场景面板目录一键开/关任意已登记表单（真导航单写者）+ 反馈面演示组（Loading/错误/Toast）+ 状态读数。
     ///
     /// **不旁路装配**：Update 轮询 `GameEntry.TakeContainer()`（未装配下帧再试），服务经容器 Resolve；

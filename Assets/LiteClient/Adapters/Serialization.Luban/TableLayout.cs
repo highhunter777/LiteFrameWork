@@ -31,16 +31,17 @@ namespace LiteClient
             "Combat/tbcombatnum",      // 玩法数值（单行表；装载后产出 CombatValues 实例并发布读口——两端同源）
             "Combat/tbweapon",         // 武器表（多行；装载后回填 WeaponConfig——Sim 武器系统消费）
             "Animation/tbanimationprofile", // 动画 Profile 登记行（多族共存；装载后投影为 Core 行并发布读口）
+            "Map/tbmap",               // 地图表（烘焙产物：障碍/出生/边界；判定面域——两端同源）
         };
 
         /// <summary>
         /// 判定面域（**玩法数据身份**——`CombatConfigDigest` 覆盖的表域单源）：
         /// 域内全部表进运行期摘要（见 <see cref="JudgmentFiles"/>），新增表**落域即入面**——不依赖第二份人工清单。
         /// 判据 = 该域的表参与判定（两端必须同值）：Combat（数值/武器）、Movement（移动数值）、Entity（实体定义）、
-        /// Item（道具定义）。**不计入**：UI/Content/Strategy/Animation——表现与内容面（单端可变，热更面；
-        /// `tbanimationprofile` 亦在此列——动画 Profile 属表现面，单端热更不换联机身份）。
+        /// Item（道具定义）、Map（地图几何——移动碰撞 + 射击遮挡）。**不计入**：UI/Content/Strategy/Animation——
+        /// 表现与内容面（单端可变，热更面；`tbanimationprofile` 亦在此列——动画 Profile 属表现面，单端热更不换联机身份）。
         /// </summary>
-        public static readonly string[] JudgmentDomains = { "Combat", "Movement", "Entity", "Item" };
+        public static readonly string[] JudgmentDomains = { "Combat", "Movement", "Entity", "Item", "Map" };
 
         /// <summary>
         /// 判定面表清单（<see cref="Files"/> 声明序派生——**顺序即摘要规范的一部分**，两端同一份）：

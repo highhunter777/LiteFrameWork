@@ -287,7 +287,7 @@ namespace LiteSim.Tests
             // 冷启动模板带瞄准位；此后不喂任何真实输入 → 全部走预测帧
             var template = Inputs(id, 1f, 0f, 1f, 0f,
                 SimInputFrame.ButtonAim | SimInputFrame.ButtonFire | SimInputFrame.ButtonReload);
-            var sim = new RollbackSim(world, SimMapData.StandardBattleMap(), template, CombatValues.Default, WeaponTable.Default);
+            var sim = new RollbackSim(world, TestMaps.Greybox(), template, CombatValues.Default, WeaponTable.Default);
 
             sim.Tick(SimConfig.Dt);      // 第 1 步：吃模板
             sim.Tick(SimConfig.Dt);      // 第 2 步：预测帧（"沿用上一帧 + 只留连续位"）

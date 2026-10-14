@@ -16,7 +16,7 @@ namespace LiteSim.Tests
             return s;
         }
 
-        private static void Step(SimWorldState s) => SimStep.Step(s, SimMapData.StandardBattleMap(), Empty,
+        private static void Step(SimWorldState s) => SimStep.Step(s, TestMaps.Greybox(), Empty,
             CombatValues.Default, WeaponTable.Default);
 
         private static void Kill(SimWorldState s, int target = 1, int source = 0)
@@ -60,7 +60,7 @@ namespace LiteSim.Tests
             Assert.Equal(0, e.RespawnFrame);
             Assert.Equal(respawn, e.LifeStartFrame);
             Assert.Equal(respawn + 2, e.InvulnerableUntilFrame);
-            Assert.Equal(SimMapData.StandardBattleMap().SpawnPoints[1], e.Pos);
+            Assert.Equal(TestMaps.Greybox().SpawnPoints[1], e.Pos);
             Assert.Equal(2, s.MatchBag[SimConfig.MatchBagSlotsPerEntity].Count);
             Assert.Equal(WeaponSlotState.Ready, s.Weapons[SimConfig.WeaponSlotsPerEntity].State);
             Assert.Contains(s.Events.Items, ev => ev.Kind == FrameEventKind.Respawn && ev.EntityId == id);
@@ -86,7 +86,7 @@ namespace LiteSim.Tests
             var values = CombatValues.Default;
             values.EntityHp = 175;
             s.Frame = s.Entities[1].RespawnFrame;
-            RespawnSystem.Run(s, SimMapData.StandardBattleMap(), values);
+            RespawnSystem.Run(s, TestMaps.Greybox(), values);
             Assert.Equal(175, s.Entities[1].Hp);
             Assert.Equal(WeaponSlotState.Unequipped, s.Weapons[SimConfig.WeaponSlotsPerEntity].State);
         }
@@ -164,10 +164,10 @@ namespace LiteSim.Tests
             WeaponSystem.Run(s, Empty, weapons);
             s.Entities[0].InvulnerableUntilFrame = 10;
             var input = new[] { new SimInputFrame { EntityId = s.Entities[0].Id, Buttons = SimInputFrame.ButtonFire } };
-            ShootingSystem.Run(s, SimMapData.StandardBattleMap(), input, CombatValues.Default, weapons);
+            ShootingSystem.Run(s, TestMaps.Greybox(), input, CombatValues.Default, weapons);
             Assert.Equal(0, s.Entities[0].InvulnerableUntilFrame);
             s.Entities[0].InvulnerableUntilFrame = 10;
-            ShootingSystem.Run(s, SimMapData.StandardBattleMap(), input, CombatValues.Default, weapons);
+            ShootingSystem.Run(s, TestMaps.Greybox(), input, CombatValues.Default, weapons);
             Assert.Equal(10, s.Entities[0].InvulnerableUntilFrame);
         }
 

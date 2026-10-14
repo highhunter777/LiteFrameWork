@@ -31,7 +31,7 @@ namespace LiteSim
 
     /// <summary>
     /// 命令缓冲（§3.7）：定长预分配、零 GC；满则丢弃并计数（<see cref="OverflowCount"/>），
-    /// 不扩容——扩容 = 运行期分配。Core 零依赖不打日志，由驱动/SimSandbox 读计数上抛告警。
+    /// 不扩容——扩容 = 运行期分配。Core 零依赖不打日志，由驱动/DevHUD 读计数上抛告警。
     /// 注意：可变结构体；SimWorldState 持有的字段不可声明 readonly（防御性拷贝会丢写）。
     /// </summary>
     public struct CommandBuffer

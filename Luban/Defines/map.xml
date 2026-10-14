@@ -1,0 +1,29 @@
+<module name="">
+    <bean name="mapobstacle">
+        <var name="kind" type="int"/>
+        <var name="x" type="float"/>
+        <var name="y" type="float"/>
+        <var name="z" type="float"/>
+        <var name="radius" type="float"/>
+        <var name="half_x" type="float"/>
+        <var name="half_z" type="float"/>
+        <var name="height" type="float"/>
+        <var name="surface" type="int"/>
+    </bean>
+    <bean name="mapspawn">
+        <var name="x" type="float"/>
+        <var name="y" type="float"/>
+        <var name="z" type="float"/>
+    </bean>
+    <bean name="map">
+        <var name="map_id" type="int"/>
+        <var name="name" type="string"/>
+        <var name="content_digest" type="string"/>
+        <var name="ground_y" type="float"/>
+        <var name="half_width" type="float"/>
+        <var name="half_depth" type="float"/>
+        <var name="obstacles" type="list,mapobstacle"/>
+        <var name="spawns" type="list,mapspawn"/>
+    </bean>
+    <table name="Tbmap" value="map" input="map.json" mode="map" index="map_id" group="c,s"/>
+</module>

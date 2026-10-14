@@ -163,8 +163,6 @@ Assets/StreamingAssets.meta
 # Boot.unity 已入库（2026-10-13：Test.unity 改名 Boot 的受控测试场景，两条 PlayMode 用例依赖——资产被已提交测试引用必须入版本兜底）
 Assets/Scenes/GuideScene.unity
 Assets/Scenes/GuideScene.unity.meta
-Assets/Scenes/SimSandbox.unity
-Assets/Scenes/SimSandbox.unity.meta
 Assets/StreamingAssets/
 # （UniversalRenderPipelineGlobalSettings.asset 两条已移入上方「URP 管线资产」段，2026-10-13 放开入库）
 .vsconfig
