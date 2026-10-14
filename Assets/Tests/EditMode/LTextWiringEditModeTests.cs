@@ -29,7 +29,7 @@ namespace LiteGame.Tests.EditMode
 
         private static cfg.Tables LoadRealTables()
         {
-            // 与 ConfigService 同款装载（CombatNumbersEditModeTests 同款直读磁盘——YooAsset 异步拉不起，清单单源 TableLayout）
+            // 与 ConfigService 同款装载（CombatValuesEditModeTests 同款直读磁盘——YooAsset 异步拉不起，清单单源 TableLayout）
             string dir = Path.Combine(ProjectRoot(), ConfigService.DataDir);
             var cache = new Dictionary<string, byte[]>(ConfigService.TableDataFiles.Length);
             foreach (string file in ConfigService.TableDataFiles)

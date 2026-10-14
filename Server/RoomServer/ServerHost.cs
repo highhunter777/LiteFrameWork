@@ -197,7 +197,7 @@ namespace RoomServer
         private readonly WeaponTable _weapons;
 
         /// <summary>
-        /// 判定地图注入（生产链 `HostAssembly.Inputs.Map` ← `MapNumbers` 装载产物）。房间建立时写入
+        /// 判定地图注入（生产链 `HostAssembly.Inputs.Map` ← `ServerMapLoader` 装载产物）。房间建立时写入
         /// `RoomConfig.Map`（配置自带者优先——单图批次恒空）；**无缺省兜底**（D22）：宿主参数与
         /// 房间配置两处皆缺由房间构造 fail-fast。
         /// </summary>
@@ -425,7 +425,7 @@ namespace RoomServer
             Config = config ?? RoomConfig.Default();
             if (_map == null && Config.Map == null)
                 throw new ArgumentException(
-                    "地图必填（D22）：宿主 map 参数或 RoomConfig.Map 须注入其一——生产链经 MapNumbers 装载（无回退地图）",
+                    "地图必填（D22）：宿主 map 参数或 RoomConfig.Map 须注入其一——生产链经 ServerMapLoader 装载（无回退地图）",
                     nameof(map));
             _tickets = ticketValidator;
             _audience = ResolveAudience(audience, roomServerConfig);

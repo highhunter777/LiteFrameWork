@@ -12,7 +12,7 @@ using Xunit;
 namespace LiteNet.Tests
 {
     /// <summary>
-    /// 地图投影双路径对账（《地图数据专项设计》§9/批4）：**服务端直读盘**（<see cref="MapNumbers"/>）与
+    /// 地图投影双路径对账（《地图数据专项设计》§9/批4）：**服务端直读盘**（<see cref="ServerMapLoader"/>）与
     /// **客户端装载面**（`cfg.Tables` → <see cref="MapTableProjection"/>）从同一份 `tbmap.bytes` 投影出
     /// 同一张判定图——digest 相等且 == 首图快照夹具 <see cref="TestMaps.Arena01"/> 的摘要锚
     /// （批3 实烘值 `9c3d504907d8210e`；改场景重烘后须同步夹具/本锚）。
@@ -25,7 +25,7 @@ namespace LiteNet.Tests
         {
             string dir = Path.Combine(RepoRoot(), "Assets", "GameData", "Config");
 
-            SimMapData serverPath = MapNumbers.LoadTableBytes(dir);              // 服务端：直读盘
+            SimMapData serverPath = ServerMapLoader.LoadTableBytes(dir);              // 服务端：直读盘
             SimMapData clientPath = MapTableProjection.Project(LoadTables(dir)); // 客户端：装载面投影
 
             string serverDigest = SimMapDigest.Compute(serverPath);
@@ -49,7 +49,7 @@ namespace LiteNet.Tests
         public void 缺表目录_拒载()
         {
             string missing = Path.Combine(RepoRoot(), "RoomServer", "Data", "__not_exist__");
-            Assert.Throws<FileNotFoundException>(() => MapNumbers.LoadTableBytes(missing));
+            Assert.Throws<FileNotFoundException>(() => ServerMapLoader.LoadTableBytes(missing));
         }
 
         [Fact]

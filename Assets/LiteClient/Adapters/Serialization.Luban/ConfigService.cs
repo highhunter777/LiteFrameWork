@@ -114,8 +114,8 @@ namespace LiteClient
             // ③ 校验 + 原子发布 + 回填（顺序钉死：发布失败 → Loaded 保持 false、CombatConfig 不动）
             _snapshots.Publish(candidate);                 // 校验失败抛（保留旧版/空态），版本 +1
             GameplayDigestBase = TableLayout.ComputeGameplayDigestBase(cache);   // 数据身份基摘要（与本次装载同一批字节；发布后同刻绑定）
-            ApplyCombatNumbers(candidate);                 // 校验已过（行存在性由 ValidateCandidate 保证）
-            ApplyMovementNumbers(candidate);               // 移动数值（同上：一致性闸门在 ValidateCandidate）
+            ApplyCombatValues(candidate);                 // 校验已过（行存在性由 ValidateCandidate 保证）
+            ApplyMovementValues(candidate);               // 移动数值（同上：一致性闸门在 ValidateCandidate）
             ApplyWeaponTable(candidate);                   // 武器表（多行回填——WeaponSystem 消费）
             ApplyAnimationProfile(candidate);               // 动画 Profile 行（投影为 Core 行并发布读口——对局装配/构建器/测试消费）
             _tables = candidate;                           // 对外可见（发布成功后）
@@ -170,7 +170,7 @@ namespace LiteClient
         /// 机制消费经参数传递（技术债 #1）；<see cref="CombatConfig.Publish"/> 只服务单世界表现面便捷读。
         /// 调用契约：<see cref="ValidateCandidate"/> 已通过（行存在性保证——本方法不再兜底判空）。
         /// </summary>
-        private static void ApplyCombatNumbers(Tables tables)
+        private static void ApplyCombatValues(Tables tables)
         {
             CombatValues values = SimConfigMapper.BuildCombatValues(tables.Tbcombatnum,
                 tables.Tbmovementconfig, tables.Tbentityconfig);
@@ -183,12 +183,12 @@ namespace LiteClient
         }
 
         /// <summary>
-        /// 移动数值装载（表 → <see cref="MovementValues"/> 实例并发布读口）：与 ApplyCombatNumbers 同纪律——
+        /// 移动数值装载（表 → <see cref="MovementValues"/> 实例并发布读口）：与 ApplyCombatValues 同纪律——
         /// LiteSim 零依赖，由外部喂 primitives；表值即设计软值，硬护栏是代码常量 <see cref="CombatConfig.HardMaxSpeed"/>。
         /// 机制消费（走跑冲/滑铲/空中控制/跳跃/钩爪/闪现）随对应 Sim 系统落地逐项接入（接入时经参数传实例）。
         /// 调用契约：<see cref="ValidateCandidate"/> 已通过（行存在性与重力合法性均闸在前）。
         /// </summary>
-        private static void ApplyMovementNumbers(Tables tables)
+        private static void ApplyMovementValues(Tables tables)
         {
             cfg.movementconfig row = tables.Tbmovementconfig.Get(1);        // 单行表固定 id=1
 

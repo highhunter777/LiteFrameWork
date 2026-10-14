@@ -15,7 +15,7 @@ namespace RoomServer
     /// `RoomConfig.Map` → `RoomRuntime`）——技术债 #1 同纪律：不回填任何全局静态面；
     /// 丢弃返回值 = "房间无图"（`RoomRuntime` 构造 fail-fast，不静默兜底）。
     /// </summary>
-    public static class MapNumbers
+    public static class ServerMapLoader
     {
         /// <summary>从仓库根装载（定位失败或缺表 → 抛，fail-fast——无图不得起权威局）。</summary>
         public static SimMapData LoadFromRepo(int mapId = MapTableProjection.DefaultMapId)

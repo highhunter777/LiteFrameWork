@@ -13,7 +13,7 @@ namespace LiteNet.Tests
     ///
     /// 本组钉住的是**配置错误必须响亮地失败**：坏文件/坏字段/越界一律抛，不静默兜底——
     /// 兜底会让配置错误变成线上的隐形分叉（与 <see cref="ServerTableLoader"/> 同一口径）。
-    /// combat 内联分区不受支持（玩法数值走 .bytes 表，见 CombatNumbersTests）。
+    /// combat 内联分区不受支持（玩法数值走 .bytes 表，见 ServerTableLoadTests）。
     /// </summary>
     [Trait(TestTrait.Category, TestCategory.Contract)]
     public sealed class RoomServerConfigTests

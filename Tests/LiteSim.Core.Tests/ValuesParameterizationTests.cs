@@ -6,7 +6,7 @@ namespace LiteSim.Tests
     /// <summary>
     /// 技术债 #1 根治证明（《待办总览》§7.2 #1）：玩法数值按**实例**参数化——
     /// 自定义值经参数直达机制（SimStep/系统），全程不触碰任何全局读口；
-    /// 无串行集、无 finally 还原（对比旧"静态装载面"用例形态：`CombatNumbersTests` 原串行集已拆除）。
+    /// 无串行集、无 finally 还原（对比旧"静态装载面"用例形态：`ServerTableLoadTests` 原串行集已拆除）。
     /// </summary>
     public sealed class ValuesParameterizationTests
     {

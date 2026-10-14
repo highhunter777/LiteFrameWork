@@ -16,7 +16,7 @@ namespace LiteGame.Tests.EditMode
     /// ConfigService 快照化用例（《商业级通用客户端框架总设计》§9 + 热更专项 §11）：
     /// 候选构建 → 校验 → 原子发布三段式——失败保留空态（Loaded=false、Version=0、Tables 访问抛）。
     /// 半发布回归卡：校验炸了不得留下已发布的半成品。
-    /// 字节通道注入假 provider（直读磁盘 .bytes，与 CombatNumbersEditModeTests 同源），
+    /// 字节通道注入假 provider（直读磁盘 .bytes，与 CombatValuesEditModeTests 同源），
     /// 不依赖 YooAsset（EditMode 无法初始化——见 YooAssetContentServiceEditModeTests 边界注记）。
     /// </summary>
     public sealed class ConfigSnapshotEditModeTests : UnityTestBase

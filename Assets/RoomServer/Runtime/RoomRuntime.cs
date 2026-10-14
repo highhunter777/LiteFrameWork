@@ -111,7 +111,7 @@ namespace RoomServer.Runtime
                 config.Rules.RespawnDelayFrames, config.Rules.SpawnProtectionFrames);
             // 判定地图：装配注入必填（D22——回退构造已删；缺图 = 无图不得起权威局，fail-fast 不静默兜底）。
             Map = config.Map ?? throw new ArgumentException(
-                "RoomConfig.Map 必填——装配经 MapNumbers 装载注入（D22：无回退地图）", nameof(config));
+                "RoomConfig.Map 必填——装配经 ServerMapLoader 装载注入（D22：无回退地图）", nameof(config));
             AuthSim = new SimWorldState();
             SnapshotHistory = new SnapshotRing(SimConfig.LagCompHistory);
             int players = ExpectedPlayers;                     // 配置定容（席位/输入槽/实体表/回溯环一致）

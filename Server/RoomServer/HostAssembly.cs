@@ -36,7 +36,7 @@ namespace RoomServer
             /// <summary>安全信封选项（可 null = 裸 KCP——仅 --allow-insecure-local 路径，Program 已 fail-closed）。</summary>
             public SecureEnvelopeOptions EnvelopeOptions;
 
-            /// <summary>玩法数值实例（**必填**——服务端必须显式传入装载产物 `CombatNumValues.ToValues()`；
+            /// <summary>玩法数值实例（**必填**——服务端必须显式传入装载产物 `ServerCombatValues.ToValues()`；
             /// 缺失即拒装配，不得静默跑默认值——技术债 #1 的结构性防线）。</summary>
             public CombatValues? CombatValues;
 
@@ -44,7 +44,7 @@ namespace RoomServer
             /// 缺失即拒装配——与 CombatValues 同纪律）。</summary>
             public WeaponTable Weapons;
 
-            /// <summary>判定地图实例（**必填**——服务端必须显式传入 `MapNumbers` 装载产物 `SimMapData`；
+            /// <summary>判定地图实例（**必填**——服务端必须显式传入 `ServerMapLoader` 装载产物 `SimMapData`；
             /// 缺失即拒装配（D22：无回退地图）——与 CombatValues/Weapons 同纪律，丢弃返回值 = 房间无图）。</summary>
             public SimMapData Map;
 
@@ -87,7 +87,7 @@ namespace RoomServer
                     nameof(inputs));
             SimMapData map = inputs.Map
                 ?? throw new ArgumentException(
-                    "装配输入 Map 不能为空——服务端必须显式传入地图装载产物（MapNumbers；D22：无回退地图）",
+                    "装配输入 Map 不能为空——服务端必须显式传入地图装载产物（ServerMapLoader；D22：无回退地图）",
                     nameof(inputs));
 
             services.AddSingleton(config);

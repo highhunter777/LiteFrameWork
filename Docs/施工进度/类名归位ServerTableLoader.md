@@ -18,7 +18,8 @@
   - 测试 6 文件 19 处：LiteNet.Tests 五件（调用点/cref/注释）+ MetaServer.Integration.Tests `CloudLoopbackL3Tests`（2 调用）。
 - 活文档 5 份 6 处：`Docs/修改指南.md`（查询表玩法数值行）、`Docs/开发导航/代码地图.md`（RoomServer 行）、`资源收集目录专项设计.md`、`地图数据专项设计.md`（×2）、`玩法数值与Luban配置专项设计.md`。
 
-**保留项（有意，非漏网）**：测试类名 `CombatNumbersTests`/`CombatNumbersEditModeTests`（"玩法数值"域名词表，不绑生产类名）；客户端 `ConfigService.ApplyCombatNumbers`/`ApplyMovementNumbers`（指表值装载动作本身，名仍准确）。
+~~**保留项（有意，非漏网）**：测试类名 `CombatNumbersTests`/`CombatNumbersEditModeTests`（"玩法数值"域名词表，不绑生产类名）；客户端 `ConfigService.ApplyCombatNumbers`/`ApplyMovementNumbers`（指表值装载动作本身，名仍准确）。~~
+**（2026-10-14 命名清尾批口径反案）**：保留项**已清**——用户裁决 "Numbers 命名只留在 DamageNumber 族"（见下节）；原"域名词表/装载动作名"理由不敌"生产类名之外也不另立 Numbers 词表"的收敛口径。
 
 **历史记录不改写**：施工进度各批次记录与 `归档记录/2026-10-10/` 中的 `CombatNumbers` 引用为当时证据，循《命名空间对齐》先例不动。
 
@@ -39,3 +40,24 @@
 
 - `[Diag]` 哨位：本批文件 0 命中（grep 核）；无接线面变更（纯改名，不涉容器注册/消费者）。
 - L2（EditMode/PlayMode）按既定纪律留夜间流水线；Unity 侧本批仅注释与 BuildHash 常量变更，重编译 0 错。
+
+# 续批：Numbers 命名清尾（2026-10-14）
+
+> 触发：用户裁决 "Numbers 命名只留在 DamageNumber 族"——批4 新增的 `MapNumbers` 违反上批"不绑生产类名"口径，连带反案上批保留项，全仓清扫。批次类型：重构，行为零变更。
+
+**改名映射（七件）**：
+
+| 旧名 | 新名 | 面 |
+|---|---|---|
+| `MapNumbers`（批4 新增，违规） | **`ServerMapLoader`** | 服务端地图装载器（与 `ServerTableLoader` 配对；文件随类 `git mv`） |
+| `CombatNumValues` | **`ServerCombatValues`** | 服务端装载载体结构（宿主/测试消费） |
+| `ApplyCombatNumbers` / `ApplyMovementNumbers` | **`ApplyCombatValues` / `ApplyMovementValues`** | 客户端 ConfigService 表值装载动作（上批保留项） |
+| `CombatNumbersTests` | **`ServerTableLoadTests`** | L1 装载链守卫（对齐生产对象 `ServerTableLoad`） |
+| `CombatNumTableTests` | **`CombatValuesTableTests`** | tb_combatnum 表↔兜底↔装载链三面守卫 |
+| `CombatNumbersEditModeTests` | **`CombatValuesEditModeTests`** | 客户端数值链路 EditMode 守卫（Assets 内文件经 unity-pipeline `rename_asset`，GUID `a31bf931…` 保持） |
+
+**实施**：`git mv`×3（Server/Tests）+ unity-pipeline `rename_asset`×1（Assets）；标识符替换 19 文件（含注释 cref 六处：`WeaponTableTests`/`ConfigSnapshotEditModeTests`/`LTextWiringEditModeTests`/`RoomServerConfigTests`/`ValuesParameterizationTests`/`ServerTableLoader` 头注）；**全仓 cs 残留扫描 0 命中**（DamageNumber 族除外）。共享源集未触（`gen-build-hash --check` 复算确认）；行为零变更。
+
+**文档回写**：本文件保留项反案（划除+后注）；《地图数据专项设计》名称行 3 处＋修订注③⑯；《修改指南》§3.1；《视野与遮挡》几何行；《代码质量审计-服务端》修复登记行追加反案；《施工进度/README》索引两行。
+
+**后续**：Names 词表收敛口径以本批为准——新增生产类名不得再用 "Numbers"（`DamageNumbersPro`/伤害数字族为领域词例外）。

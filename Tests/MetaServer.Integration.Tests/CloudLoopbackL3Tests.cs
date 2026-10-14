@@ -130,7 +130,7 @@ namespace MetaServer.IntegrationTests
                 EnvelopeOptions = new SecureEnvelopeOptions(EnvelopeKey),
                 CombatValues = ServerTableLoader.LoadFromRepo().Combat.ToValues(),
                 Weapons = ServerTableLoader.LoadFromRepo().Weapons,
-                Map = MapNumbers.LoadFromRepo(),
+                Map = ServerMapLoader.LoadFromRepo(),
                 Lobby = new LobbyRegistrationClient.Settings
                 {
                     Url = metaBase + "/lobby/instances/register",

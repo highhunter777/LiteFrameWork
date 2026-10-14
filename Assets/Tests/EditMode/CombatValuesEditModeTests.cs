@@ -20,7 +20,7 @@ namespace LiteGame.Tests.EditMode
     /// 为什么不复用 `ConfigService.LoadAsync`：它走 YooAsset 异步 + 流程前置，EditMode 里拉不起来；
     /// 这里用同一份 `TableDataFiles` 清单直读磁盘，等价且更快（清单一致性由第二个用例保证）。
     /// </summary>
-    public sealed class CombatNumbersEditModeTests : UnityTestBase
+    public sealed class CombatValuesEditModeTests : UnityTestBase
     {
         /// <summary>玩法数值链路必须齐备的**裸表名**（清单条目为领域相对路径——见 <see cref="TableLayout"/>）。</summary>
         private static readonly string[] RequiredTableNames =

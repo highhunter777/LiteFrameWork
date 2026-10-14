@@ -7,7 +7,7 @@ using Xunit;
 namespace LiteNet.Tests
 {
     /// <summary>
-    /// 武器表链路守卫（tb_weapon ↔ <see cref="WeaponTable"/> 实例，两端同源纪律同 <see cref="CombatNumbersTests"/>）：
+    /// 武器表链路守卫（tb_weapon ↔ <see cref="WeaponTable"/> 实例，两端同源纪律同 <see cref="ServerTableLoadTests"/>）：
     /// ① 表产物存在且**默认步枪行与内置默认逐字段一致**（表未装载时的兜底不得漂移）；
     /// ② 服务端装载链（<see cref="ServerTableLoader.LoadTableBytes"/>）产出的 <see cref="WeaponTable"/> 实例在册读到表值。
     /// 数值/武器表经实例传递（技术债 #1）——本类不触碰任何全局面，无串行集/还原需求。

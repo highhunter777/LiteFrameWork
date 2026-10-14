@@ -22,7 +22,7 @@ namespace LiteNet.Tests
     ///
     /// 注：**本类不触碰任何全局面**（技术债 #1 根治后无串行集/还原需求——数值一律经实例传递）。
     /// </summary>
-    public sealed class CombatNumbersTests
+    public sealed class ServerTableLoadTests
     {
         private const string TableRelativePath = "Assets/GameData/Config/Combat/tbcombatnum.bytes";
 
@@ -33,7 +33,7 @@ namespace LiteNet.Tests
             Assert.True(File.Exists(path),
                 $"缺数值表产物：{TableRelativePath}（跑 Luban/gen.bat Pass 1——数值缺失等于两端分叉）");
 
-            CombatNumValues v = Parse(File.ReadAllBytes(path));
+            ServerCombatValues v = Parse(File.ReadAllBytes(path));
 
             // 表 = 唯一真相；默认实例只是表不可用时的兜底——两者必须一致（漂移即 L1 红）
             Assert.Equal(CombatValues.Default.MoveSpeed, v.MoveSpeed);
@@ -89,7 +89,7 @@ namespace LiteNet.Tests
         public void 装载产出实例_字段与表值一致()
         {
             string dir = Path.Combine(RepoRoot(), "Assets", "GameData", "Config");
-            CombatNumValues v = ServerTableLoader.LoadTableBytes(dir).Combat;
+            ServerCombatValues v = ServerTableLoader.LoadTableBytes(dir).Combat;
             CombatValues values = v.ToValues();
 
             Assert.Equal(v.MoveSpeed, values.MoveSpeed);
@@ -117,7 +117,7 @@ namespace LiteNet.Tests
             Assert.Equal(CombatConfigDigest.WithTestRules(0x00C0FFEEu, false, false), room.FixedConfig.Digest);
         }
 
-        private static CombatNumValues Parse(byte[] combatBytes)
+        private static ServerCombatValues Parse(byte[] combatBytes)
         {
             return ServerTableLoader.Parse(combatBytes,
                 File.ReadAllBytes(TableBin("tbmovementconfig")),

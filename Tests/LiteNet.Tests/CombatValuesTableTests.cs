@@ -19,7 +19,7 @@ namespace LiteNet.Tests
     /// 且进公共快照/双口径 checksum/proto），越界会在强转处静默截断；装载闸门
     /// （<c>SimConfigMapper.Validate</c>）已 fail-fast，此处钉住默认面不越界。
     /// </summary>
-    public sealed class CombatNumTableTests
+    public sealed class CombatValuesTableTests
     {
         private const string TableRelativePath = "Assets/GameData/Config/Combat/tbcombatnum.bytes";
 

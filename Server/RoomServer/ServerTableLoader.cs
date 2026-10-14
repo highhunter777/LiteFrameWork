@@ -19,7 +19,7 @@ namespace RoomServer
     /// （数值行 `ToValues()` → <see cref="CombatValues"/> 实例；武器行 → <see cref="WeaponTable"/> 实例）——
     /// 调用方**显式传入**宿主/房间（技术债 #1：不再回填全局静态面）。装载与传递是同一契约的两半，
     /// 丢弃返回值即"服务端跑默认值"分叉的复辟面；结构性防线 = `HostAssembly.Inputs` 必填校验（缺即拒装配）。
-    /// <see cref="Parse"/> 保持纯解析。L1 钉子：`CombatNumbersTests`/`WeaponTableTests`（装载产物 = 表值实例）。
+    /// <see cref="Parse"/> 保持纯解析。L1 钉子：`ServerTableLoadTests`/`WeaponTableTests`（装载产物 = 表值实例）。
     ///
     /// **一致性守卫（批 E 起）**：① 两端数值同源（同一 .bytes）；② 判定面表字节基摘要随
     /// `ServerTableLoad.Digest` → 房间 `StartGame.ConfigHash`（+ 本局规则），客户端按本地装载字节复算比对——
@@ -88,7 +88,7 @@ namespace RoomServer
         /// （不返回默认值——静默兜底会让"表没生成"变成"跑着默认值"的隐形分叉）。
         /// 只解析三张数值来源表，不要求武器或表现配置。
         /// </summary>
-        public static CombatNumValues Parse(byte[] combatnumBytes, byte[] movementconfigBytes,
+        public static ServerCombatValues Parse(byte[] combatnumBytes, byte[] movementconfigBytes,
             byte[] entityconfigBytes)
         {
             var combat = new cfg.Tbcombatnum(new Luban.ByteBuf(combatnumBytes));
@@ -98,7 +98,7 @@ namespace RoomServer
         }
 
         /// <summary>共用映射产物 → 宿主载体；字段含跨表投影，非单张 combatnum 表行。</summary>
-        private static CombatNumValues ToValues(CombatValues row) => new CombatNumValues
+        private static ServerCombatValues ToValues(CombatValues row) => new ServerCombatValues
         {
             Id = SingleRowId,
             MoveSpeed = row.MoveSpeed,
@@ -166,7 +166,7 @@ namespace RoomServer
     public readonly struct ServerTableLoad
     {
         /// <summary>玩法数值行（`ToValues()` → <see cref="CombatValues"/> 实例）。</summary>
-        public readonly CombatNumValues Combat;
+        public readonly ServerCombatValues Combat;
 
         /// <summary>武器表实例（tb_weapon 行）。</summary>
         public readonly WeaponTable Weapons;
@@ -175,7 +175,7 @@ namespace RoomServer
         /// 经 `HostAssembly.Inputs.GameplayDigestBase` 显式传入宿主/房间）。</summary>
         public readonly uint Digest;
 
-        public ServerTableLoad(CombatNumValues combat, WeaponTable weapons, uint digest)
+        public ServerTableLoad(ServerCombatValues combat, WeaponTable weapons, uint digest)
         {
             Combat = combat;
             Weapons = weapons;
@@ -184,7 +184,7 @@ namespace RoomServer
     }
 
     /// <summary>组合数值载体，包含移动表重力与实体表出生生命的固定对局投影。</summary>
-    public struct CombatNumValues
+    public struct ServerCombatValues
     {
         public int Id;
         public float MoveSpeed;

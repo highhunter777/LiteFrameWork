@@ -56,7 +56,7 @@ namespace LiteClient
         public RollbackSim Sim => _sim;
 
         /// <summary>判定用地图（两端单源：同一份 `Map/tbmap.bytes` 经共享投影 `MapTableProjection` 产出
-        /// ——服务端 `MapNumbers`／客户端 `IMapProvider` 同代码同数据；表现消费者读它——
+        /// ——服务端 `ServerMapLoader`／客户端 `IMapProvider` 同代码同数据；表现消费者读它——
         /// 瞄准激光的障碍射线等 View 侧判定共享同一份，不另建第二事实源）。</summary>
         public SimMapData Map => _map;
 
