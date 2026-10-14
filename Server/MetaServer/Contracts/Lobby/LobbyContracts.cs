@@ -130,6 +130,20 @@ namespace MetaServer.Contracts.Lobby
     }
 
     /// <summary>
+    /// 创建房间命令（客户端 → Lobby，房主开局批）：客户端**不发明房号**——服务端生成
+    /// 保证唯一的新号并按它签发进房票据（响应同 <see cref="JoinTicketResponse"/> 形状）。
+    /// JSON 形状（camelCase）：<c>{"requestId":"...","buildHash":"..."}</c>。
+    /// </summary>
+    public sealed class CreateRoomCommand
+    {
+        /// <summary>请求幂等/追踪标识（1..128 UTF-8 字节；进日志与 Trace，不进 Metrics 标签）。</summary>
+        public string RequestId { get; set; }
+
+        /// <summary>调用方声明的构建哈希（可空；语义同 <see cref="JoinTicketCommand.BuildHash"/>——版本准入前置）。</summary>
+        public string BuildHash { get; set; }
+    }
+
+    /// <summary>
     /// Join Ticket 签发响应（S→C 载荷）。票据本身对客户端**不透明**（只透传给房间端 Join）。
     /// JSON 形状（camelCase）：
     /// <c>{"instanceId":"...","address":"host:port","roomId":"...","ticket":"...","expiresAtMs":123}</c>。

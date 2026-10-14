@@ -1,3 +1,4 @@
+using System;
 using MetaServer.Contracts.Auth;
 using MetaServer.Contracts.Lobby;
 using MetaServer.Modules.Auth;
@@ -78,29 +79,36 @@ namespace MetaServer
                 }
 
                 JoinTicketIssueUseCase.Result result = useCase.Issue(claims.AccountId, command);
-                switch (result)
+                return TicketIssueResult(result, () =>
+                    context.RequestServices.GetRequiredService<Ops>().CountTicketIssued());
+            });
+
+            // 创建房间（房主开局批）：服务端出唯一新号并按它签发进房票据——客户端不发明房号
+            // （响应形状 = join-ticket 同款；房间实体随首入座者物化，开房者=房主）。
+            app.MapPost("/lobby/create-room", async (HttpContext context) =>
+            {
+                CreateRoomUseCase useCase = context.RequestServices.GetService<CreateRoomUseCase>();
+                AccessTokenService tokens = context.RequestServices.GetService<AccessTokenService>();
+                if (useCase == null || tokens == null) return Disabled();
+
+                string token = InstanceKeyAuth.ReadBearer(context);
+                AccessTokenFormat.Rejection rejection = tokens.Validate(token, out AccessTokenFormat.Claims claims);
+                if (rejection != AccessTokenFormat.Rejection.None)
                 {
-                    case JoinTicketIssueUseCase.Result.Accepted accepted:
-                        context.RequestServices.GetRequiredService<Ops>().CountTicketIssued();
-                        return Results.Json(new JoinTicketResponse
-                        {
-                            InstanceId = accepted.InstanceId,
-                            Address = accepted.Address,
-                            RoomId = accepted.RoomId,
-                            Ticket = accepted.Ticket,
-                            ExpiresAtMs = accepted.ExpiresAtMs,
-                        });
-                    case JoinTicketIssueUseCase.Result.Rejected rejected:
-                        // 版本不符 409（换客户端构建/等新实例）区别于其它拒绝 400
-                        return MetaResults.Error(
-                            rejected.ErrorCode == LobbyErrorCodes.VersionMismatch
-                                ? StatusCodes.Status409Conflict
-                                : StatusCodes.Status400BadRequest,
-                            rejected.ErrorCode, rejected.MessageKey);
-                    default:
-                        return MetaResults.Error(StatusCodes.Status503ServiceUnavailable,
-                            LobbyErrorCodes.NoCapacity, LobbyErrorCodes.MessageKeyUnavailable);
+                    return MetaResults.Error(StatusCodes.Status401Unauthorized,
+                        AuthErrorCodes.Unauthorized, AuthErrorCodes.MessageKeyUnauthorized, rejection.ToString());
                 }
+
+                CreateRoomCommand command = await MetaResults.TryReadJsonAsync<CreateRoomCommand>(context);
+                if (command == null)
+                {
+                    return MetaResults.InvalidRequest(
+                        LobbyErrorCodes.InvalidRequest, LobbyErrorCodes.MessageKeyInvalidRequest);
+                }
+
+                JoinTicketIssueUseCase.Result result = useCase.Create(claims.AccountId, command);
+                return TicketIssueResult(result, () =>
+                    context.RequestServices.GetRequiredService<Ops>().CountRoomCreated());
             });
 
             app.MapGet("/lobby/rooms", (HttpContext context) =>
@@ -134,6 +142,38 @@ namespace MetaServer
 
                 return Results.Json(new LobbyRoomsResponse { Rooms = registry.ProjectRooms() });
             });
+        }
+
+        /// <summary>
+        /// 签发类端点的结果映射（join-ticket / create-room 共用——两处同为"按号签发"语义，映射必须
+        /// 一致，单源防漂移）：Accepted → 票据响应（先触发调用方计数）；Rejected → 版本不符 409、
+        /// 其余 400；无容量 → 503。<paramref name="onAccepted"/> 给调用方各自的计数（签发 / 出号）。
+        /// </summary>
+        private static IResult TicketIssueResult(JoinTicketIssueUseCase.Result result, Action onAccepted)
+        {
+            switch (result)
+            {
+                case JoinTicketIssueUseCase.Result.Accepted accepted:
+                    onAccepted();
+                    return Results.Json(new JoinTicketResponse
+                    {
+                        InstanceId = accepted.InstanceId,
+                        Address = accepted.Address,
+                        RoomId = accepted.RoomId,
+                        Ticket = accepted.Ticket,
+                        ExpiresAtMs = accepted.ExpiresAtMs,
+                    });
+                case JoinTicketIssueUseCase.Result.Rejected rejected:
+                    // 版本不符 409（换客户端构建/等新实例）区别于其它拒绝 400
+                    return MetaResults.Error(
+                        rejected.ErrorCode == LobbyErrorCodes.VersionMismatch
+                            ? StatusCodes.Status409Conflict
+                            : StatusCodes.Status400BadRequest,
+                        rejected.ErrorCode, rejected.MessageKey);
+                default:
+                    return MetaResults.Error(StatusCodes.Status503ServiceUnavailable,
+                        LobbyErrorCodes.NoCapacity, LobbyErrorCodes.MessageKeyUnavailable);
+            }
         }
 
         /// <summary>功能未配置（服务缺席）——稳定 503，不回退假数据（§10）。</summary>

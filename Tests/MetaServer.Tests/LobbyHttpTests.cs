@@ -92,6 +92,12 @@ namespace MetaServer.Tests
                 + (buildHash == null ? "" : ",\"buildHash\":\"" + buildHash + "\"") + "}";
         }
 
+        private static string CreateRoomBody(string requestId = "req-1", string buildHash = BuildHash)
+        {
+            return "{\"requestId\":\"" + requestId + "\""
+                + (buildHash == null ? "" : ",\"buildHash\":\"" + buildHash + "\"") + "}";
+        }
+
         private static async Task<HttpResponseMessage> RegisterAsync(HttpClient http, string baseAddress,
             string body, string bearer)
         {
@@ -246,6 +252,124 @@ namespace MetaServer.Tests
         }
 
         [Fact]
+        public async Task 创建房间_服务端出号_响应同票据形状_票据可验_计数可见()
+        {
+            await using MetaHostFixture host = await StartLobbyHostAsync();
+            using var http = new HttpClient();
+            string key = Convert.ToBase64String(InstanceKey);
+
+            Assert.Equal(HttpStatusCode.OK,
+                (await RegisterAsync(http, host.BaseAddress, RegisterBody(address: "10.0.0.5:7777"), key)).StatusCode);
+
+            string token = host.Services.GetRequiredService<AccessTokenService>().Issue("acc-9", out _);
+
+            HttpResponseMessage response = await http.SendAsync(Authorized(HttpMethod.Post,
+                host.BaseAddress + "/lobby/create-room", token, CreateRoomBody()));
+
+            Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+            string json = await response.Content.ReadAsStringAsync();
+            Assert.Contains("\"instanceId\":\"r1\"", json);
+            Assert.Contains("\"address\":\"10.0.0.5:7777\"", json);
+
+            // 出号 = 服务端生成的新号（R- 前缀可辨）——响应形状与 join-ticket 同款
+            using var doc = System.Text.Json.JsonDocument.Parse(json);
+            string roomId = doc.RootElement.GetProperty("roomId").GetString();
+            Assert.StartsWith("R-", roomId);
+            string ticket = doc.RootElement.GetProperty("ticket").GetString();
+            var validator = new HmacJoinTicketValidator(new[] { new JoinTicketKey(Kid, TicketKey) });
+            long nowMs = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
+            JoinPrincipal principal = validator.Validate(ticket, new JoinContext(roomId, BuildHash, Audience, nowMs));
+            Assert.True(principal.IsValid, "生成号票据经房间端真实验签器（闭环）");
+            Assert.Equal("acc-9", principal.AccountId);
+
+            Assert.True(host.Ops.RoomsCreated >= 1);
+            string metrics = await http.GetStringAsync(host.BaseAddress + "/metrics");
+            Assert.Contains("meta_room_create_total", metrics);
+        }
+
+        [Fact]
+        public async Task 创建房间_令牌缺失或不可验_401()
+        {
+            await using MetaHostFixture host = await StartLobbyHostAsync();
+            using var http = new HttpClient();
+
+            HttpResponseMessage missing = await http.PostAsync(host.BaseAddress + "/lobby/create-room",
+                Json(CreateRoomBody()));
+            Assert.Equal(HttpStatusCode.Unauthorized, missing.StatusCode);
+            string missingJson = await missing.Content.ReadAsStringAsync();
+            Assert.Contains("auth.unauthorized", missingJson);
+            Assert.Contains("Missing", missingJson);            // 拒绝分类进 args（非敏感）
+
+            HttpResponseMessage garbage = await http.SendAsync(Authorized(HttpMethod.Post,
+                host.BaseAddress + "/lobby/create-room", "not-a-token", CreateRoomBody()));
+            Assert.Equal(HttpStatusCode.Unauthorized, garbage.StatusCode);
+
+            // 篡改游客令牌（尾段翻一位）→ 签名不符
+            string valid = host.Services.GetRequiredService<AccessTokenService>().Issue("acc-1", out _);
+            char[] chars = valid.ToCharArray();
+            chars[chars.Length - 1] = chars[chars.Length - 1] == 'A' ? 'B' : 'A';
+            HttpResponseMessage tampered = await http.SendAsync(Authorized(HttpMethod.Post,
+                host.BaseAddress + "/lobby/create-room", new string(chars), CreateRoomBody()));
+            Assert.Equal(HttpStatusCode.Unauthorized, tampered.StatusCode);
+        }
+
+        [Fact]
+        public async Task 创建房间_请求标识缺失_400_稳定码()
+        {
+            await using MetaHostFixture host = await StartLobbyHostAsync();
+            using var http = new HttpClient();
+            string token = host.Services.GetRequiredService<AccessTokenService>().Issue("acc-1", out _);
+
+            // requestId 缺失 → 用例早闸拒绝（不作为出号/签发输入）——端点映射 400 稳定码
+            HttpResponseMessage response = await http.SendAsync(Authorized(HttpMethod.Post,
+                host.BaseAddress + "/lobby/create-room", token, "{\"buildHash\":\"" + BuildHash + "\"}"));
+            Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+            Assert.Contains(LobbyErrorCodes.InvalidRequest, await response.Content.ReadAsStringAsync());
+        }
+
+        [Fact]
+        public async Task 创建房间_版本不符_409_稳定码()
+        {
+            await using MetaHostFixture host = await StartLobbyHostAsync();
+            using var http = new HttpClient();
+            string key = Convert.ToBase64String(InstanceKey);
+            await RegisterAsync(http, host.BaseAddress, RegisterBody(), key);
+            string token = host.Services.GetRequiredService<AccessTokenService>().Issue("acc-7", out _);
+
+            HttpResponseMessage response = await http.SendAsync(Authorized(HttpMethod.Post,
+                host.BaseAddress + "/lobby/create-room", token, CreateRoomBody(buildHash: "hash-y")));
+            Assert.Equal(HttpStatusCode.Conflict, response.StatusCode);
+            Assert.Contains(LobbyErrorCodes.VersionMismatch, await response.Content.ReadAsStringAsync());
+        }
+
+        [Fact]
+        public async Task 创建房间_无实例_满员_排空_均为503无容量()
+        {
+            await using MetaHostFixture host = await StartLobbyHostAsync();
+            using var http = new HttpClient();
+            string key = Convert.ToBase64String(InstanceKey);
+            string token = host.Services.GetRequiredService<AccessTokenService>().Issue("acc-7", out _);
+
+            async Task<string> CreateRoom(string requestId)
+            {
+                HttpResponseMessage response = await http.SendAsync(Authorized(HttpMethod.Post,
+                    host.BaseAddress + "/lobby/create-room", token, CreateRoomBody(requestId: requestId)));
+                Assert.Equal(HttpStatusCode.ServiceUnavailable, response.StatusCode);
+                return await response.Content.ReadAsStringAsync();
+            }
+
+            Assert.Contains(LobbyErrorCodes.NoCapacity, await CreateRoom("req-1"));  // 无任何实例（出号后签发无位）
+
+            await RegisterAsync(http, host.BaseAddress,
+                RegisterBody("full", maxPlayers: 1, playerCount: 1), key);
+            Assert.Contains(LobbyErrorCodes.NoCapacity, await CreateRoom("req-2"));  // 唯一实例满员
+
+            await RegisterAsync(http, host.BaseAddress, RegisterBody("full", maxPlayers: 64), key);
+            await RegisterAsync(http, host.BaseAddress, RegisterBody("full", draining: true), key);
+            Assert.Contains(LobbyErrorCodes.NoCapacity, await CreateRoom("req-3"));  // 排空实例不再分配
+        }
+
+        [Fact]
         public async Task 签票_版本不符_409_稳定码()
         {
             await using MetaHostFixture host = await StartLobbyHostAsync();
@@ -325,6 +449,11 @@ namespace MetaServer.Tests
                 Json(JoinTicketBody()));
             Assert.Equal(HttpStatusCode.ServiceUnavailable, issue.StatusCode);
             Assert.Contains(LobbyErrorCodes.Disabled, await issue.Content.ReadAsStringAsync());
+
+            HttpResponseMessage create = await http.PostAsync(host.BaseAddress + "/lobby/create-room",
+                Json(CreateRoomBody()));
+            Assert.Equal(HttpStatusCode.ServiceUnavailable, create.StatusCode);
+            Assert.Contains(LobbyErrorCodes.Disabled, await create.Content.ReadAsStringAsync());
 
             HttpResponseMessage rooms = await http.GetAsync(host.BaseAddress + "/lobby/rooms");
             Assert.Equal(HttpStatusCode.ServiceUnavailable, rooms.StatusCode);

@@ -30,6 +30,8 @@ namespace MetaServer
 
         private long _ticketsIssued;
 
+        private long _roomsCreated;
+
         private long _matchResultsStored;
 
         private long _matchResultsDuplicates;
@@ -59,6 +61,9 @@ namespace MetaServer
         /// <summary>Join Ticket 签发计数（§11.2 <c>ticket_issue_total</c>；并发安全）。</summary>
         public void CountTicketIssued() => Interlocked.Increment(ref _ticketsIssued);
 
+        /// <summary>创建房间出号计数（房主开局批；并发安全）。</summary>
+        public void CountRoomCreated() => Interlocked.Increment(ref _roomsCreated);
+
         /// <summary>对局结果首次落库计数（并发安全）。</summary>
         public void CountMatchResultStore() => Interlocked.Increment(ref _matchResultsStored);
 
@@ -76,6 +81,9 @@ namespace MetaServer
 
         /// <summary>已签发 Join Ticket 总数（读面）。</summary>
         public long TicketsIssued => Interlocked.Read(ref _ticketsIssued);
+
+        /// <summary>创建房间出号总数（读面）。</summary>
+        public long RoomsCreated => Interlocked.Read(ref _roomsCreated);
 
         /// <summary>对局结果首次落库总数（读面）。</summary>
         public long MatchResultsStored => Interlocked.Read(ref _matchResultsStored);
@@ -99,6 +107,8 @@ namespace MetaServer
                 .Append("meta_lobby_instance_register_total ").Append(LobbyInstanceRegisters).Append('\n')
                 .Append("# TYPE meta_ticket_issue_total counter\n")
                 .Append("meta_ticket_issue_total ").Append(TicketsIssued).Append('\n')
+                .Append("# TYPE meta_room_create_total counter\n")
+                .Append("meta_room_create_total ").Append(RoomsCreated).Append('\n')
                 .Append("# TYPE meta_match_result_store_total counter\n")
                 .Append("meta_match_result_store_total ").Append(MatchResultsStored).Append('\n')
                 .Append("# TYPE meta_match_result_duplicate_total counter\n")

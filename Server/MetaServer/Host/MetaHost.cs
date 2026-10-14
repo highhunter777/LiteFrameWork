@@ -145,6 +145,10 @@ namespace MetaServer
                         meta.LobbyTicketTtlSeconds * 1000L,
                         () => DateTimeOffset.UtcNow.ToUnixTimeMilliseconds());
                 });
+                builder.Services.AddSingleton(sp => new CreateRoomUseCase(
+                    sp.GetRequiredService<JoinTicketIssueUseCase>(),
+                    sp.GetRequiredService<InstanceRegistry>(),
+                    () => DateTimeOffset.UtcNow.ToUnixTimeMilliseconds()));
             }
 
             // ---- 持久化装配（M0-c 批二）----
