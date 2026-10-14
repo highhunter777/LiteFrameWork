@@ -75,7 +75,8 @@ namespace RoomServer
         /// </summary>
         private readonly RateLimiter _rateLimit;
 
-        private readonly Ops _ops = new Ops();
+        // Ops 的构造移入构造体（批3）：容器装配口注入时采用注入实例，缺省才自建
+        private readonly Ops _ops;
         private readonly Stopwatch _clock = Stopwatch.StartNew();
 
         /// <summary>
@@ -370,6 +371,12 @@ namespace RoomServer
         /// <summary>分层限流器（观测计数与测试断言入口）。</summary>
         public RateLimiter RateLimit => _rateLimit;
 
+        /// <summary>入站准入门（观测/测试断言入口；批3 装配对账面：容器单例 ↔ 宿主持有同一实例）。</summary>
+        public JoinAdmissionGate Admission => _admission;
+
+        /// <summary>重连票据服务（观测/测试断言入口，同上）。</summary>
+        public ReconnectService Reconnects => _reconnects;
+
         /// <summary>
         /// 建宿主。<paramref name="roomServerConfig"/> 给出房间容量上限、动态建房模板与
         /// Worker Pool 默认装配参数；传入 <paramref name="workerPool"/> 可在纯 .NET 用例中显式注入。
@@ -385,6 +392,12 @@ namespace RoomServer
         /// 该形态要求 <paramref name="mailboxRouting"/> = true（路由是 Worker 消费的前提）且
         /// 存在 Worker Pool；<paramref name="drainMailboxesImmediately"/> 必须为 false——
         /// 立即排空 = 宿主同栈执行房间命令，与"执行 owner 是 Worker"直接冲突，装载期显式拒绝。
+        ///
+        /// **协作对象装配口（批3，《服务端宿主装配收敛专项设计》§5）**：<paramref name="ops"/>/
+        /// <paramref name="admission"/>/<paramref name="sessions"/>/<paramref name="reconnects"/>（与既有
+        /// <paramref name="rateLimiter"/> 同款）是容器装配通道——生产经 <see cref="HostAssembly"/> 注册
+        /// 并注入**同一单例**；不传（null）时按本类**单源构造公式**（internal static Create* 族）自建
+        /// ——嵌入式/测试直接 new 的既有契约与行为不变。
         /// </summary>
         public ServerHost(IRoomTransport transport, RoomConfig config = null,
             IJoinTicketValidator ticketValidator = null, string audience = null,
@@ -392,7 +405,9 @@ namespace RoomServer
             RoomWorkerPool workerPool = null, bool mailboxRouting = false,
             bool drainMailboxesImmediately = true, RateLimiter rateLimiter = null,
             bool workerExecution = false, CombatValues? combatValues = null, WeaponTable weapons = null,
-            uint gameplayDigestBase = 0)
+            uint gameplayDigestBase = 0,
+            Ops ops = null, JoinAdmissionGate admission = null, SessionManager sessions = null,
+            ReconnectService reconnects = null)
         {
             _transport = transport ?? throw new ArgumentNullException(nameof(transport));
             _serverConfig = roomServerConfig;
@@ -401,12 +416,16 @@ namespace RoomServer
             _gameplayDigestBase = gameplayDigestBase;
             Config = config ?? RoomConfig.Default();
             _tickets = ticketValidator;
-            _audience = audience ?? _serverConfig?.Audience ?? string.Empty;
+            _audience = ResolveAudience(audience, roomServerConfig);
             _settlementOutbox = settlementOutbox;
-            _rateLimit = rateLimiter ?? new RateLimiter(_serverConfig?.RateLimit ?? RateLimitSettings.Default);
-            // 准入门在限流器就位**之后**构造（它持限流器引用）——顺序不能颠倒。
-            _admission = new JoinAdmissionGate(_tickets, _rateLimit,
-                new TransportRemoteAddress(transport), ServerBuildHash, _audience);
+            // 运行期调参（P2 批二）：缺省 = HostTuning.Default = 迁移前的字面量常量。
+            // 批3 上移到协作件构造之前（会话/重连的缺省构造读它）——此前位于首房间建立后，此前无读者。
+            _tuning = ResolveTuning(roomServerConfig);
+            _ops = ops ?? new Ops();
+            _rateLimit = rateLimiter ?? CreateRateLimiter(roomServerConfig);
+            // 准入门在限流器就位**之后**构造（它持限流器引用）——顺序不能颠倒；
+            // 装配口（批3）：注入时直接采用容器单例，缺省通道经单源构造公式自建。
+            _admission = admission ?? CreateAdmissionGate(_tickets, _rateLimit, transport, audience, roomServerConfig);
             _workerPool = workerPool ?? (_serverConfig != null
                 ? new RoomWorkerPool(_serverConfig.WorkerCount, _serverConfig.MailboxCapacity, OnWorkerFailure)
                 : null);
@@ -440,19 +459,11 @@ namespace RoomServer
             if (config != null) first = AddRoom(config);
             else if (_serverConfig == null) first = AddRoom(RoomConfig.Default());
 
-            // 会话表容量按**全服潜在连接数**算（§9.2 会话容量上限）：
-            // 配了配置 → 房间上限 × 最大房间人数 ×4（按单房间算会让第二个房间的连接被会话上限拒掉）；
-            // 未配 → 首房间 ×4。
-            int sessionCapacity = _serverConfig != null
-                ? 4 * _serverConfig.MaxRooms * _serverConfig.MaxExpectedPlayers
-                : 4 * (first != null ? first.Runtime.ExpectedPlayers : 2);
-            // 运行期调参（P2 批二）：缺省 = HostTuning.Default = 迁移前的字面量常量
-            _tuning = _serverConfig?.HostTuning ?? HostTuning.Default;
-            _sessions = new SessionManager(sessionCapacity,
-                disconnectedTtlMs: _tuning.ReconnectTicketTtlMs,
-                unseatedIdleTtlMs: _tuning.SessionUnseatedIdleTtlMs);
+            // 会话/重连缺省构造：公式单源（ComputeSessionCapacity/Create* 族，批3 前置）——
+            // 容器工厂与宿主缺省通道两处调用同一方法，防双源漂移。
+            _sessions = sessions ?? CreateSessionManager(roomServerConfig, first);
             // 重连票据：TTL 与会话的"断线保留"同源（重连窗口内不清，窗口外必清）
-            _reconnects = new ReconnectService(_tuning.ReconnectCapacity, ttlMs: _tuning.ReconnectTicketTtlMs);
+            _reconnects = reconnects ?? CreateReconnectService(roomServerConfig);
 
             _transport.OnConnected += OnTransportConnected;
             _transport.OnData += OnTransportData;
@@ -471,6 +482,61 @@ namespace RoomServer
                 try { (_settlementOutbox as IDisposable)?.Dispose(); } catch { }
                 throw;
             }
+        }
+
+        // ---- 协作对象单源构造公式（批3，《服务端宿主装配收敛专项设计》§5）----
+        //
+        // 宿主缺省通道（直接 new、可选口不传）与 HostAssembly 容器工厂共用同一组公式——
+        // "工厂建的必须与宿主自建的等价"不靠注释约定，而是同一方法（修改指南 §1.2 单源红线）。
+
+        private static HostTuning ResolveTuning(RoomServerConfig serverConfig) =>
+            serverConfig?.HostTuning ?? HostTuning.Default;
+
+        private static string ResolveAudience(string audience, RoomServerConfig serverConfig) =>
+            audience ?? serverConfig?.Audience ?? string.Empty;
+
+        /// <summary>
+        /// 会话表容量按**全服潜在连接数**算（§9.2 会话容量上限）：
+        /// 配了配置 → 房间上限 × 最大房间人数 ×4（按单房间算会让第二个房间的连接被会话上限拒掉）；
+        /// 未配 → 首房间 ×4。
+        /// **单一静态计算点**（批3 前置）：容器工厂与宿主缺省通道两处调用，防双源漂移。
+        /// </summary>
+        private static int ComputeSessionCapacity(RoomServerConfig serverConfig, RoomInstance firstRoom)
+        {
+            return serverConfig != null
+                ? 4 * serverConfig.MaxRooms * serverConfig.MaxExpectedPlayers
+                : 4 * (firstRoom != null ? firstRoom.Runtime.ExpectedPlayers : 2);
+        }
+
+        /// <summary>缺省限流器：配置 <c>rate_limit</c> 分区，缺则 <see cref="RateLimitSettings.Default"/>。</summary>
+        internal static RateLimiter CreateRateLimiter(RoomServerConfig serverConfig) =>
+            new RateLimiter(serverConfig?.RateLimit ?? RateLimitSettings.Default);
+
+        /// <summary>缺省会话表：容量 = <see cref="ComputeSessionCapacity"/>；断线保留/静默 TTL 走调参。</summary>
+        internal static SessionManager CreateSessionManager(RoomServerConfig serverConfig, RoomInstance firstRoom)
+        {
+            HostTuning tuning = ResolveTuning(serverConfig);
+            return new SessionManager(ComputeSessionCapacity(serverConfig, firstRoom),
+                disconnectedTtlMs: tuning.ReconnectTicketTtlMs,
+                unseatedIdleTtlMs: tuning.SessionUnseatedIdleTtlMs);
+        }
+
+        /// <summary>缺省重连票据服务：容量与 TTL 走调参（重连窗口与会话"断线保留"同源）。</summary>
+        internal static ReconnectService CreateReconnectService(RoomServerConfig serverConfig)
+        {
+            HostTuning tuning = ResolveTuning(serverConfig);
+            return new ReconnectService(tuning.ReconnectCapacity, ttlMs: tuning.ReconnectTicketTtlMs);
+        }
+
+        /// <summary>
+        /// 缺省入站准入门。远端地址适配（<see cref="TransportRemoteAddress"/>）在本方法内建——
+        /// 它是装配期适配件，不进容器、不落运行期状态。
+        /// </summary>
+        internal static JoinAdmissionGate CreateAdmissionGate(IJoinTicketValidator tickets,
+            RateLimiter rateLimit, IRoomTransport transport, string audience, RoomServerConfig serverConfig)
+        {
+            return new JoinAdmissionGate(tickets, rateLimit, new TransportRemoteAddress(transport),
+                ServerBuildHash, ResolveAudience(audience, serverConfig));
         }
 
         public void Dispose()

@@ -14,7 +14,10 @@ namespace RoomServer
     /// - 运行期零解析——对象图在启动段一次性解析，60Hz 循环与 Worker 热路径不得触容器；
     /// - 解析序=创建序（Program 按 outbox → transport → host 解析）：容器按创建序**逆序**释放，
     ///   与历史 using 声明序（host→transport→outbox）等价；释放序有排空手验基线，不得漂移；
-    /// - per-room 对象（RoomInstance/Runtime/Pipeline）是运行期数据，不进容器。
+    /// - per-room 对象（RoomInstance/Runtime/Pipeline）是运行期数据，不进容器；
+    /// - 批3：宿主协作对象（Ops/RateLimiter/SessionManager/ReconnectService/JoinAdmissionGate）
+    ///   经容器注册、宿主工厂解析注入**同一单例**（生产路径宿主不自建第二份）；缺省自建公式
+    ///   单源在 ServerHost.Create* 静态族——嵌入式/测试直接 new 的缺省通道与工厂共用同一公式。
     /// </summary>
     public static class HostAssembly
     {
@@ -98,8 +101,27 @@ namespace RoomServer
                 return options == null ? (IRoomTransport)kcp : new SecureEnvelopeRoomTransport(kcp, options);
             });
 
+            // ---- 批3 直迁件（《服务端宿主装配收敛专项设计》§5 批3）：宿主协作对象入容器 ----
+            //
+            // 五件均无 IDisposable 面——释放拓扑不涉（容器只多跟踪不可释放单例）；构造公式单源在
+            // ServerHost.Create* 静态族（与宿主缺省通道同一方法，防双源漂移）；配置/验签器/传输一律
+            // 经容器解析；TransportRemoteAddress 适配在工厂调用内建（见 CreateAdmissionGate）。
+            // 会话容量：生产装配恒有配置 → 首房间支线不参与（公式取房间上限 × 最大房间人数 ×4）。
+            services.AddSingleton(_ => new Ops());
+            services.AddSingleton(sp => ServerHost.CreateRateLimiter(sp.GetRequiredService<RoomServerConfig>()));
+            services.AddSingleton(sp => ServerHost.CreateSessionManager(
+                sp.GetRequiredService<RoomServerConfig>(), firstRoom: null));
+            services.AddSingleton(sp => ServerHost.CreateReconnectService(sp.GetRequiredService<RoomServerConfig>()));
+            services.AddSingleton(sp => ServerHost.CreateAdmissionGate(
+                sp.GetService<IJoinTicketValidator>(),
+                sp.GetRequiredService<RateLimiter>(),
+                sp.GetRequiredService<IRoomTransport>(),
+                inputs.Audience,
+                config));
+
             // 生产形态（§8.2）：房间命令与快照广播在 hash 归属的 Worker 上执行，宿主只做
             // Transport IO、准入与回传应用；嵌入式/历史用例保持默认的宿主 owner 直驱形态（不经本装配）。
+            // 批3：五件协作对象经容器解析注入同一单例——宿主工厂内不得自建第二份。
             string audience = inputs.Audience;
             services.AddSingleton(sp => new ServerHost(
                 sp.GetRequiredService<IRoomTransport>(),
@@ -108,6 +130,11 @@ namespace RoomServer
                 audience,
                 config,
                 sp.GetRequiredService<ISettlementOutbox>(),
+                ops: sp.GetRequiredService<Ops>(),
+                rateLimiter: sp.GetRequiredService<RateLimiter>(),
+                admission: sp.GetRequiredService<JoinAdmissionGate>(),
+                sessions: sp.GetRequiredService<SessionManager>(),
+                reconnects: sp.GetRequiredService<ReconnectService>(),
                 mailboxRouting: true,
                 drainMailboxesImmediately: false,
                 workerExecution: true,

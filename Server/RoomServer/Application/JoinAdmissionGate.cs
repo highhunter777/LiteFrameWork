@@ -31,8 +31,13 @@ namespace RoomServer.Application
     ///
     /// **无状态**：判据全部来自构造注入的口径 + 每次调用显式传入的请求事实；无缓存、无计数器。
     /// 拒绝分类计数归 <see cref="Ops"/>（宿主持有），本类只产出分类枚举。
+    ///
+    /// **公共面（批3，《服务端宿主装配收敛专项设计》）**：与四件姊妹协作对象（Ops/RateLimiter/
+    /// SessionManager/ReconnectService，均 public）对齐——宿主公共构造的装配端口；嵌套
+    /// <see cref="Decision"/> 与注入口 <see cref="IRoomRemoteAddress"/> 随本类公共化
+    /// （端口类型进公共签名的结构性要求，非"为测试强制 public"）。
     /// </summary>
-    internal sealed class JoinAdmissionGate
+    public sealed class JoinAdmissionGate
     {
         private readonly IJoinTicketValidator _tickets;
         private readonly RateLimiter _rateLimit;
@@ -73,7 +78,7 @@ namespace RoomServer.Application
         /// 拒绝时 <see cref="Stage"/>/<see cref="Code"/>/<see cref="Reason"/> 构成诊断三段，
         /// 与客户端 <c>RoomClient</c> 的进房记录同形同键（<c>DiagTrace.JoinKey</c> 单源构造）。
         /// </summary>
-        internal readonly struct Decision
+        public readonly struct Decision
         {
             /// <summary>是否准予进房。</summary>
             public bool Admitted { get; }
@@ -176,8 +181,9 @@ namespace RoomServer.Application
         }
     }
 
-    /// <summary>远端地址探测窄口（宿主适配 Transport；准入只依赖"能不能拿到地址"这一件事）。</summary>
-    internal interface IRoomRemoteAddress
+    /// <summary>远端地址探测窄口（宿主适配 Transport；准入只依赖"能不能拿到地址"这一件事）。
+    /// 批3 随 <see cref="JoinAdmissionGate"/> 公共化——构造注入端口进公共签名。</summary>
+    public interface IRoomRemoteAddress
     {
         /// <summary>取连接的远端地址；探测不到返回 null（调用方按"限不了看不见的地址"处理）。</summary>
         string GetRemoteAddress(int connectionId);
