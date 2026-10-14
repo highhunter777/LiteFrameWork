@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using Cysharp.Threading.Tasks;
 using LiteFramework;
 using LiteGame.UI;
 using UnityEngine;
@@ -62,6 +63,8 @@ return {
     ShowToast = function(_, text) c('showToast', { text = text }) end,
     ShowBubble = function(_, name, text, duration) c('showBubble', { name = name, text = text, duration = duration or %FxBubbleDuration% }) end,
     ShowFlyText = function(_, name, text) c('showFlyText', { name = name, text = text }) end,
+    ShowConfirm = function(_, title, message, okText, cancelText, fn) c('showConfirm',
+        { title = title, message = message, okText = okText, cancelText = cancelText, fn = fn }) end,
     Pulse = function(_, name, strength, duration) c('pulse', { name = name, strength = strength or %FxPulseStrength%, duration = duration or %FxPulseDuration% }) end,
     Flash = function(_, name, duration) c('flash', { name = name, duration = duration or %FxFlashDuration% }) end,
     Slide = function(_, name, ox, oy, duration) c('slide', { name = name, ox = ox or 0, oy = oy or 0, duration = duration or %FxSlideDuration% }) end,
@@ -99,12 +102,15 @@ return {
         private readonly object[] _selfArgs3 = new object[3];   // self + form + data（OnInit）
         private UIBindIndex _index;
         private LuaTable _apiTable;
+        private readonly Func<string, string, string, string, UniTask<bool>> _confirm;   // 确认缝（FeedbackService→DialogService；null=测试/工具装配）
         private bool _released;
 
-        public LuaBehaviourAdapter(LuaEnv env, LuaTable module)
+        public LuaBehaviourAdapter(LuaEnv env, LuaTable module,
+            Func<string, string, string, string, UniTask<bool>> confirm = null)
         {
             _env = env ?? throw new ArgumentNullException(nameof(env));
             _module = module ?? throw new ArgumentNullException(nameof(module));
+            _confirm = confirm;
             _instance = CreateInstance(_module);
             _onInit = GetFn("OnInit");
             _onShow = GetFn("OnShow");
@@ -233,6 +239,7 @@ return {
         /// setProgress{name,value} / setProgressRange{name,cur,max} / setHp{name,cur,max} /
         /// startCountdown{name,seconds} / stopCountdown{name} / showToast{text} /
         /// showBubble{name,text,duration} / showFlyText{name,text} /
+        /// showConfirm{title,message,okText,cancelText,fn(ok)} /
         /// pulse{name,strength,duration} / flash{name,duration} / slide{name,ox,oy,duration} /
         /// setSlider{name,value} / getSlider{name}→number / onSliderChanged{name,fn(value)} /
         /// setToggle{name,on} / getToggle{name}→boolean / onToggleChanged{name,fn(on)} /
@@ -281,6 +288,7 @@ return {
                 case "showToast": _index.ShowToast(payload.Get<string, string>("text")); break;
                 case "showBubble": _index.ShowBubble(payload.Get<string, string>("name"), payload.Get<string, string>("text"), payload.Get<string, float>("duration")); break;
                 case "showFlyText": _index.ShowFlyText(payload.Get<string, string>("name"), payload.Get<string, string>("text")); break;
+                case "showConfirm": ShowConfirmAsync(payload); break;
                 // ---- 动效口（《动效设计方案》附 A.3）----
                 case "pulse":
                     _index.Pulse(payload.Get<string, string>("name"),
@@ -332,6 +340,36 @@ return {
 #endif
             }
             return null;
+        }
+
+        /// <summary>确认弹窗（payload：<c>showConfirm{title,message,okText,cancelText,fn}</c>）：经装配注入的
+        /// 确认缝（生产＝FeedbackService.ConfirmAsync → DialogService）等结果并回 Lua <c>fn(ok)</c>。
+        /// 无缝（测试/工具装配）/取消/异常一律回调 false（页面链不悬挂）——fire-and-forget 与 Toast 同口径。</summary>
+        private async UniTaskVoid ShowConfirmAsync(LuaTable payload)
+        {
+            LuaFunction fn = payload.Get<LuaFunction>("fn");
+            try
+            {
+                if (_confirm == null)
+                {
+                    Log.Warning("ShowConfirm 无确认服务（测试/工具装配）——回调 false", "UI");
+                    fn?.Call(false);
+                    return;
+                }
+                bool ok = await _confirm(
+                    Text(payload, "title"), Text(payload, "message"),
+                    Text(payload, "okText"), Text(payload, "cancelText"));
+                fn?.Call(ok);
+            }
+            catch (OperationCanceledException)
+            {
+                fn?.Call(false);
+            }
+            catch (Exception ex)
+            {
+                Log.Error($"ShowConfirm 失败:{ex.Message}", "UI");
+                fn?.Call(false);
+            }
         }
 
         /// <summary>取字符串载荷位（缺 = 空串）。</summary>

@@ -70,6 +70,7 @@ namespace LiteGame
         private CharacterLocomotionDriver _locomotion;   // 移动动画驱动（视图的消费者——先于视图拆除）
         private BattleCrosshairDriver _crosshair;       // 对局准心（场景 /Battle HUD）
         private BattleHudDriver _hud;                   // HUD 面板（血条/弹药——技能栏静态占位）
+        private UnityEngine.Events.UnityAction _menuClick;   // 菜单钮监听（装配期加、拆除期摘——存实例供移除）
         private BattleLaserDriver _laser;               // 瞄准激光（准心的世界空间兄弟件）
         private GameObject _laserBeam;                  // 激光束实例（挂 _viewRoot，随离场拆）
         private AssetLease<GameObject> _laserLease;     // 激光束租约（登记 _viewScope）
@@ -306,10 +307,14 @@ namespace LiteGame
         /// **相机不由本件创建**：装配根建好 <see cref="ICameraService"/>（内含场景配置好的虚拟相机）并
         /// 跨对局复用，本件只把端口交给 SimView，并在开局 <see cref="ICameraService.Reset"/> 一次
         /// （镜头重新落位，不从上局位置飞过来）。
+        ///
+        /// <paramref name="openBattleMenu"/>＝对局菜单钮回调（HUD 菜单钮点击 → 流程层开设置页——退场链；
+        /// null / 旧 prefab 无此钮 = 静默降级，HUD 其余面照常）。
         /// </summary>
-        internal void Attach(BattleContext context)
+        internal void Attach(BattleContext context, Action openBattleMenu = null)
         {
             _context = context ?? throw new ArgumentNullException(nameof(context));
+            if (openBattleMenu != null) _menuClick = new UnityEngine.Events.UnityAction(openBattleMenu);
 
             _view = new SimView(_context.Sim.State, _viewRoot,
                 factory: InstantiateView,
@@ -423,6 +428,9 @@ namespace LiteGame
             _laserLease = null;
             if (_hudInstance != null)             // HUD 根件（ScreenSpace Canvas——随离场销毁）
             {
+                if (_hudView != null && _hudView.SettingsButton != null && _menuClick != null)
+                    _hudView.SettingsButton.onClick.RemoveListener(_menuClick);   // 菜单钮监听随拆（存实例移除）
+                _menuClick = null;
                 if (Application.isPlaying) UnityEngine.Object.Destroy(_hudInstance);
                 else UnityEngine.Object.DestroyImmediate(_hudInstance);
                 _hudInstance = null;
@@ -521,6 +529,8 @@ namespace LiteGame
             _hud = new BattleHudDriver(_context.Sim.State, () => _view != null ? _view.LocalEntityId : 0L,
                 _hudView.PanelGroup, _hudView.HpBar, _hudView.AmmoText,
                 _hudView.ReloadLabel);                              // 缺标签件=驱动内静默降级（不显示换弹态）
+            if (_hudView.SettingsButton != null && _menuClick != null)
+                _hudView.SettingsButton.onClick.AddListener(_menuClick);   // 对局菜单钮 → 流程层开设置页（退场链）
             Log.Info("hud-attached", "Battle");
         }
 

@@ -59,6 +59,10 @@ ui.SetDropdown = function(_, name, index) calls[#calls + 1] = 'Dropdown:' .. nam
 ui.OnDropdownChanged = function(_, name, fn) controls['dropdown:' .. name] = fn end
 ui.SetList = function(_, name, rows) lists[name] = rows; calls[#calls + 1] = 'List:' .. name .. '=' .. tostring(#rows) end
 ui.OnListClick = function(_, name, fn) lists['click:' .. name] = fn end
+ui.ShowConfirm = function(_, title, message, okText, cancelText, fn)
+    calls[#calls + 1] = 'Confirm:' .. tostring(title) .. '/' .. tostring(okText) .. '/' .. tostring(cancelText)
+    confirm_fn = fn
+end
 
 -- Bridge.ui 面（点调用——与 C# 委托签名一致，无 self 位）
 local bridgeUi = {}
@@ -340,6 +344,68 @@ page:OnShow(nil)");
                 string calls = Calls(env);
                 StringAssert.Contains("Visible:Txt_Account=false", calls);
                 StringAssert.Contains("Visible:Txt_ServerAddress=false", calls);
+            }
+        }
+
+        // ---- HUD 批C 退场链：设置页退出对局（battleExit 门控 + 确认弹窗 + 先回大厅再离局）----
+
+        [Test]
+        public void 设置页_对局中入口_退场钮与确认退出链()
+        {
+            using (var env = NewEnv())
+            {
+                env.DoString(@"
+page = NewPage('UI.Page_Settings')
+page:OnShow({ battleExit = true })");
+                string init = Calls(env);
+                StringAssert.Contains("Visible:Button_Exit=true", init, "对局中入口（battleExit 数据）才显退场钮");
+                StringAssert.Contains("Key:Txt_Exit=UI.Settings.Exit", init, "退场钮文案键");
+
+                env.DoString(@"buttons['Button_Exit']()");
+                string clicked = Calls(env);
+                StringAssert.Contains("Interact:Button_Exit=false", clicked, "弹窗期间按钮锁点（防重入）");
+                StringAssert.Contains("Confirm:[UI.Settings.ExitConfirmTitle]/[Common.Confirm]/[Common.Cancel]", clicked, "确认弹窗经受控面（文案/按钮键齐）");
+
+                // 防重入：弹窗未落定前再点不重复发确认
+                env.DoString(@"buttons['Button_Exit']()");
+                Assert.AreEqual(1, Regex.Matches(Calls(env), "Confirm:").Count, "在途再点不重复弹确认");
+
+                env.DoString("confirm_fn(true)");
+                string confirmed = Calls(env);
+                StringAssert.Contains("Replace:UI.Page_Lobby", confirmed, "确认 → 先回大厅（导航先行——Page_Room._Leave 同款先例）");
+                StringAssert.Contains("LeaveMatch", confirmed, "确认 → 再请流程收尾（离房/离局同一窄接口）");
+                StringAssert.Contains("Interact:Button_Exit=true", confirmed, "回调后按钮复位");
+            }
+        }
+
+        [Test]
+        public void 设置页_确认取消_不离局()
+        {
+            using (var env = NewEnv())
+            {
+                env.DoString(@"
+page = NewPage('UI.Page_Settings')
+page:OnShow({ battleExit = true })
+buttons['Button_Exit']()
+confirm_fn(false)");
+                string calls = Calls(env);
+                StringAssert.DoesNotContain("Replace:UI.Page_Lobby", calls, "取消不得离局");
+                StringAssert.DoesNotContain("LeaveMatch", calls, "取消不得请流程收尾");
+                StringAssert.Contains("Interact:Button_Exit=true", calls, "取消后按钮复位（可再发起）");
+            }
+        }
+
+        [Test]
+        public void 设置页_非对局入口_不显退场钮()
+        {
+            using (var env = NewEnv())
+            {
+                env.DoString(@"
+page = NewPage('UI.Page_Settings')
+page:OnShow(nil)");
+                string calls = Calls(env);
+                StringAssert.Contains("Visible:Button_Exit=false", calls, "大厅/登录的设置入口（无数据）不显退场钮");
+                StringAssert.DoesNotContain("Key:Txt_Exit=", calls, "隐藏态不设文案（不产生多余键调用）");
             }
         }
 

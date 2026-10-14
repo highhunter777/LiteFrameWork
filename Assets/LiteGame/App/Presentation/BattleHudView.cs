@@ -1,4 +1,5 @@
 using UnityEngine;
+using UnityEngine.UI;
 using TMPro;
 using LiteGame.UI;
 
@@ -26,6 +27,9 @@ namespace LiteGame
         [SerializeField] private TextMeshProUGUI _ammoText;
         [SerializeField] private GameObject _reloadLabel;
 
+        [Header("菜单（对局退场链——Cot_Settings 角组，子 Canvas 单独开射线）")]
+        [SerializeField] private Button _settingsButton;
+
         public RectTransform CrosshairRoot => _crosshairRoot;
         public GameObject HipForm => _hipForm;
         public GameObject AdsForm => _adsForm;
@@ -33,5 +37,6 @@ namespace LiteGame
         public HpBar HpBar => _hpBar;
         public TextMeshProUGUI AmmoText => _ammoText;
         public GameObject ReloadLabel => _reloadLabel;
+        public Button SettingsButton => _settingsButton;
     }
 }

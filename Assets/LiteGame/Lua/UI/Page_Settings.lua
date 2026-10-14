@@ -4,11 +4,17 @@
 -- Dropdown_Quality → SetQuality（三档低/中/高，选项文本随语言）；Dropdown_Language → Bridge.text.SetLocale
 -- （语言自名不翻译；切换后重设画质选项文本——下拉项文本是引擎组件，不随 LText 自动刷新）。
 -- 落盘：SettingService 脏标记协议——关闭/OnHide 时 Bridge.settings.Save()（"设置界面关闭"纪律点）。
+--
+-- 退出对局（HUD 批C 退场链）：**对局中入口**（HUD 菜单钮 / 空栈 ESC——PageFlow.OpenBattleSettings）
+-- 的导航数据带 battleExit=true，本页据此显示 Button_Exit；登录/大厅/结算的设置入口不带数据＝不显。
+-- 点击 → self.ui:ShowConfirm 确认弹窗（DialogService 承载）→ 确认后**先回大厅再 LeaveMatch**
+-- （Page_Room._Leave 同款先例——先导航再请流程收尾，主动离场路径不依赖 OnMatchEnded 页面切换）。
 local class = require("Core.class")
 
 local M = class("Page_Settings")
 
 local PAGE_SETTINGS = "UI.Page_Settings"
+local PAGE_LOBBY = "UI.Page_Lobby"
 
 local LOCALES = { "zh-CN", "en" }
 local LOCALE_KEYS = { "UI.Settings.Language.Zh", "UI.Settings.Language.En" }
@@ -23,6 +29,8 @@ end
 
 function M:ctor()
     self._viewName = "Page_Settings"
+    self._exitable = false
+    self._leaving = false
 end
 
 function M:OnShow(data)
@@ -33,6 +41,15 @@ function M:OnShow(data)
     self.ui:SetTextKey("Txt_Quality", "UI.Settings.Quality")
     self.ui:SetTextKey("Txt_Language", "UI.Settings.Language")
     self.ui:SetTextKeyArgs("Txt_Version", "Common.Version", Bridge.meta.Version())
+
+    -- 退出对局（对局中打开才有 battleExit 数据——门控见文件头）
+    self._exitable = (type(data) == "table") and (data.battleExit == true)
+    self._leaving = false
+    self.ui:SetVisible("Button_Exit", self._exitable)
+    if self._exitable then
+        self.ui:SetTextKey("Txt_Exit", "UI.Settings.Exit")
+        self.ui:OnButton("Button_Exit", function() self:_ConfirmExit() end)
+    end
 
     local account = Bridge.meta.AccountId()
     if account ~= nil and account ~= "" then
@@ -87,6 +104,30 @@ end
 function M:_Close()
     Bridge.settings.Save()
     Bridge.ui.Close(PAGE_SETTINGS)
+end
+
+-- 确认退出对局（防重入：弹窗期间再点不再发；确认/取消都复位按钮可点）
+function M:_ConfirmExit()
+    if self._leaving then return end
+    self._leaving = true
+    self.ui:SetInteractable("Button_Exit", false)
+    self.ui:ShowConfirm(
+        Bridge.text.Get("UI.Settings.ExitConfirmTitle"),
+        Bridge.text.Get("UI.Settings.ExitConfirmMessage"),
+        Bridge.text.Get("Common.Confirm"),
+        Bridge.text.Get("Common.Cancel"),
+        function(ok)
+            self._leaving = false
+            self.ui:SetInteractable("Button_Exit", true)
+            if ok then self:_ExitBattle() end
+        end)
+end
+
+-- 先回大厅（导航），再请流程收尾（LeaveMatch＝Request(Main)，在途 Battle 阶段被取消、finally 释放——
+-- 既有"离房/离局同一窄接口"；先导航使主动离场不依赖 OnMatchEnded 的页面切换）
+function M:_ExitBattle()
+    Bridge.ui.Replace(PAGE_LOBBY)
+    Bridge.meta.LeaveMatch()
 end
 
 function M:OnHide()

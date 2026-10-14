@@ -33,7 +33,7 @@ namespace LiteGame
 
             var localeProvider = BuildLocaleProvider(config);
             _uiService = new UIService(new UIFormCatalog(config),
-                logicResolver: info => new LuaBehaviourAdapter(lua.Env, uiRegistry.Get(info.LuaPath)),
+                logicResolver: info => new LuaBehaviourAdapter(lua.Env, uiRegistry.Get(info.LuaPath), ConfirmOf(context)),
                 loadPrefab: (location, token) => LoadPrefabLeaseAsync(content, location, token),
                 // 转场策略**必须显式传**（《客户端总设计》§5.1 逻辑边界）：UIService 默认为零动效
                 // InstantTransition（通用层不认识 DOTween）；产品转场是**装配决策**，
@@ -53,6 +53,13 @@ namespace LiteGame
             _redDotRegistry?.Clear();
             return _uiService?.ShutdownAsync() ?? UniTask.CompletedTask;   // 全关+缓存销毁+租约归零+Root 销毁
         }
+
+        /// <summary>页面确认缝（<c>self.ui:ShowConfirm</c> 的服务端）：懒解析 FeedbackService——本模块装配
+        /// 早于 Container 段（该服务在后段建），resolver 执行（首次开页）时已在容器；装配缺口在首次调用
+        /// 即显性失败。确认链＝FeedbackService.ConfirmAsync → DialogService（首个生产消费者）。</summary>
+        private static Func<string, string, string, string, UniTask<bool>> ConfirmOf(ClientContext context)
+            => (title, message, okText, cancelText)
+                => context.Require<FeedbackService>().ConfirmAsync(title, message, okText, cancelText);
 
         /// <summary>语言服务工厂（懒建 + 单实例——SetLocale 订阅者要求实例稳定）：
         /// tbltext 行经 <see cref="LTextCatalog"/> 投射为目录；缺 key 开发期显 <c>[key]</c>（发布期回退占位，

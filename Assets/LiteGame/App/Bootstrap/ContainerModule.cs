@@ -115,6 +115,17 @@ namespace LiteGame
             context.Require<IInputService>().RegisterBlocker(
                 new IntentGate.BlockerKey("ui.modal", "模态 UI 打开——游戏意图被拦截"), () => ui.IsModalOpen);
 
+            // 模态登记（生产装配——与测试同口径，见 DialogServiceEditModeTests/FeedbackServiceEditModeTests）：
+            // 设置页＝对局中的暂停菜单（打开即拦游戏输入——上面的 `ui.modal` 拦截源经 IsModalOpen 生效）；
+            // 错误/确认弹窗＝模态弹窗（开着时其下不可命中、Back 先关最顶）。Loading/Toast 走射线阻断，不是模态。
+            // 表单 id 不在此写第二份：设置页经表驱动反查（ResolveUIFormId），System 层弹窗 id 单源在
+            // FeedbackService 构造默认（审计 [低]「表单 id 单处」口径——装配面经只读口取值）。
+            int settingsFormId = Bridge.Data.ResolveUIFormId(LuaKeys.UI.Page_Settings);
+            if (settingsFormId >= 0) ui.RegisterModal(settingsFormId);
+            else Log.Error($"模态登记失败：tbuiform 未登记 '{LuaKeys.UI.Page_Settings}'", "UI");
+            ui.RegisterModal(feedback.ErrorFormId);
+            ui.RegisterModal(feedback.ConfirmFormId);
+
             var pageFlow = new PageFlow(nav, ui, lua);    // 五页页面流（批C-④）：入口/开局关房/结算三处流程×页面接缝
             var appSettings = new ProductSettings(context.Require<GameSettings>(),
                 context.Require<SettingService>(), context.Require<AudioService>());

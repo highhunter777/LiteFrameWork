@@ -5,6 +5,8 @@ return
 ["Common.Leave"] = {key="Common.Leave",zh="离开",en="Leave",},
 ["Common.Version"] = {key="Common.Version",zh="版本 {0}",en="Version {0}",},
 ["Common.BackLobby"] = {key="Common.BackLobby",zh="返回大厅",en="Back to Lobby",},
+["Common.Confirm"] = {key="Common.Confirm",zh="确认",en="Confirm",},
+["Common.Cancel"] = {key="Common.Cancel",zh="取消",en="Cancel",},
 ["UI.Login.Title"] = {key="UI.Login.Title",zh="联机对战测试",en="Online Playtest",},
 ["UI.Login.Connecting"] = {key="UI.Login.Connecting",zh="连接中…",en="Connecting…",},
 ["UI.Login.Failed"] = {key="UI.Login.Failed",zh="登录失败，请重试",en="Sign-in failed, please retry",},
@@ -41,6 +43,9 @@ return
 ["UI.Settings.Language"] = {key="UI.Settings.Language",zh="语言",en="Language",},
 ["UI.Settings.Account"] = {key="UI.Settings.Account",zh="账号 {0}",en="Account {0}",},
 ["UI.Settings.Server"] = {key="UI.Settings.Server",zh="服务器 {0}",en="Server {0}",},
+["UI.Settings.Exit"] = {key="UI.Settings.Exit",zh="退出对局",en="Leave Match",},
+["UI.Settings.ExitConfirmTitle"] = {key="UI.Settings.ExitConfirmTitle",zh="退出对局",en="Leave Match",},
+["UI.Settings.ExitConfirmMessage"] = {key="UI.Settings.ExitConfirmMessage",zh="确定要退出当前对局吗？退出后将返回大厅。",en="Leave the current match and return to the lobby?",},
 ["UI.Settings.Language.Zh"] = {key="UI.Settings.Language.Zh",zh="简体中文",en="简体中文",},
 ["UI.Settings.Language.En"] = {key="UI.Settings.Language.En",zh="English",en="English",},
 }

@@ -35,6 +35,7 @@ namespace LiteGame.UI
         private readonly DialogService _dialogs;
         private readonly UINavigationController _nav;
         private readonly int _errorFormId;
+        private readonly int _confirmFormId;
         private readonly int _loadingFormId;
         private readonly int _toastFormId;
 
@@ -60,11 +61,13 @@ namespace LiteGame.UI
         /// <param name="errorFormId">错误弹窗表单（UIDialog 结构的表行——专用 ErrorPage prefab 由制作线替换）。</param>
         /// <param name="loadingFormId">加载遮罩表单（LoadingMask 结构）。</param>
         /// <param name="toastFormId">Toast 承载表单（Toast 结构）。</param>
+        /// <param name="confirmFormId">确认弹窗表单（UIDialog 结构、页面层级——206 与 System 层错误弹窗
+        /// 分层：确认/错误互不占组）。</param>
         /// <param name="open">反馈面打开口（null = 用 <see cref="UIService"/> 真实现）。</param>
         /// <param name="close">反馈面关闭口（null = 用 <see cref="UIService"/> 真实现）。</param>
         /// <param name="isOpen">打开态查询口（null = 用 <see cref="UIService"/> 真实现）。</param>
         public FeedbackService(UIService ui, DialogService dialogs, UINavigationController nav,
-            int errorFormId = 201, int loadingFormId = 202, int toastFormId = 203,
+            int errorFormId = 201, int confirmFormId = 206, int loadingFormId = 202, int toastFormId = 203,
             Func<int, UniTask<UIForm>> open = null,
             Func<int, UniTask> close = null,
             Func<int, bool> isOpen = null)
@@ -73,6 +76,7 @@ namespace LiteGame.UI
             _dialogs = dialogs ?? throw new ArgumentNullException(nameof(dialogs));
             _nav = nav ?? throw new ArgumentNullException(nameof(nav));
             _errorFormId = errorFormId;
+            _confirmFormId = confirmFormId;
             _loadingFormId = loadingFormId;
             _toastFormId = toastFormId;
             _open = open ?? (id => _nav.GoAsync(id));
@@ -184,6 +188,12 @@ namespace LiteGame.UI
 
         // ---- 错误/重试 ----
 
+        /// <summary>错误弹窗表单 id（装配面读——模态登记等消费单源取值，不另写数字）。</summary>
+        public int ErrorFormId => _errorFormId;
+
+        /// <summary>确认弹窗表单 id（同上——单源取值口）。</summary>
+        public int ConfirmFormId => _confirmFormId;
+
         /// <summary>
         /// 错误弹窗（统一失败反馈）：可重试 = Ok("重试")/Cancel("退出") 双按钮；否则单按钮确认。
         /// 返回 true = 用户选择重试。同 <paramref name="mergeKey"/> 的重复错误弹窗由
@@ -197,6 +207,20 @@ namespace LiteGame.UI
                 okText: retryable ? "重试" : "确认",
                 cancelText: retryable ? "退出" : null,
                 group: "error", mergeKey: mergeKey);
+            return _dialogs.ShowAsync(request, ct).ContinueWith(r => r == DialogResult.Ok);
+        }
+
+        /// <summary>
+        /// 确认弹窗（双按钮：Ok＝确认 / Cancel＝取消；被外部关闭＝false）：经 <see cref="DialogService"/>
+        /// 落地（互斥组 "confirm"、同 <paramref name="mergeKey"/> 在途合并——重复请求共享同一结果任务）。
+        /// 按钮文案可传 null＝保持 prefab 原文案。**异步结果**：true＝用户确认。
+        /// </summary>
+        public UniTask<bool> ConfirmAsync(string title, string message,
+            string okText = null, string cancelText = null, string mergeKey = null, CancellationToken ct = default)
+        {
+            var request = new DialogService.Request(
+                _confirmFormId, title, message, okText: okText, cancelText: cancelText,
+                group: "confirm", mergeKey: mergeKey);
             return _dialogs.ShowAsync(request, ct).ContinueWith(r => r == DialogResult.Ok);
         }
 

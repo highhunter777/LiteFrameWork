@@ -1,6 +1,6 @@
 # 战斗HUD层级设计
 
-> 状态：**已实施（2026-10-11 批 A 落地；同日晚血条正式化／解包／模板化三批更新）**——`Hud_Battle.prefab` 制作/接线/收集/场景退役全部完成；批 B 装配拆分已由并行 BattleViewRig 批完成；**血条模板化**（血条改为控件模板 `Tmp_HpBar` 的 PrefabInstance，驱动走 `HpBar` 组件 API——见 §2.1）同日落位
+> 状态：**已实施（2026-10-11 批 A 落地；同日晚血条正式化／解包／模板化三批更新）**——`Hud_Battle.prefab` 制作/接线/收集/场景退役全部完成；批 B 装配拆分已由并行 BattleViewRig 批完成；**血条模板化**（血条改为控件模板 `Tmp_HpBar` 的 PrefabInstance，驱动走 `HpBar` 组件 API——见 §2.1）同日落位；**对局退场链**（HUD 批C 首段，2026-10-14）增设 `Cot_Settings` 菜单角组（单独开射线——§0 唯一事件例外）＋ `Button_Settings` 设置入口
 > 范围：对局战斗 HUD 单件——`Hud_Battle.prefab`（准心 + 血条/弹药/技能栏面板）
 > 上位：[战斗HUD专项设计](战斗HUD专项设计.md)（资产/通路/装配裁决）；[UI制作规范](UI制作规范.md) §9（命名）；[UI框架总设计](UI框架总设计.md)（HUD 分级驱动目标项）
 > 命名依据：§9 角色词表——本批新增 `Hud_` 根前缀（对局 HUD 根，表现域，不走 tbuiform/导航；已登记命名词表 §1.1）；容器/文本/图像沿用 `Cot_`/`Txt_`/`Image_`/`Icon_`
@@ -9,7 +9,7 @@
 ## 0. 总则
 
 - **命名**：根 `Hud_Battle`（= prefab 文件名 `Hud_Battle.prefab`）；层级尽量浅（三层封顶）。
-- **事件隔离**：根 Canvas **无 GraphicRaycaster**＋CanvasGroup `blocksRaycasts/interactable=false`——整个 HUD 不进事件系统（准心永不拦输入）；每个 Graphic 另设 `raycastTarget=false` 双保险。
+- **事件隔离**：根 Canvas **无 GraphicRaycaster**＋CanvasGroup `blocksRaycasts/interactable=false`——整个 HUD 不进事件系统（准心永不拦输入）；每个 Graphic 另设 `raycastTarget=false` 双保险。**唯一例外＝菜单角组**（对局退场链，2026-10-14）：`Cot_Settings` 持子 Canvas＋`GraphicRaycaster`＋CanvasGroup（`ignoreParentGroups=true`）——"**单独开射线**"：菜单钮可点、其余 HUD 仍零射线（结构守卫钉住：全树恰 1 个 `raycastTarget=true`＝菜单钮、`GraphicRaycaster` 仅角组一处）。
 - **画布**：ScreenSpaceOverlay、`sortingOrder=0`（模态 UI 排其上）、CanvasScaler 1920×1080（match 0.5）。
 - **显隐**：`Cot_Panel` 的 CanvasGroup 由驱动按"本地未对齐整组隐藏"开关（比 SetActive 省重建——制作规范 §4）；根 CanvasGroup 不做业务显隐。
 - **角组骨架**：三个角落组（Vitals/Weapon/Skills）均为**零尺寸锚点组**（anchor=pivot=锚角，`sizeDelta=0`）——子件各自显式锚/枢轴并以组点为原点偏移（缺省锚=居中于组点=半边出屏）。
@@ -51,13 +51,16 @@ Hud_Battle                          Canvas(Overlay, order 0) + CanvasScaler(1920
    │  ├─ Icon_Weapon                ICON_SM_Wep_Rifle_01_Military 96×96
    │  ├─ Txt_Ammo                   TMP 54 右对齐 "30"（图标左侧 16、底缘上抬 8）      ◄View
    │  └─ Txt_Reload                 TMP 20 琥珀 "RELOADING"（弹药上方 96）——默认非激活 ◄View
-   └─ Cot_Skills                    锚(0.5,0)+偏移(0,24)——底中组点
+   ├─ Cot_Skills                    锚(0.5,0)+偏移(0,24)——底中组点
       ├─ Cot_Skill1                 96×96，x=-112（槽下半入"地面"）
       ├─ Cot_Skill2                 96×96，x=0
       ├─ Cot_Skill3                 96×96，x=+112
       │   （每槽同构）├─ Image_Underlay  SPR_…_Circle_Medium_01_Underlay
       │               ├─ Image_Frame     SPR_…_Circle_Medium_01_Clean
       │               └─ Txt_Hotkey      TMP 22 左上(4,4) "1"/"2"/"3"
+   └─ Cot_Settings                  锚(1,1)+偏移(-32,-32)——右上角组点（**单独开射线**：子 Canvas+GraphicRaycaster+CanvasGroup ignoreParentGroups=true——§0 唯一事件例外）
+      └─ Button_Settings            170×44 设置入口（Box_White_01 半透底+Button，全 HUD 唯一 raycastTarget=true）◄View
+         └─ Txt_Settings            TMP 20 居中 "SETTINGS"（固定英文——RELOADING 同款口径）
 ```
 
 尺寸/偏移常量一比一取自构建器（`HipIconSize=64/AdsIconSize=38/Edge=32/WeaponIconSize=96/AmmoTextSize=54/ReloadTextSize=20/SkillSlotSize=96/SkillGap=112/HotkeyTextSize=22`）——prefab 制作后这些常量随构建器退役，**prefab 即唯一事实源**。血条（原构建器常量 `HpBarW=420/HpBarH=56/HpFillInset=14/HpTextSize=26`）演进史：**血条正式化批**（2026-10-11）改 Synty 件承载视觉 → **解包收口**（同日晚）展平为普通对象 → **血条模板化批**（同日晚）**回落为控件模板 `Tmp_HpBar` 的 PrefabInstance**（模板＝血条单一形态来源，见下 §2.1；`HpBar_Player` 只保留位置/尺寸 override）。
@@ -72,8 +75,9 @@ Hud_Battle                          Canvas(Overlay, order 0) + CanvasScaler(1920
 | `HpBar_Player`（模板实例根） | `HpBar HpBar` | BattleHudDriver | 经控件 API `Set(hp, max)`——前条瞬时 + 后条延迟滑落（双条血格） |
 | `Txt_Ammo` | `TMP_Text AmmoText` | BattleHudDriver | 弹匣数（值变化才写） |
 | `Txt_Reload` | `GameObject ReloadLabel` | BattleHudDriver | 按 `WeaponSlotState.Reloading` 开关 |
+| `Button_Settings` | `Button SettingsButton` | BattleViewRig（装配期接 onClick → `PageFlow.OpenBattleSettings`，拆装期摘） | 对局设置入口（退场链）——点击开设置页（对局中导航数据带 `battleExit`，ESC 空栈同源） |
 
-暴露共 7 项=驱动的全部读写面；血条走 `LiteGame.UI.HpBar` 组件 API（单点引用，避免嵌套深层字段 override）；`Cot_Vitals/Cot_Weapon/Cot_Skills` 及装饰件不暴露。技能槽无数据面（占位），数据面落地时随批 C 扩展（届时评估技能 CD 走 UI 框架 U2 控件）。
+暴露共 8 项=驱动的全部读写面；血条走 `LiteGame.UI.HpBar` 组件 API（单点引用，避免嵌套深层字段 override）；`Cot_Vitals/Cot_Weapon/Cot_Skills` 及装饰件不暴露（`Cot_Settings` 组件不暴露——按钮即交互面）。技能槽无数据面（占位），数据面落地时随批 C 扩展（届时评估技能 CD 走 UI 框架 U2 控件；技能数据面已按裁决移出批 C——待技能系统）。
 
 ## 2.1 血条形态来源：控件模板 `Tmp_HpBar`
 

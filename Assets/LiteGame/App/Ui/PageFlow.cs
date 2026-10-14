@@ -9,11 +9,13 @@ namespace LiteGame
 {
     /// <summary>
     /// 五页页面流（批C-④，《上云测试页面层级设计》§1 页面关系）：页面寻址
-    /// （lua_path → tbuiform id，单源 <see cref="Bridge.Data.ResolveUIFormId"/>）与**流程侧三处页面切换**——
-    /// 首进 Main 开登录页；对局开局（StartGame）关房间页；对局结束开结算页（失败/离场回大厅）。
+    /// （lua_path → tbuiform id，单源 <see cref="Bridge.Data.ResolveUIFormId"/>）与**流程侧页面切换**——
+    /// 首进 Main 开登录页；对局开局（StartGame）关房间页；对局结束开结算页（失败/离场回大厅）；
+    /// 对局中打开设置页（HUD 菜单钮 / 空栈 Back 的对局菜单语义——导航数据 <c>battleExit</c> 供
+    /// 设置页门控"退出对局"按钮）。
     ///
     /// **职责边界**：页面→页面 的跳转（登录成功→大厅、进房→房间、返回大厅、设置叠加）由 Lua 经
-    /// <c>Bridge.ui</c> 驱动（同一导航单写者）；本件只接流程不认识 UI、UI 不认识流程的那三处接缝——
+    /// <c>Bridge.ui</c> 驱动（同一导航单写者）；本件只接流程不认识 UI、UI 不认识流程的那几处接缝——
     /// 流程层（ProcedureMain/ProcedureBattle）持有本件，UI 层不知道它存在。
     /// </summary>
     public sealed class PageFlow
@@ -23,6 +25,7 @@ namespace LiteGame
         private readonly Func<LuaEnv> _env;                 // 结算页数据表构造（LuaUIData）——懒取（env 随 DevReload 重建）
 
         private bool _entryOpened;
+        private Func<UniTask<bool>> _savedPlatformBack;      // 对局菜单 Back 策略启用前的原装订（还原用）
 
         public PageFlow(UINavigationController nav, UIService ui, LuaComponent lua)
         {
@@ -51,6 +54,8 @@ namespace LiteGame
         /// </summary>
         public void OnMatchEnded(bool completed, LiteNet.Proto.MatchEnded result, int localPlayerId)
         {
+            // 对局菜单随对局结束收口：菜单开着时自然结束/离场——结算页/大厅须直接可见，不被设置页压着
+            CloseIfOpen(LuaKeys.UI.Page_Settings);
             if (completed && result != null)
             {
                 Go(LuaKeys.UI.Page_Result, new LuaUIData(ResultData(result, localPlayerId)));
@@ -58,6 +63,44 @@ namespace LiteGame
             }
 
             if (IsOpen(LuaKeys.UI.Page_Room)) Replace(LuaKeys.UI.Page_Lobby, null);
+        }
+
+        /// <summary>对局中打开设置页（HUD 菜单钮与空栈 Back 共用入口）：导航数据带 <c>battleExit</c>——
+        /// 设置页按它门控"退出对局"按钮（登录/大厅/结算的设置入口不带数据，不显退场钮）。</summary>
+        public void OpenBattleSettings()
+        {
+            LuaTable table = _env().NewTable();
+            table.Set("battleExit", true);
+            Go(LuaKeys.UI.Page_Settings, new LuaUIData(table));
+        }
+
+        /// <summary>启用对局菜单 Back 策略（对局视图建立后启用、离场收尾停用）：平台返回先走原 Back 链
+        /// （Loading 拦截/最顶弹窗/设置页照常关闭），空栈（无可返回目标）时打开设置页——对局中
+        /// "ESC＝菜单"语义。替换 <see cref="UIService"/> 的平台返回装订并保存原值；停用时还原
+        /// （若期间被外部改写则不覆盖——只认自己的包装）。</summary>
+        public void EnableBattleMenuBack()
+        {
+            if (_ui.Focus.PlatformBack == BattleBack) return;        // 幂等（重复启用不叠加包装）
+            _savedPlatformBack = _ui.Focus.PlatformBack;
+            _ui.Focus.PlatformBack = BattleBack;
+        }
+
+        /// <summary>停用对局菜单 Back 策略并还原原装订（对局收尾必调——ESC 不得在对局外开设置页）。</summary>
+        public void DisableBattleMenuBack()
+        {
+            if (_ui.Focus.PlatformBack == BattleBack)
+                _ui.Focus.PlatformBack = _savedPlatformBack;
+            _savedPlatformBack = null;
+        }
+
+        /// <summary>对局菜单平台返回：先走原 Back 链，无可返回目标（false / 未装订）才开设置页——
+        /// 两条路径都消费本次返回。</summary>
+        private async UniTask<bool> BattleBack()
+        {
+            Func<UniTask<bool>> original = _savedPlatformBack;
+            if (original != null && await original()) return true;
+            OpenBattleSettings();
+            return true;
         }
 
         /// <summary>本局结果 → 结算页数据表（Lua 侧只认具名键；结束原因取枚举名——页面按值域拼文案键

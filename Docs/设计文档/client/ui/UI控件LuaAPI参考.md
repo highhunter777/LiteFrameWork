@@ -85,6 +85,7 @@ Lua `OnHide` 会解绑全部按钮，复用不重跑 `OnInit`，因此按钮绑�
 | `ShowToast(text)` | 查找 Toast 宿主并追加一条，多条并存、超限最旧淘汰；宿主缺失记日志不抛 |
 | `ShowBubble(name, text, duration)` | duration 缺省 1.5s |
 | `ShowFlyText(name, text)` | 在目标位置显示飘字 |
+| `ShowConfirm(title, message, okText, cancelText, fn)` | 确认弹窗（HUD 批C 退场链首用）：经装配注入的确认缝（生产＝`FeedbackService.ConfirmAsync` → `DialogService`——互斥组/同键合并/有界队列承接）等结果并回 `fn(ok)`；okText/cancelText 空＝保持弹窗原文案；无缝（测试/工具装配）/取消/被外部关闭/异常一律回调 `false`——页面链不悬挂 |
 | `Pulse(name, strength, duration)` | shim 缺省 1.2/0.16s；Graphic 透明度呼吸，完成/中断回原透明度 |
 | `Flash(name, duration)` | shim 缺省 0.3s；Graphic 颜色高亮回落，完成/中断回原色 |
 | `Slide(name, ox, oy, duration)` | offset 缺省 0/0，duration 缺省 0.25s；完成/中断回原位 |
@@ -117,7 +118,7 @@ Lua `OnHide` 会解绑全部按钮，复用不重跑 `OnInit`，因此按钮绑�
 | 模板/能力 | 已有可用入口形态 | 待补足 |
 | --- | --- | --- |
 | StateButton | OnButton、SetInteractable；文本绑定 Label | 统一页面输入锁/焦点，框架自有监听 |
-| Dialog | OnButton、SetText、Bridge.ui 开关 | 已由 `DialogService` 承载：类型化结果、取消、互斥组、有界队列 |
+| Dialog | OnButton、SetText、Bridge.ui 开关、**ShowConfirm（退场链——Lua 确认经 DialogService 承载）** | 已由 `DialogService` 承载：类型化结果、取消、互斥组、有界队列 |
 | Toast/Bubble/FlyText | ShowToast/ShowBubble/ShowFlyText | 多条并存、超限淘汰与复位；Scope 取消、宿主所有权 |
 | ProgressBar/HpBar | SetProgress/SetProgressRange/SetHp | 更新去重、统一时钟、收敛停更 |
 | Countdown | StartCountdown/StopCountdown | 显示秒去重、关闭期取消 |

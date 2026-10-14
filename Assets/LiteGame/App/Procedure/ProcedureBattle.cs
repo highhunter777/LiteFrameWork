@@ -117,7 +117,8 @@ namespace LiteGame
                 await WaitStartGame(battleClient, ct);        // Sim 就绪 = 视图可建（SimView 要读预测态）
                 if (_context.Sim != null)
                 {
-                    _rig.Attach(_context);
+                    _rig.Attach(_context, openBattleMenu: () => _pages?.OpenBattleSettings());
+                    _pages?.EnableBattleMenuBack();           // 对局中"ESC＝菜单"（与 HUD 菜单钮同源）
                     _pages?.CloseRoomIfOpen();               // 开局 → 关房间页（批C-④；对局场景接管画面）
                 }
                 else
@@ -190,9 +191,10 @@ namespace LiteGame
             return cinemachine != null ? cinemachine.EnsureCamera() : true;
         }
 
-        /// <summary>离场收尾：清输入派发状态 → 拆视图域（逆序：消费者 → 视图 → 租约作用域）。</summary>
+        /// <summary>离场收尾：摘对局菜单 Back 策略 → 清输入派发状态 → 拆视图域（逆序：消费者 → 视图 → 租约作用域）。</summary>
         private void DetachView()
         {
+            _pages?.DisableBattleMenuBack();   // 对局菜单 Back 随视图拆除（ESC 恢复原 Back 链——对局外不得开设置页）
             _input?.Reset();   // 离场即清派发状态（设备源与拦截源都是装配根的，不在此摘）
             _rig?.Dispose();
             _rig = null;
