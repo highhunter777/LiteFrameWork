@@ -3,13 +3,14 @@ using System.Threading;
 using Cysharp.Threading.Tasks;
 using LiteFramework;
 using LiteClient;
+using LiteGame.UI;
 
 namespace LiteGame
 {
     /// <summary>
     /// 预载流程：配置加载 → **五步序**——
     /// ① Lua 全量预载 → ② Init env + 执行 main.lua → ③ RegistryFiller 读三件套填充注册表 →
-    /// ④ 报告整批统一判定（有失败即 Fail 阻断）→ ⑤ 放行进 Main。
+    /// ④ 报告整批统一判定（有失败即 Fail 阻断）→ ⑤ 放行（**模态登记已就位**）进 Main。
     /// LuaComponent/RegistryFiller 由装配点构造注入（依赖不从 payload 取）。
     /// </summary>
     public sealed class ProcedurePreload : ProcedureStageBase<ProcedureId, ProcedureArgs>
@@ -19,10 +20,11 @@ namespace LiteGame
         private readonly LuaComponent _lua;
         private readonly RegistryFiller _filler;
         private readonly IEventCenter _events;
+        private readonly UIService _ui;
         private readonly Func<string[]> _listLuaFiles;     // Lua 清单（装配点绑定——静态门面收口于装配点）
 
         public ProcedurePreload(IContentService content, IConfigService config, LuaComponent lua, RegistryFiller filler, IEventCenter events,
-            Func<string[]> listLuaFiles = null, CancellationToken rootToken = default)
+            UIService ui, Func<string[]> listLuaFiles = null, CancellationToken rootToken = default)
             : base(rootToken)
         {
             _content = content ?? throw new ArgumentNullException(nameof(content));
@@ -30,6 +32,7 @@ namespace LiteGame
             _lua = lua ?? throw new ArgumentNullException(nameof(lua));
             _filler = filler ?? throw new ArgumentNullException(nameof(filler));
             _events = events ?? throw new ArgumentNullException(nameof(events));
+            _ui = ui ?? throw new ArgumentNullException(nameof(ui));
             _listLuaFiles = listLuaFiles;
         }
 
@@ -64,6 +67,13 @@ namespace LiteGame
                     m.Request(ProcedureId.Error, new ProcedureArgs(ex));   // 失败原因随 payload 交错误流程
                     return;
                 }
+
+                // ---- 模态登记（配置已装载——表驱动反查单源；装配期查表必抛，见 ContainerModule 注）----
+                // 设置页模态要在**任何打开路径**（登录/大厅/结算/对局菜单；Lua 直开与 PageFlow 两条链）之前全局注册，
+                // 故落在放行闸口而非页面流内部。
+                int settingsFormId = Bridge.Data.ResolveUIFormId(LuaKeys.UI.Page_Settings);
+                if (settingsFormId >= 0) _ui.RegisterModal(settingsFormId);
+                else Log.Error($"模态登记失败：tbuiform 未登记 '{LuaKeys.UI.Page_Settings}'", "UI");
 
                 m.Request(ProcedureId.Main);                     // ⑤ 放行
             }

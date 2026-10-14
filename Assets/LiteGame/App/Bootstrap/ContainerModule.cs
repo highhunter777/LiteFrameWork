@@ -120,11 +120,10 @@ namespace LiteGame
             // 模态登记（生产装配——与测试同口径，见 DialogServiceEditModeTests/FeedbackServiceEditModeTests）：
             // 设置页＝对局中的暂停菜单（打开即拦游戏输入——上面的 `ui.modal` 拦截源经 IsModalOpen 生效）；
             // 错误/确认弹窗＝模态弹窗（开着时其下不可命中、Back 先关最顶）。Loading/Toast 走射线阻断，不是模态。
-            // 表单 id 不在此写第二份：设置页经表驱动反查（ResolveUIFormId），System 层弹窗 id 单源在
-            // FeedbackService 构造默认（审计 [低]「表单 id 单处」口径——装配面经只读口取值）。
-            int settingsFormId = Bridge.Data.ResolveUIFormId(LuaKeys.UI.Page_Settings);
-            if (settingsFormId >= 0) ui.RegisterModal(settingsFormId);
-            else Log.Error($"模态登记失败：tbuiform 未登记 '{LuaKeys.UI.Page_Settings}'", "UI");
+            // **设置页（表单 15）不在此登记**：它须经 tbuiform 表驱动反查（单源，id 不写第二份），而本装配点
+            // 早于 ProcedurePreload 的 `LoadAsync`——此处查表必抛「配置未加载」阻断引导（实伤：SampleTripleChain）。
+            // 登记随 ProcedurePreload 放行闸口（配置装载后）就位；此处只留不依赖表的两个弹窗 id
+            // （单源在 FeedbackService 构造默认——审计 [低]「表单 id 单处」口径）。
             ui.RegisterModal(feedback.ErrorFormId);
             ui.RegisterModal(feedback.ConfirmFormId);
 
@@ -172,7 +171,7 @@ namespace LiteGame
                 (ProcedureId.Patch, new ProcedurePatch(content, context.Require<ActivationTransactionStore>(),
                     context.Require<PatchRunner>(), rootToken, context.Require<AssetsHealthProbe>())),
                 (ProcedureId.Preload, new ProcedurePreload(content, config, lua, filler,
-                    context.Require<EventCenter>(), () => ListLuaAssetPaths(content), rootToken)),
+                    context.Require<EventCenter>(), context.Require<UIService>(), () => ListLuaAssetPaths(content), rootToken)),
                 (ProcedureId.Main, new ProcedureMain(_scenes, rootToken, pageFlow, metaEntry)),
                 (ProcedureId.Match, new ProcedureMatch(context.Require<IAccountSessionFactory>(), rootToken)),
                 (ProcedureId.Battle, new ProcedureBattle(content, context.Require<IInputService>(),
