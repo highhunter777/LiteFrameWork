@@ -7,8 +7,8 @@ namespace LiteNet.Transport
     {
         private const long ReplayWindowBits = 64;
 
-        private readonly AesGcm _sendCipher;
-        private readonly AesGcm _receiveCipher;
+        private readonly IAesGcmCipher _sendCipher;
+        private readonly IAesGcmCipher _receiveCipher;
         private readonly byte[] _sendNoncePrefix;
         private readonly byte[] _receiveNoncePrefix;
         private readonly int _maxPayloadBytes;
@@ -76,13 +76,9 @@ namespace LiteNet.Transport
                     out long sequence, out byte[] header, out byte[] ciphertext, out byte[] tag)) return false;
                 if (!CanAccept(sequence)) return false;
 
-                try
-                {
-                    plaintext = new byte[ciphertext.Length];
-                    _receiveCipher.Decrypt(SecureEnvelopeCrypto.CreateNonce(_receiveNoncePrefix, sequence),
-                        ciphertext, tag, plaintext, header);
-                }
-                catch (CryptographicException)
+                plaintext = new byte[ciphertext.Length];
+                if (!_receiveCipher.TryDecrypt(SecureEnvelopeCrypto.CreateNonce(_receiveNoncePrefix, sequence),
+                    ciphertext, tag, plaintext, header))
                 {
                     plaintext = null;
                     return false;
@@ -146,13 +142,55 @@ namespace LiteNet.Transport
             if (_disposed) throw new ObjectDisposedException(nameof(SecureEnvelopeSession));
         }
 
-        private static AesGcm CreateCipher(byte[] key)
+        /// <summary>
+        /// 建 AEAD 密码器：优先平台 <see cref="AesGcm"/>；运行时不提供平台实现时回退到逐位互通的
+        /// <see cref="ManagedAesGcmCipher"/>（Unity Mono——Editor Play Mode 与 Mono 桌面包——构造
+        /// <c>new AesGcm(key)</c> 即抛 <see cref="PlatformNotSupportedException"/>）。
+        /// 探测在构造期一次（每会话每方向一次），**无常驻可变状态**。
+        /// </summary>
+        private static IAesGcmCipher CreateCipher(byte[] key)
         {
+            try
+            {
+                return new PlatformAesGcmCipher(key);
+            }
+            catch (NotSupportedException)
+            {
+                return new ManagedAesGcmCipher(key, SecureEnvelopeProtocol.TagBytes);
+            }
+        }
+
+        /// <summary>平台 AES-GCM 包装（<see cref="AesGcm"/> 只在有实现的运行时构造成功）。</summary>
+        private sealed class PlatformAesGcmCipher : IAesGcmCipher
+        {
+            private readonly AesGcm _gcm;
+
+            internal PlatformAesGcmCipher(byte[] key)
+            {
 #if NET8_0_OR_GREATER
-            return new AesGcm(key, SecureEnvelopeProtocol.TagBytes);
+                _gcm = new AesGcm(key, SecureEnvelopeProtocol.TagBytes);
 #else
-            return new AesGcm(key);
+                _gcm = new AesGcm(key);
 #endif
+            }
+
+            public void Encrypt(byte[] nonce, byte[] plaintext, byte[] ciphertext, byte[] tag, byte[] associatedData)
+                => _gcm.Encrypt(nonce, plaintext, ciphertext, tag, associatedData);
+
+            public bool TryDecrypt(byte[] nonce, byte[] ciphertext, byte[] tag, byte[] plaintext, byte[] associatedData)
+            {
+                try
+                {
+                    _gcm.Decrypt(nonce, ciphertext, tag, plaintext, associatedData);
+                    return true;
+                }
+                catch (CryptographicException)
+                {
+                    return false;
+                }
+            }
+
+            public void Dispose() => _gcm.Dispose();
         }
     }
 }
