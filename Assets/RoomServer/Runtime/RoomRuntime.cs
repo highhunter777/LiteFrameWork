@@ -167,6 +167,16 @@ namespace RoomServer.Runtime
             return ids.ToArray();
         }
 
+        /// <summary>席位实时面快照（playerId 升序：在座集合 + 在线态——<see cref="SeatPhase.Active"/> 才算在线；
+        /// 未占席位不列）。产出点：进房 / 断线 / 恢复完成（<see cref="SeatsChanged"/>）。</summary>
+        private RoomSeatState[] BuildSeatStates()
+        {
+            var list = new List<RoomSeatState>(NextPlayerId);
+            for (int i = 0; i < NextPlayerId; i++)
+                if (_seats[i] != null) list.Add(new RoomSeatState(i, _seats[i].Phase == SeatPhase.Active));
+            return list.ToArray();
+        }
+
         public long EntityIdOf(int playerId) =>
             playerId >= 0 && playerId < ExpectedPlayers ? _entityIds[playerId] : 0L;
 
@@ -224,6 +234,7 @@ namespace RoomServer.Runtime
             _seats[playerId] = seat;
             _connectionToPlayer[connectionId] = playerId;
             outputs.Add(new SignalOutput(playerId, new PlayerAdmitted(playerId, MemberIds(), seat.IsOwner)));
+            outputs.Add(new SignalOutput(-1, new SeatsChanged(BuildSeatStates())));   // 席位实时面：在座集合变化广播
 
             if (Match.Phase == MatchPhase.WaitingForPlayers && NextPlayerId >= ExpectedPlayers)
                 StartMatch(outputs);                                     // 满员 → Starting → Running
@@ -288,6 +299,8 @@ namespace RoomServer.Runtime
             if (seat.IsOwner)
                 TransferOwner(playerId, outputs);
 
+            outputs.Add(new SignalOutput(-1, new SeatsChanged(BuildSeatStates())));   // 席位实时面：离线态广播
+
             // 全员离场且对局进行中 → 收尾（冻结结果并关闭；Aborted 只留给错误/运维终止）
             if (Match.Phase == MatchPhase.Running && AllSeatsDisconnected())
                 Finish(ShutdownReason.AllPlayersLeft, "all-players-left", outputs);
@@ -337,6 +350,7 @@ namespace RoomServer.Runtime
             if (seat == null || seat.Phase != SeatPhase.Restoring) return;
             seat.Phase = SeatPhase.Active;
             outputs.Add(new SignalOutput(playerId, new SeatRestored(playerId)));
+            outputs.Add(new SignalOutput(-1, new SeatsChanged(BuildSeatStates())));   // 席位实时面：恢复即在线广播
         }
 
         private void ExecuteTick(long nowMs, List<RoomOutput> outputs)

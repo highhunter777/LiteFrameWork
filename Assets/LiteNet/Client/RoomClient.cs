@@ -146,9 +146,18 @@ namespace LiteNet
         /// <summary>房主迁移广播（原房主离席 → 本消息带新房主席位——UI 换"开始对局"按钮归属；
         /// 旧房主重连不夺回——服务器侧确定性裁决，客户端只消费事实）。</summary>
         public event Action<Proto.OwnerChanged> OnOwnerChanged;
+
+        /// <summary>席位实时面广播（全量快照——进房/断线/恢复完成时到达；UI 列表整表重绑。
+        /// 载荷为接收实例，订阅方即取即用；缓存读侧 Clone 防御见 <see cref="Seats"/>）。</summary>
+        public event Action<Proto.RoomSeats> OnRoomSeats;
         private Proto.MatchEnded _matchResult;
         private string _activeMatchId;
         public Proto.MatchEnded MatchResult => _matchResult?.Clone();
+
+        private Proto.RoomSeats _seats;
+        /// <summary>席位实时面最新快照（房间页玩家列表——进房/断线/恢复完成广播全量；未收到前为 null。
+        /// 读侧 Clone 防御——同 <see cref="MatchResult"/> 先例：订阅方不得拿到可变的共享缓存实例）。</summary>
+        public Proto.RoomSeats Seats => _seats?.Clone();
         /// <summary>重连响应（§5.6/§9.3：版本确认 + 权威快照[公共全量+比赛状态+本人私有] + 输入历史）。
         /// 应用原语见 <see cref="Protocol.SnapshotReassembler"/>（镜像 Apply + 输入历史喂 RollbackSim）。
         /// 契约：只有 <see cref="Phase"/> == <see cref="ClientSessionPhase.Restoring"/> 时本响应可应用——
@@ -526,6 +535,10 @@ namespace LiteNet
                     break;
                 case PacketType.Heartbeat:                              // RTT/丢包探针回声（服务器原样回显 client_time）
                     HandleProbeEcho(((Proto.Heartbeat)msg).ClientTime);
+                    break;
+                case PacketType.RoomSeats:                              // 席位实时面：房间页玩家列表全量快照
+                    _seats = ((Proto.RoomSeats)msg).Clone();            // 入缓 Clone（读侧再 Clone——同 MatchResult 防御）
+                    OnRoomSeats?.Invoke((Proto.RoomSeats)msg);
                     break;
             }
         }

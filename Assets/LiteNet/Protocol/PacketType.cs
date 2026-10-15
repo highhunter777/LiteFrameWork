@@ -22,5 +22,7 @@ namespace LiteNet.Protocol
         // 应用层 RTT/丢包观测探针（Unreliable；双向同类型——C→S 发 client_time，S→C 原样回显，见 RoomClient 探针）。
         // 连接保活仍由 kcp2k 内建 Ping/Timeout 承担，本包不参与保活。**不复用历史号 7**（已退役，保号不重用）。
         Heartbeat = 16,
+        // 席位实时面（Reliable；房间页玩家列表——进房/断线/恢复完成时广播全量快照）。
+        RoomSeats = 17,
     }
 }

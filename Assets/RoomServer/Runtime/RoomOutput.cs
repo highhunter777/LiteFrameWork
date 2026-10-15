@@ -187,4 +187,31 @@ namespace RoomServer.Runtime
 
         public OwnerChanged(int playerId) => PlayerId = playerId;
     }
+
+    /// <summary>席位实时面的单条状态（房间页玩家列表：席位号 + 在线态——纯数据；wire 映射与
+    /// 显示名派生归 App 层）。</summary>
+    public readonly struct RoomSeatState
+    {
+        /// <summary>席位号（0 基——playerId）。</summary>
+        public readonly int PlayerId;
+
+        /// <summary>在线态（席位相位 = Active 才算在线；已断线/重连恢复中为 false）。</summary>
+        public readonly bool Connected;
+
+        public RoomSeatState(int playerId, bool connected)
+        {
+            PlayerId = playerId;
+            Connected = connected;
+        }
+    }
+
+    /// <summary>席位名单变化（房间页玩家列表：进房/断线/恢复完成时产——App：RoomSeats 可靠广播全量快照，
+    /// 变化才发、自带收敛）。</summary>
+    public sealed class SeatsChanged : RoomSignal
+    {
+        /// <summary>playerId 升序全量快照（未占席位不列）。</summary>
+        public readonly RoomSeatState[] Seats;
+
+        public SeatsChanged(RoomSeatState[] seats) => Seats = seats;
+    }
 }

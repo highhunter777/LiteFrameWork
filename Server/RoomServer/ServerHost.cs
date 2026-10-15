@@ -1708,6 +1708,10 @@ namespace RoomServer
             return ids;
         }
 
+        /// <summary>席位显示名占位前缀（房间页玩家列表"玩家{k}"；与客户端局内 PlayerIdentity 同口径，
+        /// G3 Profile 接真昵称时两处来源一并更替）。</summary>
+        private const string SeatDisplayNamePrefix = "玩家";
+
         private void ApplySignal(SignalOutput so, Session joinContext)
         {
             switch (so.Signal)
@@ -1773,6 +1777,30 @@ namespace RoomServer
                         if (member == null || member.Disconnected) continue;
                         SendToSession(member, PacketType.OwnerChanged,
                             new Proto.OwnerChanged { PlayerId = oc.PlayerId }, reliable: true);
+                    }
+                    break;
+                }
+                case SeatsChanged sc:                                     // 席位实时面：可靠广播——房间页玩家列表全量快照
+                {
+                    RoomInstance room = _currentRoom ?? (_rooms.Count > 0 ? _rooms[0] : null);
+                    if (room == null) break;
+                    var seats = new Proto.RoomSeats();
+                    for (int i = 0; i < sc.Seats.Length; i++)
+                    {
+                        seats.Seats.Add(new Proto.SeatInfo
+                        {
+                            PlayerId = sc.Seats[i].PlayerId,
+                            // 占位名（与客户端局内 PlayerIdentity.PlaceholderNamePrefix 同口径：玩家{k}，k=席序+1
+                            //——完整房间下席序=实体序；G3 Profile 接真昵称时两处来源一并更替）
+                            DisplayName = SeatDisplayNamePrefix + (sc.Seats[i].PlayerId + 1),
+                            Connected = sc.Seats[i].Connected,
+                        });
+                    }
+                    for (int p = 0; p < room.Seats.Length; p++)
+                    {
+                        Session member = room.Seats[p];
+                        if (member == null || member.Disconnected) continue;
+                        SendToSession(member, PacketType.RoomSeats, seats, reliable: true);
                     }
                     break;
                 }

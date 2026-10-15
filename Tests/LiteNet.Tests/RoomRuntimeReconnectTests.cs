@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.Linq;
 using LiteSim;
 using LiteSim.Tests;
 using RoomServer;
@@ -128,7 +129,7 @@ namespace LiteNet.Tests
             outputs.Clear();
             room.Execute(RoomCommand.RestoreAck(0), outputs);
             Assert.Equal(SeatPhase.Active, room.SeatOf(0).Phase);
-            Assert.Single(outputs);                                    // 恰一次 SeatRestored
+            Assert.Single(outputs.OfType<SignalOutput>().Select(s => s.Signal).OfType<SeatRestored>());   // 恰一次 SeatRestored
 
             outputs.Clear();
             room.Execute(RoomCommand.RestoreAck(0), outputs);          // 重复 ACK 幂等忽略

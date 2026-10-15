@@ -36,8 +36,8 @@ namespace LiteNet.Tests
             var first = Run(room, RoomCommand.Join(101));               // [0]=迁移事件，就位信号在 OfType 里
             var second = Run(room, RoomCommand.Join(202));
 
-            var firstAdmit = (PlayerAdmitted)first.OfType<SignalOutput>().Single().Signal;
-            var secondAdmit = (PlayerAdmitted)second.OfType<SignalOutput>().Single().Signal;
+            var firstAdmit = (PlayerAdmitted)first.OfType<SignalOutput>().Select(s => s.Signal).OfType<PlayerAdmitted>().Single();
+            var secondAdmit = (PlayerAdmitted)second.OfType<SignalOutput>().Select(s => s.Signal).OfType<PlayerAdmitted>().Single();
             Assert.True(firstAdmit.IsOwner);                             // 开房者 = 首入座者
             Assert.False(secondAdmit.IsOwner);
             Assert.Equal(MatchPhase.WaitingForPlayers, Phase(room));     // 未满不开

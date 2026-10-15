@@ -213,6 +213,17 @@ message OwnerChanged {
   int32 player_id = 1;                       // 新房主席位（UI 换"开始对局"按钮归属；旧房主重连不夺回）
 }
 
+// ===== S→C 席位实时面（Reliable；房间页玩家列表——进房/断线/恢复完成时广播全量快照）=====
+
+message SeatInfo {
+  int32 player_id = 1;                       // 席位号（0 基；显示名"玩家{player_id+1}"与局内占位口径一致）
+  string display_name = 2;                   // 显示名（服务端派生占位——G3 Profile 接真昵称时来源单点更替）
+  bool connected = 3;                        // 在线态（Active = true；已断线 / 重连恢复中 = false）
+}
+message RoomSeats {
+  repeated SeatInfo seats = 1;               // playerId 升序全量快照（变化才重发，自带收敛）
+}
+
 // ===== C→S 和解上报（Unreliable；Ops 汇总和解率）=====
 
 message MismatchReport { int32 frame = 1; }

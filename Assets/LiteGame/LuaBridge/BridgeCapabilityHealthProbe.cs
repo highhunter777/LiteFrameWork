@@ -52,9 +52,11 @@ namespace LiteGame
         /// 列表（G6）与 settings 门面——Lua 侧可见面变更，候选清单据此下限比较。
         /// ApiVersion 3（房主开局批）：新增 room 门面（IsOwner/OnOwner/StartMatch——委托形全在
         /// GenConfig 白名单在册，零新增生成形）。
+        /// ApiVersion 4（席位实时面批）：room 门面增 OnMembers（席位名单全量快照行表订阅——进房/断线/
+        /// 恢复完成重发；委托形同为 Action&lt;LuaFunction&gt;，零新增生成形）。
         /// </summary>
         public static BridgeCapabilitySet Default() => new BridgeCapabilitySet(
-            apiVersion: 3,
+            apiVersion: 4,
             capabilities: new[]
             {
                 "bridge.data",      // Bridge.data 门面（配置/数值读取）
