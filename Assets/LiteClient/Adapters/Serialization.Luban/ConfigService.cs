@@ -160,6 +160,26 @@ namespace LiteClient
             {
                 return $"tbanimationprofile: {ex.Message}";
             }
+
+            // 准心调参表（表现域——不进判定面摘要，行完整性仍是配置错误）：每把武器一行 + 值域
+            // （缺行/错值炸 Preload，不在对局内静默丢手感）。static_max_scale 以 1 为基线（<1 会把准心
+            // 缩得比本体小）；burst_cap 须 ≥ 静态上限（连发只张开不收紧）
+            if (candidate.Tbcrosshair == null || candidate.Tbcrosshair.DataList.Count == 0)
+                return "tbcrosshair 空表——表源被改坏或生成物过期";
+            foreach (cfg.weapon weapon in candidate.Tbweapon.DataList)
+            {
+                if (candidate.Tbcrosshair.GetOrDefault(weapon.Id) == null)
+                    return $"tbcrosshair 缺武器 id={weapon.Id} 行——每把武器一行（准心手感完整性闸）";
+            }
+            foreach (cfg.crosshair row in candidate.Tbcrosshair.DataList)
+            {
+                if (row.StaticMaxScale < 1f)
+                    return $"tbcrosshair id={row.Id} static_max_scale 非法：{row.StaticMaxScale}（≥1——1=基线倍率）";
+                if (row.BurstCap < row.StaticMaxScale)
+                    return $"tbcrosshair id={row.Id} burst_cap={row.BurstCap} 低于 static_max_scale={row.StaticMaxScale}（连发上限须不低于静态上限）";
+                if (row.BurstGrowth < 0f || row.Kick < 0f)
+                    return $"tbcrosshair id={row.Id} 负值非法：burst_growth={row.BurstGrowth} kick={row.Kick}";
+            }
             return null;
         }
 

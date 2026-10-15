@@ -47,6 +47,7 @@ namespace LiteGame
         private readonly LiteFramework.IWorldClock _worldClock;   // 世界钟（伤害数字寿命/合并窗）
         private readonly IMatchSessionFactory _matchSessions;
         private readonly PageFlow _pages;            // 五页页面流（批C-④；可空 = 测试装配不接 UI）
+        private readonly CrosshairFeelBook _crosshairFeel;   // 准心手感投影（tbcrosshair；可空 = 测试装配回落 Default）
 
         private BattleViewRig _rig;                  // 视图域（资源租约 / 视图与消费者 / 逆序拆除）
         private BattleContext _context;
@@ -66,7 +67,8 @@ namespace LiteGame
         public ProcedureBattle(IContentService content, IInputService input, ICameraService camera,
             IVFXService vfx = null, CancellationToken rootToken = default, bool requireCamera = false,
             LiteFramework.IWorldClock worldClock = null, IMatchSessionFactory matchSessions = null,
-            AudioService audio = null, CommandCenter commands = null, PageFlow pages = null)
+            AudioService audio = null, CommandCenter commands = null, PageFlow pages = null,
+            CrosshairFeelBook crosshairFeel = null)
             : base(rootToken)
         {
             _content = content ?? throw new ArgumentNullException(nameof(content));
@@ -79,6 +81,7 @@ namespace LiteGame
             _worldClock = worldClock;
             _matchSessions = matchSessions ?? throw new ArgumentNullException(nameof(matchSessions));
             _pages = pages;
+            _crosshairFeel = crosshairFeel;
         }
 
         protected override void RunAsync(IStageHost<ProcedureId, ProcedureArgs> m, in ProcedureArgs req, CancellationToken ct)
@@ -106,7 +109,8 @@ namespace LiteGame
                         + "（相机配置归场景——确认已切到配了 vcam 的玩法场景）");
 
                 // 视图域：自有 BattleView 作用域 + 视图根 + 六个取件（缺角色资源回退程序化灰盒）
-                _rig = new BattleViewRig(_content, _input, _camera, _account, _vfx, _worldClock, _audio, _commands);
+                _rig = new BattleViewRig(_content, _input, _camera, _account, _vfx, _worldClock, _audio, _commands,
+                    crosshairFeel: _crosshairFeel);   // 准心手感投影（可空 = 测试装配）
                 await _rig.LoadAsync(ct);
 
                 _matchSession = _matchSessions?.Create(accountSession)

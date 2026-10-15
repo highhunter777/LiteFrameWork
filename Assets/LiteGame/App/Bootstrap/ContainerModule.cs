@@ -179,7 +179,8 @@ namespace LiteGame
                     rootToken, requireCamera: true, worldClock: context.Require<IWorldClock>(),
                     matchSessions: context.Require<IMatchSessionFactory>(),
                     audio: context.Require<AudioService>(), commands: context.Require<CommandCenter>(),
-                    pages: pageFlow)),
+                    pages: pageFlow,
+                    crosshairFeel: new CrosshairFeelBook(config))),   // 准心手感（tbcrosshair 惰性投影——装载后首用建）
                 (ProcedureId.Error, new ProcedureError(rootToken)));
         }
 

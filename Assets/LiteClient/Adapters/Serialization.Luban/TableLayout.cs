@@ -26,6 +26,8 @@ namespace LiteClient
             "UI/tbuiform",
             "UI/tbltext",               // LText 文案表（key→zh/en；BindLocale 数据源——表现层，进 BuildHash 表现层排除）。
                                        // 表源 #ltext.xlsx：Luban 生成名派生自输入文件名，而 #text.xlsx 是其 L10N 保留名、不可用
+            "UI/tbcrosshair",          // 准心调参表（按武器一行：静态满张/连发张开/后坐——纯 View 表现域，
+                                       // 不进判定面摘要；消费＝App 装配层投影 CrosshairFeelCatalog）
             "Content/tbcontententry",
             "Strategy/tbstrategy",
             "Combat/tbcombatnum",      // 玩法数值（单行表；装载后产出 CombatValues 实例并发布读口——两端同源）

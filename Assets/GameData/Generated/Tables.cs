@@ -17,6 +17,7 @@ public partial class Tables
     public Tbanimationprofile Tbanimationprofile {get; }
     public Tbcombatnum Tbcombatnum {get; }
     public Tbcontententry Tbcontententry {get; }
+    public Tbcrosshair Tbcrosshair {get; }
     public Tbentityconfig Tbentityconfig {get; }
     public Tbitemconfig Tbitemconfig {get; }
     public Tbltext Tbltext {get; }
@@ -31,6 +32,7 @@ public partial class Tables
         Tbanimationprofile = new Tbanimationprofile(loader("tbanimationprofile"));
         Tbcombatnum = new Tbcombatnum(loader("tbcombatnum"));
         Tbcontententry = new Tbcontententry(loader("tbcontententry"));
+        Tbcrosshair = new Tbcrosshair(loader("tbcrosshair"));
         Tbentityconfig = new Tbentityconfig(loader("tbentityconfig"));
         Tbitemconfig = new Tbitemconfig(loader("tbitemconfig"));
         Tbltext = new Tbltext(loader("tbltext"));
@@ -47,6 +49,7 @@ public partial class Tables
         Tbanimationprofile.ResolveRef(this);
         Tbcombatnum.ResolveRef(this);
         Tbcontententry.ResolveRef(this);
+        Tbcrosshair.ResolveRef(this);
         Tbentityconfig.ResolveRef(this);
         Tbitemconfig.ResolveRef(this);
         Tbltext.ResolveRef(this);

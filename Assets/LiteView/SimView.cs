@@ -455,6 +455,21 @@ namespace LiteView
             return true;
         }
 
+        /// <summary>
+        /// 槽位当前选中武器的**定义 Id**——表现面读口（准心手感按武器取 tbcrosshair 行；判定不吃）。
+        /// 取数口径同 <see cref="TryGetSpreadDegrees"/>：本人私有面（武器行不上公共快照），读**本地预测态**
+        /// 的选中武器。未装备 / 槽位越界 → false（调用方按"无行"回落防御默认，不猜）。
+        /// </summary>
+        public bool TryGetWeaponDefId(int slotIndex, out int weaponDefId)
+        {
+            weaponDefId = -1;
+            if (slotIndex < 0 || slotIndex >= SimConfig.MaxEntities) return false;
+            if (!WeaponSystem.IsEquipped(_sim, slotIndex, WeaponConfig.Loaded, out WeaponDef def, out int _))
+                return false;
+            weaponDefId = def.Id;
+            return true;
+        }
+
         // ---- 辅助 ----
 
         /// <summary>摆位：位置 1:1；旋转 = <see cref="FacingRotation"/>（模型视觉前沿约定 +Z）。</summary>

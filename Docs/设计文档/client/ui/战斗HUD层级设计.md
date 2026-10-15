@@ -82,7 +82,7 @@ Hud_Battle                          Canvas(Overlay, order 0) + CanvasScaler(1920
 
 | 暴露节点 | BattleHudView 字段 | 消费驱动 | 语义 |
 | --- | --- | --- | --- |
-| `Cot_Crosshair` | `RectTransform CrosshairRoot` | BattleCrosshairDriver | 每帧写屏位（AimPoint 单口径） |
+| `Cot_Crosshair` | `RectTransform CrosshairRoot` | BattleCrosshairDriver | 每帧写屏位（AimPoint 单口径）+ 散布/连发缩放与后坐偏移（手感按 `tbcrosshair` 武器行，GM「准心调参」滑杆定档） |
 | `Icon_Hip` / `Icon_Ads` | `GameObject HipForm / AdsForm` | BattleCrosshairDriver | 腰射/瞄准形态开关（含迟滞） |
 | `Cot_Panel` | `CanvasGroup PanelGroup` | BattleHudDriver | 本地未对齐整组隐藏 |
 | `HpBar_Player`（模板实例根） | `HpBar HpBar` | BattleHudDriver | 经控件 API `Set(hp, max)`——前条瞬时 + 后条延迟滑落（双条血格） |

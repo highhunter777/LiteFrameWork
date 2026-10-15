@@ -72,6 +72,7 @@ namespace LiteGame
         private SimView _view;
         private CharacterLocomotionDriver _locomotion;   // 移动动画驱动（视图的消费者——先于视图拆除）
         private BattleCrosshairDriver _crosshair;       // 对局准心（Hud_Battle prefab）
+        private readonly CrosshairFeelBook _crosshairFeel;   // 准心手感投影（tbcrosshair——可空 = 测试装配回落 Default）
         private BattleHudDriver _hud;                   // HUD 面板（血条/弹药——技能栏静态占位）
         private BattleRankboardDriver _rankboard;       // 局内排行榜（FFA 比分＝击杀——镜像公共面）
         private BattleRespawnHudDriver _respawnHud;      // 死亡/复活 HUD（中央倒计时 + 归属 + 保护角标）
@@ -109,7 +110,7 @@ namespace LiteGame
         /// <param name="worldClock">世界钟（伤害数字寿命/合并窗；null = 飘字降级）。</param>
         internal BattleViewRig(IContentService content, IInputService input, ICameraService camera,
             ClientScope account, IVFXService vfx = null, LiteFramework.IWorldClock worldClock = null,
-            AudioService audio = null, CommandCenter commands = null)
+            AudioService audio = null, CommandCenter commands = null, CrosshairFeelBook crosshairFeel = null)
         {
             _content = content ?? throw new ArgumentNullException(nameof(content));
             if (account == null) throw new ArgumentNullException(nameof(account));
@@ -121,6 +122,7 @@ namespace LiteGame
             _commands = commands;
 
             _viewScope = account.CreateChild("BattleView");
+            _crosshairFeel = crosshairFeel;
             _viewRootGo = new GameObject("[BattleView]");
             if (Application.isPlaying) UnityEngine.Object.DontDestroyOnLoad(_viewRootGo);
             _viewRoot = _viewRootGo.transform;
@@ -372,6 +374,7 @@ namespace LiteGame
             AttachDamageNumbers();                             // 伤害数字（命中反馈首个消费者）
             AttachCombatFx();                                  // 枪口火光 + 敌人命中特效（帧事件路由的 VFX 消费者）
             AttachAudio();                                     // 对局音效（帧事件路由的 Audio 消费者）
+            _hitFeedback.Register(_crosshair);                // 准心：本地 Fire → 连发张开/后坐（null 拒收 = HUD 缺件静默降级）
 #if UNITY_EDITOR || DEVELOPMENT_BUILD || LITEFRAMEWORK_DEBUG
             // 爆头区域常驻可视化（测试模式诊断件）：只读预测态，不改判定；release 剥离
             _headshotDebug = new BattleHeadshotDebugDrawer(_context.Sim);
@@ -392,7 +395,7 @@ namespace LiteGame
         internal void Tick(float elapseSeconds)
         {
             _locomotion?.Tick(elapseSeconds);    // 移动动画：视图位置已更新，再解析目标姿态
-            _crosshair?.Tick();                  // 对局准心（HUD）：位置/形态/光标
+            _crosshair?.Tick(elapseSeconds);          // 对局准心（HUD）：位置/形态/光标 + 连发张开/后坐回正（真实帧时长）
             _hud?.Tick();                        // HUD 面板：血条/弹药（预测态值变化写）
             _rankboard?.Tick();                  // 局内排行榜：击杀分布变化才重排/写（镜像公共面）
             _respawnHud?.Tick();                 // 死亡/复活：阵亡倒计时/归属/保护角标（值变化才写）
@@ -556,7 +559,8 @@ namespace LiteGame
             _crosshair = new BattleCrosshairDriver(_view, _input, (RectTransform)_hudView.transform, _hudView.CrosshairRoot,
                 hip: _hudView.HipForm,
                 ads: _hudView.AdsForm,
-                screenPosition: ScreenPositionOf(_input));           // 鼠标位来自设备源适配器（R12）
+                screenPosition: ScreenPositionOf(_input),           // 鼠标位来自设备源适配器（R12）
+                feel: _crosshairFeel);                             // 手感投影（tbcrosshair；null = 测试装配回落 Default）
             Log.Info("crosshair-attached", "Battle");
         }
 

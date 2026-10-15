@@ -26,6 +26,7 @@ namespace LiteGame.Editor
             DrawBotOpsBlock();
             DrawHeadTuneBlock();
             DrawGripTuneBlock();
+            DrawCrosshairTuneBlock();
         }
 
         // ---- 测试模式（进入/退出/传送 + 现场开关；启动配置在场景 DebugTuner）----
@@ -182,4 +183,58 @@ namespace LiteGame.Editor
                 MessageType.Info);
         }
     }
+
+        // ---- 准心调参实时调（表现沙箱件，纯观感——连发临时张开/后坐定档面）----
+
+        /// <summary>准心调参实时调（运行时覆写，不落盘；连发临时张开/后坐的定档面——驱动每帧读
+        /// <see cref="CrosshairTuning"/> Live 解析，滑杆一动观感即变）。覆写为**全局档**（盖全部武器行）；
+        /// 参照值显示 tbcrosshair id=0 行（步枪）——定档后按武器把值写回表源。</summary>
+        private static void DrawCrosshairTuneBlock()
+        {
+            EditorGUILayout.Space(6);
+            EditorGUILayout.LabelField("准心调参实时调（运行时覆写，不落盘）", EditorStyles.boldLabel);
+            CrosshairFeel d = CrosshairFeel.Default;   // 参照行（tbcrosshair id=0——与代码防御回落同值）
+            EditorGUI.BeginChangeCheck();
+            float staticMax = SliderOf("静态满张倍率", CrosshairTuning.StaticMaxDevOverride, d.StaticMaxScale, 1f, 3f);
+            float growth = SliderOf("连发每发张开增量", CrosshairTuning.BurstGrowthDevOverride, d.BurstGrowth, 0f, 0.5f);
+            float cap = SliderOf("连发张开总上限", CrosshairTuning.BurstCapDevOverride, d.BurstCap, 1f, 3.5f);
+            float kick = SliderOf("每发后坐冲量（px）", CrosshairTuning.KickDevOverride, d.Kick, 0f, 30f);
+            float burstRecover = SliderOf("连发回正速率（1/s）", CrosshairTuning.BurstRecoverDevOverride,
+                BattleCrosshairDriver.BurstRecoverPerSecond, 0.5f, 12f);
+            float kickRecover = SliderOf("后坐回弹速率（1/s）", CrosshairTuning.KickRecoverDevOverride,
+                BattleCrosshairDriver.KickRecoverPerSecond, 2f, 30f);
+            if (EditorGUI.EndChangeCheck())
+            {
+                CrosshairTuning.StaticMaxDevOverride = staticMax;
+                CrosshairTuning.BurstGrowthDevOverride = growth;
+                CrosshairTuning.BurstCapDevOverride = cap;
+                CrosshairTuning.KickDevOverride = kick;
+                CrosshairTuning.BurstRecoverDevOverride = burstRecover;
+                CrosshairTuning.KickRecoverDevOverride = kickRecover;
+            }
+            EditorGUILayout.LabelField(
+                $"参照（tbcrosshair id=0 行）：静态 {d.StaticMaxScale} / 增量 {d.BurstGrowth} / 上限 {d.BurstCap} / 后坐 {d.Kick}"
+                + " —— 覆写为全局档（盖各武器行）；各武器的表值见 tbcrosshair（id=0 步枪 / id=1 霰弹）",
+                EditorStyles.wordWrappedLabel);
+            if (GUILayout.Button("复位（回表值/机制常量）"))
+            {
+                CrosshairTuning.StaticMaxDevOverride = -1f;
+                CrosshairTuning.BurstGrowthDevOverride = -1f;
+                CrosshairTuning.BurstCapDevOverride = -1f;
+                CrosshairTuning.KickDevOverride = -1f;
+                CrosshairTuning.BurstRecoverDevOverride = -1f;
+                CrosshairTuning.KickRecoverDevOverride = -1f;
+            }
+            EditorGUILayout.HelpBox(
+                "对局内拖动即生效（连发开一枪逐发张开、后坐逐发上跳回弹——当场试手感）；覆写只存在于本机运行时，"
+                + "定档后把值写回 Luban/Data/#crosshair.xlsx 表源（改完 Luban/gen.bat 重生成）。release 无此面（恒表值）。",
+                MessageType.Info);
+        }
+
+        /// <summary>单条滑杆：覆写在位显示覆写值，否则显示参照值（表值/机制常量）——拖动即写覆写。</summary>
+        private static float SliderOf(string label, float devOverride, float reference, float min, float max)
+        {
+            float shown = devOverride >= 0f ? devOverride : reference;
+            return EditorGUILayout.Slider(label, shown, min, max);
+        }
 }
