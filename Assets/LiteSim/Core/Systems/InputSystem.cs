@@ -7,9 +7,9 @@ namespace LiteSim
     /// 输入数组已由 SimStep 按 EntityId 升序排列（§3.3 同帧多请求的确定性来源）。
     ///
     /// **瞄准态口径（见《角色状态与动作专项设计》§7）**：
-    /// - **限速**：**瞄准中 ∨ 开火态**（开火态 = <see cref="EntitySlot.FireStanceFrames"/> &gt; 0
-    ///   ——移动腰射按 aimwalk 移动）→ 移动上限
-    ///   <see cref="CombatConfig.AimMoveSpeed"/>（= 走路档）；
+    /// - **限速**：**瞄准中 ∨ 开火帧 ∨ 窗内**（窗 = <see cref="EntitySlot.FireStanceFrames"/> &gt; 0；
+    ///   扣扳机当帧即置窗 ⇒ 当帧限速；成功开火在 <see cref="ShootingSystem"/> 判定点重置同值）
+    ///   → 移动上限 <see cref="CombatConfig.AimMoveSpeed"/>（= 走路档；移动腰射按 aimwalk 移动）；
     /// - **朝向派生（债 #4 根治；AimPoint 单口径——《固定斜视角射击方案专项设计》§3）**：
     ///   **射击语境（瞄准 ∨ 开火帧 ∨ 窗内）且 AimPoint 有效**（非零值、水平距本体 &gt; ε）
     ///   → `Yaw = Atan2(P − 本体XZ)` 朝准星（即时跟枪——点射间隙帧不回摆，
@@ -18,7 +18,8 @@ namespace LiteSim
     ///   （窗尽回转不瞬切），到位解除恢复即时跟向；都没有 → **保持上一帧 Yaw**（不拿零值退化，
     ///   且回放/重放可重建）；
     /// - **开火驻留窗递减**：Run 顶部对**全槽位**统一推进——缺席/空输入帧与死亡实体照常衰减
-    ///   （整数计数 ⇒ 确定性）；窗随 <see cref="ShootingSystem"/> 判定点置满、本系统先跑 ⇒ 置窗次帧起限速生效。
+    ///   （整数计数 ⇒ 确定性）；窗的写入者两处——本系统（瞄准 ∨ 开火帧，扣扳机即进语境）与
+    ///   <see cref="ShootingSystem"/> 判定点（成功开火重置同值），置满不累加。
     /// </summary>
     public static class InputSystem
     {
@@ -45,11 +46,15 @@ namespace LiteSim
 
                 uint buttons = inputs[i].Buttons;
                 bool aiming = (buttons & SimInputFrame.ButtonAim) != 0u;
+                bool fireFrame = (buttons & (SimInputFrame.ButtonFire | SimInputFrame.ButtonFireFlag)) != 0u;
 
-                // **瞄准帧也置满同一个驻留窗**——频繁点按瞄准与点射共用
-                // `FireStanceFrames`（同一字段/同一递减/同一快照公共面——协议零改动）：点按间隙帧
-                // 不回移动向（朝准星+限速走路档随窗——视图 AimWalk 四向稳定的前提），窗尽离场转向。
-                if (aiming) e.FireStanceFrames = (byte)values.FireStanceFrames;
+                // **瞄准帧与开火帧都置满同一个驻留窗**（判据与朝向派生同一条——射击语境单源）：
+                // 扣扳机即进语境、**不问武器门结果**——空仓/换弹/冷却/切枪中被拦的扣扳机同置窗；
+                // 若朝向认开火帧而窗不认，身体转向准星但表现语境缺席（视图 MoveBlend 无方向性，
+                // 面朝反向播前进走即倒滑），且窗是快照公共面——远端表现同步免费。频繁点按瞄准与
+                // 点射共用 `FireStanceFrames`（同一字段/同一递减——协议零改动）：点按间隙帧不回移动向
+                // （朝准星+限速随窗——视图 AimWalk 四向稳定的前提），窗尽离场转向。
+                if (aiming || fireFrame) e.FireStanceFrames = (byte)values.FireStanceFrames;
 
                 // 移动：瞄准 ∨ 开火态 → 限速走路档（瞄准倍率 0.5 = 乘 2 的幂，位级精确；
                 // 开火态限速改写 Vel ⇒ 窗计数是**判定输入**——已进全量 checksum，见 EntitySlot.FireStanceFrames）
@@ -62,7 +67,6 @@ namespace LiteSim
                 // 朝向派生（规则见类注释）：射击语境 → 朝准星——**AimPoint 必须有效**（非零值且
                 // 水平距本体 > ε；Atan2(0,0) 无意义，退化点不派生、落入保持）；窗内间隙帧不回移动向
                 // （点射"逐拍回摆"的根治面）
-                bool fireFrame = (buttons & (SimInputFrame.ButtonFire | SimInputFrame.ButtonFireFlag)) != 0u;
                 float pdx = inputs[i].AimPointX - e.Pos.X;
                 float pdz = inputs[i].AimPointZ - e.Pos.Z;
                 bool aimValid = SimMath.MulAdd2(pdx, pdx, pdz, pdz) > MoveEpsilonSquared;

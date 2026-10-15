@@ -983,6 +983,75 @@ namespace LiteGame.Tests.EditMode
             driver.Dispose();
         }
 
+        [Test]
+        [Category(TestCategory.Contract)]
+        public void 驱动_空仓扣扳机_经权威窗进战斗根_反向移动出背向权重_窗尽退根()
+        {
+            var prefab = LoadPrefabOrIgnore();
+            var world = new SimWorldState { RngState = 1UL };
+            long selfId = world.Spawn(new EntitySlot { Hp = 100, Pos = new SimVector3(0f, 0f, 0f), Yaw = 0f }, out _);
+
+            SimView view = new SimView(world, null,
+                factory: (loc, parent) =>
+                {
+                    var go = Object.Instantiate(prefab, parent);
+                    go.name = loc;
+                    Scope.Track(go);
+                    return go;
+                },
+                recycler: null);
+            view.AlignLocal(selfId);
+            view.ReconcileSharpness = 600f;                     // 本地朝向衰减加速收敛——测角断言不等指数尾巴
+            var driver = new CharacterLocomotionDriver(view, ProductionProfile(), manifest: Manifest());
+            const float dt = 1f / 60f;
+            var weights = new float[4];
+
+            // 懒装备后彻底干涸（弹匣与备弹归零——空仓静默形态）
+            var table = WeaponTable.Default;
+            WeaponSystem.Run(world, new[] { new SimInputFrame { EntityId = selfId } }, table);
+            world.Weapons[0].MagAmmo = 0;
+            world.Weapons[0].ReserveAmmo = 0;
+
+            view.Tick(dt);
+            driver.Tick(dt);
+            driver.Tick(dt);                                   // 建播放器/机器（初建 = MoveBlend）
+
+            // 空仓扣扳机帧（准星 -X、移动 +X——反向场景）：窗置满、无 Fire 事件（武器门拦在事件之前）
+            var fireBack = new[] { new SimInputFrame { EntityId = selfId, MoveX = 1f, AimPointX = -10f, AimPointY = 1f, Buttons = SimInputFrame.ButtonFire } };
+            world.Frame = 10;
+            InputSystem.Run(world, fireBack, CombatValues.Default);
+            WeaponSystem.Run(world, fireBack, table);
+            ShootingSystem.Run(world, new SimMapData(), fireBack, CombatValues.Default, table);
+
+            view.Tick(dt);                                    // 摆位（朝向随 Yaw 转 -X）+ 事件空转
+            Assert.AreEqual(0, view.DeliveredEvents, "空仓扣扳机无 Fire 事件（静默）");
+            driver.Tick(dt);                                  // 喂事实：射击语境窗在场、静止
+            Assert.IsTrue(driver.TryGetAnimState(0, out var st1) && st1 == CharacterAnimId.FireIdle,
+                "无事件路径：权威窗事实径直进战斗根 Fire 系（站姿）");
+
+            // 反向移动（+X，面朝 -X ⇒ 相对角 180°）→ FireWalk 四向背向权重——倒滑形态消亡
+            view.TryGetView(0, out var go);
+            for (int i = 0; i < 3; i++) { go.transform.position += new Vector3(0.012f, 0f, 0f); driver.Tick(dt); }
+            Assert.IsTrue(driver.TryGetAnimState(0, out var st2) && st2 == CharacterAnimId.FireWalk,
+                "窗内移动迁 FireWalk（战斗根不退）");
+            Assert.IsTrue(driver.TryGetMotion(0, out var form, weights)
+                && form.Equals(CharacterAnimationIds.AimMoveBlend), "四向持枪移动形态（AimMoveBlend）");
+            Assert.AreEqual(1f, weights[2], 0.05f, "背向槽位权重 1（AimWalk_B）——面朝准星反向移动不倒滑");
+
+            // 停手窗尽：Sim 窗随逻辑帧衰减（无按钮帧）→ 权威窗事实消亡 → 视图窗尾尽退根
+            var gap = new[] { new SimInputFrame { EntityId = selfId, MoveX = 1f, AimPointX = -10f, AimPointY = 1f } };
+            int released = 0;
+            for (; released < 300; released++)
+            {
+                world.Frame = 11 + released;
+                InputSystem.Run(world, gap, CombatValues.Default);   // 逐帧衰减 Sim 窗（模拟逻辑帧推进）
+                driver.Tick(dt);
+                if (driver.TryGetAnimState(0, out var st) && st == CharacterAnimId.Idle) break;
+            }
+            Assert.Less(released, 300, "停手后权威窗尽（≈1s）必须退根回移动层");
+            driver.Dispose();
+        }
+
         // ---- 单机双根（v0.5/v0.6）：窗内保持 clip / 路由 / 退根不变量 / 同形态续播 ----
 
         [Test]
@@ -1217,8 +1286,12 @@ namespace LiteGame.Tests.EditMode
             // 保持战斗根形态（窗内不回移动层——统一退根路）→ 窗尽才退根回移动根叶
             InputSystem.Run(world, new[] { new SimInputFrame { EntityId = selfId } }, CombatValues.Default);
             float releaseElapsed = 0f;
+            var releaseFrame = new[] { new SimInputFrame { EntityId = selfId } };
             for (; releaseElapsed < 2.5f; )
             {
+                // 逻辑帧照常推进（生产形态）：Sim 权威窗逐帧衰减——它是在场的保持条件，
+                // 不推进则权威窗永驻、战斗根不退根（本层窗与权威窗同点置满同长 ⇒ 窗尽即离场 ≈1s）
+                InputSystem.Run(world, releaseFrame, CombatValues.Default);
                 driver.Tick(dt);
                 releaseElapsed += dt;
                 if (driver.TryGetAnimState(0, out var s4)

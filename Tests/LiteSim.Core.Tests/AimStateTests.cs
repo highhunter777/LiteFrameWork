@@ -114,13 +114,16 @@ namespace LiteSim.Tests
             var fire = Inputs(id, 1f, 0f, 1f, 0f, SimInputFrame.ButtonFire);
             var move = Inputs(id, 1f, 0f, 1f, 0f);
 
-            // 置窗帧：InputSystem 先跑（窗未置——仍全速），ShootingSystem 判定点置满窗（与 Fire 事件同点）
+            // 置窗帧：开火帧即置窗（窗谓词与朝向派生统一——扣扳机不问武器门结果）⇒ 当帧限速；
+            // ShootingSystem 判定点重置同值（事件刷新制——上限即窗长）
             InputSystem.Run(world, fire, CombatValues.Default);
-            Assert.True(world.Entities[slot].Vel.X == CombatConfig.MoveSpeed,
-                "置窗帧仍全速——窗在判定点才置，限速自次帧起生效（系统序：输入 → 射击判定）");
+            Assert.True(world.Entities[slot].FireStanceFrames == (byte)CombatConfig.FireStanceFrames,
+                "开火帧即置满窗（扣扳机即进射击语境）");
+            Assert.True(world.Entities[slot].Vel.X == CombatConfig.AimMoveSpeed,
+                "开火帧当帧限速（置窗先于限速行）");
             ShootingSystem.Run(world, NoObstacles, fire, CombatValues.Default, WeaponTable.Default);
             Assert.True(world.Entities[slot].FireStanceFrames == (byte)CombatConfig.FireStanceFrames,
-                "开火判定置满窗（事件刷新制——上限即窗长）");
+                "开火判定重置同值（事件刷新制——上限即窗长）");
 
             // 窗内：不再开火、只移动 → 限速走路档（移动腰射按 aimwalk 移动）
             InputSystem.Run(world, move, CombatValues.Default);

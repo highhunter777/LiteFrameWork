@@ -37,6 +37,16 @@ namespace LiteView.Animation
                 return;
             }
 
+            // 权威射击窗在场（扣扳机/成功开火——Sim 统一置窗）→ 进战斗根 Fire 系（按锁存选叶）：
+            // 扣扳机被武器门拦下（空仓/换弹/冷却）的帧同进语境——朝向已跟准星（InputSystem 判据
+            // 同一条），此处不进根即"面朝反向播前进走"的倒滑（MoveBlend 无方向性）。
+            // 窗续期与退根由战斗根单点裁决（权威窗是保持条件而非充值源——Sim 窗尽即离场）。
+            if (_ctx.IsFireStance)
+            {
+                m.Request(_ctx.IsMoving ? CharacterAnimId.FireWalk : CharacterAnimId.FireIdle);
+                return;
+            }
+
             // 速度轴权重就地维护（同形态连续——不换句柄、无终态）
             LocomotionBlendMath.BuildSpeedWeights(_ctx.Speed, _ctx.MoveWeights);
             if (_ctx.LocoHandle.IsValid && _ctx.Player.UpdateBlendWeights(_ctx.LocoHandle, _ctx.MoveWeights))

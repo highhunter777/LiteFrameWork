@@ -12,7 +12,9 @@ namespace LiteView.Animation
     /// <see cref="CombatAnimMachine"/>，本类只负责事实喂入、事件路由、槽位生命周期与诊断聚合）：
     /// - **速度/方向来源**：视图 Transform 的帧间位移——本地（预测+和解衰减）与远端（快照插值）同一来源，
     ///   不读 Sim 内部；插值/衰减的速度天然平滑；
-    /// - **IsAiming**：<see cref="SimView.IsAiming"/>（Sim 权威）；**IsReloading**：<see cref="SimView.IsReloading"/>
+    /// - **IsAiming**：<see cref="SimView.IsAiming"/>（Sim 权威）；**IsFireStance**：
+    ///   <see cref="SimView.IsFireStance"/>（Sim 权威开火驻留窗——瞄准/扣扳机/成功开火统一进窗，
+    ///   战斗根进根与续窗的判据之一）；**IsReloading**：<see cref="SimView.IsReloading"/>
     ///   （Sim 权威——武器账本私有面）；**IsDead**：<see cref="SimView.IsDead"/>；
     /// - **锁存**：迟滞公式单源 <see cref="LocomotionBlendMath.UpdateLatch"/>（进 0.6 / 出 0.3 m/s），
     ///   驱动器每帧算、作为事实喂状态机（机内无迟滞散字段）；
@@ -303,6 +305,7 @@ namespace LiteView.Animation
                     if (_view.IsDead(i)) s.DeadSeen = true;   // 死亡锁存（快照状态——重连/迟到者同路径）
                     s.Ctx.Feed(new SlotAnimFacts(
                         isAiming: _view.IsAiming(i),
+                        isFireStance: _view.IsFireStance(i),   // 射击语境窗（Sim 权威——扣扳机/成功开火统一进窗）
                         isReloading: _view.IsReloading(i),  // 换弹事实（Sim 权威——武器私有面投影）
                         isDead: s.DeadSeen,
                         isMoving: s.MovingLatch,

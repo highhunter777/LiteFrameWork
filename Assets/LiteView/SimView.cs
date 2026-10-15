@@ -362,6 +362,27 @@ namespace LiteView
         }
 
         /// <summary>
+        /// 实体是否处于射击语境（开火驻留窗在场——瞄准/扣扳机/成功开火在 Sim 侧统一进窗，
+        /// 判据单源 <see cref="InputSystem"/>/<see cref="ShootingSystem"/>）。取数口径同
+        /// <see cref="IsAiming"/>：本地取预测态、远端取最新权威快照（窗是快照公共面，
+        /// 离散窗值"取新不取插值"）；槽位越界 / 首快照未到 / 槽位不在场 → false。
+        /// 表现层经此入口消费权威窗——扣扳机被武器门拦下（空仓/换弹/冷却）的帧同样进语境：
+        /// 否则朝向已跟准星而动画语境缺席（无方向性的 MoveBlend 播前进走即倒滑）。
+        /// </summary>
+        public bool IsFireStance(int slotIndex)
+        {
+            if (slotIndex < 0 || slotIndex >= SimConfig.MaxEntities) return false;
+
+            // 本地实体必须**先按实体 Id 解析槽位**——同 IsAiming 口径（Id 不能当下标用）
+            if (LocalEntityId != 0 && _sim.TryResolve(LocalEntityId, out int localSlot) && localSlot == slotIndex)
+                return _sim.Entities[slotIndex].FireStanceFrames > 0;
+
+            if (_snapTo == null) return false;
+            if ((_snapTo.AliveBitmap[slotIndex >> 5] & (1u << (slotIndex & 31))) == 0u) return false;
+            return _snapTo.Entities[slotIndex].FireStanceFrames > 0;
+        }
+
+        /// <summary>
         /// 实体是否已死亡（Hp ≤ 0——Sim 权威状态，**公共快照可重建**：重连/迟到加入者按状态出
         /// 死亡表现，不依赖事件回放）。取数口径同 <see cref="IsAiming"/>：本地取预测态、
         /// 远端取最新权威快照；槽位越界 / 首快照未到 / 槽位已死 → false。
@@ -416,6 +437,22 @@ namespace LiteView
             if (sel < 0 || sel >= SimConfig.WeaponSlotsPerEntity) return false;
             return _sim.Weapons[slotIndex * SimConfig.WeaponSlotsPerEntity + sel].State
                 == WeaponSlotState.Reloading;   // lint-allow R3（枚举判等，非浮点精度比较）
+        }
+
+        /// <summary>
+        /// 槽位当前选中武器的**瞄准态最大偏转角（度）**——表现面读口（准心散布张开；判定不吃，
+        /// 腰射倍率由调用方按 <see cref="CombatConfig.HipSpreadFactor"/> 自乘）。取数口径同
+        /// <see cref="IsReloading"/>：本人私有面（武器行不上公共快照），读**本地预测态**的选中武器。
+        /// 未装备 / 表缺行 / 槽位越界 → false（调用方按"无散布信息"降级，不猜）。
+        /// </summary>
+        public bool TryGetSpreadDegrees(int slotIndex, out float degrees)
+        {
+            degrees = 0f;
+            if (slotIndex < 0 || slotIndex >= SimConfig.MaxEntities) return false;
+            if (!WeaponSystem.IsEquipped(_sim, slotIndex, WeaponConfig.Loaded, out WeaponDef def, out int _))
+                return false;
+            degrees = def.Spread;
+            return true;
         }
 
         // ---- 辅助 ----

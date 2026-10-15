@@ -14,6 +14,11 @@ namespace LiteView.Animation
         /// <summary>瞄准中（SimView.IsAiming——Sim 权威；战斗根活跃判据之一）。</summary>
         public readonly bool IsAiming;
 
+        /// <summary>射击语境窗在场（SimView.IsFireStance——Sim 权威 <see cref="EntitySlot.FireStanceFrames"/>
+        /// 投影：瞄准/扣扳机/成功开火统一进窗，扣扳机不问武器门结果——空仓/换弹/冷却被拦同进语境；
+        /// 战斗根进根与续窗判据之一——MoveBlend 无方向性，语境缺席即"面朝反向播前进走"的倒滑）。</summary>
+        public readonly bool IsFireStance;
+
         /// <summary>换弹中（SimView.IsReloading——Sim 权威，武器私有面投影）：真时由
         /// <see cref="SlotAnimContext.UpdateReloadUpper"/> 提交 Overlay 上半身叠加（**不进战斗根**）。</summary>
         public readonly bool IsReloading;
@@ -32,7 +37,8 @@ namespace LiteView.Animation
         public readonly float MoveRelAngleDeg;
 
         public SlotAnimFacts(bool isAiming = false, bool isReloading = false, bool isDead = false,
-            bool isMoving = false, float speed = 0f, float moveRelAngleDeg = 0f)
+            bool isMoving = false, float speed = 0f, float moveRelAngleDeg = 0f,
+            bool isFireStance = false)
         {
             IsAiming = isAiming;
             IsReloading = isReloading;
@@ -40,6 +46,7 @@ namespace LiteView.Animation
             IsMoving = isMoving;
             Speed = speed;
             MoveRelAngleDeg = moveRelAngleDeg;
+            IsFireStance = isFireStance;
         }
     }
 
@@ -87,10 +94,13 @@ namespace LiteView.Animation
         /// 同一事实，两路同值不冲突。</summary>
         internal void LatchDead()
             => _facts = new SlotAnimFacts(_facts.IsAiming, _facts.IsReloading, isDead: true,
-                _facts.IsMoving, _facts.Speed, _facts.MoveRelAngleDeg);
+                _facts.IsMoving, _facts.Speed, _facts.MoveRelAngleDeg, _facts.IsFireStance);
 
         /// <summary>瞄准中（读口——见 <see cref="SlotAnimFacts.IsAiming"/>）。</summary>
         public bool IsAiming => _facts.IsAiming;
+
+        /// <summary>射击语境窗在场（读口——见 <see cref="SlotAnimFacts.IsFireStance"/>）。</summary>
+        public bool IsFireStance => _facts.IsFireStance;
 
         /// <summary>换弹中（读口——见 <see cref="SlotAnimFacts.IsReloading"/>）。</summary>
         public bool IsReloading => _facts.IsReloading;

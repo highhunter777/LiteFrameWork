@@ -288,6 +288,50 @@ namespace LiteSim.Tests
         }
 
         [Fact]
+        public void 空仓扣扳机_判据统一置窗_朝准星当帧限速_静默无事件()
+        {
+            var (world, id, slot) = Spawn();
+            WeaponSystem.Run(world, Idle(id), WeaponTable.Default);
+            ref WeaponRuntime w = ref WeaponOf(world, slot);
+            w.MagAmmo = 0;
+            w.ReserveAmmo = 0;                                   // 彻底干涸：不自动换弹、无 Fire 可产
+
+            // 扣扳机帧（准星 -X、移动 +X——反向场景）：三系统按序（输入 → 武器 → 射击）
+            var fire = new[] { new SimInputFrame { EntityId = id, MoveX = 1f, AimPointX = -10f, AimPointY = 1f, Buttons = SimInputFrame.ButtonFire } };
+            world.Frame = 10;
+            InputSystem.Run(world, fire, CombatValues.Default);
+            WeaponSystem.Run(world, fire, WeaponTable.Default);
+            ShootingSystem.Run(world, NoObstacles, fire, CombatValues.Default, WeaponTable.Default);
+
+            Assert.Equal(0, FireEvents(world));                  // 空仓静默：武器门拦在一切副作用之前
+            Assert.True(world.Entities[slot].FireStanceFrames == (byte)CombatConfig.FireStanceFrames,
+                "扣扳机即置窗（窗谓词与朝向派生同一条——不问武器门结果）");
+            Assert.Equal(SimTrig.Atan2(0f, -1f), world.Entities[slot].Yaw, 5);   // 朝准星
+            Assert.Equal(CombatConfig.AimMoveSpeed, world.Entities[slot].Vel.X, 4);   // 当帧限速（置窗先于限速行）
+
+            // 间隙帧（松开）：窗自然衰减、窗内不回移动向——视图 AimWalk 四向稳定的前提
+            var gap = new[] { new SimInputFrame { EntityId = id, MoveX = 1f, AimPointX = -10f, AimPointY = 1f } };
+            world.Frame = 11;
+            InputSystem.Run(world, gap, CombatValues.Default);
+            Assert.True(world.Entities[slot].FireStanceFrames == (byte)(CombatConfig.FireStanceFrames - 1),
+                "松开帧起窗逐帧自然衰减");
+            Assert.Equal(SimTrig.Atan2(0f, -1f), world.Entities[slot].Yaw, 5);   // 窗内保持准星向
+
+            // 换弹中扣扳机：同样进射击语境、同样静默（状态门拦——无事件）
+            w.MagAmmo = 0;
+            w.ReserveAmmo = 30;
+            w.State = WeaponSlotState.Reloading;
+            w.ReloadEndFrame = 10 + WeaponConfig.Default.ReloadFrames;
+            world.Frame = 12;
+            InputSystem.Run(world, fire, CombatValues.Default);
+            WeaponSystem.Run(world, fire, WeaponTable.Default);
+            ShootingSystem.Run(world, NoObstacles, fire, CombatValues.Default, WeaponTable.Default);
+            Assert.Equal(0, FireEvents(world));
+            Assert.True(world.Entities[slot].FireStanceFrames == (byte)CombatConfig.FireStanceFrames,
+                "换弹中扣扳机同进射击语境（窗在场）");
+        }
+
+        [Fact]
         public void 无限子弹_连射不扣弹_不触发末发自动换弹_换弹请求被拒()
         {
             var (world, id, slot) = Spawn();
