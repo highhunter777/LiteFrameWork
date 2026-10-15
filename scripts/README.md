@@ -7,6 +7,7 @@
 | `gate/` | 质量门禁（CI 调用面） | `test.ps1`（L1/L3 dotnet 车道）、`l0-dep-scan.ps1`（纪律/密钥扫描）、`l2-unity-gate.ps1`（Unity 编译 + EditMode/PlayMode 门禁）、`nightly-gate.ps1`（夜间全量编排）、`restore-check.ps1`（环境还原校验）、`toolchain.json`（工具链清单） |
 | `content/` | 候选发布与本地 CDN | `gen-candidate.ps1`（签名信封生成）、`publish-candidate.ps1`（CDN 布局 + 签名一条龙）、`serve-cdn.ps1`（本地 CDN 起服）、`local-cdn.json` + `local-cdn.config.ps1`（服务目录/地址配置单源） |
 | `build/` | Player 构建与冒烟 | `build-player.ps1`（内含 buildHash `--check` 出包门禁，不可跳过）、`player-smoke.ps1`（`-PlayerArgs` 透传部署参数） |
+| `local/` | 本地联测一键链（密钥机器私有） | `local-chain.ps1`：`init` 生成 `deploy/.env`（五把密钥，机器私有）+ 编辑器 `deploy.args`；`meta`/`room`/`up` 按密钥起 Meta/RoomServer 日志窗口；`keys` 脱敏汇总——配套手册 [07-本地联测](../Docs/项目说明/07-本地联测.md) |
 | `codegen/` | 派生物生成（**生成器工具箱**） | 统一入口 `toolbox.py`（build-hash / proto / luban / sync-code / refresh-hash）+ 共享单源 `_codegen.py`（五工具全 Python）；工具形态与操作权威见 [生成器工具箱专项设计](../Docs/设计文档/architecture/生成器工具箱专项设计.md)。`Luban/gen.bat` 为 luban 别名 shim；`build-player.ps1` 门禁仍直调 `gen-build-hash.py --check` |
 
 约定：
