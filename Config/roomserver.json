@@ -1,82 +1,23 @@
 {
-  "_comment": [
-    "RoomServer 启动配置（《商业级通用服务端框架总设计》§429 房间容量可配 + 范围校验）。",
-    "rooms = 房间模板：动态建房时按模板取值，每个 roomId 一份（§6 一个 roomId 映射一个独立 RoomActor）。",
-    "玩法数值：2026-09-28 起不再内联——服务端与客户端同读 Assets/GameData/Config/*.bytes",
-    "  （gen.bat Pass 1 产出、buildHash 闭包保护；--combat-table <目录> 可显式指定表目录）。",
-    "worker_count/mailbox_capacity = R2 Worker/Mailbox 配置；默认 1 Worker。生产入口（Program.cs）以 workerExecution 形态装配：房间命令与快照广播在 hash(roomId)%worker_count 归属的 Worker 上执行，宿主只做 Transport IO、准入与 Outbound 回传应用（§8.2）。",
-    "rate_limit = R2 安全批③分层限流（§343 桶容量上限+周期清理；§595 可按 IP/账号/Session 生效）。",
-    "  ip = IP 维度·连接（OnConnected）、entry = IP 维度·入场（Join/Reconnect）、account = 账号维度（验签后）、session = 单连接包速率；",
-    "  *_burst/*_per_sec = 令牌桶突发/稳态速率，buckets = 每 lane 键表容量上限，idle_ms = 空闲桶回收阈值；整段可省略走缺省。",
-    "lobby = R3 实例注册（《Meta 服务专项设计》§7）：url 为 Meta 注册端点完整地址，空 = 不注册（单机/离线形态）。",
-    "  url 非空时 instance_id（实例唯一标识，重启保持稳定）与 advertise_host（客户端可达 host，端口用实际监听端口）必填；",
-    "  实例密钥不在本文件：经环境变量 LITENET_LOBBY_INSTANCE_KEY 或 --lobby-instance-key 注入（与 Meta 的 LobbyInstanceKeyBase64 同值）。",
-    "host_tuning = 宿主运行期调参（整段可省略走缺省；逐字段范围校验，越界装载期即拒）：",
-    "  drain_grace_ms=5000 排空宽限、drain_watchdog_extra_ms=2000 排空看门狗、ops_interval_ms=5000 Ops 行间隔、",
-    "  max_inbound_packet_bytes=4096 入包上限、session_cleanup_interval_ticks=600 会话清理节拍、",
-    "  session_unseated_idle_ttl_ms=60000 未进房静默上限、lobby_request_timeout_ms=5000 注册心跳超时、",
-    "  reconnect_ticket_ttl_ms=300000 重连票据有效期、reconnect_capacity=256 票据表容量、",
-    "  outbox_compact_threshold_marks=1024 结算日志压实阈值。",
-    "settlement = R3 结算提交管道（《上云测试专项设计》§2）：submit_url 为 Meta 提交端点完整地址，空 = 关闭（单机/离线形态）。",
-    "  管道读本地 Outbox 待提交面 → 幂等提交 → 完成标记；失败指数退避、重启续投。",
-    "  结算凭据不在本文件且**与实例注册分权**（写账本 ≠ 注册实例）：经环境变量 LITENET_SETTLEMENT_INSTANCE_KEY 或 --settlement-instance-key 注入（与 Meta 的 SettlementInstanceKeyBase64 同值）；缺则启动即拒。",
-    "改本文件必须重启生效：启动时快照，运行中不重读（§188 房间创建时固定不可变玩法配置）。"
-  ],
-
   "port": 17777,
-  "max_rooms": 8,
-  "worker_count": 1,
-  "mailbox_capacity": 1024,
-  "audience": "",
-  "default_template": "standard",
-
-  "rate_limit": {
-    "ip_burst": 32,
-    "ip_per_sec": 4,
-    "entry_burst": 32,
-    "entry_per_sec": 8,
-    "account_burst": 16,
-    "account_per_sec": 2,
-    "session_burst": 256,
-    "session_per_sec": 128,
-    "buckets": 8192,
-    "idle_ms": 120000
-  },
-
-  "lobby": {
-    "url": ""
-  },
-
+  "max_rooms": 16,
+  "audience": "lobby",
   "rooms": {
-    "standard": {
-      "expected_players": 2,
-      "seed": 0,
-      "match_time_limit_ms": 0,
-      "waiting_timeout_ms": 0,
-      "match_duration_frames": 10800,
-      "kill_limit": 20,
-      "respawn_delay_frames": 180,
-      "spawn_protection_frames": 120
-    },
-    "four": {
-      "expected_players": 4,
-      "seed": 0,
-      "match_time_limit_ms": 0,
-      "waiting_timeout_ms": 0,
-      "match_duration_frames": 10800,
-      "kill_limit": 20,
-      "respawn_delay_frames": 180,
-      "spawn_protection_frames": 120
-    },
-    "eight": {
-      "expected_players": 8,
-      "seed": 0,
-      "match_time_limit_ms": 0,
-      "waiting_timeout_ms": 0,
-      "match_duration_frames": 10800,
-      "kill_limit": 20,
-      "respawn_delay_frames": 180,
-      "spawn_protection_frames": 120
+    "default": {
+      "expected_players": 2
     }
+  },
+  "default_template": "default",
+  "lobby": {
+    "url": "http://127.0.0.1:5000/lobby/instances/register",
+    "instance_id": "roomserver-local",
+    "advertise_host": "127.0.0.1",
+    "heartbeat_interval_ms": 10000
+  },
+  "settlement": {
+    "submit_url": "http://127.0.0.1:5000/matches/result",
+    "submit_interval_ms": 5000,
+    "submit_max_backoff_ms": 60000,
+    "submit_timeout_ms": 5000
   }
 }

@@ -57,4 +57,15 @@
     <Compile Include="..\..\Assets\RoomServer\Runtime\MatchStateMachine.cs" Link="Shared\MatchStateMachine.cs" />
   </ItemGroup>
 
+  <ItemGroup>
+    <!--
+      本地配置样例（无密钥——键值全空 = 与内联默认等价；实钥本地自填、勿提交）。
+      MetaHost 显式从 BaseDirectory 读 appsettings.json（optional）——SDK 非 Web 型
+      不自动拷贝，此处 PreserveNewest 保 dotnet run 直达（2026-10-15 本地联测手册 07 §5）。
+    -->
+    <None Update="appsettings.json">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+  </ItemGroup>
+
 </Project>
