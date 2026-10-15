@@ -171,6 +171,21 @@ namespace LiteFramework.Animation
         }
 
         /// <summary>
+        /// 就地更新混合节点的**逐输入净播放速率**（步幅对齐——各片段按相位比/脚程换算给出净倍率；
+        /// 见 <see cref="IAnimationBackend.TrySetBlendInputSpeeds"/>）。与 <see cref="TrySetBlendSpeed"/>
+        /// 同款纪律：只改参数，不换句柄、不重建节点、不产生终态；非混合节点 / 未知或旧句柄 / 加载中
+        /// → false 且不改现状。
+        /// </summary>
+        public bool TrySetBlendInputSpeeds(AnimationHandle handle, float[] speeds)
+        {
+            if (_disposed) return false;
+            if (!TryFindCurrent(handle, out var channel, out var slot)) return false;
+            if (slot.Loading) return false;
+
+            return _backend.TrySetBlendInputSpeeds(channel, speeds);
+        }
+
+        /// <summary>
         /// 装载完成回填（由资源侧在装载结束时调用）。**只有仍是该通道当前请求时才提交**——
         /// 迟到结果只释放自己的资源，绝不抢回通道。
         /// </summary>

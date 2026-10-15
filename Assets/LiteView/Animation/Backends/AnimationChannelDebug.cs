@@ -19,12 +19,25 @@ namespace LiteView.Animation
         public readonly float Time;
         public readonly float Length;
         public readonly bool Loop;
-        /// <summary>引擎真值：混合器/片段节点上实际生效的速度（TrySetBlendSpeed 就地更新当场可见）。</summary>
+        /// <summary>引擎真值：混合器/片段节点上实际生效的整体倍率（TrySetBlendSpeed 就地更新当场可见）。
+        /// 混合节点报**混合器节点自身**倍率——逐输入净速率路径（TrySetBlendInputSpeeds）下它归 1，
+        /// 各输入实际值见 <see cref="InputSpeed0"/>…。</summary>
         public readonly float Speed;
+
+        /// <summary>混合节点逐输入倍率的有效项数（单片段节点 = 0；容量上限 = Profile.MaxBlendSlots）。
+        /// 与权重同纪律：报**引擎真值**——只记调用方参数的诊断会把"没生效"伪装成全绿。</summary>
+        public readonly int InputSpeedCount;
+        public readonly float InputSpeed0;
+        public readonly float InputSpeed1;
+        public readonly float InputSpeed2;
+        public readonly float InputSpeed3;
+
         public readonly string Source;
 
         public AnimationChannelDebug(bool active, string binding, float weight, float tailWeight,
-            float time, float length, bool loop, float speed, string source)
+            float time, float length, bool loop, float speed, string source,
+            int inputSpeedCount = 0, float inputSpeed0 = 0f, float inputSpeed1 = 0f,
+            float inputSpeed2 = 0f, float inputSpeed3 = 0f)
         {
             Active = active;
             Binding = binding;
@@ -35,6 +48,11 @@ namespace LiteView.Animation
             Loop = loop;
             Speed = speed;
             Source = source;
+            InputSpeedCount = inputSpeedCount;
+            InputSpeed0 = inputSpeed0;
+            InputSpeed1 = inputSpeed1;
+            InputSpeed2 = inputSpeed2;
+            InputSpeed3 = inputSpeed3;
         }
     }
 }

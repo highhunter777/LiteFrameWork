@@ -498,6 +498,37 @@ namespace LiteGame.Tests.EditMode
             Assert.IsFalse(player.TrySetBlendSpeed(default, 2f), "未知句柄必须拒绝");
         }
 
+        [Test]
+        [Category(TestCategory.Contract)]
+        public void 混合_逐输入净速率_真图生效_混合器归一并拒绝非法()
+        {
+            // 步幅对齐：各输入片段直接 SetSpeed（引擎真值诊断逐输入可读），混合器节点归 1（净速率口径）。
+            var prefab = LoadPrefabOrIgnore();
+            var go = Scope.Track(Object.Instantiate(prefab));
+            var anim = go.GetComponentInChildren<Animator>(true);
+            var backend = Backend(anim, 0f);
+            var player = new AnimationPlayer(backend, TestProfile());
+
+            var accepted = PlayBlend(player, TestMoveBlend, AnimationChannel.Base, 1f, 0f);
+            Assert.IsTrue(accepted.Accepted, "混合提交应被接受");
+
+            Assert.IsTrue(player.TrySetBlendInputSpeeds(accepted.Handle, new[] { 1f, 0.5f }), "逐输入净速率应被接受");
+            Assert.IsTrue(backend.TryGetChannelDebug(AnimationChannel.Base, out var d1), "就地更新后通道诊断可读");
+            Assert.AreEqual(1f, d1.Speed, 1e-3f, "净速率口径：混合器节点归 1");
+            Assert.AreEqual(2, d1.InputSpeedCount, "双槽混合逐输入可读");
+            Assert.AreEqual(1f, d1.InputSpeed0, 1e-3f);
+            Assert.AreEqual(0.5f, d1.InputSpeed1, 1e-3f);
+
+            Assert.IsFalse(player.TrySetBlendInputSpeeds(accepted.Handle, new[] { 1f }), "速率数不符必须拒绝");
+            Assert.IsFalse(player.TrySetBlendInputSpeeds(accepted.Handle, new[] { 1f, 0f }), "非正速率必须拒绝");
+            Assert.IsFalse(player.TrySetBlendInputSpeeds(accepted.Handle, new[] { 1f, float.NaN }), "NaN 必须拒绝");
+            Assert.IsTrue(backend.TryGetChannelDebug(AnimationChannel.Base, out var d2), "拒绝后通道诊断可读");
+            Assert.AreEqual(1f, d2.InputSpeed0, 1e-3f, "拒绝后逐输入速率不变");
+            Assert.AreEqual(0.5f, d2.InputSpeed1, 1e-3f);
+
+            Assert.IsFalse(player.TrySetBlendInputSpeeds(default, new[] { 1f, 1f }), "未知句柄必须拒绝");
+        }
+
         // ---- 帧事件接缝（§8）：Fire 事件即进 Fire 系，语义/通道由战斗层装配期从 Profile 单源解析 ----
 
         [Test]
@@ -1601,6 +1632,75 @@ namespace LiteGame.Tests.EditMode
             Assert.IsTrue(driver.TryGetCurrent(0, out var revived) && !revived.Equals(CharacterAnimationIds.Death),
                 "新生命事实（LifeStartFrame 变化）必须退出死亡叶——不复位即本断言红");
             driver.Dispose();
+        }
+
+        // ---- 步幅对齐（速率＋相位）：权重/速率数学直测 ----
+
+        [Test]
+        [Category(TestCategory.Contract)]
+        public void 步幅对齐_纯走与纯跑_步态槽净速率归一到自然节拍()
+        {
+            float[] durations = { 3.0f, 1.133f, 0.667f };              // 真值形态（Idle/Walk/Run——片段时长实采）
+            var weights = new float[3];
+            var speeds = new float[3];
+
+            LocomotionBlendMath.BuildSpeedWeights(LocomotionBlendMath.WalkFullMps, weights);
+            LocomotionBlendMath.BuildMoveSpeeds(LocomotionBlendMath.WalkFullMps, weights, durations, speeds);
+            Assert.AreEqual(1f, speeds[0], 1e-4f, "Idle 豁免恒 1×");
+            Assert.AreEqual(1f, speeds[1], 1e-3f, "纯走：Walk 净速率 ≈ 1×（自然节拍贴地）");
+
+            LocomotionBlendMath.BuildSpeedWeights(5f, weights);        // 满速档（Run 权重 1）
+            LocomotionBlendMath.BuildMoveSpeeds(5f, weights, durations, speeds);
+            Assert.AreEqual(1f, speeds[2], 1e-3f, "纯跑：Run 净速率 ≈ 1×（自然节拍贴地）");
+        }
+
+        [Test]
+        [Category(TestCategory.Contract)]
+        public void 步幅对齐_走跑混合_相位锁定与加权脚程守恒()
+        {
+            float[] durations = { 3.0f, 1.133f, 0.667f };
+            var weights = new float[3];
+            var speeds = new float[3];
+            const float v = 3.5f;                                      // 走跑中段（两槽各 ≈0.5 权重）
+
+            LocomotionBlendMath.BuildSpeedWeights(v, weights);
+            LocomotionBlendMath.BuildMoveSpeeds(v, weights, durations, speeds);
+
+            // 相位锁定不变式：两步态槽净速率 ∝ 各自时长（同一 Φ ⇒ 归一化相位同步）
+            Assert.AreEqual(speeds[1] / durations[1], speeds[2] / durations[2], 1e-5f, "同 Φ ⇒ 相位锁定");
+
+            // 加权脚程守恒：Σ(wᵢ·净速率ᵢ·脚程ᵢ) ≈ 实际速度
+            float ground = weights[1] * speeds[1] * LocomotionBlendMath.WalkNaturalMps
+                + weights[2] * speeds[2] * LocomotionBlendMath.RunNaturalMps;
+            Assert.AreEqual(v, ground, 1e-3f, "加权脚程 = 实际速度");
+        }
+
+        [Test]
+        [Category(TestCategory.Contract)]
+        public void 步幅对齐_全静止与超界钳制_退化保护()
+        {
+            float[] durations = { 3.0f, 1.133f, 0.667f };
+            var weights = new float[3];
+            var speeds = new float[3];
+
+            // 全静止（Idle 权重 1）：无步态可对 → 全槽 1×
+            LocomotionBlendMath.BuildSpeedWeights(0f, weights);
+            LocomotionBlendMath.BuildMoveSpeeds(0f, weights, durations, speeds);
+            Assert.AreEqual(1f, speeds[0], 1e-5f);
+            Assert.AreEqual(1f, speeds[1], 1e-5f);
+            Assert.AreEqual(1f, speeds[2], 1e-5f);
+
+            // 零权重（异常输入防除爆）→ 全槽 1×
+            weights[0] = weights[1] = weights[2] = 0f;
+            LocomotionBlendMath.BuildMoveSpeeds(1f, weights, durations, speeds);
+            Assert.AreEqual(1f, speeds[1], 1e-5f);
+            Assert.AreEqual(1f, speeds[2], 1e-5f);
+
+            // 低速微量步态权重：Φ 被钳到上界——**钳在 Φ 上**（两槽仍同 Φ，锁定不被破坏）
+            LocomotionBlendMath.BuildSpeedWeights(0.6f, weights);
+            LocomotionBlendMath.BuildMoveSpeeds(0.6f, weights, durations, speeds);
+            Assert.AreEqual(LocomotionBlendMath.PhaseRateMax, speeds[1] / durations[1], 1e-4f, "Φ 钳上界");
+            Assert.AreEqual(speeds[1] / durations[1], speeds[2] / durations[2], 1e-5f, "钳制不破相位锁定");
         }
     }
 }

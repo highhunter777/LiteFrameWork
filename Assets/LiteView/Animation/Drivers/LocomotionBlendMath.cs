@@ -25,6 +25,25 @@ namespace LiteView.Animation
         /// <summary>速度轴锚点（m/s）：Run 权重到 1（略低于 <c>CombatConfig.MoveSpeed</c> = 5，给斜向/边界留余量）。</summary>
         public const float RunFullMps = 4.5f;
 
+        /// <summary>Walk 片段的**脚程速度**（m/s——该片段按原生节拍播放时"贴地"的地面速度；
+        /// 步幅对齐的参考值）。**手测定档初始值**（= 走档设计速度）。</summary>
+        public const float WalkNaturalMps = 2.5f;
+
+        /// <summary>Run 片段的**脚程速度**（m/s——同上语义）。**手测定档初始值**（= 满速档设计速度）。</summary>
+        public const float RunNaturalMps = 5f;
+
+        /// <summary>步幅对齐的相位速率（圈/秒）钳制下界——低速/权重趋零时换算会放大（除爆保护）。</summary>
+        public const float PhaseRateMin = 0.4f;
+
+        /// <summary>步幅对齐的相位速率（圈/秒）钳制上界（**手测定档**）。</summary>
+        public const float PhaseRateMax = 2.2f;
+
+        /// <summary>瞄准移动步频倍率（跟脚程）的钳制下界（原 LocomotionRootStage 内联魔法数收口）。</summary>
+        public const float AimStepRateMin = 1f;
+
+        /// <summary>瞄准移动步频倍率的钳制上界（同上收口）。</summary>
+        public const float AimStepRateMax = 2f;
+
         /// <summary>瞄准静止 ↔ 瞄准移动的**进入阈值**（m/s）——迟滞上沿（由移动事实锁存消费，
         /// 战斗根 idle↔walk 轴两族共用：AimIdle↔AimWalk / FireIdle↔FireWalk）。</summary>
         public const float AimMoveEnterMps = 0.6f;
@@ -71,6 +90,41 @@ namespace LiteView.Animation
                 return;
             }
             weights[2] = 1f;
+        }
+
+        /// <summary>
+        /// **移动混合的相位/步幅对齐净速率**（槽位序 {Idle, Walk, Run}；<paramref name="durations"/>
+        /// = 各片段时长（秒）、<paramref name="speeds"/> = 输出净播放速率——逐槽原位写、零分配）。
+        ///
+        /// 口径（步幅对齐——"速率＋相位"）：步态片段**相位锁定 + 脚程匹配**——设公共相位速率
+        /// Φ（圈/秒），步态槽净速率 = Φ × 时长（同 Φ ⇒ 各片段归一化相位同步，混合不打滑、不踩乱拍）；
+        /// Φ 由"加权脚程 = 实际速度"反解：<c>Φ = speed / Σ(wᵢ·时长ᵢ·脚程ᵢ)</c>
+        /// （脚程：Walk = <see cref="WalkNaturalMps"/>、Run = <see cref="RunNaturalMps"/>）。
+        /// **Idle 豁免**：无步态——净速率恒 1（随 Φ 缩放会按权重放大"呼吸"频率）。
+        /// **退化**：有效加权脚程趋零（全静止/全零权重）→ 全槽 1×。
+        /// Φ 钳制 [<see cref="PhaseRateMin"/>, <see cref="PhaseRateMax"/>]——**钳在 Φ 上**：
+        /// 各步态槽同乘时长，相位锁定不被逐槽钳制破坏。
+        /// </summary>
+        public static void BuildMoveSpeeds(float speed, float[] weights, float[] durations, float[] speeds)
+        {
+            speeds[0] = 1f;                                              // Idle 豁免：无步态，恒 1×
+            float weighted = 0f;                                         // Σ(wᵢ·Dᵢ·脚程ᵢ)——Idle 脚程 0 不入和
+            if (weights[1] > 0f) weighted += weights[1] * durations[1] * WalkNaturalMps;
+            if (weights[2] > 0f) weighted += weights[2] * durations[2] * RunNaturalMps;
+
+            if (weighted <= 1e-6f)                                       // 全静止/零权重：无步态可对——全 1×
+            {
+                speeds[1] = 1f;
+                speeds[2] = 1f;
+                return;
+            }
+
+            float phi = speed / weighted;
+            if (phi < PhaseRateMin) phi = PhaseRateMin;
+            else if (phi > PhaseRateMax) phi = PhaseRateMax;
+
+            speeds[1] = phi * durations[1];                              // 相位锁定：净速率 ∝ 时长（同 Φ）
+            speeds[2] = phi * durations[2];
         }
 
         /// <summary>

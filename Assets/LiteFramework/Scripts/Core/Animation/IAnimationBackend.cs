@@ -56,6 +56,18 @@ namespace LiteFramework.Animation
         /// </summary>
         bool TrySetBlendSpeed(AnimationChannel channel, float speedScale);
 
+        /// <summary>
+        /// **就地更新**混合节点的**逐输入净播放速率**（步幅对齐——调用方按"相位比 × 脚程换算"给出
+        /// 各片段的最终倍率：步态片段相位锁定、非步态片段可给恒定 1 豁免换算）。
+        /// **净速率口径**：调用方给出的即最终速率——混合器节点被置 1（不再另行缩放），此前
+        /// <see cref="TrySetBlendSpeed"/> 设过的整体倍率被本调用取代。
+        ///
+        /// 仅当该通道当前节点确实是混合节点、速率数与其输入数一致、逐条有限且 &gt; 0 时生效；
+        /// 否则返回 false 且**不改动现状**。与 <see cref="TrySetBlendWeights"/> 同款"就地调参"纪律：
+        /// 节点、输入片段、句柄都不动（各输入按新速率在其当前时间上连续推进，相位不重置）。
+        /// </summary>
+        bool TrySetBlendInputSpeeds(AnimationChannel channel, float[] speeds);
+
         /// <summary>停止某通道的当前播放（幂等；通道无播放时返回 false）。</summary>
         bool TryStop(AnimationChannel channel);
 

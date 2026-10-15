@@ -16,7 +16,15 @@ namespace LiteView.Animation
     {
         private readonly SlotAnimContext _ctx;
 
-        internal LocomotionRootStage(SlotAnimContext ctx) { _ctx = ctx; }
+        /// <summary>MoveBlend 三槽片段时长（步幅对齐输入；null = 不做换算——清单缺件/测试直构）。</summary>
+        private readonly float[] _moveDurations;
+        private readonly float[] _moveSpeeds = new float[3];
+
+        internal LocomotionRootStage(SlotAnimContext ctx, float[] moveDurations = null)
+        {
+            _ctx = ctx;
+            _moveDurations = moveDurations;
+        }
 
         public void OnInit(IStageHost<CharacterAnimId, CombatAnimReq> m) { }
 
@@ -52,6 +60,7 @@ namespace LiteView.Animation
             if (_ctx.LocoHandle.IsValid && _ctx.Player.UpdateBlendWeights(_ctx.LocoHandle, _ctx.MoveWeights))
             {
                 Array.Copy(_ctx.MoveWeights, _ctx.LocoWeightsCopy, _ctx.MoveWeights.Length);
+                ApplyStrideRates();
                 return;
             }
             SubmitMoveBlend();                                // 句柄不在（初建被拒/异常终态）→ 自愈重提交
@@ -73,6 +82,17 @@ namespace LiteView.Animation
             if (!r.Accepted) return;                          // 拒绝不推进——OnUpdate 自愈重试
             _ctx.LocoHandle = r.Handle;
             Array.Copy(_ctx.MoveWeights, _ctx.LocoWeightsCopy, _ctx.MoveWeights.Length);
+            ApplyStrideRates();                               // 新句柄当帧即落对齐速率（不等下一帧）
+        }
+
+        /// <summary>步幅对齐：按当前速度/权重写逐输入净速率（相位锁定 + 脚程换算——数学见
+        /// <see cref="LocomotionBlendMath.BuildMoveSpeeds"/>）。时长缺省（清单缺件）→ 不干预（保持 1× 现状）；
+        /// 写入被拒（句柄换代/非混合节点）→ 下帧自愈重试。</summary>
+        private void ApplyStrideRates()
+        {
+            if (_moveDurations == null) return;
+            LocomotionBlendMath.BuildMoveSpeeds(_ctx.Speed, _ctx.MoveWeights, _moveDurations, _moveSpeeds);
+            _ctx.Player.TrySetBlendInputSpeeds(_ctx.LocoHandle, _moveSpeeds);
         }
     }
 
@@ -94,7 +114,8 @@ namespace LiteView.Animation
                 Submit(ctx);
             if (ctx.BodyHandle.IsValid)
                 ctx.Player.TrySetBlendSpeed(ctx.BodyHandle,
-                    Mathf.Clamp(ctx.Speed / CombatConfig.AimMoveSpeed, 1f, 2f));
+                    Mathf.Clamp(ctx.Speed / CombatConfig.AimMoveSpeed,
+                        LocomotionBlendMath.AimStepRateMin, LocomotionBlendMath.AimStepRateMax));
         }
     }
 }

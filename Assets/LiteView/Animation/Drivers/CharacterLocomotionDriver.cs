@@ -214,6 +214,21 @@ namespace LiteView.Animation
             return true;
         }
 
+        /// <summary>MoveBlend 三槽 {Idle,Walk,Run} 片段时长（步幅对齐输入——相位比与脚程换算）。
+        /// 任一键不可解析（缺清单/缺片段引用——灰盒降级态）→ null：不干预（保持 1×），不阻断装配。</summary>
+        private float[] ResolveMoveDurations(AnimatorAnimationBackend backend)
+        {
+            if (!_profile.TryGetBlendDefinition(CharacterAnimationIds.MoveBlend, out var moveBlend)
+                || moveBlend.SlotCount != 3)
+                return null;                                   // 构造期已校验在册三槽——此处防御
+
+            var durations = new float[3];
+            for (int i = 0; i < 3; i++)
+                if (!backend.TryGetClipSeconds(moveBlend.Bindings[i], out durations[i]))
+                    return null;
+            return durations;
+        }
+
         /// <summary>
         /// 每渲染帧推进（SimView 之后调用——视图位置先更新，本类再喂事实推状态机）：视图增删检查 →
         /// 速度/方向测量 → 锁存与事实喂入 → 机.Tick（根→叶 OnUpdate + 事务帧末应用）→ 播放器采样推进。
@@ -267,7 +282,7 @@ namespace LiteView.Animation
 
                     // 上下文窄面构造：播放器 + 权重容器（驱动器复用数组，零分配）+ 窗长/换弹倍率
                     s.Ctx = new SlotAnimContext(s.Player, _moveWeights, _aimWeights, _fireHoldSeconds, reloadSpeed);
-                    s.Machine = CombatAnimMachine.Build(s.Ctx);
+                    s.Machine = CombatAnimMachine.Build(s.Ctx, ResolveMoveDurations(backend));
                     s.Machine.Start(CharacterAnimId.LocomotionRoot);   // 初建提交 MoveBlend(Idle=1)——不开局 T-pose（提交/维护归移动根；无控制器时即唯一落位兜底）
 
                     // 持枪约束：换弹叠加层在场时武器骨跟随持枪手（GripBake 烘焙常量直连——

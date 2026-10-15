@@ -68,15 +68,17 @@ namespace LiteView.Animation
     /// </summary>
     public static class CombatAnimMachine
     {
-        /// <summary>装配一台单机双根机（每槽一台，随播放器同生共死——Owner 代次由重建保证）。</summary>
-        public static HierarchicalStageMachine<CharacterAnimId, CombatAnimReq> Build(SlotAnimContext ctx)
+        /// <summary>装配一台单机双根机（每槽一台，随播放器同生共死——Owner 代次由重建保证）。
+        /// <paramref name="moveDurations"/> = MoveBlend 三槽片段时长（步幅对齐输入；null = 不做换算）。</summary>
+        public static HierarchicalStageMachine<CharacterAnimId, CombatAnimReq> Build(SlotAnimContext ctx,
+            float[] moveDurations = null)
         {
             return new HierarchicalStageMachine<CharacterAnimId, CombatAnimReq>(
                 "CharacterAnim",
                 new (CharacterAnimId, IStage<CharacterAnimId, CombatAnimReq>)[]
                 {
                     (CharacterAnimId.CombatRoot, new CombatRootStage(ctx)),
-                    (CharacterAnimId.LocomotionRoot, new LocomotionRootStage(ctx)),
+                    (CharacterAnimId.LocomotionRoot, new LocomotionRootStage(ctx, moveDurations)),
                     (CharacterAnimId.FireIdle, new FireIdleStage(ctx)),
                     (CharacterAnimId.FireWalk, new FireWalkStage(ctx)),
                     (CharacterAnimId.AimIdle, new AimIdleStage(ctx)),

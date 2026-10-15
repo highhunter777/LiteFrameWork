@@ -84,6 +84,17 @@ namespace LiteFramework.Tests.Animation
                 return true;
             }
 
+            /// <summary>逐输入净速率更新的记录（步幅对齐——每次成功调用记一条**快照**：调用方复用数组）。</summary>
+            public readonly List<float[]> BlendInputSpeedsUpdated = new List<float[]>();
+            public bool SetBlendInputSpeedsSucceeds = true;
+
+            public bool TrySetBlendInputSpeeds(AnimationChannel channel, float[] speeds)
+            {
+                if (!SetBlendInputSpeedsSucceeds) return false;
+                BlendInputSpeedsUpdated.Add((float[])speeds.Clone());
+                return true;
+            }
+
             public bool TryStop(AnimationChannel channel) { Stopped.Add(channel); return true; }
 
             public bool IsChannelActive(AnimationChannel channel) => Played.Count > 0;
@@ -998,6 +1009,34 @@ namespace LiteFramework.Tests.Animation
 
             Assert.False(player.TrySetBlendSpeed(current.Handle, 2f), "后端拒绝 = false");
             Assert.True(player.TryGetState(current.Handle, out var state) && state.IsPlaying, "拒绝不得改变现有播放");
+        }
+
+        [Fact]
+        public void 混合_逐输入净速率就地更新_数组快照且不换句柄()
+        {
+            // 步幅对齐路径（逐输入净速率）：同"就地调参"纪律——不换句柄、不产生终态、不重建节点
+            var backend = new FakeBackend();
+            var player = new AnimationPlayer(backend, MixedProfile());
+            int terminals = 0;
+            player.OnTerminal += (h, t) => terminals++;
+
+            var current = Blend(player, "move", AnimationChannel.Base, 1f, 0f);
+            var speeds = new[] { 1f, 0.95f };
+            Assert.True(player.TrySetBlendInputSpeeds(current.Handle, speeds));
+
+            Assert.Single(backend.Blended);                            // 没有第二次提交
+            Assert.Equal(0, terminals);                                // 没有 Interrupted
+            Assert.Single(backend.BlendInputSpeedsUpdated);
+            Assert.Equal(speeds, backend.BlendInputSpeedsUpdated[0]);  // 原样到达后端（快照读）
+            speeds[1] = 9f;
+            Assert.Equal(0.95f, backend.BlendInputSpeedsUpdated[0][1], 1e-5f);   // 提交后改调用方数组不串
+            Assert.True(player.TryGetState(current.Handle, out var state) && state.IsPlaying);
+
+            Assert.False(player.TrySetBlendInputSpeeds(default, new[] { 1f, 1f }), "未知句柄 → false");
+
+            var replaced = Play(player, "run");                        // 同通道替换：混合被 Interrupted
+            Assert.False(player.TrySetBlendInputSpeeds(current.Handle, new[] { 1f, 1f }),
+                "被替换的旧句柄不得再调速率");
         }
 
         [Fact]

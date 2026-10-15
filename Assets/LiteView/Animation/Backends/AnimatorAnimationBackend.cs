@@ -187,8 +187,20 @@ namespace LiteView.Animation
                 ? (ch.Current.IsBlend ? (float)ch.Current.Mixer.GetSpeed() : (float)ch.Current.Clip.GetSpeed())
                 : 0f;
 
+            // 混合节点逐输入倍率（引擎真值——TrySetBlendInputSpeeds 就地可见；单片段节点 = 0 项）
+            int inputSpeeds = 0;
+            float inSpeed0 = 0f, inSpeed1 = 0f, inSpeed2 = 0f, inSpeed3 = 0f;
+            if (hasNode && ch.Current.IsBlend)
+            {
+                inputSpeeds = ch.Current.InputCount;
+                if (inputSpeeds > 0) inSpeed0 = (float)ch.Current.Inputs[0].GetSpeed();
+                if (inputSpeeds > 1) inSpeed1 = (float)ch.Current.Inputs[1].GetSpeed();
+                if (inputSpeeds > 2) inSpeed2 = (float)ch.Current.Inputs[2].GetSpeed();
+                if (inputSpeeds > 3) inSpeed3 = (float)ch.Current.Inputs[3].GetSpeed();
+            }
+
             debug = new AnimationChannelDebug(ch.Active, ch.Binding, weight, ch.Tail.IsValid ? ch.TailWeight : 0f,
-                time, length, ch.Completion.Loop, speed, source);
+                time, length, ch.Completion.Loop, speed, source, inputSpeeds, inSpeed0, inSpeed1, inSpeed2, inSpeed3);
             return true;
         }
 
@@ -358,6 +370,29 @@ namespace LiteView.Animation
             if (ch == null || !ch.Current.IsValid || !ch.Current.IsBlend) return false;
 
             ch.Current.Mixer.SetSpeed(speedScale);
+            return true;
+        }
+
+        /// <summary>**就地更新**混合节点逐输入净播放倍率（步幅对齐）：直接给各输入片段 SetSpeed，
+        /// 混合器节点归 1（**净速率口径**——调用方给出的即最终速率，不再整体缩放）。只对混合节点生效。
+        /// 相位不重置：各输入在其当前时间上按新速率连续推进。</summary>
+        public bool TrySetBlendInputSpeeds(AnimationChannel channel, float[] speeds)
+        {
+            if (_disposed) return false;
+            if (speeds == null) return false;
+
+            ChannelState ch = ChannelOf(channel);
+            if (ch == null || !ch.Current.IsValid || !ch.Current.IsBlend) return false;
+            if (speeds.Length != ch.Current.InputCount) return false;
+            for (int i = 0; i < speeds.Length; i++)
+            {
+                float s = speeds[i];
+                if (float.IsNaN(s) || float.IsInfinity(s) || s <= 0f) return false;
+            }
+
+            for (int i = 0; i < speeds.Length; i++)
+                ch.Current.Inputs[i].SetSpeed(speeds[i]);
+            ch.Current.Mixer.SetSpeed(1f);                 // 净速率口径：混合器不再另行缩放
             return true;
         }
 
