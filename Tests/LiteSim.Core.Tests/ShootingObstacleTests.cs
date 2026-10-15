@@ -5,7 +5,7 @@ namespace LiteSim.Tests
 {
     /// <summary>
     /// 权威射击 × 静态障碍遮挡（子弹不穿墙——判定单源 <see cref="SimRaycast"/>）：
-    /// 墙后目标不可命中（无 Damage/无 Hit，只写 Fire）、矮盒恰在弹道高度带内挡弹、
+    /// 墙后目标不可命中（无 Damage/无 Hit——写 Fire 与 ObstacleHit）、矮盒恰在弹道高度带内挡弹、
     /// 目标近于障碍仍正常命中、被截停不消耗 RngState、开火驻留窗照常置满。
     /// </summary>
     public sealed class ShootingObstacleTests
@@ -51,7 +51,7 @@ namespace LiteSim.Tests
         }
 
         [Fact]
-        public void 墙后目标_子弹被截停_只写Fire不写Damage与Hit()
+        public void 墙后目标_子弹被截停_写Fire与ObstacleHit不写Damage与Hit()
         {
             var (world, shooter, target) = Pair();
             var map = WallBetween(wallX: 5f);
@@ -59,13 +59,30 @@ namespace LiteSim.Tests
 
             ShootingSystem.Run(world, map, FireAt(shooter), CombatValues.Default, WeaponTable.Default);
 
-            Assert.Equal(1, world.Events.Count);                    // 只有 Fire
+            Assert.Equal(2, world.Events.Count);                    // Fire + ObstacleHit
             Assert.Equal(FrameEventKind.Fire, world.Events.Items[0].Kind);
+            FrameEvent obstacle = world.Events.Items[1];
+            Assert.Equal(FrameEventKind.ObstacleHit, obstacle.Kind);
+            Assert.Equal(shooter, obstacle.EntityId);               // 主体 = 开火者
+            Assert.Equal(0L, obstacle.OtherId);
+            Assert.InRange(obstacle.Pos.X, 4.45f, 4.55f);           // 命中点落在墙进入面（墙心 x=5、半厚 0.5）
             Assert.False(HasDamage(world), "墙后目标不可命中——无伤害命令");
             Assert.False(HasHitEvent(world), "无命中事件");
             Assert.Equal(rngBefore, world.RngState);                // 截停不进伤害分支——不消耗随机数
             Assert.Equal(100, world.Entities[1].Hp);                // 目标不掉血
             _ = target;
+        }
+
+        [Fact]
+        public void 纯脱靶_只写Fire不产ObstacleHit()
+        {
+            var (world, shooter, _) = Pair();
+            var map = new SimMapData();                             // 无障碍——射向空场
+
+            ShootingSystem.Run(world, map, FireAt(shooter, px: 0f, pz: 11f), CombatValues.Default, WeaponTable.Default);
+
+            Assert.Equal(1, world.Events.Count);                    // 只有 Fire（脱靶无着墙）
+            Assert.Equal(FrameEventKind.Fire, world.Events.Items[0].Kind);
         }
 
         [Fact]

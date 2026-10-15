@@ -82,10 +82,10 @@ namespace LiteGame
         /// <list type="bullet">
         /// <item><b>Hit / Crit</b>：主体 = 命中<b>目标</b> ⇒ 主体是本地 = 我挨打 ⇒ <b>承受</b>
         ///   （自伤优先承受档）；对象 = 射手，对象是本地 ⇒ <b>造成</b>。</item>
-        /// <item><b>Fire</b>：主体 = <b>开火者</b>（<c>OtherId</c> 恒 0）⇒ 主体是本地 = <b>我开枪</b>
-        ///   ⇒ <b>造成</b>。**这一条必须单独分派**：主体"是本地"在 Fire 里的含义与 Hit 相反，
-        ///   一刀切会把开火反馈按"我被击中"口径驱动——消费者（音效/特效）按 role 选表现，
-        ///   结果是开火响受击声。Fire 无对象，故不存在"对象是本地"的分支。</item>
+        /// <item><b>Fire / ObstacleHit</b>：主体 = <b>开火者</b>（<c>OtherId</c> 恒 0）⇒ 主体是本地 =
+        ///   <b>我开枪</b> ⇒ <b>造成</b>。**这一条必须单独分派**：主体"是本地"在 Fire/ObstacleHit 里的
+        ///   含义与 Hit 相反，一刀切会把开火反馈按"我被击中"口径驱动——消费者（音效/特效）按 role
+        ///   选表现，结果是开火响受击声。二者无对象，故不存在"对象是本地"的分支。</item>
         /// <item><b>Death</b>：主体 = 死者 ⇒ 主体是本地 = 我阵亡 ⇒ 承受（击杀归属对象侧）。</item>
         /// </list>
         /// </summary>
@@ -95,7 +95,7 @@ namespace LiteGame
             long local = _view.LocalEntityId;
             if (local == 0) return role;              // 本地未对齐：如实旁观，不猜
 
-            if (e.Kind == FrameEventKind.Fire)
+            if (e.Kind == FrameEventKind.Fire || e.Kind == FrameEventKind.ObstacleHit)
                 return e.EntityId == local ? HitLocalRole.Caused : HitLocalRole.Bystander;
 
             if (e.EntityId == local) return HitLocalRole.Received;

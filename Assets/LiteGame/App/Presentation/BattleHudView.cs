@@ -43,6 +43,18 @@ namespace LiteGame
         [SerializeField] private TextMeshProUGUI _respawnCountdown;
         [SerializeField] private RectTransform _protectionRoot;
 
+        [Header("击杀提示（击杀提示批：全局最近击杀——多条堆叠、行件全预置）")]
+        [SerializeField] private RectTransform _killFeedRoot;
+        [SerializeField] private GameObject[] _killFeedRows = new GameObject[BattleKillFeedDriver.RowCount];
+        [SerializeField] private TextMeshProUGUI[] _killFeedKillers = new TextMeshProUGUI[BattleKillFeedDriver.RowCount];
+        [SerializeField] private Image[] _killFeedWeapons = new Image[BattleKillFeedDriver.RowCount];
+        [SerializeField] private TextMeshProUGUI[] _killFeedVictims = new TextMeshProUGUI[BattleKillFeedDriver.RowCount];
+        [SerializeField] private Sprite[] _weaponIcons = new Sprite[BattleKillFeedDriver.SlotCount];
+
+        [Header("网络质量（ping/丢包批：RTT / 丢包千分比）")]
+        [SerializeField] private RectTransform _netStatsRoot;
+        [SerializeField] private TextMeshProUGUI _netStatsText;
+
         public RectTransform CrosshairRoot => _crosshairRoot;
         public GameObject HipForm => _hipForm;
         public GameObject AdsForm => _adsForm;
@@ -60,6 +72,18 @@ namespace LiteGame
         public TextMeshProUGUI RespawnTitle => _respawnTitle;
         public TextMeshProUGUI RespawnCountdown => _respawnCountdown;
         public RectTransform ProtectionRoot => _protectionRoot;
+        public RectTransform KillFeedRoot => _killFeedRoot;
+        public GameObject[] KillFeedRows => _killFeedRows;
+        public TextMeshProUGUI[] KillFeedKillers => _killFeedKillers;
+        public Image[] KillFeedWeapons => _killFeedWeapons;
+        public TextMeshProUGUI[] KillFeedVictims => _killFeedVictims;
+
+        /// <summary>武器图标（下标 = 装备槽 <c>0..WeaponSlotsPerEntity-1</c>；来自收集目录复制件——
+        /// 数据面单源 <c>tbweapon.icon</c>）。驱动按击杀帧武器槽取图。</summary>
+        public Sprite[] WeaponIcons => _weaponIcons;
+
+        public RectTransform NetStatsRoot => _netStatsRoot;
+        public TextMeshProUGUI NetStatsText => _netStatsText;
 
         /// <summary>死亡/复活件是否齐备（中央面板 3 件；保护角标可缺——驱动内静默降级）。</summary>
         public bool HasRespawnHud =>
@@ -71,5 +95,14 @@ namespace LiteGame
             _rankNames != null && _rankNames.Length == BattleRankboardDriver.CellCount
             && _rankKills != null && _rankKills.Length == BattleRankboardDriver.CellCount
             && _rankHighlights != null && _rankHighlights.Length == BattleRankboardDriver.CellCount;
+
+        /// <summary>击杀提示件是否齐备（根 + 行四组各 <see cref="BattleKillFeedDriver.RowCount"/> 件）
+        /// ——装配期判据，缺件走静默降级（不把"旧 prefab"当对局失败）。</summary>
+        public bool HasKillFeed =>
+            _killFeedRoot != null
+            && _killFeedRows != null && _killFeedRows.Length == BattleKillFeedDriver.RowCount
+            && _killFeedKillers != null && _killFeedKillers.Length == BattleKillFeedDriver.RowCount
+            && _killFeedWeapons != null && _killFeedWeapons.Length == BattleKillFeedDriver.RowCount
+            && _killFeedVictims != null && _killFeedVictims.Length == BattleKillFeedDriver.RowCount;
     }
 }

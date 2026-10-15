@@ -44,7 +44,7 @@ namespace LiteGame
         /// <summary>伤害数字底件 prefab（世界空间 TMP 飘字；实例由驱动按预算逐条实例化）。</summary>
         private const string DamageNumberPrefab = "Assets/ShareResource/FX/fx_damage_number.prefab";
 
-        /// <summary>出生保护壳件 prefab（阵亡批；**金色**半透明包裹壳——表现件走 ShareResource/FX，收集组件级热更）。</summary>
+        /// <summary>出生保护壳件 prefab（FX 域；**金色**半透明包裹壳——表现件走 ShareResource/FX，收集组件级热更）。</summary>
         private const string ProtectionShellPrefab = "Assets/ShareResource/FX/fx_spawn_protection.prefab";
 
         /// <summary>伤害数字逐档材质（黑描边+软影+按档光晕；面部颜色归顶点渐变，不进材质）。
@@ -76,6 +76,9 @@ namespace LiteGame
         private BattleHudDriver _hud;                   // HUD 面板（血条/弹药——技能栏静态占位）
         private BattleRankboardDriver _rankboard;       // 局内排行榜（FFA 比分＝击杀——镜像公共面）
         private BattleRespawnHudDriver _respawnHud;      // 死亡/复活 HUD（中央倒计时 + 归属 + 保护角标）
+        private BattleKillFeedDriver _killFeed;          // 全局击杀提示（快照携带的最近击杀窗口——多条堆叠）
+        private BattleNetworkHudDriver _netStats;        // 网络质量显示（会话探针 RTT/丢包——离线隐藏）
+        private BattleRemoteMuzzleFlashDriver _remoteFire;   // 远端开火火光（快照携带的最近开火窗口——静默降级）
         private BattleProtectionFxDriver _protectionFx;  // 出生保护壳（金色包裹壳跟随本地角色）
         private GameObject _protectionShell;             // 保护壳实例（挂 _viewRoot，随离场拆）
         private AssetLease<GameObject> _protectionShellLease;   // 保护壳租约（登记 _viewScope）
@@ -120,9 +123,9 @@ namespace LiteGame
             _worldClock = worldClock;
             _audio = audio;
             _commands = commands;
+            _crosshairFeel = crosshairFeel;
 
             _viewScope = account.CreateChild("BattleView");
-            _crosshairFeel = crosshairFeel;
             _viewRootGo = new GameObject("[BattleView]");
             if (Application.isPlaying) UnityEngine.Object.DontDestroyOnLoad(_viewRootGo);
             _viewRoot = _viewRootGo.transform;
@@ -219,7 +222,7 @@ namespace LiteGame
         }
 
         /// <summary>
-        /// 取出生保护壳件并实例化（阵亡批；挂 `_viewRoot`、缺省收起——实例随离场拆）。资源缺失/加载失败 →
+        /// 取出生保护壳件并实例化（FX 域；挂 `_viewRoot`、缺省收起——实例随离场拆）。资源缺失/加载失败 →
         /// **静默降级**（只警告）：保护特效是表现增益，不把"缺件"当对局失败。
         /// </summary>
         private async UniTask AcquireProtectionShellAsync(CancellationToken ct)
@@ -366,15 +369,18 @@ namespace LiteGame
             AttachCrosshair();                                  // 对局准心（视图/输入均已就绪，场景对象按名解析）
             AttachHud();                                        // HUD 面板（血条/弹药——同根场景对象，静默降级）
             AttachRankboard();                                  // 局内排行榜（FFA 比分＝击杀——8 格预置，静默降级）
+            AttachKillFeed();                                   // 全局击杀提示（最近击杀窗口——多条堆叠，静默降级）
+            AttachNetworkHud();                                 // 网络质量显示（会话探针 RTT/丢包——静默降级）
             _aimPointOf = AimPointOf(_input);                   // 瞄准点（世界）→ 相机构图 z 偏移 + 激光收敛端点
             AttachLaserSight();                                 // 瞄准激光（束实例已取，接线驱动）
-            AttachProtectionFx();                              // 出生保护壳（阵亡批；金色包裹壳跟随本地角色）
+            AttachProtectionFx();                              // 出生保护壳（FX 域；金色包裹壳跟随本地角色）
             _hitFeedback = new HitFeedbackDispatcher(_view);   // 命中分发骨架：EventSink 并列订阅
+            _hitFeedback.Register(_crosshair);                // 准心：本地 Fire → 连发张开/后坐（null 拒收 = HUD 缺件静默降级）
             AttachRespawnHud();                               // 死亡/复活 HUD（阵亡批；归属走帧事件消费）
             AttachDamageNumbers();                             // 伤害数字（命中反馈首个消费者）
             AttachCombatFx();                                  // 枪口火光 + 敌人命中特效（帧事件路由的 VFX 消费者）
+            AttachRemoteFireFx();                             // 远端开火火光（开火窗口快照面 → 他人枪口挂点）
             AttachAudio();                                     // 对局音效（帧事件路由的 Audio 消费者）
-            _hitFeedback.Register(_crosshair);                // 准心：本地 Fire → 连发张开/后坐（null 拒收 = HUD 缺件静默降级）
 #if UNITY_EDITOR || DEVELOPMENT_BUILD || LITEFRAMEWORK_DEBUG
             // 爆头区域常驻可视化（测试模式诊断件）：只读预测态，不改判定；release 剥离
             _headshotDebug = new BattleHeadshotDebugDrawer(_context.Sim);
@@ -398,10 +404,13 @@ namespace LiteGame
             _crosshair?.Tick(elapseSeconds);          // 对局准心（HUD）：位置/形态/光标 + 连发张开/后坐回正（真实帧时长）
             _hud?.Tick();                        // HUD 面板：血条/弹药（预测态值变化写）
             _rankboard?.Tick();                  // 局内排行榜：击杀分布变化才重排/写（镜像公共面）
+            _killFeed?.Tick();                   // 全局击杀提示：待展示队列 → 行（驻留到时回收）
+            _netStats?.Tick();                   // 网络质量：探针 RTT/丢包（值变才写，离线隐藏）
             _respawnHud?.Tick();                 // 死亡/复活：阵亡倒计时/归属/保护角标（值变化才写）
             _protectionFx?.Tick();               // 出生保护壳：保护态内跟随本地角色显隐
             _laser?.Tick();                      // 瞄准激光：端点 = 开火射线（实体/障碍截停）
             _damageNumbers?.Tick();              // 伤害数字：命中事件的视觉收尾（合并窗口/淡出/跟随）
+            _remoteFire?.Tick();                 // 远端开火火光：开火窗口队列 → 远端枪口挂点播放
 
             // 瞄准相机接管（每帧幂等；适配器按沿生效——视图态已解析；滞回门控短按，防频繁点按重启混合）
             _camera?.SetAiming(_aimGate.Feed(IsLocalAiming(), elapseSeconds));
@@ -462,6 +471,12 @@ namespace LiteGame
             _locomotion = null;
             _rankboard?.Dispose();                // 排行榜（格归位——同属视图消费者）
             _rankboard = null;
+            _killFeed?.Dispose();                 // 击杀提示（行归位——同属视图消费者）
+            _killFeed = null;
+            _remoteFire?.Dispose();               // 远端火光（挂点缓存归零——同属视图消费者）
+            _remoteFire = null;
+            _netStats?.Dispose();                 // 网络质量件（归位——同属视图消费者）
+            _netStats = null;
             _hud?.Dispose();                      // HUD 面板（面板归零——视图消费者，先于准心拆）
             _hud = null;
             _respawnHud?.Dispose();               // 死亡/复活 HUD（帧事件消费者——先于分发器摘）
@@ -607,6 +622,45 @@ namespace LiteGame
         }
 
         /// <summary>
+        /// 挂全局击杀提示（<see cref="BattleKillFeedDriver"/>——击杀提示批）：消费会话公共击杀面
+        /// （<see cref="BattleContext.KillFeed"/>——快照携带的最近击杀窗口）。行件不齐（旧 prefab / 结构变更）
+        /// → **静默降级**（只警告）：击杀提示是表现增益，不影响 HUD 其余面。武器图标可缺（缺件不显示图标）。
+        /// </summary>
+        private void AttachKillFeed()
+        {
+            if (_hudView == null) return;                  // HUD 已整体降级（AttachHud/准心处已警告）
+            if (!_hudView.HasKillFeed)
+            {
+                Log.Warning("HUD prefab 击杀提示行件不齐（行四组）×4——击杀提示静默降级", "Battle");
+                return;
+            }
+            _killFeed = new BattleKillFeedDriver(_context.Sim.State,
+                () => _view != null ? _view.LocalEntityId : 0L,
+                _context.KillFeed,
+                _hudView.WeaponIcons,
+                _hudView.KillFeedRows, _hudView.KillFeedKillers, _hudView.KillFeedWeapons, _hudView.KillFeedVictims);
+            Log.Info("kill-feed-attached", "Battle");
+        }
+
+        /// <summary>
+        /// 挂网络质量显示（<see cref="BattleNetworkHudDriver"/>——ping/丢包批）：显示会话探针推断的
+        /// RTT/丢包千分比。件缺失（旧 prefab / 结构变更）→ **静默降级**（只警告）：网络质量显示是
+        /// 表现/诊断增益，不影响 HUD 其余面。数据源走 <see cref="BattleContext.NetworkQuality"/>（会话透传）。
+        /// </summary>
+        private void AttachNetworkHud()
+        {
+            if (_hudView == null) return;                  // HUD 已整体降级（AttachHud/准心处已警告）
+            if (_hudView.NetStatsRoot == null || _hudView.NetStatsText == null)
+            {
+                Log.Warning("HUD prefab 网络质量件缺失——网络质量显示静默降级", "Battle");
+                return;
+            }
+            _netStats = new BattleNetworkHudDriver(() => _context.NetworkQuality,
+                _hudView.NetStatsRoot.gameObject, _hudView.NetStatsText);
+            Log.Info("net-stats-attached", "Battle");
+        }
+
+        /// <summary>
         /// 挂死亡/复活 HUD（<see cref="BattleRespawnHudDriver"/>——阵亡批）：中央复活倒计时 ＋ 阵亡归属
         /// ＋ 保护期角标。中央面板件不齐（旧 prefab / 结构变更）→ **静默降级**（只警告）；保护角标可缺
         /// （驱动内跳过）。归属走帧事件（注册进 <see cref="HitFeedbackDispatcher"/>——只吃 Death×我阵亡）。
@@ -628,7 +682,7 @@ namespace LiteGame
         }
 
         /// <summary>
-        /// 挂出生保护壳（<see cref="BattleProtectionFxDriver"/>——阵亡批；金色包裹壳）：保护态内**跟随本地
+        /// 挂出生保护壳（<see cref="BattleProtectionFxDriver"/>——FX 域；金色包裹壳）：保护态内**跟随本地
         /// 角色视图根**显隐（壳件挂 `_viewRoot`——不挂角色视图，避免回池复用把壳留给别的实体）。
         /// 壳件未取（缺件已警告）→ 本段静默跳过。
         /// </summary>
@@ -705,6 +759,18 @@ namespace LiteGame
             _impactFx = new BattleImpactFxDriver(_vfx);
             _hitFeedback?.Register(_muzzleFlash);
             _hitFeedback?.Register(_impactFx);
+        }
+
+        /// <summary>
+        /// 挂远端开火火光（<see cref="BattleRemoteMuzzleFlashDriver"/>）：消费会话公共开火面
+        /// （<see cref="BattleContext.FireFeed"/>——快照携带的最近开火窗口），把他人开火落到其枪口挂点。
+        /// VFX 服务未注入 → **静默降级**（<see cref="AttachCombatFx"/> 处已警告）。
+        /// </summary>
+        private void AttachRemoteFireFx()
+        {
+            if (_vfx == null) return;                      // VFX 已整体降级（AttachCombatFx 处已警告）
+            _remoteFire = new BattleRemoteMuzzleFlashDriver(_view, _context.FireFeed, _vfx);
+            Log.Info("remote-fire-attached", "Battle");
         }
 
         /// <summary>

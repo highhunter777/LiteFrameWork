@@ -66,12 +66,23 @@ namespace LiteClient
         /// <summary>和解次数（本地预测被权威覆盖的次数；诊断/DevHUD）。</summary>
         public long ReconcileCount => _reconcileCount;
 
+        /// <summary>公共击杀面（全局击杀提示的待展示队列；HUD 驱动逐条取用）。</summary>
+        public PublicKillFeed KillFeed => _killFeed;
+
+        /// <summary>公共开火面（远端开火火光的待播队列；表现驱动逐条取用）。</summary>
+        public PublicFireFeed FireFeed => _fireFeed;
+
+        /// <summary>网络质量观测（会话面透传——HUD 展示；表现/诊断面，不参与判定）。</summary>
+        public NetworkQuality NetworkQuality => _battle.Quality;
+
         private readonly BattleClient _battle;
         private readonly ClientScope _matchScope;
         private readonly SimMapData _map;
         private readonly uint _gameplayDigestBase;        // 本地装载产物的玩法数据身份基摘要（批 E 校验点用）
         private readonly BattleInputPipeline _inputs;      // 输入三件（顺序与上行）
         private readonly BattleSnapshotMirror _mirror = new BattleSnapshotMirror();   // 持久镜像 + 和解 + 插值源
+        private readonly PublicKillFeed _killFeed = new PublicKillFeed();             // 公共击杀面（快照携带的最近击杀窗口 → 去重队列）
+        private readonly PublicFireFeed _fireFeed = new PublicFireFeed();             // 公共开火面（快照携带的最近开火窗口 → 去重队列）
 
         private RollbackSim _sim;
         private long _localEntityId;
@@ -284,6 +295,9 @@ namespace LiteClient
             }
 
             _mirror.PushToView(View);                // 视图插值源：上一份/最新一份轮转
+
+            _killFeed.Ingest(snapshot);              // 公共击杀面：最近击杀窗口 → 去重队列（首份快照不重播历史）
+            _fireFeed.Ingest(snapshot);              // 公共开火面：最近开火窗口 → 去重队列（首份快照不重播历史）
         }
 
         /// <summary>
@@ -294,6 +308,9 @@ namespace LiteClient
         {
             if (_disposed) return;
             if (!response.Ok || _battle.Phase != ClientSessionPhase.Restoring) return;
+
+            _killFeed.Reset();                       // 重连：不重播断线前击杀（恢复快照的窗口按"已见"重新标记）
+            _fireFeed.Reset();                       // 重连：不重播断线前开火（恢复快照的窗口按"已见"重新标记）
 
             if (_localEntityId == 0 && _battle.Client.PlayerId >= 0)
                 ResolveLocalEntity(response.Snapshot);

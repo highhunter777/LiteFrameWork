@@ -47,6 +47,12 @@ namespace LiteNet
         /// <summary>重连等待窗口（毫秒）：重拨/等待 ReconnectResponse 的总预算——超时进 Failed（§9.3"超时/拒绝 → Failed"）。</summary>
         public const long ReconnectTimeoutMs = 10_000;
 
+        /// <summary>RTT/丢包探针发送周期（毫秒）。</summary>
+        public const long ProbeIntervalMs = 1000;
+
+        /// <summary>探针滚动窗口（丢包统计分母——越大越平滑、越钝；须 ≥ 1）。</summary>
+        public const int ProbeWindow = 8;
+
         private readonly IClientTransport _transport;
         private readonly Func<long> _nowMs;                                          // 单调毫秒（可注入：L1 用虚拟时钟）
         private readonly PacketWriter _writer = new PacketWriter();                 // 复用编码（高频输入零分配）
@@ -72,6 +78,14 @@ namespace LiteNet
         private uint _matchConfigHash;
         private long _reconnectDeadlineMs;   // Reconnecting 相位的超时线（注入时钟口径）
 
+        // ---- 网络质量探针（RTT/丢包观测；1Hz Unreliable，S→C 原样回显——表现/诊断面，不参与判定）----
+        private readonly long[] _probeSentAt = new long[ProbeWindow];    // 环形：探针发送时刻（client_time 兼探针 id）
+        private readonly bool[] _probeEchoed = new bool[ProbeWindow];    // 对应探针是否已收回声
+        private int _probeWrite;                                         // 下一写入下标
+        private int _probeCount;                                         // 窗口内有效探针数（≤ ProbeWindow）
+        private long _lastProbeMs = long.MinValue;                       // 上次发探针时刻（节流）
+        private int _rttMs = NetworkQuality.NoSample;                    // 最近一次回声推得的 RTT
+
         public bool Connected => _transport.Connected;
         public int PlayerId { get; private set; } = -1;
 
@@ -82,6 +96,9 @@ namespace LiteNet
 
         /// <summary>当前会话相位（§9.3 状态机的观测面）。</summary>
         public ClientSessionPhase Phase => _phase;
+
+        /// <summary>网络质量观测（1Hz 探针推断的 RTT/丢包；表现/诊断面——不参与任何游戏逻辑或准入）。</summary>
+        public NetworkQuality Quality => new NetworkQuality(_rttMs, LossPermille(), _phase == ClientSessionPhase.Connected);
 
         /// <summary>
         /// 内容/事务诊断上下文（**组合根注入**；null/空 = 未注入）：发布身份/内容代次/激活事务 ID 的自由文本，
@@ -280,7 +297,70 @@ namespace LiteNet
             if (_phase == to) return;
             ClientSessionPhase from = _phase;
             _phase = to;
+            // 离开在房/恢复相位即重置探针窗口：新会话/重连不把上一段的丢包带进本轮统计
+            if (to != ClientSessionPhase.Connected && to != ClientSessionPhase.Restoring) ResetProbe();
             OnPhaseChanged?.Invoke(from, to);
+        }
+
+        /// <summary>
+        /// RTT/丢包探针（1Hz，Unreliable）：仅 Connected/Restoring 相位发——离线期不产生新样本
+        /// （<see cref="ResetProbe"/> 已把窗口清零，展示面据 <see cref="NetworkQuality.Connected"/> 决定是否显示）。
+        /// client_time = 发送时刻（单调毫秒），兼作探针 id——服务器原样回显，本端据此配对算 RTT。
+        /// </summary>
+        private void PumpProbe()
+        {
+            if (_disposed) return;
+            if (_phase != ClientSessionPhase.Connected && _phase != ClientSessionPhase.Restoring) return;
+
+            long now = _nowMs();
+            if (_lastProbeMs != long.MinValue && now - _lastProbeMs < ProbeIntervalMs) return;
+            _lastProbeMs = now;
+
+            Send(PacketType.Heartbeat, new Proto.Heartbeat { ClientTime = now }, reliable: false);
+
+            _probeSentAt[_probeWrite] = now;
+            _probeEchoed[_probeWrite] = false;
+            _probeWrite = (_probeWrite + 1) % ProbeWindow;
+            if (_probeCount < ProbeWindow) _probeCount++;
+        }
+
+        /// <summary>回声配对：client_time 命中在途探针 → 记 RTT（未命中的回声忽略——重发/旧回声）。</summary>
+        private void HandleProbeEcho(long clientTime)
+        {
+            long now = _nowMs();
+            for (int i = 0; i < _probeCount; i++)
+            {
+                int idx = (_probeWrite - 1 - i + ProbeWindow * 2) % ProbeWindow;
+                if (_probeSentAt[idx] != clientTime || _probeEchoed[idx]) continue;
+                _probeEchoed[idx] = true;
+                int rtt = (int)(now - clientTime);
+                _rttMs = rtt < 0 ? 0 : rtt;
+                return;
+            }
+        }
+
+        /// <summary>丢包千分比：窗口内"未回声"占比（无样本 = <see cref="NetworkQuality.NoSample"/>）。</summary>
+        private int LossPermille()
+        {
+            if (_probeCount == 0) return NetworkQuality.NoSample;
+            int lost = 0;
+            for (int i = 0; i < _probeCount; i++)
+            {
+                int idx = (_probeWrite - 1 - i + ProbeWindow * 2) % ProbeWindow;
+                if (!_probeEchoed[idx]) lost++;
+            }
+            return lost * 1000 / _probeCount;
+        }
+
+        /// <summary>探针窗口清零（相位切换/进房起新一轮统计）。</summary>
+        private void ResetProbe()
+        {
+            _probeCount = 0;
+            _probeWrite = 0;
+            _lastProbeMs = long.MinValue;
+            _rttMs = NetworkQuality.NoSample;
+            Array.Clear(_probeSentAt, 0, _probeSentAt.Length);
+            Array.Clear(_probeEchoed, 0, _probeEchoed.Length);
         }
 
         /// <summary>重拨连接建立（Reconnecting 中）：自动发 ReconnectRequest；连接等待窗重置（握手耗时不再挤占响应预算）。</summary>
@@ -326,7 +406,7 @@ namespace LiteNet
         }
 
         public void TickIncoming() { CheckReconnectDeadline(); _transport.TickIncoming(); }
-        public void TickOutgoing() { CheckReconnectDeadline(); _transport.TickOutgoing(); }
+        public void TickOutgoing() { CheckReconnectDeadline(); PumpProbe(); _transport.TickOutgoing(); }
 
         public void Disconnect() => _transport.Disconnect();
 
@@ -443,6 +523,9 @@ namespace LiteNet
                 case PacketType.OwnerChanged:                          // 房主迁移：UI 换按钮归属
                     IsOwner = ((Proto.OwnerChanged)msg).PlayerId == PlayerId;   // 事实重算（迁移后旧主失位/新主到位）
                     OnOwnerChanged?.Invoke((Proto.OwnerChanged)msg);
+                    break;
+                case PacketType.Heartbeat:                              // RTT/丢包探针回声（服务器原样回显 client_time）
+                    HandleProbeEcho(((Proto.Heartbeat)msg).ClientTime);
                     break;
             }
         }

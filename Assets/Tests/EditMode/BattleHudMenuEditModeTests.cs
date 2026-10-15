@@ -200,6 +200,63 @@ namespace LiteGame.Tests.EditMode
             Assert.IsNotNull(FindDeep(root.transform, "Txt_Protection"), "保护角标文案件在位");
         }
 
+        [Test]
+        public void HUD_击杀提示面_预置行_引用件已接_缺省非激活()
+        {
+            GameObject root = AssetDatabase.LoadAssetAtPath<GameObject>(HudPath);
+            Assert.IsNotNull(root, "Hud_Battle.prefab 在库");
+            var view = root.GetComponent<BattleHudView>();
+            Assert.IsNotNull(view, "BattleHudView 引用件在位");
+
+            Assert.IsTrue(view.HasKillFeed, "击杀提示行四组引用齐备（缺件则装配期静默降级）");
+            Assert.IsNotNull(view.KillFeedRoot, "击杀提示容器引用已接");
+            Assert.IsNotNull(view.WeaponIcons, "武器图标数组已接");
+            Assert.AreEqual(BattleKillFeedDriver.SlotCount, view.WeaponIcons.Length, "图标数 = 装备槽数（下标域）");
+            for (int i = 0; i < BattleKillFeedDriver.SlotCount; i++)
+                Assert.IsNotNull(view.WeaponIcons[i], $"槽 {i} 武器图标在册（收集目录复制件）");
+
+            for (int i = 1; i <= BattleKillFeedDriver.RowCount; i++)
+            {
+                Transform row = FindDeep(root.transform, "Cot_KillFeedRow" + i);
+                Assert.IsNotNull(row, $"第 {i} 行预置（**运行时代码禁建视觉元素**）");
+                Assert.IsFalse(row.gameObject.activeSelf, $"第 {i} 行缺省非激活（驱动按待展示队列开关）");
+                Assert.IsFalse(row.gameObject.activeInHierarchy, $"第 {i} 行不参与渲染");
+
+                Transform killer = FindDeep(row, "Txt_KillFeedKiller");
+                Assert.IsNotNull(killer, $"第 {i} 行击杀者件");
+                Transform victim = FindDeep(row, "Txt_KillFeedVictim");
+                Assert.IsNotNull(victim, $"第 {i} 行死者件");
+                Transform weapon = FindDeep(row, "Image_KillFeedWeapon");
+                Assert.IsNotNull(weapon, $"第 {i} 行武器图标件");
+
+                foreach (Transform t in new[] { killer, victim, weapon })
+                {
+                    var graphic = t.GetComponent<Graphic>();
+                    Assert.IsNotNull(graphic, $"{t.name} 是 Graphic");
+                    Assert.IsFalse(graphic.raycastTarget, $"{t.name} 不拦射线（HUD 唯一射线件仍是菜单钮）");
+                }
+            }
+        }
+
+        [Test]
+        public void HUD_网络质量件_在位_引用已接_缺省非激活()
+        {
+            GameObject root = AssetDatabase.LoadAssetAtPath<GameObject>(HudPath);
+            Assert.IsNotNull(root, "Hud_Battle.prefab 在库");
+            var view = root.GetComponent<BattleHudView>();
+            Assert.IsNotNull(view, "BattleHudView 引用件在位");
+
+            Assert.IsNotNull(FindDeep(root.transform, "Cot_NetStats"), "网络质量容器在位");
+            Assert.IsNotNull(FindDeep(root.transform, "Txt_NetStats"), "网络质量文案件在位");
+            Assert.IsNotNull(view.NetStatsRoot, "容器引用已接");
+            Assert.IsNotNull(view.NetStatsText, "文本引用已接");
+            Assert.IsFalse(view.NetStatsRoot.gameObject.activeSelf, "缺省非激活（驱动按探针样本开关）");
+
+            var graphic = view.NetStatsText.GetComponent<Graphic>();
+            Assert.IsNotNull(graphic, "文本是 Graphic");
+            Assert.IsFalse(graphic.raycastTarget, "网络质量文本不拦射线（HUD 唯一射线件仍是菜单钮）");
+        }
+
         private static Transform FindDeep(Transform parent, string name)
         {
             foreach (Transform child in parent)

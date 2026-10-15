@@ -84,6 +84,27 @@ message MatchStateDelta {
   int32 respawn_delay_frames = 8;
   int32 spawn_protection_frames = 9;
   int32 end_reason = 10;              // 0 无 / 1 时限 / 2 击杀目标 / 3 外部关闭
+  // ---- 全局击杀面（**只增字段号**追加；最近击杀窗口随每份快照全量携带——30Hz 自带丢包收敛）----
+  // 房间级公共事实（权威侧在击杀帧记录；客户端按 (killer,victim,frame) 去重消费）。
+  repeated KillRecord recent_kills = 11;
+  // ---- 全局开火面（**只增字段号**追加；最近开火窗口随每份快照全量携带）----
+  // 远端开火火光的公共面源（权威侧在开火帧记录；客户端按 (shooter,frame) 去重消费——
+  // 本地开火走本地帧事件即时播，不消费本窗口）。
+  repeated FireRecord recent_fires = 12;
+}
+
+// 单条击杀记录（全局击杀提示的公共面源；《战斗HUD层级设计》§2 击杀提示面）
+message KillRecord {
+  int64 killer = 1;                   // 击杀者实体 Id（0 = 无归属：自杀/环境伤害）
+  int64 victim = 2;                   // 死者实体 Id
+  int32 frame = 3;                    // 击杀发生的权威帧（去重键之一 + 展示序）
+  int32 weapon_slot = 4;              // 击杀帧击杀者的装备武器槽（-1 = 无归属/未装备；图标按槽索引）
+}
+
+// 单条开火记录（远端开火火光的公共面源）
+message FireRecord {
+  int64 shooter = 1;                  // 开火者实体 Id（武器门放行的实际开火；空仓/被拦/死亡不产）
+  int32 frame = 2;                    // 开火发生的权威帧（去重键 + 时效判据）
 }
 
 // 私有面（PrivateStateSnapshot 层）单元消息：只发本人（《游戏业务系统总设计》§1——禁止泄漏他人库存）
@@ -158,7 +179,7 @@ message StartGame         {
   string match_id = 5;                  // 独立于房间路由的本局身份/结算幂等键
 }
 message Leave            { }
-message Heartbeat        { int64 client_time = 1; }  // 连接保活由 kcp2k 内建 Ping 承担；此包留给 RTT 观测，M10 不强制发送
+message Heartbeat        { int64 client_time = 1; }  // RTT/丢包探针（Unreliable；C→S 发 client_time = 发送时刻单调毫秒，S→C 原样回显；保活仍由 kcp2k 内建 Ping 承担）
 message ReconnectRequest { string one_time_token = 1; }   // E3：一次性票据
 message ReconnectResponse {
   bool ok = 1;

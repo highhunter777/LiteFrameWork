@@ -182,7 +182,6 @@ namespace LiteGame.Editor
                 "对局内拖动即生效（换弹上半身叠加期的武器骨跟随强度实时随动）；release 无此面（覆写面随三宏剥离，恒烘焙值）。",
                 MessageType.Info);
         }
-    }
 
         // ---- 准心调参实时调（表现沙箱件，纯观感——连发临时张开/后坐定档面）----
 
@@ -237,4 +236,5 @@ namespace LiteGame.Editor
             float shown = devOverride >= 0f ? devOverride : reference;
             return EditorGUILayout.Slider(label, shown, min, max);
         }
+    }
 }

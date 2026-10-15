@@ -64,9 +64,9 @@ namespace LiteGame
         public event Action<ArraySegment<byte>, bool> OnData;
         public event Action OnDisconnected;
 
-        /// <summary>诊断：已接受的输入包 / 已广播的快照数。</summary>
-        public long InputsAccepted;
-        public long SnapshotsSent;
+        /// <summary>诊断：已接受的输入包 / 已广播的快照数（只读观测面——写入面仅本类）。</summary>
+        public long InputsAccepted { get; private set; }
+        public long SnapshotsSent { get; private set; }
 
         /// <summary>测试房规则持有件（null = 常规对局）——盖初值进数值快照 + 注入权威步进。</summary>
         private readonly MatchTestRules _testRules;
@@ -95,7 +95,7 @@ namespace LiteGame
             _runtime = new RoomRuntime(roomConfig, combat, testRules: testRules, gameplayDigestBase: gameplayDigestBase);
             _botRefillHp = (combat ?? CombatValues.Default).EntityHp;   // 与 RoomRuntime 取值同口径（combat ?? Default）
             _seats = new Session[_runtime.ExpectedPlayers];
-            _pipeline = new SnapshotPipeline(_seats)
+            _pipeline = new SnapshotPipeline(_seats, kills: _runtime.Kills, fires: _runtime.Fires)
             {
                 SendTo = (session, type, msg, reliable) => _outbox.Add((type, msg)),
             };
@@ -168,6 +168,13 @@ namespace LiteGame
                 {
                     if (!_joined) break;
                     HandleInput((InputMessage)msg);
+                    break;
+                }
+                case PacketType.Heartbeat:
+                {
+                    // RTT/丢包探针回声：与真服务端同口径——原样回显 client_time（Unreliable）
+                    _outbox.Add((PacketType.Heartbeat, new Heartbeat { ClientTime = ((Heartbeat)msg).ClientTime }));
+                    FlushOutbox();
                     break;
                 }
             }

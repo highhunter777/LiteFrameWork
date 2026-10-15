@@ -43,6 +43,12 @@ namespace RoomServer.Runtime
         public readonly InputGate Gate;
         public readonly LagCompensator LagComp;         // 命中回溯
 
+        /// <summary>最近击杀窗口（全局击杀提示的公共面源——每帧死亡事件的权威记录；App 层映射为 wire）。</summary>
+        public readonly KillRecordWindow Kills;
+
+        /// <summary>最近开火窗口（远端开火火光的公共面源——每帧前向开火事件的权威记录；App 层映射为 wire）。</summary>
+        public readonly FireRecordWindow Fires;
+
         /// <summary>房间创建时刻固定的不可变玩法配置快照（§4/P0-5：替代进程全局可变 CombatConfig）。</summary>
         public readonly FixedCombatConfig FixedConfig;
         public readonly MatchRules Rules;
@@ -117,6 +123,8 @@ namespace RoomServer.Runtime
             int players = ExpectedPlayers;                     // 配置定容（席位/输入槽/实体表/回溯环一致）
             Gate = new InputGate(players, values);
             LagComp = new LagCompensator(AuthSim, Map, players, SnapshotHistory, values, table);
+            Kills = new KillRecordWindow();
+            Fires = new FireRecordWindow();
             _seats = new PlayerSession[players];
             _entityIds = new long[players];
             _frameInputs = new SimInputFrame[players];
@@ -482,12 +490,15 @@ namespace RoomServer.Runtime
                 _hasPendingFire[i] &= fired;
                 _frameInputs[i].Buttons &= ~SimInputFrame.ButtonDeferHit;
             }
+            // 远端火光面：开火事件须在回溯（ConsumePendingFire 会清事件缓冲）之前捕获——
+            // 此刻缓冲仍是前向步进的完整事件集（武器门放行的扣扳机各一条，空仓/被拦/死亡不产）。
+            CaptureFires();
             int steppedFrame = AuthSim.Frame;
             SnapshotHistory.Capture(steppedFrame, AuthSim);   // 每帧捕获（回溯基料）
             _recentInputs.Record(steppedFrame, _frameInputs, null);   // 重连补发基料（Step 已就地排序 → 规范形）
             LagComp.RecordInputs(steppedFrame, _frameInputs);
 
-            ConsumePendingFire();                             // 回溯判定（本步产生开火输入时）
+            ConsumePendingFire(steppedFrame);                 // 回溯判定（本步产生开火输入时；结算死亡即刻入窗）
             MatchSystem.Tick(AuthSim);                        // 整帧（含回溯）结算后才判胜
             SnapshotHistory.Capture(steppedFrame, AuthSim);    // 覆盖本帧的最终计分/比赛状态
         }
@@ -495,9 +506,14 @@ namespace RoomServer.Runtime
         /// <summary>
         /// 回溯判定：开火帧的历史态现在已在环里（本步 Capture 覆盖到"开火帧"本身），
         /// 因此可回溯到所见帧判定；每位射手的命中立即结算，本帧全部完成后再裁决对局结果。
+        /// 死亡事件逐位入窗（<see cref="CaptureKills"/>——回溯清事件缓冲，捕获必须在其前）。
         /// </summary>
-        private void ConsumePendingFire()
+        private void ConsumePendingFire(int frame)
         {
+            // 前向步进的死亡事件先入窗（未走回溯的射手/同帧直接伤害）——回溯会清事件缓冲
+            // （<see cref="LagCompensator.CompensateFire"/> 的 ClearFireBuffers），此处是最后捕获面。
+            CaptureKills(frame);
+
             for (int playerId = 0; playerId < ExpectedPlayers; playerId++)
             {
                 if (!_hasPendingFire[playerId]) continue;
@@ -505,7 +521,48 @@ namespace RoomServer.Runtime
 
                 LagComp.CompensateFire(playerId, _entityIds[playerId], _pendingFireView[playerId], _pendingFireAck[playerId]);
                 SimStep.FlushCommands(AuthSim); // 每位射手的命中当帧落账；后续射手不得清掉待结算命令
+                CaptureKills(frame);            // 该射手的回溯结算死亡即刻入窗（下一位射手的回溯会清缓冲）
                 FireInputsProcessed++;
+            }
+        }
+
+        /// <summary>
+        /// 全局击杀面：把本帧 <see cref="FrameEventKind.Death"/> 事件记入 <see cref="Kills"/> 窗口。
+        /// **调用点**（见 <see cref="ConsumePendingFire"/>）：回溯前一次（前向死亡）＋每位射手回溯结算后各一次
+        /// （回溯的 ClearFireBuffers 会清事件缓冲——单点在环末会漏掉前序射手的死亡事件）。
+        /// 事件语义：<c>EntityId</c> = 死者、<c>OtherId</c> = 击杀者（0 = 自杀/环境）；
+        /// 武器槽取**击杀帧**击杀者的公共态 <see cref="EntitySlot.SelectedWeapon"/>（切换期武器门拦开火
+        /// ⇒ 击杀帧槽位就是那把枪）。
+        /// </summary>
+        private void CaptureKills(int frame)
+        {
+            FrameEvent[] items = AuthSim.Events.Items;
+            for (int i = 0; i < AuthSim.Events.Count; i++)
+            {
+                ref FrameEvent e = ref items[i];
+                if (e.Kind != FrameEventKind.Death) continue;
+
+                int weaponSlot = -1;
+                if (e.OtherId != 0 && AuthSim.TryResolve(e.OtherId, out int killerSlot))
+                    weaponSlot = AuthSim.Entities[killerSlot].SelectedWeapon;
+                Kills.Add(e.OtherId, e.EntityId, frame, weaponSlot);
+            }
+        }
+
+        /// <summary>
+        /// 远端火光面：把本帧 <see cref="FrameEventKind.Fire"/> 事件记入 <see cref="Fires"/> 窗口
+        /// （开火者 = 事件主体；帧 = 事件所在权威帧）。**调用点在回溯判定之前**——
+        /// <see cref="LagCompensator.CompensateFire"/> 会清事件缓冲并重写为回溯产物，
+        /// 前向开火事件必须在此之前捕获（回溯重放的同名事件不得重复入窗）。
+        /// </summary>
+        private void CaptureFires()
+        {
+            int frame = AuthSim.Frame;
+            FrameEvent[] items = AuthSim.Events.Items;
+            for (int i = 0; i < AuthSim.Events.Count; i++)
+            {
+                if (items[i].Kind != FrameEventKind.Fire) continue;
+                Fires.Add(items[i].EntityId, frame);
             }
         }
     }

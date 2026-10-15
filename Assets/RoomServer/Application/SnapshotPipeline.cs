@@ -26,6 +26,8 @@ namespace RoomServer.Application
     {
         private readonly IBroadcastSeat[] _seats;
         private readonly SnapshotDiffer _differ;
+        private readonly KillRecordWindow _kills;      // 最近击杀窗口（全局击杀面；null = 不携带——L1 直构形态）
+        private readonly FireRecordWindow _fires;      // 最近开火窗口（远端火光面；null = 不携带——L1 直构形态）
         private int _broadcastOrdinal;
         private bool _forceFullPending;
 
@@ -41,10 +43,13 @@ namespace RoomServer.Application
         /// <summary>差分器只读暴露（Ops 快照尺寸统计用）。</summary>
         public SnapshotDiffer Differ => _differ;
 
-        public SnapshotPipeline(IBroadcastSeat[] seats, SnapshotDiffer differ = null)
+        public SnapshotPipeline(IBroadcastSeat[] seats, SnapshotDiffer differ = null, KillRecordWindow kills = null,
+            FireRecordWindow fires = null)
         {
             _seats = seats;
             _differ = differ ?? new SnapshotDiffer();
+            _kills = kills;                                // null = 不携带最近击杀（L1 直构形态）
+            _fires = fires;                                // null = 不携带最近开火（L1 直构形态）
         }
 
         /// <summary>
@@ -91,6 +96,10 @@ namespace RoomServer.Application
             }
             _forceFullPending = false;
             _differ.BeginFrame(frame, authSim, forceFull);
+            // 最近击杀窗口：附加到本帧比赛状态层（BeginFrame 打包一次、全体客户端共用同一份 Match 引用）
+            KillFeedPacker.Fill(_differ.MatchDelta, _kills);
+            // 最近开火窗口：同层同刻灌装（远端开火火光的公共面源）
+            FireSignalPacker.Fill(_differ.MatchDelta, _fires);
 
             // ② 每客户端各取可见部分（背压档位只影响该客户端；Restoring 席位抑制——§9.3 步骤 6）
             for (int p = 0; p < _seats.Length; p++)

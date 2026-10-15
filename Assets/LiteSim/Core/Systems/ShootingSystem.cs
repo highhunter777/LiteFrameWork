@@ -4,7 +4,7 @@ namespace LiteSim
     /// 射击判定系统（§3.3 顺序第 3 位，§3.4 hitscan）：
     /// 实体圆柱 + **静态障碍**取最近交点（几何单源 <see cref="SimRaycast"/>，与瞄准激光同源）；
     /// 命中实体 → Cmds.Write(Damage)；开火/命中 → Events.Write(Fire/Hit)；
-    /// **障碍更近 → 子弹被截停**（只写 Fire，不写 Damage/Hit——子弹不穿墙；
+    /// **障碍更近 → 子弹被截停**（写 Fire＋ObstacleHit〔障碍命中点〕，不写 Damage/Hit——子弹不穿墙；
     /// 与障碍并列（同 t）时实体优先——"墙面前的人"优先命中）。
     ///
     /// **本系统是唯一消费 RngState 的系统（确定性审计写在签名上）**，消费点两处：
@@ -138,7 +138,21 @@ namespace LiteSim
                         dir.X, dir.Z, dir.Y, range, out float obstacleT)
                         && (hitSlot < 0 || obstacleT < hitT);
 
-                    if (hitSlot < 0 || blockedByObstacle) continue;       // 该弹丸未命中（截停/脱靶）
+                    if (hitSlot < 0 || blockedByObstacle)
+                    {
+                        // 着墙：该弹丸被障碍截停 → ObstacleHit 帧事件（弹孔/着墙反馈的权威产出点）。
+                        // 命中点 = 弹道与障碍的交点（障碍 t 已折三维参数——与 dir 同量纲直乘）；
+                        // 纯脱靶（射程内无障碍）不产事件。
+                        if (blockedByObstacle)
+                        {
+                            s.Events.Write(FrameEventKind.ObstacleHit, shooter.Id, 0L, 0,
+                                new SimVector3(muzzle.X + dir.X * obstacleT,
+                                               muzzle.Y + dir.Y * obstacleT,
+                                               muzzle.Z + dir.Z * obstacleT));
+                        }
+
+                        continue;                                     // 该弹丸未命中实体（截停/脱靶）
+                    }
 
                     ref EntitySlot hit = ref s.Entities[hitSlot];
                     if (s.Frame < hit.InvulnerableUntilFrame) continue; // 保护目标挡子弹，但不产命中/伤害

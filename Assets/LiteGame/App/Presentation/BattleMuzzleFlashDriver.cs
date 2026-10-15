@@ -24,8 +24,9 @@ namespace LiteGame
         /// <summary>火光资源名（VfxCatalog"命名即引用"→ `Assets/ShareResource/FX/fx_muzzle_flash.prefab`）。</summary>
         public const string EffectName = "fx_muzzle_flash";
 
-        /// <summary>观感缩放（KriptoFX 件按整枪尺度作者化——单点常量，美术可调；换件归构建器）。</summary>
-        private const float EffectScale = 1f;
+        /// <summary>观感缩放（KriptoFX 件按整枪尺度作者化——单点常量，美术可调；换件归构建器）。
+        /// 本地/远端火光共用同一缩放单源（<see cref="BattleRemoteMuzzleFlashDriver"/> 引用）。</summary>
+        public const float EffectScale = 1f;
 
         private readonly SimView _view;
         private readonly IVFXService _vfx;

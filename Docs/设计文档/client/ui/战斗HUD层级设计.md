@@ -1,6 +1,6 @@
 # 战斗HUD层级设计
 
-> 状态：**已实施（2026-10-11 批 A 落地；同日晚血条正式化／解包／模板化三批更新）**——`Hud_Battle.prefab` 制作/接线/收集/场景退役全部完成；批 B 装配拆分已由并行 BattleViewRig 批完成；**血条模板化**（血条改为控件模板 `Tmp_HpBar` 的 PrefabInstance，驱动走 `HpBar` 组件 API——见 §2.1）同日落位；**对局退场链**（HUD 批C 首段，2026-10-14）增设 `Cot_Settings` 菜单角组（单独开射线——§0 唯一事件例外）＋ `Button_Settings` 设置入口
+> 状态：**已实施（2026-10-11 批 A 落地；同日晚血条正式化／解包／模板化三批更新）**——`Hud_Battle.prefab` 制作/接线/收集/场景退役全部完成；批 B 装配拆分已由并行 BattleViewRig 批完成；**血条模板化**（血条改为控件模板 `Tmp_HpBar` 的 PrefabInstance，驱动走 `HpBar` 组件 API——见 §2.1）同日落位；**对局退场链**（HUD 批C 首段，2026-10-14）增设 `Cot_Settings` 菜单角组（单独开射线——§0 唯一事件例外）＋ `Button_Settings` 设置入口；**排行榜批（2026-10-15）** 增设 `Cot_Rankboard`/8 格（FFA 比分＝击杀）；**阵亡批（同日）** 增设 `Cot_Respawn`/`Cot_Protection`；**击杀提示批（同日）** 增设 `Cot_KillFeed`（4 行堆叠）；**ping/丢包批（同日）** 增设 `Cot_NetStats`
 > 范围：对局战斗 HUD 单件——`Hud_Battle.prefab`（准心 + 血条/弹药/技能栏面板）
 > 上位：[战斗HUD专项设计](战斗HUD专项设计.md)（资产/通路/装配裁决）；[UI制作规范](UI制作规范.md) §9（命名）；[UI框架总设计](UI框架总设计.md)（HUD 分级驱动目标项）
 > 命名依据：§9 角色词表——本批新增 `Hud_` 根前缀（对局 HUD 根，表现域，不走 tbuiform/导航；已登记命名词表 §1.1）；容器/文本/图像沿用 `Cot_`/`Txt_`/`Image_`/`Icon_`
@@ -18,7 +18,10 @@
 - **本地化**：HP/Ammo 为数值（Invariant 拼接，`SetText` 语义——由驱动直写）；`Txt_Reload` 当前为固定英文标签"RELOADING"（技能/本地化系统落地时再评估 SetTextKey，本批不做）。
 - **技能栏**：静态占位（技能系统未做）——图标位留空，仅 Underlay/Frame/Hotkey。
 - **比分（FFA）＝实时排行榜**（排行榜批，2026-10-15 用户裁决）：死亡竞赛下"比分"即**击杀数**——`Cot_Rankboard` 顶部横列 **8 格**（= `eight` 模板上限，**prefab 预置不运行时建**），每格 **上 `Txt_Name` / 下 `Txt_Kills`**，**第一名在最左**（格位固定、内容按 `Kills 降序 → EntityId 升序` 填入，全序防同分抖动）；**自己那格**点亮 `Image_Highlight`。名字本批为**占位 `玩家{k}`**（k = 参赛玩家按 EntityId 升序序号，局内稳定；真名字/昵称归 G3 Profile）。`MatchStateData.Score`（FFA 恒 0，只承载团队模式）仅作 `Txt_Score` **预留节点、缺省隐藏**（`Team=1` 落地即启用）。
-- **死亡/复活表现**（阵亡批，2026-10-15 用户裁决）：① **中央复活倒计时**——`Cot_Respawn`（屏幕中央）：`Txt_RespawnTitle`（"已阵亡"，带归属时"被 玩家{k} 击杀"）/ `Txt_RespawnCountdown`（秒 = `RespawnFrame − Frame` 的整秒，**秒粒度才写**；`!IsDead` 即隐藏）；② **阵亡归属**——`Death` 帧事件且 `role==Received`（我阵亡）→ 标题带击杀者身份序号（**占位名单源与排行榜共用**）；③ **保护期角标** `Cot_Protection`（底中）：本地 `Frame < InvulnerableUntilFrame` 显示（**开火即取消**／超时自然结束）；④ **3D 保护壳**：`fx_spawn_protection`（**金色**半透明包裹壳）挂本地角色视图根跟随——取件租约＋实例（激光束同款），缺件/灰盒静默降级。
+- **死亡/复活表现**（阵亡批，2026-10-15 用户裁决）：① **中央复活倒计时**——`Cot_Respawn`（屏幕中央）：`Txt_RespawnTitle`（"已阵亡"，带归属时"被 玩家{k} 击杀"）/ `Txt_RespawnCountdown`（秒 = `RespawnFrame − Frame` 的整秒，**秒粒度才写**；`!IsDead` 即隐藏）；② **阵亡归属**——`Death` 帧事件且 `role==Received`（我阵亡）→ 标题带击杀者身份序号（**占位名单源与排行榜共用**）；③ **保护期角标** `Cot_Protection`（底中）：本地 `Frame < InvulnerableUntilFrame` 显示（**开火即取消**／超时自然结束）。
+- **全局击杀提示**（击杀提示批，2026-10-15 用户裁决）：`Cot_KillFeed`（右上角·设置钮下方）——**多条堆叠**（4 行预置；各行独立驻留 4s，行满则新条留队等待、不覆盖他人）；行格式 <c>击杀者 [武器图标] 死者</c>（击杀者=本地 → "你"，否则占位"玩家{k}"；击杀者无归属（自杀/环境）→ <c>玩家{v} 阵亡</c> 且无图标）；数据源＝**快照携带的最近击杀窗口**（`MatchStateDelta.recent_kills`——房间级公共事实，**全局**含他人击杀）；武器图标按**击杀帧装备槽**取图（下标 = 装备槽，收集目录复制件）。
+- **网络质量显示**（ping/丢包批，2026-10-15）：`Cot_NetStats`（左上角）——`Txt_NetStats` 显示应用层探针（1Hz `Heartbeat` 回声配对）推断的 **RTT / 丢包千分比**（<c>48ms / 0.3%</c>）；**离线/无样本整组隐藏**（不显示陈旧值）；**表现/诊断面，不参与任何判定**（哨兵/准入一律不读它）。
+- **3D 保护壳（FX 域，非本件/本表）**：`fx_spawn_protection`（**金色**半透明包裹壳）挂本地角色视图根跟随——取件租约＋实例（激光束同款），缺件/灰盒静默降级；资产落 FX 收集组（`ShareResource/FX` 件级热更）。与阵亡批同批落地仅是施工批次事实，**归属以 FX 域为准**（设计边界见《[战斗HUD专项设计](战斗HUD专项设计.md)》§4）。
 
 ## 1. 资产与场景关系
 
@@ -60,8 +63,15 @@ Hud_Battle                          Canvas(Overlay, order 0) + CanvasScaler(1920
    │  └─ Txt_RespawnCountdown       TMP 72 居中 剩余秒数（秒粒度才写）                  ◄View
    ├─ Cot_Protection                锚(0.5,0)+偏移(0,120)——底中（复活保护期角标，缺省隐藏）
    │  └─ Txt_Protection             TMP 24 居中"保护中"                                ◄View
+   ├─ Cot_KillFeed                  锚(1,1)+偏移(-32,-84)——右上角·设置钮下方（全局击杀提示，行堆叠向下）◄View
+   │  └─ Cot_KillFeedRow1..4       340×32，行距 36（**全预置**，缺省非激活——驱动按待展示队列开关）
+   │     ├─ Txt_KillFeedKiller     TMP 22 右对齐（"你"/"玩家{k}"）                    ◄View(数组)
+   │     ├─ Image_KillFeedWeapon   28×28（基线 = 步枪图标；驱动按击杀帧装备槽换图；无归属隐藏）◄View(数组)
+   │     └─ Txt_KillFeedVictim     TMP 22 左对齐（"玩家{v}"）                          ◄View(数组)
+   ├─ Cot_NetStats                   锚(0,1)+偏移(32,-24)——左上角（网络质量，缺省隐藏） ◄View
+   │  └─ Txt_NetStats               TMP 20 左对齐"48ms / 0.3%"                          ◄View
    ├─ Cot_Weapon                    锚(1,0)+偏移(-32,32)——右下角组点
-   │  ├─ Icon_Weapon                ICON_SM_Wep_Rifle_01_Military 96×96
+   │  ├─ Icon_Weapon                ICON_SM_Wep_Preset_B_Rifle_03_Military_Clean 96×96（`ShareResource/UI/Icons/Weapons/` 复制件）
    │  ├─ Txt_Ammo                   TMP 54 右对齐 "30"（图标左侧 16、底缘上抬 8）      ◄View
    │  └─ Txt_Reload                 TMP 20 琥珀 "RELOADING"（弹药上方 96）——默认非激活 ◄View
    ├─ Cot_Skills                    锚(0.5,0)+偏移(0,24)——底中组点
@@ -96,8 +106,12 @@ Hud_Battle                          Canvas(Overlay, order 0) + CanvasScaler(1920
 | `Txt_RespawnTitle` | `TMP_Text RespawnTitle` | BattleRespawnHudDriver | "已阵亡"／带归属"被 玩家{k} 击杀"（`Death` 帧事件 `role==Received` 驱动，事件到达才写） |
 | `Txt_RespawnCountdown` | `TMP_Text RespawnCountdown` | BattleRespawnHudDriver | 剩余秒（`RespawnFrame − Frame` 取整秒；**秒粒度才写**） |
 | `Cot_Protection` | `RectTransform ProtectionRoot` | BattleRespawnHudDriver | 保护期角标显隐（`Frame < InvulnerableUntilFrame`；开火取消/超时自然结束） |
+| `Cot_KillFeed` | `RectTransform KillFeedRoot` | BattleKillFeedDriver | 击杀提示容器（显隐随对局；日志口） |
+| `Cot_KillFeedRow1..4` | `GameObject[] KillFeedRows` / `TMP_Text[] KillFeedKillers` / `Image[] KillFeedWeapons` / `TMP_Text[] KillFeedVictims` | BattleKillFeedDriver | 4 行全预置；消费**公共击杀面**（快照 `recent_kills`）逐条播报，**多条堆叠**、行满留队、驻留 4s 回收 |
+| `Image_KillFeedWeapon`（各槽基线图） | `Sprite[] WeaponIcons` | BattleKillFeedDriver | 武器图标（下标 = 装备槽 `0..WeaponSlotsPerEntity-1`，收集目录复制件）——按击杀帧槽取图 |
+| `Cot_NetStats` / `Txt_NetStats` | `RectTransform NetStatsRoot` / `TMP_Text NetStatsText` | BattleNetworkHudDriver | 网络质量显示（探针 RTT/丢包千分比）；离线/无样本整组隐藏 |
 
-暴露共 8 项=面板/准心/菜单驱动的读写面；**排行榜批（2026-10-15）追加 4 项**（容器 + 名字/击杀/高亮三数组 + `Txt_Score` 预留），由 `BattleRankboardDriver` 独担；**阵亡批（2026-10-15）追加 5 项**（`Cot_Respawn` 面板 3 件 + `Cot_Protection` 角标 2 件），由 `BattleRespawnHudDriver` 独担（单一职责——不与面板/排行榜驱动混装）。血条走 `LiteGame.UI.HpBar` 组件 API（单点引用，避免嵌套深层字段 override）；`Cot_Vitals/Cot_Weapon/Cot_Skills/Cot_Rankboard/Cot_Respawn/Cot_Protection` 容器及装饰件不暴露（`Cot_Settings` 组件不暴露——按钮即交互面）。技能槽无数据面（占位），数据面落地时随批 C 扩展（届时评估技能 CD 走 UI 框架 U2 控件；技能数据面已按裁决移出批 C——待技能系统）。
+暴露共 8 项=面板/准心/菜单驱动的读写面；**排行榜批（2026-10-15）追加 4 项**（容器 + 名字/击杀/高亮三数组 + `Txt_Score` 预留），由 `BattleRankboardDriver` 独担；**阵亡批（2026-10-15）追加 5 项**（`Cot_Respawn` 面板 3 件 + `Cot_Protection` 角标 2 件），由 `BattleRespawnHudDriver` 独担；**击杀提示批（2026-10-15）追加 6 项**（`Cot_KillFeed` 容器 + 行四组数组 + 武器图标数组），由 `BattleKillFeedDriver` 独担；**ping/丢包批（2026-10-15）追加 2 项**（`Cot_NetStats`/`Txt_NetStats`），由 `BattleNetworkHudDriver` 独担——四批各自单一职责、互不混装。血条走 `LiteGame.UI.HpBar` 组件 API（单点引用，避免嵌套深层字段 override）；`Cot_Vitals/Cot_Weapon/Cot_Skills/Cot_Rankboard/Cot_Respawn/Cot_Protection/Cot_KillFeed/Cot_NetStats` 容器及装饰件不暴露（`Cot_Settings` 组件不暴露——按钮即交互面）。技能槽无数据面（占位），数据面落地时随批 C 扩展（届时评估技能 CD 走 UI 框架 U2 控件；技能数据面已按裁决移出批 C——待技能系统）。
 
 ## 2.1 血条形态来源：控件模板 `Tmp_HpBar`
 
@@ -150,4 +164,6 @@ Hud_Battle                          Canvas(Overlay, order 0) + CanvasScaler(1920
 | `Icon`（Weapon 下） | `Icon_Weapon` | 消除与词缀 Icon_ 的歧义 |
 | `Slot1..3` / `Underlay` / `Hotkey` | `Cot_Skill1..3` / `Image_Underlay` / `Txt_Hotkey` | 词缀化 |
 | —（新增） | `Cot_Rankboard` / `Cot_RankCell1..8` / `Txt_Name` / `Txt_Kills` / `Image_Highlight` / `Txt_Score` | 排行榜批（2026-10-15）：FFA 比分=击杀（无旧名，全新件） |
-| —（新增） | `Cot_Respawn` / `Txt_RespawnTitle` / `Txt_RespawnCountdown` / `Cot_Protection` / `Txt_Protection` | 阵亡批（2026-10-15）：死亡等待倒计时 + 保护期角标（无旧名，全新件）；3D 保护壳见 `Assets/ShareResource/FX/fx_spawn_protection.prefab`（金色，表现域不走本表） |
+| —（新增） | `Cot_Respawn` / `Txt_RespawnTitle` / `Txt_RespawnCountdown` / `Cot_Protection` / `Txt_Protection` | 阵亡批（2026-10-15）：死亡等待倒计时 + 保护期角标（无旧名，全新件）；3D 保护壳见 `Assets/ShareResource/FX/fx_spawn_protection.prefab`（金色，归 FX 域——不走本表，见 §0） |
+| —（新增） | `Cot_KillFeed` / `Cot_KillFeedRow1..4` / `Txt_KillFeedKiller` / `Image_KillFeedWeapon` / `Txt_KillFeedVictim` | 击杀提示批（2026-10-15）：全局击杀提示（无旧名，全新件；4 行全预置、行堆叠向下） |
+| —（新增） | `Cot_NetStats` / `Txt_NetStats` | ping/丢包批（2026-10-15）：网络质量显示（无旧名，全新件） |

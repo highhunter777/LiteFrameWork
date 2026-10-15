@@ -25,6 +25,8 @@ namespace RoomServer.Application
             response.BuildHash = buildHash;
             response.Snapshot = SnapshotCodec.PackFull(room.AuthSim.Frame, room.AuthSim, room.Gate.LastAcceptedFrame(playerId));
             response.Snapshot.PrivateState = SnapshotCodec.PackPrivate(room.AuthSim, viewerEntityId);
+            KillFeedPacker.Fill(response.Snapshot.Match, room.Kills);   // 重连快照同样携带最近击杀（客户端重连后按"已见"处理，不重播）
+            FireSignalPacker.Fill(response.Snapshot.Match, room.Fires); // 开火窗口同灌（客户端重连后按"已见"处理，不重播）
             for (int f = room.AuthSim.Frame - SimConfig.MaxInputHistory + 1; f <= room.AuthSim.Frame; f++)
             {
                 if (f <= 0) continue;

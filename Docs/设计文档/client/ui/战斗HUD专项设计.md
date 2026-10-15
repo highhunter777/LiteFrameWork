@@ -54,6 +54,17 @@
 | §1.7 UI 单写者 | §2.2 边界裁决：HUD 属表现域不走导航（写回指南） |
 | 资源规范·收集 | 新收集路径＝PackSeparately 件级热更 |
 
+### 2.6 HUD 体系装配：BattleHudRig 再内聚（设计；实施批按需点单）
+
+HUD 体系四件套——模板 prefab（§2.1）＋序列化引用件（§2.4）＋驱动集（值变化才写/静默降级）＋装配件（本节）。装配拆分（§2.3）后 HUD 一族（准心/HUD 面板/排行榜/死亡复活）与对局其余表现件同栖 `BattleViewRig`；排行榜批/阵亡批/退场链持续向该件追加 HUD 内容。**设计裁决：HUD 一族再内聚为独立装配件 `BattleHudRig`**——照 P4 外提先例口径（一类一文件、公共 API 不变、行为零变化），`BattleViewRig` 对应位置只留单行转发。
+
+- **边界判据**：HUD 体系 = `Hud_Battle.prefab` 的**全部消费者**——取件租约/实例化/`BattleHudView` 引用件 ＋ 准心/HUD 面板/排行榜/死亡复活四驱动 ＋ 菜单钮接线（装配期加、拆除期摘）。
+- **不属 HUD**：3D 出生保护壳归 FX 域（§4）；SimView 与激光/飘字/枪口火光/命中特效/音效/移动动画留 `BattleViewRig`。
+- **五面同形**：`LoadAsync`（仅 HUD 取件）/ `Attach` / `Tick` / `Dispose`；`BattleViewRig` 对应位置转发。
+- **注入面**：`SimView` ＋ `IInputService` ＋ `HitFeedbackDispatcher`（死亡 HUD 帧事件注册）＋ `openBattleMenu` 回调——不反向持有 `BattleViewRig`/`BattleContext`。
+- **顺序纪律**（行为零变化，逐项保持）：装配序（准心→面板→排行榜→死亡复活）；`Tick` 同序；拆除逆序（排行榜→面板→死亡复活→准心，且死亡复活先于 `HitFeedbackDispatcher` 摘）；菜单钮加/摘两时点。
+- **测试零改动**：驱动级 EditMode 用例直接构造驱动、不引用 Rig——外提不碰既有用例。
+
 ## 3. 迁移批次（逐批点单执行）
 
 | 批 | 内容 | 同步面 | 验收 |
@@ -61,9 +72,20 @@
 | **A 资产** | 编辑器制作 `BattleHud.prefab`（1:1 还原现视觉）→ `ShareResource/UI/Hud/` → collector 新路径 → 场景 `Battle HUD` 对象退役 | collector、修改指南 §3.3/§3.6、代码地图 UI 行、`VisualConstructionScanner`（若扫 Screens\|Widgets 需扩 Hud） | 对局实机观感 1:1；HUD 独立 bundle 出现 |
 | **B 装配** | `BattleHudView` 引用件＋`BattleViewRig` 拆装；ProcedureBattle 减负；路径常量/Find/构建器退役 | 审计登记表回写（god class 条目、路径硬编码条目→已修复）；修改指南 §3.3 对局准心行 | `GameObject.Find` 在 ProcedureBattle 归零；L1＋EditMode（BattleCrosshair/BattleHud 相关）＋实机手测（血条/弹药/换弹标签/准心双形态/音效） |
 | **C（可选，按需点单）** | HudModel 聚合/DirtySet、技能 CD 环、击杀播报——对齐 UI 框架 U2/U3 目标项 | UI 框架总设计节奏 | 真机预算证据（U3 判据） |
+| **D HUD 体系内聚（按需点单）** | HUD 一族外提 `BattleHudRig`（§2.6）；`BattleViewRig` 只留转发 | 修改指南 §3.3 对局准心行、代码地图、审计（如触发新登记） | 门禁绿＋对局手测表现无差异（HUD/准心/排行榜/复活） |
 
 ## 4. 边界（如实）
 
 - 本设计**不**承诺 U3 性能目标（DirtySet/分级驱动/图集实测）的时点——那归《UI框架总设计》U2/U3 路线；
 - HUD 文案本地化（HP/Ammo 数字为 Invariant 格式，无文案表需求）；技能栏当前为静态占位（无数据面），数据面落地时走批 C；
-- 音效 location 常量（`BattleAudioDriver`，Sound 组）与飘字底件（`ShareResource/FX`，批四已落）不在本批范围。
+- 音效 location 常量（`BattleAudioDriver`，Sound 组）与飘字底件（`ShareResource/FX`，批四已落）不在本批范围；
+- **3D 出生保护壳**（`fx_spawn_protection`，FX 收集组件级热更）**归 FX 域**——与阵亡批同批落地仅是施工批次事实，不构成 HUD 归属（口径见《[战斗HUD层级设计](战斗HUD层级设计.md)》§0）。
+
+## 5. 未来规划（暂不做与升级触发）
+
+| 项 | 暂不做的判据 | 升级触发 |
+|---|---|---|
+| 通用表现件宿主骨架（View+Driver 组织的泛化基类/接口） | 单一消费者——先泛化＝空集造机器；`BattleHudRig`（§2.6）即骨架未来的首个实例 | 第二 HUD 形态（观战/第二模式）或第二表现件域出现 |
+| HudModel 数据聚合 / DirtySet 分级驱动 | 驱动各自直读预测态/镜像，量级未到；按 UI 框架 U2/U3 节奏（§3 批 C） | U3 真机预算证据要求 |
+| HUD 代码目录化（`App/Presentation/Hud/`） | 件数未到阈值（外提后仅装配件＋4 驱动） | HUD 件数膨胀或第二形态落地 |
+| 技能 CD 环入 Bind 体系 | 技能系统未做（技能栏静态占位） | 技能数据面落地时评估（§2.4 尾注） |

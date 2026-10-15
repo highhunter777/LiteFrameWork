@@ -5,7 +5,7 @@ using UnityEngine;
 namespace LiteGame
 {
     /// <summary>
-    /// 出生保护壳驱动（阵亡批；**金色**半透明包裹壳，`fx_spawn_protection`）：保护期内把壳件**跟随本地
+    /// 出生保护壳驱动（FX 域；**金色**半透明包裹壳，`fx_spawn_protection`）：保护期内把壳件**跟随本地
     /// 角色视图根**显隐——保护态 = `Frame &lt; InvulnerableUntilFrame`（**端点不含**；**仅成功开火**取消、
     /// 超时自然结束——口径同 HUD 面，单源）。
     ///

@@ -7,7 +7,7 @@ using UnityEngine;
 namespace LiteGame.Tests.EditMode
 {
     /// <summary>
-    /// 出生保护壳驱动的 L2 EditMode 覆盖（阵亡批）：镜像与视图查询走**构造注入**，确定性驱动。
+    /// 出生保护壳驱动的 L2 EditMode 覆盖（FX 域）：镜像与视图查询走**构造注入**，确定性驱动。
     /// 钉住：保护态（`Frame &lt; InvulnerableUntilFrame`，**端点不含**）开关、保护期内**跟随**本地角色视图位姿、
     /// 无视图（灰盒/缺失）不猜位姿、未对齐收起、Dispose 收起且幂等。
     /// 真场景观感（金色壳/包裹尺寸）归 PlayMode/手测。

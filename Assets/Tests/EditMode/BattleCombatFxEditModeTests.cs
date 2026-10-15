@@ -195,5 +195,46 @@ namespace LiteGame.Tests.EditMode
             impact.OnHitFeedback(HitEvent(FrameEventKind.Hit, bot, 1, HitLocalRole.Caused, Vector3.one));
             Assert.AreEqual(2, vfx.Calls.Count, "Dispose 后不再播放");
         }
+
+        [Test]
+        [Category(TestCategory.Contract)]
+        public void 着墙特效_本地Caused_障碍命中点世界位播放()
+        {
+            var (_, view, self, _) = Build();
+            var vfx = new RecordingVfx();
+            using (var driver = new BattleImpactFxDriver(vfx))
+            {
+                var wallPos = new Vector3(5f, 1.2f, 0f);
+                driver.OnHitFeedback(new HitFeedbackContext(FrameEventKind.ObstacleHit, self, 0L, 0, -1, 0, wallPos, HitLocalRole.Caused));
+
+                Assert.AreEqual(1, driver.WallImpactCount);
+                Assert.AreEqual(1, vfx.Calls.Count);
+                Assert.AreEqual(BattleImpactFxDriver.WallEffectName, vfx.Calls[0].Name);
+                Assert.IsTrue(vfx.Calls[0].At, "着墙走世界位播放（打哪留哪）");
+                Assert.AreEqual(wallPos, vfx.Calls[0].Position, "落点 = 障碍命中点");
+                _ = view;
+            }
+        }
+
+        [Test]
+        [Category(TestCategory.Contract)]
+        public void 着墙特效_承受旁观不播_命中敌人仍走敌人面()
+        {
+            var (_, view, self, bot) = Build();
+            var vfx = new RecordingVfx();
+            using (var driver = new BattleImpactFxDriver(vfx))
+            {
+                driver.OnHitFeedback(new HitFeedbackContext(FrameEventKind.ObstacleHit, bot, 0L, 1, -1, 0, Vector3.one, HitLocalRole.Bystander));
+                driver.OnHitFeedback(new HitFeedbackContext(FrameEventKind.ObstacleHit, self, 0L, 0, -1, 0, Vector3.one, HitLocalRole.Received));
+                Assert.AreEqual(0, vfx.Calls.Count, "只播我打墙——旁观/承受不播");
+                Assert.AreEqual(0, driver.WallImpactCount);
+
+                driver.OnHitFeedback(HitEvent(FrameEventKind.Hit, bot, 1, HitLocalRole.Caused, Vector3.one));
+                Assert.AreEqual(1, vfx.Calls.Count);
+                Assert.AreEqual(BattleImpactFxDriver.EffectName, vfx.Calls[0].Name, "命中敌人仍走敌人面（不着墙面）");
+                Assert.AreEqual(0, driver.WallImpactCount);
+                _ = view;
+            }
+        }
     }
 }

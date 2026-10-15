@@ -711,7 +711,20 @@ namespace RoomServer
                 case PacketType.StartMatchRequest:
                     HandleStartMatchRequest(session);
                     break;
+                case PacketType.Heartbeat:
+                    HandleHeartbeat(session, (Proto.Heartbeat)message);
+                    break;
             }
+        }
+
+        /// <summary>
+        /// RTT/丢包探针回声（Unreliable）：**原样回显** client_time——客户端据此配对算 RTT/丢包千分比。
+        /// 保活由 kcp2k 内建 Ping/Timeout 承担，本包不参与保活，故除回显外不做任何处置（限流在入站层）。
+        /// </summary>
+        private void HandleHeartbeat(Session session, Proto.Heartbeat heartbeat)
+        {
+            SendToSession(session, PacketType.Heartbeat,
+                new Proto.Heartbeat { ClientTime = heartbeat.ClientTime }, reliable: false);
         }
 
         /// <summary>

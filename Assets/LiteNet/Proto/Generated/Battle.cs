@@ -42,62 +42,69 @@ namespace LiteNet.Proto {
             "YXJ0X2ZyYW1lGBIgASgFEhoKEmZpcmVfc3RhbmNlX2ZyYW1lcxgTIAEoDRIV",
             "Cg1jb3Jwc2VfZnJhbWVzGBQgASgNEhkKEXNwYXduX3BvaW50X2luZGV4GBUg",
             "ASgFEhUKDXJlc3Bhd25fZnJhbWUYFiABKAUSIAoYaW52dWxuZXJhYmxlX3Vu",
-            "dGlsX2ZyYW1lGBcgASgFEhgKEGxpZmVfc3RhcnRfZnJhbWUYGCABKAUi0gEK",
+            "dGlsX2ZyYW1lGBcgASgFEhgKEGxpZmVfc3RhcnRfZnJhbWUYGCABKAUirgIK",
             "D01hdGNoU3RhdGVEZWx0YRINCgVwaGFzZRgBIAEoBRIMCgR0ZWFtGAIgASgF",
             "Eg0KBXNjb3JlGAMgASgFEg0KBXRpbWVyGAQgASgFEg0KBXJvdW5kGAUgASgF",
             "Eg4KBndpbm5lchgGIAEoAxISCgpraWxsX2xpbWl0GAcgASgFEhwKFHJlc3Bh",
             "d25fZGVsYXlfZnJhbWVzGAggASgFEh8KF3NwYXduX3Byb3RlY3Rpb25fZnJh",
-            "bWVzGAkgASgFEhIKCmVuZF9yZWFzb24YCiABKAUiuQEKC1dlYXBvbkRlbHRh",
-            "EhUKDXdlYXBvbl9kZWZfaWQYASABKAUSEAoIbWFnX2FtbW8YAiABKAUSFAoM",
-            "cmVzZXJ2ZV9hbW1vGAMgASgFEg0KBXN0YXRlGAQgASgFEhcKD25leHRfZmly",
-            "ZV9mcmFtZRgFIAEoBRIYChByZWxvYWRfZW5kX2ZyYW1lGAYgASgFEhcKD2Vx",
-            "dWlwX2VuZF9mcmFtZRgHIAEoBRIQCghzaG90X3NlcRgIIAEoBSJGCgpTa2ls",
-            "bERlbHRhEhEKCWFjdGlvbl9pZBgBIAEoBRIUCgxjb29sZG93bl9lbmQYAiAB",
-            "KAUSDwoHY2hhcmdlcxgDIAEoBSJCCgtTdGF0dXNEZWx0YRIRCgllZmZlY3Rf",
-            "aWQYASABKAUSEQoJZW5kX2ZyYW1lGAIgASgFEg0KBXBhcmFtGAMgASgFIkYK",
-            "DEJhZ1Nsb3REZWx0YRITCgtpdGVtX2RlZl9pZBgBIAEoBRINCgVjb3VudBgC",
-            "IAEoBRISCgpxdWlja19zbG90GAMgASgFItoBChFQcml2YXRlU3RhdGVEZWx0",
-            "YRIRCgllbnRpdHlfaWQYASABKAMSEAoIcmVzb3VyY2UYAiABKAUSKAoHd2Vh",
-            "cG9ucxgDIAMoCzIXLmxpdGViYXR0bGUuV2VhcG9uRGVsdGESJgoGc2tpbGxz",
-            "GAQgAygLMhYubGl0ZWJhdHRsZS5Ta2lsbERlbHRhEicKBnN0YXR1cxgFIAMo",
-            "CzIXLmxpdGViYXR0bGUuU3RhdHVzRGVsdGESJQoDYmFnGAYgAygLMhgubGl0",
-            "ZWJhdHRsZS5CYWdTbG90RGVsdGEi3AEKDVN0YXRlU25hcHNob3QSDQoFZnJh",
-            "bWUYASABKAUSDwoHaXNfZnVsbBgCIAEoCBIkCgVzbG90cxgDIAMoCzIVLmxp",
-            "dGViYXR0bGUuU2xvdERlbHRhEhAKCGNoZWNrc3VtGAQgASgNEhEKCWFja19p",
-            "bnB1dBgFIAEoBRIqCgVtYXRjaBgGIAEoCzIbLmxpdGViYXR0bGUuTWF0Y2hT",
-            "dGF0ZURlbHRhEjQKDXByaXZhdGVfc3RhdGUYByABKAsyHS5saXRlYmF0dGxl",
-            "LlByaXZhdGVTdGF0ZURlbHRhIkEKC0pvaW5SZXF1ZXN0Eg8KB3Jvb21faWQY",
-            "ASABKAkSDQoFdG9rZW4YAiABKAkSEgoKYnVpbGRfaGFzaBgDIAEoCSKiAQoH",
-            "Sm9pbkFjaxIRCglwbGF5ZXJfaWQYASABKAUSDwoHbWVtYmVycxgCIAMoBRIX",
-            "Cg9yZWNvbm5lY3RfdG9rZW4YAyABKAkSIAoYcmVjb25uZWN0X3dpbmRvd19z",
-            "ZWNvbmRzGAQgASgFEhMKC3NuYXBzaG90X2h6GAUgASgFEhEKCXRpY2tfcmF0",
-            "ZRgGIAEoBRIQCghpc19vd25lchgHIAEoCCJ7CglTdGFydEdhbWUSDAoEc2Vl",
-            "ZBgBIAEoAxITCgtjb25maWdfaGFzaBgCIAEoDRINCgVmcmFtZRgDIAEoBRIq",
-            "CgVtYXRjaBgEIAEoCzIbLmxpdGViYXR0bGUuTWF0Y2hTdGF0ZURlbHRhEhAK",
-            "CG1hdGNoX2lkGAUgASgJIgcKBUxlYXZlIiAKCUhlYXJ0YmVhdBITCgtjbGll",
-            "bnRfdGltZRgBIAEoAyIqChBSZWNvbm5lY3RSZXF1ZXN0EhYKDm9uZV90aW1l",
-            "X3Rva2VuGAEgASgJIr4BChFSZWNvbm5lY3RSZXNwb25zZRIKCgJvaxgBIAEo",
-            "CBIOCgZyZWFzb24YBCABKAkSKwoIc25hcHNob3QYAiABKAsyGS5saXRlYmF0",
-            "dGxlLlN0YXRlU25hcHNob3QSKQoHaGlzdG9yeRgDIAMoCzIYLmxpdGViYXR0",
-            "bGUuSW5wdXRNZXNzYWdlEgwKBHNlZWQYBSABKAMSEwoLY29uZmlnX2hhc2gY",
-            "BiABKA0SEgoKYnVpbGRfaGFzaBgHIAEoCSIRCg9SZXN0b3JlQ29tcGxldGUi",
-            "EwoRU3RhcnRNYXRjaFJlcXVlc3QiMAoSU3RhcnRNYXRjaFJlc3BvbnNlEgoK",
-            "Am9rGAEgASgIEg4KBnJlYXNvbhgCIAEoCSIhCgxPd25lckNoYW5nZWQSEQoJ",
-            "cGxheWVyX2lkGAEgASgFIh8KDk1pc21hdGNoUmVwb3J0Eg0KBWZyYW1lGAEg",
-            "ASgFIlgKEVBsYXllck1hdGNoUmVzdWx0EhEKCXBsYXllcl9pZBgBIAEoBRIR",
-            "CgllbnRpdHlfaWQYAiABKAMSDQoFa2lsbHMYAyABKAUSDgoGZGVhdGhzGAQg",
-            "ASgFIq4BCgpNYXRjaEVuZGVkEhAKCG1hdGNoX2lkGAEgASgJEhMKC2ZpbmFs",
-            "X2ZyYW1lGAIgASgFEhIKCmVuZF9yZWFzb24YAyABKAUSGwoTZ2FtZXBsYXlf",
-            "ZW5kX3JlYXNvbhgEIAEoBRIYChB3aW5uZXJfZW50aXR5X2lkGAUgASgDEi4K",
-            "B3BsYXllcnMYBiADKAsyHS5saXRlYmF0dGxlLlBsYXllck1hdGNoUmVzdWx0",
-            "QhCqAg1MaXRlTmV0LlByb3RvYgZwcm90bzM="));
+            "bWVzGAkgASgFEhIKCmVuZF9yZWFzb24YCiABKAUSLAoMcmVjZW50X2tpbGxz",
+            "GAsgAygLMhYubGl0ZWJhdHRsZS5LaWxsUmVjb3JkEiwKDHJlY2VudF9maXJl",
+            "cxgMIAMoCzIWLmxpdGViYXR0bGUuRmlyZVJlY29yZCJQCgpLaWxsUmVjb3Jk",
+            "Eg4KBmtpbGxlchgBIAEoAxIOCgZ2aWN0aW0YAiABKAMSDQoFZnJhbWUYAyAB",
+            "KAUSEwoLd2VhcG9uX3Nsb3QYBCABKAUiLAoKRmlyZVJlY29yZBIPCgdzaG9v",
+            "dGVyGAEgASgDEg0KBWZyYW1lGAIgASgFIrkBCgtXZWFwb25EZWx0YRIVCg13",
+            "ZWFwb25fZGVmX2lkGAEgASgFEhAKCG1hZ19hbW1vGAIgASgFEhQKDHJlc2Vy",
+            "dmVfYW1tbxgDIAEoBRINCgVzdGF0ZRgEIAEoBRIXCg9uZXh0X2ZpcmVfZnJh",
+            "bWUYBSABKAUSGAoQcmVsb2FkX2VuZF9mcmFtZRgGIAEoBRIXCg9lcXVpcF9l",
+            "bmRfZnJhbWUYByABKAUSEAoIc2hvdF9zZXEYCCABKAUiRgoKU2tpbGxEZWx0",
+            "YRIRCglhY3Rpb25faWQYASABKAUSFAoMY29vbGRvd25fZW5kGAIgASgFEg8K",
+            "B2NoYXJnZXMYAyABKAUiQgoLU3RhdHVzRGVsdGESEQoJZWZmZWN0X2lkGAEg",
+            "ASgFEhEKCWVuZF9mcmFtZRgCIAEoBRINCgVwYXJhbRgDIAEoBSJGCgxCYWdT",
+            "bG90RGVsdGESEwoLaXRlbV9kZWZfaWQYASABKAUSDQoFY291bnQYAiABKAUS",
+            "EgoKcXVpY2tfc2xvdBgDIAEoBSLaAQoRUHJpdmF0ZVN0YXRlRGVsdGESEQoJ",
+            "ZW50aXR5X2lkGAEgASgDEhAKCHJlc291cmNlGAIgASgFEigKB3dlYXBvbnMY",
+            "AyADKAsyFy5saXRlYmF0dGxlLldlYXBvbkRlbHRhEiYKBnNraWxscxgEIAMo",
+            "CzIWLmxpdGViYXR0bGUuU2tpbGxEZWx0YRInCgZzdGF0dXMYBSADKAsyFy5s",
+            "aXRlYmF0dGxlLlN0YXR1c0RlbHRhEiUKA2JhZxgGIAMoCzIYLmxpdGViYXR0",
+            "bGUuQmFnU2xvdERlbHRhItwBCg1TdGF0ZVNuYXBzaG90Eg0KBWZyYW1lGAEg",
+            "ASgFEg8KB2lzX2Z1bGwYAiABKAgSJAoFc2xvdHMYAyADKAsyFS5saXRlYmF0",
+            "dGxlLlNsb3REZWx0YRIQCghjaGVja3N1bRgEIAEoDRIRCglhY2tfaW5wdXQY",
+            "BSABKAUSKgoFbWF0Y2gYBiABKAsyGy5saXRlYmF0dGxlLk1hdGNoU3RhdGVE",
+            "ZWx0YRI0Cg1wcml2YXRlX3N0YXRlGAcgASgLMh0ubGl0ZWJhdHRsZS5Qcml2",
+            "YXRlU3RhdGVEZWx0YSJBCgtKb2luUmVxdWVzdBIPCgdyb29tX2lkGAEgASgJ",
+            "Eg0KBXRva2VuGAIgASgJEhIKCmJ1aWxkX2hhc2gYAyABKAkiogEKB0pvaW5B",
+            "Y2sSEQoJcGxheWVyX2lkGAEgASgFEg8KB21lbWJlcnMYAiADKAUSFwoPcmVj",
+            "b25uZWN0X3Rva2VuGAMgASgJEiAKGHJlY29ubmVjdF93aW5kb3dfc2Vjb25k",
+            "cxgEIAEoBRITCgtzbmFwc2hvdF9oehgFIAEoBRIRCgl0aWNrX3JhdGUYBiAB",
+            "KAUSEAoIaXNfb3duZXIYByABKAgiewoJU3RhcnRHYW1lEgwKBHNlZWQYASAB",
+            "KAMSEwoLY29uZmlnX2hhc2gYAiABKA0SDQoFZnJhbWUYAyABKAUSKgoFbWF0",
+            "Y2gYBCABKAsyGy5saXRlYmF0dGxlLk1hdGNoU3RhdGVEZWx0YRIQCghtYXRj",
+            "aF9pZBgFIAEoCSIHCgVMZWF2ZSIgCglIZWFydGJlYXQSEwoLY2xpZW50X3Rp",
+            "bWUYASABKAMiKgoQUmVjb25uZWN0UmVxdWVzdBIWCg5vbmVfdGltZV90b2tl",
+            "bhgBIAEoCSK+AQoRUmVjb25uZWN0UmVzcG9uc2USCgoCb2sYASABKAgSDgoG",
+            "cmVhc29uGAQgASgJEisKCHNuYXBzaG90GAIgASgLMhkubGl0ZWJhdHRsZS5T",
+            "dGF0ZVNuYXBzaG90EikKB2hpc3RvcnkYAyADKAsyGC5saXRlYmF0dGxlLklu",
+            "cHV0TWVzc2FnZRIMCgRzZWVkGAUgASgDEhMKC2NvbmZpZ19oYXNoGAYgASgN",
+            "EhIKCmJ1aWxkX2hhc2gYByABKAkiEQoPUmVzdG9yZUNvbXBsZXRlIhMKEVN0",
+            "YXJ0TWF0Y2hSZXF1ZXN0IjAKElN0YXJ0TWF0Y2hSZXNwb25zZRIKCgJvaxgB",
+            "IAEoCBIOCgZyZWFzb24YAiABKAkiIQoMT3duZXJDaGFuZ2VkEhEKCXBsYXll",
+            "cl9pZBgBIAEoBSIfCg5NaXNtYXRjaFJlcG9ydBINCgVmcmFtZRgBIAEoBSJY",
+            "ChFQbGF5ZXJNYXRjaFJlc3VsdBIRCglwbGF5ZXJfaWQYASABKAUSEQoJZW50",
+            "aXR5X2lkGAIgASgDEg0KBWtpbGxzGAMgASgFEg4KBmRlYXRocxgEIAEoBSKu",
+            "AQoKTWF0Y2hFbmRlZBIQCghtYXRjaF9pZBgBIAEoCRITCgtmaW5hbF9mcmFt",
+            "ZRgCIAEoBRISCgplbmRfcmVhc29uGAMgASgFEhsKE2dhbWVwbGF5X2VuZF9y",
+            "ZWFzb24YBCABKAUSGAoQd2lubmVyX2VudGl0eV9pZBgFIAEoAxIuCgdwbGF5",
+            "ZXJzGAYgAygLMh0ubGl0ZWJhdHRsZS5QbGF5ZXJNYXRjaFJlc3VsdEIQqgIN",
+            "TGl0ZU5ldC5Qcm90b2IGcHJvdG8z"));
       descriptor = pbr::FileDescriptor.FromGeneratedCode(descriptorData,
           new pbr::FileDescriptor[] { },
           new pbr::GeneratedClrTypeInfo(null, null, new pbr::GeneratedClrTypeInfo[] {
             new pbr::GeneratedClrTypeInfo(typeof(global::LiteNet.Proto.InputFrame), global::LiteNet.Proto.InputFrame.Parser, new[]{ "EntityId", "MoveX", "MoveZ", "Buttons", "SelectedWeaponSlot", "TargetEntityId", "ActionSeq", "AimPointX", "AimPointY", "AimPointZ" }, null, null, null, null),
             new pbr::GeneratedClrTypeInfo(typeof(global::LiteNet.Proto.InputMessage), global::LiteNet.Proto.InputMessage.Parser, new[]{ "Frame", "Frames", "AckSnapshot", "ViewFrame" }, null, null, null, null),
             new pbr::GeneratedClrTypeInfo(typeof(global::LiteNet.Proto.SlotDelta), global::LiteNet.Proto.SlotDelta.Parser, new[]{ "Slot", "Id", "PosX", "PosY", "PosZ", "VelX", "VelY", "VelZ", "Yaw", "Hp", "Flags", "Shield", "Kills", "Deaths", "SelectedWeapon", "ActionId", "ActionPhase", "ActionStartFrame", "FireStanceFrames", "CorpseFrames", "SpawnPointIndex", "RespawnFrame", "InvulnerableUntilFrame", "LifeStartFrame" }, null, null, null, null),
-            new pbr::GeneratedClrTypeInfo(typeof(global::LiteNet.Proto.MatchStateDelta), global::LiteNet.Proto.MatchStateDelta.Parser, new[]{ "Phase", "Team", "Score", "Timer", "Round", "Winner", "KillLimit", "RespawnDelayFrames", "SpawnProtectionFrames", "EndReason" }, null, null, null, null),
+            new pbr::GeneratedClrTypeInfo(typeof(global::LiteNet.Proto.MatchStateDelta), global::LiteNet.Proto.MatchStateDelta.Parser, new[]{ "Phase", "Team", "Score", "Timer", "Round", "Winner", "KillLimit", "RespawnDelayFrames", "SpawnProtectionFrames", "EndReason", "RecentKills", "RecentFires" }, null, null, null, null),
+            new pbr::GeneratedClrTypeInfo(typeof(global::LiteNet.Proto.KillRecord), global::LiteNet.Proto.KillRecord.Parser, new[]{ "Killer", "Victim", "Frame", "WeaponSlot" }, null, null, null, null),
+            new pbr::GeneratedClrTypeInfo(typeof(global::LiteNet.Proto.FireRecord), global::LiteNet.Proto.FireRecord.Parser, new[]{ "Shooter", "Frame" }, null, null, null, null),
             new pbr::GeneratedClrTypeInfo(typeof(global::LiteNet.Proto.WeaponDelta), global::LiteNet.Proto.WeaponDelta.Parser, new[]{ "WeaponDefId", "MagAmmo", "ReserveAmmo", "State", "NextFireFrame", "ReloadEndFrame", "EquipEndFrame", "ShotSeq" }, null, null, null, null),
             new pbr::GeneratedClrTypeInfo(typeof(global::LiteNet.Proto.SkillDelta), global::LiteNet.Proto.SkillDelta.Parser, new[]{ "ActionId", "CooldownEnd", "Charges" }, null, null, null, null),
             new pbr::GeneratedClrTypeInfo(typeof(global::LiteNet.Proto.StatusDelta), global::LiteNet.Proto.StatusDelta.Parser, new[]{ "EffectId", "EndFrame", "Param" }, null, null, null, null),
@@ -2127,6 +2134,8 @@ namespace LiteNet.Proto {
       respawnDelayFrames_ = other.respawnDelayFrames_;
       spawnProtectionFrames_ = other.spawnProtectionFrames_;
       endReason_ = other.endReason_;
+      recentKills_ = other.recentKills_.Clone();
+      recentFires_ = other.recentFires_.Clone();
       _unknownFields = pb::UnknownFieldSet.Clone(other._unknownFields);
     }
 
@@ -2280,6 +2289,37 @@ namespace LiteNet.Proto {
       }
     }
 
+    /// <summary>Field number for the "recent_kills" field.</summary>
+    public const int RecentKillsFieldNumber = 11;
+    private static readonly pb::FieldCodec<global::LiteNet.Proto.KillRecord> _repeated_recentKills_codec
+        = pb::FieldCodec.ForMessage(90, global::LiteNet.Proto.KillRecord.Parser);
+    private readonly pbc::RepeatedField<global::LiteNet.Proto.KillRecord> recentKills_ = new pbc::RepeatedField<global::LiteNet.Proto.KillRecord>();
+    /// <summary>
+    /// ---- 全局击杀面（**只增字段号**追加；最近击杀窗口随每份快照全量携带——30Hz 自带丢包收敛）----
+    /// 房间级公共事实（权威侧在击杀帧记录；客户端按 (killer,victim,frame) 去重消费）。
+    /// </summary>
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public pbc::RepeatedField<global::LiteNet.Proto.KillRecord> RecentKills {
+      get { return recentKills_; }
+    }
+
+    /// <summary>Field number for the "recent_fires" field.</summary>
+    public const int RecentFiresFieldNumber = 12;
+    private static readonly pb::FieldCodec<global::LiteNet.Proto.FireRecord> _repeated_recentFires_codec
+        = pb::FieldCodec.ForMessage(98, global::LiteNet.Proto.FireRecord.Parser);
+    private readonly pbc::RepeatedField<global::LiteNet.Proto.FireRecord> recentFires_ = new pbc::RepeatedField<global::LiteNet.Proto.FireRecord>();
+    /// <summary>
+    /// ---- 全局开火面（**只增字段号**追加；最近开火窗口随每份快照全量携带）----
+    /// 远端开火火光的公共面源（权威侧在开火帧记录；客户端按 (shooter,frame) 去重消费——
+    /// 本地开火走本地帧事件即时播，不消费本窗口）。
+    /// </summary>
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public pbc::RepeatedField<global::LiteNet.Proto.FireRecord> RecentFires {
+      get { return recentFires_; }
+    }
+
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public override bool Equals(object other) {
@@ -2305,6 +2345,8 @@ namespace LiteNet.Proto {
       if (RespawnDelayFrames != other.RespawnDelayFrames) return false;
       if (SpawnProtectionFrames != other.SpawnProtectionFrames) return false;
       if (EndReason != other.EndReason) return false;
+      if(!recentKills_.Equals(other.recentKills_)) return false;
+      if(!recentFires_.Equals(other.recentFires_)) return false;
       return Equals(_unknownFields, other._unknownFields);
     }
 
@@ -2322,6 +2364,8 @@ namespace LiteNet.Proto {
       if (RespawnDelayFrames != 0) hash ^= RespawnDelayFrames.GetHashCode();
       if (SpawnProtectionFrames != 0) hash ^= SpawnProtectionFrames.GetHashCode();
       if (EndReason != 0) hash ^= EndReason.GetHashCode();
+      hash ^= recentKills_.GetHashCode();
+      hash ^= recentFires_.GetHashCode();
       if (_unknownFields != null) {
         hash ^= _unknownFields.GetHashCode();
       }
@@ -2380,6 +2424,8 @@ namespace LiteNet.Proto {
         output.WriteRawTag(80);
         output.WriteInt32(EndReason);
       }
+      recentKills_.WriteTo(output, _repeated_recentKills_codec);
+      recentFires_.WriteTo(output, _repeated_recentFires_codec);
       if (_unknownFields != null) {
         _unknownFields.WriteTo(output);
       }
@@ -2430,6 +2476,8 @@ namespace LiteNet.Proto {
         output.WriteRawTag(80);
         output.WriteInt32(EndReason);
       }
+      recentKills_.WriteTo(ref output, _repeated_recentKills_codec);
+      recentFires_.WriteTo(ref output, _repeated_recentFires_codec);
       if (_unknownFields != null) {
         _unknownFields.WriteTo(ref output);
       }
@@ -2470,6 +2518,8 @@ namespace LiteNet.Proto {
       if (EndReason != 0) {
         size += 1 + pb::CodedOutputStream.ComputeInt32Size(EndReason);
       }
+      size += recentKills_.CalculateSize(_repeated_recentKills_codec);
+      size += recentFires_.CalculateSize(_repeated_recentFires_codec);
       if (_unknownFields != null) {
         size += _unknownFields.CalculateSize();
       }
@@ -2512,6 +2562,8 @@ namespace LiteNet.Proto {
       if (other.EndReason != 0) {
         EndReason = other.EndReason;
       }
+      recentKills_.Add(other.recentKills_);
+      recentFires_.Add(other.recentFires_);
       _unknownFields = pb::UnknownFieldSet.MergeFrom(_unknownFields, other._unknownFields);
     }
 
@@ -2569,6 +2621,14 @@ namespace LiteNet.Proto {
           }
           case 80: {
             EndReason = input.ReadInt32();
+            break;
+          }
+          case 90: {
+            recentKills_.AddEntriesFrom(input, _repeated_recentKills_codec);
+            break;
+          }
+          case 98: {
+            recentFires_.AddEntriesFrom(input, _repeated_recentFires_codec);
             break;
           }
         }
@@ -2630,6 +2690,582 @@ namespace LiteNet.Proto {
             EndReason = input.ReadInt32();
             break;
           }
+          case 90: {
+            recentKills_.AddEntriesFrom(ref input, _repeated_recentKills_codec);
+            break;
+          }
+          case 98: {
+            recentFires_.AddEntriesFrom(ref input, _repeated_recentFires_codec);
+            break;
+          }
+        }
+      }
+    }
+    #endif
+
+  }
+
+  /// <summary>
+  /// 单条击杀记录（全局击杀提示的公共面源；《战斗HUD层级设计》§2 击杀提示面）
+  /// </summary>
+  [global::System.Diagnostics.DebuggerDisplayAttribute("{ToString(),nq}")]
+  public sealed partial class KillRecord : pb::IMessage<KillRecord>
+  #if !GOOGLE_PROTOBUF_REFSTRUCT_COMPATIBILITY_MODE
+      , pb::IBufferMessage
+  #endif
+  {
+    private static readonly pb::MessageParser<KillRecord> _parser = new pb::MessageParser<KillRecord>(() => new KillRecord());
+    private pb::UnknownFieldSet _unknownFields;
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public static pb::MessageParser<KillRecord> Parser { get { return _parser; } }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public static pbr::MessageDescriptor Descriptor {
+      get { return global::LiteNet.Proto.BattleReflection.Descriptor.MessageTypes[4]; }
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    pbr::MessageDescriptor pb::IMessage.Descriptor {
+      get { return Descriptor; }
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public KillRecord() {
+      OnConstruction();
+    }
+
+    partial void OnConstruction();
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public KillRecord(KillRecord other) : this() {
+      killer_ = other.killer_;
+      victim_ = other.victim_;
+      frame_ = other.frame_;
+      weaponSlot_ = other.weaponSlot_;
+      _unknownFields = pb::UnknownFieldSet.Clone(other._unknownFields);
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public KillRecord Clone() {
+      return new KillRecord(this);
+    }
+
+    /// <summary>Field number for the "killer" field.</summary>
+    public const int KillerFieldNumber = 1;
+    private long killer_;
+    /// <summary>
+    /// 击杀者实体 Id（0 = 无归属：自杀/环境伤害）
+    /// </summary>
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public long Killer {
+      get { return killer_; }
+      set {
+        killer_ = value;
+      }
+    }
+
+    /// <summary>Field number for the "victim" field.</summary>
+    public const int VictimFieldNumber = 2;
+    private long victim_;
+    /// <summary>
+    /// 死者实体 Id
+    /// </summary>
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public long Victim {
+      get { return victim_; }
+      set {
+        victim_ = value;
+      }
+    }
+
+    /// <summary>Field number for the "frame" field.</summary>
+    public const int FrameFieldNumber = 3;
+    private int frame_;
+    /// <summary>
+    /// 击杀发生的权威帧（去重键之一 + 展示序）
+    /// </summary>
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public int Frame {
+      get { return frame_; }
+      set {
+        frame_ = value;
+      }
+    }
+
+    /// <summary>Field number for the "weapon_slot" field.</summary>
+    public const int WeaponSlotFieldNumber = 4;
+    private int weaponSlot_;
+    /// <summary>
+    /// 击杀帧击杀者的装备武器槽（-1 = 无归属/未装备；图标按槽索引）
+    /// </summary>
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public int WeaponSlot {
+      get { return weaponSlot_; }
+      set {
+        weaponSlot_ = value;
+      }
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public override bool Equals(object other) {
+      return Equals(other as KillRecord);
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public bool Equals(KillRecord other) {
+      if (ReferenceEquals(other, null)) {
+        return false;
+      }
+      if (ReferenceEquals(other, this)) {
+        return true;
+      }
+      if (Killer != other.Killer) return false;
+      if (Victim != other.Victim) return false;
+      if (Frame != other.Frame) return false;
+      if (WeaponSlot != other.WeaponSlot) return false;
+      return Equals(_unknownFields, other._unknownFields);
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public override int GetHashCode() {
+      int hash = 1;
+      if (Killer != 0L) hash ^= Killer.GetHashCode();
+      if (Victim != 0L) hash ^= Victim.GetHashCode();
+      if (Frame != 0) hash ^= Frame.GetHashCode();
+      if (WeaponSlot != 0) hash ^= WeaponSlot.GetHashCode();
+      if (_unknownFields != null) {
+        hash ^= _unknownFields.GetHashCode();
+      }
+      return hash;
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public override string ToString() {
+      return pb::JsonFormatter.ToDiagnosticString(this);
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public void WriteTo(pb::CodedOutputStream output) {
+    #if !GOOGLE_PROTOBUF_REFSTRUCT_COMPATIBILITY_MODE
+      output.WriteRawMessage(this);
+    #else
+      if (Killer != 0L) {
+        output.WriteRawTag(8);
+        output.WriteInt64(Killer);
+      }
+      if (Victim != 0L) {
+        output.WriteRawTag(16);
+        output.WriteInt64(Victim);
+      }
+      if (Frame != 0) {
+        output.WriteRawTag(24);
+        output.WriteInt32(Frame);
+      }
+      if (WeaponSlot != 0) {
+        output.WriteRawTag(32);
+        output.WriteInt32(WeaponSlot);
+      }
+      if (_unknownFields != null) {
+        _unknownFields.WriteTo(output);
+      }
+    #endif
+    }
+
+    #if !GOOGLE_PROTOBUF_REFSTRUCT_COMPATIBILITY_MODE
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    void pb::IBufferMessage.InternalWriteTo(ref pb::WriteContext output) {
+      if (Killer != 0L) {
+        output.WriteRawTag(8);
+        output.WriteInt64(Killer);
+      }
+      if (Victim != 0L) {
+        output.WriteRawTag(16);
+        output.WriteInt64(Victim);
+      }
+      if (Frame != 0) {
+        output.WriteRawTag(24);
+        output.WriteInt32(Frame);
+      }
+      if (WeaponSlot != 0) {
+        output.WriteRawTag(32);
+        output.WriteInt32(WeaponSlot);
+      }
+      if (_unknownFields != null) {
+        _unknownFields.WriteTo(ref output);
+      }
+    }
+    #endif
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public int CalculateSize() {
+      int size = 0;
+      if (Killer != 0L) {
+        size += 1 + pb::CodedOutputStream.ComputeInt64Size(Killer);
+      }
+      if (Victim != 0L) {
+        size += 1 + pb::CodedOutputStream.ComputeInt64Size(Victim);
+      }
+      if (Frame != 0) {
+        size += 1 + pb::CodedOutputStream.ComputeInt32Size(Frame);
+      }
+      if (WeaponSlot != 0) {
+        size += 1 + pb::CodedOutputStream.ComputeInt32Size(WeaponSlot);
+      }
+      if (_unknownFields != null) {
+        size += _unknownFields.CalculateSize();
+      }
+      return size;
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public void MergeFrom(KillRecord other) {
+      if (other == null) {
+        return;
+      }
+      if (other.Killer != 0L) {
+        Killer = other.Killer;
+      }
+      if (other.Victim != 0L) {
+        Victim = other.Victim;
+      }
+      if (other.Frame != 0) {
+        Frame = other.Frame;
+      }
+      if (other.WeaponSlot != 0) {
+        WeaponSlot = other.WeaponSlot;
+      }
+      _unknownFields = pb::UnknownFieldSet.MergeFrom(_unknownFields, other._unknownFields);
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public void MergeFrom(pb::CodedInputStream input) {
+    #if !GOOGLE_PROTOBUF_REFSTRUCT_COMPATIBILITY_MODE
+      input.ReadRawMessage(this);
+    #else
+      uint tag;
+      while ((tag = input.ReadTag()) != 0) {
+      if ((tag & 7) == 4) {
+        // Abort on any end group tag.
+        return;
+      }
+      switch(tag) {
+          default:
+            _unknownFields = pb::UnknownFieldSet.MergeFieldFrom(_unknownFields, input);
+            break;
+          case 8: {
+            Killer = input.ReadInt64();
+            break;
+          }
+          case 16: {
+            Victim = input.ReadInt64();
+            break;
+          }
+          case 24: {
+            Frame = input.ReadInt32();
+            break;
+          }
+          case 32: {
+            WeaponSlot = input.ReadInt32();
+            break;
+          }
+        }
+      }
+    #endif
+    }
+
+    #if !GOOGLE_PROTOBUF_REFSTRUCT_COMPATIBILITY_MODE
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    void pb::IBufferMessage.InternalMergeFrom(ref pb::ParseContext input) {
+      uint tag;
+      while ((tag = input.ReadTag()) != 0) {
+      if ((tag & 7) == 4) {
+        // Abort on any end group tag.
+        return;
+      }
+      switch(tag) {
+          default:
+            _unknownFields = pb::UnknownFieldSet.MergeFieldFrom(_unknownFields, ref input);
+            break;
+          case 8: {
+            Killer = input.ReadInt64();
+            break;
+          }
+          case 16: {
+            Victim = input.ReadInt64();
+            break;
+          }
+          case 24: {
+            Frame = input.ReadInt32();
+            break;
+          }
+          case 32: {
+            WeaponSlot = input.ReadInt32();
+            break;
+          }
+        }
+      }
+    }
+    #endif
+
+  }
+
+  /// <summary>
+  /// 单条开火记录（远端开火火光的公共面源）
+  /// </summary>
+  [global::System.Diagnostics.DebuggerDisplayAttribute("{ToString(),nq}")]
+  public sealed partial class FireRecord : pb::IMessage<FireRecord>
+  #if !GOOGLE_PROTOBUF_REFSTRUCT_COMPATIBILITY_MODE
+      , pb::IBufferMessage
+  #endif
+  {
+    private static readonly pb::MessageParser<FireRecord> _parser = new pb::MessageParser<FireRecord>(() => new FireRecord());
+    private pb::UnknownFieldSet _unknownFields;
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public static pb::MessageParser<FireRecord> Parser { get { return _parser; } }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public static pbr::MessageDescriptor Descriptor {
+      get { return global::LiteNet.Proto.BattleReflection.Descriptor.MessageTypes[5]; }
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    pbr::MessageDescriptor pb::IMessage.Descriptor {
+      get { return Descriptor; }
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public FireRecord() {
+      OnConstruction();
+    }
+
+    partial void OnConstruction();
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public FireRecord(FireRecord other) : this() {
+      shooter_ = other.shooter_;
+      frame_ = other.frame_;
+      _unknownFields = pb::UnknownFieldSet.Clone(other._unknownFields);
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public FireRecord Clone() {
+      return new FireRecord(this);
+    }
+
+    /// <summary>Field number for the "shooter" field.</summary>
+    public const int ShooterFieldNumber = 1;
+    private long shooter_;
+    /// <summary>
+    /// 开火者实体 Id（武器门放行的实际开火；空仓/被拦/死亡不产）
+    /// </summary>
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public long Shooter {
+      get { return shooter_; }
+      set {
+        shooter_ = value;
+      }
+    }
+
+    /// <summary>Field number for the "frame" field.</summary>
+    public const int FrameFieldNumber = 2;
+    private int frame_;
+    /// <summary>
+    /// 开火发生的权威帧（去重键 + 时效判据）
+    /// </summary>
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public int Frame {
+      get { return frame_; }
+      set {
+        frame_ = value;
+      }
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public override bool Equals(object other) {
+      return Equals(other as FireRecord);
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public bool Equals(FireRecord other) {
+      if (ReferenceEquals(other, null)) {
+        return false;
+      }
+      if (ReferenceEquals(other, this)) {
+        return true;
+      }
+      if (Shooter != other.Shooter) return false;
+      if (Frame != other.Frame) return false;
+      return Equals(_unknownFields, other._unknownFields);
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public override int GetHashCode() {
+      int hash = 1;
+      if (Shooter != 0L) hash ^= Shooter.GetHashCode();
+      if (Frame != 0) hash ^= Frame.GetHashCode();
+      if (_unknownFields != null) {
+        hash ^= _unknownFields.GetHashCode();
+      }
+      return hash;
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public override string ToString() {
+      return pb::JsonFormatter.ToDiagnosticString(this);
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public void WriteTo(pb::CodedOutputStream output) {
+    #if !GOOGLE_PROTOBUF_REFSTRUCT_COMPATIBILITY_MODE
+      output.WriteRawMessage(this);
+    #else
+      if (Shooter != 0L) {
+        output.WriteRawTag(8);
+        output.WriteInt64(Shooter);
+      }
+      if (Frame != 0) {
+        output.WriteRawTag(16);
+        output.WriteInt32(Frame);
+      }
+      if (_unknownFields != null) {
+        _unknownFields.WriteTo(output);
+      }
+    #endif
+    }
+
+    #if !GOOGLE_PROTOBUF_REFSTRUCT_COMPATIBILITY_MODE
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    void pb::IBufferMessage.InternalWriteTo(ref pb::WriteContext output) {
+      if (Shooter != 0L) {
+        output.WriteRawTag(8);
+        output.WriteInt64(Shooter);
+      }
+      if (Frame != 0) {
+        output.WriteRawTag(16);
+        output.WriteInt32(Frame);
+      }
+      if (_unknownFields != null) {
+        _unknownFields.WriteTo(ref output);
+      }
+    }
+    #endif
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public int CalculateSize() {
+      int size = 0;
+      if (Shooter != 0L) {
+        size += 1 + pb::CodedOutputStream.ComputeInt64Size(Shooter);
+      }
+      if (Frame != 0) {
+        size += 1 + pb::CodedOutputStream.ComputeInt32Size(Frame);
+      }
+      if (_unknownFields != null) {
+        size += _unknownFields.CalculateSize();
+      }
+      return size;
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public void MergeFrom(FireRecord other) {
+      if (other == null) {
+        return;
+      }
+      if (other.Shooter != 0L) {
+        Shooter = other.Shooter;
+      }
+      if (other.Frame != 0) {
+        Frame = other.Frame;
+      }
+      _unknownFields = pb::UnknownFieldSet.MergeFrom(_unknownFields, other._unknownFields);
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public void MergeFrom(pb::CodedInputStream input) {
+    #if !GOOGLE_PROTOBUF_REFSTRUCT_COMPATIBILITY_MODE
+      input.ReadRawMessage(this);
+    #else
+      uint tag;
+      while ((tag = input.ReadTag()) != 0) {
+      if ((tag & 7) == 4) {
+        // Abort on any end group tag.
+        return;
+      }
+      switch(tag) {
+          default:
+            _unknownFields = pb::UnknownFieldSet.MergeFieldFrom(_unknownFields, input);
+            break;
+          case 8: {
+            Shooter = input.ReadInt64();
+            break;
+          }
+          case 16: {
+            Frame = input.ReadInt32();
+            break;
+          }
+        }
+      }
+    #endif
+    }
+
+    #if !GOOGLE_PROTOBUF_REFSTRUCT_COMPATIBILITY_MODE
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    void pb::IBufferMessage.InternalMergeFrom(ref pb::ParseContext input) {
+      uint tag;
+      while ((tag = input.ReadTag()) != 0) {
+      if ((tag & 7) == 4) {
+        // Abort on any end group tag.
+        return;
+      }
+      switch(tag) {
+          default:
+            _unknownFields = pb::UnknownFieldSet.MergeFieldFrom(_unknownFields, ref input);
+            break;
+          case 8: {
+            Shooter = input.ReadInt64();
+            break;
+          }
+          case 16: {
+            Frame = input.ReadInt32();
+            break;
+          }
         }
       }
     }
@@ -2655,7 +3291,7 @@ namespace LiteNet.Proto {
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public static pbr::MessageDescriptor Descriptor {
-      get { return global::LiteNet.Proto.BattleReflection.Descriptor.MessageTypes[4]; }
+      get { return global::LiteNet.Proto.BattleReflection.Descriptor.MessageTypes[6]; }
     }
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
@@ -3121,7 +3757,7 @@ namespace LiteNet.Proto {
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public static pbr::MessageDescriptor Descriptor {
-      get { return global::LiteNet.Proto.BattleReflection.Descriptor.MessageTypes[5]; }
+      get { return global::LiteNet.Proto.BattleReflection.Descriptor.MessageTypes[7]; }
     }
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
@@ -3396,7 +4032,7 @@ namespace LiteNet.Proto {
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public static pbr::MessageDescriptor Descriptor {
-      get { return global::LiteNet.Proto.BattleReflection.Descriptor.MessageTypes[6]; }
+      get { return global::LiteNet.Proto.BattleReflection.Descriptor.MessageTypes[8]; }
     }
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
@@ -3671,7 +4307,7 @@ namespace LiteNet.Proto {
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public static pbr::MessageDescriptor Descriptor {
-      get { return global::LiteNet.Proto.BattleReflection.Descriptor.MessageTypes[7]; }
+      get { return global::LiteNet.Proto.BattleReflection.Descriptor.MessageTypes[9]; }
     }
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
@@ -3946,7 +4582,7 @@ namespace LiteNet.Proto {
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public static pbr::MessageDescriptor Descriptor {
-      get { return global::LiteNet.Proto.BattleReflection.Descriptor.MessageTypes[8]; }
+      get { return global::LiteNet.Proto.BattleReflection.Descriptor.MessageTypes[10]; }
     }
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
@@ -4291,7 +4927,7 @@ namespace LiteNet.Proto {
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public static pbr::MessageDescriptor Descriptor {
-      get { return global::LiteNet.Proto.BattleReflection.Descriptor.MessageTypes[9]; }
+      get { return global::LiteNet.Proto.BattleReflection.Descriptor.MessageTypes[11]; }
     }
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
@@ -4733,7 +5369,7 @@ namespace LiteNet.Proto {
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public static pbr::MessageDescriptor Descriptor {
-      get { return global::LiteNet.Proto.BattleReflection.Descriptor.MessageTypes[10]; }
+      get { return global::LiteNet.Proto.BattleReflection.Descriptor.MessageTypes[12]; }
     }
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
@@ -5008,7 +5644,7 @@ namespace LiteNet.Proto {
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public static pbr::MessageDescriptor Descriptor {
-      get { return global::LiteNet.Proto.BattleReflection.Descriptor.MessageTypes[11]; }
+      get { return global::LiteNet.Proto.BattleReflection.Descriptor.MessageTypes[13]; }
     }
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
@@ -5434,7 +6070,7 @@ namespace LiteNet.Proto {
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public static pbr::MessageDescriptor Descriptor {
-      get { return global::LiteNet.Proto.BattleReflection.Descriptor.MessageTypes[12]; }
+      get { return global::LiteNet.Proto.BattleReflection.Descriptor.MessageTypes[14]; }
     }
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
@@ -5798,7 +6434,7 @@ namespace LiteNet.Proto {
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public static pbr::MessageDescriptor Descriptor {
-      get { return global::LiteNet.Proto.BattleReflection.Descriptor.MessageTypes[13]; }
+      get { return global::LiteNet.Proto.BattleReflection.Descriptor.MessageTypes[15]; }
     }
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
@@ -5959,7 +6595,7 @@ namespace LiteNet.Proto {
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public static pbr::MessageDescriptor Descriptor {
-      get { return global::LiteNet.Proto.BattleReflection.Descriptor.MessageTypes[14]; }
+      get { return global::LiteNet.Proto.BattleReflection.Descriptor.MessageTypes[16]; }
     }
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
@@ -6157,7 +6793,7 @@ namespace LiteNet.Proto {
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public static pbr::MessageDescriptor Descriptor {
-      get { return global::LiteNet.Proto.BattleReflection.Descriptor.MessageTypes[15]; }
+      get { return global::LiteNet.Proto.BattleReflection.Descriptor.MessageTypes[17]; }
     }
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
@@ -6355,7 +6991,7 @@ namespace LiteNet.Proto {
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public static pbr::MessageDescriptor Descriptor {
-      get { return global::LiteNet.Proto.BattleReflection.Descriptor.MessageTypes[16]; }
+      get { return global::LiteNet.Proto.BattleReflection.Descriptor.MessageTypes[18]; }
     }
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
@@ -6791,7 +7427,7 @@ namespace LiteNet.Proto {
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public static pbr::MessageDescriptor Descriptor {
-      get { return global::LiteNet.Proto.BattleReflection.Descriptor.MessageTypes[17]; }
+      get { return global::LiteNet.Proto.BattleReflection.Descriptor.MessageTypes[19]; }
     }
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
@@ -6952,7 +7588,7 @@ namespace LiteNet.Proto {
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public static pbr::MessageDescriptor Descriptor {
-      get { return global::LiteNet.Proto.BattleReflection.Descriptor.MessageTypes[18]; }
+      get { return global::LiteNet.Proto.BattleReflection.Descriptor.MessageTypes[20]; }
     }
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
@@ -7113,7 +7749,7 @@ namespace LiteNet.Proto {
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public static pbr::MessageDescriptor Descriptor {
-      get { return global::LiteNet.Proto.BattleReflection.Descriptor.MessageTypes[19]; }
+      get { return global::LiteNet.Proto.BattleReflection.Descriptor.MessageTypes[21]; }
     }
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
@@ -7354,7 +7990,7 @@ namespace LiteNet.Proto {
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public static pbr::MessageDescriptor Descriptor {
-      get { return global::LiteNet.Proto.BattleReflection.Descriptor.MessageTypes[20]; }
+      get { return global::LiteNet.Proto.BattleReflection.Descriptor.MessageTypes[22]; }
     }
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
@@ -7555,7 +8191,7 @@ namespace LiteNet.Proto {
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public static pbr::MessageDescriptor Descriptor {
-      get { return global::LiteNet.Proto.BattleReflection.Descriptor.MessageTypes[21]; }
+      get { return global::LiteNet.Proto.BattleReflection.Descriptor.MessageTypes[23]; }
     }
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
@@ -7756,7 +8392,7 @@ namespace LiteNet.Proto {
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public static pbr::MessageDescriptor Descriptor {
-      get { return global::LiteNet.Proto.BattleReflection.Descriptor.MessageTypes[22]; }
+      get { return global::LiteNet.Proto.BattleReflection.Descriptor.MessageTypes[24]; }
     }
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
@@ -8065,7 +8701,7 @@ namespace LiteNet.Proto {
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public static pbr::MessageDescriptor Descriptor {
-      get { return global::LiteNet.Proto.BattleReflection.Descriptor.MessageTypes[23]; }
+      get { return global::LiteNet.Proto.BattleReflection.Descriptor.MessageTypes[25]; }
     }
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]

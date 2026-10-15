@@ -19,5 +19,8 @@ namespace LiteNet.Protocol
         StartMatchRequest = 13,   // C→S 房主提前开局（Reliable；开房裁决——owner 判定在 Runtime）
         StartMatchResponse = 14,  // S→C 提前开局反馈（Reliable；仅拒绝时携带原因——成功以 StartGame 广播为准）
         OwnerChanged = 15,        // S→C 房主迁移广播（Reliable；原房主离席 → 最低 playerId 席位继承）
+        // 应用层 RTT/丢包观测探针（Unreliable；双向同类型——C→S 发 client_time，S→C 原样回显，见 RoomClient 探针）。
+        // 连接保活仍由 kcp2k 内建 Ping/Timeout 承担，本包不参与保活。**不复用历史号 7**（已退役，保号不重用）。
+        Heartbeat = 16,
     }
 }

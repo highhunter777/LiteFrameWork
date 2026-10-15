@@ -38,6 +38,9 @@ namespace LiteClient
         /// <summary>传输连接是否存活。</summary>
         public bool Connected => _client.Connected;
 
+        /// <summary>网络质量观测（转发 <see cref="RoomClient.Quality"/>——HUD 展示面，不参与判定）。</summary>
+        public NetworkQuality Quality => _client.Quality;
+
         /// <summary>最近一次传输错误文本（诊断用；null = 无。仅 KCP 实现提供 OnError）。</summary>
         public string LastError => _lastError;
 

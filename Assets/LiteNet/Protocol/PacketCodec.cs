@@ -50,6 +50,7 @@ namespace LiteNet.Protocol
                     case PacketType.StartMatchRequest: message = Proto.StartMatchRequest.Parser.ParseFrom(payload); return true;   // 开房裁决
                     case PacketType.StartMatchResponse: message = Proto.StartMatchResponse.Parser.ParseFrom(payload); return true;
                     case PacketType.OwnerChanged: message = Proto.OwnerChanged.Parser.ParseFrom(payload); return true;            // 房主迁移
+                    case PacketType.Heartbeat: message = Proto.Heartbeat.Parser.ParseFrom(payload); return true;                  // RTT/丢包探针（双向）
                     default: return false;
                 }
             }
