@@ -10,6 +10,7 @@ namespace LiteGame.UI
     {
         public Image Fill;                               // Image type=Filled
         public TMP_Text ValueText;                           // 可选
+        [UiShellProperty("数值文本格式")]
         [Tooltip("数值文本格式；{0}=当前 {1}=上限。留空不显示数值")]
         public string ValueFormat = "{0}/{1}";
 

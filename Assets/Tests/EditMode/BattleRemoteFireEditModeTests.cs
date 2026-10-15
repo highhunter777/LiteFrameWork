@@ -159,18 +159,18 @@ namespace LiteGame.Tests.EditMode
         [Category(TestCategory.Contract)]
         public void 远端火光_本地开火与无挂点与无效实体_不播()
         {
-            var (_, view, self, bot) = Build();
+            var (_, view, self, _) = Build();
             var vfx = new RecordingVfx();
             using (var driver = new BattleRemoteMuzzleFlashDriver(view, FeedWith((self, 42)), vfx))
             {
                 MountMuzzle(view, 0);
-                MountMuzzle(view, 1);
                 driver.Tick();
                 Assert.AreEqual(0, vfx.Calls.Count, "本地开火走本地帧事件即时播——不消费公共开火面（不双闪）");
             }
 
+            var (_, bareView, _, bareBot) = Build();   // 独立世界：bot 视图保持灰盒（无 Muzzle 挂点）
             var vfx2 = new RecordingVfx();
-            using (var driver = new BattleRemoteMuzzleFlashDriver(view, FeedWith((bot, 43)), vfx2))   // bot 视图无 Muzzle（灰盒形态）
+            using (var driver = new BattleRemoteMuzzleFlashDriver(bareView, FeedWith((bareBot, 43)), vfx2))
             {
                 driver.Tick();
                 Assert.AreEqual(0, vfx2.Calls.Count, "无挂点静默退化");
@@ -178,7 +178,7 @@ namespace LiteGame.Tests.EditMode
             }
 
             var vfx3 = new RecordingVfx();
-            using (var driver = new BattleRemoteMuzzleFlashDriver(view, FeedWith((999999L, 44)), vfx3))   // 实体已离场/未对齐
+            using (var driver = new BattleRemoteMuzzleFlashDriver(bareView, FeedWith((999999L, 44)), vfx3))   // 实体已离场/未对齐
             {
                 driver.Tick();
                 Assert.AreEqual(0, vfx3.Calls.Count, "无效实体静默跳过");

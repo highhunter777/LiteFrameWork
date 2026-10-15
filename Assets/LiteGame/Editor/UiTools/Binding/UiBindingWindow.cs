@@ -77,14 +77,12 @@ namespace LiteGame.Editor.UiTools.Binding
             RebuildRows();
         }
 
-        /// <summary>展示根：Stage 打开且即目标 → Stage 实例（活体）；否则 prefab 资产对象（只读展示）。</summary>
+        /// <summary>展示根：Stage 打开且即目标 → Stage 实例（活体）；否则 prefab 资产对象（只读展示）。
+        /// 判据单源＝<see cref="Compose.UiComposeTarget.StageRootFor"/>（编排面板共用）。</summary>
         private GameObject DisplayRoot()
         {
-            var stage = PrefabStageUtility.GetCurrentPrefabStage();
-            if (stage != null && !string.IsNullOrEmpty(_prefabPath) && stage.assetPath == _prefabPath
-                && stage.prefabContentsRoot != null)
-                return stage.prefabContentsRoot;
-            return _prefab;
+            var stageRoot = Compose.UiComposeTarget.StageRootFor(_prefabPath);
+            return stageRoot != null ? stageRoot : _prefab;
         }
 
         private void RebuildRows()
@@ -140,42 +138,9 @@ namespace LiteGame.Editor.UiTools.Binding
 
         private void DrawTree()
         {
-            _treeScroll = EditorGUILayout.BeginScrollView(_treeScroll, GUILayout.ExpandHeight(true));
-            foreach (var row in _rows)
-            {
-                using (new EditorGUILayout.HorizontalScope())
-                {
-                    bool wasChecked = _checked.Contains(row.Path);
-                    bool nowChecked = GUILayout.Toggle(wasChecked, GUIContent.none, GUILayout.Width(16f));
-                    if (nowChecked != wasChecked)
-                    {
-                        if (nowChecked) _checked.Add(row.Path); else _checked.Remove(row.Path);
-                        ClearPreview();
-                    }
-
-                    var style = row.IsRoot ? EditorStyles.boldLabel : EditorStyles.label;
-                    if (GUILayout.Button(new string(' ', row.Depth * 2) + row.Name, style, GUILayout.ExpandWidth(true)))
-                    {
-                        _selectedPath = row.Path;
-                        PrefillPresetFromRow(row);
-                        ClearPreview();
-                        if (row.Node != null) EditorGUIUtility.PingObject(row.Node.gameObject);
-                    }
-
-                    if (row.HasBindRoot) GUILayout.Label("[生成根]", EditorStyles.miniLabel, GUILayout.Width(52f));
-                    if (row.InCloneScope) GUILayout.Label("[列表项]", EditorStyles.miniLabel, GUILayout.Width(52f));
-                    if (row.HasBindNode)
-                    {
-                        bool drift = row.BindName != row.Name && !string.IsNullOrEmpty(row.BindName);
-                        GUILayout.Label(drift
-                            ? $"[Bind:{row.BindName}≠{row.Name}]"
-                            : $"[Bind:{row.BindName}]", drift ? EditorStyles.miniBoldLabel : EditorStyles.miniLabel,
-                            GUILayout.Width(150f));
-                        GUILayout.Label(row.TypeName ?? "-", EditorStyles.miniLabel, GUILayout.Width(190f));
-                    }
-                }
-            }
-            EditorGUILayout.EndScrollView();
+            if (UiBindTreeView.Draw(_rows, ref _treeScroll, ref _selectedPath, _checked, out var clicked))
+                ClearPreview();
+            if (clicked != null) PrefillPresetFromRow(clicked);
             EditorGUILayout.LabelField($"已勾选 {_checked.Count} 项", EditorStyles.miniLabel);
         }
 

@@ -11,7 +11,7 @@
 | 3 | **绑定标记工具（窗口/前缀预设 UI/批量重命名/引用点提示/生成物 hash）** | **已交付（2026-10-12）** | §2 |
 | 4 | **样式工具补齐（`UiTextStyleRef` 文字档 + 对账扩 `Screens/`）** | **已交付（2026-10-13）** | §3 |
 | 5 | **校验进 CI（生成物 hash 对账 + 门禁接入 + 资源族规则「表内 prefab 路径必须存在」）** | **已交付（2026-10-13）** | §4 + 修改指南 §2.3 |
-| 6 | 编排面板（控件库/绑定树/受控属性/校验生成） | 待做 | §5 |
+| 6 | **编排面板（宿主窗口 + 绑定暴露/受控属性/校验·生成/控件库四分区；Odin 呈现层）** | **已交付（2026-10-15）** | §5 |
 | 7 | UIPatch 调试补丁 | 待做（随 U4 消费者） | §6 |
 
 ## 步 1：校验核心（已交付）
@@ -191,3 +191,51 @@
 - **资源族其余子项待接入**（缺引用其余面/收集组/图集字体名册/生产包排除调试补丁——§4 资源族清单），随真实需求逐条接；
 - ~~表清单为**显式登记**（九表 `(file, type)` 数组）——新表入 `Tables.cs` 后须同批补 `AssetTablePathRule.Tables` 一行~~ **已修（2026-10-13 表清单单源化，提交 `5e7fe22`；补记见[上云批C收尾补记](上云批C收尾补记.md)）**：清单改 `TableLayout.Files` 派生（`TableName` 裸表名→`cfg` 类名约定解析、失败 fail-fast）、`TableDataDir` 与装载/核对两处拼接口径同批走 `TableLayout.DataDir`/`TableDataPath` 单源——"新表接入第五件"退役（新表入清单零登记成本）；该债 2026-10-13 曾按红线 5 登记进[代码质量审计-客户端](../代码质量审计-客户端.md) §二（"必须与 X 一致"只靠注释的违规形态），修复登记已随批C-⑤ 回写；
 - 门禁测试断言 **Error=0 + Warning=1**——Warning 数随页面批次（UIMain 根名）收口后应改回 0 基线，届时同批更新。
+
+## 步 6：编排面板（已交付）
+
+**落点**：`Assets/LiteGame/Editor/UiTools/Compose/`（宿主与四分区）＋ `Assets/LiteGame/Editor/UiTools/Binding/UiBindTreeView.cs`（共享只读树）＋ 运行时标记 `Assets/LiteGame/UI/UiShellPropertyAttribute.cs`
+
+| 件 | 职责 | Sirenix |
+|---|---|---|
+| `UiComposeWindow.cs` | 宿主窗口（`OdinEditorWindow`，菜单 `LiteGame/UI/编排/UI 编排面板`）：Odin 绘制目标 prefab 与状态行（置页签组之上）+ **四个 Odin `TabGroup` 页签**（绑定暴露/受控属性/校验·生成/控件库）；Stage 跟随 | 有 |
+| `UiComposeTarget.cs` | 目标解析**单源**：`StageRootFor` / `Resolve` / `FindNodeForReport`（报告 node 含根名 vs 树口径不含根的收口） | 无 |
+| `UiBindingsSection.cs` | 绑定暴露分区：内嵌**只读**树 + 跳转绑定标记工具编辑（编辑动作不搬进宿主） | 无 |
+| `UiShellPropertyAttribute.cs`（运行时） | 受控面声明（`LiteGame.UI`；零依赖、只声明不驱动） | 无 |
+| `UiShellPropertyCatalog.cs` | 白名单发现：自有程序集组件 + 标注字段；值型最小集（bool/int/float/string/enum）+ `Unsupported` 显式 | 无 |
+| `UiShellPropertySection.cs` | 受控属性分区：逐组件 **Odin 属性树只画白名单成员**（写入/Undo/脏标记归属性树） | 有 |
+| `UiValidationSection.cs` | 校验分区：**窄档**（资产面只喂本 prefab）+ 全量档；报告列表化 + 定位节点 | 无 |
+| `UiGenerateSection.cs` | 生成分区：`BindGenerator.Generate` → 同一步 `UiBindGenerationHash.Record`（先 `DisplayDialog` 确认——生成触发域重载） | 无 |
+| `UiWidgetLibrary.cs` / `UiWidgetInstaller.cs` | 控件库：**目录即清单**（扫 `Widgets/` 的 `Tmp_*`）＋**只在 Prefab Stage 内**插入（Undo/嵌套/Variant 归原生） | 无 |
+| `UiWidgetLibrarySection.cs` | 控件库分区：**inline `OdinMenuTree` + Odin 搜索栏**（左树；替掉手写过滤框）+ 右侧选中模板的组件/受控面预览 + 插入按钮（父级＝Stage 内选中节点，缺省 Stage 根） | 有 |
+
+**改动既有件（消重）**：`UiBindingWindow.DisplayRoot` 改调 `UiComposeTarget.StageRootFor`；`UiBindingWindow.DrawTree` 改调 `UiBindTreeView.Draw`（窗口行为零变化：勾选/选中/漂移色/徽标/Ping 全保留）；`LiteCodeGen.Editor/BindMenus.FindRootInPrefab` private→public（生成分区复用，不复制实现）；`Assets/Tests/EditMode/LiteGame.EditModeTests.asmdef` 补 `LiteCodeGen.Editor` 引用（测被复用的生成根查找）。
+
+**受控面标注集（本轮最小）**：`HpBar.ValueFormat/BackLerpSpeed`、`ProgressBar.ValueFormat`、`Stepper.Min/Max/Step`、`CountText.Duration`——只标面向内容作者的展示性/行为性字段；**接线引用字段**（`Slider`/`ValueText`/`BackFill`/`Label`）不标（属内部实现）。
+
+**依赖边界**：Odin 只进 `LiteGame.Editor`（`restore-check.ps1` §4 / `toolchain.json` 已把 Odin 列为**阻塞式环境项**）；呈现层＝宿主窗口 + **Odin `TabGroup` 页签** + 目标字段 + 受控属性的 Odin 属性树 + 控件库 inline `OdinMenuTree`；页签体（绑定树/报告）走既有 IMGUI 绘制器，在 Odin 页签内混排；逻辑类与运行时标记**零 Sirenix**——"摘除 Odin 只换绘制层"。
+
+### 验证证据
+
+| 项 | 结果 |
+|---|---|
+| Unity recompile | 0 错误（含 Odin 引用面：`LiteGame.Editor.asmdef` 自动引用 `Sirenix.OdinInspector.Editor.dll` 成立） |
+| Odin 形态实证 | `AgentScripts/VerifyComposeTabs.cs`（未入库复验脚本）：属性树断言页签组 `#Compose` 含四页签且页签名与组内成员全对；临时冒烟窗口强制绘制受控属性/控件库/校验三分区，连续重绘 38 帧**零 error/exception**（冒烟窗口用后即删）——`[OnInspectorGUI, TabGroup(组名, 页签名)]` 与 inline `OdinMenuTree` 可用性由此钉住 |
+| `UiComposePanelEditModeTests` | **5/5**：目标解析两态（Stage/资产、非 prefab→null）／窄档报出本 prefab 命名违规并按报告节点反查定位／**报告 node 含根名 vs 树口径不含根**（两口径收口钉）／未接入族显式列出 |
+| `UiShellPropertyEditModeTests` | **5/5**：白名单只出标注成员／接线字段不进面／非自有程序集组件不产行／值型归类（含 `Unsupported`）／**真实模板 `Tmp_HpBar` 受控行** |
+| `UiComposeGenerateEditModeTests` | **2/2**：生成根查找三态（根上/子物体/无）／记录-校验闭环（未记录 Error → 记录后「未记录·漂移」清零，记录值＝当前绑定面指纹） |
+| `UiWidgetLibraryEditModeTests` | **6/6**：真实资产枚举 ≥27 且全 `Tmp_`／Screens 目录不误收／模板名判据／使用段映射／插入守卫（未绑定·未开 Stage 不可插且给原因） |
+| 全量 EditMode | **609/609 全绿**——本批新增 18 全绿、零新增红（并行的房间席位红〔`MetaPagesEditModeTests`×5 · `BattleRemoteFireEditModeTests`×1〕已在对方批内修净，本批不含） |
+| L1 门禁 | `test.ps1 -Lane L1 -Profile PullRequest` **[PASS] 1694** |
+| L2 Unity 门禁 | **未跑**——本批**零序列化资产改动**（只新增/改 `.cs`、`.asmdef`、文档；无 prefab/scene/material/SO 变更），PlayMode 面不受影响；L2 的 EditMode 段已由上面的全量 EditMode 跑覆盖 |
+| BuildHash | **未跑亦无需跑**：本轮不碰共享源集/`.proto`/Luban 表源（`UiShellPropertyAttribute` 落 `LiteGame.UI`，不在 `gen-build-hash.py` 闭包内） |
+| 窗口交互面 | 属手测（IMGUI/Odin 绘制不做自动化断言——与既有工具窗口同口径） |
+
+### 遗留（如实）
+
+- **绘制面只做逻辑侧断言**：宿主/分区绘制、Odin 属性树行编辑、模板插入的真实走查随制作侧使用反馈；
+- **受控面标注从最小集起步**（4 件控件 7 个字段）——其余控件随使用增量标注；未标注＝不进面（不冒充已覆盖）；
+- **对象引用类值型不支持**（`Unsupported` 显式列出）——控件/资产引用属接线面，不进受控面；
+- **缩略图未做**（RenderTexture 成本）——列表以模板名 + 使用段替代，登记为增强项；
+- **全量档校验较慢**（源码面扫描 ~60s）——窗口默认窄档，全量档仅显式按钮且无进度/取消；
+- **Odin 依赖面**：未按 `restore-check.ps1` 安装 Odin 的机器 `LiteGame.Editor` 编译失败——由既有环境政策承担，与归档《编辑器设计规划》"Odin 只进 LiteGame.Editor"硬纪律一致（不额外拆 asmdef）。

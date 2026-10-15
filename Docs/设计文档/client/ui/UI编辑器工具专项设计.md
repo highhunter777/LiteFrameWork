@@ -103,11 +103,24 @@ Shader 做能力校验，不做自动“一键换 shader”。用代表性资产
 
 ## 5. 编排面板
 
-在绑定/校验稳定且真实制作有需求后，增加四个可独立交付的面板：控件库、绑定暴露树、受控属性、校验/生成。布局操作仍由 Prefab Stage 提供，产物直接保存标准 Prefab。
+**已交付（步 6，2026-10-15）**：一个**宿主窗口**（`OdinEditorWindow`，菜单 `LiteGame/UI/编排/UI 编排面板`，落 `Assets/LiteGame/Editor/UiTools/Compose/`）＋四个分区——**绑定暴露 / 受控属性 / 校验·生成 / 控件库**。原文"四个可独立交付的面板"由**分区级可单交付**满足（未接入分区显式画"未接入"，不冒充通过）；不建四个窗口——四窗口会各自复制"Stage 跟随 / 显示根解析 / 预览作废"上下文（违"消除重复"）。
 
-流程：打开页面 → 选控件模板 → 原生布局 → 标记/命名 → 样式和本地化预览 → 校验生成 → 真 Lua 页面验证。模板 Variant、嵌套 Prefab 和列表项要保留各自作用域，不以面板自动重名规则掩盖绑定冲突。
+**依赖边界（Odin 只进 `LiteGame.Editor`）**：呈现层走 Odin——宿主窗口基类 `OdinEditorWindow`；**四个分区＝Odin `TabGroup` 页签**（`[OnInspectorGUI, TabGroup("Compose", <页签名>)]`；目标 prefab 字段与状态行置于页签组之上）；受控属性行由 **Odin 属性树**呈现（`PropertyTree.Create` + 白名单过滤 + `InspectorUtilities` 绘制对，写入/Undo/脏标记交属性树统一处理）；**控件库列表＝inline `OdinMenuTree`**（含 Odin 搜索栏；不用独立 `OdinMenuEditorWindow`——保持单宿主窗口），右侧为选中模板的组件/受控面预览与插入入口。页签体（绑定树/报告）走既有 IMGUI 绘制器，在 Odin 页签内混排。**分区逻辑类与运行时标记零 Sirenix**——`UiComposeTarget`（目标解析单源）、`UiShellPropertyCatalog`（白名单发现）、`UiWidgetLibrary`（目录即清单）、`UiWidgetInstaller`（Stage 内插入）均不依赖 Sirenix，可脱离 Odin 编译与测试（"摘除 Odin 只换绘制层"）。Odin 为**阻塞式环境项**（`scripts/gate/restore-check.ps1` §4、`toolchain.json` `paidOrRestrictedPlugins`），缺失即门禁失败。
 
-不要求凑齐四个面板才可用；优先交付校验和属性入口。预算按可验证功能拆分，不以行数或天数估算作为交付承诺。
+**分区职责**
+
+| 分区 | 交付面 |
+|---|---|
+| **绑定暴露** | 内嵌**只读**树（数据单源 `UiBindingRename.BuildTree`、绘制单源 `Binding/UiBindTreeView.cs`——与绑定标记工具同源）；**编辑动作（前缀预设/批量改名/预览）仍跳绑定标记工具窗口**，两处交互不合搬进宿主 |
+| **受控属性** | 白名单＝自有控件组件上的**运行时 attribute** `UiShellProperty`（`Assets/LiteGame/UI/UiShellPropertyAttribute.cs`，零 Odin、只声明不驱动）。**未标注成员不进枚举、无绘制入口**——"不暴露控件内部实现"是物理边界而非按钮禁用；接线引用字段（如 `HpBar.Slider`）与几何/锚点（归 Prefab Stage 原生编辑）都不在此面 |
+| **校验/生成** | 同一校验核心的窗口入口——**窄档**（资产面只喂本 prefab、源码面置空）与**全量档**（`Run()`）；报告列表化，行内"定位节点"经 `UiComposeTarget.FindNodeForReport` 反查（报告 node 含根名、绑定树口径不含根——两口径由该件收口）；**生成**＝`BindGenerator.Generate` 成功后同一步 `UiBindGenerationHash.Record`（窗口内先确认框——生成触发域重载） |
+| **控件库** | **目录即清单**（扫 `Assets/ShareResource/UI/Widgets` 的 `Tmp_*`，不另存清单文件；内容源仍为《命名词表与控件清单》§1.3）；列表＝**inline OdinMenuTree 左树 + Odin 搜索栏**，右侧为选中模板的组件/受控面预览；插入**只在 Prefab Stage 内**（`InstantiatePrefab` + Undo，Variant/嵌套作用域全归 Unity 原生），插入后**不改名**、只提示下一步标记/命名（§5 原文：不以面板自动重名规则掩盖绑定冲突） |
+
+**流程（沿用）**：打开页面 → 选控件模板 → 原生布局 → 标记/命名 → 样式和本地化预览 → 校验生成 → 真 Lua 页面验证。布局操作仍由 Unity Prefab Stage 提供；产物即标准 prefab（不存在"生成 prefab"这一步）。预算按可验证功能拆分，不以行数或天数估算作为交付承诺。
+
+**本轮不做**：UIPatch 调试补丁（§6，随 U4 消费者）；控件库缩略图（RenderTexture）；第二套画布/几何编辑；模板新建/克隆；对象引用类值型受控属性（`Unsupported` 显式列出，不静默跳过）。
+
+施工记录见 [UI工具链](../../../施工进度/UI工具链.md) 步 6。
 
 ## 6. 调试补丁与诊断
 

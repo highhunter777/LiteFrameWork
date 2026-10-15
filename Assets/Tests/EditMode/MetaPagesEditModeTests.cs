@@ -96,10 +96,12 @@ settings.Quality = function() return settings.quality end
 settings.SetQuality = function(i) settings.quality = i; calls[#calls + 1] = 'SetQuality:' .. tostring(i) end
 settings.Save = function() calls[#calls + 1] = 'Save' end
 
--- room 面（点调用；全局——房主开局批：页面订阅房主事实/发提前开局；测试手动驱动 owner_fn 模拟回放与迁移）
+-- room 面（点调用；全局——房主开局批：页面订阅房主事实/发提前开局；席位实时面批：页面订阅席位名单；
+-- 测试手动驱动 owner_fn/members_fn 模拟回放与迁移）
 room = {}
 room.OnOwner = function(fn) room.owner_fn = fn end
 room.StartMatch = function(cb) calls[#calls + 1] = 'StartMatch'; room.start_fn = cb end
+room.OnMembers = function(fn) room.members_fn = fn end
 
 Bridge = {
     ui = bridgeUi,
@@ -601,7 +603,7 @@ room.owner_fn(false)");
         }
 
         [Test]
-        public void 房间页_OnHide退订房主事实()
+        public void 房间页_OnHide退订房主事实与席位名单()
         {
             using (var env = NewEnv())
             {
@@ -609,8 +611,9 @@ room.owner_fn(false)");
 page = NewPage('UI.Page_Room')
 page:OnShow({ roomId = 'Room-A' })
 page:OnHide()
-assert(room.owner_fn == nil, 'OnHide 应退订（门面持引用纪律——页面关闭即放手）')");
-                Assert.Pass("退订断言在 Lua 侧（owner_fn == nil）");
+assert(room.owner_fn == nil, 'OnHide 应退订房主事实（门面持引用纪律——页面关闭即放手）')
+assert(room.members_fn == nil, 'OnHide 应退订席位名单（同上）')");
+                Assert.Pass("退订断言在 Lua 侧（owner_fn/members_fn == nil）");
             }
         }
 

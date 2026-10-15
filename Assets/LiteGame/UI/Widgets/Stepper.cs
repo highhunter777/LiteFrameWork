@@ -15,8 +15,11 @@ namespace LiteGame.UI
         public Button Minus;
         public Button Plus;
         public TMP_Text ValueLabel;
+        [UiShellProperty("下限")]
         public int Min;
+        [UiShellProperty("上限")]
         public int Max = 10;
+        [UiShellProperty("步长")]
         public int Step = 1;
 
         private int _value;

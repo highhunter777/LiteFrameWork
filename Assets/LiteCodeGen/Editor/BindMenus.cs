@@ -136,7 +136,8 @@ namespace LiteCodeGen.EditorTools
             return Selection.GetFiltered<GameObject>(SelectionMode.Assets).Length > 0;
         }
 
-        private static BindRoot FindRootInPrefab(GameObject asset)
+        /// <summary>在 prefab 内找生成根（根上没有则取子物体首个）——绑定生成与 UI 编排面板共用。</summary>
+        public static BindRoot FindRootInPrefab(GameObject asset)
         {
             var root = asset.GetComponent<BindRoot>();
             if (root != null)

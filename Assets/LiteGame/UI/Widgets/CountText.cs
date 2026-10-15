@@ -10,6 +10,7 @@ namespace LiteGame.UI
     public class CountText : MonoBehaviour
     {
         public TMP_Text Label;
+        [UiShellProperty("滚动时长（秒）")]
         public float Duration = 0.5f;
 
         /// <summary>从当前值滚动到目标值（首调从 0 起）。</summary>
