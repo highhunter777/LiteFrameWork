@@ -40,6 +40,11 @@ namespace LiteClient
     ///
     /// 参数形态（两种等价支持）：<c>-content.cdnUrl=http://cdn.example.com</c> 或
     /// <c>-content.cdnUrl http://cdn.example.com</c>；未出现的键保持默认。
+    ///
+    /// **三源装载（发布链）**：<see cref="Load(string[], string)"/> 合并**命令行参数 > 包内烙入文件
+    /// （StreamingAssets/deploy.args——构建流水线按 BuildProfile.endpoints 写入的参数行流）> 字段默认**：
+    /// 命令行是测试/运维临时注入面，烙入是分发渠道的零参数启动面——两者同 token 形态、同解析器
+    /// （<see cref="Tokenize"/> 行流 → <see cref="Parse"/>：烙入文件就是"持久化的命令行参数"）。
     /// </summary>
     public static class ContentDeployConfig
     {
@@ -50,6 +55,30 @@ namespace LiteClient
 
         /// <summary>Unity 入口：读进程命令行（Editor/Player 同源）。</summary>
         public static ContentCdnConfig Load() => Parse(Environment.GetCommandLineArgs());
+
+        /// <summary>三源装载：命令行 > 包内烙入（<paramref name="bakedArgsText"/> = deploy.args 全文；
+        /// null/空白 = 无烙入文件，退化为纯命令行装载）。纯函数可直测。
+        /// 实现为 **token 层拼接**（烙入流在前、命令行流在后，<see cref="Parse"/> 顺序覆盖 ⇒ 后见者赢）：
+        /// 字段默认值非空（如 <see cref="ContentCdnConfig.OfferPath"/>），按字段值判"命令行给没给过"
+        /// 结构性不可行——token 层单流无此歧义。</summary>
+        public static ContentCdnConfig Load(string[] args, string bakedArgsText)
+        {
+            string[] baked = Tokenize(bakedArgsText);
+            if (baked.Length == 0) return Parse(args);
+            if (args == null || args.Length == 0) return Parse(baked);
+            var merged = new string[baked.Length + args.Length];
+            baked.CopyTo(merged, 0);
+            args.CopyTo(merged, baked.Length);
+            return Parse(merged);
+        }
+
+        /// <summary>烙入文本 → 参数 token 流：按空白切（一行一个 <c>-key=value</c>，也兼容
+        /// 空白分隔的单行多 token 流——与命令行同形）；文本为空 = 空流。</summary>
+        public static string[] Tokenize(string bakedArgsText)
+        {
+            if (string.IsNullOrWhiteSpace(bakedArgsText)) return Array.Empty<string>();
+            return bakedArgsText.Split(new[] { ' ', '\r', '\n', '\t' }, StringSplitOptions.RemoveEmptyEntries);
+        }
 
         /// <summary>解析参数数组（纯函数；null/空数组 = 全默认）。非法值静默保持默认——
         /// 部署参数不是攻击面（验签兜底），但也不让它让启动失败。</summary>

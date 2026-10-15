@@ -82,7 +82,8 @@ namespace LiteGame
             // 传输裁决经委托留给产品装配根（ProcedureMatch.CreateTransportForFactory——工厂不认识测试开关语义）。
             // 注册面＝服务接口（消费者经构造注入解析；Put 与 RegisterInstance 写同一容器——接口键只注册一次，
             // 具体类型无产物消费者不占键）。
-            var deploy = MetaDeployConfig.Load();          // 联机部署注入（-meta.url/-envelope.key——命令行单次快照）
+            var deploy = MetaDeployConfig.Load(Environment.GetCommandLineArgs(), DeployBake.ReadArgs());
+            // 联机部署三源注入（-meta.url/-envelope.key——命令行 > 包内 deploy.args 烙入 > 默认；单次快照）
             // 玩法数据身份基摘要提供者（批 E）：装配期只装**提供者**（本模块早于 Preload 装载配置——
             // 取值点=进房/LocalServer 建房，恒在装载之后）；生产消费者=Match 会话工厂 + 本地服房
             // 来源同源（同一 ConfigService 实例）——两端摘要由构造保证同源。

@@ -40,7 +40,9 @@ namespace LiteGame
             //   入口资源可加载性探针（AssetsHealthProbe）查当前代次入口，须在资源包初始化后才有意义
             //   （Patch 先于初始化，时序不可能）——本模块只**登记**探针，由 ProcedurePatch 在初始化后执行；
             //   入口清单见 ContentSampleAssets（样例①真实资产包段：标记素材只在候选包，能加载即证据）。
-            ContentCdnConfig deploy = ContentDeployConfig.Load();
+            // 部署配置三源（命令行 > 包内 deploy.args 烙入 > 默认——分发包零参数启动；基址非信任边界不变）
+            ContentCdnConfig deploy = ContentDeployConfig.Load(
+                Environment.GetCommandLineArgs(), DeployBake.ReadArgs());
             string candidateRoot = ReleaseLayout.CandidateRootRelative;
             ICandidateFetcher fetcher;
             ICandidateProvider provider;

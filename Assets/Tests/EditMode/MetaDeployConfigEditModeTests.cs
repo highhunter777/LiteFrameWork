@@ -91,5 +91,75 @@ namespace LiteGame.Tests.EditMode
 
             Assert.AreEqual("", c.EnvelopeKeyBase64, "显式空值 = 保持默认（回落环境变量口）");
         }
+
+        // ---- 三源装载（命令行 > 包内 deploy.args 烙入 > 默认）----
+
+        [Test]
+        public void 烙入合并_命令行逐字段优先_烙入只填空()
+        {
+            string bake = "-meta.url=http://baked.example.com\n-envelope.key=QUFrRUQ=\n-meta.timeout=30\n";
+            MetaEntryConfig c = MetaDeployConfig.Load(
+                new[] { "-meta.url=http://args.example.com" }, bake);
+
+            Assert.AreEqual("http://args.example.com", c.MetaUrl, "命令行优先（烙入不覆盖显式注入）");
+            Assert.AreEqual("QUFrRUQ=", c.EnvelopeKeyBase64, "命令行未给的键由烙入补");
+            Assert.AreEqual(30, c.TimeoutSeconds, "烙入的数值键同样生效");
+        }
+
+        [Test]
+        public void 烙入缺失_退化为纯命令行装载()
+        {
+            MetaEntryConfig c = MetaDeployConfig.Load(new[] { "-meta.url=http://args.example.com" }, null);
+            Assert.AreEqual("http://args.example.com", c.MetaUrl, "无烙入文本 = 纯命令行（现状行为零变化）");
+
+            MetaEntryConfig c2 = MetaDeployConfig.Load(new[] { "-meta.url=http://a.com" }, "   \r\n  ");
+            Assert.AreEqual("http://a.com", c2.MetaUrl, "空白烙入 = 无烙入");
+            Assert.AreEqual("", c2.EnvelopeKeyBase64);
+        }
+
+        [Test]
+        public void 烙入全键覆盖_零参数分发形态()
+        {
+            string bake = "-meta.url=http://meta.example.com\n-envelope.key=QUFrRUQ=\n-meta.timeout=20\n";
+            MetaEntryConfig c = MetaDeployConfig.Load(new string[0], bake);
+
+            Assert.AreEqual("http://meta.example.com", c.MetaUrl, "分发包零参数：全键来自烙入");
+            Assert.AreEqual("QUFrRUQ=", c.EnvelopeKeyBase64);
+            Assert.AreEqual(20, c.TimeoutSeconds);
+            Assert.IsTrue(c.HasMeta);
+        }
+
+        [Test]
+        public void Tokenize_行流与单行多token等价_空文本空流()
+        {
+            string[] tokens = MetaDeployConfig.Tokenize("-a=1\r\n-b=2\n-c 3 \t");
+            CollectionAssert.AreEqual(new[] { "-a=1", "-b=2", "-c", "3" }, tokens);
+
+            Assert.AreEqual(0, MetaDeployConfig.Tokenize(null).Length);
+            Assert.AreEqual(0, MetaDeployConfig.Tokenize("  \r\n").Length);
+        }
+
+        [Test]
+        public void 拼接序_烙入在前命令行在后_同键后见者赢()
+        {
+            // token 层单流（烙入 ++ 命令行）：Parse 顺序覆盖 ⇒ 同键命令行赢、异键烙入保留
+            string bake = "-meta.url=http://baked.com\n-meta.timeout=30\n";
+            MetaEntryConfig c = MetaDeployConfig.Load(
+                new[] { "-meta.url=http://args.com", "-envelope.key=QUFrRUQ=" }, bake);
+
+            Assert.AreEqual("http://args.com", c.MetaUrl, "同键：命令行（后见）赢");
+            Assert.AreEqual(30, c.TimeoutSeconds, "命令行未给的键：烙入保留");
+            Assert.AreEqual("QUFrRUQ=", c.EnvelopeKeyBase64);
+        }
+
+        [Test]
+        public void 空值语义_烙入流内显式空值_命令行未再给_保持未注入()
+        {
+            string bake = "-envelope.key=\n";                     // 烙入里显式空值 = 未注入
+            MetaEntryConfig c = MetaDeployConfig.Load(new string[0], bake);
+
+            Assert.AreEqual("", c.EnvelopeKeyBase64, "空值不顶默认（信封回落环境变量口）");
+            Assert.IsFalse(c.HasMeta);
+        }
     }
 }

@@ -130,6 +130,46 @@ foreach ($s in $bs2.scenes) {
     }
 }
 
+# -- 3b. bake deploy.args from profile endpoints --------------------------------
+# BuildProfile.endpoints (JSON object) -> Assets/StreamingAssets/deploy.args
+# (one "-key=value" per line; client loaders merge cmdline > baked > defaults).
+# Empty/absent endpoints -> DELETE the file: a stale baked key from another
+# channel would leak into this build (fail-closed hygiene, not a nicety).
+# NOTE: values must not contain spaces (token stream form); endpoints are
+# urls/base64/ints by contract.
+$deployArgsPath = Join-Path $ProjectPath 'Assets\StreamingAssets\deploy.args'
+$endpointCount = 0
+$endpointText = ''
+if ($prof.endpoints -and $prof.endpoints.PSObject.Properties) {
+    $endpointCount = @($prof.endpoints.PSObject.Properties).Count
+}
+if ($endpointCount -gt 0) {
+    foreach ($p in $prof.endpoints.PSObject.Properties) {
+        if ([string]::IsNullOrWhiteSpace([string]$p.Value)) { continue }
+        $v = [string]$p.Value
+        if ($v -match '\s') { Write-Host "endpoint '$($p.Name)' has whitespace - refuse to bake (token form)" -ForegroundColor Red; exit 1 }
+        $endpointText += "-$($p.Name)=$v`n"
+    }
+    Write-Host "baking deploy.args ($endpointCount endpoint(s))" -ForegroundColor Yellow
+    $bakeScript = 'string abs = System.IO.Path.GetFullPath("Assets/StreamingAssets/deploy.args");' + "`n" +
+                  'System.IO.Directory.CreateDirectory(System.IO.Path.GetDirectoryName(abs));' + "`n" +
+                  'System.IO.File.WriteAllText(abs, @"' + $endpointText.TrimEnd("`n") + '");' + "`n" +
+                  'UnityEditor.AssetDatabase.ImportAsset("Assets/StreamingAssets/deploy.args");' + "`n" +
+                  'return "baked: " + abs;'
+    Invoke-EvalFile 'bake-deploy-args.cs' $bakeScript | Out-Null
+}
+else {
+    if (Test-Path $deployArgsPath) {
+        Write-Host 'endpoints empty/absent -> deleting stale deploy.args' -ForegroundColor Yellow
+        Invoke-EvalFile 'bake-deploy-args-delete.cs' @'
+string rel = "Assets/StreamingAssets/deploy.args";
+string abs = System.IO.Path.GetFullPath(rel);
+if (System.IO.File.Exists(abs)) { System.IO.File.Delete(abs); UnityEditor.AssetDatabase.Refresh(); }
+return "deleted (or absent): " + abs;
+'@ | Out-Null
+    }
+}
+
 # ── 4. dry run validation ────────────────────────────────────────────────────
 Write-Host '== build dry_run ==' -ForegroundColor Cyan
 $dryJson = Invoke-Pipeline 'build' @('--dry_run', 'true')
