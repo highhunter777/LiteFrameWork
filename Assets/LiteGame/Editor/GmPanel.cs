@@ -21,6 +21,7 @@ namespace LiteGame.Editor
             new GUIContent("命令与审计"),
             new GUIContent("场景操作"),
             new GUIContent("配置诊断"),
+            new GUIContent("本地联测"),
         };
 
         private readonly IGmPage[] _pages =
@@ -29,6 +30,7 @@ namespace LiteGame.Editor
             new GmCommandsPage(),
             new GmScenePage(),
             new GmConfigDiagnosticsPage(),
+            new GmLocalChainPage(),
         };
 
         private int _tab;
