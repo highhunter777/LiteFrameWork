@@ -31,6 +31,20 @@ using RoomServer.Runtime;
 // **装配（2026-10-08 批1）**：组合根走 MS DI（《服务端宿主装配收敛专项设计》）——
 // 对象图注册/构建在 HostAssembly；解析序=创建序（outbox → transport → host），
 // 容器按创建序逆序释放，与历史 using 声明序（host→transport→outbox）等价。
+//
+// 控制台中文固定 UTF-8：默认随系统 OEM 码页（中文机=GBK），重定向捕获方（本地联测面板）
+// 按 UTF-8 解码会乱码丢字。无控制台宿主（detached/服务化）码页不可切——直换托管写出流，同得 UTF-8。
+try
+{
+    Console.OutputEncoding = System.Text.Encoding.UTF8;
+}
+catch (System.IO.IOException)
+{
+    var utf8 = new System.Text.UTF8Encoding(false);
+    Console.SetOut(new System.IO.StreamWriter(Console.OpenStandardOutput(), utf8) { AutoFlush = true });
+    Console.SetError(new System.IO.StreamWriter(Console.OpenStandardError(), utf8) { AutoFlush = true });
+}
+
 var serverConfig = RoomServerConfig.Load(ResolveConfigPath(args));
 // 宿主运行期调参（P2 批二）：排空宽限/看门狗/Ops 间隔/A 会话清理/重连票据/压实阈值一律走配置
 // （`host_tuning` 分区可选，缺省 = 迁移前的字面量常量）——部署形态下调参不再需要改代码。

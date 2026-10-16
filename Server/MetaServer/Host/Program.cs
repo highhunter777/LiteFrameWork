@@ -19,6 +19,20 @@ using Microsoft.Extensions.Options;
 // 业务模块（Auth/Lobby/Profile）归 G3，不在此提前建空壳（§15 施工映射）。
 //
 // 结束码约定（服务端总设计 §12）：配置非法必须非零退出，不带默认错配置继续运行。
+//
+// 控制台中文固定 UTF-8：默认随系统 OEM 码页（中文机=GBK），重定向捕获方（本地联测面板）
+// 按 UTF-8 解码会乱码丢字。无控制台宿主（detached/服务化）码页不可切——直换托管写出流，同得 UTF-8。
+try
+{
+    Console.OutputEncoding = System.Text.Encoding.UTF8;
+}
+catch (System.IO.IOException)
+{
+    var utf8 = new System.Text.UTF8Encoding(false);
+    Console.SetOut(new System.IO.StreamWriter(Console.OpenStandardOutput(), utf8) { AutoFlush = true });
+    Console.SetError(new System.IO.StreamWriter(Console.OpenStandardError(), utf8) { AutoFlush = true });
+}
+
 int exitCode = 0;
 
 // 解析覆盖项（不在此校验——校验由 ValidateOnStart 在启动时统一执行，
