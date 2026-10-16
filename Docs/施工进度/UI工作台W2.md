@@ -148,6 +148,12 @@
 
 **流程批 V：文档扫尾（已完成）**——F9/F10 现存引用按新入口改写 **17 处**（`07-本地联测` 10、`代码地图` 1、`地图数据专项设计` 4、`02-总体流程` 2、`UI工作台设计` 1；历史施工记录按惯例保留）。
 
+**载体形态收敛（2026-10-16 用户裁决"工作台不用直接 Play 了"）**
+
+- `UiWorkbench.unity` 由"相机＋携带引导件（禁用）＋场景入口＋开关＋面板实例"收敛为**纯叠加 UI 场景**（只有面板预制体实例）；`WorkbenchSceneEntry.cs` 已删除（直接 Play 形态退役）。
+- 入口＝**Boot 常驻 + 其余场景叠加**（用户裁决的形态）：`DebugTuner.WorkbenchMode` / 开发页 → 加性加载；**退出＝真卸载**（`SceneManager.UnloadSceneAsync`——初版用 `EditorSceneManager.CloseScene` 在 Play 内被静默拒绝，已修）；驱动对"无宿主直接 Play"给状态行提示。
+- **验证证据（Play 实测）**：Boot（roots=2）＋`UiWorkbench`（roots=1）叠加、面板可点 36/36 → 「开发 → 设置菜单 → 退出工作台 → 确认」→ `[Workbench] 工作台模式：工作台场景卸载中（落点收尾 → 回大厅页）`、`Scenes` **只剩 `Boot`**、落在大厅页；守卫用例 2/2；Boot 开关已还原（`WorkbenchMode: 0`、`DevMenu: 0`＝你的值）。
+
 **待做（后续批次，按建议顺序）**
 
 | 序 | 项 | 现状 | 落点/线索 |

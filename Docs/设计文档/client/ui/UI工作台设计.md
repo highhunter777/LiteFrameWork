@@ -15,7 +15,7 @@
 
 ## 1. 场景与装配
 
-- **面板落点＝dev 预制体 `Assets/LiteGame/DevHUD/WorkbenchUI.prefab`（W2 追加）**：`WorkbenchPanel`＋`WorkbenchOverlay`＋驱动收在一个预制体里（面板资产**单源**），由 `DebugTuner.EnsureWorkbenchPanel` 在**工作台模式**下自建；`UiWorkbench.unity` 瘦身为"引导件＋相机＋DebugTuner（工作台模式开）"——**场景与 Boot 两个入口共用同一份预制体，不各存一份**（EditMode 守卫钉"预制体驱动引用齐备 + 路径↔资产一致 + 场景不含面板件"）。dev 预制体不在任何收集组，故自建**仅编辑器形态**（开发版 Player 只享受"跳过对局场景组"）。
+- **面板落点＝dev 预制体 `WorkbenchUI.prefab` ＋纯叠加 UI 场景 `UiWorkbench.unity`（W2 追加，2026-10-16 收敛）**：`WorkbenchPanel`＋`WorkbenchOverlay`＋驱动收在一个预制体里（**内容单源**，EditMode 守卫钉"驱动引用齐备 + 路径↔资产一致 + 场景不含面板件"）；`UiWorkbench.unity`＝**只有该预制体实例**（无引导件、无相机、无场景入口）——入口统一走 **Boot**（`DebugTuner.WorkbenchMode` / 开发页「UI 工作台」→ 加性加载），**不支持直接 Play 该场景**；退出经「设置菜单 → 退出工作台」→ 运行时卸载本场景（`SceneManager.UnloadSceneAsync`；Play 内 `EditorSceneManager` 无效）＋落回大厅页。dev 内容不在任何收集组，故加载**仅编辑器形态**。
 - 场景 `Assets/Scenes/UiWorkbench.unity`（**已就位**——2026-10-11 由 `HUDDesign.unity` 改造：pipeline rename 保持 GUID，旧 HUD 树已清，`GameEntry`+主相机已挂；面板已抽预制体，见上）：
   - 最小件 = **GameEntry（引导件）+ 主相机**（对照 `Boot.unity` 启动场景同款最小形态）；输入底座 `[UIEventSystem]` 由 `UiInput.EnsureEventSystem()` 运行时幂等建位，无需场景 EventSystem 对象。
 - 驱动件 `UIWorkbenchDriver.cs` 落 `Assets/LiteGame/DevHUD/`（既有 dev 程序集 `LiteGame.DevHUD`，已引 `LiteGame.App/UI`——SimSandbox 同款；**零产品程序集、零产品码分支**；2026-10-11 asmdef 补 `UniTask`/`Unity.TextMeshPro`/`Luban.Tables` 三引用）：

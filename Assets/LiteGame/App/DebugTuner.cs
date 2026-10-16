@@ -178,20 +178,23 @@ namespace LiteGame
         /// 仅编辑器形态（dev 场景不进收集组）；未加载 = no-op。</summary>
         public static void CloseWorkbenchScene()
         {
-#if UNITY_EDITOR
             var scene = UnityEngine.SceneManagement.SceneManager.GetSceneByPath(WorkbenchScenePath);
             if (!scene.IsValid() || !scene.isLoaded) return;
-            // "唯一场景"不可卸载（Unity 限制：活动场景/仅存场景）——直接 Play 工作台场景即此形态：
-            // 退化为**隐藏工作台 UI**（回大厅页照常；UI 壳与页面在 DDontDestroyOnLoad 根上不受影响）
-            if (UnityEngine.SceneManagement.SceneManager.sceneCount <= 1)
+            if (Application.isPlaying)
+            {
+                // **Play 内必须走运行时 API**：EditorSceneManager 在 Play 中拒绝场景操作（实测静默无效）
+                UnityEngine.SceneManagement.SceneManager.UnloadSceneAsync(scene);
+                Log.Info("工作台模式：工作台场景卸载中（落点收尾 → 回大厅页）", LogTag.Workbench);
+                return;
+            }
+#if UNITY_EDITOR
+            if (UnityEngine.SceneManagement.SceneManager.sceneCount <= 1)   // 安全网：唯一场景不可卸（编辑期）
             {
                 RequestWorkbenchHide();
                 return;
             }
             UnityEditor.SceneManagement.EditorSceneManager.CloseScene(scene, true);
             Log.Info("工作台模式：工作台场景已关闭（落点收尾 → 回大厅页）", LogTag.Workbench);
-#else
-            Log.Warning("工作台模式：仅编辑器形态可关闭工作台场景", LogTag.Workbench);
 #endif
         }
 

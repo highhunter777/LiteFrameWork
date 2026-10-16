@@ -158,7 +158,12 @@ namespace LiteGame
         private void TryBecomeReady()
         {
             var entry = FindAnyObjectByType<GameEntry>();
-            if (entry == null) return;                                 // 引导件不在场——下帧再试
+            if (entry == null)
+            {
+                // 本场景是"纯叠加 UI 场景"（无引导件）——直接 Play 不再支持：入口＝Boot + 工作台模式/开发页
+                if (_frame > 120 && _lastOp == "—") _lastOp = "无宿主（GameEntry）——请从 Boot 场景用工作台模式/开发页进入";
+                return;
+            }
             try { _container = entry.TakeContainer(); }
             catch (InvalidOperationException) { return; }              // 未装配——下帧再试
             try
