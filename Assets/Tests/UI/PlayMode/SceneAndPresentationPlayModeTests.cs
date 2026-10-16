@@ -202,6 +202,51 @@ namespace LiteGame.Tests.UI.PlayMode
             yield return null;
         }
 
+        [UnityTest]
+        public IEnumerator 音效_同源重触发_连发零丢弃不占新代理_丢弃限频日志()
+        {
+            // 自动连发（600 RPM = 10 发/秒）的代理预算判据：**单代理**下旧形态第 2 发即丢，
+            // 同源重触发应做到「十发零丢弃、恒占一个代理、句柄不变」。
+            var audio = NewAudio(effectProxies: 1);
+            var clip = AudioClip.Create("gun", 44100, 1, 44100, false);
+
+            int h0 = audio.PlayRetrigger(AudioService.Group.Effect, BattleAudioDriver.LocalFireVoice, clip,
+                priority: BattleAudioDriver.LocalFirePriority);
+            Assert.AreNotEqual(0, h0, "首发取得代理");
+            for (int i = 0; i < 9; i++)
+            {
+                int h = audio.PlayRetrigger(AudioService.Group.Effect, BattleAudioDriver.LocalFireVoice, clip,
+                    priority: BattleAudioDriver.LocalFirePriority);
+                Assert.AreEqual(h0, h, "同源重触发返回同一句柄（同一代理重启，不换代理）");
+            }
+            Assert.AreEqual(10, audio.RetriggerCount, "十次重触发");
+            Assert.AreEqual(1, audio.VoiceCount, "恒一个 voice（连发不吃代理预算）");
+            Assert.AreEqual(0, audio.DroppedCount, "连发零丢弃（旧形态此处丢 9 发）");
+            var snap = new Dictionary<string, string>();
+            audio.Snapshot(snap);
+            Assert.AreEqual("1/1", snap["Effect"], "只占一个代理");
+
+            // 全忙且同优先级 → 丢弃：计数不受限频影响；日志限频（首条 + 每 100 条一条）
+            int loggedBefore = CountDropLogs();
+            for (int i = 0; i < 150; i++)
+                audio.PlayRetrigger(AudioService.Group.Effect, BattleAudioDriver.RemoteFireVoicePrefix + 1, clip);
+            Assert.AreEqual(150, audio.DroppedCount, "丢弃读数 = 真实次数（限频只压日志）");
+            Assert.LessOrEqual(CountDropLogs() - loggedBefore, 2, "150 次丢弃新增日志 ≤ 2 条（首条 + 第 100 条）");
+
+            audio.Shutdown();
+            yield return null;
+        }
+
+        /// <summary>环形缓冲里"丢弃累计"日志条数（限频断言用；Recent 容量 32，被挤出时读数只少不多）。</summary>
+        private static int CountDropLogs()
+        {
+            int n = 0;
+            var recent = Log.Recent;
+            for (int i = 0; i < recent.Count; i++)
+                if (recent[i].Message != null && recent[i].Message.Contains("丢弃累计")) n++;
+            return n;
+        }
+
         // ---- 真资源场景加载/卸载 ----
 
         [UnityTest]

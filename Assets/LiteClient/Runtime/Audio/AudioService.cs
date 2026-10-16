@@ -16,6 +16,9 @@ namespace LiteClient
     ///   索引反而要维护"自然播完/抢占"的失效清理。
     /// - 句柄单调递增且永不复用——被抢占的旧句柄必然失效，Stop(旧句柄) 安全忽略；Source.Play 换 clip 自动停旧音。
     /// - 支持 Play(fadeIn)/Stop(fadeOut)（Bgm 组 2 代理支持交叉淡切）与 Play3D（spatialBlend + 一次性世界坐标）。
+    /// - **同源重触发** <see cref="PlayRetrigger"/>：按 (组, voiceKey) **恒占同一代理**、重复调用重启 clip——
+    ///   自动武器开火音等高频同源专用（连发节奏 = 调用节奏，不堆叠、不吃代理预算）。丢弃走**限频日志**
+    ///   （首条 + 每 <see cref="DropLogEvery"/> 条一条）＋累计计数（<see cref="DroppedCount"/>），热路径不刷屏。
     /// </summary>
     public sealed class AudioService : IModuleStats
     {
@@ -41,10 +44,40 @@ namespace LiteClient
         }
 
         private readonly Dictionary<Group, GroupDef> _groups = new Dictionary<Group, GroupDef>(4);
+        private readonly Dictionary<(Group, string), Voice> _voices = new Dictionary<(Group, string), Voice>(4);
+        private readonly Dictionary<Group, int> _drops = new Dictionary<Group, int>(4);
         private Transform _root;                             // 关闭后置空（Shutdown 幂等判据）
         private int _nextHandle = 1;
+        private int _retriggerCount;
         private IWorldClock _worldClock;                     // 淡变的世界轨（Effect/Voice）
         private IUIClock _uiClock;                           // 淡变的 UI 轨（Ui/Bgm）
+
+        /// <summary>丢弃日志限频步长：首条即报，其后每 <c>DropLogEvery</c> 条汇总一条（热路径不刷屏）。</summary>
+        private const int DropLogEvery = 100;
+
+        /// <summary>同源重触发 voice：绑定一个代理 + 其句柄（句柄变 = 已被抢占/停止，绑定即失效）。</summary>
+        private sealed class Voice
+        {
+            public Proxy Proxy;
+            public int Handle;
+        }
+
+        /// <summary>同源重触发调用数（诊断面——连发的开火音应等于开火次数）。</summary>
+        public int RetriggerCount => _retriggerCount;
+
+        /// <summary>在册同源 voice 数（诊断面——按 (组, voiceKey) 计；同源重触发应恒为 1）。</summary>
+        public int VoiceCount => _voices.Count;
+
+        /// <summary>全组累计丢弃数（代理全忙且同优先级；诊断面——日志已限频，读数不受限频影响）。</summary>
+        public int DroppedCount
+        {
+            get
+            {
+                int n = 0;
+                foreach (var kv in _drops) n += kv.Value;
+                return n;
+            }
+        }
 
         /// <summary>
         /// 分域时钟注入（《动画模块专项设计》§7 时钟表 + 《状态同步专项设计》§6.2"世界/UI 暂停"）：
@@ -131,57 +164,118 @@ namespace LiteClient
             if (clip == null) throw new ArgumentNullException(nameof(clip));
             var g = _groups[group];
 
-            Proxy pick = null;
+            Proxy pick = AcquireProxy(g, priority);
+            if (pick == null) return 0;                        // 全忙且同优先级：已计数 + 限频日志
+            int handle = Configure(g, pick, clip, volume, priority, loop, spatialBlend, position);
+
+            if (fadeIn > 0f)
+            {
+                pick.Source.volume = 0f;                       // 淡入从 0 起步
+                pick.Source.Play();
+                FadeAsync(g, pick, handle, 0f, 1f, fadeIn).Forget();
+            }
+            else
+            {
+                ApplyVolume(g, pick, 1f);
+                pick.Source.Play();
+            }
+            return handle;
+        }
+
+        /// <summary>
+        /// 同源重触发播放（自动武器开火音等**高频同源**专用）：每个 (组, <paramref name="voiceKey"/>)
+        /// **恒占同一代理**——重复调用重启该代理当前 clip（<c>AudioSource.Play()</c> 对在播源即从头重播），
+        /// 连发节奏 = 调用节奏，不堆叠、不占新代理（代理预算恒 1）；空闲期不占并发（源闲置时可被他人取用）。
+        /// 首次调用、或绑定已被抢占/停止（句柄变）时：走与 <see cref="Play"/> 相同的
+        /// "空闲轮转 → 优先级抢占 → 丢弃"取代理规则。
+        /// </summary>
+        /// <returns>句柄（同源重触发返回同一句柄；被抢占即失效——与 <see cref="Stop"/> 语义一致；0 = 丢弃）。</returns>
+        public int PlayRetrigger(Group group, string voiceKey, AudioClip clip, float volume = 1f, int priority = 0,
+            float spatialBlend = 0f, Vector3? position = null)
+        {
+            ThrowIfShutdown();
+            if (clip == null) throw new ArgumentNullException(nameof(clip));
+            if (string.IsNullOrEmpty(voiceKey)) throw new ArgumentException("voiceKey 不得为空", nameof(voiceKey));
+            var g = _groups[group];
+            var key = (group, voiceKey);
+            float blend = Mathf.Clamp01(spatialBlend);
+
+            if (_voices.TryGetValue(key, out Voice voice) && voice.Proxy.Handle == voice.Handle)
+            {
+                voice.Proxy.BaseVolume = volume;               // 句柄/优先级不动（重触发不换代理）
+                ApplySource(g, voice.Proxy, clip, loop: false, blend, position);
+                ApplyVolume(g, voice.Proxy, 1f);
+                voice.Proxy.Source.Play();                     // 重启（同源重触发语义）
+                _retriggerCount++;
+                return voice.Handle;
+            }
+
+            Proxy pick = AcquireProxy(g, priority);
+            if (pick == null) return 0;
+            int handle = Configure(g, pick, clip, volume, priority, loop: false, blend, position);
+            ApplyVolume(g, pick, 1f);
+            pick.Source.Play();
+            _voices[key] = new Voice { Proxy = pick, Handle = handle };
+            _retriggerCount++;
+            return handle;
+        }
+
+        /// <summary>取代理：空闲轮转 → 按优先级抢占最低优先级者 → 无法抢占即丢弃（计数 + 限频日志）返回 null。</summary>
+        private Proxy AcquireProxy(GroupDef g, int priority)
+        {
             for (int i = 0; i < g.Proxies.Count; i++)
             {
                 var p = g.Proxies[(g.Cursor + i) % g.Proxies.Count];
-                if (!p.Busy) { pick = p; g.Cursor = (g.Cursor + i + 1) % g.Proxies.Count; break; }
+                if (!p.Busy) { g.Cursor = (g.Cursor + i + 1) % g.Proxies.Count; return p; }
             }
 
-            if (pick == null)
+            Proxy steal = null;                                // 抢占目标 = 被占代理中优先级最低者
+            foreach (var p in g.Proxies)
+                if (priority > p.Priority && (steal == null || p.Priority < steal.Priority))
+                    steal = p;
+            if (steal == null)
             {
-                Proxy steal = null;                        // 抢占目标 = 被占代理中优先级最低者
-                foreach (var p in g.Proxies)
-                    if (priority > p.Priority && (steal == null || p.Priority < steal.Priority))
-                        steal = p;
-                if (steal == null)
-                {
-                    Log.Info($"声音[{group}] 全忙且同优先级——丢弃（同优先级不被替换）", LogTag.Audio);
-                    return 0;                              // 0 = 无效句柄
-                }
-                pick = steal;
-                Log.Info($"声音[{group}] 抢占代理（新优先级 {priority} > 旧 {steal.Priority}）", LogTag.Audio);
+                ReportDrop(g.Group);
+                return null;
             }
+            Log.Info($"声音[{g.Group}] 抢占代理（新优先级 {priority} > 旧 {steal.Priority}）", LogTag.Audio);
+            return steal;
+        }
 
-            // 句柄单调递增且永不复用——被抢占代理的旧句柄必然失效，
-            // Stop(旧句柄) 走安全忽略分支，外部持有旧句柄不会误停新音。
-            pick.Handle = _nextHandle++;
+        /// <summary>占用代理（句柄/优先级/基础音量 + 源参数复位）——返回新句柄。</summary>
+        private int Configure(GroupDef g, Proxy pick, AudioClip clip, float volume, int priority, bool loop,
+            float spatialBlend, Vector3? position)
+        {
+            pick.Handle = _nextHandle++;                       // 句柄单调递增且永不复用
             pick.Priority = priority;
             pick.BaseVolume = volume;
+            ApplySource(g, pick, clip, loop, spatialBlend, position);
+            return pick.Handle;
+        }
 
+        /// <summary>源参数复位（代理复用无状态泄漏：clip/loop/静音/2D-3D 与位置）。</summary>
+        private static void ApplySource(GroupDef g, Proxy pick, AudioClip clip, bool loop, float spatialBlend, Vector3? position)
+        {
             var src = pick.Source;
             src.clip = clip;
             src.loop = loop;
             src.mute = g.Mute;
-            src.spatialBlend = spatialBlend;               // 2D/3D 复位（代理复用无状态泄漏）
+            src.spatialBlend = spatialBlend;
             src.rolloffMode = AudioRolloffMode.Linear;
             src.minDistance = 1f;
             src.maxDistance = 30f;
             if (position.HasValue) src.transform.position = position.Value;
             else src.transform.localPosition = Vector3.zero;
+        }
 
-            if (fadeIn > 0f)
-            {
-                src.volume = 0f;                           // 淡入从 0 起步
-                src.Play();
-                FadeAsync(g, pick, pick.Handle, 0f, 1f, fadeIn).Forget();
-            }
-            else
-            {
-                ApplyVolume(g, pick, 1f);
-                src.Play();
-            }
-            return pick.Handle;
+        /// <summary>丢弃计数 + **限频日志**：首条即报，其后每 <see cref="DropLogEvery"/> 条汇总一条（热路径不刷屏）。</summary>
+        private void ReportDrop(Group group)
+        {
+            _drops.TryGetValue(group, out int n);
+            n++;
+            _drops[group] = n;
+            if (n == 1 || n % DropLogEvery == 0)
+                Log.Info($"声音[{group}] 全忙且同优先级——丢弃累计 {n} 条（限频：首条 + 每 {DropLogEvery} 条一条）", LogTag.Audio);
         }
 
         /// <summary>
@@ -248,6 +342,7 @@ namespace LiteClient
             var go = _root.gameObject;
             _root = null;
             _groups.Clear();
+            _voices.Clear();                                 // 同源绑定随代理表一并作废（关闭后不再接受播放）
 #if UNITY_EDITOR
             if (!Application.isPlaying) { UnityEngine.Object.DestroyImmediate(go); return; }
 #endif
