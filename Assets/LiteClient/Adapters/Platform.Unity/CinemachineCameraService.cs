@@ -1,4 +1,4 @@
-using LiteFramework;
+﻿using LiteFramework;
 using LiteView;
 using UnityEngine;
 using UnityEngine.SceneManagement;
@@ -179,7 +179,7 @@ namespace LiteClient
             BindAimCamera();                     // 瞄准机**绑定即预放置**（接线前置——不等右键）
 
             _lastResolveReason = null;
-            Log.Info($"[Camera] 已接线 vcam「{_vcam.name}」(scene={_vcam.gameObject.scene.name}, priority={_vcam.Priority})", "Camera");
+            Log.Info($"[Camera] 已接线 vcam「{_vcam.name}」(scene={_vcam.gameObject.scene.name}, priority={_vcam.Priority})", LogTag.Camera);
         }
 
         /// <summary>解除当前接线（销毁自建目标、还原 vcam 的 Follow 引用）。</summary>
@@ -276,7 +276,7 @@ namespace LiteClient
                     _aimPriorityAtBind = _aimVcam.Priority;
                     ApplyAimOffset();
                     _aimVcam.Priority = _vcam.Priority + 1;   // 基准派生：主 vcam 场景优先级 + 1
-                    Log.Info($"[Camera] 瞄准机接管「{_aimVcam.name}」prio={_aimVcam.Priority}", "Camera");
+                    Log.Info($"[Camera] 瞄准机接管「{_aimVcam.name}」prio={_aimVcam.Priority}", LogTag.Camera);
                 }
             }
             else
@@ -287,7 +287,7 @@ namespace LiteClient
                 {
                     _aimVcam.Priority = _aimPriorityAtBind;   // 还原优先级；Follow/LookAt 保持接线（持续预放置）
                     RestoreAimOffset();                       // 构图 z 偏移同样还原场景值
-                    Log.Info($"[Camera] 瞄准机释放「{_aimVcam.name}」prio={_aimVcam.Priority}", "Camera");
+                    Log.Info($"[Camera] 瞄准机释放「{_aimVcam.name}」prio={_aimVcam.Priority}", LogTag.Camera);
                 }
             }
         }
@@ -309,7 +309,7 @@ namespace LiteClient
             _aimVcam.m_StandbyUpdate = CinemachineVirtualCameraBase.StandbyUpdateMode.Always;
             if (!_aiming && _aimVcamAim != null && !ReferenceEquals(_aimVcamAim, null))
                 _aimOffsetZAtBind = _aimVcamAim.m_TrackedObjectOffset.z;   // 场景基准值（仅非瞄准期可采：曲线接回的端点）
-            Log.Info($"[Camera] 瞄准机预放置「{_aimVcam.name}」(follow/lookAt=主焦点, standby=Always)", "Camera");
+            Log.Info($"[Camera] 瞄准机预放置「{_aimVcam.name}」(follow/lookAt=主焦点, standby=Always)", LogTag.Camera);
         }
 
         /// <summary>解析瞄准机（按约定名；已解析且存活直接复用）。返回 false = 场景未配置瞄准机。</summary>
@@ -334,7 +334,7 @@ namespace LiteClient
             string reason = $"场景里没有启用的「{AimCameraName}」——ADS 接管 no-op（瞄准相机配置归场景，不由代码自建）";
             if (LastAimResolveReason != reason)               // 只在原因变化时打（防每帧重试刷屏）
             {
-                Log.Info("[Camera] " + reason, "Camera");
+                Log.Info("[Camera] " + reason, LogTag.Camera);
                 LastAimResolveReason = reason;
             }
             return false;

@@ -1,4 +1,4 @@
-#if UNITY_EDITOR || DEVELOPMENT_BUILD || LITEFRAMEWORK_DEBUG
+﻿#if UNITY_EDITOR || DEVELOPMENT_BUILD || LITEFRAMEWORK_DEBUG
 using System.Collections.Generic;
 
 namespace LiteFramework
@@ -73,10 +73,10 @@ namespace LiteFramework
             foreach (var kv in stages)
             {
                 if (!reachable.Contains(kv.Key))
-                    Log.Warning($"[{machineName}] 阶段 {kv.Key} 静态不可达（仅经带守卫的边可达时属误报，允许保留）", "Fsm");
+                    Log.Warning($"[{machineName}] 阶段 {kv.Key} 静态不可达（仅经带守卫的边可达时属误报，允许保留）", LogTag.Fsm);
                 if (kv.Value is TableStage<TId, TReq> spec && spec.Spec.DurationFrames > 0
                     && !spec.Spec.HasNext && !spec.Spec.AutoResumeOnEnd && spec.Spec.TimeoutFrames <= 0)
-                    Log.Warning($"[{machineName}] 阶段 {kv.Key} 配置了时长但无出口（NextId/AutoResumeOnEnd/看门狗均未设置）——到点后死底", "Fsm");
+                    Log.Warning($"[{machineName}] 阶段 {kv.Key} 配置了时长但无出口（NextId/AutoResumeOnEnd/看门狗均未设置）——到点后死底", LogTag.Fsm);
             }
         }
     }

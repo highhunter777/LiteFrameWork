@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 
 namespace LiteFramework
@@ -84,7 +84,7 @@ namespace LiteFramework
             if (!dispatched && StrictMode)
             {
                 _strictWarnings++;
-                Log.Warning($"no subscriber: {typeof(T).Name}", "Event");
+                Log.Warning($"no subscriber: {typeof(T).Name}", LogTag.Event);
             }
             RecycleIfPooled(e);                            // 无订阅者路径同样回收——否则无订阅事件 = 泄漏
         }
@@ -100,7 +100,7 @@ namespace LiteFramework
             if (_queue.Count >= MaxQueued)
             {
                 QueuedDroppedCount++;
-                Log.Error($"队列溢出丢弃（MaxQueued={MaxQueued}）: {typeof(T).Name}", "Event");
+                Log.Error($"队列溢出丢弃（MaxQueued={MaxQueued}）: {typeof(T).Name}", LogTag.Event);
                 RecycleIfPooled(e);                         // 丢弃路径同样回收——与"无订阅者路径同样回收"同纪律
                 return;
             }

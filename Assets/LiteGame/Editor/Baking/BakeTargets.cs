@@ -13,7 +13,7 @@ namespace LiteGame.EditorTools
         /// 三族来源：prefab 采样族（PrefabPath/ControllerPath/ReferenceClip）、片段采样族（RootMotionConfigPath）
         /// 与场景采样族（MapScenePath——地图烘焙）。
         /// </summary>
-    internal static class BakeTargets
+    public static class BakeTargets          // public：run_script 以本文件为编译单元直调烘焙入口，需可见（Editor 程序集，无产品面）
     {
         // ---- 目标资产（工具箱内唯一出处）----
 
@@ -47,10 +47,33 @@ namespace LiteGame.EditorTools
         /// <summary>地图场景（首图母版）：判定几何（<see cref="MapCollisionRoot"/> 代理树）＋出生标记（<see cref="SpawnPrefix"/>）＋边界（<see cref="MapBoundsObject"/>）。</summary>
         public const string MapScenePath = "Assets/Scenes/Arena01.unity";
 
-        /// <summary>地图产物：Luban 数据源 JSON（非 .g.cs 通道——写盘走 <see cref="WriteArtifact"/>；不自动跑 gen.bat，见 <see cref="SimMapBaker"/>）。</summary>
-        public const string MapOutput = "Luban/Data/map.json";
+        /// <summary>地图产物：Luban 数据源 JSON（非 .g.cs 通道——写盘走 <see cref="WriteArtifact"/>；不自动跑 gen.bat，见 <see cref="SimMapBaker"/>）。
+        /// **每图一文件**（`Luban/Data/Map/`；表注册 `input="Map"` 读整目录）——加图＝加文件，不改表声明。</summary>
+        public const string MapOutput = "Luban/Data/Map/map_arena01.json";
 
-        /// <summary>行身份（D3/D10：单图常量 map_id=1；多图批次再议）。</summary>
+        /// <summary>地图目标（**加图＝加一条**）：场景路径 ＋ 行身份 ＋ 产物文件；拓扑约定（MapCollision/spawn_/map_bounds）全图共用。</summary>
+        public readonly struct MapTarget
+        {
+            public readonly string ScenePath;
+            public readonly int MapId;
+            public readonly string MapName;
+            public readonly string Output;
+
+            public MapTarget(string scenePath, int mapId, string mapName, string output)
+            {
+                ScenePath = scenePath; MapId = mapId; MapName = mapName; Output = output;
+            }
+        }
+
+        /// <summary>首图目标（arena01）。</summary>
+        public static readonly MapTarget ArenaMap = new MapTarget(MapScenePath, MapId, MapName, MapOutput);
+
+        /// <summary>训练场目标（第二张地图；场景灰盒训练场，与首图共用拓扑约定）。</summary>
+        public static readonly MapTarget TrainingMap = new MapTarget(
+            "Assets/Scenes/TrainingGround.unity", LiteClient.MapTableProjection.TrainingMapId,
+            "training_ground", "Luban/Data/Map/map_training_ground.json");
+
+        /// <summary>行身份（首图；多图目标见 <see cref="ArenaMap"/>/<see cref="TrainingMap"/>）。</summary>
         public const int MapId = 1;
 
         /// <summary>行名（与首图场景同源——首图 = <c>Arena01.unity</c>）。</summary>

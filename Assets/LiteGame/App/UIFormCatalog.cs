@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using LiteFramework;
 using LiteClient;
@@ -42,7 +42,7 @@ namespace LiteGame
                     FullScreen = row.FullScreen,
                 };
             }
-            Log.Info($"UIForm 投影完成:{_byId.Count} 行", "UI");
+            Log.Info($"UIForm 投影完成:{_byId.Count} 行", LogTag.UI);
         }
     }
 }

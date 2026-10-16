@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Threading;
 using Cysharp.Threading.Tasks;
@@ -124,7 +124,7 @@ namespace LiteClient
             {
                 handle.Dispose();
                 DiscardedLateLoads++;
-                Log.Warning($"单场景加载完成但宿主已释放，结果就地丢弃:{location}", "Scene");
+                Log.Warning($"单场景加载完成但宿主已释放，结果就地丢弃:{location}", LogTag.Scene);
                 return;
             }
 
@@ -135,7 +135,7 @@ namespace LiteClient
             // 顺序与容错由 ClientScope 保证（先 UnloadSceneAsync 再 Dispose，见 SceneLease 的 LIFO 语义）。
             _singleScope = new ClientScope($"Scene.Single[{location}]");
             _singleScope.Register(new SceneLease(handle));
-            Log.Info($"单场景已加载:{location}", "Scene");
+            Log.Info($"单场景已加载:{location}", LogTag.Scene);
         }
 
         /// <summary>卸载当前单场景；无场景 = no-op（幂等宽容）。</summary>
@@ -165,13 +165,13 @@ namespace LiteClient
             ThrowIfReleased(nameof(LoadAdditiveAsync));
             if (IsLoaded(location))
             {
-                Log.Warning($"叠加场景已加载，忽略重复请求:{location}", "Scene");
+                Log.Warning($"叠加场景已加载，忽略重复请求:{location}", LogTag.Scene);
                 return;
             }
             if (IsLoadedExternally(location))
             {
                 _additives[location] = null;              // 领养登记：无句柄（场景归编辑器会话所有）
-                Log.Warning($"同名场景已在场（预置场景开发形态），跳过叠加加载并登记:{location}", "Scene");
+                Log.Warning($"同名场景已在场（预置场景开发形态），跳过叠加加载并登记:{location}", LogTag.Scene);
                 return;
             }
 
@@ -183,7 +183,7 @@ namespace LiteClient
             {
                 handle.Dispose();
                 DiscardedLateLoads++;
-                Log.Warning($"叠加场景加载完成但宿主已释放或登记已变更，结果就地丢弃:{location}", "Scene");
+                Log.Warning($"叠加场景加载完成但宿主已释放或登记已变更，结果就地丢弃:{location}", LogTag.Scene);
                 return;
             }
 
@@ -191,7 +191,7 @@ namespace LiteClient
             var additiveScope = new ClientScope($"Scene.Additive[{location}]");
             additiveScope.Register(new SceneLease(handle));
             _additiveScopes[location] = additiveScope;
-            Log.Info($"叠加场景已加载:{location}（当前叠加数 {_additives.Count}）", "Scene");
+            Log.Info($"叠加场景已加载:{location}（当前叠加数 {_additives.Count}）", LogTag.Scene);
         }
 
         /// <summary>卸载指定叠加场景；未加载 = no-op（幂等宽容）。**领养实例 = no-op 警告**：
@@ -205,12 +205,12 @@ namespace LiteClient
             _additiveScopes.Remove(location, out ClientScope scope);
             if (handle == null)
             {
-                Log.Warning($"叠加场景为领养实例（预置场景开发形态），只摘登记、不执行卸载:{location}", "Scene");
+                Log.Warning($"叠加场景为领养实例（预置场景开发形态），只摘登记、不执行卸载:{location}", LogTag.Scene);
                 return;
             }
             await UnloadHandleAsync(handle, ct);
             scope?.Dispose();                                  // 作用域收尾（同单场景）
-            Log.Info($"叠加场景已卸载:{location}（余 {_additives.Count}）", "Scene");
+            Log.Info($"叠加场景已卸载:{location}（余 {_additives.Count}）", LogTag.Scene);
         }
 
         // ---- 释放（宿主关闭面） ----
@@ -252,7 +252,7 @@ namespace LiteClient
 
             _lastLoad = null;                                   // 进度读数源失效
 
-            if (released > 0) Log.Info($"宿主关闭释放 {released} 个场景句柄（退出路径不卸场景，仅归还引用）", "Scene");
+            if (released > 0) Log.Info($"宿主关闭释放 {released} 个场景句柄（退出路径不卸场景，仅归还引用）", LogTag.Scene);
         }
 
         /// <summary>宿主代次取消令牌（服务生命周期）——调用方与自己的 ct 链接，即可获得"宿主关闭级联"。
@@ -300,7 +300,7 @@ namespace LiteClient
             foreach (var kv in _additiveScopes) kv.Value.Dispose();   // 作用域同步收尾（幂等）
             _additives.Clear();
             _additiveScopes.Clear();
-            Log.Info($"单场景切换清理 {count} 个叠加登记（Unity Single 语义已销毁其场景）", "Scene");
+            Log.Info($"单场景切换清理 {count} 个叠加登记（Unity Single 语义已销毁其场景）", LogTag.Scene);
         }
 
         private static void ValidateLocation(string location)

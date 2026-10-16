@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 
 namespace LiteFramework
 {
@@ -16,7 +16,7 @@ namespace LiteFramework
             try { call(); }
             catch (Exception ex)
             {
-                Log.Error($"[SafeCall:{where}] {ex.GetType().Name}:{ex.Message}", "SafeCall");
+                Log.Error($"[SafeCall:{where}] {ex.GetType().Name}:{ex.Message}", LogTag.SafeCall);
             }
         }
 
@@ -30,7 +30,7 @@ namespace LiteFramework
             try { call(); return true; }
             catch (Exception ex)
             {
-                Log.Error($"[SafeCall:{where}] {ex.GetType().Name}:{ex.Message}", "SafeCall");
+                Log.Error($"[SafeCall:{where}] {ex.GetType().Name}:{ex.Message}", LogTag.SafeCall);
                 return false;
             }
         }
@@ -41,7 +41,7 @@ namespace LiteFramework
             try { return call(); }
             catch (Exception ex)
             {
-                Log.Error($"[SafeCall:{where}] {ex.GetType().Name}:{ex.Message}", "SafeCall");
+                Log.Error($"[SafeCall:{where}] {ex.GetType().Name}:{ex.Message}", LogTag.SafeCall);
                 return fallback;
             }
         }

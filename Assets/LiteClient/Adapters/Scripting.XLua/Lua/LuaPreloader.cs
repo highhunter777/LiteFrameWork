@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Threading;
 using Cysharp.Threading.Tasks;
@@ -61,7 +61,7 @@ namespace LiteClient
                     throw new InvalidOperationException($"Lua 预载重复 key:{key}（同一 require 路径两个来源——候选集合被污染）");
                 _scripts[key] = await LoadBytesAsync(assetPath, ct);
             }
-            Log.Info($"Lua 全量预载完成：{Count} 个文件", "Lua");
+            Log.Info($"Lua 全量预载完成：{Count} 个文件", LogTag.Lua);
         }
 
         /// <summary>

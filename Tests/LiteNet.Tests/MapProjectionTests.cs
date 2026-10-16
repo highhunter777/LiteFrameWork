@@ -55,11 +55,15 @@ namespace LiteNet.Tests
         [Fact]
         public void 篡改表字节_行内digest不符_拒载()
         {
-            // 尾部翻转一位（出生点 z 的浮点字节）：Luban 解析仍成功、判定载荷已变——
-            // 行内 content_digest 与复算不等，投影必须拒（"map.json→bytes→投影"链路走样检测）
+            // 篡改**首图行内 content_digest 串**（ASCII 可见于字节流）：Luban 解析仍成功、内容摘要已不符——
+            // 行内 content_digest 与复算不等，投影必须拒（"map.json→bytes→投影"链路走样检测）。
+            // 注记：不再用"尾部翻一位"——tbmap 已是多图（每图一文件，行序＝文件序），尾部字节属最后一张图。
             string path = Path.Combine(RepoRoot(), "Assets", "GameData", "Config", "Map", "tbmap.bytes");
             byte[] bytes = File.ReadAllBytes(path);
-            bytes[bytes.Length - 2] ^= 0x01;
+            byte[] digestAscii = System.Text.Encoding.ASCII.GetBytes("9c3d504907d8210e");
+            int at = IndexOf(bytes, digestAscii);
+            Assert.True(at >= 0, "字节流应含首图行内 digest 串");
+            bytes[at] = (byte)(bytes[at] == (byte)'9' ? '8' : '9');
             var table = new cfg.Tbmap(new ByteBuf(bytes));
             cfg.map row = table.GetOrDefault(MapTableProjection.DefaultMapId);
             Assert.NotNull(row);
@@ -80,6 +84,18 @@ namespace LiteNet.Tests
         {
             // D22：回退位已删——RoomConfig.Map 必填，缺图 fail-fast（不静默兜底）
             Assert.Throws<ArgumentException>(() => new RoomRuntime(new RoomConfig { RoomId = "NoMap" }));
+        }
+
+        private static int IndexOf(byte[] haystack, byte[] needle)
+        {
+            for (int i = 0; i + needle.Length <= haystack.Length; i++)
+            {
+                bool hit = true;
+                for (int j = 0; j < needle.Length; j++)
+                    if (haystack[i + j] != needle[j]) { hit = false; break; }
+                if (hit) return i;
+            }
+            return -1;
         }
 
         /// <summary>与 `ConfigService.LoadAsync` 同形的装载面（裸名 → 字节缓存 → cfg.Tables）。</summary>

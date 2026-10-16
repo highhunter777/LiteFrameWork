@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using Cysharp.Threading.Tasks;
 using LiteFramework;
 using LiteGame.UI;
@@ -35,14 +35,37 @@ namespace LiteGame
             _env = () => host.Env;
         }
 
-        /// <summary>首进 Main 开登录页（五页入口）。**只一次**——返回 Main 的其它路径（对局结束/离场）
+        /// <summary>启动落点（首进 Main 的开页决策；《UI工作台设计》§5 入口矩阵）。</summary>
+        public enum Landing
+        {
+            /// <summary>不开页：dev 直入形态（直入训练场/直入工作台）——对应场景/面板已接管画面。</summary>
+            None,
+
+            /// <summary>登录页：正式形态（Meta 已配置）。</summary>
+            Login,
+
+            /// <summary>大厅页：本地服务器/开发形态——跳过登录步骤（房间列表按服务可用性显文案）。</summary>
+            Lobby,
+        }
+
+        /// <summary>首进 Main 按**落点**开页。**只一次**——返回 Main 的其它路径（对局结束/离场）
         /// 由页面流自身接管（结算页/大厅在场），重开入口会把已在大厅的玩家弹回登录页。</summary>
-        public void OpenEntryOnce()
+        public void OpenLanding(Landing landing)
         {
             if (_entryOpened) return;
             _entryOpened = true;
-            Go(LuaKeys.UI.Page_Login, null);
+            switch (landing)
+            {
+                case Landing.Login: Go(LuaKeys.UI.Page_Login, null); break;
+                case Landing.Lobby: Go(LuaKeys.UI.Page_Lobby, null); break;
+                default: break;                                        // None：直入形态，场景/面板接管
+            }
         }
+
+        /// <summary>进对局前关掉在开的页面（**dev 测试入口**路径用：从大厅/开发页直接进局时，
+        /// 页面会盖住对局 HUD——产品路径由"房间页→开局"自然收口，此处补 dev 入口的同一语义）。
+        /// 幂等：无页面 = no-op。</summary>
+        public void CloseOpenPagesForBattle() => _ui.CloseAllOpen().Forget();
 
         /// <summary>对局开局（StartGame 已到）关房间页——对局场景接管画面（房间页若在），
         /// 页面栈随之清空（结算页压栈即新根）。</summary>
@@ -166,14 +189,14 @@ namespace LiteGame
         private static bool TryResolve(string luaPath, string method, out int id)
         {
             id = Bridge.Data.ResolveUIFormId(luaPath);
-            if (id < 0) Log.Error($"PageFlow.{method}: 未登记的 lua_path '{luaPath}'（核对 tbuiform）", "UI");
+            if (id < 0) Log.Error($"PageFlow.{method}: 未登记的 lua_path '{luaPath}'（核对 tbuiform）", LogTag.UI);
             return id >= 0;
         }
 
         private static void Observe(UniTask<UIForm>.Awaiter aw, string method, string luaPath)
         {
             try { aw.GetResult(); }
-            catch (Exception ex) { Log.Error($"PageFlow.{method}[{luaPath}]:{ex.Message}", "UI"); }
+            catch (Exception ex) { Log.Error($"PageFlow.{method}[{luaPath}]:{ex.Message}", LogTag.UI); }
         }
     }
 }

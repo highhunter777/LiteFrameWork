@@ -76,7 +76,8 @@ namespace LiteGame
                     c =>
                     {
                         var battle = c.Resolve<BattleClient>();
-                        return new BattleContext(battle, account.Scope, _input, _maps.GetMap(),
+                        return new BattleContext(battle, account.Scope, _input,
+                            _maps.GetMap(BattleScenes.MapIdFor(account.TestRoom)),   // 与 Match 建传输同一张图（视觉=判定同图）
                             gameplayDigestBase: _gameplayDigestBase());
                     },
                     ServiceLifetime.Scoped, typeof(BattleClient));

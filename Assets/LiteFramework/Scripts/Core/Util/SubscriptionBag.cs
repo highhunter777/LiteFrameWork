@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections;
 using System.Collections.Generic;
 
@@ -36,7 +36,7 @@ namespace LiteFramework
                 try { items[i](); }
                     catch (Exception e)
                     {
-                        Log.Error(e, "Dispose 单个 Subscribe 失败", "SubscriptionBag");   // 单个失败不中断其余
+                        Log.Error(e, "Dispose 单个 Subscribe 失败", LogTag.SubscriptionBag);   // 单个失败不中断其余
                     }
             }
         }

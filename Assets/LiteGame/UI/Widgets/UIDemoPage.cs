@@ -1,4 +1,4 @@
-using Cysharp.Threading.Tasks;
+﻿using Cysharp.Threading.Tasks;
 using TMPro;
 using System;
 using System.Collections.Generic;
@@ -219,7 +219,7 @@ namespace LiteGame.UI
         }
 
         // 静态日志出口：真机加载分支（LoadTemplateAsync）是静态方法——Log 必须为静态。
-        private static void LogSummary(string message) => LiteFramework.Log.Info(message, "WidgetCheck");
-        private static void Log(string message) => LiteFramework.Log.Info(message, "WidgetCheck");
+        private static void LogSummary(string message) => LiteFramework.Log.Info(message, LiteFramework.LogTag.WidgetCheck);
+        private static void Log(string message) => LiteFramework.Log.Info(message, LiteFramework.LogTag.WidgetCheck);
     }
 }

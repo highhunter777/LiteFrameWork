@@ -1,4 +1,4 @@
-using LiteFramework;
+﻿using LiteFramework;
 using UnityEngine;
 using UnityEngine.EventSystems;
 using UnityEngine.InputSystem;
@@ -30,7 +30,7 @@ namespace LiteGame
             Object.DontDestroyOnLoad(go);                       // 与 [UIRoot] 同寿（UI 壳不随场景销毁）
             go.AddComponent<EventSystem>();
             go.AddComponent<InputSystemUIInputModule>().AssignDefaultActions();
-            Log.Info("UI 输入底座就绪：[UIEventSystem] + InputSystemUIInputModule 默认动作集", "UI");
+            Log.Info("UI 输入底座就绪：[UIEventSystem] + InputSystemUIInputModule 默认动作集", LogTag.UI);
             return true;
         }
 

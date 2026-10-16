@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using LiteFramework;
 
 namespace LiteClient
@@ -30,7 +30,7 @@ namespace LiteClient
             {
                 // 静默 -1 会让"桌面拿不到余量"成为不可见事故（SpacePrecheck 按不足拒绝所有候选，
                 // 热更链在 Player 上整体不可用）——留一次可诊断痕迹（每次预检至多一条，非热路径）。
-                Log.Warning($"磁盘余量不可知（path='{_relDir}'）——空间预检将按不足处理", "Content");
+                Log.Warning($"磁盘余量不可知（path='{_relDir}'）——空间预检将按不足处理", LogTag.Content);
             }
             return available;
         }

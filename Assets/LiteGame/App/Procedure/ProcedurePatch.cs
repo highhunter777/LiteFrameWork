@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Threading;
 using Cysharp.Threading.Tasks;
 using LiteFramework;
@@ -55,7 +55,7 @@ namespace LiteGame
                 {
                     // ① 完整内容事务编排（含启动恢复；失败已在编排内留档并回退）
                     PatchRunResult result = await _patchRunner.RunAsync(ct);
-                    Log.Info($"内容事务：phase={result.FinalPhase} {result}", "Patch");
+                    Log.Info($"内容事务：phase={result.FinalPhase} {result}", LogTag.Patch);
 
                     if (!result.Succeeded && !result.NoWork)
                     {
@@ -73,7 +73,7 @@ namespace LiteGame
                     var record = _activations.RecoverOnStartup();
                     Log.Info(
                         $"内容事务状态（无候选来源）：confirmed={record.ConfirmedReleaseId}#{record.ConfirmedVersion}" +
-                        (record.LastFailure != null ? $" lastFailure={record.LastFailure}" : ""), "Patch");
+                        (record.LastFailure != null ? $" lastFailure={record.LastFailure}" : ""), LogTag.Patch);
                 }
 
                 // ② 资源包初始化（当前 Confirmed 代——ActiveGeneration；失败含根因上抛）
@@ -93,7 +93,7 @@ namespace LiteGame
                         return;
                     }
                     UnityEngine.Debug.Log($"[Content] entry-assets ok probe={_entryAssetsProbe.Name} checked={_entryAssetsProbe.LastChecked} skipped={_entryAssetsProbe.LastSkipped}");   // 证据行（冒烟核对）
-                    Log.Info($"入口资源可加载（{_entryAssetsProbe.Name}）：checked={_entryAssetsProbe.LastChecked} skipped={_entryAssetsProbe.LastSkipped}", "Content");
+                    Log.Info($"入口资源可加载（{_entryAssetsProbe.Name}）：checked={_entryAssetsProbe.LastChecked} skipped={_entryAssetsProbe.LastSkipped}", LogTag.Content);
                 }
 
                 m.Request(ProcedureId.Preload);
@@ -109,7 +109,7 @@ namespace LiteGame
                 {
                     // 留档自身写盘失败（确认点写盘被拒/磁盘满等）不得吞掉原始失败并阻断错误流程——
                     // 确定错误态仍须可达（§8：失败 = 留档 + Error 流程；写盘失败时"留档"只剩日志这一条腿）。
-                    Log.Error($"内容失败留档未落盘：{persistEx.GetType().Name}: {persistEx.Message}", "Patch");
+                    Log.Error($"内容失败留档未落盘：{persistEx.GetType().Name}: {persistEx.Message}", LogTag.Patch);
                 }
                 Fail(m, ex, nameof(RunAsyncCore));
                 m.Request(ProcedureId.Error, new ProcedureArgs(ex));

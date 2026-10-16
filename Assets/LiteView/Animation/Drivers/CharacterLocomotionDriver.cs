@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using LiteFramework;
 using LiteFramework.Animation;
@@ -291,7 +291,7 @@ namespace LiteView.Animation
                     if (!grip.IsValid)
                     {
                         Log.Warning($"slot {i} 持枪常量骨路径在骨架上不存在"
-                            + $"：view「{go.name}」——换弹期枪将完全由片段曲线驱动", "Anim");
+                            + $"：view「{go.name}」——换弹期枪将完全由片段曲线驱动", LogTag.Anim);
                         grip = null;
                     }
                     s.Grip = grip;
@@ -300,7 +300,7 @@ namespace LiteView.Animation
                         + $"ctrl={(animator.runtimeAnimatorController != null ? animator.runtimeAnimatorController.name : "none")}"
                         + $" manifest={(_manifest != null ? "on" : "off")} layers={animator.layerCount}"
                         + $" 持枪约束={(grip != null ? "on" : "off")}"
-                        + $" 窗长={_fireHoldSeconds:0.##}s 换弹倍率={reloadSpeed:0.##}×（片段「{reloadDef.Binding}」{reloadSeconds:0.###}s）", "Anim");
+                        + $" 窗长={_fireHoldSeconds:0.##}s 换弹倍率={reloadSpeed:0.##}×（片段「{reloadDef.Binding}」{reloadSeconds:0.###}s）", LogTag.Anim);
                 }
 
                 if (s.HasPos && dt > 0f)

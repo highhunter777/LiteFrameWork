@@ -219,6 +219,9 @@ MonoBehaviour:
   UiPaused: 0
   StrictMode: 1
   UseLocalServer: 1
+  DirectToTraining: 0
+  WorkbenchMode: 0
+  DevMenu: 0
   NoDeath: 1
   InfiniteAmmo: 0
   LaserSight: 1

@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Globalization;
 using Cysharp.Threading.Tasks;
@@ -94,7 +94,7 @@ namespace LiteGame
             }
             catch (Exception ex)
             {
-                Log.Error($"Bridge.meta 异常:{ex.Message}", "Meta");
+                Log.Error($"Bridge.meta 异常:{ex.Message}", LogTag.Meta);
                 Done(cb, false, "Internal");
             }
         }

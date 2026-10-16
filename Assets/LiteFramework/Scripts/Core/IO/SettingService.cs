@@ -40,7 +40,7 @@ namespace LiteFramework
         public void Save()
         {
             try { FileSys.WriteJson(FilePath, _values); _dirty = false; }
-            catch (Exception ex) { Log.Error(ex, "SettingService"); }
+            catch (Exception ex) { Log.Error(ex, null, LogTag.Setting); }
         }
 
         /// <summary>有未存修改才写。三处标准调用点见类注释③。</summary>
@@ -125,7 +125,7 @@ namespace LiteFramework
 
         private T Bad<T>(string key, string raw, T defaultValue)
         {
-            Log.Warning($"键 \"{key}\" 值 \"{raw}\" 解析失败,按默认值 {defaultValue}", "SettingService");
+            Log.Warning($"键 \"{key}\" 值 \"{raw}\" 解析失败,按默认值 {defaultValue}", LogTag.Setting);
             return defaultValue;
         }
 

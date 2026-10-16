@@ -15,8 +15,12 @@ namespace LiteClient
     /// </summary>
     public static class MapTableProjection
     {
-        /// <summary>单图常量行键（D3/D10：`map_id=1`；多图批次再议）。</summary>
+        /// <summary>首图行键（D3/D10；多图批次见 <see cref="TrainingMapId"/>）。</summary>
         public const int DefaultMapId = 1;
+
+        /// <summary>训练场行键（第二张地图：`Luban/Data/Map/map_training_ground.json` → `tbmap` 行 2；
+        /// 烘焙目标 `BakeTargets.TrainingMap` 与运行期选行（`BattleScenes.MapIdFor`）都引本常量）。</summary>
+        public const int TrainingMapId = 2;
 
         /// <summary>表数据文件（域相对路径，不带扩展名）——须在 <see cref="TableLayout.Files"/> 内
         /// （一致性由 L1 守卫测试钉住；服务端取盘与域归位都按它拼路径）。</summary>

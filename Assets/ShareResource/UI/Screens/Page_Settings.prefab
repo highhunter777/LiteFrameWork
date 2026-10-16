@@ -12,6 +12,7 @@ GameObject:
   - component: {fileID: 3370746736815493319}
   - component: {fileID: 2782336290713012960}
   - component: {fileID: 8759798367325507113}
+  - component: {fileID: 539713073103827039}
   m_Layer: 0
   m_Name: Page_Settings
   m_TagString: Untagged
@@ -100,6 +101,23 @@ CanvasGroup:
   m_Interactable: 1
   m_BlocksRaycasts: 1
   m_IgnoreParentGroups: 0
+--- !u!114 &539713073103827039
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 247246688240323445}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: dc42784cf147c0c48a680349fa168899, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  m_IgnoreReversedGraphics: 1
+  m_BlockingObjects: 0
+  m_BlockingMask:
+    serializedVersion: 2
+    m_Bits: 4294967295
 --- !u!1 &683973260612527417
 GameObject:
   m_ObjectHideFlags: 0
@@ -250,7 +268,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   Comment: 
   CustomTypeName: 
-  BindName: Exit
+  BindName: Txt_Exit
 --- !u!1 &739698340599142514
 GameObject:
   m_ObjectHideFlags: 0
@@ -1118,7 +1136,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   Comment: 
   CustomTypeName: 
-  BindName: Exit
+  BindName: Button_Exit
 --- !u!1 &3002886473247396680
 GameObject:
   m_ObjectHideFlags: 0

@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections;
 using System.Collections.Generic;
 
@@ -43,7 +43,7 @@ namespace LiteFramework
 #if UNITY_EDITOR || DEVELOPMENT_BUILD || LITEFRAMEWORK_DEBUG
             for (int i = 0; i < _subs.Count; i++)
                 if (_subs[i].Handler == handler)
-                    Log.Warning($"重复订阅（多实例复用同一委托合法，但通常是遗忘注销的信号）: {typeof(T).Name}", "Event");
+                    Log.Warning($"重复订阅（多实例复用同一委托合法，但通常是遗忘注销的信号）: {typeof(T).Name}", LogTag.Event);
 #endif
             int insertAt = _subs.Count;
             for (int i = 0; i < _subs.Count; i++)

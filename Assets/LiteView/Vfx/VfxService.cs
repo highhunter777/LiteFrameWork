@@ -20,7 +20,7 @@ namespace LiteView
     /// </summary>
     public sealed class VfxService : IVFXService, ITickable
     {
-        private const string Tag = "VFX";
+        private const LogTag Tag = LogTag.Vfx;
 
         /// <summary>拿不到粒子时长时的兜底生命周期（纯 Mesh/贴片特效）。</summary>
         private const float FallbackLifetime = 1.5f;

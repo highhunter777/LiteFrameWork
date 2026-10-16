@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Threading;
 using Cysharp.Threading.Tasks;
 using LiteFramework;
@@ -127,13 +127,13 @@ namespace LiteGame.UI
                     mask.SetBlocking(true);
                 }
                 else
-                    Log.Error($"加载遮罩表单[{_loadingFormId}] 缺少 LoadingMask 组件——表单装配错误", "UI");
+                    Log.Error($"加载遮罩表单[{_loadingFormId}] 缺少 LoadingMask 组件——表单装配错误", LogTag.UI);
             }
             catch (OperationCanceledException) { /* 遮罩打开被取消（Shutdown/Close）——静默 */ }
             catch (Exception ex)
             {
                 // 反馈面失败不该吞掉被门控操作——只落日志（§6.1"请求失败的反馈可观察"）
-                Log.Error($"加载遮罩打开失败[{_loadingFormId}]:{ex.Message}", "UI");
+                Log.Error($"加载遮罩打开失败[{_loadingFormId}]:{ex.Message}", LogTag.UI);
             }
         }
 
@@ -183,7 +183,7 @@ namespace LiteGame.UI
             _loadingForm = null;
             if (form == null || !_isOpen(form.Id)) return;
             try { await _close(form.Id); }
-            catch (Exception ex) { Log.Error($"加载遮罩关闭失败:{ex.Message}", "UI"); }
+            catch (Exception ex) { Log.Error($"加载遮罩关闭失败:{ex.Message}", LogTag.UI); }
         }
 
         // ---- 错误/重试 ----
@@ -243,14 +243,14 @@ namespace LiteGame.UI
                     _toast = _toastForm.Root.GetComponentInChildren<Toast>(true);
                     if (_toast == null)
                     {
-                        Log.Error($"Toast 表单[{_toastFormId}] 缺少 Toast 组件——表单装配错误", "UI");
+                        Log.Error($"Toast 表单[{_toastFormId}] 缺少 Toast 组件——表单装配错误", LogTag.UI);
                         return;
                     }
                 }
                 _toast.Show(message, seconds);
             }
             catch (OperationCanceledException) { /* Toast 打开被取消——静默 */ }
-            catch (Exception ex) { Log.Error($"Toast 打开失败[{_toastFormId}]:{ex.Message}", "UI"); }
+            catch (Exception ex) { Log.Error($"Toast 打开失败[{_toastFormId}]:{ex.Message}", LogTag.UI); }
         }
 
         /// <summary>当前首个可见 Toast 文本（诊断/测试面；未显示 = ""）。多条并存下取最早一条。</summary>

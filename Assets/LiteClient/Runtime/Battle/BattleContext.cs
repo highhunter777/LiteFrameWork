@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Threading;
 using LiteFramework;
 using LiteNet;
@@ -249,7 +249,7 @@ namespace LiteClient
                 Log.Error(
                     $"玩法数据身份不符:StartGame.ConfigHash=0x{sg.ConfigHash:x8} 本地复算=0x{expectedDigest:x8}" +
                     $"（本地基摘要=0x{_gameplayDigestBase:x8} noDead={values.NoDeath} infiniteAmmo={values.InfiniteAmmo}）" +
-                    "——两端判定面表数据不同源（服务端换表重启与客户端内容热更未同批？）；本局拒绝建立", "Battle");
+                    "——两端判定面表数据不同源（服务端换表重启与客户端内容热更未同批？）；本局拒绝建立", LogTag.Battle);
                 End(EndReason.SessionFailed);
                 return;
             }

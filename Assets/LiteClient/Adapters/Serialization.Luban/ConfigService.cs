@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Threading;
 using Cysharp.Threading.Tasks;
@@ -120,7 +120,7 @@ namespace LiteClient
             ApplyAnimationProfile(candidate);               // 动画 Profile 行（投影为 Core 行并发布读口——对局装配/构建器/测试消费）
             _tables = candidate;                           // 对外可见（发布成功后）
             Log.Info($"配置快照发布完成:{TableDataFiles.Length} 张表 version={Version} " +
-                     $"digest={GameplayDigestBase:x8}（判定面 {TableLayout.JudgmentFiles.Length} 表）", "Config");
+                     $"digest={GameplayDigestBase:x8}（判定面 {TableLayout.JudgmentFiles.Length} 表）", LogTag.Config);
         }
 
         /// <summary>候选校验（发布闸门——返回 null 通过，非 null 为拒绝原因上抛）。</summary>
@@ -199,7 +199,7 @@ namespace LiteClient
             Log.Info(
                 $"玩法数值装载：move={values.MoveSpeed} gravity={values.Gravity} " +
                 $"hitscan={values.HitscanRange} hit={CombatConfig.HitscanRadius}(裁决) body={CombatConfig.BodyRadius}:{CombatConfig.HitscanHeight}(烘焙) " +
-                $"dmg={values.BaseDamage}±{values.DamageSpread} hp={values.EntityHp}", "Config");
+                $"dmg={values.BaseDamage}±{values.DamageSpread} hp={values.EntityHp}", LogTag.Config);
         }
 
         /// <summary>
@@ -223,7 +223,7 @@ namespace LiteClient
             Log.Info(
                 $"移动数值装载：walk={row.WalkSpeed} run={row.RunSpeed} sprint={row.SprintSpeed} " +
                 $"slide={row.SlideSpeed}/{row.SlideFriction} jump={row.JumpSpeed}×{row.DoubleJumpCount + 1} " +
-                $"grapple={row.GrappleDistance}/{row.GrappleSpeed} blink={row.BlinkDistance}", "Config");
+                $"grapple={row.GrappleDistance}/{row.GrappleSpeed} blink={row.BlinkDistance}", LogTag.Config);
         }
 
         /// <summary>武器表装载（表 → <see cref="WeaponTable"/> 实例并**原子发布读口**）：多行逐条 primitive 喂入；
@@ -244,13 +244,13 @@ namespace LiteClient
                     count++;
                 }
                 else
-                    Log.Warning($"武器表行被忽略（id 越界）：id={row.Id} {row.Name}", "Config");
+                    Log.Warning($"武器表行被忽略（id 越界）：id={row.Id} {row.Name}", LogTag.Config);
             }
             WeaponConfig.Publish(table);   // 原子发布（客户端单世界读口；机制经参数接收——R13 纪律把守）
 
             if (table.TryGet(WeaponConfig.DefaultRifleId, out WeaponDef rifle))
                 Log.Info($"武器表装载：{count} 行（默认步枪 dmg={rifle.Damage} rpm={rifle.Rpm} " +
-                    $"mag={rifle.MagazineSize} 节拍={rifle.FireIntervalFrames}帧）", "Config");
+                    $"mag={rifle.MagazineSize} 节拍={rifle.FireIntervalFrames}帧）", LogTag.Config);
         }
 
         /// <summary>动画 Profile 行装载（表 → Core <see cref="AnimationProfileRow"/> 列表并**原子发布读口**）：
@@ -265,7 +265,7 @@ namespace LiteClient
 
             var families = new HashSet<string>();
             foreach (var row in rows) families.Add(row.ModelFamily);
-            Log.Info($"动画 Profile 行装载：{rows.Count} 行/{families.Count} 族（读口 AnimationProfileConfig.Rows）", "Config");
+            Log.Info($"动画 Profile 行装载：{rows.Count} 行/{families.Count} 族（读口 AnimationProfileConfig.Rows）", LogTag.Config);
         }
     }
 }

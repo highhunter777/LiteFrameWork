@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.IO;
@@ -271,9 +271,9 @@ namespace LiteGame.Tests.UI.PlayMode
                 return File.Exists(path) ? File.ReadAllBytes(path) : null;
             });
             var logTable = env.NewTable();
-            logTable.Set("info", new Action<string>(msg => LiteFramework.Log.Info(msg, "Lua")));
-            logTable.Set("warning", new Action<string>(msg => LiteFramework.Log.Warning(msg, "Lua")));
-            logTable.Set("error", new Action<string>(msg => LiteFramework.Log.Error(msg, "Lua")));
+            logTable.Set("info", new Action<string>(msg => LiteFramework.Log.Info(msg, LiteFramework.LogTag.Lua)));
+            logTable.Set("warning", new Action<string>(msg => LiteFramework.Log.Warning(msg, LiteFramework.LogTag.Lua)));
+            logTable.Set("error", new Action<string>(msg => LiteFramework.Log.Error(msg, LiteFramework.LogTag.Lua)));
             env.Global.Set("log", logTable);
             return env;
         }

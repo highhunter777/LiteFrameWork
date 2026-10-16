@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 
 namespace LiteFramework
@@ -72,7 +72,7 @@ namespace LiteFramework
         {
             if (!_itemsById.TryGetValue(id, out var item))
             {
-                Log.Warning($"尝试取消不存在的调度 Id={id}", "Scheduler");
+                Log.Warning($"尝试取消不存在的调度 Id={id}", LogTag.Scheduler);
                 return;
             }
 

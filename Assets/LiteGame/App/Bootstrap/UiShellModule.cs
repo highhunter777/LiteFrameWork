@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Threading;
 using Cysharp.Threading.Tasks;
 using LiteFramework;
@@ -80,7 +80,7 @@ namespace LiteGame
 #endif
                     var built = new LocalizationService(LTextCatalog.Build(config.Tables),
                         LocalizationCatalog.SourceLocale, developmentMode);
-                    built.OnMissingKey = key => Log.Warning($"LText 缺 key:{key}", "LText");
+                    built.OnMissingKey = key => Log.Warning($"LText 缺 key:{key}", LogTag.LText);
                     service = built;
                 }
                 return service;

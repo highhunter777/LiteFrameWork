@@ -103,7 +103,7 @@ namespace LiteGame
                     for (int i = recent.Count > take ? recent.Count - take : 0; i < recent.Count; i++)
                     {
                         var e = recent[i];
-                        sb.AppendLine($"{(e.Level == LiteFramework.LogLevel.Error ? "✗" : e.Level == LiteFramework.LogLevel.Warning ? "⚠" : "·")}{(e.Tag != null ? $"[{e.Tag}]" : "")} {e.Message}");
+                        sb.AppendLine($"{(e.Level == LiteFramework.LogLevel.Error ? "✗" : e.Level == LiteFramework.LogLevel.Warning ? "⚠" : "·")}{(e.Tag != LogTag.None ? $"[{Log.TagName(e.Tag)}]" : "")} {e.Message}");
                     }
                 }
             }

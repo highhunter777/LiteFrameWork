@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Threading;
 using Cysharp.Threading.Tasks;
 using LiteFramework;
@@ -32,7 +32,6 @@ namespace LiteGame
     {
 #if UNITY_EDITOR || DEVELOPMENT_BUILD || LITEFRAMEWORK_DEBUG
         /// <summary>主动离场热键（测试入口）。</summary>
-        private const UnityEngine.KeyCode LeaveKey = UnityEngine.KeyCode.F10;
         /// <summary>测试模式传送键（传送到当前准心点）。</summary>
         private const UnityEngine.KeyCode TeleportKey = UnityEngine.KeyCode.T;
 #endif
@@ -47,6 +46,7 @@ namespace LiteGame
         private readonly LiteFramework.IWorldClock _worldClock;   // 世界钟（伤害数字寿命/合并窗）
         private readonly IMatchSessionFactory _matchSessions;
         private readonly PageFlow _pages;            // 五页页面流（批C-④；可空 = 测试装配不接 UI）
+        private readonly ISceneService _scenes;      // 对局场景组卸载（可空 = 测试装配）
         private readonly CrosshairFeelBook _crosshairFeel;   // 准心手感投影（tbcrosshair；可空 = 测试装配回落 Default）
 
         private BattleViewRig _rig;                  // 视图域（资源租约 / 视图与消费者 / 逆序拆除）
@@ -68,7 +68,7 @@ namespace LiteGame
             IVFXService vfx = null, CancellationToken rootToken = default, bool requireCamera = false,
             LiteFramework.IWorldClock worldClock = null, IMatchSessionFactory matchSessions = null,
             AudioService audio = null, CommandCenter commands = null, PageFlow pages = null,
-            CrosshairFeelBook crosshairFeel = null)
+            CrosshairFeelBook crosshairFeel = null, ISceneService scenes = null)
             : base(rootToken)
         {
             _content = content ?? throw new ArgumentNullException(nameof(content));
@@ -81,6 +81,7 @@ namespace LiteGame
             _worldClock = worldClock;
             _matchSessions = matchSessions ?? throw new ArgumentNullException(nameof(matchSessions));
             _pages = pages;
+            _scenes = scenes;
             _crosshairFeel = crosshairFeel;
         }
 
@@ -117,7 +118,7 @@ namespace LiteGame
                     ?? throw new InvalidOperationException("缺少 MatchSessionFactory（完整 DI 装配要求由工厂创建 Match 域）");
                 _context = _matchSession.Context;
                 RoomBridge.BindSession(new RoomSessionFace(battleClient));   // 房间会话门面（房主开局批）——页面经 Bridge.room 读房主事实/发提前开局；收尾必摘
-                Log.Info("context-created (Match Scope built)", "Battle");
+                Log.Info("context-created (Match Scope built)", LogTag.Battle);
 
                 await WaitStartGame(battleClient, ct);        // Sim 就绪 = 视图可建（SimView 要读预测态）
                 if (_context.Sim != null)
@@ -131,11 +132,11 @@ namespace LiteGame
                     // **StartGame 被拒**（批 E：玩法数据身份不符——`BattleContext` 校验点已 End(SessionFailed)）：
                     // SimView 构造要读预测态，无 Sim 进 Attach 必炸——按会话失败收尾，不把"数据分叉拒局"变成错误态。
                     // 下面的 WaitEnded 经 earlyResult 立即拿到原因（Ended 已在上游发出）。
-                    Log.Warning("StartGame 未建立解读世界（玩法数据身份不符/被拒）——跳过视图建立，按会话失败收尾", "Battle");
+                    Log.Warning("StartGame 未建立解读世界（玩法数据身份不符/被拒）——跳过视图建立，按会话失败收尾", LogTag.Battle);
                 }
 
                 BattleContext.EndReason reason = await WaitEnded(_context, ct);
-                Log.Info($"ended reason={reason} reconciles={_context.ReconcileCount}", "Battle");
+                Log.Info($"ended reason={reason} reconciles={_context.ReconcileCount}", LogTag.Battle);
                 completed = reason == BattleContext.EndReason.Completed;
                 matchResult = _context.MatchResult;          // 冻结结果（MatchEnded → 结算页数据源；批C-④）
                 localPlayerId = _context.PlayerId;
@@ -160,6 +161,7 @@ namespace LiteGame
                 _context = null;
                 accountSession?.Dispose();
                 _account = null;
+                UnloadBattleScenes();                     // 离场卸载对局场景组（Rig ＋ 地图）——回 Main 只有启动场景
             }
 
             if (next.HasValue) m.Request(next.Value, nextArgs);
@@ -167,6 +169,23 @@ namespace LiteGame
             // 页面流（批C-④）：正常结束 → 结算页（带本局结果）；失败/主动离场 → 房间页在则替换回大厅。
             // 在 finally 之后（对局资源已收尾，页面切换不与之竞争）；错误态路径（next=Error）不动页面。
             if (next == ProcedureId.Main) _pages?.OnMatchEnded(completed, matchResult, localPlayerId);
+        }
+
+        /// <summary>离场卸载对局场景组（`BattleScenes` 单源；幂等——未加载 = 服务侧 no-op）。
+        /// 失败只记日志不阻塞离场（场景留驻是表现问题，不是会话正确性问题）；
+        /// 编辑器"领养"形态（场景手工已在场）下卸载是 no-op——手测时属预期。</summary>
+        private void UnloadBattleScenes()
+        {
+            if (_scenes == null) return;
+            UnloadOne(BattleScenes.Arena);
+            UnloadOne(BattleScenes.Training);
+            UnloadOne(BattleScenes.Rig);
+        }
+
+        private void UnloadOne(string location)
+        {
+            try { _scenes.UnloadAdditiveAsync(location).Forget(); }
+            catch (Exception ex) { Log.Warning($"[Battle] 离场卸载场景失败 {location}:{ex.Message}", LogTag.Scene); }
         }
 
         /// <summary>
@@ -213,7 +232,7 @@ namespace LiteGame
 #if UNITY_EDITOR || DEVELOPMENT_BUILD || LITEFRAMEWORK_DEBUG
             // 主动离场热键（测试入口，与 ProcedureMain F9 进对局同门禁）：Leave → Ended(Leave) → 收尾回 Main。
             // 此处只留热键，不进正式 UI（正式离场入口由 UI 层提供）。
-            if (UnityEngine.Input.GetKeyDown(LeaveKey)) _context.Leave();
+            // 离场入口＝UI（ESC → 设置页 → 退出对局），无热键（《UI工作台设计》§5 入口矩阵）
             if (UnityEngine.Input.GetKeyDown(TeleportKey)) TestModeRuntime.RequestTeleport();      // T = 传送到准心（测试模式）
             if (TestModeRuntime.TakeExitRequest())                                                          // GM 面板退出：离场并关模式（读即清）
             {
@@ -251,7 +270,7 @@ namespace LiteGame
             {
                 if (TestModeRuntime.Active && TestModeRuntime.TeleportEnabled)
                     _commands.SendQueued(new TeleportToAimCommand());
-                else Log.Warning("[TestMode] 传送请求忽略（未开测试模式/未启用）", "Battle");
+                else Log.Warning("[TestMode] 传送请求忽略（未开测试模式/未启用）", LogTag.Battle);
             }
 #endif
         }

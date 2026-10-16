@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Globalization;
 
 namespace LiteFramework
@@ -40,7 +40,7 @@ namespace LiteFramework
             }
             catch (Exception ex)
             {
-                Log.Warning($"设置 \"{_key}\" 值 \"{raw}\" 解析失败,按默认值 {_default}({ex.Message})", "Setting");
+                Log.Warning($"设置 \"{_key}\" 值 \"{raw}\" 解析失败,按默认值 {_default}({ex.Message})", LogTag.Setting);
                 return _default;
             }
         }

@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using Cysharp.Threading.Tasks;
 using LiteFramework;
@@ -335,7 +335,7 @@ return {
                     break;
 #if UNITY_EDITOR || DEVELOPMENT_BUILD || LITEFRAMEWORK_DEBUG
                 default:
-                    Log.Warning($"ui-API 未知方法:{method}（拼写错误不得静默吞——《UI控件Lua API 参考》§3）", "UI");
+                    Log.Warning($"ui-API 未知方法:{method}（拼写错误不得静默吞——《UI控件Lua API 参考》§3）", LogTag.UI);
                     break;
 #endif
             }
@@ -352,7 +352,7 @@ return {
             {
                 if (_confirm == null)
                 {
-                    Log.Warning("ShowConfirm 无确认服务（测试/工具装配）——回调 false", "UI");
+                    Log.Warning("ShowConfirm 无确认服务（测试/工具装配）——回调 false", LogTag.UI);
                     fn?.Call(false);
                     return;
                 }
@@ -367,7 +367,7 @@ return {
             }
             catch (Exception ex)
             {
-                Log.Error($"ShowConfirm 失败:{ex.Message}", "UI");
+                Log.Error($"ShowConfirm 失败:{ex.Message}", LogTag.UI);
                 fn?.Call(false);
             }
         }

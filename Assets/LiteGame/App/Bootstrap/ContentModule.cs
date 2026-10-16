@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Threading;
 using Cysharp.Threading.Tasks;
 using LiteFramework;
@@ -53,14 +53,14 @@ namespace LiteGame
                 fetcher = new HttpCandidateFetcher(candidateRoot, deploy.TimeoutSeconds);
                 provider = new HttpCandidateProvider(deploy.BaseUrl, deploy.OfferPath, deploy.TimeoutSeconds);
                 planFactory = manifest => new DownloadPlan(manifest, new[] { source });
-                Log.Info($"内容通道：CDN {deploy.BaseUrl}（信封 {deploy.OfferPath}）", "Content");
+                Log.Info($"内容通道：CDN {deploy.BaseUrl}（信封 {deploy.OfferPath}）", LogTag.Content);
             }
             else
             {
                 fetcher = new LocalDirectoryCandidateFetcher(candidateRoot);
                 provider = new FileSystemCandidateProvider();
                 planFactory = null;                       // PatchRunner 默认计划（本地通道只清点落盘、不消费来源）
-                Log.Info("内容通道：本地信封（未配置 CDN）", "Content");
+                Log.Info("内容通道：本地信封（未配置 CDN）", LogTag.Content);
             }
 
             var trustedKeys = new TrustedKeyStore();

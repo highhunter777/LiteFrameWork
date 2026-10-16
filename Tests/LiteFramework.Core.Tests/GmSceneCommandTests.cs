@@ -29,6 +29,7 @@ namespace LiteFramework.Tests
             public string SingleSceneName => "FakeMain";
             public int AdditiveCount => 2;
             public IReadOnlyCollection<string> AdditiveLocations => Array.Empty<string>();
+            public float Progress => 0f;                             // 替身不加载——按接口口径"无加载为 0"
 
             public UniTask LoadSingleAsync(string location, CancellationToken ct = default)
             { SingleLoads++; LastSingleLoad = location; return UniTask.CompletedTask; }

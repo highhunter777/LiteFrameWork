@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Threading;
 using Cysharp.Threading.Tasks;
@@ -123,7 +123,7 @@ namespace LiteGame
                 op.Registration = ct.Register(() => Abandon(op, ct));
             }
 
-            Log.Info($"[Nav] 入队 {kind} id={formId} 排队深度={_queue.Count} 执行中={_running}", "UI");
+            Log.Info($"[Nav] 入队 {kind} id={formId} 排队深度={_queue.Count} 执行中={_running}", LogTag.UI);
             PumpAsync().Forget();
             return op;
         }
@@ -135,7 +135,7 @@ namespace LiteGame
             if (op.Abandoned) return;                     // 幂等：取消登记可能在多个调度点被触发
             CancelledWhileQueued++;
             op.Abandoned = true;
-            Log.Info($"[Nav] 放弃排队项 id={op.FormId}（排队期取消）", "UI");
+            Log.Info($"[Nav] 放弃排队项 id={op.FormId}（排队期取消）", LogTag.UI);
             op.Cts.Cancel();
 
             var fail = new UIOpenException(UIOpenFailure.Canceled, op.FormId,

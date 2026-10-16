@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using Cysharp.Threading.Tasks;
 using LiteFramework;
@@ -91,7 +91,7 @@ namespace LiteClient
             AddGroup(Group.Ui, "Ui", uiProxies);
             AddGroup(Group.Voice, "Voice", voiceProxies);
             AddGroup(Group.Bgm, "Bgm", bgmProxies);        // 2 代理：BGM 交叉淡切（旧淡出 + 新淡入）
-            Log.Info("声音壳就绪:Effect/Ui/Voice/Bgm 四组（组+代理模型；支持 fadeIn/fadeOut 与 Play3D）", "Audio");
+            Log.Info("声音壳就绪:Effect/Ui/Voice/Bgm 四组（组+代理模型；支持 fadeIn/fadeOut 与 Play3D）", LogTag.Audio);
         }
 
         private void AddGroup(Group group, string name, int proxyCount)
@@ -146,11 +146,11 @@ namespace LiteClient
                         steal = p;
                 if (steal == null)
                 {
-                    Log.Info($"声音[{group}] 全忙且同优先级——丢弃（同优先级不被替换）", "Audio");
+                    Log.Info($"声音[{group}] 全忙且同优先级——丢弃（同优先级不被替换）", LogTag.Audio);
                     return 0;                              // 0 = 无效句柄
                 }
                 pick = steal;
-                Log.Info($"声音[{group}] 抢占代理（新优先级 {priority} > 旧 {steal.Priority}）", "Audio");
+                Log.Info($"声音[{group}] 抢占代理（新优先级 {priority} > 旧 {steal.Priority}）", LogTag.Audio);
             }
 
             // 句柄单调递增且永不复用——被抢占代理的旧句柄必然失效，
@@ -237,7 +237,7 @@ namespace LiteClient
             foreach (var g in _groups.Values)
                 foreach (var p in g.Proxies)
                     if (p.Busy) { ReleaseProxy(p); stopped++; }
-            if (stopped > 0) Log.Info($"音频全局停止：{stopped} 个在播代理", "Audio");
+            if (stopped > 0) Log.Info($"音频全局停止：{stopped} 个在播代理", LogTag.Audio);
         }
 
         /// <summary>释放面（宿主关闭）：全局停止 + 销毁 [Audio] 根（幂等）。</summary>
@@ -252,7 +252,7 @@ namespace LiteClient
             if (!Application.isPlaying) { UnityEngine.Object.DestroyImmediate(go); return; }
 #endif
             UnityEngine.Object.Destroy(go);
-            Log.Info("音频壳已关闭（全局停止 + 根销毁）", "Audio");
+            Log.Info("音频壳已关闭（全局停止 + 根销毁）", LogTag.Audio);
         }
 
         public string StatsName => "Audio";

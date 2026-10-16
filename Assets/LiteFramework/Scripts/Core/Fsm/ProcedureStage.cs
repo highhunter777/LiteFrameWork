@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Threading;
 
 namespace LiteFramework
@@ -56,7 +56,7 @@ namespace LiteFramework
         /// </summary>
         protected void Fail(IStageHost<TId, TReq> m, Exception ex, string where)
         {
-            Log.Fatal(ex, where, "Procedure");
+            Log.Fatal(ex, where, LogTag.Procedure);
         }
     }
 }

@@ -41,19 +41,25 @@ namespace LiteGame.EditorTools
         private const float UpAxisEps = 0.001f;     // up 轴与 +Y 的偏差容差（pitch/roll 判据）
         private const float ScaleEps = 0.0001f;     // 均匀缩放容差（球/胶囊）
 
-        /// <summary>工具箱/run_script 入口：定位场景 MapCollision 根 → <see cref="Collect"/> → 写盘 → 报告。</summary>
-        public static string All()
-        {
-            if (!System.IO.File.Exists(BakeTargets.MapScenePath))
-                return "ABORT 缺地图场景：" + BakeTargets.MapScenePath;
+        /// <summary>工具箱/run_script 入口（首图）：<see cref="Bake"/>（<c>BakeTargets.ArenaMap</c>）。</summary>
+        public static string All() => Bake(BakeTargets.ArenaMap);
 
-            Scene scene = SceneManager.GetSceneByPath(BakeTargets.MapScenePath);
+        /// <summary>工具箱/run_script 入口（训练场，第二张地图）：<see cref="Bake"/>（<c>BakeTargets.TrainingMap</c>）。</summary>
+        public static string AllTraining() => Bake(BakeTargets.TrainingMap);
+
+        /// <summary>烘焙一个地图目标：定位场景 MapCollision 根 → <see cref="Collect"/> → 写盘（每图一文件）→ 报告。</summary>
+        internal static string Bake(BakeTargets.MapTarget target)   // 目标类型 internal——对外入口只留 All/AllTraining
+        {
+            if (!System.IO.File.Exists(target.ScenePath))
+                return "ABORT 缺地图场景：" + target.ScenePath;
+
+            Scene scene = SceneManager.GetSceneByPath(target.ScenePath);
             bool openedHere = false;
             if (!scene.IsValid() || !scene.isLoaded)
             {
                 try
                 {
-                    scene = EditorSceneManager.OpenScene(BakeTargets.MapScenePath, OpenSceneMode.Additive);
+                    scene = EditorSceneManager.OpenScene(target.ScenePath, OpenSceneMode.Additive);
                     openedHere = true;
                 }
                 catch (Exception ex)
@@ -70,16 +76,17 @@ namespace LiteGame.EditorTools
                     if (go.name == BakeTargets.MapCollisionRoot) { root = go; break; }
                 }
                 if (root == null)
-                    return $"ABORT 场景「{BakeTargets.MapScenePath}」缺 {BakeTargets.MapCollisionRoot} 根"
+                    return $"ABORT 场景「{target.ScenePath}」缺 {BakeTargets.MapCollisionRoot} 根"
                         + "（地图场景约定：MapCollision 代理树 ＋ spawn_* ＋ map_bounds）";
 
-                string report = Collect(root, out SimMapData map, out string jsonText);
+                string report = Collect(root, out SimMapData map, out string jsonText,
+                    mapId: target.MapId, mapName: target.MapName, scenePath: target.ScenePath);
                 if (map == null) return report;
 
                 var sb = new StringBuilder(report);
                 if (scene.isDirty)
                     sb.AppendLine("注意：场景有未保存改动——本次烘焙包含未保存状态（建议先保存场景再重烘）");
-                sb.AppendLine(BakeTargets.WriteArtifact(BakeTargets.MapOutput, jsonText));
+                sb.AppendLine(BakeTargets.WriteArtifact(target.Output, jsonText));
                 sb.Append("提醒：产物是 Luban 数据源（非 .bytes）——需手动跑 Luban/gen.bat；"
                     + "跑完重跑 python scripts/codegen/gen-build-hash.py（生成读码面在 BuildHash 闭包内）。");
                 return sb.ToString();
@@ -96,7 +103,8 @@ namespace LiteGame.EditorTools
         /// 成功返回采集报告（含丢弃清单等提示行），产物经 out 交给调用方。
         /// </summary>
         public static string Collect(GameObject collisionRoot, out SimMapData map, out string jsonText,
-            MeshColliderPolicy meshPolicy = MeshColliderPolicy.Fail)
+            MeshColliderPolicy meshPolicy = MeshColliderPolicy.Fail,
+            int mapId = BakeTargets.MapId, string mapName = BakeTargets.MapName, string scenePath = null)
         {
             map = null;
             jsonText = null;
@@ -145,7 +153,7 @@ namespace LiteGame.EditorTools
             }
 
             string digest = SimMapDigest.Compute(map);
-            jsonText = BuildJson(BakeTargets.MapId, BakeTargets.MapName, digest, map);
+            jsonText = BuildJson(mapId, mapName, digest, map);
 
             var sb = new StringBuilder();
             sb.Append("已烘焙：").Append(map.ObstacleCount).Append(" 障碍 ＋ ").Append(map.SpawnPointCount)

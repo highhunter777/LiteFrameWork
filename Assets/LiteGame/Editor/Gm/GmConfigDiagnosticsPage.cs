@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Reflection;
@@ -215,7 +215,7 @@ namespace LiteGame.Editor
         private void SetQueryResult(string text)
         {
             _queryResult = text;
-            if (_writeLog) Log.Info(text.Replace("\r\n", " | "), "Smoke");
+            if (_writeLog) Log.Info(text.Replace("\r\n", " | "), LogTag.Smoke);
         }
 
         // ---- 产物核对 ----

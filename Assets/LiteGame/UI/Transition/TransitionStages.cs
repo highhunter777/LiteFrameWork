@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using Cysharp.Threading.Tasks;
 using LiteFramework;
 
@@ -40,7 +40,7 @@ namespace LiteGame
             }
             catch (Exception ex)
             {
-                Log.Error($"转场表现失败(mode={c.Mode}):{ex.Message}", "UI");
+                Log.Error($"转场表现失败(mode={c.Mode}):{ex.Message}", LogTag.UI);
                 c.Completed = false;
                 c.Failed = true;                        // U1-③：Kind=Failed 的判据
             }

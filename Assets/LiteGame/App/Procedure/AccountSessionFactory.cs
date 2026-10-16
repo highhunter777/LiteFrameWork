@@ -32,13 +32,19 @@ namespace LiteGame
         public ClientScope Scope { get; }
         public ServiceContainer Services { get; }
         public BattleClient Battle { get; }
+
+        /// <summary>测试房/本地房标记（进房入口带入；**地图选行**用——`MatchSessionFactory` 据此取
+        /// 训练图行，见 `BattleScenes.MapIdFor`）。</summary>
+        public bool TestRoom { get; }
+
         private bool _disposed;
 
-        public AccountSession(ClientScope scope, ServiceContainer services, BattleClient battle)
+        public AccountSession(ClientScope scope, ServiceContainer services, BattleClient battle, bool testRoom = false)
         {
             Scope = scope ?? throw new ArgumentNullException(nameof(scope));
             Services = services ?? throw new ArgumentNullException(nameof(services));
             Battle = battle ?? throw new ArgumentNullException(nameof(battle));
+            TestRoom = testRoom;
         }
 
         public void Dispose()
@@ -78,7 +84,7 @@ namespace LiteGame
                     transport: _transportFactory(testRoom)));
                 accountServices.RegisterInstance(battle, ServiceLifetime.Scoped, ServiceOwnership.Borrowed);
                 accountServices.Seal();
-                return new AccountSession(accountScope, accountServices, battle);
+                return new AccountSession(accountScope, accountServices, battle, testRoom);
             }
             catch
             {

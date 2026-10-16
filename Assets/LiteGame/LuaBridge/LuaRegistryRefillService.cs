@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Threading;
 using Cysharp.Threading.Tasks;
@@ -84,10 +84,10 @@ namespace LiteGame
             if (report.HasFailures)
             {
                 foreach (var f in report.Failures)
-                    Log.Error($"增量重填失败 [{f.kind}] {f.key}:{f.reason}", "LuaRefill");
+                    Log.Error($"增量重填失败 [{f.kind}] {f.key}:{f.reason}", LogTag.LuaRefill);
             }
             Log.Info($"增量重填完成：清 require {cleared} 项、填充 {report.Filled}/{report.Total}、失败 {report.Failed}、" +
-                     $"纪元 {Generations}、待更新界面 {_ui.StaleLogicCount}", "LuaRefill");
+                     $"纪元 {Generations}、待更新界面 {_ui.StaleLogicCount}", LogTag.LuaRefill);
             return report;
         }
 

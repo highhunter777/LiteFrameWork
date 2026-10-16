@@ -1,4 +1,4 @@
-using System.Threading;
+﻿using System.Threading;
 using Cysharp.Threading.Tasks;
 using LiteFramework;
 using LiteView;
@@ -55,7 +55,7 @@ namespace LiteGame
 
             if (!_camera.HasCamera)
                 Log.Info($"[Camera] 启动场景暂无虚拟相机：{_camera.LastResolveReason}——" +
-                         "切到配了 vcam 的场景后会自动接线（相机配置归场景）", "Camera");
+                         "切到配了 vcam 的场景后会自动接线（相机配置归场景）", LogTag.Camera);
             return UniTask.CompletedTask;
         }
 

@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Threading;
 using LiteFramework;
 using UnityEngine;
@@ -244,7 +244,7 @@ namespace LiteGame
 #if UNITY_EDITOR || DEVELOPMENT_BUILD || LITEFRAMEWORK_DEBUG
                     throw new InvalidOperationException($"UIForm[{Id}]: {msg}");
 #else
-                    Log.Error($"UIForm[{Id}]: {msg}", "UI");
+                    Log.Error($"UIForm[{Id}]: {msg}", LogTag.UI);
 #endif
                 }
                 // 每次展示一枚新袋、登记进本次展示作用域——关闭时随作用域逆序释放，

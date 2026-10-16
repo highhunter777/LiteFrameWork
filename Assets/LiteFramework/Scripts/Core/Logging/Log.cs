@@ -9,18 +9,19 @@ namespace LiteFramework
     {
         public readonly LogLevel Level;
         // 本环境无 Environment.TickCount64(需 .NET Core 3.0+ / Unity 2021+),故用 TickCount。
-        // 它是 int,约 49.7 天回绕——环形缓冲只留最近 32 条且仅用于开发期显示,回绕无实际影响。
+        // 它是有符号 int,约 24.9 天(2^31 毫秒)即变负——环形缓冲只留最近 32 条且仅用于开发期显示,
+        // 回绕/变负无实际影响。
         public readonly long Tick;       // Environment.TickCount(毫秒);显示层格式化,记录期零分配
-        public readonly string Tag;      // 模块名常量(如 "FileSys");null = 无。Message 不含 tag 前缀——HUD 自行格式化
+        public readonly LogTag Tag;      // 词表见 LogTag(单源);None = 无。Message 不含 tag 前缀——HUD 自行格式化
         public readonly string Message;
 
-        public LogEntry(LogLevel level, long tick, string tag, string message)
+        public LogEntry(LogLevel level, long tick, LogTag tag, string message)
         {
             Level = level; Tick = tick; Tag = tag; Message = message;
         }
     }
 
-    public static class Log
+    public static partial class Log
     {
         private const int Capacity = 32;
         private static readonly LogEntry[] _ring = new LogEntry[Capacity];
@@ -67,33 +68,34 @@ namespace LiteFramework
 #endif
         }
 
-        // tag 契约:稳定的模块名常量("FileSys"/"Event");动态信息(实例名/路径)进 message 不进 tag——Recent 只有 32 条,tag 集合必须小而稳定。
-        public static void Info(string message, string tag = null) => Emit(LogLevel.Info, message, tag);
-        public static void Warning(string message, string tag = null) => Emit(LogLevel.Warning, message, tag);
-        public static void Error(string message, string tag = null) => Emit(LogLevel.Error, message, tag);
-        public static void Error(Exception ex, string context = null, string tag = null)
+        // tag 契约:稳定词表见 LogTag 枚举(单源,新增 tag = 加枚举项);动态信息(实例名/路径)进 message
+        // 不进 tag——Recent 只有 32 条,tag 集合必须小而稳定。
+        public static void Info(string message, LogTag tag = LogTag.None) => Emit(LogLevel.Info, message, tag);
+        public static void Warning(string message, LogTag tag = LogTag.None) => Emit(LogLevel.Warning, message, tag);
+        public static void Error(string message, LogTag tag = LogTag.None) => Emit(LogLevel.Error, message, tag);
+        public static void Error(Exception ex, string context = null, LogTag tag = LogTag.None)
             => Emit(LogLevel.Error,
                  ex == null ? "null exception"
                  : context == null ? ex.ToString() : $"{context}\n{ex}",
                  tag);
-        public static void Fatal(string message, string tag = null) => Emit(LogLevel.Fatal, message, tag);
-        public static void Fatal(Exception ex, string context = null, string tag = null)
+        public static void Fatal(string message, LogTag tag = LogTag.None) => Emit(LogLevel.Fatal, message, tag);
+        public static void Fatal(Exception ex, string context = null, LogTag tag = LogTag.None)
             => Emit(LogLevel.Fatal,
                  ex == null ? "null exception"
                  : context == null ? ex.ToString() : $"{context}\n{ex}",
                  tag);
 
-        private static void Emit(LogLevel level, string message, string tag)
+        private static void Emit(LogLevel level, string message, LogTag tag)
         {
             Record(level, tag, message);                 // 缓冲始终全记,与输出解耦
             if (level >= LogLevel.Error) ErrorCount++;   // Fatal 计入
             if (level < _minOutput || _helper == null) return;
-            if (tag != null) message = $"[{tag}] {message}";   // helper 收统一前缀版(接口不变)
+            if (tag != LogTag.None) message = $"[{TagName(tag)}] {message}";   // helper 收统一前缀版(接口不变)
             try { _helper.Log(level, message); }
             catch { /* 输出器故障不反噬业务;catch 内不可再 Log(递归) */ }
         }
 
-        private static void Record(LogLevel level, string tag, string message)
+        private static void Record(LogLevel level, LogTag tag, string message)
         {
             if (_count == Capacity)
             {

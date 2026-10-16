@@ -1,0 +1,36 @@
+{
+  "map_id": 2,
+  "name": "training_ground",
+  "content_digest": "c78441a74f6bc5f9",
+  "ground_y": 0,
+  "half_width": 50,
+  "half_depth": 50,
+  "obstacles": [
+    {"kind": 1, "x": 0, "y": 0, "z": 0, "radius": 0, "half_x": 0.5, "half_z": 2, "height": 2, "surface": 0},
+    {"kind": 1, "x": -6, "y": 0, "z": -6, "radius": 0, "half_x": 1, "half_z": 1, "height": 1, "surface": 0},
+    {"kind": 1, "x": 6, "y": 0, "z": -6, "radius": 0, "half_x": 1, "half_z": 1, "height": 1, "surface": 0},
+    {"kind": 1, "x": -6, "y": 0, "z": 6, "radius": 0, "half_x": 1, "half_z": 1, "height": 1, "surface": 0},
+    {"kind": 1, "x": 6, "y": 0, "z": 6, "radius": 0, "half_x": 1, "half_z": 1, "height": 1, "surface": 0},
+    {"kind": 1, "x": 5, "y": 0, "z": 0, "radius": 0, "half_x": 0.5, "half_z": 0.5, "height": 1, "surface": 0},
+    {"kind": 1, "x": -14, "y": 0, "z": 0, "radius": 0, "half_x": 4, "half_z": 0.5, "height": 1, "surface": 0},
+    {"kind": 1, "x": 14, "y": 0, "z": 0, "radius": 0, "half_x": 4, "half_z": 0.5, "height": 1, "surface": 0}
+  ],
+  "spawns": [
+    {"x": 22, "y": 0, "z": 0},
+    {"x": 20.325, "y": 0, "z": 8.419},
+    {"x": 15.556, "y": 0, "z": 15.556},
+    {"x": 8.419, "y": 0, "z": 20.325},
+    {"x": 0, "y": 0, "z": 22},
+    {"x": -8.419, "y": 0, "z": 20.325},
+    {"x": -15.556, "y": 0, "z": 15.556},
+    {"x": -20.325, "y": 0, "z": 8.419},
+    {"x": -22, "y": 0, "z": 0},
+    {"x": -20.325, "y": 0, "z": -8.419},
+    {"x": -15.556, "y": 0, "z": -15.556},
+    {"x": -8.419, "y": 0, "z": -20.325},
+    {"x": 0, "y": 0, "z": -22},
+    {"x": 8.419, "y": 0, "z": -20.325},
+    {"x": 15.556, "y": 0, "z": -15.556},
+    {"x": 20.325, "y": 0, "z": -8.419}
+  ]
+}

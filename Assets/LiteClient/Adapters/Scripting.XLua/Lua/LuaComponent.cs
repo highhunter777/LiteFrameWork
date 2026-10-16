@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Threading;
 using Cysharp.Threading.Tasks;
@@ -65,7 +65,7 @@ namespace LiteClient
             if (_preloader.Scripts.ContainsKey("LuaPanda"))
                 DoString("require('LuaPanda').start()", "luaPanda");
 #endif
-            Log.Info("LuaEnv 初始化完成（loader=预载缓存，桥已绑定）", "Lua");
+            Log.Info("LuaEnv 初始化完成（loader=预载缓存，桥已绑定）", LogTag.Lua);
         }
 
         /// <summary>
@@ -89,7 +89,7 @@ namespace LiteClient
 
             _env.DoString(_preloader.Scripts["main"], "main.lua");
             _mainExecuted = true;
-            Log.Info("main.lua 执行完成", "Lua");
+            Log.Info("main.lua 执行完成", LogTag.Lua);
         }
 
         /// <summary>执行 Lua 片段并返回结果（诊断/面板/DevReload 编排用；低频入口）。</summary>
@@ -171,9 +171,9 @@ namespace LiteClient
         private void BindLog()
         {
             var logTable = _env.NewTable();
-            logTable.Set("info", new Action<string>(msg => Log.Info(msg, "Lua")));
-            logTable.Set("warning", new Action<string>(msg => Log.Warning(msg, "Lua")));
-            logTable.Set("error", new Action<string>(msg => Log.Error(msg, "Lua")));
+            logTable.Set("info", new Action<string>(msg => Log.Info(msg, LogTag.Lua)));
+            logTable.Set("warning", new Action<string>(msg => Log.Warning(msg, LogTag.Lua)));
+            logTable.Set("error", new Action<string>(msg => Log.Error(msg, LogTag.Lua)));
             _env.Global.Set("log", logTable);
         }
 
@@ -192,7 +192,7 @@ namespace LiteClient
             _env = null;
             _mainExecuted = false;
             _tickEnabled = false;
-            Log.Info("LuaEnv 已释放", "Lua");
+            Log.Info("LuaEnv 已释放", LogTag.Lua);
         }
 
         private void OnDestroy() => Shutdown();

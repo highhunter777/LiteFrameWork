@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Threading;
 using Cysharp.Threading.Tasks;
@@ -121,7 +121,7 @@ namespace LiteGame
             _focus = new UIFocusCoordinator();    // 焦点协调（§6.2——保存/恢复/平台返回；U2-⑦）
             _coverage = new UICoverageResolver(_groups, _focus);   // 遮盖推导（开/关事务序内调用）
             UiInput.EnsureEventSystem();          // 输入底座（幂等；§7 基础设施例外见 UiInput 判据）
-            Log.Info("UI 壳就绪:层级组 Bottom/Window/Top（策略三件默认实现）", "UI");
+            Log.Info("UI 壳就绪:层级组 Bottom/Window/Top（策略三件默认实现）", LogTag.UI);
         }
 
         /// <summary>打开界面（§4.2 统一流程：校验请求 → 获取或创建实例 → 校验初始化 → 复位视觉 →
@@ -154,7 +154,7 @@ namespace LiteGame
                     case UIFormState.Covered:
                     case UIFormState.Paused:
                         // 已打开即幂等返回；不暗中再次 OnShow（更新数据用显式刷新操作，§4.2）
-                        Log.Warning($"UIForm[{formId}] 已打开（{existing.State}）——ShowAsync 幂等返回", "UI");
+                        Log.Warning($"UIForm[{formId}] 已打开（{existing.State}）——ShowAsync 幂等返回", LogTag.UI);
                         return UniTask.FromResult(existing);
                     default:
                         throw new InvalidOperationException(
@@ -320,7 +320,7 @@ namespace LiteGame
             _modals.RecomputeBlocking();                  // 模态射线遮蔽随打开/替换收尾重算（§6.2）
             _focus.OnFormActivated(form);                 // 打开接管：聚焦首个可交互件（转场收尾后——锁期内本就无输入）
 
-            Log.Info($"UIForm[{form.Id}] 打开（{group.Name}@{form.Canvas.sortingOrder}，{mode}）", "UI");
+            Log.Info($"UIForm[{form.Id}] 打开（{group.Name}@{form.Canvas.sortingOrder}，{mode}）", LogTag.UI);
             return form;
         }
 
@@ -335,7 +335,7 @@ namespace LiteGame
             {
                 op.WorkCts.Cancel();                      // 先取消再摘登记：新 Show 不会并入将死操作
                 _openOps.Remove(formId);
-                Log.Info($"UIForm[{formId}] 在途打开被 Close 取消", "UI");
+                Log.Info($"UIForm[{formId}] 在途打开被 Close 取消", LogTag.UI);
                 return;
             }
 
@@ -348,19 +348,19 @@ namespace LiteGame
             bool system = reason is CloseReason.ScopeExit or CloseReason.Reload or CloseReason.Shutdown;
             if (!system && !_pop.CanClose(form))
             {
-                Log.Info($"UIForm[{formId}] 关闭被出栈拦截", "UI");
+                Log.Info($"UIForm[{formId}] 关闭被出栈拦截", LogTag.UI);
                 return;
             }
             if (system)
             {
                 // 系统清理：无离场表现，直接落库（OnHide/订阅清理/展示令牌取消照常）
                 CloseFormInternal(form);
-                Log.Info($"UIForm[{formId}] 系统关闭（{reason}）", "UI");
+                Log.Info($"UIForm[{formId}] 系统关闭（{reason}）", LogTag.UI);
                 return;
             }
             if (!_closing.Add(formId))
             {
-                Log.Warning($"UIForm[{formId}] 关闭中——并发 Close 已忽略", "UI");
+                Log.Warning($"UIForm[{formId}] 关闭中——并发 Close 已忽略", LogTag.UI);
                 return;
             }
 
@@ -369,11 +369,11 @@ namespace LiteGame
                 await _transitions.PlayAsync(TransitionMode.Pop, form, null);
                 if (!form.IsOpen)
                 {
-                    Log.Info($"UIForm[{formId}] 关闭中止（转场期间状态已变为 {form.State}）", "UI");
+                    Log.Info($"UIForm[{formId}] 关闭中止（转场期间状态已变为 {form.State}）", LogTag.UI);
                     return;
                 }
                 CloseFormInternal(form);
-                Log.Info($"UIForm[{formId}] 关闭", "UI");
+                Log.Info($"UIForm[{formId}] 关闭", LogTag.UI);
             }
             finally
             {
@@ -392,7 +392,7 @@ namespace LiteGame
             foreach (var id in ids)
             {
                 try { await CloseAsync(id, reason); }
-                catch (Exception ex) { Log.Error($"CloseAllOpen[{id}]:{ex.Message}", "UI"); }
+                catch (Exception ex) { Log.Error($"CloseAllOpen[{id}]:{ex.Message}", LogTag.UI); }
             }
         }
 
@@ -409,7 +409,7 @@ namespace LiteGame
                 throw new InvalidOperationException(
                     $"UIForm[{formId}] 打开中/加载在途——先 Close/等待完成再 Destroy（§5.2 只淘汰未打开实例）");
             DestroyFormInternal(formId);
-            Log.Info($"UIForm[{formId}] 缓存实例已销毁（租约释放）", "UI");
+            Log.Info($"UIForm[{formId}] 缓存实例已销毁（租约释放）", LogTag.UI);
         }
 
         /// <summary>
@@ -447,7 +447,7 @@ namespace LiteGame
                 UnityEngine.Object.Destroy(_root.gameObject);
 #endif
             }
-            Log.Info("UI Shutdown 完成：在途取消、全关、缓存销毁、租约归零、Root 销毁", "UI");
+            Log.Info("UI Shutdown 完成：在途取消、全关、缓存销毁、租约归零、Root 销毁", LogTag.UI);
         }
 
         /// <summary>
@@ -463,7 +463,7 @@ namespace LiteGame
                 form.NeedsReinit = true;
             }
             _staleLogic.Clear();                              // 待更新标记已被"落空 + 重解析"承接
-            Log.Info($"UI 逻辑已全部落空（env 重建前置）：{_store.Count} 件待重解析", "UI");
+            Log.Info($"UI 逻辑已全部落空（env 重建前置）：{_store.Count} 件待重解析", LogTag.UI);
         }
 
         /// <summary>手动暂停（Active → Paused；恢复走 <see cref="Resume"/>）。</summary>
@@ -633,7 +633,7 @@ namespace LiteGame
             }
             catch (Exception ex)
             {
-                Log.Error($"界面逻辑解析失败[{info.LuaPath}]:{ex.Message}", "UI");
+                Log.Error($"界面逻辑解析失败[{info.LuaPath}]:{ex.Message}", LogTag.UI);
                 return NullUIFormLogic.Instance;
             }
         }
@@ -681,7 +681,7 @@ namespace LiteGame
             if (form.Info.CacheStrategy == UICacheStrategy.DestroyOnClose)
             {
                 DestroyFormInternal(form.Id);
-                Log.Info($"UIForm[{form.Id}] DestroyOnClose——关即销毁", "UI");
+                Log.Info($"UIForm[{form.Id}] DestroyOnClose——关即销毁", LogTag.UI);
                 FormClosed?.Invoke(form.Id);
                 return;
             }
@@ -709,7 +709,7 @@ namespace LiteGame
             for (int i = 0; i < toEvict && i < _evictCandidates.Count; i++)
             {
                 DestroyFormInternal(_evictCandidates[i].id);
-                Log.Info($"UIForm[{_evictCandidates[i].id}] 缓存超出预算 {CacheBudget}——LRU 淘汰（租约释放）", "UI");
+                Log.Info($"UIForm[{_evictCandidates[i].id}] 缓存超出预算 {CacheBudget}——LRU 淘汰（租约释放）", LogTag.UI);
             }
         }
 

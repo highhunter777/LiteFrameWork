@@ -25,5 +25,5 @@
         <var name="obstacles" type="list,mapobstacle"/>
         <var name="spawns" type="list,mapspawn"/>
     </bean>
-    <table name="Tbmap" value="map" input="map.json" mode="map" index="map_id" group="c,s"/>
+    <table name="Tbmap" value="map" input="Map" mode="map" index="map_id" group="c,s"/>   <!-- 每图一文件（Map/*.json，烘焙产物）——多图批次：加图＝加文件，不碰本行 -->
 </module>

@@ -36,16 +36,36 @@ namespace LiteGame
         public const int JoinTimeoutMs = 10_000;
 
         private readonly IAccountSessionFactory _accounts;
+        private readonly ISceneService _scenes;            // 对局场景组加载（可空 = 测试装配）
         private readonly FeedbackService _feedback;        // 进房等待场（窗口⑤——不定态；可空 = 测试装配）
 
         /// <summary>本阶段在途的会话（<see cref="OnUpdate"/> 据它驱动传输泵；未连接时为 null）。</summary>
         private BattleClient _pending;
 
-        public ProcedureMatch(IAccountSessionFactory accounts, FeedbackService feedback = null,
+        public ProcedureMatch(IAccountSessionFactory accounts, ISceneService scenes = null, FeedbackService feedback = null,
             CancellationToken rootToken = default) : base(rootToken)
         {
             _accounts = accounts ?? throw new ArgumentNullException(nameof(accounts));
+            _scenes = scenes;
             _feedback = feedback;
+        }
+
+        /// <summary>对局场景组加载（JoinAck 后、移交 Battle 前，**本阶段职责**——《地图数据专项设计》加载链修订）：
+        /// Rig ＋ 本局地图（`BattleScenes` 单源）；必须在 Battle 之前完成——Battle 开场有相机硬门（Rig 的 vcam）
+        /// 且立即取视图件。进度进"进房等待场"窗口（离散步进：场景服务只给"最近一次加载"进度，细粒度轮询归加载页细化批）。
+        /// 未注入场景服务（测试装配）= 跳过；失败向上抛（Match 的失败路径统一收口进 Error）。</summary>
+        private async UniTask LoadBattleScenesAsync(bool testRoom, CancellationToken ct)
+        {
+            if (_scenes == null) return;
+            string map = BattleScenes.MapFor(testRoom);
+            LaunchLoading.Report("正在加载对局场景…", 0.05f);
+            if (!_scenes.IsLoaded(BattleScenes.Rig))
+                await _scenes.LoadAdditiveAsync(BattleScenes.Rig, ct);
+            LaunchLoading.Report("正在加载地图…", 0.5f);
+            if (!_scenes.IsLoaded(map))
+                await _scenes.LoadAdditiveAsync(map, ct);
+            LaunchLoading.Report("场景就绪", 0.95f);
+            UnityEngine.Debug.Log($"[Match] 对局场景组已加载:Rig={BattleScenes.Rig} Map={map}（叠加数 {_scenes.AdditiveCount}）");
         }
 
         /// <summary>
@@ -102,6 +122,7 @@ namespace LiteGame
                 UnityEngine.Debug.Log("[Battle] joined (JoinAck)");
 
                 _pending = null;                          // 泵交棒给 BattleContext.Tick（不双泵）
+                await LoadBattleScenesAsync(testRoom, ct); // 场景组在本阶段就位（Battle 相机硬门依赖它）
                 LaunchLoading.End();                      // 收场后移交（遮罩不能挡对局）
                 // 移交所有权：AccountSession 随迁移进 Battle（离场收尾在 Battle）。
                 m.Request(ProcedureId.Battle, new ProcedureArgs(accountSession: account));
@@ -174,7 +195,7 @@ namespace LiteGame
                         "本地服务器形态缺地图提供者（装配根注入 IMapProvider——D22：无回退地图）");
                 return LocalServerTransport.ForRoom(testRoom ? TestRoomId : DefaultRoomId, players, rules,
                     gameplayDigestBase?.Invoke() ?? 0u,   // 房间身份与客户端同源（同进程同一份装载——批 E）
-                    maps.GetMap());                       // 判定图与客户端逐位同图（出生点/碰撞/遮挡——批4）
+                    maps.GetMap(BattleScenes.MapIdFor(testRoom)));                       // 判定图与客户端逐位同图（出生点/碰撞/遮挡——批4）
             }
 #endif
             return new LiteNet.Transport.SecureEnvelopeClientTransport(

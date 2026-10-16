@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using Cysharp.Threading.Tasks;
 using LiteFramework;
@@ -100,7 +100,7 @@ namespace LiteGame
 
             if (incoming != null && ReferenceEquals(incoming, _current.Incoming))
             {
-                Log.Warning($"转场中重复请求同一界面[{incoming.Id}]——忽略", "UI");
+                Log.Warning($"转场中重复请求同一界面[{incoming.Id}]——忽略", LogTag.UI);
                 ctx.Skipped = true;
                 ctx.Tcs.TrySetResult(OutcomeOf(ctx));
                 return ctx.Tcs.Task;
@@ -109,12 +109,12 @@ namespace LiteGame
             if (_queued == null)
             {
                 _queued = ctx;
-                Log.Info($"转场进行中——请求已排队(mode={mode})", "UI");
+                Log.Info($"转场进行中——请求已排队(mode={mode})", LogTag.UI);
             }
             else
             {
                 _dropped++;
-                Log.Warning($"转场队列已满——请求丢弃(mode={mode}，累计 {_dropped})", "UI");
+                Log.Warning($"转场队列已满——请求丢弃(mode={mode}，累计 {_dropped})", LogTag.UI);
                 ctx.Skipped = true;
                 ctx.Tcs.TrySetResult(OutcomeOf(ctx));
             }
@@ -142,14 +142,14 @@ namespace LiteGame
                 if (inTransition && !c.TimedOut && !c.Done && IsOwnerGone(c))
                 {
                     c.OwnerGone = true;
-                    Log.Warning($"转场期间界面已回收——取消策略工作并收尾(mode={c.Mode})", "UI");
+                    Log.Warning($"转场期间界面已回收——取消策略工作并收尾(mode={c.Mode})", LogTag.UI);
                     try { c.Cts?.Cancel(); } catch (ObjectDisposedException) { }
                     _machine.Request(TransitionId.Idle);
                 }
                 else if (inTransition && !c.TimedOut && !c.Done && _machine.StageTime > c.MaxDuration)
                 {
                     c.TimedOut = true;
-                    Log.Error($"转场超时({c.MaxDuration:0.##}s)——取消策略工作并强制收尾(mode={c.Mode})", "UI");
+                    Log.Error($"转场超时({c.MaxDuration:0.##}s)——取消策略工作并强制收尾(mode={c.Mode})", LogTag.UI);
                     try { c.Cts?.Cancel(); } catch (ObjectDisposedException) { }   // 先停 Tween/异步工作（§6.3），再收尾
                     _machine.Request(TransitionId.Idle);
                 }

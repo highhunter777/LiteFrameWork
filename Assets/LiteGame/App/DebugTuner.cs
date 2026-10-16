@@ -35,6 +35,16 @@ namespace LiteGame
                  "弱网、断线重连真实性、多房间隔离与真实多人交互仍须在真服务器上验。")]
         public bool UseLocalServer;
 
+        [Header("开发落点（直入 / 开发页）")]
+        [Tooltip("直入训练场：启动即进测试模式对局（本地服 Room-Test），不加载登录页；退出按 UI（ESC→设置页→退出）回大厅页。**优先级高于「直入工作台」**。")]
+        public bool DirectToTraining;
+
+        [Tooltip("直入工作台：启动即进入工作台（加性加载工作台场景），不加载登录页；退出按 UI（ESC→设置页→退出）回大厅页。与本地服务器开关同族开发开关；工作台场景默认开、Boot 默认关。")]
+        public bool WorkbenchMode;
+
+        [Tooltip("开发页入口：编辑器在屏幕左上显示「开发」按钮（测试模式 / UI 工作台 / 关闭）——大厅页可随时跳转。")]
+        public bool DevMenu = true;
+
         [Header("测试模式启动配置（进房时快照进运行时；局内可调项在 GM 面板）")]
         [Tooltip("全房免死：跨死线 Hp 保底 1、不写 Kill/Death——目标不消失，命中/受击反馈保留")]
         public bool NoDeath = true;
@@ -63,6 +73,25 @@ namespace LiteGame
         /// 此处的静态是调试开关、随 #if 整段消失）。
         /// </remarks>
         public static bool UseLocalServerEnabled;
+
+        /// <summary>工作台模式开关的全局读点（流程层不认识 DebugTuner；见 <see cref="UseLocalServerEnabled"/> 同款理由）。</summary>
+        public static bool WorkbenchModeEnabled;
+
+        /// <summary>直入训练场开关的全局读点（同 <see cref="WorkbenchModeEnabled"/> 理由）。</summary>
+        public static bool DirectToTrainingEnabled;
+
+        /// <summary>工作台**面板内容** dev 预制体路径（单源；工作台场景内以预制体实例承载，构建器与守卫同引用）。</summary>
+        public const string WorkbenchPrefabPath = "Assets/LiteGame/DevHUD/WorkbenchUI.prefab";
+
+        /// <summary>工作台**场景**路径（单源；工作台模式加性加载它——场景文件为 dev 件，不在收集组，
+        /// 故加载仅编辑器形态）。</summary>
+        public const string WorkbenchScenePath = "Assets/Scenes/UiWorkbench.unity";
+
+        /// <summary>开发页（dev 覆盖件）预制体路径（单源；构建器与守卫同引用）。</summary>
+        public const string DevMenuPrefabPath = "Assets/LiteGame/DevHUD/DevMenuUI.prefab";
+
+        private bool _workbenchLoaded;
+        private bool _devMenuSpawned;
 
         /// <summary>把**本组件的启动配置**快照进运行时并置位测试模式（GM 面板"进入测试模式"/主菜单 F10 共用）；
         /// 场景未挂 DebugTuner 时套默认口径（<see cref="TestModeRuntime.ApplyDefaults"/>）。
@@ -106,12 +135,62 @@ namespace LiteGame
         private void Update()
         {
             UseLocalServerEnabled = UseLocalServer;      // 开关全局同步（见上面静态字段的说明）
+            WorkbenchModeEnabled = WorkbenchMode;
+            DirectToTrainingEnabled = DirectToTraining;
+            EnsureWorkbenchScene();                        // 工作台模式：加载工作台场景（一次性）
+            EnsureDevMenu();                               // 开发页：开出「开发」入口（一次性）
 
             if (_world == null || !SyncEnabled) return;    // 关同步：滑杆停管，时钟归程序直控
             _world.TimeScale = WorldTimeScale;
             _world.Paused   = WorldPaused;
             _ui.Paused      = UiPaused;
             _events.StrictMode = StrictMode;
+        }
+
+        /// <summary>工作台模式：**加性加载工作台场景**（`WorkbenchScenePath`）——开关勾上即"进入工作台"，
+        /// 与"直接 Play 工作台场景"同一个场景资产（场景内以预制体实例承载面板，内容单源）。
+        /// 幂等：只加载一次；已加载（含"直接 Play 形态"下场景就是当前场景）则跳过。
+        /// 形态限制：工作台场景是 dev 件、不在收集组，故加载**仅编辑器形态**（开发版 Player 只享受"跳过对局场景组"）。</summary>
+        private void EnsureWorkbenchScene()
+        {
+            if (!WorkbenchMode || _workbenchLoaded) return;
+            _workbenchLoaded = true;
+            if (UnityEngine.SceneManagement.SceneManager.GetSceneByPath(WorkbenchScenePath).isLoaded) return;   // 直接 Play 形态
+#if UNITY_EDITOR
+            if (UnityEditor.AssetDatabase.LoadAssetAtPath<UnityEditor.SceneAsset>(WorkbenchScenePath) == null)
+            {
+                Log.Warning($"工作台模式：工作台场景缺失——{WorkbenchScenePath}", LogTag.Workbench);
+                return;
+            }
+            var scene = UnityEditor.SceneManagement.EditorSceneManager.LoadSceneInPlayMode(
+                WorkbenchScenePath, new UnityEngine.SceneManagement.LoadSceneParameters(UnityEngine.SceneManagement.LoadSceneMode.Additive));
+            Log.Info(scene.IsValid()
+                ? $"工作台模式：工作台场景已加性加载（{WorkbenchScenePath}）"
+                : $"工作台模式：工作台场景加载失败（{WorkbenchScenePath}）", LogTag.Workbench);
+#else
+            Log.Warning("工作台模式：工作台场景仅编辑器形态可加载（dev 场景不进收集组）——本形态只跳过对局场景组", LogTag.Workbench);
+#endif
+        }
+
+        /// <summary>开发页（dev 覆盖件）：开出「开发」入口——测试模式（训练场）/ UI 工作台 / 关闭，
+        /// 大厅页可随时跳（《UI工作台设计》§5 入口矩阵）。幂等：只建一次；dev 预制体不在收集组 ⇒ 仅编辑器形态。</summary>
+        private void EnsureDevMenu()
+        {
+            if (!DevMenu || _devMenuSpawned) return;
+            _devMenuSpawned = true;
+#if UNITY_EDITOR
+            var prefab = UnityEditor.AssetDatabase.LoadAssetAtPath<UnityEngine.GameObject>(DevMenuPrefabPath);
+            if (prefab == null)
+            {
+                Log.Warning($"开发页：预制体缺失——{DevMenuPrefabPath}（重跑 AgentScripts/BuildWorkbenchPanel.cs）", LogTag.Workbench);
+                return;
+            }
+            var instance = UnityEngine.Object.Instantiate(prefab);
+            instance.name = "DevMenuUI";
+            Log.Info($"开发页：入口已开出（{DevMenuPrefabPath}）", LogTag.Workbench);
+#else
+            Log.Warning("开发页：仅编辑器形态可用（dev 预制体不进收集组）", LogTag.Workbench);
+#endif
         }
     }
 }

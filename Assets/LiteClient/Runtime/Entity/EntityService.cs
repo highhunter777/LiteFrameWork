@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Threading;
 using Cysharp.Threading.Tasks;
@@ -41,7 +41,7 @@ namespace LiteClient
 #if UNITY_EDITOR || DEVELOPMENT_BUILD || LITEFRAMEWORK_DEBUG
                     throw new InvalidOperationException($"Entity[{Id}]: {msg}");
 #else
-                    Log.Error($"Entity[{Id}]: {msg}", "Entity");
+                    Log.Error($"Entity[{Id}]: {msg}", LogTag.Entity);
 #endif
                 }
                 return _subs ??= new SubscriptionBag();
@@ -133,7 +133,7 @@ namespace LiteClient
             _pool.Clear();                                                     // 排空驻留实例（池根随之销毁）
 
             _lifetime.Dispose();
-            Log.Info($"实体壳已关闭（回收 {handles.Count} 个活体，池已排空）", "Entity");
+            Log.Info($"实体壳已关闭（回收 {handles.Count} 个活体，池已排空）", LogTag.Entity);
         }
 
         /// <summary>宿主关闭级联令牌（在途加载链接它——关闭即取消，不靠等待）。</summary>
@@ -172,7 +172,7 @@ namespace LiteClient
             {
                 var pooledHandle = new EntityHandle(handleId, location, pooled) { Scope = NewEntityScope(handleId) };
                 _active[handleId] = pooledHandle;
-                Log.Info($"实体[{handleId}] 复用（{location}，池中 {_pool.PooledTotal}）", "Entity");
+                Log.Info($"实体[{handleId}] 复用（{location}，池中 {_pool.PooledTotal}）", LogTag.Entity);
                 return pooledHandle;
             }
 
@@ -187,13 +187,13 @@ namespace LiteClient
                 {
                     // 加载完成时壳已关闭：loader 可能不观察取消令牌——按竞态同语义取消显示，
                     // 不实例化（否则幽灵实体复活在已关闭的壳上，同 VfxService 收尾复查口径）
-                    Log.Info($"实体[{handleId}] 加载完成时壳已关闭——取消显示", "Entity");
+                    Log.Info($"实体[{handleId}] 加载完成时壳已关闭——取消显示", LogTag.Entity);
                     return null;
                 }
                 if (_releaseOnLoad.Remove(handleId))
                 {
                                     // 加载期间被 Hide（竞态表命中）——不实例化不显示，直接取消
-                    Log.Info($"实体[{handleId}] 加载期间已被 Hide——取消显示（竞态表）", "Entity");
+                    Log.Info($"实体[{handleId}] 加载期间已被 Hide——取消显示（竞态表）", LogTag.Entity);
                     return null;
                 }
                 if (HostScope != null && HostScope.IsDisposed)
@@ -206,7 +206,7 @@ namespace LiteClient
                 var go = _pool.Get(location, () => UnityEngine.Object.Instantiate(prefab, parent), parent);
                 var handle = new EntityHandle(handleId, location, go) { Scope = NewEntityScope(handleId) };
                 _active[handleId] = handle;
-                Log.Info($"实体[{handleId}] 显示（{location}，池中 {_pool.PooledTotal}）", "Entity");
+                Log.Info($"实体[{handleId}] 显示（{location}，池中 {_pool.PooledTotal}）", LogTag.Entity);
                 return handle;
             }
             finally
@@ -261,7 +261,7 @@ namespace LiteClient
             if (!_attachments.TryGetValue(parentHandle, out var list))
                 _attachments[parentHandle] = list = new List<int>(4);
             list.Add(childHandle);
-            Log.Info($"实体[{childHandle}] 挂接至 [{parentHandle}]{(anchor != null ? "@" + anchor : "")}", "Entity");
+            Log.Info($"实体[{childHandle}] 挂接至 [{parentHandle}]{(anchor != null ? "@" + anchor : "")}", LogTag.Entity);
         }
 
         /// <summary>脱离挂接（幂等）：脱离父级、保留世界位姿、保持显示——回收另走 Hide。</summary>
@@ -271,7 +271,7 @@ namespace LiteClient
             if (_attachments.TryGetValue(parent, out var list)) list.Remove(childHandle);
             if (_active.TryGetValue(childHandle, out var child))
                 child.GameObject.transform.SetParent(null, true);          // 世界位姿保留
-            Log.Info($"实体[{childHandle}] 已脱离挂接", "Entity");
+            Log.Info($"实体[{childHandle}] 已脱离挂接", LogTag.Entity);
         }
 
         /// <summary>隐藏实体：连锁收子件 → 脱离父容器 → 回收。加载在途 → 竞态表；未知句柄 = 幂等 no-op + 计数。</summary>
@@ -319,7 +319,7 @@ namespace LiteClient
             handle.Scope = null;
             _pool.Release(handle.GameObject);
             _active.Remove(handleId);
-            Log.Info($"实体[{handleId}] 回收（连锁含子件）", "Entity");
+            Log.Info($"实体[{handleId}] 回收（连锁含子件）", LogTag.Entity);
         }
 
         public string StatsName => "Entity";

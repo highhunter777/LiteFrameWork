@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Threading;
 using Cysharp.Threading.Tasks;
@@ -59,7 +59,7 @@ namespace LiteGame
             // 会二次引导并覆盖容器/静态设施——静默销毁重复件，保留首个引导。
             if (s_booted)
             {
-                Log.Warning($"检测到重复 GameEntry（场景 {gameObject.scene.name} 误含引导件）——已销毁，保留首个引导", "GameEntry");
+                Log.Warning($"检测到重复 GameEntry（场景 {gameObject.scene.name} 误含引导件）——已销毁，保留首个引导", LogTag.GameEntry);
                 Destroy(gameObject);
                 return;
             }
@@ -102,11 +102,11 @@ namespace LiteGame
             catch (OperationCanceledException)
             {
                 // 引导取消：进入确定空闲态（Host 已回滚），不起流程
-                Log.Warning("GameEntry 引导被取消（Host 已回滚到确定状态）", "GameEntry");
+                Log.Warning("GameEntry 引导被取消（Host 已回滚到确定状态）", LogTag.GameEntry);
             }
             catch (Exception ex)
             {
-                Log.Error($"GameEntry 引导失败：{ex.Message}", "GameEntry");
+                Log.Error($"GameEntry 引导失败：{ex.Message}", LogTag.GameEntry);
                 ProcedureError.ShowBootstrapError(ex.Message);
             }
         }
@@ -119,7 +119,7 @@ namespace LiteGame
             TakeContainer();                                 // 断言已装配
             if (_fsm == null)
             {
-                Log.Error("宿主初始化未完成——流程机缺失（进入 Error 态）", "GameEntry");
+                Log.Error("宿主初始化未完成——流程机缺失（进入 Error 态）", LogTag.GameEntry);
                 ProcedureError.ShowBootstrapError("host bootstrap incomplete");
                 return;
             }

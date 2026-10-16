@@ -18,6 +18,8 @@
 
 
 
+> **2026-10-16 工作台侧两件**：①**prefab 改动回写**（`LiteGame/Editor/UiTools/WriteBack/`——选中 prefab 实例枚举"实例 vs 源 prefab"逐属性差异〔来源两档：Unity 显式记录 / 数值差异〕，勾选后直写资产、Undo 覆盖、Play 内可用；结构面〔新增组件/子对象〕与场景对象引用显式拒绝；见 [UI工作台设计](UI工作台设计.md) §2 与操作手册 [08-UI工作台](../../项目说明/08-UI工作台.md)）。②工作台工具条（场景内 dev 件，非本专项的工具窗口面）。
+
 > **2026-10-10 代码现状订正**：原清单中的 `WidgetPrefabBuilder`（1477 行）与 `UICollectCheckMenu`、`WidgetDemoMenu` 已随提交 `45aa839`「输入服务余部与场景资源杂项（接管并行线）」**从仓库删除**，不再是"已存在"工具。`Assets/ShareResource/UI/Widgets/` 下 27 件 `Tmp_*` 模板 prefab 作为已产出资产保留；结构/行为断言改由 [VisualConstructionScanner](../../../../Assets/LiteGame/Editor/VisualConstructionScanner.cs) 与 `Assets/Tests/EditMode/VisualSingleSourceEditModeTests.cs` 承担。业务 UI 页面按《UI-U2》裁决走编辑器手工制作，不依赖已删除的确定性构建器。
 
 工具服务标准资产和受控运行时：

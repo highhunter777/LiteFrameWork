@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.IO;
@@ -262,7 +262,7 @@ namespace LiteFramework
             EnsureInit();
             bool ok = TryReadJsonCore<T>(relPath, out var v, out var detail);
             if (!ok && detail != "not_found")
-                Log.Error($"JSON 损坏 {relPath}({detail})——按 default 继续;版本迁移请用 TryReadJson", "FileSys");
+                Log.Error($"JSON 损坏 {relPath}({detail})——按 default 继续;版本迁移请用 TryReadJson", LogTag.FileSys);
             return v;
         }
 
@@ -337,7 +337,7 @@ namespace LiteFramework
             lock (s_inFlight)
             {
                 if (!s_inFlight.Add(path))
-                    Log.Error($"同一文件并发异步写 \"{relPath}\"——await 串行同一文件,否则 .tmp 冲突静默损坏", "FileSys");
+                    Log.Error($"同一文件并发异步写 \"{relPath}\"——await 串行同一文件,否则 .tmp 冲突静默损坏", LogTag.FileSys);
             }
             try
             {
@@ -388,7 +388,7 @@ namespace LiteFramework
             catch (OperationCanceledException) { throw; }
             catch (Exception ex)
             {
-                Log.Error($"JSON 损坏 {relPath}({ex.Message})——按 default 继续", "FileSys");
+                Log.Error($"JSON 损坏 {relPath}({ex.Message})——按 default 继续", LogTag.FileSys);
                 return default;
             }
         }

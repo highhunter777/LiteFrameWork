@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using Cysharp.Threading.Tasks;
 using LiteFramework;
@@ -229,19 +229,19 @@ namespace LiteGame
             {
                 if (s_nav == null || s_uiService == null)
                 {
-                    Log.Error($"Bridge.ui.{method}: 装配缺失（BindNavigation/BindUIService 未调）", "UI");
+                    Log.Error($"Bridge.ui.{method}: 装配缺失（BindNavigation/BindUIService 未调）", LogTag.UI);
                     id = -1;
                     return false;
                 }
                 id = Data.ResolveUIFormId(pagePath);
-                if (id < 0) Log.Error($"Bridge.ui.{method}: 未登记的 lua_path '{pagePath}'（核对 tbuiform）", "UI");
+                if (id < 0) Log.Error($"Bridge.ui.{method}: 未登记的 lua_path '{pagePath}'（核对 tbuiform）", LogTag.UI);
                 return id >= 0;
             }
 
             private static void Observe(UniTask<UIForm>.Awaiter aw, string method, string pagePath)
             {
                 try { aw.GetResult(); }
-                catch (Exception ex) { Log.Error($"Bridge.ui.{method}[{pagePath}]:{ex.Message}", "UI"); }
+                catch (Exception ex) { Log.Error($"Bridge.ui.{method}[{pagePath}]:{ex.Message}", LogTag.UI); }
             }
         }
 

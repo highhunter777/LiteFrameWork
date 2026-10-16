@@ -174,15 +174,16 @@ namespace LiteGame
                 (ProcedureId.Preload, new ProcedurePreload(content, config, lua, filler,
                     context.Require<EventCenter>(), context.Require<UIService>(), () => ListLuaAssetPaths(content), rootToken,
                     feedback)),
-                (ProcedureId.Main, new ProcedureMain(_scenes, rootToken, pageFlow, metaEntry)),
-                (ProcedureId.Match, new ProcedureMatch(context.Require<IAccountSessionFactory>(), feedback, rootToken)),
+                (ProcedureId.Main, new ProcedureMain(rootToken, pageFlow, metaEntry)),
+                (ProcedureId.Match, new ProcedureMatch(context.Require<IAccountSessionFactory>(), _scenes, feedback, rootToken)),
                 (ProcedureId.Battle, new ProcedureBattle(content, context.Require<IInputService>(),
                     context.Require<ICameraService>(), context.Require<VfxService>(),
                     rootToken, requireCamera: true, worldClock: context.Require<IWorldClock>(),
                     matchSessions: context.Require<IMatchSessionFactory>(),
                     audio: context.Require<AudioService>(), commands: context.Require<CommandCenter>(),
                     pages: pageFlow,
-                    crosshairFeel: new CrosshairFeelBook(config))),   // 准心手感（tbcrosshair 惰性投影——装载后首用建）
+                    crosshairFeel: new CrosshairFeelBook(config),     // 准心手感（tbcrosshair 惰性投影——装载后首用建）
+                    scenes: _scenes)),                                 // 离场卸载对局场景组（加载在 Match）
                 (ProcedureId.Error, new ProcedureError(rootToken)));
         }
 

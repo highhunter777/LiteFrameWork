@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
@@ -182,7 +182,7 @@ namespace LiteFramework
             if (_queue.Count >= MaxQueued)
             {
                 _queuedDropped++;
-                Log.Error($"命令队列溢出丢弃（MaxQueued={MaxQueued}）: {typeof(TCommand).Name}", "Command");
+                Log.Error($"命令队列溢出丢弃（MaxQueued={MaxQueued}）: {typeof(TCommand).Name}", LogTag.Command);
                 RecycleCommand(command);                    // 丢弃同样回收池化命令
                 return;
             }
@@ -273,7 +273,7 @@ namespace LiteFramework
             _undo.RemoveAt(_undo.Count - 1);
             if (!_undoAdapters.TryGetValue(entry.CommandType, out var undo))
             {
-                Log.Error($"撤销失败：{entry.CommandType.Name} 处理器已注销", "Command");
+                Log.Error($"撤销失败：{entry.CommandType.Name} 处理器已注销", LogTag.Command);
                 RecordAudit(entry.CommandType, false, CommandReject.HandlerFault, "撤销时处理器已注销");
                 return false;                                // 前进语义：该条已弹出不回塞
             }
@@ -301,7 +301,7 @@ namespace LiteFramework
             {
                 if (!_adapters.TryGetValue(entry.CommandType, out var send))
                 {
-                    Log.Error($"重做失败：{entry.CommandType.Name} 处理器已注销", "Command");
+                    Log.Error($"重做失败：{entry.CommandType.Name} 处理器已注销", LogTag.Command);
                     return false;
                 }
                 return send(entry.Command).Ok;              // Send 驱动审计/统计/撤销入栈全套

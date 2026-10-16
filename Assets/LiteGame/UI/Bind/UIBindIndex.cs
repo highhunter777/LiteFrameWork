@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using LiteFramework;
 using LiteGame.UI;
@@ -264,7 +264,7 @@ namespace LiteGame
             var toast = Toast.Instance;
             if (toast == null)
             {
-                Log.Warning($"ShowToast 无 Toast 实例（场景未挂 ToastHost）:{text}", "UI");
+                Log.Warning($"ShowToast 无 Toast 实例（场景未挂 ToastHost）:{text}", LogTag.UI);
                 return;
             }
             toast.Show(text);

@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Threading;
 using Cysharp.Threading.Tasks;
@@ -161,7 +161,7 @@ namespace LiteGame
             }
             catch (Exception ex) when (!(ex is OperationCanceledException))
             {
-                Log.Warning($"实体 prefab 缺失，回退程序化灰盒:{EntityPrefab}（{ex.Message}）", "Battle");
+                Log.Warning($"实体 prefab 缺失，回退程序化灰盒:{EntityPrefab}（{ex.Message}）", LogTag.Battle);
                 _prefabLease = null;
                 _prefab = GreyboxEntity.Make();
                 _viewScope.Register(new DelegatedDisposable(() =>
@@ -189,7 +189,7 @@ namespace LiteGame
             }
             catch (Exception ex) when (!(ex is OperationCanceledException))
             {
-                Log.Warning($"激光束 prefab 缺失/加载失败，瞄准激光降级:{LaserSightPrefab}（{ex.Message}）", "Battle");
+                Log.Warning($"激光束 prefab 缺失/加载失败，瞄准激光降级:{LaserSightPrefab}（{ex.Message}）", LogTag.Battle);
                 _laserLease = null;
                 _laserBeam = null;
             }
@@ -214,7 +214,7 @@ namespace LiteGame
             }
             catch (Exception ex) when (!(ex is OperationCanceledException))
             {
-                Log.Warning($"[Battle] HUD prefab 缺失/加载失败，HUD 降级:{BattleHudView.PrefabLocation}（{ex.Message}）", "Battle");
+                Log.Warning($"[Battle] HUD prefab 缺失/加载失败，HUD 降级:{BattleHudView.PrefabLocation}（{ex.Message}）", LogTag.Battle);
                 _hudLease = null;
                 _hudInstance = null;
                 _hudView = null;
@@ -237,7 +237,7 @@ namespace LiteGame
             }
             catch (Exception ex) when (!(ex is OperationCanceledException))
             {
-                Log.Warning($"出生保护壳缺失/加载失败，保护特效降级:{ProtectionShellPrefab}（{ex.Message}）", "Battle");
+                Log.Warning($"出生保护壳缺失/加载失败，保护特效降级:{ProtectionShellPrefab}（{ex.Message}）", LogTag.Battle);
                 _protectionShellLease = null;
                 _protectionShell = null;
             }
@@ -254,7 +254,7 @@ namespace LiteGame
             }
             catch (Exception ex) when (!(ex is OperationCanceledException))
             {
-                Log.Warning($"伤害数字底件缺失/加载失败，飘字降级:{DamageNumberPrefab}（{ex.Message}）", "Battle");
+                Log.Warning($"伤害数字底件缺失/加载失败，飘字降级:{DamageNumberPrefab}（{ex.Message}）", LogTag.Battle);
                 _damageNumberLease = null;
             }
         }
@@ -284,7 +284,7 @@ namespace LiteGame
                 }
                 catch (Exception ex) when (!(ex is OperationCanceledException))
                 {
-                    Log.Warning($"伤害数字材质缺失/加载失败，飘字退回默认材质:{locations[i]}（{ex.Message}）", "Battle");
+                    Log.Warning($"伤害数字材质缺失/加载失败，飘字退回默认材质:{locations[i]}（{ex.Message}）", LogTag.Battle);
                     return;                                  // 整组不注入（已取件租约已登记，随 _viewScope 归还）
                 }
             }
@@ -306,7 +306,7 @@ namespace LiteGame
             }
             catch (Exception ex) when (!(ex is OperationCanceledException))
             {
-                Log.Warning($"片段清单缺失/加载失败，动画回退控制器便利源:{ClipManifestPath}（{ex.Message}）", "Battle");
+                Log.Warning($"片段清单缺失/加载失败，动画回退控制器便利源:{ClipManifestPath}（{ex.Message}）", LogTag.Battle);
                 _clipManifestLease = null;
             }
         }
@@ -331,7 +331,7 @@ namespace LiteGame
                 }
                 catch (Exception ex) when (!(ex is OperationCanceledException))
                 {
-                    Log.Warning($"音效缺失/加载失败，该音降级:{location}（{ex.Message}）", "Battle");
+                    Log.Warning($"音效缺失/加载失败，该音降级:{location}（{ex.Message}）", LogTag.Battle);
                 }
             }
         }
@@ -393,7 +393,7 @@ namespace LiteGame
                 aimOf: () => _aimPointOf?.Invoke(),
                 originOf: ReadLocalOrigin,
                 dispatch: DispatchTeleport));                       // 传送命令化：撤销/重做随命令中心可用
-            Log.Info($"view-attached prefab={EntityPrefab}", "Battle");
+            Log.Info($"view-attached prefab={EntityPrefab}", LogTag.Battle);
         }
 
         /// <summary>每帧驱动视图消费者（<see cref="BattleContext.Tick"/> 之后调用——权威已应用）：移动动画 →
@@ -456,7 +456,7 @@ namespace LiteGame
                 ccs.EnsureCamera();                                // 视图未建时 Follow 还没跑过——先解析 vcam
                 Camera renderCamera = ccs.TryGetRenderCamera();
                 if (renderCamera != null) source.SetAimCamera(renderCamera);
-                else Log.Warning("对局渲染相机未解析到——瞄准/移动继续用设备源现持相机", "Battle");
+                else Log.Warning("对局渲染相机未解析到——瞄准/移动继续用设备源现持相机", LogTag.Battle);
             }
 
             _context.AttachInput(_input);
@@ -567,7 +567,7 @@ namespace LiteGame
         {
             if (_hudView == null)
             {
-                Log.Warning("HUD prefab 缺失/未实例化——准心静默降级", "Battle");
+                Log.Warning("HUD prefab 缺失/未实例化——准心静默降级", LogTag.Battle);
                 return;
             }
 
@@ -576,7 +576,7 @@ namespace LiteGame
                 ads: _hudView.AdsForm,
                 screenPosition: ScreenPositionOf(_input),           // 鼠标位来自设备源适配器（R12）
                 feel: _crosshairFeel);                             // 手感投影（tbcrosshair；null = 测试装配回落 Default）
-            Log.Info("crosshair-attached", "Battle");
+            Log.Info("crosshair-attached", LogTag.Battle);
         }
 
         /// <summary>
@@ -588,7 +588,7 @@ namespace LiteGame
         {
             if (_hudView == null)
             {
-                Log.Warning("HUD prefab 缺失/未实例化——HUD 面板静默降级", "Battle");
+                Log.Warning("HUD prefab 缺失/未实例化——HUD 面板静默降级", LogTag.Battle);
                 return;
             }
 
@@ -597,7 +597,7 @@ namespace LiteGame
                 _hudView.ReloadLabel);                              // 缺标签件=驱动内静默降级（不显示换弹态）
             if (_hudView.SettingsButton != null && _menuClick != null)
                 _hudView.SettingsButton.onClick.AddListener(_menuClick);   // 对局菜单钮 → 流程层开设置页（退场链）
-            Log.Info("hud-attached", "Battle");
+            Log.Info("hud-attached", LogTag.Battle);
         }
 
         /// <summary>
@@ -611,14 +611,14 @@ namespace LiteGame
             if (_hudView == null) return;                  // HUD 已整体降级（AttachHud/准心处已警告）
             if (!_hudView.HasRankboard)
             {
-                Log.Warning("HUD prefab 排行榜格不齐（名字/击杀/高亮）×8——排行榜静默降级", "Battle");
+                Log.Warning("HUD prefab 排行榜格不齐（名字/击杀/高亮）×8——排行榜静默降级", LogTag.Battle);
                 return;
             }
             _rankboard = new BattleRankboardDriver(_context.Sim.State,
                 () => _view != null ? _view.LocalEntityId : 0L,
                 _hudView.RankNames, _hudView.RankKills, _hudView.RankHighlights,
                 _hudView.TeamScoreText);                   // 团队比分预留节点（缺 = 驱动内跳过）
-            Log.Info("rankboard-attached", "Battle");
+            Log.Info("rankboard-attached", LogTag.Battle);
         }
 
         /// <summary>
@@ -631,7 +631,7 @@ namespace LiteGame
             if (_hudView == null) return;                  // HUD 已整体降级（AttachHud/准心处已警告）
             if (!_hudView.HasKillFeed)
             {
-                Log.Warning("HUD prefab 击杀提示行件不齐（行四组）×4——击杀提示静默降级", "Battle");
+                Log.Warning("HUD prefab 击杀提示行件不齐（行四组）×4——击杀提示静默降级", LogTag.Battle);
                 return;
             }
             _killFeed = new BattleKillFeedDriver(_context.Sim.State,
@@ -639,7 +639,7 @@ namespace LiteGame
                 _context.KillFeed,
                 _hudView.WeaponIcons,
                 _hudView.KillFeedRows, _hudView.KillFeedKillers, _hudView.KillFeedWeapons, _hudView.KillFeedVictims);
-            Log.Info("kill-feed-attached", "Battle");
+            Log.Info("kill-feed-attached", LogTag.Battle);
         }
 
         /// <summary>
@@ -652,12 +652,12 @@ namespace LiteGame
             if (_hudView == null) return;                  // HUD 已整体降级（AttachHud/准心处已警告）
             if (_hudView.NetStatsRoot == null || _hudView.NetStatsText == null)
             {
-                Log.Warning("HUD prefab 网络质量件缺失——网络质量显示静默降级", "Battle");
+                Log.Warning("HUD prefab 网络质量件缺失——网络质量显示静默降级", LogTag.Battle);
                 return;
             }
             _netStats = new BattleNetworkHudDriver(() => _context.NetworkQuality,
                 _hudView.NetStatsRoot.gameObject, _hudView.NetStatsText);
-            Log.Info("net-stats-attached", "Battle");
+            Log.Info("net-stats-attached", LogTag.Battle);
         }
 
         /// <summary>
@@ -670,7 +670,7 @@ namespace LiteGame
             if (_hudView == null) return;                  // HUD 已整体降级（AttachHud/准心处已警告）
             if (!_hudView.HasRespawnHud)
             {
-                Log.Warning("HUD prefab 死亡/复活件不齐（中央面板 3 件）——死亡等待面板静默降级", "Battle");
+                Log.Warning("HUD prefab 死亡/复活件不齐（中央面板 3 件）——死亡等待面板静默降级", LogTag.Battle);
                 return;
             }
             _respawnHud = new BattleRespawnHudDriver(_context.Sim.State,
@@ -678,7 +678,7 @@ namespace LiteGame
                 _hudView.RespawnRoot, _hudView.RespawnTitle, _hudView.RespawnCountdown,
                 _hudView.ProtectionRoot);
             _hitFeedback?.Register(_respawnHud);
-            Log.Info("respawn-hud-attached", "Battle");
+            Log.Info("respawn-hud-attached", LogTag.Battle);
         }
 
         /// <summary>
@@ -690,7 +690,7 @@ namespace LiteGame
         {
             if (_protectionShell == null) return;          // 取件降级已警告
             _protectionFx = new BattleProtectionFxDriver(_context.Sim.State, LocalSlot, ViewOf, _protectionShell);
-            Log.Info("protection-fx-attached", "Battle");
+            Log.Info("protection-fx-attached", LogTag.Battle);
         }
 
         /// <summary>
@@ -703,18 +703,18 @@ namespace LiteGame
             if (_laserBeam == null) return;                      // 资产缺失已在取件处降级（警告过）
             if (_context.Sim == null)
             {
-                Log.Warning("Sim 未建——瞄准激光本局降级（Attach 早于 StartGame 的装配序）", "Battle");
+                Log.Warning("Sim 未建——瞄准激光本局降级（Attach 早于 StartGame 的装配序）", LogTag.Battle);
                 return;
             }
             var line = _laserBeam.GetComponent<UnityEngine.LineRenderer>();
             if (line == null)
             {
-                Log.Warning($"激光束 prefab 缺 LineRenderer——瞄准激光降级:{LaserSightPrefab}", "Battle");
+                Log.Warning($"激光束 prefab 缺 LineRenderer——瞄准激光降级:{LaserSightPrefab}", LogTag.Battle);
                 return;
             }
             _laser = new BattleLaserDriver(_view, _input, _context.Sim, _context.Map, line,
                 aimPointOf: _aimPointOf);                       // 瞄准地面点注入（准心同源——端点压准心）
-            Log.Info("laser-attached", "Battle");
+            Log.Info("laser-attached", LogTag.Battle);
         }
 
         /// <summary>
@@ -727,13 +727,13 @@ namespace LiteGame
             if (_damageNumberLease == null) return;             // 取件降级已警告
             if (_damageNumberLease.Asset == null || _damageNumberLease.Asset.GetComponent<TMPro.TextMeshPro>() == null)
             {
-                Log.Warning($"伤害数字底件缺 TextMeshPro——飘字降级:{DamageNumberPrefab}", "Battle");
+                Log.Warning($"伤害数字底件缺 TextMeshPro——飘字降级:{DamageNumberPrefab}", LogTag.Battle);
                 _damageNumberLease = null;
                 return;
             }
             if (_worldClock == null)
             {
-                Log.Warning("世界钟未注入——伤害数字降级（装配缺口，见 ContainerModule）", "Battle");
+                Log.Warning("世界钟未注入——伤害数字降级（装配缺口，见 ContainerModule）", LogTag.Battle);
                 _damageNumberLease = null;
                 return;
             }
@@ -742,7 +742,7 @@ namespace LiteGame
                 cameraOf: RenderCameraOf(),       // billboard 面对局渲染相机（非 Camera.main——叠加形态会拿错）
                 materials: _damageNumberMaterials);   // 逐档材质（四档不齐 = null 走底件默认，取件处已警告）
             _hitFeedback?.Register(_damageNumbers);
-            Log.Info("damage-numbers-attached", "Battle");
+            Log.Info("damage-numbers-attached", LogTag.Battle);
         }
 
         /// <summary>战斗特效装配（帧事件路由的 VFX 消费者）：火光吃 Fire、命中特效吃本地 Caused 的 Hit/Crit；
@@ -752,7 +752,7 @@ namespace LiteGame
         {
             if (_vfx == null)
             {
-                Log.Warning("VFX 服务未注入——枪口火光/命中特效降级（装配缺口，见 ContainerModule）", "Battle");
+                Log.Warning("VFX 服务未注入——枪口火光/命中特效降级（装配缺口，见 ContainerModule）", LogTag.Battle);
                 return;
             }
             _muzzleFlash = new BattleMuzzleFlashDriver(_view, _vfx);
@@ -770,7 +770,7 @@ namespace LiteGame
         {
             if (_vfx == null) return;                      // VFX 已整体降级（AttachCombatFx 处已警告）
             _remoteFire = new BattleRemoteMuzzleFlashDriver(_view, _context.FireFeed, _vfx);
-            Log.Info("remote-fire-attached", "Battle");
+            Log.Info("remote-fire-attached", LogTag.Battle);
         }
 
         /// <summary>
@@ -781,7 +781,7 @@ namespace LiteGame
         {
             if (_audio == null)
             {
-                Log.Warning("Audio 服务未注入——对局音效降级（装配缺口，见 ContainerModule）", "Battle");
+                Log.Warning("Audio 服务未注入——对局音效降级（装配缺口，见 ContainerModule）", LogTag.Battle);
                 return;
             }
             if (_audioLeases.Count == 0) return;                 // 全缺已在取件处逐条警告

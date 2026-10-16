@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using LiteFramework;
 using UnityEngine;
@@ -106,7 +106,7 @@ namespace LiteGame.UI
 #if UNITY_EDITOR || DEVELOPMENT_BUILD || LITEFRAMEWORK_DEBUG
             if (AutoTick)
             {
-                Log.Error("LTextLabel: AutoTick 与外部 Tick 双驱动（§8.1 唯一驱动者）——请关闭 AutoTick 或停用自驱", "UI");
+                Log.Error("LTextLabel: AutoTick 与外部 Tick 双驱动（§8.1 唯一驱动者）——请关闭 AutoTick 或停用自驱", LogTag.UI);
                 return;
             }
 #endif
@@ -164,7 +164,7 @@ namespace LiteGame.UI
         {
             if (!ResolveTarget())
             {
-                Log.Error($"LTextLabel: 节点无 TMP_Text/Text 组件:{gameObject.name}", "UI");
+                Log.Error($"LTextLabel: 节点无 TMP_Text/Text 组件:{gameObject.name}", LogTag.UI);
                 _playing = false;
                 _pending = false;
                 return;

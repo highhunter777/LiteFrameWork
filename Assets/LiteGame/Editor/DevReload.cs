@@ -1,4 +1,4 @@
-using System.Threading;
+﻿using System.Threading;
 using Cysharp.Threading.Tasks;
 using LiteFramework;
 using UnityEditor;
@@ -24,7 +24,7 @@ namespace LiteGame.Editor
         {
             if (!Application.isPlaying)
             {
-                Log.Warning("DevReload 仅 Play 模式可用（LuaEnv 需存活）", "DevReload");
+                Log.Warning("DevReload 仅 Play 模式可用（LuaEnv 需存活）", LogTag.DevReload);
                 return;
             }
             ReloadAsync().Forget();                        // 一行转发，禁止 async void
@@ -35,7 +35,7 @@ namespace LiteGame.Editor
             var lua = Object.FindFirstObjectByType<LiteClient.LuaComponent>();
             if (lua == null)
             {
-                Log.Error("DevReload 未找到 LuaComponent", "DevReload");
+                Log.Error("DevReload 未找到 LuaComponent", LogTag.DevReload);
                 return;
             }
 
@@ -67,9 +67,9 @@ namespace LiteGame.Editor
             if (report.HasFailures)
             {
                 foreach (var f in report.Failures)
-                    Log.Error($"DevReload 注册表填充失败 [{f.kind}] {f.key}:{f.reason}", "DevReload");
+                    Log.Error($"DevReload 注册表填充失败 [{f.kind}] {f.key}:{f.reason}", LogTag.DevReload);
             }
-            Log.Info($"DevReload 完成：预载 {preloader.Count}、填充 {report.Filled}/{report.Total}、失败 {report.Failed}", "DevReload");
+            Log.Info($"DevReload 完成：预载 {preloader.Count}、填充 {report.Filled}/{report.Total}、失败 {report.Failed}", LogTag.DevReload);
         }
 
         /// <summary>

@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using LiteFramework;
 using LiteSim;
@@ -94,7 +94,7 @@ namespace LiteView
 
             // 视图回收是对局的罕见事件（死亡/传送/离场），每次留痕便于定位实例归属
             Log.Warning(
-                $"视图回收 slot={slotIndex} name={view.name} active={view.activeSelf} pos={view.transform.position}", "View");
+                $"视图回收 slot={slotIndex} name={view.name} active={view.activeSelf} pos={view.transform.position}", LogTag.View);
 
             if (_recycler != null)
             {
