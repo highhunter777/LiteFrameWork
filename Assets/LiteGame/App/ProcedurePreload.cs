@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Threading;
 using Cysharp.Threading.Tasks;
 using LiteFramework;
@@ -21,10 +21,11 @@ namespace LiteGame
         private readonly RegistryFiller _filler;
         private readonly IEventCenter _events;
         private readonly UIService _ui;
+        private readonly FeedbackService _feedback;        // 启动走廊装载面（窗口③）
         private readonly Func<string[]> _listLuaFiles;     // Lua 清单（装配点绑定——静态门面收口于装配点）
 
         public ProcedurePreload(IContentService content, IConfigService config, LuaComponent lua, RegistryFiller filler, IEventCenter events,
-            UIService ui, Func<string[]> listLuaFiles = null, CancellationToken rootToken = default)
+            UIService ui, Func<string[]> listLuaFiles = null, CancellationToken rootToken = default, FeedbackService feedback = null)
             : base(rootToken)
         {
             _content = content ?? throw new ArgumentNullException(nameof(content));
@@ -33,6 +34,7 @@ namespace LiteGame
             _filler = filler ?? throw new ArgumentNullException(nameof(filler));
             _events = events ?? throw new ArgumentNullException(nameof(events));
             _ui = ui ?? throw new ArgumentNullException(nameof(ui));
+            _feedback = feedback;                          // 可空 = 测试装配（LaunchLoading.Begin 空引用跳过）
             _listLuaFiles = listLuaFiles;
         }
 
@@ -47,6 +49,9 @@ namespace LiteGame
                 await _config.LoadAsync(ct);
 
                 // ---- Lua 预载与注册表填充段（勿在此行上方插入消费逻辑）----
+                // ⓪ 启动走廊开场（窗口③——不定态，Preload 开 / Main 报进度 / 首屏收，§通用加载页 §1）：
+                //    依赖上面已装载的配置（202 表行）与就绪的 UIService。
+                LaunchLoading.Begin(_feedback, "正在预载资源…");
                 // ① 全量预载：同步 loader 的咽喉（§4.2），env 依赖它，先建缓存再 Init
                 //    （字节经 IContentService 租约通道——代次/引用统一，提取即释放；
                 //     清单经装配点注入——不直查静态门面）
@@ -60,9 +65,10 @@ namespace LiteGame
                 if (report.HasFailures)                          // ④ 整批统一判定（不遇错即停，一次拿全问题）
                 {
                     foreach (var f in report.Failures)
-                        Log.Error($"注册表填充失败 [{f.kind}] {f.key}:{f.reason}", "Lua");
+                        Log.Error($"注册表填充失败 [{f.kind}] {f.key}:{f.reason}", LogTag.Lua);
                     var ex = new InvalidOperationException(
                         $"注册表填充失败 {report.Failed}/{report.Total}——阻止进 Main（§3.4 fail-fast，不做带病启动）");
+                    LaunchLoading.End();                         // 启动走廊随失败收口（错误页不能被遮罩挡住）
                     Fail(m, ex, nameof(RunAsyncCore));
                     m.Request(ProcedureId.Error, new ProcedureArgs(ex));   // 失败原因随 payload 交错误流程
                     return;
@@ -73,13 +79,14 @@ namespace LiteGame
                 // 故落在放行闸口而非页面流内部。
                 int settingsFormId = Bridge.Data.ResolveUIFormId(LuaKeys.UI.Page_Settings);
                 if (settingsFormId >= 0) _ui.RegisterModal(settingsFormId);
-                else Log.Error($"模态登记失败：tbuiform 未登记 '{LuaKeys.UI.Page_Settings}'", "UI");
+                else Log.Error($"模态登记失败：tbuiform 未登记 '{LuaKeys.UI.Page_Settings}'", LogTag.UI);
 
-                m.Request(ProcedureId.Main);                     // ⑤ 放行
+                m.Request(ProcedureId.Main);                     // ⑤ 放行（启动走廊跨流程存续——Main 报进度、首屏收）
             }
-            catch (OperationCanceledException) { /* 正常取消，静默 */ }
+            catch (OperationCanceledException) { LaunchLoading.End(); /* 正常取消，静默 */ }
             catch (Exception ex)
             {
+                LaunchLoading.End();                             // 失败收口（错误页不能被遮罩挡住）
                 Fail(m, ex, nameof(RunAsyncCore));
                 m.Request(ProcedureId.Error, new ProcedureArgs(ex));
             }

@@ -67,6 +67,9 @@ namespace LiteGame
                 TestModeRuntime.Active = false;
             }
 #endif
+            // 启动走廊窗口④：Main 只报场景进度不持所有权（走廊在 Preload 开——通用加载页 §1）
+            if (LaunchLoading.Active)
+                LaunchLoading.Report("正在加载场景…", _scenes != null ? _scenes.Progress : 0f);
         }
 
         private async UniTask RunAsyncCore(IStageHost<ProcedureId, ProcedureArgs> m, CancellationToken ct)
@@ -79,10 +82,14 @@ namespace LiteGame
                 // 未配置（离线/本地开发形态）零变化。**只开一次**——对局结束/离场返回 Main 不重开入口
                 // （页面流接管：结算页或大厅在场，见 PageFlow.OpenEntryOnce）。
                 if (_pages != null && _meta != null && _meta.IsConfigured) _pages.OpenEntryOnce();
+
+                // 启动走廊收口（窗口⑥ 首屏接线点——登录页/大厅或玩法场景就绪即收，通用加载页 §1）。
+                LaunchLoading.End();
             }
-            catch (OperationCanceledException) { /* 正常取消，静默 */ }
+            catch (OperationCanceledException) { LaunchLoading.End(); /* 正常取消，静默 */ }
             catch (Exception ex)
             {
+                LaunchLoading.End();                         // 失败收口（错误页不能被遮罩挡住）
                 Fail(m, ex, nameof(RunAsyncCore));
                 m.Request(ProcedureId.Error, new ProcedureArgs(ex));
             }

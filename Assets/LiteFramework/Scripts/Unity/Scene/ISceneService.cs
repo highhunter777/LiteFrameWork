@@ -38,6 +38,12 @@ namespace LiteFramework
         /// <summary>已加载叠加场景的 location 只读视图（诊断/面板用）。</summary>
         IReadOnlyCollection<string> AdditiveLocations { get; }
 
+        /// <summary>
+        /// 最近一次加载操作的进度（0~1；无加载为 0）——通用加载页窗口④的场景进度源
+        /// （《通用加载页设计》§1；消费方在 OnUpdate 轮询后 Report，不建每帧泵）。
+        /// </summary>
+        float Progress { get; }
+
         /// <summary>加载单场景并激活（先卸旧单场景；叠加登记随之清理）。</summary>
         UniTask LoadSingleAsync(string location, CancellationToken ct = default);
 

@@ -2,6 +2,7 @@ using System;
 using System.Threading;
 using Cysharp.Threading.Tasks;
 using LiteFramework;
+using LiteGame.UI;
 using LiteNet.Proto;
 using LiteClient;
 
@@ -35,13 +36,16 @@ namespace LiteGame
         public const int JoinTimeoutMs = 10_000;
 
         private readonly IAccountSessionFactory _accounts;
+        private readonly FeedbackService _feedback;        // 进房等待场（窗口⑤——不定态；可空 = 测试装配）
 
         /// <summary>本阶段在途的会话（<see cref="OnUpdate"/> 据它驱动传输泵；未连接时为 null）。</summary>
         private BattleClient _pending;
 
-        public ProcedureMatch(IAccountSessionFactory accounts, CancellationToken rootToken = default) : base(rootToken)
+        public ProcedureMatch(IAccountSessionFactory accounts, FeedbackService feedback = null,
+            CancellationToken rootToken = default) : base(rootToken)
         {
             _accounts = accounts ?? throw new ArgumentNullException(nameof(accounts));
+            _feedback = feedback;
         }
 
         /// <summary>
@@ -86,6 +90,8 @@ namespace LiteGame
         {
             AccountSession account = null;
             BattleClient battle = null;
+            // 进房等待场（窗口⑤——不定态；可空 = 测试装配）：开场即阻断，JoinAck/失败/取消三路收口
+            LaunchLoading.Begin(_feedback, "正在进入房间…");
             try
             {
                 account = _accounts.Create(host, port, roomId, token, LiteNet.BuildHash.Value, testRoom);
@@ -96,16 +102,19 @@ namespace LiteGame
                 UnityEngine.Debug.Log("[Battle] joined (JoinAck)");
 
                 _pending = null;                          // 泵交棒给 BattleContext.Tick（不双泵）
+                LaunchLoading.End();                      // 收场后移交（遮罩不能挡对局）
                 // 移交所有权：AccountSession 随迁移进 Battle（离场收尾在 Battle）。
                 m.Request(ProcedureId.Battle, new ProcedureArgs(accountSession: account));
             }
             catch (OperationCanceledException)
             {
+                LaunchLoading.End();                      // 取消/离场收口
                 _pending = null;
                 account?.Dispose();                       // 离场/宿主关闭：就地收尾，不流转
             }
             catch (Exception ex)
             {
+                LaunchLoading.End();                      // 失败收口（Error 页不能被遮罩挡住）
                 _pending = null;
                 account?.Dispose();                       // 失败收尾（含 BattleClient/传输释放）
                 Fail(m, ex, nameof(RunAsyncCore));

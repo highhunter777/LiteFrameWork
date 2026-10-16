@@ -133,7 +133,7 @@ namespace LiteGame
                 context.Require<SettingService>(), context.Require<AudioService>());
             ProductSettings.Bind(appSettings);            // Lua 设置门面后端（Bridge.settings——批C-⑥；构造即应用持久化值）
             var fsm = CreateMachine(context, content, config, lua, uiRegistry, contentRegistry, strategyRegistry,
-                pageFlow, metaEntry);
+                pageFlow, metaEntry, feedback);
             context.Put(fsm);
             metaEntry.BindMachine(fsm);                   // 进房 = Request(Match, MetaJoin)——走既有 Join 管道
 
@@ -163,7 +163,7 @@ namespace LiteGame
         private StageMachine<ProcedureId, ProcedureArgs> CreateMachine(ClientContext context,
             IContentService content, ConfigService config, LuaComponent lua,
             UiLuaRegistry uiRegistry, ContentLuaRegistry contentRegistry, StrategyLuaRegistry strategyRegistry,
-            PageFlow pageFlow, MetaEntryService metaEntry)
+            PageFlow pageFlow, MetaEntryService metaEntry, FeedbackService feedback)
         {
             var filler = new RegistryFiller(config, lua, uiRegistry, contentRegistry, strategyRegistry);
             var rootToken = context.RootScope.Token;
@@ -172,9 +172,10 @@ namespace LiteGame
                 (ProcedureId.Patch, new ProcedurePatch(content, context.Require<ActivationTransactionStore>(),
                     context.Require<PatchRunner>(), rootToken, context.Require<AssetsHealthProbe>())),
                 (ProcedureId.Preload, new ProcedurePreload(content, config, lua, filler,
-                    context.Require<EventCenter>(), context.Require<UIService>(), () => ListLuaAssetPaths(content), rootToken)),
+                    context.Require<EventCenter>(), context.Require<UIService>(), () => ListLuaAssetPaths(content), rootToken,
+                    feedback)),
                 (ProcedureId.Main, new ProcedureMain(_scenes, rootToken, pageFlow, metaEntry)),
-                (ProcedureId.Match, new ProcedureMatch(context.Require<IAccountSessionFactory>(), rootToken)),
+                (ProcedureId.Match, new ProcedureMatch(context.Require<IAccountSessionFactory>(), feedback, rootToken)),
                 (ProcedureId.Battle, new ProcedureBattle(content, context.Require<IInputService>(),
                     context.Require<ICameraService>(), context.Require<VfxService>(),
                     rootToken, requireCamera: true, worldClock: context.Require<IWorldClock>(),

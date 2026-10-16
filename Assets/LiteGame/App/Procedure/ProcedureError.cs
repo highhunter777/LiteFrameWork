@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Threading;
 using Cysharp.Threading.Tasks;
 using LiteFramework;
@@ -28,18 +28,19 @@ namespace LiteGame
 
         private async UniTask RunAsyncCore(IStageHost<ProcedureId, ProcedureArgs> m, Exception error, CancellationToken ct)
         {
+            LaunchLoading.End();                     // 兜底：任何流程泄漏的启动走廊在此收口（错误 UI 不能被遮罩挡住）
             try
             {
                 var message = error?.Message ?? "(payload 无 Error)";
-                Log.Error($"启动失败，停机待查:{message}", "Procedure");
+                Log.Error($"启动失败，停机待查:{message}", LogTag.Procedure);
                 ShowMinimalErrorUI(message);
-                Log.Error($"{SmokeMarker} minimal error UI shown - see Player.log", "Procedure");
+                Log.Error($"{SmokeMarker} minimal error UI shown - see Player.log", LogTag.Procedure);
             }
             catch (OperationCanceledException) { /* 正常取消，静默 */ }
             catch (Exception uiEx)
             {
                 // 错误 UI 自身失败不能吞掉原始错误——两处都落日志（Player.log 冒烟断言仍可命中第一条）
-                Log.Error($"{SmokeMarker} UI 创建失败:{uiEx.Message}", "Procedure");
+                Log.Error($"{SmokeMarker} UI 创建失败:{uiEx.Message}", LogTag.Procedure);
             }
         }
 
@@ -52,13 +53,13 @@ namespace LiteGame
         {
             try
             {
-                Log.Error($"{SmokeMarker} bootstrap failed: {message}", "Bootstrap");
+                Log.Error($"{SmokeMarker} bootstrap failed: {message}", LogTag.Bootstrap);
                 ShowMinimalErrorUI(message);
             }
             catch (Exception uiEx)
             {
                 // 错误 UI 自身失败不能吞掉原始错误——两处都落日志（Player.log 冒烟断言仍可命中第一条）
-                Log.Error($"{SmokeMarker} UI 创建失败:{uiEx.Message}", "Bootstrap");
+                Log.Error($"{SmokeMarker} UI 创建失败:{uiEx.Message}", LogTag.Bootstrap);
             }
         }
 
