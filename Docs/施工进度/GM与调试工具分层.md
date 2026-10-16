@@ -92,7 +92,29 @@
   LiteTesting 7 · MetaServer 135）；BuildHash `--check` 双常量不变（LiteGame/App 不在共享源集）；
   Unity 侧（`ContainerModule`/`GmScenePage`）盲改归 L2 编译验证。
 
+## 追加批 5：本地联测页（第五页）与「依赖与烙入」显示修正（2026-10-16）
+
+**页件交付补记**：第五页 `GmLocalChainPage`（`4a40b485`）先前未入进度记录，本批补记——`deploy/.env` 单源驱动的联测环境面：两端状态探针 / Start-Stop / 日志尾随 / init，自管 `EditorApplication.update` 1s 心跳（编辑态可用，不依赖 Play 门禁）。
+
+**本批修正**（用户实机回报「依赖与烙入」块显示异常，逐项实机对照）：
+- **状态标记恒被裁**：`Marker()` 返 `"[ON ]"`（5 字符）而列宽 24px ⇒ 右括号裁掉（截图实证）；改四字符 `"[ON]"/"[--]"` + `MarkerWidth=32` 常量（Meta/Room/Mongo 三行同治）。
+- **多行值裁半行**：`deploy.args` 值走 `EditorGUILayout.LabelField(label, value)`（按单行算高）——两行值第二行只画出上半且压到按钮行；改 `DrawWrappedValue`（`EditorStyles.textArea.CalcHeight` 按宽算高 + `GUILayout.Height` 的 TextArea）。实测：窗宽 780 两行完整；宽 200 时 `CalcHeight`=61.4（4 行）——窄窗折行不裁（`wordWrap=True` 已验证）。
+- **依赖行语义**：`MongoDB` 裸标签 → 带端点与状态一行（`localhost:27017 TCP 可达` / `不可达——Meta 起不来` / `未配（持久化关——Meta 内存态可起）`）；原实现在持久化关时同样亮绿灯，读者无从区分“可达”与“无依赖”。
+- **同文件小债顺手收口**：`PortOf()` 每重绘重读 `.env`（端口已进快照，函数删除）；`17777`×3 → `DefaultRoomPort`（引 `ProcedureMatch.TestPort` 单源）；日志目录/文件名/尾块字节单源（原 `LogDirRelative` 死常量启用）；`27017`/`4096` 常量化。
+
+**验证**：recompile 0 错；OS 级窗口截图对照修复前后（窗宽 780 + 最小 460 两态）；L1 **1700/1700 全绿**（首跑挂 `MSB3027` 文件锁——昨晚 extloop 回环批遗留的两个 Release 服务进程占着 `Server/*/bin`，停掉后重跑即绿；本批未触共享源集，BuildHash 无需重算）。
+
+**边界（如实）**：页内探针按**进程名**识别两端——页内 Start 的 apphost 与 `local-chain.ps1` 的 `dotnet run`（实测进程名 `MetaServer`/`RoomServer`）均可见；`dotnet <dll>` 直起形态（extloop 回环脚本用法）进程名为 `dotnet`，页上显示 not running（非本页管辖路径，不修只记）。
+
+**续记：联测两修（2026-10-16 同日）**——用户实机联测回报两处页面缺陷，当场修复：
+
+- **房间服状态误报**：`UdpBound()` 的"绑得动 = 空闲"判据在 Windows 不成立（UDP 多重绑定默认允许、Mono 的 `UdpClient` 不设排他——实测服务器在跑时 `new UdpClient(17777)` 仍绑得上）⇒ Room 行恒显 `[--] process alive, port not bound`（进程在跑却报"端口未绑定"）。改**枚举 `System.Net.NetworkInformation.IPGlobalProperties.GetActiveUdpListeners()` 判端口占用**；Unity 运行时反射实测 `UdpBound(17777)=True / (19999)=False`。
+- **日志区滚不动**：两个日志块用 `TextArea`（会接管滚轮）＋滚动区仅 `MinHeight`（无高度上限，内容一长即撑开不可滚）。改 **`SelectableLabel`（不接管滚轮、仍可选中复制）＋ `GUILayout.Height(240)` 限定滚动区**，内容全量展开、滚动交外层；另按用户回报加 **`meta.log`/`room.log` 分块标题**（两端日志连排不可辨）。
+- **顺带清同文件已登记小债**："日志尾随主线程同步读" → 并入后台探针快照（1s 节拍；`Draw` 不再做文件 IO）。客户端审计表同步登记/回写。
+
+**验证**：recompile 0 错（`errors:[]`，双判据）；`UdpBound` 反射实证（在跑 = True / 空闲 = False）；页面观感（滚动/状态行）归用户面检。
+
 ## 待办
 
-- L2（EditMode/PlayMode）夜间流水线；GM 面板四页手测（翻页生命周期/开关/滑杆对局实弹/爆头可视化随动）；场景页对 Play 中命令派发实测。
+- L2（EditMode/PlayMode）夜间流水线；GM 面板五页手测（翻页生命周期/开关/滑杆对局实弹/爆头可视化随动）；场景页对 Play 中命令派发实测；本地联测页——显示/探针读数与起停运行态已实机核（追加批 5），日志尾随运行态经**续记两修**一并收口（2026-10-16）。
 - ~~场景操作/表查询命令化（待议）~~ 已落定（追加批 4）；DevHUD 命令通道待真机需求。

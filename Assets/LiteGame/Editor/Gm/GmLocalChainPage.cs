@@ -14,7 +14,7 @@ namespace LiteGame.Editor
     /// （《项目说明/07-本地联测》§5 的一键链图形版）。
     ///
     /// **实时刷新自管**：壳的 <c>Poll</c> 只在 Play 中节拍——本页最有用的恰是编辑态，故自挂
-    /// <c>EditorApplication.update</c>（1s 节流）：重探针（进程/HTTP/TCP）走后台任务写快照字段，
+    /// <c>EditorApplication.update</c>（1s 节流）：重探针（进程/HTTP/TCP/日志尾块）走后台任务写快照字段，
     /// 主线程消费（不卡编辑器）；完成后请求窗口重绘。探针全部**只读**，不影响两端进程。
     ///
     /// **起停语义**：Start = 停旧（如有）→ <c>dotnet build</c>（解锁后再编）→ 写 bin 侧
@@ -31,6 +31,19 @@ namespace LiteGame.Editor
         private const string EnvFileRelative = "deploy\\.env";
         private const string DeployArgsRelative = "Assets/StreamingAssets/deploy.args";
         private const string LogDirRelative = "deploy/logs";
+        private const string MetaLogName = "meta.log";
+        private const string RoomLogName = "room.log";
+
+        /// <summary>状态标记列宽——容得下 "[ON]"/"[--]" 四字符（24 会把右括号裁掉）。</summary>
+        private const int MarkerWidth = 32;
+
+        /// <summary>.env 未给 ROOM_PORT 时的兜底——与客户端 F9 直连端口同源（本地联测两者必须相等）。</summary>
+        private const int DefaultRoomPort = ProcedureMatch.TestPort;
+
+        private const int DefaultMongoPort = 27017;
+
+        /// <summary>页内尾随的日志尾块字节数（两端各一份）。</summary>
+        private const int LogTailBytes = 4096;
 
         private string _root;
         private string _envFile;
@@ -50,7 +63,11 @@ namespace LiteGame.Editor
         {
             public string BuildHash = "-";
             public bool MetaProc, MetaLive, RoomProc, RoomPortBound, MongoUp;
+            public int RoomPort = DefaultRoomPort;
+            public string MongoLine = "MongoDB";
             public string BakedArgs = "(deploy.args 未烙入——init 后生成)";
+            public string MetaLog = "";
+            public string RoomLog = "";
             public string LastError = "";
         }
 
@@ -122,16 +139,25 @@ namespace LiteGame.Editor
                 if (env.TryGetValue("MONGO_CONNECTION", out var mongo) && !string.IsNullOrWhiteSpace(mongo))
                 {
                     var u = new Uri(mongo);
-                    int port = u.Port > 0 ? u.Port : 27017;
+                    int port = u.Port > 0 ? u.Port : DefaultMongoPort;
                     s.MongoUp = TcpUp(u.Host, port);
+                    s.MongoLine = s.MongoUp
+                        ? $"MongoDB {u.Host}:{port} TCP 可达"
+                        : $"MongoDB {u.Host}:{port} 不可达——Meta 起不来（持久层）";
                 }
                 else
                 {
                     s.MongoUp = true;   // 持久化关 = 无依赖可失败
+                    s.MongoLine = "MongoDB 未配（deploy/.env 持久化关——Meta 内存态可起）";
                 }
 
-                int roomPort = env.TryGetValue("ROOM_PORT", out var rp) && int.TryParse(rp, out int p) ? p : 17777;
-                s.RoomPortBound = UdpBound(roomPort);
+                s.RoomPort = env.TryGetValue("ROOM_PORT", out var rp) && int.TryParse(rp, out int p)
+                    ? p
+                    : DefaultRoomPort;
+                s.RoomPortBound = UdpBound(s.RoomPort);
+
+                s.MetaLog = TailFile(Path.Combine(root, LogDirRelative, MetaLogName), LogTailBytes);
+                s.RoomLog = TailFile(Path.Combine(root, LogDirRelative, RoomLogName), LogTailBytes);
             }
             catch (Exception ex)
             {
@@ -207,18 +233,20 @@ namespace LiteGame.Editor
             catch { return false; }
         }
 
-        /// <summary>UDP 端口绑定探测：绑得动 = 空闲，绑不动 = 已被占（服务器在监听）。</summary>
+        /// <summary>UDP 端口占用探测：枚举系统监听表（"绑得动 = 空闲"判据在 Windows 不成立——
+        /// UDP 多重绑定默认允许、Mono 的 UdpClient 不设排他，实测服务器在跑时仍可绑上）。</summary>
         private static bool UdpBound(int port)
         {
             try
             {
-                using var u = new System.Net.Sockets.UdpClient(port);
-                return false;                       // 绑成功 = 空闲
+                foreach (var ep in System.Net.NetworkInformation.IPGlobalProperties
+                    .GetIPGlobalProperties().GetActiveUdpListeners())
+                {
+                    if (ep.Port == port) return true;
+                }
+                return false;
             }
-            catch (System.Net.Sockets.SocketException)
-            {
-                return true;                        // 占用 = 服务器在监听
-            }
+            catch { return false; }
         }
 
         // ---- Draw ----
@@ -239,7 +267,7 @@ namespace LiteGame.Editor
             EditorGUILayout.LabelField("MetaServer", EditorStyles.boldLabel);
             using (new EditorGUILayout.HorizontalScope())
             {
-                GUILayout.Label(Marker(s.MetaLive), GUILayout.Width(24));
+                GUILayout.Label(Marker(s.MetaLive), GUILayout.Width(MarkerWidth));
                 GUILayout.Label(s.MetaLive ? "RUNNING (/live 200)" : (s.MetaProc ? "process alive, /live not answering" : "not running"));
                 if (GUILayout.Button("Start", GUILayout.Width(70))) StartMeta();
                 if (GUILayout.Button("Stop", GUILayout.Width(70))) StopMeta();
@@ -249,8 +277,8 @@ namespace LiteGame.Editor
             EditorGUILayout.LabelField("RoomServer", EditorStyles.boldLabel);
             using (new EditorGUILayout.HorizontalScope())
             {
-                GUILayout.Label(Marker(s.RoomPortBound), GUILayout.Width(24));
-                GUILayout.Label(s.RoomPortBound ? $"RUNNING (UDP {PortOf()} bound)" : (s.RoomProc ? "process alive, port not bound" : "not running"));
+                GUILayout.Label(Marker(s.RoomPortBound), GUILayout.Width(MarkerWidth));
+                GUILayout.Label(s.RoomPortBound ? $"RUNNING (UDP {s.RoomPort} bound)" : (s.RoomProc ? "process alive, port not bound" : "not running"));
                 if (GUILayout.Button("Start", GUILayout.Width(70))) StartRoom();
                 if (GUILayout.Button("Stop", GUILayout.Width(70))) StopRoom();
             }
@@ -259,10 +287,11 @@ namespace LiteGame.Editor
             EditorGUILayout.LabelField("依赖与烙入", EditorStyles.boldLabel);
             using (new EditorGUILayout.HorizontalScope())
             {
-                GUILayout.Label(Marker(s.MongoUp), GUILayout.Width(24));
-                GUILayout.Label("MongoDB");
+                GUILayout.Label(Marker(s.MongoUp), GUILayout.Width(MarkerWidth));
+                GUILayout.Label(s.MongoLine);
             }
-            EditorGUILayout.LabelField("deploy.args（客户端烙入）", s.BakedArgs);
+            EditorGUILayout.LabelField("deploy.args（客户端烙入）");
+            DrawWrappedValue(s.BakedArgs);
 
             EditorGUILayout.Space(6);
             using (new EditorGUILayout.HorizontalScope())
@@ -277,24 +306,41 @@ namespace LiteGame.Editor
                 EditorGUILayout.HelpBox("探针错误：" + s.LastError, MessageType.Warning);
 
             EditorGUILayout.Space(6);
-            EditorGUILayout.LabelField("服务器日志（实时尾随——最新在下）", EditorStyles.boldLabel);
-            _logScroll = EditorGUILayout.BeginScrollView(_logScroll, GUILayout.MinHeight(180));
-            EditorGUILayout.TextArea(TailFile(Path.Combine(_root, "deploy", "logs", "meta.log"), 4096),
-                GUILayout.MinHeight(80));
-            EditorGUILayout.TextArea(TailFile(Path.Combine(_root, "deploy", "logs", "room.log"), 4096),
-                GUILayout.MinHeight(80));
+            EditorGUILayout.LabelField("服务器日志（实时尾随——最新在下；可选中复制）", EditorStyles.boldLabel);
+            _logScroll = EditorGUILayout.BeginScrollView(_logScroll, GUILayout.Height(240));
+            EditorGUILayout.LabelField("meta.log（MetaServer）", EditorStyles.boldLabel);
+            DrawSelectableLog(s.MetaLog, "(meta.log 暂无内容——Start 后生成)");
+            EditorGUILayout.Space(6);
+            EditorGUILayout.LabelField("room.log（RoomServer）", EditorStyles.boldLabel);
+            DrawSelectableLog(s.RoomLog, "(room.log 暂无内容——Start 后生成)");
             EditorGUILayout.EndScrollView();
         }
 
         private static string Marker(bool ok)
         {
-            return ok ? "[ON ]" : "[--]";
+            return ok ? "[ON]" : "[--]";
         }
 
-        private int PortOf()
+        /// <summary>只读多行值块（可选中复制）：高度按内容算——LabelField 只留单行高，多行值第二行会被裁半行。</summary>
+        private static void DrawWrappedValue(string text)
         {
-            var env = ReadDotEnv(_envFile);
-            return env.TryGetValue("ROOM_PORT", out var p) && int.TryParse(p, out int v) ? v : 17777;
+            float width = Mathf.Max(80f, EditorGUIUtility.currentViewWidth - 24f);
+            float height = Mathf.Max(
+                EditorStyles.textArea.CalcHeight(new GUIContent(text), width),
+                EditorGUIUtility.singleLineHeight + 6f);
+            EditorGUILayout.TextArea(text, GUILayout.Height(height));
+        }
+
+        /// <summary>只读可选中日志块：用 SelectableLabel（非 TextArea——TextArea 会接管滚轮，
+        /// 外层 ScrollView 滚不动）；高度按内容全量展开，滚动交给外层。</summary>
+        private static void DrawSelectableLog(string text, string placeholder)
+        {
+            if (string.IsNullOrEmpty(text)) text = placeholder;
+            float width = Mathf.Max(80f, EditorGUIUtility.currentViewWidth - 48f);
+            float height = Mathf.Max(
+                EditorStyles.textArea.CalcHeight(new GUIContent(text), width),
+                EditorGUIUtility.singleLineHeight + 6f);
+            EditorGUILayout.SelectableLabel(text, EditorStyles.textArea, GUILayout.Height(height));
         }
 
         // ---- 动作（主线程；起停/构建/写件）----
@@ -335,7 +381,7 @@ namespace LiteGame.Editor
 
         private void RevealLogs()
         {
-            string dir = Path.Combine(_root, "deploy", "logs");
+            string dir = Path.Combine(_root, LogDirRelative);
             if (Directory.Exists(dir)) EditorUtility.RevealInFinder(dir);
             else _lastAction = "日志目录未生成——先 Start 任一端";
         }
@@ -352,7 +398,7 @@ namespace LiteGame.Editor
             _metaProc = LaunchCaptured(
                 Path.Combine(_root, "Server", "MetaServer", "bin", "Debug", "net8.0", "MetaServer.exe"),
                 "--bind " + EnvOf("META_BIND", "http://127.0.0.1:5000"),
-                Path.Combine(_root, "deploy", "logs", "meta.log"));
+                LogPath(MetaLogName));
             _lastAction = "MetaServer started（日志尾随见下）";
         }
 
@@ -366,7 +412,7 @@ namespace LiteGame.Editor
             if (EnsureBuilt("Server\\RoomServer\\RoomServer.csproj")) return;
             var env = ReadDotEnv(_envFile);
             string args = "--config " + (env.TryGetValue("ROOM_CONFIG", out var rc) ? rc : "Config/roomserver.json")
-                + " --port " + (env.TryGetValue("ROOM_PORT", out var rp) && int.TryParse(rp, out int port) ? port : 17777)
+                + " --port " + (env.TryGetValue("ROOM_PORT", out var rp) && int.TryParse(rp, out int port) ? port : DefaultRoomPort)
                 + " --envelope-key " + env.GetValueOrDefault("ENVELOPE_PSK")
                 + " --ticket-key l1:" + env.GetValueOrDefault("LOBBY_TICKET_KEY")
                 + " --lobby-instance-key " + env.GetValueOrDefault("LOBBY_INSTANCE_KEY")
@@ -374,7 +420,7 @@ namespace LiteGame.Editor
             _roomProc = LaunchCaptured(
                 Path.Combine(_root, "Server", "RoomServer", "bin", "Debug", "net8.0", "RoomServer.exe"),
                 args,
-                Path.Combine(_root, "deploy", "logs", "room.log"));
+                LogPath(RoomLogName));
             _lastAction = "RoomServer started（日志尾随见下）";
         }
 
@@ -456,6 +502,12 @@ namespace LiteGame.Editor
             return env.TryGetValue(key, out var v) && !string.IsNullOrWhiteSpace(v) ? v : fallback;
         }
 
+        /// <summary>日志路径单源：Start 写入面与页内尾随面取同一份（改一处不会漏另一处）。</summary>
+        private string LogPath(string logName)
+        {
+            return Path.Combine(_root, LogDirRelative, logName);
+        }
+
         /// <summary>起 apphost 并重定向输出到日志文件（GUI 尾随源——无独立控制台窗口）。</summary>
         private Process LaunchCaptured(string exePath, string args, string logPath)
         {
@@ -482,7 +534,7 @@ namespace LiteGame.Editor
             return p;
         }
 
-        // ---- 日志尾随（主线程；文件小、只读尾块）----
+        // ---- 日志尾随（后台探针内读取——主线程只消费快照）----
 
         private static string TailFile(string path, int maxBytes)
         {
