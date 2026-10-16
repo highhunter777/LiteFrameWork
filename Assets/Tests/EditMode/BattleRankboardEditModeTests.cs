@@ -19,6 +19,7 @@ namespace LiteGame.Tests.EditMode
 
         private sealed class Board
         {
+            public readonly GameObject[] CellRoots = new GameObject[Cells];      // 格根＝单元（隐藏/显示只关它）
             public readonly TextMeshProUGUI[] Names = new TextMeshProUGUI[Cells];
             public readonly TextMeshProUGUI[] Kills = new TextMeshProUGUI[Cells];
             public readonly GameObject[] Highlights = new GameObject[Cells];
@@ -30,10 +31,15 @@ namespace LiteGame.Tests.EditMode
             var board = new Board();
             for (int i = 0; i < Cells; i++)
             {
-                GameObject nameGo = Scope.CreateGameObject("Name" + i, typeof(RectTransform), typeof(TextMeshProUGUI));
-                GameObject killGo = Scope.CreateGameObject("Kills" + i, typeof(RectTransform), typeof(TextMeshProUGUI));
-                GameObject plate = Scope.CreateGameObject("Highlight" + i, typeof(RectTransform));
-                plate.SetActive(false);
+                GameObject cell = Scope.CreateGameObject("Cot_RankCell" + (i + 1));   // 格根（单元）
+                GameObject nameGo = Scope.CreateGameObject("Txt_Name", typeof(RectTransform), typeof(TextMeshProUGUI));
+                GameObject killGo = Scope.CreateGameObject("Txt_Kills", typeof(RectTransform), typeof(TextMeshProUGUI));
+                GameObject plate = Scope.CreateGameObject("Image_Highlight", typeof(RectTransform));
+                nameGo.transform.SetParent(cell.transform, false);     // 子件挂格根下（保持激活）
+                killGo.transform.SetParent(cell.transform, false);
+                plate.transform.SetParent(cell.transform, false);
+                plate.SetActive(false);                                // 高亮件仍按位开关
+                board.CellRoots[i] = cell;
                 board.Names[i] = nameGo.GetComponent<TextMeshProUGUI>();
                 board.Kills[i] = killGo.GetComponent<TextMeshProUGUI>();
                 board.Highlights[i] = plate;
@@ -45,7 +51,7 @@ namespace LiteGame.Tests.EditMode
         }
 
         private static BattleRankboardDriver BuildDriver(Board board, SimWorldState world, long selfId)
-            => new BattleRankboardDriver(world, () => selfId, board.Names, board.Kills, board.Highlights, board.TeamScore);
+            => new BattleRankboardDriver(world, () => selfId, board.CellRoots, board.Names, board.Kills, board.Highlights, board.TeamScore);
 
         /// <summary>生成一个参赛玩家（<see cref="EntityFlags.Player"/>），返回实体 Id（生成序 = Id 升序）。</summary>
         private static long SpawnPlayer(SimWorldState world, int kills)
@@ -150,11 +156,12 @@ namespace LiteGame.Tests.EditMode
 
             driver.Tick();
 
-            Assert.IsTrue(board.Names[1].gameObject.activeSelf, "第 2 格在显");
+            Assert.IsTrue(board.CellRoots[1].activeSelf, "第 2 格在显（单元级）");
+            Assert.IsTrue(board.Names[1].gameObject.activeSelf, "格内子件保持激活（隐藏只关格根）");
             for (int i = 2; i < Cells; i++)
             {
-                Assert.IsFalse(board.Names[i].gameObject.activeSelf, $"第 {i + 1} 格应隐藏（人数 2）");
-                Assert.IsFalse(board.Kills[i].gameObject.activeSelf);
+                Assert.IsFalse(board.CellRoots[i].activeSelf, $"第 {i + 1} 格应隐藏（人数 2；关格根）");
+                Assert.IsTrue(board.Names[i].gameObject.activeSelf, "格内子件不被驱动关掉（编辑器可直接调）");
                 Assert.IsFalse(board.Highlights[i].activeSelf);
             }
         }
@@ -172,7 +179,7 @@ namespace LiteGame.Tests.EditMode
             driver.Tick();
 
             Assert.AreEqual("1", board.Kills[0].text, "非参赛实体（无 Player 标志）不进排行");
-            Assert.IsFalse(board.Names[1].gameObject.activeSelf, "仅 1 人 → 第 2 格隐藏");
+            Assert.IsFalse(board.CellRoots[1].activeSelf, "仅 1 人 → 第 2 格隐藏（关格根）");
         }
 
         [Test]
@@ -210,7 +217,7 @@ namespace LiteGame.Tests.EditMode
             for (int i = 0; i < Cells; i++)
             {
                 Assert.IsFalse(board.Highlights[i].activeSelf, "离场高亮归零");
-                Assert.IsFalse(board.Names[i].gameObject.activeSelf, "离场格隐藏");
+                Assert.IsFalse(board.CellRoots[i].activeSelf, "离场格隐藏（关格根）");
             }
             driver.Dispose();                              // 幂等
         }
@@ -221,7 +228,7 @@ namespace LiteGame.Tests.EditMode
         {
             int n = 0;
             for (int i = 0; i < Cells; i++)
-                if (board.Names[i].gameObject.activeSelf) n++;
+                if (board.CellRoots[i].activeSelf) n++;      // 单元级＝格根
             return n;
         }
     }

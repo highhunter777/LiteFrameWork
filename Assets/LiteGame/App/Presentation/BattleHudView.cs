@@ -25,6 +25,8 @@ namespace LiteGame
         [SerializeField] private CanvasGroup _panelGroup;
         [SerializeField] private HpBar _hpBar;
         [SerializeField] private TextMeshProUGUI _ammoText;
+        [SerializeField] private TextMeshProUGUI _reserveAmmoText;   // 剩余备弹（`Txt_ReserveAmmo`——「当前 / 备弹」读出右半边）
+        [SerializeField] private GameObject _slashSeparator;         // 「/」分隔符（`Txt_Slash`——与备弹同显隐）
         [SerializeField] private GameObject _reloadLabel;
 
         [Header("菜单（对局退场链——Cot_Settings 角组，子 Canvas 单独开射线）")]
@@ -33,6 +35,7 @@ namespace LiteGame
         [Header("排行榜（排行榜批；FFA 比分＝击杀——8 格预置，禁运行时建视觉元素）")]
         [SerializeField] private RectTransform _rankboardRoot;
         [SerializeField] private TextMeshProUGUI _teamScoreText;                    // 团队比分预留（Team 模式；FFA 隐藏）
+        [SerializeField] private GameObject[] _rankCells = new GameObject[8];       // 格根＝单元（隐藏关根；格内子件保持激活）
         [SerializeField] private TextMeshProUGUI[] _rankNames = new TextMeshProUGUI[8];
         [SerializeField] private TextMeshProUGUI[] _rankKills = new TextMeshProUGUI[8];
         [SerializeField] private GameObject[] _rankHighlights = new GameObject[8];
@@ -61,10 +64,20 @@ namespace LiteGame
         public CanvasGroup PanelGroup => _panelGroup;
         public HpBar HpBar => _hpBar;
         public TextMeshProUGUI AmmoText => _ammoText;
+
+        /// <summary>剩余备弹文本（本人私有面 <see cref="LiteSim.WeaponRuntime.ReserveAmmo"/>——换弹从备弹扣、
+        /// 随消耗递减；未装备时由驱动收起，只留 <see cref="AmmoText"/> 的 "--"）。</summary>
+        public TextMeshProUGUI ReserveAmmoText => _reserveAmmoText;
+
+        /// <summary>「当前 / 备弹」分隔符——与备弹件**同显隐**（收起时读出只剩 "--"）。</summary>
+        public GameObject SlashSeparator => _slashSeparator;
+
         public GameObject ReloadLabel => _reloadLabel;
         public Button SettingsButton => _settingsButton;
         public RectTransform RankboardRoot => _rankboardRoot;
         public TextMeshProUGUI TeamScoreText => _teamScoreText;
+        /// <summary>格根（单元）：**隐藏/显示关这里**，格内子件保持激活（编辑器里可直接读/调）。</summary>
+        public GameObject[] RankCells => _rankCells;
         public TextMeshProUGUI[] RankNames => _rankNames;
         public TextMeshProUGUI[] RankKills => _rankKills;
         public GameObject[] RankHighlights => _rankHighlights;
@@ -89,10 +102,11 @@ namespace LiteGame
         public bool HasRespawnHud =>
             _respawnRoot != null && _respawnTitle != null && _respawnCountdown != null;
 
-        /// <summary>排行榜格是否齐备（名字/击杀/高亮件各 <see cref="BattleRankboardDriver.CellCount"/> 件）
+        /// <summary>排行榜格是否齐备（格根/名字/击杀/高亮各 <see cref="BattleRankboardDriver.CellCount"/> 件）
         /// ——装配期判据，缺件走静默降级（不把"旧 prefab"当对局失败）。</summary>
         public bool HasRankboard =>
-            _rankNames != null && _rankNames.Length == BattleRankboardDriver.CellCount
+            _rankCells != null && _rankCells.Length == BattleRankboardDriver.CellCount
+            && _rankNames != null && _rankNames.Length == BattleRankboardDriver.CellCount
             && _rankKills != null && _rankKills.Length == BattleRankboardDriver.CellCount
             && _rankHighlights != null && _rankHighlights.Length == BattleRankboardDriver.CellCount;
 

@@ -25,8 +25,10 @@ namespace LiteGame
     /// </summary>
     public sealed class BattleKillFeedDriver : IDisposable
     {
-        /// <summary>同时可堆叠的行数（prefab 预置行数——行满则新条留队等待，不覆盖）。</summary>
-        public const int RowCount = 4;
+        /// <summary>同时可堆叠的行数（prefab 预置行数＝`Tmp_KillFeedRow` 实例数——行满则新条留队等待，不覆盖）。
+        /// 改本值须同批改 `Hud_Battle.prefab` 的行实例数——结构守卫
+        /// `BattleHudMenuEditModeTests.HUD_击杀提示面…` 按本值逐行点名，漏改即红。</summary>
+        public const int RowCount = 5;
 
         /// <summary>装备槽数（武器图标下标域；= <see cref="SimConfig.WeaponSlotsPerEntity"/>——不硬编码）。</summary>
         public const int SlotCount = SimConfig.WeaponSlotsPerEntity;

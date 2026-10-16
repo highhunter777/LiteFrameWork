@@ -18,7 +18,7 @@
 | 内容 | 位置/约定 |
 | --- | --- |
 | 页面 | `Assets/ShareResource/UI/Screens/`；YooAsset 独立页面打包按依赖分析配置 |
-| 控件模板 | `Assets/ShareResource/UI/Widgets/`（27 件 `Tmp_*`）；同族可用 Prefab Variant |
+| 控件模板 | `Assets/ShareResource/UI/Widgets/`（**29 件** `Tmp_*`）；同族可用 Prefab Variant |
 | 调试属性补丁 | `Assets/ShareResource/UI/Patches/`（待建，随 UIPatch 批）；只在 Editor/dev 使用，生产包排除 |
 | 字体 | `Assets/ShareResource/Fonts/`；字体族与 fallback 受统一配置管理 |
 | 运行时 | `Assets/LiteGame/UI/`；Lua 桥在 `Assets/LiteGame/LuaBridge/`；内容等适配在 `Assets/LiteClient/Adapters/` |
@@ -44,6 +44,8 @@
 - 横屏初始参考 1920×1080、Match=0.5；产品配置可覆盖。必须用实际比例、安全区和窗口尺寸验证，不能只检查存在 CanvasScaler。
 - 安全区应用于内容/交互容器；全屏背景可延伸至边缘。方向变化和安全区变化应刷新。
 - 小规模、低频变化、自适应文案可用 LayoutGroup/ContentSizeFitter；避免循环依赖和重复强制布局。高频 HUD、虚拟列表窗口位置由明确的布局算法控制，不能每帧全量重排。
+- **定数不滚动的 HUD 单元**（例：排行 8 格 / 击杀播报 5 行）＝**子件模板（`Tmp_*` 实例）+ 排布容器**：单元视觉改模板一处即全统一，位置/间距改容器参数（spacing/alignment）——容器会**接管子件的锚点与位置**（不得再手工摆位），且行/格内新增动效要走**内层承载件**（外层锚点归容器）。
+- **单元级显隐**：**隐藏＝关「单元根」；单元内子件保持激活**——编辑器里打开单元即可读/调子件，不必逐个点亮；按位/按状态的子件（自己格高亮、无归属行的击杀者与武器图标等）例外，由驱动显式开关。排布容器对**隐藏单元做紧凑排布**：格位需固定（排行序）时容器用 `UpperLeft`（隐藏尾部空格不改变占用格的槽位），列表式单元（播报行）允许紧凑上移。
 - 文案区域声明单行截断、换行、伸展或滚动策略；关键按钮、错误原因、确认结果不能仅靠截断通过验收。
 - 确定性模板可预排锚点与尺寸，但不可牺牲本地化、字体缩放和输入框自适应。
 
@@ -157,7 +159,7 @@ EditMode 结构检查不能替代依赖 Awake/OnEnable 的行为测试。已有�
 
 **语义词条（高频参考）**：动作——`Close`、`Confirm`、`Cancel`、`Back`、`Submit`、`Save`、`Reset`、`Retry`、`Refresh`、`Buy`、`Equip`、`Use`；角色——`Title`、`Message`、`Name`、`Value`、`Count`、`Level`、`Time`、`Desc`。规则：同页面同语义同词（`Close` 不混 `Quit`/`Exit`）；词条重复出现即补录本表（§1）。
 
-词表与词条数据化单源（Inspector 预设与校验器共读，见[工具专项 §2](UI编辑器工具专项设计.md)）；词表外新类别先登记（§1 例外表）再使用；规范与工具同批更新，不即兴造同义词（如再出 `Lst_`/`Pnl_`）。完整枚举（角色词 / 交互控件段 / 全部 27 件模板，与选段指引）见[UI 命名词表与控件清单](UI命名词表与控件清单.md)。
+词表与词条数据化单源（Inspector 预设与校验器共读，见[工具专项 §2](UI编辑器工具专项设计.md)）；词表外新类别先登记（§1 例外表）再使用；规范与工具同批更新，不即兴造同义词（如再出 `Lst_`/`Pnl_`）。完整枚举（角色词 / 交互控件段 / 全部 29 件模板，与选段指引）见[UI 命名词表与控件清单](UI命名词表与控件清单.md)。
 
 ### 9.4 私有件与克隆模板（必须）
 
@@ -181,7 +183,7 @@ EditMode 结构检查不能替代依赖 Awake/OnEnable 的行为测试。已有�
 | `UIMain/BtnClose` | `BtnClose` | `Button_Close` | 节点名已整改（UI 工具链命名批）；**`BindName` 未同步**——prefab 仍 `BtnClose`/`Label`、Lua 仍 `OnButton("BtnClose")`（功能链 Lua↔BindName 自洽不断链，属同文漂移非断链；2026-10-12 勘误——此前误记"BindName 同步"）。随页面批次连 Lua 同批收口 |
 | 存量页面根（`UIMain` 等） | 无前缀 | `Page_<语义>` | 牵动流程/表引用，随页面批次裁决（**未整改**——`UIMain` 根仍无前缀，校验报 Warning） |
 | `_Template`（Toast/FlyText/Dropdown）、`_ItemTemplate`（VirtualList/SimpleList） | 两套私有名 | `Clone_<语义>` | ✅ 已整改（`Clone_Template`/`Clone_Item`；容器脚本 `Template` 字段接线不变） |
-| 27 件控件模板（`Dialog`/`Toast`… 根与内部节点；清单见[UI 命名词表与控件清单](UI命名词表与控件清单.md)） | 裸类型名/旧式节点名 | 根 `Tmp_<控件类型>`（文件同名）；内部节点不强制业务命名、随模板批次整形 | ✅ 已整改（UI 工具链命名批：**文件改名** `Tmp_<控件类型>` 保 guid；内部件词缀化/`_` 私有化） |
+| 29 件控件模板（`Dialog`/`Toast`… 根与内部节点；清单见[UI 命名词表与控件清单](UI命名词表与控件清单.md)） | 裸类型名/旧式节点名 | 根 `Tmp_<控件类型>`（文件同名）；内部节点不强制业务命名、随模板批次整形 | ✅ 已整改（UI 工具链命名批：**文件改名** `Tmp_<控件类型>` 保 guid；内部件词缀化/`_` 私有化） |
 | `Stepper/Value` | `Value` | `Txt_Value` | ✅ 已整改 |
 
 ### 9.7 校验归属

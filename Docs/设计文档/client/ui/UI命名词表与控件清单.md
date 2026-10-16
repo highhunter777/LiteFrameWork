@@ -1,6 +1,6 @@
 # UI 命名词表与控件清单
 
-> 状态：现行清单（2026-10-10，控件模板 27 件核对；2026-10-11 起模板位于 `Assets/ShareResource/UI/Widgets` 且文件名 `Tmp_<控件类型>`——见《资源收集目录专项设计》）
+> 状态：现行清单（2026-10-10，控件模板 27 件核对；**2026-10-16 增至 29 件**——新增 `Tmp_RankCell`/`Tmp_KillFeedRow`（HUD 排行格/播报行子件模板，见《战斗HUD层级设计》与《施工进度/HUD子件与容器排布》）；2026-10-11 起模板位于 `Assets/ShareResource/UI/Widgets` 且文件名 `Tmp_<控件类型>`——见《资源收集目录专项设计》）
 > 定位：《UI制作规范》§9 的**完整枚举面**——供开发速查、Inspector 预设与校验器消费；**规则本体以 §9 为权威**（判据/同文/私有件/模板层等），本清单只枚举与举例
 > 维护：词表/控件增改先按 §9 §1 例外表登记，再同步本表**与机器可读副本**；**词表数据文件化已落地**——`Assets/LiteGame/Editor/UiTools/Naming/UiNamingWords.cs`（C# 常量表，Inspector 预设与校验核心共读；本表为内容源，C# 表为权威机器副本，改词表须同批改两处）
 
@@ -31,7 +31,7 @@
 | `ScrollRect_` | ScrollRect | `ScrollRect_Items` | 备用裸用；列表优先 `VirtualList_`/`SimpleList_` |
 | `Scrollbar_` | Scrollbar | `Scrollbar_Vertical` | 备用裸用 |
 
-### 1.3 控件模板段（全部 27 件；业务使用段 = 去 `Tmp_`）
+### 1.3 控件模板段（全部 **29** 件；业务使用段 = 去 `Tmp_`）
 
 模板本体按 `Tmp_<控件类型>`（特化 `Tmp_<控件类型>_<语义>`）命名，随模板批次整形；下表"使用段"应用于业务变体/页面实例（出处定段）。
 
@@ -47,6 +47,8 @@
 | Countdown | `Tmp_Countdown` | `Countdown_` | 倒计时 | `Countdown_Start` |
 | CountText | `Tmp_CountText` | `CountText_` | 计数文本（数字递增） | `CountText_Gold` |
 | HpBar | `Tmp_HpBar` | `HpBar_` | 血条 | `HpBar_Player` |
+| RankCell | `Tmp_RankCell` | （HUD 内部件，不占类型段） | 排行榜格单元（`Txt_Name`/`Txt_Kills`/`Image_Highlight`；HUD 里 8 实例 + `HorizontalLayoutGroup`） | `Cot_RankCell1..8` |
+| KillFeedRow | `Tmp_KillFeedRow` | （HUD 内部件，不占类型段） | 击杀提示行（`Txt_KillFeedKiller`/`Image_KillFeedWeapon`/`Txt_KillFeedVictim`；HUD 里 5 实例 + `VerticalLayoutGroup`） | `Cot_KillFeedRow1..5` |
 | ProgressBar | `Tmp_ProgressBar` | `ProgressBar_` | 进度条 | `ProgressBar_Task` |
 | AvatarFrame | `Tmp_AvatarFrame` | `AvatarFrame_` | 头像框（含等级角标） | `AvatarFrame_Player` |
 | AnimatedImage | `Tmp_AnimatedImage` | `AnimatedImage_` | 帧序列动画图 | `AnimatedImage_Banner` |

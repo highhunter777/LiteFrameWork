@@ -594,7 +594,8 @@ namespace LiteGame
 
             _hud = new BattleHudDriver(_context.Sim.State, () => _view != null ? _view.LocalEntityId : 0L,
                 _hudView.PanelGroup, _hudView.HpBar, _hudView.AmmoText,
-                _hudView.ReloadLabel);                              // 缺标签件=驱动内静默降级（不显示换弹态）
+                _hudView.ReloadLabel,                               // 缺标签件=驱动内静默降级（不显示换弹态）
+                _hudView.ReserveAmmoText, _hudView.SlashSeparator); // 剩余备弹读出（缺件=静默降级：只显当前弹匣）
             if (_hudView.SettingsButton != null && _menuClick != null)
                 _hudView.SettingsButton.onClick.AddListener(_menuClick);   // 对局菜单钮 → 流程层开设置页（退场链）
             Log.Info("hud-attached", LogTag.Battle);
@@ -611,12 +612,12 @@ namespace LiteGame
             if (_hudView == null) return;                  // HUD 已整体降级（AttachHud/准心处已警告）
             if (!_hudView.HasRankboard)
             {
-                Log.Warning("HUD prefab 排行榜格不齐（名字/击杀/高亮）×8——排行榜静默降级", LogTag.Battle);
+                Log.Warning("HUD prefab 排行榜格不齐（格根/名字/击杀/高亮）×8——排行榜静默降级", LogTag.Battle);
                 return;
             }
             _rankboard = new BattleRankboardDriver(_context.Sim.State,
                 () => _view != null ? _view.LocalEntityId : 0L,
-                _hudView.RankNames, _hudView.RankKills, _hudView.RankHighlights,
+                _hudView.RankCells, _hudView.RankNames, _hudView.RankKills, _hudView.RankHighlights,
                 _hudView.TeamScoreText);                   // 团队比分预留节点（缺 = 驱动内跳过）
             Log.Info("rankboard-attached", LogTag.Battle);
         }

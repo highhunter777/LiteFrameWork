@@ -14,7 +14,8 @@ namespace LiteGame.Tests.EditMode
     /// GraphicRaycaster 在 Cot_Settings、其 CanvasGroup ignoreParentGroups、唯一 raycastTarget=菜单钮；
     /// 引用件 _settingsButton 接线）；② Page_Settings——退场钮在位、缺省隐藏、BindName 同文（§9.1）；
     /// ③ Page_Room——房主开局钮在位、缺省隐藏（房主事实回放才显）、BindName 同文；
-    /// ④ Page_Lobby——创房钮在位、BindName 同文、三钮并排；⑤ Hud_Battle 排行榜——8 格预置、引用件齐备、零新射线。
+    /// ④ Page_Lobby——创房钮在位、BindName 同文、三钮并排；⑤ Hud_Battle 排行榜——8 格预置、引用件齐备、零新射线；
+    /// ⑥ Hud_Battle 弹药读出——当前弹匣/剩余备弹/分隔符三件在位且引用件已接、零新射线。
     /// 直接读 prefab 资产（不实例化——结构与接线是资产事实）。
     /// </summary>
     public sealed class BattleHudMenuEditModeTests : UnityTestBase
@@ -83,16 +84,18 @@ namespace LiteGame.Tests.EditMode
 
             var bind = exit.GetComponent("BindNode");
             Assert.IsNotNull(bind, "退场钮有 BindNode 标记（路径 A 索引）");
-            Assert.AreEqual("Exit", new SerializedObject(bind).FindProperty("BindName").stringValue,
-                "BindName 与节点语义同文（§9.1）");
+            // 口径（流程批 IV 裁决）：BindName = **节点名同文**（沿用房主开局钮先例）——本断言原写裸语义名 "Exit"，
+            // 与已落地的 prefab 形态（`Button_Exit`）不符，属陈旧断言（HEAD 即有红），随本批校正。
+            Assert.AreEqual("Button_Exit", new SerializedObject(bind).FindProperty("BindName").stringValue,
+                "BindName 与节点名同文（§9.1）");
 
             var label = exit.GetComponentInChildren<TMP_Text>(true);
             Assert.IsNotNull(label, "退场钮标签在位");
             Assert.AreEqual("Txt_Exit", label.gameObject.name, "标签名随克隆同文改名");
             var labelBind = label.GetComponent("BindNode");
             Assert.IsNotNull(labelBind, "标签有 BindNode（SetTextKey 寻址）");
-            Assert.AreEqual("Exit", new SerializedObject(labelBind).FindProperty("BindName").stringValue,
-                "标签 BindName 同文");
+            Assert.AreEqual("Txt_Exit", new SerializedObject(labelBind).FindProperty("BindName").stringValue,
+                "标签 BindName 与节点名同文");
         }
 
         [Test]
@@ -154,6 +157,31 @@ namespace LiteGame.Tests.EditMode
         }
 
         [Test]
+        public void 大厅页_开房参数控件在位_引用名同文()
+        {
+            GameObject root = AssetDatabase.LoadAssetAtPath<GameObject>(LobbyPath);
+            Assert.IsNotNull(root, "Page_Lobby.prefab 在库");
+
+            Transform row = FindDeep(root.transform, "Cot_CreateSetup");
+            Assert.IsNotNull(row, "开房参数行在位（选图/选人数）");
+
+            foreach (string n in new[] { "Txt_MapLabel", "Dropdown_Map", "Txt_PlayersLabel", "Dropdown_Players" })
+            {
+                Transform t = FindDeep(row, n);
+                Assert.IsNotNull(t, $"{n} 在位");
+                var bind = t.GetComponent("BindNode");
+                Assert.IsNotNull(bind, $"{n} 有 BindNode（受控索引）");
+                Assert.AreEqual(n, new SerializedObject(bind).FindProperty("BindName").stringValue,
+                    $"{n} 的 BindName 与节点名同文（§9.1）");
+            }
+
+            // 下拉 = Tmp_Dropdown 模板实例（根挂 UIDropdownWrap——受控 SetDropdownOptions/GetDropdown 的消费面）
+            foreach (string n in new[] { "Dropdown_Map", "Dropdown_Players" })
+                Assert.IsNotNull(FindDeep(row, n).GetComponent("UIDropdownWrap"),
+                    $"{n} 为下拉件（UIDropdownWrap——受控 API 按它取控件）");
+        }
+
+        [Test]
         public void HUD_排行榜_八格预置_引用件已接_零新射线()
         {
             GameObject root = AssetDatabase.LoadAssetAtPath<GameObject>(HudPath);
@@ -164,7 +192,7 @@ namespace LiteGame.Tests.EditMode
 
             var view = root.GetComponent<BattleHudView>();
             Assert.IsNotNull(view, "BattleHudView 引用件在位");
-            Assert.IsTrue(view.HasRankboard, "8 格名字/击杀/高亮引用齐备（缺件则装配期静默降级）");
+            Assert.IsTrue(view.HasRankboard, "8 格根/名字/击杀/高亮引用齐备（缺件则装配期静默降级）");
             Assert.IsNotNull(view.RankboardRoot, "排行榜容器引用已接");
             Assert.IsNotNull(view.TeamScoreText, "Txt_Score（团队比分预留）引用已接");
             Assert.IsFalse(view.TeamScoreText.gameObject.activeSelf, "团队比分预留节点缺省隐藏（FFA 不显示假 0）");
@@ -173,10 +201,18 @@ namespace LiteGame.Tests.EditMode
             {
                 Transform cell = FindDeep(board, "Cot_RankCell" + i);
                 Assert.IsNotNull(cell, $"第 {i} 格在位（**预置**——运行时代码禁建视觉元素）");
-                Assert.IsNotNull(FindDeep(cell, "Txt_Name"), $"第 {i} 格名字件");
-                Assert.IsNotNull(FindDeep(cell, "Txt_Kills"), $"第 {i} 格击杀件");
+                // 单元级显隐口径：**隐藏关格根，格内子件保持激活**（编辑器里可直接读/调，不必逐个点亮）
+                Assert.IsFalse(cell.gameObject.activeSelf, $"第 {i} 格格根缺省非激活（驱动按人数开关；缺省不显示占位）");
+                Assert.AreSame(cell.gameObject, view.RankCells[i - 1], $"第 {i} 格格根已接（BattleHudView._rankCells）");
+                Transform name = FindDeep(cell, "Txt_Name");
+                Transform kills = FindDeep(cell, "Txt_Kills");
+                Assert.IsNotNull(name, $"第 {i} 格名字件");
+                Assert.IsNotNull(kills, $"第 {i} 格击杀件");
+                Assert.IsTrue(name.gameObject.activeSelf, $"第 {i} 格名字件保持激活（隐藏只关格根）");
+                Assert.IsTrue(kills.gameObject.activeSelf, $"第 {i} 格击杀件保持激活（隐藏只关格根）");
                 Transform plate = FindDeep(cell, "Image_Highlight");
                 Assert.IsNotNull(plate, $"第 {i} 格高亮件");
+                Assert.IsTrue(plate.gameObject.activeSelf, $"第 {i} 格高亮件保持激活（按位开关归驱动）");
                 var graphic = plate.GetComponent<Graphic>();
                 Assert.IsNotNull(graphic, $"第 {i} 格高亮件是 Graphic");
                 Assert.IsFalse(graphic.raycastTarget, $"第 {i} 格高亮不拦射线（HUD 唯一射线件仍是菜单钮）");
@@ -234,6 +270,7 @@ namespace LiteGame.Tests.EditMode
                     var graphic = t.GetComponent<Graphic>();
                     Assert.IsNotNull(graphic, $"{t.name} 是 Graphic");
                     Assert.IsFalse(graphic.raycastTarget, $"{t.name} 不拦射线（HUD 唯一射线件仍是菜单钮）");
+                    Assert.IsTrue(t.gameObject.activeSelf, $"{t.name} 保持激活（行的隐藏只关行根，子件可直接读/调）");
                 }
             }
         }
@@ -255,6 +292,39 @@ namespace LiteGame.Tests.EditMode
             var graphic = view.NetStatsText.GetComponent<Graphic>();
             Assert.IsNotNull(graphic, "文本是 Graphic");
             Assert.IsFalse(graphic.raycastTarget, "网络质量文本不拦射线（HUD 唯一射线件仍是菜单钮）");
+        }
+
+        [Test]
+        public void HUD_弹药读出_当前弹匣与备弹_引用件已接_缺省在显()
+        {
+            GameObject root = AssetDatabase.LoadAssetAtPath<GameObject>(HudPath);
+            Assert.IsNotNull(root, "Hud_Battle.prefab 在库");
+            var view = root.GetComponent<BattleHudView>();
+            Assert.IsNotNull(view, "BattleHudView 引用件在位");
+
+            Transform box = FindDeep(root.transform, "Cot_Ammo");
+            Assert.IsNotNull(box, "弹药读出容器在位");
+            Transform ammo = FindDeep(box, "Txt_Ammo");
+            Transform slash = FindDeep(box, "Txt_Slash");
+            Transform reserve = FindDeep(box, "Txt_ReserveAmmo");
+            Assert.IsNotNull(ammo, "当前弹匣件在位");
+            Assert.IsNotNull(slash, "「/」分隔符件在位");
+            Assert.IsNotNull(reserve, "剩余备弹件在位");
+
+            Assert.AreSame(ammo.GetComponent<TextMeshProUGUI>(), view.AmmoText, "BattleHudView._ammoText 已接线（零 Find）");
+            Assert.AreSame(reserve.GetComponent<TextMeshProUGUI>(), view.ReserveAmmoText,
+                "BattleHudView._reserveAmmoText 已接线（备弹＝本人私有面 ReserveAmmo）");
+            Assert.AreSame(slash.gameObject, view.SlashSeparator,
+                "BattleHudView._slashSeparator 已接线（与备弹件同显隐——收起时读出只剩占位）");
+            Assert.IsTrue(reserve.gameObject.activeSelf, "备弹件缺省激活（装备即显；未装备由驱动随占位收起）");
+            Assert.IsTrue(slash.gameObject.activeSelf, "分隔符缺省激活（同上）");
+
+            foreach (Transform t in new[] { ammo, slash, reserve })
+            {
+                var graphic = t.GetComponent<Graphic>();
+                Assert.IsNotNull(graphic, $"{t.name} 是 Graphic");
+                Assert.IsFalse(graphic.raycastTarget, $"{t.name} 不拦射线（HUD 唯一射线件仍是菜单钮）");
+            }
         }
 
         private static Transform FindDeep(Transform parent, string name)

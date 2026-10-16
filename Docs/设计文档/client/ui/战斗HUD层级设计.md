@@ -1,6 +1,6 @@
 # 战斗HUD层级设计
 
-> 状态：**已实施（2026-10-11 批 A 落地；同日晚血条正式化／解包／模板化三批更新）**——`Hud_Battle.prefab` 制作/接线/收集/场景退役全部完成；批 B 装配拆分已由并行 BattleViewRig 批完成；**血条模板化**（血条改为控件模板 `Tmp_HpBar` 的 PrefabInstance，驱动走 `HpBar` 组件 API——见 §2.1）同日落位；**对局退场链**（HUD 批C 首段，2026-10-14）增设 `Cot_Settings` 菜单角组（单独开射线——§0 唯一事件例外）＋ `Button_Settings` 设置入口；**排行榜批（2026-10-15）** 增设 `Cot_Rankboard`/8 格（FFA 比分＝击杀）；**阵亡批（同日）** 增设 `Cot_Respawn`/`Cot_Protection`；**击杀提示批（同日）** 增设 `Cot_KillFeed`（4 行堆叠）；**ping/丢包批（同日）** 增设 `Cot_NetStats`
+> 状态：**已实施（2026-10-11 批 A 落地；同日晚血条正式化／解包／模板化三批更新）**——`Hud_Battle.prefab` 制作/接线/收集/场景退役全部完成；批 B 装配拆分已由并行 BattleViewRig 批完成；**血条模板化**（血条改为控件模板 `Tmp_HpBar` 的 PrefabInstance，驱动走 `HpBar` 组件 API——见 §2.1）同日落位；**对局退场链**（HUD 批C 首段，2026-10-14）增设 `Cot_Settings` 菜单角组（单独开射线——§0 唯一事件例外）＋ `Button_Settings` 设置入口；**排行榜批（2026-10-15）** 增设 `Cot_Rankboard`/8 格（FFA 比分＝击杀）；**阵亡批（同日）** 增设 `Cot_Respawn`/`Cot_Protection`；**击杀提示批（同日）** 增设 `Cot_KillFeed`（4 行堆叠）；**ping/丢包批（同日）** 增设 `Cot_NetStats`；**HUD 子件与容器批（2026-10-16）** 排行格/播报行抽为**子件模板**（`Tmp_RankCell`/`Tmp_KillFeedRow`）＋容器排布，播报上限 4→5；**弹药读出（2026-10-16）** 制作侧「当前弹匣 / 剩余备弹」三件（`Cot_Ammo`）入表并接线——右半边＝本人私有面 `WeaponRuntime.ReserveAmmo`（换弹递减），未装备随占位收起；节点由 `Txt_MaxAmmo` 改名 `Txt_ReserveAmmo`（名实一致）
 > 范围：对局战斗 HUD 单件——`Hud_Battle.prefab`（准心 + 血条/弹药/技能栏面板）
 > 上位：[战斗HUD专项设计](战斗HUD专项设计.md)（资产/通路/装配裁决）；[UI制作规范](UI制作规范.md) §9（命名）；[UI框架总设计](UI框架总设计.md)（HUD 分级驱动目标项）
 > 命名依据：§9 角色词表——本批新增 `Hud_` 根前缀（对局 HUD 根，表现域，不走 tbuiform/导航；已登记命名词表 §1.1）；容器/文本/图像沿用 `Cot_`/`Txt_`/`Image_`/`Icon_`
@@ -53,7 +53,8 @@ Hud_Battle                          Canvas(Overlay, order 0) + CanvasScaler(1920
    │     │  └─ Icon_Health          ICON_MilitaryCombat_Status_Health_02_Underlay
    │     └─ Txt_Hp                  TMP 血量数值（值变化才写）                        ◄View(经 HpBar 组件)
    ├─ Cot_Rankboard                 锚(0.5,1)+偏移(0,-16)——顶部中组点（FFA 比分=击杀排行榜）
-   │  ├─ Cot_RankCell1..8           8 格横排（140×56，中心 x = -490 + 140·n）——格位固定、内容按排行序填
+   │  ├─ Cot_RankCell1..8           8 格横排 = **`Widgets/Tmp_RankCell` 实例**（容器 `HorizontalLayoutGroup` spacing 0 / **UpperLeft**，容器 1120×56）
+   │  │                             ——格位固定（枢轴 x = -490 + 140·n）、内容按排行序填；尾空格**关格根**（格内子件保持激活）；改格视觉去模板
    │  │  ├─ Image_Highlight         格底高亮件（**仅自己那格**点亮；缺省非激活）
    │  │  ├─ Txt_Name                TMP 20 居中（上）——占位"玩家{k}"（真名字归 G3 Profile）
    │  │  └─ Txt_Kills               TMP 24 居中（下）——击杀数
@@ -64,16 +65,21 @@ Hud_Battle                          Canvas(Overlay, order 0) + CanvasScaler(1920
    ├─ Cot_Protection                锚(0.5,0)+偏移(0,120)——底中（复活保护期角标，缺省隐藏）
    │  └─ Txt_Protection             TMP 24 居中"保护中"                                ◄View
    ├─ Cot_KillFeed                  锚(1,1)+偏移(-32,-84)——右上角·设置钮下方（全局击杀提示，行堆叠向下）◄View
-   │  └─ Cot_KillFeedRow1..4       340×32，行距 36（**全预置**，缺省非激活——驱动按待展示队列开关）
+   │  └─ Cot_KillFeedRow1..5       行 = **`Widgets/Tmp_KillFeedRow` 实例**（5 行＝上限；容器 `VerticalLayoutGroup` spacing 4 / UpperRight，容器 340×176）
+   │                              ——缺省非激活（驱动按待展示队列开关）；行走高/图标/文字偏移去模板改（改一处全行统一）
    │     ├─ Txt_KillFeedKiller     TMP 22 右对齐（"你"/"玩家{k}"）                    ◄View(数组)
    │     ├─ Image_KillFeedWeapon   28×28（基线 = 步枪图标；驱动按击杀帧装备槽换图；无归属隐藏）◄View(数组)
    │     └─ Txt_KillFeedVictim     TMP 22 左对齐（"玩家{v}"）                          ◄View(数组)
    ├─ Cot_NetStats                   锚(0,1)+偏移(32,-24)——左上角（网络质量，缺省隐藏） ◄View
    │  └─ Txt_NetStats               TMP 20 左对齐"48ms / 0.3%"                          ◄View
    ├─ Cot_Weapon                    锚(1,0)+偏移(-32,32)——右下角组点
-   │  ├─ Icon_Weapon                ICON_SM_Wep_Preset_B_Rifle_03_Military_Clean 96×96（`ShareResource/UI/Icons/Weapons/` 复制件）
-   │  ├─ Txt_Ammo                   TMP 54 右对齐 "30"（图标左侧 16、底缘上抬 8）      ◄View
-   │  └─ Txt_Reload                 TMP 20 琥珀 "RELOADING"（弹药上方 96）——默认非激活 ◄View
+   │  ├─ Bg_Weapon                  底板（Synty 复制件；纯装饰，不接驱动）
+   │  ├─ Icon_Weapon                ICON_SM_Wep_Preset_B_Rifle_03_Military_Clean 96×96（`ShareResource/UI/Icons/Weapons/` 复制件；换图随武器归切枪批）
+   │  ├─ Cot_Ammo                   弹匣读出容器（无排布件——三件绝对定位）
+   │  │  ├─ Txt_Ammo                TMP 54 右对齐 "30"（当前弹匣；未装备 "--"）       ◄View
+   │  │  ├─ Txt_Slash               TMP 54 右对齐 "/"（分隔符——与备弹件**同显隐**）   ◄View
+   │  │  └─ Txt_ReserveAmmo         TMP 54 右对齐 "90"（剩余备弹＝本人私有面 `ReserveAmmo`）◄View
+   │  └─ Txt_Reload                 TMP 30 琥珀 "RELOADING"（弹药上方）——默认非激活   ◄View
    ├─ Cot_Skills                    锚(0.5,0)+偏移(0,24)——底中组点
       ├─ Cot_Skill1                 96×96，x=-112（槽下半入"地面"）
       ├─ Cot_Skill2                 96×96，x=0
@@ -96,22 +102,24 @@ Hud_Battle                          Canvas(Overlay, order 0) + CanvasScaler(1920
 | `Icon_Hip` / `Icon_Ads` | `GameObject HipForm / AdsForm` | BattleCrosshairDriver | 腰射/瞄准形态开关（含迟滞） |
 | `Cot_Panel` | `CanvasGroup PanelGroup` | BattleHudDriver | 本地未对齐整组隐藏 |
 | `HpBar_Player`（模板实例根） | `HpBar HpBar` | BattleHudDriver | 经控件 API `Set(hp, max)`——前条瞬时 + 后条延迟滑落（双条血格） |
-| `Txt_Ammo` | `TMP_Text AmmoText` | BattleHudDriver | 弹匣数（值变化才写） |
+| `Txt_Ammo` | `TMP_Text AmmoText` | BattleHudDriver | 弹匣数（值变化才写；未装备显示 `--`） |
+| `Txt_ReserveAmmo` | `TMP_Text ReserveAmmoText` | BattleHudDriver | 剩余备弹（本人私有面 `WeaponRuntime.ReserveAmmo`——换弹从备弹扣、随消耗递减；未装备**随占位收起**，不留陈旧值） |
+| `Txt_Slash` | `GameObject SlashSeparator` | BattleHudDriver | 「当前 / 备弹」分隔符（与备弹件**同显隐**——收起时读出只剩 `--`） |
 | `Txt_Reload` | `GameObject ReloadLabel` | BattleHudDriver | 按 `WeaponSlotState.Reloading` 开关 |
 | `Button_Settings` | `Button SettingsButton` | BattleViewRig（装配期接 onClick → `PageFlow.OpenBattleSettings`，拆装期摘） | 对局设置入口（退场链）——点击开设置页（对局中导航数据带 `battleExit`，ESC 空栈同源） |
 | `Cot_Rankboard` | `RectTransform RankboardRoot` | BattleRankboardDriver | 排行榜容器（日志口；显隐随对局） |
-| `Cot_RankCell1..8` | `TMP_Text[] RankNames` / `TMP_Text[] RankKills` / `GameObject[] RankHighlights` | BattleRankboardDriver | 格位固定；按 `Kills 降序 → EntityId 升序` 从左往右填（左=第一）；高亮仅自己格；人数 < 8 尾部空格隐藏 |
+| `Cot_RankCell1..8`（`Tmp_RankCell` 实例 ×8） | `GameObject[] RankCells`（格根） / `TMP_Text[] RankNames` / `TMP_Text[] RankKills` / `GameObject[] RankHighlights` | BattleRankboardDriver | 格位固定（容器 `HorizontalLayoutGroup` spacing 0 / UpperLeft 排布）；按 `Kills 降序 → EntityId 升序` 从左往右填（左=第一）；高亮仅自己格；人数 < 8 **尾部空格隐藏＝关格根**（格内子件保持激活，便于编辑） |
 | `Txt_Score` | `TMP_Text TeamScoreText` | BattleRankboardDriver | 团队比分**预留**（`Team==0` 隐藏——FFA 恒 0 不显示假数据） |
 | `Cot_Respawn` | `RectTransform RespawnRoot` | BattleRespawnHudDriver | 死亡等待面板显隐（`SimView.IsDead` 开关） |
 | `Txt_RespawnTitle` | `TMP_Text RespawnTitle` | BattleRespawnHudDriver | "已阵亡"／带归属"被 玩家{k} 击杀"（`Death` 帧事件 `role==Received` 驱动，事件到达才写） |
 | `Txt_RespawnCountdown` | `TMP_Text RespawnCountdown` | BattleRespawnHudDriver | 剩余秒（`RespawnFrame − Frame` 取整秒；**秒粒度才写**） |
 | `Cot_Protection` | `RectTransform ProtectionRoot` | BattleRespawnHudDriver | 保护期角标显隐（`Frame < InvulnerableUntilFrame`；开火取消/超时自然结束） |
 | `Cot_KillFeed` | `RectTransform KillFeedRoot` | BattleKillFeedDriver | 击杀提示容器（显隐随对局；日志口） |
-| `Cot_KillFeedRow1..4` | `GameObject[] KillFeedRows` / `TMP_Text[] KillFeedKillers` / `Image[] KillFeedWeapons` / `TMP_Text[] KillFeedVictims` | BattleKillFeedDriver | 4 行全预置；消费**公共击杀面**（快照 `recent_kills`）逐条播报，**多条堆叠**、行满留队、驻留 4s 回收 |
+| `Cot_KillFeedRow1..5`（`Tmp_KillFeedRow` 实例 ×5） | `GameObject[] KillFeedRows` / `TMP_Text[] KillFeedKillers` / `Image[] KillFeedWeapons` / `TMP_Text[] KillFeedVictims` | BattleKillFeedDriver | **5 行全预置＝上限**（容器 `VerticalLayoutGroup` 排布）；消费**公共击杀面**（快照 `recent_kills`）逐条播报，**多条堆叠**、行满留队、驻留 4s 回收 |
 | `Image_KillFeedWeapon`（各槽基线图） | `Sprite[] WeaponIcons` | BattleKillFeedDriver | 武器图标（下标 = 装备槽 `0..WeaponSlotsPerEntity-1`，收集目录复制件）——按击杀帧槽取图 |
 | `Cot_NetStats` / `Txt_NetStats` | `RectTransform NetStatsRoot` / `TMP_Text NetStatsText` | BattleNetworkHudDriver | 网络质量显示（探针 RTT/丢包千分比）；离线/无样本整组隐藏 |
 
-暴露共 8 项=面板/准心/菜单驱动的读写面；**排行榜批（2026-10-15）追加 4 项**（容器 + 名字/击杀/高亮三数组 + `Txt_Score` 预留），由 `BattleRankboardDriver` 独担；**阵亡批（2026-10-15）追加 5 项**（`Cot_Respawn` 面板 3 件 + `Cot_Protection` 角标 2 件），由 `BattleRespawnHudDriver` 独担；**击杀提示批（2026-10-15）追加 6 项**（`Cot_KillFeed` 容器 + 行四组数组 + 武器图标数组），由 `BattleKillFeedDriver` 独担；**ping/丢包批（2026-10-15）追加 2 项**（`Cot_NetStats`/`Txt_NetStats`），由 `BattleNetworkHudDriver` 独担——四批各自单一职责、互不混装。血条走 `LiteGame.UI.HpBar` 组件 API（单点引用，避免嵌套深层字段 override）；`Cot_Vitals/Cot_Weapon/Cot_Skills/Cot_Rankboard/Cot_Respawn/Cot_Protection/Cot_KillFeed/Cot_NetStats` 容器及装饰件不暴露（`Cot_Settings` 组件不暴露——按钮即交互面）。技能槽无数据面（占位），数据面落地时随批 C 扩展（届时评估技能 CD 走 UI 框架 U2 控件；技能数据面已按裁决移出批 C——待技能系统）。
+暴露共 8 项=面板/准心/菜单驱动的读写面；**排行榜批（2026-10-15）追加 4 项**（容器 + 名字/击杀/高亮三数组 + `Txt_Score` 预留），由 `BattleRankboardDriver` 独担；**阵亡批（2026-10-15）追加 5 项**（`Cot_Respawn` 面板 3 件 + `Cot_Protection` 角标 2 件），由 `BattleRespawnHudDriver` 独担；**击杀提示批（2026-10-15）追加 6 项**（`Cot_KillFeed` 容器 + 行四组数组 + 武器图标数组），由 `BattleKillFeedDriver` 独担；**ping/丢包批（2026-10-15）追加 2 项**（`Cot_NetStats`/`Txt_NetStats`），由 `BattleNetworkHudDriver` 独担——四批各自单一职责、互不混装；**弹药读出（2026-10-16）追加 2 项**（`Txt_ReserveAmmo` ＋ `Txt_Slash`，与在册的 `Txt_Ammo` 同组「当前 / 备弹」——`Txt_MaxAmmo` 由此改名），由 `BattleHudDriver` 兼担——`Cot_Ammo` 容器不暴露（显隐只开两件后缀）。血条走 `LiteGame.UI.HpBar` 组件 API（单点引用，避免嵌套深层字段 override）；`Cot_Vitals/Cot_Weapon/Cot_Skills/Cot_Rankboard/Cot_Respawn/Cot_Protection/Cot_KillFeed/Cot_NetStats/Cot_Ammo` 容器及装饰件不暴露（`Cot_Settings` 组件不暴露——按钮即交互面）。技能槽无数据面（占位），数据面落地时随批 C 扩展（届时评估技能 CD 走 UI 框架 U2 控件；技能数据面已按裁决移出批 C——待技能系统）。
 
 ## 2.1 血条形态来源：控件模板 `Tmp_HpBar`
 
@@ -166,4 +174,6 @@ Hud_Battle                          Canvas(Overlay, order 0) + CanvasScaler(1920
 | —（新增） | `Cot_Rankboard` / `Cot_RankCell1..8` / `Txt_Name` / `Txt_Kills` / `Image_Highlight` / `Txt_Score` | 排行榜批（2026-10-15）：FFA 比分=击杀（无旧名，全新件） |
 | —（新增） | `Cot_Respawn` / `Txt_RespawnTitle` / `Txt_RespawnCountdown` / `Cot_Protection` / `Txt_Protection` | 阵亡批（2026-10-15）：死亡等待倒计时 + 保护期角标（无旧名，全新件）；3D 保护壳见 `Assets/ShareResource/FX/fx_spawn_protection.prefab`（金色，归 FX 域——不走本表，见 §0） |
 | —（新增） | `Cot_KillFeed` / `Cot_KillFeedRow1..4` / `Txt_KillFeedKiller` / `Image_KillFeedWeapon` / `Txt_KillFeedVictim` | 击杀提示批（2026-10-15）：全局击杀提示（无旧名，全新件；4 行全预置、行堆叠向下） |
+| —（新增） | `Tmp_RankCell` / `Tmp_KillFeedRow`（子件模板，`Widgets/`） | HUD 子件与容器批（2026-10-16）：排行格/播报行抽模板＋容器排布；行数 4→5 |
 | —（新增） | `Cot_NetStats` / `Txt_NetStats` | ping/丢包批（2026-10-15）：网络质量显示（无旧名，全新件） |
+| —（新增／制作侧手改） | `Bg_Weapon` / `Cot_Ammo`（容器）/ `Txt_Slash`（原 `Txt_/`，UI 工具链批改名）/ `Txt_ReserveAmmo`（原 `Txt_MaxAmmo`，随语义更正改名） | 弹药读出（2026-10-16）：右下角「当前弹匣 / 剩余备弹」读出——`Txt_Ammo` 移入 `Cot_Ammo` 容器；备弹＝`WeaponRuntime.ReserveAmmo`（未装备随 `--` 收起），分隔符与备弹件同显隐 |
