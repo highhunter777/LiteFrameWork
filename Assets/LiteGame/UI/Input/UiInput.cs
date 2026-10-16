@@ -7,7 +7,7 @@ using UnityEngine.InputSystem.UI;
 namespace LiteGame
 {
     /// <summary>
-    /// UI 输入适配（R12 边界判例同 <c>UI/Anim</c> 的 DOTween——**UI 专属适配随 UI 壳归游戏侧**，
+    /// UI 输入适配（R12 边界判例同 <c>UI/Anim</c> 的 DOTween——**UI 专属适配随 UI 服务装配归游戏侧**，
     /// InputSystem 直读收敛在本目录这一个文件；其余 UI 代码只经本类的窄口）：
     ///
     /// - <see cref="EnsureEventSystem"/>：输入底座幂等建位（§7 基础设施例外——EventSystem 与 UI 输入
@@ -27,7 +27,7 @@ namespace LiteGame
             if (!Application.isPlaying) return false;
 
             var go = new GameObject("[UIEventSystem]");
-            Object.DontDestroyOnLoad(go);                       // 与 [UIRoot] 同寿（UI 壳不随场景销毁）
+            Object.DontDestroyOnLoad(go);                       // 与 [UIRoot] 同寿（UI 服务装配不随场景销毁）
             go.AddComponent<EventSystem>();
             go.AddComponent<InputSystemUIInputModule>().AssignDefaultActions();
             Log.Info("UI 输入底座就绪：[UIEventSystem] + InputSystemUIInputModule 默认动作集", LogTag.UI);

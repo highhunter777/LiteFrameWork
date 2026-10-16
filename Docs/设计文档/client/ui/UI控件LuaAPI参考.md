@@ -103,7 +103,7 @@ Lua `OnHide` 会解绑全部按钮，复用不重跑 `OnInit`，因此按钮绑�
 
 当前限制：
 
-- **`SetTextKey` / `SetTextKeyArgs` / `SetTextKeyPlural` 已生产可用**（批C-② 装配 `BindLocale`——`UiShellModule` 建语言服务经 `UIService localeProvider` 注入页面索引；批C-④ 起五页全量在用）。缺语言服务仍按"需先 BindLocale"抛（装配错误 fail-fast）；`SetList` 的行含文案键同样在装配期拦。
+- **`SetTextKey` / `SetTextKeyArgs` / `SetTextKeyPlural` 已生产可用**（批C-② 装配 `BindLocale`——`UiServiceModule` 建语言服务经 `UIService localeProvider` 注入页面索引；批C-④ 起五页全量在用）。缺语言服务仍按"需先 BindLocale"抛（装配错误 fail-fast）；`SetList` 的行含文案键同样在装配期拦。
 - **`Pulse` 全链统一 `0.2`（2026-10-10 裁决）**：`UiFx.Pulse`/`UIBindIndex.Pulse` 默认、`LuaBehaviourAdapter` shim 默认、以及原显式传参的两处调用点（`UIMain.lua`、`UIWidget.PlayPressFx`）全部为 `0.2`——呼吸至 20% 再回。`strength` 语义 = **目标 alpha 倍率**（`baseAlpha × strength`）：`>1` 为提亮方向、不透明对象上基本不可见，不用作默认/常规按压。
 - 未命中/类型不符多数路径抛 KeyNotFoundException 或 InvalidOperationException；部分装饰入口采用日志降级，不能统称“所有失败必抛”。具体实现以 UIBindIndex 为准。
 - 未知派发方法**开发期告警**（批C-⑥：`Log.Warning` 报 UnknownMethod；release 静默）——不吞拼写错误。
@@ -131,7 +131,7 @@ Lua `OnHide` 会解绑全部按钮，复用不重跑 `OnInit`，因此按钮绑�
 | TabGroup/BottomNav | 入口按钮可绑定 | G5 SelectTab 与导航适配 |
 | AnimatedImage/AvatarFrame | 可操作暴露节点 | G11 PlayAnim/StopAnim；G12 SetAvatar 与租约 |
 | UIEventRelay/GuideHighlight | 可见性 | G18 OnClickArea；G19 GuideTo |
-| SafeArea | 挂载并启用 SafeAreaReceiver 后自处理 | 统一根/内容区域装配；不能声称当前壳自动给所有页添加 |
+| SafeArea | 挂载并启用 SafeAreaReceiver 后自处理 | 统一根/内容区域装配；不能声称当前装配自动给所有页添加 |
 | 单向绑定 | C# UIBindIndex.BindText 已有 | G21 Lua 绑定句柄与释放协议 |
 
 G 编号用于追溯；总设计 U0～U4 决定实施顺序。

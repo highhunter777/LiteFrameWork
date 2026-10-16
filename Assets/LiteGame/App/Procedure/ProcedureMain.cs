@@ -64,7 +64,7 @@ namespace LiteGame
             {
                 TestModeRuntime.Active = false;
             }
-            // 工作台落点收尾（dev）：菜单退出后关工作台场景——回大厅页（UI 壳/页面在 DDOL 根上，不受影响）
+            // 工作台落点收尾（dev）：菜单退出后关工作台场景——回大厅页（UI 服务与页面在 DDOL 根上，不受影响）
             if (DebugTuner.TakeWorkbenchExitRequest()) DebugTuner.CloseWorkbenchScene();
 #endif
         }

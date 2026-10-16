@@ -12,7 +12,7 @@ namespace LiteGame.Editor.UiTools.Compose
     /// Prefab Stage 原生提供，产物即标准 prefab。
     ///
     /// **依赖边界**：Odin 只进 <c>LiteGame.Editor</c>（运行时组件零 Odin 依赖）；各分区类的
-    /// **逻辑面**（<see cref="UiComposeTarget"/> / <see cref="UiShellPropertyCatalog"/> /
+    /// **逻辑面**（<see cref="UiComposeTarget"/> / <see cref="UiWidgetPropertyCatalog"/> /
     /// <see cref="UiWidgetLibrary"/> / <see cref="UiWidgetInstaller"/>）保持零 Sirenix——"摘除 Odin 只换绘制层"。
     /// 页签体（树/报告/列表）走既有 IMGUI 绘制器，在 Odin 页签内混排。
     /// </summary>
@@ -39,7 +39,7 @@ namespace LiteGame.Editor.UiTools.Compose
         private bool _autoPicked;
 
         private readonly UiBindingsSection _bindings = new UiBindingsSection();
-        private readonly UiShellPropertySection _properties = new UiShellPropertySection();
+        private readonly UiWidgetPropertySection _properties = new UiWidgetPropertySection();
         private readonly UiValidationSection _validation = new UiValidationSection();
         private readonly UiGenerateSection _generate = new UiGenerateSection();
         private readonly UiWidgetLibrarySection _widgets = new UiWidgetLibrarySection();
@@ -74,7 +74,7 @@ namespace LiteGame.Editor.UiTools.Compose
         }
 
         [OnInspectorGUI, TabGroup(TabGroupName, "受控属性")]
-        private void DrawShellPropertyTab()
+        private void DrawWidgetPropertyTab()
         {
             if (_target == null) return;
             _properties.Draw(_target);

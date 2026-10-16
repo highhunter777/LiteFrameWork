@@ -6,15 +6,15 @@ using UnityEngine;
 namespace LiteGame.Editor.UiTools.Compose
 {
     /// <summary>
-    /// 受控属性分区（《UI编辑器工具专项设计》§5"受控属性"）：按白名单 attribute（<c>UiShellProperty</c>）
+    /// 受控属性分区（《UI编辑器工具专项设计》§5"受控属性"）：按白名单 attribute（<c>UiWidgetProperty</c>）
     /// 枚举可改成员，逐组件用 **Odin 属性树**只画白名单成员——未标注成员在本分区**没有任何绘制入口**，
     /// "不暴露控件内部实现"是机制而非按钮禁用。写入/Undo/脏标记由 Odin 属性树统一处理
     /// （<see cref="InspectorUtilities.BeginDrawPropertyTree"/> / <see cref="InspectorUtilities.EndDrawPropertyTree"/> 绘制对）。
     ///
-    /// 白名单发现走零 Sirenix 的 <see cref="UiShellPropertyCatalog"/>（测试只测该处）。
+    /// 白名单发现走零 Sirenix 的 <see cref="UiWidgetPropertyCatalog"/>（测试只测该处）。
     /// 几何/锚点/尺寸不在此面——归 Unity Prefab Stage 原生编辑（§5"布局操作仍由 Prefab Stage 提供"）。
     /// </summary>
-    public sealed class UiShellPropertySection
+    public sealed class UiWidgetPropertySection
     {
         private sealed class ComponentView
         {
@@ -23,7 +23,7 @@ namespace LiteGame.Editor.UiTools.Compose
         }
 
         private readonly List<ComponentView> _views = new List<ComponentView>();
-        private readonly List<UiShellPropRow> _rows = new List<UiShellPropRow>();
+        private readonly List<UiWidgetPropRow> _rows = new List<UiWidgetPropRow>();
         private Vector2 _scroll;
         private int _rootId = -1;
 
@@ -38,7 +38,7 @@ namespace LiteGame.Editor.UiTools.Compose
             SyncViews(target);
             if (_rows.Count == 0)
             {
-                EditorGUILayout.HelpBox("本页无受控属性声明——控件组件上未见 UiShellProperty 标注。", MessageType.Info);
+                EditorGUILayout.HelpBox("本页无受控属性声明——控件组件上未见 UiWidgetProperty 标注。", MessageType.Info);
                 return;
             }
 
@@ -47,7 +47,7 @@ namespace LiteGame.Editor.UiTools.Compose
 
             int unsupported = 0;
             foreach (var row in _rows)
-                if (row.Kind == UiShellPropKind.Unsupported) unsupported++;
+                if (row.Kind == UiWidgetPropKind.Unsupported) unsupported++;
             if (unsupported > 0)
                 EditorGUILayout.LabelField($"值型未支持 {unsupported} 行（受控最小集＝bool/int/float/string/enum；"
                                            + "其余按 Odin 默认绘制——需要收口就别标注）", EditorStyles.miniLabel);
@@ -91,7 +91,7 @@ namespace LiteGame.Editor.UiTools.Compose
             _rows.Clear();
             if (root == null) return;
 
-            _rows.AddRange(UiShellPropertyCatalog.Collect(root));
+            _rows.AddRange(UiWidgetPropertyCatalog.Collect(root));
             var membersByComponent = new Dictionary<Component, HashSet<string>>();
             var ordered = new List<Component>();
             foreach (var row in _rows)

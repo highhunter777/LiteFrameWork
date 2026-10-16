@@ -8,7 +8,7 @@ using UnityEngine;
 namespace LiteClient
 {
     /// <summary>
-    /// 表现壳 prefab 租约缓存（《商业级通用客户端总设计》§8.2——"Prefab 租约从加载完成持有至
+    /// 表现域 prefab 租约缓存（《商业级通用客户端总设计》§8.2——"Prefab 租约从加载完成持有至
     /// 最后一个依赖实例销毁"）：VFX/Entity 等表现服务的加载口适配。
     ///
     /// 语义：按 location **持租约返回 prefab**——同 location 重复取用共享一份租约（引用计数在内容服务侧）；

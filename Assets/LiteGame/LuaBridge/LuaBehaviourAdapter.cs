@@ -27,7 +27,7 @@ namespace LiteGame
     /// `self:OnInit/OnShow/...`（冒号定义的生命周期方法显式传 self）。
     /// ① 七个 LuaFunction 构造期一次取齐缓存（OnUpdate 每帧路径禁反复 Get）；
     /// ② 方法缺失 = 静默跳过（界面可只写需要的回调）；
-    /// ③ 异常防护由 UIForm 层的 SafeCall 统一承担（单回调抛 = 该界面降级，不炸壳）；
+    /// ③ 异常防护由 UIForm 层的 SafeCall 统一承担（单回调抛 = 该界面降级，不波及其他界面）；
     /// ④ 数据回传解包：LuaUIData → 原始 LuaTable；C# 自定义 IUIData 原样传入（userdata）；
     /// ⑤ 受控 API 面（§2.4）：OnInit 建绑定索引 + 给**实例**挂 `self.ui` 门面表（通用派发器，whitelist 单委托
     ///    Action&lt;string, LuaTable&gt;——EventBridge 同款手法，零新增生成）；OnHide 解绑全部按钮

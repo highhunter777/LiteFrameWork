@@ -41,7 +41,7 @@ namespace LiteClient
     }
 
     /// <summary>
-    /// 场景加载薄壳（DI 单例，ProcedureLaunch 注册）。**只提供机制，切换决策归 Procedure**——
+    /// 场景服务（DI 单例，ProcedureLaunch 注册）。**只提供机制，切换决策归 Procedure**——
     /// 业务禁止裸调 AssetService.LoadSceneAsync（设计方案 §1.3 场景行）。
     /// 加载方式（两种，语义各自钉死）：
     /// ① **单场景** `LoadSingleAsync/UnloadSingleAsync`——切换语义（先卸后载）；Unity Single 模式会销毁全部已开场景，
@@ -50,7 +50,7 @@ namespace LiteClient
     ///    同 location 重复加载 = Warning + no-op（幂等宽容，同事件注销口径）；卸载未加载 = no-op。
     /// 契约：location 为场景资源完整路径；失败抛 InvalidOperationException（含 location，fail-fast 由流程 Fail() 接）；
     /// 句柄全由本类持有不外泄（业务拿不到 SceneHandle，无泄漏窗口）；主线程 only；加载并发不设守卫（并发语义是调用方的策略）；
-    /// **叠加场景的 AudioListener/Camera 冲突由场景制作者处理**（机制壳不代管策略——实测叠加后会出现
+    /// **叠加场景的 AudioListener/Camera 冲突由场景制作者处理**（机制层不代管策略——实测叠加后会出现
     /// "multiple audio listeners" 警告，属被叠加场景自带监听器所致）。
     /// </summary>
     public sealed class SceneService : ISceneService

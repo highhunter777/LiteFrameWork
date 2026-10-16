@@ -70,7 +70,7 @@ namespace LiteGame.Tests.EditMode
                 loadPrefab: (loc, ct) => UniTask.FromResult<IUIPrefabLease>(UIPrefabLeases.Unowned(FakePrefab())),
                 transitionStrategy: new InstantTransition());
             _nav = new UINavigationController(_ui);
-            _baselineBack = () => _nav.BackAsync();               // UiShellModule 同款基线装订
+            _baselineBack = () => _nav.BackAsync();               // UiServiceModule 同款基线装订
             _ui.Focus.PlatformBack = _baselineBack;
 
             var lua = Scope.CreateGameObject("lua-host").AddComponent<LuaComponent>();

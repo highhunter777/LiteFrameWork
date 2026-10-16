@@ -42,7 +42,7 @@
 
 已有 `UIFormCatalog`、`UIService/UIForm/UIStack/UILayerGroup`、`IUIFormLogic`、`UIBindIndex/UIBindBase`、Lua 白名单派发与实例工厂、转场 Runner 与策略、SubscriptionBag、SafeAreaReceiver、控件模板构建/校验、样式颜色 token、LText 服务层和增量重填机制。应保留这些可用边界并补齐语义。
 
-源码入口：[UIService](../../../../Assets/LiteGame/UI/UIService.cs)（壳：开关管线 + 逻辑换表；协作件 [实例/租约/LRU](../../../../Assets/LiteGame/UI/UIFormStore.cs)、[遮盖推导](../../../../Assets/LiteGame/UI/UICoverageResolver.cs)、[模态堆栈](../../../../Assets/LiteGame/UI/UIModalStack.cs)）、[UIForm](../../../../Assets/LiteGame/UI/UIForm.cs)、[LuaBehaviourAdapter](../../../../Assets/LiteGame/LuaBridge/LuaBehaviourAdapter.cs)、[转场 Runner](../../../../Assets/LiteGame/UI/Transition/UITransitionRunner.cs)。
+源码入口：[UIService](../../../../Assets/LiteGame/UI/UIService.cs)（服务：开关管线 + 逻辑换表；协作件 [实例/租约/LRU](../../../../Assets/LiteGame/UI/UIFormStore.cs)、[遮盖推导](../../../../Assets/LiteGame/UI/UICoverageResolver.cs)、[模态堆栈](../../../../Assets/LiteGame/UI/UIModalStack.cs)）、[UIForm](../../../../Assets/LiteGame/UI/UIForm.cs)、[LuaBehaviourAdapter](../../../../Assets/LiteGame/LuaBridge/LuaBehaviourAdapter.cs)、[转场 Runner](../../../../Assets/LiteGame/UI/Transition/UITransitionRunner.cs)。
 
 ### 2.2 未实现边界
 

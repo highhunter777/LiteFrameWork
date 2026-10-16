@@ -8,7 +8,7 @@ using UnityEngine.UI;
 
 namespace LiteGame.UI
 {
-    /// <summary>确认/警告对话框控件：Configure 后由 UI 壳按表行打开；按钮回调一次性（弹起即清）。
+    /// <summary>确认/警告对话框控件：Configure 后由 UI 服务装配按表行打开；按钮回调一次性（弹起即清）。
     ///
     /// 等待式（<see cref="WaitAsync"/>）：DialogService（或直接消费方）在 Configure 后等待
     /// 按钮结果；<see cref="SettleExternally"/> 供"对话框被外部关闭"（导航 Back/Shutdown/收口）落定——

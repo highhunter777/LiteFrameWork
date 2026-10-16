@@ -69,7 +69,7 @@ namespace LiteGame.Tests.UI.PlayMode
         [UnityTearDown]
         public IEnumerator TearDown()
         {
-            // 表现壳服务不是 Object，须显式释放（幂等：用例内已关闭时再调无副作用）
+            // 表现域服务不是 Object，须显式释放（幂等：用例内已关闭时再调无副作用）
             _vfx?.Shutdown();
             _audio?.Shutdown();
             _vfx = null;
@@ -317,7 +317,7 @@ namespace LiteGame.Tests.UI.PlayMode
         public IEnumerator 租约_同location共享一份_卸载后归还且拒绝再取()
         {
             // 《框架先行》§6 样例③ 必测失败项「（卸载中）仍有租约」的落点。
-            // 载体是 `PrefabLeaseCache`——**装配层的租约归属方**（表现壳只持引用，释放归它）。
+            // 载体是 `PrefabLeaseCache`——**装配层的租约归属方**（表现域只持引用，释放归它）。
             // 用**真 `IContentService`**（YooAssetContentService → AssetService 真资源链路），
             // 不是替身：租约的引用计数语义只有真链路才成立。
             var content = new YooAssetContentService();

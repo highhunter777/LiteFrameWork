@@ -5,7 +5,7 @@ using LiteClient;
 
 namespace LiteGame
 {
-    /// <summary>③ 设置：加载玩家偏好（先于容器——UI/声音壳注册时就要读）；退出前保存（《客户端总设计》§6.1 刷新钩子语义）。</summary>
+    /// <summary>③ 设置：加载玩家偏好（先于容器——UI/音频服务注册时就要读）；退出前保存（《客户端总设计》§6.1 刷新钩子语义）。</summary>
     internal sealed class SettingsModule : IClientModule
     {
         private SettingService _settings;

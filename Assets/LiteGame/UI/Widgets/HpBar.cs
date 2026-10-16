@@ -26,10 +26,10 @@ namespace LiteGame.UI
         public Slider Slider;                            // 前条驱动面（模板内 UGUI Slider）
         public Image BackFill;                           // 后条（半透明克隆层，延迟滑落）
         public TMP_Text ValueText;                       // 可选数值文本
-        [UiShellProperty("数值文本格式")]
+        [UiWidgetProperty("数值文本格式")]
         [Tooltip("数值文本格式；{0}=当前 {1}=上限。留空不显示数值")]
         public string ValueFormat = "{0}/{1}";
-        [UiShellProperty("后条追赶速度")]
+        [UiWidgetProperty("后条追赶速度")]
         [Tooltip("后条滑落追赶速度（越大越快贴合前条）")]
         public float BackLerpSpeed = 2f;
 

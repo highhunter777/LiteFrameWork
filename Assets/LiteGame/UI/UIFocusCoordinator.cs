@@ -33,7 +33,7 @@ namespace LiteGame
         /// EditMode 用例直注实例——<c>current</c> 在编辑器不更新（实测），实例方法可用）。</summary>
         private readonly Func<EventSystem> _resolve;
 
-        /// <summary>平台返回入口（宿主装配点接线——UiShellModule 挂 <c>UINavigationController.BackAsync</c>）。
+        /// <summary>平台返回入口（宿主装配点接线——UiServiceModule 挂 <c>UINavigationController.BackAsync</c>）。
         /// 未接线时 RequestBack 返回 false（框架先行形态：无导航者即无返回）。</summary>
         public Func<UniTask<bool>> PlatformBack { get; set; }
 

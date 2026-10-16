@@ -87,7 +87,7 @@ namespace LiteGame.Editor.UiTools.Compose
                 if (component != null) components.Add(component.GetType().Name);
             EditorGUILayout.LabelField("组件：" + string.Join("、", components), EditorStyles.miniLabel);
 
-            var rows = UiShellPropertyCatalog.Collect(entry.Asset);
+            var rows = UiWidgetPropertyCatalog.Collect(entry.Asset);
             EditorGUILayout.LabelField(rows.Count > 0
                 ? $"受控属性 {rows.Count} 行（可改面）："
                 : "受控属性：无声明", EditorStyles.miniLabel);

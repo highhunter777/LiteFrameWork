@@ -37,7 +37,7 @@ namespace LiteGame
             s_contentRegistry = content ?? throw new ArgumentNullException(nameof(content));
         }
 
-        /// <summary>装配期注入 UI 壳（真实门面 Show/Close/IsOpen 的后端）。</summary>
+        /// <summary>装配期注入 UI 服务装配（真实门面 Show/Close/IsOpen 的后端）。</summary>
         public static void BindUIService(UIService uiService)
         {
             s_uiService = uiService ?? throw new ArgumentNullException(nameof(uiService));
@@ -49,7 +49,7 @@ namespace LiteGame
             s_nav = nav ?? throw new ArgumentNullException(nameof(nav));
         }
 
-        /// <summary>装配期注入语言服务工厂（text 门面后端；与页面索引 BindLocale 共用同一实例——UiShellModule）。</summary>
+        /// <summary>装配期注入语言服务工厂（text 门面后端；与页面索引 BindLocale 共用同一实例——UiServiceModule）。</summary>
         public static void BindText(Func<ILocalizationService> localeProvider)
         {
             s_localeProvider = localeProvider ?? throw new ArgumentNullException(nameof(localeProvider));
@@ -224,7 +224,7 @@ namespace LiteGame
             /// <summary>界面 lua_path → 逻辑表查询（骨架口；适配器链路经 UIService 解析器，不常走此口）。</summary>
             public static LuaTable GetLogic(string pagePath) => s_uiRegistry.Get(pagePath);
 
-            /// <summary>lua_path → id；未登记/装配缺失 → 错误日志 + false（Lua 侧调用不得炸壳）。</summary>
+            /// <summary>lua_path → id；未登记/装配缺失 → 错误日志 + false（Lua 侧调用不得外溢）。</summary>
             private static bool TryResolve(string pagePath, string method, out int id)
             {
                 if (s_nav == null || s_uiService == null)

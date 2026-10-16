@@ -8,11 +8,11 @@ using UnityEngine;
 namespace LiteGame
 {
     /// <summary>
-    /// UI 壳服务：栈 / 层级组 / 状态机 / 实例化管线
-    /// + 策略三件（构造注入，默认实现壳内自带——壳零策略硬编码）
-    /// + 转场编排层（§1.5：状态机 + 排队 1 + 超时兜底 + 壳统一管交互门；策略只是"表现体"）
+    /// UI 服务：栈 / 层级组 / 状态机 / 实例化管线
+    /// + 策略三件（构造注入，默认实现服务内自带——服务零策略硬编码）
+    /// + 转场编排层（§1.5：状态机 + 排队 1 + 超时兜底 + 服务统一管交互门；策略只是"表现体"）
     /// + 逻辑解析器（LuaBehaviourAdapter 接线；解析失败降级 NullLogic）。
-    /// 薄壳 = DI 注册的普通服务（设计方案 §1.3），装配点构造。
+    /// 本服务 = DI 注册的普通服务（设计方案 §1.3），装配点构造。
     /// 驱动：ITickable（GameEntry 统一喂）——仅 Active 态转发 OnUpdate（快照迭代——回调内开关界面安全）；
     /// 遮盖语义（组级批量暂停的灰盒形态）：全屏界面打开 → 更低层级组的 Active 界面批量 Covered，
     /// 关闭后按"仍开着的最高全屏"重算（多全屏叠开不误恢复）。
@@ -121,7 +121,7 @@ namespace LiteGame
             _focus = new UIFocusCoordinator();    // 焦点协调（§6.2——保存/恢复/平台返回；U2-⑦）
             _coverage = new UICoverageResolver(_groups, _focus);   // 遮盖推导（开/关事务序内调用）
             UiInput.EnsureEventSystem();          // 输入底座（幂等；§7 基础设施例外见 UiInput 判据）
-            Log.Info("UI 壳就绪:层级组 Bottom/Window/Top（策略三件默认实现）", LogTag.UI);
+            Log.Info("UI 服务就绪:层级组 Bottom/Window/Top（策略三件默认实现）", LogTag.UI);
         }
 
         /// <summary>打开界面（§4.2 统一流程：校验请求 → 获取或创建实例 → 校验初始化 → 复位视觉 →

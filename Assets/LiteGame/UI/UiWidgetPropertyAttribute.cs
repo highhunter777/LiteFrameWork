@@ -11,12 +11,12 @@ namespace LiteGame.UI
     /// 接线引用字段（如 <c>HpBar.Slider</c>）属内部实现，不标；几何/锚点归 Unity Prefab Stage 原生编辑，不进本面。
     /// </summary>
     [AttributeUsage(AttributeTargets.Field)]
-    public sealed class UiShellPropertyAttribute : Attribute
+    public sealed class UiWidgetPropertyAttribute : Attribute
     {
         /// <summary>面板显示名（留空＝用字段名）。</summary>
         public string DisplayName;
 
-        public UiShellPropertyAttribute(string displayName = null)
+        public UiWidgetPropertyAttribute(string displayName = null)
         {
             DisplayName = displayName;
         }

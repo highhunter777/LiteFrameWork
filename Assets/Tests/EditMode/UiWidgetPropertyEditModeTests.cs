@@ -13,7 +13,7 @@ namespace LiteGame.Tests.EditMode
     /// 真实模板资产面回归。
     /// </summary>
     [Category(LiteTesting.TestCategory.Contract)]
-    public sealed class UiShellPropertyEditModeTests
+    public sealed class UiWidgetPropertyEditModeTests
     {
         private GameObject _probe;
 
@@ -30,7 +30,7 @@ namespace LiteGame.Tests.EditMode
             _probe = new GameObject("Txt_Probe", typeof(RectTransform));
             _probe.AddComponent<HpBar>();
 
-            var rows = UiShellPropertyCatalog.Collect(_probe);
+            var rows = UiWidgetPropertyCatalog.Collect(_probe);
             var members = rows.Select(r => r.MemberName).ToList();
 
             CollectionAssert.Contains(members, "ValueFormat", "标注字段须进受控面");
@@ -47,7 +47,7 @@ namespace LiteGame.Tests.EditMode
             _probe.AddComponent<UnityEngine.UI.Slider>();                 // UGUI 契约件
             _probe.AddComponent<TMPro.TextMeshProUGUI>();
 
-            CollectionAssert.IsEmpty(UiShellPropertyCatalog.Collect(_probe), "非 LiteGame.UI 组件不产生受控行");
+            CollectionAssert.IsEmpty(UiWidgetPropertyCatalog.Collect(_probe), "非 LiteGame.UI 组件不产生受控行");
         }
 
         [Test]
@@ -56,10 +56,10 @@ namespace LiteGame.Tests.EditMode
             _probe = new GameObject("Txt_ProbeNames", typeof(RectTransform));
             _probe.AddComponent<HpBar>();
 
-            var row = UiShellPropertyCatalog.Collect(_probe).First(r => r.MemberName == "ValueFormat");
+            var row = UiWidgetPropertyCatalog.Collect(_probe).First(r => r.MemberName == "ValueFormat");
 
             Assert.AreEqual("数值文本格式", row.DisplayName, "显示名取自 attribute");
-            Assert.AreEqual(UiShellPropKind.String, row.Kind);
+            Assert.AreEqual(UiWidgetPropKind.String, row.Kind);
             Assert.IsNotEmpty(row.Tooltip, "字段 Tooltip 带入行（面板提示用）");
             Assert.AreEqual("HpBar", row.ComponentTypeName);
             Assert.IsNotNull(row.Key);
@@ -68,14 +68,14 @@ namespace LiteGame.Tests.EditMode
         [Test]
         public void 值型归类_最小集与未支持显式区分()
         {
-            Assert.AreEqual(UiShellPropKind.Bool, UiShellPropertyCatalog.Classify(typeof(bool)));
-            Assert.AreEqual(UiShellPropKind.Int, UiShellPropertyCatalog.Classify(typeof(int)));
-            Assert.AreEqual(UiShellPropKind.Float, UiShellPropertyCatalog.Classify(typeof(float)));
-            Assert.AreEqual(UiShellPropKind.String, UiShellPropertyCatalog.Classify(typeof(string)));
-            Assert.AreEqual(UiShellPropKind.Enum, UiShellPropertyCatalog.Classify(typeof(UiTextRole)));
-            Assert.AreEqual(UiShellPropKind.Unsupported, UiShellPropertyCatalog.Classify(typeof(Color)),
+            Assert.AreEqual(UiWidgetPropKind.Bool, UiWidgetPropertyCatalog.Classify(typeof(bool)));
+            Assert.AreEqual(UiWidgetPropKind.Int, UiWidgetPropertyCatalog.Classify(typeof(int)));
+            Assert.AreEqual(UiWidgetPropKind.Float, UiWidgetPropertyCatalog.Classify(typeof(float)));
+            Assert.AreEqual(UiWidgetPropKind.String, UiWidgetPropertyCatalog.Classify(typeof(string)));
+            Assert.AreEqual(UiWidgetPropKind.Enum, UiWidgetPropertyCatalog.Classify(typeof(UiTextRole)));
+            Assert.AreEqual(UiWidgetPropKind.Unsupported, UiWidgetPropertyCatalog.Classify(typeof(Color)),
                 "未支持值型须显式归类（面板列「未支持值型」，不静默跳过）");
-            Assert.AreEqual(UiShellPropKind.Unsupported, UiShellPropertyCatalog.Classify(typeof(GameObject)));
+            Assert.AreEqual(UiWidgetPropKind.Unsupported, UiWidgetPropertyCatalog.Classify(typeof(GameObject)));
         }
 
         [Test]
@@ -85,7 +85,7 @@ namespace LiteGame.Tests.EditMode
             var asset = AssetDatabase.LoadAssetAtPath<GameObject>(path);
             Assert.IsNotNull(asset, "模板资产缺失：" + path);
 
-            var rows = UiShellPropertyCatalog.Collect(asset);
+            var rows = UiWidgetPropertyCatalog.Collect(asset);
 
             Assert.IsNotEmpty(rows, "真实模板应产生受控行");
             var hp = rows.Where(r => r.ComponentTypeName == "HpBar").Select(r => r.MemberName).ToList();

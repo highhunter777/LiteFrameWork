@@ -137,13 +137,13 @@ namespace LiteGame
         {
             host.AddModule(new PlatformInfrastructureModule())   // ① 本地持久化 + 日志（先于一切 IO）
                 .AddModule(new ContentModule())                  // ② IContentService（配置/Lua 字节通道的租约来源）
-                .AddModule(new SettingsModule())                 // ③ 玩家偏好（先于容器——UI/声音壳注册时就要读）
+                .AddModule(new SettingsModule())                 // ③ 玩家偏好（先于容器——UI/音频服务注册时就要读）
                 .AddModule(new ClocksModule())                   // ④ 双轨时钟 + 事件中心
                 .AddModule(new SchedulersModule())               // ⑤ 时序执行（依赖 ④）
                 .AddModule(new LuaHostModule(gameObject))        // ⑥ 脚本宿主（同 GameObject 组件）
                 .AddModule(new ConfigModule())                   // ⑦ 表投影数据源（依赖 ② 的租约通道）
-                .AddModule(new UiShellModule())                  // ⑧ UI 壳（依赖 ⑥⑦②）
-                .AddModule(new PresentationModule())             // ⑨ 表现壳 + 相机服务（依赖 ②④）
+                .AddModule(new UiServiceModule())                // ⑧ UI 服务装配（依赖 ⑥⑦②）
+                .AddModule(new PresentationModule())             // ⑨ 表现域 + 相机服务（依赖 ②④）
                 .AddModule(new InputModule())                    // ⑩ 输入服务（设备源；瞄准相机取自 ⑨ 登记的主相机）
                 .AddModule(new ContainerModule());               // ⑪ 容器与流程机（消费以上全部——装配根最后一段）
         }

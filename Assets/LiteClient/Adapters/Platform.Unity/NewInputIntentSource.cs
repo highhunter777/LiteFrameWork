@@ -71,7 +71,7 @@ namespace LiteClient
             _actions.GamePlay.Enable();          // 采集前置：动作图未启用时所有读数恒为零（静默失效的经典形态）
         }
 
-        /// <summary>瞄准解算相机（对局相机随局变化——表现壳建好后经 <c>IInputService.SetAimCamera</c> 注入）。</summary>
+        /// <summary>瞄准解算相机（对局相机随局变化——表现域建好后经 <c>IInputService.SetAimCamera</c> 注入）。</summary>
         public Camera Camera
         {
             get => _camera;
@@ -79,7 +79,7 @@ namespace LiteClient
         }
 
         /// <summary>
-        /// 瞄准解算相机（装配根注入：表现壳建好主相机后设一次）。
+        /// 瞄准解算相机（装配根注入：表现域建好主相机后设一次）。
         /// **为什么不进 <see cref="IIntentSource"/> 接口**：那会让核心接口依赖 <c>UnityEngine.Camera</c>，
         /// 从而把 `LiteClient.Runtime` 的输入三件排除出 L1 的源链接覆盖（纯逻辑那部分必须能脱离引擎编译）。
         /// 相机只是**本实现**的输入之一，由装配根对具体类型设置即可——接口不必为实现的设备差异扩面。

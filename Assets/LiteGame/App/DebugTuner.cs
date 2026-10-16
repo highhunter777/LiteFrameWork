@@ -174,7 +174,7 @@ namespace LiteGame
             return v;
         }
 
-        /// <summary>关闭工作台场景（落点收尾：回大厅页——UI 壳/页面都在 DontDestroyOnLoad 根上，不受影响）。
+        /// <summary>关闭工作台场景（落点收尾：回大厅页——UI 服务与页面都在 DontDestroyOnLoad 根上，不受影响）。
         /// 仅编辑器形态（dev 场景不进收集组）；未加载 = no-op。</summary>
         public static void CloseWorkbenchScene()
         {

@@ -52,7 +52,7 @@ namespace LiteGame
         /// </summary>
         public Func<bool> BackInterceptor { get; set; }
 
-        /// <param name="ui">UI 壳服务（导航的执行引擎）。</param>
+        /// <param name="ui">UI 服务装配服务（导航的执行引擎）。</param>
         /// <param name="nowMs">单调毫秒源（默认 Stopwatch；测试注入假时钟驱动等待超时判定）。</param>
         public UINavigationController(UIService ui, int queueCapacity = DefaultQueueCapacity,
             float openTimeoutSeconds = DefaultOpenTimeoutSeconds, Func<long> nowMs = null)

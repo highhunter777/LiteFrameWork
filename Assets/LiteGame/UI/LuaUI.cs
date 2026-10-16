@@ -19,7 +19,7 @@ namespace LiteGame
     /// 依赖方向为 **LuaBridge → UI 契约**，UI 侧不认识脚本运行时。
     /// 这与 `ILuaRegistry`（住核心层、无 xLua）同一纪律：**Lua 契约不带具体运行时**。
     /// 数据传参一律 <see cref="IUIData"/>（禁 object）；调用一律经 <see cref="UIForm"/> 的 SafeCall 防护——
-    /// 单个回调抛异常 = 该界面降级，不炸壳（错误语义同事件桥，§3.4 降级细则）。
+    /// 单个回调抛异常 = 该界面降级，不波及其他界面（错误语义同事件桥，§3.4 降级细则）。
     /// </summary>
     public interface IUIFormLogic
     {

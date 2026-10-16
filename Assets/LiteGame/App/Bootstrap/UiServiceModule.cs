@@ -7,15 +7,15 @@ using LiteClient;
 
 namespace LiteGame
 {
-    /// <summary>⑧ UI 壳：三注册表 + 红点 + UIService（逻辑解析器接 LuaBehaviourAdapter ← UI 注册表，解析失败降级 NullLogic）
+    /// <summary>⑧ UI 服务装配：三注册表 + 红点 + UIService（逻辑解析器接 LuaBehaviourAdapter ← UI 注册表，解析失败降级 NullLogic）
     /// + LText 语言服务（tbltext→目录→服务，批C-② 生产装配——页面 SetTextKey 由"必抛"转正）。
     /// prefab 加载经内容服务租约（实例持租约到销毁）；Shutdown 释放面。</summary>
-    internal sealed class UiShellModule : IClientModule
+    internal sealed class UiServiceModule : IClientModule
     {
         private RedDotRegistry _redDotRegistry;
         private UIService _uiService;
 
-        public string Name => "UiShell";
+        public string Name => "UiService";
 
         public UniTask InitializeAsync(ClientContext context, CancellationToken ct)
         {

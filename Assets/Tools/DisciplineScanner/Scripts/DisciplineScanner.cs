@@ -36,8 +36,8 @@ namespace Tools.DisciplineScan
         /// <summary>R9 禁 Mod 相关类型（`Assets/LiteSim`）：守《模组系统设计》红线 M1「模组永不进 Sim」（判定必须在权威内）。</summary>
         R9ModInSim = 9,
 
-        /// <summary>R10 禁 INetworkService（`Shell/UI`）：薄壳/UI 不得直发业务包（网络契约归框架层，业务数据经事件/桥过）。</summary>
-        R10ShellSendsBusinessPacket = 10,
+        /// <summary>R10 禁 INetworkService（`UI 层`）：UI 层不得直发业务包（网络契约归框架层，业务数据经事件/桥过）。</summary>
+        R10UiSendsBusinessPacket = 10,
 
         /// <summary>R11 RoomServer/Runtime 纯化（《商业级通用服务端框架总设计》§8.1 禁止项）：
         /// 禁 Transport/Socket/kcp、系统墙钟/Stopwatch/LongSleep、Console、文件 IO、proto/LiteNet 引用与全局随机。</summary>
@@ -179,7 +179,7 @@ namespace Tools.DisciplineScan
             // 住 `Assets/LiteGame/LuaBridge/`——同守本边界
             ("XLua", new[] { "Assets/LiteClient/Adapters/Scripting.XLua/", "Assets/LiteGame/LuaBridge/" }),
             // Unity.InputSystem：输入设备适配——框架侧设备源只认 Platform.Unity；**UI 输入适配**
-            // （EventSystem/输入模块建位 + 平台返回键直读）随 UI 壳归游戏侧（同下 DOTween 的
+            // （EventSystem/输入模块建位 + 平台返回键直读）随 UI 服务装配归游戏侧（同下 DOTween 的
             // `UI/Anim` 判例——游戏侧专属适配住专属子目录，收敛在一个文件）
             ("UnityEngine.InputSystem", new[] { "Assets/LiteClient/Adapters/Platform.Unity/", "Assets/LiteGame/UI/Input/" }),
             // Cinemachine：相机适配（同上）——消费者只认 ICameraService 端口，不认识这个包
@@ -260,7 +260,7 @@ namespace Tools.DisciplineScan
             LintRule.R7InvalidMetaGuid,
             LintRule.R8ResourcesLoad,
             LintRule.R9ModInSim,
-            LintRule.R10ShellSendsBusinessPacket,
+            LintRule.R10UiSendsBusinessPacket,
             LintRule.R11RuntimePurity,
             LintRule.R12AdapterBoundary,
             LintRule.R13StaticConfigPort,
@@ -279,7 +279,7 @@ namespace Tools.DisciplineScan
                 case LintRule.R7InvalidMetaGuid: return "R7";
                 case LintRule.R8ResourcesLoad: return "R8";
                 case LintRule.R9ModInSim: return "R9";
-                case LintRule.R10ShellSendsBusinessPacket: return "R10";
+                case LintRule.R10UiSendsBusinessPacket: return "R10";
                 case LintRule.R11RuntimePurity: return "R11";
                 case LintRule.R12AdapterBoundary: return "R12";
                 case LintRule.R13StaticConfigPort: return "R13";
@@ -457,7 +457,7 @@ namespace Tools.DisciplineScan
                 case LintRule.R6NativeCoroutine: return R6Regex.IsMatch(code);
                 case LintRule.R8ResourcesLoad: return R8Regex.IsMatch(code);
                 case LintRule.R9ModInSim: return R9Regex.IsMatch(code);
-                case LintRule.R10ShellSendsBusinessPacket: return R10Regex.IsMatch(code);
+                case LintRule.R10UiSendsBusinessPacket: return R10Regex.IsMatch(code);
                 case LintRule.R11RuntimePurity: return R11Regex.IsMatch(code);
                 case LintRule.R12AdapterBoundary:
                 {

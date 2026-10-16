@@ -8,7 +8,7 @@ using UnityEngine;
 namespace LiteGame.Editor.UiTools.Compose
 {
     /// <summary>受控属性行的值型（面板按型分派编辑器；未支持型显式列出，不静默跳过）。</summary>
-    public enum UiShellPropKind
+    public enum UiWidgetPropKind
     {
         Bool,
         Int,
@@ -19,7 +19,7 @@ namespace LiteGame.Editor.UiTools.Compose
     }
 
     /// <summary>受控属性行（白名单发现结果）。</summary>
-    public sealed class UiShellPropRow
+    public sealed class UiWidgetPropRow
     {
         /// <summary>节点相对 prefab 根的路径（与绑定/报告同口径）。</summary>
         public string NodePath;
@@ -30,7 +30,7 @@ namespace LiteGame.Editor.UiTools.Compose
         /// <summary>字段名。</summary>
         public string MemberName;
 
-        public UiShellPropKind Kind;
+        public UiWidgetPropKind Kind;
 
         /// <summary>面板显示名（attribute 未给＝字段名）。</summary>
         public string DisplayName;
@@ -49,39 +49,39 @@ namespace LiteGame.Editor.UiTools.Compose
 
     /// <summary>
     /// 受控属性白名单发现（《UI编辑器工具专项设计》§5"受控属性"）：遍历自有控件组件（程序集＝
-    /// <c>LiteGame.UI</c>，锚点为本单源 attribute 自身），只收带 <see cref="UiShellPropertyAttribute"/>
+    /// <c>LiteGame.UI</c>，锚点为本单源 attribute 自身），只收带 <see cref="UiWidgetPropertyAttribute"/>
     /// 的公开实例字段。**未标注成员不进枚举**——UGUI 契约件（Slider/Image/TMP）与 <c>_私有件</c> 天然不在白名单，
     /// "不改控件内部实现"由此成为机制而非按钮禁用。
     ///
     /// 纯逻辑面（零 Sirenix）：编排面板按本结果分流绘制，EditMode 用例直测此处。
     /// </summary>
-    public static class UiShellPropertyCatalog
+    public static class UiWidgetPropertyCatalog
     {
         /// <summary>LiteGame.UI 程序集锚点（本单源 attribute 自身——不写死程序集名字符串）。</summary>
-        private static readonly Assembly UiAssembly = typeof(UiShellPropertyAttribute).Assembly;
+        private static readonly Assembly UiAssembly = typeof(UiWidgetPropertyAttribute).Assembly;
 
         /// <summary>该组件是否属自有 UI 程序集（受控面只认自有控件）。</summary>
         public static bool IsControlledComponent(Component component)
             => component != null && component.GetType().Assembly == UiAssembly;
 
         /// <summary>值型归类（bool/int/float/string/enum 为受控最小集；其余＝Unsupported）。</summary>
-        public static UiShellPropKind Classify(Type type)
+        public static UiWidgetPropKind Classify(Type type)
         {
-            if (type == typeof(bool)) return UiShellPropKind.Bool;
-            if (type == typeof(int)) return UiShellPropKind.Int;
-            if (type == typeof(float)) return UiShellPropKind.Float;
-            if (type == typeof(string)) return UiShellPropKind.String;
-            if (type.IsEnum) return UiShellPropKind.Enum;
-            return UiShellPropKind.Unsupported;
+            if (type == typeof(bool)) return UiWidgetPropKind.Bool;
+            if (type == typeof(int)) return UiWidgetPropKind.Int;
+            if (type == typeof(float)) return UiWidgetPropKind.Float;
+            if (type == typeof(string)) return UiWidgetPropKind.String;
+            if (type.IsEnum) return UiWidgetPropKind.Enum;
+            return UiWidgetPropKind.Unsupported;
         }
 
         /// <summary>
         /// 收集显示根下的全部受控属性行（按 节点路径/组件类型/字段名 稳定序）。
         /// 未标注成员、非自有程序集组件、私有/静态字段一律不进结果。
         /// </summary>
-        public static List<UiShellPropRow> Collect(GameObject root)
+        public static List<UiWidgetPropRow> Collect(GameObject root)
         {
-            var rows = new List<UiShellPropRow>();
+            var rows = new List<UiWidgetPropRow>();
             if (root == null) return rows;
 
             foreach (var component in root.GetComponentsInChildren<Component>(true))
@@ -89,11 +89,11 @@ namespace LiteGame.Editor.UiTools.Compose
                 if (!IsControlledComponent(component)) continue;
                 foreach (var field in component.GetType().GetFields(BindingFlags.Public | BindingFlags.Instance))
                 {
-                    var attribute = (UiShellPropertyAttribute)Attribute.GetCustomAttribute(
-                        field, typeof(UiShellPropertyAttribute), inherit: true);
+                    var attribute = (UiWidgetPropertyAttribute)Attribute.GetCustomAttribute(
+                        field, typeof(UiWidgetPropertyAttribute), inherit: true);
                     if (attribute == null) continue;
 
-                    rows.Add(new UiShellPropRow
+                    rows.Add(new UiWidgetPropRow
                     {
                         NodePath = UiBindingRename.RelativePath(component.transform),
                         ComponentTypeName = component.GetType().Name,

@@ -6,7 +6,7 @@ namespace LiteFramework
 {
     /// <summary>
     /// 客户端模块契约：ClientHost 按依赖顺序初始化/逆序关闭的最小单元。
-    /// 模块 = 一块有独立生命周期的启动能力（平台设施、设置、Lua 宿主、UI 壳、表现壳……）；
+    /// 模块 = 一块有独立生命周期的启动能力（平台设施、设置、Lua 宿主、UI 服务装配、表现域……）；
     /// "依赖顺序即注册顺序"由装配方（GameEntry 收敛后的引导适配器）表达，Host 不做依赖图推断。
     /// </summary>
     public interface IClientModule

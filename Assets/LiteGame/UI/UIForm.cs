@@ -8,7 +8,7 @@ namespace LiteGame
     /// <summary>
     /// 界面运行时实例：状态机 + 逻辑持有 + 画布就位。
     /// 状态迁移全部走本类守卫方法（非法迁移当场抛——fail-fast 精神 §3.4）；
-    /// 逻辑回调统一经 SafeCall（单个回调抛 = 该界面降级，不炸壳——错误语义同事件桥）。
+    /// 逻辑回调统一经 SafeCall（单个回调抛 = 该界面降级，不波及其他界面——错误语义同事件桥）。
     /// 画布契约：prefab 根必须自带 Canvas（overrideSorting）+ CanvasGroup；sortingOrder 由层级组分配。
     /// 首次与复用共用 <see cref="PrepareForShow"/> 复位；
     /// Covered/Paused 属"仍打开"，同样可关闭；首次 OnInit/OnShow 失败对外报失败以便壳回滚。

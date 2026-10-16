@@ -7,7 +7,7 @@ using UnityEngine;
 namespace LiteClient
 {
     /// <summary>
-    /// 声音壳：**组 + 代理模型**。组 = 类别（Effect/Ui/Voice/Bgm），每组 N 个 AudioSource 代理轮转
+    /// 音频服务：**组 + 代理模型**。组 = 类别（Effect/Ui/Voice/Bgm），每组 N 个 AudioSource 代理轮转
     /// （并发通道，同组音效可叠加），组音量/静音组级控制；**同优先级不被替换**——全忙时仅"更高优先级"
     /// 抢占最低优先级代理，否则丢弃（日志可观测）。句柄在代理被抢占/自然播完后失效（Stop 对失效句柄安全忽略）。
     ///
@@ -70,7 +70,7 @@ namespace LiteClient
         private void ThrowIfShutdown()
         {
             if (IsShutdown)
-                throw new ObjectDisposedException(nameof(AudioService), "音频壳已关闭——不再接受播放/组写操作");
+                throw new ObjectDisposedException(nameof(AudioService), "音频服务已关闭——不再接受播放/组写操作");
         }
 
         /// <summary>组 → 时钟域（Effect/Voice 走世界轨；Ui/Bgm 走 UI 轨——UI 暂停不该掐掉战斗音效）。</summary>
@@ -91,7 +91,7 @@ namespace LiteClient
             AddGroup(Group.Ui, "Ui", uiProxies);
             AddGroup(Group.Voice, "Voice", voiceProxies);
             AddGroup(Group.Bgm, "Bgm", bgmProxies);        // 2 代理：BGM 交叉淡切（旧淡出 + 新淡入）
-            Log.Info("声音壳就绪:Effect/Ui/Voice/Bgm 四组（组+代理模型；支持 fadeIn/fadeOut 与 Play3D）", LogTag.Audio);
+            Log.Info("音频服务就绪:Effect/Ui/Voice/Bgm 四组（组+代理模型；支持 fadeIn/fadeOut 与 Play3D）", LogTag.Audio);
         }
 
         private void AddGroup(Group group, string name, int proxyCount)
@@ -252,7 +252,7 @@ namespace LiteClient
             if (!Application.isPlaying) { UnityEngine.Object.DestroyImmediate(go); return; }
 #endif
             UnityEngine.Object.Destroy(go);
-            Log.Info("音频壳已关闭（全局停止 + 根销毁）", LogTag.Audio);
+            Log.Info("音频服务已关闭（全局停止 + 根销毁）", LogTag.Audio);
         }
 
         public string StatsName => "Audio";

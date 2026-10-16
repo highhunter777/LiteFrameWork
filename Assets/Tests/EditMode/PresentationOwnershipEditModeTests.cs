@@ -16,14 +16,14 @@ using LiteClient;
 namespace LiteGame.Tests.EditMode
 {
     /// <summary>
-    /// 表现壳所有权与时钟用例：
-    /// ① PrefabLeaseCache——共享租约、ReleaseAll 归零、释放后拒绝（UI-05 同源问题的表现壳落点）；
+    /// 表现域所有权与时钟用例：
+    /// ① PrefabLeaseCache——共享租约、ReleaseAll 归零、释放后拒绝（UI-05 同源问题的表现域落点）；
     /// ② AudioService StopAll/Shutdown——总线全局停止与释放面（§6.2/§12.3 预算基线面）；
     /// ③ UiAnimationClock/DotweenUiClockDriver——DOTween Manual 轨按 UIClock 派发（暂停即停）+ 轨隔离，
     ///    AnimatedImage 走 UIClock 步进（《动画模块专项设计》§1 裁决"SetUpdate(true) ≠ UIClock"）。
     /// 时序：UTCS 定向续延 + 手动 Tick；不依赖 PlayerLoop/YooAsset。
     /// </summary>
-    public sealed class ShellOwnershipEditModeTests : UnityTestBase
+    public sealed class PresentationOwnershipEditModeTests : UnityTestBase
     {
         // ---- 替身 ----
 

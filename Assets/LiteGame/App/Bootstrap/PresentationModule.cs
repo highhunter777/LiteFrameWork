@@ -7,7 +7,7 @@ using LiteClient;
 
 namespace LiteGame
 {
-    /// <summary>⑨ 表现壳：实体/声音/世界 VFX + 相机服务。
+    /// <summary>⑨ 表现域：实体/声音/世界 VFX + 相机服务。
     /// 加载口统一绑 <see cref="PrefabLeaseCache"/>（租约持有，避免悬空引用）；Shutdown 释放面
     /// （音频全局停止 + 租约归零）。
     ///
@@ -72,7 +72,7 @@ namespace LiteGame
             _entities?.Shutdown();                       // 取消在途加载 + 连锁回收活体 + 排空实例池
             _audio?.Shutdown();                          // 总线全局停止 + [Audio] 根销毁
             _vfxService?.Shutdown();                     // 取消在途加载 + 回收活体 + 排空池 + 清缓存引用
-            _prefabs?.ReleaseAll();                      // 表现壳 prefab 租约归零（最后：先收使用者再放租约）
+            _prefabs?.ReleaseAll();                      // 表现域 prefab 租约归零（最后：先收使用者再放租约）
             return UniTask.CompletedTask;
         }
 

@@ -71,10 +71,10 @@ namespace Tools.DisciplineScan
             LintRule.R12AdapterBoundary,
         };
 
-        /// <summary>薄壳/UI：R10 不得直发业务包（禁 INetworkService 契约）。</summary>
-        public static readonly LintRule[] ShellUiRules =
+        /// <summary>UI 层：R10 不得直发业务包（禁 INetworkService 契约）。</summary>
+        public static readonly LintRule[] UiLayerRules =
         {
-            LintRule.R10ShellSendsBusinessPacket,
+            LintRule.R10UiSendsBusinessPacket,
         };
 
         /// <summary>RoomServer/Runtime：R11 纯化（《商业级通用服务端框架总设计》§8.1 禁止项——
@@ -176,7 +176,7 @@ namespace Tools.DisciplineScan
             // IEnumerable 迭代器的 `yield return` 会被误报。
             new ScanTarget("Assets/LiteClient", GameRules),                                    // R8 资源唯一入口 + R12 适配器边界（框架侧：Abstractions/Runtime/Adapters）
             new ScanTarget("Assets/LiteGame", GameRules),                                      // R8 资源唯一入口 + R12 适配器边界（产品侧）
-            new ScanTarget("Assets/LiteGame/UI", ShellUiRules),                                // R10 薄壳/UI 不发业务包
+            new ScanTarget("Assets/LiteGame/UI", UiLayerRules),                                // R10 UI 层不发业务包
             // 该目标的存在性由 `纪律_R12_已接入真实扫描目标_且目标路径存在` 钉住。
             new ScanTarget("Assets/RoomServer/Runtime", RuntimePurityRules),                  // R1 纯运行时层（R1《服务端总设计》§8.1）
             new ScanTarget("Assets/LiteSim", ConfigPortRules, ConfigPortExcludes),             // R13 数值读口禁读（机制面；表现层与读口定义文件除外）

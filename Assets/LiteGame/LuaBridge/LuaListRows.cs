@@ -52,7 +52,7 @@ namespace LiteGame
 
         private LuaTable RowAt(int index) => _rows.Get<int, LuaTable>(index + 1);      // Lua 数组 1 基
 
-        /// <summary>取得行下标的 LuaTable（越界/非表 → 空表；不抛——滚动路径不炸壳）。</summary>
+        /// <summary>取得行下标的 LuaTable（越界/非表 → 空表；不抛——滚动路径不受影响）。</summary>
         private static object[] FormatArgs(LuaTable spec)
         {
             var args = new List<object>(LuaBehaviourAdapter.MaxLuaFormatArgs);

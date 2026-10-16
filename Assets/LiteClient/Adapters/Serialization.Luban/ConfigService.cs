@@ -23,7 +23,7 @@ namespace LiteClient
     }
 
     /// <summary>
-    /// 配置加载薄壳（DI 单例，ProcedureLaunch 注册只注册不加载，ProcedurePreload 尾部 LoadAsync 放行）。
+    /// 配置装载服务（DI 单例，ProcedureLaunch 注册只注册不加载，ProcedurePreload 尾部 LoadAsync 放行）。
     /// 快照化（《商业级通用客户端框架总设计》§9 + §4 原则 6/10 + 热更专项 §11）：
     /// **候选构建 → 校验 → 原子发布**三段式——
     /// ① 候选字节预取（缺表 fail-fast，报错带完整 location）；

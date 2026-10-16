@@ -28,7 +28,7 @@ namespace LiteClient
 
         public static bool Initialized => s_initialized;
 
-        /// <summary>已初始化的资源包（SceneService 等同程序集薄壳消费；业务禁止直接使用）。</summary>
+        /// <summary>已初始化的资源包（SceneService 等同程序集内部消费；业务禁止直接使用）。</summary>
         internal static ResourcePackage Package
         {
             get

@@ -13,7 +13,7 @@ namespace LiteGame.Tests.EditMode
     /// HUD 批C 退场链：<c>self.ui:ShowConfirm</c> 真 Lua 调用面（《UI控件Lua API 参考》§6——
     /// 新增受控方法必须提供真 Lua 调用测试）：真 LuaEnv + 真适配器（OnInit 建 ui 门面 →
     /// shim → Dispatch → 确认缝全链），断言落到**回调结果**与降级路径（无缝/异常＝回调 false，
-    /// 页面链不悬挂）。确认缝由装配注入（生产＝UiShellModule 懒取 FeedbackService → DialogService；
+    /// 页面链不悬挂）。确认缝由装配注入（生产＝UiServiceModule 懒取 FeedbackService → DialogService；
     /// 本用例用替身缝隔离服务——缝的装配面由重编译＋生产装配评审覆盖）。
     /// </summary>
     public sealed class UiConfirmApiEditModeTests : UnityTestBase

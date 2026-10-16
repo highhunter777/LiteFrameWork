@@ -65,7 +65,7 @@ namespace LiteClient
     }
 
     /// <summary>
-    /// 实体壳：句柄制实体管理叠在通用 <see cref="GameObjectPool"/> 之上（池化内核归通用池，
+    /// 实体服务：句柄制实体管理叠在通用 <see cref="GameObjectPool"/> 之上（池化内核归通用池，
     /// 本类只留实体语义——Reserve/竞态表/句柄制）。实体 = 视觉表现件，逻辑回 C# 玩法系统——**不转发 Lua**。
     /// 竞态语义：加载在途收到 Hide → 记入竞态表 → 加载完成后取消显示（直接出返回 null）。
     /// 生命周期回调 = IPoolLifecycle（通用池驱动）。
@@ -133,7 +133,7 @@ namespace LiteClient
             _pool.Clear();                                                     // 排空驻留实例（池根随之销毁）
 
             _lifetime.Dispose();
-            Log.Info($"实体壳已关闭（回收 {handles.Count} 个活体，池已排空）", LogTag.Entity);
+            Log.Info($"实体服务已关闭（回收 {handles.Count} 个活体，池已排空）", LogTag.Entity);
         }
 
         /// <summary>宿主关闭级联令牌（在途加载链接它——关闭即取消，不靠等待）。</summary>
@@ -160,7 +160,7 @@ namespace LiteClient
         public async UniTask<EntityHandle> ShowAsync(int handleId, string location, Transform parent = null, CancellationToken ct = default)
         {
             if (IsShutdown)
-                throw new ObjectDisposedException(nameof(EntityService), $"实体壳已关闭——不再接受新实体（句柄 {handleId}）");
+                throw new ObjectDisposedException(nameof(EntityService), $"实体服务已关闭——不再接受新实体（句柄 {handleId}）");
             if (HostScope != null && HostScope.IsDisposed)
                 throw new ObjectDisposedException(nameof(HostScope), "宿主作用域已释放——实体不得再显示");
 
@@ -176,7 +176,7 @@ namespace LiteClient
                 return pooledHandle;
             }
 
-            // 未命中：加载在途登记（竞态窗口开启）；加载口同时挂调用方取消与壳生命周期——关闭即真取消
+            // 未命中：加载在途登记（竞态窗口开启）；加载口同时挂调用方取消与服务生命周期——关闭即真取消
             _inFlight.Add(handleId);
             CancellationTokenSource linked = CancellationTokenSource.CreateLinkedTokenSource(ct, _lifetime.Token);
             try
@@ -185,9 +185,9 @@ namespace LiteClient
                 _inFlight.Remove(handleId);
                 if (IsShutdown)
                 {
-                    // 加载完成时壳已关闭：loader 可能不观察取消令牌——按竞态同语义取消显示，
+                    // 加载完成时服务已关闭：loader 可能不观察取消令牌——按竞态同语义取消显示，
                     // 不实例化（否则幽灵实体复活在已关闭的壳上，同 VfxService 收尾复查口径）
-                    Log.Info($"实体[{handleId}] 加载完成时壳已关闭——取消显示", LogTag.Entity);
+                    Log.Info($"实体[{handleId}] 加载完成时服务已关闭——取消显示", LogTag.Entity);
                     return null;
                 }
                 if (_releaseOnLoad.Remove(handleId))
@@ -222,7 +222,7 @@ namespace LiteClient
         /// ① 宿主回收连锁收子件（Hide(parent) → 子件递归 Detach + Hide，归各自池——挂接件泄漏机制上不可发生）；
         /// ② Detach 与 Hide 分离（Detach = 脱离挂接保持显示；回收另走 Hide）；
         /// ③ 允许挂接链（武器→手→角色），容器只记直接父子；**不提供树遍历/子树查询 API**（查询归玩法——
-        ///    Transform 原生可查；壳内递归仅为回收连锁的安全网，不对外暴露）。
+        ///    Transform 原生可查；服务内递归仅为回收连锁的安全网，不对外暴露）。
         /// 自挂/成环抛（防回收递归死循环）；child 已挂他处 = 隐式脱离转移。
         /// </summary>
         public void Attach(int childHandle, int parentHandle, string anchor = null, bool keepWorld = false)

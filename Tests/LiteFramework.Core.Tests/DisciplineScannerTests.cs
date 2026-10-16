@@ -296,9 +296,9 @@ namespace LiteFramework.Tests
         [Fact]
         public void 纪律_R10_壳UI直发INetworkService被命中()
         {
-            Assert.Equal(1, Count("private readonly INetworkService _net;", LintRule.R10ShellSendsBusinessPacket));
-            Assert.Equal(1, Count("var n = container.Resolve<INetworkService>();", LintRule.R10ShellSendsBusinessPacket));
-            Assert.Equal(0, Count("var s = new DockSlotService();", LintRule.R10ShellSendsBusinessPacket));
+            Assert.Equal(1, Count("private readonly INetworkService _net;", LintRule.R10UiSendsBusinessPacket));
+            Assert.Equal(1, Count("var n = container.Resolve<INetworkService>();", LintRule.R10UiSendsBusinessPacket));
+            Assert.Equal(0, Count("var s = new DockSlotService();", LintRule.R10UiSendsBusinessPacket));
         }
 
         [Fact]
@@ -309,7 +309,7 @@ namespace LiteFramework.Tests
             // 规则号命名与 lint-allow 解析
             Assert.Equal("R8", DisciplineScanner.RuleId(LintRule.R8ResourcesLoad));
             Assert.Equal("R9", DisciplineScanner.RuleId(LintRule.R9ModInSim));
-            Assert.Equal("R10", DisciplineScanner.RuleId(LintRule.R10ShellSendsBusinessPacket));
+            Assert.Equal("R10", DisciplineScanner.RuleId(LintRule.R10UiSendsBusinessPacket));
             // 行内豁免仍适用（含规则号的豁免只免该条）
             Assert.Equal(0, Count("Resources.Load(\"x\"); // lint-allow R8", LintRule.R8ResourcesLoad));
         }

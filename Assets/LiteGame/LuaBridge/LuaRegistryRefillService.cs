@@ -10,7 +10,7 @@ namespace LiteGame
     /// <summary>
     /// 运行期 Lua 注册表增量重填（设计方案 §2.3 的"合法重入之二"）：
     /// **不重建 env** —— 重预载 → 释放旧缓存 → 清 require 缓存 → 三注册表 Clear → 走同一条
-    /// <see cref="RegistryFiller.FillAll"/> 重填 → 通知 UI 壳换表。
+    /// <see cref="RegistryFiller.FillAll"/> 重填 → 通知 UI 服务装配换表。
     ///
     /// 与 DevReload 的分工：DevReload 是**重建 env 的重锤**（Editor 期，先全关界面）；
     /// 本服务是**不动 env 的轻路径**（运行期热更用），因此必须自己处理"旧 LuaTable 与旧适配器"的交接：

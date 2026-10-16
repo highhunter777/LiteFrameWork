@@ -60,7 +60,7 @@ namespace LiteGame
 
         private readonly IContentService _content;
         private readonly IVFXService _vfx;
-        private readonly AudioService _audio;        // 声音壳（装配根注册；对局音效的组+代理后端）
+        private readonly AudioService _audio;        // 音频服务（装配根注册；对局音效的组+代理后端）
         private readonly CommandCenter _commands;    // 命令中心（传送命令化：撤销/重做/排队派发）
         private readonly IInputService _input;       // 输入服务（设备源注入/清派发状态）
         private readonly ICameraService _camera;     // 相机服务（Cinemachine 适配器；装配根建、跨对局复用）
@@ -356,7 +356,7 @@ namespace LiteGame
 
             _view = new SimView(_context.Sim.State, _viewRoot,
                 factory: InstantiateView,
-                recycler: null,                                   // 自有池（EntityService 接线归表现壳批）
+                recycler: null,                                   // 自有池（EntityService 接线归表现域批）
                 camera: _camera);
             _context.AttachView(_view);
 
