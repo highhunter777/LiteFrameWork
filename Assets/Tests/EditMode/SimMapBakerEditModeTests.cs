@@ -5,16 +5,20 @@ using UnityEngine;
 
 namespace LiteGame.Tests.EditMode
 {
-    /// <summary>
-    /// 地图烘焙器（<see cref="SimMapBaker"/>，《地图数据专项设计》§6 规则）的 L2 EditMode 覆盖：
-    /// 采集值语义（Box/Sphere/yaw90 交换）、失败面 fail-fast（Mesh/旋转/未知 surface/出生点/边界）、
-    /// 确定性（重复采集逐字节一致）、超上限截断＋丢弃报告。合成根喂正/负例，不动真实场景。
-    /// 实烘对账（Arena01 产物 == 夹具快照 TestMaps.Arena01）由批内 run_script 取证＋L1 夹具锚把守。
-    /// </summary>
-    [Category(LiteTesting.TestCategory.Contract)]
-    public sealed class SimMapBakerEditModeTests
-    {
-        private GameObject _root;
+        /// <summary>
+        /// 地图烘焙器（<see cref="SimMapBaker"/>，《地图数据专项设计》§6 规则）的 L2 EditMode 覆盖：
+        /// 采集值语义（Box/Sphere/yaw90 交换）、失败面 fail-fast（Mesh/旋转/未知 surface/出生点数量/
+        /// **出生点落障碍内与越界**（多图批）/边界）、确定性（重复采集逐字节一致）、超上限截断＋丢弃报告。
+        /// 合成根喂正/负例，不动真实场景。
+        /// 实烘对账（Arena01/训练场产物 == 夹具快照 TestMaps.*）由 run_script 取证＋L1 夹具锚把守。
+        /// </summary>
+        [Category(LiteTesting.TestCategory.Contract)]
+        public sealed class SimMapBakerEditModeTests
+        {
+            private GameObject _root;
+
+            /// <summary>正例里的出生点统一落在 (9,0,9)（远离合成障碍；布点校验后原点会被视作"落在障碍内"）。</summary>
+            private static readonly Vector3 SafeSpawn = new Vector3(9f, 0f, 9f);
 
         [TearDown]
         public void TearDown()
@@ -32,7 +36,8 @@ namespace LiteGame.Tests.EditMode
             Box(_root, "wall", new Vector3(1.25f, 1.25f, 7f), new Vector3(5f, 2.5f, 0.6f));
             Spawn(_root, "spawn_00", new Vector3(-1f, 0f, -1f));
 
-            string report = SimMapBaker.Collect(_root, out SimMapData map, out string json);
+            string report = SimMapBaker.Collect(_root, out SimMapData map, out string json,
+                scenePath: BakeTargets.MapScenePath);
 
             Assert.IsNotNull(map, report);
             StringAssert.StartsWith("已烘焙：", report);
@@ -58,6 +63,7 @@ namespace LiteGame.Tests.EditMode
             StringAssert.Contains("\"content_digest\": \"" + digest + "\"", json);
             StringAssert.Contains("\"map_id\": 1", json);
             StringAssert.Contains("\"name\": \"arena01\"", json);
+            StringAssert.Contains("\"scene\": \"" + BakeTargets.MapScenePath + "\"", json);   // 多图批：表行 scene 列（装载/卸载面）
             StringAssert.Contains("\"half_x\": 2.5", json);
         }
 
@@ -83,7 +89,7 @@ namespace LiteGame.Tests.EditMode
         {
             _root = NewRoot();
             Box(_root, "rot90", new Vector3(0f, 1.25f, 0f), new Vector3(6f, 2.5f, 0.6f), 90f);
-            Spawn(_root, "spawn_00", Vector3.zero);
+            Spawn(_root, "spawn_00", SafeSpawn);
 
             string report = SimMapBaker.Collect(_root, out SimMapData map, out _);
 
@@ -135,7 +141,7 @@ namespace LiteGame.Tests.EditMode
         {
             _root = NewRoot();
             PrimitiveMesh(_root, "mesh_proxy");
-            Spawn(_root, "spawn_00", Vector3.zero);
+            Spawn(_root, "spawn_00", SafeSpawn);
 
             string report = SimMapBaker.Collect(_root, out SimMapData map, out _, MeshColliderPolicy.ReportOnly);
 
@@ -181,7 +187,7 @@ namespace LiteGame.Tests.EditMode
         {
             _root = NewRoot();
             Box(_root, "surf_concrete_box_01", new Vector3(0f, 0.5f, 0f), Vector3.one);
-            Spawn(_root, "spawn_00", Vector3.zero);
+            Spawn(_root, "spawn_00", SafeSpawn);
 
             string report = SimMapBaker.Collect(_root, out SimMapData map, out _);
 
@@ -201,6 +207,40 @@ namespace LiteGame.Tests.EditMode
             Assert.IsNull(map);
             StringAssert.Contains("未知名", report);
             StringAssert.Contains("bogus", report);
+        }
+
+        [Test]
+        public void 校验_出生点落障碍内与越界_拒载()
+        {
+            // 多图批：布点可调的安全闸——出生点卡在障碍里（含 y 区间；此处 1m 低箱，站姿 1.8m 必然相交）
+            _root = NewRoot();
+            Box(_root, "cover", new Vector3(0f, 0.5f, 0f), new Vector3(2f, 1f, 2f));
+            Spawn(_root, "spawn_00", Vector3.zero);
+
+            string inside = SimMapBaker.Collect(_root, out SimMapData m0, out _);
+            Assert.IsNull(m0, "出生点落在障碍内必须拒载（不产半成品）");
+            StringAssert.Contains("spawn_00", inside);
+            StringAssert.Contains("出生点落在障碍内", inside);
+
+            // 越界：布点必须在 map_bounds 内（视觉场地与判定同界）
+            Object.DestroyImmediate(_root);
+            _root = NewRoot();
+            Spawn(_root, "spawn_00", new Vector3(0f, 0f, 0f));
+            Spawn(_root, "spawn_01", new Vector3(101f, 0f, 0f));     // bounds ±100（NewRoot 的 map_bounds）
+
+            string outside = SimMapBaker.Collect(_root, out SimMapData m1, out _);
+            Assert.IsNull(m1, "出生点越界必须拒载");
+            StringAssert.Contains("spawn_01", outside);
+            StringAssert.Contains("出生点越界", outside);
+
+            // 边界外但同名的合法点不受影响（1m 低箱顶面之上的悬空点不判"落在障碍内"——y 区间不相交）
+            Object.DestroyImmediate(_root);
+            _root = NewRoot();
+            Box(_root, "cover", new Vector3(0f, 0.5f, 0f), new Vector3(2f, 1f, 2f));
+            Spawn(_root, "spawn_00", new Vector3(0f, 5f, 0f));
+
+            string floating = SimMapBaker.Collect(_root, out SimMapData m2, out _);
+            Assert.IsNotNull(m2, floating);
         }
 
         [Test]
@@ -255,7 +295,7 @@ namespace LiteGame.Tests.EditMode
             for (int i = 0; i < SimMapData.MaxObstacles; i++)
                 Box(_root, $"cap_{i:000}", new Vector3(i * 0.5f, 0.5f, 0f), new Vector3(2f, 1f, 2f));
             Box(_root, "tiny_dropped", new Vector3(0f, 0.5f, 50f), new Vector3(0.5f, 1f, 0.5f));
-            Spawn(_root, "spawn_00", Vector3.zero);
+            Spawn(_root, "spawn_00", new Vector3(0f, 0f, 60f));
 
             string report = SimMapBaker.Collect(_root, out SimMapData map, out _);
 

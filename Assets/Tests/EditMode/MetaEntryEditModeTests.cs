@@ -37,6 +37,7 @@ namespace LiteGame.Tests.EditMode
             public string SeenDeviceId;
             public string SeenRoomId;
             public string SeenBuildHash;
+            public int SeenMapId = -1;                                   // 多图批：create-room 的请求地图行键（-1 = 未调用）
             public int TicketCalls;
             public int CreateRoomCalls;
 
@@ -55,11 +56,12 @@ namespace LiteGame.Tests.EditMode
                 return UniTask.FromResult(JoinTicket);
             }
 
-            public UniTask<MetaCall<JoinTicketInfo>> CreateRoomAsync(string accessToken, string buildHash,
+            public UniTask<MetaCall<JoinTicketInfo>> CreateRoomAsync(string accessToken, string buildHash, int mapId = 0,
                 System.Threading.CancellationToken ct = default)
             {
                 CreateRoomCalls++;
                 SeenBuildHash = buildHash;
+                SeenMapId = mapId;
                 return UniTask.FromResult(CreateRoomResult);
             }
 
@@ -217,6 +219,7 @@ namespace LiteGame.Tests.EditMode
             Assert.IsTrue(call.Ok);
             Assert.AreEqual(1, client.CreateRoomCalls, "创建房间走客户端 create-room（客户端不发明房号）");
             Assert.AreEqual(LiteNet.BuildHash.Value, client.SeenBuildHash, "版本准入随创建——两端同源常量");
+            Assert.AreEqual(0, client.SeenMapId, "未指定地图行键 = 0（宿主默认图；多图批）");
             Assert.AreEqual("R-NEW001", call.Value.RoomId, "房号 = 服务端出号（响应透传）");
 
             Assert.IsNotNull(machine.LastRequest, "创建房间成功 = Request(Match)——与换票进房同管道");
@@ -226,6 +229,23 @@ namespace LiteGame.Tests.EditMode
             Assert.AreEqual(17778, join.Port);
             Assert.AreEqual("R-NEW001", join.RoomId);
             Assert.AreEqual("tkt-2", join.Ticket);
+        }
+
+        [Test]
+        public void 创建房间_带地图行键_原样透传给客户端()
+        {
+            // 多图批：create-room 的 mapId 是"房间创建意图"的客户端侧入口——必须原样到达客户端
+            // （盖章与校验归 Meta/房间端：票据段 + 表行）
+            var client = new FakeMetaClient();
+            var machine = new FakeStageHost();
+            var service = Service(client, machine);
+            service.GuestLoginAsync().GetAwaiter().GetResult();
+
+            MetaCall<JoinTicketInfo> call = service.CreateRoomAsync(mapId: 2).GetAwaiter().GetResult();
+
+            Assert.IsTrue(call.Ok);
+            Assert.AreEqual(2, client.SeenMapId, "请求地图行键原样透传");
+            Assert.AreEqual(ProcedureId.Match, machine.LastRequest.Value.id, "与既有创建管道同链");
         }
 
         [Test]
@@ -272,11 +292,12 @@ namespace LiteGame.Tests.EditMode
 
                 env.DoString(@"
                     create_ok, create_room = nil, nil
-                    Bridge.meta.CreateRoom(function(ok, roomId) create_ok = ok; create_room = roomId end)");
+                    Bridge.meta.CreateRoom(0, function(ok, roomId) create_ok = ok; create_room = roomId end)");
 
                 Assert.IsTrue(env.Global.Get<bool>("create_ok"));
                 Assert.AreEqual("R-NEW001", env.Global.Get<string>("create_room"), "成功载荷 = 新房号（房间页展示用）");
                 Assert.AreEqual(1, client.CreateRoomCalls);
+                Assert.AreEqual(0, client.SeenMapId, "首个参数 = 请求地图行键（0 = 未指定；多图批）");
             }
         }
 

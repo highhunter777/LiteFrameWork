@@ -52,6 +52,8 @@ namespace LiteGame.EditorTools
         {
             if (!System.IO.File.Exists(target.ScenePath))
                 return "ABORT 缺地图场景：" + target.ScenePath;
+            if (string.IsNullOrEmpty(target.ScenePath))
+                return "ABORT 地图目标缺场景路径（表行 scene 列来源——加图＝加文件 + 加场景）";
 
             Scene scene = SceneManager.GetSceneByPath(target.ScenePath);
             bool openedHere = false;
@@ -117,6 +119,8 @@ namespace LiteGame.EditorTools
             CollectObstacles(collisionRoot, meshPolicy, drafts, errors, notes);
             CollectBounds(collisionRoot, out float groundY, out float halfWidth, out float halfDepth, errors);
             List<(string Name, SimVector3 Pos)> spawns = CollectSpawns(collisionRoot, errors);
+            if (errors.Length == 0)
+                ValidateSpawns(spawns, drafts, groundY, halfWidth, halfDepth, errors);   // 布点可调的安全闸（见方法注释）
 
             if (errors.Length > 0)
                 return "ABORT 地图采集校验失败（不产半成品——修场景后重烘）：\n" + errors;
@@ -153,7 +157,7 @@ namespace LiteGame.EditorTools
             }
 
             string digest = SimMapDigest.Compute(map);
-            jsonText = BuildJson(mapId, mapName, digest, map);
+            jsonText = BuildJson(mapId, mapName, digest, map, scenePath);
 
             var sb = new StringBuilder();
             sb.Append("已烘焙：").Append(map.ObstacleCount).Append(" 障碍 ＋ ").Append(map.SpawnPointCount)
@@ -418,6 +422,52 @@ namespace LiteGame.EditorTools
             return spawns;
         }
 
+        /// <summary>
+        /// 出生点合法性（**布点可调的安全闸**——多图批）：不落障碍内（含 y 区间的 2.5D 判据：出生点竖直区间
+        /// 与障碍 y 区间相交且 XZ 落在圆/AABB 内 = 出生即卡几何）、不越边界（|x| ≤ half_width、|z| ≤ half_depth）
+        /// ——任一违例 fail-fast（不产半成品；调布点时点位打偏即刻在报告里点名，而不是等进局才发现）。
+        /// 边界判据与视觉地面同源（`map_bounds`：布点必须落在视觉场地内，防"出界出生"）。
+        /// </summary>
+        private static void ValidateSpawns(List<(string Name, SimVector3 Pos)> spawns,
+            List<ObstacleDraft> obstacles, float groundY, float halfWidth, float halfDepth, StringBuilder errors)
+        {
+            for (int i = 0; i < spawns.Count; i++)
+            {
+                (string name, SimVector3 p) = spawns[i];
+                if (Mathf.Abs(p.X) > halfWidth || Mathf.Abs(p.Z) > halfDepth)
+                {
+                    errors.Append(name).Append("：出生点越界（").Append(p.X).Append(',').Append(p.Z)
+                          .Append(" 超出半宽 ").Append(SimMapDigest.Fmt(halfWidth))
+                          .Append(" / 半深 ").Append(SimMapDigest.Fmt(halfDepth)).Append("）\n");
+                    continue;
+                }
+                for (int o = 0; o < obstacles.Count; o++)
+                {
+                    // 索引读取（List 索引器返回值不是变量——readonly struct 字段取址需先落局部）
+                    ObstacleDraft draft = obstacles[o];
+                    if (!SpawnInsideObstacle(in p, groundY, in draft.Obstacle)) continue;
+                    errors.Append(name).Append("：出生点落在障碍内（").Append(draft.Name)
+                          .Append("；出生点 y=").Append(SimMapDigest.Fmt(p.Y)).Append("）\n");
+                    break;
+                }
+            }
+        }
+
+        /// <summary>出生点是否卡在障碍里（2.5D：站立占用 [y, y+1.8] 与障碍 y 区间相交 ＋ XZ 落在截面内——
+        /// 与移动/遮挡同一套 2.5D 语义，站立高度取身位圆柱烘焙值 <see cref="BodyBake.Height"/> 单源）。</summary>
+        private static bool SpawnInsideObstacle(in SimVector3 p, float groundY, in SimObstacle o)
+        {
+            float bottom = p.Y - groundY;                  // 相对地面高度（地面非 0 的地图同口径）
+            float top = bottom + BodyBake.Height;
+            if (top <= o.Center.Y || bottom >= o.Center.Y + o.Height) return false;   // y 区间不相交
+            if (o.Kind == SimObstacleKind.Circle)
+            {
+                float dx = p.X - o.Center.X, dz = p.Z - o.Center.Z;
+                return dx * dx + dz * dz < o.Radius * o.Radius;
+            }
+            return Mathf.Abs(p.X - o.Center.X) < o.HalfX && Mathf.Abs(p.Z - o.Center.Z) < o.HalfZ;
+        }
+
         /// <summary>surface 前缀解析（`surf_&lt;surface&gt;_...`；无前缀＝Default；未知名拒载）。</summary>
         private static string TrySurface(string objectName, out SimObstacleSurface surface)
         {
@@ -517,13 +567,16 @@ namespace LiteGame.EditorTools
 
         // ---- 产物 JSON（Luban 数据源：单文件＝单对象；确定性文本）----
 
-        private static string BuildJson(int mapId, string mapName, string digest, SimMapData map)
+        private static string BuildJson(int mapId, string mapName, string digest, SimMapData map, string scenePath)
         {
             var sb = new StringBuilder(256 + map.ObstacleCount * 96 + map.SpawnPointCount * 40);
             sb.Append("{\n");
             sb.Append("  \"map_id\": ").Append(mapId).Append(",\n");
             sb.Append("  \"name\": \"").Append(mapName).Append("\",\n");
             sb.Append("  \"content_digest\": \"").Append(digest).Append("\",\n");
+            // 场景路径（多图批：客户端装载与离场卸载都按表行取——"加图＝加文件 + 加场景"）。
+            // 缺场景路径 = 产不出可用行（视觉无源）——fail-fast（不写空串）。
+            sb.Append("  \"scene\": \"").Append(scenePath ?? string.Empty).Append("\",\n");
             sb.Append("  \"ground_y\": ").Append(SimMapDigest.Fmt(map.GroundY)).Append(",\n");
             sb.Append("  \"half_width\": ").Append(SimMapDigest.Fmt(map.HalfWidth)).Append(",\n");
             sb.Append("  \"half_depth\": ").Append(SimMapDigest.Fmt(map.HalfDepth)).Append(",\n");

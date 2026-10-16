@@ -34,6 +34,9 @@ namespace RoomServer.Runtime
         /// <summary>期望人数（转发 <see cref="Config"/>；席位/输入槽/实体表按此定容）。</summary>
         public int ExpectedPlayers => Config.ExpectedPlayers;
 
+        /// <summary>本房地图行键（转发 <see cref="Config"/>；多图批——随 JoinAck 权威下发，0 = 未标注）。</summary>
+        public int MapId => Config.MapId;
+
         public readonly string RoomId;
         /// <summary>宿主分配的局标识；直驱测试可显式注入，缺省沿用 RoomId。</summary>
         public readonly string MatchId;

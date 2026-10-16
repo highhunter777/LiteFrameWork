@@ -19,6 +19,7 @@ public sealed partial class map : Luban.BeanBase
         MapId = _buf.ReadInt();
         Name = _buf.ReadString();
         ContentDigest = _buf.ReadString();
+        Scene = _buf.ReadString();
         GroundY = _buf.ReadFloat();
         HalfWidth = _buf.ReadFloat();
         HalfDepth = _buf.ReadFloat();
@@ -34,6 +35,7 @@ public sealed partial class map : Luban.BeanBase
     public readonly int MapId;
     public readonly string Name;
     public readonly string ContentDigest;
+    public readonly string Scene;
     public readonly float GroundY;
     public readonly float HalfWidth;
     public readonly float HalfDepth;
@@ -55,6 +57,7 @@ public sealed partial class map : Luban.BeanBase
         + "mapId:" + MapId + ","
         + "name:" + Name + ","
         + "contentDigest:" + ContentDigest + ","
+        + "scene:" + Scene + ","
         + "groundY:" + GroundY + ","
         + "halfWidth:" + HalfWidth + ","
         + "halfDepth:" + HalfDepth + ","

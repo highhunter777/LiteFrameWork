@@ -49,14 +49,19 @@ function M:_RefreshRooms()
 end
 
 -- 行投影：rows[i] = { key=roomId, Txt_RoomName=数据, Txt_RoomState=文案键带参 }
+-- 多图批：房号后带地图名（`mapName` 由 C# 门面按地图表 name 列解析；空 = 未标注，退化为只显房号）
 function M:_PushRooms(rows)
     local data = {}
     local n = (type(rows) == "table") and #rows or 0
     for i = 1, n do
         local room = rows[i]
+        local name = room.roomId
+        if type(room.mapName) == "string" and room.mapName ~= "" then
+            name = room.roomId .. " · " .. room.mapName
+        end
         data[i] = {
             key = room.roomId,
-            Txt_RoomName = room.roomId,
+            Txt_RoomName = name,
             Txt_RoomState = { key = "UI.Lobby.RoomState", arg0 = room.players, arg1 = room.expectedPlayers },
         }
     end
@@ -75,9 +80,10 @@ function M:_Enter(roomId)
 end
 
 -- 创建房间（服务端出号 → 进新房；成功后流程机接管，与进房同收口）
+-- 多图批：地图行键 0 = 未指定（宿主默认图）——玩家侧选图控件归后续批（门面已收 mapId 参数）
 function M:_CreateRoom()
     self:_Begin("Button_CreateRoom", "UI.Lobby.Creating", "UI.Lobby.CreateFailed",
-        function(cb) Bridge.meta.CreateRoom(cb) end)
+        function(cb) Bridge.meta.CreateRoom(0, cb) end)
 end
 
 -- 进房/创建房间**统一收口**：防重入锁 + 在途禁钮 + 成功**替换** Page_Room（房号随导航数据）+ 失败 Toast 复位

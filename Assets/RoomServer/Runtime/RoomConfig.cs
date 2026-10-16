@@ -46,9 +46,16 @@ namespace RoomServer.Runtime
         /// 判定地图（**必填注入**——D22：回退位已删）。来源链：宿主/装配层经 `ServerMapLoader` 装载
         /// `.bytes` → `HostAssembly.Inputs.Map` → `ServerHost` 参数（或直接写本字段）→ 房间构造。
         /// 两处皆缺由 <c>RoomRuntime</c> 构造 fail-fast（不静默兜底——无图 = 两端判定不同源）。
-        /// 单图常量（`MapTableProjection.DefaultMapId`）；多图批次再议。
+        /// 多图批：宿主按 <see cref="MapId"/> 经地图目录（`ServerMapCatalog`）解析后落进本字段。
         /// </summary>
         public LiteSim.SimMapData Map;
+
+        /// <summary>
+        /// 本房地图行键（多图批；`Map/tbmap` 行键）。来源：票据盖章值（Meta create-room/join-ticket）＞
+        /// 房间模板 `map_id` ＞ 宿主默认图——冲突（模板与票据各持非 0 且不等）在建房路径显式拒绝。
+        /// **0 = 未标注**（嵌入式/测试直构形态）：JoinAck 下发 0，客户端按首图口径回落。
+        /// </summary>
+        public int MapId;
 
         public static RoomConfig Default() => new RoomConfig();
     }

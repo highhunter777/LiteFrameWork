@@ -118,13 +118,15 @@ namespace LiteGame
         /// 同一提供者；摘要不等 = 客户端拒局，见类头"联机身份"与 `BattleContext` 校验点）。</param>
         /// <param name="map">判定图（**必填**——装配根经 `IMapProvider` 传入，与客户端逐位同图：
         /// 出生点/碰撞/遮挡；D22：无回退地图）。</param>
+        /// <param name="mapId">地图行键（多图批；随 JoinAck 回执——客户端按它选表行/场景，与真服务器同一条
+        /// 权威路径；0 = 未标注）。</param>
         public static LocalServerTransport ForRoom(string roomId, int expectedPlayers = 0, MatchTestRules testRules = null,
-            uint gameplayDigestBase = 0, SimMapData map = null)
+            uint gameplayDigestBase = 0, SimMapData map = null, int mapId = 0)
         {
             if (string.IsNullOrEmpty(roomId)) throw new ArgumentException("房间号不得为空", nameof(roomId));
             if (map == null)
                 throw new ArgumentException("地图必填——装配根经 IMapProvider 注入（D22：无回退地图）", nameof(map));
-            var config = new RoomConfig { RoomId = roomId, Map = map };
+            var config = new RoomConfig { RoomId = roomId, Map = map, MapId = mapId };
             if (expectedPlayers > 0) config.ExpectedPlayers = expectedPlayers;
             return new LocalServerTransport(config, testRules, gameplayDigestBase);
         }
@@ -385,6 +387,7 @@ namespace LiteGame
                             ReconnectWindowSeconds = 0,
                             SnapshotHz = SimConfig.SnapshotHz,
                             TickRate = SimConfig.TickRate,
+                            MapId = _runtime.MapId,                        // 多图批：与真服务器同一条权威回执路径
                         }));
                         break;
                     }

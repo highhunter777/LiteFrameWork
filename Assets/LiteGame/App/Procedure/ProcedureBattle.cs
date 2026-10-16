@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Threading;
 using Cysharp.Threading.Tasks;
 using LiteFramework;
@@ -38,7 +39,7 @@ namespace LiteGame
 
         private readonly IContentService _content;
         private readonly IVFXService _vfx;
-        private readonly AudioService _audio;        // 声音壳（装配根注册；对局音效的组+代理后端）
+        private readonly AudioService _audio;        // 音频服务（装配根注册；对局音效的组+代理后端）
         private readonly CommandCenter _commands;    // 命令中心（传送命令化：撤销/重做/排队派发）
         private readonly IInputService _input;       // 输入服务
         private readonly ICameraService _camera;     // 相机服务（Cinemachine 适配器；装配根建、跨对局复用）
@@ -47,6 +48,7 @@ namespace LiteGame
         private readonly IMatchSessionFactory _matchSessions;
         private readonly PageFlow _pages;            // 五页页面流（批C-④；可空 = 测试装配不接 UI）
         private readonly ISceneService _scenes;      // 对局场景组卸载（可空 = 测试装配）
+        private readonly IMapProvider _maps;         // 地图表（多图批：离场卸载按表枚举地图场景）
         private readonly CrosshairFeelBook _crosshairFeel;   // 准心手感投影（tbcrosshair；可空 = 测试装配回落 Default）
 
         private BattleViewRig _rig;                  // 视图域（资源租约 / 视图与消费者 / 逆序拆除）
@@ -68,7 +70,7 @@ namespace LiteGame
             IVFXService vfx = null, CancellationToken rootToken = default, bool requireCamera = false,
             LiteFramework.IWorldClock worldClock = null, IMatchSessionFactory matchSessions = null,
             AudioService audio = null, CommandCenter commands = null, PageFlow pages = null,
-            CrosshairFeelBook crosshairFeel = null, ISceneService scenes = null)
+            CrosshairFeelBook crosshairFeel = null, ISceneService scenes = null, IMapProvider maps = null)
             : base(rootToken)
         {
             _content = content ?? throw new ArgumentNullException(nameof(content));
@@ -82,6 +84,7 @@ namespace LiteGame
             _matchSessions = matchSessions ?? throw new ArgumentNullException(nameof(matchSessions));
             _pages = pages;
             _scenes = scenes;
+            _maps = maps;
             _crosshairFeel = crosshairFeel;
         }
 
@@ -171,14 +174,26 @@ namespace LiteGame
             if (next == ProcedureId.Main) _pages?.OnMatchEnded(completed, matchResult, localPlayerId);
         }
 
-        /// <summary>离场卸载对局场景组（`BattleScenes` 单源；幂等——未加载 = 服务侧 no-op）。
+        /// <summary>离场卸载对局场景组（Rig ＋ 表内全部地图场景；幂等——未加载 = 服务侧 no-op）。
+        /// 多图批：地图场景清单按地图表枚举（`IMapProvider.ScenePaths`——加图不改卸载代码）；
+        /// 表面不可用（未装载/缺 scene 列）只记日志并退化为只卸 Rig（离场不因表现面失败而阻塞）。
         /// 失败只记日志不阻塞离场（场景留驻是表现问题，不是会话正确性问题）；
         /// 编辑器"领养"形态（场景手工已在场）下卸载是 no-op——手测时属预期。</summary>
         private void UnloadBattleScenes()
         {
             if (_scenes == null) return;
-            UnloadOne(BattleScenes.Arena);
-            UnloadOne(BattleScenes.Training);
+            if (_maps != null)
+            {
+                try
+                {
+                    IReadOnlyList<string> mapScenes = _maps.ScenePaths();
+                    for (int i = 0; i < mapScenes.Count; i++) UnloadOne(mapScenes[i]);
+                }
+                catch (Exception ex)
+                {
+                    Log.Warning($"[Battle] 离场卸载：读地图场景清单失败（只卸 Rig）:{ex.Message}", LogTag.Scene);
+                }
+            }
             UnloadOne(BattleScenes.Rig);
         }
 

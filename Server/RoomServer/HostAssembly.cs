@@ -55,6 +55,13 @@ namespace RoomServer
             public uint GameplayDigestBase;
 
             /// <summary>
+            /// 多图目录（多图批，可 null = 单图形态）：行键 → 判定图（生产 = Program 的
+            /// <see cref="ServerMapCatalog"/>；缺行/坏值 fail-closed 抛，建房路径转拒绝进房）。
+            /// null 时房间请求行键 &gt;0 会被显式拒绝（`ServerHost.ResolveMap`——不静默回落默认图）。
+            /// </summary>
+            public Func<int, SimMapData> MapCatalog;
+
+            /// <summary>
             /// Lobby 注册参数（可 null = 不注册——单机/离线形态）。密钥已由 Program 从环境变量/命令行
             /// 组装（不进配置文件）；配置了 lobby.url 但缺密钥由 Program 先行 fail-closed。
             /// </summary>
@@ -149,6 +156,7 @@ namespace RoomServer
                 combatValues: combat,
                 weapons: weapons,
                 map: map,
+                mapCatalog: inputs.MapCatalog,
                 gameplayDigestBase: inputs.GameplayDigestBase));
 
             services.AddSingleton(sp =>

@@ -99,6 +99,39 @@ namespace LiteSim.Tests
             return SimMapBuilder.Build(0f, 100f, 100f, obstacles, obstacles.Length, spawns, spawns.Length);
         }
 
+        /// <summary>
+        /// 训练场快照夹具（多图批冻结：与 `Luban/Data/Map/map_training_ground.json` 实烘产物逐值一致）：
+        /// 8 件代理（种子布点；注释名＝场景对象名，条目序＝烘焙输出序=名 Ordinal）+ 16 出生点（半径 22 环）
+        /// + 边界 ±50。多图批两端投影对账（tbmap 行 2 投影 == 本快照）用之；锚定摘要见 TestMapsTests。
+        /// **改训练场布点（改场景重烘）必须联动更新本夹具**（同 Arena01 口径）。
+        /// </summary>
+        public static SimMapData TrainingGround()
+        {
+            var obstacles = new SimObstacle[8];
+            obstacles[0] = Box(0f, 0f, 0.5f, 2.0f, 2f);      // block_00
+            obstacles[1] = Box(-6f, -6f, 1.0f, 1.0f, 1f);    // cover_00
+            obstacles[2] = Box(6f, -6f, 1.0f, 1.0f, 1f);     // cover_01
+            obstacles[3] = Box(-6f, 6f, 1.0f, 1.0f, 1f);     // cover_02
+            obstacles[4] = Box(6f, 6f, 1.0f, 1.0f, 1f);      // cover_03
+            obstacles[5] = Box(5f, 0f, 0.5f, 0.5f, 1f);      // cover_04（场景原顶层 Cube）
+            obstacles[6] = Box(-14f, 0f, 4.0f, 0.5f, 1f);    // wall_00
+            obstacles[7] = Box(14f, 0f, 4.0f, 0.5f, 1f);     // wall_01
+
+            var spawns = new SimVector3[16]
+            {
+                new SimVector3(22f, 0f, 0f), new SimVector3(20.325f, 0f, 8.419f),
+                new SimVector3(15.556f, 0f, 15.556f), new SimVector3(8.419f, 0f, 20.325f),
+                new SimVector3(0f, 0f, 22f), new SimVector3(-8.419f, 0f, 20.325f),
+                new SimVector3(-15.556f, 0f, 15.556f), new SimVector3(-20.325f, 0f, 8.419f),
+                new SimVector3(-22f, 0f, 0f), new SimVector3(-20.325f, 0f, -8.419f),
+                new SimVector3(-15.556f, 0f, -15.556f), new SimVector3(-8.419f, 0f, -20.325f),
+                new SimVector3(0f, 0f, -22f), new SimVector3(8.419f, 0f, -20.325f),
+                new SimVector3(15.556f, 0f, -15.556f), new SimVector3(20.325f, 0f, -8.419f),
+            };
+
+            return SimMapBuilder.Build(0f, 50f, 50f, obstacles, obstacles.Length, spawns, spawns.Length);
+        }
+
         private static SimObstacle Box(float x, float z, float halfX, float halfZ, float height)
             => new SimObstacle
             {

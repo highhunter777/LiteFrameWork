@@ -46,6 +46,45 @@ namespace LiteNet.Tests
         }
 
         [Fact]
+        public void 多图_训练场行_双路径投影_且等于训练场快照锚()
+        {
+            // 多图批：行 2（训练场）同口径对账——服务端按行取盘 == 客户端按行投影 == 快照夹具摘要
+            string dir = Path.Combine(RepoRoot(), "Assets", "GameData", "Config");
+            int mapId = MapTableProjection.TrainingMapId;
+
+            SimMapData serverPath = ServerMapLoader.LoadTableBytes(dir, mapId);
+            SimMapData clientPath = MapTableProjection.Project(LoadTables(dir), mapId);
+
+            Assert.Equal("c78441a74f6bc5f9", SimMapDigest.Compute(serverPath));
+            Assert.Equal(SimMapDigest.Compute(serverPath), SimMapDigest.Compute(clientPath));
+            SimMapData snapshot = TestMaps.TrainingGround();
+            Assert.Equal(SimMapDigest.Compute(snapshot), SimMapDigest.Compute(serverPath));
+            Assert.Equal(snapshot.ObstacleCount, serverPath.ObstacleCount);
+            Assert.Equal(snapshot.SpawnPointCount, serverPath.SpawnPointCount);
+        }
+
+        [Fact]
+        public void 行内场景列_每行非空且为场景资产路径_行键唯一()
+        {
+            // 多图批：客户端装载与离场卸载都按表行 scene 取（"加图＝加文件 + 加场景"）——
+            // 缺场景路径/空串 = 投影面没有可用场景（装载期 fail-fast，本用例把它钉在表生成物上）。
+            var tables = LoadTables(Path.Combine(RepoRoot(), "Assets", "GameData", "Config"));
+            Assert.NotNull(tables.Tbmap);
+            var seenIds = new HashSet<int>();
+            var seenScenes = new HashSet<string>();
+            foreach (cfg.map row in tables.Tbmap.DataList)
+            {
+                Assert.True(seenIds.Add(row.MapId), $"map_id 重复：{row.MapId}");
+                Assert.False(string.IsNullOrEmpty(row.Scene), $"map_id={row.MapId} 缺 scene 列（重烘 + gen.bat 后才有值）");
+                Assert.StartsWith("Assets/Scenes/", row.Scene);
+                Assert.EndsWith(".unity", row.Scene);
+                Assert.True(seenScenes.Add(row.Scene), $"场景重复登记：{row.Scene}（多行共用场景会在卸载面去重，属可疑配置）");
+                Assert.True(File.Exists(Path.Combine(RepoRoot(), row.Scene.Replace('/', Path.DirectorySeparatorChar))),
+                    $"map_id={row.MapId} 的 scene 不存在：{row.Scene}");
+            }
+        }
+
+        [Fact]
         public void 缺表目录_拒载()
         {
             string missing = Path.Combine(RepoRoot(), "RoomServer", "Data", "__not_exist__");

@@ -198,10 +198,18 @@ namespace RoomServer
 
         /// <summary>
         /// 判定地图注入（生产链 `HostAssembly.Inputs.Map` ← `ServerMapLoader` 装载产物）。房间建立时写入
-        /// `RoomConfig.Map`（配置自带者优先——单图批次恒空）；**无缺省兜底**（D22）：宿主参数与
-        /// 房间配置两处皆缺由房间构造 fail-fast。
+        /// `RoomConfig.Map`（配置自带者优先——**多图批后**：票据/模板带行键时经 <see cref="_mapCatalog"/>
+        /// 按行解析）；**无缺省兜底**（D22）：宿主参数与房间配置两处皆缺由房间构造 fail-fast。
         /// </summary>
         private readonly SimMapData _map;
+
+        /// <summary>
+        /// 多图目录（多图批；生产链 `HostAssembly.Inputs.MapCatalog` ← Program 的
+        /// <see cref="ServerMapCatalog"/>，缺省 null = 单图形态）。建房时按房间行键解析判定图：
+        /// **0 = 宿主默认图（<see cref="_map"/>）**；&gt;0 且目录缺失 = 配置缺失显式拒（不静默回落默认图——
+        /// 那会让"请求训练场"变成"静默进首图"）；缺行由目录实现 fail-closed 抛（建房路径转拒绝进房）。
+        /// </summary>
+        private readonly Func<int, SimMapData> _mapCatalog;
 
         /// <summary>
         /// 判定面表字节**基摘要**（生产链 `HostAssembly.Inputs.GameplayDigestBase` ← `ServerTableLoad.Digest`；
@@ -332,6 +340,7 @@ namespace RoomServer
                     Phase = (int)room.Runtime.Match.Phase,
                     Players = room.Runtime.NextPlayerId,
                     ExpectedPlayers = room.Runtime.ExpectedPlayers,
+                    MapId = room.Runtime.MapId,           // 多图批：房间列表可见性（上报事实，非判定来源）
                 };
             }
             if (n != list.Length) Array.Resize(ref list, n);
@@ -345,6 +354,7 @@ namespace RoomServer
             public int Phase;
             public int Players;
             public int ExpectedPlayers;
+            public int MapId;
         }
 
         /// <summary>
@@ -405,6 +415,9 @@ namespace RoomServer
         /// <paramref name="rateLimiter"/> 同款）是容器装配通道——生产经 <see cref="HostAssembly"/> 注册
         /// 并注入**同一单例**；不传（null）时按本类**单源构造公式**（internal static Create* 族）自建
         /// ——嵌入式/测试直接 new 的既有契约与行为不变。
+        ///
+        /// <paramref name="mapCatalog"/>（多图批，可空）：行键 → 判定图解析（生产链
+        /// `HostAssembly.Inputs.MapCatalog`）；null = 单图形态（房间行键 &gt;0 时拒绝建房，见 <see cref="ResolveMap"/>）。
         /// </summary>
         public ServerHost(IRoomTransport transport, RoomConfig config = null,
             IJoinTicketValidator ticketValidator = null, string audience = null,
@@ -414,13 +427,15 @@ namespace RoomServer
             bool workerExecution = false, CombatValues? combatValues = null, WeaponTable weapons = null,
             uint gameplayDigestBase = 0,
             Ops ops = null, JoinAdmissionGate admission = null, SessionManager sessions = null,
-            ReconnectService reconnects = null, SimMapData map = null)
+            ReconnectService reconnects = null, SimMapData map = null,
+            Func<int, SimMapData> mapCatalog = null)
         {
             _transport = transport ?? throw new ArgumentNullException(nameof(transport));
             _serverConfig = roomServerConfig;
             _combat = combatValues ?? CombatValues.Default;
             _weapons = weapons ?? WeaponTable.Default;
             _map = map;
+            _mapCatalog = mapCatalog;
             _gameplayDigestBase = gameplayDigestBase;
             Config = config ?? RoomConfig.Default();
             if (_map == null && Config.Map == null)
@@ -785,14 +800,18 @@ namespace RoomServer
             JoinPrincipal validatedPrincipal = decision.Principal;
 
             // 房间解析/创建（§6"一个 roomId 只能映射一个独立 RoomActor"；重复 roomId 复用既有房间）
+            // 多图批：票据盖章的请求行键（未装配验签器的原型形态 = null ⇒ 0）只作用于**新建房**；
+            // 既有房间以**房事实**为准——请求非 0 且不一致 → 显式拒绝（不静默换图/静默忽略）。
+            int requestedMapId = validatedPrincipal?.MapId ?? 0;
             RoomInstance room = existingRoom;
             bool createdRoom = false;
             if (room == null)
             {
-                RoomRuntime created = OpenRoom(join.RoomId);
+                RoomRuntime created = OpenRoom(join.RoomId, requestedMapId);
                 if (created == null)
                 {
-                    // 空房号 / 达容量上限 / 模板缺失——一律拒绝进房（不静默排队、不静默建成别的配置）
+                    // 空房号 / 达容量上限 / 模板缺失 / 地图策略冲突或缺行——一律拒绝进房
+                    // （不静默排队、不静默建成别的配置）
                     RejectJoin(session, in join, DiagStage.Room, DiagCode.JoinRejectedRoom,
                         string.IsNullOrEmpty(join.RoomId)
                             ? "房间号缺失"
@@ -801,6 +820,12 @@ namespace RoomServer
                 }
                 room = GetRoomInstance(join.RoomId);
                 createdRoom = room != null;
+            }
+            else if (requestedMapId > 0 && room.Runtime != null && room.Runtime.MapId != requestedMapId)
+            {
+                RejectJoin(session, in join, DiagStage.Room, DiagCode.JoinRejectedRoom,
+                    $"房间地图与票据请求不符：房 map_id={room.Runtime.MapId} 票据 map_id={requestedMapId}");
+                return;
             }
 
             RoomCommand command = RoomCommand.Join(session.ConnectionId);
@@ -1738,6 +1763,7 @@ namespace RoomServer
                         SnapshotHz = SimConfig.SnapshotHz,
                         TickRate = SimConfig.TickRate,
                         IsOwner = pa.IsOwner,             // 开房裁决：开房者=首入座者——UI 据此亮"开始对局"
+                        MapId = room.Runtime?.MapId ?? 0, // 多图批：本房地图行键（0 = 未标注）——客户端据此选表行与场景
                     }, reliable: true);
                     break;
                 }
@@ -2031,11 +2057,13 @@ namespace RoomServer
         /// **失败语义**（都返回 null，由调用方转成"拒绝进房"）：
         /// - 未装配 <see cref="RoomServerConfig"/> 且 roomId 与预置房间不符（单房间形态）；
         /// - 达容量上限；
-        /// - 模板缺失或模板配置非法（<see cref="RoomServerConfig.BuildRoomConfig"/> 抛，此处捕获转为 null）。
+        /// - 模板缺失或模板配置非法（<see cref="RoomServerConfig.BuildRoomConfig"/> 抛，此处捕获转为 null）；
+        /// - 多图批：模板与请求行键冲突、请求行键缺当地图（<see cref="ResolveMap"/> 抛，同口径转拒绝）。
         ///
         /// **空 roomId**：建房必须有路由键，直接 null。
         /// </summary>
-        public RoomRuntime OpenRoom(string roomId)
+        /// <param name="requestedMapId">票据盖章的请求地图行键（0 = 未指定——模板/宿主默认图）。</param>
+        public RoomRuntime OpenRoom(string roomId, int requestedMapId = 0)
         {
             if (string.IsNullOrEmpty(roomId)) return null;
             if (_roomTable.TryGetValue(roomId, out RoomInstance existing)) return existing.Runtime;
@@ -2051,7 +2079,7 @@ namespace RoomServer
             try
             {
                 // 无模板参数 → 配置的 default_template
-                RoomConfig cfg = _serverConfig.BuildRoomConfig(null, roomId);
+                RoomConfig cfg = _serverConfig.BuildRoomConfig(null, roomId, requestedMapId);
                 // **内核构造也在 try 内**（P0-2）：此前 try 只包配置解析，AddRoom → RoomRuntime
                 // 构造抛出的异常会一路窜上权威循环线程（现成触发源：expected_players 超过内核容量，
                 // 现两侧已同源校验；此处是不依赖上游校验的兜底）。构造失败时房间尚未登记（登记是
@@ -2067,10 +2095,26 @@ namespace RoomServer
             }
         }
 
+        /// <summary>
+        /// 行键 → 判定图解析（多图批）：0/负 = 宿主默认图（<see cref="_map"/>）；&gt;0 经 <see cref="_mapCatalog"/>；
+        /// **目录缺失 = 配置缺失显式抛**（不静默回落默认图——"请求训练场"静默变首图是判定面分叉源）。
+        /// 目录实现的缺行/坏值语义 = fail-closed 抛（调用方 <see cref="OpenRoom"/> 转"拒绝建房"）。
+        /// </summary>
+        private SimMapData ResolveMap(int mapId)
+        {
+            if (mapId <= 0) return _map;
+            if (_mapCatalog == null)
+                throw new InvalidOperationException(
+                    $"宿主未装配多图目录（mapCatalog）——不可路由 map_id={mapId}（装配经 HostAssembly.Inputs.MapCatalog）");
+            return _mapCatalog(mapId);
+        }
+
         /// <summary>登记一个房间（构造预置与 <see cref="OpenRoom"/> 共用）。</summary>
         private RoomInstance AddRoom(RoomConfig cfg, bool dynamic = false)
         {
-            cfg.Map ??= _map;   // 宿主注入地图落进房间配置（配置自带者优先）——RoomRuntime 据此必填读取（D22）
+            // 宿主地图落进房间配置（配置自带者优先）——RoomRuntime 据此必填读取（D22）；
+            // 多图批：按房间行键解析（0 = 宿主默认图，见 ResolveMap）。
+            cfg.Map ??= ResolveMap(cfg.MapId);
             int mailboxCapacity = _serverConfig?.MailboxCapacity ?? RoomInstance.DefaultMailboxCapacity;
             RoomInstance inst = _workerExecution
                 ? new RoomInstance(cfg, mailboxCapacity, mailboxCapacity, mailboxCapacity, dynamic, true, _combat, _weapons, _gameplayDigestBase)

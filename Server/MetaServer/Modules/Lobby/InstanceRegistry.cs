@@ -146,7 +146,9 @@ namespace MetaServer.Modules.Lobby
                     { reason = "rooms[" + i + "].phase"; return RegisterResult.InvalidFields; }
                     if (r.Players < 0 || r.Players > MaxPlayersCeiling) { reason = "rooms[" + i + "].players"; return RegisterResult.InvalidFields; }
                     if (r.ExpectedPlayers < 0 || r.ExpectedPlayers > MaxPlayersCeiling) { reason = "rooms[" + i + "].expectedPlayers"; return RegisterResult.InvalidFields; }
-                    rooms.Add(new RoomView { RoomId = r.RoomId, Phase = r.Phase, Players = r.Players, ExpectedPlayers = r.ExpectedPlayers });
+                    // 地图行键（多图批）：0 = 未标注合法；负值 = 上报错误（值域上界归房间端表校验，Meta 不查表）
+                    if (r.MapId < 0) { reason = "rooms[" + i + "].mapId"; return RegisterResult.InvalidFields; }
+                    rooms.Add(new RoomView { RoomId = r.RoomId, Phase = r.Phase, Players = r.Players, ExpectedPlayers = r.ExpectedPlayers, MapId = r.MapId });
                 }
             }
 

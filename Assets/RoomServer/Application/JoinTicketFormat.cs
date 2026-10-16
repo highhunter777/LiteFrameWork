@@ -11,18 +11,21 @@ namespace RoomServer.Application
     /// 只有这一份。测试用隔离签发器亦调本类——**不得另写一份拼串**，否则签发端漂移时
     /// 验证端仍是绿的（协议单源红线同一条纪律）。
     ///
-    /// 形状：<c>v1.kid.playerId.accountId.roomId.matchId.audience.buildHash.simVersion.nonce.expMs.nbfMs.sig</c>
-    /// 共 13 段。自由文本字段走 Base64Url（去 padding、<c>+</c>→<c>-</c>、<c>/</c>→<c>_</c>），
-    /// 故字段内不可能出现分隔符 <c>.</c>；整数（expMs/nbfMs）明文十进制。
-    /// 签名覆盖**除第 12 段（sig）外的全部 12 段**。
+    /// 形状：<c>v2.kid.playerId.accountId.roomId.matchId.audience.buildHash.simVersion.nonce.expMs.nbfMs.mapId.sig</c>
+    /// 共 14 段。自由文本字段走 Base64Url（去 padding、<c>+</c>→<c>-</c>、<c>/</c>→<c>_</c>），
+    /// 故字段内不可能出现分隔符 <c>.</c>；整数（expMs/nbfMs/mapId）明文十进制。
+    /// 签名覆盖**除末段（sig）外的全部 13 段**。
+    ///
+    /// **v2（多图批）**：相对 v1 追加 <c>mapId</c> 段（房间创建意图里的地图行键；0 = 未指定）。
+    /// 追加段落在签名覆盖内——地图身份与其余绑定项同等防篡改。旧 v1 票据**不静默接受**（版本段不符即拒）。
     /// </summary>
     public static class JoinTicketFormat
     {
-        /// <summary>格式版本。不匹配即拒——旧格式不静默接受。</summary>
-        public const string Version = "v1";
+        /// <summary>格式版本。不匹配即拒——旧格式不静默接受。v2 = 追加 mapId 段（多图批）。</summary>
+        public const string Version = "v2";
 
         /// <summary>段数（含 sig）。</summary>
-        public const int PartCount = 13;
+        public const int PartCount = 14;
 
         private const int IdxVersion = 0;
         private const int IdxKid = 1;
@@ -36,7 +39,8 @@ namespace RoomServer.Application
         private const int IdxNonce = 9;
         private const int IdxExpiresAtMs = 10;
         private const int IdxNotBeforeMs = 11;
-        private const int IdxSignature = 12;
+        private const int IdxMapId = 12;
+        private const int IdxSignature = 13;
 
         /// <summary>签发端组装的票据字段（不含签名）。</summary>
         public sealed class Fields
@@ -52,9 +56,12 @@ namespace RoomServer.Application
             public string Nonce;
             public long ExpiresAtMs;
             public long NotBeforeMs;
+
+            /// <summary>房间创建意图里的地图行键（0 = 未指定——房间服按模板/宿主默认图建房）。</summary>
+            public int MapId;
         }
 
-        /// <summary>组装被签名覆盖的前缀（前 12 段）。签发与验签**必须**共用它。</summary>
+        /// <summary>组装被签名覆盖的前缀（前 13 段）。签发与验签**必须**共用它。</summary>
         public static string BuildPrefix(string kid, Fields f)
         {
             var sb = new StringBuilder(160);
@@ -69,7 +76,8 @@ namespace RoomServer.Application
               .Append(Encode(f.SimVersion)).Append('.')
               .Append(Encode(f.Nonce)).Append('.')
               .Append(f.ExpiresAtMs.ToString(System.Globalization.CultureInfo.InvariantCulture)).Append('.')
-              .Append(f.NotBeforeMs.ToString(System.Globalization.CultureInfo.InvariantCulture));
+              .Append(f.NotBeforeMs.ToString(System.Globalization.CultureInfo.InvariantCulture)).Append('.')
+              .Append(f.MapId.ToString(System.Globalization.CultureInfo.InvariantCulture));
             return sb.ToString();
         }
 
@@ -124,6 +132,10 @@ namespace RoomServer.Application
                 return null;
             if (!TryParseLong(parts[IdxExpiresAtMs], out f.ExpiresAtMs)) return null;
             if (!TryParseLong(parts[IdxNotBeforeMs], out f.NotBeforeMs)) return null;
+            // 地图行键：非负十进制 int（越界/负值 = 编码非法，按 Malformed 拒——不静默取 0）
+            if (!TryParseLong(parts[IdxMapId], out long mapId)) return null;
+            if (mapId < 0 || mapId > int.MaxValue) return null;
+            f.MapId = (int)mapId;
             return f;
         }
 

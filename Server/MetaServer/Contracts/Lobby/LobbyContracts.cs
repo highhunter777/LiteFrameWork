@@ -98,6 +98,9 @@ namespace MetaServer.Contracts.Lobby
 
         /// <summary>模板期望人数（0 = 房间未配置）。</summary>
         public int ExpectedPlayers { get; set; }
+
+        /// <summary>本房地图行键（多图批；0 = 未标注——房间列表/详情据此显示与选房，不是判定来源）。</summary>
+        public int MapId { get; set; }
     }
 
     /// <summary>实例注册响应：心跳存活时限（Meta 判定"可分配"的时效——客户端心跳间隔应显著小于它）。</summary>
@@ -127,6 +130,10 @@ namespace MetaServer.Contracts.Lobby
         /// 避免"签发了也进不去"（房间端仍以票据内盖章值做最终比对——两处同值，非第二判据）。
         /// </summary>
         public string BuildHash { get; set; }
+
+        /// <summary>请求地图行键（多图批；0 = 未指定，按房间既有图/宿主默认图）。正值盖章进票据——
+        /// 房间端按表校验（缺行/未知图拒建房），既有房间图不一致则拒进房。</summary>
+        public int MapId { get; set; }
     }
 
     /// <summary>
@@ -141,6 +148,9 @@ namespace MetaServer.Contracts.Lobby
 
         /// <summary>调用方声明的构建哈希（可空；语义同 <see cref="JoinTicketCommand.BuildHash"/>——版本准入前置）。</summary>
         public string BuildHash { get; set; }
+
+        /// <summary>请求地图行键（多图批；0 = 未指定 = 宿主默认图）。正值盖章进票据——房间端建房时按表校验。</summary>
+        public int MapId { get; set; }
     }
 
     /// <summary>
@@ -200,5 +210,6 @@ namespace MetaServer.Contracts.Lobby
         public int Phase { get; set; }
         public int Players { get; set; }
         public int ExpectedPlayers { get; set; }
+        public int MapId { get; set; }
     }
 }

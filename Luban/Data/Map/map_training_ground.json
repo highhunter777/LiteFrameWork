@@ -2,6 +2,7 @@
   "map_id": 2,
   "name": "training_ground",
   "content_digest": "c78441a74f6bc5f9",
+  "scene": "Assets/Scenes/TrainingGround.unity",
   "ground_y": 0,
   "half_width": 50,
   "half_depth": 50,

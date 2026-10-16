@@ -76,8 +76,11 @@ namespace LiteGame
                     c =>
                     {
                         var battle = c.Resolve<BattleClient>();
+                        // 多图批：本局判定图行键取 **JoinAck 权威事实**（0 = 未标注 → 首图口径，
+                        // 单源裁决见 BattleScenes.ResolveMapId）——与 Match 加载的地图场景同一行键（视觉=判定同图）。
+                        int mapId = BattleScenes.ResolveMapId(battle.Client.MapId);
                         return new BattleContext(battle, account.Scope, _input,
-                            _maps.GetMap(BattleScenes.MapIdFor(account.TestRoom)),   // 与 Match 建传输同一张图（视觉=判定同图）
+                            _maps.GetMap(mapId),
                             gameplayDigestBase: _gameplayDigestBase());
                     },
                     ServiceLifetime.Scoped, typeof(BattleClient));

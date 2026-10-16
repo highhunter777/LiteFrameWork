@@ -2,6 +2,7 @@
   "map_id": 1,
   "name": "arena01",
   "content_digest": "9c3d504907d8210e",
+  "scene": "Assets/Scenes/Arena01.unity",
   "ground_y": 0,
   "half_width": 100,
   "half_depth": 100,

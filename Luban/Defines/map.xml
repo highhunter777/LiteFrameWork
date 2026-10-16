@@ -19,6 +19,7 @@
         <var name="map_id" type="int"/>
         <var name="name" type="string"/>
         <var name="content_digest" type="string"/>
+        <var name="scene" type="string"/>   <!-- 地图场景路径（多图批：客户端装载与离场卸载按它取——加图＝加文件+加场景） -->
         <var name="ground_y" type="float"/>
         <var name="half_width" type="float"/>
         <var name="half_depth" type="float"/>

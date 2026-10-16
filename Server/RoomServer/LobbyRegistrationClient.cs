@@ -69,6 +69,7 @@ namespace RoomServer
             public int Phase { get; set; }
             public int Players { get; set; }
             public int ExpectedPlayers { get; set; }
+            public int MapId { get; set; }        // 多图批：房间列表可见性（0 = 未标注）
         }
 
         private sealed class RegisterPayload
@@ -241,6 +242,7 @@ namespace RoomServer
                     Phase = rooms[i].Phase,
                     Players = rooms[i].Players,
                     ExpectedPlayers = rooms[i].ExpectedPlayers,
+                    MapId = rooms[i].MapId,
                 };
             }
             return result;

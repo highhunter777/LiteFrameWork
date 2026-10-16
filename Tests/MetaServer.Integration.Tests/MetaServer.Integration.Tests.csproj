@@ -36,4 +36,10 @@
     <PackageReference Include="MongoDB.Driver" Version="3.12.0" />
   </ItemGroup>
 
+  <ItemGroup>
+    <!-- 测试地图夹具源链接（与 LiteSim.Core.Tests/LiteNet.Tests 共编同一份 TestMaps 单源）：
+         多图批 L3 用例按训练场快照摘要对账房间端解析出的判定图 -->
+    <Compile Include="..\LiteSim.Core.Tests\TestMaps.cs" Link="Test\TestMaps.cs" />
+  </ItemGroup>
+
 </Project>

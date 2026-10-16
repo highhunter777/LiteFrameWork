@@ -154,6 +154,7 @@ namespace RoomServer.Application
                 Audience = f.Audience,
                 Nonce = f.Nonce,
                 ExpiresAtMs = f.ExpiresAtMs,
+                MapId = f.MapId,
                 Rejection = JoinTicketRejection.None,
             };
         }

@@ -30,13 +30,16 @@ namespace LiteGame
         public long ExpiresAtMs;
     }
 
-    /// <summary>房间明细（实例投影内单行：roomId/相位/在场/满员）。</summary>
+    /// <summary>房间明细（实例投影内单行：roomId/相位/在场/满员/地图）。</summary>
     public sealed class LobbyRoomEntry
     {
         public string RoomId;
         public int Phase;
         public int Players;
         public int ExpectedPlayers;
+
+        /// <summary>本房地图行键（多图批；0 = 未标注——显示面按"未标注"回落，不作判据）。</summary>
+        public int MapId;
     }
 
     /// <summary>实例投影（<c>/lobby/rooms/public</c> 单行：实例身份 + 该实例的房间明细列表）。</summary>

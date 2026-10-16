@@ -23,7 +23,7 @@ namespace LiteGame
 
         /// <summary>创建房间（服务端出唯一新房号并按号签发进房票据——客户端**不发明房号**；响应形状同
         /// <see cref="JoinTicketInfo"/>；版本不符 409、无容量 503，与进房同码表）。</summary>
-        UniTask<MetaCall<JoinTicketInfo>> CreateRoomAsync(string accessToken, string buildHash,
+        UniTask<MetaCall<JoinTicketInfo>> CreateRoomAsync(string accessToken, string buildHash, int mapId = 0,
             CancellationToken ct = default);
 
         /// <summary>房间列表（玩家可见投影：实例 + 房间明细——挑 roomId 换票用）。</summary>

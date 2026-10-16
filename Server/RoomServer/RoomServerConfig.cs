@@ -213,7 +213,10 @@ namespace RoomServer
         /// 按模板名造一份房间配置。模板不存在或必填项缺失 → 抛（**不兜底**——
         /// 动态建房下"默认值"会让打错房号的请求静默建成一个配置不对的房间）。
         /// </summary>
-        public RoomConfig BuildRoomConfig(string templateId, string roomId)
+        /// <param name="requestedMapId">票据盖章的请求地图行键（多图批；0 = 未指定——按模板/宿主默认图）。
+        /// 模板固定 <c>map_id</c> 与请求各持非 0 且不等 = 策略冲突 → 抛（调用方转"拒绝进房"，
+        /// 不静默取其一）。</param>
+        public RoomConfig BuildRoomConfig(string templateId, string roomId, int requestedMapId = 0)
         {
             if (string.IsNullOrEmpty(roomId))
                 throw new ArgumentException("roomId 不能为空（房间号是路由键）", nameof(roomId));
@@ -222,6 +225,12 @@ namespace RoomServer
             if (!_rooms.TryGetValue(id, out RoomTemplate t))
                 throw new InvalidOperationException(
                     $"房间模板不存在：{id}（可用：{string.Join(",", _rooms.Keys)}）——配置：{_sourcePath}");
+
+            if (requestedMapId < 0)
+                throw new ArgumentOutOfRangeException(nameof(requestedMapId), requestedMapId, "请求地图行键不可为负");
+            if (t.MapId > 0 && requestedMapId > 0 && t.MapId != requestedMapId)
+                throw new InvalidOperationException(
+                    $"模板 {id} 固定 map_id={t.MapId}，票据请求 map_id={requestedMapId}——地图策略冲突，拒绝建房");
 
             return new RoomConfig
             {
@@ -232,6 +241,7 @@ namespace RoomServer
                 MatchTimeLimitMs = t.MatchTimeLimitMs,
                 WaitingTimeoutMs = t.WaitingTimeoutMs,
                 Rules = t.Rules,
+                MapId = requestedMapId > 0 ? requestedMapId : t.MapId,   // 0 = 未指定（宿主默认图，落图在 ServerHost）
             };
         }
 
@@ -489,6 +499,9 @@ namespace RoomServer
             public long WaitingTimeoutMs;
             public LiteSim.MatchRules Rules;
 
+            /// <summary>模板固定地图行键（多图批；0 = 不固定——按票据请求/宿主默认图）。</summary>
+            public int MapId;
+
             public static RoomTemplate Parse(string name, JsonElement el, string sourcePath)
             {
                 // ExpectedPlayers 必填且 ≥1（配置错误 vs 缺省：满员开局依赖它，缺省会让房间永远不开局）。
@@ -502,6 +515,10 @@ namespace RoomServer
                 long waitTimeout = OptionalLong(el, "waiting_timeout_ms", 0);
                 if (timeLimit < 0 || waitTimeout < 0)
                     throw new InvalidDataException($"rooms.{name} 的时限不可为负：{sourcePath}");
+                // 地图行键（多图批；可选）：0 = 不固定；负值 = 配置错误（是否有此行归房间端建房时表校验）
+                long mapId = OptionalLong(el, "map_id", 0);
+                if (mapId < 0 || mapId > int.MaxValue)
+                    throw new InvalidDataException($"rooms.{name} 的 map_id 越界（须 ≥0）：{sourcePath}");
                 LiteSim.MatchRules defaults = LiteSim.MatchRules.Default;
                 LiteSim.MatchRules rules;
                 try
@@ -523,6 +540,7 @@ namespace RoomServer
                     MatchTimeLimitMs = timeLimit,
                     WaitingTimeoutMs = waitTimeout,
                     Rules = rules,
+                    MapId = (int)mapId,
                 };
             }
         }

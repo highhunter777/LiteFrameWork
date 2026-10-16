@@ -114,7 +114,7 @@ namespace LiteGame
             Bridge.BindRegistries(uiRegistry, contentRegistry);
             Bridge.BindUIService(ui);
             Bridge.BindNavigation(nav);
-            MetaBridge.Bind(metaEntry);                   // Lua 联机门面后端（Bridge.meta——批C-③；装订经 ProductBridges）
+            MetaBridge.Bind(metaEntry, () => config.Tables);   // Lua 联机门面后端（Bridge.meta——批C-③；表供房间行地图名显示）
             context.Require<IInputService>().RegisterBlocker(
                 new IntentGate.BlockerKey("ui.modal", "模态 UI 打开——游戏意图被拦截"), () => ui.IsModalOpen);
 
@@ -175,7 +175,8 @@ namespace LiteGame
                     context.Require<EventCenter>(), context.Require<UIService>(), () => ListLuaAssetPaths(content), rootToken,
                     feedback)),
                 (ProcedureId.Main, new ProcedureMain(rootToken, pageFlow, metaEntry)),
-                (ProcedureId.Match, new ProcedureMatch(context.Require<IAccountSessionFactory>(), _scenes, feedback, rootToken)),
+                (ProcedureId.Match, new ProcedureMatch(context.Require<IAccountSessionFactory>(), _scenes, feedback,
+                    context.Require<IMapProvider>(), rootToken)),
                 (ProcedureId.Battle, new ProcedureBattle(content, context.Require<IInputService>(),
                     context.Require<ICameraService>(), context.Require<VfxService>(),
                     rootToken, requireCamera: true, worldClock: context.Require<IWorldClock>(),
@@ -183,7 +184,8 @@ namespace LiteGame
                     audio: context.Require<AudioService>(), commands: context.Require<CommandCenter>(),
                     pages: pageFlow,
                     crosshairFeel: new CrosshairFeelBook(config),     // 准心手感（tbcrosshair 惰性投影——装载后首用建）
-                    scenes: _scenes)),                                 // 离场卸载对局场景组（加载在 Match）
+                    scenes: _scenes,                                  // 离场卸载对局场景组（加载在 Match）
+                    maps: context.Require<IMapProvider>())),           // 多图批：卸载按表枚举地图场景清单
                 (ProcedureId.Error, new ProcedureError(rootToken)));
         }
 

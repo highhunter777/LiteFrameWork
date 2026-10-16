@@ -106,6 +106,10 @@ namespace RoomServer.Application
         /// <summary>过期时刻（单调毫秒）。</summary>
         public long ExpiresAtMs;
 
+        /// <summary>票据盖章的地图行键（多图批；0 = 未指定——房间按模板/宿主默认图建房）。
+        /// 建房时消费：既有房间不一致 → 拒绝进房（<c>ServerHost.HandleJoin</c>）。</summary>
+        public int MapId;
+
         /// <summary>拒绝原因；<see cref="JoinTicketRejection.None"/> = 验证通过。</summary>
         public JoinTicketRejection Rejection;
 

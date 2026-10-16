@@ -70,6 +70,7 @@ namespace LiteNet.Tests
         [InlineData(7)]   // buildHash → 不能绕过版本红线
         [InlineData(9)]   // nonce     → 不能改 nonce 重放
         [InlineData(10)]  // expMs     → 不能自行延长有效期
+        [InlineData(12)]  // mapId     → 不能改地图行键（多图批：图身份与其余绑定项同等防篡改）
         public void 篡改任一字段_签名不匹配即拒绝(int partIndex)
         {
             var issuer = NewIssuer();
@@ -89,7 +90,7 @@ namespace LiteNet.Tests
             var validator = NewValidator(issuer);
             string ticket = issuer.Issue("p42", RoomId, BuildHash, Now);
             string[] parts = ticket.Split('.');
-            parts[12] = "!!!not-base64!!!";
+            parts[13] = "!!!not-base64!!!";      // 末段 = 签名（v2：14 段，idx 13）
 
             JoinPrincipal p = validator.Validate(string.Join(".", parts), Ctx());
 
@@ -186,7 +187,7 @@ namespace LiteNet.Tests
             string good = issuer.Issue("p42", RoomId, BuildHash, Now, nonce: nonce);
 
             string[] parts = good.Split('.');
-            parts[12] = Convert.ToBase64String(new byte[32]);      // 签名形状合法但值错
+            parts[13] = Convert.ToBase64String(new byte[32]);      // 签名形状合法但值错（末段 = sig）
             Assert.Equal(JoinTicketRejection.BadSignature,
                 validator.Validate(string.Join(".", parts), Ctx()).Rejection);
             Assert.True(validator.NonceWindowCount == 0, "验签失败的票据不应登记 nonce（窗口未被占用）");

@@ -11,6 +11,7 @@ using LiteNet;
 using LiteNet.Protocol;
 using LiteNet.Transport;
 using LiteSim;
+using LiteSim.Tests;
 using LiteTesting;
 using MetaServer.Contracts.Lobby;
 using MetaServer.Modules.Auth;
@@ -114,51 +115,8 @@ namespace MetaServer.IntegrationTests
             (WebApplication meta, string metaBase) = await StartMetaAsync(_fixture.CreateDatabaseName());
 
             // ── ② 房间服宿主（真 KCP + 真票据验签 + 真注册/真结算管道）──────────────────
-            string journalDir = Path.Combine(Path.GetTempPath(), "litegame_loop_" + Guid.NewGuid().ToString("N"));
-            Directory.CreateDirectory(journalDir);
-            string journal = Path.Combine(journalDir, "settlements.journal");
-
-            var configJson = BuildRoomServerConfigJson(metaBase, journal);
-            RoomServerConfig config = RoomServerConfig.Parse(configJson, "<cloud-loopback>");
-
-            var inputs = new HostAssembly.Inputs
-            {
-                Config = config,
-                Audience = Audience,
-                // 房间端验签器 = 真 HmacJoinTicketValidator（与 Meta 签发端同源 JoinTicketFormat）
-                TicketValidator = new HmacJoinTicketValidator(new[] { new JoinTicketKey(TicketKid, TicketKey) }),
-                EnvelopeOptions = new SecureEnvelopeOptions(EnvelopeKey),
-                CombatValues = ServerTableLoader.LoadFromRepo().Combat.ToValues(),
-                Weapons = ServerTableLoader.LoadFromRepo().Weapons,
-                Map = ServerMapLoader.LoadFromRepo(),
-                Lobby = new LobbyRegistrationClient.Settings
-                {
-                    Url = metaBase + "/lobby/instances/register",
-                    InstanceId = "room-loop",
-                    InstanceKey = LobbyInstanceKey,
-                    AdvertiseHost = "127.0.0.1",
-                    HeartbeatIntervalMs = 1000,
-                    RequestTimeoutMs = 5000,
-                },
-                Settlement = new SettlementSubmitService.Settings
-                {
-                    Url = metaBase + "/matches/result",
-                    InstanceKey = SettlementInstanceKey,   // 结算凭据（与注册分权）
-                    IntervalMs = 1000,
-                    MaxBackoffMs = 60_000,
-                    RequestTimeoutMs = 5000,
-                },
-            };
-
-            var services = new Microsoft.Extensions.DependencyInjection.ServiceCollection();
-            HostAssembly.Register(services, inputs);
-            ServiceProvider provider = HostAssembly.Build(services);
-            _cleanup.Add(provider);
-
-            var host = provider.GetRequiredService<ServerHost>();
-            LobbyRegistrationClient lobby = provider.GetRequiredService<LobbyRegistrationClient>();
-            SettlementSubmitService settlement = provider.GetRequiredService<SettlementSubmitService>();
-            ServerLoop loop = provider.GetRequiredService<ServerLoop>();
+            (ServerHost host, LobbyRegistrationClient lobby, SettlementSubmitService settlement, ServerLoop loop, int roomPort)
+                = await StartRoomServerAsync(metaBase);
 
             // 注册心跳真打 Meta（真 HttpClient）——Meta 注册表由此出现本实例。
             Assert.True(lobby.TrySendOnce(out string regError), regError);
@@ -166,9 +124,6 @@ namespace MetaServer.IntegrationTests
             // 结算提交管道显式启动（生产入口 Program 同款；只装配不 Start = 条目永留待提交面）
             settlement.Start();
             _cleanup.Add(new WorkerStopper(settlement));
-
-            int roomPort = host.BoundPort;   // port=0 → 系统分配，回读真端口
-            Assert.True(roomPort > 0, "房间服未监听");
 
             // ── ③ 两个真客户端：登录 → 取票 → 真 KCP/信封 → Join（票据）─────────────────
             loop.Start();
@@ -242,6 +197,30 @@ namespace MetaServer.IntegrationTests
             JsonElement loserRow = await FindMatchAsync(metaBase, accountB, matchId);
             Assert.Equal(0, loserRow.GetProperty("kills").GetInt32());
             Assert.Equal(KillLimit, loserRow.GetProperty("deaths").GetInt32());
+        }
+
+        /// <summary>
+        /// **多图批 · 真服务器**（独立用例——不与 FFA 主链耦合，几十秒内完成）：
+        /// Meta `create-room{mapId=2}` 出号并把行键盖章进票据 → 客户端真 KCP/信封持票进房 →
+        /// **JoinAck.map_id=2**（客户端据此选地图表行与场景）＋ 房间端实建房间的行键与判定图同为训练场行
+        /// （行 2：8 障碍/16 出生，摘要 c78441a74f6bc5f9，== 表行投影）。
+        /// 该房不开局（expected_players=2 只进 1 人）；验完即断。
+        /// </summary>
+        [SkippableFact]
+        public async Task 多图_创建训练场房间_真票据真进房_JoinAck回执行键2()
+        {
+            Skip.If(!_fixture.Available, "Mongo 不可达且 docker 不可用（MONGO_TEST_URI / litegame-mongo 容器）");
+
+            (WebApplication meta, string metaBase) = await StartMetaAsync(_fixture.CreateDatabaseName());
+            (ServerHost host, LobbyRegistrationClient lobby, _, ServerLoop loop, int roomPort)
+                = await StartRoomServerAsync(metaBase);
+
+            Assert.True(lobby.TrySendOnce(out string regError), regError);   // Meta 注册表出现本实例
+            loop.Start();
+            _cleanup.Add(new LoopStopper(loop));
+
+            string account = await GuestLoginAsync(metaBase, "dev-map-A");
+            await 多图_创建训练场房间_真票据进房_回执行键2(metaBase, account, roomPort, host);
         }
 
         // ══════════════════════════════════════════════════════════════════════════════
@@ -471,17 +450,129 @@ namespace MetaServer.IntegrationTests
             Assert.False(string.IsNullOrEmpty(ticket), "Join Ticket 未签发");
             Assert.Equal("127.0.0.1:" + roomPort, address);   // 分配到的正是本房间服的监听地址
 
-            // 真 KCP + 真安全信封（与房间服同 PSK）
-            var kcp = new KcpTransportClient();
-            _transports.Add(kcp);
-            var transport = new SecureEnvelopeClientTransport(kcp, new SecureEnvelopeOptions(EnvelopeKey));
-            var client = new LoopbackClient(transport, ticket);
-            _clients.Add(client);
-            client.Connect("127.0.0.1", roomPort);
-
+            LoopbackClient client = JoinWithTicket(ticket, RoomId, roomPort);
             Assert.True(WaitFor(() => client.Joined, 15_000), "JoinAck 未达（票据被拒或连接失败）");
             Assert.Equal(expectPlayerId, client.PlayerId);
             return client;
+        }
+
+        /// <summary>
+        /// 起房间服宿主（真 KCP + 真票据验签 + 真注册/结算管道，端口系统分配）——两条 L3 用例共用：
+        /// ① 上云回环主链（FFA 真击杀/结算）；② 多图批（真创建真进房/JoinAck 回执）。
+        /// **不**注册心跳、**不**启动循环/结算（调用方决定——主链要结算，多图用例不需要）。
+        /// 多图批：`MapCatalog` 与生产装配 Program 同形（缓存装载、缺行 fail-closed）。
+        /// </summary>
+        private async Task<(ServerHost host, LobbyRegistrationClient lobby, SettlementSubmitService settlement,
+            ServerLoop loop, int roomPort)> StartRoomServerAsync(string metaBase)
+        {
+            await Task.CompletedTask;   // 与调用方 async 语境对齐（当前实现全同步——保持签名可演进）
+
+            string journalDir = Path.Combine(Path.GetTempPath(), "litegame_loop_" + Guid.NewGuid().ToString("N"));
+            Directory.CreateDirectory(journalDir);
+            string journal = Path.Combine(journalDir, "settlements.journal");
+
+            var configJson = BuildRoomServerConfigJson(metaBase, journal);
+            RoomServerConfig config = RoomServerConfig.Parse(configJson, "<cloud-loopback>");
+
+            SimMapData defaultMap = ServerMapLoader.LoadFromRepo();
+            var mapCatalog = new ServerMapCatalog(ServerMapLoader.LoadFromRepo, defaultMap,
+                LiteClient.MapTableProjection.DefaultMapId);
+
+            var inputs = new HostAssembly.Inputs
+            {
+                Config = config,
+                Audience = Audience,
+                // 房间端验签器 = 真 HmacJoinTicketValidator（与 Meta 签发端同源 JoinTicketFormat）
+                TicketValidator = new HmacJoinTicketValidator(new[] { new JoinTicketKey(TicketKid, TicketKey) }),
+                EnvelopeOptions = new SecureEnvelopeOptions(EnvelopeKey),
+                CombatValues = ServerTableLoader.LoadFromRepo().Combat.ToValues(),
+                Weapons = ServerTableLoader.LoadFromRepo().Weapons,
+                Map = defaultMap,
+                MapCatalog = mapCatalog.Resolve,
+                Lobby = new LobbyRegistrationClient.Settings
+                {
+                    Url = metaBase + "/lobby/instances/register",
+                    InstanceId = "room-loop",
+                    InstanceKey = LobbyInstanceKey,
+                    AdvertiseHost = "127.0.0.1",
+                    HeartbeatIntervalMs = 1000,
+                    RequestTimeoutMs = 5000,
+                },
+                Settlement = new SettlementSubmitService.Settings
+                {
+                    Url = metaBase + "/matches/result",
+                    InstanceKey = SettlementInstanceKey,   // 结算凭据（与注册分权）
+                    IntervalMs = 1000,
+                    MaxBackoffMs = 60_000,
+                    RequestTimeoutMs = 5000,
+                },
+            };
+
+            var services = new Microsoft.Extensions.DependencyInjection.ServiceCollection();
+            HostAssembly.Register(services, inputs);
+            ServiceProvider provider = HostAssembly.Build(services);
+            _cleanup.Add(provider);
+
+            var host = provider.GetRequiredService<ServerHost>();
+            LobbyRegistrationClient lobby = provider.GetRequiredService<LobbyRegistrationClient>();
+            SettlementSubmitService settlement = provider.GetRequiredService<SettlementSubmitService>();
+            ServerLoop loop = provider.GetRequiredService<ServerLoop>();
+
+            int roomPort = host.BoundPort;   // port=0 → 系统分配，回读真端口
+            Assert.True(roomPort > 0, "房间服未监听");
+            return (host, lobby, settlement, loop, roomPort);
+        }
+
+        /// <summary>票据在手：真 KCP + 真安全信封（与房间服同 PSK）连房间服 → Join（多图批：房号可非默认）。</summary>
+        private LoopbackClient JoinWithTicket(string ticket, string roomId, int roomPort)
+        {
+            var kcp = new KcpTransportClient();
+            _transports.Add(kcp);
+            var transport = new SecureEnvelopeClientTransport(kcp, new SecureEnvelopeOptions(EnvelopeKey));
+            var client = new LoopbackClient(transport, ticket, roomId);
+            _clients.Add(client);
+            client.Connect("127.0.0.1", roomPort);
+            return client;
+        }
+
+        /// <summary>
+        /// 多图批（真服务器）：`create-room{mapId=2}` → 响应票据 → 真 KCP/信封 Join → **JoinAck.map_id=2**；
+        /// 房间端实建房间的行键与判定图同为训练场行（表行 2：训练场快照摘要 c78441a74f6bc5f9）。
+        /// 该房不开局（expected_players=2 只进 1 人）；验完即断——多图链路证据与 FFA 主链共用同一次真宿主。
+        /// </summary>
+        private async Task 多图_创建训练场房间_真票据进房_回执行键2(string metaBase, string accessToken,
+            int roomPort, ServerHost host)
+        {
+            const int trainingMapId = 2;   // = MapTableProjection.TrainingMapId（表行键；此处钉死为协议/数据面证据）
+            string roomId;
+            string ticket;
+            using (var http = new HttpClient())
+            {
+                var req = new HttpRequestMessage(HttpMethod.Post, metaBase + "/lobby/create-room");
+                req.Headers.Add("Authorization", "Bearer " + accessToken);
+                req.Content = new StringContent(JsonSerializer.Serialize(new
+                {
+                    requestId = "req-map-" + Guid.NewGuid().ToString("N"),
+                    mapId = trainingMapId,                     // 创建意图：地图行键随票据盖章（签名覆盖内）
+                    buildHash = ServerHost.ServerBuildHash,
+                }), Encoding.UTF8, "application/json");
+
+                HttpResponseMessage resp = await http.SendAsync(req);
+                Assert.Equal(System.Net.HttpStatusCode.OK, resp.StatusCode);
+                using JsonDocument doc = JsonDocument.Parse(await resp.Content.ReadAsStringAsync());
+                roomId = doc.RootElement.GetProperty("roomId").GetString();
+                ticket = doc.RootElement.GetProperty("ticket").GetString();
+            }
+
+            Assert.False(string.IsNullOrEmpty(roomId), "多图：服务端未出新房号");
+            LoopbackClient client = JoinWithTicket(ticket, roomId, roomPort);
+            Assert.True(WaitFor(() => client.Joined, 15_000), "多图：真票据进房未达 JoinAck");
+
+            Assert.Equal(trainingMapId, client.MapId);                     // ① 权威回执：客户端据此选表行与场景
+            Assert.True(host.TryGetRoom(roomId, out RoomRuntime room), "多图：房间端未见该房");
+            Assert.Equal(trainingMapId, room.MapId);                       // ② 房事实：行键落进房间配置
+            Assert.Equal(SimMapDigest.Compute(TestMaps.TrainingGround()),  // ③ 判定图 = 该行投影（非宿主默认图）
+                SimMapDigest.Compute(room.Map));
         }
 
         private static async Task<JsonElement> QueryMatchesAsync(string metaBase, string accessToken)
@@ -524,7 +615,7 @@ namespace MetaServer.IntegrationTests
             return JsonSerializer.Serialize(new
             {
                 port = 0,                       // 系统分配空闲端口（回读 BoundPort）
-                max_rooms = 2,
+                max_rooms = 3,                  // FFA 房 ＋ 多图批的训练场房（各占一格）
                 worker_count = 1,
                 mailbox_capacity = 1024,
                 audience = Audience,            // 与 Meta 签发的 ticket.audience 一致
@@ -652,6 +743,7 @@ namespace MetaServer.IntegrationTests
         private sealed class LoopbackClient : IDisposable
         {
             private readonly IClientTransport _transport;
+            private readonly string _roomId;
             private readonly string _ticket;
             private readonly SimWorldState _mirror = new SimWorldState();
             private readonly Dictionary<int, long> _slotEntityIds = new Dictionary<int, long>();
@@ -662,16 +754,20 @@ namespace MetaServer.IntegrationTests
             public bool Joined => Client.PlayerId >= 0;
             public bool HasStartGame => Client.HasStartGame;
 
-            public LoopbackClient(IClientTransport transport, string ticket)
+            /// <summary>JoinAck 回执的地图行键（多图批；0 = 服务器未标注）。</summary>
+            public int MapId => Client.MapId;
+
+            public LoopbackClient(IClientTransport transport, string ticket, string roomId = RoomId)
             {
                 _transport = transport;
+                _roomId = roomId;
                 _ticket = ticket;
                 Client = new RoomClient(transport);
                 Client.OnSnapshot += OnSnapshot;
                 _transport.OnConnected += () =>
                 {
                     if (Client.Phase == ClientSessionPhase.Idle)
-                        Client.SendJoin(RoomId, _ticket, ServerHost.ServerBuildHash);
+                        Client.SendJoin(_roomId, _ticket, ServerHost.ServerBuildHash);
                 };
             }
 

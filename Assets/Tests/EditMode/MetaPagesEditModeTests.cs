@@ -79,7 +79,8 @@ meta.Version = function() return meta.version end
 meta.GuestLogin = function(cb) meta.cb_guest = cb end
 meta.ListRooms = function(cb) meta.cb_rooms = cb end
 meta.QuickEnter = function(cb) meta.cb_enter = cb end
-meta.CreateRoom = function(cb) calls[#calls + 1] = 'CreateRoom'; meta.cb_create = cb end
+-- 多图批：CreateRoom(mapId, cb)——mapId = 请求地图行键（0 = 未指定，宿主默认图）
+meta.CreateRoom = function(mapId, cb) calls[#calls + 1] = 'CreateRoom:' .. tostring(mapId); meta.cb_create = cb end
 meta.EnterRoom = function(roomId, cb)
     calls[#calls + 1] = 'EnterRoom:' .. tostring(roomId)
     meta.cb_enter = cb
@@ -252,7 +253,7 @@ buttons['Button_CreateRoom']()");
                 string mid = Calls(env);
                 StringAssert.Contains("Key:Txt_Status=UI.Lobby.Creating", mid, "在途给 Creating 键");
                 StringAssert.Contains("Interact:Button_CreateRoom=false", mid, "在途禁钮（防重入）");
-                StringAssert.Contains("CreateRoom", mid, "走服务端出号（Bridge.meta.CreateRoom）");
+                StringAssert.Contains("CreateRoom:0", mid, "走服务端出号（Bridge.meta.CreateRoom；多图批：首参=请求地图行键，0=未指定）");
 
                 env.DoString("meta.cb_create(true, 'R-NEW001')");
                 StringAssert.Contains("Replace:UI.Page_Room#R-NEW001", Calls(env), "成功替换房间页 + 新房号随导航数据（§1/§3）");

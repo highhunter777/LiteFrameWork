@@ -85,6 +85,8 @@ namespace MetaServer.Modules.Lobby
             if (!string.IsNullOrEmpty(command.BuildHash)
                 && !FieldValidation.IsValid(command.BuildHash, MaxBuildHashBytes))
                 return Invalid();
+            if (command.MapId < 0)
+                return Invalid();   // 负值 = 请求错误（0 = 未指定合法；值域上界/是否有此行归房间端表校验）
 
             if (!_registry.TryAllocate(command.BuildHash, out InstanceRegistry.Entry chosen, out bool versionConflict))
             {
@@ -98,7 +100,7 @@ namespace MetaServer.Modules.Lobby
                     : new Result.NoCapacity();
             }
 
-            string ticket = _signer.Issue(accountId, accountId, roomId, chosen.BuildHash,
+            string ticket = _signer.Issue(accountId, accountId, roomId, chosen.BuildHash, command.MapId,
                 _nowMs(), _ticketTtlMs, out long expiresAtMs);
             return new Result.Accepted
             {

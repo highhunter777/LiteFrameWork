@@ -106,6 +106,14 @@ SimMapData map = combatTableDir != null
     ? ServerMapLoader.LoadTableBytes(combatTableDir)
     : ServerMapLoader.LoadFromRepo();
 
+// 多图目录（多图批）：行键 → 判定图（缓存装载；缺行抛——建房路径转"拒绝进房"，fail-closed）。
+// 默认图与首行键共用同一实例（`MapTableProjection.DefaultMapId`）——避免重复装载同一份表行。
+var mapCatalog = new ServerMapCatalog(
+    combatTableDir != null
+        ? new Func<int, SimMapData>(id => ServerMapLoader.LoadTableBytes(combatTableDir, id))
+        : id => ServerMapLoader.LoadFromRepo(id),
+    map, LiteClient.MapTableProjection.DefaultMapId);
+
 // 票据验证器装配：生产**必须**传 key（fail-closed）。缺 key 不静默退回——显式告警（§6"不能悄悄退回 fake"）。
 if (portOverride.HasValue) serverConfig.OverridePort(portOverride.Value);
 
@@ -188,6 +196,7 @@ HostAssembly.Register(services, new HostAssembly.Inputs
     CombatValues = combat,
     Weapons = weapons,
     Map = map,
+    MapCatalog = mapCatalog.Resolve,       // 多图批：房间按票据行键取图（缺行 fail-closed 抛→拒绝进房）
     GameplayDigestBase = load.Digest,
     Lobby = lobbySettings,
     Settlement = settlementSettings,

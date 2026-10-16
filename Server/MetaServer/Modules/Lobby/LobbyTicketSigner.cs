@@ -34,12 +34,15 @@ namespace MetaServer.Modules.Lobby
         }
 
         /// <summary>
-        /// 签发票据（§6.2 绑定项：playerId/accountId/roomId/过期时刻/nonce/buildHash/audience）。
+        /// 签发票据（§6.2 绑定项：playerId/accountId/roomId/过期时刻/nonce/buildHash/audience/mapId）。
         /// nonce = CSPRNG 128 bit（房间端一次性消费窗口按它去重——重放必拒）。
         /// </summary>
-        public string Issue(string playerId, string accountId, string roomId, string buildHash,
+        /// <param name="mapId">房间创建意图里的地图行键（多图批；0 = 未指定）。**只在签名覆盖内传递，
+        /// Meta 不查表**——表校验（缺行/未知图）归房间端建房路径（fail-closed）。</param>
+        public string Issue(string playerId, string accountId, string roomId, string buildHash, int mapId,
             long nowMs, long ttlMs, out long expiresAtMs)
         {
+            if (mapId < 0) throw new ArgumentOutOfRangeException(nameof(mapId), mapId, "地图行键不可为负（0 = 未指定）");
             expiresAtMs = nowMs + ttlMs;
             var fields = new JoinTicketFormat.Fields
             {
@@ -54,6 +57,7 @@ namespace MetaServer.Modules.Lobby
                 Nonce = NewNonce(),
                 ExpiresAtMs = expiresAtMs,
                 NotBeforeMs = 0,
+                MapId = mapId,
             };
             string prefix = JoinTicketFormat.BuildPrefix(_kid, fields);
             return JoinTicketFormat.AppendSignature(prefix, JoinTicketFormat.Sign(_secret, prefix));

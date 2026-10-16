@@ -21,11 +21,13 @@ namespace LiteGame
     public static class MetaBridge
     {
         private static MetaEntryService s_meta;
+        private static Func<cfg.Tables> s_tables;      // 地图表（多图批：房间行地图名显示面；可空 = 不解析名）
 
         /// <summary>装配期注入编排件（ContainerModule——未配置部署时也注入：IsConfigured=false 由页面显性拒绝）。</summary>
-        public static void Bind(MetaEntryService meta)
+        public static void Bind(MetaEntryService meta, Func<cfg.Tables> tables = null)
         {
             s_meta = meta ?? throw new ArgumentNullException(nameof(meta));
+            s_tables = tables;
         }
 
         /// <summary>装订 meta 门面进全局 Bridge 表（ProductBridges 调用——在框架四门面之后）。</summary>
@@ -40,7 +42,7 @@ namespace LiteGame
             meta.Set("GuestLogin", new Action<LuaFunction>(GuestLogin));
             meta.Set("ListRooms", new Action<LuaFunction>(cb => ListRooms(env, cb)));
             meta.Set("QuickEnter", new Action<LuaFunction>(QuickEnter));
-            meta.Set("CreateRoom", new Action<LuaFunction>(CreateRoom));
+            meta.Set("CreateRoom", new Action<int, LuaFunction>((mapId, cb) => CreateRoom(mapId, cb)));
             meta.Set("EnterRoom", new Action<string, LuaFunction>(EnterRoom));
             meta.Set("ListRecords", new Action<LuaFunction>(cb => ListRecords(env, cb)));
             env.Global.Get<LuaTable>("Bridge").Set("meta", meta);
@@ -71,9 +73,11 @@ namespace LiteGame
             => Run(s_meta.EnterRoomAsync(""), cb, r => r.Value.RoomId).Forget();
 
         /// <summary>创建房间（服务端出唯一新号 → 票据即达，客户端不发明房号）。成功载荷 = 新房号
-        /// （房间页展示用）——与 <see cref="QuickEnter"/>/<see cref="EnterRoom"/> 同：成功后流程机接管进房。</summary>
-        public static void CreateRoom(LuaFunction cb)
-            => Run(s_meta.CreateRoomAsync(), cb, r => r.Value.RoomId).Forget();
+        /// （房间页展示用）——与 <see cref="QuickEnter"/>/<see cref="EnterRoom"/> 同：成功后流程机接管进房。
+        /// <paramref name="mapId"/>（多图批）0 = 未指定（宿主默认图）；非 0 = 请求地图行键（随票据盖章，
+        /// 房间端按表校验）。玩家侧选图控件归后续批（多图批先给门面参数与房间列表地图显示）。</summary>
+        public static void CreateRoom(int mapId, LuaFunction cb)
+            => Run(s_meta.CreateRoomAsync(mapId), cb, r => r.Value.RoomId).Forget();
 
         /// <summary>选择式进房（房间列表行点击——列表行协议挂批C-⑥）。成功载荷 = 房号（同 QuickEnter）。</summary>
         public static void EnterRoom(string roomId, LuaFunction cb)
@@ -82,7 +86,7 @@ namespace LiteGame
         public static void ListRecords(LuaEnv env, LuaFunction cb)
             => Run(s_meta.ListRecordsAsync(RecordsLimit), cb, r => RecordsTable(env, r.Value)).Forget();
 
-        /// <summary>统一异步收口：恰好一次回调；异常不外抛（转 reason）——页面回调不得炸壳。
+        /// <summary>统一异步收口：恰好一次回调；异常不外抛（转 reason）——页面回调异常不得外溢。
         /// fire-and-forget 显式化（.Forget()——CS4014 收口，Bridge.Ui.Close 同款）。</summary>
         private static async UniTask Run<T>(UniTask<MetaCall<T>> task, LuaFunction cb,
             Func<MetaCall<T>, object> okPayload)
@@ -118,7 +122,9 @@ namespace LiteGame
             }
         }
 
-        /// <summary>房间列表 → LuaTable 数组（行字段只取页面消费面：roomId/players/expectedPlayers）。</summary>
+        /// <summary>房间列表 → LuaTable 数组（行字段只取页面消费面：roomId/players/expectedPlayers/地图）。
+        /// 多图批：`mapId` = 上报行键，`mapName` = 客户端按地图表 `name` 列解析（表未装载/缺行 → 空串——
+        /// 显示面不因缺名失败；判定面不读本字段）。</summary>
         private static LuaTable RoomsTable(LuaEnv env, IReadOnlyList<LobbyInstanceView> instances)
         {
             var rows = env.NewTable();
@@ -132,10 +138,20 @@ namespace LiteGame
                     row.Set("roomId", room.RoomId);
                     row.Set("players", room.Players);
                     row.Set("expectedPlayers", room.ExpectedPlayers);
+                    row.Set("mapId", room.MapId);
+                    row.Set("mapName", MapDisplayName(room.MapId));
                     rows.Set(index++, row);
                 }
             }
             return rows;
+        }
+
+        /// <summary>地图行键 → 显示名（地图表 `name` 列；0/缺行/表未装载 = 空串——纯显示面，不抛）。</summary>
+        private static string MapDisplayName(int mapId)
+        {
+            if (mapId <= 0 || s_tables == null) return string.Empty;
+            cfg.map row = s_tables().Tbmap?.GetOrDefault(mapId);
+            return row?.Name ?? string.Empty;
         }
 
         /// <summary>本地时间显示（**数据面在 C#**：Lua 受控沙箱不依赖 os 库做时间格式化；

@@ -33,8 +33,9 @@ namespace LiteGame
         public ServiceContainer Services { get; }
         public BattleClient Battle { get; }
 
-        /// <summary>测试房/本地房标记（进房入口带入；**地图选行**用——`MatchSessionFactory` 据此取
-        /// 训练图行，见 `BattleScenes.MapIdFor`）。</summary>
+        /// <summary>测试房/本地房标记（进房入口带入；**每局规则**用——`SimTestRules` 免死/无限子弹
+        /// 的入口语义）。多图批后**不再承担地图选行**：本局地图行键以 JoinAck 权威事实为准
+        /// （`RoomClient.MapId` → `BattleScenes.ResolveMapId`）。</summary>
         public bool TestRoom { get; }
 
         private bool _disposed;

@@ -85,6 +85,7 @@ namespace MetaServer.Modules.Lobby
                 RequestId = command.RequestId,
                 RoomId = roomId,
                 BuildHash = command.BuildHash,          // 版本准入前置（空 = 不断言，与进房同语义）
+                MapId = command.MapId,                  // 地图行键随票据盖章（多图批：房间端建房时按表校验）
             });
         }
 
