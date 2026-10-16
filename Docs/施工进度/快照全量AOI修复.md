@@ -33,7 +33,7 @@
 
 ## 验证证据
 
-- L1：`dotnet test Tests/LiteNet.Tests/LiteNet.Tests.csproj` → **350/351 通过**（2026-10-01）。唯一失败＝`BuildHash_与当前源码复算一致` 的**既有红**：并行"全链诊断样例"线在改 LiteNet 源集（RoomClient.cs/LiteNet.csproj/ServerHost.cs/Diagnostics/*，工作区未提交），本批 SnapshotDiffer/SimView 亦在源集内——重跑 `python scripts/gen-build-hash.py` 需两线合流后由后收口的批统一执行（同 R2 批"唯一失败＝快照既有 BuildHash 红"处置口径）。另：`JoinDiagChainTests`（并行线 WIP 新用例）一次运行假红、复跑即绿，属其线内问题，本批不动。
+- L1：`dotnet test Tests/LiteNet.Tests/LiteNet.Tests.csproj` → **350/351 通过**（2026-10-01）。唯一失败＝`BuildHash_与当前源码复算一致` 的**既有红**：并行"全链诊断样例"线在改 LiteNet 源集（RoomClient.cs/LiteNet.csproj/ServerHost.cs/Diagnostics/*，当时工作区未提交），本批 SnapshotDiffer/SimView 亦在源集内——重跑 `python scripts/gen-build-hash.py` 需两线合流后由后收口的批统一执行（同 R2 批"唯一失败＝快照既有 BuildHash 红"处置口径）。另：`JoinDiagChainTests`（并行线 WIP 新用例）一次运行假红、复跑即绿，属其线内问题，本批不动。
 - Unity 编译：pipeline `recompile` → `recompile_status` = `{"status":"completed","failed":false,"errors":[]}`（2026-10-01，0 错误）。
 
 ## F9（瞬间移动玩家）处置结论

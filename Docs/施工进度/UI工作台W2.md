@@ -35,7 +35,7 @@
 | 截图存证 | `AgentScripts/Artifacts/w2-page-hud-en.png`（页面英文 + 工具条 + 面板）、`w2-hud-preview2.png`（HUD 预览：准心/弹药/血条 + 紧凑工具条不压 HUD 底栏）——工作区本地（`AgentScripts/` 已忽略） |
 | 判据探针 | `AgentScripts/ProbePrefabMods{,2..5}.cs`（一次性，保留供复核）：override 记录语义实测（见"偏差"节） |
 | 验证工具（可重复用） | `AgentScripts/WorkbenchW2Probe.cs`——`Env`（可点性射线自检）/ `ClickNamed` / `ClickRow` / `State`（面板·工具条·页面栈·列表·长文本·编辑器窗口读数）/ `Scenes`（场景加载证据）；`AgentScripts/BuildWorkbenchPanel.cs`（面板+工具条幂等构建器，改布局后重跑即重建场景） |
-| L1 门禁 | **[PASS] L1 completed 1702 tests**（`pwsh scripts/gate/test.ps1 -Lane L1 -Profile PullRequest`）。首轮**全 lane 零执行**——根因是**并行线提交 c4976015** 给 `ISceneService` 加 `Progress` 后 `Tests/LiteFramework.Core.Tests/GmSceneCommandTests.cs:21` 的 `FakeSceneService` 未同步（CS0535，非本批面）；本批顺带补该成员（按接口"无加载为 0"口径）后转绿——已在审计表登记 |
+| L1 门禁 | **[PASS] L1 completed 1702 tests**（`pwsh scripts/gate/test.ps1 -Lane L1 -Profile PullRequest`）。首轮**全 lane 零执行**——根因是**并行线提交 68c3feb0** 给 `ISceneService` 加 `Progress` 后 `Tests/LiteFramework.Core.Tests/GmSceneCommandTests.cs:21` 的 `FakeSceneService` 未同步（CS0535，非本批面）；本批顺带补该成员（按接口"无加载为 0"口径）后转绿——已在审计表登记 |
 | doc-lint | **OK**（`python scripts/gate/doc-lint.py`） |
 | BuildHash | **不涉及**——改动面（`LiteGame.DevHUD`/`LiteGame.Editor`/`LiteGame.UI` 无改动/`Tests`）均不在共享闭包；无协议/表源改动 |
 
