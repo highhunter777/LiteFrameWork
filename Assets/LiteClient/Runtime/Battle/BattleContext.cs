@@ -37,8 +37,13 @@ namespace LiteClient
             Completed,
         }
 
-        /// <summary>房间规模（RoomConfig 默认 2 人房——两端 StartGame 世界重建的定容依据）。</summary>
-        public const int ExpectedPlayers = 2;
+        /// <summary>未标注形态的默认房间规模（2 人房；JoinAck.expected_players = 0 时回落——
+        /// 嵌入式/测试直构形态与地图的"首图口径"同款先例）。</summary>
+        public const int DefaultExpectedPlayers = 2;
+
+        /// <summary>本局房间规模（**定容依据**：预测世界席位/输入模板/本地服席位——JoinAck 定值）。
+        /// 两端 StartGame 世界重建同用此值（＝房间 `RoomConfig.ExpectedPlayers`）。</summary>
+        public int ExpectedPlayers { get; }
 
         /// <summary>对局结束（恰好一次；Dispose 不触发——那是清理不是结束）。</summary>
         public event Action<EndReason> Ended;
@@ -109,6 +114,11 @@ namespace LiteClient
             _map = map ?? throw new ArgumentException(
                 "地图必填——装配经 IMapProvider 注入（D22：无回退地图）", nameof(map));
             _gameplayDigestBase = gameplayDigestBase;
+            // 定容依据＝**JoinAck 权威事实**（开房参数批：玩家开房时可选人数；0 = 未标注 → 默认 2 座回落）。
+            // 构造点晚于 JoinAck（同地图：MapId 已定值）——见 MatchSessionFactory 装配序。
+            ExpectedPlayers = battle.Client.ExpectedPlayers > 0
+                ? battle.Client.ExpectedPlayers
+                : DefaultExpectedPlayers;
             _inputs = new BattleInputPipeline(_battle, inputProvider, ExpectedPlayers);
             _matchScope = accountScope.CreateChild("Match");
 

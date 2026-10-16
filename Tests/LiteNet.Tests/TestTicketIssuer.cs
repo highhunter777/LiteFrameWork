@@ -43,7 +43,8 @@ namespace LiteNet.Tests
         public string Issue(string playerId, string roomId, string buildHash,
             long nowMs, long ttlMs = 60_000, long notBeforeMs = 0,
             string accountId = null, string matchId = "m1", string audience = "test",
-            string simVersion = "1", string nonce = null, string kidOverride = null, int mapId = 0)
+            string simVersion = "1", string nonce = null, string kidOverride = null, int mapId = 0,
+            int expectedPlayers = 0)
         {
             var f = new JoinTicketFormat.Fields
             {
@@ -59,6 +60,7 @@ namespace LiteNet.Tests
                 ExpiresAtMs = nowMs + ttlMs,
                 NotBeforeMs = notBeforeMs,
                 MapId = mapId,
+                ExpectedPlayers = expectedPlayers,
             };
             string prefix = JoinTicketFormat.BuildPrefix(kidOverride ?? _kid, f);
             return JoinTicketFormat.AppendSignature(prefix, JoinTicketFormat.Sign(_secret, prefix));

@@ -51,9 +51,9 @@ namespace LiteGame
         }
 
         public UniTask<MetaCall<JoinTicketInfo>> CreateRoomAsync(string accessToken, string buildHash, int mapId = 0,
-            CancellationToken ct = default)
+            int expectedPlayers = 0, CancellationToken ct = default)
         {
-            string body = MetaJson.BuildCreateRoomRequest(_requestIdFactory(), buildHash ?? "", mapId);
+            string body = MetaJson.BuildCreateRoomRequest(_requestIdFactory(), buildHash ?? "", mapId, expectedPlayers);
             return SendAsync("POST", MetaEndpoints.CreateRoom, body, accessToken, MetaJson.ParseJoinTicket, ct);
         }
 

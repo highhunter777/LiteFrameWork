@@ -298,7 +298,28 @@ namespace XLua
 #endif
 		}
         
-		public XLua.LuaTable __Gen_Delegate_Imp13(string p0)
+		public XLua.LuaTable __Gen_Delegate_Imp13()
+		{
+#if THREAD_SAFE || HOTFIX_ENABLE
+            lock (luaEnv.luaEnvLock)
+            {
+#endif
+                RealStatePtr L = luaEnv.rawL;
+                int errFunc = LuaAPI.pcall_prepare(L, errorFuncRef, luaReference);
+                ObjectTranslator translator = luaEnv.translator;
+                
+                PCall(L, 0, 1, errFunc);
+                
+                
+                XLua.LuaTable __gen_ret = (XLua.LuaTable)translator.GetObject(L, errFunc + 1, typeof(XLua.LuaTable));
+                LuaAPI.lua_settop(L, errFunc - 1);
+                return  __gen_ret;
+#if THREAD_SAFE || HOTFIX_ENABLE
+            }
+#endif
+		}
+        
+		public XLua.LuaTable __Gen_Delegate_Imp14(string p0)
 		{
 #if THREAD_SAFE || HOTFIX_ENABLE
             lock (luaEnv.luaEnvLock)
@@ -320,7 +341,7 @@ namespace XLua
 #endif
 		}
         
-		public string __Gen_Delegate_Imp14(string p0, object p1, object p2, object p3, object p4)
+		public string __Gen_Delegate_Imp15(string p0, object p1, object p2, object p3, object p4)
 		{
 #if THREAD_SAFE || HOTFIX_ENABLE
             lock (luaEnv.luaEnvLock)
@@ -346,7 +367,7 @@ namespace XLua
 #endif
 		}
         
-		public void __Gen_Delegate_Imp15(string p0, XLua.LuaTable p1)
+		public void __Gen_Delegate_Imp16(string p0, XLua.LuaTable p1)
 		{
 #if THREAD_SAFE || HOTFIX_ENABLE
             lock (luaEnv.luaEnvLock)
@@ -369,7 +390,7 @@ namespace XLua
 #endif
 		}
         
-		public void __Gen_Delegate_Imp16(XLua.LuaFunction p0)
+		public void __Gen_Delegate_Imp17(XLua.LuaFunction p0)
 		{
 #if THREAD_SAFE || HOTFIX_ENABLE
             lock (luaEnv.luaEnvLock)
@@ -391,7 +412,7 @@ namespace XLua
 #endif
 		}
         
-		public void __Gen_Delegate_Imp17(string p0, XLua.LuaFunction p1)
+		public void __Gen_Delegate_Imp18(string p0, XLua.LuaFunction p1)
 		{
 #if THREAD_SAFE || HOTFIX_ENABLE
             lock (luaEnv.luaEnvLock)
@@ -404,6 +425,30 @@ namespace XLua
                 translator.Push(L, p1);
                 
                 PCall(L, 2, 0, errFunc);
+                
+                
+                
+                LuaAPI.lua_settop(L, errFunc - 1);
+                
+#if THREAD_SAFE || HOTFIX_ENABLE
+            }
+#endif
+		}
+        
+		public void __Gen_Delegate_Imp19(int p0, int p1, XLua.LuaFunction p2)
+		{
+#if THREAD_SAFE || HOTFIX_ENABLE
+            lock (luaEnv.luaEnvLock)
+            {
+#endif
+                RealStatePtr L = luaEnv.rawL;
+                int errFunc = LuaAPI.pcall_prepare(L, errorFuncRef, luaReference);
+                ObjectTranslator translator = luaEnv.translator;
+                LuaAPI.xlua_pushinteger(L, p0);
+                LuaAPI.xlua_pushinteger(L, p1);
+                translator.Push(L, p2);
+                
+                PCall(L, 3, 0, errFunc);
                 
                 
                 
@@ -488,29 +533,39 @@ namespace XLua
 			    return new System.Func<int, XLua.LuaTable>(__Gen_Delegate_Imp12);
 			}
 		
+		    if (type == typeof(System.Func<XLua.LuaTable>))
+			{
+			    return new System.Func<XLua.LuaTable>(__Gen_Delegate_Imp13);
+			}
+		
 		    if (type == typeof(System.Func<string, XLua.LuaTable>))
 			{
-			    return new System.Func<string, XLua.LuaTable>(__Gen_Delegate_Imp13);
+			    return new System.Func<string, XLua.LuaTable>(__Gen_Delegate_Imp14);
 			}
 		
 		    if (type == typeof(System.Func<string, object, object, object, object, string>))
 			{
-			    return new System.Func<string, object, object, object, object, string>(__Gen_Delegate_Imp14);
+			    return new System.Func<string, object, object, object, object, string>(__Gen_Delegate_Imp15);
 			}
 		
 		    if (type == typeof(System.Action<string, XLua.LuaTable>))
 			{
-			    return new System.Action<string, XLua.LuaTable>(__Gen_Delegate_Imp15);
+			    return new System.Action<string, XLua.LuaTable>(__Gen_Delegate_Imp16);
 			}
 		
 		    if (type == typeof(System.Action<XLua.LuaFunction>))
 			{
-			    return new System.Action<XLua.LuaFunction>(__Gen_Delegate_Imp16);
+			    return new System.Action<XLua.LuaFunction>(__Gen_Delegate_Imp17);
 			}
 		
 		    if (type == typeof(System.Action<string, XLua.LuaFunction>))
 			{
-			    return new System.Action<string, XLua.LuaFunction>(__Gen_Delegate_Imp17);
+			    return new System.Action<string, XLua.LuaFunction>(__Gen_Delegate_Imp18);
+			}
+		
+		    if (type == typeof(System.Action<int, int, XLua.LuaFunction>))
+			{
+			    return new System.Action<int, int, XLua.LuaFunction>(__Gen_Delegate_Imp19);
 			}
 		
 		    return null;

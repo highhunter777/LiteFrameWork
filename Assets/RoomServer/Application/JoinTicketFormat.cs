@@ -11,21 +11,24 @@ namespace RoomServer.Application
     /// 只有这一份。测试用隔离签发器亦调本类——**不得另写一份拼串**，否则签发端漂移时
     /// 验证端仍是绿的（协议单源红线同一条纪律）。
     ///
-    /// 形状：<c>v2.kid.playerId.accountId.roomId.matchId.audience.buildHash.simVersion.nonce.expMs.nbfMs.mapId.sig</c>
-    /// 共 14 段。自由文本字段走 Base64Url（去 padding、<c>+</c>→<c>-</c>、<c>/</c>→<c>_</c>），
-    /// 故字段内不可能出现分隔符 <c>.</c>；整数（expMs/nbfMs/mapId）明文十进制。
-    /// 签名覆盖**除末段（sig）外的全部 13 段**。
+    /// 形状：<c>v3.kid.playerId.accountId.roomId.matchId.audience.buildHash.simVersion.nonce.expMs.nbfMs.mapId.expectedPlayers.sig</c>
+    /// 共 15 段。自由文本字段走 Base64Url（去 padding、<c>+</c>→<c>-</c>、<c>/</c>→<c>_</c>），
+    /// 故字段内不可能出现分隔符 <c>.</c>；整数（expMs/nbfMs/mapId/expectedPlayers）明文十进制。
+    /// 签名覆盖**除末段（sig）外的全部 14 段**。
     ///
     /// **v2（多图批）**：相对 v1 追加 <c>mapId</c> 段（房间创建意图里的地图行键；0 = 未指定）。
-    /// 追加段落在签名覆盖内——地图身份与其余绑定项同等防篡改。旧 v1 票据**不静默接受**（版本段不符即拒）。
+    /// **v3（开房参数批）**：相对 v2 追加 <c>expectedPlayers</c> 段（房间创建意图里的期望人数；
+    /// 0 = 未指定＝按房间模板）。两段都在签名覆盖内——创建意图与其余绑定项同等防篡改。
+    /// 旧版票据**不静默接受**（版本段不符即拒）。
     /// </summary>
     public static class JoinTicketFormat
     {
-        /// <summary>格式版本。不匹配即拒——旧格式不静默接受。v2 = 追加 mapId 段（多图批）。</summary>
-        public const string Version = "v2";
+        /// <summary>格式版本。不匹配即拒——旧格式不静默接受。
+        /// v2 = 追加 mapId 段（多图批）；v3 = 追加 expectedPlayers 段（开房参数批）。</summary>
+        public const string Version = "v3";
 
         /// <summary>段数（含 sig）。</summary>
-        public const int PartCount = 14;
+        public const int PartCount = 15;
 
         private const int IdxVersion = 0;
         private const int IdxKid = 1;
@@ -40,7 +43,8 @@ namespace RoomServer.Application
         private const int IdxExpiresAtMs = 10;
         private const int IdxNotBeforeMs = 11;
         private const int IdxMapId = 12;
-        private const int IdxSignature = 13;
+        private const int IdxExpectedPlayers = 13;
+        private const int IdxSignature = 14;
 
         /// <summary>签发端组装的票据字段（不含签名）。</summary>
         public sealed class Fields
@@ -59,6 +63,10 @@ namespace RoomServer.Application
 
             /// <summary>房间创建意图里的地图行键（0 = 未指定——房间服按模板/宿主默认图建房）。</summary>
             public int MapId;
+
+            /// <summary>房间创建意图里的**期望人数**（0 = 未指定——房间服按模板 `expected_players`；
+            /// 正值只作用于**新建房**，房间端按内核容量校验，越界拒建房）。</summary>
+            public int ExpectedPlayers;
         }
 
         /// <summary>组装被签名覆盖的前缀（前 13 段）。签发与验签**必须**共用它。</summary>
@@ -77,7 +85,8 @@ namespace RoomServer.Application
               .Append(Encode(f.Nonce)).Append('.')
               .Append(f.ExpiresAtMs.ToString(System.Globalization.CultureInfo.InvariantCulture)).Append('.')
               .Append(f.NotBeforeMs.ToString(System.Globalization.CultureInfo.InvariantCulture)).Append('.')
-              .Append(f.MapId.ToString(System.Globalization.CultureInfo.InvariantCulture));
+              .Append(f.MapId.ToString(System.Globalization.CultureInfo.InvariantCulture)).Append('.')
+              .Append(f.ExpectedPlayers.ToString(System.Globalization.CultureInfo.InvariantCulture));
             return sb.ToString();
         }
 
@@ -136,6 +145,10 @@ namespace RoomServer.Application
             if (!TryParseLong(parts[IdxMapId], out long mapId)) return null;
             if (mapId < 0 || mapId > int.MaxValue) return null;
             f.MapId = (int)mapId;
+            // 期望人数：同上口径（0 = 未指定；上界归房间端按内核容量校验——本层只管编码合法）
+            if (!TryParseLong(parts[IdxExpectedPlayers], out long players)) return null;
+            if (players < 0 || players > int.MaxValue) return null;
+            f.ExpectedPlayers = (int)players;
             return f;
         }
 

@@ -97,8 +97,12 @@ namespace MetaServer.Tests
                 }, out _);
             }
 
-            public JoinTicketIssueUseCase.Result Create(string requestId = "req-1", string buildHash = BuildHash)
-                => UseCase.Create("acc-1", new CreateRoomCommand { RequestId = requestId, BuildHash = buildHash });
+            public JoinTicketIssueUseCase.Result Create(string requestId = "req-1", string buildHash = BuildHash,
+                int mapId = 0, int expectedPlayers = 0)
+                => UseCase.Create("acc-1", new CreateRoomCommand
+                {
+                    RequestId = requestId, BuildHash = buildHash, MapId = mapId, ExpectedPlayers = expectedPlayers,
+                });
         }
 
         [Fact]
@@ -119,6 +123,29 @@ namespace MetaServer.Tests
                 new JoinContext(accepted.RoomId, BuildHash, Audience, f.Clock.Ms + 5));
             Assert.True(principal.IsValid, $"生成号票据必须通过房间端验签（{principal.Rejection}）");
             Assert.Equal(accepted.RoomId, principal.RoomId);   // 票据绑定生成号（进房时同值透传）
+        }
+
+        [Fact]
+        public void 创建_开房参数随票据盖章_房间端真实验签解出_负值拒()
+        {
+            // 开房参数批：create-room{mapId, expectedPlayers} 两值随票据盖章（签名覆盖内）——
+            // 房间端真实验签器按它建房；Meta 只透传/盖章（人数上界归房间端内核容量校验）。
+            var f = new Fixture();
+            f.Segments.Enqueue("BBBBBB");
+            f.Segments.Enqueue("CCCCCC");   // 负值请求会先出号再被签发用例拒（号段已消耗——口径同 mapId）
+            f.RegisterInstance();
+            f.Clock.Ms = 1_000;
+
+            var accepted = Assert.IsType<JoinTicketIssueUseCase.Result.Accepted>(
+                f.Create(mapId: 2, expectedPlayers: 4));
+            JoinPrincipal principal = f.Validator.Validate(accepted.Ticket,
+                new JoinContext(accepted.RoomId, BuildHash, Audience, f.Clock.Ms + 5));
+            Assert.True(principal.IsValid, $"带开房参数的票据必须通过房间端验签（{principal.Rejection}）");
+            Assert.Equal(2, principal.MapId);
+            Assert.Equal(4, principal.ExpectedPlayers);   // 盖章值随验签解出（未请求时恒 0——见验签器用例）
+
+            Assert.IsType<JoinTicketIssueUseCase.Result.Rejected>(
+                f.Create(requestId: "req-neg", expectedPlayers: -1));   // 负值 = 请求错误（0 = 未指定合法）
         }
 
         [Fact]

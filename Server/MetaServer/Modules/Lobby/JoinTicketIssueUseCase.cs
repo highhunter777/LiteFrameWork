@@ -87,6 +87,8 @@ namespace MetaServer.Modules.Lobby
                 return Invalid();
             if (command.MapId < 0)
                 return Invalid();   // 负值 = 请求错误（0 = 未指定合法；值域上界/是否有此行归房间端表校验）
+            if (command.ExpectedPlayers < 0)
+                return Invalid();   // 同口径：负值 = 请求错误（0 = 未指定；上界归房间端按内核席位容量校验）
 
             if (!_registry.TryAllocate(command.BuildHash, out InstanceRegistry.Entry chosen, out bool versionConflict))
             {
@@ -101,7 +103,7 @@ namespace MetaServer.Modules.Lobby
             }
 
             string ticket = _signer.Issue(accountId, accountId, roomId, chosen.BuildHash, command.MapId,
-                _nowMs(), _ticketTtlMs, out long expiresAtMs);
+                command.ExpectedPlayers, _nowMs(), _ticketTtlMs, out long expiresAtMs);
             return new Result.Accepted
             {
                 InstanceId = chosen.InstanceId,

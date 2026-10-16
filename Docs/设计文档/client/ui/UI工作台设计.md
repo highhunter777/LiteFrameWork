@@ -101,7 +101,7 @@ WorkbenchOverlay               SRS）工具条根（Canvas sortingOrder 5000—�
   - （形态沿革）早先形态＝"Boot 勾选即在工作场景自建面板预制体"，因两入口各存一份、且无法作为场景加载而改为**场景承载**。
   - **对局场景组＝按对局进出**（已落地）：加载在 `ProcedureMatch`（JoinAck 后、移交 Battle 前——早于 Battle 相机硬门；进度进"进房等待场"），卸载在 `ProcedureBattle` 收尾（正常结束/主动离场/失败三出口统一）；场景单源 `BattleScenes`（Rig 常量 ＋ 地图场景**查表行 `scene` 列**——**视觉与判定必须同图**）；Main 阶段不加载任何对局场景。
   - **训练场＝第二张地图**（已落地）：场景标记件（`MapCollision`/`spawn_00..15`/`map_bounds`——布点工具版本化 `TrainingGroundLayout`）→ 烘焙 `Luban/Data/Map/*.json`（每图一文件，`tbmap` 双行，行内 `scene` 列）→ 运行期按**房事实行键**（`JoinAck.map_id` → `BattleScenes.ResolveMapId`）选表行与场景。
-  - **待落地**：①设置页绑定缺陷修复（`Dropdown_Quality` 类型不符——现状整页打不开，见审计表）②大厅页地图选择控件（真服务器多图机制已于 2026-10-16 落地：票据盖章 `mapId` ＋ `JoinAck.map_id`；缺玩家侧选图控件——见[施工记录](../../施工进度/多图与训练场布点.md)待做表）。
+  - **待落地**：①设置页绑定缺陷修复（`Dropdown_Quality` 类型不符——现状整页打不开，见审计表）~~②大厅页地图选择控件~~ **已交付（[开房参数选图与人数](../../施工进度/开房参数选图与人数.md)，2026-10-17）**：大厅页 `Cot_CreateSetup` 选图＋选人数（票据 v3 盖章 / `JoinAck` 回执 / 客户端定容）。
 - **状态注入不作用于"非工作台打开"的页面**（如入口自动开的登录页）——需先在目录开一次页；若要覆盖须给 `UIService` 开只读"取已开 form"口（产品 API，另批裁决）。
 
 ## 6. 批次

@@ -199,6 +199,32 @@ namespace LiteGame.Tests.EditMode
 
         [Test]
         [Category(TestCategory.Contract)]
+        public void 定容依据_按JoinAck期望人数_未标注回落默认座数()
+        {
+            // 开房参数批：JoinAck.expected_players = 房间权威事实（选人数房）→ BattleContext 定容依据；
+            // 0 = 服务器未标注（嵌入式/测试直构）→ 回落 DefaultExpectedPlayers（同地图首图口径先例）。
+            BattleClient battle = NewClient();
+            _transport.Deliver(new JoinAck { PlayerId = 0, ReconnectToken = "ticket-1", ExpectedPlayers = 4 },
+                PacketType.JoinAck);
+            using (var account = new ClientScope("Account"))
+            {
+                account.Register(battle);
+                var sized = new BattleContext(battle, account, map: GreyboxMap());
+                Assert.That(sized.ExpectedPlayers, Is.EqualTo(4), "定容依据 = JoinAck 权威事实（四人房）");
+            }
+
+            using (var account = new ClientScope("Account"))
+            {
+                BattleClient plain = JoinedClient();            // JoinAck 未带 expected_players（= 0）
+                account.Register(plain);
+                var fallback = new BattleContext(plain, account, map: GreyboxMap());
+                Assert.That(fallback.ExpectedPlayers, Is.EqualTo(BattleContext.DefaultExpectedPlayers),
+                    "未标注回落默认座数（2）");
+            }
+        }
+
+        [Test]
+        [Category(TestCategory.Contract)]
         public void StartGame建立预测Sim_快照和解对齐本地实体()
         {
             BattleClient battle = JoinedClient();

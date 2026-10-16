@@ -26,13 +26,16 @@ namespace LiteGame
                + ",\"roomId\":" + Quote(roomId)
                + ",\"buildHash\":" + Quote(buildHash) + "}";
 
-        /// <summary>创建房间请求体：{ requestId, buildHash, mapId }（服务端出唯一新号并按号签发——响应同票据
-        /// 形状，解析复用 <see cref="ParseJoinTicket"/>；客户端不发明房号）。<paramref name="mapId"/>
-        /// （多图批）0 = 未指定（宿主默认图）——非 0 值随票据盖章，房间端按表校验（缺行拒建房）。</summary>
-        public static string BuildCreateRoomRequest(string requestId, string buildHash, int mapId = 0)
+        /// <summary>创建房间请求体：{ requestId, buildHash, mapId, expectedPlayers }（服务端出唯一新号并按号签发
+        /// ——响应同票据形状，解析复用 <see cref="ParseJoinTicket"/>；客户端不发明房号）。两参数
+        /// （开房参数批）0 = 未指定：mapId 按宿主默认图、expectedPlayers 按房间模板——非 0 值随票据盖章，
+        /// 房间端建房时校验（地图缺行／人数越内核容量 → 拒建房）。</summary>
+        public static string BuildCreateRoomRequest(string requestId, string buildHash, int mapId = 0,
+            int expectedPlayers = 0)
             => "{\"requestId\":" + Quote(requestId)
                + ",\"buildHash\":" + Quote(buildHash)
-               + ",\"mapId\":" + mapId.ToString(System.Globalization.CultureInfo.InvariantCulture) + "}";
+               + ",\"mapId\":" + mapId.ToString(System.Globalization.CultureInfo.InvariantCulture)
+               + ",\"expectedPlayers\":" + expectedPlayers.ToString(System.Globalization.CultureInfo.InvariantCulture) + "}";
 
         /// <summary>JSON 字符串字面量（转义控制字符/引号/反斜杠；保持请求体无内插污染）。</summary>
         private static string Quote(string value)

@@ -803,11 +803,14 @@ namespace RoomServer
             // 多图批：票据盖章的请求行键（未装配验签器的原型形态 = null ⇒ 0）只作用于**新建房**；
             // 既有房间以**房事实**为准——请求非 0 且不一致 → 显式拒绝（不静默换图/静默忽略）。
             int requestedMapId = validatedPrincipal?.MapId ?? 0;
+            // 开房参数批：票据盖章的请求期望人数——**只作用于新建房**（既有房间以房事实为准，
+            // 见下方"请求值不参与既有房判定"注）；回执经 JoinAck.expected_players 交给客户端定容。
+            int requestedExpectedPlayers = validatedPrincipal?.ExpectedPlayers ?? 0;
             RoomInstance room = existingRoom;
             bool createdRoom = false;
             if (room == null)
             {
-                RoomRuntime created = OpenRoom(join.RoomId, requestedMapId);
+                RoomRuntime created = OpenRoom(join.RoomId, requestedMapId, requestedExpectedPlayers);
                 if (created == null)
                 {
                     // 空房号 / 达容量上限 / 模板缺失 / 地图策略冲突或缺行——一律拒绝进房
@@ -1764,6 +1767,8 @@ namespace RoomServer
                         TickRate = SimConfig.TickRate,
                         IsOwner = pa.IsOwner,             // 开房裁决：开房者=首入座者——UI 据此亮"开始对局"
                         MapId = room.Runtime?.MapId ?? 0, // 多图批：本房地图行键（0 = 未标注）——客户端据此选表行与场景
+                        ExpectedPlayers = room.Runtime?.ExpectedPlayers ?? 0,   // 开房参数批：本房席位规模
+                                                                               // （**房间权威事实**——客户端据此定容预测世界）
                     }, reliable: true);
                     break;
                 }
@@ -2063,7 +2068,7 @@ namespace RoomServer
         /// **空 roomId**：建房必须有路由键，直接 null。
         /// </summary>
         /// <param name="requestedMapId">票据盖章的请求地图行键（0 = 未指定——模板/宿主默认图）。</param>
-        public RoomRuntime OpenRoom(string roomId, int requestedMapId = 0)
+        public RoomRuntime OpenRoom(string roomId, int requestedMapId = 0, int requestedExpectedPlayers = 0)
         {
             if (string.IsNullOrEmpty(roomId)) return null;
             if (_roomTable.TryGetValue(roomId, out RoomInstance existing)) return existing.Runtime;
@@ -2079,7 +2084,7 @@ namespace RoomServer
             try
             {
                 // 无模板参数 → 配置的 default_template
-                RoomConfig cfg = _serverConfig.BuildRoomConfig(null, roomId, requestedMapId);
+                RoomConfig cfg = _serverConfig.BuildRoomConfig(null, roomId, requestedMapId, requestedExpectedPlayers);
                 // **内核构造也在 try 内**（P0-2）：此前 try 只包配置解析，AddRoom → RoomRuntime
                 // 构造抛出的异常会一路窜上权威循环线程（现成触发源：expected_players 超过内核容量，
                 // 现两侧已同源校验；此处是不依赖上游校验的兜底）。构造失败时房间尚未登记（登记是

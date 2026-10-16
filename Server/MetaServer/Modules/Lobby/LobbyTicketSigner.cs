@@ -39,10 +39,14 @@ namespace MetaServer.Modules.Lobby
         /// </summary>
         /// <param name="mapId">房间创建意图里的地图行键（多图批；0 = 未指定）。**只在签名覆盖内传递，
         /// Meta 不查表**——表校验（缺行/未知图）归房间端建房路径（fail-closed）。</param>
+        /// <param name="expectedPlayers">房间创建意图里的期望人数（开房参数批；0 = 未指定＝按房间模板）。
+        /// 同上：签名覆盖内传值，上界（内核席位容量）归房间端建房路径校验。</param>
         public string Issue(string playerId, string accountId, string roomId, string buildHash, int mapId,
-            long nowMs, long ttlMs, out long expiresAtMs)
+            int expectedPlayers, long nowMs, long ttlMs, out long expiresAtMs)
         {
             if (mapId < 0) throw new ArgumentOutOfRangeException(nameof(mapId), mapId, "地图行键不可为负（0 = 未指定）");
+            if (expectedPlayers < 0) throw new ArgumentOutOfRangeException(nameof(expectedPlayers), expectedPlayers,
+                "期望人数不可为负（0 = 未指定）");
             expiresAtMs = nowMs + ttlMs;
             var fields = new JoinTicketFormat.Fields
             {
@@ -58,6 +62,7 @@ namespace MetaServer.Modules.Lobby
                 ExpiresAtMs = expiresAtMs,
                 NotBeforeMs = 0,
                 MapId = mapId,
+                ExpectedPlayers = expectedPlayers,
             };
             string prefix = JoinTicketFormat.BuildPrefix(_kid, fields);
             return JoinTicketFormat.AppendSignature(prefix, JoinTicketFormat.Sign(_secret, prefix));

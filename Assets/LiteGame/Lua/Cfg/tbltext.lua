@@ -52,4 +52,7 @@ return
 ["UI.Settings.Language.Zh"] = {key="UI.Settings.Language.Zh",zh="简体中文",en="简体中文",},
 ["UI.Settings.Language.En"] = {key="UI.Settings.Language.En",zh="English",en="English",},
 ["UI.Settings.ExitWorkbench"] = {key="UI.Settings.ExitWorkbench",zh="退出工作台",en="Exit Workbench",},
+["UI.Lobby.Map"] = {key="UI.Lobby.Map",zh="地图",en="Map",},
+["UI.Lobby.Players"] = {key="UI.Lobby.Players",zh="人数",en="Players",},
+["UI.Lobby.PlayersOption"] = {key="UI.Lobby.PlayersOption",zh="{0} 人",en="{0} players",},
 }

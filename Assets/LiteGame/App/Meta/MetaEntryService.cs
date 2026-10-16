@@ -83,13 +83,13 @@ namespace LiteGame
         /// 同链——走 <see cref="JoinWith"/> 的 <c>Request(Match, MetaJoin)</c> 管道（客户端**不发明房号**）。
         /// <paramref name="mapId"/>（多图批）0 = 未指定（宿主默认图）；非 0 = 请求地图行键（随票据盖章，
         /// 房间端按表校验——缺行/不一致拒进房，票据/JoinAck 是权威）。</summary>
-        public async UniTask<MetaCall<JoinTicketInfo>> CreateRoomAsync(int mapId = 0)
+        public async UniTask<MetaCall<JoinTicketInfo>> CreateRoomAsync(int mapId = 0, int expectedPlayers = 0)
         {
             if (!IsConfigured) return NotConfigured<JoinTicketInfo>();
             if (_accessToken == null) return NotLoggedIn<JoinTicketInfo>();
             if (_machine == null) return MachineUnbound<JoinTicketInfo>();
 
-            return JoinWith(await _client.CreateRoomAsync(_accessToken, LiteNet.BuildHash.Value, mapId));
+            return JoinWith(await _client.CreateRoomAsync(_accessToken, LiteNet.BuildHash.Value, mapId, expectedPlayers));
         }
 
         /// <summary>门票 → 进房（换票进房与创建房间的**共用尾段**——两处同为"按号签发"，防漂移）：

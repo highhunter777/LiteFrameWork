@@ -134,6 +134,10 @@ namespace MetaServer.Contracts.Lobby
         /// <summary>请求地图行键（多图批；0 = 未指定，按房间既有图/宿主默认图）。正值盖章进票据——
         /// 房间端按表校验（缺行/未知图拒建房），既有房间图不一致则拒进房。</summary>
         public int MapId { get; set; }
+
+        /// <summary>请求期望人数（开房参数批；0 = 未指定＝按房间模板 `expected_players`）。正值盖章进票据——
+        /// 只作用于**新建房**；房间端按内核席位容量校验（越界拒建房），既有房间以房事实为准。</summary>
+        public int ExpectedPlayers { get; set; }
     }
 
     /// <summary>
@@ -151,6 +155,10 @@ namespace MetaServer.Contracts.Lobby
 
         /// <summary>请求地图行键（多图批；0 = 未指定 = 宿主默认图）。正值盖章进票据——房间端建房时按表校验。</summary>
         public int MapId { get; set; }
+
+        /// <summary>请求期望人数（开房参数批；0 = 未指定 = 按房间模板）。正值盖章进票据——
+        /// 房间端建房时按内核席位容量校验，越界拒建房。</summary>
+        public int ExpectedPlayers { get; set; }
     }
 
     /// <summary>

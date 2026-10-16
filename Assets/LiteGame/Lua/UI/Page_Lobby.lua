@@ -1,4 +1,4 @@
--- UI/Page_Lobby.lua：上云测试·大厅页（制作批 2026-10-10；接线批 C-④ 2026-10-13；列表批 C-⑥ 2026-10-13；创房批 2026-10-15）
+-- UI/Page_Lobby.lua：上云测试·大厅页（制作批 2026-10-10；接线批 C-④ 2026-10-13；列表批 C-⑥ 2026-10-13；创房批 2026-10-15；开房参数批：选图/选人数）
 -- 接线（《上云测试页面层级设计》§4）：进入即 Bridge.meta.ListRooms → 状态键 + **VirtualList_Rooms 行填充**（G6）；
 -- Button_CreateRoom → CreateRoom（服务端出号建新房）；Button_QuickEnter → QuickEnter（容量分配）；
 -- **行点击 = 选择式进房**（EnterRoom，行 key = roomId）；
@@ -11,6 +11,9 @@ local M = class("Page_Lobby")
 local PAGE_ROOM = "UI.Page_Room"
 local PAGE_RESULT = "UI.Page_Result"
 local PAGE_SETTINGS = "UI.Page_Settings"
+
+-- 开房参数（开房参数批）：房规模候选档位（下拉索引 → 人数；上界归服务端内核席位容量校验）
+local PLAYER_COUNTS = { 2, 4, 6, 8 }
 
 function M:ctor()
     self._viewName = "Page_Lobby"
@@ -30,7 +33,39 @@ function M:OnShow(data)
     self.ui:OnButton("Button_Settings", function() Bridge.ui.Show(PAGE_SETTINGS) end)
     self.ui:OnListClick("VirtualList_Rooms", function(key) self:_Enter(key) end)
 
+    self:_SetupCreateParams()
     self:_RefreshRooms()
+end
+
+-- 开房参数控件（选图/选人数）：标签走文案键；**下拉项文本由页面给**（引擎组件不随 LText 自动刷新——同设置页口径，
+-- 语言切换时页面重设）。地图候选 = 地图表全行（Bridge.data.ListMaps 表序；名称用表列 name），默认选第一张。
+function M:_SetupCreateParams()
+    self.ui:SetTextKey("Txt_MapLabel", "UI.Lobby.Map")
+    self.ui:SetTextKey("Txt_PlayersLabel", "UI.Lobby.Players")
+
+    local maps = Bridge.data.ListMaps()
+    self._maps = maps
+    local mapOptions = {}
+    for i = 1, #maps do mapOptions[i] = maps[i].Name end
+    self.ui:SetDropdownOptions("Dropdown_Map", mapOptions)
+    self.ui:SetDropdown("Dropdown_Map", 0)
+
+    local countOptions = {}
+    for i = 1, #PLAYER_COUNTS do
+        countOptions[i] = Bridge.text.Format("UI.Lobby.PlayersOption", PLAYER_COUNTS[i])
+    end
+    self.ui:SetDropdownOptions("Dropdown_Players", countOptions)
+    self.ui:SetDropdown("Dropdown_Players", 0)
+end
+
+-- 当前选择（下拉索引 0 基）：地图行键 = 表序取值（缺件退 0 = 未指定）；人数 = 档位表取值
+function M:_SelectedMapId()
+    local row = self._maps and self._maps[self.ui:GetDropdown("Dropdown_Map") + 1]
+    return row and row.Id or 0
+end
+
+function M:_SelectedPlayers()
+    return PLAYER_COUNTS[self.ui:GetDropdown("Dropdown_Players") + 1] or 0
 end
 
 function M:_SetStatus(key)
@@ -80,10 +115,11 @@ function M:_Enter(roomId)
 end
 
 -- 创建房间（服务端出号 → 进新房；成功后流程机接管，与进房同收口）
--- 多图批：地图行键 0 = 未指定（宿主默认图）——玩家侧选图控件归后续批（门面已收 mapId 参数）
+-- 开房参数：地图行键（选图控件）+ 期望人数（选人数控件）随创建意图送服务端盖章；
+-- 房间端建房时校验（缺行/越内核容量 → 拒建房），房事实经 JoinAck 回执给客户端定容。
 function M:_CreateRoom()
     self:_Begin("Button_CreateRoom", "UI.Lobby.Creating", "UI.Lobby.CreateFailed",
-        function(cb) Bridge.meta.CreateRoom(0, cb) end)
+        function(cb) Bridge.meta.CreateRoom(self:_SelectedMapId(), self:_SelectedPlayers(), cb) end)
 end
 
 -- 进房/创建房间**统一收口**：防重入锁 + 在途禁钮 + 成功**替换** Page_Room（房号随导航数据）+ 失败 Toast 复位

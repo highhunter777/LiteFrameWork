@@ -93,10 +93,11 @@ namespace MetaServer.Tests
             Assert.Equal(Room, accepted.RoomId);
             Assert.Equal(1_000 + 60_000, accepted.ExpiresAtMs);
 
-            // 形状：14 段 + kid 位（v2 多图批追加 mapId 段；不命名跨程序集重复的格式类型——见 csproj 注释）
+            // 形状：15 段 + kid 位（v2 多图批追加 mapId 段、v3 开房参数批追加 expectedPlayers 段；
+            // 不命名跨程序集重复的格式类型——见 csproj 注释）
             string[] parts = accepted.Ticket.Split('.');
-            Assert.Equal(14, parts.Length);
-            Assert.Equal("v2", parts[0]);
+            Assert.Equal(15, parts.Length);
+            Assert.Equal("v3", parts[0]);
             Assert.Equal(Kid, parts[1]);
 
             JoinPrincipal principal = f.Validator.Validate(accepted.Ticket,
@@ -107,6 +108,7 @@ namespace MetaServer.Tests
             Assert.Equal(Room, principal.RoomId);
             Assert.Equal(accepted.ExpiresAtMs, principal.ExpiresAtMs);
             Assert.Equal(0, principal.MapId);                   // 未请求地图（0 = 未指定）——盖章值原样解出
+            Assert.Equal(0, principal.ExpectedPlayers);         // 未请求人数（0 = 未指定＝按房间模板）——同口径
 
             // nonce 一次性：同一票据只应成功一次
             Assert.Equal(JoinTicketRejection.Replayed,

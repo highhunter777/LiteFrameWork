@@ -40,6 +40,7 @@ end
 
 -- self.ui 面（冒号调用：首参 self 占位——与 LuaBehaviourAdapter 门面同形）
 ui = {}
+dropdowns = {}
 ui.OnButton = function(_, name, fn) buttons[name] = fn end
 ui.SetTextKey = function(_, name, key) calls[#calls + 1] = 'Key:' .. name .. '=' .. key end
 ui.SetTextKeyArgs = function(_, name, key, a0, a1)
@@ -55,7 +56,11 @@ ui.OnSliderChanged = function(_, name, fn) controls['slider:' .. name] = fn end
 ui.SetToggle = function(_, name, on) calls[#calls + 1] = 'Toggle:' .. name .. '=' .. tostring(on) end
 ui.OnToggleChanged = function(_, name, fn) controls['toggle:' .. name] = fn end
 ui.SetDropdownOptions = function(_, name, options) calls[#calls + 1] = 'Options:' .. name .. '=' .. tostring(#options) end
-ui.SetDropdown = function(_, name, index) calls[#calls + 1] = 'Dropdown:' .. name .. '=' .. tostring(index) end
+ui.SetDropdown = function(_, name, index)
+    dropdowns[name] = index
+    calls[#calls + 1] = 'Dropdown:' .. name .. '=' .. tostring(index)
+end
+ui.GetDropdown = function(_, name) return dropdowns[name] or 0 end
 ui.OnDropdownChanged = function(_, name, fn) controls['dropdown:' .. name] = fn end
 ui.SetList = function(_, name, rows) lists[name] = rows; calls[#calls + 1] = 'List:' .. name .. '=' .. tostring(#rows) end
 ui.OnListClick = function(_, name, fn) lists['click:' .. name] = fn end
@@ -79,8 +84,11 @@ meta.Version = function() return meta.version end
 meta.GuestLogin = function(cb) meta.cb_guest = cb end
 meta.ListRooms = function(cb) meta.cb_rooms = cb end
 meta.QuickEnter = function(cb) meta.cb_enter = cb end
--- 多图批：CreateRoom(mapId, cb)——mapId = 请求地图行键（0 = 未指定，宿主默认图）
-meta.CreateRoom = function(mapId, cb) calls[#calls + 1] = 'CreateRoom:' .. tostring(mapId); meta.cb_create = cb end
+-- 开房参数批：CreateRoom(mapId, expectedPlayers, cb)——两值 = 请求地图行键 / 期望人数（0 = 未指定）
+meta.CreateRoom = function(mapId, expectedPlayers, cb)
+    calls[#calls + 1] = 'CreateRoom:' .. tostring(mapId) .. ':' .. tostring(expectedPlayers)
+    meta.cb_create = cb
+end
 meta.EnterRoom = function(roomId, cb)
     calls[#calls + 1] = 'EnterRoom:' .. tostring(roomId)
     meta.cb_enter = cb
@@ -104,7 +112,15 @@ room.OnOwner = function(fn) room.owner_fn = fn end
 room.StartMatch = function(cb) calls[#calls + 1] = 'StartMatch'; room.start_fn = cb end
 room.OnMembers = function(fn) room.members_fn = fn end
 
+-- data 面（开房参数批：选图下拉的候选目录 = 地图表全行；此处桩两行钉表序与字段名）
+local bridgeData = {}
+bridgeData.ListMaps = function()
+    calls[#calls + 1] = 'ListMaps'
+    return { { Id = 1, Name = 'arena01', Scene = 'a' }, { Id = 2, Name = 'training_ground', Scene = 'b' } }
+end
+
 Bridge = {
+    data = bridgeData,
     ui = bridgeUi,
     meta = meta,
     settings = settings,
@@ -253,10 +269,21 @@ buttons['Button_CreateRoom']()");
                 string mid = Calls(env);
                 StringAssert.Contains("Key:Txt_Status=UI.Lobby.Creating", mid, "在途给 Creating 键");
                 StringAssert.Contains("Interact:Button_CreateRoom=false", mid, "在途禁钮（防重入）");
-                StringAssert.Contains("CreateRoom:0", mid, "走服务端出号（Bridge.meta.CreateRoom；多图批：首参=请求地图行键，0=未指定）");
+                StringAssert.Contains("CreateRoom:1:2", mid,
+                    "走服务端出号（Bridge.meta.CreateRoom；开房参数：首参=选图行键（默认第一行），次参=选人数（默认 2））");
+
 
                 env.DoString("meta.cb_create(true, 'R-NEW001')");
                 StringAssert.Contains("Replace:UI.Page_Room#R-NEW001", Calls(env), "成功替换房间页 + 新房号随导航数据（§1/§3）");
+
+                // 改选后透传：下拉索引 → 行键/档位（0 基索引；索引 1 = 第二行训练场图 / 第二档 4 人）
+                env.DoString(@"
+page:OnShow(nil)
+dropdowns['Dropdown_Map'] = 1
+dropdowns['Dropdown_Players'] = 1
+buttons['Button_CreateRoom']()");
+                StringAssert.Contains("CreateRoom:2:4", Calls(env),
+                    "选图/选人数随创建意图透传（地图行键 = 表行键；人数 = 档位表取值）");
 
                 env.DoString(@"
 page:OnShow(nil)

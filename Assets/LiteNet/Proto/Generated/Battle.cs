@@ -72,33 +72,34 @@ namespace LiteNet.Proto {
             "BSABKAUSKgoFbWF0Y2gYBiABKAsyGy5saXRlYmF0dGxlLk1hdGNoU3RhdGVE",
             "ZWx0YRI0Cg1wcml2YXRlX3N0YXRlGAcgASgLMh0ubGl0ZWJhdHRsZS5Qcml2",
             "YXRlU3RhdGVEZWx0YSJBCgtKb2luUmVxdWVzdBIPCgdyb29tX2lkGAEgASgJ",
-            "Eg0KBXRva2VuGAIgASgJEhIKCmJ1aWxkX2hhc2gYAyABKAkisgEKB0pvaW5B",
+            "Eg0KBXRva2VuGAIgASgJEhIKCmJ1aWxkX2hhc2gYAyABKAkizAEKB0pvaW5B",
             "Y2sSEQoJcGxheWVyX2lkGAEgASgFEg8KB21lbWJlcnMYAiADKAUSFwoPcmVj",
             "b25uZWN0X3Rva2VuGAMgASgJEiAKGHJlY29ubmVjdF93aW5kb3dfc2Vjb25k",
             "cxgEIAEoBRITCgtzbmFwc2hvdF9oehgFIAEoBRIRCgl0aWNrX3JhdGUYBiAB",
-            "KAUSEAoIaXNfb3duZXIYByABKAgSDgoGbWFwX2lkGAggASgFInsKCVN0YXJ0",
-            "R2FtZRIMCgRzZWVkGAEgASgDEhMKC2NvbmZpZ19oYXNoGAIgASgNEg0KBWZy",
-            "YW1lGAMgASgFEioKBW1hdGNoGAQgASgLMhsubGl0ZWJhdHRsZS5NYXRjaFN0",
-            "YXRlRGVsdGESEAoIbWF0Y2hfaWQYBSABKAkiBwoFTGVhdmUiIAoJSGVhcnRi",
-            "ZWF0EhMKC2NsaWVudF90aW1lGAEgASgDIioKEFJlY29ubmVjdFJlcXVlc3QS",
-            "FgoOb25lX3RpbWVfdG9rZW4YASABKAkivgEKEVJlY29ubmVjdFJlc3BvbnNl",
-            "EgoKAm9rGAEgASgIEg4KBnJlYXNvbhgEIAEoCRIrCghzbmFwc2hvdBgCIAEo",
-            "CzIZLmxpdGViYXR0bGUuU3RhdGVTbmFwc2hvdBIpCgdoaXN0b3J5GAMgAygL",
-            "MhgubGl0ZWJhdHRsZS5JbnB1dE1lc3NhZ2USDAoEc2VlZBgFIAEoAxITCgtj",
-            "b25maWdfaGFzaBgGIAEoDRISCgpidWlsZF9oYXNoGAcgASgJIhEKD1Jlc3Rv",
-            "cmVDb21wbGV0ZSITChFTdGFydE1hdGNoUmVxdWVzdCIwChJTdGFydE1hdGNo",
-            "UmVzcG9uc2USCgoCb2sYASABKAgSDgoGcmVhc29uGAIgASgJIiEKDE93bmVy",
-            "Q2hhbmdlZBIRCglwbGF5ZXJfaWQYASABKAUiRgoIU2VhdEluZm8SEQoJcGxh",
-            "eWVyX2lkGAEgASgFEhQKDGRpc3BsYXlfbmFtZRgCIAEoCRIRCgljb25uZWN0",
-            "ZWQYAyABKAgiMAoJUm9vbVNlYXRzEiMKBXNlYXRzGAEgAygLMhQubGl0ZWJh",
-            "dHRsZS5TZWF0SW5mbyIfCg5NaXNtYXRjaFJlcG9ydBINCgVmcmFtZRgBIAEo",
-            "BSJYChFQbGF5ZXJNYXRjaFJlc3VsdBIRCglwbGF5ZXJfaWQYASABKAUSEQoJ",
-            "ZW50aXR5X2lkGAIgASgDEg0KBWtpbGxzGAMgASgFEg4KBmRlYXRocxgEIAEo",
-            "BSKuAQoKTWF0Y2hFbmRlZBIQCghtYXRjaF9pZBgBIAEoCRITCgtmaW5hbF9m",
-            "cmFtZRgCIAEoBRISCgplbmRfcmVhc29uGAMgASgFEhsKE2dhbWVwbGF5X2Vu",
-            "ZF9yZWFzb24YBCABKAUSGAoQd2lubmVyX2VudGl0eV9pZBgFIAEoAxIuCgdw",
-            "bGF5ZXJzGAYgAygLMh0ubGl0ZWJhdHRsZS5QbGF5ZXJNYXRjaFJlc3VsdEIQ",
-            "qgINTGl0ZU5ldC5Qcm90b2IGcHJvdG8z"));
+            "KAUSEAoIaXNfb3duZXIYByABKAgSDgoGbWFwX2lkGAggASgFEhgKEGV4cGVj",
+            "dGVkX3BsYXllcnMYCSABKAUiewoJU3RhcnRHYW1lEgwKBHNlZWQYASABKAMS",
+            "EwoLY29uZmlnX2hhc2gYAiABKA0SDQoFZnJhbWUYAyABKAUSKgoFbWF0Y2gY",
+            "BCABKAsyGy5saXRlYmF0dGxlLk1hdGNoU3RhdGVEZWx0YRIQCghtYXRjaF9p",
+            "ZBgFIAEoCSIHCgVMZWF2ZSIgCglIZWFydGJlYXQSEwoLY2xpZW50X3RpbWUY",
+            "ASABKAMiKgoQUmVjb25uZWN0UmVxdWVzdBIWCg5vbmVfdGltZV90b2tlbhgB",
+            "IAEoCSK+AQoRUmVjb25uZWN0UmVzcG9uc2USCgoCb2sYASABKAgSDgoGcmVh",
+            "c29uGAQgASgJEisKCHNuYXBzaG90GAIgASgLMhkubGl0ZWJhdHRsZS5TdGF0",
+            "ZVNuYXBzaG90EikKB2hpc3RvcnkYAyADKAsyGC5saXRlYmF0dGxlLklucHV0",
+            "TWVzc2FnZRIMCgRzZWVkGAUgASgDEhMKC2NvbmZpZ19oYXNoGAYgASgNEhIK",
+            "CmJ1aWxkX2hhc2gYByABKAkiEQoPUmVzdG9yZUNvbXBsZXRlIhMKEVN0YXJ0",
+            "TWF0Y2hSZXF1ZXN0IjAKElN0YXJ0TWF0Y2hSZXNwb25zZRIKCgJvaxgBIAEo",
+            "CBIOCgZyZWFzb24YAiABKAkiIQoMT3duZXJDaGFuZ2VkEhEKCXBsYXllcl9p",
+            "ZBgBIAEoBSJGCghTZWF0SW5mbxIRCglwbGF5ZXJfaWQYASABKAUSFAoMZGlz",
+            "cGxheV9uYW1lGAIgASgJEhEKCWNvbm5lY3RlZBgDIAEoCCIwCglSb29tU2Vh",
+            "dHMSIwoFc2VhdHMYASADKAsyFC5saXRlYmF0dGxlLlNlYXRJbmZvIh8KDk1p",
+            "c21hdGNoUmVwb3J0Eg0KBWZyYW1lGAEgASgFIlgKEVBsYXllck1hdGNoUmVz",
+            "dWx0EhEKCXBsYXllcl9pZBgBIAEoBRIRCgllbnRpdHlfaWQYAiABKAMSDQoF",
+            "a2lsbHMYAyABKAUSDgoGZGVhdGhzGAQgASgFIq4BCgpNYXRjaEVuZGVkEhAK",
+            "CG1hdGNoX2lkGAEgASgJEhMKC2ZpbmFsX2ZyYW1lGAIgASgFEhIKCmVuZF9y",
+            "ZWFzb24YAyABKAUSGwoTZ2FtZXBsYXlfZW5kX3JlYXNvbhgEIAEoBRIYChB3",
+            "aW5uZXJfZW50aXR5X2lkGAUgASgDEi4KB3BsYXllcnMYBiADKAsyHS5saXRl",
+            "YmF0dGxlLlBsYXllck1hdGNoUmVzdWx0QhCqAg1MaXRlTmV0LlByb3RvYgZw",
+            "cm90bzM="));
       descriptor = pbr::FileDescriptor.FromGeneratedCode(descriptorData,
           new pbr::FileDescriptor[] { },
           new pbr::GeneratedClrTypeInfo(null, null, new pbr::GeneratedClrTypeInfo[] {
@@ -115,7 +116,7 @@ namespace LiteNet.Proto {
             new pbr::GeneratedClrTypeInfo(typeof(global::LiteNet.Proto.PrivateStateDelta), global::LiteNet.Proto.PrivateStateDelta.Parser, new[]{ "EntityId", "Resource", "Weapons", "Skills", "Status", "Bag" }, null, null, null, null),
             new pbr::GeneratedClrTypeInfo(typeof(global::LiteNet.Proto.StateSnapshot), global::LiteNet.Proto.StateSnapshot.Parser, new[]{ "Frame", "IsFull", "Slots", "Checksum", "AckInput", "Match", "PrivateState" }, null, null, null, null),
             new pbr::GeneratedClrTypeInfo(typeof(global::LiteNet.Proto.JoinRequest), global::LiteNet.Proto.JoinRequest.Parser, new[]{ "RoomId", "Token", "BuildHash" }, null, null, null, null),
-            new pbr::GeneratedClrTypeInfo(typeof(global::LiteNet.Proto.JoinAck), global::LiteNet.Proto.JoinAck.Parser, new[]{ "PlayerId", "Members", "ReconnectToken", "ReconnectWindowSeconds", "SnapshotHz", "TickRate", "IsOwner", "MapId" }, null, null, null, null),
+            new pbr::GeneratedClrTypeInfo(typeof(global::LiteNet.Proto.JoinAck), global::LiteNet.Proto.JoinAck.Parser, new[]{ "PlayerId", "Members", "ReconnectToken", "ReconnectWindowSeconds", "SnapshotHz", "TickRate", "IsOwner", "MapId", "ExpectedPlayers" }, null, null, null, null),
             new pbr::GeneratedClrTypeInfo(typeof(global::LiteNet.Proto.StartGame), global::LiteNet.Proto.StartGame.Parser, new[]{ "Seed", "ConfigHash", "Frame", "Match", "MatchId" }, null, null, null, null),
             new pbr::GeneratedClrTypeInfo(typeof(global::LiteNet.Proto.Leave), global::LiteNet.Proto.Leave.Parser, null, null, null, null, null),
             new pbr::GeneratedClrTypeInfo(typeof(global::LiteNet.Proto.Heartbeat), global::LiteNet.Proto.Heartbeat.Parser, new[]{ "ClientTime" }, null, null, null, null),
@@ -5677,6 +5678,7 @@ namespace LiteNet.Proto {
       tickRate_ = other.tickRate_;
       isOwner_ = other.isOwner_;
       mapId_ = other.mapId_;
+      expectedPlayers_ = other.expectedPlayers_;
       _unknownFields = pb::UnknownFieldSet.Clone(other._unknownFields);
     }
 
@@ -5799,6 +5801,21 @@ namespace LiteNet.Proto {
       }
     }
 
+    /// <summary>Field number for the "expected_players" field.</summary>
+    public const int ExpectedPlayersFieldNumber = 9;
+    private int expectedPlayers_;
+    /// <summary>
+    /// 与地图场景。0 = 宿主/装配未标注（嵌入式/测试直构形态）——客户端按首图口径回落）
+    /// </summary>
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public int ExpectedPlayers {
+      get { return expectedPlayers_; }
+      set {
+        expectedPlayers_ = value;
+      }
+    }
+
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public override bool Equals(object other) {
@@ -5822,6 +5839,7 @@ namespace LiteNet.Proto {
       if (TickRate != other.TickRate) return false;
       if (IsOwner != other.IsOwner) return false;
       if (MapId != other.MapId) return false;
+      if (ExpectedPlayers != other.ExpectedPlayers) return false;
       return Equals(_unknownFields, other._unknownFields);
     }
 
@@ -5837,6 +5855,7 @@ namespace LiteNet.Proto {
       if (TickRate != 0) hash ^= TickRate.GetHashCode();
       if (IsOwner != false) hash ^= IsOwner.GetHashCode();
       if (MapId != 0) hash ^= MapId.GetHashCode();
+      if (ExpectedPlayers != 0) hash ^= ExpectedPlayers.GetHashCode();
       if (_unknownFields != null) {
         hash ^= _unknownFields.GetHashCode();
       }
@@ -5884,6 +5903,10 @@ namespace LiteNet.Proto {
         output.WriteRawTag(64);
         output.WriteInt32(MapId);
       }
+      if (ExpectedPlayers != 0) {
+        output.WriteRawTag(72);
+        output.WriteInt32(ExpectedPlayers);
+      }
       if (_unknownFields != null) {
         _unknownFields.WriteTo(output);
       }
@@ -5923,6 +5946,10 @@ namespace LiteNet.Proto {
         output.WriteRawTag(64);
         output.WriteInt32(MapId);
       }
+      if (ExpectedPlayers != 0) {
+        output.WriteRawTag(72);
+        output.WriteInt32(ExpectedPlayers);
+      }
       if (_unknownFields != null) {
         _unknownFields.WriteTo(ref output);
       }
@@ -5954,6 +5981,9 @@ namespace LiteNet.Proto {
       }
       if (MapId != 0) {
         size += 1 + pb::CodedOutputStream.ComputeInt32Size(MapId);
+      }
+      if (ExpectedPlayers != 0) {
+        size += 1 + pb::CodedOutputStream.ComputeInt32Size(ExpectedPlayers);
       }
       if (_unknownFields != null) {
         size += _unknownFields.CalculateSize();
@@ -5988,6 +6018,9 @@ namespace LiteNet.Proto {
       }
       if (other.MapId != 0) {
         MapId = other.MapId;
+      }
+      if (other.ExpectedPlayers != 0) {
+        ExpectedPlayers = other.ExpectedPlayers;
       }
       _unknownFields = pb::UnknownFieldSet.MergeFrom(_unknownFields, other._unknownFields);
     }
@@ -6041,6 +6074,10 @@ namespace LiteNet.Proto {
             MapId = input.ReadInt32();
             break;
           }
+          case 72: {
+            ExpectedPlayers = input.ReadInt32();
+            break;
+          }
         }
       }
     #endif
@@ -6091,6 +6128,10 @@ namespace LiteNet.Proto {
           }
           case 64: {
             MapId = input.ReadInt32();
+            break;
+          }
+          case 72: {
+            ExpectedPlayers = input.ReadInt32();
             break;
           }
         }

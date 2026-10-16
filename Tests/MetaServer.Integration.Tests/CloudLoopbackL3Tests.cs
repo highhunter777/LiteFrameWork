@@ -204,10 +204,11 @@ namespace MetaServer.IntegrationTests
         /// Meta `create-room{mapId=2}` 出号并把行键盖章进票据 → 客户端真 KCP/信封持票进房 →
         /// **JoinAck.map_id=2**（客户端据此选地图表行与场景）＋ 房间端实建房间的行键与判定图同为训练场行
         /// （行 2：8 障碍/16 出生，摘要 c78441a74f6bc5f9，== 表行投影）。
-        /// 该房不开局（expected_players=2 只进 1 人）；验完即断。
+        /// 同批验**开房参数**：创建意图带 `expected_players=4` → 房间端建房时生效、JoinAck 回执房事实。
+        /// 该房不开局（4 座只进 1 人）；验完即断。
         /// </summary>
         [SkippableFact]
-        public async Task 多图_创建训练场房间_真票据真进房_JoinAck回执行键2()
+        public async Task 多图与人数_创建训练场四人房_真票据真进房_JoinAck回执房事实()
         {
             Skip.If(!_fixture.Available, "Mongo 不可达且 docker 不可用（MONGO_TEST_URI / litegame-mongo 容器）");
 
@@ -220,7 +221,7 @@ namespace MetaServer.IntegrationTests
             _cleanup.Add(new LoopStopper(loop));
 
             string account = await GuestLoginAsync(metaBase, "dev-map-A");
-            await 多图_创建训练场房间_真票据进房_回执行键2(metaBase, account, roomPort, host);
+            await 多图与人数_创建训练场四人房_真票据进房_回执房事实(metaBase, account, roomPort, host);
         }
 
         // ══════════════════════════════════════════════════════════════════════════════
@@ -540,10 +541,11 @@ namespace MetaServer.IntegrationTests
         /// 房间端实建房间的行键与判定图同为训练场行（表行 2：训练场快照摘要 c78441a74f6bc5f9）。
         /// 该房不开局（expected_players=2 只进 1 人）；验完即断——多图链路证据与 FFA 主链共用同一次真宿主。
         /// </summary>
-        private async Task 多图_创建训练场房间_真票据进房_回执行键2(string metaBase, string accessToken,
+        private async Task 多图与人数_创建训练场四人房_真票据进房_回执房事实(string metaBase, string accessToken,
             int roomPort, ServerHost host)
         {
             const int trainingMapId = 2;   // = MapTableProjection.TrainingMapId（表行键；此处钉死为协议/数据面证据）
+            const int roomPlayers = 4;     // 开房参数：期望人数（房间模板未配该值以外时按请求生效）
             string roomId;
             string ticket;
             using (var http = new HttpClient())
@@ -554,6 +556,7 @@ namespace MetaServer.IntegrationTests
                 {
                     requestId = "req-map-" + Guid.NewGuid().ToString("N"),
                     mapId = trainingMapId,                     // 创建意图：地图行键随票据盖章（签名覆盖内）
+                    expectedPlayers = roomPlayers,             // 创建意图：期望人数随票据盖章（同批）
                     buildHash = ServerHost.ServerBuildHash,
                 }), Encoding.UTF8, "application/json");
 
@@ -569,8 +572,10 @@ namespace MetaServer.IntegrationTests
             Assert.True(WaitFor(() => client.Joined, 15_000), "多图：真票据进房未达 JoinAck");
 
             Assert.Equal(trainingMapId, client.MapId);                     // ① 权威回执：客户端据此选表行与场景
+            Assert.Equal(roomPlayers, client.ExpectedPlayers);             // ① 权威回执：客户端据此定容预测世界
             Assert.True(host.TryGetRoom(roomId, out RoomRuntime room), "多图：房间端未见该房");
             Assert.Equal(trainingMapId, room.MapId);                       // ② 房事实：行键落进房间配置
+            Assert.Equal(roomPlayers, room.ExpectedPlayers);               // ② 房事实：请求人数落进房间配置
             Assert.Equal(SimMapDigest.Compute(TestMaps.TrainingGround()),  // ③ 判定图 = 该行投影（非宿主默认图）
                 SimMapDigest.Compute(room.Map));
         }
@@ -756,6 +761,9 @@ namespace MetaServer.IntegrationTests
 
             /// <summary>JoinAck 回执的地图行键（多图批；0 = 服务器未标注）。</summary>
             public int MapId => Client.MapId;
+
+            /// <summary>JoinAck 回执的期望人数（开房参数批；0 = 服务器未标注——客户端按默认 2 座回落）。</summary>
+            public int ExpectedPlayers => Client.ExpectedPlayers;
 
             public LoopbackClient(IClientTransport transport, string ticket, string roomId = RoomId)
             {

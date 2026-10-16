@@ -216,7 +216,10 @@ namespace RoomServer
         /// <param name="requestedMapId">票据盖章的请求地图行键（多图批；0 = 未指定——按模板/宿主默认图）。
         /// 模板固定 <c>map_id</c> 与请求各持非 0 且不等 = 策略冲突 → 抛（调用方转"拒绝进房"，
         /// 不静默取其一）。</param>
-        public RoomConfig BuildRoomConfig(string templateId, string roomId, int requestedMapId = 0)
+        /// <param name="requestedExpectedPlayers">票据盖章的请求期望人数（开房参数批；0 = 未指定＝按模板）。
+        /// 越界（&gt; 内核席位容量）→ 抛（调用方转"拒绝进房"——不静默钳制，钳出来的房不是玩家要的房）。</param>
+        public RoomConfig BuildRoomConfig(string templateId, string roomId, int requestedMapId = 0,
+            int requestedExpectedPlayers = 0)
         {
             if (string.IsNullOrEmpty(roomId))
                 throw new ArgumentException("roomId 不能为空（房间号是路由键）", nameof(roomId));
@@ -232,16 +235,24 @@ namespace RoomServer
                 throw new InvalidOperationException(
                     $"模板 {id} 固定 map_id={t.MapId}，票据请求 map_id={requestedMapId}——地图策略冲突，拒绝建房");
 
+            // 请求期望人数（开房参数批）：0 = 未指定（按模板）；上界 = 内核席位容量（与模板装载期同源常量）
+            if (requestedExpectedPlayers < 0
+                || requestedExpectedPlayers > RoomServer.Runtime.PendingInputRing.MaxPlayerCapacity)
+                throw new InvalidOperationException(
+                    $"请求期望人数越界：{requestedExpectedPlayers}（允许 0（未指定）或 1.."
+                    + RoomServer.Runtime.PendingInputRing.MaxPlayerCapacity + "）——拒绝建房");
+
             return new RoomConfig
             {
                 RoomId = roomId,
                 Port = Port,
-                ExpectedPlayers = t.ExpectedPlayers,
                 Seed = t.Seed,
                 MatchTimeLimitMs = t.MatchTimeLimitMs,
                 WaitingTimeoutMs = t.WaitingTimeoutMs,
                 Rules = t.Rules,
                 MapId = requestedMapId > 0 ? requestedMapId : t.MapId,   // 0 = 未指定（宿主默认图，落图在 ServerHost）
+                // 请求人数：正值优先（开房参数批——玩家选的房规模），0 = 按模板
+                ExpectedPlayers = requestedExpectedPlayers > 0 ? requestedExpectedPlayers : t.ExpectedPlayers,
             };
         }
 

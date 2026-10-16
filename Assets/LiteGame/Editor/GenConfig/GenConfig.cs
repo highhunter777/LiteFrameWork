@@ -35,11 +35,14 @@ namespace LiteGame.Editor
             typeof(System.Func<string, string>),            // Bridge.text.Get
             typeof(System.Func<string, bool>),              // Bridge.ui.IsOpen
             typeof(System.Func<int, XLua.LuaTable>),        // Bridge.data.GetItem/GetUIForm、Bridge.content.GetProcessor
+            typeof(System.Func<XLua.LuaTable>),             // Bridge.data.ListMaps（开房选图下拉目录）
             typeof(System.Func<string, XLua.LuaTable>),     // Bridge.ui.GetLogic
             typeof(System.Func<string, object, object, object, object, string>),   // Bridge.text.Format
             typeof(System.Action<string, XLua.LuaTable>),   // Bridge.ui.Show/Replace(path, dataTable)
             typeof(System.Action<XLua.LuaFunction>),        // Bridge.meta 回调形（GuestLogin/ListRooms/QuickEnter/ListRecords）
             typeof(System.Action<string, XLua.LuaFunction>),// Bridge.meta.EnterRoom(roomId, cb)
+            typeof(System.Action<int, int, XLua.LuaFunction>),// Bridge.meta.CreateRoom(mapId, expectedPlayers, cb)
+                                                              // （开房参数批：旧 Action<int, LuaFunction> 形此前未登记——本次随三参形一并补齐）
         };
     }
 }

@@ -42,7 +42,8 @@ namespace LiteGame
             meta.Set("GuestLogin", new Action<LuaFunction>(GuestLogin));
             meta.Set("ListRooms", new Action<LuaFunction>(cb => ListRooms(env, cb)));
             meta.Set("QuickEnter", new Action<LuaFunction>(QuickEnter));
-            meta.Set("CreateRoom", new Action<int, LuaFunction>((mapId, cb) => CreateRoom(mapId, cb)));
+            meta.Set("CreateRoom", new Action<int, int, LuaFunction>((mapId, expectedPlayers, cb)
+                => CreateRoom(mapId, expectedPlayers, cb)));
             meta.Set("EnterRoom", new Action<string, LuaFunction>(EnterRoom));
             meta.Set("ListRecords", new Action<LuaFunction>(cb => ListRecords(env, cb)));
             env.Global.Get<LuaTable>("Bridge").Set("meta", meta);
@@ -74,10 +75,10 @@ namespace LiteGame
 
         /// <summary>创建房间（服务端出唯一新号 → 票据即达，客户端不发明房号）。成功载荷 = 新房号
         /// （房间页展示用）——与 <see cref="QuickEnter"/>/<see cref="EnterRoom"/> 同：成功后流程机接管进房。
-        /// <paramref name="mapId"/>（多图批）0 = 未指定（宿主默认图）；非 0 = 请求地图行键（随票据盖章，
-        /// 房间端按表校验）。玩家侧选图控件归后续批（多图批先给门面参数与房间列表地图显示）。</summary>
-        public static void CreateRoom(int mapId, LuaFunction cb)
-            => Run(s_meta.CreateRoomAsync(mapId), cb, r => r.Value.RoomId).Forget();
+        /// <paramref name="mapId"/> 0 = 未指定（宿主默认图）、<paramref name="expectedPlayers"/> 0 = 未指定
+        /// （按房间模板）——（开房参数批）两值随票据盖章，房间端建房时校验（越界拒建房）。</summary>
+        public static void CreateRoom(int mapId, int expectedPlayers, LuaFunction cb)
+            => Run(s_meta.CreateRoomAsync(mapId, expectedPlayers), cb, r => r.Value.RoomId).Forget();
 
         /// <summary>选择式进房（房间列表行点击——列表行协议挂批C-⑥）。成功载荷 = 房号（同 QuickEnter）。</summary>
         public static void EnterRoom(string roomId, LuaFunction cb)

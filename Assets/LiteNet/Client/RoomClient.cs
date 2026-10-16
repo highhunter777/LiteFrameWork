@@ -99,6 +99,11 @@ namespace LiteNet
         /// 本类只搬运协议事实，不认识地图表/场景。</summary>
         public int MapId { get; private set; }
 
+        /// <summary>本房期望人数（开房参数批；**JoinAck 权威事实**——JoinAck 定值，重连重进同源刷新）。
+        /// 0 = 服务器未标注（嵌入式/测试直构形态）：消费者按默认 2 座回落
+        /// （裁决单源见 `BattleContext` 的定容口径）。本类只搬运协议事实。</summary>
+        public int ExpectedPlayers { get; private set; }
+
         /// <summary>当前会话相位（§9.3 状态机的观测面）。</summary>
         public ClientSessionPhase Phase => _phase;
 
@@ -500,6 +505,7 @@ namespace LiteNet
                     PlayerId = ack.PlayerId;
                     IsOwner = ack.IsOwner;                     // 房主位随 JoinAck 定初值（重连重进同源刷新——迁移后旧主不夺回）
                     MapId = ack.MapId;                         // 多图批：本房地图行键（0 = 未标注）——场景/表行选择的事实源
+                    ExpectedPlayers = ack.ExpectedPlayers;     // 开房参数批：本房席位规模（0 = 未标注）——客户端定容依据
                     _joinAttemptPending = false;                // 进房已有应答（诊断判定用）
                     _reconnectToken = string.IsNullOrEmpty(ack.ReconnectToken) ? null : ack.ReconnectToken;
                     Transition(ClientSessionPhase.Connected);   // 进房/重新 Join 均以 JoinAck 为准

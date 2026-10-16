@@ -1,4 +1,5 @@
 ﻿using System;
+using System.IO;
 using System.Collections.Generic;
 using Cysharp.Threading.Tasks;
 using LiteFramework;
@@ -67,6 +68,7 @@ namespace LiteGame
             var data = env.NewTable();
             data.Set("GetItem", new Func<int, LuaTable>(id => Data.GetItemLua(env, id)));
             data.Set("GetUIForm", new Func<int, LuaTable>(id => Data.GetUIFormLua(env, id)));
+            data.Set("ListMaps", new Func<LuaTable>(() => Data.ListMapsLua(env)));   // 地图目录（开房选图下拉）
             var ui = env.NewTable();
             ui.Set("GetLogic", new Func<string, LuaTable>(Ui.GetLogic));
             ui.Set("Show", new Action<string, LuaTable>(Ui.Show));          // 真实门面（委托需 Generate Code）
@@ -104,15 +106,43 @@ namespace LiteGame
             /// <summary>查内容条目（解释器消费）。</summary>
             public static cfg.contententry GetContentEntry(int id) => Tables().Tbcontententry.Get(id);
 
+            /// <summary>地图目录（tbmap 全行——开房"选图"下拉的候选面；表未装载即抛，fail-fast）。</summary>
+            public static IReadOnlyList<cfg.map> ListMaps()
+            {
+                cfg.Tbmap table = Tables().Tbmap;
+                if (table == null)
+                    throw new InvalidDataException("tbmap 未装载——表链缺 Map 域（开房选图面）");
+                return table.DataList;
+            }
+
             // ---- Lua 侧入口（§2.5）：行字段手工展开为 LuaTable + 按行缓存 ----
             // DevReload 时旧 env 的 LuaTable 引用全失效——ClearLuaCaches 由 §2.7 编排调用（顺序钉死）。
 
         private static readonly Dictionary<int, LuaTable> s_itemLua = new Dictionary<int, LuaTable>(16);
+        private static LuaTable s_mapsLua;                      // 地图目录（整表一次——静态内容）
         private static readonly Dictionary<int, LuaTable> s_uiFormLua = new Dictionary<int, LuaTable>(16);
         private static readonly Dictionary<string, int> s_uiFormIdByPath = new Dictionary<string, int>(16);
 
             /// <summary>Lua 侧查道具表：同 id 恒返回同一 LuaTable 实例（缓存命中）。
             /// 全字段展开（19 列）——道具玩法（拾取/使用/投掷）在 Lua 侧落地时按需取用。</summary>
+            /// <summary>Lua 侧地图目录：[{Id, Name, Scene}…]（下拉候选项按表序；同一次装载内恒返回同一实例）。</summary>
+            public static LuaTable ListMapsLua(LuaEnv env)
+            {
+                if (s_mapsLua != null) return s_mapsLua;
+                IReadOnlyList<cfg.map> rows = ListMaps();
+                var list = env.NewTable();
+                for (int i = 0; i < rows.Count; i++)
+                {
+                    var t = env.NewTable();
+                    t.Set("Id", rows[i].MapId);
+                    t.Set("Name", rows[i].Name);
+                    t.Set("Scene", rows[i].Scene);
+                    list.Set(i + 1, t);
+                }
+                s_mapsLua = list;
+                return list;
+            }
+
             public static LuaTable GetItemLua(LuaEnv env, int id)
             {
                 if (s_itemLua.TryGetValue(id, out var hit)) return hit;
@@ -185,6 +215,7 @@ namespace LiteGame
             s_itemLua.Clear();
             s_uiFormLua.Clear();
             s_uiFormIdByPath.Clear();
+            s_mapsLua = null;
         }
         }
 

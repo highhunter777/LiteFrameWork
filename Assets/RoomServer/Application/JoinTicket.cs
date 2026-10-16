@@ -110,6 +110,11 @@ namespace RoomServer.Application
         /// 建房时消费：既有房间不一致 → 拒绝进房（<c>ServerHost.HandleJoin</c>）。</summary>
         public int MapId;
 
+        /// <summary>票据盖章的**期望人数**（开房参数批；0 = 未指定＝按房间模板）。**只作用于新建房**
+        /// （既有房间以房事实为准，请求值不参与判定——回执见 <c>JoinAck.expected_players</c>）；
+        /// 越界（超出内核席位容量）→ 拒绝建房。</summary>
+        public int ExpectedPlayers;
+
         /// <summary>拒绝原因；<see cref="JoinTicketRejection.None"/> = 验证通过。</summary>
         public JoinTicketRejection Rejection;
 

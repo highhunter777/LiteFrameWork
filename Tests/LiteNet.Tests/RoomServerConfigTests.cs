@@ -42,6 +42,24 @@ namespace LiteNet.Tests
         }
 
         [Fact]
+        public void 开房参数_请求人数_正值优先_零按模板_越界拒()
+        {
+            // 开房参数批：票据盖章的请求人数（0 = 未指定＝按模板）；上界 = 内核席位容量（不静默钳制——
+            // 钳出来的房不是玩家要的房）。模板 map_id=0 → 与人数参数互不干涉。
+            var c = RoomServerConfig.Parse(Good);
+
+            Assert.Equal(6, c.BuildRoomConfig(null, "Any", 0, requestedExpectedPlayers: 6).ExpectedPlayers);
+            Assert.Equal(4, c.BuildRoomConfig("four", "Any", 0, requestedExpectedPlayers: 0).ExpectedPlayers);
+
+            int cap = RoomServer.Runtime.PendingInputRing.MaxPlayerCapacity;
+            Assert.Equal(cap, c.BuildRoomConfig(null, "Any", 0, requestedExpectedPlayers: cap).ExpectedPlayers);
+            Assert.Throws<System.InvalidOperationException>(
+                () => c.BuildRoomConfig(null, "Any", 0, requestedExpectedPlayers: cap + 1));
+            Assert.Throws<System.InvalidOperationException>(
+                () => c.BuildRoomConfig(null, "Any", 0, requestedExpectedPlayers: -1));
+        }
+
+        [Fact]
         public void 结算Outbox_缺省路径与容量可预测()
         {
             var c = RoomServerConfig.Parse(Good);
