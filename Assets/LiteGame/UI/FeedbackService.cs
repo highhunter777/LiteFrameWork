@@ -191,6 +191,14 @@ namespace LiteGame.UI
         /// <summary>错误弹窗表单 id（装配面读——模态登记等消费单源取值，不另写数字）。</summary>
         public int ErrorFormId => _errorFormId;
 
+        /// <summary>加载面表单 id（只读口——与 <see cref="ErrorFormId"/>/<see cref="ConfirmFormId"/> 同款单源）。</summary>
+        public int LoadingFormId => _loadingFormId;
+
+        /// <summary>加载面**已真正打开**（区别于 <see cref="IsLoading"/>＝作用域在场：Begin 的开面是异步
+        /// 入队（转场/prefab 加载），"作用域已真、面尚在途"时若走到 End，排队中的开面随后落地会**无人收**
+        /// （遮罩永久阻断）——消费方要"等面开再压重活"时读本口。</summary>
+        public bool LoadingVisible => _loadingForm != null && _isOpen(_loadingForm.Id);
+
         /// <summary>确认弹窗表单 id（同上——单源取值口）。</summary>
         public int ConfirmFormId => _confirmFormId;
 

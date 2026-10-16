@@ -51,4 +51,5 @@ return
 ["UI.Settings.ExitConfirmMessage"] = {key="UI.Settings.ExitConfirmMessage",zh="确定要退出当前对局吗？退出后将返回大厅。",en="Leave the current match and return to the lobby?",},
 ["UI.Settings.Language.Zh"] = {key="UI.Settings.Language.Zh",zh="简体中文",en="简体中文",},
 ["UI.Settings.Language.En"] = {key="UI.Settings.Language.En",zh="English",en="English",},
+["UI.Settings.ExitWorkbench"] = {key="UI.Settings.ExitWorkbench",zh="退出工作台",en="Exit Workbench",},
 }

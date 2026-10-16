@@ -11,6 +11,7 @@ GameObject:
   - component: {fileID: 2709124979942356389}
   - component: {fileID: 8976028912196511577}
   - component: {fileID: 8436848576251777742}
+  - component: {fileID: 705409617491285465}
   m_Layer: 0
   m_Name: Tmp_Dialog
   m_TagString: Untagged
@@ -73,6 +74,23 @@ CanvasGroup:
   m_Interactable: 1
   m_BlocksRaycasts: 1
   m_IgnoreParentGroups: 0
+--- !u!114 &705409617491285465
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2999556384207315375}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: dc42784cf147c0c48a680349fa168899, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  m_IgnoreReversedGraphics: 1
+  m_BlockingObjects: 0
+  m_BlockingMask:
+    serializedVersion: 2
+    m_Bits: 4294967295
 --- !u!1001 &2023784765586456592
 PrefabInstance:
   m_ObjectHideFlags: 0

@@ -57,6 +57,11 @@ namespace LiteGame
         private async UniTask LoadBattleScenesAsync(bool testRoom, CancellationToken ct)
         {
             if (_scenes == null) return;
+            // 等"进房等待场"真正开面：Begin 的开面是异步入队（转场/加载 prefab），若在"开面在途"时
+            // 走到 End（本段加载耗时会把窗口拉宽），会出现"先关后开"——排队中的开面随后落地、无人收，
+            // 遮罩永久阻断（实测：进测试房后遮罩不关、UI 点不动）。等就绪再压加载即可根治。
+            for (int i = 0; i < 120 && _feedback != null && !_feedback.LoadingVisible; i++)
+                await UniTask.Yield(ct);
             string map = BattleScenes.MapFor(testRoom);
             LaunchLoading.Report("正在加载对局场景…", 0.05f);
             if (!_scenes.IsLoaded(BattleScenes.Rig))

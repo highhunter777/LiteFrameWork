@@ -147,6 +147,67 @@ namespace LiteGame
             _events.StrictMode = StrictMode;
         }
 
+        // ---- 工作台落点请求桥（读即清，TestModeRuntime 先例）：驱动件写、流程层读 ----
+
+        private static bool s_workbenchMenuRequested;
+        private static bool s_workbenchExitRequested;
+
+        /// <summary>请求打开"对局菜单 UI"（设置页；工作台落点复用对局退场 UI）——驱动件在 ESC/开发页钮时置位。</summary>
+        public static void RequestWorkbenchMenu() => s_workbenchMenuRequested = true;
+
+        /// <summary>取工作台菜单请求（读即清）。</summary>
+        public static bool TakeWorkbenchMenuRequest()
+        {
+            bool v = s_workbenchMenuRequested;
+            s_workbenchMenuRequested = false;
+            return v;
+        }
+
+        /// <summary>请求退出工作台落点（驱动件在"菜单退出后"置位）——流程层收到即关闭工作台场景。</summary>
+        public static void RequestWorkbenchExit() => s_workbenchExitRequested = true;
+
+        /// <summary>取工作台退出请求（读即清）。</summary>
+        public static bool TakeWorkbenchExitRequest()
+        {
+            bool v = s_workbenchExitRequested;
+            s_workbenchExitRequested = false;
+            return v;
+        }
+
+        /// <summary>关闭工作台场景（落点收尾：回大厅页——UI 壳/页面都在 DontDestroyOnLoad 根上，不受影响）。
+        /// 仅编辑器形态（dev 场景不进收集组）；未加载 = no-op。</summary>
+        public static void CloseWorkbenchScene()
+        {
+#if UNITY_EDITOR
+            var scene = UnityEngine.SceneManagement.SceneManager.GetSceneByPath(WorkbenchScenePath);
+            if (!scene.IsValid() || !scene.isLoaded) return;
+            // "唯一场景"不可卸载（Unity 限制：活动场景/仅存场景）——直接 Play 工作台场景即此形态：
+            // 退化为**隐藏工作台 UI**（回大厅页照常；UI 壳与页面在 DDontDestroyOnLoad 根上不受影响）
+            if (UnityEngine.SceneManagement.SceneManager.sceneCount <= 1)
+            {
+                RequestWorkbenchHide();
+                return;
+            }
+            UnityEditor.SceneManagement.EditorSceneManager.CloseScene(scene, true);
+            Log.Info("工作台模式：工作台场景已关闭（落点收尾 → 回大厅页）", LogTag.Workbench);
+#else
+            Log.Warning("工作台模式：仅编辑器形态可关闭工作台场景", LogTag.Workbench);
+#endif
+        }
+
+        private static bool s_workbenchHideRequested;
+
+        /// <summary>请求隐藏工作台 UI（场景不可卸时的退化收尾）——工作台驱动件读即清并自我收尾。</summary>
+        public static void RequestWorkbenchHide() => s_workbenchHideRequested = true;
+
+        /// <summary>取工作台隐藏请求（读即清）。</summary>
+        public static bool TakeWorkbenchHideRequest()
+        {
+            bool v = s_workbenchHideRequested;
+            s_workbenchHideRequested = false;
+            return v;
+        }
+
         /// <summary>工作台模式：**加性加载工作台场景**（`WorkbenchScenePath`）——开关勾上即"进入工作台"，
         /// 与"直接 Play 工作台场景"同一个场景资产（场景内以预制体实例承载面板，内容单源）。
         /// 幂等：只加载一次；已加载（含"直接 Play 形态"下场景就是当前场景）则跳过。
@@ -187,6 +248,7 @@ namespace LiteGame
             }
             var instance = UnityEngine.Object.Instantiate(prefab);
             instance.name = "DevMenuUI";
+            UnityEngine.Object.DontDestroyOnLoad(instance);   // 常驻：工作台场景关闭后入口仍在（否则退出工作台＝没了入口）
             Log.Info($"开发页：入口已开出（{DevMenuPrefabPath}）", LogTag.Workbench);
 #else
             Log.Warning("开发页：仅编辑器形态可用（dev 预制体不进收集组）", LogTag.Workbench);

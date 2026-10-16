@@ -14,6 +14,7 @@
         "LiteFramework.Unity",
         "LiteGame.App",
         "LiteGame.LuaBridge",
+        "xLuaMain",
         "LiteGame.UI",
         "LiteSim.Core"
     ],

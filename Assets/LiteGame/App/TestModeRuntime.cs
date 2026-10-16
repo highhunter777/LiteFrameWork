@@ -44,6 +44,7 @@ namespace LiteGame
         private static bool _enterRequested;        // 进入测试模式（主菜单消费 → 进测试房）
         private static bool _exitRequested;          // 退出测试模式（对局内 = 请求离场并关模式；主菜单 = 只关模式）
         private static bool _teleportRequested;      //「传送到准心」请求（流程解析目标 → SimTestRules 分发）
+        private static bool _directRequested;        //「直连对局」（非测试房：真 KCP/本机服 Room-A；原 F9 能力的 UI 入口）
 
         /// <summary>请求进入测试模式（写侧：GM 面板按钮 / F10 热键）。</summary>
         public static void RequestEnter() => _enterRequested = true;
@@ -54,8 +55,15 @@ namespace LiteGame
         /// <summary>请求传送到准心（写侧：T 热键 / GM 面板）。</summary>
         public static void RequestTeleport() => _teleportRequested = true;
 
+        /// <summary>请求直连对局（非测试房——真 KCP 到 `ProcedureMatch.TestHost/TestPort` 的 Room-A；
+        /// 原 F9 热键能力的 UI 入口，写侧：开发页「直连本机服」钮）。</summary>
+        public static void RequestDirect() => _directRequested = true;
+
         /// <summary>消费进入请求（读即清——一次性语义由本方法强制：忘清零/二次消费皆不可能）。</summary>
         public static bool TakeEnterRequest() { bool v = _enterRequested; _enterRequested = false; return v; }
+
+        /// <summary>消费直连对局请求（读即清）。</summary>
+        public static bool TakeDirectRequest() { bool v = _directRequested; _directRequested = false; return v; }
 
         /// <summary>消费退出请求（读即清；主菜单与对局两流程各持一次 Take，流程态互斥 ⇒ 恰一者见 true）。</summary>
         public static bool TakeExitRequest() { bool v = _exitRequested; _exitRequested = false; return v; }

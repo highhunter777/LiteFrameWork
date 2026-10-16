@@ -48,6 +48,12 @@ namespace LiteGame
                 TestModeRuntime.RequestEnter();
                 UnityEngine.Debug.Log("[Main] 直入训练场：请求测试模式对局（DebugTuner.DirectToTraining）");
             }
+            if (TestModeRuntime.TakeDirectRequest())            // 开发页「直连本机服」：原 F9 链（非测试房）
+            {
+                _pages?.CloseOpenPagesForBattle();
+                UnityEngine.Debug.Log("[Main] 直连对局：请求 Match（非测试房——真 KCP/本机服 Room-A）");
+                m.Request(ProcedureId.Match);
+            }
             if (TestModeRuntime.TakeEnterRequest())             // 开发页/GM 面板/直入 同一条链（读即清）
             {
                 TestModeRuntime.Active = true;
@@ -58,6 +64,8 @@ namespace LiteGame
             {
                 TestModeRuntime.Active = false;
             }
+            // 工作台落点收尾（dev）：菜单退出后关工作台场景——回大厅页（UI 壳/页面在 DDOL 根上，不受影响）
+            if (DebugTuner.TakeWorkbenchExitRequest()) DebugTuner.CloseWorkbenchScene();
 #endif
         }
 

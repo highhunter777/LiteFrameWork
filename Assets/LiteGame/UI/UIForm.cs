@@ -125,8 +125,10 @@ namespace LiteGame
             {
                 NeedsReinit = false;
                 SafeCall.Invoke(() => Logic.OnInit(this, data), $"UIForm[{Id}].OnInit(换表重建)");
-                ApplyLocale();                             // 换表重建索引后补注入（旧索引的语言订阅随旧索引一起丢弃）
             }
+            ApplyLocale();                                 // **无条件补注入**（幂等）：索引的语言绑定与"展示期订阅"不同寿命——
+                                                           // 池化复用/换表重建都可能留下未注入的索引（实测：复用后再开页 OnShow 抛
+                                                           // "SetTextKey 需先 BindLocale"）；BindLocale 自身幂等（同实例早退、异实例先退订）
             SafeCall.Invoke(() => Logic.OnShow(data), $"UIForm[{Id}].OnShow");
         }
 

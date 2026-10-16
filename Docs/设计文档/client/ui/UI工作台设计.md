@@ -84,7 +84,7 @@ WorkbenchOverlay               SRS）工具条根（Canvas sortingOrder 5000—�
 - **dev-only 与发布剥离（W2 已落实）**：不担产品职责（SimSandbox 同款标注）。剥离面三件——①`UIWorkbenchDriver` **整件套三宏**（`UNITY_EDITOR || DEVELOPMENT_BUILD || LITEFRAMEWORK_DEBUG`，与 `DevHUD.cs` 同款，release 剥净）；②`LiteGameIgnoreRule.DevAssetExclusions` **dev 资产排除**（`Assets/Scenes/UiWorkbench.unity` 不入 Scenes 收集组 ⇒ 不进生产包）；③EditMode 守卫钉"排除路径存在 + 规则真的忽略 + 产品场景不误伤"。**余**：出包流程侧"bundle 清单不含 dev 件"的静态检查（《热更与内容发布专项设计》§304 L0）未实施——已登记审计表。
 - **防锈登记**：owner = 客户端 UI 线；失效条件 = ① L2 PlayMode 已覆盖其手测场景，或 ② 制作线出现更顺的页面预览工具；到期未用即退役（防 Boot/GuideScene 式历史场景累积；[代码地图](../../../开发导航/代码地图.md) 已标"历史场景"）。
 - **不做整场景运行时保存**：Play 态真装配链的运行时生成物不得烤进场景资产（视觉单一来源/脏 diff/不代存三重违反）；需要的固化走 prefab 回写（W2）——场景与 prefab 的分工：场景不承载可调视觉，prefab 承载。
-- 不新增第二个"打开任意页"入口：F9/F10 测试对局入口语义不变；本件只管 UI 页。
+- 不新增第二个"打开任意页"入口：对局入口＝开发页（测试模式/直连对局）+ `DebugTuner` 直入开关（原 F9/F10 热键已删）；本件只管 UI 页。
 - **启动落点与开发入口（2026-10-16 流程整理，取代先前的"不做"评估）**：**一个决策点**（`ProcedureMain.ResolveLanding`）＋**一张入口矩阵**：
   | 形态 | 启动落点 | 登录页 | 对局场景组 |
   |---|---|---|---|

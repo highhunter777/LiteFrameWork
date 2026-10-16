@@ -19,6 +19,8 @@ namespace LiteGame
         [SerializeField] private GameObject _panel;      // 展开的面板容器
         [SerializeField] private Button _btnTestMode;    // 测试模式（训练场）
         [SerializeField] private Button _btnWorkbench;   // UI 工作台
+        [SerializeField] private Button _btnMenu;        // 设置菜单（工作台落点的退出入口；与 ESC 同一装订）
+        [SerializeField] private Button _btnDirectMatch; // 直连对局（原 F9：真 KCP/本机服 Room-A）
         [SerializeField] private Button _btnClose;
         [SerializeField] private TMP_Text _stateText;
 
@@ -30,6 +32,8 @@ namespace LiteGame
             _btnToggle.onClick.AddListener(() => _panel.SetActive(!_panel.activeSelf));
             _btnTestMode.onClick.AddListener(OnTestMode);
             _btnWorkbench.onClick.AddListener(OnWorkbench);
+            _btnMenu.onClick.AddListener(OnMenu);
+            _btnDirectMatch.onClick.AddListener(OnDirectMatch);
             _btnClose.onClick.AddListener(() => _panel.SetActive(false));
             if (_panel != null) _panel.SetActive(false);
         }
@@ -48,6 +52,22 @@ namespace LiteGame
             DebugTuner.ApplySnapshotOrDefaults();
             TestModeRuntime.RequestEnter();
             _lastOp = "已请求测试模式（训练场）";
+            _panel.SetActive(false);
+        }
+
+        /// <summary>直连对局（原 F9 能力）：非测试房——走真 KCP 到本机 RoomServer（联测路径 B）。</summary>
+        private void OnDirectMatch()
+        {
+            TestModeRuntime.RequestDirect();
+            _lastOp = "已请求直连对局（Room-A/真 KCP）";
+            _panel.SetActive(false);
+        }
+
+        /// <summary>设置菜单：请求开对局菜单（工作台落点的退出入口）——由工作台驱动统一开（与 ESC 同一条路）。</summary>
+        private void OnMenu()
+        {
+            DebugTuner.RequestWorkbenchMenu();
+            _lastOp = "已请求设置菜单（在工作台内生效）";
             _panel.SetActive(false);
         }
 

@@ -121,6 +121,8 @@ namespace LiteGame
         public bool LeaveMatch()
         {
             if (_machine == null) return false;
+            if (_machine.Current == ProcedureId.Main) return false;   // 已在 Main（无对局/工作台等 dev 落点）：
+                                                                     // 请求 Main 会被流程机拒为"重入禁止"并抛——离场语义此处不成立，直接 no-op
             _machine.Request(ProcedureId.Main);
             return true;
         }

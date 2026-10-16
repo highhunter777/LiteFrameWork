@@ -718,5 +718,5 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   Comment: "\u754C\u9762\u7EA7\u547D\u540D\uFF1A\u5982 RegionDropdown"
-  CustomTypeName: 
+  CustomTypeName: LiteGame.UI.UIDropdownWrap
   BindName: 

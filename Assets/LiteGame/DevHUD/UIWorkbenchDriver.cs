@@ -72,6 +72,17 @@ namespace LiteGame
         private string _lastOp = "—";
         private int _demoStep;                       // 进度演示步进（0.25/步——四步到 1.0 后回卷）
 
+        /// <summary>对局菜单（设置页）表单 id——落地复用**对局退场 UI**：tbuiform 登记 15。</summary>
+        private const int MenuFormId = 15;
+
+        /// <summary>退出钮文案键（落点＝工作台）：tbltext `UI.Settings.ExitWorkbench` 单源。</summary>
+        private const string ExitWorkbenchKey = "UI.Settings.ExitWorkbench";
+
+        private LuaComponent _lua;                   // 菜单导航数据表（LuaUIData）的构造源
+        private Func<UniTask<bool>> _savedBack;      // 平台返回原装订（还原用）
+        private UIForm _menuForm;                    // 本件开出的菜单页（识别"退出已完成"）
+        private int _lobbyFormId = -1;
+
         private UIForm _lastForm;                    // 目录打开的最近页（状态注入目标——见类注释作用域）
         private AssetLease<GameObject> _hudLease;    // HUD 预览租约（与实例同生命周期）
         private GameObject _hudInstance;
@@ -116,6 +127,7 @@ namespace LiteGame
 
         private void OnDestroy()
         {
+            if (_ui != null && _ui.Focus.PlatformBack == MenuBack) _ui.Focus.PlatformBack = _savedBack;   // 还原平台返回
             CloseHudPreview();                        // 租约/实例随面板销毁归还（幂等）
             foreach (var pair in _inflated)
                 if (pair.Key != null) pair.Key.text = pair.Value;
@@ -125,6 +137,14 @@ namespace LiteGame
         private void Update()
         {
             if (!_ready) TryBecomeReady();
+            if (DebugTuner.TakeWorkbenchHideRequest())  // 场景不可卸形态的落点收尾：自我隐藏（回大厅页）
+            {
+                ShutdownWorkbenchUi();
+                return;
+            }
+            if (DebugTuner.TakeWorkbenchMenuRequest())  // 开发页「设置菜单」钮：与 ESC 同一条入口
+                OpenMenu();
+            WatchMenuExit();                            // 菜单退出 → 请求关工作台场景（落点收尾）
             if ((_frame++ & 31) == 0)                 // dev 面板节流：约半秒一刷
             {
                 string locale = CurrentLocale();
@@ -147,6 +167,7 @@ namespace LiteGame
                 _ui = _container.Resolve<UIService>();
                 _feedback = _container.Resolve<FeedbackService>();
                 _content = _container.Resolve<IContentService>();      // W2：HUD 预览租约（缺失 = 预览报错，不阻断其余面）
+                _lua = _container.Resolve<LuaComponent>();             // 菜单导航数据表（对局退场 UI 复用）
                 var config = _container.Resolve<IConfigService>();
                 if (!config.Loaded) { _lastOp = "配置未发布（Preload 中）"; return; }
                 _forms = config.Tables.Tbuiform;
@@ -165,6 +186,7 @@ namespace LiteGame
             }
 
             if (!BuildRows()) return;                                  // 行模板断线 = 未就绪（状态行已提示）
+            BindMenuBack();                                            // ESC → 对局菜单（设置页）：退出＝退出工作台
             _ready = true;
             if (_gated) SetGated(false);
             Log.Info("[Workbench] 就绪：目录行已按 Tbuiform 生成", LogTag.Workbench);
@@ -257,6 +279,70 @@ namespace LiteGame
         {
             _feedback.ShowToast("工作台 Toast 演示");
             _lastOp = "Toast 已发";
+        }
+
+        // ---- IV：落点退出（复用对局退场 UI：ESC → 设置页 → 退出工作台 → 回大厅页）----
+
+        /// <summary>装订平台返回：先走原链（关弹窗/出栈），无可返回目标才开菜单（对局内同款语义）。</summary>
+        private void BindMenuBack()
+        {
+            if (_ui == null || _ui.Focus.PlatformBack == MenuBack) return;
+            _savedBack = _ui.Focus.PlatformBack;                   // 幂等：重复装订不叠加包装
+            _ui.Focus.PlatformBack = MenuBack;
+        }
+
+        private async UniTask<bool> MenuBack()
+        {
+            Func<UniTask<bool>> original = _savedBack;
+            if (original != null && await original()) return true;
+            OpenMenu();
+            return true;
+        }
+
+        /// <summary>打开对局菜单（设置页）——导航数据带 battleExit（显退出钮）＋ exitKey（落点文案）。</summary>
+        private void OpenMenu()
+        {
+            if (_ui == null || _nav == null) return;
+            if (_ui.IsOpen(MenuFormId)) return;
+            if (_lua == null || _lua.Env == null) { _lastOp = "菜单不可用（Lua 环境未就绪）"; return; }
+            var table = _lua.Env.NewTable();
+            table.Set("battleExit", true);
+            table.Set("exitKey", ExitWorkbenchKey);
+            MenuOpenAsync(new LuaUIData(table)).Forget();
+        }
+
+        private async UniTaskVoid MenuOpenAsync(IUIData data)
+        {
+            try
+            {
+                _menuForm = await _nav.GoAsync(MenuFormId, data);
+                _lastOp = "菜单已开（退出＝退出工作台）";
+            }
+            catch (Exception ex) { _lastOp = "菜单打开失败:" + ex.Message; }
+        }
+
+        /// <summary>工作台 UI 自我收尾（场景不可卸时的落点收尾）：还原平台返回装订 → 收 HUD 预览 →
+        /// 隐藏本件根（工作台从此不在，画面回到大厅页）。</summary>
+        private void ShutdownWorkbenchUi()
+        {
+            if (_ui != null && _ui.Focus.PlatformBack == MenuBack) _ui.Focus.PlatformBack = _savedBack;
+            CloseHudPreview();
+            Log.Info("工作台模式：工作台 UI 已收尾（场景不可卸——隐藏形态；回大厅页）", LogTag.Workbench);
+            gameObject.SetActive(false);
+        }
+
+        /// <summary>退出识别：本件开出的菜单已关 **且大厅页在场**（退出链的 `Replace(Lobby)` 是唯一来源）→
+        /// 请求落点收尾（关工作台场景，由流程层执行——读即清请求桥）。</summary>
+        private void WatchMenuExit()
+        {
+            if (_menuForm == null || _menuForm.IsOpen) return;
+            if (_lobbyFormId < 0) _lobbyFormId = Bridge.Data.ResolveUIFormId(LuaKeys.UI.Page_Lobby);
+            // 菜单已关但大厅还在转场（Loading 态 IsOpen=false）——**不能在此清标记**，否则条件永不成立；
+            // 留待后续帧复查，直到大厅真正打开（退出链的 Replace(Lobby) 是唯一来源）才算退出完成。
+            if (_lobbyFormId < 0 || _ui == null || !_ui.IsOpen(_lobbyFormId)) return;
+            _menuForm = null;
+            DebugTuner.RequestWorkbenchExit();
+            _lastOp = "工作台退出（落点收尾 → 回大厅页）";
         }
 
         // ---- W2：语言切换行（真语言服务经 LuaBridge 门面——设置页同一条链）----

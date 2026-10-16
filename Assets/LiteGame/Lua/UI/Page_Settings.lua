@@ -47,7 +47,8 @@ function M:OnShow(data)
     self._leaving = false
     self.ui:SetVisible("Button_Exit", self._exitable)
     if self._exitable then
-        self.ui:SetTextKey("Txt_Exit", "UI.Settings.Exit")
+        -- 文案按落点：dev 落点（直入工作台）带 exitKey 覆盖；缺省＝对局语义
+        self.ui:SetTextKey("Txt_Exit", (type(data) == "table" and data.exitKey) or "UI.Settings.Exit")
         self.ui:OnButton("Button_Exit", function() self:_ConfirmExit() end)
     end
 

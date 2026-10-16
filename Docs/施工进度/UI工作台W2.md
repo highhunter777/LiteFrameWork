@@ -121,14 +121,41 @@
 - **退出链在 dev 落点复用**：ESC→设置页→退出 的动作按落点分派（退出测试对局/关工作台 → 回大厅页），退出钮文案键；dev 落点收尾建议走"读即清请求桥"（`TestModeRuntime` 先例）。
 - **从对局/战斗中开工作台**不会卸载已加载的战斗场景（正常入口路径在按需加载落地后天然无此场景）；如需强制收，走 `ISceneService` 卸载 + 阶段门（本次未做）。
 
-## 待做（后续批次，按建议顺序）
+## 流程批 IV（2026-10-16 续）：设置页打通 → 退出链端到端 → 卸载验证
+
+**根因链与修复（四条存量缺陷，逐一实测锁定）**
+
+| 序 | 缺陷 | 修复 |
+| --- | --- | --- |
+| ① | 设置页 `Dropdown_Quality` 绑定类型不符（控件 `UIDropdownWrap`(TMP) vs 自动检测落到 `Image`；受控 API 只认 UGUI `Dropdown`） | 控件根 `BindNode.CustomTypeName = LiteGame.UI.UIDropdownWrap`（`FixDropdownBindType.cs`）；`UIBindIndex` 下拉族双支持；`UIDropdownWrap.SetValue` |
+| ② | 系统面三壳缺 `GraphicRaycaster` ⇒ 确认弹窗按钮射线空命中 | `FixCanvasRaycasters.cs` 扩展三壳 |
+| ③ | 池化复用页丢语言服务 ⇒ 复用后 `OnShow` 断、"退出对局"钮不亮 | `UIForm.EnterActiveFromRecycled` 无条件补注入（幂等） |
+| ④ | 进房等待场"先关后开"竞态 ⇒ 遮罩永久阻断（本次场景加载入窗后必现） | `FeedbackService.LoadingVisible` 只读口 + `ProcedureMatch` 等"面已开"再压加载 |
+
+**验证证据（Play 实测，逐步留读数）**：开发页「测试模式」→ `阶段:Battle` 且遮罩正常关闭（`Tmp_Loading(inactive)`）→ HUD 菜单钮 → 设置页打开且 **`Button_Exit` 点亮** → 点退出 → 确认弹窗（`UIForm[206]`）→ 点确认 → `阶段:Main` + `UIRoot/Bottom: Page_Lobby(Clone)`（**回大厅页**）+ `[Scene] 叠加场景已卸载:TrainingGround/BattleRig（余 0）`、场景清单只剩 `UiWorkbench` —— **"退出对局 → 离场卸载 → 回大厅"端到端打通**。
+
+**流程批 IV 收官：退出语义复用（落点文案 / dev 收尾 / 能力保全）**
+
+| 面 | 落点 |
+| --- | --- |
+| 落点文案 | 新文案键 `UI.Settings.ExitWorkbench`（"退出工作台"；`#ltext.xlsx` → `gen.bat` 已重生成）；`Page_Settings.lua` 支持导航数据 `exitKey` 覆盖（缺省＝对局语义） |
+| 菜单入口 | 工作台驱动装订平台返回（ESC）→ 对局菜单（设置页，带 `battleExit`＋`exitKey`）；开发页「设置菜单」钮＝同一入口（按键无法注入，同一方法用点击可验） |
+| 退出收尾 | 驱动识别"本件开出的菜单已关 ∧ 大厅页在场"（**复查式**：大厅转场期 `IsOpen=false` 不得提前清标记）→ 读即清请求桥 → `ProcedureMain` 消费 → `DebugTuner.CloseWorkbenchScene()`：可卸则卸场景，**唯一场景不可卸则退化为隐藏工作台 UI**（自我还原返回装订＋收 HUD 预览） |
+| 能力保全 | 原 F9 的"直连对局（Room-A/真 KCP）"能力搬到开发页「直连对局」钮（`TestModeRuntime.RequestDirect/TakeDirectRequest` → `ProcedureMain` 非测试房 `Request(Match)`）——F9/F10 删除后联测路径 B 仍可用 |
+| 加固 | `MetaEntryService.LeaveMatch` 在 `Current == Main` 时 no-op（否则被流程机拒"重入禁止"抛错——工作台落点退出会走到） |
+
+**验证证据（Play 实测）**：工作台落点 →「设置菜单」→ `Txt_Exit=退出工作台`（落点文案 ✓）→ 退出 → 确认 → `[Nav] Replace id=12`（回大厅页）＋ `[Workbench] 工作台 UI 已收尾（场景不可卸——隐藏形态；回大厅页）`、工作台状态读数 `(未找到)`＝已不在，**无"重入禁止"报错**；开发页钮清单复验（6 钮在场、可点）。
+
+**流程批 V：文档扫尾（已完成）**——F9/F10 现存引用按新入口改写 **17 处**（`07-本地联测` 10、`代码地图` 1、`地图数据专项设计` 4、`02-总体流程` 2、`UI工作台设计` 1；历史施工记录按惯例保留）。
+
+**待做（后续批次，按建议顺序）**
 
 | 序 | 项 | 现状 | 落点/线索 |
 | --- | --- | --- | --- |
-| 1 | **设置页 `Dropdown_Quality` 绑定类型不符**（`OnShow` 抛 `期望 Dropdown 实得 Image`）——设置页仍打不开，"退出对局"链整条不通 | 未修（存量，HEAD 即有；审计表已登记） | 定位 `BindIndexBuilder` 类型解析面 vs 页面内嵌套下拉件（`Widgets/Tmp_Dropdown` 实例 + BindName 经 PrefabInstance 覆写为 `Dropdown_Quality`）；先跑 `AgentScripts/FixSettingsExitBindNames.cs` 那次的复现路径（Play→开发页→测试模式→HUD 菜单钮） |
-| 2 | **离场卸载的端到端 Play 确认** | 代码已接（III-a），验证被第 1 项挡住 | 第 1 项修好后：ESC/菜单 → 设置页 → 退出对局 → 确认弹窗 → 断言 `Scenes` 只剩启动场景、`[Nav] Replace id=12` |
-| 3 | **IV：dev 落点退出链复用** | 未做 | ESC→设置页→退出 在"直入训练场/直入工作台"下可用：退出动作按落点分派（离场＋卸载 / 关工作台场景）、退出钮文案按落点（需 `tbltext` 键）、dev 落点收尾走读即清请求桥（`TestModeRuntime` 先例） |
-| 4 | **V：F9/F10 文档扫尾** | 项目说明 01/README/02 已改；其余未扫 | 07 联测手册（F 键流程多处）、代码地图、修改指南、上云页面层级设计；历史施工记录按惯例保留 |
+| ~~1~~ | ~~设置页 `Dropdown_Quality` 绑定类型不符~~ | **已办（流程批 IV：见上节四条修复）** | 定位 `BindIndexBuilder` 类型解析面 vs 页面内嵌套下拉件（`Widgets/Tmp_Dropdown` 实例 + BindName 经 PrefabInstance 覆写为 `Dropdown_Quality`）；先跑 `AgentScripts/FixSettingsExitBindNames.cs` 那次的复现路径（Play→开发页→测试模式→HUD 菜单钮） |
+| ~~2~~ | ~~离场卸载的端到端 Play 确认~~ | **已办（同上：实测卸载余 0 + 回大厅）** 第 1 项修好后：ESC/菜单 → 设置页 → 退出对局 → 确认弹窗 → 断言 `Scenes` 只剩启动场景、`[Nav] Replace id=12` |
+| ~~3~~ | ~~IV：dev 落点退出链复用~~ | **已办（流程批 IV：见上节）** | ESC→设置页→退出 在"直入训练场/直入工作台"下可用：退出动作按落点分派（离场＋卸载 / 关工作台场景）、退出钮文案按落点（需 `tbltext` 键）、dev 落点收尾走读即清请求桥（`TestModeRuntime` 先例） |
+| ~~4~~ | ~~V：F9/F10 文档扫尾~~ | **已办（流程批 V：现行文档 17 处改写）** | 07 联测手册（F 键流程多处）、代码地图、修改指南、上云页面层级设计；历史施工记录按惯例保留 |
 | 5 | 训练场布点为最小灰盒（7 掩体/16 环形出生点/50×50 边界） | 可调内容，非缺陷 | 改 `AgentScripts/BuildTrainingGroundMap.cs` → 重跑 → `SimMapBaker.AllTraining()` → `Luban/gen.bat` → `gen-build-hash.py` |
 | 6 | 真服务器多图 | 未设计（协议无 `map_id`，D10） | 多图跨服需另行设计；当前多图只对本地服/测试房成立 |
 

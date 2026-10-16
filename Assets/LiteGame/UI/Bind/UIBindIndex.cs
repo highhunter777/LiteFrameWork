@@ -341,11 +341,28 @@ namespace LiteGame
             toggle.onValueChanged.AddListener(h);
         }
 
-        /// <summary>下拉选项（文本由页面给**已本地化**文本——语言切换时页面重设；值保持）。G17。</summary>
+        /// <summary>下拉件解析：**控件库 `UIDropdownWrap`（TMP 封装）优先**，兼容 UGUI `Dropdown`
+        /// （既有页面/用例）——两者都在时以包装件为准（它是项目侧的控件面）。</summary>
+        private Component ResolveDropdown(string name)
+        {
+            var control = Get<Component>(name);
+            if (control is UIDropdownWrap || control is Dropdown) return control;
+            throw new InvalidOperationException(
+                $"绑定索引[{name}] 不是下拉件:期望 {nameof(UIDropdownWrap)}/{nameof(Dropdown)} 实得 {control.GetType().Name}");
+        }
+
+        /// <summary>下拉选项（文本由页面给**已本地化**文本——语言切换时页面重设；**值保持**）。G17。</summary>
         public void SetDropdownOptions(string name, IReadOnlyList<string> options)
         {
             MarkDriver(name, ControlDriver.Command);
-            var dropdown = Get<Dropdown>(name);
+            var control = ResolveDropdown(name);
+            if (control is UIDropdownWrap wrap)
+            {
+                wrap.SetOptions(options ?? System.Array.Empty<string>(), wrap.Selected);   // 值保持（SetOptions 内部钳位）
+                return;
+            }
+
+            var dropdown = (Dropdown)control;
             var list = new List<Dropdown.OptionData>(options != null ? options.Count : 0);
             if (options != null)
                 for (int i = 0; i < options.Count; i++) list.Add(new Dropdown.OptionData(options[i] ?? string.Empty));
@@ -357,21 +374,36 @@ namespace LiteGame
         public void SetDropdownValue(string name, int index)
         {
             MarkDriver(name, ControlDriver.Command);
-            Get<Dropdown>(name).SetValueWithoutNotify(index);
+            var control = ResolveDropdown(name);
+            if (control is UIDropdownWrap wrap) { wrap.SetValue(index); return; }
+            ((Dropdown)control).SetValueWithoutNotify(index);
         }
 
         /// <summary>下拉当前值（索引）。G17。</summary>
-        public int GetDropdownValue(string name) => Get<Dropdown>(name).value;
+        public int GetDropdownValue(string name)
+        {
+            var control = ResolveDropdown(name);
+            return control is UIDropdownWrap wrap ? wrap.Selected : ((Dropdown)control).value;
+        }
 
         /// <summary>下拉变化通知（用户选择；回调带索引）。重复登记替换；<c>null</c> = 仅退订。G17。</summary>
         public void OnDropdownChanged(string name, Action<int> handler)
         {
-            var dropdown = Get<Dropdown>(name);
+            var control = ResolveDropdown(name);
+            if (control is UIDropdownWrap wrap)
+            {
+                Action<int> h = v => SafeCall.Invoke(() => handler(v), $"OnDropdownChanged[{name}]");
+                SubscribeControl(name, () => wrap.OnIndexChanged -= h);
+                if (handler != null) wrap.OnIndexChanged += h;
+                return;
+            }
+
+            var dropdown = (Dropdown)control;
             SubscribeControl(name, () => dropdown.onValueChanged.RemoveAllListeners());
             if (handler == null) return;
-            UnityEngine.Events.UnityAction<int> h =
+            UnityEngine.Events.UnityAction<int> uh =
                 v => SafeCall.Invoke(() => handler(v), $"OnDropdownChanged[{name}]");
-            dropdown.onValueChanged.AddListener(h);
+            dropdown.onValueChanged.AddListener(uh);
         }
 
         /// <summary>控件订阅登记（同名替换：先退旧再登记——池化复用/重开不留双份回调）。</summary>
