@@ -74,7 +74,7 @@ alice/
 | 事 | 说明 |
 |---|---|
 | 装 WireGuard | 优先用**包内**官方安装包（`wireguard*.msi` 走 `msiexec /qn`；`.exe` 试 `/S`）——离线、免下载；没有则 `winget install WireGuard.WireGuard`（**国内常因官方源不可达而失败**，失败时打印 winget 退出码而不是笼统归因杀软）；两条都不可用就明确报错——**脚本不含任何下载 URL**（不猜网址） |
-| 装隧道 | `wireguard.exe /installtunnelservice <conf>`（装成系统服务，开机自启、免开界面）；起不来时提示兜底：双击 `.conf` → 弹窗点"是"走 GUI 导入 |
+| 装隧道 | **先卸后装**：同名隧道已存在时先 `uninstalltunnelservice` 再 `installtunnelservice <conf>`（换服务器/换配置必须重装才生效，且重装才是幂等的）；装成系统服务、开机自启、免开界面；起不来时提示兜底：双击 `.conf` → 弹窗点"是"走 GUI 导入 |
 | 连通自检 | `GET <server>/live` 得 200 = 隧道与服务器都对；失败给三条自查（服务未 RUNNING / 网络封 UDP / 截图给发件人） |
 | 体检模式 | `powershell -NoProfile -ExecutionPolicy Bypass -File Join-LiteGameTest.ps1 -CheckOnly` |
 | 卸载 | 设置→应用卸 WireGuard，再删掉那份 `.conf` |

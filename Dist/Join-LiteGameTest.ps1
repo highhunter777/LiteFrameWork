@@ -182,13 +182,23 @@ else {
 # ── 4. 隧道服务 ────────────────────────────────────────────────────────────
 
 Step '检查隧道服务'
-if (Test-TunnelRunning $tunnelName) {
-    Ok "隧道已在运行（服务 WireGuardTunnel`$$tunnelName）。"
-}
-elseif ($CheckOnly) {
-    Warn "隧道尚未安装（执行时会执行：wireguard.exe /installtunnelservice `"$confPath`"）。"
+if ($CheckOnly) {
+    if (Test-TunnelRunning $tunnelName) {
+        Warn "隧道已在运行（体检模式不动它；真正执行时会先卸后装，确保用的是包内这份 conf）。"
+    }
+    else {
+        Warn "隧道尚未安装（执行时会执行：卸同名服务(若有) + wireguard.exe /installtunnelservice `"$confPath`"）。"
+    }
 }
 else {
+    # 无条件先卸后装：换服务器/换配置时同名服务已存在（install 会失败），且旧配置不会自动更新；
+    # 重装一次是幂等的，也是唯一能保证"用的是包内这份 conf"的做法。
+    $existing = & sc.exe query "WireGuardTunnel`$$tunnelName" 2>&1 | Out-String
+    if ($existing -match 'SERVICE_NAME') {
+        Say '检测到同名隧道已存在，先卸掉再装……'
+        & $wgExe /uninstalltunnelservice $tunnelName | Out-Null
+        Start-Sleep -Seconds 2
+    }
     Say '把隧道装成系统服务（开机自启，不用开界面）……'
     & $wgExe /installtunnelservice $confPath
     $up = $false
