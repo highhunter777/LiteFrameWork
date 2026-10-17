@@ -30,6 +30,8 @@ docker compose down
 
 **`.env` 键名两套（2026-10-17 已消解）**：`scripts/local/local-chain.ps1`（内环）写的键是 `ENVELOPE_PSK`/`AUTH_SIGNING_KEY`/`LOBBY_INSTANCE_KEY`/`LOBBY_TICKET_KEY`/`SETTLEMENT_KEY`，本编排原用 `${LITENET_SECURE_ENVELOPE_KEY}`/`${META_AUTH_SIGNING_KEY}`/`${TICKET_KEY_BASE64}` 等——同一路径 `deploy/.env` 曾被两套命名互相踩（实测 `docker compose config` 五密钥全空、`LITENET_TICKET_KEY` 渲染成 `l1:`，`up` 必 fail-closed 拒启）。**现每处密钥双名回退**（`\${本编排名:-\${内环名}}`），一份机器私有 `.env` 两个消费者都读。自查：`docker compose config | grep -E "META_Meta__(Auth|Lobby|Settlement)|LITENET_"`（应全有值）。详见 [09-上云联机测试 §2.2](../Docs/项目说明/09-上云联机测试.md)、[施工记录](../Docs/施工进度/上云联机前置补强.md)。
 
+**本目录服务 Linux 主机形态**；云主机若是 Windows，见 [10-Windows 云主机部署](../Docs/项目说明/10-Windows云主机部署.md)（原生形态，不使用本目录的 compose 制品）。
+
 **完整上云流程**（主机供给 → compose 部署 → 客户端端点/密钥注入 → 两人一局 → 设计 §6 验收与留痕）：[Docs/项目说明/09-上云联机测试.md](../Docs/项目说明/09-上云联机测试.md)。
 
 **测试者分发包不在本目录**：组装与分发收口在仓库根的 [`Dist/`](../Dist/README.md)（测试者一键接入脚本 + 每人一份隧道配置 + 组装助手 `New-Package.ps1`）。
