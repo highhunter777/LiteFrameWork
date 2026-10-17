@@ -22,7 +22,7 @@ namespace LiteGame.UI
         {
             "Tmp_StateButton", "Tmp_Dialog", "Tmp_Toast", "Tmp_Bubble",
             "Tmp_VirtualList", "Tmp_SimpleList", "Tmp_TabGroup", "Tmp_BottomNav",
-            "Tmp_ProgressBar", "Tmp_HpBar", "Tmp_StarRating", "Tmp_CountText", "Tmp_Countdown", "Tmp_AnimatedImage", "Tmp_AvatarFrame",
+            "Tmp_ProgressBar", "Tmp_HpBar", "Tmp_StarRating", "Tmp_CountText", "Tmp_Countdown", "Tmp_AnimatedImage", "Tmp_RotatingImage", "Tmp_AvatarFrame",
             "Tmp_InputField", "Tmp_Slider", "Tmp_Toggle", "Tmp_Dropdown", "Tmp_Stepper",
             "Tmp_RedDot", "Tmp_FlyText", "Tmp_GuideHighlight", "Tmp_EventRelay", "Tmp_SafeArea",
         };

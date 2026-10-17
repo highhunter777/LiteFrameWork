@@ -39,7 +39,7 @@ namespace LiteGame.Editor.UiTools.Naming
         {
             "Dialog_", "Toast_", "Loading_", "FlyText_", "Bubble_", "GuideHighlight_",
             "RedDot_", "Countdown_", "CountText_", "HpBar_", "ProgressBar_", "AvatarFrame_",
-            "AnimatedImage_", "StateButton_", "Stepper_", "StarRating_", "TabGroup_",
+            "AnimatedImage_", "RotatingImage_", "StateButton_", "Stepper_", "StarRating_", "TabGroup_",
             "BottomNav_", "VirtualList_", "SimpleList_",
         };
 

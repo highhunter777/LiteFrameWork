@@ -218,5 +218,32 @@ namespace LiteGame.Tests.EditMode
             UnityEngine.Object.DestroyImmediate(tex);
             UiAnimationClock.ResetForEditorReload();
         }
+
+        [Test]
+        public void 旋转件_按UIClock步进_暂停不推进()
+        {
+            var go = Scope.CreateGameObject("spin", typeof(RectTransform), typeof(Image));
+            var rect = (RectTransform)go.transform;
+            var spin = go.AddComponent<RotatingImage>();
+            spin.DegreesPerSecond = 180f;
+
+            // 反射驱动私有 OnEnable/Update（EditMode 不派发引擎消息——同上例口径）
+            typeof(RotatingImage).GetMethod("OnEnable", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance)
+                ?.Invoke(spin, null);
+
+            var clock = new FakeUIClock { ScaledDelta = 0.5f };  // 180°/s × 0.5s = 90°
+            UiAnimationClock.Bind(clock);
+
+            typeof(RotatingImage).GetMethod("Update", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance)
+                ?.Invoke(spin, null);
+            Assert.AreEqual(90f, rect.localEulerAngles.z, 0.01f, "UIClock 步进驱动旋转");
+
+            clock.ScaledDelta = 0f;                              // 暂停
+            typeof(RotatingImage).GetMethod("Update", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance)
+                ?.Invoke(spin, null);
+            Assert.AreEqual(90f, rect.localEulerAngles.z, 0.01f, "暂停时角度保持（时停语义——不崩不回退）");
+
+            UiAnimationClock.ResetForEditorReload();
+        }
     }
 }
