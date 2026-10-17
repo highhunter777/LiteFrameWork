@@ -391,7 +391,8 @@ namespace RoomServer
             catch (Exception ex) when (ex is IOException
                                       || ex is UnauthorizedAccessException
                                       || ex is NotSupportedException
-                                      || ex is SecurityException)
+                                      || ex is SecurityException
+                                      || ex is ObjectDisposedException)   // 与 TryAppend 同源：上次压实失败留下已关闭流时，重试路径不把异常抛进排空收尾链
             {
                 CompactionFailures++;
                 if (replaced != null && !_stream.CanWrite)

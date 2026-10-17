@@ -1,8 +1,10 @@
 -- UI/Page_Room.lua：上云测试·房间页（制作批 2026-10-10；接线批 C-④ 2026-10-13；数据批 C-⑥ 2026-10-13；
 -- 席位实时面批 2026-10-15）
 -- 接线（《上云测试页面层级设计》§3）：房号 = 导航数据（UI.Room.Info {0}）；
--- **等待人数 = ListRooms 回查该房号投影**（players/expectedPlayers——批C-⑥；进房后投影可能延迟/未含，
--- 则保持隐藏，不显假数）；Button_Leave = 替换回大厅 + Bridge.meta.LeaveMatch（流程回 Main，既有管道收尾）；
+-- **等待人数 = 本房实时席位面**（分子 = Bridge.room.OnMembers 席位条数、分母 = Bridge.room.ExpectedPlayers
+-- ——两者同源于席位广播／JoinAck 房事实，与旁边玩家名单**同帧一致**；房规模未标注〔0〕则保持隐藏，
+-- 不显假数。**不再回查大厅投影**：那条路是 Meta 心跳的秒级近似，且只在 OnShow 查一次，房主开房即看不到）；
+-- Button_Leave = 替换回大厅 + Bridge.meta.LeaveMatch（流程回 Main，既有管道收尾）；
 -- 开局（StartGame）关闭本页归 C# 流程侧（PageFlow.CloseRoomIfOpen——页面不知对局相位）。
 --
 -- 房主开局（HUD 批C·房主开局批）：**房主事实经 Bridge.room.OnOwner 订阅**（替换语义；订阅/装订即回放；
@@ -35,7 +37,7 @@ function M:OnShow(data)
     else
         self.ui:SetVisible("Txt_RoomId", false)          -- 房号缺失（换票结果为空）——不显空标签
     end
-    self.ui:SetVisible("Txt_State", false)               -- 先隐藏；回查到投影再显（不显假数）
+    self.ui:SetVisible("Txt_State", false)               -- 先隐藏；席位面回放/推送到达再显（不显假数）
 
     self.ui:SetTextKey("Txt_Leave", "Common.Leave")
     self.ui:OnButton("Button_Leave", function() self:_Leave() end)
@@ -48,8 +50,6 @@ function M:OnShow(data)
 
     -- 席位名单：订阅即回放（未收到过快照 = 空表；首份广播到达后按事件整表重绑）
     Bridge.room.OnMembers(function(rows) self:_PushPlayers(rows) end)
-
-    self:_RefreshWaiting(roomId)
 end
 
 -- 房主事实回调：门面回放与 OwnerChanged 迁移同一路径（旧主失位隐藏、新主到位亮钮）
@@ -58,6 +58,7 @@ function M:_OnOwner(isOwner)
 end
 
 -- 席位快照 → 列表行（行字段按条目子节点名 Txt_PlayerName/Txt_PlayerState；key = 席位号）
+-- 同一份快照顺带刷新等待人数——名单与计数同帧，不会出现"名单两人、计数 1/2"的矛盾画面。
 function M:_PushPlayers(rows)
     local data = {}
     local n = (type(rows) == "table") and #rows or 0
@@ -70,22 +71,21 @@ function M:_PushPlayers(rows)
         }
     end
     self.ui:SetList("SimpleList_Players", data)
+    self:_RefreshWaiting(n)
 end
 
-function M:_RefreshWaiting(roomId)
-    if roomId == nil or roomId == "" then return end
-    if not Bridge.meta.IsConfigured() then return end
-    Bridge.meta.ListRooms(function(ok, rows)
-        if not ok or type(rows) ~= "table" then return end
-        for i = 1, #rows do
-            if rows[i].roomId == roomId then
-                self.ui:SetVisible("Txt_State", true)
-                self.ui:SetTextKeyArgs("Txt_State", "UI.Room.Waiting", rows[i].players, rows[i].expectedPlayers)
-                return
-            end
-        end
-        -- 投影未含该房（刚开房/心跳延迟）：保持隐藏——不显假数
-    end)
+-- 等待人数（本房实时席位面）：分子 = 在册席位条数（对局中断线席位保留占座——重连窗口内计数不回退；
+-- 未开局离场即释放〔席位复用〕——名单缩容、计数随之回落），
+-- 分母 = Bridge.room.ExpectedPlayers（JoinAck 权威房规模）。两处未就绪一律隐藏，不显假数：
+-- 分子 0 = 还没收到席位快照（本机自身占一席，故真实快照恒 ≥1 条）、分母 0 = 服务器未标注房规模。
+function M:_RefreshWaiting(seated)
+    local expected = Bridge.room.ExpectedPlayers()
+    if seated <= 0 or expected == nil or expected <= 0 then
+        self.ui:SetVisible("Txt_State", false)
+        return
+    end
+    self.ui:SetVisible("Txt_State", true)
+    self.ui:SetTextKeyArgs("Txt_State", "UI.Room.Waiting", seated, expected)
 end
 
 function M:_Leave()

@@ -105,7 +105,7 @@ namespace LiteNet.Tests
             }
         }
 
-        /// <summary>让四个客户端都完成 Join 且各自房间开局。</summary>
+        /// <summary>让四个客户端都完成 Join 且各自房间开局（各房房主发起开局——满员不再自动开局）。</summary>
         private (HeadlessClient a1, HeadlessClient a2, HeadlessClient b1, HeadlessClient b2) StartBothRooms()
         {
             var a1 = StartIn("A1", "Room-A");
@@ -113,8 +113,12 @@ namespace LiteNet.Tests
             var b1 = StartIn("B1", "Room-B");
             var b2 = StartIn("B2", "Room-B");
 
+            Assert.True(WaitFor(() => a1.Client.PlayerId >= 0 && a2.Client.PlayerId >= 0
+                && b1.Client.PlayerId >= 0 && b2.Client.PlayerId >= 0), "四端未全部进房（JoinAck）");
+            a1.Client.SendStartMatchRequest();                   // A 房房主开局（真实 C→S 信令）
+            b1.Client.SendStartMatchRequest();                   // B 房房主开局
             Assert.True(WaitFor(() => a1.Sim != null && a2.Sim != null && b1.Sim != null && b2.Sim != null),
-                "四端未全部收到 StartGame（两房应各自满员开局）");
+                "四端未全部收到 StartGame（两房应各自房主开局）");
             return (a1, a2, b1, b2);
         }
 
@@ -126,7 +130,7 @@ namespace LiteNet.Tests
             var (a1, a2, b1, b2) = StartBothRooms();
             Assert.True(_host.TryGetRoom("Room-A", out RoomRuntime roomA));
             Assert.True(_host.TryGetRoom("Room-B", out RoomRuntime roomB));
-            Assert.True(roomA.Started && roomB.Started, "两房都应满员开局");
+            Assert.True(roomA.Started && roomB.Started, "两房都应房主开局");
 
             // ① 同步：两房并行对跑 5s
             RunFor(300, a1, 0.5f, a2, -0.5f);

@@ -80,7 +80,8 @@ namespace LiteNet.Tests
             var s2 = new Session(2, 0);
             Assert.Equal(0, Join(room, s1, seats));
             Assert.Equal(1, Join(room, s2, seats));
-            Assert.True(room.Started, "满员后应自动开局");
+            room.Execute(RoomCommand.StartEarly(0), new List<RoomOutput>());   // 房主开局（满员不再自动开局）
+            Assert.True(room.Started, "房主开局后应进入 Running");
             return (room, capture, s1, s2, pipeline);
         }
 
@@ -284,6 +285,7 @@ namespace LiteNet.Tests
             var s2 = new Session(2, 0);
             Assert.Equal(0, Join(room, s1, seats));
             Assert.Equal(1, Join(room, s2, seats));
+            room.Execute(RoomCommand.StartEarly(0), new List<RoomOutput>());   // 房主开局（满员不再自动开局）
 
             Step(room, pipeline, 2);                                    // 建立全量基线
             Assert.True(capture.SnapshotsFor(s1).Count > 0);

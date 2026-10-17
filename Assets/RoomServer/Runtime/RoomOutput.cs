@@ -72,6 +72,26 @@ namespace RoomServer.Runtime
         public SettlementReadyOutput(MatchResultSummary summary) => Summary = summary;
     }
 
+    /// <summary>
+    /// 终态中止（等待超时/运维关闭/未开局全员离场等**无结果可结算**的收尾路径）。
+    /// App：向在座客户端发 <c>MatchEnded</c>（复用既有终局信令面——EndReason 随因、Players 空），
+    /// 让房间页客户端得知房间已散而非永远等待。对局中收尾走 SettlementReady → MatchEnded（带结果），
+    /// 不经本输出。
+    /// </summary>
+    public sealed class RoomAbortedOutput : RoomOutput
+    {
+        public readonly ShutdownReason Reason;
+        public readonly string MatchId;
+        public readonly int Frame;
+
+        public RoomAbortedOutput(ShutdownReason reason, string matchId, int frame)
+        {
+            Reason = reason;
+            MatchId = matchId;
+            Frame = frame;
+        }
+    }
+
     /// <summary>对局结果摘要（Finishing 时冻结；§9.1"Settling 只提交已冻结结果，不重算"）。</summary>
     public sealed class MatchResultSummary
     {
@@ -139,7 +159,7 @@ namespace RoomServer.Runtime
         }
     }
 
-    /// <summary>提前开局被拒（App：StartMatchResponse{ok=false, reason} 回发起者；开房裁决）。</summary>
+    /// <summary>房主开局被拒（App：StartMatchResponse{ok=false, reason} 回发起者；开房裁决）。</summary>
     public sealed class StartRejectedOutput : RoomOutput
     {
         public readonly int PlayerId;

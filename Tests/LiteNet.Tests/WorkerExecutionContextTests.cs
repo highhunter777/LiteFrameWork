@@ -101,6 +101,13 @@ namespace LiteNet.Tests
                 new JoinRequest { RoomId = roomId, Token = "test", BuildHash = ServerHost.ServerBuildHash })), true);
         }
 
+        /// <summary>房主开局（**真实 wire 路径**：StartMatchRequest）——满员不再自动开局。</summary>
+        private static void SendStartMatch(KcpTransportClient owner)
+        {
+            owner.Send(new ArraySegment<byte>(PacketCodec.Encode(PacketType.StartMatchRequest,
+                new Proto.StartMatchRequest())), true);
+        }
+
         [Fact]
         public void 真实传输_Worker执行_开局快照经回传到达_全员离场结算并销毁()
         {
@@ -121,7 +128,8 @@ namespace LiteNet.Tests
                 + $"cmds={_host.WorkerCommands} pumps={_host.WorkerPumps} pending={_host.WorkerPoolPending} fails={_host.WorkerFailures} "
                 + $"stale={_host.MailboxStale} next={(_host.TryGetRoom("Room-A", out var dr) ? dr.NextPlayerId : -1)} "
                 + $"mbClosed={_host.MailboxClosed} mbFull={_host.MailboxRejectedFull}");
-            Assert.True(WaitFor(() => sg1.Count > 0), "满员应由 Worker 开局并广播 StartGame");
+            SendStartMatch(c1);   // 房主开局（满员不再自动开局）
+            Assert.True(WaitFor(() => sg1.Count > 0), "房主开局应由 Worker 广播 StartGame");
             Assert.True(WaitFor(() => snap1.Count > 0), "快照应由 Worker 构建、经回传发出并到达客户端");
             Assert.True(_host.TryGetRoom("Room-A", out RoomRuntime room) && room.Started);
             Assert.True(_host.Ops.SettlementsReady == 0, "对局进行中不应有结算");
@@ -143,12 +151,21 @@ namespace LiteNet.Tests
             var c4 = ConnectClient();
             var snapA = new Inbox<Proto.StateSnapshot>(); snapA.Wire(c1, PacketType.StateSnapshot);
             var snapB = new Inbox<Proto.StateSnapshot>(); snapB.Wire(c3, PacketType.StateSnapshot);
+            var ack1 = new Inbox<Proto.JoinAck>(); ack1.Wire(c1, PacketType.JoinAck);
+            var ack2 = new Inbox<Proto.JoinAck>(); ack2.Wire(c2, PacketType.JoinAck);
+            var ack3 = new Inbox<Proto.JoinAck>(); ack3.Wire(c3, PacketType.JoinAck);
+            var ack4 = new Inbox<Proto.JoinAck>(); ack4.Wire(c4, PacketType.JoinAck);
 
             SendJoin(c1, "Room-A");
             SendJoin(c2, "Room-A");
             SendJoin(c3, "Room-B");
             SendJoin(c4, "Room-B");
+            // JoinAck 到达 = 宿主已应用回传（会话绑定房间席位）——房主开局的准入前提
+            Assert.True(WaitFor(() => ack1.Count > 0 && ack2.Count > 0 && ack3.Count > 0 && ack4.Count > 0),
+                "四端应收到 JoinAck（经回传）");
 
+            SendStartMatch(c1);   // A 房房主开局（满员不再自动开局）
+            SendStartMatch(c3);   // B 房房主开局
             Assert.True(WaitFor(() => _host.TryGetRoom("Room-A", out var a) && a.Started
                 && _host.TryGetRoom("Room-B", out var b) && b.Started), "两房应各自开局");
             Assert.True(WaitFor(() => snapA.Count > 0 && snapB.Count > 0), "两房快照都应到达各自客户端");

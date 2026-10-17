@@ -135,8 +135,8 @@ namespace LiteNet
         /// <summary>
         /// 最近一次 StartGame（未到达 = null）。**晚订阅者必须先读这里**：
         /// <see cref="OnStartGame"/> 是**一次性边缘事件**（消息到达那一刻发一次，无订阅者即丢失），
-        /// 而 StartGame 在时序上可能**早于**应用层建好订阅——服务器在席位满员时立即开局广播，
-        /// 而应用层往往要等 JoinAck 回来才开始建对局对象。
+        /// 而 StartGame 在时序上可能**早于**应用层建好订阅——开局广播（房主发起）与重连迟到帧
+        /// 都可能落在应用层建对局对象之前（应用层往往要等 JoinAck 回来才开始建）。
         /// 消费范式：先查本属性，为 null 再订阅事件。
         /// </summary>
         public Proto.StartGame StartGame => _startGame;
@@ -149,7 +149,7 @@ namespace LiteNet
         public event Action<Proto.StateSnapshot> OnSnapshot;
         public event Action<Proto.MatchEnded> OnMatchEnded;
 
-        /// <summary>提前开局被拒反馈（开房裁决：非房主/席位无效——UI 据此提示；
+        /// <summary>开局请求被拒反馈（开房裁决：非房主/席位无效——UI 据此提示；
         /// 成功路径以 <see cref="OnStartGame"/> 广播为准，本事件只在被拒时到达）。</summary>
         public event Action<Proto.StartMatchResponse> OnStartMatchResponse;
 
@@ -217,8 +217,9 @@ namespace LiteNet
         }
 
         /// <summary>
-        /// 发送房主提前开局请求（开房裁决：Reliable 空载荷——服务器按会话映射席位，
-        /// owner 判定在 Runtime）。未入房（Phase != Connected）调用为 no-op（UI 按相位禁用按钮，
+        /// 发送房主开局请求（开房裁决：Reliable 空载荷——服务器按会话映射席位，
+        /// owner 判定在 Runtime；**唯一开局入口**，满员/未满皆可发）。
+        /// 未入房（Phase != Connected）调用为 no-op（UI 按相位禁用按钮，
         /// 这里再守一道——迟到点击不产生垃圾包）。被拒反馈见 <see cref="OnStartMatchResponse"/>；
         /// 成功即 <see cref="OnStartGame"/> 广播。
         /// </summary>
@@ -523,7 +524,12 @@ namespace LiteNet
                 case PacketType.MatchEnded:
                     if (_matchResult != null || !reliable) break;
                     var ended = (Proto.MatchEnded)msg;
-                    if (ended.MatchId != _activeMatchId || !_hasStartGame) break;
+                    // 未开局（StartGame 未达）也接受：等待期房间被服务器中止（等待超时/运维关闭/
+                    // 排空——无结果可结算）时经 MatchEnded 通知散场。此时无活动对局号可比对
+                    // （对局号随 StartGame 建立，中止包带的是房间侧局号——客户端未见过），
+                    // 判据退为"本次进房已有应答"（JoinAck 已回且非新一次 Join 的未决窗口——
+                    // 重新 Join 期间到达的终局属于上一局，由既有纪律丢弃）。
+                    if (_hasStartGame ? ended.MatchId != _activeMatchId : (_joinAttemptPending || PlayerId < 0)) break;
                     _matchResult = ended;
                     _reconnectToken = null;
                     OnMatchEnded?.Invoke(ended.Clone());

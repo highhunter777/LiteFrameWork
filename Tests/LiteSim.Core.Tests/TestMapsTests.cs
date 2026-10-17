@@ -17,8 +17,8 @@ namespace LiteSim.Tests
             Assert.Equal(52, map.ObstacleCount);
             Assert.Equal(16, map.SpawnPointCount);
             Assert.Equal(0f, map.GroundY);
-            Assert.Equal(100f, map.HalfWidth);
-            Assert.Equal(100f, map.HalfDepth);
+            Assert.Equal(36f, map.HalfWidth);
+            Assert.Equal(36f, map.HalfDepth);
         }
 
         [Fact]
@@ -44,9 +44,9 @@ namespace LiteSim.Tests
         [Fact]
         public void 首图快照_摘要口径锚()
         {
-            // == Luban/Data/map.json 行内 content_digest（Arena01 实烘产物）——批3 独立双路对账锚；
+            // == Luban/Data/Map/map_arena01.json 行内 content_digest（Arena01 实烘产物）——独立双路对账锚；
             // 改场景重烘 + gen.bat 后同步本常量与 TestMaps.Arena01。
-            Assert.Equal("9c3d504907d8210e", SimMapDigest.Compute(TestMaps.Arena01()));
+            Assert.Equal("18bfeb5a8b7bfb80", SimMapDigest.Compute(TestMaps.Arena01()));
         }
 
         [Fact]

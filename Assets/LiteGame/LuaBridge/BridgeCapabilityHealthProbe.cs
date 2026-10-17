@@ -54,9 +54,11 @@ namespace LiteGame
         /// GenConfig 白名单在册，零新增生成形）。
         /// ApiVersion 4（席位实时面批）：room 门面增 OnMembers（席位名单全量快照行表订阅——进房/断线/
         /// 恢复完成重发；委托形同为 Action&lt;LuaFunction&gt;，零新增生成形）。
+        /// ApiVersion 5（房间等待人数批）：room 门面增 ExpectedPlayers（本房房规模拉取——房间页
+        /// "等待玩家 N/M" 的分母；委托形 Func&lt;int&gt; 与 settings.Quality 同形，零新增生成形）。
         /// </summary>
         public static BridgeCapabilitySet Default() => new BridgeCapabilitySet(
-            apiVersion: 4,
+            apiVersion: 5,
             capabilities: new[]
             {
                 "bridge.data",      // Bridge.data 门面（配置/数值读取）
@@ -65,7 +67,7 @@ namespace LiteGame
                 "bridge.text",      // Bridge.text 门面（LText 取文/切语言——批C-②）
                 "bridge.meta",      // Bridge.meta 门面（联机入口链路——批C-③）
                 "bridge.settings",  // Bridge.settings 门面（音量/音效/画质——批C-⑥）
-                "bridge.room",      // Bridge.room 门面（房间会话：房主事实/提前开局——房主开局批）
+                "bridge.room",      // Bridge.room 门面（房间会话：房主事实/提前开局/席位名单/房规模）
             });
     }
 

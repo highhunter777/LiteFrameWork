@@ -72,18 +72,19 @@ namespace LiteNet.Tests
         }
 
         [Fact]
-        public void 两个房间各自满员开局_互不等待()
+        public void 两个房间各自开局_互不等待()
         {
             var h = NewHost();
             using var host = h.host;
 
-            // A 房满员（2 人）→ A 开局；B 房此时无人
+            // A 房 2 人入座 + 房主开局 → A 跑起来；B 房此时无人
             h.t.RaiseConnected(1); h.t.RaiseConnected(2);
             h.t.RaiseData(1, JoinPacket("Room-A"));
             h.t.RaiseData(2, JoinPacket("Room-A"));
+            h.t.StartMatchAsOwner(1);                          // 房主开局（满员不再自动开局）
 
             host.TryGetRoom("Room-A", out RoomRuntime roomA);
-            Assert.True(roomA.Started, "A 房满员应自行开局");
+            Assert.True(roomA.Started, "A 房房主开局");
             // B 房从未有人进过 → **不存在**（懒创建）。比"存在但未开局"更强的隔离断言：
             // A 房的活动不会凭空造出 B 房，也不会把 B 房带着推进。
             Assert.False(host.TryGetRoom("Room-B", out _), "A 房的活动不得造出 B 房");
@@ -170,13 +171,18 @@ namespace LiteNet.Tests
             h.t.RaiseConnected(1);
             h.t.RaiseData(1, JoinPacket("Room-A"));
             h.t.RaiseConnected(2);
-            h.t.RaiseData(2, JoinPacket("Room-B"));
+            h.t.RaiseData(2, JoinPacket("Room-A"));       // A 房第二人：一人离场不收尾，隔离判据留在席位面
+            h.t.RaiseConnected(3);
+            h.t.RaiseData(3, JoinPacket("Room-B"));
 
-            h.t.RaiseDisconnected(1);                     // A 房玩家掉线
+            h.t.RaiseDisconnected(1);                     // A 房玩家掉线（未开局离场 → 席位释放）
 
             host.TryGetRoom("Room-A", out RoomRuntime roomA);
             host.TryGetRoom("Room-B", out RoomRuntime roomB);
-            Assert.Equal(SeatPhase.Disconnected, roomA.SeatOf(0).Phase);
+            Assert.Null(roomA.SeatOf(0));                 // 未开局离场即释放（空位可复用）
+            Assert.NotNull(roomA.SeatOf(1));              // 在座者不受牵连
+            Assert.Equal(SeatPhase.Active, roomA.SeatOf(1).Phase);
+            Assert.Equal(MatchPhase.WaitingForPlayers, roomA.Phase);   // 房间仍活
             Assert.Equal(SeatPhase.Active, roomB.SeatOf(0).Phase);   // B 房不受牵连
         }
 
@@ -228,13 +234,14 @@ namespace LiteNet.Tests
         public void 每房间各自推帧_互不驱动()
         {
             // §8.2"一个 Worker 顺序驱动多个 RoomActor"：Worker 逐房间 Tick，但每房间**各自**的
-            // 开局状态决定它是否推进。B 房只有 1 人（未满员开局）→ 即使被逐房间 Tick 也不推帧。
+            // 开局状态决定它是否推进。B 房只有 1 人（房主未开局）→ 即使被逐房间 Tick 也不推帧。
             var h = NewHost();
             using var host = h.host;
 
             h.t.RaiseConnected(1); h.t.RaiseConnected(2); h.t.RaiseConnected(3);
             h.t.RaiseData(1, JoinPacket("Room-A"));
-            h.t.RaiseData(2, JoinPacket("Room-A"));      // A 房满员开局
+            h.t.RaiseData(2, JoinPacket("Room-A"));
+            h.t.StartMatchAsOwner(1);                    // A 房房主开局（满员不再自动开局）
             h.t.RaiseData(3, JoinPacket("Room-B"));      // B 房只有 1 人（2 人房，未开局）
 
             host.TryGetRoom("Room-A", out RoomRuntime roomA);

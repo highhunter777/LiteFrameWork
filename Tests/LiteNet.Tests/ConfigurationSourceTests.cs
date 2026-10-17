@@ -67,6 +67,7 @@ namespace LiteNet.Tests
             var room = new RoomRuntime(new RoomConfig { Map = TestMaps.Greybox(), RoomId = "EntitySource", ExpectedPlayers = 1, Seed = 9 }, values,
                 gameplayDigestBase: baseDigest);
             room.Execute(RoomCommand.Join(1), new List<RoomOutput>());
+            room.Execute(RoomCommand.StartEarly(0), new List<RoomOutput>());   // 房主开局（满员不再自动开局）
             Assert.True(room.AuthSim.TryResolve(room.EntityIdOf(0), out int slot));
             Assert.Equal(240, room.AuthSim.Entities[slot].Hp);
             Assert.Equal(240, room.FixedConfig.Values.EntityHp);

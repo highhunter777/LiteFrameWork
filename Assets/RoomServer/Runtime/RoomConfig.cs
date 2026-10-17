@@ -15,7 +15,8 @@ namespace RoomServer.Runtime
         /// <summary>房间号（无 MatchMaker：预置单房间注册）。</summary>
         public string RoomId = "Room-A";
 
-        /// <summary>期望人数——决定席位表 / 输入槽 / 实体 Id 表的定容；满员自动 StartGame。</summary>
+        /// <summary>期望人数——决定席位表 / 输入槽 / 实体 Id 表的定容；达此数后再入座被拒（"房间已满"）。
+        /// 开局由房主触发（满员/未满皆可——取消满员自动开局）。</summary>
         public int ExpectedPlayers = 2;
 
         /// <summary>传输端口（Host 侧消费）。</summary>

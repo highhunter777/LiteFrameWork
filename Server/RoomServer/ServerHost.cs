@@ -338,7 +338,7 @@ namespace RoomServer
                 {
                     RoomId = room.RoomId,
                     Phase = (int)room.Runtime.Match.Phase,
-                    Players = room.Runtime.NextPlayerId,
+                    Players = room.Runtime.AllocatedSeats,   // 在册席位数（未开局离场即释放、不虚报；此前用高水位 NextPlayerId 会把已离场者计入）
                     ExpectedPlayers = room.Runtime.ExpectedPlayers,
                     MapId = room.Runtime.MapId,           // 多图批：房间列表可见性（上报事实，非判定来源）
                 };
@@ -360,17 +360,32 @@ namespace RoomServer
         /// <summary>
         /// 当前已进房玩家席位占用数（Lobby 容量上报面——未进房的连接不计入"占用"）。
         /// O(会话表)；低频心跳调用，不在权威循环热路径。
+        ///
+        /// **近似快照**（与 <see cref="RoomSummaries"/> 同族口径）：心跳线程读、权威线程增删会话——
+        /// 枚举撞上会话表变更（InvalidOperationException）时**沿用上跳值**而非抛给心跳线程：
+        /// 旧形态下该异常被 Lobby 客户端的 catch 吞掉，代价是**整跳心跳丢失**（连接风暴期恰最需要
+        /// Lobby 可见性）。上跳值只由本读面写读（心跳线程），无并发写。
         /// </summary>
         public int OccupiedPlayerCount
         {
             get
             {
-                int count = 0;
-                foreach (Session session in _sessions.All())
-                    if (session.PlayerId >= 0) count++;
-                return count;
+                try
+                {
+                    int count = 0;
+                    foreach (Session session in _sessions.All())
+                        if (session.PlayerId >= 0) count++;
+                    _lastOccupiedPlayerCount = count;
+                }
+                catch (InvalidOperationException)
+                {
+                    // 会话表并发变更（连接/断线/清理与本读面同拍）：本跳沿用上跳值，下跳再刷新
+                }
+                return _lastOccupiedPlayerCount;
             }
         }
+
+        private int _lastOccupiedPlayerCount;
 
         /// <summary>当前房间号快照（诊断用；顺序 = 插入序）。</summary>
         public string[] RoomIds
@@ -744,7 +759,8 @@ namespace RoomServer
 
         /// <summary>
         /// Join 信令：token 非空 + **房间号一致** + buildHash 必须等于服务器版本（版本红线）
-        /// → 投递 <see cref="RoomCommand.Join"/> → JoinAck + 满员即 MatchStarted 广播。
+        /// → 投递 <see cref="RoomCommand.Join"/> → JoinAck（MatchStarted 由房主开局触发，见
+        /// <see cref="HandleStartMatchRequest"/>——满员不再自动开局）。
         /// 入场先过**分层限流**：IP 维度（本方法首段）+ 账号维度（验签通过后）。
         ///
         /// **安全能力现状**：
@@ -1186,7 +1202,8 @@ namespace RoomServer
         }
 
         /// <summary>
-        /// 房主提前开局请求（开房裁决）：会话已入座且房间在册才投递
+        /// 房主开局请求（开房裁决；**唯一开局入口**——满员不再自动开局）：
+        /// 会话已入座且房间在册才投递
         /// <see cref="RoomCommand.StartEarly"/>——owner 判定在 Runtime（"开房者=首入座者"），
         /// 拒绝经 <see cref="StartRejectedOutput"/> → StartMatchResponse 信令回本会话。
         /// 未入座/房间不在册：静默忽略（无席位可反馈，同 Leave 的守卫口径）。
@@ -1510,16 +1527,27 @@ namespace RoomServer
         }
 
         /// <summary>
-        /// 应用回传纯输出。<see cref="PlayerAdmitted"/> 特判：进房会话必须解析成功且仍在 JoinPending——
-        /// 否则是"座位已占但发起连接已不在"的迟到 Join（释放孤儿席位并尝试回滚动态预留）。
+        /// 应用回传纯输出。<see cref="PlayerAdmitted"/> 特判：进房会话必须解析成功、仍在 JoinPending
+        /// 且**未断线**——否则是"座位已占但发起连接已不在/已断"的迟到 Join（释放孤儿席位并尝试回滚
+        /// 动态预留）。断线面必须在此拦截：在途 Join 期间传输断线时，会话 RoomId 尚未绑定
+        /// （本回传应用才绑定），<see cref="OnTransportDisconnected"/> 无处路由断线命令——
+        /// 不拦截则该席位永无 Disconnect 到达，Runtime 视为在线（未开局房永驻、对局中全员离场收尾失效）。
         /// </summary>
         private void ApplyWorkerOutput(in RoomOutboundEnvelope envelope, RoomOutput output)
         {
             if (output is SignalOutput signal && signal.Signal is PlayerAdmitted)
             {
                 Session joinSession = ResolveOriginSession(envelope);
-                if (joinSession == null || !joinSession.JoinPending)
+                if (joinSession == null || !joinSession.JoinPending || joinSession.Disconnected)
                 {
+                    if (joinSession != null && joinSession.Disconnected)
+                    {
+                        // 与 Control lane 迟到 Join 的清场同款（DrainControlEnvelope）：断线会话的
+                        // JoinPending 若不清，会拖住 AnyJoinPending 扫描进而延迟其他房间的动态预留回滚。
+                        joinSession.JoinPending = false;
+                        joinSession.Principal = null;
+                        joinSession.BuildHash = null;
+                    }
                     ApplyStaleWorkerJoin(_currentRoom, envelope.OriginConnectionId);
                     return;
                 }
@@ -1665,6 +1693,31 @@ namespace RoomServer
                     _ops.NoteMatchStateChanged();
                     HostLog.Info("Match", $"room={mcs.MatchId} {mcs.From}->{mcs.To} reason={mcs.Reason} frame={mcs.Frame} nowMs={mcs.NowMs}");
                     break;
+                case RoomAbortedOutput ra:
+                {
+                    // 终态中止的客户端信令（复用 MatchEnded——客户端既有终局链路；无结果可结算，Players 空）。
+                    // 触发面：等待超时/运维关闭/排空超时等**未开局即收尾**路径——此前在座客户端收不到
+                    // 任何信令，房间销毁后停在房间页无反馈。对局中收尾经 SettlementReady → MatchEnded
+                    // （带结果），不经此。
+                    RoomInstance room = _currentRoom ?? (_rooms.Count > 0 ? _rooms[0] : null);
+                    if (room == null) break;
+                    var aborted = new Proto.MatchEnded
+                    {
+                        MatchId = ra.MatchId ?? "",
+                        FinalFrame = ra.Frame,
+                        EndReason = (int)ra.Reason,
+                        GameplayEndReason = (int)MatchEndReason.None,
+                        WinnerEntityId = 0L,
+                    };
+                    for (int p = 0; p < room.Seats.Length; p++)
+                    {
+                        Session member = room.Seats[p];
+                        if (member == null || member.Disconnected) continue;
+                        SendToSession(member, PacketType.MatchEnded, aborted, reliable: true);
+                    }
+                    HostLog.Info("Match", $"房间中止信令已发：room={ra.MatchId} reason={ra.Reason} frame={ra.Frame}");
+                    break;
+                }
                 case SettlementReadyOutput sr:
                     _ops.NoteSettlementReady();
                     SendMatchResult(sr.Summary);
@@ -1757,19 +1810,10 @@ namespace RoomServer
 
                     // E3 重连票据（一次性）：进房成功才发——重连时凭它换权威快照（§5.6 首选路径的服务器侧能力）
                     string ticket = _reconnects.Issue(pa.PlayerId, room.RoomId);
-                    SendToSession(session, PacketType.JoinAck, new Proto.JoinAck
-                    {
-                        PlayerId = pa.PlayerId,
-                        Members = { pa.Members },
-                        ReconnectToken = ticket,
-                        ReconnectWindowSeconds = (int)(_reconnects.TtlMs / 1000),
-                        SnapshotHz = SimConfig.SnapshotHz,
-                        TickRate = SimConfig.TickRate,
-                        IsOwner = pa.IsOwner,             // 开房裁决：开房者=首入座者——UI 据此亮"开始对局"
-                        MapId = room.Runtime?.MapId ?? 0, // 多图批：本房地图行键（0 = 未标注）——客户端据此选表行与场景
-                        ExpectedPlayers = room.Runtime?.ExpectedPlayers ?? 0,   // 开房参数批：本房席位规模
-                                                                               // （**房间权威事实**——客户端据此定容预测世界）
-                    }, reliable: true);
+                    // 回执 proto 单源（HandshakePacker，与本地服共一份——凭据/房事实经参数注入，字段面不可能再两端漂移）
+                    SendToSession(session, PacketType.JoinAck, HandshakePacker.BuildJoinAck(pa, ticket,
+                        (int)(_reconnects.TtlMs / 1000), room.Runtime?.MapId ?? 0,
+                        room.Runtime?.ExpectedPlayers ?? 0), reliable: true);
                     break;
                 }
                 case MatchStarted ms:
@@ -1780,14 +1824,7 @@ namespace RoomServer
                     {
                         Session member = room.Seats[p];
                         if (member == null || member.Disconnected) continue;
-                        SendToSession(member, PacketType.StartGame, new Proto.StartGame
-                        {
-                            Seed = ms.Seed,
-                            ConfigHash = ms.ConfigHash,   // 房间创建时绑定的规范化摘要（§4/P0-5）
-                            Frame = ms.Frame,
-                            MatchId = ms.MatchId ?? "",
-                            Match = SnapshotCodec.PackMatch(ms.MatchState),
-                        }, reliable: true);
+                        SendToSession(member, PacketType.StartGame, HandshakePacker.BuildStartGame(ms), reliable: true);
                     }
                     break;
                 }
@@ -1815,6 +1852,29 @@ namespace RoomServer
                 {
                     RoomInstance room = _currentRoom ?? (_rooms.Count > 0 ? _rooms[0] : null);
                     if (room == null) break;
+
+                    // 席位释放同步（未开局离场即释放——内核已摘席）：宿主侧会话槽一并清空，
+                    // 并复位该会话的路由字段（与 TryDestroyTerminalRoom 同款）——不复位则幽灵会话
+                    // 持续计入 OccupiedPlayerCount。对局中断线席位仍在列表（Connected=false），
+                    // 不受影响；同批进房的 PlayerAdmitted 先于本信号应用（lane FIFO）。
+                    for (int p = 0; p < room.Seats.Length; p++)
+                    {
+                        Session released = room.Seats[p];
+                        if (released == null) continue;
+                        bool present = false;
+                        for (int i = 0; i < sc.Seats.Length; i++)
+                            if (sc.Seats[i].PlayerId == p) { present = true; break; }
+                        if (present) continue;
+                        room.Seats[p] = null;
+                        if (string.Equals(released.RoomId, room.RoomId, StringComparison.Ordinal)) released.RoomId = null;
+                        if (released.PlayerId == p)
+                        {
+                            released.PlayerId = -1;
+                            released.Principal = null;
+                            released.BuildHash = null;
+                        }
+                    }
+
                     var seats = new Proto.RoomSeats();
                     for (int i = 0; i < sc.Seats.Length; i++)
                     {

@@ -35,8 +35,9 @@ namespace RoomServer.Runtime
         /// <summary>重绑代数（每次 Rebind 递增；用于拒绝旧连接的迟到命令——R1 重连批启用校验）。</summary>
         public int RebindGeneration;
 
-        /// <summary>房主位（开房裁决：**开房者 = 首个入座者**，创建房间时置位、此后不变——
-        /// 断线重连不迁移〔席位在重连窗口内保留〕；提前开局仅 owner 可发起）。随 JoinAck.is_owner 下发。</summary>
+        /// <summary>房主位（开房裁决：**开房者 = 首个入座者**，随 JoinAck.is_owner 下发）。
+        /// 原房主离席时位子迁移（转最低在线其余席位，见 RoomRuntime 的 owner 位迁移）；
+        /// 旧房主断线重连**不夺回**——确定性优先。开局（仅 owner 可发起）以迁移后的位子为准。</summary>
         public bool IsOwner;
 
         public PlayerSession(int playerId, int connectionId)

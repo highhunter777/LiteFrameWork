@@ -134,7 +134,8 @@ namespace LiteNet.Tests
             Assert.Null(h.t.LastJoinAck(1));
 
             PumpUntil(host, () => h.t.LastJoinAck(1) != null && h.t.LastJoinAck(2) != null, "两端应收到 JoinAck");
-            PumpUntil(host, () => host.TryGetRoom("Room-W", out RoomRuntime room) && room.Started, "满员应由 Worker 开局");
+            h.t.StartMatchAsOwner(1);                                  // 房主开局（满员不再自动开局）
+            PumpUntil(host, () => host.TryGetRoom("Room-W", out RoomRuntime room) && room.Started, "房主开局应由 Worker 落定");
             host.TryGetRoom("Room-W", out RoomRuntime started);
             PumpUntil(host, () => h.t.LastStartGame(1) != null && h.t.LastStartGame(2) != null, "两端应收到 StartGame");
 
@@ -182,15 +183,17 @@ namespace LiteNet.Tests
             h.t.RaiseConnected(3);
             h.t.RaiseConnected(4);
             h.t.RaiseData(1, Join(roomA));
-            h.t.RaiseData(2, Join(roomA));   // A 房满员
+            h.t.RaiseData(2, Join(roomA));
             h.t.RaiseData(3, Join(roomB));
-            h.t.RaiseData(4, Join(roomB));   // B 房满员
+            h.t.RaiseData(4, Join(roomB));
 
-            PumpUntil(host, () => host.TryGetRoom(roomA, out RoomRuntime a) && a.Started
-                && host.TryGetRoom(roomB, out RoomRuntime b) && b.Started, "两房应各自开局");
-            // 等四份 JoinAck 都回传落定（会话绑定房间）——真实客户端据此才开始发输入。
+            // 等四份 JoinAck 都回传落定（会话绑定房间）——房主开局的入场券即"会话已入座"。
             PumpUntil(host, () => h.t.LastJoinAck(1) != null && h.t.LastJoinAck(2) != null
                 && h.t.LastJoinAck(3) != null && h.t.LastJoinAck(4) != null, "四端应收到 JoinAck");
+            h.t.StartMatchAsOwner(1);                                  // A 房房主开局（满员不再自动开局）
+            h.t.StartMatchAsOwner(3);                                  // B 房房主开局
+            PumpUntil(host, () => host.TryGetRoom(roomA, out RoomRuntime a) && a.Started
+                && host.TryGetRoom(roomB, out RoomRuntime b) && b.Started, "两房应各自开局");
             host.TryGetRoom(roomA, out RoomRuntime roomA1);
             host.TryGetRoom(roomB, out RoomRuntime roomB1);
             Assert.NotSame(roomA1, roomB1);
@@ -217,6 +220,8 @@ namespace LiteNet.Tests
             h.t.RaiseData(1, Join("Room-R"));
             h.t.RaiseData(2, Join("Room-R"));
             PumpUntil(host, () => h.t.LastJoinAck(1) != null && h.t.LastJoinAck(2) != null, "两端应收到 JoinAck");
+            h.t.StartMatchAsOwner(1);                                  // 房主开局（满员不再自动开局）
+            PumpUntil(host, () => host.TryGetRoom("Room-R", out RoomRuntime running) && running.Started, "房主开局应由 Worker 落定");
             string token = h.t.LastJoinAck(1).ReconnectToken;
 
             h.t.RaiseDisconnected(1);
@@ -253,7 +258,9 @@ namespace LiteNet.Tests
             h.t.RaiseConnected(2);
             h.t.RaiseData(1, Join("Room-D"));
             h.t.RaiseData(2, Join("Room-D"));
-            PumpUntil(host, () => host.TryGetRoom("Room-D", out RoomRuntime room) && room.Started, "满员应由 Worker 开局");
+            PumpUntil(host, () => h.t.LastJoinAck(1) != null && h.t.LastJoinAck(2) != null, "两端应收到 JoinAck");
+            h.t.StartMatchAsOwner(1);                                  // 房主开局（满员不再自动开局）
+            PumpUntil(host, () => host.TryGetRoom("Room-D", out RoomRuntime room) && room.Started, "房主开局应由 Worker 落定");
 
             host.BeginDrain(0);   // 截止时刻已过 → 下一个 Pump 投递 Shutdown，由 Worker 收尾
             PumpUntil(host, () => host.DrainComplete, "排空应在时限内收敛", 8000);
@@ -280,10 +287,12 @@ namespace LiteNet.Tests
             h.t.RaiseConnected(2);
             h.t.RaiseData(1, Join("Room-X"));
             h.t.RaiseData(2, Join("Room-X"));
-            PumpUntil(host, () => host.TryGetRoom("Room-X", out RoomRuntime room) && room.Started, "满员应由 Worker 开局");
-            // 真实客户端在收到 JoinAck 后才会有后续动作：等宿主把两份回传都应用完，
+            // 真实客户端在收到 JoinAck 后才会有后续动作：房主开局同理须等会话绑定房间；
             // 否则会话尚未绑定房间（RoomId 为空），后续包会按"未进房"丢弃。
             PumpUntil(host, () => h.t.LastJoinAck(1) != null && h.t.LastJoinAck(2) != null, "两端应收到 JoinAck");
+            h.t.StartMatchAsOwner(1);                                  // 房主开局（满员不再自动开局）
+            PumpUntil(host, () => host.TryGetRoom("Room-X", out RoomRuntime room) && room.Started, "房主开局应由 Worker 落定");
+            PumpUntil(host, () => h.t.LastStartGame(1) != null && h.t.LastStartGame(2) != null, "两端应收到 StartGame（回传已应用）");
 
             // 全员离场命令刚入盒即释放：Dispose 必须先让 Worker 把已接受的命令执行完
             //（收尾 → SettlementReady 回传），再由宿主收口应用——已接受的工作不能丢。
@@ -296,6 +305,35 @@ namespace LiteNet.Tests
             Assert.Single(outbox.Entries);
             Assert.Equal(h.t.LastStartGame(1).MatchId, outbox.Entries[0].MatchId);
             Assert.Equal(ShutdownReason.AllPlayersLeft, outbox.Entries[0].EndReason);
+        }
+
+        /// <summary>
+        /// 在途 Join 的断线竞态窗：Join 已由 Worker 执行（席位在 Runtime 落位）、PlayerAdmitted
+        /// 尚在 Outbound lane 未被宿主应用——此刻会话 RoomId 仍为 null，<c>OnTransportDisconnected</c>
+        /// 无处路由断线命令。宿主应用回传时必须把"发起连接已断"的 PlayerAdmitted 当**迟到 Join**处理
+        /// （释放孤儿席位 + 回滚动态预留），否则该席位永无 Disconnect 到达（Runtime 视为在线）：
+        /// 未开局房永驻（名额/房号恒占）、对局中全员离场收尾失效。
+        /// </summary>
+        [Fact]
+        public void Worker执行_在途Join遇断线_孤儿席位释放_房间收尾销毁()
+        {
+            var h = NewHost();
+            using var host = h.host;
+
+            h.t.RaiseConnected(1);
+            h.t.RaiseData(1, Join("Room-J"));                     // Join 入 Control lane，Worker 异步消费
+
+            // 等 Worker 侧执行完 Join（Runtime 席位落位），期间**不 Pump**——
+            // PlayerAdmitted 停在 Outbound lane，宿主未应用，会话 RoomId 尚未绑定。
+            Assert.True(host.TryGetRoom("Room-J", out RoomRuntime room));
+            WaitWorker(() => room.NextPlayerId > 0, "Join 应由 Worker 执行（席位已落位）");
+
+            h.t.RaiseDisconnected(1);                            // 断线落在"已执行未应用"窗口内
+
+            PumpUntil(host, () => host.RoomCount == 0, "断线者的孤儿席位应被释放，未开局 1 人房应收尾销毁", 8000);
+            Assert.False(host.TryGetRoom("Room-J", out _));
+            Assert.True(h.t.CountOf(1, PacketType.JoinAck) == 0, "断线者不得收到进房回执");
+            Assert.Equal(0, host.Ops.SettlementsReady);           // 未开局收尾无结算
         }
 
         private sealed class RecordingOutbox : ISettlementOutbox

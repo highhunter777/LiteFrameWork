@@ -110,6 +110,7 @@ namespace LiteNet.Tests
                 gameplayDigestBase: 0x00C0FFEEu);                                       // 基摘要同链显式传入（批 E）
             var outputs = new List<RoomOutput>();
             room.Execute(RoomCommand.Join(1), outputs);
+            room.Execute(RoomCommand.StartEarly(0), outputs);   // 房主开局（满员不再自动开局）
 
             Assert.True(room.AuthSim.TryResolve(room.EntityIdOf(0), out int slot));
             Assert.Equal(130, room.AuthSim.Entities[slot].Hp);                          // 出生 HP = 实例值（≠ 默认 100）

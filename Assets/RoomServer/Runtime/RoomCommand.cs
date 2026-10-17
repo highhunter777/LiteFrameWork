@@ -16,7 +16,7 @@ namespace RoomServer.Runtime
         DrainTimeout,
         /// <summary>不可恢复错误（内部状态损坏、连续异常）。</summary>
         Error,
-        /// <summary>等待玩家超时（房间始终未满员）。</summary>
+        /// <summary>等待玩家超时（房主始终未开局）。</summary>
         WaitingTimeout,
         /// <summary>全员离场。</summary>
         AllPlayersLeft,
@@ -35,8 +35,9 @@ namespace RoomServer.Runtime
         Shutdown,
         /// <summary>恢复完成 ACK（R1 批③，§9.3 步骤 6）：席位 Restoring → Active 的门闩。</summary>
         RestoreAck,
-        /// <summary>房主提前开局（未满员 StartMatch）：仅 WaitingForPlayers 有效、仅 owner 席位可触发；
-        /// Running 后幂等忽略。App 校验"发请求的连接确属该席位"后构造。</summary>
+        /// <summary>房主开局（**唯一开局入口**——裁决取消满员自动开局）：仅 WaitingForPlayers 有效、
+        /// 仅 owner 席位可触发（满员与否皆可开）；Running 后幂等忽略。
+        /// App 校验"发请求的连接确属该席位"后构造。</summary>
         StartEarly,
     }
 
@@ -120,8 +121,9 @@ namespace RoomServer.Runtime
             => new RoomCommand(RoomCommandKind.RestoreAck, -1, playerId, -1, 0, ShutdownReason.None, default);
 
         /// <summary>
-        /// 房主提前开局请求（PlayerId = 发起席位；owner 判定在 Runtime——"开房者 = 首个入座者"）。
-        /// 未满员立即 StartMatch（世界只生成已入座实体，缺席席位沿用空输入）；
+        /// 房主开局请求（PlayerId = 发起席位；owner 判定在 Runtime——"开房者 = 首个入座者"）——
+        /// **唯一开局入口**（裁决：满员不再自动开局）。
+        /// 立即 StartMatch（世界只生成已入座实体，缺席席位沿用空输入）；
         /// 非 WaitingForPlayers 幂等忽略、非 owner 拒绝（App 回 <c>StartMatchResponse</c> 信令）。
         /// </summary>
         public static RoomCommand StartEarly(int playerId)

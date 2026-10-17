@@ -28,25 +28,29 @@ namespace LiteSim.Tests
         }
 
         /// <summary>
-        /// 首图 Arena01 快照夹具（批3 冻结：与 `Luban/Data/map.json` 实烘产物逐值一致）：52 件代理
-        /// （四点旋转对称布局，注释名＝场景对象名；条目序＝烘焙输出序）+ 16 出生点 + 边界 ±100。
-        /// 批4 两端投影对账（tbmap.bytes 投影 == 本快照）用之；锚定摘要见 TestMapsTests。
+        /// 首图 Arena01 快照夹具（与 `Luban/Data/Map/map_arena01.json` 实烘产物逐值一致）：52 件代理
+        /// （四点旋转对称布局，注释名＝场景对象名；条目序＝烘焙输出序=名 Ordinal）+ 16 出生点 + 边界 ±36。
+        /// 两端投影对账（tbmap.bytes 投影 == 本快照）用之；锚定摘要见 TestMapsTests。
+        /// **紧凑档**：内场 72×72——中庭 12 件保原尺寸，象限/外围按 36/68 收拢、
+        /// 中轴按 0.40 收得更紧（让出四向通道，使 16 个出生点掩体净距全部 ≥8m）。
+        /// **围墙压低**：四面 `wall_bound_*` 高 20→0.5m（追尾相机在玩家后方，20m 墙会挡住下半场角色；
+        /// 四面统一保对称）。改场景重烘须联动本夹具。
         /// </summary>
         public static SimMapData Arena01()
         {
             var obstacles = new SimObstacle[52];
-            obstacles[0] = Box(-1.5f, 41f, 1.0f, 1.0f, 1f);   // axis0_box_1
-            obstacles[1] = Box(1.5f, 44f, 1.0f, 1.0f, 1f);   // axis0_box_2
-            obstacles[2] = Box(41f, 1.5f, 1.0f, 1.0f, 1f);   // axis1_box_1
-            obstacles[3] = Box(44f, -1.5f, 1.0f, 1.0f, 1f);   // axis1_box_2
-            obstacles[4] = Box(1.5f, -41f, 1.0f, 1.0f, 1f);   // axis2_box_1
-            obstacles[5] = Box(-1.5f, -44f, 1.0f, 1.0f, 1f);   // axis2_box_2
-            obstacles[6] = Box(-41f, -1.5f, 1.0f, 1.0f, 1f);   // axis3_box_1
-            obstacles[7] = Box(-44f, 1.5f, 1.0f, 1.0f, 1f);   // axis3_box_2
-            obstacles[8] = Box(-5f, -5f, 1.0f, 1.0f, 1f);   // mid_box_1
-            obstacles[9] = Box(5f, -5f, 1.0f, 1.0f, 1f);   // mid_box_2
-            obstacles[10] = Box(-5f, 5f, 1.0f, 1.0f, 1f);   // mid_box_3
-            obstacles[11] = Box(5f, 5f, 1.0f, 1.0f, 1f);   // mid_box_4
+            obstacles[0] = Box(-0.6f, 16.4f, 1f, 1f, 1f);   // axis0_box_1
+            obstacles[1] = Box(0.6f, 17.6f, 1f, 1f, 1f);   // axis0_box_2
+            obstacles[2] = Box(16.4f, 0.6f, 1f, 1f, 1f);   // axis1_box_1
+            obstacles[3] = Box(17.6f, -0.6f, 1f, 1f, 1f);   // axis1_box_2
+            obstacles[4] = Box(0.6f, -16.4f, 1f, 1f, 1f);   // axis2_box_1
+            obstacles[5] = Box(-0.6f, -17.6f, 1f, 1f, 1f);   // axis2_box_2
+            obstacles[6] = Box(-16.4f, -0.6f, 1f, 1f, 1f);   // axis3_box_1
+            obstacles[7] = Box(-17.6f, 0.6f, 1f, 1f, 1f);   // axis3_box_2
+            obstacles[8] = Box(-5f, -5f, 1f, 1f, 1f);   // mid_box_1
+            obstacles[9] = Box(5f, -5f, 1f, 1f, 1f);   // mid_box_2
+            obstacles[10] = Box(-5f, 5f, 1f, 1f, 1f);   // mid_box_3
+            obstacles[11] = Box(5f, 5f, 1f, 1f, 1f);   // mid_box_4
             obstacles[12] = Box(7f, -4.5f, 0.3f, 2.5f, 2.5f);   // mid_wall_e1
             obstacles[13] = Box(7f, 4.5f, 0.3f, 2.5f, 2.5f);   // mid_wall_e2
             obstacles[14] = Box(-4.5f, 7f, 2.5f, 0.3f, 2.5f);   // mid_wall_n1
@@ -55,48 +59,48 @@ namespace LiteSim.Tests
             obstacles[17] = Box(4.5f, -7f, 2.5f, 0.3f, 2.5f);   // mid_wall_s2
             obstacles[18] = Box(-7f, -4.5f, 0.3f, 2.5f, 2.5f);   // mid_wall_w1
             obstacles[19] = Box(-7f, 4.5f, 0.3f, 2.5f, 2.5f);   // mid_wall_w2
-            obstacles[20] = Box(55f, 25f, 1.0f, 1.0f, 1f);   // outer0_box
-            obstacles[21] = Box(25f, -55f, 1.0f, 1.0f, 1f);   // outer1_box
-            obstacles[22] = Box(-55f, -25f, 1.0f, 1.0f, 1f);   // outer2_box
-            obstacles[23] = Box(-25f, 55f, 1.0f, 1.0f, 1f);   // outer3_box
-            obstacles[24] = Box(25f, 55f, 1.0f, 1.0f, 1f);   // outer4_box
-            obstacles[25] = Box(55f, -25f, 1.0f, 1.0f, 1f);   // outer5_box
-            obstacles[26] = Box(-25f, -55f, 1.0f, 1.0f, 1f);   // outer6_box
-            obstacles[27] = Box(-55f, 25f, 1.0f, 1.0f, 1f);   // outer7_box
-            obstacles[28] = Box(31f, 31f, 1.0f, 1.0f, 1f);   // q0_box_1
-            obstacles[29] = Box(36f, 35f, 1.0f, 1.0f, 1f);   // q0_box_2
-            obstacles[30] = Box(33f, 38.5f, 0.5f, 1.0f, 1f);   // q0_box_3
-            obstacles[31] = Box(31f, 37f, 3.0f, 0.3f, 2.5f);   // q0_wall_1
-            obstacles[32] = Box(37f, 33f, 0.3f, 2.0f, 2.5f);   // q0_wall_2
-            obstacles[33] = Box(31f, -31f, 1.0f, 1.0f, 1f);   // q1_box_1
-            obstacles[34] = Box(35f, -36f, 1.0f, 1.0f, 1f);   // q1_box_2
-            obstacles[35] = Box(38.5f, -33f, 1.0f, 0.5f, 1f);   // q1_box_3
-            obstacles[36] = Box(37f, -31f, 0.3f, 3.0f, 2.5f);   // q1_wall_1
-            obstacles[37] = Box(33f, -37f, 2.0f, 0.3f, 2.5f);   // q1_wall_2
-            obstacles[38] = Box(-31f, -31f, 1.0f, 1.0f, 1f);   // q2_box_1
-            obstacles[39] = Box(-36f, -35f, 1.0f, 1.0f, 1f);   // q2_box_2
-            obstacles[40] = Box(-33f, -38.5f, 0.5f, 1.0f, 1f);   // q2_box_3
-            obstacles[41] = Box(-31f, -37f, 3.0f, 0.3f, 2.5f);   // q2_wall_1
-            obstacles[42] = Box(-37f, -33f, 0.3f, 2.0f, 2.5f);   // q2_wall_2
-            obstacles[43] = Box(-31f, 31f, 1.0f, 1.0f, 1f);   // q3_box_1
-            obstacles[44] = Box(-35f, 36f, 1.0f, 1.0f, 1f);   // q3_box_2
-            obstacles[45] = Box(-38.5f, 33f, 1.0f, 0.5f, 1f);   // q3_box_3
-            obstacles[46] = Box(-37f, 31f, 0.3f, 3.0f, 2.5f);   // q3_wall_1
-            obstacles[47] = Box(-33f, 37f, 2.0f, 0.3f, 2.5f);   // q3_wall_2
-            obstacles[48] = Box(69f, 0f, 1.0f, 70.0f, 20f);   // wall_bound_e
-            obstacles[49] = Box(0f, -69f, 70.0f, 1.0f, 20f);   // wall_bound_n
-            obstacles[50] = Box(0f, 69f, 70.0f, 1.0f, 20f);   // wall_bound_s
-            obstacles[51] = Box(-69f, 0f, 1.0f, 70.0f, 20f);   // wall_bound_w
+            obstacles[20] = Box(29.118f, 13.235f, 1f, 1f, 1f);   // outer0_box
+            obstacles[21] = Box(13.235f, -29.118f, 1f, 1f, 1f);   // outer1_box
+            obstacles[22] = Box(-29.118f, -13.235f, 1f, 1f, 1f);   // outer2_box
+            obstacles[23] = Box(-13.235f, 29.118f, 1f, 1f, 1f);   // outer3_box
+            obstacles[24] = Box(13.235f, 29.118f, 1f, 1f, 1f);   // outer4_box
+            obstacles[25] = Box(29.118f, -13.235f, 1f, 1f, 1f);   // outer5_box
+            obstacles[26] = Box(-13.235f, -29.118f, 1f, 1f, 1f);   // outer6_box
+            obstacles[27] = Box(-29.118f, 13.235f, 1f, 1f, 1f);   // outer7_box
+            obstacles[28] = Box(16.412f, 16.412f, 1f, 1f, 1f);   // q0_box_1
+            obstacles[29] = Box(19.059f, 18.529f, 1f, 1f, 1f);   // q0_box_2
+            obstacles[30] = Box(17.471f, 20.382f, 0.5f, 1f, 1f);   // q0_box_3
+            obstacles[31] = Box(16.412f, 19.588f, 3f, 0.3f, 2.5f);   // q0_wall_1
+            obstacles[32] = Box(19.588f, 17.471f, 0.3f, 2f, 2.5f);   // q0_wall_2
+            obstacles[33] = Box(16.412f, -16.412f, 1f, 1f, 1f);   // q1_box_1
+            obstacles[34] = Box(18.529f, -19.059f, 1f, 1f, 1f);   // q1_box_2
+            obstacles[35] = Box(20.382f, -17.471f, 1f, 0.5f, 1f);   // q1_box_3
+            obstacles[36] = Box(19.588f, -16.412f, 0.3f, 3f, 2.5f);   // q1_wall_1
+            obstacles[37] = Box(17.471f, -19.588f, 2f, 0.3f, 2.5f);   // q1_wall_2
+            obstacles[38] = Box(-16.412f, -16.412f, 1f, 1f, 1f);   // q2_box_1
+            obstacles[39] = Box(-19.059f, -18.529f, 1f, 1f, 1f);   // q2_box_2
+            obstacles[40] = Box(-17.471f, -20.382f, 0.5f, 1f, 1f);   // q2_box_3
+            obstacles[41] = Box(-16.412f, -19.588f, 3f, 0.3f, 2.5f);   // q2_wall_1
+            obstacles[42] = Box(-19.588f, -17.471f, 0.3f, 2f, 2.5f);   // q2_wall_2
+            obstacles[43] = Box(-16.412f, 16.412f, 1f, 1f, 1f);   // q3_box_1
+            obstacles[44] = Box(-18.529f, 19.059f, 1f, 1f, 1f);   // q3_box_2
+            obstacles[45] = Box(-20.382f, 17.471f, 1f, 0.5f, 1f);   // q3_box_3
+            obstacles[46] = Box(-19.588f, 16.412f, 0.3f, 3f, 2.5f);   // q3_wall_1
+            obstacles[47] = Box(-17.471f, 19.588f, 2f, 0.3f, 2.5f);   // q3_wall_2
+            obstacles[48] = Box(37f, 0f, 1f, 38f, 0.5f);   // wall_bound_e
+            obstacles[49] = Box(0f, -37f, 38f, 1f, 0.5f);   // wall_bound_n
+            obstacles[50] = Box(0f, 37f, 38f, 1f, 0.5f);   // wall_bound_s
+            obstacles[51] = Box(-37f, 0f, 1f, 38f, 0.5f);   // wall_bound_w
 
             var spawns = new SimVector3[16]
             {
-                new SimVector3(-60f, 0f, -60f), new SimVector3(60f, 0f, 60f), new SimVector3(60f, 0f, -60f), new SimVector3(-60f, 0f, 60f),   // spawn_00..03 = 四角
-                new SimVector3(-60f, 0f, 0f), new SimVector3(60f, 0f, 0f), new SimVector3(0f, 0f, -60f), new SimVector3(0f, 0f, 60f),       // spawn_04..07 = 四边中
-                new SimVector3(-51f, 0f, -51f), new SimVector3(51f, 0f, 51f), new SimVector3(51f, 0f, -51f), new SimVector3(-51f, 0f, 51f), // spawn_08..11 = 备份圈角
-                new SimVector3(-51f, 0f, 0f), new SimVector3(51f, 0f, 0f), new SimVector3(0f, 0f, -51f), new SimVector3(0f, 0f, 51f),       // spawn_12..15 = 备份圈边中
+                new SimVector3(-31.765f, 0f, -31.765f), new SimVector3(31.765f, 0f, 31.765f), new SimVector3(31.765f, 0f, -31.765f), new SimVector3(-31.765f, 0f, 31.765f),   // spawn_00..03 = 四角
+                new SimVector3(-31.765f, 0f, 0f), new SimVector3(31.765f, 0f, 0f), new SimVector3(0f, 0f, -31.765f), new SimVector3(0f, 0f, 31.765f),   // spawn_04..07 = 四边中
+                new SimVector3(-27f, 0f, -27f), new SimVector3(27f, 0f, 27f), new SimVector3(27f, 0f, -27f), new SimVector3(-27f, 0f, 27f),   // spawn_08..11 = 备份圈角
+                new SimVector3(-27f, 0f, 0f), new SimVector3(27f, 0f, 0f), new SimVector3(0f, 0f, -27f), new SimVector3(0f, 0f, 27f),   // spawn_12..15 = 备份圈边中
             };
 
-            return SimMapBuilder.Build(0f, 100f, 100f, obstacles, obstacles.Length, spawns, spawns.Length);
+            return SimMapBuilder.Build(0f, 36f, 36f, obstacles, obstacles.Length, spawns, spawns.Length);
         }
 
         /// <summary>

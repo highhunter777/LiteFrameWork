@@ -11,7 +11,7 @@ namespace LiteGame.Tests.EditMode
     /// （IMetaClient 先例同形——门面语义不依赖真 BattleClient；静态门面经 env.Global.Set 注入
     /// 测试全局，与生产 BindGlobals 同委托形，不走 CS 反射访问）：
     /// 回放双序（装订即回放／订阅即回放——页面先于 JoinAck 打开的竞态消解）、订阅替换语义、
-    /// 无会话显性降级、被拒恰一次回调、会话摘除作废在途回调与推送。
+    /// 无会话显性降级、被拒恰一次回调、会话摘除作废在途回调与推送、房规模拉取（未绑会话归零）。
     /// 静态门面：TearDown 必清（防跨用例污染）。
     /// </summary>
     public sealed class RoomBridgeEditModeTests : UnityTestBase
@@ -23,9 +23,10 @@ namespace LiteGame.Tests.EditMode
         public void SetUp()
         {
             _env = new LuaEnv();
-            // 与生产 BindGlobals 同委托形（Func<bool>/Action<LuaFunction>——GenConfig 白名单在册形）
+            // 与生产 BindGlobals 同委托形（Func<bool>/Func<int>/Action<LuaFunction>——GenConfig 白名单在册形）
             _env.Global.Set("RoomBridge_OnOwner", new Action<LuaFunction>(RoomBridge.OnOwner));
             _env.Global.Set("RoomBridge_OnMembers", new Action<LuaFunction>(fn => RoomBridge.OnMembers(_env, fn)));
+            _env.Global.Set("RoomBridge_ExpectedPlayers", new Func<int>(() => RoomBridge.ExpectedPlayers));
             _env.Global.Set("RoomBridge_StartMatch", new Action<LuaFunction>(RoomBridge.StartMatch));
             _face = new FakeSession();
         }
@@ -45,6 +46,7 @@ namespace LiteGame.Tests.EditMode
         private sealed class FakeSession : IRoomSessionFace
         {
             public bool IsOwner { get; set; }
+            public int ExpectedPlayers { get; set; }
             public int StartCalls;
             public LiteNet.Proto.RoomSeats Seats { get; private set; }
             public event Action<LiteNet.Proto.StartMatchResponse> StartMatchDenied;
@@ -234,6 +236,25 @@ end)");
         {
             BindMembersRecorder();
             Assert.AreEqual("", MemberCalls(), "无会话 = 不推送（显性降级，与 OnOwner 同契约）");
+        }
+
+        // ---- 房规模（ExpectedPlayers——房间页等待人数分母） ----
+
+        [Test]
+        public void 房规模_未绑会话归零_绑会话回权威值()
+        {
+            Assert.AreEqual(0, RoomBridge.ExpectedPlayers, "未绑会话 = 0（显性降级——房间页据此隐藏计数）");
+            Assert.AreEqual("0", (string)_env.DoString("return tostring(RoomBridge_ExpectedPlayers())")[0],
+                "Lua 面同值");
+
+            _face.ExpectedPlayers = 4;                                  // JoinAck 房事实（协议派生态）
+            RoomBridge.BindSession(_face);
+            Assert.AreEqual(4, RoomBridge.ExpectedPlayers, "绑会话即回权威房规模");
+            Assert.AreEqual("4", (string)_env.DoString("return tostring(RoomBridge_ExpectedPlayers())")[0],
+                "Lua 面同值（订阅即回放同源）");
+
+            RoomBridge.UnbindSession();
+            Assert.AreEqual(0, RoomBridge.ExpectedPlayers, "摘除会话 → 归零（页面订阅不得命中死会话）");
         }
     }
 }

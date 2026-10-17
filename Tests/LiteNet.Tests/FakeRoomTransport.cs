@@ -70,6 +70,11 @@ namespace LiteNet.Tests
         public void RaiseData(int conn, byte[] packet, bool reliable = true)
             => OnData?.Invoke(conn, new ArraySegment<byte>(packet), reliable);
 
+        /// <summary>房主开局（**真实 wire 路径**：StartMatchRequest 空载荷）——满员不再自动开局，
+        /// 用例装配用它等价于"房主在房间页点了开始对局"。<paramref name="ownerConn"/> 须为**首入座者**的连接。</summary>
+        public void StartMatchAsOwner(int ownerConn)
+            => RaiseData(ownerConn, PacketCodec.Encode(PacketType.StartMatchRequest, new Proto.StartMatchRequest()));
+
         public JoinAck LastJoinAck(int conn) => (JoinAck)LastOf(conn, PacketType.JoinAck);
         public StartGame LastStartGame(int conn) => (StartGame)LastOf(conn, PacketType.StartGame);
         public object Last(int conn, PacketType type) => LastOf(conn, type);

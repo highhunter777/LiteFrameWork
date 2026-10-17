@@ -20,6 +20,7 @@ namespace LiteNet.Tests
             var outputs = new List<RoomOutput>();
             room.Execute(RoomCommand.Join(1), outputs);
             room.Execute(RoomCommand.Join(2), outputs);
+            room.Execute(RoomCommand.StartEarly(0), new List<RoomOutput>());   // 房主开局（满员不再自动开局）
             return room;
         }
 
@@ -106,6 +107,7 @@ namespace LiteNet.Tests
             config.Rules = new MatchRules(0, 0, 30, 50);
             var outputs = new List<RoomOutput>();
             room.Execute(RoomCommand.Join(1), outputs);
+            room.Execute(RoomCommand.StartEarly(0), outputs);   // 房主开局（满员不再自动开局；输出同表——断言 MatchStarted）
             Assert.Equal(2, room.AuthSim.Match.Timer);
             Assert.Equal(4, room.AuthSim.Match.KillLimit);
             Assert.Equal(3, room.AuthSim.Match.RespawnDelayFrames);
@@ -191,6 +193,7 @@ namespace LiteNet.Tests
             var transport = new FakeRoomTransport();
             using var host = new ServerHost(transport, config.BuildRoomConfig("standard", "Rules"), map: TestMaps.Greybox());
             Join(transport, 1);
+            transport.StartMatchAsOwner(1);                        // 房主开局（满员不再自动开局）
             Proto.StartGame start = transport.LastStartGame(1);
             Assert.NotNull(start.Match);
             Assert.Equal(4, start.Match.Timer);
@@ -214,6 +217,7 @@ namespace LiteNet.Tests
                 new RoomConfig { Map = TestMaps.Greybox(), RoomId = "Rules", Seed = 42, Rules = new MatchRules(0, 1, 3, 2) }, map: TestMaps.Greybox());
             Join(transport, 1);
             Join(transport, 2);
+            transport.StartMatchAsOwner(1);                        // 房主开局（满员不再自动开局）
             Damage(host.Room);
             host.Pump();
             foreach (int conn in new[] { 1, 2 })
@@ -240,6 +244,7 @@ namespace LiteNet.Tests
             var outputs = new List<RoomOutput>();
             room.Execute(RoomCommand.Join(1), outputs);
             room.Execute(RoomCommand.Join(2), outputs);
+            room.Execute(RoomCommand.StartEarly(0), outputs);   // 房主开局（满员不再自动开局）
             room.AuthSim.Entities[0].Pos = new SimVector3(0, 0, 0);
             room.AuthSim.Entities[1].Pos = new SimVector3(20, 0, 0);
             for (int i = 1; i <= 6; i++) room.Execute(RoomCommand.Tick(i), outputs);
@@ -310,6 +315,7 @@ namespace LiteNet.Tests
             var outputs = new List<RoomOutput>();
             room.Execute(RoomCommand.Join(1), outputs);
             room.Execute(RoomCommand.Join(2), outputs);
+            room.Execute(RoomCommand.StartEarly(0), outputs);   // 房主开局（满员不再自动开局）
             room.AuthSim.Entities[0].Pos = new SimVector3(-10, 0, -10);
             room.AuthSim.Entities[1].Pos = new SimVector3(10, 0, -10);
             for (int i = 1; i <= 6; i++) room.Execute(RoomCommand.Tick(i), outputs);

@@ -35,6 +35,9 @@ namespace LiteClient
             /// <summary>会话失败（重连超时/被拒/版本不符——无票据的断线同归此类）。</summary>
             SessionFailed,
             Completed,
+            /// <summary>未开局即散场（等待期房间被服务器中止——等待超时/运维关闭/排空；
+            /// 无结果可结算，不进结算页）。</summary>
+            Aborted,
         }
 
         /// <summary>未标注形态的默认房间规模（2 人房；JoinAck.expected_players = 0 时回落——
@@ -137,8 +140,8 @@ namespace LiteClient
                 _battle.Client.OnPhaseChanged -= OnPhaseChanged;
             }));
 
-            // **补上迟到的 StartGame**：OnStartGame 是边缘事件，服务器可能在应用层建好订阅之前就广播
-            // （席位满员即刻开局——1 人房必现；2 人房因等人把这个竞态掩盖了）。不补的话本上下文会永远
+            // **补上迟到的 StartGame**：OnStartGame 是边缘事件，可能在应用层建好订阅之前就到达
+            // （开局广播由房主发起，与本地建对象/重连补帧存在竞态）。不补的话本上下文会永远
             // 停在"Sim 未建"：每帧只泵网络、不建世界、不发输入，表现为"进了对局但画面不动"。
             var late = _battle.Client.StartGame;
             if (late != null) OnStartGame(late);
@@ -288,7 +291,10 @@ namespace LiteClient
         private void OnMatchEnded(LiteNet.Proto.MatchEnded result)
         {
             if (_disposed) return;
-            End(EndReason.Completed);
+            // 未开局即收到终局（Sim 未建）＝等待期房间被服务器中止：按 Aborted 收尾——流程层
+            // 回 Main、房间页替换回大厅（页面流对非 Completed 的处置），不进结算页（空结果无从展示）。
+            // 对局中（Sim 已建）的 MatchEnded 照旧 Completed（结算页判据）。
+            End(_sim == null ? EndReason.Aborted : EndReason.Completed);
         }
 
         /// <summary>快照：镜像重建 → 和解（比对/覆盖/重放）→ 视图插值源推进。首份快照对齐本地实体 Id。</summary>

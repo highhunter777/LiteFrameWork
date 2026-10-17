@@ -105,6 +105,7 @@ namespace LiteNet.Tests
             var s2 = new Session(2, 0);
             Join(room, s1, seats);
             Join(room, s2, seats);
+            room.Execute(RoomCommand.StartEarly(0), new List<RoomOutput>());   // 房主开局（满员不再自动开局）
             Assert.True(room.Started);
             _ = pipeline;
             return (room, s1, s2);

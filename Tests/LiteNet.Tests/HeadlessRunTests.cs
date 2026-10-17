@@ -75,6 +75,10 @@ namespace LiteNet.Tests
 
         private bool BothJoined(int expected) => _host.Room.NextPlayerId >= expected;
 
+        /// <summary>房主开局（真实 C→S 信令 StartMatchRequest；起满员不再自动开局）。
+        /// 须在两端都收到 JoinAck（客户端相位 Connected）后调用。</summary>
+        private void StartAsOwner(HeadlessClient owner) => owner.Client.SendStartMatchRequest();
+
         /// <summary>条件等待（谓词满足或超时；每轮泵一帧）。</summary>
         private bool WaitFor(Func<bool> predicate, int timeoutMs = 5000)
         {
@@ -119,6 +123,8 @@ namespace LiteNet.Tests
             var a = StartHeadless("A");
             var b = StartHeadless("B");
             Assert.True(WaitFor(() => BothJoined(2), 5000), "双客户端未完成 Join");
+            Assert.True(WaitFor(() => a.Client.PlayerId >= 0 && b.Client.PlayerId >= 0), "双方未收到 JoinAck");
+            StartAsOwner(a);                                     // 房主开局（满员不再自动开局）
             Assert.True(WaitFor(() => a.Sim != null && b.Sim != null), "StartGame 未达（Sim 未建）");
 
             // 30s 对跑（1800 权威帧）
@@ -147,8 +153,10 @@ namespace LiteNet.Tests
             // 每次快照和解恢复权威 → 预测从权威基线重启 → 10s 观测内偏差有界（不发散）。
             var a = StartHeadless("A");
             var b = StartHeadless("B");
-            Assert.True(WaitFor(() => BothJoined(2), 5000));
-            Assert.True(WaitFor(() => a.Sim != null && b.Sim != null));
+            Assert.True(WaitFor(() => BothJoined(2), 5000), "双客户端未完成 Join");
+            Assert.True(WaitFor(() => a.Client.PlayerId >= 0 && b.Client.PlayerId >= 0), "双方未收到 JoinAck");
+            StartAsOwner(a);                                     // 房主开局（满员不再自动开局）
+            Assert.True(WaitFor(() => a.Sim != null && b.Sim != null), "StartGame 未达");
 
             for (int t = 0; t < 600; t++)
             {
@@ -173,6 +181,8 @@ namespace LiteNet.Tests
             var a = StartHeadless("A");
             var b = StartHeadless("B");
             Assert.True(WaitFor(() => BothJoined(2), 5000), "双客户端未完成 Join");
+            Assert.True(WaitFor(() => a.Client.PlayerId >= 0 && b.Client.PlayerId >= 0), "双方未收到 JoinAck");
+            StartAsOwner(a);                                     // 房主开局（满员不再自动开局）
             Assert.True(WaitFor(() => a.Sim != null && b.Sim != null), "StartGame 未达");
 
             RunFor(a, b, 120);                                   // 2s 对跑建立基线
@@ -221,6 +231,8 @@ namespace LiteNet.Tests
             var a = StartHeadless("A");
             var b = StartHeadless("B");
             Assert.True(WaitFor(() => BothJoined(2), 5000));
+            Assert.True(WaitFor(() => a.Client.PlayerId >= 0 && b.Client.PlayerId >= 0), "双方未收到 JoinAck");
+            StartAsOwner(a);                                     // 房主开局（满员不再自动开局）
             Assert.True(WaitFor(() => a.Sim != null && b.Sim != null));
 
             var watch = Stopwatch.StartNew();

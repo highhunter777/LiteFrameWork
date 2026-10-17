@@ -43,7 +43,10 @@ namespace LiteNet.Tests
             Assert.Equal(2, s2.Seats.Length);
             Assert.True(s2.Seats[1].Connected);
 
-            SeatsChanged s3 = LastSeats(Run(room, RoomCommand.Disconnect(101)));      // 席位 0 断线（席位保留）
+            // 开局（重连语义只在对局中存在——App 未开局拒重连，未开局离场是"释放"而非"保留"）
+            Run(room, RoomCommand.StartEarly(0));
+
+            SeatsChanged s3 = LastSeats(Run(room, RoomCommand.Disconnect(101)));      // 对局中断线（席位保留）
             Assert.Equal(2, s3.Seats.Length);
             Assert.False(s3.Seats[0].Connected, "断线 = 离线（席位仍在册）");
             Assert.True(s3.Seats[1].Connected);
@@ -54,6 +57,27 @@ namespace LiteNet.Tests
 
             SeatsChanged s4 = LastSeats(Run(room, RoomCommand.RestoreAck(0)));
             Assert.True(s4.Seats[0].Connected, "恢复完成 = 在线");
+        }
+
+        [Fact]
+        public void 未开局离场_名单缩容而非保留离线态()
+        {
+            // 未开局离场即释放（空位复用）：名单从列表**消失**，不是"保留显示离线"——
+            // 等待期席位不可恢复，保留只占容量（房间页等待人数随之回落）。
+            var room = new RoomRuntime(new RoomConfig
+            {
+                Map = TestMaps.Greybox(), RoomId = "W", ExpectedPlayers = 3, Seed = 7,
+            });
+
+            Run(room, RoomCommand.Join(101));
+            SeatsChanged s2 = LastSeats(Run(room, RoomCommand.Join(202)));
+            Assert.Equal(2, s2.Seats.Length);
+
+            SeatsChanged s3 = LastSeats(Run(room, RoomCommand.Disconnect(101)));      // 未开局离场 → 释放
+            Assert.Single(s3.Seats);                                                 // 名单缩容
+            Assert.Equal(1, s3.Seats[0].PlayerId);
+            Assert.True(s3.Seats[0].Connected);
+            Assert.Null(room.SeatOf(0));                                             // 席位已让出（可复用）
         }
 
         [Fact]

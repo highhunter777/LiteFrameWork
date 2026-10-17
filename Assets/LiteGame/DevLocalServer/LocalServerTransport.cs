@@ -23,10 +23,11 @@ namespace LiteGame
     ///
     /// **真实性边界（务必分清，别把"本地绿"当"联机绿"）**：
     /// - **真**：Sim 判定、`InputGate` 校验、快照差分/AOI、协议编解码（`PacketCodec`）、会话相位机；
-    /// - **假**：无 Socket（无丢包/乱序/延迟/MTU）、无票据验签（token 只做非空）、单房间、
-    ///   无多房间/排空/Ops/持久化、时间轴自走（不依赖墙钟）、**自动补位**（真客户端进房后，
-    ///   剩余席位由假连接补满并按"缺席空输入"站桩——真实多人交互不可由此模拟）。
-    ///   弱网、断线重连真实性、多房间隔离仍须在**真服务器**验。
+        /// - **假**：无 Socket（无丢包/乱序/延迟/MTU）、无票据验签（token 只做非空）、单房间、
+        ///   无多房间/排空/Ops/持久化、时间轴自走（不依赖墙钟）、**自动补位**（真客户端进房后，
+        ///   剩余席位由假连接补满并按"缺席空输入"站桩——真实多人交互不可由此模拟）+ **代房主开局**
+        ///   （<see cref="StartAsOwner"/>：本形态没有房间页开局钮，进房即代房主发 StartEarly）。
+        ///   弱网、断线重连真实性、多房间隔离仍须在**真服务器**验。
     ///
     /// **与真服务端应用层的关系**：本类只补最小的那层映射（Join → JoinAck、MatchStarted → StartGame、
     /// Tick → 快照广播），对应 `ServerHost.ApplySignal`/`ApplyOutput` 里那几行。**不复制**票据/多房间/
@@ -198,7 +199,8 @@ namespace LiteGame
 
             _runtime.Execute(RoomCommand.Join(Conn), _outputs);
             DrainOutputs();                       // 本地客户端的 PlayerAdmitted → JoinAck
-            FillRoomWithBots();                   // 离线形态：补满剩余席位（站桩对手）→ 满员即 MatchStarted
+            FillRoomWithBots();                   // 离线形态：补满剩余席位（站桩对手）
+            StartAsOwner();                       // 开局须房主发起（满员不再自动开局）——本形态单客户端恒为房主
             FlushOutbox();
         }
 
@@ -225,9 +227,22 @@ namespace LiteGame
         }
 
         /// <summary>
-        /// 自动补位（离线形态专属）：真客户端进房后，剩余席位用**假连接**补满——房间立即满员、
-        /// `MatchStarted` 即刻触发。补位者永不发包 = 权威循环每帧给它**空输入**（`RoomRuntime`
-        /// "缺席沿用空输入"语义）＝站桩对手。
+        /// 代房主开局（本地形态专属）：开局唯一入口是房主发起（裁决——满员不再自动开局），
+        /// 而本形态没有房间页/开局钮（TestMode 由 F10/GM 直开对局）——单客户端恒为首入座者（房主），
+        /// 这里代其发出 <see cref="RoomCommand.StartEarly"/>（与真服同一条开局路径：owner 判定/立即
+        /// StartMatch/缺席席位居空输入），房主开局语义仍被真实走一遍。真实多人房走真服务器，不经本类。
+        /// </summary>
+        private void StartAsOwner()
+        {
+            if (_playerId < 0 || _runtime.Started) return;   // 未入座/已开局（重复 Join 等）：不重复发起
+            _runtime.Execute(RoomCommand.StartEarly(_playerId), _outputs);
+            DrainOutputs(admitIsLocal: false);               // MatchStarted → StartGame（无新 PlayerAdmitted 出包）
+        }
+
+        /// <summary>
+        /// 自动补位（离线形态专属）：真客户端进房后，剩余席位用**假连接**补满——席位即刻占满
+        /// （开局由 <see cref="StartAsOwner"/> 紧接着代房主发起）。补位者永不发包 = 权威循环每帧
+        /// 给它**空输入**（`RoomRuntime` "缺席沿用空输入"语义）＝站桩对手。
         ///
         /// **为什么必须**：客户端预测世界按 `BattleContext.ExpectedPlayers`（=2，首版房间规模）
         /// 定容重建，两端世界构造必须逐位一致（`OnStartGame` 契约）——1 人房会让服务端少生成一个
@@ -379,25 +394,14 @@ namespace LiteGame
                         _playerId = pa.PlayerId;
                         _joined = true;
                         _seats[pa.PlayerId] = new Session(Conn, _nowMs) { PlayerId = pa.PlayerId };
-                        _outbox.Add((PacketType.JoinAck, new JoinAck
-                        {
-                            PlayerId = pa.PlayerId,
-                            Members = { pa.Members },
-                            ReconnectToken = "local-dev-" + pa.PlayerId,   // 本地形态：非安全凭据，仅满足非空
-                            ReconnectWindowSeconds = 0,
-                            SnapshotHz = SimConfig.SnapshotHz,
-                            TickRate = SimConfig.TickRate,
-                            MapId = _runtime.MapId,                        // 多图批：与真服务器同一条权威回执路径
-                        }));
+                        // 回执 proto 单源（HandshakePacker，与真服共一份——字段面结构性一致；
+                        // 凭据差异经参数注入：本地形态无重连语义，占位串 + 0 秒窗口）
+                        _outbox.Add((PacketType.JoinAck, HandshakePacker.BuildJoinAck(pa,
+                            "local-dev-" + pa.PlayerId, 0, _runtime.MapId, _runtime.ExpectedPlayers)));
                         break;
                     }
                     case MatchStarted ms:
-                        _outbox.Add((PacketType.StartGame, new StartGame
-                        {
-                            Seed = ms.Seed,
-                            ConfigHash = ms.ConfigHash,
-                            Frame = ms.Frame,
-                        }));
+                        _outbox.Add((PacketType.StartGame, HandshakePacker.BuildStartGame(ms)));
                         break;
                 }
             }

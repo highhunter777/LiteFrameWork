@@ -42,7 +42,8 @@ namespace LiteNet.Tests
             Assert.NotNull(ack2);
             Assert.Equal(1, ack2.PlayerId);
 
-            Assert.True(host.Room.Started, "满员应自动 StartGame（无 MatchMaker）");
+            t.StartMatchAsOwner(1);                                    // 房主开局（满员不再自动开局）
+            Assert.True(host.Room.Started, "房主开局后才 StartGame（无 MatchMaker）");
             Assert.NotNull(t.LastStartGame(1));                        // 两名成员都收到 StartGame
             Assert.NotNull(t.LastStartGame(2));
             Assert.Equal(2, host.Sessions.Count);
@@ -185,7 +186,8 @@ namespace LiteNet.Tests
             t.RaiseConnected(2);
             t.RaiseData(1, JoinPacket());
             t.RaiseData(2, JoinPacket());
-            Assert.True(host.Room.Started, "满员自动开局");
+            t.StartMatchAsOwner(1);                                    // 房主开局（满员不再自动开局）
+            Assert.True(host.Room.Started, "房主开局后进行中");
             string token = t.LastJoinAck(1).ReconnectToken;
 
             // 跑帧建立广播基线（stride=2：第 2/4 次 Pump 各广播一次）

@@ -24,7 +24,7 @@ namespace LiteNet.Tests
             var pipeline = new SnapshotPipeline(seats);
             var s = new Session(1, 0);
             var outputs = new List<RoomOutput>();
-            room.Execute(RoomCommand.Join(s.ConnectionId), outputs);   // 满员（1 人）即自动开局
+            room.Execute(RoomCommand.Join(s.ConnectionId), outputs);
             foreach (RoomOutput o in outputs)
             {
                 if (o is SignalOutput { Signal: PlayerAdmitted pa })
@@ -33,7 +33,8 @@ namespace LiteNet.Tests
                     seats[pa.PlayerId] = s;
                 }
             }
-            Assert.True(room.Started, "单席位房间 Join 后应已开局");
+            room.Execute(RoomCommand.StartEarly(0), new List<RoomOutput>());   // 房主开局（满员不再自动开局）
+            Assert.True(room.Started, "房主开局后应进入 Running");
             return (room, s, pipeline);
         }
 

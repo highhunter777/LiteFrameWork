@@ -531,13 +531,14 @@ namespace LiteNet.Tests
             public void Flush() => FlushCalls++;
         }
 
-        /// <summary>满员开局 → 排空超时收尾（截止时刻已过 → 首个 Pump 强制 Finish）→ SettlementReady。</summary>
+        /// <summary>房主开局 → 排空超时收尾（截止时刻已过 → 首个 Pump 强制 Finish）→ SettlementReady。</summary>
         private static void RunToSettlement(ServerHost host, FakeRoomTransport t)
         {
             t.RaiseConnected(1);
             t.RaiseConnected(2);
             t.RaiseData(1, Join("Room-A"));
             t.RaiseData(2, Join("Room-A"));
+            t.StartMatchAsOwner(1);                            // 房主开局（满员不再自动开局）
             host.TryGetRoom("Room-A", out RoomRuntime room);
             Assert.True(room.Started);
 

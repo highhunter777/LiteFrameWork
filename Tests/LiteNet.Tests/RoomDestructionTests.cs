@@ -14,6 +14,8 @@ namespace LiteNet.Tests
     /// 语义：房间到达终态（Closed/Aborted）后，由宿主 <see cref="ServerHost.Pump"/> 销毁——
     /// 先应用该房间当轮输出（结算入盒等），再从房间表移除、容量归还；同房号此后可**重建**（新实例）。
     /// 销毁同时清理席位会话的路由字段，防止旧连接的迟到输入命中重建后的新房间席位。
+    /// 终态两源：对局收场（Running 全员离场/时限/杀限 → Closed）；**未开局即全员离场 → Aborted**
+    /// （无结果可结算——不收尾的未开局房会因 NextPlayerId 只增而永久占死房号与名额）。
     /// </summary>
     public sealed class RoomDestructionTests
     {
@@ -23,9 +25,23 @@ namespace LiteNet.Tests
             ""rooms"": { ""one"": { ""expected_players"": 1 } }
         }";
 
+        /// <summary>席位复用/等待超时用例的模板（2 人房 + 等待时限 200ms）。</summary>
+        private const string WaitConfig = @"{
+            ""port"": 45202, ""max_rooms"": 1, ""audience"": """",
+            ""default_template"": ""wait"",
+            ""rooms"": { ""wait"": { ""expected_players"": 2, ""waiting_timeout_ms"": 200 } }
+        }";
+
         private static (ServerHost host, FakeRoomTransport t) NewHost()
         {
             var cfg = RoomServerConfig.Parse(Config);
+            var t = new FakeRoomTransport();
+            return (new ServerHost(t, null, null, null, cfg, map: TestMaps.Greybox()), t);
+        }
+
+        private static (ServerHost host, FakeRoomTransport t) NewWaitHost()
+        {
+            var cfg = RoomServerConfig.Parse(WaitConfig);
             var t = new FakeRoomTransport();
             return (new ServerHost(t, null, null, null, cfg, map: TestMaps.Greybox()), t);
         }
@@ -42,7 +58,8 @@ namespace LiteNet.Tests
             h.t.RaiseConnected(1);
             h.t.RaiseData(1, Join("Room-A"));
             Assert.True(host.TryGetRoom("Room-A", out RoomRuntime first));
-            Assert.True(first.Started);                       // 1 人房满员即开局
+            h.t.StartMatchAsOwner(1);                         // 房主开局（满员不再自动开局）
+            Assert.True(first.Started);
 
             h.t.RaiseData(1, PacketCodec.Encode(PacketType.Leave, new Proto.Leave()));
             Assert.True(first.Closed, "全员离场应收尾到终态");
@@ -60,7 +77,8 @@ namespace LiteNet.Tests
             Assert.True(host.TryGetRoom("Room-A", out RoomRuntime second));
             Assert.NotSame(first, second);                    // 全新实例（不是复用旧房间状态）
             Assert.NotSame(first.AuthSim, second.AuthSim);    // 权威状态也是新的
-            Assert.True(second.Started);                      // 1 人房：新房间满员即开局
+            h.t.StartMatchAsOwner(2);                         // 新房主开局
+            Assert.True(second.Started);
             Assert.Equal(MatchPhase.Running, second.Phase);   // 与旧房间的终态无关
             Assert.Equal(1, host.RoomCount);
         }
@@ -73,6 +91,7 @@ namespace LiteNet.Tests
 
             h.t.RaiseConnected(1);
             h.t.RaiseData(1, Join("Room-A"));
+            h.t.StartMatchAsOwner(1);                         // 房主开局（满员不再自动开局）
             h.t.RaiseData(1, PacketCodec.Encode(PacketType.Leave, new Proto.Leave()));
             host.Pump();                                      // 销毁终态房间
 
@@ -85,6 +104,7 @@ namespace LiteNet.Tests
             h.t.RaiseConnected(2);
             h.t.RaiseData(2, Join("Room-A"));
             Assert.True(host.TryGetRoom("Room-A", out RoomRuntime second));
+            h.t.StartMatchAsOwner(2);                         // 新房主开局（满员不再自动开局）
             Assert.True(second.Started);
 
             long acceptedBefore = second.Gate.AcceptedCount;
@@ -108,6 +128,7 @@ namespace LiteNet.Tests
             h.t.RaiseConnected(1);
             h.t.RaiseData(1, Join("Room-A"));
             Assert.True(host.TryGetRoom("Room-A", out RoomRuntime room));
+            h.t.StartMatchAsOwner(1);                         // 房主开局（满员不再自动开局）
 
             // 非终态在册：上报面含该房间（正证——过滤不是把明细整个抹掉）
             ServerHost.RoomSummary[] running = host.RoomSummaries();
@@ -136,6 +157,7 @@ namespace LiteNet.Tests
             h.t.RaiseConnected(1);
             h.t.RaiseData(1, Join("Room-A"));
             Assert.True(host.TryGetRoom("Room-A", out RoomRuntime room));
+            h.t.StartMatchAsOwner(1);                         // 房主开局（满员不再自动开局）
             Assert.True(room.Started);
 
             host.Pump();
@@ -144,6 +166,98 @@ namespace LiteNet.Tests
             Assert.Same(room, same);
             Assert.Equal(0, host.Ops.RoomsDestroyed);
             Assert.Equal(1, host.RoomCount);
+        }
+
+        [Fact]
+        public void 开局前全员离场_房间收尾销毁_同房号可重新进房()
+        {
+            var h = NewHost();
+            using var host = h.host;
+
+            h.t.RaiseConnected(1);
+            h.t.RaiseData(1, Join("Room-A"));
+            Assert.True(host.TryGetRoom("Room-A", out RoomRuntime idle));
+            Assert.Equal(MatchPhase.WaitingForPlayers, idle.Phase);      // 未开局：等房主点开局
+
+            h.t.RaiseData(1, PacketCodec.Encode(PacketType.Leave, new Proto.Leave()));
+            Assert.True(idle.Closed, "开局前全员离场应收尾（未开局房不得永驻）");
+            Assert.Equal(MatchPhase.Aborted, idle.Phase);
+            Assert.Equal(0, host.Ops.SettlementsReady);                  // 未开局无结果可结算
+
+            host.Pump();
+            Assert.Equal(0, host.RoomCount);                             // 终态房间已从房间表移除
+            Assert.Equal(1, host.Ops.RoomsDestroyed);
+
+            // 会话路由已清 → 同房号可重新进房（拿到全新席位）。未收尾时这张 1 人房会因
+            // NextPlayerId 只增不减而恒答"房间已满"——此断言即是"房间不再被幽灵席位占死"的判据。
+            h.t.RaiseConnected(2);
+            h.t.RaiseData(2, Join("Room-A"));
+            Assert.NotNull(h.t.LastJoinAck(2));
+            Assert.True(host.TryGetRoom("Room-A", out RoomRuntime second));
+            Assert.NotSame(idle, second);                                // 全新实例（不是复用旧房间状态）
+            Assert.Equal(1, host.RoomCount);
+        }
+
+        [Fact]
+        public void 未开局离场释放席位_新玩家复用空位_容量与上报口径不泄漏()
+        {
+            var h = NewWaitHost();
+            using var host = h.host;
+
+            h.t.RaiseConnected(1);
+            h.t.RaiseConnected(2);
+            h.t.RaiseData(1, Join("Room-A"));
+            h.t.RaiseData(2, Join("Room-A"));
+            Assert.NotNull(h.t.LastJoinAck(1));
+            Assert.NotNull(h.t.LastJoinAck(2));                          // 坐满（2/2）
+            Assert.Equal(2, host.RoomSummaries()[0].Players);
+
+            h.t.RaiseData(2, PacketCodec.Encode(PacketType.Leave, new Proto.Leave()));   // 未开局离场 → 释放
+            host.Pump();
+
+            var summary = host.RoomSummaries()[0];
+            Assert.Equal(1, summary.Players);                            // 上报口径 = 在册席位（不虚报已离场者）
+            Assert.Equal(1, host.OccupiedPlayerCount);                    // 会话路由已随席位释放复位
+
+            h.t.RaiseConnected(3);
+            h.t.RaiseData(3, Join("Room-A"));                            // 空位复用：不再"房间已满"
+            var ack3 = h.t.LastJoinAck(3);
+            Assert.NotNull(ack3);
+            Assert.Equal(1, ack3.PlayerId);                              // 复用释放的 1 号位
+            Assert.False(ack3.IsOwner);                                   // owner 仍在原房主（p0）
+            Assert.Equal(1, host.RoomCount);                              // 房间全程未收尾（还有人在座）
+        }
+
+        [Fact]
+        public void 未开局等待超时_中止并通知在座客户端_房间销毁()
+        {
+            var h = NewWaitHost();
+            using var host = h.host;
+
+            h.t.RaiseConnected(1);
+            h.t.RaiseData(1, Join("Room-A"));
+            Assert.NotNull(h.t.LastJoinAck(1));
+            Assert.True(host.TryGetRoom("Room-A", out RoomRuntime room));
+            Assert.Equal(MatchPhase.WaitingForPlayers, room.Phase);
+
+            // 推泵越过等待时限（宿主单调时钟；模板 200ms）——超时 → Abort → 在座者收到终局信令
+            var watch = System.Diagnostics.Stopwatch.StartNew();
+            while (!room.Closed && watch.ElapsedMilliseconds < 5000)
+            {
+                host.Pump();
+                System.Threading.Thread.Sleep(10);
+            }
+            Assert.True(room.Closed, "等待超时应收尾到终态");
+            Assert.Equal(MatchPhase.Aborted, room.Phase);
+
+            var ended = (MatchEnded)h.t.Last(1, PacketType.MatchEnded);   // 问题2：复用 MatchEnded 的散场信令
+            Assert.NotNull(ended);
+            Assert.Equal((int)ShutdownReason.WaitingTimeout, ended.EndReason);
+            Assert.Empty(ended.Players);                                  // 未开局无结果可结算
+            Assert.Equal(0, host.Ops.SettlementsReady);
+
+            host.Pump();
+            Assert.Equal(0, host.RoomCount);                              // 终态房间已销毁
         }
     }
 }

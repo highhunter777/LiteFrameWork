@@ -92,7 +92,8 @@ namespace LiteNet.Tests
             f.Healthy = new Session(connBase + 1, 0);
             Assert.Equal(0, Join(f.Room, f.Slow, f.Seats));
             Assert.Equal(1, Join(f.Room, f.Healthy, f.Seats));
-            Assert.True(f.Room.Started, $"{roomId} 应满员开局");
+            f.Room.Execute(RoomCommand.StartEarly(0), new List<RoomOutput>());   // 房主开局（满员不再自动开局）
+            Assert.True(f.Room.Started, $"{roomId} 应房主开局");
             return f;
         }
 

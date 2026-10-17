@@ -515,7 +515,7 @@ namespace RoomServer
 
             public static RoomTemplate Parse(string name, JsonElement el, string sourcePath)
             {
-                // ExpectedPlayers 必填且 ≥1（配置错误 vs 缺省：满员开局依赖它，缺省会让房间永远不开局）。
+                // ExpectedPlayers 必填且 ≥1（配置错误 vs 缺省：它定容席位表/实体表——缺省会让房间一进人就满）。
                 // **上界 = 内核容量**（PendingInputRing.MaxPlayerCapacity，单 uint 有效位图宽度）：
                 // 两侧各写死过一次（此处 64 / 内核 32），33+ 席位配置会在 RoomRuntime 构造抛异常
                 // 并窜上权威循环线程（P0-2）——装载期即按内核真相拒绝，不留运行期触发面。

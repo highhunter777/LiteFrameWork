@@ -24,7 +24,10 @@ namespace LiteGame
     /// - <see cref="StartMatch"/>：**被拒恰一次回调**（false + 服务器 reason）；成功**不回调**——开局以
     ///   OnStartGame 广播为准，流程侧关房间页（<c>PageFlow.CloseRoomIfOpen</c>），页面无需反馈；
     ///   未绑会话＝立即回 false（"not-in-room"——迟到点击不悬挂）。
-    /// - 无会话时一切入口显性降级（IsOwner=false / 不推送），不抛。
+    /// - <see cref="ExpectedPlayers"/>：**拉取式**（房规模是 JoinAck 定值、整局不变，无需订阅）；房间页
+    ///   "等待玩家 N/M" 的分母取它，分子取 <see cref="OnMembers"/> 席位面条数——**两处同源于同一份席位面／
+    ///   JoinAck**，故计数与名单恒同帧一致（房间页不另查大厅投影：那是给 Page_Lobby 看未进的房用的）。
+    /// - 无会话时一切入口显性降级（IsOwner=false / ExpectedPlayers=0 / 不推送），不抛。
     /// </summary>
     public static class RoomBridge
     {
@@ -62,6 +65,11 @@ namespace LiteGame
         /// <summary>当前房主事实（未绑会话 = false——页面默认隐藏开钮）。</summary>
         public static bool IsOwner => s_session != null && s_session.IsOwner;
 
+        /// <summary>本房期望人数（未绑会话 = 0——消费方按"未标注"处理：不显假数）。
+        /// 房间页"等待玩家 N/M"的分母取此值，分子取 <see cref="OnMembers"/> 席位面的条数——
+        /// 两者同源于 JoinAck/席位广播，故计数与名单恒一致。</summary>
+        public static int ExpectedPlayers => s_session != null ? s_session.ExpectedPlayers : 0;
+
         /// <summary>房主事实订阅（替换语义；nil＝退订）。已绑会话＝订阅即回放当前事实。</summary>
         public static void OnOwner(LuaFunction fn)
         {
@@ -97,6 +105,7 @@ namespace LiteGame
         {
             var room = env.NewTable();
             room.Set("IsOwner", new Func<bool>(() => IsOwner));
+            room.Set("ExpectedPlayers", new Func<int>(() => ExpectedPlayers));
             room.Set("OnOwner", new Action<LuaFunction>(OnOwner));
             room.Set("OnMembers", new Action<LuaFunction>(fn => OnMembers(env, fn)));
             room.Set("StartMatch", new Action<LuaFunction>(StartMatch));
@@ -159,6 +168,10 @@ namespace LiteGame
         /// <summary>本机是否房主（协议派生态——RoomClient 单源）。</summary>
         bool IsOwner { get; }
 
+        /// <summary>本房期望人数（协议派生态——JoinAck 定值的房事实；0 = 服务器未标注，
+        /// 消费方按默认 2 座回落，与 <c>BattleContext</c> 的定容口径同源）。</summary>
+        int ExpectedPlayers { get; }
+
         /// <summary>席位实时面最新快照（协议缓存单源——RoomClient；未收到前为 null）。</summary>
         LiteNet.Proto.RoomSeats Seats { get; }
 
@@ -184,6 +197,8 @@ namespace LiteGame
             => _battle = battle ?? throw new ArgumentNullException(nameof(battle));
 
         public bool IsOwner => _battle.IsOwner;
+
+        public int ExpectedPlayers => _battle.Client.ExpectedPlayers;
 
         public LiteNet.Proto.RoomSeats Seats => _battle.Client.Seats;
 

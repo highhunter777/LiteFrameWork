@@ -18,7 +18,8 @@ namespace RoomServer.Runtime
     /// 输入/输出契约（§8.1）：命令 = AuthenticatedJoin / ClientInput / Disconnect / Rebind / RestoreAck / Tick / Shutdown；
     /// 输出 = Signal（PlayerAdmitted / MatchStarted / SeatRestored）/ JoinRejected / CloseConnection / MatchStateChanged / SettlementReady。
     ///
-    /// 生命周期（§9.1，批② 落地）：<see cref="Match"/> 状态机全表 + 等待/对局时限 + 全员离场收尾；
+    /// 生命周期（§9.1，批② 落地）：<see cref="Match"/> 状态机全表 + 等待/对局时限 + 全员离场收尾
+    /// （对局中 → 结算收尾；未开局 → 中止，房间随终态销毁，不留永驻空房）；
     /// Finishing 冻结 <see cref="MatchResultSummary"/> 并产 SettlementReady（完整结算信封/Outbox/归档归 R3）。
     ///
     /// 重连闭环（§9.2/§9.3，批③ 落地）：Rebind 把席位置 <see cref="SeatPhase.Restoring"/>（原子换绑、
@@ -72,7 +73,22 @@ namespace RoomServer.Runtime
         private readonly int[] _pendingFireAck;
         private readonly bool[] _hasPendingFire;
 
+        /// <summary>席位分配高水位（最高已分配席位号 + 1；**只升不降**——未开局离场释放席位后仍保持，
+        /// 作为各处席位遍历的上界。真值语义见 <see cref="AllocatedSeats"/>）。</summary>
         public int NextPlayerId;
+
+        /// <summary>在册席位数（已分配且未释放——未开局离场即释放；对局中含断线保留席位）。
+        /// Lobby 房间列表"人数"的上报口径——区别于高水位（曾发放过即计数，会把已离场者虚报）。</summary>
+        public int AllocatedSeats
+        {
+            get
+            {
+                int count = 0;
+                for (int i = 0; i < NextPlayerId; i++)
+                    if (_seats[i] != null) count++;
+                return count;
+            }
+        }
 
         /// <summary>Match 状态机（§9.1）。</summary>
         public readonly MatchStateMachine Match = new MatchStateMachine();
@@ -198,7 +214,7 @@ namespace RoomServer.Runtime
                 case RoomCommandKind.AuthenticatedJoin: ExecuteJoin(cmd.ConnectionId, outputs); break;
                 case RoomCommandKind.ClientInput: ExecuteInput(cmd.PlayerId, cmd.Input); break;
                 case RoomCommandKind.Disconnect: ExecuteDisconnect(cmd.ConnectionId, outputs); break;
-                case RoomCommandKind.Rebind: ExecuteRebind(cmd.PlayerId, cmd.NewConnectionId, outputs); break;
+                case RoomCommandKind.Rebind: ExecuteRebind(cmd.PlayerId, cmd.NewConnectionId); break;
                 case RoomCommandKind.RestoreAck: ExecuteRestoreAck(cmd.PlayerId, outputs); break;
                 case RoomCommandKind.StartEarly: ExecuteStartEarly(cmd.PlayerId, outputs); break;
                 case RoomCommandKind.Tick: ExecuteTick(cmd.NowMs, outputs); break;
@@ -222,7 +238,13 @@ namespace RoomServer.Runtime
                 outputs.Add(new JoinRejectedOutput(connectionId, "对局进行中，无法加入"));
                 return;
             }
-            if (NextPlayerId >= ExpectedPlayers)
+            // 空位分配（未开局离场即释放——空位可复用）：取**最低空位**（确定性），全满才拒。
+            // 此前是 NextPlayerId 顺延（只增不减）——未开局断线席位既不可恢复也不可复用，
+            // 坐满后走一人即恒答"房间已满"直到全员散尽（容量慢性泄漏）。
+            int playerId = -1;
+            for (int i = 0; i < ExpectedPlayers; i++)
+                if (_seats[i] == null) { playerId = i; break; }
+            if (playerId < 0)
             {
                 outputs.Add(new JoinRejectedOutput(connectionId, "房间已满"));
                 return;
@@ -231,21 +253,32 @@ namespace RoomServer.Runtime
             if (Match.Phase == MatchPhase.Created)                       // 首个连接 → 等待玩家
                 Transition(MatchPhase.WaitingForPlayers, "first-join", _lastNowMs, outputs);
 
-            int playerId = NextPlayerId++;
+            if (playerId + 1 > NextPlayerId) NextPlayerId = playerId + 1;   // 高水位只升不降（迭代上界）
             var seat = new PlayerSession(playerId, connectionId);
-            seat.IsOwner = playerId == 0;                                // 开房者 = 首个入座者（owner 位，随 JoinAck 下发）
+            // 开房者 = 首个入座者（owner 位，随 JoinAck 下发）。空位复用后 0 号位不再等价"首入座"——
+            // 判据改为"房内尚无 owner"（原房主释放离场时 owner 位已迁移，新入座者不得凭号位二次称主）。
+            seat.IsOwner = !AnySeatOwner();
             _seats[playerId] = seat;
             _connectionToPlayer[connectionId] = playerId;
             outputs.Add(new SignalOutput(playerId, new PlayerAdmitted(playerId, MemberIds(), seat.IsOwner)));
             outputs.Add(new SignalOutput(-1, new SeatsChanged(BuildSeatStates())));   // 席位实时面：在座集合变化广播
 
-            if (Match.Phase == MatchPhase.WaitingForPlayers && NextPlayerId >= ExpectedPlayers)
-                StartMatch(outputs);                                     // 满员 → Starting → Running
+            // 满员不自动开局（用户裁决）：开局唯一入口 = 房主 <see cref="ExecuteStartEarly"/>——
+            // 满员后再入座被"房间已满"拒（上面那闸），房间停在 WaitingForPlayers 等房主点开局。
+        }
+
+        /// <summary>房内是否已有 owner 位持有者（进房分配 owner 的判据——空位复用形态下号位不再等价身份）。</summary>
+        private bool AnySeatOwner()
+        {
+            for (int i = 0; i < NextPlayerId; i++)
+                if (_seats[i] != null && _seats[i].IsOwner) return true;
+            return false;
         }
 
         /// <summary>
-        /// 房主提前开局（开房裁决）：WaitingForPlayers 下 owner 席位触发 → 未满员立即
-        /// <see cref="StartMatch"/>（世界只生成已入座实体，缺席席位沿用空输入——内核天然支持）。
+        /// 房主开局（**本房唯一的开局入口**——用户裁决取消满员自动开局）：WaitingForPlayers 下
+        /// owner 席位触发 → 立即 <see cref="StartMatch"/>（满员与否皆可；世界只生成已入座实体，
+        /// 缺席席位沿用空输入——内核天然支持）。
         /// 拒绝面：<see cref="StartRejectedOutput"/>（非 owner / 席位无效），App 映射为
         /// <c>StartMatchResponse</c> 信令回发起者；Running 后幂等忽略（重复点击/迟到包不炸循环）。
         /// </summary>
@@ -263,7 +296,7 @@ namespace RoomServer.Runtime
                 outputs.Add(new StartRejectedOutput(playerId, "只有房主可以开始对局"));
                 return;
             }
-            StartMatch(outputs, "owner-start");                          // 区别于满员 "full"——审计可辨开局来源
+            StartMatch(outputs);
         }
 
         private void ExecuteInput(int playerId, in ClientInputBatch batch)
@@ -297,29 +330,67 @@ namespace RoomServer.Runtime
             seat.Phase = SeatPhase.Disconnected;                              // 席位保留（重连窗口内可重绑）
             seat.ConnectionId = -1;
 
-            // 房主离席 → owner 位转给最低 playerId 的**其余席位**（任何相位——全断线时也转，
+            // 未开局离场：席位**直接释放**（不保留断线态）——等待期席位不可恢复（App 重连要求
+            // 房间已开局，未开局必拒），保留只占容量：坐满后走一人即恒答"房间已满"直到全员散尽。
+            // 释放后空位可被新 Join 复用（最低空位优先，见 ExecuteJoin）；对局中（Running）照旧
+            // 席位保留（重连窗口内可重绑）——两条路径按相位分流。
+            if (Match.Phase == MatchPhase.WaitingForPlayers)
+            {
+                ReleaseSeat(playerId, seat, outputs);
+                return;
+            }
+
+            seat.Phase = SeatPhase.Disconnected;                              // 对局中：席位保留（重连窗口内可重绑）
+            seat.ConnectionId = -1;
+
+            // 房主离席 → owner 位转给最低 playerId 的**在线**其余席位（全断线时退而转最低席位，
             // 防"回来的人都不是房主"死局）；只剩房主一人则保持（空房无人可转）。旧房主重连不夺回——确定性优先。
             if (seat.IsOwner)
                 TransferOwner(playerId, outputs);
 
             outputs.Add(new SignalOutput(-1, new SeatsChanged(BuildSeatStates())));   // 席位实时面：离线态广播
 
-            // 全员离场且对局进行中 → 收尾（冻结结果并关闭；Aborted 只留给错误/运维终止）
-            if (Match.Phase == MatchPhase.Running && AllSeatsDisconnected())
+            if (!AllSeatsDisconnected()) return;
+            // 全员离场 → 收尾（迁移在席位面广播之后：离线态先落，终态随后）。
+            // Running：对局结果可冻结 → Finish（结算并关闭；Aborted 只留给错误/运维终止）。
+            if (Match.Phase == MatchPhase.Running)
                 Finish(ShutdownReason.AllPlayersLeft, "all-players-left", outputs);
         }
 
-        /// <summary>owner 位迁移（原房主 <paramref name="departing"/> 离席）：转给最低 playerId 的其余席位，
-        /// 广播 <see cref="OwnerChanged"/> 供 UI 换按钮归属。无其余席位 = no-op（保持原位）。</summary>
+        /// <summary>
+        /// 未开局离场的席位释放（<see cref="ExecuteDisconnect"/> 的 WaitingForPlayers 分支）：
+        /// owner 位先迁移再摘席（在座者接管开局资格），随后广播缩容后的席位名单（释放者从列表
+        /// 消失——区别于对局中断线的"保留显示离线态"）。全员释放（无人离场例外）照旧 Abort 收尾
+        /// （不留永驻空房）。释放席位的输入去重水位无残留（未开局输入本就不被消费）。
+        /// </summary>
+        private void ReleaseSeat(int playerId, PlayerSession seat, List<RoomOutput> outputs)
+        {
+            if (seat.IsOwner)
+                TransferOwner(playerId, outputs);          // 释放前迁移——在座者接管开局资格
+            _seats[playerId] = null;
+            outputs.Add(new SignalOutput(-1, new SeatsChanged(BuildSeatStates())));
+            if (AllSeatsDisconnected())
+                Abort(ShutdownReason.AllPlayersLeft, "all-players-left", outputs);
+        }
+
+        /// <summary>owner 位迁移（原房主 <paramref name="departing"/> 离席）：**在线席位（Active/Restoring）
+        /// 优先**，按最低 playerId 取；全断线时退而转最低其余席位（任何相位——防"回来的人都不是房主"死局）。
+        /// 广播 <see cref="OwnerChanged"/> 供 UI 换按钮归属。无其余席位 = no-op（保持原位）。
+        /// 在线优先的判据：未开局席位断线后**不可恢复**（App 重连要求房间已开局）——owner 位若转给
+        /// 断线席位，在座玩家将永远无法开局（唯一开局入口握在回不来的人手里），只能等全员散尽才收尾。</summary>
         private void TransferOwner(int departing, List<RoomOutput> outputs)
         {
-            for (int i = 0; i < NextPlayerId; i++)
+            for (int pass = 0; pass < 2; pass++)
             {
-                if (i == departing || _seats[i] == null) continue;
-                _seats[departing].IsOwner = false;
-                _seats[i].IsOwner = true;
-                outputs.Add(new SignalOutput(-1, new OwnerChanged(i)));
-                return;
+                for (int i = 0; i < NextPlayerId; i++)
+                {
+                    if (i == departing || _seats[i] == null) continue;
+                    if (pass == 0 && _seats[i].Phase == SeatPhase.Disconnected) continue;   // 第一轮只看在线席位
+                    _seats[departing].IsOwner = false;
+                    _seats[i].IsOwner = true;
+                    outputs.Add(new SignalOutput(-1, new OwnerChanged(i)));
+                    return;
+                }
             }
         }
 
@@ -330,7 +401,7 @@ namespace RoomServer.Runtime
             return NextPlayerId > 0;
         }
 
-        private void ExecuteRebind(int playerId, int newConnectionId, List<RoomOutput> outputs)
+        private void ExecuteRebind(int playerId, int newConnectionId)
         {
             if (MatchStateMachine.IsTerminal(Match.Phase)) return;               // 终态房间不再接受重绑（App 已拦 Running，此处兜底）
             PlayerSession seat = SeatOf(playerId);
@@ -340,7 +411,7 @@ namespace RoomServer.Runtime
             seat.Phase = SeatPhase.Restoring;    // §9.3 步骤 6：恢复完成 ACK 前抑制该席位增量广播（App 管线按相位过滤）
             seat.RebindGeneration++;
             _connectionToPlayer[newConnectionId] = playerId;
-            _ = outputs;   // 重绑本身不产事件（App 负责响应构建）；恢复完成时产 SeatRestored（见 ExecuteRestoreAck）
+            // 重绑本身不产事件（App 负责响应构建）；恢复完成时产 SeatRestored（见 ExecuteRestoreAck）
         }
 
         /// <summary>
@@ -419,10 +490,14 @@ namespace RoomServer.Runtime
             Transition(MatchPhase.Closed, "closed", now, outputs);
         }
 
-        /// <summary>中止（任意阶段可达）：只迁移并产事件，无结算输出。</summary>
+        /// <summary>中止（任意阶段可达）：只迁移并产事件，无结算输出。成功迁移后补
+        /// <see cref="RoomAbortedOutput"/>——App 向在座客户端发终局信令（未开局收尾无结果可结算）。</summary>
         private void Abort(ShutdownReason reason, string detail, List<RoomOutput> outputs)
         {
+            MatchPhase from = Match.Phase;
             Transition(MatchPhase.Aborted, detail + ":" + reason, _lastNowMs, outputs);
+            if (Match.Phase == MatchPhase.Aborted && from != MatchPhase.Aborted)
+                outputs.Add(new RoomAbortedOutput(reason, MatchId, AuthSim.Frame));
         }
 
         /// <summary>迁移并产结构化事件（§9.1）；非法迁移输出 Reason=Rejected（不改状态、不抛）。</summary>
@@ -437,16 +512,19 @@ namespace RoomServer.Runtime
             outputs.Add(new MatchStateChangedOutput(from, to, reason, MatchId, AuthSim.Frame, nowMs));
         }
 
+        /// <summary>开局迁移的审计原因（唯一入口 = 房主开局——满员自动路径已删，见 <see cref="ExecuteStartEarly"/>）。</summary>
+        private const string StartReasonOwnerStart = "owner-start";
+
         /// <summary>
         /// 开局（§4.5 权威定序——StartMatch 后循环才消费输入）：WaitingForPlayers → Starting → Running，
         /// 世界按种子生成，玩家落出生点。
         /// seed 策略：<see cref="RoomConfig.Seed"/> 非 0 用之；为 0 时由最近一次 Tick 的 nowMs 派生
         /// （R1：系统墙钟兜底已删除，时间只从命令进入）。
-        /// <paramref name="reason"/> = 迁移审计原因（"full" 满员自动 / "owner-start" 房主提前）。
+        /// 迁移审计原因恒为 <see cref="StartReasonOwnerStart"/>。
         /// </summary>
-        private void StartMatch(List<RoomOutput> outputs, string reason = "full")
+        private void StartMatch(List<RoomOutput> outputs)
         {
-            Transition(MatchPhase.Starting, reason, _lastNowMs, outputs);
+            Transition(MatchPhase.Starting, StartReasonOwnerStart, _lastNowMs, outputs);
 
             Seed = Config.Seed != 0 ? Config.Seed : DeriveSeed(_lastNowMs);
             AuthSim.RngState = (ulong)Seed;
@@ -467,6 +545,11 @@ namespace RoomServer.Runtime
             outputs.Add(new SignalOutput(-1, new MatchStarted(Seed, AuthSim.Frame, FixedConfig.Digest, AuthSim.Match, MatchId)));
         }
 
+        /// <summary>seed 派生常量（<see cref="DeriveSeed"/>）：LCG 乘数 / 黄金比例混合常量 / 奇化乘子。</summary>
+        private const long SeedLcgMultiplier = 0x5DEECE66DL;
+        private const long SeedGoldenRatioMix = unchecked((long)0x9E3779B97F4A7C15UL);
+        private const long SeedOddMultiplier = 137L;
+
         /// <summary>
         /// seed=0 的派生（非零、确定性、无墙钟）：以 Tick 时间戳混入黄金比例常量。
         /// 尚未收到任何 Tick（L1 直驱且未配 Seed）时回退固定常量——测试需确定性应显式配
@@ -474,8 +557,8 @@ namespace RoomServer.Runtime
         /// </summary>
         private static long DeriveSeed(long nowMs)
         {
-            if (nowMs == 0) return 0x5DEECE66DL;
-            unchecked { return ((nowMs ^ (long)0x9E3779B97F4A7C15UL) * 137L) | 1L; }
+            if (nowMs == 0) return SeedLcgMultiplier;
+            unchecked { return ((nowMs ^ SeedGoldenRatioMix) * SeedOddMultiplier) | 1L; }
         }
 
         /// <summary>

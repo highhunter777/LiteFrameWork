@@ -23,7 +23,8 @@ namespace LiteGame
     ///
     /// 驱动形态：StageMachine 的 OnUpdate 即帧驱动入口（容器 Seal 后不可再注册 ITickable——
     /// 对局期驱动走阶段生命周期，天然随离场停止）。取消语义：阶段 CTS 链接宿主根（基类），
-    /// 宿主关闭时等待 Ended 的异步被打断，finally 仍保证收尾（离场无 Match 残留的流程侧保证）。
+    /// 宿主关闭时等待 Ended 的异步被打断，finally 仍保证收尾（离场无 Match 残留的流程侧保证）；
+    /// **该收尾不含场景卸载**（取消路径的 Scene 行退出动作＝释放租约，见 <see cref="UnloadBattleScenes"/>）。
     ///
     /// **输入所有权**：服务本身归装配根（跨对局复用、拦截源在装配根登记一次），
     /// 本阶段只持**本局的设备源**（相机是局内对象）并在离场时清派发状态；流程不持任何
@@ -123,8 +124,14 @@ namespace LiteGame
                 RoomBridge.BindSession(new RoomSessionFace(battleClient));   // 房间会话门面（房主开局批）——页面经 Bridge.room 读房主事实/发提前开局；收尾必摘
                 Log.Info("context-created (Match Scope built)", LogTag.Battle);
 
-                await WaitStartGame(battleClient, ct);        // Sim 就绪 = 视图可建（SimView 要读预测态）
-                if (_context.Sim != null)
+                bool started = await WaitStartGameOrEnded(battleClient, _context, ct);   // Sim 就绪 = 视图可建（SimView 要读预测态）
+                if (!started)
+                {
+                    // 未开局即散场（等待超时/运维关闭/排空——MatchEnded 先于 StartGame 到达）：
+                    // 跳过视图建立，经下方 WaitEnded 的 earlyResult 立即收尾（回 Main；房间页由页面流替换回大厅）。
+                    Log.Info("room aborted before start (MatchEnded arrived before StartGame)", LogTag.Battle);
+                }
+                else if (_context.Sim != null)
                 {
                     _rig.Attach(_context, openBattleMenu: () => _pages?.OpenBattleSettings());
                     _pages?.EnableBattleMenuBack();           // 对局中"ESC＝菜单"（与 HUD 菜单钮同源）
@@ -164,7 +171,9 @@ namespace LiteGame
                 _context = null;
                 accountSession?.Dispose();
                 _account = null;
-                UnloadBattleScenes();                     // 离场卸载对局场景组（Rig ＋ 地图）——回 Main 只有启动场景
+                // 取消收尾（宿主关闭 / 阶段被打断）**不卸场景**：该路径的 Scene 行退出动作是"释放资源租约"
+                // （§6.2；SceneService.ReleaseAll 随 ContainerModule 关闭执行）。正常离场（Ended / 失败）仍照卸。
+                if (!ct.IsCancellationRequested) UnloadBattleScenes();
             }
 
             if (next.HasValue) m.Request(next.Value, nextArgs);
@@ -178,7 +187,10 @@ namespace LiteGame
         /// 多图批：地图场景清单按地图表枚举（`IMapProvider.ScenePaths`——加图不改卸载代码）；
         /// 表面不可用（未装载/缺 scene 列）只记日志并退化为只卸 Rig（离场不因表现面失败而阻塞）。
         /// 失败只记日志不阻塞离场（场景留驻是表现问题，不是会话正确性问题）；
-        /// 编辑器"领养"形态（场景手工已在场）下卸载是 no-op——手测时属预期。</summary>
+        /// 编辑器"领养"形态（场景手工已在场）下卸载是 no-op——手测时属预期。
+        /// **只走正常离场**：取消收尾（宿主关闭）不调本方法——关闭期资源系统可能已先行销毁
+        /// （编辑器退出时 YooAsset 驱动先跑 `YooAssets.Destroy()`，卸载经 AsyncOperationSystem 必抛），
+        /// 且进程/场景即将随宿主关闭消失（句柄归零由 SceneService.ReleaseAll 负责）。</summary>
         private void UnloadBattleScenes()
         {
             if (_scenes == null) return;
@@ -197,25 +209,41 @@ namespace LiteGame
             UnloadOne(BattleScenes.Rig);
         }
 
+        /// <summary>单场景卸载（异步、不阻塞离场）。失败经 <c>Forget</c> 回调落 Warning——async 体内的异常
+        /// 进的是返回任务而非调用点，裸 <c>Forget()</c> 会让"失败只记日志"失效（转 UnobservedTaskException 红栈）。</summary>
         private void UnloadOne(string location)
-        {
-            try { _scenes.UnloadAdditiveAsync(location).Forget(); }
-            catch (Exception ex) { Log.Warning($"[Battle] 离场卸载场景失败 {location}:{ex.Message}", LogTag.Scene); }
-        }
+            => _scenes.UnloadAdditiveAsync(location)
+                .Forget(ex => Log.Warning($"[Battle] 离场卸载场景失败 {location}:{ex.Message}", LogTag.Scene));
 
         /// <summary>
-        /// 等 StartGame（Reliable 信令；Sim 未建则视图无源）。已建（重连/重进）直接放行。
-        ///
-        /// **判据是"StartGame 是否已处理"，不是"快照是否已到"**：快照与 StartGame 是两条独立路径
-        /// （Unreliable vs Reliable），快照先到完全正常；拿 LastSnapshotFrame 当"已在局中"的代理，
-        /// 会让本方法提前返回、后面读空的 Sim。
+        /// <summary>
+        /// 等 StartGame，**与对局终止竞速**：等待期房间被服务器中止（等待超时/运维关闭/排空——
+        /// MatchEnded 先于 StartGame 到达）时返回 false，调用方跳过视图建立、经 WaitEnded 的
+        /// earlyResult 立即收尾——不竞速会让流程永远停在"等开局"（房间已销毁，信令永不再来）。
+        /// 两路信号先到先得，败者随 finally 一并退订（<see cref="StageSignal"/> 是单源单事件等待，
+        /// 双源竞速在此就地实现并循同一退订纪律）。
         /// </summary>
-        private static UniTask WaitStartGame(BattleClient battle, CancellationToken ct)
-            => StageSignal.Wait<LiteNet.Proto.StartGame>(
-                h => battle.Client.OnStartGame += h,
-                h => battle.Client.OnStartGame -= h,
-                alreadyDone: battle.Client.HasStartGame && battle.Client.StartGame != null,
-                ct);
+        private static async UniTask<bool> WaitStartGameOrEnded(BattleClient battle, BattleContext context,
+            CancellationToken ct)
+        {
+            if (battle.Client.HasStartGame && battle.Client.StartGame != null) return true;
+            if (context.EndedReason.HasValue) return false;
+
+            var ready = new UniTaskCompletionSource<bool>();
+            void OnStart(LiteNet.Proto.StartGame _) => ready.TrySetResult(true);
+            void OnEnd(BattleContext.EndReason _) => ready.TrySetResult(false);
+            battle.Client.OnStartGame += OnStart;
+            context.Ended += OnEnd;
+            try
+            {
+                return await ready.Task.AttachExternalCancellation(ct);
+            }
+            finally
+            {
+                battle.Client.OnStartGame -= OnStart;   // 胜者败者一并退——一次性等待不留悬挂订阅
+                context.Ended -= OnEnd;
+            }
+        }
 
         /// <summary>
         /// 相机是否真的就绪（"有服务"不等于"接上了 vcam"——服务常驻，vcam 随场景）。

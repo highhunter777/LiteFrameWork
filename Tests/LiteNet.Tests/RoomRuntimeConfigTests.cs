@@ -43,6 +43,7 @@ namespace LiteNet.Tests
                 gameplayDigestBase: Base);
             var outputs = new List<RoomOutput>();
             room.Execute(RoomCommand.Join(1), outputs);
+            room.Execute(RoomCommand.StartEarly(0), outputs);   // 房主开局（满员不再自动开局）
 
             MatchStarted started = null;
             foreach (RoomOutput o in outputs)
@@ -65,7 +66,8 @@ namespace LiteNet.Tests
             var outputs = new List<RoomOutput>();
 
             room.Execute(RoomCommand.Tick(123456), outputs);         // App 注入的单调毫秒（虚拟时钟形态）
-            room.Execute(RoomCommand.Join(1), outputs);              // 满员自动开局
+            room.Execute(RoomCommand.Join(1), outputs);
+            room.Execute(RoomCommand.StartEarly(0), outputs);        // 房主开局（满员不再自动开局）
 
             Assert.True(room.Started);
             Assert.NotEqual(0L, room.Seed);                          // 派生出非零种子（无需 DateTime.Now）
@@ -75,6 +77,7 @@ namespace LiteNet.Tests
             var outputs2 = new List<RoomOutput>();
             room2.Execute(RoomCommand.Tick(123456), outputs2);
             room2.Execute(RoomCommand.Join(1), outputs2);
+            room2.Execute(RoomCommand.StartEarly(0), outputs2);      // 房主开局（同上）
             Assert.Equal(room.Seed, room2.Seed);
         }
 
@@ -83,7 +86,8 @@ namespace LiteNet.Tests
         {
             var room = new RoomRuntime(new RoomConfig { Map = TestMaps.Greybox(), RoomId = "Shut", ExpectedPlayers = 1, Seed = 5 });
             var outputs = new List<RoomOutput>();
-            room.Execute(RoomCommand.Join(1), outputs);            // 满员自动开局（Running）
+            room.Execute(RoomCommand.Join(1), outputs);
+            room.Execute(RoomCommand.StartEarly(0), outputs);      // 房主开局（满员不再自动开局 → Running）
             outputs.Clear();
 
             room.Execute(RoomCommand.Shutdown(ShutdownReason.Operator), outputs);

@@ -34,7 +34,7 @@ namespace LiteNet.Tests
             room.Execute(RoomCommand.ClientInput(playerId, MoveInput(room, playerId, room.AuthSim.Frame + 1, moveX)), outputs);
         }
 
-        /// <summary>开局到 Running（2 人满员）。</summary>
+        /// <summary>开局到 Running（2 人入座 + 房主开局——满员不再自动开局）。</summary>
         private static RoomRuntime StartRunning(string roomId, long timeLimitMs = 0)
         {
             var room = new RoomRuntime(new RoomConfig { Map = TestMaps.Greybox(),
@@ -43,6 +43,7 @@ namespace LiteNet.Tests
             var outputs = new List<RoomOutput>();
             room.Execute(RoomCommand.Join(11), outputs);
             room.Execute(RoomCommand.Join(22), outputs);
+            room.Execute(RoomCommand.StartEarly(0), outputs);
             Assert.Equal(MatchPhase.Running, room.Phase);
             return room;
         }

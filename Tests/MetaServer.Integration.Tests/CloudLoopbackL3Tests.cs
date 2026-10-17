@@ -35,7 +35,7 @@ namespace MetaServer.IntegrationTests
     /// <item>房间服真注册心跳 → Meta 实例注册表（buildHash/容量/地址）；</item>
     /// <item>客户端持令牌取 Join Ticket（Meta 按容量分配实例并签发）；</item>
     /// <item>客户端真 KCP + 安全信封连**房间服真监听端口**，用票据 Join → 房间端**真验签**；</item>
-    /// <item>两人满员自动开局 → **真开火打真击杀**（走完整判定链：枪口→AimPoint 射线、命中柱、伤害、K/D）；</item>
+    /// <item>**房主发起开局**（起满员不再自动开局）→ **真开火打真击杀**（走完整判定链：枪口→AimPoint 射线、命中柱、伤害、K/D）；</item>
     /// <item>达击杀上限 → 结算冻结 → Outbox → 提交管道真 HTTP → Meta 落库；</item>
     /// <item><c>GET /matches</c> 按账号查回该局 → **与权威 Sim 逐项对账**。</item>
     /// </list>
@@ -137,7 +137,8 @@ namespace MetaServer.IntegrationTests
             _cleanup.Add(a);
             _cleanup.Add(b);
 
-            // 两人满员 → 房间自动开局（expected_players=2）
+            // 两人入座 → **房主发起开局**（起满员不再自动开局；expected_players=2）
+            a.Client.SendStartMatchRequest();
             Assert.True(WaitFor(() => a.HasStartGame && b.HasStartGame, 15_000),
                 $"StartGame 未达（room.Phase={host.Room?.Phase} seats={host.Room?.NextPlayerId}）");
 
@@ -253,6 +254,7 @@ namespace MetaServer.IntegrationTests
             _cleanup.Add(a);
             _cleanup.Add(b);
 
+            a.Client.SendStartMatchRequest();   // 房主发起开局（起满员不再自动开局）
             Assert.True(WaitFor(() => a.HasStartGame && b.HasStartGame, 20_000), "StartGame 未达（外接进程）");
 
             int kills = DriveKillsViaMirror(a, targetSlot: 1, budgetMs: 60_000, killLimit: killLimit);

@@ -27,6 +27,7 @@ namespace LiteNet.Tests
             transport.RaiseConnected(2);
             transport.RaiseData(1, JoinPacket("MailboxRoom"));
             transport.RaiseData(2, JoinPacket("MailboxRoom"));
+            transport.StartMatchAsOwner(1);                            // 房主开局（满员不再自动开局）
 
             Assert.NotNull(transport.LastJoinAck(1));
             Assert.NotNull(transport.LastJoinAck(2));
@@ -70,6 +71,8 @@ namespace LiteNet.Tests
             transport.RaiseConnected(2);
             transport.RaiseData(1, JoinPacket("PriorityRoom"));
             transport.RaiseData(2, JoinPacket("PriorityRoom"));
+            host.Pump();                                               // 先应用进房（admission 也走 Mailbox）
+            transport.StartMatchAsOwner(1);                            // 房主开局（满员不再自动开局）
             host.Pump();
             Assert.True(host.Room.Started);
 
@@ -97,6 +100,8 @@ namespace LiteNet.Tests
             host.Pump();
             transport.RaiseData(2, JoinPacket("FullRoom"));
             host.Pump();
+            transport.StartMatchAsOwner(1);                            // 房主开局（满员不再自动开局）
+            host.Pump();
             Assert.True(host.Room.Started);
 
             long before = host.Room.Gate.AcceptedCount;
@@ -122,6 +127,7 @@ namespace LiteNet.Tests
             transport.RaiseConnected(2);
             transport.RaiseData(1, JoinPacket("ReconnectMailboxRoom"));
             transport.RaiseData(2, JoinPacket("ReconnectMailboxRoom"));
+            transport.StartMatchAsOwner(1);                            // 房主开局（满员不再自动开局）
             string token = transport.LastJoinAck(1).ReconnectToken;
 
             // 旧连接仍在表中且尚未收到 OnDisconnected；重绑完成后它也必须失效。
@@ -155,6 +161,8 @@ namespace LiteNet.Tests
             host.Pump();
             transport.RaiseData(2, JoinPacket("FullRoom"));
             host.Pump();
+            transport.StartMatchAsOwner(1);                            // 房主开局（满员不再自动开局）
+            host.Pump();
             string token = transport.LastJoinAck(1).ReconnectToken;
 
             // RestoreComplete 占住唯一的 Control 槽位；重连 admission 必须拒绝，
@@ -186,6 +194,8 @@ namespace LiteNet.Tests
             transport.RaiseData(1, JoinPacket("FullRoom"));
             host.Pump();
             transport.RaiseData(2, JoinPacket("FullRoom"));
+            host.Pump();
+            transport.StartMatchAsOwner(1);                            // 房主开局（满员不再自动开局）
             host.Pump();
             Assert.True(host.Room.Started);
 

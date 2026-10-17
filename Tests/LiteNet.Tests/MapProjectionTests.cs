@@ -15,7 +15,7 @@ namespace LiteNet.Tests
     /// 地图投影双路径对账（《地图数据专项设计》§9/批4）：**服务端直读盘**（<see cref="ServerMapLoader"/>）与
     /// **客户端装载面**（`cfg.Tables` → <see cref="MapTableProjection"/>）从同一份 `tbmap.bytes` 投影出
     /// 同一张判定图——digest 相等且 == 首图快照夹具 <see cref="TestMaps.Arena01"/> 的摘要锚
-    /// （批3 实烘值 `9c3d504907d8210e`；改场景重烘后须同步夹具/本锚）。
+    /// （Arena01 围墙压低批实烘值 `18bfeb5a8b7bfb80`；改场景重烘后须同步夹具/本锚）。
     /// 另钉 fail-fast：缺表拒载、行内 digest 不符拒载（篡改字节）、缺图房间拒构（D22 必填注入）。
     /// </summary>
     public sealed class MapProjectionTests
@@ -30,7 +30,7 @@ namespace LiteNet.Tests
 
             string serverDigest = SimMapDigest.Compute(serverPath);
             Assert.Equal(serverDigest, SimMapDigest.Compute(clientPath));
-            Assert.Equal("9c3d504907d8210e", serverDigest);                       // 行内实烘锚（批3）
+            Assert.Equal("18bfeb5a8b7bfb80", serverDigest);                       // 行内实烘锚（围墙压低批）
 
             SimMapData snapshot = TestMaps.Arena01();                             // 投影 == 夹具快照（批3 遗留对账的持久形态）
             Assert.Equal(SimMapDigest.Compute(snapshot), serverDigest);
@@ -99,7 +99,7 @@ namespace LiteNet.Tests
             // 注记：不再用"尾部翻一位"——tbmap 已是多图（每图一文件，行序＝文件序），尾部字节属最后一张图。
             string path = Path.Combine(RepoRoot(), "Assets", "GameData", "Config", "Map", "tbmap.bytes");
             byte[] bytes = File.ReadAllBytes(path);
-            byte[] digestAscii = System.Text.Encoding.ASCII.GetBytes("9c3d504907d8210e");
+            byte[] digestAscii = System.Text.Encoding.ASCII.GetBytes("18bfeb5a8b7bfb80");
             int at = IndexOf(bytes, digestAscii);
             Assert.True(at >= 0, "字节流应含首图行内 digest 串");
             bytes[at] = (byte)(bytes[at] == (byte)'9' ? '8' : '9');

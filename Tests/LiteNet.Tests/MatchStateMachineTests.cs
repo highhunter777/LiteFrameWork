@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.Linq;
 using RoomServer;
 using RoomServer.Runtime;
 using Xunit;
@@ -114,7 +115,8 @@ namespace LiteNet.Tests
             });
             var outputs = new List<RoomOutput>();
             room.Execute(RoomCommand.Join(1), outputs);
-            room.Execute(RoomCommand.Join(2), outputs);                  // 满员开局（Running，EnteredMs=0）
+            room.Execute(RoomCommand.Join(2), outputs);
+            room.Execute(RoomCommand.StartEarly(0), outputs);            // 房主开局（满员不再自动开局；EnteredMs=0）
             Assert.Equal(MatchPhase.Running, room.Phase);
             outputs.Clear();
 
@@ -154,6 +156,7 @@ namespace LiteNet.Tests
             var outputs = new List<RoomOutput>();
             room.Execute(RoomCommand.Join(1), outputs);
             room.Execute(RoomCommand.Join(2), outputs);
+            room.Execute(RoomCommand.StartEarly(0), outputs);            // 房主开局（满员不再自动开局）
             Assert.Equal(MatchPhase.Running, room.Phase);
 
             room.Execute(RoomCommand.Disconnect(1), outputs);
@@ -171,6 +174,31 @@ namespace LiteNet.Tests
         }
 
         [Fact]
+        public void 未开局全员离场_中止不结算_房间可被销毁()
+        {
+            var room = new RoomRuntime(new RoomConfig { Map = TestMaps.Greybox(), RoomId = "WaitAllLeft", ExpectedPlayers = 2, Seed = 7 });
+            var outputs = new List<RoomOutput>();
+            room.Execute(RoomCommand.Join(1), outputs);
+            room.Execute(RoomCommand.Join(2), outputs);
+            Assert.Equal(MatchPhase.WaitingForPlayers, room.Phase);
+
+            room.Execute(RoomCommand.Disconnect(1), outputs);
+            Assert.Equal(MatchPhase.WaitingForPlayers, room.Phase);       // 一人离席：房间照常等（房主仍可开局）
+
+            outputs.Clear();
+            room.Execute(RoomCommand.Disconnect(2), outputs);
+            Assert.Equal(MatchPhase.Aborted, room.Phase);                 // 全员离场 → 中止（不留永驻空房）
+            Assert.Contains(outputs, o => o is MatchStateChangedOutput { From: MatchPhase.WaitingForPlayers, To: MatchPhase.Aborted });
+            Assert.DoesNotContain(outputs, o => o is SettlementReadyOutput);   // 未开局无结果可结算
+
+            // 终态判据成立 = 宿主随后的 Pump 会销毁它（容量与房号归还，同房号可重建）
+            Assert.True(room.Closed);
+            long frame = room.AuthSim.Frame;
+            room.Execute(RoomCommand.Tick(9_999), outputs);
+            Assert.Equal(frame, room.AuthSim.Frame);                      // 终态不再步进
+        }
+
+        [Fact]
         public void 未开局关闭_走中止而非结算()
         {
             var room = new RoomRuntime(new RoomConfig { Map = TestMaps.Greybox(), RoomId = "AbortEarly", ExpectedPlayers = 2, Seed = 3 });
@@ -181,6 +209,11 @@ namespace LiteNet.Tests
             room.Execute(RoomCommand.Shutdown(ShutdownReason.Operator), outputs);
             Assert.Equal(MatchPhase.Aborted, room.Phase);
             Assert.DoesNotContain(outputs, o => o is SettlementReadyOutput);
+            // 终态中止信令（问题2）：App 据此向在座客户端发 MatchEnded（EndReason 随因、无结果）——
+            // 未开局收尾的在座者由此得知散场，而非永远停在房间页。
+            var aborted = outputs.OfType<RoomAbortedOutput>().Single();
+            Assert.Equal(ShutdownReason.Operator, aborted.Reason);
+            Assert.NotEqual("", aborted.MatchId);
         }
 
         [Fact]
@@ -189,6 +222,7 @@ namespace LiteNet.Tests
             var room = new RoomRuntime(new RoomConfig { Map = TestMaps.Greybox(), RoomId = "ClosedJoin", ExpectedPlayers = 1, Seed = 9 });
             var outputs = new List<RoomOutput>();
             room.Execute(RoomCommand.Join(1), outputs);
+            room.Execute(RoomCommand.StartEarly(0), outputs);            // 房主开局（满员不再自动开局 → 关房走结算路径）
             room.Execute(RoomCommand.Shutdown(ShutdownReason.Operator), outputs);
             Assert.Equal(MatchPhase.Closed, room.Phase);
 

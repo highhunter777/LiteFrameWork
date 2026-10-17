@@ -120,5 +120,30 @@ namespace LiteNet.Tests
             transport.Deliver(PacketType.MatchEnded, Result("match-two"));
             Assert.Equal("match-two", client.MatchResult.MatchId);
         }
+
+        [Fact]
+        public void 未开局收到中止终局_也接受并通告()
+        {
+            // 等待期房间被服务器中止（等待超时/运维关闭——无结果可结算）：服务器经 MatchEnded 通知散场。
+            // 此时客户端尚无 StartGame（无活动对局号可比对——中止包带的是房间侧局号），判据退为"已进房"。
+            var transport = new Transport();
+            using var client = new RoomClient(transport);
+            client.SendJoin("Rules", "token", "build");
+            transport.Deliver(PacketType.JoinAck, new Proto.JoinAck { PlayerId = 0, ReconnectToken = "ticket" });
+
+            int notified = 0;
+            client.OnMatchEnded += _ => notified++;
+            var abort = new Proto.MatchEnded { MatchId = "room-side-match-id", FinalFrame = 0, EndReason = 5 };   // 散场形态：无玩家结果
+            transport.Deliver(PacketType.MatchEnded, abort);                          // 局号未知也须接受（未开局散场）
+            Assert.Equal(1, notified);
+            Assert.NotNull(client.MatchResult);
+            Assert.Empty(client.MatchResult.Players);
+
+            // 未开局收包不改变既有纪律：不可靠通道的终局仍被忽略（真服中止信令恒 Reliable）
+            client.SendJoin("Rules", "token", "build");   // 新一局：清结果、回未开局态
+            transport.Deliver(PacketType.JoinAck, new Proto.JoinAck { PlayerId = 1, ReconnectToken = "t2" });
+            transport.Deliver(PacketType.MatchEnded, Result("x"), reliable: false);
+            Assert.Null(client.MatchResult);
+        }
     }
 }

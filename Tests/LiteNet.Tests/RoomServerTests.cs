@@ -14,7 +14,7 @@ namespace LiteNet.Tests
 {
     /// <summary>
     /// RoomServer 验收用例（《M10 实施指导》§2.5/2.6）：
-    /// Join 信令（buildHash 拒绝与放行/满员自动 StartGame）/ 输入两层校验（非法帧号丢弃）/ 权威循环推帧
+    /// Join 信令（buildHash 拒绝与放行/房主开局 StartGame）/ 输入两层校验（非法帧号丢弃）/ 权威循环推帧
     /// （真实输入驱动状态变化）/ 掉线沿用不停帧。全部 .NET 侧闭环（同运行时红线，M9 决策⑩）。
     /// 形态：ServerHost 同进程内嵌 + 真实 KCP UDP 客户端（127.0.0.1 回环）。
     /// </summary>
@@ -46,8 +46,9 @@ namespace LiteNet.Tests
                 Assert.Equal(i, JoinPlayerId(room, i));              // 席位按配置容量分配（命令面）
             Assert.Equal(-1, JoinPlayerId(room, 99));                // 满员：第五人被拒
             Assert.Equal(new[] { 0, 1, 2, 3 }, room.MemberIds());
+            room.Execute(RoomCommand.StartEarly(0), new List<RoomOutput>());   // 房主开局（满员不再自动开局）
 
-            Assert.Equal(12345L, room.Seed);                          // 满员自动开局，seed 走固定配置
+            Assert.Equal(12345L, room.Seed);                          // 房主开局，seed 走固定配置
             Assert.True(room.Started);
             for (int i = 0; i < 4; i++) Assert.True(room.EntityIdOf(i) != 0L);   // 4 个实体都已生成
         }
@@ -138,6 +139,13 @@ namespace LiteNet.Tests
                     new Proto.JoinRequest { RoomId = RoomConfig.Default().RoomId, Token = "test", BuildHash = hash })), true);
         }
 
+        /// <summary>房主开局（**真实 wire 路径**：StartMatchRequest 空载荷）——满员不再自动开局。</summary>
+        private static void SendStartMatch(KcpTransportClient client)
+        {
+            client.Send(new ArraySegment<byte>(
+                PacketCodec.Encode(PacketType.StartMatchRequest, new Proto.StartMatchRequest())), true);
+        }
+
         // ---- 用例 ----
 
         [Fact]
@@ -158,7 +166,7 @@ namespace LiteNet.Tests
         }
 
         [Fact]
-        public void 满员自动StartGame_双方收到广播()
+        public void 房主开局_双方收到StartGame广播()
         {
             var c1 = ConnectClient();
             var c2 = ConnectClient();
@@ -168,10 +176,12 @@ namespace LiteNet.Tests
             sg2.Wire(c2);
 
             SendJoin(c1, ServerHost.ServerBuildHash);
-            SendJoin(c2, ServerHost.ServerBuildHash);   // 满员（2 人）触发 StartGame
-            Assert.True(WaitFor(() => _host.Room.Started), "满员后未 StartGame");
+            SendJoin(c2, ServerHost.ServerBuildHash);
+            Assert.True(WaitFor(() => _host.Room.NextPlayerId >= 2), "两席应就位");
+            SendStartMatch(c1);                          // 房主开局（满员不再自动开局）
+            Assert.True(WaitFor(() => _host.Room.Started), "房主开局后未 StartGame");
 
-            // 两个客户端都应收到 StartGame 广播（满员触发一次；后加入者靠 JoinAck+StartGame 对齐）
+            // 两个客户端都应收到 StartGame 广播（触发一次；后加入者靠 JoinAck+StartGame 对齐）
             Pump(400);
             Assert.True(sg1.Count > 0 || sg2.Count > 0, "StartGame 广播未达任何客户端");
         }
@@ -183,6 +193,8 @@ namespace LiteNet.Tests
             var c2 = ConnectClient();
             SendJoin(c1, ServerHost.ServerBuildHash);
             SendJoin(c2, ServerHost.ServerBuildHash);
+            Assert.True(WaitFor(() => _host.Room.NextPlayerId >= 2), "两席应就位");
+            SendStartMatch(c1);                          // 房主开局（满员不再自动开局）
             bool started = WaitFor(() => _host.Room.Started);
             Assert.True(started, $"未 StartGame（NextPlayerId={_host.Room.NextPlayerId} Started={_host.Room.Started}）");
 
@@ -228,6 +240,8 @@ namespace LiteNet.Tests
             var c2 = ConnectClient();
             SendJoin(c1, ServerHost.ServerBuildHash);
             SendJoin(c2, ServerHost.ServerBuildHash);
+            Assert.True(WaitFor(() => _host.Room.NextPlayerId >= 2), "两席应就位");
+            SendStartMatch(c1);                          // 房主开局（满员不再自动开局）
             Assert.True(WaitFor(() => _host.Room.Started));
 
             // 非法输入：负帧号 + 超前帧号（当前帧 + 100）

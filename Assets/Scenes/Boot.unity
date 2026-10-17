@@ -218,11 +218,11 @@ MonoBehaviour:
   WorldPaused: 0
   UiPaused: 0
   StrictMode: 1
-  UseLocalServer: 1
+  UseLocalServer: 0
   DirectToTraining: 0
   WorkbenchMode: 0
   DevMenu: 0
-  NoDeath: 1
+  NoDeath: 0
   InfiniteAmmo: 0
   LaserSight: 1
   DamageNumbers: 1
@@ -243,7 +243,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 8714eaadc08bc2b47a8d0325801c7cf4, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  showStats: 1
+  showStats: 0
   statToggles:
   - statsName: MainThreadDispatcher
     show: 1
@@ -257,9 +257,9 @@ MonoBehaviour:
     show: 1
   - statsName: Lua
     show: 1
-  showLogRecent: 1
+  showLogRecent: 0
   logRecentLines: 10
-  showErrorsLine: 1
+  showErrorsLine: 0
 --- !u!1 &1312961410
 GameObject:
   m_ObjectHideFlags: 0

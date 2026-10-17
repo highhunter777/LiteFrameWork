@@ -110,6 +110,13 @@ namespace LiteNet.Tests
                 new JoinRequest { RoomId = roomId, Token = "test", BuildHash = ServerHost.ServerBuildHash })), true);
         }
 
+        /// <summary>房主开局（**真实 wire 路径**：StartMatchRequest 空载荷）——满员不再自动开局。</summary>
+        private static void SendStartMatch(KcpTransportClient owner)
+        {
+            owner.Send(new ArraySegment<byte>(PacketCodec.Encode(PacketType.StartMatchRequest,
+                new Proto.StartMatchRequest())), true);
+        }
+
         // ---- 用例 ----
 
         [Fact]
@@ -143,16 +150,19 @@ namespace LiteNet.Tests
         }
 
         [Fact]
-        public void 真实传输_A房满员开局_不影响B房()
+        public void 真实传输_A房房主开局_不影响B房()
         {
             var c1 = ConnectClient();
             var c2 = ConnectClient();
             var c3 = ConnectClient();
+            var ack1 = new Inbox<Proto.JoinAck>(); ack1.Wire(c1, PacketType.JoinAck);
             SendJoin(c1, "Room-A");
-            SendJoin(c2, "Room-A");                        // A 房满员
+            SendJoin(c2, "Room-A");                        // A 房满员（不再自动开局）
             SendJoin(c3, "Room-B");                        // B 房 1 人
 
-            Assert.True(WaitFor(() => _host.TryGetRoom("Room-A", out var a) && a.Started), "A 房应满员开局");
+            Assert.True(WaitFor(() => ack1.Count > 0), "c1 应收到 JoinAck（会话绑定房间）");
+            SendStartMatch(c1);                            // A 房房主开局（满员不再自动开局）
+            Assert.True(WaitFor(() => _host.TryGetRoom("Room-A", out var a) && a.Started), "A 房应房主开局");
             Assert.True(_host.TryGetRoom("Room-B", out RoomRuntime roomB));
             Assert.False(roomB.Started, "B 房不应被 A 房带着开局");
             Assert.Equal(1, roomB.NextPlayerId);
@@ -168,11 +178,16 @@ namespace LiteNet.Tests
             var c4 = ConnectClient();
             var snapA = new Inbox<Proto.StateSnapshot>(); snapA.Wire(c1, PacketType.StateSnapshot);
             var snapB = new Inbox<Proto.StateSnapshot>(); snapB.Wire(c3, PacketType.StateSnapshot);
+            var ack1 = new Inbox<Proto.JoinAck>(); ack1.Wire(c1, PacketType.JoinAck);
+            var ack3 = new Inbox<Proto.JoinAck>(); ack3.Wire(c3, PacketType.JoinAck);
 
             SendJoin(c1, "Room-A");
             SendJoin(c2, "Room-A");
             SendJoin(c3, "Room-B");
             SendJoin(c4, "Room-B");
+            Assert.True(WaitFor(() => ack1.Count > 0 && ack3.Count > 0), "两房房主应收到 JoinAck");
+            SendStartMatch(c1);                            // A 房房主开局（满员不再自动开局）
+            SendStartMatch(c3);                            // B 房房主开局
 
             Assert.True(WaitFor(() => _host.TryGetRoom("Room-A", out var a) && a.Started && a.AuthSim.Frame > 3),
                 "A 房应开局并推帧");
@@ -199,9 +214,10 @@ namespace LiteNet.Tests
             c1.Disconnect();
             Pump(400);
 
-            Assert.True(_host.TryGetRoom("Room-A", out RoomRuntime roomA));
+            // A 房 1 人未开局即全员离场 → Abort + 销毁（房间永驻批新契约：不留永驻空房）——
+            // 不再是旧的"席位保持 Disconnected、房间驻留"形态；隔离判据 = B 房完全不受牵连。
+            Assert.False(_host.TryGetRoom("Room-A", out _), "A 房未开局全员离场应收尾销毁（房间永驻批新契约）");
             Assert.True(_host.TryGetRoom("Room-B", out RoomRuntime roomB));
-            Assert.Equal(SeatPhase.Disconnected, roomA.SeatOf(0).Phase);
             Assert.Equal(SeatPhase.Active, roomB.SeatOf(0).Phase);   // B 房不受牵连
         }
 
@@ -210,8 +226,11 @@ namespace LiteNet.Tests
         {
             var c1 = ConnectClient();
             var c2 = ConnectClient();
+            var ack1 = new Inbox<Proto.JoinAck>(); ack1.Wire(c1, PacketType.JoinAck);
             SendJoin(c1, "Room-A");
-            SendJoin(c2, "Room-A");                        // A 房满员开局
+            SendJoin(c2, "Room-A");                        // A 房满员（不再自动开局）
+            Assert.True(WaitFor(() => ack1.Count > 0), "c1 应收到 JoinAck（会话绑定房间）");
+            SendStartMatch(c1);                            // A 房房主开局（满员不再自动开局）
             Assert.True(WaitFor(() => _host.TryGetRoom("Room-A", out var a) && a.Started));
 
             _host.BeginDrain(_host.CurrentMs + 10_000);    // §12 第 2 步

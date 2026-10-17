@@ -106,11 +106,12 @@ settings.SetQuality = function(i) settings.quality = i; calls[#calls + 1] = 'Set
 settings.Save = function() calls[#calls + 1] = 'Save' end
 
 -- room 面（点调用；全局——房主开局批：页面订阅房主事实/发提前开局；席位实时面批：页面订阅席位名单；
--- 测试手动驱动 owner_fn/members_fn 模拟回放与迁移）
+-- 测试手动驱动 owner_fn/members_fn 模拟回放与迁移；房规模拉取形同 settings.Quality——房间页等待人数分母）
 room = {}
 room.OnOwner = function(fn) room.owner_fn = fn end
 room.StartMatch = function(cb) calls[#calls + 1] = 'StartMatch'; room.start_fn = cb end
 room.OnMembers = function(fn) room.members_fn = fn end
+room.ExpectedPlayers = function() return room.expected end
 
 -- data 面（开房参数批：选图下拉的候选目录 = 地图表全行；此处桩两行钉表序与字段名）
 local bridgeData = {}
@@ -324,7 +325,7 @@ buttons['Button_Leave']()");
                 StringAssert.Contains("KeyArgs:Txt_RoomId=UI.Room.Info(Room-A,nil)", calls, "房号 = 导航数据进文案键");
                 StringAssert.Contains("Replace:UI.Page_Lobby", calls, "离开 = 回大厅（§3）");
                 StringAssert.Contains("LeaveMatch", calls, "并请流程收尾（Match/Battle 阶段取消释放）");
-                StringAssert.Contains("Visible:Txt_State=false", calls, "等待人数 = 席位实时面（挂批C-⑥）");
+                StringAssert.Contains("Visible:Txt_State=false", calls, "未收到席位快照 → 保持隐藏（不显假数）");
             }
         }
 
@@ -559,22 +560,46 @@ page2:OnShow({ reason = 'TimeLimit', kills = 1, deaths = 3, rank = 0 })");
         }
 
         [Test]
-        public void 房间页_等待人数回查投影()
+        public void 房间页_等待人数读本房席位面()
         {
             using (var env = NewEnv())
             {
                 env.DoString(@"
+room.expected = 4
 page = NewPage('UI.Page_Room')
 page:OnShow({ roomId = 'Room-A' })");
-                StringAssert.Contains("Visible:Txt_State=false", Calls(env), "先隐藏（不显假数）");
+                StringAssert.DoesNotContain("Visible:Txt_State=true", Calls(env),
+                    "未收到席位快照（本机在座 ⇒ 空名单只可能是未到）→ 保持隐藏，不显假数");
 
-                env.DoString("meta.cb_rooms(true, { { roomId = 'Room-X', players = 1, expectedPlayers = 6 } })");
-                StringAssert.Contains("Visible:Txt_State=false", Calls(env), "投影无本房 → 保持隐藏");
+                env.DoString(@"
+calls = {}
+room.members_fn({ { playerId = 0, name = '玩家1', online = true } })");
+                string one = Calls(env);
+                StringAssert.Contains("Visible:Txt_State=true", one);
+                StringAssert.Contains("KeyArgs:Txt_State=UI.Room.Waiting(1,4)", one,
+                    "分子 = 席位面条数、分母 = 房规模（JoinAck）");
 
-                env.DoString("meta.cb_rooms(true, { { roomId = 'Room-A', players = 3, expectedPlayers = 8 } })");
-                string calls = Calls(env);
-                StringAssert.Contains("Visible:Txt_State=true", calls);
-                StringAssert.Contains("KeyArgs:Txt_State=UI.Room.Waiting(3,8)", calls, "等待人数 = 投影回查（无新协议）");
+                env.DoString(@"
+calls = {}
+room.members_fn({ { playerId = 0, name = '玩家1', online = true },
+                  { playerId = 1, name = '玩家2', online = true } })");
+                StringAssert.Contains("KeyArgs:Txt_State=UI.Room.Waiting(2,4)", Calls(env),
+                    "第二人进房 → 席位广播即刷（不再等心跳/重查大厅投影）");
+
+                env.DoString(@"
+calls = {}
+room.members_fn({ { playerId = 0, name = '玩家1', online = true },
+                  { playerId = 1, name = '玩家2', online = false } })");
+                StringAssert.Contains("KeyArgs:Txt_State=UI.Room.Waiting(2,4)", Calls(env),
+                    "断线席位仍占座 ⇒ 计数不因一次掉线回退（与名单同帧）");
+
+                env.DoString(@"
+calls = {}
+room.expected = 0
+room.members_fn({ { playerId = 0, name = '玩家1', online = true } })");
+                string noExpected = Calls(env);
+                StringAssert.Contains("Visible:Txt_State=false", noExpected, "房规模未标注（0）→ 隐藏");
+                StringAssert.DoesNotContain("KeyArgs:Txt_State", noExpected, "不显 /0 假数");
             }
         }
 

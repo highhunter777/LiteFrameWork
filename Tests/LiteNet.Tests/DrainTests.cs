@@ -85,7 +85,8 @@ namespace LiteNet.Tests
 
             h.t.RaiseConnected(1); h.t.RaiseConnected(2);
             h.t.RaiseData(1, Join("Room-A"));
-            h.t.RaiseData(2, Join("Room-A"));             // 满员开局
+            h.t.RaiseData(2, Join("Room-A"));
+            h.t.StartMatchAsOwner(1);                     // 房主开局（满员不再自动开局）
             host.TryGetRoom("Room-A", out RoomRuntime room);
             Assert.True(room.Started);
 
@@ -107,6 +108,7 @@ namespace LiteNet.Tests
             h.t.RaiseConnected(1); h.t.RaiseConnected(2);
             h.t.RaiseData(1, Join("Room-A"));
             h.t.RaiseData(2, Join("Room-A"));
+            h.t.StartMatchAsOwner(1);                     // 房主开局（满员不再自动开局）
             JoinAck ack = h.t.LastJoinAck(1);
             Assert.NotNull(ack);
 
@@ -132,6 +134,7 @@ namespace LiteNet.Tests
             h.t.RaiseConnected(1); h.t.RaiseConnected(2);
             h.t.RaiseData(1, Join("Room-A"));
             h.t.RaiseData(2, Join("Room-A"));
+            h.t.StartMatchAsOwner(1);                     // 房主开局（满员不再自动开局）
             host.TryGetRoom("Room-A", out RoomRuntime room);
 
             host.BeginDrain(10_000);
@@ -155,6 +158,7 @@ namespace LiteNet.Tests
             h.t.RaiseConnected(1); h.t.RaiseConnected(2);
             h.t.RaiseData(1, Join("Room-A"));
             h.t.RaiseData(2, Join("Room-A"));             // 对局进行中，不会自己结束
+            h.t.StartMatchAsOwner(1);                     // 房主开局（满员不再自动开局）
             host.TryGetRoom("Room-A", out RoomRuntime room);
 
             // 截止时刻取"现在"——下一帧即超时
@@ -177,6 +181,7 @@ namespace LiteNet.Tests
             h.t.RaiseConnected(1); h.t.RaiseConnected(2);
             h.t.RaiseData(1, Join("Room-A"));
             h.t.RaiseData(2, Join("Room-A"));
+            h.t.StartMatchAsOwner(1);                     // 房主开局（满员不再自动开局）
             host.TryGetRoom("Room-A", out RoomRuntime room);
 
             host.BeginDrain(0);
@@ -316,6 +321,7 @@ namespace LiteNet.Tests
                 t.RaiseConnected(1); t.RaiseConnected(2);
                 t.RaiseData(1, Join("Room-A"));
                 t.RaiseData(2, Join("Room-A"));
+                t.StartMatchAsOwner(1);                   // 房主开局（满员不再自动开局）
                 host.TryGetRoom("Room-A", out RoomRuntime room);
                 Assert.True(room.Started);
 

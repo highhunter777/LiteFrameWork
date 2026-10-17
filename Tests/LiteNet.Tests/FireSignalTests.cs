@@ -80,6 +80,7 @@ namespace LiteNet.Tests
             int p0 = Join(room, new Session(1, 0), seats);
             int p1 = Join(room, new Session(2, 0), seats);
             Assert.True(p0 == 0 && p1 == 1, $"席位列: {p0}/{p1}");
+            room.Execute(RoomCommand.StartEarly(0), new List<RoomOutput>());   // 房主开局（满员不再自动开局）
 
             room.Execute(RoomCommand.Tick(0), outputs);              // 帧 1：懒装备
             pipeline.BroadcastIfDue(room.AuthSim.Frame, room.AuthSim, room.Gate, room.EntityIdOf);   // 抽帧序 1（不播）

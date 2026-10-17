@@ -84,6 +84,7 @@ namespace LiteNet.Tests
             int p0 = Join(room, new Session(1, 0), seats);
             int p1 = Join(room, new Session(2, 0), seats);
             Assert.True(p0 == 0 && p1 == 1, $"席位列: {p0}/{p1}；started={room.Started} phase={room.Phase}");
+            room.Execute(RoomCommand.StartEarly(0), new List<RoomOutput>());   // 房主开局（满员不再自动开局）
 
             room.Execute(RoomCommand.Tick(0), outputs);              // 帧 1：懒装备（两端各装备槽 0 默认武器）
             Assert.True(room.AuthSim.Frame == 1,
@@ -135,6 +136,7 @@ namespace LiteNet.Tests
             int p0 = Join(room, new Session(1, 0), seats);
             int p1 = Join(room, new Session(2, 0), seats);
             Assert.True(p0 == 0 && p1 == 1, $"席位列: {p0}/{p1}");
+            room.Execute(RoomCommand.StartEarly(0), new List<RoomOutput>());   // 房主开局（满员不再自动开局）
 
             room.Execute(RoomCommand.Tick(0), outputs);              // 帧 1：懒装备
 
