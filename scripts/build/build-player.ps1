@@ -17,12 +17,14 @@
 #     passing, so the backend switch uses eval_file calling the Unity API
 #     directly (same pattern as scripts/gate/l2-unity-gate.ps1).
 # Usage: powershell -NoProfile -File scripts/build/build-player.ps1 -Profile BuildProfiles/windows-x64.json
+#        -SkipBundles skips step 3c (builtin content bundles) - code-only iterations only.
 # ─────────────────────────────────────────────────────────────────────────────
 [CmdletBinding()]
 param(
     [string]$ProjectPath = '',
     [string]$Profile = 'BuildProfiles/windows-x64.json',
-    [switch]$SkipRestoreCheck
+    [switch]$SkipRestoreCheck,
+    [switch]$SkipBundles
 )
 
 if ([string]::IsNullOrWhiteSpace($ProjectPath)) {
@@ -168,6 +170,71 @@ if (System.IO.File.Exists(abs)) { System.IO.File.Delete(abs); UnityEditor.AssetD
 return "deleted (or absent): " + abs;
 '@ | Out-Null
     }
+}
+
+# ── 3c. builtin content bundles (Offline) ────────────────────────────────────
+# The player reads content (tables/scenes/prefabs/art) through the content system,
+# i.e. from YooAsset bundles copied into StreamingAssets/yoo -- NOT from loose files.
+# So this must run BEFORE the player build, otherwise the PREVIOUS content is baked in.
+# Field evidence (2026-10-17): table tbitemconfig.bytes entered the repo on 10-11 while
+# StreamingAssets/yoo still held the 10-03 build -> the shipped exe failed at boot with
+# "BOOT FAILED 配置文件加载失败:Assets/GameData/Config/Item/tbitemconfig.bytes".
+# Default = always build (a stale package is a silent trap); -SkipBundles is the
+# explicit escape hatch for code-only iterations.
+if ($SkipBundles) {
+    Write-Host '== bundles: SKIPPED (-SkipBundles; packaged content may be stale) ==' -ForegroundColor Yellow
+}
+elseif ($prof.platform -ne 'StandaloneWindows64') {
+    # BuiltinBundleBuildInvoker builds the Windows content set; other targets would need
+    # their own invoker call. Fail loud rather than silently shipping the wrong platform.
+    Write-Host "== bundles: profile platform is $($prof.platform) - only StandaloneWindows64 content is wired; use -SkipBundles to acknowledge ==" -ForegroundColor Red
+    exit 1
+}
+else {
+    Write-Host '== bundles: build builtin content bundles (Offline) ==' -ForegroundColor Cyan
+    $bundleCsPath = Join-Path $ProjectPath 'Temp\build-bundles.cs'
+    $bundleCs = @'
+public static class BuildBundles
+{
+    public static string Start()
+    {
+        LiteGame.EditorTools.BuiltinBundleBuildInvoker.RunAsync();
+        return LiteGame.EditorTools.BuiltinBundleBuildInvoker.Status;
+    }
+
+    public static string Status()
+    {
+        return LiteGame.EditorTools.BuiltinBundleBuildInvoker.Status
+             + " | out=" + LiteGame.EditorTools.BuiltinBundleBuildInvoker.LastOutputDirectory;
+    }
+}
+'@
+    [System.IO.File]::WriteAllText($bundleCsPath, $bundleCs, (New-Object System.Text.UTF8Encoding($false)))
+    Invoke-Pipeline 'run_script' @('--file', 'Temp/build-bundles.cs', '--entry', 'BuildBundles.Start') | Out-Null
+
+    # SBP build runs on the editor main thread; poll Status (same contract the invoker
+    # documents) instead of blocking the pipeline call beyond its main-thread window.
+    $bundleTimeoutSec = 1200
+    $bundlePolls = 0
+    $bundleState = ''
+    while (($bundlePolls * 10) -lt $bundleTimeoutSec) {
+        Start-Sleep -Seconds 10
+        $bundlePolls++
+        $bundleState = Invoke-Pipeline 'run_script' @('--file', 'Temp/build-bundles.cs', '--entry', 'BuildBundles.Status')
+        Write-Host ("  [{0:mm\:ss}] {1}" -f [TimeSpan]::FromSeconds($bundlePolls * 10), $bundleState) -ForegroundColor DarkGray
+        if ($bundleState -match '"result":"(success|failed)') { break }
+    }
+    if ($bundleState -notmatch '"result":"success') {
+        # Print just the invoker's message line, not the whole pipeline JSON (the failure
+        # text carries a full stack trace). "during play mode" is the most common cause:
+        # SBP builds cannot run while the editor is playing -- stop Play and retry.
+        $detail = if ($bundleState -match '"result":"([^"]*)') { $Matches[1] } else { $bundleState }
+        Write-Host "bundles not built: $detail" -ForegroundColor Red
+        Write-Host '  hint: if the editor is in Play mode, stop Play and retry (SBP cannot build during play).' -ForegroundColor Yellow
+        Write-Host '  to proceed without fresh content anyway: -SkipBundles' -ForegroundColor Yellow
+        exit 1
+    }
+    Write-Host '  bundles OK' -ForegroundColor Green
 }
 
 # ── 4. dry run validation ────────────────────────────────────────────────────
