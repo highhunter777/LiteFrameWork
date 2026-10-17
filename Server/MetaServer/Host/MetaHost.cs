@@ -1,35 +1,21 @@
 using System;
 using System.Collections.Generic;
-using System.IO;
-using System.Threading;
 using System.Threading.Tasks;
-using MetaServer.Contracts.Auth;
-using MetaServer.Contracts.Persistence;
-using MetaServer.Infrastructure.Persistence;
-using MetaServer.Infrastructure.Persistence.Mongo;
-using MetaServer.Modules.Auth;
-using MetaServer.Modules.Lobby;
-using MetaServer.Modules.Profile;
 using Microsoft.AspNetCore.Builder;
-using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Http;
-using Microsoft.AspNetCore.Http.Features;
-using Microsoft.AspNetCore.Routing;
-using Microsoft.AspNetCore.Server.Kestrel.Core;
-using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
-using MongoDB.Bson;
-using MongoDB.Driver;
 
 namespace MetaServer
 {
     /// <summary>
     /// Meta 宿主装配（《Meta 服务专项设计》§4.1/§4.2、服务端总设计 §12）。
     ///
-    /// 本宿主承载基础设施与已落地的 Auth 首批（游客登录）；Lobby/Profile 仍按 G3 逐项接入。
+    /// 本宿主只做**编排**：选项接线段归 <see cref="MetaHostOptions"/>、模块注册归
+    /// <see cref="MetaServiceRegistration"/>；本文件保留公共装配入口、中间件与端点挂载序、
+    /// 优雅关闭与命令行解析（《服务端宿主结构拆分专项设计》批 7A）。
     ///
     /// 与 RoomServer 的关系：两条线共用同一套 Host/Options/`IHostedService`/Cancellation/优雅关闭
     /// 纪律（§4.1 依据 2）；`RoomServer.Host` 的 Generic Host 化归 R2，届时可反向参照本文件。
@@ -49,170 +35,23 @@ namespace MetaServer
         /// （否则测的不是交付物）。
         ///
         /// 配置优先级（后者覆盖前者）：代码内联默认值 → `appsettings.json` → `META_` 环境变量
-        /// → <paramref name="overrides"/>（命令行/测试，§10"命令行只用于本地覆盖"）。
-        ///
-        /// **单一来源**：配置只由 Options 管线持有一份，消费方一律经 `IOptions&lt;MetaConfig&gt;` 取用；
-        /// 校验器校验的正是这同一实例。任何"另注册一个 MetaConfig 单例"的写法都会造成
-        /// 两套实例、校验器验的是没人用的对象（2026-09-25 实测缺陷，见 <see cref="MetaConfig"/> 注释）。
+        /// → <paramref name="overrides"/>（命令行/测试，§10"命令行只用于本地覆盖"）；
+        /// 来源与 Options 接线在 <see cref="MetaHostOptions"/>，模块注册在 <see cref="MetaServiceRegistration"/>。
         /// </summary>
         public static WebApplication Build(string[] args, IReadOnlyDictionary<string, string> overrides = null)
         {
             WebApplicationBuilder builder = WebApplication.CreateBuilder(args ?? Array.Empty<string>());
+            MetaHostOptions.Configure(builder, overrides);
 
-            // Generic Host 在 Windows 上可能自动装配 EventLog provider。非管理员进程写入
-            // 默认的 ".NET Runtime" source 会在宿主启动失败时再次抛异常，把真正的迁移/依赖
-            // 失败包装成 AggregateException，破坏 fail-closed 的稳定错误语义。Meta 服务的
-            // 结构化日志出口当前是控制台（正式 OTel/Prometheus 归 R4），因此明确移除
-            // EventLog，保证日志故障不会遮蔽原始启动异常。
-            builder.Logging.ClearProviders();
-            builder.Logging.AddConsole();
-
-            // ---- 配置来源（§10）----
-            string configPath = Path.Combine(AppContext.BaseDirectory, "appsettings.json");
-            builder.Configuration.AddJsonFile(configPath, optional: true, reloadOnChange: false);
-            builder.Configuration.AddEnvironmentVariables("META_");
-            if (overrides != null) builder.Configuration.AddInMemoryCollection(overrides);
-
-            // ---- Options：绑定 + 范围校验 + ValidateOnStart（§10）----
-            builder.Services.AddSingleton<IValidateOptions<MetaConfig>, MetaConfigValidator>();
-            builder.Services.AddOptions<MetaConfig>()
-                .Bind(builder.Configuration.GetSection(ConfigSection))
-                .ValidateOnStart();
-
-            // ---- 入站请求体上限（§5 P0-3"包体在解析前限制长度"）----
-            // 必须在解析前拒绝，故同时落 Kestrel 层与表单层。
-            builder.Services.AddOptions<KestrelServerOptions>()
-                .Configure<IOptions<MetaConfig>>((kestrel, meta) =>
-                    kestrel.Limits.MaxRequestBodySize = meta.Value.MaxInboundBytes);
-            builder.Services.AddOptions<FormOptions>()
-                .Configure<IOptions<MetaConfig>>((form, meta) =>
-                    form.MultipartBodyLengthLimit = meta.Value.MaxInboundBytes);
-
-            // ---- 关闭时限（§10 优雅关闭）。默认 30s，须由配置决定而非写死。----
-            builder.Services.AddOptions<HostOptions>()
-                .Configure<IOptions<MetaConfig>>((host, meta) =>
-                    host.ShutdownTimeout = TimeSpan.FromSeconds(meta.Value.ShutdownTimeoutSeconds));
-
-            // 功能门只用于决定是否注册真实存储/业务服务；消费值仍从 IOptions 读取。
-            MetaConfig boot = builder.Configuration.GetSection(ConfigSection).Get<MetaConfig>() ?? new MetaConfig();
-
-            // ---- 观测面（§11.2）：进程级单例，计数就地累加 ----
-            builder.Services.AddSingleton<Ops>();
-
-            // ---- Auth 首批（配置密钥才启用；真实账号存储在 Mongo 装配块内）----
-            if (!string.IsNullOrWhiteSpace(boot.AuthSigningKeyBase64))
-            {
-                builder.Services.AddSingleton(sp =>
-                {
-                    MetaConfig meta = sp.GetRequiredService<IOptions<MetaConfig>>().Value;
-                    return new AccessTokenService(
-                        Convert.FromBase64String(meta.AuthSigningKeyBase64),
-                        meta.AuthKeyId,
-                        meta.AuthAudience,
-                        meta.AuthTokenTtlSeconds,
-                        () => DateTimeOffset.UtcNow.ToUnixTimeMilliseconds());
-                });
-            }
-
-            // ---- Lobby（R3：实例注册 + Join Ticket 签发；配置密钥才启用，消费值同走 IOptions）----
-            bool lobbyConfigured = !string.IsNullOrWhiteSpace(boot.LobbyInstanceKeyBase64)
-                && !string.IsNullOrWhiteSpace(boot.LobbyTicketKeyBase64);
-            if (lobbyConfigured)
-            {
-                builder.Services.AddSingleton(sp =>
-                {
-                    MetaConfig meta = sp.GetRequiredService<IOptions<MetaConfig>>().Value;
-                    return new InstanceRegistry(
-                        meta.LobbyRegistryCapacity,
-                        meta.LobbyHeartbeatTtlSeconds * 1000L,
-                        () => DateTimeOffset.UtcNow.ToUnixTimeMilliseconds());
-                });
-                builder.Services.AddSingleton(sp =>
-                {
-                    MetaConfig meta = sp.GetRequiredService<IOptions<MetaConfig>>().Value;
-                    return new LobbyTicketSigner(
-                        meta.LobbyTicketKeyId,
-                        Convert.FromBase64String(meta.LobbyTicketKeyBase64),
-                        meta.LobbyTicketAudience);
-                });
-                builder.Services.AddSingleton(sp =>
-                {
-                    MetaConfig meta = sp.GetRequiredService<IOptions<MetaConfig>>().Value;
-                    return new JoinTicketIssueUseCase(
-                        sp.GetRequiredService<InstanceRegistry>(),
-                        sp.GetRequiredService<LobbyTicketSigner>(),
-                        meta.LobbyDefaultRoomId,
-                        meta.LobbyTicketTtlSeconds * 1000L,
-                        () => DateTimeOffset.UtcNow.ToUnixTimeMilliseconds());
-                });
-                builder.Services.AddSingleton(sp => new CreateRoomUseCase(
-                    sp.GetRequiredService<JoinTicketIssueUseCase>(),
-                    sp.GetRequiredService<InstanceRegistry>(),
-                    () => DateTimeOffset.UtcNow.ToUnixTimeMilliseconds()));
-            }
-
-            // ---- 持久化装配（M0-c 批二）----
-            // 功能门：配置了 Mongo 连接串才注册（§10"缺真实依赖拒绝启动或拒绝相应功能"——
-            // 本处取后者：功能关闭＝样例端点 503、/ready 不检存储）。**门读**用 ConfigurationBinder
-            // 绑同一节，**消费值**一律经 IOptions（避免 2026-09-25 实测过的双实例失效——见 MetaConfig 注释）。
-            if (!string.IsNullOrWhiteSpace(boot.MongoConnectionString))
-            {
-                builder.Services.AddSingleton(sp =>
-                {
-                    MetaConfig meta = sp.GetRequiredService<IOptions<MetaConfig>>().Value;
-                    MongoClientSettings settings =
-                        MongoClientSettings.FromUrl(MongoUrl.Create(meta.MongoConnectionString));
-                    settings.ServerSelectionTimeout =
-                        TimeSpan.FromMilliseconds(meta.MongoServerSelectionTimeoutMs);
-                    return (MongoDB.Driver.IMongoClient)new MongoClient(settings);
-                });
-                builder.Services.AddSingleton(sp => sp.GetRequiredService<MongoDB.Driver.IMongoClient>()
-                    .GetDatabase(sp.GetRequiredService<IOptions<MetaConfig>>().Value.MongoDatabaseName));
-                builder.Services.AddSingleton<MetaServer.Contracts.Persistence.ISettlementLedger>(sp =>
-                    new MongoSettlementLedger(sp.GetRequiredService<MongoDB.Driver.IMongoDatabase>()));
-                builder.Services.AddSingleton<IAccountStore>(sp =>
-                    new MongoAccountStore(
-                        sp.GetRequiredService<MongoDB.Driver.IMongoDatabase>(),
-                        () => DateTime.UtcNow));
-                // **Outbox/Inbox 端口「装配退役」（P3）**：`IOutboxStore` + `MongoOutboxStore` 是 G1 的
-                // "只建接缝"交付物（Meta 专项 §14-G1：必要存储端口 + 迁移/幂等约束 + 故障夹具），
-                // 端口契约与实现均已就绪、L1（内存替身）+ L3（真 Mongo，含重启/唯一索引）已实证——
-                // 但**当前没有任何生产消费者**：Meta 的结算路径是"事务内落账 + 由 RoomServer 侧 Outbox
-                // 承担重试"，Meta 自身没有外发写，因此不需要自己的 Outbox。
-                // 一个注册了却没人解析的服务，会让人以为该功能已在跑（审计 P3 点名的"死装配"），
-                // 故**不在此注册**。G3 接入 Meta 外发写时：此处补一行 `AddSingleton<IOutboxStore>`，
-                // 并在 §10 优雅关闭第 3 步（刷新 Outbox）与 `/ready`（Outbox 未超阈）处接线。
-                builder.Services.AddSingleton<MetaServer.Contracts.Persistence.ISchemaVersionStore, MongoSchemaVersionStore>();
-                builder.Services.AddSingleton<MetaServer.Contracts.Persistence.ISchemaMigrator>(sp =>
-                    new SchemaMigrationRunner(
-                        MongoMigrations.All(sp.GetRequiredService<MongoDB.Driver.IMongoDatabase>()),
-                        sp.GetRequiredService<MetaServer.Contracts.Persistence.ISchemaVersionStore>()));
-                builder.Services.AddSingleton<MetaServer.Contracts.Persistence.IMatchResultArchive>(sp =>
-                    new MongoMatchResultArchive(
-                        sp.GetRequiredService<MongoDB.Driver.IMongoDatabase>(),
-                        () => DateTime.UtcNow));
-                builder.Services.AddSingleton(sp => new ApplyMatchResultUseCase(
-                    sp.GetRequiredService<MetaServer.Contracts.Persistence.ISettlementLedger>(),
-                    sp.GetRequiredService<MetaServer.Contracts.Persistence.IMatchResultArchive>()));
-                // 样例链路（P3：出生产构建）——缺省不装配（`EnableSampleEndpoints` 缺省 false）：
-                // 开启才注册用例，配合下面的端点门控，整条链路在生产配置里不存在。
-                if (boot.EnableSampleEndpoints) builder.Services.AddSingleton<SettlementSampleUseCase>();
-                builder.Services.AddHostedService<MigrationStartupService>();
-
-                if (!string.IsNullOrWhiteSpace(boot.AuthSigningKeyBase64))
-                {
-                    builder.Services.AddSingleton(sp => new GuestLoginUseCase(
-                        sp.GetRequiredService<IAccountStore>(),
-                        sp.GetRequiredService<AccessTokenService>(),
-                        () => DateTime.UtcNow));
-                }
-            }
+            // 功能门只决定是否注册真实存储/业务服务（消费值仍从 IOptions 读取），
+            // 故门读在装配前取一次并传给注册段。
+            MetaConfig boot = MetaHostOptions.ReadBootConfig(builder.Configuration);
+            MetaServiceRegistration.AddMetaServices(builder.Services, boot);
 
             WebApplication app = builder.Build();
 
             // 监听地址由 IOptions 解析（§10：不得从另建的实例读，否则配置文件覆盖不到）
-            MetaConfig effective = app.Services.GetRequiredService<IOptions<MetaConfig>>().Value;
-            app.Urls.Add(effective.BindAddress);
+            MetaHostOptions.ApplyListenAddress(app);
 
             app.Use(CountRequestsAsync);
             // 挂载形态统一（P2 批二）：健康端点与业务端点同走 XxxEndpoints.Map——
@@ -266,21 +105,6 @@ namespace MetaServer
                 logger.LogInformation("[MetaServer] drain：readiness 置 false，等待在途请求完成（时限 {Seconds}s）",
                     app.Services.GetRequiredService<IOptions<MetaConfig>>().Value.ShutdownTimeoutSeconds);
             });
-        }
-
-        /// <summary>
-        /// Option 校验适配：把 <see cref="MetaConfig.Validate"/> 接到 Generic Host 的 ValidateOnStart。
-        /// 启动时扫描全部注册的 <see cref="IValidateOptions{T}"/>，任一项失败即阻止启动。
-        /// </summary>
-        private sealed class MetaConfigValidator : IValidateOptions<MetaConfig>
-        {
-            public ValidateOptionsResult Validate(string name, MetaConfig options)
-            {
-                var errors = options.Validate();
-                return errors.Count == 0
-                    ? ValidateOptionsResult.Success
-                    : ValidateOptionsResult.Fail(errors);
-            }
         }
 
         /// <summary>
