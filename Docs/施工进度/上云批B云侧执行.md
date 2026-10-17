@@ -41,6 +41,8 @@
 
 - **exe 首次启动失败与修复（2026-10-17 现场，真机显影）**：二号客户端（exe）启动即 `BOOT FAILED 配置文件加载失败:Assets/GameData/Config/Item/tbitemconfig.bytes`。定位：表经内容系统取字节（`ConfigModule.LoadBytesViaContentLease` → `IContentService.AcquireAsync<TextAsset>`），而**内置内容包停留在 10-03**（`Assets/StreamingAssets/yoo` 53 文件），表 `tbitemconfig.bytes` 10-11 才入库（提交 `5bbeb721`）⇒ 包里根本没有这张表；根因＝`build-player.ps1` **不含内置包出包步骤**（`BuiltinBundleBuildInvoker` 类文档早已写明"Player 构建前必须先跑本构建"，但未接进构建脚本）。处置：经 unity-pipeline 调 `BuiltinBundleBuildInvoker.RunAsync()` 出包（`Status=success`，产物 `Bundles/StandaloneWindows64/DefaultPackage/1.0-20261017151506`，`StreamingAssets/yoo` 53 → **115 文件**）→ 重打 exe → 真机复跑：`Player.log` = `[Asset] ready package=DefaultPackage version=1.0-20261017151506 root=builtin`（**越过配置装载**），进程常驻。文档面：07 §4.1 与 09 §3.3 补"出包前先出内置内容包"及判据。**已接入（2026-10-17，用户裁决"接进 build-player.ps1"）**：新增步骤 3c——默认自动出内置内容包（调 `RunAsync()` + 轮询 `Status`，失败即中止），`-SkipBundles` 仅用于纯代码迭代；非 StandaloneWindows64 档位显式拒绝（免把错平台内容打进去）。
 
+**多会话并行下的提交纪律（2026-10-18，自查留痕）**：本工作区同时有**并行线**在改（`Page_Lobby.lua`/`Procedure*`/`BattleViewRig`/`Config/roomserver.json` 心跳 10000→1000 等 21 个文件 + 新记录 `大厅列表刷新.md`）。本批的 docs 提交按**文件路径** staging，但仍有一次把**共享文件**（`Docs/施工进度/README.md`）里并行线新加的一行一并提交了——后果是**索引里出现一行指向尚未入库的 `大厅列表刷新.md`**（当前仓库处于"索引指向不存在文件"的临时状态）。**处置**：不撤该行——并行线提交那份记录时即自动补齐（若要立即消除，删该行即可，一行的事）。**纪律**：提交前除看 `--stat` 外，必须**逐行看共享文件的 staged diff**（`git diff --cached <共享文件>`），确认没有夹带他人改动。
+
 ## 3b. Windows 原生形态：交付与证据（现行，2026-10-18）
 
 **主机**：Windows Server 2025 Datacenter（Server Core，无图形桌面）/ 2 vCPU / 3.9 GB / C: 40 GB（可用 26 GB）。
