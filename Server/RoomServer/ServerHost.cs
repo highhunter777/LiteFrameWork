@@ -113,13 +113,16 @@ namespace RoomServer
         //
         // **容量**：§429 要求房间容量**可配 + 范围校验**，§520/§600 明确"不把估算值写死为事实"
         // "不在设计阶段虚构固定房间数"——故上限来自配置，达上限**拒绝新建**而非静默拒绝进房。
-        private readonly Dictionary<string, RoomInstance> _roomTable = new Dictionary<string, RoomInstance>(StringComparer.Ordinal);
-
-        /// <summary>当前房间列表（顺序 = 插入序，非稳定契约；用于 Pump/Ops 遍历）。</summary>
-        private readonly List<RoomInstance> _rooms = new List<RoomInstance>();
+        // 表本体（双结构/身份校验增删/快照读）收在 <see cref="RoomRegistry"/>；
+        // 房间构造与销毁清理仍归宿主——清完场经 registry 落表。
+        private readonly RoomRegistry _registry;
 
         /// <summary>建房时把选定的 roomId 交给 ApplySignal 用（提交到输出应用之间无重入）。</summary>
         private RoomInstance _currentRoom;
+
+        /// <summary>输出应用的定位序：优先当前提交房间（ExecuteCommandTo/ApplyOutboundEnvelope 流转），
+        /// 退回插入序首房（历史直驱用例兼容）。</summary>
+        private RoomInstance CurrentOrFirstRoom => _currentRoom ?? _registry.First;
 
         /// <summary>是否已进入排空（§12 第 1–2 步：不再接受新 Join／新房间）。</summary>
         private bool _draining;
@@ -247,10 +250,10 @@ namespace RoomServer
         /// <summary>首房间运行时（兼容投影；按房号取用 <see cref="TryGetRoom"/>）。
         /// 终态房间会被销毁（<see cref="TryDestroyTerminalRoom"/>），此后本投影为 null——
         /// 需要跨越终态的引用请提前持有或改用 <see cref="TryGetRoom"/>。</summary>
-        public RoomRuntime Room => _rooms.Count > 0 ? _rooms[0].Runtime : null;
+        public RoomRuntime Room => _registry.First?.Runtime;
 
         /// <summary>首房间快照管线（兼容投影）。</summary>
-        public SnapshotPipeline Pipeline => _rooms.Count > 0 ? _rooms[0].Pipeline : null;
+        public SnapshotPipeline Pipeline => _registry.First?.Pipeline;
 
         /// <summary>当前装配的 Worker Pool；未使用配置或显式注入时为 null。</summary>
         public RoomWorkerPool WorkerPool => _workerPool;
@@ -310,7 +313,7 @@ namespace RoomServer
         /// <summary>当前在册房间数（Ops/容量观测）。</summary>
         public int RoomCount
         {
-            get { return _rooms.Count; }
+            get { return _registry.Count; }
         }
 
         /// <summary>
@@ -324,9 +327,7 @@ namespace RoomServer
         /// </summary>
         public RoomSummary[] RoomSummaries()
         {
-            RoomInstance[] rooms;
-            try { rooms = _rooms.ToArray(); }
-            catch { return Array.Empty<RoomSummary>(); }          // 扩容竞态（AddRoom 同帧）：本跳放弃，不炸心跳线程
+            RoomInstance[] rooms = _registry.SnapshotArray();   // 心跳线程读面：竞态兜底收在 registry 单点
 
             var list = new RoomSummary[rooms.Length];
             int n = 0;
@@ -392,8 +393,8 @@ namespace RoomServer
         {
             get
             {
-                var ids = new string[_rooms.Count];
-                for (int i = 0; i < _rooms.Count; i++) ids[i] = _rooms[i].RoomId;
+                var ids = new string[_registry.Count];
+                for (int i = 0; i < _registry.Count; i++) ids[i] = _registry.Order[i].RoomId;
                 return ids;
             }
         }
@@ -447,6 +448,7 @@ namespace RoomServer
         {
             _transport = transport ?? throw new ArgumentNullException(nameof(transport));
             _serverConfig = roomServerConfig;
+            _registry = new RoomRegistry(roomServerConfig?.MaxRooms ?? 1);   // 首个 AddRoom 之前就位
             _combat = combatValues ?? CombatValues.Default;
             _weapons = weapons ?? WeaponTable.Default;
             _map = map;
@@ -635,8 +637,8 @@ namespace RoomServer
         /// <summary>Complete 所有房间 Mailbox 并由宿主排空（含 Outbound 回传应用）。</summary>
         private void CompleteAndDrainAllRooms()
         {
-            for (int i = 0; i < _rooms.Count; i++) _rooms[i].Mailbox.Complete();
-            for (int i = 0; i < _rooms.Count; i++) DrainRoomMailbox(_rooms[i]);
+            for (int i = 0; i < _registry.Count; i++) _registry.Order[i].Mailbox.Complete();
+            for (int i = 0; i < _registry.Count; i++) DrainRoomMailbox(_registry.Order[i]);
         }
 
         private void OnWorkerFailure(Exception ex)
@@ -834,7 +836,7 @@ namespace RoomServer
                     RejectJoin(session, in join, DiagStage.Room, DiagCode.JoinRejectedRoom,
                         string.IsNullOrEmpty(join.RoomId)
                             ? "房间号缺失"
-                            : $"房间不可用：{join.RoomId}（在册 {_rooms.Count}/{MaxRooms}）");
+                            : $"房间不可用：{join.RoomId}（在册 {_registry.Count}/{MaxRooms}）");
                     return;
                 }
                 room = GetRoomInstance(join.RoomId);
@@ -1241,7 +1243,7 @@ namespace RoomServer
         /// </summary>
         private void SubmitCommand(in RoomCommand cmd, Session joinContext = null)
         {
-            RoomInstance room = _currentRoom ?? (_rooms.Count > 0 ? _rooms[0] : null);
+            RoomInstance room = CurrentOrFirstRoom;
             if (room == null) return;
             _outputs.Clear();
             room.Runtime.Execute(cmd, _outputs);
@@ -1635,12 +1637,9 @@ namespace RoomServer
                 return false;
             for (int i = 0; i < room.Seats.Length; i++)
                 if (room.Seats[i] != null) return false;
-            if (!_roomTable.TryGetValue(room.RoomId, out RoomInstance registered)
-                || !ReferenceEquals(registered, room))
-                return false;
+            if (!_registry.IsRegistered(room)) return false;
 
-            _roomTable.Remove(room.RoomId);
-            _rooms.Remove(room);
+            _registry.Remove(room);
             room.Mailbox.Complete();
             while (room.Mailbox.TryDequeue(out _)) { }
             room.ClearStaleJoinRollback();
@@ -1656,7 +1655,7 @@ namespace RoomServer
                     break;
                 case StartRejectedOutput sr:                         // 开房裁决：提前开局被拒 → 回发起者信令
                 {
-                    RoomInstance room = _currentRoom ?? (_rooms.Count > 0 ? _rooms[0] : null);
+                    RoomInstance room = CurrentOrFirstRoom;
                     Session starter = room != null && sr.PlayerId >= 0 && sr.PlayerId < room.Seats.Length
                         ? room.Seats[sr.PlayerId]
                         : null;
@@ -1699,7 +1698,7 @@ namespace RoomServer
                     // 触发面：等待超时/运维关闭/排空超时等**未开局即收尾**路径——此前在座客户端收不到
                     // 任何信令，房间销毁后停在房间页无反馈。对局中收尾经 SettlementReady → MatchEnded
                     // （带结果），不经此。
-                    RoomInstance room = _currentRoom ?? (_rooms.Count > 0 ? _rooms[0] : null);
+                    RoomInstance room = CurrentOrFirstRoom;
                     if (room == null) break;
                     var aborted = new Proto.MatchEnded
                     {
@@ -1753,7 +1752,7 @@ namespace RoomServer
 
         private void SendMatchResult(MatchResultSummary summary)
         {
-            RoomInstance room = _currentRoom ?? (_rooms.Count > 0 ? _rooms[0] : null);
+            RoomInstance room = CurrentOrFirstRoom;
             if (room == null) return;
             var message = new Proto.MatchEnded
             {
@@ -1799,7 +1798,7 @@ namespace RoomServer
             {
                 case PlayerAdmitted pa:
                 {
-                    RoomInstance room = _currentRoom ?? (_rooms.Count > 0 ? _rooms[0] : null);
+                    RoomInstance room = CurrentOrFirstRoom;
                     if (room == null) break;
                     Session session = joinContext ?? (pa.PlayerId < room.Seats.Length ? room.Seats[pa.PlayerId] : null);
                     if (session == null) break;
@@ -1818,7 +1817,7 @@ namespace RoomServer
                 }
                 case MatchStarted ms:
                 {
-                    RoomInstance room = _currentRoom ?? (_rooms.Count > 0 ? _rooms[0] : null);
+                    RoomInstance room = CurrentOrFirstRoom;
                     if (room == null) break;
                     for (int p = 0; p < room.Seats.Length; p++)
                     {
@@ -1831,13 +1830,13 @@ namespace RoomServer
                 case SeatRestored:
                 {
                     _ops.NoteRestoreCompleted();              // §9.3 步骤 6：席位回 Active——增量广播恢复
-                    RoomInstance room = _currentRoom ?? (_rooms.Count > 0 ? _rooms[0] : null);
+                    RoomInstance room = CurrentOrFirstRoom;
                     room?.Pipeline.RequestFullSnapshot();  // 重锚广播链：抑制期间基线已越过重连快照帧，整帧全量补齐 (N_r, B] 缝
                     break;
                 }
                 case RoomServer.Runtime.OwnerChanged oc:                  // 房主迁移：可靠广播——UI 换"开始对局"按钮归属
                 {                                                        // （限定信号类型——与 Proto.OwnerChanged 同名二义）
-                    RoomInstance room = _currentRoom ?? (_rooms.Count > 0 ? _rooms[0] : null);
+                    RoomInstance room = CurrentOrFirstRoom;
                     if (room == null) break;
                     for (int p = 0; p < room.Seats.Length; p++)
                     {
@@ -1850,7 +1849,7 @@ namespace RoomServer
                 }
                 case SeatsChanged sc:                                     // 席位实时面：可靠广播——房间页玩家列表全量快照
                 {
-                    RoomInstance room = _currentRoom ?? (_rooms.Count > 0 ? _rooms[0] : null);
+                    RoomInstance room = CurrentOrFirstRoom;
                     if (room == null) break;
 
                     // 席位释放同步（未开局离场即释放——内核已摘席）：宿主侧会话槽一并清空，
@@ -1913,9 +1912,9 @@ namespace RoomServer
             // 逐房间推进（§8.2"一个 Worker 顺序驱动多个 RoomActor"）。
             // 宿主 owner 形态：宿主主线程即唯一执行者；Worker 执行形态：宿主只投递命令并应用回传。
             // 快照广播的播放条件由**每房间自己的席位**判定：多房间下必须按房间传各自的可播视图。
-            for (int i = 0; i < _rooms.Count; i++)
+            for (int i = 0; i < _registry.Count; i++)
             {
-                RoomInstance room = _rooms[i];
+                RoomInstance room = _registry.Order[i];
 
                 // 排空超时兜底（§12 第 3 步"超时则归档 Aborted 原因并安全关闭"）：
                 // 排空期间若某房间未在时限内自然收敛，此处强制关闭，避免永久停在排空态。
@@ -1946,8 +1945,7 @@ namespace RoomServer
                         SubmitWorkerTick(room);
                     DrainRoomOutbound(room);
 
-                    if (!_roomTable.TryGetValue(room.RoomId, out RoomInstance registered)
-                        || !ReferenceEquals(registered, room))
+                    if (!_registry.IsRegistered(room))
                     {
                         i--;
                         continue;
@@ -1975,8 +1973,7 @@ namespace RoomServer
                 // A stale dynamic Join can release this room reservation while the
                 // mailbox is being drained. Adjust the index so the next room is
                 // still visited in this Pump instead of being skipped.
-                if (!_roomTable.TryGetValue(room.RoomId, out RoomInstance registered2)
-                    || !ReferenceEquals(registered2, room))
+                if (!_registry.IsRegistered(room))
                 {
                     i--;
                     continue;
@@ -2010,7 +2007,7 @@ namespace RoomServer
         /// </summary>
         private bool SeatBroadcastable(int playerId)
         {
-            RoomInstance room = _currentRoom ?? (_rooms.Count > 0 ? _rooms[0] : null);
+            RoomInstance room = CurrentOrFirstRoom;
             return room != null && room.Runtime.TryGetSeat(playerId, out PlayerSession seat)
                 && seat.Phase == SeatPhase.Active;
         }
@@ -2041,14 +2038,14 @@ namespace RoomServer
             _draining = true;
             _drainDeadlineMs = deadlineMs;
 
-            for (int i = 0; i < _rooms.Count; i++)
+            for (int i = 0; i < _registry.Count; i++)
             {
-                RoomInstance room = _rooms[i];
+                RoomInstance room = _registry.Order[i];
                 if (room.Runtime.Closed) continue;                     // 终态房间不必排空
                 // 取更早的截止时刻：排空期限只可前移，不可被后一次调用延后（规则收在 SetDrainDeadline 内）
                 room.SetDrainDeadline(deadlineMs);
             }
-            HostLog.Info("Drain", $"开始排空：在册 {_rooms.Count} 房，截止 +{deadlineMs}ms（单调时钟）");
+            HostLog.Info("Drain", $"开始排空：在册 {_registry.Count} 房，截止 +{deadlineMs}ms（单调时钟）");
         }
 
         /// <summary>是否已进入排空（§12 第 1–2 步：不再接受新 Join／新房间）。</summary>
@@ -2097,8 +2094,8 @@ namespace RoomServer
             get
             {
                 if (!_draining) return false;
-                for (int i = 0; i < _rooms.Count; i++)
-                    if (!_rooms[i].Runtime.Closed) return false;
+                for (int i = 0; i < _registry.Count; i++)
+                    if (!_registry.Order[i].Runtime.Closed) return false;
                 return true;
             }
         }
@@ -2106,7 +2103,7 @@ namespace RoomServer
         /// <summary>按房间号取房间（不存在返回 false；**不创建**——建房要容量校验与配置模板，见 <see cref="OpenRoom"/>）。</summary>
         public bool TryGetRoom(string roomId, out RoomRuntime room)
         {
-            if (roomId != null && _roomTable.TryGetValue(roomId, out RoomInstance inst))
+            if (roomId != null && _registry.TryGetInstance(roomId, out RoomInstance inst))
             {
                 room = inst.Runtime;
                 return true;
@@ -2131,11 +2128,11 @@ namespace RoomServer
         public RoomRuntime OpenRoom(string roomId, int requestedMapId = 0, int requestedExpectedPlayers = 0)
         {
             if (string.IsNullOrEmpty(roomId)) return null;
-            if (_roomTable.TryGetValue(roomId, out RoomInstance existing)) return existing.Runtime;
+            if (_registry.TryGetInstance(roomId, out RoomInstance existing)) return existing.Runtime;
 
             // 单房间兼容形态：只认预置房间，不动态建房（容量 1 由构造路径保证）
             if (_serverConfig == null) return null;
-            if (_rooms.Count >= _serverConfig.MaxRooms)
+            if (_registry.AtCapacity)
             {
                 _ops.NoteRoomRejectedAtCapacity();
                 return null;
@@ -2197,8 +2194,7 @@ namespace RoomServer
                 inst.Pipeline.SendTo = (seat, type, message, reliable) =>
                     SendToSession((Session)seat, type, message, reliable);
             }
-            _roomTable[inst.RoomId] = inst;
-            _rooms.Add(inst);
+            _registry.Add(inst);
             return inst;
         }
 
@@ -2214,11 +2210,8 @@ namespace RoomServer
                 return false;
             for (int i = 0; i < room.Seats.Length; i++)
                 if (room.Seats[i] != null) return false;
-            if (!_roomTable.TryGetValue(room.RoomId, out RoomInstance registered)
-                || !ReferenceEquals(registered, room))
-                return false;
-            _roomTable.Remove(room.RoomId);
-            _rooms.Remove(room);
+            if (!_registry.IsRegistered(room)) return false;
+            _registry.Remove(room);
             room.Mailbox.Complete();
             return true;
         }
@@ -2255,8 +2248,7 @@ namespace RoomServer
                 if (room.Mailbox.Count != 0) return false;
             }
 
-            if (!_roomTable.TryGetValue(room.RoomId, out RoomInstance registered)
-                || !ReferenceEquals(registered, room))
+            if (!_registry.IsRegistered(room))
                 return false;   // 已被移除或已重建：不是本实例
 
             for (int p = 0; p < room.Seats.Length; p++)
@@ -2273,19 +2265,18 @@ namespace RoomServer
                 }
             }
 
-            _roomTable.Remove(room.RoomId);
-            _rooms.Remove(room);
+            _registry.Remove(room);
             room.Mailbox.Complete();
             while (room.Mailbox.TryDequeue(out _)) { }   // 残余控制/输入/出站消息随房间终态丢弃
             _ops.NoteRoomDestroyed();
-            HostLog.Info("Room", $"终态房间已销毁：{room.RoomId}（在册 {_rooms.Count}/{MaxRooms}）");
+            HostLog.Info("Room", $"终态房间已销毁：{room.RoomId}（在册 {_registry.Count}/{MaxRooms}）");
             return true;
         }
 
         /// <summary>按房间号取房间（新建房时用；不存在返回 null）。</summary>
         private RoomInstance GetRoomInstance(string roomId)
         {
-            return roomId != null && _roomTable.TryGetValue(roomId, out RoomInstance i) ? i : null;
+            return roomId != null && _registry.TryGetInstance(roomId, out RoomInstance i) ? i : null;
         }
 
         /// <summary>
@@ -2298,11 +2289,11 @@ namespace RoomServer
             if (!_ops.PrintEnabled) return;
             if (!_ops.TryBeginPrint(_nowMs, _tuning.OpsIntervalMs)) return;   // 节流判据归 Ops（P4）
 
-            for (int i = 0; i < _rooms.Count; i++)
+            for (int i = 0; i < _registry.Count; i++)
             {
-                RoomInstance room = _rooms[i];
+                RoomInstance room = _registry.Order[i];
                 HostLog.Info("Ops", _ops.Format(room.RoomId, room.Runtime, room.Pipeline, _sessions,
-                    _rooms.Count, i == 0 ? LoopStats : null, i == 0 ? _rateLimit : null,
+                    _registry.Count, i == 0 ? LoopStats : null, i == 0 ? _rateLimit : null,
                     room.OutboundRejectedCount));   // P4：回传拒绝数接进 Ops 行（原先只增不读）
             }
         }
