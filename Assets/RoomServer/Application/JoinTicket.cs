@@ -107,7 +107,7 @@ namespace RoomServer.Application
         public long ExpiresAtMs;
 
         /// <summary>票据盖章的地图行键（多图批；0 = 未指定——房间按模板/宿主默认图建房）。
-        /// 建房时消费：既有房间不一致 → 拒绝进房（<c>ServerHost.HandleJoin</c>）。</summary>
+        /// 建房时消费：既有房间不一致 → 拒绝进房（<c>InboundJoinHandlers.Handle</c>）。</summary>
         public int MapId;
 
         /// <summary>票据盖章的**期望人数**（开房参数批；0 = 未指定＝按房间模板）。**只作用于新建房**

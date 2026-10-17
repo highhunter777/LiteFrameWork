@@ -10,7 +10,7 @@ namespace LiteNet.Tests
     /// <summary>
     /// 入站准入门（<see cref="JoinAdmissionGate"/>）判定链用例。
     ///
-    /// **这批用例是本次拆分的核心收益**：准入链原先内嵌在 <c>ServerHost.HandleJoin</c> 里，
+    /// **这批用例是本次拆分的核心收益**：准入链原先内嵌在 <c>ServerHost</c> 的 Join 路径里，
     /// 拒绝分支只能经"建房 + 连通 + 发包"间接验证（且多数拒绝路径不建房）。
     /// 抽出后可直接构造门并驱动 <see cref="JoinAdmissionGate.Evaluate"/>，
     /// 逐条锁定**链序**——链序决定了 nonce 是否被消费、房间是否被占。

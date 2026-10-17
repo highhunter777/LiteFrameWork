@@ -265,7 +265,7 @@ namespace LiteNet.Tests
         private const string Room = "TicketRoom";
         private const long Now = 5_000_000;
 
-        /// <summary>装配了验证器的宿主的 Join 通道（与生产同一条 <see cref="ServerHost.HandleJoin"/> 路径）。</summary>
+        /// <summary>装配了验证器的宿主的 Join 通道（与生产同一条 <c>InboundJoinHandlers.Handle</c> 路径）。</summary>
         private static (ServerHost host, TestTicketIssuer issuer, FakeRoomTransport t) NewHost(string audience = "aud")
         {
             var issuer = TestTicketIssuer.Random("k1");

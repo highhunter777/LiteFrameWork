@@ -94,7 +94,7 @@ namespace LiteNet.Protocol
         }
 
         /// <summary>打包全量快照（全部活体槽位 + 主动作摘要 + Match + 公共口径 checksum + ackInput）。
-        /// 私有面按会话另附（广播：<see cref="SnapshotDiffer.BuildFor"/>；重连：ServerHost.HandleReconnect）。</summary>
+        /// 私有面按会话另附（广播：<see cref="SnapshotDiffer.BuildFor"/>；重连：入站重连处理器）。</summary>
         public static Proto.StateSnapshot PackFull(int frame, SimWorldState s, int ackInput)
         {
             var msg = new Proto.StateSnapshot

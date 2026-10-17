@@ -24,7 +24,7 @@ namespace RoomServer
     ///   产出经 Mailbox Outbound lane 回传宿主应用/发送。
     ///
     /// **所有权**：<see cref="Seats"/> 的会话引用由宿主在席位变更时写入（见
-    /// <see cref="ServerHost"/> 的 ApplySignal / HandleReconnect）；房间本身不创建也不释放会话。
+    /// <c>ServerHost</c> 的 ApplySignal / 入站重连处理器）；房间本身不创建也不释放会话。
     /// </summary>
     internal sealed class RoomInstance
     {
