@@ -244,6 +244,7 @@ namespace LiteGame
                 }
 
                 var opened = await FinishOpenAsync(form, group);
+                Retire(op);                               // 交付前摘登记（见 Retire 注）
                 op.Completion.TrySetResult(opened);
             }
             catch (OperationCanceledException)
@@ -256,19 +257,32 @@ namespace LiteGame
                     group.Stack.Remove(form);
                     form.DisposeFailedOpen();
                 }
+                Retire(op);                               // 交付前摘登记（同上）
                 op.Completion.TrySetException(new UIOpenException(UIOpenFailure.Canceled, op.FormId,
                     $"UIForm[{op.FormId}] 打开被权威取消（Close/全部等待者退出/Scope 退出）"));
             }
             catch (Exception ex)
             {
+                Retire(op);                               // 交付前摘登记（同上）
                 op.Completion.TrySetException(ex);       // 全部等待者收到同一异常（加载失败等）
             }
             finally
             {
                 lease?.Release();                        // 所有权未移交成功的就地释放（加载到、但未登记）
-                _openOps.Remove(op.FormId);
+                Retire(op);                              // 兜底（幂等——正常路径已交付前摘除）
                 op.WorkCts.Dispose();
             }
+        }
+
+        /// <summary>摘除在途登记（幂等、只摘自己的——取消路径可能已摘、或已被新 Show 顶替）。
+        /// **必须早于 <c>Completion</c> 交付**：交付是内联同步链（<c>UniTaskCompletionSource</c> 默认同线程续延），
+        /// 等待者在 <c>TrySet*</c> 的调用栈内就拿到结果；若此刻登记仍在，等待者紧接着发起的 Close 会撞进
+        /// "在途打开 = 权威取消"分支——只取消、不关闭，**刚落地就被要求关闭的界面静默留存**
+        /// （进房快路径加载遮罩永久阻断即此坑）。</summary>
+        private void Retire(OpenOperation op)
+        {
+            if (_openOps.TryGetValue(op.FormId, out var current) && ReferenceEquals(current, op))
+                _openOps.Remove(op.FormId);
         }
 
         /// <summary>在途打开操作：同一界面的并发 Show 合并到这一份记录上。</summary>

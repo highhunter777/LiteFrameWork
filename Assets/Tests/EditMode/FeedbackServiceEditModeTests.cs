@@ -192,6 +192,37 @@ namespace LiteGame.Tests.EditMode
         }
 
         [Test]
+        public void Loading_开面在途即结束_孤儿面落地自收_不留永久阻断()
+        {
+            // 竞态复现（本地服快路径进房）：开面是**异步入队**（转场/prefab 加载），Begin→End 可能快于落地，
+            // 旧行为下排队中的开面随后落地**无人收** ⇒ 遮罩永久阻断（LoadingVisible 注所指的坑）。
+            var catalog = new FakeCatalog();
+            catalog.Add(LoadingFormId, layer: 3);
+            var prefabs = new Dictionary<string, GameObject> { ["x" + LoadingFormId] = FakeLoadingPrefab("loading") };
+            var gate = new UniTaskCompletionSource();                      // 闸门 = 手动放行"prefab 加载"（开面在途）
+            var ui = new UIService(catalog, transitionStrategy: new InstantTransition(),
+                loadPrefab: async (loc, ct) => { await gate.Task; return UIPrefabLeases.Unowned(prefabs[loc]); });
+            var dialogs = new DialogService(ui);
+            var feedback = new FeedbackService(ui, dialogs, new UINavigationController(ui));
+            try
+            {
+                using (feedback.BeginLoading("进房中")) { }                // Begin 后立刻结束：开面仍未落地
+                Assert.IsFalse(feedback.IsLoading, "作用域已结束（阻断解除）");
+
+                gate.TrySetResult();                                      // 放行：孤儿面落地
+                for (int i = 0; i < 200; i++) { dialogs.Tick(0.05f); ui.Tick(0.05f); }
+
+                Assert.IsFalse(ui.IsOpen(LoadingFormId), "在途开面落地即收——不得留永久阻断面");
+                Assert.IsFalse(feedback.IsLoading);
+            }
+            finally
+            {
+                feedback.Dispose();
+                dialogs.Dispose();
+            }
+        }
+
+        [Test]
         public void Loading_阻断期Back_取消操作且不穿透()
         {
             using (var scope = _feedback.BeginLoading("进房中"))

@@ -50,6 +50,7 @@ namespace LiteGame.UI
         private readonly Func<int, bool> _isOpen;
 
         private int _loadingDepth;
+        private int _loadingEpoch;                    // 开面代次：开场 +1、收场归零 +1——在途开面靠它判"本段是否已结束"
         private CancellationTokenSource _loadingCts;
         private UIForm _loadingForm;
         private string _loadingMessage = "加载中…";   // 加载文案缓存（首写不丢/开面后写全量——通用加载页 §3）
@@ -109,18 +110,30 @@ namespace LiteGame.UI
                 _loadingCts = new CancellationTokenSource();
                 _loadingMessage = string.IsNullOrEmpty(message) ? "加载中…" : message;   // 写全量复位（不留上次残留）
                 _loadingProgress = null;                                                  // 开场默认不定态
-                OpenLoadingAsync(_loadingMessage).Forget();
+                _loadingEpoch++;                                                          // 新代：本段开面以此认领
+                OpenLoadingAsync(_loadingMessage, _loadingEpoch).Forget();
             }
             _loadingDepth++;
             return new LoadingScope(this);
         }
 
-        private async UniTaskVoid OpenLoadingAsync(string message)
+        private async UniTaskVoid OpenLoadingAsync(string message, int epoch)
         {
             try
             {
-                _loadingForm = await _open(_loadingFormId);
-                var mask = _loadingForm.Root.GetComponentInChildren<LoadingMask>(true);
+                UIForm form = await _open(_loadingFormId);
+                if (epoch != _loadingEpoch)
+                {
+                    // 本段阻断已在开面落地前结束（快路径进房：Begin→End 快于异步入队的开面——
+                    // 见 <see cref="LoadingVisible"/> 注）——面落地即成**孤儿面**：无更新窗口认领
+                    // （无在场活动面、且不在阻断中）时**落地即收**，不留永久阻断；
+                    // 否则留给更新窗口自己的开面/收口（不抢收——防误关活面）。
+                    if (_loadingForm == null && _loadingDepth <= 0)
+                        await CloseFormAsync(form);
+                    return;
+                }
+                _loadingForm = form;
+                var mask = form.Root.GetComponentInChildren<LoadingMask>(true);
                 if (mask != null)
                 {
                     mask.SetStatus(_loadingMessage, _loadingProgress);   // 首写不丢：开面完成写缓存全量
@@ -169,6 +182,7 @@ namespace LiteGame.UI
             if (_loadingDepth <= 0)
             {
                 _loadingDepth = 0;
+                _loadingEpoch++;                  // 收场换代：在途开面落地即成孤儿面（由 OpenLoadingAsync 自收）
                 _loadingMessage = "加载中…";      // 复位（下次开面写全量）
                 _loadingProgress = null;
                 _loadingCts?.Dispose();
@@ -181,6 +195,12 @@ namespace LiteGame.UI
         {
             UIForm form = _loadingForm;
             _loadingForm = null;
+            await CloseFormAsync(form);
+        }
+
+        /// <summary>收一张面（null/未开 = 安全幂等）——正常收口与**在途孤儿面**落地自收共用。</summary>
+        private async UniTask CloseFormAsync(UIForm form)
+        {
             if (form == null || !_isOpen(form.Id)) return;
             try { await _close(form.Id); }
             catch (Exception ex) { Log.Error($"加载遮罩关闭失败:{ex.Message}", LogTag.UI); }

@@ -218,6 +218,37 @@ namespace LiteGame.Tests.EditMode
             Assert.False(service.IsOpen(1), "被取消的打开从未登记为打开");
         }
 
+        [Test]
+        [Category(TestCategory.Contract)]
+        public void 交付链内紧接Close_真关闭_不被在途登记吞掉()
+        {
+            // 打开任务在转场 FSM 收尾（Tick 内）才交付，交付是**内联同步链**：await 落点（异步状态机
+            // 续体）在 TrySetResult 的调用栈内执行——产品面就是这个形状（await ShowAsync 后就地做后续，
+            // 如进房快路径"打开加载遮罩随即收口"）。若"在途登记"此刻仍在，紧接着的 Close 会撞进
+            // "在途打开 = 权威取消"分支——只取消、不关闭，刚落地就被要求关闭的面静默留存。
+            var catalog = new FakeCatalog(); catalog.Add(1);
+            var loader = new GateLoader();
+            var service = Service(catalog, loader);
+
+            UniTask? close = null;
+            ShowThenClose(service, 1, t => close = t).Forget();   // 打开一交付就地关闭（同一调用栈）
+
+            loader.Deliver(FakePrefab("p1"));
+            for (int i = 0; i < 10 && close == null; i++) service.Tick(0.05f);
+            Assert.IsTrue(close.HasValue, "打开交付后就地发起关闭（await 落点）");
+
+            Await(close.Value, service);
+            Assert.False(service.IsOpen(1), "关闭不得被在途登记吞掉（交付前已摘登记）");
+        }
+
+        /// <summary>await 打开的异步续体：await 落点即"打开刚交付"的同一调用栈——把产品面的
+        /// "打开完成就地做后续操作（含关闭）"形状搬进测试。</summary>
+        private static async UniTaskVoid ShowThenClose(UIService service, int id, Action<UniTask> then)
+        {
+            await service.ShowAsync(id);
+            then(service.CloseAsync(id));
+        }
+
         // ---- 类型化失败 ----
 
         [Test]
