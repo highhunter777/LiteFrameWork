@@ -13,6 +13,8 @@
 # Usage (from anywhere; paths resolve against the repo root):
 #   pwsh -NoProfile -File Dist/New-Package.ps1 -Tester alice -Conf C:\path\alice.conf -ServerUrl http://10.8.0.1:5000 -Zip
 #   pwsh -NoProfile -File Dist/New-Package.ps1 -Tester alice -Conf ... -ServerUrl ... -CheckOnly
+#   The WireGuard installer (wireguard*.msi|exe) sitting next to this script is bundled into
+#   every package -- see Dist/README.md for why (download.wireguard.com is unreliable in CN).
 #
 # NOTE: keep this file ASCII-only. Windows PowerShell 5.1 parses non-BOM UTF-8 as
 #       GBK on zh-CN systems and breaks on CJK text.
@@ -27,7 +29,8 @@ param(
     [switch]$Zip,
     [switch]$Force,
     [switch]$CheckOnly,
-    [switch]$SkipGameCopy
+    [switch]$SkipGameCopy,
+    [switch]$SkipInstaller
 )
 
 $ErrorActionPreference = 'Stop'
@@ -111,6 +114,26 @@ else {
     Ok "game build: $buildPath ($($exes.Count) exe, ex: $($exes[0].Name))"
 }
 
+# -- 4b. bundled WireGuard installer -----------------------------------------
+# Testers in mainland China cannot reliably reach download.wireguard.com (fields
+# report: winget fails with 0x80072efd, and the same host times out from our cloud
+# host too). So the installer is fetched ONCE and shipped inside every package;
+# the onboarding script prefers a local installer over any download.
+$installer = ''
+if (-not $SkipInstaller) {
+    $found = @(Get-ChildItem -Path $PSScriptRoot -File -ErrorAction SilentlyContinue |
+               Where-Object { $_.Name -match '(?i)^wireguard.*\.(msi|exe)$' } |
+               Sort-Object Name)
+    if ($found.Count -eq 0) {
+        Warn 'no WireGuard installer next to this script -- testers will have to download it (unreliable in CN). See Dist/README.md.'
+    }
+    else {
+        if ($found.Count -gt 1) { Warn ("more than one installer here, using the first: " + ($found.Name -join ', ')) }
+        $installer = $found[0]
+        Ok ("bundled installer: {0} ({1} MB)" -f $installer.Name, [math]::Round($installer.Length / 1MB, 1))
+    }
+}
+
 # -- 5. assemble -------------------------------------------------------------
 $pkgDir = Join-Path (Resolve-FromRoot $OutDir) $Tester
 if ($CheckOnly) {
@@ -118,7 +141,8 @@ if ($CheckOnly) {
     Say "-- check-only: nothing written --" 'Cyan'
     Say "would assemble into: $pkgDir"
     Say ("would contain: game build" + $(if ($SkipGameCopy) { ' (skipped)' } else { '' }) +
-        " + $([IO.Path]::GetFileName($confPath)) + server.txt + $($kitFiles -join ' + ')")
+        " + $([IO.Path]::GetFileName($confPath)) + server.txt + $($kitFiles -join ' + ')" +
+        $(if ($installer) { " + $($installer.Name)" } else { '' }))
     exit 0
 }
 
@@ -142,6 +166,8 @@ if (-not $SkipGameCopy) {
     }
 }
 foreach ($f in $kitFiles) { Copy-Item -Path (Join-Path $PSScriptRoot $f) -Destination $pkgDir -Force }
+if ($installer) { Copy-Item -Path $installer.FullName -Destination $pkgDir -Force }
+else { Warn 'package has NO bundled WireGuard installer -- the tester side will try winget (often fails in CN)' }
 Copy-Item -Path $confPath -Destination (Join-Path $pkgDir (Split-Path $confPath -Leaf)) -Force
 [IO.File]::WriteAllText((Join-Path $pkgDir 'server.txt'), $ServerUrl + "`r`n")
 Ok "assembled: $pkgDir"
@@ -163,6 +189,7 @@ Say '-- package --' 'Cyan'
 Say ("  tester    : {0}" -f $Tester)
 Say ("  folder    : {0}" -f $pkgDir)
 if ($Zip) { Say ("  zip       : {0}" -f $zipPath) }
+Say ("  installer : {0}" -f $(if ($installer) { $installer.Name } else { "(none -- see Dist/README.md)" }))
 Say ("  files     : {0} ({1} MB)" -f $files.Count, $sizeMb)
 Say ("  send this : {0}" -f $(if ($Zip) { Split-Path $zipPath -Leaf } else { $pkgDir }))
 Say ''

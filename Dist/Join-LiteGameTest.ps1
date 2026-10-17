@@ -143,7 +143,8 @@ if ($installed) {
     Ok "已安装：$wgExe"
 }
 elseif ($CheckOnly) {
-    $local = Get-LocalInstaller
+    $local = Get-LocalInstaller
+    $wingetExit = 0
     if ($local) { Warn "未安装；执行时会用同目录安装包：$([IO.Path]::GetFileName($local))" }
     elseif (Get-Command winget -ErrorAction SilentlyContinue) { Warn '未安装；执行时会用 winget 安装（WireGuard.WireGuard）' }
     else { Warn '未安装，且同目录无安装包、系统也没有 winget——执行会失败，需先手动装。' }
@@ -161,14 +162,18 @@ else {
         Say "安装程序退出码：$($p.ExitCode)"
     }
     elseif (Get-Command winget -ErrorAction SilentlyContinue) {
-        Say 'winget 安装 WireGuard.WireGuard（需要联网）……'
-        & winget install --id WireGuard.WireGuard -e --silent --accept-package-agreements --accept-source-agreements
+        Say '同目录没有安装包，改用 winget 联网安装（国内访问官方源常失败）……'
+        & winget install --id WireGuard.WireGuard -e --silent --accept-package-agreements --accept-source-agreements
+        $wingetExit = $LASTEXITCODE
     }
     else {
         Stop-Here '没有可用的安装方式：同目录没有 wireguard 安装包，系统也没有 winget。'
     }
 
     if (-not (Test-Path $wgExe)) {
+        if ($wingetExit -ne 0) {
+            Stop-Here ("winget 安装失败（退出码 $wingetExit）——最常见原因是下不动官方源（国内不稳）。请让发你包的人把 wireguard 安装包放进本文件夹，再跑一次本脚本。")
+        }
         Stop-Here '安装后仍找不到 wireguard.exe——可能被杀毒软件拦截了，或安装程序需要你手动点几下。'
     }
     Ok "安装完成：$wgExe"

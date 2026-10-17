@@ -13,9 +13,17 @@
 | `Join-LiteGameTest.ps1` | ✅ | 测试者侧一键脚本（装 WireGuard → 装隧道服务 → 连通自检；UTF-8 **带 BOM**，改文件务必保留 BOM） |
 | `New-Package.ps1` | ✅ | **你用的组装助手**：拼一份待发包（ASCII-only，与仓库其它脚本同口径） |
 | `server.txt.example` | ✅ | 地址模板——复制成 `server.txt` 填值 |
+| `wireguard-*.msi` / `*.exe` | ❌ | **官方 WireGuard 安装包**（取回一次放这里，组装时自动随包分发；`.gitignore` 挡 `*.msi`/`*.exe`） |
 | `server.txt` | ❌ | 本机测试环境地址（`.gitignore` 挡） |
 | `wg-<测试者>.conf` | ❌ | 云主机上生成、一人一份（**含私钥**；`.gitignore` 挡） |
 | `out/` | ❌ | 组装产物（含游戏拷贝，`.gitignore` 挡） |
+
+## 为什么把 WireGuard 安装包内置（2026-10-17 现场反馈）
+
+- **现象**：测试者侧走 `winget` 安装会失败——`download.wireguard.com` 国内直连不稳（实测 winget 报 `0x80072efd`、我们的云主机连同一地址也超时）；让每个测试者各自下载＝各自踩坑。
+- **做法**：**取回一次**，把官方安装包放到本目录（名字须匹配 `wireguard*.msi`，`.msi`/`.exe` 都行）→ `New-Package.ps1` 组装时自动拷进每个包 → 测试者侧接入脚本**优先用包内这份离线安装**（`.msi` 走 `msiexec /qn`），全程不联网。
+- **取不到时的兜底**：组装器会 `[warn] no WireGuard installer`，接入脚本退回 `winget`（常失败）——所以正式发包前请确认包里有它。
+- **来源与合规**：官方站 <https://www.wireguard.com/install/> 的原版安装包，**未做任何改动**；随包分发只为免去测试者下载。WireGuard 为 GPLv2，允许再分发（保留来源说明即可）；安装包本体**不入库**（`.gitignore` 挡）。
 
 ## 组装一份包（三步）
 
@@ -65,7 +73,7 @@ alice/
 
 | 事 | 说明 |
 |---|---|
-| 装 WireGuard | 优先用**包内**官方安装包（`wireguard*.msi` 走 `msiexec /qn`；`.exe` 试 `/S`）；没有则 `winget install WireGuard.WireGuard`；两条都不可用就明确报错——**脚本不含任何下载 URL**（不猜网址） |
+| 装 WireGuard | 优先用**包内**官方安装包（`wireguard*.msi` 走 `msiexec /qn`；`.exe` 试 `/S`）——离线、免下载；没有则 `winget install WireGuard.WireGuard`（**国内常因官方源不可达而失败**，失败时打印 winget 退出码而不是笼统归因杀软）；两条都不可用就明确报错——**脚本不含任何下载 URL**（不猜网址） |
 | 装隧道 | `wireguard.exe /installtunnelservice <conf>`（装成系统服务，开机自启、免开界面）；起不来时提示兜底：双击 `.conf` → 弹窗点"是"走 GUI 导入 |
 | 连通自检 | `GET <server>/live` 得 200 = 隧道与服务器都对；失败给三条自查（服务未 RUNNING / 网络封 UDP / 截图给发件人） |
 | 体检模式 | `powershell -NoProfile -ExecutionPolicy Bypass -File Join-LiteGameTest.ps1 -CheckOnly` |
