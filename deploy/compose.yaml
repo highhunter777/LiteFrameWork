@@ -2,6 +2,9 @@
 # 用法：cd deploy && cp .env.example .env（填值）→ docker compose up -d --build
 #   TLS 形态另开：docker compose --profile tls up -d（需 .env 提供 DOMAIN 且 DNS 已指向本机）
 # 密钥红线（设计 §5）：全部经 .env → 容器环境变量注入；严禁写进 compose/命令行明文；deploy/.env 已 gitignore。
+# 键名两套并存（2026-10-17）：scripts/local/local-chain.ps1（内环）写的名字与本编排原用名不同，而两者共用
+#   deploy/.env 同一路径——故每处密钥**双名回退**（`${本编排名:-${内环名}}`），一份机器私有 .env 两个消费者都读
+#   （单源，避免"两个文件各存一份密钥"漂移）。内环名见下方注释，新写 .env 用哪套名都生效。
 name: litegame-closed-test
 
 services:
@@ -45,13 +48,19 @@ services:
       META_Meta__BindAddress: http://0.0.0.0:5000
       # 封闭测试私网形态（TLS 由 Caddy/云 LB 终止）；非回环 HTTP 需显式放行——本行即该标注
       META_Meta__AllowNonLoopbackHttp: "true"
-      META_Meta__AuthSigningKeyBase64: ${META_AUTH_SIGNING_KEY}
-      META_Meta__LobbyInstanceKeyBase64: ${LITENET_LOBBY_INSTANCE_KEY}
+      META_Meta__AuthSigningKeyBase64: ${META_AUTH_SIGNING_KEY:-${AUTH_SIGNING_KEY}}
+      META_Meta__LobbyInstanceKeyBase64: ${LITENET_LOBBY_INSTANCE_KEY:-${LOBBY_INSTANCE_KEY}}
       META_Meta__LobbyTicketKeyId: l1
-      META_Meta__LobbyTicketKeyBase64: ${TICKET_KEY_BASE64}
-      META_Meta__SettlementInstanceKeyBase64: ${LITENET_SETTLEMENT_INSTANCE_KEY}
+      META_Meta__LobbyTicketKeyBase64: ${TICKET_KEY_BASE64:-${LOBBY_TICKET_KEY}}
+      META_Meta__SettlementInstanceKeyBase64: ${LITENET_SETTLEMENT_INSTANCE_KEY:-${SETTLEMENT_KEY}}
+      # 缺省房（客户端「快速进入」的落点：空 roomId 由 Meta 补此值；空 = 该钮被字段校验拒 400）
+      META_Meta__LobbyDefaultRoomId: ${LITEGAME_DEFAULT_ROOM_ID:-lobby-default}
     ports:
-      - "5000:5000"      # 云形态改绑内网或由 Caddy 反代（见 deploy/README.md 云侧清单）
+      # 发布宿主地址可配：访问模型 B（云侧 VPN）填 VPN 服务端地址（如 10.8.0.1）→
+      # 容器**只从隧道可达**（公网 IP 上压根没这个端口，安全组配错也够不着）。
+      # 缺省 0.0.0.0 = 模型 A（公网 + 安全组白名单）。绑到隧道地址时注意开机次序：
+      # 若 docker 早于 wg-quick@wg0 起，绑定会失败——`restart: unless-stopped` 会重试到 wg0 就位。
+      - "${LITEGAME_PUBLISH_HOST:-0.0.0.0}:5000:5000"
 
   roomserver:
     build:
@@ -65,16 +74,16 @@ services:
     restart: unless-stopped
     stop_grace_period: 30s        # 排空 5 步预算（drain_grace 5s + 看门狗 2s，留足余量）
     environment:
-      LITENET_SECURE_ENVELOPE_KEY: ${LITENET_SECURE_ENVELOPE_KEY}
-      LITENET_LOBBY_INSTANCE_KEY: ${LITENET_LOBBY_INSTANCE_KEY}
-      LITENET_SETTLEMENT_INSTANCE_KEY: ${LITENET_SETTLEMENT_INSTANCE_KEY}
-      LITENET_TICKET_KEY: l1:${TICKET_KEY_BASE64}   # 与 Meta LobbyTicketKeyBase64 单源（同一 .env 值拼 kid）
+      LITENET_SECURE_ENVELOPE_KEY: ${LITENET_SECURE_ENVELOPE_KEY:-${ENVELOPE_PSK}}
+      LITENET_LOBBY_INSTANCE_KEY: ${LITENET_LOBBY_INSTANCE_KEY:-${LOBBY_INSTANCE_KEY}}
+      LITENET_SETTLEMENT_INSTANCE_KEY: ${LITENET_SETTLEMENT_INSTANCE_KEY:-${SETTLEMENT_KEY}}
+      LITENET_TICKET_KEY: l1:${TICKET_KEY_BASE64:-${LOBBY_TICKET_KEY}}   # 与 Meta LobbyTicketKeyBase64 单源（同一表达式拼 kid）
     volumes:
       - ./roomserver.container.json:/app/Config/roomserver.json:ro
       - room-outbox:/app/Outbox
     ports:
-      - "17777:17777/udp"
-      - "9100:9100"     # /metrics（Prometheus 文本子集）
+      - "${LITEGAME_PUBLISH_HOST:-0.0.0.0}:17777:17777/udp"   # 同上：模型 B 填 VPN 服务端地址
+      - "${LITEGAME_PUBLISH_HOST:-0.0.0.0}:9100:9100"         # /metrics（Prometheus 文本子集）
 
   caddy:
     # HTTPS 反代形态（可选；用云 LB 证书时不启用本服务）

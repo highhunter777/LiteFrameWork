@@ -28,6 +28,12 @@ docker compose down
 
 离线/受限网络注记：基础镜像 `mcr.microsoft.com/dotnet/*` 直连不可达时，经 daocloud 镜像源拉取后回打标准标签（`mcr.m.daocloud.io/dotnet/runtime:8.0` → `docker tag … mcr.microsoft.com/dotnet/runtime:8.0`，sdk/aspnet 同理）；构建容器内 NuGet 经 `.env` 的 `DOCKER_BUILD_HTTP_PROXY`（本机 Clash 形态 `http://host.docker.internal:7897`）。Dockerfile 刻意不写 `# syntax=` 行（前端镜像另需拉 Docker Hub，本环境不可达）。
 
+**`.env` 键名两套（2026-10-17 已消解）**：`scripts/local/local-chain.ps1`（内环）写的键是 `ENVELOPE_PSK`/`AUTH_SIGNING_KEY`/`LOBBY_INSTANCE_KEY`/`LOBBY_TICKET_KEY`/`SETTLEMENT_KEY`，本编排原用 `${LITENET_SECURE_ENVELOPE_KEY}`/`${META_AUTH_SIGNING_KEY}`/`${TICKET_KEY_BASE64}` 等——同一路径 `deploy/.env` 曾被两套命名互相踩（实测 `docker compose config` 五密钥全空、`LITENET_TICKET_KEY` 渲染成 `l1:`，`up` 必 fail-closed 拒启）。**现每处密钥双名回退**（`\${本编排名:-\${内环名}}`），一份机器私有 `.env` 两个消费者都读。自查：`docker compose config | grep -E "META_Meta__(Auth|Lobby|Settlement)|LITENET_"`（应全有值）。详见 [09-上云联机测试 §2.2](../Docs/项目说明/09-上云联机测试.md)、[施工记录](../Docs/施工进度/上云联机前置补强.md)。
+
+**完整上云流程**（主机供给 → compose 部署 → 客户端端点/密钥注入 → 两人一局 → 设计 §6 验收与留痕）：[Docs/项目说明/09-上云联机测试.md](../Docs/项目说明/09-上云联机测试.md)。
+
+**测试者分发包不在本目录**：组装与分发收口在仓库根的 [`Dist/`](../Dist/README.md)（测试者一键接入脚本 + 每人一份隧道配置 + 组装助手 `New-Package.ps1`）。
+
 ## 云主机部署清单（设计 §5）
 
 1. **编排**：云上直连 `docker compose up -d --build`；或本地构建后经 registry / `docker save|load` 分发。

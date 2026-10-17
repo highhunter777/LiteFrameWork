@@ -10,6 +10,9 @@ Obj
 **/obj
 **/bin
 .dotnet
+# 与本构建无关的大目录（上下文＝仓库根，别把几百 MB 打进镜像上下文）
+Dist
+Builds
 .vs
 .idea
 .vscode

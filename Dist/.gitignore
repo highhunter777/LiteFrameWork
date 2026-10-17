@@ -1,0 +1,13 @@
+# Dist/ 里的"组装产物 + 个性化文件"不入库（密钥红线）
+#
+# - out/      ：New-Package.ps1 组装出来的待发包（含游戏拷贝，几十~几百 MB）
+# - *.conf    ：测试者隧道的**私钥**所在——一人一份，不回传、不截图、不入库
+# - server.txt：本机测试环境地址（由 server.txt.example 复制而来）
+# - *.exe/*.msi：WireGuard 安装包等第三方二进制（打包机本地还原）
+# - *.zip     ：待发货的压缩包
+out/
+*.conf
+server.txt
+*.exe
+*.msi
+*.zip

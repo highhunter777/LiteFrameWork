@@ -29,6 +29,11 @@ $root = if ($PSScriptRoot) { (Resolve-Path (Join-Path $PSScriptRoot '..\..')).Pa
 $envFile = Join-Path $root 'deploy\.env'
 $deployArgsFile = Join-Path $root 'Assets\StreamingAssets\deploy.args'
 
+# Landing room for the client "quick enter" button (empty roomId). Overridable via
+# LOBBY_DEFAULT_ROOM_ID in deploy/.env; this value covers pre-existing .env files written
+# before the key existed. Empty would make Meta reject that button with 400.
+$defaultRoomId = 'lobby-default'
+
 function New-Key32 {
     $bytes = New-Object byte[] 32
     $rng = [System.Security.Cryptography.RandomNumberGenerator]::Create()
@@ -84,7 +89,8 @@ function Invoke-Init {
             'MONGO_CONNECTION=mongodb://localhost:27017',
             'MONGO_DB=metadb',
             'ROOM_CONFIG=Config/roomserver.json',
-            'ROOM_PORT=17777'
+            'ROOM_PORT=17777',
+            "LOBBY_DEFAULT_ROOM_ID=$defaultRoomId"
         )
         $dir = Split-Path -Parent $envFile
         if (-not (Test-Path $dir)) { New-Item -ItemType Directory -Force -Path $dir | Out-Null }
@@ -103,6 +109,8 @@ function ConvertTo-MetaAppSettings([hashtable]$cfg, [string]$outPath) {
     # keys are NOT secrets-in-file here: this is the bin (output) copy that
     # MetaHost reads from AppContext.BaseDirectory. The tracked source file
     # (Server/MetaServer/appsettings.json) stays empty of values.
+    $roomId = $cfg['LOBBY_DEFAULT_ROOM_ID']
+    if (-not $roomId) { $roomId = $defaultRoomId }   # .env written before the key existed
     $json = @"
 {
   "Meta": {
@@ -114,6 +122,7 @@ function ConvertTo-MetaAppSettings([hashtable]$cfg, [string]$outPath) {
     "LobbyTicketKeyBase64": "$($cfg['LOBBY_TICKET_KEY'])",
     "LobbyTicketKeyId": "l1",
     "LobbyTicketAudience": "lobby",
+    "LobbyDefaultRoomId": "$roomId",
     "SettlementInstanceKeyBase64": "$($cfg['SETTLEMENT_KEY'])",
     "EnableSampleEndpoints": false
   }
@@ -172,6 +181,8 @@ function Invoke-Keys([hashtable]$cfg) {
     foreach ($name in @('META_BIND', 'META_URL', 'MONGO_CONNECTION', 'MONGO_DB', 'ROOM_CONFIG', 'ROOM_PORT')) {
         Write-Host ("{0,-28} {1}" -f $name, $cfg[$name])
     }
+    $roomId = if ($cfg['LOBBY_DEFAULT_ROOM_ID']) { $cfg['LOBBY_DEFAULT_ROOM_ID'] } else { "$defaultRoomId (default)" }
+    Write-Host ("{0,-28} {1}" -f 'LOBBY_DEFAULT_ROOM_ID', $roomId)
 }
 
 function Get-BuildHashValue {

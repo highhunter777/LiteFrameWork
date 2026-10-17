@@ -280,3 +280,5 @@ screenshots/
 
 # ===== deploy/.env（封闭测试部署密钥，机器私有不入库）=====
 deploy/.env
+# ===== 本地测试 profile（含信封 PSK 等部署参数，机器私有不入库）=====
+BuildProfiles/*.local.json
