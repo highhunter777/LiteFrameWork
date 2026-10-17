@@ -32,6 +32,7 @@ UI 效果 = UI 层对一次语义事件的多通道表现响应，通道为**动
 | [UiFx / UiFxHandle](../../../../Assets/LiteGame/UI/Anim/UiFx.cs) | 四原语 Pulse/Flash/Slide/CountUp；UIClock 轨已落地（`SetUpdate(Manual)` 经 DotweenUiClockDriver 派发，`SetLink(KillOnDisable)` 兜底）；"完成态即基线"复位契约（Stop(true)=跳终值即复位） | Tween 通道后端（唯一 DOTween 入口） |
 | [UiAnimationClock](../../../../Assets/LiteGame/UI/Anim/UiAnimationClock.cs) | UIClock→DOTween 手动派发，ClocksModule 装配期接线 | 全系统时钟基座（通道不做各自的 UIClock 接入） |
 | [AnimatedImage](../../../../Assets/LiteGame/UI/Widgets/AnimatedImage.cs) | 序列帧，UIClock 语义 | 序列帧通道后端 |
+| [RotatingImage](../../../../Assets/LiteGame/UI/Widgets/RotatingImage.cs) | 连续旋转，UIClock 语义 | 循环装饰自播件（不走通道；加载转圈用） |
 | [AudioService](../../../../Assets/LiteClient/Runtime/Audio/AudioService.cs) | 组+代理模型；`Group.Ui` 专组走 UI 时钟轨（UI 暂停即停，不随世界停），句柄失效安全 | 音效通道后端 |
 | 转场策略（[FadeSlideTransition](../../../../Assets/LiteGame/UI/Anim/FadeSlideTransition.cs)、UIStrategies、[UITransitionRunner](../../../../Assets/LiteGame/UI/Transition/UITransitionRunner.cs)） | Push/Pop/Replace 表现策略已运行；策略代码直用 DOTween | 生命周期语义不动；表现段是效果定义的候选消费者（§7.4） |
 | 控件自持表现（Toast/RedDot/Countdown 等） | 各控件自管内部动效，多数不依赖 DOTween | 分批迁入统一播放入口（§7.5），迁移前现状合法 |
@@ -135,7 +136,7 @@ Assets/LiteGame/UI/Effects/
 - **空通道 = 无轨**：三通道相互独立，未填的通道不产生轨道、不占槽位。
 - **复位与生命周期**：动画持 `UiFxHandle`（收尾 `Stop(true)` 复位）；粒子 `Stop + Clear`（防池化复用残留）；音效 Stop 句柄。Owner=展示作用域，页面关闭/池化回收统一收尾；`OnDisable`/KillOnDisable 是兜底不是清理（§8）。
 - **重入**：同节点同通道单播——在播中重复触发默认忽略。
-- **时钟域**：动画=UIClock（UiFx 内建）；音效=UI 轨（Ui 组）；粒子为引擎时间——**循环装饰不走本组件**（自播件直接挂 prefab/`AnimatedImage`）。
+- **时钟域**：动画=UIClock（UiFx 内建）；音效=UI 轨（Ui 组）；粒子为引擎时间——**循环装饰不走本组件**（自播件直接挂 prefab——`AnimatedImage` 序列帧/`RotatingImage` 连续旋转）。
 - **E2 前的最小可行**：动画通道经 UiFx 直通（与 `UIWidget.pressFx` 同构——同一后端，不构成第二套 tween 路径）；音效通道未接线时**显性可观测**（不静默），不得以直挂 AudioSource 兜底；粒子通道直用子件。E2 后三通道统一切经 Player（仲裁/预算/终态可用）。
 - **与控件自持表现的关系**：`UIWidget.pressFx`（按压 Pulse）是控件基类内置特例，与本组件出口同源；是否并入随 §7.5/E3 收编裁决。
 - **示例**：按钮点击音（音效键）、开面板滑入（Slide）、结算数字滚动（CountUp）、Toast 出现（Slide+音效键）；跨节点复用的复杂效果仍走定义登记（§5），本组件只承"简单内联声明"。

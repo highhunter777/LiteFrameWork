@@ -1,6 +1,6 @@
 # UI 命名词表与控件清单
 
-> 状态：现行清单（2026-10-10，控件模板 27 件核对；**2026-10-16 增至 29 件**——新增 `Tmp_RankCell`/`Tmp_KillFeedRow`（HUD 排行格/播报行子件模板，见《战斗HUD层级设计》与《施工进度/HUD子件与容器排布》）；2026-10-11 起模板位于 `Assets/ShareResource/UI/Widgets` 且文件名 `Tmp_<控件类型>`——见《资源收集目录专项设计》）
+> 状态：现行清单（2026-10-10，控件模板 27 件核对；**2026-10-16 增至 29 件**——新增 `Tmp_RankCell`/`Tmp_KillFeedRow`（HUD 排行格/播报行子件模板，见《战斗HUD层级设计》与《施工进度/HUD子件与容器排布》）；**2026-10-17 增至 30 件**——新增 `Tmp_RotatingImage`（连续旋转装饰自播件，加载页转圈落地，见《施工进度/加载页转圈装饰接线》）；2026-10-11 起模板位于 `Assets/ShareResource/UI/Widgets` 且文件名 `Tmp_<控件类型>`——见《资源收集目录专项设计》）
 > 定位：《UI制作规范》§9 的**完整枚举面**——供开发速查、Inspector 预设与校验器消费；**规则本体以 §9 为权威**（判据/同文/私有件/模板层等），本清单只枚举与举例
 > 维护：词表/控件增改先按 §9 §1 例外表登记，再同步本表**与机器可读副本**；**词表数据文件化已落地**——`Assets/LiteGame/Editor/UiTools/Naming/UiNamingWords.cs`（C# 常量表，Inspector 预设与校验核心共读；本表为内容源，C# 表为权威机器副本，改词表须同批改两处）
 
@@ -52,6 +52,7 @@
 | ProgressBar | `Tmp_ProgressBar` | `ProgressBar_` | 进度条 | `ProgressBar_Task` |
 | AvatarFrame | `Tmp_AvatarFrame` | `AvatarFrame_` | 头像框（含等级角标） | `AvatarFrame_Player` |
 | AnimatedImage | `Tmp_AnimatedImage` | `AnimatedImage_` | 帧序列动画图 | `AnimatedImage_Banner` |
+| RotatingImage | `Tmp_RotatingImage` | `RotatingImage_` | 连续旋转装饰（加载转圈等；UIClock 步进） | `RotatingImage_Spin` |
 | Toggle | `Tmp_Toggle` | `Toggle_` | 开关 | `Toggle_Sound` |
 | Slider | `Tmp_Slider` | `Slider_` | 滑条 | `Slider_Volume` |
 | Dropdown | `Tmp_Dropdown` | `Dropdown_` | 下拉选择 | `Dropdown_Quality` |
