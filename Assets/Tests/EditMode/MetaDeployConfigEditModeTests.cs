@@ -19,6 +19,7 @@ namespace LiteGame.Tests.EditMode
             Assert.IsFalse(c.HasMeta);
             Assert.AreEqual("", c.MetaUrl);
             Assert.AreEqual("", c.EnvelopeKeyBase64);
+            Assert.AreEqual("", c.DeviceId, "缺省不注入设备标识（装配侧回落机器标识）");
             Assert.AreEqual(15, c.TimeoutSeconds);
         }
 
@@ -90,6 +91,37 @@ namespace LiteGame.Tests.EditMode
             MetaEntryConfig c = MetaDeployConfig.Parse(new[] { "-envelope.key=" });
 
             Assert.AreEqual("", c.EnvelopeKeyBase64, "显式空值 = 保持默认（回落环境变量口）");
+        }
+
+        // ---- 设备标识（-device.id：同机多客户端各自身份；同值 = 服务端同账号）----
+
+        [Test]
+        public void 设备标识_等号与空格形态_同义且修剪空白()
+        {
+            MetaEntryConfig eq = MetaDeployConfig.Parse(new[] { "-device.id=ed-tester-a" });
+            MetaEntryConfig sp = MetaDeployConfig.Parse(new[] { "-device.id", " ed-tester-a " });
+
+            Assert.AreEqual("ed-tester-a", eq.DeviceId);
+            Assert.AreEqual("ed-tester-a", sp.DeviceId, "空格形态同义，值与信封键同口径修剪首尾空白");
+        }
+
+        [Test]
+        public void 设备标识_显式空值_保持未注入()
+        {
+            MetaEntryConfig c = MetaDeployConfig.Parse(new[] { "-device.id=" });
+
+            Assert.AreEqual("", c.DeviceId, "显式空值 = 保持默认（回落机器标识——同机编辑器与 player 同账号）");
+        }
+
+        [Test]
+        public void 设备标识_烙入可给_命令行同键优先()
+        {
+            string bake = "-device.id=ed-tester-b\n";
+            MetaEntryConfig baked = MetaDeployConfig.Load(new string[0], bake);
+            MetaEntryConfig overridden = MetaDeployConfig.Load(new[] { "-device.id=ed-tester-a" }, bake);
+
+            Assert.AreEqual("ed-tester-b", baked.DeviceId, "零参数分发：身份来自包内烙入（端点烙入同源先例）");
+            Assert.AreEqual("ed-tester-a", overridden.DeviceId, "同键命令行（后见）赢");
         }
 
         // ---- 三源装载（命令行 > 包内 deploy.args 烙入 > 默认）----

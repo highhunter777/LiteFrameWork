@@ -6,13 +6,16 @@ namespace LiteGame
     /// <summary>
     /// 联机入口部署配置（《上云测试专项设计》§3 批C："服务器地址/端口与 PSK 可配（构建期注入）"）。
     ///
-    /// 三项注入面：
+    /// 四项注入面：
     /// - <see cref="MetaUrl"/>：Meta 基址（游客登录/票据/战绩查询的同一主机）。**空 = 未配置** →
     ///   联机入口显性拒绝（登录页报"未配置服务器"，不连任何地址——fail-closed，不悄悄回退本地）；
     /// - <see cref="TimeoutSeconds"/>：Meta 单请求超时；
     /// - <see cref="EnvelopeKeyBase64"/>：KCP 安全信封 PSK（Base64、32 字节）。**空 = 不注入**，
     ///   传输装配回落 <see cref="LiteNet.Transport.SecureEnvelopeOptions.FromEnvironment"/> 既有口
-    ///   （与部署侧 `LITENET_SECURE_ENVELOPE_KEY` 同名——两道注入口不互斥，命令行优先）。
+    ///   （与部署侧 `LITENET_SECURE_ENVELOPE_KEY` 同名——两道注入口不互斥，命令行优先）；
+    /// - <see cref="DeviceId"/>：游客账号归属键（服务端按 `deviceId` 唯一索引 get-or-create）。
+    ///   **空 = 不注入**，回落平台机器标识（<c>SystemInfo.deviceUniqueIdentifier</c>）——同一台机器上的
+    ///   编辑器与 player 会因此**落到同一账号**；同机多客户端要各自身份时注入不同值。
     ///
     /// 与 <see cref="LiteClient.ContentCdnConfig"/> 同源先例：运行时来源是命令行参数（部署/测试注入），
     /// 解析是纯函数（EditMode 直测）；基址不是信任边界——访问令牌/Join Ticket 的效力由服务端验签把守。
@@ -27,6 +30,10 @@ namespace LiteGame
 
         /// <summary>KCP 安全信封 PSK（Base64，32 字节）。空 = 未注入（回落环境变量口）。</summary>
         public string EnvelopeKeyBase64 = "";
+
+        /// <summary>游客身份键（服务端 `deviceId` 唯一索引：**同值 = 同账号**）。空 = 未注入（回落机器标识）。
+        /// 服务端字段上限 128 UTF-8 字节（超限登录被拒）。</summary>
+        public string DeviceId = "";
 
         /// <summary>是否配置了 Meta 基址（联机入口的放行判据——缺配置显性拒绝，不连任何地址）。</summary>
         public bool HasMeta => !string.IsNullOrEmpty(MetaUrl);
@@ -52,6 +59,7 @@ namespace LiteGame
         public const string KeyMetaUrl = "meta.url";
         public const string KeyMetaTimeout = "meta.timeout";
         public const string KeyEnvelopeKey = "envelope.key";
+        public const string KeyDeviceId = "device.id";
 
         /// <summary>Unity 入口：读进程命令行（Editor/Player 同源）。</summary>
         public static MetaEntryConfig Load() => Parse(Environment.GetCommandLineArgs());
@@ -114,6 +122,8 @@ namespace LiteGame
                     config.TimeoutSeconds = seconds;
                 else if (string.Equals(key, KeyEnvelopeKey, StringComparison.OrdinalIgnoreCase))
                     config.EnvelopeKeyBase64 = value.Trim();
+                else if (string.Equals(key, KeyDeviceId, StringComparison.OrdinalIgnoreCase))
+                    config.DeviceId = value.Trim();
             }
 
             return config;

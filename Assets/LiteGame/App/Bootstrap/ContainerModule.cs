@@ -97,11 +97,15 @@ namespace LiteGame
             _services.RegisterInstance<IMatchSessionFactory>(matches);
 
             // 联机入口编排件（批C-③）：未配置 Meta 基址 = client 置空（IsConfigured false——页面显性拒绝），
-            // 不造"指向空址"的客户端；设备标识注入 Unity 面（服务本体零引擎依赖可直测）。
+            // 不造"指向空址"的客户端；设备标识注入 Unity 面（服务本体零引擎依赖可直测）——`-device.id` 非空时
+            // 以它为准（同机多客户端各自身份；同值 = 服务端同账号，见 MetaEntryConfig.DeviceId）。
             // 消费者＝Bridge.meta 门面（MetaBridge.Bind 直接装订——不占容器键，无容器解析点）。
+            Func<string> accountDeviceId = string.IsNullOrEmpty(deploy.DeviceId)
+                ? (Func<string>)(() => UnityEngine.SystemInfo.deviceUniqueIdentifier)
+                : () => deploy.DeviceId;
             var metaEntry = new MetaEntryService(
                 deploy.HasMeta ? new UnityMetaClient(deploy.MetaUrl, deploy.TimeoutSeconds) : null,
-                () => UnityEngine.SystemInfo.deviceUniqueIdentifier,
+                accountDeviceId,
                 deploy.MetaUrl);
 
             var dialogs = new DialogService(ui, nav: nav);
