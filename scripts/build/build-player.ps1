@@ -238,21 +238,38 @@ public static class BuildBundles
 }
 
 # ── 4. dry run validation ────────────────────────────────────────────────────
+# Build steps call the pipeline build command via eval_file instead of the CLI:
+# 'options' is a string[] whose CLI token form is a JSON array, and PS 5.1
+# native arg passing strips the quotes (same failure mode as the backend
+# switch step - eval_file is the established escape hatch in this script).
+# Channel 'development' -> BuildOptions Development: the dev face (DevHUD /
+# DebugTuner / GM command layer) compiles in, so the test client can show the
+# runtime diagnostics HUD (F1). DetailedBuildReport is passed explicitly
+# because supplying any options disables its default.
 Write-Host '== build dry_run ==' -ForegroundColor Cyan
-$dryJson = Invoke-Pipeline 'build' @('--dry_run', 'true')
+$buildOptions = 'null'
+if ($prof.channel -eq 'development') {
+    $buildOptions = 'new string[]{ "Development", "DetailedBuildReport" }'
+    Write-Host '  channel=development -> BuildOptions: Development' -ForegroundColor Yellow
+}
+$dryJson = Invoke-EvalFile 'build-step.cs' (
+    'return Unity.Pipeline.Editor.Commands.Build.BuildCommand.Build(options: ' + $buildOptions + ', dryRun: true);')
 $dry = $dryJson | ConvertFrom-Json
-if ($dry.status -eq 'error' -or $dry.success -eq $false) {
-    Write-Host "dry_run rejected: $($dry.message)" -ForegroundColor Red; exit 1
+if ($dry.result) { $dry = $dry.result }   # eval envelope: return value nested under result
+if ($dry.status -eq 'error' -or $dry.valid -eq $false -or $dry.success -eq $false) {
+    Write-Host "dry_run rejected: $dryJson" -ForegroundColor Red; exit 1
 }
 Write-Host '  dry_run OK' -ForegroundColor Green
 
 # ── 5. build (confirm) + poll ────────────────────────────────────────────────
 Write-Host '== build (confirm; IL2CPP may take 10-30 min) ==' -ForegroundColor Cyan
 $buildStart = Get-Date
-$respJson = Invoke-Pipeline 'build' @('--confirm', 'true')
+$respJson = Invoke-EvalFile 'build-step.cs' (
+    'return Unity.Pipeline.Editor.Commands.Build.BuildCommand.Build(options: ' + $buildOptions + ', confirm: true);')
 $resp = $respJson | ConvertFrom-Json
+if ($resp.result) { $resp = $resp.result }   # eval envelope: return value nested under result
 if ($resp.status -eq 'error' -or $resp.success -eq $false) {
-    Write-Host "build refused: $($resp.message)" -ForegroundColor Red; exit 1
+    Write-Host "build refused: $respJson" -ForegroundColor Red; exit 1
 }
 
 $timeoutMin = 45

@@ -166,7 +166,6 @@ GameObject:
   - component: {fileID: 1304298837}
   - component: {fileID: 1304298840}
   - component: {fileID: 1304298839}
-  - component: {fileID: 1304298841}
   m_Layer: 0
   m_Name: GameEntry
   m_TagString: Untagged
@@ -231,35 +230,6 @@ MonoBehaviour:
   TeleportEnabled: 1
   BotFrozen: 0
   BotCount: 1
---- !u!114 &1304298841
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1304298836}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 8714eaadc08bc2b47a8d0325801c7cf4, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  showStats: 0
-  statToggles:
-  - statsName: MainThreadDispatcher
-    show: 1
-  - statsName: Clock.World
-    show: 1
-  - statsName: Clock.UI
-    show: 1
-  - statsName: EventCenter
-    show: 1
-  - statsName: Game
-    show: 1
-  - statsName: Lua
-    show: 1
-  showLogRecent: 0
-  logRecentLines: 10
-  showErrorsLine: 0
 --- !u!1 &1312961410
 GameObject:
   m_ObjectHideFlags: 0

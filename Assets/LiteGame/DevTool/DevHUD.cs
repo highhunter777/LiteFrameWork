@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.Text;
 using LiteFramework;
 using UnityEngine;
@@ -18,7 +19,8 @@ namespace LiteGame
     /// 自拉取模式：LiteGame.DevTool → LiteClient.Runtime 单向引用，HUD 在 Start 经
     /// FindAnyObjectByType 拉 `GameEntry.Stats`（只读统计访问器，非解析入口）+ 场景组件型 IModuleStats 合并。
     /// **各段渲染开关 = public 字段**（Inspector 可配 / 代码可改）：showStats /
-    /// statToggles（单模块段 bool 开关）/ showLogRecent / logRecentLines / showErrorsLine。
+    /// statToggles（单模块段 bool 开关）/ showNetDiag（联机诊断段——读口 <see cref="BattleDiagnostics"/>，
+    /// 无对局整段不显示）/ showPerf（性能段——本机帧样本自算）/ showLogRecent / logRecentLines / showErrorsLine。
     /// 0.25s 节流轮询：聚合单串、OnGUI 画一次；F1 总开关。</summary>
     public sealed class DevHUD : MonoBehaviour
     {
@@ -49,12 +51,28 @@ namespace LiteGame
         [Range(1, 32)] public int logRecentLines = 10;
         [Tooltip("错误计数行（仅 ErrorCount > 0 时渲染）")]
         public bool showErrorsLine = true;
+        [Tooltip("联机诊断段（相位/RTT/丢包/和解——BattleDiagnostics 读口；无对局整段不显示）")]
+        public bool showNetDiag = true;
+        [Tooltip("性能段（帧率/最差帧/长帧计数——本机帧样本自算，非对局数据）")]
+        public bool showPerf = true;
 
         private IReadOnlyList<IModuleStats> _stats;
         private readonly Dictionary<string, string> _buffer = new Dictionary<string, string>(32);   // 全程复用，零容器分配
         private string _cache = "";
         private float _nextPoll;
         private bool _visible = true;
+
+        /// <summary>长帧判定阈值（秒）：单帧超过即计入长帧——低于 10fps 的单帧是肉眼可察卡顿的经验线
+        ///（诊断口径，非玩法常量；只进显示面，不参与任何判定）。</summary>
+        private const float PerfLongFrameSeconds = 0.1f;
+
+        /// <summary>帧间隔环形样本窗：240 帧 ≈ 4s@60fps——均值/最差/长帧计数的统计面够用且上界可控。</summary>
+        private readonly float[] _frameTimes = new float[240];
+        private int _perfHead;
+        private int _perfCount;
+
+        /// <summary>总开关（编辑器 GM 面板投影位；F1 等效翻转——开发包 Player 无 GM 面板时 F1 即唯一入口）。</summary>
+        public bool Visible { get => _visible; set => _visible = value; }
 
         private bool ShowSection(string statsName)
         {
@@ -77,11 +95,37 @@ namespace LiteGame
 
         private void Update()
         {
-            if (!_visible || _stats == null || Time.unscaledTime < _nextPoll) return;
+            if (!_visible) return;
+            SampleFrameTime();                             // 逐帧采样（长帧计数依赖连续样本——节流只管渲染聚合）
+            if (_stats == null || Time.unscaledTime < _nextPoll) return;
             _nextPoll = Time.unscaledTime + 0.25f;
 
             var sb = new StringBuilder(256);
             if (showErrorsLine && Log.ErrorCount > 0) sb.AppendLine($"── ⚠ Errors: {Log.ErrorCount} ──");
+            if (showNetDiag)
+            {
+                string[] netDiag = BattleDiagnostics.DescribeCurrent();
+                if (netDiag != null)                       // 无对局整段不显示（不显示陈旧值）
+                {
+                    sb.AppendLine("── 联机诊断 ──");
+                    foreach (string line in netDiag) sb.AppendLine("  " + line);
+                }
+            }
+            if (showPerf && _perfCount > 0)
+            {
+                float sum = 0f, worst = 0f;
+                int longFrames = 0;
+                for (int i = 0; i < _perfCount; i++)      // 环形样本全量统计（顺序无关：求和/最差/计数）
+                {
+                    float dt = _frameTimes[i];
+                    sum += dt;
+                    if (dt > worst) worst = dt;
+                    if (dt > PerfLongFrameSeconds) longFrames++;
+                }
+                sb.AppendLine(string.Format(CultureInfo.InvariantCulture,
+                    "── 性能 ──\n  FPS: {0:0}  最差帧: {1:0} ms  长帧(>{2:0} ms): {3}",
+                    _perfCount / sum, worst * 1000f, PerfLongFrameSeconds * 1000f, longFrames));
+            }
             if (showStats)
             {
                 foreach (var s in _stats)
@@ -114,6 +158,13 @@ namespace LiteGame
         {
             if (!_visible || string.IsNullOrEmpty(_cache)) return;
             GUI.Label(new Rect(8, 8, 480, Screen.height - 16), _cache);   // 仅电脑测试用——不做刘海屏适配（设计方案 §1.3 豁免）
+        }
+
+        private void SampleFrameTime()
+        {
+            _frameTimes[_perfHead] = Time.unscaledDeltaTime;
+            _perfHead = (_perfHead + 1) % _frameTimes.Length;
+            if (_perfCount < _frameTimes.Length) _perfCount++;
         }
 
         private void LateUpdate() { if (Input.GetKeyDown(KeyCode.F1)) _visible = !_visible; }

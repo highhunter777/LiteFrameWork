@@ -3,7 +3,7 @@ using UnityEngine;
 namespace LiteGame.Editor
 {
     /// <summary>
-    /// GM 工具箱页件契约（<see cref="GmPanel"/> 壳的四页承载——烘焙工具箱页件范式同款：一页一职责，
+    /// GM 工具箱页件契约（<see cref="GmPanel"/> 壳的页件承载——烘焙工具箱页件范式同款：一页一职责，
     /// 说明→操作→报告自包含）。页件零业务逻辑：运行态读数经 <see cref="GmEditorResolve.ResolveFromContainer{T}"/>
     /// 取容器服务，开关写口唯一走 TestModeOptions / TestModeRuntime（分层裁决见各页类注释）。
     /// 生命周期：壳在翻页/开窗时调 <see cref="OnShow"/>、离场/关窗调 <see cref="OnHide"/>；

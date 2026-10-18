@@ -5,7 +5,7 @@ namespace LiteGame.Editor
 {
     /// <summary>
     /// GM 工具箱（菜单 <c>LiteGame/测试/GM 面板</c>）——**局内可调调试面唯一入口**的壳：
-    /// 四页件（测试模式 / 命令与审计 / 场景操作 / 配置诊断）的统一窗口，页件契约见 <see cref="IGmPage"/>
+    /// 页件（测试模式 / 命令与审计 / 场景操作 / 配置诊断 / 本地联测 / 联机诊断）的统一窗口，页件契约见 <see cref="IGmPage"/>
     /// （烘焙工具箱页件范式同款）。分层裁决：静态启动配置 = 场景 DebugTuner；运行态规则 = MatchTestRules
     /// 每局持有件（开关写口唯一 TestModeOptions）；本窗口 = 纯投影（页件零业务逻辑，只读容器服务与请求桥）。
     /// 壳职责仅三件：页签生命周期（OnShow/OnHide）、Play 中 0.5s 轮询调度（仅活动页——非活动页不轮询）、
@@ -22,6 +22,7 @@ namespace LiteGame.Editor
             new GUIContent("场景操作"),
             new GUIContent("配置诊断"),
             new GUIContent("本地联测"),
+            new GUIContent("联机诊断"),
         };
 
         private readonly IGmPage[] _pages =
@@ -31,6 +32,7 @@ namespace LiteGame.Editor
             new GmScenePage(),
             new GmConfigDiagnosticsPage(),
             new GmLocalChainPage(),
+            new GmNetDiagPage(),
         };
 
         private int _tab;

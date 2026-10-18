@@ -1,4 +1,4 @@
-﻿﻿using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Threading;
 using Cysharp.Threading.Tasks;
@@ -390,6 +390,7 @@ namespace LiteGame
             // 爆头自动验证件（GM 面板现场开关）：替换输入源 + 统计爆头/命中，用于真实对局端到端验链路
             _autoHeadshot = new AutoHeadshotRig(_context.Sim.State, _context.LocalEntityId);
             _hitFeedback?.Register(_autoHeadshot);
+            BattleDiagnostics.Attach(context);       // 对局诊断读口登记（DevHUD/GM 页只读——三宏剥离零残留）
 #endif
             AttachInputWiring();
             _teleportReg = _commands?.RegisterUndoable(new TeleportToAimHandler(
@@ -525,6 +526,7 @@ namespace LiteGame
             // 自动验证件：**先关闭**（还原设备源）再弃引用——否则输入源会停留在替身态直到下次进房
             _autoHeadshot?.Disable();
             _autoHeadshot = null;
+            BattleDiagnostics.Detach(_context);      // 诊断读口注销（只注销本局实例——防误注下一局）
 #endif
             _hitFeedback?.Dispose();              // 命中分发（视图消费者——先于视图本体拆；消费者随各自批自管）
             _hitFeedback = null;
