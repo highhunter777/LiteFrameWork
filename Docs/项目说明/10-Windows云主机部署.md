@@ -19,6 +19,7 @@
 
 | 项 | 本次实机（2026-10-18） |
 |---|---|
+| **地址与登录** | 公网 IP 与管理员账号见 **`LocalNotes/cloud-host.md`**（机器私有、**不入库**；只走 SSH 密钥、无口令登录，私钥也不入库）。本机 `~/.ssh/config` 建议加别名 `litegame-cloud`（写法同文件），后续命令一律用别名——**本手册不回显 IP/账号** |
 | 系统 | Windows Server 2025 Datacenter，**Server Core（不含图形化桌面）**，build 26100 |
 | 规格 | 2 vCPU / 3.9 GB 内存 / C: 40 GB（可用 26 GB） |
 | 时区 | China Standard Time（服务内部一律 UTC，日志按本地时区看） |
@@ -155,6 +156,43 @@ Get-Service 'WireGuardTunnel$wg0'      # Running
 | `lobby.url` | `http://10.8.0.1:5000/lobby/instances/register` |
 | `lobby.advertise_host` | `10.8.0.1`（客户端可达地址＝隧道地址） |
 | `settlement.submit_url` | `http://10.8.0.1:5000/matches/result` |
+
+**现成文件（2026-10-18 起）**：`deploy/roomserver.windows.json` 就是上表三处已改好、且**不带 `_comment`** 的成品（纯 ASCII，避开 PS 5.1 经 SSH stdin 按 GBK 误解中文的坑）——直接传成 `C:\litegame\room\roomserver.json` 即可，不必再从 `roomserver.container.json` 手工派生。
+
+**模板与测试房**：`rooms` 里除 `standard`/`four`/`eight` 外另有 **`sandbox`（联机测试房）**，`default_template` 现指向它：
+
+```json
+"sandbox": { "expected_players": 2, "match_duration_frames": 0, "kill_limit": 0,
+             "respawn_delay_frames": 60, "spawn_protection_frames": 120 }
+```
+
+- `match_duration_frames = 0` → **不限时**（内核事实：`MatchSystem.Tick` 里 `if (s.Match.Timer <= 0) return; // 0 = 不限时`）；
+- `kill_limit = 0` → 不按击杀结束（`> 0` 才判定）；`respawn_delay_frames` 受 `MatchRules` 校验**必须 ≥ 1**（此处 60 = 1 s 复活）。
+- **代价（换模板前先知道）**：对局不再自然结束 ⇒ **结算链不触发**（Outbox/战绩不会落）。要验结算就把 `default_template` 改回 `standard` 并重启房间服。
+- 客户端**选人数**会覆盖模板的 `expected_players`（票据盖章 `0 = 按模板`）；模板名不由客户端选择，服务端 `BuildRoomConfig(null, …)` 走 `default_template`。
+
+**实机落地（2026-10-18）**：`deploy/roomserver.windows.json` 已上推为 `C:\litegame\room\roomserver.json`（原文件留 `roomserver.json.bak`），重启 `LiteGame-Room` 后横幅变为 `rooms=[standard,four,eight,sandbox] default=sandbox`；闭环自检：`/ready`=ready、令牌 167 字符、大厅投影 `address=10.8.0.1:17777`、`buildHash=637ab2e0cabe21ac`（＝客户端包内常量）、`lastSeenAgeMs≈8.9s`、`draining=false`。
+
+**与 `roomserver.container.json` 的一处差异（有意保留）**：云上现为 `heartbeat_interval_ms=10000`，而 container.json 写 `1000`（内核下限；大厅列表可见延迟上限 ≈3 s，10 s 则要等一个心跳）。本次只换模板、未顺带动它——要更快的大厅可见性，把本文件改成 `1000` 再重启即可（独立改动，别和模板变更混在一起判因）。
+
+### 5.1 运维（GM）端点（2026-10-18 启用）
+
+客户端 GM 面板在**真 KCP 独立进程**形态下够不到权威侧（《云端GM通道专项设计》§0），故房间服另起一个**只绑隧道地址的写端点** `http://10.8.0.1:9101/gm/*`（仅 POST + 头 `X-GM-Key`），云上运维用它做"强制开局 / 收房 / 踢席位 / 回灌结算 / 看房间列表"。
+
+- **配置**：`roomserver.json` 的 `gm_port` / `gm_bind`（**通配绑定面装载期即拒**——公网可写的端点不属配置失误）；密钥**只走机器级环境变量 `LITENET_GM_KEY`**（值见 `LocalNotes/cloud-host.md`），**空 ⇒ 端点不启用**（写面 fail-closed）。
+- **动作**：`POST /gm/rooms`（列表）、`/gm/start`（须有 owner）、`/gm/abort`、`/gm/kick`（`{"room":"..","player":N}`）、`/gm/settle-flush`。审计行前缀 `[GM]` → `C:\litegame\room\out.log`。
+- **改代码必须重新发布上传**（本次踩过）：云上跑的是自包含产物，**只改 `roomserver.json` 重启即可，改 C# 必须重跑 `dotnet publish -r win-x64 --self-contained` 并把 `room/` 传上去**——否则配置生效而 exe 仍是旧的（表现为"配置里开了端点、日志里没有端点"）。上传须**先停服再解压**：运行中的 DLL 被占用会 `Can't unlink already-existing object`。
+- 本机调用走 SSH 隧道转发：**别用 9101 作本机端口**——它在本机落在 Windows TCP 排除端口区间（9014-9113），`ssh -L` 会 `bind … Permission denied`。已封装为 `scripts/deploy/gm.ps1`（默认本机端口 19101，自动起/关隧道、自动带 body）：
+
+```powershell
+pwsh -NoProfile -File scripts/deploy/gm.ps1 -Action rooms                       # {"ok":true,"rooms":[]}
+pwsh -NoProfile -File scripts/deploy/gm.ps1 -Action start  -Room <房号>
+pwsh -NoProfile -File scripts/deploy/gm.ps1 -Action kick   -Room <房号> -Player 1
+pwsh -NoProfile -File scripts/deploy/gm.ps1 -Action abort  -Room <房号>
+pwsh -NoProfile -File scripts/deploy/gm.ps1 -Action settle-flush
+```
+
+密钥取本机用户环境变量 `LITEGAME_GM_KEY`，缺失则回退读 `LocalNotes/cloud-host.md`。手拼 curl 时记得**必须带 body**（无 `Content-Length` 会被 `HttpListener` 回 411）。
 
 ---
 

@@ -1,7 +1,7 @@
 # 04 · 技术细节：Sim、联机与服务端
 
 > 本文件的三个主题其实是**一份源码的三种用法**：`Assets/LiteSim/Core`（判定）与 `Assets/RoomServer/Runtime`（房间内核）**两端共编**，`Assets/LiteNet` 提供两端的协议与传输。
-> 设计契约以 [状态同步专项设计](../设计文档/networking/状态同步专项设计.md)、[服务端总设计](../设计文档/architecture/商业级通用服务端框架总设计.md)、[Meta 服务专项设计](../设计文档/architecture/Meta服务专项设计.md) 为准。
+> 设计契约以 [状态同步专项设计](../设计文档/网络/状态同步专项设计.md)、[服务端总设计](../设计文档/架构/商业级通用服务端框架总设计.md)、[Meta 服务专项设计](../设计文档/架构/Meta服务专项设计.md) 为准。
 
 ## 1. 确定性 Sim：`Assets/LiteSim/Core`
 
@@ -59,7 +59,7 @@ SortInputs（按 EntityId 升序稳定插入）
 |---|---|
 | 本机输入不符（服务端回传的输入与本地历史不一致） | `RollbackSim.OnRealInput` 逐位比对 → `ExecuteRollback`：`SnapshotRing.TryRestore(F-1)` + 重放历史 |
 | 权威快照到达 | `OnAuthoritativeSnapshot`：用**公共 checksum** 比对，不符则权威覆盖 + 重放本地历史；`MaxRollbacksPerFrame` 限幅，越界**停预测**强制等待 |
-| 远端实体呈现 | `SimView.TryInterpolate`：前后两份快照按视点帧插值 |
+| 远端实体呈现 | `SimView`：按快照帧号的 jitter buffer 插值（渲染帧 = 最新快照帧 − `RenderDelayFrames`；丢包按真实帧差铺满，旧帧/重复帧丢弃）；远端的瞄准/开火窗/死亡事实取渲染帧对应快照 |
 | 本地实体呈现 | 预测位置跟位 + **和解衰减**（`ViewTransformMath.Decay/ShouldSnap`，超阈值硬切） |
 | 视觉事件 | **静默门**：和解/回滚帧不派发帧事件（避免回滚时特效/音效抖闪） |
 
@@ -102,15 +102,15 @@ SortInputs（按 EntityId 升序稳定插入）
 | `PlayerSession` | 席位：与连接解耦（断线重连、观战、换连接都只动连接侧） |
 | `InputGate.Store / TryConsume` | 输入闸门：帧号、白名单、去重、数值边界校验 → 按帧预存（**不合法输入不进仿真**） |
 | `SnapshotPipeline.BroadcastIfDue / SendSnapshot` | 30Hz 抽帧 → 差分 → AOI → **背压分档**（跟不上的客户端降级而不是拖垮房间） |
-| `LagCompensator.CompensateFire` | 回溯补偿：回到玩家所见帧单跑 `ShootingSystem` 后还原（打到的判定以"玩家看到的过去"为准） |
+| `LagCompensator.CompensateFire` | 回溯补偿：以客户端 `SimView.RenderFrame` 为目标帧单跑 `ShootingSystem` 后还原——**目标取历史位、射手取当前权威位/武器**；同帧互杀按开火时生命结算。打到的判定以"玩家看到的过去"为准 |
 | `MatchStateMachine.TryTransition` | 比赛生命周期状态机 |
 
 ### 3.3 运维面
 
-- 多房间：`roomId → RoomInstance` 路由、动态建房受 `max_rooms` 约束（见 [服务端多房间记录](../施工进度/服务端多房间.md)）。
-- 排空（优雅关闭第 2–4 步）与跨房间过载隔离、真实传输多房间隔离已交付；Worker/Mailbox 核心、宿主生命周期与 Control/Input 入站路由已接线，**Worker 执行形态（Runtime/Outbound 迁移 + 房间 Owner 切换）与终态房间销毁已交付（2026-10-02）**；~~安全信封（专项）~~ **批1 已交付（2026-10-03，[记录](../施工进度/安全信封.md)）**；~~剩排空第 5 步"信号→排空→退出"进程级手验~~ **第 5 步已于 2026-10-04 进程级手验（空表＋活房间＋字面 Ctrl+C 三场景全过，[记录](../施工进度/服务端多房间.md)）**。
-- **R2 安全批（2026-09-30）**：重连票据 CSPRNG（16 B 不透明串）、`IRoomTransport.GetRemoteAddress` 规范化远端地址、分层限流（IP 连接/入场、账号入场、Session 包速率；桶容量上限+周期清理）——~~安全信封另立专项~~ **批1 已交付（2026-10-03，[安全信封记录](../施工进度/安全信封.md)）**；公网门禁（真机核证/批2）闭合前不得公网（见 [服务端R2安全记录](../施工进度/服务端R2安全.md)）。
-- 离线隔离开发：房间内核可跑在**进程内本服**（`LocalServerTransport`），便于无网环境开发与联机用例（见 [离线隔离开发](../施工进度/离线隔离开发.md)）。
+- 多房间：`roomId → RoomInstance` 路由、动态建房受 `max_rooms` 约束（见 [服务端多房间记录](../施工进度/服务端房间线.md#ch1-服务端多房间)）。
+- 排空（优雅关闭第 2–4 步）与跨房间过载隔离、真实传输多房间隔离已交付；Worker/Mailbox 核心、宿主生命周期与 Control/Input 入站路由已接线，**Worker 执行形态（Runtime/Outbound 迁移 + 房间 Owner 切换）与终态房间销毁已交付（2026-10-02）**；~~安全信封（专项）~~ **批1 已交付（2026-10-03，[记录](../施工进度/服务端R线.md#ch4-安全信封)）**；~~剩排空第 5 步"信号→排空→退出"进程级手验~~ **第 5 步已于 2026-10-04 进程级手验（空表＋活房间＋字面 Ctrl+C 三场景全过，[记录](../施工进度/服务端房间线.md#ch1-服务端多房间)）**。
+- **R2 安全批（2026-09-30）**：重连票据 CSPRNG（16 B 不透明串）、`IRoomTransport.GetRemoteAddress` 规范化远端地址、分层限流（IP 连接/入场、账号入场、Session 包速率；桶容量上限+周期清理）——~~安全信封另立专项~~ **批1 已交付（2026-10-03，[安全信封记录](../施工进度/服务端R线.md#ch4-安全信封)）**；公网门禁（真机核证/批2）闭合前不得公网（见 [服务端R2安全记录](../施工进度/服务端R线.md#ch3-服务端R2安全)）。
+- 离线隔离开发：房间内核可跑在**进程内本服**（`LocalServerTransport`），便于无网环境开发与联机用例（见 [离线隔离开发](../施工进度/框架地基线.md#ch1-离线隔离开发)）。
 
 ## 4. Meta 服务（接缝期）
 
