@@ -1,4 +1,4 @@
-﻿using System;
+﻿﻿using System;
 using System.Collections.Generic;
 using System.Threading;
 using Cysharp.Threading.Tasks;
@@ -90,6 +90,7 @@ namespace LiteGame
         private GameObject _hudInstance;                // HUD 根件（ScreenSpace Canvas——随离场销毁）
         private BattleHudView _hudView;                 // 引用件（序列化引用——八节点，零 Find）
         private HitFeedbackDispatcher _hitFeedback;     // 命中分发（帧事件 → 命中反馈消费者）
+        private AuthoritativeCombatFeedback _authorityFeedback;   // 权威命中/击杀窗口 → 命中/死亡反馈
         private BattleDamageNumberDriver _damageNumbers;   // 伤害数字（命中反馈首个消费者）
         private BattleMuzzleFlashDriver _muzzleFlash;      // 枪口火光（Fire 帧事件 → 武器挂点跟随 VFX）
         private BattleImpactFxDriver _impactFx;            // 敌人命中特效（本地 Caused Hit/Crit → 受击点）
@@ -381,6 +382,8 @@ namespace LiteGame
             AttachCombatFx();                                  // 枪口火光 + 敌人命中特效（帧事件路由的 VFX 消费者）
             AttachRemoteFireFx();                             // 远端开火火光（开火窗口快照面 → 他人枪口挂点）
             AttachAudio();                                     // 对局音效（帧事件路由的 Audio 消费者）
+            _authorityFeedback = new AuthoritativeCombatFeedback(
+                _context.KillFeed, _context.HitFeed, _view, _hitFeedback);
 #if UNITY_EDITOR || DEVELOPMENT_BUILD || LITEFRAMEWORK_DEBUG
             // 爆头区域常驻可视化（测试模式诊断件）：只读预测态，不改判定；release 剥离
             _headshotDebug = new BattleHeadshotDebugDrawer(_context.Sim);
@@ -401,6 +404,7 @@ namespace LiteGame
         internal void Tick(float elapseSeconds)
         {
             _locomotion?.Tick(elapseSeconds);    // 移动动画：视图位置已更新，再解析目标姿态
+            _authorityFeedback?.Tick();          // 权威命中/击杀队列 → 命中反馈/阵亡归属（先于 HUD/消费者）
             _crosshair?.Tick(elapseSeconds);          // 对局准心（HUD）：位置/形态/光标 + 连发张开/后坐回正（真实帧时长）
             _hud?.Tick();                        // HUD 面板：血条/弹药（预测态值变化写）
             _rankboard?.Tick();                  // 局内排行榜：击杀分布变化才重排/写（镜像公共面）
@@ -509,6 +513,8 @@ namespace LiteGame
             _muzzleFlash = null;
             _impactFx?.Dispose();
             _impactFx = null;
+            _authorityFeedback?.Dispose();        // 权威命中/死亡反馈（先摘订阅，再拆分发器/视图）
+            _authorityFeedback = null;
             _battleAudio?.Dispose();              // 对局音效（消费者先于分发器/作用域拆；在播代理自然播完）
             _battleAudio = null;
             _audioLeases.Clear();                 // 租约本体已登记 _viewScope（作用域统一归还）
@@ -615,7 +621,7 @@ namespace LiteGame
                 Log.Warning("HUD prefab 排行榜格不齐（格根/名字/击杀/高亮）×8——排行榜静默降级", LogTag.Battle);
                 return;
             }
-            _rankboard = new BattleRankboardDriver(_context.Sim.State,
+            _rankboard = new BattleRankboardDriver(PublicFactState,
                 () => _view != null ? _view.LocalEntityId : 0L,
                 _hudView.RankCells, _hudView.RankNames, _hudView.RankKills, _hudView.RankHighlights,
                 _hudView.TeamScoreText);                   // 团队比分预留节点（缺 = 驱动内跳过）
@@ -674,7 +680,7 @@ namespace LiteGame
                 Log.Warning("HUD prefab 死亡/复活件不齐（中央面板 3 件）——死亡等待面板静默降级", LogTag.Battle);
                 return;
             }
-            _respawnHud = new BattleRespawnHudDriver(_context.Sim.State,
+            _respawnHud = new BattleRespawnHudDriver(PublicFactState,
                 LocalSlot, IsLocalDead,
                 _hudView.RespawnRoot, _hudView.RespawnTitle, _hudView.RespawnCountdown,
                 _hudView.ProtectionRoot);
@@ -855,6 +861,16 @@ namespace LiteGame
             };
         }
 
+        /// <summary>
+        /// 公共事实读源：**权威镜像优先**（`BattleContext.AuthorityState`，首份快照后可用），
+        /// 首快照前回落本地预测态。排行榜/阵亡面板等公共展示只吃它——预测的击杀/死亡不得先上板
+        /// （否则会出现"我这边死了/我这边加击杀，对方没死"的单边展示）。
+        /// </summary>
+        private SimWorldState PublicFactState()
+            => _context != null
+                ? (_context.AuthorityState ?? _context.Sim?.State)
+                : null;
+
         /// <summary>本地槽位（未对齐/解析失败 = -1）——死亡 HUD / 保护壳驱动的注入缝。</summary>
         private int LocalSlot()
         {
@@ -892,6 +908,76 @@ namespace LiteGame
             var go = UnityEngine.Object.Instantiate(_prefab, parent);
             go.name = location;
             return go;
+        }
+
+        /// <summary>
+        /// 权威命中/击杀窗口 → 表现反馈：`PublicHitFeed`/`PublicKillFeed` 的新条目（含他人命中/击杀）
+        /// 合成 <see cref="FrameEventKind.Hit"/>/<see cref="FrameEventKind.Crit"/>/<see cref="FrameEventKind.Death"/>
+        /// 交给 <see cref="HitFeedbackDispatcher"/>——命中数字/受击特效/命中音效/阵亡归属不再依赖
+        /// "本地预测的帧事件"（受害方本地从不模拟敌方开火，旧路径下自己阵亡永远收不到归属/音效；
+        /// 预测命中则可能在服务端未命中时误显）。两个 feed 已按 (shooter,target,frame) 去重。
+        /// </summary>
+        private sealed class AuthoritativeCombatFeedback : IDisposable
+        {
+            private readonly PublicKillFeed _kills;
+            private readonly PublicHitFeed _hits;
+            private readonly SimView _view;
+            private readonly HitFeedbackDispatcher _dispatcher;
+            private bool _disposed;
+
+            public AuthoritativeCombatFeedback(PublicKillFeed kills, PublicHitFeed hits, SimView view,
+                HitFeedbackDispatcher dispatcher)
+            {
+                _kills = kills;
+                _hits = hits;
+                _view = view;
+                _dispatcher = dispatcher;
+            }
+
+            /// <summary>每渲染帧消费两个权威队列——**队列而非事件**：视图 Attach 前到达的快照
+            /// （或一帧内多份快照）不会丢反馈；命中先于死亡（同帧击杀的听感/飘字顺序稳定）。</summary>
+            public void Tick()
+            {
+                if (_disposed || _dispatcher == null) return;
+
+                if (_hits != null)
+                {
+                    while (_hits.TryDequeue(out PublicHitFeed.Entry hit))
+                    {
+                        var e = new FrameEvent
+                        {
+                            Kind = hit.Crit ? FrameEventKind.Crit : FrameEventKind.Hit,
+                            EntityId = hit.Target,
+                            OtherId = hit.Shooter,
+                            Value = hit.Value,
+                            Pos = new SimVector3(hit.PosX, hit.PosY, hit.PosZ),
+                        };
+                        _dispatcher.DispatchAuthoritative(in e);
+                    }
+                }
+
+                if (_kills != null)
+                {
+                    while (_kills.TryDequeueFeedback(out PublicKillFeed.Entry kill))
+                    {
+                        Vector3 pos = Vector3.zero;
+                        if (_view != null && _view.TryGetSlot(kill.Victim, out int slot)
+                            && _view.TryGetView(slot, out GameObject go) && go != null)
+                            pos = go.transform.position;
+
+                        var e = new FrameEvent
+                        {
+                            Kind = FrameEventKind.Death,
+                            EntityId = kill.Victim,
+                            OtherId = kill.Killer,
+                            Pos = new SimVector3(pos.x, pos.y, pos.z),
+                        };
+                        _dispatcher.DispatchAuthoritative(in e);
+                    }
+                }
+            }
+
+            public void Dispose() => _disposed = true;
         }
     }
 }

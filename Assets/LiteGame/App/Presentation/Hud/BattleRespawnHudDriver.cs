@@ -30,7 +30,8 @@ namespace LiteGame
         /// <summary>60Hz 逻辑帧 → 秒（倒计时换算；不引浮点取整误差）。</summary>
         private const int TicksPerSecond = 60;
 
-        private readonly SimWorldState _state;
+        private SimWorldState _state;                  // 每帧从 _stateOf 刷新（权威镜像优先）
+        private readonly Func<SimWorldState> _stateOf;
         private readonly Func<int> _localSlot;
         private readonly Func<bool> _isLocalDead;
         private readonly RectTransform _respawnRoot;
@@ -52,8 +53,17 @@ namespace LiteGame
         public BattleRespawnHudDriver(SimWorldState state, Func<int> localSlot, Func<bool> isLocalDead,
             RectTransform respawnRoot, TextMeshProUGUI title, TextMeshProUGUI countdown,
             RectTransform protectionRoot = null)
+            : this(() => state, localSlot, isLocalDead, respawnRoot, title, countdown, protectionRoot)
         {
-            _state = state ?? throw new ArgumentNullException(nameof(state));
+        }
+
+        /// <summary>读源为委托的形态（生产：权威镜像优先；测试可传固定世界）。</summary>
+        public BattleRespawnHudDriver(Func<SimWorldState> stateOf, Func<int> localSlot, Func<bool> isLocalDead,
+            RectTransform respawnRoot, TextMeshProUGUI title, TextMeshProUGUI countdown,
+            RectTransform protectionRoot = null)
+        {
+            _stateOf = stateOf ?? throw new ArgumentNullException(nameof(stateOf));
+            _state = stateOf() ?? throw new ArgumentNullException(nameof(stateOf), "读源首帧不得为 null");
             _localSlot = localSlot ?? throw new ArgumentNullException(nameof(localSlot));
             _isLocalDead = isLocalDead ?? throw new ArgumentNullException(nameof(isLocalDead));
             _respawnRoot = respawnRoot ?? throw new ArgumentNullException(nameof(respawnRoot));
@@ -68,6 +78,8 @@ namespace LiteGame
         {
             if (_disposed) return;
 
+            SimWorldState state = _stateOf();
+            if (state != null) _state = state;
             int slot = _localSlot();
             if (slot < 0)
             {

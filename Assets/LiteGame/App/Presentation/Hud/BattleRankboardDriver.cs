@@ -28,7 +28,8 @@ namespace LiteGame
         /// <summary>格数（= <c>eight</c> 房间模板上限——>8 人裁剪，见审计登记）。</summary>
         public const int CellCount = 8;
 
-        private readonly SimWorldState _state;
+        private SimWorldState _state;                  // 每帧从 _stateOf 刷新（权威镜像优先）
+        private readonly Func<SimWorldState> _stateOf;
         private readonly Func<long> _localEntityId;
         private readonly GameObject[] _cells;        // 格根＝单元（隐藏/显示只关它；格内子件保持激活）
         private readonly TextMeshProUGUI[] _names;
@@ -65,8 +66,17 @@ namespace LiteGame
         public BattleRankboardDriver(SimWorldState state, Func<long> localEntityId,
             GameObject[] cells, TextMeshProUGUI[] names, TextMeshProUGUI[] kills, GameObject[] highlights,
             TextMeshProUGUI teamScore = null)
+            : this(() => state, localEntityId, cells, names, kills, highlights, teamScore)
         {
-            _state = state ?? throw new ArgumentNullException(nameof(state));
+        }
+
+        /// <summary>读源为委托的形态（生产：优先权威镜像、首快照前回落预测态；测试可传固定世界）。</summary>
+        public BattleRankboardDriver(Func<SimWorldState> stateOf, Func<long> localEntityId,
+            GameObject[] cells, TextMeshProUGUI[] names, TextMeshProUGUI[] kills, GameObject[] highlights,
+            TextMeshProUGUI teamScore = null)
+        {
+            _stateOf = stateOf ?? throw new ArgumentNullException(nameof(stateOf));
+            _state = stateOf() ?? throw new ArgumentNullException(nameof(stateOf), "读源首帧不得为 null");
             _localEntityId = localEntityId ?? throw new ArgumentNullException(nameof(localEntityId));
             _cells = cells ?? throw new ArgumentNullException(nameof(cells));
             if (_cells.Length != CellCount)
@@ -102,6 +112,8 @@ namespace LiteGame
         {
             if (_disposed) return;
 
+            SimWorldState state = _stateOf();
+            if (state != null) _state = state;             // 权威镜像到达后整帧换读源（同帧内一致）
             TickTeamScore();
 
             CollectPlayers();

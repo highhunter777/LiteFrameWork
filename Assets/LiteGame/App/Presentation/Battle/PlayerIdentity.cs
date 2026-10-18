@@ -1,3 +1,5 @@
+using System.Collections.Generic;
+using LiteNet.Proto;
 using LiteSim;
 
 namespace LiteGame
@@ -33,12 +35,31 @@ namespace LiteGame
             return found ? rank + 1 : 0;
         }
 
+        /// <summary>**冻结名册**口径的序号（与 <see cref="OrdinalOf"/> **同一条规则**——按 EntityId 升序的
+        /// 1-based 位置；输入面从"活世界镜像"换成"冻结行表"）：0 = 不在册。结算页排行的名字由此出
+        /// （局内的排行榜/阵亡归属与结算页排行因此恒同一套序号，不各写一份）。</summary>
+        public static int OrdinalOfRows(IReadOnlyList<PlayerMatchResult> rows, long entityId)
+        {
+            if (rows == null || entityId == 0L) return 0;
+
+            bool found = false;
+            int rank = 0;
+            for (int i = 0; i < rows.Count; i++)
+            {
+                long id = rows[i].EntityId;
+                if (id == entityId) found = true;        // 目标自身不算在"更小者"里
+                else if (id < entityId) rank++;
+            }
+            return found ? rank + 1 : 0;
+        }
+
+        /// <summary>占位名（由序号直出——<c>玩家{k}</c>；k ≤ 0 → 空串，调用方据此不写文本）。</summary>
+        public static string PlaceholderNameFor(int ordinal)
+            => ordinal > 0 ? PlaceholderNamePrefix + ordinal : string.Empty;
+
         /// <summary>占位名（<c>玩家{k}</c>；非参赛/不在册 → 空串——调用方据此不写文本）。</summary>
         public static string PlaceholderName(SimWorldState state, long entityId)
-        {
-            int ordinal = OrdinalOf(state, entityId);
-            return ordinal > 0 ? PlaceholderNamePrefix + ordinal : string.Empty;
-        }
+            => PlaceholderNameFor(OrdinalOf(state, entityId));
 
         /// <summary>参赛玩家判据（<c>EntityFlags.Player</c> 且槽位在册；阵亡/断线保留槽位故不看存活）。</summary>
         public static bool IsPlayer(in EntitySlot e)
