@@ -1,9 +1,16 @@
 <linker>
   <!--
-    IL2CPP 防裁（手册 M2 步骤 7）：Luban 序列化与 LiteFramework DI 构造反射都依赖运行时类型信息。
-    实现类新增时同步核对本表——AOT 纪律见 M0 指导 §10（实现类写进 link.xml）。
+    IL2CPP 防裁（AOT 纪律）：本表按程序集名整档保留。
+    - Luban.Runtime / Luban.Tables：表行反序列化走反射读类型——防裁承重面；
+    - LiteFramework 三件（Core/Async/Unity）：框架侧程序集保留面——DI 按类型注册路径
+      （ServiceContainer.PrepareConstructor 反射取公共构造函数）与裁剪档位提升时的防线；
+      生产装配当前全 RegisterInstance（实例直造、静态引用不依赖本表），此三件为档位防御。
+    实现类新增时同步核对本表；表内 fullname 必须是真实存在的 asmdef 程序集名
+    ——陈旧名＝静默失锚，由 L1 守卫用例（LinkXmlGuardTests）钉住。
   -->
   <assembly fullname="Luban.Runtime" preserve="all" />
   <assembly fullname="Luban.Tables" preserve="all" />
-  <assembly fullname="LiteFramework" preserve="all" />
+  <assembly fullname="LiteFramework.Core" preserve="all" />
+  <assembly fullname="LiteFramework.Async" preserve="all" />
+  <assembly fullname="LiteFramework.Unity" preserve="all" />
 </linker>
