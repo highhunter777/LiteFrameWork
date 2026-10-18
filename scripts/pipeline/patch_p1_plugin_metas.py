@@ -1,6 +1,6 @@
 """Replay the com.unity.pipeline 2022.3 compatibility patches.
 
-Implements patch 1 of Docs/UnityPipeline本地补丁.md §2: rewrite the five
+Implements patch 1 of Docs/UnityPipeline本地补丁与运维.md §2: rewrite the five
 CodeAnalysis plugin metas from upstream's Unity 6 shape (serializedVersion 3,
 map-style platformData) to 2022.3's native shape (serializedVersion 2,
 list-style platformData).

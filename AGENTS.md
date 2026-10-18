@@ -8,10 +8,12 @@
 |---|---|---|
 | 1 | 本文件 | 基础原则、红线速查、常用命令 |
 | 2 | [Docs/修改指南.md](Docs/修改指南.md) | **§1 代码实现规范（红线，含审计反例）→ §2 修改规范（动手前/改动中/收尾流程）→ §3 领域查询表（"我想改 X 去哪改、改完跑什么"）** |
-| 3 | [Docs/代码质量审计-客户端.md](Docs/代码质量审计-客户端.md) · [Docs/代码质量审计-服务端.md](Docs/代码质量审计-服务端.md) | 存量质量债登记表（硬编码/重复/技术债/不统一路径/类设计，含 file:line 与修复状态）——改文件前查该文件有没有已登记债；**新代码禁止产生同型问题** |
+| 3 | [Docs/审计/代码质量审计-客户端.md](Docs/审计/代码质量审计-客户端.md) · [Docs/审计/代码质量审计-服务端.md](Docs/审计/代码质量审计-服务端.md) | 存量质量债登记表（硬编码/重复/技术债/不统一路径/类设计，含 file:line 与修复状态）——改文件前查该文件有没有已登记债；**新代码禁止产生同型问题** |
 | 4 | [Docs/项目说明/README.md](Docs/项目说明/README.md) | 项目是什么、怎么跑、数据怎么流、怎么分层 |
 | 5 | [Docs/设计文档/README.md](Docs/设计文档/README.md) | 目标架构裁决（与本指南/代码冲突时以设计文档为准） |
 | 6 | [Docs/开发导航/README.md](Docs/开发导航/README.md) | 代码地图、程序集引用图 |
+| 7 | [Docs/项目说明/10-Windows云主机部署.md](Docs/项目说明/10-Windows云主机部署.md) | 云侧**现行形态**（Windows Server 2025 原生）的部署与运维——**动云主机前必读**；速查见本文件「云侧环境（外环）——操作必读」节 |
+| 8 | [Docs/项目说明/11-联机测试流程.md](Docs/项目说明/11-联机测试流程.md) | **从改完代码到云上打完一局**的主线（发版矩阵 / 一键部署 / 测试者接入 / 开测与 GM 兜底 / 观测 / 收尾）——联机测试照它走 |
 
 ## 基础原则
 
@@ -34,6 +36,7 @@
 - 设计文档与施工进度文档分开。
 - 设计文档仅描述最新设计；进度文档仅保留最新进度。
 - 代码完成后，应回写对应文档。
+- 新增/修改/移动/合并/归档文档按 `doc-authoring` skill（落点决策 → 命名元数据 → 索引登记 → `-Lane Doc` 自检）。
 
 **工具规范**
 
@@ -47,7 +50,7 @@
 - 第三方付费资源不纳入版本管理。
 - **第三方资源引用规范**：产品资产**不得直接引用第三方资源**；须先把用到的第三方资源**复制进我们自己的收集目录**（模块内使用资源目录或 `Assets/ShareResource`，见下条目录分层），再引用**复制后的这份**。复制件按类型判定——第三方付费资源不入库，故其复制件也不入库（随打包机本地还原）；第三方原始库（如 `Assets/Synty/`）只作可复制的来源、不直接消费。
 - 其他资源不纳入版本管理。
-- **目录分层（2026-10-11 裁决）**：Assets 顶层只放原始资源；进包资源只放两类收集来源——**模块内使用资源目录**（模块聚合，样板 `LiteGame/Lua`）与**共享资源目录 `Assets/ShareResource`**（其下自建顶层子目录分类）；映射与迁移面见 [Docs/设计文档/client/content/资源收集目录专项设计.md](Docs/设计文档/client/content/资源收集目录专项设计.md) §2/§5。
+- **目录分层（2026-10-11 裁决）**：Assets 顶层只放原始资源；进包资源只放两类收集来源——**模块内使用资源目录**（模块聚合，样板 `LiteGame/Lua`）与**共享资源目录 `Assets/ShareResource`**（其下自建顶层子目录分类）；映射与迁移面见 [Docs/设计文档/客户端/content/资源收集目录专项设计.md](Docs/设计文档/客户端/content/资源收集目录专项设计.md) §2/§5。
 
 > 以上原则的落地细则与审计反例见 [Docs/修改指南.md](Docs/修改指南.md) §1 与两份质量登记表。
 
@@ -56,7 +59,7 @@
 1. **BuildHash 源集**：改 `Assets/LiteSim/Core/{Scripts,Systems}`、`Assets/LiteNet/{Proto,Protocol,Transport/Security}`、`Assets/GameData/Generated`（Luban 生成表行类/读取器）、脚本 `SHARED_LINK_FILES` 登记的两端源链接共编件（`Serialization.Luban/{SimConfigMapper,TableLayout}.cs`）→ ★ `python scripts/codegen/gen-build-hash.py`（权威清单＝该脚本 `SHARED_TARGETS/SHARED_LINK_FILES`）；漏跑＝出包门禁被拦、两端常量不同步时 Join 握手拒进房（2026-10-07 起开发期不校验，守卫在 build-player.ps1 门禁步 `--check-shared`）。**表数据（`.bytes` 数值）已移出闭包**（2026-10-14 批 E）——数据面守卫＝装载后**运行期摘要**（`CombatConfigDigest`：判定面表字节 + 本局规则；客户端按 `StartGame.ConfigHash` 复算比对，不等拒局），表值可两端热更不出包；但**改表源跑完 `Luban/gen.bat` 后仍要重跑本脚本**（生成读码面在闭包内），再走 `ConfigService.GameplayDigestBase` 侧的两端发布顺序。**同一脚本还产出第二个目标**：`Server/MetaServer/Host/BuildHash.g.cs`（Meta 构建身份＝`META_TARGETS` 源集摘要，启动日志 `build=` 用它；**不参与准入判定**，故不挂出包门禁——发布 Meta 产物前跑 `--check` 复算两个常量）。
 2. **R11 房间内核纯度**：`Assets/RoomServer/Runtime/` 禁 Console/系统时钟/文件 IO/proto/LiteNet。
 3. **R13 数值读口**：机制面禁读静态读口可变值，数值经实例参数传递（consts 豁免）。
-4. **Unity 序列化资产**（场景/Prefab/Material/.meta）：一律走 unity-pipeline CLI（`Docs/UNITY-GUIDE.md`），禁直改文件。
+4. **Unity 序列化资产**（场景/Prefab/Material/.meta）：一律走 unity-pipeline CLI（`Docs/工具链/Unity操作规范.md`），禁直改文件。
 5. **禁硬编码**：魔法数字/字符串进常量或表；跨层共享常量 C# 单源权威，Lua shim/工具引用它；生成器引用运行时常量；"必须与 X 一致"只靠注释＝违规，要机制化（单源/生成/守卫测试三选一）。
 6. **禁新增 public static 可变状态**（豁免名单封闭）；确定性判定路径（伤害/弹药/命中/checksum）禁读任何静态可变值——包括 dev 宏内。
 7. **错误契约统一**：已关闭服务再调用抛 `ObjectDisposedException`；程序员错误 fail-fast、内容降级 Log.Warning+默认值；同层姊妹服务同契约。
@@ -79,6 +82,7 @@
 | `batch-wrapup` | 一批改动收尾/提交前（修改指南 §2.3 必跑 + §2.4 回写） |
 | `audit-debt-check` | 动源码文件前查两份质量登记表（修改指南 §2.1 第 3 步） |
 | `unity-pipeline` | 驱动运行中的 Unity Editor/开发 Player（CLI 包 `unity-pipeline`：装包、后台保活、edit→recompile→run_tests 环、eval C#、运行时热改码）——红线 4 的 CLI 执行层 |
+| `doc-authoring` | 新增/修改/移动/合并/归档 `Docs/` 下文档：落点决策、命名与元数据、设计↔进度分离、索引零孤儿、卷内追加章、链接与锚自检（D1～D6 门禁） |
 
 ## 常用命令
 
@@ -96,7 +100,46 @@ pwsh scripts/gate/l2-unity-gate.ps1                          # L2 Unity 门禁�
 pwsh scripts/gate/restore-check.ps1                          # 环境可复现检查
 ```
 
-Unity 交互（改场景/Prefab/跑 PlayMode）一律走 unity-pipeline CLI，见 `Docs/UNITY-GUIDE.md`。
+Unity 交互（改场景/Prefab/跑 PlayMode）一律走 unity-pipeline CLI，见 `Docs/工具链/Unity操作规范.md`。
+
+## 云侧环境（外环）——操作必读
+
+> 联机测试云主机（Windows Server 2025 Server Core，**2026-10-18 起为现行形态**）。部署/运维全细节见 [Docs/项目说明/10-Windows云主机部署.md](Docs/项目说明/10-Windows云主机部署.md)；Linux/compose 旧形态见 [09-上云联机测试](Docs/项目说明/09-上云联机测试.md)（备用）。
+
+| 项 | 值 |
+|---|---|
+| 公网 IP / 登录账号 | **见 `LocalNotes/cloud-host.md`**（机器私有、**不入库**；只走 SSH 密钥、无口令登录）——仓库文档一律只指向该文件，不回显其值 |
+| 通道 | SSH（OpenSSH Server，`22/tcp` 限管理 IP）；应用面走 WireGuard 隧道 `10.8.0.1`（Meta `5000`、Room UDP `17777` 只绑隧道地址） |
+| 托管 | 任务计划 `LiteGame-Meta` / `LiteGame-Room`（`SYSTEM` + `AtStartup`）；**改配置必须重启任务才生效**（配置是启动期快照） |
+| 云上路径 | `C:\litegame\{meta,room,GameData,mongo,wg}`；配置源＝`deploy/roomserver.windows.json`（测试房 `sandbox` 为默认模板：不限时、无击杀上限） |
+| 运维(GM)端点 | `http://10.8.0.1:9101/gm/*`（只绑隧道地址、仅 POST + 头 `X-GM-Key`，密钥见 `LocalNotes/cloud-host.md`）：`rooms` / `start` / `abort` / `kick` / `settle-flush`；设计见 [《云端GM通道专项设计》](Docs/设计文档/架构/云端GM通道专项设计.md)。**改房间服 C# 后必须重新 `dotnet publish -r win-x64 --self-contained` 并上传 `room/`**（只改配置则重启任务即可） |
+
+**红线**：
+
+1. IP 与用户名可入库；**私钥（`~/.ssh/id_ed25519_litegame`）、`deploy/.env` 密钥、测试者 `.conf` 一律不入库、不回显、不截图**。
+2. 这是**封闭测试环境**：不得公开/宣传，**不得作为"可发布"判据**。
+3. **禁止在 SSH 会话里 `Start-Process` 起常驻进程**（随会话被回收）——一律走任务计划（10 手册 §6）。
+4. 换机/换公网 IP ⇒ **已发出的测试者 `.conf` 全部作废**（`Endpoint` + 服务端 `PublicKey` 两处要重生成）；客户端与游戏包不用动（连的是 `10.8.0.1`）。
+
+命令级速查（发布 / 模板 / GM / 接入 / 观测）：[Docs/开发导航/云侧速查.md](Docs/开发导航/云侧速查.md)；流程与判据见 [11-联机测试流程](Docs/项目说明/11-联机测试流程.md)。
+
+**常用（换房间配置后让它生效）**：
+
+（下列用 `~/.ssh/config` 别名 `litegame-cloud`，写法见 `LocalNotes/cloud-host.md`）
+
+```powershell
+# 云端运维动作（自动起/关 SSH 隧道；本机端口避开 Windows 排除区间，勿用 9101）
+pwsh -NoProfile -File scripts/deploy/gm.ps1 -Action rooms
+pwsh -NoProfile -File scripts/deploy/gm.ps1 -Action start -Room <房号>
+```
+
+```powershell
+scp deploy/roomserver.windows.json litegame-cloud:C:/litegame/room/roomserver.json
+# 复杂命令别在 ssh 里拼引号（Windows OpenSSH + PS 5.1 会静默失败/按 GBK 误解中文）：
+# 走「scp 上传 .ps1 + powershell -File 执行」
+ssh litegame-cloud powershell -NoProfile -ExecutionPolicy Bypass -File C:\litegame\apply-room.ps1
+# 判据：C:\litegame\room\out.log 启动横幅含 rooms=[standard,four,eight,sandbox] default=sandbox
+```
 
 ## 工作约定
 
@@ -110,4 +153,4 @@ Unity 交互（改场景/Prefab/跑 PlayMode）一律走 unity-pipeline CLI，�
 - 设计文档与施工进度分开：设计文档只描述最新设计，进度文档只保留最新进度。
 - 文档与代码不一致：以代码为准，并顺手修文档。
 - 目录搬动当批同步：`ScanTargets.cs`（纪律目标）、YooAsset 收集组、`Tests.slnx`/csproj、构建器路径、[Docs/开发导航/代码地图.md](Docs/开发导航/代码地图.md)。
-- 资源放置与收集目录规划（打资源包热更）按「基础原则·资源规范」＋ [资源收集目录专项设计](Docs/设计文档/client/content/资源收集目录专项设计.md)；版本管理按既有 `.gitignore` 裁决执行，两者无关。
+- 资源放置与收集目录规划（打资源包热更）按「基础原则·资源规范」＋ [资源收集目录专项设计](Docs/设计文档/客户端/content/资源收集目录专项设计.md)；版本管理按既有 `.gitignore` 裁决执行，两者无关。

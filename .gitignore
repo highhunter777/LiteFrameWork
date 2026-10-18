@@ -30,7 +30,7 @@ XLuaSamples/
 *.pdb
 # 2026-10-13 放开入库（用户裁决）：`*.mdb` 原被忽略，但 DOTween 两个 `.mdb.meta` 早已入库
 # （c3e1082）——实体永远缺失 ⇒ meta 永远是孤儿 ⇒ Unity 一开就删它并刷警告
-# （见 Docs/非作者机恢复与验证记录.md §1.2(b)）。放开后实体随 meta 入库，孤儿警告消失。
+# （见 Docs/环境/非作者机恢复与验证记录.md §1.2(b)）。放开后实体随 meta 入库，孤儿警告消失。
 # `*.pdb` 维持忽略：其 meta 未入库，不存在同型孤儿。
 *.opendb
 *.VC.db
@@ -116,9 +116,9 @@ Assets/StateMachine.meta
 # UniversalRenderPipelineGlobalSettings.asset = URP 全局设置（GraphicsSettings.m_SRPDefaultSettings 引用它）。
 # 入库理由：ProjectSettings/GraphicsSettings.asset 与 QualitySettings.asset 均已入库（2026-09-26）
 # 并按 GUID 引用这批资产——不随库分发时干净克隆解析不到，工程退回 Built-in 兜底
-# （见 Docs/非作者机恢复与验证记录.md §2）。放开后 §2.1 的 4 个 URP 占位缺口一并消解。
+# （见 Docs/环境/非作者机恢复与验证记录.md §2）。放开后 §2.1 的 4 个 URP 占位缺口一并消解。
 
-# ===== 工程配置与工具链（不入库；环境恢复见 Docs/环境恢复指南.md）=====
+# ===== 工程配置与工具链（不入库；环境恢复见 Docs/环境/环境恢复指南.md）=====
 # 说明：仓库只保留自研框架代码/预制品/文档。以下为工程配置与本地工具链：
 #       Tools（XLua 工具）、Packages/MCPForUnity（编辑器自动化桥）。
 #       如需入库请显式 `git add -f <路径>`。
@@ -173,7 +173,7 @@ LocalNotes/
 # ===== 参考源码（不参与 Unity 编译；如需启用请移回 Packages/ 并解决 Unity 6 依赖）=====
 _refs/
 
-# ===== 第三方包：Unity Pipeline（本地补丁见 Docs/UnityPipeline本地补丁.md）=====
+# ===== 第三方包：Unity Pipeline（本地补丁见 Docs/UnityPipeline本地补丁与运维.md）=====
 Packages/com.unity.pipeline/
 
 # ===== 本地工具目录（不入库）=====

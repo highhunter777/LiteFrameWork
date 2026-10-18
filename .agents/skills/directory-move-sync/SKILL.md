@@ -12,7 +12,7 @@ description: 目录搬动/文件移动同步清单。只要涉及在 Assets/ 或
 1. **Assets 内的移动/重命名/删除先走 unity-pipeline CLI**(见 `unity-asset-pipeline` skill)——保 .meta/GUID 关联;禁文件系统直移。Server/ 下无 Unity 序列化内容,可直接文件系统操作。
 2. **同批同步六面**(全部要动,缺一即静默漂移):
    - `ScanTargets.cs`(纪律扫描目标清单——漏了则 DisciplineScanner 对新位置失效)
-   - YooAsset 收集组(收集目录规划按 `Docs/设计文档/client/content/资源收集目录专项设计.md` §2/§5;Assets 顶层只放原始资源,进包来源只有模块内使用资源目录与 `Assets/ShareResource`)
+   - YooAsset 收集组(收集目录规划按 `Docs/设计文档/客户端/content/资源收集目录专项设计.md` §2/§5;Assets 顶层只放原始资源,进包来源只有模块内使用资源目录与 `Assets/ShareResource`)
    - `Tests.slnx` / csproj 引用(双轨源链接,框架用例直接链 Assets/ 源文件)
    - `.gitignore` 白名单
    - 构建器路径(`build-player.ps1` 等)

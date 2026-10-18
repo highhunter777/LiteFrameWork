@@ -1,0 +1,313 @@
+# ===== Unity 生成目录 =====
+[Ll]ibrary/
+[Tt]emp/
+[Oo]bj/
+[Bb]in/
+[Bb]uild/
+[Bb]uilds/
+[Bb]in.meta
+[Oo]bj.meta
+[Ll]ogs/
+[Uu]serSettings/
+[Mm]emoryCaptures/
+[Rr]ecordings/
+CrashDumps/
+
+# 工程产物目录（YooAsset 真机包 / HybridCLR 克隆仓库等，不入库）
+Bundles/
+HybridCLRData/
+XLuaSamples/
+
+# ===== IDE / VS / Rider =====
+.vs/
+.idea/
+*.suo
+*.user
+*.userprefs
+*.pidb
+*.booproj
+*.svd
+*.pdb
+# 2026-10-13 放开入库（用户裁决）：`*.mdb` 原被忽略，但 DOTween 两个 `.mdb.meta` 早已入库
+# （c3e1082）——实体永远缺失 ⇒ meta 永远是孤儿 ⇒ Unity 一开就删它并刷警告
+# （见 Docs/非作者机恢复与验证记录.md §1.2(b)）。放开后实体随 meta 入库，孤儿警告消失。
+# `*.pdb` 维持忽略：其 meta 未入库，不存在同型孤儿。
+*.opendb
+*.VC.db
+*.csproj
+*.sln
+
+# 双轨编译的手写工程文件（被 Tests.slnx / 测试工程引用，保留入库）
+!Assets/LiteFramework/*.csproj
+!Assets/LiteFramework/Scripts/Async/*.csproj
+!Assets/LiteSim/Core/*.csproj
+!Assets/LiteNet/*.csproj
+!Assets/Tools/DisciplineScanner/*.csproj
+!Assets/LiteTesting/*.csproj
+!RoomServer/*.csproj
+!Assets/RoomServer/Runtime/*.csproj
+!Assets/RoomServer/Application/*.csproj
+!Assets/LiteNet/Diagnostics/*.csproj
+!MetaServer/*.csproj
+!Tests/LiteFramework.Core.Tests/*.csproj
+!Tests/LiteSim.Core.Tests/*.csproj
+!Tests/LiteNet.Tests/*.csproj
+!Tests/LiteTesting.Core.Tests/*.csproj
+!Tests/MetaServer.Tests/*.csproj
+!Tests/MetaServer.Integration.Tests/*.csproj
+
+# 手写开发入口（非 Unity 生成物）：VS2022 服务端开发解决方案（经典 .sln 格式，全版本兼容）
+!RoomServer/*.sln
+
+# dotnet 侧构建输出（Directory.Build.props 重定向到点目录；三个工程的 .dotnet 一并覆盖）
+.dotnet/
+.dotnet-cli/
+
+# ===== 系统文件 =====
+.DS_Store
+Thumbs.db
+
+# ===== ZCode 工作区配置（本机端口，不共享）=====
+.zcode/
+
+# ===== 美术/素材资源（仅 demo、资源不入库；如需备份请显式 git add -f 添加）=====
+# 说明：本项目仅作 demo（不商用），第三方素材包与美术资源一律不入库——
+#       仓库只保留自研框架代码、预制品与文档；下方目录如需入库请用 `git add -f <路径>`。
+# 例外（2026-10-13，用户裁决）：TMP 中文字体 NotoSansSC 与 URP 管线资产改为入库——
+#       前者是 75 处文本引用的视觉单一来源、后者属配置资源且被已入库的 ProjectSettings 按 GUID 引用；
+#       例外条目见下方各注记与「URP 管线资产」段。金楷系列等其余素材维持不入库。
+Assets/Art/
+Assets/Art.meta
+Assets/Map/
+Assets/Map.meta
+Assets/Animation/
+Assets/Animation.meta
+Assets/FX/
+Assets/FX.meta
+Assets/Model/
+Assets/Model.meta
+Assets/Sound/
+Assets/Sound.meta
+# 2026-10-13 放开入库（用户裁决）：NotoSansSC TMP SDF ×2（SIL OFL，许可文件 NotoSansSC-OFL.txt
+# 同批入库）——75 处文本引用的视觉单一来源，7 个 EditMode 用例按真实字体资产加载。
+# 金楷系列维持不入库（迁移批一裁决不变：110MB、全仓零引用、再分发许可未核实）：
+Assets/ShareResource/Fonts/11月金楷系列/
+Assets/ShareResource/Fonts/11月金楷系列.meta
+# 死规则清理（2026-10-13）：Assets/LiteGame/Fonts 已于 2026-10-11 迁移批一迁至
+# ShareResource/Fonts，原两条忽略规则无对应路径（restore-check 的字体 WARN 同批改指真路径）。
+# 同批去重：Assets/Animator、Assets/ShareResource/Characters 原各出现两次，各保留一份。
+Assets/Animator/
+Assets/Animator.meta
+Assets/ShareResource/Characters/
+Assets/ShareResource/Characters.meta
+Assets/LiteGame/Art/
+Assets/LiteGame/Art.meta
+Assets/GameFramework/
+Assets/GameFramework.meta
+Assets/GameMain/
+Assets/GameMain.meta
+Assets/TutorialInfo/
+Assets/TutorialInfo.meta
+Assets/StateMachine/
+Assets/StateMachine.meta
+
+# ===== URP 管线资产（2026-10-13 放开入库；配置资源）=====
+# Assets/Settings/ = URP 三档管线资产 + 渲染器 + 后处理 profile；
+# UniversalRenderPipelineGlobalSettings.asset = URP 全局设置（GraphicsSettings.m_SRPDefaultSettings 引用它）。
+# 入库理由：ProjectSettings/GraphicsSettings.asset 与 QualitySettings.asset 均已入库（2026-09-26）
+# 并按 GUID 引用这批资产——不随库分发时干净克隆解析不到，工程退回 Built-in 兜底
+# （见 Docs/非作者机恢复与验证记录.md §2）。放开后 §2.1 的 4 个 URP 占位缺口一并消解。
+
+# ===== 工程配置与工具链（不入库；环境恢复见 Docs/环境恢复指南.md）=====
+# 说明：仓库只保留自研框架代码/预制品/文档。以下为工程配置与本地工具链：
+#       Tools（XLua 工具）、Packages/MCPForUnity（编辑器自动化桥）。
+#       如需入库请显式 `git add -f <路径>`。
+# 注意（2026-09-21 C0-① 起）：Packages/manifest.json 与 packages-lock.json 已入库（依赖声明必须版本控制）；
+#       Packages/com.tuyoogame.yooasset 与 Packages/com.code-philosophy.luban 为 vendored 内嵌包，随库分发。
+# 注意（2026-09-26）：ProjectSettings **已放开入库**——自托管 runner 需要能独立编译工程，
+#       而"全新克隆打不开工程"正是 L2 无法在 CI 上跑的首因。放开前已核：
+#       凭据字段（AndroidKeystoreName / metroCertificate* / cloudProjectId / organizationId）**均为空**，
+#       无个人绝对路径，仅 productGUID（工程标识，非密钥）。
+# Luban：**整条链入库**（2026-09-17 决策，分两步）——表源 `Data/*.xlsx` 是配置表唯一真相，
+# 生成器与脚本/schema（LubanGenerater 155 文件 6.1M 二进制、gen.bat / gen.sh / gen_lua_keys.py、
+# luban.conf、Defines/builtin.xml）是"换机可复现"的前提；曾因表源不入库导致换机 regen 用旧表源
+# 覆盖出与入库产物不一致的路径（界面加载失败）。
+# 仍不入库的只有生成中间物与缓存：output/、__pycache__/。
+/Luban/output/
+/Luban/__pycache__/
+/Tools/
+Packages/MCPForUnity/
+
+# ===== 第三方插件（不入库；自研代码依赖它们，克隆后自备）=====
+# Sirenix = Odin Inspector（付费授权，不可再分发）；UniRx / VContainer = 本地依赖。
+# **DOTween 已放开入库**（2026-09-26，用户决定）：runner 需要它才能编译 LiteGame.Runtime
+# （引用 DOTween.Modules）。原注释称"不可再分发"，但该包**已随 Asset Store 公开导入分发**，
+# 且包内无 LICENSE 文件（许可在 dotween.demigiant.com/license.php）——L0 许可门禁只覆盖
+# Packages/ 下的 vendored 包，Assets/Plugins 不在其列。
+Assets/Plugins/Sirenix/
+Assets/Plugins/Sirenix.meta
+Assets/Plugins/UniRx/
+Assets/Plugins/UniRx.meta
+Assets/Plugins/VContainer/
+Assets/Plugins/VContainer.meta
+
+# ===== 本机/非框架项（不入库；如需入库请 git add -f）=====
+# 说明：仓库只保留自研框架代码/预制品/文档与远端既有范围（origin/LiteGame）。
+Assets/Readme.asset
+Assets/Readme.asset.meta
+Assets/Resources/
+Assets/Resources.meta
+Assets/StreamingAssets.meta
+
+# ===== 历史场景（不入库；2026-10-11 原 Assets/Scenes/ 死排除规则收窄至此——TrainingGround/UiWorkbench 入库）=====
+# Boot.unity 已入库（2026-10-13：Test.unity 改名 Boot 的受控测试场景，两条 PlayMode 用例依赖——资产被已提交测试引用必须入版本兜底）
+Assets/Scenes/GuideScene.unity
+Assets/Scenes/GuideScene.unity.meta
+Assets/StreamingAssets/
+# （UniversalRenderPipelineGlobalSettings.asset 两条已移入上方「URP 管线资产」段，2026-10-13 放开入库）
+.vsconfig
+
+# ===== 本地留档（个人参考用，不入库）=====
+LocalNotes/
+
+# ===== 参考源码（不参与 Unity 编译；如需启用请移回 Packages/ 并解决 Unity 6 依赖）=====
+_refs/
+
+# ===== 第三方包：Unity Pipeline（本地补丁见 Docs/UnityPipeline本地补丁.md）=====
+Packages/com.unity.pipeline/
+
+# ===== 本地工具目录（不入库）=====
+.codely-cli/
+
+# ===== 本机 agent 规范（不入库；如需入库请显式 git add -f）=====
+CODEBUDDY.md
+CODELY.md
+/.claude/
+.codelyignore
+
+# ===== 构建/诊断产物与 agent 临时件（不入库）=====
+msbuild_preprocessed.xml
+__pycache__/
+AgentScripts/
+Tests/LiteNet.Tests/TempProtoReflection.cs
+TestResults/
+
+# RoomServer 结算 Outbox 日志（本地持久介质，运行产物不入库；且不得移入 RoomServer/Data——
+# 那里的 .json 参与 buildHash 哈希闭包，日志落错处会让哈希随对局漂移）
+Outbox/
+
+# Unity Test Runner 的 PlayMode 临时场景（2026-09-26 实测：跑完 L2 PlayMode 后残留）
+Assets/InitTestScene*.unity
+Assets/InitTestScene*.unity.meta
+
+# ===== 角色资源包（176MB，用户选择不入 VCS；测试按包可用性分流，缺包走灰盒降级）=====
+Assets/CombatGirlsCharacterPack/
+Assets/CombatGirlsCharacterPack.meta
+
+# ===== KriptoFX（第三方付费 VFX 包，138MB、零引用，不入 VCS；同 CombatGirlsCharacterPack 先例）=====
+Assets/KriptoFX/
+Assets/KriptoFX.meta
+
+# ===== DamageNumbersPro（第三方付费包，32MB；运行时已裁决弃用、留本地作自研参考——
+# 炼化口径与自研契约见 Docs/设计文档/gameplay/命中反馈与伤害数字专项设计.md；同 KriptoFX 先例）=====
+Assets/DamageNumbersPro/
+Assets/DamageNumbersPro.meta
+
+# ===== Synty InterfaceMilitaryCombatHUD（第三方付费 HUD 包，366MB，不入 VCS；同 KriptoFX 先例——
+# 取用范围与裁决见 Docs/设计文档/gameplay/战斗美术资源参考.md）=====
+Assets/Synty/
+Assets/Synty.meta
+
+# ===== 资产商店导入残留（本机清理项：Help.pdf / More Assets.url / unity3d.txt 与孤儿 Temp.meta）=====
+Assets/Help.pdf
+Assets/Help.pdf.meta
+Assets/More Assets.url
+Assets/More Assets.url.meta
+Assets/unity3d.txt
+Assets/unity3d.txt.meta
+Assets/Temp.meta
+
+# ===== 资源规范（AGENTS.md 修订版）=====
+# 可入库：代码与脚本、配置资源、预制体模板资源、场景资源；不可入库：其他资源与第三方付费资源。
+# 下架项：Assets/TextMesh Pro（TMP 三方导入树——各机自行导入 Essentials）、
+# Assets/ShareResource（内容样例）；TestModeSettings.asset 属配置资源，恢复入库。
+Assets/TextMesh Pro/
+Assets/TextMesh Pro.meta
+# 2026-10-11 资源三层模型：ShareResource 为共享进包资源目录（Fonts/UI 等随迁移入库）；
+# 仅内容样例维持下架（原“内容样例下架”裁决收窄至此）。
+Assets/ShareResource/SampleContent/
+Assets/ShareResource/SampleContent.meta
+
+# ===== 第三方资源引用规范（AGENTS.md）：第三方资源复制件照常不入库（随打包机本地还原）=====
+# 产品资产不得直引第三方原始库（Assets/Synty/ 等）；复制进 ShareResource/模块目录再引用，
+# 但复制件是第三方付费资源 → 仍不入版本管理（原始库 `Assets/Synty/` 只作可复制来源）。
+# 注：该目录可能同时存在自有可入库件——如未来加自有图标，需用 `git add -f <路径>` 显式入库。
+Assets/ShareResource/UI/Icons/Weapons/
+Assets/ShareResource/UI/Icons/Weapons.meta
+Assets/ShareResource/UI/Icons.meta
+Assets/ShareResource/UI/Icons/Loading/
+Assets/ShareResource/UI/Icons/Loading.meta
+
+# ===== 密钥材料（绝不入库；2026-09-26 实测：测试跑出的 RSA 私钥落在 Tests/ 且未被忽略）=====
+# key_ras 含 <D>/<P>/<Q> 私钥指数——一旦提交进 public 仓库即等同泄露。
+# 信任锚的公钥应经 ContentTrustAnchors 生成流程内置，不靠提交私钥文件。
+Tests/key_ras
+Tests/key_ras.pub
+*.pem
+*.pfx
+*.p12
+
+# ===== MagicaCloth2（第三方付费资产，不入 VCS；同 CombatGirlsCharacterPack 先例——
+# 缺包时按域排除的遮罩手工维护面照常工作，ProjectSettings 的 MAGICACLOTH2 宏与
+# manifest 的 collections/burst 依赖未提交，干净检出不会引用到缺失包）=====
+Assets/MagicaCloth2/
+Assets/MagicaCloth2.meta
+# 装配产物（manifest/packages-lock/ProjectSettings 宏）是**已跟踪文件**，.gitignore 管不到——
+# 2026-09-30 起以 skip-worktree 屏蔽本机差异：
+#   git update-index --skip-worktree Packages/manifest.json Packages/packages-lock.json ProjectSettings/ProjectSettings.asset
+# 恢复可见（需要提交这三者的真实变更时）：
+#   git ls-files -v | grep ^S   列出；git update-index --no-skip-worktree <file>
+# 注意：远端若真要改这三个文件，pull 会因 skip-worktree 拒绝合并——先 no-skip 再拉。
+
+# ===== .trae/（Trae 编辑器本地配置，机器私有）=====
+.trae/
+
+# ===== LocalCDN/（本地 CDN 发布根——签名信封与候选内容，机器私有不入库）=====
+LocalCDN/
+
+# ===== screenshots/��agent ����¼��/��ͼ�������˽�в���⣩=====
+screenshots/
+
+# ===== deploy/.env（封闭测试部署密钥，机器私有不入库）=====
+deploy/.env
+
+# ===== ↑ 以上同步自 .gitignore（「从 .gitignore 同步」只重写以上部分）=====
+.git/
+.hg/
+.svn/
+node_modules/
+bower_components/
+jspm_packages/
+site-packages/
+venv/
+coverage/
+htmlcov/
+lcov-report/
+cmakefiles/
+cmake-build-*/
+bazel-*/
+pods/
+deriveddata/
+storybook-static/
+playwright-report/
+test-results/
+allure-results/
+allure-report/
+cdk.out/
+*.egg-info/
+*.dist-info/
+eggs/
+pip-wheel-metadata/
+wheels/
+# ----- ↑ 以上为 ZCode 默认排除规则（自定义规则请写在本行下方，不会被同步/恢复改动）-----
+# 自定义规则写在下方（本行提示可删除）
