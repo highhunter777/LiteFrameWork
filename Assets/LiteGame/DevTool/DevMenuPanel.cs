@@ -12,6 +12,9 @@ namespace LiteGame
     /// 「开发」钮展开面板 → ①测试模式：进训练场（本地服 Room-Test）②UI 工作台：开工作台（置
     /// <see cref="DebugTuner.WorkbenchMode"/>，由开关统一加载工作台场景）③关闭。
     /// 取代已删除的 F9/F10 热键（《UI工作台设计》§5 入口矩阵）。整件随三宏剥离。
+    ///
+    /// **联机 GM 不开在此处**：云端 GM（免死/无限弹药下发）住在编辑器 GM 面板的「测试模式」页
+    /// （《GM与调试工具分层设计》§4 投影面）——本件只做"进什么形态"的入口，避免两处入口分叉。
     /// </summary>
     public sealed class DevMenuPanel : MonoBehaviour
     {

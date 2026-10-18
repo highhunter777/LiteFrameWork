@@ -35,7 +35,7 @@
   -->
   <ItemGroup>
     <Compile Include="..\..\Assets\LiteFramework\Scripts\Unity\Scene\ISceneService.cs" Link="Gm\ISceneService.cs" />
-    <Compile Include="..\..\Assets\LiteGame\App\Commands\GmSceneCommands.cs" Link="Gm\GmSceneCommands.cs" />
+    <Compile Include="..\..\Assets\LiteGame\App\Commands\Gm\GmSceneCommands.cs" Link="Gm\GmSceneCommands.cs" />
   </ItemGroup>
 
 </Project>

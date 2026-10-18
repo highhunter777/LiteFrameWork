@@ -72,8 +72,8 @@
     L1 用例钉住消费即清/二次为假的行为面。
   -->
   <ItemGroup>
-    <Compile Include="..\..\Assets\LiteGame\App\TestModeOptions.cs" Link="Gm\TestModeOptions.cs" />
-    <Compile Include="..\..\Assets\LiteGame\App\TestModeRuntime.cs" Link="Gm\TestModeRuntime.cs" />
+    <Compile Include="..\..\Assets\LiteGame\App\Debug\TestModeOptions.cs" Link="Gm\TestModeOptions.cs" />
+    <Compile Include="..\..\Assets\LiteGame\App\Debug\TestModeRuntime.cs" Link="Gm\TestModeRuntime.cs" />
   </ItemGroup>
 
   <ItemGroup>

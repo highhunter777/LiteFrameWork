@@ -81,14 +81,14 @@ namespace LiteGame
         public static bool DirectToTrainingEnabled;
 
         /// <summary>工作台**面板内容** dev 预制体路径（单源；工作台场景内以预制体实例承载，构建器与守卫同引用）。</summary>
-        public const string WorkbenchPrefabPath = "Assets/LiteGame/DevHUD/WorkbenchUI.prefab";
+        public const string WorkbenchPrefabPath = "Assets/LiteGame/DevTool/WorkbenchUI.prefab";
 
         /// <summary>工作台**场景**路径（单源；工作台模式加性加载它——场景文件为 dev 件，不在收集组，
         /// 故加载仅编辑器形态）。</summary>
         public const string WorkbenchScenePath = "Assets/Scenes/UiWorkbench.unity";
 
         /// <summary>开发页（dev 覆盖件）预制体路径（单源；构建器与守卫同引用）。</summary>
-        public const string DevMenuPrefabPath = "Assets/LiteGame/DevHUD/DevMenuUI.prefab";
+        public const string DevMenuPrefabPath = "Assets/LiteGame/DevTool/DevMenuUI.prefab";
 
         private bool _workbenchLoaded;
         private bool _devMenuSpawned;

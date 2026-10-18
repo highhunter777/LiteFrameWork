@@ -1,5 +1,5 @@
 {
-    "name": "LiteGame.DevHUD",
+    "name": "LiteGame.DevTool",
     "rootNamespace": "LiteGame",
     "references": [
         "LiteClient.Abstractions",
