@@ -72,7 +72,9 @@ namespace RoomServer
     {
         RoomInstance Find(string roomId);
 
-        RoomRuntime Open(string roomId, int requestedMapId, int requestedExpectedPlayers);
+        /// <param name="templateId">票据盖章的房间模板名（联机测试房批；空 = 走 default_template）。
+        /// 非空且模板不存在 ⇒ 返回 null（拒绝建房，不静默回落）。</param>
+        RoomRuntime Open(string roomId, int requestedMapId, int requestedExpectedPlayers, string templateId = null);
 
         bool RemoveEmpty(RoomInstance room);
 

@@ -156,6 +156,7 @@ namespace RoomServer.Application
                 ExpiresAtMs = f.ExpiresAtMs,
                 MapId = f.MapId,
                 ExpectedPlayers = f.ExpectedPlayers,
+                Template = f.Template,
                 Rejection = JoinTicketRejection.None,
             };
         }

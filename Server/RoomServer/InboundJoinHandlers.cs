@@ -83,11 +83,14 @@ namespace RoomServer
             // 开房参数批：票据盖章的请求期望人数——**只作用于新建房**（既有房间以房事实为准，
             // 见下方"请求值不参与既有房判定"注）；回执经 JoinAck.expected_players 交给客户端定容。
             int requestedExpectedPlayers = validatedPrincipal?.ExpectedPlayers ?? 0;
+            // 联机测试房批：票据盖章的模板名（空 = default_template）——只作用于新建房
+            string requestedTemplate = validatedPrincipal?.Template;
             RoomInstance room = existingRoom;
             bool createdRoom = false;
             if (room == null)
             {
-                RoomRuntime created = _host.Rooms.Open(join.RoomId, requestedMapId, requestedExpectedPlayers);
+                RoomRuntime created = _host.Rooms.Open(join.RoomId, requestedMapId, requestedExpectedPlayers,
+                    requestedTemplate);
                 if (created == null)
                 {
                     // 空房号 / 达容量上限 / 模板缺失 / 地图策略冲突或缺行——一律拒绝进房

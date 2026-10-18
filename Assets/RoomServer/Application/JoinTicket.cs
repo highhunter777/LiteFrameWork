@@ -115,6 +115,11 @@ namespace RoomServer.Application
         /// 越界（超出内核席位容量）→ 拒绝建房。</summary>
         public int ExpectedPlayers;
 
+        /// <summary>票据盖章的**房间模板名**（联机测试房批；空 = 未指定＝房间服 `default_template`）。
+        /// **授权在 Meta 侧完成**（测试房口令）——本字段只决定"用哪个模板"，房间端按名查表、
+        /// 不存在即拒绝建房（不静默回落）。只作用于新建房；既有房间以房事实为准。</summary>
+        public string Template;
+
         /// <summary>拒绝原因；<see cref="JoinTicketRejection.None"/> = 验证通过。</summary>
         public JoinTicketRejection Rejection;
 

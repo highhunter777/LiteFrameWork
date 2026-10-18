@@ -112,6 +112,20 @@ namespace RoomServer
         // 房间构造与销毁清理仍归宿主——清完场经 registry 落表。
         private readonly RoomRegistry _registry;
 
+        /// <summary>
+        /// 运维（GM）动作队列（《云端GM通道专项设计》§2）：生产端是 GM HTTP 线程（只入队），
+        /// 消费端是权威循环（<see cref="Pump"/> → <c>FlushGmActions</c>）——动作永远在权威线程内落到房间上，
+        /// 不受 Mailbox 路由开关（<c>_mailboxRouting</c> 关闭时会同步执行）的线程语义影响。
+        /// </summary>
+        private readonly GmActionQueue _gmActions = new GmActionQueue();
+
+        /// <summary>
+        /// 不对外上报的房间号（联机测试房批）：带模板建的房（GM/测试房）不进大厅列表。
+        /// 只在宿主线程/入站线程写入，读面 <see cref="RoomSummaries"/> 同锁；房间销毁时移除。
+        /// </summary>
+        private readonly HashSet<string> _hiddenRooms = new HashSet<string>(StringComparer.Ordinal);
+        private readonly object _hiddenGate = new object();
+
         /// <summary>建房时把选定的 roomId 交给 ApplySignal 用（提交到输出应用之间无重入）。</summary>
         private RoomInstance _currentRoom;
 
@@ -320,7 +334,9 @@ namespace RoomServer
         /// （Meta 相位闸对整次注册拒绝——一行终态房间毒死整条心跳）。
         /// O(在册房间)；低频心跳调用，不在权威循环热路径。
         /// </summary>
-        public RoomSummary[] RoomSummaries()
+        /// <param name="includeHidden">是否包含隐藏房（联机测试房批）：大厅上报用 false（默认），
+        /// 运维 GM 端点用 true——否则测试房连运维面都看不到。</param>
+        public RoomSummary[] RoomSummaries(bool includeHidden = false)
         {
             RoomInstance[] rooms = _registry.SnapshotArray();   // 心跳线程读面：竞态兜底收在 registry 单点
 
@@ -330,6 +346,7 @@ namespace RoomServer
             {
                 RoomInstance room = rooms[i];
                 if (room?.Runtime == null || room.Runtime.Closed) continue;   // 终态不报（判据 = 内核 IsTerminal；销毁在随后的 Pump）
+                if (!includeHidden && IsHiddenRoom(room.RoomId)) continue;    // 测试房不进大厅（用户裁决"不可见"）
                 list[n++] = new RoomSummary
                 {
                     RoomId = room.RoomId,
@@ -341,6 +358,19 @@ namespace RoomServer
             }
             if (n != list.Length) Array.Resize(ref list, n);
             return list;
+        }
+
+        /// <summary>是否隐藏房（测试房）：读面加锁，与写入端（<see cref="OpenRoom"/>）同一把锁。</summary>
+        private bool IsHiddenRoom(string roomId)
+        {
+            lock (_hiddenGate) return _hiddenRooms.Contains(roomId);
+        }
+
+        /// <summary>移除隐藏标记（房间销毁时调用；房间号不复用，残留只会白占集合）。</summary>
+        private void ClearHiddenRoom(string roomId)
+        {
+            if (string.IsNullOrEmpty(roomId)) return;
+            lock (_hiddenGate) _hiddenRooms.Remove(roomId);
         }
 
         /// <summary>房间明细投影单元（Lobby 房间列表——上报事实，随心跳）。</summary>
@@ -1211,6 +1241,13 @@ namespace RoomServer
                 case SettlementReadyOutput sr:
                     _ops.NoteSettlementReady();
                     SendMatchResult(sr.Summary);
+                    // 联机测试房批：测试房（带模板建、不进大厅）**不产出结算/战绩**——客户端仍收 MatchEnded
+                    // （结算页按"无结果"展示），与 abort 路径同口径。判据 = 隐藏房集合（与大厅过滤同源）。
+                    if (_currentRoom != null && IsHiddenRoom(_currentRoom.RoomId))
+                    {
+                        HostLog.Info("Settle", $"测试房跳过结算入盒：room={sr.Summary.MatchId} end={sr.Summary.EndReason}");
+                        break;
+                    }
                     HostLog.Info("Settle", $"room={sr.Summary.MatchId} seed={sr.Summary.Seed} finalFrame={sr.Summary.FinalFrame} end={sr.Summary.EndReason} seats={sr.Summary.SeatPlayerIds.Length}");
                     // §11.3"本地持久 Outbox"：冻结事实入盒（幂等/有界/失败显式计数——不抛进权威循环，
                     // §6"持久化写入不得阻塞/炸掉 Room Worker"）。null = 未装配。
@@ -1399,6 +1436,7 @@ namespace RoomServer
             _transport.TickIncoming();
             if (_mailboxRouting)
                 _pendingDisconnects.Flush();
+            FlushGmActions();                     // 运维动作：权威循环内执行（HTTP 线程只入队）
 
             // 逐房间推进（§8.2"一个 Worker 顺序驱动多个 RoomActor"）。
             // 宿主 owner 形态：宿主主线程即唯一执行者；Worker 执行形态：宿主只投递命令并应用回传。
@@ -1561,6 +1599,181 @@ namespace RoomServer
             _settlementOutbox?.Flush();
         }
 
+        // ---- 运维（GM）通道（《云端GM通道专项设计》§2/§3）----
+        //
+        // 设计硬约束两条：
+        // ① **不新增 RoomCommandKind**——RoomCommand 在双编共享源集内，改它 BuildHash 即变 ⇒ 客户端要重打包，
+        //    与"客户端零改动"冲突；故只复用既有 StartEarly / Shutdown / Disconnect 三种命令 + 本宿主的既有 public 面。
+        // ② **动作只在权威循环执行**——HTTP 线程不得直接改权威状态（_mailboxRouting 关闭时 SubmitCommandTo 是同步的）。
+
+        /// <summary>
+        /// 运维动作入队（GM HTTP 线程调用）：只做**不碰权威状态**的前置校验（房间/席位是否存在），
+        /// 随后入队由 <see cref="Pump"/> 执行。返回 null = 已入队；非 null = 拒绝（不执行）。
+        /// </summary>
+        public GmReject? GmSubmit(in GmAction action)
+        {
+            if (_disposed) return GmReject.Conflict("宿主已释放");
+
+            if (action.Kind == GmActionKind.FlushSettlement)
+            {
+                _gmActions.Enqueue(action);
+                return null;
+            }
+
+            // 联机测试房批：客户端不知道房号（大厅看不到测试房）——rules 允许省略 room，
+            // 服务端在**唯一**在册测试房上生效；0 个或多个一律拒绝（不猜）。
+            GmAction resolved = action;
+            if (action.Kind == GmActionKind.SetRules && string.IsNullOrEmpty(action.RoomId))
+            {
+                string only = null;
+                int count = 0;
+                lock (_hiddenGate)
+                {
+                    foreach (string id in _hiddenRooms)
+                    {
+                        if (_registry.TryGetInstance(id, out RoomInstance inst)
+                            && inst?.Runtime != null && !inst.Runtime.Closed)
+                        {
+                            only = id;
+                            count++;
+                        }
+                    }
+                }
+                if (count != 1)
+                {
+                    return GmReject.Conflict(count == 0
+                        ? "当前没有在册测试房（带模板建的房）"
+                        : "存在多个测试房——请在请求里用 room 指定");
+                }
+                resolved = GmAction.SetRules(only, action.Flags);
+            }
+
+            if (string.IsNullOrEmpty(resolved.RoomId)) return GmReject.BadRequest("缺 room 字段");
+            if (GetRoomInstance(resolved.RoomId) == null) return GmReject.NotFound("房间不存在（roomId 无效或已销毁）");
+
+            if (resolved.Kind == GmActionKind.StartEarly && !TryFindOwner(resolved.RoomId, out _))
+                return GmReject.Conflict("房间无 owner——先有人入座才能开局（owner = 首个入座者）");
+            if (resolved.Kind == GmActionKind.Kick && !TryFindSession(resolved.RoomId, resolved.PlayerId, out _))
+                return GmReject.NotFound("席位不存在（player 无效、不在本房或已离场）");
+            // 联机测试房批：GM 规则只对测试房（带模板建、不进大厅）开放——普通房一律拒，防"给正式局开挂"
+            if (resolved.Kind == GmActionKind.SetRules && !IsHiddenRoom(resolved.RoomId))
+                return GmReject.Conflict("只允许对测试房（带模板建的房）设置 GM 规则");
+            if (resolved.Kind == GmActionKind.SetRules && (resolved.Flags & ~(MatchTestRules.FlagNoDeath | MatchTestRules.FlagInfiniteAmmo)) != 0)
+                return GmReject.BadRequest("未知规则位（允许 1 = 免死 / 2 = 无限弹药）");
+
+            _gmActions.Enqueue(resolved);
+            return null;
+        }
+
+        /// <summary>待执行的运维动作数（观测/测试用）。</summary>
+        public int GmPendingActions => _gmActions.Pending;
+
+        /// <summary>权威循环内冲刷运维队列（每帧一次；无动作时零分配）。</summary>
+        private void FlushGmActions()
+        {
+            GmAction[] actions = _gmActions.TakeAll();
+            for (int i = 0; i < actions.Length; i++) ExecuteGmAction(actions[i]);
+        }
+
+        private void ExecuteGmAction(in GmAction action)
+        {
+            if (_disposed) return;
+
+            if (action.Kind == GmActionKind.FlushSettlement)
+            {
+                FlushSettlementOutbox();
+                Console.WriteLine($"[GM] 执行：settle-flush 待提交={SettlementOutboxPending}");
+                return;
+            }
+
+            RoomInstance room = GetRoomInstance(action.RoomId);
+            if (room == null)
+            {
+                Console.WriteLine($"[GM] 跳过：房间已不存在 room={action.RoomId}");
+                return;
+            }
+
+            switch (action.Kind)
+            {
+                case GmActionKind.StartEarly:
+                    // 内核校验"发起席位必须是 owner"——GM 不做旁路，取真实 owner 席位代发
+                    if (!TryFindOwner(action.RoomId, out int owner))
+                    {
+                        Console.WriteLine($"[GM] 跳过：无 owner room={action.RoomId}");
+                        return;
+                    }
+                    SubmitCommandTo(room, RoomCommand.StartEarly(owner));
+                    Console.WriteLine($"[GM] 执行：start room={action.RoomId} owner={owner}");
+                    return;
+
+                case GmActionKind.Abort:
+                    // 与进程排空同口径（Operator）——不是"无痕清房"：要走完既有 Finishing/Settling。
+                    // 不留战绩地清场应改踢全部席位（AllPlayersLeft 路径），见专项设计 §5。
+                    SubmitCommandTo(room, RoomCommand.Shutdown(ShutdownReason.Operator));
+                    Console.WriteLine($"[GM] 执行：abort room={action.RoomId}");
+                    return;
+
+                case GmActionKind.Kick:
+                    if (!TryFindSession(action.RoomId, action.PlayerId, out Session session))
+                    {
+                        Console.WriteLine($"[GM] 跳过：席位不存在 room={action.RoomId} player={action.PlayerId}");
+                        return;
+                    }
+                    SubmitCommandTo(room, RoomCommand.Disconnect(session.ConnectionId));
+                    _transport.Disconnect(session.ConnectionId);
+                    Console.WriteLine($"[GM] 执行：kick room={action.RoomId} player={action.PlayerId} conn={session.ConnectionId}");
+                    return;
+
+                case GmActionKind.SetRules:
+                    // 权威循环内替换规则引用（null = 关闭全部 GM）；规则位随下一份快照全量下发，
+                    // 客户端据此同值预测（免死不再"掉血回弹"）。规则**不进摘要**。
+                    room.Runtime.SetTestRules(action.Flags == 0 ? null : MatchTestRules.FromFlags(action.Flags));
+                    Console.WriteLine($"[GM] 执行：rules room={action.RoomId} flags={action.Flags}");
+                    return;
+            }
+        }
+
+        /// <summary>找房间内的 owner 席位（owner = 首个入座者；无人入座 ⇒ false）。只读席位投影。</summary>
+        private bool TryFindOwner(string roomId, out int playerId)
+        {
+            playerId = -1;
+            if (!TryGetRoom(roomId, out RoomRuntime runtime) || runtime == null) return false;
+            int[] members = runtime.MemberIds();
+            for (int i = 0; i < members.Length; i++)
+            {
+                PlayerSession seat = runtime.SeatOf(members[i]);
+                if (seat != null && seat.IsOwner)
+                {
+                    playerId = members[i];
+                    return true;
+                }
+            }
+            return false;
+        }
+
+        /// <summary>按（房间号 + 席位）反查会话连接；会话表并发变更时按"找不到"处理（下帧再试）。</summary>
+        private bool TryFindSession(string roomId, int playerId, out Session session)
+        {
+            session = null;
+            try
+            {
+                foreach (Session candidate in _sessions.All())
+                {
+                    if (candidate.PlayerId == playerId
+                        && string.Equals(candidate.RoomId, roomId, StringComparison.Ordinal))
+                    {
+                        session = candidate;
+                        return true;
+                    }
+                }
+            }
+            catch (InvalidOperationException)
+            {
+                return false;       // 与 OccupiedPlayerCount 同口径：撞上表变更不抛给调用方
+            }
+            return false;
+        }
+
         /// <summary>
         /// 宿主单调时钟当前毫秒——与 <see cref="Pump"/> 的 <c>_nowMs</c>、<see cref="BeginDrain"/>
         /// 的截止时刻**同一时钟源**。调用方据此刻画排空期限（<c>CurrentMs + 配置时限</c>）。
@@ -1616,7 +1829,8 @@ namespace RoomServer
         /// **空 roomId**：建房必须有路由键，直接 null。
         /// </summary>
         /// <param name="requestedMapId">票据盖章的请求地图行键（0 = 未指定——模板/宿主默认图）。</param>
-        public RoomRuntime OpenRoom(string roomId, int requestedMapId = 0, int requestedExpectedPlayers = 0)
+        public RoomRuntime OpenRoom(string roomId, int requestedMapId = 0, int requestedExpectedPlayers = 0,
+            string templateId = null)
         {
             if (string.IsNullOrEmpty(roomId)) return null;
             if (_registry.TryGetInstance(roomId, out RoomInstance existing)) return existing.Runtime;
@@ -1629,15 +1843,28 @@ namespace RoomServer
                 return null;
             }
 
+            // 联机测试房批：票据指定的模板必须存在——否则拒绝建房（不静默回落 default）
+            if (!string.IsNullOrEmpty(templateId) && !_serverConfig.HasTemplate(templateId))
+            {
+                HostLog.Warn("Room", $"建房被拒 room={roomId}: 模板不存在 {templateId}");
+                return null;
+            }
+
             try
             {
-                // 无模板参数 → 配置的 default_template
-                RoomConfig cfg = _serverConfig.BuildRoomConfig(null, roomId, requestedMapId, requestedExpectedPlayers);
+                // 空模板参数 → 配置的 default_template；非空（测试房）→ 按票据盖章的模板
+                RoomConfig cfg = _serverConfig.BuildRoomConfig(templateId, roomId, requestedMapId, requestedExpectedPlayers);
                 // **内核构造也在 try 内**（P0-2）：此前 try 只包配置解析，AddRoom → RoomRuntime
                 // 构造抛出的异常会一路窜上权威循环线程（现成触发源：expected_players 超过内核容量，
                 // 现两侧已同源校验；此处是不依赖上游校验的兜底）。构造失败时房间尚未登记（登记是
                 // AddRoom 的最后两步），故直接拒绝即可，无半成品残留。
-                return AddRoom(cfg, dynamic: true).Runtime;
+                RoomInstance instance = AddRoom(cfg, dynamic: true);
+                if (!string.IsNullOrEmpty(templateId))
+                {
+                    // 带模板的房 = 测试房：不进大厅列表（用户裁决"不可见"）；GM 端点显式要求全量时才看得到
+                    lock (_hiddenGate) _hiddenRooms.Add(roomId);
+                }
+                return instance.Runtime;
             }
             catch (Exception ex)
             {
@@ -1704,6 +1931,7 @@ namespace RoomServer
             if (!_registry.IsRegistered(room)) return false;
             _registry.Remove(room);
             room.Mailbox.Complete();
+            ClearHiddenRoom(room.RoomId);      // 联机测试房批：房间销毁即摘隐藏标记（房号不复用，防集合单调增长）
             return true;
         }
 
@@ -1834,8 +2062,9 @@ namespace RoomServer
 
             RoomInstance IRoomGateway.Find(string roomId) => _host.GetRoomInstance(roomId);
 
-            RoomRuntime IRoomGateway.Open(string roomId, int requestedMapId, int requestedExpectedPlayers)
-                => _host.OpenRoom(roomId, requestedMapId, requestedExpectedPlayers);
+            RoomRuntime IRoomGateway.Open(string roomId, int requestedMapId, int requestedExpectedPlayers,
+                string templateId)
+                => _host.OpenRoom(roomId, requestedMapId, requestedExpectedPlayers, templateId);
 
             bool IRoomGateway.RemoveEmpty(RoomInstance room) => _host.RemoveEmptyRoom(room);
 

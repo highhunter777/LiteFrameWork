@@ -1,0 +1,78 @@
+{
+  "port": 17777,
+  "max_rooms": 8,
+  "worker_count": 1,
+  "mailbox_capacity": 1024,
+  "audience": "lobby",
+  "default_template": "sandbox",
+  "metrics_port": 9100,
+  "gm_port": 9101,
+  "gm_bind": "10.8.0.1",
+
+  "rate_limit": {
+    "ip_burst": 32,
+    "ip_per_sec": 4,
+    "entry_burst": 32,
+    "entry_per_sec": 8,
+    "account_burst": 16,
+    "account_per_sec": 2,
+    "session_burst": 256,
+    "session_per_sec": 128,
+    "buckets": 8192,
+    "idle_ms": 120000
+  },
+
+  "lobby": {
+    "url": "http://10.8.0.1:5000/lobby/instances/register",
+    "instance_id": "room-1",
+    "advertise_host": "10.8.0.1",
+    "heartbeat_interval_ms": 10000
+  },
+
+  "settlement": {
+    "submit_url": "http://10.8.0.1:5000/matches/result"
+  },
+
+  "rooms": {
+    "standard": {
+      "expected_players": 2,
+      "seed": 0,
+      "match_time_limit_ms": 0,
+      "waiting_timeout_ms": 0,
+      "match_duration_frames": 10800,
+      "kill_limit": 20,
+      "respawn_delay_frames": 180,
+      "spawn_protection_frames": 120
+    },
+    "four": {
+      "expected_players": 4,
+      "seed": 0,
+      "match_time_limit_ms": 0,
+      "waiting_timeout_ms": 0,
+      "match_duration_frames": 10800,
+      "kill_limit": 20,
+      "respawn_delay_frames": 180,
+      "spawn_protection_frames": 120
+    },
+    "eight": {
+      "expected_players": 8,
+      "seed": 0,
+      "match_time_limit_ms": 0,
+      "waiting_timeout_ms": 0,
+      "match_duration_frames": 10800,
+      "kill_limit": 20,
+      "respawn_delay_frames": 180,
+      "spawn_protection_frames": 120
+    },
+    "sandbox": {
+      "expected_players": 2,
+      "seed": 0,
+      "match_time_limit_ms": 0,
+      "waiting_timeout_ms": 0,
+      "match_duration_frames": 0,
+      "kill_limit": 0,
+      "respawn_delay_frames": 60,
+      "spawn_protection_frames": 120
+    }
+  }
+}

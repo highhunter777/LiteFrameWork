@@ -55,5 +55,12 @@ namespace LiteSim
         public int RespawnDelayFrames;
         public int SpawnProtectionFrames;
         public MatchEndReason EndReason;
+
+        /// <summary>
+        /// 权威侧 GM 规则位（联机测试房批；1 = 免死 / 2 = 无限弹药）。**运行态事实**，随每份快照下发——
+        /// 客户端据此让预测与服务端同值（否则免死会"掉血回弹"）。**不进 <c>CombatConfigDigest</c>**：
+        /// 规则不是配置身份（《联机测试房与GM下发专项设计》§3.2）。
+        /// </summary>
+        public int GmFlags;
     }
 }

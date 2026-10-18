@@ -4,7 +4,9 @@
     "与仓库根 Config/roomserver.json 同构；部署差异只三处：audience 对齐票据受众、lobby.url 指向 metaserver 服务名、settlement.submit_url 指向 metaserver。",
     "advertise_host = 客户端可达 host：本机验收用 127.0.0.1；云主机部署改成对外 IP（端口用实际监听端口）。",
     "密钥（信封/实例/票据）不在本文件——经 LITENET_* 环境变量注入（设计 §5 密钥红线）。",
-    "改本文件必须重启容器生效：启动时快照，运行中不重读。"
+    "改本文件必须重启容器生效：启动时快照，运行中不重读。",
+    "lobby.heartbeat_interval_ms = 1000（内核允许的下限；仓库根配置同值）：心跳是实例注册与房间明细上报的唯一带宽 ⇒ 它直接决定大厅列表的可见延迟上限 = 客户端查询节拍 + 一跳心跳 + 首入座物化 ≈ 3s；Meta 存活时限 30s，故 1s 跳有充分重试余量（丢一跳不影响可分配资格）。",
+    "rooms.sandbox = 联机测试房：match_duration_frames=0（MatchSystem：Timer<=0 直接 return，即不限时）+ kill_limit=0（不按击杀结束）。**代价：对局永不自然结束 ⇒ 结算链不触发**，要验结算就切回 standard（default_template 或另起房）。respawn_delay_frames 受内核校验必须 ≥1。"
   ],
 
   "port": 17777,
@@ -31,7 +33,8 @@
   "lobby": {
     "url": "http://metaserver:5000/lobby/instances/register",
     "instance_id": "room-1",
-    "advertise_host": "127.0.0.1"
+    "advertise_host": "127.0.0.1",
+    "heartbeat_interval_ms": 1000
   },
 
   "settlement": {
@@ -67,6 +70,16 @@
       "match_duration_frames": 10800,
       "kill_limit": 20,
       "respawn_delay_frames": 180,
+      "spawn_protection_frames": 120
+    },
+    "sandbox": {
+      "expected_players": 2,
+      "seed": 0,
+      "match_time_limit_ms": 0,
+      "waiting_timeout_ms": 0,
+      "match_duration_frames": 0,
+      "kill_limit": 0,
+      "respawn_delay_frames": 60,
       "spawn_protection_frames": 120
     }
   }

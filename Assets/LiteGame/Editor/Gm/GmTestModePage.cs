@@ -23,10 +23,104 @@ namespace LiteGame.Editor
         public void Draw()
         {
             DrawTestModeSection();
+            DrawCloudGmBlock();
             DrawBotOpsBlock();
             DrawHeadTuneBlock();
             DrawGripTuneBlock();
             DrawCrosshairTuneBlock();
+        }
+
+        // ---- 联机测试房（云端 GM；联机形态下上方"现场开关"只作用于进程内本地服）----
+
+        private string _gmUrl;
+        private string _gmKey;
+        private string _gmRoom;
+        private int _gmFlags;
+        private string _gmStatus = "未下发";
+        private bool _gmInit;
+
+        /// <summary>
+        /// 云端 GM 下发（联机测试房批）：免死/无限弹药由**服务端权威**生效，客户端预测按快照
+        /// `gm_flags` 同值（否则会"掉血回弹"）。只对**测试房**（带模板建、不进大厅）有效；
+        /// 房号可留空 = 服务端在唯一在册测试房上生效（客户端看不到隐藏房，不需要知道房号）。
+        /// 地址/密钥取部署注入（`-gm.url` 缺省由 `meta.url` 推导 `:9101`、`-gm.key`），本页可临时改（不落盘）。
+        /// </summary>
+        private void DrawCloudGmBlock()
+        {
+            EditorGUILayout.Space(6);
+            EditorGUILayout.LabelField("联机测试房（云端 GM）", EditorStyles.boldLabel);
+
+            if (!_gmInit)
+            {
+                MetaEntryConfig cfg = MetaDeployConfig.LoadWithBaked();
+                _gmUrl = cfg.ResolvedGmUrl;
+                _gmKey = cfg.GmKey;
+                _gmInit = true;
+            }
+
+            EditorGUILayout.HelpBox(
+                "联机形态（真 KCP）下：上方的「免死/无限弹药」现场开关只改本进程预测，**权威侧不知情**——"
+                + "要用下面这组下发。只对测试房（带模板建、不进大厅）生效，普通房返回 409。",
+                MessageType.Info);
+
+            _gmUrl = EditorGUILayout.TextField("GM 地址", _gmUrl ?? "");
+            _gmKey = EditorGUILayout.PasswordField("GM 密钥", _gmKey ?? "");
+            _gmRoom = EditorGUILayout.TextField("房号（留空 = 唯一测试房）", _gmRoom ?? "");
+
+            using (new EditorGUILayout.HorizontalScope())
+            {
+                bool noDeath = (_gmFlags & LiteSim.MatchTestRules.FlagNoDeath) != 0;
+                if (GUILayout.Button((noDeath ? "✓ " : "") + "免死"))
+                {
+                    _gmFlags ^= LiteSim.MatchTestRules.FlagNoDeath;
+                    SendGmRules();
+                }
+                bool infinite = (_gmFlags & LiteSim.MatchTestRules.FlagInfiniteAmmo) != 0;
+                if (GUILayout.Button((infinite ? "✓ " : "") + "无限弹药"))
+                {
+                    _gmFlags ^= LiteSim.MatchTestRules.FlagInfiniteAmmo;
+                    SendGmRules();
+                }
+                if (GUILayout.Button("关闭全部 GM"))
+                {
+                    _gmFlags = 0;
+                    SendGmRules();
+                }
+            }
+            EditorGUILayout.LabelField("状态：" + _gmStatus, EditorStyles.wordWrappedLabel);
+        }
+
+        /// <summary>同步下发（编辑器低频操作；超时 5 s，不阻塞到无响应）。口令与响应正文只进状态行、不落日志。</summary>
+        private void SendGmRules()
+        {
+            if (string.IsNullOrEmpty(_gmUrl) || string.IsNullOrEmpty(_gmKey))
+            {
+                _gmStatus = "缺 GM 地址/密钥——deploy.args 或命令行加 -gm.url / -gm.key";
+                return;
+            }
+
+            try
+            {
+                string body = string.IsNullOrEmpty(_gmRoom)
+                    ? "{\"flags\":" + _gmFlags + "}"
+                    : "{\"room\":\"" + _gmRoom + "\",\"flags\":" + _gmFlags + "}";
+
+                using var client = new System.Net.Http.HttpClient { Timeout = System.TimeSpan.FromSeconds(5) };
+                using var content = new System.Net.Http.StringContent(
+                    body, System.Text.Encoding.UTF8, "application/json");
+                using var request = new System.Net.Http.HttpRequestMessage(
+                    System.Net.Http.HttpMethod.Post, _gmUrl + "/gm/rules");
+                request.Headers.Add("X-GM-Key", _gmKey);
+                request.Content = content;
+                using var response = client.SendAsync(request).GetAwaiter().GetResult();
+                using var reader = new System.IO.StreamReader(
+                    response.Content.ReadAsStreamAsync().GetAwaiter().GetResult());
+                _gmStatus = ((int)response.StatusCode) + " " + reader.ReadToEnd();
+            }
+            catch (System.Exception ex)
+            {
+                _gmStatus = "失败：" + ex.Message;
+            }
         }
 
         // ---- 测试模式（进入/退出/传送 + 现场开关；启动配置在场景 DebugTuner）----

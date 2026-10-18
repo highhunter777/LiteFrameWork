@@ -19,16 +19,18 @@ namespace RoomServer.Application
     /// **v2（多图批）**：相对 v1 追加 <c>mapId</c> 段（房间创建意图里的地图行键；0 = 未指定）。
     /// **v3（开房参数批）**：相对 v2 追加 <c>expectedPlayers</c> 段（房间创建意图里的期望人数；
     /// 0 = 未指定＝按房间模板）。两段都在签名覆盖内——创建意图与其余绑定项同等防篡改。
-    /// 旧版票据**不静默接受**（版本段不符即拒）。
+    /// **v4（联机测试房批）**：相对 v3 追加 <c>template</c> 段（房间模板名，Base64Url 编码；空 = 未指定＝
+    /// 房间服取 `default_template`）。**授权在 Meta 侧完成**（口令比对），票据只承载结果——
+    /// 房间端据此选模板，不再二次判定权限。旧版票据**不静默接受**（版本段不符即拒）。
     /// </summary>
     public static class JoinTicketFormat
     {
         /// <summary>格式版本。不匹配即拒——旧格式不静默接受。
         /// v2 = 追加 mapId 段（多图批）；v3 = 追加 expectedPlayers 段（开房参数批）。</summary>
-        public const string Version = "v3";
+        public const string Version = "v4";
 
-        /// <summary>段数（含 sig）。</summary>
-        public const int PartCount = 15;
+        /// <summary>段数（含 sig）。v4 = 16 段（新增 template）。</summary>
+        public const int PartCount = 16;
 
         private const int IdxVersion = 0;
         private const int IdxKid = 1;
@@ -44,7 +46,8 @@ namespace RoomServer.Application
         private const int IdxNotBeforeMs = 11;
         private const int IdxMapId = 12;
         private const int IdxExpectedPlayers = 13;
-        private const int IdxSignature = 14;
+        private const int IdxTemplate = 14;
+        private const int IdxSignature = 15;
 
         /// <summary>签发端组装的票据字段（不含签名）。</summary>
         public sealed class Fields
@@ -67,6 +70,11 @@ namespace RoomServer.Application
             /// <summary>房间创建意图里的**期望人数**（0 = 未指定——房间服按模板 `expected_players`；
             /// 正值只作用于**新建房**，房间端按内核容量校验，越界拒建房）。</summary>
             public int ExpectedPlayers;
+
+            /// <summary>房间模板名（联机测试房批；空 = 未指定＝房间服 `default_template`）。
+            /// **授权已在 Meta 侧完成**（测试房口令），本段只承载"用哪个模板"，房间端按名查表、
+            /// 不存在即拒绝建房（不静默回落 default）。</summary>
+            public string Template;
         }
 
         /// <summary>组装被签名覆盖的前缀（前 13 段）。签发与验签**必须**共用它。</summary>
@@ -86,7 +94,8 @@ namespace RoomServer.Application
               .Append(f.ExpiresAtMs.ToString(System.Globalization.CultureInfo.InvariantCulture)).Append('.')
               .Append(f.NotBeforeMs.ToString(System.Globalization.CultureInfo.InvariantCulture)).Append('.')
               .Append(f.MapId.ToString(System.Globalization.CultureInfo.InvariantCulture)).Append('.')
-              .Append(f.ExpectedPlayers.ToString(System.Globalization.CultureInfo.InvariantCulture));
+              .Append(f.ExpectedPlayers.ToString(System.Globalization.CultureInfo.InvariantCulture)).Append('.')
+              .Append(Encode(f.Template ?? string.Empty));
             return sb.ToString();
         }
 
@@ -149,6 +158,9 @@ namespace RoomServer.Application
             if (!TryParseLong(parts[IdxExpectedPlayers], out long players)) return null;
             if (players < 0 || players > int.MaxValue) return null;
             f.ExpectedPlayers = (int)players;
+            // 模板名：空段 = 未指定（合法）；解码失败（含非法 Base64Url）= Malformed
+            f.Template = Decode(parts[IdxTemplate]);
+            if (f.Template == null) return null;
             return f;
         }
 

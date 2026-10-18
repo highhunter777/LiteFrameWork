@@ -243,6 +243,35 @@ if (metrics != null)
     }
 }
 
+// 运维（GM）端点（《云端GM通道专项设计》§1/§4）：**写面**，启用条件比 /metrics 严——
+// gm_port>0 **且** 密钥非空才创建；任一不满足即不开（fail-closed）。Start 失败同 metrics 走告警降级。
+byte[] gmKeyBytes = System.Text.Encoding.UTF8.GetBytes(
+    Environment.GetEnvironmentVariable(EnvVars.GmKey) ?? string.Empty);
+using GmHttpListener gmListener = serverConfig.GmPort > 0 && gmKeyBytes.Length > 0
+    ? new GmHttpListener(gmKeyBytes, action => host.GmSubmit(action),
+        () => host.RoomSummaries(includeHidden: true))
+    : null;
+if (gmListener != null)
+{
+    try
+    {
+        gmListener.Start(serverConfig.GmPort, serverConfig.GmBind);
+        // 只回显绑定面与端口——**不回显密钥**（密钥红线同 §5）
+        Console.WriteLine($"[RoomServer] 运维(GM)端点已启用：http://{serverConfig.GmBind}:{serverConfig.GmPort}/gm/*"
+            + $"（仅 POST + 头 {GmHttpListener.KeyHeaderName}；动作在权威循环执行）");
+    }
+    catch (Exception ex)
+    {
+        Console.WriteLine($"[RoomServer] !! 运维端点启动失败（{serverConfig.GmBind}:{serverConfig.GmPort}：{ex.Message}）"
+            + "——宿主继续运行，无 GM 端点");
+        gmListener.Dispose();
+    }
+}
+else if (serverConfig.GmPort > 0)
+{
+    Console.WriteLine($"[RoomServer] !! 运维(GM)端点未启用：{EnvVars.GmKey} 为空——写端点无密钥即不开");
+}
+
 // Lobby 注册客户端（解析在宿主之后——创建序=解析序，释放逆序天然"先停心跳、再收宿主"）。
 // 排空期间心跳继续（快照 Draining=true）——Lobby 立即停止分配新对局（§7 drain 协同），
 // 直到进程退出才停止上报。
@@ -381,4 +410,10 @@ static class EnvVars
     public const string LobbyInstanceKey = "LITENET_LOBBY_INSTANCE_KEY";
     public const string SettlementInstanceKey = "LITENET_SETTLEMENT_INSTANCE_KEY";
     public const string TicketKey = "LITENET_TICKET_KEY";
+
+    /// <summary>
+    /// 运维（GM）端点共享密钥（《云端GM通道专项设计》§4）。**只走环境变量**——不进 roomserver.json、
+    /// 不进仓库；**值为空 ⇒ 端点不启用**（写面 fail-closed）。
+    /// </summary>
+    public const string GmKey = "LITENET_GM_KEY";
 }

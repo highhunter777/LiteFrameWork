@@ -71,6 +71,19 @@ namespace RoomServer
         public readonly int MetricsPort;
 
         /// <summary>
+        /// 运维（GM）端点端口（《云端GM通道专项设计》§1/§4）：<c>0</c> = **关闭**（缺省，行为零变化）。
+        /// 与 <see cref="MetricsPort"/> 的关键差别是**这是写面**，故三重门禁：仅 POST、共享密钥
+        /// （环境变量 <c>LITENET_GM_KEY</c>，空 ⇒ 装配方不启用）、绑定面不得为通配地址。
+        /// </summary>
+        public readonly int GmPort;
+
+        /// <summary>
+        /// 运维端点绑定面（缺省 <c>127.0.0.1</c>）。**通配地址（<c>0.0.0.0</c> / <c>::</c> / <c>+</c> / <c>*</c>）装载期即拒**——
+        /// 公网可达的写端点不是"配置失误"而是安全事故，fail-fast 不给运行期踩；云上取隧道地址 <c>10.8.0.1</c>。
+        /// </summary>
+        public readonly string GmBind;
+
+        /// <summary>
         /// 所有模板里最大的 <c>expected_players</c>（装载期算好）。
         /// 用途：会话表容量必须按**全服潜在连接数**算，不能按单个房间算——
         /// 多房间下"按首房间 ×4"会让第二个房间的连接被会话上限拒掉。
@@ -167,12 +180,14 @@ namespace RoomServer
             string settlementJournalPath, int settlementOutboxCapacity, RateLimitSettings rateLimit,
             string lobbyUrl, string lobbyInstanceId, string lobbyAdvertiseHost, long lobbyHeartbeatMs,
             string settlementSubmitUrl, long settlementIntervalMs, long settlementMaxBackoffMs, long settlementTimeoutMs,
-            HostTuning hostTuning, int metricsPort)
+            HostTuning hostTuning, int metricsPort, int gmPort, string gmBind)
         {
             _sourcePath = sourcePath;
             _port = port;
             MaxRooms = maxRooms;
             MetricsPort = metricsPort;
+            GmPort = gmPort;
+            GmBind = string.IsNullOrWhiteSpace(gmBind) ? "127.0.0.1" : gmBind;
             Audience = audience ?? string.Empty;
             WorkerCount = workerCount;
             MailboxCapacity = mailboxCapacity;
@@ -446,11 +461,22 @@ namespace RoomServer
                 throw new InvalidDataException(
                     $"metrics_port 越界（允许 0..65535；0 = 关闭）：{metricsPortValue}：{sourcePath}");
 
+            // ---- 运维（GM）端点（可选；gm_port=0 关闭；启用时绑定面不得为通配地址）----
+            long gmPortValue = OptionalLong(root, "gm_port", 0);
+            if (gmPortValue < 0 || gmPortValue > 65535)
+                throw new InvalidDataException(
+                    $"gm_port 越界（允许 0..65535；0 = 关闭）：{gmPortValue}：{sourcePath}");
+            string gmBind = OptionalString(root, "gm_bind");
+            if (string.IsNullOrWhiteSpace(gmBind)) gmBind = "127.0.0.1";
+            if (gmPortValue > 0 && IsWildcardBind(gmBind))
+                throw new InvalidDataException(
+                    $"gm_bind 不可为通配地址（{gmBind}）——运维写端点只对运维可达地址开放（云上＝隧道地址）：{sourcePath}");
+
             return new RoomServerConfig(sourcePath, port, maxRooms, audience, rooms, defaultId,
                 workerCount, mailboxCapacity, journal, outboxCapacity, rateLimit,
                 lobbyUrl, lobbyInstanceId, lobbyAdvertiseHost, lobbyHeartbeatMs,
                 settlementUrl, settlementIntervalMs, settlementMaxBackoffMs, settlementTimeoutMs,
-                hostTuning, (int)metricsPortValue);
+                hostTuning, (int)metricsPortValue, (int)gmPortValue, gmBind);
         }
 
         /// <summary>
@@ -554,6 +580,15 @@ namespace RoomServer
                     MapId = (int)mapId,
                 };
             }
+        }
+
+        /// <summary>是否通配绑定面（GM 写端点禁用：公网可达即安全事故）。</summary>
+        private static bool IsWildcardBind(string host)
+        {
+            return string.Equals(host, "0.0.0.0", StringComparison.Ordinal)
+                || string.Equals(host, "::", StringComparison.Ordinal)
+                || string.Equals(host, "+", StringComparison.Ordinal)
+                || string.Equals(host, "*", StringComparison.Ordinal);
         }
 
         private static int RequireIntRange(JsonElement parent, string name, int min, int max, string where)

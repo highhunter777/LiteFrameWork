@@ -32,6 +32,32 @@ namespace LiteSim
         /// <summary>爆头柱半径试验覆写（m；&lt; 0 = 不覆写）——与 <see cref="HeadHitLineOverride"/> 同口径。</summary>
         public float HeadshotRadiusOverride = -1f;
 
+        /// <summary>规则位（联机测试房批）：1 = 免死、2 = 无限弹药。随快照下发（`MatchStateDelta.gm_flags`）。</summary>
+        public const int FlagNoDeath = 1;
+        public const int FlagInfiniteAmmo = 2;
+
+        /// <summary>当前规则的位掩码（0 = 无 GM）。</summary>
+        public int GmFlags
+        {
+            get
+            {
+                int flags = 0;
+                if (NoDeath) flags |= FlagNoDeath;
+                if (InfiniteAmmo) flags |= FlagInfiniteAmmo;
+                return flags;
+            }
+        }
+
+        /// <summary>按位掩码构造（联机测试房批：服务端 GM 动作 / 客户端快照应用共用）。</summary>
+        public static MatchTestRules FromFlags(int flags)
+        {
+            return new MatchTestRules
+            {
+                NoDeath = (flags & FlagNoDeath) != 0,
+                InfiniteAmmo = (flags & FlagInfiniteAmmo) != 0,
+            };
+        }
+
         /// <summary>本局生效爆头线下沿：覆写优先，否则烘焙导出常量（<paramref name="rules"/> = null ⇒ 恒导出值——release/常规入口形态）。</summary>
         public static float ResolveHeadHitLine(MatchTestRules rules)
             => rules != null && rules.HeadHitLineOverride >= 0f ? rules.HeadHitLineOverride : CombatConfig.HeadHitLine;
