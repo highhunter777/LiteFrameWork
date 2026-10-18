@@ -43,7 +43,10 @@ if (-not $SkipPublish) {
 
 Write-Host '[deploy] 打包 room.tgz ...' -ForegroundColor Cyan
 New-Item -ItemType Directory -Force -Path $serverRoot | Out-Null
-& tar -czf $tgz -C $serverRoot room
+# 显式用 Windows System32\tar.exe：Git Bash 的 /usr/bin/tar 会抢 PATH，把 E:\ 当远端主机。
+$tarExe = Join-Path $env:SystemRoot 'System32\tar.exe'
+if (-not (Test-Path $tarExe)) { $tarExe = 'tar' }
+& $tarExe -czf $tgz -C $serverRoot room
 if ($LASTEXITCODE -ne 0) { throw "tar 打包失败（exit $LASTEXITCODE）" }
 
 # 云上脚本：纯 ASCII（避免 PS 5.1 的 GBK 误解），由本机 here-string 原样落盘
@@ -54,7 +57,7 @@ Start-Sleep -Seconds 3
 Write-Output ('stopped=' + ($null -eq (Get-Process -Name RoomServer -ErrorAction SilentlyContinue)))
 '@
 $startScript = @'
-tar -xzf C:\litegame\room.tgz -C C:\litegame
+C:\Windows\System32\tar.exe -xzf C:\litegame\room.tgz -C C:\litegame
 Write-Output ('extract=' + $LASTEXITCODE)
 Start-ScheduledTask -TaskName 'LiteGame-Room'
 Start-Sleep -Seconds 8
