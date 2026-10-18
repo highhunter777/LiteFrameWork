@@ -8,7 +8,7 @@
 
 ## 1. 源码与调用约定
 
-现有入口：[LuaBehaviourAdapter](../../../../Assets/LiteGame/LuaBridge/LuaBehaviourAdapter.cs)、[UIBindIndex](../../../../Assets/LiteGame/UI/Bind/UIBindIndex.cs)、[Bridge.BindGlobals](../../../../Assets/LiteGame/LuaBridge/Bridge.Data.cs)、[Bridge.Ui](../../../../Assets/LiteGame/LuaBridge/Bridge.Data.cs)。
+现有入口：[LuaBehaviourAdapter](../../../../Assets/LiteGame/LuaBridge/LuaBehaviourAdapter.cs)、[UIBindIndex](../../../../Assets/LiteClient/UI/Bind/UIBindIndex.cs)、[Bridge.BindGlobals](../../../../Assets/LiteGame/LuaBridge/Bridge.Data.cs)、[Bridge.Ui](../../../../Assets/LiteGame/LuaBridge/Bridge.Data.cs)。
 
 两种入口的调用方式不同，必须按注册方式区分：
 

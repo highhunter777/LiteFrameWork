@@ -29,12 +29,12 @@ UI 效果 = UI 层对一次语义事件的多通道表现响应，通道为**动
 
 | 既有件 | 现状 | 在系统中的角色 |
 | --- | --- | --- |
-| [UiFx / UiFxHandle](../../../../Assets/LiteGame/UI/Anim/UiFx.cs) | 四原语 Pulse/Flash/Slide/CountUp；UIClock 轨已落地（`SetUpdate(Manual)` 经 DotweenUiClockDriver 派发，`SetLink(KillOnDisable)` 兜底）；"完成态即基线"复位契约（Stop(true)=跳终值即复位） | Tween 通道后端（唯一 DOTween 入口） |
-| [UiAnimationClock](../../../../Assets/LiteGame/UI/Anim/UiAnimationClock.cs) | UIClock→DOTween 手动派发，ClocksModule 装配期接线 | 全系统时钟基座（通道不做各自的 UIClock 接入） |
-| [AnimatedImage](../../../../Assets/LiteGame/UI/Widgets/AnimatedImage.cs) | 序列帧，UIClock 语义 | 序列帧通道后端 |
-| [RotatingImage](../../../../Assets/LiteGame/UI/Widgets/RotatingImage.cs) | 连续旋转，UIClock 语义 | 循环装饰自播件（不走通道；加载转圈用） |
+| [UiFx / UiFxHandle](../../../../Assets/LiteClient/UI/Anim/UiFx.cs) | 四原语 Pulse/Flash/Slide/CountUp；UIClock 轨已落地（`SetUpdate(Manual)` 经 DotweenUiClockDriver 派发，`SetLink(KillOnDisable)` 兜底）；"完成态即基线"复位契约（Stop(true)=跳终值即复位） | Tween 通道后端（唯一 DOTween 入口） |
+| [UiAnimationClock](../../../../Assets/LiteClient/UI/Anim/UiAnimationClock.cs) | UIClock→DOTween 手动派发，ClocksModule 装配期接线 | 全系统时钟基座（通道不做各自的 UIClock 接入） |
+| [AnimatedImage](../../../../Assets/LiteClient/UI/Widgets/AnimatedImage.cs) | 序列帧，UIClock 语义 | 序列帧通道后端 |
+| [RotatingImage](../../../../Assets/LiteClient/UI/Widgets/RotatingImage.cs) | 连续旋转，UIClock 语义 | 循环装饰自播件（不走通道；加载转圈用） |
 | [AudioService](../../../../Assets/LiteClient/Runtime/Audio/AudioService.cs) | 组+代理模型；`Group.Ui` 专组走 UI 时钟轨（UI 暂停即停，不随世界停），句柄失效安全 | 音效通道后端 |
-| 转场策略（[FadeSlideTransition](../../../../Assets/LiteGame/UI/Anim/FadeSlideTransition.cs)、UIStrategies、[UITransitionRunner](../../../../Assets/LiteGame/UI/Transition/UITransitionRunner.cs)） | Push/Pop/Replace 表现策略已运行；策略代码直用 DOTween | 生命周期语义不动；表现段是效果定义的候选消费者（§7.4） |
+| 转场策略（[FadeSlideTransition](../../../../Assets/LiteClient/UI/Anim/FadeSlideTransition.cs)、UIStrategies、[UITransitionRunner](../../../../Assets/LiteClient/UI/Transition/UITransitionRunner.cs)） | Push/Pop/Replace 表现策略已运行；策略代码直用 DOTween | 生命周期语义不动；表现段是效果定义的候选消费者（§7.4） |
 | 控件自持表现（Toast/RedDot/Countdown 等） | 各控件自管内部动效，多数不依赖 DOTween | 分批迁入统一播放入口（§7.5），迁移前现状合法 |
 | Lua shim Pulse/Flash/Slide | 经 UIBindIndex 派发到 UiFx，完成/中断回基线 | 语义保持，底层随通道换实现 |
 
@@ -71,7 +71,7 @@ flowchart TD
 目标目录（**目标落点，尚未创建**）：
 
 ```text
-Assets/LiteGame/UI/Effects/
+Assets/LiteClient/UI/Effects/
     Contract/                   契约与纯规则（零 Unity 依赖，独立单测）
         UiEffectSemantics.cs        语义 ID / 属性类 / 拒绝原因
         UiEffectDefinition.cs       定义与轨道（登记数据，不可变共享）
@@ -141,7 +141,7 @@ Assets/LiteGame/UI/Effects/
 - **与控件自持表现的关系**：`UIWidget.pressFx`（按压 Pulse）是控件基类内置特例，与本组件出口同源；是否并入随 §7.5/E3 收编裁决。
 - **示例**：按钮点击音（音效键）、开面板滑入（Slide）、结算数字滚动（CountUp）、Toast 出现（Slide+音效键）；跨节点复用的复杂效果仍走定义登记（§5），本组件只承"简单内联声明"。
 
-落点与批次：挂节点组件落 `Assets/LiteGame/UI/Effects/UiEffectBinder.cs`；实现归 **E2**（作者面与通道接入同批，五页为"真实页面消费者闭环"的首批载体）。
+落点与批次：挂节点组件落 `Assets/LiteClient/UI/Effects/UiEffectBinder.cs`；实现归 **E2**（作者面与通道接入同批，五页为"真实页面消费者闭环"的首批载体）。
 
 ## 6. 编排与槽位仲裁
 

@@ -100,10 +100,10 @@ Hud_Battle                          Canvas(Overlay, order 0) + CanvasScaler(1920
 
 | 层 | 资产 | 命名 | 说明 |
 | --- | --- | --- | --- |
-| 模板 | `ShareResource/UI/Widgets/Tmp_HpBar.prefab` | 根 `Tmp_HpBar`；内部件 `_Bar`/`_Slider`/`_Background`/`_FillArea`/`_Fill`/`_BackFill`（§9.4 私有）；暴露件 `Cot_IconBox`/`Icon_Health`/`Txt_Hp` | 挂 `LiteGame.UI.HpBar` + `BindNode`；收集组 UIWidgets |
+| 模板 | `ShareResource/UI/Widgets/Tmp_HpBar.prefab` | 根 `Tmp_HpBar`；内部件 `_Bar`/`_Slider`/`_Background`/`_FillArea`/`_Fill`/`_BackFill`（§9.4 私有）；暴露件 `Cot_IconBox`/`Icon_Health`/`Txt_Hp` | 挂 `LiteClient.UI.HpBar` + `BindNode`；收集组 UIWidgets |
 | 业务实例 | `Hud_Battle` 的 `Cot_Panel/Cot_Vitals/HpBar_Player` | `HpBar_Player`（§9.3 业务变体＝`<类型段>_<语义>`） | 模板 PrefabInstance；只 override 位置/尺寸 |
 
-- **驱动**：`LiteGame.UI.HpBar` 持 `Slider`（前条）+ `BackFill`（后条）+ `ValueText`；`Set(current, max)` 写前条 `Slider.value`、后条按 `BackLerpSpeed` 逐帧滑落追赶（计时走 `UiAnimationClock.Delta`——§5／红线 9）。后条仅在数值**下降**时滑落，上升瞬时跟上。
+- **驱动**：`LiteClient.UI.HpBar` 持 `Slider`（前条）+ `BackFill`（后条）+ `ValueText`；`Set(current, max)` 写前条 `Slider.value`、后条按 `BackLerpSpeed` 逐帧滑落追赶（计时走 `UiAnimationClock.Delta`——§5／红线 9）。后条仅在数值**下降**时滑落，上升瞬时跟上。
 - **后条几何**：与 Slider `fillRect` 同锚/枢轴/尺寸，`HpBar.SetBackAnchor` 只改 `anchorMax.x`（与 UGUI Slider 对 fillRect 的可视更新同款手势）。
 - 消费者兼容：公开 API `HpBar.Set(current,max)` 与 `HpBar` 类型不变——`UIDemoPage` / `UIBindIndex.SetHp` 零改动。
 

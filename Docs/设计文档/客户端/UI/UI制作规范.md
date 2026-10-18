@@ -21,7 +21,7 @@
 | 控件模板 | `Assets/ShareResource/UI/Widgets/`（**29 件** `Tmp_*`）；同族可用 Prefab Variant |
 | 调试属性补丁 | `Assets/ShareResource/UI/Patches/`（待建，随 UIPatch 批）；只在 Editor/dev 使用，生产包排除 |
 | 字体 | `Assets/ShareResource/Fonts/`；字体族与 fallback 受统一配置管理 |
-| 运行时 | `Assets/LiteGame/UI/`；Lua 桥在 `Assets/LiteGame/LuaBridge/`；内容等适配在 `Assets/LiteClient/Adapters/` |
+| 运行时 | UI 运行时（`LiteClient.UI`）在 `Assets/LiteClient/UI/`；Lua 桥在 `Assets/LiteGame/LuaBridge/`；内容等适配在 `Assets/LiteClient/Adapters/` |
 | 编辑器 | `Assets/LiteGame/Editor/`，样式在 `Style/` |
 
 必须：
@@ -188,6 +188,6 @@ EditMode 结构检查不能替代依赖 Awake/OnEnable 的行为测试。已有�
 
 ### 9.7 校验归属
 
-- 已有 fail-fast（绑定链自带）：绑定节点 C# 标识符合法/关键字拒绝（[BindSearch.cs](../../../../Assets/LiteCodeGen/Editor/EditorTools/BindSearch.cs)）；标记节点重名（生成报错）；`BindName` 重名（[BindIndexBuilder.cs](../../../../Assets/LiteGame/UI/Bind/BindIndexBuilder.cs) 抛）。
+- 已有 fail-fast（绑定链自带）：绑定节点 C# 标识符合法/关键字拒绝（[BindSearch.cs](../../../../Assets/LiteCodeGen/Editor/EditorTools/BindSearch.cs)）；标记节点重名（生成报错）；`BindName` 重名（[BindIndexBuilder.cs](../../../../Assets/LiteClient/UI/Bind/BindIndexBuilder.cs) 抛）。
 - 待接入（[工具专项 §4](UI编辑器工具专项设计.md)“绑定”族；未实现前按人工验收，不冒充自动门禁）：全名文法与词表前缀（含控件类型段须为交互控件名或模板名）、`_` 私有件 + `BindName` 冲突、页面节点 `_` 前缀（仅限模板内部实现件）、`BindName` 与节点名不同文、根名与文件名不一致（`Page_<语义>`；业务变体 `<控件类型名>_<语义>`；模板根 `Tmp_<控件类型>`/`Tmp_<控件类型>_<语义>`）、编号族断号、页面内交互组件未暴露提示（识别依据 = 9.3 前缀；排除 `_` 私有件与 `Clone_` 子树）、`Clone_` 模板非激活、模板内部交互件角色文法。
 - 词表扩展与特例按 §1 例外表登记。

@@ -9,7 +9,7 @@
 
 ## 1. Current 与工具边界
 
-已存在 [UiStyle/UiStyleTool](../../../../Assets/LiteGame/Editor/Style/UiStyleTool.cs)、视觉构建反例扫描器 [VisualConstructionScanner](../../../../Assets/LiteGame/Editor/VisualConstructionScanner.cs)、**UI 校验核心** [UiValidator](../../../../Assets/LiteGame/Editor/UiTools/Validation/UiValidator.cs)，以及运行时 [BindIndexBuilder](../../../../Assets/LiteGame/UI/Bind/BindIndexBuilder.cs)、[UIBindBase](../../../../Assets/LiteGame/UI/Bind/UIBindBase.cs)。完整标记工具、编排器、样式窗口和 CI 规则仍未交付。
+已存在 [UiStyle/UiStyleTool](../../../../Assets/LiteGame/Editor/Style/UiStyleTool.cs)、视觉构建反例扫描器 [VisualConstructionScanner](../../../../Assets/LiteGame/Editor/VisualConstructionScanner.cs)、**UI 校验核心** [UiValidator](../../../../Assets/LiteGame/Editor/UiTools/Validation/UiValidator.cs)，以及运行时 [BindIndexBuilder](../../../../Assets/LiteClient/UI/Bind/BindIndexBuilder.cs)、[UIBindBase](../../../../Assets/LiteClient/UI/Bind/UIBindBase.cs)。完整标记工具、编排器、样式窗口和 CI 规则仍未交付。
 
 > **2026-10-11 UI 工具链第一步交付**：**校验核心**落地（`Assets/LiteGame/Editor/UiTools/Validation/`）——统一报告模型 `UiReport/UiIssue{ruleId,severity,asset,node,message,fixHint}` + 规则端口 `IUiRule` + 双侧上下文 `UiValidationContext`（源码面 + 资产面）+ 核心 `UiValidator`（菜单 `LiteGame/UI/校验/校验 UI 资产` / CLI `-executeMethod …RunCli` 非零退出 / EditMode 三入口共用）。**首条规则＝渲染/适配族的视觉单一来源**（`Rules/RuntimeVisualRule`——包既有 `VisualConstructionScanner`，源码面）；**其余五族（绑定/资源/文本/行为/性能）在报告显式列为"待接入"，不冒充通过**（§4 明文）。后续步：绑定标记工具 → 样式对账扩 `Screens/` → 校验进 CI → 编排面板 → UIPatch。施工记录见 [UI工具链](../../../施工进度/UI线.md#ch4-UI工具链)。
 
@@ -114,7 +114,7 @@ Shader 做能力校验，不做自动“一键换 shader”。用代表性资产
 | 分区 | 交付面 |
 |---|---|
 | **绑定暴露** | 内嵌**只读**树（数据单源 `UiBindingRename.BuildTree`、绘制单源 `Binding/UiBindTreeView.cs`——与绑定标记工具同源）；**编辑动作（前缀预设/批量改名/预览）仍跳绑定标记工具窗口**，两处交互不合搬进宿主 |
-| **受控属性** | 白名单＝自有控件组件上的**运行时 attribute** `UiWidgetProperty`（`Assets/LiteGame/UI/UiWidgetPropertyAttribute.cs`，零 Odin、只声明不驱动）。**未标注成员不进枚举、无绘制入口**——"不暴露控件内部实现"是物理边界而非按钮禁用；接线引用字段（如 `HpBar.Slider`）与几何/锚点（归 Prefab Stage 原生编辑）都不在此面 |
+| **受控属性** | 白名单＝自有控件组件上的**运行时 attribute** `UiWidgetProperty`（`Assets/LiteClient/UI/UiWidgetPropertyAttribute.cs`，零 Odin、只声明不驱动）。**未标注成员不进枚举、无绘制入口**——"不暴露控件内部实现"是物理边界而非按钮禁用；接线引用字段（如 `HpBar.Slider`）与几何/锚点（归 Prefab Stage 原生编辑）都不在此面 |
 | **校验/生成** | 同一校验核心的窗口入口——**窄档**（资产面只喂本 prefab、源码面置空）与**全量档**（`Run()`）；报告列表化，行内"定位节点"经 `UiComposeTarget.FindNodeForReport` 反查（报告 node 含根名、绑定树口径不含根——两口径由该件收口）；**生成**＝`BindGenerator.Generate` 成功后同一步 `UiBindGenerationHash.Record`（窗口内先确认框——生成触发域重载） |
 | **控件库** | **目录即清单**（扫 `Assets/ShareResource/UI/Widgets` 的 `Tmp_*`，不另存清单文件；内容源仍为《命名词表与控件清单》§1.3）；列表＝**inline OdinMenuTree 左树 + Odin 搜索栏**，右侧为选中模板的组件/受控面预览；插入**只在 Prefab Stage 内**（`InstantiatePrefab` + Undo，Variant/嵌套作用域全归 Unity 原生），插入后**不改名**、只提示下一步标记/命名（§5 原文：不以面板自动重名规则掩盖绑定冲突） |
 
