@@ -246,14 +246,20 @@ public static class BuildBundles
 # DebugTuner / GM command layer) compiles in, so the test client can show the
 # runtime diagnostics HUD (F1). DetailedBuildReport is passed explicitly
 # because supplying any options disables its default.
+# outputPath comes from profile.output (product name resolved in-editor):
+# channels build into their own directory, so a development-channel build
+# never overwrites the release-channel build Dist packages for testers
+# (release profile = windows-x64-release.json; Dist passes -GameBuild
+# Builds/StandaloneWindows64-release).
 Write-Host '== build dry_run ==' -ForegroundColor Cyan
 $buildOptions = 'null'
 if ($prof.channel -eq 'development') {
     $buildOptions = 'new string[]{ "Development", "DetailedBuildReport" }'
     Write-Host '  channel=development -> BuildOptions: Development' -ForegroundColor Yellow
 }
+$buildOutExpr = 'System.IO.Path.Combine("' + $prof.output + '", UnityEditor.PlayerSettings.productName + ".exe")'
 $dryJson = Invoke-EvalFile 'build-step.cs' (
-    'return Unity.Pipeline.Editor.Commands.Build.BuildCommand.Build(options: ' + $buildOptions + ', dryRun: true);')
+    'return Unity.Pipeline.Editor.Commands.Build.BuildCommand.Build(options: ' + $buildOptions + ', outputPath: ' + $buildOutExpr + ', dryRun: true);')
 $dry = $dryJson | ConvertFrom-Json
 if ($dry.result) { $dry = $dry.result }   # eval envelope: return value nested under result
 if ($dry.status -eq 'error' -or $dry.valid -eq $false -or $dry.success -eq $false) {
@@ -265,7 +271,7 @@ Write-Host '  dry_run OK' -ForegroundColor Green
 Write-Host '== build (confirm; IL2CPP may take 10-30 min) ==' -ForegroundColor Cyan
 $buildStart = Get-Date
 $respJson = Invoke-EvalFile 'build-step.cs' (
-    'return Unity.Pipeline.Editor.Commands.Build.BuildCommand.Build(options: ' + $buildOptions + ', confirm: true);')
+    'return Unity.Pipeline.Editor.Commands.Build.BuildCommand.Build(options: ' + $buildOptions + ', outputPath: ' + $buildOutExpr + ', confirm: true);')
 $resp = $respJson | ConvertFrom-Json
 if ($resp.result) { $resp = $resp.result }   # eval envelope: return value nested under result
 if ($resp.status -eq 'error' -or $resp.success -eq $false) {

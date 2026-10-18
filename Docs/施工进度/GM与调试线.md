@@ -256,3 +256,11 @@
 - **挂账**：Dist 测试者分发包是否随 channel 字段一并 Development 化（包体/泄漏面权衡）——待用户实机裁决后接 Dist 线；GM 联机诊断页与开关投影的面检归用户手测；DevHUD 命令通道仍待真机需求（第1章待办延续）。
 - **BattleViewRig.cs 文件头双 BOM→单 BOM**：文件写入顺带的字节规整副产物（原文件头异常），随本批入册。
 - **环境备注**：本会话 shell 工具故障（`C:\Windows\system32\powershell` 路径异常，三试三败）——PS Parser/dotnet 全量/git 盘点均经 Codely bridge 编辑器子进程等价执行（本机无 PS7 的 L1 等价件先例见第1章）。
+
+### 裁决续记（2026-10-18 同日）：Dist 测试者分发包不随 Development 化
+
+用户裁决落定：**Development 包仅限开发侧测试客户端，不进测试者分发包**。机械面：本批后 `windows-x64.json`（channel=development）出的包全是 Development 形态，而 `Dist/New-Package.ps1` 默认从 `Builds/StandaloneWindows64` 取包——测试者包若无独立通道档必然继承 dev 面。落法：
+
+- 新增 release 通道档 `BuildProfiles/windows-x64-release.json`（channel=release，产物独立目录 `Builds/StandaloneWindows64-release`）。测试者出包流程＝先 release 档出包 → Dist 打包传 `-GameBuild Builds/StandaloneWindows64-release`（Dist 脚本本体归并行上云线在改，本批不碰——接线归该线收口时引用本档）。
+- `build-player.ps1` eval 调用补 `outputPath` 透传（`profile.output`＋包名编辑器侧解析）——两通道产物目录独立、互不覆盖：development 包永不出现在测试者包源目录，边界由目录隔离兜底而非流程自觉。
+- 验证：PS Parser PARSE-OK · 代码行纯 ASCII · release 档 JSON 可解析（channel/output/platform 核对）· build 命令 dry run 两形态均 valid=True（dev：Development 选项＋默认目录；release：无选项＋release 目录）。
