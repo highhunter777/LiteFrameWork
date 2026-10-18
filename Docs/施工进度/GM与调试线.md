@@ -12,6 +12,7 @@
 |---:|---|---|
 | 1 | GM 与调试工具分层 | `GM与调试工具分层.md` |
 | 2 | 日志标签收敛（LogTag 枚举） | `日志标签收敛.md` |
+| 3 | 联机诊断 HUD（DevHUD 段＋GM 第六页＋测试包 Development 化） | — |
 
 ---
 
@@ -208,3 +209,50 @@
 ### 并行会话说明（环境事实，非本批内容）
 
 执行期间树内有并行在途改动（加载页批B：`LaunchLoading.cs` 新建、`FeedbackService` 扩 `LoadingScope`、五页 prefab/Boot.unity 等），期间 Unity 编译一度为其在途文件报 CS0246（本批文件零条目）；其补齐后本批复编译 0 错。**提交状态**：并行线提交 `68c3feb0` 扫入本批两处迁移件（`ProcedureError.cs`/`ProcedurePreload.cs`）；其余 58 件随同一提交入库（`249c1ac1`，与并行线 WIP 合流提交——文件面未解耦，属用户裁决"提交本地全部改动"）。
+
+---
+
+## 第3章 联机诊断 HUD（DevHUD 段＋GM 第六页＋测试包 Development 化）
+
+<a id="ch3-联机诊断HUD"></a>
+
+> 用户点单"GM 面板增加显示联机诊断数据的局内 HUD，通过 GM 面板打开"，并问测试客户端能否打开。**状态：已完成（附验证证据）**。
+
+### 现状核证（回答"测试客户端能打开吗"的三层事实）
+
+- **GM 面板**＝`EditorWindow`（`Assets/LiteGame/Editor/`）——编辑器专属**形态**，任何包都进不去（与宏无关）。
+- **开发页**（`DevMenuPanel`）：开出动作 `EnsureDevMenu()` 整段 `#if UNITY_EDITOR` 收口＋dev 预制体不进收集组——**连 Development 包都不出现**（入口分叉治理既定裁决，非缺漏）。
+- **出包链三宏全灭**：`build-player.ps1` → 管线 `build` 不传 `--options`（缺省仅 `DetailedBuildReport`），profile 的 `channel:"development"`/`defines:[]` 均为**死字段无消费方**——现有测试包是净 release 形态，连 DevHUD 都被剥离。
+- 结论：**现状开不了**；载体与数据源是现成的（§5 DevHUD 自创建形态＋`RoomClient.NetworkQuality` 探针——类注释原文"供 HUD 展示"）。用户裁决：启用路径取 **A（Development 包）**，数据面全选（相位/重连、和解计数、帧率/掉帧、既有 Stats 段保持）。
+
+### 交付
+
+| 面 | 落点 |
+| --- | --- |
+| 对局诊断读口 | 新件 `Assets/LiteGame/App/Debug/BattleDiagnostics.cs`（三宏整件剥离）：`Current` 登记口（`Attach/Detach`——只注销自己登记的实例）＋只读快照 `Snapshot`（相位/网络质量/和解计数）＋描述单源 `DescribeLines/DescribeCurrent`（RTT/丢包口径与 `BattleNetworkHudDriver` 同源；无对局 = null ⇒ 消费方整组隐藏）。**为什么静态登记**：对局上下文是流程私有件（不进容器、非场景组件），HUD 两发现面都够不到——同 DebugTuner 静态镜像口径 |
+| 接线 | `BattleViewRig.Attach`（既有三宏块内 `BattleDiagnostics.Attach(context)`）＋ `Dispose`（`Detach`）——装配/拆视图两处，单写点 |
+| DevHUD 段 | 新段"联机诊断"（读口单源行，两行缩进同 HUD 风格）＋新段"性能"（帧间隔环形样本 240 帧自算：均值 FPS/最差帧/长帧(>100ms) 计数——阈值推导注释在件内）；逐帧采样先于 0.25s 渲染节流（长帧计数依赖连续样本）；`Visible` 公开属性（GM 页投影位，F1 等效）；段开关 public 字段形态不变 |
+| GM 第六页 | 新件 `Editor/Gm/GmNetDiagPage.cs`（IGmPage 契约）：HUD 总开关/段开关投影（编辑器工具豁免直改 DevHUD 实例字段）＋读数投影（同一描述单源，页零拼装零状态）；`GmPanel` Tabs/_pages 补位（六页）＋壳注释页数清单同步；`LiteGame.Editor.asmdef` 补 `LiteGame.DevTool` 引用 |
+| 出包链接活 | `build-player.ps1`：`channel == 'development'` → build/dry_run 经 `Invoke-EvalFile` 直调 `Unity.Pipeline...BuildCommand.Build(options: ["Development","DetailedBuildReport"], …)`——**eval_file 缘由**：`options` 是 string[]、CLI 令牌形态为 JSON 数组，PS 5.1 原生传参剥引号（同文件后端切换步骤既有先例，CommandLineBinder 实读核证"no repeated-flag-becomes-array"）；顺手补 dry_run 的 `valid=false` 不拦截缺口（原只查 status/success） |
+| 守卫 | 新件 `Assets/Tests/EditMode/BattleDiagnosticsEditModeTests.cs`：描述单源三用例（千分比→一位小数百分比与生产 HUD 同口径、无样本占位、无对局 null 空态） |
+| 清污（连带发现） | `Boot.unity` GameEntry 上**残留场景序列化 DevHUD 组件**（`showStats:0` 等存量值——自创建幂等守卫被劫持为"收养旧实例"，HUD 段默认值被场景旧值覆盖；且踩 DevHUD 类注释明写禁项：release 包三宏剥离后场景组件成 missing script 隐患）。编辑器 API 摘除＋场景保存；盘面 GUID `8714eaad…` 零残留核证 |
+
+### 验证证据
+
+| 项 | 结果 |
+| --- | --- |
+| Unity 编译 | **0 错**（bridge refresh，16 警告全为既有：Odin 过时 API/老测试件 CS0628） |
+| EditMode 定向 | **47/47**（新件 3 用例＋BattleNetworkHud/PresentationLifecycle/PresentationOwnership/BattleSession/BattleHudMenu 回归） |
+| L1 等价件全量 | **零失败**：LiteFramework 720 · LiteSim 369 · LiteNet 619 · LiteTesting 7 · MetaServer 178 · MetaIntegration 37（36 skip 环境位）——含纪律扫描（新注释过卫生守卫） |
+| PS 5.1 Parser | **PARSE-OK**（`build-player.ps1` 逐文件静态解析 0 错；代码行非 ASCII 零——既有横幅装饰注释不在此列） |
+| build 命令契约 | 反射直调 `BuildCommand.Build(dryRun, options:["Development","DetailedBuildReport"])` → `status=dry_run valid=True`（FQN/参数契约/校验全通，未真出包） |
+| 运行态冒烟 | Play（Boot）：`[DevHUD]` 自创建（DontDestroyOnLoad）、性能段样本窗 240 帧滚动自愈（FPS 172/最差 13ms/长帧 0）、联机诊断段无对局正确隐藏、`DescribeCurrent=null` 空态 |
+| 清污回归 | 摘件后重进 Play：全新 `[DevHUD]` 实例全开关 true、**stats 段＋日志尾巴＋性能段全渲染**（cacheLen 1931）；录屏分析确认 HUD 与登录页叠加正常、无报错 |
+| BuildHash | **不涉及**——改动面（LiteGame/Tests/scripts/Boot.unity）不在共享源集闭包 |
+
+### 裁决与边界（如实）
+
+- **DevMenuPanel 包形态不开＝维持既定收口**（本批不改动）——包形态 HUD 唯一入口是 F1；GM 面板"打开"只在编辑器形态成立。
+- **挂账**：Dist 测试者分发包是否随 channel 字段一并 Development 化（包体/泄漏面权衡）——待用户实机裁决后接 Dist 线；GM 联机诊断页与开关投影的面检归用户手测；DevHUD 命令通道仍待真机需求（第1章待办延续）。
+- **BattleViewRig.cs 文件头双 BOM→单 BOM**：文件写入顺带的字节规整副产物（原文件头异常），随本批入册。
+- **环境备注**：本会话 shell 工具故障（`C:\Windows\system32\powershell` 路径异常，三试三败）——PS Parser/dotnet 全量/git 盘点均经 Codely bridge 编辑器子进程等价执行（本机无 PS7 的 L1 等价件先例见第1章）。
