@@ -87,6 +87,8 @@ namespace MetaServer.Modules.Lobby
                 BuildHash = command.BuildHash,          // 版本准入前置（空 = 不断言，与进房同语义）
                 MapId = command.MapId,                  // 地图行键随票据盖章（多图批：房间端建房时按表校验）
                 ExpectedPlayers = command.ExpectedPlayers,   // 期望人数随票据盖章（开房参数批：房间端按内核容量校验）
+                Template = command.Template,            // 模板名随票据盖章（联机测试房批；口令校验在 Issue 单点）
+                GmKey = command.GmKey,                  // 口令透传给 Issue（唯一校验点）
             });
         }
 

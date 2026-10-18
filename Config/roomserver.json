@@ -5,6 +5,13 @@
   "rooms": {
     "default": {
       "expected_players": 2
+    },
+    "sandbox": {
+      "expected_players": 2,
+      "match_duration_frames": 0,
+      "kill_limit": 0,
+      "respawn_delay_frames": 60,
+      "spawn_protection_frames": 120
     }
   },
   "default_template": "default",
@@ -12,7 +19,7 @@
     "url": "http://127.0.0.1:5000/lobby/instances/register",
     "instance_id": "roomserver-local",
     "advertise_host": "127.0.0.1",
-    "heartbeat_interval_ms": 10000
+    "heartbeat_interval_ms": 1000
   },
   "settlement": {
     "submit_url": "http://127.0.0.1:5000/matches/result",

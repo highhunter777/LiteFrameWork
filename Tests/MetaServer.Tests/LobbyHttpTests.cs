@@ -78,12 +78,13 @@ namespace MetaServer.Tests
 
         private static string RegisterBody(string instanceId = "r1", string buildHash = BuildHash,
             string address = "10.0.0.5:7777", int maxRooms = 8, int roomCount = 0,
-            int maxPlayers = 64, int playerCount = 0, bool draining = false)
+            int maxPlayers = 64, int playerCount = 0, bool draining = false, string roomsJson = null)
         {
             return "{\"instanceId\":\"" + instanceId + "\",\"buildHash\":\"" + buildHash
                 + "\",\"address\":\"" + address + "\",\"maxRooms\":" + maxRooms
                 + ",\"roomCount\":" + roomCount + ",\"maxPlayers\":" + maxPlayers
-                + ",\"playerCount\":" + playerCount + ",\"draining\":" + (draining ? "true" : "false") + "}";
+                + ",\"playerCount\":" + playerCount + ",\"draining\":" + (draining ? "true" : "false")
+                + (roomsJson == null ? "" : ",\"rooms\":" + roomsJson) + "}";
         }
 
         private static string JoinTicketBody(string requestId = "req-1", string roomId = Room, string buildHash = BuildHash)
@@ -555,6 +556,64 @@ namespace MetaServer.Tests
 
             HttpResponseMessage rooms = await http.GetAsync(host.BaseAddress + "/lobby/rooms");
             Assert.Equal(HttpStatusCode.ServiceUnavailable, rooms.StatusCode);
+
+            HttpResponseMessage publicRooms = await http.GetAsync(host.BaseAddress + "/lobby/rooms/public");
+            Assert.Equal(HttpStatusCode.ServiceUnavailable, publicRooms.StatusCode);
+            Assert.Contains(LobbyErrorCodes.Disabled, await publicRooms.Content.ReadAsStringAsync());
+        }
+
+        [Fact]
+        public async Task 房间公共投影_真令牌_载荷含实例与等待中房明细()
+        {
+            // 房间列表批的**玩家可见**面（`/lobby/rooms/public`）：Bearer = 玩家访问令牌（与票据签发同
+            // 凭据类别），载荷 = 与实例面 `/lobby/rooms` **同源**的 ProjectRooms 投影（含 address/buildHash
+            // ——玩家进房要用，房明细行＝挑房的 roomId/mapId/相位/在座）。本用例把该链的 HTTP 半边钉死。
+            await using MetaHostFixture host = await StartLobbyHostAsync();
+            using var http = new HttpClient();
+            string key = Convert.ToBase64String(InstanceKey);
+
+            HttpResponseMessage registered = await RegisterAsync(http, host.BaseAddress,
+                RegisterBody(address: "10.0.0.5:7777", roomCount: 1,
+                    roomsJson: "[{\"roomId\":\"" + Room + "\",\"phase\":1,\"players\":2,\"expectedPlayers\":4,\"mapId\":2}]"),
+                key);
+            Assert.Equal(HttpStatusCode.OK, registered.StatusCode);
+
+            string token = host.Services.GetRequiredService<AccessTokenService>().Issue("acc-7", out _);
+            HttpResponseMessage response = await http.SendAsync(Authorized(HttpMethod.Get,
+                host.BaseAddress + "/lobby/rooms/public", token));
+
+            Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+            string json = await response.Content.ReadAsStringAsync();
+            Assert.Contains("\"instanceId\":\"r1\"", json);
+            Assert.Contains("\"address\":\"10.0.0.5:7777\"", json);           // 进房地址
+            Assert.Contains("\"buildHash\":\"" + BuildHash + "\"", json);      // 版本准入面
+            Assert.Contains("\"lastSeenAgeMs\":", json);                       // 投影新鲜度
+            Assert.Contains("\"roomId\":\"" + Room + "\"", json);              // 房明细（挑房行键）
+            Assert.Contains("\"phase\":1", json);                              // WaitingForPlayers = 等待中可进
+            Assert.Contains("\"players\":2", json);
+            Assert.Contains("\"expectedPlayers\":4", json);
+            Assert.Contains("\"mapId\":2", json);
+        }
+
+        [Fact]
+        public async Task 房间公共投影_凭据缺失或错误_401_实例密钥不可互换()
+        {
+            await using MetaHostFixture host = await StartLobbyHostAsync();
+            using var http = new HttpClient();
+
+            // 缺 Bearer 与坏令牌：访问令牌类别下的既有 401 语义（复用 auth.unauthorized）
+            HttpResponseMessage missing = await http.GetAsync(host.BaseAddress + "/lobby/rooms/public");
+            Assert.Equal(HttpStatusCode.Unauthorized, missing.StatusCode);
+            Assert.Contains("auth.unauthorized", await missing.Content.ReadAsStringAsync());
+
+            HttpResponseMessage garbage = await http.SendAsync(Authorized(HttpMethod.Get,
+                host.BaseAddress + "/lobby/rooms/public", "not-a-token"));
+            Assert.Equal(HttpStatusCode.Unauthorized, garbage.StatusCode);
+
+            // 凭据类别不可互换：实例密钥（注册/实例投影面用）在玩家面不成立
+            HttpResponseMessage swapped = await http.SendAsync(Authorized(HttpMethod.Get,
+                host.BaseAddress + "/lobby/rooms/public", Convert.ToBase64String(InstanceKey)));
+            Assert.Equal(HttpStatusCode.Unauthorized, swapped.StatusCode);
         }
 
         [Fact]

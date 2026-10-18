@@ -164,12 +164,13 @@ namespace MetaServer
                         ExpiresAtMs = accepted.ExpiresAtMs,
                     });
                 case JoinTicketIssueUseCase.Result.Rejected rejected:
-                    // 版本不符 409（换客户端构建/等新实例）区别于其它拒绝 400
-                    return MetaResults.Error(
-                        rejected.ErrorCode == LobbyErrorCodes.VersionMismatch
-                            ? StatusCodes.Status409Conflict
-                            : StatusCodes.Status400BadRequest,
-                        rejected.ErrorCode, rejected.MessageKey);
+                    // 版本不符 409 / 越权（测试房口令）403 / 其余 400——三者处置不同，不合并
+                    int status = rejected.ErrorCode == LobbyErrorCodes.VersionMismatch
+                        ? StatusCodes.Status409Conflict
+                        : rejected.ErrorCode == LobbyErrorCodes.Forbidden
+                            ? StatusCodes.Status403Forbidden
+                            : StatusCodes.Status400BadRequest;
+                    return MetaResults.Error(status, rejected.ErrorCode, rejected.MessageKey);
                 default:
                     return MetaResults.Error(StatusCodes.Status503ServiceUnavailable,
                         LobbyErrorCodes.NoCapacity, LobbyErrorCodes.MessageKeyUnavailable);

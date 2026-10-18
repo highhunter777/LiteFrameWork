@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Threading;
 
 namespace LiteFramework
@@ -27,6 +27,14 @@ namespace LiteFramework
         {
             _rootToken = rootToken;
         }
+
+        /// <summary>
+        /// 宿主根取消令牌（子类只读口）。它把"**宿主关闭**"（关闭序第①步级联取消根令牌）与
+        /// "**阶段离场取消**"（<see cref="OnLeave"/> 取消本阶段 CTS——含被外部 <c>Request</c> 打断）
+        /// 两条路分开：收尾要在这两条路之间分流的子类读它裁决（`RootToken.IsCancellationRequested`
+        /// ＝宿主关闭；无根形态恒 false）。
+        /// </summary>
+        protected CancellationToken RootToken => _rootToken;
 
         public virtual void OnInit(IStageHost<TId, TReq> m) { }
 

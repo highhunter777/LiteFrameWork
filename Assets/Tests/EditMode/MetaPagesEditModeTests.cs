@@ -16,7 +16,8 @@ namespace LiteGame.Tests.EditMode
     /// 批C-④ 五页接线（《上云测试页面层级设计》§1～§6）：真 LuaEnv + 磁盘脚本 + **受控面替身**
     /// （Bridge 三表 + self.ui 记录器——页面只认受控面，故无需 Unity 对象即可驱动整页逻辑并断言调用序）：
     /// ① 登录页（未配置拒绝 / 在途态 / 成功替换大厅 / 失败页内重试 + Toast）；② 大厅页（列表三态 / 快速进入）；
-    /// ③ 房间页（房号 + 离开=回大厅并请流程收尾）；④ 结算页（本局结果 / 回落最近一战 / 空态）；⑤ 设置页（标签 + 只读数据 + 关闭）。
+    /// ③ 房间页（房号 + 离开=回大厅并请流程收尾）；④ 结算页（本局结果 + 玩家排行 / 空态）；
+    /// ⑤ 战绩页（ListRecords 列表行投影 / 空态）；⑥ 设置页（标签 + 只读数据 + 关闭）。
     /// 另含**文案键守卫**：页面脚本引用的每个 LText 键（含结束原因值域拼键）必须在 tbltext 表源在册。
     /// 流程侧三处页面切换（首进开入口 / 开局关房间页 / 结束开结算页）归 <c>PageFlow</c>（C# 面，真导航需 Unity——归 PlayMode/夜间）。
     /// </summary>
@@ -82,7 +83,8 @@ meta.AccountId = function() return meta.account end
 meta.ServerUrl = function() return meta.server end
 meta.Version = function() return meta.version end
 meta.GuestLogin = function(cb) meta.cb_guest = cb end
-meta.ListRooms = function(cb) meta.cb_rooms = cb end
+-- 列表刷新批：投影查询本身也记一笔（断言 节拍/揭示/在途 三态下的查询次数）
+meta.ListRooms = function(cb) calls[#calls + 1] = 'RoomsQuery'; meta.cb_rooms = cb end
 meta.QuickEnter = function(cb) meta.cb_enter = cb end
 -- 开房参数批：CreateRoom(mapId, expectedPlayers, cb)——两值 = 请求地图行键 / 期望人数（0 = 未指定）
 meta.CreateRoom = function(mapId, expectedPlayers, cb)
@@ -305,7 +307,7 @@ page:OnShow(nil)
 buttons['Button_Records']()
 buttons['Button_Settings']()");
                 string calls = Calls(env);
-                StringAssert.Contains("Show:UI.Page_Result", calls, "最近战绩入口（§4 裁决：进结算页看列表）");
+                StringAssert.Contains("Show:UI.Page_Records", calls, "最近战绩入口 → 战绩独立页（§5·战绩页）");
                 StringAssert.Contains("Show:UI.Page_Settings", calls, "设置叠加打开");
             }
         }
@@ -350,22 +352,72 @@ buttons['Button_BackLobby']()");
         }
 
         [Test]
-        public void 结算页_大厅入口回落最近一战_空表空态()
+        public void 结算页_大厅入口_无本局数据_空态与空排行()
         {
+            // 玩家排行批：战绩查询面已弃用（唯一消费面即本页）——大厅入口不再回落"最近一战"，
+            // 无本局数据 = 空态 ＋ 空排行（不显上一局残留行）。
             using (var env = NewEnv())
             {
                 env.DoString(@"
 page = NewPage('UI.Page_Result')
-page:OnShow(nil)
-meta.cb_records(true, { { reason = 'TimeLimit', kills = 3, deaths = 4 } })");
+page:OnShow(nil)");
                 string calls = Calls(env);
-                StringAssert.Contains("Key:Txt_ResultTitle=UI.Result.Reason.TimeLimit", calls, "回落最近一战补记分板");
-                StringAssert.Contains("KeyArgs:Txt_KillCount=UI.Result.Kills(3,nil)", calls);
+                StringAssert.Contains("Key:Txt_ResultTitle=UI.Result.NoMatchData", calls, "无本局数据 → 空态");
+                StringAssert.Contains("Visible:Txt_KillCount=false", calls, "空态不显本机摘要");
+                StringAssert.Contains("List:VirtualList_Rankboard=0", calls, "无本局数据 → 空排行");
+            }
+        }
 
-                env.DoString(@"page2 = NewPage('UI.Page_Result')
-page2:OnShow(nil)
+        // ---- Page_Records（§5·战绩页——战绩面从结算页拆出）----
+
+        [Test]
+        public void 战绩页_列表行投影_返回大厅()
+        {
+            using (var env = NewEnv())
+            {
+                env.DoString(@"
+page = NewPage('UI.Page_Records')
+page:OnShow(nil)
+meta.cb_records(true, { { matchId = 'M-1', kills = 3, reason = 'KillLimit', time = '2026-10-18 10:00' },
+                       { matchId = 'M-2', kills = 0, reason = 'TimeLimit', time = '2026-10-17 21:00' } })");
+                string calls = Calls(env);
+                StringAssert.Contains("Key:Txt_Title=UI.Lobby.Records", calls, "标题键（复用大厅入口键）");
+                StringAssert.Contains("Key:Txt_Back=Common.BackLobby", calls);
+                StringAssert.Contains("Visible:Txt_Empty=false", calls, "查询返回前不显空态（防加载闪空）");
+                StringAssert.Contains("List:VirtualList_Records=2", calls, "战绩行填充（SetList 整表替换）");
+                string row = (string)env.DoString(@"
+local r = lists['VirtualList_Records'][1]
+return r.key .. '|' .. r.Txt_MatchTime .. '|' .. r.Txt_Kill.key .. '|' .. tostring(r.Txt_Kill.arg0)
+    .. '|' .. r.Txt_EndReason.key")[0];
+                Assert.AreEqual("M-1|2026-10-18 10:00|UI.Result.Kills|3|UI.Result.Reason.KillLimit", row,
+                    "行字段：key=matchId + 时间为数据 + 击杀文案键带参 + 结束原因拼键");
+
+                env.DoString("buttons['Button_Back']()");
+                StringAssert.Contains("Replace:UI.Page_Lobby", Calls(env), "返回 = 替换回大厅");
+            }
+        }
+
+        [Test]
+        public void 战绩页_空表与未配置_落空态()
+        {
+            using (var env = NewEnv())
+            {
+                env.DoString(@"
+page = NewPage('UI.Page_Records')
+page:OnShow(nil)
 meta.cb_records(true, {})");
-                StringAssert.Contains("Key:Txt_ResultTitle=UI.Result.RecordsEmpty", Calls(env), "空表 → 空态");
+                string calls = Calls(env);
+                StringAssert.Contains("Visible:Txt_Empty=true", calls, "空表 → 空态");
+                StringAssert.Contains("Key:Txt_Empty=UI.Records.Empty", calls, "空态文案键（UI.Records.Empty）");
+                StringAssert.Contains("List:VirtualList_Records=0", calls, "空表 → 空列表（不显残留行）");
+
+                env.DoString(@"
+meta.configured = false
+calls = {}
+page:OnShow(nil)");
+                string offline = Calls(env);
+                StringAssert.Contains("Visible:Txt_Empty=true", offline, "未配置服务器 → 显性拒绝（空态）");
+                StringAssert.DoesNotContain("List:VirtualList_Records=2", offline, "未配置不查战绩");
             }
         }
 
@@ -534,23 +586,108 @@ return r.key .. '|' .. r.Txt_RoomName .. '|' .. r.Txt_RoomState.key .. '|' .. to
             }
         }
 
+        // ---- 列表刷新批：投影只在本页消费，新鲜度靠节拍轮询 + 揭示即重查 ----
+
         [Test]
-        public void 结算页_排名显示_战绩行投影()
+        public void 大厅页_列表按节拍自轮询_投影未变不重推()
+        {
+            using (var env = NewEnv())
+            {
+                env.DoString(@"
+page = NewPage('UI.Page_Lobby')
+page:OnShow(nil)
+meta.cb_rooms(true, { { roomId = 'Room-A', players = 1, expectedPlayers = 2 } })
+calls = {}
+page:OnUpdate(0.4)
+page:OnUpdate(0.4)");
+                Assert.AreEqual(0, Regex.Matches(Calls(env), "RoomsQuery").Count, "未到节拍不重查（累计 0.8s < 1s）");
+
+                env.DoString("calls = {}; page:OnUpdate(0.4)");
+                Assert.AreEqual(1, Regex.Matches(Calls(env), "RoomsQuery").Count, "累计满节拍即重查一次（1s）");
+
+                // 同投影：不整表替换（SetList 是"空源过渡 + 换源"——会强迫已实体化条目全部重绑），状态行也不重写
+                env.DoString(@"calls = {}
+meta.cb_rooms(true, { { roomId = 'Room-A', players = 1, expectedPlayers = 2 } })");
+                string same = Calls(env);
+                StringAssert.DoesNotContain("List:VirtualList_Rooms", same, "投影未变不下发（免条目重绑/滚动复位）");
+                StringAssert.DoesNotContain("Key:Txt_Status", same, "同状态键不重写");
+
+                env.DoString(@"calls = {}
+meta.cb_rooms(true, { { roomId = 'Room-B', players = 2, expectedPlayers = 4 } })");
+                StringAssert.Contains("List:VirtualList_Rooms=1", Calls(env), "投影变了才重推");
+            }
+        }
+
+        [Test]
+        public void 大厅页_揭示即重查_在途不叠加_关页停轮询()
+        {
+            using (var env = NewEnv())
+            {
+                // 覆盖页（战绩/设置）关闭回大厅不重跑 OnShow（遮盖揭示走 OnReveal）——这条路径必须自己补一次
+                env.DoString(@"
+page = NewPage('UI.Page_Lobby')
+page:OnShow(nil)
+meta.cb_rooms(true, {})
+calls = {}
+page:OnReveal()");
+                Assert.AreEqual(1, Regex.Matches(Calls(env), "RoomsQuery").Count, "揭示即重查一次");
+
+                env.DoString("calls = {}; page:OnUpdate(1.5)");
+                Assert.AreEqual(0, Regex.Matches(Calls(env), "RoomsQuery").Count, "查询在途不叠加第二次");
+
+                // 关页：停轮询
+                env.DoString(@"
+meta.cb_rooms(true, {})                 -- 收口揭示那次查询
+calls = {}
+page:OnHide()
+page:OnUpdate(1.5)");
+                Assert.AreEqual(0, Regex.Matches(Calls(env), "RoomsQuery").Count, "关页后不再轮询");
+
+                // 关页后到达的在途投影：丢弃，不写节点（关页后写节点会重挂文案绑定）
+                env.DoString(@"
+page:OnShow(nil)                        -- 重开（新查询在途）
+page:OnHide()                           -- 秒关
+calls = {}
+meta.cb_rooms(true, { { roomId = 'Room-D' } })");
+                string stale = Calls(env);
+                StringAssert.DoesNotContain("List:", stale, "关页后到达的投影不写节点");
+                StringAssert.DoesNotContain("Key:Txt_Status", stale, "同上（不写状态行）");
+
+                // 在途进房：不轮询、不覆盖在途状态文案
+                env.DoString(@"
+page:OnShow(nil)
+meta.cb_rooms(true, {})
+calls = {}
+buttons['Button_QuickEnter']()
+page:OnUpdate(1.5)");
+                string entering = Calls(env);
+                Assert.AreEqual(0, Regex.Matches(entering, "RoomsQuery").Count, "在途进房期间不发起投影查询");
+                StringAssert.Contains("Key:Txt_Status=UI.Lobby.Allocating", entering, "在途状态不被投影回填覆盖");
+                StringAssert.DoesNotContain("Key:Txt_Status=UI.Lobby.Ready", entering, "同上（未回填就绪态）");
+            }
+        }
+
+        [Test]
+        public void 结算页_本机名次与玩家排行行投影()
         {
             using (var env = NewEnv())
             {
                 env.DoString(@"
 page = NewPage('UI.Page_Result')
-page:OnShow({ reason = 'KillLimit', kills = 5, deaths = 2, rank = 2 })
-meta.cb_records(true, { { matchId = 'm-1', kills = 6, deaths = 1, reason = 'TimeLimit', time = '10-13 20:00' } })");
+page:OnShow({ reason = 'KillLimit', kills = 5, deaths = 2, rank = 2,
+              ranks = { { rank = 1, name = '玩家1', kills = 6, deaths = 1 },
+                        { rank = 2, name = '玩家2', kills = 5, deaths = 2 },
+                        { rank = 2, name = '玩家3', kills = 5, deaths = 4 } } })");
                 string calls = Calls(env);
                 StringAssert.Contains("Visible:Txt_Score=true", calls, "本局有名次 → 显示");
-                StringAssert.Contains("KeyArgs:Txt_Score=UI.Result.Rank(2,nil)", calls, "名次文案键（批C-⑥ 新键）");
-                StringAssert.Contains("List:VirtualList_Records=1", calls, "战绩行填充");
+                StringAssert.Contains("KeyArgs:Txt_Score=UI.Result.Rank(2,nil)", calls, "名次文案键");
+                StringAssert.Contains("List:VirtualList_Rankboard=3", calls, "玩家排行行填充");
                 string row = (string)env.DoString(@"
-local r = lists['VirtualList_Records'][1]
-return r.key .. '|' .. r.Txt_MatchTime .. '|' .. r.Txt_Kill.key .. '|' .. tostring(r.Txt_Kill.arg0) .. '|' .. r.Txt_EndReason.key")[0];
-                Assert.AreEqual("m-1|10-13 20:00|UI.Result.Kills|6|UI.Result.Reason.TimeLimit", row, "行字段：时间数据 + 击杀键带参 + 结束原因拼键");
+local r = lists['VirtualList_Rankboard'][3]
+return r.key .. '|' .. r.Txt_Rank .. '|' .. r.Txt_Name .. '|' .. r.Txt_Kills.key .. '|' .. tostring(r.Txt_Kills.arg0)
+    .. '|' .. r.Txt_Deaths.key .. '|' .. tostring(r.Txt_Deaths.arg0)")[0];
+                Assert.AreEqual("3|2|玩家3|UI.Result.Kills|5|UI.Result.Deaths|4", row,
+                    "行字段：名次/玩家名为数据 + 击杀与阵亡走文案键带参");
 
                 env.DoString(@"
 page2 = NewPage('UI.Page_Result')

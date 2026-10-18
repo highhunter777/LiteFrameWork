@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using Cysharp.Threading.Tasks;
 using LiteFramework;
 using LiteGame.UI;
@@ -127,30 +127,25 @@ namespace LiteGame
         }
 
         /// <summary>本局结果 → 结算页数据表（Lua 侧只认具名键；结束原因取枚举名——页面按值域拼文案键
-        /// `UI.Result.Reason.&lt;名&gt;`，不在 Lua 侧抄枚举值）。**名次 rank**：FFA 无 score 字段，
-        /// 按冻结结果 players[] 击杀序推导（1 + 击杀严格大于本机的人数；并列同名次；本机不在册 = 0 = 页面隐藏）。</summary>
+        /// `UI.Result.Reason.&lt;名&gt;`，不在 Lua 侧抄枚举值）。**名次与玩家排行同源**：都取自
+        /// <see cref="ResultRanking.Build"/> 的同一份行表（击杀降序 → EntityId 升序；名次 = 1 + 击杀严格
+        /// 大于本机的人数，并列同名次；名字 = 玩家{k}）。本机不在册 = rank 0（页面隐藏 Txt_Score）。
+        /// `ranks`＝排行行数组（`{rank, name, kills, deaths}`）——供结算页列表（原 Cot_Records 位）填充。</summary>
         private LuaTable ResultData(LiteNet.Proto.MatchEnded result, int localPlayerId)
         {
-            int kills = 0, deaths = 0, rank = 0;
+            ResultRanking.Row[] rows = ResultRanking.Build(result.Players);
+
+            // 本机行（本局摘要）与排行同一份行表：名次/击杀/阵亡单源，页面侧不重算
             bool found = false;
-            if (result.Players != null)
+            int kills = 0, deaths = 0, rank = 0;
+            for (int i = 0; i < rows.Length; i++)
             {
-                // 两遍式（先定本机行，再数"击杀严格大于本机"的人数——单遍会依赖行序）
-                foreach (LiteNet.Proto.PlayerMatchResult row in result.Players)
-                {
-                    if (row.PlayerId != localPlayerId) continue;
-                    kills = row.Kills;
-                    deaths = row.Deaths;
-                    found = true;
-                    break;
-                }
-                if (found)
-                {
-                    int better = 0;
-                    foreach (LiteNet.Proto.PlayerMatchResult row in result.Players)
-                        if (row.PlayerId != localPlayerId && row.Kills > kills) better++;
-                    rank = better + 1;                         // 并列同名次
-                }
+                if (rows[i].PlayerId != localPlayerId) continue;
+                kills = rows[i].Kills;
+                deaths = rows[i].Deaths;
+                rank = rows[i].Rank;
+                found = true;
+                break;
             }
 
             LuaTable table = _env().NewTable();
@@ -159,6 +154,18 @@ namespace LiteGame
             table.Set("deaths", deaths);
             table.Set("rank", rank);                           // 0 = 无名次面（页面隐藏 Txt_Score）
             table.Set("reason", ((LiteSim.MatchEndReason)result.GameplayEndReason).ToString());
+
+            LuaTable ranks = _env().NewTable();
+            for (int i = 0; i < rows.Length; i++)
+            {
+                LuaTable row = _env().NewTable();
+                row.Set("rank", rows[i].Rank);
+                row.Set("name", rows[i].Name);
+                row.Set("kills", rows[i].Kills);
+                row.Set("deaths", rows[i].Deaths);
+                ranks.Set(i + 1, row);
+            }
+            table.Set("ranks", ranks);
             return table;
         }
 

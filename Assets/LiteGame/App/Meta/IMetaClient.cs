@@ -26,7 +26,7 @@ namespace LiteGame
         /// <paramref name="mapId"/>／<paramref name="expectedPlayers"/>（开房参数）0 = 未指定——
         /// 随票据盖章，房间端建房时按表/内核容量校验（越界拒建房）。</summary>
         UniTask<MetaCall<JoinTicketInfo>> CreateRoomAsync(string accessToken, string buildHash, int mapId = 0,
-            int expectedPlayers = 0, CancellationToken ct = default);
+            int expectedPlayers = 0, string template = null, string gmKey = null, CancellationToken ct = default);
 
         /// <summary>房间列表（玩家可见投影：实例 + 房间明细——挑 roomId 换票用）。</summary>
         UniTask<MetaCall<IReadOnlyList<LobbyInstanceView>>> ListRoomsAsync(string accessToken,

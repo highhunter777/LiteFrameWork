@@ -7,8 +7,8 @@ namespace LiteGame
 {
     /// <summary>
     /// 主流程：**启动落点决策**（登录页/大厅页/不开页，见 <see cref="ResolveLanding"/>）＋ 开发直入（训练场/工作台）。
-    /// **不再加载对局场景组**——场景组的加载归 `ProcedureMatch`（JoinAck 后、进度进"进房等待场"），
-    /// 卸载归 `ProcedureBattle` 收尾（《地图数据专项设计》加载链修订；Main 阶段只有启动场景 Boot 与 UI）。
+    /// **不再加载对局场景组**——场景组的加载与卸载都归 `ProcedureBattle`
+    /// （`StartGame` 后加载、离场收尾卸载；《地图数据专项设计》加载链修订；Main 阶段只有启动场景 Boot 与 UI）。
     /// 后续流程树（主菜单 → 选模式 → 进场景 → 战斗 → 结算）在此扩展；Match/Battle 预留见 <see cref="ProcedureId"/>。
     /// </summary>
     public sealed class ProcedureMain : ProcedureStageBase<ProcedureId, ProcedureArgs>

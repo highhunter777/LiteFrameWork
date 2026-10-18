@@ -38,6 +38,12 @@ namespace MetaServer.Contracts.Lobby
 
         /// <summary>版本不兼容的消息键。</summary>
         public const string MessageKeyVersionMismatch = "meta.lobby.version-mismatch";
+
+        /// <summary>越权：测试房口令缺失/不匹配（联机测试房批）。HTTP 403。</summary>
+        public const string Forbidden = "lobby.forbidden";
+
+        /// <summary>越权的消息键。</summary>
+        public const string MessageKeyForbidden = "meta.lobby.forbidden";
     }
 
     /// <summary>
@@ -138,6 +144,15 @@ namespace MetaServer.Contracts.Lobby
         /// <summary>请求期望人数（开房参数批；0 = 未指定＝按房间模板 `expected_players`）。正值盖章进票据——
         /// 只作用于**新建房**；房间端按内核席位容量校验（越界拒建房），既有房间以房事实为准。</summary>
         public int ExpectedPlayers { get; set; }
+
+        /// <summary>请求的房间模板名（联机测试房批；空/缺省 = 走房间服 `default_template`）。
+        /// 非空时**必须**与 <see cref="GmKey"/> 一并校验（门禁单点在
+        /// <c>JoinTicketIssueUseCase.Issue</c>——join-ticket 与 create-room 共用，避免旁路）。</summary>
+        public string Template { get; set; }
+
+        /// <summary>测试房口令（联机测试房批；仅当 <see cref="Template"/> 非空时校验）。
+        /// 值来自机器私有配置（环境变量 `LITEGAME_GM_ROOM_KEY`），**不进仓库、不回显、不落日志**。</summary>
+        public string GmKey { get; set; }
     }
 
     /// <summary>
@@ -159,6 +174,14 @@ namespace MetaServer.Contracts.Lobby
         /// <summary>请求期望人数（开房参数批；0 = 未指定 = 按房间模板）。正值盖章进票据——
         /// 房间端建房时按内核席位容量校验，越界拒建房。</summary>
         public int ExpectedPlayers { get; set; }
+
+        /// <summary>请求房间模板名（联机测试房批；空 = 走 `default_template`）。**非空必须配对口令**——
+        /// 口令在 <see cref="GmKey"/>，由 Meta 与机器私有配置比对；不匹配 403，且房间不创建。</summary>
+        public string Template { get; set; }
+
+        /// <summary>测试房口令（联机测试房批；仅当 <see cref="Template"/> 非空时校验）。
+        /// 值来自机器私有配置（环境变量），**不进仓库、不回显、不落日志**。</summary>
+        public string GmKey { get; set; }
     }
 
     /// <summary>

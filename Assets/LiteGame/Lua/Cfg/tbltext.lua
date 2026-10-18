@@ -36,7 +36,7 @@ return
 ["UI.Result.Reason.KillLimit"] = {key="UI.Result.Reason.KillLimit",zh="击杀达成",en="Kill limit reached",},
 ["UI.Result.Reason.TimeLimit"] = {key="UI.Result.Reason.TimeLimit",zh="时间到",en="Time up",},
 ["UI.Result.Reason.External"] = {key="UI.Result.Reason.External",zh="异常结束",en="Ended externally",},
-["UI.Result.RecordsEmpty"] = {key="UI.Result.RecordsEmpty",zh="暂无战绩",en="No recent matches",},
+["UI.Result.NoMatchData"] = {key="UI.Result.NoMatchData",zh="暂无本局数据",en="No match data",},
 ["UI.Settings.Volume"] = {key="UI.Settings.Volume",zh="主音量",en="Master Volume",},
 ["UI.Settings.Sound"] = {key="UI.Settings.Sound",zh="音效",en="Sound Effects",},
 ["UI.Settings.Quality"] = {key="UI.Settings.Quality",zh="画质",en="Quality",},
@@ -55,4 +55,5 @@ return
 ["UI.Lobby.Map"] = {key="UI.Lobby.Map",zh="地图",en="Map",},
 ["UI.Lobby.Players"] = {key="UI.Lobby.Players",zh="人数",en="Players",},
 ["UI.Lobby.PlayersOption"] = {key="UI.Lobby.PlayersOption",zh="{0} 人",en="{0} players",},
+["UI.Records.Empty"] = {key="UI.Records.Empty",zh="暂无战绩",en="No recent matches",},
 }

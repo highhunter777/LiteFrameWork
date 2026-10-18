@@ -10,9 +10,9 @@ namespace LiteGame
     /// （0 = 服务器未标注，按首图口径回落——嵌入式/测试直构形态）；表行与场景都按它取——视觉与判定
     /// 恒同图（D16）。
     ///
-    /// **生命周期落点**：加载在 <c>ProcedureMatch</c>（JoinAck 后、移交 Battle 前——必须早于 Battle
-    /// 开场的相机硬门；进度进"进房等待场"窗口），卸载在 <c>ProcedureBattle</c> 收尾（正常结束/主动
-    /// 离场/失败三条出口统一；场景清单按表枚举）。
+    /// **生命周期落点**：加载与卸载**都在 <c>ProcedureBattle</c>**——`StartGame` 到达后加载
+    /// （Rig ＋ 本局地图，进度进"正在进入对局…"开场遮罩，早于相机硬门与视图取件），离场收尾卸载
+    /// （正常结束/主动离场/失败三条出口统一；场景清单按表枚举）。
     /// </summary>
     internal static class BattleScenes
     {

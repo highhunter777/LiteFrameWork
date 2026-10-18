@@ -16,7 +16,7 @@ namespace LiteGame.Tests.EditMode
     [Category(LiteTesting.TestCategory.Contract)]
     public sealed class WorkbenchUiAssetEditModeTests
     {
-        private static Type DriverType => Type.GetType("LiteGame.UIWorkbenchDriver, LiteGame.DevHUD");
+        private static Type DriverType => Type.GetType("LiteGame.UIWorkbenchDriver, LiteGame.DevTool");
         private static Type TunerType => Type.GetType("LiteGame.DebugTuner, LiteGame.App");
 
         [Test]
@@ -57,7 +57,7 @@ namespace LiteGame.Tests.EditMode
         {
             var driverType = DriverType;
             Assert.IsNotNull(driverType, "驱动类型可解析");
-            string driverGuid = AssetDatabase.AssetPathToGUID("Assets/LiteGame/DevHUD/UIWorkbenchDriver.cs");
+            string driverGuid = AssetDatabase.AssetPathToGUID("Assets/LiteGame/DevTool/UIWorkbenchDriver.cs");
             Assert.IsFalse(string.IsNullOrEmpty(driverGuid), "驱动脚本 GUID 可解析");
 
             string scenePath = "Assets/Scenes/UiWorkbench.unity";

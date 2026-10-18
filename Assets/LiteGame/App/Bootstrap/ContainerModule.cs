@@ -107,6 +107,8 @@ namespace LiteGame
                 deploy.HasMeta ? new UnityMetaClient(deploy.MetaUrl, deploy.TimeoutSeconds) : null,
                 accountDeviceId,
                 deploy.MetaUrl);
+            // 联机测试房批：模板/口令随部署注入（开发者本地才有；测试者包不带 ⇒ 建不了测试房）
+            metaEntry.ConfigureTestRoom(deploy.RoomTemplate, deploy.RoomGmKey);
 
             var dialogs = new DialogService(ui, nav: nav);
             _services.RegisterInstance(dialogs, ServiceOwnership.ContainerOwned);
@@ -179,8 +181,7 @@ namespace LiteGame
                     context.Require<EventCenter>(), context.Require<UIService>(), () => ListLuaAssetPaths(content), rootToken,
                     feedback)),
                 (ProcedureId.Main, new ProcedureMain(rootToken, pageFlow, metaEntry)),
-                (ProcedureId.Match, new ProcedureMatch(context.Require<IAccountSessionFactory>(), _scenes, feedback,
-                    context.Require<IMapProvider>(), rootToken)),
+                (ProcedureId.Match, new ProcedureMatch(context.Require<IAccountSessionFactory>(), feedback, rootToken)),
                 (ProcedureId.Battle, new ProcedureBattle(content, context.Require<IInputService>(),
                     context.Require<ICameraService>(), context.Require<VfxService>(),
                     rootToken, requireCamera: true, worldClock: context.Require<IWorldClock>(),
@@ -188,8 +189,9 @@ namespace LiteGame
                     audio: context.Require<AudioService>(), commands: context.Require<CommandCenter>(),
                     pages: pageFlow,
                     crosshairFeel: new CrosshairFeelBook(config),     // 准心手感（tbcrosshair 惰性投影——装载后首用建）
-                    scenes: _scenes,                                  // 离场卸载对局场景组（加载在 Match）
-                    maps: context.Require<IMapProvider>())),           // 多图批：卸载按表枚举地图场景清单
+                    scenes: _scenes,                                  // 开局入场加载 / 离场卸载对局场景组（都在 Battle）
+                    maps: context.Require<IMapProvider>(),             // 多图批：场景路径查表行 scene 列 / 卸载按表枚举
+                    feedback: feedback)),                              // 开局入场加载遮罩（"正在进入对局…"）
                 (ProcedureId.Error, new ProcedureError(rootToken)));
         }
 

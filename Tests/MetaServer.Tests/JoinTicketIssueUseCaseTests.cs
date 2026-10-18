@@ -93,11 +93,11 @@ namespace MetaServer.Tests
             Assert.Equal(Room, accepted.RoomId);
             Assert.Equal(1_000 + 60_000, accepted.ExpiresAtMs);
 
-            // 形状：15 段 + kid 位（v2 多图批追加 mapId 段、v3 开房参数批追加 expectedPlayers 段；
+            // 形状：16 段（v2 追加 mapId、v3 追加 expectedPlayers、v4 追加 template；
             // 不命名跨程序集重复的格式类型——见 csproj 注释）
             string[] parts = accepted.Ticket.Split('.');
-            Assert.Equal(15, parts.Length);
-            Assert.Equal("v3", parts[0]);
+            Assert.Equal(16, parts.Length);
+            Assert.Equal("v4", parts[0]);
             Assert.Equal(Kid, parts[1]);
 
             JoinPrincipal principal = f.Validator.Validate(accepted.Ticket,

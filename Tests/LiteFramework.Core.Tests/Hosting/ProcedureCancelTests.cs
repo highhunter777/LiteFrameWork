@@ -20,15 +20,19 @@ namespace LiteFramework.Tests
 
         private readonly struct Req { }
 
-        /// <summary>记录 RunAsync 收到的取消令牌的阶段（测试观察口）。</summary>
+        /// <summary>记录 RunAsync 收到的取消令牌与宿主根令牌的阶段（测试观察口）。</summary>
         private sealed class RecordingStage : ProcedureStageBase<Id, Req>
         {
             public CancellationToken LastCt;
+            public CancellationToken LastRoot;
 
             public RecordingStage(CancellationToken rootToken = default) : base(rootToken) { }
 
             protected override void RunAsync(IStageHost<Id, Req> m, in Req req, CancellationToken ct)
-                => LastCt = ct;                                  // 同步记录即可（无需推进）
+            {
+                LastCt = ct;                                  // 同步记录即可（无需推进）
+                LastRoot = RootToken;
+            }
         }
 
         private static void Pump(UniTask task)
@@ -98,6 +102,39 @@ namespace LiteFramework.Tests
             Assert.False(b.LastCt.IsCancellationRequested);        // 根未取消：B 的阶段令牌仍健康
             Assert.False(rootCts.IsCancellationRequested);         // 阶段释放不影响根（所有权单向）
             rootCts.Dispose();
+        }
+
+        [Fact]
+        public void 阶段_被外部Request打断_阶段令牌取消而根令牌未取消_照卸判据可辨()
+        {
+            // 判据前提（收尾"卸不卸场景"分流用 RootToken 而非本阶段令牌）：本阶段令牌被
+            // OnLeave 取消有两条来源——① 宿主关闭（根级联）② 外部 Request 打断（主动离场同形）。
+            // 后者不是关闭、容器仍在运行 ⇒ 场景必须照卸；只有①该跳过。两令牌的取值把二者分开。
+            var rootCts = new CancellationTokenSource();
+            var a = new RecordingStage(rootCts.Token);
+            var b = new RecordingStage(rootCts.Token);
+            var m = new StageMachine<Id, Req>("t", (Id.A, a), (Id.B, b));
+            m.Start(Id.A);
+
+            m.Request(Id.B);                                      // 外部打断（房间页「离开」/设置页「退出对局」走 Request(Main) 同形）
+            m.Tick(0.016f);                                       // A.OnLeave → 取消 A 的阶段 CTS
+
+            Assert.True(a.LastCt.IsCancellationRequested);         // 阶段令牌取消（原判据会把这条误当"宿主关闭"而不卸）
+            Assert.False(a.LastRoot.IsCancellationRequested);      // 根令牌未取消 = 不是宿主关闭 ⇒ 新判据照卸
+
+            rootCts.Cancel();                                     // 宿主关闭（关闭序第①步取消根）
+            Assert.True(a.LastRoot.IsCancellationRequested);       // 根取消 = 宿主关闭 ⇒ 新判据跳过卸载
+            rootCts.Dispose();
+        }
+
+        [Fact]
+        public void 阶段_无根形态_根令牌恒未取消_照卸判据不吃无根形态()
+        {
+            var a = new RecordingStage();                          // 无根（纯 L1/工具场景）
+            var m = new StageMachine<Id, Req>("t", (Id.A, a));
+            m.Start(Id.A);
+
+            Assert.False(a.LastRoot.IsCancellationRequested);      // 无根 = 恒不当作宿主关闭
         }
 
         // ---- ClientHost 关闭序列 ----

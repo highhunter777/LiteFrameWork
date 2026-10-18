@@ -31,11 +31,20 @@ namespace LiteGame
         /// （开房参数批）0 = 未指定：mapId 按宿主默认图、expectedPlayers 按房间模板——非 0 值随票据盖章，
         /// 房间端建房时校验（地图缺行／人数越内核容量 → 拒建房）。</summary>
         public static string BuildCreateRoomRequest(string requestId, string buildHash, int mapId = 0,
-            int expectedPlayers = 0)
-            => "{\"requestId\":" + Quote(requestId)
+            int expectedPlayers = 0, string template = null, string gmKey = null)
+        {
+            string body = "{\"requestId\":" + Quote(requestId)
                + ",\"buildHash\":" + Quote(buildHash)
                + ",\"mapId\":" + mapId.ToString(System.Globalization.CultureInfo.InvariantCulture)
-               + ",\"expectedPlayers\":" + expectedPlayers.ToString(System.Globalization.CultureInfo.InvariantCulture) + "}";
+               + ",\"expectedPlayers\":" + expectedPlayers.ToString(System.Globalization.CultureInfo.InvariantCulture);
+            // 联机测试房批：空模板 = 不写字段（普通建房请求体与之前逐字节一致）
+            if (!string.IsNullOrEmpty(template))
+            {
+                body += ",\"template\":" + Quote(template);
+                if (!string.IsNullOrEmpty(gmKey)) body += ",\"gmKey\":" + Quote(gmKey);
+            }
+            return body + "}";
+        }
 
         /// <summary>JSON 字符串字面量（转义控制字符/引号/反斜杠；保持请求体无内插污染）。</summary>
         private static string Quote(string value)
@@ -109,8 +118,11 @@ namespace LiteGame
                     || !TryBool(instance, "draining", out bool draining))
                     return MetaCall<IReadOnlyList<LobbyInstanceView>>.Failed(MetaFailure.Invalid("实例行缺必需字段"));
 
-                if (!(instance["rooms"] is JArray inner))
-                    return MetaCall<IReadOnlyList<LobbyInstanceView>>.Failed(MetaFailure.Invalid("实例行缺 rooms 数组"));
+                // 实例明细**可空**（契约：`null`/缺省 = 该实例未上报明细，旧实例兼容——服务端
+                // `LobbyRoomView.Rooms` 允许 null，序列化为 `"rooms":null`）⇒ 未上报按"该实例无房"收，
+                // 不判整响应非法：否则一个未上报实例毒死整张列表，客户端只能对玩家显示"加载失败"
+                // （而服务端投影本身是合法的）。
+                var inner = instance["rooms"] as JArray ?? new JArray();
 
                 var entries = new List<LobbyRoomEntry>(inner.Count);
                 foreach (JToken roomToken in inner)

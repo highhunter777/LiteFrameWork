@@ -39,6 +39,8 @@ namespace LiteGame.Tests.EditMode
             public string SeenBuildHash;
             public int SeenMapId = -1;                                   // 多图批：create-room 的请求地图行键（-1 = 未调用）
             public int SeenExpectedPlayers = -1;                         // 开房参数批：create-room 的请求人数（-1 = 未调用）
+            public string SeenTemplate;                                   // 联机测试房批：create-room 的模板名（null = 未带）
+            public string SeenGmKey;                                      // 联机测试房批：口令（null = 未带）
             public int TicketCalls;
             public int CreateRoomCalls;
 
@@ -58,12 +60,15 @@ namespace LiteGame.Tests.EditMode
             }
 
             public UniTask<MetaCall<JoinTicketInfo>> CreateRoomAsync(string accessToken, string buildHash, int mapId = 0,
-                int expectedPlayers = 0, System.Threading.CancellationToken ct = default)
+                int expectedPlayers = 0, string template = null, string gmKey = null,
+                System.Threading.CancellationToken ct = default)
             {
                 CreateRoomCalls++;
                 SeenBuildHash = buildHash;
                 SeenMapId = mapId;
                 SeenExpectedPlayers = expectedPlayers;
+                SeenTemplate = template;
+                SeenGmKey = gmKey;
                 return UniTask.FromResult(CreateRoomResult);
             }
 
@@ -100,6 +105,30 @@ namespace LiteGame.Tests.EditMode
             var service = new MetaEntryService(configured ? client : null, () => "device-1", "http://meta.test");
             if (machine != null) service.BindMachine(machine);
             return service;
+        }
+
+        // ---- 联机测试房批：模板/口令随部署注入 ----
+
+        [Test]
+        public void 配置测试房_建房带模板与口令_未配置则请求体不变()
+        {
+            var client = new FakeMetaClient();
+            MetaEntryService service = Service(client, new FakeStageHost());
+            service.ConfigureTestRoom("sandbox", "k-1");
+
+            service.GuestLoginAsync().GetAwaiter().GetResult();
+            service.CreateRoomAsync(mapId: 1, expectedPlayers: 2).GetAwaiter().GetResult();
+
+            Assert.AreEqual("sandbox", client.SeenTemplate, "配置了模板 ⇒ 随建房请求带上");
+            Assert.AreEqual("k-1", client.SeenGmKey, "口令同批带上（服务端比对，不匹配 403）");
+
+            var plain = new FakeMetaClient();
+            MetaEntryService plainService = Service(plain, new FakeStageHost());
+            plainService.GuestLoginAsync().GetAwaiter().GetResult();
+            plainService.CreateRoomAsync(mapId: 1, expectedPlayers: 2).GetAwaiter().GetResult();
+
+            Assert.IsNull(plain.SeenTemplate, "未配置 ⇒ 不带 template（普通建房请求体与之前逐字节一致）");
+            Assert.IsNull(plain.SeenGmKey);
         }
 
         // ---- fail-closed 与登录门禁 ----

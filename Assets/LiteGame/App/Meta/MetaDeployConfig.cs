@@ -35,6 +35,36 @@ namespace LiteGame
         /// 服务端字段上限 128 UTF-8 字节（超限登录被拒）。</summary>
         public string DeviceId = "";
 
+        /// <summary>建房模板名（联机测试房批；空 = 走房间服 `default_template`）。非空必须同时给
+        /// <see cref="RoomGmKey"/>——服务端校验口令，不匹配 403 且房间不创建。</summary>
+        public string RoomTemplate = "";
+
+        /// <summary>测试房口令（联机测试房批；**只经命令行/烙入注入，不入库、不回显**）。
+        /// 仅开发者本地配置——测试者包里不带，因此测试者无法建测试房。</summary>
+        public string RoomGmKey = "";
+
+        /// <summary>GM 运维端点基址（联机测试房批；空 = 由 <see cref="MetaUrl"/> 推导：同 host + 端口 9101）。
+        /// 只绑隧道地址，故与 meta.url 同 host 即可。</summary>
+        public string GmUrl = "";
+
+        /// <summary>GM 端点密钥（`X-GM-Key`；**只在开发者本机配置**，测试者包不得带）。
+        /// 与服务端环境变量 `LITENET_GM_KEY` 同值。</summary>
+        public string GmKey = "";
+
+        /// <summary>解析后的 GM 端点（推导或显式）。空 = 无 GM 能力（开发页开关显性灰掉）。</summary>
+        public string ResolvedGmUrl
+        {
+            get
+            {
+                if (!string.IsNullOrEmpty(GmUrl)) return GmUrl.TrimEnd('/');
+                if (string.IsNullOrEmpty(MetaUrl)) return "";
+                // meta.url = http://10.8.0.1:5000 → GM = http://10.8.0.1:9101
+                if (System.Uri.TryCreate(MetaUrl, System.UriKind.Absolute, out System.Uri uri))
+                    return uri.Scheme + "://" + uri.Host + ":9101";
+                return "";
+            }
+        }
+
         /// <summary>是否配置了 Meta 基址（联机入口的放行判据——缺配置显性拒绝，不连任何地址）。</summary>
         public bool HasMeta => !string.IsNullOrEmpty(MetaUrl);
     }
@@ -61,8 +91,25 @@ namespace LiteGame
         public const string KeyEnvelopeKey = "envelope.key";
         public const string KeyDeviceId = "device.id";
 
+        /// <summary>建房模板名（联机测试房批；`-room.template=sandbox`）。</summary>
+        public const string KeyRoomTemplate = "room.template";
+
+        /// <summary>测试房口令（联机测试房批；`-room.gmkey=...`——**不写进仓库、不出现在日志**）。</summary>
+        public const string KeyRoomGmKey = "room.gmkey";
+
+        /// <summary>GM 运维端点基址（缺省由 `meta.url` 推导为 `:9101`）。</summary>
+        public const string KeyGmUrl = "gm.url";
+
+        /// <summary>GM 端点密钥（`X-GM-Key`；只配在开发者本机）。</summary>
+        public const string KeyGmKey = "gm.key";
+
         /// <summary>Unity 入口：读进程命令行（Editor/Player 同源）。</summary>
         public static MetaEntryConfig Load() => Parse(Environment.GetCommandLineArgs());
+
+        /// <summary>Unity 入口（**含包内烙入**）：命令行 &gt; `StreamingAssets/deploy.args` &gt; 默认。
+        /// 供宿主之外的消费方（开发页 GM 开关）取同一份配置——`DeployBake` 是程序集内件，外部不可直读。</summary>
+        public static MetaEntryConfig LoadWithBaked()
+            => Load(Environment.GetCommandLineArgs(), DeployBake.ReadArgs());
 
         /// <summary>三源装载：命令行 > 包内烙入（<paramref name="bakedArgsText"/> = deploy.args 全文；
         /// null/空白 = 无烙入文件，退化为纯命令行装载）。纯函数可直测。
@@ -124,6 +171,14 @@ namespace LiteGame
                     config.EnvelopeKeyBase64 = value.Trim();
                 else if (string.Equals(key, KeyDeviceId, StringComparison.OrdinalIgnoreCase))
                     config.DeviceId = value.Trim();
+                else if (string.Equals(key, KeyRoomTemplate, StringComparison.OrdinalIgnoreCase))
+                    config.RoomTemplate = value.Trim();
+                else if (string.Equals(key, KeyRoomGmKey, StringComparison.OrdinalIgnoreCase))
+                    config.RoomGmKey = value.Trim();
+                else if (string.Equals(key, KeyGmUrl, StringComparison.OrdinalIgnoreCase))
+                    config.GmUrl = value.Trim();
+                else if (string.Equals(key, KeyGmKey, StringComparison.OrdinalIgnoreCase))
+                    config.GmKey = value.Trim();
             }
 
             return config;

@@ -31,6 +31,17 @@ namespace LiteGame
             ServerUrl = serverUrl ?? string.Empty;
         }
 
+        /// <summary>测试房参数（联机测试房批）：由装配点从 <see cref="MetaEntryConfig"/> 注入。
+        /// 空模板 = 普通建房；非空则随请求带上，口令与服务端比对（不匹配 403）。</summary>
+        public void ConfigureTestRoom(string template, string gmKey)
+        {
+            _roomTemplate = template ?? string.Empty;
+            _roomGmKey = gmKey ?? string.Empty;
+        }
+
+        private string _roomTemplate = string.Empty;
+        private string _roomGmKey = string.Empty;
+
         /// <summary>是否配置了联机入口（false = 一切入口显性失败——页面据此显示"未配置服务器"）。</summary>
         public bool IsConfigured => _client != null;
 
@@ -89,7 +100,9 @@ namespace LiteGame
             if (_accessToken == null) return NotLoggedIn<JoinTicketInfo>();
             if (_machine == null) return MachineUnbound<JoinTicketInfo>();
 
-            return JoinWith(await _client.CreateRoomAsync(_accessToken, LiteNet.BuildHash.Value, mapId, expectedPlayers));
+            // 联机测试房批：模板/口令来自部署注入（命令行 > 烙入）。空 = 普通建房（请求体不变）。
+            return JoinWith(await _client.CreateRoomAsync(_accessToken, LiteNet.BuildHash.Value, mapId,
+                expectedPlayers, _roomTemplate, _roomGmKey));
         }
 
         /// <summary>门票 → 进房（换票进房与创建房间的**共用尾段**——两处同为"按号签发"，防漂移）：

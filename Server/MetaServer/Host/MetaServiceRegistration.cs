@@ -81,7 +81,9 @@ namespace MetaServer
                     sp.GetRequiredService<LobbyTicketSigner>(),
                     meta.LobbyDefaultRoomId,
                     meta.LobbyTicketTtlSeconds * 1000L,
-                    () => DateTimeOffset.UtcNow.ToUnixTimeMilliseconds());
+                    () => DateTimeOffset.UtcNow.ToUnixTimeMilliseconds(),
+                    // 测试房口令：只走机器级环境变量（不入配置文件/仓库）。空 = 测试房功能关闭。
+                    Environment.GetEnvironmentVariable("LITEGAME_GM_ROOM_KEY"));
             });
             services.AddSingleton(sp => new CreateRoomUseCase(
                 sp.GetRequiredService<JoinTicketIssueUseCase>(),

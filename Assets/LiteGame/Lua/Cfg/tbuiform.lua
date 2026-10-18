@@ -12,4 +12,5 @@ return
 [204] = {id=204,lua_path="",prefab="ShareResource/UI/Screens/Tmp_BaselineA.prefab",layer=0,full_screen=true,},
 [205] = {id=205,lua_path="",prefab="ShareResource/UI/Screens/Tmp_BaselineB.prefab",layer=2,full_screen=true,},
 [206] = {id=206,lua_path="",prefab="ShareResource/UI/Screens/Tmp_Dialog.prefab",layer=1,full_screen=false,},
+[16] = {id=16,lua_path="UI.Page_Records",prefab="ShareResource/UI/Screens/Page_Records.prefab",layer=0,full_screen=true,},
 }

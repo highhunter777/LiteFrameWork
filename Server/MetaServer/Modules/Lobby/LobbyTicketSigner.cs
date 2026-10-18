@@ -42,7 +42,7 @@ namespace MetaServer.Modules.Lobby
         /// <param name="expectedPlayers">房间创建意图里的期望人数（开房参数批；0 = 未指定＝按房间模板）。
         /// 同上：签名覆盖内传值，上界（内核席位容量）归房间端建房路径校验。</param>
         public string Issue(string playerId, string accountId, string roomId, string buildHash, int mapId,
-            int expectedPlayers, long nowMs, long ttlMs, out long expiresAtMs)
+            int expectedPlayers, string template, long nowMs, long ttlMs, out long expiresAtMs)
         {
             if (mapId < 0) throw new ArgumentOutOfRangeException(nameof(mapId), mapId, "地图行键不可为负（0 = 未指定）");
             if (expectedPlayers < 0) throw new ArgumentOutOfRangeException(nameof(expectedPlayers), expectedPlayers,
@@ -63,6 +63,7 @@ namespace MetaServer.Modules.Lobby
                 NotBeforeMs = 0,
                 MapId = mapId,
                 ExpectedPlayers = expectedPlayers,
+                Template = template ?? string.Empty,
             };
             string prefix = JoinTicketFormat.BuildPrefix(_kid, fields);
             return JoinTicketFormat.AppendSignature(prefix, JoinTicketFormat.Sign(_secret, prefix));

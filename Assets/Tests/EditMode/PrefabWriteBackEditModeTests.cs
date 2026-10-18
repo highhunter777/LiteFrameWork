@@ -224,7 +224,7 @@ namespace LiteGame.Tests.EditMode
         [Test]
         public void 单源守卫_回写菜单路径与驱动件同值且菜单项在册()
         {
-            var driverType = Type.GetType("LiteGame.UIWorkbenchDriver, LiteGame.DevHUD");
+            var driverType = Type.GetType("LiteGame.UIWorkbenchDriver, LiteGame.DevTool");
             Assert.IsNotNull(driverType, "驱动件类型必须可解析（改名/移件则同步更新本守卫）");
             var field = driverType.GetField("WriteBackMenuPath", BindingFlags.NonPublic | BindingFlags.Static);
             Assert.IsNotNull(field, "驱动件回写菜单路径常量必须在册");

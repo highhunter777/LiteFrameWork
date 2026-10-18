@@ -1,8 +1,9 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Threading;
 using Cysharp.Threading.Tasks;
 using LiteFramework;
+using LiteGame.UI;
 using LiteSim;
 using LiteView;
 using LiteClient;
@@ -17,6 +18,10 @@ namespace LiteGame
     /// Ended（主动离场 / 会话失败）→ 逆序收尾（视图 → BattleContext → Match Scope → Account Scope，
     /// §6.2 关闭序）→ 回 Main。
     ///
+    /// **对局场景组（Rig ＋ 地图）装载与卸载都在本阶段**（加载链修订）：StartGame 到达后加载
+    /// （<see cref="LoadBattleScenesAsync"/>，全程进"正在进入对局…"遮罩），离场收尾卸载
+    /// （<see cref="UnloadBattleScenes"/>）——避免"未开局即付费"与跨阶段所有权分叉。
+    ///
     /// **视图域全部归 <see cref="BattleViewRig"/>**（资源租约 / SimView / 七个表现件装配 / 每帧驱动 /
     /// 逆序拆除）：本类只保留"取会话 → 等信令 → 每帧驱动 → 收尾"的编排与对局级裁决（相机就绪门、
     /// 测试模式热键、瞄准世界注入），不再逐个持有表现件。
@@ -24,7 +29,8 @@ namespace LiteGame
     /// 驱动形态：StageMachine 的 OnUpdate 即帧驱动入口（容器 Seal 后不可再注册 ITickable——
     /// 对局期驱动走阶段生命周期，天然随离场停止）。取消语义：阶段 CTS 链接宿主根（基类），
     /// 宿主关闭时等待 Ended 的异步被打断，finally 仍保证收尾（离场无 Match 残留的流程侧保证）；
-    /// **该收尾不含场景卸载**（取消路径的 Scene 行退出动作＝释放租约，见 <see cref="UnloadBattleScenes"/>）。
+    /// **仅宿主关闭**的收尾不含场景卸载（该路径 Scene 行退出动作＝释放租约，见 <see cref="UnloadBattleScenes"/>），
+    /// 主动离场/被外部打断照卸。
     ///
     /// **输入所有权**：服务本身归装配根（跨对局复用、拦截源在装配根登记一次），
     /// 本阶段只持**本局的设备源**（相机是局内对象）并在离场时清派发状态；流程不持任何
@@ -48,8 +54,9 @@ namespace LiteGame
         private readonly LiteFramework.IWorldClock _worldClock;   // 世界钟（伤害数字寿命/合并窗）
         private readonly IMatchSessionFactory _matchSessions;
         private readonly PageFlow _pages;            // 五页页面流（批C-④；可空 = 测试装配不接 UI）
-        private readonly ISceneService _scenes;      // 对局场景组卸载（可空 = 测试装配）
-        private readonly IMapProvider _maps;         // 地图表（多图批：离场卸载按表枚举地图场景）
+        private readonly ISceneService _scenes;      // 对局场景组加载与卸载（可空 = 测试装配）
+        private readonly IMapProvider _maps;         // 地图表（多图批：场景路径查表行 scene 列／离场卸载按表枚举）
+        private readonly FeedbackService _feedback;  // 开局入场加载遮罩（可空 = 测试装配不接 UI）
         private readonly CrosshairFeelBook _crosshairFeel;   // 准心手感投影（tbcrosshair；可空 = 测试装配回落 Default）
 
         private BattleViewRig _rig;                  // 视图域（资源租约 / 视图与消费者 / 逆序拆除）
@@ -71,7 +78,8 @@ namespace LiteGame
             IVFXService vfx = null, CancellationToken rootToken = default, bool requireCamera = false,
             LiteFramework.IWorldClock worldClock = null, IMatchSessionFactory matchSessions = null,
             AudioService audio = null, CommandCenter commands = null, PageFlow pages = null,
-            CrosshairFeelBook crosshairFeel = null, ISceneService scenes = null, IMapProvider maps = null)
+            CrosshairFeelBook crosshairFeel = null, ISceneService scenes = null, IMapProvider maps = null,
+            FeedbackService feedback = null)
             : base(rootToken)
         {
             _content = content ?? throw new ArgumentNullException(nameof(content));
@@ -86,6 +94,7 @@ namespace LiteGame
             _pages = pages;
             _scenes = scenes;
             _maps = maps;
+            _feedback = feedback;
             _crosshairFeel = crosshairFeel;
         }
 
@@ -106,12 +115,6 @@ namespace LiteGame
                 accountSession = accountSession ?? throw new InvalidOperationException("Battle 阶段缺少 AccountSession（必须由 Match 移交）");
                 _account = accountSession.Scope;
                 BattleClient battleClient = accountSession.Battle;
-                // 相机缺失 = 装配缺口（场景没配 vcam / 进对局前没切到玩法场景）：
-                // 不静默降级成"跑得动但看不见"的对局，在开打前显性失败。
-                if (_requireCamera && !CameraReady())
-                    throw new InvalidOperationException(
-                        "对局相机未就绪：场景里没有接上的 CinemachineVirtualCamera"
-                        + "（相机配置归场景——确认已切到配了 vcam 的玩法场景）");
 
                 // 视图域：自有 BattleView 作用域 + 视图根 + 六个取件（缺角色资源回退程序化灰盒）
                 _rig = new BattleViewRig(_content, _input, _camera, _account, _vfx, _worldClock, _audio, _commands,
@@ -133,9 +136,24 @@ namespace LiteGame
                 }
                 else if (_context.Sim != null)
                 {
-                    _rig.Attach(_context, openBattleMenu: () => _pages?.OpenBattleSettings());
-                    _pages?.EnableBattleMenuBack();           // 对局中"ESC＝菜单"（与 HUD 菜单钮同源）
-                    _pages?.CloseRoomIfOpen();               // 开局 → 关房间页（批C-④；对局场景接管画面）
+                    // 开局入场（加载链修订）：**对局场景组在本阶段、StartGame 之后加载**（Rig ＋ 地图，行键取
+                    // JoinAck 权威事实）——本阶段独有装载与卸载（不在 Match 载、避免"未开局即付费"与跨阶段
+                    // 所有权分叉）。全程进加载遮罩，视图建成才收：玩家从加载页直入对局画面。
+                    FeedbackService.LoadingScope entry = _feedback?.BeginLoading("正在进入对局…") ?? default;
+                    try
+                    {
+                        await LoadBattleScenesAsync(battleClient.Client.MapId, ct);
+                        // 相机缺失 = 装配缺口（场景没配 vcam / 没切到玩法场景）：不静默降级成"跑得动但看不见"
+                        // 的对局，在开打前显性失败——vcam 随 Rig 场景，故硬门必须在场景就位之后裁决。
+                        if (_requireCamera && !CameraReady())
+                            throw new InvalidOperationException(
+                                "对局相机未就绪：场景里没有接上的 CinemachineVirtualCamera"
+                                + "（相机配置归场景——确认已切到配了 vcam 的玩法场景）");
+                        _rig.Attach(_context, openBattleMenu: () => _pages?.OpenBattleSettings());
+                        _pages?.EnableBattleMenuBack();       // 对局中"ESC＝菜单"（与 HUD 菜单钮同源）
+                        _pages?.CloseRoomIfOpen();            // 开局 → 关房间页（批C-④；对局场景接管画面）
+                    }
+                    finally { entry.Dispose(); }              // 视图建成才收遮罩；失败路径遮罩一并收（异常走 Error）
                 }
                 else
                 {
@@ -171,9 +189,13 @@ namespace LiteGame
                 _context = null;
                 accountSession?.Dispose();
                 _account = null;
-                // 取消收尾（宿主关闭 / 阶段被打断）**不卸场景**：该路径的 Scene 行退出动作是"释放资源租约"
-                // （§6.2；SceneService.ReleaseAll 随 ContainerModule 关闭执行）。正常离场（Ended / 失败）仍照卸。
-                if (!ct.IsCancellationRequested) UnloadBattleScenes();
+                // 收尾卸载对局场景组——**只在宿主关闭时跳过**：该路径的 Scene 行退出动作是"释放资源租约"
+                // （§6.2；SceneService.ReleaseAll 随 ContainerModule 关闭执行），且关闭期资源系统可能已先行销毁
+                // （编辑器退出时 YooAsset 驱动先跑 `YooAssets.Destroy()`，卸载经 AsyncOperationSystem 必抛）。
+                // 判据取**宿主根令牌**（根取消 = 宿主关闭）而非本阶段令牌：主动离场（房间页「离开」/设置页
+                // 「退出对局」走外部 `Request(Main)`）也会取消本阶段令牌，但那不是关闭、容器仍在运行——
+                // 对局场景组必须照卸，否则残留在大厅画面里（换图重进还会累积）。
+                if (!RootToken.IsCancellationRequested) UnloadBattleScenes();
             }
 
             if (next.HasValue) m.Request(next.Value, nextArgs);
@@ -183,14 +205,42 @@ namespace LiteGame
             if (next == ProcedureId.Main) _pages?.OnMatchEnded(completed, matchResult, localPlayerId);
         }
 
+        /// <summary>开局入场加载对局场景组（**本阶段职责**——加载链修订：Rig ＋ 本局地图在 StartGame 之后加载）：
+        /// 行键取 JoinAck 权威事实（多图批：`RoomClient.MapId` → <see cref="BattleScenes.ResolveMapId"/> 裁决 →
+        /// 场景路径查地图表 `scene` 列）；必须早于 <see cref="BattleViewRig.Attach"/>（视图件按名解析场景对象）
+        /// 与相机硬门（vcam 随 Rig 场景）。进度经开局入场遮罩（"正在进入对局…"）。
+        /// 未注入场景服务（测试装配）= 跳过；**注入了场景服务但缺地图表 = 配置缺失 fail-fast**（不给"静默不加载"留口）；
+        /// 加载失败向上抛（RunAsyncCore 的失败分支统一收口进 Error，finally 照卸已载场景）。</summary>
+        private async UniTask LoadBattleScenesAsync(int joinedMapId, CancellationToken ct)
+        {
+            if (_scenes == null) return;
+            if (_maps == null)
+                throw new InvalidOperationException(
+                    "装配缺地图表提供者（IMapProvider）——对局场景组的地图场景路径查表行 scene 列（多图批；ContainerModule 注入）");
+            // 等遮罩真正开面再压加载：开面是异步入队（转场/加载 prefab），开面在途时若走到收场，
+            // 排队中的开面随后落地即成孤儿面（落地即收，但会闪一下）——等就绪再载，过渡更稳。
+            for (int i = 0; i < 120 && _feedback != null && !_feedback.LoadingVisible; i++)
+                await UniTask.Yield(ct);
+            int mapId = BattleScenes.ResolveMapId(joinedMapId);      // 0 = 服务器未标注 → 首图口径（单源裁决）
+            string map = _maps.ScenePath(mapId);
+            _feedback?.ReportLoading("正在加载对局场景…", 0.05f);
+            if (!_scenes.IsLoaded(BattleScenes.Rig))
+                await _scenes.LoadAdditiveAsync(BattleScenes.Rig, ct);
+            _feedback?.ReportLoading("正在加载地图…", 0.5f);
+            if (!_scenes.IsLoaded(map))
+                await _scenes.LoadAdditiveAsync(map, ct);
+            _feedback?.ReportLoading("场景就绪", 0.95f);
+            UnityEngine.Debug.Log($"[Battle] 对局场景组已加载:Rig={BattleScenes.Rig} Map={map}（map_id={mapId} 叠加数 {_scenes.AdditiveCount}）");
+        }
+
         /// <summary>离场卸载对局场景组（Rig ＋ 表内全部地图场景；幂等——未加载 = 服务侧 no-op）。
         /// 多图批：地图场景清单按地图表枚举（`IMapProvider.ScenePaths`——加图不改卸载代码）；
         /// 表面不可用（未装载/缺 scene 列）只记日志并退化为只卸 Rig（离场不因表现面失败而阻塞）。
         /// 失败只记日志不阻塞离场（场景留驻是表现问题，不是会话正确性问题）；
         /// 编辑器"领养"形态（场景手工已在场）下卸载是 no-op——手测时属预期。
-        /// **只走正常离场**：取消收尾（宿主关闭）不调本方法——关闭期资源系统可能已先行销毁
-        /// （编辑器退出时 YooAsset 驱动先跑 `YooAssets.Destroy()`，卸载经 AsyncOperationSystem 必抛），
-        /// 且进程/场景即将随宿主关闭消失（句柄归零由 SceneService.ReleaseAll 负责）。</summary>
+        /// **只跳过宿主关闭**（<see cref="ProcedureStageBase{TId,TReq}.RootToken"/> 已取消——句柄归零由
+        /// SceneService.ReleaseAll 负责，且关闭期资源系统可能已先行销毁）；其余离场出口
+        /// （正常结束/失败/主动离场/被外部 `Request` 打断）都调本方法。</summary>
         private void UnloadBattleScenes()
         {
             if (_scenes == null) return;

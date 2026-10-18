@@ -10,6 +10,8 @@ namespace LiteGame
             public const string Page_Lobby = "UI.Page_Lobby";
             /// <summary>UI.Page_Login</summary>
             public const string Page_Login = "UI.Page_Login";
+            /// <summary>UI.Page_Records</summary>
+            public const string Page_Records = "UI.Page_Records";
             /// <summary>UI.Page_Result</summary>
             public const string Page_Result = "UI.Page_Result";
             /// <summary>UI.Page_Room</summary>

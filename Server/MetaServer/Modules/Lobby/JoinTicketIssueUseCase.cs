@@ -1,4 +1,6 @@
 using System;
+using System.Security.Cryptography;
+using System.Text;
 using MetaServer.Contracts.Lobby;
 using MetaServer.Contracts.Validation;
 
@@ -34,11 +36,18 @@ namespace MetaServer.Modules.Lobby
         private readonly long _ticketTtlMs;
         private readonly Func<long> _nowMs;
 
+        /// <summary>
+        /// 测试房口令（联机测试房批）：非空才允许签发**带 template 的票据**；空 = 测试房功能关闭
+        /// （请求带 template 一律 403）。值来自机器私有环境变量，**不进仓库、不回显、不落日志**。
+        /// </summary>
+        private readonly string _gmRoomKey;
+
         /// <param name="defaultRoomId">请求未带房间号时的缺省；空 = 必须由请求给出。</param>
         /// <param name="ticketTtlMs">票据有效期（毫秒；短期——MetaConfig 范围校验把守）。</param>
         /// <param name="nowMs">单调毫秒时钟（注入——签发时刻与过期时刻同源，§5.2 以服务端时钟为准）。</param>
+        /// <param name="gmRoomKey">测试房口令（可空 = 功能关闭）；校验在 <see cref="Issue"/> 单点做。</param>
         public JoinTicketIssueUseCase(InstanceRegistry registry, LobbyTicketSigner signer,
-            string defaultRoomId, long ticketTtlMs, Func<long> nowMs)
+            string defaultRoomId, long ticketTtlMs, Func<long> nowMs, string gmRoomKey = null)
         {
             _registry = registry ?? throw new ArgumentNullException(nameof(registry));
             _signer = signer ?? throw new ArgumentNullException(nameof(signer));
@@ -46,6 +55,7 @@ namespace MetaServer.Modules.Lobby
             if (ticketTtlMs <= 0) throw new ArgumentOutOfRangeException(nameof(ticketTtlMs), ticketTtlMs, "票据有效期必须 > 0");
             _ticketTtlMs = ticketTtlMs;
             _nowMs = nowMs ?? throw new ArgumentNullException(nameof(nowMs));
+            _gmRoomKey = gmRoomKey ?? string.Empty;
         }
 
         /// <summary>签发结果（端点映射：Accepted→200；Rejected→按码；NoCapacity→503）。</summary>
@@ -90,6 +100,22 @@ namespace MetaServer.Modules.Lobby
             if (command.ExpectedPlayers < 0)
                 return Invalid();   // 同口径：负值 = 请求错误（0 = 未指定；上界归房间端按内核席位容量校验）
 
+            // 房间模板（联机测试房批）：**授权只在这里做**——join-ticket 与 create-room 共用本用例，
+            // 放外层会漏掉"直连 join-ticket 带 template"这条旁路。
+            string template = command.Template ?? string.Empty;
+            if (template.Length > 0)
+            {
+                if (!IsValidTemplateName(template)) return Invalid();
+                if (!MatchesGmRoomKey(command.GmKey))
+                {
+                    return new Result.Rejected
+                    {
+                        ErrorCode = LobbyErrorCodes.Forbidden,
+                        MessageKey = LobbyErrorCodes.MessageKeyForbidden,
+                    };
+                }
+            }
+
             if (!_registry.TryAllocate(command.BuildHash, out InstanceRegistry.Entry chosen, out bool versionConflict))
             {
                 // 版本不符与无容量分开：前者换客户端构建/等新实例，后者等待或扩容——处置不同（§7 版本准入）
@@ -103,7 +129,7 @@ namespace MetaServer.Modules.Lobby
             }
 
             string ticket = _signer.Issue(accountId, accountId, roomId, chosen.BuildHash, command.MapId,
-                command.ExpectedPlayers, _nowMs(), _ticketTtlMs, out long expiresAtMs);
+                command.ExpectedPlayers, template, _nowMs(), _ticketTtlMs, out long expiresAtMs);
             return new Result.Accepted
             {
                 InstanceId = chosen.InstanceId,
@@ -112,6 +138,28 @@ namespace MetaServer.Modules.Lobby
                 Ticket = ticket,
                 ExpiresAtMs = expiresAtMs,
             };
+        }
+
+        /// <summary>模板名文法：1..32 位、小写字母/数字/下划线/短横线（与房间服模板键同形；不放行空格/点）。</summary>
+        private static bool IsValidTemplateName(string template)
+        {
+            if (template.Length == 0 || template.Length > 32) return false;
+            for (int i = 0; i < template.Length; i++)
+            {
+                char c = template[i];
+                bool ok = (c >= 'a' && c <= 'z') || (c >= '0' && c <= '9') || c == '_' || c == '-';
+                if (!ok) return false;
+            }
+            return true;
+        }
+
+        /// <summary>口令比对（恒定时间；任一为空即 false——**空口令 = 测试房关闭**，不靠"比对通过"兜底）。</summary>
+        private bool MatchesGmRoomKey(string presented)
+        {
+            if (_gmRoomKey.Length == 0 || string.IsNullOrEmpty(presented)) return false;
+            byte[] given = Encoding.UTF8.GetBytes(presented);
+            byte[] expected = Encoding.UTF8.GetBytes(_gmRoomKey);
+            return given.Length == expected.Length && CryptographicOperations.FixedTimeEquals(given, expected);
         }
 
         private static Result.Rejected Invalid()
