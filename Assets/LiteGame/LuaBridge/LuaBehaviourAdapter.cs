@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using Cysharp.Threading.Tasks;
 using LiteFramework;
-using LiteGame.UI;
+using LiteClient.UI;
 using UnityEngine;
 using XLua;
 

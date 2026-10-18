@@ -14,7 +14,7 @@
         "LiteGame.App",
         "LiteGame.DevTool",
         "LiteGame.LuaBridge",
-        "LiteGame.UI",
+        "LiteClient.UI",
         "LiteSim.Core",
         "LiteView",
         "Luban.Tables",

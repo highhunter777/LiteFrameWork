@@ -533,7 +533,7 @@ namespace LiteFramework.Tests
                 "using XLua;", LintRule.R12AdapterBoundary));
             Assert.Equal(0, CountAt("Assets/LiteGame/LuaBridge/C.cs",
                 "using XLua;", LintRule.R12AdapterBoundary));
-            Assert.Equal(0, CountAt("Assets/LiteGame/UI/Anim/C.cs",
+            Assert.Equal(0, CountAt("Assets/LiteClient/UI/Anim/C.cs",
                 "using DG.Tweening;", LintRule.R12AdapterBoundary));
 
             // 反向：边界目录**不**放行别人的适配器
@@ -543,7 +543,7 @@ namespace LiteFramework.Tests
                 "using YooAsset;", LintRule.R12AdapterBoundary));
             Assert.Equal(1, CountAt("Assets/LiteGame/LuaBridge/C.cs",
                 "using YooAsset;", LintRule.R12AdapterBoundary));
-            Assert.Equal(1, CountAt("Assets/LiteGame/UI/Anim/C.cs",
+            Assert.Equal(1, CountAt("Assets/LiteClient/UI/Anim/C.cs",
                 "using YooAsset;", LintRule.R12AdapterBoundary));
         }
 
@@ -554,7 +554,7 @@ namespace LiteFramework.Tests
                 "using YooAsset;", LintRule.R12AdapterBoundary));
             Assert.Equal(1, CountAt("Assets/LiteGame/App/C.cs",
                 "using DG.Tweening;", LintRule.R12AdapterBoundary));
-            Assert.Equal(1, CountAt("Assets/LiteGame/UI/Adapter.cs",
+            Assert.Equal(1, CountAt("Assets/LiteClient/UI/Adapter.cs",
                 "using XLua;", LintRule.R12AdapterBoundary));
         }
 
@@ -564,7 +564,7 @@ namespace LiteFramework.Tests
             // 边界表的路径比较两端补斜杠：`Scripting.XLua` 不得放行 `Scripting.XLuaExtras`
             Assert.Equal(1, CountAt("Assets/LiteClient/Adapters/Scripting.XLuaExtras/C.cs",
                 "using XLua;", LintRule.R12AdapterBoundary));
-            Assert.Equal(1, CountAt("Assets/LiteGame/UI/Animation/C.cs",
+            Assert.Equal(1, CountAt("Assets/LiteClient/UI/Animation/C.cs",
                 "using DG.Tweening;", LintRule.R12AdapterBoundary));
         }
 

@@ -4,6 +4,7 @@ using LiteFramework;
 using UnityEditor;
 using UnityEngine;
 using LiteClient;
+using LiteClient.UI;
 
 namespace LiteGame.Editor
 {

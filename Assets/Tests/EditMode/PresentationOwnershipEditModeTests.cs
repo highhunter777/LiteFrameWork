@@ -5,7 +5,7 @@ using Cysharp.Threading.Tasks;
 using DG.Tweening;
 using LiteFramework;
 using LiteGame;
-using LiteGame.UI;
+using LiteClient.UI;
 using LiteTesting;
 using LiteTesting.Unity;
 using NUnit.Framework;

@@ -9,6 +9,7 @@ using LiteSim;
 using LiteView;
 using LiteView.Animation;
 using UnityEngine;
+using LiteClient.UI;
 
 namespace LiteGame
 {

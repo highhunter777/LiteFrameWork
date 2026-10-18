@@ -4,6 +4,7 @@ using System.Threading;
 using LiteFramework;
 using XLua;
 using LiteClient;
+using LiteClient.UI;
 
 namespace LiteGame
 {

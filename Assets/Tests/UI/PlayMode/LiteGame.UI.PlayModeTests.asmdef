@@ -11,7 +11,7 @@
         "LiteFramework.Unity",
         "LiteGame.App",
         "LiteGame.LuaBridge",
-        "LiteGame.UI",
+        "LiteClient.UI",
         "LiteSim.Core",
         "LiteView",
         "LiteTesting.Core",

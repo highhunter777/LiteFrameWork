@@ -3,6 +3,7 @@ using Sirenix.OdinInspector.Editor;
 using UnityEditor;
 using UnityEditor.SceneManagement;
 using UnityEngine;
+using LiteClient.UI;
 
 namespace LiteGame.Editor.UiTools.Compose
 {

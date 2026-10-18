@@ -5,6 +5,7 @@ using Cysharp.Threading.Tasks;
 using LiteFramework;
 using XLua;
 using cfg;
+using LiteClient.UI;
 
 namespace LiteGame
 {

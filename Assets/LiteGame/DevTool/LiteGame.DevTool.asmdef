@@ -15,7 +15,7 @@
         "LiteGame.App",
         "LiteGame.LuaBridge",
         "xLuaMain",
-        "LiteGame.UI",
+        "LiteClient.UI",
         "LiteSim.Core"
     ],
     "includePlatforms": [],

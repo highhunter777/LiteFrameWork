@@ -1,7 +1,7 @@
 using System;
 using Cysharp.Threading.Tasks;
 using LiteFramework;
-using LiteGame.UI;
+using LiteClient.UI;
 using LiteClient;
 using XLua; // lint-allow R12：结算页数据表（LuaUIData）的构造点在流程侧（数据源=对局冻结结果，App 持有；LuaBridge 不引用 App，依赖方向不可反）——与 MetaBridge 同判据
 

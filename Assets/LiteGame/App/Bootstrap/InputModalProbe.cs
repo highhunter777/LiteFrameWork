@@ -3,7 +3,7 @@ using System.Threading;
 using Cysharp.Threading.Tasks;
 using LiteClient;
 using LiteFramework;
-using LiteGame.UI;
+using LiteClient.UI;
 using LiteSim;
 using UnityEngine;
 

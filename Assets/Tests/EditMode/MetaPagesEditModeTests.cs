@@ -9,6 +9,7 @@ using Luban;
 using NUnit.Framework;
 using UnityEngine;
 using XLua;
+using LiteClient.UI;
 
 namespace LiteGame.Tests.EditMode
 {

@@ -7,7 +7,7 @@
         "LiteClient.Serialization.Luban",
         "LiteFramework.Async",
         "LiteFramework.Core",
-        "LiteGame.UI",
+        "LiteClient.UI",
         "Luban.Runtime",
         "Luban.Tables",
         "UniTask",

@@ -5,6 +5,7 @@ using Cysharp.Threading.Tasks;
 using LiteFramework;
 using LiteView;
 using UnityEngine;
+using LiteClient.UI;
 
 namespace LiteGame
 {
@@ -32,7 +33,7 @@ namespace LiteGame
         public static void ResetForEditorReload()
         {
             s_booted = false;
-            LiteGame.UI.UiAnimationClock.ResetForEditorReload();
+            LiteClient.UI.UiAnimationClock.ResetForEditorReload();
         }
 
         private ClientHost _host;

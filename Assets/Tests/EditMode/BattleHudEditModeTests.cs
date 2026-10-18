@@ -1,7 +1,7 @@
 using LiteSim;
 using LiteTesting;
 using LiteTesting.Unity;
-using LiteGame.UI;
+using LiteClient.UI;
 using NUnit.Framework;
 using TMPro;
 using UnityEngine;

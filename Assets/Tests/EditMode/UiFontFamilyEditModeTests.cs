@@ -1,6 +1,6 @@
 using System.Collections.Generic;
 using System.Linq;
-using LiteGame.UI;
+using LiteClient.UI;
 using LiteTesting;
 using NUnit.Framework;
 using TMPro;

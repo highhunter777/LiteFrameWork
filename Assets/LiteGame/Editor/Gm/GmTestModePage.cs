@@ -1,5 +1,6 @@
 using UnityEditor;
 using UnityEngine;
+using LiteClient.UI;
 
 namespace LiteGame.Editor
 {

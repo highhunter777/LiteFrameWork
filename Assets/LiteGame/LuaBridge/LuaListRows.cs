@@ -1,7 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Globalization;
-using LiteGame.UI;
+using LiteClient.UI;
 using XLua;
 
 namespace LiteGame

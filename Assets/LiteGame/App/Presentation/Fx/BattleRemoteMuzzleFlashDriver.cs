@@ -3,6 +3,7 @@ using LiteClient;
 using LiteSim;
 using LiteView;
 using UnityEngine;
+using LiteClient.UI;
 
 namespace LiteGame
 {

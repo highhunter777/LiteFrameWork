@@ -5,7 +5,7 @@ using Cysharp.Threading.Tasks;
 using LiteClient;
 using LiteFramework;
 using LiteGame;
-using LiteGame.UI;
+using LiteClient.UI;
 using LiteTesting.Unity;
 using Luban;
 using NUnit.Framework;

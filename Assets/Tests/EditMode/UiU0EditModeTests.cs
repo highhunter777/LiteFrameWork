@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Threading;
 using Cysharp.Threading.Tasks;
-using LiteGame.UI;
+using LiteClient.UI;
 using LiteTesting;
 using LiteTesting.Unity;
 using NUnit.Framework;

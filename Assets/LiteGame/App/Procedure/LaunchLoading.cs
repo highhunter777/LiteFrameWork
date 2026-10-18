@@ -1,4 +1,4 @@
-using LiteGame.UI;
+using LiteClient.UI;
 
 namespace LiteGame
 {

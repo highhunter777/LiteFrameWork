@@ -137,7 +137,6 @@ namespace Tools.DisciplineScan
         public static readonly string[] LiteGameTopLevelDirs =
         {
             "App",                   // §5 顶层第一层 Game.App
-            "UI",                    // §5 框图 "UI Runtime"（游戏侧，故 LiteGame.UI 而非 LiteClient.UI）
             "Editor",                // 编辑器工具程序集（不在 §5 层内，登记为例外）
             "DevTool",               // 开发面工具（同上；**不能并进 Editor/**——其中的 MonoBehaviour 无法 AddComponent）
             "DevLocalServer",        // 开发面：进程内本地服（《共享代码范围专项设计》§3 D2 调试宿主档位；见下）
@@ -174,9 +173,9 @@ namespace Tools.DisciplineScan
             new ScanTarget("Assets/LiteFramework/Scripts/Unity", UnityRules),
             // R6 的正则 `\byield\s+return\b` **不区分 C# 迭代器与 Unity 协程**——
             // IEnumerable 迭代器的 `yield return` 会被误报。
-            new ScanTarget("Assets/LiteClient", GameRules),                                    // R8 资源唯一入口 + R12 适配器边界（框架侧：Abstractions/Runtime/Adapters）
+            new ScanTarget("Assets/LiteClient", GameRules),                                    // R8 资源唯一入口 + R12 适配器边界（框架侧：Abstractions/Runtime/Adapters/UI）
             new ScanTarget("Assets/LiteGame", GameRules),                                      // R8 资源唯一入口 + R12 适配器边界（产品侧）
-            new ScanTarget("Assets/LiteGame/UI", UiLayerRules),                                // R10 UI 层不发业务包
+            new ScanTarget("Assets/LiteClient/UI", UiLayerRules),                                // R10 UI 层不发业务包
             // 该目标的存在性由 `纪律_R12_已接入真实扫描目标_且目标路径存在` 钉住。
             new ScanTarget("Assets/RoomServer/Runtime", RuntimePurityRules),                  // R1 纯运行时层（R1《服务端总设计》§8.1）
             new ScanTarget("Assets/LiteSim", ConfigPortRules, ConfigPortExcludes),             // R13 数值读口禁读（机制面；表现层与读口定义文件除外）
@@ -427,6 +426,7 @@ namespace Tools.DisciplineScan
         {
             "Assets/LiteClient/Abstractions/LiteClient.Abstractions.asmdef",
             "Assets/LiteClient/Runtime/LiteClient.Runtime.asmdef",
+            "Assets/LiteClient/UI/LiteClient.UI.asmdef",
             "Assets/LiteClient/Adapters/Content.YooAsset/LiteClient.Content.YooAsset.asmdef",
             "Assets/LiteClient/Adapters/Platform.Unity/LiteClient.Platform.Unity.asmdef",
             "Assets/LiteClient/Adapters/Scripting.XLua/LiteClient.Scripting.XLua.asmdef",

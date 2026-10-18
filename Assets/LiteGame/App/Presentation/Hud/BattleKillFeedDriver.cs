@@ -1,6 +1,6 @@
 using System;
 using LiteClient;
-using LiteGame.UI;
+using LiteClient.UI;
 using LiteSim;
 using TMPro;
 using UnityEngine;

@@ -6,6 +6,7 @@ using LiteGame;
 using LiteTesting.Unity;
 using NUnit.Framework;
 using XLua;
+using LiteClient.UI;
 
 namespace LiteGame.Tests.EditMode
 {

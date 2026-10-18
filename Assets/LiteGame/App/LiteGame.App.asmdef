@@ -12,7 +12,7 @@
         "LiteFramework.Unity",
         "LiteGame.DevLocalServer",
         "LiteGame.LuaBridge",
-        "LiteGame.UI",
+        "LiteClient.UI",
         "LiteNet",
         "LiteSim.Core",
         "LiteView",

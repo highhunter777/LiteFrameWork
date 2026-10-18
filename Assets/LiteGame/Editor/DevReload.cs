@@ -4,6 +4,7 @@ using LiteFramework;
 using UnityEditor;
 using UnityEngine;
 using LiteClient;
+using LiteClient.UI;
 
 namespace LiteGame.Editor
 {
@@ -42,7 +43,7 @@ namespace LiteGame.Editor
             var container = Object.FindFirstObjectByType<LiteGame.GameEntry>().TakeContainer();
             var config = container.Resolve<LiteClient.IConfigService>();
             var events = container.Resolve<LiteFramework.IEventCenter>();
-            var uiService = container.Resolve<LiteGame.UIService>();
+            var uiService = container.Resolve<LiteClient.UI.UIService>();
             var ui = container.Resolve<LiteGame.IUILuaRegistry>();
             var content = container.Resolve<LiteGame.IContentLuaRegistry>();
             var strategy = container.Resolve<LiteGame.IStrategyLuaRegistry>();

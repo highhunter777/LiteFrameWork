@@ -1,7 +1,7 @@
 using System.Collections.Generic;
 using LiteClient;
 using LiteFramework;
-using LiteGame.UI;
+using LiteClient.UI;
 using LiteSim;
 using LiteTesting.Unity;
 using NUnit.Framework;
