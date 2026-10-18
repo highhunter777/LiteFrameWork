@@ -82,12 +82,12 @@ namespace LiteNet.Tests
             int serverFrame = state.Frame;                                  // 服务器当前帧
             float targetNow = state.Entities[1].Pos.X;
 
-            // 客户端看到的是 150ms 前的画面（≈9 帧 @60Hz）+ 插值延迟（§3.4.1：插值 2×快照间隔 = InterpFrames）
+            // 客户端看到的是 150ms 前的画面（≈9 帧 @60Hz）；jitter buffer 的渲染帧就是它看到的那一帧
             int clientLagFrames = 9;
             int ack = serverFrame - clientLagFrames;                   // 它最后收到的快照帧
-            int reportedView = ack + SimConfig.InterpFrames;           // viewFrame = ack 对应权威帧 + 插值帧（协议语义）
+            int reportedView = ack;                                    // viewFrame = 客户端渲染帧（服务器帧轴）
 
-            // 服务器回溯目标帧 = reportedView − InterpFrames = ack（= 玩家真正渲染的那一帧）
+            // 服务器直接以 reportedView 为回溯目标帧（旧口径的 ±InterpFrames 已撤销）
             int expectedTargetFrame = ack;
             float targetSeen = 20f + expectedTargetFrame * CombatConfig.MoveSpeed * SimConfig.Dt;
             float targetNowExpected = targetNow;
@@ -160,8 +160,7 @@ namespace LiteNet.Tests
 
             int serverFrame = state.Frame;
             int target = serverFrame - 3;                                   // 回溯 3 帧前（窗口 16 内）
-            LagCompensator.Outcome outcome = lag.CompensateFire(0, state.Entities[0].Id,
-                target + SimConfig.InterpFrames, target);
+            LagCompensator.Outcome outcome = lag.CompensateFire(0, state.Entities[0].Id, target, target);
 
             Assert.Equal(LagCompensator.Outcome.Compensated, outcome);
             Assert.Equal(target, lag.LastTargetFrame);
@@ -236,7 +235,7 @@ namespace LiteNet.Tests
             int frameBefore = state.Frame;
             ulong rngBefore = state.RngState;
 
-            lag.CompensateFire(0, state.Entities[0].Id, frameBefore - 3 + SimConfig.InterpFrames, frameBefore - 3);
+            lag.CompensateFire(0, state.Entities[0].Id, frameBefore - 3, frameBefore - 3);
 
             Assert.Equal(frameBefore, state.Frame);        // 帧号不动
             Assert.Equal(rngBefore, state.RngState);       // 随机数不被回溯判定消费（还原）
@@ -274,7 +273,7 @@ namespace LiteNet.Tests
             // frame 9 上 NextFireFrame = 12（第二发 frame 6 置的节拍窗）——**在视帧的未来**：
             // 资源门重查必拦（本用例锁定的反例面）；补判按 ButtonFireFlag 跳门仍判定。
             int ack = 12 - 3;
-            int reportedView = ack + SimConfig.InterpFrames;
+            int reportedView = ack;
 
             LagCompensator.Outcome outcome = lag.CompensateFire(0, state.Entities[0].Id, reportedView, ack);
 

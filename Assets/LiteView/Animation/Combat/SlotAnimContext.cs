@@ -23,8 +23,9 @@ namespace LiteView.Animation
         /// <see cref="SlotAnimContext.UpdateReloadUpper"/> 提交 Overlay 上半身叠加（**不进战斗根**）。</summary>
         public readonly bool IsReloading;
 
-        /// <summary>死亡事实（SimView.IsDead——Hp≤0 快照可重建；战斗根死亡裁决判据。
-        /// **生命更替（复活）即复位**：驱动器按 LifeStartFrame 变化清锁存——单条生命内不可逆）。</summary>
+        /// <summary>死亡事实（SimView.IsDead——Hp≤0 快照可重建；战斗根死亡裁决判据）。
+        /// **只由权威状态驱动**（本地经快照和解、远端取快照渲染态）：死亡事件不置锁存，
+        /// 复活（Hp 回满）即自然退出死亡叶；不再依赖 LifeStartFrame 复位。</summary>
         public readonly bool IsDead;
 
         /// <summary>移动事实锁存（迟滞公式单源 <see cref="LocomotionBlendMath.UpdateLatch"/>）。</summary>
@@ -88,13 +89,6 @@ namespace LiteView.Animation
 
         /// <summary>事实唯一写入口（驱动器每帧调；整体替换，不提供逐项写口）。</summary>
         public void Feed(in SlotAnimFacts facts) => _facts = facts;
-
-        /// <summary>死亡锁存（不可逆）：死亡事件沿在帧中即时置位——压过一切已挂起路由（last-wins
-        /// 语义下"后发者赢"必须让死亡先落位）。下帧 <see cref="Feed"/> 由驱动器 DeadSeen 锁存带来
-        /// 同一事实，两路同值不冲突。</summary>
-        internal void LatchDead()
-            => _facts = new SlotAnimFacts(_facts.IsAiming, _facts.IsReloading, isDead: true,
-                _facts.IsMoving, _facts.Speed, _facts.MoveRelAngleDeg, _facts.IsFireStance);
 
         /// <summary>瞄准中（读口——见 <see cref="SlotAnimFacts.IsAiming"/>）。</summary>
         public bool IsAiming => _facts.IsAiming;

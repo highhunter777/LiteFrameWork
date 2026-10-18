@@ -14,8 +14,8 @@ namespace LiteView.Animation
     /// - 根裁决按 <see cref="SlotAnimContext.IsDead"/> 恒驻本叶（窗充值/退根/降级全被守卫），
     ///   Override 通道权重保持、Base 不回流——Idle 不会盖上来。
     ///
-    /// 进入来源 = 驱动器 Death 事件沿（即时）或状态轮询（Hp≤0 快照——重连/迟到加入者
-    /// 按状态进叶重播一次到末帧，事件不回放）。
+    /// 进入来源 = 驱动器每帧权威状态轮询（本地=预测态经和解、远端=快照渲染态；Hp≤0）；
+    /// 客户端 Death 帧事件不再驱动动画（预测事件不可撤销）。
     /// </summary>
     internal sealed class DeadStage : IStage<CharacterAnimId, CombatAnimReq>
     {

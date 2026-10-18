@@ -15,8 +15,10 @@ namespace LiteClient
     internal sealed class BattleSnapshotMirror
     {
         private SimWorldState _state;                                              // 持久权威镜像（懒建）
-        private readonly SimWorldStateSnapshot[] _viewSnapshots = new SimWorldStateSnapshot[2];   // 插值源轮转：上一份/最新一份
-        private int _viewSnapWrite;                                                // 下一次写入下标（0/1 轮转）
+        // 视图插值源轮转：容量必须 > SimView 的 jitter buffer（8）——只在两份之间轮转会覆盖
+        // 视图仍持有的旧快照（其对象被新帧覆写后，帧号序被打乱，插值直接跨帧）。
+        private readonly SimWorldStateSnapshot[] _viewSnapshots = new SimWorldStateSnapshot[16];
+        private int _viewSnapWrite;                                                // 下一次写入下标（环形）
 
         /// <summary>当前镜像（未被任何包应用过时为 null）。</summary>
         public SimWorldState State => _state;
@@ -59,7 +61,7 @@ namespace LiteClient
                 _viewSnapshots[_viewSnapWrite] = snap;
             }
             snap.CaptureFull(_state);
-            _viewSnapWrite ^= 1;                     // 轮转：下一份写另一块，保留当前这份供插值
+            _viewSnapWrite = (_viewSnapWrite + 1) % _viewSnapshots.Length;   // 环形：保留视图仍在用的旧份
 
             view.OnAuthoritativeSnapshot(snap);
         }

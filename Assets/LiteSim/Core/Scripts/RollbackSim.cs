@@ -26,6 +26,7 @@ namespace LiteSim
         private readonly CombatValues _values;          // 玩法数值实例（装载传入——技术债 #1：运行期不读全局）
         private readonly WeaponTable _weapons;          // 武器表实例（同上——同族参数化）
         private readonly MatchTestRules _rules;         // 本局测试规则（可变持有件——与权威侧同实例，中局开合即时生效）
+        private readonly bool _resolveCombat;            // 预测模式：false = 不产权威伤害/命中/死亡（客户端）
         private readonly SimInputFrame[] _tickInputs;   // 当前逻辑帧使用的输入（帧间经 OnLogicalFrame 刷新）
         private readonly bool[] _tickPredicted;
         private bool _halted;
@@ -56,13 +57,14 @@ namespace LiteSim
         /// <summary><paramref name="rules"/> = 本局测试规则持有件（null = 无规则）——绑定后随每一次
         /// 步进/重放注入（含回滚重放段，两端同一实例口径见 <see cref="MatchTestRules"/>）。</summary>
         public RollbackSim(SimWorldState initialState, SimMapData map, SimInputFrame[] inputTemplate,
-            in CombatValues values, WeaponTable weapons, MatchTestRules rules = null)
+            in CombatValues values, WeaponTable weapons, MatchTestRules rules = null, bool resolveCombat = true)
         {
             _state = initialState;
             _map = map;
             _values = values;
             _weapons = weapons;
             _rules = rules;
+            _resolveCombat = resolveCombat;
             _playerCount = inputTemplate.Length;
             _ring = new SnapshotRing(SimConfig.MaxRollbackFrames + 1);
             _history = new InputHistory(SimConfig.MaxInputHistory, inputTemplate.Length);
@@ -124,7 +126,7 @@ namespace LiteSim
 
             PrepareNext(_state.Frame + 1);   // 每渲染帧预备下一帧输入（幂等：历史未变则结果不变）
             _rollbacksThisFrame = 0;         // 渲染帧边界（单帧回滚上限的计数窗口）
-            _driver.Tick(realDelta, _state, _map, _tickInputs, _values, _weapons, OnLogicalFrame, _rules);
+            _driver.Tick(realDelta, _state, _map, _tickInputs, _values, _weapons, OnLogicalFrame, _rules, _resolveCombat);
         }
 
         /// <summary>
@@ -213,7 +215,7 @@ namespace LiteSim
                     return;
                 }
 
-                SimStep.Step(_state, _map, inputs, _values, _weapons, rules: _rules);
+                SimStep.Step(_state, _map, inputs, _values, _weapons, rules: _rules, resolveCombat: _resolveCombat);
                 _ring.Capture(_state.Frame, _state);          // 重放段快照同步更新（后续回滚的基点）
                 _state.Events.Clear();                        // 重放期事件不消费即清
             }
@@ -269,7 +271,7 @@ namespace LiteSim
             for (int f = frame + 1; f <= replayEnd; f++)
             {
                 if (!_history.TryGet(f, out var inputs, out var _)) break;   // 历史窗口外（不应达——32 > 深度）
-                SimStep.Step(_state, _map, inputs, _values, _weapons, rules: _rules);
+                SimStep.Step(_state, _map, inputs, _values, _weapons, rules: _rules, resolveCombat: _resolveCombat);
                 _state.Events.Clear();                          // 重放期事件不消费即清
             }
 

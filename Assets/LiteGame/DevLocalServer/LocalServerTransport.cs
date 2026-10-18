@@ -96,7 +96,7 @@ namespace LiteGame
             _runtime = new RoomRuntime(roomConfig, combat, testRules: testRules, gameplayDigestBase: gameplayDigestBase);
             _botRefillHp = (combat ?? CombatValues.Default).EntityHp;   // 与 RoomRuntime 取值同口径（combat ?? Default）
             _seats = new Session[_runtime.ExpectedPlayers];
-            _pipeline = new SnapshotPipeline(_seats, kills: _runtime.Kills, fires: _runtime.Fires)
+            _pipeline = new SnapshotPipeline(_seats, kills: _runtime.Kills, fires: _runtime.Fires, hits: _runtime.Hits)
             {
                 SendTo = (session, type, msg, reliable) => _outbox.Add((type, msg)),
             };

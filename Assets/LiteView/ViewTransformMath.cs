@@ -18,7 +18,7 @@ namespace LiteView
     public static class ViewTransformMath
     {
         /// <summary>视点帧插值是否可用（快照间隔内的渲染插值）：alpha ∈ [0,1]。
-        /// 帧轴推进由调用方（SimView）按 <see cref="SimConfig.InterpFrames"/> 折算，本类只做数学。</summary>
+        /// 帧轴推进/渲染帧延迟由调用方（SimView 的 jitter buffer）决定，本类只做数学。</summary>
         public static SimVector3 Lerp(in SimVector3 from, in SimVector3 to, float alpha)
         {
             if (alpha <= 0f) return from;

@@ -279,11 +279,11 @@ namespace RoomServer
             {
                 WorkerSeats = new RoomBroadcastSeat[Runtime.ExpectedPlayers];
                 for (int i = 0; i < WorkerSeats.Length; i++) WorkerSeats[i] = new RoomBroadcastSeat();
-                Pipeline = new SnapshotPipeline(WorkerSeats, kills: Runtime.Kills, fires: Runtime.Fires);
+                Pipeline = new SnapshotPipeline(WorkerSeats, kills: Runtime.Kills, fires: Runtime.Fires, hits: Runtime.Hits);
             }
             else
             {
-                Pipeline = new SnapshotPipeline(Seats, kills: Runtime.Kills, fires: Runtime.Fires);
+                Pipeline = new SnapshotPipeline(Seats, kills: Runtime.Kills, fires: Runtime.Fires, hits: Runtime.Hits);
             }
             Mailbox = new RoomMailbox<RoomInputEnvelope, RoomControlEnvelope, RoomOutboundEnvelope>(
                 inputCapacity, controlCapacity, outboundCapacity);

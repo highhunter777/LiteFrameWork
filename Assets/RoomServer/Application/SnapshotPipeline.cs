@@ -28,6 +28,7 @@ namespace RoomServer.Application
         private readonly SnapshotDiffer _differ;
         private readonly KillRecordWindow _kills;      // 最近击杀窗口（全局击杀面；null = 不携带——L1 直构形态）
         private readonly FireRecordWindow _fires;      // 最近开火窗口（远端火光面；null = 不携带——L1 直构形态）
+        private readonly HitRecordWindow _hits;        // 最近命中窗口（命中/伤害权威面；null = 不携带）
         private int _broadcastOrdinal;
         private bool _forceFullPending;
 
@@ -44,12 +45,13 @@ namespace RoomServer.Application
         public SnapshotDiffer Differ => _differ;
 
         public SnapshotPipeline(IBroadcastSeat[] seats, SnapshotDiffer differ = null, KillRecordWindow kills = null,
-            FireRecordWindow fires = null)
+            FireRecordWindow fires = null, HitRecordWindow hits = null)
         {
             _seats = seats;
             _differ = differ ?? new SnapshotDiffer();
             _kills = kills;                                // null = 不携带最近击杀（L1 直构形态）
             _fires = fires;                                // null = 不携带最近开火（L1 直构形态）
+            _hits = hits;                                  // null = 不携带最近命中
         }
 
         /// <summary>
@@ -100,6 +102,8 @@ namespace RoomServer.Application
             KillFeedPacker.Fill(_differ.MatchDelta, _kills);
             // 最近开火窗口：同层同刻灌装（远端开火火光的公共面源）
             FireSignalPacker.Fill(_differ.MatchDelta, _fires);
+            // 权威命中窗口：命中/伤害数字/受击特效/命中音效的公共面源
+            HitFeedPacker.Fill(_differ.MatchDelta, _hits);
 
             // ② 每客户端各取可见部分（背压档位只影响该客户端；Restoring 席位抑制——§9.3 步骤 6）
             for (int p = 0; p < _seats.Length; p++)

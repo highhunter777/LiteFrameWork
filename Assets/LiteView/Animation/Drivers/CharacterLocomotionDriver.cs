@@ -17,7 +17,8 @@ namespace LiteView.Animation
     ///   战斗根进根与续窗的判据之一）；**IsReloading**：<see cref="SimView.IsReloading"/>
     ///   （Sim 权威——武器账本私有面）；**IsDead**：<see cref="SimView.IsDead"/>；
     /// - **锁存**：迟滞公式单源 <see cref="LocomotionBlendMath.UpdateLatch"/>（进 0.6 / 出 0.3 m/s），
-    ///   驱动器每帧算、作为事实喂状态机（机内无迟滞散字段）；
+    ///   驱动器每帧算、作为事实喂状态机（机内无迟滞散字段）；死亡事实同属**每帧权威状态**，
+    ///   不由帧事件置不可逆锁存（预测死亡事件不得滞留尸体姿态）；
     /// - **开火窗长**：单源 `CombatConfig.FireStanceFrames / SimConfig.TickRate`（1s——窗与开火表现解耦）；
     ///   **换弹倍率**：装配期按片段时长 / Sim `ReloadFrames` 求商（钳制在 Profile 区间——动画收势与
     ///   弹药回国同帧）；
@@ -46,6 +47,13 @@ namespace LiteView.Animation
 
         /// <summary>射击窗长（秒）＝ CombatConfig.FireStanceFrames / SimConfig.TickRate（1s 单源派生）。</summary>
         private readonly float _fireHoldSeconds;
+
+        /// <summary>快照驱动槽位的测速低通锐度（1/s）：吸收网络插值的逐帧速度抖动，
+        /// 避免 Idle/Walk/Run 锁存在 0.6/0.3 阈值附近来回翻。</summary>
+        private const float SnapshotSpeedSmoothSharpness = 12f;
+
+        /// <summary>超过该速度视为传送/复活级硬切（视图 snap），不计入动画测速。</summary>
+        private const float SnapSpeedThreshold = 12f;
 
         /// <summary>权重容器（驱动器复用数组——零分配：播放器/后端只在提交内读取、不保留引用）。</summary>
         private readonly float[] _moveWeights = new float[3];
@@ -305,30 +313,52 @@ namespace LiteView.Animation
 
                 if (s.HasPos && dt > 0f)
                 {
-                    float speed = MeasureSpeed(s, go.transform.position, dt, out Vector3 moveDir);
+                    float measuredSpeed = MeasureSpeed(s, go.transform.position, dt, out Vector3 moveDir);
+                    float speed = measuredSpeed;
+
+                    // **远端（快照插值驱动）测速低通 + snap 抑制**：插值/丢包/复活硬切会让视图帧间
+                    // 位移出现单帧尖峰；直接喂锁存会触发 Idle↔Walk↔Run 假切换（"动画不连续"）。
+                    // 本地/无快照形态（测试/沙盒）保持原样——本地预测位移本身平滑。
+                    bool snapshotDriven = _view.HasSnapshotSource && !_view.IsLocalSlot(i);
+                    if (snapshotDriven)
+                    {
+                        if (measuredSpeed > SnapSpeedThreshold)
+                        {
+                            s.SmoothedSpeed = 0f;
+                            s.HasSmoothedSpeed = true;
+                        }
+                        else if (!s.HasSmoothedSpeed)
+                        {
+                            s.SmoothedSpeed = measuredSpeed;
+                            s.HasSmoothedSpeed = true;
+                        }
+                        else
+                        {
+                            s.SmoothedSpeed = Mathf.Lerp(s.SmoothedSpeed, measuredSpeed,
+                                1f - Mathf.Exp(-SnapshotSpeedSmoothSharpness * dt));
+                        }
+                        speed = s.SmoothedSpeed;
+                    }
+
                     s.MovingLatch = LocomotionBlendMath.UpdateLatch(s.MovingLatch, speed);   // 锁存公式单源
 
-                    // 事实喂入（单机单上下文——层间不引用，全部经 ctx 单点**整体替换**，无半更新态）
-                    // **新生命事实（复活）**：生命起始帧变化 ⇒ 清除死亡锁存——复活由 Sim 的
-                    // RespawnSystem 在同一帧改写 LifeStartFrame，两端同链（本地=预测态、远端=权威快照，
-                    // 快照可重建）；这是死亡锁存复位的**唯一可靠信号**（复活无客户端事件沿、远端更没有）。
-                    if (_view.TryGetLifeStartFrame(i, out int lifeStart) && s.LifeSeen != lifeStart)
-                    {
-                        s.LifeSeen = lifeStart;
-                        s.DeadSeen = false;
-                    }
-                    if (_view.IsDead(i)) s.DeadSeen = true;   // 死亡锁存（快照状态——重连/迟到者同路径）
+                    // 事实喂入（单机单上下文——层间不引用，全部经 ctx 单点**整体替换**，无半更新态）。
+                    // **死亡只读权威状态**（本地=预测态经快照和解、远端=快照渲染态）：不再由帧事件
+                    // 置不可逆锁存——客户端预测出来的死亡事件不得把角色按在死亡叶里（《角色状态与动作
+                    // 专项设计》§死亡表现：状态可重建，事件只做反馈）。复活=IsDead 变假（Hp 回满），
+                    // 战斗根自然退出死亡叶，不再依赖 LifeStartFrame 复位。
+                    bool dead = _view.IsDead(i);
                     s.Ctx.Feed(new SlotAnimFacts(
                         isAiming: _view.IsAiming(i),
                         isFireStance: _view.IsFireStance(i),   // 射击语境窗（Sim 权威——扣扳机/成功开火统一进窗）
                         isReloading: _view.IsReloading(i),  // 换弹事实（Sim 权威——武器私有面投影）
-                        isDead: s.DeadSeen,
+                        isDead: dead,
                         isMoving: s.MovingLatch,
                         speed: speed,
                         moveRelAngleDeg: moveDir == Vector3.zero
                             ? 0f
                             : Vector3.SignedAngle(go.transform.rotation * Vector3.forward, moveDir, Vector3.up)));
-                    if (s.DeadSeen && s.Machine.Current != CharacterAnimId.Dead)
+                    if (dead && s.Machine.Current != CharacterAnimId.Dead)
                     {
                         s.Ctx.ReleaseReloadUpper();      // 死亡压过一切：换弹叠加层让位（下帧前即释放，不等轮询兜底）
                         s.Machine.Request(CharacterAnimId.Dead);   // 状态轮询路径：重建/迟到者按死亡事实强制进叶
@@ -373,23 +403,8 @@ namespace LiteView.Animation
         {
             if (_disposed) return;
 
-            // Death：死亡锁存 + 立即进死亡叶（**压过一切挂起路由**——last-wins；
-            // 锁存随**生命更替（复活）复位**——轮询路径按 LifeStartFrame 变化清锁存，见 Tick；
-            // 迟到/重连无事件者由状态轮询路径补进：IsDead 事实 → 根裁决强制迁移）
-            if (e.Kind == FrameEventKind.Death)
-            {
-                if (!_view.TryGetSlot(e.EntityId, out int deadSlot)) return;
-                if (deadSlot < 0 || deadSlot >= _slots.Length) return;
-                var d = _slots[deadSlot];
-                if (d?.Machine == null || !d.Machine.Started || d.Ctx == null) return;   // 灰盒/未启动：无动画面
-                d.DeadSeen = true;
-                d.Ctx.LatchDead();              // 帧中即时锁存：压过一切已挂起路由（窗/退根/降级全被守卫）
-                d.Ctx.ReleaseReloadUpper();     // 死亡压过一切：换弹叠加层立即让位（死亡是全身 Override）
-                if (d.Machine.Current != CharacterAnimId.Dead)
-                    d.Machine.Request(CharacterAnimId.Dead);
-                return;
-            }
-
+            // 死亡不在这里处理：客户端的 Death 帧事件可能来自本地预测（已随 P0 预测隔离关闭），
+            // 且事件不可撤销——死亡表现唯一读权威状态（Tick 的 IsDead 轮询）。本消费者只处理开火窗。
             if (e.Kind != FrameEventKind.Fire) return;            // 未覆盖事件类型不处理（Crit/Explosion 未预建）
 
             if (!_view.TryGetSlot(e.EntityId, out int slotIndex)) return;   // 主体已回收：丢弃（不补播、不猜）
@@ -437,6 +452,8 @@ namespace LiteView.Animation
             s.LastPos = default;
             s.HasPos = false;
             s.MovingLatch = false;
+            s.SmoothedSpeed = 0f;
+            s.HasSmoothedSpeed = false;
             _slots[i] = null;
         }
 
@@ -488,8 +505,8 @@ namespace LiteView.Animation
             public Vector3 LastPos;
             public bool HasPos;
             public bool MovingLatch;                       // 移动事实锁存（公式单源 LocomotionBlendMath）
-            public bool DeadSeen;                          // 死亡锁存（事件沿/快照状态；**生命更替即复位**——见 LifeSeen）
-            public int LifeSeen;                           // 已见生命起始帧（快照/预测可重建；变化 = 复活 ⇒ 清 DeadSeen）
+            public float SmoothedSpeed;                    // 快照驱动槽位的测速低通值
+            public bool HasSmoothedSpeed;
         }
     }
 }

@@ -94,6 +94,7 @@ namespace LiteNet.Protocol
                 RespawnDelayFrames = d.RespawnDelayFrames,
                 SpawnProtectionFrames = d.SpawnProtectionFrames,
                 EndReason = (MatchEndReason)d.EndReason,
+                GmFlags = d.GmFlags,              // 联机测试房批：权威规则位（客户端据此同值预测）
             };
         }
     }

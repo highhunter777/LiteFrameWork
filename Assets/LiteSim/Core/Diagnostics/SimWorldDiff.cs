@@ -208,6 +208,7 @@ namespace LiteSim
             if (a.Match.RespawnDelayFrames != b.Match.RespawnDelayFrames) Add("Match.RespawnDelayFrames", I(a.Match.RespawnDelayFrames), I(b.Match.RespawnDelayFrames));   // lint-allow R3（整型判等，非浮点精度比较——诊断工具不做容差）
             if (a.Match.SpawnProtectionFrames != b.Match.SpawnProtectionFrames) Add("Match.SpawnProtectionFrames", I(a.Match.SpawnProtectionFrames), I(b.Match.SpawnProtectionFrames));   // lint-allow R3（整型判等，非浮点精度比较——诊断工具不做容差）
             if (a.Match.EndReason != b.Match.EndReason) Add("Match.EndReason", a.Match.EndReason.ToString(), b.Match.EndReason.ToString());   // lint-allow R3（枚举判等，非浮点精度比较——诊断工具不做容差）
+            if (a.Match.GmFlags != b.Match.GmFlags) Add("Match.GmFlags", I(a.Match.GmFlags), I(b.Match.GmFlags));   // lint-allow R3（整型规则位判等）
 
             return new Report(diffs, truncated, a, b);
         }

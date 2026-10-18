@@ -126,7 +126,8 @@ namespace LiteNet
         /// </summary>
         public int LastAckSnapshot => _lastInputAck;
 
-        /// <summary>最近一次收到的快照帧号（**视点帧推导的正确来源**：+ `SimConfig.InterpFrames` = 玩家所见帧，§3.4.1）。</summary>
+        /// <summary>最近一次收到的快照帧号（**单调**：旧包/重复包在入口丢弃）。视点帧由
+        /// `SimView.RenderFrame`（jitter buffer 渲染帧）提供，见 `BattleContext.ViewRenderFrame`。</summary>
         public int LastSnapshotFrame { get; private set; } = -1;
 
         /// <summary>StartGame 是否已到达（版本确认基准已就位）。</summary>
@@ -406,6 +407,9 @@ namespace LiteNet
                 else
                     Transition(ClientSessionPhase.Failed);
             }
+            // 恢复快照推进快照帧水位（增量广播从该帧之后继续；陈旧快照守卫不会被恢复帧误伤）。
+            if (response.Ok && response.Snapshot != null && response.Snapshot.Frame > LastSnapshotFrame)
+                LastSnapshotFrame = response.Snapshot.Frame;
             OnReconnectResponse?.Invoke(response);
         }
 
@@ -537,6 +541,10 @@ namespace LiteNet
                 case PacketType.StateSnapshot:
                     if (_matchResult != null) break;
                     var snapshot = (Proto.StateSnapshot)msg;
+                    // **帧号单调守卫**：快照走 Unreliable，UDP 可乱序；旧包若继续应用，会把 Hp/
+                    // 死亡/比分/插值窗口整体回退（表现为血条回血、尸体复活、远端角色倒退）。
+                    // 只接收严格新于已应用帧的快照；同帧重复包对镜像无增量语义，一并丢弃。
+                    if (snapshot.Frame <= LastSnapshotFrame) break;
                     _lastInputAck = snapshot.AckInput;          // 诊断：服务器输入确认（不上报——上报的是快照帧）
                     LastSnapshotFrame = snapshot.Frame;
                     OnSnapshot?.Invoke(snapshot);

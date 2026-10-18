@@ -30,9 +30,12 @@ namespace LiteSim
     /// </summary>
     public static class ShootingSystem
     {
-        /// <summary><paramref name="rules"/> = 本局测试规则（null = 无规则——沿传 WeaponSystem.TryConsumeShot）。</summary>
+        /// <summary><paramref name="rules"/> = 本局测试规则（null = 无规则——沿传 WeaponSystem.TryConsumeShot）。
+        /// <paramref name="resolveCombat"/> = false 时进入**预测模式**：武器消费/开火窗/Fire/ObstacleHit
+        /// 与 RNG 推进照常，但不写 Damage 命令、不产 Hit/Crit 事件——客户端不能自行决定命中/伤害/
+        /// 死亡（《状态同步专项设计》§6.1/§6.2，权威结果只由快照与权威反馈面驱动）。</summary>
         public static void Run(SimWorldState s, in SimMapData map, SimInputFrame[] inputs, in CombatValues values,
-            WeaponTable weapons, MatchTestRules rules = null)
+            WeaponTable weapons, MatchTestRules rules = null, bool resolveCombat = true)
         {
             if (s.Match.Phase == SimMatchPhase.Finished) return; // lint-allow R3（整数阶段）
             for (int i = 0; i < inputs.Length; i++)
@@ -210,6 +213,9 @@ namespace LiteSim
 
                     // 回溯请求只延后命中副作用；权威帧的散布/随机流仍正常推进一次。
                     if ((inputs[i].Buttons & SimInputFrame.ButtonDeferHit) != 0u) continue;
+                    // 客户端预测模式：散布/伤害随机流已按上方消费（与服务端前向步进同序），但
+                    // 命中/伤害/死亡是权威事实——不写命令、不产 Hit/Crit 事件（权威反馈面另行下发）。
+                    if (!resolveCombat) continue;
                     s.Cmds.Write(SimCommandKind.Damage, hit.Id, shooter.Id, dmg);
                     // **爆头发`Crit`、普通发 `Hit`**（专项设计 §4.2）：`Crit` 枚举早已预留且
                     // ShootingSystem 从不写它；**不进 checksum、不进快照**（帧内瞬态），故协议/基线

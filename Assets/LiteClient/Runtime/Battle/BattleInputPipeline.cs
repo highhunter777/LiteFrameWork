@@ -38,7 +38,8 @@ namespace LiteClient
         /// <summary>
         /// 输入三件（采样入史 → 同一份上行 → 沿用帧预发）。**必须在本地服步进之前**调用。
         /// </summary>
-        public void FeedAndSendInputs(RollbackSim sim, long localEntityId, int inputFrame, float realDelta)
+        public void FeedAndSendInputs(RollbackSim sim, long localEntityId, int inputFrame, float realDelta,
+            int viewFrame)
         {
             IInputService input = Input;
             if (input == null) return;
@@ -53,9 +54,8 @@ namespace LiteClient
 
             if (!_battle.Connected || !input.TryTakeForSend(out _)) return;
 
-            int viewFrame = _battle.Client.LastSnapshotFrame >= 0
-                ? _battle.Client.LastSnapshotFrame + SimConfig.InterpFrames
-                : 0;
+            // viewFrame = **视图实际渲染帧**（SimView.RenderFrame，jitter buffer 的帧轴）——
+            // 不是"最新快照 + 插值帧"（后者在服务端再减 InterpFrames 会互相抵消，回溯到玩家没看到的帧）。
             _battle.Client.SendInput(inputFrame, local, viewFrame: viewFrame);   // 发**同一份**（含 EntityId 对齐）
 
             int steps = sim.PeekSteps(realDelta);

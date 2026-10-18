@@ -133,6 +133,7 @@ namespace LiteNet.Protocol
                 RespawnDelayFrames = match.RespawnDelayFrames,
                 SpawnProtectionFrames = match.SpawnProtectionFrames,
                 EndReason = (int)match.EndReason,
+                GmFlags = match.GmFlags,          // 联机测试房批：GM 规则位随快照全量携带
             };
         }
 

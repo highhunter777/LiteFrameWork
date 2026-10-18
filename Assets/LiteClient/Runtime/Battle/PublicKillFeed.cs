@@ -44,11 +44,15 @@ namespace LiteClient
 
         private readonly Key[] _seen = new Key[SeenCapacity];
         private int _seenCount;
-        private readonly Queue<Entry> _pending = new Queue<Entry>(16);
+        private readonly Queue<Entry> _pending = new Queue<Entry>(16);          // HUD 击杀提示行
+        private readonly Queue<Entry> _feedbackPending = new Queue<Entry>(16);  // 权威死亡反馈（阵亡归属/音效）
         private bool _initialized;
 
         /// <summary>待展示条数（诊断/测试面）。</summary>
         public int PendingCount => _pending.Count;
+
+        /// <summary>待消费的权威死亡反馈条数（与 HUD 队列独立——视图 Attach 前到达的击杀不丢）。</summary>
+        public int FeedbackPendingCount => _feedbackPending.Count;
 
         /// <summary>
         /// 喂入一份快照的最近击杀窗口：首份/重连后首份 → 仅标记已见（不重播）；否则新记录入队。
@@ -70,7 +74,9 @@ namespace LiteClient
                 LiteNet.Proto.KillRecord r = match.RecentKills[i];
                 if (IsSeen(r)) continue;
                 MarkSeen(r);
-                _pending.Enqueue(new Entry(r.Killer, r.Victim, r.Frame, r.WeaponSlot));
+                var entry = new Entry(r.Killer, r.Victim, r.Frame, r.WeaponSlot);
+                _pending.Enqueue(entry);
+                _feedbackPending.Enqueue(entry);
             }
         }
 
@@ -86,10 +92,23 @@ namespace LiteClient
             return true;
         }
 
+        /// <summary>取出一条待处理的权威死亡反馈（阵亡归属/死亡音效）；队列空 = false。</summary>
+        public bool TryDequeueFeedback(out Entry entry)
+        {
+            if (_feedbackPending.Count == 0)
+            {
+                entry = default;
+                return false;
+            }
+            entry = _feedbackPending.Dequeue();
+            return true;
+        }
+
         /// <summary>重连：清待展示队列并复位"已见"记忆——下一份快照的窗口按"首份"重新标记（不重播断线前击杀）。</summary>
         public void Reset()
         {
             _pending.Clear();
+            _feedbackPending.Clear();
             _seenCount = 0;
             _initialized = false;
         }

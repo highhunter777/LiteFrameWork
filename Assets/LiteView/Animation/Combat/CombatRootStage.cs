@@ -29,7 +29,7 @@ namespace LiteView.Animation
         public void OnUpdate(IStageHost<CharacterAnimId, CombatAnimReq> m, float elapseSeconds)
         {
             // 死亡裁决（**压过一切**——含已挂起的事件路由，last-wins 后发者赢）：
-            // 死亡期恒驻 Dead 叶；复活后按新的存活事实退出
+            // 死亡期恒驻 Dead 叶；复活后按新的存活事实退出（IsDead 直接来自权威状态，无不可逆锁存）
             if (_ctx.IsDead)
             {
                 if (m.Current != CharacterAnimId.Dead) m.Request(CharacterAnimId.Dead);

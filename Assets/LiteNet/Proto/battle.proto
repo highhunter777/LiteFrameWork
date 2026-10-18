@@ -91,6 +91,15 @@ message MatchStateDelta {
   // 远端开火火光的公共面源（权威侧在开火帧记录；客户端按 (shooter,frame) 去重消费——
   // 本地开火走本地帧事件即时播，不消费本窗口）。
   repeated FireRecord recent_fires = 12;
+  // ---- 联机测试房批（**只增字段号**追加）----
+  // 权威侧 GM 规则位（1 = 免死 / 2 = 无限弹药；0 = 无 GM）。
+  // 随每份快照全量携带 ⇒ 运行期开关天然收敛；**不进 CombatConfigDigest**（规则是运行态，
+  // 不是配置身份——设计《联机测试房与GM下发专项设计》§3.2）。
+  int32 gm_flags = 13;
+  // ---- 权威命中反馈面（**只增字段号**追加）----
+  // 最近命中窗口：每 (shooter,target,frame) **聚合一条**（霰弹多弹丸合并伤害；Crit = 任一弹丸爆头）。
+  // 客户端按 (shooter,target,frame) 去重消费——命中/伤害表现只信权威，不消费本地预测 Hit/Crit。
+  repeated HitRecord recent_hits = 14;
 }
 
 // 单条击杀记录（全局击杀提示的公共面源；《战斗HUD层级设计》§2 击杀提示面）
@@ -105,6 +114,18 @@ message KillRecord {
 message FireRecord {
   int64 shooter = 1;                  // 开火者实体 Id（武器门放行的实际开火；空仓/被拦/死亡不产）
   int32 frame = 2;                    // 开火发生的权威帧（去重键 + 时效判据）
+}
+
+// 单条权威命中记录（命中/伤害数字/受击特效/命中音效的公共面源）
+message HitRecord {
+  int64 target = 1;                   // 被命中实体 Id
+  int64 shooter = 2;                  // 射手实体 Id
+  int32 frame = 3;                    // 命中发生的权威帧（去重键之一）
+  int32 value = 4;                    // 伤害合计（同一帧同射手同目标的弹丸已聚合）
+  float pos_x = 5;                    // 命中点世界 X（受击特效/飘字锚点）
+  float pos_y = 6;
+  float pos_z = 7;
+  bool crit = 8;                      // 任一弹丸爆头（Crit 表现档）
 }
 
 // 私有面（PrivateStateSnapshot 层）单元消息：只发本人（《游戏业务系统总设计》§1——禁止泄漏他人库存）

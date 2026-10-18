@@ -15,7 +15,7 @@ namespace LiteSim
     public static class SimStep
     {
         public static void Step(SimWorldState s, in SimMapData map, SimInputFrame[] inputs, in CombatValues values,
-            WeaponTable weapons, bool advanceMatch = true, MatchTestRules rules = null)
+            WeaponTable weapons, bool advanceMatch = true, MatchTestRules rules = null, bool resolveCombat = true)
         {
             if (s.Match.Phase == SimMatchPhase.Finished) { s.Cmds.Clear(); return; } // lint-allow R3（整数阶段）
             SortInputs(inputs);
@@ -25,7 +25,10 @@ namespace LiteSim
             InputSystem.Run(s, inputs, values);
             MovementSystem.Run(s.Entities, s.AliveBitmap, map, values);
             WeaponSystem.Run(s, inputs, weapons, rules);   // 武器：懒装备/换弹与切枪到帧推进/切枪·换弹请求/半自动重臂（节拍与弹匣在 ShootingSystem 经 TryConsumeShot 消费）
-            ShootingSystem.Run(s, map, inputs, values, weapons, rules);   // 射击判定参与障碍遮挡（SimRaycast 单源——子弹不穿墙；散布偏转 + 多弹丸）
+            // 射击判定参与障碍遮挡（SimRaycast 单源——子弹不穿墙；散布偏转 + 多弹丸）。
+            // resolveCombat=false（客户端预测）：武器消费/开火窗/Fire 事件照常，**不产 Damage 命令与
+            // Hit/Crit/Death 事件**——命中/伤害/死亡只由权威快照与权威反馈面驱动（《状态同步专项设计》§6.1/§6.2）。
+            ShootingSystem.Run(s, map, inputs, values, weapons, rules, resolveCombat);
 
             FlushCommands(s, rules); // 伤害结算经命令缓冲（当帧延迟，§3.7）
 

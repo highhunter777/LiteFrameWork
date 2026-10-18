@@ -9,8 +9,9 @@ namespace RoomServer.Runtime
     /// <c>serverFrame = viewFrame + (服务器当前帧 − 客户端 ack 快照帧)</c>——两边帧号同源同义（StartGame 种子统一起步），
     /// clientLead 就是客户端的领先量。直接把 viewFrame 当服务器帧号用会回溯得过深（把领先量算成了额外延迟）。
     ///
-    /// 回溯动作（**服务器单侧，不触 Sim 纯函数红线**）：暂存权威态 → 环回到目标帧 → **只跑 ShootingSystem**
-    /// （不推进 Frame、不跑其余系统）→ 命中产出的**命令/事件落到当前帧**（结算回到权威当前帧，防"幽灵命中"）→ 还原权威态。
+    /// 回溯动作（**服务器单侧，不触 Sim 纯函数红线**）：暂存权威态 → 环回到目标帧 → **目标取历史位、
+    /// 射手取当前位**（见 <see cref="CompensateFire"/>）→ **只跑 ShootingSystem**（不推进 Frame、
+    /// 不跑其余系统）→ 命中产出的**命令/事件落到当前帧**（结算回到权威当前帧，防"幽灵命中"）→ 还原权威态。
     ///
     /// 历史输入来源：<see cref="RecordInputs"/> 每帧记下"该帧实际消费的输入"（缺席 = 空输入）——
     /// 回溯用的是**当时真正用的那一份**，不是重新采一份（否则判定与权威史不符）。
@@ -89,17 +90,17 @@ namespace RoomServer.Runtime
         /// 处理一条开火输入：回溯到玩家所见帧判定，命中结果以命令/事件形式落到**当前帧**。
         /// 调用时机：<see cref="RoomRuntime"/> 单帧步进之后（权威当前帧 = 本步刚跑完的帧）。
         ///
-        /// <paramref name="viewFrame"/> = **客户端看到的权威帧号**（§3.4.1：ackSnapshot 对应的权威帧 + 插值帧）。
-        /// 它已经是服务器帧轴上的值（快照帧号两端同源），所以服务器只做两步：
-        /// ① 减掉插值量 → 玩家真正渲染的那一帧；② clamp 到 <c>[当前帧 − LagCompHistory, 当前帧]</c>。
-        /// 第 ② 步是 §3.4.1 的反作弊边界：捏造超大/超小的 viewFrame 只会被夹到窗口边界，**拉不长回溯窗口**；
-        /// "ackSnapshot ≤ 服务器已广播帧号"是另一条 clamp，在 <see cref="InputGate"/> 落地（收包时校验）。
+        /// <paramref name="viewFrame"/> = **客户端当前渲染的帧号**（<c>SimView.RenderFrame</c>，已是服务器
+        /// tick 帧轴；由客户端 jitter buffer 的渲染帧直接上报）。服务器：
+        /// ① 直接用它作为目标帧（不再减 InterpFrames——旧口径"客户端 +插值 / 服务器 −插值"互相抵消，
+        ///    且回溯到的是玩家没看到的最新快照）；② clamp 到 <c>[当前帧 − LagCompHistory, 当前帧]</c>。
+        /// 第 ② 步是 §3.4.1 的反作弊边界：捏造超大/超小的 viewFrame 只会被夹到窗口边界，**拉不长回溯窗口**。
         /// </summary>
         public Outcome CompensateFire(int playerId, long entityId, int viewFrame, int clientAckSnapshot)
         {
             if (!_auth.TryResolve(entityId, out int shooterSlot)) return Set(Outcome.InvalidShooter, -1, false);
 
-            int targetFrame = viewFrame - SimConfig.InterpFrames;
+            int targetFrame = viewFrame;
 
             // 窗口 clamp（反作弊第一刀）：早于窗口下界 → 下界（用最老的历史态判定）；不早于当前帧 → 无回溯必要
             int oldest = _auth.Frame - SimConfig.LagCompHistory;
@@ -114,7 +115,7 @@ namespace RoomServer.Runtime
             if (!_ring.ContainsFrame(targetFrame)) return RunDegraded(playerId, fire, targetFrame);
             if (!TryGetHistorical(playerId, entityId, _auth.Frame, out SimInputFrame historical)) return RunDegraded(playerId, fire, targetFrame);
 
-            // 位置回溯到所见帧；瞄准点取本次已准入开火输入，不能套用视点帧的旧瞄准点。
+            // 瞄准点取本次已准入开火输入，不能套用视点帧的旧瞄准点。
             fire.MoveX = historical.MoveX;
             fire.MoveZ = historical.MoveZ;
             fire.AimPointX = historical.AimPointX;
@@ -127,6 +128,11 @@ namespace RoomServer.Runtime
                 _scratch.CopyTo(_auth);
                 return RunDegraded(playerId, fire, targetFrame);
             }
+
+            // ③ **射手取当前位**：客户端是从"当前预测位/当前朝向"开枪的，把射手连同武器行也回溯到
+            // 历史帧会让枪口起点/遮挡关系与玩家操作错位（移动射击时系统性偏后）。标准延迟补偿只回溯
+            // **目标**；旧实现整帧恢复（含射手）会在高延迟移动射击下出现"我看打中、服务端判没中"。
+            CopyCurrentShooter(shooterSlot);
 
             ulong rngBefore = _scratch.RngState;            // 恢复当前权威随机流，不能倒退到历史帧的 RNG
             ClearFireBuffers();
@@ -144,7 +150,6 @@ namespace RoomServer.Runtime
             _auth.RngState = rngBefore;
             _auth.Events = events;                           // 命令/事件落到当前帧缓冲，由本步后续的 FlushCommands 结算
             _auth.Cmds = cmds;
-            _ = shooterSlot;
             CompensatedCount++;
             return Set(Outcome.Compensated, targetFrame, hit || cmds.Count > 0);
         }
@@ -180,6 +185,37 @@ namespace RoomServer.Runtime
             _auth.Cmds = cmds;
             DegradedCount++;
             return Set(Outcome.DegradedFire, targetFrame, hit || cmds.Count > 0);
+        }
+
+        /// <summary>
+        /// 把射手槽的**当前权威态**（位置/朝向/标志/武器行）写回已回溯到历史帧的 <paramref name="auth"/>。
+        /// 目标实体保留历史位（所见即所判），射手用当前位（客户端开枪时的操作位置）。
+        /// 只写该槽；活体位图/版本保持历史还原结果（射手在目标帧已存在——LifeStartFrame 闸在调用方）。
+        /// </summary>
+        private void CopyCurrentShooter(int shooterSlot)
+        {
+            if (shooterSlot < 0 || shooterSlot >= SimConfig.MaxEntities) return;
+
+            ref EntitySlot current = ref _scratch.Entities[shooterSlot];
+            ref EntitySlot historical = ref _auth.Entities[shooterSlot];
+
+            // 几何/输入语境取当前（客户端从当前预测位开枪）：
+            historical.Pos = current.Pos;
+            historical.Vel = current.Vel;
+            historical.Yaw = current.Yaw;
+            historical.Flags = current.Flags;
+            historical.SelectedWeapon = current.SelectedWeapon;
+            historical.SemiFireArmed = current.SemiFireArmed;
+
+            // **生命/武器账本不同步回写**：同帧互杀时，先结算的射手可能已把后者 Hp 打到 0
+            // 并清空其武器行——但后者在视点帧确实开了这一枪，回溯必须用其**开火时**的生命与武器
+            // （历史态）。活着时取当前武器行（覆盖切枪后的实际武器）。
+            if (current.Hp > 0)
+            {
+                int weaponBase = shooterSlot * SimConfig.WeaponSlotsPerEntity;
+                System.Array.Copy(_scratch.Weapons, weaponBase, _auth.Weapons, weaponBase,
+                    SimConfig.WeaponSlotsPerEntity);
+            }
         }
 
         private void ClearFireBuffers()

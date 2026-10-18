@@ -40,6 +40,12 @@ namespace LiteNet.Protocol
         private int _lastFullFrame = int.MinValue;
         private bool _baselineValid;
         private bool _frameFull;                                     // 本帧是否必须全量（BeginFrame 判定）
+
+        /// <summary>关键状态粘滞窗（tick 帧）：Hp/击杀/死亡/复活/保护等**一次性变化**若只出现在
+        /// 一帧增量里，丢包后客户端会一直停在旧值直到全量兜底（血量/复活观感不同步）。这些槽位在
+        /// 变化后 1s 内即使与基线一致也重复下发——代价仅少量带宽，换来不可靠快照链的快速收敛。</summary>
+        private readonly int[] _stickyUntil = new int[SimConfig.MaxEntities];
+        private const int StickyFrames = SimConfig.TickRate;          // 1s @60Hz
         private ulong _lastRng;                                      // 摘要外的全局量（"全局状态变了吗"的探针基准）
         private readonly byte[] _lastGlobals = new byte[SimConfig.GlobalsBytes];
         private readonly byte[] _lastCustomData = new byte[SimConfig.MaxEntities * SimConfig.CustomBytesPerEntity];
@@ -67,7 +73,10 @@ namespace LiteNet.Protocol
         /// </summary>
         public void BeginFrame(int frame, SimWorldState state, bool forceFull = false)
         {
-            bool aliveChanged = !_baselineValid || state.AliveCount() != _baseline.AliveCount;
+            bool aliveChanged = !_baselineValid || !AliveBitmapEqual(in state);
+            // 关键状态粘滞：变化槽位保活 1s；过期/死亡槽位清位。
+            for (int i = 0; i < SimConfig.MaxEntities; i++)
+                if (_stickyUntil[i] <= frame || !state.IsAlive(i)) _stickyUntil[i] = 0;
             bool dueFull = _lastFullFrame != int.MinValue && frame - _lastFullFrame >= ProtocolConstants.FullEveryFrames;
             bool full = forceFull || aliveChanged || dueFull;
             // 全局状态探针**每条路径都跑**（基准必须每帧推进，否则首帧全量后基准停在初始值，次帧必误报）
@@ -80,8 +89,33 @@ namespace LiteNet.Protocol
             for (int i = 0; i < SimConfig.MaxEntities; i++)
             {
                 if (!state.IsAlive(i)) continue;
-                if (!full && _baseline.Matches(i, in state)) continue;   // 未变化槽位跳过（全量帧=全活体）
+                if (!full)
+                {
+                    EntitySnapshotEntry current = SimWorldStateSnapshot.Capture(in state, i);
+                    if (EntitySnapshotEntry.BitEqual(_baseline.Entities[i], in current))
+                        continue;                          // 未变化槽位跳过（全量帧 = 全活体）
+                    if (CriticalChanged(_baseline.Entities[i], in current))
+                        _stickyUntil[i] = frame + StickyFrames;
+                }
                 _changed.Add(i);
+            }
+
+            if (!full)
+            {
+                // 粘滞槽位（关键状态变化后 1s 内）即使与基线一致也重复下发——补不可靠快照的丢包。
+                for (int i = 0; i < SimConfig.MaxEntities; i++)
+                {
+                    if (_stickyUntil[i] == 0) continue;
+                    bool present = false;
+                    for (int c = 0; c < _changed.Count; c++)
+                        if (_changed[c] == i) { present = true; break; }
+                    if (!present) _changed.Add(i);
+                }
+                _changed.Sort();                          // AOI 求交依赖槽位升序
+            }
+            else
+            {
+                Array.Clear(_stickyUntil, 0, _stickyUntil.Length);   // 全量已覆盖，粘滞无需再补
             }
 
             if (full)
@@ -169,6 +203,20 @@ namespace LiteNet.Protocol
         public bool NeedsFull(int clientAckSnapshot)
             => FramesSinceFull >= ProtocolConstants.FullEveryFrames
             || clientAckSnapshot < _lastBroadcastFrame - ProtocolConstants.FullResendAckLagFrames;
+
+        /// <summary>活体位图逐位比较（只比数量会漏"一死一生且数量不变"的位图变化——客户端会留幽灵槽位）。</summary>
+        private bool AliveBitmapEqual(in SimWorldState state)
+        {
+            for (int i = 0; i < state.AliveBitmap.Length; i++)
+                if (state.AliveBitmap[i] != _baseline.AliveBitmap[i]) return false;
+            return true;
+        }
+
+        /// <summary>关键状态（掉血/击杀/死亡/复活/保护/尸体窗）是否变化——变化后进入粘滞窗重复下发。</summary>
+        private static bool CriticalChanged(in EntitySnapshotEntry a, in EntitySnapshotEntry b)
+            => a.Hp != b.Hp || a.Shield != b.Shield || a.Kills != b.Kills || a.Deaths != b.Deaths // lint-allow R3（整型判等）
+            || a.RespawnFrame != b.RespawnFrame || a.LifeStartFrame != b.LifeStartFrame           // lint-allow R3（整型帧）
+            || a.InvulnerableUntilFrame != b.InvulnerableUntilFrame || a.CorpseFrames != b.CorpseFrames; // lint-allow R3
 
         private static bool ContainsSorted(List<int> sorted, int value)
         {

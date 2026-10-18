@@ -159,6 +159,7 @@ namespace LiteGame.Tests.EditMode
             var counter = new ViewCounter();
             var view = NewView(world, counter);
             view.LocalEntityId = 999;                             // 不匹配任何实体 → 走远端插值分支
+            view.RenderDelayFrames = 0;                            // 用例只看两份快照间的插值，不叠缓冲延迟
 
             view.Tick(1f / 60f);                                   // 建视图
             Assert.IsTrue(view.TryGetView(0, out var go), "槽位 0 视图已建");
@@ -168,9 +169,11 @@ namespace LiteGame.Tests.EditMode
             // 超阈值的硬切另有专测《远端插值_前后快照跳变超SnapDistance硬切_不播成飞人》
             var snapA = new SimWorldStateSnapshot();
             var simA = NewWorld(new SimVector3(0f, 0f, 0f));
+            simA.Frame = 10;
             snapA.CaptureFull(simA);
             var snapB = new SimWorldStateSnapshot();
             var simB = NewWorld(new SimVector3(2f, 0f, 0f));
+            simB.Frame = 12;
             snapB.CaptureFull(simB);
 
             view.OnAuthoritativeSnapshot(snapA);
@@ -197,15 +200,20 @@ namespace LiteGame.Tests.EditMode
             var view = NewView(world, counter);
             view.LocalEntityId = 999;                             // 不匹配任何实体 → 走远端插值分支
             view.SnapDistance = 3f;
+            view.RenderDelayFrames = 0;                            // 直接落到目标快照验证硬切
 
             view.Tick(1f / 60f);                                   // 建视图
             Assert.IsTrue(view.TryGetView(0, out var go));
 
             // 前后快照：x=0 → x=50（权威侧传送/复活级跳变；两份世界同序 Spawn → 同实体 Id 可互相找到）
             var snapA = new SimWorldStateSnapshot();
-            snapA.CaptureFull(NewWorld(new SimVector3(0f, 0f, 0f)));
+            var simA = NewWorld(new SimVector3(0f, 0f, 0f));
+            simA.Frame = 10;
+            snapA.CaptureFull(simA);
             var snapB = new SimWorldStateSnapshot();
-            snapB.CaptureFull(NewWorld(new SimVector3(50f, 0f, 0f)));
+            var simB = NewWorld(new SimVector3(50f, 0f, 0f));
+            simB.Frame = 12;
+            snapB.CaptureFull(simB);
 
             view.OnAuthoritativeSnapshot(snapA);
             view.OnAuthoritativeSnapshot(snapB);

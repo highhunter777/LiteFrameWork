@@ -251,7 +251,7 @@ namespace LiteNet.Tests
             void Fire()
             {
                 var batch = new ClientInputBatch { Frame = room.AuthSim.Frame + 1, Count = 1,
-                    ViewFrame = room.AuthSim.Frame + SimConfig.InterpFrames, AckSnapshot = room.AuthSim.Frame,
+                    ViewFrame = room.AuthSim.Frame, AckSnapshot = room.AuthSim.Frame,
                     Frames = new[] { new SimInputFrame { Buttons = SimInputFrame.ButtonFire,
                         AimPointX = 20, AimPointY = 1f } } };
                 room.Execute(RoomCommand.ClientInput(0, batch), outputs);
@@ -296,7 +296,7 @@ namespace LiteNet.Tests
             if (scenario == 3) world.Entities[0].LifeStartFrame = 4;
             lag.RecordInputs(6, new[] { new SimInputFrame { EntityId = world.Entities[0].Id,
                 Buttons = SimInputFrame.ButtonFire, AimPointX = 20, AimPointY = 1 }, default });
-            lag.CompensateFire(0, world.Entities[0].Id, 2 + SimConfig.InterpFrames, 2);
+            lag.CompensateFire(0, world.Entities[0].Id, 2, 2);
             Assert.Equal(9876UL, world.RngState);
             SimStep.FlushCommands(world);
             Assert.Equal(scenario == 0, lag.LastHit);
@@ -321,7 +321,7 @@ namespace LiteNet.Tests
             for (int i = 1; i <= 6; i++) room.Execute(RoomCommand.Tick(i), outputs);
             for (int i = 0; i < 2; i++)
                 room.Execute(RoomCommand.ClientInput(i, new ClientInputBatch { Frame = 7, Count = 1,
-                    AckSnapshot = 6, ViewFrame = 6 + SimConfig.InterpFrames,
+                    AckSnapshot = 6, ViewFrame = 6,
                     Frames = new[] { new SimInputFrame { Buttons = SimInputFrame.ButtonFire,
                         AimPointX = room.AuthSim.Entities[1 - i].Pos.X, AimPointY = 1, AimPointZ = -10 } } }), outputs);
             room.Execute(RoomCommand.Tick(7), outputs);

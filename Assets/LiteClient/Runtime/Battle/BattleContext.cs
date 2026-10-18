@@ -1,4 +1,4 @@
-﻿using System;
+﻿﻿using System;
 using System.Threading;
 using LiteFramework;
 using LiteNet;
@@ -63,13 +63,24 @@ namespace LiteClient
         /// <summary>本地预测/和解 Sim（StartGame 后可用；null = 对局尚未建立）。</summary>
         public RollbackSim Sim => _sim;
 
+        /// <summary>权威快照镜像（首份快照落地前为 null）。**公共事实 HUD 的读源**（排行榜 KDA/
+        /// 阵亡复活帧/保护期等）——预测态只服务本地手感，不得回灌公共展示（否则预测击杀会先上板、
+        /// 预测死亡会驱动阵亡面板）。</summary>
+        public SimWorldState AuthorityState => _mirror.State;
+
         /// <summary>判定用地图（两端单源：同一份 `Map/tbmap.bytes` 经共享投影 `MapTableProjection` 产出
         /// ——服务端 `ServerMapLoader`／客户端 `IMapProvider` 同代码同数据；表现消费者读它——
         /// 瞄准激光的障碍射线等 View 侧判定共享同一份，不另建第二事实源）。</summary>
         public SimMapData Map => _map;
 
-        /// <summary>最近一次收到的快照帧号（视点帧推导来源——SimView 消费）。</summary>
+        /// <summary>最近一次收到的快照帧号（诊断/兜底——视点帧请用 <see cref="ViewRenderFrame"/>）。</summary>
         public int LastSnapshotFrame => _battle.Client.LastSnapshotFrame;
+
+        /// <summary>视图当前渲染帧（tick 帧轴；延迟补偿的 `viewFrame` 单源）。视图未挂/尚无快照时
+        /// 回落 <see cref="LastSnapshotFrame"/>（纯会话/测试形态）。</summary>
+        public int ViewRenderFrame => View != null && View.RenderFrame >= 0
+            ? View.RenderFrame
+            : (LastSnapshotFrame >= 0 ? LastSnapshotFrame : 0);
 
         /// <summary>和解次数（本地预测被权威覆盖的次数；诊断/DevHUD）。</summary>
         public long ReconcileCount => _reconcileCount;
@@ -79,6 +90,9 @@ namespace LiteClient
 
         /// <summary>公共开火面（远端开火火光的待播队列；表现驱动逐条取用）。</summary>
         public PublicFireFeed FireFeed => _fireFeed;
+
+        /// <summary>公共命中面（权威命中/Crit 事件流——命中表现只消费它，不消费本地预测）。</summary>
+        public PublicHitFeed HitFeed => _hitFeed;
 
         /// <summary>网络质量观测（会话面透传——HUD 展示；表现/诊断面，不参与判定）。</summary>
         public NetworkQuality NetworkQuality => _battle.Quality;
@@ -91,6 +105,7 @@ namespace LiteClient
         private readonly BattleSnapshotMirror _mirror = new BattleSnapshotMirror();   // 持久镜像 + 和解 + 插值源
         private readonly PublicKillFeed _killFeed = new PublicKillFeed();             // 公共击杀面（快照携带的最近击杀窗口 → 去重队列）
         private readonly PublicFireFeed _fireFeed = new PublicFireFeed();             // 公共开火面（快照携带的最近开火窗口 → 去重队列）
+        private readonly PublicHitFeed _hitFeed = new PublicHitFeed();                // 公共命中面（快照携带的最近命中窗口 → 去重事件流）
 
         private RollbackSim _sim;
         private long _localEntityId;
@@ -199,18 +214,15 @@ namespace LiteClient
             if (_disposed) return;
             _battle.TickIncoming();
 
-            // ① 输入三件（采样入史 → 同一份上行 → 沿用帧预发）——必须**先于**本地服步进（顺序理由见管线类注释）
+            // ① 输入三件（采样入史 → 同一份上行 → 沿用帧预发）——必须**先于**本地服步进（顺序理由见管线类注释）。
+            // viewFrame = 视图当前渲染帧（jitter buffer 帧轴）：开火回溯必须以"玩家看到的过去"为锚。
             int inputFrame = _sim != null ? _sim.State.Frame + 1 : -1;
-            if (_sim != null) _inputs.FeedAndSendInputs(_sim, _localEntityId, inputFrame, realDelta);
+            int viewFrame = ViewRenderFrame;
+            if (_sim != null) _inputs.FeedAndSendInputs(_sim, _localEntityId, inputFrame, realDelta, viewFrame);
 
             _battle.TickOutgoing();          // ② 本地服步进（含快照同步投递）
 
             if (_sim == null || _ended != 0) return;
-
-            // 视点帧 = 最新快照帧 + 插值帧数（《状态同步专项设计》§3.4.1：玩家所见帧落后最新快照）——
-            // 开火回溯对齐参考，随输入发包上行（本渲染帧的输入已在 ① 上行，此处只取用给追帧补发）。
-            int snapshotFrame = _battle.Client.LastSnapshotFrame;
-            int viewFrame = snapshotFrame >= 0 ? snapshotFrame + SimConfig.InterpFrames : 0;
 
             _sim.Tick(realDelta);
 
@@ -244,9 +256,20 @@ namespace LiteClient
 
             // 活动局规则持有件：一次性绑定（StartGame 建点）——此后热路径只读注入实例，判定不碰静态。
             // 入口初值同步盖进本地数值副本（与本地服房间快照同口径；null = 无测试规则）。
+            // 联机测试房批：权威规则位随 StartGame 快照下发（`gm_flags`）。**不写回 `CombatValues`**——
+            // 摘要（`ConfigHash`）不含运行期 GM 位；写回会让本地复算与服务器不一致而误拒局。
+            int gmFlags = sg.Match?.GmFlags ?? 0;
             MatchTestRules rules = SimTestRules.ActiveMatch;
-            if (rules != null)
+            if (gmFlags != 0)
             {
+                rules ??= new MatchTestRules();
+                rules.NoDeath = (gmFlags & MatchTestRules.FlagNoDeath) != 0;
+                rules.InfiniteAmmo = (gmFlags & MatchTestRules.FlagInfiniteAmmo) != 0;
+                SimTestRules.ActiveMatch = rules;
+            }
+            else if (rules != null)
+            {
+                // 本地服形态（无权威位）：入口初值盖进本地数值副本（与本地服房间快照同口径）
                 values.NoDeath = rules.NoDeath;
                 values.InfiniteAmmo = rules.InfiniteAmmo;
             }
@@ -277,7 +300,9 @@ namespace LiteClient
             var template = new SimInputFrame[ExpectedPlayers];
             for (int i = 0; i < ExpectedPlayers; i++) template[i].EntityId = i;   // 服务器覆写防伪；本地预测按 playerId 对齐
 
-            _sim = new RollbackSim(world, _map, template, values, weapons, rules);
+            // resolveCombat:false = 客户端预测模式：开火/开火窗/弹药照常预测，但命中/伤害/死亡/
+            // 击杀不落本地态（《状态同步专项设计》§6.1/§6.2——权威结果只由快照/权威反馈面驱动）。
+            _sim = new RollbackSim(world, _map, template, values, weapons, rules, resolveCombat: false);
 
             // 视图若已挂（AttachView 早于 StartGame），补上回滚/和解/帧事件接线
             if (View != null)
@@ -303,6 +328,9 @@ namespace LiteClient
             if (_disposed || _sim == null) return;   // Sim 未建：丢弃（Reliable StartGame 随后即到）
 
             ResolveLocalEntity(snapshot);
+            // 联机测试房批：权威规则位随每份快照下发——同步到活动规则实例（RollbackSim 持同一引用，
+            // 改字段即生效）。联机形态下这是唯一写口：客户端面板动本地副本不会自行生效。
+            ApplyAuthoritativeGmFlags(snapshot.Match?.GmFlags ?? 0);
 
             if (_mirror.ApplyAndReconcile(_sim, snapshot))
             {
@@ -312,8 +340,27 @@ namespace LiteClient
 
             _mirror.PushToView(View);                // 视图插值源：上一份/最新一份轮转
 
+            // 命中先于死亡：同一击杀帧的"命中反馈→阵亡反馈"顺序稳定（听感/飘字锚点）。
+            _hitFeed.Ingest(snapshot);               // 公共命中面：最近命中窗口 → 去重事件流（权威命中表现源）
             _killFeed.Ingest(snapshot);              // 公共击杀面：最近击杀窗口 → 去重队列（首份快照不重播历史）
             _fireFeed.Ingest(snapshot);              // 公共开火面：最近开火窗口 → 去重队列（首份快照不重播历史）
+        }
+
+        /// <summary>
+        /// 权威 GM 规则位 → 活动规则实例（联机测试房批）。常规房（flags=0）不创建规则对象——热路径零分配。
+        /// 复用同一实例改字段是**有意**的：<see cref="RollbackSim"/> 构造时持有该引用，运行期无需重建。
+        /// </summary>
+        private static void ApplyAuthoritativeGmFlags(int flags)
+        {
+            MatchTestRules rules = SimTestRules.ActiveMatch;
+            if (rules == null)
+            {
+                if (flags == 0) return;
+                rules = new MatchTestRules();
+                SimTestRules.ActiveMatch = rules;
+            }
+            rules.NoDeath = (flags & MatchTestRules.FlagNoDeath) != 0;
+            rules.InfiniteAmmo = (flags & MatchTestRules.FlagInfiniteAmmo) != 0;
         }
 
         /// <summary>
@@ -327,12 +374,14 @@ namespace LiteClient
 
             _killFeed.Reset();                       // 重连：不重播断线前击杀（恢复快照的窗口按"已见"重新标记）
             _fireFeed.Reset();                       // 重连：不重播断线前开火（恢复快照的窗口按"已见"重新标记）
+            _hitFeed.Reset();                        // 重连：不重播断线前命中
 
             if (_localEntityId == 0 && _battle.Client.PlayerId >= 0)
                 ResolveLocalEntity(response.Snapshot);
 
             _mirror.ApplyReconnect(_sim, response.Snapshot);
 
+            View?.ResetInterpolation();              // 旧时间线快照作废：重连后从恢复快照重新起锚
             _mirror.PushToView(View);                // 恢复快照同样是插值源（重连后不跳帧）
             View?.AlignLocal(_localEntityId);        // 重连可能换了实体/复活的命：重新落位
 

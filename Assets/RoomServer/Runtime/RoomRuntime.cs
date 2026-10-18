@@ -53,6 +53,9 @@ namespace RoomServer.Runtime
         /// <summary>最近开火窗口（远端开火火光的公共面源——每帧前向开火事件的权威记录；App 层映射为 wire）。</summary>
         public readonly FireRecordWindow Fires;
 
+        /// <summary>最近命中窗口（命中/伤害表现公共面源——前向与回溯结算的 Hit/Crit 权威记录；App 层映射为 wire）。</summary>
+        public readonly HitRecordWindow Hits;
+
         /// <summary>房间创建时刻固定的不可变玩法配置快照（§4/P0-5：替代进程全局可变 CombatConfig）。</summary>
         public readonly FixedCombatConfig FixedConfig;
         public readonly MatchRules Rules;
@@ -107,8 +110,9 @@ namespace RoomServer.Runtime
         /// <summary>最近一次 Tick 携带的单调毫秒（seed 派生/批② 超时判定的时间来源）。</summary>
         private long _lastNowMs;
 
-        /// <summary>测试房规则持有件（null = 常规对局）——与客户端预测同实例（GM 中局开合两端同值）。</summary>
-        private readonly MatchTestRules _testRules;
+        /// <summary>测试房规则持有件（null = 常规对局）——与客户端预测同实例（GM 中局开合两端同值）。
+        /// **非 readonly**（联机测试房批）：运行期 GM 开关经 <see cref="SetTestRules"/> 在权威循环内替换引用。</summary>
+        private MatchTestRules _testRules;
 
         // ---- Ops 计数 ----
         public long StepsCount;
@@ -144,6 +148,7 @@ namespace RoomServer.Runtime
             LagComp = new LagCompensator(AuthSim, Map, players, SnapshotHistory, values, table);
             Kills = new KillRecordWindow();
             Fires = new FireRecordWindow();
+            Hits = new HitRecordWindow();
             _seats = new PlayerSession[players];
             _entityIds = new long[players];
             _frameInputs = new SimInputFrame[players];
@@ -209,6 +214,10 @@ namespace RoomServer.Runtime
         /// </summary>
         public void Execute(in RoomCommand cmd, List<RoomOutput> outputs)
         {
+            // 联机测试房批：GM 规则位是运行态事实，随每份快照全量下发。
+            // 在**命令入口**同步（权威单线程），跨线程写被命令入口挡住——不暴露直写字段。
+            AuthSim.Match.GmFlags = GmFlagsOf(_testRules);
+
             switch (cmd.Kind)
             {
                 case RoomCommandKind.AuthenticatedJoin: ExecuteJoin(cmd.ConnectionId, outputs); break;
@@ -221,6 +230,19 @@ namespace RoomServer.Runtime
                 case RoomCommandKind.Shutdown: ExecuteShutdown(cmd.Reason, cmd.NowMs, outputs); break;
             }
         }
+
+        /// <summary>
+        /// 运行期替换测试规则（联机测试房批）：**只允许在权威循环内调用**（宿主 GM 动作经 <c>Pump</c> 派发，
+        /// 与 RoomCommand 同线程约束）。null = 关闭全部 GM。规则不进摘要（运行态事实，不是配置身份）。
+        /// </summary>
+        public void SetTestRules(MatchTestRules rules)
+        {
+            _testRules = rules;
+            AuthSim.Match.GmFlags = GmFlagsOf(rules);
+        }
+
+        /// <summary>规则位掩码（1 = 免死 / 2 = 无限弹药；null = 0）。</summary>
+        private static int GmFlagsOf(MatchTestRules rules) => rules?.GmFlags ?? 0;
 
         private void ExecuteJoin(int connectionId, List<RoomOutput> outputs)
         {
@@ -610,8 +632,9 @@ namespace RoomServer.Runtime
         /// </summary>
         private void ConsumePendingFire(int frame)
         {
-            // 前向步进的死亡事件先入窗（未走回溯的射手/同帧直接伤害）——回溯会清事件缓冲
+            // 前向步进的命中/死亡事件先入窗（未走回溯的射手/同帧直接伤害）——回溯会清事件缓冲
             // （<see cref="LagCompensator.CompensateFire"/> 的 ClearFireBuffers），此处是最后捕获面。
+            CaptureHits(frame);
             CaptureKills(frame);
 
             for (int playerId = 0; playerId < ExpectedPlayers; playerId++)
@@ -621,6 +644,7 @@ namespace RoomServer.Runtime
 
                 LagComp.CompensateFire(playerId, _entityIds[playerId], _pendingFireView[playerId], _pendingFireAck[playerId]);
                 SimStep.FlushCommands(AuthSim); // 每位射手的命中当帧落账；后续射手不得清掉待结算命令
+                CaptureHits(frame);             // 该射手的回溯命中即刻入窗（下一位射手的回溯会清缓冲）
                 CaptureKills(frame);            // 该射手的回溯结算死亡即刻入窗（下一位射手的回溯会清缓冲）
                 FireInputsProcessed++;
             }
@@ -634,6 +658,25 @@ namespace RoomServer.Runtime
         /// 武器槽取**击杀帧**击杀者的公共态 <see cref="EntitySlot.SelectedWeapon"/>（切换期武器门拦开火
         /// ⇒ 击杀帧槽位就是那把枪）。
         /// </summary>
+        /// <summary>
+        /// 权威命中面：把本帧 <see cref="FrameEventKind.Hit"/>/<see cref="FrameEventKind.Crit"/> 记入
+        /// <see cref="Hits"/> 窗口（同 shooter/target/frame 的霰弹多弹丸由窗口聚合伤害并合并 Crit）。
+        /// **调用点**与 <see cref="CaptureKills"/> 同一组（前向一次 + 每位射手回溯结算后一次）：
+        /// 回溯的 ClearFireBuffers 会清事件缓冲，必须逐段捕获。
+        /// 事件语义：<c>EntityId</c> = 被命中者、<c>OtherId</c> = 射手、<c>Value</c> = 单发伤害、
+        /// <c>Pos</c> = 命中点。
+        /// </summary>
+        private void CaptureHits(int frame)
+        {
+            FrameEvent[] items = AuthSim.Events.Items;
+            for (int i = 0; i < AuthSim.Events.Count; i++)
+            {
+                ref FrameEvent e = ref items[i];
+                if (e.Kind != FrameEventKind.Hit && e.Kind != FrameEventKind.Crit) continue;
+                Hits.AddOrAccumulate(e.OtherId, e.EntityId, frame, e.Value, in e.Pos, e.Kind == FrameEventKind.Crit);
+            }
+        }
+
         private void CaptureKills(int frame)
         {
             FrameEvent[] items = AuthSim.Events.Items;

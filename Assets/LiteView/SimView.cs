@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using LiteFramework;
 using LiteSim;
 using UnityEngine;
@@ -12,8 +13,9 @@ namespace LiteView
     ///
     /// **只读 Sim、只写视图**——不写任何 Sim 状态（《状态同步专项设计》§1 原则 3：View → Sim 只有输入和读取）。
     /// 两类来源分别处理：
-    /// - **远端**：连续两份权威快照按视点帧插值（<see cref="SimWorldStateSnapshot"/> × 前后，平滑不抖；
-    ///   前后间距超 <see cref="SnapDistance"/> 硬切——§6.2"远端必要时 snap"，传送/复活不播成飞人）；
+    /// - **远端**：快照按帧号进入 jitter buffer，渲染帧匀速推进（落后最新快照 <see cref="RenderDelayFrames"/>），
+    ///   在前后两份快照间按**真实帧差**插值（丢包不冻结再跳；旧帧/重复帧丢弃）；
+    ///   前后间距超 <see cref="SnapDistance"/> 硬切——§6.2"远端必要时 snap"，传送/复活不播成飞人；
     /// - **本地玩家**：跟预测态（0 延迟）；和解后按 <see cref="ViewTransformMath.Decay"/> 指数收敛
     ///   （帧率无关，不微抖）；超过 <see cref="SnapDistance"/> 硬切（复活/传送）。
     ///
@@ -53,15 +55,34 @@ namespace LiteView
         private readonly ICameraService _camera;              // 相机端口（实现住 Platform.Unity 适配器——本层不认识 Cinemachine）
 
         // ---- 插值源（远端）----
-        private SimWorldStateSnapshot _snapFrom;
-        private SimWorldStateSnapshot _snapTo;
-        private float _snapElapsed;
+        // 快照缓冲（jitter buffer）：按**快照帧号**推进渲染帧，而不是"收到包就重置窗口"。
+        // 丢包时前后快照间隔变大，alpha 按真实帧差铺满整段（不冻结再跳）；乱序/重复包在入口丢弃。
+        private const int SnapshotBufferCapacity = 8;
+        private readonly List<SimWorldStateSnapshot> _snapshots = new List<SimWorldStateSnapshot>(SnapshotBufferCapacity);
+        private float _renderFrame;                 // 渲染帧（tick 帧轴；= 玩家看到的"过去"）
+        private bool _hasRenderFrame;
 
         // ---- 本地表现（预测 + 和解衰减）----
         private SimVector3 _localDisplay;
         private float _localYaw;
         private bool _hasLocalDisplay;
         private CharacterController _localCc;                 // 本地视图物理代理（CC.Move 收敛到衰减目标——见 PlaceLocal/EnsureLocalCc）
+
+        /// <summary>
+        /// 渲染相对最新快照的**落后帧数**（tick 帧；默认 <see cref="SimConfig.InterpFrames"/> = 66ms）。
+        /// 这是一个真正的 jitter buffer：渲染帧按 <see cref="SimConfig.TickRate"/> 匀速前进，
+        /// 上限 = 最新快照帧 − 本值；网络抖动/丢一包不会让远端停走或跳步。0 = 测试用的即时模式。
+        /// </summary>
+        public int RenderDelayFrames { get; set; } = SimConfig.InterpFrames;
+
+        /// <summary>当前渲染帧（tick 帧轴）——延迟补偿的 `viewFrame` 单源（-1 = 尚无快照）。</summary>
+        public int RenderFrame => _hasRenderFrame ? Mathf.FloorToInt(_renderFrame) : -1;
+
+        /// <summary>缓冲中的快照数（诊断/测试）。</summary>
+        public int BufferedSnapshotCount => _snapshots.Count;
+
+        /// <summary>是否已收到过权威快照（远端是否走快照插值——动画测速平滑只对这类槽位生效）。</summary>
+        public bool HasSnapshotSource => _snapshots.Count > 0;
 
         /// <summary>硬切距离阈值（米），两处共用：① 本地和解衰减超过它直接落位（复活/传送）；
         /// ② 远端前后两份快照的位置差超过它同样硬切（§6.2"远端必要时 snap"——否则权威侧的
@@ -99,6 +120,10 @@ namespace LiteView
         /// </summary>
         public bool TryGetSlot(long entityId, out int slotIndex) => _sim.TryResolve(entityId, out slotIndex);
 
+        /// <summary>槽位是否是本地玩家（动画测速平滑只对快照驱动的远端槽位生效）。</summary>
+        public bool IsLocalSlot(int slotIndex)
+            => LocalEntityId != 0 && _sim.TryResolve(LocalEntityId, out int localSlot) && localSlot == slotIndex;
+
         /// <summary>被静默丢弃的帧事件数（诊断：回滚重放的去重命中数）。</summary>
         public int SilencedEvents { get; private set; }
 
@@ -116,16 +141,31 @@ namespace LiteView
         // ---- 馈入点 ----
 
         /// <summary>
-        /// 权威快照到达（<c>SnapshotReassembler</c> 重建出的完整状态）：推进插值窗口
-        /// From ← 旧 To，To ← 新快照。视点帧 = 最新快照帧 − <see cref="SimConfig.InterpFrames"/>
-        /// （§3.4.1：玩家所见帧落后最新快照若干帧，才有两份快照可插）。
+        /// 权威快照到达（<c>SnapshotReassembler</c> 重建出的完整状态）：入**帧号有序**缓冲。
+        /// 渲染帧 = 最新快照帧 − <see cref="RenderDelayFrames"/>，由 <see cref="Tick"/> 匀速推进——
+        /// 玩家看到的是"比最新权威晚一档"的过去，才有两份快照可插、且网络抖动不改变远端速度。
+        /// 旧帧/重复帧直接丢弃（RoomClient 已在入口做同一守卫；此处防御直构/测试路径）。
         /// </summary>
         public void OnAuthoritativeSnapshot(SimWorldStateSnapshot snapshot)
         {
             if (snapshot == null) return;
-            _snapFrom = _snapTo;
-            _snapTo = snapshot;
-            _snapElapsed = 0f;                 // 新快照到达 = 插值窗口起点
+            if (_snapshots.Count > 0 && snapshot.Frame <= _snapshots[_snapshots.Count - 1].Frame) return;
+
+            _snapshots.Add(snapshot);
+            if (_snapshots.Count > SnapshotBufferCapacity) _snapshots.RemoveAt(0);
+            if (!_hasRenderFrame)
+            {
+                _renderFrame = snapshot.Frame;   // 首个快照：先在当前帧落位，随后由缓冲延迟接管
+                _hasRenderFrame = true;
+            }
+        }
+
+        /// <summary>重连恢复：清空插值缓冲（旧快照属于上一条时间线），下一份快照重新起锚。</summary>
+        public void ResetInterpolation()
+        {
+            _snapshots.Clear();
+            _renderFrame = 0f;
+            _hasRenderFrame = false;
         }
 
         /// <summary>和解发生（接 <c>RollbackSim.OnReconcile</c>）：本地表现交给衰减收敛，
@@ -161,7 +201,7 @@ namespace LiteView
         public void Tick(float realDelta)
         {
             float dt = realDelta > 0f ? realDelta : 0f;
-            _snapElapsed += dt;
+            AdvanceRenderFrame(dt);
 
             SyncViews();
             UpdateRemoteTransforms();
@@ -216,20 +256,80 @@ namespace LiteView
             }
         }
 
-        /// <summary>远端插值：窗口内 alpha = 已过时间 / 快照间隔；快照停摆时停在最新（不外推）。</summary>
+        /// <summary>
+        /// 渲染帧推进：按真实时间 × tick 频率匀速前进，封顶"最新快照 − <see cref="RenderDelayFrames"/>"
+        /// （保持一档缓冲）；快照停摆时停在缓冲上界，不外推。初始从首个快照帧起步——不会凭空跳。
+        /// </summary>
+        private void AdvanceRenderFrame(float dt)
+        {
+            if (!_hasRenderFrame || _snapshots.Count == 0) return;
+
+            float newest = _snapshots[_snapshots.Count - 1].Frame;
+            float oldest = _snapshots[0].Frame;
+            float cap = newest - RenderDelayFrames;
+            if (cap < oldest) cap = oldest;                 // 快照尚不足以撑满缓冲：先贴近现有最新
+
+            float next = _renderFrame + dt * SimConfig.TickRate;
+            if (next > cap) next = Mathf.Max(_renderFrame, cap);
+            _renderFrame = next;
+
+            // 只保留仍可能参与插值/最近历史的快照（至少保留一帧 <= 渲染帧 + 其后继）。
+            while (_snapshots.Count > 2 && _snapshots[1].Frame <= _renderFrame)
+                _snapshots.RemoveAt(0);
+        }
+
+        /// <summary>取渲染帧所在快照对（from.Frame ≤ RenderFrame &lt; to.Frame；末端 to = from 即停最新）。</summary>
+        private bool TryGetRenderPair(out SimWorldStateSnapshot from, out SimWorldStateSnapshot to, out float alpha)
+        {
+            from = null;
+            to = null;
+            alpha = 0f;
+            if (_snapshots.Count == 0) return false;
+
+            int fromIndex = -1;
+            for (int i = 0; i < _snapshots.Count; i++)
+            {
+                if (_snapshots[i].Frame > _renderFrame) break;
+                fromIndex = i;
+            }
+            if (fromIndex < 0)
+            {
+                from = _snapshots[0];
+                to = from;
+                return true;
+            }
+
+            from = _snapshots[fromIndex];
+            to = fromIndex + 1 < _snapshots.Count ? _snapshots[fromIndex + 1] : from;
+            if (to.Frame > from.Frame)
+                alpha = Mathf.Clamp01((_renderFrame - from.Frame) / (to.Frame - from.Frame));
+            return true;
+        }
+
+        /// <summary>渲染帧对应的快照（离散事实读口：瞄准/开火窗/死亡/生命起始帧与画面同拍）。</summary>
+        private bool TryGetRenderSnapshot(out SimWorldStateSnapshot snapshot)
+        {
+            snapshot = null;
+            return TryGetRenderPair(out snapshot, out _, out _);
+        }
+
+        /// <summary>远端插值：渲染帧在两份快照之间按**帧差**插值（丢包时铺满真实间隔，不冻结再跳）；
+        /// 快照停摆时停在最新（不外推）。</summary>
         private bool TryInterpolate(long entityId, out SimVector3 pos, out float yaw)
         {
             pos = default;
             yaw = 0f;
-            if (_snapFrom == null || _snapTo == null) return false;
+            if (!TryGetRenderPair(out SimWorldStateSnapshot from, out SimWorldStateSnapshot to, out float alpha))
+                return false;
 
-            float alpha = _snapElapsed / SnapshotInterval;
-            if (alpha > 1f) alpha = 1f;
-
-            if (!TryFind(_snapFrom, entityId, out var a) || !TryFind(_snapTo, entityId, out var b)) return false;
+            bool hasFrom = TryFind(from, entityId, out var a);
+            bool hasTo = TryFind(to, entityId, out var b);
+            if (!hasFrom && !hasTo) return false;
+            if (!hasFrom) { pos = b.Pos; yaw = b.Yaw; return true; }   // 新出现（出生/进 AOI）：直接用新快照
+            if (!hasTo)   { pos = a.Pos; yaw = a.Yaw; return true; }   // 将消失（回收前一帧）：保持旧快照
 
             // 远端硬切（§6.2"远端必要时 snap；复活/传送允许硬切"）：前后两份快照间距超阈值 =
-            // 权威侧发生过传送/复活级跳变——照常插值会把它播成横穿地图的"飞人"，直接对齐最新快照。
+            // 权威侧发生过传送/复活级跳变——照常插值会把它播成横穿地图的"飞人"，直接对齐目标快照。
             if (ViewTransformMath.ShouldSnap(a.Pos, b.Pos, SnapDistance))
             {
                 pos = b.Pos;
@@ -345,7 +445,7 @@ namespace LiteView
         /// 实体是否处于瞄准态（右键 ADS）。**只读 Sim 事实**——表现不读输入设备，本方法就是那条边界的入口：
         /// - **本地**：取预测态（预测帧保留连续位，所以与本地手感同帧）；
         /// - **远端**：取**最新权威快照**的位（离散位"取新不取插值"——位在前后快照之间的中间态无意义；
-        ///   代价是远端举枪比插值姿态略早，量级 = 视点延迟 <see cref="SimConfig.InterpFrames"/> 帧）。
+        ///   代价是远端举枪比插值姿态略早，量级 = 渲染延迟 <see cref="RenderDelayFrames"/> 帧）。
         /// 槽位越界 / 首快照未到 / 槽位已死 → false（不是瞄准态，而不是抛）。
         /// </summary>
         public bool IsAiming(int slotIndex)
@@ -356,9 +456,9 @@ namespace LiteView
             if (LocalEntityId != 0 && _sim.TryResolve(LocalEntityId, out int localSlot) && localSlot == slotIndex)
                 return (_sim.Entities[slotIndex].Flags & EntityFlags.Aiming) != 0u;
 
-            if (_snapTo == null) return false;
-            if ((_snapTo.AliveBitmap[slotIndex >> 5] & (1u << (slotIndex & 31))) == 0u) return false;
-            return (_snapTo.Entities[slotIndex].Flags & EntityFlags.Aiming) != 0u;
+            if (!TryGetRenderSnapshot(out SimWorldStateSnapshot snapshot)) return false;
+            if ((snapshot.AliveBitmap[slotIndex >> 5] & (1u << (slotIndex & 31))) == 0u) return false;
+            return (snapshot.Entities[slotIndex].Flags & EntityFlags.Aiming) != 0u;
         }
 
         /// <summary>
@@ -377,9 +477,9 @@ namespace LiteView
             if (LocalEntityId != 0 && _sim.TryResolve(LocalEntityId, out int localSlot) && localSlot == slotIndex)
                 return _sim.Entities[slotIndex].FireStanceFrames > 0;
 
-            if (_snapTo == null) return false;
-            if ((_snapTo.AliveBitmap[slotIndex >> 5] & (1u << (slotIndex & 31))) == 0u) return false;
-            return _snapTo.Entities[slotIndex].FireStanceFrames > 0;
+            if (!TryGetRenderSnapshot(out SimWorldStateSnapshot snapshot)) return false;
+            if ((snapshot.AliveBitmap[slotIndex >> 5] & (1u << (slotIndex & 31))) == 0u) return false;
+            return snapshot.Entities[slotIndex].FireStanceFrames > 0;
         }
 
         /// <summary>
@@ -395,9 +495,9 @@ namespace LiteView
             if (LocalEntityId != 0 && _sim.TryResolve(LocalEntityId, out int localSlot) && localSlot == slotIndex)
                 return _sim.Entities[slotIndex].Hp <= 0;
 
-            if (_snapTo == null) return false;
-            if ((_snapTo.AliveBitmap[slotIndex >> 5] & (1u << (slotIndex & 31))) == 0u) return false;
-            return _snapTo.Entities[slotIndex].Hp <= 0;
+            if (!TryGetRenderSnapshot(out SimWorldStateSnapshot snapshot)) return false;
+            if ((snapshot.AliveBitmap[slotIndex >> 5] & (1u << (slotIndex & 31))) == 0u) return false;
+            return snapshot.Entities[slotIndex].Hp <= 0;
         }
 
         /// <summary>
@@ -417,9 +517,9 @@ namespace LiteView
                 return true;
             }
 
-            if (_snapTo == null) return false;
-            if ((_snapTo.AliveBitmap[slotIndex >> 5] & (1u << (slotIndex & 31))) == 0u) return false;
-            lifeStartFrame = _snapTo.Entities[slotIndex].LifeStartFrame;
+            if (!TryGetRenderSnapshot(out SimWorldStateSnapshot snapshot)) return false;
+            if ((snapshot.AliveBitmap[slotIndex >> 5] & (1u << (slotIndex & 31))) == 0u) return false;
+            lifeStartFrame = snapshot.Entities[slotIndex].LifeStartFrame;
             return true;
         }
 
