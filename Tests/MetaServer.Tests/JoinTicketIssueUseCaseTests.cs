@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using LiteTesting;
 using MetaServer.Contracts.Lobby;
 using MetaServer.Modules.Lobby;
@@ -235,6 +236,56 @@ namespace MetaServer.Tests
                 f.UseCase.Issue("acc", Command("req-2", buildHash: null))).Ticket;
             Assert.Equal(JoinTicketRejection.BuildHashMismatch,
                 f.Validator.Validate(other, new JoinContext(Room, "hash-other", Audience, f.Clock.Ms)).Rejection);
+        }
+
+        // ---- 房号归属分配（多实例正确性：换实例会让房间服懒创建同名房）----
+
+        private static void RegisterInstanceWithRoom(Fixture f, string instanceId, string roomId,
+            string buildHash = BuildHash, string address = "10.0.0.5:7777", int players = 1,
+            int expectedPlayers = 4, int playerCount = 0, int roomCount = 1, int maxRooms = 8,
+            bool draining = false)
+        {
+            f.Registry.Register(new InstanceRegisterCommand
+            {
+                InstanceId = instanceId,
+                BuildHash = buildHash,
+                Address = address,
+                MaxRooms = maxRooms,
+                RoomCount = roomCount,
+                MaxPlayers = 64,
+                PlayerCount = playerCount,
+                Draining = draining,
+                Rooms = new List<RoomReport>
+                {
+                    new RoomReport { RoomId = roomId, Phase = 1, Players = players, ExpectedPlayers = expectedPlayers },
+                },
+            }, out _);
+        }
+
+        [Fact]
+        public void 换票_按房号归属分配_不被负载改投()
+        {
+            var f = new Fixture();
+            // 归属实例玩家多（纯负载分配会选另一台）——判据必须是"房号在谁的上报明细里"
+            RegisterInstanceWithRoom(f, "host", "Room-A", playerCount: 30);
+            f.RegisterInstance(instanceId: "idle", address: "10.0.0.6:7777", playerCount: 1);
+
+            var accepted = Assert.IsType<JoinTicketIssueUseCase.Result.Accepted>(
+                f.UseCase.Issue("acc-1", Command(roomId: "Room-A")));
+
+            Assert.Equal("host", accepted.InstanceId);
+            Assert.Equal("10.0.0.5:7777", accepted.Address);
+        }
+
+        [Fact]
+        public void 换票_归属实例在排空_按无容量处置_不换实例()
+        {
+            var f = new Fixture();
+            RegisterInstanceWithRoom(f, "host", "Room-A", draining: true);
+            f.RegisterInstance(instanceId: "idle", address: "10.0.0.6:7777", playerCount: 1);
+
+            Assert.IsType<JoinTicketIssueUseCase.Result.NoCapacity>(
+                f.UseCase.Issue("acc-1", Command(roomId: "Room-A")));
         }
     }
 }

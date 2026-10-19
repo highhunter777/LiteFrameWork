@@ -68,8 +68,10 @@ namespace RoomServer
             public LobbyRegistrationClient.Settings Lobby;
 
             /// <summary>
-            /// 结算提交管道参数（可 null = 不提交——单机/离线形态）。密钥与 Lobby 注册共用
-            /// （同一条房间侧→Meta 服务通道）；配置了 settlement.submit_url 但缺密钥由 Program fail-closed。
+            /// 结算提交管道参数（可 null = 不提交——单机/离线形态）。**结算凭据与 Lobby 注册分权**
+            /// （P1②）：写账本 ≠ 注册实例，密钥由 Program 各自从环境变量/命令行注入（见
+            /// <see cref="SettlementSubmitService.Settings.InstanceKey"/>）；配置了 settlement.submit_url
+            /// 但缺结算密钥由 Program fail-closed。
             /// </summary>
             public SettlementSubmitService.Settings Settlement;
         }

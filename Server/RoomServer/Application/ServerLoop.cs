@@ -99,8 +99,25 @@ namespace RoomServer.Application
         /// n 由 LoopBody 的溢出重置防御约束（n × freq 不会逼近 long 上限）。</summary>
         private long Anchor(long start, long n) => start + n * _clock.Frequency / TickRate;
 
+        /// <summary>停止有界等待缺省值（毫秒）：与后台 HTTP 客户端的排空等待同量级——不因卡帧拖住进程退出。</summary>
+        public const int DefaultStopTimeoutMs = 2000;
+
         public void Start() { _running = true; _thread.Start(); }
-        public void Stop() { _running = false; _thread.Join(2000); }
+
+        /// <summary>
+        /// 停止循环并**有界**等待退出：返回 false = 超时未退出（帧体被阻塞，如结算线程持 Outbox 锁做压实）。
+        /// 调用方**不得**把 false 当作已停：此时循环线程仍在 <c>Pump</c>，与收尾/释放并发
+        /// （<c>_currentRoom</c> 等按"宿主线程专属"使用；Outbox 释放后的入盒会抛 ODE 被 PumpOnce 吸收，
+        /// 表现为"泵失败"计数而该笔结算静默丢失）。可重复调用以继续等待。
+        /// </summary>
+        public bool Stop(int timeoutMs = DefaultStopTimeoutMs)
+        {
+            _running = false;
+            Thread thread = _thread;
+            if (thread == null) return true;
+            thread.Join(timeoutMs);
+            return !thread.IsAlive;
+        }
 
         /// <summary>跑满 <paramref name="durationMs"/> 毫秒（按时钟频率换算）后返回（验收脚本/用例用）。</summary>
         public void Run(long durationMs)

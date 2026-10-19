@@ -214,6 +214,41 @@ namespace MetaServer.Tests
             string json = await response.Content.ReadAsStringAsync();
             Assert.Contains("auth.disabled", json);
         }
+
+        /// <summary>游客登录限流（未鉴权写面的兜底）：每源 IP 每分钟许可数走配置，超限 429 +
+        /// <c>Retry-After</c> + 统一错误体；**只拦该端点**（其余路径不受影响）。
+        /// 前两次按端点自身语义处置（本机无存储 ⇒ 503）——限流与业务结果无关。</summary>
+        [Fact]
+        public async Task 游客登录_超过每IP每分钟许可_429且只拦该端点()
+        {
+            await using var host = await MetaHostFixture.StartAsync(overrides =>
+            {
+                overrides[MetaHost.ConfigSection + ":AuthSigningKeyBase64"] =
+                    Convert.ToBase64String(new byte[32]);
+                overrides[MetaHost.ConfigSection + ":GuestLoginPerMinute"] = "2";
+            });
+            using var http = new HttpClient();
+            string url = host.BaseAddress + "/auth/guest";
+
+            for (int i = 0; i < 2; i++)
+            {
+                using var allowed = new StringContent(
+                    "{\"requestId\":\"r" + i + "\",\"deviceId\":\"device-" + i + "\"}",
+                    Encoding.UTF8, "application/json");
+                HttpResponseMessage resp = await http.PostAsync(url, allowed);
+                Assert.NotEqual(HttpStatusCode.TooManyRequests, resp.StatusCode);
+            }
+
+            using var limited = new StringContent("{\"requestId\":\"r9\",\"deviceId\":\"device-9\"}",
+                Encoding.UTF8, "application/json");
+            HttpResponseMessage blocked = await http.PostAsync(url, limited);
+
+            Assert.Equal(HttpStatusCode.TooManyRequests, blocked.StatusCode);
+            Assert.NotNull(blocked.Headers.RetryAfter);                 // 客户端退避依据
+            Assert.Contains("auth.rate-limited", await blocked.Content.ReadAsStringAsync());
+            // 只拦游客登录：健康端点不受影响
+            Assert.Equal(HttpStatusCode.OK, (await http.GetAsync(host.BaseAddress + "/live")).StatusCode);
+        }
     }
 
     /// <summary>

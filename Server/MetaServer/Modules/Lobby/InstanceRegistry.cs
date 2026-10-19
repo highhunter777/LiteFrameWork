@@ -183,12 +183,35 @@ namespace MetaServer.Modules.Lobby
         }
 
         /// <summary>
+        /// 按房号归属分配的结果（多实例正确性：**房号只能落在"报了它的那台实例"上**——
+        /// 换实例发票据会让房间服对未知房号懒创建 ⇒ 同名房出现在两台实例上，原房队友永远等不到人）。
+        /// </summary>
+        public enum RoomAllocation : byte
+        {
+            /// <summary>该房号不在任何实例的房间明细里（未上报/已销毁）——调用方按负载分配兜底。</summary>
+            Unknown = 0,
+
+            /// <summary>命中归属实例（<c>chosen</c> 非空）。</summary>
+            Found = 1,
+
+            /// <summary>房号在某实例上，但该实例在排空——房间服对排空实例拒绝新进房，不得改投别处另建同名房。</summary>
+            Draining = 2,
+
+            /// <summary>房号在某实例上，但实例构建哈希与请求不一致（版本准入，不换实例兜底）。</summary>
+            VersionMismatch = 3,
+        }
+
+        /// <summary>
         /// 容量驱动分配：在**存活、未排空、有玩家容量**的实例中选一个。
         /// <paramref name="requiredBuildHash"/> 非空时只选构建哈希一致的实例（§7 版本准入）；
         /// 无匹配但存在其它版本的可用实例 → <paramref name="versionConflict"/> = true
         /// （调用方区分"版本不符"与"无容量"——两者对客户端的处置不同）。
+        /// <paramref name="requireRoomSlot"/> = true 时额外要求"房间表未满"（RoomCount &lt; MaxRooms）：
+        /// **新建房**才需要它——房间普遍坐不满的常态下 RoomCount 先到上限而 PlayerCount 还没到
+        /// （MaxPlayers = MaxRooms × 最宽模板人数），只看玩家容量会给"建不出房"的实例发票据。
         /// </summary>
-        public bool TryAllocate(string requiredBuildHash, out Entry chosen, out bool versionConflict)
+        public bool TryAllocate(string requiredBuildHash, out Entry chosen, out bool versionConflict,
+            bool requireRoomSlot = false)
         {
             chosen = null;
             versionConflict = false;
@@ -198,6 +221,7 @@ namespace MetaServer.Modules.Lobby
 
                 bool requireBuild = !string.IsNullOrEmpty(requiredBuildHash);
                 bool sawOtherBuild = false;
+                bool sawMatchingBuild = false;
                 foreach (KeyValuePair<string, Entry> kv in _byId)
                 {
                     Entry e = kv.Value;
@@ -207,11 +231,83 @@ namespace MetaServer.Modules.Lobby
                         sawOtherBuild = true;
                         continue;
                     }
+                    if (requireBuild) sawMatchingBuild = true;           // 构建匹配（可能仅因房间表满而不可用）
+                    if (requireRoomSlot && e.RoomCount >= e.MaxRooms) continue;   // 房间表满：新房建不出来
                     if (chosen == null || Better(e, chosen)) chosen = e;
                 }
-                versionConflict = chosen == null && sawOtherBuild;
+                // 版本冲突只在"确实没有本构建的可用实例"时报（房间表满不算版本问题——那是容量问题）
+                versionConflict = chosen == null && sawOtherBuild && !sawMatchingBuild;
                 return chosen != null;
             }
+        }
+
+        /// <summary>
+        /// 按**房号归属**分配（多实例正确性，见 <see cref="RoomAllocation"/>）：房号出现在实例上报的
+        /// 房间明细里 ⇒ 那台就是它的归属。多台都报了同号（旧缺陷遗留的同名房）时优先有空位的、再按
+        /// <see cref="Better"/> 定序（确定性）。房间明细未上报（null）的实例不参与——判据只能是上报事实。
+        /// </summary>
+        public RoomAllocation TryAllocateForRoom(string roomId, string requiredBuildHash, out Entry chosen)
+        {
+            chosen = null;
+            if (string.IsNullOrEmpty(roomId)) return RoomAllocation.Unknown;
+
+            lock (_gate)
+            {
+                SweepLocked(_nowMs());
+
+                bool requireBuild = !string.IsNullOrEmpty(requiredBuildHash);
+                bool roomSeen = false;
+                bool buildMismatch = false;
+                bool chosenFreeSeat = false;
+
+                foreach (KeyValuePair<string, Entry> kv in _byId)
+                {
+                    Entry e = kv.Value;
+                    if (!ContainsRoom(e, roomId, out bool hasFreeSeat)) continue;
+                    roomSeen = true;
+                    if (e.Draining) continue;                            // 排空实例不接新进房（房间服同口径）
+                    if (requireBuild && !string.Equals(e.BuildHash, requiredBuildHash, StringComparison.Ordinal))
+                    {
+                        buildMismatch = true;
+                        continue;
+                    }
+                    if (chosen == null || BetterRoomOwner(e, hasFreeSeat, chosen, chosenFreeSeat))
+                    {
+                        chosen = e;
+                        chosenFreeSeat = hasFreeSeat;
+                    }
+                }
+
+                if (chosen != null) return RoomAllocation.Found;
+                // 归属存在但不可用：**不回落负载分配**（换实例 = 另建同名房）。版本不符优先于排空上报：
+                // 前者是客户端构建问题（换包），后者是该实例生命周期问题（等或换房）。
+                if (buildMismatch) return RoomAllocation.VersionMismatch;
+                return roomSeen ? RoomAllocation.Draining : RoomAllocation.Unknown;
+            }
+        }
+
+        /// <summary>实例的房间明细里是否有该房号；<paramref name="hasFreeSeat"/> = 至少一条明细还有空位
+        /// （ExpectedPlayers 为 0 的"未标注"行不算空位）。</summary>
+        private static bool ContainsRoom(Entry e, string roomId, out bool hasFreeSeat)
+        {
+            hasFreeSeat = false;
+            if (e.Rooms == null) return false;
+            bool found = false;
+            for (int i = 0; i < e.Rooms.Count; i++)
+            {
+                RoomView r = e.Rooms[i];
+                if (r == null || !string.Equals(r.RoomId, roomId, StringComparison.Ordinal)) continue;
+                found = true;
+                if (r.ExpectedPlayers > 0 && r.Players < r.ExpectedPlayers) hasFreeSeat = true;
+            }
+            return found;
+        }
+
+        /// <summary>归属实例比较：先有空位者，再按 <see cref="Better"/>（确定性）。</summary>
+        private static bool BetterRoomOwner(Entry candidate, bool candidateFree, Entry current, bool currentFree)
+        {
+            if (candidateFree != currentFree) return candidateFree;
+            return Better(candidate, current);
         }
 
         /// <summary>

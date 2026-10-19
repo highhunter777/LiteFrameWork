@@ -244,5 +244,90 @@ namespace MetaServer.Tests
             Assert.Equal(4_000, rooms[0].LastSeenAgeMs);       // 年龄用注册表时钟（时钟单源）
             Assert.Equal("h1", rooms[0].BuildHash);
         }
+
+        // ---- 房间维度分配（新建房要求房间槽位 / 换票按房号归属）----
+
+        /// <summary>带房间明细的上报命令（明细即"哪台实例有哪些房"的判据）。</summary>
+        private static InstanceRegisterCommand RoomCommand(string instanceId, string roomId,
+            int players = 0, int expectedPlayers = 2, string buildHash = "hash-a",
+            string address = "10.0.0.1:7777", int maxRooms = 8, int roomCount = 1,
+            int playerCount = 1, bool draining = false)
+        {
+            InstanceRegisterCommand command = Command(instanceId, buildHash, address, maxRooms, roomCount,
+                maxPlayers: 64, playerCount: playerCount, draining: draining);
+            command.Rooms = new List<RoomReport>
+            {
+                new RoomReport { RoomId = roomId, Phase = 1, Players = players, ExpectedPlayers = expectedPlayers },
+            };
+            return command;
+        }
+
+        [Fact]
+        public void 新建房分配_房间表满的实例被跳过_不发票据()
+        {
+            var clock = new VirtualClock();
+            var registry = NewRegistry(clock);
+            // 玩家容量还有余（playerCount 1 < maxPlayers 64），但房间表已满（roomCount == maxRooms）
+            registry.Register(Command("full", maxRooms: 8, roomCount: 8, playerCount: 1), out _);
+
+            Assert.False(registry.TryAllocate(null, out _, out bool conflict, requireRoomSlot: true));
+            Assert.False(conflict);                                    // 是容量问题，不是版本问题
+            Assert.True(registry.TryAllocate(null, out _, out _), "不要求房间槽位时（换票进既有房）仍可分配");
+
+            registry.Register(Command("free", maxRooms: 8, roomCount: 2, playerCount: 5), out _);
+            Assert.True(registry.TryAllocate(null, out InstanceRegistry.Entry chosen, out _, requireRoomSlot: true));
+            Assert.Equal("free", chosen.InstanceId);
+        }
+
+        [Fact]
+        public void 换票分配_按房号命中归属实例_不被负载改投()
+        {
+            var clock = new VirtualClock();
+            var registry = NewRegistry(clock);
+            // 归属实例玩家多（负载分配会选另一台），判据必须是"房号在谁的上报明细里"
+            registry.Register(RoomCommand("host", "Room-A", players: 1, expectedPlayers: 4, playerCount: 30,
+                address: "10.0.0.1:7777"), out _);
+            registry.Register(Command("idle", playerCount: 1, address: "10.0.0.2:7777"), out _);
+
+            Assert.Equal(InstanceRegistry.RoomAllocation.Found,
+                registry.TryAllocateForRoom("Room-A", "hash-a", out InstanceRegistry.Entry chosen));
+            Assert.Equal("host", chosen.InstanceId);
+            Assert.Equal("10.0.0.1:7777", chosen.Address);
+        }
+
+        [Fact]
+        public void 换票分配_房号在别的构建上_报版本冲突_不换实例()
+        {
+            var clock = new VirtualClock();
+            var registry = NewRegistry(clock);
+            registry.Register(RoomCommand("host", "Room-A", buildHash: "hash-old"), out _);
+            registry.Register(Command("new-build", buildHash: "hash-new", playerCount: 1), out _);
+
+            Assert.Equal(InstanceRegistry.RoomAllocation.VersionMismatch,
+                registry.TryAllocateForRoom("Room-A", "hash-new", out _));
+        }
+
+        [Fact]
+        public void 换票分配_归属实例排空_报排空_不换实例另建同名房()
+        {
+            var clock = new VirtualClock();
+            var registry = NewRegistry(clock);
+            registry.Register(RoomCommand("host", "Room-A", draining: true), out _);
+            registry.Register(Command("idle", playerCount: 1), out _);
+
+            Assert.Equal(InstanceRegistry.RoomAllocation.Draining,
+                registry.TryAllocateForRoom("Room-A", "hash-a", out _));
+        }
+
+        [Fact]
+        public void 换票分配_房号不在任何明细_回落负载分配()
+        {
+            var clock = new VirtualClock();
+            var registry = NewRegistry(clock);
+            registry.Register(Command("idle", playerCount: 1), out _);
+
+            Assert.Equal(InstanceRegistry.RoomAllocation.Unknown,
+                registry.TryAllocateForRoom("Room-Unknown", "hash-a", out _));
+        }
     }
 }

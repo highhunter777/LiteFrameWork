@@ -83,7 +83,10 @@ namespace MetaServer.Modules.Lobby
             }
         }
 
-        public Result Issue(string accountId, JoinTicketCommand command)
+        /// <param name="requireRoomSlot">true = 额外要求目标实例的房间表未满（**新建房**路径专用：
+        /// 房间普遍坐不满的常态下 RoomCount 会先到 MaxRooms 而 PlayerCount 还没到上限，只看玩家容量
+        /// 会给"建不出房"的实例发票据——玩家到房间服只得"房间不可用"）。</param>
+        public Result Issue(string accountId, JoinTicketCommand command, bool requireRoomSlot = false)
         {
             if (!FieldValidation.IsValid(accountId, MaxFieldBytes)
                 || !FieldValidation.IsValid(command?.RequestId, MaxFieldBytes))
@@ -116,16 +119,40 @@ namespace MetaServer.Modules.Lobby
                 }
             }
 
-            if (!_registry.TryAllocate(command.BuildHash, out InstanceRegistry.Entry chosen, out bool versionConflict))
+            // 分配：**先按房号归属**（多实例正确性——房号只能落在报了它的实例上，换实例会让房间服懒创建
+            // 同名房、原房队友永远等不到人）；房号不在任何明细里（新建房/未上报）才按负载分配。
+            // requireRoomSlot：新建房路径要求目标实例的房间表未满（房间普遍坐不满时 RoomCount 会先到上限）。
+            InstanceRegistry.Entry chosen = null;
+            bool versionConflict = false;
+            bool allocated;
+            if (!string.IsNullOrEmpty(command.RoomId))
+            {
+                switch (_registry.TryAllocateForRoom(command.RoomId, command.BuildHash, out chosen))
+                {
+                    case InstanceRegistry.RoomAllocation.Found:
+                        allocated = true;
+                        break;
+                    case InstanceRegistry.RoomAllocation.VersionMismatch:
+                        // 房号在别的构建上：不换实例另建同名房（那会把"版本不符"变成"房间凭空多出一个"）
+                        return VersionMismatch();
+                    case InstanceRegistry.RoomAllocation.Draining:
+                        // 归属实例在排空（房间服拒新进房）：按"暂无容量"处置，不换实例
+                        return new Result.NoCapacity();
+                    default:
+                        allocated = _registry.TryAllocate(command.BuildHash, out chosen, out versionConflict,
+                            requireRoomSlot);
+                        break;
+                }
+            }
+            else
+            {
+                allocated = _registry.TryAllocate(command.BuildHash, out chosen, out versionConflict, requireRoomSlot);
+            }
+
+            if (!allocated)
             {
                 // 版本不符与无容量分开：前者换客户端构建/等新实例，后者等待或扩容——处置不同（§7 版本准入）
-                return versionConflict
-                    ? new Result.Rejected
-                    {
-                        ErrorCode = LobbyErrorCodes.VersionMismatch,
-                        MessageKey = LobbyErrorCodes.MessageKeyVersionMismatch,
-                    }
-                    : new Result.NoCapacity();
+                return versionConflict ? VersionMismatch() : (Result)new Result.NoCapacity();
             }
 
             string ticket = _signer.Issue(accountId, accountId, roomId, chosen.BuildHash, command.MapId,
@@ -168,6 +195,17 @@ namespace MetaServer.Modules.Lobby
             {
                 ErrorCode = LobbyErrorCodes.InvalidRequest,
                 MessageKey = LobbyErrorCodes.MessageKeyInvalidRequest,
+            };
+        }
+
+        /// <summary>版本不符（换客户端构建/等新实例——与"无容量"处置不同，见 §7 版本准入）；
+        /// 单源：房号归属分配与负载分配两处同形。</summary>
+        private static Result.Rejected VersionMismatch()
+        {
+            return new Result.Rejected
+            {
+                ErrorCode = LobbyErrorCodes.VersionMismatch,
+                MessageKey = LobbyErrorCodes.MessageKeyVersionMismatch,
             };
         }
 

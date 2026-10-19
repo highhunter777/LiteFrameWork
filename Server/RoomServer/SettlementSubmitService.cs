@@ -196,8 +196,10 @@ namespace RoomServer
                 request.Content = new StringContent(
                     JsonSerializer.Serialize(BuildPayload(entry), WebJson), Encoding.UTF8, "application/json");
 
+                // **带停止令牌**（关闭链批）：Stop 时取消在途请求，让"有界等待"真的能等到线程退出
+                // （否则线程停在超时请求里，Dispose 会在存活线程上释放停止位 → 未处理异常杀进程）。
                 using HttpResponseMessage response = Http
-                    .SendAsync(request, HttpCompletionOption.ResponseContentRead)
+                    .SendAsync(request, HttpCompletionOption.ResponseContentRead, StopToken)
                     .GetAwaiter().GetResult();
 
                 if (response.IsSuccessStatusCode)
@@ -305,6 +307,15 @@ namespace RoomServer
                 _log("[Settle] 提交失败（连续 " + consecutive + " 次）：" + error
                     + "（条目保持待提交；对局服务不受影响）");
             }
+        }
+
+        /// <summary>停止超时（线程未在有界等待内退出）：如实告警——此时停止位/HttpClient 有意不释放
+        /// （释放会让存活线程抛未处理异常），见 <see cref="HttpSubmitWorker.Dispose"/>。
+        /// 条目仍在 Outbox 日志（write-through），下次启动续投。</summary>
+        protected override void OnStopTimeout()
+        {
+            _log("[Settle] 停止超时：提交线程未在 " + HttpWorkerSupport.StopJoinTimeoutMs
+                + "ms 内退出（在途请求未返回）——不释放其停止位/HttpClient，避免关闭阶段未处理异常");
         }
 
     }

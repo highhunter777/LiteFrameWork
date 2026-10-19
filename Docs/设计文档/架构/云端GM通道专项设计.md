@@ -34,23 +34,25 @@
 
 ## 2. 线程模型（硬约束）
 
-`TrySubmitCommandTo`（`ServerHost.cs:749`）在 `_mailboxRouting == false` 时会**同步** `ExecuteCommandTo`——若在 HTTP 线程直接调用，等于外部线程改权威状态。故：
+`SubmitCommandTo` 在 `_mailboxRouting == false` 时会**同步** `ExecuteCommandTo`——若在 HTTP 线程直接调用，等于外部线程改权威状态。故：
 
-- HTTP 线程**只做**：鉴权 → 解析 → **入队**（`GmCommandQueue`：锁 + 列表，照抄 `PendingDisconnectQueue.cs:27/51` 范式）→ 立即返回 `202 {"ok":true,"queued":true}`；
-- `ServerHost.Pump()`（权威循环）中 `Flush` 队列，动作**在权威循环内**执行，再经既有 `SubmitCommandTo` 投递到房间（Mailbox 路由开启时走 `EnqueueControl`，其 `lock` 保证跨线程安全）。
+- HTTP 线程**只做**：鉴权 → 解析 → **入队**（`GmActionQueue`：锁 + 列表，照抄 `PendingDisconnectQueue` 范式）→ 立即返回 `200 {"ok":true,"queued":true}`；
+- `ServerHost.Pump()`（权威循环）中 `Flush` 队列，动作在权威循环内落地，再经既有 `SubmitCommandTo` 投递到房间（Mailbox 路由开启时走 `EnqueueControl`，其 `lock` 保证跨线程安全）；
+- **Worker 执行形态（生产装配）下执行 owner 是 Worker**：宿主线程不得旁路直驱 `RoomRuntime.Execute`——`SubmitCommandTo` 的同步兜底只在宿主 owner 形态成立，worker 形态入盒失败即如实报错（未入盒 = 未执行）。规则类动作（`room/rules`）不新增 `RoomCommandKind`，经 `RoomInstance` 待办交接给归属 Worker，在驱动开头落地（判定与快照因此看到同一份规则）；
 - 读类动作（`rooms/list`）可在 HTTP 线程直接读 `RoomSummaries()`——它与 Lobby 心跳同族的"近似快照"口径（字段级读、撕裂由 catch 兜底），不进权威循环。
 
 ---
 
 ## 3. 动作集（本批）
 
-| 动作 | 实现路径 | 语义 |
+| 动作（HTTP 路径） | 实现路径 | 语义 |
 |---|---|---|
-| `rooms/list` | `ServerHost.RoomSummaries()` | 房间号/阶段/在座/期望/地图（近似快照） |
-| `room/start` | `RoomCommand.StartEarly(ownerPlayerId)` | 不等满员强制开局。**发起席位必须是 owner**（内核校验），无 owner ⇒ 409 |
-| `room/abort` | `RoomCommand.Shutdown(ShutdownReason.Operator)` | 与进程排空同口径的运维终止 |
-| `room/kick` | `RoomCommand.Disconnect(connectionId)` + 传输层断连 | 踢席位（按 `player` 找会话连接） |
-| `room/settle-flush` | `ServerHost.FlushSettlementOutbox()` | 立即回灌待提交结算（验结算链用） |
+| `/gm/rooms` | `ServerHost.RoomSummaries(includeHidden: true)` | 房间号/阶段/在座/期望/地图（近似快照；含隐藏房） |
+| `/gm/start` | `RoomCommand.StartEarly(ownerPlayerId)` | 不等满员强制开局。**发起席位必须是 owner**（内核校验），无 owner ⇒ 409 |
+| `/gm/abort` | `RoomCommand.Shutdown(ShutdownReason.Operator)` | 与进程排空同口径的运维终止 |
+| `/gm/kick` | `RoomCommand.Disconnect(connectionId)` + 传输层断连 | 踢席位（按 `player` 找会话连接） |
+| `/gm/rules` | `MatchTestRules` 规则位（见 §6） | 测试房判定面开关（1=免死 / 2=无限弹药 / 0=关）；只对隐藏测试房开放 |
+| `/gm/settle-flush` | `ServerHost.FlushSettlementOutbox()` | 立即回灌待提交结算（验结算链用） |
 
 **不做的动作与原因**：
 
@@ -78,12 +80,12 @@
 
 ---
 
-## 6. 判定面 GM（下一批，用户已裁决"做，但限定 GM 房"）
+## 6. 判定面 GM（测试房限定形态）
 
-- 形态：服务端侧注入（客户端下发 = 给客户端开挂接口，且《GM与调试工具分层设计》§3 明确判定面覆写"不进摘要、不可重放"）。
-- 范围：免死（`MatchTestRules.NoDeath` 的权威侧等价物）优先；弹药/爆头其次。
-- 红线：① 仅 GM 授权的房间生效；② **不进 `CombatConfigDigest` / 联机身份摘要**；③ 该房**结算被拒**（不进战绩）；④ 进程重启即失效，不落盘。
-- 代价：要动 Sim 判定路径的两端一致性口径，必须与"表摘要/握手"验收一起做，**不与本批混批判因**。
+- 形态：服务端侧注入（客户端下发 = 给客户端开挂接口，且《GM与调试工具分层设计》§3 明确判定面覆写"不进摘要、不可重放"）——`/gm/rules` 动作，**只对带模板建的测试房**（不进大厅列表的隐藏房）生效，普通房一律 409。
+- 范围：免死 + 无限弹药两个规则位（`MatchTestRules.GmFlags`；随快照下发，客户端据此同值预测）。
+- 红线：① 仅测试房生效（判据与大厅隐藏过滤同源）；② **不进 `CombatConfigDigest` / 联机身份摘要**；③ 该房**结算被拒**（跳过结算入盒，客户端仍收到终局 `MatchEnded`）；④ 不落盘，进程重启即失效。
+- 落地路径：宿主 owner 形态在权威循环内直接替换规则引用；**Worker 执行形态经 `RoomInstance` 待办交接**，由归属 Worker 在驱动开头落地（判定与快照读到同一份规则）——不新增 `RoomCommandKind`，BuildHash 与线格式不变。
 
 ---
 

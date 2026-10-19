@@ -123,5 +123,92 @@ namespace LiteNet.Tests
                 Assert.Equal(0, host.GmPendingActions);
             }
         }
+
+        // ---- Worker 执行形态（生产装配）：执行 owner 是 Worker，宿主线程不得碰 Runtime ----
+
+        private const string WorkerConfig = @"{
+            ""port"": 45311, ""max_rooms"": 2, ""worker_count"": 1, ""mailbox_capacity"": 1,
+            ""audience"": """", ""default_template"": ""two"",
+            ""rooms"": { ""two"": { ""expected_players"": 2 } }
+        }";
+
+        private static ServerHost NewWorkerHost()
+        {
+            var cfg = RoomServerConfig.Parse(WorkerConfig);
+            var host = new ServerHost(new FakeRoomTransport(), null, null, null, cfg, null, null,
+                mailboxRouting: true, drainMailboxesImmediately: false, workerExecution: true,
+                map: TestMaps.Greybox());
+            host.Ops.PrintEnabled = false;
+            return host;
+        }
+
+        private static bool PumpUntil(ServerHost host, System.Func<bool> predicate, int timeoutMs = 5000)
+        {
+            var watch = System.Diagnostics.Stopwatch.StartNew();
+            while (watch.ElapsedMilliseconds < timeoutMs)
+            {
+                host.Pump();
+                if (predicate()) return true;
+                System.Threading.Thread.Sleep(1);
+            }
+            return predicate();
+        }
+
+        /// <summary>Worker 形态：GM 规则由**归属 Worker** 在驱动开头落地（宿主只登记待办）。
+        /// 判据取内核事实 <c>AuthSim.Match.GmFlags</c>——它与下发给客户端的快照同源。</summary>
+        [Fact]
+        public void Worker形态_GM规则经归属Worker落地()
+        {
+            using var host = NewWorkerHost();
+            RoomRuntime room = host.OpenRoom("GmWorkerRules", 0, 2, "two");   // 带模板 = 测试房（规则只对它开放）
+            Assert.NotNull(room);
+            Assert.Equal(0, room.AuthSim.Match.GmFlags);
+
+            Assert.False(host.GmSubmit(GmAction.SetRules("GmWorkerRules", 3)).HasValue, "测试房 ⇒ 入队");
+
+            Assert.True(PumpUntil(host, () => room.AuthSim.Match.GmFlags == 3),
+                "GM 规则必须由 Worker 在驱动开头落地（宿主只登记待办）");
+        }
+
+        /// <summary>Worker 形态：宿主 Pump **不得**直写 Runtime——把执行 owner（池）停掉后，
+        /// 规则只留在待办里，内核事实保持不变（旧形态会在这里立刻生效 = 与 Worker 并发写）。</summary>
+        [Fact]
+        public void Worker形态_GM规则不在宿主线程直写Runtime()
+        {
+            using var host = NewWorkerHost();
+            RoomRuntime room = host.OpenRoom("GmWorkerNoBypass", 0, 2, "two");
+            Assert.NotNull(room);
+
+            host.WorkerPool.Stop(drain: false);          // 停掉执行 owner：此后没有任何 Worker 会落地待办
+            Assert.False(host.GmSubmit(GmAction.SetRules("GmWorkerNoBypass", 2)).HasValue);
+
+            for (int i = 0; i < 10; i++)
+            {
+                host.Pump();
+                System.Threading.Thread.Sleep(1);
+            }
+
+            Assert.Equal(0, room.AuthSim.Match.GmFlags); // 宿主没有旁路直写；待办等 Worker 回来才落地
+        }
+
+        /// <summary>Worker 形态：控制 lane 满时**不得**旁路直驱 Runtime（旧形态会直接执行 →
+        /// Abort 当场关房并把结算链推进，与归属 Worker 并发）。判据 = 房间仍在、未关闭。</summary>
+        [Fact]
+        public void Worker形态_控制队列满时宿主不旁路直驱()
+        {
+            using var host = NewWorkerHost();
+            RoomRuntime room = host.OpenRoom("GmWorkerFull", 0, 2, "two");
+            Assert.NotNull(room);
+
+            host.WorkerPool.Stop(drain: false);          // lane 不会被消费：第二次入盒必然满
+
+            Assert.False(host.GmSubmit(GmAction.Abort("GmWorkerFull")).HasValue);
+            host.Pump();                                 // 第一条入盒成功（占满容量 1）
+
+            Assert.False(host.GmSubmit(GmAction.Abort("GmWorkerFull")).HasValue);
+            host.Pump();                                 // 第二条入盒失败：worker 形态只报错，不直驱
+
+            Assert.False(room.Closed, "worker 形态下控制命令未入盒时不得由宿主线程直接执行（房间应保持未关闭）");
+        }
     }
 }

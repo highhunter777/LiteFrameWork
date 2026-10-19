@@ -89,6 +89,19 @@ namespace MetaServer
         /// <summary>访问令牌有效期（秒）。</summary>
         public int AuthTokenTtlSeconds { get; set; } = 600;
 
+        /// <summary>
+        /// 游客登录限流：**每源 IP 每分钟**许可数（缺省 30；<c>0</c> = 关闭）。
+        ///
+        /// **为什么需要它**：`POST /auth/guest` 是全服务唯一"不带任何凭据就能落地一条账号文档"的端点
+        /// （<c>deviceId</c> 可任意枚举 ⇒ accounts 集合与索引无界增长、Mongo 写放大）。房间端有
+        /// ip/entry/account/session 四级限流，Meta 侧此前一条都没有（只有计数中间件）。
+        /// 客户端处置：429 + <c>Retry-After</c>（秒）——登录是幂等的，退避重试即可。
+        /// </summary>
+        public int GuestLoginPerMinute { get; set; } = DefaultGuestLoginPerMinute;
+
+        /// <summary>游客登录每分钟许可缺省值（30：单机封闭测试的登录节拍远低于此）。</summary>
+        public const int DefaultGuestLoginPerMinute = 30;
+
         // ---- Lobby（R3：实例注册 + Join Ticket 签发；§6.2/§7）----
 
         /// <summary>
@@ -242,6 +255,10 @@ namespace MetaServer
                 errors.Add("AuthAudience 必须为 1..128 个字符");
             if (AuthTokenTtlSeconds < 60 || AuthTokenTtlSeconds > 604800)
                 errors.Add("AuthTokenTtlSeconds 必须在 60..604800，实际：" + AuthTokenTtlSeconds);
+
+            // 游客登录限流：0 = 关闭（显式），开启则至少 1/分钟（范围上界挡"配成不限流"的误配）
+            if (GuestLoginPerMinute < 0 || GuestLoginPerMinute > 100_000)
+                errors.Add("GuestLoginPerMinute 越界（允许 0（关闭）或 1..100000），实际：" + GuestLoginPerMinute);
 
             // ---- Lobby（R3）：半段配置 = 配置错误（宁可不启动，也不带"以为开了"的 Lobby 运行）----
             bool lobbyConfigured = !string.IsNullOrWhiteSpace(LobbyInstanceKeyBase64)

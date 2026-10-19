@@ -366,7 +366,7 @@ namespace RoomServer
             lock (_hiddenGate) return _hiddenRooms.Contains(roomId);
         }
 
-        /// <summary>移除隐藏标记（房间销毁时调用；房间号不复用，残留只会白占集合）。</summary>
+        /// <summary>移除隐藏标记（房间销毁/回滚时调用；同号可重建，残留会让新房间继承"隐藏房"身份）。</summary>
         private void ClearHiddenRoom(string roomId)
         {
             if (string.IsNullOrEmpty(roomId)) return;
@@ -838,14 +838,21 @@ namespace RoomServer
         /// <summary>控制命令的提交入口；路由失败由对应 admission 处理。</summary>
         private void SubmitCommandTo(RoomInstance room, in RoomCommand cmd, Session joinContext = null)
         {
-            if (!TrySubmitCommandTo(room, cmd, joinContext)
-                && _mailboxRouting && cmd.Kind != RoomCommandKind.ClientInput)
+            if (TrySubmitCommandTo(room, cmd, joinContext)) return;
+            if (!_mailboxRouting || cmd.Kind == RoomCommandKind.ClientInput) return;
+
+            if (_workerExecution)
             {
-                // 控制命令不能静默丢失；当前仍由同一 Host owner 执行，故在
-                // Mailbox 关闭/满载时保留一个显式旁路兜底。入站 Join/Reconnect
-                // 使用各自 admission 分支，不经过这里。
-                ExecuteCommandTo(room, cmd, joinContext);
+                // **Worker 形态禁止宿主线程旁路直驱 Runtime**：执行 owner 是 Worker，宿主直接调用
+                // Runtime.Execute 会与 Worker 的 tick 并发改席位/状态机/输出缓冲（内核单线程、无锁）。
+                // 控制命令不能静默丢失——如实报错（未入盒 = 未执行，调用方/运维可重试）。
+                HostLog.Error("Worker",
+                    $"控制命令未入盒（worker 形态不旁路直驱）：kind={cmd.Kind} room={room?.RoomId}");
+                return;
             }
+
+            // 宿主 owner 形态：当前执行者就是宿主（单线程），显式旁路兜底——控制命令不能静默丢失。
+            ExecuteCommandTo(room, cmd, joinContext);
         }
 
         private void ExecuteCommandTo(RoomInstance room, in RoomCommand cmd, Session joinContext = null)
@@ -1218,17 +1225,10 @@ namespace RoomServer
                     // 终态中止的客户端信令（复用 MatchEnded——客户端既有终局链路；无结果可结算，Players 空）。
                     // 触发面：等待超时/运维关闭/排空超时等**未开局即收尾**路径——此前在座客户端收不到
                     // 任何信令，房间销毁后停在房间页无反馈。对局中收尾经 SettlementReady → MatchEnded
-                    // （带结果），不经此。
+                    // （带结果），不经此。打包单源在 HandshakePacker（与本地服共一份——字段面不两端漂移）。
                     RoomInstance room = CurrentOrFirstRoom;
                     if (room == null) break;
-                    var aborted = new Proto.MatchEnded
-                    {
-                        MatchId = ra.MatchId ?? "",
-                        FinalFrame = ra.Frame,
-                        EndReason = (int)ra.Reason,
-                        GameplayEndReason = (int)MatchEndReason.None,
-                        WinnerEntityId = 0L,
-                    };
+                    var aborted = HandshakePacker.BuildAbortedMatchEnded(ra);
                     for (int p = 0; p < room.Seats.Length; p++)
                     {
                         Session member = room.Seats[p];
@@ -1282,15 +1282,8 @@ namespace RoomServer
         {
             RoomInstance room = CurrentOrFirstRoom;
             if (room == null) return;
-            var message = new Proto.MatchEnded
-            {
-                MatchId = summary.MatchId, FinalFrame = summary.FinalFrame,
-                EndReason = (int)summary.EndReason, GameplayEndReason = (int)summary.GameplayEndReason,
-                WinnerEntityId = summary.WinnerEntityId,
-            };
-            foreach (RoomServer.Runtime.PlayerMatchResult result in summary.Players)
-                message.Players.Add(new Proto.PlayerMatchResult { PlayerId = result.PlayerId,
-                    EntityId = result.EntityId, Kills = result.Kills, Deaths = result.Deaths });
+            // 打包单源（HandshakePacker——与本地服共一份）：字段面漂移结构性消除，席位遍历/落盒归宿主。
+            var message = HandshakePacker.BuildMatchEnded(summary);
             foreach (Session member in room.Seats)
                 if (member != null && !member.Disconnected)
                     SendToSession(member, PacketType.MatchEnded, message, reliable: true);
@@ -1607,10 +1600,12 @@ namespace RoomServer
 
         // ---- 运维（GM）通道（《云端GM通道专项设计》§2/§3）----
         //
-        // 设计硬约束两条：
+        // 设计硬约束三条：
         // ① **不新增 RoomCommandKind**——RoomCommand 在双编共享源集内，改它 BuildHash 即变 ⇒ 客户端要重打包，
         //    与"客户端零改动"冲突；故只复用既有 StartEarly / Shutdown / Disconnect 三种命令 + 本宿主的既有 public 面。
         // ② **动作只在权威循环执行**——HTTP 线程不得直接改权威状态（_mailboxRouting 关闭时 SubmitCommandTo 是同步的）。
+        // ③ **Worker 执行形态下执行 owner 是 Worker**——宿主线程不得旁路直驱 Runtime（SubmitCommandTo 的旁路
+        //    只在宿主 owner 形态成立）；规则类动作经 RoomInstance 待办交给归属 Worker（见 ExecuteGmAction）。
 
         /// <summary>
         /// 运维动作入队（GM HTTP 线程调用）：只做**不碰权威状态**的前置校验（房间/席位是否存在），
@@ -1731,8 +1726,16 @@ namespace RoomServer
                     return;
 
                 case GmActionKind.SetRules:
-                    // 权威循环内替换规则引用（null = 关闭全部 GM）；规则位随下一份快照全量下发，
-                    // 客户端据此同值预测（免死不再"掉血回弹"）。规则**不进摘要**。
+                    // 规则位随下一份快照全量下发，客户端据此同值预测（免死不再"掉血回弹"）。规则**不进摘要**。
+                    // Worker 执行形态：**只登记待办**，由归属 Worker 在驱动开头落地——宿主直写会与 Worker 的
+                    // tick 并发（规则在 tick 中途换掉 ⇒ 同帧内判定读到的规则不一致）。
+                    if (_workerExecution)
+                    {
+                        room.SetPendingTestRules(action.Flags == 0 ? null : MatchTestRules.FromFlags(action.Flags));
+                        Console.WriteLine($"[GM] 入 Worker 待办：rules room={action.RoomId} flags={action.Flags}");
+                        return;
+                    }
+                    // 宿主 owner 形态：宿主就是执行者，权威循环内直接替换规则引用。
                     room.Runtime.SetTestRules(action.Flags == 0 ? null : MatchTestRules.FromFlags(action.Flags));
                     Console.WriteLine($"[GM] 执行：rules room={action.RoomId} flags={action.Flags}");
                     return;
@@ -1804,8 +1807,14 @@ namespace RoomServer
             get
             {
                 if (!_draining) return false;
-                for (int i = 0; i < _registry.Count; i++)
-                    if (!_registry.Order[i].Runtime.Closed) return false;
+                // **跨线程读面**：本属性由 Program 主线程轮询，而权威线程可在两拍之间销毁终态房间
+                // （TryDestroyTerminalRoom）——直接 `for (i < Count) Order[i]` 会在缩表瞬间越界，
+                // 异常冒出顶级语句会跳过 loop.Stop()/FlushSettlementOutbox()。走注册表快照；
+                // 快照撕裂返回空时再用 Count 复核，宁可按"未完成"多等一拍（不得提前放行释放）。
+                RoomInstance[] rooms = _registry.SnapshotArray();
+                if (rooms.Length == 0 && _registry.Count != 0) return false;
+                for (int i = 0; i < rooms.Length; i++)
+                    if (rooms[i]?.Runtime == null || !rooms[i].Runtime.Closed) return false;
                 return true;
             }
         }
@@ -1996,6 +2005,8 @@ namespace RoomServer
             _registry.Remove(room);
             room.Mailbox.Complete();
             while (room.Mailbox.TryDequeue(out _)) { }   // 残余控制/输入/出站消息随房间终态丢弃
+            ClearHiddenRoom(room.RoomId);                // 测试房标记随之摘除（同号可重建：残留会让新房间继承"隐藏房"身份——
+                                                         // 大厅列表被过滤、GM SetRules 误放行；与 RemoveEmptyRoom 同一收尾口径）
             _ops.NoteRoomDestroyed();
             HostLog.Info("Room", $"终态房间已销毁：{room.RoomId}（在册 {_registry.Count}/{MaxRooms}）");
             return true;

@@ -223,7 +223,7 @@ RoomRuntime 冻结 MatchResult
 - **重启恢复**：进程重启后 Outbox 可恢复并继续提交；已确认的结算不丢、不重。
 - **可观测**：`settlement_outbox_pending`、`settlement_retry_total`、`settlement_idempotent_hit_total` 为必备指标（§13.2）——`idempotent_hit_total` 持续增长是上游重试异常的早期信号。
 
-**实装口径（R3-Profile，2026-10-10）**：`POST /matches/result` 一条提交承载**双侧落库**——①**归档面**（`match_results`，`_id`=matchId 即幂等裁判、存储端赋值完成时刻、`players.accountId` 索引）：承载"重复提交只落一条"与 `GET /matches` 按账号查询（访问令牌——按令牌账号查，`limit` 1..100；裁决点③）；②**账本面**：逐玩家 `ISettlementLedger.ApplyAsync` 追加模式（操作号缺省 `match:{matchId}:{playerId}` 确定性派生；裁决点①的账号映射随载荷）。提交方 = RoomServer **结算提交管道**（`SettlementSubmitService`：实例密钥与 Lobby 注册共用服务凭据；200 即标记 Outbox 完成——Meta 幂等是最终裁判；失败保持待提交 + 指数退避；重启从日志待提交面续投）。结算载荷含 `SeatAccountIds`（Outbox 追加字段，**旧行空数组**兼容）。封闭测试期无经济系统：逐玩家 delta=0 占位（revision 推进、余额不变），真实 RewardDelta 换算在提交方完成、归 P4。**SIGTERM（容器 stop/K8s）与 Ctrl+C 同排空路径**。
+**实装口径（R3-Profile，2026-10-10）**：`POST /matches/result` 一条提交承载**双侧落库**——①**归档面**（`match_results`，`_id`=matchId 即幂等裁判、存储端赋值完成时刻、`players.accountId` 索引）：承载"重复提交只落一条"与 `GET /matches` 按账号查询（访问令牌——按令牌账号查，`limit` 1..100；裁决点③）；②**账本面**：逐玩家 `ISettlementLedger.ApplyAsync` 追加模式（操作号缺省 `match:{matchId}:{playerId}` 确定性派生；裁决点①的账号映射随载荷）。提交方 = RoomServer **结算提交管道**（`SettlementSubmitService`：**结算实例密钥与 Lobby 注册凭据分权**——`SettlementInstanceKeyBase64` ↔ 房间端 `--settlement-instance-key`，注册实例 ≠ 写账本；200 即标记 Outbox 完成——Meta 幂等是最终裁判；失败保持待提交 + 指数退避；重启从日志待提交面续投）。结算载荷含 `SeatAccountIds`（Outbox 追加字段，**旧行空数组**兼容）。封闭测试期无经济系统：逐玩家 delta=0 占位（revision 推进、余额不变），真实 RewardDelta 换算在提交方完成、归 P4。**SIGTERM（容器 stop/K8s）与 Ctrl+C 同排空路径**。
 
 ## 9. 存储与依赖
 

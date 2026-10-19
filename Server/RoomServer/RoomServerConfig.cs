@@ -146,7 +146,8 @@ namespace RoomServer
         /// <summary>
         /// 结算提交端点**完整 URL**（《上云测试专项设计》§2"后台服务读本地 Outbox → Meta 幂等端点"；
         /// 空 = 提交管道关闭）。示例：<c>https://meta.example.com/matches/result</c>。
-        /// 实例密钥同 Lobby 注册（环境变量注入，见 Program）。
+        /// 实例密钥**与 Lobby 注册分权**（P1②：注册实例 ≠ 写结算账本）——结算凭据走
+        /// <c>--settlement-instance-key</c> / <c>LITENET_SETTLEMENT_INSTANCE_KEY</c>，非 lobby 密钥。
         /// </summary>
         public readonly string SettlementSubmitUrl;
 

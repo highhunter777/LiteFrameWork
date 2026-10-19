@@ -37,6 +37,9 @@ namespace MetaServer.Contracts.Auth
         /// <summary>访问令牌无效/过期/不符（鉴权中间件随 Lobby 首个受保护端点接入时启用）。HTTP 401。</summary>
         public const string Unauthorized = "auth.unauthorized";
 
+        /// <summary>请求过于频繁（未鉴权端点的兜底限流——游客登录每 IP 每分钟窗口）。HTTP 429。</summary>
+        public const string RateLimited = "auth.rate-limited";
+
         /// <summary>无效请求的消息键（本地化键空间 "meta." 前缀——客户端按 key 查表）。</summary>
         public const string MessageKeyInvalidRequest = "meta.auth.invalid-request";
 
@@ -45,6 +48,9 @@ namespace MetaServer.Contracts.Auth
 
         /// <summary>访问令牌无效/过期/不符的消息键（Lobby 首个受保护端点起消费）。</summary>
         public const string MessageKeyUnauthorized = "meta.auth.unauthorized";
+
+        /// <summary>请求过于频繁的消息键。</summary>
+        public const string MessageKeyRateLimited = "meta.auth.rate-limited";
     }
 
     /// <summary>

@@ -332,7 +332,15 @@ else
     {
         Thread.Sleep(50);
     }
-    loop.Stop();
+    // 停止有界等待（§12 第 5 步的前置）：false = 帧体被阻塞（如结算线程持 Outbox 锁做压实），
+    // 循环线程仍在 Pump——此时直接 Flush/释放会与其并发（Outbox 释放后的入盒抛 ODE 被 PumpOnce
+    // 吸收，只记一次"泵失败"而该笔结算静默丢失），故再等一次并如实告警。
+    if (!loop.Stop())
+    {
+        Console.WriteLine($"[RoomServer] !! 权威循环未在 {ServerLoop.DefaultStopTimeoutMs}ms 内退出（帧体阻塞）——再等 3s");
+        if (!loop.Stop(3000))
+            Console.WriteLine("[RoomServer] !! 权威循环仍未退出：继续收口将与其并发（结算入盒失败只记泵失败）");
+    }
 
     // §12 第 4 步：刷新 Outbox 到持久介质（逐条 write-through 已落盘，此处为收口确认）；
     // 未提交条目保持在日志中可重试——下次启动的"结算日志重放"即恢复面。

@@ -92,6 +92,32 @@ namespace RoomServer
         private int _drainTimeoutIssued;            // 宿主自写自读（超时 Shutdown 只投一次）
 
         /// <summary>
+        /// 待应用的 GM 测试规则（宿主线程登记、归属 Worker 在驱动开头取走）。**为什么不在宿主线程直接改
+        /// Runtime**：内核是单线程/无锁（见本类与 <see cref="RoomRuntime"/> 的约束），Worker 执行形态下
+        /// 宿主只是事件生产者；直接写会与 Worker 的 tick 并发，规则可能在 tick 中途换掉 ⇒ 同一帧内
+        /// 不同系统读到不同规则（客户端预测与权威分叉）。交接用 Interlocked：外层对象表达"有/无待办"，
+        /// 内层允许 null（null = 关闭全部 GM 规则，是合法值，不能用 null 表示"无待办"）。
+        /// </summary>
+        private PendingTestRules _pendingTestRules;
+
+        private sealed class PendingTestRules
+        {
+            public MatchTestRules Rules;
+        }
+
+        /// <summary>登记一条待应用的 GM 规则（宿主线程；由归属 Worker 在驱动开头落地）。</summary>
+        public void SetPendingTestRules(MatchTestRules rules)
+            => Interlocked.Exchange(ref _pendingTestRules, new PendingTestRules { Rules = rules });
+
+        /// <summary>取走待应用规则（Worker 线程；false = 无待办）。</summary>
+        public bool TryTakePendingTestRules(out MatchTestRules rules)
+        {
+            PendingTestRules pending = Interlocked.Exchange(ref _pendingTestRules, null);
+            rules = pending?.Rules;
+            return pending != null;
+        }
+
+        /// <summary>
         /// Worker 驱动入口（缓存委托，避免每帧分配；仅 Worker 执行形态装配，装配后不再变）。
         /// 读取即 <c>!= null</c> 判定"本房间是否已绑定驱动"。
         /// </summary>

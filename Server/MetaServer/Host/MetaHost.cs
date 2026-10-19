@@ -1,6 +1,8 @@
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.Threading.Tasks;
+using MetaServer.Contracts.Auth;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.DependencyInjection;
@@ -54,6 +56,7 @@ namespace MetaServer
             MetaHostOptions.ApplyListenAddress(app);
 
             app.Use(CountRequestsAsync);
+            UseGuestLoginRateLimit(app);          // 未鉴权写面的兜底限流（游客登录）——在端点之前
             // 挂载形态统一（P2 批二）：健康端点与业务端点同走 XxxEndpoints.Map——
             // 宿主只留挂载序，不再有"私有方法挂载的一类端点"。
             HealthEndpoints.Map(app);
@@ -65,6 +68,45 @@ namespace MetaServer
             SettlementEndpoints.Map(app);
             return app;
         }
+
+        /// <summary>
+        /// 游客登录限流（未鉴权写面的兜底）：**每源 IP 每分钟**许可数走配置
+        /// （<see cref="MetaConfig.GuestLoginPerMinute"/>；0 = 关闭）。
+        ///
+        /// 只拦 <c>POST /auth/guest</c>：它是全服务唯一"不带凭据就能落地一条账号文档"的端点
+        /// （房间端已有限流，Meta 侧此前没有）。时钟用 <see cref="Environment.TickCount64"/>
+        /// （单调毫秒，非墙钟——窗口判定不受校时影响）；键表容量是防放大的常量，不是部署旋钮。
+        /// </summary>
+        private static void UseGuestLoginRateLimit(WebApplication app)
+        {
+            MetaConfig effective = app.Services.GetRequiredService<IOptions<MetaConfig>>().Value;
+            if (effective.GuestLoginPerMinute <= 0) return;      // 0 = 关闭（显式配置）
+
+            var limiter = new FixedWindowRateLimiter(effective.GuestLoginPerMinute, windowMs: 60_000,
+                capacity: GuestRateLimitKeyCapacity, nowMs: () => Environment.TickCount64);
+
+            app.Use(async (context, next) =>
+            {
+                if (HttpMethods.IsPost(context.Request.Method)
+                    && string.Equals(context.Request.Path.Value, AuthEndpoints.GuestLoginPath, StringComparison.Ordinal))
+                {
+                    string key = context.Connection.RemoteIpAddress?.ToString() ?? "unknown";
+                    if (!limiter.TryAcquire(key, out long retryAfterMs))
+                    {
+                        context.Response.StatusCode = StatusCodes.Status429TooManyRequests;
+                        context.Response.Headers.RetryAfter =
+                            ((retryAfterMs + 999) / 1000).ToString(CultureInfo.InvariantCulture);
+                        await context.Response.WriteAsJsonAsync(MetaResults.Error(
+                            AuthErrorCodes.RateLimited, AuthErrorCodes.MessageKeyRateLimited));
+                        return;
+                    }
+                }
+                await next();
+            });
+        }
+
+        /// <summary>限流键表容量（防"源地址可枚举 ⇒ 键表当内存放大器"；超出且无可回收键时拒新键）。</summary>
+        private const int GuestRateLimitKeyCapacity = 4096;
 
         /// <summary>
         /// 请求计数中间件（§11.2）。按响应状态码同时记成功与拒绝：

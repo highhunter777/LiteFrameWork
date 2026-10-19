@@ -103,6 +103,8 @@ namespace RoomServer
         {
             while (true)
             {
+                ApplyPendingTestRules(room);     // 宿主登记的 GM 规则先落地（本轮命令/广播读它，见该方法）
+
                 room.ClearPumpScheduled();
 
                 while (true)
@@ -133,6 +135,17 @@ namespace RoomServer
                 }
                 return;
             }
+        }
+
+        /// <summary>
+        /// 落地宿主登记的 GM 测试规则（**Worker 线程**）：必须在驱动开头、任何命令与广播之前——
+        /// 判定（Sim 读 GmFlags）与快照（下发 GmFlags）必须看到同一份规则。宿主侧见
+        /// <see cref="ServerHost.ExecuteGmAction"/> 的 worker 分支（它只登记、不直写 Runtime）。
+        /// </summary>
+        private static void ApplyPendingTestRules(RoomInstance room)
+        {
+            if (room.TryTakePendingTestRules(out MatchTestRules rules))
+                room.Runtime.SetTestRules(rules);
         }
 
         /// <summary>Worker 侧执行一条控制命令并回传输出（入盒前的会话/路由校验归宿主）。</summary>

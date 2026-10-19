@@ -193,6 +193,26 @@ namespace MetaServer.Tests
             Assert.Contains(config.Validate(), error => error.Contains("AuthTokenTtlSeconds"));
         }
 
+        [Fact]
+        [Trait(TestTrait.Category, TestCategory.Contract)]
+        public void 游客登录限流_缺省开启_0为显式关闭_越界被拒()
+        {
+            Assert.Equal(MetaConfig.DefaultGuestLoginPerMinute, MetaConfig.Default().GuestLoginPerMinute);
+            Assert.Empty(MetaConfig.Default().Validate());          // 缺省开启（未鉴权写面的兜底）
+
+            var off = MetaConfig.Default();
+            off.GuestLoginPerMinute = 0;                            // 0 = 显式关闭（合法）
+            Assert.Empty(off.Validate());
+
+            var bad = MetaConfig.Default();
+            bad.GuestLoginPerMinute = -1;
+            Assert.Contains(bad.Validate(), error => error.Contains("GuestLoginPerMinute"));
+
+            var huge = MetaConfig.Default();
+            huge.GuestLoginPerMinute = 100_001;
+            Assert.Contains(huge.Validate(), error => error.Contains("GuestLoginPerMinute"));
+        }
+
         // ---- Lobby 配置（R3：实例注册 + Join Ticket 签发）----
 
         private static MetaConfig LobbyReady()

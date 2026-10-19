@@ -11,9 +11,12 @@ namespace MetaServer
     /// **构造与状态码经 <see cref="MetaResults"/> 单源**（P2：样板不再散在各端点）。</summary>
     public static class AuthEndpoints
     {
+        /// <summary>游客登录路径（限流中间件按它匹配——路径字面量单源，改一处不会漏改另一处）。</summary>
+        public const string GuestLoginPath = "/auth/guest";
+
         public static void Map(WebApplication app)
         {
-            app.MapPost("/auth/guest", async (HttpContext context) =>
+            app.MapPost(GuestLoginPath, async (HttpContext context) =>
             {
                 GuestLoginUseCase useCase = context.RequestServices.GetService<GuestLoginUseCase>();
                 if (useCase == null)

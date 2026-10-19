@@ -226,5 +226,54 @@ namespace MetaServer.Tests
                 count += view.Rooms?.Count ?? 0;
             return count;
         }
+
+        // ---- 保留集：失败释放 / 有界 / 过期让位（审计新增批：刷号不得把保留表撑成无界内存）----
+
+        private static CreateRoomCommand Req(string requestId, string template = null, string gmKey = null)
+            => new CreateRoomCommand { RequestId = requestId, BuildHash = BuildHash, Template = template, GmKey = gmKey };
+
+        private static CreateRoomUseCase Bounded(Fixture f, int maxReservedIds)
+            => new CreateRoomUseCase(f.Ticket, f.Registry, f.Clock.Now,
+                idSegment: () => f.Segments.Dequeue(), maxReservedIds: maxReservedIds);
+
+        /// <summary>签发未获接纳（这里是带 template 但无 GM 口令 ⇒ 403）时必须**释放刚预留的号**：
+        /// 保留表只留 1 位，泄漏的话下一次创建必然"无新位"。</summary>
+        [Fact]
+        public void 创建_签发失败_释放预留_不占表位()
+        {
+            var f = new Fixture();
+            f.RegisterInstance();
+            CreateRoomUseCase useCase = Bounded(f, maxReservedIds: 1);
+            f.Segments.Enqueue("AAAAAA");
+            f.Segments.Enqueue("BBBBBB");
+            f.Clock.Ms = 1_000;
+
+            var forbidden = Assert.IsType<JoinTicketIssueUseCase.Result.Rejected>(
+                useCase.Create("acc-1", Req("req-1", template: "sandbox")));
+            Assert.Equal(LobbyErrorCodes.Forbidden, forbidden.ErrorCode);
+
+            Assert.IsType<JoinTicketIssueUseCase.Result.Accepted>(
+                useCase.Create("acc-1", Req("req-2")));
+        }
+
+        /// <summary>保留表**有界**：满则拒出号（503 无新位语义，不淘汰旧条目 = 不重开重出窗口）；
+        /// 保留窗到期自动让位（同名号可再出——此时投影里没有它）。</summary>
+        [Fact]
+        public void 创建_保留表满_拒绝出号_保留窗过期后让位()
+        {
+            var f = new Fixture();
+            f.RegisterInstance();
+            CreateRoomUseCase useCase = Bounded(f, maxReservedIds: 1);
+            f.Segments.Enqueue("AAAAAA");
+            f.Segments.Enqueue("AAAAAA");
+            f.Clock.Ms = 1_000;
+
+            Assert.IsType<JoinTicketIssueUseCase.Result.Accepted>(useCase.Create("acc-1", Req("req-1")));
+            Assert.IsType<JoinTicketIssueUseCase.Result.NoCapacity>(useCase.Create("acc-1", Req("req-2")));
+
+            f.Clock.Ms = 1_000 + CreateRoomUseCase.ReservedIdTtlMs + 1;
+            f.RegisterInstance();                          // 心跳续活（保留窗 120s 远长于实例存活 30s）
+            Assert.IsType<JoinTicketIssueUseCase.Result.Accepted>(useCase.Create("acc-1", Req("req-3")));
+        }
     }
 }
