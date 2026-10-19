@@ -46,6 +46,9 @@ namespace LiteNet.Protocol
                 LifeStartFrame = e.LifeStartFrame,
                 ActionPhase = (int)activeAction.Phase,
                 ActionStartFrame = activeAction.StartFrame,
+                // 逐槽位公共校验（P2-A）：该槽位公共面（EntitySlot 公共字段 + 主动作摘要）折叠——
+                // 客户端按本地预测态回滚环探针同口径复算比对（增量部分和解的定位锚）。
+                Checksum = SimChecksum.ComputeEntityPublicChecksum(in e, in activeAction),
             };
         }
 
@@ -101,7 +104,8 @@ namespace LiteNet.Protocol
             {
                 Frame = frame,
                 IsFull = true,
-                Checksum = SimChecksum.ComputePublicChecksum(s),
+                Checksum = SimChecksum.ComputePublicChecksum(s),        // 全量帧：全图公共口径（P2-A 收窄后只此路径用）
+                MatchChecksum = SimChecksum.ComputeMatchChecksum(in s.Match),
                 AckInput = ackInput,
                 Match = PackMatch(s),
             };

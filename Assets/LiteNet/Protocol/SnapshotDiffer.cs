@@ -36,6 +36,7 @@ namespace LiteNet.Protocol
         public int AoiOutsideCount => _aoi.OutsideCount;
         private readonly List<int> _visible = new List<int>();
         private readonly List<int> _changed = new List<int>();      // 本帧"与基线不同"的**可见全图**槽位
+        private readonly int[] _emitSlots = new int[SimConfig.MaxEntities];  // 本帧实际发出的槽位（升序；可见摘要输入）
         private int _lastBroadcastFrame = -1;
         private int _lastFullFrame = int.MinValue;
         private bool _baselineValid;
@@ -50,10 +51,10 @@ namespace LiteNet.Protocol
         private readonly byte[] _lastGlobals = new byte[SimConfig.GlobalsBytes];
         private readonly byte[] _lastCustomData = new byte[SimConfig.MaxEntities * SimConfig.CustomBytesPerEntity];
 
-        /// <summary>差分统计（Ops）：上一份快照的槽位数 / 全量、增量次数。</summary>
-        public int LastDeltaCount;
-        public long FullCount;
-        public long DeltaCount;
+        /// <summary>差分统计（Ops）：上一份快照的槽位数 / 全量、增量次数。只读（类内推进）。</summary>
+        public int LastDeltaCount { get; private set; }
+        public long FullCount { get; private set; }
+        public long DeltaCount { get; private set; }
 
         public int LastBroadcastFrame => _lastBroadcastFrame;
         public bool BaselineValid => _baselineValid;
@@ -152,9 +153,10 @@ namespace LiteNet.Protocol
             {
                 Frame = frame,
                 IsFull = _frameFull,
-                Checksum = SimChecksum.ComputePublicChecksum(state),   // 和解判定锚点（增量也带公共口径校验值）
                 AckInput = ackInput,
                 Match = _match,                                        // 比赛状态层（全体同值）
+                // Match 公共面折叠：增量不含槽位（只带 Match/私有面）时的比对对象（P2-A）。
+                MatchChecksum = SimChecksum.ComputeMatchChecksum(in state.Match),
             };
             if (viewerEntityId != 0L)
                 msg.PrivateState = SnapshotCodec.PackPrivate(state, viewerEntityId);   // 私有层：只发本人
@@ -169,6 +171,8 @@ namespace LiteNet.Protocol
                     msg.Slots.Add(SnapshotCodec.ToDelta(i, state.Entities[i],
                         state.Actions[i * SimConfig.ActionSlotsPerEntity]));
                 }
+                // 全量帧 = **全图**公共口径（P2-A 收窄：全图 checksum 只为全量/重连兜底做裁判）。
+                msg.Checksum = SimChecksum.ComputePublicChecksum(state);
             }
             else
             {
@@ -176,13 +180,18 @@ namespace LiteNet.Protocol
                 _aoi.CollectVisible(in state, viewPos, aoiRadius, _visible);   // AOI 只裁增量帧
 
                 // 变化集 ⊂ 全图活体；这里按可见性过滤（两个升序表求交，槽位序保持升序）
+                int emit = 0;
                 for (int c = 0; c < _changed.Count; c++)
                 {
                     int slot = _changed[c];
                     if (!ContainsSorted(_visible, slot)) continue;
                     msg.Slots.Add(SnapshotCodec.ToDelta(slot, state.Entities[slot],
                         state.Actions[slot * SimConfig.ActionSlotsPerEntity]));
+                    _emitSlots[emit++] = slot;
                 }
+                // 增量帧和解锚点 = 本次实际携带槽位集的公共口径折叠（空集 = FnvOffset 常量）；
+                // 全图 checksum 留 0（语义收窄——不再为 AOI 增量当裁判）。
+                msg.VisibleChecksum = SimChecksum.ComputeVisibleChecksum(in state, _emitSlots, emit);
             }
 
             LastDeltaCount = msg.Slots.Count;

@@ -47,8 +47,8 @@ namespace LiteFramework.Animation
         private readonly IAnimationBackend _backend;
         private readonly AnimationProfile _profile;
         private readonly Dictionary<AnimationChannel, ChannelSlot> _slots = new Dictionary<AnimationChannel, ChannelSlot>(4);
-        private readonly Dictionary<int, TerminalRecord> _terminals = new Dictionary<int, TerminalRecord>();
-        private readonly Queue<int> _terminalOrder = new Queue<int>();
+        private readonly Dictionary<AnimationHandle, TerminalRecord> _terminals = new Dictionary<AnimationHandle, TerminalRecord>();
+        private readonly Queue<AnimationHandle> _terminalOrder = new Queue<AnimationHandle>();
 
         private readonly int _playerId;
         private int _ownerGeneration;
@@ -242,7 +242,7 @@ namespace LiteFramework.Animation
         {
             state = default;
 
-            if (_terminals.TryGetValue(Key(handle), out var record))
+            if (_terminals.TryGetValue(handle, out var record))
             {
                 state = new AnimationPlaybackState(handle, record.Id, record.Channel,
                     isLoading: false, isPlaying: false, record.State);
@@ -403,21 +403,23 @@ namespace LiteFramework.Animation
 
         private void Remember(AnimationHandle handle, AnimationId id, AnimationChannel channel, AnimationTerminalState terminal)
         {
-            int key = Key(handle);
-            if (_terminals.ContainsKey(key)) return;
+            // 键＝句柄本体（结构化 Equals——不同句柄绝不互认）；句柄的 GetHashCode 只作桶内分桶，
+            // 碰撞由字典经 Equals 正确消解。旧形态以混合哈希 int 当键，两个不同句柄哈希相撞时
+            // 后到者的终态被静默吞掉（"已终态"误判）——哈希是分布函数，不是身份。
+            if (_terminals.ContainsKey(handle)) return;
 
             while (_terminalOrder.Count >= TerminalRetentionCapacity)
             {
-                int evicted = _terminalOrder.Dequeue();
+                AnimationHandle evicted = _terminalOrder.Dequeue();
                 _terminals.Remove(evicted);
                 EvictedTerminalRecords++;
             }
 
-            _terminals[key] = new TerminalRecord(id, channel, terminal);
-            _terminalOrder.Enqueue(key);
+            _terminals[handle] = new TerminalRecord(id, channel, terminal);
+            _terminalOrder.Enqueue(handle);
         }
 
-        private bool IsTerminal(AnimationHandle handle) => _terminals.ContainsKey(Key(handle));
+        private bool IsTerminal(AnimationHandle handle) => _terminals.ContainsKey(handle);
 
         private ChannelSlot Slot(AnimationChannel channel)
         {
@@ -450,8 +452,6 @@ namespace LiteFramework.Animation
                 AnimationStopReason.Failed => AnimationTerminalState.Failed,
                 _ => AnimationTerminalState.Cancelled,
             };
-
-        private static int Key(AnimationHandle h) => (h.PlayerId * 397) ^ (h.OwnerGeneration * 31) ^ h.RequestSequence;
 
         /// <summary>
         /// 单通道的播放槽（每通道最多一个待提交请求和一个当前逻辑播放）。

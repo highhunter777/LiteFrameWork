@@ -69,6 +69,24 @@ namespace LiteNet.Protocol
         }
 
         /// <summary>
+        /// 从 wire 快照提取**增量和解材料**：携带槽位列表 + 逐槽 wire 校验值（升序，两缓冲区平行）。
+        /// 只读——不触碰 <paramref name="dst"/>；供 <see cref="RollbackSim.OnAuthoritativeSnapshot(int, SimWorldState, in LiteSim.AuthoritativeFrameInfo)"/>
+        /// 的增量部分和解用（P2-A）。两缓冲区长度须 ≥ <c>msg.Slots.Count</c>；返回实际携带槽位数。
+        /// </summary>
+        public static int Collect(Proto.StateSnapshot msg, int[] slotBuf, uint[] checksumBuf)
+        {
+            int count = 0;
+            for (int i = 0; i < msg.Slots.Count && count < slotBuf.Length; i++)
+            {
+                Proto.SlotDelta d = msg.Slots[i];
+                slotBuf[count] = d.Slot;
+                checksumBuf[count] = d.Checksum;
+                count++;
+            }
+            return count;
+        }
+
+        /// <summary>
         /// **无和解快照的覆盖原语**：和解未触发（RollbackSim.OnAuthoritativeSnapshot == false，预测正确）时
         /// 本地态不会被权威覆盖——但比赛状态与**本人私有面**（弹药/技能 CD/背包/资源，客户端不预测、
         /// 本地 Sim 推不出来的量）仍须随每份快照刷新到最新。幂等：已和解路径（镜像已 CopyTo）重复调用无副作用。

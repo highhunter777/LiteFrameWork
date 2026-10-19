@@ -75,6 +75,28 @@ namespace LiteNet.Tests
         }
 
         [Fact]
+        public void SlotDelta_逐槽公共校验_单槽折法一致_公共面变化即翻转()
+        {
+            var s = BuildWorld();
+            for (int i = 0; i < SimConfig.MaxEntities; i++)
+            {
+                if (!s.IsAlive(i)) continue;
+                ref EntitySlot e = ref s.Entities[i];
+                ref ActionRuntime active = ref s.Actions[i * SimConfig.ActionSlotsPerEntity];
+                Proto.SlotDelta wire = SnapshotCodec.ToDelta(i, in e, in active);
+                // P2-A：逐槽 wire 值 == 单槽公共面折法单源（SimChecksum.ComputeEntityPublicChecksum）
+                Assert.Equal(SimChecksum.ComputeEntityPublicChecksum(in e, in active), wire.Checksum);
+            }
+
+            // 公共面微改（Hp）→ 逐槽校验翻转（增量部分和解的定位锚必须对变化敏感）
+            ref EntitySlot e0 = ref s.Entities[0];
+            ref ActionRuntime a0 = ref s.Actions[0];
+            uint before = SnapshotCodec.ToDelta(0, in e0, in a0).Checksum;
+            e0.Hp -= 1;
+            Assert.NotEqual(before, SnapshotCodec.ToDelta(0, in e0, in a0).Checksum);
+        }
+
+        [Fact]
         public void 全量快照_活体数与公共口径checksum与比赛状态对账()
         {
             var s = BuildWorld();

@@ -15,4 +15,16 @@ namespace LiteGame
 
         public float HalfDepth = 100f;
     }
+
+    /// <summary>
+    /// 地图场景拓扑约定名（全图共用，场景制作方与消费方同守）：运行时/Editor 共享单源，
+    /// Editor 烘焙侧（<c>BakeTargets</c>）别名引用本处——禁两侧各写一份字面量（常量双写即
+    /// 审计红线「靠注释人肉同步」）。新约定名在这里加行；消费面只读常量，不猜名。
+    /// </summary>
+    public static class MapTopology
+    {
+        /// <summary>判定代理树根对象名（地图场景根下唯一）：烘焙采集（SimMapBaker）与
+        /// 视野遮蔽绑定（BattleVisionBlockerDriver）同读。</summary>
+        public const string MapCollisionRoot = "MapCollision";
+    }
 }

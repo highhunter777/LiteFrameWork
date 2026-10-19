@@ -32,7 +32,7 @@ namespace LiteNet.Proto {
             "KAISEwoLYWltX3BvaW50X3oYDSABKAJKBAgEEAVKBAgFEAZKBAgKEAsibwoM",
             "SW5wdXRNZXNzYWdlEg0KBWZyYW1lGAEgASgFEiYKBmZyYW1lcxgCIAMoCzIW",
             "LmxpdGViYXR0bGUuSW5wdXRGcmFtZRIUCgxhY2tfc25hcHNob3QYAyABKAUS",
-            "EgoKdmlld19mcmFtZRgEIAEoBSLVAwoJU2xvdERlbHRhEgwKBHNsb3QYASAB",
+            "EgoKdmlld19mcmFtZRgEIAEoBSLnAwoJU2xvdERlbHRhEgwKBHNsb3QYASAB",
             "KAUSCgoCaWQYAiABKAMSDQoFcG9zX3gYAyABKAISDQoFcG9zX3kYBCABKAIS",
             "DQoFcG9zX3oYBSABKAISDQoFdmVsX3gYBiABKAISDQoFdmVsX3kYByABKAIS",
             "DQoFdmVsX3oYCCABKAISCwoDeWF3GAkgASgCEgoKAmhwGAogASgFEg0KBWZs",
@@ -42,71 +42,72 @@ namespace LiteNet.Proto {
             "YXJ0X2ZyYW1lGBIgASgFEhoKEmZpcmVfc3RhbmNlX2ZyYW1lcxgTIAEoDRIV",
             "Cg1jb3Jwc2VfZnJhbWVzGBQgASgNEhkKEXNwYXduX3BvaW50X2luZGV4GBUg",
             "ASgFEhUKDXJlc3Bhd25fZnJhbWUYFiABKAUSIAoYaW52dWxuZXJhYmxlX3Vu",
-            "dGlsX2ZyYW1lGBcgASgFEhgKEGxpZmVfc3RhcnRfZnJhbWUYGCABKAUinwIK",
-            "D01hdGNoU3RhdGVEZWx0YRINCgVwaGFzZRgBIAEoBRIMCgR0ZWFtGAIgASgF",
-            "Eg0KBXNjb3JlGAMgASgFEg0KBXRpbWVyGAQgASgFEg0KBXJvdW5kGAUgASgF",
-            "Eg4KBndpbm5lchgGIAEoAxISCgpraWxsX2xpbWl0GAcgASgFEhwKFHJlc3Bh",
-            "d25fZGVsYXlfZnJhbWVzGAggASgFEh8KF3NwYXduX3Byb3RlY3Rpb25fZnJh",
-            "bWVzGAkgASgFEhIKCmVuZF9yZWFzb24YCiABKAUSEAoIZ21fZmxhZ3MYDSAB",
-            "KAVKBAgLEAxKBAgMEA1KBAgOEA9SDHJlY2VudF9raWxsc1IMcmVjZW50X2Zp",
-            "cmVzUgtyZWNlbnRfaGl0cyJ1ChBDb21iYXRFdmVudEVudHJ5EgwKBGtpbmQY",
-            "ASABKAUSCQoBYRgCIAEoAxIJCgFiGAMgASgDEg0KBWZyYW1lGAQgASgFEg0K",
-            "BXZhbHVlGAUgASgFEgkKAXgYBiABKAISCQoBeRgHIAEoAhIJCgF6GAggASgC",
-            "IlAKEENvbWJhdEV2ZW50QmF0Y2gSDQoFZnJhbWUYASABKAUSLQoHcmVjb3Jk",
-            "cxgCIAMoCzIcLmxpdGViYXR0bGUuQ29tYmF0RXZlbnRFbnRyeSK5AQoLV2Vh",
-            "cG9uRGVsdGESFQoNd2VhcG9uX2RlZl9pZBgBIAEoBRIQCghtYWdfYW1tbxgC",
-            "IAEoBRIUCgxyZXNlcnZlX2FtbW8YAyABKAUSDQoFc3RhdGUYBCABKAUSFwoP",
-            "bmV4dF9maXJlX2ZyYW1lGAUgASgFEhgKEHJlbG9hZF9lbmRfZnJhbWUYBiAB",
-            "KAUSFwoPZXF1aXBfZW5kX2ZyYW1lGAcgASgFEhAKCHNob3Rfc2VxGAggASgF",
-            "IkYKClNraWxsRGVsdGESEQoJYWN0aW9uX2lkGAEgASgFEhQKDGNvb2xkb3du",
-            "X2VuZBgCIAEoBRIPCgdjaGFyZ2VzGAMgASgFIkIKC1N0YXR1c0RlbHRhEhEK",
-            "CWVmZmVjdF9pZBgBIAEoBRIRCgllbmRfZnJhbWUYAiABKAUSDQoFcGFyYW0Y",
-            "AyABKAUiRgoMQmFnU2xvdERlbHRhEhMKC2l0ZW1fZGVmX2lkGAEgASgFEg0K",
-            "BWNvdW50GAIgASgFEhIKCnF1aWNrX3Nsb3QYAyABKAUi2gEKEVByaXZhdGVT",
-            "dGF0ZURlbHRhEhEKCWVudGl0eV9pZBgBIAEoAxIQCghyZXNvdXJjZRgCIAEo",
-            "BRIoCgd3ZWFwb25zGAMgAygLMhcubGl0ZWJhdHRsZS5XZWFwb25EZWx0YRIm",
-            "CgZza2lsbHMYBCADKAsyFi5saXRlYmF0dGxlLlNraWxsRGVsdGESJwoGc3Rh",
-            "dHVzGAUgAygLMhcubGl0ZWJhdHRsZS5TdGF0dXNEZWx0YRIlCgNiYWcYBiAD",
-            "KAsyGC5saXRlYmF0dGxlLkJhZ1Nsb3REZWx0YSLcAQoNU3RhdGVTbmFwc2hv",
-            "dBINCgVmcmFtZRgBIAEoBRIPCgdpc19mdWxsGAIgASgIEiQKBXNsb3RzGAMg",
-            "AygLMhUubGl0ZWJhdHRsZS5TbG90RGVsdGESEAoIY2hlY2tzdW0YBCABKA0S",
-            "EQoJYWNrX2lucHV0GAUgASgFEioKBW1hdGNoGAYgASgLMhsubGl0ZWJhdHRs",
-            "ZS5NYXRjaFN0YXRlRGVsdGESNAoNcHJpdmF0ZV9zdGF0ZRgHIAEoCzIdLmxp",
-            "dGViYXR0bGUuUHJpdmF0ZVN0YXRlRGVsdGEiQQoLSm9pblJlcXVlc3QSDwoH",
-            "cm9vbV9pZBgBIAEoCRINCgV0b2tlbhgCIAEoCRISCgpidWlsZF9oYXNoGAMg",
-            "ASgJIswBCgdKb2luQWNrEhEKCXBsYXllcl9pZBgBIAEoBRIPCgdtZW1iZXJz",
-            "GAIgAygFEhcKD3JlY29ubmVjdF90b2tlbhgDIAEoCRIgChhyZWNvbm5lY3Rf",
-            "d2luZG93X3NlY29uZHMYBCABKAUSEwoLc25hcHNob3RfaHoYBSABKAUSEQoJ",
-            "dGlja19yYXRlGAYgASgFEhAKCGlzX293bmVyGAcgASgIEg4KBm1hcF9pZBgI",
-            "IAEoBRIYChBleHBlY3RlZF9wbGF5ZXJzGAkgASgFInsKCVN0YXJ0R2FtZRIM",
-            "CgRzZWVkGAEgASgDEhMKC2NvbmZpZ19oYXNoGAIgASgNEg0KBWZyYW1lGAMg",
-            "ASgFEioKBW1hdGNoGAQgASgLMhsubGl0ZWJhdHRsZS5NYXRjaFN0YXRlRGVs",
-            "dGESEAoIbWF0Y2hfaWQYBSABKAkiBwoFTGVhdmUiIAoJSGVhcnRiZWF0EhMK",
-            "C2NsaWVudF90aW1lGAEgASgDIioKEFJlY29ubmVjdFJlcXVlc3QSFgoOb25l",
-            "X3RpbWVfdG9rZW4YASABKAkivgEKEVJlY29ubmVjdFJlc3BvbnNlEgoKAm9r",
-            "GAEgASgIEg4KBnJlYXNvbhgEIAEoCRIrCghzbmFwc2hvdBgCIAEoCzIZLmxp",
-            "dGViYXR0bGUuU3RhdGVTbmFwc2hvdBIpCgdoaXN0b3J5GAMgAygLMhgubGl0",
-            "ZWJhdHRsZS5JbnB1dE1lc3NhZ2USDAoEc2VlZBgFIAEoAxITCgtjb25maWdf",
-            "aGFzaBgGIAEoDRISCgpidWlsZF9oYXNoGAcgASgJIhEKD1Jlc3RvcmVDb21w",
-            "bGV0ZSITChFTdGFydE1hdGNoUmVxdWVzdCIwChJTdGFydE1hdGNoUmVzcG9u",
-            "c2USCgoCb2sYASABKAgSDgoGcmVhc29uGAIgASgJIiEKDE93bmVyQ2hhbmdl",
-            "ZBIRCglwbGF5ZXJfaWQYASABKAUiRgoIU2VhdEluZm8SEQoJcGxheWVyX2lk",
-            "GAEgASgFEhQKDGRpc3BsYXlfbmFtZRgCIAEoCRIRCgljb25uZWN0ZWQYAyAB",
-            "KAgiMAoJUm9vbVNlYXRzEiMKBXNlYXRzGAEgAygLMhQubGl0ZWJhdHRsZS5T",
-            "ZWF0SW5mbyIfCg5NaXNtYXRjaFJlcG9ydBINCgVmcmFtZRgBIAEoBSJYChFQ",
-            "bGF5ZXJNYXRjaFJlc3VsdBIRCglwbGF5ZXJfaWQYASABKAUSEQoJZW50aXR5",
-            "X2lkGAIgASgDEg0KBWtpbGxzGAMgASgFEg4KBmRlYXRocxgEIAEoBSKuAQoK",
-            "TWF0Y2hFbmRlZBIQCghtYXRjaF9pZBgBIAEoCRITCgtmaW5hbF9mcmFtZRgC",
-            "IAEoBRISCgplbmRfcmVhc29uGAMgASgFEhsKE2dhbWVwbGF5X2VuZF9yZWFz",
-            "b24YBCABKAUSGAoQd2lubmVyX2VudGl0eV9pZBgFIAEoAxIuCgdwbGF5ZXJz",
-            "GAYgAygLMh0ubGl0ZWJhdHRsZS5QbGF5ZXJNYXRjaFJlc3VsdEIQqgINTGl0",
-            "ZU5ldC5Qcm90b2IGcHJvdG8z"));
+            "dGlsX2ZyYW1lGBcgASgFEhgKEGxpZmVfc3RhcnRfZnJhbWUYGCABKAUSEAoI",
+            "Y2hlY2tzdW0YGSABKA0inwIKD01hdGNoU3RhdGVEZWx0YRINCgVwaGFzZRgB",
+            "IAEoBRIMCgR0ZWFtGAIgASgFEg0KBXNjb3JlGAMgASgFEg0KBXRpbWVyGAQg",
+            "ASgFEg0KBXJvdW5kGAUgASgFEg4KBndpbm5lchgGIAEoAxISCgpraWxsX2xp",
+            "bWl0GAcgASgFEhwKFHJlc3Bhd25fZGVsYXlfZnJhbWVzGAggASgFEh8KF3Nw",
+            "YXduX3Byb3RlY3Rpb25fZnJhbWVzGAkgASgFEhIKCmVuZF9yZWFzb24YCiAB",
+            "KAUSEAoIZ21fZmxhZ3MYDSABKAVKBAgLEAxKBAgMEA1KBAgOEA9SDHJlY2Vu",
+            "dF9raWxsc1IMcmVjZW50X2ZpcmVzUgtyZWNlbnRfaGl0cyJ1ChBDb21iYXRF",
+            "dmVudEVudHJ5EgwKBGtpbmQYASABKAUSCQoBYRgCIAEoAxIJCgFiGAMgASgD",
+            "Eg0KBWZyYW1lGAQgASgFEg0KBXZhbHVlGAUgASgFEgkKAXgYBiABKAISCQoB",
+            "eRgHIAEoAhIJCgF6GAggASgCIlAKEENvbWJhdEV2ZW50QmF0Y2gSDQoFZnJh",
+            "bWUYASABKAUSLQoHcmVjb3JkcxgCIAMoCzIcLmxpdGViYXR0bGUuQ29tYmF0",
+            "RXZlbnRFbnRyeSK5AQoLV2VhcG9uRGVsdGESFQoNd2VhcG9uX2RlZl9pZBgB",
+            "IAEoBRIQCghtYWdfYW1tbxgCIAEoBRIUCgxyZXNlcnZlX2FtbW8YAyABKAUS",
+            "DQoFc3RhdGUYBCABKAUSFwoPbmV4dF9maXJlX2ZyYW1lGAUgASgFEhgKEHJl",
+            "bG9hZF9lbmRfZnJhbWUYBiABKAUSFwoPZXF1aXBfZW5kX2ZyYW1lGAcgASgF",
+            "EhAKCHNob3Rfc2VxGAggASgFIkYKClNraWxsRGVsdGESEQoJYWN0aW9uX2lk",
+            "GAEgASgFEhQKDGNvb2xkb3duX2VuZBgCIAEoBRIPCgdjaGFyZ2VzGAMgASgF",
+            "IkIKC1N0YXR1c0RlbHRhEhEKCWVmZmVjdF9pZBgBIAEoBRIRCgllbmRfZnJh",
+            "bWUYAiABKAUSDQoFcGFyYW0YAyABKAUiRgoMQmFnU2xvdERlbHRhEhMKC2l0",
+            "ZW1fZGVmX2lkGAEgASgFEg0KBWNvdW50GAIgASgFEhIKCnF1aWNrX3Nsb3QY",
+            "AyABKAUi2gEKEVByaXZhdGVTdGF0ZURlbHRhEhEKCWVudGl0eV9pZBgBIAEo",
+            "AxIQCghyZXNvdXJjZRgCIAEoBRIoCgd3ZWFwb25zGAMgAygLMhcubGl0ZWJh",
+            "dHRsZS5XZWFwb25EZWx0YRImCgZza2lsbHMYBCADKAsyFi5saXRlYmF0dGxl",
+            "LlNraWxsRGVsdGESJwoGc3RhdHVzGAUgAygLMhcubGl0ZWJhdHRsZS5TdGF0",
+            "dXNEZWx0YRIlCgNiYWcYBiADKAsyGC5saXRlYmF0dGxlLkJhZ1Nsb3REZWx0",
+            "YSKOAgoNU3RhdGVTbmFwc2hvdBINCgVmcmFtZRgBIAEoBRIPCgdpc19mdWxs",
+            "GAIgASgIEiQKBXNsb3RzGAMgAygLMhUubGl0ZWJhdHRsZS5TbG90RGVsdGES",
+            "EAoIY2hlY2tzdW0YBCABKA0SEQoJYWNrX2lucHV0GAUgASgFEioKBW1hdGNo",
+            "GAYgASgLMhsubGl0ZWJhdHRsZS5NYXRjaFN0YXRlRGVsdGESNAoNcHJpdmF0",
+            "ZV9zdGF0ZRgHIAEoCzIdLmxpdGViYXR0bGUuUHJpdmF0ZVN0YXRlRGVsdGES",
+            "GAoQdmlzaWJsZV9jaGVja3N1bRgIIAEoDRIWCg5tYXRjaF9jaGVja3N1bRgJ",
+            "IAEoDSJBCgtKb2luUmVxdWVzdBIPCgdyb29tX2lkGAEgASgJEg0KBXRva2Vu",
+            "GAIgASgJEhIKCmJ1aWxkX2hhc2gYAyABKAkizAEKB0pvaW5BY2sSEQoJcGxh",
+            "eWVyX2lkGAEgASgFEg8KB21lbWJlcnMYAiADKAUSFwoPcmVjb25uZWN0X3Rv",
+            "a2VuGAMgASgJEiAKGHJlY29ubmVjdF93aW5kb3dfc2Vjb25kcxgEIAEoBRIT",
+            "CgtzbmFwc2hvdF9oehgFIAEoBRIRCgl0aWNrX3JhdGUYBiABKAUSEAoIaXNf",
+            "b3duZXIYByABKAgSDgoGbWFwX2lkGAggASgFEhgKEGV4cGVjdGVkX3BsYXll",
+            "cnMYCSABKAUiewoJU3RhcnRHYW1lEgwKBHNlZWQYASABKAMSEwoLY29uZmln",
+            "X2hhc2gYAiABKA0SDQoFZnJhbWUYAyABKAUSKgoFbWF0Y2gYBCABKAsyGy5s",
+            "aXRlYmF0dGxlLk1hdGNoU3RhdGVEZWx0YRIQCghtYXRjaF9pZBgFIAEoCSIH",
+            "CgVMZWF2ZSIgCglIZWFydGJlYXQSEwoLY2xpZW50X3RpbWUYASABKAMiKgoQ",
+            "UmVjb25uZWN0UmVxdWVzdBIWCg5vbmVfdGltZV90b2tlbhgBIAEoCSK+AQoR",
+            "UmVjb25uZWN0UmVzcG9uc2USCgoCb2sYASABKAgSDgoGcmVhc29uGAQgASgJ",
+            "EisKCHNuYXBzaG90GAIgASgLMhkubGl0ZWJhdHRsZS5TdGF0ZVNuYXBzaG90",
+            "EikKB2hpc3RvcnkYAyADKAsyGC5saXRlYmF0dGxlLklucHV0TWVzc2FnZRIM",
+            "CgRzZWVkGAUgASgDEhMKC2NvbmZpZ19oYXNoGAYgASgNEhIKCmJ1aWxkX2hh",
+            "c2gYByABKAkiEQoPUmVzdG9yZUNvbXBsZXRlIhMKEVN0YXJ0TWF0Y2hSZXF1",
+            "ZXN0IjAKElN0YXJ0TWF0Y2hSZXNwb25zZRIKCgJvaxgBIAEoCBIOCgZyZWFz",
+            "b24YAiABKAkiIQoMT3duZXJDaGFuZ2VkEhEKCXBsYXllcl9pZBgBIAEoBSJG",
+            "CghTZWF0SW5mbxIRCglwbGF5ZXJfaWQYASABKAUSFAoMZGlzcGxheV9uYW1l",
+            "GAIgASgJEhEKCWNvbm5lY3RlZBgDIAEoCCIwCglSb29tU2VhdHMSIwoFc2Vh",
+            "dHMYASADKAsyFC5saXRlYmF0dGxlLlNlYXRJbmZvIh8KDk1pc21hdGNoUmVw",
+            "b3J0Eg0KBWZyYW1lGAEgASgFIlgKEVBsYXllck1hdGNoUmVzdWx0EhEKCXBs",
+            "YXllcl9pZBgBIAEoBRIRCgllbnRpdHlfaWQYAiABKAMSDQoFa2lsbHMYAyAB",
+            "KAUSDgoGZGVhdGhzGAQgASgFIq4BCgpNYXRjaEVuZGVkEhAKCG1hdGNoX2lk",
+            "GAEgASgJEhMKC2ZpbmFsX2ZyYW1lGAIgASgFEhIKCmVuZF9yZWFzb24YAyAB",
+            "KAUSGwoTZ2FtZXBsYXlfZW5kX3JlYXNvbhgEIAEoBRIYChB3aW5uZXJfZW50",
+            "aXR5X2lkGAUgASgDEi4KB3BsYXllcnMYBiADKAsyHS5saXRlYmF0dGxlLlBs",
+            "YXllck1hdGNoUmVzdWx0QhCqAg1MaXRlTmV0LlByb3RvYgZwcm90bzM="));
       descriptor = pbr::FileDescriptor.FromGeneratedCode(descriptorData,
           new pbr::FileDescriptor[] { },
           new pbr::GeneratedClrTypeInfo(null, null, new pbr::GeneratedClrTypeInfo[] {
             new pbr::GeneratedClrTypeInfo(typeof(global::LiteNet.Proto.InputFrame), global::LiteNet.Proto.InputFrame.Parser, new[]{ "EntityId", "MoveX", "MoveZ", "Buttons", "SelectedWeaponSlot", "TargetEntityId", "ActionSeq", "AimPointX", "AimPointY", "AimPointZ" }, null, null, null, null),
             new pbr::GeneratedClrTypeInfo(typeof(global::LiteNet.Proto.InputMessage), global::LiteNet.Proto.InputMessage.Parser, new[]{ "Frame", "Frames", "AckSnapshot", "ViewFrame" }, null, null, null, null),
-            new pbr::GeneratedClrTypeInfo(typeof(global::LiteNet.Proto.SlotDelta), global::LiteNet.Proto.SlotDelta.Parser, new[]{ "Slot", "Id", "PosX", "PosY", "PosZ", "VelX", "VelY", "VelZ", "Yaw", "Hp", "Flags", "Shield", "Kills", "Deaths", "SelectedWeapon", "ActionId", "ActionPhase", "ActionStartFrame", "FireStanceFrames", "CorpseFrames", "SpawnPointIndex", "RespawnFrame", "InvulnerableUntilFrame", "LifeStartFrame" }, null, null, null, null),
+            new pbr::GeneratedClrTypeInfo(typeof(global::LiteNet.Proto.SlotDelta), global::LiteNet.Proto.SlotDelta.Parser, new[]{ "Slot", "Id", "PosX", "PosY", "PosZ", "VelX", "VelY", "VelZ", "Yaw", "Hp", "Flags", "Shield", "Kills", "Deaths", "SelectedWeapon", "ActionId", "ActionPhase", "ActionStartFrame", "FireStanceFrames", "CorpseFrames", "SpawnPointIndex", "RespawnFrame", "InvulnerableUntilFrame", "LifeStartFrame", "Checksum" }, null, null, null, null),
             new pbr::GeneratedClrTypeInfo(typeof(global::LiteNet.Proto.MatchStateDelta), global::LiteNet.Proto.MatchStateDelta.Parser, new[]{ "Phase", "Team", "Score", "Timer", "Round", "Winner", "KillLimit", "RespawnDelayFrames", "SpawnProtectionFrames", "EndReason", "GmFlags" }, null, null, null, null),
             new pbr::GeneratedClrTypeInfo(typeof(global::LiteNet.Proto.CombatEventEntry), global::LiteNet.Proto.CombatEventEntry.Parser, new[]{ "Kind", "A", "B", "Frame", "Value", "X", "Y", "Z" }, null, null, null, null),
             new pbr::GeneratedClrTypeInfo(typeof(global::LiteNet.Proto.CombatEventBatch), global::LiteNet.Proto.CombatEventBatch.Parser, new[]{ "Frame", "Records" }, null, null, null, null),
@@ -115,7 +116,7 @@ namespace LiteNet.Proto {
             new pbr::GeneratedClrTypeInfo(typeof(global::LiteNet.Proto.StatusDelta), global::LiteNet.Proto.StatusDelta.Parser, new[]{ "EffectId", "EndFrame", "Param" }, null, null, null, null),
             new pbr::GeneratedClrTypeInfo(typeof(global::LiteNet.Proto.BagSlotDelta), global::LiteNet.Proto.BagSlotDelta.Parser, new[]{ "ItemDefId", "Count", "QuickSlot" }, null, null, null, null),
             new pbr::GeneratedClrTypeInfo(typeof(global::LiteNet.Proto.PrivateStateDelta), global::LiteNet.Proto.PrivateStateDelta.Parser, new[]{ "EntityId", "Resource", "Weapons", "Skills", "Status", "Bag" }, null, null, null, null),
-            new pbr::GeneratedClrTypeInfo(typeof(global::LiteNet.Proto.StateSnapshot), global::LiteNet.Proto.StateSnapshot.Parser, new[]{ "Frame", "IsFull", "Slots", "Checksum", "AckInput", "Match", "PrivateState" }, null, null, null, null),
+            new pbr::GeneratedClrTypeInfo(typeof(global::LiteNet.Proto.StateSnapshot), global::LiteNet.Proto.StateSnapshot.Parser, new[]{ "Frame", "IsFull", "Slots", "Checksum", "AckInput", "Match", "PrivateState", "VisibleChecksum", "MatchChecksum" }, null, null, null, null),
             new pbr::GeneratedClrTypeInfo(typeof(global::LiteNet.Proto.JoinRequest), global::LiteNet.Proto.JoinRequest.Parser, new[]{ "RoomId", "Token", "BuildHash" }, null, null, null, null),
             new pbr::GeneratedClrTypeInfo(typeof(global::LiteNet.Proto.JoinAck), global::LiteNet.Proto.JoinAck.Parser, new[]{ "PlayerId", "Members", "ReconnectToken", "ReconnectWindowSeconds", "SnapshotHz", "TickRate", "IsOwner", "MapId", "ExpectedPlayers" }, null, null, null, null),
             new pbr::GeneratedClrTypeInfo(typeof(global::LiteNet.Proto.StartGame), global::LiteNet.Proto.StartGame.Parser, new[]{ "Seed", "ConfigHash", "Frame", "Match", "MatchId" }, null, null, null, null),
@@ -1067,6 +1068,7 @@ namespace LiteNet.Proto {
       respawnFrame_ = other.respawnFrame_;
       invulnerableUntilFrame_ = other.invulnerableUntilFrame_;
       lifeStartFrame_ = other.lifeStartFrame_;
+      checksum_ = other.checksum_;
       _unknownFields = pb::UnknownFieldSet.Clone(other._unknownFields);
     }
 
@@ -1400,6 +1402,24 @@ namespace LiteNet.Proto {
       }
     }
 
+    /// <summary>Field number for the "checksum" field.</summary>
+    public const int ChecksumFieldNumber = 25;
+    private uint checksum_;
+    /// <summary>
+    /// ---- 逐槽位公共校验（P2-A《联机同步残差收敛专项设计》§2.2；**只增字段号**追加）----
+    /// 该槽位公共面（EntitySlot 公共字段 + 主动作摘要）的折叠值（SimChecksum.ComputeEntityPublicChecksum）。
+    /// 客户端用**本地预测态在同一快照帧的回滚环探针**同口径复算并比较——不一致即该槽位需要权威覆盖。
+    /// 增量帧的和解只覆盖携带槽位，不再让全图 checksum 为 AOI 增量当裁判（视野外变化不再每快照失配）。
+    /// </summary>
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public uint Checksum {
+      get { return checksum_; }
+      set {
+        checksum_ = value;
+      }
+    }
+
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public override bool Equals(object other) {
@@ -1439,6 +1459,7 @@ namespace LiteNet.Proto {
       if (RespawnFrame != other.RespawnFrame) return false;
       if (InvulnerableUntilFrame != other.InvulnerableUntilFrame) return false;
       if (LifeStartFrame != other.LifeStartFrame) return false;
+      if (Checksum != other.Checksum) return false;
       return Equals(_unknownFields, other._unknownFields);
     }
 
@@ -1470,6 +1491,7 @@ namespace LiteNet.Proto {
       if (RespawnFrame != 0) hash ^= RespawnFrame.GetHashCode();
       if (InvulnerableUntilFrame != 0) hash ^= InvulnerableUntilFrame.GetHashCode();
       if (LifeStartFrame != 0) hash ^= LifeStartFrame.GetHashCode();
+      if (Checksum != 0) hash ^= Checksum.GetHashCode();
       if (_unknownFields != null) {
         hash ^= _unknownFields.GetHashCode();
       }
@@ -1584,6 +1606,10 @@ namespace LiteNet.Proto {
         output.WriteRawTag(192, 1);
         output.WriteInt32(LifeStartFrame);
       }
+      if (Checksum != 0) {
+        output.WriteRawTag(200, 1);
+        output.WriteUInt32(Checksum);
+      }
       if (_unknownFields != null) {
         _unknownFields.WriteTo(output);
       }
@@ -1690,6 +1716,10 @@ namespace LiteNet.Proto {
         output.WriteRawTag(192, 1);
         output.WriteInt32(LifeStartFrame);
       }
+      if (Checksum != 0) {
+        output.WriteRawTag(200, 1);
+        output.WriteUInt32(Checksum);
+      }
       if (_unknownFields != null) {
         _unknownFields.WriteTo(ref output);
       }
@@ -1771,6 +1801,9 @@ namespace LiteNet.Proto {
       }
       if (LifeStartFrame != 0) {
         size += 2 + pb::CodedOutputStream.ComputeInt32Size(LifeStartFrame);
+      }
+      if (Checksum != 0) {
+        size += 2 + pb::CodedOutputStream.ComputeUInt32Size(Checksum);
       }
       if (_unknownFields != null) {
         size += _unknownFields.CalculateSize();
@@ -1855,6 +1888,9 @@ namespace LiteNet.Proto {
       }
       if (other.LifeStartFrame != 0) {
         LifeStartFrame = other.LifeStartFrame;
+      }
+      if (other.Checksum != 0) {
+        Checksum = other.Checksum;
       }
       _unknownFields = pb::UnknownFieldSet.MergeFrom(_unknownFields, other._unknownFields);
     }
@@ -1971,6 +2007,10 @@ namespace LiteNet.Proto {
             LifeStartFrame = input.ReadInt32();
             break;
           }
+          case 200: {
+            Checksum = input.ReadUInt32();
+            break;
+          }
         }
       }
     #endif
@@ -2084,6 +2124,10 @@ namespace LiteNet.Proto {
           }
           case 192: {
             LifeStartFrame = input.ReadInt32();
+            break;
+          }
+          case 200: {
+            Checksum = input.ReadUInt32();
             break;
           }
         }
@@ -5093,6 +5137,8 @@ namespace LiteNet.Proto {
       ackInput_ = other.ackInput_;
       match_ = other.match_ != null ? other.match_.Clone() : null;
       privateState_ = other.privateState_ != null ? other.privateState_.Clone() : null;
+      visibleChecksum_ = other.visibleChecksum_;
+      matchChecksum_ = other.matchChecksum_;
       _unknownFields = pb::UnknownFieldSet.Clone(other._unknownFields);
     }
 
@@ -5144,7 +5190,9 @@ namespace LiteNet.Proto {
     public const int ChecksumFieldNumber = 4;
     private uint checksum_;
     /// <summary>
-    /// **公共口径**校验（SimChecksum.ComputePublicChecksum：快照可重建层的和解锚点）
+    /// **全量口径**校验（SimChecksum.ComputePublicChecksum）——语义已**收窄**为仅全量帧/重连兜底
+    /// （P2-A《联机同步残差收敛专项设计》§2.2：全图 checksum 不再为 AOI 增量做和解裁判）。
+    /// 全量帧填公共全图值；增量帧填 0（和解锚点改走 visible_checksum/match_checksum）。
     /// </summary>
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
@@ -5200,6 +5248,39 @@ namespace LiteNet.Proto {
       }
     }
 
+    /// <summary>Field number for the "visible_checksum" field.</summary>
+    public const int VisibleChecksumFieldNumber = 8;
+    private uint visibleChecksum_;
+    /// <summary>
+    /// ---- P2-A 增量和解锚点（**只增字段号**追加）----
+    /// 本条消息**实际携带的槽位集合**的公共口径折叠（SimChecksum.ComputeVisibleChecksum）——增量帧和解锚点。
+    /// 客户端按消息槽位集合同口径复算：一致 ⇒ 零和解（短路）；不等 ⇒ 逐槽位比对 SlotDelta.checksum 定位差异槽。
+    /// 全量帧填 0（全量走 checksum）。
+    /// </summary>
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public uint VisibleChecksum {
+      get { return visibleChecksum_; }
+      set {
+        visibleChecksum_ = value;
+      }
+    }
+
+    /// <summary>Field number for the "match_checksum" field.</summary>
+    public const int MatchChecksumFieldNumber = 9;
+    private uint matchChecksum_;
+    /// <summary>
+    /// 本条 `match` 的公共口径折叠（SimChecksum.ComputeMatchChecksum）——增量不含槽位（只带 Match/私有面）时的比对对象。
+    /// </summary>
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public uint MatchChecksum {
+      get { return matchChecksum_; }
+      set {
+        matchChecksum_ = value;
+      }
+    }
+
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public override bool Equals(object other) {
@@ -5222,6 +5303,8 @@ namespace LiteNet.Proto {
       if (AckInput != other.AckInput) return false;
       if (!object.Equals(Match, other.Match)) return false;
       if (!object.Equals(PrivateState, other.PrivateState)) return false;
+      if (VisibleChecksum != other.VisibleChecksum) return false;
+      if (MatchChecksum != other.MatchChecksum) return false;
       return Equals(_unknownFields, other._unknownFields);
     }
 
@@ -5236,6 +5319,8 @@ namespace LiteNet.Proto {
       if (AckInput != 0) hash ^= AckInput.GetHashCode();
       if (match_ != null) hash ^= Match.GetHashCode();
       if (privateState_ != null) hash ^= PrivateState.GetHashCode();
+      if (VisibleChecksum != 0) hash ^= VisibleChecksum.GetHashCode();
+      if (MatchChecksum != 0) hash ^= MatchChecksum.GetHashCode();
       if (_unknownFields != null) {
         hash ^= _unknownFields.GetHashCode();
       }
@@ -5279,6 +5364,14 @@ namespace LiteNet.Proto {
         output.WriteRawTag(58);
         output.WriteMessage(PrivateState);
       }
+      if (VisibleChecksum != 0) {
+        output.WriteRawTag(64);
+        output.WriteUInt32(VisibleChecksum);
+      }
+      if (MatchChecksum != 0) {
+        output.WriteRawTag(72);
+        output.WriteUInt32(MatchChecksum);
+      }
       if (_unknownFields != null) {
         _unknownFields.WriteTo(output);
       }
@@ -5314,6 +5407,14 @@ namespace LiteNet.Proto {
         output.WriteRawTag(58);
         output.WriteMessage(PrivateState);
       }
+      if (VisibleChecksum != 0) {
+        output.WriteRawTag(64);
+        output.WriteUInt32(VisibleChecksum);
+      }
+      if (MatchChecksum != 0) {
+        output.WriteRawTag(72);
+        output.WriteUInt32(MatchChecksum);
+      }
       if (_unknownFields != null) {
         _unknownFields.WriteTo(ref output);
       }
@@ -5342,6 +5443,12 @@ namespace LiteNet.Proto {
       }
       if (privateState_ != null) {
         size += 1 + pb::CodedOutputStream.ComputeMessageSize(PrivateState);
+      }
+      if (VisibleChecksum != 0) {
+        size += 1 + pb::CodedOutputStream.ComputeUInt32Size(VisibleChecksum);
+      }
+      if (MatchChecksum != 0) {
+        size += 1 + pb::CodedOutputStream.ComputeUInt32Size(MatchChecksum);
       }
       if (_unknownFields != null) {
         size += _unknownFields.CalculateSize();
@@ -5379,6 +5486,12 @@ namespace LiteNet.Proto {
           PrivateState = new global::LiteNet.Proto.PrivateStateDelta();
         }
         PrivateState.MergeFrom(other.PrivateState);
+      }
+      if (other.VisibleChecksum != 0) {
+        VisibleChecksum = other.VisibleChecksum;
+      }
+      if (other.MatchChecksum != 0) {
+        MatchChecksum = other.MatchChecksum;
       }
       _unknownFields = pb::UnknownFieldSet.MergeFrom(_unknownFields, other._unknownFields);
     }
@@ -5433,6 +5546,14 @@ namespace LiteNet.Proto {
             input.ReadMessage(PrivateState);
             break;
           }
+          case 64: {
+            VisibleChecksum = input.ReadUInt32();
+            break;
+          }
+          case 72: {
+            MatchChecksum = input.ReadUInt32();
+            break;
+          }
         }
       }
     #endif
@@ -5484,6 +5605,14 @@ namespace LiteNet.Proto {
               PrivateState = new global::LiteNet.Proto.PrivateStateDelta();
             }
             input.ReadMessage(PrivateState);
+            break;
+          }
+          case 64: {
+            VisibleChecksum = input.ReadUInt32();
+            break;
+          }
+          case 72: {
+            MatchChecksum = input.ReadUInt32();
             break;
           }
         }

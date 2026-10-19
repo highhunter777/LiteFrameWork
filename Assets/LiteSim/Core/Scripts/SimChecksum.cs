@@ -60,12 +60,7 @@ namespace LiteSim
                 // 实体公共面：字段清单不在此手写——由 [StateLayer] 标注生成
                 // （EntitySlot.Sync.g.cs，scripts/codegen/gen-sync-code.ps1）。
                 // 加字段只改 EntitySlot 一处，此处自动跟上（漏改 = 编译期可见）。
-                h = EntitySlot.MixPublic(h, in s.Entities[i]);
-
-                ref ActionRuntime a = ref s.Actions[i * SimConfig.ActionSlotsPerEntity];   // 主动作槽摘要
-                h = MixInt32(h, a.ActionId);
-                h = MixInt32(h, a.StartFrame);
-                h = MixByte(h, (byte)a.Phase);
+                h = MixEntityPublic(h, in s.Entities[i], in s.Actions[i * SimConfig.ActionSlotsPerEntity]);
             }
 
             h = MixMatchState(h, in s.Match);
@@ -86,6 +81,41 @@ namespace LiteSim
                 h = ZoneState.MixPublic(h, in zones[i]);
             return h;
         }
+
+        /// <summary>
+        /// 逐槽位公共面折叠（EntitySlot 公共字段 + 主动作摘要）——公共口径的"单实体单元"，
+        /// 供 <see cref="ComputePublicChecksum"/>（全图）、<see cref="ComputeVisibleChecksum"/>（增量可见集）
+        /// 与线上 <c>SlotDelta.checksum</c>（逐槽比对）共用同一份字段清单（漏一个 = 该层分叉但和解不报）。
+        /// </summary>
+        internal static uint MixEntityPublic(uint h, in EntitySlot e, in ActionRuntime activeAction)
+        {
+            h = EntitySlot.MixPublic(h, in e);
+            h = ActionRuntime.MixPublic(h, in activeAction, 0);   // 主动作槽摘要（槽 0；1..3 私有）
+            return h;
+        }
+
+        /// <summary>单槽位公共面折叠值（重起步）——线上 <c>SlotDelta.checksum</c> 的单源。</summary>
+        public static uint ComputeEntityPublicChecksum(in EntitySlot e, in ActionRuntime activeAction)
+            => MixEntityPublic(FnvOffset, in e, in activeAction);
+
+        /// <summary>
+        /// 增量帧**可见摘要**：本条消息实际携带的槽位集合（<paramref name="slots"/> 升序、<paramref name="count"/> 项）
+        /// 的公共口径折叠（**不含 Match**——Match 单列 <see cref="ComputeMatchChecksum"/>，空槽位增量只比对 Match）。
+        /// 客户端按同一槽位连同口径复算：不一致 ⇒ 本帧存在差异，再逐槽位比对 <c>SlotDelta.checksum</c> 定位差异槽。
+        /// </summary>
+        public static uint ComputeVisibleChecksum(in SimWorldState s, int[] slots, int count)
+        {
+            uint h = FnvOffset;
+            for (int k = 0; k < count; k++)
+            {
+                int i = slots[k];
+                h = MixEntityPublic(h, in s.Entities[i], in s.Actions[i * SimConfig.ActionSlotsPerEntity]);
+            }
+            return h;
+        }
+
+        /// <summary>Match 公共面折叠值（重起步）——线上 <c>StateSnapshot.match_checksum</c> 的单源。</summary>
+        public static uint ComputeMatchChecksum(in MatchStateData m) => MixMatchState(FnvOffset, in m);
 
         /// <summary>
         /// 全量口径的公共体（两个全量变体共用同一份字段清单——各自手抄必漂移）。

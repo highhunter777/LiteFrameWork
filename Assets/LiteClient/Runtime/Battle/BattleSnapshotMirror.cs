@@ -19,6 +19,9 @@ namespace LiteClient
         // 视图仍持有的旧快照（其对象被新帧覆写后，帧号序被打乱，插值直接跨帧）。
         private readonly SimWorldStateSnapshot[] _viewSnapshots = new SimWorldStateSnapshot[16];
         private int _viewSnapWrite;                                                // 下一次写入下标（环形）
+        // 增量和解材料缓冲（复用，零分配）：携带槽位 + 逐槽 wire 校验值。
+        private readonly int[] _slotBuf = new int[SimConfig.MaxEntities];
+        private readonly uint[] _slotChecksumBuf = new uint[SimConfig.MaxEntities];
 
         /// <summary>当前镜像（未被任何包应用过时为 null）。</summary>
         public SimWorldState State => _state;
@@ -32,9 +35,23 @@ namespace LiteClient
         {
             _state = _state ?? new SimWorldState();
             SnapshotReassembler.Apply(snapshot, _state, out uint checksum);
-            if (sim.OnAuthoritativeSnapshot(snapshot.Frame, _state, checksum)) return true;
+            if (Reconcile(sim, snapshot, checksum)) return true;
             SnapshotReassembler.OverlayPrivateAndMatch(snapshot, sim.State);
             return false;
+        }
+
+        /// <summary>和解分发（P2-A）：全量帧走全图口径（legacy 重载）；增量帧走**携带槽位集**部分和解
+        /// （<see cref="AuthoritativeFrameInfo"/>——视野外槽位不触发/不误回退）。</summary>
+        private bool Reconcile(RollbackSim sim, LiteNet.Proto.StateSnapshot snapshot, uint checksum)
+        {
+            if (snapshot.IsFull)
+                return sim.OnAuthoritativeSnapshot(snapshot.Frame, _state, checksum);
+
+            int count = SnapshotReassembler.Collect(snapshot, _slotBuf, _slotChecksumBuf);
+            var info = new AuthoritativeFrameInfo(isFull: false, fullChecksum: 0u,
+                visibleChecksum: snapshot.VisibleChecksum, matchChecksum: snapshot.MatchChecksum,
+                slotCount: count, slots: _slotBuf, slotChecksums: _slotChecksumBuf);
+            return sim.OnAuthoritativeSnapshot(snapshot.Frame, _state, in info);
         }
 
         /// <summary>重连恢复（§9.3 步骤 3~5）：权威全量重建镜像 → 和解到该帧。</summary>

@@ -57,5 +57,49 @@ namespace LiteNet.Tests
 
             Assert.Equal("", game.MatchId);
         }
+
+        [Fact]
+        public void MatchEnded_字段面_携带结果与成员对账行()
+        {
+            var summary = new MatchResultSummary("match-xyz", 321L, 640, ShutdownReason.TimeLimit,
+                new[] { 0, 1 }, winnerEntityId: 0L, gameplayEndReason: MatchEndReason.TimeLimit,
+                players: new[] { new PlayerMatchResult(0, 101L, 7, 2), new PlayerMatchResult(1, 202L, 3, 5) });
+
+            var ended = HandshakePacker.BuildMatchEnded(summary);
+
+            Assert.Equal("match-xyz", ended.MatchId);
+            Assert.Equal(640, ended.FinalFrame);
+            Assert.Equal((int)ShutdownReason.TimeLimit, ended.EndReason);
+            Assert.Equal((int)MatchEndReason.TimeLimit, ended.GameplayEndReason);
+            Assert.Equal(2, ended.Players.Count);
+            Assert.Equal(0, ended.Players[0].PlayerId);
+            Assert.Equal(101L, ended.Players[0].EntityId);
+            Assert.Equal(7, ended.Players[0].Kills);
+            Assert.Equal(5, ended.Players[1].Deaths);
+        }
+
+        [Fact]
+        public void MatchEnded_中止形态_无结果散场字段面()
+        {
+            var aborted = new RoomAbortedOutput(ShutdownReason.DrainTimeout, "room-9", 321);
+
+            var ended = HandshakePacker.BuildAbortedMatchEnded(aborted);
+
+            Assert.Equal("room-9", ended.MatchId);
+            Assert.Equal(321, ended.FinalFrame);
+            Assert.Equal((int)ShutdownReason.DrainTimeout, ended.EndReason);
+            Assert.Equal((int)MatchEndReason.None, ended.GameplayEndReason);
+            Assert.Equal(0L, ended.WinnerEntityId);
+            Assert.Empty(ended.Players);
+        }
+
+        [Fact]
+        public void MatchEnded_MatchId空值归一为空串()
+        {
+            var ended = HandshakePacker.BuildMatchEnded(new MatchResultSummary(null, 0L, 0, ShutdownReason.Operator,
+                System.Array.Empty<int>()));
+
+            Assert.Equal("", ended.MatchId);
+        }
     }
 }

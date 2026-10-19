@@ -70,6 +70,11 @@ message SlotDelta {
   int32 respawn_frame = 22;
   int32 invulnerable_until_frame = 23;
   int32 life_start_frame = 24;
+  // ---- 逐槽位公共校验（P2-A《联机同步残差收敛专项设计》§2.2；**只增字段号**追加）----
+  // 该槽位公共面（EntitySlot 公共字段 + 主动作摘要）的折叠值（SimChecksum.ComputeEntityPublicChecksum）。
+  // 客户端用**本地预测态在同一快照帧的回滚环探针**同口径复算并比较——不一致即该槽位需要权威覆盖。
+  // 增量帧的和解只覆盖携带槽位，不再让全图 checksum 为 AOI 增量当裁判（视野外变化不再每快照失配）。
+  uint32 checksum = 25;
 }
 
 // 比赛状态层（MatchStateSnapshot 层）：room 级、全体可见；随每份快照全量携带（自带收敛，无需差分）
@@ -171,11 +176,21 @@ message StateSnapshot {
   int32 frame = 1;
   bool is_full = 2;                  // 全量：快照丢包累积补偿/重连恢复用；增量：对比上一广播帧副本
   repeated SlotDelta slots = 3;
-  uint32 checksum = 4;               // **公共口径**校验（SimChecksum.ComputePublicChecksum：快照可重建层的和解锚点）
+  // **全量口径**校验（SimChecksum.ComputePublicChecksum）——语义已**收窄**为仅全量帧/重连兜底
+  // （P2-A《联机同步残差收敛专项设计》§2.2：全图 checksum 不再为 AOI 增量做和解裁判）。
+  // 全量帧填公共全图值；增量帧填 0（和解锚点改走 visible_checksum/match_checksum）。
+  uint32 checksum = 4;
   int32 ack_input = 5;               // 服务器已确认的最新输入帧号（下限口径）
   // ---- P0 分层追加（《状态同步专项设计》§5.2：比赛状态层 + 本人私有层）----
   MatchStateDelta match = 6;
   PrivateStateDelta private_state = 7;   // 仅本人快照携带（RoomServer 按会话填充）
+  // ---- P2-A 增量和解锚点（**只增字段号**追加）----
+  // 本条消息**实际携带的槽位集合**的公共口径折叠（SimChecksum.ComputeVisibleChecksum）——增量帧和解锚点。
+  // 客户端按消息槽位集合同口径复算：一致 ⇒ 零和解（短路）；不等 ⇒ 逐槽位比对 SlotDelta.checksum 定位差异槽。
+  // 全量帧填 0（全量走 checksum）。
+  uint32 visible_checksum = 8;
+  // 本条 `match` 的公共口径折叠（SimChecksum.ComputeMatchChecksum）——增量不含槽位（只带 Match/私有面）时的比对对象。
+  uint32 match_checksum = 9;
 }
 
 // ===== 信令（Reliable）=====

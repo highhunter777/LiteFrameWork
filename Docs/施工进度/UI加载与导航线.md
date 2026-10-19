@@ -15,6 +15,7 @@
 | 3 | 对局场景组加载链修订（进房 → 开局） | `对局场景组加载链修订.md` |
 | 4 | 退出卸载修复（宿主关闭路径不再引擎侧卸场景） | `退出卸载修复.md` |
 | 5 | 运行阻断修复批（并行回归处置） | `运行阻断修复批.md` |
+| 6 | 进房加载面 Back 取消接线（本地服加载页卡住检查） | — |
 
 ---
 
@@ -288,3 +289,37 @@ YooInternalException: … AsyncOperationSystem is not initialized.     ← ② �
 - **为何门禁没拦住**（当日三批各自的盲区）：`58fbfd3` 的重复注册躲过 L1（纯 dotnet，不装配 Unity 容器）；`5bbeb72` 的收集重叠躲过 L1（不构建 bundle——编辑器模拟构建只在进 Play 时触发）且 EditMode/PlayMode 未在白天跑（既定节律）；表键漂移躲在 L1 之外（LiteClient 装载链在 Unity 侧）且对应 EditMode 用例近期未跑（`tbanimationprofile` 入清单时 `CombatNumbersEditModeTests` 未同步——本次同批修复）。**后续建议**：容器装配冒烟（进 Play 或等价装配用例）纳入 M4 值勤面；表用例清单改从 `TableDataFiles` 派生（本批已改一处）。
 - **Play 态误发 EditMode 测试**：TestRunner 进入 "cannot be used during play mode" 错误循环致管线假死（`editor_status` 30s 超时×3），经 domain reload 恢复。教训：**Play 验证后必须先 `editor_stop` 再发任何测试命令**。
 - 阻断 2/3 的修复均在 Play 前用定向用例先行验证（EditMode 定向跑绿）再进 Play 复验——避免"修一处露一处"的空转。
+
+---
+
+## 第6章 进房加载面 Back 取消接线（本地服加载页卡住检查）
+
+<a id="ch6-进房加载面Back取消"></a>
+
+> **来源**：用户报告「本地服加载页会有卡住的问题，检查一下」（2026-10-19）。
+> **状态**：已修（客户端；Play 实测取消链通过）——工作区未提交。
+
+### 诊断（实测）
+
+| 面 | 事实 |
+|---|---|
+| 进程内本地服（`UseLocalServer=1`，直连对局 Room-A） | 连续 4 次进局：202 开→关正常，未复现永久卡住；其中 1 次旧代次孤儿面收场在 `Arena01` 载完前关闭（加载面提前收口，非卡住） |
+| 本机 RoomServer 路径（「直连对局（本机服 Room-A）」真 KCP，`127.0.0.1:17777` 无监听） | 202 打开后停在加载面直到停 Play；`[KCP] sending handshake` 后无 `[Battle] joined`（JoinAck 预算 10s，停 Play 早于超时） |
+| 取消链 | `ProcedureMatch` 只等阶段令牌；`FeedbackService.LoadingToken`（阻断期 Back 的取消信号）无消费者 ⇒ ESC/Back 被拦截消费但进房等待继续到超时 |
+
+### 修复
+
+`ProcedureMatch.RunAsyncCore`：开场取 `_feedback.LoadingToken`，与阶段令牌链接后传给 `WaitJoined`；取消且阶段未被打断（= 用户按 Back）时记日志并 `Request(Main)`（在线形态房间页原样保留），外部 Request/宿主关闭仍由发起方流转。
+
+### 验证
+
+| 项 | 结果 |
+|---|---|
+| Unity 重编译 | 0 错误 |
+| Play 实测（KCP 无服） | 发起「直连对局」→ 202 打开 → 经 `nav.BackAsync()`（真实 Back 链，含 `BackInterceptor`）→ `[Match] 进入房间已取消（加载面 Back）` → `UIForm[202] 关闭` → 再次发起直连对局被 Main 消费（证明已回 Main） |
+| 门禁 | L1 **[PASS] 1757** · `doc-lint` **0 violation / 0 warning** |
+
+### 边界
+
+- 未复现"永久卡住"；本轮修复解决的是**阻断期不可取消**。若本机 RoomServer 未启动，KCP 仍需等 10s JoinAck 超时才进 Error（kcp2k 无连接超时，客户端无从提前判定）；本次未缩短该预算。
+- 验证经 `TryCancelLoading()` 调用（与 Back 拦截同入口），未做真实 ESC 键注入。

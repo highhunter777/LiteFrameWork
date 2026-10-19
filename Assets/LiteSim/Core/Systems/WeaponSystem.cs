@@ -47,6 +47,7 @@ namespace LiteSim
                     {
                         if (frame < w.ReloadEndFrame) continue;
                         CompleteReload(ref w, table);
+                        ClearActionSummary(s, i);                            // 换弹结束：清理公共动作摘要（远端换弹表现载体）
                     }
                     else if (w.State == WeaponSlotState.Switching)          // lint-allow R3（枚举判等，非浮点精度比较）
                     {
@@ -73,7 +74,8 @@ namespace LiteSim
                     && IsEquipped(s, slot, table, out WeaponDef def, out int wi))
                 {
                     ref WeaponRuntime w = ref s.Weapons[wi];
-                    TryStartReload(ref w, in def, frame);
+                    if (TryStartReload(ref w, in def, frame))
+                        SetActionSummary(s, slot, frame);                 // 换弹开始：写公共动作摘要（远端换弹表现载体）
                 }
 
                 // 半自动重臂：未按住开火的帧武装扳机（"松开重臂"——击发沿由 TryConsumeShot 消费）
@@ -153,6 +155,7 @@ namespace LiteSim
                 {
                     w.State = WeaponSlotState.Reloading;
                     w.ReloadEndFrame = frame + def.ReloadFrames;
+                    SetActionSummary(s, slotIndex, frame);                // 自动换弹同样写公共动作摘要（与手动换弹同口径）
                 }
             }
             w.NextFireFrame = frame + def.FireIntervalFrames;
@@ -210,15 +213,17 @@ namespace LiteSim
 
             e.SelectedWeapon = targetSlot;                      // 公共面立即翻（Switching 期武器门拦开火）
             e.SemiFireArmed = 1;                                // 新武器扳机待击
+            ClearActionSummary(s, slotIndex);                   // 新选中槽为 Switching（非换弹）——换弹摘要随之清空
         }
 
-        private static void TryStartReload(ref WeaponRuntime w, in WeaponDef def, int frame)
+        private static bool TryStartReload(ref WeaponRuntime w, in WeaponDef def, int frame)
         {
-            if (w.State != WeaponSlotState.Ready) return;                 // lint-allow R3（枚举判等）
-            if (w.MagAmmo >= def.MagazineSize) return;                    // 满弹不换
-            if (w.ReserveAmmo <= 0) return;                               // 无备弹不换
+            if (w.State != WeaponSlotState.Ready) return false;           // lint-allow R3（枚举判等）
+            if (w.MagAmmo >= def.MagazineSize) return false;              // 满弹不换
+            if (w.ReserveAmmo <= 0) return false;                         // 无备弹不换
             w.State = WeaponSlotState.Reloading;
             w.ReloadEndFrame = frame + def.ReloadFrames;
+            return true;
         }
 
         private static void CompleteReload(ref WeaponRuntime w, WeaponTable table)
@@ -240,6 +245,28 @@ namespace LiteSim
         {
             w.EquipEndFrame = 0;
             w.State = WeaponSlotState.Ready;
+        }
+
+        /// <summary>
+        /// 写主动作摘要（槽 0 = 公共动作面，《联机同步残差收敛专项设计》§3.2）：换弹开始/自动换弹调用。
+        /// ActionId 数值单源 <see cref="ActionIds"/>；Phase 首版只填 Active（换弹进行中）——
+        /// Windup/Recovery 细分由后续动作系统定稿。摘要进公共快照/差分基线/公共口径 checksum（远端换弹表现载体）。
+        /// </summary>
+        private static void SetActionSummary(SimWorldState s, int slotIndex, int frame)
+        {
+            ref ActionRuntime a = ref s.Actions[slotIndex * SimConfig.ActionSlotsPerEntity];
+            a.ActionId = ActionIds.Reload;
+            a.StartFrame = frame;
+            a.Phase = ActionPhase.Active;
+        }
+
+        /// <summary>清主动作摘要（换弹结束/被切枪打断）：回到"无动作"。</summary>
+        private static void ClearActionSummary(SimWorldState s, int slotIndex)
+        {
+            ref ActionRuntime a = ref s.Actions[slotIndex * SimConfig.ActionSlotsPerEntity];
+            a.ActionId = ActionIds.None;
+            a.StartFrame = 0;
+            a.Phase = ActionPhase.None;
         }
     }
 }

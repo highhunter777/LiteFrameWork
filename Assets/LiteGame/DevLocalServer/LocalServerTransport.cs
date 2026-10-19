@@ -30,8 +30,8 @@ namespace LiteGame
         ///   弱网、断线重连真实性、多房间隔离仍须在**真服务器**验。
     ///
     /// **与真服务端应用层的关系**：本类只补最小的那层映射（Join → JoinAck、MatchStarted → StartGame、
-    /// Tick → 快照广播），对应 `ServerHost.ApplySignal`/`ApplyOutput` 里那几行。**不复制**票据/多房间/
-    /// 排空/Ops——那些属于 Application 的带 IO 半边，本形态不需要。
+    /// Tick → 快照广播、终局输出 → MatchEnded），对应 `ServerHost.ApplySignal`/`ApplyOutput` 里那几行。
+    /// **不复制**票据/多房间/排空/Ops——那些属于 Application 的带 IO 半边，本形态不需要。
     /// </summary>
     public sealed class LocalServerTransport : IClientTransport
     {
@@ -387,35 +387,68 @@ namespace LiteGame
             OnConnected?.Invoke();                   // Join 随后经 Send 同步处理，收发在同一泵内闭环
         }
 
-        /// <summary>内核输出 → 协议包入 outbox（对应真服务端 ServerHost.ApplySignal 的那几行）。
+        /// <summary>内核输出 → 协议包入 outbox（对应真服务端 ServerHost.ApplySignal/ApplyOutput 的那几行）。
         /// <paramref name="admitIsLocal"/> = 该批输出里的 PlayerAdmitted 是否属于本地连接：
         /// 补位（<see cref="FillRoomWithBots"/>）传 false——只收 MatchStarted，不占号位不回包。</summary>
         private void DrainOutputs(bool admitIsLocal = true)
         {
             for (int i = 0; i < _outputs.Count; i++)
             {
-                if (!(_outputs[i] is SignalOutput so)) continue;
+                RoomOutput output = _outputs[i];
 
-                switch (so.Signal)
+                if (output is SignalOutput so)
                 {
-                    case PlayerAdmitted pa:
+                    switch (so.Signal)
                     {
-                        if (!admitIsLocal) break;   // 补位席位：静默（假连接不对应任何客户端）
-                        _playerId = pa.PlayerId;
-                        _joined = true;
-                        _seats[pa.PlayerId] = new Session(Conn, _nowMs) { PlayerId = pa.PlayerId };
-                        // 回执 proto 单源（HandshakePacker，与真服共一份——字段面结构性一致；
-                        // 凭据差异经参数注入：本地形态无重连语义，占位串 + 0 秒窗口）
-                        _outbox.Add((PacketType.JoinAck, HandshakePacker.BuildJoinAck(pa,
-                            "local-dev-" + pa.PlayerId, 0, _runtime.MapId, _runtime.ExpectedPlayers)));
-                        break;
+                        case PlayerAdmitted pa:
+                        {
+                            if (!admitIsLocal) break;   // 补位席位：静默（假连接不对应任何客户端）
+                            _playerId = pa.PlayerId;
+                            _joined = true;
+                            _seats[pa.PlayerId] = new Session(Conn, _nowMs) { PlayerId = pa.PlayerId };
+                            // 回执 proto 单源（HandshakePacker，与真服共一份——字段面结构性一致；
+                            // 凭据差异经参数注入：本地形态无重连语义，占位串 + 0 秒窗口）
+                            _outbox.Add((PacketType.JoinAck, HandshakePacker.BuildJoinAck(pa,
+                                "local-dev-" + pa.PlayerId, 0, _runtime.MapId, _runtime.ExpectedPlayers)));
+                            break;
+                        }
+                        case MatchStarted ms:
+                            _outbox.Add((PacketType.StartGame, HandshakePacker.BuildStartGame(ms)));
+                            break;
                     }
-                    case MatchStarted ms:
-                        _outbox.Add((PacketType.StartGame, HandshakePacker.BuildStartGame(ms)));
+                    continue;
+                }
+
+                // 终局信令（与真服同一条链）：对局中收尾 SettlementReady → MatchEnded（带结果）；
+                // 未开局/等待期收尾 RoomAborted → MatchEnded（无结果散场）。打包单源在
+                // HandshakePacker（与真服共一份）；本地形态无结算 Outbox/隐藏房面——信令照发、不落盒。
+                switch (output)
+                {
+                    case SettlementReadyOutput sr:
+                        _outbox.Add((PacketType.MatchEnded, HandshakePacker.BuildMatchEnded(sr.Summary)));
+                        break;
+                    case RoomAbortedOutput ra:
+                        _outbox.Add((PacketType.MatchEnded, HandshakePacker.BuildAbortedMatchEnded(ra)));
                         break;
                 }
             }
             _outputs.Clear();
+        }
+
+        /// <summary>
+        /// 宿主级关闭（运维口径镜像——与真服投递 <see cref="RoomCommand.Shutdown(ShutdownReason)"/> 同入口）：
+        /// 对局中 → 结算收尾（<c>SettlementReady</c> → MatchEnded 带结果）；未开局/等待期 → 中止
+        /// （<c>RoomAborted</c> → MatchEnded 无结果散场）。幂等（Closed 后内核记"重复关闭"不重迁移）。
+        /// 终局信令经 <see cref="OnData"/> 同步到达；此后权威 Tick 为 no-op（帧冻结），上行输入不再推进。
+        /// 本地形态的 GM/EditMode/集成驱动入口——此前对局打满时限的终局输出无人转信令，客户端
+        /// 永不知道比赛结束（僵尸对局）。
+        /// </summary>
+        public void ShutdownHost(ShutdownReason reason)
+        {
+            if (_disposed) return;
+            _runtime.Execute(RoomCommand.Shutdown(reason), _outputs);
+            DrainOutputs();
+            FlushOutbox();
         }
 
         /// <summary>outbox → <see cref="OnData"/>（与真传输同一个客户端收包入口）。</summary>

@@ -227,20 +227,38 @@ namespace LiteSim
         }
 
         /// <summary>
-        /// 权威快照和解入口（《状态同步实施方案》§5 章头："回退源=权威快照、重放范围=本地输入"）。
-        ///
-        /// - **快照超前**（frame &gt; 本地已执行帧——预测停摆/halt 态）：直接权威覆盖续跑（快照覆盖兜底语义）。
-        /// - **帧太老**（环窗口外）：无法重放中间预测——直接权威覆盖（丢中间预测，下一次快照再纠）。
-        /// - **环内**：本地预测@frame 的 **公共口径 checksum**（<see cref="SimChecksum.ComputePublicChecksum"/>，
-        ///   线上 StateSnapshot.checksum 只覆盖"快照可重建 + 可预测"层）与权威比对——一致 = 零和解；
-        ///   不符 = Restore 权威 + 重放 frame+1..last（全体输入：本地真实 + 远端沿用——远端误差由下一次快照再纠）。
-        ///   重放终点另行截到**预测领先上限**（<see cref="SimConfig.MaxPredictionLead"/>，见下方注释）。
-        ///   私有面（他人弹药/技能 CD/背包/资源、RngState、状态明细）客户端永远无法重建，不进比对口径——
-        ///   否则每份快照必假和解（见 SimChecksum 类注释）。
-        ///
-        /// 返回 true = 发生和解（调用方上报 MismatchReport）。
+        /// **全量口径**和解入口（保留）：比对本地预测@frame 的 <see cref="SimChecksum.ComputePublicChecksum"/>
+        /// 与权威值。全量帧/重连/单测直构形态用它；增量帧走
+        /// <see cref="OnAuthoritativeSnapshot(int, SimWorldState, in AuthoritativeFrameInfo)"/>（部分和解）。
         /// </summary>
         public bool OnAuthoritativeSnapshot(int frame, SimWorldState authoritative, uint authoritativeChecksum)
+            => Reconcile(frame, authoritative, isFull: true, authoritativeChecksum, 0u, 0u, null, null, 0);
+
+        /// <summary>
+        /// **增量感知**和解入口（P2-A）：全量帧走全图口径；增量帧只按**消息携带的槽位集合**做部分和解——
+        /// 视野外实体的变化不再导致每快照失配和解（全图 checksum 不再为 AOI 增量当裁判）。
+        /// 语义见 <see cref="AuthoritativeFrameInfo"/>。
+        /// </summary>
+        public bool OnAuthoritativeSnapshot(int frame, SimWorldState authoritative, in AuthoritativeFrameInfo info)
+            => Reconcile(frame, authoritative, info.IsFull, info.FullChecksum, info.VisibleChecksum,
+                info.MatchChecksum, info.Slots, info.SlotChecksums, info.SlotCount);
+
+        /// <summary>
+        /// 权威快照和解核心（《状态同步实施方案》§5 章头："回退源=权威快照、重放范围=本地输入"）。
+        ///
+        /// - **快照超前/帧太老**（环窗口外）：权威态直接覆盖续跑（快照覆盖兜底语义）。
+        /// - **全量帧**（<paramref name="isFull"/>）：本地预测@frame 公共口径 checksum 与全图权威比对——
+        ///   一致 = 零和解；不符 = 权威整帧覆盖 + 重放。
+        /// - **增量帧**：本地预测的**携带槽位集合**公共口径 + Match 与权威比对——一致 = 零和解；
+        ///   不符 = 逐槽位比对定位差异槽，**只把差异槽位的权威面写回**（视野外保留本地预测，
+        ///   不整帧复制镜像——避免"误回退"），再重放本地历史。
+        /// - 重放终点一律截到**预测领先上限**（<see cref="SimConfig.MaxPredictionLead"/>）：领先随卡顿累积、
+        ///   越过输入冗余覆盖范围后服务器再也找不到要的帧号，输入整包判"越界"、回滚锁死（现场实测形态）。
+        ///   被截帧留在历史里，本地随后按原输入自然重演（状态等价，仅帧号回退到上限）。
+        /// - 私有面（他人弹药/技能 CD/背包/资源、RngState、状态明细）客户端永远无法重建，不进比对口径。
+        /// </summary>
+        private bool Reconcile(int frame, SimWorldState authoritative, bool isFull, uint fullChecksum,
+            uint visibleChecksum, uint matchChecksum, int[] slots, uint[] slotChecksums, int slotCount)
         {
             if (frame < 0 || authoritative == null) return false;
 
@@ -254,28 +272,64 @@ namespace LiteSim
                 return true;
             }
 
-            // 环内：本地预测@frame 公共口径 checksum 比对（位级——和解判定的位级锚点）
+            // 环内：本地预测@frame 的探针态（比对材料）
             _probe = _probe ?? new SimWorldState();
             _ring.TryRestore(frame, _probe);
-            uint localChecksum = SimChecksum.ComputePublicChecksum(_probe);
 
-            if (localChecksum == authoritativeChecksum) return false;   // 预测正确——零和解（lint-allow R3：uint 位级判等，非浮点精度比较）
-
-            // 不符：权威覆盖 + 重放本地历史（frame+1..last；终点截到**预测领先上限**——
-            // 重放不得把本地帧号带过 快照帧 + MaxPredictionLead：领先随卡顿累积、越过输入冗余
-            // 覆盖范围后服务器再也找不到要的帧号，输入整包判"越界"、回滚锁死（现场实测形态）。
-            // 被截掉的帧留在历史里，本地随后按原输入自然重演（状态等价，仅帧号回退到上限）。
             int last = _state.Frame;
             int replayEnd = last < frame + SimConfig.MaxPredictionLead ? last : frame + SimConfig.MaxPredictionLead;
-            authoritative.CopyTo(_state);
+
+            if (isFull)
+            {
+                uint localChecksum = SimChecksum.ComputePublicChecksum(_probe);
+                if (localChecksum == fullChecksum) return false;   // 预测正确——零和解（lint-allow R3：uint 位级判等）
+
+                // 不符：权威**整帧**覆盖 + 重放本地历史（全量帧 = 全图权威，缺席判死语义成立）
+                authoritative.CopyTo(_state);
+                ReplayHistory(frame, replayEnd);
+                return FinishReconcile(frame);
+            }
+
+            // 增量：可见摘要 + Match 摘要短路（一致 ⇒ 零和解）；不等 ⇒ 逐槽位定位差异槽
+            uint localVisible = SimChecksum.ComputeVisibleChecksum(_probe, slots, slotCount);
+            uint localMatch = SimChecksum.ComputeMatchChecksum(in _probe.Match);
+            if (localVisible == visibleChecksum && localMatch == matchChecksum) return false;   // lint-allow R3
+
+            // 部分和解：只把**差异槽位**的权威面写回探针；视野外槽位保留本地预测（不整帧复制镜像——
+            // 否则会把视野外本地预测拉回旧镜像，问题从"误和解"变成"误回退"）。槽位集在增量下不变
+            // （活体变化必转全量），故不动活体位图。Match 非预测量——以权威为准。
+            for (int k = 0; k < slotCount; k++)
+            {
+                int slot = slots[k];
+                uint localSlot = SimChecksum.ComputeEntityPublicChecksum(
+                    in _probe.Entities[slot], in _probe.Actions[slot * SimConfig.ActionSlotsPerEntity]);
+                if (localSlot == slotChecksums[k]) continue;   // 该槽一致，不动（lint-allow R3）
+                _probe.Entities[slot] = authoritative.Entities[slot];
+                _probe.Actions[slot * SimConfig.ActionSlotsPerEntity] =
+                    authoritative.Actions[slot * SimConfig.ActionSlotsPerEntity];
+            }
+            _probe.Match = authoritative.Match;
+
+            _probe.CopyTo(_state);
+            ReplayHistory(frame, replayEnd);
+            return FinishReconcile(frame);
+        }
+
+        /// <summary>重放本地历史 frame+1..<paramref name="replayEnd"/>（不消费事件——重放期事件清掉）。</summary>
+        private void ReplayHistory(int frame, int replayEnd)
+        {
             for (int f = frame + 1; f <= replayEnd; f++)
             {
                 if (!_history.TryGet(f, out var inputs, out var _)) break;   // 历史窗口外（不应达——32 > 深度）
                 SimStep.Step(_state, _map, inputs, _values, _weapons, rules: _rules, resolveCombat: _resolveCombat);
-                _state.Events.Clear();                          // 重放期事件不消费即清
+                _state.Events.Clear();
             }
+        }
 
-            PrepareNext(_state.Frame + 1);                      // 重放后刷新下帧输入基线（与 ExecuteRollback 对称）
+        /// <summary>和解收口：刷新下帧输入基线 + 计数 + 上报（与 <see cref="ExecuteRollback"/> 对称）。</summary>
+        private bool FinishReconcile(int frame)
+        {
+            PrepareNext(_state.Frame + 1);
             _reconcileCount++;
             if (OnReconcile != null) OnReconcile(frame);
             return true;

@@ -19,6 +19,7 @@
         "LiteNet",
         "LiteSim.Core",
         "LiteSim.Core.Editor",
+        "RoomServer.Runtime",
         "LiteView",
         "LiteTesting.Core",
         "LiteTesting.Unity.Editor",

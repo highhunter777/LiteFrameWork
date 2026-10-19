@@ -15,9 +15,9 @@ namespace LiteGame
 {
     /// <summary>
     /// 对局视图装配件（<see cref="ProcedureBattle"/> 的视图域，一处收口全部表现件接线）：
-    /// 自有 `BattleView` 子作用域 → 资源租约（角色 prefab / 激光束 / 飘字底件与四档材质 / 片段清单 /
-    /// 四组音效 clip）→ <see cref="SimView"/> → 移动动画驱动 / 准心 / HUD / 瞄准激光 / 命中分发 /
-    /// 伤害数字 / 枪口火光与命中特效 / 对局音效 /〔编辑器〕爆头诊断与自动验证件。
+    /// 自有 `BattleView` 子作用域 → 资源租约（角色 prefab / 激光束 / 飘字底件与四档材质 / 掩体材质对 /
+    /// 片段清单 / 四组音效 clip）→ <see cref="SimView"/> → 移动动画驱动 / 准心 / HUD / 瞄准激光 /
+    /// 视野遮蔽 / 命中分发 / 伤害数字 / 枪口火光与命中特效 / 对局音效 /〔编辑器〕爆头诊断与自动验证件。
     ///
     /// **三面**：<see cref="LoadAsync"/>（取件与降级）、<see cref="Attach"/>（建视图与接线）、
     /// <see cref="Tick"/>（每帧驱动视图消费者）、<see cref="Dispose"/>（逆序拆：消费者先于生产者）。
@@ -59,6 +59,12 @@ namespace LiteGame
         /// 路径单源在动画 Profile——角色族配置归一处。</summary>
         private const string ClipManifestPath = CombatGirlsAnimationProfile.ClipManifestPath;
 
+        /// <summary>掩体基准材质（不透明）与渐隐变体（同色半透明）——**成对**经内容服务取件：
+        /// 视野遮蔽（档 A1）只做运行时 <c>sharedMaterial</c> 切换，不新建材质；渐隐变体是
+        /// 掩体内容的一部分（与场景同目录），路径即其产物单源同串。</summary>
+        private const string CoverBaseMaterial = "Assets/Scenes/Arena01/Arena01_Cover.mat";
+        private const string CoverFadeMaterial = "Assets/Scenes/Arena01/Arena01_Cover_Fade.mat";
+
         private readonly IContentService _content;
         private readonly IVFXService _vfx;
         private readonly AudioService _audio;        // 音频服务（装配根注册；对局音效的组+代理后端）
@@ -86,6 +92,9 @@ namespace LiteGame
         private BattleLaserDriver _laser;               // 瞄准激光（准心的世界空间兄弟件）
         private GameObject _laserBeam;                  // 激光束实例（挂 _viewRoot，随离场拆）
         private AssetLease<GameObject> _laserLease;     // 激光束租约（登记 _viewScope）
+        private BattleVisionBlockerDriver _vision;      // 视野遮蔽（档 A1：遮挡物渐隐＋影区实体隐藏——静默降级）
+        private AssetLease<Material> _coverBaseLease;   // 掩体基准材质租约（渐隐对·基准侧）
+        private AssetLease<Material> _coverFadeLease;    // 掩体渐隐变体租约（渐隐对·变体侧）
         private AssetLease<GameObject> _hudLease;       // HUD prefab 租约（登记 _viewScope）
         private GameObject _hudInstance;                // HUD 根件（ScreenSpace Canvas——随离场销毁）
         private BattleHudView _hudView;                 // 引用件（序列化引用——八节点，零 Find）
@@ -146,6 +155,7 @@ namespace LiteGame
             await AcquireDamageNumberMaterialsAsync(ct);
             await AcquireClipManifestAsync(ct);
             await AcquireAudioClipsAsync(ct);
+            await AcquireVisionMaterialsAsync(ct);
         }
 
         /// <summary>
@@ -334,6 +344,29 @@ namespace LiteGame
             }
         }
 
+        /// <summary>取掩体材质对（视野遮蔽用：基准 ↔ 渐隐变体）。**整对注入**：任一侧缺失 →
+        /// 整对不注入（警告），视野遮蔽本局降级——渐隐没有"半对"形态（只有变体没有基准＝无法
+        /// 判定绑定面，反之亦然），与伤害数字逐档材质同口径。视野遮蔽是表现增益，不把
+        /// 缺件当对局失败。</summary>
+        private async UniTask AcquireVisionMaterialsAsync(CancellationToken ct)
+        {
+            try
+            {
+                AssetLease<Material> baseLease = await _content.AcquireAsync<Material>(CoverBaseMaterial, ct: ct);
+                _viewScope.Register(baseLease);
+                AssetLease<Material> fadeLease = await _content.AcquireAsync<Material>(CoverFadeMaterial, ct: ct);
+                _viewScope.Register(fadeLease);
+                _coverBaseLease = baseLease;
+                _coverFadeLease = fadeLease;
+            }
+            catch (Exception ex) when (!(ex is OperationCanceledException))
+            {
+                Log.Warning($"掩体材质对缺失/加载失败，视野遮蔽降级:{CoverBaseMaterial} ↔ {CoverFadeMaterial}（{ex.Message}）", LogTag.Battle);
+                _coverBaseLease = null;
+                _coverFadeLease = null;      // 整对不注入（已取侧租约已登记，随 _viewScope 归还）
+            }
+        }
+
         // ---- 装配（建视图 + 接线；须在 StartGame 之后调用）----
 
         /// <summary>
@@ -371,6 +404,7 @@ namespace LiteGame
             AttachNetworkHud();                                 // 网络质量显示（会话探针 RTT/丢包——静默降级）
             _aimPointOf = AimPointOf(_input);                   // 瞄准点（世界）→ 相机构图 z 偏移 + 激光收敛端点
             AttachLaserSight();                                 // 瞄准激光（束实例已取，接线驱动）
+            AttachVision();                                     // 视野遮蔽（材质对已取＋地图场景已载——绑定扫场景）
             AttachProtectionFx();                              // 出生保护壳（FX 域；金色包裹壳跟随本地角色）
             _hitFeedback = new HitFeedbackDispatcher(_view);   // 命中分发骨架：EventSink 并列订阅
             _hitFeedback.Register(_crosshair);                // 准心：本地 Fire → 连发张开/后坐（null 拒收 = HUD 缺件静默降级）
@@ -421,6 +455,9 @@ namespace LiteGame
                 Vector3? aimPoint = _aimPointOf?.Invoke();
                 _camera.SetAimPoint(aimPoint ?? default, aimPoint.HasValue);
             }
+
+            // 视野遮蔽：末段驱动——吃最新相机态（瞄准接管/构图偏移已应用），内部低频探测
+            _vision?.Tick(elapseSeconds);
         }
 
         /// <summary>渲染帧采样**之前**的诊断件驱动（编辑器专用；release 空实现）：自瞄验证件要替换输入源，
@@ -465,7 +502,7 @@ namespace LiteGame
             _camera?.Reset();                                     // 镜头重新落位（不从上一局位置飞过来）
         }
 
-        /// <summary>拆视图（逆序：动画 → HUD → 准心 → 激光 → 飘字 → 特效 → 音效 → 传送命令 → 诊断件 →
+        /// <summary>拆视图（逆序：动画 → HUD → 准心 → 激光 → 视野遮蔽 → 飘字 → 特效 → 音效 → 传送命令 → 诊断件 →
         /// 命中分发 → 相机语义态 → 视图根 → 作用域）。不触发对局结束——那是流程层的裁决。</summary>
         internal void Dispose()
         {
@@ -487,6 +524,10 @@ namespace LiteGame
             _crosshair = null;
             _laser?.Dispose();                    // 激光驱动（束实例随 _viewRoot 销毁；租约随 _viewScope.Dispose 归还）
             _laser = null;
+            _vision?.Dispose();                   // 视野遮蔽（材质/显隐全恢复——先于视图与场景拆，不留残态）
+            _vision = null;
+            _coverBaseLease = null;               // 租约本体已登记 _viewScope（作用域统一归还）
+            _coverFadeLease = null;
             _protectionFx?.Dispose();             // 保护壳驱动（实例同样随 _viewRoot 销毁、租约随作用域归还）
             _protectionFx = null;
             _protectionShellLease = null;
@@ -729,6 +770,62 @@ namespace LiteGame
             _laser = new BattleLaserDriver(_view, _input, _context.Sim, _context.Map, line,
                 aimPointOf: _aimPointOf);                       // 瞄准地面点注入（准心同源——端点压准心）
             Log.Info("laser-attached", LogTag.Battle);
+        }
+
+        /// <summary>
+        /// 挂视野遮蔽（<see cref="BattleVisionBlockerDriver"/>——档 A1：遮挡物渐隐＋影区实体隐藏）。
+        /// 前置三件：掩体材质对已取（缺对＝取件处已警告，本局降级）、地图场景已载（绑定扫
+        /// <see cref="MapTopology.MapCollisionRoot"/> 代理树——流程层保证 Attach 晚于场景装载）、
+        /// 判定图在手（<see cref="BattleContext.Map"/>——装配 fail-fast 前置）。渲染相机解析复用
+        /// 飘字同款注入缝；缺相机形态驱动自惰性（保守恢复），不失败。
+        /// </summary>
+        private void AttachVision()
+        {
+            if (_coverBaseLease == null || _coverFadeLease == null) return;   // 取件降级已警告
+            if (_context.Map == null) return;                                  // 无图（理论不达——防御）
+            _vision = new BattleVisionBlockerDriver(_view, _context.Map, RenderCameraOf(),
+                _coverBaseLease.Asset, _coverFadeLease.Asset, ViewRenderersOf());
+        }
+
+        /// <summary>
+        /// 实体自有渲染器解析器（视野遮蔽的隐藏面——prefab 路径单源）：按实体 prefab 里的渲染件
+        /// 相对路径在视图实例上寻址。**为什么按路径而不整树枚举**：运行时挂载的 VFX（远端枪口火光
+        /// 等）是挂点下的新实例，整树枚举会把它们收进隐藏面——"藏于掩体后开火即暴露方位"（开火
+        /// 显形）就被破坏；prefab 路径集天然只含实体自有件。灰盒回退（<see cref="GreyboxEntity"/>）
+        /// 与真 prefab 同口径枚举；视图根上的渲染件以空路径寻址。
+        /// </summary>
+        private Func<GameObject, Renderer[]> ViewRenderersOf()
+        {
+            GameObject source = _prefab;
+            if (source == null) return null;                    // 无视图形态（理论不达）——隐藏面降级
+
+            var paths = new List<string>(8);
+            Renderer[] prefabRenderers = source.GetComponentsInChildren<Renderer>(true);
+            for (int i = 0; i < prefabRenderers.Length; i++)
+            {
+                string path = PathOf(prefabRenderers[i].transform, source.transform);
+                if (!paths.Contains(path)) paths.Add(path);     // 同变换多渲染件只寻址一次（GetComponents 兜全量）
+            }
+            return view =>
+            {
+                var found = new List<Renderer>(paths.Count);
+                Transform root = view.transform;
+                for (int i = 0; i < paths.Count; i++)
+                {
+                    Transform t = paths[i].Length == 0 ? root : root.Find(paths[i]);
+                    if (t != null) found.AddRange(t.GetComponents<Renderer>());
+                }
+                return found.ToArray();
+            };
+        }
+
+        /// <summary>变换相对路径（root 自身 = 空串；寻址端 <c>Transform.Find</c> 同方言）。</summary>
+        private static string PathOf(Transform t, Transform root)
+        {
+            string path = t.name;
+            for (Transform p = t.parent; p != null && p != root; p = p.parent)
+                path = p.name + "/" + path;
+            return path;
         }
 
         /// <summary>

@@ -369,6 +369,41 @@ namespace LiteFramework.Tests.Animation
             Assert.True(player.Stop(fresh.Handle, AnimationStopReason.Cancelled));
         }
 
+        [Fact]
+        public void 终态_哈希相撞的不同句柄不互认()
+        {
+            // 同一播放器内可构造哈希相撞对（换代×序号跨轴）：(P,G=1,S=1) 与 (P,G=3,S=67)——
+            // PlayerId 项相消后 31^1 == 93^67 == 30。终态表键＝句柄本体（结构化 Equals 判等），
+            // 相撞只落同桶不相认；旧形态以混合哈希 int 当键——后到句柄会被"已终态"误判，
+            // Stop 被吞、OnTerminal 不发（哈希是分布函数，不是身份）。
+            var backend = new FakeBackend();
+            var player = new AnimationPlayer(backend, Profile());
+
+            player.BumpOwnerGeneration();                            // G=1
+            var a = Play(player, "run");                             // S=1
+            Assert.True(player.Stop(a.Handle, AnimationStopReason.Cancelled));
+
+            player.BumpOwnerGeneration();                            // G=2
+            player.BumpOwnerGeneration();                            // G=3
+            AnimationStartResult b = default;
+            for (int i = 0; i < 66; i++) b = Play(player, "idle");   // S=2..67（末次＝相撞句柄）
+
+            Assert.True(a.Handle.GetHashCode() == b.Handle.GetHashCode(),
+                "夹具前提：两句柄哈希相撞（哈希公式变更须重推碰撞对）");
+            Assert.False(a.Handle.Equals(b.Handle), "相撞哈希的两句柄结构不同");
+
+            AnimationTerminalState bTerminal = AnimationTerminalState.None;
+            int bHits = 0;
+            player.OnTerminal += (h, t) => { if (h.Equals(b.Handle)) { bTerminal = t; bHits++; } };
+            Assert.True(player.Stop(b.Handle, AnimationStopReason.Cancelled),
+                "相撞哈希不得把在播句柄误判为已终态（Stop 被吞即旧形态病灶）");
+            Assert.True(bHits == 1, "终态恰好一次发出");
+            Assert.Equal(AnimationTerminalState.Cancelled, bTerminal);
+
+            Assert.True(player.TryGetState(b.Handle, out var bState), "在表句柄的终态可查");
+            Assert.Equal(AnimationTerminalState.Cancelled, bState.Terminal);
+        }
+
         // ---- 通道仲裁 ----
 
         [Fact]

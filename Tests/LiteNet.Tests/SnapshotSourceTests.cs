@@ -76,7 +76,8 @@ namespace LiteNet.Tests
                     Proto.StateSnapshot msg = differ.Build(state.Frame, state, 0,
                         state.Entities[0].Pos, radius, forceFull: false);
                     SnapshotReassembler.Apply(msg, mirror, out uint checksum);
-                    Assert.Equal(SimChecksum.ComputePublicChecksum(state), checksum);   // 公共口径 checksum 随包下发
+                    // P2-A 口径收窄：全量帧带全图公共口径 checksum；增量帧留 0（和解锚点改走 visible_checksum/match_checksum）
+                    Assert.Equal(msg.IsFull ? SimChecksum.ComputePublicChecksum(state) : 0u, checksum);
                     Assert.Equal(state.Frame, mirror.Frame);
 
                     // 镜像末态 == 权威末态：关闭 AOI 时**全部**槽位逐位对上；开启时可见集为子集，
@@ -321,6 +322,65 @@ namespace LiteNet.Tests
             Assert.Equal(701, forB.PrivateState.Bag[3].ItemDefId);
 
             Assert.Null(bare.PrivateState);                                  // 无会话归属（诊断/单测路径）不带私有面
+        }
+
+        /// <summary>
+        /// P2-A 根因回归（《联机同步残差收敛专项设计》§2.2/§2.4）：AOI 增量 × 全图 checksum 的"每快照失配"——
+        /// 视野外实体变化（服务端在动、客户端看不见）不得触发和解；视野内差异仍必须和解并纠正本地槽位。
+        /// 旧实现（全图 checksum 做增量裁判）在第一步即每帧判为不符（红）；新实现按**携带槽位集合**比对。
+        /// </summary>
+        [Fact]
+        public void 视野外实体变化_增量不触发和解_视野内差异仍和解()
+        {
+            var state = BuildWorld(out SimMapData map);
+            var differ = new SnapshotDiffer();
+            var pump = new FramePump();
+
+            state.Entities[1].Pos = new SimVector3(45f, 0f, 0f);              // p1 放到 p0 的 AOI 外（55m）
+
+            // 首帧全量建立基线 + 客户端镜像/预测世界（同序 Spawn → 同实体 Id）
+            var mirror = Mirror();
+            SnapshotReassembler.Apply(differ.Build(state.Frame, state, 0), mirror, out _);
+
+            var local = new SimWorldState { RngState = state.RngState };
+            local.Spawn(new EntitySlot { Hp = CombatConfig.EntityHp, Pos = state.Entities[0].Pos }, out _);
+            local.Spawn(new EntitySlot { Hp = CombatConfig.EntityHp, Pos = state.Entities[1].Pos }, out _);
+            var rollback = new RollbackSim(local, map, NoInput, CombatValues.Default, WeaponTable.Default);
+
+            var slotBuf = new int[SimConfig.MaxEntities];
+            var chkBuf = new uint[SimConfig.MaxEntities];
+            bool Reconcile(Proto.StateSnapshot msg)
+            {
+                SnapshotReassembler.Apply(msg, mirror, out uint checksum);
+                if (msg.IsFull) return rollback.OnAuthoritativeSnapshot(msg.Frame, mirror, checksum);
+                int count = SnapshotReassembler.Collect(msg, slotBuf, chkBuf);
+                var info = new AuthoritativeFrameInfo(false, 0u, msg.VisibleChecksum, msg.MatchChecksum,
+                    count, slotBuf, chkBuf);
+                bool rec = rollback.OnAuthoritativeSnapshot(msg.Frame, mirror, in info);
+                if (!rec) SnapshotReassembler.OverlayPrivateAndMatch(msg, rollback.State);
+                return rec;
+            }
+
+            // (1) 只移动**视野外**的 p1：增量携带集为空 → 零和解（旧全图 checksum 每帧必失配）
+            for (int i = 0; i < 6; i++)
+            {
+                pump.Step(1, state, map, Move(state, 1, 1f), CombatValues.Default, WeaponTable.Default);
+                rollback.Tick(1f / 60f);                                  // 客户端预测前进（无本地输入）
+                Proto.StateSnapshot msg = differ.Build(state.Frame, state, 0, state.Entities[0].Pos, SimConfig.AoiRadius);
+                Assert.False(msg.IsFull);
+                Assert.Empty(msg.Slots);                                  // 视野外变化不进增量
+                Assert.False(Reconcile(msg), "视野外变化不得触发和解（P2-A 根因）");
+            }
+
+            // (2) 移动**视野内**的 p0：增量带该槽位 → 客户端预测与之不符 → 必和解并纠正本地槽位
+            pump.Step(1, state, map, Move(state, 0, 1f), CombatValues.Default, WeaponTable.Default);
+            rollback.Tick(1f / 60f);
+            Proto.StateSnapshot inView = differ.Build(state.Frame, state, 0, state.Entities[0].Pos, SimConfig.AoiRadius);
+            Assert.False(inView.IsFull);
+            Assert.True(inView.Slots.Count >= 1);
+            Assert.True(Reconcile(inView), "视野内差异仍应和解");
+            Assert.Equal(BitConverter.SingleToInt32Bits(state.Entities[0].Pos.X),
+                BitConverter.SingleToInt32Bits(rollback.State.Entities[0].Pos.X));
         }
     }
 }

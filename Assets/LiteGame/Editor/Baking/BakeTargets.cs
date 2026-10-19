@@ -81,8 +81,8 @@ namespace LiteGame.EditorTools
 
         // ---- 地图场景拓扑约定（烘焙器读取面；场景制作方同守）----
 
-        /// <summary>采集根对象名（地图场景根下唯一）。</summary>
-        public const string MapCollisionRoot = "MapCollision";
+        /// <summary>采集根对象名（地图场景根下唯一）——单源在运行时侧 <see cref="MapTopology.MapCollisionRoot"/>（Editor 程序集别名引用，禁两侧各写字面量）。</summary>
+        public const string MapCollisionRoot = MapTopology.MapCollisionRoot;
 
         /// <summary>边界标注对象名（挂 <see cref="LiteGame.MapBoundsMarker"/>）。</summary>
         public const string MapBoundsObject = "map_bounds";

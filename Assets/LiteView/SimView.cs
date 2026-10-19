@@ -572,19 +572,31 @@ namespace LiteView
         }
 
         /// <summary>
-        /// 实体是否在换弹（Sim 权威）：读本地 Sim 运行态 <c>WeaponRuntime.State == Reloading</c>。
-        /// **口径与 <see cref="IsAiming"/> 的差异**：弹药/换弹属本人私有面（不上公共快照），
-        /// 本地实体取预测态（与本地握手感同帧）；远端槽位在联机下无公共字段可读——本地 Sim 里
-        /// 远端武器行不被预测开火/换弹（恒 Ready），故不误报（远端换弹表现待公共位扩展，先不预建）。
+        /// 实体是否在换弹（Sim 权威，两端同语义）：
+        /// - **本地实体**：读预测态武器行 <c>WeaponRuntime.State == Reloading</c>（弹药/换弹属本人私有面，
+        ///   不上公共快照；本地取预测态与本地握手感同帧）；
+        /// - **远端实体**：读渲染帧快照的**主动作摘要**（<see cref="ActionRuntime.ActionId"/> ==
+        ///   <see cref="ActionIds.Reload"/>——换弹期由 <c>WeaponSystem</c> 写、完成/被切枪打断即清；
+        ///   公共面，与位置/瞄准/开火窗同拍），不再依赖"远端武器行恒 Ready"。
         /// 槽位越界 / 槽位死（未装备）/ 槽位号越界 → false。
         /// </summary>
         public bool IsReloading(int slotIndex)
         {
             if (slotIndex < 0 || slotIndex >= SimConfig.MaxEntities) return false;
-            int sel = _sim.Entities[slotIndex].SelectedWeapon;
-            if (sel < 0 || sel >= SimConfig.WeaponSlotsPerEntity) return false;
-            return _sim.Weapons[slotIndex * SimConfig.WeaponSlotsPerEntity + sel].State
-                == WeaponSlotState.Reloading;   // lint-allow R3（枚举判等，非浮点精度比较）
+
+            // 本地实体必须**先按实体 Id 解析槽位**——同 IsAiming/IsDead 口径
+            if (LocalEntityId != 0 && _sim.TryResolve(LocalEntityId, out int localSlot) && localSlot == slotIndex)
+            {
+                int sel = _sim.Entities[slotIndex].SelectedWeapon;
+                if (sel < 0 || sel >= SimConfig.WeaponSlotsPerEntity) return false;
+                return _sim.Weapons[slotIndex * SimConfig.WeaponSlotsPerEntity + sel].State
+                    == WeaponSlotState.Reloading;   // lint-allow R3（枚举判等，非浮点精度比较）
+            }
+
+            // 远端：渲染帧快照的主动作摘要（SlotDelta.action_id 公共面；远端换弹表现载体）
+            if (!TryGetRenderSnapshot(out SimWorldStateSnapshot snapshot)) return false;
+            if ((snapshot.AliveBitmap[slotIndex >> 5] & (1u << (slotIndex & 31))) == 0u) return false;
+            return snapshot.Entities[slotIndex].ActionId == ActionIds.Reload;   // lint-allow R3（整型判等）
         }
 
         /// <summary>

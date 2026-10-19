@@ -5,6 +5,7 @@ using LiteSim;
 using LiteTesting;
 using LiteTesting.Unity;
 using NUnit.Framework;
+using RoomServer.Runtime;
 
 namespace LiteGame.Tests.EditMode
 {
@@ -75,6 +76,69 @@ namespace LiteGame.Tests.EditMode
                 Assert.AreEqual(0, start.Frame, "开局时刻权威帧");
                 Assert.AreNotEqual("", start.MatchId, "对局身份必须携带（结算对账键）");
                 Assert.NotNull(start.Match, "比赛状态层必须携带（客户端镜像开局状态）");
+            }
+        }
+
+        [Test]
+        [Category(TestCategory.Contract)]
+        public void 本地服对局终局_客户端收MatchEnded带结果()
+        {
+            var transport = LiteGame.LocalServerTransport.ForRoom("Contract-End", expectedPlayers: 3, map: GreyboxMap());
+            using (transport)
+            {
+                StartGame start = null;
+                MatchEnded ended = null;
+                bool? endedReliable = null;
+                transport.OnData += (data, reliable) =>
+                {
+                    if (!PacketCodec.TryDecode(data, out PacketType type, out var msg)) return;
+                    if (type == PacketType.StartGame) start = (StartGame)msg;
+                    else if (type == PacketType.MatchEnded) { ended = (MatchEnded)msg; endedReliable = reliable; }
+                };
+
+                transport.Connect("local", 0);
+                transport.TickIncoming();
+                transport.Send(new ArraySegment<byte>(PacketCodec.Encode(PacketType.Join,
+                    new JoinRequest { RoomId = "Contract-End", Token = "tok", BuildHash = LiteNet.BuildHash.Value })), true);
+                Assert.NotNull(start, "前置：代房主开局成立");
+
+                // 宿主级关闭（运维口径）：对局中 → 结算收尾 → SettlementReady 转 MatchEnded
+                transport.ShutdownHost(ShutdownReason.Operator);
+
+                Assert.NotNull(ended, "终局信令必须发出——此前 SettlementReady 被静默丢弃（僵尸对局根因）");
+                Assert.IsTrue(endedReliable == true, "客户端只收 reliable MatchEnded（不可靠面即弃）——本地服必走可靠通道");
+                Assert.AreEqual(start.MatchId, ended.MatchId, "终局身份与开局身份同源（客户端对账键）");
+                Assert.AreEqual((int)ShutdownReason.Operator, ended.EndReason);
+                Assert.AreEqual((int)MatchEndReason.External, ended.GameplayEndReason, "Operator 关闭的玩法终因＝External（非时限）");
+                Assert.AreEqual(start.Frame, ended.FinalFrame, "权威帧未推进（EditMode 无真实帧泵，帧面冻结于开局时刻）");
+                Assert.AreEqual(3, ended.Players.Count, "成员对账行全员携带（结算页数据源——含站桩补位席位）");
+                Assert.AreEqual(0, ended.Players[0].PlayerId, "本地客户端＝首入座 0 号");
+                Assert.AreEqual(0, ended.Players[0].Kills, "未交战零击杀");
+            }
+        }
+
+        [Test]
+        [Category(TestCategory.Contract)]
+        public void 本地服未开局收尾_客户端收MatchEnded无结果散场()
+        {
+            var transport = LiteGame.LocalServerTransport.ForRoom("Contract-Abort", expectedPlayers: 2, map: GreyboxMap());
+            using (transport)
+            {
+                MatchEnded ended = null;
+                transport.OnData += (data, reliable) =>
+                {
+                    if (!PacketCodec.TryDecode(data, out PacketType type, out var msg)) return;
+                    if (type == PacketType.MatchEnded) ended = (MatchEnded)msg;
+                };
+
+                // 未入座即收尾（等待期运维/超时口径）→ Abort 路径 → 无结果散场信令
+                transport.ShutdownHost(ShutdownReason.WaitingTimeout);
+
+                Assert.NotNull(ended, "等待期收尾必须发终局信令（真服同口径）——不得静默散场");
+                Assert.AreEqual(0, ended.Players.Count, "无结果可结算——Players 恒空");
+                Assert.AreEqual((int)ShutdownReason.WaitingTimeout, ended.EndReason);
+                Assert.AreEqual((int)MatchEndReason.None, ended.GameplayEndReason);
+                Assert.AreEqual(0L, ended.WinnerEntityId);
             }
         }
     }

@@ -94,13 +94,17 @@ namespace LiteGame
             BattleClient battle = null;
             // 进房等待场（窗口⑤——不定态；可空 = 测试装配）：开场即阻断，JoinAck/失败/取消三路收口
             LaunchLoading.Begin(_feedback, "正在进入房间…");
+            // 加载面 Back（阻断期取消）必须能打断进房等待：服务只给取消信号，被门控操作自行响应
+            // （《通用加载页设计》§3）；不接这个令牌，ESC 会被消费但 JoinAck 仍等到超时。
+            CancellationToken loadingToken = _feedback?.LoadingToken ?? CancellationToken.None;
+            using CancellationTokenSource linkedCts = CancellationTokenSource.CreateLinkedTokenSource(ct, loadingToken);
             try
             {
                 account = _accounts.Create(host, port, roomId, token, LiteNet.BuildHash.Value, testRoom);
                 battle = account.Battle;
                 _pending = battle;                        // 交给 OnUpdate 驱动泵（握手/收发全靠它推进）
 
-                await WaitJoined(battle, ct);
+                await WaitJoined(battle, linkedCts.Token);
                 UnityEngine.Debug.Log("[Battle] joined (JoinAck)");
 
                 _pending = null;                          // 泵交棒给 BattleContext.Tick（不双泵）
@@ -113,6 +117,13 @@ namespace LiteGame
                 LaunchLoading.End();                      // 取消/离场收口
                 _pending = null;
                 account?.Dispose();                       // 离场/宿主关闭：就地收尾，不流转
+                // 加载面 Back 取消（阶段令牌未取消）＝用户主动放弃进房：回 Main（在线形态房间页原样保留）；
+                // 外部 Request/宿主关闭由发起方负责流转，这里不得再抢转一次。
+                if (!ct.IsCancellationRequested && loadingToken.IsCancellationRequested)
+                {
+                    UnityEngine.Debug.Log("[Match] 进入房间已取消（加载面 Back）");
+                    m.Request(ProcedureId.Main);
+                }
             }
             catch (Exception ex)
             {

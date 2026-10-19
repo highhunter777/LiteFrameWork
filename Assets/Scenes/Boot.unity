@@ -220,7 +220,7 @@ MonoBehaviour:
   UseLocalServer: 0
   DirectToTraining: 0
   WorkbenchMode: 0
-  DevMenu: 0
+  DevMenu: 1
   NoDeath: 0
   InfiniteAmmo: 0
   LaserSight: 1

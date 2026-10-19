@@ -386,6 +386,64 @@ namespace LiteSim.Tests
         }
 
         [Fact]
+        public void 换弹公共摘要_开始写入Reload_完成清空()
+        {
+            var (world, id, slot) = Spawn();
+            WeaponSystem.Run(world, Idle(id), WeaponTable.Default);
+            ref WeaponRuntime w = ref WeaponOf(world, slot);
+            ref ActionRuntime act = ref world.Actions[slot * SimConfig.ActionSlotsPerEntity];
+            WeaponDef def = WeaponConfig.Default;
+
+            Assert.Equal(ActionIds.None, act.ActionId);              // 初始：无动作
+
+            w.MagAmmo = def.MagazineSize - 5;
+            world.Frame = 100;
+            WeaponSystem.Run(world, Reload(id), WeaponTable.Default);
+            Assert.Equal(ActionIds.Reload, act.ActionId);            // 换弹开始：主动作摘要写入（远端换弹表现载体）
+            Assert.Equal(100, act.StartFrame);
+            Assert.Equal(ActionPhase.Active, act.Phase);
+
+            world.Frame = 100 + def.ReloadFrames;
+            WeaponSystem.Run(world, Idle(id), WeaponTable.Default);
+            Assert.Equal(ActionIds.None, act.ActionId);              // 换弹完成：公共动作摘要清空
+            Assert.Equal(ActionPhase.None, act.Phase);
+        }
+
+        /// <summary>双槽表（切枪打断换弹用例需要槽 1 有默认行——<see cref="WeaponTable.Default"/> 只注册槽 0）。</summary>
+        private static WeaponTable TwoSlotTable()
+        {
+            var t = new WeaponTable();
+            WeaponDef rif = WeaponConfig.DefaultRifle;
+            t.SetRow(rif.Id, rif.Damage, rif.Rpm, rif.MagazineSize, rif.ReserveAmmo, rif.MaxReserveAmmo,
+                rif.ReloadFrames, rif.Range, 0f, rif.Pellets, rif.SwitchFrames, rif.Automatic);
+            t.SetRow(1, 8, 75, 8, 24, 24, 168, 30f, 0f, 8, 40, false);
+            t.SetSlotDefault(0, rif.Id);
+            t.SetSlotDefault(1, 1);
+            return t;
+        }
+
+        [Fact]
+        public void 换弹公共摘要_切枪打断即清空_不回落永久换弹()
+        {
+            var (world, id, slot) = Spawn();
+            WeaponTable table = TwoSlotTable();
+            WeaponSystem.Run(world, Idle(id), table);
+            ref WeaponRuntime w = ref WeaponOf(world, slot);
+            ref ActionRuntime act = ref world.Actions[slot * SimConfig.ActionSlotsPerEntity];
+            WeaponDef def = WeaponConfig.Default;
+
+            w.MagAmmo = def.MagazineSize - 5;
+            world.Frame = 50;
+            WeaponSystem.Run(world, Reload(id), table);
+            Assert.Equal(ActionIds.Reload, act.ActionId);
+
+            // 切枪打断换弹（SwitchWeapon 意图，目标槽 1）——摘要随之清空（远端不得停在上一次换弹）
+            var sw = new[] { new SimInputFrame { EntityId = id, Buttons = SimInputFrame.ButtonSwitchWeapon, SelectedWeaponSlot = 1, ActionSeq = 1u } };
+            WeaponSystem.Run(world, sw, table);
+            Assert.Equal(ActionIds.None, act.ActionId);
+        }
+
+        [Fact]
         public void 未装备实体_不经武器门_维持旧路径()
         {
             // 直调 ShootingSystem（不跑 WeaponSystem）＝测试/沙盒形态：装备前逐帧可开火（旧行为）

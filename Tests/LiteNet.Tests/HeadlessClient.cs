@@ -35,6 +35,8 @@ namespace LiteNet.Tests
         private SimWorldState _mirror;             // 持久权威镜像（SnapshotReassembler 应用目标，§5.5——增量快照只在它上面累积才完整）
         private readonly Queue<SimInputFrame> _pending = new Queue<SimInputFrame>();
         private SimInputFrame _lastInput;
+        private readonly int[] _slotBuf = new int[SimConfig.MaxEntities];        // 增量和解材料缓冲（复用）
+        private readonly uint[] _slotChecksumBuf = new uint[SimConfig.MaxEntities];
 
         public RollbackSim Sim => _sim;
 
@@ -154,7 +156,7 @@ namespace LiteNet.Tests
 
             _mirror = _mirror ?? new SimWorldState();
             SnapshotReassembler.Apply(snapshot, _mirror, out uint checksum);
-            bool reconciled = _sim.OnAuthoritativeSnapshot(snapshot.Frame, _mirror, checksum);
+            bool reconciled = Reconcile(snapshot, checksum);
             if (reconciled)
             {
                 MismatchReports++;
@@ -166,6 +168,20 @@ namespace LiteNet.Tests
                 // 只能从快照来，必须随每包刷新（P0 分层应用，否则 HUD 私有面永远停在初值）
                 SnapshotReassembler.OverlayPrivateAndMatch(snapshot, _sim.State);
             }
+        }
+
+        /// <summary>和解分发（与生产 <c>BattleSnapshotMirror</c> 同口径，P2-A）：全量帧走全图 checksum；
+        /// 增量帧走携带槽位集部分和解（视野外槽位不触发/不误回退）。</summary>
+        private bool Reconcile(Proto.StateSnapshot snapshot, uint checksum)
+        {
+            if (snapshot.IsFull)
+                return _sim.OnAuthoritativeSnapshot(snapshot.Frame, _mirror, checksum);
+
+            int count = SnapshotReassembler.Collect(snapshot, _slotBuf, _slotChecksumBuf);
+            var info = new AuthoritativeFrameInfo(isFull: false, fullChecksum: 0u,
+                visibleChecksum: snapshot.VisibleChecksum, matchChecksum: snapshot.MatchChecksum,
+                slotCount: count, slots: _slotBuf, slotChecksums: _slotChecksumBuf);
+            return _sim.OnAuthoritativeSnapshot(snapshot.Frame, _mirror, in info);
         }
 
         /// <summary>

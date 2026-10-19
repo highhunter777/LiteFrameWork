@@ -4,7 +4,9 @@ using LiteGame.Editor.UiTools.WriteBack;
 using LiteTesting;
 using NUnit.Framework;
 using UnityEditor;
+using UnityEditor.SceneManagement;
 using UnityEngine;
+using UnityEngine.SceneManagement;
 using UnityEngine.UI;
 
 namespace LiteGame.Tests.EditMode
@@ -19,24 +21,56 @@ namespace LiteGame.Tests.EditMode
     /// 来源判据经**实测校准**（探针证据见施工记录）：Image 等组件的记录式改动产生非默认记录项（可认）；
     /// RectTransform 的位置/尺寸/锚点路径在实例创建时即登记为默认项、此后恒标默认 ⇒ 只能归"数值差异"
     /// 由人工核对——脚本/驱动写面同样落这一侧（设计"驱动写面天然屏蔽"由此保持）。
+    ///
+    /// **场景隔离（纪律）**：本组夹具的全部实例与临时 GameObject **显式归入自建的入库空场景**
+    /// （Additive 打开、从不激活、从不保存、TearDown 整场景丢弃）——`InstantiatePrefab`/`new GameObject`
+    /// 不带场景参数时落"当前活动场景"，全量跑批期间任何保存窗口会把它们烤进打开的场景
+    /// （曾在 Boot.unity 落下 +2166/−213 行的场景噪声）；且**不动活动场景**（TestRunner 的会话编排
+    /// 归它管——抢活动位会打架）。隔离后测试对象的生命周期与打开场景的序列化面结构性无关。
     /// </summary>
     [Category(LiteTesting.TestCategory.Contract)]
     public sealed class PrefabWriteBackEditModeTests
     {
         private const string TempDir = "Assets/TempPrefabWriteBackTests";
         private const string WorkbenchScenePath = "Assets/Scenes/UiWorkbench.unity";
+        /// <summary>隔离宿主：入库空场景（测试对象显式归入——Additive 打开、**从不激活**、从不保存）。</summary>
+        private const string IsolationScenePath = "Assets/Tests/EditMode/Fixtures/EmptyIsolation.unity";
+        private const string IsolationSceneName = "EmptyIsolation";
+
+        /// <summary>隔离场景（静态：静态夹具助手共享；SetUp 重建、TearDown 整场景丢弃）。</summary>
+        private static Scene _isolation;
 
         [SetUp]
         public void EnsureTempDir()
         {
             if (!AssetDatabase.IsValidFolder(TempDir))
                 AssetDatabase.CreateFolder("Assets", "TempPrefabWriteBackTests");
+
+            // 上次异常残场兜底（隔离场景从不激活——直接关即可）
+            Scene residue = SceneManager.GetSceneByName(IsolationSceneName);
+            if (residue.IsValid() && residue.isLoaded)
+                EditorSceneManager.CloseScene(residue, true);
+
+            _isolation = EditorSceneManager.OpenScene(IsolationScenePath, OpenSceneMode.Additive);
         }
 
         [TearDown]
         public void CleanupTempDir()
         {
+            // **不动活动场景**：TestRunner 的会话编排（临时场景/会话还原）归它管——抢活动位会打架
+            // （实测把编辑器整场会话换进隔离场景）。隔离场景只作容器：从未激活、从未保存，
+            // CloseScene 整体丢弃即可——测试对象与打开场景的序列化面结构性无关。
+            if (_isolation.IsValid() && _isolation.isLoaded)
+                EditorSceneManager.CloseScene(_isolation, true);
             if (AssetDatabase.IsValidFolder(TempDir)) AssetDatabase.DeleteAsset(TempDir);
+        }
+
+        /// <summary>GameObject 构造器无场景参数（落"当前活动"）——创建即搬入隔离场景，
+        /// 关闭"中途保存把临时对象烤进打开场景"的窗口。</summary>
+        private static GameObject IntoIsolation(GameObject go)
+        {
+            SceneManager.MoveGameObjectToScene(go, _isolation);
+            return go;
         }
 
         private static string MakePrefab(string name, params Type[] components)
@@ -44,7 +78,7 @@ namespace LiteGame.Tests.EditMode
             var types = new Type[components.Length + 1];
             types[0] = typeof(RectTransform);
             Array.Copy(components, 0, types, 1, components.Length);
-            var root = new GameObject(name, types);
+            var root = IntoIsolation(new GameObject(name, types));
             string path = TempDir + "/" + name + ".prefab";
             PrefabUtility.SaveAsPrefabAsset(root, path);
             UnityEngine.Object.DestroyImmediate(root);
@@ -56,7 +90,7 @@ namespace LiteGame.Tests.EditMode
         private static GameObject MakeModifiedInstance(string name, out string path)
         {
             path = MakePrefab(name, typeof(Image));
-            var instance = (GameObject)PrefabUtility.InstantiatePrefab(AssetDatabase.LoadAssetAtPath<GameObject>(path));
+            var instance = (GameObject)PrefabUtility.InstantiatePrefab(AssetDatabase.LoadAssetAtPath<GameObject>(path), _isolation);
             var rectSo = new SerializedObject(instance.GetComponent<RectTransform>());
             rectSo.FindProperty("m_SizeDelta").vector2Value = new Vector2(123f, 45f);
             rectSo.ApplyModifiedProperties();
@@ -147,7 +181,7 @@ namespace LiteGame.Tests.EditMode
         public void 回写_实例新增组件显式不可回写()
         {
             string path = MakePrefab("Tmp_WriteBackAdded", typeof(Image));
-            var instance = (GameObject)PrefabUtility.InstantiatePrefab(AssetDatabase.LoadAssetAtPath<GameObject>(path));
+            var instance = (GameObject)PrefabUtility.InstantiatePrefab(AssetDatabase.LoadAssetAtPath<GameObject>(path), _isolation);
             try
             {
                 var added = instance.AddComponent(typeof(Slider));            // 源 prefab 无此组件——结构面
@@ -176,8 +210,8 @@ namespace LiteGame.Tests.EditMode
         {
             string path = MakePrefab("Tmp_WriteBackSceneRef", typeof(Image), typeof(Button));
             string otherPath = MakePrefab("Tmp_WriteBackSceneRefOther", typeof(Image));
-            var instance = (GameObject)PrefabUtility.InstantiatePrefab(AssetDatabase.LoadAssetAtPath<GameObject>(path));
-            var other = (GameObject)PrefabUtility.InstantiatePrefab(AssetDatabase.LoadAssetAtPath<GameObject>(otherPath));
+            var instance = (GameObject)PrefabUtility.InstantiatePrefab(AssetDatabase.LoadAssetAtPath<GameObject>(path), _isolation);
+            var other = (GameObject)PrefabUtility.InstantiatePrefab(AssetDatabase.LoadAssetAtPath<GameObject>(otherPath), _isolation);
             try
             {
                 var originalGraphic = AssetDatabase.LoadAssetAtPath<GameObject>(path).GetComponent<Button>().targetGraphic;
@@ -208,7 +242,7 @@ namespace LiteGame.Tests.EditMode
         [Test]
         public void 回写_非实例选择显式失败()
         {
-            var plain = new GameObject("Tmp_WriteBackPlain", typeof(RectTransform));
+            var plain = IntoIsolation(new GameObject("Tmp_WriteBackPlain", typeof(RectTransform)));
             try
             {
                 var scan = PrefabWriteBackScan.Scan(plain);
