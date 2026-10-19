@@ -440,6 +440,34 @@ namespace LiteGame.Tests.EditMode
             Assert.AreEqual(600, revived, "生命更替后读口返回新值（死亡锁存复位的唯一信号）");
         }
 
+        // ---- 出生保护读口（保护壳驱动：本地=预测态 / 远端=权威快照）----
+
+        [Test]
+        public void 保护读口_本地预测态_远端快照_端点不含()
+        {
+            var world = NewWorld(new SimVector3(1f, 0f, 0f), new SimVector3(5f, 0f, 0f));
+            var counter = new ViewCounter();
+            var view = NewView(world, counter);
+            view.AlignLocal(world.Entities[0].Id);
+            view.Tick(1f / 60f);
+
+            world.Frame = 10;
+            world.Entities[0].InvulnerableUntilFrame = 20;
+            Assert.IsTrue(view.IsProtected(0), "本地保护读预测态");
+            Assert.IsFalse(view.IsProtected(1), "远端首快照未到 → 不猜");
+            Assert.IsFalse(view.IsProtected(99), "越界槽位为假");
+
+            world.Entities[1].InvulnerableUntilFrame = 30;
+            var snap = new SimWorldStateSnapshot();
+            snap.CaptureFull(world);                          // 快照帧 = 10，远端保护至 30
+            view.OnAuthoritativeSnapshot(snap);
+            Assert.IsTrue(view.IsProtected(1), "远端保护读权威快照");
+            Assert.IsTrue(view.IsProtected(0), "本地仍走预测态（不被快照覆盖）");
+
+            world.Frame = 20;                                 // 端点不含：Frame == 截止帧
+            Assert.IsFalse(view.IsProtected(0), "本地到期即假");
+        }
+
         // ---- 输入设备源 ----
         // 设备源由 Platform.Unity 适配器的 NewInputIntentSource 承担（New Input System：读 InputAction，
         // 需要真实设备与 Action 资产，归 Player/真机验证）。三个门（上下文门/帧边界门/采样节流）与设备源

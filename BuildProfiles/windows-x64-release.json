@@ -1,5 +1,5 @@
 {
-  "$comment": "Player build profile - release channel for tester distribution (Dist). Per user ruling: Dist tester packages must NOT carry the dev face - build this profile before New-Package for testers and pass -GameBuild Builds/StandaloneWindows64-release. The development-channel profile (windows-x64.json) is internal client testing only. KEEP ASCII-ONLY (PS 5.1 GBK parsing).",
+  "$comment": "Player build profile - release channel for tester distribution (Dist). Per user ruling: Dist tester packages must NOT carry the dev face - build this profile before New-Package for testers and pass -GameBuild Builds/StandaloneWindows64-release. The development-channel profile (windows-x64.json) is internal client testing only. This committed profile stays environment-neutral (empty endpoints), so a direct build deletes deploy.args and cannot reach Meta: copy it to windows-x64-release.local.json (gitignored) and fill the same endpoints as windows-x64-closedtest.local.json before building a shippable player. KEEP ASCII-ONLY (PS 5.1 GBK parsing).",
   "profileName": "windows-x64-il2cpp-release",
   "updatedAt": "2026-10-18",
   "environment": "test",

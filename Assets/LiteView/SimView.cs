@@ -66,6 +66,8 @@ namespace LiteView
         private SimVector3 _localDisplay;
         private float _localYaw;
         private bool _hasLocalDisplay;
+        private int _localLifeStart;                           // 本地当前生命起始帧（复活检测）
+        private bool _hasLocalLife;
         private CharacterController _localCc;                 // 本地视图物理代理（CC.Move 收敛到衰减目标——见 PlaceLocal/EnsureLocalCc）
 
         /// <summary>
@@ -184,6 +186,7 @@ namespace LiteView
             if (entityId == LocalEntityId) return;
             LocalEntityId = entityId;
             _hasLocalDisplay = false;          // 换实体/重连：重新落位（不从上一条命的位置飞过去）
+            _hasLocalLife = false;             // 生命基线随实体重取（不把上一实体当作复活）
             _localCc = null;                   // CC 代理一并失效（视图重建后 EnsureLocalCc 重新解析）
         }
 
@@ -349,16 +352,27 @@ namespace LiteView
 
             ref EntitySlot slot = ref _sim.Entities[slotIndex];
 
+            // 生命更替（复活）：显式把本地视图从死亡表现里拉回来——渲染器禁用/离屏剔除残值一并清掉。
+            int lifeStart = slot.LifeStartFrame;
+            if (!_hasLocalLife) { _hasLocalLife = true; _localLifeStart = lifeStart; }
+            else if (lifeStart != _localLifeStart)
+            {
+                _localLifeStart = lifeStart;
+                ResetLocalViewAfterRespawn(slotIndex, lifeStart);
+            }
+
             if (!_hasLocalDisplay)
             {
                 _localDisplay = slot.Pos;              // 首帧/换实体：直接落位
                 _localYaw = slot.Yaw;
                 _hasLocalDisplay = true;
+                _camera?.Reset();                      // 对齐/重建：下一帧相机直接落位（不从上个实体位置飞过来）
             }
             else if (ViewTransformMath.ShouldSnap(_localDisplay, slot.Pos, SnapDistance))
             {
                 _localDisplay = slot.Pos;              // 复活/传送：硬切
                 _localYaw = slot.Yaw;
+                _camera?.Reset();                      // 相机同帧 warp——否则阻尼追赶期间角色在画面外
             }
             else
             {
@@ -368,6 +382,22 @@ namespace LiteView
 
             if (_views.TryGet(slotIndex, out var view))
                 PlaceLocal(view, dt);
+        }
+
+        /// <summary>复活时强制恢复本地视图可见性：死亡/动画片段可能把渲染器或包围盒留在旧姿态，
+        /// 仅靠相机 snap 不足以保证模型立刻可见。这里是表现兜底（不改 Sim/判定）。</summary>
+        private void ResetLocalViewAfterRespawn(int slotIndex, int lifeStart)
+        {
+            if (!_views.TryGet(slotIndex, out GameObject view) || view == null) return;
+            if (!view.activeSelf) view.SetActive(true);
+
+            var renderers = view.GetComponentsInChildren<Renderer>(true);
+            for (int i = 0; i < renderers.Length; i++)
+            {
+                renderers[i].enabled = true;
+                if (renderers[i] is SkinnedMeshRenderer skinned) skinned.updateWhenOffscreen = true;
+            }
+            Log.Info($"local-respawn life={lifeStart} view={view.name} renderers={renderers.Length}", LogTag.View);
         }
 
         /// <summary>本地视图落位：**位置走 CharacterController.Move** 收敛到
@@ -498,6 +528,24 @@ namespace LiteView
             if (!TryGetRenderSnapshot(out SimWorldStateSnapshot snapshot)) return false;
             if ((snapshot.AliveBitmap[slotIndex >> 5] & (1u << (slotIndex & 31))) == 0u) return false;
             return snapshot.Entities[slotIndex].Hp <= 0;
+        }
+
+        /// <summary>
+        /// 实体是否处于出生保护期（`Frame &lt; InvulnerableUntilFrame`，**端点不含**）。取数口径同
+        /// <see cref="IsDead"/>：本地取预测态、远端取最新权威快照（保护期由快照携带且走粘滞窗）。
+        /// 槽位越界 / 首快照未到 / 槽位已死 → false。
+        /// </summary>
+        public bool IsProtected(int slotIndex)
+        {
+            if (slotIndex < 0 || slotIndex >= SimConfig.MaxEntities) return false;
+
+            // 本地实体必须**先按实体 Id 解析槽位**——同 IsDead 口径（Id 不能当下标用）
+            if (LocalEntityId != 0 && _sim.TryResolve(LocalEntityId, out int localSlot) && localSlot == slotIndex)
+                return _sim.Frame < _sim.Entities[slotIndex].InvulnerableUntilFrame;
+
+            if (!TryGetRenderSnapshot(out SimWorldStateSnapshot snapshot)) return false;
+            if ((snapshot.AliveBitmap[slotIndex >> 5] & (1u << (slotIndex & 31))) == 0u) return false;
+            return snapshot.Frame < snapshot.Entities[slotIndex].InvulnerableUntilFrame;
         }
 
         /// <summary>

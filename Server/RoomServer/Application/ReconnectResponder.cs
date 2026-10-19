@@ -25,9 +25,10 @@ namespace RoomServer.Application
             response.BuildHash = buildHash;
             response.Snapshot = SnapshotCodec.PackFull(room.AuthSim.Frame, room.AuthSim, room.Gate.LastAcceptedFrame(playerId));
             response.Snapshot.PrivateState = SnapshotCodec.PackPrivate(room.AuthSim, viewerEntityId);
-            KillFeedPacker.Fill(response.Snapshot.Match, room.Kills);   // 重连快照同样携带最近击杀（客户端重连后按"已见"处理，不重播）
-            FireSignalPacker.Fill(response.Snapshot.Match, room.Fires); // 开火窗口同灌（客户端重连后按"已见"处理，不重播）
-            HitFeedPacker.Fill(response.Snapshot.Match, room.Hits);     // 命中窗口同灌（客户端重连后按"已见"处理，不重播）
+            // 重连**不携带公共战斗事件窗口**（2026-10-18 批）：事件面已独立成包，且重连语义本就是
+            // "不重播历史事件"——客户端在 ReconnectResponse 上把公共事件面 Reset()，
+            // 恢复后的第一份周期事件批按"首份"处理（只标记已见）。这样重连响应体积只与
+            // 状态规模相关，不必再为事件窗口承担撞上限的风险。
             for (int f = room.AuthSim.Frame - SimConfig.MaxInputHistory + 1; f <= room.AuthSim.Frame; f++)
             {
                 if (f <= 0) continue;

@@ -43,6 +43,7 @@ namespace LiteClient
         private bool _ownsTarget;                // 自建的空目标才销毁；场景里的不动
         private Transform _followAtBind;         // 接线前的 vcam.Follow（解绑时还原，不留指向已销毁对象的引用）
         private bool _hasFocus;
+        private bool _snapNextFollow;            // Reset 后的下一帧跟随直接 warp（复活/传送硬切）
         private bool _shutdown;
         private string _lastResolveReason;
 
@@ -228,13 +229,25 @@ namespace LiteClient
             }
 
             Focus = target;                      // 表现空间的目标位置（诊断/HUD 用）
+            ApplyLetterbox();                    // 固定 16:9 视口（N1）：X/Y 可见范围不随屏幕画幅变化
             if (_target != null && !ReferenceEquals(_target, null))
             {
+                Vector3 previous = _target.position;
                 // 位置每帧写；**朝向只写自建焦点**——场景配置的 Follow 目标自带姿态语义（骨骼/动画），
                 // 不越权覆写（构图偏移如 FramingTransposer 的 TrackedObjectOffset 随 Follow 目标的旋转；
                 // 自建焦点若恒 identity，偏移实际是世界系固定，玩家转向后构图点绕角色乱转）。
                 if (_ownsTarget) _target.SetPositionAndRotation(target, facing);
                 else _target.position = Focus;   // 阻尼/平滑在 Cinemachine 侧按 vcam 配置生效
+
+                // 复活/传送是瞬移：仅 Reset 后这一帧要求相机**直接 warp**，否则 vcam 阻尼会从上一条命
+                // 的位置慢慢飞过去，模型在镜头追上之前不在画面内（用户实测“复活后模型过一会才出现”）。
+                if (_snapNextFollow)
+                {
+                    _snapNextFollow = false;
+                    Vector3 delta = target - previous;
+                    if (delta.sqrMagnitude > 0f)
+                        CinemachineCore.Instance.OnTargetObjectWarped(_target, delta);
+                }
             }
             _hasFocus = true;
         }
@@ -243,6 +256,19 @@ namespace LiteClient
         {
             _hasFocus = false;
             Focus = Vector3.zero;
+            _snapNextFollow = true;
+        }
+
+        /// <summary>固定 16:9 信箱式视口（N1）：3D 相机视口居中裁成 16:9，非 16:9 屏幕留黑边；
+        /// X/Y 可见范围在任意屏幕上一致。只在视口变化时写 Camera.rect 并留痕。</summary>
+        private void ApplyLetterbox()
+        {
+            Camera camera = TryGetRenderCamera();
+            if (camera == null) return;
+            Rect viewport = CameraAspectLetterbox.Viewport(Screen.width, Screen.height);
+            if (camera.rect == viewport) return;
+            camera.rect = viewport;
+            Log.Info($"[Camera] letterbox {Screen.width}x{Screen.height} viewport={viewport.width:F3}x{viewport.height:F3} offset=({viewport.x:F3},{viewport.y:F3})", LogTag.Camera);
         }
 
         /// <summary>
@@ -309,6 +335,7 @@ namespace LiteClient
             _aimVcam.m_StandbyUpdate = CinemachineVirtualCameraBase.StandbyUpdateMode.Always;
             if (!_aiming && _aimVcamAim != null && !ReferenceEquals(_aimVcamAim, null))
                 _aimOffsetZAtBind = _aimVcamAim.m_TrackedObjectOffset.z;   // 场景基准值（仅非瞄准期可采：曲线接回的端点）
+            ApplyLetterbox();
             Log.Info($"[Camera] 瞄准机预放置「{_aimVcam.name}」(follow/lookAt=主焦点, standby=Always)", LogTag.Camera);
         }
 

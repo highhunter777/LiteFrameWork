@@ -36,6 +36,16 @@ namespace LiteView.Animation
 
         public void OnUpdate(IStageHost<CharacterAnimId, CombatAnimReq> m, float elapseSeconds) { }
 
-        public void OnLeave(IStageHost<CharacterAnimId, CombatAnimReq> m) { }
+        public void OnLeave(IStageHost<CharacterAnimId, CombatAnimReq> m)
+        {
+            // 复活/被更高优先级打断：主动停掉死亡片段并清通道状态。死亡定义是 HoldOnFinish
+            // （末帧锁定）；若只依赖下一叶替换，死亡姿态/末帧会多留一段，表现为复活后模型
+            // 仍不可见或迟显。这里与根的退根收口同口径（幂等）。
+            if (_ctx.BodyHandle.IsValid)
+                _ctx.Player.Stop(_ctx.BodyHandle, AnimationStopReason.Interrupted);
+            _ctx.BodyForm = default;
+            _ctx.BodyHandle = default;
+            _ctx.BodyIsBlend = false;
+        }
     }
 }

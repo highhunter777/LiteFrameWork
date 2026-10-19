@@ -56,7 +56,8 @@ namespace LiteView
         /// </summary> 
         void SetAimPoint ( in Vector3 point, bool hasPoint ) ;
 
-        /// <summary>重置跟随状态（解除控制/重开局时调：下一帧重新落位，不从上一次位置飞过去）。</summary>
+        /// <summary>重置跟随状态（解除控制/重开局/复活传送硬切时调：下一次 <see cref="Follow"/> 直接落位，
+        /// 不从上一次位置阻尼飞过去——否则镜头追赶期间角色可能在画面外。</summary>
         void Reset();
 
         /// <summary>释放本服务持有的对象（幂等；宿主/流程关闭时调）。</summary>

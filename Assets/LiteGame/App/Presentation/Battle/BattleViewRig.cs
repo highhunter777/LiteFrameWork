@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Threading;
 using Cysharp.Threading.Tasks;
@@ -80,9 +80,8 @@ namespace LiteGame
         private BattleKillFeedDriver _killFeed;          // 全局击杀提示（快照携带的最近击杀窗口——多条堆叠）
         private BattleNetworkHudDriver _netStats;        // 网络质量显示（会话探针 RTT/丢包——离线隐藏）
         private BattleRemoteMuzzleFlashDriver _remoteFire;   // 远端开火火光（快照携带的最近开火窗口——静默降级）
-        private BattleProtectionFxDriver _protectionFx;  // 出生保护壳（金色包裹壳跟随本地角色）
-        private GameObject _protectionShell;             // 保护壳实例（挂 _viewRoot，随离场拆）
-        private AssetLease<GameObject> _protectionShellLease;   // 保护壳租约（登记 _viewScope）
+        private BattleProtectionFxDriver _protectionFx;  // 出生保护壳（金色包裹壳按槽位跟随玩家视图）
+        private AssetLease<GameObject> _protectionShellLease;   // 保护壳 prefab 租约（实例按槽位惰性创建，随 _viewRoot 拆）
         private UnityEngine.Events.UnityAction _menuClick;   // 菜单钮监听（装配期加、拆除期摘——存实例供移除）
         private BattleLaserDriver _laser;               // 瞄准激光（准心的世界空间兄弟件）
         private GameObject _laserBeam;                  // 激光束实例（挂 _viewRoot，随离场拆）
@@ -224,8 +223,9 @@ namespace LiteGame
         }
 
         /// <summary>
-        /// 取出生保护壳件并实例化（FX 域；挂 `_viewRoot`、缺省收起——实例随离场拆）。资源缺失/加载失败 →
-        /// **静默降级**（只警告）：保护特效是表现增益，不把"缺件"当对局失败。
+        /// 取出生保护壳 prefab 租约（FX 域；实例由 <see cref="BattleProtectionFxDriver"/> 按槽位惰性创建、
+        /// 挂 `_viewRoot`、缺省收起——实例随离场拆）。资源缺失/加载失败 → **静默降级**（只警告）：
+        /// 保护特效是表现增益，不把"缺件"当对局失败。
         /// </summary>
         private async UniTask AcquireProtectionShellAsync(CancellationToken ct)
         {
@@ -233,15 +233,11 @@ namespace LiteGame
             {
                 _protectionShellLease = await _content.AcquireAsync<GameObject>(ProtectionShellPrefab, ct: ct);
                 _viewScope.Register(_protectionShellLease);
-                _protectionShell = UnityEngine.Object.Instantiate(_protectionShellLease.Asset, _viewRoot);
-                _protectionShell.name = "SpawnProtection";
-                _protectionShell.SetActive(false);
             }
             catch (Exception ex) when (!(ex is OperationCanceledException))
             {
                 Log.Warning($"出生保护壳缺失/加载失败，保护特效降级:{ProtectionShellPrefab}（{ex.Message}）", LogTag.Battle);
                 _protectionShellLease = null;
-                _protectionShell = null;
             }
         }
 
@@ -384,7 +380,7 @@ namespace LiteGame
             AttachRemoteFireFx();                             // 远端开火火光（开火窗口快照面 → 他人枪口挂点）
             AttachAudio();                                     // 对局音效（帧事件路由的 Audio 消费者）
             _authorityFeedback = new AuthoritativeCombatFeedback(
-                _context.KillFeed, _context.HitFeed, _view, _hitFeedback);
+                _context.CombatFeed, _view, _hitFeedback);
 #if UNITY_EDITOR || DEVELOPMENT_BUILD || LITEFRAMEWORK_DEBUG
             // 爆头区域常驻可视化（测试模式诊断件）：只读预测态，不改判定；release 剥离
             _headshotDebug = new BattleHeadshotDebugDrawer(_context.Sim);
@@ -493,7 +489,6 @@ namespace LiteGame
             _laser = null;
             _protectionFx?.Dispose();             // 保护壳驱动（实例同样随 _viewRoot 销毁、租约随作用域归还）
             _protectionFx = null;
-            _protectionShell = null;
             _protectionShellLease = null;
             _laserBeam = null;
             _laserLease = null;
@@ -632,8 +627,8 @@ namespace LiteGame
         }
 
         /// <summary>
-        /// 挂全局击杀提示（<see cref="BattleKillFeedDriver"/>——击杀提示批）：消费会话公共击杀面
-        /// （<see cref="BattleContext.KillFeed"/>——快照携带的最近击杀窗口）。行件不齐（旧 prefab / 结构变更）
+        /// 挂全局击杀提示（<see cref="BattleKillFeedDriver"/>——击杀提示批）：消费会话公共战斗事件面
+        /// 的击杀队列（<see cref="BattleContext.CombatFeed"/>）。行件不齐（旧 prefab / 结构变更）
         /// → **静默降级**（只警告）：击杀提示是表现增益，不影响 HUD 其余面。武器图标可缺（缺件不显示图标）。
         /// </summary>
         private void AttachKillFeed()
@@ -646,7 +641,7 @@ namespace LiteGame
             }
             _killFeed = new BattleKillFeedDriver(_context.Sim.State,
                 () => _view != null ? _view.LocalEntityId : 0L,
-                _context.KillFeed,
+                _context.CombatFeed,
                 _hudView.WeaponIcons,
                 _hudView.KillFeedRows, _hudView.KillFeedKillers, _hudView.KillFeedWeapons, _hudView.KillFeedVictims);
             Log.Info("kill-feed-attached", LogTag.Battle);
@@ -692,14 +687,23 @@ namespace LiteGame
         }
 
         /// <summary>
-        /// 挂出生保护壳（<see cref="BattleProtectionFxDriver"/>——FX 域；金色包裹壳）：保护态内**跟随本地
-        /// 角色视图根**显隐（壳件挂 `_viewRoot`——不挂角色视图，避免回池复用把壳留给别的实体）。
-        /// 壳件未取（缺件已警告）→ 本段静默跳过。
+        /// 挂出生保护壳（<see cref="BattleProtectionFxDriver"/>——FX 域；金色包裹壳）：保护态内**按槽位
+        /// 跟随对应玩家视图**显隐（本地读预测态、远端读权威快照——读口在 <see cref="SimView.IsProtected"/>）。
+        /// 壳件挂 `_viewRoot`——不挂角色视图，避免回池复用把壳留给别的实体。壳件未取（缺件已警告）→ 本段静默跳过。
         /// </summary>
         private void AttachProtectionFx()
         {
-            if (_protectionShell == null) return;          // 取件降级已警告
-            _protectionFx = new BattleProtectionFxDriver(_context.Sim.State, LocalSlot, ViewOf, _protectionShell);
+            if (_protectionShellLease == null) return;     // 取件降级已警告
+            _protectionFx = new BattleProtectionFxDriver(
+                _view.IsProtected,
+                ViewOf,
+                slot =>
+                {
+                    GameObject shell = UnityEngine.Object.Instantiate(_protectionShellLease.Asset, _viewRoot);
+                    shell.name = "SpawnProtection_" + slot;
+                    shell.SetActive(false);
+                    return shell;
+                });
             Log.Info("protection-fx-attached", LogTag.Battle);
         }
 
@@ -772,14 +776,14 @@ namespace LiteGame
         }
 
         /// <summary>
-        /// 挂远端开火火光（<see cref="BattleRemoteMuzzleFlashDriver"/>）：消费会话公共开火面
-        /// （<see cref="BattleContext.FireFeed"/>——快照携带的最近开火窗口），把他人开火落到其枪口挂点。
+        /// 挂远端开火火光（<see cref="BattleRemoteMuzzleFlashDriver"/>）：消费会话公共战斗事件面的
+        /// 开火队列（<see cref="BattleContext.CombatFeed"/>），把他人开火落到其枪口挂点。
         /// VFX 服务未注入 → **静默降级**（<see cref="AttachCombatFx"/> 处已警告）。
         /// </summary>
         private void AttachRemoteFireFx()
         {
             if (_vfx == null) return;                      // VFX 已整体降级（AttachCombatFx 处已警告）
-            _remoteFire = new BattleRemoteMuzzleFlashDriver(_view, _context.FireFeed, _vfx);
+            _remoteFire = new BattleRemoteMuzzleFlashDriver(_view, _context.CombatFeed, _vfx);
             Log.Info("remote-fire-attached", LogTag.Battle);
         }
 
@@ -910,42 +914,46 @@ namespace LiteGame
             if (_prefab == null) return null;
             var go = UnityEngine.Object.Instantiate(_prefab, parent);
             go.name = location;
+
+            // 复活/传送会把视图瞬移到出生点：预制体部分 SkinnedMeshRenderer 关闭了离屏更新，
+            // 死亡姿态留下的包围盒仍停在旧位置，传送后渲染器会被永久剔除（模型消失）。
+            var skinned = go.GetComponentsInChildren<SkinnedMeshRenderer>(true);
+            for (int i = 0; i < skinned.Length; i++) skinned[i].updateWhenOffscreen = true;
             return go;
         }
 
         /// <summary>
-        /// 权威命中/击杀窗口 → 表现反馈：`PublicHitFeed`/`PublicKillFeed` 的新条目（含他人命中/击杀）
-        /// 合成 <see cref="FrameEventKind.Hit"/>/<see cref="FrameEventKind.Crit"/>/<see cref="FrameEventKind.Death"/>
+        /// 权威命中/击杀事件 → 表现反馈：<see cref="PublicCombatFeed"/> 的命中/阵亡队列（含他人命中/击杀）
         /// 交给 <see cref="HitFeedbackDispatcher"/>——命中数字/受击特效/命中音效/阵亡归属不再依赖
         /// "本地预测的帧事件"（受害方本地从不模拟敌方开火，旧路径下自己阵亡永远收不到归属/音效；
-        /// 预测命中则可能在服务端未命中时误显）。两个 feed 已按 (shooter,target,frame) 去重。
+        /// 预测命中则可能在服务端未命中时误显）。去重已在 <see cref="PublicCombatFeed"/> 完成。
+        ///
+        /// 数据源是统一的公共事件面（事件面独立成包后按 kind 分流入队）。
         /// </summary>
         private sealed class AuthoritativeCombatFeedback : IDisposable
         {
-            private readonly PublicKillFeed _kills;
-            private readonly PublicHitFeed _hits;
+            private readonly PublicCombatFeed _feed;
             private readonly SimView _view;
             private readonly HitFeedbackDispatcher _dispatcher;
             private bool _disposed;
 
-            public AuthoritativeCombatFeedback(PublicKillFeed kills, PublicHitFeed hits, SimView view,
+            public AuthoritativeCombatFeedback(PublicCombatFeed feed, SimView view,
                 HitFeedbackDispatcher dispatcher)
             {
-                _kills = kills;
-                _hits = hits;
+                _feed = feed;
                 _view = view;
                 _dispatcher = dispatcher;
             }
 
-            /// <summary>每渲染帧消费两个权威队列——**队列而非事件**：视图 Attach 前到达的快照
-            /// （或一帧内多份快照）不会丢反馈；命中先于死亡（同帧击杀的听感/飘字顺序稳定）。</summary>
+            /// <summary>每渲染帧消费权威队列——**队列而非事件**：视图 Attach 前到达的事件
+            /// （或一帧内多批事件）不会丢反馈；命中先于死亡（同帧击杀的听感/飘字顺序稳定）。</summary>
             public void Tick()
             {
                 if (_disposed || _dispatcher == null) return;
 
-                if (_hits != null)
+                if (_feed != null)
                 {
-                    while (_hits.TryDequeue(out PublicHitFeed.Entry hit))
+                    while (_feed.TryDequeueHit(out PublicCombatFeed.HitEntry hit))
                     {
                         var e = new FrameEvent
                         {
@@ -957,11 +965,8 @@ namespace LiteGame
                         };
                         _dispatcher.DispatchAuthoritative(in e);
                     }
-                }
 
-                if (_kills != null)
-                {
-                    while (_kills.TryDequeueFeedback(out PublicKillFeed.Entry kill))
+                    while (_feed.TryDequeueKillFeedback(out PublicCombatFeed.KillEntry kill))
                     {
                         Vector3 pos = Vector3.zero;
                         if (_view != null && _view.TryGetSlot(kill.Victim, out int slot)

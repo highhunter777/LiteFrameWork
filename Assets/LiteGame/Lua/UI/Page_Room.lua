@@ -30,6 +30,9 @@ end
 
 function M:OnShow(data)
     self._starting = false
+    -- 复用页复位：成功开局路径不回调（OnStartGame 接管并关页），上一局点开局时置的禁钮状态
+    -- 会留在池化实例上；不在这里恢复，第二次开房的「开始对局」会显示但点不动。
+    self.ui:SetInteractable("Button_StartMatch", true)
     local roomId = (type(data) == "table") and data.roomId or nil
     if roomId ~= nil and roomId ~= "" then
         self.ui:SetVisible("Txt_RoomId", true)

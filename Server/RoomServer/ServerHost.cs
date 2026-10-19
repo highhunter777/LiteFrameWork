@@ -1512,8 +1512,14 @@ namespace RoomServer
                 if (_mailboxRouting && !_drainMailboxesImmediately)
                     DrainRoomMailbox(room);
                 if (room.Runtime.Started)
+                {
                     room.Pipeline.BroadcastIfDue(room.Runtime.AuthSim.Frame, room.Runtime.AuthSim,
                         room.Runtime.Gate, room.Runtime.EntityIdOf, room.SeatBroadcastable);
+                    // 事件面与状态面**同节拍**（只在状态真的广播了这一帧才发事件批）：
+                    // 让两条平面的时间轴一致，客户端按帧对齐时不会出现"事件早于/晚于所属状态"。
+                    if (room.Pipeline.BroadcastedThisFrame)
+                        room.Events.Publish(room.Runtime.AuthSim.Frame, room.SeatBroadcastable);
+                }
 
                 // 终态房间销毁（§42："drain 与房间销毁后清理归 R2"）：本房间当轮输出已在上方应用
                 // （结算入盒等），此处先移除再调整下标，下一轮不再遍历本房间。
@@ -1906,11 +1912,14 @@ namespace RoomServer
                 inst.BindDriveAction(() => _workerDriver.Drive(inst));
                 inst.Pipeline.SendTo = (seat, type, message, reliable) =>
                     _workerDriver.Send(inst, seat, type, message, reliable);
+                // 事件面走同一个出口（独立包型，同一注入纪律——避免第二份发送路径漂移）
+                inst.Events.SendTo = inst.Pipeline.SendTo;
             }
             else
             {
                 inst.Pipeline.SendTo = (seat, type, message, reliable) =>
                     SendToSession((Session)seat, type, message, reliable);
+                inst.Events.SendTo = inst.Pipeline.SendTo;
             }
             _registry.Add(inst);
             return inst;
@@ -2013,7 +2022,8 @@ namespace RoomServer
                 RoomInstance room = _registry.Order[i];
                 HostLog.Info("Ops", _ops.Format(room.RoomId, room.Runtime, room.Pipeline, _sessions,
                     _registry.Count, i == 0 ? LoopStats : null, i == 0 ? _rateLimit : null,
-                    room.OutboundRejectedCount));   // P4：回传拒绝数接进 Ops 行（原先只增不读）
+                    room.OutboundRejectedCount,   // P4：回传拒绝数接进 Ops 行（原先只增不读）
+                    room.Events));                // 2026-10-18 批：事件面计数（独立包）
             }
         }
 

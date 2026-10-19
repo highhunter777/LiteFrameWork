@@ -1,4 +1,4 @@
-﻿﻿using System;
+using System;
 using System.Threading;
 using LiteFramework;
 using LiteNet;
@@ -85,14 +85,9 @@ namespace LiteClient
         /// <summary>和解次数（本地预测被权威覆盖的次数；诊断/DevHUD）。</summary>
         public long ReconcileCount => _reconcileCount;
 
-        /// <summary>公共击杀面（全局击杀提示的待展示队列；HUD 驱动逐条取用）。</summary>
-        public PublicKillFeed KillFeed => _killFeed;
-
-        /// <summary>公共开火面（远端开火火光的待播队列；表现驱动逐条取用）。</summary>
-        public PublicFireFeed FireFeed => _fireFeed;
-
-        /// <summary>公共命中面（权威命中/Crit 事件流——命中表现只消费它，不消费本地预测）。</summary>
-        public PublicHitFeed HitFeed => _hitFeed;
+        /// <summary>公共战斗事件面（命中/击杀/开火的统一入口；独立事件批 <c>PacketType.CombatEvents</c>）。
+        /// 取代原 <c>KillFeed</c>/<c>FireFeed</c>/<c>HitFeed</c> 三件——一条去重分发路径，按 kind 分流。</summary>
+        public PublicCombatFeed CombatFeed => _combatFeed;
 
         /// <summary>网络质量观测（会话面透传——HUD 展示；表现/诊断面，不参与判定）。</summary>
         public NetworkQuality NetworkQuality => _battle.Quality;
@@ -103,9 +98,7 @@ namespace LiteClient
         private readonly uint _gameplayDigestBase;        // 本地装载产物的玩法数据身份基摘要（批 E 校验点用）
         private readonly BattleInputPipeline _inputs;      // 输入三件（顺序与上行）
         private readonly BattleSnapshotMirror _mirror = new BattleSnapshotMirror();   // 持久镜像 + 和解 + 插值源
-        private readonly PublicKillFeed _killFeed = new PublicKillFeed();             // 公共击杀面（快照携带的最近击杀窗口 → 去重队列）
-        private readonly PublicFireFeed _fireFeed = new PublicFireFeed();             // 公共开火面（快照携带的最近开火窗口 → 去重队列）
-        private readonly PublicHitFeed _hitFeed = new PublicHitFeed();                // 公共命中面（快照携带的最近命中窗口 → 去重事件流）
+        private readonly PublicCombatFeed _combatFeed = new PublicCombatFeed();       // 公共战斗事件面（独立事件批 → 按 kind 分流入队）
 
         private RollbackSim _sim;
         private long _localEntityId;
@@ -143,6 +136,7 @@ namespace LiteClient
             // 订阅 + 退订登记（LIFO：晚挂先退——Dispose 即拆，不靠调用方记得退订）
             _battle.Client.OnStartGame += OnStartGame;
             _battle.Client.OnSnapshot += OnSnapshot;
+            _battle.Client.OnCombatEvents += OnCombatEvents;
             _battle.Client.OnMatchEnded += OnMatchEnded;
             _battle.Client.OnReconnectResponse += OnReconnectResponse;
             _battle.Client.OnPhaseChanged += OnPhaseChanged;
@@ -150,6 +144,7 @@ namespace LiteClient
             {
                 _battle.Client.OnStartGame -= OnStartGame;
                 _battle.Client.OnSnapshot -= OnSnapshot;
+                _battle.Client.OnCombatEvents -= OnCombatEvents;
                 _battle.Client.OnMatchEnded -= OnMatchEnded;
                 _battle.Client.OnReconnectResponse -= OnReconnectResponse;
                 _battle.Client.OnPhaseChanged -= OnPhaseChanged;
@@ -200,6 +195,13 @@ namespace LiteClient
         }
 
         /// <summary>
+        /// 客户端输入提前量（帧）：本地采样后按 <c>Frame + 本值</c> 提前上行，服务器 InputGate 预存未来帧。
+        /// 必须覆盖 RTT + 发包抖动（实测 RTT≈34ms≈2 帧，取 3 帧留余量）；属客户端传输时序，
+        /// **不改 Sim 常量、不牵动共享 BuildHash / Room 发布**。代价是本地输入延迟增加约 2 帧。
+        /// </summary>
+        public const int InputLeadFrames = 3;
+
+        /// <summary>
         /// 每帧驱动（唯一驱动入口）：网络双泵 → 输入上行与预测推进 → 表现视图。
         /// Sim 未建（StartGame 未达）时只泵网络；输入只在对局中消费与发送。
         ///
@@ -207,7 +209,7 @@ namespace LiteClient
         /// <see cref="IInputService.SampleOnRenderFrame"/> 完成（拦截源成立 → 本帧输入为全零，照常上行）。
         /// 本方法按"网络泵 → 输入三件（<see cref="BattleInputPipeline.FeedAndSendInputs"/>，**先于本地服步进**）
         /// → 本地服步进 → 预测推进 → 追帧补发（<see cref="BattleInputPipeline.ResendCarriedFrames"/>）"的次序做，
-        /// 顺序不可换。逻辑帧消费门（同一帧只取一次）与上行节流都在服务内，本方法只按 <c>Frame+1</c> 请求。
+        /// 顺序不可换。逻辑帧消费门（同一帧只取一次）与上行节流都在服务内，本方法按 <c>Frame+InputLeadFrames</c> 请求。
         /// </summary>
         public void Tick(float realDelta)
         {
@@ -216,7 +218,7 @@ namespace LiteClient
 
             // ① 输入三件（采样入史 → 同一份上行 → 沿用帧预发）——必须**先于**本地服步进（顺序理由见管线类注释）。
             // viewFrame = 视图当前渲染帧（jitter buffer 帧轴）：开火回溯必须以"玩家看到的过去"为锚。
-            int inputFrame = _sim != null ? _sim.State.Frame + 1 : -1;
+            int inputFrame = _sim != null ? _sim.State.Frame + InputLeadFrames : -1;
             int viewFrame = ViewRenderFrame;
             if (_sim != null) _inputs.FeedAndSendInputs(_sim, _localEntityId, inputFrame, realDelta, viewFrame);
 
@@ -290,11 +292,15 @@ namespace LiteClient
                 return;
             }
 
+            uint used = 0u;
             for (int i = 0; i < ExpectedPlayers; i++)
             {
-                SimVector3 spawn = _map.SpawnPoints[i % _map.SpawnPointCount];
+                int spawnIndex = SpawnPointSelector.Pick(_map, used,
+                    SpawnPointSelector.InitialHash((ulong)sg.Seed, sg.MatchId, i));
+                used |= 1u << spawnIndex;
+                SimVector3 spawn = _map.SpawnPoints[spawnIndex];
                 world.Spawn(new EntitySlot { Hp = values.EntityHp, Pos = spawn, Yaw = 0f,
-                    Flags = EntityFlags.Player, SpawnPointIndex = i % _map.SpawnPointCount }, out int _);
+                    Flags = EntityFlags.Player, SpawnPointIndex = spawnIndex }, out int _);
             }
 
             var template = new SimInputFrame[ExpectedPlayers];
@@ -339,11 +345,20 @@ namespace LiteClient
             }
 
             _mirror.PushToView(View);                // 视图插值源：上一份/最新一份轮转
+        }
 
-            // 命中先于死亡：同一击杀帧的"命中反馈→阵亡反馈"顺序稳定（听感/飘字锚点）。
-            _hitFeed.Ingest(snapshot);               // 公共命中面：最近命中窗口 → 去重事件流（权威命中表现源）
-            _killFeed.Ingest(snapshot);              // 公共击杀面：最近击杀窗口 → 去重队列（首份快照不重播历史）
-            _fireFeed.Ingest(snapshot);              // 公共开火面：最近开火窗口 → 去重队列（首份快照不重播历史）
+        /// <summary>
+        /// 公共战斗事件批（独立包）：去重后按 kind 分流到表现面队列。
+        /// **与快照解耦**：事件面丢了不影响状态（下次批还带窗口），状态面丢了也不影响事件——
+        /// 两条平面各有自己的丢包收敛，这正是拆包的意义。
+        /// 命中/击杀/开火的**顺序稳定性**由 <see cref="PublicCombatFeed"/> 的分类 FIFO 保证；
+        /// "命中先于死亡"的听感顺序由消费者（<c>BattleViewRig.AuthoritativeCombatFeedback</c>）按先在
+        /// 命中队列取完再取击杀队列维持（同帧击杀）。
+        /// </summary>
+        private void OnCombatEvents(LiteNet.Proto.CombatEventBatch batch)
+        {
+            if (_disposed) return;
+            _combatFeed.Ingest(batch);
         }
 
         /// <summary>
@@ -372,9 +387,8 @@ namespace LiteClient
             if (_disposed) return;
             if (!response.Ok || _battle.Phase != ClientSessionPhase.Restoring) return;
 
-            _killFeed.Reset();                       // 重连：不重播断线前击杀（恢复快照的窗口按"已见"重新标记）
-            _fireFeed.Reset();                       // 重连：不重播断线前开火（恢复快照的窗口按"已见"重新标记）
-            _hitFeed.Reset();                        // 重连：不重播断线前命中
+            // 重连：不重播断线前事件（恢复后的第一份事件批按"首份"处理——只标记已见）
+            _combatFeed.Reset();
 
             if (_localEntityId == 0 && _battle.Client.PlayerId >= 0)
                 ResolveLocalEntity(response.Snapshot);

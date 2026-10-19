@@ -235,12 +235,15 @@ namespace RoomServer
             }
         }
 
-        /// <summary>Worker 侧广播：权威步进后拉取（§8.2 房间单线程；Restoring 席位抑制由 Runtime 相位判定）。</summary>
+        /// <summary>Worker 侧广播：权威步进后拉取（§8.2 房间单线程；Restoring 席位抑制由 Runtime 相位判定）。
+        /// 状态面与事件面**同节拍**（事件批只在状态真的广播了这一帧才发——两条平面时间轴一致）。</summary>
         private static void Broadcast(RoomInstance room)
         {
             if (!room.Runtime.Started) return;
             room.Pipeline.BroadcastIfDue(room.Runtime.AuthSim.Frame, room.Runtime.AuthSim,
                 room.Runtime.Gate, room.Runtime.EntityIdOf, room.SeatBroadcastable);
+            if (room.Pipeline.BroadcastedThisFrame)
+                room.Events.Publish(room.Runtime.AuthSim.Frame, room.SeatBroadcastable);
         }
 
         /// <summary>把 Runtime 纯输出包成回传项入 Outbound（来源=产出它的命令连接/代次）。</summary>

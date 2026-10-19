@@ -1,6 +1,7 @@
 using System;
 using System.Text;
 using System.Threading;
+using LiteNet.Protocol;
 using LiteSim;
 using RoomServer.Runtime;
 
@@ -402,7 +403,7 @@ namespace RoomServer.Application
         /// </summary>
         public string Format(string roomId, RoomRuntime room, SnapshotPipeline pipeline,
             SessionManager sessions, int roomCount, ServerLoop.LoopStats loop = null,
-            RateLimiter limiter = null, long outboundRejected = 0)
+            RateLimiter limiter = null, long outboundRejected = 0, CombatEventPipeline events = null)
         {
             _sb.Clear();
             _sb.Append("[Ops] rooms=").Append(roomCount)
@@ -414,6 +415,10 @@ namespace RoomServer.Application
                .Append(" | snap: sent=").Append(pipeline.SnapshotSent)
                .Append(" full=").Append(pipeline.SnapshotFullSent)
                .Append(" deltaSlots(last)=").Append(pipeline.Differ.LastDeltaCount)
+               // 预算面（2026-10-18 批）：字节/上限 + 丢弃计数。drop>0 = 有人把快照撑爆了
+               // （旧实现没有这个数，事故在监控上完全隐形——`sent=` 全是虚高）。
+               .Append(" bytes=").Append(pipeline.LastSnapshotBytes).Append('/')
+               .Append(WireBudget.ProtoPayload).Append(" drop=").Append(pipeline.SnapshotDropped)
                .Append(" | in: pkts=").Append(InputPackets)
                .Append(" acc=").Append(room.Gate.AcceptedCount)
                .Append(" drop(dup/range/stale/ack/btn)=")
@@ -428,6 +433,13 @@ namespace RoomServer.Application
                .Append(" degr=").Append(room.LagComp.DegradedCount)
                .Append(" | bp: throttled=").Append(pipeline.BackpressureThrottled)
                .Append(" outRej=").Append(outboundRejected)
+               // 事件面（2026-10-18 批）：条数/字节 + 裁剪/跳过。trim>0 说明窗口按预算裁过
+               // （留新弃旧，不算故障）；skip>0 才是"单条就超预算"的真异常。
+               .Append(" | ev: sent=").Append(events?.Sent ?? 0)
+               .Append(" last=").Append(events?.LastBatchCount ?? 0)
+               .Append(" bytes=").Append(events?.LastBatchBytes ?? 0)
+               .Append(" trim=").Append(events?.Trimmed ?? 0)
+               .Append(" skip=").Append(events?.Skipped ?? 0)
                .Append(" | match: phase=").Append(room.Phase)
                .Append(" transitions=").Append(MatchStateChanges)
                .Append(" settled=").Append(SettlementsReady)

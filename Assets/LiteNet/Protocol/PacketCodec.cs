@@ -41,6 +41,7 @@ namespace LiteNet.Protocol
                     case PacketType.StartGame: message = Proto.StartGame.Parser.ParseFrom(payload); return true;
                     case PacketType.Input: message = Proto.InputMessage.Parser.ParseFrom(payload); return true;
                     case PacketType.StateSnapshot: message = Proto.StateSnapshot.Parser.ParseFrom(payload); return true;
+                    case PacketType.CombatEvents: message = Proto.CombatEventBatch.Parser.ParseFrom(payload); return true;   // 公共战斗事件面（独立包）
                     case PacketType.MismatchReport: message = Proto.MismatchReport.Parser.ParseFrom(payload); return true;
                     case PacketType.Leave: message = Proto.Leave.Parser.ParseFrom(payload); return true;
                     case PacketType.ReconnectRequest: message = Proto.ReconnectRequest.Parser.ParseFrom(payload); return true;

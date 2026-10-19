@@ -40,6 +40,7 @@ namespace LiteGame
 
         private readonly RoomRuntime _runtime;
         private readonly SnapshotPipeline _pipeline;
+        private readonly CombatEventPipeline _events;
         private readonly Session[] _seats;
         private readonly List<RoomOutput> _outputs = new List<RoomOutput>();
         private readonly List<(PacketType type, Google.Protobuf.IMessage msg)> _outbox
@@ -96,7 +97,11 @@ namespace LiteGame
             _runtime = new RoomRuntime(roomConfig, combat, testRules: testRules, gameplayDigestBase: gameplayDigestBase);
             _botRefillHp = (combat ?? CombatValues.Default).EntityHp;   // 与 RoomRuntime 取值同口径（combat ?? Default）
             _seats = new Session[_runtime.ExpectedPlayers];
-            _pipeline = new SnapshotPipeline(_seats, kills: _runtime.Kills, fires: _runtime.Fires, hits: _runtime.Hits)
+            _pipeline = new SnapshotPipeline(_seats)
+            {
+                SendTo = (session, type, msg, reliable) => _outbox.Add((type, msg)),
+            };
+            _events = new CombatEventPipeline(_runtime.Events, _seats)   // 与状态面同一份席位表（生产装配同形）
             {
                 SendTo = (session, type, msg, reliable) => _outbox.Add((type, msg)),
             };
@@ -364,6 +369,11 @@ namespace LiteGame
                     entityIdOf: p => _runtime.EntityIdOf(p),
                     seatBroadcastable: p => _seats[p] != null && !_seats[p].Disconnected);
 
+                // 事件面与状态面同节拍（本地服与真服同一条纪律——否则"本地能复现、联机复现不了"）
+                if (_pipeline.BroadcastedThisFrame)
+                    _events.Publish(_runtime.AuthSim.Frame,
+                        p => _seats[p] != null && !_seats[p].Disconnected);
+
                 FlushOutbox();
             }
         }
@@ -413,9 +423,13 @@ namespace LiteGame
         {
             for (int i = 0; i < _outbox.Count; i++)
             {
-                byte[] bytes = PacketCodec.Encode(_outbox[i].type, _outbox[i].msg);
-                if (_outbox[i].type == PacketType.StateSnapshot) SnapshotsSent++;
-                OnData?.Invoke(new ArraySegment<byte>(bytes), _outbox[i].type != PacketType.StateSnapshot);
+                PacketType type = _outbox[i].type;
+                byte[] bytes = PacketCodec.Encode(type, _outbox[i].msg);
+                if (type == PacketType.StateSnapshot) SnapshotsSent++;
+                // 不可靠面与真服同口径：状态快照与公共战斗事件批都走 Unreliable
+                // （客户端收包入口按这个布尔分流，漂移会让本地服与真服行为不一致）。
+                bool reliable = type != PacketType.StateSnapshot && type != PacketType.CombatEvents;
+                OnData?.Invoke(new ArraySegment<byte>(bytes), reliable);
             }
             _outbox.Clear();
         }

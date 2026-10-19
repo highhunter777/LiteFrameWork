@@ -59,9 +59,9 @@ namespace LiteNet.Protocol
         public bool BaselineValid => _baselineValid;
         public int FramesSinceFull => _lastFullFrame == int.MinValue ? int.MaxValue : _lastBroadcastFrame - _lastFullFrame;
 
-        /// <summary>本帧比赛状态层（<see cref="BeginFrame"/> 之后有效）——App 层在此追加"最近击杀"窗口
-        /// （<see cref="SnapshotCodec.PackMatch(SimWorldState)"/> 只打包 Sim 侧比赛字段；击杀是房间级
-        /// 公共事实，由 App 层经 <c>KillFeedPacker</c> 灌入——differ 不依赖房间内核）。</summary>
+        /// <summary>本帧比赛状态层（<see cref="BeginFrame"/> 之后有效；只含 Sim 侧比赛字段——
+        /// <see cref="SnapshotCodec.PackMatch(SimWorldState)"/> 打包的原样投影）。公共战斗事件窗口
+        /// 不在快照里（独立包 <c>PacketType.CombatEvents</c> 承载），本层尺寸只随实体数变。</summary>
         public Proto.MatchStateDelta MatchDelta => _match;
 
         /// <summary>本帧是否被判为全量帧（<see cref="BeginFrame"/> 之后有效；Ops/诊断用）。</summary>

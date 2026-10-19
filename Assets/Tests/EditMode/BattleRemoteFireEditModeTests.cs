@@ -13,7 +13,7 @@ namespace LiteGame.Tests.EditMode
 {
     /// <summary>
     /// 远端开火火光（公共开火面）的 L2 EditMode 覆盖：
-    /// ① <see cref="PublicFireFeed"/>——首份快照/重连不重播、重复重发去重、新条入队、Reset 复位；
+    /// ① <see cref="PublicCombatFeed"/>——首份快照/重连不重播、重复重发去重、新条入队、Reset 复位；
     /// ② <see cref="BattleRemoteMuzzleFlashDriver"/>——他人开火落其枪口挂点播放、本地开火不双闪、
     /// 视图缺位/无挂点静默退化、Dispose 后静默。真实资源/观感归 PlayMode/手测。
     /// </summary>
@@ -53,48 +53,55 @@ namespace LiteGame.Tests.EditMode
             public void Snapshot(Dictionary<string, string> into) { }
         }
 
-        private static LiteNet.Proto.StateSnapshot Snapshot(params (long shooter, int frame)[] records)
+        /// <summary>构一批事件（Fire 型：A = 开火者，无对象）。</summary>
+        private static LiteNet.Proto.CombatEventBatch Batch(params (long shooter, int frame)[] records)
         {
-            var msg = new LiteNet.Proto.StateSnapshot { Frame = 100, IsFull = true };
-            msg.Match = new LiteNet.Proto.MatchStateDelta();
+            var batch = new LiteNet.Proto.CombatEventBatch { Frame = 100 };
             foreach ((long shooter, int frame) r in records)
-                msg.Match.RecentFires.Add(new LiteNet.Proto.FireRecord { Shooter = r.shooter, Frame = r.frame });
-            return msg;
+            {
+                batch.Records.Add(new LiteNet.Proto.CombatEventEntry
+                {
+                    Kind = (int)FrameEventKind.Fire,
+                    A = r.shooter,
+                    Frame = r.frame,
+                });
+            }
+            return batch;
         }
 
-        // ---- ① PublicFireFeed ----
+        // ---- ① PublicCombatFeed ----
 
         [Test]
         public void 开火面_首份快照不重播_新条入队_重复重发去重()
         {
-            var feed = new PublicFireFeed();
-            feed.Ingest(Snapshot((1L, 10)));
-            Assert.AreEqual(0, feed.PendingCount, "首份快照：窗口内既有记录标为已见，不重播");
+            var feed = new PublicCombatFeed();
+            feed.Ingest(Batch((1L, 10)));
+            Assert.AreEqual(0, feed.FireCount, "首份快照：窗口内既有记录标为已见，不重播");
 
-            feed.Ingest(Snapshot((1L, 10)));
-            Assert.AreEqual(0, feed.PendingCount, "窗口随每份快照全量重发——已见记录不重复入队");
+            feed.Ingest(Batch((1L, 10)));
+            Assert.AreEqual(0, feed.FireCount, "窗口随每份快照全量重发——已见记录不重复入队");
 
-            feed.Ingest(Snapshot((1L, 10), (2L, 11)));
-            Assert.AreEqual(1, feed.PendingCount, "只有新开火入队");
-            Assert.IsTrue(feed.TryDequeue(out PublicFireFeed.Entry entry));
+            feed.Ingest(Batch((1L, 10), (2L, 11)));
+            Assert.AreEqual(1, feed.FireCount, "只有新开火入队");
+            Assert.IsTrue(feed.TryDequeueFire(out PublicCombatFeed.FireEntry entry));
             Assert.AreEqual(2L, entry.Shooter);
             Assert.AreEqual(11, entry.Frame);
-            Assert.IsFalse(feed.TryDequeue(out _), "取出后队列空");
+            Assert.IsFalse(feed.TryDequeueFire(out _), "取出后队列空");
         }
 
         [Test]
         public void 开火面_Reset后按首份处理_不重播断线前开火()
         {
-            var feed = new PublicFireFeed();
-            feed.Ingest(Snapshot((1L, 10)));
-            feed.Ingest(Snapshot((1L, 10), (2L, 11)));
-            Assert.AreEqual(1, feed.PendingCount);
+            var feed = new PublicCombatFeed();
+            feed.Ingest(Batch((1L, 10)));
+            feed.Ingest(Batch((1L, 10), (2L, 11)));
+            Assert.AreEqual(1, feed.FireCount);
 
             feed.Reset();                                 // 重连：清队列 + 复位已见记忆
-            Assert.AreEqual(0, feed.PendingCount);
+            Assert.AreEqual(0, feed.FireCount);
 
-            feed.Ingest(Snapshot((1L, 10), (2L, 11)));
-            Assert.AreEqual(0, feed.PendingCount, "Reset 后首份快照重新标记已见——不重播断线前开火");
+            feed.Ingest(Batch((1L, 10), (2L, 11)));
+            Assert.AreEqual(0, feed.FireCount, "Reset 后首份快照重新标记已见——不重播断线前开火");
         }
 
         // ---- ② BattleRemoteMuzzleFlashDriver ----
@@ -126,11 +133,11 @@ namespace LiteGame.Tests.EditMode
         }
 
         /// <summary>先喂一份空窗口建立基线（首份不重播），再喂目标条目。</summary>
-        private static PublicFireFeed FeedWith(params (long shooter, int frame)[] records)
+        private static PublicCombatFeed FeedWith(params (long shooter, int frame)[] records)
         {
-            var feed = new PublicFireFeed();
-            feed.Ingest(new LiteNet.Proto.StateSnapshot { Match = new LiteNet.Proto.MatchStateDelta() });
-            feed.Ingest(Snapshot(records));
+            var feed = new PublicCombatFeed();
+            feed.Ingest(new LiteNet.Proto.CombatEventBatch());          // 空批建立基线（首份不重播）
+            feed.Ingest(Batch(records));
             return feed;
         }
 
@@ -192,16 +199,16 @@ namespace LiteGame.Tests.EditMode
         {
             var (_, view, _, bot) = Build();
             var vfx = new RecordingVfx();
-            var feed = new PublicFireFeed();
-            feed.Ingest(new LiteNet.Proto.StateSnapshot { Match = new LiteNet.Proto.MatchStateDelta() });
-            feed.Ingest(Snapshot((bot, 44)));
+            var feed = new PublicCombatFeed();
+            feed.Ingest(new LiteNet.Proto.CombatEventBatch());          // 空批建立基线（首份不重播）
+            feed.Ingest(Batch((bot, 44)));
             var driver = new BattleRemoteMuzzleFlashDriver(view, feed, vfx);
             MountMuzzle(view, 1);
 
             driver.Tick();
             Assert.AreEqual(1, vfx.Calls.Count);
 
-            feed.Ingest(Snapshot((bot, 44), (bot, 45)));           // 新一条待播
+            feed.Ingest(Batch((bot, 44), (bot, 45)));           // 新一条待播
             driver.Dispose();
             driver.Tick();
             Assert.AreEqual(1, vfx.Calls.Count, "Dispose 后不再播放");

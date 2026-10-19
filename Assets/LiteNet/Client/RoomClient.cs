@@ -148,6 +148,12 @@ namespace LiteNet
         public event Action<Proto.JoinAck> OnJoinAck;
         public event Action<Proto.StartGame> OnStartGame;
         public event Action<Proto.StateSnapshot> OnSnapshot;
+
+        /// <summary>公共战斗事件批（独立包，与快照同节拍；《状态同步专项设计》§5.2 CombatEvent 面）。
+        /// **独立于 <see cref="OnSnapshot"/>**：事件面有自己的包型与预算，状态流不再被事件量拖累
+        /// **独立于状态快照**：事件量再大也不会把快照顶出不可靠上限（两者各有一份载荷预算）。</summary>
+        public event Action<Proto.CombatEventBatch> OnCombatEvents;
+
         public event Action<Proto.MatchEnded> OnMatchEnded;
 
         /// <summary>开局请求被拒反馈（开房裁决：非房主/席位无效——UI 据此提示；
@@ -551,6 +557,12 @@ namespace LiteNet
                     break;
                 case PacketType.ReconnectResponse:
                     HandleReconnectResponse((Proto.ReconnectResponse)msg);
+                    break;
+                case PacketType.CombatEvents:
+                    // 事件批走 Unreliable——乱序可接受（每条自带权威帧号，消费侧按帧去重/排序），
+                    // 但**整批丢弃旧帧**：比已见最新快照帧还旧的批只带已经处理过的事件，
+                    // 交给公共事件面的去重环也只会被标已见（这里省一次遍历）。
+                    OnCombatEvents?.Invoke((Proto.CombatEventBatch)msg);
                     break;
                 case PacketType.StartMatchResponse:                     // 开房裁决：提前开局被拒反馈
                     OnStartMatchResponse?.Invoke((Proto.StartMatchResponse)msg);

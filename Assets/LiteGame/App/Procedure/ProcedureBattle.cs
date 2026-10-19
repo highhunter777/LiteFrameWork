@@ -151,9 +151,13 @@ namespace LiteGame
                                 + "（相机配置归场景——确认已切到配了 vcam 的玩法场景）");
                         _rig.Attach(_context, openBattleMenu: () => _pages?.OpenBattleSettings());
                         _pages?.EnableBattleMenuBack();       // 对局中"ESC＝菜单"（与 HUD 菜单钮同源）
-                        _pages?.CloseRoomIfOpen();            // 开局 → 关房间页（批C-④；对局场景接管画面）
                     }
                     finally { entry.Dispose(); }              // 视图建成才收遮罩；失败路径遮罩一并收（异常走 Error）
+
+                    // **先收加载系统面，再关房间页**：反序（先关 Bottom 房间页、后关 System 加载面）会让
+                    // 房间页关闭卡在被加载面挡住的模态队列里，整局留着全屏阻断、人物移不动
+                    // （实测日志 Form[13]/Form[202] 直到对局结束 1529/1540 才关闭）。
+                    _pages?.CloseRoomIfOpen();                // 开局 → 关房间页（批C-④；对局场景接管画面）
                 }
                 else
                 {

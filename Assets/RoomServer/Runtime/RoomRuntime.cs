@@ -47,14 +47,17 @@ namespace RoomServer.Runtime
         public readonly InputGate Gate;
         public readonly LagCompensator LagComp;         // 命中回溯
 
-        /// <summary>最近击杀窗口（全局击杀提示的公共面源——每帧死亡事件的权威记录；App 层映射为 wire）。</summary>
-        public readonly KillRecordWindow Kills;
-
-        /// <summary>最近开火窗口（远端开火火光的公共面源——每帧前向开火事件的权威记录；App 层映射为 wire）。</summary>
-        public readonly FireRecordWindow Fires;
-
-        /// <summary>最近命中窗口（命中/伤害表现公共面源——前向与回溯结算的 Hit/Crit 权威记录；App 层映射为 wire）。</summary>
-        public readonly HitRecordWindow Hits;
+        /// <summary>
+        /// 公共战斗事件窗口（**唯一的公共事件面**：命中/暴击/死亡/开火/着墙/复活全在这一条链上）。
+        ///
+        /// 2026-10-18 批：取代原先三个并行环（<c>Kills</c>/<c>Fires</c>/<c>Hits</c>）——
+        /// 三份同样的有界环、三个 packer、三段捕获调用，且新增事件类型要一路从内核改到客户端；
+        /// 更要命的是它们**只按容量淘汰、无时间老化**，打满后每份快照恒定多带 64 条记录
+        /// （实测 1232B），把快照顶爆 KCP 不可靠上限（1194B）⇒ 整份快照被静默丢弃 ⇒ 状态流中断。
+        /// 现由 <see cref="CombatEventWindow"/> 统一承载：时间老化 + 容量有界 + 同键聚合，
+        /// 并经独立包（<c>PacketType.CombatEvents</c>）下发，与状态面互不挤占预算。
+        /// </summary>
+        public readonly CombatEventWindow Events;
 
         /// <summary>房间创建时刻固定的不可变玩法配置快照（§4/P0-5：替代进程全局可变 CombatConfig）。</summary>
         public readonly FixedCombatConfig FixedConfig;
@@ -146,9 +149,7 @@ namespace RoomServer.Runtime
             int players = ExpectedPlayers;                     // 配置定容（席位/输入槽/实体表/回溯环一致）
             Gate = new InputGate(players, values);
             LagComp = new LagCompensator(AuthSim, Map, players, SnapshotHistory, values, table);
-            Kills = new KillRecordWindow();
-            Fires = new FireRecordWindow();
-            Hits = new HitRecordWindow();
+            Events = new CombatEventWindow();
             _seats = new PlayerSession[players];
             _entityIds = new long[players];
             _frameInputs = new SimInputFrame[players];
@@ -552,13 +553,17 @@ namespace RoomServer.Runtime
             AuthSim.RngState = (ulong)Seed;
             MatchSystem.Start(AuthSim, Rules);
 
+            uint used = 0u;
             for (int i = 0; i < NextPlayerId; i++)
             {
                 PlayerSession seat = _seats[i];
                 if (seat == null) continue;
-                SimVector3 spawn = Map.SpawnPoints[i % Map.SpawnPointCount];
+                int spawnIndex = SpawnPointSelector.Pick(Map, used,
+                    SpawnPointSelector.InitialHash((ulong)Seed, MatchId, i));
+                used |= 1u << spawnIndex;
+                SimVector3 spawn = Map.SpawnPoints[spawnIndex];
                 AuthSim.Spawn(new EntitySlot { Hp = FixedConfig.Values.EntityHp, Pos = spawn, Yaw = 0f,
-                    Flags = EntityFlags.Player, SpawnPointIndex = i % Map.SpawnPointCount }, out int slot);
+                    Flags = EntityFlags.Player, SpawnPointIndex = spawnIndex }, out int slot);
                 _entityIds[i] = AuthSim.Entities[slot].Id;
                 seat.EntityId = _entityIds[i];
             }
@@ -614,7 +619,8 @@ namespace RoomServer.Runtime
             }
             // 远端火光面：开火事件须在回溯（ConsumePendingFire 会清事件缓冲）之前捕获——
             // 此刻缓冲仍是前向步进的完整事件集（武器门放行的扣扳机各一条，空仓/被拦/死亡不产）。
-            CaptureFires();
+            // 只捕 Fire：命中/死亡在 ConsumePendingFire 里逐段捕（回溯会清缓冲，见该方法的调用点说明）。
+            CaptureEvents(AuthSim.Frame, fireOnly: true);
             int steppedFrame = AuthSim.Frame;
             SnapshotHistory.Capture(steppedFrame, AuthSim);   // 每帧捕获（回溯基料）
             _recentInputs.Record(steppedFrame, _frameInputs, null);   // 重连补发基料（Step 已就地排序 → 规范形）
@@ -628,14 +634,13 @@ namespace RoomServer.Runtime
         /// <summary>
         /// 回溯判定：开火帧的历史态现在已在环里（本步 Capture 覆盖到"开火帧"本身），
         /// 因此可回溯到所见帧判定；每位射手的命中立即结算，本帧全部完成后再裁决对局结果。
-        /// 死亡事件逐位入窗（<see cref="CaptureKills"/>——回溯清事件缓冲，捕获必须在其前）。
+        /// 死亡事件逐位入窗（<see cref="CaptureEvents"/>——回溯清事件缓冲，捕获必须在其前）。
         /// </summary>
         private void ConsumePendingFire(int frame)
         {
             // 前向步进的命中/死亡事件先入窗（未走回溯的射手/同帧直接伤害）——回溯会清事件缓冲
             // （<see cref="LagCompensator.CompensateFire"/> 的 ClearFireBuffers），此处是最后捕获面。
-            CaptureHits(frame);
-            CaptureKills(frame);
+            CaptureEvents(frame, fireOnly: false);
 
             for (int playerId = 0; playerId < ExpectedPlayers; playerId++)
             {
@@ -644,68 +649,65 @@ namespace RoomServer.Runtime
 
                 LagComp.CompensateFire(playerId, _entityIds[playerId], _pendingFireView[playerId], _pendingFireAck[playerId]);
                 SimStep.FlushCommands(AuthSim); // 每位射手的命中当帧落账；后续射手不得清掉待结算命令
-                CaptureHits(frame);             // 该射手的回溯命中即刻入窗（下一位射手的回溯会清缓冲）
-                CaptureKills(frame);            // 该射手的回溯结算死亡即刻入窗（下一位射手的回溯会清缓冲）
+                CaptureEvents(frame, fireOnly: false);   // 该射手的回溯命中/死亡即刻入窗（下一位射手的回溯会清缓冲）
                 FireInputsProcessed++;
             }
         }
 
         /// <summary>
-        /// 全局击杀面：把本帧 <see cref="FrameEventKind.Death"/> 事件记入 <see cref="Kills"/> 窗口。
-        /// **调用点**（见 <see cref="ConsumePendingFire"/>）：回溯前一次（前向死亡）＋每位射手回溯结算后各一次
-        /// （回溯的 ClearFireBuffers 会清事件缓冲——单点在环末会漏掉前序射手的死亡事件）。
-        /// 事件语义：<c>EntityId</c> = 死者、<c>OtherId</c> = 击杀者（0 = 自杀/环境）；
-        /// 武器槽取**击杀帧**击杀者的公共态 <see cref="EntitySlot.SelectedWeapon"/>（切换期武器门拦开火
-        /// ⇒ 击杀帧槽位就是那把枪）。
+        /// 公共战斗事件捕获（**唯一入口**——取代原先并行的 CaptureHits/CaptureKills/CaptureFires 三段）。
+        ///
+        /// 遍历本帧 <see cref="SimWorldState.Events"/> 缓冲，把**所有**公共事件写入
+        /// <see cref="Events"/> 窗口：<see cref="FrameEventKind.Fire"/> / <see cref="FrameEventKind.Hit"/> /
+        /// <see cref="FrameEventKind.Crit"/> / <see cref="FrameEventKind.Death"/>，以及未来任何新增 kind
+        /// （新增事件类型**不需要改本方法**——这是词汇单源带来的收益；需要特殊换算的 kind 才在此加分支）。
+        ///
+        /// **两个捕获契约**（沿用原三段各自的纪律，换了实现不失语义）：
+        /// 1. <paramref name="fireOnly"/> = true：**回溯判定之前**调用。此时缓冲仍是前向步进的完整事件集
+        ///    （武器门放行的扣扳机各一条）；只取 Fire——命中/死亡要等回溯结算（<see cref="LagCompensator.CompensateFire"/>
+        ///    会清缓冲并重写为回溯产物），提前取会把"未回溯的前向命中"记成权威结果。
+        /// 2. <paramref name="fireOnly"/> = false：**回溯前后各调一次**（前向一次 + 每位射手结算后一次），
+        ///    因为 <c>ClearFireBuffers</c> 会清空缓冲——单点在环末会漏掉前序射手的死亡/命中事件。
+        ///
+        /// 语义换算（kind 相关，其余字段直传）：
+        /// - Death：<c>Value</c> 存**击杀帧击杀者的装备武器槽**（击杀提示的武器图标下标；-1 = 无归属/未装备）。
+        ///   取击杀帧的公共态是因为切换期武器门会拦开火 ⇒ 击杀帧槽位就是那把枪。
+        /// - Hit/Crit：<c>Value</c> 直传单发伤害；同键多弹丸由窗口聚合（伤害累加、Crit 升档）。
         /// </summary>
-        /// <summary>
-        /// 权威命中面：把本帧 <see cref="FrameEventKind.Hit"/>/<see cref="FrameEventKind.Crit"/> 记入
-        /// <see cref="Hits"/> 窗口（同 shooter/target/frame 的霰弹多弹丸由窗口聚合伤害并合并 Crit）。
-        /// **调用点**与 <see cref="CaptureKills"/> 同一组（前向一次 + 每位射手回溯结算后一次）：
-        /// 回溯的 ClearFireBuffers 会清事件缓冲，必须逐段捕获。
-        /// 事件语义：<c>EntityId</c> = 被命中者、<c>OtherId</c> = 射手、<c>Value</c> = 单发伤害、
-        /// <c>Pos</c> = 命中点。
-        /// </summary>
-        private void CaptureHits(int frame)
+        private void CaptureEvents(int frame, bool fireOnly)
         {
             FrameEvent[] items = AuthSim.Events.Items;
             for (int i = 0; i < AuthSim.Events.Count; i++)
             {
                 ref FrameEvent e = ref items[i];
-                if (e.Kind != FrameEventKind.Hit && e.Kind != FrameEventKind.Crit) continue;
-                Hits.AddOrAccumulate(e.OtherId, e.EntityId, frame, e.Value, in e.Pos, e.Kind == FrameEventKind.Crit);
-            }
-        }
 
-        private void CaptureKills(int frame)
-        {
-            FrameEvent[] items = AuthSim.Events.Items;
-            for (int i = 0; i < AuthSim.Events.Count; i++)
-            {
-                ref FrameEvent e = ref items[i];
-                if (e.Kind != FrameEventKind.Death) continue;
+                if (fireOnly)
+                {
+                    if (e.Kind != FrameEventKind.Fire) continue;
+                    Events.Add(e.Kind, e.EntityId, e.OtherId, frame, e.Value, in e.Pos);
+                    continue;
+                }
 
-                int weaponSlot = -1;
-                if (e.OtherId != 0 && AuthSim.TryResolve(e.OtherId, out int killerSlot))
-                    weaponSlot = AuthSim.Entities[killerSlot].SelectedWeapon;
-                Kills.Add(e.OtherId, e.EntityId, frame, weaponSlot);
-            }
-        }
-
-        /// <summary>
-        /// 远端火光面：把本帧 <see cref="FrameEventKind.Fire"/> 事件记入 <see cref="Fires"/> 窗口
-        /// （开火者 = 事件主体；帧 = 事件所在权威帧）。**调用点在回溯判定之前**——
-        /// <see cref="LagCompensator.CompensateFire"/> 会清事件缓冲并重写为回溯产物，
-        /// 前向开火事件必须在此之前捕获（回溯重放的同名事件不得重复入窗）。
-        /// </summary>
-        private void CaptureFires()
-        {
-            int frame = AuthSim.Frame;
-            FrameEvent[] items = AuthSim.Events.Items;
-            for (int i = 0; i < AuthSim.Events.Count; i++)
-            {
-                if (items[i].Kind != FrameEventKind.Fire) continue;
-                Fires.Add(items[i].EntityId, frame);
+                switch (e.Kind)
+                {
+                    case FrameEventKind.Fire:
+                        // 前向段已入窗；回溯段的重放 Fire 不再重复记（窗口同键聚合也只留一条，
+                        // 但显式跳过更省一次查找，语义也更直白）。
+                        continue;
+                    case FrameEventKind.Death:
+                    {
+                        int weaponSlot = -1;
+                        if (e.OtherId != 0 && AuthSim.TryResolve(e.OtherId, out int killerSlot))
+                            weaponSlot = AuthSim.Entities[killerSlot].SelectedWeapon;
+                        Events.Add(e.Kind, e.EntityId, e.OtherId, frame, weaponSlot, in e.Pos);
+                        continue;
+                    }
+                    default:
+                        // Hit / Crit（以及未来任何"主体+对象+数值+位置"同构的事件）：直传，
+                        // 同键聚合交窗口（霰弹多弹丸合并、Crit 升档）。
+                        Events.Add(e.Kind, e.EntityId, e.OtherId, frame, e.Value, in e.Pos);
+                        continue;
+                }
             }
         }
     }

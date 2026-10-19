@@ -84,48 +84,47 @@ message MatchStateDelta {
   int32 respawn_delay_frames = 8;
   int32 spawn_protection_frames = 9;
   int32 end_reason = 10;              // 0 无 / 1 时限 / 2 击杀目标 / 3 外部关闭
-  // ---- 全局击杀面（**只增字段号**追加；最近击杀窗口随每份快照全量携带——30Hz 自带丢包收敛）----
-  // 房间级公共事实（权威侧在击杀帧记录；客户端按 (killer,victim,frame) 去重消费）。
-  repeated KillRecord recent_kills = 11;
-  // ---- 全局开火面（**只增字段号**追加；最近开火窗口随每份快照全量携带）----
-  // 远端开火火光的公共面源（权威侧在开火帧记录；客户端按 (shooter,frame) 去重消费——
-  // 本地开火走本地帧事件即时播，不消费本窗口）。
-  repeated FireRecord recent_fires = 12;
+  // ---- 全局战斗事件面**已迁出**（2026-10-18 批：CombatEvent 面独立成包）----
+  // 原 `recent_kills = 11` / `recent_fires = 12` / 后续 `recent_hits = 14` 三个 repeated 窗口随每份
+  // 快照全量携带，实测把快照顶到 1531B（> KCP 不可靠上限 1194B）⇒ 整份快照被丢 ⇒ 状态流中断。
+  // 现由独立包 `CombatEventBatch`（PacketType.CombatEvents）承载，快照回归纯状态（尺寸只随实体数变）。
+  // **保号不重用**（纪律：只增字段号，不重编号）。
+  reserved 11, 12, 14;
+  reserved "recent_kills", "recent_fires", "recent_hits";
   // ---- 联机测试房批（**只增字段号**追加）----
   // 权威侧 GM 规则位（1 = 免死 / 2 = 无限弹药；0 = 无 GM）。
   // 随每份快照全量携带 ⇒ 运行期开关天然收敛；**不进 CombatConfigDigest**（规则是运行态，
   // 不是配置身份——设计《联机测试房与GM下发专项设计》§3.2）。
   int32 gm_flags = 13;
-  // ---- 权威命中反馈面（**只增字段号**追加）----
-  // 最近命中窗口：每 (shooter,target,frame) **聚合一条**（霰弹多弹丸合并伤害；Crit = 任一弹丸爆头）。
-  // 客户端按 (shooter,target,frame) 去重消费——命中/伤害表现只信权威，不消费本地预测 Hit/Crit。
-  repeated HitRecord recent_hits = 14;
+  // ---- 权威命中反馈面（**已迁出**——见上方 reserved 14 的说明）----
 }
 
-// 单条击杀记录（全局击杀提示的公共面源；《战斗HUD层级设计》§2 击杀提示面）
-message KillRecord {
-  int64 killer = 1;                   // 击杀者实体 Id（0 = 无归属：自杀/环境伤害）
-  int64 victim = 2;                   // 死者实体 Id
-  int32 frame = 3;                    // 击杀发生的权威帧（去重键之一 + 展示序）
-  int32 weapon_slot = 4;              // 击杀帧击杀者的装备武器槽（-1 = 无归属/未装备；图标按槽索引）
+// ===== 公共战斗事件面（Unreliable；独立包——与 StateSnapshot 同节拍、同丢包收敛语义）=====
+
+// 单条战斗事件：**kind 判别 + 字段按 kind 释义**的通用记录（《状态同步专项设计》§5.2 CombatEvent 面）。
+// 形状与 `LiteSim.CombatEventRecord` 逐字段对应（映射单源 = `CombatEventCodec`）。
+// **命名**：wire 侧叫 Entry 而非 Record——避免与 `LiteSim.CombatEventRecord` 同名，
+// 让同时 using 两边的文件（协议映射、用例）不必写全限定名。
+// **泛化点**：新增一种事件 = 加一个 FrameEventKind 值 + 一个产出点——本消息与协议都不动
+// （不像旧的每型一个 message：三次追加已经让包顶爆过一次）。
+message CombatEventEntry {
+  int32 kind = 1;        // LiteSim.FrameEventKind（0 Fire / 1 Hit / 2 Death / 3 Crit / 4 Explosion / 5 Respawn / 6 ObstacleHit）
+  int64 a = 2;           // 主体 Id（开火者/命中目标/死者；ObstacleHit 同开火者）
+  int64 b = 3;           // 对象 Id（Hit=射手；Death=击杀者；Fire/ObstacleHit 为 0）
+  int32 frame = 4;       // 权威帧号（与状态快照同一帧轴）
+  int32 value = 5;       // 按 kind 释义：Hit/Crit=伤害量；**Death=击杀帧击杀者的装备武器槽（-1=无归属/未装备，
+                         // 击杀提示的武器图标下标）**；Fire/ObstacleHit/Respawn=0
+  float x = 6;           // 事件位置（proto3 缺省值不编码：Fire/Death 型不填即零开销）
+  float y = 7;
+  float z = 8;
 }
 
-// 单条开火记录（远端开火火光的公共面源）
-message FireRecord {
-  int64 shooter = 1;                  // 开火者实体 Id（武器门放行的实际开火；空仓/被拦/死亡不产）
-  int32 frame = 2;                    // 开火发生的权威帧（去重键 + 时效判据）
-}
-
-// 单条权威命中记录（命中/伤害数字/受击特效/命中音效的公共面源）
-message HitRecord {
-  int64 target = 1;                   // 被命中实体 Id
-  int64 shooter = 2;                  // 射手实体 Id
-  int32 frame = 3;                    // 命中发生的权威帧（去重键之一）
-  int32 value = 4;                    // 伤害合计（同一帧同射手同目标的弹丸已聚合）
-  float pos_x = 5;                    // 命中点世界 X（受击特效/飘字锚点）
-  float pos_y = 6;
-  float pos_z = 7;
-  bool crit = 8;                      // 任一弹丸爆头（Crit 表现档）
+// 事件批（随每份快照同刻广播的**窗口全量**）：最近 1s 内的公共战斗事件，按帧号升序。
+// 全量重发既是丢包收敛机制，也是它**不需要可靠通道**的原因（迟到的事件比丢失的更糟——
+// 300ms 后飘出的伤害数字锚在早已走开的位置）。客户端按 (kind,a,b,frame) 去重。
+message CombatEventBatch {
+  int32 frame = 1;                          // 本批对应的权威帧（= 同刻快照帧号）
+  repeated CombatEventEntry records = 2;   // 升序；空 = 该帧无事件（正常形态，不是错误）
 }
 
 // 私有面（PrivateStateSnapshot 层）单元消息：只发本人（《游戏业务系统总设计》§1——禁止泄漏他人库存）

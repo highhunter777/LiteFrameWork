@@ -17,6 +17,11 @@ namespace RoomServer.Application
     /// RoomRuntime 只持权威态（<see cref="RoomRuntime.AuthSim"/>）与输入闸门（<see cref="RoomRuntime.Gate"/>），
     /// 由本管线在每次权威步进后**拉取**构建下发。Runtime 不产快照输出，两层无需快照契约。
     ///
+    /// **2026-10-18 批：快照回归纯状态**。原先本类还要往 <c>MatchStateDelta</c> 里灌三个公共事件窗口
+    /// （击杀/开火/命中），实测把快照顶到 1531B &gt; KCP 不可靠上限 1194B ⇒ 整份快照被静默丢弃
+    /// ⇒ 状态流中断（联机"打一会儿就不同步"的真因）。事件面已迁到 <see cref="CombatEventPipeline"/>
+    /// 的独立包；本类只剩状态（slots + 比赛规则字段 + 本人私有面），尺寸只随实体数变。
+    ///
     /// 依赖：只读输入 = 席位→广播视图数组（<see cref="IBroadcastSeat"/>：连接号/代次/断开标记/记账）
     /// + 实体 Id 解析（<see cref="RoomRuntime.EntityIdOf"/>）+ 权威态；
     /// 写 = 每席位的广播记账（<see cref="BroadcastAccount"/>——宿主 owner 形态挂在会话上，
@@ -26,9 +31,6 @@ namespace RoomServer.Application
     {
         private readonly IBroadcastSeat[] _seats;
         private readonly SnapshotDiffer _differ;
-        private readonly KillRecordWindow _kills;      // 最近击杀窗口（全局击杀面；null = 不携带——L1 直构形态）
-        private readonly FireRecordWindow _fires;      // 最近开火窗口（远端火光面；null = 不携带——L1 直构形态）
-        private readonly HitRecordWindow _hits;        // 最近命中窗口（命中/伤害权威面；null = 不携带）
         private int _broadcastOrdinal;
         private bool _forceFullPending;
 
@@ -37,6 +39,22 @@ namespace RoomServer.Application
         public long SnapshotFullSent;
         public long BackpressureThrottled;
 
+        /// <summary>**因超不可靠预算被放弃的快照数**（2026-10-18 批新增）。
+        /// 旧实现是"先 <c>SnapshotSent++</c> 再 <c>SendTo</c>"——kcp2k 丢弃时 Ops 仍然算它发过，
+        /// 于是这次事故在监控上完全隐形（`sent=13824` 全虚高）。本计数是那条链路的真话：
+        /// **长期非 0 = 有人把快照撑爆了**，立刻查槽位数与新增字段。</summary>
+        public long SnapshotDropped;
+
+        /// <summary>最近一份快照的 proto 载荷字节（Ops 观测：与 <see cref="WireBudget.ProtoPayload"/> 的余量）。</summary>
+        public int LastSnapshotBytes;
+
+        /// <summary>最近一份快照的 wire 字节（含信封与类型字节——真正的线上尺寸）。</summary>
+        public int LastSnapshotWireBytes;
+
+        /// <summary>上一次 <see cref="BroadcastIfDue"/> 是否真的广播了（= 命中 30Hz 抽帧节拍）。
+        /// 事件面据此与状态面**严格同节拍**（<see cref="CombatEventPipeline.Publish"/> 只在为 true 时调）。</summary>
+        public bool BroadcastedThisFrame;
+
         /// <summary>快照发送出口（装配方注入：宿主 owner 形态直发会话；Worker 执行形态入 Outbound 回传）。
         /// 载荷为席位视图——发送方按 <see cref="IBroadcastSeat.ConnectionId"/> / 代次定位连接。</summary>
         public Action<IBroadcastSeat, PacketType, Google.Protobuf.IMessage, bool> SendTo;
@@ -44,14 +62,10 @@ namespace RoomServer.Application
         /// <summary>差分器只读暴露（Ops 快照尺寸统计用）。</summary>
         public SnapshotDiffer Differ => _differ;
 
-        public SnapshotPipeline(IBroadcastSeat[] seats, SnapshotDiffer differ = null, KillRecordWindow kills = null,
-            FireRecordWindow fires = null, HitRecordWindow hits = null)
+        public SnapshotPipeline(IBroadcastSeat[] seats, SnapshotDiffer differ = null)
         {
             _seats = seats;
             _differ = differ ?? new SnapshotDiffer();
-            _kills = kills;                                // null = 不携带最近击杀（L1 直构形态）
-            _fires = fires;                                // null = 不携带最近开火（L1 直构形态）
-            _hits = hits;                                  // null = 不携带最近命中
         }
 
         /// <summary>
@@ -76,11 +90,13 @@ namespace RoomServer.Application
         public void BroadcastIfDue(int frame, SimWorldState authSim, InputGate gate, Func<int, long> entityIdOf,
             Func<int, bool> seatBroadcastable = null)
         {
+            BroadcastedThisFrame = false;
             if (frame <= 0) return;
             int stride = SimConfig.TickRate / SimConfig.SnapshotHz;
             if (stride < 1) stride = 1;
             _broadcastOrdinal++;
             if (_broadcastOrdinal % stride != 0) return;
+            BroadcastedThisFrame = true;
 
             int broadcastIndex = _broadcastOrdinal / stride;   // 第几次广播（抽帧档按它取模）
 
@@ -97,13 +113,8 @@ namespace RoomServer.Application
                 if (_differ.NeedsFull(seat.Account.LastAckSnapshot)) forceFull = true;
             }
             _forceFullPending = false;
+            // 事件面已独立成包（CombatEventPipeline），此处不再灌 MatchStateDelta 的公共窗口。
             _differ.BeginFrame(frame, authSim, forceFull);
-            // 最近击杀窗口：附加到本帧比赛状态层（BeginFrame 打包一次、全体客户端共用同一份 Match 引用）
-            KillFeedPacker.Fill(_differ.MatchDelta, _kills);
-            // 最近开火窗口：同层同刻灌装（远端开火火光的公共面源）
-            FireSignalPacker.Fill(_differ.MatchDelta, _fires);
-            // 权威命中窗口：命中/伤害数字/受击特效/命中音效的公共面源
-            HitFeedPacker.Fill(_differ.MatchDelta, _hits);
 
             // ② 每客户端各取可见部分（背压档位只影响该客户端；Restoring 席位抑制——§9.3 步骤 6）
             for (int p = 0; p < _seats.Length; p++)
@@ -140,21 +151,47 @@ namespace RoomServer.Application
             if (account.BackpressureTier >= 3) TrimFarthest(snapshot, viewPos);   // 档位 3：低优先级实体丢弃（仅增量帧）
             if (snapshot.IsFull) SnapshotFullSent++;
 
-            int bytes = snapshot.CalculateSize();
-            account.RecordSnapshotSend(frame, bytes);      // R0-P0-4：发送 ledger 记账（ACK 释放的唯一依据）
+            // ---- 预算守卫（2026-10-18 批）：**发送前**判定，永不让 kcp2k 替我们静默丢 ----
+            // 旧实现的教训：SnapshotSent++ 写在 SendTo 之前，包被 kcp2k 丢掉后 Ops 仍报"已发"，
+            // 故障在监控上完全隐形。这里先算尺寸，装不下就走降级阶梯并计入 SnapshotDropped。
+            int protoBytes = snapshot.CalculateSize();
+            LastSnapshotBytes = protoBytes;
+            LastSnapshotWireBytes = protoBytes + WireBudget.EnvelopeBytes + WireBudget.TypeBytes;
+
+            if (WireBudget.RequiresFallback(protoBytes))
+            {
+                // 降级阶梯：① 先裁到 AOI 最远的一半（仅增量帧；全量帧的"缺席判死"不允许裁）→ ② 仍超则放弃本席位本帧。
+                // 状态快照**没有可裁的事件面**了（已迁出），所以能做的只有"缩范围"或"诚实放弃并计数"。
+                if (!snapshot.IsFull) TrimFarthest(snapshot, viewPos);
+                protoBytes = snapshot.CalculateSize();
+                LastSnapshotBytes = protoBytes;
+                LastSnapshotWireBytes = protoBytes + WireBudget.EnvelopeBytes + WireBudget.TypeBytes;
+            }
+
+            if (WireBudget.RequiresFallback(protoBytes))
+            {
+                SnapshotDropped++;                 // 留痕：长期非 0 = 有人把快照撑爆了（查槽位数/新增字段）
+                return;                            // 不发——比发一个必被丢弃的包诚实（不虚增 SnapshotSent）
+            }
+
+            account.RecordSnapshotSend(frame, protoBytes);   // R0-P0-4：发送 ledger 记账（ACK 释放的唯一依据）
             SnapshotSent++;
             if (SendTo != null) SendTo(seat, PacketType.StateSnapshot, snapshot, false);
         }
 
         /// <summary>档位 3：裁掉"距视点最远的"一半实体（低优先级丢弃，§10-E1 第三级）。
         /// **只裁增量帧**——全量帧的"缺席 = 死"镜像语义以全图为前提（见 <see cref="SnapshotDiffer.BuildFor"/>
-        /// 全量不裁 AOI 的同一条红线），裁了会让档 3 客户端把视野外实体在镜像里误杀。</summary>
+        /// 全量不裁 AOI 的同一条红线），裁了会让档 3 客户端把视野外实体在镜像里误杀。
+        ///
+        /// 2026-10-18 起它还有一个调用点：**超预算时的降级第一步**（见 <see cref="SendSnapshot"/>）。
+        /// 幂等：已裁过的快照再裁一次不会更小（保留集不变），代价可忽略。</summary>
         private static void TrimFarthest(Proto.StateSnapshot snapshot, SimVector3 viewPos)
         {
             if (snapshot.IsFull) return;           // 全量整帧保留（缺席判死只在全图全量下成立）
             if (snapshot.Slots.Count <= 1) return;
             int keep = (int)(snapshot.Slots.Count * ProtocolConstants.ThrottleEntityKeepRatio);
             if (keep >= snapshot.Slots.Count) return;
+            if (keep < 1) keep = 1;                // 至少留自己（否则客户端连自己都没有）
 
             // 按 XZ 距离升序（稳定：距离相等时保持原序——确定性），保留前 keep 个
             var pairs = new List<KeyValuePair<float, int>>(snapshot.Slots.Count);

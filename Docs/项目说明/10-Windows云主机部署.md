@@ -173,7 +173,7 @@ Get-Service 'WireGuardTunnel$wg0'      # Running
 
 **实机落地（2026-10-18）**：`deploy/roomserver.windows.json` 已上推为 `C:\litegame\room\roomserver.json`（原文件留 `roomserver.json.bak`），重启 `LiteGame-Room` 后横幅变为 `rooms=[standard,four,eight,sandbox] default=sandbox`；闭环自检：`/ready`=ready、令牌 167 字符、大厅投影 `address=10.8.0.1:17777`、`buildHash=637ab2e0cabe21ac`（＝客户端包内常量）、`lastSeenAgeMs≈8.9s`、`draining=false`。
 
-**与 `roomserver.container.json` 的一处差异（有意保留）**：云上现为 `heartbeat_interval_ms=10000`，而 container.json 写 `1000`（内核下限；大厅列表可见延迟上限 ≈3 s，10 s 则要等一个心跳）。本次只换模板、未顺带动它——要更快的大厅可见性，把本文件改成 `1000` 再重启即可（独立改动，别和模板变更混在一起判因）。
+**心跳口径（2026-10-18 调低）**：云上现为 `heartbeat_interval_ms=1000`（与 container.json 同值，内核下限；大厅列表可见延迟上限 ≈3 s）。此前 10000 的差异已消除；改配置后必须重启 `LiteGame-Room` 才生效。
 
 ### 5.1 运维（GM）端点（2026-10-18 启用）
 

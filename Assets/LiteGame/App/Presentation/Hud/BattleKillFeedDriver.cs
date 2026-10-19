@@ -9,12 +9,12 @@ using UnityEngine.UI;
 namespace LiteGame
 {
     /// <summary>
-    /// 全局击杀提示驱动（击杀提示批；《战斗HUD层级设计》§2/§3）：把 <see cref="PublicKillFeed"/> 的待展示
-    /// 击杀逐条播报——**多条堆叠**（每行独立驻留、行满则留队等待，不覆盖他人），行件全 **prefab 预置**
+    /// 全局击杀提示驱动（击杀提示批；《战斗HUD层级设计》§2/§3）：把 <see cref="PublicCombatFeed"/> 的击杀
+    /// 队列逐条播报——**多条堆叠**（每行独立驻留、行满则留队等待，不覆盖他人），行件全 **prefab 预置**
     /// （禁运行时建视觉——结构脚手架扫描）。
     ///
-    /// - **数据源**：客户端会话的公共击杀面（快照携带的房间级最近击杀窗口）——**全局**（含他人击杀），
-    ///   不止本地造成的击杀；本地造成的击杀同样经此路（权威记录含本人）；
+    /// - **数据源**：客户端会话的公共战斗事件面（独立事件批携带的房间级事件窗口）——**全局**
+    ///   （含他人击杀），不止本地造成的击杀；本地造成的击杀同样经此路（权威记录含本人）；
     /// - **行格式** <c>击杀者 [武器图标] 死者</c>：击杀者为本地 → "你"，否则占位 <c>玩家{k}</c>
     ///   （<see cref="PlayerIdentity"/> 身份序号单源——与排行榜/阵亡归属共用）；`killer==0`（自杀/环境）
     ///   → <c>玩家{v} 阵亡</c>（无图标）；武器图标按击杀帧装备槽取图（缺件静默降级：不显示图标）；
@@ -44,7 +44,7 @@ namespace LiteGame
 
         private readonly SimWorldState _state;
         private readonly Func<long> _localEntityId;
-        private readonly PublicKillFeed _feed;
+        private readonly PublicCombatFeed _feed;
         private readonly Sprite[] _weaponIcons;      // 可缺（缺件静默降级：隐藏图标）
         private readonly GameObject[] _rows;
         private readonly TextMeshProUGUI[] _killers;
@@ -59,7 +59,7 @@ namespace LiteGame
         /// <param name="localEntityId">本地实体 Id 来源（"你"判定）。</param>
         /// <param name="feed">公共击杀面（待展示队列；null = 无源，驱动静默空转）。</param>
         /// <param name="weaponIcons">武器图标（下标 = 装备槽；null/短数组 = 图标降级）。</param>
-        public BattleKillFeedDriver(SimWorldState state, Func<long> localEntityId, PublicKillFeed feed,
+        public BattleKillFeedDriver(SimWorldState state, Func<long> localEntityId, PublicCombatFeed feed,
             Sprite[] weaponIcons, GameObject[] rows, TextMeshProUGUI[] killers, Image[] weapons, TextMeshProUGUI[] victims)
         {
             _state = state ?? throw new ArgumentNullException(nameof(state));
@@ -94,11 +94,11 @@ namespace LiteGame
                 if (_remaining[i] <= 0f) Hide(i);
             }
 
-            while (_feed != null && _feed.PendingCount > 0)        // ② 新条入空行（行满则留队——不丢、不覆盖）
+            while (_feed != null && _feed.KillCount > 0)        // ② 新条入空行（行满则留队——不丢、不覆盖）
             {
                 int idx = FreeRow();
                 if (idx < 0) break;
-                if (!_feed.TryDequeue(out PublicKillFeed.Entry entry)) break;
+                if (!_feed.TryDequeueKill(out PublicCombatFeed.KillEntry entry)) break;
                 Show(idx, in entry);
             }
         }
@@ -110,7 +110,7 @@ namespace LiteGame
             return -1;
         }
 
-        private void Show(int idx, in PublicKillFeed.Entry e)
+        private void Show(int idx, in PublicCombatFeed.KillEntry e)
         {
             _active[idx] = true;
             _remaining[idx] = RowDwellSeconds;

@@ -26,7 +26,7 @@
     "url": "http://10.8.0.1:5000/lobby/instances/register",
     "instance_id": "room-1",
     "advertise_host": "10.8.0.1",
-    "heartbeat_interval_ms": 10000
+    "heartbeat_interval_ms": 1000
   },
 
   "settlement": {

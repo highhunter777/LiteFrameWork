@@ -21,18 +21,17 @@ Material:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_Name: fx_spawn_protection
-  m_Shader: {fileID: 4800000, guid: 650dd9526735d5b46b79224bc6e94025, type: 3}
+  m_Shader: {fileID: 4800000, guid: 4bc8e781cf70fb541a7bf16b7c1821d5, type: 3}
   m_Parent: {fileID: 0}
   m_ModifiedSerializedProperties: 0
-  m_ValidKeywords:
+  m_ValidKeywords: []
+  m_InvalidKeywords:
   - _SURFACE_TYPE_TRANSPARENT
-  m_InvalidKeywords: []
   m_LightmapFlags: 4
   m_EnableInstancingVariants: 0
   m_DoubleSidedGI: 0
   m_CustomRenderQueue: 3000
-  stringTagMap:
-    RenderType: Transparent
+  stringTagMap: {}
   disabledShaderPasses:
   - DepthOnly
   - SHADOWCASTER
@@ -58,7 +57,11 @@ Material:
     - _Cutoff: 0.5
     - _DstBlend: 10
     - _DstBlendAlpha: 10
+    - _PulseAmount: 0.18
+    - _PulseSpeed: 2
     - _QueueOffset: 0
+    - _RimIntensity: 2.5
+    - _RimPower: 3
     - _SampleGI: 0
     - _SrcBlend: 5
     - _SrcBlendAlpha: 1
@@ -66,5 +69,6 @@ Material:
     - _ZWrite: 0
     m_Colors:
     - _BaseColor: {r: 1, g: 0.78, b: 0.25, a: 0.35}
-    - _Color: {r: 1, g: 0.78, b: 0.24999997, a: 0.35}
+    - _Color: {r: 1, g: 0.78, b: 0.25, a: 0.08}
+    - _RimColor: {r: 1, g: 0.85, b: 0.35, a: 1}
   m_BuildTextureStacks: []

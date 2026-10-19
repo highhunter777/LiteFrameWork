@@ -12,6 +12,7 @@
 | `加入联机环境.cmd` | ✅ | **测试者双击的入口**（ASCII-only：cmd 按系统码页解析，中文提示由 .ps1 输出） |
 | `Join-LiteGameTest.ps1` | ✅ | 测试者侧一键脚本（装 WireGuard → 装隧道服务 → 连通自检；UTF-8 **带 BOM**，改文件务必保留 BOM） |
 | `New-Package.ps1` | ✅ | **你用的组装助手**：拼一份待发包（ASCII-only，与仓库其它脚本同口径） |
+| `New-Packages.ps1` | ✅ | **批量组装**：按名单逐个出包（全量或叠加基包），见下文「批量组装」 |
 | `server.txt.example` | ✅ | 地址模板——复制成 `server.txt` 填值 |
 | `wireguard-*.msi` / `*.exe` | ❌ | **官方 WireGuard 安装包**（取回一次放这里，组装时自动随包分发；`.gitignore` 挡 `*.msi`/`*.exe`） |
 | `server.txt` | ❌ | 本机测试环境地址（`.gitignore` 挡） |
@@ -59,6 +60,61 @@ alice/
 | `-Zip` | 额外产出 `<Tester>.zip` |
 
 也可以 `-SkipGameCopy` 只拼"脚本 + conf + 地址"（游戏另外单独发时用）。
+
+## 推荐分发：一份基包 + 每人一份 conf（2026-10-18）
+
+**不要给所有测试者发同一个 `.conf`**：WireGuard 每个 peer 的密钥与隧道地址必须唯一，共用会撞地址、无法单独吊销/踢人，且不能多人同时在线。正确的省事方式是**游戏基包只发一次，conf 每人一个**：
+
+> 测试者包必须走 **release 通道**（Development 包只给开发侧测试）：先出 release 客户端，组包时显式指向 `Builds/StandaloneWindows64-release`。仓库 release 档 `endpoints` 为空（fail-closed 会删 `deploy.args`），本机出包用 gitignored 的 `windows-x64-release.local.json`（endpoints 同 closedtest）。
+
+```powershell
+# 0) 出 release 通道客户端（本机档补 endpoints）
+pwsh -NoProfile -File scripts/build/build-player.ps1 -Profile BuildProfiles/windows-x64-release.local.json -SkipRestoreCheck -SkipBundles
+
+# 1) 一份共享基包（不含任何 conf；游戏 + 启动脚本 + server.txt + WireGuard 安装包）
+pwsh -NoProfile -File Dist/New-Package.ps1 -Tester LiteGame-base -Base -Zip -GameBuild Builds/StandaloneWindows64-release
+
+# 2) 每个测试者只生成自己的 conf（一条命令；多个名字可循环）
+pwsh -NoProfile -File scripts/deploy/wg-peer.ps1 -Name alice
+# 'alice','bob','carol' | ForEach-Object { pwsh -NoProfile -File scripts/deploy/wg-peer.ps1 -Name $_ }
+
+# 3) 发放：LiteGame-base.zip 只发一次；每人单独发 Dist/out/<名字>.conf
+```
+
+测试者侧：解压基包 → 把**自己那份** `*.conf` 放到与 `加入联机环境.cmd` 同目录（**只能放一份**，多余的删掉）→ 双击启动脚本 → 双击游戏。基包本身不含私钥，可安全地重复分发；conf 仍按“一人一份、不回传、不入库”管理。
+
+> 批量 `wg-peer` 会逐个重装云上隧道服务，生成期间现有隧道会短暂断开；建议在没人测试时批量开号。
+
+## 批量组装（多个测试者一次出包）
+
+`New-Packages.ps1` 按名单逐个调 `New-Package.ps1`，两种模式：
+
+```powershell
+# 模式 A · 叠加包（推荐，配合上面「基包 + 每人 conf」）：每个 zip 只含启动脚本 + conf + server.txt + 安装包
+pwsh -NoProfile -File Dist/New-Packages.ps1 -Testers alice,bob,carol -Overlay -Zip -Force
+
+# 模式 B · 全量包：每个 zip 含完整游戏 + 本人 conf（每人 491MB，传输慢，但测试者只收一个文件）
+pwsh -NoProfile -File Dist/New-Packages.ps1 -Testers alice,bob,carol -Zip -Force -GameBuild Builds/StandaloneWindows64-release
+
+# 不给 -Testers：扫描 Dist/out/*.conf 自动出名单
+pwsh -NoProfile -File Dist/New-Packages.ps1 -Overlay -Zip -Force
+
+# 缺 conf 时自动开号（每人一次 > 重装云上隧道服务，生成期间现有隧道短暂断开）
+pwsh -NoProfile -File Dist/New-Packages.ps1 -Testers alice,bob -GenerateConf -Overlay -Zip
+```
+
+| 参数 | 作用 |
+|---|---|
+| `-Testers a,b` | 名单；逗号串或重复参数均可（脚本自己拆）；省略则扫 `-ConfDir` 下的 `*.conf` |
+| `-ConfDir` | conf 目录，默认 `Dist/out` |
+| `-Overlay` | 只出「kit + conf」叠加包（`New-Package.ps1 -SkipGameCopy`），与基包搭配 |
+| `-GenerateConf` | 缺 conf 时调 `scripts/deploy/wg-peer.ps1` 现开（会改云上 peer） |
+| `-OutDir` / `-GameBuild` / `-ServerUrl` | 透传组装参数，默认同 `New-Package.ps1` |
+| `-Zip` / `-Force` | 产出 zip / 覆盖同名产物 |
+| `-DryRun` | 只校验（`-CheckOnly`），不写盘 |
+| `-ContinueOnError` | 单人失败不中断（默认遇错即停；退出码 1 表示有失败项） |
+
+产物仍是 `Dist/out/<名字>/` 与 `<名字>.zip`；批量脚本只是循环，检查项与单包完全一致（conf 合法性、允许网段、构建存在、server 地址）。
 
 ## 转发给测试者的话
 

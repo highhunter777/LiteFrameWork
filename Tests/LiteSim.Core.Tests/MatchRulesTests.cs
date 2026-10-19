@@ -60,10 +60,66 @@ namespace LiteSim.Tests
             Assert.Equal(0, e.RespawnFrame);
             Assert.Equal(respawn, e.LifeStartFrame);
             Assert.Equal(respawn + 2, e.InvulnerableUntilFrame);
-            Assert.Equal(TestMaps.Greybox().SpawnPoints[1], e.Pos);
+            var map = TestMaps.Greybox();
+            Assert.InRange(e.SpawnPointIndex, 0, map.SpawnPointCount - 1);
+            Assert.NotEqual(s.Entities[0].SpawnPointIndex, e.SpawnPointIndex);   // 存活玩家占用的点不重复
+            Assert.Equal(map.SpawnPoints[e.SpawnPointIndex], e.Pos);
             Assert.Equal(2, s.MatchBag[SimConfig.MatchBagSlotsPerEntity].Count);
             Assert.Equal(WeaponSlotState.Ready, s.Weapons[SimConfig.WeaponSlotsPerEntity].State);
             Assert.Contains(s.Events.Items, ev => ev.Kind == FrameEventKind.Respawn && ev.EntityId == id);
+        }
+
+        [Fact]
+        public void SimultaneousRespawnsPickDistinctSpawnPoints()
+        {
+            var s = NewWorldWithPlayers(4);
+            for (int i = 0; i < 4; i++)
+            {
+                s.Entities[i].Hp = 0;
+                s.Entities[i].RespawnFrame = s.Frame + 1;
+            }
+            s.Frame += 1;
+
+            RespawnSystem.Run(s, TestMaps.Greybox(), CombatValues.Default);
+
+            var seen = new System.Collections.Generic.HashSet<int>();
+            for (int i = 0; i < 4; i++)
+            {
+                Assert.True(s.Entities[i].Hp > 0, "同帧复活完成");
+                Assert.True(seen.Add(s.Entities[i].SpawnPointIndex), "同帧复活不得共用出生点");
+            }
+        }
+
+        [Fact]
+        public void RespawnSpawnPointIsDeterministicAcrossRuns()
+        {
+            Assert.Equal(RunOnce(), RunOnce());
+
+            static int[] RunOnce()
+            {
+                var s = NewWorldWithPlayers(4);
+                for (int i = 0; i < 4; i++)
+                {
+                    s.Entities[i].Hp = 0;
+                    s.Entities[i].RespawnFrame = s.Frame + 1;
+                }
+                s.Frame += 1;
+                RespawnSystem.Run(s, TestMaps.Greybox(), CombatValues.Default);
+                return new[]
+                {
+                    s.Entities[0].SpawnPointIndex, s.Entities[1].SpawnPointIndex,
+                    s.Entities[2].SpawnPointIndex, s.Entities[3].SpawnPointIndex,
+                };
+            }
+        }
+
+        private static SimWorldState NewWorldWithPlayers(int count)
+        {
+            var s = new SimWorldState { RngState = 42UL };
+            MatchSystem.Start(s, new MatchRules(0, 0, 3, 2));
+            for (int i = 0; i < count; i++)
+                s.Spawn(new EntitySlot { Hp = 100, Flags = EntityFlags.Player, SpawnPointIndex = i }, out _);
+            return s;
         }
 
         [Fact]

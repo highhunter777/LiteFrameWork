@@ -71,6 +71,7 @@ $env:UNITY_CLI_CHANNEL='beta'; irm https://public-cdn.cloud.unity3d.com/hub/prod
 | 6 | `Editor/Commands/Materials/MaterialCommands.cs` | `mat.rawRenderQueue` → 2022.3 用 `mat.renderQueue` | Unity 6 新增 `rawRenderQueue`（-1=继承）；2022.3 无 → **读回值退化为有效值**（写入侧 `renderQueue:-1` 仍可用） |
 | 7 | `Editor/Commands/Assets/AssetCommands.cs` | 文件头加 `using PhysicsMaterial = UnityEngine.PhysicMaterial;`（`#if !UNITY_6000_0_OR_NEWER`） | Unity 6 更名 `PhysicMaterial` → `PhysicsMaterial` |
 | 8 | `Runtime/Analyzers/IlInterpreterAnalyzer.dll` | **移入 `Runtime/Analyzers/Disabled2022~/`**（`~` 目录 Unity 不导入）并删除其 `.meta` | 该分析器 DLL 引用 `Microsoft.CodeAnalysis`/`System.Collections.Immutable`，2022.3 的 Mono **解析不了这些引用** → Unity 每次导入都抛 "Assembly ... will not be loaded due to errors"。**仅移除 RoslynAnalyzer 标签不够**——Unity 仍会把它当普通插件程序集做加载校验。藏出导入管线后错误永久消失（Unity 6 恢复包原样时移回即可） |
+| 9 | `Editor/Commands/Build/BuildCommand.cs` | 类声明 `static class BuildCommand` → **`public static class BuildCommand`**（方法与成员不动） | 上游 0.8.x 起该类收窄为 internal，而 `build-player.ps1` 的 dry_run/正式构建 eval 直接引用 `Unity.Pipeline.Editor.Commands.Build.BuildCommand.Build(...)`——类不可见即 eval 编译失败（CS0122），出包链在 dry_run 一步被拦。本工程成员本就是 `public static`，补 `public` 修饰即可复用官方 CLI 的 build 出口（2026-10-18 出包批实测）。**重抓包后须重放本条**，否则 `build-player.ps1` 必卡 dry_run |
 
 **副作用（可接受）**：分析遥测（#3/#4）与 console 计数对账（#5）在 2022.3 下不生效；材料 renderQueue 读回语义降级（#6）。**Pipeline 服务/命令能力不受影响。**
 

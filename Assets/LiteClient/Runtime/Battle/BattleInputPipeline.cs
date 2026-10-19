@@ -13,8 +13,8 @@ namespace LiteClient
     /// 一个渲染帧走 2+ 逻辑帧时，多出的帧在客户端尚未产生输入就被权威消费，缺席空输入兜底 ⇒
     /// 本机沿用预测与权威逐位分叉 ⇒ 每个受影响的快照都和解，低帧率下成快照频率的橡皮筋）。
     ///
-    /// 逻辑帧消费门（同一帧只取一次）与上行节流都在 <see cref="IInputService"/> 内，本类只按
-    /// Frame+1 请求；帧号与视图帧的推导留在调用方（对局上下文）。
+    /// 逻辑帧消费门（同一帧只取一次）与上行节流都在 <see cref="IInputService"/> 内，本类只按调用方给的
+    /// 提前帧请求（<see cref="BattleContext.InputLeadFrames"/>）；帧号与视图帧的推导留在调用方（对局上下文）。
     /// </summary>
     internal sealed class BattleInputPipeline
     {

@@ -43,8 +43,15 @@ namespace RoomServer
         /// <summary>权威运行时（Sim + 闸门 + 席位）。</summary>
         public readonly RoomRuntime Runtime;
 
-        /// <summary>快照管线（增量差分 + 广播节流 + 背压降档）。</summary>
+        /// <summary>快照管线（增量差分 + 广播节流 + 背压降档）——**只发状态**（公共战斗事件面已独立成包）。</summary>
         public readonly SnapshotPipeline Pipeline;
+
+        /// <summary>
+        /// 公共战斗事件管线（《状态同步专项设计》§5.2 CombatEvent 面；2026-10-18 批）——
+        /// 与 <see cref="Pipeline"/> 同节拍、独立包型（<c>PacketType.CombatEvents</c>）。
+        /// 独立的原因见 <see cref="CombatEventPipeline"/> 类注释（事故结论：合在快照里会顶爆不可靠上限）。
+        /// </summary>
+        public readonly CombatEventPipeline Events;
 
         /// <summary>席位 → 连接会话映射（广播与信号按此定位连接；与 Runtime 的席位一一对应）。
         /// 仅宿主线程读写（admission/重连/销毁）。</summary>
@@ -279,11 +286,13 @@ namespace RoomServer
             {
                 WorkerSeats = new RoomBroadcastSeat[Runtime.ExpectedPlayers];
                 for (int i = 0; i < WorkerSeats.Length; i++) WorkerSeats[i] = new RoomBroadcastSeat();
-                Pipeline = new SnapshotPipeline(WorkerSeats, kills: Runtime.Kills, fires: Runtime.Fires, hits: Runtime.Hits);
+                Pipeline = new SnapshotPipeline(WorkerSeats);
+                Events = new CombatEventPipeline(Runtime.Events, WorkerSeats);   // 与状态面同一份席位表
             }
             else
             {
-                Pipeline = new SnapshotPipeline(Seats, kills: Runtime.Kills, fires: Runtime.Fires, hits: Runtime.Hits);
+                Pipeline = new SnapshotPipeline(Seats);
+                Events = new CombatEventPipeline(Runtime.Events, Seats);         // 与状态面同一份席位表
             }
             Mailbox = new RoomMailbox<RoomInputEnvelope, RoomControlEnvelope, RoomOutboundEnvelope>(
                 inputCapacity, controlCapacity, outboundCapacity);

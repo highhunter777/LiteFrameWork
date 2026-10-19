@@ -50,9 +50,9 @@ namespace LiteGame
         }
 
         /// <summary>
-        /// 权威反馈注入点（如快照击杀窗口 → Death）：与 Sim 帧事件走**同一条**消费者解析/分发，
-        /// 但不受静默门影响（权威事实不参与预测去重）。调用方负责幂等（<see cref="PublicKillFeed"/>
-        /// 已按 (killer,victim,frame) 去重）。
+        /// 权威反馈注入点（公共战斗事件面 → Death/Hit/Crit）：与 Sim 帧事件走**同一条**消费者解析/分发，
+        /// 但不受静默门影响（权威事实不参与预测去重）。调用方负责幂等（<see cref="PublicCombatFeed"/>
+        /// 已按 kind+双方+帧 去重）。
         /// </summary>
         public void DispatchAuthoritative(in FrameEvent e) => OnFrameEvent(in e);
 

@@ -24,5 +24,11 @@ namespace LiteNet.Protocol
         Heartbeat = 16,
         // 席位实时面（Reliable；房间页玩家列表——进房/断线/恢复完成时广播全量快照）。
         RoomSeats = 17,
+        // 公共战斗事件面（Unreliable；《状态同步专项设计》§5.2 CombatEvent 面）。
+        // **为什么独立成包**：原先命中/击杀/开火三个窗口塞在 StateSnapshot.match 里随每份快照全量携带，
+        // 实测把快照顶到 1531B（> KCP 不可靠上限 1194B）⇒ 整份快照被 kcp2k 静默丢弃 ⇒ 状态流中断
+        // （联机实测"打一会儿双方不同步"的真因）。独立后两条平面临界解耦：状态面尺寸只随实体数变，
+        // 事件面有自己的预算与降级阶梯，互不挤占。与 StateSnapshot 同节拍、同丢包收敛语义（窗口全量重发）。
+        CombatEvents = 18,
     }
 }
