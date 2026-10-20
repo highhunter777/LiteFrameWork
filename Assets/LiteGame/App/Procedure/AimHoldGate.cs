@@ -66,5 +66,17 @@ namespace LiteGame
             _onSeconds = 0f;
             _deferRemaining = 0f;
         }
+
+        /// <summary>
+        /// 复位到"未按下"（**复活/换局**时用）：上一条命的瞄准态若还挂着，复活瞬间相机会被钉在
+        /// 瞄准机上（表现为"复活了但镜头没对准"）。原始位同步清零——下一帧的按下才重新算上升沿。
+        /// </summary>
+        public void Reset()
+        {
+            _held = false;
+            _prevRaw = false;
+            _onSeconds = 0f;
+            _deferRemaining = 0f;
+        }
     }
 }

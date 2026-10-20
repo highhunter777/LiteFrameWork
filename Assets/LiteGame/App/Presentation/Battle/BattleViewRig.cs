@@ -73,6 +73,7 @@ namespace LiteGame
         private readonly ICameraService _camera;     // 相机服务（Cinemachine 适配器；装配根建、跨对局复用）
         private readonly LiteFramework.IWorldClock _worldClock;   // 世界钟（伤害数字寿命/合并窗）
         private readonly AimHoldGate _aimGate = new AimHoldGate(AimMinHoldSeconds);   // 瞄准态滞回
+        private int _lastRespawnSerial;                              // 本地复活序号（瞄准门一次性复位用）
 
         private readonly ClientScope _viewScope;     // 视图资源（prefab 租约/视图根）自有作用域
         private BattleContext _context;
@@ -449,6 +450,17 @@ namespace LiteGame
             _remoteFire?.Tick();                 // 远端开火火光：开火窗口队列 → 远端枪口挂点播放
 
             // 瞄准相机接管（每帧幂等；适配器按沿生效——视图态已解析；滞回门控短按，防频繁点按重启混合）
+            // 复活复位：上一条命的 ADS 门控态不得跨命沿用（否则复活瞬间镜头被钉在瞄准机上）。
+            // **`_view` 可空**：本方法在进场加载期就会每帧被调（视图是 `Attach` 场景加载完才建），
+            // 判空是必须的——漏了就是每帧一条 NRE（联机实测 217 条，全在加载段）。
+            if (_view != null && _view.LocalRespawnSerial != _lastRespawnSerial)
+            {
+                _lastRespawnSerial = _view.LocalRespawnSerial;
+                _aimGate.Reset();
+            }
+#if UNITY_EDITOR || DEVELOPMENT_BUILD || LITEFRAMEWORK_DEBUG
+            _camera?.SetViewMirrored(TestModeRuntime.ViewMirrored);   // [Diag][TeamCam-Stage1] 预览开关（幂等；团队相机接线批次退役）
+#endif
             _camera?.SetAiming(_aimGate.Feed(IsLocalAiming(), elapseSeconds));
             if (_camera != null)                 // 瞄准点（世界）→ 构图 z 偏移曲线（适配器按到焦点的前向投影换算）
             {
@@ -569,6 +581,7 @@ namespace LiteGame
             _hitFeedback = null;
             _aimPointOf = null;                   // 瞄准点来源随本局设备源一起摘（方法组不跨局持有）
             _camera?.SetAiming(false);            // 瞄准机还原（优先级/Follow 归还场景值——离场不得遗留接管态）
+            _camera?.SetViewMirrored(false);      // 视角镜像还原（离场不遗留预览/阵营态）
             _context?.AttachInput(null);
             _context = null;
             _view = null;                                         // 视图实例随 _viewRoot 销毁

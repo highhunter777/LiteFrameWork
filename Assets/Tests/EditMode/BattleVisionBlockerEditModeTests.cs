@@ -9,17 +9,20 @@ using UnityEngine;
 namespace LiteGame.Tests.EditMode
 {
     /// <summary>
-    /// 视野遮蔽驱动（<see cref="BattleVisionBlockerDriver"/>——档 A1 复合方案·姿态动态）的
-    /// L2 EditMode 覆盖：**渐隐面**（相机→本地柱顶线段被高墙挡 ⇒ <c>sharedMaterial</c> 切渐隐
-    /// 变体；站姿柱顶越过 1m 低箱 ⇒ 不渐隐——真值表"站姿 @ 1m 箱"行）、**影区面**（渐隐在场时
-    /// 墙后实体隐藏、露头实体照常、本地玩家豁免、无渐隐不隐藏）、**迟滞**（连续两拍同向才切换）、
-    /// **保守恢复**（无相机/未对齐/拆件全归位）、**内容配对**（材质不成对零绑定——全惰性）。
+    /// 视野遮蔽驱动（<see cref="BattleVisionBlockerDriver"/>——档 A1·v3.4 角色视觉权威）的
+    /// L2 EditMode 覆盖：**显隐层**（本地角色眼位→目标身体多点采样；任一点无遮挡 ⇒ 渲染，
+    /// 全挡 ⇒ 隐藏；本地玩家豁免；真单向可见按掩体优势接受，不再要求两端同结论）、**渐隐层**
+    /// （相机→本地柱顶 ⇒ 自身渐隐；相机→**角色可见远端**柱顶 ⇒ 远端渐隐；全挡敌人不参与渐隐）、
+    /// **迟滞＋最短保持**（连续两拍同向且状态已保持 0.5s 才切换——掩体边缘不闪隐）、
+    /// **保守恢复**（无相机/未对齐/拆件全归位）、**内容配对**（材质不成对 ⇒ 只不渐隐，显隐照常）。
     ///
     /// **夹具口径**：材质对用**真实资产**（<c>AssetDatabase</c> 只读载入，驱动只改渲染件引用、
     /// 不改材质本体——断言用引用相等）；场景侧用合成 <see cref="MapTopology.MapCollisionRoot"/>
     /// 代理树（Cube 原语＝BoxCollider＋渲染件，与烘焙器 Box 采集同构）；视图走 <see cref="SimView"/>
     /// 合成世界（同 BattleLaserEditModeTests 形态）。判定几何本身有 L1 权威守卫
     /// （MapSceneReconciliation/AimParallaxHitTests），本组只守 View 层"谁渐隐/谁隐藏"的映射。
+    /// **墙体位置约定**：本地在原点、相机在 `z=+12`；近侧远端 `z=+6`（相机与本地之间）、
+    /// 远侧远端 `z=+20`（本地另一侧）。同一堵墙对显隐与相机补位两类线段各测各的口径。
     /// </summary>
     public sealed class BattleVisionBlockerEditModeTests : UnityTestBase
     {
@@ -31,7 +34,7 @@ namespace LiteGame.Tests.EditMode
         private const float ProbeSeconds = 0.1f;
         private const int HoldProbes = 2;
 
-        /// <summary>渐隐在场到实体隐藏收敛所需的总拍数（渐隐两拍＋隐藏两拍，取安全余量）。</summary>
+        /// <summary>状态收敛所需的总拍数（显隐/渐隐各两拍＋最短保持，取安全余量）。</summary>
         private const int SettledProbes = HoldProbes * 2 + 1;
 
         private static (Material Base, Material Fade) LoadMaterialPair()
@@ -217,9 +220,9 @@ namespace LiteGame.Tests.EditMode
         public void 遮蔽_高墙挡本地柱顶_切渐隐变体_清空遮挡后恢复()
         {
             var (baseMat, fadeMat) = LoadMaterialPair();
-            (SimMapData map, Renderer wall) = BindBoxObstacle(0f, -4f, 3f, 0.5f, 20f, baseMat);
+            (SimMapData map, Renderer wall) = BindBoxObstacle(0f, 3f, 3f, 0.5f, 20f, baseMat);
             var (_, view, _, _) = BuildWorld(Vector3.zero, new Vector3(0f, 0f, 20f));
-            (GameObject camGo, Func<Camera> cameraOf) = BuildCamera(new Vector3(0f, 10f, -10f));
+            (GameObject camGo, Func<Camera> cameraOf) = BuildCamera(new Vector3(0f, 10f, 12f));
             BattleVisionBlockerDriver driver = BuildDriver(view, map, cameraOf, baseMat, fadeMat);
             try
             {
@@ -227,7 +230,7 @@ namespace LiteGame.Tests.EditMode
                 Assert.AreSame(fadeMat, wall.sharedMaterial, "墙挡相机→本地柱顶线段 ⇒ 渐隐变体");
 
                 // 相机移到墙侧（线段不再穿墙）——迟滞后恢复基准材质
-                camGo.transform.position = new Vector3(20f, 10f, -10f);
+                camGo.transform.position = new Vector3(20f, 10f, 12f);
                 driver.Tick(ProbeSeconds);
                 Assert.AreSame(fadeMat, wall.sharedMaterial, "清空后单拍不恢复（迟滞）");
                 driver.Tick(ProbeSeconds);
@@ -241,17 +244,18 @@ namespace LiteGame.Tests.EditMode
 
         [Test]
         [Category(TestCategory.Contract)]
-        public void 遮蔽_站姿柱顶越过一米低箱_不渐隐()
+        public void 遮蔽_站姿越过一米低箱_显隐照常且不渐隐()
         {
             var (baseMat, fadeMat) = LoadMaterialPair();
-            (SimMapData map, Renderer box) = BindBoxObstacle(0f, -4f, 3f, 0.5f, 1f, baseMat);
-            var (_, view, _, _) = BuildWorld(Vector3.zero, new Vector3(0f, 0f, 20f));
-            (_, Func<Camera> cameraOf) = BuildCamera(new Vector3(0f, 10f, -10f));
+            (SimMapData map, Renderer box) = BindBoxObstacle(0f, 3f, 3f, 0.5f, 1f, baseMat);
+            var (_, view, _, remoteViews) = BuildWorld(Vector3.zero, new Vector3(0f, 0f, 20f));
+            (_, Func<Camera> cameraOf) = BuildCamera(new Vector3(0f, 10f, 12f));
             BattleVisionBlockerDriver driver = BuildDriver(view, map, cameraOf, baseMat, fadeMat);
             try
             {
                 for (int i = 0; i < SettledProbes; i++) driver.Tick(ProbeSeconds);
                 Assert.AreSame(baseMat, box.sharedMaterial, "站姿 1m 箱＝露头带——自然部分遮挡，不渐隐");
+                Assert.IsTrue(RendererOf(remoteViews[0]).enabled, "低箱不遮站姿头部 ⇒ 角色看得见 → 显示");
             }
             finally
             {
@@ -264,9 +268,9 @@ namespace LiteGame.Tests.EditMode
         public void 遮蔽_迟滞_单拍遮挡不切换()
         {
             var (baseMat, fadeMat) = LoadMaterialPair();
-            (SimMapData map, Renderer wall) = BindBoxObstacle(0f, -4f, 3f, 0.5f, 20f, baseMat);
+            (SimMapData map, Renderer wall) = BindBoxObstacle(0f, 3f, 3f, 0.5f, 20f, baseMat);
             var (_, view, _, _) = BuildWorld(Vector3.zero, new Vector3(0f, 0f, 20f));
-            (_, Func<Camera> cameraOf) = BuildCamera(new Vector3(0f, 10f, -10f));
+            (_, Func<Camera> cameraOf) = BuildCamera(new Vector3(0f, 10f, 12f));
             BattleVisionBlockerDriver driver = BuildDriver(view, map, cameraOf, baseMat, fadeMat);
             try
             {
@@ -285,22 +289,22 @@ namespace LiteGame.Tests.EditMode
 
         [Test]
         [Category(TestCategory.Contract)]
-        public void 遮蔽_渐隐在场_墙后实体隐藏_露头实体照常_本地豁免()
+        public void 角色视觉_墙后全挡隐藏_对角露头显示_本地豁免()
         {
             var (baseMat, fadeMat) = LoadMaterialPair();
-            (SimMapData map, Renderer _) = BindBoxObstacle(0f, -4f, 3f, 0.5f, 20f, baseMat);
-            // 远端两枚：墙后 (0,0,6)——相机→其柱顶穿墙；露头 (10,0,6)——柱顶线段从墙侧越过
+            (SimMapData map, Renderer _) = BindBoxObstacle(0f, 3f, 3f, 0.5f, 20f, baseMat);
+            // 远端两枚：墙后 (0,0,6)——所有身体采样被墙挡；对角露头 (10,0,6)——视线从墙侧掠过
             var (_, view, localView, remoteViews) = BuildWorld(Vector3.zero,
                 new Vector3(0f, 0f, 6f), new Vector3(10f, 0f, 6f));
-            (_, Func<Camera> cameraOf) = BuildCamera(new Vector3(0f, 10f, -10f));
+            (_, Func<Camera> cameraOf) = BuildCamera(new Vector3(0f, 10f, 12f));
             BattleVisionBlockerDriver driver = BuildDriver(view, map, cameraOf, baseMat, fadeMat);
             try
             {
                 for (int i = 0; i < SettledProbes; i++) driver.Tick(ProbeSeconds);
 
-                Assert.IsFalse(RendererOf(remoteViews[0]).enabled, "墙后实体（柱顶被墙挡）隐藏——掩体后的视野不可见");
-                Assert.IsTrue(RendererOf(remoteViews[1]).enabled, "露头实体（柱顶未被挡）照常显示");
-                Assert.IsTrue(RendererOf(localView).enabled, "本地玩家豁免——渐隐只为找回自己");
+                Assert.IsFalse(RendererOf(remoteViews[0]).enabled, "墙后实体（身体采样全挡）隐藏——角色看不见");
+                Assert.IsTrue(RendererOf(remoteViews[1]).enabled, "对角露头实体（视线不被挡）照常显示");
+                Assert.IsTrue(RendererOf(localView).enabled, "本地玩家豁免——自己永远全渲染");
             }
             finally
             {
@@ -310,23 +314,148 @@ namespace LiteGame.Tests.EditMode
 
         [Test]
         [Category(TestCategory.Contract)]
-        public void 遮蔽_材质不成对_零绑定_渐隐与隐藏全惰性()
+        public void 角色视觉_远端全挡_相机可见_仍隐藏且不渐隐()
         {
-            // 墙体渲染件挂非基准材质（内建默认材质——内容配对裁决：不成对即不渐隐）⇒ 零绑定 ⇒
-            // 不渐隐 ⇒ 影区面惰性——非渐隐遮挡由深度测试天然兜底，现状即安全。
+            var (baseMat, fadeMat) = LoadMaterialPair();
+            // 墙在远端(0,0,6)与本地(0,0,0)之间；相机在 z=+12（远端一侧），能直接看到远端，
+            // 但本地角色眼位被墙全挡（墙高 2.5 > 人体）⇒ 隐藏；全挡敌人不参与渐隐。
+            (SimMapData map, Renderer wall) = BindBoxObstacle(0f, 3f, 3f, 0.5f, 2.5f, baseMat);
+            var (_, view, _, remoteViews) = BuildWorld(Vector3.zero, new Vector3(0f, 0f, 6f));
+            (GameObject camGo, Func<Camera> cameraOf) = BuildCamera(new Vector3(0f, 10f, 12f));
+            BattleVisionBlockerDriver driver = BuildDriver(view, map, cameraOf, baseMat, fadeMat);
+            try
+            {
+                Vector3 remoteTop = remoteViews[0].transform.position + Vector3.up * BodyBake.Height;
+                Assert.IsFalse(VisionSegment.Blocked(in map.Obstacles[0], camGo.transform.position, remoteTop),
+                    "相机在敌人一侧能看到（墙在敌人后方）——相机可见性不是显隐依据");
+
+                for (int i = 0; i < SettledProbes; i++) driver.Tick(ProbeSeconds);
+                Assert.IsFalse(RendererOf(remoteViews[0]).enabled, "角色眼位全挡 ⇒ 隐藏（相机看到不算）");
+                Assert.AreSame(baseMat, wall.sharedMaterial, "全挡敌人不参与渐隐（防相机透视）");
+            }
+            finally
+            {
+                driver.Dispose();
+            }
+        }
+
+        [Test]
+        [Category(TestCategory.Contract)]
+        public void 角色视觉_远端可见_相机侧掩体挡_远端渐隐()
+        {
+            var (baseMat, fadeMat) = LoadMaterialPair();
+            // 墙 @ (5,9)：在相机(0,10,12)→远端(10,0,6)柱顶线上挡相机，但在本地→远端的角色视线上不挡。
+            (SimMapData map, Renderer wall) = BindBoxObstacle(5f, 9f, 1f, 0.5f, 20f, baseMat);
+            var (_, view, _, remoteViews) = BuildWorld(Vector3.zero, new Vector3(10f, 0f, 6f));
+            (_, Func<Camera> cameraOf) = BuildCamera(new Vector3(0f, 10f, 12f));
+            BattleVisionBlockerDriver driver = BuildDriver(view, map, cameraOf, baseMat, fadeMat);
+            try
+            {
+                for (int i = 0; i < SettledProbes; i++) driver.Tick(ProbeSeconds);
+                Assert.IsTrue(RendererOf(remoteViews[0]).enabled, "角色视线无遮挡 ⇒ 远端显示");
+                Assert.AreSame(fadeMat, wall.sharedMaterial, "相机侧掩体挡住可见远端 ⇒ 远端补位渐隐");
+            }
+            finally
+            {
+                driver.Dispose();
+            }
+        }
+
+        [Test]
+        [Category(TestCategory.Contract)]
+        public void 角色视觉_掩体边缘露身_显示()
+        {
+            var (baseMat, fadeMat) = LoadMaterialPair();
+            // 墙 x∈[-1.1,1.1] @ z≈4：本地(0,0,0) 的柱顶中心线在墙近面 x≈1.05 被挡；
+            // 远端(1.8,0,6) 的右侧身体采样在墙近面 x≈1.25 绕过墙缘 ⇒ 角色看得到露身，应显示。
+            (SimMapData map, Renderer _) = BindBoxObstacle(0f, 4f, 1.1f, 0.5f, 20f, baseMat);
+            var (_, view, _, remoteViews) = BuildWorld(Vector3.zero, new Vector3(1.8f, 0f, 6f));
+            (_, Func<Camera> cameraOf) = BuildCamera(new Vector3(0f, 10f, 12f));
+            BattleVisionBlockerDriver driver = BuildDriver(view, map, cameraOf, baseMat, fadeMat);
+            try
+            {
+                for (int i = 0; i < SettledProbes; i++) driver.Tick(ProbeSeconds);
+                Assert.IsTrue(RendererOf(remoteViews[0]).enabled,
+                    "身体边缘绕过掩体 ⇒ 角色看得见 → 显示（不再用单根柱顶中心线误藏）");
+            }
+            finally
+            {
+                driver.Dispose();
+            }
+        }
+
+        [Test]
+        [Category(TestCategory.Contract)]
+        public void 角色视觉_远端视图位滞后_判定取渲染帧快照位()
+        {
+            // 视图位（插值滞后）会把远端画到墙侧 x=3，看似可见；判定必须取渲染帧快照位
+            // （权威位 x=0，墙后全挡）——显隐不随视图插值漂移。
+            var (baseMat, fadeMat) = LoadMaterialPair();
+            (SimMapData map, Renderer _) = BindBoxObstacle(0f, 4f, 1.5f, 0.5f, 20f, baseMat);   // 墙 x∈[-1.5,1.5] @ z≈4
+
+            var authWorld = new SimWorldState { RngState = 1UL };
+            authWorld.Spawn(new EntitySlot { Hp = 100, Pos = ToSim(Vector3.zero) }, out _);
+            authWorld.Spawn(new EntitySlot { Hp = 100, Pos = ToSim(new Vector3(0f, 0f, 6f)) }, out _);
+            var snapshot = new SimWorldStateSnapshot();
+            snapshot.CaptureFull(authWorld);
+            snapshot.Frame = 100;
+
+            (SimView view, GameObject remoteView) = BuildStaleRemoteView(0, new Vector3(3f, 0f, 6f), snapshot);
+            (_, Func<Camera> cameraOf) = BuildCamera(new Vector3(0f, 10f, 12f));
+            BattleVisionBlockerDriver driver = BuildDriver(view, map, cameraOf, baseMat, fadeMat);
+            try
+            {
+                for (int i = 0; i < SettledProbes; i++) driver.Tick(ProbeSeconds);
+                Assert.IsFalse(RendererOf(remoteView).enabled,
+                    "远端视图位滞后不算数：权威位在墙后全挡 → 隐藏");
+            }
+            finally
+            {
+                driver.Dispose();
+            }
+        }
+
+        /// <summary>
+        /// 建"视图位与权威位不一致"的单客户端视图（<paramref name="localSlotIndex"/> 本地、
+        /// 另一槽位为远端）：世界按权威快照的槽位序生成（slot0=A、slot1=B），喂同一份快照后
+        /// 把**远端视图位**改写成 <paramref name="staleRemoteViewPos"/>（模拟插值滞后）；
+        /// 驱动判定取快照位，因此该改写只影响渲染观感、不影响显隐结论。
+        /// </summary>
+        private (SimView View, GameObject RemoteView) BuildStaleRemoteView(
+            int localSlotIndex, Vector3 staleRemoteViewPos, SimWorldStateSnapshot snapshot)
+        {
+            var world = new SimWorldState { RngState = 1UL };
+            long idA = world.Spawn(new EntitySlot { Hp = 100, Pos = ToSim(Vector3.zero) }, out _);
+            long idB = world.Spawn(new EntitySlot { Hp = 100, Pos = ToSim(new Vector3(0f, 0f, 6f)) }, out _);
+            SimView view = new SimView(world, null,
+                factory: (loc, parent) => Scope.CreateGameObject(loc, typeof(MeshRenderer)), recycler: null);
+            view.AlignLocal(localSlotIndex == 0 ? idA : idB);
+            view.Tick(1f / 60f);                                    // 建视图 + 落位
+            view.OnAuthoritativeSnapshot(snapshot);                 // 权威时间线（两端同一份）
+            view.TryGetView(1 - localSlotIndex, out GameObject remoteView);
+            remoteView.transform.position = staleRemoteViewPos;     // 视图位 ≠ 权威位（渲染用；判定取快照位）
+            return (view, remoteView);
+        }
+
+        [Test]
+        [Category(TestCategory.Contract)]
+        public void 遮蔽_材质不成对_不渐隐_角色视觉遮蔽照常生效()
+        {
+            // 墙体渲染件挂非基准材质（内建默认材质——内容配对裁决：不成对即不渐隐）⇒ 零绑定 ⇒ 不渐隐；
+            // 但**角色视觉与渐隐解耦**（v3.4）：墙后实体照常被藏——"看不见墙后"不依赖该墙能否渐隐。
             var (baseMat, fadeMat) = LoadMaterialPair();
             GameObject probe = GameObject.CreatePrimitive(PrimitiveType.Cube);
             Scope.Track(probe);                                     // 原语件（未挂 Scope 树）显式托管
             Material unpairedMat = probe.GetComponent<Renderer>().sharedMaterial;   // 内建默认材质（持久资产，勿 Track 勿销毁）
-            (SimMapData map, Renderer wall) = BindBoxObstacle(0f, -4f, 3f, 0.5f, 20f, unpairedMat);
+            (SimMapData map, Renderer wall) = BindBoxObstacle(0f, 3f, 3f, 0.5f, 20f, unpairedMat);
             var (_, view, _, remoteViews) = BuildWorld(Vector3.zero, new Vector3(0f, 0f, 6f));
-            (_, Func<Camera> cameraOf) = BuildCamera(new Vector3(0f, 10f, -10f));
+            (_, Func<Camera> cameraOf) = BuildCamera(new Vector3(0f, 10f, 12f));
             BattleVisionBlockerDriver driver = BuildDriver(view, map, cameraOf, baseMat, fadeMat);
             try
             {
                 for (int i = 0; i < SettledProbes; i++) driver.Tick(ProbeSeconds);
                 Assert.AreSame(unpairedMat, wall.sharedMaterial, "材质不成对不入绑定——材质永不动");
-                Assert.IsTrue(RendererOf(remoteViews[0]).enabled, "无渐隐在场 ⇒ 不做实体隐藏");
+                Assert.IsFalse(RendererOf(remoteViews[0]).enabled, "角色视觉与渐隐解耦 ⇒ 墙后实体照常隐藏");
             }
             finally
             {
@@ -336,22 +465,61 @@ namespace LiteGame.Tests.EditMode
 
         [Test]
         [Category(TestCategory.Contract)]
-        public void 遮蔽_切出影区_实体即时恢复_材质同步归位()
+        public void 角色视觉_切出遮挡_实体即时恢复_材质同步归位()
         {
             var (baseMat, fadeMat) = LoadMaterialPair();
-            (SimMapData map, Renderer wall) = BindBoxObstacle(0f, -4f, 3f, 0.5f, 20f, baseMat);
-            var (_, view, _, remoteViews) = BuildWorld(Vector3.zero, new Vector3(0f, 0f, 6f));
-            (GameObject camGo, Func<Camera> cameraOf) = BuildCamera(new Vector3(0f, 10f, -10f));
+            (SimMapData map, Renderer wall) = BindBoxObstacle(0f, 3f, 3f, 0.5f, 20f, baseMat);
+            var (world, view, _, remoteViews) = BuildWorld(Vector3.zero, new Vector3(0f, 0f, 6f));
+            (GameObject camGo, Func<Camera> cameraOf) = BuildCamera(new Vector3(0f, 10f, 12f));
             BattleVisionBlockerDriver driver = BuildDriver(view, map, cameraOf, baseMat, fadeMat);
             try
             {
                 for (int i = 0; i < SettledProbes; i++) driver.Tick(ProbeSeconds);
-                Assert.IsFalse(RendererOf(remoteViews[0]).enabled, "渐隐在场 ⇒ 墙后实体隐藏");
+                Assert.IsFalse(RendererOf(remoteViews[0]).enabled, "角色视线全挡 ⇒ 墙后实体隐藏");
 
-                camGo.transform.position = new Vector3(20f, 10f, -10f);
+                // 远端挪出墙体范围（角色视线不再被墙挡）——隐藏两拍迟滞后恢复
+                world.Entities[1].Pos = ToSim(new Vector3(10f, 0f, 6f));
+                view.Tick(1f / 60f);                            // 视图位置随 Sim 更新（驱动读的是视图柱顶）
                 for (int i = 0; i < HoldProbes; i++) driver.Tick(ProbeSeconds);
                 Assert.IsTrue(RendererOf(remoteViews[0]).enabled, "切出影区 ⇒ 渲染开关恢复（不销毁）");
+
+                // 相机挪开（相机→本地柱顶不再穿墙）——渐隐两拍迟滞后材质归位
+                camGo.transform.position = new Vector3(20f, 10f, 12f);
+                for (int i = 0; i < HoldProbes; i++) driver.Tick(ProbeSeconds);
                 Assert.AreSame(baseMat, wall.sharedMaterial, "遮挡清空 ⇒ 材质归位");
+            }
+            finally
+            {
+                driver.Dispose();
+            }
+        }
+
+        [Test]
+        [Category(TestCategory.Contract)]
+        public void 遮蔽_掩体边缘振荡_最短保持不闪隐()
+        {
+            // 掩体边缘"两拍真两拍假"的振荡（实测日志连续 9 次翻转＝敌人闪隐）：隐藏一旦成立，
+            // 最短保持（0.5s＝5 拍）期内不得闪回可见——迟滞只挡单拍抖动，挡不住这种周期。
+            var (baseMat, fadeMat) = LoadMaterialPair();
+            (SimMapData map, Renderer _) = BindBoxObstacle(0f, 3f, 3f, 0.5f, 20f, baseMat);
+            var (world, view, _, remoteViews) = BuildWorld(Vector3.zero, new Vector3(0f, 0f, 6f));
+            (_, Func<Camera> cameraOf) = BuildCamera(new Vector3(0f, 10f, 12f));
+            BattleVisionBlockerDriver driver = BuildDriver(view, map, cameraOf, baseMat, fadeMat);
+            try
+            {
+                for (int i = 0; i < SettledProbes; i++) driver.Tick(ProbeSeconds);
+                Assert.IsFalse(RendererOf(remoteViews[0]).enabled, "先进入隐藏（角色视线全挡）");
+
+                for (int i = 0; i < 4; i++)
+                {
+                    world.Entities[1].Pos = ToSim(i % 2 == 0
+                        ? new Vector3(10f, 0f, 6f)      // 可见（线段从墙侧掠过）
+                        : new Vector3(0f, 0f, 6f));     // 被挡
+                    view.Tick(1f / 60f);
+                    driver.Tick(ProbeSeconds);
+                    Assert.IsFalse(RendererOf(remoteViews[0]).enabled,
+                        $"振荡第 {i + 1} 拍不得闪回可见（最短保持期内不翻转）");
+                }
             }
             finally
             {
@@ -366,9 +534,9 @@ namespace LiteGame.Tests.EditMode
         public void 遮蔽_无相机_保守不渐隐且在场渐隐即恢复()
         {
             var (baseMat, fadeMat) = LoadMaterialPair();
-            (SimMapData map, Renderer wall) = BindBoxObstacle(0f, -4f, 3f, 0.5f, 20f, baseMat);
+            (SimMapData map, Renderer wall) = BindBoxObstacle(0f, 3f, 3f, 0.5f, 20f, baseMat);
             var (_, view, _, remoteViews) = BuildWorld(Vector3.zero, new Vector3(0f, 0f, 6f));
-            (GameObject camGo, _) = BuildCamera(new Vector3(0f, 10f, -10f));
+            (GameObject camGo, _) = BuildCamera(new Vector3(0f, 10f, 12f));
             bool cameraAlive = true;
             Func<Camera> cameraOf = () => cameraAlive ? camGo.GetComponent<Camera>() : null;
             BattleVisionBlockerDriver driver = BuildDriver(view, map, cameraOf, baseMat, fadeMat);
@@ -393,14 +561,14 @@ namespace LiteGame.Tests.EditMode
         public void 遮蔽_本地未对齐_不渐隐()
         {
             var (baseMat, fadeMat) = LoadMaterialPair();
-            (SimMapData map, Renderer wall) = BindBoxObstacle(0f, -4f, 3f, 0.5f, 20f, baseMat);
+            (SimMapData map, Renderer wall) = BindBoxObstacle(0f, 3f, 3f, 0.5f, 20f, baseMat);
             var world = new SimWorldState { RngState = 1UL };
             world.Spawn(new EntitySlot { Hp = 100, Pos = ToSim(Vector3.zero) }, out _);
             SimView view = new SimView(world, null,
                 factory: (loc, parent) => Scope.CreateGameObject(loc, typeof(MeshRenderer)),
                 recycler: null);                                    // 未 AlignLocal：LocalEntityId=0
             view.Tick(1f / 60f);
-            (_, Func<Camera> cameraOf) = BuildCamera(new Vector3(0f, 10f, -10f));
+            (_, Func<Camera> cameraOf) = BuildCamera(new Vector3(0f, 10f, 12f));
             BattleVisionBlockerDriver driver = BuildDriver(view, map, cameraOf, baseMat, fadeMat);
             try
             {
@@ -418,9 +586,9 @@ namespace LiteGame.Tests.EditMode
         public void 遮蔽_拆件_渐隐与隐藏在场全恢复()
         {
             var (baseMat, fadeMat) = LoadMaterialPair();
-            (SimMapData map, Renderer wall) = BindBoxObstacle(0f, -4f, 3f, 0.5f, 20f, baseMat);
+            (SimMapData map, Renderer wall) = BindBoxObstacle(0f, 3f, 3f, 0.5f, 20f, baseMat);
             var (_, view, _, remoteViews) = BuildWorld(Vector3.zero, new Vector3(0f, 0f, 6f));
-            (_, Func<Camera> cameraOf) = BuildCamera(new Vector3(0f, 10f, -10f));
+            (_, Func<Camera> cameraOf) = BuildCamera(new Vector3(0f, 10f, 12f));
             BattleVisionBlockerDriver driver = BuildDriver(view, map, cameraOf, baseMat, fadeMat);
             for (int i = 0; i < SettledProbes; i++) driver.Tick(ProbeSeconds);
             Assert.AreSame(fadeMat, wall.sharedMaterial, "拆前已渐隐");

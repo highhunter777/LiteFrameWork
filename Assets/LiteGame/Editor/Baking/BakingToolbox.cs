@@ -114,13 +114,19 @@ namespace LiteGame.EditorTools
         private void DrawMapPage()
         {
             EditorGUILayout.HelpBox(
-                "地图烘焙：采集首图场景 " + BakeTargets.MapScenePath + " 的判定几何（MapCollision 代理树：Box/Sphere/Capsule；"
-                + "MeshCollider 默认拒载）＋出生点（spawn_*，按名排序定 index）＋边界（map_bounds），"
-                + "经校验（fail-fast→不产半成品；出生点不落障碍内/不越边界）→毫米量化→digest，写 Luban 数据源（write-if-changed；勿手改——改布局＝改场景重烘）。\n"
+                "地图烘焙：按目标注册表 BakeTargets.Maps 逐图出按钮（加图＝注册表加一条，本页自动跟随）。"
+                + "采集场景的判定几何（MapCollision 代理树：Box/Sphere/Capsule；MeshCollider 默认拒载）＋出生点"
+                + "（spawn_*，按名排序定 index）＋边界（map_bounds，半宽/半深须显式赋值——缺省 0 即拒载），"
+                + "经校验（fail-fast→不产半成品；出生点不落障碍内、离障碍 ≥ 身位半径、不越边界）→毫米量化→digest，"
+                + "写 Luban 数据源（write-if-changed；勿手改——改布局＝改场景重烘）。\n"
                 + "产物是数据源不是 .bytes：需手动跑 Luban/gen.bat 生成 Map/tbmap.bytes，跑完重跑 python scripts/codegen/gen-build-hash.py。\n"
                 + "重跑时机：改地图场景（代理/出生/边界）后；代理名前缀 surf_<surface>_ 标表面（无前缀＝Default）。", MessageType.Info);
-            if (GUILayout.Button("烘焙 " + BakeTargets.MapOutput)) Run(SimMapBaker.All);
-            if (GUILayout.Button("烘焙训练场 " + BakeTargets.TrainingMap.Output)) Run(SimMapBaker.AllTraining);
+            for (int i = 0; i < BakeTargets.Maps.Length; i++)
+            {
+                BakeTargets.MapTarget target = BakeTargets.Maps[i];
+                if (GUILayout.Button("烘焙 " + target.MapName + " → " + target.Output)) Run(() => SimMapBaker.Bake(target));
+            }
+            if (GUILayout.Button("烘焙全部地图（" + BakeTargets.Maps.Length + " 张）")) Run(SimMapBaker.BakeAll);
             GUILayout.Space(6);
             EditorGUILayout.HelpBox(
                 "训练场布点（多图批）：布点即内容——手工在场景里拖 spawn_*/掩体即调（重跑「补齐缺失件」不抹掉）；"

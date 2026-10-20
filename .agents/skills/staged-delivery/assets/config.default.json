@@ -1,0 +1,190 @@
+{
+  "schema_version": 1,
+  "validation": {
+    "placeholders": [
+      "待填写"
+    ],
+    "min_section_chars": 1
+  },
+  "timeout_seconds": 600,
+  "commands": [],
+  "red_commands": [],
+  "stages": [
+    {
+      "id": "propose",
+      "title": "提出方案",
+      "artifacts": [
+        {
+          "path": "plan.md",
+          "template": "plan.md",
+          "sections": [
+            "背景与目标",
+            "需求澄清与假设",
+            "范围与非目标",
+            "现状与约束",
+            "候选方案与取舍",
+            "设计要点",
+            "通用性与扩展性",
+            "测试策略",
+            "验收标准",
+            "风险与回滚"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "breakdown",
+      "title": "实施任务清单",
+      "artifacts": [
+        {
+          "path": "tasks.md",
+          "sections": [
+            "任务清单"
+          ]
+        }
+      ],
+      "min_tasks": 1
+    },
+    {
+      "id": "review-tasks",
+      "title": "评审任务",
+      "artifacts": [
+        {
+          "path": "reviews/task-review.md",
+          "template": "reviews/task-review.md",
+          "sections": [
+            "评审输入",
+            "覆盖与追溯",
+            "检查项",
+            "发现的问题与处理",
+            "评审结论"
+          ]
+        }
+      ],
+      "verdicts": [
+        {
+          "path": "reviews/task-review.md",
+          "fields": {
+            "结论": [
+              "PASS",
+              "通过"
+            ],
+            "阻塞问题": [
+              "0",
+              "无"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "id": "tests-first",
+      "title": "先写测试",
+      "artifacts": [
+        {
+          "path": "test-plan.md",
+          "template": "test-plan.md",
+          "sections": [
+            "测试策略",
+            "用例清单",
+            "预期失败证据",
+            "运行方式"
+          ]
+        }
+      ],
+      "require_red_verification": true
+    },
+    {
+      "id": "implement",
+      "title": "正式施工",
+      "artifacts": [
+        {
+          "path": "build-log.md",
+          "template": "build-log.md",
+          "sections": [
+            "施工记录",
+            "关键决定",
+            "偏差与处理",
+            "问题与修复"
+          ]
+        }
+      ],
+      "require_tasks_complete": true
+    },
+    {
+      "id": "verify",
+      "title": "测试代码",
+      "require_tasks_complete": true,
+      "require_verification": true
+    },
+    {
+      "id": "review-code",
+      "title": "评审代码",
+      "artifacts": [
+        {
+          "path": "reviews/code-review.md",
+          "template": "reviews/code-review.md",
+          "sections": [
+            "变更范围",
+            "正确性与边界",
+            "测试充分性",
+            "通用性与扩展性",
+            "安全与性能",
+            "发现的问题与处理",
+            "复测记录",
+            "评审结论"
+          ]
+        }
+      ],
+      "verdicts": [
+        {
+          "path": "reviews/code-review.md",
+          "fields": {
+            "结论": [
+              "PASS",
+              "通过"
+            ],
+            "阻塞问题": [
+              "0",
+              "无"
+            ],
+            "通用性": [
+              "PASS",
+              "通过"
+            ],
+            "扩展性": [
+              "PASS",
+              "通过"
+            ]
+          }
+        }
+      ],
+      "require_tasks_complete": true,
+      "require_verification": true
+    },
+    {
+      "id": "writeback",
+      "title": "回写与收尾",
+      "artifacts": [
+        {
+          "path": "tasks.md",
+          "sections": [
+            "任务清单"
+          ]
+        },
+        {
+          "path": "build-log.md",
+          "sections": [
+            "交付摘要",
+            "验证结果",
+            "未决事项",
+            "文件清单",
+            "后续建议"
+          ]
+        }
+      ],
+      "require_tasks_complete": true,
+      "require_verification": true
+    }
+  ]
+}

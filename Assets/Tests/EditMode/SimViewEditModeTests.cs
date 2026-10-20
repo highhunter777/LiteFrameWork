@@ -36,6 +36,17 @@ namespace LiteGame.Tests.EditMode
                 return go;
             };
 
+        /// <summary>视图工厂替身（**本地物理代理在位**）：瞬移落位分支的可观测面（`LocalTeleportCount`）。</summary>
+        private static SimView.ViewFactory BodyFactory(ViewCounter counter)
+            => (location, parent) =>
+            {
+                counter.Created++;
+                var go = new GameObject(location);
+                if (parent != null) go.transform.SetParent(parent, false);
+                go.AddComponent<CharacterController>();
+                return go;
+            };
+
         private static SimWorldState NewWorld(params SimVector3[] positions)
         {
             var world = new SimWorldState { RngState = 1UL };
@@ -228,6 +239,39 @@ namespace LiteGame.Tests.EditMode
             Assert.AreEqual(50f, go.transform.position.x, 0.01f, "硬切后不横穿（无中途飞越帧）");
         }
 
+        [Test]
+        public void 远端插值_生命更替_硬切到复活位_不按alpha滑行()
+        {
+            // 新图通用性：远端复活点可能只离死点 1m（< SnapDistance）——只比位置会照常插值，
+            // 表现为"尸体位 → 出生点"穿墙滑行。生命更替（LifeStartFrame 变化）与本地同语义：硬切。
+            var world = NewWorld(new SimVector3(0f, 0f, 0f));
+            var counter = new ViewCounter();
+            var view = NewView(world, counter);
+            view.LocalEntityId = 999;                             // 不匹配任何实体 → 走远端插值分支
+            view.RenderDelayFrames = 0;
+
+            view.Tick(1f / 60f);                                   // 建视图
+            Assert.IsTrue(view.TryGetView(0, out var go));
+
+            var snapA = new SimWorldStateSnapshot();
+            var simA = NewWorld(new SimVector3(0f, 0f, 0f));       // 上一条命：死点 (0,0)
+            simA.Frame = 10;
+            snapA.CaptureFull(simA);
+            var snapB = new SimWorldStateSnapshot();
+            var simB = NewWorld(new SimVector3(1f, 0f, 0f));       // 复活点仅 1m 外（< SnapDistance=3m）
+            simB.Frame = 12;
+            simB.Entities[0].Hp = 100;
+            simB.Entities[0].LifeStartFrame = 600;                 // RespawnSystem 语义：复活改写生命起始帧
+            snapB.CaptureFull(simB);
+
+            view.OnAuthoritativeSnapshot(snapA);
+            view.OnAuthoritativeSnapshot(snapB);
+
+            view.Tick(0f);                                         // alpha = 0：普通插值会停在旧帧位（x=0）
+            view.TryGetView(0, out go);
+            Assert.AreEqual(1f, go.transform.position.x, 0.01f, "生命更替 ⇒ 远端也硬切到复活位（不按 alpha 滑行）");
+        }
+
         // ---- 本地预测/衰减 ----
 
         [Test]
@@ -385,6 +429,7 @@ namespace LiteGame.Tests.EditMode
             public int SetAimPointCount;
             public Vector3 LastAimPoint;
             public bool LastHasAimPoint;
+            public int ResetCount;                                 // Reset() 调用次数（复活落位断言）
             public bool HasFocus { get; private set; }
             public Vector3 Focus => LastTarget;
 
@@ -409,11 +454,67 @@ namespace LiteGame.Tests.EditMode
                 LastHasAimPoint = hasPoint;
             }
 
-            public void Reset() => HasFocus = false;
+            public void SetViewMirrored(bool mirrored) { }
+
+            public void Reset() { ResetCount++; HasFocus = false; }
             public void Shutdown() { }
         }
 
-        // ---- 生命更替读口（动画死亡锁存复位信号；本地=预测态 / 远端=权威快照）----
+        // ---- 复活表现（相机无条件落位 + 复活序号）----
+
+        [Test]
+        public void 复活_生命变化_相机无条件落位_复活序号递增()
+        {
+            var world = NewWorld(new SimVector3(0f, 0f, 0f));
+            var counter = new ViewCounter();
+            var cam = new CameraProbe();
+            var view = NewView(world, counter, cam);
+            view.AlignLocal(world.Entities[0].Id);
+            view.Tick(1f / 60f);                                   // 首帧：对齐即 Reset 一次
+            int resetsAfterFirstFrame = cam.ResetCount;
+            int serial0 = view.LocalRespawnSerial;
+            Assert.AreEqual(1, resetsAfterFirstFrame, "首帧对齐 ⇒ 相机 Reset 一次");
+
+            // 复活：生命起始帧改写 + 位置挪到 20m 外（远超 SnapDistance——真实复活形态）
+            world.Entities[0].Hp = 100;
+            world.Entities[0].LifeStartFrame = 600;
+            world.Entities[0].Pos = new SimVector3(20f, 0f, 0f);
+            view.Tick(1f / 60f);
+
+            Assert.AreEqual(serial0 + 1, view.LocalRespawnSerial, "生命更替 ⇒ 复活序号 +1（瞄准门/相机的一次性复位信号）");
+            Assert.Greater(cam.ResetCount, resetsAfterFirstFrame, "复活 ⇒ 相机 Reset（下一帧 warp）——不依赖 3m 距离门控");
+        }
+
+        [Test]
+        public void 复活_近距离_语义硬切_强制瞬移落位_普通收敛不瞬移()
+        {
+            // 新图通用性：复活点可能就贴着死亡点（< SnapDistance=3m），旧的"距离门控 + cc.Move 扫掠"
+            // 会在中间有障碍时把视图拦在墙上——复活必须无条件硬切 + 关 CC 直写（与地图几何无关）。
+            var world = NewWorld(new SimVector3(0f, 0f, 0f));
+            var counter = new ViewCounter();
+            var view = new SimView(world, null, BodyFactory(counter), counter.Recycled.Add);
+            view.AlignLocal(world.Entities[0].Id);
+            view.Tick(1f / 60f);
+            int teleports = view.LocalTeleportCount;
+
+            // 普通收敛：0.5m 位移、无生命更替——走 cc.Move（扫掠），不计瞬移
+            world.Entities[0].Pos = new SimVector3(0.5f, 0f, 0f);
+            view.Tick(1f / 60f);
+            Assert.AreEqual(teleports, view.LocalTeleportCount, "无生命更替的小位移走扫掠，不计瞬移");
+
+            // 复活：复活点在 0.8m 外（远小于 SnapDistance）——语义硬切，一帧落到复活点
+            world.Entities[0].Hp = 100;
+            world.Entities[0].LifeStartFrame = 600;
+            world.Entities[0].Pos = new SimVector3(1.3f, 0f, 0f);
+            view.Tick(1f / 60f);
+
+            Assert.AreEqual(teleports + 1, view.LocalTeleportCount,
+                "复活 ⇒ 无条件关 CC 直写（不看距离/中间是否有障碍）");
+            Assert.AreEqual(1.3f, view.LocalDisplayPosition.x, 1e-6f, "表现位置一帧硬切到复活点（不衰减）");
+            Assert.IsTrue(view.TryGetView(0, out var go), "本地视图在位");
+            Assert.AreEqual(1.3f, go.transform.position.x, 1e-4f, "视图位置 = 复活点（不扫掠）");
+            Assert.AreEqual(1, counter.Created, "复活不重建视图（同一实体同一视图）");
+        }
 
         [Test]
         public void 新生命读口_本地预测态_远端快照_未见槽位为假()
@@ -438,6 +539,29 @@ namespace LiteGame.Tests.EditMode
             world.Entities[0].LifeStartFrame = 600;           // RespawnSystem 语义：复活改写生命起始帧
             Assert.IsTrue(view.TryGetLifeStartFrame(0, out int revived));
             Assert.AreEqual(600, revived, "生命更替后读口返回新值（死亡锁存复位的唯一信号）");
+        }
+
+        [Test]
+        public void 渲染帧权威位_按槽位取快照时间线_无快照为假()
+        {
+            // 影区可见性判据的位置口径（v3.3）：本地与远端都取**同一条快照时间线**的位——本地预测位
+            // 与远端插值位各带不同延迟，两端各算各的会出现"一边看得见、一边看不见"。
+            var world = NewWorld(new SimVector3(1f, 0f, 0f), new SimVector3(5f, 0f, 0f));
+            var counter = new ViewCounter();
+            var view = NewView(world, counter);
+            Assert.IsFalse(view.TryGetRenderPosition(0, out _), "无快照源 ⇒ 假（调用方退回视图位）");
+
+            var snapshot = new SimWorldStateSnapshot();
+            var sim = NewWorld(new SimVector3(2f, 0f, 0f), new SimVector3(6f, 0f, 0f));
+            sim.Frame = 10;
+            snapshot.CaptureFull(sim);
+            view.OnAuthoritativeSnapshot(snapshot);
+
+            Assert.IsTrue(view.TryGetRenderPosition(0, out var local), "快照在场 ⇒ 槽位可读");
+            Assert.AreEqual(2f, local.X, 1e-6f, "取快照位（不是本地预测位 1f）");
+            Assert.IsTrue(view.TryGetRenderPosition(1, out var remote));
+            Assert.AreEqual(6f, remote.X, 1e-6f, "同一条时间线（远端也不取插值/视图位）");
+            Assert.IsFalse(view.TryGetRenderPosition(99, out _), "越界槽位为假");
         }
 
         // ---- 出生保护读口（保护壳驱动：本地=预测态 / 远端=权威快照）----

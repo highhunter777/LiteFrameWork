@@ -1,4 +1,4 @@
-﻿using LiteFramework;
+using LiteFramework;
 using LiteView;
 using UnityEngine;
 using UnityEngine.SceneManagement;
@@ -21,6 +21,10 @@ namespace LiteClient
     /// 镜头其余档位（FOV/距离/其它偏移分量）仍全归场景。语义态（"瞄准中"）来自端口调用方，
     /// 映射成 Cinemachine 机制是适配器的本分。
     ///
+    /// **例外之二：团队视角镜像（<see cref="SetViewMirrored"/>）**——只把 bind 时读到的场景
+    /// <c>FollowOffset</c> 做 180° 旋转变换（x/z 取反），不新增构图常量；解绑/关闭还原场景值。
+    /// 相机 yaw 由 offset + HardLookAt/Composer 派生，**不旋转 vcam 物体**。
+    ///
     /// **场景切换后的重新解析（本类的关键行为）**：虚拟相机是**场景对象**，随场景加载/卸载而生灭
     /// （Single 模式切场景后，启动场景里的 vcam 会被一并销毁）。因此本类在每次
     /// <see cref="Follow"/> 时做一次**廉价有效性检查**，发现接管的 vcam 所在场景已失效就重新解析并
@@ -38,6 +42,9 @@ namespace LiteClient
         /// 把主跟随错误地绑到瞄准机上。</summary>
         private const string AimCameraName = "Aim Camera";
 
+        /// <summary>瞄准机接管优先级增量（主 vcam 场景优先级 + 本值）。</summary>
+        private const int AimPriorityBoost = 1;
+
         private CinemachineVirtualCamera _vcam;
         private Transform _target;               // 当前接线用的跟随目标
         private bool _ownsTarget;                // 自建的空目标才销毁；场景里的不动
@@ -46,6 +53,8 @@ namespace LiteClient
         private bool _snapNextFollow;            // Reset 后的下一帧跟随直接 warp（复活/传送硬切）
         private bool _shutdown;
         private string _lastResolveReason;
+        private readonly System.Collections.Generic.List<Transform> _warpTargets =
+            new System.Collections.Generic.List<Transform>(8);   // warp 目标去重表（复用，零分配）
 
         // ---- 瞄准相机（ADS 接管，持续预放置形态：接线前置到绑定时刻，全程跟着玩家预先就位）----
         private CinemachineVirtualCamera _aimVcam;
@@ -55,6 +64,13 @@ namespace LiteClient
         private bool _aiming;                      // 当前语义态（变化沿生效）
         private Vector3 _aimPoint;                 // 最近一帧解算的瞄准点（世界）
         private bool _hasAimPoint;                 // 本帧是否有解算结果（false = 不动作，保持现值）
+
+        // ---- 团队视角镜像（SetViewMirrored：场景 FollowOffset 的派生变换，解绑/关闭还原）----
+        private bool _viewMirrored;                // 目标语义态（跨场景重解析保留）
+        private Vector3 _mainFollowOffsetAtBind;   // 主 vcam 场景基准 offset
+        private Vector3 _aimFollowOffsetAtBind;    // 瞄准 vcam 场景基准 offset
+        private bool _hasMainFollowOffset;
+        private bool _hasAimFollowOffset;
 
         /// <summary>装配点指定的跟随目标（null = 用 vcam 自己配的 Follow，再没有就自建空目标）。</summary>
         private readonly Transform _preferredTarget;
@@ -156,6 +172,7 @@ namespace LiteClient
 
             _vcam = best;
             _followAtBind = _vcam.Follow;
+            CaptureMainFollowOffset();           // 场景基准（镜像派生/还原的端点）
 
             if (_preferredTarget != null)
             {
@@ -178,6 +195,7 @@ namespace LiteClient
             if (_vcam.LookAt == null) _vcam.LookAt = _target;   // 已配置的 LookAt 不覆盖（可能是独立的看向目标）
 
             BindAimCamera();                     // 瞄准机**绑定即预放置**（接线前置——不等右键）
+            ApplyViewMirror();                   // 重解析/切场景后保持目标镜像态
 
             _lastResolveReason = null;
             Log.Info($"[Camera] 已接线 vcam「{_vcam.name}」(scene={_vcam.gameObject.scene.name}, priority={_vcam.Priority})", LogTag.Camera);
@@ -192,6 +210,7 @@ namespace LiteClient
                 RestoreAimOffset();                       // 构图 z 偏移同样归还（解绑/切场景不遗留接管值）
                 _aiming = false;
             }
+            RestoreFollowOffsets();                       // 视角镜像的派生写入归还场景基准
             _aimVcam = null;
             _aimVcamAim = null;
             if (_vcam != null)
@@ -245,11 +264,44 @@ namespace LiteClient
                 {
                     _snapNextFollow = false;
                     Vector3 delta = target - previous;
-                    if (delta.sqrMagnitude > 0f)
-                        CinemachineCore.Instance.OnTargetObjectWarped(_target, delta);
+                    if (delta.sqrMagnitude > 0f) WarpCameras(delta);
                 }
             }
             _hasFocus = true;
+        }
+
+        /// <summary>
+        /// 瞬移 warp（主 + 瞄准两台 vcam 的 Follow/LookAt **全量**前移）：
+        /// 只 warp 主机时，瞄准机（<see cref="AimCameraName"/>）仍停在旧构图——死亡瞬间处于 ADS 的
+        /// 玩家复活后会看到镜头压在旧位置/旧构图上（"复活了但相机没对准"的成因之一）。
+        /// 同名目标去重：`_target` 与 `_vcam.Follow` 常常是同一件，重复 warp 会让相机偏移两倍。
+        /// </summary>
+        private void WarpCameras(Vector3 delta)
+        {
+            _warpTargets.Clear();
+            AddWarpTarget(_target);
+            if (_vcam != null && !ReferenceEquals(_vcam, null)) { AddWarpTarget(_vcam.Follow); AddWarpTarget(_vcam.LookAt); }
+            if (_aimVcam != null && !ReferenceEquals(_aimVcam, null)) { AddWarpTarget(_aimVcam.Follow); AddWarpTarget(_aimVcam.LookAt); }
+
+            var core = CinemachineCore.Instance;
+            for (int i = 0; i < _warpTargets.Count; i++)
+                core.OnTargetObjectWarped(_warpTargets[i], delta);
+
+#if UNITY_EDITOR || DEVELOPMENT_BUILD || LITEFRAMEWORK_DEBUG
+            // [Diag] warp 留痕（联机实测表现诊断批，收口时删除）：判"没对准"是没 warp 还是 warp 后目标仍偏。
+            Log.Info($"[Diag][Camera] warp delta={delta.x:0.00},{delta.y:0.00},{delta.z:0.00}"
+                + $" focus={Focus.x:0.00},{Focus.y:0.00},{Focus.z:0.00}"
+                + $" vm={_vcam?.name}{(_aiming ? "+aim" : string.Empty)} targets={_warpTargets.Count}", LogTag.Camera);
+#endif
+        }
+
+        /// <summary>warp 目标登记（同名去重：ReferenceEquals 判 Unity 伪 null 后的同一件）。</summary>
+        private void AddWarpTarget(Transform t)
+        {
+            if (t == null || ReferenceEquals(t, null)) return;
+            for (int i = 0; i < _warpTargets.Count; i++)
+                if (ReferenceEquals(_warpTargets[i], t)) return;
+            _warpTargets.Add(t);
         }
 
         public void Reset()
@@ -258,6 +310,68 @@ namespace LiteClient
             Focus = Vector3.zero;
             _snapNextFollow = true;
         }
+
+        /// <summary>团队视角镜像（<see cref="ICameraService.SetViewMirrored"/> 契约）：只做场景
+        /// FollowOffset 的 180° 派生（x/z 取反），不写任何档位常量；幂等，未接线时只记语义态，
+        /// 重解析/切场景后由 <see cref="Resolve"/> 重放。</summary>
+        public void SetViewMirrored(bool mirrored)
+        {
+            if (_shutdown || _viewMirrored == mirrored) return;
+            _viewMirrored = mirrored;
+            ApplyViewMirror();
+            Log.Info($"[Camera] 视角镜像{(mirrored ? "开（相机朝敌方）" : "关（场景原朝向）")}", LogTag.Camera);
+        }
+
+        /// <summary>记录主 vcam 的场景 FollowOffset（镜像派生/还原的端点；无 transposer = 不参与）。</summary>
+        private void CaptureMainFollowOffset()
+        {
+            _hasMainFollowOffset = TryReadFollowOffset(_vcam, out _mainFollowOffsetAtBind);
+        }
+
+        private void ApplyViewMirror()
+        {
+            ApplyFollowOffset(_vcam, _hasMainFollowOffset, _mainFollowOffsetAtBind);
+            ApplyFollowOffset(_aimVcam, _hasAimFollowOffset, _aimFollowOffsetAtBind);
+        }
+
+        /// <summary>解绑/关闭：把镜像写入还原为场景基准（幂等；对象已销毁则跳过）。</summary>
+        private void RestoreFollowOffsets()
+        {
+            RestoreFollowOffset(_vcam, _hasMainFollowOffset, _mainFollowOffsetAtBind);
+            RestoreFollowOffset(_aimVcam, _hasAimFollowOffset, _aimFollowOffsetAtBind);
+            _hasMainFollowOffset = false;
+            _hasAimFollowOffset = false;
+        }
+
+        private void ApplyFollowOffset(CinemachineVirtualCamera vcam, bool hasOffset, in Vector3 sceneOffset)
+        {
+            if (!hasOffset || vcam == null || ReferenceEquals(vcam, null)) return;
+            CinemachineTransposer transposer = vcam.GetCinemachineComponent<CinemachineTransposer>();
+            if (transposer == null || ReferenceEquals(transposer, null)) return;
+            transposer.m_FollowOffset = _viewMirrored ? Mirror180(sceneOffset) : sceneOffset;
+        }
+
+        private static void RestoreFollowOffset(CinemachineVirtualCamera vcam, bool hasOffset, in Vector3 sceneOffset)
+        {
+            if (!hasOffset || vcam == null || ReferenceEquals(vcam, null)) return;
+            CinemachineTransposer transposer = vcam.GetCinemachineComponent<CinemachineTransposer>();
+            if (transposer == null || ReferenceEquals(transposer, null)) return;
+            transposer.m_FollowOffset = sceneOffset;
+        }
+
+        private static bool TryReadFollowOffset(CinemachineVirtualCamera vcam, out Vector3 offset)
+        {
+            offset = default;
+            if (vcam == null || ReferenceEquals(vcam, null)) return false;
+            CinemachineTransposer transposer = vcam.GetCinemachineComponent<CinemachineTransposer>();
+            if (transposer == null || ReferenceEquals(transposer, null)) return false;
+            offset = transposer.m_FollowOffset;
+            return true;
+        }
+
+        /// <summary>世界系 offset 的 180° 视角旋转：x/z 取反、y 不变。</summary>
+        private static Vector3 Mirror180(in Vector3 offset)
+            => new Vector3(-offset.x, offset.y, -offset.z);
 
         /// <summary>固定 16:9 信箱式视口（N1）：3D 相机视口居中裁成 16:9，非 16:9 屏幕留黑边；
         /// X/Y 可见范围在任意屏幕上一致。只在视口变化时写 Camera.rect 并留痕。</summary>
@@ -301,7 +415,7 @@ namespace LiteClient
                     _aiming = true;
                     _aimPriorityAtBind = _aimVcam.Priority;
                     ApplyAimOffset();
-                    _aimVcam.Priority = _vcam.Priority + 1;   // 基准派生：主 vcam 场景优先级 + 1
+                    _aimVcam.Priority = _vcam.Priority + AimPriorityBoost;   // 基准派生：主 vcam 场景优先级 + 本值
                     Log.Info($"[Camera] 瞄准机接管「{_aimVcam.name}」prio={_aimVcam.Priority}", LogTag.Camera);
                 }
             }
@@ -333,6 +447,9 @@ namespace LiteClient
             _aimVcam.Follow = _target;
             if (_aimVcam.LookAt == null) _aimVcam.LookAt = _target;
             _aimVcam.m_StandbyUpdate = CinemachineVirtualCameraBase.StandbyUpdateMode.Always;
+            if (!_hasAimFollowOffset)   // 每台瞄准机只采一次场景基准（重绑不把镜像值再当基准）
+                _hasAimFollowOffset = TryReadFollowOffset(_aimVcam, out _aimFollowOffsetAtBind);
+            ApplyFollowOffset(_aimVcam, _hasAimFollowOffset, _aimFollowOffsetAtBind);
             if (!_aiming && _aimVcamAim != null && !ReferenceEquals(_aimVcamAim, null))
                 _aimOffsetZAtBind = _aimVcamAim.m_TrackedObjectOffset.z;   // 场景基准值（仅非瞄准期可采：曲线接回的端点）
             ApplyLetterbox();
@@ -354,6 +471,7 @@ namespace LiteClient
                 if (all[i] == null || all[i].name != AimCameraName) continue;
                 _aimVcam = all[i];
                 _aimVcamAim = _aimVcam.GetCinemachineComponent<CinemachineComposer>();
+                _hasAimFollowOffset = false;   // 新解析的瞄准机：场景基准从未镜像的当前值重新采集
                 LastAimResolveReason = null;
                 return true;
             }

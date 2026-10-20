@@ -8,7 +8,8 @@ namespace LiteGame.Tests.EditMode
         /// <summary>
         /// 地图烘焙器（<see cref="SimMapBaker"/>，《地图数据专项设计》§6 规则）的 L2 EditMode 覆盖：
         /// 采集值语义（Box/Sphere/yaw90 交换）、失败面 fail-fast（Mesh/旋转/未知 surface/出生点数量/
-        /// **出生点落障碍内与越界**（多图批）/边界）、确定性（重复采集逐字节一致）、超上限截断＋丢弃报告。
+        /// **出生点落障碍内、离障碍小于身位半径与越界**（多图批/新图通用闸）/**边界标记缺省未赋值**、
+        /// 边界）、确定性（重复采集逐字节一致）、超上限截断＋丢弃报告。
         /// 合成根喂正/负例，不动真实场景。
         /// 实烘对账（Arena01/训练场产物 == 夹具快照 TestMaps.*）由 run_script 取证＋L1 夹具锚把守。
         /// </summary>
@@ -227,6 +228,7 @@ namespace LiteGame.Tests.EditMode
             _root = NewRoot();
             Spawn(_root, "spawn_00", new Vector3(0f, 0f, 0f));
             Spawn(_root, "spawn_01", new Vector3(101f, 0f, 0f));     // bounds ±100（NewRoot 的 map_bounds）
+            Spawn(_root, "spawn_02", new Vector3(0f, 0f, 101f));
 
             string outside = SimMapBaker.Collect(_root, out SimMapData m1, out _);
             Assert.IsNull(m1, "出生点越界必须拒载");
@@ -241,6 +243,49 @@ namespace LiteGame.Tests.EditMode
 
             string floating = SimMapBaker.Collect(_root, out SimMapData m2, out _);
             Assert.IsNotNull(m2, floating);
+        }
+
+        [Test]
+        public void 校验_出生点离障碍小于身位半径_拒载()
+        {
+            // 新图通用闸：不"落在障碍内"还不够——身位圆柱半径内有障碍 ⇒ 出生首帧被移动去穿插推出，
+            // 落点与场景标记不符（旧实现只在"点在截面内"时拦，靠作者记得留余量）。
+            _root = NewRoot();
+            Box(_root, "cover", new Vector3(0f, 0.5f, 0f), new Vector3(2f, 1f, 2f));   // 盒面 x=1
+            float gap = BodyBake.Radius * 0.5f;
+            Spawn(_root, "spawn_00", new Vector3(1f + gap, 0f, 0f));
+
+            string report = SimMapBaker.Collect(_root, out SimMapData map, out _);
+
+            Assert.IsNull(map, "出生点离障碍小于身位半径必须拒载（出生首帧会被去穿插推出）");
+            StringAssert.Contains("spawn_00", report);
+            StringAssert.Contains("出生点离障碍过近", report);
+
+            // 同点退到身位半径之外即合法（闸只卡"会被推"的净距，不额外要求宽敞布点）
+            Object.DestroyImmediate(_root);
+            _root = NewRoot();
+            Box(_root, "cover", new Vector3(0f, 0.5f, 0f), new Vector3(2f, 1f, 2f));
+            Spawn(_root, "spawn_00", new Vector3(1f + BodyBake.Radius + 0.01f, 0f, 0f));
+
+            string clear = SimMapBaker.Collect(_root, out SimMapData ok, out _);
+            Assert.IsNotNull(ok, clear);
+        }
+
+        [Test]
+        public void 校验_边界标记缺省未赋值_拒载()
+        {
+            // 新图通用闸：map_bounds 半宽/半深**必填**（默认 0 不再静默成 ±100——那种默认会让边界钳制
+            // 变成死代码、content_digest 与真实场地脱钩）。
+            _root = new GameObject(BakeTargets.MapCollisionRoot);
+            var bounds = new GameObject(BakeTargets.MapBoundsObject);
+            bounds.transform.SetParent(_root.transform, false);
+            bounds.AddComponent<MapBoundsMarker>();              // 作者漏赋值：缺省 0
+            Spawn(_root, "spawn_00", Vector3.zero);
+
+            string report = SimMapBaker.Collect(_root, out SimMapData map, out _);
+
+            Assert.IsNull(map, "边界未显式赋值（半宽/半深 0）必须拒载");
+            StringAssert.Contains("边界半宽/半深须为正", report);
         }
 
         [Test]
@@ -312,7 +357,9 @@ namespace LiteGame.Tests.EditMode
             var root = new GameObject(BakeTargets.MapCollisionRoot);
             var bounds = new GameObject(BakeTargets.MapBoundsObject);
             bounds.transform.SetParent(root.transform, false);
-            bounds.AddComponent<MapBoundsMarker>();
+            var marker = bounds.AddComponent<MapBoundsMarker>();
+            marker.HalfWidth = 100f;                    // 标记件半宽/半深必填（缺省 0 = 烘焙拒载）——夹具显式赋合法值
+            marker.HalfDepth = 100f;
             return root;
         }
 

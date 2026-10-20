@@ -33,7 +33,7 @@ param(
     [switch]$NoDeath,
     [switch]$InfiniteAmmo,
 
-    [string]$SshHost = 'litegame-cloud',
+    [string]$SshHost,
     [string]$RemoteHost = '10.8.0.1',
     [int]$RemotePort = 9101,
 
@@ -44,6 +44,8 @@ param(
 )
 
 $ErrorActionPreference = 'Stop'
+. (Join-Path $PSScriptRoot '_ssh-host.ps1')
+if ([string]::IsNullOrWhiteSpace($SshHost)) { $SshHost = Resolve-LiteGameSshHost }
 $repo = (Resolve-Path (Join-Path $PSScriptRoot '..\..')).Path
 
 function Resolve-GmKey {

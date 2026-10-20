@@ -56,6 +56,13 @@ namespace LiteView
         /// </summary> 
         void SetAimPoint ( in Vector3 point, bool hasPoint ) ;
 
+        /// <summary>
+        /// 本地视角镜像（团队模式：相机朝敌方看）。true = 视角取镜像朝向（南队朝北 / 北队朝南），
+        /// false = 场景原朝向（FFA 恒 false）。语义态进端口、镜像方式归实现：实现只对**场景配置的
+        /// 相机 offset** 做 180° 派生变换并在解绑/关闭时还原，不新增构图档位；每渲染帧幂等调用。
+        /// </summary>
+        void SetViewMirrored(bool mirrored);
+
         /// <summary>重置跟随状态（解除控制/重开局/复活传送硬切时调：下一次 <see cref="Follow"/> 直接落位，
         /// 不从上一次位置阻尼飞过去——否则镜头追赶期间角色可能在画面外。</summary>
         void Reset();

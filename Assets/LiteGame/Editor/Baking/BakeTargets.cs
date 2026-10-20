@@ -73,6 +73,11 @@ namespace LiteGame.EditorTools
             "Assets/Scenes/TrainingGround.unity", LiteClient.MapTableProjection.TrainingMapId,
             "training_ground", "Luban/Data/Map/map_training_ground.json");
 
+        /// <summary>地图烘焙目标**注册表**（加图＝加一条）：工具箱「地图」页按本表逐图出按钮，
+        /// <see cref="SimMapBaker.BakeAll"/> 按本表整批烘焙。行键须全表唯一（`tbmap` 主键）且与本表
+        /// Output 一一对应——**加图不改任何其他代码**（判定图/场景/卸载全按表行驱动）。</summary>
+        public static readonly MapTarget[] Maps = { ArenaMap, TrainingMap };
+
         /// <summary>行身份（首图；多图目标见 <see cref="ArenaMap"/>/<see cref="TrainingMap"/>）。</summary>
         public const int MapId = 1;
 

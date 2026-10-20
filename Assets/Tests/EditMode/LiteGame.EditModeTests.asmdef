@@ -3,7 +3,9 @@
     "rootNamespace": "LiteGame.Tests.EditMode",
     "references": [
         "LiteClient.Abstractions",
-        "LiteClient.Content.YooAsset",        "LiteClient.Runtime",
+        "LiteClient.Content.YooAsset",        "LiteClient.Platform.Unity",
+        "LiteClient.Runtime",
+        "Cinemachine",
         "LiteClient.Scripting.XLua",
         "LiteClient.Serialization.Luban",
         "LiteCodeGen.Runtime",

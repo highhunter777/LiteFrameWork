@@ -11,9 +11,12 @@ namespace LiteGame
     {
         public float GroundY;
 
-        public float HalfWidth = 100f;
+        /// <summary>边界半宽（**必填**）：缺省 0 会被烘焙器按"半宽/半深须为正"拒载——防新图漏赋值时
+        /// 静默落到与场地无关的默认边界（旧默认 ±100 让边界钳制成为死代码、摘要失真，见审计登记）。</summary>
+        public float HalfWidth;
 
-        public float HalfDepth = 100f;
+        /// <summary>边界半深（**必填**）：同 <see cref="HalfWidth"/>。</summary>
+        public float HalfDepth;
     }
 
     /// <summary>

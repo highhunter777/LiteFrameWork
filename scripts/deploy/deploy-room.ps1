@@ -14,6 +14,11 @@
 .PARAMETER WithConfig
     同时把 `deploy/roomserver.windows.json` 传成云上 `roomserver.json`（模板/端口变更时用）。
 
+.PARAMETER SshHost
+    SSH 目的地别名；**留空 = 自动解析**（隧道 `10.8.0.1:22` 可达就用 `litegame-cloud-tunnel`，
+    否则回退 `litegame-cloud`）——公网 22 的来源 IP 白名单会随本机出口变化而失效，隧道入口不受影响。
+    解析器与 `gm.ps1`/`wg-peer.ps1` 共用：`scripts/deploy/_ssh-host.ps1`。
+
 .EXAMPLE
     pwsh -NoProfile -File scripts/deploy/deploy-room.ps1
     pwsh -NoProfile -File scripts/deploy/deploy-room.ps1 -SkipPublish -WithConfig
@@ -21,14 +26,19 @@
 param(
     [switch]$SkipPublish,
     [switch]$WithConfig,
-    [string]$SshHost = 'litegame-cloud'
+    # 跳过玩法表同步（默认同步：只换二进制不换表 = StartGame.ConfigHash 与客户端不等，整局被拒）
+    [switch]$SkipTables,
+    [string]$SshHost
 )
 
 $ErrorActionPreference = 'Stop'
+. (Join-Path $PSScriptRoot '_ssh-host.ps1')
+if ([string]::IsNullOrWhiteSpace($SshHost)) { $SshHost = Resolve-LiteGameSshHost }
 $repo = (Resolve-Path (Join-Path $PSScriptRoot '..\..')).Path
 $serverRoot = Join-Path $repo 'Builds/win-server'
 $roomDir = Join-Path $serverRoot 'room'
 $tgz = Join-Path $serverRoot 'room.tgz'
+$tablesTgz = Join-Path $serverRoot 'GameData-Config.tgz'
 
 if (-not (Test-Path $roomDir) -and $SkipPublish) {
     throw "找不到 $roomDir：先跑一次不带 -SkipPublish 的部署（会发布产物）"
@@ -49,6 +59,14 @@ if (-not (Test-Path $tarExe)) { $tarExe = 'tar' }
 & $tarExe -czf $tgz -C $serverRoot room
 if ($LASTEXITCODE -ne 0) { throw "tar 打包失败（exit $LASTEXITCODE）" }
 
+# 玩法表随部署同步（判定面 + UI，共 12 个文件 ≈8KB）：服务端启动期装载，改表不重传 = 数据面身份不符。
+# 2026-10-19 实测：Map/tbmap.bytes 改了没传 → 服务端基摘要 0xb0102ea9 vs 客户端 0xa8a7e328，StartGame 被拒。
+if (-not $SkipTables) {
+    Write-Host '[deploy] 打包玩法表 GameData/Config ...' -ForegroundColor Cyan
+    & $tarExe -czf $tablesTgz -C (Join-Path $repo 'Assets/GameData/Config') .
+    if ($LASTEXITCODE -ne 0) { throw "tar 打包玩法表失败（exit $LASTEXITCODE）" }
+}
+
 # 云上脚本：纯 ASCII（避免 PS 5.1 的 GBK 误解），由本机 here-string 原样落盘
 $stopScript = @'
 Get-Process -Name RoomServer -ErrorAction SilentlyContinue | Stop-Process -Force
@@ -59,10 +77,16 @@ Write-Output ('stopped=' + ($null -eq (Get-Process -Name RoomServer -ErrorAction
 $startScript = @'
 C:\Windows\System32\tar.exe -xzf C:\litegame\room.tgz -C C:\litegame
 Write-Output ('extract=' + $LASTEXITCODE)
+if (Test-Path 'C:\litegame\GameData-Config.tgz') {
+    New-Item -ItemType Directory -Force -Path 'C:\litegame\GameData\Config' | Out-Null
+    C:\Windows\System32\tar.exe -xzf C:\litegame\GameData-Config.tgz -C C:\litegame\GameData\Config
+    Write-Output ('tables=' + $LASTEXITCODE)
+}
 Start-ScheduledTask -TaskName 'LiteGame-Room'
 Start-Sleep -Seconds 8
 Write-Output ('task=' + (Get-ScheduledTask -TaskName 'LiteGame-Room').State)
 Select-String -Path 'C:\litegame\room\out.log' -Pattern 'buildHash=' | Select-Object -Last 1 | ForEach-Object { $_.Line }
+Select-String -Path 'C:\litegame\room\out.log' -Pattern '0x[0-9a-fA-F]{8}' | Select-Object -Last 1 | ForEach-Object { $_.Line }
 '@
 $stopFile = Join-Path $env:TEMP 'lg-room-stop.ps1'
 $startFile = Join-Path $env:TEMP 'lg-room-start.ps1'
@@ -83,6 +107,16 @@ if ($WithConfig) {
     Write-Host '[deploy] 上传房间配置 ...' -ForegroundColor Cyan
     & scp -q (Join-Path $repo 'deploy/roomserver.windows.json') "$SshHost`:C:/litegame/room/roomserver.json"
     if ($LASTEXITCODE -ne 0) { throw 'scp 配置失败' }
+}
+
+if (-not $SkipTables) {
+    Write-Host '[deploy] 上传玩法表 ...' -ForegroundColor Cyan
+    & scp -q $tablesTgz "$SshHost`:C:/litegame/GameData-Config.tgz"
+    if ($LASTEXITCODE -ne 0) { throw 'scp 玩法表失败' }
+}
+else {
+    # 跳过表同步时清掉云上的旧表包：否则起服脚本会把上一批的表解压回来（静默回退）
+    & ssh $SshHost powershell -NoProfile -Command "Remove-Item C:/litegame/GameData-Config.tgz -ErrorAction SilentlyContinue"
 }
 
 Write-Host '[deploy] 解压并起服 ...' -ForegroundColor Cyan

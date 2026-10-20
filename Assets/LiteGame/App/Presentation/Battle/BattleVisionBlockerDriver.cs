@@ -9,15 +9,19 @@ using UnityEngine.SceneManagement;
 namespace LiteGame
 {
     /// <summary>
-    /// 视野遮蔽与遮挡物渐隐驱动（《视野与遮挡专项设计》档 A1 复合方案·姿态动态判据 v3.1）：
-    /// **遮蔽先行、渐隐即安全**——两机制一体，次序不可倒：
-    /// ① **渐隐（找回自己）**：相机→本地玩家**当前柱顶**（<see cref="BodyBake.Height"/> 姿态单源；
-    /// 蹲伏落地后换蹲柱烘焙值）的有界线段被哪个遮挡物挡住，就把该遮挡物切成渐隐材质变体
-    /// （<c>sharedMaterial</c> 基准↔渐隐成对切换＋迟滞防闪烁，不新建材质）。
-    /// ② **遮蔽（渐隐期间的影区）**：渐隐在场时，对**其他实体**各自的当前柱顶做同款线段求交——
-    /// 被挡者维持隐藏（"掩体后的视野不可见"），未挡者照常显示（露头者不因他人渐隐而消失）。
-    /// 因影区实体已被遮蔽藏住，渐隐只露出地板与自己——不透视任何实体。
-    /// 不渐隐时不做任何实体隐藏——非渐隐遮挡由深度测试天然藏好（视觉网格与判定几何同源）。
+    /// 视野遮蔽与遮挡物渐隐驱动（《视野与遮挡专项设计》档 A1·v3.4 角色视觉权威）：
+    /// **显隐层（角色视觉）**：本地角色**眼位**→目标**身体多点采样**（头/胸/髋 × 中/左右缘；
+    /// 高度/半径取 <see cref="BodyBake"/>，眼位由头部带 <see cref="CombatConfig.HeadHitLine"/> 派生）——
+    /// 任一点无遮挡＝角色看得见＝渲染，全挡＝隐藏；本地玩家恒渲染。目标位置取**渲染帧快照位**
+    /// （<see cref="SimView.TryGetRenderPosition"/>），每拍判；切换沿用 2 拍迟滞＋0.5s 最短保持。
+    /// **不再使用"柱顶↔柱顶"单线**：单线无法表达"身体边缘露出/拐角探头"，会把角色看得见的敌人误藏。
+    /// 真单向可见（拐角/高低差/距离差）按掩体优势接受，不再要求两端同结论；快照位＋最短保持只防
+    /// 延迟导致的假单向与闪隐。
+    /// **渐隐层（相机补位）**：触发源＝本地玩家（恒可见）＋**所有角色可见的远端**；对每个触发目标做
+    /// `相机→目标柱顶` 三维线段求交，挡住哪个可渐隐掩体就渐隐哪个；同一掩体按 OR 汇总。
+    /// **全挡敌人不参与渐隐**（renderer 已关，渐隐也透不出来）——渐隐只补"角色看得见但相机被挡"的
+    /// 第三人称盲区，不是相机透视。相机→柱顶线段只可能与相机侧（屏幕上角色下方）的掩体相交；
+    /// 角色上方/更远的掩体挡的是角色前方空间，天然不触发。
     ///
     /// **边界（A1 表现级）**：只读 <see cref="SimMapData"/>（与瞄准激光同款只读源）与
     /// <see cref="SimView"/> 视图事实；隐藏＝渲染开关而非销毁/回收——快照/镜像/预测/重连数据面
@@ -42,11 +46,37 @@ namespace LiteGame
         private const int HoldProbes = 2;
 
         /// <summary>
+        /// **最短保持拍数**（0.5s）：状态一旦切换，至少保持这么久才允许再切。迟滞只挡单拍抖动，
+        /// 挡不住"两拍真两拍假"的 0.2s 周期振荡（实测日志连续 9 次翻转＝敌人闪隐）；两端快照时间线
+        /// 的渲染帧不可能逐位一致，掩体边缘的结论允许有出入，但**不允许闪**——最短保持把边界振荡
+        /// 压成单次切换。新状态的初始保持直接给满（首次判定不被延迟）。
+        /// </summary>
+        private const int MinHoldProbes = 5;
+
+        /// <summary>
         /// 障碍↔场景碰撞体的匹配门限（XZ 距离平方，=0.5m²）。烘焙两侧同源（场景碰撞体 ↔
         /// 毫米量化行），中心偏差只有毫米级量化误差；0.5m 远大于该误差、又远小于相邻掩体
         /// 中心距（≥2m——同规格箱体的最小布距），越门即判"该障碍无视觉件"（跳过，不猜）。
         /// </summary>
         private const float MatchDistance2 = 0.25f;
+
+        /// <summary>腰际采样高度（占身高的比例）——头/胸之下再取一档，覆盖低掩体露身。</summary>
+        private const float WaistHeightRatio = 0.5f;
+
+        /// <summary>观察者眼位（头部带中点）——头部带由 HeadBake 单源烘焙；不用柱顶 1.8m 冒充眼睛。</summary>
+        private static readonly float EyeHeight =
+            (CombatConfig.HeadHitLine + CombatConfig.HitscanHeight) * 0.5f;
+
+        /// <summary>目标身体采样高度（头顶/头部带下沿/腰际）——与身体烘焙同源；B1 蹲伏后换蹲柱高度。</summary>
+        private static readonly float[] TargetSampleHeights =
+        {
+            BodyBake.Height,
+            BodyBake.Height * HeadBake.Ratio,
+            BodyBake.Height * WaistHeightRatio,
+        };
+
+        /// <summary>目标身体横向采样因子（中/两侧缘，乘身体半径）——任一点露出即判可见。</summary>
+        private static readonly float[] TargetSampleSideFactors = { 0f, 1f, -1f };
 
         private readonly SimView _view;
         private readonly SimMapData _map;
@@ -55,7 +85,8 @@ namespace LiteGame
         private readonly Material _fadeMaterial;             // 渐隐变体（同色半透明——成对裁决，勿拿无对材质充数）
         private readonly Func<GameObject, Renderer[]> _viewRenderersOf;   // 视图自有渲染器解析（prefab 路径单源——运行时挂载的 VFX 不在其中）
         private readonly List<Occluder> _occluders;          // 可渐隐绑定（材质成对的遮挡渲染件）
-        private readonly SlotState[] _slots = new SlotState[SimConfig.MaxEntities];   // 影区隐藏状态（按槽位）
+        private readonly SlotState[] _slots = new SlotState[SimConfig.MaxEntities];   // 显隐状态（按槽位）
+        private readonly List<int> _visibleSlots = new List<int>(SimConfig.MaxEntities);   // 本拍角色可见的远端（渐隐触发源）
         private float _probeTimer;                            // 探测节拍累计（首拍即探）
         private bool _disposed;
 
@@ -71,7 +102,7 @@ namespace LiteGame
         /// <param name="cameraOf">对局渲染相机解析（Cinemachine brain 输出——非 Camera.main）；null = 无相机（保守全恢复）。</param>
         /// <param name="baseMaterial">掩体基准材质（不透明）——绑定判据＋渐隐回退目标。</param>
         /// <param name="fadeMaterial">渐隐变体（同色半透明）。</param>
-        /// <param name="viewRenderersOf">视图实例→实体自有渲染器（prefab 路径单源，运行时 VFX 挂件不在其中）；null = 影区隐藏降级（渐隐照常）。</param>
+        /// <param name="viewRenderersOf">视图实例→实体自有渲染器（prefab 路径单源，运行时 VFX 挂件不在其中）；null = 显隐降级（渐隐照常）。</param>
         public BattleVisionBlockerDriver(SimView view, SimMapData map, Func<Camera> cameraOf,
             Material baseMaterial, Material fadeMaterial, Func<GameObject, Renderer[]> viewRenderersOf = null)
         {
@@ -90,9 +121,10 @@ namespace LiteGame
 
         /// <summary>
         /// 每渲染帧驱动（内部按 <see cref="ProbeIntervalSeconds"/> 节拍探测）：
-        /// ① 相机→本地柱顶线段 → 逐绑定迟滞渐隐；② 任一渐隐在场 → 其他实体柱顶求交 →
-        /// 影区隐藏；无渐隐在场 → 影区隐藏全恢复。无相机/未对齐/本地视图缺位（含阵亡）→
-        /// 全恢复（保守：宁可露出自然遮挡，不留任何渐隐/隐藏残态）。
+        /// ① **显隐层**：角色眼位→目标身体采样，任一点可见即显示、全挡隐藏（先行，产出渐隐触发源）；
+        /// ② **渐隐层**：自身（相机→本地柱顶）＋所有角色可见远端（相机→其柱顶）——挡住哪个可渐隐掩体
+        /// 就渐隐哪个，全挡敌人不参与。无相机/未对齐/本地视图缺位（含阵亡）→ 全恢复
+        /// （保守：宁可露出自然遮挡，不留任何渐隐/隐藏残态）。
         /// </summary>
         public void Tick(float deltaTime)
         {
@@ -116,25 +148,12 @@ namespace LiteGame
                 return;
             }
 
-            Vector3 eye = camera.transform.position;
-            Vector3 localTop = localView.transform.position + Vector3.up * BodyBake.Height;
+            Vector3 cameraPos = camera.transform.position;
+            Vector3 localTop = localView.transform.position + Vector3.up * BodyBake.Height;   // 自身渐隐：视图位（镜头挡没挡"画面上的人"）
+            Vector3 localEye = BaseOf(localSlot, localView) + Vector3.up * EyeHeight;          // 角色视觉：渲染帧快照位
 
-            // ① 渐隐：本地玩家"有效遮蔽"判据＝姿态动态（v3.1）——同一只 1m 箱，站姿柱顶越箱
-            //    射线从上方过（不渐隐）；蹲姿柱顶被箱挡（渐隐）。逐障碍各测各的：谁挡谁渐隐。
-            bool anyFade = false;
-            for (int i = 0; i < _occluders.Count; i++)
-            {
-                Occluder oc = _occluders[i];
-                if (oc.Renderer == null) continue;                       // 场景件已毁（理论不达——防御）
-                bool blocked = VisionSegment.Blocked(in _map.Obstacles[oc.ObstacleIndex], eye, localTop);
-                StepFade(oc, blocked);
-                anyFade |= oc.Faded;
-            }
-
-            // ② 影区实体隐藏：只在渐隐在场时做（不渐隐＝深度遮挡天然藏好）；本地玩家豁免
-            //    ——渐隐只为找回自己，本人永远全渲染。
-            if (anyFade) ProbeShadowRegion(eye, localSlot);
-            else RestoreHiddenSlots();
+            ProbeVisibility(localEye, localSlot);
+            ProbeFade(cameraPos, localTop);
         }
 
         /// <summary>拆件：全部恢复（材质归基准、实体归可见）——对局收尾在场景卸载前必达，不留残态。</summary>
@@ -144,6 +163,7 @@ namespace LiteGame
             _disposed = true;
             RestoreAll();
             _occluders.Clear();
+            _visibleSlots.Clear();
             Array.Clear(_slots, 0, _slots.Length);
         }
 
@@ -176,13 +196,55 @@ namespace LiteGame
             oc.Renderer.sharedMaterial = fade ? _fadeMaterial : _baseMaterial;
         }
 
-        // ---- 影区实体隐藏面 ----
-
-        private void ProbeShadowRegion(Vector3 eye, int localSlot)
+        /// <summary>
+        /// 相机补位渐隐（v3.4）：自身（恒可见）＋所有角色可见远端各测一次 `相机→目标柱顶`；
+        /// 同一遮挡物按 OR 汇总，任一可见目标被它挡住即渐隐。全挡远端不在可见集合内，
+        /// 因此不会因相机能看见而触发渐隐（防透视）。
+        /// </summary>
+        private void ProbeFade(Vector3 cameraPos, Vector3 localTop)
         {
+            for (int i = 0; i < _occluders.Count; i++)
+                _occluders[i].BlockedThisProbe = false;
+
+            for (int i = 0; i < _occluders.Count; i++)
+            {
+                Occluder oc = _occluders[i];
+                if (oc.Renderer == null) continue;                       // 场景件已毁（理论不达——防御）
+                if (VisionSegment.Blocked(in _map.Obstacles[oc.ObstacleIndex], cameraPos, localTop))
+                    oc.BlockedThisProbe = true;
+            }
+
+            for (int v = 0; v < _visibleSlots.Count; v++)
+            {
+                int slot = _visibleSlots[v];
+                if (!_view.TryGetView(slot, out GameObject remoteView) || remoteView == null) continue;
+                Vector3 remoteTop = TopOf(slot, remoteView);
+                for (int i = 0; i < _occluders.Count; i++)
+                {
+                    Occluder oc = _occluders[i];
+                    if (oc.Renderer == null || oc.BlockedThisProbe) continue;
+                    if (VisionSegment.Blocked(in _map.Obstacles[oc.ObstacleIndex], cameraPos, remoteTop))
+                        oc.BlockedThisProbe = true;
+                }
+            }
+
+            for (int i = 0; i < _occluders.Count; i++)
+                StepFade(_occluders[i], _occluders[i].BlockedThisProbe);
+        }
+
+        // ---- 显隐层（角色视觉） ----
+
+        /// <summary>
+        /// 角色可见性（v3.4）：对每个其他实体测「本地眼位→目标身体采样」——任一点无遮挡即显示，
+        /// 全挡才隐藏；本地玩家豁免。远端位置取渲染帧快照位，避免预测/插值差把显隐判据拉成两条线。
+        /// 隐藏每拍判，切换走 <see cref="StepHide"/> 的迟滞＋最短保持。
+        /// </summary>
+        private void ProbeVisibility(Vector3 localEye, int localSlot)
+        {
+            _visibleSlots.Clear();
             for (int slot = 0; slot < SimConfig.MaxEntities; slot++)
             {
-                if (slot == localSlot) continue;                        // 本地玩家豁免（找回自己）
+                if (slot == localSlot) continue;                        // 本地玩家豁免（自己永远全渲染）
                 if (!_view.TryGetView(slot, out GameObject view) || view == null)
                 {
                     ReleaseSlot(slot);                                 // 无视图（阵亡回收/未出生）——状态清退并归还池前归位
@@ -190,10 +252,35 @@ namespace LiteGame
                 }
 
                 SlotState state = EnsureSlotState(slot, view);
-                Vector3 top = view.transform.position + Vector3.up * BodyBake.Height;
-                bool blocked = VisionSegment.BlockedByAny(in _map, eye, top);
+                bool blocked = !IsVisible(localEye, slot, view);
                 StepHide(state, blocked);
+                if (!state.Hidden) _visibleSlots.Add(slot);             // 可参与相机补位渐隐的可见远端
             }
+        }
+
+        /// <summary>
+        /// 目标身体是否有任一点能从本地眼位看见：头/胸/髋 × 中/左右缘（横向轴垂直于观察方向）；
+        /// 顶中采样排首位——常见"完全可见"只需一次线段求交。
+        /// </summary>
+        private bool IsVisible(Vector3 localEye, int slot, GameObject view)
+        {
+            Vector3 targetBase = BaseOf(slot, view);
+            Vector3 flat = targetBase - localEye;
+            flat.y = 0f;
+            Vector3 side = flat.sqrMagnitude > 0f
+                ? Vector3.Cross(Vector3.up, flat.normalized) * BodyBake.Radius
+                : Vector3.zero;
+
+            for (int h = 0; h < TargetSampleHeights.Length; h++)
+            {
+                Vector3 center = targetBase + Vector3.up * TargetSampleHeights[h];
+                for (int s = 0; s < TargetSampleSideFactors.Length; s++)
+                {
+                    Vector3 sample = center + side * TargetSampleSideFactors[s];
+                    if (!VisionSegment.BlockedByAny(in _map, localEye, sample)) return true;
+                }
+            }
+            return false;
         }
 
         /// <summary>
@@ -208,7 +295,7 @@ namespace LiteGame
             if (state != null && state.Hidden)
                 SetRenderersEnabled(state.Renderers, true);             // 旧实例隐藏态归还（同一池件即新实例本身）
 
-            state = new SlotState { View = view, Renderers = ResolveRenderers(view) };
+            state = new SlotState { View = view, Renderers = ResolveRenderers(view), Dwell = MinHoldProbes };
             _slots[slot] = state;
             return state;
         }
@@ -221,14 +308,18 @@ namespace LiteGame
             _slots[slot] = null;
         }
 
-        /// <summary>迟滞推进单实体显隐：连续 <see cref="HoldProbes"/> 拍同向才切换——切出影区即恢复（渲染开关，不销毁）。</summary>
+        /// <summary>迟滞推进单实体显隐：连续 <see cref="HoldProbes"/> 拍同向且当前状态已保持
+        /// <see cref="MinHoldProbes"/> 拍才切换——切出遮挡即恢复（渲染开关，不销毁）。</summary>
         private void StepHide(SlotState state, bool blocked)
         {
+            state.Dwell++;
             if (state.Hidden)
             {
                 if (blocked) { state.ClearRun = 0; return; }
                 if (++state.ClearRun < HoldProbes) return;
+                if (state.Dwell < MinHoldProbes) return;
                 state.Hidden = false;
+                state.Dwell = 0;
                 state.ClearRun = 0;
                 SetRenderersEnabled(state.Renderers, true);
             }
@@ -236,11 +327,26 @@ namespace LiteGame
             {
                 if (!blocked) { state.BlockedRun = 0; return; }
                 if (++state.BlockedRun < HoldProbes) return;
+                if (state.Dwell < MinHoldProbes) return;
                 state.Hidden = true;
+                state.Dwell = 0;
                 state.BlockedRun = 0;
                 SetRenderersEnabled(state.Renderers, false);
             }
         }
+
+        /// <summary>目标脚下位置：**优先取渲染帧快照位**（<see cref="SimView.TryGetRenderPosition"/>，按槽位；
+        /// 本地/远端同一条时间线）；无快照源（单帧/直连装配）退回视图位。角色视觉采样与相机补位端点共用。
+        /// </summary>
+        private Vector3 BaseOf(int slot, GameObject view)
+        {
+            if (_view.TryGetRenderPosition(slot, out SimVector3 pos))
+                return new Vector3(pos.X, pos.Y, pos.Z);
+            return view.transform.position;
+        }
+
+        /// <summary>目标柱顶（相机补位渐隐的端点）＝脚下位置 + 站姿烘焙身高。</summary>
+        private Vector3 TopOf(int slot, GameObject view) => BaseOf(slot, view) + Vector3.up * BodyBake.Height;
 
         private Renderer[] ResolveRenderers(GameObject view)
             => _viewRenderersOf != null ? _viewRenderersOf(view) ?? Array.Empty<Renderer>() : Array.Empty<Renderer>();
@@ -267,12 +373,14 @@ namespace LiteGame
                 }
                 state.BlockedRun = 0;
                 state.ClearRun = 0;
+                state.Dwell = MinHoldProbes;          // 保守恢复后首次判定不被最短保持延迟
             }
         }
 
         private void RestoreAll()
         {
             RestoreHiddenSlots();
+            _visibleSlots.Clear();
             for (int i = 0; i < _occluders.Count; i++)
             {
                 Occluder oc = _occluders[i];
@@ -283,6 +391,7 @@ namespace LiteGame
                 }
                 oc.BlockedRun = 0;
                 oc.ClearRun = 0;
+                oc.BlockedThisProbe = false;
             }
         }
 
@@ -336,7 +445,7 @@ namespace LiteGame
             return result;
         }
 
-        /// <summary>单遮挡物绑定：障碍下标（求交用）＋场景渲染件（材质切换用）＋迟滞状态。</summary>
+        /// <summary>单遮挡物绑定：障碍下标（求交用）＋场景渲染件（材质切换用）＋迟滞状态＋本拍触发。</summary>
         private sealed class Occluder
         {
             public int ObstacleIndex;
@@ -344,9 +453,10 @@ namespace LiteGame
             public bool Faded;
             public int BlockedRun;
             public int ClearRun;
+            public bool BlockedThisProbe;   // 自身或任一可见远端被本掩体挡住（OR 汇总后喂 StepFade）
         }
 
-        /// <summary>单槽位隐藏状态：视图实例（换代检测）＋自有渲染器（显隐开关）＋迟滞计数。</summary>
+        /// <summary>单槽位隐藏状态：视图实例（换代检测）＋自有渲染器（显隐开关）＋迟滞计数＋状态已保持拍数。</summary>
         private sealed class SlotState
         {
             public GameObject View;
@@ -354,6 +464,7 @@ namespace LiteGame
             public bool Hidden;
             public int BlockedRun;
             public int ClearRun;
+            public int Dwell;              // 当前状态已保持的探针数（最短保持用；切换即清零）
         }
     }
 }

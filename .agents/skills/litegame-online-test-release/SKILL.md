@@ -60,9 +60,11 @@ unity command eval "return 1;"     # 预热；冷编辑器首次 eval_file 可�
 ### 1.3 云侧
 
 ```powershell
-ssh litegame-cloud powershell -NoProfile -Command "Get-ScheduledTask -TaskName 'LiteGame-Meta','LiteGame-Room' | Select-Object TaskName,State"
-ssh litegame-cloud powershell -NoProfile -Command "(Invoke-WebRequest http://10.8.0.1:5000/live -UseBasicParsing).Content"
+ssh litegame-cloud-tunnel powershell -NoProfile -Command "Get-ScheduledTask -TaskName 'LiteGame-Meta','LiteGame-Room' | Select-Object TaskName,State"
+ssh litegame-cloud-tunnel powershell -NoProfile -Command "(Invoke-WebRequest http://10.8.0.1:5000/live -UseBasicParsing).Content"
 ```
+
+> 运维 SSH 走 **WireGuard 隧道入口**（公网 22 已关，见 10 手册 §4.1）；`scripts/deploy/*.ps1` 自动选路，手敲命令用 `litegame-cloud-tunnel`。
 
 停服会断开测试者。若 GM 端点已开，先 `pwsh -NoProfile -File scripts/deploy/gm.ps1 -Action rooms` 看有没有活跃房；没有把握时先问用户。
 
@@ -78,7 +80,7 @@ ssh litegame-cloud powershell -NoProfile -Command "(Invoke-WebRequest http://10.
 ### 2.1 Room
 
 ```powershell
-# C# / 共享源变更：发布 + 打包 + 停服 + 上传 + 解压 + 起服 + 回读
+# C# / 共享源 / 玩法表变更：发布 + 打包（room + GameData/Config）+ 停服 + 上传 + 解压 + 起服 + 回读
 pwsh -NoProfile -File scripts/deploy/deploy-room.ps1
 
 # 只改配置（heartbeat / template / ports）
@@ -86,9 +88,14 @@ pwsh -NoProfile -File scripts/deploy/deploy-room.ps1 -SkipPublish -WithConfig
 
 # 只重试上传现有产物
 pwsh -NoProfile -File scripts/deploy/deploy-room.ps1 -SkipPublish
+
+# 只换二进制、不同步玩法表（一般别用：见下方数据面判据）
+pwsh -NoProfile -File scripts/deploy/deploy-room.ps1 -SkipPublish -SkipTables
 ```
 
-判据：`stopped=True`、`extract=0`、`task=Running`、`[RoomServer] buildHash=…`。配置是启动期快照，改完必须重启任务；C# 变更必须重 publish，只重启任务会继续跑旧 exe。
+判据：`stopped=True`、`extract=0`、`task=Running`、`[RoomServer] buildHash=…`，以及 `[Tables] 玩法数据身份基摘要:0x…` 与客户端日志「本地基摘要」同值。配置是启动期快照，改完必须重启任务；C# 变更必须重 publish，只重启任务会继续跑旧 exe。
+
+**数据面红线**：`Assets/GameData/Config/*.bytes` 变了必须随 Room 一起上云（脚本默认已带 `-SkipTables` 才跳过）。只换二进制不传表 ⇒ 客户端 `StartGame` 阶段以「玩法数据身份不符（ConfigHash）」**拒整局**（2026-10-19 实测：`Map/tbmap.bytes` 漏传，服务端 `0xb0102ea9` vs 客户端 `0xa8a7e328`）。
 
 ### 2.2 Meta（仓库无 deploy-meta 脚本，按已验证手工路径）
 
@@ -250,6 +257,7 @@ pwsh -NoProfile -File Dist/New-Packages.ps1 -Testers <tester> -Overlay -Zip -For
 | 构建报 completed 但产物旧 | 编译错误静默 no-op | 看 `PASSED`/freshness 与 Editor.log，不要出货 |
 | 页面报 `绑定索引[X] 不是下拉件…实得 RectTransform` | 内容包早于 prefab/命名空间迁移，包内脚本或类型字符串陈旧 | 重建 BuiltinBundle + 重打客户端；只重编 C# 不修包 |
 | 签票 `409 version-mismatch` | 两端 hash 不同 | `--check` → 重发 Room / 重打客户端 |
+| 开局被拒：`玩法数据身份不符：StartGame.ConfigHash=… 本地复算=…` | 服务端 `GameData/Config` 未随表更新（只换二进制） | 重发 Room（脚本默认同步表）→ 看日志 `[Tables] 玩法数据身份基摘要:0x…` 与客户端「本地基摘要」同值 |
 | 大厅 hash 未更新 | Room 旧进程或心跳未到 | 看 Room 日志、任务状态与 `lastSeenAgeMs` |
 | 配置改了但端点/模板没变 | 只重启、没上传配置；或改 C# 只重启 | `-WithConfig` 重发配置；C# 变更重 publish |
 

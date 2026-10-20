@@ -22,11 +22,13 @@ param(
     [string]$Ip = '',
     [string]$Endpoint = '',
     [switch]$DryRun,
-    [string]$SshHost = 'litegame-cloud',
+    [string]$SshHost,
     [string]$OutDir = ''
 )
 
 $ErrorActionPreference = 'Stop'
+. (Join-Path $PSScriptRoot '_ssh-host.ps1')
+if ([string]::IsNullOrWhiteSpace($SshHost)) { $SshHost = Resolve-LiteGameSshHost }
 $repo = (Resolve-Path (Join-Path $PSScriptRoot '..\..')).Path
 if (-not $OutDir) { $OutDir = Join-Path $repo 'Dist/out' }
 New-Item -ItemType Directory -Force -Path $OutDir | Out-Null

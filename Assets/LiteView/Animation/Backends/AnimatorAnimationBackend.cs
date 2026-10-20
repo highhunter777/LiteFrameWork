@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using LiteFramework;
 using LiteFramework.Animation;
 using UnityEngine;
 using UnityEngine.Animations;
@@ -120,6 +121,15 @@ namespace LiteView.Animation
                     _layers.ApplyOverlayMask(AnimationLayerGraph.OverlayTail, _overlayMask);
                 }
             }
+
+#if UNITY_EDITOR || DEVELOPMENT_BUILD || LITEFRAMEWORK_DEBUG
+            // [Diag] 后端建立留痕（联机实测表现诊断批 N8/N9，收口时删除）：确认"僵着"时
+            // Animator 是否 enabled/激活、Avatar 是否在、图是否分层——灰盒/停摆两类根因一眼分开。
+            Log.Info($"[Diag][Anim] backend animator={_animator.name} enabled={_animator.enabled}"
+                + $" active={_animator.gameObject.activeInHierarchy} avatar={_animator.avatar != null}"
+                + $" update={_animator.updateMode} culling={_animator.cullingMode}"
+                + $" ctrl={_animator.runtimeAnimatorController != null} layered={_layered} clips={_clips.Count}", LogTag.Anim);
+#endif
         }
 
         // ---- 能力位（§4 诚实声明，不静默降级）----

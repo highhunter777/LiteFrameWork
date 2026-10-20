@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using LiteFramework;
 using LiteFramework.Animation;
@@ -58,6 +58,12 @@ namespace LiteView.Animation
         /// <summary>权重容器（驱动器复用数组——零分配：播放器/后端只在提交内读取、不保留引用）。</summary>
         private readonly float[] _moveWeights = new float[3];
         private readonly float[] _aimWeights = new float[4];
+
+#if UNITY_EDITOR || DEVELOPMENT_BUILD || LITEFRAMEWORK_DEBUG
+        /// <summary>[Diag] 形态切换留痕（联机实测表现诊断批 N8/N9，收口时整段删除）——
+        /// "位置在动但身体僵着"时看机器停在哪一叶、句柄是否还在。</summary>
+        private readonly string[] _diagForm = new string[SimConfig.MaxEntities];
+#endif
 
         private bool _disposed;
 
@@ -318,7 +324,10 @@ namespace LiteView.Animation
 
                     // **远端（快照插值驱动）测速低通 + snap 抑制**：插值/丢包/复活硬切会让视图帧间
                     // 位移出现单帧尖峰；直接喂锁存会触发 Idle↔Walk↔Run 假切换（"动画不连续"）。
-                    // 本地/无快照形态（测试/沙盒）保持原样——本地预测位移本身平滑。
+                    // 本地/无快照形态（测试/沙盒）位移本身平滑，但**复活/传送同样是一次瞬移**——
+                    // 单帧位移 25m ⇒ 2500 m/s 会把移动锁存拉成"走路"，整段假步态；故本地也做同一量级抑制：
+                    // 超过 <see cref="SnapSpeedThreshold"/> 视为硬切，本帧按 0 计（姿态由机器事实决定，
+                    // 不因瞬移误进 Walk）。
                     bool snapshotDriven = _view.HasSnapshotSource && !_view.IsLocalSlot(i);
                     if (snapshotDriven)
                     {
@@ -338,6 +347,10 @@ namespace LiteView.Animation
                                 1f - Mathf.Exp(-SnapshotSpeedSmoothSharpness * dt));
                         }
                         speed = s.SmoothedSpeed;
+                    }
+                    else if (measuredSpeed > SnapSpeedThreshold)
+                    {
+                        speed = 0f;                        // 本地瞬移（复活/传送）：不计入测速
                     }
 
                     s.MovingLatch = LocomotionBlendMath.UpdateLatch(s.MovingLatch, speed);   // 锁存公式单源
@@ -370,6 +383,10 @@ namespace LiteView.Animation
                     // 脚定住而世界位移照旧即滑步；叠加层只盖上半身，腿继续由 MoveBlend 走）。
                     // 放在机 Tick 之后：机不再因换弹迁根，腿的权重维护与叠加层提交互不干扰。
                     s.Ctx.UpdateReloadUpper(s.Ctx.IsReloading, s.Ctx.IsDead);
+
+#if UNITY_EDITOR || DEVELOPMENT_BUILD || LITEFRAMEWORK_DEBUG
+                    LogFormChange(i, s, dead, speed);
+#endif
                 }
 
                 RememberPosition(s, go);
@@ -381,6 +398,21 @@ namespace LiteView.Animation
                 s.Grip?.Update(s.Ctx?.ReloadSubmitted ?? false);
             }
         }
+
+#if UNITY_EDITOR || DEVELOPMENT_BUILD || LITEFRAMEWORK_DEBUG
+        /// <summary>[Diag] 形态变化时留痕（同形态不重复打印）。诊断"身体僵着"用：
+        /// form=(none) 表示 `TryGetCurrent` 读不到（机器未启动/无播放器）；
+        /// body/loco 句柄同时 false 且 form 恒定 = 通道已收口、无人在维持姿态。</summary>
+        private void LogFormChange(int slot, SlotAnim s, bool dead, float speed)
+        {
+            string form = TryGetCurrent(slot, out AnimationId id) ? id.Value : "(none)";
+            if (string.Equals(form, _diagForm[slot], System.StringComparison.Ordinal)) return;
+            _diagForm[slot] = form;
+            Log.Info($"[Diag][Anim] slot={slot} local={_view.IsLocalSlot(slot)} form={form}"
+                + $" machine={s.Machine.Current} moving={s.MovingLatch} speed={speed:0.00} dead={dead}"
+                + $" loco={s.Ctx.LocoHandle.IsValid} body={s.Ctx.BodyHandle.IsValid} bodyForm={s.Ctx.BodyForm}", LogTag.Anim);
+        }
+#endif
 
         public void Dispose()
         {

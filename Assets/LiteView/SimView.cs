@@ -15,9 +15,10 @@ namespace LiteView
     /// 两类来源分别处理：
     /// - **远端**：快照按帧号进入 jitter buffer，渲染帧匀速推进（落后最新快照 <see cref="RenderDelayFrames"/>），
     ///   在前后两份快照间按**真实帧差**插值（丢包不冻结再跳；旧帧/重复帧丢弃）；
-    ///   前后间距超 <see cref="SnapDistance"/> 硬切——§6.2"远端必要时 snap"，传送/复活不播成飞人；
+    ///   前后快照**生命起始帧不同（复活）或间距超 <see cref="SnapDistance"/>** 直接硬切——
+    ///   §6.2"复活/传送允许硬切"，不播成穿墙滑行/横穿地图的"飞人"；
     /// - **本地玩家**：跟预测态（0 延迟）；和解后按 <see cref="ViewTransformMath.Decay"/> 指数收敛
-    ///   （帧率无关，不微抖）；超过 <see cref="SnapDistance"/> 硬切（复活/传送）。
+    ///   （帧率无关，不微抖）；**复活（生命更替）无条件硬切**，误差超 <see cref="SnapDistance"/> 同样硬切。
     ///
     /// 实体视图经 <see cref="EntityViewMap"/> 按槽位索引并池化（槽位是 Sim 的稳定寻址，禁止 swap-remove）。
     /// **资源所有权在调用方**：本类只与实例化的 GameObject 打交道，prefab 由 EntityService/租约缓存持有
@@ -68,7 +69,7 @@ namespace LiteView
         private bool _hasLocalDisplay;
         private int _localLifeStart;                           // 本地当前生命起始帧（复活检测）
         private bool _hasLocalLife;
-        private CharacterController _localCc;                 // 本地视图物理代理（CC.Move 收敛到衰减目标——见 PlaceLocal/EnsureLocalCc）
+        private CharacterController _localCc;                 // 本地视图物理代理（普通收敛走 CC.Move、瞬移走直写——见 PlaceLocal/EnsureLocalCc）
 
         /// <summary>
         /// 渲染相对最新快照的**落后帧数**（tick 帧；默认 <see cref="SimConfig.InterpFrames"/> = 66ms）。
@@ -91,6 +92,12 @@ namespace LiteView
         /// 传送/复活级跳变会被插值播成横穿地图的"飞人"）。≤0 = 永不硬切。</summary>
         public float SnapDistance = 3f;
 
+        /// <summary>异常单帧跳变的**兜底**瞬移阈值（米²）：与 <see cref="SnapDistance"/>（逻辑硬切阈值）解耦——
+        /// 这里的正常路径由**语义硬切**决定（复活/表现硬切直接传 `hardCut` 给 <see cref="PlaceLocal"/>，
+        /// 与距离无关，见其注释）；本阈值只兜"没有硬切标记但单帧位移离谱"的异常形态（换实体/长卡顿后
+        /// 视图落后）——这类形态同样不该用带扫掠的 <c>cc.Move</c> 去追。</summary>
+        private const float TeleportSqrDistance = 4f;      // 2m
+
         /// <summary>和解误差衰减速率（越大收敛越快；帧率无关）。</summary>
         public float ReconcileSharpness = 10f;
 
@@ -99,6 +106,14 @@ namespace LiteView
 
         /// <summary>本地玩家实体 Id（0 = 未对齐——对齐前无本地表现，相机也不跟）。</summary>
         public long LocalEntityId { get; set; }
+
+        /// <summary>本地复活序号（每次生命更替 +1）：消费者（瞄准滞回门/相机/表现）据此做一次性复位，
+        /// 不必自己比对 <c>LifeStartFrame</c>。换实体（<see cref="AlignLocal"/>）不清零。</summary>
+        public int LocalRespawnSerial { get; private set; }
+
+        /// <summary>本地视图**关 CC 直写**（瞬移落位）的次数（诊断/测试读数）：复活、表现硬切与异常单帧跳变
+        /// 各计一次——复活落位"不靠距离、不被障碍拦住"的可观测面（见 <see cref="PlaceLocal"/>）。</summary>
+        public int LocalTeleportCount { get; private set; }
 
         /// <summary>静默门放行的事件回调（编排方接线表现；null = 只做去重统计）。</summary>
         public FrameEventSink EventSink { get; set; }
@@ -331,8 +346,17 @@ namespace LiteView
             if (!hasFrom) { pos = b.Pos; yaw = b.Yaw; return true; }   // 新出现（出生/进 AOI）：直接用新快照
             if (!hasTo)   { pos = a.Pos; yaw = a.Yaw; return true; }   // 将消失（回收前一帧）：保持旧快照
 
-            // 远端硬切（§6.2"远端必要时 snap；复活/传送允许硬切"）：前后两份快照间距超阈值 =
-            // 权威侧发生过传送/复活级跳变——照常插值会把它播成横穿地图的"飞人"，直接对齐目标快照。
+            // 远端硬切（§6.2"远端必要时 snap；复活/传送允许硬切"）：**生命更替（复活）优先**——
+            // 死点与出生点可能只隔一个掩体/相距不到阈值，按位置插值会把"尸体位 → 出生点"播成穿墙滑行
+            // （新图尤其）；与本地视图同一条语义：复活＝硬切到新生命的位置，不看距离。
+            if (a.LifeStartFrame != b.LifeStartFrame)
+            {
+                pos = b.Pos;
+                yaw = b.Yaw;
+                return true;
+            }
+
+            // 传送级跳变：前后两份快照间距超阈值——照常插值会把它播成横穿地图的"飞人"，直接对齐目标快照。
             if (ViewTransformMath.ShouldSnap(a.Pos, b.Pos, SnapDistance))
             {
                 pos = b.Pos;
@@ -353,12 +377,16 @@ namespace LiteView
             ref EntitySlot slot = ref _sim.Entities[slotIndex];
 
             // 生命更替（复活）：显式把本地视图从死亡表现里拉回来——渲染器禁用/离屏剔除残值一并清掉。
+            // **复活＝语义硬切**：不看死亡点到复活点的距离（新图的复活点可能就贴着死亡点），也不看中间
+            // 有没有掩体——表现位置与物理代理都无条件瞬移到权威位（见 PlaceLocal 的 hardCut）。
+            bool hardCut = false;
             int lifeStart = slot.LifeStartFrame;
             if (!_hasLocalLife) { _hasLocalLife = true; _localLifeStart = lifeStart; }
             else if (lifeStart != _localLifeStart)
             {
                 _localLifeStart = lifeStart;
                 ResetLocalViewAfterRespawn(slotIndex, lifeStart);
+                hardCut = true;
             }
 
             if (!_hasLocalDisplay)
@@ -368,10 +396,11 @@ namespace LiteView
                 _hasLocalDisplay = true;
                 _camera?.Reset();                      // 对齐/重建：下一帧相机直接落位（不从上个实体位置飞过来）
             }
-            else if (ViewTransformMath.ShouldSnap(_localDisplay, slot.Pos, SnapDistance))
+            else if (hardCut || ViewTransformMath.ShouldSnap(_localDisplay, slot.Pos, SnapDistance))
             {
-                _localDisplay = slot.Pos;              // 复活/传送：硬切
+                _localDisplay = slot.Pos;              // 复活/传送：硬切（复活不看距离——与地图几何无关）
                 _localYaw = slot.Yaw;
+                hardCut = true;
                 _camera?.Reset();                      // 相机同帧 warp——否则阻尼追赶期间角色在画面外
             }
             else
@@ -381,13 +410,14 @@ namespace LiteView
             }
 
             if (_views.TryGet(slotIndex, out var view))
-                PlaceLocal(view, dt);
+                PlaceLocal(view, dt, hardCut);
         }
 
         /// <summary>复活时强制恢复本地视图可见性：死亡/动画片段可能把渲染器或包围盒留在旧姿态，
         /// 仅靠相机 snap 不足以保证模型立刻可见。这里是表现兜底（不改 Sim/判定）。</summary>
         private void ResetLocalViewAfterRespawn(int slotIndex, int lifeStart)
         {
+            LocalRespawnSerial++;                      // 消费者的一次性复位信号（瞄准门/相机/表现）
             if (!_views.TryGet(slotIndex, out GameObject view) || view == null) return;
             if (!view.activeSelf) view.SetActive(true);
 
@@ -397,14 +427,38 @@ namespace LiteView
                 renderers[i].enabled = true;
                 if (renderers[i] is SkinnedMeshRenderer skinned) skinned.updateWhenOffscreen = true;
             }
-            Log.Info($"local-respawn life={lifeStart} view={view.name} renderers={renderers.Length}", LogTag.View);
+
+            // 动画侧兜底：死亡/池化路径上若 Animator 被停用（或被父级 renderer 关掉后未复位），
+            // 复活就是一个"位置在动但身体僵着"的活人——表现层用事实复位，不依赖谁先谁后。
+            var animators = view.GetComponentsInChildren<Animator>(true);
+            for (int i = 0; i < animators.Length; i++)
+                if (!animators[i].enabled) animators[i].enabled = true;
+
+            int enabledCount = 0;
+            for (int i = 0; i < renderers.Length; i++) if (renderers[i] != null && renderers[i].enabled) enabledCount++;
+            Log.Info($"local-respawn life={lifeStart} view={view.name} renderers={renderers.Length}/{enabledCount}"
+                + $" animators={animators.Length} culling={CullingOf(animators)}", LogTag.View);
         }
 
-        /// <summary>本地视图落位：**位置走 CharacterController.Move** 收敛到
-        /// 衰减目标（Unity 物理管贴地/防穿模/台阶——Sim 判定之外的场景几何不再穿透），旋转直写。
+        /// <summary>诊断：首个 Animator 的裁剪模式（"僵着"排查用——AlwaysAnimate 之外的模式在离屏/隐藏时会停推进）。</summary>
+        private static string CullingOf(Animator[] animators)
+            => animators != null && animators.Length > 0 && animators[0] != null
+                ? animators[0].cullingMode.ToString()
+                : "none";
+
+        /// <summary>本地视图落位：**连续收敛走 CharacterController.Move**（Unity 物理管贴地/防穿模/台阶），
+        /// **硬切/瞬移走 CC 关停 + 直写 transform**，旋转直写。
         /// CC **由预制体配置**（本类只解析消费，不建件不设参，见 <see cref="EnsureLocalCc"/>）；
-        /// 预制体没配 CC（灰盒视图/测试装配）退回 <see cref="Place"/> 直落。</summary>
-        private void PlaceLocal(GameObject view, float dt)
+        /// 预制体没配 CC（灰盒视图/测试装配）退回 <see cref="Place"/> 直落。
+        ///
+        /// **为什么瞬移不能走 Move**（2026-10-19 实测"复活被障碍物拦住"）：`cc.Move` 是**带扫掠的位移**，
+        /// 复活时目标点常在同图另一端——中间隔着掩体就停在墙上、目标是墙内就更进不去，而 Sim 侧已经把你
+        /// 放在出生点 ⇒ 此后每帧的 delta 仍指向出生点，**永久卡在墙上**。瞬移的正确姿势是关掉 CC、直写
+        /// 位置、再打开（Unity 官方口径）。
+        /// **判据是语义而非距离**：复活（生命更替）与表现硬切（<see cref="SnapDistance"/>）都以
+        /// <paramref name="hardCut"/> 进来——任何新图都不依赖"复活点离死亡点多远、中间有没有障碍"；
+        /// <see cref="TeleportSqrDistance"/> 只兜底异常单帧跳变。</summary>
+        private void PlaceLocal(GameObject view, float dt, bool hardCut)
         {
             CharacterController cc = EnsureLocalCc(view);
             if (cc == null)
@@ -415,8 +469,21 @@ namespace LiteView
 
             Vector3 target = new Vector3(_localDisplay.X, _localDisplay.Y, _localDisplay.Z);
             Vector3 delta = target - view.transform.position;
-            if (delta.sqrMagnitude > 0.0000001f) cc.Move(delta);   // 硬切时 delta 大——CC 一样一次 Move 到位（无墙内复活点，见出生清障）
-            view.transform.rotation = Quaternion.Euler(0f, 90f - _localYaw * Mathf.Rad2Deg, 0f);   // 旋转不归物理（同 Place：90° − yaw）
+            if (hardCut || delta.sqrMagnitude > TeleportSqrDistance)
+            {
+                // 硬切/瞬移：关 CC 直写（关停期间 transform 写入不触发扫掠）——不撞中途的墙
+                cc.enabled = false;
+                view.transform.position = target;
+                cc.enabled = true;
+                LocalTeleportCount++;
+                Log.Info($"local-teleport delta={delta.magnitude:0.00}m hardCut={hardCut}"
+                    + $" view=({target.x:0.0},{target.y:0.0},{target.z:0.0})", LogTag.View);
+            }
+            else if (delta.sqrMagnitude > 0.0000001f)
+            {
+                cc.Move(delta);                                    // 普通帧间收敛：走物理（贴地/防穿模）
+            }
+            view.transform.rotation = FacingRotation(_localYaw);   // 旋转不归物理（同 Place：90° − yaw 单源）
         }
 
         /// <summary>取本地视图的物理代理（**纯消费**：CC 与碰撞体由预制体配置——
@@ -570,6 +637,47 @@ namespace LiteView
             lifeStartFrame = snapshot.Entities[slotIndex].LifeStartFrame;
             return true;
         }
+
+        /// <summary>
+        /// 渲染帧时刻的**权威位**（按槽位，只读快照时间线；本地与远端同源）。
+        /// **影区可见性判据的唯一位置口径**（《视野与遮挡专项设计》v3.3）：视图位是"本地＝预测、远端＝插值"，
+        /// 两端各算各的会得到两条不同线段——出现"一边看得见、一边看不见"；两端都取同一时间线的快照位，
+        /// 柱顶↔柱顶才是**同一条线段**（信息对称由几何保证）。
+        /// 槽位换代（一生一死/复用）、生命更替（复活）或传送级跳变：不跨生命/跨跳变插值，取后帧。
+        /// 无快照源（单帧/直连装配）/槽位不在场 → false（调用方退回视图位）。
+        /// </summary>
+        public bool TryGetRenderPosition(int slotIndex, out SimVector3 position)
+        {
+            position = default;
+            if (slotIndex < 0 || slotIndex >= SimConfig.MaxEntities) return false;
+            if (!_sim.IsAlive(slotIndex)) return false;                       // 预测态里槽位不在场（视图也没有）
+            if (!TryGetRenderPair(out SimWorldStateSnapshot from, out SimWorldStateSnapshot to, out float alpha))
+                return false;
+
+            // 槽位身份核对（同 IsDead/IsAiming 口径：客户端实体 Id 与服务端快照一致）——
+            // 换代/未应用到本槽位的帧不拿来当同一个人，宁可退回视图位。
+            long expectedId = _sim.Entities[slotIndex].Id;
+            bool inFrom = SlotAliveIn(from, slotIndex) && from.Entities[slotIndex].Id == expectedId;
+            bool inTo = SlotAliveIn(to, slotIndex) && to.Entities[slotIndex].Id == expectedId;
+            if (!inFrom && !inTo) return false;
+            if (!inFrom) { position = to.Entities[slotIndex].Pos; return true; }
+            if (!inTo) { position = from.Entities[slotIndex].Pos; return true; }
+
+            EntitySnapshotEntry a = from.Entities[slotIndex];
+            EntitySnapshotEntry b = to.Entities[slotIndex];
+            if (a.Id != b.Id || a.LifeStartFrame != b.LifeStartFrame
+                || ViewTransformMath.ShouldSnap(a.Pos, b.Pos, SnapDistance))
+            {
+                position = b.Pos;
+                return true;
+            }
+
+            position = ViewTransformMath.Lerp(a.Pos, b.Pos, alpha);
+            return true;
+        }
+
+        private static bool SlotAliveIn(SimWorldStateSnapshot snapshot, int slotIndex)
+            => (snapshot.AliveBitmap[slotIndex >> 5] & (1u << (slotIndex & 31))) != 0u;
 
         /// <summary>
         /// 实体是否在换弹（Sim 权威，两端同语义）：
