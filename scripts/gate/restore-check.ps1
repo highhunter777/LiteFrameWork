@@ -32,11 +32,35 @@ Write-Host "Restore check | project: $ProjectPath" -ForegroundColor White
 
 # -- 1. Unity project settings & version --------------------------------------
 $pv = Join-Path $ProjectPath 'ProjectSettings\ProjectVersion.txt'
+$tcPath = Join-Path $ProjectPath 'scripts\gate\toolchain.json'
+$expected = $null
+$expectedRevision = $null
+if (Test-Path $tcPath) {
+    try {
+        $tc = Get-Content $tcPath -Raw | ConvertFrom-Json
+        $expected = $tc.unity.version
+        $expectedRevision = $tc.unity.revision
+    }
+    catch { Warn "toolchain.json parse failed: $($_.Exception.Message)" }
+}
+if (-not $expected) { Miss 'toolchain.json unity.version missing (cannot verify editor identity)' }
+
 if (Test-Path $pv) {
-    $ver = ((Get-Content $pv | Select-String 'm_EditorVersion:').ToString()) -replace 'm_EditorVersion:\s*',''
-    $expected = '2022.3.55f1c1'
-    if ($ver -eq $expected) { Ok "Unity $ver (matches toolchain.json)" }
-    else { Miss "Unity version mismatch: got $ver, expected $expected (scripts/gate/toolchain.json)" }
+    $pvText = Get-Content $pv -Raw
+    $ver = ([regex]::Match($pvText, 'm_EditorVersion:\s*(\S+)')).Groups[1].Value
+    if (-not $ver) { $ver = ((Get-Content $pv | Select-String 'm_EditorVersion:').ToString()) -replace 'm_EditorVersion:\s*','' }
+    if ($expected -and $ver -eq $expected) { Ok "Unity $ver (matches toolchain.json)" }
+    elseif ($expected) { Miss "Unity version mismatch: got $ver, expected $expected (scripts/gate/toolchain.json)" }
+    if ($expectedRevision) {
+        $revMatch = [regex]::Match($pvText, 'm_EditorVersionWithRevision:\s*\S+\s*\(([0-9a-fA-F]+)\)')
+        if ($revMatch.Success -and $revMatch.Groups[1].Value -eq $expectedRevision) {
+            Ok "Unity revision $expectedRevision (matches toolchain.json)"
+        }
+        elseif ($revMatch.Success) {
+            Miss "Unity revision mismatch: got $($revMatch.Groups[1].Value), expected $expectedRevision (scripts/gate/toolchain.json)"
+        }
+        else { Warn 'ProjectVersion.txt has no revision line; cannot verify toolchain.json unity.revision' }
+    }
     if (-not (Test-Path (Join-Path $ProjectPath 'ProjectSettings\ProjectSettings.asset'))) {
         Miss 'ProjectSettings incomplete (not in repo; obtain from controlled source - see Docs/clone-restore guide)'
     } else { Ok 'ProjectSettings complete' }
@@ -133,6 +157,17 @@ if ((Test-Path (Join-Path $ProjectPath 'Assets\Scenes\Boot.unity')) -or (Test-Pa
 if (-not (Get-Command 'java' -ErrorAction SilentlyContinue)) {
     Warn 'JDK not detected - Android IL2CPP build (mobile) needs JDK 11 + Android SDK/NDK (not blocking Windows dev)'
 }
+
+# -- Toolchain manifest / surfaces ---------------------------------------------
+$toolchainCli = Join-Path $ProjectPath 'scripts\toolchain.py'
+if (Test-Path $toolchainCli) {
+    $tcOut = & python $toolchainCli check 2>&1
+    if ($LASTEXITCODE -ne 0) {
+        Warn ("toolchain check failed: " + (($tcOut | Select-Object -Last 3) -join ' '))
+    }
+    else { Ok 'toolchain check passed (manifest/docs/surfaces)' }
+}
+else { Warn 'toolchain CLI missing: scripts/toolchain.py (manifest/surface check skipped)' }
 
 # -- Summary --------------------------------------------------------------------
 Write-Host ''

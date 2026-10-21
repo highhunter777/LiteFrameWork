@@ -1,5 +1,6 @@
 using System.IO;
 using System.Text;
+using LiteGame.Toolchain;
 using UnityEditor;
 using UnityEngine;
 
@@ -110,26 +111,64 @@ namespace LiteGame.EditorTools
         }
 
         /// <summary>非 .g.cs 产物统一 emit（数据通道，如地图 Luban JSON）：write-if-changed；
-        /// 产物在 Assets 外、无 ImportAsset。返回落盘结论行（up to date / written），由工具拼进报告。</summary>
+        /// 产物在 Assets 外、无 ImportAsset。返回落盘结论行（planned/up to date/written），由工具拼进报告。</summary>
         public static string WriteArtifact(string outputPath, string text)
-            => (WriteIfChanged(outputPath, text) ? "written：" : "up to date：") + outputPath;
+        {
+            return WriteArtifact(outputPath, text, null);
+        }
+
+        /// <summary>带写盘 scope 的非 .g.cs 产物 emit（dry-run/allowlist/Undo 由 scope 统一处理）。</summary>
+        public static string WriteArtifact(string outputPath, string text, ToolWriteScope scope)
+        {
+            if (scope == null) return (WriteIfChanged(outputPath, text) ? "written：" : "up to date：") + outputPath;
+            ToolWriteOutcome outcome = scope.WriteText(outputPath, text);
+            return OutcomeLabel(outcome) + outputPath;
+        }
 
         /// <summary>
         /// .g.cs 产物统一 emit（各烘焙器唯一代码产物写盘面）：固定头（生成器名 + 工具箱入口 + 勿手改）→ 工具语义注释行 → 代码体。
         /// LF 行尾、UTF-8 无 BOM、R 格式由调用方保证；**write-if-changed**——与既有产物逐字节一致则不动文件，
-        /// 变化才写盘 + ImportAsset 触发重编译。返回落盘结论行（up to date / written），由工具拼进报告。
+        /// 变化才写盘 + ImportAsset 触发重编译。返回落盘结论行（planned/up to date/written），由工具拼进报告。
         /// </summary>
         public static string WriteGenerated(string outputPath, string generatorName, string[] semanticLines, string body)
         {
+            return WriteGenerated(outputPath, generatorName, semanticLines, body, null);
+        }
+
+        /// <summary>带写盘 scope 的 .g.cs 产物 emit（dry-run/allowlist/Undo 由 scope 统一处理）。</summary>
+        public static string WriteGenerated(
+            string outputPath,
+            string generatorName,
+            string[] semanticLines,
+            string body,
+            ToolWriteScope scope)
+        {
             var sb = new StringBuilder();
-            sb.AppendLine($"// 本文件由 {generatorName} 生成（烘焙工具箱：菜单 LiteGame/烘焙工具箱，或 run_script 直调）——勿手改。");
+            sb.AppendLine($"// 本文件由 {generatorName} 生成（烘焙工具箱：LiteGame/工具链 → 烘焙工具箱，或 run_script 直调）——勿手改。");
             foreach (var line in semanticLines) sb.AppendLine(line);
             sb.Append(body);
             string text = sb.ToString().Replace("\r\n", "\n");   // AppendLine 在 Windows 是 CRLF；产物统一 LF（BuildHash 侧行尾归一化，两者等价）
 
-            bool wrote = WriteIfChanged(outputPath, text);
-            if (wrote) AssetDatabase.ImportAsset(outputPath);
-            return (wrote ? "written：" : "up to date：") + outputPath;
+            if (scope == null)
+            {
+                bool wrote = WriteIfChanged(outputPath, text);
+                if (wrote) AssetDatabase.ImportAsset(outputPath);
+                return (wrote ? "written：" : "up to date：") + outputPath;
+            }
+
+            ToolWriteOutcome outcome = scope.WriteText(outputPath, text);
+            if (outcome == ToolWriteOutcome.Written) AssetDatabase.ImportAsset(outputPath);
+            return OutcomeLabel(outcome) + outputPath;
+        }
+
+        private static string OutcomeLabel(ToolWriteOutcome outcome)
+        {
+            switch (outcome)
+            {
+                case ToolWriteOutcome.Planned: return "planned：";
+                case ToolWriteOutcome.Written: return "written：";
+                default: return "up to date：";
+            }
         }
 
         /// <summary>在 <paramref name="root"/> 子树内按名深搜（含根）——四工具共用一份实现。</summary>

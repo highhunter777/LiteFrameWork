@@ -17,7 +17,7 @@ namespace LiteGame.Editor
     /// </summary>
     public static class LuaDevRefill
     {
-        [MenuItem("LiteGame/Lua/Refill Registries %&f")]
+        [MenuItem("LiteGame/快捷/Lua Refill Registries %&f")]
         private static void Refill()
         {
             if (!Application.isPlaying)
@@ -26,6 +26,12 @@ namespace LiteGame.Editor
                 return;
             }
             RefillAsync().Forget();                        // 一行转发，禁止 async void
+        }
+
+        /// <summary>工具平台入口：与菜单同一条 Refill 路径。</summary>
+        public static void RefillForTool()
+        {
+            Refill();
         }
 
         private static async UniTaskVoid RefillAsync()

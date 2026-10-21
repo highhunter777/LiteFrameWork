@@ -1,4 +1,4 @@
-<#
+﻿<#
 .SYNOPSIS
     一键重新部署云上房间服：发布 → 打包 → 停服 → 上传 → 解压 → 起服 → 回读判据。
 
@@ -23,6 +23,7 @@
     pwsh -NoProfile -File scripts/deploy/deploy-room.ps1
     pwsh -NoProfile -File scripts/deploy/deploy-room.ps1 -SkipPublish -WithConfig
 #>
+[CmdletBinding()]
 param(
     [switch]$SkipPublish,
     [switch]$WithConfig,
@@ -45,13 +46,13 @@ if (-not (Test-Path $roomDir) -and $SkipPublish) {
 }
 
 if (-not $SkipPublish) {
-    Write-Host '[deploy] dotnet publish（win-x64 自包含）...' -ForegroundColor Cyan
+    Write-Host '[deploy/room] dotnet publish（win-x64 自包含）...' -ForegroundColor Cyan
     & dotnet publish (Join-Path $repo 'Server/RoomServer/RoomServer.csproj') `
         -c Release -r win-x64 --self-contained true -o $roomDir --nologo -v q | Out-Null
     if ($LASTEXITCODE -ne 0) { throw "dotnet publish 失败（exit $LASTEXITCODE）" }
 }
 
-Write-Host '[deploy] 打包 room.tgz ...' -ForegroundColor Cyan
+Write-Host '[deploy/room] 打包 room.tgz ...' -ForegroundColor Cyan
 New-Item -ItemType Directory -Force -Path $serverRoot | Out-Null
 # 显式用 Windows System32\tar.exe：Git Bash 的 /usr/bin/tar 会抢 PATH，把 E:\ 当远端主机。
 $tarExe = Join-Path $env:SystemRoot 'System32\tar.exe'
@@ -62,7 +63,7 @@ if ($LASTEXITCODE -ne 0) { throw "tar 打包失败（exit $LASTEXITCODE）" }
 # 玩法表随部署同步（判定面 + UI，共 12 个文件 ≈8KB）：服务端启动期装载，改表不重传 = 数据面身份不符。
 # 2026-10-19 实测：Map/tbmap.bytes 改了没传 → 服务端基摘要 0xb0102ea9 vs 客户端 0xa8a7e328，StartGame 被拒。
 if (-not $SkipTables) {
-    Write-Host '[deploy] 打包玩法表 GameData/Config ...' -ForegroundColor Cyan
+    Write-Host '[deploy/room] 打包玩法表 GameData/Config ...' -ForegroundColor Cyan
     & $tarExe -czf $tablesTgz -C (Join-Path $repo 'Assets/GameData/Config') .
     if ($LASTEXITCODE -ne 0) { throw "tar 打包玩法表失败（exit $LASTEXITCODE）" }
 }
@@ -93,24 +94,24 @@ $startFile = Join-Path $env:TEMP 'lg-room-start.ps1'
 Set-Content -Path $stopFile -Value $stopScript -Encoding ascii
 Set-Content -Path $startFile -Value $startScript -Encoding ascii
 
-Write-Host '[deploy] 停服 ...' -ForegroundColor Cyan
+Write-Host '[deploy/room] 停服 ...' -ForegroundColor Cyan
 & scp -q $stopFile "$SshHost`:C:/litegame/room-stop.ps1"
 if ($LASTEXITCODE -ne 0) { throw 'scp 停服脚本失败' }
 & ssh $SshHost powershell -NoProfile -ExecutionPolicy Bypass -File C:\litegame\room-stop.ps1
 if ($LASTEXITCODE -ne 0) { throw '停服失败' }
 
-Write-Host '[deploy] 上传产物 ...' -ForegroundColor Cyan
+Write-Host '[deploy/room] 上传产物 ...' -ForegroundColor Cyan
 & scp -q $tgz "$SshHost`:C:/litegame/room.tgz"
 if ($LASTEXITCODE -ne 0) { throw 'scp 产物失败（网络/别名/磁盘）' }
 
 if ($WithConfig) {
-    Write-Host '[deploy] 上传房间配置 ...' -ForegroundColor Cyan
+    Write-Host '[deploy/room] 上传房间配置 ...' -ForegroundColor Cyan
     & scp -q (Join-Path $repo 'deploy/roomserver.windows.json') "$SshHost`:C:/litegame/room/roomserver.json"
     if ($LASTEXITCODE -ne 0) { throw 'scp 配置失败' }
 }
 
 if (-not $SkipTables) {
-    Write-Host '[deploy] 上传玩法表 ...' -ForegroundColor Cyan
+    Write-Host '[deploy/room] 上传玩法表 ...' -ForegroundColor Cyan
     & scp -q $tablesTgz "$SshHost`:C:/litegame/GameData-Config.tgz"
     if ($LASTEXITCODE -ne 0) { throw 'scp 玩法表失败' }
 }
@@ -119,10 +120,10 @@ else {
     & ssh $SshHost powershell -NoProfile -Command "Remove-Item C:/litegame/GameData-Config.tgz -ErrorAction SilentlyContinue"
 }
 
-Write-Host '[deploy] 解压并起服 ...' -ForegroundColor Cyan
+Write-Host '[deploy/room] 解压并起服 ...' -ForegroundColor Cyan
 & scp -q $startFile "$SshHost`:C:/litegame/room-start.ps1"
 & ssh $SshHost powershell -NoProfile -ExecutionPolicy Bypass -File C:\litegame\room-start.ps1
 if ($LASTEXITCODE -ne 0) { throw '起服失败' }
 
 Remove-Item $stopFile, $startFile -Force -ErrorAction SilentlyContinue
-Write-Host '[deploy] 完成：判据 = 上方 task=Running + buildHash 行（应与客户端包内常量同值）' -ForegroundColor Green
+Write-Host '[deploy/room] 完成：判据 = 上方 task=Running + buildHash 行（应与客户端包内常量同值）' -ForegroundColor Green

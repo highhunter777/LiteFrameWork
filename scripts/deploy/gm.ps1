@@ -1,4 +1,4 @@
-<#
+﻿<#
 .SYNOPSIS
     云端运维（GM）端点调用器：本机起 SSH 隧道转发 → POST 一个动作 → 关隧道。
 
@@ -20,10 +20,9 @@
     pwsh -NoProfile -File scripts/deploy/gm.ps1 -Action start -Room Room-A
     pwsh -NoProfile -File scripts/deploy/gm.ps1 -Action kick -Room Room-A -Player 1
 #>
+[CmdletBinding()]
 param(
-    [Parameter(Mandatory = $true)]
-    [ValidateSet('rooms', 'start', 'abort', 'kick', 'settle-flush', 'rules')]
-    [string]$Action,
+    [string]$Action = '',
 
     [string]$Room,
     [int]$Player = -1,
@@ -44,6 +43,14 @@ param(
 )
 
 $ErrorActionPreference = 'Stop'
+if ([string]::IsNullOrWhiteSpace($Action)) {
+    Write-Output '[deploy/gm] usage: gm.ps1 -Action <rooms|start|abort|kick|settle-flush|rules> [-Room <id>] [-Player <n>] [-Flags <n>] [-NoDeath] [-InfiniteAmmo]'
+    exit 2
+}
+if ($Action -notin @('rooms', 'start', 'abort', 'kick', 'settle-flush', 'rules')) {
+    Write-Output "[deploy/gm] unknown action: $Action"
+    exit 2
+}
 . (Join-Path $PSScriptRoot '_ssh-host.ps1')
 if ([string]::IsNullOrWhiteSpace($SshHost)) { $SshHost = Resolve-LiteGameSshHost }
 $repo = (Resolve-Path (Join-Path $PSScriptRoot '..\..')).Path
@@ -100,16 +107,16 @@ try {
     if (-not $ready) { throw "隧道未建立（本机 $LocalPort 未监听）——查 ssh 别名 $SshHost 是否可用" }
 
     $uri = "http://127.0.0.1:$LocalPort/gm/$Action"
-    Write-Host "[gm] POST $uri  body=$body" -ForegroundColor DarkGray
+    Write-Host "[deploy/gm] POST $uri  body=$body" -ForegroundColor DarkGray
     $output = & curl.exe -s -X POST $uri -H "X-GM-Key: $key" -H 'Content-Type: application/json' --data-binary $body
     Write-Output $output
 }
 finally {
     if (-not $KeepTunnel) {
         Stop-Process -Id $proc.Id -Force -ErrorAction SilentlyContinue
-        Write-Host "[gm] 隧道已关闭" -ForegroundColor DarkGray
+        Write-Host "[deploy/gm] 隧道已关闭" -ForegroundColor DarkGray
     }
     else {
-        Write-Host "[gm] 隧道保留（ssh pid=$($proc.Id)，本机端口 $LocalPort）" -ForegroundColor DarkGray
+        Write-Host "[deploy/gm] 隧道保留（ssh pid=$($proc.Id)，本机端口 $LocalPort）" -ForegroundColor DarkGray
     }
 }

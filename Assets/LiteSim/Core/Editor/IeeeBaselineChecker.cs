@@ -23,7 +23,6 @@ namespace LiteSim.Editor
         private const string LogTag = "IeeeBaseline";
         private const int MaxReportedMismatches = 10;
 
-        [MenuItem("LiteSim/对账 IEEE 基线")]
         public static void VerifyMenu()
         {
             var (ok, report) = Verify();

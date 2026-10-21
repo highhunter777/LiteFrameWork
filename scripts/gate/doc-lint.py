@@ -211,14 +211,14 @@ def main() -> int:
     viol, warns = scan(root, check_links=not args.no_links)
 
     for w in warns:
-        print(f'[WARN] {w}')
+        print(f'[quality/doc] WARN: {w}')
     for v in viol:
-        print(f'[FAIL] {v}')
+        print(f'[quality/doc] FAIL: {v}')
 
     if viol and not args.warn:
-        print(f'doc-lint FAILED: {len(viol)} violation(s), {len(warns)} warning(s)  (root={root})')
+        print(f'[quality/doc] FAILED: {len(viol)} violation(s), {len(warns)} warning(s)  (root={root})')
         return 1
-    print(f'doc-lint OK: {len(viol)} violation(s), {len(warns)} warning(s)  (root={root})')
+    print(f'[quality/doc] OK: {len(viol)} violation(s), {len(warns)} warning(s)  (root={root})')
     return 0
 
 

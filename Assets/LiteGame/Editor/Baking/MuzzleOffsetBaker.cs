@@ -1,5 +1,6 @@
 using System.Globalization;
 using System.Text;
+using LiteGame.Toolchain;
 using UnityEngine;
 
 namespace LiteGame.EditorTools
@@ -25,6 +26,11 @@ namespace LiteGame.EditorTools
     {
         public static string All()
         {
+            return All(null);
+        }
+
+        public static string All(ToolWriteScope writeScope)
+        {
             var sb = new StringBuilder();
             using (var scope = PrefabEditScope.Open())
             {
@@ -46,7 +52,7 @@ namespace LiteGame.EditorTools
                         "//       参考动画姿态 AimIdle t=0（射弹时刻视觉姿态单族：瞄准=AimIdle、腰射开火窗亦以 AimIdle 填窗）。",
                         "// 坐标：相对 prefab 根的视觉局部系（+Z 前 → Sim 前向；+X 右 → Sim 右向；+Y → 高度），",
                         "//       与 SimView 的 FacingRotation（yaw → 旋转 90°−yaw）配套。",
-                    }, BuildBody(off));
+                    }, BuildBody(off), writeScope);
 
                 sb.AppendLine($"已烘焙：F={off.z:R} R={off.x:R} H={off.y:R}");
                 sb.AppendLine($"来源：{BakeTargets.PrefabPath} 的 Weapon_Rifle/Muzzle @ {BakeTargets.ReferenceClip} t=0");

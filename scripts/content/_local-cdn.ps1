@@ -1,4 +1,4 @@
-# ─────────────────────────────────────────────────────────────────────────────
+﻿# ─────────────────────────────────────────────────────────────────────────────
 # Local CDN config loader (shared by publish-candidate.ps1 / serve-cdn.ps1).
 #
 # Single source of the config FILE PATH and of value resolution:

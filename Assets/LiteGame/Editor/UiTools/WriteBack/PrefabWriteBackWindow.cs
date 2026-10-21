@@ -18,7 +18,7 @@ namespace LiteGame.Editor.UiTools.WriteBack
     public sealed class PrefabWriteBackWindow : EditorWindow
     {
         /// <summary>菜单路径（单源——驱动件按此跳转；守卫用例断言两处同值）。</summary>
-        public const string MenuPath = "LiteGame/UI/回写/Prefab 改动回写";
+        public const string MenuPath = "LiteGame/快捷/Prefab 回写";
 
         private GameObject _target;
         private PrefabWriteBackScanResult _scan;

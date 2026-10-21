@@ -1,3 +1,4 @@
+# @oneshot - one-off pipeline patch replay; not part of the regular toolchain.
 """Replay the com.unity.pipeline 2022.3 compatibility patches.
 
 Implements patch 1 of Docs/UnityPipeline本地补丁与运维.md §2: rewrite the five

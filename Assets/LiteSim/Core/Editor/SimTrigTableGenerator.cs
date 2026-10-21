@@ -18,12 +18,16 @@ namespace LiteSim.Editor
     {
         private const int TableSize = 4096;
         private const int PerLine = 8;
-        private const string OutputPath = "Assets/LiteSim/Core/Scripts/SimTrigTables.cs";
+        public const string OutputPath = "Assets/LiteSim/Core/Scripts/SimTrigTables.cs";
 
-        [MenuItem("LiteSim/生成 SimTrig 查表")]
         public static void Generate()
         {
             string content = BuildContent();
+            if (File.Exists(OutputPath) && File.ReadAllText(OutputPath) == content)
+            {
+                Debug.Log("[LiteSim] SimTrig 查表 up to date：" + OutputPath);
+                return;
+            }
             File.WriteAllText(OutputPath, content, new UTF8Encoding(false));
             AssetDatabase.Refresh();
             Debug.Log("[LiteSim] SimTrig 查表已生成：" + OutputPath + "（" + TableSize + " 项）");

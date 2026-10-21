@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.Text;
+using LiteGame.Toolchain;
 using LiteSim;
 using UnityEditor;
 using UnityEngine;
@@ -48,6 +49,11 @@ namespace LiteGame.EditorTools
 
         public static string All()
         {
+            return All(null);
+        }
+
+        public static string All(ToolWriteScope writeScope)
+        {
             var report = new StringBuilder();
             var config = AssetDatabase.LoadAssetAtPath<RootMotionBakeConfigAsset>(ConfigPath);
             if (config == null)
@@ -82,7 +88,7 @@ namespace LiteGame.EditorTools
                 {
                     "// 源：RootMotionBakeConfig（人形 RootT 曲线 60Hz 采样→毫米量化）；同配置重复烘焙逐字节一致。",
                     "// 改了片段/配置后重烘＋重跑 scripts/codegen/gen-build-hash.py（本文件在 BuildHash 源集内）。",
-                }, BuildBody(entries, digest));
+                }, BuildBody(entries, digest), writeScope);
 
             report.AppendLine($"已烘焙：{entries.Count} 条根位移");
             report.AppendLine($"digest={digest}");

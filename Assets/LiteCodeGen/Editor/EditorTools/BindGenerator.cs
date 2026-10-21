@@ -72,6 +72,12 @@ namespace LiteCodeGen.EditorTools
                 Debug.LogError("[LiteCodeGen] 脚本目录必须以 Assets 开头(当前:" + folder + ")");
                 return false;
             }
+            string policyError;
+            if (BindOutputPolicy.IsForbidden(folder, out policyError))
+            {
+                Debug.LogError("[LiteCodeGen] " + policyError);
+                return false;
+            }
 
             // 2. 写文件
             var mainPath = folder + "/" + className + ".cs";
@@ -82,8 +88,8 @@ namespace LiteCodeGen.EditorTools
 
             EnsureFolderExists(folder);
 
-            var mainChanged = WriteIfChanged(mainPath, mainContent);
-            var designerChanged = WriteIfChanged(designerPath, designerContent);
+            var mainChanged = BindFileWriter.WriteMainIfMissing(mainPath, mainContent);
+            var designerChanged = BindFileWriter.WriteIfChanged(designerPath, designerContent);
 
             root.LastGeneratedClassName = className;
             root.LastGeneratedNamespace = ns;
@@ -189,23 +195,6 @@ namespace LiteCodeGen.EditorTools
                 Directory.CreateDirectory(full);
                 AssetDatabase.Refresh();
             }
-        }
-
-        private static bool WriteIfChanged(string assetsPath, string content)
-        {
-            var full = NormalizeSlash(Path.Combine(Directory.GetCurrentDirectory(), assetsPath));
-            var existed = File.Exists(full);
-            if (existed)
-            {
-                var old = File.ReadAllText(full);
-                if (old == content)
-                {
-                    return false;
-                }
-            }
-
-            File.WriteAllText(full, content, new UTF8Encoding(false));
-            return true;
         }
 
         /// <summary>

@@ -1,8 +1,8 @@
-# ─────────────────────────────────────────────────────────────────────────────
+﻿# ─────────────────────────────────────────────────────────────────────────────
 # Local CDN server (serve the publish root over static HTTP, zero dependencies).
 #
 # Reads scripts/content/local-cdn.json (single source: directory / bind / port) via
-# local-cdn.config.ps1; parameters below OVERRIDE the config for one run.
+# _local-cdn.ps1; parameters below OVERRIDE the config for one run.
 #
 # Usage:
 #   powershell -NoProfile -File scripts/content/serve-cdn.ps1              # per config
@@ -25,7 +25,7 @@ $ErrorActionPreference = 'Stop'
 $here = if ($PSScriptRoot) { $PSScriptRoot } else { Split-Path -Parent $MyInvocation.MyCommand.Path }
 $projectRoot = (Resolve-Path (Join-Path $here '..\..')).Path
 
-$cfg = & (Join-Path $here 'local-cdn.config.ps1')
+$cfg = & (Join-Path $here '_local-cdn.ps1')
 $dir = if ($Directory) { $Directory } else { $cfg.Directory }
 $bind = if ($Bind) { $Bind } else { $cfg.Bind }
 $port = if ($Port -gt 0) { $Port } else { $cfg.Port }

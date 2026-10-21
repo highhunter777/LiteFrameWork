@@ -7,6 +7,7 @@ Assets/ plus all of ProjectSettings/.
 Kept out of Temp/ on purpose: Unity wipes Temp/ on every editor launch, and this
 needs to survive to be re-run after a restart.
 """
+import argparse
 import os
 import re
 import sys
@@ -55,11 +56,15 @@ def collect_missing(present):
     return missing
 
 
-def main():
+def main(argv=None):
+    parser = argparse.ArgumentParser(
+        description="Scan Assets/ProjectSettings for GUID references with no owning asset.")
+    parser.parse_args(argv)
+
     present = collect_present()
     missing = collect_missing(present)
-    print("assets with a guid: %d" % len(present))
-    print("UNRESOLVED GUID references: %d" % len(missing))
+    print("[quality/guids] assets with a guid: %d" % len(present))
+    print("[quality/guids] UNRESOLVED GUID references: %d" % len(missing))
     for g in sorted(missing):
         owners = sorted(missing[g])
         print("  %s  <- %s" % (

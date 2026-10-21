@@ -48,8 +48,7 @@ namespace LiteGame.Editor.UiTools.Binding
         private readonly Dictionary<string, List<UiRefHit>> _refHits = new Dictionary<string, List<UiRefHit>>();
         private readonly Dictionary<string, List<UiRefHit>> _hitCache = new Dictionary<string, List<UiRefHit>>();
 
-        [MenuItem("LiteGame/UI/绑定/绑定标记工具", false, 14)]
-        private static void Open()
+        public static void Open()
         {
             var window = GetWindow<UiBindingWindow>("绑定标记工具");
             window.minSize = new Vector2(520f, 560f);

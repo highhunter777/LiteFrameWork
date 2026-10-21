@@ -53,7 +53,7 @@ namespace LiteGame
 
         /// <summary>回写工具菜单路径（`PrefabWriteBackWindow.MenuPath` 同值——单源由 EditMode 守卫用例钉住，
         /// 两程序集无引用关系故不能直接引用常量）。</summary>
-        private const string WriteBackMenuPath = "LiteGame/UI/回写/Prefab 改动回写";
+        private const string WriteBackMenuPath = "LiteGame/快捷/Prefab 回写";
 
         /// <summary>长文本注入样本（伪本地化富文本检验；单源常量，注入/还原同一份）。</summary>
         private const string LongTextSample = "（长文本溢出检验 LongText-Overflow-Check 0123456789）";

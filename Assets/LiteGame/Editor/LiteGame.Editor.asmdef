@@ -16,6 +16,8 @@
         "LiteGame.LuaBridge",
         "LiteClient.UI",
         "LiteSim.Core",
+        "LiteSim.Core.Editor",
+        "DisciplineScanner.Editor",
         "LiteView",
         "Luban.Tables",
         "Luban.Runtime",

@@ -1,5 +1,6 @@
 using System.Globalization;
 using System.Text;
+using LiteGame.Toolchain;
 using UnityEngine;
 
 namespace LiteGame.EditorTools
@@ -22,6 +23,11 @@ namespace LiteGame.EditorTools
     {
         public static string All()
         {
+            return All(null);
+        }
+
+        public static string All(ToolWriteScope writeScope)
+        {
             var sb = new StringBuilder();
             using (var scope = PrefabEditScope.Open())
             {
@@ -40,7 +46,7 @@ namespace LiteGame.EditorTools
                         "// 语义：Sim 物理体竖直圆柱 [pos.Y, pos.Y + Height]（CC center.y 已校验 == Height/2）。",
                         "// 消费：CombatConfig.BodyRadius（移动去穿插）+ HitscanHeight（站姿高/头带比例基底）+ 视图 CC。",
                         "// 注意：命中柱半径 HitscanRadius（0.45）是判定宽容裁决常量，不是本产物。",
-                    }, BuildBody(cc.radius, cc.height));
+                    }, BuildBody(cc.radius, cc.height), writeScope);
 
                 sb.AppendLine($"已烘焙：Radius={cc.radius:R} Height={cc.height:R}（center.y 校验通过）");
                 sb.AppendLine($"来源：{BakeTargets.PrefabPath} 的 CharacterController");

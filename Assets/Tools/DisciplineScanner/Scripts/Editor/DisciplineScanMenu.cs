@@ -15,7 +15,6 @@ namespace Tools.DisciplineScan.Editor
     /// </summary>
     public static class DisciplineScanMenu
     {
-        [MenuItem("Tools/纪律扫描")]
         public static void ScanMenu()
         {
             List<KeyValuePair<string, LintViolation>> hits = Run();
@@ -31,6 +30,13 @@ namespace Tools.DisciplineScan.Editor
                 Debug.LogError("[DisciplineScanner] 纪律扫描发现 " + hits.Count + " 条违规：\n" + report);
                 EditorUtility.DisplayDialog("纪律扫描", "发现 " + hits.Count + " 条违规，详见 Console。", "OK");
             }
+        }
+
+        /// <summary>工具平台入口：返回违规数与报告，不弹窗。</summary>
+        public static (int violations, string report) RunForTool()
+        {
+            List<KeyValuePair<string, LintViolation>> hits = Run();
+            return (hits.Count, Format(hits));
         }
 
         /// <summary>CI 入口：有违规退出码 1，否则 0。</summary>

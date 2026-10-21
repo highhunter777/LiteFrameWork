@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Text;
+using LiteGame.Toolchain;
 using LiteSim;
 using UnityEditor;
 using UnityEditor.SceneManagement;
@@ -43,28 +44,42 @@ namespace LiteGame.EditorTools
         private const float ScaleEps = 0.0001f;     // 均匀缩放容差（球/胶囊）
 
         /// <summary>工具箱/run_script 入口（首图）：<see cref="Bake"/>（<c>BakeTargets.ArenaMap</c>）。</summary>
-        public static string All() => Bake(BakeTargets.ArenaMap);
+        public static string All() => Bake(BakeTargets.ArenaMap, null);
+
+        public static string All(ToolWriteScope writeScope) => Bake(BakeTargets.ArenaMap, writeScope);
 
         /// <summary>工具箱/run_script 入口（训练场，第二张地图）：<see cref="Bake"/>（<c>BakeTargets.TrainingMap</c>）。</summary>
-        public static string AllTraining() => Bake(BakeTargets.TrainingMap);
+        public static string AllTraining() => Bake(BakeTargets.TrainingMap, null);
+
+        public static string AllTraining(ToolWriteScope writeScope) => Bake(BakeTargets.TrainingMap, writeScope);
 
         /// <summary>工具箱/run_script 入口（**整批**）：按 <see cref="BakeTargets.Maps"/> 逐图烘焙并汇总报告——
         /// 单图失败是 ABORT 报告、不阻断其余图（每图产物相互独立）。**加图＝在注册表加一条**，
         /// 本入口与工具箱「地图」页按钮自动跟随。</summary>
         public static string BakeAll()
         {
+            return BakeAll(null);
+        }
+
+        public static string BakeAll(ToolWriteScope writeScope)
+        {
             var sb = new StringBuilder();
             for (int i = 0; i < BakeTargets.Maps.Length; i++)
             {
                 if (i > 0) sb.Append('\n');
                 BakeTargets.MapTarget target = BakeTargets.Maps[i];
-                sb.Append("== ").Append(target.MapName).Append(" ==\n").Append(Bake(target));
+                sb.Append("== ").Append(target.MapName).Append(" ==\n").Append(Bake(target, writeScope));
             }
             return sb.ToString();
         }
 
         /// <summary>烘焙一个地图目标：定位场景 MapCollision 根 → <see cref="Collect"/> → 写盘（每图一文件）→ 报告。</summary>
         internal static string Bake(BakeTargets.MapTarget target)   // 目标类型 internal——对外入口只留 All/AllTraining
+        {
+            return Bake(target, null);
+        }
+
+        internal static string Bake(BakeTargets.MapTarget target, ToolWriteScope writeScope)
         {
             if (!System.IO.File.Exists(target.ScenePath))
                 return "ABORT 缺地图场景：" + target.ScenePath;
@@ -104,7 +119,7 @@ namespace LiteGame.EditorTools
                 var sb = new StringBuilder(report);
                 if (scene.isDirty)
                     sb.AppendLine("注意：场景有未保存改动——本次烘焙包含未保存状态（建议先保存场景再重烘）");
-                sb.AppendLine(BakeTargets.WriteArtifact(target.Output, jsonText));
+                sb.AppendLine(BakeTargets.WriteArtifact(target.Output, jsonText, writeScope));
                 sb.Append("提醒：产物是 Luban 数据源（非 .bytes）——需手动跑 Luban/gen.bat；"
                     + "跑完重跑 python scripts/codegen/gen-build-hash.py（生成读码面在 BuildHash 闭包内）。");
                 return sb.ToString();

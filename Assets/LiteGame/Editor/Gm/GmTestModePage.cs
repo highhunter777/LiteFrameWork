@@ -29,6 +29,7 @@ namespace LiteGame.Editor
             DrawHeadTuneBlock();
             DrawGripTuneBlock();
             DrawCrosshairTuneBlock();
+            DrawLookTuneBlock();
         }
 
         // ---- 联机测试房（云端 GM；联机形态下上方"现场开关"只作用于进程内本地服）----
@@ -323,6 +324,78 @@ namespace LiteGame.Editor
                 "对局内拖动即生效（连发开一枪逐发张开、后坐逐发上跳回弹——当场试手感）；覆写只存在于本机运行时，"
                 + "定档后把值写回 Luban/Data/#crosshair.xlsx 表源（改完 Luban/gen.bat 重生成）。release 无此面（恒表值）。",
                 MessageType.Info);
+        }
+
+        // ---- 视角调参实时调（TPS 自由视角——灵敏度/ADS 收敛的定档面；FOV/构图现场试）----
+
+        /// <summary>视角调参实时调（运行时覆写，不落盘）。灵敏度/ADS 收敛比走 <see cref="LookTuning"/>
+        /// 覆写（定档后写回 BattleViewRig 机制常量）；FOV 直写运行时 vcam lens（场景值单源在
+        /// BattleRig.unity——Play 退出即回场景值，定档后写回场景）。</summary>
+        private static void DrawLookTuneBlock()
+        {
+            EditorGUILayout.Space(6);
+            EditorGUILayout.LabelField("视角调参实时调（运行时覆写，不落盘）", EditorStyles.boldLabel);
+            const float refSens = 0.0025f;    // LookSensitivityRadPerPixel（BattleViewRig 机制常量）
+            const float refAds = 0.6f;        // AdsLookSensitivityScale（同上）
+            const float refFov = 75f;         // Player 机场景 FOV（BattleRig.unity）
+            const float refAdsFov = 55f;      // Aim 机场景 FOV
+            EditorGUI.BeginChangeCheck();
+            float sens = SliderOf("视角灵敏度（rad/px）", LookTuning.SensitivityDevOverride, refSens, 0.0005f, 0.008f);
+            float ads = SliderOf("ADS 灵敏度收敛比", LookTuning.AdsScaleDevOverride, refAds, 0.1f, 1f);
+            float fov = EditorGUILayout.Slider("腰射 FOV（写 Player 机）", FindVcamFov("Player Camera", refFov), 60f, 100f);
+            float adsFov = EditorGUILayout.Slider("ADS FOV（写 Aim 机）", FindVcamFov("Aim Camera", refAdsFov), 45f, 70f);
+            if (EditorGUI.EndChangeCheck())
+            {
+                LookTuning.SensitivityDevOverride = sens;
+                LookTuning.AdsScaleDevOverride = ads;
+                SetVcamFov("Player Camera", fov);
+                SetVcamFov("Aim Camera", adsFov);
+            }
+            EditorGUILayout.LabelField(
+                $"参照（机制常量/场景值）：灵敏度 {refSens} / ADS 收敛 {refAds} / FOV {refFov}→{refAdsFov}"
+                + " —— FOV 直写运行时 vcam（Play 退出回场景值）",
+                EditorStyles.wordWrappedLabel);
+            if (GUILayout.Button("复位（回常量/场景值）"))
+            {
+                LookTuning.SensitivityDevOverride = -1f;
+                LookTuning.AdsScaleDevOverride = -1f;
+                SetVcamFov("Player Camera", refFov);
+                SetVcamFov("Aim Camera", refAdsFov);
+            }
+            EditorGUILayout.HelpBox(
+                "对局内拖动即生效（灵敏度即拖即试；FOV 直写 vcam）。定档后把灵敏度写回 BattleViewRig 机制常量、"
+                + "FOV 写回 BattleRig.unity（场景 Inspector 单源）。release 无此面（恒常量/场景值）。",
+                MessageType.Info);
+        }
+
+        /// <summary>按名找运行时 vcam（CinemachineVirtualCamera 组件——按串取，Editor 程序集不引
+        /// Cinemachine 装配，lens 经 SerializedObject 读写，避免为调参面扩装配依赖）。
+        /// 找不到（BattleRig 未加载/非 Play）= null。</summary>
+        private static UnityEngine.Component FindVcam(string vcamName)
+        {
+            var go = UnityEngine.GameObject.Find(vcamName);
+            return go != null ? go.GetComponent("CinemachineVirtualCamera") : null;
+        }
+
+        /// <summary>读 vcam FOV（找不到 = 参照值兜底显示）。</summary>
+        private static float FindVcamFov(string vcamName, float fallback)
+        {
+            var vcam = FindVcam(vcamName);
+            if (vcam == null) return fallback;
+            var lens = new UnityEditor.SerializedObject(vcam).FindProperty("m_Lens");
+            var fov = lens?.FindPropertyRelative("FieldOfView");
+            return fov != null ? fov.floatValue : fallback;
+        }
+
+        private static void SetVcamFov(string vcamName, float fov)
+        {
+            var vcam = FindVcam(vcamName);
+            if (vcam == null) return;
+            var so = new UnityEditor.SerializedObject(vcam);
+            var fovProp = so.FindProperty("m_Lens")?.FindPropertyRelative("FieldOfView");
+            if (fovProp == null) return;
+            fovProp.floatValue = fov;
+            so.ApplyModifiedPropertiesWithoutUndo();   // 运行时内存值——Play 退出即回场景值
         }
 
         /// <summary>单条滑杆：覆写在位显示覆写值，否则显示参照值（表值/机制常量）——拖动即写覆写。</summary>

@@ -84,6 +84,18 @@ try {
 }
 finally { Pop-Location }
 
+# -- 5) toolchain manifest / docs / external surfaces --------------------------
+$toolchainCli = Join-Path $ProjectPath 'scripts\toolchain.py'
+if (Test-Path $toolchainCli) {
+    & python $toolchainCli check
+    if ($LASTEXITCODE -ne 0) {
+        $violations.Add('toolchain check failed: manifest/docs/surfaces are inconsistent (see output above)')
+    }
+}
+else {
+    $violations.Add('toolchain CLI missing: scripts/toolchain.py')
+}
+
 Write-Host "L0 dependency & secret scan | project: $ProjectPath" -ForegroundColor White
 if ($violations.Count -eq 0) {
     Write-Host '  [PASS] deps reproducible, zero floating deps, vendored licenses kept, no secret hits' -ForegroundColor Green

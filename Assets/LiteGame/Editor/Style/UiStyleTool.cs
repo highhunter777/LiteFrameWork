@@ -35,7 +35,6 @@ namespace LiteGame.EditorTools.UI
         /// <summary>命中阈值：颜色到 token 的平方距离 ≤ 此值视为该 token 的实例（吸收浮点噪声与离散变体）。</summary>
         private const float HitEpsilon = 1e-4f;
 
-        [MenuItem("LiteGame/UI/样式工具/刷新 UI 颜色（按 token 收敛）")]
         public static void ApplyColors() => ApplyColors(DefaultScanDirs);
 
         /// <summary>刷新（扫描根可注入）：命中 token 的 Graphic 颜色改写为 token 现值。返回 (改动 prefab 数, 改动颜色数)。</summary>
@@ -75,7 +74,6 @@ namespace LiteGame.EditorTools.UI
             return (changedPrefabs, changedGraphics);
         }
 
-        [MenuItem("LiteGame/UI/样式工具/对账 UI 颜色（漂移报告）")]
         public static void MenuReportDrift()
         {
             var drifts = ReportDrift(DefaultScanDirs);

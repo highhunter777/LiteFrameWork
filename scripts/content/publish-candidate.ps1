@@ -1,4 +1,4 @@
-# ─────────────────────────────────────────────────────────────────────────────
+﻿# ─────────────────────────────────────────────────────────────────────────────
 # Candidate publish layouter (CDN channel publish side; Content design §7 deploy contract)
 #
 # Purpose: lay out a candidate content directory into the **CDN layout** and produce
@@ -12,7 +12,7 @@
 #       -ContentDir <candidate-dir> [-CdnRoot <dir>] [-ReleaseId rel-local-001] [-Revision 1]
 #       [-BundleSource <yooasset-package-root>]
 #   (CdnRoot empty = scripts/content/local-cdn.json "directory"; address/port come from the
-#    same config via local-cdn.config.ps1)
+#    same config via _local-cdn.ps1)
 #   (-BundleSource = optional YooAsset package root (e.g. the build output directory of
 #    BuiltinBundleBuildInvoker.RunForCandidate); its CONTENTS are mirrored into
 #    <ContentDir>/bundle first -- the candidate asset-bundle segment scanned by
@@ -66,7 +66,7 @@ $projectRoot = (Resolve-Path (Join-Path $here '..\..')).Path
 
 # serve directory / address: single source = scripts/content/local-cdn.json (loader fails
 # loudly when missing); script parameters still override for one-off runs.
-$cdn = & (Join-Path $here 'local-cdn.config.ps1')
+$cdn = & (Join-Path $here '_local-cdn.ps1')
 $cdnFull = if ($CdnRoot) {
     if ([IO.Path]::IsPathRooted($CdnRoot)) { $CdnRoot } else { Join-Path $projectRoot $CdnRoot }
 } else { $cdn.Directory }

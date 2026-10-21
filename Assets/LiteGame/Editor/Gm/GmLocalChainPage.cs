@@ -4,6 +4,7 @@ using System.Diagnostics;
 using System.IO;
 using System.Text;
 using System.Threading.Tasks;
+using LiteGame.Toolchain;
 using UnityEditor;
 using UnityEngine;
 
@@ -47,12 +48,12 @@ namespace LiteGame.Editor
 
         private string _root;
         private string _envFile;
-        private bool _probing;
-        private bool _dirty;
+        private volatile bool _probing;
+        private volatile bool _dirty;
         private double _nextTick;
 
         // ---- 后台探针快照（主线程读，后台写——单写者+易失读足够）----
-        private ProbeSnapshot _snap = new ProbeSnapshot();
+        private volatile ProbeSnapshot _snap = new ProbeSnapshot();
         private Process _metaProc;
         private Process _roomProc;
 
@@ -103,7 +104,7 @@ namespace LiteGame.Editor
             if (_dirty)
             {
                 _dirty = false;
-                EditorWindow.GetWindow<GmPanel>().Repaint();
+                EditorWindow.GetWindow<LiteGameToolboxWindow>().Repaint();
             }
         }
 
@@ -115,9 +116,21 @@ namespace LiteGame.Editor
             string envFile = _envFile;
             Task.Run(() =>
             {
-                ProbeSnapshot s = Probe(root, envFile, _metaProc, _roomProc);
-                _snap = s;
-                _dirty = true;
+                try
+                {
+                    _snap = Probe(root, envFile, _metaProc, _roomProc);
+                    _dirty = true;
+                }
+                catch (Exception exception)
+                {
+                    var snapshot = new ProbeSnapshot { LastError = exception.Message };
+                    _snap = snapshot;
+                    _dirty = true;
+                }
+                finally
+                {
+                    _probing = false;
+                }
             });
         }
 

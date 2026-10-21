@@ -1,0 +1,2 @@
+# Engineering scripts are text; keep checkouts stable across Windows/Linux.
+scripts/** text eol=lf

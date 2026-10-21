@@ -92,7 +92,6 @@ namespace LiteGame.Editor.UiTools.Validation
 
         // ---------------- 入口：菜单 / CLI ----------------
 
-        [MenuItem("LiteGame/UI/校验/校验 UI 资产", false, 20)]
         private static void MenuValidate()
         {
             var report = Run();

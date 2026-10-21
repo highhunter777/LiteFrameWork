@@ -300,7 +300,6 @@ namespace LiteGame.Editor.UiTools.Binding
 
         // ---------------- 菜单入口（记录是作者动作；校验走校验核心规则） ----------------
 
-        [MenuItem("LiteGame/UI/绑定/生成物 hash/记录（选中 Prefab）", false, 62)]
         private static void MenuRecordSelected()
         {
             int done = 0;
@@ -313,7 +312,6 @@ namespace LiteGame.Editor.UiTools.Binding
             if (done == 0) Debug.LogWarning("[UI 绑定] 未选中 prefab 资产——在 Project 面板选中后重试");
         }
 
-        [MenuItem("LiteGame/UI/绑定/生成物 hash/记录（全部）", false, 63)]
         private static void MenuRecordAll()
         {
             int pruned = PruneOrphans();
@@ -326,8 +324,18 @@ namespace LiteGame.Editor.UiTools.Binding
             Debug.Log($"[UI 绑定] 重记录完成：{done} 个 BindRoot prefab（清理残留 {pruned} 条）");
         }
 
-        [MenuItem("LiteGame/UI/绑定/生成物 hash/记录（全部）", true)]
-        private static bool ValidateMenuRecordAll() => CollectBindRootPrefabs().Count > 0;
+
+        /// <summary>工具平台入口：记录全部 BindRoot prefab。</summary>
+        public static void RecordAllForTool()
+        {
+            MenuRecordAll();
+        }
+
+        /// <summary>工具平台入口：记录当前选中的 prefab。</summary>
+        public static void RecordSelectedForTool()
+        {
+            MenuRecordSelected();
+        }
 
         private static List<string> CollectBindRootPrefabs()
         {

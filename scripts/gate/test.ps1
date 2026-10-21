@@ -121,20 +121,25 @@ function Invoke-DotNetLane([string]$name, [string]$filter, [string]$hangTimeout)
 function Invoke-DocLint {
     # Documentation hygiene: design-vs-progress separation + audit-table status backfill.
     # Rule source of truth: scripts/gate/doc-lint.py (standalone gate; run via -Lane Doc).
+    # The generated tool index is checked here so the manifest projection cannot go stale.
     Write-Host "`n=== doc-lint | $Profile ===" -ForegroundColor Cyan
     $script = Join-Path $ProjectPath 'scripts/gate/doc-lint.py'
     if (-not (Test-Path $script)) { throw "doc-lint script missing: $script" }
+    $toolchain = Join-Path $ProjectPath 'scripts/toolchain.py'
+    if (-not (Test-Path $toolchain)) { throw "toolchain CLI missing: $toolchain" }
     $prevPyIo = $env:PYTHONIOENCODING
     $env:PYTHONIOENCODING = 'utf-8'
     try {
         & python $script --root $ProjectPath
+        if ($LASTEXITCODE -ne 0) { throw "doc-lint failed with exit code $LASTEXITCODE (see output above)." }
+        & python $toolchain docs --check
+        if ($LASTEXITCODE -ne 0) { throw "tool index is stale; run: python scripts/toolchain.py docs" }
     }
     finally {
         if ($null -eq $prevPyIo) { Remove-Item Env:PYTHONIOENCODING -ErrorAction SilentlyContinue }
         else { $env:PYTHONIOENCODING = $prevPyIo }
     }
-    if ($LASTEXITCODE -ne 0) { throw "doc-lint failed with exit code $LASTEXITCODE (see output above)." }
-    Write-Host "  [PASS] doc-lint completed." -ForegroundColor Green
+    Write-Host "  [PASS] doc-lint + tool index completed." -ForegroundColor Green
 }
 
 function Invoke-L1 {

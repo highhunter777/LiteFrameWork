@@ -1,4 +1,4 @@
-<#
+﻿<#
 .SYNOPSIS
     给测试者开一条 WireGuard 隧道（云上生成密钥 + 追加 peer + 重装隧道服务 → 本机落地 .conf）。
 
@@ -17,8 +17,9 @@
     pwsh -NoProfile -File scripts/deploy/wg-peer.ps1 -Name alice
     pwsh -NoProfile -File scripts/deploy/wg-peer.ps1 -Name bob -Ip 10.8.0.9 -DryRun
 #>
+[CmdletBinding()]
 param(
-    [Parameter(Mandatory = $true)][string]$Name,
+    [string]$Name = '',
     [string]$Ip = '',
     [string]$Endpoint = '',
     [switch]$DryRun,
@@ -27,15 +28,19 @@ param(
 )
 
 $ErrorActionPreference = 'Stop'
+if ([string]::IsNullOrWhiteSpace($Name)) {
+    Write-Output '[deploy/wg] usage: wg-peer.ps1 -Name <tester> [-Ip <addr>] [-Endpoint <host:port>] [-DryRun]'
+    exit 2
+}
+if ($Name -notmatch '^[A-Za-z0-9_-]{1,32}$') {
+    Write-Output '[deploy/wg] invalid name: use letters, digits, underscore or hyphen (<=32)'
+    exit 2
+}
 . (Join-Path $PSScriptRoot '_ssh-host.ps1')
 if ([string]::IsNullOrWhiteSpace($SshHost)) { $SshHost = Resolve-LiteGameSshHost }
 $repo = (Resolve-Path (Join-Path $PSScriptRoot '..\..')).Path
 if (-not $OutDir) { $OutDir = Join-Path $repo 'Dist/out' }
 New-Item -ItemType Directory -Force -Path $OutDir | Out-Null
-
-if ($Name -notmatch '^[A-Za-z0-9_-]{1,32}$') {
-    throw '名字只允许字母/数字/下划线/短横线（≤32）'
-}
 
 if (-not $Endpoint) {
     $md = Join-Path $repo 'LocalNotes/cloud-host.md'
@@ -121,13 +126,13 @@ $confPath = Join-Path $OutDir ($Name + '.conf')
 Set-Content -Path $confPath -Value $m.Groups['conf'].Value -Encoding ascii
 
 $addr = [regex]::Match($out, 'ADDR (\S+)').Groups[1].Value
-Write-Host "[wg] $Name -> $addr（隧道内）" -ForegroundColor Green
-Write-Host "[wg] 客户端配置：$confPath" -ForegroundColor Green
+Write-Host "[deploy/wg] $Name -> $addr（隧道内）" -ForegroundColor Green
+Write-Host "[deploy/wg] 客户端配置：$confPath" -ForegroundColor Green
 if ($DryRun) {
-    Write-Host '[wg] DryRun：未改云上配置、也未重装隧道——该 .conf 暂不可用' -ForegroundColor Yellow
+    Write-Host '[deploy/wg] DryRun：未改云上配置、也未重装隧道——该 .conf 暂不可用' -ForegroundColor Yellow
 }
 else {
-    Write-Host '[wg] 已写入 wg0.conf 并重装隧道服务（生效）' -ForegroundColor Green
+    Write-Host '[deploy/wg] 已写入 wg0.conf 并重装隧道服务（生效）' -ForegroundColor Green
 }
 
 # 私钥只在该 .conf 里：一人一份、不回传、不截图

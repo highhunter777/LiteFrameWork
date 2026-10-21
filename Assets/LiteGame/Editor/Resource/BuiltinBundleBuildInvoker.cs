@@ -26,7 +26,6 @@ namespace LiteGame.EditorTools
         private static string NewVersion() =>
             "1.0-" + DateTime.UtcNow.ToString("yyyyMMddHHmmss", System.Globalization.CultureInfo.InvariantCulture);
 
-        [MenuItem("LiteGame/Resource/构建内置 Bundle 包（Offline）")]
         public static void BuildFromMenu()
         {
             Run();
@@ -91,7 +90,6 @@ namespace LiteGame.EditorTools
         /// 产物目录经 <paramref name="outputDirectory"/> 返回（同时记录到 <see cref="LastOutputDirectory"/>），
         /// 由发布脚本以 `publish-candidate.ps1 -BundleSource &lt;dir&gt;` 打成候选的 `bundle/` 段。
         /// </summary>
-        [MenuItem("LiteGame/Resource/样例：构建候选 Bundle（不覆盖内置包）")]
         public static void RunForCandidateFromMenu()
         {
             RunForCandidate(out string dir);

@@ -33,11 +33,9 @@ namespace LiteGame.EditorTools
         public const float SeedHalfExtent = 50f;
 
         /// <summary>补齐缺失件（**非破坏**）：已有件一律不动——手工调过的布点是场景事实，重跑不抹。</summary>
-        [MenuItem("LiteGame/地图/训练场布点：补齐缺失件（非破坏）")]
         public static void EnsureSeedMenu() => Debug.Log("[TrainingGroundLayout]\n" + EnsureSeed());
 
         /// <summary>全量重建种子布点（清旧 MapCollision——"回到种子"用；幂等）。</summary>
-        [MenuItem("LiteGame/地图/训练场布点：全量重建种子")]
         public static void RebuildSeedMenu() => Debug.Log("[TrainingGroundLayout]\n" + RebuildSeed());
 
         /// <summary>补齐缺失件入口（工具箱/run_script 可直调；返回多行报告）。</summary>

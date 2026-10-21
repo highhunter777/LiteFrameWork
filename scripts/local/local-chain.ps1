@@ -1,3 +1,29 @@
+<#
+.SYNOPSIS
+    Local test chain: initialize machine-private keys and start Meta/RoomServer.
+
+.DESCRIPTION
+    Commands:
+      init    write deploy/.env (5 keys) + Assets/StreamingAssets/deploy.args
+      meta    build MetaServer and start it in a new console window
+      room    start RoomServer in a new console window
+      up      meta + room
+      status  show BuildHash/process/port/Mongo/bake overview
+      keys    print masked key summary
+
+    Keys live in deploy/.env (gitignored). Regenerating requires -Force on init.
+    The full chain needs local MongoDB running.
+
+.PARAMETER Command
+    One of: init, meta, room, up, status, keys.
+
+.PARAMETER Force
+    Allow init to overwrite an existing deploy/.env.
+
+.EXAMPLE
+    pwsh -NoProfile -File scripts/local/local-chain.ps1 init
+    pwsh -NoProfile -File scripts/local/local-chain.ps1 up
+#>
 # ==============================================================================
 # Local test chain - one command per server, keys kept machine-private.
 #
@@ -16,8 +42,9 @@
 # Keys live in deploy/.env (gitignored). Regenerating requires -Force on init.
 # Full chain needs local MongoDB running (Mongo keys filled = persistence on).
 # NOTE: keep this file ASCII-only (PS 5.1 GBK parsing of non-BOM UTF-8).
-# Usage: powershell -NoProfile -File scripts/local/local-chain.ps1 <command> [-Force]
+# Usage: pwsh -NoProfile -File scripts/local/local-chain.ps1 <command> [-Force]
 # ==============================================================================
+
 [CmdletBinding()]
 param(
     [Parameter(Position = 0)][string]$Command = '',
@@ -57,7 +84,7 @@ function Read-DotEnv([string]$path) {
 
 function Get-Config {
     if (-not (Test-Path $envFile)) {
-        Write-Host "deploy/.env not found - run: local-chain.ps1 init" -ForegroundColor Red
+        Write-Host "[local/chain] deploy/.env not found - run: local-chain.ps1 init" -ForegroundColor Red
         exit 1
     }
     return Read-DotEnv $envFile
@@ -145,7 +172,10 @@ function Invoke-Meta {
     $cfg = Get-Config
     Write-Host 'building MetaServer...' -ForegroundColor Cyan
     dotnet build (Join-Path $root 'Server\MetaServer\MetaServer.csproj') --nologo -v q
-    if ($LASTEXITCODE -ne 0) { Write-Host 'MetaServer build failed' -ForegroundColor Red; exit $LASTEXITCODE }
+    if ($LASTEXITCODE -ne 0) {
+        Write-Host "[local/chain] MetaServer build failed (exit $LASTEXITCODE)" -ForegroundColor Red
+        exit 1
+    }
     $binSettings = Join-Path $root 'Server\MetaServer\bin\Debug\net8.0\appsettings.json'
     ConvertTo-MetaAppSettings $cfg $binSettings
     Write-Host 'keys applied to bin appsettings.json' -ForegroundColor Green
@@ -271,13 +301,13 @@ switch ($Command) {
     'keys' { Invoke-Keys (Get-Config) }
     'status' { Invoke-Status }
     default {
-        Write-Host 'Usage: local-chain.ps1 <init|meta|room|up|status|keys> [-Force]' -ForegroundColor Cyan
+        Write-Host '[local/chain] Usage: local-chain.ps1 <init|meta|room|up|status|keys> [-Force]' -ForegroundColor Cyan
         Write-Host '  init   write deploy/.env (5 keys) + editor deploy.args' -ForegroundColor Gray
         Write-Host '  meta   start MetaServer (keys from deploy/.env)' -ForegroundColor Gray
         Write-Host '  room   start RoomServer (keys from deploy/.env)' -ForegroundColor Gray
         Write-Host '  up     meta + room' -ForegroundColor Gray
         Write-Host '  status client/server environment overview (hash/processes/ports/bake)' -ForegroundColor Gray
         Write-Host '  keys   masked key summary' -ForegroundColor Gray
-        exit 1
+        exit 2
     }
 }

@@ -22,8 +22,7 @@ namespace LiteGame.Editor.UiTools.Compose
         /// <summary>四个分区共属的页签组名（<c>[TabGroup(组名, 页签名)]</c>）。</summary>
         private const string TabGroupName = "Compose";
 
-        [MenuItem("LiteGame/UI/编排/UI 编排面板", false, 16)]
-        private static void Open()
+        public static void Open()
         {
             var window = GetWindow<UiComposeWindow>("UI 编排面板");
             window.minSize = new Vector2(680f, 660f);

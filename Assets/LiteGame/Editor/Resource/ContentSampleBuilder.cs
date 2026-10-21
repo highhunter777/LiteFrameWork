@@ -32,7 +32,6 @@ namespace LiteGame.EditorTools
         /// <summary>宽路径（三层迁移前的整目录收集——登记时发现即迁移收窄，防重叠复现）。</summary>
         private const string WideCollectPathLegacy = "Assets/ShareResource";
 
-        [MenuItem("LiteGame/Resource/样例内容：生成标记素材与收集组")]
         public static void BuildFromMenu()
         {
             GenerateMarkerAssets();

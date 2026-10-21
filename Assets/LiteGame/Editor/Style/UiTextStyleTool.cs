@@ -48,14 +48,12 @@ namespace LiteGame.EditorTools.UI
             "Assets/ShareResource/UI/Screens",
         };
 
-        [MenuItem("LiteGame/UI/样式工具/应用文字档（按标记收敛）")]
         public static void MenuApply()
         {
             var (prefabs, writes) = ApplyTextStyles(DefaultScanDirs);
             Debug.Log($"[UiTextStyleTool] 应用完成：{prefabs} 个 prefab / {writes} 处属性收敛到档位现值");
         }
 
-        [MenuItem("LiteGame/UI/样式工具/对账文字档（漂移报告）")]
         public static void MenuReport()
         {
             var issues = ReportTextDrift(DefaultScanDirs);

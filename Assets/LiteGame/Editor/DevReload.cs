@@ -20,7 +20,7 @@ namespace LiteGame.Editor
     /// </summary>
     public static class LuaDevReload
     {
-        [MenuItem("LiteGame/Lua/Reload Env %&r")]
+        [MenuItem("LiteGame/快捷/Lua Reload Env %&r")]
         private static void Reload()
         {
             if (!Application.isPlaying)
@@ -29,6 +29,12 @@ namespace LiteGame.Editor
                 return;
             }
             ReloadAsync().Forget();                        // 一行转发，禁止 async void
+        }
+
+        /// <summary>工具平台入口：与菜单同一条 Reload 路径。</summary>
+        public static void ReloadForTool()
+        {
+            Reload();
         }
 
         private static async UniTaskVoid ReloadAsync()

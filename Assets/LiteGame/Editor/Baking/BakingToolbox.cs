@@ -31,8 +31,7 @@ namespace LiteGame.EditorTools
         private string _report = "";
         private readonly HeadHitLineTuner _headTuner = new HeadHitLineTuner();
 
-        [MenuItem("LiteGame/烘焙工具箱")]
-        private static void Open()
+        public static void Open()
         {
             var window = GetWindow<BakingToolbox>("烘焙工具箱");
             window.minSize = new Vector2(420, 320);
