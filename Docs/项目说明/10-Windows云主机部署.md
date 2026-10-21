@@ -1,7 +1,7 @@
 # 10-Windows 云主机部署操作手册（原生形态）
 
 > **本文定位**：回答"云主机是 Windows（Server Core、无桌面）时，怎么把 Meta + Room + Mongo + WireGuard 这一套装起来、跑起来、自检过"。
-> **不做的事**：不解释项目机制（归 [03](03-技术细节-客户端.md)/[04](04-技术细节-Sim与联机.md)）；不重复客户端侧接入与联机测试用例（归 [09-上云联机测试](09-上云联机测试.md)）；不裁决验收标准（归《上云测试专项设计》§6）。
+> **不做的事**：不解释项目机制（归 [03](03-技术细节-客户端.md)/[04](04-技术细节-Sim与联机.md)）；不重复客户端接入与联机测试流程（现行归 [11-联机测试流程](11-联机测试流程.md)，Linux 旧形态细节归 [09-上云联机测试](09-上云联机测试.md)）；不裁决验收标准（归《上云测试专项设计》§6）。
 > **冲突裁决**：与服务器实际状态不一致以实机为准，并顺手修本文。
 > **现行形态**：2026-10-18 起云侧为**本形态**（用户裁决换用 Windows Server 2025）；[09 手册 §2](09-上云联机测试.md) 的 Docker/compose 形态对应 `deploy/` 制品，保留备用（换回 Linux 主机时照用）。
 
@@ -48,6 +48,8 @@ C:\litegame\
   ├─ room\        RoomServer.exe + roomserver.json + run.cmd + out.log/err.log
   ├─ GameData\Config\   玩法表 .bytes（与客户端同一份；--combat-table 指这里）
   ├─ wg\          server.key / server.pub / wg0.conf（服务端隧道）
+  ├─ python\      embedded Python 3.12（remote_runner 运行时，不写 PATH）
+  ├─ remote_runner.py  云上 Python 执行入口（deploy-room/wg-peer 自动上传）
   └─ mongo\       bin\（mongod/mongosh）+ data\ + log\ + mongod.cfg
 ```
 
@@ -64,6 +66,26 @@ tar -czf - -C Builds/win-server meta room GameData | ssh <host> "tar -xzf - -C C
 产物大小：`meta` 约 105 MB、`room` 约 73 MB（自包含，含运行时）。服务器上**不装 SDK**（2 核小机没必要）。
 
 > **玩法表必须与二进制同批**：`scripts/deploy/deploy-room.py` 默认把 `Assets/GameData/Config` 一起同步（`--skip-tables` 可跳过）。只换 Room 二进制、不传表时，客户端会在 `StartGame` 阶段以「玩法数据身份不符（ConfigHash）」**拒整局**——这是数据面守卫（判定面表字节 + 本局规则的运行期摘要），不是网络问题。判据：Room 启动日志 `[Tables] 玩法数据身份基摘要:0x…` 应与客户端日志「本地基摘要」同值（2026-10-19 实测：`Map/tbmap.bytes` 未传 ⇒ 服务端 `0xb0102ea9` vs 客户端 `0xa8a7e328`）。
+
+### 2.1 云上 Python 与 `remote_runner.py`
+
+`deploy-room.py` / `wg-peer.py` 的云上动作不再内嵌 PowerShell 字符串，而是上传 `deploy/remote_runner.py` 为 `C:\litegame\remote_runner.py`，用云上 Python 执行（stdlib-only）：
+
+```powershell
+# 一次性/升级时：下载 pinned embeddable Python、校验 SHA256、解压到 C:\litegame\python，并上传 runner
+python scripts/deploy/bootstrap-cloud-python.py                 # 已装则只上传 runner
+python scripts/deploy/bootstrap-cloud-python.py --dry-run       # 只看计划（--what-if 为兼容别名）
+python scripts/deploy/bootstrap-cloud-python.py --force         # 强制重装运行时
+
+# 日常部署：ensure_remote_ready 自动探测并上传 runner；未装 Python 会提示先跑 bootstrap
+python scripts/deploy/deploy-room.py
+python scripts/deploy/wg-peer.py --name alice
+```
+
+- 默认运行时 = `C:\litegame\python\python.exe`（embedded，不写 PATH、不装系统包）；如改用系统 Python，设 `LITEGAME_REMOTE_PYTHON=python`。
+- `bootstrap-cloud-python.py` 默认 pin Python 3.12.9 + SHA256；自定义 `--python-url` 时必须同时给 `--sha256`（否则会跳过校验并告警）。
+- `remote_runner.py` 提供 `room-stop` / `room-start` / `room-status` / `wg-peer` 四个动作；日志/错误保持 ASCII，私钥只经 stdout 回传到本机 `.conf`，不落云上日志。中文系统的 `schtasks` 状态字段是 `模式:`（值如 `正在运行`），runner 已按代码页解码。
+- 云端 Python 缺失时，`deploy-room`/`wg-peer` 会在停服/上传前 fail-fast，避免半截部署。
 
 ---
 
@@ -138,7 +160,7 @@ Host litegame-cloud-tunnel
 ```
 
 - **首次接入先核对 host key**（确认是同一台主机）：`ssh-keyscan -T 10 -p 22 10.8.0.1` 的三把键应与 `ssh-keygen -F <公网IP>` 的输出逐字节相同；相同再接受。
-- **脚本已默认自动解析**：`scripts/deploy/` 的 `deploy-room.py` / `gm.py` / `wg-peer.py` 共用 `_ssh_host.py`——探测 `10.8.0.1:22` 可达且别名已配 → 用隧道别名；否则回退 `litegame-cloud` 并打印原因。可用 `--ssh-host` 或环境变量 `LITEGAME_SSH_HOST` 强制指定。
+- **脚本默认只走隧道**：`scripts/deploy/` 的 `deploy-room.py` / `gm.py` / `wg-peer.py` 共用 `_ssh_host.py`——探测 `10.8.0.1:22` 可达且别名已配 → 用隧道别名；不可达/别名不符会直接 fail-fast，提示检查 WireGuard。**不再自动回退公网**；破窗时显式 `--ssh-host litegame-cloud` 或设 `LITEGAME_SSH_HOST=litegame-cloud`（需临时开放安全组 22）。
 - 本机隧道服务开机自启：`WireGuardTunnel$wg-dev`（StartType=Automatic）；起不来先 `Get-Service 'WireGuardTunnel$wg-dev'`。
 
 **安全组**：只保留 `UDP 51820`（测试者也走它）；**删除 `22/tcp` 的入方向规则**。`5000`/`17777` 本就只绑 `10.8.0.1`（公网不可达），无需放行。
@@ -151,7 +173,7 @@ Host litegame-cloud-tunnel
 **常见现象**：
 
 - `ssh litegame-cloud` 超时、但 `10.8.0.1:5000` 通 ⇒ **正常**（公网 22 已关），改用隧道别名；
-- 隧道也连不上 ⇒ 查本机 `WireGuardTunnel$wg-dev` 与云上 `WireGuardTunnel$wg0`；
+- 隧道也连不上 ⇒ 查本机 `WireGuardTunnel$wg-dev` 与云上 `WireGuardTunnel$wg0`；若公网 IP 能 ping 通但 `10.8.0.1` ping/22 不通，是**云端 WireGuard 服务/握手问题**，公网 22 已关，需 ECS 控制台按 §4.1 破窗修隧道；
 - 挂代理（TUN/全局）时公网出口会变成代理节点 IP（`LocalNotes/cloud-host.md` 有记录）——隧道路径不受影响，这也是不再依赖 IP 白名单的原因之一。
 
 ---
@@ -302,7 +324,7 @@ Invoke-RestMethod -Uri http://10.8.0.1:5000/lobby/rooms/public -Headers @{ Autho
 
 ## 10. 与其他文档的关系
 
-- 客户端接入、进房流程、§6 验收与留痕、通用排障：[09-上云联机测试](09-上云联机测试.md)
-- Linux/Docker 形态（备用）：`deploy/`（compose + Dockerfile）与 [09 §2](09-上云联机测试.md)
+- 客户端接入、进房流程、验收与留痕、通用排障：[11-联机测试流程](11-联机测试流程.md)
+- Linux/compose 旧形态（备用）：`deploy/`（compose + Dockerfile）与 [09 §1/§2/§8](09-上云联机测试.md)
 - 本地联测三路径、改码后三端操作序：[07-本地联测](07-本地联测.md)
 - 测试者分发（含隧道切换与离线安装包）：[Dist/README.md](../../Dist/README.md)

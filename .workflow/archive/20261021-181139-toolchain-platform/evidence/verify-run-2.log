@@ -1,0 +1,8 @@
+验证结果: PASS
+- L1: exit=0 (41450 ms)
+- doc: exit=0 (891 ms)
+- toolchain-tests: exit=0 (1192 ms)
+- toolchain-check: exit=0 (133 ms)
+- toolchain-docs-check: exit=0 (107 ms)
+证据: evidence/verify.json
+verify exit=0

@@ -1,0 +1,260 @@
+{
+  "schema_version": 1,
+  "slug": "full-python-p3b",
+  "title": "全量 Python P3b（nightly/L2/install-task）",
+  "status": "archived",
+  "current_stage": null,
+  "created_at": "2026-10-21T19:50:16+08:00",
+  "updated_at": "2026-10-21T19:58:20+08:00",
+  "completed_at": "2026-10-21T19:58:20+08:00",
+  "completed_stages": [
+    {
+      "id": "propose",
+      "title": "提出方案",
+      "completed_at": "2026-10-21T19:50:39+08:00"
+    },
+    {
+      "id": "breakdown",
+      "title": "实施任务清单",
+      "completed_at": "2026-10-21T19:50:55+08:00"
+    },
+    {
+      "id": "review-tasks",
+      "title": "评审任务",
+      "completed_at": "2026-10-21T19:51:08+08:00"
+    },
+    {
+      "id": "tests-first",
+      "title": "先写测试",
+      "completed_at": "2026-10-21T19:51:56+08:00"
+    },
+    {
+      "id": "implement",
+      "title": "正式施工",
+      "completed_at": "2026-10-21T19:57:13+08:00"
+    },
+    {
+      "id": "verify",
+      "title": "测试代码",
+      "completed_at": "2026-10-21T19:58:16+08:00"
+    },
+    {
+      "id": "review-code",
+      "title": "评审代码",
+      "completed_at": "2026-10-21T19:58:16+08:00"
+    },
+    {
+      "id": "writeback",
+      "title": "回写与收尾",
+      "completed_at": "2026-10-21T19:58:20+08:00"
+    }
+  ],
+  "history": [
+    {
+      "at": "2026-10-21T19:50:16+08:00",
+      "event": "init",
+      "stage": "propose"
+    },
+    {
+      "at": "2026-10-21T19:50:39+08:00",
+      "event": "advance",
+      "from": "propose",
+      "to": "breakdown",
+      "approved_by": null
+    },
+    {
+      "at": "2026-10-21T19:50:55+08:00",
+      "event": "advance",
+      "from": "breakdown",
+      "to": "review-tasks",
+      "approved_by": null
+    },
+    {
+      "at": "2026-10-21T19:51:08+08:00",
+      "event": "advance",
+      "from": "review-tasks",
+      "to": "tests-first",
+      "approved_by": null
+    },
+    {
+      "at": "2026-10-21T19:51:56+08:00",
+      "event": "advance",
+      "from": "tests-first",
+      "to": "implement",
+      "approved_by": null
+    },
+    {
+      "at": "2026-10-21T19:57:13+08:00",
+      "event": "advance",
+      "from": "implement",
+      "to": "verify",
+      "approved_by": null
+    },
+    {
+      "at": "2026-10-21T19:58:16+08:00",
+      "event": "advance",
+      "from": "verify",
+      "to": "review-code",
+      "approved_by": null
+    },
+    {
+      "at": "2026-10-21T19:58:16+08:00",
+      "event": "advance",
+      "from": "review-code",
+      "to": "writeback",
+      "approved_by": null
+    },
+    {
+      "at": "2026-10-21T19:58:20+08:00",
+      "event": "advance",
+      "from": "writeback",
+      "to": null,
+      "approved_by": null
+    },
+    {
+      "at": "2026-10-21T19:58:20+08:00",
+      "event": "archive",
+      "path": "20261021-195820-full-python-p3b"
+    }
+  ],
+  "tasks": [
+    {
+      "id": "T1",
+      "title": "迁移 L2 Unity 门禁",
+      "description": "",
+      "acceptance": "l2-unity-gate.py 保留 meta 扫描/Pipeline/batchmode/新鲜度/console/Total 判据；--help；repo meta-scan PASS；非法 meta FAIL；test.py 自动优先 Python；旧 l2.ps1 删除",
+      "verify": "python -m unittest scripts.tests.test_l2_entry -v && python scripts/gate/l2-unity-gate.py --meta-scan-only",
+      "files": [
+        "scripts/gate/l2-unity-gate.py",
+        "scripts/gate/l2-unity-gate.ps1",
+        "scripts/tests/test_l2_entry.py"
+      ],
+      "deps": [],
+      "status": "done",
+      "evidence": "l2-unity-gate.py meta/Pipeline/batchmode/新鲜度/console/Total；3/3 离线；旧 l2.ps1 待 T4 删除",
+      "status_reason": "",
+      "created_at": "2026-10-21T19:50:44+08:00",
+      "started_at": "2026-10-21T19:52:21+08:00",
+      "completed_at": "2026-10-21T19:52:21+08:00"
+    },
+    {
+      "id": "T2",
+      "title": "迁移夜间门禁并保留 PS shim",
+      "description": "",
+      "acceptance": "nightly-gate.py 编排 L1/L2/日志/PlayMode 标注/退出码；L1 调 test.py；L2 优先 Python；nightly-gate.ps1 改 @ps-shim 转发；测试 --help",
+      "verify": "python -m unittest scripts.tests.test_nightly_entry -v",
+      "files": [
+        "scripts/gate/nightly-gate.py",
+        "scripts/gate/nightly-gate.ps1",
+        "scripts/tests/test_nightly_entry.py"
+      ],
+      "deps": [
+        "T1"
+      ],
+      "status": "done",
+      "evidence": "nightly-gate.py 编排/日志/PlayMode 标注；PS shim 转发；help 1/1",
+      "status_reason": "",
+      "created_at": "2026-10-21T19:50:45+08:00",
+      "started_at": "2026-10-21T19:52:21+08:00",
+      "completed_at": "2026-10-21T19:52:22+08:00"
+    },
+    {
+      "id": "T3",
+      "title": "迁移计划任务安装器",
+      "description": "",
+      "acceptance": "install-nightly-task.py 读 manifest surface；--what-if 打印 Python runner/script；--force 用 schtasks XML 注册并可回读；旧 PS 删除；测试不注册实际任务",
+      "verify": "python -m unittest scripts.tests.test_install_nightly -v && python scripts/gate/install-nightly-task.py --what-if",
+      "files": [
+        "scripts/gate/install-nightly-task.py",
+        "scripts/gate/install-nightly-task.ps1",
+        "scripts/tests/test_install_nightly.py"
+      ],
+      "deps": [],
+      "status": "done",
+      "evidence": "install-nightly-task.py what-if/XML/schtasks；1/1；实际注册成功（C:\\Python313\\python.exe -X utf8 nightly-gate.py）；l2/install PS 删除",
+      "status_reason": "",
+      "created_at": "2026-10-21T19:50:45+08:00",
+      "started_at": "2026-10-21T19:52:32+08:00",
+      "completed_at": "2026-10-21T19:53:48+08:00"
+    },
+    {
+      "id": "T4",
+      "title": "同步 P3b 注册面与文档",
+      "description": "",
+      "acceptance": "清单 env.nightly/env.nightly-install/surface runner+script、toolchain doctor install、CI L2、工具索引、现行文档/skills 改 Python；l2/install PS 删除；nightly shim 显式；旧引用清零（历史卷除外）",
+      "verify": "python scripts/toolchain.py docs --check; python scripts/gate/doc-lint.py; grep -rn \"l2-unity-gate.ps1\\|install-nightly-task.ps1\\|nightly-gate.ps1\" scripts Docs AGENTS.md .agents .github | grep -v \"Docs/施工进度\" | grep -v \"归档\" | grep -v \"Docs/审计\" || true",
+      "files": [
+        "scripts/gate/toolchain.json",
+        "scripts/toolchain.py",
+        ".github/workflows/ci.yml",
+        "scripts/README.md",
+        "AGENTS.md",
+        "Docs/工具链/技术支持.md",
+        "Docs/工具链/工具索引.md",
+        "Docs/开发导航/代码地图.md",
+        "Docs/项目说明/05-验证与门禁.md",
+        "Docs/项目说明/10-Windows云主机部署.md",
+        "Docs/待办总览.md"
+      ],
+      "deps": [
+        "T1",
+        "T2",
+        "T3"
+      ],
+      "status": "done",
+      "evidence": "清单 env.nightly/env.nightly-install/quality.l2/surface runner=python、script=nightly-gate.py；CI L2 改 Python；toolchain doctor/索引/文档/skills 同步；旧 PS 清零",
+      "status_reason": "",
+      "created_at": "2026-10-21T19:50:50+08:00",
+      "started_at": "2026-10-21T19:53:53+08:00",
+      "completed_at": "2026-10-21T19:53:53+08:00"
+    },
+    {
+      "id": "T5",
+      "title": "全量验证与机器侧验收记录",
+      "description": "",
+      "acceptance": "L2 meta-scan PASS；Python 全测；L1 1801；Doc 0/0；toolchain check/docs；BuildHash；install --what-if；完整 L2/任务注册未跑需如实记录",
+      "verify": "python scripts/gate/l2-unity-gate.py --meta-scan-only && python -m unittest discover -s scripts/tests -p \"test_*.py\" -v && python scripts/gate/test.py --lane L1 --profile PullRequest && python scripts/gate/test.py --lane Doc && python scripts/toolchain.py check && python scripts/toolchain.py docs --check && python scripts/gate/doc-lint.py",
+      "files": [
+        "scripts",
+        "Docs",
+        "AGENTS.md",
+        ".github"
+      ],
+      "deps": [
+        "T1",
+        "T2",
+        "T3",
+        "T4"
+      ],
+      "status": "done",
+      "evidence": "L1 1801；Python 全测；Doc 0/0；restore/L0/L2-meta 通过；toolchain check 0 error/4 warning；BuildHash OK；计划任务回读 python nightly-gate.py；完整 L2/远端 CI 未跑（机器侧）",
+      "status_reason": "",
+      "created_at": "2026-10-21T19:50:50+08:00",
+      "started_at": "2026-10-21T19:53:54+08:00",
+      "completed_at": "2026-10-21T19:56:34+08:00"
+    }
+  ],
+  "verification": {
+    "at": "2026-10-21T19:58:16+08:00",
+    "ok": true,
+    "stale": false,
+    "evidence": "evidence/verify.json",
+    "command_fingerprint": "6281d191a9c3cf4ad2314fe934728f0fa66723ea32a559c791629fd4352f3eee",
+    "summary": {
+      "total": 9,
+      "passed": 9
+    }
+  },
+  "red_verification": {
+    "at": "2026-10-21T19:51:29+08:00",
+    "ok": true,
+    "stale": false,
+    "evidence": "evidence/red.json",
+    "command_fingerprint": "49f43cc311a4b6240d9141cc3dcb959ce5c9c49ad136b9bd63fcddae00c5e813",
+    "summary": {
+      "total": 1,
+      "passed": 1
+    }
+  },
+  "archived_at": "2026-10-21T19:58:20+08:00"
+}

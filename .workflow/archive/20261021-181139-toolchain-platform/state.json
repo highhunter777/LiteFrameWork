@@ -1,0 +1,459 @@
+{
+  "schema_version": 1,
+  "slug": "toolchain-platform",
+  "title": "开发工具链平台统一",
+  "status": "archived",
+  "current_stage": null,
+  "created_at": "2026-10-21T17:43:42+08:00",
+  "updated_at": "2026-10-21T18:11:39+08:00",
+  "completed_at": "2026-10-21T18:11:39+08:00",
+  "completed_stages": [
+    {
+      "id": "propose",
+      "title": "提出方案",
+      "completed_at": "2026-10-21T17:45:34+08:00"
+    },
+    {
+      "id": "breakdown",
+      "title": "实施任务清单",
+      "completed_at": "2026-10-21T17:46:06+08:00"
+    },
+    {
+      "id": "review-tasks",
+      "title": "评审任务",
+      "completed_at": "2026-10-21T17:47:01+08:00"
+    },
+    {
+      "id": "tests-first",
+      "title": "先写测试",
+      "completed_at": "2026-10-21T17:48:09+08:00"
+    },
+    {
+      "id": "implement",
+      "title": "正式施工",
+      "completed_at": "2026-10-21T18:08:27+08:00"
+    },
+    {
+      "id": "verify",
+      "title": "测试代码",
+      "completed_at": "2026-10-21T18:11:09+08:00"
+    },
+    {
+      "id": "review-code",
+      "title": "评审代码",
+      "completed_at": "2026-10-21T18:11:31+08:00"
+    },
+    {
+      "id": "writeback",
+      "title": "回写与收尾",
+      "completed_at": "2026-10-21T18:11:39+08:00"
+    }
+  ],
+  "history": [
+    {
+      "at": "2026-10-21T17:43:42+08:00",
+      "event": "init",
+      "stage": "propose"
+    },
+    {
+      "at": "2026-10-21T17:45:34+08:00",
+      "event": "advance",
+      "from": "propose",
+      "to": "breakdown",
+      "approved_by": null
+    },
+    {
+      "at": "2026-10-21T17:46:06+08:00",
+      "event": "advance",
+      "from": "breakdown",
+      "to": "review-tasks",
+      "approved_by": null
+    },
+    {
+      "at": "2026-10-21T17:47:01+08:00",
+      "event": "advance",
+      "from": "review-tasks",
+      "to": "tests-first",
+      "approved_by": null
+    },
+    {
+      "at": "2026-10-21T17:48:09+08:00",
+      "event": "advance",
+      "from": "tests-first",
+      "to": "implement",
+      "approved_by": null
+    },
+    {
+      "at": "2026-10-21T18:08:27+08:00",
+      "event": "advance",
+      "from": "implement",
+      "to": "verify",
+      "approved_by": null
+    },
+    {
+      "at": "2026-10-21T18:11:09+08:00",
+      "event": "advance",
+      "from": "verify",
+      "to": "review-code",
+      "approved_by": null
+    },
+    {
+      "at": "2026-10-21T18:11:31+08:00",
+      "event": "advance",
+      "from": "review-code",
+      "to": "writeback",
+      "approved_by": null
+    },
+    {
+      "at": "2026-10-21T18:11:39+08:00",
+      "event": "advance",
+      "from": "writeback",
+      "to": null,
+      "approved_by": null
+    },
+    {
+      "at": "2026-10-21T18:11:39+08:00",
+      "event": "archive",
+      "path": "20261021-181139-toolchain-platform"
+    }
+  ],
+  "tasks": [
+    {
+      "id": "T1",
+      "title": "先写平台红测：清单/CLI/文档",
+      "description": "",
+      "acceptance": "新增 scripts/tests/test_toolchain.py：清单 v2 字段、list、docs --check、CI/hook surface、docs 幂等；实现前运行得到断言失败而非 import/环境错误；只用标准库与子进程。",
+      "verify": "python -m unittest discover -s scripts/tests -p test_toolchain*.py -v",
+      "files": [
+        "scripts/tests/test_toolchain.py"
+      ],
+      "deps": [],
+      "status": "done",
+      "evidence": "scripts/tests/test_toolchain.py 16 例；红测 exit=1，13 failures，均为 schemaVersion/toolchain.py 缺失的断言失败；evidence/red.json 2026-10-21T17:47:22+08:00",
+      "status_reason": "",
+      "created_at": "2026-10-21T17:46:02+08:00",
+      "started_at": "2026-10-21T17:48:16+08:00",
+      "completed_at": "2026-10-21T17:48:17+08:00"
+    },
+    {
+      "id": "T2",
+      "title": "设计文档落档",
+      "description": "",
+      "acceptance": "新增 Docs/设计文档/架构/开发工具链平台专项设计.md：元数据、清单 schema、Hub/页件契约、单一 CLI、生成文档、注册面、扩展规则、非目标；引用《调试与开发工具链演进路线图》但不复制其能力优先级；入设计索引；doc-lint 通过。",
+      "verify": "python scripts/gate/doc-lint.py",
+      "files": [
+        "Docs/设计文档/架构/开发工具链平台专项设计.md",
+        "Docs/设计文档/README.md"
+      ],
+      "deps": [
+        "T1"
+      ],
+      "status": "done",
+      "evidence": "Docs/设计文档/架构/开发工具链平台专项设计.md（清单/Hub/页件/CLI/注册面/扩展约定）；已加入 Docs/设计文档/README.md 架构索引；doc-lint 0/0",
+      "status_reason": "",
+      "created_at": "2026-10-21T17:46:02+08:00",
+      "started_at": "2026-10-21T17:48:17+08:00",
+      "completed_at": "2026-10-21T17:49:22+08:00"
+    },
+    {
+      "id": "T3",
+      "title": "清单 v2 与 Python 校验器",
+      "description": "",
+      "acceptance": "toolchain.json 增 schemaVersion/categories/tools/surfaces；generators/diagnostics 迁入 tools；check 校验必填/唯一/分类/路径/docs；list 输出分类与工具；不保留第二份工具列表。",
+      "verify": "python scripts/toolchain.py check; python scripts/toolchain.py list --json",
+      "files": [
+        "scripts/gate/toolchain.json",
+        "scripts/toolchain.py",
+        "scripts/tests/test_toolchain.py"
+      ],
+      "deps": [
+        "T1"
+      ],
+      "status": "done",
+      "evidence": "scripts/gate/toolchain.json v2（7 分类/45 工具/5 注册面）；scripts/toolchain.py + manifest/docs/surfaces 模块；16/16 Python 契约测试通过；check 仅剩夜间任务 2 条预期 warning",
+      "status_reason": "",
+      "created_at": "2026-10-21T17:46:02+08:00",
+      "started_at": "2026-10-21T17:49:22+08:00",
+      "completed_at": "2026-10-21T17:52:07+08:00"
+    },
+    {
+      "id": "T4",
+      "title": "单一 CLI 命令面",
+      "description": "",
+      "acceptance": "toolchain.py 提供 list/check/docs/open/run/generate/verify/build/doctor；未知工具/参数/编辑器未运行有独立退出码；open 使用 eval_file --file；子进程退出码透传；--help 可用。",
+      "verify": "python scripts/toolchain.py --help; python scripts/toolchain.py open no-such-id; python -m unittest discover -s scripts/tests -p test_toolchain*.py -v",
+      "files": [
+        "scripts/toolchain.py",
+        "scripts/tests/test_toolchain.py"
+      ],
+      "deps": [
+        "T3"
+      ],
+      "status": "done",
+      "evidence": "scripts/toolchain.py 九命令面；--help/未知工具 exit4/list 中文输出/UTF-8 重配置通过；16/16 Python 测试通过",
+      "status_reason": "",
+      "created_at": "2026-10-21T17:46:02+08:00",
+      "started_at": "2026-10-21T17:52:07+08:00",
+      "completed_at": "2026-10-21T17:52:44+08:00"
+    },
+    {
+      "id": "T5",
+      "title": "生成工具索引并接入文档",
+      "description": "",
+      "acceptance": "docs 生成 Docs/工具链/工具索引.md（固定头、LF、write-if-changed）；--check 对 stale 失败；生成页从技术支持与 Docs/README 链接；Doc lane（test.ps1 -Lane Doc）执行 docs --check；不改手工排障叙事。",
+      "verify": "python scripts/toolchain.py docs; python scripts/toolchain.py docs --check; pwsh scripts/gate/test.ps1 -Lane Doc; python scripts/gate/doc-lint.py",
+      "files": [
+        "scripts/toolchain.py",
+        "Docs/工具链/工具索引.md",
+        "Docs/工具链/技术支持.md",
+        "Docs/README.md",
+        "scripts/gate/test.ps1",
+        "scripts/tests/test_toolchain.py"
+      ],
+      "deps": [
+        "T3"
+      ],
+      "status": "done",
+      "evidence": "Docs/工具链/工具索引.md 生成/幂等/--check；Docs/README 与技术支持已链接；Doc lane 执行 doc-lint + docs --check，均通过",
+      "status_reason": "",
+      "created_at": "2026-10-21T17:46:02+08:00",
+      "started_at": "2026-10-21T17:52:07+08:00",
+      "completed_at": "2026-10-21T17:52:44+08:00"
+    },
+    {
+      "id": "T6",
+      "title": "注册面检查与夜间任务修复",
+      "description": "",
+      "acceptance": "check 扫描 CI 中 scripts 路径与 hook 配置引用；Windows 计划任务核对 runner/脚本，可选 surface 默认 warning；install-nightly-task.ps1 用 pwsh 重新注册正确路径（执行前征询用户）；l2 eval_file 带 --file 并用临时探针验证；doctor 汇总。",
+      "verify": "python scripts/toolchain.py check; python scripts/toolchain.py doctor; pwsh -NoProfile -File scripts/gate/install-nightly-task.ps1 -WhatIf; schtasks /query /tn LiteGame-Nightly-Gate /xml | findstr nightly-gate.ps1; unity command eval_file --file Temp/toolchain-probe.cs",
+      "files": [
+        "scripts/toolchain.py",
+        "scripts/gate/install-nightly-task.ps1",
+        "scripts/gate/l2-unity-gate.ps1",
+        "scripts/gate/toolchain.json",
+        "scripts/tests/test_toolchain.py"
+      ],
+      "deps": [
+        "T3"
+      ],
+      "status": "done",
+      "evidence": "surface 检查器（CI/hook/计划任务/可选路径）；install-nightly-task.ps1 干跑+实际重注册（pwsh + scripts/gate/nightly-gate.ps1，NextRun 2026-10-22 03:00）；toolchain check 0 warning；l2 eval_file 加 --file，临时探针 result=1",
+      "status_reason": "",
+      "created_at": "2026-10-21T17:46:02+08:00",
+      "started_at": "2026-10-21T17:52:44+08:00",
+      "completed_at": "2026-10-21T17:54:33+08:00"
+    },
+    {
+      "id": "T7",
+      "title": "C# 清单加载/目录/页件契约",
+      "description": "",
+      "acceptance": "新增 ToolchainManifest/EditorToolDescriptor/EditorToolRegistry/IEditorToolPage/EditorToolPageBase/适配页；LiteGame.Editor 引用 LiteSim.Core.Editor/DisciplineScanner.Editor；未注册 handler 可见错误；编译 0 CS；新文件经 unity-pipeline 导入有 .meta。",
+      "verify": "unity command recompile_status; unity command console; Unity Pipeline meta scan; targeted compile probe",
+      "files": [
+        "Assets/LiteGame/Editor/Toolchain",
+        "Assets/LiteGame/Editor/LiteGame.Editor.asmdef"
+      ],
+      "deps": [
+        "T3"
+      ],
+      "status": "done",
+      "evidence": "Toolchain 目录 10 文件（manifest/catalog/registry/page contract/adapters/Hub utility）；LiteGame.Editor 加 LiteSim.Core.Editor/DisciplineScanner.Editor；Unity 编译 0 CS；新文件 meta 已生成",
+      "status_reason": "",
+      "created_at": "2026-10-21T17:46:02+08:00",
+      "started_at": "2026-10-21T17:54:33+08:00",
+      "completed_at": "2026-10-21T18:07:46+08:00"
+    },
+    {
+      "id": "T8",
+      "title": "Hub 窗口、登记与目录对账测试",
+      "description": "",
+      "acceptance": "LiteGame/工具链 打开 Hub；搜索/分类/文档/报告；所有清单 editor 工具可显示；page/window/action 适配；open(id) 深链；清单损坏错误页；EditMode 对账测试全绿。",
+      "verify": "unity command run_tests --mode editor --filter EditorToolCatalog --async_tests true; poll test_status; menu LiteGame/工具链 manual smoke",
+      "files": [
+        "Assets/LiteGame/Editor/Toolchain/LiteGameToolboxWindow.cs",
+        "Assets/Tests/EditMode/EditorToolCatalogEditModeTests.cs"
+      ],
+      "deps": [
+        "T7"
+      ],
+      "status": "done",
+      "evidence": "LiteGame/工具链 Hub（搜索/分类/文档/四类适配/清单错误页）；EditorToolCatalogEditModeTests 6/6；CLI open gm.test-mode 深链 SelectedToolId=gm.test-mode，Console 无异常",
+      "status_reason": "",
+      "created_at": "2026-10-21T17:46:03+08:00",
+      "started_at": "2026-10-21T18:07:46+08:00",
+      "completed_at": "2026-10-21T18:07:46+08:00"
+    },
+    {
+      "id": "T9",
+      "title": "GM 页嵌入与窗口 launch",
+      "description": "",
+      "acceptance": "IGmPage : IEditorToolPage；GM 六页由 Hub 宿主并驱动生命周期/轮询；烘焙/UI 窗口 Open 公开并从 Hub 打开；原 GM 菜单移除；GmPanel 无引用则删除，否则保留无菜单薄壳并登记；GmLocalChainPage 探针复位修复（若触碰）；定向测试/冒烟。",
+      "verify": "unity command recompile_status; unity command run_tests --mode editor --filter EditorToolCatalog --async_tests true; grep [MenuItem] for GmPanel/Baking/UI; Hub manual",
+      "files": [
+        "Assets/LiteGame/Editor/Gm/IGmPage.cs",
+        "Assets/LiteGame/Editor/Gm",
+        "Assets/LiteGame/Editor/Baking/BakingToolbox.cs",
+        "Assets/LiteGame/Editor/UiTools",
+        "Assets/LiteGame/Editor/Toolchain"
+      ],
+      "deps": [
+        "T8"
+      ],
+      "status": "done",
+      "evidence": "GM 六页由 Hub 直接宿主；GmPanel 经 unity-pipeline delete_asset 退役；烘焙/UI 窗口作为 launch 目标；GmLocalChainPage _probing finally 复位+volatile+Hub 重绘；Unity 编译 0；定向 EditMode 6/6",
+      "status_reason": "",
+      "created_at": "2026-10-21T17:46:03+08:00",
+      "started_at": "2026-10-21T18:07:46+08:00",
+      "completed_at": "2026-10-21T18:07:47+08:00"
+    },
+    {
+      "id": "T10",
+      "title": "动作/CLI/文档型工具登记",
+      "description": "",
+      "acceptance": "Lua/SimTrig/IEEE/纪律扫描/Resource/样式/校验等动作与 CLI/门禁/构建工具写入清单并可从 Hub 发现；上下文型 LiteCodeGen 仅说明/文档；无 handler 缺口。",
+      "verify": "python scripts/toolchain.py check; EditMode catalog; Hub smoke",
+      "files": [
+        "scripts/gate/toolchain.json",
+        "Assets/LiteGame/Editor/Toolchain"
+      ],
+      "deps": [
+        "T9"
+      ],
+      "status": "done",
+      "evidence": "清单 48 工具（15 action/7 cli/7 gate/6 page/4 window/4 docs/3 content/2 build）；handler 1:1；xLua 元数据迁入 codegen.xlua；CLI/门禁/构建/文档型工具均可在 Hub 发现",
+      "status_reason": "",
+      "created_at": "2026-10-21T17:46:03+08:00",
+      "started_at": "2026-10-21T18:07:47+08:00",
+      "completed_at": "2026-10-21T18:07:47+08:00"
+    },
+    {
+      "id": "T11",
+      "title": "顶层菜单收口与白名单",
+      "description": "",
+      "acceptance": "仅保留 LiteGame/工具链（含快捷子菜单）、上下文菜单、LiteCodeGen 包级菜单；grep 确认无白名单外顶层菜单；所有退场入口在 Hub 可达。",
+      "verify": "grep MenuItem; Hub manual; Unity compile",
+      "files": [
+        "Assets/LiteGame/Editor",
+        "Assets/LiteSim/Core/Editor",
+        "Assets/Tools/DisciplineScanner/Scripts/Editor"
+      ],
+      "deps": [
+        "T10"
+      ],
+      "status": "done",
+      "evidence": "顶层剩余：LiteGame/工具链、快捷 Prefab/Lua、BindRoot(工具链/代码生成)、CONTEXT、LiteCodeGen 包级；旧 Gm/Baking/UI/Resource/LiteSim/Tools 顶层菜单已收口；Unity 编译 0",
+      "status_reason": "",
+      "created_at": "2026-10-21T17:46:03+08:00",
+      "started_at": "2026-10-21T18:07:47+08:00",
+      "completed_at": "2026-10-21T18:07:47+08:00"
+    },
+    {
+      "id": "T12",
+      "title": "CLI open/verify/build 与 restore-check/L0 接入",
+      "description": "",
+      "acceptance": "open 经 Pipeline 打开 Hub 选中；verify/build/generate 委托真实脚本并透传退出码；restore-check 从清单读 Unity 版本/修订并汇报 check；L0 运行 toolchain check（可选 surface 不拦 CI）。",
+      "verify": "python scripts/toolchain.py open gm.test-mode; python scripts/toolchain.py verify --lane Doc; pwsh scripts/gate/restore-check.ps1; pwsh scripts/gate/l0-dep-scan.ps1",
+      "files": [
+        "scripts/toolchain.py",
+        "scripts/gate/restore-check.ps1",
+        "scripts/gate/l0-dep-scan.ps1"
+      ],
+      "deps": [
+        "T4",
+        "T5",
+        "T6",
+        "T8",
+        "T11"
+      ],
+      "status": "done",
+      "evidence": "CLI open/generate/verify(Doc)/run(L0) 实测；restore-check 读清单 version/revision（OK 2022.3.55f1c1 / 06b99830297d）；L0 追加 toolchain check 通过；L0/restore-check 仍因预存 ParrelSync 绝对路径红",
+      "status_reason": "",
+      "created_at": "2026-10-21T17:46:03+08:00",
+      "started_at": "2026-10-21T18:07:48+08:00",
+      "completed_at": "2026-10-21T18:07:48+08:00"
+    },
+    {
+      "id": "T13",
+      "title": "全量验证与证据",
+      "description": "",
+      "acceptance": "Python 单测全绿；L1 全绿；doc-lint 0；Unity 编译 0；定向 EditMode 全绿；全量 L2 必须尝试，若被夜间约定阻断则记录未跑原因与夜间任务安排，不宣称 L2 通过；--check-shared 不变；Hub/CLI 冒烟清单逐项有结果。",
+      "verify": "python -m unittest discover -s scripts/tests -p test_toolchain*.py -v; pwsh scripts/gate/test.ps1 -Lane L1 -Profile PullRequest; python scripts/gate/doc-lint.py; python scripts/codegen/gen-build-hash.py --check-shared; unity command recompile_status; unity command run_tests --mode editor --filter EditorToolCatalog --async_tests true",
+      "files": [
+        "TestResults",
+        ".workflow/active/toolchain-platform/evidence"
+      ],
+      "deps": [
+        "T2",
+        "T3",
+        "T4",
+        "T5",
+        "T6",
+        "T7",
+        "T8",
+        "T9",
+        "T10",
+        "T11",
+        "T12"
+      ],
+      "status": "done",
+      "evidence": "Python 16/16；L1 1801/1801；Doc 0/0+索引 current；Unity 编译 0 CS；EditorToolCatalog 6/6；BuildHash --check-shared OK 459a3145904693b7；全量 L2 未跑（白天约定，留今夜夜间任务）",
+      "status_reason": "",
+      "created_at": "2026-10-21T17:46:03+08:00",
+      "started_at": "2026-10-21T18:07:48+08:00",
+      "completed_at": "2026-10-21T18:07:48+08:00"
+    },
+    {
+      "id": "T14",
+      "title": "文档回写、审计与收尾",
+      "description": "",
+      "acceptance": "设计文档入索引；技术支持/AGENTS/scripts README/代码地图/修改指南/directory-move-sync/质量审计/施工进度同批；doc-lint 0；未决项与回滚记录完整。",
+      "verify": "python scripts/gate/doc-lint.py; git status; git diff --check",
+      "files": [
+        "Docs/设计文档/架构/开发工具链平台专项设计.md",
+        "Docs/设计文档/架构/生成器工具箱专项设计.md",
+        "Docs/设计文档/README.md",
+        "AGENTS.md",
+        "scripts/README.md",
+        "Docs/开发导航/代码地图.md",
+        "Docs/工具链/技术支持.md",
+        "Docs/修改指南.md",
+        ".agents/skills/directory-move-sync/SKILL.md",
+        "Docs/施工进度/资源与工具链线.md",
+        "Docs/审计/代码质量审计-客户端.md",
+        "Docs/环境/非作者机恢复与验证记录.md"
+      ],
+      "deps": [
+        "T13"
+      ],
+      "status": "done",
+      "evidence": "设计/Hub/CLI/注册面文档回写；技术支持/AGENTS/scripts README/代码地图/修改指南/directory-move-sync/审计/环境记录/施工进度第10章同批；doc-lint 0/0；生成索引 current",
+      "status_reason": "",
+      "created_at": "2026-10-21T17:46:03+08:00",
+      "started_at": "2026-10-21T18:07:48+08:00",
+      "completed_at": "2026-10-21T18:07:48+08:00"
+    }
+  ],
+  "verification": {
+    "at": "2026-10-21T18:10:36+08:00",
+    "ok": true,
+    "stale": false,
+    "evidence": "evidence/verify.json",
+    "command_fingerprint": "16c08472224144d8047227df09cccc9e75bbeaeb5385ce02651987558e3286cc",
+    "summary": {
+      "total": 5,
+      "passed": 5
+    }
+  },
+  "red_verification": {
+    "at": "2026-10-21T17:47:57+08:00",
+    "ok": true,
+    "stale": false,
+    "evidence": "evidence/red.json",
+    "command_fingerprint": "a0e70fd39fe4795b82919f43a64d39e539756fbda1e41024e7ae3aa5d0e8b19c",
+    "summary": {
+      "total": 1,
+      "passed": 1
+    }
+  },
+  "archived_at": "2026-10-21T18:11:39+08:00"
+}

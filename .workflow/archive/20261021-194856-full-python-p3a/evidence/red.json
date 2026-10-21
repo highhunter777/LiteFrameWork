@@ -1,0 +1,30 @@
+{
+  "schema_version": 1,
+  "kind": "red",
+  "at": "2026-10-21T19:43:31+08:00",
+  "ok": true,
+  "command_fingerprint": "49f43cc311a4b6240d9141cc3dcb959ce5c9c49ad136b9bd63fcddae00c5e813",
+  "commands": [
+    {
+      "name": "toolchain-tests-red",
+      "cmd": [
+        "python",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "scripts/tests",
+        "-p",
+        "test_*.py",
+        "-v"
+      ],
+      "cwd": null,
+      "exit_code": 1,
+      "timed_out": false,
+      "error": null,
+      "duration_ms": 10040,
+      "ok": true,
+      "output_tail": "----------------------------------------------------------------------\nTraceback (most recent call last):\n  File \"E:\\unityProject\\Test\\scripts\\tests\\test_test_entry.py\", line 38, in test_invalid_lane_is_usage_error\n    self.require_script()\n    ~~~~~~~~~~~~~~~~~~~^^\n  File \"E:\\unityProject\\Test\\scripts\\tests\\test_test_entry.py\", line 17, in require_script\n    self.fail(f\"test entry missing: {SCRIPT}\")\n    ~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\nAssertionError: test entry missing: E:\\unityProject\\Test\\scripts\\gate\\test.py\n\n======================================================================\nFAIL: test_test_entry_is_python (test_toolchain.ManifestContractTests.test_test_entry_is_python)\n----------------------------------------------------------------------\nTraceback (most recent call last):\n  File \"E:\\unityProject\\Test\\scripts\\tests\\test_toolchain.py\", line 135, in test_test_entry_is_python\n    self.assertEqual(\n    ~~~~~~~~~~~~~~~~^\n        by_id[\"quality.l1\"][\"command\"],\n        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n        [\"python\", \"scripts/gate/test.py\", \"--lane\", \"L1\", \"--profile\", \"PullRequest\"],\n        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n    )\n    ^\nAssertionError: Lists differ: ['pwsh', 'scripts/gate/test.ps1', '-Lane', 'L1', '-Profile', 'PullRequest'] != ['python', 'scripts/gate/test.py', '--lane', 'L1', '--profile', 'PullRequest']\n\nFirst differing element 0:\n'pwsh'\n'python'\n\n- ['pwsh', 'scripts/gate/test.ps1', '-Lane', 'L1', '-Profile', 'PullRequest']\n?    ^^                        ^^     ^              ^\n\n+ ['python', 'scripts/gate/test.py', '--lane', 'L1', '--profile', 'PullRequest']\n?    ^^ ++                       ^     ^^              ^^\n\n\n----------------------------------------------------------------------\nRan 80 tests in 9.836s\n\nFAILED (failures=5)"
+    }
+  ]
+}

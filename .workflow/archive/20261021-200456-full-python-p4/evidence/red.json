@@ -1,0 +1,30 @@
+{
+  "schema_version": 1,
+  "kind": "red",
+  "at": "2026-10-21T20:00:24+08:00",
+  "ok": true,
+  "command_fingerprint": "49f43cc311a4b6240d9141cc3dcb959ce5c9c49ad136b9bd63fcddae00c5e813",
+  "commands": [
+    {
+      "name": "toolchain-tests-red",
+      "cmd": [
+        "python",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "scripts/tests",
+        "-p",
+        "test_*.py",
+        "-v"
+      ],
+      "cwd": null,
+      "exit_code": 1,
+      "timed_out": false,
+      "error": null,
+      "duration_ms": 14607,
+      "ok": true,
+      "output_tail": "    self.fail(f\"player-smoke script missing: {SCRIPT}\")\n    ~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\nAssertionError: player-smoke script missing: E:\\unityProject\\Test\\scripts\\build\\player-smoke.py\n\n======================================================================\nFAIL: test_missing_exe_fails (test_player_smoke.PlayerSmokeTests.test_missing_exe_fails)\n----------------------------------------------------------------------\nTraceback (most recent call last):\n  File \"E:\\unityProject\\Test\\scripts\\tests\\test_player_smoke.py\", line 33, in test_missing_exe_fails\n    self.require_script()\n    ~~~~~~~~~~~~~~~~~~~^^\n  File \"E:\\unityProject\\Test\\scripts\\tests\\test_player_smoke.py\", line 16, in require_script\n    self.fail(f\"player-smoke script missing: {SCRIPT}\")\n    ~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\nAssertionError: player-smoke script missing: E:\\unityProject\\Test\\scripts\\build\\player-smoke.py\n\n======================================================================\nFAIL: test_p4_entries_are_python (test_toolchain.ManifestContractTests.test_p4_entries_are_python)\n----------------------------------------------------------------------\nTraceback (most recent call last):\n  File \"E:\\unityProject\\Test\\scripts\\tests\\test_toolchain.py\", line 136, in test_p4_entries_are_python\n    self.assertEqual(by_id[\"build.player\"][\"command\"], [\"python\", \"scripts/build/build-player.py\"])\n    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\nAssertionError: Lists differ: ['pwsh', 'scripts/build/build-player.ps1'] != ['python', 'scripts/build/build-player.py']\n\nFirst differing element 0:\n'pwsh'\n'python'\n\n- ['pwsh', 'scripts/build/build-player.ps1']\n?    ^^                                 ^^\n\n+ ['python', 'scripts/build/build-player.py']\n?    ^^ ++                                ^\n\n\n----------------------------------------------------------------------\nRan 91 tests in 14.379s\n\nFAILED (failures=5)"
+    }
+  ]
+}

@@ -1,0 +1,30 @@
+{
+  "schema_version": 1,
+  "kind": "red",
+  "at": "2026-10-21T19:30:52+08:00",
+  "ok": true,
+  "command_fingerprint": "49f43cc311a4b6240d9141cc3dcb959ce5c9c49ad136b9bd63fcddae00c5e813",
+  "commands": [
+    {
+      "name": "toolchain-tests-red",
+      "cmd": [
+        "python",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "scripts/tests",
+        "-p",
+        "test_*.py",
+        "-v"
+      ],
+      "cwd": null,
+      "exit_code": 1,
+      "timed_out": false,
+      "error": null,
+      "duration_ms": 8226,
+      "ok": true,
+      "output_tail": "    self.require_script()\n    ~~~~~~~~~~~~~~~~~~~^^\n  File \"E:\\unityProject\\Test\\scripts\\tests\\test_serve_cdn.py\", line 27, in require_script\n    self.fail(f\"serve-cdn script missing: {SCRIPT}\")\n    ~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\nAssertionError: serve-cdn script missing: E:\\unityProject\\Test\\scripts\\content\\serve-cdn.py\n\n======================================================================\nFAIL: test_p2_entries_are_python (test_toolchain.ManifestContractTests.test_p2_entries_are_python)\n----------------------------------------------------------------------\nTraceback (most recent call last):\n  File \"E:\\unityProject\\Test\\scripts\\tests\\test_toolchain.py\", line 142, in test_p2_entries_are_python\n    self.assertEqual(by_id[tool_id][\"command\"], [\"python\", script])\n    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\nAssertionError: Lists differ: ['pwsh', 'scripts/content/gen-candidate.ps1'] != ['python', 'scripts/content/gen-candidate.py']\n\nFirst differing element 0:\n'pwsh'\n'python'\n\n- ['pwsh', 'scripts/content/gen-candidate.ps1']\n?    ^^                                    ^^\n\n+ ['python', 'scripts/content/gen-candidate.py']\n?    ^^ ++                                   ^\n\n\n======================================================================\nFAIL: test_local_cdn_loader_is_internal (test_toolchain.ScriptFormManifestTests.test_local_cdn_loader_is_internal)\n----------------------------------------------------------------------\nTraceback (most recent call last):\n  File \"E:\\unityProject\\Test\\scripts\\tests\\test_toolchain.py\", line 308, in test_local_cdn_loader_is_internal\n    self.assertTrue((ROOT / \"scripts\" / \"content\" / \"_local_cdn.py\").is_file())\n    ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\nAssertionError: False is not true\n\n----------------------------------------------------------------------\nRan 75 tests in 8.022s\n\nFAILED (failures=14)"
+    }
+  ]
+}

@@ -1,0 +1,30 @@
+{
+  "schema_version": 1,
+  "kind": "red",
+  "at": "2026-10-21T18:53:33+08:00",
+  "ok": true,
+  "command_fingerprint": "a0e70fd39fe4795b82919f43a64d39e539756fbda1e41024e7ae3aa5d0e8b19c",
+  "commands": [
+    {
+      "name": "toolchain-tests-red",
+      "cmd": [
+        "python",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "scripts/tests",
+        "-p",
+        "test_toolchain*.py",
+        "-v"
+      ],
+      "cwd": null,
+      "exit_code": 1,
+      "timed_out": false,
+      "error": null,
+      "duration_ms": 10493,
+      "ok": true,
+      "output_tail": "    found = messages(issues_for(temp, make_manifest()), \"warning\")\n                     ~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^\n  File \"E:\\unityProject\\Test\\scripts\\tests\\test_toolchain_scripts.py\", line 68, in issues_for\n    return load_checker().check_scripts(Path(root), manifest, strict=strict)\n           ~~~~~~~~~~~~^^\n  File \"E:\\unityProject\\Test\\scripts\\tests\\test_toolchain_scripts.py\", line 31, in load_checker\n    raise AssertionError(f\"_toolchain_scripts missing: {exc}\") from exc\nAssertionError: _toolchain_scripts missing: No module named '_toolchain_scripts'\n\n======================================================================\nFAIL: test_repo_has_no_script_form_errors (test_toolchain_scripts.RepoCheckTests.test_repo_has_no_script_form_errors)\n----------------------------------------------------------------------\nTraceback (most recent call last):\n  File \"E:\\unityProject\\Test\\scripts\\tests\\test_toolchain_scripts.py\", line 29, in load_checker\n    module = importlib.import_module(\"_toolchain_scripts\")\n  File \"C:\\Python313\\Lib\\importlib\\__init__.py\", line 88, in import_module\n    return _bootstrap._gcd_import(name[level:], package, level)\n           ~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"<frozen importlib._bootstrap>\", line 1387, in _gcd_import\n  File \"<frozen importlib._bootstrap>\", line 1360, in _find_and_load\n  File \"<frozen importlib._bootstrap>\", line 1324, in _find_and_load_unlocked\nModuleNotFoundError: No module named '_toolchain_scripts'\n\nThe above exception was the direct cause of the following exception:\n\nTraceback (most recent call last):\n  File \"E:\\unityProject\\Test\\scripts\\tests\\test_toolchain_scripts.py\", line 170, in test_repo_has_no_script_form_errors\n    found = messages(issues_for(ROOT, manifest), \"error\")\n                     ~~~~~~~~~~^^^^^^^^^^^^^^^^\n  File \"E:\\unityProject\\Test\\scripts\\tests\\test_toolchain_scripts.py\", line 68, in issues_for\n    return load_checker().check_scripts(Path(root), manifest, strict=strict)\n           ~~~~~~~~~~~~^^\n  File \"E:\\unityProject\\Test\\scripts\\tests\\test_toolchain_scripts.py\", line 31, in load_checker\n    raise AssertionError(f\"_toolchain_scripts missing: {exc}\") from exc\nAssertionError: _toolchain_scripts missing: No module named '_toolchain_scripts'\n\n----------------------------------------------------------------------\nRan 44 tests in 10.348s\n\nFAILED (failures=26)"
+    }
+  ]
+}

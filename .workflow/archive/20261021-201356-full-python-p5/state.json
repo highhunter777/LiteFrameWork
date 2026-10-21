@@ -1,0 +1,302 @@
+{
+  "schema_version": 1,
+  "slug": "full-python-p5",
+  "title": "全量 Python P5（deploy/local-chain + 清零 PS）",
+  "status": "archived",
+  "current_stage": null,
+  "created_at": "2026-10-21T20:05:55+08:00",
+  "updated_at": "2026-10-21T20:13:56+08:00",
+  "completed_at": "2026-10-21T20:13:56+08:00",
+  "completed_stages": [
+    {
+      "id": "propose",
+      "title": "提出方案",
+      "completed_at": "2026-10-21T20:06:10+08:00"
+    },
+    {
+      "id": "breakdown",
+      "title": "实施任务清单",
+      "completed_at": "2026-10-21T20:06:30+08:00"
+    },
+    {
+      "id": "review-tasks",
+      "title": "评审任务",
+      "completed_at": "2026-10-21T20:06:33+08:00"
+    },
+    {
+      "id": "tests-first",
+      "title": "先写测试",
+      "completed_at": "2026-10-21T20:07:43+08:00"
+    },
+    {
+      "id": "implement",
+      "title": "正式施工",
+      "completed_at": "2026-10-21T20:12:58+08:00"
+    },
+    {
+      "id": "verify",
+      "title": "测试代码",
+      "completed_at": "2026-10-21T20:13:53+08:00"
+    },
+    {
+      "id": "review-code",
+      "title": "评审代码",
+      "completed_at": "2026-10-21T20:13:53+08:00"
+    },
+    {
+      "id": "writeback",
+      "title": "回写与收尾",
+      "completed_at": "2026-10-21T20:13:56+08:00"
+    }
+  ],
+  "history": [
+    {
+      "at": "2026-10-21T20:05:55+08:00",
+      "event": "init",
+      "stage": "propose"
+    },
+    {
+      "at": "2026-10-21T20:06:10+08:00",
+      "event": "advance",
+      "from": "propose",
+      "to": "breakdown",
+      "approved_by": null
+    },
+    {
+      "at": "2026-10-21T20:06:30+08:00",
+      "event": "advance",
+      "from": "breakdown",
+      "to": "review-tasks",
+      "approved_by": null
+    },
+    {
+      "at": "2026-10-21T20:06:33+08:00",
+      "event": "advance",
+      "from": "review-tasks",
+      "to": "tests-first",
+      "approved_by": null
+    },
+    {
+      "at": "2026-10-21T20:07:43+08:00",
+      "event": "advance",
+      "from": "tests-first",
+      "to": "implement",
+      "approved_by": null
+    },
+    {
+      "at": "2026-10-21T20:12:58+08:00",
+      "event": "advance",
+      "from": "implement",
+      "to": "verify",
+      "approved_by": null
+    },
+    {
+      "at": "2026-10-21T20:13:53+08:00",
+      "event": "advance",
+      "from": "verify",
+      "to": "review-code",
+      "approved_by": null
+    },
+    {
+      "at": "2026-10-21T20:13:53+08:00",
+      "event": "advance",
+      "from": "review-code",
+      "to": "writeback",
+      "approved_by": null
+    },
+    {
+      "at": "2026-10-21T20:13:56+08:00",
+      "event": "advance",
+      "from": "writeback",
+      "to": null,
+      "approved_by": null
+    },
+    {
+      "at": "2026-10-21T20:13:56+08:00",
+      "event": "archive",
+      "path": "20261021-201356-full-python-p5"
+    }
+  ],
+  "tasks": [
+    {
+      "id": "T1",
+      "title": "迁移 SSH 目的地解析",
+      "description": "",
+      "acceptance": "_ssh_host.py 环境变量→TCP探测→ssh -G 别名；显式 env 不联网；输出/回退语义与 PS 一致；旧 PS 删除",
+      "verify": "python -m unittest scripts.tests.test_ssh_host -v",
+      "files": [
+        "scripts/deploy/_ssh_host.py",
+        "scripts/deploy/_ssh-host.ps1",
+        "scripts/tests/test_ssh_host.py"
+      ],
+      "deps": [],
+      "status": "done",
+      "evidence": "_ssh_host.py env/TCP/ssh -G；2/2；旧 PS 删除",
+      "status_reason": "",
+      "created_at": "2026-10-21T20:06:14+08:00",
+      "started_at": "2026-10-21T20:07:50+08:00",
+      "completed_at": "2026-10-21T20:11:14+08:00"
+    },
+    {
+      "id": "T2",
+      "title": "迁移房间服部署",
+      "description": "",
+      "acceptance": "deploy-room.py 保留 publish/tar/停服/上传/解压/起服/表同步/回读；--help/参数；不执行真实 SSH；旧 PS 删除",
+      "verify": "python -m unittest scripts.tests.test_deploy_room -v",
+      "files": [
+        "scripts/deploy/deploy-room.py",
+        "scripts/deploy/deploy-room.ps1",
+        "scripts/tests/test_deploy_room.py"
+      ],
+      "deps": [
+        "T1"
+      ],
+      "status": "done",
+      "evidence": "deploy-room.py 完整移植；2/2 离线；旧 PS 删除",
+      "status_reason": "",
+      "created_at": "2026-10-21T20:06:15+08:00",
+      "started_at": "2026-10-21T20:11:19+08:00",
+      "completed_at": "2026-10-21T20:11:19+08:00"
+    },
+    {
+      "id": "T3",
+      "title": "迁移云端 GM 调用",
+      "description": "",
+      "acceptance": "gm.py 六动作/参数/密钥来源/隧道/HTTP/关留与 PS 一致；未知 action/缺 Room/缺 Player exit2；不真实调用；旧 PS 删除",
+      "verify": "python -m unittest scripts.tests.test_gm_entry -v",
+      "files": [
+        "scripts/deploy/gm.py",
+        "scripts/deploy/gm.ps1",
+        "scripts/tests/test_gm_entry.py"
+      ],
+      "deps": [
+        "T1"
+      ],
+      "status": "done",
+      "evidence": "gm.py 六动作/隧道/HTTP；3/3 离线；旧 PS 删除",
+      "status_reason": "",
+      "created_at": "2026-10-21T20:06:15+08:00",
+      "started_at": "2026-10-21T20:11:19+08:00",
+      "completed_at": "2026-10-21T20:11:20+08:00"
+    },
+    {
+      "id": "T4",
+      "title": "迁移测试者隧道",
+      "description": "",
+      "acceptance": "wg-peer.py Name/Ip/Endpoint/DryRun/OutDir；远端 payload/解析/私钥不回显；缺 Name/非法 Name exit2；不真实 SSH；旧 PS 删除",
+      "verify": "python -m unittest scripts.tests.test_wg_peer -v",
+      "files": [
+        "scripts/deploy/wg-peer.py",
+        "scripts/deploy/wg-peer.ps1",
+        "scripts/tests/test_wg_peer.py"
+      ],
+      "deps": [
+        "T1"
+      ],
+      "status": "done",
+      "evidence": "wg-peer.py 远端 payload/解析；3/3 离线；旧 PS 删除",
+      "status_reason": "",
+      "created_at": "2026-10-21T20:06:15+08:00",
+      "started_at": "2026-10-21T20:11:20+08:00",
+      "completed_at": "2026-10-21T20:11:20+08:00"
+    },
+    {
+      "id": "T5",
+      "title": "迁移本地联测一键链",
+      "description": "",
+      "acceptance": "local-chain.py init/meta/room/up/status/keys；.env/deploy.args/appsettings/进程/端口/Mongo/hash；未知命令 exit2；不启动真实服务；旧 PS 删除",
+      "verify": "python -m unittest scripts.tests.test_local_chain -v",
+      "files": [
+        "scripts/local/local-chain.py",
+        "scripts/local/local-chain.ps1",
+        "scripts/tests/test_local_chain.py"
+      ],
+      "deps": [],
+      "status": "done",
+      "evidence": "local-chain.py init/meta/room/up/status/keys；2/2 离线；旧 PS 删除",
+      "status_reason": "",
+      "created_at": "2026-10-21T20:06:21+08:00",
+      "started_at": "2026-10-21T20:08:23+08:00",
+      "completed_at": "2026-10-21T20:11:14+08:00"
+    },
+    {
+      "id": "T6",
+      "title": "清零 PS 并同步注册面",
+      "description": "",
+      "acceptance": "删除五个 PS；清单 deploy/env.local-chain Python；_toolchain_scripts 对任何 scripts/**/*.ps1 报 error；工具索引/AGENTS/文档/skills 全 Python；旧引用清零",
+      "verify": "python -m unittest scripts.tests.test_toolchain_scripts -v; python scripts/toolchain.py check; python scripts/toolchain.py docs --check; python scripts/gate/doc-lint.py",
+      "files": [
+        "scripts/gate/toolchain.json",
+        "scripts/toolchain.py",
+        "scripts/_toolchain_scripts.py",
+        "scripts/tests/test_toolchain_scripts.py",
+        "scripts/README.md",
+        "AGENTS.md",
+        "Docs/工具链/Docs/开发导航/Docs/项目说明/Docs/设计文档/.agents"
+      ],
+      "deps": [
+        "T1",
+        "T2",
+        "T3",
+        "T4",
+        "T5"
+      ],
+      "status": "done",
+      "evidence": "scripts/**/*.ps1=0；checker 禁止 PS；清单/文档/索引全 Python；check 0 warning",
+      "status_reason": "",
+      "created_at": "2026-10-21T20:06:21+08:00",
+      "started_at": "2026-10-21T20:11:20+08:00",
+      "completed_at": "2026-10-21T20:11:20+08:00"
+    },
+    {
+      "id": "T7",
+      "title": "全量验证与最终报告",
+      "description": "",
+      "acceptance": "PS 计数 0；Python 全测；L1 1801；Doc 0/0；L2 meta；toolchain check 0 error/0 warning；BuildHash；未执行 SSH/云侧；详细报告",
+      "verify": "python -m unittest discover -s scripts/tests -p \"test_*.py\" -v && python scripts/gate/test.py --lane L1 --profile PullRequest && python scripts/gate/test.py --lane Doc && python scripts/gate/l2-unity-gate.py --meta-scan-only && python scripts/toolchain.py check && python scripts/toolchain.py docs --check && python scripts/gate/doc-lint.py",
+      "files": [
+        "scripts",
+        "Docs",
+        "AGENTS.md",
+        ".github"
+      ],
+      "deps": [
+        "T1",
+        "T2",
+        "T3",
+        "T4",
+        "T5",
+        "T6"
+      ],
+      "status": "done",
+      "evidence": "PS=0；Python 105/105；L1 1801；Doc 0/0；L2 meta；restore/L0；toolchain check 0 error/0 warning；BuildHash OK；未执行 SSH/云侧/起服；无 Assets/Server",
+      "status_reason": "",
+      "created_at": "2026-10-21T20:06:21+08:00",
+      "started_at": "2026-10-21T20:11:20+08:00",
+      "completed_at": "2026-10-21T20:12:28+08:00"
+    }
+  ],
+  "verification": {
+    "at": "2026-10-21T20:13:52+08:00",
+    "ok": true,
+    "stale": false,
+    "evidence": "evidence/verify.json",
+    "command_fingerprint": "6281d191a9c3cf4ad2314fe934728f0fa66723ea32a559c791629fd4352f3eee",
+    "summary": {
+      "total": 9,
+      "passed": 9
+    }
+  },
+  "red_verification": {
+    "at": "2026-10-21T20:07:42+08:00",
+    "ok": true,
+    "stale": false,
+    "evidence": "evidence/red.json",
+    "command_fingerprint": "49f43cc311a4b6240d9141cc3dcb959ce5c9c49ad136b9bd63fcddae00c5e813",
+    "summary": {
+      "total": 1,
+      "passed": 1
+    }
+  },
+  "archived_at": "2026-10-21T20:13:56+08:00"
+}

@@ -1,0 +1,30 @@
+{
+  "schema_version": 1,
+  "kind": "red",
+  "at": "2026-10-21T20:07:42+08:00",
+  "ok": true,
+  "command_fingerprint": "49f43cc311a4b6240d9141cc3dcb959ce5c9c49ad136b9bd63fcddae00c5e813",
+  "commands": [
+    {
+      "name": "toolchain-tests-red",
+      "cmd": [
+        "python",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "scripts/tests",
+        "-p",
+        "test_*.py",
+        "-v"
+      ],
+      "cwd": null,
+      "exit_code": 1,
+      "timed_out": false,
+      "error": null,
+      "duration_ms": 13613,
+      "ok": true,
+      "output_tail": "======================================================================\nFAIL: test_help (test_wg_peer.WgPeerTests.test_help)\n----------------------------------------------------------------------\nTraceback (most recent call last):\n  File \"E:\\unityProject\\Test\\scripts\\tests\\test_wg_peer.py\", line 30, in test_help\n    self.require_script()\n    ~~~~~~~~~~~~~~~~~~~^^\n  File \"E:\\unityProject\\Test\\scripts\\tests\\test_wg_peer.py\", line 16, in require_script\n    self.fail(f\"wg-peer script missing: {SCRIPT}\")\n    ~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\nAssertionError: wg-peer script missing: E:\\unityProject\\Test\\scripts\\deploy\\wg-peer.py\n\n======================================================================\nFAIL: test_invalid_name_is_usage_error (test_wg_peer.WgPeerTests.test_invalid_name_is_usage_error)\n----------------------------------------------------------------------\nTraceback (most recent call last):\n  File \"E:\\unityProject\\Test\\scripts\\tests\\test_wg_peer.py\", line 41, in test_invalid_name_is_usage_error\n    self.require_script()\n    ~~~~~~~~~~~~~~~~~~~^^\n  File \"E:\\unityProject\\Test\\scripts\\tests\\test_wg_peer.py\", line 16, in require_script\n    self.fail(f\"wg-peer script missing: {SCRIPT}\")\n    ~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\nAssertionError: wg-peer script missing: E:\\unityProject\\Test\\scripts\\deploy\\wg-peer.py\n\n======================================================================\nFAIL: test_missing_name_is_usage_error (test_wg_peer.WgPeerTests.test_missing_name_is_usage_error)\n----------------------------------------------------------------------\nTraceback (most recent call last):\n  File \"E:\\unityProject\\Test\\scripts\\tests\\test_wg_peer.py\", line 36, in test_missing_name_is_usage_error\n    self.require_script()\n    ~~~~~~~~~~~~~~~~~~~^^\n  File \"E:\\unityProject\\Test\\scripts\\tests\\test_wg_peer.py\", line 16, in require_script\n    self.fail(f\"wg-peer script missing: {SCRIPT}\")\n    ~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\nAssertionError: wg-peer script missing: E:\\unityProject\\Test\\scripts\\deploy\\wg-peer.py\n\n----------------------------------------------------------------------\nRan 105 tests in 13.383s\n\nFAILED (failures=11)"
+    }
+  ]
+}

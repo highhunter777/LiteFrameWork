@@ -1,0 +1,30 @@
+{
+  "schema_version": 1,
+  "kind": "red",
+  "at": "2026-10-21T19:51:29+08:00",
+  "ok": true,
+  "command_fingerprint": "49f43cc311a4b6240d9141cc3dcb959ce5c9c49ad136b9bd63fcddae00c5e813",
+  "commands": [
+    {
+      "name": "toolchain-tests-red",
+      "cmd": [
+        "python",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "scripts/tests",
+        "-p",
+        "test_*.py",
+        "-v"
+      ],
+      "cwd": null,
+      "exit_code": 1,
+      "timed_out": false,
+      "error": null,
+      "duration_ms": 11706,
+      "ok": true,
+      "output_tail": "    self.require_script()\n    ~~~~~~~~~~~~~~~~~~~^^\n  File \"E:\\unityProject\\Test\\scripts\\tests\\test_l2_entry.py\", line 17, in require_script\n    self.fail(f\"L2 script missing: {SCRIPT}\")\n    ~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\nAssertionError: L2 script missing: E:\\unityProject\\Test\\scripts\\gate\\l2-unity-gate.py\n\n======================================================================\nFAIL: test_help (test_nightly_entry.NightlyEntryTests.test_help)\n----------------------------------------------------------------------\nTraceback (most recent call last):\n  File \"E:\\unityProject\\Test\\scripts\\tests\\test_nightly_entry.py\", line 16, in test_help\n    self.fail(f\"nightly script missing: {SCRIPT}\")\n    ~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\nAssertionError: nightly script missing: E:\\unityProject\\Test\\scripts\\gate\\nightly-gate.py\n\n======================================================================\nFAIL: test_p3b_entries_are_python (test_toolchain.ManifestContractTests.test_p3b_entries_are_python)\n----------------------------------------------------------------------\nTraceback (most recent call last):\n  File \"E:\\unityProject\\Test\\scripts\\tests\\test_toolchain.py\", line 135, in test_p3b_entries_are_python\n    self.assertEqual(by_id[\"quality.l2\"][\"command\"], [\"python\", \"scripts/gate/l2-unity-gate.py\"])\n    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\nAssertionError: Lists differ: ['pwsh', 'scripts/gate/l2-unity-gate.ps1'] != ['python', 'scripts/gate/l2-unity-gate.py']\n\nFirst differing element 0:\n'pwsh'\n'python'\n\n- ['pwsh', 'scripts/gate/l2-unity-gate.ps1']\n?    ^^                                 ^^\n\n+ ['python', 'scripts/gate/l2-unity-gate.py']\n?    ^^ ++                                ^\n\n\n----------------------------------------------------------------------\nRan 86 tests in 11.472s\n\nFAILED (failures=6)"
+    }
+  ]
+}

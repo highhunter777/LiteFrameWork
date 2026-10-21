@@ -1,0 +1,313 @@
+{
+  "schema_version": 1,
+  "slug": "full-python-p2",
+  "title": "全量 Python P2（内容/环境）",
+  "status": "archived",
+  "current_stage": null,
+  "created_at": "2026-10-21T19:28:52+08:00",
+  "updated_at": "2026-10-21T19:37:56+08:00",
+  "completed_at": "2026-10-21T19:37:55+08:00",
+  "completed_stages": [
+    {
+      "id": "propose",
+      "title": "提出方案",
+      "completed_at": "2026-10-21T19:29:13+08:00"
+    },
+    {
+      "id": "breakdown",
+      "title": "实施任务清单",
+      "completed_at": "2026-10-21T19:29:32+08:00"
+    },
+    {
+      "id": "review-tasks",
+      "title": "评审任务",
+      "completed_at": "2026-10-21T19:29:51+08:00"
+    },
+    {
+      "id": "tests-first",
+      "title": "先写测试",
+      "completed_at": "2026-10-21T19:31:10+08:00"
+    },
+    {
+      "id": "implement",
+      "title": "正式施工",
+      "completed_at": "2026-10-21T19:35:18+08:00"
+    },
+    {
+      "id": "verify",
+      "title": "测试代码",
+      "completed_at": "2026-10-21T19:36:10+08:00"
+    },
+    {
+      "id": "review-code",
+      "title": "评审代码",
+      "completed_at": "2026-10-21T19:37:50+08:00"
+    },
+    {
+      "id": "writeback",
+      "title": "回写与收尾",
+      "completed_at": "2026-10-21T19:37:55+08:00"
+    }
+  ],
+  "history": [
+    {
+      "at": "2026-10-21T19:28:52+08:00",
+      "event": "init",
+      "stage": "propose"
+    },
+    {
+      "at": "2026-10-21T19:29:13+08:00",
+      "event": "advance",
+      "from": "propose",
+      "to": "breakdown",
+      "approved_by": null
+    },
+    {
+      "at": "2026-10-21T19:29:32+08:00",
+      "event": "advance",
+      "from": "breakdown",
+      "to": "review-tasks",
+      "approved_by": null
+    },
+    {
+      "at": "2026-10-21T19:29:51+08:00",
+      "event": "advance",
+      "from": "review-tasks",
+      "to": "tests-first",
+      "approved_by": null
+    },
+    {
+      "at": "2026-10-21T19:31:10+08:00",
+      "event": "advance",
+      "from": "tests-first",
+      "to": "implement",
+      "approved_by": null
+    },
+    {
+      "at": "2026-10-21T19:35:18+08:00",
+      "event": "advance",
+      "from": "implement",
+      "to": "verify",
+      "approved_by": null
+    },
+    {
+      "at": "2026-10-21T19:36:10+08:00",
+      "event": "advance",
+      "from": "verify",
+      "to": "review-code",
+      "approved_by": null
+    },
+    {
+      "at": "2026-10-21T19:37:50+08:00",
+      "event": "advance",
+      "from": "review-code",
+      "to": "writeback",
+      "approved_by": null
+    },
+    {
+      "at": "2026-10-21T19:37:55+08:00",
+      "event": "advance",
+      "from": "writeback",
+      "to": null,
+      "approved_by": null
+    },
+    {
+      "at": "2026-10-21T19:37:56+08:00",
+      "event": "archive",
+      "path": "20261021-193756-full-python-p2"
+    }
+  ],
+  "tasks": [
+    {
+      "id": "T1",
+      "title": "迁移本地 CDN 配置加载器",
+      "description": "",
+      "acceptance": "_local_cdn.py 提供 ConfigPath/Directory/Bind/Port；相对目录按仓库根解析；缺文件/缺字段 fail loudly；serve/publish 共用；旧 loader 在 T3/T4 切换后删除",
+      "verify": "python -m unittest scripts.tests.test_local_cdn -v",
+      "files": [
+        "scripts/content/_local_cdn.py",
+        "scripts/content/_local-cdn.ps1",
+        "scripts/tests/test_local_cdn.py"
+      ],
+      "deps": [],
+      "status": "done",
+      "evidence": "_local_cdn.py；4/4 配置测试；旧 loader 待 publish/serve 切换后删除",
+      "status_reason": "",
+      "created_at": "2026-10-21T19:29:18+08:00",
+      "started_at": "2026-10-21T19:31:13+08:00",
+      "completed_at": "2026-10-21T19:31:22+08:00"
+    },
+    {
+      "id": "T2",
+      "title": "迁移签名候选生成器",
+      "description": "",
+      "acceptance": "gen-candidate.py 规范 manifest 字段序/转义/前缀/排序/空目录与 PS 一致；RSA XML 私钥 + cryptography 签名；内置锚自校验；信封 UTF-8 无 BOM；测试独立公钥验签；旧 PS 删除",
+      "verify": "python -m unittest scripts.tests.test_gen_candidate -v",
+      "files": [
+        "scripts/content/gen-candidate.py",
+        "scripts/content/gen-candidate.ps1",
+        "scripts/tests/test_gen_candidate.py"
+      ],
+      "deps": [
+        "T1"
+      ],
+      "status": "done",
+      "evidence": "gen-candidate.py 规范 manifest/签名/锚自校验；2/2（含独立公钥验签）；旧 PS 删除",
+      "status_reason": "",
+      "created_at": "2026-10-21T19:29:18+08:00",
+      "started_at": "2026-10-21T19:31:32+08:00",
+      "completed_at": "2026-10-21T19:31:45+08:00"
+    },
+    {
+      "id": "T3",
+      "title": "迁移 CDN 发布布局器",
+      "description": "",
+      "acceptance": "publish-candidate.py 清理/布局/bundle 镜像/candidate.json 与 PS 等价；配置/覆盖解析正确；gen-candidate 失败透传；测试临时 key/anchors/目录；旧 PS 删除",
+      "verify": "python -m unittest scripts.tests.test_publish_candidate -v",
+      "files": [
+        "scripts/content/publish-candidate.py",
+        "scripts/content/publish-candidate.ps1",
+        "scripts/tests/test_publish_candidate.py"
+      ],
+      "deps": [
+        "T1",
+        "T2"
+      ],
+      "status": "done",
+      "evidence": "publish-candidate.py 布局/bundle/签名；2/2；旧 PS 删除",
+      "status_reason": "",
+      "created_at": "2026-10-21T19:29:19+08:00",
+      "started_at": "2026-10-21T19:31:53+08:00",
+      "completed_at": "2026-10-21T19:32:00+08:00"
+    },
+    {
+      "id": "T4",
+      "title": "迁移本地 CDN 起服",
+      "description": "",
+      "acceptance": "serve-cdn.py 配置/端口/目录覆盖生效；目录缺失 exit 1；python -m http.server 子进程；临时目录 HTTP GET 通过；旧 PS 删除",
+      "verify": "python -m unittest scripts.tests.test_serve_cdn -v",
+      "files": [
+        "scripts/content/serve-cdn.py",
+        "scripts/content/serve-cdn.ps1",
+        "scripts/tests/test_serve_cdn.py"
+      ],
+      "deps": [
+        "T1"
+      ],
+      "status": "done",
+      "evidence": "serve-cdn.py 配置/覆盖/HTTP GET/缺目录；2/2；旧 serve 与旧 loader 删除",
+      "status_reason": "",
+      "created_at": "2026-10-21T19:29:19+08:00",
+      "started_at": "2026-10-21T19:32:05+08:00",
+      "completed_at": "2026-10-21T19:32:20+08:00"
+    },
+    {
+      "id": "T5",
+      "title": "迁移环境恢复检查",
+      "description": "",
+      "acceptance": "restore-check.py 检查项/OK-WARN-MISS/阻塞退出与 PS 一致；新增 cryptography；repo PASS；空项目 blocking exit 1；旧 PS 删除",
+      "verify": "python -m unittest scripts.tests.test_restore_check -v",
+      "files": [
+        "scripts/gate/restore-check.py",
+        "scripts/gate/restore-check.ps1",
+        "scripts/tests/test_restore_check.py"
+      ],
+      "deps": [
+        "T1"
+      ],
+      "status": "done",
+      "evidence": "restore-check.py 检查项/阻塞/新增 cryptography；2/2（repo PASS、空项目 FAIL）；旧 PS 删除",
+      "status_reason": "",
+      "created_at": "2026-10-21T19:29:26+08:00",
+      "started_at": "2026-10-21T19:32:34+08:00",
+      "completed_at": "2026-10-21T19:32:44+08:00"
+    },
+    {
+      "id": "T6",
+      "title": "同步 P2 注册面与现行文档",
+      "description": "",
+      "acceptance": "清单四个 command、toolchain.py restore 子命令、build-player.ps1、工具索引、AGENTS/文档/skills 全 Python；旧 PS 文件不存在；现行旧引用清零（历史卷除外）",
+      "verify": "python scripts/toolchain.py docs --check; python scripts/gate/doc-lint.py; grep -rn \"gen-candidate.ps1\\|publish-candidate.ps1\\|serve-cdn.ps1\\|restore-check.ps1\\|_local-cdn.ps1\" scripts Docs AGENTS.md .agents .github | grep -v \"Docs/施工进度\" | grep -v \"归档\" | grep -v \"Docs/审计\" || true",
+      "files": [
+        "scripts/gate/toolchain.json",
+        "scripts/toolchain.py",
+        "scripts/build/build-player.ps1",
+        "scripts/README.md",
+        "AGENTS.md",
+        "Docs/项目说明/05-验证与门禁.md",
+        "Docs/项目说明/06-环境与协作纪律.md",
+        "Docs/项目说明/13-调试手册.md",
+        "Docs/修改指南.md",
+        "Docs/工具链/技术支持.md",
+        "Docs/工具链/工具索引.md",
+        "Docs/开发导航/代码地图.md",
+        "Docs/环境/环境恢复指南.md",
+        "Docs/待办总览.md",
+        "Docs/设计文档/客户端/内容/资源收集目录专项设计.md"
+      ],
+      "deps": [
+        "T1",
+        "T2",
+        "T3",
+        "T4",
+        "T5"
+      ],
+      "status": "done",
+      "evidence": "清单四 command/toolchain fallback/build-player/索引/现行文档改 Python；旧五 PS 删除；75/75 测试；check 0 error/6 存量 warning；doc-lint 0/0",
+      "status_reason": "",
+      "created_at": "2026-10-21T19:29:26+08:00",
+      "started_at": "2026-10-21T19:32:52+08:00",
+      "completed_at": "2026-10-21T19:33:41+08:00"
+    },
+    {
+      "id": "T7",
+      "title": "全量验证与范围审计",
+      "description": "",
+      "acceptance": "Python 测试全绿；restore repo PASS；toolchain check/docs；Doc 0/0；L1 1801；BuildHash OK；未真实发布/云侧；未改 Assets/Server/协议/表",
+      "verify": "python -m unittest discover -s scripts/tests -p \"test_*.py\" -v && python scripts/gate/restore-check.py && python scripts/toolchain.py check && python scripts/toolchain.py docs --check && python scripts/gate/doc-lint.py && pwsh -NoProfile -File scripts/gate/test.ps1 -Lane L1 -Profile PullRequest",
+      "files": [
+        "scripts",
+        "Docs",
+        "AGENTS.md",
+        ".github"
+      ],
+      "deps": [
+        "T1",
+        "T2",
+        "T3",
+        "T4",
+        "T5",
+        "T6"
+      ],
+      "status": "done",
+      "evidence": "L1 1801；Python 75/75；restore repo PASS；toolchain check 0 error/6 存量 warning；docs current；Doc 0/0；BuildHash OK；CI YAML/JSON/builder AST OK；无 Assets/Server 改动；未真实发布/云侧",
+      "status_reason": "",
+      "created_at": "2026-10-21T19:29:27+08:00",
+      "started_at": "2026-10-21T19:33:41+08:00",
+      "completed_at": "2026-10-21T19:34:44+08:00"
+    }
+  ],
+  "verification": {
+    "at": "2026-10-21T19:36:10+08:00",
+    "ok": true,
+    "stale": false,
+    "evidence": "evidence/verify.json",
+    "command_fingerprint": "6e266ce9464431649bba12a09dbb237f26e56f2a06879618c8afc599618e6186",
+    "summary": {
+      "total": 7,
+      "passed": 7
+    }
+  },
+  "red_verification": {
+    "at": "2026-10-21T19:30:52+08:00",
+    "ok": true,
+    "stale": false,
+    "evidence": "evidence/red.json",
+    "command_fingerprint": "49f43cc311a4b6240d9141cc3dcb959ce5c9c49ad136b9bd63fcddae00c5e813",
+    "summary": {
+      "total": 1,
+      "passed": 1
+    }
+  },
+  "archived_at": "2026-10-21T19:37:56+08:00"
+}

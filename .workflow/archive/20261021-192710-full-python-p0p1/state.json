@@ -1,0 +1,268 @@
+{
+  "schema_version": 1,
+  "slug": "full-python-p0p1",
+  "title": "全量 Python P0/P1（地基 + hooks/L0）",
+  "status": "archived",
+  "current_stage": null,
+  "created_at": "2026-10-21T19:16:14+08:00",
+  "updated_at": "2026-10-21T19:27:10+08:00",
+  "completed_at": "2026-10-21T19:27:10+08:00",
+  "completed_stages": [
+    {
+      "id": "propose",
+      "title": "提出方案",
+      "completed_at": "2026-10-21T19:16:56+08:00"
+    },
+    {
+      "id": "breakdown",
+      "title": "实施任务清单",
+      "completed_at": "2026-10-21T19:17:11+08:00"
+    },
+    {
+      "id": "review-tasks",
+      "title": "评审任务",
+      "completed_at": "2026-10-21T19:17:31+08:00"
+    },
+    {
+      "id": "tests-first",
+      "title": "先写测试",
+      "completed_at": "2026-10-21T19:18:43+08:00"
+    },
+    {
+      "id": "implement",
+      "title": "正式施工",
+      "completed_at": "2026-10-21T19:24:22+08:00"
+    },
+    {
+      "id": "verify",
+      "title": "测试代码",
+      "completed_at": "2026-10-21T19:25:15+08:00"
+    },
+    {
+      "id": "review-code",
+      "title": "评审代码",
+      "completed_at": "2026-10-21T19:26:46+08:00"
+    },
+    {
+      "id": "writeback",
+      "title": "回写与收尾",
+      "completed_at": "2026-10-21T19:27:10+08:00"
+    }
+  ],
+  "history": [
+    {
+      "at": "2026-10-21T19:16:14+08:00",
+      "event": "init",
+      "stage": "propose"
+    },
+    {
+      "at": "2026-10-21T19:16:56+08:00",
+      "event": "advance",
+      "from": "propose",
+      "to": "breakdown",
+      "approved_by": null
+    },
+    {
+      "at": "2026-10-21T19:17:11+08:00",
+      "event": "advance",
+      "from": "breakdown",
+      "to": "review-tasks",
+      "approved_by": null
+    },
+    {
+      "at": "2026-10-21T19:17:31+08:00",
+      "event": "advance",
+      "from": "review-tasks",
+      "to": "tests-first",
+      "approved_by": null
+    },
+    {
+      "at": "2026-10-21T19:18:43+08:00",
+      "event": "advance",
+      "from": "tests-first",
+      "to": "implement",
+      "approved_by": null
+    },
+    {
+      "at": "2026-10-21T19:24:22+08:00",
+      "event": "advance",
+      "from": "implement",
+      "to": "verify",
+      "approved_by": null
+    },
+    {
+      "at": "2026-10-21T19:25:15+08:00",
+      "event": "advance",
+      "from": "verify",
+      "to": "review-code",
+      "approved_by": null
+    },
+    {
+      "at": "2026-10-21T19:26:46+08:00",
+      "event": "advance",
+      "from": "review-code",
+      "to": "writeback",
+      "approved_by": null
+    },
+    {
+      "at": "2026-10-21T19:27:10+08:00",
+      "event": "advance",
+      "from": "writeback",
+      "to": null,
+      "approved_by": null
+    },
+    {
+      "at": "2026-10-21T19:27:10+08:00",
+      "event": "archive",
+      "path": "20261021-192710-full-python-p0p1"
+    }
+  ],
+  "tasks": [
+    {
+      "id": "T1",
+      "title": "建立 _common.py 地基",
+      "description": "",
+      "acceptance": "_common.py 提供 repo_root/configure_stdio/info/warn/fail/run/EXIT_*；单测覆盖；后续入口可直接 import；只标准库",
+      "verify": "python -m unittest scripts.tests.test_common -v",
+      "files": [
+        "scripts/_common.py",
+        "scripts/tests/test_common.py"
+      ],
+      "deps": [],
+      "status": "done",
+      "evidence": "_common.py：repo_root/configure_stdio/info/warn/fail/run/EXIT_*；5/5 单测；仅标准库",
+      "status_reason": "",
+      "created_at": "2026-10-21T19:17:02+08:00",
+      "started_at": "2026-10-21T19:18:46+08:00",
+      "completed_at": "2026-10-21T19:18:52+08:00"
+    },
+    {
+      "id": "T2",
+      "title": "迁移 hooks 提醒脚本到 Python",
+      "description": "",
+      "acceptance": "shared-source-reminder.py 逐条移植路径/消息/ZCode+Claude schema；空/坏输入静默 0；两个 hook 配置指向 python；旧 PS 删除；测试覆盖四类",
+      "verify": "python -m unittest scripts.tests.test_hook_reminder -v && python scripts/toolchain.py check",
+      "files": [
+        ".zcode/config.json",
+        ".claude/settings.json",
+        "scripts/hooks/shared-source-reminder.py",
+        "scripts/hooks/shared-source-reminder.ps1",
+        "scripts/tests/test_hook_reminder.py"
+      ],
+      "deps": [
+        "T1"
+      ],
+      "status": "done",
+      "evidence": "shared-source-reminder.py 移植；ZCode/Claude 配置改 python -X utf8；旧 PS 删除；hook 5/5；toolchain check OK",
+      "status_reason": "",
+      "created_at": "2026-10-21T19:17:02+08:00",
+      "started_at": "2026-10-21T19:18:59+08:00",
+      "completed_at": "2026-10-21T19:19:07+08:00"
+    },
+    {
+      "id": "T3",
+      "title": "迁移 L0 依赖与密钥扫描到 Python",
+      "description": "",
+      "acceptance": "l0-dep-scan.py 保持四项检查/排除/退出码；repo baseline 仅已知 ParrelSync 个人路径违规、无其他类型；四类违规夹具 exit 1；--project-path 生效；旧 PS 删除；清单/fallback/build-player/CI 同批改 Python",
+      "verify": "python -m unittest scripts.tests.test_l0_dep_scan -v && python scripts/toolchain.py check",
+      "files": [
+        "scripts/gate/l0-dep-scan.py",
+        "scripts/gate/l0-dep-scan.ps1",
+        "scripts/tests/test_l0_dep_scan.py",
+        "scripts/gate/toolchain.json",
+        "scripts/toolchain.py",
+        "scripts/build/build-player.ps1",
+        ".github/workflows/ci.yml"
+      ],
+      "deps": [
+        "T1"
+      ],
+      "status": "done",
+      "evidence": "l0-dep-scan.py 四项检查+toolchain check；6/6 夹具/基线测试；旧 PS 删除；清单/fallback/build-player/CI 改 Python；repo baseline 仅 ParrelSync 存量违规",
+      "status_reason": "",
+      "created_at": "2026-10-21T19:17:02+08:00",
+      "started_at": "2026-10-21T19:19:12+08:00",
+      "completed_at": "2026-10-21T19:20:12+08:00"
+    },
+    {
+      "id": "T4",
+      "title": "同步 P1 注册面与现行文档",
+      "description": "",
+      "acceptance": "scripts/README/AGENTS/05/13/修改指南/技术支持/代码地图/环境指南/待办/skills 的 L0 命令改 Python；工具索引 current；现行引用无旧 PS（历史施工卷除外）",
+      "verify": "python scripts/toolchain.py docs --check; python scripts/gate/doc-lint.py; grep -rn \"l0-dep-scan.ps1\\|shared-source-reminder.ps1\" scripts Docs AGENTS.md .agents .zcode .claude | grep -v \"Docs/施工进度\" | grep -v \"归档\" || true",
+      "files": [
+        "scripts/README.md",
+        "AGENTS.md",
+        "Docs/项目说明/05-验证与门禁.md",
+        "Docs/项目说明/13-调试手册.md",
+        "Docs/修改指南.md",
+        "Docs/工具链/技术支持.md",
+        "Docs/工具链/工具索引.md",
+        "Docs/开发导航/代码地图.md",
+        "Docs/环境/环境恢复指南.md",
+        "Docs/待办总览.md",
+        ".agents/skills/batch-wrapup/SKILL.md"
+      ],
+      "deps": [
+        "T2",
+        "T3"
+      ],
+      "status": "done",
+      "evidence": "现行脚本/CI/AGENTS/docs/skills 的 L0 与 hook 引用改 Python；工具索引 current；doc-lint 0/0；结构断言 2/2；旧引用仅历史卷/设计清单/测试断言",
+      "status_reason": "",
+      "created_at": "2026-10-21T19:17:07+08:00",
+      "started_at": "2026-10-21T19:20:25+08:00",
+      "completed_at": "2026-10-21T19:20:52+08:00"
+    },
+    {
+      "id": "T5",
+      "title": "全量验证与范围审计",
+      "description": "",
+      "acceptance": "Python 测试全绿；L0 基线测试覆盖 repo 已知 ParrelSync 违规与四类夹具；toolchain check/docs current；Doc 0/0；L1 1801；BuildHash --check-shared OK；未改 Unity/共享源集/协议/表/云侧；未执行 SSH",
+      "verify": "python -m unittest discover -s scripts/tests -p \"test_*.py\" -v && python scripts/toolchain.py check && python scripts/toolchain.py docs --check && python scripts/gate/doc-lint.py && pwsh -NoProfile -File scripts/gate/test.ps1 -Lane L1 -Profile PullRequest",
+      "files": [
+        "scripts",
+        "tests",
+        "Docs",
+        ".github",
+        ".zcode",
+        ".claude"
+      ],
+      "deps": [
+        "T1",
+        "T2",
+        "T3",
+        "T4"
+      ],
+      "status": "done",
+      "evidence": "L1 1801；Python 62/62；L0 repo PASS（ParrelSync 已消失，测试兼容存量）；toolchain check 0 error/8 存量 warning；docs current；Doc 0/0；BuildHash --check-shared OK；CI YAML/JSON/PS AST OK；无 Assets/Server 改动",
+      "status_reason": "",
+      "created_at": "2026-10-21T19:17:07+08:00",
+      "started_at": "2026-10-21T19:20:52+08:00",
+      "completed_at": "2026-10-21T19:24:03+08:00"
+    }
+  ],
+  "verification": {
+    "at": "2026-10-21T19:26:28+08:00",
+    "ok": true,
+    "stale": false,
+    "evidence": "evidence/verify.json",
+    "command_fingerprint": "247bd820148d0213ff76ecc1d735d7030557df406d2802490573640a80b593c5",
+    "summary": {
+      "total": 6,
+      "passed": 6
+    }
+  },
+  "red_verification": {
+    "at": "2026-10-21T19:18:25+08:00",
+    "ok": true,
+    "stale": false,
+    "evidence": "evidence/red.json",
+    "command_fingerprint": "49f43cc311a4b6240d9141cc3dcb959ce5c9c49ad136b9bd63fcddae00c5e813",
+    "summary": {
+      "total": 1,
+      "passed": 1
+    }
+  },
+  "archived_at": "2026-10-21T19:27:10+08:00"
+}

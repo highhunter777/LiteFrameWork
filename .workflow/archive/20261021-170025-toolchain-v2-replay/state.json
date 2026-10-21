@@ -1,0 +1,342 @@
+{
+  "schema_version": 1,
+  "slug": "toolchain-v2-replay",
+  "title": "工具链 v2：回放落盘与现场包",
+  "status": "archived",
+  "current_stage": null,
+  "created_at": "2026-10-21T16:33:05+08:00",
+  "updated_at": "2026-10-21T17:00:25+08:00",
+  "completed_at": "2026-10-21T17:00:19+08:00",
+  "completed_stages": [
+    {
+      "id": "propose",
+      "title": "提出方案",
+      "completed_at": "2026-10-21T16:34:04+08:00"
+    },
+    {
+      "id": "breakdown",
+      "title": "实施任务清单",
+      "completed_at": "2026-10-21T16:36:04+08:00"
+    },
+    {
+      "id": "review-tasks",
+      "title": "评审任务",
+      "completed_at": "2026-10-21T16:36:07+08:00"
+    },
+    {
+      "id": "tests-first",
+      "title": "先写测试",
+      "completed_at": "2026-10-21T16:37:28+08:00"
+    },
+    {
+      "id": "implement",
+      "title": "正式施工",
+      "completed_at": "2026-10-21T16:55:33+08:00"
+    },
+    {
+      "id": "verify",
+      "title": "测试代码",
+      "completed_at": "2026-10-21T16:58:19+08:00"
+    },
+    {
+      "id": "review-code",
+      "title": "评审代码",
+      "completed_at": "2026-10-21T16:58:39+08:00"
+    },
+    {
+      "id": "writeback",
+      "title": "回写与收尾",
+      "completed_at": "2026-10-21T17:00:19+08:00"
+    }
+  ],
+  "history": [
+    {
+      "at": "2026-10-21T16:33:05+08:00",
+      "event": "init",
+      "stage": "propose"
+    },
+    {
+      "at": "2026-10-21T16:34:04+08:00",
+      "event": "advance",
+      "from": "propose",
+      "to": "breakdown",
+      "approved_by": null
+    },
+    {
+      "at": "2026-10-21T16:36:04+08:00",
+      "event": "advance",
+      "from": "breakdown",
+      "to": "review-tasks",
+      "approved_by": null
+    },
+    {
+      "at": "2026-10-21T16:36:07+08:00",
+      "event": "advance",
+      "from": "review-tasks",
+      "to": "tests-first",
+      "approved_by": null
+    },
+    {
+      "at": "2026-10-21T16:37:28+08:00",
+      "event": "advance",
+      "from": "tests-first",
+      "to": "implement",
+      "approved_by": null
+    },
+    {
+      "at": "2026-10-21T16:55:33+08:00",
+      "event": "advance",
+      "from": "implement",
+      "to": "verify",
+      "approved_by": null
+    },
+    {
+      "at": "2026-10-21T16:58:19+08:00",
+      "event": "advance",
+      "from": "verify",
+      "to": "review-code",
+      "approved_by": null
+    },
+    {
+      "at": "2026-10-21T16:58:39+08:00",
+      "event": "advance",
+      "from": "review-code",
+      "to": "writeback",
+      "approved_by": null
+    },
+    {
+      "at": "2026-10-21T17:00:19+08:00",
+      "event": "advance",
+      "from": "writeback",
+      "to": null,
+      "approved_by": null
+    },
+    {
+      "at": "2026-10-21T17:00:25+08:00",
+      "event": "archive",
+      "path": "20261021-170025-toolchain-v2-replay"
+    }
+  ],
+  "tasks": [
+    {
+      "id": "T1",
+      "title": "内核录制器与权威捕获点",
+      "description": "",
+      "acceptance": "RoomRunRecord/Recorder 在 RoomRuntime.Execute/SetTestRules/StepFrame 捕获命令、步进 checksum、规则事件；输入深拷贝；容量上限与截断；checksum 在 StepFrame 末尾稳定（排除瞬态缓冲，以 SimChecksum 定义为准）；R11 无 IO/proto/LiteNet；新 Assets 文件经 unity-pipeline 导入并生成 .meta",
+      "verify": "定向 L1 RoomRunReplay 录制/截断用例；R11 纪律扫描；unity-pipeline 导入回读/ L2 meta 检查；L1 全量",
+      "files": [
+        "Assets/RoomServer/Runtime/Diagnostics/RoomRunRecord.cs",
+        "Assets/RoomServer/Runtime/Diagnostics/RoomRunRecorder.cs",
+        "Assets/RoomServer/Runtime/RoomRuntime.cs"
+      ],
+      "deps": [
+        "T9"
+      ],
+      "status": "done",
+      "evidence": "RoomRunRecord/RoomRunRecorder + RoomRuntime.Execute/SetTestRules/StartMatch/StepFrame/TakeRunRecord 接线；深拷贝输入/上限/截断；RoomRunReplayTests 5/5；Unity recompile 0 错；L1 纪律扫描通过",
+      "status_reason": "",
+      "created_at": "2026-10-21T16:34:16+08:00",
+      "started_at": "2026-10-21T16:55:03+08:00",
+      "completed_at": "2026-10-21T16:55:03+08:00"
+    },
+    {
+      "id": "T2",
+      "title": "房间重放器核心",
+      "description": "",
+      "acceptance": "从记录重建 RoomConfig/RoomRuntime（MatchId/Seed/gameplayDigestBase 与记录一致），按序喂命令并逐步比对 checksum；输出首分歧帧/命令序号；截断报告；buildHash/config/map 身份不符 fail-fast",
+      "verify": "定向 L1 RoomRunReplay 重放/篡改/身份用例",
+      "files": [
+        "Server/RoomServer/Diagnostics/RoomReplayRunner.cs"
+      ],
+      "deps": [
+        "T1",
+        "T9"
+      ],
+      "status": "done",
+      "evidence": "RoomReplayRunner 重建同配置 RoomRuntime 按序喂命令；首分歧帧/命令序号/截断/身份 fail-fast；篡改 42 帧定向通过；定向 15/15",
+      "status_reason": "",
+      "created_at": "2026-10-21T16:34:17+08:00",
+      "started_at": "2026-10-21T16:55:03+08:00",
+      "completed_at": "2026-10-21T16:55:03+08:00"
+    },
+    {
+      "id": "T3",
+      "title": "记录封装、JSON+GZip 编解码与原子存储",
+      "description": "",
+      "acceptance": "Envelope 带 buildHash/config/map 身份与日志尾；版本化 JSON+GZip；原子写盘/保留上限/失败计数；round-trip 保真",
+      "verify": "定向 L1 codec/store 用例；临时目录原子写与保留断言",
+      "files": [
+        "Server/RoomServer/Diagnostics/RoomRunEnvelope.cs",
+        "Server/RoomServer/Diagnostics/RoomRunStore.cs",
+        "Server/RoomServer/RoomServerConfig.cs"
+      ],
+      "deps": [
+        "T1",
+        "T9"
+      ],
+      "status": "done",
+      "evidence": "RoomRunEnvelope JSON+GZip + RoomRunStore 原子写/保留；codec/store 2/2；文件可解码、无 .tmp",
+      "status_reason": "",
+      "created_at": "2026-10-21T16:34:17+08:00",
+      "started_at": "2026-10-21T16:55:03+08:00",
+      "completed_at": "2026-10-21T16:55:04+08:00"
+    },
+    {
+      "id": "T4",
+      "title": "服务端终态现场包接线",
+      "description": "",
+      "acceptance": "房间 Closed/Aborted 且静默后取记录并落盘 envelope+日志尾；mismatch 摘要进 envelope；HostLog 尾经有界环或配置日志文件尾（单源二选一）；写失败不影响收尾；配置目录可关闭",
+      "verify": "L1 房间终态用例 + 临时目录产物断言；HostLog/计数检查",
+      "files": [
+        "Server/RoomServer/Diagnostics/RoomDiagnosticsService.cs",
+        "Server/RoomServer/RoomInstance.cs",
+        "Server/RoomServer/ServerHost.cs"
+      ],
+      "deps": [
+        "T1",
+        "T2",
+        "T3",
+        "T9"
+      ],
+      "status": "done",
+      "evidence": "RoomDiagnosticsService + RoomServerConfig diagnostics + HostLog 256 行尾；现场包 2/2（临时目录产物/保留）；L1 1800/1800",
+      "status_reason": "",
+      "created_at": "2026-10-21T16:34:17+08:00",
+      "started_at": "2026-10-21T16:55:04+08:00",
+      "completed_at": "2026-10-21T16:55:04+08:00"
+    },
+    {
+      "id": "T5",
+      "title": "客户端 mismatch 现场包",
+      "description": "",
+      "acceptance": "BattleContext checksum mismatch/ConfigHash 不符触发；manifest+Log.Recent+Player.log 尾；限频/大小上限/无密钥；失败只告警；新 Assets 文件经 unity-pipeline 导入并生成 .meta",
+      "verify": "纯逻辑/EditMode 定向用例（写出/限频/上限）；unity-pipeline 导入回读/L2 meta 检查；L1 或 L2 定向",
+      "files": [
+        "Assets/LiteClient/Runtime/Diagnostics/ClientBundleWriter.cs",
+        "Assets/LiteClient/Runtime/Battle/BattleContext.cs"
+      ],
+      "deps": [
+        "T9"
+      ],
+      "status": "done",
+      "evidence": "DiagnosticsBundleWriter + ClientDiagnosticsBundle + BattleContext mismatch/ConfigHash 触发；L1 ClientBundle 2/2；Unity 编译 0 错；EditMode 1/1",
+      "status_reason": "",
+      "created_at": "2026-10-21T16:34:17+08:00",
+      "started_at": "2026-10-21T16:55:04+08:00",
+      "completed_at": "2026-10-21T16:55:04+08:00"
+    },
+    {
+      "id": "T6",
+      "title": "ReplayTool CLI 与退出码",
+      "description": "",
+      "acceptance": "dotnet run --project Server/ReplayTool -- replay <file>；0/2/3/4 退出码；--json；对 L1 生成的记录 smoke 通过",
+      "verify": "CLI smoke（生成记录→exit 0；篡改→exit 2；坏身份→exit 3）",
+      "files": [
+        "Server/ReplayTool/ReplayTool.csproj",
+        "Server/ReplayTool/Program.cs"
+      ],
+      "deps": [
+        "T2",
+        "T3",
+        "T9"
+      ],
+      "status": "done",
+      "evidence": "Server/ReplayTool 构建 0 警告/0 错误；CLI 4/4（默认表 0 / 真实仓库表 0 / 篡改 2 / 身份 3）",
+      "status_reason": "",
+      "created_at": "2026-10-21T16:34:17+08:00",
+      "started_at": "2026-10-21T16:55:04+08:00",
+      "completed_at": "2026-10-21T16:55:04+08:00"
+    },
+    {
+      "id": "T7",
+      "title": "测试补齐与全量门禁",
+      "description": "",
+      "acceptance": "RoomRunReplay 覆盖 AC1-AC4/AC6；客户端 bundle 覆盖 AC5；L1 全绿；R11 扫描；doc-lint 0；buildHash --check-shared",
+      "verify": "pwsh scripts/gate/test.ps1 -Lane L1 -Profile PullRequest；python scripts/gate/doc-lint.py；python scripts/codegen/gen-build-hash.py --check-shared",
+      "files": [
+        "Tests/LiteNet.Tests/RoomRunReplayTests.cs",
+        "Tests/LiteNet.Tests/ClientBundleTests.cs"
+      ],
+      "deps": [
+        "T1",
+        "T2",
+        "T3",
+        "T4",
+        "T5",
+        "T6",
+        "T9"
+      ],
+      "status": "done",
+      "evidence": "L1 全量 1800/1800；doc-lint 0/0；gen-build-hash --check-shared OK（459a3145904693b7，110 文件）",
+      "status_reason": "",
+      "created_at": "2026-10-21T16:34:17+08:00",
+      "started_at": "2026-10-21T16:55:04+08:00",
+      "completed_at": "2026-10-21T16:55:05+08:00"
+    },
+    {
+      "id": "T8",
+      "title": "文档回写与工具用法",
+      "description": "",
+      "acceptance": "路线图补 v2 第一刀边界/后续项；调试手册补 replay/bundle 用法；施工进度卷追加证据；工具链清单/代码地图同步；索引/链接通过 doc-lint",
+      "verify": "python scripts/gate/doc-lint.py；人工核对命令/路径",
+      "files": [
+        "Docs/设计文档/测试与性能/调试与开发工具链演进路线图.md",
+        "Docs/项目说明/13-调试手册.md",
+        "Docs/施工进度/GM与调试线.md",
+        "Docs/工具链/技术支持.md",
+        "Docs/开发导航/代码地图.md",
+        "scripts/gate/toolchain.json"
+      ],
+      "deps": [
+        "T7"
+      ],
+      "status": "done",
+      "evidence": "路线图 T0 修正；13-调试手册 §8.5；GM与调试线 ch4；工具链清单/toolchain.json/代码地图；doc-lint 0/0",
+      "status_reason": "",
+      "created_at": "2026-10-21T16:34:18+08:00",
+      "started_at": "2026-10-21T16:55:05+08:00",
+      "completed_at": "2026-10-21T16:55:05+08:00"
+    },
+    {
+      "id": "T9",
+      "title": "先写红测：回放/编码/客户端 bundle",
+      "description": "",
+      "acceptance": "实现前写 RoomRunReplay/ClientBundle 用例并运行得到预期失败（缺类型/断言失败，不是环境错误）；覆盖 AC1-AC6 的失败路径",
+      "verify": "dotnet test Tests/LiteNet.Tests/LiteNet.Tests.csproj --filter FullyQualifiedName~RoomRunReplay；record--red",
+      "files": [
+        "Tests/LiteNet.Tests/RoomRunReplayTests.cs",
+        "Tests/LiteNet.Tests/ClientBundleTests.cs"
+      ],
+      "deps": [],
+      "status": "done",
+      "evidence": "evidence/red.json：exit=1，11.2s；缺 RoomServer.Diagnostics / RoomServer.Runtime.Diagnostics / LiteFramework.Diagnostics 类型（预期红，非环境错误）",
+      "status_reason": "",
+      "created_at": "2026-10-21T16:34:53+08:00",
+      "started_at": "2026-10-21T16:54:55+08:00",
+      "completed_at": "2026-10-21T16:54:56+08:00"
+    }
+  ],
+  "verification": {
+    "at": "2026-10-21T17:00:09+08:00",
+    "ok": true,
+    "stale": false,
+    "evidence": "evidence/verify.json",
+    "command_fingerprint": "1008e9f7a20371dbe5dbb24a3e5b0c7a9b4afefe68e26ad0bd0232b29b422160",
+    "summary": {
+      "total": 2,
+      "passed": 2
+    }
+  },
+  "red_verification": {
+    "at": "2026-10-21T16:37:15+08:00",
+    "ok": true,
+    "stale": false,
+    "evidence": "evidence/red.json",
+    "command_fingerprint": "b1baff5f7666db7640d3b345d2856a8ddc77dc55cb777f088f73223a3cf50db0",
+    "summary": {
+      "total": 1,
+      "passed": 1
+    }
+  },
+  "archived_at": "2026-10-21T17:00:25+08:00"
+}

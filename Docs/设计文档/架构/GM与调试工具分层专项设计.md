@@ -44,6 +44,7 @@
 - **对局诊断读口**（`App/Debug/BattleDiagnostics`）：对局上下文是流程私有件——不进容器、非场景组件，HUD 与 GM 页经同一登记口读数（`Attach/Detach` + 快照/描述单源——两处消费不各拼一套文案）；RTT/丢包口径与 `BattleNetworkHudDriver` 同源（千分比 → 一位小数百分比）。
 - **编辑器投影**：`LiteGame/工具链` →「联机诊断」页＝DevHUD 开关投影（总开关/段开关，F1 等效）＋读数投影（同一描述单源）。包形态无 Hub，HUD 由 F1 开。
 - **开发包启用**：出包脚本消费 BuildProfile `channel`——`development` 通道传 `BuildOptions.Development`（三宏的 `DEVELOPMENT_BUILD` 在包内成立，dev 面随包编译：DevHUD/DebugTuner/GM 命令层）；其余通道维持原样（缺省仅 DetailedBuildReport）。**分发边界**：development 通道产物＝开发侧测试客户端专用，**不进测试者分发包**——测试者出包走 release 通道档（`BuildProfiles/windows-x64-release.json`），各通道产物目录独立（`profile.output` 透传 build 命令），Dist 打包测试者包指向 `Builds/StandaloneWindows64-release`。DevMenuPanel 包形态不开（开出动作 `#if UNITY_EDITOR` 收口 + dev 预制体不进收集组——入口分叉治理，非缺漏）。
+- **演进与渲染后端**：分批、退出条件与 **UI Toolkit 决策**（已迁移 UI Toolkit；IMGUI 仅自动回退，只换渲染后端不换读口）见[《DevHUD 演进路线图》](../测试与性能/DevHUD演进路线图.md) §5。
 
 ## 6. 边界（如实）
 

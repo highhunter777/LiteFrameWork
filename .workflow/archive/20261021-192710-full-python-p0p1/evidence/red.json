@@ -1,0 +1,30 @@
+{
+  "schema_version": 1,
+  "kind": "red",
+  "at": "2026-10-21T19:18:25+08:00",
+  "ok": true,
+  "command_fingerprint": "49f43cc311a4b6240d9141cc3dcb959ce5c9c49ad136b9bd63fcddae00c5e813",
+  "commands": [
+    {
+      "name": "toolchain-tests-red",
+      "cmd": [
+        "python",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "scripts/tests",
+        "-p",
+        "test_*.py",
+        "-v"
+      ],
+      "cwd": null,
+      "exit_code": 1,
+      "timed_out": false,
+      "error": null,
+      "duration_ms": 5114,
+      "ok": true,
+      "output_tail": "    self.require_script()\n    ~~~~~~~~~~~~~~~~~~~^^\n  File \"E:\\unityProject\\Test\\scripts\\tests\\test_l0_dep_scan.py\", line 18, in require_script\n    self.fail(f\"L0 script missing: {L0}\")\n    ~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^\nAssertionError: L0 script missing: E:\\unityProject\\Test\\scripts\\gate\\l0-dep-scan.py\n\n======================================================================\nFAIL: test_hook_entries_are_python (test_toolchain.ManifestContractTests.test_hook_entries_are_python)\n----------------------------------------------------------------------\nTraceback (most recent call last):\n  File \"E:\\unityProject\\Test\\scripts\\tests\\test_toolchain.py\", line 135, in test_hook_entries_are_python\n    self.assertIn(\"shared-source-reminder.py\", zcode_text)\n    ~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\nAssertionError: 'shared-source-reminder.py' not found in '{\"mcp\": {\"servers\": {\"unity-mcp\": {\"type\": \"http\", \"url\": \"http://127.0.0.1:8083/mcp\"}}}, \"hooks\": {\"enabled\": true, \"events\": {\"PostToolUse\": [{\"matcher\": \"Edit|Write|MultiEdit|NotebookEdit|ApplyPatch\", \"hooks\": [{\"type\": \"process\", \"command\": \"pwsh\", \"args\": [\"-NoProfile\", \"-NonInteractive\", \"-File\", \"${ZCODE_PROJECT_DIR}/scripts/hooks/shared-source-reminder.ps1\"], \"timeoutMs\": 10000, \"statusMessage\": \"��鹲��Դ���Ķ�\"}]}]}}}'\n\n======================================================================\nFAIL: test_l0_entry_is_python (test_toolchain.ManifestContractTests.test_l0_entry_is_python)\n----------------------------------------------------------------------\nTraceback (most recent call last):\n  File \"E:\\unityProject\\Test\\scripts\\tests\\test_toolchain.py\", line 119, in test_l0_entry_is_python\n    self.assertEqual(l0[\"command\"], [\"python\", \"scripts/gate/l0-dep-scan.py\"])\n    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\nAssertionError: Lists differ: ['pwsh', 'scripts/gate/l0-dep-scan.ps1'] != ['python', 'scripts/gate/l0-dep-scan.py']\n\nFirst differing element 0:\n'pwsh'\n'python'\n\n- ['pwsh', 'scripts/gate/l0-dep-scan.ps1']\n?    ^^                               ^^\n\n+ ['python', 'scripts/gate/l0-dep-scan.py']\n?    ^^ ++                              ^\n\n\n----------------------------------------------------------------------\nRan 62 tests in 4.968s\n\nFAILED (failures=18)"
+    }
+  ]
+}

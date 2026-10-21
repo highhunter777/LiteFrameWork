@@ -14,6 +14,14 @@
 | 2 | 日志标签收敛（LogTag 枚举） | `日志标签收敛.md` |
 | 3 | 联机诊断 HUD（DevHUD 段＋GM 第六页＋测试包 Development 化） | — |
 | 4 | 房间回放与现场包（工具链 v2 第一刀） | — |
+| 5 | 现场闭环 T0-2（世界环字段级分歧 · mismatch 即时 flush · 崩溃捕获 · 符号归档 · GM 下载） | — |
+| 6 | DevHUD 可用性修复与日志关联（T1 第一刀） | — |
+| 7 | 结构化日志 sink 与检索（T1 第二刀） | — |
+| 8 | DevHUD 的 UI Toolkit 渲染后端（文本桥） | — |
+| 9 | DevHUD P0-A：段化/行色调/折叠/DevHotkey | — |
+| 10 | DevHUD P0-A 剩余：过滤/JSON/Diag/Sink/拖动缩放/持久化 | — |
+| 11 | DevHUD P0-B：性能/联机/Stats 读数 | — |
+| 12 | 清 P0-B 遗留债：DevHUD 拆分 | — |
 
 ---
 
@@ -156,7 +164,7 @@
 
 > **原文件**：`Docs/施工进度/日志标签收敛.md`（归并前独立成文，内容整段并入本章）
 
-《[日志标签收敛专项设计](../设计文档/架构/日志标签收敛专项设计.md)》实施批（2026-10-16，用户点单"实施日志收敛专项设计"）：客户端 `Log` 门面 tag 从裸字符串收敛为**编译期封闭的枚举词表**（`LogTag`）——原形态 33 个散值 / 197 处调用点，只靠 `Log.cs` 一句注释约束（红线 5"必须与 X 一致只靠注释"违规形态），且 `"Setting"`/`"SettingService"` 同域双值漂移实锤。
+《[日志标签收敛专项设计（已归档）](../归档记录/2026-10-22/日志标签收敛专项设计.md)》实施批（2026-10-16，用户点单"实施日志收敛专项设计"）：客户端 `Log` 门面 tag 从裸字符串收敛为**编译期封闭的枚举词表**（`LogTag`）——原形态 33 个散值 / 197 处调用点，只靠 `Log.cs` 一句注释约束（红线 5"必须与 X 一致只靠注释"违规形态），且 `"Setting"`/`"SettingService"` 同域双值漂移实锤。
 
 > 本记录只保留最新进度与证据；设计裁决在各自设计文档，本文件不裁决设计。
 
@@ -311,3 +319,354 @@
 - 崩溃捕获/minidump、IL2CPP 符号归档、产物上传/GM 下载端点未做；均属路线图 T0 后续退出项。
 - CLI 默认按仓库表目录装载；部署在非仓库目录或表集不同时，需后续加 `--tables <dir>`；当前身份不符会以退出码 3 拒绝，不会静默跑偏差。
 - `diagnostics` 缺省关闭、行为零变化；`deploy/roomserver.windows.json` 已启用并指向 `C:/litegame/room/diagnostics`，**下次云侧发布/重启才生效**（本批未部署）。
+
+---
+
+## 第5章 现场闭环 T0-2（世界环字段级分歧 · mismatch 即时 flush · 崩溃捕获 · 符号归档 · GM 下载）
+
+<a id="ch5-现场闭环t0-2"></a>
+
+> 工具链 v2 第二刀（2026-10-21，接手批）。**状态：已完成（附验证证据）**——L1 1816/1816；Unity 编译 0 错；EditMode 定向 4/4；BuildHash 双常量 OK。
+
+第4章留下的 T0 后续退出项在本章收口：字段级 world-ring diff、mismatch 即时落盘、崩溃捕获/minidump、IL2CPP 符号归档、GM 诊断下载通道。
+
+### 交付面
+
+| 面 | 落点 |
+| --- | --- |
+| 世界存档环 | `RoomRunRecord` 增可选世界环（`SimWorldState` 按帧深拷、容量有界、槽帧号成对）；`RoomRunRecorder` 按 `diagnostics.world_ring_frames` 启用；分歧帧早于环窗口时只有帧号（与 `SimRunRecord.BeginWithWorlds` 同一取舍） |
+| 字段级分歧报告 | `RoomRunEnvelope` 增 `RoomRunWorldDto`（只承载进 `SimChecksum` 口径的字段，覆盖契约由 `SimWorldDiffCoverageTests` 守卫）；`RoomReplayRunner` 在分歧帧 `SimWorldDiff.Compare(录制世界, 重放世界)` 并把报告附进 `DivergenceReport`/`Message` |
+| mismatch 即时 flush | `RoomDiagnosticsService` 增后台写线程 + 工作队列：客户端和解上报 → `ShouldRequestFlush`（同房 10s 冷却）→ 房间线程下一 `StepFrame` 末封印快照记录（身份面此刻捕获、线程上零 IO）→ `EnqueueMismatchFlush` 入队 → 后台组装信封落盘（EndReason=`mismatch-flush`）；`Dispose` 排干队列；终态记录照常兜底 |
+| 客户端异常落包 | `BattleContext` 挂 `logMessageReceivedThreaded`：Exception/Assert 级 → `ClientDiagnosticsBundle.CaptureUnityException`（异常文案+堆栈尾进 `extra.txt`；Log/Warning/Error 不捕获防刷爆限频）；写盘与 mismatch 路径共锁 `_diagnosticsGate`；`Capture` 补传 `ExtraJson`（writer 侧 `extra.txt`/manifest 清单通道已就位） |
+| 崩溃捕获 | `Server/RoomServer/Diagnostics/CrashCapture.cs`：进程级 `UnhandledException` → `crash-<时间戳>-<随机>.json`（异常/堆栈 + HostLog 尾 + buildHash + 运行时身份），Windows 尽力附 minidump（dbghelp）；只装一次、崩溃路径零抛、不捕房间记录（跨线程封印不安全，即时 flush 与终态路径兜底）；诊断启用时由组合根安装，缺参 = 不装 |
+| 符号归档 | `Assets/LiteGame/Editor/Toolchain/SymbolArchiver.cs`：构建产物内 `*.pdb/.dbg/.sym` 按 buildHash 归档 `Builds/symbols/<hash>-<时间戳>/`（相对结构保留 + `manifest.json` 文件/大小/SHA256）；`SymbolArchivePostBuild`（`IPostprocessBuildWithReport`）构建后自动归档，失败只告警不反噬构建；符号不入库 |
+| GM 下载通道 | `GmHttpListener` 新增 `POST /gm/diag-list`（文件名/大小/修改时刻）与 `POST /gm/diag-fetch`（`{"file":"name"}` → octet-stream 回传）；文件名只按目录直下解析（分隔符/穿越 = 400）、不存在 = 404、超 64 MB = 413、端点未开 = 404；读面由 `RoomDiagnosticsService.ListFileSummaries/ResolveFile` 提供（名字即能力边界） |
+| 接线 | `ServerHost`/`Program` 组合根串起 `RoomDiagnosticsService`→`RoomInstance`→`RoomRuntime`（`onSnapshot` 回调房间线程只入队）；`CrashCapture.Install` 与 GM 诊断读面挂接 |
+
+### 验证证据
+
+| 项 | 结果 |
+| --- | --- |
+| L1 全量 | `test.py --lane L1 --profile PullRequest` → **1816/1816**（原 1801 + 本批 15：CrashCapture 3 · GmHttpDiag 5 · RoomMismatchFlush 4 · RoomRunWorldRing 3，ReplayToolCli 扩世界环面） |
+| Unity 编译 | pipeline recompile → **0 错**（修接手时存量错误：`SymbolArchiver` 误用不存在的 `IPostprocessBuildCallbacks` → 改 `IPostprocessBuildWithReport.OnPostprocessBuild(BuildReport)`） |
+| EditMode | `SymbolArchiverEditModeTests` 2/2 · `ClientDiagnosticsBundleTests` 2/2（修接手时存量红：`Capture` 未把 `extraJson` 传进请求对象，`extra.txt` 缺件——一行修复） |
+| BuildHash | `--check` 双常量 OK：shared `459a3145904693b7`（110 files）· meta `a149cc4b1906e9f7`（46 files） |
+| Doc / [Diag] | doc-lint **0/0**；本批触碰文件 grep `[Diag]` **零命中** |
+| 顺手修 | 审计服务端表债①（`GmHttpListener.ReadBody` 先 `ReadToEnd` 再判 4KB）补 `ContentLength64` 前置检查；新 `ReadDiagFileName` 原样复刻该同型问题，改为复用 `ReadBody`（见修复登记） |
+
+### 边界与未决（如实）
+
+- 世界环容量由 `diagnostics.world_ring_frames` 配置（0 = 关）；分歧帧早于窗口时仍只有帧号，报告会提示调大容量。
+- 崩溃件不含房间记录（跨线程封印不安全）；mismatch 即时 flush 的身份面在房间线程捕获，写盘全部在后台线程——服务崩溃时未落盘的 flush 队列项会丢失（终态路径兜底的前提是进程还活着）。
+- minidump 用 `dumpType=0`（普通级）；需要堆细节时再议 `MiniDumpWithIndirectlyReferencedMemory` 等枚举位。
+- `diag-fetch` 上限 64 MB 是回传上限而非存储上限；存储侧保留策略归 `RoomRunStore` 既有上限。
+- 符号归档只在真实出包时验证了单元面（EditMode 临时目录），IL2CPP 全量出包链路未实跑（属机器侧验收，见资源与工具链线第 22 章边界）。
+- 客户端 `logMessageReceivedThreaded` 在 IL2CPP Player 的线程语义与 Editor 一致性未实测。
+
+### 回滚
+
+- 还原 `RoomRunRecord/RoomRunRecorder/RoomRuntime`（世界环与 onSnapshot 回调）、`RoomDiagnosticsService`（后台写线程与 GM 读面）、`GmHttpListener`（两端点）、`CrashCapture.cs`/`SymbolArchiver.cs`（删除）、`BattleContext`（异常钩子）、`DiagnosticsBundleWriter/ClientDiagnosticsBundle`（ExtraJson 通道）；无数据迁移、无云侧状态变更。
+
+## 第6章 DevHUD 可用性修复与日志关联（T1 第一刀）
+
+<a id="ch6-devhud可用性与日志关联"></a>
+
+> 2026-10-21。**状态：已完成（附验证证据）**——Unity 重编译 0 错；EditMode 定向 8/8；Play 冒烟通过。
+
+范围：DevHUD 四项低成本修复（采样解耦、缓冲复用、场景重扫 + 销毁件剔除、换行/滚动/字号）；日志条目加 session/match/frame/player 关联字段，HUD 增级别/本局过滤、复制与现场包落盘。
+
+### 交付面
+
+| 面 | 落点 |
+| --- | --- |
+| 日志关联字段 | `LogEntry` 增 `SessionId/MatchId/Frame/PlayerId`（记录时快照，零分配）；`Log.SetMatchContext/SetFrame/ClearMatchContext` + 只读 getter；`ResetForTesting` 复位 |
+| 接线 | `BattleContext.OnStartGame` 登记 `(MatchId, PlayerId)`；`Tick` 每帧 `SetFrame`（int 赋值）；`Dispose` 只清本局（防旧局晚拆清新局） |
+| HUD 采样 | `SampleFrameTime()` 前置于可见性判断（隐藏期间性能窗不冻结） |
+| 缓冲复用 | `_sb` 复用；`BattleDiagnostics.AppendCurrent(StringBuilder)`（`DescribeLines` 改由同一 `AppendLines` 生成，文案逐字不变）；net-diag 不再建数组 |
+| 场景重扫 | `SceneManager.sceneLoaded` → `RebuildStats()`；每轮 `PruneStats()` 剔除已销毁组件（对局场景 Animation/Lua 组件才进得来） |
+| 可读性 | `wordWrap` + 滚动 + 字号/宽度 public 字段；布局高度按缓存内容缓存（不每帧 CalcHeight） |
+| 过滤/复制 | F3 日志级别（全部→警告+→错误+）、F4 仅本局、F2 复制（`GUIUtility.systemCopyBuffer`） |
+| 现场包 | F5 走 `ClientDiagnosticsBundle.Capture`（reason=`hud-snapshot`，与 mismatch 同目录/同信封）；`RecentLogs` 行带 `[m/f/p]` |
+
+### 验证证据
+
+| 项 | 结果 |
+| --- | --- |
+| Unity 编译 | pipeline recompile → 0 错 |
+| EditMode | `LogContextEditModeTests` 3/3 · `BattleDiagnosticsEditModeTests` 3/3（旧文案断言不变） · `ClientDiagnosticsBundleTests` 2/2 |
+| Play 冒烟 | 自创建 HUD 在场；`session=d6d22b51 stats=16 cacheLen=1816`；F2 复制后剪贴板 == cache；隐藏期间 `_perfHead` 73→221（采样未停）；`PassLogFilter` 警告+ 真 / 错误+ 假；F5 产出 `.../diagnostics/diag-*-hud-snapshot-*` |
+| BuildHash | 未触共享源集/协议/表（LiteFramework/LiteClient/LiteGame 不在闭包）→ 无需重算 |
+
+### 边界与未决（如实）
+
+- 关联字段是“记录时快照”层；结构化 sink、服务端 `HostLog` 对齐、按 match/frame 的日志检索面仍归 T1 后续。
+- 热键仍走旧 `Input`（工程 `activeInputHandler=Both`）；切 New only 前需兼容层。
+- F5 依赖 `BattleDiagnostics.Current` 在册；无对局只提示不落盘。
+- IMGUI 仍是电脑测试形态（不做安全区/DPI 适配）；长文本靠滚动。
+
+### 回滚
+
+- 还原 `Log.cs`（LogEntry 字段 + 上下文静态）、`BattleContext`（三处接线 + 两个只读属性）、`BattleDiagnostics`（快照字段 + AppendCurrent）、`DevHUD.cs`、`ClientDiagnosticsBundle`（日志行上下文）、新增 `LogContextEditModeTests`；无数据迁移、无生成物重跑。
+
+## 第7章 结构化日志 sink 与检索（T1 第二刀）
+
+<a id="ch7-结构化日志sink与检索"></a>
+
+> 2026-10-21。**状态：已完成（附验证证据）**——Unity 编译 0 错；L1 全量 PASS；Python 检索用例 7/7；Play 冒烟：JSONL 落盘、运行中可读、字段可过滤。
+
+范围：日志结构化出口（JSONL）+ 检索 CLI；同批收口“诊断现场包限频逐次 Warning”刷屏。
+
+### 交付面
+
+| 面 | 落点 |
+| --- | --- |
+| `ILogSink` | `LiteFramework/ILogSink`（`Write(in LogEntry)`，非阻塞契约）；`Log.SetSink`，`Record` 内防御性调用（异常不反噬业务） |
+| JSONL sink | `LiteFramework/Diagnostics/StructuredLogSink`：有界环 1024（满丢最旧 + `Dropped`）、后台写线程、StringBuilder + char[] 缓冲（不逐行 ToString）、JSON 转义、8MB 轮转/保留 8 件、`Flush(TimeSpan)`、`Written/Dropped/LastError/CurrentPath` |
+| 安装 | `LiteClient/Diagnostics/StructuredLogInstaller`（dev 三宏）挂 `persistentDataPath/logs`，`Application.quitting` 收口；`PlatformInfrastructureModule` 启动即装 |
+| 检索 | `scripts/logs/query.py`（清单 `logs.query`，category=gm）：`--match/--player/--tag/--level/--frame-min/--frame-max/--contains/--since`、`--limit`、`--json`、`--stats`；目录默认最新、`--all` 合并 |
+| 刷屏修复 | `BattleContext.CaptureDiagnosticsBundle` 先 `CanAccept` 判限频：每局首次 Info、后续静默；真 IO 失败仍 Warning |
+| 测试 | L1 `StructuredLogSinkTests` 2 例（字段/转义/丢最旧）；`scripts/tests/test_log_query.py` 7 例 |
+
+### 验证证据
+
+| 项 | 结果 |
+| --- | --- |
+| Unity 编译 | 0 错 |
+| L1 | `test.py --lane L1 --profile PullRequest` → **1818/1818 PASS**（原 1816 + 新增 sink 2 例） |
+| Python | `test_log_query.py` 7/7 |
+| 工具链 | `toolchain.py docs` 重生成索引（含 `logs.query`）；`check` 0 warning；Doc lane 0/0 |
+| Play 冒烟 | `log-87d8f268-...jsonl`：80 条（Info 60 / Warning 20）；`--match Room-Test --level warning --frame-min 100` 命中；`--stats` 对局 `{'':40, 'Room-Test':40}`；**游戏运行中直接读最新文件成功** |
+| 刷屏修复 | 现场包相关仅 2 条（1 次落盘 + 1 次限频 Info），无逐次 Warning |
+
+### 边界与未决（如实）
+
+- 只覆盖客户端 `Log`；服务端 `HostLog` 未接同一 sink（T1 后续）。
+- JSONL 只落本机；取回靠文件拷贝/现场包（GM `diag-*` 端点是服务端目录）。
+- 上限：队列 1024、单文件 8MB、目录 8 件；丢弃量由 `Dropped` 可观测。
+- release 不装 sink（零开销）；发布包若要日志文件，需另立开关与预算。
+- 检索面是 CLI，未做编辑器页/GM 页；`--json` 供脚本消费。
+
+### 回滚
+
+- 删 `ILogSink.cs`/`StructuredLogSink.cs`/`StructuredLogInstaller.cs`/`scripts/logs/query.py`/两个测试件；还原 `Log.cs`（`SetSink` 与 `Record` 调用）、`PlatformInfrastructureModule`（安装调用）、`BattleContext`（限频提示）、清单条目与生成索引；无数据迁移。
+
+## 第8章 DevHUD 的 UI Toolkit 渲染后端（文本桥）
+
+<a id="ch8-devhud-uitoolkit"></a>
+
+> 2026-10-21。**状态：骨架完成（附冒烟证据）**——Unity 编译 0 错；Play 截图：中文可读、盖住 uGUI、`ui=ok`；IMGUI 回退保留。
+
+范围：DevHUD 渲染从 IMGUI 切到 UI Toolkit（整段文本桥），先解决字体/层级/无资产三个前置问题；段化/折叠/过滤/JSON 导出仍归 P0-A 后续。
+
+### 交付面
+
+| 面 | 落点 |
+| --- | --- |
+| 宿主 | `Assets/LiteGame/DevTool/Hud/DevHudUiToolkitHost.cs`：运行时 `PanelSettings` + `UIDocument`，`sortingOrder=10000`，半透明底板 + Label + 滚轮滚动；三宏包裹 |
+| 字体 | 系统 TTF → TextCore SDF（`FontAsset.CreateFontAsset(path, face, 90, 9, SDFAA, 1024, 1024)`）；Windows 候选 `msyh.ttc`/`simhei.ttf`/`simsun.ttc`，macOS PingFang，Linux Noto/文泉驿 |
+| 接线 | `DevHUD.renderWithUiToolkit`（默认 true）、`hudTop`（默认 88）、`_ui` 创建/销毁/`Visible`/`Sync`；`OnGUI` 在后端存在时直接返回 |
+| 回退 | 构造失败（无可用字体/初始化异常）→ `_ui=null` + `Log.Warning`，IMGUI 原路径继续；`renderWithUiToolkit=false` 可强制 IMGUI |
+
+### 验证证据
+
+| 项 | 结果 |
+| --- | --- |
+| Unity 编译 | 0 错 |
+| Play 冒烟 | `ui=ok`；`[DevHUD-UI]` rootH=1080、panelH=980；截图：中英文读数清晰，面板盖在「开发」钮与结算页之上；合成 `WheelEvent`：下滚 `scrollY=72`、上滚回 `0`；`Visible=false→display None`、`true→Flex` |
+| 字体 | `simhei.ttf` 创建的 TextCore face `family=SimHei`；`CreateFontAsset(family, style, 90)` 实测 face 不可用，已弃用 |
+| 层级 | `PanelSettings.sortingOrder=10000` > 产品 canvas 最高 6000；结算页上可见（实测） |
+| 回退 | 本轮字体存在，未触发构造失败路径；开关回退保留，无字体环境待补验 |
+
+### 边界与未决
+
+- **整段文本桥**（第9章已拆段）：一个 Label 渲染全部读数，尚无 per-line 色调、折叠、文本过滤、F6 JSON；归 P0-A 后续。
+- **无主题资产**：内置控件无样式（滚动条不可见），当前只支持滚轮滚动；折叠/输入要自实现或引入 dev-only 主题资产。
+- **字体依赖 OS**：Windows/macOS/Linux 候选链；无字体回退 IMGUI（中文由 IMGUI 动态字体保证）。
+- **排序耦合**：`10000 > 6000` 是产品 UI 现状；新增更高排序 canvas 时需同步并回归。
+- **启动开销**：创建 TextCore SDF（1024×1024）一次性开销未量化；P0-B 计入 HUD 自身开销。
+- 无资产，release 由三宏剥离；未新增 UXML/USS/PanelSettings。
+
+### 回滚
+
+- `renderWithUiToolkit=false` 立即回 IMGUI；彻底回滚删 `Hud/DevHudUiToolkitHost.cs`、还原 `DevHUD.cs`（字段/`Start`/`OnGUI`/`Visible`/`LateUpdate`/`OnDestroy` 接线）、删 `hudTop`/`renderWithUiToolkit`；无资产/数据迁移。
+
+## 第9章 DevHUD P0-A：段化/行色调/折叠/DevHotkey
+
+<a id="ch9-devhud-p0a"></a>
+
+> 2026-10-21。**状态：已完成（附验证证据）**——Unity 编译 0 错；Play：五段按 `IDevHudSection` 产出、行色调分级、段标题点击折叠、`DevHotkey` Input System 注入验证通过。
+
+范围：按 [DevHUD 演进路线图 §5.5](../设计文档/测试与性能/DevHUD演进路线图.md) 的 P0-A 第一步，把“整段文本桥”拆成段件 + 行色调 + 折叠 + 热键后端；F6 JSON、过滤、`DiagTrace`/`LogSink` 段仍为 P0-A 剩余。
+
+### 交付面
+
+| 面 | 落点 |
+| --- | --- |
+| 模型 | `Hud/DevHudModel.cs`：`HudTone`、`HudLine`、`HudContext`、`IHudTextSink`、`IDevHudSection`、`DevHudSectionData`（宿主复用） |
+| 段化 | `DevHUD`：`Awake` 注册五段（错误/联机诊断/性能/模块 Stats/Log Recent）；每段 `Append(sink, ctx)` 只产出行；段异常由宿主 try/catch 隔离 |
+| 行色调 | UITK 后端每行一个 `Label`：白=正常、灰=次要、黄=警告、红=错误；性能 FPS<30 黄/<15 红、长帧>0 黄；日志按级别 |
+| 折叠 | 段标题 `[-]/[+]` 点击（`PointerDownEvent`，普通 Label 不产生 `ClickEvent`）；折叠态仅本会话 |
+| 热键 | `LiteClient/Adapters/Platform.Unity/Dev/DevHotkey.cs`：`ENABLE_INPUT_SYSTEM` 下走 `Keyboard.current[...]`，否则旧 `Input`；放平台适配层是因为 App 层禁 import InputSystem（R12），DevTool 仅引用该程序集 |
+| 回退 | IMGUI 路径仍用 `_cache` 纯文本（无色调/折叠）；`renderWithUiToolkit=false` 或字体失败即回退 |
+
+### 验证证据
+
+| 项 | 结果 |
+| --- | --- |
+| Unity 编译 | 0 错（asmdef 新增 Input System 引用后） |
+| 段结构 | Play：`contentChildren=6`（状态行 + 5 段）；无对局时联机段 `display=None`，错误段无数据隐藏 |
+| 折叠 | 合成 `PointerDownEvent`（带 pointerId/button/position）：`[-] 性能 | Flex` → `[+] 性能 | None`；再点回 `[-] | Flex` |
+| 行色调 | 采样：正常行 `RGBA(0.92,0.92,0.92)`、模块名 `RGBA(0.62,0.65,0.68)`、FSM Warning `RGBA(1,0.82,0.4)` |
+| DevHotkey | `KeyboardState(Key.F1)` 注入 + `InputSystem.Update()` → `DevHotkey.Pressed(F1)=True` |
+| 截图 | 五段标题、性能/联机/Stats/日志行分色；面板盖在游戏画面上 |
+
+### 边界与未决
+
+- **未做**：F6 JSON 导出、文本/tag 过滤、`DiagTrace`/`LogSink` 段、DPI/拖拽/持久化、折叠态记忆（均 P0-A 剩余）。
+- **IMGUI 回退**：纯文本白字，无色调/折叠（回退仅保可用）。
+- **折叠事件**：用 `PointerDownEvent` 而非 `ClickEvent`——普通 `Label` 不会自动产生 `ClickEvent`（那是 `Clickable` 的行为）。
+- **输入后端**：Input System 路径在 `Keyboard.current == null` 时返回 false（New only 下不能回退旧 Input）；旧 Input 路径仅在 `ENABLE_INPUT_SYSTEM` 关闭时编译。
+- **开销**：每行一个 Label（Stats 约 80 行）4Hz 更新，UI Toolkit 布局/文本开销尚未量化，归 P0-B“HUD 自身开销”。
+- **体量**：`DevHUD.cs` 约 790 行（第10章后），段件已抽出但宿主仍持生命周期/stats 发现/日志过滤/性能采样/过滤/导出/持久化；P0-B 第一批按“发现 / 采样 / 渲染”再拆，避免继续膨胀。
+- 无主题资产：标准控件仍无样式；自定义折叠/滚动已可用。
+
+### 回滚
+
+- 还原 `DevHUD.cs` 到“整段 `BuildText`”版本；删 `Hud/DevHudModel.cs`、`LiteClient/Adapters/Platform.Unity/Dev/DevHotkey.cs`；把 `DevHudUiToolkitHost.Render` 还原为 `SetText`；移除 DevTool 对 `LiteClient.Platform.Unity` 的引用（若仅为热键加）；无资产/数据迁移。
+
+## 第10章 DevHUD P0-A 剩余：过滤/JSON/Diag/Sink/拖动缩放/持久化
+
+<a id="ch10-devhud-p0a-rest"></a>
+
+> 2026-10-21。**状态：已完成（附验证证据）**——Unity 编译 0 错；L1 1819/1819 PASS；Play：七段、`@Fsm` 过滤、F6 JSON、拖动/缩放/重启恢复逐项验证。
+
+范围：P0-A 收口（`DevHUD 演进路线图 §5.5` 的“P0-A 剩余”全部落地）：文本/`@tag` 过滤、F6 JSON、`DiagTrace` 段、日志 sink 状态段、拖动/缩放/持久化、sink 轮转测试。
+
+### 交付面
+
+| 面 | 落点 |
+| --- | --- |
+| 过滤 | F7 进入过滤模式；`DevHotkey` 文本输入（Input System `onTextInput` / 旧 `inputString`）；`@tag` OR + 文本 AND；Enter 应用、Esc 清除；过滤词持久化 |
+| F6 JSON | `ExportJson`：`persistentDataPath/diagnostics/hud-<ts>.json`，schema `devhud/1`，含会话/后端/位置/过滤/七段逐行 `tone/tag/text`；手写转义 |
+| DiagTrace 段 | 读 `DiagTrace.Recent` 最近 8 条 + `Total`；`Code` 含 `Fail` 红色；DevTool 新增 `LiteNet` 引用 |
+| 日志 sink 段 | `StructuredLogInstaller.Current`（新增只读口）→ `Written/Dropped/LastError/CurrentPath`；掉日志黄、错误红 |
+| 拖动/缩放 | 状态行 `PointerDown/Move/Up` 拖动面板（夹屏内）；`hudScale` 只缩放字号；`hudLeft/hudTop` 新字段 |
+| 持久化 | `Hud/DevHudPrefs.cs`：宽度/字号/左/顶/缩放/级别/仅本局/过滤词/折叠段；EditorPrefs / PlayerPrefs |
+| 测试 | `StructuredLogSinkTests` 新增“单文件上限→轮转且只留 maxFiles 件” |
+
+### 验证证据
+
+| 项 | 结果 |
+| --- | --- |
+| Unity 编译 | 0 错 |
+| L1 | **1819/1819 PASS**（原 1818 + 轮转用例 1） |
+| 段结构 | `错误 v=False`、`联机诊断 v=False`（无对局）、`性能 n=2`、`模块 Stats n=97`、`Log Recent n=10`、`DiagTrace n=3`、`日志 sink n=2` |
+| 过滤 | 设 `@Fsm` 后 `Log Recent visible=True n=5 firstTag=Fsm`；文本输入路径 `@Fsm` → Enter 退出并写 `DevHUD.filter=@Fsm` |
+| F6 JSON | 导出文件可 `json.load`：`schema=devhud/1`、`backend=uitk`、7 段；日志 sink 行 `written=74 dropped=0` |
+| 拖动 | 状态行拖动 `8,88 → 48,118`；prefs `left=48 top=118` |
+| 缩放 | `hudScale=1.5` → 行字号 18（12×1.5） |
+| 重启恢复 | 停/启 Play 后 `left=48 top=118 scale=1.5 filter=@Fsm collapsed=1`；随后复位默认 `8/88/1/空` |
+| 轮转 | `Sink_单文件达到上限_轮转并只保留上限文件数` PASS；L1 3 例 sink 全绿 |
+
+### 边界与未决
+
+- **tag 过滤是文本 token**（`@tag`，多个 OR），不是多选控件；需要控件时再评估主题资产。
+- **过滤模式不暂停游戏**：输入字符同时进游戏按键（WASD 会动）；这是开发态取舍，暂不抢输入。
+- **DPI 只缩放字号**（`hudScale`），不缩放布局/间距。
+- **无主题**：标准控件仍无样式；折叠/拖动/滚动/过滤均为自实现。
+- **输入后端**：文本输入只验证了 Input System 路径；旧 `inputString` 分支仅编译覆盖。
+- **体量**：`DevHUD.cs` 约 790 行（宿主 + 段 + 过滤/导出/持久化），P0-B 第一批先按“发现 / 采样 / 渲染”拆分。
+
+### 回滚
+
+- 过滤/JSON：删 `_filter*` 字段与 `HandleFilterInput/ParseFilter/ApplyFilter/ExportJson/AppendJsonString`，`IHudTextSink` 去掉 `tag`，移除 `HudLine.Tag`；
+- Diag/Sink：删 `AppendDiagTrace/AppendLogSink` 与两段注册，移除 `StructuredLogInstaller.Current` 与 DevTool 的 `LiteNet` 引用；
+- 拖动/缩放/持久化：删 `Hud/DevHudPrefs.cs`、`hudLeft/hudScale`、宿主拖动回调与 `_collapsed`，还原 `Render` 签名；
+- 测试：删轮转用例；无资产/数据迁移。
+
+## 第11章 DevHUD P0-B：性能/联机/Stats 读数
+
+<a id="ch11-devhud-p0b"></a>
+
+> 2026-10-21。**状态：已完成（附验证证据）**——Unity 编译 0 错；L1 1819/1819 PASS；EditMode 4/4；Play：p50/p95/p99 + GC/Draw + HUD 耗时、回滚/输入领先、sparkline 格式化、Stats 排序/阈值逐项验证。
+
+范围：按 ADR P0-B 段能力：帧统计升级、GC/Draw、HUD 自报耗时、联机 sparkline 与回滚/快照年龄、Stats 排序/阈值；同时把性能采样/网络历史/过滤抽成独立件。
+
+### 交付面
+
+| 面 | 落点 |
+| --- | --- |
+| 帧统计 | `Hud/DevHudPerfSampler.cs`：240 帧环 + 30 帧暖机跳过；p50/p95/p99/最差/长帧；HUD 自报 `HudBuildMs` |
+| GC/Draw | `ProfilerRecorder.StartNew(ProfilerCategory.Memory, "GC Allocated In Frame")` / `(Render, "Draw Calls Count")`；invalid → `n/a` |
+| 联机扩展 | `BattleDiagnostics.Snapshot` 增 `RollbackCount/DeferredRollbacks/InputLeadFrames/SnapshotAgeFrames`；`AppendExtendedCurrent` 三行（GM 页仍两行） |
+| sparkline | `Hud/DevHudNetHistory.cs`：240 采样（60s@4Hz），RTT/丢包两行 + min/avg/max；换局 Reset |
+| Stats | 名称排序；`StatsTone`：Error/Failed → 红，Dropped/Warning/Pending/Overflow/Rejected 非零 → 黄 |
+| 过滤抽取 | `Hud/DevHudFilter.cs`：Raw/Needle/Tags/Matches/Apply 独立；DevHUD 只留输入态与持久化 |
+| 缓存 | UITK 后端 `_cache` 懒构建（F2 才拼整串），IMGUI 回退仍每轮构建 |
+
+### 验证证据
+
+| 项 | 结果 |
+| --- | --- |
+| Unity 编译 | 0 错 |
+| L1 | 1819/1819 PASS |
+| EditMode | `BattleDiagnosticsEditModeTests` 4/4（含扩展快照字段、GM 两行口径不变） |
+| Play：性能 | `FPS: 95 p50: 10.1 p95: 15.0 p99: 20.1 ms`；`最差: 24 ms 长帧: 0 GC: 16.8KB/帧 Draw: 139 Batches: 129 HUD: 1.18 ms`（不同帧负载下 0.5–1.2ms/轮） |
+| Play：联机 | 本地对局：`回滚: 0（延后 0） 输入领先: 3 帧`；无 RTT 样本（本地进程内） |
+| sparkline | 合成 30 采样：`RTT 60s +******#... min/avg/max 40/43/47ms`、`丢包 60s ... avg/max 4/25‰` |
+| Stats | `_stats` 按名称排序（Audio/Clock.UI/Clock.World/...）；`StatsTone("QueuedDropped","3")=Warn`、`("DispatchErrors","1")=Error`、`("DispatchErrors","0")=Normal` |
+| 暖机 | 跳过前 30 帧后不再被启动 9s 长帧支配 p50 |
+
+### 边界与未决
+
+- **对账**：GC/Draw 与 Unity Profiler 来自同一 `ProfilerRecorder` marker；**未做独立 Profiler 窗口抽样比对**，marker 名变化时显示 `n/a`。
+- **HUD 开销**：0.5–1.2ms/轮（4Hz ≈0.13–0.30ms/帧；Stats 约 97 行，采样已降到 2Hz、4Hz 只复制缓存行）；高于 ADR 的 0.1ms/帧目标线，当前作为基线，P2 再降。
+- **联机样本**：本地进程内对局无 RTT 样本，sparkline 用合成样本验证；真 KCP 对局待联测复核。
+- **快照年龄**：本地/无快照时 `-1`，整段省略；在线快照才有值。
+- **体量**：`DevHUD.cs` 820 行（第12章已拆为 455 行宿主 + 六个单责件）；拆分债已清。
+
+### 回滚
+
+- 删 `Hud/DevHudPerfSampler.cs`、`Hud/DevHudNetHistory.cs`、`Hud/DevHudFilter.cs`；`BattleDiagnostics` 回退两字段/两行；还原 `AppendPerf/AppendNet/AppendStats` 与 `_perf/_net` 字段；移除 `ProfilerRecorder` 依赖；无资产/数据迁移。
+
+## 第12章 清 P0-B 遗留债：DevHUD 拆分
+
+<a id="ch12-devhud-split"></a>
+
+> 2026-10-21。**状态：已完成（附验证证据）**——Unity 编译 0 错；L1 1819/1819 PASS；EditMode 4/4；Play：七段读数、过滤、F6 JSON 在拆分后仍等价。
+
+范围：清审计登记“`DevHUD.cs` 约 820 行、宿主多职责”，按“发现 / 采样 / 渲染 / 导出”拆件，宿主只留生命周期、输入、持久化与编排。
+
+### 交付面
+
+| 件 | 行数量级 | 职责 |
+| --- | --- | --- |
+| `DevHUD.cs` | 455 | 生命周期、热键/过滤输入、Prefs、Toast、IMGUI 回退、编排 |
+| `Hud/DevHudSectionSet.cs` | ~400 | 七段构建（Errors/Net/Perf/Stats/Log/Diag/LogSink）+ Stats 2Hz 缓存 |
+| `Hud/DevHudStatsDiscovery.cs` | ~60 | 容器 + 场景组件 Stats 发现、去重、剔除、排序 |
+| `Hud/DevHudFilter.cs` | ~90 | 过滤词解析/匹配/原地裁剪 |
+| `Hud/DevHudPerfSampler.cs` | ~120 | 帧环/分位/ProfilerRecorder/HUD 耗时 |
+| `Hud/DevHudNetHistory.cs` | ~90 | 60s RTT/丢包环 + sparkline |
+| `Hud/DevHudJsonExporter.cs` | ~130 | F6 JSON（schema devhud/1、转义、落盘） |
+| `Hud/DevHudUiToolkitHost.cs` | 392 | UI Toolkit 宿主（未改） |
+
+### 验证证据
+
+| 项 | 结果 |
+| --- | --- |
+| Unity 编译 | 0 错 |
+| L1 | 1819/1819 PASS |
+| EditMode | `BattleDiagnosticsEditModeTests` 4/4（重启编辑器后复跑） |
+| Play（拆分后） | `data=7`；性能段 2 行（p50/p95/p99、GC/Draw/Batches、HUD）；`@Fsm` → Log 6 行 tag=Fsm；F6 JSON 7 段、filter 空、left/top=8/88 |
+| 重启恢复 | 拆分不影响 Prefs/折叠/过滤/位置恢复 |
+
+### 边界与未决
+
+- `DevHudSectionSet.cs` ~400 行仍是“段构建”单责；若段继续增加（世界/回放），再按 Stats/Net/Perf 拆子构建器。
+- `DevHUD.cs` 455 行 >400，但已只持宿主职责；不再按“多职责”登记。
+- 拆分后 HUD 自身耗时仍在 0.5–1.2ms/轮（Stats 97 行、4Hz）；P2 再优化。
+- 无资产/场景改动；仅新增 `Hud/*.cs`（.meta 由 Unity 生成）。
+
+### 回滚
+
+- 还原 `DevHUD.cs` 到拆分前版本（含段构建/导出），删 `Hud/DevHudSectionSet.cs`、`DevHudStatsDiscovery.cs`、`DevHudFilter.cs`、`DevHudJsonExporter.cs`；保留 perf/net/host 件；无资产/数据迁移。
