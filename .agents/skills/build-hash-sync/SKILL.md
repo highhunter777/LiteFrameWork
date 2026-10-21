@@ -10,7 +10,7 @@ description: 共享源集改动后的生成物重生成流程(BuildHash / 协议
 ## 校验时点(2026-10-07 起)
 
 - **开发期不校验**(BuildHashTests/源集守卫测试已退役,规则单源回归 gen-build-hash.py 本体)。
-- **唯一守卫在出包门禁**:`build-player.ps1` 门禁步跑 `--check` 复算比对,不等即拦——只校验不代跑,所以**重生成这个动作必须在收尾做**,别攒到出包时返工。
+- **唯一守卫在出包门禁**:`build-player.py` 门禁步跑 `--check` 复算比对,不等即拦——只校验不代跑,所以**重生成这个动作必须在收尾做**,别攒到出包时返工。
 
 ## 源集 → 必跑命令对照
 
@@ -20,7 +20,7 @@ description: 共享源集改动后的生成物重生成流程(BuildHash / 协议
 | `Assets/GameData/Config/*.bytes`(表**数值**) | 不必跑(数据面守卫＝运行期摘要)；两端发布顺序见修改指南 §3.9 |
 | `.proto`(源在 `Assets/LiteNet/Proto/*.proto`) | ★ `python scripts/codegen/gen_proto.py --protoc <protoc.exe>` **再** ★ BuildHash 重跑 |
 | 表源(`Luban/Data/*.xlsx`、`Luban/Defines/` schema) | ★ `Luban/gen.bat`(双端重生成 C#/binary/Lua)**再** ★ BuildHash 重跑(读码面在闭包内——只改数值也随 gen.bat 重生成同一份读码,常量不动) |
-| 出包前 | `python scripts/codegen/gen-build-hash.py --check`(复算比对;`build-player.ps1` 门禁步也会做) |
+| 出包前 | `python scripts/codegen/gen-build-hash.py --check`(复算比对;`build-player.py` 门禁步也会做) |
 
 ## 规则
 

@@ -12,7 +12,7 @@
 | 怎么跑起来 | Unity 打开本工程 → 运行 `Assets/Scenes/Boot.unity` → 启动件 `GameEntry` 起宿主与流程机；`Launch→Patch→Preload→Main` 后可玩 |
 | 现在能玩到什么 | 启动落点＝登录页（正式）/大厅页（本地服务器形态）；**对局场景组按对局加载**（进局才加载 `BattleRig` + 地图，离场卸载）。开发入口＝大厅页左上**「开发」**钮（测试模式→训练场 / UI 工作台）与 `DebugTuner` 直入开关；F9/F10 热键**已删除** |
 | 权威在哪 | 判定逻辑在 `Assets/LiteSim/Core`（纯 C#、两端共编）；服务端权威在 `Assets/RoomServer`；表现只读 Sim 与事件 |
-| 改完怎么验 | 纯逻辑 `scripts/gate/test.ps1 -Lane L1`；含 Unity/资源 `scripts/gate/l2-unity-gate.ps1`；**改 Sim/协议/玩法表必须重跑 `python scripts/codegen/gen-build-hash.py`** |
+| 改完怎么验 | 纯逻辑 `scripts/gate/test.py --lane L1`；含 Unity/资源 `scripts/gate/l2-unity-gate.py`；**改 Sim/协议/玩法表必须重跑 `python scripts/codegen/gen-build-hash.py`** |
 | 当前关口 | 《框架先行》准入**已达成（2026-10-04，桌面先行口径——Android 热更真机矩阵阻塞于无设备、随 G4 登记、不阻塞业务切片）**；主关口现为 **G2 正式联机业务切片**——关口与缺口以 [待办总览](../待办总览.md) 为准 |
 
 ## 文件清单

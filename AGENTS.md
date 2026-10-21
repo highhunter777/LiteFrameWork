@@ -36,7 +36,7 @@
 - 设计文档与施工进度文档分开。
 - 设计文档仅描述最新设计；进度文档仅保留最新进度。
 - 代码完成后，应回写对应文档。
-- 新增/修改/移动/合并/归档文档按 `doc-authoring` skill（落点决策 → 命名元数据 → 索引登记 → `-Lane Doc` 自检）。
+- 新增/修改/移动/合并/归档文档按 `doc-authoring` skill（落点决策 → 命名元数据 → 索引登记 → `--lane Doc` 自检）。
 
 **工具规范**
 
@@ -56,7 +56,7 @@
 
 ## 核心红线速查
 
-1. **BuildHash 源集**：改 `Assets/LiteSim/Core/{Scripts,Systems}`、`Assets/LiteNet/{Proto,Protocol,Transport/Security}`、`Assets/GameData/Generated`（Luban 生成表行类/读取器）、脚本 `SHARED_LINK_FILES` 登记的两端源链接共编件（`Serialization.Luban/{SimConfigMapper,TableLayout}.cs`）→ ★ `python scripts/codegen/gen-build-hash.py`（权威清单＝该脚本 `SHARED_TARGETS/SHARED_LINK_FILES`）；漏跑＝出包门禁被拦、两端常量不同步时 Join 握手拒进房（2026-10-07 起开发期不校验，守卫在 build-player.ps1 门禁步 `--check-shared`）。**表数据（`.bytes` 数值）已移出闭包**（2026-10-14 批 E）——数据面守卫＝装载后**运行期摘要**（`CombatConfigDigest`：判定面表字节 + 本局规则；客户端按 `StartGame.ConfigHash` 复算比对，不等拒局），表值可两端热更不出包；但**改表源跑完 `Luban/gen.bat` 后仍要重跑本脚本**（生成读码面在闭包内），再走 `ConfigService.GameplayDigestBase` 侧的两端发布顺序。**同一脚本还产出第二个目标**：`Server/MetaServer/Host/BuildHash.g.cs`（Meta 构建身份＝`META_TARGETS` 源集摘要，启动日志 `build=` 用它；**不参与准入判定**，故不挂出包门禁——发布 Meta 产物前跑 `--check` 复算两个常量）。
+1. **BuildHash 源集**：改 `Assets/LiteSim/Core/{Scripts,Systems}`、`Assets/LiteNet/{Proto,Protocol,Transport/Security}`、`Assets/GameData/Generated`（Luban 生成表行类/读取器）、脚本 `SHARED_LINK_FILES` 登记的两端源链接共编件（`Serialization.Luban/{SimConfigMapper,TableLayout}.cs`）→ ★ `python scripts/codegen/gen-build-hash.py`（权威清单＝该脚本 `SHARED_TARGETS/SHARED_LINK_FILES`）；漏跑＝出包门禁被拦、两端常量不同步时 Join 握手拒进房（2026-10-07 起开发期不校验，守卫在 build-player.py 门禁步 `--check-shared`）。**表数据（`.bytes` 数值）已移出闭包**（2026-10-14 批 E）——数据面守卫＝装载后**运行期摘要**（`CombatConfigDigest`：判定面表字节 + 本局规则；客户端按 `StartGame.ConfigHash` 复算比对，不等拒局），表值可两端热更不出包；但**改表源跑完 `Luban/gen.bat` 后仍要重跑本脚本**（生成读码面在闭包内），再走 `ConfigService.GameplayDigestBase` 侧的两端发布顺序。**同一脚本还产出第二个目标**：`Server/MetaServer/Host/BuildHash.g.cs`（Meta 构建身份＝`META_TARGETS` 源集摘要，启动日志 `build=` 用它；**不参与准入判定**，故不挂出包门禁——发布 Meta 产物前跑 `--check` 复算两个常量）。
 2. **R11 房间内核纯度**：`Assets/RoomServer/Runtime/` 禁 Console/系统时钟/文件 IO/proto/LiteNet。
 3. **R13 数值读口**：机制面禁读静态读口可变值，数值经实例参数传递（consts 豁免）。
 4. **Unity 序列化资产**（场景/Prefab/Material/.meta）：一律走 unity-pipeline CLI（`Docs/工具链/Unity操作规范.md`），禁直改文件。
@@ -72,7 +72,7 @@
 
 ## Skill 索引（按任务触发，ZCode）
 
-下列流程性规范已抽为通用级 skill（`.agents/skills/`，ZCode/Claude Code 等跨工具标准位），ZCode 会话中按任务自动加载；本文件的红线条目保留（同时服务无 skill 机制的其他工具）。另有 PostToolUse 提醒 hook：脚本单源在 `scripts/hooks/shared-source-reminder.ps1`（客户端中立），由 `.zcode/config.json`（ZCode）与 `.claude/settings.json`（Claude Code）各自挂载，在编辑器触碰共享源集/表/Unity 序列化资产时即时提醒，不依赖模型自觉。文档纪律（设计与进度分离 / 状态只由 git 事实回填）的守卫面是 `scripts/gate/doc-lint.py`，独立门禁 `scripts/gate/test.ps1 -Lane Doc`（或直跑 `python scripts/gate/doc-lint.py`）。
+下列流程性规范已抽为通用级 skill（`.agents/skills/`，ZCode/Claude Code 等跨工具标准位），ZCode 会话中按任务自动加载；本文件的红线条目保留（同时服务无 skill 机制的其他工具）。另有 PostToolUse 提醒 hook：脚本单源在 `scripts/hooks/shared-source-reminder.py`（客户端中立），由 `.zcode/config.json`（ZCode）与 `.claude/settings.json`（Claude Code）各自挂载，在编辑器触碰共享源集/表/Unity 序列化资产时即时提醒，不依赖模型自觉。文档纪律（设计与进度分离 / 状态只由 git 事实回填）的守卫面是 `scripts/gate/doc-lint.py`，独立门禁 `scripts/gate/test.py --lane Doc`（或直跑 `python scripts/gate/doc-lint.py`）。
 
 | skill | 触发 |
 |---|---|
@@ -94,16 +94,16 @@ python scripts/toolchain.py doctor                          # 环境 + 注册面
 python scripts/toolchain.py open <tool-id>                  # 在编辑器 Hub 打开并选中工具
 
 # 验证基线（白天代码批，一切改动的底线）
-pwsh scripts/gate/test.ps1 -Lane L1 -Profile PullRequest     # L1 纯逻辑（含纪律扫描/表守卫/BuildHash 守卫）
-pwsh scripts/gate/l0-dep-scan.ps1                            # 依赖与秘密扫描
+python scripts/gate/test.py --lane L1 --profile PullRequest     # L1 纯逻辑（含纪律扫描/表守卫/BuildHash 守卫）
+python scripts/gate/l0-dep-scan.py                            # 依赖与秘密扫描
 python scripts/codegen/toolbox.py                            # 生成器工具箱（build-hash/proto/luban/sync-code/refresh-hash 统一入口；形态见专项设计）
 python scripts/codegen/gen-build-hash.py                     # ★ 共享源集/生成读码面/Meta 源集改动后必跑（一次写两常量；表值 .bytes 改动不必跑）
 python scripts/codegen/gen-build-hash.py --check             # 复算比对两个常量（发布 Meta 前）
 python scripts/codegen/gen-build-hash.py --check-shared      # 只复算共享源集常量（出包门禁用的是这个）
 python scripts/codegen/gen_proto.py --protoc <protoc.exe>    # ★ 改 .proto 后
 Luban/gen.bat                                                # ★ 改表源后（双端重生成）
-pwsh scripts/gate/l2-unity-gate.ps1                          # L2 Unity 门禁（夜间）
-pwsh scripts/gate/restore-check.ps1                          # 环境可复现检查
+python scripts/gate/l2-unity-gate.py                          # L2 Unity 门禁（夜间）
+python scripts/gate/restore-check.py                          # 环境可复现检查
 ```
 
 Unity 交互（改场景/Prefab/跑 PlayMode）一律走 unity-pipeline CLI，见 `Docs/工具链/Unity操作规范.md`。
@@ -135,8 +135,8 @@ Unity 交互（改场景/Prefab/跑 PlayMode）一律走 unity-pipeline CLI，�
 
 ```powershell
 # 云端运维动作（自动起/关 SSH 隧道；本机端口避开 Windows 排除区间，勿用 9101）
-pwsh -NoProfile -File scripts/deploy/gm.ps1 -Action rooms
-pwsh -NoProfile -File scripts/deploy/gm.ps1 -Action start -Room <房号>
+python scripts/deploy/gm.py --action rooms
+python scripts/deploy/gm.py --action start --room <房号>
 ```
 
 ```powershell
@@ -149,7 +149,8 @@ ssh litegame-cloud-tunnel powershell -NoProfile -ExecutionPolicy Bypass -File C:
 
 ## 工作约定
 
-- PowerShell 脚本统一用 `pwsh`。
+- **脚本语言**：`scripts/` 已**全量 Python**（P0–P5 完成，2026-10-21）；新增脚本一律 Python，不再新增 `.ps1`；`toolchain.py check` 对任何 `scripts/**/*.ps1` 报错。
+- PowerShell 存量脚本统一用 `pwsh`。
 - **Agent 命令执行环境约定（2026-10-11，按本会话实测坑位沉淀）**：
   - 跑门禁/项目 `.ps1` 脚本 → `pwsh`（勿用 powershell 5.1）；GBK/乱码读面也用 `pwsh Get-Content`；
   - 文件手术（批量替换/改名/编码雷区/CRLF 保留）→ **python heredoc 字节模式**（`python - <<'EOF'`）——仓库存在 GBK/UTF-8 混编文件，禁无编码假设的整文件重写；写回用 `newline=''`/`'\r\n'` 保行尾；

@@ -68,7 +68,7 @@
 3. **密钥**：`LITENET_GM_KEY` 空 ⇒ 启动失败/降级并告警；比较用 `FixedTimeEquals`；**不进配置文件**。
 4. **审计**：每个动作一行 `Console.WriteLine("[GM] action=… room=… arg=… result=…")`，落到 `C:\litegame\room\out.log`。
 
-调用面：从开发机走 SSH 隧道（`ssh -L 9101:10.8.0.1:9101 litegame-cloud`）再 `curl`；后续可接进 `scripts/deploy/gm.ps1`。
+调用面：从开发机走 SSH 隧道（`ssh -L 9101:10.8.0.1:9101 litegame-cloud`）再 `curl`；后续可接进 `scripts/deploy/gm.py`。
 
 ---
 

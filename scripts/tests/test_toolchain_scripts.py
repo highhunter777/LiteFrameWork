@@ -120,8 +120,8 @@ class OrphanCheckTests(unittest.TestCase):
 
     def test_hook_surface_reference_is_exempt(self):
         with tempfile.TemporaryDirectory() as temp:
-            write(temp, "scripts/hooks/hook.ps1", "param()\nWrite-Output 'ok'\n")
-            write(temp, ".zcode/config.json", '{"hook":"scripts/hooks/hook.ps1"}\n')
+            write(temp, "scripts/hooks/hook.py", EXEC_PY)
+            write(temp, ".zcode/config.json", '{"hook":"scripts/hooks/hook.py"}\n')
             manifest = make_manifest(
                 surfaces=[{"id": "hook", "kind": "hook-config", "path": ".zcode/config.json", "required": True}]
             )
@@ -142,11 +142,11 @@ class EncodingCheckTests(unittest.TestCase):
             found = messages(issues_for(temp, make_manifest(), strict=True), "error")
         self.assertTrue(any("BOM" in message for message in found), found)
 
-    def test_powershell_non_ascii_without_bom_is_reported(self):
+    def test_powershell_script_is_not_allowed(self):
         with tempfile.TemporaryDirectory() as temp:
-            write(temp, "scripts/_cn.ps1", "param()\nWrite-Output '中文'\n", encoding="utf-8")
+            write(temp, "scripts/_cn.ps1", "param()\nWrite-Output 'x'\n", encoding="utf-8")
             found = messages(issues_for(temp, make_manifest(), strict=True), "error")
-        self.assertTrue(any("BOM" in message or "non-ASCII" in message for message in found), found)
+        self.assertTrue(any("PowerShell script is not allowed" in message for message in found), found)
 
     def test_crlf_is_reported(self):
         with tempfile.TemporaryDirectory() as temp:
@@ -157,9 +157,16 @@ class EncodingCheckTests(unittest.TestCase):
     def test_compliant_files_are_clean(self):
         with tempfile.TemporaryDirectory() as temp:
             write(temp, "scripts/_ok.py", "print(1)\n")
-            write(temp, "scripts/_ok.ps1", "param()\nWrite-Output 'ok'\n")
             found = messages(issues_for(temp, make_manifest(), strict=True))
         self.assertEqual(found, [])
+
+
+class PowerShellBanTests(unittest.TestCase):
+    def test_powershell_script_is_rejected(self):
+        with tempfile.TemporaryDirectory() as temp:
+            write(temp, "scripts/_Old.ps1", "param()\nWrite-Output 'x'\n")
+            found = messages(issues_for(temp, make_manifest(), strict=True), "error")
+        self.assertTrue(any("PowerShell script is not allowed" in message for message in found), found)
 
 
 class RepoCheckTests(unittest.TestCase):

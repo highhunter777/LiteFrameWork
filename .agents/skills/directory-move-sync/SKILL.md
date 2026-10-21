@@ -15,8 +15,8 @@ description: 目录搬动/文件移动同步清单。只要涉及在 Assets/ 或
    - YooAsset 收集组(收集目录规划按 `Docs/设计文档/客户端/内容/资源收集目录专项设计.md` §2/§5;Assets 顶层只放原始资源,进包来源只有模块内使用资源目录与 `Assets/ShareResource`)
    - `Tests.slnx` / csproj 引用(双轨源链接,框架用例直接链 Assets/ 源文件)
    - `.gitignore` 白名单
-   - 构建器路径(`build-player.ps1` 等)
+   - 构建器路径(`build-player.py` 等)
    - `Docs/开发导航/代码地图.md`
    - **外部注册面**(Windows 计划任务 / CI workflow / hook 配置 / `scripts/gate/toolchain.json` 中的脚本与文档路径)
 3. **新增收集目录 = collector + 本清单 + 专项文档三面同批**。
-4. **验证**:`pwsh scripts/gate/test.ps1 -Lane L1 -Profile PullRequest`(DisciplineScannerTests 钉 ScanTargets);`python scripts/toolchain.py check`(清单路径/CI/hook/计划任务注册面);资源收集变更另用出包冒烟验证。
+4. **验证**:`python scripts/gate/test.py --lane L1 --profile PullRequest`(DisciplineScannerTests 钉 ScanTargets);`python scripts/toolchain.py check`(清单路径/CI/hook/计划任务注册面);资源收集变更另用出包冒烟验证。

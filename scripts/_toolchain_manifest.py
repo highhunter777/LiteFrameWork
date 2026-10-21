@@ -200,8 +200,8 @@ def validate_manifest(manifest, root):
                 errors.append(f"{owner}: scheduled-task requires script")
             else:
                 _check_path(root, surface["script"], "script", errors, owner)
-            if surface.get("runner") not in {"pwsh", "powershell"}:
-                errors.append(f"{owner}: scheduled-task runner must be pwsh or powershell")
+            if surface.get("runner") not in {"pwsh", "powershell", "python"}:
+                errors.append(f"{owner}: scheduled-task runner must be pwsh, powershell or python")
 
     return errors, warnings
 

@@ -15,7 +15,7 @@ description: LiteGame 联机测试发布前置流水线：BuildHash 复算与门
 
 未明确说明要发给外部测试者时，一律按本机测试执行：Room + 客户端 Player + 本机第二实例（`-device.id`）。**不建 `LiteGame-base.zip` / 全量包，不调 `wg-peer` 生成 conf，不建 release 通道包**——这些只在 §4.1/§4.2 的对外分发形态执行。
 
-**打包/发布必须收到用户明确指令**：代码/资产修改、生成物重生成与测试可以完成；`build-player.ps1`、BuiltinBundle 内容包重建、`Dist/New-Package*.ps1`、`deploy-room.ps1`、Meta/云侧发布未经用户明确说“打包/出包/发布/部署”一律不跑，改完停在可打包状态。
+**打包/发布必须收到用户明确指令**：代码/资产修改、生成物重生成与测试可以完成；`build-player.py`、BuiltinBundle 内容包重建、`Dist/New-Package*.ps1`、`deploy-room.py`、Meta/云侧发布未经用户明确说“打包/出包/发布/部署”一律不跑，改完停在可打包状态。
 
 ### 0.2 发布面判定
 
@@ -26,7 +26,7 @@ description: LiteGame 联机测试发布前置流水线：BuildHash 复算与门
 | `Server/RoomServer` 宿主 `.cs` | 重发 Room | 不动 |
 | `Server/MetaServer` 宿主 `.cs` | 重发 Meta | 不动 |
 | 纯表现 / Lua / prefab / 美术 | 不动 | 编辑器重编译；重打包 |
-| 只改 `deploy/roomserver.windows.json` | `deploy-room.ps1 -SkipPublish -WithConfig` | 不动 |
+| 只改 `deploy/roomserver.windows.json` | `deploy-room.py --skip-publish --with-config` | 不动 |
 
 判据永远是两端 `buildHash` 同值。表**数值**（`.bytes`）不在 BuildHash 闭包内（数据面走运行期摘要），但表源改动后仍要 `Luban/gen.bat` 重生成读码面，再跑 BuildHash。表源改动时服务端 `C:\litegame\GameData\Config` 是否要重传，按 `Docs/项目说明/10-Windows云主机部署.md` §2 现场确认；本 skill 的已验证路径未覆盖这一分支。
 
@@ -35,7 +35,7 @@ description: LiteGame 联机测试发布前置流水线：BuildHash 复算与门
 ### 1.1 代码与哈希
 
 - 本批先按 `batch-wrapup` 完成 L1/收尾；共享源/表改动先按 `build-hash-sync` 重生成。
-- 发布前**必须**复算两个常量；`deploy-room.ps1` 与 Meta publish 本身没有哈希门禁：
+- 发布前**必须**复算两个常量；`deploy-room.py` 与 Meta publish 本身没有哈希门禁：
 
 ```powershell
 python scripts/codegen/gen-build-hash.py
@@ -66,12 +66,12 @@ ssh litegame-cloud-tunnel powershell -NoProfile -Command "(Invoke-WebRequest htt
 
 > 运维 SSH 走 **WireGuard 隧道入口**（公网 22 已关，见 10 手册 §4.1）；`scripts/deploy/*.ps1` 自动选路，手敲命令用 `litegame-cloud-tunnel`。
 
-停服会断开测试者。若 GM 端点已开，先 `pwsh -NoProfile -File scripts/deploy/gm.ps1 -Action rooms` 看有没有活跃房；没有把握时先问用户。
+停服会断开测试者。若 GM 端点已开，先 `python scripts/deploy/gm.py --action rooms` 看有没有活跃房；没有把握时先问用户。
 
 ### 1.4 本机 shell 约定
 
 - 项目 `.ps1` 一律 `pwsh`；云上日志用 `powershell Select-String` 读，Git Bash 直接看可能 GBK 乱码。
-- 手工打包 Meta 一律用 `C:\Windows\System32\tar.exe`；Git Bash 的 `/usr/bin/tar` 会把 `E:\` 当远端主机。`deploy-room.ps1` 已修，若仍见 `tar (child): Cannot connect to E:`，说明脚本是旧版。
+- 手工打包 Meta 一律用 `C:\Windows\System32\tar.exe`；Git Bash 的 `/usr/bin/tar` 会把 `E:\` 当远端主机。`deploy-room.py` 已修，若仍见 `tar (child): Cannot connect to E:`，说明脚本是旧版。
 - 远程 `-File` 路径用正斜杠 `C:/litegame/...`；Git Bash 会吃掉反斜杠（曾变成 `C:litegamemeta-stop.ps1`）。复杂命令走 scp 脚本 + `-File`，不在 ssh 里拼引号。
 - 云侧脚本保持纯 ASCII（PS 5.1 会把无 BOM UTF-8 中文按 GBK 误解）。
 
@@ -81,21 +81,21 @@ ssh litegame-cloud-tunnel powershell -NoProfile -Command "(Invoke-WebRequest htt
 
 ```powershell
 # C# / 共享源 / 玩法表变更：发布 + 打包（room + GameData/Config）+ 停服 + 上传 + 解压 + 起服 + 回读
-pwsh -NoProfile -File scripts/deploy/deploy-room.ps1
+python scripts/deploy/deploy-room.py
 
 # 只改配置（heartbeat / template / ports）
-pwsh -NoProfile -File scripts/deploy/deploy-room.ps1 -SkipPublish -WithConfig
+python scripts/deploy/deploy-room.py --skip-publish --with-config
 
 # 只重试上传现有产物
-pwsh -NoProfile -File scripts/deploy/deploy-room.ps1 -SkipPublish
+python scripts/deploy/deploy-room.py --skip-publish
 
 # 只换二进制、不同步玩法表（一般别用：见下方数据面判据）
-pwsh -NoProfile -File scripts/deploy/deploy-room.ps1 -SkipPublish -SkipTables
+python scripts/deploy/deploy-room.py --skip-publish --skip-tables
 ```
 
 判据：`stopped=True`、`extract=0`、`task=Running`、`[RoomServer] buildHash=…`，以及 `[Tables] 玩法数据身份基摘要:0x…` 与客户端日志「本地基摘要」同值。配置是启动期快照，改完必须重启任务；C# 变更必须重 publish，只重启任务会继续跑旧 exe。
 
-**数据面红线**：`Assets/GameData/Config/*.bytes` 变了必须随 Room 一起上云（脚本默认已带 `-SkipTables` 才跳过）。只换二进制不传表 ⇒ 客户端 `StartGame` 阶段以「玩法数据身份不符（ConfigHash）」**拒整局**（2026-10-19 实测：`Map/tbmap.bytes` 漏传，服务端 `0xb0102ea9` vs 客户端 `0xa8a7e328`）。
+**数据面红线**：`Assets/GameData/Config/*.bytes` 变了必须随 Room 一起上云（脚本默认已带 `--skip-tables` 才跳过）。只换二进制不传表 ⇒ 客户端 `StartGame` 阶段以「玩法数据身份不符（ConfigHash）」**拒整局**（2026-10-19 实测：`Map/tbmap.bytes` 漏传，服务端 `0xb0102ea9` vs 客户端 `0xa8a7e328`）。
 
 ### 2.2 Meta（仓库无 deploy-meta 脚本，按已验证手工路径）
 
@@ -112,9 +112,9 @@ if ($LASTEXITCODE -ne 0) { throw 'meta.tgz failed' }
 ```powershell
 # meta-stop.ps1
 Stop-ScheduledTask -TaskName 'LiteGame-Meta' -ErrorAction SilentlyContinue
-Get-Process -Name MetaServer -ErrorAction SilentlyContinue | Stop-Process -Force
+Get-Process --name MetaServer -ErrorAction SilentlyContinue | Stop-Process -Force
 Start-Sleep -Seconds 3
-Write-Output ('stopped=' + ($null -eq (Get-Process -Name MetaServer -ErrorAction SilentlyContinue)))
+Write-Output ('stopped=' + ($null -eq (Get-Process --name MetaServer -ErrorAction SilentlyContinue)))
 ```
 
 ```powershell
@@ -157,7 +157,7 @@ Invoke-RestMethod -Uri http://10.8.0.1:5000/lobby/rooms/public -Headers @{ Autho
 
 **已提交的收集资源改动也算改动**：不要只看 `git status` 是否干净。命名空间迁移/批量重序列化会改写 prefab 内的脚本或类型字符串（例：`CustomTypeName` 从 `LiteGame.UI.UIDropdownWrap` 变为 `LiteClient.UI.UIDropdownWrap`），工作区干净但旧包仍携带旧值，运行时表现为 `绑定索引[Dropdown_Map] 不是下拉件:期望 UIDropdownWrap/Dropdown 实得 RectTransform`。判定：包版本时间 ≥ 最近一次触碰收集资源的提交时间；否则重建。
 
-正常路径让 `build-player.ps1` 自己构建；若 `BuiltinBundleBuildInvoker.Status` 长时间停在 `starting`（本机 `delayCall` 不执行的已知坑），改用同步兜底：
+正常路径让 `build-player.py` 自己构建；若 `BuiltinBundleBuildInvoker.Status` 长时间停在 `starting`（本机 `delayCall` 不执行的已知坑），改用同步兜底：
 
 ```csharp
 // Temp/build-bundles-sync.cs（放 Temp/，不进 Assets）
@@ -183,18 +183,18 @@ unity command eval "return LiteGame.EditorTools.BuiltinBundleBuildInvoker.Status
 ### 3.2 Player
 
 ```powershell
-pwsh -NoProfile -File scripts/build/build-player.ps1 -Profile BuildProfiles/windows-x64-closedtest.local.json -SkipRestoreCheck -SkipBundles
+python scripts/build/build-player.py --profile BuildProfiles/windows-x64-closedtest.local.json --skip-restore-check --skip-bundles
 ```
 
 - 本机测试用 closedtest profile；默认 profile 的 `endpoints:{}` 会删掉 `Assets/StreamingAssets/deploy.args`，编辑器下次 Play 变“未配置服务器”。对外分发另用 release 本机档（§4.1）。
-- `-SkipRestoreCheck` 是本机绕过：`Packages/manifest.json` 的 ParrelSync 指向本机绝对路径。该开关会同时跳过 `l0-dep-scan`（脚本把两者放在同一分支）；L0/L1 应在 `batch-wrapup` 阶段完成。不要为发布改 manifest。
-- `-SkipBundles` 只在内容包已构建或已核对可复用时使用；内容变了却跳过 = 把旧内容烤进包。
+- `--skip-restore-check` 是本机绕过：`Packages/manifest.json` 的 ParrelSync 指向本机绝对路径。该开关会同时跳过 `l0-dep-scan`（脚本把两者放在同一分支）；L0/L1 应在 `batch-wrapup` 阶段完成。不要为发布改 manifest。
+- `--skip-bundles` 只在内容包已构建或已核对可复用时使用；内容变了却跳过 = 把旧内容烤进包。
 - 判据：`Player build PASSED`、`unity command build_status` 为 completed、`Builds/StandaloneWindows64/GameAssembly.dll` 新鲜。**不要看 `Test.exe` 的时间戳**——它可能保持旧时间。构建报 completed 但产物不新，按编译错误处理，不要出货。
 
 ### 3.3 启动冒烟
 
 ```powershell
-pwsh -NoProfile -File scripts/build/player-smoke.ps1 -TimeoutSec 90
+python scripts/build/player-smoke.py --timeout-sec 90
 # 期望：[OK] defined-state marker reached: '[Asset] ready'，随后 player smoke PASSED
 ```
 
@@ -209,8 +209,8 @@ pwsh -NoProfile -File scripts/build/player-smoke.ps1 -TimeoutSec 90
 仓库 `BuildProfiles/windows-x64-release.json` 是环境中立档（`endpoints` 为空，直建会删 `deploy.args`，客户端无服务器地址）。本机复制为 gitignored 的 `BuildProfiles/windows-x64-release.local.json`，填入与 closedtest 相同的 `endpoints`，再出包：
 
 ```powershell
-pwsh -NoProfile -File scripts/build/build-player.ps1 -Profile BuildProfiles/windows-x64-release.local.json -SkipRestoreCheck -SkipBundles
-pwsh -NoProfile -File scripts/build/player-smoke.ps1 -ExePath Builds/StandaloneWindows64-release/Test.exe -TimeoutSec 90
+python scripts/build/build-player.py --profile BuildProfiles/windows-x64-release.local.json --skip-restore-check --skip-bundles
+python scripts/build/player-smoke.py --exe-path Builds/StandaloneWindows64-release/Test.exe --timeout-sec 90
 ```
 
 ### 4.2 基包 + 每人 conf
@@ -220,7 +220,7 @@ pwsh -NoProfile -File scripts/build/player-smoke.ps1 -ExePath Builds/StandaloneW
 pwsh -NoProfile -File Dist/New-Package.ps1 -Tester LiteGame-base -Base -Zip -GameBuild Builds/StandaloneWindows64-release -Force
 
 # 每个测试者一人一份 conf → 小叠加包（基包 + 本人 conf）
-pwsh -NoProfile -File scripts/deploy/wg-peer.ps1 -Name <tester>
+python scripts/deploy/wg-peer.py --name <tester>
 pwsh -NoProfile -File Dist/New-Packages.ps1 -Testers <tester> -Overlay -Zip -Force
 ```
 
@@ -247,11 +247,11 @@ pwsh -NoProfile -File Dist/New-Packages.ps1 -Testers <tester> -Overlay -Zip -For
 
 | 症状 | 原因 | 处置 |
 |---|---|---|
-| `restore-check` 报 `manifest ... parrelsync` | 本机 manifest 绝对路径 | `-SkipRestoreCheck`；不要为发布改 manifest |
+| `restore-check` 报 `manifest ... parrelsync` | 本机 manifest 绝对路径 | `--skip-restore-check`；不要为发布改 manifest |
 | `eval_file ... Main thread operation timed out after 5000ms` | 冷编辑器主线程窗口 | `unity command eval "return 1;"` 预热后重试 |
 | 内容包 `Status=starting` 数分钟 | `delayCall` 未执行 | 同步 `Run()` + 轮询 Status；不要干等 |
 | `run_script` 报 `timed out after 30000ms` | CLI 外层超时，主线程构建继续 | 轮询 `Status`；success 才继续，failed 停 |
-| `tar (child): Cannot connect to E:` | Git Bash tar 抢占 PATH | 用 `System32\tar.exe`；确认 `deploy-room.ps1` 是修复版 |
+| `tar (child): Cannot connect to E:` | Git Bash tar 抢占 PATH | 用 `System32\tar.exe`；确认 `deploy-room.py` 是修复版 |
 | 云侧 `-File C:litegame...` 找不到文件 | Git Bash 吃反斜杠 | 改用 `C:/litegame/...` + scp 脚本 |
 | `New-Package` 报 `output folder already exists` | 旧包目录 | 加 `-Force` |
 | 构建报 completed 但产物旧 | 编译错误静默 no-op | 看 `PASSED`/freshness 与 Editor.log，不要出货 |
@@ -259,13 +259,13 @@ pwsh -NoProfile -File Dist/New-Packages.ps1 -Testers <tester> -Overlay -Zip -For
 | 签票 `409 version-mismatch` | 两端 hash 不同 | `--check` → 重发 Room / 重打客户端 |
 | 开局被拒：`玩法数据身份不符：StartGame.ConfigHash=… 本地复算=…` | 服务端 `GameData/Config` 未随表更新（只换二进制） | 重发 Room（脚本默认同步表）→ 看日志 `[Tables] 玩法数据身份基摘要:0x…` 与客户端「本地基摘要」同值 |
 | 大厅 hash 未更新 | Room 旧进程或心跳未到 | 看 Room 日志、任务状态与 `lastSeenAgeMs` |
-| 配置改了但端点/模板没变 | 只重启、没上传配置；或改 C# 只重启 | `-WithConfig` 重发配置；C# 变更重 publish |
+| 配置改了但端点/模板没变 | 只重启、没上传配置；或改 C# 只重启 | `--with-config` 重发配置；C# 变更重 publish |
 
 ## 7. 证据、交接与边界
 
 - 把本次 shared/meta hash、Room/Meta 任务状态、大厅投影、客户端产物时间、偏差项追加到当前上云进度卷（现为 `Docs/施工进度/上云测试线.md`），并写明“双人真对局是否已执行”；仅对外分发时再记包大小。
 - 默认本机测试，不产出发布包；`Dist/out` 出现 `LiteGame-base.zip` 或 testers 的 `.conf` 即说明走了分发形态，发布记录需写明。
-- 跑 `python scripts/gate/doc-lint.py --no-links`（或 `pwsh scripts/gate/test.ps1 -Lane Doc`）。
+- 跑 `python scripts/gate/doc-lint.py --no-links`（或 `python scripts/gate/test.py --lane Doc`）。
 - 提交/推送前先问用户；不要自动提交云侧配置、测试包或任何 `LocalNotes`/`.conf`。
 - 交接提醒：必须用新客户端（旧 exe 会 409）；云上 `sandbox` 不限时/无击杀上限/1s 复活/不产结算；同机第二客户端用 `-device.id`；测结算要把 `default_template` 切回 `standard` 并重发配置。
 - 本 skill 不验证实际对局；不把封闭测试环境当作公开可发布环境；不硬编码本次 hash（以生成器与日志为准）。

@@ -441,7 +441,7 @@
       "kind": "gate",
       "summary": "manifest/依赖/许可证/密钥静态扫描。",
       "docs": "Docs/项目说明/05-验证与门禁.md",
-      "command": ["pwsh", "scripts/gate/l0-dep-scan.ps1"],
+      "command": ["python", "scripts/gate/l0-dep-scan.py"],
       "writes": ["none"],
       "destructive": false,
       "order": 10
@@ -453,7 +453,7 @@
       "kind": "gate",
       "summary": "dotnet 侧纯逻辑测试（含纪律扫描）。",
       "docs": "Docs/项目说明/05-验证与门禁.md",
-      "command": ["pwsh", "scripts/gate/test.ps1", "-Lane", "L1", "-Profile", "PullRequest"],
+      "command": ["python", "scripts/gate/test.py", "--lane", "L1", "--profile", "PullRequest"],
       "writes": ["none"],
       "destructive": false,
       "order": 20
@@ -465,7 +465,7 @@
       "kind": "gate",
       "summary": "meta 扫描 + Unity 编译 + EditMode/PlayMode。",
       "docs": "Docs/项目说明/05-验证与门禁.md",
-      "command": ["pwsh", "scripts/gate/l2-unity-gate.ps1"],
+      "command": ["python", "scripts/gate/l2-unity-gate.py"],
       "writes": ["none"],
       "destructive": false,
       "order": 30
@@ -477,7 +477,7 @@
       "kind": "gate",
       "summary": "真 IO/网络/进程内服务端的集成与端到端测试。",
       "docs": "Docs/项目说明/05-验证与门禁.md",
-      "command": ["pwsh", "scripts/gate/test.ps1", "-Lane", "L3", "-Profile", "PullRequest"],
+      "command": ["python", "scripts/gate/test.py", "--lane", "L3", "--profile", "PullRequest"],
       "writes": ["none"],
       "destructive": false,
       "order": 40
@@ -489,7 +489,7 @@
       "kind": "gate",
       "summary": "文档索引/链接/设计-进度分离与生成索引新鲜度。",
       "docs": "Docs/项目说明/05-验证与门禁.md",
-      "command": ["pwsh", "scripts/gate/test.ps1", "-Lane", "Doc"],
+      "command": ["python", "scripts/gate/test.py", "--lane", "Doc"],
       "writes": ["none"],
       "destructive": false,
       "order": 50
@@ -527,7 +527,7 @@
       "kind": "build",
       "summary": "走 restore/L0/BuildHash/内置包/IL2CPP 的出包链。",
       "docs": "Docs/项目说明/05-验证与门禁.md",
-      "command": ["pwsh", "scripts/build/build-player.ps1"],
+      "command": ["python", "scripts/build/build-player.py"],
       "writes": ["distribution"],
       "destructive": false,
       "order": 10
@@ -539,7 +539,7 @@
       "kind": "build",
       "summary": "启动构建产物并等待定义态标记。",
       "docs": "Docs/项目说明/05-验证与门禁.md",
-      "command": ["pwsh", "scripts/build/player-smoke.ps1"],
+      "command": ["python", "scripts/build/player-smoke.py"],
       "writes": ["none"],
       "destructive": false,
       "order": 20
@@ -590,7 +590,7 @@
       "kind": "content",
       "summary": "生成签名内容候选信封（需 -ContentDir/-ReleaseId/-Revision）。",
       "docs": "Docs/设计文档/客户端/内容/资源收集目录专项设计.md",
-      "command": ["pwsh", "scripts/content/gen-candidate.ps1"],
+      "command": ["python", "scripts/content/gen-candidate.py"],
       "writes": ["distribution"],
       "destructive": false,
       "order": 60
@@ -602,7 +602,7 @@
       "kind": "content",
       "summary": "CDN 布局 + 签名一条龙（需 -ContentDir；可选 -CdnRoot/-ReleaseId/-Revision）。",
       "docs": "Docs/设计文档/客户端/内容/资源收集目录专项设计.md",
-      "command": ["pwsh", "scripts/content/publish-candidate.ps1"],
+      "command": ["python", "scripts/content/publish-candidate.py"],
       "writes": ["distribution"],
       "destructive": false,
       "order": 70
@@ -614,7 +614,7 @@
       "kind": "content",
       "summary": "启动本地内容 CDN。",
       "docs": "Docs/设计文档/客户端/内容/资源收集目录专项设计.md",
-      "command": ["pwsh", "scripts/content/serve-cdn.ps1"],
+      "command": ["python", "scripts/content/serve-cdn.py"],
       "writes": ["none"],
       "destructive": false,
       "order": 80
@@ -626,7 +626,7 @@
       "kind": "gate",
       "summary": "校验 Unity/.NET/Python/包/付费插件等环境项。",
       "docs": "Docs/环境/环境恢复指南.md",
-      "command": ["pwsh", "scripts/gate/restore-check.ps1"],
+      "command": ["python", "scripts/gate/restore-check.py"],
       "writes": ["none"],
       "destructive": false,
       "order": 10
@@ -638,7 +638,7 @@
       "kind": "gate",
       "summary": "L1 + L2 夜间编排并落盘日志。",
       "docs": "Docs/项目说明/05-验证与门禁.md",
-      "command": ["pwsh", "scripts/gate/nightly-gate.ps1"],
+      "command": ["python", "scripts/gate/nightly-gate.py"],
       "writes": ["none"],
       "destructive": false,
       "order": 20
@@ -648,9 +648,9 @@
       "title": "重注册夜间任务",
       "category": "env",
       "kind": "cli",
-      "summary": "把 Windows 计划任务修回 pwsh + scripts/gate/nightly-gate.ps1（-Force 覆盖既有任务）。",
+      "summary": "把 Windows 计划任务修回 python + scripts/gate/nightly-gate.py（--force 覆盖既有任务）。",
       "docs": "Docs/工具链/技术支持.md",
-      "command": ["pwsh", "scripts/gate/install-nightly-task.ps1", "-Force"],
+      "command": ["python", "scripts/gate/install-nightly-task.py", "--force"],
       "writes": ["none"],
       "destructive": false,
       "order": 25
@@ -696,7 +696,7 @@
       "kind": "cli",
       "summary": "发布/打包/停服/上传/解压/起服/回读判据；改房间服二进制或配置后使用。",
       "docs": "Docs/项目说明/10-Windows云主机部署.md",
-      "command": ["pwsh", "scripts/deploy/deploy-room.ps1"],
+      "command": ["python", "scripts/deploy/deploy-room.py"],
       "writes": ["distribution"],
       "destructive": true,
       "order": 10
@@ -708,7 +708,7 @@
       "kind": "cli",
       "summary": "经 SSH 隧道调用云上 GM 端点（rooms/start/abort/kick/settle-flush/rules）。",
       "docs": "Docs/开发导航/云侧速查.md",
-      "command": ["pwsh", "scripts/deploy/gm.ps1"],
+      "command": ["python", "scripts/deploy/gm.py"],
       "writes": ["none"],
       "destructive": true,
       "order": 20
@@ -720,7 +720,7 @@
       "kind": "cli",
       "summary": "云上生成 WireGuard 密钥并追加 peer，本机落地测试者 .conf。",
       "docs": "Docs/开发导航/云侧速查.md",
-      "command": ["pwsh", "scripts/deploy/wg-peer.ps1"],
+      "command": ["python", "scripts/deploy/wg-peer.py"],
       "writes": ["distribution"],
       "destructive": true,
       "order": 30
@@ -732,7 +732,7 @@
       "kind": "cli",
       "summary": "init/meta/room/up/status/keys；按机器私有密钥起本地 Meta/RoomServer。",
       "docs": "Docs/项目说明/07-本地联测.md",
-      "command": ["pwsh", "scripts/local/local-chain.ps1"],
+      "command": ["python", "scripts/local/local-chain.py"],
       "writes": ["source", "distribution"],
       "destructive": true,
       "order": 15
@@ -773,8 +773,8 @@
       "id": "nightly-task",
       "kind": "scheduled-task",
       "name": "LiteGame-Nightly-Gate",
-      "script": "scripts/gate/nightly-gate.ps1",
-      "runner": "pwsh",
+      "script": "scripts/gate/nightly-gate.py",
+      "runner": "python",
       "required": false
     },
     {

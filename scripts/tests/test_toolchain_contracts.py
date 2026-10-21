@@ -3,9 +3,6 @@
 
 These tests only use help/usage paths; they never execute deployment bodies or
 touch cloud state.
-
-Run with:
-  python -m unittest discover -s scripts/tests -p "test_toolchain*.py" -v
 """
 
 import subprocess
@@ -29,26 +26,18 @@ def run(args, timeout=60):
     )
 
 
-def run_pwsh_script(relative, *args, timeout=60):
-    return run(["pwsh", "-NoProfile", "-NonInteractive", "-File", str(ROOT / relative), *args], timeout=timeout)
-
-
-def get_help(relative):
-    command = (
-        "[Console]::OutputEncoding=[Text.Encoding]::UTF8; "
-        f"Get-Help (Resolve-Path '{relative}') | Out-String"
-    )
-    return run(["pwsh", "-NoProfile", "-Command", command])
+def run_script(relative, *args, timeout=60):
+    return run([sys.executable, str(ROOT / relative), *args], timeout=timeout)
 
 
 class LocalChainContractTests(unittest.TestCase):
     def test_unknown_command_is_usage_error(self):
-        result = run_pwsh_script("scripts/local/local-chain.ps1", "no-such-command")
+        result = run_script("scripts/local/local-chain.py", "no-such-command")
         self.assertEqual(result.returncode, 2, result.stdout + result.stderr)
         self.assertIn("init", result.stdout.lower())
 
     def test_help_lists_commands(self):
-        result = get_help("scripts/local/local-chain.ps1")
+        result = run_script("scripts/local/local-chain.py", "--help")
         self.assertEqual(result.returncode, 0, result.stderr)
         text = result.stdout.lower()
         for command in ("init", "meta", "room", "up", "status", "keys"):
@@ -56,23 +45,23 @@ class LocalChainContractTests(unittest.TestCase):
 
 
 class DeployContractTests(unittest.TestCase):
-    def test_help_has_description(self):
+    def test_help_has_canonical_options(self):
         expected = {
-            "scripts/deploy/gm.ps1": "云端运维",
-            "scripts/deploy/wg-peer.ps1": "测试者",
-            "scripts/deploy/deploy-room.ps1": "重新部署",
+            "scripts/deploy/gm.py": "--action",
+            "scripts/deploy/wg-peer.py": "--name",
+            "scripts/deploy/deploy-room.py": "--skip-publish",
         }
         for relative, keyword in expected.items():
-            result = get_help(relative)
+            result = run_script(relative, "--help")
             self.assertEqual(result.returncode, 0, result.stderr)
-            self.assertIn(keyword, result.stdout, f"{relative} help missing description")
+            self.assertIn(keyword, result.stdout, f"{relative} help missing {keyword}")
 
     def test_gm_missing_action_is_usage_error(self):
-        result = run_pwsh_script("scripts/deploy/gm.ps1")
+        result = run_script("scripts/deploy/gm.py")
         self.assertEqual(result.returncode, 2, result.stdout + result.stderr)
 
     def test_wg_peer_missing_name_is_usage_error(self):
-        result = run_pwsh_script("scripts/deploy/wg-peer.ps1")
+        result = run_script("scripts/deploy/wg-peer.py")
         self.assertEqual(result.returncode, 2, result.stdout + result.stderr)
 
 

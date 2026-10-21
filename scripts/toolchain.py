@@ -236,23 +236,23 @@ def _pwsh():
 def cmd_verify(args):
     lane = args.lane
     if lane == "L0":
-        command = [_pwsh(), str(ROOT / "scripts" / "gate" / "l0-dep-scan.ps1")]
+        command = [sys.executable, str(ROOT / "scripts" / "gate" / "l0-dep-scan.py")]
     elif lane in {"L1", "L2", "L3", "All"}:
         command = [
-            _pwsh(),
-            str(ROOT / "scripts" / "gate" / "test.ps1"),
-            "-Lane",
+            sys.executable,
+            str(ROOT / "scripts" / "gate" / "test.py"),
+            "--lane",
             lane,
-            "-Profile",
+            "--profile",
             args.profile,
         ]
     elif lane == "Doc":
         command = [
-            _pwsh(),
-            str(ROOT / "scripts" / "gate" / "test.ps1"),
-            "-Lane",
+            sys.executable,
+            str(ROOT / "scripts" / "gate" / "test.py"),
+            "--lane",
             "Doc",
-            "-Profile",
+            "--profile",
             args.profile,
         ]
     else:
@@ -261,7 +261,7 @@ def cmd_verify(args):
 
 
 def cmd_build(args):
-    command = [_pwsh(), str(ROOT / "scripts" / "build" / "build-player.ps1")]
+    command = [sys.executable, str(ROOT / "scripts" / "build" / "build-player.py")]
     if args.profile:
         command += ["-Profile", args.profile]
     return _run_child(command)
@@ -271,15 +271,15 @@ def cmd_doctor(args):
     manifest_path = _manifest_path(args)
     _, errors, warnings = collect_checks(manifest_path, strict=getattr(args, "strict", False))
     _print_issues(errors, warnings)
-    restore = _run_child([_pwsh(), str(ROOT / "scripts" / "gate" / "restore-check.ps1")])
+    restore = _run_child([sys.executable, str(ROOT / "scripts" / "gate" / "restore-check.py")])
     port_file = ROOT / "Library" / "Pipeline" / ".unity-pipeline-port"
     print(f"[toolchain] pipeline: {'running' if port_file.is_file() else 'not running'} ({port_file})")
     fix_code = EXIT_OK
     if getattr(args, "fix_nightly", False):
-        install = ROOT / "scripts" / "gate" / "install-nightly-task.ps1"
+        install = ROOT / "scripts" / "gate" / "install-nightly-task.py"
         if not install.is_file():
             raise ToolchainError(f"nightly installer missing: {install}")
-        fix_code = _run_child([_pwsh(), str(install), "-Force"])
+        fix_code = _run_child([sys.executable, str(install), "--force"])
     if errors or restore != EXIT_OK or fix_code != EXIT_OK:
         print("[toolchain] doctor FAILED")
         return EXIT_FAIL
@@ -339,7 +339,7 @@ def build_parser():
     verify_parser.add_argument("--profile", default="PullRequest", choices=["PullRequest", "Nightly", "Release"])
     verify_parser.set_defaults(func=cmd_verify)
 
-    build_parser_cmd = subparsers.add_parser("build", help="delegate to build-player.ps1")
+    build_parser_cmd = subparsers.add_parser("build", help="delegate to build-player.py")
     build_parser_cmd.add_argument("--profile")
     build_parser_cmd.set_defaults(func=cmd_build)
 

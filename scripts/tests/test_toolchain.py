@@ -110,7 +110,151 @@ class ManifestContractTests(unittest.TestCase):
         self.assertIn("nightly-task", surfaces)
         self.assertIn("zcode-hook", surfaces)
         self.assertIn("claude-hook", surfaces)
-        self.assertEqual(surfaces["nightly-task"].get("script"), "scripts/gate/nightly-gate.ps1")
+        self.assertEqual(surfaces["nightly-task"].get("script"), "scripts/gate/nightly-gate.py")
+        self.assertEqual(surfaces["nightly-task"].get("runner"), "python")
+
+
+    def test_l0_entry_is_python(self):
+        manifest = self.load()
+        l0 = next(tool for tool in manifest["tools"] if tool["id"] == "quality.l0")
+        self.assertEqual(l0["command"], ["python", "scripts/gate/l0-dep-scan.py"])
+        self.assertTrue((ROOT / "scripts" / "gate" / "l0-dep-scan.py").is_file())
+        self.assertFalse((ROOT / "scripts" / "gate" / "l0-dep-scan.ps1").exists())
+        toolchain_text = (ROOT / "scripts" / "toolchain.py").read_text(encoding="utf-8")
+        self.assertIn("l0-dep-scan.py", toolchain_text)
+        self.assertNotIn("l0-dep-scan.ps1", toolchain_text)
+        ci_text = (ROOT / ".github" / "workflows" / "ci.yml").read_text(encoding="utf-8")
+        self.assertIn("l0-dep-scan.py", ci_text)
+        self.assertNotIn("l0-dep-scan.ps1", ci_text)
+        build_text = (ROOT / "scripts" / "build" / "build-player.py").read_text(encoding="utf-8")
+        self.assertIn("l0-dep-scan.py", build_text)
+        self.assertNotIn("l0-dep-scan.ps1", build_text)
+
+    def test_p5_entries_are_python(self):
+        manifest = self.load()
+        by_id = {tool["id"]: tool for tool in manifest["tools"]}
+        expected = {
+            "deploy.room": "scripts/deploy/deploy-room.py",
+            "deploy.gm": "scripts/deploy/gm.py",
+            "deploy.wg-peer": "scripts/deploy/wg-peer.py",
+            "env.local-chain": "scripts/local/local-chain.py",
+        }
+        for tool_id, script in expected.items():
+            self.assertEqual(by_id[tool_id]["command"], ["python", script])
+            self.assertTrue((ROOT / script).is_file(), f"{tool_id} script missing")
+        for old in (
+            "scripts/deploy/deploy-room.ps1",
+            "scripts/deploy/gm.ps1",
+            "scripts/deploy/wg-peer.ps1",
+            "scripts/deploy/_ssh-host.ps1",
+            "scripts/local/local-chain.ps1",
+        ):
+            self.assertFalse((ROOT / old).exists(), f"legacy script still present: {old}")
+        self.assertEqual(list((ROOT / "scripts").rglob("*.ps1")), [])
+
+    def test_p4_entries_are_python(self):
+        manifest = self.load()
+        by_id = {tool["id"]: tool for tool in manifest["tools"]}
+        self.assertEqual(by_id["build.player"]["command"], ["python", "scripts/build/build-player.py"])
+        self.assertEqual(by_id["build.smoke"]["command"], ["python", "scripts/build/player-smoke.py"])
+        self.assertTrue((ROOT / "scripts" / "build" / "build-player.py").is_file())
+        self.assertTrue((ROOT / "scripts" / "build" / "player-smoke.py").is_file())
+        self.assertFalse((ROOT / "scripts" / "build" / "build-player.ps1").exists())
+        self.assertFalse((ROOT / "scripts" / "build" / "player-smoke.ps1").exists())
+        ci_text = (ROOT / ".github" / "workflows" / "ci.yml").read_text(encoding="utf-8")
+        self.assertIn("build-player.py", ci_text)
+        self.assertIn("player-smoke.py", ci_text)
+        self.assertNotIn("build-player.ps1", ci_text)
+        self.assertNotIn("player-smoke.ps1", ci_text)
+
+    def test_p3b_entries_are_python(self):
+        manifest = self.load()
+        by_id = {tool["id"]: tool for tool in manifest["tools"]}
+        self.assertEqual(by_id["quality.l2"]["command"], ["python", "scripts/gate/l2-unity-gate.py"])
+        self.assertEqual(by_id["env.nightly"]["command"], ["python", "scripts/gate/nightly-gate.py"])
+        self.assertEqual(
+            by_id["env.nightly-install"]["command"],
+            ["python", "scripts/gate/install-nightly-task.py", "--force"],
+        )
+        self.assertTrue((ROOT / "scripts" / "gate" / "l2-unity-gate.py").is_file())
+        self.assertTrue((ROOT / "scripts" / "gate" / "nightly-gate.py").is_file())
+        self.assertTrue((ROOT / "scripts" / "gate" / "install-nightly-task.py").is_file())
+        self.assertFalse((ROOT / "scripts" / "gate" / "l2-unity-gate.ps1").exists())
+        self.assertFalse((ROOT / "scripts" / "gate" / "install-nightly-task.ps1").exists())
+        surface = next(item for item in manifest["surfaces"] if item["id"] == "nightly-task")
+        self.assertEqual(surface["runner"], "python")
+        self.assertEqual(surface["script"], "scripts/gate/nightly-gate.py")
+        ci_text = (ROOT / ".github" / "workflows" / "ci.yml").read_text(encoding="utf-8")
+        self.assertIn("l2-unity-gate.py", ci_text)
+        self.assertNotIn("l2-unity-gate.ps1", ci_text)
+        test_text = (ROOT / "scripts" / "gate" / "test.py").read_text(encoding="utf-8")
+        self.assertIn("l2-unity-gate.py", test_text)
+
+    def test_test_entry_is_python(self):
+        manifest = self.load()
+        by_id = {tool["id"]: tool for tool in manifest["tools"]}
+        self.assertEqual(
+            by_id["quality.l1"]["command"],
+            ["python", "scripts/gate/test.py", "--lane", "L1", "--profile", "PullRequest"],
+        )
+        self.assertEqual(
+            by_id["quality.l3"]["command"],
+            ["python", "scripts/gate/test.py", "--lane", "L3", "--profile", "PullRequest"],
+        )
+        self.assertEqual(
+            by_id["quality.doc"]["command"],
+            ["python", "scripts/gate/test.py", "--lane", "Doc"],
+        )
+        self.assertTrue((ROOT / "scripts" / "gate" / "test.py").is_file())
+        self.assertFalse((ROOT / "scripts" / "gate" / "test.ps1").exists())
+        ci_text = (ROOT / ".github" / "workflows" / "ci.yml").read_text(encoding="utf-8")
+        self.assertIn("scripts/gate/test.py", ci_text)
+        self.assertNotIn("scripts/gate/test.ps1", ci_text)
+        toolchain_text = (ROOT / "scripts" / "toolchain.py").read_text(encoding="utf-8")
+        self.assertIn("test.py", toolchain_text)
+        self.assertNotIn("test.ps1", toolchain_text)
+        nightly_text = (ROOT / "scripts" / "gate" / "nightly-gate.py").read_text(encoding="utf-8")
+        self.assertIn("test.py", nightly_text)
+        self.assertNotIn("test.ps1", nightly_text)
+        self.assertFalse((ROOT / "scripts" / "gate" / "nightly-gate.ps1").exists())
+
+    def test_p2_entries_are_python(self):
+        manifest = self.load()
+        by_id = {tool["id"]: tool for tool in manifest["tools"]}
+        expected = {
+            "content.gen-candidate": "scripts/content/gen-candidate.py",
+            "content.publish-candidate": "scripts/content/publish-candidate.py",
+            "content.serve-cdn": "scripts/content/serve-cdn.py",
+            "env.restore": "scripts/gate/restore-check.py",
+        }
+        for tool_id, script in expected.items():
+            self.assertEqual(by_id[tool_id]["command"], ["python", script])
+            self.assertTrue((ROOT / script).is_file(), f"{tool_id} script missing")
+        for old in (
+            "scripts/content/gen-candidate.ps1",
+            "scripts/content/publish-candidate.ps1",
+            "scripts/content/serve-cdn.ps1",
+            "scripts/gate/restore-check.ps1",
+            "scripts/content/_local-cdn.ps1",
+        ):
+            self.assertFalse((ROOT / old).exists(), f"legacy script still present: {old}")
+        toolchain_text = (ROOT / "scripts" / "toolchain.py").read_text(encoding="utf-8")
+        self.assertIn("restore-check.py", toolchain_text)
+        self.assertNotIn("restore-check.ps1", toolchain_text)
+        build_text = (ROOT / "scripts" / "build" / "build-player.py").read_text(encoding="utf-8")
+        self.assertIn("restore-check.py", build_text)
+        self.assertNotIn("restore-check.ps1", build_text)
+
+    def test_hook_entries_are_python(self):
+        zcode = json.loads((ROOT / ".zcode" / "config.json").read_text(encoding="utf-8"))
+        zcode_text = json.dumps(zcode, ensure_ascii=False)
+        self.assertIn("shared-source-reminder.py", zcode_text)
+        self.assertNotIn("shared-source-reminder.ps1", zcode_text)
+        claude_text = (ROOT / ".claude" / "settings.json").read_text(encoding="utf-8")
+        self.assertIn("shared-source-reminder.py", claude_text)
+        self.assertNotIn("shared-source-reminder.ps1", claude_text)
+        self.assertTrue((ROOT / "scripts" / "hooks" / "shared-source-reminder.py").is_file())
+        self.assertFalse((ROOT / "scripts" / "hooks" / "shared-source-reminder.ps1").exists())
 
 
 class CliContractTests(unittest.TestCase):
@@ -226,10 +370,10 @@ class ScriptFormManifestTests(unittest.TestCase):
         manifest = self.load()
         by_id = {tool["id"]: tool for tool in manifest["tools"]}
         expected = {
-            "deploy.room": "scripts/deploy/deploy-room.ps1",
-            "deploy.gm": "scripts/deploy/gm.ps1",
-            "deploy.wg-peer": "scripts/deploy/wg-peer.ps1",
-            "env.local-chain": "scripts/local/local-chain.ps1",
+            "deploy.room": "scripts/deploy/deploy-room.py",
+            "deploy.gm": "scripts/deploy/gm.py",
+            "deploy.wg-peer": "scripts/deploy/wg-peer.py",
+            "env.local-chain": "scripts/local/local-chain.py",
             "quality.doc-lint": "scripts/gate/doc-lint.py",
             "quality.scan-missing-guids": "scripts/content/scan_missing_guids.py",
         }
@@ -250,7 +394,8 @@ class ScriptFormManifestTests(unittest.TestCase):
             self.assertFalse((ROOT / "scripts" / name).exists(), f"legacy internal module still present: {name}")
 
     def test_local_cdn_loader_is_internal(self):
-        self.assertTrue((ROOT / "scripts" / "content" / "_local-cdn.ps1").is_file())
+        self.assertTrue((ROOT / "scripts" / "content" / "_local_cdn.py").is_file())
+        self.assertFalse((ROOT / "scripts" / "content" / "_local-cdn.ps1").exists())
         self.assertFalse((ROOT / "scripts" / "content" / "local-cdn.config.ps1").exists())
 
     def test_pipeline_patch_is_marked_oneshot(self):

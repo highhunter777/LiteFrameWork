@@ -33,7 +33,7 @@
 
 **必须先装的两个东西**（Server Core 缺）：
 
-1. **OpenSSH Server**（`Add-WindowsCapability -Online -Name OpenSSH.Server~~~~0.0.1.0`，走 Windows Update，国内可能很慢；实在慢就先用 WinRM：`Enable-PSRemoting -Force -SkipNetworkProfileCheck` + 放行 `5985`）
+1. **OpenSSH Server**（`Add-WindowsCapability -Online --name OpenSSH.Server~~~~0.0.1.0`，走 Windows Update，国内可能很慢；实在慢就先用 WinRM：`Enable-PSRemoting -Force -SkipNetworkProfileCheck` + 放行 `5985`）
    - 装后：`Set-Service sshd -StartupType Automatic; Start-Service sshd`，防火墙放行 22，把管理公钥写进 `%ProgramData%\ssh\administrators_authorized_keys`（`icacls` 收权限），并把默认 shell 设为 PowerShell
 2. **VC++ 2015–2022 x64 运行库**（`https://aka.ms/vs/17/release/vc_redist.x64.exe` /install /quiet）
    - **不装它 mongod 起不来**：Server Core 只有 `*_clr0400.dll`，缺独立的 `vcruntime140.dll`/`msvcp140.dll`
@@ -63,7 +63,7 @@ tar -czf - -C Builds/win-server meta room GameData | ssh <host> "tar -xzf - -C C
 
 产物大小：`meta` 约 105 MB、`room` 约 73 MB（自包含，含运行时）。服务器上**不装 SDK**（2 核小机没必要）。
 
-> **玩法表必须与二进制同批**：`scripts/deploy/deploy-room.ps1` 默认把 `Assets/GameData/Config` 一起同步（`-SkipTables` 可跳过）。只换 Room 二进制、不传表时，客户端会在 `StartGame` 阶段以「玩法数据身份不符（ConfigHash）」**拒整局**——这是数据面守卫（判定面表字节 + 本局规则的运行期摘要），不是网络问题。判据：Room 启动日志 `[Tables] 玩法数据身份基摘要:0x…` 应与客户端日志「本地基摘要」同值（2026-10-19 实测：`Map/tbmap.bytes` 未传 ⇒ 服务端 `0xb0102ea9` vs 客户端 `0xa8a7e328`）。
+> **玩法表必须与二进制同批**：`scripts/deploy/deploy-room.py` 默认把 `Assets/GameData/Config` 一起同步（`--skip-tables` 可跳过）。只换 Room 二进制、不传表时，客户端会在 `StartGame` 阶段以「玩法数据身份不符（ConfigHash）」**拒整局**——这是数据面守卫（判定面表字节 + 本局规则的运行期摘要），不是网络问题。判据：Room 启动日志 `[Tables] 玩法数据身份基摘要:0x…` 应与客户端日志「本地基摘要」同值（2026-10-19 实测：`Map/tbmap.bytes` 未传 ⇒ 服务端 `0xb0102ea9` vs 客户端 `0xa8a7e328`）。
 
 ---
 
@@ -119,7 +119,7 @@ Get-Service 'WireGuardTunnel$wg0'      # Running
 
 - **换服务器/换配置**：`/uninstalltunnelservice wg0` 再 `/installtunnelservice`（同名服务直接重装会失败，且旧配置不会自动更新）。客户端侧接入脚本已内置"先卸后装"（[Dist/README.md](../../Dist/README.md)）。
 - **客户端 conf 只认两处**：`Endpoint = <公网IP>:51820` 与 `PublicKey = <服务端公钥>`；其余（`Address = 10.8.0.x/24`、`AllowedIPs = 10.8.0.0/24`、`MTU 1420`、`PersistentKeepalive 25`）不变。**换机只需重生成这两处**——客户端与游戏包一个字都不用改（它们连的是隧道内 `10.8.0.1`）。
-- **peer 管理**：`scripts/deploy/wg-peer.ps1`（Windows 等价物：云上 `wg.exe` 生成密钥 + 追加 `[Peer]` + 重装服务 → 本机落 `.conf`；见该脚本头注释）。
+- **peer 管理**：`scripts/deploy/wg-peer.py`（Windows 等价物：云上 `wg.exe` 生成密钥 + 追加 `[Peer]` + 重装服务 → 本机落 `.conf`；见该脚本头注释）。
 
 ### 4.1 运维通道（SSH）：隧道优先，公网 22 关闭
 
@@ -138,7 +138,7 @@ Host litegame-cloud-tunnel
 ```
 
 - **首次接入先核对 host key**（确认是同一台主机）：`ssh-keyscan -T 10 -p 22 10.8.0.1` 的三把键应与 `ssh-keygen -F <公网IP>` 的输出逐字节相同；相同再接受。
-- **脚本已默认自动解析**：`scripts/deploy/` 的 `deploy-room.ps1` / `gm.ps1` / `wg-peer.ps1` 共用 `_ssh-host.ps1`——探测 `10.8.0.1:22` 可达且别名已配 → 用隧道别名；否则回退 `litegame-cloud` 并打印原因。可用 `-SshHost` 或环境变量 `LITEGAME_SSH_HOST` 强制指定。
+- **脚本已默认自动解析**：`scripts/deploy/` 的 `deploy-room.py` / `gm.py` / `wg-peer.py` 共用 `_ssh_host.py`——探测 `10.8.0.1:22` 可达且别名已配 → 用隧道别名；否则回退 `litegame-cloud` 并打印原因。可用 `--ssh-host` 或环境变量 `LITEGAME_SSH_HOST` 强制指定。
 - 本机隧道服务开机自启：`WireGuardTunnel$wg-dev`（StartType=Automatic）；起不来先 `Get-Service 'WireGuardTunnel$wg-dev'`。
 
 **安全组**：只保留 `UDP 51820`（测试者也走它）；**删除 `22/tcp` 的入方向规则**。`5000`/`17777` 本就只绑 `10.8.0.1`（公网不可达），无需放行。
@@ -217,14 +217,14 @@ Host litegame-cloud-tunnel
 - **配置**：`roomserver.json` 的 `gm_port` / `gm_bind`（**通配绑定面装载期即拒**——公网可写的端点不属配置失误）；密钥**只走机器级环境变量 `LITENET_GM_KEY`**（值见 `LocalNotes/cloud-host.md`），**空 ⇒ 端点不启用**（写面 fail-closed）。
 - **动作**：`POST /gm/rooms`（列表）、`/gm/start`（须有 owner）、`/gm/abort`、`/gm/kick`（`{"room":"..","player":N}`）、`/gm/settle-flush`。审计行前缀 `[GM]` → `C:\litegame\room\out.log`。
 - **改代码必须重新发布上传**（本次踩过）：云上跑的是自包含产物，**只改 `roomserver.json` 重启即可，改 C# 必须重跑 `dotnet publish -r win-x64 --self-contained` 并把 `room/` 传上去**——否则配置生效而 exe 仍是旧的（表现为"配置里开了端点、日志里没有端点"）。上传须**先停服再解压**：运行中的 DLL 被占用会 `Can't unlink already-existing object`。
-- 本机调用走 SSH 隧道转发：**别用 9101 作本机端口**——它在本机落在 Windows TCP 排除端口区间（9014-9113），`ssh -L` 会 `bind … Permission denied`。已封装为 `scripts/deploy/gm.ps1`（默认本机端口 19101，自动起/关隧道、自动带 body）：
+- 本机调用走 SSH 隧道转发：**别用 9101 作本机端口**——它在本机落在 Windows TCP 排除端口区间（9014-9113），`ssh -L` 会 `bind … Permission denied`。已封装为 `scripts/deploy/gm.py`（默认本机端口 19101，自动起/关隧道、自动带 body）：
 
 ```powershell
-pwsh -NoProfile -File scripts/deploy/gm.ps1 -Action rooms                       # {"ok":true,"rooms":[]}
-pwsh -NoProfile -File scripts/deploy/gm.ps1 -Action start  -Room <房号>
-pwsh -NoProfile -File scripts/deploy/gm.ps1 -Action kick   -Room <房号> -Player 1
-pwsh -NoProfile -File scripts/deploy/gm.ps1 -Action abort  -Room <房号>
-pwsh -NoProfile -File scripts/deploy/gm.ps1 -Action settle-flush
+python scripts/deploy/gm.py --action rooms                       # {"ok":true,"rooms":[]}
+python scripts/deploy/gm.py --action start  --room <房号>
+python scripts/deploy/gm.py --action kick   --room <房号> --player 1
+python scripts/deploy/gm.py --action abort  --room <房号>
+python scripts/deploy/gm.py --action settle-flush
 ```
 
 密钥取本机用户环境变量 `LITEGAME_GM_KEY`，缺失则回退读 `LocalNotes/cloud-host.md`。手拼 curl 时记得**必须带 body**（无 `Content-Length` 会被 `HttpListener` 回 411）。
@@ -247,8 +247,8 @@ pwsh -NoProfile -File scripts/deploy/gm.ps1 -Action settle-flush
 $principal = New-ScheduledTaskPrincipal -UserId 'SYSTEM' -LogonType ServiceAccount -RunLevel Highest
 $trigger   = New-ScheduledTaskTrigger -AtStartup
 $settings  = New-ScheduledTaskSettingsSet -AllowStartIfOnBatteries -DontStopIfGoingOnBatteries
-Register-ScheduledTask -TaskName 'LiteGame-Meta' -Action (New-ScheduledTaskAction -Execute 'cmd.exe' -Argument '/c "C:\litegame\meta\run.cmd"') -Trigger $trigger -Principal $principal -Settings $settings
-Register-ScheduledTask -TaskName 'LiteGame-Room' -Action (New-ScheduledTaskAction -Execute 'cmd.exe' -Argument '/c "C:\litegame\room\run.cmd"') -Trigger $trigger -Principal $principal -Settings $settings
+Register-ScheduledTask -TaskName 'LiteGame-Meta' --action (New-ScheduledTaskAction -Execute 'cmd.exe' -Argument '/c "C:\litegame\meta\run.cmd"') -Trigger $trigger -Principal $principal -Settings $settings
+Register-ScheduledTask -TaskName 'LiteGame-Room' --action (New-ScheduledTaskAction -Execute 'cmd.exe' -Argument '/c "C:\litegame\room\run.cmd"') -Trigger $trigger -Principal $principal -Settings $settings
 Start-ScheduledTask -TaskName 'LiteGame-Meta'; Start-ScheduledTask -TaskName 'LiteGame-Room'
 ```
 

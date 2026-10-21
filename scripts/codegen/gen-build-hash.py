@@ -35,7 +35,7 @@
 #   校验 --check  python scripts/codegen/gen-build-hash.py --check
 #       按同规则**复算**并比对**两个**常量文件，任一不等即 exit 1。
 #   校验 --check-shared  python scripts/codegen/gen-build-hash.py --check-shared
-#       只复算共享源集（握手红线）那一个——`scripts/build/build-player.ps1` 出包门禁步用它：
+#       只复算共享源集（握手红线）那一个——`scripts/build/build-player.py` 出包门禁步用它：
 #       Meta 是独立产物，Meta 常量陈旧不该拦客户端出包（Meta 常量把守点 = 发布 Meta 前跑 --check）。
 #       规则只有本脚本一份，复算与生成同源，不存在第二清单漂移的入口。
 import hashlib
@@ -143,7 +143,7 @@ namespace LiteNet
     /// **两端（客户端/服务器）必须一致**——不一致 = 逻辑或协议版本不同 = 必然分叉。
     /// 用途：`JoinRequest.build_hash` 握手校验 + 启动期断言（不等 → 拒绝进房，§40/§380）；
     /// 生成与校验规则单源 = `scripts/codegen/gen-build-hash.py`（含行尾归一化，保证跨机器可复现）：
-    /// 出包前由 `scripts/build/build-player.ps1` 跑 `--check` 复算拦截"改了源忘了重跑"（开发期不校验）。
+    /// 出包前由 `scripts/build/build-player.py` 跑 `--check` 复算拦截"改了源忘了重跑"（开发期不校验）。
     /// </summary>
     public static class BuildHash
     {

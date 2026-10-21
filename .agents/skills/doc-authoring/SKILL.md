@@ -64,7 +64,7 @@ description: 新增/修改/移动/合并/归档文档的规范与检查清单。
 ## 6. 自检（改完必跑）
 
 ```powershell
-pwsh scripts/gate/test.ps1 -Lane Doc      # 含 D1~D6：内嵌状态/索引孤儿/链接与锚/命名
+python scripts/gate/test.py --lane Doc      # 含 D1~D6：内嵌状态/索引孤儿/链接与锚/命名
 # 或直跑
 python scripts/gate/doc-lint.py
 python scripts/gate/doc-lint.py --no-links   # 只看结构不查链接（大仓快跑）

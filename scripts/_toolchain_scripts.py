@@ -101,6 +101,9 @@ def check_scripts(root, manifest, strict=False):
     for path in _script_files(root):
         relative = path.relative_to(root).as_posix()
         text = _read_text(path)
+        if path.suffix.lower() == ".ps1":
+            issues.append((level, f"PowerShell script is not allowed after P5: {relative}"))
+            continue
         if _is_executable(path, text) and not _is_exempt(
             relative, path, text, registered, registered_texts, surface_paths
         ):

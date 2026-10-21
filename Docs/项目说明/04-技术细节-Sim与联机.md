@@ -84,7 +84,7 @@ SortInputs（按 EntityId 升序稳定插入）
 | 生成 | `python scripts/codegen/gen-build-hash.py` → `Assets/LiteNet/Protocol/BuildHash.g.cs`（共享源集）**＋ `Server/MetaServer/Host/BuildHash.g.cs`（Meta 构建身份，P1④）** |
 | 握手 | `RoomClient.SendJoin → JoinRequest.build_hash`：两端不等 → 拒绝进房（**改 Sim/协议/生成读码面/源链接共编件必须重跑生成器**）；表**数值**差异不走这里——`StartGame.ConfigHash` 数据面校验（客户端复算比对，不等拒局） |
 | Meta 身份 | `MetaServer/Host/BuildHash.g.cs` = `Server/MetaServer/**` 源集（含源链接件 `JoinTicketFormat.cs`）摘要，仅供启动日志 `build=`（§P0-5）——**不参与任何准入判定**：Lobby 版本准入与票据盖章消费的是**房间实例上报的** `LiteNet.BuildHash.Value`（`InstanceRegistry.Entry.BuildHash`）。旧的手写占位 `"meta-0.0.0-unwired"` 已随 P1④ 删除 |
-| 守卫 | **构建前校验**：`--check` 复算**两个**常量并比对，不等即失败；`--check-shared` 只查共享源集那个——**出包门禁步（`build-player.ps1`）用后者**（Meta 是独立产物，其常量陈旧不拦客户端出包；发布 Meta 前跑 `--check`）。2026-10-07 起开发期不再设测试守卫（原 `BuildHashTests`/`BuildHashSourceSet.g.cs` 已退役，规则单源回归生成器脚本） |
+| 守卫 | **构建前校验**：`--check` 复算**两个**常量并比对，不等即失败；`--check-shared` 只查共享源集那个——**出包门禁步（`build-player.py`）用后者**（Meta 是独立产物，其常量陈旧不拦客户端出包；发布 Meta 前跑 `--check`）。2026-10-07 起开发期不再设测试守卫（原 `BuildHashTests`/`BuildHashSourceSet.g.cs` 已退役，规则单源回归生成器脚本） |
 
 ## 3. 服务端房间：`Assets/RoomServer` + `Server/RoomServer/`
 
