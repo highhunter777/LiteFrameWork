@@ -105,7 +105,7 @@ Shader 做能力校验，不做自动“一键换 shader”。用代表性资产
 
 ## 5. 编排面板
 
-**编排面板形态**：一个**宿主窗口**（`OdinEditorWindow`，菜单 `LiteGame/UI/编排/UI 编排面板`，落 `Assets/LiteGame/Editor/UiTools/Compose/`）＋四个分区——**绑定暴露 / 受控属性 / 校验·生成 / 控件库**。原文"四个可独立交付的面板"由**分区级可单交付**满足（未接入分区显式画"未接入"，不冒充通过）；不建四个窗口——四窗口会各自复制"Stage 跟随 / 显示根解析 / 预览作废"上下文（违"消除重复"）。
+**编排面板形态**：一个**宿主窗口**（`OdinEditorWindow`，Hub `LiteGame/工具链` → UI 编排面板，落 `Assets/LiteGame/Editor/UiTools/Compose/`）＋四个分区——**绑定暴露 / 受控属性 / 校验·生成 / 控件库**。原文"四个可独立交付的面板"由**分区级可单交付**满足（未接入分区显式画"未接入"，不冒充通过）；不建四个窗口——四窗口会各自复制"Stage 跟随 / 显示根解析 / 预览作废"上下文（违"消除重复"）。
 
 **依赖边界（Odin 只进 `LiteGame.Editor`）**：呈现层走 Odin——宿主窗口基类 `OdinEditorWindow`；**四个分区＝Odin `TabGroup` 页签**（`[OnInspectorGUI, TabGroup("Compose", <页签名>)]`；目标 prefab 字段与状态行置于页签组之上）；受控属性行由 **Odin 属性树**呈现（`PropertyTree.Create` + 白名单过滤 + `InspectorUtilities` 绘制对，写入/Undo/脏标记交属性树统一处理）；**控件库列表＝inline `OdinMenuTree`**（含 Odin 搜索栏；不用独立 `OdinMenuEditorWindow`——保持单宿主窗口），右侧为选中模板的组件/受控面预览与插入入口。页签体（绑定树/报告）走既有 IMGUI 绘制器，在 Odin 页签内混排。**分区逻辑类与运行时标记零 Sirenix**——`UiComposeTarget`（目标解析单源）、`UiWidgetPropertyCatalog`（白名单发现）、`UiWidgetLibrary`（目录即清单）、`UiWidgetInstaller`（Stage 内插入）均不依赖 Sirenix，可脱离 Odin 编译与测试（"摘除 Odin 只换绘制层"）。Odin 为**阻塞式环境项**（`scripts/gate/restore-check.ps1` §4、`toolchain.json` `paidOrRestrictedPlugins`），缺失即门禁失败。
 

@@ -1,0 +1,253 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:litegame:ui:page-contract:1.0",
+  "title": "UiPageContract",
+  "description": "UI 页面契约：由 UI 预制体生成的只读接口描述，供编辑器交接、校验器、Lua/C# 引用对账与 CI diff 消费。生成物禁手改；字段语义见 Docs/设计文档/客户端/UI/UI美术角色与交接专项设计.md。",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "generator",
+    "page",
+    "controls",
+    "text",
+    "styles",
+    "templates",
+    "sourceHash"
+  ],
+  "properties": {
+    "schemaVersion": {
+      "type": "string",
+      "pattern": "^1\\.[0-9]+$",
+      "description": "契约结构版本；主版本不兼容，次版本只做向后兼容追加。"
+    },
+    "generator": {
+      "$ref": "#/$defs/generator"
+    },
+    "page": {
+      "$ref": "#/$defs/page"
+    },
+    "controls": {
+      "type": "array",
+      "description": "页面暴露给逻辑的控件；bindName 页面内唯一。",
+      "items": {
+        "$ref": "#/$defs/control"
+      },
+      "uniqueItems": true
+    },
+    "text": {
+      "type": "array",
+      "description": "静态文案：文本节点 + tbltext key；动态文案不进本段。",
+      "items": {
+        "$ref": "#/$defs/textBinding"
+      },
+      "uniqueItems": true
+    },
+    "styles": {
+      "type": "array",
+      "description": "文字角色声明；颜色 token 后续以次版本追加。",
+      "items": {
+        "$ref": "#/$defs/styleBinding"
+      },
+      "uniqueItems": true
+    },
+    "templates": {
+      "type": "array",
+      "description": "页面使用的 Tmp_* 模板实例；模板内部件不在此展开。",
+      "items": {
+        "$ref": "#/$defs/templateUse"
+      },
+      "uniqueItems": true
+    },
+    "sourceHash": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$",
+      "description": "schemaVersion + page/controls/text/styles/templates 的规范化 SHA-256；生成器与校验器共用同一实现。"
+    }
+  },
+  "$defs": {
+    "generator": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "name",
+        "version"
+      ],
+      "properties": {
+        "name": {
+          "type": "string",
+          "minLength": 1,
+          "description": "生成器名称（如 UiPageContractExporter）。"
+        },
+        "version": {
+          "type": "string",
+          "pattern": "^[0-9]+\\.[0-9]+$",
+          "description": "生成器版本；与 schemaVersion 独立。"
+        }
+      }
+    },
+    "page": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "formId",
+        "prefabPath",
+        "prefabGuid",
+        "luaPath",
+        "layer",
+        "fullScreen"
+      ],
+      "properties": {
+        "formId": {
+          "type": "integer",
+          "minimum": 1,
+          "description": "tbuiform.id。"
+        },
+        "prefabPath": {
+          "type": "string",
+          "pattern": "^Assets/.+\\.prefab$",
+          "description": "预制体资产路径（工程根相对）。"
+        },
+        "prefabGuid": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{32}$",
+          "description": "预制体 GUID；用于改名跟踪与契约定位。"
+        },
+        "luaPath": {
+          "type": "string",
+          "pattern": "^(UI(\\.[A-Za-z0-9_]+)+)?$",
+          "description": "Lua 逻辑表路径（如 UI.Page_Settings）；纯展示页为空字符串。"
+        },
+        "layer": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 3,
+          "description": "语义层：0 Bottom / 1 Window / 2 Top / 3 System。"
+        },
+        "fullScreen": {
+          "type": "boolean",
+          "description": "是否全屏；与 tbuiform.full_screen 一致。"
+        },
+        "cacheStrategy": {
+          "enum": [
+            "Lru",
+            "Resident",
+            "DestroyOnClose"
+          ],
+          "description": "关闭后缓存策略；缺省按 Lru。"
+        }
+      }
+    },
+    "control": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "bindName",
+        "nodePath",
+        "type",
+        "kind"
+      ],
+      "properties": {
+        "bindName": {
+          "type": "string",
+          "pattern": "^[A-Za-z]+_[A-Za-z][A-Za-z0-9]*$",
+          "description": "BindNode.BindName；页面内唯一，与节点名同文（§9.1）。"
+        },
+        "nodePath": {
+          "type": "string",
+          "pattern": "^[^/]+(/[^/]+)*$",
+          "description": "相对预制体根的 / 路径；不含前导/尾随斜杠。"
+        },
+        "type": {
+          "type": "string",
+          "minLength": 1,
+          "description": "BindNode.ResolvedTypeName 的组件全名；wrapper 按实际类型。"
+        },
+        "kind": {
+          "enum": [
+            "Button",
+            "Text",
+            "Image",
+            "Slider",
+            "Toggle",
+            "Dropdown",
+            "InputField",
+            "List",
+            "Other"
+          ],
+          "description": "生成器派生的语义类别，供工具与报告使用。"
+        }
+      }
+    },
+    "textBinding": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "nodePath",
+        "key"
+      ],
+      "properties": {
+        "nodePath": {
+          "type": "string",
+          "pattern": "^[^/]+(/[^/]+)*$",
+          "description": "带 LTextKeyRef 的文本节点路径。"
+        },
+        "key": {
+          "type": "string",
+          "pattern": "^(UI|Common)\\.[A-Za-z0-9_]+(\\.[A-Za-z0-9_]+)*$",
+          "description": "tbltext key；必须存在，否则生成失败。"
+        }
+      }
+    },
+    "styleBinding": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "nodePath",
+        "role"
+      ],
+      "properties": {
+        "nodePath": {
+          "type": "string",
+          "pattern": "^[^/]+(/[^/]+)*$",
+          "description": "带 UiTextStyleRef 的文本节点路径。"
+        },
+        "role": {
+          "enum": [
+            "Title",
+            "Body",
+            "Caption",
+            "LabelSingle",
+            "Emphasis"
+          ],
+          "description": "文字角色档；与 UiTextRole 一致。"
+        }
+      }
+    },
+    "templateUse": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "templateName",
+        "prefabPath"
+      ],
+      "properties": {
+        "templateName": {
+          "type": "string",
+          "pattern": "^Tmp_[A-Za-z0-9_]+$",
+          "description": "模板名；必须与 Assets/ShareResource/UI/Widgets 下的 Tmp_* 资产同名。"
+        },
+        "prefabPath": {
+          "type": "string",
+          "pattern": "^Assets/.+\\.prefab$",
+          "description": "模板 prefab 路径。"
+        },
+        "bindingHash": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$",
+          "description": "可选：模板绑定面 hash；用于模板版本漂移跟踪。"
+        }
+      }
+    }
+  }
+}

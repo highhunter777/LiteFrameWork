@@ -13,6 +13,7 @@
 | 1 | GM 与调试工具分层 | `GM与调试工具分层.md` |
 | 2 | 日志标签收敛（LogTag 枚举） | `日志标签收敛.md` |
 | 3 | 联机诊断 HUD（DevHUD 段＋GM 第六页＋测试包 Development 化） | — |
+| 4 | 房间回放与现场包（工具链 v2 第一刀） | — |
 
 ---
 
@@ -264,3 +265,49 @@
 - 新增 release 通道档 `BuildProfiles/windows-x64-release.json`（channel=release，产物独立目录 `Builds/StandaloneWindows64-release`）。测试者出包流程＝先 release 档出包 → Dist 打包传 `-GameBuild Builds/StandaloneWindows64-release`（Dist 脚本本体归并行上云线在改，本批不碰——接线归该线收口时引用本档）。
 - `build-player.ps1` eval 调用补 `outputPath` 透传（`profile.output`＋包名编辑器侧解析）——两通道产物目录独立、互不覆盖：development 包永不出现在测试者包源目录，边界由目录隔离兜底而非流程自觉。
 - 验证：PS Parser PARSE-OK · 代码行纯 ASCII · release 档 JSON 可解析（channel/output/platform 核对）· build 命令 dry run 两形态均 valid=True（dev：Development 选项＋默认目录；release：无选项＋release 目录）。
+
+---
+
+## 第4章 房间回放与现场包（工具链 v2 第一刀）
+
+<a id="ch4-房间回放与现场包"></a>
+
+> 工具链 v2 第一刀（2026-10-21）。**状态：已完成（附验证证据）**——L1 1801/1801；定向 16/16；Unity 编译 0 错；EditMode 1/1；BuildHash `--check-shared` OK。
+
+### 为什么不是纯输入回放
+
+在线权威链在 `SimStep` 之后执行延迟补偿（`LagCompensator.CompensateFire`）与 `MatchSystem.Tick`，且开火输入携带 `viewFrame/ackSnapshot`——这些上下文不在 `SimInputFrame` 里。纯输入回放会漏掉延迟补偿/席位/规则上下文，必然假分歧。本刀改为**房间命令日志 + 真实 `RoomRuntime` 重放**：录制有序命令、逐帧 checksum、规则事件；重放构造同配置房间按序喂命令，不复制 Step 编排。`SimRunRecord/SimReplayRunner` 保留给离线纯 Sim/批跑，不接在线。
+
+### 交付面
+
+| 面 | 落点 |
+| --- | --- |
+| 内核记录 | `Assets/RoomServer/Runtime/Diagnostics/RoomRunRecord.cs`（记录/事件/DTO）、`RoomRunRecorder.cs`（深拷贝输入、命令/步进/规则上限、截断）；`RoomRuntime.cs` 在 `Execute`/`SetTestRules`/`StartMatch`/`StepFrame` 接线并暴露 `TakeRunRecord()`。纯内存、无 IO/proto/LiteNet，R11 通过 |
+| 宿主信封 | `Server/RoomServer/Diagnostics/RoomRunEnvelope.cs`：JSON+GZip（magic+schema）、配置/地图/规则 DTO、`buildHash/fixedConfigDigest/mapDigest` 身份闸 |
+| 存储 | `RoomRunStore.cs`：同卷原子写（tmp→Move）、文件数/总字节保留上限、失败只计数返回 null |
+| 重放 | `RoomReplayRunner.cs`：重建同配置 `RoomRuntime`（MatchId/Seed/gameplayDigestBase 同源），逐步比对全量 checksum；输出首分歧帧/事件序号/命令序号；截断与身份不符显式报告 |
+| 服务端现场包 | `RoomDiagnosticsService.cs`：房间终态静默后取记录，补地图快照、`HostLog` 尾、最近 mismatch 摘要并落盘；`RoomServerConfig` 可选 `diagnostics` 分区；`HostLog` 增 256 行环形尾 |
+| CLI | `Server/ReplayTool/`：默认加载仓库真实表并复算 `fixedConfigDigest`；`--defaults` 只用于默认表/离线记录；退出码 0/2/3/4/5 |
+| 客户端现场包 | `LiteFramework/Scripts/Core/Diagnostics/DiagnosticsBundleWriter.cs`（零引擎、限频/限量/原子目录写出）＋`LiteClient/Runtime/Diagnostics/ClientDiagnosticsBundle.cs`（Unity 请求组装）＋`BattleContext` 在 checksum mismatch / `StartGame.ConfigHash` 不符时触发 |
+| 测试 | `RoomRunReplayTests`(5) · `RoomRunCodecStoreTests`(2) · `RoomDiagnosticsServiceTests`(3，含配置解析) · `ClientBundleTests`(2) · `ReplayToolCliTests`(4，含真实仓库表路径) · EditMode `ClientDiagnosticsBundleTests`(1) |
+
+### 验证证据
+
+| 项 | 结果 |
+| --- | --- |
+| L1 全量 | `test.ps1 -Lane L1 -Profile PullRequest` → **1801/1801 通过**（含纪律扫描/表守卫） |
+| 定向 | 回放/编码/存储/服务端/客户端/CLI → **16/16** |
+| Unity 编译 | pipeline refresh + recompile → **0 错**（`compilationFailed=false`） |
+| EditMode | `ClientDiagnosticsBundleTests` → **1/1** |
+| BuildHash | `gen-build-hash.py --check-shared` → **OK**，shared `459a3145904693b7`（110 文件）；本批未改共享源集 |
+| CLI | `ReplayTool` 构建 0 警告/0 错误；退出码 0（完整/真实表）、2（篡改）、3（身份不符）均有 L1 用例 |
+| 落盘 | 服务端/客户端现场包均有临时目录用例：文件存在、可解码、原子写无 `.tmp`、保留上限生效 |
+| Doc | `python scripts/gate/doc-lint.py` → **0 violation / 0 warning** |
+
+### 边界与未决（如实）
+
+- 服务端记录只在**房间终态静默后**取走并落盘；mismatch 当场不写（避免跨线程读半截记录），其帧号随终态记录落盘。即时 flush 需“房间线程封印 → 宿主异步写”的通道，归后续。
+- 本刀只给首分歧帧 + checksum + 命令序号；字段级 world-ring diff 未落盘，归后续。客户端包不含完整重放（权威重放以服务端记录为准）。
+- 崩溃捕获/minidump、IL2CPP 符号归档、产物上传/GM 下载端点未做；均属路线图 T0 后续退出项。
+- CLI 默认按仓库表目录装载；部署在非仓库目录或表集不同时，需后续加 `--tables <dir>`；当前身份不符会以退出码 3 拒绝，不会静默跑偏差。
+- `diagnostics` 缺省关闭、行为零变化；`deploy/roomserver.windows.json` 已启用并指向 `C:/litegame/room/diagnostics`，**下次云侧发布/重启才生效**（本批未部署）。

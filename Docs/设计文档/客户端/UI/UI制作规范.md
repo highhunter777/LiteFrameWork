@@ -172,7 +172,7 @@ EditMode 结构检查不能替代依赖 Awake/OnEnable 的行为测试。已有�
 
 - `BindNode` Inspector 命名面提供**类别前缀预设**：下拉选前缀（9.3 词表）+ 只填语义名 → 组合为 `前缀_语义`，一次写入 `BindName` 并同步重命名节点（同文由工具构造性保证，不存在只改一处的手工路径）；已带前缀的节点回显解析为「前缀下拉 + 语义输入」两控件。
 - 起名动作收敛为“选前缀、填名字”；层级手工改名仍合法，暴露与改名以后一次经 Inspector 写入为准。
-- 工具现状：前缀预设已落地于[绑定标记工具窗口](../../../../Assets/LiteGame/Editor/UiTools/Binding/UiBindingWindow.cs)（菜单 `LiteGame/UI/绑定/绑定标记工具`——组合后一次写节点名与 BindName，构造性同文；改名预览随附 Lua/C# 字符串引用点清单）。预设不进 BindNode 组件 Inspector：LiteCodeGen 保持零 LiteGame 依赖，词表单源不外泄；层级手工改名仍合法。
+- 工具现状：前缀预设已落地于[绑定标记工具窗口](../../../../Assets/LiteGame/Editor/UiTools/Binding/UiBindingWindow.cs)（Hub `LiteGame/工具链` → UI 绑定标记工具——组合后一次写节点名与 BindName，构造性同文；改名预览随附 Lua/C# 字符串引用点清单）。预设不进 BindNode 组件 Inspector：LiteCodeGen 保持零 LiteGame 依赖，词表单源不外泄；层级手工改名仍合法。
 
 ### 9.6 存量差异与整改登记
 

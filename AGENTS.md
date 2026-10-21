@@ -87,6 +87,12 @@
 ## 常用命令
 
 ```powershell
+# 工具链统一入口（编辑器 Hub：LiteGame/工具链）
+python scripts/toolchain.py                                 # 列工具 / 单一 CLI（list/check/docs/open/run/generate/verify/build/doctor）
+python scripts/toolchain.py check                           # 清单/文档/CI/hook/计划任务注册面
+python scripts/toolchain.py doctor                          # 环境 + 注册面巡检（继承 restore-check 阻塞项）
+python scripts/toolchain.py open <tool-id>                  # 在编辑器 Hub 打开并选中工具
+
 # 验证基线（白天代码批，一切改动的底线）
 pwsh scripts/gate/test.ps1 -Lane L1 -Profile PullRequest     # L1 纯逻辑（含纪律扫描/表守卫/BuildHash 守卫）
 pwsh scripts/gate/l0-dep-scan.ps1                            # 依赖与秘密扫描

@@ -52,7 +52,7 @@ WorkbenchOverlay               SRS）工具条根（Canvas sortingOrder 5000—�
    └─ Txt_Tools                 窄幅读数（HUD 态 + 最近操作；全量读数在面板状态行）
 ```
 
-- **「回写」工具（工具条常驻入口 + 菜单 `LiteGame/UI/回写/Prefab 改动回写`）**：Play 中对选中 prefab 实例做**逐属性 override 回写**——枚举属性清单勾选确认 → 逐属性直写 prefab 资产（不需退 Play）。裁决（2026-10-11）：**验收＝Game 视图、编辑＝Inspector（Play 模式选实例改属性）、固化＝Play 内勾选直写**；**不做整场景运行时保存**（真装配链的运行时生成物不得烤进场景资产——视觉单一来源/脏 diff/不代存三重违反）。
+- **「回写」工具（工具条常驻入口 + 菜单 `LiteGame/快捷/Prefab 回写`）**：Play 中对选中 prefab 实例做**逐属性 override 回写**——枚举属性清单勾选确认 → 逐属性直写 prefab 资产（不需退 Play）。裁决（2026-10-11）：**验收＝Game 视图、编辑＝Inspector（Play 模式选实例改属性）、固化＝Play 内勾选直写**；**不做整场景运行时保存**（真装配链的运行时生成物不得烤进场景资产——视觉单一来源/脏 diff/不代存三重违反）。
   - **来源两档（实测校准，2026-10-16）**：Unity 只对部分路径产生"非默认记录项"（如 `Image.m_Color`）——那部分标「**显式记录**」默认勾选；`SerializedObject` 直写与 RectTransform 的位置/尺寸/锚点（`IsDefaultOverride` 恒真）分不出"谁改的"，标「**数值差异**」默认不勾、逐条核对「实例值 → 资产值」——**驱动写面由此保持"默认不落盘"**（数据值/动态位置归驱动常量或表，不归 prefab）。
   - **结构面不自动回写**：实例新增组件/新增子对象、指向场景对象的引用、不支持的类型**显式列出且拒绝**（结构面归 Prefab Stage 与 Unity 原生 Overrides）。
   - **不回滚实例 override**：固化后实例上仍留着已等值的记录（视觉无差、复扫不再列为差异）；要实例回归干净态用 Unity 原生 Overrides ▸ Revert。

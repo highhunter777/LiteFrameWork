@@ -1,6 +1,6 @@
 ---
 name: directory-move-sync
-description: 目录搬动/文件移动同步清单。只要涉及在 Assets/ 或 Server/ 下移动、重命名、删除或合并目录与文件(用户说"挪过去"、"重构目录"、"搬一下"、"整理一下结构"),或刚做完这类操作,就必须加载本 skill——目录结构被六个独立机制引用,漏同步任何一处都是静默失效(扫描扫不到、打包收不进、测试编不过)。
+description: 目录搬动/文件移动同步清单。只要涉及在 Assets/ 或 Server/ 下移动、重命名、删除或合并目录与文件(用户说"挪过去"、"重构目录"、"搬一下"、"整理一下结构"),或刚做完这类操作,就必须加载本 skill——目录结构被七个独立机制引用,漏同步任何一处都是静默失效(扫描扫不到、打包收不进、测试编不过、计划任务/CI 仍指旧路径)。
 ---
 
 # 目录搬动同步清单
@@ -10,12 +10,13 @@ description: 目录搬动/文件移动同步清单。只要涉及在 Assets/ 或
 ## 步骤
 
 1. **Assets 内的移动/重命名/删除先走 unity-pipeline CLI**(见 `unity-asset-pipeline` skill)——保 .meta/GUID 关联;禁文件系统直移。Server/ 下无 Unity 序列化内容,可直接文件系统操作。
-2. **同批同步六面**(全部要动,缺一即静默漂移):
+2. **同批同步七面**(全部要动,缺一即静默漂移):
    - `ScanTargets.cs`(纪律扫描目标清单——漏了则 DisciplineScanner 对新位置失效)
-   - YooAsset 收集组(收集目录规划按 `Docs/设计文档/客户端/content/资源收集目录专项设计.md` §2/§5;Assets 顶层只放原始资源,进包来源只有模块内使用资源目录与 `Assets/ShareResource`)
+   - YooAsset 收集组(收集目录规划按 `Docs/设计文档/客户端/内容/资源收集目录专项设计.md` §2/§5;Assets 顶层只放原始资源,进包来源只有模块内使用资源目录与 `Assets/ShareResource`)
    - `Tests.slnx` / csproj 引用(双轨源链接,框架用例直接链 Assets/ 源文件)
    - `.gitignore` 白名单
    - 构建器路径(`build-player.ps1` 等)
    - `Docs/开发导航/代码地图.md`
+   - **外部注册面**(Windows 计划任务 / CI workflow / hook 配置 / `scripts/gate/toolchain.json` 中的脚本与文档路径)
 3. **新增收集目录 = collector + 本清单 + 专项文档三面同批**。
-4. **验证**:`pwsh scripts/gate/test.ps1 -Lane L1 -Profile PullRequest`(DisciplineScannerTests 钉 ScanTargets);资源收集变更另用出包冒烟验证。
+4. **验证**:`pwsh scripts/gate/test.ps1 -Lane L1 -Profile PullRequest`(DisciplineScannerTests 钉 ScanTargets);`python scripts/toolchain.py check`(清单路径/CI/hook/计划任务注册面);资源收集变更另用出包冒烟验证。
