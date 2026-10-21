@@ -30,6 +30,9 @@ import re
 import sys
 from pathlib import Path
 
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+from _common import repo_root  # noqa: E402
+
 # --- D1/D6 施工状态启发式 ---------------------------------------------------
 # 强标记（已交付/已实施）直判；弱标记（已完成/待提交）须伴日期 20xx-xx 才判
 # （后者有领域词义，如「每通道一个待提交」，无日期即不判，避免误报）。
@@ -207,18 +210,18 @@ def main() -> int:
     ap.add_argument('--no-links', action='store_true', help='跳过 D4 链接检查')
     args = ap.parse_args()
 
-    root = Path(args.root).resolve() if args.root else Path(__file__).resolve().parents[2]
+    root = Path(args.root).resolve() if args.root else repo_root()
     viol, warns = scan(root, check_links=not args.no_links)
 
     for w in warns:
-        print(f'[quality/doc] WARN: {w}')
+        print(f'[quality/doc-lint] WARN: {w}')
     for v in viol:
-        print(f'[quality/doc] FAIL: {v}')
+        print(f'[quality/doc-lint] FAIL: {v}')
 
     if viol and not args.warn:
-        print(f'[quality/doc] FAILED: {len(viol)} violation(s), {len(warns)} warning(s)  (root={root})')
+        print(f'[quality/doc-lint] FAILED: {len(viol)} violation(s), {len(warns)} warning(s)  (root={root})')
         return 1
-    print(f'[quality/doc] OK: {len(viol)} violation(s), {len(warns)} warning(s)  (root={root})')
+    print(f'[quality/doc-lint] OK: {len(viol)} violation(s), {len(warns)} warning(s)  (root={root})')
     return 0
 
 

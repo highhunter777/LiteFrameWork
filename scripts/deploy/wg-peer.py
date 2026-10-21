@@ -4,61 +4,14 @@
 import argparse
 import os
 import re
-import shutil
-import subprocess
 import sys
-import tempfile
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from _common import EXIT_FAIL, EXIT_OK, configure_stdio, fail, info, repo_root  # noqa: E402
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from _ssh_host import resolve_ssh_host  # noqa: E402
-
-REMOTE_SCRIPT = r"""param(
-    [Parameter(Mandatory=$true)][string]$Name,
-    [string]$Ip = '',
-    [string]$Endpoint = '',
-    [switch]$DryRun
-)
-$ErrorActionPreference = 'Stop'
-$wg = 'C:\Program Files\WireGuard\wg.exe'
-$conf = 'C:\litegame\wg\wg0.conf'
-if (-not (Test-Path $wg)) { Write-Output 'NO_WG'; exit 3 }
-if (-not (Test-Path $conf)) { Write-Output 'NO_CONF'; exit 4 }
-if (Select-String -Path $conf -Pattern ('^# ' + [regex]::Escape($Name) + '$') -Quiet) { Write-Output 'DUPLICATE'; exit 2 }
-if ([string]::IsNullOrEmpty($Ip)) {
-    $used = @()
-    Select-String -Path $conf -Pattern 'AllowedIPs = 10\.8\.0\.([0-9]+)/32' -AllMatches |
-        ForEach-Object { $_.Matches } | ForEach-Object { $used += [int]$_.Groups[1].Value }
-    $next = 2
-    if ($used.Count -gt 0) { $next = ($used | Measure-Object -Maximum).Maximum + 1 }
-    $Ip = '10.8.0.' + $next
-}
-$priv = (& $wg genkey)
-$pubc = ($priv | & $wg pubkey)
-if (-not $DryRun) {
-    Add-Content -Path $conf -Value ("`r`n[Peer]`r`n# $Name`r`nPublicKey = $pubc`r`nAllowedIPs = $Ip/32`r`n")
-    & 'C:\Program Files\WireGuard\wireguard.exe' /uninstalltunnelservice wg0 | Out-Null
-    Start-Sleep -Seconds 1
-    & 'C:\Program Files\WireGuard\wireguard.exe' /installtunnelservice $conf | Out-Null
-    Start-Sleep -Seconds 2
-}
-$serverPub = (Get-Content 'C:\litegame\wg\server.pub' -Raw).Trim()
-Write-Output 'BEGIN_CONF'
-Write-Output '[Interface]'
-Write-Output ('PrivateKey = ' + $priv)
-Write-Output ('Address = ' + $Ip + '/24')
-Write-Output 'MTU = 1420'
-Write-Output ''
-Write-Output '[Peer]'
-Write-Output ('PublicKey = ' + $serverPub)
-Write-Output ('Endpoint = ' + $Endpoint)
-Write-Output 'AllowedIPs = 10.8.0.0/24'
-Write-Output 'PersistentKeepalive = 25'
-Write-Output 'END_CONF'
-Write-Output ('ADDR ' + $Ip)
-"""
+from _remote import ensure_remote_ready, run_remote  # noqa: E402
 
 
 def parse_args(argv=None):
@@ -99,20 +52,14 @@ def main(argv=None):
                 raise RuntimeError("LocalNotes/cloud-host.md 里没找到公网 IP（可用 --endpoint 显式指定）")
             endpoint = match.group(1) + ":51820"
 
-        with tempfile.TemporaryDirectory() as temp:
-            remote_file = Path(temp) / "lg-wg-peer-remote.ps1"
-            remote_file.write_text(REMOTE_SCRIPT, encoding="ascii")
-            result = subprocess.run(["scp", "-q", str(remote_file), f"{ssh_host}:C:/litegame/wg-peer.ps1"])
-            if result.returncode != 0:
-                raise RuntimeError("scp 远端脚本失败（别名/网络）")
-            ssh_args = ["ssh", ssh_host, "powershell", "-NoProfile", "-ExecutionPolicy", "Bypass", "-File",
-                        r"C:\litegame\wg-peer.ps1", "-Name", args.name, "-Endpoint", endpoint]
-            if args.ip:
-                ssh_args.extend(["-Ip", args.ip])
-            if args.dry_run:
-                ssh_args.append("-DryRun")
-            output = subprocess.run(ssh_args, capture_output=True, text=True, encoding="utf-8", errors="replace")
-            text = (output.stdout or "") + (output.stderr or "")
+        ensure_remote_ready(ssh_host)
+        remote_args = ["wg-peer", "--name", args.name, "--endpoint", endpoint]
+        if args.ip:
+            remote_args.extend(["--ip", args.ip])
+        if args.dry_run:
+            remote_args.append("--dry-run")
+        output = run_remote(ssh_host, *remote_args)
+        text = (output.stdout or "") + (output.stderr or "")
         if output.returncode != 0 and "BEGIN_CONF" not in text:
             raise RuntimeError(f"云上执行失败（exit {output.returncode}）：{text[:300]}")
         if "DUPLICATE" in text:
@@ -121,6 +68,10 @@ def main(argv=None):
             raise RuntimeError(r"云上找不到 C:\Program Files\WireGuard\wg.exe")
         if "NO_CONF" in text:
             raise RuntimeError(r"云上找不到 C:\litegame\wg\wg0.conf")
+        if "NO_SERVER_PUB" in text:
+            raise RuntimeError(r"云上找不到 C:\litegame\wg\server.pub")
+        if "WG_ERROR=" in text:
+            raise RuntimeError(f"云上 WireGuard 命令失败：{text[:300]}")
         match = re.search(r"BEGIN_CONF\r?\n(.*?)\r?\nEND_CONF", text, re.S)
         if not match:
             raise RuntimeError("解析不到客户端配置（云上输出不含 BEGIN_CONF 段）")

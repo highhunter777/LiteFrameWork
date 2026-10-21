@@ -20,8 +20,8 @@
 # gate, it must NOT be deleted or loosened. This script only refreshes and
 # reconciles; it provides no bypass switch.
 #
-# Toolbox entry:  python scripts/codegen/toolbox.py refresh-hash [--skip-server-build] [--skip-unity-recompile]
-# Direct entry:   python scripts/codegen/refresh_hash.py [--config <path>] [--skip-server-build] [--skip-unity-recompile]
+# Toolbox entry:  python scripts/codegen/toolbox.py refresh-hash [--skip-server-build] [--skip-unity-recompile] [--allow-incomplete]
+# Direct entry:   python scripts/codegen/refresh-hash.py [--config <path>] [--skip-server-build] [--skip-unity-recompile] [--allow-incomplete]
 
 import argparse
 import os
@@ -37,10 +37,12 @@ TOOL = 'refresh-hash'
 
 
 def main():
-    parser = argparse.ArgumentParser(prog='refresh_hash.py', description='buildHash refresh orchestration (gen -> server build -> Unity recompile -> reconcile)')
+    parser = argparse.ArgumentParser(prog='refresh-hash.py', description='buildHash refresh orchestration (gen -> server build -> Unity recompile -> reconcile)')
     parser.add_argument('--config', default='Config/roomserver.json')
     parser.add_argument('--skip-server-build', action='store_true')
     parser.add_argument('--skip-unity-recompile', action='store_true')
+    parser.add_argument('--allow-incomplete', action='store_true',
+                        help='explicitly downgrade an unreadable server hash to a warning')
     args = parser.parse_args()
 
     root = repo_root()
@@ -114,7 +116,11 @@ def main():
         warn(TOOL, f'server hash probe incomplete: {exc}')
 
     if server_hash is None:
-        warn(TOOL, 'could not read server hash (server not up / port busy) - start it manually to confirm')
+        if not args.allow_incomplete:
+            fail(TOOL, 'could not read server hash (server not up / port busy); '
+                       'start it manually, or rerun with --allow-incomplete to downgrade explicitly')
+            return 1
+        warn(TOOL, 'could not read server hash - downgraded by --allow-incomplete')
         info(TOOL, f'client constant = {client_hash}')
         return 0
 

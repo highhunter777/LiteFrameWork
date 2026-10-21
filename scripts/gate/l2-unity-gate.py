@@ -3,7 +3,6 @@
 
 import argparse
 import json
-import os
 import re
 import shutil
 import subprocess
@@ -12,17 +11,21 @@ import time
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+sys.path.insert(0, str(Path(__file__).resolve().parent))
 from _common import EXIT_FAIL, EXIT_OK, configure_stdio, fail, info, repo_root  # noqa: E402
+from _gate_summary import relative_path, write_summary  # noqa: E402
+from _unity_path import UnityPathError, resolve_unity_exe  # noqa: E402
 
-DEFAULT_UNITY_EXE = os.environ.get("UNITY_EXE", r"E:\unity3d\2022.3.55f1c1\Editor\Unity.exe")
 GUID_RE = re.compile(r"^guid:\s*([0-9a-fA-F]{32})\s*$")
 
 
 def parse_args(argv=None):
     parser = argparse.ArgumentParser(description="L2 Unity gate")
     parser.add_argument("--project-path", default=None)
-    parser.add_argument("--unity-exe", default=DEFAULT_UNITY_EXE)
+    parser.add_argument("--unity-exe", default=None,
+                        help="Unity.exe override (default: UNITY_EXE / LocalNotes / Hub discovery)")
     parser.add_argument("--test-output", default=r"TestResults\editmode-results.xml")
+    parser.add_argument("--results-directory", default="TestResults")
     parser.add_argument("--meta-scan-only", action="store_true")
     parser.add_argument("--run-editmode-tests", action="store_true")
     return parser.parse_args(argv)
@@ -34,17 +37,18 @@ class L2:
         self.unity_exe = unity_exe
         self.failures = []
         self.notes = []
+        self.metrics = {"total": 0, "passed": 0, "failed": 0, "skipped": 0}
 
     def ok(self, message):
-        info("gate/l2", f"PASS: {message}")
+        info("quality/l2", f"PASS: {message}")
 
     def bad(self, message):
         self.failures.append(message)
-        info("gate/l2", f"FAIL: {message}")
+        info("quality/l2", f"FAIL: {message}")
 
     def note(self, message):
         self.notes.append(message)
-        info("gate/l2", f"INFO: {message}")
+        info("quality/l2", f"INFO: {message}")
 
     def scan_meta(self):
         roots = [self.project / "Assets", self.project / "Packages"]
@@ -200,6 +204,9 @@ class L2:
                 total = self.json_int(result, "Total")
                 passed = self.json_int(result, "Passed")
                 failed = self.json_int(result, "Failed")
+                self.metrics["total"] += total
+                self.metrics["passed"] += passed
+                self.metrics["failed"] += failed
                 print(f"  run_tests({label}): Total={total} Passed={passed} Failed={failed}")
                 if total <= 0:
                     self.bad(f"{label} test count = 0 (test assembly not compiled in?)")
@@ -214,8 +221,8 @@ class L2:
         if self.unity_process_running():
             self.bad("Unity process is running; batchmode cannot share the project - close the editor or use Pipeline mode")
             return
-        if not Path(self.unity_exe).is_file():
-            self.bad(f"Unity editor not found: {self.unity_exe} (use --unity-exe)")
+        if not self.unity_exe or not Path(self.unity_exe).is_file():
+            self.bad(f"Unity editor not found: {self.unity_exe} (set UNITY_EXE or pass --unity-exe)")
             return
         if not self.have_unity_cli():
             self.bad("unity CLI not found on PATH")
@@ -257,34 +264,68 @@ def main(argv=None):
     configure_stdio()
     args = parse_args(argv)
     project = Path(args.project_path).resolve() if args.project_path else repo_root()
+    results = Path(args.results_directory)
+    if not results.is_absolute():
+        results = project / results
     gate = L2(project, args.unity_exe)
-    info("gate/l2", f"L2 Unity gate | project: {project}")
+    info("quality/l2", f"L2 Unity gate | project: {project}")
 
-    info("gate/l2", "=== 1. illegal meta GUID scan ===")
+    def finish(status, error="", tests_ran=True):
+        artifacts = []
+        if tests_ran:
+            for relative in (args.test_output, r"TestResults\playmode-results.xml"):
+                path = project / relative
+                if path.is_file():
+                    artifacts.append(relative_path(project, path))
+        write_summary(
+            results,
+            lane="L2",
+            profile="",
+            status=status,
+            total=gate.metrics["total"],
+            passed=gate.metrics["passed"],
+            failed=gate.metrics["failed"] or len(gate.failures),
+            artifacts=artifacts,
+            error=error,
+        )
+
+    info("quality/l2", "=== 1. illegal meta GUID scan ===")
     gate.scan_meta()
     if args.meta_scan_only:
         if gate.failures:
-            return fail("gate/l2", f"L2(meta) failed: {len(gate.failures)} item(s)")
-        info("gate/l2", "L2(meta) passed")
+            message = f"L2(meta) failed: {len(gate.failures)} item(s)"
+            finish("fail", message, tests_ran=False)
+            return fail("quality/l2", message)
+        finish("pass", tests_ran=False)
+        info("quality/l2", "L2(meta) passed")
         return EXIT_OK
 
     descriptor = project / "Library" / "Pipeline" / ".unity-pipeline-port"
     if descriptor.is_file() and not args.run_editmode_tests:
-        info("gate/l2", "=== 2. Unity-side status (editor running, Pipeline) ===")
+        info("quality/l2", "=== 2. Unity-side status (editor running, Pipeline) ===")
         gate.run_pipeline_mode()
     else:
-        info("gate/l2", "=== 2. Unity-side tests (batchmode: EditMode + PlayMode) ===")
+        try:
+            unity_exe, source = resolve_unity_exe(project, args.unity_exe)
+        except UnityPathError as exc:
+            finish("fail", str(exc))
+            return fail("quality/l2", str(exc))
+        gate.unity_exe = unity_exe
+        info("quality/l2", f"Unity editor: {unity_exe} ({source})")
+        info("quality/l2", "=== 2. Unity-side tests (batchmode: EditMode + PlayMode) ===")
         gate.run_batchmode(args.test_output)
 
-    info("gate/l2", "=== summary ===")
+    info("quality/l2", "=== summary ===")
     for note in list(gate.notes):
         print(f"  [INFO] {note}")
     if not gate.failures:
-        info("gate/l2", "L2 passed")
+        finish("pass")
+        info("quality/l2", "L2 passed")
         return EXIT_OK
-    info("gate/l2", f"L2 failed: {len(gate.failures)} item(s)")
+    info("quality/l2", f"L2 failed: {len(gate.failures)} item(s)")
     for failure in gate.failures:
         print(f"    - {failure}")
+    finish("fail", f"L2 failed: {len(gate.failures)} item(s)")
     return EXIT_FAIL
 
 

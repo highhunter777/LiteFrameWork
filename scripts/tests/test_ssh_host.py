@@ -3,9 +3,11 @@
 
 import importlib
 import os
+import subprocess
 import sys
 import unittest
 from pathlib import Path
+from unittest import mock
 
 ROOT = Path(__file__).resolve().parents[2]
 DEPLOY = ROOT / "scripts" / "deploy"
@@ -32,15 +34,26 @@ class SshHostTests(unittest.TestCase):
             else:
                 os.environ["LITEGAME_SSH_HOST"] = previous
 
-    def test_unreachable_tunnel_falls_back_to_public_alias(self):
+    def test_unreachable_tunnel_fails_instead_of_public_fallback(self):
         module = load_module()
-        alias = module.resolve_ssh_host(
-            tunnel_address="127.0.0.1",
-            tunnel_port=1,
-            probe_timeout_ms=50,
-            public_alias="public-alias",
-        )
-        self.assertEqual(alias, "public-alias")
+        with self.assertRaises(RuntimeError) as context:
+            module.resolve_ssh_host(
+                tunnel_address="127.0.0.1",
+                tunnel_port=1,
+                probe_timeout_ms=50,
+                public_alias="public-alias",
+            )
+        message = str(context.exception)
+        self.assertIn("WireGuard", message)
+        self.assertIn("public-alias", message)
+
+    def test_tunnel_alias_must_match_hostname(self):
+        module = load_module()
+        with mock.patch.object(module, "_reachable", return_value=True), \
+             mock.patch.object(module.subprocess, "run", return_value=subprocess.CompletedProcess([], 0, "hostname other\n", "")):
+            with self.assertRaises(RuntimeError) as context:
+                module.resolve_ssh_host(tunnel_address="10.8.0.1", tunnel_alias="tunnel", public_alias="public")
+        self.assertIn("未配置", str(context.exception))
 
 
 if __name__ == "__main__":

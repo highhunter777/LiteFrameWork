@@ -72,7 +72,7 @@ class PythonEntryContractTests(unittest.TestCase):
         self.assertIn("usage", result.stdout.lower())
 
     def test_scan_missing_guids_help(self):
-        result = run([sys.executable, "scripts/content/scan_missing_guids.py", "--help"], timeout=120)
+        result = run([sys.executable, "scripts/content/scan-missing-guids.py", "--help"], timeout=120)
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertIn("usage", result.stdout.lower())
 

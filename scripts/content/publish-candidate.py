@@ -41,15 +41,15 @@ def main(argv=None):
     args = parse_args(argv)
     content = Path(args.content_dir).resolve()
     if not content.is_dir():
-        return fail("content/publish", f"candidate dir missing: {content}")
+        return fail("content/publish-candidate", f"candidate dir missing: {content}")
 
     if args.bundle_source:
         bundle_source = Path(args.bundle_source).resolve()
         if not bundle_source.is_dir():
-            return fail("content/publish", f"bundle source missing: {bundle_source}")
+            return fail("content/publish-candidate", f"bundle source missing: {bundle_source}")
         bundle_dst = content / "bundle"
         copy_tree_contents(bundle_source, bundle_dst)
-        info("content/publish", f"bundle segment mirrored: {bundle_dst}")
+        info("content/publish-candidate", f"bundle segment mirrored: {bundle_dst}")
 
     config = load_config(args.config_path)
     cdn_root = Path(args.cdn_root) if args.cdn_root else config.directory
@@ -59,7 +59,7 @@ def main(argv=None):
 
     release_dir = cdn_root / args.release_id
     copy_tree_contents(content, release_dir)
-    info("content/publish", f"files laid out: {release_dir}")
+    info("content/publish-candidate", f"files laid out: {release_dir}")
 
     gen = Path(__file__).resolve().with_name("gen-candidate.py")
     command = [
@@ -85,12 +85,12 @@ def main(argv=None):
 
     result = subprocess.run(command, cwd=str(repo_root()))
     if result.returncode != 0:
-        return fail("content/publish", "gen-candidate failed (see above) - envelope not produced")
+        return fail("content/publish-candidate", "gen-candidate failed (see above) - envelope not produced")
 
     print("")
-    info("content/publish", f"publish done: {cdn_root}")
-    info("content/publish", f"serve: python scripts/content/serve-cdn.py (config: {config.config_path})")
-    info("content/publish", f"consume: Test.exe -content.cdnUrl=http://{config.bind}:{config.port}")
+    info("content/publish-candidate", f"publish done: {cdn_root}")
+    info("content/publish-candidate", f"serve: python scripts/content/serve-cdn.py (config: {config.config_path})")
+    info("content/publish-candidate", f"consume: Test.exe -content.cdnUrl=http://{config.bind}:{config.port}")
     return EXIT_OK
 
 

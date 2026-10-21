@@ -16,7 +16,10 @@ from pathlib import Path
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 from _toolchain_docs import check_docs, write_docs
+from _toolchain_domains import check_domains
 from _toolchain_manifest import (
+    KINDS,
+    PLANES,
     ManifestError,
     default_manifest,
     find_tool,
@@ -93,6 +96,11 @@ def collect_checks(manifest_path, strict=False):
                 errors.append(message)
             else:
                 warnings.append(message)
+        for level, message in check_domains(manifest, ROOT):
+            if level == "error":
+                errors.append(message)
+            else:
+                warnings.append(message)
     if strict:
         errors.extend(warnings)
         warnings = []
@@ -114,11 +122,27 @@ def cmd_list(args):
         }
         print(json.dumps(payload, ensure_ascii=False, indent=2))
         return EXIT_OK
+    planes = set(getattr(args, "plane", None) or [])
+    kinds = set(getattr(args, "kind", None) or [])
     print(f"[toolchain] manifest: {_manifest_path(args)}")
+    if planes or kinds:
+        print(f"[toolchain] filter: plane={sorted(planes) or 'any'} kind={sorted(kinds) or 'any'}")
+    matched = 0
     for category in sorted(manifest.get("categories", []), key=lambda item: item.get("order", 1000)):
+        tools = [
+            tool
+            for tool in sorted_tools(manifest, category.get("id"))
+            if (not planes or tool.get("plane") in planes) and (not kinds or tool.get("kind") in kinds)
+        ]
+        if not tools:
+            continue
+        matched += len(tools)
         print(f"\n{category.get('title', category.get('id'))}")
-        for tool in sorted_tools(manifest, category.get("id")):
-            print(f"  {tool['id']:<34} {tool.get('kind', ''):<8} {tool.get('title', '')}")
+        for tool in tools:
+            print(
+                f"  {tool['id']:<30} {tool.get('kind', ''):<8} {tool.get('plane', ''):<9} {tool.get('title', '')}"
+            )
+    print(f"[toolchain] {matched} tool(s)")
     return EXIT_OK
 
 
@@ -158,6 +182,10 @@ def cmd_open(args):
     tool = find_tool(manifest, args.id)
     if tool is None:
         raise ToolchainError(f"tool not found: {args.id}", EXIT_NOT_FOUND)
+    if tool.get("kind") == "hud":
+        raise ToolchainError(
+            f"{args.id} is a runtime tool; enable it inside the game (F1), not from the Hub", EXIT_USAGE
+        )
     if tool.get("kind") not in EDITOR_KINDS:
         raise ToolchainError(f"{args.id} is not an editor tool; use: python scripts/toolchain.py run {args.id}", EXIT_USAGE)
     port_file = ROOT / "Library" / "Pipeline" / ".unity-pipeline-port"
@@ -205,18 +233,156 @@ def _materialize_command(command):
     return resolved
 
 
-def cmd_run(args):
-    manifest = _load(_manifest_path(args))
-    tool = find_tool(manifest, args.id)
+def _split_run_tokens(tokens):
+    if "--" in tokens:
+        index = tokens.index("--")
+        return tokens[:index], tokens[index + 1:]
+    return tokens, []
+
+
+def _collect_option_values(tokens):
+    values = {}
+    index = 0
+    while index < len(tokens):
+        token = tokens[index]
+        if token.startswith("--") and len(token) > 2:
+            name = token[2:]
+            value = None
+            if "=" in name:
+                name, value = name.split("=", 1)
+            elif index + 1 < len(tokens) and not tokens[index + 1].startswith("--"):
+                value = tokens[index + 1]
+                index += 1
+            values[name] = value
+        index += 1
+    return values
+
+
+def _validate_tool_args(tool, tokens):
+    specs = tool.get("args") or []
+    if not specs:
+        return
+    values = _collect_option_values(tokens)
+    missing = [f"--{spec['name']}" for spec in specs if spec.get("required") and spec["name"] not in values]
+    if missing:
+        raise ToolchainError(f"{tool['id']} missing required argument(s): {', '.join(missing)}", EXIT_USAGE)
+    for spec in specs:
+        name = spec["name"]
+        if name not in values:
+            continue
+        value = values[name]
+        arg_type = spec.get("type")
+        label = f"--{name}"
+        if arg_type == "bool":
+            if value is not None and value.lower() not in {"true", "false", "1", "0"}:
+                raise ToolchainError(f"{tool['id']} {label} expects a boolean", EXIT_USAGE)
+        elif arg_type == "int":
+            if value is None:
+                raise ToolchainError(f"{tool['id']} {label} expects an integer", EXIT_USAGE)
+            try:
+                int(value)
+            except ValueError:
+                raise ToolchainError(f"{tool['id']} {label} expects an integer, got: {value}", EXIT_USAGE)
+        elif arg_type == "enum":
+            allowed = spec.get("values") or []
+            if value not in allowed:
+                raise ToolchainError(
+                    f"{tool['id']} {label} must be one of: {', '.join(allowed)}", EXIT_USAGE
+                )
+        elif value is None or value == "":
+            raise ToolchainError(f"{tool['id']} {label} requires a value", EXIT_USAGE)
+
+
+def _print_run_help(tool, command):
+    print(f"[toolchain] {tool['id']}: {tool.get('title', '')}")
+    print(f"  command: {' '.join(command)}")
+    specs = tool.get("args") or []
+    if not specs:
+        print("  args: none declared (pass tool options after --)")
+    else:
+        print("  args:")
+        for spec in specs:
+            details = ["required" if spec.get("required") else "optional"]
+            if spec.get("values"):
+                details.append("values: " + ", ".join(spec["values"]))
+            if "default" in spec:
+                details.append("default: " + json.dumps(spec["default"], ensure_ascii=False))
+            description = spec.get("description", "")
+            print(f"    --{spec['name']} <{spec.get('type')}> [{'; '.join(details)}] {description}".rstrip())
+    print(f"  usage: python scripts/toolchain.py run {tool['id']} [--dry-run] -- [tool args]")
+    return EXIT_OK
+
+
+def _print_run_usage():
+    print("usage: python scripts/toolchain.py run [--manifest <path>] <id> [--help] [--dry-run] -- [tool args]")
+    return EXIT_OK
+
+
+def _run_tool(manifest_value, tool_id, tokens):
+    manifest = _load(Path(manifest_value) if manifest_value else DEFAULT_MANIFEST)
+    tool = find_tool(manifest, tool_id)
     if tool is None:
-        raise ToolchainError(f"tool not found: {args.id}", EXIT_NOT_FOUND)
+        raise ToolchainError(f"tool not found: {tool_id}", EXIT_NOT_FOUND)
+    if tool.get("kind") == "hud":
+        raise ToolchainError(f"{tool_id} is a runtime tool; enable it inside the game (F1)", EXIT_USAGE)
     if tool.get("kind") in EDITOR_KINDS:
-        raise ToolchainError(f"{args.id} is an editor tool; use: python scripts/toolchain.py open {args.id}", EXIT_USAGE)
+        raise ToolchainError(f"{tool_id} is an editor tool; use: python scripts/toolchain.py open {tool_id}", EXIT_USAGE)
     command = _materialize_command(tool.get("command"))
-    extra = list(getattr(args, "args", []) or [])
-    if extra and extra[0] == "--":
-        extra = extra[1:]
-    return _run_child(command + extra)
+    head, tail = _split_run_tokens(list(tokens))
+    if "--help" in head:
+        return _print_run_help(tool, command)
+    unknown = [token for token in head if token != "--dry-run"]
+    if unknown:
+        raise ToolchainError(
+            f"{tool_id}: tool arguments must follow -- (got: {' '.join(unknown)})", EXIT_USAGE
+        )
+    dry_run = "--dry-run" in head
+    if dry_run:
+        safety = tool.get("safety") or {}
+        if safety.get("dryRun") != "supported":
+            raise ToolchainError(
+                f"{tool_id} does not support run --dry-run; pass the tool's own flag after -- "
+                f"(e.g. run {tool_id} -- --dry-run)",
+                EXIT_USAGE,
+            )
+        command.append(safety.get("dryRunArg", "--dry-run"))
+    _validate_tool_args(tool, tail)
+    code = _run_child(command + tail)
+    print(f"[toolchain] {tool_id} exit={code}")
+    return code
+
+
+def cmd_run(argv):
+    """Parse run arguments before argparse so the literal `--` separator survives."""
+    manifest_value = None
+    tool_id = None
+    tokens = []
+    index = 0
+    while index < len(argv):
+        token = argv[index]
+        if tool_id is not None:
+            tokens = argv[index:]
+            break
+        if token in {"-h", "--help"}:
+            return _print_run_usage()
+        if token == "--manifest":
+            if index + 1 >= len(argv):
+                raise ToolchainError("--manifest requires a path", EXIT_USAGE)
+            manifest_value = argv[index + 1]
+            index += 2
+            continue
+        if token.startswith("--manifest="):
+            manifest_value = token.split("=", 1)[1]
+            index += 1
+            continue
+        if token.startswith("-"):
+            raise ToolchainError(f"run: unknown option {token}", EXIT_USAGE)
+        tool_id = token
+        index += 1
+    if tool_id is None:
+        _print_run_usage()
+        raise ToolchainError("run requires a tool id", EXIT_USAGE)
+    return _run_tool(manifest_value, tool_id, tokens)
 
 
 def cmd_generate(args):
@@ -307,6 +473,8 @@ def build_parser():
     list_parser = subparsers.add_parser("list", help="list tools from the manifest")
     list_parser.add_argument("--json", action="store_true")
     list_parser.add_argument("--manifest")
+    list_parser.add_argument("--plane", action="append", choices=sorted(PLANES), help="filter by plane (repeatable)")
+    list_parser.add_argument("--kind", action="append", choices=sorted(KINDS), help="filter by kind (repeatable)")
     list_parser.set_defaults(func=cmd_list)
 
     check_parser = subparsers.add_parser("check", help="validate manifest, paths, docs and surfaces")
@@ -324,11 +492,8 @@ def build_parser():
     open_parser.add_argument("--manifest")
     open_parser.set_defaults(func=cmd_open)
 
-    run_parser = subparsers.add_parser("run", help="run a CLI/gate/build/content tool")
-    run_parser.add_argument("id")
-    run_parser.add_argument("args", nargs=argparse.REMAINDER)
-    run_parser.add_argument("--manifest")
-    run_parser.set_defaults(func=cmd_run)
+    # Dispatched in main() before argparse so the literal `--` separator survives.
+    subparsers.add_parser("run", help="run a CLI/gate/build/content tool")
 
     generate_parser = subparsers.add_parser("generate", help="delegate to the generator toolbox")
     generate_parser.add_argument("args", nargs=argparse.REMAINDER)
@@ -359,9 +524,11 @@ def main(argv=None):
     argv = list(sys.argv[1:] if argv is None else argv)
     if not argv:
         argv = ["list"]
-    parser = build_parser()
-    args = parser.parse_args(argv)
     try:
+        if argv[0] == "run":
+            return cmd_run(argv[1:])
+        parser = build_parser()
+        args = parser.parse_args(argv)
         return args.func(args)
     except ToolchainError as exc:
         return _fail(str(exc), exc.code)

@@ -31,6 +31,14 @@ class GmEntryTests(unittest.TestCase):
         result = self.run_script("--help")
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertIn("--action", result.stdout)
+        self.assertIn("--file", result.stdout)
+
+    def test_usage_lists_contract_actions(self):
+        self.require_script()
+        result = self.run_script()
+        self.assertEqual(result.returncode, 2, result.stdout + result.stderr)
+        for action in ("rooms", "diag-list", "diag-fetch", "settle-flush"):
+            self.assertIn(action, result.stdout)
 
     def test_unknown_action_is_usage_error(self):
         self.require_script()
@@ -41,6 +49,12 @@ class GmEntryTests(unittest.TestCase):
         self.require_script()
         result = self.run_script("--action", "start")
         self.assertEqual(result.returncode, 2, result.stdout + result.stderr)
+
+    def test_diag_fetch_without_file_is_usage_error(self):
+        self.require_script()
+        result = self.run_script("--action", "diag-fetch")
+        self.assertEqual(result.returncode, 2, result.stdout + result.stderr)
+        self.assertIn("--file", result.stdout)
 
 
 if __name__ == "__main__":

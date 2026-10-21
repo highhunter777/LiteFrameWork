@@ -28,7 +28,10 @@ import os
 import re
 import sys
 
-ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
+from _common import repo_root  # noqa: E402
+
+ROOT = str(repo_root())
 PKG = os.path.join(ROOT, "Packages", "com.unity.pipeline")
 CODE_REL = os.path.join("Runtime", "Plugins", "CodeAnalysis")
 

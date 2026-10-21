@@ -11,7 +11,9 @@ from datetime import datetime
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+sys.path.insert(0, str(Path(__file__).resolve().parent))
 from _common import EXIT_FAIL, EXIT_OK, configure_stdio, repo_root  # noqa: E402
+from _gate_summary import relative_path, write_summary  # noqa: E402
 
 
 def parse_args(argv=None):
@@ -56,11 +58,13 @@ def main(argv=None):
     log_file = log_dir / f"L2-{stamp}.log"
 
     def write_log(text=""):
-        print(text)
+        print(f"[env/nightly] {text}")
         with log_file.open("a", encoding="utf-8", newline="\n") as handle:
-            handle.write(text + "\n")
+            handle.write(f"[env/nightly] {text}\n")
 
     exit_code = 0
+    lanes = []
+    error_text = ""
     write_log(f"==== LiteGame 夜间门禁 {stamp} ====")
     write_log(f"工程：{project}")
     write_log(f"主机：{os.environ.get('COMPUTERNAME', '')}  用户：{os.environ.get('USERNAME', '')}")
@@ -81,6 +85,11 @@ def main(argv=None):
                 exit_code = 1
             else:
                 write_log("  [PASS] L1")
+            lanes.append({
+                "lane": "L1",
+                "status": "fail" if result.returncode != 0 else "pass",
+                "exitCode": result.returncode,
+            })
 
         write_log("")
         write_log("---- L2 ----")
@@ -96,6 +105,11 @@ def main(argv=None):
             exit_code = 1
         else:
             write_log("  [PASS] L2")
+        lanes.append({
+            "lane": "L2",
+            "status": "fail" if l2_result.returncode != 0 else "pass",
+            "exitCode": l2_result.returncode,
+        })
 
         ran_playmode = bool(
             re.search(r"run_tests\(PlayMode\)", l2_text) or re.search(r"PlayMode 测试(通过|未通过)", l2_text)
@@ -103,6 +117,7 @@ def main(argv=None):
         write_log("")
         write_log("PlayMode：已执行" if ran_playmode else "PlayMode：**本次未执行**——请检查 L2 是否提前失败")
     except Exception as exc:
+        error_text = str(exc)
         write_log(f"[FAIL] 夜间门禁异常：{exc}")
         write_log(traceback.format_exc())
         exit_code = 1
@@ -110,6 +125,16 @@ def main(argv=None):
         write_log("")
         write_log(f"==== 结束：退出码 {exit_code} ====")
         write_log(f"日志：{log_file}")
+    write_summary(
+        project / "TestResults",
+        lane="Nightly",
+        profile="Nightly",
+        status="pass" if exit_code == 0 else "fail",
+        failed=sum(1 for lane in lanes if lane["status"] == "fail"),
+        artifacts=[relative_path(project, log_file)],
+        error=error_text,
+        lanes=lanes,
+    )
     return exit_code
 
 

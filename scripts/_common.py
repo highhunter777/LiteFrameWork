@@ -37,5 +37,14 @@ def fail(tool, message):
     return EXIT_FAIL
 
 
+def normalize_exit(tool, code):
+    """Map a child exit code to the local 0/1 contract; keep the original code visible."""
+    if code == 0:
+        return EXIT_OK
+    if code != EXIT_FAIL:
+        warn(tool, f"child process exited with {code}; normalized to {EXIT_FAIL}")
+    return EXIT_FAIL
+
+
 def run(cmd, cwd=None, env=None, **kwargs):
     return subprocess.run(cmd, cwd=cwd, env=env, **kwargs)

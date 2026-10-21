@@ -25,6 +25,12 @@ namespace LiteGame.Toolchain
 
         public string Kind { get { return Tool.kind; } }
 
+        public string Plane { get { return Tool.plane; } }
+
+        public string PlaneLabel { get { return ToolchainPlanes.Label(Tool.plane); } }
+
+        public string RequiresLabel { get { return ToolchainPlanes.RequiresLabel(Tool); } }
+
         public bool IsEditorKind { get { return ToolchainKinds.IsEditor(Tool.kind); } }
 
         public bool SupportsDryRun { get { return Tool.SupportsDryRun; } }
@@ -55,6 +61,7 @@ namespace LiteGame.Toolchain
         {
             get
             {
+                if (Kind == ToolchainKinds.Hud) return "游戏内 F1（Hub 不执行）";
                 if (IsEditorKind) return "python scripts/toolchain.py open " + Id;
                 if (Tool.Command.Length > 0) return string.Join(" ", Tool.Command);
                 return "—";
@@ -70,6 +77,7 @@ namespace LiteGame.Toolchain
                     case ToolchainKinds.Page: return "页件";
                     case ToolchainKinds.Window: return "窗口";
                     case ToolchainKinds.Action: return "动作";
+                    case ToolchainKinds.Hud: return "运行内";
                     case ToolchainKinds.Cli: return "CLI";
                     case ToolchainKinds.Gate: return "门禁";
                     case ToolchainKinds.Build: return "构建";

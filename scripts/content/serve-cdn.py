@@ -7,7 +7,7 @@ import sys
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
-from _common import configure_stdio, fail, info, repo_root  # noqa: E402
+from _common import configure_stdio, fail, info, normalize_exit, repo_root  # noqa: E402
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from _local_cdn import load_config  # noqa: E402
 
@@ -32,15 +32,22 @@ def main(argv=None):
     bind = args.bind or config.bind
     port = args.port if args.port > 0 else config.port
     if not directory.is_dir():
-        return fail("content/serve", f"serve directory missing: {directory} (run scripts/content/publish-candidate.py first)")
+        return fail("content/serve-cdn", f"serve directory missing: {directory} (run scripts/content/publish-candidate.py first)")
 
-    info("content/serve", f"serving: {directory}")
-    info("content/serve", f"listen: http://{bind}:{port} (Ctrl+C stops)")
-    info("content/serve", f"consume: Test.exe -content.cdnUrl=http://{bind}:{port}")
-    result = subprocess.run(
-        [sys.executable, "-m", "http.server", str(port), "--directory", str(directory), "--bind", bind]
-    )
-    return result.returncode
+    info("content/serve-cdn", f"serving: {directory}")
+    info("content/serve-cdn", f"listen: http://{bind}:{port} (Ctrl+C stops)")
+    info("content/serve-cdn", f"consume: Test.exe -content.cdnUrl=http://{bind}:{port}")
+    try:
+        result = subprocess.run(
+            [sys.executable, "-m", "http.server", str(port), "--directory", str(directory), "--bind", bind]
+        )
+    except KeyboardInterrupt:
+        info("content/serve-cdn", "stopped")
+        return 0
+    if result.returncode == 130:
+        info("content/serve-cdn", "stopped")
+        return 0
+    return normalize_exit("content/serve-cdn", result.returncode)
 
 
 if __name__ == "__main__":

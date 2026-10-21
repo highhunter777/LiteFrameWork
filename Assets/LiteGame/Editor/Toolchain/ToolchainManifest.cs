@@ -11,6 +11,7 @@ namespace LiteGame.Toolchain
         public const string Page = "page";
         public const string Window = "window";
         public const string Action = "action";
+        public const string Hud = "hud";
         public const string Cli = "cli";
         public const string Gate = "gate";
         public const string Build = "build";
@@ -25,6 +26,55 @@ namespace LiteGame.Toolchain
         public static bool NeedsCommand(string kind)
         {
             return kind == Cli || kind == Gate || kind == Build || kind == Content;
+        }
+    }
+
+    /// <summary>
+    /// 平面：工具生效时哪一侧必须活着（清单契约，判定规则见《开发工具链平台专项设计》§3.2.1）。
+    /// 与 kind（宿主/执行形态）正交——gm 页件是编辑器宿主、运行时平面。
+    /// </summary>
+    public static class ToolchainPlanes
+    {
+        public const string Editor = "editor";
+        public const string Runtime = "runtime";
+        public const string External = "external";
+        public const string None = "none";
+
+        public const string Play = "play";
+        public const string Player = "player";
+        public const string UnityBatch = "unity-batch";
+
+        public static bool IsValid(string plane)
+        {
+            return plane == Editor || plane == Runtime || plane == External || plane == None;
+        }
+
+        public static bool IsRequirement(string requirement)
+        {
+            return requirement == Play || requirement == Player || requirement == UnityBatch;
+        }
+
+        public static bool IsRuntimeRequirement(string requirement)
+        {
+            return requirement == Play || requirement == Player;
+        }
+
+        public static string Label(string plane)
+        {
+            switch (plane)
+            {
+                case Editor: return "编辑器";
+                case Runtime: return "运行时";
+                case External: return "游戏外";
+                case None: return "无执行";
+                default: return plane;
+            }
+        }
+
+        public static string RequiresLabel(ToolchainTool tool)
+        {
+            if (tool == null || tool.Requires.Length == 0) return "—";
+            return string.Join(" / ", tool.Requires);
         }
     }
 
@@ -72,6 +122,8 @@ namespace LiteGame.Toolchain
         public string title;
         public string category;
         public string kind;
+        public string plane;
+        public string[] requires;
         public string handler;
         public string summary;
         public string docs;
@@ -86,6 +138,8 @@ namespace LiteGame.Toolchain
         public int SortOrder { get { return order == 0 ? 1000 : order; } }
 
         public string[] Writes { get { return writes ?? Array.Empty<string>(); } }
+
+        public string[] Requires { get { return requires ?? Array.Empty<string>(); } }
 
         public string[] Command { get { return command ?? Array.Empty<string>(); } }
 
@@ -169,12 +223,65 @@ namespace LiteGame.Toolchain
             return result;
         }
 
+        /// <summary>
+        /// 平面与前置契约（与 scripts/_toolchain_manifest.py 同口径）：
+        /// plane 必填；docs⇔none；editor 不声明 requires；runtime 只声明 play/player 且非空；
+        /// external 需要 command（宿主在编辑器、操作外部环境的页件除外）；hud 必须是 runtime。
+        /// </summary>
+        private static void ValidatePlane(ToolchainManifestLoadResult result, ToolchainTool tool)
+        {
+            if (!ToolchainPlanes.IsValid(tool.plane))
+            {
+                result.Errors.Add("工具 plane 非法：" + tool.id + " -> " + tool.plane);
+                return;
+            }
+
+            bool invalidRequirement = false;
+            bool hasRuntimeRequirement = false;
+            foreach (string requirement in tool.Requires)
+            {
+                if (!ToolchainPlanes.IsRequirement(requirement))
+                {
+                    result.Errors.Add("工具 requires 非法：" + tool.id + " -> " + requirement);
+                    invalidRequirement = true;
+                    continue;
+                }
+                if (ToolchainPlanes.IsRuntimeRequirement(requirement)) hasRuntimeRequirement = true;
+            }
+            if (invalidRequirement) return;
+
+            if (tool.plane == ToolchainPlanes.None && tool.kind != ToolchainKinds.Docs)
+            {
+                result.Errors.Add("plane=none 只对 docs 合法：" + tool.id);
+            }
+            if (tool.kind == ToolchainKinds.Docs && tool.plane != ToolchainPlanes.None)
+            {
+                result.Errors.Add("docs 必须声明 plane=none：" + tool.id);
+            }
+            if (tool.plane == ToolchainPlanes.Editor && tool.Requires.Length > 0)
+            {
+                result.Errors.Add("plane=editor 不得声明 requires：" + tool.id);
+            }
+            if (tool.plane == ToolchainPlanes.Runtime && !hasRuntimeRequirement)
+            {
+                result.Errors.Add("plane=runtime 必须声明 play/player：" + tool.id);
+            }
+            if (tool.plane == ToolchainPlanes.External && tool.Command.Length == 0 && tool.kind != ToolchainKinds.Page)
+            {
+                result.Errors.Add("plane=external 缺少 command：" + tool.id);
+            }
+            if (tool.kind == ToolchainKinds.Hud && (tool.plane != ToolchainPlanes.Runtime || !hasRuntimeRequirement))
+            {
+                result.Errors.Add("hud 必须是 plane=runtime 且声明 play/player：" + tool.id);
+            }
+        }
+
         private static void Validate(ToolchainManifestLoadResult result, string projectRoot)
         {
             ToolchainManifest manifest = result.Manifest;
-            if (manifest.schemaVersion != 3)
+            if (manifest.schemaVersion != 4)
             {
-                result.Errors.Add("schemaVersion 必须为 3（当前 " + manifest.schemaVersion + "）");
+                result.Errors.Add("schemaVersion 必须为 4（当前 " + manifest.schemaVersion + "）");
             }
 
             var categories = new HashSet<string>(StringComparer.Ordinal);
@@ -229,6 +336,7 @@ namespace LiteGame.Toolchain
                 {
                     result.Errors.Add("CLI 工具缺少 command：" + tool.id);
                 }
+                ValidatePlane(result, tool);
                 if (!string.IsNullOrEmpty(tool.docs) && !File.Exists(Path.Combine(projectRoot, tool.docs)))
                 {
                     result.Errors.Add("工具文档不存在：" + tool.id + " -> " + tool.docs);

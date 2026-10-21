@@ -10,11 +10,19 @@ TYPE_LABELS = {
     "page": "页件",
     "window": "窗口",
     "action": "动作",
+    "hud": "运行内",
     "cli": "CLI",
     "gate": "门禁",
     "build": "构建",
     "content": "内容",
     "docs": "说明",
+}
+
+PLANE_LABELS = {
+    "editor": "编辑器",
+    "runtime": "运行时",
+    "external": "游戏外",
+    "none": "无执行",
 }
 
 HEADER = (
@@ -39,6 +47,8 @@ def _relative_link(root, docs, doc_path):
 
 def _entry(tool):
     kind = tool.get("kind")
+    if kind == "hud":
+        return "游戏内 F1（Hub 不执行）"
     if kind in {"page", "window", "action"}:
         return f"`python scripts/toolchain.py open {tool['id']}`"
     command = tool.get("command")
@@ -76,14 +86,15 @@ def render_docs(manifest, root, doc_path):
         if not tools:
             lines.append("_暂无工具。_\n")
             continue
-        lines.append("| ID | 工具 | 类型 | 入口 / 命令 | 写入面 | 安全 / 产物 | 文档 |")
-        lines.append("|---|---|---|---|---|---|---|")
+        lines.append("| ID | 工具 | 类型 | 平面 | 入口 / 命令 | 写入面 | 安全 / 产物 | 文档 |")
+        lines.append("|---|---|---|---|---|---|---|---|")
         for tool in tools:
             lines.append(
-                "| {id} | {title} | {kind} | {entry} | {writes} | {safety} | {docs} |".format(
+                "| {id} | {title} | {kind} | {plane} | {entry} | {writes} | {safety} | {docs} |".format(
                     id=_cell(tool["id"]),
                     title=_cell(tool["title"]),
                     kind=_cell(TYPE_LABELS.get(tool.get("kind"), tool.get("kind"))),
+                    plane=_cell(PLANE_LABELS.get(tool.get("plane"), tool.get("plane"))),
                     entry=_entry(tool),
                     writes=_cell(_writes(tool)),
                     safety=_cell(_safety(tool)),

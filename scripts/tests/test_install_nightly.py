@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""Contracts for the Python nightly task installer (P3b, what-if only)."""
+"""Contracts for the Python nightly task installer (P3b)."""
 
 import subprocess
 import sys
@@ -11,22 +11,24 @@ SCRIPT = ROOT / "scripts" / "gate" / "install-nightly-task.py"
 
 
 class InstallNightlyTests(unittest.TestCase):
-    def test_what_if_prints_python_action(self):
+    def test_dry_run_prints_python_action(self):
         if not SCRIPT.is_file():
             self.fail(f"installer missing: {SCRIPT}")
-        result = subprocess.run(
-            [sys.executable, str(SCRIPT), "--what-if"],
-            cwd=str(ROOT),
-            capture_output=True,
-            text=True,
-            encoding="utf-8",
-            errors="replace",
-            timeout=60,
-        )
-        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
-        self.assertIn("nightly-gate.py", result.stdout)
-        self.assertIn("python", result.stdout.lower())
-        self.assertIn("WhatIf", result.stdout)
+        for flag in ("--dry-run", "--what-if"):
+            with self.subTest(flag=flag):
+                result = subprocess.run(
+                    [sys.executable, str(SCRIPT), flag],
+                    cwd=str(ROOT),
+                    capture_output=True,
+                    text=True,
+                    encoding="utf-8",
+                    errors="replace",
+                    timeout=60,
+                )
+                self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+                self.assertIn("nightly-gate.py", result.stdout)
+                self.assertIn("python", result.stdout.lower())
+                self.assertIn("WhatIf", result.stdout)
 
 
 if __name__ == "__main__":

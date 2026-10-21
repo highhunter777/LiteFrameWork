@@ -3,23 +3,27 @@
 
 import json
 import os
+import re
 from pathlib import Path
 
-KINDS = {"page", "window", "action", "cli", "gate", "build", "content", "docs"}
+from _common import repo_root
+
+KINDS = {"page", "window", "action", "hud", "cli", "gate", "build", "content", "docs"}
 HANDLER_KINDS = {"page", "window", "action"}
 COMMAND_KINDS = {"cli", "gate", "build", "content"}
+PLANES = {"editor", "runtime", "external", "none"}
+RUNTIME_REQUIRES = {"play", "player"}
+REQUIRES = {"play", "player", "unity-batch"}
 WRITE_SCOPES = {"none", "source", "generated", "asset", "distribution"}
 SURFACE_KINDS = {"ci-workflow", "hook-config", "scheduled-task", "path"}
-REQUIRED_TOOL_FIELDS = ("id", "title", "category", "kind", "summary", "docs")
+REQUIRED_TOOL_FIELDS = ("id", "title", "category", "kind", "plane", "summary", "docs")
 COMMAND_PATH_PREFIXES = ("scripts/", "Server/", "Assets/", "Tests/")
+ARG_TYPES = {"path", "file", "bool", "int", "string", "enum"}
+ARG_NAME_PATTERN = re.compile(r"^[a-z][a-z0-9-]*$")
 
 
 class ManifestError(Exception):
     """Raised when the manifest cannot be loaded or is structurally unusable."""
-
-
-def repo_root():
-    return Path(__file__).resolve().parent.parent
 
 
 def default_manifest(root=None):
@@ -57,14 +61,92 @@ def _iter_command_paths(command):
             yield token
 
 
+def _default_matches_type(value, arg_type):
+    if arg_type == "bool":
+        return isinstance(value, bool)
+    if arg_type == "int":
+        return isinstance(value, int) and not isinstance(value, bool)
+    return isinstance(value, str)
+
+
+def _validate_args(owner, specs, kind, errors):
+    if not isinstance(specs, list):
+        errors.append(f"{owner}: args must be an array")
+        return
+    if kind not in COMMAND_KINDS:
+        errors.append(f"{owner}: args only valid for command tools")
+    names = set()
+    for index, spec in enumerate(specs):
+        arg_owner = f"{owner}.args[{index}]"
+        if not isinstance(spec, dict):
+            errors.append(f"{arg_owner} must be an object")
+            continue
+        name = spec.get("name")
+        if not isinstance(name, str) or not ARG_NAME_PATTERN.match(name):
+            errors.append(f"{arg_owner}: name must be kebab-case")
+        elif name in names:
+            errors.append(f"{arg_owner}: duplicate name: {name}")
+        else:
+            names.add(name)
+        arg_type = spec.get("type")
+        if arg_type not in ARG_TYPES:
+            errors.append(f"{arg_owner}: unsupported type: {arg_type}")
+        if "required" in spec and not isinstance(spec["required"], bool):
+            errors.append(f"{arg_owner}: required must be a boolean")
+        if "description" in spec and not isinstance(spec["description"], str):
+            errors.append(f"{arg_owner}: description must be a string")
+        values = spec.get("values")
+        if arg_type == "enum":
+            valid_values = (
+                isinstance(values, list)
+                and values
+                and all(isinstance(value, str) and value for value in values)
+            )
+            if not valid_values:
+                errors.append(f"{arg_owner}: enum requires a non-empty values array")
+        elif values is not None:
+            errors.append(f"{arg_owner}: values only valid for enum")
+        if "default" in spec:
+            if spec.get("required") is True:
+                errors.append(f"{arg_owner}: required argument cannot declare a default")
+            if arg_type in ARG_TYPES and not _default_matches_type(spec["default"], arg_type):
+                errors.append(f"{arg_owner}: default does not match type {arg_type}")
+            if arg_type == "enum" and isinstance(values, list) and spec["default"] not in values:
+                errors.append(f"{arg_owner}: default must be one of the enum values")
+
+
+def _validate_plane(owner, tool, kind, errors):
+    """Plane/requires contract: which side must be alive for the tool to take effect."""
+    plane = tool.get("plane")
+    requires = tool.get("requires", [])
+    if plane not in PLANES:
+        errors.append(f"{owner}: unsupported plane: {plane}")
+        return
+    if not isinstance(requires, list) or any(item not in REQUIRES for item in requires):
+        errors.append(f"{owner}: requires must be a subset of {sorted(REQUIRES)}")
+        return
+    if plane == "none" and kind != "docs":
+        errors.append(f"{owner}: plane none is only valid for kind docs")
+    if kind == "docs" and plane != "none":
+        errors.append(f"{owner}: kind docs requires plane none")
+    if plane == "editor" and requires:
+        errors.append(f"{owner}: plane editor cannot declare requires")
+    if plane == "runtime" and (not requires or any(item not in RUNTIME_REQUIRES for item in requires)):
+        errors.append(f"{owner}: plane runtime requires a non-empty subset of {sorted(RUNTIME_REQUIRES)}")
+    if plane == "external" and not tool.get("command") and kind != "page":
+        errors.append(f"{owner}: plane external needs a command (or a hub page driving an external environment)")
+    if kind == "hud" and (plane != "runtime" or not set(requires) & RUNTIME_REQUIRES):
+        errors.append(f"{owner}: kind hud requires plane runtime with play/player")
+
+
 def validate_manifest(manifest, root):
     """Return (errors, warnings) for structure, references and command paths."""
     errors = []
     warnings = []
     root = Path(root)
 
-    if manifest.get("schemaVersion") != 3:
-        errors.append("schemaVersion must be 3")
+    if manifest.get("schemaVersion") != 4:
+        errors.append("schemaVersion must be 4")
 
     categories = manifest.get("categories")
     tools = manifest.get("tools")
@@ -97,6 +179,14 @@ def validate_manifest(manifest, root):
             errors.append(f"{owner}: title missing")
         if "order" in category and not isinstance(category["order"], (int, float)):
             errors.append(f"{owner}: order must be a number")
+        if "docs" in category:
+            _check_path(root, category["docs"], "docs", errors, owner)
+        allow_docs = category.get("allowDocs", [])
+        if not isinstance(allow_docs, list):
+            errors.append(f"{owner}: allowDocs must be an array")
+        else:
+            for doc in allow_docs:
+                _check_path(root, doc, "allowDocs", errors, owner)
 
     tool_ids = set()
     handlers = set()
@@ -137,6 +227,7 @@ def validate_manifest(manifest, root):
                 for relative in _iter_command_paths(command):
                     if not (root / relative).exists():
                         errors.append(f"{owner}: command path missing: {relative}")
+        _validate_plane(owner, tool, kind, errors)
         docs = tool.get("docs")
         if docs:
             _check_path(root, docs, "docs", errors, owner)
@@ -172,6 +263,13 @@ def validate_manifest(manifest, root):
                     errors.append(f"{owner}: safety.confirmation must be none/required")
                 if safety.get("dryRun") == "supported" and not outputs:
                     errors.append(f"{owner}: dry-run supported requires outputs")
+                if "dryRunArg" in safety and (
+                    not isinstance(safety["dryRunArg"], str) or not safety["dryRunArg"].startswith("-")
+                ):
+                    errors.append(f"{owner}: safety.dryRunArg must be a command-line flag")
+        args_schema = tool.get("args")
+        if args_schema is not None:
+            _validate_args(owner, args_schema, kind, errors)
 
     surface_ids = set()
     for index, surface in enumerate(surfaces):

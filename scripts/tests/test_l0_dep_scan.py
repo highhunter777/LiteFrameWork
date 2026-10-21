@@ -52,7 +52,7 @@ class L0ScanTests(unittest.TestCase):
         self.require_script()
         result = self.run_l0(ROOT)
         if result.returncode == 0:
-            self.assertIn("[gate/l0] PASS", result.stdout)
+            self.assertIn("[quality/l0] PASS", result.stdout)
             return
         failures = [line for line in result.stdout.splitlines() if "FAIL" in line]
         self.assertTrue(failures, result.stdout + result.stderr)

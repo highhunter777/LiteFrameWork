@@ -11,7 +11,9 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+sys.path.insert(0, str(Path(__file__).resolve().parent))
 from _common import EXIT_FAIL, EXIT_OK, configure_stdio, fail, info, repo_root  # noqa: E402
+from _gate_summary import relative_path, write_summary  # noqa: E402
 
 ENV_KEYS = (
     "DOTNET_CLI_HOME",
@@ -60,18 +62,19 @@ def discover_projects(project):
     return projects
 
 
-def trx_total(path):
-    total = 0
+def trx_counters(path):
+    counters = {"total": 0, "passed": 0, "failed": 0, "skipped": 0}
     if not path.is_file():
-        return total
+        return counters
     root = ET.parse(path).getroot()
     for element in root.iter():
         if element.tag.rsplit("}", 1)[-1] == "Counters":
-            try:
-                total += int(element.attrib.get("total", "0"))
-            except ValueError:
-                pass
-    return total
+            for key in counters:
+                try:
+                    counters[key] += int(element.attrib.get(key, "0"))
+                except ValueError:
+                    pass
+    return counters
 
 
 def run_or_raise(command, label, cwd=None):
@@ -81,12 +84,20 @@ def run_or_raise(command, label, cwd=None):
     return result
 
 
-def invoke_dotnet_lane(name, filter_text, hang_timeout, project, results, run_id, dotnet):
-    info("gate/test", f"=== {name} | {os.environ.get('DOTNET_TEST_PROFILE', '')} ===")
+class LaneError(RuntimeError):
+    """Lane failure carrying the counts collected before the failure."""
+
+    def __init__(self, message, counters=None, artifacts=()):
+        super().__init__(message)
+        self.counters = dict(counters or {"total": 0, "passed": 0, "failed": 0, "skipped": 0})
+        self.artifacts = list(artifacts)
+
+
+def _restore_and_build(name, project, dotnet):
     projects = discover_projects(project)
     for project_file in projects:
         project_name = project_file.stem
-        info("gate/test", f"-> restore {project_name} (parallelism disabled)")
+        info("quality/test", f"-> restore {project_name} (parallelism disabled)")
         run_or_raise(
             [
                 dotnet,
@@ -105,7 +116,7 @@ def invoke_dotnet_lane(name, filter_text, hang_timeout, project, results, run_id
         )
 
     solution = project / "Tests" / "Tests.slnx"
-    info("gate/test", "-> build solution (single MSBuild node)")
+    info("quality/test", "-> build solution (single MSBuild node)")
     run_or_raise(
         [
             dotnet,
@@ -122,14 +133,18 @@ def invoke_dotnet_lane(name, filter_text, hang_timeout, project, results, run_id
         f"{name} solution build failed",
         cwd=project,
     )
+    return projects
 
+
+def _run_projects(name, projects, project, results, run_id, dotnet, filter_text, hang_timeout):
+    counters = {"total": 0, "passed": 0, "failed": 0, "skipped": 0}
+    artifacts = []
     failed = []
-    total = 0
     for project_file in projects:
         project_name = project_file.stem
         result_name = f"{name.lower()}-{project_name}-{run_id}.trx"
         result_file = results / result_name
-        info("gate/test", f"-> {project_name}")
+        info("quality/test", f"-> {project_name}")
         result = subprocess.run(
             [
                 dotnet,
@@ -155,17 +170,43 @@ def invoke_dotnet_lane(name, filter_text, hang_timeout, project, results, run_id
         if result.returncode != 0:
             failed.append(project_name)
             continue
-        total += trx_total(result_file)
-
-    if failed:
-        raise RuntimeError(f"{name} failed in: {', '.join(failed)}. Results: {results}")
-    if total <= 0:
-        raise RuntimeError(f"{name} selected zero tests. Check traits and filter: {filter_text}")
-    info("gate/test", f"PASS: {name} completed {total} tests.")
+        if result_file.is_file():
+            artifacts.append(relative_path(project, result_file))
+            for key, value in trx_counters(result_file).items():
+                counters[key] += value
+    return counters, artifacts, failed
 
 
-def invoke_doc_lint(project, profile):
-    info("gate/test", f"doc-lint | {profile}")
+def invoke_dotnet_lane(name, filter_text, hang_timeout, project, results, run_id, dotnet, profile):
+    info("quality/test", f"=== {name} | {profile} ===")
+    counters = {"total": 0, "passed": 0, "failed": 0, "skipped": 0}
+    artifacts = []
+    try:
+        projects = _restore_and_build(name, project, dotnet)
+        counters, artifacts, failed = _run_projects(
+            name, projects, project, results, run_id, dotnet, filter_text, hang_timeout
+        )
+        if failed:
+            raise LaneError(f"{name} failed in: {', '.join(failed)}. Results: {results}", counters, artifacts)
+        if counters["total"] <= 0:
+            raise LaneError(
+                f"{name} selected zero tests. Check traits and filter: {filter_text}", counters, artifacts
+            )
+    except LaneError as exc:
+        write_summary(results, lane=name, profile=profile, status="fail", run_id=run_id,
+                      error=str(exc), artifacts=exc.artifacts, **exc.counters)
+        raise
+    except RuntimeError as exc:
+        write_summary(results, lane=name, profile=profile, status="fail", run_id=run_id,
+                      error=str(exc), artifacts=artifacts, **counters)
+        raise
+    write_summary(results, lane=name, profile=profile, status="pass", run_id=run_id,
+                  artifacts=artifacts, **counters)
+    info("quality/test", f"PASS: {name} completed {counters['total']} tests.")
+
+
+def invoke_doc_lint(project, profile, results, run_id):
+    info("quality/test", f"doc-lint | {profile}")
     doc_lint = project / "scripts" / "gate" / "doc-lint.py"
     toolchain = project / "scripts" / "toolchain.py"
     if not doc_lint.is_file():
@@ -175,23 +216,39 @@ def invoke_doc_lint(project, profile):
     previous = os.environ.get("PYTHONIOENCODING")
     os.environ["PYTHONIOENCODING"] = "utf-8"
     try:
-        run_or_raise([sys.executable, str(doc_lint), "--root", str(project)], "doc-lint", cwd=project)
-        run_or_raise([sys.executable, str(toolchain), "docs", "--check"], "tool index check", cwd=project)
+        try:
+            run_or_raise([sys.executable, str(doc_lint), "--root", str(project)], "doc-lint", cwd=project)
+            run_or_raise([sys.executable, str(toolchain), "docs", "--check"], "tool index check", cwd=project)
+        except RuntimeError as exc:
+            write_summary(results, lane="Doc", profile=profile, status="fail", run_id=run_id, error=str(exc))
+            raise
+        write_summary(results, lane="Doc", profile=profile, status="pass", run_id=run_id)
     finally:
         if previous is None:
             os.environ.pop("PYTHONIOENCODING", None)
         else:
             os.environ["PYTHONIOENCODING"] = previous
-    info("gate/test", "PASS: doc-lint + tool index completed.")
+    info("quality/test", "PASS: doc-lint + tool index completed.")
 
 
-def invoke_l2(project):
+def invoke_l2(project, results):
     if os.name != "nt":
         raise RuntimeError("L2 requires Windows, a complete Unity project and a licensed Unity Editor.")
     python_l2 = project / "scripts" / "gate" / "l2-unity-gate.py"
     if not python_l2.is_file():
         raise RuntimeError(f"L2 Python gate missing: {python_l2}")
-    run_or_raise([sys.executable, str(python_l2), "--project-path", str(project)], "L2", cwd=project)
+    run_or_raise(
+        [
+            sys.executable,
+            str(python_l2),
+            "--project-path",
+            str(project),
+            "--results-directory",
+            str(results),
+        ],
+        "L2",
+        cwd=project,
+    )
 
 
 def main(argv=None):
@@ -205,7 +262,9 @@ def main(argv=None):
 
     dotnet = shutil.which("dotnet")
     if args.lane in {"L1", "L3", "All"} and not dotnet:
-        return fail("gate/test", "dotnet not found on PATH")
+        write_summary(results, lane=args.lane, profile=args.profile, status="fail",
+                      error="dotnet not found on PATH")
+        return fail("quality/test", "dotnet not found on PATH")
 
     saved = save_env()
     run_id = f"{args.profile.lower()}-{datetime.now(timezone.utc):%Y%m%d-%H%M%S}"
@@ -234,6 +293,7 @@ def main(argv=None):
                 results,
                 run_id,
                 dotnet,
+                args.profile,
             )
         elif args.lane == "L3":
             filter_text = "(Category=Integration|Category=EndToEnd)&Category!=Quarantine"
@@ -243,11 +303,11 @@ def main(argv=None):
             else:
                 os.environ["M10_LONGRUN"] = "1"
                 timeout = "12m"
-            invoke_dotnet_lane("L3", filter_text, timeout, project, results, run_id, dotnet)
+            invoke_dotnet_lane("L3", filter_text, timeout, project, results, run_id, dotnet, args.profile)
         elif args.lane == "L2":
-            invoke_l2(project)
+            invoke_l2(project, results)
         elif args.lane == "Doc":
-            invoke_doc_lint(project, args.profile)
+            invoke_doc_lint(project, args.profile, results, run_id)
         else:
             invoke_dotnet_lane(
                 "L1",
@@ -257,6 +317,7 @@ def main(argv=None):
                 results,
                 run_id,
                 dotnet,
+                args.profile,
             )
             filter_text = "(Category=Integration|Category=EndToEnd)&Category!=Quarantine"
             timeout = "5m"
@@ -265,11 +326,11 @@ def main(argv=None):
             else:
                 os.environ["M10_LONGRUN"] = "1"
                 timeout = "12m"
-            invoke_dotnet_lane("L3", filter_text, timeout, project, results, run_id, dotnet)
-            invoke_l2(project)
+            invoke_dotnet_lane("L3", filter_text, timeout, project, results, run_id, dotnet, args.profile)
+            invoke_l2(project, results)
         return EXIT_OK
     except RuntimeError as exc:
-        return fail("gate/test", str(exc))
+        return fail("quality/test", str(exc))
     finally:
         os.environ.pop("DOTNET_TEST_PROFILE", None)
         restore_env(saved)

@@ -7,6 +7,7 @@ Checks:
   3) tracked vendored packages keep a LICENSE file
   4) secret patterns in git-tracked text files
   5) toolchain manifest/docs/surfaces are consistent
+  6) GM HTTP contract matches server routes, editor page and CLI
 
 Exit codes: 0 = pass, 1 = violations.
 """
@@ -19,6 +20,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from _common import EXIT_FAIL, EXIT_OK, configure_stdio, fail, info, repo_root, warn  # noqa: E402
+from _gm_contract import check_consistency as check_gm_contract  # noqa: E402
 
 TEXT_EXTENSIONS = re.compile(r"\.(json|ps1|psm1|py|cs|md|txt|yml|yaml|xml|config|bat|sh)$")
 SECRET_PATTERNS = (
@@ -27,7 +29,8 @@ SECRET_PATTERNS = (
     (re.compile(r"ghp_[A-Za-z0-9]{36}"), "GitHub token"),
     (re.compile(r"(?i)(api[_-]?key|secret|password)\s*[:=]\s*[\"'][A-Za-z0-9+/=_.-]{24,}[\"']"), "hardcoded credential"),
 )
-SECRET_EXCLUDES = {"l0-dep-scan.py", "JoinAdmissionGateTests.cs"}
+# Scanner tests embed intentional fake credentials.
+SECRET_EXCLUDES = {"l0-dep-scan.py", "JoinAdmissionGateTests.cs", "test_l0_dep_scan.py"}
 
 
 def parse_args(argv=None):
@@ -88,7 +91,7 @@ def check_vendored_licenses(project, violations):
 def check_secrets(project, violations):
     tracked = git_lines(project, "ls-files")
     if tracked is None:
-        warn("gate/l0", "git unavailable or not a repo - secret scan skipped (CI always runs inside a repo)")
+        warn("quality/l0", "git unavailable or not a repo - secret scan skipped (CI always runs inside a repo)")
         return
     for relative in tracked:
         if not TEXT_EXTENSIONS.search(relative):
@@ -118,6 +121,10 @@ def check_toolchain(project, violations):
         violations.append("toolchain check failed: manifest/docs/surfaces are inconsistent (see output above)")
 
 
+def check_gm_contract_file(project, violations):
+    violations.extend(check_gm_contract(project))
+
+
 def main(argv=None):
     configure_stdio()
     args = parse_args(argv)
@@ -128,14 +135,15 @@ def main(argv=None):
     check_vendored_licenses(project, violations)
     check_secrets(project, violations)
     check_toolchain(project, violations)
+    check_gm_contract_file(project, violations)
 
-    info("gate/l0", f"L0 dependency & secret scan | project: {project}")
+    info("quality/l0", f"L0 dependency & secret scan | project: {project}")
     if not violations:
-        info("gate/l0", "PASS: deps reproducible, zero floating deps, vendored licenses kept, no secret hits")
+        info("quality/l0", "PASS: deps reproducible, zero floating deps, vendored licenses kept, no secret hits")
         return EXIT_OK
     for violation in violations:
-        info("gate/l0", f"FAIL: {violation}")
-    return fail("gate/l0", f"L0 scan FAILED: {len(violations)} violation(s)")
+        info("quality/l0", f"FAIL: {violation}")
+    return fail("quality/l0", f"L0 scan FAILED: {len(violations)} violation(s)")
 
 
 if __name__ == "__main__":

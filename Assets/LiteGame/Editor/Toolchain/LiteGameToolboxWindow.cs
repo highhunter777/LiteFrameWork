@@ -6,12 +6,36 @@ namespace LiteGame.Toolchain
 {
     /// <summary>
     /// 开发工具链 Hub：唯一顶层入口 LiteGame/工具链。
-    /// 目录来自 scripts/gate/toolchain.json；Hub 只按 page/window/action/cli/docs 做薄适配。
+    /// 目录来自 scripts/gate/toolchain.json；Hub 只按 page/window/action/cli/docs 做薄适配，
+    /// hud 是运行内载体（只说明），平面筛选按清单 plane 字段过滤。
     /// </summary>
     public sealed class LiteGameToolboxWindow : EditorWindow
     {
         private const string PrefSelected = "LiteGame.Toolchain.Selected";
         private const double PollInterval = 0.5;
+
+        /// <summary>平面筛选：索引 0＝全部；其余与清单 plane 取值一一对应。</summary>
+        private static readonly string[] PlaneFilters =
+        {
+            string.Empty,
+            ToolchainPlanes.Editor,
+            ToolchainPlanes.Runtime,
+            ToolchainPlanes.External,
+            ToolchainPlanes.None,
+        };
+
+        private static readonly string[] PlaneFilterLabels = BuildPlaneFilterLabels();
+
+        private static string[] BuildPlaneFilterLabels()
+        {
+            var labels = new string[PlaneFilters.Length];
+            labels[0] = "全部平面";
+            for (int index = 1; index < labels.Length; index++)
+            {
+                labels[index] = ToolchainPlanes.Label(PlaneFilters[index]);
+            }
+            return labels;
+        }
 
         private EditorToolCatalog _catalog;
         private IEditorToolPage _page;
@@ -20,6 +44,7 @@ namespace LiteGame.Toolchain
         /// <summary>当前选中的工具 id（CLI/测试读取；选中行为本身由目录驱动）。</summary>
         public string SelectedToolId { get { return _selectedId; } }
         private string _search = string.Empty;
+        private int _planeIndex;
         private Vector2 _leftScroll;
         private Vector2 _rightScroll;
         private double _nextPoll;
@@ -156,6 +181,7 @@ namespace LiteGame.Toolchain
                     _search = string.Empty;
                 }
             }
+            _planeIndex = EditorGUILayout.Popup(_planeIndex, PlaneFilterLabels);
 
             _leftScroll = EditorGUILayout.BeginScrollView(_leftScroll);
             if (_catalog != null && _catalog.Errors.Count == 0)
@@ -164,7 +190,7 @@ namespace LiteGame.Toolchain
                 foreach (ToolchainCategory category in _catalog.Categories())
                 {
                     EditorToolDescriptor[] tools = _catalog.ToolsInCategory(category.id)
-                        .Where(descriptor => Matches(descriptor, query))
+                        .Where(descriptor => Matches(descriptor, query) && MatchesPlane(descriptor))
                         .ToArray();
                     if (tools.Length == 0) continue;
 
@@ -191,6 +217,12 @@ namespace LiteGame.Toolchain
             if (string.IsNullOrEmpty(query)) return true;
             string haystack = descriptor.Id + " " + descriptor.Title + " " + descriptor.Tool.summary;
             return haystack.IndexOf(query, System.StringComparison.OrdinalIgnoreCase) >= 0;
+        }
+
+        private bool MatchesPlane(EditorToolDescriptor descriptor)
+        {
+            string plane = PlaneFilters[_planeIndex];
+            return string.IsNullOrEmpty(plane) || descriptor.Plane == plane;
         }
 
         private void DrawContent()
@@ -228,7 +260,8 @@ namespace LiteGame.Toolchain
             EditorGUILayout.Space(2);
             EditorGUILayout.LabelField(descriptor.Title, EditorStyles.boldLabel);
             EditorGUILayout.LabelField(
-                descriptor.DisplayKind + "  ·  写入面 " + descriptor.WritesLabel + (descriptor.Tool.destructive ? "（破坏性）" : string.Empty),
+                descriptor.DisplayKind + "  ·  平面 " + descriptor.PlaneLabel + "（前置 " + descriptor.RequiresLabel + "）"
+                + "  ·  写入面 " + descriptor.WritesLabel + (descriptor.Tool.destructive ? "（破坏性）" : string.Empty),
                 EditorStyles.miniLabel);
             EditorGUILayout.HelpBox(descriptor.Tool.summary, MessageType.None);
 

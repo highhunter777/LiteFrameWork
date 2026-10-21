@@ -50,6 +50,16 @@ class CommonTests(unittest.TestCase):
         self.assertIn("[gate/test] FAILED: bad", err.getvalue())
         self.assertEqual(code, common.EXIT_FAIL)
 
+    def test_normalize_exit_maps_business_codes_to_failure(self):
+        common = load_common()
+        self.assertEqual(common.normalize_exit("gate/test", 0), 0)
+        self.assertEqual(common.normalize_exit("gate/test", 1), 1)
+        err = io.StringIO()
+        with contextlib.redirect_stderr(err):
+            self.assertEqual(common.normalize_exit("gate/test", 3), 1)
+        self.assertIn("exit", err.getvalue())
+        self.assertIn("3", err.getvalue())
+
     def test_configure_stdio_is_safe(self):
         common = load_common()
         common.configure_stdio()

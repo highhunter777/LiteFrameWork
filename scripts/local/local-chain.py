@@ -52,7 +52,7 @@ def get_config(env_file):
 def write_deploy_args(path, envelope_key, meta_url):
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(f"-envelope.key={envelope_key}\n-meta.url={meta_url}\n", encoding="utf-8")
-    info("local/chain", f"deploy.args written: {path} (editor/exe zero-arg startup)")
+    info("env/local-chain", f"deploy.args written: {path} (editor/exe zero-arg startup)")
 
 
 def start_console(title, root, inner):
@@ -65,7 +65,7 @@ def start_console(title, root, inner):
 
 def invoke_init(root, env_file, deploy_args, force):
     if env_file.is_file() and not force:
-        info("local/chain", "deploy/.env already exists (keep machine keys). Re-run with --force to regenerate.")
+        info("env/local-chain", "deploy/.env already exists (keep machine keys). Re-run with --force to regenerate.")
     else:
         lines = [
             "# machine-private local chain keys - never commit",
@@ -85,10 +85,10 @@ def invoke_init(root, env_file, deploy_args, force):
         ]
         env_file.parent.mkdir(parents=True, exist_ok=True)
         env_file.write_text("\r\n".join(lines) + "\r\n", encoding="utf-8", newline="")
-        info("local/chain", f"deploy/.env written: {env_file}")
+        info("env/local-chain", f"deploy/.env written: {env_file}")
     cfg = read_env(env_file)
     write_deploy_args(deploy_args, cfg.get("ENVELOPE_PSK", ""), cfg.get("META_URL", ""))
-    info("local/chain", "Full chain ready-to-run: local-chain.py up (needs local MongoDB)")
+    info("env/local-chain", "Full chain ready-to-run: local-chain.py up (needs local MongoDB)")
 
 
 def convert_meta_appsettings(cfg, out_path):
@@ -114,15 +114,15 @@ def convert_meta_appsettings(cfg, out_path):
 
 def invoke_meta(root, env_file, deploy_args):
     cfg = get_config(env_file)
-    info("local/chain", "building MetaServer...")
+    info("env/local-chain", "building MetaServer...")
     result = subprocess.run(["dotnet", "build", str(root / "Server/MetaServer/MetaServer.csproj"), "--nologo", "-v", "q"])
     if result.returncode != 0:
         raise RuntimeError(f"MetaServer build failed (exit {result.returncode})")
     convert_meta_appsettings(cfg, root / "Server/MetaServer/bin/Debug/net8.0/appsettings.json")
-    info("local/chain", "keys applied to bin appsettings.json")
-    info("local/chain", "persistence ON - make sure local MongoDB is running" if cfg.get("MONGO_CONNECTION") else "persistence OFF (Mongo empty in deploy/.env)")
+    info("env/local-chain", "keys applied to bin appsettings.json")
+    info("env/local-chain", "persistence ON - make sure local MongoDB is running" if cfg.get("MONGO_CONNECTION") else "persistence OFF (Mongo empty in deploy/.env)")
     start_console("MetaServer (local)", root, f'dotnet run --no-build --project Server\\MetaServer -- --bind {cfg.get("META_BIND", "")}')
-    info("local/chain", "MetaServer starting in new window")
+    info("env/local-chain", "MetaServer starting in new window")
 
 
 def invoke_room(root, env_file):
@@ -134,7 +134,7 @@ def invoke_room(root, env_file):
         f'--settlement-instance-key {cfg.get("SETTLEMENT_KEY", "")}'
     )
     start_console("RoomServer (local)", root, inner)
-    info("local/chain", "RoomServer starting in new window; with ticket key configured F9 join is rejected - use login page")
+    info("env/local-chain", "RoomServer starting in new window; with ticket key configured F9 join is rejected - use login page")
 
 
 def invoke_keys(cfg):
@@ -173,9 +173,10 @@ def tasklist(name):
 
 def invoke_status(root, env_file, deploy_args):
     cfg = get_config(env_file)
-    print("== shared identity ==")
+    info("env/local-chain", "status")
+    info("env/local-chain", "== shared identity ==")
     print(f"BuildHash (client+server, from BuildHash.g.cs) : {build_hash(root)}")
-    print("== MetaServer ==")
+    info("env/local-chain", "== MetaServer ==")
     bind = cfg.get("META_BIND", "")
     live = False
     try:
@@ -195,7 +196,7 @@ def invoke_status(root, env_file, deploy_args):
         print(f"Mongo        : {'TCP reachable' if tcp_reachable(host, port) else 'NOT reachable'}  [{host}:{port}]")
     else:
         print("Mongo        : persistence OFF (MongoConnectionString empty)")
-    print("== RoomServer ==")
+    info("env/local-chain", "== RoomServer ==")
     room_port = int(cfg.get("ROOM_PORT", "17777"))
     try:
         netstat = subprocess.run(["netstat", "-ano", "-p", "udp"], capture_output=True, text=True, encoding="utf-8", errors="replace").stdout
@@ -206,15 +207,25 @@ def invoke_status(root, env_file, deploy_args):
     print(f"process /UDP  : {room_state}  [UDP {room_port}]")
     print(f"envelope      : {'PSK set (secure channel on)' if cfg.get('ENVELOPE_PSK') else 'PSK MISSING - server would refuse to start'}")
     print(f"ticket gate   : {'ticket keys exist -> full chain (F9 test join REJECTED)' if cfg.get('LOBBY_TICKET_KEY') else 'no ticket keys -> F9 test join allowed (prototype)'}")
-    print("== client (baked) ==")
+    info("env/local-chain", "== client (baked) ==")
     if deploy_args.is_file():
         print("deploy.args   :")
         for line in deploy_args.read_text(encoding="utf-8", errors="replace").splitlines():
             print(f"  {line}")
     else:
         print("deploy.args   : not baked (run init)")
-    print("== keys ==")
+    info("env/local-chain", "== keys ==")
     invoke_keys(cfg)
+
+
+def show_usage():
+    info("env/local-chain", "Usage: local-chain.py <init|meta|room|up|status|keys> [--force]")
+    print("  init   write deploy/.env (5 keys) + editor deploy.args")
+    print("  meta   start MetaServer (keys from deploy/.env)")
+    print("  room   start RoomServer (keys from deploy/.env)")
+    print("  up     meta + room")
+    print("  status client/server environment overview")
+    print("  keys   masked key summary")
 
 
 def main(argv=None):
@@ -224,6 +235,9 @@ def main(argv=None):
     env_file = root / "deploy" / ".env"
     deploy_args = root / "Assets" / "StreamingAssets" / "deploy.args"
     try:
+        if not args.command:
+            show_usage()
+            return EXIT_OK
         if args.command == "init":
             invoke_init(root, env_file, deploy_args, args.force)
         elif args.command == "meta":
@@ -234,21 +248,17 @@ def main(argv=None):
             invoke_meta(root, env_file, deploy_args)
             invoke_room(root, env_file)
         elif args.command == "keys":
+            info("env/local-chain", "keys:")
             invoke_keys(get_config(env_file))
         elif args.command == "status":
             invoke_status(root, env_file, deploy_args)
         else:
-            print("[local/chain] Usage: local-chain.py <init|meta|room|up|status|keys> [--force]")
-            print("  init   write deploy/.env (5 keys) + editor deploy.args")
-            print("  meta   start MetaServer (keys from deploy/.env)")
-            print("  room   start RoomServer (keys from deploy/.env)")
-            print("  up     meta + room")
-            print("  status client/server environment overview")
-            print("  keys   masked key summary")
+            fail("env/local-chain", f"unknown command: {args.command}")
+            show_usage()
             return 2
         return EXIT_OK
     except RuntimeError as exc:
-        return fail("local/chain", str(exc))
+        return fail("env/local-chain", str(exc))
 
 
 if __name__ == "__main__":

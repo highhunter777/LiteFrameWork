@@ -12,7 +12,10 @@ import os
 import re
 import sys
 
-ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
+from _common import repo_root  # noqa: E402
+
+ROOT = str(repo_root())
 GUID_RE = re.compile(rb"guid:\s*([0-9a-fA-F]{32})")
 SCAN_EXT = (".unity", ".prefab", ".asset", ".mat", ".controller", ".anim",
             ".playable", ".overrideController", ".renderTexture", ".shadergraph")
@@ -63,8 +66,8 @@ def main(argv=None):
 
     present = collect_present()
     missing = collect_missing(present)
-    print("[quality/guids] assets with a guid: %d" % len(present))
-    print("[quality/guids] UNRESOLVED GUID references: %d" % len(missing))
+    print("[quality/scan-missing-guids] assets with a guid: %d" % len(present))
+    print("[quality/scan-missing-guids] UNRESOLVED GUID references: %d" % len(missing))
     for g in sorted(missing):
         owners = sorted(missing[g])
         print("  %s  <- %s" % (

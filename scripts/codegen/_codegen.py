@@ -2,7 +2,7 @@
 """Shared single source for the generator toolbox (scripts/codegen/*).
 
 Every generator here follows one form (see the generator toolbox design doc):
-  - repo root is derived from the script's own location, never from CWD;
+  - repo root comes from _common.repo_root(), the single implementation;
   - output goes through info/warn/fail with a `[codegen/<tool>]` prefix;
   - expected failures surface as ONE clean `[codegen/<tool>] FAILED: ...`
     line + exit code 1 -- never a traceback, never a silent no-op.
@@ -13,22 +13,28 @@ Import from each tool:  from _codegen import repo_root, info, warn, fail, run_to
 import os
 import sys
 
+SCRIPTS_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+if SCRIPTS_DIR not in sys.path:
+    sys.path.insert(0, SCRIPTS_DIR)
+
+from _common import fail as _fail, info as _info, repo_root as _repo_root, warn as _warn  # noqa: E402
+
 
 def repo_root():
-    """scripts/codegen -> repo root (works from any CWD; scripts/README convention)."""
-    return os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+    """scripts/codegen -> repo root, delegated to scripts/_common.py."""
+    return str(_repo_root())
 
 
 def info(tool, message):
-    print(f"[codegen/{tool}] {message}")
+    _info(f"codegen/{tool}", message)
 
 
 def warn(tool, message):
-    print(f"[codegen/{tool}] WARN: {message}")
+    _warn(f"codegen/{tool}", message)
 
 
 def fail(tool, message):
-    print(f"[codegen/{tool}] FAILED: {message}", file=sys.stderr)
+    return _fail(f"codegen/{tool}", message)
 
 
 def run_tool(tool, main):

@@ -111,7 +111,11 @@ def publish(source_dir, target_dir, extension):
             if extension != '.bytes':
                 with open(source, 'r', encoding='utf-8-sig', newline='') as f:
                     text = f.read().replace('\r\n', '\n').replace('\r', '\n')
-                if os.path.isfile(target) and '\r\n' in open(target, 'r', encoding='utf-8-sig', newline='').read():
+                target_has_crlf = False
+                if os.path.isfile(target):
+                    with open(target, 'r', encoding='utf-8-sig', newline='') as f:
+                        target_has_crlf = '\r\n' in f.read()
+                if target_has_crlf:
                     text = text.replace('\n', '\r\n')
                 with open(source, 'w', encoding='utf-8', newline='') as f:
                     f.write(text)

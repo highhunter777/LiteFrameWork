@@ -69,6 +69,9 @@ def _message(relative):
 
 
 def main():
+    if '-h' in sys.argv[1:] or '--help' in sys.argv[1:]:
+        print('usage: shared-source-reminder.py  (PostToolUse hook; JSON event on stdin)')
+        return 0
     configure_stdio()
     raw = sys.stdin.read()
     if not raw.strip():

@@ -13,7 +13,7 @@ from pathlib import Path
 from xml.sax.saxutils import escape
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
-from _common import EXIT_FAIL, EXIT_OK, configure_stdio, repo_root  # noqa: E402
+from _common import EXIT_FAIL, EXIT_OK, configure_stdio, info, repo_root  # noqa: E402
 
 
 def parse_args(argv=None):
@@ -23,7 +23,8 @@ def parse_args(argv=None):
     parser.add_argument("--script", default="")
     parser.add_argument("--time", default="03:00")
     parser.add_argument("--force", action="store_true")
-    parser.add_argument("--what-if", action="store_true")
+    parser.add_argument("--dry-run", "--what-if", dest="dry_run", action="store_true",
+                        help="print the task registration without writing it (alias: --what-if)")
     return parser.parse_args(argv)
 
 
@@ -77,32 +78,32 @@ def main(argv=None):
     project = Path(args.project_path).resolve() if args.project_path else repo_root()
     manifest_path = project / "scripts" / "gate" / "toolchain.json"
     if not manifest_path.is_file():
-        return fail("gate/install-nightly", f"toolchain manifest missing: {manifest_path}")
+        return fail("env/nightly-install", f"toolchain manifest missing: {manifest_path}")
     manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
     surface = next((item for item in manifest.get("surfaces", []) if item.get("id") == "nightly-task"), None)
     if not surface:
-        return fail("gate/install-nightly", "manifest has no nightly-task surface")
+        return fail("env/nightly-install", "manifest has no nightly-task surface")
 
     task_name = args.task_name or surface.get("name")
     script = args.script or surface.get("script")
     if not task_name or not script:
-        return fail("gate/install-nightly", "nightly-task surface needs name and script")
+        return fail("env/nightly-install", "nightly-task surface needs name and script")
     script_path = project / script
     if not script_path.is_file():
-        return fail("gate/install-nightly", f"nightly script missing: {script_path}")
+        return fail("env/nightly-install", f"nightly script missing: {script_path}")
     runner = surface.get("runner", "python")
     if runner != "python":
-        return fail("gate/install-nightly", f"manifest runner is {runner!r}, expected 'python'")
+        return fail("env/nightly-install", f"manifest runner is {runner!r}, expected 'python'")
     python = sys.executable
 
-    print(f"task:     {task_name}")
-    print(f"runner:   {python}")
-    print(f"script:   {script_path}")
-    print(f"trigger:  daily {args.time}")
-    print(f"user:     {os.environ.get('USERDOMAIN', '')}\\{getpass.getuser()} (Interactive/Limited)")
+    info("env/nightly-install", f"task:     {task_name}")
+    info("env/nightly-install", f"runner:   {python}")
+    info("env/nightly-install", f"script:   {script_path}")
+    info("env/nightly-install", f"trigger:  daily {args.time}")
+    info("env/nightly-install", f"user:     {os.environ.get('USERDOMAIN', '')}\\{getpass.getuser()} (Interactive/Limited)")
 
-    if args.what_if:
-        print("WhatIf: task registration skipped")
+    if args.dry_run:
+        info("env/nightly-install", "WhatIf: task registration skipped")
         return EXIT_OK
 
     xml_text = task_xml(project, script_path, python, args.time)
@@ -115,7 +116,7 @@ def main(argv=None):
             command.append("/F")
         result = subprocess.run(command, capture_output=True, text=True, encoding="gbk", errors="replace")
         if result.returncode != 0:
-            return fail("gate/install-nightly", f"schtasks create failed: {result.stdout}{result.stderr}")
+            return fail("env/nightly-install", f"schtasks create failed: {result.stdout}{result.stderr}")
         query = subprocess.run(
             ["schtasks", "/Query", "/TN", task_name, "/XML"],
             capture_output=True,
@@ -124,8 +125,8 @@ def main(argv=None):
             errors="replace",
         )
         if query.returncode != 0:
-            return fail("gate/install-nightly", f"schtasks query failed: {query.stdout}{query.stderr}")
-        print(f"registered: {task_name}")
+            return fail("env/nightly-install", f"schtasks query failed: {query.stdout}{query.stderr}")
+        info("env/nightly-install", f"registered: {task_name}")
         return EXIT_OK
     finally:
         xml_path.unlink(missing_ok=True)

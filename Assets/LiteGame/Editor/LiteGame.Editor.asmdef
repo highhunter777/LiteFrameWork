@@ -15,6 +15,7 @@
         "LiteGame.DevTool",
         "LiteGame.LuaBridge",
         "LiteClient.UI",
+        "LiteNet",
         "LiteSim.Core",
         "LiteSim.Core.Editor",
         "DisciplineScanner.Editor",

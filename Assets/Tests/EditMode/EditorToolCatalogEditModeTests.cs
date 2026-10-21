@@ -145,5 +145,55 @@ namespace LiteGame.Tests.EditMode
             Assert.That(ids.Distinct().Count(), Is.EqualTo(ids.Length), "工具 id 重复");
             Assert.That(handlers.Distinct().Count(), Is.EqualTo(handlers.Length), "handler 重复");
         }
+
+        [Test]
+        public void 清单_平面契约成立()
+        {
+            EditorToolCatalog catalog = EditorToolCatalog.Load();
+            foreach (ToolchainTool tool in catalog.Manifest.Tools)
+            {
+                Assert.That(ToolchainPlanes.IsValid(tool.plane), Is.True, tool.id + " plane 非法: " + tool.plane);
+                foreach (string requirement in tool.Requires)
+                {
+                    Assert.That(ToolchainPlanes.IsRequirement(requirement), Is.True,
+                        tool.id + " requires 非法: " + requirement);
+                }
+
+                if (tool.kind == ToolchainKinds.Docs)
+                {
+                    Assert.That(tool.plane, Is.EqualTo(ToolchainPlanes.None), tool.id + " docs 必须 plane=none");
+                }
+                if (tool.plane == ToolchainPlanes.Editor)
+                {
+                    Assert.That(tool.Requires, Is.Empty, tool.id + " plane=editor 不得声明 requires");
+                }
+                if (tool.plane == ToolchainPlanes.Runtime)
+                {
+                    Assert.That(tool.Requires.Any(ToolchainPlanes.IsRuntimeRequirement), Is.True,
+                        tool.id + " plane=runtime 必须声明 play/player");
+                }
+                if (tool.plane == ToolchainPlanes.External && tool.kind != ToolchainKinds.Page)
+                {
+                    Assert.That(tool.Command.Length, Is.GreaterThan(0), tool.id + " plane=external 缺少 command");
+                }
+            }
+        }
+
+        [Test]
+        public void 清单_运行内载体只做说明()
+        {
+            EditorToolCatalog catalog = EditorToolCatalog.Load();
+            EditorToolDescriptor devhud = catalog.Find("gm.devhud");
+            Assert.That(devhud, Is.Not.Null, "gm.devhud 未登记");
+            Assert.That(devhud.Kind, Is.EqualTo(ToolchainKinds.Hud));
+            Assert.That(devhud.Plane, Is.EqualTo(ToolchainPlanes.Runtime));
+            Assert.That(devhud.Tool.Requires, Is.Not.Empty);
+            Assert.That(devhud.IsEditorKind, Is.False, "hud 不是编辑器工具，不得走 Hub 适配");
+            Assert.That(devhud.Execute, Is.Null, "hud 不得有执行委托");
+            Assert.That(devhud.OpenWindow, Is.Null, "hud 不得有窗口委托");
+            IEditorToolPage page = devhud.CreatePage();
+            Assert.That(page, Is.Not.Null, "hud 必须有说明页件");
+            Assert.That(page.Title, Is.Not.Null);
+        }
     }
 }

@@ -42,9 +42,9 @@ class ManifestContractTests(unittest.TestCase):
             self.assertIn(field, manifest, f"manifest v2 field missing: {field}")
         return manifest
 
-    def test_manifest_has_v3_fields(self):
+    def test_manifest_has_v4_fields(self):
         manifest = self.load_v2()
-        self.assertEqual(manifest.get("schemaVersion"), 3)
+        self.assertEqual(manifest.get("schemaVersion"), 4)
         self.assertIsInstance(manifest.get("categories"), list)
         self.assertIsInstance(manifest.get("tools"), list)
         self.assertIsInstance(manifest.get("surfaces"), list)
@@ -68,7 +68,7 @@ class ManifestContractTests(unittest.TestCase):
             self.assertIn(tool.get("category"), category_ids, f"undeclared category on {tool.get('id')}")
 
     def test_kind_contract(self):
-        allowed = {"page", "window", "action", "cli", "gate", "build", "content", "docs"}
+        allowed = {"page", "window", "action", "hud", "cli", "gate", "build", "content", "docs"}
         manifest = self.load_v2()
         for tool in manifest["tools"]:
             kind = tool.get("kind")
@@ -80,6 +80,31 @@ class ManifestContractTests(unittest.TestCase):
                 self.assertTrue(tool.get("handler"), f"handler missing on {tool.get('id')}")
             if kind in {"cli", "gate", "build", "content"}:
                 self.assertTrue(tool.get("command"), f"command missing on {tool.get('id')}")
+
+    def test_plane_contract(self):
+        planes = {"editor", "runtime", "external", "none"}
+        requires = {"play", "player", "unity-batch"}
+        manifest = self.load_v2()
+        for tool in manifest["tools"]:
+            tool_id = tool.get("id")
+            plane = tool.get("plane")
+            declared = tool.get("requires") or []
+            kind = tool.get("kind")
+            self.assertIn(plane, planes, f"bad plane on {tool_id}: {plane}")
+            self.assertTrue(set(declared) <= requires, f"bad requires on {tool_id}: {declared}")
+            if kind == "docs":
+                self.assertEqual(plane, "none", f"{tool_id} docs must be plane=none")
+            if plane == "none":
+                self.assertEqual(kind, "docs", f"{tool_id} plane=none must be docs")
+            if plane == "editor":
+                self.assertEqual(declared, [], f"{tool_id} plane=editor cannot declare requires")
+            if plane == "runtime":
+                self.assertTrue(set(declared) & {"play", "player"}, f"{tool_id} runtime needs play/player")
+            if plane == "external" and kind != "page":
+                self.assertTrue(tool.get("command"), f"{tool_id} external needs a command")
+            if kind == "hud":
+                self.assertEqual(plane, "runtime", f"{tool_id} hud must be runtime")
+                self.assertTrue(set(declared) & {"play", "player"}, f"{tool_id} hud needs play/player")
 
     def test_docs_and_command_scripts_exist(self):
         manifest = self.load_v2()
@@ -278,6 +303,19 @@ class CliContractTests(unittest.TestCase):
         result = run_cli("open", "no.such.tool")
         self.assertNotEqual(result.returncode, 0)
 
+    def test_list_plane_filter(self):
+        result = run_cli("list", "--plane", "runtime")
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertIn("gm.devhud", result.stdout)
+        self.assertIn("gm.test-mode", result.stdout)
+        self.assertNotIn("baking.body", result.stdout)
+
+    def test_runtime_hud_is_neither_openable_nor_runnable(self):
+        for verb in ("open", "run"):
+            result = run_cli(verb, "gm.devhud")
+            self.assertNotEqual(result.returncode, 0, verb + ": " + result.stdout + result.stderr)
+            self.assertIn("runtime", result.stdout + result.stderr)
+
     def test_check_passes_on_repo_manifest(self):
         result = run_cli("check")
         self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
@@ -292,6 +330,7 @@ class CliContractTests(unittest.TestCase):
                 "title": "Fixture missing",
                 "category": manifest["categories"][0]["id"],
                 "kind": "cli",
+                "plane": "external",
                 "summary": "fixture",
                 "docs": "scripts/toolchain.py",
                 "command": [sys.executable, "scripts/no-such-tool.py"],
@@ -375,7 +414,7 @@ class ScriptFormManifestTests(unittest.TestCase):
             "deploy.wg-peer": "scripts/deploy/wg-peer.py",
             "env.local-chain": "scripts/local/local-chain.py",
             "quality.doc-lint": "scripts/gate/doc-lint.py",
-            "quality.scan-missing-guids": "scripts/content/scan_missing_guids.py",
+            "quality.scan-missing-guids": "scripts/content/scan-missing-guids.py",
         }
         for tool_id, script in expected.items():
             self.assertIn(tool_id, by_id, f"manifest missing {tool_id}")

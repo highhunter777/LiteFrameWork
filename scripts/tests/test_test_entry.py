@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 """Contracts for the Python gate test entry (P3a)."""
 
+import json
 import subprocess
 import sys
 import tempfile
@@ -44,11 +45,14 @@ class TestEntryTests(unittest.TestCase):
         result = self.run_test("--lane", "Doc")
         self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
         self.assertIn("doc-lint", result.stdout.lower())
+        summary = json.loads((ROOT / "TestResults" / "summary-doc.json").read_text(encoding="utf-8"))
+        self.assertEqual(summary["lane"], "Doc")
+        self.assertEqual(summary["status"], "pass")
 
     def test_discovery_contract_guard(self):
         self.require_script()
         with tempfile.TemporaryDirectory() as temp:
-            root = Path(temp)
+            root = Path(temp).resolve()
             (root / "Tests").mkdir()
             (root / "Tests" / "Bad.csproj").write_text("<Project />\n", encoding="utf-8")
             result = subprocess.run(
@@ -60,8 +64,11 @@ class TestEntryTests(unittest.TestCase):
                 errors="replace",
                 timeout=60,
             )
+            summary = json.loads((root / "TestResults" / "summary-l1.json").read_text(encoding="utf-8"))
         self.assertEqual(result.returncode, 1, result.stdout + result.stderr)
         self.assertIn("discovery contract", result.stdout + result.stderr)
+        self.assertEqual(summary["status"], "fail")
+        self.assertIn("discovery contract", summary["error"])
 
 
 if __name__ == "__main__":

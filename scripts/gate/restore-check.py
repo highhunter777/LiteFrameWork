@@ -17,7 +17,8 @@ from importlib import metadata
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
-from _common import EXIT_FAIL, EXIT_OK, configure_stdio, repo_root  # noqa: E402
+from _common import EXIT_FAIL, EXIT_OK, configure_stdio, info, repo_root  # noqa: E402
+from _unity_path import UnityPathError, resolve_unity_exe  # noqa: E402
 
 
 def package_version(name):
@@ -44,7 +45,7 @@ def main(argv=None):
     def miss(message):
         blocking.append(message)
 
-    print(f"Restore check | project: {project}")
+    info("env/restore", f"Restore check | project: {project}")
 
     # 1. Unity project settings & version
     toolchain_path = project / "scripts" / "gate" / "toolchain.json"
@@ -83,6 +84,12 @@ def main(argv=None):
             good("ProjectSettings complete")
     else:
         miss("ProjectVersion.txt missing: ProjectSettings/ is not in the repo and must be provided (see Docs guide)")
+
+    try:
+        editor, source = resolve_unity_exe(project)
+        good(f"Unity editor resolved: {editor} ({source})")
+    except UnityPathError as exc:
+        warn(f"Unity editor not resolved: {exc}")
 
     # 2. Dependency declarations
     manifest = project / "Packages" / "manifest.json"
@@ -228,10 +235,10 @@ def main(argv=None):
         for message in blocking:
             print(f"  [MISS] {message}")
         print("")
-        print(f"Restore check FAILED: {len(blocking)} blocking item(s) - fix the list above and re-run")
+        info("env/restore", f"Restore check FAILED: {len(blocking)} blocking item(s) - fix the list above and re-run")
         return EXIT_FAIL
     print("")
-    print("Restore check PASSED: workspace can open / run L1,L3 / proceed to build")
+    info("env/restore", "Restore check PASSED: workspace can open / run L1,L3 / proceed to build")
     return EXIT_OK
 
 

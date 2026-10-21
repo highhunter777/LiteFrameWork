@@ -11,6 +11,7 @@
 | `roomserver.container.json` | 容器形态房间服配置（挂载到 `/app/Config/roomserver.json`；advertise_host 云上改对外 IP） |
 | `Caddyfile` | HTTPS 反代（云 LB 证书形态的替代；需 DOMAIN） |
 | `.env.example` | 密钥/参数模板——复制为 `.env` 填值（`.env` 已 gitignore，**严禁入库/回显**） |
+| `remote_runner.py` | Windows 云主机执行 payload（`deploy-room.py` / `wg-peer.py` 自动上传；stdlib-only，见 10 手册 §2.1） |
 
 ## 本机/单机启动
 

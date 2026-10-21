@@ -67,6 +67,9 @@ namespace LiteGame.Toolchain
                     case ToolchainKinds.Docs:
                         descriptor.CreatePage = () => new DocsToolPage(descriptor);
                         break;
+                    case ToolchainKinds.Hud:
+                        descriptor.CreatePage = () => new HudToolPage(descriptor);
+                        break;
                     case ToolchainKinds.Cli:
                     case ToolchainKinds.Gate:
                     case ToolchainKinds.Build:

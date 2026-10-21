@@ -1,0 +1,109 @@
+{
+  "schemaVersion": 1,
+  "$comment": "云端 GM 通道的唯一契约源。改动作/字段先改本文件，再改 GmHttpListener/Editor 页/gm.py；L0 静态对账会拦住三方漂移。",
+  "owner": "Server/RoomServer/GmHttpListener.cs",
+  "transport": {
+    "method": "POST",
+    "keyHeader": "X-GM-Key",
+    "contentType": "application/json",
+    "bind": "运维可达地址（云上 10.8.0.1:9101，只绑隧道）"
+  },
+  "status": {
+    "200": "写面已入队（queued=true）或读面返回数据",
+    "400": "坏 JSON / 缺必填字段 / 非法文件名",
+    "401": "X-GM-Key 不匹配",
+    "404": "未知动作 / 诊断未启用",
+    "409": "房间状态拒绝（如对非隐藏房下发 rules）",
+    "413": "diag-fetch 文件超限"
+  },
+  "actions": [
+    {
+      "name": "rooms",
+      "path": "/gm/rooms",
+      "kind": "read",
+      "queued": false,
+      "request": [],
+      "response": {
+        "ok": "bool",
+        "rooms": [
+          { "room": "string", "phase": "int", "players": "int", "expected": "int", "map": "int" }
+        ]
+      }
+    },
+    {
+      "name": "diag-list",
+      "path": "/gm/diag-list",
+      "kind": "read",
+      "queued": false,
+      "request": [],
+      "response": {
+        "ok": "bool",
+        "files": [
+          { "name": "string", "bytes": "int", "lastWriteUtc": "string" }
+        ]
+      }
+    },
+    {
+      "name": "diag-fetch",
+      "path": "/gm/diag-fetch",
+      "kind": "read",
+      "queued": false,
+      "request": [
+        { "name": "file", "type": "string", "required": true }
+      ],
+      "response": { "contentType": "application/octet-stream" }
+    },
+    {
+      "name": "start",
+      "path": "/gm/start",
+      "kind": "write",
+      "queued": true,
+      "request": [
+        { "name": "room", "type": "string", "required": true }
+      ]
+    },
+    {
+      "name": "abort",
+      "path": "/gm/abort",
+      "kind": "write",
+      "queued": true,
+      "request": [
+        { "name": "room", "type": "string", "required": true }
+      ]
+    },
+    {
+      "name": "kick",
+      "path": "/gm/kick",
+      "kind": "write",
+      "queued": true,
+      "request": [
+        { "name": "room", "type": "string", "required": true },
+        { "name": "player", "type": "int", "required": true }
+      ]
+    },
+    {
+      "name": "rules",
+      "path": "/gm/rules",
+      "kind": "write",
+      "queued": true,
+      "request": [
+        { "name": "room", "type": "string", "required": false },
+        { "name": "flags", "type": "int", "required": false },
+        { "name": "noDeath", "type": "bool", "required": false },
+        { "name": "infiniteAmmo", "type": "bool", "required": false }
+      ],
+      "note": "flags 与 noDeath/infiniteAmmo 二选一；缺省 0。只对隐藏测试房生效"
+    },
+    {
+      "name": "settle-flush",
+      "path": "/gm/settle-flush",
+      "kind": "write",
+      "queued": true,
+      "request": []
+    }
+  ],
+  "success": {
+    "write": { "ok": "bool", "queued": "bool" },
+    "error": { "ok": "bool", "error": "string" }
+  }
+}

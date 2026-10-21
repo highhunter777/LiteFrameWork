@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""Shared SSH destination resolver (tunnel-first)."""
+"""Shared SSH destination resolver (tunnel-only; public requires explicit override)."""
 
 import os
 import re
@@ -29,7 +29,7 @@ def _reachable(host, port, timeout_ms):
 def resolve_ssh_host(
     tunnel_address="10.8.0.1",
     tunnel_port=22,
-    probe_timeout_ms=800,
+    probe_timeout_ms=3000,
     tunnel_alias="litegame-cloud-tunnel",
     public_alias="litegame-cloud",
 ):
@@ -39,11 +39,11 @@ def resolve_ssh_host(
         return explicit.strip()
 
     if not _reachable(tunnel_address, tunnel_port, probe_timeout_ms):
-        print(
-            f"[ssh] 隧道 {tunnel_address}:{tunnel_port} 不可达 → 回退公网别名 {public_alias}"
-            "（隧道未起时先看服务 WireGuardTunnel；公网 22 可能被安全组挡）"
+        raise RuntimeError(
+            f"WireGuard 隧道 {tunnel_address}:{tunnel_port} 不可达；公网 22 已关闭。"
+            "先检查本机 WireGuardTunnel 服务与云端 WireGuard 握手；"
+            f"破窗时显式设置 LITEGAME_SSH_HOST={public_alias}（需临时开放安全组 22）"
         )
-        return public_alias
 
     try:
         config = subprocess.run(
@@ -52,7 +52,9 @@ def resolve_ssh_host(
     except OSError:
         config = ""
     if re.search(rf"(?mi)^hostname\s+{re.escape(tunnel_address)}\s*$", config) is None:
-        print(f"[ssh] 隧道可达，但别名 {tunnel_alias} 未配置为 HostName {tunnel_address}——本次回退 {public_alias}")
-        return public_alias
+        raise RuntimeError(
+            f"隧道可达，但 SSH 别名 {tunnel_alias} 未配置为 HostName {tunnel_address}；"
+            "按 Docs/项目说明/10-Windows云主机部署.md §4.1 配置 ~/.ssh/config"
+        )
     print(f"[ssh] 隧道 {tunnel_address}:{tunnel_port} 可达 → 用别名 {tunnel_alias}")
     return tunnel_alias

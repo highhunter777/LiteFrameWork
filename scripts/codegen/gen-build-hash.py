@@ -22,14 +22,14 @@
 #   ② **行尾归一化**（CRLF/CR → LF）——否则不同机器 clone（git autocrlf）会算出不同 hash
 #   ③ 排除自身输出（BuildHash.g.cs）与 bin/obj/.dotnet/.meta
 #
-# Toolbox entry:  python scripts/codegen/toolbox.py build-hash [--check]
-# Direct entry:   python scripts/codegen/gen-build-hash.py [--check]
+# Toolbox entry:  python scripts/codegen/toolbox.py build-hash [--check | --check-shared]
+# Direct entry:   python scripts/codegen/gen-build-hash.py [--check | --check-shared]
 #
 # 两个模式（2026-10-07 起校验时点 = 构建前，开发期不校验——`BuildHashTests`/
 # `BuildHashSourceSet.g.cs` 随之退役，规则单源回归本脚本）：
 #   生成（默认）  python scripts/codegen/gen-build-hash.py
 #       改了 Sim/协议/表后重跑，产出 `Assets/LiteNet/Protocol/BuildHash.g.cs`；
-#       RoomServer 重建 + Unity 重编译把新常量各自烤进产物（refresh_hash.py 编排这三步）。
+#       RoomServer 重建 + Unity 重编译把新常量各自烤进产物（refresh-hash.py 编排这三步）。
 #       **同时产出第二个目标**（P1④）：`Server/MetaServer/Host/BuildHash.g.cs` = Meta 自身
 #       源集摘要（含源链接件）——取代旧的手写占位 "meta-0.0.0-unwired"；改 Meta 源码后同样重跑。
 #   校验 --check  python scripts/codegen/gen-build-hash.py --check
@@ -38,12 +38,16 @@
 #       只复算共享源集（握手红线）那一个——`scripts/build/build-player.py` 出包门禁步用它：
 #       Meta 是独立产物，Meta 常量陈旧不该拦客户端出包（Meta 常量把守点 = 发布 Meta 前跑 --check）。
 #       规则只有本脚本一份，复算与生成同源，不存在第二清单漂移的入口。
+import argparse
 import hashlib
 import os
 import re
 import sys
 
-ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from _codegen import info, repo_root  # noqa: E402
+
+ROOT = repo_root()
 SHARED_TARGETS = [
     'Assets/LiteSim/Core/Scripts',
     'Assets/LiteSim/Core/Systems',
@@ -197,10 +201,22 @@ def target_specs():
     ]
 
 
-def main():
-    argv = sys.argv[1:]
-    check_all = '--check' in argv
-    check_shared = '--check-shared' in argv      # 出包门禁用（只把守握手红线那一个）
+def parse_args(argv=None):
+    parser = argparse.ArgumentParser(
+        prog='gen-build-hash.py',
+        description='Recompute the two buildHash constants (shared handshake + Meta build identity).',
+    )
+    parser.add_argument('--check', action='store_true',
+                        help='recompute and compare both constants without writing')
+    parser.add_argument('--check-shared', action='store_true',
+                        help='only compare the shared source-set constant (build gate)')
+    return parser.parse_args(argv)
+
+
+def main(argv=None):
+    args = parse_args(argv)
+    check_all = args.check
+    check_shared = args.check_shared      # 出包门禁用（只把守握手红线那一个）
     specs = target_specs()
 
     if check_all or check_shared:
@@ -213,16 +229,16 @@ def main():
             current = read_baked_constant(out_file)
             rel = os.path.relpath(out_file, ROOT).replace('\\', '/')
             if current is None:
-                print('[codegen/build-hash] CHECK FAILED[%s]: %s missing or hash constant unreadable' % (label, rel))
+                info('build-hash', 'CHECK FAILED[%s]: %s missing or hash constant unreadable' % (label, rel))
                 failed = True
             elif current != value:
-                print('[codegen/build-hash] CHECK FAILED[%s]: %s stale - baked %s != recomputed %s'
-                      % (label, rel, current, value))
+                info('build-hash', 'CHECK FAILED[%s]: %s stale - baked %s != recomputed %s'
+                     % (label, rel, current, value))
                 failed = True
             else:
-                print('[codegen/build-hash] CHECK OK[%s]: %s = %s (%d files)' % (label, rel, value, len(files)))
+                info('build-hash', 'CHECK OK[%s]: %s = %s (%d files)' % (label, rel, value, len(files)))
         if failed:
-            print('  rerun: python scripts/codegen/gen-build-hash.py')
+            info('build-hash', 'rerun: python scripts/codegen/gen-build-hash.py')
             return 1
         return 0
 
@@ -232,7 +248,7 @@ def main():
         with open(out_file, 'w', encoding='utf-8', newline='\n') as f:
             f.write(template % value)
         rel = os.path.relpath(out_file, ROOT).replace('\\', '/')
-        print('[codegen/build-hash] %s written: %s = %s (%d files)' % (rel, label, value, len(files)))
+        info('build-hash', '%s written: %s = %s (%d files)' % (rel, label, value, len(files)))
     return 0
 
 
