@@ -40,5 +40,19 @@ namespace LiteGame.Tests.EditMode
         {
             Assert.IsNull(BattleDiagnostics.DescribeCurrent(), "无对局 = null（HUD 段/GM 页读数按空态隐藏）");
         }
+
+        [Test]
+        public void 扩展快照_回滚与快照年龄透传_GM两行口径不变()
+        {
+            var snapshot = new BattleDiagnostics.Snapshot(
+                ClientSessionPhase.Connected, NetworkQuality.None, 5,
+                "m1", 42, 1, 9, 0xABCDu, 7, 2, 3, 4);
+
+            Assert.AreEqual(7, snapshot.RollbackCount);
+            Assert.AreEqual(2, snapshot.DeferredRollbacks);
+            Assert.AreEqual(3, snapshot.InputLeadFrames);
+            Assert.AreEqual(4, snapshot.SnapshotAgeFrames);
+            Assert.AreEqual(2, BattleDiagnostics.DescribeLines(snapshot).Length, "GM 页仍用两行口径");
+        }
     }
 }

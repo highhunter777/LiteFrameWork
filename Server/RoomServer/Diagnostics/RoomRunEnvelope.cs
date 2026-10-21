@@ -286,6 +286,77 @@ namespace RoomServer.Diagnostics
         }
     }
 
+    /// <summary>
+    /// 权威世界快照 DTO（世界环的序列化形态）。只承载进 <see cref="SimChecksum"/> 口径的字段
+    /// （<see cref="SimWorldDiff"/> 的比对面）——Cmds/Events 帧内瞬态与分配器状态不进 checksum、
+    /// 不参与字段级 diff，故不序列化。数组直接复用 LiteSim 值类型（IncludeFields 序列化），
+    /// 字段集演进由 SimWorldDiffCoverageTests 的覆盖契约守卫（漏字段 = 位级往返测试红）。
+    /// </summary>
+    public sealed class RoomRunWorldDto
+    {
+        public int Frame { get; set; }
+        public ulong RngState { get; set; }
+        public uint[] AliveBitmap { get; set; }
+        public EntitySlot[] Entities { get; set; }
+        public WeaponRuntime[] Weapons { get; set; }
+        public ActionRuntime[] Actions { get; set; }
+        public StatusSlotData[] Status { get; set; }
+        public MatchBagSlot[] MatchBag { get; set; }
+        public int[] Resources { get; set; }
+        public ItemState[] Items { get; set; }
+        public ProjectileState[] Projectiles { get; set; }
+        public ZoneState[] Zones { get; set; }
+        public byte[] Globals { get; set; }
+        public byte[] CustomData { get; set; }
+        public MatchStateData Match { get; set; }
+
+        public static RoomRunWorldDto From(SimWorldState s)
+        {
+            if (s == null) throw new ArgumentNullException(nameof(s));
+            return new RoomRunWorldDto
+            {
+                Frame = s.Frame,
+                RngState = s.RngState,
+                AliveBitmap = (uint[])s.AliveBitmap.Clone(),
+                Entities = (EntitySlot[])s.Entities.Clone(),
+                Weapons = (WeaponRuntime[])s.Weapons.Clone(),
+                Actions = (ActionRuntime[])s.Actions.Clone(),
+                Status = (StatusSlotData[])s.Status.Clone(),
+                MatchBag = (MatchBagSlot[])s.MatchBag.Clone(),
+                Resources = (int[])s.Resources.Clone(),
+                Items = (ItemState[])s.Items.Clone(),
+                Projectiles = (ProjectileState[])s.Projectiles.Clone(),
+                Zones = (ZoneState[])s.Zones.Clone(),
+                Globals = (byte[])s.Globals.Clone(),
+                CustomData = (byte[])s.CustomData.Clone(),
+                Match = s.Match,
+            };
+        }
+
+        public SimWorldState ToWorld()
+        {
+            var s = new SimWorldState
+            {
+                Frame = Frame,
+                RngState = RngState,
+                Match = Match,
+            };
+            if (AliveBitmap != null) Array.Copy(AliveBitmap, s.AliveBitmap, Math.Min(AliveBitmap.Length, s.AliveBitmap.Length));
+            if (Entities != null) Array.Copy(Entities, s.Entities, Math.Min(Entities.Length, s.Entities.Length));
+            if (Weapons != null) Array.Copy(Weapons, s.Weapons, Math.Min(Weapons.Length, s.Weapons.Length));
+            if (Actions != null) Array.Copy(Actions, s.Actions, Math.Min(Actions.Length, s.Actions.Length));
+            if (Status != null) Array.Copy(Status, s.Status, Math.Min(Status.Length, s.Status.Length));
+            if (MatchBag != null) Array.Copy(MatchBag, s.MatchBag, Math.Min(MatchBag.Length, s.MatchBag.Length));
+            if (Resources != null) Array.Copy(Resources, s.Resources, Math.Min(Resources.Length, s.Resources.Length));
+            if (Items != null) Array.Copy(Items, s.Items, Math.Min(Items.Length, s.Items.Length));
+            if (Projectiles != null) Array.Copy(Projectiles, s.Projectiles, Math.Min(Projectiles.Length, s.Projectiles.Length));
+            if (Zones != null) Array.Copy(Zones, s.Zones, Math.Min(Zones.Length, s.Zones.Length));
+            if (Globals != null) Array.Copy(Globals, s.Globals, Math.Min(Globals.Length, s.Globals.Length));
+            if (CustomData != null) Array.Copy(CustomData, s.CustomData, Math.Min(CustomData.Length, s.CustomData.Length));
+            return s;
+        }
+    }
+
     public sealed class RoomRunRecordDto
     {
         public int FormatVersion { get; set; }
@@ -296,6 +367,15 @@ namespace RoomServer.Diagnostics
         public bool Truncated { get; set; }
         public List<RoomRunEventDto> Events { get; set; }
 
+        /// <summary>世界环容量（0/缺省 = 未启用；与 WorldRing/WorldRingFrames 成对）。</summary>
+        public int WorldRingCapacity { get; set; }
+
+        /// <summary>世界环有效槽的帧号（与 <see cref="WorldRing"/> 一一对应；空槽不序列化）。</summary>
+        public int[] WorldRingFrames { get; set; }
+
+        /// <summary>世界环有效槽的世界快照。</summary>
+        public RoomRunWorldDto[] WorldRing { get; set; }
+
         public static RoomRunRecordDto From(RoomRunRecord record)
         {
             if (record == null) throw new ArgumentNullException(nameof(record));
@@ -305,7 +385,8 @@ namespace RoomServer.Diagnostics
                 RoomRunEvent e = record.Events[i];
                 events.Add(RoomRunEventDto.From(in e));
             }
-            return new RoomRunRecordDto
+
+            RoomRunRecordDto dto = new RoomRunRecordDto
             {
                 FormatVersion = record.FormatVersion,
                 RoomId = record.RoomId,
@@ -315,13 +396,55 @@ namespace RoomServer.Diagnostics
                 Truncated = record.Truncated,
                 Events = events,
             };
+
+            if (record.HasWorlds)
+            {
+                SimWorldState[] ring = record.WorldRing;
+                int[] frames = record.WorldRingFrames;
+                var validFrames = new List<int>(frames.Length);
+                var worlds = new List<RoomRunWorldDto>(frames.Length);
+                for (int i = 0; i < frames.Length; i++)
+                {
+                    if (frames[i] < 0) continue;
+                    validFrames.Add(frames[i]);
+                    worlds.Add(RoomRunWorldDto.From(ring[i]));
+                }
+                dto.WorldRingCapacity = ring.Length;
+                dto.WorldRingFrames = validFrames.ToArray();
+                dto.WorldRing = worlds.ToArray();
+            }
+            return dto;
         }
 
         public RoomRunRecord ToRecord()
         {
             var events = new RoomRunEvent[Events?.Count ?? 0];
             for (int i = 0; i < events.Length; i++) events[i] = Events[i].ToEvent();
-            return new RoomRunRecord(FormatVersion, RoomId, MatchId, ExpectedPlayers, Seed, Truncated, events);
+
+            SimWorldState[] ring = null;
+            int[] ringFrames = null;
+            int capacity = WorldRingCapacity;
+            if (capacity > 0)
+            {
+                ring = new SimWorldState[capacity];
+                ringFrames = new int[capacity];
+                for (int i = 0; i < capacity; i++)
+                {
+                    ring[i] = new SimWorldState();
+                    ringFrames[i] = -1;
+                }
+                int count = Math.Min(WorldRingFrames?.Length ?? 0, WorldRing?.Length ?? 0);
+                for (int i = 0; i < count; i++)
+                {
+                    int frame = WorldRingFrames[i];
+                    if (frame < 0) continue;
+                    int slot = frame % capacity;
+                    WorldRing[i].ToWorld().CopyTo(ring[slot]);
+                    ringFrames[slot] = frame;
+                }
+            }
+            return new RoomRunRecord(FormatVersion, RoomId, MatchId, ExpectedPlayers, Seed, Truncated,
+                events, ring, ringFrames);
         }
     }
 

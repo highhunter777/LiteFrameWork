@@ -1,9 +1,14 @@
 using System;
 using System.Collections.Generic;
 using System.Globalization;
+using System.IO;
 using System.Text;
+using LiteClient;
 using LiteFramework;
+using LiteFramework.Diagnostics;
+using LiteNet.Diagnostics;
 using UnityEngine;
+using UnityEngine.SceneManagement;
 
 #if UNITY_EDITOR || DEVELOPMENT_BUILD || LITEFRAMEWORK_DEBUG
 namespace LiteGame
@@ -17,11 +22,15 @@ namespace LiteGame
     /// HUD 彻底不出现（本件为**代码创建**形态，直接命中）——故程序集独立为 `LiteGame.DevTool` +
     /// 三宏 `#if` 剥离。Player 里的剥离由三宏负责，不靠程序集边界。
     /// 自拉取模式：LiteGame.DevTool → LiteClient.Runtime 单向引用，HUD 在 Start 经
-    /// FindAnyObjectByType 拉 `GameEntry.Stats`（只读统计访问器，非解析入口）+ 场景组件型 IModuleStats 合并。
+    /// FindAnyObjectByType 拉 `GameEntry.Stats`（只读统计访问器，非解析入口）+ 场景组件型 IModuleStats 合并；
+    /// **场景加载后重扫**（对局场景里的 Animation/Lua 组件才进得来），每轮轮询剔除已销毁件。
     /// **各段渲染开关 = public 字段**（Inspector 可配 / 代码可改）：showStats /
     /// statToggles（单模块段 bool 开关）/ showNetDiag（联机诊断段——读口 <see cref="BattleDiagnostics"/>，
     /// 无对局整段不显示）/ showPerf（性能段——本机帧样本自算）/ showLogRecent / logRecentLines / showErrorsLine。
-    /// 0.25s 节流轮询：聚合单串、OnGUI 画一次；F1 总开关。</summary>
+    /// 0.25s 节流轮询：聚合单串，交 UI Toolkit `Label` 渲染（`DevHudUiToolkitHost`；字体不可用或
+    /// `renderWithUiToolkit=false` 时自动回退 IMGUI）；**帧采样与可见性解耦**（隐藏期间性能窗不冻结）。
+    /// 热键：F1 总开关 / F2 复制文本 / F3 日志级别过滤 / F4 仅本局 / F5 落现场包。
+    /// 日志行带关联上下文（会话/对局/帧/席位，见 <see cref="LogEntry"/>）；只读，不写运行态。</summary>
     public sealed class DevHUD : MonoBehaviour
     {
         /// <summary>单模块 stats 段开关（按 StatsName 一段一 bool，Inspector 直改；未列出的模块默认显示）。</summary>
@@ -56,23 +65,61 @@ namespace LiteGame
         [Tooltip("性能段（帧率/最差帧/长帧计数——本机帧样本自算，非对局数据）")]
         public bool showPerf = true;
 
-        private IReadOnlyList<IModuleStats> _stats;
-        private readonly Dictionary<string, string> _buffer = new Dictionary<string, string>(32);   // 全程复用，零容器分配
+        [Header("外观")]
+        [Tooltip("HUD 宽度（像素；运行时按屏幕宽夹取）")]
+        public int hudWidth = 480;
+        [Tooltip("字号（像素；8–28 夹取）")]
+        public int hudFontSize = 12;
+        [Tooltip("顶部偏移（像素；默认让开左上「开发」入口）")]
+        public int hudTop = 88;
+        [Tooltip("左偏移（像素；拖动状态行可改，持久化）")]
+        public int hudLeft = 8;
+        [Tooltip("DPI/字号缩放（0.5–3.0；只缩放字号）")]
+        [Range(0.5f, 3f)] public float hudScale = 1f;
+        [Tooltip("用 UI Toolkit 渲染（默认）；关闭则回退 IMGUI")]
+        public bool renderWithUiToolkit = true;
+
+        private static readonly string[] LevelFilterNames = { "全部", "警告+", "错误+" };
+
+        private readonly DevHudStatsDiscovery _discovery = new DevHudStatsDiscovery();
+        private readonly DevHudSectionOptions _sectionOptions = new DevHudSectionOptions();
+        private DevHudSectionSet _sectionSet;
+        private readonly HashSet<string> _collapsed = new HashSet<string>(StringComparer.Ordinal);
+        private readonly DevHudFilter _filter = new DevHudFilter();
+        private bool _filterMode;
+        private string _statusLine = "";
+        private readonly StringBuilder _sb = new StringBuilder(1024);                              // 复用，避免每轮 new
         private string _cache = "";
+        private bool _cacheDirty = true;
         private float _nextPoll;
         private bool _visible = true;
+        private int _logFilter;              // 0 全部 / 1 警告+ / 2 错误+
+        private bool _onlyCurrentMatch;
+        private string _toast = "";
+        private float _toastUntil;
 
-        /// <summary>长帧判定阈值（秒）：单帧超过即计入长帧——低于 10fps 的单帧是肉眼可察卡顿的经验线
-        ///（诊断口径，非玩法常量；只进显示面，不参与任何判定）。</summary>
-        private const float PerfLongFrameSeconds = 0.1f;
+        private GUIStyle _style;
+        private Vector2 _scroll;
+        private readonly GUIContent _content = new GUIContent();
+        private string _layoutCache;
+        private int _layoutWidth = -1;
+        private float _layoutHeight;
 
-        /// <summary>帧间隔环形样本窗：240 帧 ≈ 4s@60fps——均值/最差/长帧计数的统计面够用且上界可控。</summary>
-        private readonly float[] _frameTimes = new float[240];
-        private int _perfHead;
-        private int _perfCount;
+        private DiagnosticsBundleWriter _diagWriter;
+        private DevHudUiToolkitHost _ui;          // null = IMGUI 回退
+        private readonly DevHudPerfSampler _perf = new DevHudPerfSampler();
 
         /// <summary>总开关（编辑器 GM 面板投影位；F1 等效翻转——开发包 Player 无 GM 面板时 F1 即唯一入口）。</summary>
-        public bool Visible { get => _visible; set => _visible = value; }
+        public bool Visible
+        {
+            get => _visible;
+            set
+            {
+                _visible = value;
+                if (!value) ExitFilterMode(false);
+                if (_ui != null) _ui.Visible = value;
+            }
+        }
 
         private bool ShowSection(string statsName)
         {
@@ -81,93 +128,315 @@ namespace LiteGame
             return true;                                    // 未登记的模块默认显示
         }
 
+        private void Awake()
+        {
+            LoadPrefs();
+            _sectionOptions.ShowStat = ShowSection;
+            _sectionSet = new DevHudSectionSet(_discovery, _perf, _filter, _sectionOptions);
+        }
+
+        private void OnEnable() => SceneManager.sceneLoaded += OnSceneLoaded;
+        private void OnDisable() => SceneManager.sceneLoaded -= OnSceneLoaded;
+
         private void Start()
         {
-            // stats 两个来源合并：容器注册件（骨架）+ 场景组件型（LuaComponent 等 Unity 组件不进 DI，§3.2）。
-            // HUD 专用一次性扫描（Start 一次，非每帧）；按引用去重防双重展示。
-            var merged = new List<IModuleStats>();
-            var entry = FindAnyObjectByType<GameEntry>();
-            if (entry != null) merged.AddRange(entry.Stats);
-            foreach (var comp in FindObjectsByType<MonoBehaviour>(FindObjectsInactive.Exclude, FindObjectsSortMode.None))
-                if (comp is IModuleStats s && !merged.Contains(s)) merged.Add(s);
-            _stats = merged;
+            _discovery.Rebuild();
+            if (!renderWithUiToolkit) return;
+            try
+            {
+                _ui = new DevHudUiToolkitHost(transform);
+                _ui.Visible = _visible;
+            }
+            catch (Exception ex)
+            {
+                _ui = null;   // 失败回退 IMGUI（不能因为渲染后端装不上就没有 HUD）
+                Log.Warning("DevHUD UI Toolkit 初始化失败，回退 IMGUI: " + ex.Message, LogTag.None);
+            }
+        }
+
+        private void OnDestroy()
+        {
+            SavePrefs();
+            DevHotkey.SetTextInputActive(false);
+            _perf.Dispose();
+            _ui?.Dispose();
+            _ui = null;
+        }
+
+        private void OnSceneLoaded(Scene scene, LoadSceneMode mode)
+        {
+            _discovery.Rebuild();
+            _sectionSet?.InvalidateStats();
         }
 
         private void Update()
         {
-            if (!_visible) return;
-            SampleFrameTime();                             // 逐帧采样（长帧计数依赖连续样本——节流只管渲染聚合）
-            if (_stats == null || Time.unscaledTime < _nextPoll) return;
+            _perf.SampleFrame(Time.unscaledDeltaTime);     // 采样与可见性解耦：隐藏期间性能窗不冻结
+            _sectionSet.SampleNet();
+            if (!_visible || Time.unscaledTime < _nextPoll) return;
             _nextPoll = Time.unscaledTime + 0.25f;
+            _discovery.Prune();
 
-            var sb = new StringBuilder(256);
-            if (showErrorsLine && Log.ErrorCount > 0) sb.AppendLine($"── ⚠ Errors: {Log.ErrorCount} ──");
-            if (showNetDiag)
+            float started = Time.realtimeSinceStartup;
+            BuildSections();
+            float sampleMs = (float)((Time.realtimeSinceStartupAsDouble - started) * 1000.0);
+            _perf.HudBuildMs = _perf.HudBuildMs <= 0f ? sampleMs : Mathf.Lerp(_perf.HudBuildMs, sampleMs, 0.2f);
+        }
+
+        private void BuildSections()
+        {
+            _statusLine = BuildStatusLine();
+            _sectionOptions.ShowErrors = showErrorsLine;
+            _sectionOptions.ShowNet = showNetDiag;
+            _sectionOptions.ShowPerf = showPerf;
+            _sectionOptions.ShowStats = showStats;
+            _sectionOptions.ShowLogRecent = showLogRecent;
+            _sectionOptions.LogRecentLines = logRecentLines;
+            _sectionOptions.LogFilter = _logFilter;
+            _sectionOptions.OnlyCurrentMatch = _onlyCurrentMatch;
+            _sectionSet.Build();
+
+            _cacheDirty = true;
+            if (_ui == null)
             {
-                string[] netDiag = BattleDiagnostics.DescribeCurrent();
-                if (netDiag != null)                       // 无对局整段不显示（不显示陈旧值）
-                {
-                    sb.AppendLine("── 联机诊断 ──");
-                    foreach (string line in netDiag) sb.AppendLine("  " + line);
-                }
+                _cache = BuildPlainText(_statusLine);      // IMGUI 回退每轮要整串
+                _cacheDirty = false;
             }
-            if (showPerf && _perfCount > 0)
+            if (_ui != null)
+                _ui.Render(_statusLine, _sectionSet.Data, hudWidth, hudFontSize, hudLeft, hudTop, hudScale,
+                    _collapsed, OnSectionToggle, OnHudMoved);
+        }
+
+        /// <summary>F2 复制需要整串；UITK 后端下按需构建，避免每 0.25s 白拼一份大字符串。</summary>
+        private string CacheText()
+        {
+            if (_cacheDirty)
             {
-                float sum = 0f, worst = 0f;
-                int longFrames = 0;
-                for (int i = 0; i < _perfCount; i++)      // 环形样本全量统计（顺序无关：求和/最差/计数）
-                {
-                    float dt = _frameTimes[i];
-                    sum += dt;
-                    if (dt > worst) worst = dt;
-                    if (dt > PerfLongFrameSeconds) longFrames++;
-                }
-                sb.AppendLine(string.Format(CultureInfo.InvariantCulture,
-                    "── 性能 ──\n  FPS: {0:0}  最差帧: {1:0} ms  长帧(>{2:0} ms): {3}",
-                    _perfCount / sum, worst * 1000f, PerfLongFrameSeconds * 1000f, longFrames));
+                _cache = BuildPlainText(_statusLine);
+                _cacheDirty = false;
             }
-            if (showStats)
+            return _cache;
+        }
+
+        private string BuildStatusLine()
+        {
+            _sb.Clear();
+            if (_filterMode)
+                _sb.Append("过滤模式：输入文本或 @tag · Enter 应用 · Esc 清除 · F7 退出");
+            else
+                _sb.Append("F1 隐藏 · F2 复制 · F3 级别 · F4 本局 · F5 现场包 · F6 JSON · F7 过滤 · 拖状态行移动");
+            if (_filter.Raw.Length > 0) _sb.Append(" · 过滤=\"").Append(_filter.Raw).Append('"');
+            if (_logFilter != 0) _sb.Append(" · 级别=").Append(LevelFilterNames[_logFilter]);
+            if (_onlyCurrentMatch) _sb.Append(" · 仅本局");
+            return _sb.ToString();
+        }
+
+        private string BuildPlainText(string status)
+        {
+            _sb.Clear();
+            _sb.Append(status).Append('\n');
+            for (int i = 0; i < _sectionSet.Data.Count; i++)
             {
-                foreach (var s in _stats)
-                {
-                    if (!ShowSection(s.StatsName)) continue;    // 单模块 bool 开关（"各部分可选"）
-                    s.Snapshot(_buffer);                    // 实现 Clear + 填（契约），HUD 不清
-                    sb.AppendLine($"── {s.StatsName} ──");
-                    foreach (var kv in _buffer) sb.AppendLine($"  {kv.Key}: {kv.Value}");
-                }
+                DevHudSectionData data = _sectionSet.Data[i];
+                if (!data.Visible) continue;
+                _sb.Append("── ").Append(data.Title).Append(" ──\n");
+                for (int j = 0; j < data.Lines.Count; j++)
+                    _sb.Append(data.Lines[j].Text).Append('\n');
             }
-            // Log Recent 尾巴（手册步骤 8：最近 32 条环缓冲的可见尾部）
-            if (showLogRecent)
+            return _sb.ToString();
+        }
+
+        private void ToggleFilterMode()
+        {
+            _filterMode = !_filterMode;
+            DevHotkey.SetTextInputActive(_filterMode);
+            Toast(_filterMode ? "过滤模式：输入文本或 @tag" : "退出过滤模式");
+        }
+
+        private void ExitFilterMode(bool clear)
+        {
+            _filterMode = false;
+            DevHotkey.SetTextInputActive(false);
+            if (clear) _filter.Clear();
+            SavePrefs();
+        }
+
+        private void HandleFilterInput()
+        {
+            string typed = DevHotkey.TakeTypedText();
+            if (typed.Length > 0) _filter.Append(typed);
+
+            if (DevHotkey.Pressed(DevKey.Backspace)) _filter.Backspace();
+
+            if (DevHotkey.Pressed(DevKey.Enter))
             {
-                var recent = Log.Recent;                    // index 0 = 最旧，零分配读
-                if (recent.Count > 0)
-                {
-                    sb.AppendLine("── Log Recent ──");
-                    int take = Mathf.Clamp(logRecentLines, 1, 32);
-                    for (int i = recent.Count > take ? recent.Count - take : 0; i < recent.Count; i++)
-                    {
-                        var e = recent[i];
-                        sb.AppendLine($"{(e.Level == LiteFramework.LogLevel.Error ? "✗" : e.Level == LiteFramework.LogLevel.Warning ? "⚠" : "·")}{(e.Tag != LogTag.None ? $"[{Log.TagName(e.Tag)}]" : "")} {e.Message}");
-                    }
-                }
+                ExitFilterMode(false);
+                Toast("过滤: " + (_filter.Raw.Length == 0 ? "(无)" : _filter.Raw));
             }
-            _cache = sb.ToString();
+            else if (DevHotkey.Pressed(DevKey.Escape))
+            {
+                ExitFilterMode(true);
+                Toast("过滤已清除");
+            }
+        }
+
+        private void LoadPrefs()
+        {
+            if (DevHudPrefs.Has("width")) hudWidth = DevHudPrefs.GetInt("width", hudWidth);
+            if (DevHudPrefs.Has("font")) hudFontSize = DevHudPrefs.GetInt("font", hudFontSize);
+            if (DevHudPrefs.Has("left")) hudLeft = DevHudPrefs.GetInt("left", hudLeft);
+            if (DevHudPrefs.Has("top")) hudTop = DevHudPrefs.GetInt("top", hudTop);
+            if (DevHudPrefs.Has("scale")) hudScale = DevHudPrefs.GetFloat("scale", hudScale);
+            if (DevHudPrefs.Has("logFilter")) _logFilter = DevHudPrefs.GetInt("logFilter", _logFilter);
+            if (DevHudPrefs.Has("onlyMatch")) _onlyCurrentMatch = DevHudPrefs.GetInt("onlyMatch", 0) != 0;
+            if (DevHudPrefs.Has("filter"))
+                _filter.Set(DevHudPrefs.GetString("filter", ""));
+            if (DevHudPrefs.Has("collapsed"))
+            {
+                foreach (string title in DevHudPrefs.GetString("collapsed", "").Split('|'))
+                    if (title.Length > 0) _collapsed.Add(title);
+            }
+        }
+
+        private void SavePrefs()
+        {
+            DevHudPrefs.SetInt("width", hudWidth);
+            DevHudPrefs.SetInt("font", hudFontSize);
+            DevHudPrefs.SetInt("left", hudLeft);
+            DevHudPrefs.SetInt("top", hudTop);
+            DevHudPrefs.SetFloat("scale", hudScale);
+            DevHudPrefs.SetInt("logFilter", _logFilter);
+            DevHudPrefs.SetInt("onlyMatch", _onlyCurrentMatch ? 1 : 0);
+            DevHudPrefs.SetString("filter", _filter.Raw);
+            DevHudPrefs.SetString("collapsed", string.Join("|", _collapsed));
+        }
+
+        private void OnSectionToggle(string title)
+        {
+            if (!_collapsed.Add(title)) _collapsed.Remove(title);
+            SavePrefs();
+        }
+
+        private void OnHudMoved(int left, int top)
+        {
+            hudLeft = left;
+            hudTop = top;
+            SavePrefs();
+        }
+
+        /// <summary>导出当前读数（含段/行/色调/过滤/后端）为 JSON；脚本可直接消费。</summary>
+        private void ExportJson()
+        {
+            try
+            {
+                var ctx = new DevHudExportContext
+                {
+                    Session = Log.CurrentSessionId,
+                    Backend = _ui != null ? "uitk" : "imgui",
+                    Visible = _visible,
+                    Left = hudLeft,
+                    Top = hudTop,
+                    Width = hudWidth,
+                    Font = hudFontSize,
+                    Scale = hudScale,
+                    LogFilter = _logFilter,
+                    OnlyMatch = _onlyCurrentMatch,
+                    FilterRaw = _filter.Raw,
+                    FilterNeedle = _filter.Needle,
+                    FilterTags = _filter.Tags,
+                    Sections = _sectionSet.Data
+                };
+                string path = DevHudJsonExporter.Export(ctx);
+                Toast("已导出 JSON: " + path);
+            }
+            catch (Exception ex)
+            {
+                Toast("导出失败: " + ex.Message);
+            }
+        }
+
+        private void CopyToClipboard()
+        {
+            GUIUtility.systemCopyBuffer = CacheText();
+            Toast("已复制 HUD 文本");
+        }
+
+        /// <summary>把当前可见读数落成一份现场包（与 mismatch/异常同目录、同信封；reason=hud-snapshot）。</summary>
+        private void DumpBundle()
+        {
+            BattleContext context = BattleDiagnostics.Current;
+            if (context == null) { Toast("无对局上下文，未落盘"); return; }
+            try
+            {
+                BattleDiagnostics.Snapshot snapshot = BattleDiagnostics.Take(context);
+                _diagWriter ??= new DiagnosticsBundleWriter(
+                    Path.Combine(Application.persistentDataPath, "diagnostics"));
+                string path = ClientDiagnosticsBundle.Capture(_diagWriter, "hud-snapshot", snapshot.MatchId,
+                    snapshot.Frame, snapshot.LocalEntityId, (int)Math.Min(snapshot.ReconcileCount, int.MaxValue),
+                    snapshot.ConfigDigest);
+                Toast(path != null ? "已落盘: " + path : "未写出（限频/IO）");
+            }
+            catch (Exception ex) { Toast("落盘失败: " + ex.Message); }
+        }
+
+        private void Toast(string text)
+        {
+            _toast = text;
+            _toastUntil = Time.unscaledTime + 2.5f;
+            if (_ui != null) _ui.ShowToast(text);
         }
 
         private void OnGUI()
         {
+            if (_ui != null) return;                    // UI Toolkit 后端接管绘制
             if (!_visible || string.IsNullOrEmpty(_cache)) return;
-            GUI.Label(new Rect(8, 8, 480, Screen.height - 16), _cache);   // 仅电脑测试用——不做刘海屏适配（设计方案 §1.3 豁免）
+            if (_style == null)
+                _style = new GUIStyle(GUI.skin.label) { wordWrap = true, richText = false };
+            _style.fontSize = Mathf.Clamp(hudFontSize, 8, 28);
+            _style.normal.textColor = Color.white;
+            _content.text = _cache;
+
+            float width = Mathf.Clamp(hudWidth, 240, Mathf.Max(240, Screen.width - 16));
+            float left = Mathf.Clamp(hudLeft, 0, Mathf.Max(0, Screen.width - width));
+            float top = Mathf.Clamp(hudTop, 0, Mathf.Max(0, Screen.height - 80));
+            if (!ReferenceEquals(_layoutCache, _cache) || _layoutWidth != (int)width)
+            {
+                _layoutCache = _cache;
+                _layoutWidth = (int)width;
+                _layoutHeight = _style.CalcHeight(_content, width);
+            }
+            float viewHeight = Mathf.Min(_layoutHeight + 8f, Screen.height - top - 8f);
+            var view = new Rect(left, top, width, viewHeight);
+            _scroll = GUI.BeginScrollView(view, _scroll, new Rect(0f, 0f, width - 20f, _layoutHeight));
+            GUI.Label(new Rect(0f, 0f, width - 20f, _layoutHeight), _content, _style);
+            GUI.EndScrollView();
+
+            if (!string.IsNullOrEmpty(_toast) && Time.unscaledTime < _toastUntil)
+                GUI.Label(new Rect(left + 4f, top + viewHeight + 4f, width, 24f), _toast, _style);
         }
 
-        private void SampleFrameTime()
+        private void LateUpdate()
         {
-            _frameTimes[_perfHead] = Time.unscaledDeltaTime;
-            _perfHead = (_perfHead + 1) % _frameTimes.Length;
-            if (_perfCount < _frameTimes.Length) _perfCount++;
-        }
+            if (DevHotkey.Pressed(DevKey.F1))
+            {
+                Visible = !Visible;
+                if (!_visible) return;
+            }
+            if (!_visible) return;
 
-        private void LateUpdate() { if (Input.GetKeyDown(KeyCode.F1)) _visible = !_visible; }
+            if (DevHotkey.Pressed(DevKey.F7)) ToggleFilterMode();
+            if (_filterMode)
+            {
+                HandleFilterInput();
+                return;
+            }
+
+            if (DevHotkey.Pressed(DevKey.F2)) CopyToClipboard();
+            else if (DevHotkey.Pressed(DevKey.F3)) { _logFilter = (_logFilter + 1) % LevelFilterNames.Length; SavePrefs(); }
+            else if (DevHotkey.Pressed(DevKey.F4)) { _onlyCurrentMatch = !_onlyCurrentMatch; SavePrefs(); }
+            else if (DevHotkey.Pressed(DevKey.F5)) DumpBundle();
+            else if (DevHotkey.Pressed(DevKey.F6)) ExportJson();
+        }
     }
 
     /// <summary>HUD 自创建入口（场景加载后；幂等）。release 构建随外层 #if 整体剥离。</summary>

@@ -177,6 +177,10 @@ namespace RoomServer.Runtime.Diagnostics
     /// <summary>
     /// 一局权威房间的完整重放记录：房间/对局身份 + Seed + 有序命令/步进/规则事件。
     /// 不含构建/表/地图身份（那是宿主信封的职责）；不参与 Sim 判定，只在房间静默后取走。
+    ///
+    /// 世界存档环（可选）：录制器按帧深拷权威世界（<see cref="SimWorldState.CopyTo"/>，容量有界），
+    /// 让重放器在分歧帧能产出 <see cref="SimWorldDiff"/> 字段级报告——否则只有帧号与 checksum。
+    /// 分歧帧早于窗口（环已覆盖）时只有帧号，与 SimRunRecord.BeginWithWorlds 同一取舍。
     /// </summary>
     public sealed class RoomRunRecord
     {
@@ -194,13 +198,52 @@ namespace RoomServer.Runtime.Diagnostics
         public int TestRuleEventCount { get; }
         public int LastRecordedFrame { get; }
 
+        /// <summary>世界存档环（null = 未启用；封印时录制器所有权移交——封印后不再覆写）。</summary>
+        private readonly SimWorldState[] _worldRing;
+
+        /// <summary>环内每槽对应的帧号（-1 = 空）。</summary>
+        private readonly int[] _worldRingFrames;
+
+        /// <summary>是否携带世界存档环（false = 重放分歧只有帧号，给不出字段级报告）。</summary>
+        public bool HasWorlds => _worldRing != null;
+
+        /// <summary>世界存档环容量（0 = 未启用）。</summary>
+        public int WorldRingCapacity => _worldRing?.Length ?? 0;
+
+        /// <summary>世界环（信封层序列化用；零拷贝返回内部对象——调用方不得改写）。</summary>
+        public SimWorldState[] WorldRing => _worldRing;
+
+        /// <summary>世界环各槽帧号（同上；与 <see cref="WorldRing"/> 等长成对）。</summary>
+        public int[] WorldRingFrames => _worldRingFrames;
+
+        /// <summary>
+        /// 取某帧的世界存档（录制点 = RecordStep 时刻的权威世界）。未启用 / 已被环覆盖 → false。
+        /// 返回内部对象（零拷贝）——只读。
+        /// </summary>
+        public bool TryGetWorld(int frame, out SimWorldState world)
+        {
+            world = null;
+            if (_worldRing == null || frame < 0) return false;
+
+            int slot = frame % _worldRing.Length;
+            if (_worldRingFrames[slot] != frame) return false;
+            world = _worldRing[slot];
+            return true;
+        }
+
         public RoomRunRecord(int formatVersion, string roomId, string matchId, int expectedPlayers,
-            ulong seed, bool truncated, IReadOnlyList<RoomRunEvent> events)
+            ulong seed, bool truncated, IReadOnlyList<RoomRunEvent> events,
+            SimWorldState[] worldRing = null, int[] worldRingFrames = null)
         {
             if (formatVersion <= 0) throw new ArgumentOutOfRangeException(nameof(formatVersion));
             if (string.IsNullOrEmpty(roomId)) throw new ArgumentException("roomId 必填", nameof(roomId));
             if (string.IsNullOrEmpty(matchId)) throw new ArgumentException("matchId 必填", nameof(matchId));
             if (expectedPlayers <= 0) throw new ArgumentOutOfRangeException(nameof(expectedPlayers));
+            if (worldRing != null || worldRingFrames != null)
+            {
+                if (worldRing == null || worldRingFrames == null || worldRing.Length != worldRingFrames.Length)
+                    throw new ArgumentException("世界环数组必须成对出现且等长", nameof(worldRing));
+            }
 
             FormatVersion = formatVersion;
             RoomId = roomId;
@@ -209,6 +252,8 @@ namespace RoomServer.Runtime.Diagnostics
             Seed = seed;
             Truncated = truncated;
             Events = events ?? Array.Empty<RoomRunEvent>();
+            _worldRing = worldRing;
+            _worldRingFrames = worldRingFrames;
 
             int commands = 0, steps = 0, testRules = 0, lastFrame = -1;
             for (int i = 0; i < Events.Count; i++)

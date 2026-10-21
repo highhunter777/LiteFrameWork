@@ -92,6 +92,9 @@ namespace LiteFramework.Diagnostics
                 File.WriteAllText(Path.Combine(dir, "log-recent.txt"), recent);
                 File.WriteAllText(Path.Combine(dir, "player-log-tail.txt"), playerTail);
                 File.WriteAllText(Path.Combine(dir, "mismatch.json"), BuildMismatchJson(request, now));
+                // 附加上下文（如托管异常文案+堆栈尾）：只在调用方给了才落件——文件清单同步
+                if (!string.IsNullOrEmpty(request.ExtraJson))
+                    File.WriteAllText(Path.Combine(dir, "extra.txt"), request.ExtraJson);
                 File.WriteAllText(Path.Combine(dir, "manifest.json"), BuildManifestJson(request, now));
                 return dir;
             }
@@ -163,7 +166,9 @@ namespace LiteFramework.Diagnostics
             AppendNumber(sb, "configDigest", request.ConfigDigest);
             AppendString(sb, "platform", request.Platform);
             AppendString(sb, "appVersion", request.AppVersion);
-            AppendString(sb, "files", "manifest.json,log-recent.txt,player-log-tail.txt,mismatch.json");
+            AppendString(sb, "files", string.IsNullOrEmpty(request.ExtraJson)
+                ? "manifest.json,log-recent.txt,player-log-tail.txt,mismatch.json"
+                : "manifest.json,log-recent.txt,player-log-tail.txt,mismatch.json,extra.txt");
             sb.Append('}');
             return sb.ToString();
         }

@@ -269,22 +269,27 @@ namespace RoomServer
         }
 
         public RoomInstance(RoomConfig config, CombatValues? combat = null, WeaponTable weapons = null,
-            uint gameplayDigestBase = 0, RoomDiagnosticsOptions diagnostics = null)
-            : this(config, DefaultMailboxCapacity, false, combat, weapons, gameplayDigestBase, diagnostics)
+            uint gameplayDigestBase = 0, RoomDiagnosticsOptions diagnostics = null,
+            RoomDiagnosticsService diagnosticsService = null)
+            : this(config, DefaultMailboxCapacity, false, combat, weapons, gameplayDigestBase,
+                diagnostics, diagnosticsService)
         {
         }
 
         /// <summary>以统一容量创建房间 Mailbox；三条 lane 各自拥有该容量。</summary>
         public RoomInstance(RoomConfig config, int mailboxCapacity, CombatValues? combat = null, WeaponTable weapons = null,
-            uint gameplayDigestBase = 0, RoomDiagnosticsOptions diagnostics = null)
-            : this(config, mailboxCapacity, false, combat, weapons, gameplayDigestBase, diagnostics)
+            uint gameplayDigestBase = 0, RoomDiagnosticsOptions diagnostics = null,
+            RoomDiagnosticsService diagnosticsService = null)
+            : this(config, mailboxCapacity, false, combat, weapons, gameplayDigestBase,
+                diagnostics, diagnosticsService)
         {
         }
 
         public RoomInstance(RoomConfig config, int mailboxCapacity, bool isDynamic, CombatValues? combat = null,
-            WeaponTable weapons = null, uint gameplayDigestBase = 0, RoomDiagnosticsOptions diagnostics = null)
+            WeaponTable weapons = null, uint gameplayDigestBase = 0, RoomDiagnosticsOptions diagnostics = null,
+            RoomDiagnosticsService diagnosticsService = null)
             : this(config, mailboxCapacity, mailboxCapacity, mailboxCapacity, isDynamic, combat, weapons,
-                gameplayDigestBase, diagnostics)
+                gameplayDigestBase, diagnostics, diagnosticsService)
         {
         }
 
@@ -301,17 +306,19 @@ namespace RoomServer
         }
 
         public RoomInstance(RoomConfig config, int inputCapacity, int controlCapacity, int outboundCapacity,
-            bool isDynamic, CombatValues? combat = null, WeaponTable weapons = null, uint gameplayDigestBase = 0,
-            RoomDiagnosticsOptions diagnostics = null)
+            bool isDynamic, CombatValues? combat = null, WeaponTable weapons = null,
+            uint gameplayDigestBase = 0, RoomDiagnosticsOptions diagnostics = null,
+            RoomDiagnosticsService diagnosticsService = null)
             : this(config, inputCapacity, controlCapacity, outboundCapacity, isDynamic, false, combat, weapons,
-                gameplayDigestBase, diagnostics)
+                gameplayDigestBase, diagnostics, diagnosticsService)
         {
         }
 
         /// <summary>Worker 执行形态：管线吃房间本地的广播席位槽（连接事实来自 Runtime 席位）。</summary>
         public RoomInstance(RoomConfig config, int inputCapacity, int controlCapacity, int outboundCapacity,
             bool isDynamic, bool workerExecution, CombatValues? combat = null, WeaponTable weapons = null,
-            uint gameplayDigestBase = 0, RoomDiagnosticsOptions diagnostics = null)
+            uint gameplayDigestBase = 0, RoomDiagnosticsOptions diagnostics = null,
+            RoomDiagnosticsService diagnosticsService = null)
         {
             if (config == null) throw new ArgumentNullException(nameof(config));
             Config = config;
@@ -322,9 +329,17 @@ namespace RoomServer
             CreatedAtUtc = DateTime.UtcNow;
             // 非确定性身份由宿主装配；Runtime 只消费已给定身份，固定 Seed 的新局也不得复用结算幂等键。
             string matchId = config.RoomId + ":" + Guid.NewGuid().ToString("N");
+            // mismatch 即时快照回调在房间线程执行——只入队（信封组装/写盘归 RoomDiagnosticsService
+            // 后台线程）。闭包读 Runtime 字段发生在首个 StepFrame 之后，构造已完成，无竞态。
+            RoomDiagnosticsService diag = diagnosticsService;
             RoomRunRecorder recorder = diagnostics != null && diagnostics.Enabled
                 ? new RoomRunRecorder(config.RoomId, matchId, config.ExpectedPlayers,
-                    diagnostics.MaxCommands, diagnostics.MaxSteps)
+                    diagnostics.MaxCommands, diagnostics.MaxSteps,
+                    worldRingCapacity: diagnostics.WorldRingFrames,
+                    onSnapshot: diag == null
+                        ? null
+                        : record => diag.EnqueueMismatchFlush(record, Runtime, config,
+                            gameplayDigestBase, CreatedAtUtc))
                 : null;
             Runtime = new RoomRuntime(config, combat, weapons, matchId,
                 testRules: null, gameplayDigestBase: gameplayDigestBase, recorder: recorder);

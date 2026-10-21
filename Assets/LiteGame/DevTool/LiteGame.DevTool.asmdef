@@ -16,7 +16,9 @@
         "LiteGame.LuaBridge",
         "xLuaMain",
         "LiteClient.UI",
-        "LiteSim.Core"
+        "LiteSim.Core",
+        "LiteNet",
+        "LiteClient.Platform.Unity"
     ],
     "includePlatforms": [],
     "excludePlatforms": [],

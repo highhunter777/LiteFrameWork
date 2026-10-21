@@ -647,6 +647,7 @@ namespace RoomServer
                     finally
                     {
                         (_settlementOutbox as IDisposable)?.Dispose();   // 宿主接管（同 transport 所有权约定）
+                    _diagnostics?.Dispose();   // 诊断后台写线程最后收口（排干 mismatch 即时快照队列）
                     }
                 }
                 return;
@@ -669,6 +670,7 @@ namespace RoomServer
                 finally
                 {
                     (_settlementOutbox as IDisposable)?.Dispose();   // 宿主接管（同 transport 所有权约定）
+                    _diagnostics?.Dispose();   // 诊断后台写线程最后收口（排干 mismatch 即时快照队列）
                 }
             }
         }
@@ -1840,6 +1842,19 @@ namespace RoomServer
             return false;
         }
 
+        /// <summary>GM 诊断读面：现场包文件清单（未启用诊断 = 空表）。</summary>
+        public DiagFileSummary[] DiagnosticsFileList()
+        {
+            if (_diagnostics == null) return Array.Empty<DiagFileSummary>();
+            IReadOnlyList<DiagFileSummary> list = _diagnostics.ListFileSummaries();
+            var array = new DiagFileSummary[list.Count];
+            for (int i = 0; i < array.Length; i++) array[i] = list[i];
+            return array;
+        }
+
+        /// <summary>GM 诊断读面：文件名 → 绝对路径（未启用/非法/不存在 = null——名字即能力边界）。</summary>
+        public string DiagnosticsResolveFile(string fileName) => _diagnostics?.ResolveFile(fileName);
+
         /// <summary>
         /// 打开房间（幂等：已存在则返回既有实例，**不重建**）。走配置模板造房间配置，受
         /// <see cref="MaxRooms"/> 约束——达上限返回 null（调用方**拒绝进房**，不是静默排队）。
@@ -1922,9 +1937,9 @@ namespace RoomServer
             int mailboxCapacity = _serverConfig?.MailboxCapacity ?? RoomInstance.DefaultMailboxCapacity;
             RoomInstance inst = _workerExecution
                 ? new RoomInstance(cfg, mailboxCapacity, mailboxCapacity, mailboxCapacity, dynamic, true,
-                    _combat, _weapons, _gameplayDigestBase, _diagnostics?.Options)
+                    _combat, _weapons, _gameplayDigestBase, _diagnostics?.Options, _diagnostics)
                 : new RoomInstance(cfg, mailboxCapacity, dynamic, _combat, _weapons, _gameplayDigestBase,
-                    _diagnostics?.Options);
+                    _diagnostics?.Options, _diagnostics);
             if (_workerExecution)
             {
                 // Worker 执行形态：房间在宿主线程建立，随后按 roomId 交给归属 Worker 驱动；
@@ -2132,7 +2147,16 @@ namespace RoomServer
             void IInboundDiagnostics.NoteMailboxRejectedFull() => Interlocked.Increment(ref _host._mailboxRejectedFull);
 
             void IInboundDiagnostics.NoteMismatch(string roomId, int frame)
-                => _host.Diagnostics?.NoteMismatch(roomId, frame);
+            {
+                RoomDiagnosticsService diagnostics = _host.Diagnostics;
+                if (diagnostics == null) return;
+                diagnostics.NoteMismatch(roomId, frame);
+
+                // mismatch 即时 flush：冷却通过才置位快照请求——房间线程封印独立记录，
+                // RoomDiagnosticsService 后台线程组装信封落盘（不等房间终态）
+                if (!diagnostics.ShouldRequestFlush(roomId)) return;
+                if (_host.TryGetRoom(roomId, out RoomRuntime room)) room.RequestRecordSnapshot();
+            }
         }
     }
 }

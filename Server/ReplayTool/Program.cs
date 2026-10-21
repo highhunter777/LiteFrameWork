@@ -1,5 +1,6 @@
 using System;
 using System.IO;
+using System.Linq;
 using System.Text.Json;
 using LiteNet;
 using LiteSim;
@@ -24,12 +25,19 @@ namespace ReplayTool
             }
 
             string file = null;
+            string tablesDir = null;
             bool json = false;
             bool useDefaults = false;
             for (int i = 1; i < args.Length; i++)
             {
                 if (string.Equals(args[i], "--json", StringComparison.Ordinal)) { json = true; continue; }
                 if (string.Equals(args[i], "--defaults", StringComparison.Ordinal)) { useDefaults = true; continue; }
+                if (string.Equals(args[i], "--tables", StringComparison.Ordinal))
+                {
+                    if (i + 1 >= args.Length) { PrintUsage(); return 3; }
+                    tablesDir = args[++i];
+                    continue;
+                }
                 if (file == null) { file = args[i]; continue; }
                 PrintUsage();
                 return 3;
@@ -68,7 +76,11 @@ namespace ReplayTool
                 }
                 else
                 {
-                    ServerTableLoad load = ServerTableLoader.LoadFromRepo();
+                    // 表目录缺省走仓库路径；部署在非仓库目录/表集不同时用 --tables 显式指定
+                    //（身份闸仍以 fixedConfigDigest 拒绝表集不符的记录，不会静默跑偏差）
+                    ServerTableLoad load = tablesDir != null
+                        ? ServerTableLoader.LoadTableBytes(tablesDir)
+                        : ServerTableLoader.LoadFromRepo();
                     values = load.Combat.ToValues();
                     weapons = load.Weapons;
                     baseDigest = load.Digest;
@@ -121,24 +133,35 @@ namespace ReplayTool
             }
         }
 
-        private static string ToJson(RoomReplayResult r) => JsonSerializer.Serialize(new
+        private static string ToJson(RoomReplayResult r)
         {
-            matches = r.Matches,
-            truncated = r.Truncated,
-            identityError = r.IdentityError,
-            firstDivergenceFrame = r.FirstDivergenceFrame,
-            divergenceEventSequence = r.DivergenceEventSequence,
-            divergenceCommandIndex = r.DivergenceCommandIndex,
-            expectedChecksum = r.ExpectedChecksum,
-            actualChecksum = r.ActualChecksum,
-            replayedSteps = r.ReplayedSteps,
-            message = r.Message,
-        });
+            SimWorldDiff.Report diff = r.DivergenceReport;
+            string[] diffLines = diff == null
+                ? Array.Empty<string>()
+                : diff.Differences.Take(32).Select(d => d.ToString()).ToArray();
+            return JsonSerializer.Serialize(new
+            {
+                matches = r.Matches,
+                truncated = r.Truncated,
+                identityError = r.IdentityError,
+                firstDivergenceFrame = r.FirstDivergenceFrame,
+                divergenceEventSequence = r.DivergenceEventSequence,
+                divergenceCommandIndex = r.DivergenceCommandIndex,
+                expectedChecksum = r.ExpectedChecksum,
+                actualChecksum = r.ActualChecksum,
+                replayedSteps = r.ReplayedSteps,
+                divergenceDiff = diffLines,
+                divergenceDiffTruncated = diff != null && (diff.Truncated || diff.Differences.Count > 32),
+                divergencePublicEqual = diff?.PublicEqual,
+                message = r.Message,
+            });
+        }
 
         private static void PrintUsage()
         {
-            Console.Error.WriteLine("用法: ReplayTool replay <record.json.gz> [--json] [--defaults]");
-            Console.Error.WriteLine("  --defaults  仅用于默认表/离线测试记录（跳过仓库表装载）");
+            Console.Error.WriteLine("用法: ReplayTool replay <record.json.gz> [--json] [--defaults] [--tables <dir>]");
+            Console.Error.WriteLine("  --defaults  仅用于默认表/离线测试记录（跳过表装载）");
+            Console.Error.WriteLine("  --tables    玩法表目录（缺省走仓库 Assets/GameData/Config；部署机/非仓库目录用）");
             Console.Error.WriteLine("退出码: 0=一致 2=首分歧 3=身份/格式 4=IO 5=记录截断");
         }
     }

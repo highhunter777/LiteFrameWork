@@ -46,6 +46,14 @@ catch (System.IO.IOException)
 }
 
 var serverConfig = RoomServerConfig.Load(ResolveConfigPath(args));
+// 崩溃捕获（T0-2）：诊断启用即挂 UnhandledException 钩子——异常/堆栈/日志尾/buildHash 落崩溃件
+//（Windows 尽力附 minidump）。尽早安装：后续任何装配/运行期未处理异常都在捕获面内。
+if (serverConfig.Diagnostics is { Enabled: true })
+{
+    RoomServer.Diagnostics.CrashCapture.Install(
+        serverConfig.Diagnostics.Directory, ServerHost.ServerBuildHash,
+        serverConfig.Diagnostics.LogTailLines);
+}
 // 宿主运行期调参（P2 批二）：排空宽限/看门狗/Ops 间隔/A 会话清理/重连票据/压实阈值一律走配置
 // （`host_tuning` 分区可选，缺省 = 迁移前的字面量常量）——部署形态下调参不再需要改代码。
 HostTuning tuning = serverConfig.HostTuning;
@@ -249,7 +257,9 @@ byte[] gmKeyBytes = System.Text.Encoding.UTF8.GetBytes(
     Environment.GetEnvironmentVariable(EnvVars.GmKey) ?? string.Empty);
 using GmHttpListener gmListener = serverConfig.GmPort > 0 && gmKeyBytes.Length > 0
     ? new GmHttpListener(gmKeyBytes, action => host.GmSubmit(action),
-        () => host.RoomSummaries(includeHidden: true))
+        () => host.RoomSummaries(includeHidden: true),
+        diagList: () => host.DiagnosticsFileList(),
+        diagResolve: name => host.DiagnosticsResolveFile(name))
     : null;
 if (gmListener != null)
 {

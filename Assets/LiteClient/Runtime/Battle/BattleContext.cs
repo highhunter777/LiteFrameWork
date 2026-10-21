@@ -57,6 +57,10 @@ namespace LiteClient
         public ClientSessionPhase SessionPhase => _battle.Phase;
         public bool Connected => _battle.Connected;
         public int PlayerId => _battle.Client.PlayerId;
+        /// <summary>本局标识（StartGame.MatchId；空 = 未开局）——日志关联/现场包共用。</summary>
+        public string MatchId => _matchId;
+        /// <summary>本局玩法配置摘要（ConfigHash 复算值；0 = 未校验）——现场包身份面。</summary>
+        public uint ConfigDigest => _configDigest;
         public LiteNet.Proto.MatchEnded MatchResult => _battle.Client.MatchResult;
 
         /// <summary>本地玩家实体 Id（0 = 尚未对齐——首份快照按 Slot==PlayerId 解析）。</summary>
@@ -108,10 +112,12 @@ namespace LiteClient
         private bool _disposed;
         private int _ended;
 
-        // ---- 诊断现场包（mismatch/配置身份不符时落本地；不在正常路径产生 IO）----
+        // ---- 诊断现场包（mismatch/配置身份不符/托管异常时落本地；不在正常路径产生 IO）----
         private string _matchId = string.Empty;
         private uint _configDigest;
         private DiagnosticsBundleWriter _diagnosticsBundles;
+        private bool _diagnosticsRateLimited;   // 同局限频只提示一次（防 mismatch 刷屏 Warning）
+        private readonly object _diagnosticsGate = new object();   // mismatch（主线程）与异常钩子（任意线程）互斥
 
         /// <summary>表现视图（SimView 建后挂上；null = 无视图——纯会话/测试形态仍完整可跑）。</summary>
         public SimView View { get; private set; }
@@ -147,6 +153,9 @@ namespace LiteClient
             _battle.Client.OnMatchEnded += OnMatchEnded;
             _battle.Client.OnReconnectResponse += OnReconnectResponse;
             _battle.Client.OnPhaseChanged += OnPhaseChanged;
+            // 托管异常捕获（T0-2）：Exception/Assert 级日志 → 客户端现场包（任意线程可能触发，
+            // 写盘走 _diagnosticsGate 与 mismatch 路径互斥）
+            UnityEngine.Application.logMessageReceivedThreaded += OnUnityLogForDiagnostics;
             _matchScope.Register(new DelegatedDisposable(() =>
             {
                 _battle.Client.OnStartGame -= OnStartGame;
@@ -155,6 +164,7 @@ namespace LiteClient
                 _battle.Client.OnMatchEnded -= OnMatchEnded;
                 _battle.Client.OnReconnectResponse -= OnReconnectResponse;
                 _battle.Client.OnPhaseChanged -= OnPhaseChanged;
+                UnityEngine.Application.logMessageReceivedThreaded -= OnUnityLogForDiagnostics;
             }));
 
             // **补上迟到的 StartGame**：OnStartGame 是边缘事件，可能在应用层建好订阅之前就到达
@@ -234,6 +244,7 @@ namespace LiteClient
             if (_sim == null || _ended != 0) return;
 
             _sim.Tick(realDelta);
+            Log.SetFrame(_sim.State.Frame);           // T1 日志关联：帧轴随权威+预测推进（int 赋值，零分配）
 
             _inputs.ResendCarriedFrames(_sim, _localEntityId, inputFrame, viewFrame);
 
@@ -258,6 +269,8 @@ namespace LiteClient
         {
             if (_disposed || _sim != null) return;   // 幂等（重连不重发 StartGame）
             _matchId = sg.MatchId ?? string.Empty;
+            // T1 日志关联：开局即登记对局/席位，此后同局日志都带得上（清理在 Dispose，只清自己那局）
+            Log.SetMatchContext(_matchId, PlayerId);
 
             var world = new SimWorldState { RngState = (ulong)sg.Seed };
             if (sg.Match != null) world.Match = SnapshotReassembler.FromProto(sg.Match);
@@ -359,28 +372,74 @@ namespace LiteClient
             _mirror.PushToView(View);                // 视图插值源：上一份/最新一份轮转
         }
 
+        /// <summary>
+        /// Unity 托管异常钩子（任意线程）：Exception/Assert → 客户端现场包。过滤与限频在
+        /// <see cref="ClientDiagnosticsBundle.CaptureUnityException"/>（Log/Warning/Error 不捕获——
+        /// Error 是可恢复面，逐条落盘会被常规错误刷爆限频额度）。
+        /// </summary>
+        private void OnUnityLogForDiagnostics(string condition, string stackTrace, UnityEngine.LogType type)
+        {
+            if (_disposed) return;
+            try
+            {
+                lock (_diagnosticsGate)
+                {
+                    DiagnosticsBundleWriter writer = EnsureDiagnosticsWriter();
+                    int frame = _sim?.State?.Frame ?? 0;
+                    ClientDiagnosticsBundle.CaptureUnityException(writer, condition, stackTrace, type,
+                        _matchId, frame, _localEntityId, (int)Math.Min(_reconcileCount, int.MaxValue),
+                        _configDigest);
+                }
+            }
+            catch
+            {
+                // 诊断钩子不得把异常回灌 Unity 日志（递归触发自身）
+            }
+        }
+
         private void CaptureDiagnosticsBundle(int frame, string reason)
         {
             try
             {
-                DiagnosticsBundleWriter writer = _diagnosticsBundles;
-                if (writer == null)
+                lock (_diagnosticsGate)
                 {
-                    writer = new DiagnosticsBundleWriter(Path.Combine(
-                        UnityEngine.Application.persistentDataPath, "diagnostics"));
-                    _diagnosticsBundles = writer;
+                    DiagnosticsBundleWriter writer = EnsureDiagnosticsWriter();
+
+                    // 限频是预期行为（每局上限由 writer 控制）：只在首次提示一次，避免 mismatch 每帧刷 Warning
+                    if (!writer.CanAccept(_matchId))
+                    {
+                        if (!_diagnosticsRateLimited)
+                        {
+                            _diagnosticsRateLimited = true;
+                            Log.Info("诊断现场包同局限频，后续不再落包（每局上限由 writer 控制）", LogTag.Battle);
+                        }
+                        return;
+                    }
+
+                    string path = ClientDiagnosticsBundle.Capture(writer, reason, _matchId, frame,
+                        _localEntityId, (int)Math.Min(_reconcileCount, int.MaxValue), _configDigest);
+
+                    if (path != null) Log.Info("诊断现场包已落盘: " + path, LogTag.Battle);
+                    else Log.Warning("诊断现场包写出失败（IO/权限）", LogTag.Battle);
                 }
-
-                string path = ClientDiagnosticsBundle.Capture(writer, reason, _matchId, frame,
-                    _localEntityId, (int)Math.Min(_reconcileCount, int.MaxValue), _configDigest);
-
-                if (path != null) Log.Info("诊断现场包已落盘: " + path, LogTag.Battle);
-                else Log.Warning("诊断现场包未写出（限频/IO 失败）", LogTag.Battle);
             }
             catch (Exception ex)
             {
                 Log.Warning("诊断现场包异常: " + ex.Message, LogTag.Battle);
             }
+        }
+
+        /// <summary>现场包写入器惰性构造（须在 _diagnosticsGate 内调用——mismatch 与异常钩子双线程安全）。</summary>
+        private DiagnosticsBundleWriter EnsureDiagnosticsWriter()
+        {
+            DiagnosticsBundleWriter writer = _diagnosticsBundles;
+            if (writer == null)
+            {
+                writer = new DiagnosticsBundleWriter(Path.Combine(
+                    UnityEngine.Application.persistentDataPath, "diagnostics"));
+                _diagnosticsBundles = writer;
+            }
+            return writer;
         }
 
         /// <summary>
@@ -474,6 +533,7 @@ namespace LiteClient
             if (_disposed) return;
             _disposed = true;
             _sim = null;
+            Log.ClearMatchContext(_matchId);          // 只清本局（旧局晚拆不清新局）
             _mirror.Reset();
             _matchScope.Dispose();                        // 订阅退订经 Scope 登记面执行（含 DisposeFailures 聚合）
         }

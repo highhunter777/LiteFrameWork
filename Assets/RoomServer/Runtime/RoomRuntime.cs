@@ -42,6 +42,12 @@ namespace RoomServer.Runtime
         /// <summary>取走本局录制（仅房间静默后调用；重复调用返回同一份）。null = 未启用录制。</summary>
         public RoomRunRecord TakeRunRecord() => _runRecorder?.Seal();
 
+        /// <summary>
+        /// 请求录制器即时快照（任意线程可调——mismatch 上报路径）：置位后由房间线程在下一
+        /// StepFrame 末尾封印独立快照并回调宿主（异步落盘），录制本身不受影响。
+        /// </summary>
+        public void RequestRecordSnapshot() => _runRecorder?.RequestSnapshot();
+
         public readonly string RoomId;
         /// <summary>宿主分配的局标识；直驱测试可显式注入，缺省沿用 RoomId。</summary>
         public readonly string MatchId;
@@ -642,7 +648,8 @@ namespace RoomServer.Runtime
             ConsumePendingFire(steppedFrame);                 // 回溯判定（本步产生开火输入时；结算死亡即刻入窗）
             MatchSystem.Tick(AuthSim);                        // 整帧（含回溯）结算后才判胜
             SnapshotHistory.Capture(steppedFrame, AuthSim);    // 覆盖本帧的最终计分/比赛状态
-            _runRecorder?.RecordStep(steppedFrame, SimChecksum.ComputeChecksum(AuthSim));
+            _runRecorder?.RecordStep(steppedFrame, SimChecksum.ComputeChecksum(AuthSim), AuthSim);
+            _runRecorder?.PollSnapshot();                     // mismatch 即时快照（房间线程封印→宿主异步写）
         }
 
         /// <summary>

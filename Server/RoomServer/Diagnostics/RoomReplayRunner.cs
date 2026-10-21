@@ -18,6 +18,13 @@ namespace RoomServer.Diagnostics
         public uint ExpectedChecksum { get; set; }
         public uint ActualChecksum { get; set; }
         public int ReplayedSteps { get; set; }
+
+        /// <summary>
+        /// 分歧帧的字段级差异报告（录制世界 vs 重放世界）。null = 记录未启用世界环，
+        /// 或分歧帧已被环窗口覆盖——此时只有帧号与 checksum（<see cref="Message"/> 会提示）。
+        /// </summary>
+        public SimWorldDiff.Report DivergenceReport { get; set; }
+
         public string Message { get; set; } = string.Empty;
     }
 
@@ -119,6 +126,23 @@ namespace RoomServer.Diagnostics
                         uint actualChecksum = SimChecksum.ComputeChecksum(runtime.AuthSim);
                         if (actualFrame != e.Step.Frame || actualChecksum != e.Step.Checksum)
                         {
+                            // 分歧帧的字段级报告：录制世界（环内）vs 重放世界（当前 AuthSim）。
+                            // 两侧在上一帧仍逐位一致（checksum 已证），故差异全部来自本帧执行——
+                            // 这正是"哪里开始不同"的直接答案。
+                            SimWorldDiff.Report divergenceReport = null;
+                            string diffNote;
+                            if (record.TryGetWorld(e.Step.Frame, out SimWorldState recordedWorld))
+                            {
+                                divergenceReport = SimWorldDiff.Compare(recordedWorld, runtime.AuthSim);
+                                diffNote = "\n" + divergenceReport.ToText();
+                            }
+                            else
+                            {
+                                diffNote = record.HasWorlds
+                                    ? "\n（该帧不在世界环窗口内——只有帧号与 checksum；调大 diagnostics.world_ring_frames 可得字段级差异）"
+                                    : "\n（记录未启用世界环——只有帧号与 checksum；启用 diagnostics.world_ring_frames 可得字段级差异）";
+                            }
+
                             return new RoomReplayResult
                             {
                                 Matches = false,
@@ -129,9 +153,11 @@ namespace RoomServer.Diagnostics
                                 ExpectedChecksum = e.Step.Checksum,
                                 ActualChecksum = actualChecksum,
                                 ReplayedSteps = replayedSteps,
-                                Message = $"**首个分歧帧 {e.Step.Frame}**（事件 #{e.Sequence}）：" +
-                                          $"录制 checksum=0x{e.Step.Checksum:x8}，重放=0x{actualChecksum:x8}，" +
-                                          $"重放实际帧={actualFrame}，已一致 {replayedSteps} 步",
+                                DivergenceReport = divergenceReport,
+                                Message = $"**首个分歧帧 {e.Step.Frame}**（事件 #{e.Sequence}）："
+                                          + $"录制 checksum=0x{e.Step.Checksum:x8}，重放=0x{actualChecksum:x8}，"
+                                          + $"重放实际帧={actualFrame}，已一致 {replayedSteps} 步"
+                                          + diffNote,
                             };
                         }
                         replayedSteps++;

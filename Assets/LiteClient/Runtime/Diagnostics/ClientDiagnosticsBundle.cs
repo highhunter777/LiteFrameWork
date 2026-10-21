@@ -14,8 +14,34 @@ namespace LiteClient
     /// </summary>
     public static class ClientDiagnosticsBundle
     {
-        public static string Capture(DiagnosticsBundleWriter writer, string reason, string matchId, int frame,
+        /// <summary>
+        /// Unity 托管异常捕获（T0-2）：Exception/Assert 级日志 → 客户端现场包（reason=unity-exception，
+        /// 异常文案与堆栈尾进 ExtraJson）。其余级别（Log/Warning/Error）不捕获——Error 是可恢复面，
+        /// 逐条落盘会被常规错误刷爆限频额度。同对局限频/限量由 writer 承担。
+        /// </summary>
+        public static string CaptureUnityException(DiagnosticsBundleWriter writer, string condition,
+            string stackTrace, UnityEngine.LogType type, string matchId, int frame,
             long localEntityId, int reconcileCount, uint configDigest)
+        {
+            if (writer == null) throw new ArgumentNullException(nameof(writer));
+            if (type != UnityEngine.LogType.Exception && type != UnityEngine.LogType.Assert) return null;
+            if (!writer.CanAccept(matchId)) return null;
+
+            return Capture(writer, "unity-exception", matchId, frame, localEntityId, reconcileCount,
+                configDigest, BuildExceptionExtra(condition, stackTrace));
+        }
+
+        /// <summary>异常上下文进 ExtraJson（截尾防超长——完整堆栈在 Player.log 尾部件里）。</summary>
+        private static string BuildExceptionExtra(string condition, string stackTrace)
+        {
+            const int budget = 2048;
+            string text = (condition ?? string.Empty) + "\n" + (stackTrace ?? string.Empty);
+            if (text.Length > budget) text = text.Substring(text.Length - budget);
+            return text;
+        }
+
+        public static string Capture(DiagnosticsBundleWriter writer, string reason, string matchId, int frame,
+            long localEntityId, int reconcileCount, uint configDigest, string extraJson = null)
         {
             if (writer == null) throw new ArgumentNullException(nameof(writer));
             if (!writer.CanAccept(matchId)) return null;
@@ -24,7 +50,7 @@ namespace LiteClient
             for (int i = 0; i < Log.Recent.Count; i++)
             {
                 LogEntry e = Log.Recent[i];
-                logs.Add($"{e.Level} [{e.Tag}] {e.Message}");
+                logs.Add(FormatLogLine(e));
             }
 
             return writer.Write(new DiagnosticsBundleRequest
@@ -41,8 +67,15 @@ namespace LiteClient
                 AppVersion = UnityEngine.Application.version,
                 RecentLogs = logs,
                 PlayerLogTail = ReadPlayerLogTail(64 * 1024),
+                ExtraJson = extraJson,
             });
         }
+
+        /// <summary>现场包日志行带关联上下文（与 DevHUD 同口径；未开局日志不附加）。</summary>
+        private static string FormatLogLine(in LogEntry e)
+            => e.MatchId.Length == 0 && e.Frame == 0 && e.PlayerId < 0
+                ? $"{e.Level} [{e.Tag}] {e.Message}"
+                : $"{e.Level} [{e.Tag}] {e.Message} [m:{e.MatchId} f:{e.Frame} p:{e.PlayerId}]";
 
         private static string ReadPlayerLogTail(int maxBytes)
         {
