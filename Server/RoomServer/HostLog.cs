@@ -1,4 +1,5 @@
 using System;
+using System.Text;
 
 namespace RoomServer
 {
@@ -37,21 +38,54 @@ namespace RoomServer
         /// </summary>
         public static Action<Level, string, string> Sink;
 
+        private const int RecentCapacity = 256;
+        private static readonly string[] RecentLines = new string[RecentCapacity];
+        private static readonly object RecentGate = new object();
+        private static int _recentStart;
+        private static int _recentCount;
+
         public static void Info(string area, string message) => Emit(Level.Info, area, message);
 
         public static void Warn(string area, string message) => Emit(Level.Warn, area, message);
 
         public static void Error(string area, string message) => Emit(Level.Error, area, message);
 
+        /// <summary>最近日志尾（现场包用；按写入顺序，最多 maxLines 行）。</summary>
+        public static string RecentTail(int maxLines)
+        {
+            if (maxLines <= 0) return string.Empty;
+            lock (RecentGate)
+            {
+                int count = Math.Min(maxLines, _recentCount);
+                var sb = new StringBuilder();
+                for (int i = _recentCount - count; i < _recentCount; i++)
+                {
+                    int index = (_recentStart + i) % RecentCapacity;
+                    if (sb.Length > 0) sb.Append('\n');
+                    sb.Append(RecentLines[index] ?? string.Empty);
+                }
+                return sb.ToString();
+            }
+        }
+
         private static void Emit(Level level, string area, string message)
         {
+            string line = "[" + LevelName(level) + "][" + (area ?? "-") + "] " + message;
+            lock (RecentGate)
+            {
+                int index = (_recentStart + _recentCount) % RecentCapacity;
+                RecentLines[index] = line;
+                if (_recentCount < RecentCapacity) _recentCount++;
+                else _recentStart = (_recentStart + 1) % RecentCapacity;
+            }
+
             Action<Level, string, string> sink = Sink;
             if (sink != null)
             {
                 sink(level, area, message);
                 return;
             }
-            Console.WriteLine("[" + LevelName(level) + "][" + (area ?? "-") + "] " + message);
+            Console.WriteLine(line);
         }
 
         private static string LevelName(Level level)

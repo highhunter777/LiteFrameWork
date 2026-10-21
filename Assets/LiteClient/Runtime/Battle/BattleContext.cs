@@ -1,6 +1,8 @@
 using System;
+using System.IO;
 using System.Threading;
 using LiteFramework;
+using LiteFramework.Diagnostics;
 using LiteNet;
 using LiteNet.Protocol;
 using LiteSim;
@@ -105,6 +107,11 @@ namespace LiteClient
         private long _reconcileCount;
         private bool _disposed;
         private int _ended;
+
+        // ---- 诊断现场包（mismatch/配置身份不符时落本地；不在正常路径产生 IO）----
+        private string _matchId = string.Empty;
+        private uint _configDigest;
+        private DiagnosticsBundleWriter _diagnosticsBundles;
 
         /// <summary>表现视图（SimView 建后挂上；null = 无视图——纯会话/测试形态仍完整可跑）。</summary>
         public SimView View { get; private set; }
@@ -250,6 +257,7 @@ namespace LiteClient
         private void OnStartGame(LiteNet.Proto.StartGame sg)
         {
             if (_disposed || _sim != null) return;   // 幂等（重连不重发 StartGame）
+            _matchId = sg.MatchId ?? string.Empty;
 
             var world = new SimWorldState { RngState = (ulong)sg.Seed };
             if (sg.Match != null) world.Match = SnapshotReassembler.FromProto(sg.Match);
@@ -288,6 +296,7 @@ namespace LiteClient
                     $"玩法数据身份不符:StartGame.ConfigHash=0x{sg.ConfigHash:x8} 本地复算=0x{expectedDigest:x8}" +
                     $"（本地基摘要=0x{_gameplayDigestBase:x8} noDead={values.NoDeath} infiniteAmmo={values.InfiniteAmmo}）" +
                     "——两端判定面表数据不同源（服务端换表重启与客户端内容热更未同批？）；本局拒绝建立", LogTag.Battle);
+                CaptureDiagnosticsBundle(0, "config-digest-mismatch");
                 End(EndReason.SessionFailed);
                 return;
             }
@@ -302,6 +311,8 @@ namespace LiteClient
                 world.Spawn(new EntitySlot { Hp = values.EntityHp, Pos = spawn, Yaw = 0f,
                     Flags = EntityFlags.Player, SpawnPointIndex = spawnIndex }, out int _);
             }
+
+            _configDigest = expectedDigest;
 
             var template = new SimInputFrame[ExpectedPlayers];
             for (int i = 0; i < ExpectedPlayers; i++) template[i].EntityId = i;   // 服务器覆写防伪；本地预测按 playerId 对齐
@@ -342,9 +353,34 @@ namespace LiteClient
             {
                 _reconcileCount++;
                 _battle.Client.SendMismatch(snapshot.Frame);
+                CaptureDiagnosticsBundle(snapshot.Frame, "checksum-mismatch");
             }
 
             _mirror.PushToView(View);                // 视图插值源：上一份/最新一份轮转
+        }
+
+        private void CaptureDiagnosticsBundle(int frame, string reason)
+        {
+            try
+            {
+                DiagnosticsBundleWriter writer = _diagnosticsBundles;
+                if (writer == null)
+                {
+                    writer = new DiagnosticsBundleWriter(Path.Combine(
+                        UnityEngine.Application.persistentDataPath, "diagnostics"));
+                    _diagnosticsBundles = writer;
+                }
+
+                string path = ClientDiagnosticsBundle.Capture(writer, reason, _matchId, frame,
+                    _localEntityId, (int)Math.Min(_reconcileCount, int.MaxValue), _configDigest);
+
+                if (path != null) Log.Info("诊断现场包已落盘: " + path, LogTag.Battle);
+                else Log.Warning("诊断现场包未写出（限频/IO 失败）", LogTag.Battle);
+            }
+            catch (Exception ex)
+            {
+                Log.Warning("诊断现场包异常: " + ex.Message, LogTag.Battle);
+            }
         }
 
         /// <summary>

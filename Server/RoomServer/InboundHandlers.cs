@@ -140,6 +140,7 @@ namespace RoomServer
         {
             if (session.PlayerId < 0) return;
             _host.Ops.NoteMismatch(report.Frame);
+            _host.Diagnostics.NoteMismatch(session.RoomId, report.Frame);
         }
 
         /// <summary>恢复完成 ACK（§9.3 步骤 6）：席位 Restoring → Active——增量广播自此恢复该席位。</summary>

@@ -10,20 +10,17 @@ namespace LiteClient
     /// Cinemachine 相机服务（<see cref="ICameraService"/> 的 Cinemachine 实现，
     /// 《联机战斗演示专项设计》§3"相机跟本地预测位置；和解期间跟衰减后的表现位置"）。
     ///
-    /// **职责只有一个：把表现层每帧给出的位置喂给虚拟相机。** 相机怎么摆（俯角/距离/FOV/阻尼/
-    /// 跟随偏移）全部是**场景与预制配置**，由美术/关卡在 Inspector 里设定并随场景入库
-    /// ——本类**不写任何档位常量**，也不改 vcam 的 Lens/Transposer。理由（《客户端总设计》
-    /// §12.2 视觉单一来源的同一条判据）：相机构图是产品表现决策，用代码再表达一遍就有了第二处事实源，
-    /// 调完编辑器发现"改了没用"是最难查的一类分歧。
+    /// **位置与视线分开**：位置由 <c>OrbitalTransposer</c> 的 yaw 轨道 + 场景 FollowOffset 表达；
+    /// 视线由 <c>CinemachinePOV</c> 的 yaw/pitch 轴表达（鼠标 1:1 跟手、yaw 360°、pitch 钳制）。
+    /// 两者都只写**场景配置的轴与偏移**——距离/肩偏/FOV/阻尼仍是场景单源，本类不复制档位常量。
+    /// 理由（《客户端总设计》§12.2 视觉单一来源的同一条判据）：相机构图是产品表现决策，
+    /// 用代码再表达一遍就有了第二处事实源，调完编辑器发现"改了没用"是最难查的一类分歧。
     ///
-    /// **例外：瞄准接管（<see cref="SetAiming"/>）写两处派生值**——优先级（主 vcam 场景值 + 1）与
-    /// 构图 z 偏移（按 <see cref="AimOffsetCurve"/> 随瞄准点拉近），两者下降沿都**还原回场景配置原值**；
-    /// 镜头其余档位（FOV/距离/其它偏移分量）仍全归场景。语义态（"瞄准中"）来自端口调用方，
-    /// 映射成 Cinemachine 机制是适配器的本分。
-    ///
-    /// **例外之二：团队视角镜像（<see cref="SetViewMirrored"/>）**——只把 bind 时读到的场景
-    /// <c>FollowOffset</c> 做 180° 旋转变换（x/z 取反），不新增构图常量；解绑/关闭还原场景值。
-    /// 相机 yaw 由 offset + HardLookAt/Composer 派生，**不旋转 vcam 物体**。
+    /// **例外：三处派生写入**——① <see cref="SetAiming"/> 的优先级（主 vcam 场景值 + 1）；
+    /// ② 主相机按场景 <see cref="TpsCameraRigTuning.PitchFollow"/>/<see cref="TpsCameraRigTuning.PivotHeight"/>
+    /// 做恒定臂长俯仰弧（地面下限防穿地）；③ 瞄准机沿主视线前移（<see cref="AimOffsetCurve"/> 近距收短）。
+    /// 三者下降沿/解绑都**还原回场景配置原值**；Lens/FOV/阻尼/肩偏仍全归场景。语义态（"瞄准中"）
+    /// 来自端口调用方，映射成 Cinemachine 机制是适配器的本分。
     ///
     /// **场景切换后的重新解析（本类的关键行为）**：虚拟相机是**场景对象**，随场景加载/卸载而生灭
     /// （Single 模式切场景后，启动场景里的 vcam 会被一并销毁）。因此本类在每次
@@ -58,22 +55,43 @@ namespace LiteClient
 
         // ---- 瞄准相机（ADS 接管，持续预放置形态：接线前置到绑定时刻，全程跟着玩家预先就位）----
         private CinemachineVirtualCamera _aimVcam;
-        private CinemachineComposer _aimVcamAim;   // 构图器（TrackedObjectOffset.z = 瞄准曲线写入面）
         private int _aimPriorityAtBind;            // 接管前优先级（场景配置值——抬升基准由主相机派生，释放时还原回场景值）
-        private float _aimOffsetZAtBind;           // 接管前构图 z 偏移（场景基准值；曲线在 d=基值处接回它）
         private bool _aiming;                      // 当前语义态（变化沿生效）
         private Vector3 _aimPoint;                 // 最近一帧解算的瞄准点（世界）
         private bool _hasAimPoint;                 // 本帧是否有解算结果（false = 不动作，保持现值）
 
-        // ---- 团队视角镜像（SetViewMirrored：场景 FollowOffset 的派生变换，解绑/关闭还原）----
-        private bool _viewMirrored;                // 目标语义态（跨场景重解析保留）
+        // ---- 视角派生基准（bind 采集场景 FollowOffset/轨道轴——俯仰派生与还原的端点；解绑/关闭还原场景值）----
         private Vector3 _mainFollowOffsetAtBind;   // 主 vcam 场景基准 offset
         private Vector3 _aimFollowOffsetAtBind;    // 瞄准 vcam 场景基准 offset
         private bool _hasMainFollowOffset;
         private bool _hasAimFollowOffset;
+        private float _mainXAxisAtBind;            // 主 vcam 轨道轴场景基准（视角派生/还原端点）
+        private float _aimXAxisAtBind;             // 瞄准 vcam 轨道轴场景基准
+        private bool _hasMainXAxis;
+        private bool _hasAimXAxis;
+        private TpsCameraRigTuning _mainRig;       // 主 vcam 的机位调参（俯仰弧跟随/枢轴/下限；场景单源）
+        private float _aimForwardDelta;            // 主/瞄准场景基座的 z 差（ADS 沿主视线前移距离）
 
         /// <summary>装配点指定的跟随目标（null = 用 vcam 自己配的 Follow，再没有就自建空目标）。</summary>
         private readonly Transform _preferredTarget;
+
+        // ---- 本地视角状态（第三人称自由视角：AddLookDelta 累进；纯视图侧，不进意图三件/不上行）----
+
+        /// <summary>视角 pitch 限位（弧度，正 = 上仰）——机制初档常量单源：下俯 -80°/上仰 +80°
+        /// 覆盖 PUBG 量级的抬头看天/低头看脚；再往外越肩构图收益归零、穿头/贴地/穿天风险陡增
+        /// （收臂与渐隐兜不住的极端位）。上半身姿态区间另由 <c>AimPitchPosture</c> 钳制，
+        /// 不把相机限位直接当骨骼限位。</summary>
+        public const float PitchClampMinRad = -80f * Mathf.Deg2Rad;
+        public const float PitchClampMaxRad = 80f * Mathf.Deg2Rad;
+
+        private float _lookYaw;     // 累计视角 yaw（弧度，环绕）
+        private float _lookPitch;   // 累计视角 pitch（弧度，限位钳制后值）
+
+        /// <summary>当前视角 yaw（弧度；未收增量 = 0）。诊断/测试读口。</summary>
+        public float LookYaw => _lookYaw;
+
+        /// <summary>当前视角 pitch（弧度，正 = 上仰，已按限位钳制）。诊断/测试读口。</summary>
+        public float LookPitch => _lookPitch;
 
         public bool HasFocus => _hasFocus;
 
@@ -172,7 +190,7 @@ namespace LiteClient
 
             _vcam = best;
             _followAtBind = _vcam.Follow;
-            CaptureMainFollowOffset();           // 场景基准（镜像派生/还原的端点）
+            CaptureMainFollowOffset();           // 场景基准（视角派生/还原的端点）
 
             if (_preferredTarget != null)
             {
@@ -195,7 +213,7 @@ namespace LiteClient
             if (_vcam.LookAt == null) _vcam.LookAt = _target;   // 已配置的 LookAt 不覆盖（可能是独立的看向目标）
 
             BindAimCamera();                     // 瞄准机**绑定即预放置**（接线前置——不等右键）
-            ApplyViewMirror();                   // 重解析/切场景后保持目标镜像态
+            ApplyRigDerived();                   // 重解析/切场景后保持视角派生写入
 
             _lastResolveReason = null;
             Log.Info($"[Camera] 已接线 vcam「{_vcam.name}」(scene={_vcam.gameObject.scene.name}, priority={_vcam.Priority})", LogTag.Camera);
@@ -207,12 +225,12 @@ namespace LiteClient
             if (_aimVcam != null && !ReferenceEquals(_aimVcam, null))
             {
                 _aimVcam.Priority = _aimPriorityAtBind;   // 归还场景优先级（Follow/LookAt 保持接线——持续预放置）
-                RestoreAimOffset();                       // 构图 z 偏移同样归还（解绑/切场景不遗留接管值）
                 _aiming = false;
             }
-            RestoreFollowOffsets();                       // 视角镜像的派生写入归还场景基准
+            RestoreFollowOffsets();                       // 视角派生的写入归还场景基准
             _aimVcam = null;
-            _aimVcamAim = null;
+            _mainRig = null;
+            _aimForwardDelta = 0f;
             if (_vcam != null)
             {
                 // vcam 可能已随场景销毁（Unity 的伪 null）——用 ReferenceEquals 判真身，避免误碰已销毁对象
@@ -252,11 +270,10 @@ namespace LiteClient
             if (_target != null && !ReferenceEquals(_target, null))
             {
                 Vector3 previous = _target.position;
-                // 位置每帧写；**朝向只写自建焦点**——场景配置的 Follow 目标自带姿态语义（骨骼/动画），
-                // 不越权覆写（构图偏移如 FramingTransposer 的 TrackedObjectOffset 随 Follow 目标的旋转；
-                // 自建焦点若恒 identity，偏移实际是世界系固定，玩家转向后构图点绕角色乱转）。
-                if (_ownsTarget) _target.SetPositionAndRotation(target, facing);
-                else _target.position = Focus;   // 阻尼/平滑在 Cinemachine 侧按 vcam 配置生效
+                // 位置每帧写；**朝向不写焦点（第三人称自由视角）**：视线由 POV 轴驱动，焦点旋转
+                // 不参与构图；越肩构图由相机位置的肩偏/高度形成，焦点恒 identity ⇒ 角色朝向或
+                // 场景目标自带姿态都不会把画面构图带偏。场景配置的 Follow 目标同样只写位置。
+                _target.position = Focus;   // 阻尼/平滑在 Cinemachine 侧按 vcam 配置生效
 
                 // 复活/传送是瞬移：仅 Reset 后这一帧要求相机**直接 warp**，否则 vcam 阻尼会从上一条命
                 // 的位置慢慢飞过去，模型在镜头追上之前不在画面内（用户实测“复活后模型过一会才出现”）。
@@ -267,7 +284,8 @@ namespace LiteClient
                     if (delta.sqrMagnitude > 0f) WarpCameras(delta);
                 }
             }
-            _hasFocus = true;
+            _hasFocus = true;                     // 先置焦点再派生：首次 Follow 也要落到 vcam
+            ApplyRigDerived();                    // 视角派生写入（POV 轴 + 轨道 yaw + 恒定臂长俯仰弧——每拍随焦点喂入）
         }
 
         /// <summary>
@@ -309,46 +327,119 @@ namespace LiteClient
             _hasFocus = false;
             Focus = Vector3.zero;
             _snapNextFollow = true;
+            _lookYaw = 0f;
+            _lookPitch = 0f;
         }
 
-        /// <summary>团队视角镜像（<see cref="ICameraService.SetViewMirrored"/> 契约）：只做场景
-        /// FollowOffset 的 180° 派生（x/z 取反），不写任何档位常量；幂等，未接线时只记语义态，
-        /// 重解析/切场景后由 <see cref="Resolve"/> 重放。</summary>
-        public void SetViewMirrored(bool mirrored)
+        /// <summary>视角增量累进（<see cref="ICameraService.AddLookDelta"/> 契约）：累进自持 yaw/pitch 状态
+        /// （yaw 按 2π 环绕、pitch 钳在限位，**pitch 正 = 上仰**）；零增量无操作。**纯视图侧**——不进意图三件、不上行。
+        /// 状态到 vcam 的应用面（POV 轴 + 轨道 yaw + 恒定臂长俯仰弧）在接线与 <see cref="Follow"/> 拍内写入，
+        /// 构图基准（距离/肩偏/FOV）仍归场景配置单源。**关闭后静默 no-op**（与"关闭后不写相机"同契约）。</summary>
+        public void AddLookDelta(float yawDelta, float pitchDelta)
         {
-            if (_shutdown || _viewMirrored == mirrored) return;
-            _viewMirrored = mirrored;
-            ApplyViewMirror();
-            Log.Info($"[Camera] 视角镜像{(mirrored ? "开（相机朝敌方）" : "关（场景原朝向）")}", LogTag.Camera);
+            if (_shutdown) return;
+            if (yawDelta == 0f && pitchDelta == 0f) return;
+            _lookYaw = Mathf.Repeat(_lookYaw + yawDelta, Mathf.PI * 2f);
+            _lookPitch = Mathf.Clamp(_lookPitch + pitchDelta, PitchClampMinRad, PitchClampMaxRad);
+            ApplyRigDerived();   // 有焦点时输入当帧落到 POV 轴/轨道（不等下一次 Follow；无焦点由 Follow 首拍落）
         }
 
-        /// <summary>记录主 vcam 的场景 FollowOffset（镜像派生/还原的端点；无 transposer = 不参与）。</summary>
+        /// <summary>记录主 vcam 的场景基准（FollowOffset + 轨道轴 m_XAxis.Value + 机位调参——
+        /// 视角派生/还原的端点；无 transposer = 不参与）。</summary>
         private void CaptureMainFollowOffset()
         {
             _hasMainFollowOffset = TryReadFollowOffset(_vcam, out _mainFollowOffsetAtBind);
+            _hasMainXAxis = TryReadOrbitHeading(_vcam, out _mainXAxisAtBind);
+            _mainRig = _vcam.GetComponent<TpsCameraRigTuning>();
         }
 
-        private void ApplyViewMirror()
+        /// <summary>视角派生写入（双机同写）：轨道 yaw 与 POV 水平轴共用 <c>_lookYaw</c>，POV 垂直轴
+        /// 按 <see cref="TpsCameraMath.PovVerticalDegrees"/>（pitch 正 = 上仰）。位置侧：主相机绕
+        /// <see cref="TpsCameraRigTuning.PivotHeight"/> 做**恒定臂长**俯仰弧（跟随系数
+        /// <see cref="TpsCameraRigTuning.PitchFollow"/>，地面下限 <see cref="TpsCameraRigTuning.MinBoomHeight"/>）；
+        /// 瞄准机沿主相机视线前移（<see cref="AimOffsetCurve"/> 近距收短），保证 ADS 视线共线。
+        /// **首次 Follow 前 no-op**（没焦点就不写场景 vcam——纯状态测试/装配期不产生脏改）。
+        /// 构图基准仍归场景单源，幂等可重入（<see cref="Follow"/> 每拍调用）。</summary>
+        private void ApplyRigDerived()
         {
-            ApplyFollowOffset(_vcam, _hasMainFollowOffset, _mainFollowOffsetAtBind);
-            ApplyFollowOffset(_aimVcam, _hasAimFollowOffset, _aimFollowOffsetAtBind);
+            if (!_hasFocus) return;
+            float yawDegrees = TpsCameraMath.PovHorizontalDegrees(_lookYaw);
+            ApplyPovAndYaw(_vcam, yawDegrees);
+            ApplyPovAndYaw(_aimVcam, yawDegrees);
+
+            if (!_hasMainFollowOffset || _vcam == null || ReferenceEquals(_vcam, null)) return;
+            Vector3 mainOffset = ResolveMainOffset();
+            ApplyFollowOffset(_vcam, mainOffset);
+            if (_aimVcam == null || ReferenceEquals(_aimVcam, null) || !_hasAimFollowOffset) return;
+            ApplyFollowOffset(_aimVcam, ResolveAimOffset(mainOffset));
         }
 
-        /// <summary>解绑/关闭：把镜像写入还原为场景基准（幂等；对象已销毁则跳过）。</summary>
+        private void ApplyPovAndYaw(CinemachineVirtualCamera vcam, float yawDegrees)
+        {
+            if (vcam == null || ReferenceEquals(vcam, null)) return;
+            CinemachineOrbitalTransposer orbital = vcam.GetCinemachineComponent<CinemachineOrbitalTransposer>();
+            if (orbital != null && !ReferenceEquals(orbital, null)) orbital.m_XAxis.Value = yawDegrees;
+
+            CinemachinePOV pov = vcam.GetCinemachineComponent<CinemachinePOV>();
+            if (pov != null && !ReferenceEquals(pov, null))
+            {
+                pov.m_HorizontalAxis.Value = yawDegrees;
+                pov.m_VerticalAxis.Value = TpsCameraMath.PovVerticalDegrees(_lookPitch);
+            }
+        }
+
+        private static void ApplyFollowOffset(CinemachineVirtualCamera vcam, in Vector3 offset)
+        {
+            if (vcam == null || ReferenceEquals(vcam, null)) return;
+            CinemachineOrbitalTransposer orbital = vcam.GetCinemachineComponent<CinemachineOrbitalTransposer>();
+            if (orbital == null || ReferenceEquals(orbital, null)) return;
+            orbital.m_FollowOffset = offset;
+        }
+
+        /// <summary>主相机位置：场景基准偏移绕枢轴做恒定臂长俯仰弧。臂长由场景
+        /// <c>FollowOffset</c> 与 <see cref="TpsCameraRigTuning.PivotHeight"/> 决定，服务不另写距离常量。</summary>
+        private Vector3 ResolveMainOffset()
+        {
+            Vector3 offset = _mainFollowOffsetAtBind;
+            if (_mainRig == null) return offset;
+
+            Vector2 arm = TpsCameraMath.PitchArm(
+                _lookPitch, _mainRig.PitchFollow,
+                offset.y - _mainRig.PivotHeight, offset.z);
+            offset.y = _mainRig.PivotHeight + arm.x;
+            offset.z = arm.y;
+            offset.y = Mathf.Max(offset.y, _mainRig.MinBoomHeight);
+            return offset;
+        }
+
+        /// <summary>瞄准机位置：主相机位置沿**当前视线方向**前移
+        /// <see cref="AimOffsetCurve"/> 给出的距离（场景主/瞄准基座差为端点）——ADS 只变焦/贴近，
+        /// 不改变屏心射线（俯仰任意角度都共线）。</summary>
+        private Vector3 ResolveAimOffset(in Vector3 mainOffset)
+        {
+            float forward = _aimForwardDelta;
+            if (_aiming && _hasAimPoint && _target != null && !ReferenceEquals(_target, null))
+            {
+                Vector3 viewWorld = Quaternion.Euler(
+                    0f, TpsCameraMath.PovHorizontalDegrees(_lookYaw), 0f)
+                    * TpsCameraMath.ViewDirection(_lookPitch);
+                float distance = Vector3.Dot(_aimPoint - _target.position, viewWorld);
+                forward = AimOffsetCurve.Z(Mathf.Max(0f, distance), forward);
+            }
+            return mainOffset + TpsCameraMath.ViewDirection(_lookPitch) * forward;
+        }
+
+        /// <summary>解绑/关闭：把派生写入（offset + 轨道轴）还原为场景基准（幂等；对象已销毁则跳过）。</summary>
         private void RestoreFollowOffsets()
         {
             RestoreFollowOffset(_vcam, _hasMainFollowOffset, _mainFollowOffsetAtBind);
             RestoreFollowOffset(_aimVcam, _hasAimFollowOffset, _aimFollowOffsetAtBind);
+            RestoreOrbitHeading(_vcam, _hasMainXAxis, _mainXAxisAtBind);
+            RestoreOrbitHeading(_aimVcam, _hasAimXAxis, _aimXAxisAtBind);
             _hasMainFollowOffset = false;
             _hasAimFollowOffset = false;
-        }
-
-        private void ApplyFollowOffset(CinemachineVirtualCamera vcam, bool hasOffset, in Vector3 sceneOffset)
-        {
-            if (!hasOffset || vcam == null || ReferenceEquals(vcam, null)) return;
-            CinemachineTransposer transposer = vcam.GetCinemachineComponent<CinemachineTransposer>();
-            if (transposer == null || ReferenceEquals(transposer, null)) return;
-            transposer.m_FollowOffset = _viewMirrored ? Mirror180(sceneOffset) : sceneOffset;
+            _hasMainXAxis = false;
+            _hasAimXAxis = false;
         }
 
         private static void RestoreFollowOffset(CinemachineVirtualCamera vcam, bool hasOffset, in Vector3 sceneOffset)
@@ -357,6 +448,25 @@ namespace LiteClient
             CinemachineTransposer transposer = vcam.GetCinemachineComponent<CinemachineTransposer>();
             if (transposer == null || ReferenceEquals(transposer, null)) return;
             transposer.m_FollowOffset = sceneOffset;
+        }
+
+        /// <summary>读取轨道轴当前值（非 Orbital rig 返回 false——不参与视角派生）。</summary>
+        private static bool TryReadOrbitHeading(CinemachineVirtualCamera vcam, out float heading)
+        {
+            heading = 0f;
+            if (vcam == null || ReferenceEquals(vcam, null)) return false;
+            CinemachineOrbitalTransposer orbital = vcam.GetCinemachineComponent<CinemachineOrbitalTransposer>();
+            if (orbital == null || ReferenceEquals(orbital, null)) return false;
+            heading = orbital.m_XAxis.Value;
+            return true;
+        }
+
+        private static void RestoreOrbitHeading(CinemachineVirtualCamera vcam, bool hasHeading, float sceneHeading)
+        {
+            if (!hasHeading || vcam == null || ReferenceEquals(vcam, null)) return;
+            CinemachineOrbitalTransposer orbital = vcam.GetCinemachineComponent<CinemachineOrbitalTransposer>();
+            if (orbital == null || ReferenceEquals(orbital, null)) return;
+            orbital.m_XAxis.Value = sceneHeading;
         }
 
         private static bool TryReadFollowOffset(CinemachineVirtualCamera vcam, out Vector3 offset)
@@ -368,10 +478,6 @@ namespace LiteClient
             offset = transposer.m_FollowOffset;
             return true;
         }
-
-        /// <summary>世界系 offset 的 180° 视角旋转：x/z 取反、y 不变。</summary>
-        private static Vector3 Mirror180(in Vector3 offset)
-            => new Vector3(-offset.x, offset.y, -offset.z);
 
         /// <summary>固定 16:9 信箱式视口（N1）：3D 相机视口居中裁成 16:9，非 16:9 屏幕留黑边；
         /// X/Y 可见范围在任意屏幕上一致。只在视口变化时写 Camera.rect 并留痕。</summary>
@@ -389,9 +495,9 @@ namespace LiteClient
         /// 瞄准态接管（<see cref="ICameraService.SetAiming"/> 契约；持续预放置形态）：
         /// 瞄准机的 Follow/LookAt 在**绑定主相机时即接线**（<see cref="BindAimCamera"/>），且
         /// StandbyUpdate=Always 全程跟着玩家——**接管瞬间瞄准机已在正确位姿**，切换只剩
-        /// 优先级翻转与 brain 的 FOV/构图混合，无陈旧位姿甩动；构图 z 偏移按
-        /// <see cref="AimOffsetCurve"/> 随瞄准点拉近（派生写入、释放还原场景值）。
-        /// 幂等（已接管则只刷新偏移）；主机未接线/瞄准机缺失时保持未接管逐帧重试，缺机记
+        /// 优先级翻转与 brain 的 FOV/构图混合，无陈旧位姿甩动；近距前移按
+        /// <see cref="AimOffsetCurve"/> 随瞄准点拉近（<see cref="ApplyRigDerived"/> 派生写入、释放还原场景值）。
+        /// 幂等（已接管则只刷新派生写入）；主机未接线/瞄准机缺失时保持未接管逐帧重试，缺机记
         /// <see cref="LastAimResolveReason"/>（不代场景自建）。
         /// </summary>
         public void SetAiming(bool aiming)
@@ -403,19 +509,19 @@ namespace LiteClient
                 if (_aiming && _aimVcam != null && !ReferenceEquals(_aimVcam, null)
                     && _aimVcam.gameObject.scene.IsValid())
                 {
-                    ApplyAimOffset();                         // 已接管：每帧按瞄准点刷新构图 z 偏移
+                    ApplyRigDerived();                        // 已接管：每帧按瞄准点刷新近距前移与 POV 轴
                     return;
                 }
                 if (_vcam == null || ReferenceEquals(_vcam, null)) return;   // 主机未接线：保持未接管重试
                 BindAimCamera();                              // 幂等：未接线则接线（预放置语义见上）
                 if (_aimVcam == null || ReferenceEquals(_aimVcam, null)) return;
 
-                if (!_aiming)                                 // 上升沿：翻优先级 + 起始一次偏移刷新
+                if (!_aiming)                                 // 上升沿：翻优先级 + 刷新派生写入
                 {
                     _aiming = true;
                     _aimPriorityAtBind = _aimVcam.Priority;
-                    ApplyAimOffset();
                     _aimVcam.Priority = _vcam.Priority + AimPriorityBoost;   // 基准派生：主 vcam 场景优先级 + 本值
+                    ApplyRigDerived();
                     Log.Info($"[Camera] 瞄准机接管「{_aimVcam.name}」prio={_aimVcam.Priority}", LogTag.Camera);
                 }
             }
@@ -426,7 +532,7 @@ namespace LiteClient
                 if (_aimVcam != null && !ReferenceEquals(_aimVcam, null))
                 {
                     _aimVcam.Priority = _aimPriorityAtBind;   // 还原优先级；Follow/LookAt 保持接线（持续预放置）
-                    RestoreAimOffset();                       // 构图 z 偏移同样还原场景值
+                    ApplyRigDerived();                        // 近距前移同样还原场景值
                     Log.Info($"[Camera] 瞄准机释放「{_aimVcam.name}」prio={_aimVcam.Priority}", LogTag.Camera);
                 }
             }
@@ -447,11 +553,16 @@ namespace LiteClient
             _aimVcam.Follow = _target;
             if (_aimVcam.LookAt == null) _aimVcam.LookAt = _target;
             _aimVcam.m_StandbyUpdate = CinemachineVirtualCameraBase.StandbyUpdateMode.Always;
-            if (!_hasAimFollowOffset)   // 每台瞄准机只采一次场景基准（重绑不把镜像值再当基准）
+            if (!_hasAimFollowOffset)   // 每台瞄准机只采一次场景基准（重绑不把派生值再当基准）
+            {
                 _hasAimFollowOffset = TryReadFollowOffset(_aimVcam, out _aimFollowOffsetAtBind);
-            ApplyFollowOffset(_aimVcam, _hasAimFollowOffset, _aimFollowOffsetAtBind);
-            if (!_aiming && _aimVcamAim != null && !ReferenceEquals(_aimVcamAim, null))
-                _aimOffsetZAtBind = _aimVcamAim.m_TrackedObjectOffset.z;   // 场景基准值（仅非瞄准期可采：曲线接回的端点）
+                _hasAimXAxis = TryReadOrbitHeading(_aimVcam, out _aimXAxisAtBind);
+                // 主/瞄准场景基座的 z 差 = ADS 沿主视线前移的基座距离（近距由 AimOffsetCurve 收短）。
+                _aimForwardDelta = _hasMainFollowOffset
+                    ? Mathf.Max(0f, _aimFollowOffsetAtBind.z - _mainFollowOffsetAtBind.z)
+                    : 0f;
+            }
+            ApplyRigDerived();
             ApplyLetterbox();
             Log.Info($"[Camera] 瞄准机预放置「{_aimVcam.name}」(follow/lookAt=主焦点, standby=Always)", LogTag.Camera);
         }
@@ -470,8 +581,8 @@ namespace LiteClient
             {
                 if (all[i] == null || all[i].name != AimCameraName) continue;
                 _aimVcam = all[i];
-                _aimVcamAim = _aimVcam.GetCinemachineComponent<CinemachineComposer>();
-                _hasAimFollowOffset = false;   // 新解析的瞄准机：场景基准从未镜像的当前值重新采集
+                _hasAimFollowOffset = false;   // 新解析的瞄准机：场景基准从当前值重新采集
+                _aimForwardDelta = 0f;
                 LastAimResolveReason = null;
                 return true;
             }
@@ -479,7 +590,7 @@ namespace LiteClient
             string reason = $"场景里没有启用的「{AimCameraName}」——ADS 接管 no-op（瞄准相机配置归场景，不由代码自建）";
             if (LastAimResolveReason != reason)               // 只在原因变化时打（防每帧重试刷屏）
             {
-                Log.Info("[Camera] " + reason, LogTag.Camera);
+                Log.Warning("[Camera] " + reason, LogTag.Camera);   // 装配缺口＝内容降级口径（Warning 可见化，修审计 L42"静默 no-op"面）
                 LastAimResolveReason = reason;
             }
             return false;
@@ -497,31 +608,12 @@ namespace LiteClient
         }
 
         /// <summary>瞄准点通知（<see cref="ICameraService.SetAimPoint"/> 契约）：缓存本帧解算结果；
-        /// 瞄准期立即刷新构图 z 偏移，非瞄准期只存值（预放置用场景偏移）。</summary>
+        /// 瞄准期立即刷新瞄准机近距前移（<see cref="ApplyRigDerived"/>），非瞄准期只存值。</summary>
         public void SetAimPoint(in Vector3 point, bool hasPoint)
         {
             _aimPoint = point;
             _hasAimPoint = hasPoint;
-            if (_aiming) ApplyAimOffset();
-        }
-
-        /// <summary>按纯二次曲线把瞄准点距离写进构图 z 偏移（<see cref="AimOffsetCurve"/>）。
-        /// 距离 = 瞄准点在**焦点前向**上的投影（偏移轴 = 焦点局部 z，角色系）；无解算点/无构图器/无焦点时不动作。</summary>
-        private void ApplyAimOffset()
-        {
-            if (!_hasAimPoint || _aimVcamAim == null || ReferenceEquals(_aimVcamAim, null)) return;
-            if (_target == null || ReferenceEquals(_target, null)) return;
-
-            float d = Vector3.Dot(_aimPoint - _target.position, _target.forward);
-            if (d < 0f) d = 0f;
-            _aimVcamAim.m_TrackedObjectOffset.z = AimOffsetCurve.Z(d, _aimOffsetZAtBind);
-        }
-
-        /// <summary>构图 z 偏移还原为接管前场景值（释放/解绑路径；幂等）。</summary>
-        private void RestoreAimOffset()
-        {
-            if (_aimVcamAim != null && !ReferenceEquals(_aimVcamAim, null))
-                _aimVcamAim.m_TrackedObjectOffset.z = _aimOffsetZAtBind;
+            if (_aiming) ApplyRigDerived();
         }
     }
 }

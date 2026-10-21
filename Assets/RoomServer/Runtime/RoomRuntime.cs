@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using LiteSim;
+using RoomServer.Runtime.Diagnostics;
 
 namespace RoomServer.Runtime
 {
@@ -37,6 +38,9 @@ namespace RoomServer.Runtime
 
         /// <summary>本房地图行键（转发 <see cref="Config"/>；多图批——随 JoinAck 权威下发，0 = 未标注）。</summary>
         public int MapId => Config.MapId;
+
+        /// <summary>取走本局录制（仅房间静默后调用；重复调用返回同一份）。null = 未启用录制。</summary>
+        public RoomRunRecord TakeRunRecord() => _runRecorder?.Seal();
 
         public readonly string RoomId;
         /// <summary>宿主分配的局标识；直驱测试可显式注入，缺省沿用 RoomId。</summary>
@@ -117,6 +121,9 @@ namespace RoomServer.Runtime
         /// **非 readonly**（联机测试房批）：运行期 GM 开关经 <see cref="SetTestRules"/> 在权威循环内替换引用。</summary>
         private MatchTestRules _testRules;
 
+        /// <summary>本局命令日志录制器（null = 关闭；纯内存，R11 安全）。</summary>
+        private readonly RoomRunRecorder _runRecorder;
+
         // ---- Ops 计数 ----
         public long StepsCount;
         public long FireInputsProcessed;        // 走回溯路径的开火输入数
@@ -127,11 +134,12 @@ namespace RoomServer.Runtime
         /// <paramref name="gameplayDigestBase"/> = 判定面表字节基摘要（`ServerTableLoad.Digest` 经宿主装配
         /// 显式传入——技术债 #1 同纪律：身份来自装载产物、不经读口；测试直构传 0 = 无表身份形态）。</summary>
         public RoomRuntime(RoomConfig config, CombatValues? combat = null, WeaponTable weapons = null, string matchId = null,
-            MatchTestRules testRules = null, uint gameplayDigestBase = 0)
+            MatchTestRules testRules = null, uint gameplayDigestBase = 0, RoomRunRecorder recorder = null)
         {
             Config = config ?? throw new ArgumentNullException(nameof(config));
             RoomId = config.RoomId;
             MatchId = matchId ?? RoomId;
+            _runRecorder = recorder;
             // 玩法数值/武器表实例：装配方显式传入（技术债 #1——不再从全局静态面 capture）；缺省=默认表值
             // （嵌入式/测试形态）。生产链：HostAssembly.Inputs（必填）→ ServerHost → RoomInstance。
             CombatValues values = combat ?? CombatValues.Default;
@@ -215,6 +223,9 @@ namespace RoomServer.Runtime
         /// </summary>
         public void Execute(in RoomCommand cmd, List<RoomOutput> outputs)
         {
+            // 诊断录制必须在 dispatch 之前：拒绝的命令也是真实消费序的一部分（重放要复现同样的拒绝）。
+            _runRecorder?.RecordCommand(in cmd);
+
             // 联机测试房批：GM 规则位是运行态事实，随每份快照全量下发。
             // 在**命令入口**同步（权威单线程），跨线程写被命令入口挡住——不暴露直写字段。
             AuthSim.Match.GmFlags = GmFlagsOf(_testRules);
@@ -240,6 +251,7 @@ namespace RoomServer.Runtime
         {
             _testRules = rules;
             AuthSim.Match.GmFlags = GmFlagsOf(rules);
+            _runRecorder?.RecordTestRules(AuthSim.Frame, rules);
         }
 
         /// <summary>规则位掩码（1 = 免死 / 2 = 无限弹药；null = 0）。</summary>
@@ -551,6 +563,7 @@ namespace RoomServer.Runtime
 
             Seed = Config.Seed != 0 ? Config.Seed : DeriveSeed(_lastNowMs);
             AuthSim.RngState = (ulong)Seed;
+            _runRecorder?.RecordSeed((ulong)Seed);
             MatchSystem.Start(AuthSim, Rules);
 
             uint used = 0u;
@@ -629,6 +642,7 @@ namespace RoomServer.Runtime
             ConsumePendingFire(steppedFrame);                 // 回溯判定（本步产生开火输入时；结算死亡即刻入窗）
             MatchSystem.Tick(AuthSim);                        // 整帧（含回溯）结算后才判胜
             SnapshotHistory.Capture(steppedFrame, AuthSim);    // 覆盖本帧的最终计分/比赛状态
+            _runRecorder?.RecordStep(steppedFrame, SimChecksum.ComputeChecksum(AuthSim));
         }
 
         /// <summary>

@@ -6,6 +6,7 @@ using System.Text;
 using System.Text.Json;
 using LiteSim;
 using RoomServer.Application;
+using RoomServer.Diagnostics;
 using RoomServer.Runtime;
 
 namespace RoomServer
@@ -173,6 +174,9 @@ namespace RoomServer
         /// </summary>
         public readonly HostTuning HostTuning;
 
+        /// <summary>房间诊断现场包（可选 <c>diagnostics</c> 分区；缺省关闭 = 行为零变化）。</summary>
+        public readonly RoomDiagnosticsOptions Diagnostics;
+
         private readonly string _sourcePath;
 
         private RoomServerConfig(string sourcePath, int port, int maxRooms, string audience,
@@ -181,7 +185,8 @@ namespace RoomServer
             string settlementJournalPath, int settlementOutboxCapacity, RateLimitSettings rateLimit,
             string lobbyUrl, string lobbyInstanceId, string lobbyAdvertiseHost, long lobbyHeartbeatMs,
             string settlementSubmitUrl, long settlementIntervalMs, long settlementMaxBackoffMs, long settlementTimeoutMs,
-            HostTuning hostTuning, int metricsPort, int gmPort, string gmBind)
+            HostTuning hostTuning, int metricsPort, int gmPort, string gmBind,
+            RoomDiagnosticsOptions diagnostics)
         {
             _sourcePath = sourcePath;
             _port = port;
@@ -206,6 +211,7 @@ namespace RoomServer
             SettlementMaxBackoffMs = settlementMaxBackoffMs;
             SettlementTimeoutMs = settlementTimeoutMs;
             HostTuning = hostTuning ?? HostTuning.Default;
+            Diagnostics = diagnostics ?? RoomDiagnosticsOptions.Disabled;
 
             int widest = 0;
             foreach (RoomTemplate t in rooms.Values)
@@ -456,6 +462,9 @@ namespace RoomServer
                 ? HostTuning.Parse(tuningEl, sourcePath)
                 : HostTuning.Default;
 
+            // ---- 房间诊断现场包（可选；缺省关闭；启用时目录必须绝对路径）----
+            RoomDiagnosticsOptions diagnostics = RoomDiagnosticsOptions.Parse(root, sourcePath);
+
             // ---- 指标出口端口（可选；0 = 关闭——缺省行为零变化；范围同 port）----
             long metricsPortValue = OptionalLong(root, "metrics_port", 0);
             if (metricsPortValue < 0 || metricsPortValue > 65535)
@@ -477,7 +486,7 @@ namespace RoomServer
                 workerCount, mailboxCapacity, journal, outboxCapacity, rateLimit,
                 lobbyUrl, lobbyInstanceId, lobbyAdvertiseHost, lobbyHeartbeatMs,
                 settlementUrl, settlementIntervalMs, settlementMaxBackoffMs, settlementTimeoutMs,
-                hostTuning, (int)metricsPortValue, (int)gmPortValue, gmBind);
+                hostTuning, (int)metricsPortValue, (int)gmPortValue, gmBind, diagnostics);
         }
 
         /// <summary>

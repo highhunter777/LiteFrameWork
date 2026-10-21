@@ -3,7 +3,7 @@ using NUnit.Framework;
 
 namespace LiteGame.Tests.EditMode
 {
-    /// <summary>瞄准机构图 z 偏移曲线（纯二次）：端点连续与"Z &lt; d"性质。</summary>
+    /// <summary>瞄准机沿主视线前移距离曲线（纯二次）：端点连续与"D &lt; d"性质。</summary>
     public sealed class AimOffsetCurveEditModeTests
     {
         [Test]

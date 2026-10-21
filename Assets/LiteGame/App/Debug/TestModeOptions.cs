@@ -21,7 +21,6 @@ namespace LiteGame
             InfiniteAmmo,
             LaserSight,
             DamageNumbers,
-            ViewMirrored,
             AutoHeadshot,
             DrawHeadshotDebug,
             TeleportEnabled,
@@ -62,7 +61,6 @@ namespace LiteGame
             new Info(Id.InfiniteAmmo, "无限子弹（开火不扣弹匣、空仓也可开火、不触发末发自动换弹；Sim 规则两端同源）", Group.Live, false),
             new Info(Id.LaserSight, "瞄准激光（测试房内显示；非测试模式按武器支持位）", Group.Live, true),
             new Info(Id.DamageNumbers, "伤害数字（测试房内飘字；非测试模式恒显）", Group.Live, true),
-            new Info(Id.ViewMirrored, "相机镜像预览（团队模式：每队相机朝敌方；Stage1 临时，团队接线后退役）", Group.Live, false),
             new Info(Id.AutoHeadshot, "自动爆头（替换输入源：锁最近敌人头部带 + 持续开火，端到端验爆头链）", Group.Live, false),
             new Info(Id.DrawHeadshotDebug, "爆头区域可视化（服务端判定圆柱 + 爆头带）", Group.Live, false),
             new Info(Id.TeleportEnabled, "定点传送（T 键 / 面板按钮 → 准心点）", Group.Startup, true),
@@ -79,7 +77,6 @@ namespace LiteGame
                 case Id.InfiniteAmmo: return TestModeRuntime.InfiniteAmmo;
                 case Id.LaserSight: return TestModeRuntime.LaserSight;
                 case Id.DamageNumbers: return TestModeRuntime.DamageNumbers;
-                case Id.ViewMirrored: return TestModeRuntime.ViewMirrored;
                 case Id.AutoHeadshot: return TestModeRuntime.AutoHeadshot;
                 case Id.DrawHeadshotDebug: return TestModeRuntime.DrawHeadshotDebug;
                 case Id.TeleportEnabled: return TestModeRuntime.TeleportEnabled;
@@ -98,7 +95,6 @@ namespace LiteGame
                 case Id.InfiniteAmmo: TestModeRuntime.InfiniteAmmo = value; break;
                 case Id.LaserSight: TestModeRuntime.LaserSight = value; break;
                 case Id.DamageNumbers: TestModeRuntime.DamageNumbers = value; break;
-                case Id.ViewMirrored: TestModeRuntime.ViewMirrored = value; break;
                 case Id.AutoHeadshot: TestModeRuntime.AutoHeadshot = value; break;
                 case Id.DrawHeadshotDebug: TestModeRuntime.DrawHeadshotDebug = value; break;
                 case Id.TeleportEnabled: TestModeRuntime.TeleportEnabled = value; break;

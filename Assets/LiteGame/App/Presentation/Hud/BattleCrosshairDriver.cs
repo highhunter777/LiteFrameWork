@@ -8,13 +8,14 @@ namespace LiteGame
 {
     /// <summary>
     /// 对局准心驱动（战斗 HUD 第一件；纯 View 层——HUD 归 View、禁止回写 Sim，数据源单向流同前）：
-    /// - **位置**：鼠标屏幕点 → <c>RectTransformUtility.ScreenPointToLocalPointInRectangle</c>
-    ///   （Overlay 画布，camera=null，CanvasScaler 由该 API 一并处理）+ **后坐冲量残余偏移**（上跳）；
-    ///   腰射时准心即瞄准落点（瞄准链 = 鼠标点 → 相机射线 → 交点，屏幕点回投仍是本位）。
+    /// - **位置**：恒钉**画布中心**（TPS 屏心——全屏居中 Overlay 画布的局部原点即屏心）+ **后坐冲量
+    ///   残余偏移**（上跳）。指针锁定形态下鼠标只驱动相机视角，"屏幕光标位"语义退役；瞄准链 =
+    ///   屏心射线 → 交点（AimPoint）＝ 屏心位置——所见即所打同位。
     /// - **形态**：<see cref="SimView.IsAiming"/> 读本地预测态（连续位进 PredictedButtons，与本地手感
     ///   同帧）切腰射/瞄准两组；按实体 Id 解析槽位（不能把带版本的 Id 当下标）。
-    /// - **可见性**：上下文门被拦（模态 UI 开）→ 藏准心还系统光标；本地表现未建 → 整体隐藏。
-    ///   对局内 <c>Cursor.visible=false</c>，Dispose 恢复（流程离场必经 DetachView，光标不遗留隐藏态）。
+    /// - **可见性**：上下文门被拦（模态 UI 开）→ 藏准心；本地表现未建 → 整体隐藏。**光标/指针锁定
+    ///   已收编 <c>PointerLockService</c>**（TPS 指针锁定形态——BattleViewRig 驱动、Cursor 唯一写者）；
+    ///   本驱动的 <paramref name="setCursorVisible"/> 注入位仅供测试断言驱动意向，默认 no-op。
     /// - **散布张开（静态）**：有效散布角（瞄准 = 表值 spread、腰射 ×<see cref="CombatConfig.HipSpreadFactor"/>）
     ///   → 准心整体缩放；**满张倍率按武器行**（tbcrosshair.static_max_scale——按武器表化；出件为单贴图
     ///   准心，"张开"= 整体缩放）。未装备/无散布信息 → 基线 <see cref="MinSpreadScale"/>（如实降级，不猜）。
@@ -29,10 +30,8 @@ namespace LiteGame
     /// **不做**：命中标记（随帧事件批）、ADS 相机联动（手测项——不接相机时 ADS 准心跟鼠标，
     /// 锁屏心要等瞄准相机同轴后才成立）。
     ///
-    /// 测试注：<paramref name="screenPosition"/>/<paramref name="setCursorVisible"/> 是注入位
-    /// （EditMode 确定性驱动）。**鼠标位的生产来源是设备源适配器**
-    /// （<see cref="NewInputIntentSource.MouseScreenPosition"/>——InputSystem 的 import 只许在
-    /// 适配器边界内，R12；本层经注入消费，不直接认识 InputSystem）；注入位为 null 时回退屏幕零点。
+    /// 测试注：<paramref name="setCursorVisible"/> 是注入位（EditMode 确定性驱动——断言"驱动意向"，
+    /// 光标实写归 <c>PointerLockService</c>）。位置恒屏心无需注入位。
     /// </summary>
     public sealed class BattleCrosshairDriver : IHitFeedbackConsumer, IDisposable
     {
@@ -60,8 +59,7 @@ namespace LiteGame
         private readonly GameObject _hip;
         private readonly GameObject _ads;
         private readonly CrosshairFeelBook _feel;            // null = 无表装配（灰盒/测试）→ 防御回落 Default
-        private readonly Func<Vector2> _screenPosition;     // 注入位：默认读 InputSystem 鼠标
-        private readonly Action<bool> _setCursorVisible;    // 注入位：默认写 Cursor.visible
+        private readonly Action<bool> _setCursorVisible;    // 注入位：默认 no-op（光标实写已收编 PointerLockService）；测试注入断言驱动意向
         private float _lastScale = MinSpreadScale;          // 准心缩放脏位（值变化才写 Transform）
         private float _burstOpen;                            // 连发临时张开残余（倍率增量，≥0）
         private float _kick;                                 // 后坐冲量残余（画布像素，≥0——上跳偏移）
@@ -69,7 +67,7 @@ namespace LiteGame
 
         public BattleCrosshairDriver(SimView view, IInputService input, RectTransform plane,
             RectTransform reticle, GameObject hip, GameObject ads,
-            Func<Vector2> screenPosition = null, Action<bool> setCursorVisible = null,
+            Action<bool> setCursorVisible = null,
             CrosshairFeelBook feel = null)
         {
             _view = view ?? throw new ArgumentNullException(nameof(view));
@@ -79,8 +77,7 @@ namespace LiteGame
             _hip = hip;
             _ads = ads;
             _feel = feel;
-            _screenPosition = screenPosition ?? ZeroScreenPosition;   // 无注入（无设备/触屏形态）→ 屏幕零点
-            _setCursorVisible = setCursorVisible ?? (visible => Cursor.visible = visible);
+            _setCursorVisible = setCursorVisible ?? NoCursorWrite;    // 光标实写收编 PointerLockService（TPS）；默认 no-op，注入位供测试
         }
 
         /// <summary>已计入张开/后坐的本地开火发数（诊断面——"开了几枪就该张几下"的对账读口）。</summary>
@@ -117,10 +114,8 @@ namespace LiteGame
                 if (_kick < 0.05f) _kick = 0f;
             }
 
-            // 位置：鼠标屏幕点（画布中心系）+ 后坐上跳残余
-            Vector2 screen = _screenPosition();
-            if (RectTransformUtility.ScreenPointToLocalPointInRectangle(_plane, screen, null, out Vector2 local))
-                _reticle.localPosition = new Vector3(local.x, local.y + _kick, 0f);
+            // 位置：恒钉画布中心（TPS 屏心——全屏居中 Overlay 画布的局部原点即屏心）+ 后坐上跳残余
+            _reticle.localPosition = new Vector3(0f, _kick, 0f);
 
             // 缩放：静态散布张开（按武器行满张倍率）+ 连发增量，钳连发总上限（值变化才写 Transform）
             CrosshairFeel feel = hasSlot ? FeelOf(slot) : CrosshairFeel.Default;
@@ -172,13 +167,14 @@ namespace LiteGame
         }
 
         /// <summary>无注入位回退：屏幕零点（无设备/触屏形态——生产鼠标位经设备源适配器注入）。</summary>
-        private static Vector2 ZeroScreenPosition() => Vector2.zero;
+        /// <summary>光标实写的 no-op 默认（TPS 收编后 Cursor 唯一写者是 PointerLockService）。</summary>
+        private static void NoCursorWrite(bool visible) { }
 
         public void Dispose()
         {
             if (_disposed) return;
             _disposed = true;
-            _setCursorVisible(true);                          // 流程离场/宿主关闭：还系统光标
+            _setCursorVisible(true);                          // 驱动意向（注入位供测试断言；光标实写归 PointerLockService）
         }
     }
 }

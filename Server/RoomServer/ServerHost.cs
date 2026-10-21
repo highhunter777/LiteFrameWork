@@ -10,6 +10,7 @@ using LiteNet.Proto;
 using LiteNet.Transport;
 using LiteSim;
 using RoomServer.Application;
+using RoomServer.Diagnostics;
 using RoomServer.Runtime;
 using Proto = LiteNet.Proto;
 
@@ -199,6 +200,11 @@ namespace RoomServer
         private readonly InboundHandlers _inbound;
 
         private readonly RoomServerConfig _serverConfig;
+
+        /// <summary>房间诊断现场包（null = 关闭；配置 diagnostics 启用时装配）。</summary>
+        private readonly RoomDiagnosticsService _diagnostics;
+
+        internal RoomDiagnosticsService Diagnostics => _diagnostics;
 
         /// <summary>
         /// 玩法数值实例（技术债 #1：装配方显式传入——生产链 `HostAssembly`（必填）→ 本宿主 → 各房间
@@ -473,6 +479,9 @@ namespace RoomServer
         {
             _transport = transport ?? throw new ArgumentNullException(nameof(transport));
             _serverConfig = roomServerConfig;
+            _diagnostics = roomServerConfig?.Diagnostics?.Enabled == true
+                ? new RoomDiagnosticsService(roomServerConfig.Diagnostics, ServerBuildHash)
+                : null;
             _registry = new RoomRegistry(roomServerConfig?.MaxRooms ?? 1);   // 首个 AddRoom 之前就位
             _combat = combatValues ?? CombatValues.Default;
             _weapons = weapons ?? WeaponTable.Default;
@@ -1912,8 +1921,10 @@ namespace RoomServer
             cfg.Map ??= ResolveMap(cfg.MapId);
             int mailboxCapacity = _serverConfig?.MailboxCapacity ?? RoomInstance.DefaultMailboxCapacity;
             RoomInstance inst = _workerExecution
-                ? new RoomInstance(cfg, mailboxCapacity, mailboxCapacity, mailboxCapacity, dynamic, true, _combat, _weapons, _gameplayDigestBase)
-                : new RoomInstance(cfg, mailboxCapacity, dynamic, _combat, _weapons, _gameplayDigestBase);
+                ? new RoomInstance(cfg, mailboxCapacity, mailboxCapacity, mailboxCapacity, dynamic, true,
+                    _combat, _weapons, _gameplayDigestBase, _diagnostics?.Options)
+                : new RoomInstance(cfg, mailboxCapacity, dynamic, _combat, _weapons, _gameplayDigestBase,
+                    _diagnostics?.Options);
             if (_workerExecution)
             {
                 // Worker 执行形态：房间在宿主线程建立，随后按 roomId 交给归属 Worker 驱动；
@@ -1987,6 +1998,10 @@ namespace RoomServer
 
             if (!_registry.IsRegistered(room))
                 return false;   // 已被移除或已重建：不是本实例
+
+            // 房间已终态且（Worker 形态）静默：这是唯一允许取走内核记录并落盘的时点。
+            _diagnostics?.TryWrite(room.RoomId, room.Runtime, room.Config, room.GameplayDigestBase,
+                room.CreatedAtUtc, room.Runtime.Match.Phase + ":" + room.Runtime.AuthSim.Match.EndReason);
 
             for (int p = 0; p < room.Seats.Length; p++)
             {
@@ -2115,6 +2130,9 @@ namespace RoomServer
             void IInboundDiagnostics.NoteMailboxClosed() => Interlocked.Increment(ref _host._mailboxClosed);
 
             void IInboundDiagnostics.NoteMailboxRejectedFull() => Interlocked.Increment(ref _host._mailboxRejectedFull);
+
+            void IInboundDiagnostics.NoteMismatch(string roomId, int frame)
+                => _host.Diagnostics?.NoteMismatch(roomId, frame);
         }
     }
 }

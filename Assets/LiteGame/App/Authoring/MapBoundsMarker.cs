@@ -26,8 +26,7 @@ namespace LiteGame
     /// </summary>
     public static class MapTopology
     {
-        /// <summary>判定代理树根对象名（地图场景根下唯一）：烘焙采集（SimMapBaker）与
-        /// 视野遮蔽绑定（BattleVisionBlockerDriver）同读。</summary>
+        /// <summary>判定代理树根对象名（地图场景根下唯一）：烘焙采集（SimMapBaker）读取。</summary>
         public const string MapCollisionRoot = "MapCollision";
     }
 }

@@ -9,6 +9,16 @@
   "gm_port": 9101,
   "gm_bind": "10.8.0.1",
 
+  "diagnostics": {
+    "enabled": true,
+    "directory": "C:/litegame/room/diagnostics",
+    "max_files": 100,
+    "max_total_mb": 512,
+    "max_commands": 400000,
+    "max_steps": 100000,
+    "log_tail_lines": 200
+  },
+
   "rate_limit": {
     "ip_burst": 32,
     "ip_per_sec": 4,

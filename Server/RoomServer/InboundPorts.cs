@@ -103,5 +103,8 @@ namespace RoomServer
         void NoteMailboxClosed();
 
         void NoteMailboxRejectedFull();
+
+        /// <summary>和解上报（现场包用；房间号可空，空则忽略）。</summary>
+        void NoteMismatch(string roomId, int frame);
     }
 }

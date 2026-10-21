@@ -33,11 +33,10 @@ namespace LiteView
 
         /// <summary>
         /// 跟随目标表现位姿（每渲染帧调用；<paramref name="deltaSeconds"/> = 真实帧间隔）。
-        /// <paramref name="facing"/> = 本地玩家**朝向**（视觉前沿为 +Z 的那份旋转——SimView 摆位约定）：
-        /// 实现把它写到跟随焦点上，**构图偏移**（如 Cinemachine FramingTransposer 的
-        /// TrackedObjectOffset——其语义是"随 Follow 目标旋转"）随之变**角色系**（X=右肩、Z=前方）。
-        /// 实现可只对**自建焦点**应用旋转
-        /// （场景配置的 Follow 目标自带姿态，不越权覆写）。
+        /// **只跟随位置**：第三人称自由视角的视线由 <see cref="AddLookDelta"/> 驱动，实现不把
+        /// <paramref name="facing"/> 写进焦点旋转——否则角色转身会带动构图，和自由视角的轨道
+        /// 事实源打架。保留 <paramref name="facing"/> 形参供未来视图消费方（如动画朝向），
+        /// 当前相机实现如实不读它。
         /// </summary>
         void Follow(in Vector3 target, in Quaternion facing, float deltaSeconds);
 
@@ -50,18 +49,25 @@ namespace LiteView
         /// </summary>
         void SetAiming(bool aiming);
 
-        /// <summary> 瞄准点通知（世界空间；本地解算的鼠标→地面交点）。每渲染帧幂等调用，仅瞄准期有意义； 
-        /// hasPoint=false = 本帧无解算（无鼠标/无交点）→ 实现不得猜点（保持预放置位姿）。 
-        /// 语义态进端口、用法归实现（与 SetAiming 同口径）。 
-        /// </summary> 
-        void SetAimPoint ( in Vector3 point, bool hasPoint ) ;
+        /// <summary>瞄准点通知（世界空间；本地解算的屏心射线交点）。每渲染帧幂等调用，仅瞄准期有意义；
+        /// hasPoint=false = 本帧无解算（无射线交点）→ 实现不得猜点。语义态进端口、用法归实现：
+        /// 当前实现用它做瞄准机近距后撤（瞄准点越近，相机离角色越近），不改视线方向。
+        /// </summary>
+        void SetAimPoint(in Vector3 point, bool hasPoint);
 
         /// <summary>
-        /// 本地视角镜像（团队模式：相机朝敌方看）。true = 视角取镜像朝向（南队朝北 / 北队朝南），
-        /// false = 场景原朝向（FFA 恒 false）。语义态进端口、镜像方式归实现：实现只对**场景配置的
-        /// 相机 offset** 做 180° 派生变换并在解绑/关闭时还原，不新增构图档位；每渲染帧幂等调用。
+        /// 本地视角增量（第三人称自由视角）：把本帧输入源的视角增量（弧度）累进服务自持的相机
+        /// yaw/pitch 状态（yaw 环绕、pitch 按实现限位钳制）。**pitch 正 = 上仰**（与 POV 垂直轴
+        /// 的"正 = 向下"相反，符号换算归实现）。**纯视图侧**——视角不进意图三件、不进协议、不上行：
+        /// 相机姿态是本地表现，Sim/判定零涉及。每渲染帧幂等调用（零增量 = 无操作）。
         /// </summary>
-        void SetViewMirrored(bool mirrored);
+        void AddLookDelta(float yawDelta, float pitchDelta);
+
+        /// <summary>当前视角 yaw（弧度，服务自持状态；诊断/测试读口）。未收到过增量 = 0。</summary>
+        float LookYaw { get; }
+
+        /// <summary>当前视角 pitch（弧度，正 = 上仰、服务自持状态、已按实现限位钳制；诊断/测试读口）。未收到过增量 = 0。</summary>
+        float LookPitch { get; }
 
         /// <summary>重置跟随状态（解除控制/重开局/复活传送硬切时调：下一次 <see cref="Follow"/> 直接落位，
         /// 不从上一次位置阻尼飞过去——否则镜头追赶期间角色可能在画面外。</summary>

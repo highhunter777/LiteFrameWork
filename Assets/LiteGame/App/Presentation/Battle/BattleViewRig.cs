@@ -15,9 +15,9 @@ namespace LiteGame
 {
     /// <summary>
     /// 对局视图装配件（<see cref="ProcedureBattle"/> 的视图域，一处收口全部表现件接线）：
-    /// 自有 `BattleView` 子作用域 → 资源租约（角色 prefab / 激光束 / 飘字底件与四档材质 / 掩体材质对 /
+    /// 自有 `BattleView` 子作用域 → 资源租约（角色 prefab / 激光束 / 飘字底件与四档材质 /
     /// 片段清单 / 四组音效 clip）→ <see cref="SimView"/> → 移动动画驱动 / 准心 / HUD / 瞄准激光 /
-    /// 视野遮蔽 / 命中分发 / 伤害数字 / 枪口火光与命中特效 / 对局音效 /〔编辑器〕爆头诊断与自动验证件。
+    /// 命中分发 / 伤害数字 / 枪口火光与命中特效 / 对局音效 /〔编辑器〕爆头诊断与自动验证件。
     ///
     /// **三面**：<see cref="LoadAsync"/>（取件与降级）、<see cref="Attach"/>（建视图与接线）、
     /// <see cref="Tick"/>（每帧驱动视图消费者）、<see cref="Dispose"/>（逆序拆：消费者先于生产者）。
@@ -59,18 +59,24 @@ namespace LiteGame
         /// 路径单源在动画 Profile——角色族配置归一处。</summary>
         private const string ClipManifestPath = CombatGirlsAnimationProfile.ClipManifestPath;
 
-        /// <summary>掩体基准材质（不透明）与渐隐变体（同色半透明）——**成对**经内容服务取件：
-        /// 视野遮蔽（档 A1）只做运行时 <c>sharedMaterial</c> 切换，不新建材质；渐隐变体是
-        /// 掩体内容的一部分（与场景同目录），路径即其产物单源同串。</summary>
-        private const string CoverBaseMaterial = "Assets/Scenes/Arena01/Arena01_Cover.mat";
-        private const string CoverFadeMaterial = "Assets/Scenes/Arena01/Arena01_Cover_Fade.mat";
-
         private readonly IContentService _content;
         private readonly IVFXService _vfx;
         private readonly AudioService _audio;        // 音频服务（装配根注册；对局音效的组+代理后端）
         private readonly CommandCenter _commands;    // 命令中心（传送命令化：撤销/重做/排队派发）
         private readonly IInputService _input;       // 输入服务（设备源注入/清派发状态）
         private readonly ICameraService _camera;     // 相机服务（Cinemachine 适配器；装配根建、跨对局复用）
+        private Func<Vector2> _lookDeltaOf;           // 视角增量来源（设备源适配器 LookDelta；随本局设备源挂/摘）
+        private readonly PointerLockService _pointer = new PointerLockService();   // 指针锁定（TPS 输入形态——Cursor 的唯一写者）
+
+        /// <summary>视角灵敏度（弧度/像素）——机制初档常量单源：0.0025 ≈ 0.14°/px，1440px 横扫 ≈ 206°
+        /// （约三分之一圈，主流 TPS 鼠标灵敏度中位起点）；ADS 档缩放与 GM/Inspector 调参面随 T6 落位
+        /// （以本常量为默认基线）。</summary>
+        private const float LookSensitivityRadPerPixel = 0.0025f;
+
+        /// <summary>ADS 期视角灵敏度收敛比——机制初档常量单源：ADS 视场收窄（FOV 60→50，收窄比 50/60≈0.83）
+        /// 下同像素位移对应更大的视角变化，灵敏度须同比收敛再叠手感衰减（同类 TPS 常见 0.5~0.7 的中位）；
+        /// ADS 构图档位本体＝双机优先级切换 + brain 的 FOV/构图混合（场景 rig 值），本常量只管增量缩放。</summary>
+        private const float AdsLookSensitivityScale = 0.6f;
         private readonly LiteFramework.IWorldClock _worldClock;   // 世界钟（伤害数字寿命/合并窗）
         private readonly AimHoldGate _aimGate = new AimHoldGate(AimMinHoldSeconds);   // 瞄准态滞回
         private int _lastRespawnSerial;                              // 本地复活序号（瞄准门一次性复位用）
@@ -93,9 +99,7 @@ namespace LiteGame
         private BattleLaserDriver _laser;               // 瞄准激光（准心的世界空间兄弟件）
         private GameObject _laserBeam;                  // 激光束实例（挂 _viewRoot，随离场拆）
         private AssetLease<GameObject> _laserLease;     // 激光束租约（登记 _viewScope）
-        private BattleVisionBlockerDriver _vision;      // 视野遮蔽（档 A1：遮挡物渐隐＋影区实体隐藏——静默降级）
-        private AssetLease<Material> _coverBaseLease;   // 掩体基准材质租约（渐隐对·基准侧）
-        private AssetLease<Material> _coverFadeLease;    // 掩体渐隐变体租约（渐隐对·变体侧）
+
         private AssetLease<GameObject> _hudLease;       // HUD prefab 租约（登记 _viewScope）
         private GameObject _hudInstance;                // HUD 根件（ScreenSpace Canvas——随离场销毁）
         private BattleHudView _hudView;                 // 引用件（序列化引用——八节点，零 Find）
@@ -156,7 +160,6 @@ namespace LiteGame
             await AcquireDamageNumberMaterialsAsync(ct);
             await AcquireClipManifestAsync(ct);
             await AcquireAudioClipsAsync(ct);
-            await AcquireVisionMaterialsAsync(ct);
         }
 
         /// <summary>
@@ -345,29 +348,6 @@ namespace LiteGame
             }
         }
 
-        /// <summary>取掩体材质对（视野遮蔽用：基准 ↔ 渐隐变体）。**整对注入**：任一侧缺失 →
-        /// 整对不注入（警告），视野遮蔽本局降级——渐隐没有"半对"形态（只有变体没有基准＝无法
-        /// 判定绑定面，反之亦然），与伤害数字逐档材质同口径。视野遮蔽是表现增益，不把
-        /// 缺件当对局失败。</summary>
-        private async UniTask AcquireVisionMaterialsAsync(CancellationToken ct)
-        {
-            try
-            {
-                AssetLease<Material> baseLease = await _content.AcquireAsync<Material>(CoverBaseMaterial, ct: ct);
-                _viewScope.Register(baseLease);
-                AssetLease<Material> fadeLease = await _content.AcquireAsync<Material>(CoverFadeMaterial, ct: ct);
-                _viewScope.Register(fadeLease);
-                _coverBaseLease = baseLease;
-                _coverFadeLease = fadeLease;
-            }
-            catch (Exception ex) when (!(ex is OperationCanceledException))
-            {
-                Log.Warning($"掩体材质对缺失/加载失败，视野遮蔽降级:{CoverBaseMaterial} ↔ {CoverFadeMaterial}（{ex.Message}）", LogTag.Battle);
-                _coverBaseLease = null;
-                _coverFadeLease = null;      // 整对不注入（已取侧租约已登记，随 _viewScope 归还）
-            }
-        }
-
         // ---- 装配（建视图 + 接线；须在 StartGame 之后调用）----
 
         /// <summary>
@@ -396,16 +376,16 @@ namespace LiteGame
             var animationProfile = AnimationProfileLoader.FromRows(
                 AnimationProfileConfig.Rows, CombatGirlsAnimationProfile.ModelFamily);
             _locomotion = new CharacterLocomotionDriver(_view, animationProfile,
-                manifest: _clipManifestLease?.Asset);   // 清单在 = 去 AC 主路径供片；缺清单回退控制器便利源
+                manifest: _clipManifestLease?.Asset,           // 清单在 = 去 AC 主路径供片；缺清单回退控制器便利源
+                cameraPitchOf: _camera != null ? (Func<float>)(() => _camera.LookPitch) : null);   // TPS 俯仰姿态源（视角端口读口）
 
             AttachCrosshair();                                  // 对局准心（视图/输入均已就绪，场景对象按名解析）
             AttachHud();                                        // HUD 面板（血条/弹药——同根场景对象，静默降级）
             AttachRankboard();                                  // 局内排行榜（FFA 比分＝击杀——8 格预置，静默降级）
             AttachKillFeed();                                   // 全局击杀提示（最近击杀窗口——多条堆叠，静默降级）
             AttachNetworkHud();                                 // 网络质量显示（会话探针 RTT/丢包——静默降级）
-            _aimPointOf = AimPointOf(_input);                   // 瞄准点（世界）→ 相机构图 z 偏移 + 激光收敛端点
+            _aimPointOf = AimPointOf(_input);                   // 瞄准点（世界）→ 瞄准机近距后撤（激光不读）
             AttachLaserSight();                                 // 瞄准激光（束实例已取，接线驱动）
-            AttachVision();                                     // 视野遮蔽（材质对已取＋地图场景已载——绑定扫场景）
             AttachProtectionFx();                              // 出生保护壳（FX 域；金色包裹壳跟随本地角色）
             _hitFeedback = new HitFeedbackDispatcher(_view);   // 命中分发骨架：EventSink 并列订阅
             _hitFeedback.Register(_crosshair);                // 准心：本地 Fire → 连发张开/后坐（null 拒收 = HUD 缺件静默降级）
@@ -458,18 +438,39 @@ namespace LiteGame
                 _lastRespawnSerial = _view.LocalRespawnSerial;
                 _aimGate.Reset();
             }
-#if UNITY_EDITOR || DEVELOPMENT_BUILD || LITEFRAMEWORK_DEBUG
-            _camera?.SetViewMirrored(TestModeRuntime.ViewMirrored);   // [Diag][TeamCam-Stage1] 预览开关（幂等；团队相机接线批次退役）
-#endif
+            // 对局控制中（视图建好、本地在场、未被上下文门拦、存活）才吃视角增量：
+            // 模态 UI/死亡/加载段鼠标不应在背后带动相机（PUBG 的解锁形态同口径）。
+            bool pointerLocked = _view != null && _view.HasLocalDisplay && _view.LocalEntityId != 0
+                && (_input == null || !_input.IsBlocked) && !IsLocalDead();
+
+            // 视角增量（第三人称自由视角）：鼠标 delta → 相机 yaw/pitch（纯视图侧，不上行）。
+            // Unity 屏幕系 y 向上：鼠标上推（delta.y>0）= 上仰（pitch 正）；POV 垂直轴取负归实现。
+            // ADS 期灵敏度收敛（档位缩放——档位本体=双机优先级+brain FOV/构图混合，场景 rig 值）。
+            // 灵敏度/收敛比经 GM「视角调参」实时覆写（LookTuning——实机定档后写回机制常量）。
+            if (pointerLocked && _lookDeltaOf != null)
+            {
+                Vector2 look = _lookDeltaOf();
+                if (look != Vector2.zero)
+                {
+                    float sensitivity = LookTuning.SensitivityOf(LookSensitivityRadPerPixel)
+                        * (IsLocalAiming() ? LookTuning.AdsScaleOf(AdsLookSensitivityScale) : 1f);
+                    _camera?.AddLookDelta(
+                        look.x * sensitivity,
+                        look.y * sensitivity);
+                }
+            }
             _camera?.SetAiming(_aimGate.Feed(IsLocalAiming(), elapseSeconds));
-            if (_camera != null)                 // 瞄准点（世界）→ 构图 z 偏移曲线（适配器按到焦点的前向投影换算）
+            if (_camera != null)                 // 瞄准点（世界）→ 瞄准机近距后撤（适配器按视角前向投影换算）
             {
                 Vector3? aimPoint = _aimPointOf?.Invoke();
                 _camera.SetAimPoint(aimPoint ?? default, aimPoint.HasValue);
             }
 
-            // 视野遮蔽：末段驱动——吃最新相机态（瞄准接管/构图偏移已应用），内部低频探测
-            _vision?.Tick(elapseSeconds);
+            // 指针锁定（TPS 输入形态）：控制中 = 锁定+隐藏（准心是唯一瞄准标示）；
+            // 门被拦/视图未建/死亡 = 解锁恢复（模态要点按钮）。Cursor 唯一写者是 PointerLockService。
+            if (pointerLocked) _pointer.Lock(); else _pointer.Unlock();
+
+
         }
 
         /// <summary>渲染帧采样**之前**的诊断件驱动（编辑器专用；release 空实现）：自瞄验证件要替换输入源，
@@ -498,6 +499,7 @@ namespace LiteGame
         private void AttachInputWiring()
         {
             if (_input == null) return;                           // 无服务（替身/测试装配）= 无输入形态
+            _lookDeltaOf = LookDeltaOf(_input);                   // 视角增量源（设备源适配器；随本局挂/摘）
 
             // **对局相机注入**：设备源持有的是装配根 boot 相机——叠加开发形态下它
             // **不随场景销毁**，`Camera.main` 回落也拿错机（两台相机在场），瞄准/相机相对移动会
@@ -514,7 +516,7 @@ namespace LiteGame
             _camera?.Reset();                                     // 镜头重新落位（不从上一局位置飞过来）
         }
 
-        /// <summary>拆视图（逆序：动画 → HUD → 准心 → 激光 → 视野遮蔽 → 飘字 → 特效 → 音效 → 传送命令 → 诊断件 →
+        /// <summary>拆视图（逆序：动画 → HUD → 准心 → 激光 → 飘字 → 特效 → 音效 → 传送命令 → 诊断件 →
         /// 命中分发 → 相机语义态 → 视图根 → 作用域）。不触发对局结束——那是流程层的裁决。</summary>
         internal void Dispose()
         {
@@ -536,10 +538,7 @@ namespace LiteGame
             _crosshair = null;
             _laser?.Dispose();                    // 激光驱动（束实例随 _viewRoot 销毁；租约随 _viewScope.Dispose 归还）
             _laser = null;
-            _vision?.Dispose();                   // 视野遮蔽（材质/显隐全恢复——先于视图与场景拆，不留残态）
-            _vision = null;
-            _coverBaseLease = null;               // 租约本体已登记 _viewScope（作用域统一归还）
-            _coverFadeLease = null;
+
             _protectionFx?.Dispose();             // 保护壳驱动（实例同样随 _viewRoot 销毁、租约随作用域归还）
             _protectionFx = null;
             _protectionShellLease = null;
@@ -580,8 +579,9 @@ namespace LiteGame
             _hitFeedback?.Dispose();              // 命中分发（视图消费者——先于视图本体拆；消费者随各自批自管）
             _hitFeedback = null;
             _aimPointOf = null;                   // 瞄准点来源随本局设备源一起摘（方法组不跨局持有）
+            _lookDeltaOf = null;                  // 视角增量源同摘（离场不遗留设备源闭包）
+            _pointer.Unlock();                    // 指针解锁恢复（离场不遗留锁定态——模态/桌面要可点）
             _camera?.SetAiming(false);            // 瞄准机还原（优先级/Follow 归还场景值——离场不得遗留接管态）
-            _camera?.SetViewMirrored(false);      // 视角镜像还原（离场不遗留预览/阵营态）
             _context?.AttachInput(null);
             _context = null;
             _view = null;                                         // 视图实例随 _viewRoot 销毁
@@ -632,8 +632,7 @@ namespace LiteGame
             _crosshair = new BattleCrosshairDriver(_view, _input, (RectTransform)_hudView.transform, _hudView.CrosshairRoot,
                 hip: _hudView.HipForm,
                 ads: _hudView.AdsForm,
-                screenPosition: ScreenPositionOf(_input),           // 鼠标位来自设备源适配器（R12）
-                feel: _crosshairFeel);                             // 手感投影（tbcrosshair；null = 测试装配回落 Default）
+                feel: _crosshairFeel);                             // 手感投影（tbcrosshair；null = 测试装配回落 Default）——位置恒屏心（TPS），无位置注入位
             Log.Info("crosshair-attached", LogTag.Battle);
         }
 
@@ -780,65 +779,8 @@ namespace LiteGame
                 Log.Warning($"激光束 prefab 缺 LineRenderer——瞄准激光降级:{LaserSightPrefab}", LogTag.Battle);
                 return;
             }
-            _laser = new BattleLaserDriver(_view, _input, _context.Sim, _context.Map, line,
-                aimPointOf: _aimPointOf);                       // 瞄准地面点注入（准心同源——端点压准心）
+            _laser = new BattleLaserDriver(_view, _input, _context.Sim, _context.Map, line);
             Log.Info("laser-attached", LogTag.Battle);
-        }
-
-        /// <summary>
-        /// 挂视野遮蔽（<see cref="BattleVisionBlockerDriver"/>——档 A1：遮挡物渐隐＋影区实体隐藏）。
-        /// 前置三件：掩体材质对已取（缺对＝取件处已警告，本局降级）、地图场景已载（绑定扫
-        /// <see cref="MapTopology.MapCollisionRoot"/> 代理树——流程层保证 Attach 晚于场景装载）、
-        /// 判定图在手（<see cref="BattleContext.Map"/>——装配 fail-fast 前置）。渲染相机解析复用
-        /// 飘字同款注入缝；缺相机形态驱动自惰性（保守恢复），不失败。
-        /// </summary>
-        private void AttachVision()
-        {
-            if (_coverBaseLease == null || _coverFadeLease == null) return;   // 取件降级已警告
-            if (_context.Map == null) return;                                  // 无图（理论不达——防御）
-            _vision = new BattleVisionBlockerDriver(_view, _context.Map, RenderCameraOf(),
-                _coverBaseLease.Asset, _coverFadeLease.Asset, ViewRenderersOf());
-        }
-
-        /// <summary>
-        /// 实体自有渲染器解析器（视野遮蔽的隐藏面——prefab 路径单源）：按实体 prefab 里的渲染件
-        /// 相对路径在视图实例上寻址。**为什么按路径而不整树枚举**：运行时挂载的 VFX（远端枪口火光
-        /// 等）是挂点下的新实例，整树枚举会把它们收进隐藏面——"藏于掩体后开火即暴露方位"（开火
-        /// 显形）就被破坏；prefab 路径集天然只含实体自有件。灰盒回退（<see cref="GreyboxEntity"/>）
-        /// 与真 prefab 同口径枚举；视图根上的渲染件以空路径寻址。
-        /// </summary>
-        private Func<GameObject, Renderer[]> ViewRenderersOf()
-        {
-            GameObject source = _prefab;
-            if (source == null) return null;                    // 无视图形态（理论不达）——隐藏面降级
-
-            var paths = new List<string>(8);
-            Renderer[] prefabRenderers = source.GetComponentsInChildren<Renderer>(true);
-            for (int i = 0; i < prefabRenderers.Length; i++)
-            {
-                string path = PathOf(prefabRenderers[i].transform, source.transform);
-                if (!paths.Contains(path)) paths.Add(path);     // 同变换多渲染件只寻址一次（GetComponents 兜全量）
-            }
-            return view =>
-            {
-                var found = new List<Renderer>(paths.Count);
-                Transform root = view.transform;
-                for (int i = 0; i < paths.Count; i++)
-                {
-                    Transform t = paths[i].Length == 0 ? root : root.Find(paths[i]);
-                    if (t != null) found.AddRange(t.GetComponents<Renderer>());
-                }
-                return found.ToArray();
-            };
-        }
-
-        /// <summary>变换相对路径（root 自身 = 空串；寻址端 <c>Transform.Find</c> 同方言）。</summary>
-        private static string PathOf(Transform t, Transform root)
-        {
-            string path = t.name;
-            for (Transform p = t.parent; p != null && p != root; p = p.parent)
-                path = p.name + "/" + path;
-            return path;
         }
 
         /// <summary>
@@ -948,14 +890,14 @@ namespace LiteGame
         }
 
         /// <summary>
-        /// 准心的鼠标位来源：设备源适配器的 <see cref="NewInputIntentSource.MouseScreenPosition"/>。
-        /// 非该实现（测试替身/无设备形态）返回 null——驱动回退屏幕零点。**不在此 import InputSystem**
-        /// （纪律 R12：适配器 import 只许在 Platform.Unity 边界目录内）。
+        /// 视角增量来源：设备源适配器的 <see cref="NewInputIntentSource.LookDelta"/>（像素）。
+        /// 与准心/移动同源（设备源适配器）——非该实现返回 null（无自由视角形态）；
+        /// 不在此 import InputSystem（纪律 R12）。
         /// </summary>
-        private static Func<Vector2> ScreenPositionOf(IInputService input)
+        private static Func<Vector2> LookDeltaOf(IInputService input)
         {
             return input != null && input.Source is NewInputIntentSource source
-                ? () => source.MouseScreenPosition
+                ? () => source.LookDelta
                 : null;
         }
 

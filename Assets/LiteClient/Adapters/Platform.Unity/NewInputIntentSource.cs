@@ -20,9 +20,10 @@ namespace LiteClient
     ///   而 <c>Reload</c> 属 §3 第 3 件的"按键沿所在的一个逻辑帧才置位"（`WasPressedThisFrame`），
     ///   需要逐玩家单调递增的 <c>ActionSeq</c>。其余离散动作（Switch/Skill/Pickup/UseItem）
     ///   Action 资产里尚未定义，出现消费者时按 Reload 同款追加；
-    /// - 瞄准由**鼠标屏幕点 → 相机射线 → 与预测世界求交得瞄准目标点**解算（AimPoint 单口径，
-    ///   《固定斜视角射击方案专项设计》§3：只产点、不产方向——朝向与弹道两端自点派生，
-    ///   单向无环）；求交所需的世界与槽位经 <see cref="SetAimWorld"/> 注入（未注入则退化为纯地面点）；
+    /// - 瞄准由**相机屏心射线 → 与预测世界求交得瞄准目标点**解算（AimPoint 单口径：只产点、
+    ///   不产方向——朝向与弹道两端自点派生，单向无环；TPS 指针锁定形态下鼠标只驱动相机视角，
+    ///   "鼠标屏幕位"不再参与瞄准）；求交所需的世界与槽位经 <see cref="SetAimWorld"/> 注入
+    ///   （未注入则退化为纯地面点）；
     /// - **移动按相机平面 yaw 旋转**：W=屏幕上=相机 forward 投影；
     ///   相机为 null（纯测试装配）时退化为世界轴直映射。
     /// </summary>
@@ -129,7 +130,7 @@ namespace LiteClient
         /// 射程用 <see cref="CombatConfig.HitscanRange"/>：比它更远的目标本来就打不到，
         /// 射线穿过去也不会被算成目标点。
         /// </summary>
-        private bool TryResolveAimPoint(Ray ray, out Vector3 point)
+        private bool TryResolveAimPoint(Ray ray, in SimVector3 shooterPos, out Vector3 point)
         {
             point = Vector3.zero;
             // **走 Vector3 入口**（形参序不可能传错）：三维重载是 (dx, dz, dy)，曾把方向按 (x,y,z)
@@ -145,12 +146,45 @@ namespace LiteClient
                 return true;
             }
 
+            // 地面兜底：超程（|交点−射手| > 射程）与无交（瞄天）同走**射程截断**——第三人称自由俯仰下
+            // 屏心射线可能无地面交或交在极远处，截断保证**任何合法开火帧都有闸内有效点**
+            // （消灭"瞄天=无点非法帧 / 超程=InputGate 整帧丢弃〔含 Move〕"两类丢帧）。
+            // 截断距离取 <see cref="CombatConfig.HitscanRange"/>（服务器闸 = HitscanRange×1.1——客户端
+            // 钳在闸内 0.9 折余量；不与服务器闸常量跨程序集单源，闸值口径以推导注释钉住）。
             if (_groundPlane.Raycast(ray, out float distance))
             {
-                point = ray.GetPoint(distance);
-                return true;
+                Vector3 ground = ray.GetPoint(distance);
+                if (SquaredDistanceToShooter(ground, in shooterPos) <= CombatConfig.HitscanRange * CombatConfig.HitscanRange)
+                {
+                    point = ground;
+                    return true;
+                }
             }
-            return false;      // 相机近水平且准心在屏幕上方：无解算——调用方沿用上次方向 + _hasAimPoint=false
+
+            point = RangeClampedPoint(ray, in shooterPos);
+            return true;
+        }
+
+        private static float SquaredDistanceToShooter(Vector3 p, in SimVector3 shooterPos)
+        {
+            float dx = p.x - shooterPos.X;
+            float dy = p.y - shooterPos.Y;
+            float dz = p.z - shooterPos.Z;
+            return dx * dx + dy * dy + dz * dz;
+        }
+
+        /// <summary>沿相机射线取"距射手恰为射程"的截断点（射线与以射手为心、射程为半径的球面交的远根）。
+        /// 射线起点近肩必在球内 ⇒ 恒有正根；数学退化（判别式非正/负根）回射线起点，由调用方口径兜底。</summary>
+        private static Vector3 RangeClampedPoint(Ray ray, in SimVector3 shooterPos)
+        {
+            float range = CombatConfig.HitscanRange;
+            Vector3 oc = ray.origin - new Vector3(shooterPos.X, shooterPos.Y, shooterPos.Z);
+            float b = 2f * Vector3.Dot(oc, ray.direction);
+            float c = Vector3.Dot(oc, oc) - range * range;
+            float discriminant = b * b - 4f * c;
+            if (discriminant <= 0f) return ray.origin;
+            float t = (-b + Mathf.Sqrt(discriminant)) * 0.5f;
+            return t > 0f ? ray.origin + ray.direction * t : ray.origin;
         }
 
         /// <summary>取当前可用的瞄准相机：缓存的失效（随场景销毁）就回落到 <c>Camera.main</c>。</summary>
@@ -163,18 +197,11 @@ namespace LiteClient
         }
 
         /// <summary>
-        /// 鼠标屏幕位（准心/HUD 消费面）。InputSystem 的 import 只许在本
-        /// 适配器边界内——App 层的准心驱动经注入位消费本属性，不直接认识 InputSystem。
-        /// 无鼠标设备（纯触屏形态）回退零点。
+        /// 本帧视角增量（像素；`GamePlay/Look`——鼠标 delta）。第三人称自由视角的**相机驱动源**：
+        /// 纯视图侧读数（不进意图三件/不进协议——鼠标增量只喂 <c>ICameraService.AddLookDelta</c>，不上行）；
+        /// 像素→弧度换算归喂入侧。App 层经注入位消费（R12 边界内），不直接认识 InputSystem。
         /// </summary>
-        public Vector2 MouseScreenPosition
-        {
-            get
-            {
-                Mouse mouse = Mouse.current;
-                return mouse != null ? mouse.position.ReadValue() : Vector2.zero;
-            }
-        }
+        public Vector2 LookDelta => _actions.GamePlay.Look.ReadValue<Vector2>();
 
         public IntentSample Sample(in SimVector3 localPos)
         {
@@ -217,19 +244,22 @@ namespace LiteClient
             // （机理与实测值见 IntentVectorLimit 类注释）；出界即按余量收缩，界内逐位不动。
             IntentVectorLimit.EnsureWithinLengthLimit(ref frame.MoveX, ref frame.MoveZ);
 
-            // 瞄准（**AimPoint 单口径**——《固定斜视角射击方案专项设计》§3）：
-            // 鼠标屏幕点 → 相机射线 → **与预测世界求交得瞄准目标点 P**（实体圆柱未中落地面）
+            // 瞄准（**AimPoint 单口径**）：
+            // **相机屏心射线** → **与预测世界求交得瞄准目标点 P**（实体圆柱未中落地面/截断）
             // → 只上报 P（点即唯一瞄准表示；朝向与弹道方向由两端自 P 派生，单向无环）。
             //
             // **为什么是点不是方向**：方向口径下"服务端从枪口沿方向求交"命中圆柱近弧，与准心所指
             // 有高度偏差（爆头边界上的"瞄着下沿打不中"）；且方向向量与"锚点/枪口偏移/Yaw 反推"
             // 纠缠出闭环自激与平行差——点口径把这些问题整体消掉。
-            // 固定俯视角下相机射线**恒交世界**（无解算分支）；唯一无点路径是相机未就绪，沿用上次点。
+            // 自由视角下射线可能无地面交/交在极远——由**射程截断**兜底（TryResolveAimPoint 第三档）；
+            // 唯一无点路径仍是相机未就绪，沿用上次点。
             // 场景切换后缓存会失效——ResolveCamera 已回落到当前 Camera.main
-            if (aimCamera != null && Mouse.current != null)
+            if (aimCamera != null)
             {
-                var ray = aimCamera.ScreenPointToRay(Mouse.current.position.ReadValue());
-                if (TryResolveAimPoint(ray, out Vector3 p))
+                // TPS 屏心射线（viewport 中心——分辨率无关）：指针锁定形态下鼠标只驱动相机视角，
+                // 瞄准点恒自相机中心解算——不再依赖鼠标屏幕位（Mouse.current 缺席也可解算）。
+                var ray = aimCamera.ViewportPointToRay(new Vector3(0.5f, 0.5f, 0f));
+                if (TryResolveAimPoint(ray, in localPos, out Vector3 p))
                 {
                     _aimPointWorld = p; _hasAimPoint = true;
                     _aimPointX = p.x;

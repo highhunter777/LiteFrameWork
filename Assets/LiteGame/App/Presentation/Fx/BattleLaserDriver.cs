@@ -9,21 +9,21 @@ namespace LiteGame
 {
     /// <summary>
     /// 武器瞄准激光驱动（**激光器装在武器上**：束实例挂到武器挂载点、沿枪管方向出射，
-    /// 不追鼠标；**射击语境内收敛**——瞄准/开火窗内端点收敛到开火射线终点，根治激光与
-    /// 准心的偏移）：纯 View 层——每渲染帧把 <see cref="LineRenderer"/>（Assets/ShareResource/FX/fx_lazer_sight.prefab——
-    /// KriptoFX Lazer 的 fx 归置副本，纯视觉资产零脚本）从枪口挂载点铺到端点（模式见 TryResolveFacts）。
+    /// 端点只由枪口前向决定——不追鼠标，也不收敛到准心/AimPoint）：纯 View 层——每渲染帧把
+    /// <see cref="LineRenderer"/>（Assets/ShareResource/FX/fx_lazer_sight.prefab——KriptoFX Lazer 的
+    /// fx 归置副本，纯视觉资产零脚本）从枪口挂载点铺到枪管射线的截停点。
     ///
     /// **挂载与方向**（用户口径："做在武器上、只从武器激光挂载点射出"）：
     /// - 束实例 <c>SetParent</c> 到本地视图的 <c>Weapon_Rifle/Muzzle</c> 锚点（prefab 摆位+前向烘焙：
     ///   +Z = 枪管轴，构建器 BuildLaserAssets 落；美术转锚点即调出射方向）；
     /// - <c>useWorldSpace=false</c>——束两点写挂载点**本地空间**，随枪的姿态/动画自动跟转，
     ///   驱动不写束的位姿，只写端点；
-    /// - **语境外不追鼠标**（方向来自枪）；**射击语境内端点收敛到弹道终点**（"激光归零"——
-    ///   消掉动画姿态/出射原点的残差，激光点落在准心线上；同语境无瞄准点时落回枪管模式）。
+    /// - **端点恒沿枪口前向**：瞄准/开火语境不改方向、不读准心点；与准心的视觉差由枪口/弹道视差
+    ///   自然承担（用户裁决：瞄准线落点不用跟准心）。
     ///
-    /// **截停（保留原需求）**：<see cref="SimRaycast"/> 单源（实体圆柱 + 静态障碍取最近，与
+    /// **截停**：<see cref="SimRaycast"/> 单源（实体圆柱 + 静态障碍取最近，与
     /// <see cref="ShootingSystem"/> 同一几何源）——**遇玩家/障碍截停不穿透**；射程
-    /// <see cref="CombatConfig.HitscanRange"/>。
+    /// <see cref="CombatConfig.HitscanRange"/>。方向取挂载点世界前向（含俯仰），不再做 XZ 水平投影。
     ///
     /// **支持位**：<see cref="LaserSightPolicy"/>（按武器 def id；测试模式直通——任何武器都支持）。
     /// **可见性门**：本地未对齐/死亡/未装备武器/挂载点缺失（灰盒无武器 → 无激光，诚实退化）/输入被拦。
@@ -36,21 +36,19 @@ namespace LiteGame
         private readonly RollbackSim _sim;             // 本地预测态（SelectedWeapon/WeaponDefId——只读）
         private readonly SimMapData _map;              // 障碍射线用图（两端单源：同份 tbmap 投影——经 BattleContext 注入）
         private readonly LineRenderer _beam;
-        private readonly Func<Vector3?> _aimPointOf;   // 瞄准目标点注入源（准心同源——TryGetAimPoint，**三维**：命中实体时带高度）；null = 无该事实
         private bool _disposed;
 
         private GameObject _mountView;                 // 挂载点缓存键：所属视图实例（视图重建 → 重解析重挂）
         private Transform _mount;                     // 武器激光挂载点（Weapon_Rifle/Muzzle）
 
         public BattleLaserDriver(SimView view, IInputService input, RollbackSim sim, SimMapData map,
-            LineRenderer beam, Func<Vector3?> aimPointOf = null)
+            LineRenderer beam)
         {
             _view = view ?? throw new ArgumentNullException(nameof(view));
             _input = input;
             _sim = sim ?? throw new ArgumentNullException(nameof(sim));
             _map = map ?? throw new ArgumentNullException(nameof(map));
             _beam = beam ?? throw new ArgumentNullException(nameof(beam));
-            _aimPointOf = aimPointOf;
 
             // 实例一次性配置（prefab 是 2 点/宽 0.03 的美术资产，驱动只改驱动面）：
             // 挂载点本地空间 + 不投影——发光束不该在场景里拉出影子（束位姿归挂载点，驱动不写）
@@ -81,13 +79,8 @@ namespace LiteGame
 /// <summary>
     /// 解算本帧激光端点（挂载点本地空间；门内各条任一不成立 → 藏）。
     ///
-    /// **两种模式（端点一律 = 弹道终点，与子弹同源同向）**——AimPoint 单口径后不再有方向回退：
-    /// - **收敛模式**（射击语境：瞄准 ∨ 开火驻留窗——与限速/朝向派生同一语境口径）：端点 =
-    ///   **逻辑枪口 → 瞄准目标点的三维弹道终点**（注入源与准心同源 `TryGetAimPoint`，该点命中实体时带高度）。
-    ///   途中被玩家/障碍截停 ⇒ 端点落在挡的东西上；瞄准点超射程 ⇒ 按弹程截断。束起点仍是枪口挂载点
-    ///   （"做在武器上"），端点写回挂载点本地空间。
-    /// - **枪管模式**（语境外：待机/移动；或射击语境但无瞄准点——被拦/退化）：沿挂载点前向的 XZ
-    ///   水平投影出射（枪口朝下自然扎地）。
+    /// **单一模式：枪管射线**——端点 = 挂载点世界前向（含俯仰）的三维截停点；瞄准/开火语境不改方向，
+    /// 不读准心/AimPoint。截停走 <see cref="TraceBeam"/>（实体三维 + 障碍折回同量纲 + 射程取最近）。
     /// </summary>
         private bool TryResolveFacts(out Vector3 localEnd)
         {
@@ -106,55 +99,14 @@ namespace LiteGame
             if (mount == null) return false;
             AttachBeam(mount);
 
-            // 收敛模式：射击语境内端点 = **弹道三维终点**（与子弹同源同向）
-            bool fireContext = _view.IsAiming(slot) || e.FireStanceFrames > 0;
-            if (fireContext && _aimPointOf != null && _aimPointOf() is Vector3 aimPoint)
-            {
-                // **同源同向（三维化）**：出射点 = 逻辑枪口、方向 = 逻辑枪口→瞄准目标点、
-                // 截断 = 同一个 SimRaycast（实体走三维、障碍折回三维同量纲）——与 ShootingSystem 逐项同式。
-                // 旧口径是"端点落在 y=0 的地面点、截断只在水平面判定"，弹道三维化后会造成
-                // 「激光落在地上、子弹打在空中」的观感撕裂（专项设计 §4/C9 断点③）。
-                var muzzle = CombatConfig.MuzzleOrigin(e.Pos, e.Yaw);
-                float dx = aimPoint.x - muzzle.X;
-                float dy = aimPoint.y - muzzle.Y;
-                float dz = aimPoint.z - muzzle.Z;
-                float dist2 = dx * dx + dy * dy + dz * dz;
-                if (dist2 > 0.0000001f)
-                {
-                    float dist = Mathf.Sqrt(dist2);
-                    float inv = 1f / dist;
-                    dx *= inv;
-                    dy *= inv;
-                    dz *= inv;
-
-                    float maxT = Mathf.Min(dist, CombatConfig.HitscanRange);
-                    float t = TraceBeam(muzzle.X, muzzle.Y, muzzle.Z, dx, dz, dy, maxT, slot);
-
-                    // 端点 = 逻辑枪口 + 方向 × 命中距离（无遮挡且在射程内 ⇒ 恰为瞄准目标点；
-                    // 遮挡/超程 ⇒ 自然截断在挡的东西上）
-                    Vector3 endWorld = new Vector3(muzzle.X + dx * t, muzzle.Y + dy * t, muzzle.Z + dz * t);
-                    localEnd = mount.InverseTransformPoint(endWorld);
-                    return true;
-                }
-                // 瞄准点与枪口重合（鼠标压枪）——落回枪管模式
-            }
-
-            // 枪管模式：沿挂载点前向的 XZ 水平投影（2.5D 射线），原点/眼高 = 挂载点世界位（枪口高度）
+            // 枪管射线：方向 = 挂载点世界前向（含俯仰），起点 = 挂载点世界位；端点写回挂载点本地空间。
+            // 不读 AimPoint/准心，也不因瞄准/开火窗改变方向（用户裁决：激光落点不用跟准心）。
             Vector3 forward = mount.forward;
-            float bx = forward.x;
-            float bz = forward.z;
-            if (bx * bx + bz * bz <= 0.0000001f) return false;       // 枪口朝天/朝地（无水平分量）→ 藏
-            float inv2 = 1f / Mathf.Sqrt(bx * bx + bz * bz);
-            bx *= inv2;
-            bz *= inv2;
-
             Vector3 origin = mount.position;
-            float range2 = CombatConfig.HitscanRange;
-            SimRaycast.RaycastEntities(_sim.State, slot, origin.x, origin.y, origin.z, bx, bz, range2, out _, out float t2, SimTestRules.ActiveMatch);
-            if (SimRaycast.RaycastObstacles(_map, origin.x, origin.y, origin.z, bx, bz, range2, out float tOb2)
-                && tOb2 < t2)
-                t2 = tOb2;
-            localEnd = new Vector3(0f, 0f, t2);
+            float t = TraceBeam(origin.x, origin.y, origin.z,
+                forward.x, forward.z, forward.y, CombatConfig.HitscanRange, slot);
+            Vector3 endWorld = origin + forward * t;
+            localEnd = mount.InverseTransformPoint(endWorld);
             return true;
         }
 

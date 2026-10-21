@@ -217,8 +217,8 @@ MonoBehaviour:
   WorldPaused: 0
   UiPaused: 0
   StrictMode: 1
-  UseLocalServer: 0
-  DirectToTraining: 0
+  UseLocalServer: 1
+  DirectToTraining: 1
   WorkbenchMode: 0
   DevMenu: 1
   NoDeath: 0
@@ -322,9 +322,9 @@ Camera:
     height: 1
   near clip plane: 0.3
   far clip plane: 1000
-  field of view: 60.000004
+  field of view: 75
   orthographic: 0
-  orthographic size: 5
+  orthographic size: 7.4
   m_Depth: -1
   m_CullingMask:
     serializedVersion: 2
@@ -348,7 +348,7 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1421224871}
   serializedVersion: 2
-  m_LocalRotation: {x: 0.4438225, y: 0, z: 0, w: 0.89611477}
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
   m_LocalPosition: {x: 0, y: 10.5, z: -8}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0

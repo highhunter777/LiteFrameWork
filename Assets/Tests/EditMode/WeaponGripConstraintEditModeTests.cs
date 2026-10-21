@@ -169,5 +169,40 @@ namespace LiteGame.Tests.EditMode
 
             backend.Dispose();
         }
+
+        [Test]
+        [Category(TestCategory.Contract)]
+        public void 俯仰姿态_枪骨随Chest同刚体旋转_不脱节()
+        {
+            var prefab = LoadPrefabOrIgnore();
+            var go = Scope.Track(Object.Instantiate(prefab));
+            var animator = go.GetComponentInChildren<Animator>(true);
+            var chest = animator.GetBoneTransform(HumanBodyBones.Chest);
+            var weapon = animator.transform.Find(GripBake.WeaponPath);
+            Assert.IsNotNull(chest, "Chest 人形映射必须存在");
+            Assert.IsNotNull(weapon, "武器骨路径（烘焙常量）必须存在");
+            Assert.IsFalse(weapon.IsChildOf(chest), "枪骨是 root 级（非 Chest 子级）——本用例覆盖镜像补转");
+
+            var posture = new AimPitchPostureDriver(animator);
+            Assert.IsTrue(posture.IsValid, "俯仰姿态件应可建");
+
+            Quaternion chestBefore = chest.rotation;
+            Vector3 weaponPosBefore = weapon.position;
+            Quaternion weaponRotBefore = weapon.rotation;
+            Vector3 pivot = chest.position;
+
+            posture.Update(true, 30f * Mathf.Deg2Rad);
+
+            float angle = -AimPitchPosture.UpperBodyPitch(30f * Mathf.Deg2Rad) * Mathf.Rad2Deg;
+            Quaternion pitch = Quaternion.AngleAxis(angle, animator.transform.right);
+
+            Assert.Less(Quaternion.Angle(pitch * chestBefore, chest.rotation), 0.1f,
+                "Chest 旋转 = 俯仰增量");
+            Assert.Less(Vector3.Distance(pivot + pitch * (weaponPosBefore - pivot), weapon.position), 1e-4f,
+                "枪骨位置随 Chest 同刚体绕枢轴转（枪不能留在原地）");
+            Assert.Less(Quaternion.Angle(pitch * weaponRotBefore, weapon.rotation), 0.1f,
+                "枪骨旋转随 Chest 同刚体转");
+            Assert.AreEqual(1, posture.AppliedFrames, "射击语境确实覆写");
+        }
     }
 }

@@ -12,7 +12,8 @@ using LiteClient;
 namespace LiteGame.Tests.EditMode
 {
     /// <summary>
-    /// 对局准心驱动的 L2 EditMode 覆盖：位置换算（注入屏幕点 → 画布中心系）、
+    /// 对局准心驱动的 L2 EditMode 覆盖：**位置恒屏心**（TPS——画布中心系原点；位置契约由
+    /// TpsCrosshairCenterEditModeTests 钉住）、
     /// 形态切换（本地预测态 Aiming 位 → Hip/Ads 两组）、散布张开（有效散布角 → 整体缩放，
     /// 腰射 > 瞄准、未装备回基线——满张倍率按 tbcrosshair 武器行，未装备/缺行回落防御默认）、
     /// **连发临时张开/后坐**（本地 Fire 帧事件逐发累加、钳上限、停火按回正速率衰减；后坐冲量
@@ -62,25 +63,6 @@ namespace LiteGame.Tests.EditMode
 
         [Test]
         [Category(TestCategory.Contract)]
-        public void 准心_位置随注入屏幕点_画布中心系换算()
-        {
-            var world = new SimWorldState { RngState = 1UL };
-            long selfId = world.Spawn(new EntitySlot { Hp = 100, Pos = new SimVector3(0f, 0f, 0f), Yaw = 0f }, out _);
-            SimView view = BuildLocalView(world, selfId);
-            var (plane, reticle) = BuildCanvasRects();
-            var (hip, ads) = BuildFormObjects(reticle);
-
-            var driver = new BattleCrosshairDriver(view, null, plane, reticle, hip, ads,
-                screenPosition: () => new Vector2(500f, 300f));
-            driver.Tick(0f);
-
-            // 屏幕点 (500,300) 在 1920x1080 中心系 = (-460, -240)——准心贴鼠标位（= 腰射瞄准落点）
-            Assert.AreEqual(new Vector3(-460f, -240f, 0f), reticle.localPosition);
-            driver.Dispose();
-        }
-
-        [Test]
-        [Category(TestCategory.Contract)]
         public void 准心_本地预测态瞄准位切Ads组_松开回Hip组()
         {
             var world = new SimWorldState { RngState = 1UL };
@@ -89,8 +71,7 @@ namespace LiteGame.Tests.EditMode
             var (plane, reticle) = BuildCanvasRects();
             var (hip, ads) = BuildFormObjects(reticle);
 
-            var driver = new BattleCrosshairDriver(view, null, plane, reticle, hip, ads,
-                screenPosition: () => Vector2.zero);
+            var driver = new BattleCrosshairDriver(view, null, plane, reticle, hip, ads);
 
             world.Entities[0].Flags |= EntityFlags.Aiming;        // 本地预测态瞄准位（驱动读 SimView.IsAiming）
             driver.Tick(0f);
@@ -121,7 +102,7 @@ namespace LiteGame.Tests.EditMode
 
             var cursor = new List<bool>();
             var driver = new BattleCrosshairDriver(view, input, plane, reticle, hip, ads,
-                screenPosition: () => Vector2.zero, setCursorVisible: cursor.Add);
+                setCursorVisible: cursor.Add);
 
             modalOpen = true;
             input.SampleOnRenderFrame(default);                   // 渲染帧采样 = 门在此裁决（生产序）
@@ -152,8 +133,7 @@ namespace LiteGame.Tests.EditMode
             var (plane, reticle) = BuildCanvasRects();
             var (hip, ads) = BuildFormObjects(reticle);
 
-            var driver = new BattleCrosshairDriver(view, null, plane, reticle, hip, ads,
-                screenPosition: () => Vector2.zero);
+            var driver = new BattleCrosshairDriver(view, null, plane, reticle, hip, ads);
 
             // 未装备：无散布信息 → 基线缩放（如实降级，不猜）
             driver.Tick(0f);
@@ -194,7 +174,7 @@ namespace LiteGame.Tests.EditMode
 
             var cursor = new List<bool>();
             var driver = new BattleCrosshairDriver(view, null, plane, reticle, hip, ads,
-                screenPosition: () => Vector2.zero, setCursorVisible: cursor.Add);
+                setCursorVisible: cursor.Add);
             driver.Tick(0f);
             Assert.IsFalse(reticle.gameObject.activeSelf, "本地表现未建 → 整体隐藏");
             Assert.AreEqual(true, cursor[cursor.Count - 1], "未建局 → 光标可见");
@@ -232,8 +212,7 @@ namespace LiteGame.Tests.EditMode
             var (hip, ads) = BuildFormObjects(reticle);
             WeaponSystem.Run(world, new[] { new SimInputFrame { EntityId = selfId } }, WeaponTable.Default);   // 懒装备（def id 0）
 
-            var driver = new BattleCrosshairDriver(view, null, plane, reticle, hip, ads,
-                screenPosition: () => Vector2.zero);       // 无表装配 → 防御默认行（与表 id=0 行同值）
+            var driver = new BattleCrosshairDriver(view, null, plane, reticle, hip, ads);       // 无表装配 → 防御默认行（与表 id=0 行同值）
             driver.Tick(0f);
             float staticScale = reticle.localScale.x;      // 腰射静态张开（前置：散布 > 0 ⇒ > 基线）
             Assert.Greater(staticScale, BattleCrosshairDriver.MinSpreadScale, "前置：腰射静态张开");
@@ -268,12 +247,11 @@ namespace LiteGame.Tests.EditMode
             var (plane, reticle) = BuildCanvasRects();
             var (hip, ads) = BuildFormObjects(reticle);
 
-            var driver = new BattleCrosshairDriver(view, null, plane, reticle, hip, ads,
-                screenPosition: () => Vector2.zero);
+            var driver = new BattleCrosshairDriver(view, null, plane, reticle, hip, ads);
             driver.Tick(0f);
-            // 屏幕零点（视口左下）在画布中心系 = (−960, −540)——后坐断言一律相对该基准
+            // TPS：屏心基准（画布中心系原点 = 屏心）——后坐断言一律相对该基准
             float baseY = reticle.localPosition.y;
-            Assert.AreEqual(-540f, baseY, 1e-3f, "前置：屏幕零点 = 画布中心系 (−960,−540)（基准捕获）");
+            Assert.AreEqual(0f, baseY, 1e-3f, "前置：屏心 = 画布中心系原点（基准捕获）");
 
             driver.OnHitFeedback(FireCtx(selfId));
             driver.Tick(0f);
@@ -314,7 +292,7 @@ namespace LiteGame.Tests.EditMode
                 [0] = new CrosshairFeel(2.2f, 0.1f, 2.6f, 8f),
             };
             var driver = new BattleCrosshairDriver(view, null, plane, reticle, hip, ads,
-                screenPosition: () => Vector2.zero, feel: new CrosshairFeelBook(rows));
+                feel: new CrosshairFeelBook(rows));
 
             world.Entities[0].Flags |= EntityFlags.Aiming;   // 瞄准：有效散布角 = 表值（期望式确定）
             driver.Tick(0f);
@@ -327,7 +305,7 @@ namespace LiteGame.Tests.EditMode
             // book 缺行 → 防御回落 Default（如实降级不猜）
             var noRow = new CrosshairFeelBook(new Dictionary<int, CrosshairFeel> { [99] = CrosshairFeel.Default });
             var driver2 = new BattleCrosshairDriver(view, null, plane, reticle, hip, ads,
-                screenPosition: () => Vector2.zero, feel: noRow);
+                feel: noRow);
             driver2.Tick(0f);
             Assert.AreEqual(1f + (CrosshairFeel.Default.StaticMaxScale - 1f)
                 * Mathf.Clamp01(1.2f / BattleCrosshairDriver.SpreadFullDegrees),

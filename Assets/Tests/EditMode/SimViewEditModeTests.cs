@@ -454,7 +454,11 @@ namespace LiteGame.Tests.EditMode
                 LastHasAimPoint = hasPoint;
             }
 
-            public void SetViewMirrored(bool mirrored) { }
+            public void AddLookDelta(float yawDelta, float pitchDelta) { }
+
+            public float LookYaw => 0f;
+
+            public float LookPitch => 0f;
 
             public void Reset() { ResetCount++; HasFocus = false; }
             public void Shutdown() { }

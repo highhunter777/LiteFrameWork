@@ -20,7 +20,6 @@ namespace LiteGame
         public static bool InfiniteAmmo;            // 无限子弹（Sim 规则；GM 面板可现场开合）
         public static bool LaserSight = true;       // 瞄准激光（运行中可切）
         public static bool DamageNumbers = true;    // 伤害数字（运行中可切）
-        public static bool ViewMirrored;            // [Diag][TeamCam-Stage1] 相机镜像预览（团队相机接线批次退役）
         public static bool AutoHeadshot;            // 爆头自动验证（替换输入源自动打爆头；运行中可切）
         public static bool TeleportEnabled = true;  // 定点传送（T 键 / GM 面板 → 准心点）
         public static bool BotFrozen;               // bot 冻结（权威侧位置每帧回写）
