@@ -35,6 +35,7 @@ def make_tool(tool_id, command, args=None, safety=None, outputs=None):
         "category": "test",
         "kind": "cli",
         "plane": "external",
+        "purpose": "dev",
         "summary": "fixture",
         "docs": "scripts/toolchain.py",
         "command": command,
@@ -51,7 +52,7 @@ def make_tool(tool_id, command, args=None, safety=None, outputs=None):
 
 def make_manifest(tools):
     return {
-        "schemaVersion": 4,
+        "schemaVersion": 5,
         "categories": [{"id": "test", "title": "Test", "order": 1}],
         "tools": tools,
         "surfaces": [],

@@ -27,6 +27,29 @@ namespace LiteGame.Toolchain
         {
             return kind == Cli || kind == Gate || kind == Build || kind == Content;
         }
+
+        /// <summary>种类中文标签单源（Hub 筛选、详情行与动作页共用）。</summary>
+        public static string Label(string kind)
+        {
+            switch (kind)
+            {
+                case Page: return "页件";
+                case Window: return "窗口";
+                case Action: return "动作";
+                case Hud: return "运行内";
+                case Cli: return "CLI";
+                case Gate: return "门禁";
+                case Build: return "构建";
+                case Content: return "内容";
+                case Docs: return "说明";
+                default: return kind;
+            }
+        }
+
+        public static string[] All()
+        {
+            return new[] { Page, Window, Action, Hud, Cli, Gate, Build, Content, Docs };
+        }
     }
 
     /// <summary>
@@ -78,6 +101,33 @@ namespace LiteGame.Toolchain
         }
     }
 
+    /// <summary>
+    /// 用途：工具服务哪条能力线（词汇沿用《调试与开发工具链演进路线图》§3/§5 的三条线，
+    /// 语义与判定见《开发工具链平台专项设计》§3.2.2）。与 kind/plane 正交。
+    /// </summary>
+    public static class ToolchainPurposes
+    {
+        public const string Debug = "debug";
+        public const string Dev = "dev";
+        public const string Delivery = "delivery";
+
+        public static bool IsValid(string purpose)
+        {
+            return purpose == Debug || purpose == Dev || purpose == Delivery;
+        }
+
+        public static string Label(string purpose)
+        {
+            switch (purpose)
+            {
+                case Debug: return "调试";
+                case Dev: return "开发";
+                case Delivery: return "交付";
+                default: return purpose;
+            }
+        }
+    }
+
     [Serializable]
     public sealed class ToolchainCategory
     {
@@ -123,6 +173,7 @@ namespace LiteGame.Toolchain
         public string category;
         public string kind;
         public string plane;
+        public string purpose;
         public string[] requires;
         public string handler;
         public string summary;
@@ -279,9 +330,9 @@ namespace LiteGame.Toolchain
         private static void Validate(ToolchainManifestLoadResult result, string projectRoot)
         {
             ToolchainManifest manifest = result.Manifest;
-            if (manifest.schemaVersion != 4)
+            if (manifest.schemaVersion != 5)
             {
-                result.Errors.Add("schemaVersion 必须为 4（当前 " + manifest.schemaVersion + "）");
+                result.Errors.Add("schemaVersion 必须为 5（当前 " + manifest.schemaVersion + "）");
             }
 
             var categories = new HashSet<string>(StringComparer.Ordinal);
@@ -337,6 +388,10 @@ namespace LiteGame.Toolchain
                     result.Errors.Add("CLI 工具缺少 command：" + tool.id);
                 }
                 ValidatePlane(result, tool);
+                if (!ToolchainPurposes.IsValid(tool.purpose))
+                {
+                    result.Errors.Add("工具 purpose 非法：" + tool.id + " -> " + tool.purpose);
+                }
                 if (!string.IsNullOrEmpty(tool.docs) && !File.Exists(Path.Combine(projectRoot, tool.docs)))
                 {
                     result.Errors.Add("工具文档不存在：" + tool.id + " -> " + tool.docs);

@@ -12,6 +12,14 @@ namespace LiteGame.Toolchain
     public sealed class LiteGameToolboxWindow : EditorWindow
     {
         private const string PrefSelected = "LiteGame.Toolchain.Selected";
+        private const string PrefSidebarWidth = "LiteGame.Toolchain.SidebarWidth";
+        private const float SidebarDefaultWidth = 300f;
+        private const float SidebarMinWidth = 240f;
+        private const float SidebarMaxWidth = 560f;
+        private const float SplitterWidth = 5f;
+        private const float SearchFieldHeight = 20f;
+        private const float SearchFieldMinWidth = 120f;
+        private const float ClearButtonWidth = 40f;
         private const double PollInterval = 0.5;
 
         /// <summary>平面筛选：索引 0＝全部；其余与清单 plane 取值一一对应。</summary>
@@ -37,6 +45,56 @@ namespace LiteGame.Toolchain
             return labels;
         }
 
+        /// <summary>用途筛选：索引 0＝全部；其余与清单 purpose 取值一一对应。</summary>
+        private static readonly string[] PurposeFilters =
+        {
+            string.Empty,
+            ToolchainPurposes.Debug,
+            ToolchainPurposes.Dev,
+            ToolchainPurposes.Delivery,
+        };
+
+        private static readonly string[] PurposeFilterLabels = BuildPurposeFilterLabels();
+
+        private static string[] BuildPurposeFilterLabels()
+        {
+            var labels = new string[PurposeFilters.Length];
+            labels[0] = "全部用途";
+            for (int index = 1; index < labels.Length; index++)
+            {
+                labels[index] = ToolchainPurposes.Label(PurposeFilters[index]);
+            }
+            return labels;
+        }
+
+        /// <summary>种类筛选：索引 0＝全部；其余与清单 kind 取值一一对应。</summary>
+        private static readonly string[] KindFilters = BuildKindFilters();
+
+        private static readonly string[] KindFilterLabels = BuildKindFilterLabels();
+
+        private static string[] BuildKindFilters()
+        {
+            string[] kinds = ToolchainKinds.All();
+            var filters = new string[kinds.Length + 1];
+            filters[0] = string.Empty;
+            for (int index = 0; index < kinds.Length; index++)
+            {
+                filters[index + 1] = kinds[index];
+            }
+            return filters;
+        }
+
+        private static string[] BuildKindFilterLabels()
+        {
+            var labels = new string[KindFilters.Length];
+            labels[0] = "全部种类";
+            for (int index = 1; index < labels.Length; index++)
+            {
+                labels[index] = ToolchainKinds.Label(KindFilters[index]);
+            }
+            return labels;
+        }
+
         private EditorToolCatalog _catalog;
         private IEditorToolPage _page;
         private string _selectedId = string.Empty;
@@ -45,6 +103,10 @@ namespace LiteGame.Toolchain
         public string SelectedToolId { get { return _selectedId; } }
         private string _search = string.Empty;
         private int _planeIndex;
+        private int _purposeIndex;
+        private int _kindIndex;
+        private float _sidebarWidth = SidebarDefaultWidth;
+        private bool _resizingSidebar;
         private Vector2 _leftScroll;
         private Vector2 _rightScroll;
         private double _nextPoll;
@@ -82,6 +144,8 @@ namespace LiteGame.Toolchain
 
         private void OnEnable()
         {
+            _sidebarWidth = Mathf.Clamp(
+                EditorPrefs.GetFloat(PrefSidebarWidth, SidebarDefaultWidth), SidebarMinWidth, SidebarMaxWidth);
             EnsureCatalog();
         }
 
@@ -159,14 +223,53 @@ namespace LiteGame.Toolchain
 
             using (new EditorGUILayout.HorizontalScope())
             {
-                using (new EditorGUILayout.VerticalScope(GUILayout.Width(260)))
+                using (new EditorGUILayout.VerticalScope(GUILayout.Width(_sidebarWidth)))
                 {
                     DrawSidebar();
                 }
+                DrawSidebarSplitter();
                 using (new EditorGUILayout.VerticalScope())
                 {
                     DrawContent();
                 }
+            }
+        }
+
+        /// <summary>左右分栏拖拽条：宽度落 EditorPrefs（统一前缀 LiteGame.Toolchain.*），下次打开保持。</summary>
+        private void DrawSidebarSplitter()
+        {
+            Rect rect = GUILayoutUtility.GetRect(SplitterWidth, SplitterWidth, GUILayout.ExpandHeight(true));
+            EditorGUI.DrawRect(new Rect(rect.x + 2f, rect.y, 1f, rect.height), new Color(0f, 0f, 0f, 0.25f));
+            EditorGUIUtility.AddCursorRect(rect, MouseCursor.ResizeHorizontal);
+
+            Event current = Event.current;
+            if (current == null) return;
+            switch (current.type)
+            {
+                case EventType.MouseDown:
+                    if (rect.Contains(current.mousePosition))
+                    {
+                        _resizingSidebar = true;
+                        current.Use();
+                    }
+                    break;
+                case EventType.MouseDrag:
+                    if (_resizingSidebar)
+                    {
+                        _sidebarWidth = Mathf.Clamp(
+                            _sidebarWidth + current.delta.x, SidebarMinWidth, SidebarMaxWidth);
+                        current.Use();
+                        Repaint();
+                    }
+                    break;
+                case EventType.MouseUp:
+                    if (_resizingSidebar)
+                    {
+                        _resizingSidebar = false;
+                        EditorPrefs.SetFloat(PrefSidebarWidth, _sidebarWidth);
+                        current.Use();
+                    }
+                    break;
             }
         }
 
@@ -175,13 +278,24 @@ namespace LiteGame.Toolchain
             EditorGUILayout.LabelField("LiteGame 工具链", EditorStyles.boldLabel);
             using (new EditorGUILayout.HorizontalScope())
             {
-                _search = GUILayout.TextField(_search ?? string.Empty, EditorStyles.toolbarTextField);
-                if (GUILayout.Button("清空", GUILayout.Width(44)))
+                _search = GUILayout.TextField(
+                    _search ?? string.Empty,
+                    EditorStyles.toolbarTextField,
+                    GUILayout.ExpandWidth(true),
+                    GUILayout.MinWidth(SearchFieldMinWidth),
+                    GUILayout.Height(SearchFieldHeight));
+                if (GUILayout.Button("清空", GUILayout.Width(ClearButtonWidth), GUILayout.Height(SearchFieldHeight)))
                 {
                     _search = string.Empty;
+                    GUI.FocusControl(null);
                 }
             }
-            _planeIndex = EditorGUILayout.Popup(_planeIndex, PlaneFilterLabels);
+            using (new EditorGUILayout.HorizontalScope())
+            {
+                _planeIndex = EditorGUILayout.Popup(_planeIndex, PlaneFilterLabels);
+                _purposeIndex = EditorGUILayout.Popup(_purposeIndex, PurposeFilterLabels);
+                _kindIndex = EditorGUILayout.Popup(_kindIndex, KindFilterLabels);
+            }
 
             _leftScroll = EditorGUILayout.BeginScrollView(_leftScroll);
             if (_catalog != null && _catalog.Errors.Count == 0)
@@ -190,7 +304,11 @@ namespace LiteGame.Toolchain
                 foreach (ToolchainCategory category in _catalog.Categories())
                 {
                     EditorToolDescriptor[] tools = _catalog.ToolsInCategory(category.id)
-                        .Where(descriptor => Matches(descriptor, query) && MatchesPlane(descriptor))
+                        .Where(descriptor =>
+                            Matches(descriptor, query)
+                            && MatchesPlane(descriptor)
+                            && MatchesPurpose(descriptor)
+                            && MatchesKind(descriptor))
                         .ToArray();
                     if (tools.Length == 0) continue;
 
@@ -223,6 +341,18 @@ namespace LiteGame.Toolchain
         {
             string plane = PlaneFilters[_planeIndex];
             return string.IsNullOrEmpty(plane) || descriptor.Plane == plane;
+        }
+
+        private bool MatchesPurpose(EditorToolDescriptor descriptor)
+        {
+            string purpose = PurposeFilters[_purposeIndex];
+            return string.IsNullOrEmpty(purpose) || descriptor.Purpose == purpose;
+        }
+
+        private bool MatchesKind(EditorToolDescriptor descriptor)
+        {
+            string kind = KindFilters[_kindIndex];
+            return string.IsNullOrEmpty(kind) || descriptor.Kind == kind;
         }
 
         private void DrawContent()
@@ -260,8 +390,12 @@ namespace LiteGame.Toolchain
             EditorGUILayout.Space(2);
             EditorGUILayout.LabelField(descriptor.Title, EditorStyles.boldLabel);
             EditorGUILayout.LabelField(
-                descriptor.DisplayKind + "  ·  平面 " + descriptor.PlaneLabel + "（前置 " + descriptor.RequiresLabel + "）"
-                + "  ·  写入面 " + descriptor.WritesLabel + (descriptor.Tool.destructive ? "（破坏性）" : string.Empty),
+                "用途：" + descriptor.PurposeLabel
+                + "　平面：" + descriptor.PlaneLabel + "（前置 " + descriptor.RequiresLabel + "）",
+                EditorStyles.miniLabel);
+            EditorGUILayout.LabelField(
+                "种类：" + descriptor.DisplayKind
+                + "　写入面：" + descriptor.WritesLabel + (descriptor.Tool.destructive ? "（破坏性）" : string.Empty),
                 EditorStyles.miniLabel);
             EditorGUILayout.HelpBox(descriptor.Tool.summary, MessageType.None);
 

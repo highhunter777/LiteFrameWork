@@ -180,11 +180,30 @@ namespace LiteGame.Tests.EditMode
         }
 
         [Test]
+        public void 清单_用途契约成立()
+        {
+            EditorToolCatalog catalog = EditorToolCatalog.Load();
+            var counts = new Dictionary<string, int>();
+            foreach (ToolchainTool tool in catalog.Manifest.Tools)
+            {
+                Assert.That(ToolchainPurposes.IsValid(tool.purpose), Is.True,
+                    tool.id + " purpose 非法: " + tool.purpose);
+                counts.TryGetValue(tool.purpose, out int count);
+                counts[tool.purpose] = count + 1;
+            }
+
+            Assert.That(
+                counts.Keys,
+                Is.EquivalentTo(new[] { ToolchainPurposes.Debug, ToolchainPurposes.Dev, ToolchainPurposes.Delivery }),
+                "三条能力线都必须有工具");
+        }
+
+        [Test]
         public void 清单_运行内载体只做说明()
         {
             EditorToolCatalog catalog = EditorToolCatalog.Load();
-            EditorToolDescriptor devhud = catalog.Find("gm.devhud");
-            Assert.That(devhud, Is.Not.Null, "gm.devhud 未登记");
+            EditorToolDescriptor devhud = catalog.Find("debug.devhud");
+            Assert.That(devhud, Is.Not.Null, "debug.devhud 未登记");
             Assert.That(devhud.Kind, Is.EqualTo(ToolchainKinds.Hud));
             Assert.That(devhud.Plane, Is.EqualTo(ToolchainPlanes.Runtime));
             Assert.That(devhud.Tool.Requires, Is.Not.Empty);

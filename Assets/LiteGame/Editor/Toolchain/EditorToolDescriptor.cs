@@ -29,6 +29,10 @@ namespace LiteGame.Toolchain
 
         public string PlaneLabel { get { return ToolchainPlanes.Label(Tool.plane); } }
 
+        public string Purpose { get { return Tool.purpose; } }
+
+        public string PurposeLabel { get { return ToolchainPurposes.Label(Tool.purpose); } }
+
         public string RequiresLabel { get { return ToolchainPlanes.RequiresLabel(Tool); } }
 
         public bool IsEditorKind { get { return ToolchainKinds.IsEditor(Tool.kind); } }
@@ -68,24 +72,6 @@ namespace LiteGame.Toolchain
             }
         }
 
-        public string DisplayKind
-        {
-            get
-            {
-                switch (Kind)
-                {
-                    case ToolchainKinds.Page: return "页件";
-                    case ToolchainKinds.Window: return "窗口";
-                    case ToolchainKinds.Action: return "动作";
-                    case ToolchainKinds.Hud: return "运行内";
-                    case ToolchainKinds.Cli: return "CLI";
-                    case ToolchainKinds.Gate: return "门禁";
-                    case ToolchainKinds.Build: return "构建";
-                    case ToolchainKinds.Content: return "内容";
-                    case ToolchainKinds.Docs: return "说明";
-                    default: return Kind;
-                }
-            }
-        }
+        public string DisplayKind { get { return ToolchainKinds.Label(Kind); } }
     }
 }

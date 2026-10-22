@@ -42,9 +42,9 @@ class ManifestContractTests(unittest.TestCase):
             self.assertIn(field, manifest, f"manifest v2 field missing: {field}")
         return manifest
 
-    def test_manifest_has_v4_fields(self):
+    def test_manifest_has_v5_fields(self):
         manifest = self.load_v2()
-        self.assertEqual(manifest.get("schemaVersion"), 4)
+        self.assertEqual(manifest.get("schemaVersion"), 5)
         self.assertIsInstance(manifest.get("categories"), list)
         self.assertIsInstance(manifest.get("tools"), list)
         self.assertIsInstance(manifest.get("surfaces"), list)
@@ -80,6 +80,16 @@ class ManifestContractTests(unittest.TestCase):
                 self.assertTrue(tool.get("handler"), f"handler missing on {tool.get('id')}")
             if kind in {"cli", "gate", "build", "content"}:
                 self.assertTrue(tool.get("command"), f"command missing on {tool.get('id')}")
+
+    def test_purpose_contract(self):
+        purposes = {"debug", "dev", "delivery"}
+        manifest = self.load_v2()
+        seen = set()
+        for tool in manifest["tools"]:
+            purpose = tool.get("purpose")
+            self.assertIn(purpose, purposes, f"bad purpose on {tool.get('id')}: {purpose}")
+            seen.add(purpose)
+        self.assertEqual(seen, purposes, "三条能力线都必须有工具")
 
     def test_plane_contract(self):
         planes = {"editor", "runtime", "external", "none"}
@@ -306,13 +316,27 @@ class CliContractTests(unittest.TestCase):
     def test_list_plane_filter(self):
         result = run_cli("list", "--plane", "runtime")
         self.assertEqual(result.returncode, 0, result.stderr)
-        self.assertIn("gm.devhud", result.stdout)
-        self.assertIn("gm.test-mode", result.stdout)
+        self.assertIn("debug.devhud", result.stdout)
+        self.assertIn("debug.test-mode", result.stdout)
         self.assertNotIn("baking.body", result.stdout)
+
+    def test_list_purpose_filter(self):
+        result = run_cli("list", "--purpose", "debug")
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertIn("debug.net-diag", result.stdout)
+        self.assertIn("env.room-replay", result.stdout)
+        self.assertNotIn("quality.l1", result.stdout)
+        self.assertNotIn("baking.body", result.stdout)
+
+    def test_list_filters_compose(self):
+        result = run_cli("list", "--purpose", "debug", "--plane", "runtime")
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertIn("debug.devhud", result.stdout)
+        self.assertNotIn("env.room-replay", result.stdout)
 
     def test_runtime_hud_is_neither_openable_nor_runnable(self):
         for verb in ("open", "run"):
-            result = run_cli(verb, "gm.devhud")
+            result = run_cli(verb, "debug.devhud")
             self.assertNotEqual(result.returncode, 0, verb + ": " + result.stdout + result.stderr)
             self.assertIn("runtime", result.stdout + result.stderr)
 

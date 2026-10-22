@@ -14,9 +14,10 @@ COMMAND_KINDS = {"cli", "gate", "build", "content"}
 PLANES = {"editor", "runtime", "external", "none"}
 RUNTIME_REQUIRES = {"play", "player"}
 REQUIRES = {"play", "player", "unity-batch"}
+PURPOSES = {"debug", "dev", "delivery"}
 WRITE_SCOPES = {"none", "source", "generated", "asset", "distribution"}
 SURFACE_KINDS = {"ci-workflow", "hook-config", "scheduled-task", "path"}
-REQUIRED_TOOL_FIELDS = ("id", "title", "category", "kind", "plane", "summary", "docs")
+REQUIRED_TOOL_FIELDS = ("id", "title", "category", "kind", "plane", "purpose", "summary", "docs")
 COMMAND_PATH_PREFIXES = ("scripts/", "Server/", "Assets/", "Tests/")
 ARG_TYPES = {"path", "file", "bool", "int", "string", "enum"}
 ARG_NAME_PATTERN = re.compile(r"^[a-z][a-z0-9-]*$")
@@ -145,8 +146,8 @@ def validate_manifest(manifest, root):
     warnings = []
     root = Path(root)
 
-    if manifest.get("schemaVersion") != 4:
-        errors.append("schemaVersion must be 4")
+    if manifest.get("schemaVersion") != 5:
+        errors.append("schemaVersion must be 5")
 
     categories = manifest.get("categories")
     tools = manifest.get("tools")
@@ -228,6 +229,8 @@ def validate_manifest(manifest, root):
                     if not (root / relative).exists():
                         errors.append(f"{owner}: command path missing: {relative}")
         _validate_plane(owner, tool, kind, errors)
+        if tool.get("purpose") not in PURPOSES:
+            errors.append(f"{owner}: unsupported purpose: {tool.get('purpose')}")
         docs = tool.get("docs")
         if docs:
             _check_path(root, docs, "docs", errors, owner)

@@ -20,6 +20,7 @@ from _toolchain_domains import check_domains
 from _toolchain_manifest import (
     KINDS,
     PLANES,
+    PURPOSES,
     ManifestError,
     default_manifest,
     find_tool,
@@ -124,15 +125,21 @@ def cmd_list(args):
         return EXIT_OK
     planes = set(getattr(args, "plane", None) or [])
     kinds = set(getattr(args, "kind", None) or [])
+    purposes = set(getattr(args, "purpose", None) or [])
     print(f"[toolchain] manifest: {_manifest_path(args)}")
-    if planes or kinds:
-        print(f"[toolchain] filter: plane={sorted(planes) or 'any'} kind={sorted(kinds) or 'any'}")
+    if planes or kinds or purposes:
+        print(
+            f"[toolchain] filter: plane={sorted(planes) or 'any'} kind={sorted(kinds) or 'any'} "
+            f"purpose={sorted(purposes) or 'any'}"
+        )
     matched = 0
     for category in sorted(manifest.get("categories", []), key=lambda item: item.get("order", 1000)):
         tools = [
             tool
             for tool in sorted_tools(manifest, category.get("id"))
-            if (not planes or tool.get("plane") in planes) and (not kinds or tool.get("kind") in kinds)
+            if (not planes or tool.get("plane") in planes)
+            and (not kinds or tool.get("kind") in kinds)
+            and (not purposes or tool.get("purpose") in purposes)
         ]
         if not tools:
             continue
@@ -140,7 +147,8 @@ def cmd_list(args):
         print(f"\n{category.get('title', category.get('id'))}")
         for tool in tools:
             print(
-                f"  {tool['id']:<30} {tool.get('kind', ''):<8} {tool.get('plane', ''):<9} {tool.get('title', '')}"
+                f"  {tool['id']:<30} {tool.get('kind', ''):<8} {tool.get('plane', ''):<9} "
+                f"{tool.get('purpose', ''):<9} {tool.get('title', '')}"
             )
     print(f"[toolchain] {matched} tool(s)")
     return EXIT_OK
@@ -475,6 +483,9 @@ def build_parser():
     list_parser.add_argument("--manifest")
     list_parser.add_argument("--plane", action="append", choices=sorted(PLANES), help="filter by plane (repeatable)")
     list_parser.add_argument("--kind", action="append", choices=sorted(KINDS), help="filter by kind (repeatable)")
+    list_parser.add_argument(
+        "--purpose", action="append", choices=sorted(PURPOSES), help="filter by capability line (repeatable)"
+    )
     list_parser.set_defaults(func=cmd_list)
 
     check_parser = subparsers.add_parser("check", help="validate manifest, paths, docs and surfaces")
