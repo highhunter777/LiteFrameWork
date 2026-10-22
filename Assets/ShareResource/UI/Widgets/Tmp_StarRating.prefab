@@ -386,6 +386,7 @@ GameObject:
   - component: {fileID: 4092670193451859426}
   - component: {fileID: 2603378533508729991}
   - component: {fileID: 8759773561828764825}
+  - component: {fileID: 4466989830573918980}
   m_Layer: 0
   m_Name: Tmp_StarRating
   m_TagString: Untagged
@@ -452,3 +453,23 @@ MonoBehaviour:
   Comment: "\u754C\u9762\u7EA7\u547D\u540D\uFF1A\u5982 LevelStars"
   CustomTypeName: 
   BindName: 
+--- !u!114 &4466989830573918980
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4269143558093527072}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 35059a1057521374b8c333746a839fa3, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  Owner: art.ui
+  Summary: "\u661F\u7EA7\u8BC4\u5206"
+  Slots: []
+  States: 0000000003000000
+  Events:
+  - StarRating.OnChanged
+  SizeBehavior: 0
+  Constraints: []

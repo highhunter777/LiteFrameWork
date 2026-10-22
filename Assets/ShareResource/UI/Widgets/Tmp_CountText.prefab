@@ -13,6 +13,7 @@ GameObject:
   - component: {fileID: 876532100220957756}
   - component: {fileID: 8997353850396071328}
   - component: {fileID: 2907194785441537875}
+  - component: {fileID: 8705025730753151209}
   m_Layer: 0
   m_Name: Tmp_CountText
   m_TagString: Untagged
@@ -166,3 +167,22 @@ MonoBehaviour:
   Comment: "\u754C\u9762\u7EA7\u547D\u540D\uFF1A\u5982 GoldCount"
   CustomTypeName: 
   BindName: 
+--- !u!114 &8705025730753151209
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2591758071145040540}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 35059a1057521374b8c333746a839fa3, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  Owner: art.ui
+  Summary: "\u6570\u503C\u6587\u672C"
+  Slots: []
+  States: 
+  Events: []
+  SizeBehavior: 0
+  Constraints: []

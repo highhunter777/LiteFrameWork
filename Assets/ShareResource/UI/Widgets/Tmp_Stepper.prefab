@@ -267,6 +267,7 @@ GameObject:
   - component: {fileID: 3678282358660903030}
   - component: {fileID: 7041365262840081485}
   - component: {fileID: 3868262626444890270}
+  - component: {fileID: 9016853793788508925}
   m_Layer: 0
   m_Name: Tmp_Stepper
   m_TagString: Untagged
@@ -329,6 +330,26 @@ MonoBehaviour:
   Comment: "\u754C\u9762\u7EA7\u547D\u540D\uFF1A\u5982 VolumeStepper"
   CustomTypeName: 
   BindName: 
+--- !u!114 &9016853793788508925
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4956162434735827101}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 35059a1057521374b8c333746a839fa3, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  Owner: art.ui
+  Summary: "\u6B65\u8FDB\u5668"
+  Slots: []
+  States: 00000000010000000200000003000000
+  Events:
+  - Stepper.OnChanged
+  SizeBehavior: 0
+  Constraints: []
 --- !u!1 &5568305093614285491
 GameObject:
   m_ObjectHideFlags: 0

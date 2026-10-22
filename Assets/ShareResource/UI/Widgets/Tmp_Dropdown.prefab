@@ -647,6 +647,7 @@ GameObject:
   - component: {fileID: 481677649320251385}
   - component: {fileID: 6855908099428203114}
   - component: {fileID: 4002425027431377311}
+  - component: {fileID: 832236536920962173}
   m_Layer: 0
   m_Name: Tmp_Dropdown
   m_TagString: Untagged
@@ -796,3 +797,23 @@ MonoBehaviour:
   Comment: "\u754C\u9762\u7EA7\u547D\u540D\uFF1A\u5982 RegionDropdown"
   CustomTypeName: LiteClient.UI.UIDropdownWrap
   BindName: Dropdown_Quality
+--- !u!114 &832236536920962173
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8849819735536475285}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 35059a1057521374b8c333746a839fa3, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  Owner: art.ui
+  Summary: "\u4E0B\u62C9"
+  Slots: []
+  States: 00000000010000000200000003000000
+  Events:
+  - UIDropdownWrap.OnIndexChanged
+  SizeBehavior: 1
+  Constraints: []

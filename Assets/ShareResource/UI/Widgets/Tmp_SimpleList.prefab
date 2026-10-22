@@ -13,6 +13,7 @@ GameObject:
   - component: {fileID: 8003252702088528031}
   - component: {fileID: 693869765497766086}
   - component: {fileID: 8758347461978798538}
+  - component: {fileID: 4755726741363030062}
   m_Layer: 0
   m_Name: Tmp_SimpleList
   m_TagString: Untagged
@@ -107,6 +108,26 @@ MonoBehaviour:
   Comment: "\u754C\u9762\u7EA7\u547D\u540D\uFF1A\u5982 FriendList"
   CustomTypeName: 
   BindName: 
+--- !u!114 &4755726741363030062
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 715898481320656579}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 35059a1057521374b8c333746a839fa3, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  Owner: art.ui
+  Summary: "\u5C0F\u5217\u8868"
+  Slots: []
+  States: 0000000006000000
+  Events: []
+  SizeBehavior: 1
+  Constraints:
+  - "\u4EC5\u5C0F\u5217\u8868\uFF08\u6761\u76EE\u6570\u5C11\u65F6\u4F7F\u7528\uFF09"
 --- !u!1 &5834214863652858532
 GameObject:
   m_ObjectHideFlags: 0

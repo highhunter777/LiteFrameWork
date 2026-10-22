@@ -148,6 +148,7 @@ GameObject:
   - component: {fileID: 5976296072047478142}
   - component: {fileID: 1392968933968641880}
   - component: {fileID: 3383458649684610338}
+  - component: {fileID: 3446495221253922706}
   m_Layer: 0
   m_Name: Tmp_Bubble
   m_TagString: Untagged
@@ -241,3 +242,22 @@ MonoBehaviour:
   Comment: "\u754C\u9762\u7EA7\u547D\u540D\uFF1A\u5982 EquipBubble"
   CustomTypeName: 
   BindName: 
+--- !u!114 &3446495221253922706
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8637906448898988258}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 35059a1057521374b8c333746a839fa3, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  Owner: art.ui
+  Summary: "\u6C14\u6CE1\u63D0\u793A"
+  Slots: []
+  States: 
+  Events: []
+  SizeBehavior: 2
+  Constraints: []

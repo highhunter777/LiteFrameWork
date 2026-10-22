@@ -86,6 +86,7 @@ GameObject:
   - component: {fileID: 1515272607836836043}
   - component: {fileID: 6611826845250489212}
   - component: {fileID: 3785196810916339426}
+  - component: {fileID: 5841894963275573311}
   m_Layer: 0
   m_Name: Tmp_GuideHighlight
   m_TagString: Untagged
@@ -141,3 +142,22 @@ MonoBehaviour:
   Comment: "\u754C\u9762\u7EA7\u547D\u540D\uFF1A\u5982 StepGuide"
   CustomTypeName: 
   BindName: 
+--- !u!114 &5841894963275573311
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7283794853723971736}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 35059a1057521374b8c333746a839fa3, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  Owner: art.ui
+  Summary: "\u5F15\u5BFC\u9AD8\u4EAE"
+  Slots: []
+  States: 
+  Events: []
+  SizeBehavior: 1
+  Constraints: []

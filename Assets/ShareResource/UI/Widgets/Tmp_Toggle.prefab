@@ -12,6 +12,7 @@ GameObject:
   - component: {fileID: 7546572808583760179}
   - component: {fileID: 6224849957664282716}
   - component: {fileID: 8418560151085513762}
+  - component: {fileID: 4077357964736971857}
   m_Layer: 0
   m_Name: Tmp_Toggle
   m_TagString: Untagged
@@ -116,6 +117,26 @@ MonoBehaviour:
   Comment: "\u754C\u9762\u7EA7\u547D\u540D\uFF1A\u5982 AutoReadyToggle"
   CustomTypeName: 
   BindName: 
+--- !u!114 &4077357964736971857
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4363311222436513575}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 35059a1057521374b8c333746a839fa3, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  Owner: art.ui
+  Summary: "\u5F00\u5173"
+  Slots: []
+  States: 0000000001000000020000000300000004000000
+  Events:
+  - UIToggleWrap.OnChanged
+  SizeBehavior: 2
+  Constraints: []
 --- !u!1 &6050587157606031213
 GameObject:
   m_ObjectHideFlags: 0

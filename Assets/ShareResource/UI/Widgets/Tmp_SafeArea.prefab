@@ -11,6 +11,7 @@ GameObject:
   - component: {fileID: 7691289997535591994}
   - component: {fileID: 7626554774477302031}
   - component: {fileID: 1002818807177067405}
+  - component: {fileID: 500581445439705957}
   m_Layer: 0
   m_Name: Tmp_SafeArea
   m_TagString: Untagged
@@ -64,3 +65,22 @@ MonoBehaviour:
   Comment: "\u754C\u9762\u7EA7\u547D\u540D\uFF1A\u5982 SafeRoot"
   CustomTypeName: 
   BindName: 
+--- !u!114 &500581445439705957
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6508416947064095591}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 35059a1057521374b8c333746a839fa3, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  Owner: art.ui
+  Summary: "\u5B89\u5168\u533A"
+  Slots: []
+  States: 
+  Events: []
+  SizeBehavior: 1
+  Constraints: []

@@ -222,6 +222,7 @@ GameObject:
   - component: {fileID: 3241172169723582273}
   - component: {fileID: 2707000320911532659}
   - component: {fileID: 7884142567290658967}
+  - component: {fileID: 4972178623524448045}
   m_Layer: 0
   m_Name: Tmp_Toast
   m_TagString: Untagged
@@ -281,3 +282,23 @@ MonoBehaviour:
   Comment: "\u754C\u9762\u7EA7\u547D\u540D\uFF1A\u5982 ToastHost"
   CustomTypeName: 
   BindName: 
+--- !u!114 &4972178623524448045
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8355812410417674760}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 35059a1057521374b8c333746a839fa3, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  Owner: art.ui
+  Summary: "\u8F7B\u63D0\u793A"
+  Slots: []
+  States: 
+  Events: []
+  SizeBehavior: 2
+  Constraints:
+  - "\u540C\u65F6\u53EF\u89C1\u4E0A\u9650 MaxVisible\uFF08\u9ED8\u8BA4 4\uFF09\uFF0C\u8D85\u51FA\u6DD8\u6C70\u6700\u65E7"

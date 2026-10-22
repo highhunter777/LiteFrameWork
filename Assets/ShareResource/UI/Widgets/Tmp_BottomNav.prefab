@@ -838,6 +838,7 @@ GameObject:
   - component: {fileID: 7946127531762256673}
   - component: {fileID: 3612536841811431116}
   - component: {fileID: 5058391351082148550}
+  - component: {fileID: 1161292465595830876}
   m_Layer: 0
   m_Name: Tmp_BottomNav
   m_TagString: Untagged
@@ -893,6 +894,26 @@ MonoBehaviour:
   Comment: "\u754C\u9762\u7EA7\u547D\u540D\uFF1A\u5982 MainNav"
   CustomTypeName: 
   BindName: 
+--- !u!114 &1161292465595830876
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8124641360607927269}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 35059a1057521374b8c333746a839fa3, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  Owner: art.ui
+  Summary: "\u5E95\u90E8\u5BFC\u822A"
+  Slots: []
+  States: 0000000001000000020000000300000004000000
+  Events:
+  - BottomNav.OnNavChanged
+  SizeBehavior: 1
+  Constraints: []
 --- !u!1 &8583848809516835343
 GameObject:
   m_ObjectHideFlags: 0

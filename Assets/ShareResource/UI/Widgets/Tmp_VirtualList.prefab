@@ -194,6 +194,7 @@ GameObject:
   - component: {fileID: 2158360655372547349}
   - component: {fileID: 8089781080626643691}
   - component: {fileID: 4100619252209223982}
+  - component: {fileID: 4464650821766424439}
   m_Layer: 0
   m_Name: Tmp_VirtualList
   m_TagString: Untagged
@@ -304,6 +305,26 @@ MonoBehaviour:
   Comment: "\u754C\u9762\u7EA7\u547D\u540D\uFF1A\u5982 RoomList"
   CustomTypeName: 
   BindName: 
+--- !u!114 &4464650821766424439
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7047771392735697344}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 35059a1057521374b8c333746a839fa3, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  Owner: art.ui
+  Summary: "\u865A\u62DF\u5217\u8868"
+  Slots: []
+  States: 0000000006000000
+  Events: []
+  SizeBehavior: 1
+  Constraints:
+  - "\u56FA\u5B9A\u5C3A\u5BF8\u5355\u8F74\uFF08\u4E0D\u652F\u6301 Grid/\u53D8\u9AD8\uFF09"
 --- !u!1 &8225937238738623978
 GameObject:
   m_ObjectHideFlags: 0

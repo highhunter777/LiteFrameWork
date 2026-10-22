@@ -267,6 +267,7 @@ GameObject:
   - component: {fileID: 8803334470317947238}
   - component: {fileID: 1055751849928498761}
   - component: {fileID: 7363173987723452816}
+  - component: {fileID: 7492402325673173875}
   m_Layer: 0
   m_Name: Tmp_TabGroup
   m_TagString: Untagged
@@ -329,6 +330,26 @@ MonoBehaviour:
   Comment: "\u754C\u9762\u7EA7\u547D\u540D\uFF1A\u5982 MainTabs"
   CustomTypeName: 
   BindName: 
+--- !u!114 &7492402325673173875
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2148964171619859814}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 35059a1057521374b8c333746a839fa3, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  Owner: art.ui
+  Summary: "\u9875\u7B7E\u7EC4"
+  Slots: []
+  States: 0000000001000000020000000300000004000000
+  Events:
+  - TabGroup.OnTabChanged
+  SizeBehavior: 1
+  Constraints: []
 --- !u!1 &4600075915590125764
 GameObject:
   m_ObjectHideFlags: 0

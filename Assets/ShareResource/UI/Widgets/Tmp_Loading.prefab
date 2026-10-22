@@ -426,6 +426,7 @@ GameObject:
   - component: {fileID: 8385888449865996225}
   - component: {fileID: 718278225732034038}
   - component: {fileID: 8034042947189480207}
+  - component: {fileID: 8327905419491962781}
   m_Layer: 0
   m_Name: Tmp_Loading
   m_TagString: Untagged
@@ -484,6 +485,29 @@ MonoBehaviour:
   Comment: "\u754C\u9762\u7EA7\u547D\u540D\uFF1A\u5982 LoadingRoot"
   CustomTypeName: 
   BindName: 
+--- !u!114 &8327905419491962781
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6284579427848953256}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 35059a1057521374b8c333746a839fa3, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  Owner: art.ui
+  Summary: "\u52A0\u8F7D\u906E\u7F69"
+  Slots:
+  - Name: Cot_Content
+    Required: 1
+    Description: "\u52A0\u8F7D\u5185\u5BB9\u69FD\uFF08\u8F6C\u5708/\u8FDB\u5EA6/\u72B6\u6001\u6587\u672C\uFF09"
+  States: 
+  Events: []
+  SizeBehavior: 1
+  Constraints:
+  - "\u963B\u65AD\u8F93\u5165\u53EF\u914D\uFF08SetBlocking\uFF09"
 --- !u!1 &6317008538332765478
 GameObject:
   m_ObjectHideFlags: 0

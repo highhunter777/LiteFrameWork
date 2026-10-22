@@ -13,6 +13,7 @@ GameObject:
   - component: {fileID: 6996632662602758429}
   - component: {fileID: 5878279363642026635}
   - component: {fileID: 8761352208279982231}
+  - component: {fileID: 6995885054363139469}
   m_Layer: 0
   m_Name: Tmp_Dialog
   m_TagString: Untagged
@@ -112,6 +113,26 @@ MonoBehaviour:
   Comment: "\u754C\u9762\u7EA7\u547D\u540D\uFF1A\u5982 PopupConfirm"
   CustomTypeName: 
   BindName: 
+--- !u!114 &6995885054363139469
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1007745774785752861}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 35059a1057521374b8c333746a839fa3, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  Owner: art.ui
+  Summary: "\u5F39\u7A97"
+  Slots: []
+  States: 
+  Events: []
+  SizeBehavior: 2
+  Constraints:
+  - "\u786E\u8BA4/\u53D6\u6D88\u56DE\u8C03\u7ECF UIDialog.Configure \u6CE8\u5165"
 --- !u!1 &2413733707916265618
 GameObject:
   m_ObjectHideFlags: 0

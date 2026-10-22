@@ -13,6 +13,7 @@ GameObject:
   - component: {fileID: 5604980069597609376}
   - component: {fileID: 4591782082559348878}
   - component: {fileID: 5056230898510486830}
+  - component: {fileID: 2645922987301215552}
   m_Layer: 0
   m_Name: Tmp_EventRelay
   m_TagString: Untagged
@@ -107,3 +108,24 @@ MonoBehaviour:
   Comment: "\u754C\u9762\u7EA7\u547D\u540D\uFF1A\u5982 SceneTouchArea"
   CustomTypeName: 
   BindName: 
+--- !u!114 &2645922987301215552
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6279331634168869698}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 35059a1057521374b8c333746a839fa3, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  Owner: art.ui
+  Summary: "\u4E8B\u4EF6\u8F6C\u53D1"
+  Slots: []
+  States: 
+  Events:
+  - UIEventRelay.OnClicked
+  SizeBehavior: 1
+  Constraints:
+  - "\u8986\u76D6\u533A\u57DF\u63A5\u6536\u70B9\u51FB\uFF1B\u4E0D\u627F\u8F7D\u89C6\u89C9"

@@ -11,6 +11,7 @@ GameObject:
   - component: {fileID: 1313740627434273631}
   - component: {fileID: 8235967333218135834}
   - component: {fileID: 469109656832274995}
+  - component: {fileID: 2009984405006106072}
   m_Layer: 0
   m_Name: Tmp_FlyText
   m_TagString: Untagged
@@ -69,6 +70,26 @@ MonoBehaviour:
   Comment: "\u754C\u9762\u7EA7\u547D\u540D\uFF1A\u5982 DamageFlyText"
   CustomTypeName: 
   BindName: 
+--- !u!114 &2009984405006106072
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 77211391454908685}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 35059a1057521374b8c333746a839fa3, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  Owner: art.ui
+  Summary: "\u98D8\u5B57"
+  Slots: []
+  States: 
+  Events: []
+  SizeBehavior: 2
+  Constraints:
+  - "\u7ECF FlyTextPool \u6C60\u5316\u590D\u7528"
 --- !u!1 &5380183769463254546
 GameObject:
   m_ObjectHideFlags: 0

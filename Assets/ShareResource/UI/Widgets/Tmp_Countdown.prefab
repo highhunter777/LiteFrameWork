@@ -13,6 +13,7 @@ GameObject:
   - component: {fileID: 2061957654660688228}
   - component: {fileID: 7838271852528034624}
   - component: {fileID: 5273930151370514999}
+  - component: {fileID: 3517906592020072812}
   m_Layer: 0
   m_Name: Tmp_Countdown
   m_TagString: Untagged
@@ -168,3 +169,22 @@ MonoBehaviour:
   Comment: "\u754C\u9762\u7EA7\u547D\u540D\uFF1A\u5982 RoundCountdown"
   CustomTypeName: 
   BindName: 
+--- !u!114 &3517906592020072812
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 862695918290979159}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 35059a1057521374b8c333746a839fa3, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  Owner: art.ui
+  Summary: "\u5012\u8BA1\u65F6"
+  Slots: []
+  States: 
+  Events: []
+  SizeBehavior: 0
+  Constraints: []

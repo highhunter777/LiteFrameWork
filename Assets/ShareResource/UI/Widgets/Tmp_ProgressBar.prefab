@@ -296,6 +296,7 @@ GameObject:
   - component: {fileID: 5508152524254550678}
   - component: {fileID: 3644272055103778985}
   - component: {fileID: 8534374212394130899}
+  - component: {fileID: 1333625646652606836}
   m_Layer: 0
   m_Name: Tmp_ProgressBar
   m_TagString: Untagged
@@ -355,3 +356,22 @@ MonoBehaviour:
   Comment: "\u754C\u9762\u7EA7\u547D\u540D\uFF1A\u5982 ExpBar"
   CustomTypeName: 
   BindName: 
+--- !u!114 &1333625646652606836
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8140910291284157304}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 35059a1057521374b8c333746a839fa3, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  Owner: art.ui
+  Summary: "\u8FDB\u5EA6\u6761"
+  Slots: []
+  States: 
+  Events: []
+  SizeBehavior: 1
+  Constraints: []

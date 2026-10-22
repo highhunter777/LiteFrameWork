@@ -11,6 +11,7 @@ GameObject:
   - component: {fileID: 868110506395090764}
   - component: {fileID: 3089345104318002790}
   - component: {fileID: 8518923673790781094}
+  - component: {fileID: 7776618173598979363}
   m_Layer: 0
   m_Name: Tmp_RedDot
   m_TagString: Untagged
@@ -69,6 +70,25 @@ MonoBehaviour:
   Comment: "\u754C\u9762\u7EA7\u547D\u540D\uFF1A\u5982 MailRedDot"
   CustomTypeName: 
   BindName: 
+--- !u!114 &7776618173598979363
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4747800033224797529}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 35059a1057521374b8c333746a839fa3, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  Owner: art.ui
+  Summary: "\u7EA2\u70B9"
+  Slots: []
+  States: 
+  Events: []
+  SizeBehavior: 0
+  Constraints: []
 --- !u!1 &7099415456320237262
 GameObject:
   m_ObjectHideFlags: 0

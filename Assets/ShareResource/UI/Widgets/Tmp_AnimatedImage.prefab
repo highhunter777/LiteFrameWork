@@ -13,6 +13,7 @@ GameObject:
   - component: {fileID: 1189558242827227165}
   - component: {fileID: 6709504325370036056}
   - component: {fileID: 3270773688642824414}
+  - component: {fileID: 9180284760121400113}
   m_Layer: 0
   m_Name: Tmp_AnimatedImage
   m_TagString: Untagged
@@ -108,3 +109,22 @@ MonoBehaviour:
   Comment: "\u754C\u9762\u7EA7\u547D\u540D\uFF1A\u5982 LoadingAnim"
   CustomTypeName: 
   BindName: 
+--- !u!114 &9180284760121400113
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8047445694784066030}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 35059a1057521374b8c333746a839fa3, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  Owner: art.ui
+  Summary: "\u5E27\u52A8\u753B\u56FE\u7247"
+  Slots: []
+  States: 
+  Events: []
+  SizeBehavior: 0
+  Constraints: []

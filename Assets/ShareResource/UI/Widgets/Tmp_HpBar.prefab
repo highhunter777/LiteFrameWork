@@ -11,6 +11,7 @@ GameObject:
   - component: {fileID: 4501885733362048273}
   - component: {fileID: 5315699601955081236}
   - component: {fileID: 3094825036827234211}
+  - component: {fileID: 6080071536132193734}
   m_Layer: 0
   m_Name: Tmp_HpBar
   m_TagString: Untagged
@@ -72,6 +73,29 @@ MonoBehaviour:
   Comment: 
   CustomTypeName: 
   BindName: 
+--- !u!114 &6080071536132193734
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 72138045377524776}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 35059a1057521374b8c333746a839fa3, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  Owner: art.ui
+  Summary: "\u8840\u6761"
+  Slots:
+  - Name: Cot_IconBox
+    Required: 1
+    Description: "\u8840\u91CF\u56FE\u6807\u69FD\uFF08Icon_Health\uFF09"
+  States: 
+  Events: []
+  SizeBehavior: 1
+  Constraints:
+  - "\u6570\u503C\u6587\u672C\u53EF\u9009\uFF08ValueText \u53EF\u7A7A\uFF09"
 --- !u!1 &2085827247343290519
 GameObject:
   m_ObjectHideFlags: 0

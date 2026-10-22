@@ -86,6 +86,7 @@ GameObject:
   - component: {fileID: 3633437264123979899}
   - component: {fileID: 1371352773013716291}
   - component: {fileID: 540356756063919679}
+  - component: {fileID: 9061451449508240399}
   m_Layer: 0
   m_Name: Tmp_AvatarFrame
   m_TagString: Untagged
@@ -145,6 +146,25 @@ MonoBehaviour:
   Comment: "\u754C\u9762\u7EA7\u547D\u540D\uFF1A\u5982 PlayerAvatar"
   CustomTypeName: 
   BindName: 
+--- !u!114 &9061451449508240399
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1624821010719023599}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 35059a1057521374b8c333746a839fa3, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  Owner: art.ui
+  Summary: "\u5934\u50CF\u6846"
+  Slots: []
+  States: 
+  Events: []
+  SizeBehavior: 0
+  Constraints: []
 --- !u!1 &1952395829709718072
 GameObject:
   m_ObjectHideFlags: 0

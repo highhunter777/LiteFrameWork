@@ -13,6 +13,7 @@ GameObject:
   - component: {fileID: 5092184853881508799}
   - component: {fileID: 7926576381814971004}
   - component: {fileID: 7906364916991724963}
+  - component: {fileID: 1609535855417762468}
   m_Layer: 0
   m_Name: Tmp_StateButton
   m_TagString: Untagged
@@ -113,6 +114,28 @@ MonoBehaviour:
   Comment: "\u754C\u9762\u7EA7\u547D\u540D\uFF1A\u5982 BtnStart"
   CustomTypeName: 
   BindName: 
+--- !u!114 &1609535855417762468
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5625379697631384228}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 35059a1057521374b8c333746a839fa3, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  Owner: art.ui
+  Summary: "\u72B6\u6001\u6309\u94AE"
+  Slots: []
+  States: 00000000020000000300000004000000
+  Events:
+  - StateButton.OnClickEvent
+  - StateButton.OnLongPressEvent
+  - StateButton.OnSelectedChanged
+  SizeBehavior: 2
+  Constraints: []
 --- !u!1 &9067678150167358976
 GameObject:
   m_ObjectHideFlags: 0

@@ -198,6 +198,7 @@ GameObject:
   - component: {fileID: 4472638504092053237}
   - component: {fileID: 2897688326286354995}
   - component: {fileID: 3471178947891546538}
+  - component: {fileID: 1255385187751790665}
   m_Layer: 0
   m_Name: Tmp_Slider
   m_TagString: Untagged
@@ -306,6 +307,26 @@ MonoBehaviour:
   Comment: "\u754C\u9762\u7EA7\u547D\u540D\uFF1A\u5982 VolumeSlider"
   CustomTypeName: 
   BindName: 
+--- !u!114 &1255385187751790665
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4415241957674906943}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 35059a1057521374b8c333746a839fa3, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  Owner: art.ui
+  Summary: "\u6ED1\u6761"
+  Slots: []
+  States: 00000000010000000200000003000000
+  Events:
+  - UISliderWrap.OnChanged
+  SizeBehavior: 1
+  Constraints: []
 --- !u!1 &5269445938185254895
 GameObject:
   m_ObjectHideFlags: 0

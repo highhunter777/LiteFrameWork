@@ -14,6 +14,7 @@ GameObject:
   - component: {fileID: 8691013778054826399}
   - component: {fileID: 6303096514951708237}
   - component: {fileID: 6498033080146557779}
+  - component: {fileID: 533961088936461763}
   m_Layer: 0
   m_Name: Tmp_InputField
   m_TagString: Untagged
@@ -206,6 +207,27 @@ MonoBehaviour:
   Comment: "\u754C\u9762\u7EA7\u547D\u540D\uFF1A\u5982 RoomCodeInput"
   CustomTypeName: 
   BindName: 
+--- !u!114 &533961088936461763
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1724470162614713124}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 35059a1057521374b8c333746a839fa3, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  Owner: art.ui
+  Summary: "\u8F93\u5165\u6846"
+  Slots: []
+  States: 00000000030000000400000006000000
+  Events:
+  - UIInputFieldWrap.OnValueChanged
+  - UIInputFieldWrap.OnSubmitted
+  SizeBehavior: 1
+  Constraints: []
 --- !u!1 &1729061895681280134
 GameObject:
   m_ObjectHideFlags: 0

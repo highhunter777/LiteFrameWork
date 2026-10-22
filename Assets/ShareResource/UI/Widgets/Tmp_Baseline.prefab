@@ -147,6 +147,7 @@ GameObject:
   - component: {fileID: 1939511699538285012}
   - component: {fileID: 2126513880834691765}
   - component: {fileID: 6020882677846862961}
+  - component: {fileID: 8357275520195399220}
   m_Layer: 0
   m_Name: Tmp_Baseline
   m_TagString: Untagged
@@ -227,3 +228,22 @@ MonoBehaviour:
   Comment: "\u754C\u9762\u7EA7\u547D\u540D\uFF1A\u5982 PageA"
   CustomTypeName: 
   BindName: 
+--- !u!114 &8357275520195399220
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3927237180350542880}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 35059a1057521374b8c333746a839fa3, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  Owner: art.ui
+  Summary: "\u63A7\u4EF6\u57FA\u7EBF\uFF08\u901A\u7528\u5BB9\u5668/\u6837\u5F0F\u57FA\u7EBF\uFF09"
+  Slots: []
+  States: 
+  Events: []
+  SizeBehavior: 1
+  Constraints: []
