@@ -67,28 +67,22 @@ namespace LiteGame.Editor.UiTools.Binding
             }
 
             if (prefabRoot != null)
-                Walk(prefabRoot.transform, sb);
+            {
+                // 遍历单源（契约生成共用）：根自身不属绑定面（BindSearch 同口径），
+                // 嵌套生成根整棵子树跳过（独立生成单位）。
+                foreach (UiSurfaceNode node in UiBindSurfaceWalker.Walk(prefabRoot))
+                {
+                    if (node.IsRoot || node.InsideNestedBindRoot || node.Bind == null) continue;
+                    sb.Append("node|").Append(node.Path).Append('|')
+                        .Append(node.Bind.BindName ?? string.Empty).Append('|')
+                        .Append(node.Bind.CustomTypeName ?? string.Empty).Append('|')
+                        .Append(node.Bind.ResolvedTypeName ?? string.Empty).Append('|')
+                        .Append(node.Bind.Comment ?? string.Empty).Append('\n');
+                }
+            }
 
             using (var sha = SHA256.Create())
                 return BitConverter.ToString(sha.ComputeHash(Encoding.UTF8.GetBytes(sb.ToString()))).Replace("-", "").ToLowerInvariant();
-        }
-
-        private static void Walk(Transform t, StringBuilder sb)
-        {
-            foreach (Transform child in t)
-            {
-                if (child.GetComponent<BindRoot>() != null) continue;   // 嵌套生成根：独立单位（BindSearch 同款）
-                var bind = child.GetComponent<BindNode>();
-                if (bind != null)
-                {
-                    sb.Append("node|").Append(UiBindingRename.RelativePath(child)).Append('|')
-                        .Append(bind.BindName ?? string.Empty).Append('|')
-                        .Append(bind.CustomTypeName ?? string.Empty).Append('|')
-                        .Append(bind.ResolvedTypeName ?? string.Empty).Append('|')
-                        .Append(bind.Comment ?? string.Empty).Append('\n');
-                }
-                Walk(child, sb);
-            }
         }
 
         // ---------------- 生成物文件 ----------------

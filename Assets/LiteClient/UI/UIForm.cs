@@ -86,6 +86,7 @@ namespace LiteClient.UI
         internal void PrepareForShow()
         {
             Root.SetActive(true);
+            _staticText ??= new UiStaticTextBinder(Root.transform);   // 页面级静态文案（无标记时零订阅）
             BeginDisplay();                                    // 展示代次递增 + 新展示作用域 CTS（每次打开一份）
             if (CanvasGroup != null)
             {
@@ -140,13 +141,25 @@ namespace LiteClient.UI
         /// 池化复用不重跑 OnInit（绑定随索引留存），换表重建索引后再注入一次。</summary>
         internal Func<ILocalizationService> LocaleProvider { get; set; }
 
+        /// <summary>页面静态文案（<see cref="LTextKeyRef"/>）绑定；与逻辑语言注入同寿命，关闭即退订。</summary>
+        private UiStaticTextBinder _staticText;
+
         /// <summary>注入语言服务（两个 OnInit 调用点后各一次；实现 ILocaleBound 的逻辑才生效）。</summary>
         private void ApplyLocale()
         {
             Func<ILocalizationService> provider = LocaleProvider;
             if (provider == null) return;
+
+            ILocalizationService locale = SafeCall.Invoke(provider, $"UIForm[{Id}].LocaleProvider");
+            if (locale == null)
+            {
+                _staticText?.Unbind();
+                return;
+            }
+
             if (Logic is ILocaleBound bound)
-                SafeCall.Invoke(() => bound.BindLocale(provider()), $"UIForm[{Id}].BindLocale");
+                SafeCall.Invoke(() => bound.BindLocale(locale), $"UIForm[{Id}].BindLocale");
+            _staticText?.Bind(locale);
         }
 
         /// <summary>是否仍逻辑打开（Active/Covered/Paused）：§4.1 展示状态独立于"可否关闭"——
@@ -213,6 +226,7 @@ namespace LiteClient.UI
                     $"UIForm[{Id}] 非法状态迁移:{State} → Closing（仅 Active/Covered/Paused 可关闭）");
             State = UIFormState.Closing;
             SafeCall.Invoke(() => Logic.OnHide(), $"UIForm[{Id}].OnHide");
+            _staticText?.Unbind();                     // 关闭即退订：池化复用不得继续被语言事件刷新
 
             // 展示作用域收尾（§4.4 / §6.2 UI 行）：一次 Dispose 取消本次打开的在途异步
             // （图标/请求/延时任务级联取消）**并**逆序释放登记项（订阅袋等）——
@@ -271,6 +285,8 @@ namespace LiteClient.UI
         internal void DestroyInstance()
         {
             DropLogic();
+            _staticText?.Unbind();
+            _staticText = null;
             _displayScope?.Dispose();                  // 展示作用域收尾（同 EnterClosing；幂等）
             _displayScope = null;
             State = UIFormState.Disposed;
