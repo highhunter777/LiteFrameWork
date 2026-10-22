@@ -1,0 +1,108 @@
+{
+  "schema_version": 1,
+  "kind": "red",
+  "at": "2026-10-22T21:14:17+08:00",
+  "ok": true,
+  "command_fingerprint": "79f48f9dfc86e4409bc144747c5bf6c26a60548d969e223d55f7405bca66dd01",
+  "commands": [
+    {
+      "name": "toolchain-tests-red",
+      "cmd": [
+        "python",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "scripts/tests",
+        "-p",
+        "test_*.py",
+        "-v"
+      ],
+      "cwd": null,
+      "exit_code": 0,
+      "timed_out": false,
+      "error": null,
+      "duration_ms": 24198,
+      "ok": false,
+      "output_tail": "test_run_help_uses_real_manifest (test_toolchain_l2d1.RealManifestTests.test_run_help_uses_real_manifest) ... ok\ntest_child_exit_code_passes_through (test_toolchain_l2d1.RunArgsTests.test_child_exit_code_passes_through) ... ok\ntest_help_renders_manifest_args_without_child (test_toolchain_l2d1.RunArgsTests.test_help_renders_manifest_args_without_child) ... ok\ntest_invalid_enum_fails_before_child (test_toolchain_l2d1.RunArgsTests.test_invalid_enum_fails_before_child) ... ok\ntest_invalid_int_fails_before_child (test_toolchain_l2d1.RunArgsTests.test_invalid_int_fails_before_child) ... ok\ntest_missing_required_argument_fails_before_child (test_toolchain_l2d1.RunArgsTests.test_missing_required_argument_fails_before_child) ... ok\ntest_unknown_option_before_separator_is_usage_error (test_toolchain_l2d1.RunArgsTests.test_unknown_option_before_separator_is_usage_error) ... ok\ntest_valid_arguments_run_child_and_print_exit (test_toolchain_l2d1.RunArgsTests.test_valid_arguments_run_child_and_print_exit) ... ok\ntest_compliant_files_are_clean (test_toolchain_scripts.EncodingCheckTests.test_compliant_files_are_clean) ... ok\ntest_crlf_is_reported (test_toolchain_scripts.EncodingCheckTests.test_crlf_is_reported) ... ok\ntest_powershell_script_is_not_allowed (test_toolchain_scripts.EncodingCheckTests.test_powershell_script_is_not_allowed) ... ok\ntest_python_bom_is_reported (test_toolchain_scripts.EncodingCheckTests.test_python_bom_is_reported) ... ok\ntest_global_entry_is_exempt (test_toolchain_scripts.OrphanCheckTests.test_global_entry_is_exempt) ... ok\ntest_hook_surface_reference_is_exempt (test_toolchain_scripts.OrphanCheckTests.test_hook_surface_reference_is_exempt) ... ok\ntest_internal_library_is_exempt (test_toolchain_scripts.OrphanCheckTests.test_internal_library_is_exempt) ... ok\ntest_leaf_referenced_by_registered_entry_is_exempt (test_toolchain_scripts.OrphanCheckTests.test_leaf_referenced_by_registered_entry_is_exempt) ... ok\ntest_oneshot_marker_is_exempt (test_toolchain_scripts.OrphanCheckTests.test_oneshot_marker_is_exempt) ... ok\ntest_registered_entry_is_exempt (test_toolchain_scripts.OrphanCheckTests.test_registered_entry_is_exempt) ... ok\ntest_strict_upgrades_orphan_to_error (test_toolchain_scripts.OrphanCheckTests.test_strict_upgrades_orphan_to_error) ... ok\ntest_tests_directory_is_exempt (test_toolchain_scripts.OrphanCheckTests.test_tests_directory_is_exempt) ... ok\ntest_unregistered_executable_is_warning (test_toolchain_scripts.OrphanCheckTests.test_unregistered_executable_is_warning) ... ok\ntest_powershell_script_is_rejected (test_toolchain_scripts.PowerShellBanTests.test_powershell_script_is_rejected) ... ok\ntest_repo_has_no_script_form_errors (test_toolchain_scripts.RepoCheckTests.test_repo_has_no_script_form_errors) ... ok\ntest_editor_version_reads_project_settings (test_unity_path.UnityPathTests.test_editor_version_reads_project_settings) ... ok\ntest_env_wins_over_local_config (test_unity_path.UnityPathTests.test_env_wins_over_local_config) ... ok\ntest_explicit_missing_path_fails_without_fallback (test_unity_path.UnityPathTests.test_explicit_missing_path_fails_without_fallback) ... ok\ntest_hub_editors_json_is_used (test_unity_path.UnityPathTests.test_hub_editors_json_is_used) ... ok\ntest_local_notes_file_is_used (test_unity_path.UnityPathTests.test_local_notes_file_is_used) ... ok\ntest_missing_editor_reports_actionable_chain (test_unity_path.UnityPathTests.test_missing_editor_reports_actionable_chain) ... ok\ntest_override_wins_over_env_and_local_config (test_unity_path.UnityPathTests.test_override_wins_over_env_and_local_config) ... ok\ntest_standard_install_root_is_used (test_unity_path.UnityPathTests.test_standard_install_root_is_used) ... ok\ntest_wrong_hub_version_is_ignored (test_unity_path.UnityPathTests.test_wrong_hub_version_is_ignored) ... ok\ntest_help (test_wg_peer.WgPeerTests.test_help) ... ok\ntest_invalid_name_is_usage_error (test_wg_peer.WgPeerTests.test_invalid_name_is_usage_error) ... ok\ntest_missing_name_is_usage_error (test_wg_peer.WgPeerTests.test_missing_name_is_usage_error) ... ok\n\n----------------------------------------------------------------------\nRan 222 tests in 23.710s\n\nOK"
+    },
+    {
+      "name": "debug-kernel-editmode",
+      "cmd": [
+        "python",
+        "scripts/gate/unity-tests.py",
+        "--mode",
+        "editor",
+        "--filter",
+        "DebugKernelEditModeTests"
+      ],
+      "cwd": null,
+      "exit_code": 0,
+      "timed_out": false,
+      "error": null,
+      "duration_ms": 5432,
+      "ok": false,
+      "output_tail": "Command\tSuccess\tResult\tParameters\nrun_tests\ttrue\t{\"Summary\":{\"Total\":16,\"Passed\":16,\"Failed\":0,\"Skipped\":0,\"Inconclusive\":0},\"Results\":[{\"FullName\":\"LiteGame.Tests.EditMode.DebugKernelEditModeTests.命令发现_按注册序返回且带GmOnly\",\"Status\":\"Passed\",\"Duration\":0.011976,\"Message\":null,\"StackTrace\":null},{\"FullName\":\"LiteGame.Tests.EditMode.DebugKernelEditModeTests.执行带参命令_拒绝并说明需专面板\",\"Status\":\"Passed\",\"Duration\":0.0014188,\"Message\":null,\"StackTrace\":null},{\"FullName\":\"LiteGame.Tests.EditMode.DebugKernelEditModeTests.执行无参命令_字符串精确名与唯一后缀都命中\",\"Status\":\"Passed\",\"Duration\":0.0032848,\"Message\":null,\"StackTrace\":null},{\"FullName\":\"LiteGame.Tests.EditMode.DebugKernelEditModeTests.执行无参命令_类型名命中并进审计\",\"Status\":\"Passed\",\"Duration\":0.0016183,\"Message\":null,\"StackTrace\":null},{\"FullName\":\"LiteGame.Tests.EditMode.DebugKernelEditModeTests.执行未知命令_返回错误\",\"Status\":\"Passed\",\"Duration\":0.0004315,\"Message\":null,\"StackTrace\":null},{\"FullName\":\"LiteGame.Tests.EditMode.DebugKernelEditModeTests.控制台解析_切出verb与参数\",\"Status\":\"Passed\",\"Duration\":0.0011962,\"Message\":null,\"StackTrace\":null},{\"FullName\":\"LiteGame.Tests.EditMode.DebugKernelEditModeTests.控制台解析_空白与大小写与参数(\\\"\\\",False)\",\"Status\":\"Passed\",\"Duration\":0.0023628,\"Message\":null,\"StackTrace\":null},{\"FullName\":\"LiteGame.Tests.EditMode.DebugKernelEditModeTests.控制台解析_空白与大小写与参数(\\\"   \\\",False)\",\"Status\":\"Passed\",\"Duration\":0.0003354,\"Message\":null,\"StackTrace\":null},{\"FullName\":\"LiteGame.Tests.EditMode.DebugKernelEditModeTests.控制台解析_空白与大小写与参数(\\\"help\\\",True)\",\"Status\":\"Passed\",\"Duration\":0.000294,\"Message\":null,\"StackTrace\":null},{\"FullName\":\"LiteGame.Tests.EditMode.DebugKernelEditModeTests.控制台解析_空白与大小写与参数(\\\"  HeLP  a  b \\\",True)\",\"Status\":\"Passed\",\"Duration\":0.0002789,\"Message\":null,\"StackTrace\":null},{\"FullName\":\"LiteGame.Tests.EditMode.DebugKernelEditModeTests.控制台解析_空白与大小写与参数(\\\"option InfiniteAmmo on\\\",True)\",\"Status\":\"Passed\",\"Duration\":0.0002264,\"Message\":null,\"StackTrace\":null},{\"FullName\":\"LiteGame.Tests.EditMode.DebugKernelEditModeTests.无对局时_对局诊断为无样本\",\"Status\":\"Passed\",\"Duration\":0.0010378,\"Message\":null,\"StackTrace\":null},{\"FullName\":\"LiteGame.Tests.EditMode.DebugKernelEditModeTests.设置选项_已知id写入单表\",\"Status\":\"Passed\",\"Duration\":0.0009978,\"Message\":null,\"StackTrace\":null},{\"FullName\":\"LiteGame.Tests.EditMode.DebugKernelEditModeTests.设置选项_未知id返回错误\",\"Status\":\"Passed\",\"Duration\":0.0004857,\"Message\":null,\"StackTrace\":null},{\"FullName\":\"LiteGame.Tests.EditMode.DebugKernelEditModeTests.请求桥_写入后可被消费且读即清\",\"Status\":\"Passed\",\"Duration\":0.0006188,\"Message\":null,\"StackTrace\":null},{\"FullName\":\"LiteGame.Tests.EditMode.DebugKernelEditModeTests.读模型发现_包含命令选项与三类读数\",\"Status\":\"Passed\",\"Duration\":0.0017355,\"Message\":null,\"StackTrace\":null}],\"Duration\":4.02,\"StatusPath\":null,\"Mode\":\"EditMode\",\"FilterApplied\":\"testname: DebugKernelEditModeTests\",\"success\":true,\"result\":null}\t{\"mode\":\"editor\",\"filter\":\"DebugKernelEditModeTests\"}\n[stderr]\nunity run_tests: 16/16 passed"
+    },
+    {
+      "name": "ui-static-text-red",
+      "cmd": [
+        "python",
+        "scripts/gate/unity-tests.py",
+        "--mode",
+        "editor",
+        "--filter",
+        "UiStaticTextEditModeTests",
+        "--timeout",
+        "600"
+      ],
+      "cwd": null,
+      "exit_code": 1,
+      "timed_out": false,
+      "error": null,
+      "duration_ms": 5361,
+      "ok": true,
+      "output_tail": "Command\tSuccess\tResult\tParameters\nrun_tests\ttrue\t{\"Summary\":{\"Total\":4,\"Passed\":1,\"Failed\":3,\"Skipped\":0,\"Inconclusive\":0},\"Results\":[{\"FullName\":\"LiteGame.Tests.EditMode.UiStaticTextEditModeTests.无文本组件_不抛异常且不影响其他节点\",\"Status\":\"Failed\",\"Duration\":0.0015343,\"Message\":\"  坏节点不应阻断同页其他静态文案\\r\\n  Expected string length 2 but was 0. Strings differ at index 0.\\r\\n  Expected: \\\"标题\\\"\\r\\n  But was:  <string.Empty>\\r\\n  -----------^\\r\\n\",\"StackTrace\":\"at LiteGame.Tests.EditMode.UiStaticTextEditModeTests.无文本组件_不抛异常且不影响其他节点 () [0x00107] in E:\\\\unityProject\\\\Test\\\\Assets\\\\Tests\\\\EditMode\\\\UiStaticTextEditModeTests.cs:132\\r\\n\"},{\"FullName\":\"LiteGame.Tests.EditMode.UiStaticTextEditModeTests.空key_不写入作者文本\",\"Status\":\"Passed\",\"Duration\":0.000743,\"Message\":null,\"StackTrace\":null},{\"FullName\":\"LiteGame.Tests.EditMode.UiStaticTextEditModeTests.绑定器_按key写入_语言变更刷新_解绑后不刷新\",\"Status\":\"Failed\",\"Duration\":0.0010967,\"Message\":\"  打开时应按 key 写入源语言\\r\\n  Expected string length 2 but was 0. Strings differ at index 0.\\r\\n  Expected: \\\"标题\\\"\\r\\n  But was:  <string.Empty>\\r\\n  -----------^\\r\\n\",\"StackTrace\":\"at LiteGame.Tests.EditMode.UiStaticTextEditModeTests.绑定器_按key写入_语言变更刷新_解绑后不刷新 () [0x000a7] in E:\\\\unityProject\\\\Test\\\\Assets\\\\Tests\\\\EditMode\\\\UiStaticTextEditModeTests.cs:76\\r\\n\"},{\"FullName\":\"LiteGame.Tests.EditMode.UiStaticTextEditModeTests.页面打开与关闭_静态文案随页面生命周期刷新\",\"Status\":\"Failed\",\"Duration\":0.0014472,\"Message\":\"  页面打开时 UIForm 应驱动静态文案绑定\\r\\n  Expected string length 2 but was 6. Strings differ at index 0.\\r\\n  Expected: \\\"标题\\\"\\r\\n  But was:  \\\"prefab\\\"\\r\\n  -----------^\\r\\n\",\"StackTrace\":\"at LiteGame.Tests.EditMode.UiStaticTextEditModeTests.页面打开与关闭_静态文案随页面生命周期刷新 () [0x000a4] in E:\\\\unityProject\\\\Test\\\\Assets\\\\Tests\\\\EditMode\\\\UiStaticTextEditModeTests.cs:101\\r\\n\"}],\"Duration\":4.02,\"StatusPath\":null,\"Mode\":\"EditMode\",\"FilterApplied\":\"testname: UiStaticTextEditModeTests\",\"success\":true,\"result\":null}\t{\"mode\":\"editor\",\"filter\":\"UiStaticTextEditModeTests\"}\n[stderr]\nunity run_tests: 3/4 failed"
+    },
+    {
+      "name": "ui-contract-red",
+      "cmd": [
+        "python",
+        "scripts/gate/unity-tests.py",
+        "--mode",
+        "editor",
+        "--filter",
+        "UiContractGeneratorEditModeTests",
+        "--timeout",
+        "600"
+      ],
+      "cwd": null,
+      "exit_code": 1,
+      "timed_out": false,
+      "error": null,
+      "duration_ms": 11249,
+      "ok": true,
+      "output_tail": "Command\tSuccess\tResult\tParameters\nrun_tests\ttrue\t{\"Summary\":{\"Total\":7,\"Passed\":1,\"Failed\":6,\"Skipped\":0,\"Inconclusive\":0},\"Results\":[{\"FullName\":\"LiteGame.Tests.EditMode.UiContractGeneratorEditModeTests.sourceHash_对绑定面敏感_对页面元数据不敏感\",\"Status\":\"Failed\",\"Duration\":1.1169937,\"Message\":\"  BindName 变化必须改变 sourceHash\\r\\n  Expected: not equal to null\\r\\n  But was:  null\\r\\n\",\"StackTrace\":\"at LiteGame.Tests.EditMode.UiContractGeneratorEditModeTests.sourceHash_对绑定面敏感_对页面元数据不敏感 () [0x000fa] in E:\\\\unityProject\\\\Test\\\\Assets\\\\Tests\\\\EditMode\\\\UiContractGeneratorEditModeTests.cs:176\\r\\n\"},{\"FullName\":\"LiteGame.Tests.EditMode.UiContractGeneratorEditModeTests.契约写盘_读回一致_负例不写盘\",\"Status\":\"Failed\",\"Duration\":0.872056,\"Message\":\"  成功生成必须写盘\\r\\n  Expected: True\\r\\n  But was:  False\\r\\n\",\"StackTrace\":\"at LiteGame.Tests.EditMode.UiContractGeneratorEditModeTests.契约写盘_读回一致_负例不写盘 () [0x00047] in E:\\\\unityProject\\\\Test\\\\Assets\\\\Tests\\\\EditMode\\\\UiContractGeneratorEditModeTests.cs:189\\r\\n\"},{\"FullName\":\"LiteGame.Tests.EditMode.UiContractGeneratorEditModeTests.契约生成_提取四段_并过滤模板内部与克隆与嵌套根\",\"Status\":\"Failed\",\"Duration\":0.9755778,\"Message\":\"  Expected: \\\"Page_Test\\\"\\r\\n  But was:  null\\r\\n\",\"StackTrace\":\"at LiteGame.Tests.EditMode.UiContractGeneratorEditModeTests.契约生成_提取四段_并过滤模板内部与克隆与嵌套根 () [0x00053] in E:\\\\unityProject\\\\Test\\\\Assets\\\\Tests\\\\EditMode\\\\UiContractGeneratorEditModeTests.cs:108\\r\\n\"},{\"FullName\":\"LiteGame.Tests.EditMode.UiContractGeneratorEditModeTests.契约生成_确定性_无时间戳_重复生成零diff\",\"Status\":\"Passed\",\"Duration\":0.8978677,\"Message\":null,\"StackTrace\":null},{\"FullName\":\"LiteGame.Tests.EditMode.UiContractGeneratorEditModeTests.类型不可解析_生成失败\",\"Status\":\"Failed\",\"Duration\":0.6491861,\"Message\":\"  Expected: False\\r\\n  But was:  True\\r\\n\",\"StackTrace\":\"at LiteGame.Tests.EditMode.UiContractGeneratorEditModeTests.类型不可解析_生成失败 () [0x0009d] in E:\\\\unityProject\\\\Test\\\\Assets\\\\Tests\\\\EditMode\\\\UiContractGeneratorEditModeTests.cs:253\\r\\n\"},{\"FullName\":\"LiteGame.Tests.EditMode.UiContractGeneratorEditModeTests.重复BindName_生成失败并列出错误\",\"Status\":\"Failed\",\"Duration\":0.6770266,\"Message\":\"  Expected: False\\r\\n  But was:  True\\r\\n\",\"StackTrace\":\"at LiteGame.Tests.EditMode.UiContractGeneratorEditModeTests.重复BindName_生成失败并列出错误 () [0x000de] in E:\\\\unityProject\\\\Test\\\\Assets\\\\Tests\\\\EditMode\\\\UiContractGeneratorEditModeTests.cs:223\\r\\n\"},{\"FullName\":\"LiteGame.Tests.EditMode.UiContractGeneratorEditModeTests.静态key为空_生成失败\",\"Status\":\"Failed\",\"Duration\":0.7210671,\"Message\":\"  Expected: False\\r\\n  But was:  True\\r\\n\",\"StackTrace\":\"at LiteGame.Tests.EditMode.UiContractGeneratorEditModeTests.静态key为空_生成失败 () [0x0008f] in E:\\\\unityProject\\\\Test\\\\Assets\\\\Tests\\\\EditMode\\\\UiContractGeneratorEditModeTests.cs:237\\r\\n\"}],\"Duration\":9.86,\"StatusPath\":null,\"Mode\":\"EditMode\",\"FilterApplied\":\"testname: UiContractGeneratorEditModeTests\",\"success\":true,\"result\":null}\t{\"mode\":\"editor\",\"filter\":\"UiContractGeneratorEditModeTests\"}\n[stderr]\nunity run_tests: 6/7 failed"
+    },
+    {
+      "name": "ui-contract-diff-red",
+      "cmd": [
+        "python",
+        "scripts/gate/unity-tests.py",
+        "--mode",
+        "editor",
+        "--filter",
+        "UiContractDiffEditModeTests",
+        "--timeout",
+        "600"
+      ],
+      "cwd": null,
+      "exit_code": 1,
+      "timed_out": false,
+      "error": null,
+      "duration_ms": 5420,
+      "ok": true,
+      "output_tail": "Command\tSuccess\tResult\tParameters\nrun_tests\ttrue\t{\"Summary\":{\"Total\":5,\"Passed\":0,\"Failed\":5,\"Skipped\":0,\"Inconclusive\":0},\"Results\":[{\"FullName\":\"LiteGame.Tests.EditMode.UiContractDiffEditModeTests.sourceHash_only变化_不误报破坏\",\"Status\":\"Failed\",\"Duration\":0.0006475,\"Message\":\"  Expected: True\\r\\n  But was:  False\\r\\n\",\"StackTrace\":\"at LiteGame.Tests.EditMode.UiContractDiffEditModeTests.sourceHash_only变化_不误报破坏 () [0x0003b] in E:\\\\unityProject\\\\Test\\\\Assets\\\\Tests\\\\EditMode\\\\UiContractDiffEditModeTests.cs:116\\r\\n\"},{\"FullName\":\"LiteGame.Tests.EditMode.UiContractDiffEditModeTests.控件改名_判为破坏性\",\"Status\":\"Failed\",\"Duration\":0.0004707,\"Message\":\"  Expected: True\\r\\n  But was:  False\\r\\n\",\"StackTrace\":\"at LiteGame.Tests.EditMode.UiContractDiffEditModeTests.控件改名_判为破坏性 () [0x0004c] in E:\\\\unityProject\\\\Test\\\\Assets\\\\Tests\\\\EditMode\\\\UiContractDiffEditModeTests.cs:77\\r\\n\"},{\"FullName\":\"LiteGame.Tests.EditMode.UiContractDiffEditModeTests.控件类型与文案key变化_判为破坏性\",\"Status\":\"Failed\",\"Duration\":0.0004588,\"Message\":\"  Expected: True\\r\\n  But was:  False\\r\\n\",\"StackTrace\":\"at LiteGame.Tests.EditMode.UiContractDiffEditModeTests.控件类型与文案key变化_判为破坏性 () [0x00060] in E:\\\\unityProject\\\\Test\\\\Assets\\\\Tests\\\\EditMode\\\\UiContractDiffEditModeTests.cs:90\\r\\n\"},{\"FullName\":\"LiteGame.Tests.EditMode.UiContractDiffEditModeTests.新增控件_向后兼容\",\"Status\":\"Failed\",\"Duration\":0.0004413,\"Message\":\"  Expected: True\\r\\n  But was:  False\\r\\n\",\"StackTrace\":\"at LiteGame.Tests.EditMode.UiContractDiffEditModeTests.新增控件_向后兼容 () [0x0006a] in E:\\\\unityProject\\\\Test\\\\Assets\\\\Tests\\\\EditMode\\\\UiContractDiffEditModeTests.cs:65\\r\\n\"},{\"FullName\":\"LiteGame.Tests.EditMode.UiContractDiffEditModeTests.样式变化_非API破坏\",\"Status\":\"Failed\",\"Duration\":0.0004432,\"Message\":\"  Expected: True\\r\\n  But was:  False\\r\\n\",\"StackTrace\":\"at LiteGame.Tests.EditMode.UiContractDiffEditModeTests.样式变化_非API破坏 () [0x00037] in E:\\\\unityProject\\\\Test\\\\Assets\\\\Tests\\\\EditMode\\\\UiContractDiffEditModeTests.cs:104\\r\\n\"}],\"Duration\":4,\"StatusPath\":null,\"Mode\":\"EditMode\",\"FilterApplied\":\"testname: UiContractDiffEditModeTests\",\"success\":true,\"result\":null}\t{\"mode\":\"editor\",\"filter\":\"UiContractDiffEditModeTests\"}\n[stderr]\nunity run_tests: 5/5 failed"
+    }
+  ]
+}

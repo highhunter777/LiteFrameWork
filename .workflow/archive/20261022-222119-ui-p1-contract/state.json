@@ -1,0 +1,268 @@
+{
+  "schema_version": 1,
+  "slug": "ui-p1-contract",
+  "title": "UI 系统 P1-0/P1-1：口径冻结 + 静态文案 + 页面契约内核",
+  "status": "archived",
+  "current_stage": null,
+  "created_at": "2026-10-22T21:01:41+08:00",
+  "updated_at": "2026-10-22T22:21:19+08:00",
+  "completed_at": "2026-10-22T22:20:39+08:00",
+  "completed_stages": [
+    {
+      "id": "propose",
+      "title": "提出方案",
+      "completed_at": "2026-10-22T21:04:44+08:00"
+    },
+    {
+      "id": "breakdown",
+      "title": "实施任务清单",
+      "completed_at": "2026-10-22T21:05:30+08:00"
+    },
+    {
+      "id": "review-tasks",
+      "title": "评审任务",
+      "completed_at": "2026-10-22T21:05:32+08:00"
+    },
+    {
+      "id": "tests-first",
+      "title": "先写测试",
+      "completed_at": "2026-10-22T21:14:50+08:00"
+    },
+    {
+      "id": "implement",
+      "title": "正式施工",
+      "completed_at": "2026-10-22T22:03:58+08:00"
+    },
+    {
+      "id": "verify",
+      "title": "测试代码",
+      "completed_at": "2026-10-22T22:19:57+08:00"
+    },
+    {
+      "id": "review-code",
+      "title": "评审代码",
+      "completed_at": "2026-10-22T22:20:02+08:00"
+    },
+    {
+      "id": "writeback",
+      "title": "回写与收尾",
+      "completed_at": "2026-10-22T22:20:39+08:00"
+    }
+  ],
+  "history": [
+    {
+      "at": "2026-10-22T21:01:41+08:00",
+      "event": "init",
+      "stage": "propose"
+    },
+    {
+      "at": "2026-10-22T21:04:44+08:00",
+      "event": "advance",
+      "from": "propose",
+      "to": "breakdown",
+      "approved_by": null
+    },
+    {
+      "at": "2026-10-22T21:05:30+08:00",
+      "event": "advance",
+      "from": "breakdown",
+      "to": "review-tasks",
+      "approved_by": null
+    },
+    {
+      "at": "2026-10-22T21:05:32+08:00",
+      "event": "advance",
+      "from": "review-tasks",
+      "to": "tests-first",
+      "approved_by": null
+    },
+    {
+      "at": "2026-10-22T21:14:50+08:00",
+      "event": "advance",
+      "from": "tests-first",
+      "to": "implement",
+      "approved_by": null
+    },
+    {
+      "at": "2026-10-22T22:03:58+08:00",
+      "event": "advance",
+      "from": "implement",
+      "to": "verify",
+      "approved_by": null
+    },
+    {
+      "at": "2026-10-22T22:19:57+08:00",
+      "event": "advance",
+      "from": "verify",
+      "to": "review-code",
+      "approved_by": null
+    },
+    {
+      "at": "2026-10-22T22:20:02+08:00",
+      "event": "advance",
+      "from": "review-code",
+      "to": "writeback",
+      "approved_by": null
+    },
+    {
+      "at": "2026-10-22T22:20:39+08:00",
+      "event": "advance",
+      "from": "writeback",
+      "to": null,
+      "approved_by": null
+    },
+    {
+      "at": "2026-10-22T22:21:19+08:00",
+      "event": "archive",
+      "path": "20261022-222119-ui-p1-contract"
+    }
+  ],
+  "tasks": [
+    {
+      "id": "T1",
+      "title": "P1-0 口径冻结与文档回写",
+      "description": "",
+      "acceptance": "sourceHash/kind/模板边界/cacheStrategy/无时间戳口径写入工具链专项设计 §5 与协作规范 §3；修正 schema 样例 generatedAt 漂移；doc-lint 通过",
+      "verify": "python scripts/gate/doc-lint.py",
+      "files": [
+        "Docs/设计文档/客户端/UI系统/UI编辑器工具链专项设计.md",
+        "Docs/设计文档/客户端/UI系统/UI美术协作与交接规范.md",
+        "Docs/设计文档/客户端/UI系统/UI制作规范.md"
+      ],
+      "deps": [],
+      "status": "done",
+      "evidence": "doc-lint OK（0 violation）；口径写入 UI编辑器工具链专项设计 §5.2.1（sourceHash 五域/模板边界/kind 推断/cacheStrategy 默认/确定性）与 UI美术协作与交接规范 §3；schema 与设计样例无 generatedAt；UI系统总设计 §4.1/§4.2 登记静态文案接缝与遍历单源",
+      "status_reason": "",
+      "created_at": "2026-10-22T21:04:50+08:00",
+      "started_at": "2026-10-22T22:02:30+08:00",
+      "completed_at": "2026-10-22T22:02:42+08:00"
+    },
+    {
+      "id": "T2",
+      "title": "静态文案 LTextKeyRef 与运行时绑定",
+      "description": "",
+      "acceptance": "新增 LTextKeyRef、UiStaticTextBinder，并接入 UIForm 打开/语言变更/关闭；编辑器 Inspector 提供 tbltext key 下拉；无 prefab 改动",
+      "verify": "unity-tests --filter UiStaticTextEditModeTests",
+      "files": [
+        "Assets/LiteClient/UI/Localization/LTextKeyRef.cs",
+        "Assets/LiteClient/UI/Localization/UiStaticTextBinder.cs",
+        "Assets/LiteClient/UI/UIForm.cs",
+        "Assets/LiteGame/Editor/UiTools/Text/LTextKeyRefInspector.cs"
+      ],
+      "deps": [
+        "T1"
+      ],
+      "status": "done",
+      "evidence": "UiStaticTextEditModeTests 6/6（TMP 优先/UGUI 回退/语言刷新/关闭退订）；UIForm 接缝（PrepareForShow 惰性建 binder / ApplyLocale 同驱 / EnterClosing 退订 / DestroyInstance 释放）；LTextKeyRef + UiStaticTextBinder + LTextKeyRefInspector；无 prefab 改动",
+      "status_reason": "",
+      "created_at": "2026-10-22T21:04:50+08:00",
+      "started_at": "2026-10-22T22:17:12+08:00",
+      "completed_at": "2026-10-22T22:17:12+08:00"
+    },
+    {
+      "id": "T3",
+      "title": "绑定面遍历单源与 hash 回归",
+      "description": "",
+      "acceptance": "UiBindSurfaceWalker 成为 hash/契约共同遍历面；UiBindGenerationHash 改消费 walker 且既有 hash 用例保持绿",
+      "verify": "unity-tests --filter UiBindingToolsEditModeTests",
+      "files": [
+        "Assets/LiteGame/Editor/UiTools/Binding/UiBindSurfaceWalker.cs",
+        "Assets/LiteGame/Editor/UiTools/Binding/UiBindGenerationHash.cs"
+      ],
+      "deps": [
+        "T1"
+      ],
+      "status": "done",
+      "evidence": "UiBindSurfaceWalker 成为 hash/契约共同遍历面；UiBindGenerationHash 改消费同一遍历；UiBindingToolsEditModeTests 12/12（既有 hash 值不变）",
+      "status_reason": "",
+      "created_at": "2026-10-22T21:04:50+08:00",
+      "started_at": "2026-10-22T22:02:55+08:00",
+      "completed_at": "2026-10-22T22:03:04+08:00"
+    },
+    {
+      "id": "T4",
+      "title": "页面契约模型、生成器与 diff",
+      "description": "",
+      "acceptance": "UiPageContract/UiPageMetadata/UiContractGenerator/UiContractDiff 落地；确定性 JSON、sourceHash、Clone_/嵌套根/模板边界过滤、负例不写盘",
+      "verify": "unity-tests --filter UiContractGeneratorEditModeTests",
+      "files": [
+        "Assets/LiteGame/Editor/UiTools/Contract/*.cs"
+      ],
+      "deps": [
+        "T2",
+        "T3"
+      ],
+      "status": "done",
+      "evidence": "UiContractGenerator 10/10（确定性/写盘读回/负例不写盘/模板边界过滤/输出路径守卫）；UiContractDiff 5/5；sourceHash 对页面元数据不敏感、对绑定面敏感",
+      "status_reason": "",
+      "created_at": "2026-10-22T21:04:50+08:00",
+      "started_at": "2026-10-22T22:13:59+08:00",
+      "completed_at": "2026-10-22T22:14:00+08:00"
+    },
+    {
+      "id": "T5",
+      "title": "先行测试与负例覆盖",
+      "description": "",
+      "acceptance": "UiStaticTextEditModeTests/UiContractGeneratorEditModeTests/UiContractDiffEditModeTests 覆盖 AC2-AC4 主路径与失败路径，先红后绿",
+      "verify": "unity-tests targeted",
+      "files": [
+        "Assets/Tests/EditMode/UiStaticTextEditModeTests.cs",
+        "Assets/Tests/EditMode/UiContractGeneratorEditModeTests.cs",
+        "Assets/Tests/EditMode/UiContractDiffEditModeTests.cs"
+      ],
+      "deps": [
+        "T1"
+      ],
+      "status": "done",
+      "evidence": "3 个夹具 20 例（5+10+5）；先行红测 evidence/red.json（断言失败而非环境错误）；实现后于新程序集复跑全绿",
+      "status_reason": "",
+      "created_at": "2026-10-22T21:04:50+08:00",
+      "started_at": "2026-10-22T22:14:04+08:00",
+      "completed_at": "2026-10-22T22:14:04+08:00"
+    },
+    {
+      "id": "T6",
+      "title": "门禁、评审与回写",
+      "description": "",
+      "acceptance": "定向 Unity 用例、L1、doc-lint、L2 meta 扫描通过；施工记录与文档回写完成",
+      "verify": "L1+doc+l2-meta",
+      "files": [
+        ".workflow",
+        "Docs"
+      ],
+      "deps": [
+        "T4",
+        "T5"
+      ],
+      "status": "done",
+      "evidence": "L1 PASS 1819；doc-lint OK 0 violation；L2 meta 扫描 PASS（14170 meta）；定向夹具 6/6+10/10+5/5+12/12；设计文档接缝回写 + 进度卷 Docs/施工进度/UI系统线.md 第 1 章落盘",
+      "status_reason": "",
+      "created_at": "2026-10-22T21:04:51+08:00",
+      "started_at": "2026-10-22T22:17:17+08:00",
+      "completed_at": "2026-10-22T22:17:17+08:00"
+    }
+  ],
+  "verification": {
+    "at": "2026-10-22T22:19:22+08:00",
+    "ok": true,
+    "stale": false,
+    "evidence": "evidence/verify.json",
+    "command_fingerprint": "d8e1a37583684fc2df2305e56e6545a25f93e275fef65d8dcb696ba7d5e0e84c",
+    "summary": {
+      "total": 13,
+      "passed": 13
+    }
+  },
+  "red_verification": {
+    "at": "2026-10-22T21:14:17+08:00",
+    "ok": true,
+    "stale": false,
+    "evidence": "evidence/red.json",
+    "command_fingerprint": "79f48f9dfc86e4409bc144747c5bf6c26a60548d969e223d55f7405bca66dd01",
+    "summary": {
+      "total": 5,
+      "passed": 3
+    }
+  },
+  "archived_at": "2026-10-22T22:21:19+08:00"
+}

@@ -1,0 +1,275 @@
+{
+  "schema_version": 1,
+  "slug": "ui-p1-widget-manifest",
+  "title": "UI 系统 P1-2：控件规格 WidgetSpec 与控件清单 UiWidgetManifest",
+  "status": "archived",
+  "current_stage": null,
+  "created_at": "2026-10-22T22:40:50+08:00",
+  "updated_at": "2026-10-22T23:18:24+08:00",
+  "completed_at": "2026-10-22T23:18:19+08:00",
+  "completed_stages": [
+    {
+      "id": "propose",
+      "title": "提出方案",
+      "completed_at": "2026-10-22T22:49:49+08:00"
+    },
+    {
+      "id": "breakdown",
+      "title": "实施任务清单",
+      "completed_at": "2026-10-22T22:51:26+08:00"
+    },
+    {
+      "id": "review-tasks",
+      "title": "评审任务",
+      "completed_at": "2026-10-22T22:51:31+08:00"
+    },
+    {
+      "id": "tests-first",
+      "title": "先写测试",
+      "completed_at": "2026-10-22T22:59:19+08:00"
+    },
+    {
+      "id": "implement",
+      "title": "正式施工",
+      "completed_at": "2026-10-22T23:09:52+08:00"
+    },
+    {
+      "id": "verify",
+      "title": "测试代码",
+      "completed_at": "2026-10-22T23:17:28+08:00"
+    },
+    {
+      "id": "review-code",
+      "title": "评审代码",
+      "completed_at": "2026-10-22T23:17:28+08:00"
+    },
+    {
+      "id": "writeback",
+      "title": "回写与收尾",
+      "completed_at": "2026-10-22T23:18:19+08:00"
+    }
+  ],
+  "history": [
+    {
+      "at": "2026-10-22T22:40:50+08:00",
+      "event": "init",
+      "stage": "propose"
+    },
+    {
+      "at": "2026-10-22T22:49:49+08:00",
+      "event": "advance",
+      "from": "propose",
+      "to": "breakdown",
+      "approved_by": null
+    },
+    {
+      "at": "2026-10-22T22:51:26+08:00",
+      "event": "advance",
+      "from": "breakdown",
+      "to": "review-tasks",
+      "approved_by": null
+    },
+    {
+      "at": "2026-10-22T22:51:31+08:00",
+      "event": "advance",
+      "from": "review-tasks",
+      "to": "tests-first",
+      "approved_by": null
+    },
+    {
+      "at": "2026-10-22T22:59:19+08:00",
+      "event": "advance",
+      "from": "tests-first",
+      "to": "implement",
+      "approved_by": null
+    },
+    {
+      "at": "2026-10-22T23:09:52+08:00",
+      "event": "advance",
+      "from": "implement",
+      "to": "verify",
+      "approved_by": null
+    },
+    {
+      "at": "2026-10-22T23:17:28+08:00",
+      "event": "advance",
+      "from": "verify",
+      "to": "review-code",
+      "approved_by": null
+    },
+    {
+      "at": "2026-10-22T23:17:28+08:00",
+      "event": "advance",
+      "from": "review-code",
+      "to": "writeback",
+      "approved_by": null
+    },
+    {
+      "at": "2026-10-22T23:18:19+08:00",
+      "event": "advance",
+      "from": "writeback",
+      "to": null,
+      "approved_by": null
+    },
+    {
+      "at": "2026-10-22T23:18:24+08:00",
+      "event": "archive",
+      "path": "20261022-231824-ui-p1-widget-manifest"
+    }
+  ],
+  "tasks": [
+    {
+      "id": "T1",
+      "title": "WidgetSpec 运行时声明组件与词表",
+      "description": "",
+      "acceptance": "WidgetSpec/WidgetSlotSpec/UiWidgetState/UiWidgetSizeBehavior 落地；只声明不驱动；运行时程序集零 UnityEditor 引用",
+      "verify": "unity-tests --filter WidgetSpecEditModeTests",
+      "files": [
+        "Assets/LiteClient/UI/Spec/WidgetSpec.cs",
+        "Assets/LiteClient/UI/Spec/WidgetSlotSpec.cs",
+        "Assets/LiteClient/UI/Spec/UiWidgetState.cs",
+        "Assets/LiteClient/UI/Spec/UiWidgetSizeBehavior.cs"
+      ],
+      "deps": [],
+      "status": "done",
+      "evidence": "WidgetSpec + WidgetSlotSpec + UiWidgetState + UiWidgetSizeBehavior 落地（LiteClient.UI，零 UnityEditor 依赖）；WidgetSpecEditModeTests 3/3（默认声明/发现/幂等）",
+      "status_reason": "",
+      "created_at": "2026-10-22T22:49:56+08:00",
+      "started_at": "2026-10-22T23:06:32+08:00",
+      "completed_at": "2026-10-22T23:06:32+08:00"
+    },
+    {
+      "id": "T2",
+      "title": "编辑器作者面：插槽发现与 Inspector",
+      "description": "",
+      "acceptance": "WidgetSpecAuthoring.DiscoverSlots 复用 UiBindSurfaceWalker（只收 Cot_/Slot_，排除 Clone_/模板内部/嵌套根）；Inspector 可编辑数组并支持发现插槽（Undo）",
+      "verify": "unity-tests --filter WidgetSpecEditModeTests",
+      "files": [
+        "Assets/LiteGame/Editor/UiTools/Widgets/WidgetSpecAuthoring.cs",
+        "Assets/LiteGame/Editor/UiTools/Widgets/WidgetSpecInspector.cs"
+      ],
+      "deps": [
+        "T1"
+      ],
+      "status": "done",
+      "evidence": "WidgetSpecAuthoring.DiscoverSlots 复用 UiBindSurfaceWalker（Cot_/Slot_，排除 Clone_/模板内部/嵌套根）；ApplyDiscoveredSlots 幂等保作者填写；WidgetSpecInspector（Undo + 发现按钮）；WidgetSpecEditModeTests 3/3",
+      "status_reason": "",
+      "created_at": "2026-10-22T22:49:57+08:00",
+      "started_at": "2026-10-22T23:06:39+08:00",
+      "completed_at": "2026-10-22T23:06:39+08:00"
+    },
+    {
+      "id": "T3",
+      "title": "控件清单模型、生成器、存储与 schema",
+      "description": "",
+      "acceptance": "UiWidgetManifest 模型/生成器/JSON 存储/schema 落地；确定性（无时间戳/稳定排序/LF/无 BOM）、sourceHash、负例不写盘、输出限定 Assets/；缺 spec 记 Warning",
+      "verify": "unity-tests --filter UiWidgetManifestEditModeTests",
+      "files": [
+        "Assets/LiteGame/Editor/UiTools/Widgets/UiWidgetManifest.cs",
+        "Assets/LiteGame/Editor/UiTools/Widgets/UiWidgetManifestGenerator.cs",
+        "Assets/LiteGame/Editor/UiTools/Widgets/UiWidgetManifestJson.cs",
+        "Docs/设计文档/客户端/UI系统/UiWidgetManifest.schema.json"
+      ],
+      "deps": [
+        "T1"
+      ],
+      "status": "done",
+      "evidence": "UiWidgetManifest 模型/生成器/JSON 存储/schema；确定性（无时间戳/稳定排序/LF/无 BOM）、sourceHash、负例不写盘、输出限定 Assets/；缺 spec 告警；UiWidgetManifestEditModeTests 11/11",
+      "status_reason": "",
+      "created_at": "2026-10-22T22:50:03+08:00",
+      "started_at": "2026-10-22T23:06:39+08:00",
+      "completed_at": "2026-10-22T23:06:39+08:00"
+    },
+    {
+      "id": "T4",
+      "title": "30 个模板 WidgetSpec 内容落盘",
+      "description": "",
+      "acceptance": "按词表能力表补全 30 个 Tmp_* 的 Owner/Summary/Slots/States/Events/SizeBehavior/Constraints，经 unity-pipeline 一次性脚本幂等落盘；真实目录清单 specPresent 全 true、0 告警；prefab 只加组件/字段",
+      "verify": "unity-tests --filter UiWidgetManifestEditModeTests（真实目录用例）",
+      "files": [
+        "AgentScripts/BuildWidgetSpecs.cs",
+        "AgentScripts/widget-specs.json"
+      ],
+      "deps": [
+        "T1",
+        "T2",
+        "T3"
+      ],
+      "status": "done",
+      "evidence": "AgentScripts/BuildWidgetSpecs.cs + widget-specs.json 幂等落盘 30/30；prefab 仅新增 WidgetSpec 组件（+627 行纯新增，无删除/结构变化）；真实目录用例 30/30 spec、0 告警",
+      "status_reason": "",
+      "created_at": "2026-10-22T22:50:03+08:00",
+      "started_at": "2026-10-22T23:06:45+08:00",
+      "completed_at": "2026-10-22T23:06:45+08:00"
+    },
+    {
+      "id": "T5",
+      "title": "先行测试与负例覆盖",
+      "description": "",
+      "acceptance": "WidgetSpecEditModeTests + UiWidgetManifestEditModeTests 覆盖 AC1-AC3 主路径与失败路径（插槽缺失/重复、事件空/重名/成员解析不到、约束空、缺 spec 告警、确定性、sourceHash、写盘读回、真实目录基线），先红后绿",
+      "verify": "wf verify --red + 定向 unity-tests",
+      "files": [
+        "Assets/Tests/EditMode/WidgetSpecEditModeTests.cs",
+        "Assets/Tests/EditMode/UiWidgetManifestEditModeTests.cs"
+      ],
+      "deps": [
+        "T1",
+        "T3"
+      ],
+      "status": "done",
+      "evidence": "先红：evidence/red.json（widget-spec-red 2/3 失败、widget-manifest-red 9/11 失败，均断言失败）；实现后复跑 3/3 + 11/11 全绿",
+      "status_reason": "",
+      "created_at": "2026-10-22T22:50:08+08:00",
+      "started_at": "2026-10-22T23:06:45+08:00",
+      "completed_at": "2026-10-22T23:06:45+08:00"
+    },
+    {
+      "id": "T6",
+      "title": "门禁、评审与回写",
+      "description": "",
+      "acceptance": "定向 Unity 用例、L1、doc-lint、L2 meta 扫描通过；设计文档 §8.4 与 README schema 登记；进度卷回写；审计表如实挂账",
+      "verify": "L1+doc+l2-meta",
+      "files": [
+        "Docs/设计文档/客户端/UI系统/UI编辑器工具链专项设计.md",
+        "Docs/设计文档/客户端/UI系统/README.md",
+        "Docs/施工进度/UI系统线.md",
+        "Docs/审计/代码质量审计-客户端.md",
+        ".workflow"
+      ],
+      "deps": [
+        "T3",
+        "T4",
+        "T5"
+      ],
+      "status": "done",
+      "evidence": "L1 PASS 1819；doc-lint OK 0 violation；L2 meta PASS（14184 meta）；定向夹具 3/3+11/11；设计 §8.4 + README schema 登记；进度卷 UI系统线 第2章；审计表挂账 1 条",
+      "status_reason": "",
+      "created_at": "2026-10-22T22:50:08+08:00",
+      "started_at": "2026-10-22T23:09:25+08:00",
+      "completed_at": "2026-10-22T23:09:25+08:00"
+    }
+  ],
+  "verification": {
+    "at": "2026-10-22T23:17:21+08:00",
+    "ok": true,
+    "stale": false,
+    "evidence": "evidence/verify.json",
+    "command_fingerprint": "a65d968bc79896a7ba0270d93bab0cc76d6aedb6ce825ac1125e8e212003677a",
+    "summary": {
+      "total": 15,
+      "passed": 15
+    }
+  },
+  "red_verification": {
+    "at": "2026-10-22T22:58:16+08:00",
+    "ok": true,
+    "stale": false,
+    "evidence": "evidence/red.json",
+    "command_fingerprint": "b75200ee7d25d0e70c71b8d148ee1dfd1b6ad3b154636582cdcb769ca0f51380",
+    "summary": {
+      "total": 7,
+      "passed": 2
+    }
+  },
+  "archived_at": "2026-10-22T23:18:24+08:00"
+}

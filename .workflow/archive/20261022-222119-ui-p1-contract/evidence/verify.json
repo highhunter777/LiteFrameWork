@@ -1,0 +1,233 @@
+{
+  "schema_version": 1,
+  "kind": "verify",
+  "at": "2026-10-22T22:19:22+08:00",
+  "ok": true,
+  "command_fingerprint": "d8e1a37583684fc2df2305e56e6545a25f93e275fef65d8dcb696ba7d5e0e84c",
+  "commands": [
+    {
+      "name": "L1",
+      "cmd": [
+        "python",
+        "scripts/gate/test.py",
+        "--lane",
+        "L1",
+        "--profile",
+        "PullRequest"
+      ],
+      "cwd": null,
+      "exit_code": 0,
+      "timed_out": false,
+      "error": null,
+      "duration_ms": 45600,
+      "ok": true,
+      "output_tail": "已通过! - 失败:     0，通过:     7，已跳过:     0，总计:     7，持续时间: 33 ms - LiteTesting.Core.Tests.dll (net8.0)\n\n有可用的工作负载更新。有关详细信息，请运行 `dotnet workload list`。\nE:\\unityProject\\Test\\Tests\\MetaServer.Integration.Tests\\bin\\Release\\net8.0\\MetaServer.Integration.Tests.dll (.NETCoreApp,Version=v8.0)的测试运行\nVSTest 版本 17.14.1 (x64)\n\n正在启动测试执行，请稍候...\n总共 1 个测试文件与指定模式相匹配。\n没有测试匹配 E:\\unityProject\\Test\\Tests\\MetaServer.Integration.Tests\\bin\\Release\\net8.0\\MetaServer.Integration.Tests.dll 中的给定用例测试筛选器“Category!=Integration&Category!=EndToEnd&Category!=Performance&Category!=Quarantine&Duration!=LongRunning”\n数据收集器“Blame”消息: 所有测试都已运行完毕，将不生成序列文件。\n结果文件: E:\\unityProject\\Test\\TestResults\\l1-MetaServer.Integration.Tests-pullrequest-20261022-141722.trx\n\n\n有可用的工作负载更新。有关详细信息，请运行 `dotnet workload list`。\nE:\\unityProject\\Test\\Tests\\MetaServer.Tests\\bin\\Release\\net8.0\\MetaServer.Tests.dll (.NETCoreApp,Version=v8.0)的测试运行\nVSTest 版本 17.14.1 (x64)\n\n正在启动测试执行，请稍候...\n总共 1 个测试文件与指定模式相匹配。\n数据收集器“Blame”消息: 所有测试都已运行完毕，将不生成序列文件。\n结果文件: E:\\unityProject\\Test\\TestResults\\l1-MetaServer.Tests-pullrequest-20261022-141722.trx\n\n已通过! - 失败:     0，通过:   163，已跳过:     0，总计:   163，持续时间: 4 s - MetaServer.Tests.dll (net8.0)\n\n有可用的工作负载更新。有关详细信息，请运行 `dotnet workload list`。\n[quality/test] === L1 | PullRequest ===\n[quality/test] -> restore LiteFramework.Core.Tests (parallelism disabled)\n[quality/test] -> restore LiteNet.Tests (parallelism disabled)\n[quality/test] -> restore LiteSim.Core.Tests (parallelism disabled)\n[quality/test] -> restore LiteTesting.Core.Tests (parallelism disabled)\n[quality/test] -> restore MetaServer.Integration.Tests (parallelism disabled)\n[quality/test] -> restore MetaServer.Tests (parallelism disabled)\n[quality/test] -> build solution (single MSBuild node)\n[quality/test] -> LiteFramework.Core.Tests\n[quality/test] -> LiteNet.Tests\n[quality/test] -> LiteSim.Core.Tests\n[quality/test] -> LiteTesting.Core.Tests\n[quality/test] -> MetaServer.Integration.Tests\n[quality/test] -> MetaServer.Tests\n[quality/test] PASS: L1 completed 1819 tests."
+    },
+    {
+      "name": "doc",
+      "cmd": [
+        "python",
+        "scripts/gate/doc-lint.py"
+      ],
+      "cwd": null,
+      "exit_code": 0,
+      "timed_out": false,
+      "error": null,
+      "duration_ms": 1560,
+      "ok": true,
+      "output_tail": "[quality/doc-lint] OK: 0 violation(s), 0 warning(s)  (root=E:\\unityProject\\Test)"
+    },
+    {
+      "name": "restore",
+      "cmd": [
+        "python",
+        "scripts/gate/restore-check.py"
+      ],
+      "cwd": null,
+      "exit_code": 0,
+      "timed_out": false,
+      "error": null,
+      "duration_ms": 650,
+      "ok": true,
+      "output_tail": "[env/restore] Restore check | project: E:\\unityProject\\Test\n\n  [OK]   Unity 2022.3.55f1c1 (matches toolchain.json)\n  [OK]   Unity revision 06b99830297d (matches toolchain.json)\n  [OK]   ProjectSettings complete\n  [OK]   Unity editor resolved: E:\\unity3d\\2022.3.55f1c1\\Editor\\Unity.exe (Unity Hub secondary install root)\n  [OK]   manifest.json reproducible (56 deps, zero personal paths)\n  [OK]   packages-lock.json present\n  [OK]   vendored package present: com.tuyoogame.yooasset\n  [OK]   vendored package present: com.code-philosophy.luban\n  [OK]   Python 3.13.1 + openpyxl 3.1.5 (Luban chain)\n  [OK]   cryptography 46.0.7 (content signing)\n  [OK]   git present\n  [OK]   Odin Inspector present (paid plugin, installed locally)\n  [OK]   DOTween present (free plugin, installed locally)\n  [OK]   UniTask present\n  [OK]   xLua native plugin present\n  [OK]   TMP CJK font present (Assets/ShareResource/Fonts, tracked)\n  [OK]   URP pipeline assets present (Assets/Settings, tracked)\n  [OK]   At least one scene present (Boot.unity is tracked)\n  [OK]   toolchain check passed (manifest/docs/surfaces)\n  [WARN] .NET SDK 9.0.308 (L1/L3 target net8.0; prefer 8.x)\n\n[env/restore] Restore check PASSED: workspace can open / run L1,L3 / proceed to build"
+    },
+    {
+      "name": "l0",
+      "cmd": [
+        "python",
+        "-m",
+        "unittest",
+        "scripts.tests.test_l0_dep_scan",
+        "-v"
+      ],
+      "cwd": null,
+      "exit_code": 0,
+      "timed_out": false,
+      "error": null,
+      "duration_ms": 4742,
+      "ok": true,
+      "output_tail": "[stderr]\ntest_clean_fixture_passes (scripts.tests.test_l0_dep_scan.L0ScanTests.test_clean_fixture_passes) ... ok\ntest_floating_git_dependency_fails (scripts.tests.test_l0_dep_scan.L0ScanTests.test_floating_git_dependency_fails) ... ok\ntest_personal_absolute_path_fails (scripts.tests.test_l0_dep_scan.L0ScanTests.test_personal_absolute_path_fails) ... ok\ntest_repo_matches_known_baseline (scripts.tests.test_l0_dep_scan.L0ScanTests.test_repo_matches_known_baseline) ... ok\ntest_secret_pattern_fails (scripts.tests.test_l0_dep_scan.L0ScanTests.test_secret_pattern_fails) ... ok\ntest_vendored_package_without_license_fails (scripts.tests.test_l0_dep_scan.L0ScanTests.test_vendored_package_without_license_fails) ... ok\n\n----------------------------------------------------------------------\nRan 6 tests in 4.552s\n\nOK"
+    },
+    {
+      "name": "toolchain-tests",
+      "cmd": [
+        "python",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "scripts/tests",
+        "-p",
+        "test_*.py",
+        "-v"
+      ],
+      "cwd": null,
+      "exit_code": 0,
+      "timed_out": false,
+      "error": null,
+      "duration_ms": 24300,
+      "ok": true,
+      "output_tail": "test_run_help_uses_real_manifest (test_toolchain_l2d1.RealManifestTests.test_run_help_uses_real_manifest) ... ok\ntest_child_exit_code_passes_through (test_toolchain_l2d1.RunArgsTests.test_child_exit_code_passes_through) ... ok\ntest_help_renders_manifest_args_without_child (test_toolchain_l2d1.RunArgsTests.test_help_renders_manifest_args_without_child) ... ok\ntest_invalid_enum_fails_before_child (test_toolchain_l2d1.RunArgsTests.test_invalid_enum_fails_before_child) ... ok\ntest_invalid_int_fails_before_child (test_toolchain_l2d1.RunArgsTests.test_invalid_int_fails_before_child) ... ok\ntest_missing_required_argument_fails_before_child (test_toolchain_l2d1.RunArgsTests.test_missing_required_argument_fails_before_child) ... ok\ntest_unknown_option_before_separator_is_usage_error (test_toolchain_l2d1.RunArgsTests.test_unknown_option_before_separator_is_usage_error) ... ok\ntest_valid_arguments_run_child_and_print_exit (test_toolchain_l2d1.RunArgsTests.test_valid_arguments_run_child_and_print_exit) ... ok\ntest_compliant_files_are_clean (test_toolchain_scripts.EncodingCheckTests.test_compliant_files_are_clean) ... ok\ntest_crlf_is_reported (test_toolchain_scripts.EncodingCheckTests.test_crlf_is_reported) ... ok\ntest_powershell_script_is_not_allowed (test_toolchain_scripts.EncodingCheckTests.test_powershell_script_is_not_allowed) ... ok\ntest_python_bom_is_reported (test_toolchain_scripts.EncodingCheckTests.test_python_bom_is_reported) ... ok\ntest_global_entry_is_exempt (test_toolchain_scripts.OrphanCheckTests.test_global_entry_is_exempt) ... ok\ntest_hook_surface_reference_is_exempt (test_toolchain_scripts.OrphanCheckTests.test_hook_surface_reference_is_exempt) ... ok\ntest_internal_library_is_exempt (test_toolchain_scripts.OrphanCheckTests.test_internal_library_is_exempt) ... ok\ntest_leaf_referenced_by_registered_entry_is_exempt (test_toolchain_scripts.OrphanCheckTests.test_leaf_referenced_by_registered_entry_is_exempt) ... ok\ntest_oneshot_marker_is_exempt (test_toolchain_scripts.OrphanCheckTests.test_oneshot_marker_is_exempt) ... ok\ntest_registered_entry_is_exempt (test_toolchain_scripts.OrphanCheckTests.test_registered_entry_is_exempt) ... ok\ntest_strict_upgrades_orphan_to_error (test_toolchain_scripts.OrphanCheckTests.test_strict_upgrades_orphan_to_error) ... ok\ntest_tests_directory_is_exempt (test_toolchain_scripts.OrphanCheckTests.test_tests_directory_is_exempt) ... ok\ntest_unregistered_executable_is_warning (test_toolchain_scripts.OrphanCheckTests.test_unregistered_executable_is_warning) ... ok\ntest_powershell_script_is_rejected (test_toolchain_scripts.PowerShellBanTests.test_powershell_script_is_rejected) ... ok\ntest_repo_has_no_script_form_errors (test_toolchain_scripts.RepoCheckTests.test_repo_has_no_script_form_errors) ... ok\ntest_editor_version_reads_project_settings (test_unity_path.UnityPathTests.test_editor_version_reads_project_settings) ... ok\ntest_env_wins_over_local_config (test_unity_path.UnityPathTests.test_env_wins_over_local_config) ... ok\ntest_explicit_missing_path_fails_without_fallback (test_unity_path.UnityPathTests.test_explicit_missing_path_fails_without_fallback) ... ok\ntest_hub_editors_json_is_used (test_unity_path.UnityPathTests.test_hub_editors_json_is_used) ... ok\ntest_local_notes_file_is_used (test_unity_path.UnityPathTests.test_local_notes_file_is_used) ... ok\ntest_missing_editor_reports_actionable_chain (test_unity_path.UnityPathTests.test_missing_editor_reports_actionable_chain) ... ok\ntest_override_wins_over_env_and_local_config (test_unity_path.UnityPathTests.test_override_wins_over_env_and_local_config) ... ok\ntest_standard_install_root_is_used (test_unity_path.UnityPathTests.test_standard_install_root_is_used) ... ok\ntest_wrong_hub_version_is_ignored (test_unity_path.UnityPathTests.test_wrong_hub_version_is_ignored) ... ok\ntest_help (test_wg_peer.WgPeerTests.test_help) ... ok\ntest_invalid_name_is_usage_error (test_wg_peer.WgPeerTests.test_invalid_name_is_usage_error) ... ok\ntest_missing_name_is_usage_error (test_wg_peer.WgPeerTests.test_missing_name_is_usage_error) ... ok\n\n----------------------------------------------------------------------\nRan 222 tests in 23.733s\n\nOK"
+    },
+    {
+      "name": "toolchain-check",
+      "cmd": [
+        "python",
+        "scripts/toolchain.py",
+        "check"
+      ],
+      "cwd": null,
+      "exit_code": 0,
+      "timed_out": false,
+      "error": null,
+      "duration_ms": 237,
+      "ok": true,
+      "output_tail": "[toolchain] WARN: unregistered executable script: scripts/gate/unity-tests.py\n[toolchain] check OK (1 warning(s))"
+    },
+    {
+      "name": "toolchain-docs-check",
+      "cmd": [
+        "python",
+        "scripts/toolchain.py",
+        "docs",
+        "--check"
+      ],
+      "cwd": null,
+      "exit_code": 0,
+      "timed_out": false,
+      "error": null,
+      "duration_ms": 120,
+      "ok": true,
+      "output_tail": "[toolchain] generated index current: E:\\unityProject\\Test\\Docs\\工具链\\工具索引.md"
+    },
+    {
+      "name": "doc-lane",
+      "cmd": [
+        "python",
+        "scripts/gate/test.py",
+        "--lane",
+        "Doc"
+      ],
+      "cwd": null,
+      "exit_code": 0,
+      "timed_out": false,
+      "error": null,
+      "duration_ms": 1526,
+      "ok": true,
+      "output_tail": "[quality/doc-lint] OK: 0 violation(s), 0 warning(s)  (root=E:\\unityProject\\Test)\n[toolchain] generated index current: E:\\unityProject\\Test\\Docs\\工具链\\工具索引.md\n[quality/test] doc-lint | PullRequest\n[quality/test] PASS: doc-lint + tool index completed."
+    },
+    {
+      "name": "l2-meta",
+      "cmd": [
+        "python",
+        "scripts/gate/l2-unity-gate.py",
+        "--meta-scan-only"
+      ],
+      "cwd": null,
+      "exit_code": 0,
+      "timed_out": false,
+      "error": null,
+      "duration_ms": 2198,
+      "ok": true,
+      "output_tail": "[quality/l2] L2 Unity gate | project: E:\\unityProject\\Test\n[quality/l2] === 1. illegal meta GUID scan ===\n[quality/l2] PASS: scanned 14170 .meta files: all GUIDs are legal 32-hex\n[quality/l2] L2(meta) passed"
+    },
+    {
+      "name": "debug-kernel-editmode",
+      "cmd": [
+        "python",
+        "scripts/gate/unity-tests.py",
+        "--mode",
+        "editor",
+        "--filter",
+        "DebugKernelEditModeTests"
+      ],
+      "cwd": null,
+      "exit_code": 0,
+      "timed_out": false,
+      "error": null,
+      "duration_ms": 7199,
+      "ok": true,
+      "output_tail": "Command\tSuccess\tResult\tParameters\nrun_tests\ttrue\t{\"Summary\":{\"Total\":16,\"Passed\":16,\"Failed\":0,\"Skipped\":0,\"Inconclusive\":0},\"Results\":[{\"FullName\":\"LiteGame.Tests.EditMode.DebugKernelEditModeTests.命令发现_按注册序返回且带GmOnly\",\"Status\":\"Passed\",\"Duration\":0.0004134,\"Message\":null,\"StackTrace\":null},{\"FullName\":\"LiteGame.Tests.EditMode.DebugKernelEditModeTests.执行带参命令_拒绝并说明需专面板\",\"Status\":\"Passed\",\"Duration\":0.0003107,\"Message\":null,\"StackTrace\":null},{\"FullName\":\"LiteGame.Tests.EditMode.DebugKernelEditModeTests.执行无参命令_字符串精确名与唯一后缀都命中\",\"Status\":\"Passed\",\"Duration\":0.0002856,\"Message\":null,\"StackTrace\":null},{\"FullName\":\"LiteGame.Tests.EditMode.DebugKernelEditModeTests.执行无参命令_类型名命中并进审计\",\"Status\":\"Passed\",\"Duration\":0.0002682,\"Message\":null,\"StackTrace\":null},{\"FullName\":\"LiteGame.Tests.EditMode.DebugKernelEditModeTests.执行未知命令_返回错误\",\"Status\":\"Passed\",\"Duration\":0.0002291,\"Message\":null,\"StackTrace\":null},{\"FullName\":\"LiteGame.Tests.EditMode.DebugKernelEditModeTests.控制台解析_切出verb与参数\",\"Status\":\"Passed\",\"Duration\":0.0002321,\"Message\":null,\"StackTrace\":null},{\"FullName\":\"LiteGame.Tests.EditMode.DebugKernelEditModeTests.控制台解析_空白与大小写与参数(\\\"\\\",False)\",\"Status\":\"Passed\",\"Duration\":0.0002747,\"Message\":null,\"StackTrace\":null},{\"FullName\":\"LiteGame.Tests.EditMode.DebugKernelEditModeTests.控制台解析_空白与大小写与参数(\\\"   \\\",False)\",\"Status\":\"Passed\",\"Duration\":0.0002165,\"Message\":null,\"StackTrace\":null},{\"FullName\":\"LiteGame.Tests.EditMode.DebugKernelEditModeTests.控制台解析_空白与大小写与参数(\\\"help\\\",True)\",\"Status\":\"Passed\",\"Duration\":0.0002218,\"Message\":null,\"StackTrace\":null},{\"FullName\":\"LiteGame.Tests.EditMode.DebugKernelEditModeTests.控制台解析_空白与大小写与参数(\\\"  HeLP  a  b \\\",True)\",\"Status\":\"Passed\",\"Duration\":0.0003167,\"Message\":null,\"StackTrace\":null},{\"FullName\":\"LiteGame.Tests.EditMode.DebugKernelEditModeTests.控制台解析_空白与大小写与参数(\\\"option InfiniteAmmo on\\\",True)\",\"Status\":\"Passed\",\"Duration\":0.0001472,\"Message\":null,\"StackTrace\":null},{\"FullName\":\"LiteGame.Tests.EditMode.DebugKernelEditModeTests.无对局时_对局诊断为无样本\",\"Status\":\"Passed\",\"Duration\":0.0001093,\"Message\":null,\"StackTrace\":null},{\"FullName\":\"LiteGame.Tests.EditMode.DebugKernelEditModeTests.设置选项_已知id写入单表\",\"Status\":\"Passed\",\"Duration\":0.0001066,\"Message\":null,\"StackTrace\":null},{\"FullName\":\"LiteGame.Tests.EditMode.DebugKernelEditModeTests.设置选项_未知id返回错误\",\"Status\":\"Passed\",\"Duration\":0.0002247,\"Message\":null,\"StackTrace\":null},{\"FullName\":\"LiteGame.Tests.EditMode.DebugKernelEditModeTests.请求桥_写入后可被消费且读即清\",\"Status\":\"Passed\",\"Duration\":0.0001851,\"Message\":null,\"StackTrace\":null},{\"FullName\":\"LiteGame.Tests.EditMode.DebugKernelEditModeTests.读模型发现_包含命令选项与三类读数\",\"Status\":\"Passed\",\"Duration\":0.0002242,\"Message\":null,\"StackTrace\":null}],\"Duration\":4.05,\"StatusPath\":null,\"Mode\":\"EditMode\",\"FilterApplied\":\"testname: DebugKernelEditModeTests\",\"success\":true,\"result\":null}\t{\"mode\":\"editor\",\"filter\":\"DebugKernelEditModeTests\"}\n[stderr]\nunity run_tests: 16/16 passed"
+    },
+    {
+      "name": "ui-static-text-editmode",
+      "cmd": [
+        "python",
+        "scripts/gate/unity-tests.py",
+        "--mode",
+        "editor",
+        "--filter",
+        "UiStaticTextEditModeTests",
+        "--timeout",
+        "600"
+      ],
+      "cwd": null,
+      "exit_code": 0,
+      "timed_out": false,
+      "error": null,
+      "duration_ms": 7129,
+      "ok": true,
+      "output_tail": "Command\tSuccess\tResult\tParameters\nrun_tests\ttrue\t{\"Summary\":{\"Total\":6,\"Passed\":6,\"Failed\":0,\"Skipped\":0,\"Inconclusive\":0},\"Results\":[{\"FullName\":\"LiteGame.Tests.EditMode.UiStaticTextEditModeTests.TMP文本_优先写入_语言变更刷新\",\"Status\":\"Passed\",\"Duration\":0.0011351,\"Message\":null,\"StackTrace\":null},{\"FullName\":\"LiteGame.Tests.EditMode.UiStaticTextEditModeTests.无文本组件_不抛异常且不影响其他节点\",\"Status\":\"Passed\",\"Duration\":0.0009979,\"Message\":null,\"StackTrace\":null},{\"FullName\":\"LiteGame.Tests.EditMode.UiStaticTextEditModeTests.空key_不写入作者文本\",\"Status\":\"Passed\",\"Duration\":0.0007515,\"Message\":null,\"StackTrace\":null},{\"FullName\":\"LiteGame.Tests.EditMode.UiStaticTextEditModeTests.绑定器_按key写入_语言变更刷新_解绑后不刷新\",\"Status\":\"Passed\",\"Duration\":0.0009012,\"Message\":null,\"StackTrace\":null},{\"FullName\":\"LiteGame.Tests.EditMode.UiStaticTextEditModeTests.编辑器文案表_可读取真实key\",\"Status\":\"Passed\",\"Duration\":0.0003653,\"Message\":null,\"StackTrace\":null},{\"FullName\":\"LiteGame.Tests.EditMode.UiStaticTextEditModeTests.页面打开与关闭_静态文案随页面生命周期刷新\",\"Status\":\"Passed\",\"Duration\":0.0016019,\"Message\":null,\"StackTrace\":null}],\"Duration\":4.06,\"StatusPath\":null,\"Mode\":\"EditMode\",\"FilterApplied\":\"testname: UiStaticTextEditModeTests\",\"success\":true,\"result\":null}\t{\"mode\":\"editor\",\"filter\":\"UiStaticTextEditModeTests\"}\n[stderr]\nunity run_tests: 6/6 passed"
+    },
+    {
+      "name": "ui-contract-editmode",
+      "cmd": [
+        "python",
+        "scripts/gate/unity-tests.py",
+        "--mode",
+        "editor",
+        "--filter",
+        "UiContractGeneratorEditModeTests",
+        "--timeout",
+        "600"
+      ],
+      "cwd": null,
+      "exit_code": 0,
+      "timed_out": false,
+      "error": null,
+      "duration_ms": 17780,
+      "ok": true,
+      "output_tail": "Command\tSuccess\tResult\tParameters\nrun_tests\ttrue\t{\"Summary\":{\"Total\":10,\"Passed\":10,\"Failed\":0,\"Skipped\":0,\"Inconclusive\":0},\"Results\":[{\"FullName\":\"LiteGame.Tests.EditMode.UiContractGeneratorEditModeTests.sourceHash_对绑定面敏感_对页面元数据不敏感\",\"Status\":\"Passed\",\"Duration\":1.3929468,\"Message\":null,\"StackTrace\":null},{\"FullName\":\"LiteGame.Tests.EditMode.UiContractGeneratorEditModeTests.契约写盘_读回一致_负例不写盘\",\"Status\":\"Passed\",\"Duration\":1.6301415,\"Message\":null,\"StackTrace\":null},{\"FullName\":\"LiteGame.Tests.EditMode.UiContractGeneratorEditModeTests.契约生成_提取四段_并过滤模板内部与克隆与嵌套根\",\"Status\":\"Passed\",\"Duration\":1.0415218,\"Message\":null,\"StackTrace\":null},{\"FullName\":\"LiteGame.Tests.EditMode.UiContractGeneratorEditModeTests.契约生成_确定性_无时间戳_重复生成零diff\",\"Status\":\"Passed\",\"Duration\":1.0225712,\"Message\":null,\"StackTrace\":null},{\"FullName\":\"LiteGame.Tests.EditMode.UiContractGeneratorEditModeTests.真实页面_按tbuiform行生成_契约可用\",\"Status\":\"Passed\",\"Duration\":1.2458446,\"Message\":null,\"StackTrace\":null},{\"FullName\":\"LiteGame.Tests.EditMode.UiContractGeneratorEditModeTests.真实页面_模板依赖被记录\",\"Status\":\"Passed\",\"Duration\":0.9780492,\"Message\":null,\"StackTrace\":null},{\"FullName\":\"LiteGame.Tests.EditMode.UiContractGeneratorEditModeTests.类型不可解析_生成失败\",\"Status\":\"Passed\",\"Duration\":0.7311028,\"Message\":null,\"StackTrace\":null},{\"FullName\":\"LiteGame.Tests.EditMode.UiContractGeneratorEditModeTests.输出路径不在Assets下_生成失败且不写盘\",\"Status\":\"Passed\",\"Duration\":1.0997315,\"Message\":null,\"StackTrace\":null},{\"FullName\":\"LiteGame.Tests.EditMode.UiContractGeneratorEditModeTests.重复BindName_生成失败并列出错误\",\"Status\":\"Passed\",\"Duration\":0.7658396,\"Message\":null,\"StackTrace\":null},{\"FullName\":\"LiteGame.Tests.EditMode.UiContractGeneratorEditModeTests.静态key为空_生成失败\",\"Status\":\"Passed\",\"Duration\":0.7619971,\"Message\":null,\"StackTrace\":null}],\"Duration\":14.67,\"StatusPath\":null,\"Mode\":\"EditMode\",\"FilterApplied\":\"testname: UiContractGeneratorEditModeTests\",\"success\":true,\"result\":null}\t{\"mode\":\"editor\",\"filter\":\"UiContractGeneratorEditModeTests\"}\n[stderr]\nunity run_tests: 10/10 passed"
+    },
+    {
+      "name": "ui-contract-diff-editmode",
+      "cmd": [
+        "python",
+        "scripts/gate/unity-tests.py",
+        "--mode",
+        "editor",
+        "--filter",
+        "UiContractDiffEditModeTests",
+        "--timeout",
+        "600"
+      ],
+      "cwd": null,
+      "exit_code": 0,
+      "timed_out": false,
+      "error": null,
+      "duration_ms": 7232,
+      "ok": true,
+      "output_tail": "Command\tSuccess\tResult\tParameters\nrun_tests\ttrue\t{\"Summary\":{\"Total\":5,\"Passed\":5,\"Failed\":0,\"Skipped\":0,\"Inconclusive\":0},\"Results\":[{\"FullName\":\"LiteGame.Tests.EditMode.UiContractDiffEditModeTests.sourceHash_only变化_不误报破坏\",\"Status\":\"Passed\",\"Duration\":0.0001857,\"Message\":null,\"StackTrace\":null},{\"FullName\":\"LiteGame.Tests.EditMode.UiContractDiffEditModeTests.控件改名_判为破坏性\",\"Status\":\"Passed\",\"Duration\":0.0001312,\"Message\":null,\"StackTrace\":null},{\"FullName\":\"LiteGame.Tests.EditMode.UiContractDiffEditModeTests.控件类型与文案key变化_判为破坏性\",\"Status\":\"Passed\",\"Duration\":0.0001262,\"Message\":null,\"StackTrace\":null},{\"FullName\":\"LiteGame.Tests.EditMode.UiContractDiffEditModeTests.新增控件_向后兼容\",\"Status\":\"Passed\",\"Duration\":0.0001222,\"Message\":null,\"StackTrace\":null},{\"FullName\":\"LiteGame.Tests.EditMode.UiContractDiffEditModeTests.样式变化_非API破坏\",\"Status\":\"Passed\",\"Duration\":0.000135,\"Message\":null,\"StackTrace\":null}],\"Duration\":4.03,\"StatusPath\":null,\"Mode\":\"EditMode\",\"FilterApplied\":\"testname: UiContractDiffEditModeTests\",\"success\":true,\"result\":null}\t{\"mode\":\"editor\",\"filter\":\"UiContractDiffEditModeTests\"}\n[stderr]\nunity run_tests: 5/5 passed"
+    }
+  ]
+}

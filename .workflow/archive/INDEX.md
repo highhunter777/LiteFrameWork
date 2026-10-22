@@ -11,3 +11,8 @@
 | 2026-10-21T19:58:20+08:00 | full-python-p3b | 全量 Python P3b（nightly/L2/install-task） | 5/5 | PASS | [20261021-195820-full-python-p3b](20261021-195820-full-python-p3b/) |
 | 2026-10-21T20:04:56+08:00 | full-python-p4 | 全量 Python P4（构建/冒烟） | 4/4 | PASS | [20261021-200456-full-python-p4](20261021-200456-full-python-p4/) |
 | 2026-10-21T20:13:56+08:00 | full-python-p5 | 全量 Python P5（deploy/local-chain + 清零 PS） | 7/7 | PASS | [20261021-201356-full-python-p5](20261021-201356-full-python-p5/) |
+| 2026-10-22T20:07:16+08:00 | debug-kernel-projections | 统一内核与三投影最小闭环 | 7/7 | PASS | [20261022-200716-debug-kernel-projections](20261022-200716-debug-kernel-projections/) |
+| 2026-10-22T22:21:19+08:00 | ui-p1-contract | UI 系统 P1-0/P1-1：口径冻结 + 静态文案 + 页面契约内核 | 6/6 | PASS | [20261022-222119-ui-p1-contract](20261022-222119-ui-p1-contract/) |
+| 2026-10-22T23:18:24+08:00 | ui-p1-widget-manifest | UI 系统 P1-2：控件规格 WidgetSpec 与控件清单 UiWidgetManifest | 6/6 | PASS | [20261022-231824-ui-p1-widget-manifest](20261022-231824-ui-p1-widget-manifest/) |
+| 2026-10-22T23:59:30+08:00 | ui-p1-page-manifest | UI 系统 P1-3：页面清单 UiPageManifest（工具维护注册表） | 6/8 | PASS | [20261022-235930-ui-p1-page-manifest](20261022-235930-ui-p1-page-manifest/) |
+| 2026-10-23T00:21:58+08:00 | ui-p1-validation | UI 系统 P1-4：校验规则族与 UiRuleExceptions（结构/契约族 + 例外登记） | 5/5 | PASS | [20261023-002158-ui-p1-validation](20261023-002158-ui-p1-validation/) |
