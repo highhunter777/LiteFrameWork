@@ -1,0 +1,227 @@
+{
+  "schemaVersion": "1.0",
+  "generator": {
+    "name": "ui-page-manifest",
+    "version": "1.0"
+  },
+  "pages": [
+    {
+      "name": "Page_Lobby",
+      "prefabPath": "Assets/ShareResource/UI/Screens/Page_Lobby.prefab",
+      "forms": [
+        {
+          "formId": 12,
+          "layer": 0,
+          "fullScreen": true
+        }
+      ],
+      "luaPath": "UI.Page_Lobby",
+      "cacheStrategy": "Lru",
+      "owner": "art.ui",
+      "status": "Registered",
+      "contractPath": "Assets/LiteGame/Editor/UiTools/Contracts/Page_Lobby.contract.json",
+      "contractPresent": false,
+      "deviceProfiles": []
+    },
+    {
+      "name": "Page_Login",
+      "prefabPath": "Assets/ShareResource/UI/Screens/Page_Login.prefab",
+      "forms": [
+        {
+          "formId": 11,
+          "layer": 0,
+          "fullScreen": true
+        }
+      ],
+      "luaPath": "UI.Page_Login",
+      "cacheStrategy": "Lru",
+      "owner": "art.ui",
+      "status": "Registered",
+      "contractPath": "Assets/LiteGame/Editor/UiTools/Contracts/Page_Login.contract.json",
+      "contractPresent": false,
+      "deviceProfiles": []
+    },
+    {
+      "name": "Page_Records",
+      "prefabPath": "Assets/ShareResource/UI/Screens/Page_Records.prefab",
+      "forms": [
+        {
+          "formId": 16,
+          "layer": 0,
+          "fullScreen": true
+        }
+      ],
+      "luaPath": "UI.Page_Records",
+      "cacheStrategy": "Lru",
+      "owner": "art.ui",
+      "status": "Registered",
+      "contractPath": "Assets/LiteGame/Editor/UiTools/Contracts/Page_Records.contract.json",
+      "contractPresent": false,
+      "deviceProfiles": []
+    },
+    {
+      "name": "Page_Result",
+      "prefabPath": "Assets/ShareResource/UI/Screens/Page_Result.prefab",
+      "forms": [
+        {
+          "formId": 14,
+          "layer": 0,
+          "fullScreen": true
+        }
+      ],
+      "luaPath": "UI.Page_Result",
+      "cacheStrategy": "Lru",
+      "owner": "art.ui",
+      "status": "Registered",
+      "contractPath": "Assets/LiteGame/Editor/UiTools/Contracts/Page_Result.contract.json",
+      "contractPresent": false,
+      "deviceProfiles": []
+    },
+    {
+      "name": "Page_Room",
+      "prefabPath": "Assets/ShareResource/UI/Screens/Page_Room.prefab",
+      "forms": [
+        {
+          "formId": 13,
+          "layer": 0,
+          "fullScreen": true
+        }
+      ],
+      "luaPath": "UI.Page_Room",
+      "cacheStrategy": "Lru",
+      "owner": "art.ui",
+      "status": "Registered",
+      "contractPath": "Assets/LiteGame/Editor/UiTools/Contracts/Page_Room.contract.json",
+      "contractPresent": false,
+      "deviceProfiles": []
+    },
+    {
+      "name": "Page_Settings",
+      "prefabPath": "Assets/ShareResource/UI/Screens/Page_Settings.prefab",
+      "forms": [
+        {
+          "formId": 15,
+          "layer": 1,
+          "fullScreen": true
+        }
+      ],
+      "luaPath": "UI.Page_Settings",
+      "cacheStrategy": "Lru",
+      "owner": "art.ui",
+      "status": "Registered",
+      "contractPath": "Assets/LiteGame/Editor/UiTools/Contracts/Page_Settings.contract.json",
+      "contractPresent": false,
+      "deviceProfiles": []
+    },
+    {
+      "name": "Tmp_BaselineA",
+      "prefabPath": "Assets/ShareResource/UI/Screens/Tmp_BaselineA.prefab",
+      "forms": [
+        {
+          "formId": 204,
+          "layer": 0,
+          "fullScreen": true
+        }
+      ],
+      "cacheStrategy": "Lru",
+      "owner": "art.ui",
+      "status": "Registered",
+      "contractPath": "Assets/LiteGame/Editor/UiTools/Contracts/Tmp_BaselineA.contract.json",
+      "contractPresent": false,
+      "deviceProfiles": []
+    },
+    {
+      "name": "Tmp_BaselineB",
+      "prefabPath": "Assets/ShareResource/UI/Screens/Tmp_BaselineB.prefab",
+      "forms": [
+        {
+          "formId": 205,
+          "layer": 2,
+          "fullScreen": true
+        }
+      ],
+      "cacheStrategy": "Lru",
+      "owner": "art.ui",
+      "status": "Registered",
+      "contractPath": "Assets/LiteGame/Editor/UiTools/Contracts/Tmp_BaselineB.contract.json",
+      "contractPresent": false,
+      "deviceProfiles": []
+    },
+    {
+      "name": "Tmp_Dialog",
+      "prefabPath": "Assets/ShareResource/UI/Screens/Tmp_Dialog.prefab",
+      "forms": [
+        {
+          "formId": 201,
+          "layer": 3,
+          "fullScreen": false
+        },
+        {
+          "formId": 206,
+          "layer": 1,
+          "fullScreen": false
+        }
+      ],
+      "cacheStrategy": "Lru",
+      "owner": "art.ui",
+      "status": "Registered",
+      "contractPath": "Assets/LiteGame/Editor/UiTools/Contracts/Tmp_Dialog.contract.json",
+      "contractPresent": false,
+      "deviceProfiles": []
+    },
+    {
+      "name": "Tmp_Loading",
+      "prefabPath": "Assets/ShareResource/UI/Screens/Tmp_Loading.prefab",
+      "forms": [
+        {
+          "formId": 202,
+          "layer": 3,
+          "fullScreen": false
+        }
+      ],
+      "cacheStrategy": "Lru",
+      "owner": "art.ui",
+      "status": "Registered",
+      "contractPath": "Assets/LiteGame/Editor/UiTools/Contracts/Tmp_Loading.contract.json",
+      "contractPresent": false,
+      "deviceProfiles": []
+    },
+    {
+      "name": "Tmp_Toast",
+      "prefabPath": "Assets/ShareResource/UI/Screens/Tmp_Toast.prefab",
+      "forms": [
+        {
+          "formId": 203,
+          "layer": 3,
+          "fullScreen": false
+        }
+      ],
+      "cacheStrategy": "Lru",
+      "owner": "art.ui",
+      "status": "Registered",
+      "contractPath": "Assets/LiteGame/Editor/UiTools/Contracts/Tmp_Toast.contract.json",
+      "contractPresent": false,
+      "deviceProfiles": []
+    },
+    {
+      "name": "UIMain",
+      "prefabPath": "Assets/ShareResource/UI/Screens/UIMain.prefab",
+      "forms": [
+        {
+          "formId": 1,
+          "layer": 0,
+          "fullScreen": true
+        }
+      ],
+      "luaPath": "UI.UIMain",
+      "cacheStrategy": "Lru",
+      "owner": "art.ui",
+      "status": "Registered",
+      "contractPath": "Assets/LiteGame/Editor/UiTools/Contracts/UIMain.contract.json",
+      "contractPresent": false,
+      "deviceProfiles": []
+    }
+  ],
+  "warnings": [],
+  "sourceHash": "sha256:bfbc67c730717cf50da0f001915f81b6bf42e7ebabb71635dfc605bc9d4845bb"
+}
