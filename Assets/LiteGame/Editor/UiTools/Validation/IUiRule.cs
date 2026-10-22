@@ -26,15 +26,30 @@ namespace LiteGame.Editor.UiTools.Validation
         /// 测试可注入临时清单（隔离全局清单状态）。</summary>
         public string BindManifestPath { get; }
 
+        /// <summary>例外登记路径（工程根相对）；缺省＝<see cref="UiRuleExceptionSet.DefaultPath"/>。</summary>
+        public string RuleExceptionsPath { get; }
+
+        /// <summary>控件清单路径（工程根相对）；缺省＝<see cref="Widgets.UiWidgetManifestPaths.DefaultPath"/>。</summary>
+        public string WidgetManifestPath { get; }
+
+        /// <summary>页面清单路径（工程根相对）；缺省＝<see cref="Page.UiPageManifestPaths.DefaultPath"/>。</summary>
+        public string PageManifestPath { get; }
+
         public UiValidationContext(string projectRoot,
             IReadOnlyList<string> sourceDirs = null,
             IReadOnlyList<string> assetPaths = null,
-            string bindManifestPath = null)
+            string bindManifestPath = null,
+            string ruleExceptionsPath = null,
+            string widgetManifestPath = null,
+            string pageManifestPath = null)
         {
             ProjectRoot = projectRoot;
             SourceDirs = sourceDirs ?? new List<string>();
             AssetPaths = assetPaths ?? new List<string>();
             BindManifestPath = bindManifestPath;
+            RuleExceptionsPath = ruleExceptionsPath;
+            WidgetManifestPath = widgetManifestPath;
+            PageManifestPath = pageManifestPath;
         }
     }
 

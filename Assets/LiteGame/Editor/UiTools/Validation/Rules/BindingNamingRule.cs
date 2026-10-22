@@ -23,7 +23,7 @@ namespace LiteGame.Editor.UiTools.Validation.Rules
     public sealed class BindingNamingRule : IUiRule
     {
         public string RuleId => "ui.binding-naming";
-        public string Family => "绑定";
+        public string Family => "命名/绑定";
 
         private static readonly Regex Grammar = new Regex(UiNamingWords.GrammarPattern);
 

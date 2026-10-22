@@ -32,15 +32,19 @@ namespace LiteGame.Editor.UiTools.Validation
         public const string WidgetsDir = "Assets/ShareResource/UI/Widgets";
         public const string HudDir = "Assets/ShareResource/UI/Hud";
 
-        /// <summary>规则族全表（§4 六族）。未实现的族以 <c>implemented=false</c> 登记，报告"待接入"栏。</summary>
+        /// <summary>规则族全表（设计 §6.2 九族 + 项目自定义「渲染/适配」）。未实现的族以 <c>implemented=false</c> 登记，报告"待接入"栏。</summary>
         public static readonly UiRuleFamily[] Families =
         {
-            new UiRuleFamily("绑定", true, "命名文法/前缀词表/私有件（§9.2/§9.4）+ 生成物 hash 对账（§2.1.5）——已接入；BindName 同文/同页同词/编号连续性待接入"),
-            new UiRuleFamily("资源", true, "表内资源路径存在性（.prefab/.unity 通用反射面——步 5 接入）；缺引用其余子项/收集组/图集字体名册/生产包排除待接入"),
+            new UiRuleFamily("结构", true, "页面根契约（Canvas/CanvasScaler/GraphicRaycaster/CanvasGroup + SafeAreaReceiver）——`ui.page-structure` 已接入"),
+            new UiRuleFamily("命名/绑定", true, "命名文法/前缀词表/私有件（§9.2/§9.4）+ 生成物 hash 对账（§2.1.5）——已接入；BindName 同文/同页同词/编号连续性待接入"),
+            new UiRuleFamily("契约", true, "缺 WidgetSpec（Error）、控件清单漂移、页面清单漂移——已接入；schema/controls 越界/文本双写待接入"),
+            new UiRuleFamily("样式", false, "裸颜色/裸字号/令牌不存在/字号阶梯/状态色硬编码"),
             new UiRuleFamily("文本", false, "key/占位符/语言列、富文本白名单、fallback 与缺字、样式覆盖"),
-            new UiRuleFamily("渲染/适配", true, "视觉单一来源（运行时不得构建视觉，§7）——首条已接入"),
-            new UiRuleFamily("行为", false, "复用视觉、输入穿透、焦点、列表重绑、语言变更、取消"),
+            new UiRuleFamily("布局/适配", false, "CanvasScaler 参数、锚点漂移、安全区、超宽屏溢出、布局嵌套过深"),
+            new UiRuleFamily("资源", true, "表内资源路径存在性（.prefab/.unity 通用反射面——步 5 接入）；缺引用其余子项/收集组/图集字体名册/生产包排除待接入"),
             new UiRuleFamily("性能", false, "rebuild/批次/GC/打开分段耗时（Profiler/Player，非静态正则）"),
+            new UiRuleFamily("行为", false, "复用视觉、输入穿透、焦点、列表重绑、语言变更、取消"),
+            new UiRuleFamily("渲染/适配", true, "视觉单一来源（运行时不得构建视觉，§7）——首条已接入"),
         };
 
         /// <summary>规则注册表（按此顺序执行；后续步逐条追加）。</summary>
@@ -50,6 +54,10 @@ namespace LiteGame.Editor.UiTools.Validation
             new BindingNamingRule(),
             new UiBindingHashRule(),
             new AssetTablePathRule(),
+            new PageStructureRule(),
+            new WidgetSpecRule(),
+            new WidgetManifestRule(),
+            new PageManifestRule(),
         };
 
         /// <summary>工程根（Assets 之上）。</summary>
@@ -61,12 +69,15 @@ namespace LiteGame.Editor.UiTools.Validation
             return Run(BuildDefaultContext());
         }
 
-        /// <summary>跑全部规则（显式上下文——测试可喂合成输入）。</summary>
+        /// <summary>跑全部规则（显式上下文——测试可喂合成输入）；结果应用例外登记并稳定排序。</summary>
         public static UiReport Run(UiValidationContext context)
         {
             var report = new UiReport();
             foreach (var family in Families) report.RegisterFamily(family);
             foreach (var rule in Rules) report.AddRange(rule.Check(context));
+
+            UiRuleExceptionSet.Load(context.RuleExceptionsPath ?? UiRuleExceptionSet.DefaultPath).Apply(report);
+            report.SortIssues();
             return report;
         }
 

@@ -14,7 +14,7 @@ namespace LiteGame.Editor.UiTools.Validation.Rules
     public sealed class UiBindingHashRule : IUiRule
     {
         public string RuleId => "ui.binding-hash";
-        public string Family => "绑定";
+        public string Family => "命名/绑定";
 
         public IEnumerable<UiIssue> Check(UiValidationContext context)
         {

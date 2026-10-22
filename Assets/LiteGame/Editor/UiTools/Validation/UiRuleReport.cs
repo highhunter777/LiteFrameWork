@@ -115,6 +115,21 @@ namespace LiteGame.Editor.UiTools.Validation
             if (family != null) _families.Add(family);
         }
 
+        /// <summary>稳定排序：按 (ruleId, asset, node, message) 序数比较——报告与 CI 输出可复现。</summary>
+        public void SortIssues()
+        {
+            _issues.Sort((a, b) =>
+            {
+                int cmp = string.CompareOrdinal(a.RuleId, b.RuleId);
+                if (cmp != 0) return cmp;
+                cmp = string.CompareOrdinal(a.Asset, b.Asset);
+                if (cmp != 0) return cmp;
+                cmp = string.CompareOrdinal(a.Node, b.Node);
+                if (cmp != 0) return cmp;
+                return string.CompareOrdinal(a.Message, b.Message);
+            });
+        }
+
         /// <summary>文本渲染（菜单 Debug.Log / CLI stdout 共用）。</summary>
         public string Render()
         {

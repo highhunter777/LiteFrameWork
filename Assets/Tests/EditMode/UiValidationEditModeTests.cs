@@ -78,7 +78,7 @@ namespace LiteGame.Tests.EditMode
             Assert.IsNotEmpty(pending, "未接入的族必须在报告里列出");
             Assert.Contains("文本", pending, "文本族未接入——须显式列出");
             Assert.IsFalse(pending.Contains("资源"), "资源族步 5 已接入（表内路径存在性）——不应再列待接入");
-            Assert.IsFalse(pending.Contains("绑定"), "绑定族已接入——不应再列待接入");
+            Assert.IsFalse(pending.Contains("命名/绑定"), "绑定族已接入——不应再列待接入");
             Assert.IsFalse(pending.Contains("渲染/适配"), "渲染/适配族已接入——不应再列待接入");
         }
 
@@ -99,7 +99,7 @@ namespace LiteGame.Tests.EditMode
         {
             var rule = new BindingNamingRule();
             Assert.AreEqual("ui.binding-naming", rule.RuleId);
-            Assert.AreEqual("绑定", rule.Family);
+            Assert.AreEqual("命名/绑定", rule.Family);
         }
 
         [Test]
@@ -110,15 +110,15 @@ namespace LiteGame.Tests.EditMode
                 AddChild(root, "Cot_Panel", typeof(RectTransform));
                 AddChild(root, "Txt_Title", typeof(RectTransform), typeof(TMPro.TextMeshProUGUI));
             });
-            Assert.AreEqual(0, ok.ErrorCount, "合法名不应报错：\n" + ok.Render());
+            Assert.AreEqual(0, ok.Issues.Count(i => i.RuleId == "ui.binding-naming" && i.Severity == UiSeverity.Error), "合法名不应报错：\n" + ok.Render());
 
             var bad = RunOnTempPrefab("Tmp_Fixture", root =>
             {
                 AddChild(root, "A_B_C", typeof(RectTransform));      // 多下划线
                 AddChild(root, "Lst_Foo", typeof(RectTransform));    // 自造段（非词表）
             });
-            Assert.AreEqual(1, bad.ErrorCount, "多下划线应报 Error：\n" + bad.Render());
-            Assert.AreEqual(1, bad.WarningCount, "自造段应报 Warning：\n" + bad.Render());
+            Assert.AreEqual(1, bad.Issues.Count(i => i.RuleId == "ui.binding-naming" && i.Severity == UiSeverity.Error), "多下划线应报 Error：\n" + bad.Render());
+            Assert.AreEqual(1, bad.Issues.Count(i => i.RuleId == "ui.binding-naming" && i.Severity == UiSeverity.Warning), "自造段应报 Warning：\n" + bad.Render());
         }
 
         [Test]
@@ -126,11 +126,11 @@ namespace LiteGame.Tests.EditMode
         {
             var page = RunOnTempPrefab("Page_Test", root =>
                 AddChild(root, "_Bg", typeof(RectTransform)));
-            Assert.AreEqual(1, page.ErrorCount, "页面节点 `_` 前缀应报 Error：\n" + page.Render());
+            Assert.AreEqual(1, page.Issues.Count(i => i.RuleId == "ui.binding-naming" && i.Severity == UiSeverity.Error), "页面节点 `_` 前缀应报 Error：\n" + page.Render());
 
             var tpl = RunOnTempPrefab("Tmp_Test", root =>
                 AddChild(root, "_Bg", typeof(RectTransform)));
-            Assert.AreEqual(0, tpl.ErrorCount, "模板内 `_` 私有件合法：\n" + tpl.Render());
+            Assert.AreEqual(0, tpl.Issues.Count(i => i.RuleId == "ui.binding-naming"), "模板内 `_` 私有件合法：\n" + tpl.Render());
         }
 
         // ---- 表内资源路径规则（步 5：资源族首条） ----
