@@ -18,6 +18,7 @@ namespace LiteClient
         F5,
         F6,
         F7,
+        F11,
         F12,
         Backspace,
         Enter,
@@ -110,6 +111,7 @@ namespace LiteClient
                 case DevKey.F5: return Key.F5;
                 case DevKey.F6: return Key.F6;
                 case DevKey.F7: return Key.F7;
+                case DevKey.F11: return Key.F11;
                 case DevKey.F12: return Key.F12;
                 case DevKey.Backspace: return Key.Backspace;
                 case DevKey.Enter: return Key.Enter;
@@ -129,6 +131,7 @@ namespace LiteClient
                 case DevKey.F5: return KeyCode.F5;
                 case DevKey.F6: return KeyCode.F6;
                 case DevKey.F7: return KeyCode.F7;
+                case DevKey.F11: return KeyCode.F11;
                 case DevKey.F12: return KeyCode.F12;
                 case DevKey.Backspace: return KeyCode.Backspace;
                 case DevKey.Enter: return KeyCode.Return;

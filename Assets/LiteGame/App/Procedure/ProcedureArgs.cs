@@ -18,7 +18,7 @@ namespace LiteGame
         /// Battle 离场时由 MatchSession/AccountSession 负责其域收尾）。</summary>
         public readonly AccountSession AccountSession;
 
-        /// <summary>测试房意图（`Main` 消费进房请求 → `Match` 读）：强制本地服 + 房号 Room-Test + 全房免死
+        /// <summary>本地测试模式意图（`Main` 消费进房请求 → `Match` 读）：强制本地服 + 房号 Room-Test + 全房免死
         /// （规则持有件 <see cref="LiteSim.MatchTestRules"/>——见 ProcedureMatch 入口口径）——开发/测试专用，正式包无该入口。</summary>
         public readonly bool TestRoom;
 

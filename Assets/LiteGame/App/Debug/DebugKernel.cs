@@ -19,19 +19,23 @@ namespace LiteGame
     {
         private static readonly string[] Sections =
         {
-            "commands", "options", "stats", "log", "diag", "battle", "audit",
+            "commands", "options", "stats", "tunables", "log", "diag", "battle", "audit",
         };
 
         private readonly CommandCenter _commands;
         private readonly IInputService _input;
         private readonly DebugStatsDiscovery _stats = new DebugStatsDiscovery();
+        private readonly DebugTunableDiscovery _tunables;
         private readonly Dictionary<Type, MethodInfo> _sendMethods = new Dictionary<Type, MethodInfo>(16);
         private bool _statsInitialized;
+        private bool _tunablesInitialized;
 
-        public DebugKernel(CommandCenter commands, IInputService input)
+        public DebugKernel(CommandCenter commands, IInputService input,
+            IEnumerable<IDebugTunableProvider> tunableProviders = null)
         {
             _commands = commands ?? throw new ArgumentNullException(nameof(commands));
             _input = input;
+            _tunables = new DebugTunableDiscovery(tunableProviders);
         }
 
         public IReadOnlyList<IModuleStats> Stats
@@ -53,6 +57,33 @@ namespace LiteGame
             }
         }
 
+        public IReadOnlyList<DebugTunable> Tunables
+        {
+            get
+            {
+                if (!_tunablesInitialized) RebuildTunables();
+                return _tunables.Tunables;
+            }
+        }
+
+        /// <summary>运行期快捷调参白名单：Sandbox/Presentation 且描述符显式标 RuntimeVisible；Product 不进运行期。</summary>
+        public IReadOnlyList<DebugTunable> RuntimeTunables
+        {
+            get
+            {
+                var list = new List<DebugTunable>(8);
+                IReadOnlyList<DebugTunable> all = Tunables;
+                for (int i = 0; i < all.Count; i++)
+                {
+                    DebugTunable tunable = all[i];
+                    if (!tunable.RuntimeVisible) continue;
+                    if (tunable.Scope == DebugTunableScope.Product) continue;
+                    list.Add(tunable);
+                }
+                return list;
+            }
+        }
+
         public IReadOnlyList<CommandAuditEntry> Audit => _commands.GetAuditLog();
         public IReadOnlyList<TestModeOptions.Info> Options => TestModeOptions.All;
         public IReadOnlyList<LogEntry> RecentLogs => Log.Recent;
@@ -70,7 +101,25 @@ namespace LiteGame
             _statsInitialized = true;
         }
 
-        public void PruneStats() => _stats.Prune();
+        public void PruneStats()
+        {
+            _stats.Prune();
+            _tunables.Prune();
+        }
+
+        public void RebuildTunables()
+        {
+            _tunables.Rebuild();
+            _tunablesInitialized = true;
+        }
+
+        public void PruneTunables() => _tunables.Prune();
+
+        public bool TrySetTunable(string id, float value, out string error)
+            => _tunables.TrySet(id, value, out error);
+
+        public bool ResetTunable(string id, out string error)
+            => _tunables.Reset(id, out error);
 
         public bool TrySnapshotStats(string statsName, Dictionary<string, string> into, out string error)
         {
@@ -208,7 +257,6 @@ namespace LiteGame
         public void RequestEnterTestMode() => TestModeRuntime.RequestEnter();
         public void RequestExitTestMode() => TestModeRuntime.RequestExit();
         public void RequestTeleport() => TestModeRuntime.RequestTeleport();
-        public void RequestDirect() => TestModeRuntime.RequestDirect();
 
         public IDisposable BlockInput(string name, string reason)
         {

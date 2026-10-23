@@ -45,13 +45,7 @@ namespace LiteGame
             {
                 _directEntryRequested = true;
                 TestModeRuntime.RequestEnter();
-                UnityEngine.Debug.Log("[Main] 直入训练场：请求测试模式对局（DevStartupConfig.DirectToTraining）");
-            }
-            if (TestModeRuntime.TakeDirectRequest())            // 开发控制台 request direct：原 F9 链（非测试房）
-            {
-                _pages?.CloseOpenPagesForBattle();
-                UnityEngine.Debug.Log("[Main] 直连对局：请求 Match（非测试房——真 KCP/本机服 Room-A）");
-                m.Request(ProcedureId.Match);
+                UnityEngine.Debug.Log("[Main] 直入训练场：请求本地测试模式对局（DevStartupConfig.DirectToTraining）");
             }
             if (TestModeRuntime.TakeEnterRequest())             // 开发控制台/GM 面板/直入 同一消费点（读即清）
             {
@@ -89,12 +83,11 @@ namespace LiteGame
             }
         }
 
-        /// <summary>启动落点决策（**单点**）：直入训练场 &gt; 本地服务器→大厅 &gt; Meta→登录页 &gt; 不开页。</summary>
+        /// <summary>启动落点决策（**单点**）：直入本地测试模式 &gt; Meta→登录页 &gt; 不开页。</summary>
         private PageFlow.Landing ResolveLanding()
         {
 #if UNITY_EDITOR || DEVELOPMENT_BUILD || LITEFRAMEWORK_DEBUG
             if (DevStartupConfig.DirectToTrainingEnabled) return PageFlow.Landing.None;
-            if (DevStartupConfig.UseLocalServerEnabled) return PageFlow.Landing.Lobby;
 #endif
             return _meta != null && _meta.IsConfigured ? PageFlow.Landing.Login : PageFlow.Landing.None;
         }

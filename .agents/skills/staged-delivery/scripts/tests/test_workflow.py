@@ -163,6 +163,10 @@ class WorkflowCliTest(unittest.TestCase):
         self.set_commands([PASS_COMMAND])
         self.fill_current_stage()
         self.advance()
+        self.fill_current_stage()
+        self.advance()
+        self.fill_current_stage()
+        self.advance(approve="tester")
         task_id = self.add_task()
         self.advance()
         self.fill_current_stage()
@@ -275,6 +279,10 @@ class WorkflowCliTest(unittest.TestCase):
         self.set_commands([PASS_COMMAND], red_commands=[PASS_COMMAND])
         self.fill_current_stage()
         self.advance()
+        self.fill_current_stage()
+        self.advance()
+        self.fill_current_stage()
+        self.advance(approve="tester")
         self.add_task()
         self.advance()
         self.fill_current_stage()
@@ -307,6 +315,10 @@ class WorkflowCliTest(unittest.TestCase):
         self.init()
         self.fill_current_stage()
         self.advance()
+        self.fill_current_stage()
+        self.advance()
+        self.fill_current_stage()
+        self.advance(approve="tester")
         self.add_task()
         self.advance()
         self.fill_current_stage()
@@ -317,7 +329,10 @@ class WorkflowCliTest(unittest.TestCase):
         self.assertIn("breakdown", result.stdout)
         state = self.status()
         self.assertEqual("breakdown", state["stage"]["id"])
-        self.assertEqual(["propose"], [item["id"] for item in state["completed_stages"]])
+        self.assertEqual(
+            ["propose", "review-plan", "confirm-acceptance"],
+            [item["id"] for item in state["completed_stages"]],
+        )
         log = (self.run_dir / "build-log.md").read_text(encoding="utf-8")
         self.assertIn("方案调整，重排任务", log)
 
@@ -349,6 +364,10 @@ class WorkflowCliTest(unittest.TestCase):
 
         self.fill_current_stage()
         self.advance()
+        self.fill_current_stage()
+        self.advance()
+        self.fill_current_stage()
+        self.advance(approve="tester")
         task_id = self.add_task()
         self.advance()
         self.fill_current_stage()
@@ -393,6 +412,26 @@ class WorkflowCliTest(unittest.TestCase):
         self.assertIn("待填写", self.output(blocked))
         self.fill_current_stage()
         self.advance()
+        self.assertEqual("review-plan", self.status()["stage"]["id"])
+
+        self.fill_current_stage()
+        plan_review_path = self.run_dir / "reviews" / "plan-review.md"
+        valid_plan_review = plan_review_path.read_text(encoding="utf-8")
+        tampered_plan_review = valid_plan_review.replace(
+            "评审方式: 独立子代理", "评审方式: 主代理自评"
+        )
+        self.assertNotEqual(valid_plan_review, tampered_plan_review)
+        plan_review_path.write_text(tampered_plan_review, encoding="utf-8")
+        blocked = self.advance(expect=1)
+        self.assertIn("评审方式", self.output(blocked))
+        plan_review_path.write_text(valid_plan_review, encoding="utf-8")
+        self.advance()
+        self.assertEqual("confirm-acceptance", self.status()["stage"]["id"])
+
+        self.fill_current_stage()
+        blocked = self.advance(expect=1)
+        self.assertIn("审批", self.output(blocked))
+        self.advance(approve="tester")
         self.assertEqual("breakdown", self.status()["stage"]["id"])
 
         blocked = self.advance(expect=1)
@@ -546,7 +585,7 @@ class WorkflowCliTest(unittest.TestCase):
         )
 
         self.init()
-        self.assertEqual(9, len(self.config()["stages"]))
+        self.assertEqual(11, len(self.config()["stages"]))
         artifact = (self.run_dir / "docs-check.md").read_text(encoding="utf-8")
         self.assertIn("## 文档范围", artifact)
         self.assertIn("## 检查结论", artifact)

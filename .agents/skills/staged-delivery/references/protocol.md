@@ -12,10 +12,12 @@
 │   └── <slug>/
 │       ├── state.json           # 机器状态，不要手改
 │       ├── plan.md
+│       ├── acceptance.md        # 用户确认验收标准
 │       ├── tasks.md             # 由 CLI 生成，不要手改
 │       ├── test-plan.md
 │       ├── build-log.md
 │       ├── reviews/
+│       │   ├── plan-review.md   # 独立子代理方案评审
 │       │   ├── task-review.md
 │       │   └── code-review.md
 │       └── evidence/
@@ -45,13 +47,15 @@
 常见默认阶段：
 
 1. `propose` 提出方案
-2. `breakdown` 实施任务清单
-3. `review-tasks` 评审任务
-4. `tests-first` 先写测试
-5. `implement` 正式施工
-6. `verify` 测试代码
-7. `review-code` 评审代码
-8. `writeback` 回写与收尾
+2. `review-plan` 子代理评审方案
+3. `confirm-acceptance` 用户确认验收标准（`approval: true`）
+4. `breakdown` 实施任务清单
+5. `review-tasks` 评审任务
+6. `tests-first` 先写测试
+7. `implement` 正式施工
+8. `verify` 测试代码
+9. `review-code` 子代理评审代码
+10. `writeback` 回写与收尾
 
 ## 3. 阶段门禁原语
 
@@ -67,7 +71,9 @@
 | `require_red_verification` | 配置了 `red_commands` 时，必须有“观察到预期失败”的证据；未配置时自动跳过 |
 | `approval` | 为 `true` 时，`advance` 必须携带 `--approve <审批人>` |
 
-审批只应来自用户或明确授权人。`approved_by` 会写入完成记录；不要把 `--approve` 当作自我盖章。
+审批只应来自用户或明确授权人。`approved_by` 会写入完成记录；不要把 `--approve` 当作自我盖章。默认配置中只有 `confirm-acceptance`（用户确认验收标准）设置了 `approval: true`——这一步的审批人就是用户本人。
+
+“子代理评审”不是脚本原语：CLI 无法替你开会话。它的守卫面是过程留痕——`review-plan` 与 `review-code` 的 `verdicts` 都要求 `评审方式: 独立子代理`，主代理自评无法通过门禁；评审人、子代理标识与评审输入写在评审产物的“评审输入”章节，供用户核对。
 
 ## 4. 产物与章节校验
 
@@ -105,7 +111,8 @@
 - 匹配形如 `- 结论: PASS` 或 `结论：PASS` 的行，取第一次匹配。
 - 比较前会去除常见 Markdown 标记、引号和尾部标点，并忽略大小写。
 - 报告结论时必须使用配置中的允许值；默认评审模板要求 `结论: PASS` 且 `阻塞问题: 0`。
-- 默认代码评审还要求 `通用性: PASS` 与 `扩展性: PASS`；任一字段不通过都会阻止进入回写阶段。
+- 默认方案评审（`reviews/plan-review.md`）还要求 `评审方式: 独立子代理` 与 `验收标准: PASS`——验收标准必须逐条可观察、可判定。
+- 默认代码评审还要求 `评审方式: 独立子代理`、`通用性: PASS` 与 `扩展性: PASS`；任一字段不通过都会阻止进入回写阶段。
 
 ## 5. 任务状态机
 

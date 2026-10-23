@@ -265,8 +265,11 @@ namespace LiteGame
                 case "battle":
                     AppendBattle();
                     break;
+                case "tune":
+                    DispatchTune(args);
+                    break;
                 case "request":
-                    if (!Require(args, 1, "request <enter|exit|teleport|direct>")) break;
+                    if (!Require(args, 1, "request <enter|exit|teleport>")) break;
                     Request(args[0]);
                     break;
                 case "undo":
@@ -297,10 +300,13 @@ namespace LiteGame
             Append("log [n]                    最近日志（默认 10）");
             Append("diag [n]                   DiagTrace（默认 8）");
             Append("battle                     对局诊断描述");
-            Append("request enter              进入测试模式（套 DevStartupConfig 快照）");
-            Append("request exit               退出测试模式");
-            Append("request teleport           传送到准心");
-            Append("request direct             直连对局（真 KCP/本机服）");
+            Append("tune                       列出可调参数（或 tune list [scope]）");
+            Append("tune <id>                  查看单项当前值/默认值/范围");
+            Append("tune <id> <value>          设置数值或 on/off");
+            Append("tune <id> reset            复位单项；tune resetall 复位全部");
+            Append("request enter              进入本地测试模式（Room-Test，套 DevStartupConfig 快照）");
+            Append("request exit               退出本地测试模式");
+            Append("request teleport           传送到准心（本地测试模式）");
             Append("undo / redo                命令撤销/重做");
             Append("clear                      清空输出");
             Append("F12 / Esc                   关闭控制台");
@@ -393,11 +399,138 @@ namespace LiteGame
         {
             switch (action)
             {
-                case "enter": _kernel.RequestEnterTestMode(); Append("已请求进入测试模式"); break;
-                case "exit": _kernel.RequestExitTestMode(); Append("已请求退出测试模式"); break;
+                case "enter": _kernel.RequestEnterTestMode(); Append("已请求进入本地测试模式"); break;
+                case "exit": _kernel.RequestExitTestMode(); Append("已请求退出本地测试模式"); break;
                 case "teleport": _kernel.RequestTeleport(); Append("已请求传送到准心"); break;
-                case "direct": _kernel.RequestDirect(); Append("已请求直连对局"); break;
-                default: AppendError("request 参数需为 enter/exit/teleport/direct"); break;
+                default: AppendError("request 参数需为 enter/exit/teleport"); break;
+            }
+        }
+
+        private void DispatchTune(string[] args)
+        {
+            if (args == null || args.Length == 0)
+            {
+                AppendTunables(null);
+                return;
+            }
+
+            string first = args[0];
+            if (string.Equals(first, "list", StringComparison.OrdinalIgnoreCase))
+            {
+                AppendTunables(args.Length > 1 ? args[1] : null);
+                return;
+            }
+            if (string.Equals(first, "resetall", StringComparison.OrdinalIgnoreCase))
+            {
+                IReadOnlyList<DebugTunable> all = _kernel.Tunables;
+                int ok = 0;
+                for (int i = 0; i < all.Count; i++)
+                    if (_kernel.ResetTunable(all[i].Id, out _)) ok++;
+                Append($"调参已复位 {ok}/{all.Count} 项");
+                return;
+            }
+
+            if (!TryFindTunable(first, out DebugTunable tunable))
+            {
+                AppendError("未找到调参项：" + first + "（tune 查看清单）");
+                return;
+            }
+            if (args.Length == 1)
+            {
+                AppendTunableDetail(tunable);
+                return;
+            }
+            if (string.Equals(args[1], "reset", StringComparison.OrdinalIgnoreCase))
+            {
+                if (_kernel.ResetTunable(tunable.Id, out string resetError))
+                    Append($"{tunable.Id} 已复位 = {DebugTunableText.Format(tunable, tunable.Get())}");
+                else
+                    AppendError(resetError);
+                return;
+            }
+            if (!DebugTunableText.TryParse(tunable, args[1], out float value, out string parseError))
+            {
+                AppendError(parseError);
+                return;
+            }
+            if (_kernel.TrySetTunable(tunable.Id, value, out string setError))
+                Append($"{tunable.Id} = {DebugTunableText.Format(tunable, tunable.Get())}");
+            else
+                AppendError(setError);
+        }
+
+        private void AppendTunables(string scopeText)
+        {
+            DebugTunableScope? scope = ParseScope(scopeText);
+            if (scopeText != null && scope == null)
+            {
+                AppendError("scope 需为 sandbox/presentation/product");
+                return;
+            }
+
+            IReadOnlyList<DebugTunable> all = _kernel.Tunables;
+            int shown = 0;
+            string group = null;
+            for (int i = 0; i < all.Count; i++)
+            {
+                DebugTunable tunable = all[i];
+                if (scope.HasValue && tunable.Scope != scope.Value) continue;
+                if (!string.Equals(group, tunable.Group, StringComparison.Ordinal))
+                {
+                    group = tunable.Group;
+                    Append("── " + group + " ──");
+                }
+                Append("  " + tunable.Id + " = " + DebugTunableText.Format(tunable, tunable.Get())
+                    + "  [" + ScopeName(tunable.Scope) + "] " + tunable.Label);
+                shown++;
+            }
+            if (shown == 0) Append(scope.HasValue ? "（该 scope 下无参数）" : "（无调参项）");
+        }
+
+        private void AppendTunableDetail(DebugTunable tunable)
+        {
+            Append("── " + tunable.Id + " ──");
+            Append("  分组: " + tunable.Group + " / " + tunable.Label);
+            Append("  当前: " + DebugTunableText.Format(tunable, tunable.Get())
+                + "  默认: " + DebugTunableText.Format(tunable, tunable.Default));
+            Append("  范围: " + DebugTunableText.Format(tunable, tunable.Min)
+                + " .. " + DebugTunableText.Format(tunable, tunable.Max));
+            Append("  scope: " + ScopeName(tunable.Scope)
+                + (tunable.RuntimeVisible ? " / 运行期可见" : " / 仅编辑器"));
+        }
+
+        private bool TryFindTunable(string id, out DebugTunable tunable)
+        {
+            IReadOnlyList<DebugTunable> all = _kernel.Tunables;
+            for (int i = 0; i < all.Count; i++)
+                if (string.Equals(all[i].Id, id, StringComparison.OrdinalIgnoreCase))
+                {
+                    tunable = all[i];
+                    return true;
+                }
+            tunable = null;
+            return false;
+        }
+
+        private static DebugTunableScope? ParseScope(string text)
+        {
+            if (string.IsNullOrEmpty(text)) return null;
+            switch (text.Trim().ToLowerInvariant())
+            {
+                case "sandbox": return DebugTunableScope.Sandbox;
+                case "presentation": return DebugTunableScope.Presentation;
+                case "product": return DebugTunableScope.Product;
+                default: return null;
+            }
+        }
+
+        private static string ScopeName(DebugTunableScope scope)
+        {
+            switch (scope)
+            {
+                case DebugTunableScope.Presentation: return "表现";
+                case DebugTunableScope.Product: return "产品";
+                default: return "沙箱";
             }
         }
 

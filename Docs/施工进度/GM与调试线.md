@@ -25,6 +25,13 @@
 | 13 | 调试组件职责拆分（DebugTuner → DevStartupConfig） | — |
 | 14 | 统一调试内核与运行期控制台（F12） | — |
 | 15 | 开发页退役与开发控制台 UI Toolkit 化 | — |
+| 16 | 测试房语义统一与普通房结算 | — |
+| 17 | 测试路径收口：退役直连对局（Room-A / TestToken） | — |
+| 18 | 常用调试面板（F11，UI Toolkit） | — |
+| 19 | 通用调参注册表与编辑器「调试参数」页 | — |
+| 20 | 运行期调参面（F12 tune + F11 白名单）与 scope 策略 | — |
+| 21 | 产品参数定档（准心与视角 8 项） | — |
+| 22 | 武器试验参数运行期调参（伤害/射速） | — |
 
 ---
 
@@ -796,3 +803,323 @@
 
 - 控制台 UI Toolkit 面板位于产品 uGUI Overlay 之下：全屏产品页（设置等）打开时会盖住底部面板，命令仍可执行；已在设计文档与调试手册登记。
 - 无资产/数据迁移；退役面可从 git 还原三个文件与 Boot 场景两处序列化内容。
+
+## 第16章 测试房语义统一与普通房结算
+
+<a id="ch16-test-room-semantics"></a>
+
+> 2026-10-23。**状态：进行中**——代码/客户端门禁完成；云侧配置尚未上传重启，GM 页实际建房需在云环境手测（本机无 Meta 登录/口令，不伪造结论）。
+
+范围：用户裁决“普通房验结算、`sandbox` 显式建测试房；测试房由开发者选图；统一测试模式/测试房相关语义”。
+
+### 交付面
+
+| 件 | 变更 |
+|---|---|
+| `deploy/roomserver.windows.json` | `default_template` 由 `sandbox` 改为 `standard`（普通房恢复结算）；`rooms.sandbox` 保留为云端测试房模板 |
+| `Assets/LiteGame/App/Meta/MetaEntryService.cs` | 新增 `TestRoomTemplate = "sandbox"` 与显式 `CreateRoomAsync(mapId, expectedPlayers, template, gmKey)` 重载；普通建房空模板/口令归一为 null（请求体与旧行为一致） |
+| `Assets/LiteGame/App/Bootstrap/ContainerModule.cs` | 注册 `MetaEntryService` 供编辑器 GM 页取件（主消费者仍是 `MetaBridge`） |
+| `Assets/LiteGame/Editor/Gm/GmTestModePage.cs` | 页标题改“本地测试模式”；新增「云端测试房（sandbox）」块：地图下拉（`tbmap` 全行）+「创建并进入云端测试房」；成功后房号回填 GM 规则区；GM 规则块仅对云端测试房 |
+| `Assets/LiteGame/DevTool/DebugConsole.cs`、`TestModeRuntime.cs`、`DevStartupConfig.cs` 等 | 术语统一：`request enter`/GM 按钮 = 本地测试模式（Room-Test）；云端测试房 = sandbox 隐藏房；直连对局 = 本地 Room-A |
+| `scripts/gate/toolchain.json` | GM 页标题改「本地测试模式」、摘要补云端测试房创建/选图 |
+
+### 语义口径（现行）
+
+| 名称 | 形态 | 结算 | 入口 |
+|---|---|---|---|
+| **本地测试模式** | 本进程内本地服 `Room-Test` | 不产结算 | F12 `request enter` / GM 页按钮 / `DirectToTraining` |
+| **云端测试房** | 云端隐藏房 `template=sandbox`，真 KCP | 不产结算 | GM 页选图 → 创建并进入（开发者专属） |
+| **普通房** | 云端可见房 `default_template=standard` | **会结算** | 大厅选图/人数 → 创建房间 |
+| **直连对局** | 本地 `Room-A`，真 KCP（无 Meta） | 视本地服配置 | F12 `request direct` |
+
+### 验证证据
+
+| 项 | 结果 |
+|---|---|
+| Unity 编译 | `recompile_status` → completed / 0 错 |
+| EditMode | `MetaEntryEditModeTests` **17/17 PASS**（新增「显式模板建房_不依赖部署注入_携带地图与口令」；原“未配置请求体不变”回归通过） |
+| L1 | `python scripts/gate/test.py --lane L1 --profile PullRequest` → **1819/1819 PASS**（并行 UI 会话夹具清理后复跑通过） |
+| Play：数据面 | 真实 Play 探针：`tbmap rows=2`（地图下拉可用）、`MetaEntryService=in-container`、`IsConfigured=True`、未登录时创建按钮按空态禁用 |
+| Play：建房 | 待云环境手测（需 Meta 登录 + `room.gmkey`；本机未登录，不伪造结论） |
+| Doc | `doc-lint.py` → 0 violation / 0 warning |
+
+### 边界与待办
+
+- **云上配置未发布**：仓库已改 `default=standard`，但云上实例仍按旧 `default=sandbox` 运行；需在用户明确授权后上传 `deploy/roomserver.windows.json` 并重启 `LiteGame-Room`，横幅变为 `default=standard` 才生效。
+- 云端测试房每次加入都要求 `template=sandbox` + `room.gmkey`；测试者包不带口令 ⇒ 测试者不能创建/加入云端测试房，日常联机走普通房。
+- `sandbox` 永不自然结束且不产结算；测试房用完需 GM abort / 离线清理，`max_rooms=8`。
+
+## 第17章 测试路径收口：退役直连对局（Room-A / TestToken）
+
+<a id="ch17-retire-direct-match"></a>
+
+> 2026-10-23。**状态：已完成（附验证证据）**——直连入口/TestToken/UseLocalServer 已删除；本地测试模式 Play 已复验。本地全链需起 Meta/Mongo，本批未执行。
+
+范围：用户裁决“退役 `request direct` 和 `TestToken` 直连链，只留本地测试模式（进程内）、本地全链（Meta+Room）、云端普通房/测试房”。
+
+### 交付面
+
+| 件 | 变更 |
+|---|---|
+| `Assets/LiteGame/DevTool/DebugConsole.cs` | 删除 `request direct` 帮助/派发/usage；`request` 只接受 `enter/exit/teleport` |
+| `Assets/LiteGame/App/Debug/DebugKernel.cs` | 删除 `RequestDirect()` |
+| `Assets/LiteGame/App/Debug/TestModeRuntime.cs` | 删除 `_directRequested` / `RequestDirect` / `TakeDirectRequest` |
+| `Assets/LiteGame/App/Procedure/ProcedureMain.cs` | 删除 `TakeDirectRequest` 消费块；启动落点不再有“本地服务器→大厅”分支 |
+| `Assets/LiteGame/App/Procedure/ProcedureMatch.cs` | 删除 `Room-A`/`TestToken`；免票据入口只允许 `testRoom:true`（进程内 Room-Test，空 token）；非 Meta 的非测试进房显式失败；`CreateTransportForFactory` 只把 `testRoom` 映射到 `LocalServerTransport`，其余一律真 KCP |
+| `Assets/LiteGame/App/Debug/DevStartupConfig.cs` + `Boot.unity` | 删除 `UseLocalServer` 字段/静态镜像/发布行与场景序列化值（直连链的进程内回退随之退役） |
+| `Assets/Tests/EditMode/DebugKernelEditModeTests.cs` | 删除 `TakeDirectRequest` 夹具清理 |
+| 文档 | 07 把直连路径 B 标记退役、本地全链改为 B；09/12/13/01/README/代码地图/修改指南同步；审计登记追加退役条目 |
+
+### 验证证据
+
+| 项 | 结果 |
+|---|---|
+| Unity 编译 | `recompile_status` → completed / 0 错 |
+| L1 | `python scripts/gate/test.py --lane L1 --profile PullRequest` → **1819/1819 PASS** |
+| DebugKernel EditMode | **17/17 PASS**（含新增 `直连测试身份_已退役` 守卫） |
+| Play：本地测试模式 | F12 → `request enter` → `TestModeRuntime.Active=True`、`Hud_Battle` 在场、场景 `Boot,BattleRig,TrainingGround`（空 token 的进程内 Room-Test 进房正常） |
+| Play：本地全链 | 未执行（需 `local-chain.py` 起 Meta/Mongo/Room 并登录） |
+| Doc | `doc-lint.py` → 0 violation / 0 warning |
+
+### 边界
+
+- 本地测试模式仍使用 `TestHost/TestPort` 作为**占位端点**（`LocalServerTransport` 不建 Socket），token 传空字符串；服务端 token 非空校验不适用于进程内形态。
+- 本地真 KCP 只走 Meta 票据（本地全链/云端）；服务端带票据门禁后不会再接受测试身份。
+- `Boot.unity` 的 `DirectToTraining` 保持不变；`UseLocalServer` 序列化值已清除。
+
+## 第18章 常用调试面板（F11，UI Toolkit）
+
+<a id="ch18-debug-panel"></a>
+
+> 2026-10-23。**状态：已完成（附验证证据）**——用户裁决“控制台交互麻烦，只把常用调试项放到面板”；本批不建通用调参 schema。
+
+范围：新增 F11 常用调试面板，动作与即时开关全部经 `DebugKernel`；任意命令仍走 F12 控制台。
+
+### 交付面
+
+| 件 | 变更 |
+|---|---|
+| `Assets/LiteGame/DevTool/DebugPanel.cs` | 新增：F11 自创建覆盖件；本地测试模式进入/退出/传送 + `TestModeOptions` Live 开关；输入拦截 `debug.panel`；内核延迟绑定；release 三宏剥离 |
+| `Assets/LiteGame/DevTool/DebugPanelUiToolkitHost.cs` | 新增：UI Toolkit 顶部右侧面板；运行时 `PanelSettings`（`sortingOrder=10200`）+ 内联样式；选项行短名 + 完整说明 tooltip；无 ThemeStyleSheet 依赖 |
+| `Assets/LiteClient/Adapters/Platform.Unity/Dev/DevHotkey.cs` | 新增 F11（Input System 与旧 Input 两路映射） |
+| 文档 | 13 手册 §1.1/§2.8、14 能力地图、GM 分层设计 §5/§7、01/README、代码地图同步 |
+
+### 设计口径
+
+- **只放常用项**：面板动作=本地测试模式进入/退出/传送到准心；开关=`TestModeOptions` 的 `Live` 组（不展示 Startup 项，进房初值仍在 `DevStartupConfig`）。
+- **单一内核**：按钮点击 → `DebugKernel.Request*` / `TrySetOption`；不直调业务服务、不另拼读数。
+- **无通用 schema**：选项列表来自 `TestModeOptions.All`；无需新增调参注册表；F12 仍负责任意命令/带参命令的发现与专面板提示。
+
+### 验证证据
+
+| 项 | 结果 |
+|---|---|
+| Unity 编译 | `recompile_status` → completed / 0 错 |
+| L1 | `python scripts/gate/test.py --lane L1 --profile PullRequest` → **1819/1819 PASS** |
+| DebugKernel EditMode | **17/17 PASS**（含直连退役守卫） |
+| Play：F11 | 真实 Input System F11 打开；`[DebugPanel-UI]` 在场；按钮数 9（3 动作 + 6 个 Live 开关） |
+| Play：开关联动 | UI Toolkit `Clickable.Invoke` 点击「无限子弹」：`InfiniteAmmo 0 → 1`，再次点击恢复 0；状态行显示 `本地测试模式：关 · 即时开关走本进程` |
+| 截图 | `AgentScripts/Artifacts/debug-panel.png`（顶部右侧面板；选项短名不重叠） |
+| 未做 | OS 级鼠标坐标注入在 Editor 未命中（InputSystem→UI Toolkit 坐标偏移）；真机/Player 的可点性归运行期验证；本地测试模式 Play 另见第17章 |
+
+### 边界
+
+- 面板只做常用动作/即时开关；不带参命令、云侧测试房创建仍在 GM 页/F12；F8 UI 运行时调试面仍是独立目标。
+- 面板与 DevHUD/控制台共用 UI Toolkit 运行时面板与字体单源；未引入 dev-only ThemeStyleSheet，因此不用标准 Toggle/ScrollView 控件。
+
+## 第19章 通用调参注册表与编辑器「调试参数」页
+
+<a id="ch19-debug-tunables"></a>
+
+> 2026-10-23。**状态：已完成（附验证证据）**——用户裁决“抽通用注册表；编辑器面板”；本批把现有手写调参块迁入描述驱动页面。
+
+范围：`DebugTunable` 描述 + `IDebugTunableProvider` 发现（容器 + 场景）+ `DebugKernel.Tunables/TrySetTunable/ResetTunable` + Hub 第七页「调试参数」；迁移爆头区/持枪幅度/准心/视角灵敏度/时间事件。
+
+### 交付面
+
+| 件 | 变更 |
+|---|---|
+| `Assets/LiteGame/App/Debug/DebugTunable.cs` | 描述符（Id/Group/Label/Kind/Scope/Default/Min/Max/Get/Set/Reset）+ provider 接口 |
+| `Assets/LiteGame/App/Debug/DebugTunableDiscovery.cs` | 容器 + 场景 provider 合并、Id 去重、Group/Label 排序、销毁件剪枝 |
+| `Assets/LiteGame/App/Debug/FeatureDebugTunables.cs` | 静态功能 provider：爆头/持枪/准心/视角；默认值来自烘焙/表/机制常量 |
+| `Assets/LiteGame/App/Debug/DebugRuntimeTuner.cs` | 实现 provider：时间同步/世界倍率/暂停/UI 暂停/事件严格模式 |
+| `Assets/LiteGame/App/Debug/DebugKernel.cs` | 新增 `Tunables` / `RebuildTunables` / `PruneTunables` / `TrySetTunable` / `ResetTunable`；读段 `tunables` |
+| `Assets/LiteGame/App/Bootstrap/ContainerModule.cs` | 注入 `FeatureDebugTunables` 到内核 |
+| `Assets/LiteGame/Editor/Gm/GmDebugTunablesPage.cs` | 新 GM 页：分组/过滤/开关/滑杆/复位/scope 标记；默认值来自描述 |
+| `Assets/LiteGame/Editor/Gm/GmTestModePage.cs` | 移除已迁移的爆头/持枪/准心/视角滑杆；保留爆头导出与 FOV 编辑器独占块 |
+| `Assets/LiteGame/Editor/Toolchain/EditorToolHandlers.cs`、`scripts/gate/toolchain.json` | 注册 `debug.tunables` 页（第七页） |
+| 文档 | 13 手册 §3.4、GM 分层设计 §4/§7、14 能力地图、工具索引同步 |
+
+### 迁移口径
+
+- **爆头区/持枪幅度/准心/视角灵敏度与 ADS 收敛/时间事件** → 「调试参数」页；`Reset` 清除覆写回源值。
+- **保留本地测试模式页**：爆头区导出 `HeadBake.g.cs`（编辑器独占动作）、FOV 试调（场景 rig 值）。
+- 连续/开关参数直调 provider setter；不强制命令化（不刷审计）。`Product` scope 目前无条目，供未来转正参数使用。
+
+### 验证证据
+
+| 项 | 结果 |
+|---|---|
+| Unity 编译 | `recompile_status` → completed / 0 错 |
+| DebugKernel EditMode | **18/18 PASS**（新增 `调参发现_按描述读写与复位`） |
+| L1 | `python scripts/gate/test.py --lane L1 --profile PullRequest` → **1819/1819 PASS** |
+| Play：注册表 | 真实 Play 探针：**16 项**（准心 6/时间事件 5/爆头 2/视角 2/持枪 1）；`time.world-scale` set 0.5 → reset 成功 |
+| Play：编辑器页 | Hub 选中「调试参数」页，显示 provider 自动发现说明、过滤、准心参数分组与滑杆行；截图 `AgentScripts/Artifacts/tunables-hub.png` |
+| Doc | `doc-lint.py` → 0 violation / 0 warning |
+
+### 边界
+
+- 默认值单源在功能 provider（烘焙/表/机制常量）；页面不写字面量默认值。
+- 参数只在本机运行时覆写，不落盘、不进摘要；release 三宏剥离。
+- FOV/爆头导出仍留本地测试模式页（编辑器独占/场景值），不强行塞进通用调参模型。
+
+## 第20章 运行期调参面（F12 tune + F11 白名单）与 scope 策略
+
+<a id="ch20-runtime-tunables"></a>
+
+> 2026-10-23。**状态：已完成（附验证证据）**——F12 `tune` 全量可调；F11 只放 `RuntimeVisible` 白名单；Product 默认不进运行期。
+
+范围：把第19章的调参注册表接到运行期；不新增注册表/不复制默认值。
+
+### 交付面
+
+| 件 | 变更 |
+|---|---|
+| `Assets/LiteGame/App/Debug/DebugTunable.cs` | 增 `Tags`、`Decimals`、`RuntimeVisible`；`Scope` 作为可见性/写入策略 |
+| `Assets/LiteGame/App/Debug/DebugTunableText.cs` | Bool/Float 文本格式与解析单源（InvariantCulture） |
+| `Assets/LiteGame/App/Debug/DebugTunableDiscovery.cs` | 范围/默认值/Bool 0..1/重复 Id 校验；`Decimals` 夹取 |
+| `Assets/LiteGame/App/Debug/DebugKernel.cs` | `RuntimeTunables`（白名单 ∩ 非 Product）；`PruneStats` 连带剪枝 |
+| `Assets/LiteGame/DevTool/DebugConsole.cs` | `tune` / `tune list [scope]` / `tune <id> [value|reset]` / `tune resetall` |
+| `Assets/LiteGame/DevTool/DebugPanel.cs`、`DebugPanelUiToolkitHost.cs` | F11「快捷调参」区：自定义滑杆/开关/复位；只读 `RuntimeTunables` |
+| 参数标记 | 6 项运行期白名单：世界时间倍率/世界暂停/爆头线下沿/持枪跟随强度/准心静态满张/视角灵敏度 |
+| 文档 | 13 手册 §2.7/§2.8/§3.4、14 能力地图、GM 分层设计 §5/§7 |
+
+### scope 策略（现行）
+
+| scope | 编辑器页 | F11 | F12 tune | 持久化/摘要 |
+|---|---|---|---|---|
+| Sandbox | ✅ | 需 `RuntimeVisible` | ✅ | 否/否 |
+| Presentation | ✅ | 需 `RuntimeVisible` | ✅ | 否/否 |
+| Product | ✅（警告） | ❌ | 显式 `tune list product` 可看 | 否（定档后迁表/配置） |
+
+### 参数规模管理（约定）
+
+- Id：`group.item`（如 `head.line`、`crosshair.static`）；Group 分组、Tags 检索。
+- 功能各自 `IDebugTunableProvider`，不维护中央手写清单；重复 Id 由 discovery 告警并忽略后者。
+- F11 只放现场能解释的少量参数（当前 6 项）；长尾/未定型参数只进编辑器页。
+- `Product` 默认不进运行期，避免临时值变成事实默认值；定档后把默认值迁到表/配置。
+
+### 验证证据
+
+| 项 | 结果 |
+|---|---|
+| Unity 编译 | `recompile_status` → completed / 0 错 |
+| DebugKernel EditMode | **20/20 PASS**（新增运行期白名单/Product 排除、Bool/Float 文本解析） |
+| Play：注册表 | `16` 项总表，`RuntimeTunables=6` |
+| Play：F12 | 真实键盘：`tune list` 含 `time.world-scale`/scope；`tune time.world-scale 0.5` → 0.5；`tune time.world-scale reset` → 1 |
+| Play：F11 | 面板 17 个按钮（3 动作 + 快捷调参 header/6 行 + 6 开关）；Bool「世界暂停」点击翻转并恢复；截图 `AgentScripts/Artifacts/debug-panel-tunables.png` |
+| L1 | `python scripts/gate/test.py --lane L1 --profile PullRequest` → **1819/1819 PASS** |
+| Doc | `doc-lint.py` → 0 violation / 0 warning |
+
+### 边界
+
+- F11 滑杆为自绘控件（无 ThemeStyleSheet）；OS 级指针坐标注入在 Editor 未命中，真机/Player 可点性待验；Bool 按钮已用 `Clickable` 验证。
+- `tune` 不落盘、不进摘要；`Product` 参数显式可见但仍无持久化/命令审计。
+- 参数很多时靠 Id/Group/Tags + 运行期白名单管理，不做“全部参数都上 F11”。
+
+## 第21章 产品参数定档（准心与视角 8 项）
+
+<a id="ch21-product-tunables"></a>
+
+> 2026-10-23。**状态：已完成（附验证证据）**——用户追问“目前有产品参数吗”后裁决“现在定一些”：把默认值仍写在代码常量里的准心/视角参数标为 `Product`，作为待迁表/配置的定档项。修正第 19 章“Product scope 目前无条目”与第 20 章“Product 0 项”的结论。
+
+范围：只改 provider 的 scope 标记与 `RuntimeVisible`，不新增注册表、不改读写链路。
+
+### 定档口径
+
+判据（回写设计 §7）：**默认值仍写在代码常量、定档后应迁表/配置** 的参数标 `Product`；默认值已由烘焙产物提供的参数不标——其 tunable 只是运行态试验覆写。
+
+| scope | 项数 | 参数 | 判据 |
+|---|---:|---|---|
+| Sandbox | 7 | 爆头区 2（`head.line`/`head.radius`）、时间/事件 5 | 调试期试验；爆头默认已来自 `HeadBake` 烘焙 |
+| Presentation | 1 | 持枪幅度（`grip.torso`） | 纯表现；默认已来自 `GripBake` 烘焙 |
+| Product | 8 | 准心 6（`crosshair.*`）、视角 2（`look.sensitivity`/`look.ads-scale`） | 默认值仍为代码常量（`CrosshairFeel.Default`、`BattleViewRig` 常量），定档后迁表/配置 |
+
+- `Product` 项不再声明 `RuntimeVisible`：F11 快捷调参由 6 项收为 4 项（换弹跟随强度/世界时间倍率/世界暂停/爆头线下沿）。
+- F12 `tune` 仍可按 Id 读写全部 16 项；`tune list product` 显式列出 8 项，写入仍受范围校验。
+- 编辑器「调试参数」页照常全量渲染，Product 项带 `[产品]` 前缀且页尾给迁回表/配置警告。
+
+### 交付面
+
+| 件 | 变更 |
+|---|---|
+| `Assets/LiteGame/App/Debug/FeatureDebugTunables.cs` | 准心 6 项 + 视角 2 项 `Scope=Product`；撤销 `crosshair.static`/`look.sensitivity` 的 `RuntimeVisible` |
+| `Assets/Tests/EditMode/DebugKernelEditModeTests.cs` | 新增 `产品参数_准心与视角已定档且不进运行期白名单`（Product 集合/无 RuntimeVisible/计数守卫） |
+| `AgentScripts/TunableProbe.cs`、`PanelCloseProbe.cs` | Play 探针补 RuntimeTunables/白名单输出与 F11 关闭收尾（非入库脚本） |
+| 文档 | 13 手册 §3.4、GM 分层设计 §5/§7 现行口径回写 |
+
+### 验证证据
+
+| 项 | 结果 |
+|---|---|
+| Unity 编译 | `recompile_status` → completed / 0 错 |
+| DebugKernel EditMode | **21/21 PASS**（新增产品参数守卫） |
+| L1 | `python scripts/gate/test.py --lane L1 --profile PullRequest` → **1819/1819 PASS** |
+| Play：注册表 | `Tunables=16` / `RuntimeTunables=4`；Product 8 项全部 `visible=False`；`time.world-scale` set 0.5 → reset 成功 |
+| Play：F11 | 面板 15 个按钮（3 动作 + 快捷调参 header/4 行 + 6 开关）；Bool「无限子弹」Clickable 翻转并恢复；截图 `AgentScripts/Artifacts/debug-panel-tunables4.png` |
+| Doc | `python scripts/gate/doc-lint.py` → 0 violation / 0 warning |
+
+### 边界
+
+- 定档只改标记与运行期可见性；F12/编辑器仍可临时覆写，覆写不落盘、不进摘要、release 三宏剥离。
+- **迁表/配置尚未实施**：届时把准心/视角默认值单源移到表/配置，并同步改造 provider 默认值来源；本批只完成“标注 Product + 隔离运行期”。
+- F11 不再显示准心/视角参数；运行期调试这两组走 F12（`tune <id>`）或编辑器页。
+- F11 滑杆的 OS 级指针可点性仍待真机/Player 验证（同第 20 章边界）。
+
+## 第22章 武器试验参数运行期调参（伤害/射速）
+
+<a id="ch22-weapon-tunables"></a>
+
+> 2026-10-23。**状态：已完成（附验证证据）**——用户裁决“按第二条开工”：枪械数值本体不进调参注册表（已是 `#weapon.xlsx` 表数据），但给本地测试模式加**运行期试验覆写**（伤害/射速起步）。修正第 21 章“18 项未含武器参数”时的基数（16→18）与 F11 白名单（4→6）。
+
+范围：`MatchTestRules` 实例覆写（R13 口径）+ 武器试验 provider；**动共享源（`Assets/LiteSim/Core`）→ BuildHash 重算**。
+
+### 交付面
+
+| 件 | 变更 |
+|---|---|
+| `Assets/LiteSim/Core/Scripts/MatchTestRules.cs` | 增 `DamageOverride`/`RpmOverride`（不进摘要、不可重放）+ 解析口 `ResolveWeaponDamage`/`ResolveFireIntervalFrames`（null/未覆写恒表值） |
+| `Assets/LiteSim/Core/Systems/WeaponSystem.cs` | `TryConsumeShot` 击发节拍走解析口（rpm 覆写按 `ceil(TickRate×60/rpm)` 重算，不改表定义） |
+| `Assets/LiteSim/Core/Systems/ShootingSystem.cs` | `baseDamage`（已装备武器）走解析口 |
+| `Assets/LiteGame/App/Debug/TestModeRuntime.cs` | 增 `WeaponDamageOverride`/`WeaponRpmOverride` 跨局待用值 |
+| `Assets/LiteGame/App/Debug/WeaponDebugTunables.cs`（新） | `weapon.damage`/`weapon.rpm`（Sandbox、RuntimeVisible、默认值来自武器表 `WeaponConfig.Default`，复位清 -1 回表值；活动局 + 待用值双落） |
+| `Assets/LiteGame/App/Bootstrap/ContainerModule.cs` | 注入 `WeaponDebugTunables` 到内核 |
+| `Assets/LiteGame/App/Procedure/ProcedureMatch.cs` | 进房种子（TestModeRuntime 待用值 → MatchTestRules，同爆头带覆写链） |
+| 测试 | `WeaponSystemTests` +2（解析口语义 / 开火链消费覆写节拍）；`DebugKernelEditModeTests` +1（发现/写口/待用值双落） |
+| 文档 | 13 手册 §3.4（18 项 / Sandbox 9 / F11 6 项） |
+
+### 口径
+
+- 覆写**只对本地测试模式生效**（同爆头带覆写：待用值 → 进房种子；真服务器无此链——房间级在线下发未做）。
+- 覆写不进 `CombatValues` 摘要、不可重放；机制只读注入实例（R13），静态待用值仅调参工具读写。
+- 定档仍走 `Luban/Data/#weapon.xlsx`（改表 → `Luban/gen.bat` → 数据面运行期摘要比对）；本覆写只作运行期试验。
+- 覆写对**全武器**生效（不分武器行）；标签“默认步枪”指默认值/范围的显示来源。
+
+### 验证证据
+
+| 项 | 结果 |
+|---|---|
+| BuildHash | `gen-build-hash.py` → shared=`0a998c8ac6c9de89`（110 files）/ meta=`a149cc4b1906e9f7`；Play 主菜单版本号同值 |
+| Unity 编译 | `recompile_status` → completed / 0 错 |
+| DebugKernel EditMode | **22/22 PASS**（新增 `武器试验参数_发现写口与待用值双落`） |
+| L1 | `python scripts/gate/test.py --lane L1 --profile PullRequest` → **1821/1821 PASS**（+2 武器覆写用例） |
+| Play：注册表 | `Tunables=18` / `RuntimeTunables=6`；`weapon.damage=16`、`weapon.rpm=600`（Sandbox）入白名单；`time.world-scale` set/reset 正常 |
+| Play：F11 | 面板 17 按钮（3 动作 + header/6 行 + 6 开关），武器两行在列；Bool「无限子弹」Clickable 翻转并恢复；截图 `AgentScripts/Artifacts/debug-panel-weapon-tunables.png` |
+| Doc | `python scripts/gate/doc-lint.py` → 0 violation / 0 warning |
+
+### 边界
+
+- 只做伤害/射速两项；散布/弹匣/换弹时长等如需运行期试验，再扩 `MatchTestRules` 字段与 provider（同模式）。
+- 房间级 GM 下发未做（同爆头带覆写“在线下发未做”挂账）——云端普通房/测试房无此覆写链。
+- F11 滑杆 OS 级指针可点性仍待真机/Player 验证（同第 20/21 章边界）。
+- 共享源改动已重算 BuildHash；两端构建需同哈希重建后才可联机（出包门禁 `--check` 兜底）。

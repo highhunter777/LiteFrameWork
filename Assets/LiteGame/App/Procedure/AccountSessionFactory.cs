@@ -8,7 +8,7 @@ namespace LiteGame
     /// <summary>
     /// Account 域会话工厂（《客户端依赖注入专项设计》§6 服务作用域）：把动态进房参数变成可移交的
     /// <see cref="AccountSession"/>——**类型化工厂**（不用裸 new + 手工拼作用域散落进流程）。
-    /// 传输选择经构造注入的委托由**产品装配根**决定（测试房/真 KCP 的裁决归
+    /// 传输选择经构造注入的委托由**产品装配根**决定（本地测试模式/真 KCP 的裁决归
     /// <see cref="ProcedureMatch.CreateTransportForFactory"/>——本类不认识测试开关语义）。
     ///
     /// **零引擎依赖**（ClientScope/ServiceContainer/BattleClient/IClientTransport 皆 L1 可编）：
@@ -33,7 +33,7 @@ namespace LiteGame
         public ServiceContainer Services { get; }
         public BattleClient Battle { get; }
 
-        /// <summary>测试房/本地房标记（进房入口带入；**每局规则**用——`SimTestRules` 免死/无限子弹
+        /// <summary>本地测试模式/本地房标记（进房入口带入；**每局规则**用——`SimTestRules` 免死/无限子弹
         /// 的入口语义）。多图批后**不再承担地图选行**：本局地图行键以 JoinAck 权威事实为准
         /// （`RoomClient.MapId` → `BattleScenes.ResolveMapId`）。</summary>
         public bool TestRoom { get; }

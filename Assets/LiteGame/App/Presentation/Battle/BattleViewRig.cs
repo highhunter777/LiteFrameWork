@@ -71,12 +71,12 @@ namespace LiteGame
         /// <summary>视角灵敏度（弧度/像素）——机制初档常量单源：0.0025 ≈ 0.14°/px，1440px 横扫 ≈ 206°
         /// （约三分之一圈，主流 TPS 鼠标灵敏度中位起点）；ADS 档缩放与 GM/Inspector 调参面随 T6 落位
         /// （以本常量为默认基线）。</summary>
-        private const float LookSensitivityRadPerPixel = 0.0025f;
+        internal const float LookSensitivityRadPerPixel = 0.0025f;
 
         /// <summary>ADS 期视角灵敏度收敛比——机制初档常量单源：ADS 视场收窄（FOV 60→50，收窄比 50/60≈0.83）
         /// 下同像素位移对应更大的视角变化，灵敏度须同比收敛再叠手感衰减（同类 TPS 常见 0.5~0.7 的中位）；
         /// ADS 构图档位本体＝双机优先级切换 + brain 的 FOV/构图混合（场景 rig 值），本常量只管增量缩放。</summary>
-        private const float AdsLookSensitivityScale = 0.6f;
+        internal const float AdsLookSensitivityScale = 0.6f;
         private readonly LiteFramework.IWorldClock _worldClock;   // 世界钟（伤害数字寿命/合并窗）
         private readonly AimHoldGate _aimGate = new AimHoldGate(AimMinHoldSeconds);   // 瞄准态滞回
         private int _lastRespawnSerial;                              // 本地复活序号（瞄准门一次性复位用）

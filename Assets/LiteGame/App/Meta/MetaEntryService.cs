@@ -32,7 +32,10 @@ namespace LiteGame
             ServerUrl = serverUrl ?? string.Empty;
         }
 
-        /// <summary>测试房参数（联机测试房批）：由装配点从 <see cref="MetaEntryConfig"/> 注入。
+        /// <summary>云端测试房模板名（服务端 `roomserver.*.json` 的 `rooms.sandbox`；显式建房用）。</summary>
+        public const string TestRoomTemplate = "sandbox";
+
+        /// <summary>云端测试房参数（开发者本机部署注入）：由装配点从 <see cref="MetaEntryConfig"/> 注入。
         /// 空模板 = 普通建房；非空则随请求带上，口令与服务端比对（不匹配 403）。</summary>
         public void ConfigureTestRoom(string template, string gmKey)
         {
@@ -95,16 +98,25 @@ namespace LiteGame
         /// 同链——走 <see cref="JoinWith"/> 的 <c>Request(Match, MetaJoin)</c> 管道（客户端**不发明房号**）。
         /// <paramref name="mapId"/>（多图批）0 = 未指定（宿主默认图）；非 0 = 请求地图行键（随票据盖章，
         /// 房间端按表校验——缺行/不一致拒进房，票据/JoinAck 是权威）。</summary>
-        public async UniTask<MetaCall<JoinTicketInfo>> CreateRoomAsync(int mapId = 0, int expectedPlayers = 0)
+        public UniTask<MetaCall<JoinTicketInfo>> CreateRoomAsync(int mapId = 0, int expectedPlayers = 0)
+            => CreateRoomAsync(mapId, expectedPlayers, NullIfEmpty(_roomTemplate), NullIfEmpty(_roomGmKey));
+
+        /// <summary>
+        /// 显式模板建房（编辑器 GM 页「创建云端测试房」用）：不依赖启动时注入的模板/口令，
+        /// 直接按本次请求的 template/gmKey 建房——developer 可在同一客户端里建普通房或云端测试房。
+        /// </summary>
+        public async UniTask<MetaCall<JoinTicketInfo>> CreateRoomAsync(
+            int mapId, int expectedPlayers, string template, string gmKey)
         {
             if (!IsConfigured) return NotConfigured<JoinTicketInfo>();
             if (_accessToken == null) return NotLoggedIn<JoinTicketInfo>();
             if (_machine == null) return MachineUnbound<JoinTicketInfo>();
 
-            // 联机测试房批：模板/口令来自部署注入（命令行 > 烙入）。空 = 普通建房（请求体不变）。
             return JoinWith(await _client.CreateRoomAsync(_accessToken, LiteNet.BuildHash.Value, mapId,
-                expectedPlayers, _roomTemplate, _roomGmKey));
+                expectedPlayers, template, gmKey));
         }
+
+        private static string NullIfEmpty(string value) => string.IsNullOrEmpty(value) ? null : value;
 
         /// <summary>门票 → 进房（换票进房与创建房间的**共用尾段**——两处同为"按号签发"，防漂移）：
         /// 解析票据实例地址 → 派 <c>Request(Match, MetaJoin)</c>。失败原样返回（未到手/地址不可解析不进管道）。</summary>

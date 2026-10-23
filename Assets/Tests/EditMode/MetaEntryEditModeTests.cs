@@ -132,6 +132,24 @@ namespace LiteGame.Tests.EditMode
             Assert.IsNull(plain.SeenGmKey);
         }
 
+        [Test]
+        public void 显式模板建房_不依赖部署注入_携带地图与口令()
+        {
+            var client = new FakeMetaClient();
+            MetaEntryService service = Service(client, new FakeStageHost());
+            service.GuestLoginAsync().GetAwaiter().GetResult();
+
+            MetaCall<JoinTicketInfo> call = service.CreateRoomAsync(
+                mapId: 2, expectedPlayers: 0,
+                template: MetaEntryService.TestRoomTemplate, gmKey: "k-2")
+                .GetAwaiter().GetResult();
+
+            Assert.IsTrue(call.Ok);
+            Assert.AreEqual("sandbox", client.SeenTemplate, "显式入口固定 sandbox");
+            Assert.AreEqual("k-2", client.SeenGmKey, "口令随本次请求携带");
+            Assert.AreEqual(2, client.SeenMapId, "测试房选图随建房请求盖章");
+        }
+
         // ---- fail-closed 与登录门禁 ----
 
         [Test]

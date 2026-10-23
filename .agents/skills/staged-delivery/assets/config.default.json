@@ -33,6 +33,73 @@
       ]
     },
     {
+      "id": "review-plan",
+      "title": "子代理评审方案",
+      "artifacts": [
+        {
+          "path": "reviews/plan-review.md",
+          "template": "reviews/plan-review.md",
+          "sections": [
+            "评审输入",
+            "方案检查",
+            "验收标准可判定性",
+            "发现的问题与处理",
+            "评审结论"
+          ]
+        }
+      ],
+      "verdicts": [
+        {
+          "path": "reviews/plan-review.md",
+          "fields": {
+            "评审方式": [
+              "独立子代理"
+            ],
+            "结论": [
+              "PASS",
+              "通过"
+            ],
+            "验收标准": [
+              "PASS",
+              "通过"
+            ],
+            "阻塞问题": [
+              "0",
+              "无"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "id": "confirm-acceptance",
+      "title": "用户确认验收标准",
+      "artifacts": [
+        {
+          "path": "acceptance.md",
+          "template": "acceptance.md",
+          "sections": [
+            "验收标准",
+            "提审记录",
+            "用户确认",
+            "变更记录"
+          ]
+        }
+      ],
+      "verdicts": [
+        {
+          "path": "acceptance.md",
+          "fields": {
+            "确认结论": [
+              "通过",
+              "确认"
+            ]
+          }
+        }
+      ],
+      "approval": true
+    },
+    {
       "id": "breakdown",
       "title": "实施任务清单",
       "artifacts": [
@@ -119,12 +186,13 @@
     },
     {
       "id": "review-code",
-      "title": "评审代码",
+      "title": "子代理评审代码",
       "artifacts": [
         {
           "path": "reviews/code-review.md",
           "template": "reviews/code-review.md",
           "sections": [
+            "评审输入",
             "变更范围",
             "正确性与边界",
             "测试充分性",
@@ -140,6 +208,9 @@
         {
           "path": "reviews/code-review.md",
           "fields": {
+            "评审方式": [
+              "独立子代理"
+            ],
             "结论": [
               "PASS",
               "通过"

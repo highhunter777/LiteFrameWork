@@ -158,7 +158,7 @@ namespace LiteSim
                     SetActionSummary(s, slotIndex, frame);                // 自动换弹同样写公共动作摘要（与手动换弹同口径）
                 }
             }
-            w.NextFireFrame = frame + def.FireIntervalFrames;
+            w.NextFireFrame = frame + MatchTestRules.ResolveFireIntervalFrames(rules, def.Rpm, def.FireIntervalFrames);
             w.ShotSeq++;
             return true;
         }

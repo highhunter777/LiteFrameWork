@@ -69,7 +69,8 @@ namespace LiteGame
             // 注册点=装配期（app 生命周期，不依赖场景 DevStartupConfig 是否挂——GM 发现面在 dev 构建恒可用）。
             _gmSceneCommands = GmSceneCommands.RegisterAll(commands, _scenes);
             // 调试内核：读模型/动作模型/发现协议的唯一门面；投影（编辑器页/HUD/控制台）只消费它。
-            context.Put(new DebugKernel(commands, context.Require<IInputService>()));
+            context.Put(new DebugKernel(commands, context.Require<IInputService>(),
+                new IDebugTunableProvider[] { new FeatureDebugTunables(), new WeaponDebugTunables() }));
 #endif
             _services.RegisterInstance<IConfigTableSource>(config);
             _services.RegisterInstance<IConfigService>(config);
@@ -101,7 +102,8 @@ namespace LiteGame
             // 联机入口编排件（批C-③）：未配置 Meta 基址 = client 置空（IsConfigured false——页面显性拒绝），
             // 不造"指向空址"的客户端；设备标识注入 Unity 面（服务本体零引擎依赖可直测）——`-device.id` 非空时
             // 以它为准（同机多客户端各自身份；同值 = 服务端同账号，见 MetaEntryConfig.DeviceId）。
-            // 消费者＝Bridge.meta 门面（MetaBridge.Bind 直接装订——不占容器键，无容器解析点）。
+            // 消费者＝Bridge.meta 门面（MetaBridge.Bind 直接装订）＋编辑器 GM 页「创建云端测试房」
+            // （GmEditorResolve 取件；编辑器工具豁免形态，业务侧仍走 Bridge.meta）。
             Func<string> accountDeviceId = string.IsNullOrEmpty(deploy.DeviceId)
                 ? (Func<string>)(() => UnityEngine.SystemInfo.deviceUniqueIdentifier)
                 : () => deploy.DeviceId;
@@ -109,8 +111,9 @@ namespace LiteGame
                 deploy.HasMeta ? new UnityMetaClient(deploy.MetaUrl, deploy.TimeoutSeconds) : null,
                 accountDeviceId,
                 deploy.MetaUrl);
-            // 联机测试房批：模板/口令随部署注入（开发者本地才有；测试者包不带 ⇒ 建不了测试房）
+            // 云端测试房：模板/口令随部署注入（开发者本地才有；测试者包不带 ⇒ 建不了云端测试房）
             metaEntry.ConfigureTestRoom(deploy.RoomTemplate, deploy.RoomGmKey);
+            _services.RegisterInstance(metaEntry);   // GM 页云端测试房入口取件（MetaBridge 仍是主消费者）
 
             var dialogs = new DialogService(ui, nav: nav);
             _services.RegisterInstance(dialogs, ServiceOwnership.ContainerOwned);

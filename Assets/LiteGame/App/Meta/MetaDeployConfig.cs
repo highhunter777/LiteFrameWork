@@ -35,15 +35,15 @@ namespace LiteGame
         /// 服务端字段上限 128 UTF-8 字节（超限登录被拒）。</summary>
         public string DeviceId = "";
 
-        /// <summary>建房模板名（联机测试房批；空 = 走房间服 `default_template`）。非空必须同时给
+        /// <summary>云端测试房模板名（空 = 走房间服 `default_template`，普通房为 standard）。非空必须同时给
         /// <see cref="RoomGmKey"/>——服务端校验口令，不匹配 403 且房间不创建。</summary>
         public string RoomTemplate = "";
 
-        /// <summary>测试房口令（联机测试房批；**只经命令行/烙入注入，不入库、不回显**）。
-        /// 仅开发者本地配置——测试者包里不带，因此测试者无法建测试房。</summary>
+        /// <summary>云端测试房口令（**只经命令行/烙入注入，不入库、不回显**）。
+        /// 仅开发者本地配置——测试者包里不带，因此测试者无法建云端测试房。</summary>
         public string RoomGmKey = "";
 
-        /// <summary>GM 运维端点基址（联机测试房批；空 = 由 <see cref="MetaUrl"/> 推导：同 host + 端口 9101）。
+        /// <summary>GM 运维端点基址（云端测试房批；空 = 由 <see cref="MetaUrl"/> 推导：同 host + 端口 9101）。</summary>
         /// 只绑隧道地址，故与 meta.url 同 host 即可。</summary>
         public string GmUrl = "";
 

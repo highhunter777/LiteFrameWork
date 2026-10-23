@@ -59,7 +59,7 @@ namespace LiteSim
                 if (equipped && !fireFlag && !WeaponSystem.TryConsumeShot(s, shooterSlot, s.Frame, weapons, out wdef, rules)) continue;
                 if (!fireFlag) shooter.InvulnerableUntilFrame = 0;
                 float range = equipped ? wdef.Range : values.HitscanRange;
-                int baseDamage = equipped ? wdef.Damage : values.BaseDamage;
+                int baseDamage = equipped ? MatchTestRules.ResolveWeaponDamage(rules, wdef.Damage) : values.BaseDamage;
                 int pellets = equipped ? wdef.Pellets : 1;
                 if (pellets < 1) pellets = 1;
 

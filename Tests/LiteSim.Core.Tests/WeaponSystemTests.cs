@@ -79,6 +79,39 @@ namespace LiteSim.Tests
         }
 
         [Fact]
+        public void 武器试验覆写_解析口无覆写回表值_覆写生效()
+        {
+            Assert.Equal(16, MatchTestRules.ResolveWeaponDamage(null, 16));
+            Assert.Equal(16, MatchTestRules.ResolveWeaponDamage(new MatchTestRules(), 16));
+            Assert.Equal(6, MatchTestRules.ResolveFireIntervalFrames(null, 600, 6));
+            Assert.Equal(6, MatchTestRules.ResolveFireIntervalFrames(new MatchTestRules(), 600, 6));
+            Assert.Equal(6, MatchTestRules.ResolveFireIntervalFrames(
+                new MatchTestRules { RpmOverride = 0 }, 600, 6));              // ≤ 0 = 未覆写（防除零回表值）
+
+            var rules = new MatchTestRules { DamageOverride = 50, RpmOverride = 1200 };
+            Assert.Equal(50, MatchTestRules.ResolveWeaponDamage(rules, 16));
+            Assert.Equal(3, MatchTestRules.ResolveFireIntervalFrames(rules, 600, 6));   // 1200rpm @60Hz ⇒ 3 帧
+        }
+
+        [Fact]
+        public void 武器试验覆写_开火链消费覆写节拍()
+        {
+            var (world, id, slot) = Spawn();
+            var rules = new MatchTestRules { RpmOverride = 1200 };
+            WeaponSystem.Run(world, Idle(id), WeaponTable.Default, rules);
+            ref WeaponRuntime w = ref WeaponOf(world, slot);
+
+            world.Frame = 0;
+            ShootingSystem.Run(world, NoObstacles, Fire(id), CombatValues.Default, WeaponTable.Default, rules);
+            Assert.Equal(1, FireEvents(world));
+            Assert.Equal(3, w.NextFireFrame);                      // 覆写节拍 3 帧（表值 6）
+
+            world.Frame = 3;                                       // 覆写节拍到帧 → 第二发（表值要等第 6 帧）
+            ShootingSystem.Run(world, NoObstacles, Fire(id), CombatValues.Default, WeaponTable.Default, rules);
+            Assert.Equal(2, FireEvents(world));
+        }
+
+        [Fact]
         public void 弹匣_打空后不开火_无Fire事件()
         {
             var (world, id, slot) = Spawn();

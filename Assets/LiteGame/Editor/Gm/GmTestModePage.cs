@@ -1,6 +1,10 @@
+using System;
+using System.Collections.Generic;
+using Cysharp.Threading.Tasks;
+using LiteClient;
+using LiteClient.UI;
 using UnityEditor;
 using UnityEngine;
-using LiteClient.UI;
 
 namespace LiteGame.Editor
 {
@@ -15,21 +19,22 @@ namespace LiteGame.Editor
     /// </summary>
     internal sealed class GmTestModePage : IGmPage
     {
-        public GUIContent Title => new GUIContent("测试模式");
+        public GUIContent Title => new GUIContent("本地测试模式");
 
-        public void OnShow() { }
+        public void OnShow() => RefreshTestRoomMaps();
         public void OnHide() { }
-        public void Poll() { }
+        public void Poll()
+        {
+            if (_testRoomMaps.Count == 0) RefreshTestRoomMaps();
+        }
 
         public void Draw()
         {
             DrawTestModeSection();
             DrawCloudGmBlock();
             DrawBotOpsBlock();
-            DrawHeadTuneBlock();
-            DrawGripTuneBlock();
-            DrawCrosshairTuneBlock();
-            DrawLookTuneBlock();
+            DrawHeadExportBlock();
+            DrawLookFovBlock();
         }
 
         // ---- 联机测试房（云端 GM；联机形态下上方"现场开关"只作用于进程内本地服）----
@@ -41,28 +46,69 @@ namespace LiteGame.Editor
         private string _gmStatus = "未下发";
         private bool _gmInit;
 
+        private readonly List<(int Id, string Name)> _testRoomMaps = new List<(int Id, string Name)>();
+        private int _testRoomMapIndex;
+        private bool _testRoomBusy;
+        private string _testRoomStatus = "(未创建)";
+
         /// <summary>
-        /// 云端 GM 下发（联机测试房批）：免死/无限弹药由**服务端权威**生效，客户端预测按快照
-        /// `gm_flags` 同值（否则会"掉血回弹"）。只对**测试房**（带模板建、不进大厅）有效；
-        /// 房号可留空 = 服务端在唯一在册测试房上生效（客户端看不到隐藏房，不需要知道房号）。
-        /// 地址/密钥取部署注入（`-gm.url` 缺省由 `meta.url` 推导 `:9101`、`-gm.key`），本页可临时改（不落盘）。
+        /// 云端测试房与 GM 下发：普通房 = standard（大厅建房，正常结算）；云端测试房 = sandbox
+        /// （隐藏、不进大厅、不结算，地图随建房票据盖章）。测试房由本页显式创建；免死/无限弹药
+        /// 由服务端权威生效，只对带模板建成的隐藏房有效，普通房 409。
         /// </summary>
         private void DrawCloudGmBlock()
         {
             EditorGUILayout.Space(6);
-            EditorGUILayout.LabelField("联机测试房（云端 GM）", EditorStyles.boldLabel);
+            EditorGUILayout.LabelField("云端测试房（sandbox）", EditorStyles.boldLabel);
 
+            MetaEntryConfig deploy = MetaDeployConfig.LoadWithBaked();
             if (!_gmInit)
             {
-                MetaEntryConfig cfg = MetaDeployConfig.LoadWithBaked();
-                _gmUrl = cfg.ResolvedGmUrl;
-                _gmKey = cfg.GmKey;
+                _gmUrl = deploy.ResolvedGmUrl;
+                _gmKey = deploy.GmKey;
                 _gmInit = true;
             }
 
+            MetaEntryService meta = GmEditorResolve.ResolveFromContainer<MetaEntryService>();
+            bool configured = meta != null && meta.IsConfigured;
+            bool loggedIn = configured && !string.IsNullOrEmpty(meta.AccountId);
+            bool roomKeyReady = !string.IsNullOrEmpty(deploy.RoomGmKey);
+
             EditorGUILayout.HelpBox(
-                "联机形态（真 KCP）下：上方的「免死/无限弹药」现场开关只改本进程预测，**权威侧不知情**——"
-                + "要用下面这组下发。只对测试房（带模板建、不进大厅）生效，普通房返回 409。",
+                "普通房 = standard（大厅选图/人数，正常结算）；云端测试房 = sandbox（隐藏、不进大厅、不结算）。"
+                + "测试房由本页显式创建，地图随建房票据盖章。",
+                MessageType.Info);
+
+            using (new EditorGUILayout.HorizontalScope())
+            {
+                if (_testRoomMaps.Count > 0)
+                {
+                    var names = new string[_testRoomMaps.Count];
+                    for (int i = 0; i < _testRoomMaps.Count; i++) names[i] = _testRoomMaps[i].Name;
+                    _testRoomMapIndex = EditorGUILayout.Popup("测试房地图", _testRoomMapIndex, names, GUILayout.Width(260));
+                }
+                else
+                {
+                    EditorGUILayout.LabelField("测试房地图", "地图表未装载", GUILayout.Width(260));
+                    if (GUILayout.Button("↻", GUILayout.Width(24))) RefreshTestRoomMaps();
+                }
+            }
+
+            if (!configured) EditorGUILayout.HelpBox("Meta 未装配/未配置——先进入 Play 并完成登录。", MessageType.Warning);
+            else if (!loggedIn) EditorGUILayout.HelpBox("当前未登录——先在大厅完成游客登录。", MessageType.Warning);
+            if (!roomKeyReady) EditorGUILayout.HelpBox("缺测试房口令：deploy.args/命令行加 -room.gmkey=<口令>。", MessageType.Warning);
+
+            using (new EditorGUI.DisabledScope(!loggedIn || !roomKeyReady || _testRoomMaps.Count == 0 || _testRoomBusy))
+            {
+                if (GUILayout.Button(_testRoomBusy ? "创建中……" : "创建并进入云端测试房"))
+                    CreateTestRoomAsync().Forget();
+            }
+            EditorGUILayout.LabelField("测试房状态：" + _testRoomStatus, EditorStyles.wordWrappedLabel);
+
+            EditorGUILayout.Space(4);
+            EditorGUILayout.LabelField("GM 规则下发（仅云端测试房）", EditorStyles.miniBoldLabel);
+            EditorGUILayout.HelpBox(
+                "免死/无限弹药由服务端权威生效，客户端预测按快照 gm_flags 同值；只对云端测试房生效，普通房返回 409。",
                 MessageType.Info);
 
             _gmUrl = EditorGUILayout.TextField("GM 地址", _gmUrl ?? "");
@@ -90,6 +136,62 @@ namespace LiteGame.Editor
                 }
             }
             EditorGUILayout.LabelField("状态：" + _gmStatus, EditorStyles.wordWrappedLabel);
+        }
+
+        /// <summary>地图候选 = 当前配置表 tbmap 全行（与大厅开房选图同源）；表未装载时留空，进入 Play 后由 Poll 刷新。</summary>
+        private void RefreshTestRoomMaps()
+        {
+            _testRoomMaps.Clear();
+            IConfigService config = GmEditorResolve.ResolveFromContainer<IConfigService>();
+            if (config == null || !config.Loaded || config.Tables?.Tbmap == null)
+            {
+                _testRoomMapIndex = 0;
+                return;
+            }
+
+            var rows = config.Tables.Tbmap.DataList;
+            for (int i = 0; i < rows.Count; i++)
+                _testRoomMaps.Add((rows[i].MapId, rows[i].Name));
+            _testRoomMapIndex = Mathf.Clamp(_testRoomMapIndex, 0, Mathf.Max(0, _testRoomMaps.Count - 1));
+        }
+
+        /// <summary>显式 sandbox 建房：模板固定 <see cref="MetaEntryService.TestRoomTemplate"/>，口令取部署注入；
+        /// 成功后服务端票据即达、流程机进房，房号回填到 GM 规则区。</summary>
+        private async UniTaskVoid CreateTestRoomAsync()
+        {
+            MetaEntryService meta = GmEditorResolve.ResolveFromContainer<MetaEntryService>();
+            if (meta == null || !meta.IsConfigured) { _testRoomStatus = "Meta 未装配/未配置"; return; }
+            if (string.IsNullOrEmpty(meta.AccountId)) { _testRoomStatus = "未登录"; return; }
+            if (_testRoomMaps.Count == 0) { _testRoomStatus = "地图表未装载"; return; }
+
+            MetaEntryConfig deploy = MetaDeployConfig.LoadWithBaked();
+            if (string.IsNullOrEmpty(deploy.RoomGmKey)) { _testRoomStatus = "缺 room.gmkey"; return; }
+
+            int mapId = _testRoomMaps[_testRoomMapIndex].Id;
+            _testRoomBusy = true;
+            _testRoomStatus = $"创建中（{MetaEntryService.TestRoomTemplate}，地图 #{mapId}）……";
+            try
+            {
+                MetaCall<JoinTicketInfo> call = await meta.CreateRoomAsync(
+                    mapId, 0, MetaEntryService.TestRoomTemplate, deploy.RoomGmKey);
+                if (call.Ok)
+                {
+                    _gmRoom = call.Value.RoomId;
+                    _testRoomStatus = $"已创建并进入：{call.Value.RoomId}（地图 #{mapId}）";
+                }
+                else
+                {
+                    _testRoomStatus = "失败：" + call.Failure.Code + " " + call.Failure.Detail;
+                }
+            }
+            catch (Exception ex)
+            {
+                _testRoomStatus = "异常：" + ex.Message;
+            }
+            finally
+            {
+                _testRoomBusy = false;
+            }
         }
 
         /// <summary>同步下发（编辑器低频操作；超时 5 s，不阻塞到无响应）。口令与响应正文只进状态行、不落日志。</summary>
@@ -129,18 +231,19 @@ namespace LiteGame.Editor
 
         private void DrawTestModeSection()
         {
-            EditorGUILayout.LabelField("测试模式", EditorStyles.boldLabel);
+            EditorGUILayout.LabelField("本地测试模式（Room-Test）", EditorStyles.boldLabel);
             EditorGUILayout.LabelField(TestModeRuntime.Active ? "进行中（本地服 Room-Test）" : "未进入");
 
             using (new EditorGUILayout.HorizontalScope())
             {
                 // 启动快照由 ProcedureMain 在消费进房请求时单点落值（未挂 DevStartupConfig 则套默认口径）
-                if (GUILayout.Button("进入测试模式")) TestModeRuntime.RequestEnter();
-                if (GUILayout.Button("退出测试模式")) TestModeRuntime.RequestExit();              // 对局内 = 离场并关模式；主菜单 = 只关模式
+                if (GUILayout.Button("进入本地测试模式")) TestModeRuntime.RequestEnter();
+                if (GUILayout.Button("退出本地测试模式")) TestModeRuntime.RequestExit();         // 对局内 = 离场并关模式；主菜单 = 只关模式
                 if (GUILayout.Button("传送到准心")) TestModeRuntime.RequestTeleport();
             }
             EditorGUILayout.HelpBox(
-                "启动项（免死/bot 数/冻结/传送）与表现类开关的**进房初值**都在场景 DevStartupConfig 上编辑（Inspector，随场景保存）；"
+                "本地测试模式＝本进程内本地服（Room-Test，无 Socket/票据），用于单机逻辑与表现；云端测试房见下方「云端测试房」块。\n"
+                + "启动项（免死/bot 数/冻结/传送）与表现类开关的**进房初值**都在场景 DevStartupConfig 上编辑（Inspector，随场景保存）；"
                 + "本节以下是**局内可调**项，即时生效。", MessageType.Info);
 
             EditorGUILayout.LabelField("现场开关（即时生效，不必重进房）", EditorStyles.miniBoldLabel);
@@ -200,174 +303,49 @@ namespace LiteGame.Editor
 
         // ---- 爆头区实时调（运行态覆写；判定与身位可视化同读注入实例）----
 
-        /// <summary>爆头区实时调（运行态覆写，不落盘；判定与身位可视化同读注入实例——本地服同进程同值，滑杆一动实弹即见 Crit 档变化）。
-        /// 有活动局直写活动局并同步 TestModeRuntime 待用值（下次进房延续），无活动局只记待用值。</summary>
-        private static void DrawHeadTuneBlock()
+        /// <summary>爆头区导出（调参滑杆在「调试参数」页；本块只保留编辑器独占的导出动作）。</summary>
+        private static void DrawHeadExportBlock()
         {
             EditorGUILayout.Space(6);
-            EditorGUILayout.LabelField("爆头区实时调（运行时覆写，不落盘）", EditorStyles.boldLabel);
+            EditorGUILayout.LabelField("爆头区导出（滑杆在「调试参数」页）", EditorStyles.boldLabel);
             float height = LiteSim.CombatConfig.HitscanHeight;
-            float shown = CurrentHeadLineShown();
-            float radiusShown = CurrentHeadRadiusShown();
-            EditorGUI.BeginChangeCheck();
-            float next = EditorGUILayout.Slider("爆头线下沿（m）", shown, 0.9f, height);
-            float nextRadius = EditorGUILayout.Slider("爆头柱半径（m，窄于命中柱 0.45）", radiusShown, 0.15f, 0.45f);
-            if (EditorGUI.EndChangeCheck())
-                SetHeadTune(next, nextRadius);
+            float shown = FeatureDebugTunables.CurrentHeadLine();
+            float radiusShown = FeatureDebugTunables.CurrentHeadRadius();
             EditorGUILayout.LabelField($"比例 {shown / height:F3}    带高 {height - shown:F3} m    当前导出值：下沿 {LiteSim.CombatConfig.HeadHitLine:F3} m / 半径 {LiteSim.CombatConfig.HeadshotRadius:F3} m");
-            using (new EditorGUILayout.HorizontalScope())
+            if (GUILayout.Button("导出当前爆头区到 HeadBake.g.cs"))
             {
-                if (GUILayout.Button("复位（回导出值）"))
-                    SetHeadTune(-1f, -1f);
-                if (GUILayout.Button("导出当前爆头区到 HeadBake.g.cs"))
-                {
-                    string report = LiteGame.EditorTools.HeadHitLineTuner.Export(shown / height, radiusShown);
-                    EditorUtility.DisplayDialog("爆头区导出", report, "OK");
-                }
+                string report = LiteGame.EditorTools.HeadHitLineTuner.Export(shown / height, radiusShown);
+                EditorUtility.DisplayDialog("爆头区导出", report, "OK");
             }
             EditorGUILayout.HelpBox(
-                "对局内滑动即生效（判定与身位可视化的黄/红圈实时随动，可实弹试 Crit 档——黄红圈之间的窄柱切片才是爆头区）；"
-                + "定型才导出。对局中点导出会触发重编译并中断对局（domain reload）——可先记下数值，出对局后再导。",
+                "对局中点导出会触发重编译并中断对局（domain reload）——先记下数值，出对局后再导。",
                 MessageType.Info);
         }
 
-        /// <summary>面板显示的当前爆头线下沿：有活动局取实例解析值，否则 TestModeRuntime 待用值（&lt; 0 回退导出值）。</summary>
-        private static float CurrentHeadLineShown()
-        {
-            var match = LiteSim.SimTestRules.ActiveMatch;
-            if (match != null) return LiteSim.MatchTestRules.ResolveHeadHitLine(match);
-            return TestModeRuntime.HeadHitLineOverride >= 0f ? TestModeRuntime.HeadHitLineOverride : LiteSim.CombatConfig.HeadHitLine;
-        }
+        // ---- 视角 FOV（编辑器独占场景值；灵敏度/ADS 收敛在「调试参数」页）----
 
-        /// <summary>面板显示的当前爆头柱半径：取值口径同 <see cref="CurrentHeadLineShown"/>。</summary>
-        private static float CurrentHeadRadiusShown()
-        {
-            var match = LiteSim.SimTestRules.ActiveMatch;
-            if (match != null) return LiteSim.MatchTestRules.ResolveHeadshotRadius(match);
-            return TestModeRuntime.HeadshotRadiusOverride >= 0f ? TestModeRuntime.HeadshotRadiusOverride : LiteSim.CombatConfig.HeadshotRadius;
-        }
-
-        /// <summary>爆头带覆写写通道：活动局实例（即时生效）+ TestModeRuntime 待用值（下次进房延续）双落。</summary>
-        private static void SetHeadTune(float line, float radius)
-        {
-            TestModeRuntime.HeadHitLineOverride = line;
-            TestModeRuntime.HeadshotRadiusOverride = radius;
-            var match = LiteSim.SimTestRules.ActiveMatch;
-            if (match != null)
-            {
-                match.HeadHitLineOverride = line;
-                match.HeadshotRadiusOverride = radius;
-            }
-        }
-
-        // ---- 持枪幅度实时调（表现沙箱件，纯观感）----
-
-        /// <summary>持枪幅度实时调（运行时覆写，不落盘；换弹期武器骨跟随强度——约束每帧读 Live，滑杆一动观感即变）。</summary>
-        private static void DrawGripTuneBlock()
+        /// <summary>FOV 直写运行时 vcam lens（场景值单源在 BattleRig.unity——Play 退出即回场景值，定档后写回场景）。</summary>
+        private static void DrawLookFovBlock()
         {
             EditorGUILayout.Space(6);
-            EditorGUILayout.LabelField("持枪幅度实时调（运行时覆写，不落盘）", EditorStyles.boldLabel);
-            float shown = LiteView.Animation.GripTuning.TorsoWeightDevOverride >= 0f
-                ? LiteView.Animation.GripTuning.TorsoWeightDevOverride
-                : LiteView.Animation.GripBake.TorsoWeight;
-            EditorGUI.BeginChangeCheck();
-            float next = EditorGUILayout.Slider("换弹期跟随强度（0=不约束 1=完全跟随）", shown, 0f, 1f);
-            if (EditorGUI.EndChangeCheck())
-                LiteView.Animation.GripTuning.TorsoWeightDevOverride = next;
-            EditorGUILayout.LabelField($"当前烘焙值：{LiteView.Animation.GripBake.TorsoWeight:R}（重烘 = 烘焙工具箱「持枪偏移」页）");
-            if (GUILayout.Button("复位（回烘焙值）"))
-                LiteView.Animation.GripTuning.TorsoWeightDevOverride = -1f;
-            EditorGUILayout.HelpBox(
-                "对局内拖动即生效（换弹上半身叠加期的武器骨跟随强度实时随动）；release 无此面（覆写面随三宏剥离，恒烘焙值）。",
-                MessageType.Info);
-        }
-
-        // ---- 准心调参实时调（表现沙箱件，纯观感——连发临时张开/后坐定档面）----
-
-        /// <summary>准心调参实时调（运行时覆写，不落盘；连发临时张开/后坐的定档面——驱动每帧读
-        /// <see cref="CrosshairTuning"/> Live 解析，滑杆一动观感即变）。覆写为**全局档**（盖全部武器行）；
-        /// 参照值显示 tbcrosshair id=0 行（步枪）——定档后按武器把值写回表源。</summary>
-        private static void DrawCrosshairTuneBlock()
-        {
-            EditorGUILayout.Space(6);
-            EditorGUILayout.LabelField("准心调参实时调（运行时覆写，不落盘）", EditorStyles.boldLabel);
-            CrosshairFeel d = CrosshairFeel.Default;   // 参照行（tbcrosshair id=0——与代码防御回落同值）
-            EditorGUI.BeginChangeCheck();
-            float staticMax = SliderOf("静态满张倍率", CrosshairTuning.StaticMaxDevOverride, d.StaticMaxScale, 1f, 3f);
-            float growth = SliderOf("连发每发张开增量", CrosshairTuning.BurstGrowthDevOverride, d.BurstGrowth, 0f, 0.5f);
-            float cap = SliderOf("连发张开总上限", CrosshairTuning.BurstCapDevOverride, d.BurstCap, 1f, 3.5f);
-            float kick = SliderOf("每发后坐冲量（px）", CrosshairTuning.KickDevOverride, d.Kick, 0f, 30f);
-            float burstRecover = SliderOf("连发回正速率（1/s）", CrosshairTuning.BurstRecoverDevOverride,
-                BattleCrosshairDriver.BurstRecoverPerSecond, 0.5f, 12f);
-            float kickRecover = SliderOf("后坐回弹速率（1/s）", CrosshairTuning.KickRecoverDevOverride,
-                BattleCrosshairDriver.KickRecoverPerSecond, 2f, 30f);
-            if (EditorGUI.EndChangeCheck())
-            {
-                CrosshairTuning.StaticMaxDevOverride = staticMax;
-                CrosshairTuning.BurstGrowthDevOverride = growth;
-                CrosshairTuning.BurstCapDevOverride = cap;
-                CrosshairTuning.KickDevOverride = kick;
-                CrosshairTuning.BurstRecoverDevOverride = burstRecover;
-                CrosshairTuning.KickRecoverDevOverride = kickRecover;
-            }
-            EditorGUILayout.LabelField(
-                $"参照（tbcrosshair id=0 行）：静态 {d.StaticMaxScale} / 增量 {d.BurstGrowth} / 上限 {d.BurstCap} / 后坐 {d.Kick}"
-                + " —— 覆写为全局档（盖各武器行）；各武器的表值见 tbcrosshair（id=0 步枪 / id=1 霰弹）",
-                EditorStyles.wordWrappedLabel);
-            if (GUILayout.Button("复位（回表值/机制常量）"))
-            {
-                CrosshairTuning.StaticMaxDevOverride = -1f;
-                CrosshairTuning.BurstGrowthDevOverride = -1f;
-                CrosshairTuning.BurstCapDevOverride = -1f;
-                CrosshairTuning.KickDevOverride = -1f;
-                CrosshairTuning.BurstRecoverDevOverride = -1f;
-                CrosshairTuning.KickRecoverDevOverride = -1f;
-            }
-            EditorGUILayout.HelpBox(
-                "对局内拖动即生效（连发开一枪逐发张开、后坐逐发上跳回弹——当场试手感）；覆写只存在于本机运行时，"
-                + "定档后把值写回 Luban/Data/#crosshair.xlsx 表源（改完 Luban/gen.bat 重生成）。release 无此面（恒表值）。",
-                MessageType.Info);
-        }
-
-        // ---- 视角调参实时调（TPS 自由视角——灵敏度/ADS 收敛的定档面；FOV/构图现场试）----
-
-        /// <summary>视角调参实时调（运行时覆写，不落盘）。灵敏度/ADS 收敛比走 <see cref="LookTuning"/>
-        /// 覆写（定档后写回 BattleViewRig 机制常量）；FOV 直写运行时 vcam lens（场景值单源在
-        /// BattleRig.unity——Play 退出即回场景值，定档后写回场景）。</summary>
-        private static void DrawLookTuneBlock()
-        {
-            EditorGUILayout.Space(6);
-            EditorGUILayout.LabelField("视角调参实时调（运行时覆写，不落盘）", EditorStyles.boldLabel);
-            const float refSens = 0.0025f;    // LookSensitivityRadPerPixel（BattleViewRig 机制常量）
-            const float refAds = 0.6f;        // AdsLookSensitivityScale（同上）
+            EditorGUILayout.LabelField("视角 FOV 试调（场景值，定档写回场景）", EditorStyles.boldLabel);
             const float refFov = 75f;         // Player 机场景 FOV（BattleRig.unity）
             const float refAdsFov = 55f;      // Aim 机场景 FOV
             EditorGUI.BeginChangeCheck();
-            float sens = SliderOf("视角灵敏度（rad/px）", LookTuning.SensitivityDevOverride, refSens, 0.0005f, 0.008f);
-            float ads = SliderOf("ADS 灵敏度收敛比", LookTuning.AdsScaleDevOverride, refAds, 0.1f, 1f);
             float fov = EditorGUILayout.Slider("腰射 FOV（写 Player 机）", FindVcamFov("Player Camera", refFov), 60f, 100f);
             float adsFov = EditorGUILayout.Slider("ADS FOV（写 Aim 机）", FindVcamFov("Aim Camera", refAdsFov), 45f, 70f);
             if (EditorGUI.EndChangeCheck())
             {
-                LookTuning.SensitivityDevOverride = sens;
-                LookTuning.AdsScaleDevOverride = ads;
                 SetVcamFov("Player Camera", fov);
                 SetVcamFov("Aim Camera", adsFov);
             }
-            EditorGUILayout.LabelField(
-                $"参照（机制常量/场景值）：灵敏度 {refSens} / ADS 收敛 {refAds} / FOV {refFov}→{refAdsFov}"
-                + " —— FOV 直写运行时 vcam（Play 退出回场景值）",
-                EditorStyles.wordWrappedLabel);
-            if (GUILayout.Button("复位（回常量/场景值）"))
+            if (GUILayout.Button("复位（回场景值）"))
             {
-                LookTuning.SensitivityDevOverride = -1f;
-                LookTuning.AdsScaleDevOverride = -1f;
                 SetVcamFov("Player Camera", refFov);
                 SetVcamFov("Aim Camera", refAdsFov);
             }
             EditorGUILayout.HelpBox(
-                "对局内拖动即生效（灵敏度即拖即试；FOV 直写 vcam）。定档后把灵敏度写回 BattleViewRig 机制常量、"
-                + "FOV 写回 BattleRig.unity（场景 Inspector 单源）。release 无此面（恒常量/场景值）。",
+                "FOV 直写运行时 vcam（Play 退出回场景值）；灵敏度/ADS 收敛在「调试参数」页。",
                 MessageType.Info);
         }
 
@@ -401,11 +379,5 @@ namespace LiteGame.Editor
             so.ApplyModifiedPropertiesWithoutUndo();   // 运行时内存值——Play 退出即回场景值
         }
 
-        /// <summary>单条滑杆：覆写在位显示覆写值，否则显示参照值（表值/机制常量）——拖动即写覆写。</summary>
-        private static float SliderOf(string label, float devOverride, float reference, float min, float max)
-        {
-            float shown = devOverride >= 0f ? devOverride : reference;
-            return EditorGUILayout.Slider(label, shown, min, max);
-        }
     }
 }

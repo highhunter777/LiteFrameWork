@@ -25,7 +25,7 @@ namespace LiteGame
         public static int ResolveMapId(int joinedMapId)
             => joinedMapId > 0 ? joinedMapId : MapTableProjection.DefaultMapId;
 
-        /// <summary>本地服（dev）形态的宿主地图行键：测试房 = 训练图，其余 = 首图。
+        /// <summary>本地服（dev）形态的宿主地图行键：本地测试模式 = 训练图，其余 = 首图。
         /// **只在装配根建本地传输时用**（真服务器形态的图由服务器定——本裁决不进产品路径）。</summary>
         public static int LocalServerMapId(bool testRoom)
             => testRoom ? MapTableProjection.TrainingMapId : MapTableProjection.DefaultMapId;

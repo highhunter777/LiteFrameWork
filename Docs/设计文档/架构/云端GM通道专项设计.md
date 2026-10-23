@@ -1,4 +1,4 @@
-# 云端 GM 通道专项设计（房间服运维端点 ＋ 测试房）
+# 云端 GM 通道专项设计（房间服运维端点 ＋ 云端测试房）
 
 > **定位**：回答"云上联机测试（真 KCP 独立进程房间服）缺 GM/调试手段时，开发者怎么进隐藏测试房、运维侧怎么在不改客户端的前提下对房间下手"。
 > **不做的事**：不做客户端内置控制台（归[《GM 与调试工具分层专项设计》](GM与调试工具分层专项设计.md)）；爆头覆写不下发（仍留内环）；不重复上云部署步骤（归 [10-Windows 云主机部署](../../项目说明/10-Windows云主机部署.md)）。
@@ -8,7 +8,7 @@
 
 ## 0. 背景与问题
 
-- 云上 GM 有两块：**进测试房**（模板/口令，§9）与**对房间下手**（§1–§8 端点；判定面规则见 §6）。
+- 云上 GM 有两块：**进云端测试房**（模板/口令/选图，§9）与**对房间下手**（§1–§8 端点；判定面规则见 §6）。
 - 客户端 GM 能力（`MatchTestRules` / `SimTestRules`：免死、无限子弹、爆头覆写、bot 补位）依赖"客户端预测与进程内服务器**同进程同实例**"；真 KCP 独立进程房间服下够不到权威侧（《GM与调试工具分层设计》§6 第 3 条）。
 - 服务端现状（代码事实）：除 9100 `/metrics`（**只读**）外**无任何写通道**；房间级动作 `ExecuteStartEarly` / `Abort` / `TransferOwner` 全是 private，唯一入口是 `RoomRuntime.Execute`；踢席位无现成 API。
 - 云上 exe 无 DevHUD（`DevHUD.cs:7` 限定 `UNITY_EDITOR || DEVELOPMENT_BUILD || LITEFRAMEWORK_DEBUG`，工程 `developmentBuild: false`）。
@@ -52,7 +52,7 @@
 | `/gm/start` | `RoomCommand.StartEarly(ownerPlayerId)` | 不等满员强制开局。**发起席位必须是 owner**（内核校验），无 owner ⇒ 409 |
 | `/gm/abort` | `RoomCommand.Shutdown(ShutdownReason.Operator)` | 与进程排空同口径的运维终止 |
 | `/gm/kick` | `RoomCommand.Disconnect(connectionId)` + 传输层断连 | 踢席位（按 `player` 找会话连接） |
-| `/gm/rules` | `MatchTestRules` 规则位（见 §6） | 测试房判定面开关（1=免死 / 2=无限弹药 / 0=关）；只对隐藏测试房开放 |
+| `/gm/rules` | `MatchTestRules` 规则位（见 §6） | 云端测试房判定面开关（1=免死 / 2=无限弹药 / 0=关）；只对隐藏测试房开放 |
 | `/gm/settle-flush` | `ServerHost.FlushSettlementOutbox()` | 立即回灌待提交结算（验结算链用） |
 | `/gm/diag-list` | `RoomDiagnosticsService.ListFileSummaries()` | 诊断目录文件清单（名/字节/修改时刻）；诊断未启用 ⇒ 404 `{"ok":false,"error":"diagnostics disabled"}` |
 | `/gm/diag-fetch` | `RoomDiagnosticsService.ResolveFile(name)` + 文件流 | 请求体 `{"file":"<目录直下文件名>"}`；命中回传 `application/octet-stream`（非 JSON），回传上限 64 MB ⇒ 413。**文件名即能力边界**：分隔符/`..`/非纯文件名 ⇒ 400，不存在 ⇒ 404 |
@@ -92,15 +92,15 @@
 
 - `room/abort` 沿用既有 `Shutdown(Operator)` 语义（与进程排空同源），**不是**"无痕清房"：它按既有路径走完 Finishing/Settling。若要不留战绩地清场，先 `kick` 全部席位（走 `AllPlayersLeft` 路径）。
 - `room/start` 提前开局本身不改变结算口径；`sandbox`（不限时/无击杀上限）房间**不会自然结束** ⇒ 不会有结算产出（同 10 手册 §5 的既有代价说明）。
-- 判定面 GM 房（§6）**必须被结算面标记并排除**（不进战绩/统计）。
+- 云端测试房（判定面 GM，§6）**必须被结算面标记并排除**（不进战绩/统计）。
 
 ---
 
-## 6. 判定面 GM（测试房限定形态）
+## 6. 判定面 GM（云端测试房限定形态）
 
-- 形态：服务端侧注入（客户端下发 = 给客户端开挂接口，且《GM与调试工具分层设计》§3 明确判定面覆写"不进摘要、不可重放"）——`/gm/rules` 动作，**只对带模板建的测试房**（不进大厅列表的隐藏房）生效，普通房一律 409。
+- 形态：服务端侧注入（客户端下发 = 给客户端开挂接口，且《GM与调试工具分层设计》§3 明确判定面覆写"不进摘要、不可重放"）——`/gm/rules` 动作，**只对带模板建的云端测试房**（不进大厅列表的隐藏房）生效，普通房一律 409。
 - 范围：免死 + 无限弹药两个规则位（`MatchTestRules.GmFlags`；随快照下发，客户端据此同值预测）。
-- 红线：① 仅测试房生效（判据与大厅隐藏过滤同源）；② **不进 `CombatConfigDigest` / 联机身份摘要**；③ 该房**结算被拒**（跳过结算入盒，客户端仍收到终局 `MatchEnded`）；④ 不落盘，进程重启即失效。
+- 红线：① 仅云端测试房生效（判据与大厅隐藏过滤同源）；② **不进 `CombatConfigDigest` / 联机身份摘要**；③ 该房**结算被拒**（跳过结算入盒，客户端仍收到终局 `MatchEnded`）；④ 不落盘，进程重启即失效。
 - 落地路径：宿主 owner 形态在权威循环内直接替换规则引用；**Worker 执行形态经 `RoomInstance` 待办交接**，由归属 Worker 在驱动开头落地（判定与快照读到同一份规则）——不新增 `RoomCommandKind`，BuildHash 与线格式不变。
 
 ---
@@ -114,10 +114,10 @@
 | 密钥空 | `LITENET_GM_KEY` 未设 ⇒ 端点不启动 + 告警，宿主继续运行 |
 | 通配绑定 | `gm_bind=0.0.0.0` ⇒ 装载期 `InvalidDataException` |
 | 队列语义 | HTTP 只入队；`Pump` 后才生效（L1：入队 → `PumpUntil` → 断言效果） |
-| 模板可选 | GM 页「测试模式」指定 `template=sandbox` 建房成功；服务端启动横幅模板名正确 |
-| 默认不变 | 普通入口不指定 template 仍走 `default_template`（行为零变化） |
+| 模板可选 | GM 页「本地测试模式 → 云端测试房」选择地图并指定 `template=sandbox` 建房成功；服务端启动横幅模板名正确 |
+| 默认不变 | 普通入口不指定 template 走 `default_template=standard`（正常结算）；测试房显式 `sandbox` |
 | 越权拒绝 | 无/错口令请求 `template=sandbox` ⇒ 403，且房间未创建 |
-| 摘要不变 | 测试房开局不拒；`CombatConfigDigest` 与普通房同值（规则不进摘要） |
+| 摘要不变 | 云端测试房开局不拒；`CombatConfigDigest` 与普通房同值（规则不进摘要） |
 | 结算排除 | 规则房打完/收房后 Meta 无该局、Outbox 无条目 |
 | `room/start` | 单人房间由 owner 触发即开局（无人数下限）；无 owner ⇒ 409 |
 | `room/kick` | `FakeRoomTransport.Disconnects` 出现该连接 |
@@ -137,20 +137,21 @@
 
 ---
 
-## 9. 测试房：模板与授权
+## 9. 云端测试房：模板与授权
 
-> 测试房是**隐藏房**（不进大厅列表），只能凭建房时拿到的票据进入；它只决定"是不是测试房"，房间级规则经 §6 `/gm/rules` 下发。
+> 云端测试房是**隐藏房**（不进大厅列表），只能凭建房时拿到的票据进入；它是开发者专属房间，地图由 GM 页选择并随建房票据盖章，房间级规则经 §6 `/gm/rules` 下发。普通房走 `default_template=standard`，正常结算。
 
 ### 9.1 数据流
 
 ```text
-客户端「开发 → 测试房」 → POST /lobby/create-room { …, template:"sandbox" }
-  → Meta CreateRoomUseCase 校验/授权 → 票据盖章 template（v4）
+GM 页「本地测试模式 → 云端测试房」选地图
+  → POST /lobby/create-room { …, template:"sandbox", mapId:<选中地图> }
+  → Meta CreateRoomUseCase 校验/授权 → 票据盖章 template + mapId（v4）
   → 房间服 Join 解析 principal.Template → OpenRoom(templateId)
   → RoomServerConfig.BuildRoomConfig(templateId, …)
 ```
 
-普通入口不指定 template 时仍走 `default_template`；测试房入口只在开发侧提供，测试者包不带 `gm.key`。
+普通入口不指定 template 时走 `default_template=standard`（普通房、结算）；云端测试房入口只在开发侧提供，显式带 `sandbox` + `room.gmkey`，测试者包不带口令。
 
 ### 9.2 落点
 
@@ -160,7 +161,7 @@
 | Meta 用例 | `CreateRoomUseCase.cs` | 模板名文法校验 + 授权判定 | 否 |
 | 票据 | `JoinTicketIssueUseCase.cs`、`JoinTicketFormat.cs`（v3→v4）、`JoinTicket.cs` | 票据带 `Template` 段并验签 | 否（仅 Meta 源链接） |
 | 房间服 | `InboundJoinHandlers.cs`、`ServerHost.OpenRoom`、`IRoomGateway.Open` | 按票据选模板；模板不存在 ⇒ 拒绝进房 | 否 |
-| 客户端 | GM 页「测试模式」 + `MetaContracts.cs` | 「测试房」入口 | 是（客户端代码） |
+| 客户端 | GM 页「本地测试模式」 + `MetaContracts.cs` | 「云端测试房」入口（地图下拉 + 创建并进入） | 是（客户端代码） |
 
 > 票据加字段不触发 BuildHash 共享闭包，但票据版本 v3→v4 **必须两端同批发布**（旧票据一律被拒）。
 
@@ -170,22 +171,22 @@
 |---|---|
 | 模板名非法（字符/长度） | `400 invalid-request` |
 | 模板名在房间服不存在 | 显式拒绝进房，不回落 `default_template` |
-| 未授权客户端请求 `sandbox` | `403`，并按"越权建测试房"记审计 |
-| 请求空 template | 走 `default_template`（行为不变） |
+| 未授权客户端请求 `sandbox` | `403`，并按"越权建云端测试房"记审计 |
+| 请求空 template | 走 `default_template=standard`（普通房，正常结算） |
 
 ### 9.4 授权
 
 | 方案 | 做法 | 强度 | 代价 |
 |---|---|---|---|
 | A 账号白名单 | Meta 配置 `dev_accounts`，建房/开 GM 前比对 | 强（服务端唯一判定） | 每加开发者改配置并重启 |
-| **B 测试房口令（推荐）** | Meta `gm_room_key`（进 `deploy/.env`，不入库）；口令恒定时间比对通过才盖章 `gm=true` | 中（口令泄露=可开，限测试期） | 一条配置 + 客户端输入框 |
+| **B 云端测试房口令（推荐）** | Meta `gm_room_key`（进 `deploy/.env`，不入库）；口令恒定时间比对通过才盖章 `gm=true` | 中（口令泄露=可开，限测试期） | 一条配置；GM 页取部署注入口令，不手输 |
 | C 票据 dev 标志 | 开发者先经"提权"端点换 dev 票据 | 强 | 多一条状态链 |
 
 红线：**授权判定只在服务端（Meta）**；客户端能打开 GM 页不等于已授权，未授权一律 403 并审计。
 
 ### 9.5 与判定面 GM、结算的关系
 
-- 建房只决定测试房身份；免死/无限弹药经 §6 `/gm/rules` 下发，仅隐藏测试房生效；
+- 建房只决定云端测试房身份；免死/无限弹药经 §6 `/gm/rules` 下发，仅隐藏测试房生效；
 - 规则房结算被拒（§6 红线③），模板本身不改变结算路径；
 - 爆头覆写不下发（§8 挂账 5），仍在本地内环调参。
 
@@ -195,4 +196,4 @@
 |---|---|---|---|
 | 票据 v3→v4（`Template` 段） | 否（`META_EXTRA_FILES`） | 不变 | 否（票据不透明） |
 | `CreateRoomCommand.template/gmKey` | 否（Meta 私有） | 不变 | 否 |
-| GM 页测试房入口 + CreateRoom 带参 | 是（客户端代码） | 变 | 是 |
+| GM 页云端测试房入口 + CreateRoom 带参（含地图） | 是（客户端代码） | 变 | 是 |

@@ -32,6 +32,15 @@ namespace LiteSim
         /// <summary>爆头柱半径试验覆写（m；&lt; 0 = 不覆写）——与 <see cref="HeadHitLineOverride"/> 同口径。</summary>
         public float HeadshotRadiusOverride = -1f;
 
+        /// <summary>武器单发伤害试验覆写（≥ 0 生效，&lt; 0 = 表值）：命中 <see cref="ShootingSystem"/> 的 baseDamage
+        /// 解析口消费。与爆头带覆写同裁决——不进 <see cref="CombatValues"/> 摘要、不可重放；进房随 TestModeRuntime
+        /// 待用值种子，复位即回表值。</summary>
+        public int DamageOverride = -1;
+
+        /// <summary>武器射速试验覆写（rpm，&gt; 0 生效，≤ 0 = 表值）：开火 <see cref="WeaponSystem"/> 的击发节拍
+        /// 解析口消费（节拍 = ceil(TickRate×60/rpm) 重算，不改动表定义）。同上不进摘要、不可重放。</summary>
+        public int RpmOverride = -1;
+
         /// <summary>规则位（联机测试房批）：1 = 免死、2 = 无限弹药。随快照下发（`MatchStateDelta.gm_flags`）。</summary>
         public const int FlagNoDeath = 1;
         public const int FlagInfiniteAmmo = 2;
@@ -65,5 +74,17 @@ namespace LiteSim
         /// <summary>本局生效爆头柱半径：覆写优先，否则烘焙导出常量（<paramref name="rules"/> = null ⇒ 恒导出值）。</summary>
         public static float ResolveHeadshotRadius(MatchTestRules rules)
             => rules != null && rules.HeadshotRadiusOverride >= 0f ? rules.HeadshotRadiusOverride : CombatConfig.HeadshotRadius;
+
+        /// <summary>本局生效武器单发伤害：覆写优先，否则表值（<paramref name="rules"/> = null ⇒ 恒表值——release/常规入口形态）。</summary>
+        public static int ResolveWeaponDamage(MatchTestRules rules, int tableDamage)
+            => rules != null && rules.DamageOverride >= 0 ? rules.DamageOverride : tableDamage;
+
+        /// <summary>本局生效击发节拍（帧）：rpm 覆写优先（ceil(TickRate×60/rpm) 重算——与 <see cref="WeaponDef"/>
+        /// 构造同式），否则表定义节拍（<paramref name="rules"/> = null 或覆写 ≤ 0 ⇒ 恒表值）。</summary>
+        public static int ResolveFireIntervalFrames(MatchTestRules rules, int tableRpm, int tableIntervalFrames)
+        {
+            if (rules == null || rules.RpmOverride <= 0) return tableIntervalFrames;
+            return (SimConfig.TickRate * 60 + rules.RpmOverride - 1) / rules.RpmOverride;
+        }
     }
 }

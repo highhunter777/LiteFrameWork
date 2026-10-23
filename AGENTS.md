@@ -117,7 +117,7 @@ Unity 交互（改场景/Prefab/跑 PlayMode）一律走 unity-pipeline CLI，�
 | 公网 IP / 登录账号 | **见 `LocalNotes/cloud-host.md`**（机器私有、**不入库**；只走 SSH 密钥、无口令登录）——仓库文档一律只指向该文件，不回显其值 |
 | 通道 | **运维 SSH 走 WireGuard 隧道入口 `10.8.0.1:22`**（安全组不保留公网 `22/tcp` 入方向：本机出口 IP 会变，IP 白名单不可靠；本机别名 `litegame-cloud-tunnel`，`scripts/deploy/*.py` 默认只走隧道，隧道不可达直接 fail-fast；公网仅显式破窗）。应用面同样走隧道 `10.8.0.1`（Meta `5000`、Room UDP `17777` 只绑隧道地址）。细节/破窗见 10 手册 §4.1 |
 | 托管 | 任务计划 `LiteGame-Meta` / `LiteGame-Room`（`SYSTEM` + `AtStartup`）；**改配置必须重启任务才生效**（配置是启动期快照） |
-| 云上路径 | `C:\litegame\{meta,room,GameData,mongo,wg}`；配置源＝`deploy/roomserver.windows.json`（测试房 `sandbox` 为默认模板：不限时、无击杀上限） |
+| 云上路径 | `C:\litegame\{meta,room,GameData,mongo,wg}`；配置源＝`deploy/roomserver.windows.json`（**普通房默认 `standard`，验结算**；`sandbox` 仅由 GM 页显式创建云端测试房：隐藏、不限时、无击杀上限、不结算） |
 | 运维(GM)端点 | `http://10.8.0.1:9101/gm/*`（只绑隧道地址、仅 POST + 头 `X-GM-Key`，密钥见 `LocalNotes/cloud-host.md`）：`rooms` / `start` / `abort` / `kick` / `settle-flush`；设计见 [《云端GM通道专项设计》](Docs/设计文档/架构/云端GM通道专项设计.md)。**改房间服 C# 后必须重新 `dotnet publish -r win-x64 --self-contained` 并上传 `room/`**（只改配置则重启任务即可） |
 
 **红线**：
@@ -144,7 +144,8 @@ scp deploy/roomserver.windows.json litegame-cloud-tunnel:C:/litegame/room/roomse
 # 复杂命令别在 ssh 里拼引号（Windows OpenSSH + PS 5.1 会静默失败/按 GBK 误解中文）：
 # 走「scp 上传 .ps1 + powershell -File 执行」
 ssh litegame-cloud-tunnel powershell -NoProfile -ExecutionPolicy Bypass -File C:\litegame\apply-room.ps1
-# 判据：C:\litegame\room\out.log 启动横幅含 rooms=[standard,four,eight,sandbox] default=sandbox
+# 判据：C:\litegame\room\out.log 启动横幅含 rooms=[standard,four,eight,sandbox] default=standard
+# 注：仓库配置已改 default=standard，云上实例需重新上传本文件并重启 LiteGame-Room 才生效
 ```
 
 ## 工作约定

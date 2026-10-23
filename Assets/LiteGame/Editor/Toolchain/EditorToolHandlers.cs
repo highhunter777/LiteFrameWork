@@ -51,6 +51,7 @@ namespace LiteGame.Toolchain
         private static void RegisterGm(EditorToolRegistry registry)
         {
             registry.RegisterPage("debug.test-mode", () => new GmTestModePage());
+            registry.RegisterPage("debug.tunables", () => new GmDebugTunablesPage());
             registry.RegisterPage("debug.commands", () => new GmCommandsPage());
             registry.RegisterPage("debug.scene", () => new GmScenePage());
             registry.RegisterPage("debug.config-diagnostics", () => new GmConfigDiagnosticsPage());

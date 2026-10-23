@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Reflection;
 using LiteFramework;
 using NUnit.Framework;
 
@@ -31,7 +32,6 @@ namespace LiteGame.Tests.EditMode
             TestModeRuntime.TakeEnterRequest();
             TestModeRuntime.TakeExitRequest();
             TestModeRuntime.TakeTeleportRequest();
-            TestModeRuntime.TakeDirectRequest();
         }
 
         [TearDown]
@@ -47,7 +47,6 @@ namespace LiteGame.Tests.EditMode
             TestModeRuntime.TakeEnterRequest();
             TestModeRuntime.TakeExitRequest();
             TestModeRuntime.TakeTeleportRequest();
-            TestModeRuntime.TakeDirectRequest();
         }
 
         [Test]
@@ -146,6 +145,21 @@ namespace LiteGame.Tests.EditMode
         }
 
         [Test]
+        public void 直连测试身份_已退役()
+        {
+            Assert.IsNull(typeof(TestModeRuntime).GetMethod("RequestDirect",
+                BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Static), "RequestDirect 已移除");
+            Assert.IsNull(typeof(TestModeRuntime).GetMethod("TakeDirectRequest",
+                BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Static), "TakeDirectRequest 已移除");
+            Assert.IsNull(typeof(ProcedureMatch).GetField("TestToken",
+                BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Static), "TestToken 已移除");
+            Assert.IsNull(typeof(ProcedureMatch).GetField("DefaultRoomId",
+                BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Static), "Room-A 常量已移除");
+            Assert.IsNull(typeof(DevStartupConfig).GetField("UseLocalServer",
+                BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance), "UseLocalServer 已移除");
+        }
+
+        [Test]
         public void 读模型发现_包含命令选项与三类读数()
         {
             IReadOnlyList<string> sections = DebugKernel.ReadSections;
@@ -180,10 +194,187 @@ namespace LiteGame.Tests.EditMode
             CollectionAssert.AreEqual(new[] { "a", "b" }, args);
         }
 
+        [Test]
+        public void 调参发现_按描述读写与复位()
+        {
+            var provider = new DebugTunableProbeProvider();
+            var kernel = new DebugKernel(_commands, null, new IDebugTunableProvider[] { provider });
+            kernel.RebuildTunables();
+
+            Assert.AreEqual(1, System.Linq.Enumerable.Count(kernel.Tunables, t => t.Id == "probe.value"));
+            Assert.IsTrue(kernel.TrySetTunable("probe.value", 7f, out string error), error);
+            Assert.AreEqual(7f, provider.Value);
+            Assert.IsTrue(kernel.ResetTunable("probe.value", out error), error);
+            Assert.AreEqual(2f, provider.Value);
+            Assert.IsFalse(kernel.TrySetTunable("probe.value", 99f, out error));
+            StringAssert.Contains("超出范围", error);
+        }
+
+        [Test]
+        public void 运行期调参_只保留白名单且排除Product()
+        {
+            var provider = new DebugTunableRuntimeProbeProvider();
+            var kernel = new DebugKernel(_commands, null, new IDebugTunableProvider[] { provider });
+            kernel.RebuildTunables();
+
+            Assert.IsTrue(System.Linq.Enumerable.Any(kernel.Tunables, t => t.Id == "probe.runtime"));
+            Assert.IsTrue(System.Linq.Enumerable.Any(kernel.Tunables, t => t.Id == "probe.product"));
+            Assert.IsFalse(System.Linq.Enumerable.Any(kernel.RuntimeTunables, t => t.Id == "probe.product"));
+            Assert.IsFalse(System.Linq.Enumerable.Any(kernel.RuntimeTunables, t => t.Id == "probe.editor-only"));
+            Assert.IsTrue(System.Linq.Enumerable.Any(kernel.RuntimeTunables, t => t.Id == "probe.runtime"));
+        }
+
+        [Test]
+        public void 产品参数_准心与视角已定档且不进运行期白名单()
+        {
+            var kernel = new DebugKernel(_commands, null, new IDebugTunableProvider[] { new FeatureDebugTunables() });
+            kernel.RebuildTunables();
+
+            var productIds = new List<string>();
+            for (int i = 0; i < kernel.Tunables.Count; i++)
+            {
+                DebugTunable tunable = kernel.Tunables[i];
+                if (tunable.Scope != DebugTunableScope.Product) continue;
+                productIds.Add(tunable.Id);
+                Assert.IsFalse(tunable.RuntimeVisible, tunable.Id + " 已定档，不应再声明运行期可见");
+            }
+
+            CollectionAssert.AreEquivalent(new[]
+            {
+                "crosshair.static", "crosshair.growth", "crosshair.cap", "crosshair.kick",
+                "crosshair.burst-recover", "crosshair.kick-recover",
+                "look.sensitivity", "look.ads-scale",
+            }, productIds);
+            Assert.AreEqual(11, kernel.Tunables.Count);
+            Assert.AreEqual(2, kernel.RuntimeTunables.Count);
+            Assert.IsFalse(System.Linq.Enumerable.Any(kernel.RuntimeTunables, t => t.Scope == DebugTunableScope.Product));
+        }
+
+        [Test]
+        public void 武器试验参数_发现写口与待用值双落()
+        {
+            int damageSnapshot = TestModeRuntime.WeaponDamageOverride;
+            int rpmSnapshot = TestModeRuntime.WeaponRpmOverride;
+            try
+            {
+                var kernel = new DebugKernel(_commands, null, new IDebugTunableProvider[] { new WeaponDebugTunables() });
+                kernel.RebuildTunables();
+
+                Assert.AreEqual(2, kernel.Tunables.Count);
+                Assert.AreEqual(2, kernel.RuntimeTunables.Count);
+                Assert.IsTrue(kernel.TrySetTunable("weapon.damage", 50f, out string error), error);
+                Assert.AreEqual(50, TestModeRuntime.WeaponDamageOverride);
+                Assert.AreEqual(50f, WeaponDebugTunables.CurrentDamage());
+                Assert.IsTrue(kernel.TrySetTunable("weapon.rpm", 1200f, out error), error);
+                Assert.AreEqual(1200, TestModeRuntime.WeaponRpmOverride);
+                Assert.IsTrue(kernel.ResetTunable("weapon.damage", out error), error);
+                Assert.AreEqual(-1, TestModeRuntime.WeaponDamageOverride);
+            }
+            finally
+            {
+                TestModeRuntime.WeaponDamageOverride = damageSnapshot;
+                TestModeRuntime.WeaponRpmOverride = rpmSnapshot;
+            }
+        }
+
+        [Test]
+        public void 调参文本_Bool与Float解析()
+        {
+            DebugTunable boolTunable = DebugTunableRuntimeProbeProvider.BoolTunable();
+            Assert.IsTrue(DebugTunableText.TryParse(boolTunable, "on", out float on, out _));
+            Assert.AreEqual(1f, on);
+            Assert.IsTrue(DebugTunableText.TryParse(boolTunable, "false", out float off, out _));
+            Assert.AreEqual(0f, off);
+            Assert.IsFalse(DebugTunableText.TryParse(boolTunable, "maybe", out _, out _));
+
+            DebugTunable floatTunable = DebugTunableRuntimeProbeProvider.FloatTunable();
+            Assert.IsTrue(DebugTunableText.TryParse(floatTunable, "0.25", out float value, out _));
+            Assert.AreEqual(0.25f, value);
+            Assert.IsFalse(DebugTunableText.TryParse(floatTunable, "9", out _, out string error));
+            StringAssert.Contains("超出范围", error);
+        }
+
         private void RegisterProbe()
         {
             _registrations.Add(_commands.Register<DebugKernelProbeCommand>(
                 new DebugKernelProbeHandler(), new CommandOptions(true, "无参探针")));
+        }
+    }
+
+    public sealed class DebugTunableRuntimeProbeProvider : IDebugTunableProvider
+    {
+        public void CollectDebugTunables(ICollection<DebugTunable> into)
+        {
+            into.Add(FloatTunable(runtimeVisible: true));
+            into.Add(new DebugTunable
+            {
+                Id = "probe.product",
+                Group = "探针",
+                Label = "产品探针",
+                Kind = DebugTunableKind.Float,
+                Scope = DebugTunableScope.Product,
+                Default = 1f,
+                Min = 0f,
+                Max = 2f,
+                RuntimeVisible = true,
+                Get = () => 1f,
+                Set = _ => { },
+            });
+            into.Add(FloatTunable(id: "probe.editor-only", runtimeVisible: false));
+        }
+
+        public static DebugTunable FloatTunable(string id = "probe.runtime", bool runtimeVisible = true)
+            => new DebugTunable
+            {
+                Id = id,
+                Group = "探针",
+                Label = "运行期探针",
+                Kind = DebugTunableKind.Float,
+                Scope = DebugTunableScope.Sandbox,
+                Default = 1f,
+                Min = 0f,
+                Max = 2f,
+                RuntimeVisible = runtimeVisible,
+                Get = () => 1f,
+                Set = _ => { },
+            };
+
+        public static DebugTunable BoolTunable()
+            => new DebugTunable
+            {
+                Id = "probe.bool",
+                Group = "探针",
+                Label = "Bool 探针",
+                Kind = DebugTunableKind.Bool,
+                Scope = DebugTunableScope.Sandbox,
+                Default = 0f,
+                Min = 0f,
+                Max = 1f,
+                Get = () => 0f,
+                Set = _ => { },
+            };
+    }
+
+    public sealed class DebugTunableProbeProvider : IDebugTunableProvider
+    {
+        public float Value = 2f;
+
+        public void CollectDebugTunables(ICollection<DebugTunable> into)
+        {
+            into.Add(new DebugTunable
+            {
+                Id = "probe.value",
+                Group = "探针",
+                Label = "探针值",
+                Kind = DebugTunableKind.Float,
+                Scope = DebugTunableScope.Sandbox,
+                Default = 2f,
+                Min = 0f,
+                Max = 10f,
+                Get = () => Value,
+                Set = value => Value = value,
+                Reset = () => Value = 2f,
+            });
         }
     }
 

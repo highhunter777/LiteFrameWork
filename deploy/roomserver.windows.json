@@ -4,7 +4,7 @@
   "worker_count": 1,
   "mailbox_capacity": 1024,
   "audience": "lobby",
-  "default_template": "sandbox",
+  "default_template": "standard",
   "metrics_port": 9100,
   "gm_port": 9101,
   "gm_bind": "10.8.0.1",

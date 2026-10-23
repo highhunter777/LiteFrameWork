@@ -216,19 +216,21 @@ Host litegame-cloud-tunnel
 
 **现成文件（2026-10-18 起）**：`deploy/roomserver.windows.json` 就是上表三处已改好、且**不带 `_comment`** 的成品（纯 ASCII，避开 PS 5.1 经 SSH stdin 按 GBK 误解中文的坑）——直接传成 `C:\litegame\room\roomserver.json` 即可，不必再从 `roomserver.container.json` 手工派生。
 
-**模板与测试房**：`rooms` 里除 `standard`/`four`/`eight` 外另有 **`sandbox`（联机测试房）**，`default_template` 现指向它：
+**模板：普通房 / 云端测试房**：`rooms` 里除 `standard`/`four`/`eight` 外另有 **`sandbox`（云端测试房专用）**；`default_template` 现指向 **`standard`**——普通房默认会结算：
 
 ```json
-"sandbox": { "expected_players": 2, "match_duration_frames": 0, "kill_limit": 0,
-             "respawn_delay_frames": 60, "spawn_protection_frames": 120 }
+"standard": { "expected_players": 2, "match_duration_frames": 10800, "kill_limit": 20, ... }
+"sandbox":  { "expected_players": 2, "match_duration_frames": 0,     "kill_limit": 0,  ... }
+"default_template": "standard"
 ```
 
-- `match_duration_frames = 0` → **不限时**（内核事实：`MatchSystem.Tick` 里 `if (s.Match.Timer <= 0) return; // 0 = 不限时`）；
-- `kill_limit = 0` → 不按击杀结束（`> 0` 才判定）；`respawn_delay_frames` 受 `MatchRules` 校验**必须 ≥ 1**（此处 60 = 1 s 复活）。
-- **代价（换模板前先知道）**：对局不再自然结束 ⇒ **结算链不触发**（Outbox/战绩不会落）。要验结算就把 `default_template` 改回 `standard` 并重启房间服。
-- 客户端**选人数**会覆盖模板的 `expected_players`（票据盖章 `0 = 按模板`）；模板名不由客户端选择，服务端 `BuildRoomConfig(null, …)` 走 `default_template`。
+- 普通房：大厅选图/人数建房，`standard` 模板，对局自然结束并产出结算；
+- 云端测试房：只能由编辑器 GM 页「创建并进入云端测试房」显式按 `template=sandbox` 建房（隐藏、不进大厅；地图随建房票据盖章）；`match_duration_frames = 0` → **不限时**（`MatchSystem.Tick` 的 `Timer <= 0` 即跳过），`kill_limit = 0` → 不按击杀结束，`respawn_delay_frames` 必须 ≥ 1（此处 60 = 1 s 复活）；**代价：测试房不产结算**（Outbox/战绩不会落）。
+- 客户端**选人数**会覆盖模板的 `expected_players`（票据盖章 `0 = 按模板`）；普通房不指定模板时走 `default_template=standard`，测试房由 GM 页显式带 `sandbox`。
 
-**实机落地（2026-10-18）**：`deploy/roomserver.windows.json` 已上推为 `C:\litegame\room\roomserver.json`（原文件留 `roomserver.json.bak`），重启 `LiteGame-Room` 后横幅变为 `rooms=[standard,four,eight,sandbox] default=sandbox`；闭环自检：`/ready`=ready、令牌 167 字符、大厅投影 `address=10.8.0.1:17777`、`buildHash=637ab2e0cabe21ac`（＝客户端包内常量）、`lastSeenAgeMs≈8.9s`、`draining=false`。
+**实机落地（2026-10-18）**：`deploy/roomserver.windows.json` 已上推为 `C:\litegame\room\roomserver.json`（原文件留 `roomserver.json.bak`），当时横幅为 `rooms=[standard,four,eight,sandbox] default=sandbox`；闭环自检：`/ready`=ready、令牌 167 字符、大厅投影 `address=10.8.0.1:17777`、`buildHash=637ab2e0cabe21ac`（＝客户端包内常量）、`lastSeenAgeMs≈8.9s`、`draining=false`。
+
+> **2026-10-23 调整**：仓库配置的 `default_template` 已改为 `standard`（普通房验结算），`sandbox` 仅由 GM 页显式测试房使用。云上实例需重新上传 `deploy/roomserver.windows.json` 并重启 `LiteGame-Room`，横幅才会变为 `default=standard`；未重启前云上仍按旧 `default=sandbox` 运行。
 
 **心跳口径（2026-10-18 调低）**：云上现为 `heartbeat_interval_ms=1000`（与 container.json 同值，内核下限；大厅列表可见延迟上限 ≈3 s）。此前 10000 的差异已消除；改配置后必须重启 `LiteGame-Room` 才生效。
 

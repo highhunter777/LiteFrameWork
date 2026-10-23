@@ -1,5 +1,6 @@
 #if UNITY_EDITOR || DEVELOPMENT_BUILD || LITEFRAMEWORK_DEBUG
 using System;
+using System.Collections.Generic;
 using LiteFramework;
 using UnityEngine;
 
@@ -8,7 +9,7 @@ namespace LiteGame
     /// <summary>运行态调试旋钮：世界时钟（时停/变速）、UI 时钟、事件中心 StrictMode。
     /// 连续旋钮不命令化；GM「重置时钟」经命令中心派发，处理器持有本件。
     /// release 构建零残留（条件编译）。</summary>
-    public sealed class DebugRuntimeTuner : MonoBehaviour
+    public sealed class DebugRuntimeTuner : MonoBehaviour, IDebugTunableProvider
     {
         private IWorldClock _world;
         private IUIClock _ui;
@@ -27,6 +28,83 @@ namespace LiteGame
 
         [Header("事件中心")]
         public bool StrictMode = true;
+
+        public void CollectDebugTunables(ICollection<DebugTunable> into)
+        {
+            into.Add(new DebugTunable
+            {
+                Id = "time.sync",
+                Group = "时间/事件",
+                Label = "时钟同步",
+                Kind = DebugTunableKind.Bool,
+                Scope = DebugTunableScope.Sandbox,
+                Default = 1f,
+                Min = 0f,
+                Max = 1f,
+                Get = () => SyncEnabled ? 1f : 0f,
+                Set = value => SyncEnabled = value >= 0.5f,
+                Reset = () => SyncEnabled = true,
+            });
+            into.Add(new DebugTunable
+            {
+                Id = "time.world-scale",
+                Group = "时间/事件",
+                Label = "世界时间倍率",
+                Kind = DebugTunableKind.Float,
+                Scope = DebugTunableScope.Sandbox,
+                Default = 1f,
+                Min = 0f,
+                Max = 2f,
+                Decimals = 2,
+                RuntimeVisible = true,
+                Get = () => WorldTimeScale,
+                Set = value => WorldTimeScale = value,
+                Reset = () => WorldTimeScale = 1f,
+            });
+            into.Add(new DebugTunable
+            {
+                Id = "time.world-paused",
+                Group = "时间/事件",
+                Label = "世界暂停",
+                Kind = DebugTunableKind.Bool,
+                Scope = DebugTunableScope.Sandbox,
+                Default = 0f,
+                Min = 0f,
+                Max = 1f,
+                RuntimeVisible = true,
+                Get = () => WorldPaused ? 1f : 0f,
+                Set = value => WorldPaused = value >= 0.5f,
+                Reset = () => WorldPaused = false,
+            });
+            into.Add(new DebugTunable
+            {
+                Id = "time.ui-paused",
+                Group = "时间/事件",
+                Label = "UI 暂停",
+                Kind = DebugTunableKind.Bool,
+                Scope = DebugTunableScope.Sandbox,
+                Default = 0f,
+                Min = 0f,
+                Max = 1f,
+                Get = () => UiPaused ? 1f : 0f,
+                Set = value => UiPaused = value >= 0.5f,
+                Reset = () => UiPaused = false,
+            });
+            into.Add(new DebugTunable
+            {
+                Id = "events.strict",
+                Group = "时间/事件",
+                Label = "事件严格模式",
+                Kind = DebugTunableKind.Bool,
+                Scope = DebugTunableScope.Sandbox,
+                Default = 1f,
+                Min = 0f,
+                Max = 1f,
+                Get = () => StrictMode ? 1f : 0f,
+                Set = value => StrictMode = value >= 0.5f,
+                Reset = () => StrictMode = true,
+            });
+        }
 
         public void Inject(IWorldClock world, IUIClock ui, EventCenter events, CommandCenter commands)
         {

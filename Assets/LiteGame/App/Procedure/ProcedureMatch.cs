@@ -13,10 +13,9 @@ namespace LiteGame
     /// **本阶段不加载对局场景组**——场景组的加载与卸载都归 <see cref="ProcedureBattle"/>
     /// （开局入场时加载；《地图数据专项设计》加载链修订）。
     ///
-    /// 身份口径：本阶段**仅开发/编辑器/开发包**使用隔离测试发行者的受控测试身份
-    /// （<see cref="TestToken"/>，与 ProcedureMain F9 同门禁）；**正式构建缺真实身份依赖时
+    /// 身份口径：真 KCP 路径**只接受 Meta 签发的票据**；开发/编辑器/开发包唯一的免票据入口是
+    /// 本地测试模式（进程内 `Room-Test`，不经过 Socket/票据）。**正式构建缺真实身份依赖时
     /// 直接拒绝进房**（确定错误态，不悄悄退回 fake——见 <see cref="RunAsync"/> 门禁）。
-    /// 服务端维持"不得公网"红线（Join 侧票据校验仍为原型级）。
     /// buildHash 用 <see cref="LiteNet.BuildHash.Value"/>（两端同源——不一致服务端拒绝进房）。
     ///
     /// 所有权：Account Scope 在本阶段创建；正常路径随 <see cref="ProcedureArgs"/> 移交 Battle
@@ -24,15 +23,11 @@ namespace LiteGame
     /// </summary>
     public sealed class ProcedureMatch : ProcedureStageBase<ProcedureId, ProcedureArgs>
     {
-        /// <summary>本地联调端点（RoomServer 默认装配；测试入口）。</summary>
+        /// <summary>本地测试模式的占位端点（进程内 LocalServerTransport 不建 Socket；GM 本地联测页复用端口常量）。</summary>
         public const string TestHost = "127.0.0.1";
         public const int TestPort = 17777;
-        /// <summary>测试房间（RoomConfig 默认房间号）。</summary>
-        public const string DefaultRoomId = "Room-A";
-        /// <summary>测试房房间号（开发控制台入口：本地服专用于测试；全房免死规则见 <see cref="LiteSim.SimTestRules"/>）。</summary>
+        /// <summary>本地测试模式房间号（进程内 Room-Test；全房免死规则见 <see cref="LiteSim.SimTestRules"/>）。</summary>
         public const string TestRoomId = "Room-Test";
-        /// <summary>隔离测试发行者的受控测试身份（服务端仍按红线拒绝公网）。</summary>
-        public const string TestToken = "c2-dev-token";
 
         /// <summary>JoinAck 等待预算（毫秒）——超时进 Error（确定失败态，不静默重试）。</summary>
         public const int JoinTimeoutMs = 10_000;
@@ -75,8 +70,18 @@ namespace LiteGame
                 return;
             }
 #if UNITY_EDITOR || DEVELOPMENT_BUILD || LITEFRAMEWORK_DEBUG
-            RunAsyncCore(m, ct, TestHost, TestPort,
-                req.TestRoom ? TestRoomId : DefaultRoomId, TestToken, req.TestRoom).Forget();   // 一行转发，仅此而已——禁止 async void
+            // 唯一免票据入口 = 本地测试模式（进程内 Room-Test）。真 KCP 一律走上方 Meta 票据路径
+            // （本地全链/云端普通房/云端测试房）；直连 Room-A/TestToken 链已退役。
+            if (req.TestRoom)
+            {
+                RunAsyncCore(m, ct, TestHost, TestPort, TestRoomId, string.Empty, testRoom: true).Forget();
+                return;
+            }
+
+            var missing = new InvalidOperationException(
+                "无 Meta 票据：本地测试请用 request enter（Room-Test）；真 KCP 请走本地全链或云端房间");
+            Fail(m, missing, nameof(RunAsync));
+            m.Request(ProcedureId.Error, new ProcedureArgs(missing));
 #else
             // 生产配置缺真实依赖时拒绝启动或拒绝相应功能，不能悄悄退回 fake：
             // 正式包未接入真实登录——**拒绝以测试身份进房**（联机路径已在上方放行——真实票据不受此门禁）。
@@ -136,13 +141,13 @@ namespace LiteGame
         }
 
         /// <summary>
-        /// 选择传输（<paramref name="testRoom"/> = 开发控制台测试房：强制本地服 + 房号 Room-Test + 全房免死）：
-        /// **真 KCP（默认）** 还是 **进程内本地服务器**（离线隔离开发，开关 <see cref="DevStartupConfig.UseLocalServerEnabled"/>）。
+        /// 选择传输（<paramref name="testRoom"/> = 本地测试模式：进程内 LocalServerTransport + 房号 Room-Test + 全房免死）：
+        /// **只有**本地测试模式走进程内服；其余（Meta 票据 / 本地全链 / 云端普通房/测试房）一律真 KCP。
         ///
         /// **只在开发/编辑器/开发包可用**——`DevStartupConfig` 整体在 `#if` 内，release 下该静态不存在，
         /// 故此处也包在同一门禁里，正式包恒走真 KCP（不给"悄悄退化成假服务器"留窗口，
         /// 框架先行 §6"生产配置缺真实依赖时拒绝启动或拒绝相应功能，不能悄悄退回 fake"）。
-        /// **测试房不提供 KCP 形态**：免死规则靠"客户端预测与进程内服务器同持一个规则实例"
+        /// **本地测试模式不提供 KCP 形态**：免死规则靠"客户端预测与进程内服务器同持一个规则实例"
         /// （<see cref="LiteSim.MatchTestRules"/> 经 <see cref="LiteSim.SimTestRules.ActiveMatch"/> 登记），
         /// 真服务器的房间级规则下发未做。
         ///
@@ -168,6 +173,8 @@ namespace LiteGame
                 InfiniteAmmo = testRoom && TestModeRuntime.InfiniteAmmo,
                 HeadHitLineOverride = TestModeRuntime.HeadHitLineOverride,
                 HeadshotRadiusOverride = TestModeRuntime.HeadshotRadiusOverride,
+                DamageOverride = TestModeRuntime.WeaponDamageOverride,
+                RpmOverride = TestModeRuntime.WeaponRpmOverride,
             };
             LiteSim.SimTestRules.ActiveMatch = rules;             // 活动局登记口（GM 中局开合的写通道；判定路径不读）
             LiteSim.SimTestRules.Active = testRoom;                // 宿主钩子（冻结/传送/假人操作）开关
@@ -175,18 +182,15 @@ namespace LiteGame
             LiteSim.SimTestRules.BotInfiniteHp = testRoom && TestModeRuntime.BotInfiniteHp;   // 进房初值镜像（Live 开关另有 Set 时镜像）
             LiteSim.SimTestRules.TeleportDispatch = false;         // 进房清残留请求
             LiteSim.SimTestRules.BotResetRequested = false;        // 同上（进房前的面板误点不带到对局）
-            if (testRoom || DevStartupConfig.UseLocalServerEnabled)
+            if (testRoom)
             {
-                UnityEngine.Debug.Log(testRoom
-                    ? "[Match] **测试房**：本地服 Room-Test + 全房免死（Hp 保底 1、目标不消失——测试专用）"
-                    : "[Match] **本地服务器**：对局在进程内跑真 RoomRuntime 内核"
-                        + "（无 Socket / 无票据 / 单房间 / 剩余席位自动补位站桩——弱网、重连真实性与真实多人交互仍须真服务器验证）");
-                int players = testRoom ? 1 + UnityEngine.Mathf.Max(0, TestModeRuntime.BotCount) : 0;   // 0 = 房间默认
+                UnityEngine.Debug.Log("[Match] **本地测试模式**：本地服 Room-Test + 全房免死（Hp 保底 1、目标不消失——测试专用）");
+                int players = 1 + UnityEngine.Mathf.Max(0, TestModeRuntime.BotCount);
                 if (maps == null)
                     throw new InvalidOperationException(
                         "本地服务器形态缺地图提供者（装配根注入 IMapProvider——D22：无回退地图）");
-                int mapId = BattleScenes.LocalServerMapId(testRoom);   // dev 形态的宿主地图行键（测试房 = 训练图）
-                return LocalServerTransport.ForRoom(testRoom ? TestRoomId : DefaultRoomId, players, rules,
+                int mapId = BattleScenes.LocalServerMapId(testRoom: true);   // 本地测试模式 = 训练图
+                return LocalServerTransport.ForRoom(TestRoomId, players, rules,
                     gameplayDigestBase?.Invoke() ?? 0u,   // 房间身份与客户端同源（同进程同一份装载——批 E）
                     maps.GetMap(mapId), mapId);           // 判定图与客户端逐位同图 ＋ 行键随 JoinAck 回执（多图批）
             }
