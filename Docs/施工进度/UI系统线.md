@@ -17,6 +17,7 @@
 | 5 | UI 系统 P1-5/P1-6：Hub/CLI 接线与试点页静态文案（P1 收口） | — |
 | 6 | UI 系统 P1 边界收口：五族校验 · 契约补全 · 遍历统一 | — |
 | 7 | UI 系统 UIMain 退役：注册表锚迁移 · 产品注册摘除 · 测试载体归位 | — |
+| 8 | UI 系统 P2-1：单工作台与角色 Lane（宿主 + 透视迁移） | — |
 
 ---
 
@@ -348,3 +349,51 @@
 - **UIMain 历史引用**：归档文档与 git 历史保留；live 文档仅在“已退役”说明中出现。合成夹具 `signed-candidate*.json` 的 `lua/ui/UIMain.lua` 是签名固定样例，未改。
 - **样式债基线**：`UiValidation` 的 Warning 从 303 降为 302（仅 UIMain 根名债消失）；颜色 161/文字 141 未变。
 - **已提交 `49bd81d2`**（本批范围；`代码地图`/`项目说明 03` 与并行 DevMenu/调试线改动同文，随该线提交）。工作区另有并行线未提交：DevMenu 退役/调参注册表/测试房语义批（`GM与调试线` 第 15～19 章）。
+
+---
+
+## 第8章 UI 系统 P2-1：单工作台与角色 Lane（宿主 + 透视迁移）
+
+<a id="ch8-UI系统P2工作台"></a>
+
+> **批次**：P2-1（2026-10-23，staged-delivery）
+> **设计**：[UI 编辑器工具链专项设计 §2 工作台](../设计文档/客户端/UI系统/UI编辑器工具链专项设计.md#ch-workbench) · [§9 工具清单与阶段](../设计文档/客户端/UI系统/UI编辑器工具链专项设计.md#ch-phases) · [UI 系统总设计 §12 P2](../设计文档/客户端/UI系统/UI系统总设计.md)
+> **方案与任务**：`.workflow/archive/` 的 `*-ui-p2-workbench/`（plan.md / acceptance.md / tasks.md / test-plan.md / build-log.md / reviews）
+
+### 状态
+
+**已完成（附验证证据）**——宿主、五透视、Lane/阶段双层门控、`ui.workbench` 登记与 `ui.compose`/`ui.page-new` 退役已落地；新增夹具 **21/21**、回归 `UiPreview` **6/6**、全量 `wf verify` **31/31 PASS**。独立代码评审（三轮）发现并修复：选页不绑定目标、Lane 编辑旁路、未保存关闭提示、编辑非原子、打开 Stage 后目标不回绑——全部有夹具或门控覆盖。P2-2（起页/登记拆分）与 P2-3（样式令牌/预览矩阵）不在本批。
+
+### 交付
+
+| 件 | 变化 |
+|---|---|
+| 宿主 | 新增 `Assets/LiteGame/Editor/UiTools/Workbench/UiWorkbenchWindow.cs`：纯 IMGUI（宿主零 Sirenix）+ 顶部上下文条（页面选择 / 目标 prefab / Lane / 设备档占位 / 预览）＋五透视页签＋底部状态行＋未保存提示；输出 `[ui/workbench]` |
+| 门控内核 | `UiWorkbenchLane`/`UiWorkbenchAction`（11 动作）/`UiLanePolicy`（动作×角色矩阵含禁止原因，窗口与夹具单源）/`UiWorkbenchAvailability`（阶段层：起页/登记 P2-1 未建，原因指向 P2-2；提示优先级＝阶段 > Lane）/`UiWorkbenchPerspective`（5 透视 + 11 个能力标签） |
+| 上下文 | `UiWorkbenchState`（Lane/透视/目标/选中页/未保存标记；变更方法返回是否变化，零 UnityEditor 依赖）+ `IWorkbenchSettings`（EditorPrefs 与内存两实现，键名常量单源） |
+| 页面透视 | 新增 `UiWorkbenchPageSection`：真实清单 11 页/12 行只读列表 + Owner/设计稿/备注/状态编辑（经 `UiPageManifestEditor` 单源校验）+ 显式保存（`Store.Save`，失败不写盘）+ 缺清单/损坏显式错误；起页/登记按钮置灰并显示 P2-2 原因 |
+| 契约透视 | 新增 `UiWorkbenchContractSection`：`UiContractBatch.Generate/Diff` 窗口入口 + `UiContractReportView`（页数/跳过/破坏性/输出目录） |
+| 分区迁移 | 绑定透视＝`UiBindingsSection`+`UiGenerateSection`（路径 B 生成+hash）；控件库＝`UiWidgetLibrarySection`+`UiWidgetPropertySection`；校验＝`UiValidationSection`（窄档/全量档） |
+| 工具面 | `ui.workbench` 登记（`EditorToolHandlers` + `toolchain.json` + 工具索引重生成）；`ui.compose`、`ui.page-new` 退役（两个窗口类删除、catalog 断言改、`UiPageScaffold.Create` 留作 P2-2 内核并注明） |
+| 测试 | 新增 `UiWorkbenchEditModeTests` 13 例（矩阵穷举/阶段可用性/透视与能力标签/上下文/清单投影与确定性保存/契约报告与真实生成到临时目录/工具面与退役）；`UiPreviewEditModeTests` 6/6 改指新入口 |
+| 文档 | `08-UI工作台`（现行形态与入口表）、技术总结 04、修改指南工具表、开发工具链平台设计（窗口条目）、工具索引（重生成）、本章 |
+
+### 验证证据
+
+| 项 | 结果 |
+|---|---|
+| 先红 | `wf verify --red` PASS（20 命令；`ui-workbench-red` exit=1，10/10 断言失败；其余 19 条通过）——`evidence/red.json` |
+| 新增夹具 | `UiWorkbenchEditModeTests` **21/21**（矩阵逐项允许集/能力标签精确/选中回调与目标绑定/缺清单/原子迁移/契约生成到临时目录 11 份且逐字节一致/真实 diff/Stage 目标解析/内存偏好） |
+| 回归 | `UiPreviewEditModeTests` **6/6**（`ui.workbench` 在册、`ui.compose`/`ui.page-new` 为 null） |
+| 工具链 | `python scripts/toolchain.py check` OK（1 条既存未注册脚本告警）；`docs` 已重生成 |
+| 全量 | `wf verify` **PASS 31/31**（L1 + UI EditMode 17 条 + PlayMode + doc/l0/toolchain；证据 `evidence/verify.json`） |
+
+### 边界与遗留（如实）
+
+- **起页/登记留 P2-2**（用户裁决）：页面透视的起页/登记按钮置灰并显示原因；P2-1 后无窗口起页工具（手工复制 `Tmp_Page` + `_uiform_row.py` + `Luban/gen.bat`），手册已写明。
+- **`UiPageScaffold.Create` 暂无窗口消费者**：作为 P2-2 内核保留（注释挂 P2-2 批次号）。
+- **样式令牌/预览矩阵留 P2-3**：设备档为占位；样式族遗留（令牌 SO 管线、状态色 token 映射）不变。
+- **控件库/受控属性分区仍用 Odin**：宿主零 Sirenix，但复用分区是存量 Odin 实现；纯 IMGUI 化留清理批。
+- **页面清单基线 11 页/12 行**：与既有 P1 夹具同口径；页面增减时随批更新断言。
+- **工作区未提交**：本批改动待统一提交（与并行 DevMenu/调试线同树；提交按 hunk 拆分，共享文件只取本批改动）。
+- **手工冒烟限制**：窗口打开/状态/五透视已用 `eval_file` 冒烟（`title=UI 工作台 | Perspective=Page | 5`，Console error=0）；逐透视点击与截图受编辑器主循环限制未自动化，逻辑由 21 例夹具覆盖，视觉留人工一次确认。

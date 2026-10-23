@@ -146,14 +146,13 @@ Lua 侧只能经白名单门面访问 C#：`data`、`ui`、`content`、`text`（
 
 | 入口（toolchain id） | 形态 | 做什么 |
 |---|---|---|
-| `ui.compose` | Odin 窗口「UI 制作」 | 页面选择 + 目标 prefab + **四个页签**：绑定暴露 / 受控属性 / 校验·生成 / 控件库 |
-| `ui.page-new` | 窗口「新建 UI 页面」 | 页面名/id/layer/全屏 → 生成 prefab + Lua 骨架 + `tbuiform` 行 → 跑 Luban → 打开 Prefab Stage |
+| `ui.workbench` | 工作台（纯 IMGUI 宿主） | 页面清单/维护字段、控件库+受控属性、绑定编辑、路径 B 生成+hash、契约生成/diff、校验窄档/全量；角色 Lane 与阶段门控 |
 | `ui.validate` | action | 统一校验核心：菜单 / CLI（`RunCli`，供 CI）/ EditMode 三入口 |
 | `ui.binding-hash-all` / `-selected` | action | 记录/对账绑定生成物 hash |
 | `ui.style.*`（4 个） | action | 颜色刷新/对账、文字档对账/应用 |
-| 预览（窗口内入口） | 编辑器内 | “UI 制作”里打开 `UiPagePreview`：专用预览场景进 Play，保存 prefab 热重载，退出回原场景（无独立 toolchain id） |
+| 预览（上下文条入口） | 编辑器内 | 工作台「预览」按钮打开 `UiPagePreview`：专用预览场景进 Play，保存 prefab 热重载，退出回原场景（无独立 toolchain id；P2-3 升级为透视/设备档） |
 
-**唯一编辑面仍是 Unity Prefab Stage**：工具窗口不造第二套画布，不接管几何/锚点/层级；`UiComposeWindow` 只提供选择、暴露、属性、校验、控件插入。
+**唯一编辑面仍是 Unity Prefab Stage**：工具窗口不造第二套画布，不接管几何/锚点/层级；`UiWorkbenchWindow` 只提供上下文、透视、门控与报告。
 
 `UiValidator` 是**唯一校验核心**，规则按 `IUiRule` 端口注册，六族中已接入：
 
@@ -177,7 +176,7 @@ Lua 侧只能经白名单门面访问 C#：`data`、`ui`、`content`、`text`（
 2. **红点未生效**：注册表存在 ≠ 红点会亮；没有 `Evaluate` 调用点。
 3. **控件"有模板"≠"有消费者"**：30 个控件里大量仅测试覆盖。
 4. **Lua 调试器/信号器未接线**：`LuaPanda.lua` 无 require，`Core/eventer.lua` 无调用方。
-5. **文档与工具名漂移**：08 手册仍称"UI 工作台/起页/登记"目标流程，当前代码窗口叫「UI 制作」「新建 UI 页面」；旧 `ui.compose` 现在是新窗口，不是旧工具。
+5. **工具名已收敛**：P2-1 起唯一制作入口是 `ui.workbench`；`ui.compose`/`ui.page-new` 已退役，起页/登记随 P2-2（`ui.page-scaffold`/`ui.page-register`）。
 6. **UIMain 已退役**：产品入口是登录/大厅；UIMain 的 prefab/Lua 已改为测试载体 `Tmp_UiTestPage`/`Tests.UiTestPage`，不再登记 tbuiform 或产出 LuaKeys 常量。
 7. **Bridge.content 零消费**：门面存在但没有 Lua 调用方，改它时要先找消费者。
 

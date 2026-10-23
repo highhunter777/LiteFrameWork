@@ -121,36 +121,16 @@
       "safety": { "dryRun": "supported", "undo": "file", "confirmation": "none" }
     },
     {
-      "id": "ui.page-new",
-      "title": "新建 UI 页面",
+      "id": "ui.workbench",
+      "title": "UI 工作台",
       "category": "ui",
       "kind": "window",
       "plane": "editor",
       "purpose": "dev",
-      "handler": "ui.page-new",
-      "summary": "生成 Page prefab、Lua 骨架与 tbuiform 行，并重生成 Luban。",
+      "handler": "ui.workbench",
+      "summary": "UI 制作唯一入口：页面/控件库/绑定/契约/校验五透视，角色 Lane 与阶段门控。",
       "docs": "Docs/设计文档/客户端/UI系统/UI编辑器工具链专项设计.md",
-      "menu": "LiteGame/UI/制作/新建 UI 页面",
-      "writes": ["asset", "source", "generated"],
-      "outputs": [
-        { "path": "Assets/ShareResource/UI/Screens/", "kind": "asset" },
-        { "path": "Assets/LiteGame/Lua/UI/", "kind": "source" },
-        { "path": "Luban/Data/#uiform.xlsx", "kind": "source" }
-      ],
-      "destructive": false,
-      "order": 20
-    },
-    {
-      "id": "ui.compose",
-      "title": "UI 制作",
-      "category": "ui",
-      "kind": "window",
-      "plane": "editor",
-      "purpose": "dev",
-      "handler": "ui.compose",
-      "summary": "UI 制作主线：绑定编辑、受控属性、控件库、校验与生成。",
-      "docs": "Docs/设计文档/客户端/UI系统/UI编辑器工具链专项设计.md",
-      "menu": "LiteGame/UI/制作/UI 制作",
+      "menu": "LiteGame/UI/制作/UI 工作台",
       "writes": ["asset", "source"],
       "destructive": false,
       "order": 30

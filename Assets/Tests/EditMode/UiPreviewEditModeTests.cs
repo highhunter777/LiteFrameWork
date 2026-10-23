@@ -70,10 +70,11 @@ namespace LiteGame.Tests.EditMode
         public void 工具清单_制作主线入口在册且旧窗口退役()
         {
             EditorToolCatalog catalog = EditorToolCatalog.Load();
-            Assert.IsNotNull(catalog.Find("ui.page-new"), "新建页向导在册");
-            Assert.AreEqual(ToolchainKinds.Window, catalog.Find("ui.page-new").Kind);
-            Assert.IsNotNull(catalog.Find("ui.compose"), "UI 制作窗口在册");
-            Assert.AreEqual("UI 制作", catalog.Find("ui.compose").Title);
+            Assert.IsNull(catalog.Find("ui.page-new"), "新建页向导已退役（P2-2 由 ui.page-scaffold 承接）");
+            Assert.IsNull(catalog.Find("ui.compose"), "旧制作窗口已退役（唯一入口 ui.workbench）");
+            Assert.IsNotNull(catalog.Find("ui.workbench"), "UI 工作台在册");
+            Assert.AreEqual(ToolchainKinds.Window, catalog.Find("ui.workbench").Kind);
+            Assert.AreEqual("UI 工作台", catalog.Find("ui.workbench").Title);
             Assert.IsNull(catalog.Find("ui.binding"), "独立绑定窗口已退役");
             Assert.IsNull(catalog.Find("ui.writeback"), "独立回写窗口已退役");
         }

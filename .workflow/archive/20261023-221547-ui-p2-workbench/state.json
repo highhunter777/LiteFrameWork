@@ -1,0 +1,374 @@
+{
+  "schema_version": 1,
+  "slug": "ui-p2-workbench",
+  "title": "UI 系统 P2-1：单工作台与角色 Lane（宿主 + 透视迁移）",
+  "status": "archived",
+  "current_stage": null,
+  "created_at": "2026-10-23T18:55:29+08:00",
+  "updated_at": "2026-10-23T22:15:47+08:00",
+  "completed_at": "2026-10-23T22:15:47+08:00",
+  "completed_stages": [
+    {
+      "id": "propose",
+      "title": "提出方案",
+      "completed_at": "2026-10-23T18:57:37+08:00"
+    },
+    {
+      "id": "breakdown",
+      "title": "实施任务清单",
+      "completed_at": "2026-10-23T18:59:07+08:00"
+    },
+    {
+      "id": "review-tasks",
+      "title": "评审任务",
+      "completed_at": "2026-10-23T20:01:14+08:00"
+    },
+    {
+      "id": "tests-first",
+      "title": "先写测试",
+      "completed_at": "2026-10-23T20:19:44+08:00"
+    },
+    {
+      "id": "implement",
+      "title": "正式施工",
+      "completed_at": "2026-10-23T22:06:11+08:00"
+    },
+    {
+      "id": "verify",
+      "title": "测试代码",
+      "completed_at": "2026-10-23T22:15:25+08:00"
+    },
+    {
+      "id": "review-code",
+      "title": "评审代码",
+      "completed_at": "2026-10-23T22:15:39+08:00"
+    },
+    {
+      "id": "writeback",
+      "title": "回写与收尾",
+      "completed_at": "2026-10-23T22:15:47+08:00"
+    }
+  ],
+  "history": [
+    {
+      "at": "2026-10-23T18:55:29+08:00",
+      "event": "init",
+      "stage": "propose"
+    },
+    {
+      "at": "2026-10-23T18:57:37+08:00",
+      "event": "advance",
+      "from": "propose",
+      "to": "breakdown",
+      "approved_by": null
+    },
+    {
+      "at": "2026-10-23T18:59:07+08:00",
+      "event": "advance",
+      "from": "breakdown",
+      "to": "review-tasks",
+      "approved_by": null
+    },
+    {
+      "at": "2026-10-23T20:01:14+08:00",
+      "event": "advance",
+      "from": "review-tasks",
+      "to": "tests-first",
+      "approved_by": null
+    },
+    {
+      "at": "2026-10-23T20:19:44+08:00",
+      "event": "advance",
+      "from": "tests-first",
+      "to": "implement",
+      "approved_by": null
+    },
+    {
+      "at": "2026-10-23T22:06:11+08:00",
+      "event": "advance",
+      "from": "implement",
+      "to": "verify",
+      "approved_by": null
+    },
+    {
+      "at": "2026-10-23T22:15:25+08:00",
+      "event": "advance",
+      "from": "verify",
+      "to": "review-code",
+      "approved_by": null
+    },
+    {
+      "at": "2026-10-23T22:15:39+08:00",
+      "event": "advance",
+      "from": "review-code",
+      "to": "writeback",
+      "approved_by": null
+    },
+    {
+      "at": "2026-10-23T22:15:47+08:00",
+      "event": "advance",
+      "from": "writeback",
+      "to": null,
+      "approved_by": null
+    },
+    {
+      "at": "2026-10-23T22:15:47+08:00",
+      "event": "archive",
+      "path": "20261023-221547-ui-p2-workbench"
+    }
+  ],
+  "tasks": [
+    {
+      "id": "T1",
+      "title": "先红：工作台守卫夹具与最小编译骨架",
+      "description": "新增 UiWorkbenchEditModeTests（Lane 矩阵/透视清单/状态切换/页面清单投影/契约报告/工具面/退役断言）与 Workbench 目录最小类型壳；红必须是断言失败而非编译失败。",
+      "acceptance": "夹具不少于 7 例首跑全红且失败信息指向未实现策略/未登记工具；Unity 编译 0 错",
+      "verify": "python scripts/gate/unity-tests.py --mode editor --filter UiWorkbenchEditModeTests",
+      "files": [
+        "Assets/Tests/EditMode/UiWorkbenchEditModeTests.cs",
+        "Assets/LiteGame/Editor/UiTools/Workbench/"
+      ],
+      "deps": [],
+      "status": "done",
+      "evidence": "UiWorkbenchEditModeTests 10/10 断言失败（编译 0 错）；wf verify --red PASS，ui-workbench-red exit=1（evidence/red.json）",
+      "status_reason": "",
+      "created_at": "2026-10-23T18:58:10+08:00",
+      "started_at": "2026-10-23T20:20:05+08:00",
+      "completed_at": "2026-10-23T20:20:05+08:00"
+    },
+    {
+      "id": "T2",
+      "title": "Lane 策略内核（动作×角色矩阵单源）",
+      "description": "UiWorkbenchLane/UiWorkbenchAction/UiLanePolicy：动作×Lane×禁用原因表驱动；UI 门控与夹具共用同一份表。",
+      "acceptance": "矩阵夹具全绿；新增动作只改表；窗口内无 if(lane==...) 分散判断",
+      "verify": "python scripts/gate/unity-tests.py --mode editor --filter UiWorkbenchEditModeTests",
+      "files": [
+        "Assets/LiteGame/Editor/UiTools/Workbench/UiWorkbenchLane.cs",
+        "Assets/LiteGame/Editor/UiTools/Workbench/UiLanePolicy.cs"
+      ],
+      "deps": [
+        "T1"
+      ],
+      "status": "done",
+      "evidence": "UiLanePolicy 11x3 矩阵+穷举夹具绿；UiWorkbenchEditModeTests 13/13",
+      "status_reason": "",
+      "created_at": "2026-10-23T18:58:17+08:00",
+      "started_at": "2026-10-23T20:20:05+08:00",
+      "completed_at": "2026-10-23T21:22:46+08:00"
+    },
+    {
+      "id": "T3",
+      "title": "工作台状态与偏好（上下文不丢）",
+      "description": "UiWorkbenchState（透视/Lane/目标/页面/未保存标记）+ IWorkbenchSettings 与 EditorPrefs 实现（键名常量单源）。",
+      "acceptance": "切换透视/Lane 后目标与选中页不丢；未保存标记与关闭提示可测；测试不读写真实 EditorPrefs",
+      "verify": "python scripts/gate/unity-tests.py --mode editor --filter UiWorkbenchEditModeTests",
+      "files": [
+        "Assets/LiteGame/Editor/UiTools/Workbench/UiWorkbenchState.cs",
+        "Assets/LiteGame/Editor/UiTools/Workbench/UiWorkbenchSettings.cs"
+      ],
+      "deps": [
+        "T1"
+      ],
+      "status": "done",
+      "evidence": "UiWorkbenchState 切换上下文夹具绿；IWorkbenchSettings 双实现（EditorPrefs/内存）",
+      "status_reason": "",
+      "created_at": "2026-10-23T18:58:17+08:00",
+      "started_at": "2026-10-23T20:20:05+08:00",
+      "completed_at": "2026-10-23T21:22:46+08:00"
+    },
+    {
+      "id": "T4",
+      "title": "页面透视模型（清单投影与编辑保存门面）",
+      "description": "UiWorkbenchPageList/Row 从 UiPageManifestStore 投影；Owner/设计稿/备注/状态编辑经 UiPageManifestEditor+Store 显式保存，失败不写盘。",
+      "acceptance": "真实清单 11 页/12 行只读断言；缺清单显式错误；重复保存逐字节一致且 sourceHash 重算",
+      "verify": "python scripts/gate/unity-tests.py --mode editor --filter UiWorkbenchEditModeTests",
+      "files": [
+        "Assets/LiteGame/Editor/UiTools/Workbench/UiWorkbenchPageList.cs",
+        "Assets/LiteGame/Editor/UiTools/Workbench/UiWorkbenchPageEditor.cs"
+      ],
+      "deps": [
+        "T2",
+        "T3"
+      ],
+      "status": "done",
+      "evidence": "页面清单 11 页/12 行只读、缺清单显式错误、临时路径双写逐字节一致（夹具绿）",
+      "status_reason": "",
+      "created_at": "2026-10-23T18:58:26+08:00",
+      "started_at": "2026-10-23T21:22:56+08:00",
+      "completed_at": "2026-10-23T21:22:56+08:00"
+    },
+    {
+      "id": "T5",
+      "title": "契约透视模型（生成与 diff 报告投影）",
+      "description": "UiContractReportView 把 UiContractBatch.Generate/Diff 结果投影为计数/破坏性/跳过/输出目录，供透视与状态行消费。",
+      "acceptance": "生成与 diff 报告映射正确；失败显式不静默；不复制契约生成逻辑",
+      "verify": "python scripts/gate/unity-tests.py --mode editor --filter UiWorkbenchEditModeTests",
+      "files": [
+        "Assets/LiteGame/Editor/UiTools/Workbench/UiContractReportView.cs"
+      ],
+      "deps": [
+        "T2",
+        "T3"
+      ],
+      "status": "done",
+      "evidence": "契约报告投影 + Generate(临时目录) 11 份/无 Error/重复一致（夹具绿）",
+      "status_reason": "",
+      "created_at": "2026-10-23T18:58:26+08:00",
+      "started_at": "2026-10-23T21:22:56+08:00",
+      "completed_at": "2026-10-23T21:22:56+08:00"
+    },
+    {
+      "id": "T6",
+      "title": "宿主窗口装配（零 Sirenix IMGUI）",
+      "description": "UiWorkbenchWindow：顶部上下文条（页面/目标/Lane/设备档占位）+ 左树 + 五透视页签 + 底部状态行；复用四个既有分区与新透视模型；输出 [ui/workbench] 计数。",
+      "acceptance": "Hub 打开无 Console error；五透视可切且共享上下文；动作受 Lane 门控并显示禁用原因；手动冒烟通过",
+      "verify": "python scripts/gate/unity-tests.py --mode editor --filter UiWorkbenchEditModeTests",
+      "files": [
+        "Assets/LiteGame/Editor/UiTools/Workbench/UiWorkbenchWindow.cs",
+        "Assets/LiteGame/Editor/UiTools/Workbench/UiWorkbenchPerspective.cs"
+      ],
+      "deps": [
+        "T2",
+        "T3",
+        "T4",
+        "T5"
+      ],
+      "status": "done",
+      "evidence": "窗口打开：title=UI 工作台、Perspective=Page、五透视 5、Console 0 error（eval_file 冒烟）",
+      "status_reason": "",
+      "created_at": "2026-10-23T18:58:34+08:00",
+      "started_at": "2026-10-23T21:22:56+08:00",
+      "completed_at": "2026-10-23T21:22:56+08:00"
+    },
+    {
+      "id": "T7",
+      "title": "工具面接线与 ui.compose 退役",
+      "description": "EditorToolHandlers 注册 ui.workbench 并删除 ui.compose；toolchain.json 条目（kind/plane/writes/outputs/docs）；工具索引重生成；旧引用（测试断言/文档/脚本）清理。",
+      "acceptance": "Catalog 含 ui.workbench、不含 ui.compose；python scripts/toolchain.py check 0 error；全仓无 ui.compose 活引用",
+      "verify": "python scripts/toolchain.py check",
+      "files": [
+        "Assets/LiteGame/Editor/Toolchain/EditorToolHandlers.cs",
+        "scripts/gate/toolchain.json",
+        "Docs/工具链/工具索引.md",
+        "Assets/Tests/EditMode/UiPreviewEditModeTests.cs"
+      ],
+      "deps": [
+        "T6"
+      ],
+      "status": "done",
+      "evidence": "Catalog：ui.workbench 在册(Kind=window/无 Error)、ui.compose 与 ui.page-new 为 null（夹具绿）",
+      "status_reason": "",
+      "created_at": "2026-10-23T18:58:34+08:00",
+      "started_at": "2026-10-23T21:23:04+08:00",
+      "completed_at": "2026-10-23T21:23:04+08:00"
+    },
+    {
+      "id": "T8",
+      "title": "文档回写（设计/手册/索引/进度）",
+      "description": "工具链设计 §2 实现口径、08-UI 制作与调试手册、技术总结 04、修改指南工具表、施工进度 UI 系统线新章。",
+      "acceptance": "08 手册去掉旧工具过渡说明；入口命令全部为 ui.workbench；链接/锚有效；doc-lint 0/0",
+      "verify": "python scripts/gate/doc-lint.py",
+      "files": [
+        "Docs/设计文档/客户端/UI系统/UI编辑器工具链专项设计.md",
+        "Docs/项目说明/08-UI工作台.md",
+        "Docs/技术总结/04-UI系统与Lua脚本层.md",
+        "Docs/修改指南.md",
+        "Docs/施工进度/UI系统线.md"
+      ],
+      "deps": [
+        "T7"
+      ],
+      "status": "done",
+      "evidence": "08/技术总结04/修改指南/平台设计/工具索引/进度第8章 已改；doc-lint 0/0",
+      "status_reason": "",
+      "created_at": "2026-10-23T18:58:44+08:00",
+      "started_at": "2026-10-23T21:23:05+08:00",
+      "completed_at": "2026-10-23T21:23:05+08:00"
+    },
+    {
+      "id": "T9",
+      "title": "验证与收尾（全量夹具/回归/门禁/施工记录）",
+      "description": "跑新增夹具 + 既有 UI 夹具回归 + L1 + doc + toolchain；补齐 build-log 交付摘要/未决事项/文件清单。",
+      "acceptance": "新增与回归夹具全绿；L1/doc/toolchain 全绿；build-log 完整、未决事项登记",
+      "verify": "python scripts/gate/test.py --lane L1 --profile PullRequest",
+      "files": [
+        ".workflow/active/ui-p2-workbench/build-log.md"
+      ],
+      "deps": [
+        "T7",
+        "T8"
+      ],
+      "status": "done",
+      "evidence": "代码冻结后全量 wf verify 复跑（31 命令；证据 evidence/verify.json）；新增 21 例 + 回归 + L1 + doc/toolchain",
+      "status_reason": "",
+      "created_at": "2026-10-23T18:58:44+08:00",
+      "started_at": "2026-10-23T21:48:05+08:00",
+      "completed_at": "2026-10-23T21:48:05+08:00"
+    },
+    {
+      "id": "T10",
+      "title": "退役波及面补遗：page-new/向导/引用/文档入口",
+      "description": "删 UiPageWizardWindow/UiComposeWindow 两文件与 .meta；清理双向调用（向导→RefreshOpenPageList、宿主→向导）；UiPreviewEditModeTests 改为 workbench 在册且两者为 null；平台设计文档 UiComposeWindow 条目、08 手册入口同步；全仓 grep 零活引用。",
+      "acceptance": "catalog 无 ui.page-new/ui.compose；编译 0 错；全仓无活引用（归档/历史除外）；08 与平台设计入口改 ui.workbench",
+      "verify": "python scripts/gate/unity-tests.py --mode editor --filter UiPreviewEditModeTests",
+      "files": [
+        "Assets/LiteGame/Editor/UiTools/Page/UiPageWizardWindow.cs",
+        "Assets/LiteGame/Editor/UiTools/Compose/UiComposeWindow.cs",
+        "Assets/Tests/EditMode/UiPreviewEditModeTests.cs",
+        "Docs/设计文档/架构/开发工具链平台专项设计.md"
+      ],
+      "deps": [
+        "T7"
+      ],
+      "status": "done",
+      "evidence": "两窗口类删除、UiPreviewEditModeTests 6/6、平台设计条目改；全仓无 ui.compose/ui.page-new 活引用（夹具+grep）",
+      "status_reason": "",
+      "created_at": "2026-10-23T20:26:53+08:00",
+      "started_at": "2026-10-23T21:23:05+08:00",
+      "completed_at": "2026-10-23T21:23:05+08:00"
+    },
+    {
+      "id": "T11",
+      "title": "验证补遗：UI EditMode + doc + toolchain 显式证据",
+      "description": "除 L1 外显式跑 UiWorkbenchEditModeTests、UiPreviewEditModeTests 与既有 UI 回归夹具、doc-lint、toolchain check，并在 build-log 记录命令与结果。",
+      "acceptance": "五条命令全绿且证据入 build-log",
+      "verify": "python scripts/gate/unity-tests.py --mode editor --filter UiWorkbenchEditModeTests",
+      "files": [
+        ".workflow/active/ui-p2-workbench/build-log.md"
+      ],
+      "deps": [
+        "T8",
+        "T10"
+      ],
+      "status": "done",
+      "evidence": "UiWorkbench 21/21、UiPreview 6/6、doc-lint 0/0、toolchain check OK；最终 wf verify 证据见 evidence/verify.json",
+      "status_reason": "",
+      "created_at": "2026-10-23T20:26:53+08:00",
+      "started_at": "2026-10-23T21:48:05+08:00",
+      "completed_at": "2026-10-23T21:48:05+08:00"
+    }
+  ],
+  "verification": {
+    "at": "2026-10-23T22:15:10+08:00",
+    "ok": true,
+    "stale": false,
+    "evidence": "evidence/verify.json",
+    "command_fingerprint": "f51184c2760bbbb408bc87656e945ceb44864f676d2c80f60cf257ce3b5014fb",
+    "summary": {
+      "total": 31,
+      "passed": 31
+    }
+  },
+  "red_verification": {
+    "at": "2026-10-23T20:18:54+08:00",
+    "ok": true,
+    "stale": false,
+    "evidence": "evidence/red.json",
+    "command_fingerprint": "43119e956c01a1f6d8ee5eae395b1a67c5858374a8d2eb05bbfba3f351f450ee",
+    "summary": {
+      "total": 20,
+      "passed": 1
+    }
+  },
+  "archived_at": "2026-10-23T22:15:47+08:00"
+}

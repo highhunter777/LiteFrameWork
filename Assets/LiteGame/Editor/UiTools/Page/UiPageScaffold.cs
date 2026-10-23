@@ -126,6 +126,10 @@ namespace LiteGame.Editor.UiTools.Page
             return output.Parsed != null && output.Parsed.ok ? output.Parsed.id : -1;
         }
 
+        /// <summary>
+        /// 一键起页内核（prefab + Lua + tbuiform + Luban）。**P2-2 接线**：向导退役后暂无窗口消费者，
+        /// P2-2 把它拆成美术起页（仅 prefab）与工程登记两段；当前消费者＝测试与工具脚本。
+        /// </summary>
         public static Result Create(string pageName, int id, int layer, bool fullScreen, bool openStage = true)
         {
             var result = new Result();

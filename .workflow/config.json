@@ -391,6 +391,20 @@
         "600"
       ],
       "timeout": 900
+    },
+    {
+      "name": "ui-workbench-editmode",
+      "cmd": [
+        "python",
+        "scripts/gate/unity-tests.py",
+        "--mode",
+        "editor",
+        "--filter",
+        "UiWorkbenchEditModeTests",
+        "--timeout",
+        "600"
+      ],
+      "timeout": 900
     }
   ],
   "red_commands": [
@@ -654,6 +668,20 @@
         "editor",
         "--filter",
         "UiUimainRetirementEditModeTests",
+        "--timeout",
+        "600"
+      ],
+      "timeout": 900
+    },
+    {
+      "name": "ui-workbench-red",
+      "cmd": [
+        "python",
+        "scripts/gate/unity-tests.py",
+        "--mode",
+        "editor",
+        "--filter",
+        "UiWorkbenchEditModeTests",
         "--timeout",
         "600"
       ],

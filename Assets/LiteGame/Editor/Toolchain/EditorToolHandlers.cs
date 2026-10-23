@@ -8,6 +8,7 @@ using LiteGame.Editor.UiTools.Contracts;
 using LiteGame.Editor.UiTools.Page;
 using LiteGame.Editor.UiTools.Validation;
 using LiteGame.Editor.UiTools.Widgets;
+using LiteGame.Editor.UiTools.Workbench;
 using LiteGame.EditorTools;
 using LiteGame.EditorTools.UI;
 using LiteSim.Editor;
@@ -59,8 +60,7 @@ namespace LiteGame.Toolchain
 
         private static void RegisterUi(EditorToolRegistry registry)
         {
-            registry.RegisterWindow("ui.page-new", UiPageWizardWindow.Open);
-            registry.RegisterWindow("ui.compose", UiComposeWindow.Open);
+            registry.RegisterWindow("ui.workbench", UiWorkbenchWindow.Open);
 
             registry.RegisterAction("ui.validate", ValidateUi);
             registry.RegisterAction("ui.contract", GenerateUiContracts);
