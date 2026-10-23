@@ -4,7 +4,7 @@ using LiteSim;
 namespace LiteGame
 {
     /// <summary>测试模式的运行时快照与控制桥（开发/编辑器/开发包专用；release 整段剥离）。
-    /// **启动配置在场景 DebugTuner**（免死/人数/冻结/传送/三个表现开关的进房初值——进房时快照进来）；
+    /// **启动配置在场景 DevStartupConfig**（免死/人数/冻结/传送/三个表现开关的进房初值——进房时快照进来）；
     /// **局内可调项在 GM 面板**（直接读写本快照的现场开关）。进入/退出由 GM 面板或 F10 发起。
     /// **请求桥（进/退/传送）经 <see cref="RequestEnter"/>/<see cref="RequestExit"/>/<see cref="RequestTeleport"/>
     /// 与 <see cref="TakeEnterRequest"/>/<see cref="TakeExitRequest"/>/<see cref="TakeTeleportRequest"/>
@@ -15,7 +15,7 @@ namespace LiteGame
         /// <summary>当前是否处于测试模式（进入置位；退出/离场由 GM 面板或对局内退出请求清除）。</summary>
         public static bool Active;
 
-        // ---- 配置快照（进房时由 DebugTuner 启动配置写入；默认口径见 TestModeOptions.All）----
+        // ---- 配置快照（进房时由 DevStartupConfig 启动配置写入；默认口径见 TestModeOptions.All）----
         public static bool NoDeath = true;          // 全房免死（Hp 保底 1、目标不消失）
         public static bool InfiniteAmmo;            // 无限子弹（Sim 规则；GM 面板可现场开合）
         public static bool LaserSight = true;       // 瞄准激光（运行中可切）
@@ -74,7 +74,7 @@ namespace LiteGame
         // 「重置假人」是一次性宿主钩子（SimTestRules.BotResetRequested，面板直写、本地服消费即清）——
         // 宿主不持本类的引用（程序集方向），故不在此设桥。
 
-        /// <summary>默认口径（未挂 DebugTuner 时的进房兜底）：数据源是 <see cref="TestModeOptions.All"/>（单一来源）。</summary>
+        /// <summary>默认口径（未挂 DevStartupConfig 时的进房兜底）：数据源是 <see cref="TestModeOptions.All"/>（单一来源）。</summary>
         public static void ApplyDefaults()
         {
             TestModeOptions.ApplyDefaults();

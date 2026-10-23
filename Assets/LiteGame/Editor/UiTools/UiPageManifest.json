@@ -20,7 +20,7 @@
       "owner": "art.ui",
       "status": "Registered",
       "contractPath": "Assets/LiteGame/Editor/UiTools/Contracts/Page_Lobby.contract.json",
-      "contractPresent": false,
+      "contractPresent": true,
       "deviceProfiles": []
     },
     {
@@ -38,7 +38,7 @@
       "owner": "art.ui",
       "status": "Registered",
       "contractPath": "Assets/LiteGame/Editor/UiTools/Contracts/Page_Login.contract.json",
-      "contractPresent": false,
+      "contractPresent": true,
       "deviceProfiles": []
     },
     {
@@ -56,7 +56,7 @@
       "owner": "art.ui",
       "status": "Registered",
       "contractPath": "Assets/LiteGame/Editor/UiTools/Contracts/Page_Records.contract.json",
-      "contractPresent": false,
+      "contractPresent": true,
       "deviceProfiles": []
     },
     {
@@ -74,7 +74,7 @@
       "owner": "art.ui",
       "status": "Registered",
       "contractPath": "Assets/LiteGame/Editor/UiTools/Contracts/Page_Result.contract.json",
-      "contractPresent": false,
+      "contractPresent": true,
       "deviceProfiles": []
     },
     {
@@ -92,7 +92,7 @@
       "owner": "art.ui",
       "status": "Registered",
       "contractPath": "Assets/LiteGame/Editor/UiTools/Contracts/Page_Room.contract.json",
-      "contractPresent": false,
+      "contractPresent": true,
       "deviceProfiles": []
     },
     {
@@ -110,7 +110,7 @@
       "owner": "art.ui",
       "status": "Registered",
       "contractPath": "Assets/LiteGame/Editor/UiTools/Contracts/Page_Settings.contract.json",
-      "contractPresent": false,
+      "contractPresent": true,
       "deviceProfiles": []
     },
     {
@@ -127,7 +127,7 @@
       "owner": "art.ui",
       "status": "Registered",
       "contractPath": "Assets/LiteGame/Editor/UiTools/Contracts/Tmp_BaselineA.contract.json",
-      "contractPresent": false,
+      "contractPresent": true,
       "deviceProfiles": []
     },
     {
@@ -144,7 +144,7 @@
       "owner": "art.ui",
       "status": "Registered",
       "contractPath": "Assets/LiteGame/Editor/UiTools/Contracts/Tmp_BaselineB.contract.json",
-      "contractPresent": false,
+      "contractPresent": true,
       "deviceProfiles": []
     },
     {
@@ -166,7 +166,7 @@
       "owner": "art.ui",
       "status": "Registered",
       "contractPath": "Assets/LiteGame/Editor/UiTools/Contracts/Tmp_Dialog.contract.json",
-      "contractPresent": false,
+      "contractPresent": true,
       "deviceProfiles": []
     },
     {
@@ -183,7 +183,7 @@
       "owner": "art.ui",
       "status": "Registered",
       "contractPath": "Assets/LiteGame/Editor/UiTools/Contracts/Tmp_Loading.contract.json",
-      "contractPresent": false,
+      "contractPresent": true,
       "deviceProfiles": []
     },
     {
@@ -200,7 +200,7 @@
       "owner": "art.ui",
       "status": "Registered",
       "contractPath": "Assets/LiteGame/Editor/UiTools/Contracts/Tmp_Toast.contract.json",
-      "contractPresent": false,
+      "contractPresent": true,
       "deviceProfiles": []
     },
     {
@@ -223,5 +223,5 @@
     }
   ],
   "warnings": [],
-  "sourceHash": "sha256:bfbc67c730717cf50da0f001915f81b6bf42e7ebabb71635dfc605bc9d4845bb"
+  "sourceHash": "sha256:7e6878d3d157fba9a6e49f09167bbe5c4e55f16488a86b932c4d2c1e2e8087b0"
 }

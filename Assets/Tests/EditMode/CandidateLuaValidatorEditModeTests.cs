@@ -163,7 +163,7 @@ namespace LiteGame.Tests.EditMode
         public void 沙箱_批内require_按需装载不依赖清单顺序()
         {
             // use 在前、base（依赖）在后：沙箱按需装载（与运行期"全量预载 + require 时执行"同语义），
-            // 依赖在清单后位也必须解析出真实值——真实候选包 Content/DemoEntry 即依赖后位的 Core.class。
+            // 依赖在清单后位也必须解析出真实值——真实候选包 Lua 模块可依赖后位的 Core.class。
             CandidateScriptSet set = SetOf(
                 new ScriptEntry("use", "lua/use.lua", "base"),
                 new ScriptEntry("base", "lua/base.lua"));

@@ -35,6 +35,32 @@ namespace LiteGame.Toolchain
 
         public string RequiresLabel { get { return ToolchainPlanes.RequiresLabel(Tool); } }
 
+        /// <summary>产物形态摘要（按 kind 聚合计数，如「生成代码 ×2、表/配置数据 ×1」）。</summary>
+        public string ArtifactsLabel
+        {
+            get
+            {
+                if (Tool.Outputs.Length == 0) return "—";
+                var counts = new List<string>();
+                var order = new List<string>();
+                var seen = new Dictionary<string, int>(StringComparer.Ordinal);
+                foreach (ToolchainOutput output in Tool.Outputs)
+                {
+                    if (!seen.ContainsKey(output.kind))
+                    {
+                        order.Add(output.kind);
+                        seen[output.kind] = 0;
+                    }
+                    seen[output.kind]++;
+                }
+                foreach (string kind in order)
+                {
+                    counts.Add(ToolchainOutputKinds.Label(kind) + " ×" + seen[kind]);
+                }
+                return string.Join("、", counts);
+            }
+        }
+
         public bool IsEditorKind { get { return ToolchainKinds.IsEditor(Tool.kind); } }
 
         public bool SupportsDryRun { get { return Tool.SupportsDryRun; } }

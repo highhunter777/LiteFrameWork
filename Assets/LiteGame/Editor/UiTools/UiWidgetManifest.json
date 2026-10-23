@@ -1,0 +1,650 @@
+{
+  "schemaVersion": "1.0",
+  "generator": {
+    "name": "ui-widget-manifest",
+    "version": "1.0"
+  },
+  "widgets": [
+    {
+      "template": "Tmp_AnimatedImage",
+      "prefabPath": "Assets/ShareResource/UI/Widgets/Tmp_AnimatedImage.prefab",
+      "prefabGuid": "b595abd25969b7c4d8d59cbd92229d65",
+      "usageSegment": "AnimatedImage_",
+      "specPresent": true,
+      "owner": "art.ui",
+      "summary": "帧动画图片",
+      "slots": [],
+      "states": [],
+      "events": [],
+      "sizeBehavior": "Fixed",
+      "constraints": [],
+      "properties": [],
+      "bindingHash": "5d2b1a4f79c79e02d6c5941ce1b569eae836500288d63d5e159de37e8d9e002f"
+    },
+    {
+      "template": "Tmp_AvatarFrame",
+      "prefabPath": "Assets/ShareResource/UI/Widgets/Tmp_AvatarFrame.prefab",
+      "prefabGuid": "4921d3bccb1c3384c90d23c283610f77",
+      "usageSegment": "AvatarFrame_",
+      "specPresent": true,
+      "owner": "art.ui",
+      "summary": "头像框",
+      "slots": [],
+      "states": [],
+      "events": [],
+      "sizeBehavior": "Fixed",
+      "constraints": [],
+      "properties": [],
+      "bindingHash": "5d2b1a4f79c79e02d6c5941ce1b569eae836500288d63d5e159de37e8d9e002f"
+    },
+    {
+      "template": "Tmp_Baseline",
+      "prefabPath": "Assets/ShareResource/UI/Widgets/Tmp_Baseline.prefab",
+      "prefabGuid": "b371b14793d2ec741a36061d421835be",
+      "specPresent": true,
+      "owner": "art.ui",
+      "summary": "控件基线（通用容器/样式基线）",
+      "slots": [],
+      "states": [],
+      "events": [],
+      "sizeBehavior": "Expand",
+      "constraints": [],
+      "properties": [],
+      "bindingHash": "5d2b1a4f79c79e02d6c5941ce1b569eae836500288d63d5e159de37e8d9e002f"
+    },
+    {
+      "template": "Tmp_BottomNav",
+      "prefabPath": "Assets/ShareResource/UI/Widgets/Tmp_BottomNav.prefab",
+      "prefabGuid": "bd5d311eeb8d70c45895dbae692eb2e2",
+      "usageSegment": "BottomNav_",
+      "specPresent": true,
+      "owner": "art.ui",
+      "summary": "底部导航",
+      "slots": [],
+      "states": [
+        "Normal",
+        "Hover",
+        "Pressed",
+        "Disabled",
+        "Selected"
+      ],
+      "events": [
+        "BottomNav.OnNavChanged"
+      ],
+      "sizeBehavior": "Expand",
+      "constraints": [],
+      "properties": [],
+      "bindingHash": "5d2b1a4f79c79e02d6c5941ce1b569eae836500288d63d5e159de37e8d9e002f"
+    },
+    {
+      "template": "Tmp_Bubble",
+      "prefabPath": "Assets/ShareResource/UI/Widgets/Tmp_Bubble.prefab",
+      "prefabGuid": "d5a3a61d93001e340a2b4f3d96ef08b1",
+      "usageSegment": "Bubble_",
+      "specPresent": true,
+      "owner": "art.ui",
+      "summary": "气泡提示",
+      "slots": [],
+      "states": [],
+      "events": [],
+      "sizeBehavior": "FitContent",
+      "constraints": [],
+      "properties": [],
+      "bindingHash": "5d2b1a4f79c79e02d6c5941ce1b569eae836500288d63d5e159de37e8d9e002f"
+    },
+    {
+      "template": "Tmp_CountText",
+      "prefabPath": "Assets/ShareResource/UI/Widgets/Tmp_CountText.prefab",
+      "prefabGuid": "f4b90f8143baaf34a8cb5a395d84402c",
+      "usageSegment": "CountText_",
+      "specPresent": true,
+      "owner": "art.ui",
+      "summary": "数值文本",
+      "slots": [],
+      "states": [],
+      "events": [],
+      "sizeBehavior": "Fixed",
+      "constraints": [],
+      "properties": [
+        {
+          "nodePath": "",
+          "component": "CountText",
+          "member": "Duration",
+          "kind": "Float",
+          "displayName": "滚动时长（秒）"
+        }
+      ],
+      "bindingHash": "5d2b1a4f79c79e02d6c5941ce1b569eae836500288d63d5e159de37e8d9e002f"
+    },
+    {
+      "template": "Tmp_Countdown",
+      "prefabPath": "Assets/ShareResource/UI/Widgets/Tmp_Countdown.prefab",
+      "prefabGuid": "3fcc6f10f5cfcbb4496e238e255c4469",
+      "usageSegment": "Countdown_",
+      "specPresent": true,
+      "owner": "art.ui",
+      "summary": "倒计时",
+      "slots": [],
+      "states": [],
+      "events": [],
+      "sizeBehavior": "Fixed",
+      "constraints": [],
+      "properties": [],
+      "bindingHash": "5d2b1a4f79c79e02d6c5941ce1b569eae836500288d63d5e159de37e8d9e002f"
+    },
+    {
+      "template": "Tmp_Dialog",
+      "prefabPath": "Assets/ShareResource/UI/Widgets/Tmp_Dialog.prefab",
+      "prefabGuid": "d30fb3c29cb1e7447914ba31be4d1782",
+      "usageSegment": "Dialog_",
+      "specPresent": true,
+      "owner": "art.ui",
+      "summary": "弹窗",
+      "slots": [],
+      "states": [],
+      "events": [],
+      "sizeBehavior": "FitContent",
+      "constraints": [
+        "确认/取消回调经 UIDialog.Configure 注入"
+      ],
+      "properties": [],
+      "bindingHash": "5d2b1a4f79c79e02d6c5941ce1b569eae836500288d63d5e159de37e8d9e002f"
+    },
+    {
+      "template": "Tmp_Dropdown",
+      "prefabPath": "Assets/ShareResource/UI/Widgets/Tmp_Dropdown.prefab",
+      "prefabGuid": "38cc7c13edc237346a163346c8d6ec63",
+      "specPresent": true,
+      "owner": "art.ui",
+      "summary": "下拉",
+      "slots": [],
+      "states": [
+        "Normal",
+        "Hover",
+        "Pressed",
+        "Disabled"
+      ],
+      "events": [
+        "UIDropdownWrap.OnIndexChanged"
+      ],
+      "sizeBehavior": "Expand",
+      "constraints": [],
+      "properties": [],
+      "bindingHash": "5d2b1a4f79c79e02d6c5941ce1b569eae836500288d63d5e159de37e8d9e002f"
+    },
+    {
+      "template": "Tmp_EventRelay",
+      "prefabPath": "Assets/ShareResource/UI/Widgets/Tmp_EventRelay.prefab",
+      "prefabGuid": "7c3b176735016c341b6c94f5e4c3a93b",
+      "specPresent": true,
+      "owner": "art.ui",
+      "summary": "事件转发",
+      "slots": [],
+      "states": [],
+      "events": [
+        "UIEventRelay.OnClicked"
+      ],
+      "sizeBehavior": "Expand",
+      "constraints": [
+        "覆盖区域接收点击；不承载视觉"
+      ],
+      "properties": [],
+      "bindingHash": "5d2b1a4f79c79e02d6c5941ce1b569eae836500288d63d5e159de37e8d9e002f"
+    },
+    {
+      "template": "Tmp_FlyText",
+      "prefabPath": "Assets/ShareResource/UI/Widgets/Tmp_FlyText.prefab",
+      "prefabGuid": "e7b0b14966bc2644fb036170c1fa61ff",
+      "usageSegment": "FlyText_",
+      "specPresent": true,
+      "owner": "art.ui",
+      "summary": "飘字",
+      "slots": [],
+      "states": [],
+      "events": [],
+      "sizeBehavior": "FitContent",
+      "constraints": [
+        "经 FlyTextPool 池化复用"
+      ],
+      "properties": [],
+      "bindingHash": "5d2b1a4f79c79e02d6c5941ce1b569eae836500288d63d5e159de37e8d9e002f"
+    },
+    {
+      "template": "Tmp_GuideHighlight",
+      "prefabPath": "Assets/ShareResource/UI/Widgets/Tmp_GuideHighlight.prefab",
+      "prefabGuid": "09b7b0d4dcf03454d918bcd4268e5bb3",
+      "usageSegment": "GuideHighlight_",
+      "specPresent": true,
+      "owner": "art.ui",
+      "summary": "引导高亮",
+      "slots": [],
+      "states": [],
+      "events": [],
+      "sizeBehavior": "Expand",
+      "constraints": [],
+      "properties": [],
+      "bindingHash": "5d2b1a4f79c79e02d6c5941ce1b569eae836500288d63d5e159de37e8d9e002f"
+    },
+    {
+      "template": "Tmp_HpBar",
+      "prefabPath": "Assets/ShareResource/UI/Widgets/Tmp_HpBar.prefab",
+      "prefabGuid": "5dd92cb7a1183d248b35136286477928",
+      "usageSegment": "HpBar_",
+      "specPresent": true,
+      "owner": "art.ui",
+      "summary": "血条",
+      "slots": [
+        {
+          "name": "Cot_IconBox",
+          "required": true,
+          "description": "血量图标槽（Icon_Health）"
+        }
+      ],
+      "states": [],
+      "events": [],
+      "sizeBehavior": "Expand",
+      "constraints": [
+        "数值文本可选（ValueText 可空）"
+      ],
+      "properties": [
+        {
+          "nodePath": "",
+          "component": "HpBar",
+          "member": "BackLerpSpeed",
+          "kind": "Float",
+          "displayName": "后条追赶速度",
+          "tooltip": "后条滑落追赶速度（越大越快贴合前条）"
+        },
+        {
+          "nodePath": "",
+          "component": "HpBar",
+          "member": "ValueFormat",
+          "kind": "String",
+          "displayName": "数值文本格式",
+          "tooltip": "数值文本格式；{0}=当前 {1}=上限。留空不显示数值"
+        }
+      ],
+      "bindingHash": "5d2b1a4f79c79e02d6c5941ce1b569eae836500288d63d5e159de37e8d9e002f"
+    },
+    {
+      "template": "Tmp_InputField",
+      "prefabPath": "Assets/ShareResource/UI/Widgets/Tmp_InputField.prefab",
+      "prefabGuid": "554bed2242ecd464ab1037d34d9df786",
+      "specPresent": true,
+      "owner": "art.ui",
+      "summary": "输入框",
+      "slots": [],
+      "states": [
+        "Normal",
+        "Disabled",
+        "Selected",
+        "Empty"
+      ],
+      "events": [
+        "UIInputFieldWrap.OnSubmitted",
+        "UIInputFieldWrap.OnValueChanged"
+      ],
+      "sizeBehavior": "Expand",
+      "constraints": [],
+      "properties": [],
+      "bindingHash": "5d2b1a4f79c79e02d6c5941ce1b569eae836500288d63d5e159de37e8d9e002f"
+    },
+    {
+      "template": "Tmp_KillFeedRow",
+      "prefabPath": "Assets/ShareResource/UI/Widgets/Tmp_KillFeedRow.prefab",
+      "prefabGuid": "ca14c42dcd4947f4d8c0e2fb42053e9f",
+      "specPresent": true,
+      "owner": "art.ui",
+      "summary": "击杀播报行",
+      "slots": [],
+      "states": [],
+      "events": [],
+      "sizeBehavior": "FitContent",
+      "constraints": [],
+      "properties": [],
+      "bindingHash": "5d2b1a4f79c79e02d6c5941ce1b569eae836500288d63d5e159de37e8d9e002f"
+    },
+    {
+      "template": "Tmp_Loading",
+      "prefabPath": "Assets/ShareResource/UI/Widgets/Tmp_Loading.prefab",
+      "prefabGuid": "f64eb14820b2faa488d93d0a321bcc07",
+      "usageSegment": "Loading_",
+      "specPresent": true,
+      "owner": "art.ui",
+      "summary": "加载遮罩",
+      "slots": [
+        {
+          "name": "Cot_Content",
+          "required": true,
+          "description": "加载内容槽（转圈/进度/状态文本）"
+        }
+      ],
+      "states": [],
+      "events": [],
+      "sizeBehavior": "Expand",
+      "constraints": [
+        "阻断输入可配（SetBlocking）"
+      ],
+      "properties": [
+        {
+          "nodePath": "Cot_Content/ProgressBar_Load",
+          "component": "ProgressBar",
+          "member": "ValueFormat",
+          "kind": "String",
+          "displayName": "数值文本格式",
+          "tooltip": "数值文本格式；{0}=当前 {1}=上限。留空不显示数值"
+        }
+      ],
+      "bindingHash": "5d2b1a4f79c79e02d6c5941ce1b569eae836500288d63d5e159de37e8d9e002f"
+    },
+    {
+      "template": "Tmp_ProgressBar",
+      "prefabPath": "Assets/ShareResource/UI/Widgets/Tmp_ProgressBar.prefab",
+      "prefabGuid": "29aaf0992b87dff4db81b5f8f49cbf79",
+      "usageSegment": "ProgressBar_",
+      "specPresent": true,
+      "owner": "art.ui",
+      "summary": "进度条",
+      "slots": [],
+      "states": [],
+      "events": [],
+      "sizeBehavior": "Expand",
+      "constraints": [],
+      "properties": [
+        {
+          "nodePath": "",
+          "component": "ProgressBar",
+          "member": "ValueFormat",
+          "kind": "String",
+          "displayName": "数值文本格式",
+          "tooltip": "数值文本格式；{0}=当前 {1}=上限。留空不显示数值"
+        }
+      ],
+      "bindingHash": "5d2b1a4f79c79e02d6c5941ce1b569eae836500288d63d5e159de37e8d9e002f"
+    },
+    {
+      "template": "Tmp_RankCell",
+      "prefabPath": "Assets/ShareResource/UI/Widgets/Tmp_RankCell.prefab",
+      "prefabGuid": "9b33fccb13288d7479a10a9a529286bf",
+      "specPresent": true,
+      "owner": "art.ui",
+      "summary": "排行条目",
+      "slots": [],
+      "states": [],
+      "events": [],
+      "sizeBehavior": "FitContent",
+      "constraints": [],
+      "properties": [],
+      "bindingHash": "5d2b1a4f79c79e02d6c5941ce1b569eae836500288d63d5e159de37e8d9e002f"
+    },
+    {
+      "template": "Tmp_RedDot",
+      "prefabPath": "Assets/ShareResource/UI/Widgets/Tmp_RedDot.prefab",
+      "prefabGuid": "667a09dd6a2010344abd7d1085790bdf",
+      "usageSegment": "RedDot_",
+      "specPresent": true,
+      "owner": "art.ui",
+      "summary": "红点",
+      "slots": [],
+      "states": [],
+      "events": [],
+      "sizeBehavior": "Fixed",
+      "constraints": [],
+      "properties": [],
+      "bindingHash": "5d2b1a4f79c79e02d6c5941ce1b569eae836500288d63d5e159de37e8d9e002f"
+    },
+    {
+      "template": "Tmp_RotatingImage",
+      "prefabPath": "Assets/ShareResource/UI/Widgets/Tmp_RotatingImage.prefab",
+      "prefabGuid": "61d2fcadc5e56714cb19ec9a3f545d51",
+      "usageSegment": "RotatingImage_",
+      "specPresent": true,
+      "owner": "art.ui",
+      "summary": "旋转图片",
+      "slots": [],
+      "states": [],
+      "events": [],
+      "sizeBehavior": "Fixed",
+      "constraints": [],
+      "properties": [],
+      "bindingHash": "5d2b1a4f79c79e02d6c5941ce1b569eae836500288d63d5e159de37e8d9e002f"
+    },
+    {
+      "template": "Tmp_SafeArea",
+      "prefabPath": "Assets/ShareResource/UI/Widgets/Tmp_SafeArea.prefab",
+      "prefabGuid": "c48db677d8a69684d993c96a65702898",
+      "specPresent": true,
+      "owner": "art.ui",
+      "summary": "安全区",
+      "slots": [],
+      "states": [],
+      "events": [],
+      "sizeBehavior": "Expand",
+      "constraints": [],
+      "properties": [],
+      "bindingHash": "5d2b1a4f79c79e02d6c5941ce1b569eae836500288d63d5e159de37e8d9e002f"
+    },
+    {
+      "template": "Tmp_SimpleList",
+      "prefabPath": "Assets/ShareResource/UI/Widgets/Tmp_SimpleList.prefab",
+      "prefabGuid": "4503f01e1849cd147b0e048ffbf88318",
+      "usageSegment": "SimpleList_",
+      "specPresent": true,
+      "owner": "art.ui",
+      "summary": "小列表",
+      "slots": [],
+      "states": [
+        "Normal",
+        "Empty"
+      ],
+      "events": [],
+      "sizeBehavior": "Expand",
+      "constraints": [
+        "仅小列表（条目数少时使用）"
+      ],
+      "properties": [],
+      "bindingHash": "5d2b1a4f79c79e02d6c5941ce1b569eae836500288d63d5e159de37e8d9e002f"
+    },
+    {
+      "template": "Tmp_Slider",
+      "prefabPath": "Assets/ShareResource/UI/Widgets/Tmp_Slider.prefab",
+      "prefabGuid": "64055a2ee8ab2ba45a8f7b89f88d55cf",
+      "specPresent": true,
+      "owner": "art.ui",
+      "summary": "滑条",
+      "slots": [],
+      "states": [
+        "Normal",
+        "Hover",
+        "Pressed",
+        "Disabled"
+      ],
+      "events": [
+        "UISliderWrap.OnChanged"
+      ],
+      "sizeBehavior": "Expand",
+      "constraints": [],
+      "properties": [],
+      "bindingHash": "5d2b1a4f79c79e02d6c5941ce1b569eae836500288d63d5e159de37e8d9e002f"
+    },
+    {
+      "template": "Tmp_StarRating",
+      "prefabPath": "Assets/ShareResource/UI/Widgets/Tmp_StarRating.prefab",
+      "prefabGuid": "5521aa25bcf5621408015a119d4bfa96",
+      "usageSegment": "StarRating_",
+      "specPresent": true,
+      "owner": "art.ui",
+      "summary": "星级评分",
+      "slots": [],
+      "states": [
+        "Normal",
+        "Disabled"
+      ],
+      "events": [
+        "StarRating.OnChanged"
+      ],
+      "sizeBehavior": "Fixed",
+      "constraints": [],
+      "properties": [],
+      "bindingHash": "5d2b1a4f79c79e02d6c5941ce1b569eae836500288d63d5e159de37e8d9e002f"
+    },
+    {
+      "template": "Tmp_StateButton",
+      "prefabPath": "Assets/ShareResource/UI/Widgets/Tmp_StateButton.prefab",
+      "prefabGuid": "066462ec7ad116843940483fbdd84eff",
+      "usageSegment": "StateButton_",
+      "specPresent": true,
+      "owner": "art.ui",
+      "summary": "状态按钮",
+      "slots": [],
+      "states": [
+        "Normal",
+        "Pressed",
+        "Disabled",
+        "Selected"
+      ],
+      "events": [
+        "StateButton.OnClickEvent",
+        "StateButton.OnLongPressEvent",
+        "StateButton.OnSelectedChanged"
+      ],
+      "sizeBehavior": "FitContent",
+      "constraints": [],
+      "properties": [],
+      "bindingHash": "5d2b1a4f79c79e02d6c5941ce1b569eae836500288d63d5e159de37e8d9e002f"
+    },
+    {
+      "template": "Tmp_Stepper",
+      "prefabPath": "Assets/ShareResource/UI/Widgets/Tmp_Stepper.prefab",
+      "prefabGuid": "89d8fea443e75274b9532bffb116627f",
+      "usageSegment": "Stepper_",
+      "specPresent": true,
+      "owner": "art.ui",
+      "summary": "步进器",
+      "slots": [],
+      "states": [
+        "Normal",
+        "Hover",
+        "Pressed",
+        "Disabled"
+      ],
+      "events": [
+        "Stepper.OnChanged"
+      ],
+      "sizeBehavior": "Fixed",
+      "constraints": [],
+      "properties": [
+        {
+          "nodePath": "",
+          "component": "Stepper",
+          "member": "Max",
+          "kind": "Int",
+          "displayName": "上限"
+        },
+        {
+          "nodePath": "",
+          "component": "Stepper",
+          "member": "Min",
+          "kind": "Int",
+          "displayName": "下限"
+        },
+        {
+          "nodePath": "",
+          "component": "Stepper",
+          "member": "Step",
+          "kind": "Int",
+          "displayName": "步长"
+        }
+      ],
+      "bindingHash": "5d2b1a4f79c79e02d6c5941ce1b569eae836500288d63d5e159de37e8d9e002f"
+    },
+    {
+      "template": "Tmp_TabGroup",
+      "prefabPath": "Assets/ShareResource/UI/Widgets/Tmp_TabGroup.prefab",
+      "prefabGuid": "324ac28fb07fffb459efe4cd20bd0730",
+      "usageSegment": "TabGroup_",
+      "specPresent": true,
+      "owner": "art.ui",
+      "summary": "页签组",
+      "slots": [],
+      "states": [
+        "Normal",
+        "Hover",
+        "Pressed",
+        "Disabled",
+        "Selected"
+      ],
+      "events": [
+        "TabGroup.OnTabChanged"
+      ],
+      "sizeBehavior": "Expand",
+      "constraints": [],
+      "properties": [],
+      "bindingHash": "5d2b1a4f79c79e02d6c5941ce1b569eae836500288d63d5e159de37e8d9e002f"
+    },
+    {
+      "template": "Tmp_Toast",
+      "prefabPath": "Assets/ShareResource/UI/Widgets/Tmp_Toast.prefab",
+      "prefabGuid": "3d18fb0acc1c3914b98bfbf0b01dfdac",
+      "usageSegment": "Toast_",
+      "specPresent": true,
+      "owner": "art.ui",
+      "summary": "轻提示",
+      "slots": [],
+      "states": [],
+      "events": [],
+      "sizeBehavior": "FitContent",
+      "constraints": [
+        "同时可见上限 MaxVisible（默认 4），超出淘汰最旧"
+      ],
+      "properties": [],
+      "bindingHash": "5d2b1a4f79c79e02d6c5941ce1b569eae836500288d63d5e159de37e8d9e002f"
+    },
+    {
+      "template": "Tmp_Toggle",
+      "prefabPath": "Assets/ShareResource/UI/Widgets/Tmp_Toggle.prefab",
+      "prefabGuid": "a32dc3d5c3e134c40b979e83ed9e4d0f",
+      "specPresent": true,
+      "owner": "art.ui",
+      "summary": "开关",
+      "slots": [],
+      "states": [
+        "Normal",
+        "Hover",
+        "Pressed",
+        "Disabled",
+        "Selected"
+      ],
+      "events": [
+        "UIToggleWrap.OnChanged"
+      ],
+      "sizeBehavior": "FitContent",
+      "constraints": [],
+      "properties": [],
+      "bindingHash": "5d2b1a4f79c79e02d6c5941ce1b569eae836500288d63d5e159de37e8d9e002f"
+    },
+    {
+      "template": "Tmp_VirtualList",
+      "prefabPath": "Assets/ShareResource/UI/Widgets/Tmp_VirtualList.prefab",
+      "prefabGuid": "22d0dbf9dfe06ca4eb7412b6501e5d24",
+      "usageSegment": "VirtualList_",
+      "specPresent": true,
+      "owner": "art.ui",
+      "summary": "虚拟列表",
+      "slots": [],
+      "states": [
+        "Normal",
+        "Empty"
+      ],
+      "events": [],
+      "sizeBehavior": "Expand",
+      "constraints": [
+        "固定尺寸单轴（不支持 Grid/变高）"
+      ],
+      "properties": [],
+      "bindingHash": "5d2b1a4f79c79e02d6c5941ce1b569eae836500288d63d5e159de37e8d9e002f"
+    }
+  ],
+  "warnings": [],
+  "sourceHash": "sha256:6b14544121db7e6d165ca696d5f081eeb77b6d15ce5c8c82bde669e6f4fdee26"
+}

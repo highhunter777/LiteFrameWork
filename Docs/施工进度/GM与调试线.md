@@ -22,6 +22,8 @@
 | 10 | DevHUD P0-A 剩余：过滤/JSON/Diag/Sink/拖动缩放/持久化 | — |
 | 11 | DevHUD P0-B：性能/联机/Stats 读数 | — |
 | 12 | 清 P0-B 遗留债：DevHUD 拆分 | — |
+| 13 | 调试组件职责拆分（DebugTuner → DevStartupConfig） | — |
+| 14 | 统一调试内核与运行期控制台（F12） | — |
 
 ---
 
@@ -670,3 +672,76 @@
 ### 回滚
 
 - 还原 `DevHUD.cs` 到拆分前版本（含段构建/导出），删 `Hud/DevHudSectionSet.cs`、`DevHudStatsDiscovery.cs`、`DevHudFilter.cs`、`DevHudJsonExporter.cs`；保留 perf/net/host 件；无资产/数据迁移。
+
+---
+
+<a id="ch13-debug-component-split"></a>
+
+## 第13章 调试组件职责拆分（`DebugTuner` → `DevStartupConfig`）
+
+> 2026-10-22。**状态：已完成（附验证证据）**——Unity 编译 0 错；L1 1819/1819 PASS；EditMode 2/2（工作台资产守卫）+ 13/13（激光回归）。
+
+范围：清审计登记的“`DebugTuner` 单件混合启动配置 / 运行态时钟 / 开发页与工作台生命周期 / GM 命令注册”。拆分后：
+
+| 件 | 职责 |
+|---|---|
+| `App/Debug/DevStartupConfig.cs` | 启动落点开关（`UseLocalServer` / `DirectToTraining` / `WorkbenchMode` / `DevMenu`）+ 测试模式启动初值 + `ApplySnapshotOrDefaults` + 静态镜像；无服务引用 |
+| `App/Debug/DebugRuntimeTuner.cs` | 世界时钟 / UI 时钟 / 事件 StrictMode 连续旋钮 + `Inject` + GM「重置时钟」命令注册 |
+| `App/Debug/DevMenuLauncher.cs` | 开发页 `DevMenuUI` 生成、工作台场景 `UiWorkbench` 加性加载/卸载、工作台请求桥与路径常量 |
+
+- **改名保 GUID**：`Assets/LiteGame/App/Debug/DebugTuner.cs` 经 unity-pipeline `rename_asset` → `DevStartupConfig.cs`（GUID `bdd7002c…` 不变），Boot 场景原组件引用保持；同 GameObject 新增 `DebugRuntimeTuner` / `DevMenuLauncher` 两件（pipeline `attach_script`），场景已保存。
+- **代码消费者同步**：`GameEntry` 改注入 `DebugRuntimeTuner`；`ProcedureMain` / `ProcedureMatch` / `DevMenuPanel` / `UIWorkbenchDriver` / `GmTestModePage` / `GmClockCommands` / 测试守卫全部改新类型。
+- **行为保持**：Boot 序列化值保持 `UseLocalServer=1`、`DirectToTraining=1`、`DevMenu=1`、`WorkbenchMode=0`；时钟默认 `Scale=1`、不暂停、`StrictMode=1`。
+- **门禁边界**：本次仅 `Assets/LiteGame` 客户端侧，不触共享源集/BuildHash。Play 冒烟：`DevMenuLauncher` 已开出开发页；首轮启动被工作区既有的 `Assets/ShareResource/SampleContent` 缺失拦住，随后按用户裁决退役样例①（见[资源与工具链线 ch33](资源与工具链线.md#ch33-sample-content-retire)），复跑 Boot Play 启动通过（`entry-assets ok checked=1`、配置 12 表装载、UI 大厅页打开）。
+
+## 第14章 统一调试内核与运行期控制台（F12）
+
+<a id="ch14-debug-kernel-console"></a>
+
+> 2026-10-22。**状态：已完成（附验证证据）**——Unity 编译 0 错；EditMode 16/16；L1 1819/1819；Doc 0 violation；Play 已走真实 Input System 路径验证 F12 控制台、输入拦截、HUD 六段与编辑器命令页。
+
+范围：执行[《GM 与调试工具分层专项设计》§7](../设计文档/架构/GM与调试工具分层专项设计.md#7-统一内核与三投影)的“统一内核 + 三投影”最小闭环——内核（读模型/动作/发现）、编辑器投影收口、DevHUD 收口、运行期文本控制台。**不新增 UI 调试面板**；F8 仍归[《UI 运行时调试工具链专项设计》](../设计文档/客户端/UI系统/UI运行时调试工具链专项设计.md)的目标入口。
+
+### 交付面
+
+| 件 | 职责 |
+|---|---|
+| `Assets/LiteGame/App/Debug/DebugKernel.cs` | 读模型（Stats/Log/Diag/Battle/LogSink）、动作（命令执行/审计/撤销/选项/请求桥/输入拦截租约）、发现（命令/读段）；实例装配注入，dev 三宏 |
+| `Assets/LiteGame/App/Debug/DebugStatsDiscovery.cs` | 从 DevTool 迁入内核：容器 + 场景组件 Stats 合并/排序/剔除 |
+| `Assets/LiteGame/App/Debug/DebugConsoleCommand.cs` | 控制台命令行纯词法解析（EditMode 可直测） |
+| `Assets/LiteGame/App/Bootstrap/ContainerModule.cs`、`App/GameEntry.cs` | 装配期注册内核；`GameEntry.DebugKernel` 只读访问器（与 `Stats` 同口径） |
+| `Assets/LiteClient/Adapters/Platform.Unity/Dev/DevHotkey.cs` | 新增 F12；文本输入改为 owner 所有权（HUD 过滤 / 控制台互斥） |
+| `Assets/LiteGame/DevTool/DevHUD.cs`、`Hud/DevHudSectionSet.cs` | 延迟绑定内核；六段读数改走内核；场景加载重建/每轮剔除由内核承担；HUD 仍只读 |
+| `Assets/LiteGame/DevTool/DebugConsole.cs` | F12 运行期控制台：IMGUI、200 行输出、输入拦截、命令派发、异常隔离 |
+| `Assets/LiteGame/Editor/Gm/GmCommandsPage.cs`、`GmNetDiagPage.cs` | 编辑器投影改消费内核；页内删除 `CommandCenter`/反射执行 |
+| `Assets/Tests/EditMode/DebugKernelEditModeTests.cs` | 内核/解析器 16 例（发现、执行、审计、选项、请求桥、无对局、读段、解析） |
+| `scripts/gate/unity-tests.py` | Unity 测试门禁包装：`run_tests` 失败时 CLI 仍 exit 0，必须解析 `Summary.Failed` |
+| `Docs/项目说明/13-调试手册.md`、`14-客户端开发能力地图.md` | 增补 F12 控制台、内核读段、F8 目标入口边界与已知不足 |
+
+### 验证证据
+
+| 项 | 结果 |
+|---|---|
+| Unity 编译 | `unity command recompile` → 0 错 |
+| EditMode | `DebugKernelEditModeTests` 16/16 PASS（含带参命令拒绝、未知命令、选项/请求桥、解析器） |
+| L1 | `test.py --lane L1 --profile PullRequest` → **1819/1819 PASS** |
+| Doc | `test.py --lane Doc` → 0 violation / 0 warning |
+| Play：控制台开合 | 真实 Input System 事件：F12 开/关；释放按键后 F8 不再打开控制台（F8 保留给 UI 运行时调试目标） |
+| Play：命令 | 键入 `help`（16 行）、`commands`（5 条 GM 命令）、`options`（9 项）、`option InfiniteAmmo on`（回读 True，随后 off）、`run GmResetClockCommand`（OK：时钟已重置）、`audit 4`（#1 OK）、`stats`/`log 3`/`battle` 均有输出 |
+| Play：输入拦截 | 控制台打开时 `BlockerCount 1→2`、租约非空；关闭后回 1、`_textOwned=false` |
+| Play：HUD | HUD 内核非空；段读数 `Stats=97 行`、`Log Recent=10`、`Perf=2`、`日志 sink=2`；无对局时联机/DiagTrace 段隐藏 |
+| Play：编辑器页 | 反射调用 `GmCommandsPage.RefreshCommands` → `cmds=5 audit=1`；`GmNetDiagPage` 改读 `kernel.DescribeBattle()` |
+| 红测 | 先落签名骨架 + 16 用例，`evidence/red.json` 记录 16/16 `NotImplementedException`；实现后同用例转绿 |
+
+### 边界与未决
+
+- **F8/F12 分工**：F8 是 UI 运行时调试面板的目标入口（未落地），本批控制台改用 **F12**，不抢占；后续 UI 面板/通用控制台外壳归 T1 决策点。
+- **IL2CPP 反射**：控制台对发现命令的 `Activator` + `MakeGenericMethod` 在编辑器 Play 已过；开发包 IL2CPP 出包未实测（本轮不出包），AOT 下可能不可用。内置命令/读数不依赖反射；若真机不可用，控制台应明确提示“需编辑器执行”，内核接口不变。
+- **编辑器测试模式页**仍直接调 `TestModeOptions`/`TestModeRuntime`：它们是内核动作模型的静态写点，且页面需在未进 Play 时显示启动项；不视为第二套实现。
+- **工作流配置**：为让 Unity 测试失败可见，`.workflow/config.json` 追加了 `debug-kernel-editmode`（`scripts/gate/unity-tests.py`）；同仓另一个进行中的运行后续 verify 会多跑这一项。
+- **UI 调试面文档**：`Docs/设计文档/测试与性能/开发包UI调试面专项设计.md` 改为归档重定向指针，现行权威是 `UI运行时调试工具链专项设计`；未复制第二套设计。
+
+### 回滚
+
+- 删除 `DebugKernel.cs`/`DebugStatsDiscovery.cs`/`DebugConsoleCommand.cs`/`DebugConsole.cs`，还原 `ContainerModule`/`GameEntry`/`DevHotkey`/`DevHUD`/`DevHudSectionSet`/两个 GM 页；旧 `DevHudStatsDiscovery.cs` 由 git 恢复。
+- 无资产/数据迁移；内核与控制台可分别撤回（先撤控制台不影响编辑器/HUD 收口）。

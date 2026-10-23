@@ -119,19 +119,6 @@ MonoBehaviour:
         FilterRuleName: CollectAll
         AssetTags: 
         UserData: 
-    - GroupName: ShareResource
-      GroupDesc: "\u5171\u4EAB\u8D44\u6E90\u76EE\u5F55\uFF08Assets/ShareResource\uFF09\u2014\u2014\u6837\u4F8B\u2460\u771F\u5B9E\u8D44\u4EA7\u5305\u6BB5\u6807\u8BB0\u7D20\u6750\u5728\u6B64"
-      AssetTags: 
-      ActiveRuleName: EnableGroup
-      Collectors:
-      - CollectPath: Assets/ShareResource/SampleContent
-        CollectorGUID: 
-        CollectorType: 0
-        AddressRuleName: AddressByFileName
-        PackRuleName: PackSeparately
-        FilterRuleName: CollectAll
-        AssetTags: 
-        UserData: 
     - GroupName: FX
       GroupDesc: "\u6218\u6597\u7279\u6548\uFF08fx_*\uFF0C\u53EA\u6536\u96C6\u5B9E\u9645\u7528\u5230\u7684\u2014\u2014\u7981\u6574\u76EE\u5F55\u6536\u96C6\u7B2C\u4E09\u65B9\u5305\uFF09"
       AssetTags: 

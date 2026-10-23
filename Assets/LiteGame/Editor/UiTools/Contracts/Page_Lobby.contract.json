@@ -1,0 +1,145 @@
+{
+  "schemaVersion": "2.0",
+  "generator": {
+    "name": "ui-contract",
+    "version": "1.0"
+  },
+  "page": {
+    "formId": 12,
+    "name": "Page_Lobby",
+    "prefabPath": "Assets/ShareResource/UI/Screens/Page_Lobby.prefab",
+    "prefabGuid": "bb72b834805ea1e4c97a5c3c87a2d10d",
+    "luaPath": "UI.Page_Lobby",
+    "layer": 0,
+    "fullScreen": true,
+    "cacheStrategy": "Lru"
+  },
+  "controls": [
+    {
+      "bindName": "Button_CreateRoom",
+      "nodePath": "Cot_SafeArea/Cot_Actions/Button_CreateRoom",
+      "type": "UnityEngine.UI.Button",
+      "kind": "Command",
+      "required": true
+    },
+    {
+      "bindName": "Txt_CreateRoom",
+      "nodePath": "Cot_SafeArea/Cot_Actions/Button_CreateRoom/Txt_CreateRoom",
+      "type": "TMPro.TextMeshProUGUI",
+      "kind": "None",
+      "required": false
+    },
+    {
+      "bindName": "Button_QuickEnter",
+      "nodePath": "Cot_SafeArea/Cot_Actions/Button_QuickEnter",
+      "type": "UnityEngine.UI.Button",
+      "kind": "Command",
+      "required": true
+    },
+    {
+      "bindName": "Txt_QuickEnter",
+      "nodePath": "Cot_SafeArea/Cot_Actions/Button_QuickEnter/Txt_QuickEnter",
+      "type": "TMPro.TextMeshProUGUI",
+      "kind": "None",
+      "required": false
+    },
+    {
+      "bindName": "Button_Records",
+      "nodePath": "Cot_SafeArea/Cot_Actions/Button_Records",
+      "type": "UnityEngine.UI.Button",
+      "kind": "Command",
+      "required": true
+    },
+    {
+      "bindName": "Txt_Records",
+      "nodePath": "Cot_SafeArea/Cot_Actions/Button_Records/Txt_Records",
+      "type": "TMPro.TextMeshProUGUI",
+      "kind": "None",
+      "required": false
+    },
+    {
+      "bindName": "Dropdown_Map",
+      "nodePath": "Cot_SafeArea/Cot_CreateSetup/Dropdown_Map",
+      "type": "LiteClient.UI.UIDropdownWrap",
+      "kind": "Command",
+      "required": true
+    },
+    {
+      "bindName": "Dropdown_Players",
+      "nodePath": "Cot_SafeArea/Cot_CreateSetup/Dropdown_Players",
+      "type": "LiteClient.UI.UIDropdownWrap",
+      "kind": "Command",
+      "required": true
+    },
+    {
+      "bindName": "Txt_MapLabel",
+      "nodePath": "Cot_SafeArea/Cot_CreateSetup/Txt_MapLabel",
+      "type": "TMPro.TextMeshProUGUI",
+      "kind": "None",
+      "required": false
+    },
+    {
+      "bindName": "Txt_PlayersLabel",
+      "nodePath": "Cot_SafeArea/Cot_CreateSetup/Txt_PlayersLabel",
+      "type": "TMPro.TextMeshProUGUI",
+      "kind": "None",
+      "required": false
+    },
+    {
+      "bindName": "Button_Settings",
+      "nodePath": "Cot_SafeArea/Cot_Header/Button_Settings",
+      "type": "UnityEngine.UI.Button",
+      "kind": "Command",
+      "required": true
+    },
+    {
+      "bindName": "Txt_Settings",
+      "nodePath": "Cot_SafeArea/Cot_Header/Button_Settings/Txt_Settings",
+      "type": "TMPro.TextMeshProUGUI",
+      "kind": "None",
+      "required": false
+    },
+    {
+      "bindName": "Txt_PlayerName",
+      "nodePath": "Cot_SafeArea/Cot_Header/Txt_PlayerName",
+      "type": "TMPro.TextMeshProUGUI",
+      "kind": "None",
+      "required": false
+    },
+    {
+      "bindName": "VirtualList_Rooms",
+      "nodePath": "Cot_SafeArea/Cot_Rooms/VirtualList_Rooms",
+      "type": "UnityEngine.UI.ScrollRect",
+      "kind": "Command",
+      "required": true
+    },
+    {
+      "bindName": "Txt_Status",
+      "nodePath": "Cot_SafeArea/Txt_Status",
+      "type": "TMPro.TextMeshProUGUI",
+      "kind": "None",
+      "required": false
+    }
+  ],
+  "text": [],
+  "styles": [],
+  "templates": [
+    {
+      "nodePath": "Cot_SafeArea/Cot_CreateSetup/Dropdown_Map",
+      "template": "Tmp_Dropdown",
+      "bindingHash": "5d2b1a4f79c79e02d6c5941ce1b569eae836500288d63d5e159de37e8d9e002f"
+    },
+    {
+      "nodePath": "Cot_SafeArea/Cot_CreateSetup/Dropdown_Players",
+      "template": "Tmp_Dropdown",
+      "bindingHash": "5d2b1a4f79c79e02d6c5941ce1b569eae836500288d63d5e159de37e8d9e002f"
+    },
+    {
+      "nodePath": "Cot_SafeArea/Cot_Rooms/VirtualList_Rooms",
+      "template": "Tmp_VirtualList",
+      "bindingHash": "5d2b1a4f79c79e02d6c5941ce1b569eae836500288d63d5e159de37e8d9e002f"
+    }
+  ],
+  "events": [],
+  "sourceHash": "sha256:639dfcf8b4e954f22f082a6618a2801108d395a4ca38e1ba3d645f6d378ba51a"
+}

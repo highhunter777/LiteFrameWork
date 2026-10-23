@@ -229,14 +229,10 @@ Assets/Temp.meta
 
 # ===== 资源规范（AGENTS.md 修订版）=====
 # 可入库：代码与脚本、配置资源、预制体模板资源、场景资源；不可入库：其他资源与第三方付费资源。
-# 下架项：Assets/TextMesh Pro（TMP 三方导入树——各机自行导入 Essentials）、
-# Assets/ShareResource（内容样例）；TestModeSettings.asset 属配置资源，恢复入库。
+# 下架项：Assets/TextMesh Pro（TMP 三方导入树——各机自行导入 Essentials）；
+# TestModeSettings.asset 属配置资源，恢复入库。
 Assets/TextMesh Pro/
 Assets/TextMesh Pro.meta
-# 2026-10-11 资源三层模型：ShareResource 为共享进包资源目录（Fonts/UI 等随迁移入库）；
-# 仅内容样例维持下架（原“内容样例下架”裁决收窄至此）。
-Assets/ShareResource/SampleContent/
-Assets/ShareResource/SampleContent.meta
 
 # ===== 第三方资源引用规范（AGENTS.md）：第三方资源复制件照常不入库（随打包机本地还原）=====
 # 产品资产不得直引第三方原始库（Assets/Synty/ 等）；复制进 ShareResource/模块目录再引用，

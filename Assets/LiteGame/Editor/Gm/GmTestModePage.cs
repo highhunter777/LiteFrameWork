@@ -6,7 +6,7 @@ namespace LiteGame.Editor
 {
     /// <summary>
     /// GM 工具箱·测试模式页：进入/退出/传送到准心 + 现场开关（即时生效）+ 爆头区/持枪幅度实时调。
-    /// **静态启动配置不在本页**——在场景 DebugTuner（Inspector 随场景保存，进房快照）；本页只管进入/退出与局内可调项。
+    /// **静态启动配置不在本页**——在场景 DevStartupConfig（Inspector 随场景保存，进房快照）；本页只管进入/退出与局内可调项。
     /// 分层裁决：现场开关清单/显示名/写口全部经 <see cref="TestModeOptions"/>（新增开关只改那张表——本页零改动）；
     /// 进入/退出/传送 = 一次性请求桥（<see cref="TestModeRuntime"/> 的 Request*/Take* 类型化读写对——**pre-Play 容器尚不存在**，不走命令中心；
     /// 传送的实际派发在对局内经 ProcedureBattle → <c>SendQueued(TeleportToAimCommand)</c> 进审计环）；
@@ -125,7 +125,7 @@ namespace LiteGame.Editor
             }
         }
 
-        // ---- 测试模式（进入/退出/传送 + 现场开关；启动配置在场景 DebugTuner）----
+        // ---- 测试模式（进入/退出/传送 + 现场开关；启动配置在场景 DevStartupConfig）----
 
         private void DrawTestModeSection()
         {
@@ -134,20 +134,20 @@ namespace LiteGame.Editor
 
             using (new EditorGUILayout.HorizontalScope())
             {
-                // 进入前把场景 DebugTuner 的启动配置快照进运行时（未挂则套默认口径）；F10 同一条链
-                if (GUILayout.Button("进入测试模式")) { DebugTuner.ApplySnapshotOrDefaults(); TestModeRuntime.RequestEnter(); }
+                // 进入前把场景 DevStartupConfig 的启动配置快照进运行时（未挂则套默认口径）；开发页同一条链
+                if (GUILayout.Button("进入测试模式")) { DevStartupConfig.ApplySnapshotOrDefaults(); TestModeRuntime.RequestEnter(); }
                 if (GUILayout.Button("退出测试模式")) TestModeRuntime.RequestExit();              // 对局内 = 离场并关模式；主菜单 = 只关模式
                 if (GUILayout.Button("传送到准心")) TestModeRuntime.RequestTeleport();
             }
             EditorGUILayout.HelpBox(
-                "启动项（免死/bot 数/冻结/传送）与表现类开关的**进房初值**都在场景 DebugTuner 上编辑（Inspector，随场景保存）；"
+                "启动项（免死/bot 数/冻结/传送）与表现类开关的**进房初值**都在场景 DevStartupConfig 上编辑（Inspector，随场景保存）；"
                 + "本节以下是**局内可调**项，即时生效。", MessageType.Info);
 
             EditorGUILayout.LabelField("现场开关（即时生效，不必重进房）", EditorStyles.miniBoldLabel);
             // 开关清单/显示名/写点全部经 TestModeOptions（新增开关只改那张表——本面板零改动）
             foreach (TestModeOptions.Info option in TestModeOptions.All)
             {
-                if (option.Group != TestModeOptions.Group.Live) continue;      // 启动项在 DebugTuner（下方只读一览）
+                if (option.Group != TestModeOptions.Group.Live) continue;      // 启动项在 DevStartupConfig（下方只读一览）
                 bool value = GUILayout.Toggle(TestModeOptions.Get(option.Id), "  " + option.Label);
                 if (value != TestModeOptions.Get(option.Id)) TestModeOptions.Set(option.Id, value);
             }
@@ -162,16 +162,19 @@ namespace LiteGame.Editor
             EditorGUILayout.LabelField(startup.ToString(), EditorStyles.wordWrappedLabel);
             using (new EditorGUILayout.HorizontalScope())
             {
-                if (GUILayout.Button("选中场景 DebugTuner", GUILayout.Width(150)))
+                if (GUILayout.Button("选中场景 DevStartupConfig", GUILayout.Width(150)))
                 {
-                    var tuner = UnityEngine.Object.FindAnyObjectByType<DebugTuner>(FindObjectsInactive.Include);
-                    if (tuner != null) Selection.activeObject = tuner;
+                    var config = UnityEngine.Object.FindAnyObjectByType<DevStartupConfig>(FindObjectsInactive.Include);
+                    if (config != null) Selection.activeObject = config;
                 }
                 EditorGUILayout.LabelField("启动配置在 Inspector 改（随场景保存）；改完再进房生效。", EditorStyles.miniLabel);
             }
             if (Application.isPlaying
-                && UnityEngine.Object.FindObjectsByType<DebugTuner>(FindObjectsInactive.Exclude, FindObjectsSortMode.None).Length == 0)
-                EditorGUILayout.HelpBox("场景未挂 DebugTuner：启动配置不可用（进房套默认口径），时钟旋钮也不生效。", MessageType.Warning);
+                && UnityEngine.Object.FindObjectsByType<DevStartupConfig>(FindObjectsInactive.Exclude, FindObjectsSortMode.None).Length == 0)
+                EditorGUILayout.HelpBox("场景未挂 DevStartupConfig：启动配置不可用（进房套默认口径）。", MessageType.Warning);
+            if (Application.isPlaying
+                && UnityEngine.Object.FindObjectsByType<DebugRuntimeTuner>(FindObjectsInactive.Exclude, FindObjectsSortMode.None).Length == 0)
+                EditorGUILayout.HelpBox("场景未挂 DebugRuntimeTuner：时钟旋钮不生效。", MessageType.Warning);
         }
 
         // ---- bot 操作（测试房补位假人：重置 + 无限生命开关指引）----

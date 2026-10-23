@@ -102,7 +102,6 @@ namespace LiteGame
         private void ValidateKnownKeys(RegistryFillReport report, HashSet<string> failed)
         {
             ValidateKey(report, failed, "UI", _ui, LuaKeys.UI.UIMain);
-            ValidateKey(report, failed, "Content", _content, LuaKeys.Content.DemoEntry);
         }
 
         private void ValidateKey(RegistryFillReport report, HashSet<string> failed,

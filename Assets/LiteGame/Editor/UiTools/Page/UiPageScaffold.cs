@@ -95,6 +95,30 @@ namespace LiteGame.Editor.UiTools.Page
             return true;
         }
 
+        /// <summary>
+        /// 起页后对账页面清单并落盘（《UI 编辑器工具链专项设计》§8.5）：身份字段以 `tbuiform` 为准、
+        /// 维护字段保留。失败不回滚页面——清单是注册表、可重生成；结论进结果日志，不静默。
+        /// </summary>
+        internal static string ReconcilePageManifest(string outputPath = null)
+        {
+            try
+            {
+                UiPageManifestSyncResult sync = UiPageManifestSync.SyncToDisk(outputPath);
+                if (!sync.Ok)
+                {
+                    return "页面清单对账失败：" + sync.ErrorText.Replace("\n", "；")
+                        + "（页面已创建，可重跑 ui.page-manifest）";
+                }
+                int pages = sync.Manifest?.Pages?.Count ?? 0;
+                int forms = sync.Manifest?.Pages?.Sum(page => page.Forms?.Count ?? 0) ?? 0;
+                return "页面清单已对账：" + pages + " 页 / " + forms + " 行登记";
+            }
+            catch (Exception exception)
+            {
+                return "页面清单对账异常：" + exception.Message + "（页面已创建，可重跑 ui.page-manifest）";
+            }
+        }
+
         /// <summary>建议 id：业务页最大 id + 1（跳过系统面/静态先例保留区）。</summary>
         public static int SuggestId()
         {
@@ -185,6 +209,7 @@ namespace LiteGame.Editor.UiTools.Page
 
                 AssetDatabase.SaveAssets();
                 AssetDatabase.Refresh();
+                result.Log.Add(ReconcilePageManifest());
                 if (!openStage)
                 {
                     result.Ok = true;

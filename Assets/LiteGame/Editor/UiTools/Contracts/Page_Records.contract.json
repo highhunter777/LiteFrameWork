@@ -1,0 +1,65 @@
+{
+  "schemaVersion": "2.0",
+  "generator": {
+    "name": "ui-contract",
+    "version": "1.0"
+  },
+  "page": {
+    "formId": 16,
+    "name": "Page_Records",
+    "prefabPath": "Assets/ShareResource/UI/Screens/Page_Records.prefab",
+    "prefabGuid": "6548c0f57aae2c146b083f5203b8aeb2",
+    "luaPath": "UI.Page_Records",
+    "layer": 0,
+    "fullScreen": true,
+    "cacheStrategy": "Lru"
+  },
+  "controls": [
+    {
+      "bindName": "Button_Back",
+      "nodePath": "Cot_SafeArea/Cot_Header/Button_Back",
+      "type": "UnityEngine.UI.Button",
+      "kind": "Command",
+      "required": true
+    },
+    {
+      "bindName": "Txt_Back",
+      "nodePath": "Cot_SafeArea/Cot_Header/Button_Back/Txt_Back",
+      "type": "TMPro.TextMeshProUGUI",
+      "kind": "None",
+      "required": false
+    },
+    {
+      "bindName": "Txt_Title",
+      "nodePath": "Cot_SafeArea/Cot_Header/Txt_Title",
+      "type": "TMPro.TextMeshProUGUI",
+      "kind": "None",
+      "required": false
+    },
+    {
+      "bindName": "VirtualList_Records",
+      "nodePath": "Cot_SafeArea/Cot_Records/VirtualList_Records",
+      "type": "UnityEngine.UI.ScrollRect",
+      "kind": "Command",
+      "required": true
+    },
+    {
+      "bindName": "Txt_Empty",
+      "nodePath": "Cot_SafeArea/Txt_Empty",
+      "type": "TMPro.TextMeshProUGUI",
+      "kind": "None",
+      "required": false
+    }
+  ],
+  "text": [],
+  "styles": [],
+  "templates": [
+    {
+      "nodePath": "Cot_SafeArea/Cot_Records/VirtualList_Records",
+      "template": "Tmp_VirtualList",
+      "bindingHash": "5d2b1a4f79c79e02d6c5941ce1b569eae836500288d63d5e159de37e8d9e002f"
+    }
+  ],
+  "events": [],
+  "sourceHash": "sha256:cc2796a6299c9cac7c8ff28bc6d9dc6226cfddf8c05a0623ec74e84f0d366a20"
+}

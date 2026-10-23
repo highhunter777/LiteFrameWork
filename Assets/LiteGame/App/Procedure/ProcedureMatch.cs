@@ -137,9 +137,9 @@ namespace LiteGame
 
         /// <summary>
         /// 选择传输（<paramref name="testRoom"/> = F10 测试房：强制本地服 + 房号 Room-Test + 全房免死）：
-        /// **真 KCP（默认）** 还是 **进程内本地服务器**（离线隔离开发，开关 <see cref="DebugTuner.UseLocalServerEnabled"/>）。
+        /// **真 KCP（默认）** 还是 **进程内本地服务器**（离线隔离开发，开关 <see cref="DevStartupConfig.UseLocalServerEnabled"/>）。
         ///
-        /// **只在开发/编辑器/开发包可用**——`DebugTuner` 整体在 `#if` 内，release 下该静态不存在，
+        /// **只在开发/编辑器/开发包可用**——`DevStartupConfig` 整体在 `#if` 内，release 下该静态不存在，
         /// 故此处也包在同一门禁里，正式包恒走真 KCP（不给"悄悄退化成假服务器"留窗口，
         /// 框架先行 §6"生产配置缺真实依赖时拒绝启动或拒绝相应功能，不能悄悄退回 fake"）。
         /// **测试房不提供 KCP 形态**：免死规则靠"客户端预测与进程内服务器同持一个规则实例"
@@ -175,7 +175,7 @@ namespace LiteGame
             LiteSim.SimTestRules.BotInfiniteHp = testRoom && TestModeRuntime.BotInfiniteHp;   // 进房初值镜像（Live 开关另有 Set 时镜像）
             LiteSim.SimTestRules.TeleportDispatch = false;         // 进房清残留请求
             LiteSim.SimTestRules.BotResetRequested = false;        // 同上（进房前的面板误点不带到对局）
-            if (testRoom || DebugTuner.UseLocalServerEnabled)
+            if (testRoom || DevStartupConfig.UseLocalServerEnabled)
             {
                 UnityEngine.Debug.Log(testRoom
                     ? "[Match] **测试房**：本地服 Room-Test + 全房免死（Hp 保底 1、目标不消失——测试专用）"

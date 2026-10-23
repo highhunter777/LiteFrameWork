@@ -1,4 +1,5 @@
 #if UNITY_EDITOR || DEVELOPMENT_BUILD || LITEFRAMEWORK_DEBUG
+using System;
 using System.Text;
 using UnityEngine;
 #if ENABLE_INPUT_SYSTEM
@@ -17,6 +18,7 @@ namespace LiteClient
         F5,
         F6,
         F7,
+        F12,
         Backspace,
         Enter,
         Escape,
@@ -30,7 +32,7 @@ namespace LiteClient
     public static class DevHotkey
     {
         private static readonly StringBuilder Typed = new StringBuilder(64);
-        private static bool _textActive;
+        private static object _textOwner;
 
         public static bool Pressed(DevKey key)
         {
@@ -43,24 +45,38 @@ namespace LiteClient
 #endif
         }
 
-        /// <summary>过滤框模式：开启时接收字符（Input System 走 onTextInput；旧 Input 走 inputString）。</summary>
-        public static void SetTextInputActive(bool active)
+        /// <summary>文本输入所有权：同一时刻只允许一个调试面收字符（HUD 过滤 / 控制台互斥）。
+        /// 返回 false = 另一个 owner 正占用（调用方自行提示/重试），不抢占、不静默吞字。</summary>
+        public static bool SetTextInputActive(object owner, bool active)
         {
-            if (_textActive == active) return;
-            _textActive = active;
+            if (owner == null) throw new ArgumentNullException(nameof(owner));
+            if (active)
+            {
+                if (ReferenceEquals(_textOwner, owner)) return true;
+                if (_textOwner != null) return false;
+                _textOwner = owner;
+                Typed.Clear();
+#if ENABLE_INPUT_SYSTEM
+                Keyboard keyboard = Keyboard.current;
+                if (keyboard != null) keyboard.onTextInput += OnTextInput;
+#endif
+                return true;
+            }
+
+            if (!ReferenceEquals(_textOwner, owner)) return false;
+            _textOwner = null;
             Typed.Clear();
 #if ENABLE_INPUT_SYSTEM
-            Keyboard keyboard = Keyboard.current;
-            if (keyboard == null) return;
-            if (active) keyboard.onTextInput += OnTextInput;
-            else keyboard.onTextInput -= OnTextInput;
+            Keyboard releaseKeyboard = Keyboard.current;
+            if (releaseKeyboard != null) releaseKeyboard.onTextInput -= OnTextInput;
 #endif
+            return true;
         }
 
-        /// <summary>取走本帧输入的可见字符（不含退格/回车等控制键）。</summary>
-        public static string TakeTypedText()
+        /// <summary>取走本帧输入的可见字符（仅当前 owner；不含退格/回车等控制键）。</summary>
+        public static string TakeTypedText(object owner)
         {
-            if (!_textActive) return string.Empty;
+            if (!ReferenceEquals(_textOwner, owner)) return string.Empty;
 #if ENABLE_INPUT_SYSTEM
             string text = Typed.ToString();
             Typed.Clear();
@@ -80,7 +96,7 @@ namespace LiteClient
 #if ENABLE_INPUT_SYSTEM
         private static void OnTextInput(char c)
         {
-            if (_textActive) Typed.Append(c);
+            if (_textOwner != null) Typed.Append(c);
         }
 
         private static Key ToInputKey(DevKey key)
@@ -94,6 +110,7 @@ namespace LiteClient
                 case DevKey.F5: return Key.F5;
                 case DevKey.F6: return Key.F6;
                 case DevKey.F7: return Key.F7;
+                case DevKey.F12: return Key.F12;
                 case DevKey.Backspace: return Key.Backspace;
                 case DevKey.Enter: return Key.Enter;
                 case DevKey.Escape: return Key.Escape;
@@ -112,6 +129,7 @@ namespace LiteClient
                 case DevKey.F5: return KeyCode.F5;
                 case DevKey.F6: return KeyCode.F6;
                 case DevKey.F7: return KeyCode.F7;
+                case DevKey.F12: return KeyCode.F12;
                 case DevKey.Backspace: return KeyCode.Backspace;
                 case DevKey.Enter: return KeyCode.Return;
                 case DevKey.Escape: return KeyCode.Escape;

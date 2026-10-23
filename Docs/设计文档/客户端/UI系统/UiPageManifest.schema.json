@@ -1,0 +1,102 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:litegame:ui:page-manifest:1.0",
+  "title": "UiPageManifest",
+  "description": "页面清单：工具维护的页面注册表（编辑器清单，不进运行时/不进包）。身份字段从 tbuiform 刷新，维护字段（Owner/状态/设计稿/设备档/备注）由工具 API 更新并在对账时保留。字段语义与对账口径见 UI编辑器工具链专项设计 §8.5。",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schemaVersion", "generator", "pages", "warnings", "sourceHash"],
+  "properties": {
+    "schemaVersion": {
+      "type": "string",
+      "pattern": "^1\\.[0-9]+$",
+      "description": "清单结构版本；主版本不兼容，次版本只做向后兼容追加。"
+    },
+    "generator": { "$ref": "#/$defs/generator" },
+    "pages": {
+      "type": "array",
+      "description": "按页面名稳定排序的条目（一个 prefab 一条，多行登记进 forms[]）。",
+      "items": { "$ref": "#/$defs/page" }
+    },
+    "warnings": {
+      "type": "array",
+      "description": "非阻断告警（表行缺失的非草稿条目、prefab 缺失、多行 lua 不一致等），可定位到页面。",
+      "items": { "type": "string", "minLength": 1 }
+    },
+    "sourceHash": {
+      "type": "string",
+      "pattern": "^sha256:[0-9a-f]{64}$",
+      "description": "注册表内容指纹（身份+维护字段）；不含告警、生成器版本、时间戳。"
+    }
+  },
+  "$defs": {
+    "generator": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["name", "version"],
+      "properties": {
+        "name": { "type": "string", "minLength": 1 },
+        "version": { "type": "string", "minLength": 1 }
+      }
+    },
+    "page": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "name",
+        "prefabPath",
+        "forms",
+        "cacheStrategy",
+        "owner",
+        "status",
+        "contractPath",
+        "contractPresent",
+        "deviceProfiles"
+      ],
+      "properties": {
+        "name": {
+          "type": "string",
+          "pattern": "^(Page|Hud|Tmp|UIMain)_?[A-Za-z0-9_]*$",
+          "description": "页面名（= prefab 根名 = 文件名）。"
+        },
+        "prefabPath": {
+          "type": "string",
+          "pattern": "^Assets/ShareResource/UI/.+\\.prefab$"
+        },
+        "forms": {
+          "type": "array",
+          "description": "tbuiform 登记行（同一 prefab 可多行，按 formId 升序；草稿为空）。",
+          "items": { "$ref": "#/$defs/form" }
+        },
+        "luaPath": {
+          "type": ["string", "null"],
+          "description": "Lua 逻辑路径；无逻辑或多样不一致时为 null。"
+        },
+        "cacheStrategy": { "enum": ["Resident", "Lru", "DestroyOnClose"] },
+        "owner": { "type": "string", "minLength": 1 },
+        "status": { "enum": ["Draft", "InReview", "Registered", "Wired", "Frozen"] },
+        "contractPath": {
+          "type": "string",
+          "pattern": "^Assets/LiteGame/Editor/UiTools/Contracts/.+\\.contract\\.json$"
+        },
+        "contractPresent": { "type": "boolean" },
+        "designRef": { "type": ["string", "null"] },
+        "deviceProfiles": {
+          "type": "array",
+          "items": { "type": "string", "minLength": 1 }
+        },
+        "notes": { "type": ["string", "null"] }
+      }
+    },
+    "form": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["formId", "layer", "fullScreen"],
+      "properties": {
+        "formId": { "type": "integer", "minimum": 1 },
+        "layer": { "type": "integer", "minimum": 0, "maximum": 3 },
+        "fullScreen": { "type": "boolean" }
+      }
+    }
+  }
+}

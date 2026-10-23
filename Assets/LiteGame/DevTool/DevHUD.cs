@@ -15,7 +15,7 @@ namespace LiteGame
 {
     /// <summary>开发 HUD（只读快照展示）。**自创建形态**：[RuntimeInitializeOnLoadMethod] 在场景加载后
     /// 自建 GameObject（场景**不挂**组件——避免三宏 #if 剥离时场景序列化组件报
-    /// "not derived from MonoBehaviour"；同 DebugTuner 手法）。
+    /// "not derived from MonoBehaviour"；同 DevStartupConfig 手法）。
     ///
     /// **不要把本目录移进任何 `Editor/` 下**：`Assets/.../Editor/` 是特殊文件夹，其中的
     /// MonoBehaviour **不能 AddComponent**——运行时报 "it is an editor script"，组件加不上、
@@ -81,7 +81,7 @@ namespace LiteGame
 
         private static readonly string[] LevelFilterNames = { "全部", "警告+", "错误+" };
 
-        private readonly DevHudStatsDiscovery _discovery = new DevHudStatsDiscovery();
+        private DebugKernel _kernel;
         private readonly DevHudSectionOptions _sectionOptions = new DevHudSectionOptions();
         private DevHudSectionSet _sectionSet;
         private readonly HashSet<string> _collapsed = new HashSet<string>(StringComparer.Ordinal);
@@ -132,7 +132,6 @@ namespace LiteGame
         {
             LoadPrefs();
             _sectionOptions.ShowStat = ShowSection;
-            _sectionSet = new DevHudSectionSet(_discovery, _perf, _filter, _sectionOptions);
         }
 
         private void OnEnable() => SceneManager.sceneLoaded += OnSceneLoaded;
@@ -140,7 +139,7 @@ namespace LiteGame
 
         private void Start()
         {
-            _discovery.Rebuild();
+            TryBindKernel();
             if (!renderWithUiToolkit) return;
             try
             {
@@ -157,7 +156,7 @@ namespace LiteGame
         private void OnDestroy()
         {
             SavePrefs();
-            DevHotkey.SetTextInputActive(false);
+            DevHotkey.SetTextInputActive(this, false);
             _perf.Dispose();
             _ui?.Dispose();
             _ui = null;
@@ -165,17 +164,30 @@ namespace LiteGame
 
         private void OnSceneLoaded(Scene scene, LoadSceneMode mode)
         {
-            _discovery.Rebuild();
+            _kernel?.RebuildStats();
             _sectionSet?.InvalidateStats();
+        }
+
+        /// <summary>延迟绑定内核：GameEntry 引导完成前 HUD 先空态，装配完成后自动接管段集。</summary>
+        private void TryBindKernel()
+        {
+            if (_kernel != null) return;
+            GameEntry entry = FindAnyObjectByType<GameEntry>();
+            _kernel = entry != null ? entry.DebugKernel : null;
+            if (_kernel == null) return;
+            _kernel.RebuildStats();
+            _sectionSet = new DevHudSectionSet(_kernel, _perf, _filter, _sectionOptions);
         }
 
         private void Update()
         {
             _perf.SampleFrame(Time.unscaledDeltaTime);     // 采样与可见性解耦：隐藏期间性能窗不冻结
+            if (_sectionSet == null) TryBindKernel();
+            if (_sectionSet == null) return;               // 内核尚未装配：空态，不阻塞游戏
             _sectionSet.SampleNet();
             if (!_visible || Time.unscaledTime < _nextPoll) return;
             _nextPoll = Time.unscaledTime + 0.25f;
-            _discovery.Prune();
+            _kernel?.PruneStats();
 
             float started = Time.realtimeSinceStartup;
             BuildSections();
@@ -210,6 +222,7 @@ namespace LiteGame
         /// <summary>F2 复制需要整串；UITK 后端下按需构建，避免每 0.25s 白拼一份大字符串。</summary>
         private string CacheText()
         {
+            if (_sectionSet == null) return string.Empty;
             if (_cacheDirty)
             {
                 _cache = BuildPlainText(_statusLine);
@@ -224,7 +237,7 @@ namespace LiteGame
             if (_filterMode)
                 _sb.Append("过滤模式：输入文本或 @tag · Enter 应用 · Esc 清除 · F7 退出");
             else
-                _sb.Append("F1 隐藏 · F2 复制 · F3 级别 · F4 本局 · F5 现场包 · F6 JSON · F7 过滤 · 拖状态行移动");
+                _sb.Append("F1 隐藏 · F2 复制 · F3 级别 · F4 本局 · F5 现场包 · F6 JSON · F7 过滤 · F12 控制台 · 拖状态行移动");
             if (_filter.Raw.Length > 0) _sb.Append(" · 过滤=\"").Append(_filter.Raw).Append('"');
             if (_logFilter != 0) _sb.Append(" · 级别=").Append(LevelFilterNames[_logFilter]);
             if (_onlyCurrentMatch) _sb.Append(" · 仅本局");
@@ -248,22 +261,28 @@ namespace LiteGame
 
         private void ToggleFilterMode()
         {
-            _filterMode = !_filterMode;
-            DevHotkey.SetTextInputActive(_filterMode);
+            bool enable = !_filterMode;
+            if (enable && !DevHotkey.SetTextInputActive(this, true))
+            {
+                Toast("输入被其他调试面占用（F12 控制台）");
+                return;
+            }
+            _filterMode = enable;
+            if (!enable) DevHotkey.SetTextInputActive(this, false);
             Toast(_filterMode ? "过滤模式：输入文本或 @tag" : "退出过滤模式");
         }
 
         private void ExitFilterMode(bool clear)
         {
             _filterMode = false;
-            DevHotkey.SetTextInputActive(false);
+            DevHotkey.SetTextInputActive(this, false);
             if (clear) _filter.Clear();
             SavePrefs();
         }
 
         private void HandleFilterInput()
         {
-            string typed = DevHotkey.TakeTypedText();
+            string typed = DevHotkey.TakeTypedText(this);
             if (typed.Length > 0) _filter.Append(typed);
 
             if (DevHotkey.Pressed(DevKey.Backspace)) _filter.Backspace();
@@ -327,6 +346,7 @@ namespace LiteGame
         /// <summary>导出当前读数（含段/行/色调/过滤/后端）为 JSON；脚本可直接消费。</summary>
         private void ExportJson()
         {
+            if (_sectionSet == null) { Toast("HUD 未就绪"); return; }
             try
             {
                 var ctx = new DevHudExportContext

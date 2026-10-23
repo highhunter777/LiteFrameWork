@@ -1,0 +1,29 @@
+{
+  "schemaVersion": "2.0",
+  "generator": {
+    "name": "ui-contract",
+    "version": "1.0"
+  },
+  "page": {
+    "formId": 201,
+    "name": "Tmp_Dialog",
+    "prefabPath": "Assets/ShareResource/UI/Screens/Tmp_Dialog.prefab",
+    "prefabGuid": "627cdcc6c55aff8489bfbda2633fd292",
+    "luaPath": null,
+    "layer": 3,
+    "fullScreen": false,
+    "cacheStrategy": "Lru"
+  },
+  "controls": [],
+  "text": [],
+  "styles": [],
+  "templates": [
+    {
+      "nodePath": "Dialog_Confirm",
+      "template": "Tmp_Dialog",
+      "bindingHash": "5d2b1a4f79c79e02d6c5941ce1b569eae836500288d63d5e159de37e8d9e002f"
+    }
+  ],
+  "events": [],
+  "sourceHash": "sha256:c812cb0170647178e97de940543cf79432137d198c8545ecf3ccf6e4e98d16eb"
+}

@@ -28,6 +28,12 @@ namespace LiteGame.Toolchain
             return kind == Cli || kind == Gate || kind == Build || kind == Content;
         }
 
+        /// <summary>交互式载体（page/window）：产物随选择走，不要求固定 outputs 登记。</summary>
+        public static bool IsInteractive(string kind)
+        {
+            return kind == Page || kind == Window;
+        }
+
         /// <summary>种类中文标签单源（Hub 筛选、详情行与动作页共用）。</summary>
         public static string Label(string kind)
         {
@@ -124,6 +130,42 @@ namespace LiteGame.Toolchain
                 case Dev: return "开发";
                 case Delivery: return "交付";
                 default: return purpose;
+            }
+        }
+    }
+
+    /// <summary>
+    /// 产物形态：工具产出什么（《开发工具链平台专项设计》§3.2.3）。
+    /// `report` 是证据/报告类产物，不计入 `writes`（后者只表达动不动工程资产/分发物）。
+    /// </summary>
+    public static class ToolchainOutputKinds
+    {
+        public const string Generated = "generated";
+        public const string Source = "source";
+        public const string Data = "data";
+        public const string Asset = "asset";
+        public const string Binary = "binary";
+        public const string Report = "report";
+        public const string Distribution = "distribution";
+
+        public static bool IsValid(string kind)
+        {
+            return kind == Generated || kind == Source || kind == Data || kind == Asset
+                || kind == Binary || kind == Report || kind == Distribution;
+        }
+
+        public static string Label(string kind)
+        {
+            switch (kind)
+            {
+                case Generated: return "生成代码";
+                case Source: return "手写源";
+                case Data: return "表/配置数据";
+                case Asset: return "资产";
+                case Binary: return "包体";
+                case Report: return "证据报告";
+                case Distribution: return "分发物";
+                default: return kind;
             }
         }
     }
@@ -327,12 +369,22 @@ namespace LiteGame.Toolchain
             }
         }
 
+        /// <summary>writes 是否含非 none 写面（证据/报告类产物不进 writes）。</summary>
+        private static bool WritesProjectFiles(ToolchainTool tool)
+        {
+            foreach (string scope in tool.Writes)
+            {
+                if (scope != "none") return true;
+            }
+            return false;
+        }
+
         private static void Validate(ToolchainManifestLoadResult result, string projectRoot)
         {
             ToolchainManifest manifest = result.Manifest;
-            if (manifest.schemaVersion != 5)
+            if (manifest.schemaVersion != 6)
             {
-                result.Errors.Add("schemaVersion 必须为 5（当前 " + manifest.schemaVersion + "）");
+                result.Errors.Add("schemaVersion 必须为 6（当前 " + manifest.schemaVersion + "）");
             }
 
             var categories = new HashSet<string>(StringComparer.Ordinal);
@@ -401,7 +453,16 @@ namespace LiteGame.Toolchain
                     if (output == null || string.IsNullOrEmpty(output.path) || Path.IsPathRooted(output.path))
                     {
                         result.Errors.Add("工具 outputs 路径非法：" + tool.id);
+                        continue;
                     }
+                    if (!ToolchainOutputKinds.IsValid(output.kind))
+                    {
+                        result.Errors.Add("工具 outputs.kind 非法：" + tool.id + " -> " + output.kind);
+                    }
+                }
+                if (WritesProjectFiles(tool) && !ToolchainKinds.IsInteractive(tool.kind) && tool.Outputs.Length == 0)
+                {
+                    result.Errors.Add("非交互式写入者必须登记产物形态（outputs）：" + tool.id);
                 }
                 if (tool.safety != null)
                 {

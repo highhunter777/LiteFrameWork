@@ -9,7 +9,7 @@ namespace LiteGame
     /// 对局诊断读口（联机诊断 HUD 批）：当前对局 <see cref="BattleContext"/> 的 dev-only 单点登记
     /// ＋只读描述单源。**为什么是静态登记口**：对局上下文是流程私有件——不进 DI 容器、非场景组件，
     /// DevHUD 的两个发现面（容器统计 / 场景组件扫描）都够不到它；HUD 与编辑器 GM 页需要同一读口
-    /// （同 <see cref="DebugTuner"/> 静态镜像口径）。整件随开发三宏剥离，release 无此面、零残留。
+    /// （同 <see cref="DevStartupConfig"/> 静态镜像口径）。整件随开发三宏剥离，release 无此面、零残留。
     /// 职责边界：只登记、只读、只拼展示文本——相位/网络质量/和解计数的事实全在
     /// <see cref="BattleContext"/>（本件零业务逻辑，投影不写运行态）。
     /// </summary>

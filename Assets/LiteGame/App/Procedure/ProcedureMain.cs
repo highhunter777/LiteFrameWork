@@ -7,7 +7,7 @@ using LiteClient.UI;
 namespace LiteGame
 {
     /// <summary>
-    /// 主流程：**启动落点决策**（登录页/大厅页/不开页，见 <see cref="ResolveLanding"/>）＋ 开发直入（训练场/工作台）。
+    /// 主流程：**启动落点决策**（登录页/大厅页/不开页，见 <see cref="ResolveLanding"/>）＋ 开发直入训练场。
     /// **不再加载对局场景组**——场景组的加载与卸载都归 `ProcedureBattle`
     /// （`StartGame` 后加载、离场收尾卸载；《地图数据专项设计》加载链修订；Main 阶段只有启动场景 Boot 与 UI）。
     /// 后续流程树（主菜单 → 选模式 → 进场景 → 战斗 → 结算）在此扩展；Match/Battle 预留见 <see cref="ProcedureId"/>。
@@ -39,15 +39,14 @@ namespace LiteGame
         public override void OnUpdate(IStageHost<ProcedureId, ProcedureArgs> m, float elapseSeconds)
         {
 #if UNITY_EDITOR || DEVELOPMENT_BUILD || LITEFRAMEWORK_DEBUG
-            // 开发直入（DebugTuner 开关，优先级：直入训练场 > 直入工作台）：**直入不加载登录页**——
-            // 训练场的进入请求在本阶段（Main 已就绪）发出一次，由下面的请求桥消费后进 Match(testRoom)；
-            // 直入工作台的加性场景加载由 DebugTuner 自身在 Update 首帧完成（走到这里说明已生效）。
-            if (DebugTuner.DirectToTrainingEnabled && !_directEntryRequested)
+            // 开发直入（DevStartupConfig 开关）：**直入不加载登录页**——训练场的进入请求在本阶段
+            // （Main 已就绪）发出一次，由下面的请求桥消费后进 Match(testRoom)。
+            if (DevStartupConfig.DirectToTrainingEnabled && !_directEntryRequested)
             {
                 _directEntryRequested = true;
-                DebugTuner.ApplySnapshotOrDefaults();
+                DevStartupConfig.ApplySnapshotOrDefaults();
                 TestModeRuntime.RequestEnter();
-                UnityEngine.Debug.Log("[Main] 直入训练场：请求测试模式对局（DebugTuner.DirectToTraining）");
+                UnityEngine.Debug.Log("[Main] 直入训练场：请求测试模式对局（DevStartupConfig.DirectToTraining）");
             }
             if (TestModeRuntime.TakeDirectRequest())            // 开发页「直连本机服」：原 F9 链（非测试房）
             {
@@ -65,8 +64,6 @@ namespace LiteGame
             {
                 TestModeRuntime.Active = false;
             }
-            // 工作台落点收尾（dev）：菜单退出后关工作台场景——回大厅页（UI 服务与页面在 DDOL 根上，不受影响）
-            if (DebugTuner.TakeWorkbenchExitRequest()) DebugTuner.CloseWorkbenchScene();
 #endif
         }
 
@@ -74,8 +71,8 @@ namespace LiteGame
         {
             try
             {
-                // 启动落点（《UI工作台设计》§5 入口矩阵，**一个决策点**）：
-                //   直入形态（直入训练场/直入工作台）→ 不开页（场景/面板接管）；
+                // 启动落点（**一个决策点**）：
+                //   直入训练场 → 不开页（对局接管）；
                 //   本地服务器（开发）→ 大厅页（跳过登录）；Meta 已配置（正式）→ 登录页；否则不开页。
                 // **只开一次**——对局结束/离场返回 Main 不重开入口（页面流接管：结算页或大厅在场）。
                 if (_pages != null) _pages.OpenLanding(ResolveLanding());
@@ -92,12 +89,12 @@ namespace LiteGame
             }
         }
 
-        /// <summary>启动落点决策（**单点**）：直入形态 &gt; 本地服务器→大厅 &gt; Meta→登录页 &gt; 不开页。</summary>
+        /// <summary>启动落点决策（**单点**）：直入训练场 &gt; 本地服务器→大厅 &gt; Meta→登录页 &gt; 不开页。</summary>
         private PageFlow.Landing ResolveLanding()
         {
 #if UNITY_EDITOR || DEVELOPMENT_BUILD || LITEFRAMEWORK_DEBUG
-            if (DebugTuner.DirectToTrainingEnabled || DebugTuner.WorkbenchModeEnabled) return PageFlow.Landing.None;
-            if (DebugTuner.UseLocalServerEnabled) return PageFlow.Landing.Lobby;
+            if (DevStartupConfig.DirectToTrainingEnabled) return PageFlow.Landing.None;
+            if (DevStartupConfig.UseLocalServerEnabled) return PageFlow.Landing.Lobby;
 #endif
             return _meta != null && _meta.IsConfigured ? PageFlow.Landing.Login : PageFlow.Landing.None;
         }

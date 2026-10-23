@@ -52,7 +52,7 @@ def make_tool(tool_id, command, args=None, safety=None, outputs=None):
 
 def make_manifest(tools):
     return {
-        "schemaVersion": 5,
+        "schemaVersion": 6,
         "categories": [{"id": "test", "title": "Test", "order": 1}],
         "tools": tools,
         "surfaces": [],

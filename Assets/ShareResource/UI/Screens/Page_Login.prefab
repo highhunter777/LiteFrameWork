@@ -338,6 +338,7 @@ GameObject:
   - component: {fileID: 5612904260884464023}
   - component: {fileID: 7283978881061123}
   - component: {fileID: 1735042983287022026}
+  - component: {fileID: 748195129762944223}
   m_Layer: 0
   m_Name: Txt_Settings
   m_TagString: Untagged
@@ -477,6 +478,19 @@ MonoBehaviour:
   Comment: 
   CustomTypeName: 
   BindName: Txt_Settings
+--- !u!114 &748195129762944223
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 928667880723987761}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 468e940f4a4ffc2478b8b26a60537c27, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  Key: Common.Settings
 --- !u!1 &1222390784856333105
 GameObject:
   m_ObjectHideFlags: 0
@@ -791,6 +805,7 @@ GameObject:
   - component: {fileID: 7728078765832171496}
   - component: {fileID: 113745988604559877}
   - component: {fileID: 3133011339392147102}
+  - component: {fileID: 766436893651715174}
   m_Layer: 0
   m_Name: Txt_Title
   m_TagString: Untagged
@@ -930,6 +945,19 @@ MonoBehaviour:
   Comment: 
   CustomTypeName: 
   BindName: Txt_Title
+--- !u!114 &766436893651715174
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2701447188199850965}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 468e940f4a4ffc2478b8b26a60537c27, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  Key: UI.Login.Title
 --- !u!1 &2867127421067977312
 GameObject:
   m_ObjectHideFlags: 0
@@ -942,6 +970,7 @@ GameObject:
   - component: {fileID: 6875026082590854308}
   - component: {fileID: 5939598774035423399}
   - component: {fileID: 158754758251807954}
+  - component: {fileID: 8209592573794155401}
   m_Layer: 0
   m_Name: Txt_GuestLogin
   m_TagString: Untagged
@@ -1081,6 +1110,19 @@ MonoBehaviour:
   Comment: 
   CustomTypeName: 
   BindName: Txt_GuestLogin
+--- !u!114 &8209592573794155401
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2867127421067977312}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 468e940f4a4ffc2478b8b26a60537c27, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  Key: UI.Login.GuestEnter
 --- !u!1 &3701446068037913666
 GameObject:
   m_ObjectHideFlags: 0

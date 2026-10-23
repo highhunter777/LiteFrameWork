@@ -42,9 +42,9 @@ class ManifestContractTests(unittest.TestCase):
             self.assertIn(field, manifest, f"manifest v2 field missing: {field}")
         return manifest
 
-    def test_manifest_has_v5_fields(self):
+    def test_manifest_has_v6_fields(self):
         manifest = self.load_v2()
-        self.assertEqual(manifest.get("schemaVersion"), 5)
+        self.assertEqual(manifest.get("schemaVersion"), 6)
         self.assertIsInstance(manifest.get("categories"), list)
         self.assertIsInstance(manifest.get("tools"), list)
         self.assertIsInstance(manifest.get("surfaces"), list)
@@ -90,6 +90,31 @@ class ManifestContractTests(unittest.TestCase):
             self.assertIn(purpose, purposes, f"bad purpose on {tool.get('id')}: {purpose}")
             seen.add(purpose)
         self.assertEqual(seen, purposes, "三条能力线都必须有工具")
+
+    def test_artifact_contract(self):
+        kinds = {"generated", "source", "data", "asset", "binary", "report", "distribution"}
+        interactive = {"page", "window"}
+        manifest = self.load_v2()
+        with_artifacts = 0
+        for tool in manifest["tools"]:
+            tool_id = tool.get("id")
+            outputs = tool.get("outputs") or []
+            if outputs:
+                with_artifacts += 1
+            for output in outputs:
+                self.assertIn(output.get("kind"), kinds, f"bad output kind on {tool_id}: {output.get('kind')}")
+                path = str(output.get("path", ""))
+                self.assertFalse(path.startswith("/") or ":" in path, f"output path must be repo-relative: {tool_id}")
+            writes_project = [scope for scope in (tool.get("writes") or []) if scope != "none"]
+            if writes_project and tool.get("kind") not in interactive:
+                self.assertTrue(outputs, f"{tool_id} writes project files but declares no artifact")
+        self.assertGreater(with_artifacts, 20, "artifact registration must cover the writers")
+
+    def test_gates_declare_evidence_artifacts(self):
+        by_id = {tool["id"]: tool for tool in self.load_v2()["tools"]}
+        for tool_id in ("quality.l1", "quality.l2", "quality.l3", "quality.doc", "env.nightly"):
+            kinds = {output.get("kind") for output in by_id[tool_id].get("outputs") or []}
+            self.assertIn("report", kinds, f"{tool_id} must declare its evidence artifacts")
 
     def test_plane_contract(self):
         planes = {"editor", "runtime", "external", "none"}

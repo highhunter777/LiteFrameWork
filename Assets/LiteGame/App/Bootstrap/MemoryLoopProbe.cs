@@ -14,8 +14,8 @@ namespace LiteGame
     /// 触发：dev 三宏下装配根武装 + 命令行含 <c>-memloop</c> 才运行（smoke：player-smoke.ps1 -MemLoop）
     /// ——正常启动零影响（不查参数即无操作）。
     ///
-    /// 就绪判据 = 实体加载链真打通：入口 location 取 <see cref="ContentSampleAssets.EntryLocations"/>
-    /// 单源（与入口健康探针同源——候选场景 checked=1 的那个），内容代次在 Patch 激活后才可用，
+    /// 就绪判据 = 实体加载链真打通：入口 location 取真实实体 prefab
+    /// （`LiteView.SimView.DefaultEntityPrefab`，Characters 收集组），内容代次在 Patch 激活后才可用，
     /// 未就绪按间隔重试直至超时。首个成功 Show 计入第 1 循环。
     ///
     /// 循环体 = Show → Hide（生产链路：EntityService → PrefabLeaseCache → GameObjectPool；
@@ -45,7 +45,7 @@ namespace LiteGame
             {
                 var entities = container.Resolve<EntityService>();
                 var leases = container.Resolve<PrefabLeaseCache>();
-                string location = ContentSampleAssets.EntryLocations[0];
+                string location = LiteView.SimView.DefaultEntityPrefab;
 
                 // 就绪段：首个成功 Show 即就绪（该次占用作为第 1 循环的借出）
                 EntityHandle handle = null;

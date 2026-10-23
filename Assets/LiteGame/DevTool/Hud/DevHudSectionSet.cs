@@ -32,7 +32,7 @@ namespace LiteGame
     /// </summary>
     internal sealed class DevHudSectionSet
     {
-        private readonly DevHudStatsDiscovery _stats;
+        private readonly DebugKernel _kernel;
         private readonly DevHudPerfSampler _perf;
         private readonly DevHudFilter _filter;
         private readonly DevHudSectionOptions _options;
@@ -51,10 +51,10 @@ namespace LiteGame
 
         public IReadOnlyList<DevHudSectionData> Data => _data;
 
-        public DevHudSectionSet(DevHudStatsDiscovery stats, DevHudPerfSampler perf,
+        public DevHudSectionSet(DebugKernel kernel, DevHudPerfSampler perf,
             DevHudFilter filter, DevHudSectionOptions options)
         {
-            _stats = stats;
+            _kernel = kernel ?? throw new ArgumentNullException(nameof(kernel));
             _perf = perf;
             _filter = filter;
             _options = options;
@@ -91,14 +91,12 @@ namespace LiteGame
 
         public void SampleNet()
         {
-            BattleContext context = BattleDiagnostics.Current;
-            if (context == null)
+            if (!_kernel.TryTakeBattleSnapshot(out BattleDiagnostics.Snapshot snapshot))
             {
                 if (_netMatchId.Length > 0) { _netMatchId = ""; _net.Reset(); }
                 return;
             }
 
-            BattleDiagnostics.Snapshot snapshot = BattleDiagnostics.Take(context);
             if (!string.Equals(_netMatchId, snapshot.MatchId, StringComparison.Ordinal))
             {
                 _netMatchId = snapshot.MatchId;
@@ -116,15 +114,15 @@ namespace LiteGame
 
         private void AppendErrors(IHudTextSink sink)
         {
-            if (!_options.ShowErrors || Log.ErrorCount <= 0) return;
-            sink.Line("⚠ 错误计数: " + Log.ErrorCount, HudTone.Error, "Error");
+            if (!_options.ShowErrors || _kernel.ErrorCount <= 0) return;
+            sink.Line("⚠ 错误计数: " + _kernel.ErrorCount, HudTone.Error, "Error");
         }
 
         private void AppendNet(IHudTextSink sink)
         {
             if (!_options.ShowNet) return;
             _sb.Clear();
-            if (!BattleDiagnostics.AppendExtendedCurrent(_sb)) return;
+            if (!_kernel.AppendExtendedBattle(_sb)) return;
             EmitLines(_sb.ToString(), sink, HudTone.Normal, "Net");
 
             if (_net.TryFormat(40, out string rttLine, out string lossLine))
@@ -175,7 +173,7 @@ namespace LiteGame
         private void RebuildStatsCache()
         {
             _statsCache.Clear();
-            IReadOnlyList<IModuleStats> stats = _stats.Stats;
+            IReadOnlyList<IModuleStats> stats = _kernel.Stats;
             for (int i = 0; i < stats.Count; i++)
             {
                 IModuleStats stat = stats[i];
@@ -203,7 +201,7 @@ namespace LiteGame
         private void AppendLogRecent(IHudTextSink sink)
         {
             if (!_options.ShowLogRecent) return;
-            IReadOnlyList<LogEntry> recent = Log.Recent;
+            IReadOnlyList<LogEntry> recent = _kernel.RecentLogs;
             if (recent.Count == 0) return;
 
             _filteredLogs.Clear();
@@ -257,10 +255,10 @@ namespace LiteGame
 
         private void AppendDiagTrace(IHudTextSink sink)
         {
-            IReadOnlyList<DiagEvent> recent = DiagTrace.Recent;
+            IReadOnlyList<DiagEvent> recent = _kernel.RecentDiag;
             if (recent.Count == 0) return;
 
-            sink.Line("total=" + DiagTrace.Total, HudTone.Muted, "Diag");
+            sink.Line("total=" + _kernel.DiagTotal, HudTone.Muted, "Diag");
             int take = Mathf.Min(8, recent.Count);
             for (int i = recent.Count - take; i < recent.Count; i++)
             {
@@ -272,7 +270,7 @@ namespace LiteGame
 
         private void AppendLogSink(IHudTextSink sink)
         {
-            StructuredLogSink state = StructuredLogInstaller.Current;
+            StructuredLogSink state = _kernel.LogSink;
             if (state == null)
             {
                 sink.Line("未安装（release/未初始化）", HudTone.Muted, "LogSink");

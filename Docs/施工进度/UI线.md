@@ -1,5 +1,8 @@
 # UI 线（U0 止血 → U1 操作与所有权 → U2 产品闭环 → 工具链与工作台）
 
+> **旧体系冻结（2026-10-22）**：本卷记录旧 UI 体系的施工历史，不再对应现行契约；新体系设计见 [UI 系统总设计](../设计文档/客户端/UI系统/UI系统总设计.md)。保留原文作为历史证据，不回填新状态。
+
+
 > **定位**：UI 框架重构与工具链：U0/U1/U2 三段重构、UI 工具链（校验/编排）、工作台三批。
 
 > **章法**：一卷一条线；每章＝原一份批次记录（标题、正文、证据原样并入，仅降一级标题）。
@@ -17,6 +20,8 @@
 | 5 | UI工作台W0（场景+驱动） | `UI工作台W0.md` |
 | 6 | UI工作台W1（进度演示接线 + Loading 视觉补齐） | `UI工作台W1.md` |
 | 7 | UI工作台W2（语言行 · 状态注入 · HUD 预览 · 回写工具 · 发布剥离） | `UI工作台W2.md` |
+| 8 | UI 制作主线（绑定合并 · 新建页 · 单页布局预览 · 工作台退役） | — |
+| 9 | UI 制作可用性跟批（页面选择器 · 回写窗口退役） | — |
 
 ---
 
@@ -1011,3 +1016,79 @@ U1 交付段预告"per-form 缓存策略列随 U2 表扩展"——本批把 §5.
 ### 操作说明
 
 日常操作（打开/就绪、开页面、反馈面、语言与边界态注入、HUD 预览、回写闭环、排障）已抽为手册：[Docs/项目说明/08-UI工作台.md](../项目说明/08-UI工作台.md)（单源，避免本文件与手册两处同文）。
+
+---
+
+## 第8章 UI 制作主线（绑定合并 · 新建页 · 单页布局预览 · 工作台退役）
+
+<a id="ch8-UI制作主线"></a>
+
+> **批次**：制作主线批（2026-10-22，工作区未提交）
+> **设计**：[UI 编辑器工具链专项设计 §工作台](../设计文档/客户端/UI系统/UI编辑器工具链专项设计.md#ch-workbench)（旧体系施工记录）
+> **操作手册**：[08-UI 制作与预览](../项目说明/08-UI工作台.md)
+
+### 交付
+
+| 件 | 变化 |
+|---|---|
+| 绑定编辑 | `UiBindingEditor` 并入 UI 制作主窗口绑定分区；`UiBindingWindow` 与 Hub `ui.binding` 退役；`UiBindTreeView`/`UiBindingRename` 继续做树与引擎单源 |
+| 新建页 | `UiPageScaffold` + `UiPageWizardWindow`：复制 `Tmp_Page` 脚手架 → `Screens/Page_*.prefab`（自包含）＋ `Lua/UI/Page_*.lua`＋`#uiform.xlsx` 行 → 跑 Luban；表行助手 `scripts/codegen/_uiform_row.py`（校验/备份/回滚） |
+| 命名文法 | `UiNamingWords.GrammarPattern`/`UiBindingRename.SemanticPattern` 收紧为真正的 PascalCase（测试暴露原正则允许小写） |
+| 单页预览 | `UiPagePreview` + `UiPreviewDriver`：编辑器专用场景、目标 prefab 直接实例化、保存热重载、退出 Play 回原场景、预览中隐藏 DevHUD |
+| 工作台退役 | 删 `UIWorkbenchDriver`、`WorkbenchUI.prefab`、`UiWorkbench.unity`、`BuildWorkbenchPanel.cs`、`WorkbenchW2Probe.cs`、`WorkbenchUiAssetEditModeTests`；删开发页工作台/设置菜单按钮、`DevStartupConfig.WorkbenchMode` 与请求桥；Boot 场景清掉残留序列化字段 |
+| 守卫 | 新增 `UiPreviewEditModeTests`（预览场景在 Editor/被收集规则忽略、脚手架根契约、页面名校验、Hub 入口收口、工作台入口已退役）；`PrefabWriteBackEditModeTests` 去掉工作台驱动反射与排除名单断言 |
+| Hub/文档 | `ui.page-new` 新增、`ui.compose` 改名“UI 制作”、`ui.binding` 移除；工具索引重生成；08 手册改写；工作台设计归档（旧路径保留指针） |
+
+### 验证证据
+
+| 项 | 结果 |
+|---|---|
+| Unity 编译 | 0 错 |
+| L1（PullRequest） | **PASS 1819** |
+| EditMode 目标夹具 | `UiPreview` 5/5、`UiBindingTools` 12/12、`UiComposePanel` 5/5、`UiComposeGenerate` 2/2、`PrefabWriteBack` 6/6、`EditorToolCatalog` 12/12、`UiWidgetProperty` 5/5、`UiWidgetLibrary` 6/6、`UiValidation` 14/14 |
+| 全量 EditMode | **703/708**；5 红均在 UI 面之外：`BattleSession` inputDelay（期望 1 实得 3）、`ClipManifestDriver` Avatar null×3、`MetaEntry` 未配置 template（期望 null 实得空串）——单跑同样复现，非本批改动面 |
+| 新建页端到端 | 临时 `Page_WizardSmoke3`：prefab/Lua/表行/Luban/Stage 步骤全过（`openStage:false` 形态）；产物根为普通 GameObject（非 variant），根组件 `Canvas/CanvasScaler/GraphicRaycaster/CanvasGroup` + `Cot_SafeArea/SafeAreaReceiver`；验后回滚表行、删临时资产并重跑 Luban |
+| 单页预览 | `Page_Login.prefab` 在 Play 内由 `UiPreviewDriver` 加载（`[UiPreview] 已加载`）；截图确认页面显示且 DevHUD 已隐藏；退出 Play 自动回 `Boot.unity` |
+| 预览热重载 | 临时副本 `Page_PreviewProbe.prefab`：Play 中改 TMP 文本并保存，Console 出现**第二次** `[UiPreview] 已加载`（seq 1324/1325）；临时副本与探针脚本已删 |
+| 窗口冒烟 | `UiComposeWindow` + `UiPageWizardWindow` 打开/重绘无 Console error；发现并修复 Odin `TabGroup` 标签含 `/` 的报错（改为「校验·生成」） |
+
+### 遗留（如实）
+
+- **真链路档不另造面板**：本批只交付布局档；需要本地化/真实数据时走 Boot → Preload → Main 联调或 L2 PlayMode（设计 §8.4）。
+- `UI.Settings.ExitWorkbench` 文案键随工作台退役失去代码消费者；暂留 tbltext，避免无谓表 diff（已登记审计）。
+- 工作台历史审计条目保留追溯；发布剥离的“bundle 清单不含 dev 件”L0 缺口仍按原登记追踪。
+- `AgentScripts/BuildWorkbenchPanel.cs`/`WorkbenchW2Probe.cs` 已删；DevMenuUI 预制体不再由构建器生成，后续修改走 Unity 原生编辑。
+
+---
+
+## 第9章 UI 制作可用性跟批（页面选择器 · 回写窗口退役）
+
+<a id="ch9-UI制作可用性跟批"></a>
+
+> **批次**：可用性跟批（2026-10-22，工作区未提交）
+> **触发**：用户反馈“prefab 回写工具没啥用；预览还要搜索 prefab”
+
+### 交付
+
+| 件 | 变化 |
+|---|---|
+| 页面选择器 | `UiPageScaffold.ListPages()` 读 tbuiform（`_uiform_row.py --list`）；UI 制作窗口顶部「已登记页面」下拉，选页即打开对应 Prefab Stage 并绑定目标；Project/Prefab Stage 手动选择仍可跟随；新建页成功后向导刷新页面清单 |
+| 预览入口 | 选页后直接点「预览」，不再要求先去 Project 搜 prefab |
+| 回写退役 | 删 `PrefabWriteBackWindow`/`Scan`/`Apply` 与 `PrefabWriteBackEditModeTests`；Hub `ui.writeback`、菜单 `LiteGame/快捷/Prefab 回写` 一并移除；Play 内调参走 Prefab Stage/Unity 原生 Overrides |
+| Hub/文档 | 工具索引重生成；设计/手册/代码地图/调试手册/能力地图同步；工作台设计归档不变 |
+
+### 验证
+
+| 项 | 结果 |
+|---|---|
+| Unity 编译 | 0 错 |
+| 页面清单 | `UiPageScaffold.ListPages()` 返回 13 行（含 `UI.Page_Login`） |
+| 页面选择器真实操作 | 反射调用窗口的 `SelectPage(Page_Login)`（下拉同一入口）→ `PrefabStageUtility` 当前 Stage 与 `TargetPrefab` 均为 `Assets/ShareResource/UI/Screens/Page_Login.prefab`；Console 0 error |
+| EditMode 目标夹具 | `UiPreview` 5/5、`EditorToolCatalog` 12/12、`UiBindingTools` 12/12、`UiComposePanel` 5/5、`UiComposeGenerate` 2/2、`UiWidgetLibrary` 6/6 |
+| 回写退役 | `grep` 代码/工具清单无 `ui.writeback`/`PrefabWriteBack`；`toolchain.py check` OK；工具索引无该行 |
+| L0 / Doc | L0 PASS；`doc-lint` OK |
+
+### 遗留（如实）
+
+- 页面清单读 xlsx 需要 Python + openpyxl（与新建页同一依赖）；读取失败时下拉为空并提示，不伪造条目。
+- 回写窗口已删除；若后续出现“必须逐属性挑选、原生 Overrides 不够”的真实消费者，再按 `ToolInteractionSession` 契约恢复，不以菜单存在维持。

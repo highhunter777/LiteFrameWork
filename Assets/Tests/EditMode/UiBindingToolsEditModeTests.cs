@@ -340,18 +340,12 @@ namespace LiteGame.Tests.EditMode
                 NewChild(panel, "Button_Ok");
             });
 
-            var window = ScriptableObject.CreateInstance<UiBindingWindow>();
-            try
-            {
-                window.BindPrefab(prefab);
-                var rows = (System.Collections.Generic.List<UiNodeRow>)typeof(UiBindingWindow)
-                    .GetField("_rows", BindingFlags.NonPublic | BindingFlags.Instance)
-                    .GetValue(window);
-                Assert.AreEqual(3, rows.Count, "根 + Cot + Button 三行");
-                Assert.AreEqual("Button_Ok", rows[2].Name);
-                Assert.AreEqual("Cot_Panel/Button_Ok", rows[2].Path, "行路径与生成/报告定位口径一致");
-            }
-            finally { Object.DestroyImmediate(window); }
+            var editor = new UiBindingEditor();
+            editor.BindPrefab(prefab);
+            var rows = editor.Rows;
+            Assert.AreEqual(3, rows.Count, "根 + Cot + Button 三行");
+            Assert.AreEqual("Button_Ok", rows[2].Name);
+            Assert.AreEqual("Cot_Panel/Button_Ok", rows[2].Path, "行路径与生成/报告定位口径一致");
         }
 
         // ---- 辅助 ----

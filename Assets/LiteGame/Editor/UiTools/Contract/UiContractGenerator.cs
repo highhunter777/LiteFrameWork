@@ -69,7 +69,7 @@ namespace LiteGame.Editor.UiTools.Contracts
             string fileName = Path.GetFileNameWithoutExtension(path);
             if (!string.Equals(prefab.name, fileName, StringComparison.Ordinal))
                 result.Errors.Add($"prefab 根名({prefab.name})与文件名({fileName})不一致");
-            if (!PageNamePattern.IsMatch(prefab.name))
+            if (!IsContractPageName(prefab.name))
                 result.Errors.Add($"页面根名不符合 Page_/Hud_/Tmp_ 文法：{prefab.name}");
             if (!PrefabPathPattern.IsMatch(path))
                 result.Errors.Add("页面 prefab 必须位于 Assets/ShareResource/UI/Screens 或 Hud：" + path);
@@ -128,25 +128,49 @@ namespace LiteGame.Editor.UiTools.Contracts
         /// <summary>按 tbuiform 行生成（页面登记后使用）。读取失败/未登记显式报错，不伪造 metadata。</summary>
         public static UiContractGenerationResult GenerateRegistered(string prefabPath)
         {
+            return GenerateRegistered(prefabPath, UiPageScaffold.ListPages());
+        }
+
+        /// <summary>
+        /// 按已读页面行生成（批处理用：表只读一次）。同一 prefab 多行登记时取**首行**，
+        /// 其余行由页面清单 `forms[]` 承担，并在 <see cref="UiContractGenerationResult.Warnings"/> 显式提示。
+        /// </summary>
+        public static UiContractGenerationResult GenerateRegistered(string prefabPath,
+            IReadOnlyList<UiPageScaffold.PageRow> rows)
+        {
             string normalized = Normalize(prefabPath);
-            List<UiPageScaffold.PageRow> rows = UiPageScaffold.ListPages();
-            UiPageScaffold.PageRow row = rows.FirstOrDefault(
-                x => string.Equals(Normalize(x.PrefabPath), normalized, StringComparison.Ordinal));
-            if (row == null)
+            List<UiPageScaffold.PageRow> matches = (rows ?? Array.Empty<UiPageScaffold.PageRow>())
+                .Where(row => row != null && string.Equals(Normalize(row.PrefabPath), normalized, StringComparison.Ordinal))
+                .ToList();
+            if (matches.Count == 0)
             {
                 var missing = new UiContractGenerationResult();
                 missing.Errors.Add("tbuiform 未登记页面：" + normalized + "（或页面清单读取失败）");
                 return missing;
             }
 
-            return Generate(normalized, new UiPageMetadata
+            UiPageScaffold.PageRow primary = matches[0];
+            UiContractGenerationResult result = Generate(normalized, new UiPageMetadata
             {
-                FormId = row.id,
-                LuaPath = string.IsNullOrEmpty(row.lua) ? null : row.lua,
-                Layer = row.layer,
-                FullScreen = row.fullScreen,
+                FormId = primary.id,
+                LuaPath = string.IsNullOrEmpty(primary.lua) ? null : primary.lua,
+                Layer = primary.layer,
+                FullScreen = primary.fullScreen,
                 CacheStrategy = UiPageContract.DefaultCacheStrategy,
             });
+
+            if (matches.Count > 1)
+            {
+                result.Warnings.Add("多行登记：" + string.Join("/", matches.Select(row => row.id))
+                    + "，契约取首行 " + primary.id + "；其余行见页面清单 forms[]");
+            }
+            return result;
+        }
+
+        /// <summary>页面根名是否属于契约面（<c>Page_/Hud_/Tmp_</c>；常驻壳 UIMain 不产契约）。</summary>
+        public static bool IsContractPageName(string pageName)
+        {
+            return !string.IsNullOrEmpty(pageName) && PageNamePattern.IsMatch(pageName);
         }
 
         /// <summary>生成并写盘；负例只返回错误，不落任何文件。</summary>

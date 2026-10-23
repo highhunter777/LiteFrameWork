@@ -1,0 +1,321 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:litegame:ui:style-tokens:1.0",
+  "title": "UiStyleTokens",
+  "description": "UI 样式系统的 token 源文件（主题级）。JSON 为设计态唯一源，经 ui.style.generate 生成 UiThemeAsset；生成物不手改。字段语义见 Docs/设计文档/客户端/UI/UI样式系统专项设计.md。",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "meta",
+    "colors",
+    "typography"
+  ],
+  "properties": {
+    "schemaVersion": {
+      "const": "1.0",
+      "description": "token 结构版本；主版本不兼容，次版本只做向后兼容追加。"
+    },
+    "meta": {
+      "$ref": "#/$defs/meta"
+    },
+    "colors": {
+      "type": "object",
+      "description": "颜色 token；值为 hex 或对另一颜色 token 的别名（@color.*）。",
+      "minProperties": 1,
+      "patternProperties": {
+        "^color\\.[a-z0-9]+(\\.[a-z0-9]+)*$": {
+          "$ref": "#/$defs/colorValue"
+        }
+      },
+      "additionalProperties": false
+    },
+    "typography": {
+      "type": "object",
+      "description": "文字角色 token；字体/字号/行高/对齐/换行/溢出/字重/颜色。",
+      "minProperties": 1,
+      "patternProperties": {
+        "^text\\.[a-z0-9]+(\\.[a-z0-9]+)*$": {
+          "$ref": "#/$defs/typography"
+        }
+      },
+      "additionalProperties": false
+    },
+    "buttons": {
+      "type": "object",
+      "description": "按钮样式 token；variant/size 组合解析到 tint、文字档与状态色。",
+      "patternProperties": {
+        "^button\\.[a-z0-9]+(\\.[a-z0-9]+)*$": {
+          "$ref": "#/$defs/buttonStyle"
+        }
+      },
+      "additionalProperties": false
+    },
+    "icons": {
+      "type": "object",
+      "description": "图标尺寸 token（边长，px）。",
+      "patternProperties": {
+        "^icon\\.[a-z0-9]+(\\.[a-z0-9]+)*$": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 512
+        }
+      },
+      "additionalProperties": false
+    },
+    "spacing": {
+      "type": "object",
+      "description": "间距 token（px）；供布局/工具消费，第一版不自动写 LayoutGroup。",
+      "patternProperties": {
+        "^space\\.[a-z0-9]+(\\.[a-z0-9]+)*$": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 512
+        }
+      },
+      "additionalProperties": false
+    },
+    "motion": {
+      "type": "object",
+      "description": "动效 token；供 UiFx/转场/效果系统消费，第一版只声明不自动绑定。",
+      "patternProperties": {
+        "^motion\\.[a-z0-9]+(\\.[a-z0-9]+)*$": {
+          "$ref": "#/$defs/motion"
+        }
+      },
+      "additionalProperties": false
+    }
+  },
+  "$defs": {
+    "meta": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "themeId",
+        "themeName",
+        "version"
+      ],
+      "properties": {
+        "themeId": {
+          "type": "string",
+          "pattern": "^[a-z][a-z0-9-]*$",
+          "description": "稳定主题 id；同 id 的不同版本不得改变 token 语义。"
+        },
+        "themeName": {
+          "type": "string",
+          "minLength": 1,
+          "description": "显示名（如 Default / Dark / SpringEvent）。"
+        },
+        "version": {
+          "type": "string",
+          "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+$",
+          "description": "主题版本；与 schemaVersion 独立。"
+        },
+        "extends": {
+          "type": "string",
+          "pattern": "^[a-z][a-z0-9-]*$",
+          "description": "可选：继承的基础主题 id；同 id token 覆盖，新增 token 追加。"
+        },
+        "description": {
+          "type": "string"
+        }
+      }
+    },
+    "colorValue": {
+      "oneOf": [
+        {
+          "type": "string",
+          "pattern": "^#[0-9A-Fa-f]{6}([0-9A-Fa-f]{2})?$",
+          "description": "#RRGGBB 或 #RRGGBBAA。"
+        },
+        {
+          "type": "string",
+          "pattern": "^@color\\.[a-z0-9]+(\\.[a-z0-9]+)*$",
+          "description": "对另一颜色 token 的别名；解析器只允许一层别名，禁止环。"
+        }
+      ]
+    },
+    "assetRef": {
+      "type": "string",
+      "pattern": "^asset:Assets/.+$",
+      "description": "Unity 资产路径引用（asset:Assets/...）；生成器解析并校验资产类型。"
+    },
+    "typography": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "fontAsset",
+        "fontSize",
+        "lineHeight",
+        "alignment",
+        "wrap",
+        "overflow"
+      ],
+      "properties": {
+        "fontAsset": {
+          "$ref": "#/$defs/assetRef",
+          "description": "TMP_FontAsset 路径；生成器校验类型。"
+        },
+        "fontFallbacks": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/assetRef"
+          },
+          "maxItems": 4,
+          "description": "可选 fallback 链；顺序即 TMP 查找序。"
+        },
+        "fontSize": {
+          "type": "number",
+          "minimum": 8,
+          "maximum": 96,
+          "description": "字号（pt）；必须落在《UI 制作规范》§3 的阶梯内（校验器检查，不在 schema 硬编码阶梯）。"
+        },
+        "lineHeight": {
+          "type": "number",
+          "minimum": 0.8,
+          "maximum": 2.0,
+          "description": "行高倍率。"
+        },
+        "letterSpacing": {
+          "type": "number",
+          "minimum": -10,
+          "maximum": 20,
+          "description": "字距；默认 0。"
+        },
+        "fontWeight": {
+          "enum": [
+            "Regular",
+            "Bold"
+          ],
+          "description": "TMP 无独立字重；Bold 映射 FontStyles.Bold 位。"
+        },
+        "alignment": {
+          "enum": [
+            "Left",
+            "Center",
+            "Right"
+          ],
+          "description": "水平对齐；垂直统一 Middle（第一版不开放）。"
+        },
+        "wrap": {
+          "type": "boolean",
+          "description": "是否换行。"
+        },
+        "overflow": {
+          "enum": [
+            "Truncate",
+            "Overflow"
+          ],
+          "description": "初始溢出策略；容器约束由布局承担。"
+        },
+        "autoSize": {
+          "const": false,
+          "description": "第一版禁止 AutoSizing（字体图集重建风险）；出现即校验失败。"
+        },
+        "color": {
+          "$ref": "#/$defs/colorValue",
+          "description": "文字颜色 token；缺省由消费者决定（建议 @color.text.primary）。"
+        }
+      }
+    },
+    "buttonStyle": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "textStyle",
+        "tint",
+        "states"
+      ],
+      "properties": {
+        "textStyle": {
+          "type": "string",
+          "pattern": "^text\\.[a-z0-9]+(\\.[a-z0-9]+)*$",
+          "description": "按钮文字使用的 typography token id。"
+        },
+        "tint": {
+          "$ref": "#/$defs/colorValue",
+          "description": "按钮底色（Graphic.color / Image tint）。"
+        },
+        "sprite": {
+          "$ref": "#/$defs/assetRef",
+          "description": "可选：按钮底图（9-slice sprite）；第一版只声明，贴图/九宫格归制作规范。"
+        },
+        "iconStyle": {
+          "type": "string",
+          "pattern": "^icon\\.[a-z0-9]+(\\.[a-z0-9]+)*$",
+          "description": "可选：按钮图标尺寸 token。"
+        },
+        "states": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "normal",
+            "highlighted",
+            "pressed",
+            "disabled"
+          ],
+          "properties": {
+            "normal": {
+              "$ref": "#/$defs/stateStyle"
+            },
+            "highlighted": {
+              "$ref": "#/$defs/stateStyle"
+            },
+            "pressed": {
+              "$ref": "#/$defs/stateStyle"
+            },
+            "selected": {
+              "$ref": "#/$defs/stateStyle"
+            },
+            "disabled": {
+              "$ref": "#/$defs/stateStyle"
+            }
+          }
+        }
+      }
+    },
+    "stateStyle": {
+      "type": "object",
+      "additionalProperties": false,
+      "minProperties": 1,
+      "properties": {
+        "tint": {
+          "$ref": "#/$defs/colorValue",
+          "description": "该状态下的底色。"
+        },
+        "text": {
+          "$ref": "#/$defs/colorValue",
+          "description": "该状态下的文字色。"
+        },
+        "sprite": {
+          "$ref": "#/$defs/assetRef",
+          "description": "可选：该状态底图（SpriteState）。"
+        }
+      }
+    },
+    "motion": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "duration"
+      ],
+      "properties": {
+        "duration": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 10,
+          "description": "秒。"
+        },
+        "easing": {
+          "enum": [
+            "Linear",
+            "EaseOut",
+            "EaseIn",
+            "EaseInOut"
+          ],
+          "description": "第一版四档；新增缓动先落 UiFx 再扩 schema。"
+        }
+      }
+    }
+  }
+}

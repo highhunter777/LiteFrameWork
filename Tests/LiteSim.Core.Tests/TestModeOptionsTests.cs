@@ -39,7 +39,7 @@ namespace LiteSim.Tests
             Assert.Equal(TestModeOptions.All.Length, TestModeOptions.All.Select(o => o.Id).Distinct().Count());
             Assert.All(TestModeOptions.All, o => Assert.False(string.IsNullOrEmpty(o.Label)));
 
-            // 两分组齐备：GM 面板与 DebugTuner 按分组分流渲染（组消失 = 页面静默漏区）
+            // 两分组齐备：GM 面板与 DevStartupConfig 按分组分流渲染（组消失 = 页面静默漏区）
             Assert.Contains(TestModeOptions.All, o => o.Group == TestModeOptions.Group.Startup);
             Assert.Contains(TestModeOptions.All, o => o.Group == TestModeOptions.Group.Live);
         }

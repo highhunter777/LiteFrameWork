@@ -1,0 +1,29 @@
+{
+  "schemaVersion": "2.0",
+  "generator": {
+    "name": "ui-contract",
+    "version": "1.0"
+  },
+  "page": {
+    "formId": 204,
+    "name": "Tmp_BaselineA",
+    "prefabPath": "Assets/ShareResource/UI/Screens/Tmp_BaselineA.prefab",
+    "prefabGuid": "219b7fa6620f5ed459f8662f9b1bd158",
+    "luaPath": null,
+    "layer": 0,
+    "fullScreen": true,
+    "cacheStrategy": "Lru"
+  },
+  "controls": [],
+  "text": [],
+  "styles": [],
+  "templates": [
+    {
+      "nodePath": "Cot_Baseline",
+      "template": "Tmp_Baseline",
+      "bindingHash": "5d2b1a4f79c79e02d6c5941ce1b569eae836500288d63d5e159de37e8d9e002f"
+    }
+  ],
+  "events": [],
+  "sourceHash": "sha256:ffdf50f9d034a9d7c507b36c56396b0ea0f0e8e3583cd97613a728f191d82850"
+}

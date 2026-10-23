@@ -54,6 +54,13 @@ namespace LiteGame
             ? _container.Stats
             : Array.Empty<IModuleStats>();
 
+#if UNITY_EDITOR || DEVELOPMENT_BUILD || LITEFRAMEWORK_DEBUG
+        private DebugKernel _debugKernel;
+
+        /// <summary>调试内核只读访问器（运行期投影用）：与 <see cref="Stats"/> 同口径，不是业务解析入口。</summary>
+        public DebugKernel DebugKernel => _debugKernel;
+#endif
+
         private void Awake()
         {
             // 重复引导守卫（叠加加载场景时的真实隐患）：场景实例若误含 GameEntry，DontDestroyOnLoad + Awake
@@ -91,8 +98,10 @@ namespace LiteGame
                 _container = _host.Product<ServiceContainer>();
                 _fsm = _host.Product<StageMachine<ProcedureId, ProcedureArgs>>();
 #if UNITY_EDITOR || DEVELOPMENT_BUILD || LITEFRAMEWORK_DEBUG
-                // 调试组件注入（同 GameObject；可选——未挂即跳过；守卫与定义处一致：release Player 下类型被条件编译移除）
-                GetComponent<DebugTuner>()?.Inject(_host.Product<IWorldClock>(), _host.Product<IUIClock>(), _host.Product<EventCenter>(), _host.Product<CommandCenter>());
+                // 运行态调试旋钮注入（同 GameObject；可选——未挂即跳过；守卫与定义处一致：release Player 下类型被条件编译移除）
+                GetComponent<DebugRuntimeTuner>()?.Inject(_host.Product<IWorldClock>(), _host.Product<IUIClock>(), _host.Product<EventCenter>(), _host.Product<CommandCenter>());
+                try { _debugKernel = _container.Resolve<DebugKernel>(); }
+                catch (Exception ex) { Log.Warning($"调试内核未装配：{ex.Message}", LogTag.GameEntry); }
 #endif
                 // 内存循环实测探针：**不进 dev 条件块**——本构建为非 dev Player（dev 块在此被剔除），
                 // 靠 -memloop 命令行门控（未带参数 = 一次数组查找后无操作，同 -content.cdnUrl 风格）

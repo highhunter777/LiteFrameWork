@@ -39,7 +39,7 @@ namespace LiteGame
             //   受控沙箱执行）——两者基于候选根文件，先于资源包初始化可运行。
             //   入口资源可加载性探针（AssetsHealthProbe）查当前代次入口，须在资源包初始化后才有意义
             //   （Patch 先于初始化，时序不可能）——本模块只**登记**探针，由 ProcedurePatch 在初始化后执行；
-            //   入口清单见 ContentSampleAssets（样例①真实资产包段：标记素材只在候选包，能加载即证据）。
+            //   入口取真实实体 prefab（Characters 收集组），不再依赖已退役的样例①标记素材。
             // 部署配置三源（命令行 > 包内 deploy.args 烙入 > 默认——分发包零参数启动；基址非信任边界不变）
             ContentCdnConfig deploy = ContentDeployConfig.Load(
                 Environment.GetCommandLineArgs(), DeployBake.ReadArgs());
@@ -87,8 +87,8 @@ namespace LiteGame
                 planFactory: planFactory));
             context.Put(coordinator);
 
-            // 入口资产探针（初始化后执行；时序说明见上）——入口清单来自 ContentSampleAssets（单源）。
-            context.Put(new AssetsHealthProbe(_content, ContentSampleAssets.EntryLocations));
+            // 入口资产探针（初始化后执行；时序说明见上）——真实实体入口，走与运行时同一条租约通道。
+            context.Put(new AssetsHealthProbe(_content, new[] { LiteView.SimView.DefaultEntityPrefab }));
             return UniTask.CompletedTask;
         }
 

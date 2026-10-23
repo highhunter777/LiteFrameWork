@@ -5,10 +5,9 @@ using UnityEngine;
 namespace LiteGame.Editor.UiTools.Binding
 {
     /// <summary>
-    /// 绑定暴露树的**只读/可勾选**绘制器（《UI编辑器工具专项设计》§5"绑定暴露树"面板）：
+    /// 绑定暴露树的**只读/可勾选**绘制器（《UI编辑器工具专项设计》§8.2 绑定分区）：
     /// 数据单源＝<see cref="UiBindingRename.BuildTree"/> 的行集，本类只画行、不改资产。
-    /// 绑定标记工具窗口与 UI 编排面板的内嵌只读视图共用同一绘制（消除重复）；
-    /// **编辑动作**（前缀预设/批量改名/预览）仍归绑定标记工具窗口。
+    /// 编辑动作（前缀预设/批量改名/预览/应用）由 <see cref="UiBindingEditor"/> 在同一分区内承担。
     /// </summary>
     public static class UiBindTreeView
     {

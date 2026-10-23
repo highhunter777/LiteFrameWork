@@ -1,13 +1,13 @@
 {
   "$comment": "机器可读开发工具链清单（唯一工具注册源）。编辑器 Hub / scripts/toolchain.py / 生成工具索引 / 注册面检查都读取本文件；环境字段供 restore-check 使用。",
-  "schemaVersion": 5,
+  "schemaVersion": 6,
   "name": "litegame-toolchain",
   "updatedAt": "2026-10-22",
   "categories": [
     { "id": "baking", "title": "内容烘焙", "order": 10, "docs": "Docs/设计文档/游戏玩法/烘焙工具箱专项设计.md" },
-    { "id": "ui", "title": "UI 工具", "order": 20, "docs": "Docs/设计文档/客户端/UI/UI编辑器工具专项设计.md" },
+    { "id": "ui", "title": "UI 工具", "order": 20, "docs": "Docs/设计文档/客户端/UI系统/UI编辑器工具链专项设计.md" },
     { "id": "debug", "title": "调试与诊断", "order": 30, "docs": "Docs/设计文档/架构/GM与调试工具分层专项设计.md", "allowDocs": ["Docs/项目说明/07-本地联测.md", "Docs/项目说明/13-调试手册.md"] },
-    { "id": "codegen", "title": "代码生成", "order": 40, "docs": "Docs/设计文档/架构/生成器工具箱专项设计.md", "allowDocs": ["Docs/开发导航/代码地图.md", "Docs/项目说明/07-本地联测.md", "Docs/设计文档/客户端/UI/UI编辑器工具专项设计.md"] },
+    { "id": "codegen", "title": "代码生成", "order": 40, "docs": "Docs/设计文档/架构/生成器工具箱专项设计.md", "allowDocs": ["Docs/开发导航/代码地图.md", "Docs/项目说明/07-本地联测.md", "Docs/设计文档/客户端/UI系统/UI编辑器工具链专项设计.md"] },
     { "id": "deploy", "title": "部署与云运维", "order": 45, "docs": "Docs/项目说明/10-Windows云主机部署.md", "allowDocs": ["Docs/开发导航/云侧速查.md"] },
     { "id": "quality", "title": "质量门禁", "order": 50, "docs": "Docs/项目说明/05-验证与门禁.md", "allowDocs": ["Docs/修改指南.md", "Docs/工具链/技术支持.md"] },
     { "id": "build", "title": "构建", "order": 60, "docs": "Docs/项目说明/05-验证与门禁.md" },
@@ -121,49 +121,39 @@
       "safety": { "dryRun": "supported", "undo": "file", "confirmation": "none" }
     },
     {
-      "id": "ui.binding",
-      "title": "UI 绑定标记工具",
+      "id": "ui.page-new",
+      "title": "新建 UI 页面",
       "category": "ui",
       "kind": "window",
       "plane": "editor",
       "purpose": "dev",
-      "handler": "ui.binding",
-      "summary": "在 prefab 上维护 BindRoot/BindNode 并生成 UI 绑定代码。",
-      "docs": "Docs/设计文档/客户端/UI/UI编辑器工具专项设计.md",
-      "menu": "LiteGame/UI/绑定/绑定标记工具",
-      "writes": ["asset", "source"],
+      "handler": "ui.page-new",
+      "summary": "生成 Page prefab、Lua 骨架与 tbuiform 行，并重生成 Luban。",
+      "docs": "Docs/设计文档/客户端/UI系统/UI编辑器工具链专项设计.md",
+      "menu": "LiteGame/UI/制作/新建 UI 页面",
+      "writes": ["asset", "source", "generated"],
+      "outputs": [
+        { "path": "Assets/ShareResource/UI/Screens/", "kind": "asset" },
+        { "path": "Assets/LiteGame/Lua/UI/", "kind": "source" },
+        { "path": "Luban/Data/#uiform.xlsx", "kind": "source" }
+      ],
       "destructive": false,
       "order": 20
     },
     {
       "id": "ui.compose",
-      "title": "UI 编排面板",
+      "title": "UI 制作",
       "category": "ui",
       "kind": "window",
       "plane": "editor",
       "purpose": "dev",
       "handler": "ui.compose",
-      "summary": "UI 编排、绑定暴露、受控属性、校验与控件库的综合面板。",
-      "docs": "Docs/设计文档/客户端/UI/UI编辑器工具专项设计.md",
-      "menu": "LiteGame/UI/编排/UI 编排面板",
-      "writes": ["asset"],
+      "summary": "UI 制作主线：绑定编辑、受控属性、控件库、校验与生成。",
+      "docs": "Docs/设计文档/客户端/UI系统/UI编辑器工具链专项设计.md",
+      "menu": "LiteGame/UI/制作/UI 制作",
+      "writes": ["asset", "source"],
       "destructive": false,
       "order": 30
-    },
-    {
-      "id": "ui.writeback",
-      "title": "Prefab 改动回写",
-      "category": "ui",
-      "kind": "window",
-      "plane": "editor",
-      "purpose": "dev",
-      "handler": "ui.writeback",
-      "summary": "把 Play/场景实例上的属性差异回写到源 prefab。",
-      "docs": "Docs/设计文档/客户端/UI/UI编辑器工具专项设计.md",
-      "menu": "LiteGame/快捷/Prefab 回写",
-      "writes": ["asset"],
-      "destructive": true,
-      "order": 40
     },
     {
       "id": "ui.validate",
@@ -174,7 +164,7 @@
       "purpose": "dev",
       "handler": "ui.validate",
       "summary": "跑 UI 规则集（视觉单一来源、绑定命名、生成物 hash、表路径）。",
-      "docs": "Docs/设计文档/客户端/UI/UI编辑器工具专项设计.md",
+      "docs": "Docs/设计文档/客户端/UI系统/UI编辑器工具链专项设计.md",
       "menu": "LiteGame/UI/校验/校验 UI 资产",
       "writes": ["none"],
       "destructive": false,
@@ -189,9 +179,13 @@
       "purpose": "dev",
       "handler": "ui.style.colors-refresh",
       "summary": "按 token 收敛 prefab 中的 UI 颜色。",
-      "docs": "Docs/设计文档/客户端/UI/UI编辑器工具专项设计.md",
+      "docs": "Docs/设计文档/客户端/UI系统/UI编辑器工具链专项设计.md",
       "menu": "LiteGame/UI/样式工具/刷新 UI 颜色（按 token 收敛）",
       "writes": ["asset"],
+      "outputs": [
+        { "path": "Assets/ShareResource/UI/Widgets/", "kind": "asset" },
+        { "path": "Assets/ShareResource/UI/Screens/", "kind": "asset" }
+      ],
       "destructive": false,
       "order": 60
     },
@@ -204,7 +198,7 @@
       "purpose": "dev",
       "handler": "ui.style.colors-report",
       "summary": "报告 UI 颜色与 token 的漂移，不改资产。",
-      "docs": "Docs/设计文档/客户端/UI/UI编辑器工具专项设计.md",
+      "docs": "Docs/设计文档/客户端/UI系统/UI编辑器工具链专项设计.md",
       "menu": "LiteGame/UI/样式工具/对账 UI 颜色（漂移报告）",
       "writes": ["none"],
       "destructive": false,
@@ -219,7 +213,7 @@
       "purpose": "dev",
       "handler": "ui.style.text-report",
       "summary": "报告文字样式档位漂移，不改资产。",
-      "docs": "Docs/设计文档/客户端/UI/UI编辑器工具专项设计.md",
+      "docs": "Docs/设计文档/客户端/UI系统/UI编辑器工具链专项设计.md",
       "menu": "LiteGame/UI/样式工具/对账文字档（漂移报告）",
       "writes": ["none"],
       "destructive": false,
@@ -234,9 +228,13 @@
       "purpose": "dev",
       "handler": "ui.style.text-apply",
       "summary": "按标记收敛文字样式并写回 prefab。",
-      "docs": "Docs/设计文档/客户端/UI/UI编辑器工具专项设计.md",
+      "docs": "Docs/设计文档/客户端/UI系统/UI编辑器工具链专项设计.md",
       "menu": "LiteGame/UI/样式工具/应用文字档（按标记收敛）",
       "writes": ["asset"],
+      "outputs": [
+        { "path": "Assets/ShareResource/UI/Widgets/", "kind": "asset" },
+        { "path": "Assets/ShareResource/UI/Screens/", "kind": "asset" }
+      ],
       "destructive": false,
       "order": 90
     },
@@ -249,9 +247,12 @@
       "purpose": "dev",
       "handler": "ui.binding-hash-all",
       "summary": "重记录全部 BindRoot prefab 的绑定面指纹。",
-      "docs": "Docs/设计文档/客户端/UI/UI编辑器工具专项设计.md",
+      "docs": "Docs/设计文档/客户端/UI系统/UI编辑器工具链专项设计.md",
       "menu": "LiteGame/UI/绑定/生成物 hash/记录（全部）",
       "writes": ["asset"],
+      "outputs": [
+        { "path": "Assets/LiteGame/Editor/UiTools/UiBindManifest.json", "kind": "data" }
+      ],
       "destructive": false,
       "order": 100
     },
@@ -264,11 +265,83 @@
       "purpose": "dev",
       "handler": "ui.binding-hash-selected",
       "summary": "记录当前选中的 BindRoot prefab 指纹。",
-      "docs": "Docs/设计文档/客户端/UI/UI编辑器工具专项设计.md",
+      "docs": "Docs/设计文档/客户端/UI系统/UI编辑器工具链专项设计.md",
       "menu": "LiteGame/UI/绑定/生成物 hash/记录（选中 Prefab）",
       "writes": ["asset"],
+      "outputs": [
+        { "path": "Assets/LiteGame/Editor/UiTools/UiBindManifest.json", "kind": "data" }
+      ],
       "destructive": false,
       "order": 110
+    },
+    {
+      "id": "ui.contract",
+      "title": "生成页面契约",
+      "category": "ui",
+      "kind": "action",
+      "plane": "editor",
+      "purpose": "dev",
+      "handler": "ui.contract",
+      "summary": "按 tbuiform 登记批量生成/刷新页面契约（常驻壳跳过、多行取首行并告警）。",
+      "docs": "Docs/设计文档/客户端/UI系统/UI编辑器工具链专项设计.md",
+      "menu": "LiteGame/UI/契约/生成页面契约（全部登记页）",
+      "writes": ["asset"],
+      "outputs": [
+        { "path": "Assets/LiteGame/Editor/UiTools/Contracts/", "kind": "asset" }
+      ],
+      "destructive": false,
+      "order": 120
+    },
+    {
+      "id": "ui.contract-diff",
+      "title": "对账页面契约",
+      "category": "ui",
+      "kind": "action",
+      "plane": "editor",
+      "purpose": "dev",
+      "handler": "ui.contract-diff",
+      "summary": "磁盘基线 vs 现生成的契约 diff；破坏性变更判失败，无基线只告警。",
+      "docs": "Docs/设计文档/客户端/UI系统/UI编辑器工具链专项设计.md",
+      "menu": "LiteGame/UI/契约/对账页面契约（diff）",
+      "writes": ["none"],
+      "destructive": false,
+      "order": 130
+    },
+    {
+      "id": "ui.widget-manifest",
+      "title": "生成控件清单",
+      "category": "ui",
+      "kind": "action",
+      "plane": "editor",
+      "purpose": "dev",
+      "handler": "ui.widget-manifest",
+      "summary": "扫 Tmp_* 模板与 WidgetSpec 生成控件清单生成物。",
+      "docs": "Docs/设计文档/客户端/UI系统/UI编辑器工具链专项设计.md",
+      "menu": "LiteGame/UI/契约/生成控件清单",
+      "writes": ["asset"],
+      "outputs": [
+        { "path": "Assets/LiteGame/Editor/UiTools/UiWidgetManifest.json", "kind": "data" }
+      ],
+      "destructive": false,
+      "order": 140
+    },
+    {
+      "id": "ui.page-manifest",
+      "title": "对账页面清单",
+      "category": "ui",
+      "kind": "action",
+      "plane": "editor",
+      "purpose": "dev",
+      "handler": "ui.page-manifest",
+      "summary": "tbuiform + 已有清单 + 契约存在性对账，刷新身份字段并保留维护字段。",
+      "docs": "Docs/设计文档/客户端/UI系统/UI编辑器工具链专项设计.md",
+      "menu": "LiteGame/UI/契约/对账页面清单",
+      "writes": ["asset"],
+      "outputs": [
+        { "path": "Assets/LiteGame/Editor/UiTools/UiPageManifest.json", "kind": "data" }
+      ],
+      "destructive": false,
+      "order": 150
     },
     {
       "id": "debug.test-mode",
@@ -311,7 +384,7 @@
       "handler": "debug.scene",
       "summary": "供调试使用的场景加载/对象操作入口。",
       "docs": "Docs/设计文档/架构/GM与调试工具分层专项设计.md",
-      "writes": ["asset"],
+      "writes": ["none"],
       "destructive": false,
       "order": 30
     },
@@ -412,6 +485,10 @@
         { "name": "check-shared", "type": "bool", "description": "只复算共享源集常量（出包门禁）" }
       ],
       "writes": ["generated"],
+      "outputs": [
+        { "path": "Assets/LiteNet/Protocol/BuildHash.g.cs", "kind": "generated" },
+        { "path": "Server/MetaServer/Host/BuildHash.g.cs", "kind": "generated" }
+      ],
       "destructive": false,
       "order": 10
     },
@@ -429,6 +506,9 @@
         { "name": "protoc", "type": "path", "description": "protoc.exe 路径（与运行时 Google.Protobuf 对齐）" }
       ],
       "writes": ["generated"],
+      "outputs": [
+        { "path": "Assets/LiteNet/Proto/Generated/Battle.cs", "kind": "generated" }
+      ],
       "destructive": false,
       "order": 20
     },
@@ -443,6 +523,12 @@
       "docs": "Docs/设计文档/架构/生成器工具箱专项设计.md",
       "command": ["python", "scripts/codegen/toolbox.py", "luban"],
       "writes": ["generated"],
+      "outputs": [
+        { "path": "Assets/GameData/Generated/", "kind": "generated" },
+        { "path": "Assets/GameData/Config/", "kind": "data" },
+        { "path": "Assets/LiteGame/Lua/Cfg/", "kind": "data" },
+        { "path": "Assets/LiteGame/LuaBridge/Generated/LuaKeys.g.cs", "kind": "generated" }
+      ],
       "destructive": false,
       "order": 30
     },
@@ -457,6 +543,9 @@
       "docs": "Docs/设计文档/架构/生成器工具箱专项设计.md",
       "command": ["python", "scripts/codegen/toolbox.py", "sync-code"],
       "writes": ["generated"],
+      "outputs": [
+        { "path": "Assets/LiteSim/Core/Diagnostics/Generated/EntitySlot.Sync.g.cs", "kind": "generated" }
+      ],
       "destructive": false,
       "order": 40
     },
@@ -477,6 +566,10 @@
         { "name": "allow-incomplete", "type": "bool", "description": "服务端哈希不可读时显式降级为警告" }
       ],
       "writes": ["generated"],
+      "outputs": [
+        { "path": "Assets/LiteNet/Protocol/BuildHash.g.cs", "kind": "generated" },
+        { "path": "Server/MetaServer/Host/BuildHash.g.cs", "kind": "generated" }
+      ],
       "destructive": false,
       "order": 50
     },
@@ -539,8 +632,8 @@
       "plane": "none",
       "purpose": "dev",
       "summary": "经 BindRoot Inspector 或资源右键菜单使用；Hub 只提供说明。",
-      "docs": "Docs/设计文档/客户端/UI/UI编辑器工具专项设计.md",
-      "writes": ["source"],
+      "docs": "Docs/设计文档/客户端/UI系统/UI编辑器工具链专项设计.md",
+      "writes": ["none"],
       "destructive": false,
       "order": 90
     },
@@ -553,7 +646,7 @@
       "purpose": "dev",
       "summary": "vendored Tools/XLuaGenerate.exe；重生成 xLua 适配代码时手动使用。",
       "docs": "Docs/开发导航/代码地图.md",
-      "writes": ["source"],
+      "writes": ["none"],
       "destructive": false,
       "order": 100
     },
@@ -587,6 +680,9 @@
         { "name": "results-directory", "type": "path", "description": "测试结果目录" }
       ],
       "writes": ["none"],
+      "outputs": [
+        { "path": "TestResults/", "kind": "report" }
+      ],
       "destructive": false,
       "order": 20
     },
@@ -609,6 +705,9 @@
         { "name": "run-editmode-tests", "type": "bool", "description": "运行 EditMode 测试" }
       ],
       "writes": ["none"],
+      "outputs": [
+        { "path": "TestResults/", "kind": "report" }
+      ],
       "destructive": false,
       "order": 30
     },
@@ -628,6 +727,9 @@
         { "name": "results-directory", "type": "path", "description": "测试结果目录" }
       ],
       "writes": ["none"],
+      "outputs": [
+        { "path": "TestResults/", "kind": "report" }
+      ],
       "destructive": false,
       "order": 40
     },
@@ -647,6 +749,9 @@
         { "name": "results-directory", "type": "path", "description": "测试结果目录" }
       ],
       "writes": ["none"],
+      "outputs": [
+        { "path": "TestResults/", "kind": "report" }
+      ],
       "destructive": false,
       "order": 50
     },
@@ -698,6 +803,9 @@
         { "name": "skip-bundles", "type": "bool", "description": "跳过内置内容包构建" }
       ],
       "writes": ["distribution"],
+      "outputs": [
+        { "path": "Builds/", "kind": "binary" }
+      ],
       "destructive": false,
       "order": 10
     },
@@ -723,6 +831,9 @@
         { "name": "input-modal", "type": "bool", "description": "启用输入弹窗检查" }
       ],
       "writes": ["none"],
+      "outputs": [
+        { "path": "TestResults/", "kind": "report" }
+      ],
       "destructive": false,
       "order": 20
     },
@@ -738,6 +849,9 @@
       "docs": "Docs/设计文档/客户端/内容/资源收集目录专项设计.md",
       "menu": "LiteGame/Resource/构建内置 Bundle 包（Offline）",
       "writes": ["distribution"],
+      "outputs": [
+        { "path": "Bundles/", "kind": "binary" }
+      ],
       "destructive": false,
       "order": 30
     },
@@ -753,23 +867,11 @@
       "docs": "Docs/设计文档/客户端/内容/资源收集目录专项设计.md",
       "menu": "LiteGame/Resource/样例：构建候选 Bundle（不覆盖内置包）",
       "writes": ["distribution"],
+      "outputs": [
+        { "path": "Bundles/", "kind": "binary" }
+      ],
       "destructive": false,
       "order": 40
-    },
-    {
-      "id": "content.sample",
-      "title": "生成样例内容",
-      "category": "content",
-      "kind": "action",
-      "plane": "editor",
-      "purpose": "dev",
-      "handler": "content.sample",
-      "summary": "生成标记素材与收集组样例。",
-      "docs": "Docs/设计文档/客户端/内容/资源收集目录专项设计.md",
-      "menu": "LiteGame/Resource/样例内容：生成标记素材与收集组",
-      "writes": ["asset"],
-      "destructive": false,
-      "order": 50
     },
     {
       "id": "content.gen-candidate",
@@ -793,6 +895,9 @@
         { "name": "key-id", "type": "string", "description": "签名密钥标识" }
       ],
       "writes": ["distribution"],
+      "outputs": [
+        { "path": "content/candidate.json", "kind": "data" }
+      ],
       "destructive": false,
       "order": 60
     },
@@ -819,6 +924,9 @@
         { "name": "key-id", "type": "string", "description": "签名密钥标识" }
       ],
       "writes": ["distribution"],
+      "outputs": [
+        { "path": "LocalCDN/", "kind": "distribution" }
+      ],
       "destructive": false,
       "order": 70
     },
@@ -867,6 +975,9 @@
       "docs": "Docs/项目说明/05-验证与门禁.md",
       "command": ["python", "scripts/gate/nightly-gate.py"],
       "writes": ["none"],
+      "outputs": [
+        { "path": "TestResults/nightly/", "kind": "report" }
+      ],
       "destructive": false,
       "order": 20
     },
@@ -971,6 +1082,9 @@
         { "name": "ssh-host", "type": "string", "description": "SSH 主机或别名" }
       ],
       "writes": ["distribution"],
+      "outputs": [
+        { "path": "Builds/win-server/", "kind": "binary" }
+      ],
       "destructive": true,
       "order": 10
     },
@@ -1021,6 +1135,9 @@
         { "name": "out-dir", "type": "path", "description": "本机 .conf 输出目录" }
       ],
       "writes": ["distribution"],
+      "outputs": [
+        { "path": "Dist/out/", "kind": "distribution" }
+      ],
       "destructive": true,
       "order": 30
     },
@@ -1035,6 +1152,9 @@
       "docs": "Docs/项目说明/07-本地联测.md",
       "command": ["python", "scripts/local/local-chain.py"],
       "writes": ["source", "distribution"],
+      "outputs": [
+        { "path": "deploy/.env", "kind": "data" }
+      ],
       "destructive": true,
       "order": 15
     },

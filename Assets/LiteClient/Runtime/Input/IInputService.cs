@@ -37,7 +37,7 @@ namespace LiteClient
         /// <summary>当前设备源；null = 无设备（移动端触屏源未接线前的合法形态——意图恒空但链路完整）。</summary>
         IIntentSource Source { get; }
 
-        /// <summary>最近一次裁决是否被拦下（诊断/HUD/DebugTuner 用）。</summary>
+        /// <summary>最近一次裁决是否被拦下（诊断/HUD/调试面用）。</summary>
         bool IsBlocked { get; }
 
         /// <summary>最近一次拦下本意图的源名；未拦下 = null（"谁关的输入门"的唯一答案）。</summary>

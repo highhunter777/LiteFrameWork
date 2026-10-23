@@ -6,8 +6,8 @@ namespace LiteGame.Editor
     /// <summary>
     /// GM 工具箱·联机诊断页：DevHUD 联机诊断面的编辑器投影（《GM 与调试工具分层设计》§5 双入口形态）——
     /// ①HUD 控制：总开关/段开关（编辑器工具豁免形态直改 DevHUD 实例 public 字段——与 F1 等效）；
-    /// ②读数投影：<see cref="BattleDiagnostics"/> 单源文本（与 HUD 同一读口——本页零拼装、零状态）。
-    /// 形态边界：GM 面板是编辑器投影（EditorWindow 不进包）；开发包 Player 里 HUD 由 F1 开。
+    /// ②读数投影：<see cref="DebugKernel.DescribeBattle"/> 单源文本（与 HUD 同一内核读口——本页零拼装、零状态）。
+    /// 形态边界：GM 面板是编辑器投影（EditorWindow 不进包）；开发包 Player 里 HUD 由 F1 开、控制台由 F8 开。
     /// 页件零业务逻辑：诊断事实全在对局上下文，本页只读。
     /// </summary>
     internal sealed class GmNetDiagPage : IGmPage
@@ -47,11 +47,19 @@ namespace LiteGame.Editor
             }
 
             EditorGUILayout.Space(4);
-            EditorGUILayout.LabelField("读数（BattleDiagnostics 单源）", EditorStyles.miniBoldLabel);
-            string[] lines = BattleDiagnostics.DescribeCurrent();
-            EditorGUILayout.LabelField(
-                lines == null ? "(无对局——进 Play 并入局后显示)" : string.Join("\n", lines),
-                EditorStyles.miniLabel);
+            EditorGUILayout.LabelField("读数（DebugKernel 单源）", EditorStyles.miniBoldLabel);
+            DebugKernel kernel = GmEditorResolve.ResolveFromContainer<DebugKernel>();
+            if (kernel == null)
+            {
+                EditorGUILayout.LabelField("(调试内核未装配——需 Play 且容器就绪)", EditorStyles.miniLabel);
+            }
+            else
+            {
+                string[] lines = kernel.DescribeBattle();
+                EditorGUILayout.LabelField(
+                    lines.Length == 0 ? "(无对局——进 Play 并入局后显示)" : string.Join("\n", lines),
+                    EditorStyles.miniLabel);
+            }
         }
     }
 }

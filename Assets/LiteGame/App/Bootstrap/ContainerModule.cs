@@ -66,8 +66,10 @@ namespace LiteGame
             _services.RegisterInstance<ICommandCenter>(commands);  // 接口键（引擎面消费者/帧驱动表用——同实例、别名键）
 #if UNITY_EDITOR || DEVELOPMENT_BUILD || LITEFRAMEWORK_DEBUG
             // GM 场景命令（带参+异步，GmOnly）：注册即进发现面——场景页从直调改命令派发（加载/卸载进审计环）。
-            // 注册点=装配期（app 生命周期，不依赖场景 DebugTuner 是否挂——GM 发现面在 dev 构建恒可用）。
+            // 注册点=装配期（app 生命周期，不依赖场景 DevStartupConfig 是否挂——GM 发现面在 dev 构建恒可用）。
             _gmSceneCommands = GmSceneCommands.RegisterAll(commands, _scenes);
+            // 调试内核：读模型/动作模型/发现协议的唯一门面；投影（编辑器页/HUD/控制台）只消费它。
+            context.Put(new DebugKernel(commands, context.Require<IInputService>()));
 #endif
             _services.RegisterInstance<IConfigTableSource>(config);
             _services.RegisterInstance<IConfigService>(config);

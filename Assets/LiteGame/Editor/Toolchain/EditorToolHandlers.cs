@@ -4,8 +4,10 @@ using System.Linq;
 using LiteGame.Editor;
 using LiteGame.Editor.UiTools.Binding;
 using LiteGame.Editor.UiTools.Compose;
+using LiteGame.Editor.UiTools.Contracts;
+using LiteGame.Editor.UiTools.Page;
 using LiteGame.Editor.UiTools.Validation;
-using LiteGame.Editor.UiTools.WriteBack;
+using LiteGame.Editor.UiTools.Widgets;
 using LiteGame.EditorTools;
 using LiteGame.EditorTools.UI;
 using LiteSim.Editor;
@@ -57,11 +59,14 @@ namespace LiteGame.Toolchain
 
         private static void RegisterUi(EditorToolRegistry registry)
         {
-            registry.RegisterWindow("ui.binding", UiBindingWindow.Open);
+            registry.RegisterWindow("ui.page-new", UiPageWizardWindow.Open);
             registry.RegisterWindow("ui.compose", UiComposeWindow.Open);
-            registry.RegisterWindow("ui.writeback", PrefabWriteBackWindow.Open);
 
             registry.RegisterAction("ui.validate", ValidateUi);
+            registry.RegisterAction("ui.contract", GenerateUiContracts);
+            registry.RegisterAction("ui.contract-diff", DiffUiContracts);
+            registry.RegisterAction("ui.widget-manifest", GenerateUiWidgetManifest);
+            registry.RegisterAction("ui.page-manifest", SyncUiPageManifest);
             registry.RegisterAction("ui.style.colors-refresh", ApplyUiColors);
             registry.RegisterAction("ui.style.colors-report", ReportUiColors);
             registry.RegisterAction("ui.style.text-report", ReportUiText);
@@ -115,17 +120,57 @@ namespace LiteGame.Toolchain
                 BuiltinBundleBuildInvoker.RunForCandidateFromMenu();
                 return Ok("已请求构建候选 Bundle（不覆盖内置包）。");
             });
-            registry.RegisterAction("content.sample", () =>
-            {
-                ContentSampleBuilder.BuildFromMenu();
-                return Ok("已请求生成样例素材与收集组。");
-            });
         }
 
         private static ToolResult ValidateUi()
         {
             UiReport report = UiValidator.Run();
             return Report(report.ToString(), report.Passed);
+        }
+
+        private static ToolResult GenerateUiContracts()
+        {
+            UiContractBatchResult batch = UiContractBatch.Generate();
+            if (!batch.Ok) return ToolResult.Failed(batch.Summary, batch.ToReport());
+            return batch.Warnings.Count > 0
+                ? ToolResult.Warning(batch.Summary, batch.ToReport())
+                : ToolResult.Success(batch.Summary, batch.ToReport());
+        }
+
+        private static ToolResult DiffUiContracts()
+        {
+            UiContractBatchDiffResult diff = UiContractBatch.Diff();
+            if (!diff.Ok) return ToolResult.Failed(diff.Summary, diff.ToReport());
+            bool hasNotice = diff.ChangedCount > 0 || diff.MissingBaseline.Count > 0 || diff.Warnings.Count > 0;
+            return hasNotice
+                ? ToolResult.Warning(diff.Summary, diff.ToReport())
+                : ToolResult.Success(diff.Summary, diff.ToReport());
+        }
+
+        private static ToolResult GenerateUiWidgetManifest()
+        {
+            UiWidgetManifestGenerationResult generated = UiWidgetManifestGenerator.GenerateToDisk();
+            if (!generated.Ok) return ToolResult.Failed("控件清单生成失败。", generated.ErrorText);
+
+            int warnings = generated.Warnings != null ? generated.Warnings.Count : 0;
+            string summary = "控件清单：" + generated.Manifest.Widgets.Count + " 个控件 / 告警 " + warnings;
+            string details = summary + "\n写入 " + UiWidgetManifestPaths.DefaultPath;
+            foreach (string warning in generated.Warnings ?? new List<string>()) details += "\n  告警 " + warning;
+            return warnings > 0 ? ToolResult.Warning(summary, details) : ToolResult.Success(summary, details);
+        }
+
+        private static ToolResult SyncUiPageManifest()
+        {
+            UiPageManifestSyncResult sync = UiPageManifestSync.SyncToDisk();
+            if (!sync.Ok) return ToolResult.Failed("页面清单对账失败。", sync.ErrorText);
+
+            int pages = sync.Manifest.Pages?.Count ?? 0;
+            int forms = sync.Manifest.Pages?.Sum(page => page.Forms?.Count ?? 0) ?? 0;
+            int warnings = sync.Warnings != null ? sync.Warnings.Count : 0;
+            string summary = "页面清单：" + pages + " 页 / " + forms + " 行登记 / 告警 " + warnings;
+            string details = summary + "\n写入 " + UiPageManifestPaths.DefaultPath;
+            foreach (string warning in sync.Warnings ?? new List<string>()) details += "\n  告警 " + warning;
+            return warnings > 0 ? ToolResult.Warning(summary, details) : ToolResult.Success(summary, details);
         }
 
         private static ToolResult ApplyUiColors()

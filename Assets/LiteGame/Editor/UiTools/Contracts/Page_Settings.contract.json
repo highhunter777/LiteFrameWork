@@ -1,0 +1,157 @@
+{
+  "schemaVersion": "2.0",
+  "generator": {
+    "name": "ui-contract",
+    "version": "1.0"
+  },
+  "page": {
+    "formId": 15,
+    "name": "Page_Settings",
+    "prefabPath": "Assets/ShareResource/UI/Screens/Page_Settings.prefab",
+    "prefabGuid": "a55b9bd4fc4f63149b8724b7650bab41",
+    "luaPath": "UI.Page_Settings",
+    "layer": 1,
+    "fullScreen": true,
+    "cacheStrategy": "Lru"
+  },
+  "controls": [
+    {
+      "bindName": "Button_Close",
+      "nodePath": "Cot_SafeArea/Cot_Header/Button_Close",
+      "type": "UnityEngine.UI.Button",
+      "kind": "Command",
+      "required": true
+    },
+    {
+      "bindName": "Txt_Close",
+      "nodePath": "Cot_SafeArea/Cot_Header/Button_Close/Txt_Close",
+      "type": "TMPro.TextMeshProUGUI",
+      "kind": "None",
+      "required": false
+    },
+    {
+      "bindName": "Button_Exit",
+      "nodePath": "Cot_SafeArea/Cot_Header/Button_Exit",
+      "type": "UnityEngine.UI.Button",
+      "kind": "Command",
+      "required": true
+    },
+    {
+      "bindName": "Txt_Exit",
+      "nodePath": "Cot_SafeArea/Cot_Header/Button_Exit/Txt_Exit",
+      "type": "TMPro.TextMeshProUGUI",
+      "kind": "None",
+      "required": false
+    },
+    {
+      "bindName": "Txt_Title",
+      "nodePath": "Cot_SafeArea/Cot_Header/Txt_Title",
+      "type": "TMPro.TextMeshProUGUI",
+      "kind": "None",
+      "required": false
+    },
+    {
+      "bindName": "Dropdown_Language",
+      "nodePath": "Cot_SafeArea/Cot_Options/Dropdown_Language",
+      "type": "LiteClient.UI.UIDropdownWrap",
+      "kind": "Command",
+      "required": true
+    },
+    {
+      "bindName": "Dropdown_Quality",
+      "nodePath": "Cot_SafeArea/Cot_Options/Dropdown_Quality",
+      "type": "LiteClient.UI.UIDropdownWrap",
+      "kind": "Command",
+      "required": true
+    },
+    {
+      "bindName": "Slider_Volume",
+      "nodePath": "Cot_SafeArea/Cot_Options/Slider_Volume",
+      "type": "UnityEngine.UI.Slider",
+      "kind": "Command",
+      "required": true
+    },
+    {
+      "bindName": "Toggle_Sound",
+      "nodePath": "Cot_SafeArea/Cot_Options/Toggle_Sound",
+      "type": "UnityEngine.UI.Toggle",
+      "kind": "Command",
+      "required": true
+    },
+    {
+      "bindName": "Txt_Account",
+      "nodePath": "Cot_SafeArea/Cot_Options/Txt_Account",
+      "type": "TMPro.TextMeshProUGUI",
+      "kind": "None",
+      "required": false
+    },
+    {
+      "bindName": "Txt_Language",
+      "nodePath": "Cot_SafeArea/Cot_Options/Txt_Language",
+      "type": "TMPro.TextMeshProUGUI",
+      "kind": "None",
+      "required": false
+    },
+    {
+      "bindName": "Txt_Quality",
+      "nodePath": "Cot_SafeArea/Cot_Options/Txt_Quality",
+      "type": "TMPro.TextMeshProUGUI",
+      "kind": "None",
+      "required": false
+    },
+    {
+      "bindName": "Txt_Sound",
+      "nodePath": "Cot_SafeArea/Cot_Options/Txt_Sound",
+      "type": "TMPro.TextMeshProUGUI",
+      "kind": "None",
+      "required": false
+    },
+    {
+      "bindName": "Txt_Volume",
+      "nodePath": "Cot_SafeArea/Cot_Options/Txt_Volume",
+      "type": "TMPro.TextMeshProUGUI",
+      "kind": "None",
+      "required": false
+    },
+    {
+      "bindName": "Txt_ServerAddress",
+      "nodePath": "Cot_SafeArea/Cot_ServerInfo/Txt_ServerAddress",
+      "type": "TMPro.TextMeshProUGUI",
+      "kind": "None",
+      "required": false
+    },
+    {
+      "bindName": "Txt_Version",
+      "nodePath": "Cot_SafeArea/Txt_Version",
+      "type": "TMPro.TextMeshProUGUI",
+      "kind": "None",
+      "required": false
+    }
+  ],
+  "text": [],
+  "styles": [],
+  "templates": [
+    {
+      "nodePath": "Cot_SafeArea/Cot_Options/Dropdown_Language",
+      "template": "Tmp_Dropdown",
+      "bindingHash": "5d2b1a4f79c79e02d6c5941ce1b569eae836500288d63d5e159de37e8d9e002f"
+    },
+    {
+      "nodePath": "Cot_SafeArea/Cot_Options/Dropdown_Quality",
+      "template": "Tmp_Dropdown",
+      "bindingHash": "5d2b1a4f79c79e02d6c5941ce1b569eae836500288d63d5e159de37e8d9e002f"
+    },
+    {
+      "nodePath": "Cot_SafeArea/Cot_Options/Slider_Volume",
+      "template": "Tmp_Slider",
+      "bindingHash": "5d2b1a4f79c79e02d6c5941ce1b569eae836500288d63d5e159de37e8d9e002f"
+    },
+    {
+      "nodePath": "Cot_SafeArea/Cot_Options/Toggle_Sound",
+      "template": "Tmp_Toggle",
+      "bindingHash": "5d2b1a4f79c79e02d6c5941ce1b569eae836500288d63d5e159de37e8d9e002f"
+    }
+  ],
+  "events": [],
+  "sourceHash": "sha256:2065e882f18d7b1239600b00f254f83b1877dc16d0efd8143b228b78a16fa5f8"
+}

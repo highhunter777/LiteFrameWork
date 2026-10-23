@@ -21,10 +21,5 @@ namespace LiteGame
             /// <summary>UI.UIMain</summary>
             public const string UIMain = "UI.UIMain";
         }
-        public static class Content
-        {
-            /// <summary>Content.DemoEntry</summary>
-            public const string DemoEntry = "Content.DemoEntry";
-        }
     }
 }

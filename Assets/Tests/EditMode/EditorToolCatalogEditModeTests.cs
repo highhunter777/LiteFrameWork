@@ -180,6 +180,30 @@ namespace LiteGame.Tests.EditMode
         }
 
         [Test]
+        public void 清单_产物形态契约成立()
+        {
+            EditorToolCatalog catalog = EditorToolCatalog.Load();
+            int withArtifacts = 0;
+            foreach (ToolchainTool tool in catalog.Manifest.Tools)
+            {
+                foreach (ToolchainOutput output in tool.Outputs)
+                {
+                    Assert.That(ToolchainOutputKinds.IsValid(output.kind), Is.True,
+                        tool.id + " outputs.kind 非法: " + output.kind);
+                }
+                if (tool.Outputs.Length > 0) withArtifacts++;
+
+                bool writesProject = tool.Writes.Any(scope => scope != "none");
+                if (writesProject && !ToolchainKinds.IsInteractive(tool.kind))
+                {
+                    Assert.That(tool.Outputs.Length, Is.GreaterThan(0), tool.id + " 是写入者但未登记产物形态");
+                }
+            }
+
+            Assert.That(withArtifacts, Is.GreaterThan(20), "产物登记覆盖面过低");
+        }
+
+        [Test]
         public void 清单_用途契约成立()
         {
             EditorToolCatalog catalog = EditorToolCatalog.Load();

@@ -1,0 +1,79 @@
+{
+  "schemaVersion": "2.0",
+  "generator": {
+    "name": "ui-contract",
+    "version": "1.0"
+  },
+  "page": {
+    "formId": 14,
+    "name": "Page_Result",
+    "prefabPath": "Assets/ShareResource/UI/Screens/Page_Result.prefab",
+    "prefabGuid": "cf379075bb8ec834baba51647327c74c",
+    "luaPath": "UI.Page_Result",
+    "layer": 0,
+    "fullScreen": true,
+    "cacheStrategy": "Lru"
+  },
+  "controls": [
+    {
+      "bindName": "Button_BackLobby",
+      "nodePath": "Cot_SafeArea/Button_BackLobby",
+      "type": "UnityEngine.UI.Button",
+      "kind": "Command",
+      "required": true
+    },
+    {
+      "bindName": "Txt_BackLobby",
+      "nodePath": "Cot_SafeArea/Button_BackLobby/Txt_BackLobby",
+      "type": "TMPro.TextMeshProUGUI",
+      "kind": "None",
+      "required": false
+    },
+    {
+      "bindName": "VirtualList_Rankboard",
+      "nodePath": "Cot_SafeArea/Cot_Rankboard/VirtualList_Rankboard",
+      "type": "UnityEngine.UI.ScrollRect",
+      "kind": "Command",
+      "required": true
+    },
+    {
+      "bindName": "Txt_DeathCount",
+      "nodePath": "Cot_SafeArea/Cot_Scoreboard/Txt_DeathCount",
+      "type": "TMPro.TextMeshProUGUI",
+      "kind": "None",
+      "required": false
+    },
+    {
+      "bindName": "Txt_KillCount",
+      "nodePath": "Cot_SafeArea/Cot_Scoreboard/Txt_KillCount",
+      "type": "TMPro.TextMeshProUGUI",
+      "kind": "None",
+      "required": false
+    },
+    {
+      "bindName": "Txt_Score",
+      "nodePath": "Cot_SafeArea/Cot_Scoreboard/Txt_Score",
+      "type": "TMPro.TextMeshProUGUI",
+      "kind": "None",
+      "required": false
+    },
+    {
+      "bindName": "Txt_ResultTitle",
+      "nodePath": "Cot_SafeArea/Txt_ResultTitle",
+      "type": "TMPro.TextMeshProUGUI",
+      "kind": "None",
+      "required": false
+    }
+  ],
+  "text": [],
+  "styles": [],
+  "templates": [
+    {
+      "nodePath": "Cot_SafeArea/Cot_Rankboard/VirtualList_Rankboard",
+      "template": "Tmp_VirtualList",
+      "bindingHash": "5d2b1a4f79c79e02d6c5941ce1b569eae836500288d63d5e159de37e8d9e002f"
+    }
+  ],
+  "events": [],
+  "sourceHash": "sha256:d10e543eafe41a258ece24250014c4e7aa133dbfa687f9eacc605971d55f1518"
+}

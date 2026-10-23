@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-using System.Reflection;
 using LiteFramework;
 using UnityEditor;
 using UnityEngine;
@@ -8,8 +7,8 @@ using UnityEngine;
 namespace LiteGame.Editor
 {
     /// <summary>
-    /// GM 工具箱·命令与审计页：CommandCenter 发现面（GetRegisteredInfos）+ 无参命令执行
-    /// （走权限门/拦截器/审计链）+ 审计环（GetAuditLog）。带参命令标注"需专面板"不在此执行。
+    /// GM 工具箱·命令与审计页：调试内核（DebugKernel）的命令发现/无参执行/审计投影。
+    /// 页内不再持有 CommandCenter 或反射执行逻辑；权限门/拦截器/审计链全在内核之后。
     /// 审计环自动刷新 1s（仅本页在场时轮询——壳只调活动页）。
     /// </summary>
     internal sealed class GmCommandsPage : IGmPage
@@ -45,10 +44,10 @@ namespace LiteGame.Editor
                 EditorGUILayout.LabelField(_cmdResult, EditorStyles.miniLabel);
             }
 
-            CommandCenter center = GetCommandCenter();
-            if (center == null)
+            DebugKernel kernel = GetKernel();
+            if (kernel == null)
             {
-                EditorGUILayout.HelpBox("命令中心未装配（需 Play 且容器就绪）——列出/执行/审计均不可用。", MessageType.Info);
+                EditorGUILayout.HelpBox("调试内核未装配（需 Play 且容器就绪）——列出/执行/审计均不可用。", MessageType.Info);
                 return;
             }
 
@@ -63,7 +62,7 @@ namespace LiteGame.Editor
                     if (info.CommandType.GetConstructor(Type.EmptyTypes) == null)
                         EditorGUILayout.LabelField("需专面板", EditorStyles.miniLabel, GUILayout.Width(64));
                     else if (GUILayout.Button("执行", GUILayout.Width(48)))
-                        RunDiscoveredCommand(center, info.CommandType);
+                        RunDiscoveredCommand(kernel, info.CommandType);
                 }
             }
 
@@ -77,33 +76,26 @@ namespace LiteGame.Editor
 
         private void RefreshCommands()
         {
-            CommandCenter center = GetCommandCenter();
+            DebugKernel kernel = GetKernel();
             _cmds.Clear();
             _audit.Clear();
-            if (center == null) { _cmdResult = "(未装配：需 Play)"; return; }
-            _cmds.AddRange(center.GetRegisteredInfos());
-            _audit.AddRange(center.GetAuditLog());
+            if (kernel == null) { _cmdResult = "(未装配：需 Play)"; return; }
+            _cmds.AddRange(kernel.Commands);
+            _audit.AddRange(kernel.Audit);
             _cmdResult = $"命令 {_cmds.Count} 条｜审计 {_audit.Count} 条｜{DateTime.Now:HH:mm:ss}";
         }
 
-        /// <summary>执行发现的**无参**命令：Activator 构造 + 反射 Send&lt;TCommand&gt;（编辑器工具豁免；
-        /// 带参命令在列表标注"需专面板"不在此执行）。权限门/拦截器/审计链零改动——GmOnly 拦截自然进审计环。</summary>
-        private void RunDiscoveredCommand(CommandCenter center, Type commandType)
+        /// <summary>执行发现的**无参**命令：统一走内核；带参命令在列表标注"需专面板"。
+        /// 权限门/拦截器/审计链零改动——内核只负责构造与派发，拒绝原因原样回显。</summary>
+        private void RunDiscoveredCommand(DebugKernel kernel, Type commandType)
         {
-            try
-            {
-                object command = Activator.CreateInstance(commandType);
-                MethodInfo typed = typeof(CommandCenter).GetMethod(nameof(CommandCenter.Send)).MakeGenericMethod(commandType);
-                var result = (CommandResult)typed.Invoke(center, new[] { command });
-                _cmdResult = $"{commandType.Name} → {(result.Ok ? $"成功：{result.Detail}" : $"拒（{result.Reason}）：{result.Detail}")}";
-            }
-            catch (Exception ex)
-            {
-                _cmdResult = $"{commandType.Name} 执行异常：{GmEditorResolve.Unwrap(ex).Message}";
-            }
+            bool executed = kernel.TryExecute(commandType, out CommandResult result, out string error);
+            _cmdResult = executed
+                ? $"{commandType.Name} → {(result.Ok ? $"成功：{result.Detail}" : $"拒（{result.Reason}）：{result.Detail}")}"
+                : $"{commandType.Name} → {error}";
             RefreshCommands();
         }
 
-        private static CommandCenter GetCommandCenter() => GmEditorResolve.ResolveFromContainer<ICommandCenter>() as CommandCenter;
+        private static DebugKernel GetKernel() => GmEditorResolve.ResolveFromContainer<DebugKernel>();
     }
 }

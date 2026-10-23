@@ -1,0 +1,175 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:litegame:ui:page-contract:2.0",
+  "title": "UiPageContract",
+  "description": "UI 页面契约：由 prefab + tbuiform 行生成的只读接口描述。美术→工程的唯一交接物；生成物禁手改。字段语义见 UI编辑器工具链专项设计 §5。",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "generator",
+    "page",
+    "controls",
+    "text",
+    "styles",
+    "templates",
+    "events",
+    "sourceHash"
+  ],
+  "properties": {
+    "schemaVersion": {
+      "type": "string",
+      "pattern": "^2\\.[0-9]+$",
+      "description": "契约结构版本；主版本不兼容，次版本只做向后兼容追加。"
+    },
+    "generator": {
+      "$ref": "#/$defs/generator"
+    },
+    "page": {
+      "$ref": "#/$defs/page"
+    },
+    "controls": {
+      "type": "array",
+      "description": "页面暴露给逻辑的控件；bindName 页面内唯一。",
+      "items": { "$ref": "#/$defs/control" },
+      "uniqueItems": true
+    },
+    "text": {
+      "type": "array",
+      "description": "静态文案：文本节点 + 文案 key；动态文案不进本段。",
+      "items": { "$ref": "#/$defs/textBinding" },
+      "uniqueItems": true
+    },
+    "styles": {
+      "type": "array",
+      "description": "样式角色/令牌声明；运行时实例变化不进契约。",
+      "items": { "$ref": "#/$defs/styleBinding" },
+      "uniqueItems": true
+    },
+    "templates": {
+      "type": "array",
+      "description": "页面使用的 Tmp_* 模板实例；模板内部件不在此展开。",
+      "items": { "$ref": "#/$defs/templateUse" },
+      "uniqueItems": true
+    },
+    "events": {
+      "type": "array",
+      "description": "控件事件声明（可选；代码仍为事件真相，契约只做对账提示）。",
+      "items": { "$ref": "#/$defs/eventBinding" },
+      "uniqueItems": true
+    },
+    "sourceHash": {
+      "type": "string",
+      "pattern": "^sha256:[0-9a-f]{64}$",
+      "description": "源 prefab 绑定面/文本/模板引用的内容指纹；与 prefab 不一致即漂移。"
+    }
+  },
+  "$defs": {
+    "generator": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["name", "version"],
+      "properties": {
+        "name": { "type": "string", "minLength": 1 },
+        "version": { "type": "string", "minLength": 1 }
+      }
+    },
+    "page": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "formId",
+        "name",
+        "prefabPath",
+        "prefabGuid",
+        "luaPath",
+        "layer",
+        "fullScreen",
+        "cacheStrategy"
+      ],
+      "properties": {
+        "formId": { "type": "integer", "minimum": 1 },
+        "name": { "type": "string", "pattern": "^(Page|Hud|Tmp)_[A-Za-z0-9]+$" },
+        "prefabPath": { "type": "string", "pattern": "^Assets/ShareResource/UI/(Screens|Hud)/.+\\.prefab$" },
+        "prefabGuid": { "type": "string", "pattern": "^[0-9a-f]{32}$" },
+        "luaPath": {
+          "type": ["string", "null"],
+          "description": "Lua 逻辑路径；空 = 无 Lua 逻辑（展示面/C# 逻辑）。"
+        },
+        "layer": { "type": "integer", "minimum": 0, "maximum": 3 },
+        "fullScreen": { "type": "boolean" },
+        "cacheStrategy": { "enum": ["Resident", "Lru", "DestroyOnClose"] },
+        "owner": { "type": "string" },
+        "designRef": { "type": "string" }
+      }
+    },
+    "control": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["bindName", "nodePath", "type", "kind", "required"],
+      "properties": {
+        "bindName": {
+          "type": "string",
+          "pattern": "^[A-Za-z][A-Za-z0-9]*(_[A-Za-z0-9]+)+$",
+          "maxLength": 64
+        },
+        "nodePath": {
+          "type": "string",
+          "description": "相对页面根的节点路径；根节点用空串。"
+        },
+        "type": {
+          "type": "string",
+          "description": "组件完整类型名（如 UnityEngine.UI.Button）。"
+        },
+        "kind": { "enum": ["Bound", "Command", "None"] },
+        "required": {
+          "type": "boolean",
+          "description": "页面逻辑必须消费；未消费在引用对账里报 Warning。"
+        }
+      }
+    },
+    "textBinding": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["nodePath", "key", "args"],
+      "properties": {
+        "nodePath": { "type": "string" },
+        "key": { "type": "string", "pattern": "^(UI|Common)\\.[A-Za-z0-9_.]+$" },
+        "args": { "type": "integer", "minimum": 0, "maximum": 4 }
+      }
+    },
+    "styleBinding": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["nodePath", "role"],
+      "properties": {
+        "nodePath": { "type": "string" },
+        "role": { "enum": ["Title", "Subtitle", "Body", "Caption", "Label", "Emphasis", "Numeric"] },
+        "token": {
+          "type": "string",
+          "description": "Typography token ID；省略表示使用角色默认令牌。"
+        }
+      }
+    },
+    "templateUse": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["nodePath", "template"],
+      "properties": {
+        "nodePath": { "type": "string" },
+        "template": { "type": "string", "pattern": "^Tmp_[A-Za-z0-9]+$" },
+        "bindingHash": { "type": "string" }
+      }
+    },
+    "eventBinding": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["bindName", "event"],
+      "properties": {
+        "bindName": { "type": "string" },
+        "event": { "type": "string", "minLength": 1 },
+        "handler": { "type": "string" }
+      }
+    }
+  }
+}

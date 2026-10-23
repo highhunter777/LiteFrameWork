@@ -16,6 +16,8 @@ RUNTIME_REQUIRES = {"play", "player"}
 REQUIRES = {"play", "player", "unity-batch"}
 PURPOSES = {"debug", "dev", "delivery"}
 WRITE_SCOPES = {"none", "source", "generated", "asset", "distribution"}
+OUTPUT_KINDS = {"generated", "source", "data", "asset", "binary", "report", "distribution"}
+INTERACTIVE_KINDS = {"page", "window"}
 SURFACE_KINDS = {"ci-workflow", "hook-config", "scheduled-task", "path"}
 REQUIRED_TOOL_FIELDS = ("id", "title", "category", "kind", "plane", "purpose", "summary", "docs")
 COMMAND_PATH_PREFIXES = ("scripts/", "Server/", "Assets/", "Tests/")
@@ -146,8 +148,8 @@ def validate_manifest(manifest, root):
     warnings = []
     root = Path(root)
 
-    if manifest.get("schemaVersion") != 5:
-        errors.append("schemaVersion must be 5")
+    if manifest.get("schemaVersion") != 6:
+        errors.append("schemaVersion must be 6")
 
     categories = manifest.get("categories")
     tools = manifest.get("tools")
@@ -253,6 +255,12 @@ def validate_manifest(manifest, root):
             for output in outputs:
                 if not isinstance(output, dict) or not _is_repo_relative(output.get("path")):
                     errors.append(f"{owner}: output path must be repo-relative")
+                    continue
+                if output.get("kind") not in OUTPUT_KINDS:
+                    errors.append(f"{owner}: output kind must be one of {sorted(OUTPUT_KINDS)}")
+            writes_project = any(scope != "none" for scope in (writes if isinstance(writes, list) else []))
+            if writes_project and kind not in INTERACTIVE_KINDS and not outputs:
+                errors.append(f"{owner}: non-interactive writer must declare outputs (artifact forms)")
         safety = tool.get("safety")
         if safety is not None:
             if not isinstance(safety, dict):

@@ -48,7 +48,7 @@ namespace LiteGame.Editor.UiTools.Binding
     public static class UiBindingRename
     {
         private static readonly Regex Grammar = new Regex(UiNamingWords.GrammarPattern);
-        private static readonly Regex SemanticPattern = new Regex("^[A-Za-z][A-Za-z0-9]*$");
+        private static readonly Regex SemanticPattern = new Regex("^[A-Z][A-Za-z0-9]*$");
 
         /// <summary>全部可选前缀（下拉用；角色词 + 控件段 + 模板段 + 模板本体，与词表单源同序）。</summary>
         public static IEnumerable<string> AllPrefixes()

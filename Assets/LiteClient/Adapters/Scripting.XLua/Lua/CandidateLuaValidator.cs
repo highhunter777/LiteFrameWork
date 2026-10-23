@@ -144,7 +144,7 @@ namespace LiteClient
             foreach (ScriptEntry e in scripts.Entries) byModule[e.Module] = e;
 
             // 受限 require：只认本批候选集合，且**按需执行**——依赖在清单后位也能解析
-            //（真实候选包：Content/DemoEntry 依赖后位的 Core.class），与运行期 loader
+            //（真实候选包：Lua 模块可依赖清单后位的 Core.class），与运行期 loader
             //"全量预载字节 + require 时执行并缓存"同语义；越集即拒、环即拒。
             Func<string, object> restrictedRequire = delegate (string module)
             {

@@ -1,0 +1,89 @@
+{
+  "schemaVersion": "2.0",
+  "generator": {
+    "name": "ui-contract",
+    "version": "1.0"
+  },
+  "page": {
+    "formId": 11,
+    "name": "Page_Login",
+    "prefabPath": "Assets/ShareResource/UI/Screens/Page_Login.prefab",
+    "prefabGuid": "99f22f926331970459aa10b89651fe19",
+    "luaPath": "UI.Page_Login",
+    "layer": 0,
+    "fullScreen": true,
+    "cacheStrategy": "Lru"
+  },
+  "controls": [
+    {
+      "bindName": "Button_GuestLogin",
+      "nodePath": "Cot_SafeArea/Button_GuestLogin",
+      "type": "UnityEngine.UI.Button",
+      "kind": "Command",
+      "required": true
+    },
+    {
+      "bindName": "Txt_GuestLogin",
+      "nodePath": "Cot_SafeArea/Button_GuestLogin/Txt_GuestLogin",
+      "type": "TMPro.TextMeshProUGUI",
+      "kind": "None",
+      "required": false
+    },
+    {
+      "bindName": "Button_Settings",
+      "nodePath": "Cot_SafeArea/Cot_Footer/Button_Settings",
+      "type": "UnityEngine.UI.Button",
+      "kind": "Command",
+      "required": true
+    },
+    {
+      "bindName": "Txt_Settings",
+      "nodePath": "Cot_SafeArea/Cot_Footer/Button_Settings/Txt_Settings",
+      "type": "TMPro.TextMeshProUGUI",
+      "kind": "None",
+      "required": false
+    },
+    {
+      "bindName": "Txt_Version",
+      "nodePath": "Cot_SafeArea/Cot_Footer/Txt_Version",
+      "type": "TMPro.TextMeshProUGUI",
+      "kind": "None",
+      "required": false
+    },
+    {
+      "bindName": "Txt_Status",
+      "nodePath": "Cot_SafeArea/Txt_Status",
+      "type": "TMPro.TextMeshProUGUI",
+      "kind": "None",
+      "required": false
+    },
+    {
+      "bindName": "Txt_Title",
+      "nodePath": "Cot_SafeArea/Txt_Title",
+      "type": "TMPro.TextMeshProUGUI",
+      "kind": "None",
+      "required": false
+    }
+  ],
+  "text": [
+    {
+      "nodePath": "Cot_SafeArea/Button_GuestLogin/Txt_GuestLogin",
+      "key": "UI.Login.GuestEnter",
+      "args": 0
+    },
+    {
+      "nodePath": "Cot_SafeArea/Cot_Footer/Button_Settings/Txt_Settings",
+      "key": "Common.Settings",
+      "args": 0
+    },
+    {
+      "nodePath": "Cot_SafeArea/Txt_Title",
+      "key": "UI.Login.Title",
+      "args": 0
+    }
+  ],
+  "styles": [],
+  "templates": [],
+  "events": [],
+  "sourceHash": "sha256:38360dbc91d08be8513f25ac80fe013a95261b06152d979381260bfcb2cc4b82"
+}

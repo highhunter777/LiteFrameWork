@@ -397,6 +397,7 @@ namespace LiteGame.Toolchain
                 "种类：" + descriptor.DisplayKind
                 + "　写入面：" + descriptor.WritesLabel + (descriptor.Tool.destructive ? "（破坏性）" : string.Empty),
                 EditorStyles.miniLabel);
+            EditorGUILayout.LabelField("产物：" + descriptor.ArtifactsLabel, EditorStyles.miniLabel);
             EditorGUILayout.HelpBox(descriptor.Tool.summary, MessageType.None);
 
             using (new EditorGUILayout.HorizontalScope())

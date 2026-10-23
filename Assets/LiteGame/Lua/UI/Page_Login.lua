@@ -1,7 +1,9 @@
 -- UI/Page_Login.lua：上云测试·登录页（制作批 2026-10-10；接线批 C-④ 2026-10-13）
 -- 接线（《上云测试页面层级设计》§2）：Button_GuestLogin → Bridge.meta.GuestLogin → 成功**替换** Page_Lobby；
 -- 失败页内重试（Txt_Status 键 UI.Login.Failed + 系统 Toast 兜底）；Button_Settings → 叠加打开 Page_Settings。
--- 文案走 SetTextKey/SetTextKeyArgs（LText 链——语言切换自动重刷）；未配置服务器（-meta.url）= 显性拒绝（fail-closed）。
+-- 文案走双通道：静态文案（Txt_Title/Txt_GuestLogin/Txt_Settings）由 prefab 上的 LTextKeyRef 声明、
+-- 页面打开与语言变更时由静态绑定器写入；动态文案（Txt_Version 带参、Txt_Status 随状态）走
+-- SetTextKey/SetTextKeyArgs。同一节点只能有一个文案写者。未配置服务器（-meta.url）= 显性拒绝（fail-closed）。
 local class = require("Core.class")
 
 local M = class("Page_Login")
@@ -15,9 +17,6 @@ function M:ctor()
 end
 
 function M:OnShow(data)
-    self.ui:SetTextKey("Txt_Title", "UI.Login.Title")
-    self.ui:SetTextKey("Txt_GuestLogin", "UI.Login.GuestEnter")
-    self.ui:SetTextKey("Txt_Settings", "Common.Settings")
     self.ui:SetTextKeyArgs("Txt_Version", "Common.Version", Bridge.meta.Version())
     self:_SetBusy(false)
 

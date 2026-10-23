@@ -11,9 +11,9 @@ namespace LiteGame.Editor.UiTools.Naming
     /// </summary>
     public static class UiNamingWords
     {
-        /// <summary>全名文法（《UI制作规范》§9.2 单源）：<c>^[A-Za-z]+_[A-Za-z][A-Za-z0-9]*$</c>。
-        /// 前缀/语义编码于此，供规则与工具共读（不再各处手写正则）。</summary>
-        public const string GrammarPattern = "^[A-Za-z]+_[A-Za-z][A-Za-z0-9]*$";
+        /// <summary>全名文法（《UI制作规范》§9.2 单源）：<c>^[A-Za-z]+_[A-Z][A-Za-z0-9]*$</c>。
+        /// 前缀/语义编码于此，供规则与工具共读（不再各处手写正则）；语义段必须是 PascalCase。</summary>
+        public const string GrammarPattern = "^[A-Za-z]+_[A-Z][A-Za-z0-9]*$";
 
         /// <summary>角色词（展示/结构角色，§9.3 词表）。</summary>
         public static readonly string[] RolePrefixes =

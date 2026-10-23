@@ -99,6 +99,158 @@
         "--meta-scan-only"
       ],
       "timeout": 300
+    },
+    {
+      "name": "debug-kernel-editmode",
+      "cmd": [
+        "python",
+        "scripts/gate/unity-tests.py",
+        "--mode",
+        "editor",
+        "--filter",
+        "DebugKernelEditModeTests"
+      ],
+      "timeout": 900
+    },
+    {
+      "name": "ui-static-text-editmode",
+      "cmd": [
+        "python",
+        "scripts/gate/unity-tests.py",
+        "--mode",
+        "editor",
+        "--filter",
+        "UiStaticTextEditModeTests",
+        "--timeout",
+        "600"
+      ],
+      "timeout": 900
+    },
+    {
+      "name": "ui-contract-editmode",
+      "cmd": [
+        "python",
+        "scripts/gate/unity-tests.py",
+        "--mode",
+        "editor",
+        "--filter",
+        "UiContractGeneratorEditModeTests",
+        "--timeout",
+        "600"
+      ],
+      "timeout": 900
+    },
+    {
+      "name": "ui-contract-diff-editmode",
+      "cmd": [
+        "python",
+        "scripts/gate/unity-tests.py",
+        "--mode",
+        "editor",
+        "--filter",
+        "UiContractDiffEditModeTests",
+        "--timeout",
+        "600"
+      ],
+      "timeout": 900
+    },
+    {
+      "name": "widget-spec-editmode",
+      "cmd": [
+        "python",
+        "scripts/gate/unity-tests.py",
+        "--mode",
+        "editor",
+        "--filter",
+        "WidgetSpecEditModeTests",
+        "--timeout",
+        "600"
+      ],
+      "timeout": 900
+    },
+    {
+      "name": "widget-manifest-editmode",
+      "cmd": [
+        "python",
+        "scripts/gate/unity-tests.py",
+        "--mode",
+        "editor",
+        "--filter",
+        "UiWidgetManifestEditModeTests",
+        "--timeout",
+        "600"
+      ],
+      "timeout": 900
+    },
+    {
+      "name": "page-manifest-editmode",
+      "cmd": [
+        "python",
+        "scripts/gate/unity-tests.py",
+        "--mode",
+        "editor",
+        "--filter",
+        "UiPageManifestEditModeTests",
+        "--timeout",
+        "600"
+      ],
+      "timeout": 900
+    },
+    {
+      "name": "ui-validation-rules-editmode",
+      "cmd": [
+        "python",
+        "scripts/gate/unity-tests.py",
+        "--mode",
+        "editor",
+        "--filter",
+        "UiValidationRulesEditModeTests",
+        "--timeout",
+        "600"
+      ],
+      "timeout": 900
+    },
+    {
+      "name": "ui-rule-exceptions-editmode",
+      "cmd": [
+        "python",
+        "scripts/gate/unity-tests.py",
+        "--mode",
+        "editor",
+        "--filter",
+        "UiRuleExceptionsEditModeTests",
+        "--timeout",
+        "600"
+      ],
+      "timeout": 900
+    },
+    {
+      "name": "ui-toolchain-wiring-editmode",
+      "cmd": [
+        "python",
+        "scripts/gate/unity-tests.py",
+        "--mode",
+        "editor",
+        "--filter",
+        "UiToolchainWiringEditModeTests",
+        "--timeout",
+        "600"
+      ],
+      "timeout": 900
+    },
+    {
+      "name": "editor-tool-catalog-editmode",
+      "cmd": [
+        "python",
+        "scripts/gate/unity-tests.py",
+        "--mode",
+        "editor",
+        "--filter",
+        "EditorToolCatalogEditModeTests",
+        "--timeout",
+        "600"
+      ],
+      "timeout": 900
     }
   ],
   "red_commands": [
@@ -116,6 +268,130 @@
         "-v"
       ],
       "timeout": 300
+    },
+    {
+      "name": "debug-kernel-editmode",
+      "cmd": [
+        "python",
+        "scripts/gate/unity-tests.py",
+        "--mode",
+        "editor",
+        "--filter",
+        "DebugKernelEditModeTests"
+      ],
+      "timeout": 900
+    },
+    {
+      "name": "ui-static-text-red",
+      "cmd": [
+        "python",
+        "scripts/gate/unity-tests.py",
+        "--mode",
+        "editor",
+        "--filter",
+        "UiStaticTextEditModeTests",
+        "--timeout",
+        "600"
+      ],
+      "timeout": 900
+    },
+    {
+      "name": "ui-contract-red",
+      "cmd": [
+        "python",
+        "scripts/gate/unity-tests.py",
+        "--mode",
+        "editor",
+        "--filter",
+        "UiContractGeneratorEditModeTests",
+        "--timeout",
+        "600"
+      ],
+      "timeout": 900
+    },
+    {
+      "name": "ui-contract-diff-red",
+      "cmd": [
+        "python",
+        "scripts/gate/unity-tests.py",
+        "--mode",
+        "editor",
+        "--filter",
+        "UiContractDiffEditModeTests",
+        "--timeout",
+        "600"
+      ],
+      "timeout": 900
+    },
+    {
+      "name": "widget-spec-red",
+      "cmd": [
+        "python",
+        "scripts/gate/unity-tests.py",
+        "--mode",
+        "editor",
+        "--filter",
+        "WidgetSpecEditModeTests",
+        "--timeout",
+        "600"
+      ],
+      "timeout": 900
+    },
+    {
+      "name": "widget-manifest-red",
+      "cmd": [
+        "python",
+        "scripts/gate/unity-tests.py",
+        "--mode",
+        "editor",
+        "--filter",
+        "UiWidgetManifestEditModeTests",
+        "--timeout",
+        "600"
+      ],
+      "timeout": 900
+    },
+    {
+      "name": "page-manifest-red",
+      "cmd": [
+        "python",
+        "scripts/gate/unity-tests.py",
+        "--mode",
+        "editor",
+        "--filter",
+        "UiPageManifestEditModeTests",
+        "--timeout",
+        "600"
+      ],
+      "timeout": 900
+    },
+    {
+      "name": "ui-validation-rules-red",
+      "cmd": [
+        "python",
+        "scripts/gate/unity-tests.py",
+        "--mode",
+        "editor",
+        "--filter",
+        "UiValidationRulesEditModeTests",
+        "--timeout",
+        "600"
+      ],
+      "timeout": 900
+    },
+    {
+      "name": "ui-toolchain-wiring-red",
+      "cmd": [
+        "python",
+        "scripts/gate/unity-tests.py",
+        "--mode",
+        "editor",
+        "--filter",
+        "UiToolchainWiringEditModeTests",
+        "--timeout",
+        "600"
+      ],
+      "timeout": 900
     }
   ],
   "stages": [

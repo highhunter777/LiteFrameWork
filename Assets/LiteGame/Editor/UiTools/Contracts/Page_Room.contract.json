@@ -1,0 +1,79 @@
+{
+  "schemaVersion": "2.0",
+  "generator": {
+    "name": "ui-contract",
+    "version": "1.0"
+  },
+  "page": {
+    "formId": 13,
+    "name": "Page_Room",
+    "prefabPath": "Assets/ShareResource/UI/Screens/Page_Room.prefab",
+    "prefabGuid": "b7e33cddf11466c488b75e831f812071",
+    "luaPath": "UI.Page_Room",
+    "layer": 0,
+    "fullScreen": true,
+    "cacheStrategy": "Lru"
+  },
+  "controls": [
+    {
+      "bindName": "Button_Leave",
+      "nodePath": "Cot_SafeArea/Button_Leave",
+      "type": "UnityEngine.UI.Button",
+      "kind": "Command",
+      "required": true
+    },
+    {
+      "bindName": "Txt_Leave",
+      "nodePath": "Cot_SafeArea/Button_Leave/Txt_Leave",
+      "type": "TMPro.TextMeshProUGUI",
+      "kind": "None",
+      "required": false
+    },
+    {
+      "bindName": "Button_StartMatch",
+      "nodePath": "Cot_SafeArea/Button_StartMatch",
+      "type": "UnityEngine.UI.Button",
+      "kind": "Command",
+      "required": true
+    },
+    {
+      "bindName": "Txt_StartMatch",
+      "nodePath": "Cot_SafeArea/Button_StartMatch/Txt_StartMatch",
+      "type": "TMPro.TextMeshProUGUI",
+      "kind": "None",
+      "required": false
+    },
+    {
+      "bindName": "SimpleList_Players",
+      "nodePath": "Cot_SafeArea/Cot_Players/SimpleList_Players",
+      "type": "UnityEngine.UI.Image",
+      "kind": "None",
+      "required": false
+    },
+    {
+      "bindName": "Txt_RoomId",
+      "nodePath": "Cot_SafeArea/Txt_RoomId",
+      "type": "TMPro.TextMeshProUGUI",
+      "kind": "None",
+      "required": false
+    },
+    {
+      "bindName": "Txt_State",
+      "nodePath": "Cot_SafeArea/Txt_State",
+      "type": "TMPro.TextMeshProUGUI",
+      "kind": "None",
+      "required": false
+    }
+  ],
+  "text": [],
+  "styles": [],
+  "templates": [
+    {
+      "nodePath": "Cot_SafeArea/Cot_Players/SimpleList_Players",
+      "template": "Tmp_SimpleList",
+      "bindingHash": "5d2b1a4f79c79e02d6c5941ce1b569eae836500288d63d5e159de37e8d9e002f"
+    }
+  ],
+  "events": [],
+  "sourceHash": "sha256:53009d233b8645f9d6d4ed142e66a7f3260fd6198b97347701a747a8b44ccb3f"
+}

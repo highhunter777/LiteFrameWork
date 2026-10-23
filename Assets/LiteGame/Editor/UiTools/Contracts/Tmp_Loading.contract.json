@@ -1,0 +1,29 @@
+{
+  "schemaVersion": "2.0",
+  "generator": {
+    "name": "ui-contract",
+    "version": "1.0"
+  },
+  "page": {
+    "formId": 202,
+    "name": "Tmp_Loading",
+    "prefabPath": "Assets/ShareResource/UI/Screens/Tmp_Loading.prefab",
+    "prefabGuid": "2961a464355f7374bb0af2f19273bb2d",
+    "luaPath": null,
+    "layer": 3,
+    "fullScreen": false,
+    "cacheStrategy": "Lru"
+  },
+  "controls": [],
+  "text": [],
+  "styles": [],
+  "templates": [
+    {
+      "nodePath": "Loading_Block",
+      "template": "Tmp_Loading",
+      "bindingHash": "5d2b1a4f79c79e02d6c5941ce1b569eae836500288d63d5e159de37e8d9e002f"
+    }
+  ],
+  "events": [],
+  "sourceHash": "sha256:3cfdc0e2cc79bc81c89e5eabb056bba78c187e90abf1a95bf32556f230879f0c"
+}

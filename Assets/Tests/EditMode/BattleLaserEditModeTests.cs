@@ -26,7 +26,7 @@ namespace LiteGame.Tests.EditMode
         /// <summary>
         /// **静态态隔离（每例前置复位）**：<see cref="LaserSightPolicy.Supports"/> 在
         /// <c>TestModeRuntime.Active</c> 置位时**绕过 def id 集合**直接返回快照开关——若前序用例
-        /// （含同夹具的测试模式用例、或任何触发 <c>DebugTuner.ApplySnapshotOrDefaults</c> 的路径）
+        /// （含同夹具的测试模式用例、或任何触发 <c>DevStartupConfig.ApplySnapshotOrDefaults</c> 的路径）
         /// 留下 Active=true，后续「不支持武器应隐藏」这类用例会拿到"支持"而被误判失败。
         /// 故每例开工前把该静态快照复位到**非测试模式默认口径**（用例内自行置位的仍可覆盖）。
         /// </summary>

@@ -1,0 +1,143 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:litegame:ui:widget-manifest:1.0",
+  "title": "UiWidgetManifest",
+  "description": "控件清单：由 Tmp_* 模板 + WidgetSpec + 受控属性白名单 + 绑定 hash 生成的只读清单（控件库/文档/校验消费）。生成物禁手改。字段语义见 UI编辑器工具链专项设计 §8.4。",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schemaVersion", "generator", "widgets", "warnings", "sourceHash"],
+  "properties": {
+    "schemaVersion": {
+      "type": "string",
+      "pattern": "^1\\.[0-9]+$",
+      "description": "清单结构版本；主版本不兼容，次版本只做向后兼容追加。"
+    },
+    "generator": { "$ref": "#/$defs/generator" },
+    "widgets": {
+      "type": "array",
+      "description": "按模板名稳定排序的控件条目。",
+      "items": { "$ref": "#/$defs/widget" }
+    },
+    "warnings": {
+      "type": "array",
+      "description": "非阻断告警（缺 WidgetSpec、Owner/Summary 为空等），可定位到模板。",
+      "items": { "type": "string", "minLength": 1 }
+    },
+    "sourceHash": {
+      "type": "string",
+      "pattern": "^sha256:[0-9a-f]{64}$",
+      "description": "声明面指纹（模板/声明/属性/绑定 hash）；不含路径、GUID、生成器版本、告警。"
+    }
+  },
+  "$defs": {
+    "generator": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["name", "version"],
+      "properties": {
+        "name": { "type": "string", "minLength": 1 },
+        "version": { "type": "string", "minLength": 1 }
+      }
+    },
+    "widget": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "template",
+        "prefabPath",
+        "prefabGuid",
+        "specPresent",
+        "slots",
+        "states",
+        "events",
+        "constraints",
+        "properties",
+        "bindingHash"
+      ],
+      "properties": {
+        "template": {
+          "type": "string",
+          "pattern": "^Tmp_[A-Za-z0-9_]+$",
+          "description": "模板本体名（= prefab 根名 = 文件名）。"
+        },
+        "prefabPath": {
+          "type": "string",
+          "pattern": "^Assets/ShareResource/UI/Widgets/.+\\.prefab$"
+        },
+        "prefabGuid": { "type": "string", "pattern": "^[0-9a-f]{32}$" },
+        "usageSegment": {
+          "type": ["string", "null"],
+          "description": "业务使用段（如 HpBar_）；结构工具件为 null。"
+        },
+        "specPresent": {
+          "type": "boolean",
+          "description": "模板根是否声明 WidgetSpec；false 时其余声明字段省略。"
+        },
+        "owner": { "type": ["string", "null"] },
+        "summary": { "type": ["string", "null"] },
+        "slots": {
+          "type": "array",
+          "description": "插槽容器（声明序，header/body/footer 语义序）。",
+          "items": { "$ref": "#/$defs/slot" }
+        },
+        "states": {
+          "type": "array",
+          "description": "视觉状态（按枚举值序）。",
+          "items": {
+            "enum": ["Normal", "Hover", "Pressed", "Disabled", "Selected", "Loading", "Empty", "Error"]
+          }
+        },
+        "events": {
+          "type": "array",
+          "description": "对外事件：`类型.成员`（模板内真实存在的公开事件/UnityEvent 字段）。",
+          "items": {
+            "type": "string",
+            "pattern": "^[A-Za-z_][A-Za-z0-9_]*\\.[A-Za-z_][A-Za-z0-9_]*$"
+          }
+        },
+        "sizeBehavior": { "enum": ["Fixed", "Expand", "FitContent"] },
+        "constraints": {
+          "type": "array",
+          "items": { "type": "string", "minLength": 1 }
+        },
+        "properties": {
+          "type": "array",
+          "description": "受控属性白名单（来源＝控件字段上的 UiWidgetProperty）。",
+          "items": { "$ref": "#/$defs/property" }
+        },
+        "bindingHash": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$",
+          "description": "模板绑定面 hash（UiBindGenerationHash）；用于契约 templates[].bindingHash 对账。"
+        }
+      }
+    },
+    "slot": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["name", "required"],
+      "properties": {
+        "name": {
+          "type": "string",
+          "pattern": "^(Cot|Slot)_[A-Za-z0-9_/]+$",
+          "description": "插槽容器节点路径（Cot_*/Slot_*）。"
+        },
+        "required": { "type": "boolean" },
+        "description": { "type": ["string", "null"] }
+      }
+    },
+    "property": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["nodePath", "component", "member", "kind"],
+      "properties": {
+        "nodePath": { "type": "string" },
+        "component": { "type": "string", "minLength": 1 },
+        "member": { "type": "string", "minLength": 1 },
+        "kind": { "enum": ["Bool", "Int", "Float", "String", "Enum", "Unsupported"] },
+        "displayName": { "type": ["string", "null"] },
+        "tooltip": { "type": ["string", "null"] }
+      }
+    }
+  }
+}

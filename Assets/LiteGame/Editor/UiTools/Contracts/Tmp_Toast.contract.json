@@ -1,0 +1,29 @@
+{
+  "schemaVersion": "2.0",
+  "generator": {
+    "name": "ui-contract",
+    "version": "1.0"
+  },
+  "page": {
+    "formId": 203,
+    "name": "Tmp_Toast",
+    "prefabPath": "Assets/ShareResource/UI/Screens/Tmp_Toast.prefab",
+    "prefabGuid": "0bf9df73520fbb44598749076ba98391",
+    "luaPath": null,
+    "layer": 3,
+    "fullScreen": false,
+    "cacheStrategy": "Lru"
+  },
+  "controls": [],
+  "text": [],
+  "styles": [],
+  "templates": [
+    {
+      "nodePath": "Toast_Info",
+      "template": "Tmp_Toast",
+      "bindingHash": "5d2b1a4f79c79e02d6c5941ce1b569eae836500288d63d5e159de37e8d9e002f"
+    }
+  ],
+  "events": [],
+  "sourceHash": "sha256:c26c367c072b71ff116fe6aac9775c0dabff18579f3471f353528b4aae76f51a"
+}
