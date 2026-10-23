@@ -302,4 +302,4 @@
 - **模板 `bindingHash` 不含模板根 `BindNode`**（`UiBindGenerationHash.cs` 跳过根）——根绑定变更不改变 hash，根绑定模板（Tmp_Dropdown 等）契约里恒为同一 hash；本批约束「既有 hash 逐位不变」，另批与生成器/令牌改造一起修。
 - **`UiContractBatch.TryLoadManifest` 对损坏清单 fail-open**（`UiContractBatch.cs` 捕获所有异常返回 null）——`ui.contract` 可能在清单损坏时重写契约并丢 owner/events；`ui.page-manifest` 规则会显式 Error，但生成器应改 fail-fast（另批）。
 - **多行页面契约主行口径**：批量生成取表行顺序首行、漂移重生成取清单 `forms[0]`（按 formId 升序）——表行顺序非升序时会产生假漂移；当前 `Tmp_Dialog` 未触发，另批统一主行判据。
-- **本批工作区未提交**（代码/11 契约生成物/规范与审计与进度文档/gate 脚本/config）；按批收口纪律统一提交。
+- **本批已提交**（`fed30ebd`，工作区检查点；同提交含并行线 DevMenu 退役等改动）；按批收口纪律统一提交。
