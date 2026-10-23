@@ -41,7 +41,8 @@ namespace LiteGame.Editor.UiTools.Contracts
 
             string assetDir = (Path.GetDirectoryName(assetPath) ?? string.Empty).Replace('\\', '/');
             bool folderKnown = string.IsNullOrEmpty(assetDir) || AssetDatabase.IsValidFolder(assetDir);
-            File.WriteAllText(full, UiContractJson.Serialize(contract), new UTF8Encoding(false));
+            // 原子替换：生成物半写会让契约对账/消费面读到坏 JSON。
+            UiAtomicFile.WriteAllText(full, UiContractJson.Serialize(contract), new UTF8Encoding(false));
             if (!folderKnown) AssetDatabase.Refresh();
             AssetDatabase.ImportAsset(assetPath);
         }

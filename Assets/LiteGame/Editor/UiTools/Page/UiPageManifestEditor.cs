@@ -116,6 +116,28 @@ namespace LiteGame.Editor.UiTools.Page
             return true;
         }
 
+        /// <summary>
+        /// 缓存策略（维护字段；词表单源＝<see cref="LiteClient.UI.UICacheStrategy"/>）。`tbuiform` 无该列，
+        /// 运行时暂不消费；对账保留本字段，契约生成投影同一值。
+        /// </summary>
+        public static bool SetCacheStrategy(UiPageManifest manifest, string name, string cacheStrategy,
+            out string error)
+        {
+            UiPageManifestEntry entry = Find(manifest, name, out error);
+            if (entry == null) return false;
+
+            string normalized = (cacheStrategy ?? string.Empty).Trim();
+            if (!UiPageContract.IsValidCacheStrategy(normalized))
+            {
+                error = $"{name}：缓存策略非法 {cacheStrategy}";
+                return false;
+            }
+
+            entry.CacheStrategy = normalized;
+            UiPageManifestSync.RefreshSourceHash(manifest);
+            return true;
+        }
+
         /// <summary>显式移除条目（页面退役/撤销登记）：对账的孤儿策略会保留非 Draft 条目，故删除必须是显式编辑。</summary>
         public static bool Remove(UiPageManifest manifest, string name, out string error)
         {

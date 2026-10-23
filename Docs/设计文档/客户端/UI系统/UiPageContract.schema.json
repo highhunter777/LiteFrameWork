@@ -88,7 +88,11 @@
         "cacheStrategy"
       ],
       "properties": {
-        "formId": { "type": "integer", "minimum": 1 },
+        "formId": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "0 = 草稿（未登记 tbuiform 的页面）；登记后重生成填真实 id（≥1）。"
+        },
         "name": { "type": "string", "pattern": "^(Page|Hud|Tmp)_[A-Za-z0-9]+$" },
         "prefabPath": { "type": "string", "pattern": "^Assets/ShareResource/UI/(Screens|Hud)/.+\\.prefab$" },
         "prefabGuid": { "type": "string", "pattern": "^[0-9a-f]{32}$" },

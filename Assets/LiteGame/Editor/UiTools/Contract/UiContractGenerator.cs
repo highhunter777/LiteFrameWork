@@ -35,6 +35,12 @@ namespace LiteGame.Editor.UiTools.Contracts
     /// </summary>
     public static class UiContractGenerator
     {
+        /// <summary>草稿契约的层/全屏默认（单源）：登记后重生成覆盖为真实身份。</summary>
+        public const int DraftLayer = 0;
+
+        /// <summary>草稿契约默认全屏（单源）。</summary>
+        public const bool DraftFullScreen = true;
+
         private static readonly Regex PageNamePattern =
             new Regex("^(Page|Hud|Tmp)_[A-Za-z0-9]+$", RegexOptions.CultureInvariant);
 
@@ -54,7 +60,14 @@ namespace LiteGame.Editor.UiTools.Contracts
                 result.Errors.Add("页面元数据为空——契约生成需要 tbuiform 行（formId/luaPath/layer/fullScreen）");
                 return result;
             }
-            if (metadata.FormId <= 0) result.Errors.Add("formId 必须为正整数");
+            if (metadata.IsDraft)
+            {
+                if (metadata.FormId != 0) result.Errors.Add("草稿契约的 formId 必须为 0");
+            }
+            else if (metadata.FormId <= 0)
+            {
+                result.Errors.Add("formId 必须为正整数");
+            }
             if (metadata.Layer < 0 || metadata.Layer > 3) result.Errors.Add("layer 必须在 0..3");
             if (!string.IsNullOrEmpty(metadata.CacheStrategy) && !CacheStrategies.Contains(metadata.CacheStrategy))
                 result.Errors.Add("cacheStrategy 非法：" + metadata.CacheStrategy);
@@ -128,7 +141,7 @@ namespace LiteGame.Editor.UiTools.Contracts
         /// <summary>按 tbuiform 行生成（页面登记后使用）。读取失败/未登记显式报错，不伪造 metadata。</summary>
         public static UiContractGenerationResult GenerateRegistered(string prefabPath)
         {
-            return GenerateRegistered(prefabPath, UiPageScaffold.ListPages());
+            return GenerateRegistered(prefabPath, UiPageTableHelper.ListPages());
         }
 
         /// <summary>
@@ -136,10 +149,10 @@ namespace LiteGame.Editor.UiTools.Contracts
         /// 其余行由页面清单 `forms[]` 承担，并在 <see cref="UiContractGenerationResult.Warnings"/> 显式提示。
         /// </summary>
         public static UiContractGenerationResult GenerateRegistered(string prefabPath,
-            IReadOnlyList<UiPageScaffold.PageRow> rows)
+            IReadOnlyList<UiPageTableRow> rows)
         {
             string normalized = Normalize(prefabPath);
-            List<UiPageScaffold.PageRow> matches = (rows ?? Array.Empty<UiPageScaffold.PageRow>())
+            List<UiPageTableRow> matches = (rows ?? Array.Empty<UiPageTableRow>())
                 .Where(row => row != null && string.Equals(Normalize(row.PrefabPath), normalized, StringComparison.Ordinal))
                 .ToList();
             if (matches.Count == 0)
@@ -149,7 +162,7 @@ namespace LiteGame.Editor.UiTools.Contracts
                 return missing;
             }
 
-            UiPageScaffold.PageRow primary = matches[0];
+            UiPageTableRow primary = matches[0];
             UiContractGenerationResult result = Generate(normalized, new UiPageMetadata
             {
                 FormId = primary.id,
@@ -201,7 +214,7 @@ namespace LiteGame.Editor.UiTools.Contracts
         }
 
         /// <summary>
-        /// 把页面清单维护字段（Owner/DesignRef）投影进契约页面元数据（§5.2 字段模型——清单是维护字段的家；
+        /// 把页面清单维护字段（Owner/DesignRef/CacheStrategy）投影进契约页面元数据（§5.2 字段模型——清单是维护字段的家；
         /// 元数据不入 sourceHash，故投影后不重算指纹）。清单缺条目（null）＝不臆造，透传 null 由调用方告警。
         /// </summary>
         public static void ApplyManifestEditorial(UiPageContract contract, Page.UiPageManifestEntry entry)
@@ -209,6 +222,8 @@ namespace LiteGame.Editor.UiTools.Contracts
             if (contract == null) return;
             contract.Page.Owner = string.IsNullOrEmpty(entry?.Owner) ? null : entry.Owner;
             contract.Page.DesignRef = string.IsNullOrEmpty(entry?.DesignRef) ? null : entry.DesignRef;
+            if (!string.IsNullOrEmpty(entry?.CacheStrategy) && UiPageContract.IsValidCacheStrategy(entry.CacheStrategy))
+                contract.Page.CacheStrategy = entry.CacheStrategy;
         }
 
         /// <summary>

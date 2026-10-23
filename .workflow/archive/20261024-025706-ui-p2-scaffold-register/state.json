@@ -1,0 +1,387 @@
+{
+  "schema_version": 1,
+  "slug": "ui-p2-scaffold-register",
+  "title": "UI 系统 P2-2：起页/登记拆分（ui.page-scaffold / ui.page-register）",
+  "status": "archived",
+  "current_stage": null,
+  "created_at": "2026-10-23T22:34:41+08:00",
+  "updated_at": "2026-10-24T02:57:06+08:00",
+  "completed_at": "2026-10-24T02:57:05+08:00",
+  "completed_stages": [
+    {
+      "id": "propose",
+      "title": "提出方案",
+      "completed_at": "2026-10-23T23:22:56+08:00"
+    },
+    {
+      "id": "breakdown",
+      "title": "实施任务清单",
+      "completed_at": "2026-10-23T23:24:12+08:00"
+    },
+    {
+      "id": "review-tasks",
+      "title": "评审任务",
+      "completed_at": "2026-10-23T23:29:18+08:00"
+    },
+    {
+      "id": "tests-first",
+      "title": "先写测试",
+      "completed_at": "2026-10-24T01:19:11+08:00"
+    },
+    {
+      "id": "implement",
+      "title": "正式施工",
+      "completed_at": "2026-10-24T02:50:25+08:00"
+    },
+    {
+      "id": "verify",
+      "title": "测试代码",
+      "completed_at": "2026-10-24T02:54:25+08:00"
+    },
+    {
+      "id": "review-code",
+      "title": "评审代码",
+      "completed_at": "2026-10-24T02:56:56+08:00"
+    },
+    {
+      "id": "writeback",
+      "title": "回写与收尾",
+      "completed_at": "2026-10-24T02:57:05+08:00"
+    }
+  ],
+  "history": [
+    {
+      "at": "2026-10-23T22:34:41+08:00",
+      "event": "init",
+      "stage": "propose"
+    },
+    {
+      "at": "2026-10-23T23:22:56+08:00",
+      "event": "advance",
+      "from": "propose",
+      "to": "breakdown",
+      "approved_by": null
+    },
+    {
+      "at": "2026-10-23T23:24:12+08:00",
+      "event": "advance",
+      "from": "breakdown",
+      "to": "review-tasks",
+      "approved_by": null
+    },
+    {
+      "at": "2026-10-23T23:29:18+08:00",
+      "event": "advance",
+      "from": "review-tasks",
+      "to": "tests-first",
+      "approved_by": null
+    },
+    {
+      "at": "2026-10-24T01:19:11+08:00",
+      "event": "advance",
+      "from": "tests-first",
+      "to": "implement",
+      "approved_by": null
+    },
+    {
+      "at": "2026-10-24T02:50:25+08:00",
+      "event": "advance",
+      "from": "implement",
+      "to": "verify",
+      "approved_by": null
+    },
+    {
+      "at": "2026-10-24T02:54:25+08:00",
+      "event": "advance",
+      "from": "verify",
+      "to": "review-code",
+      "approved_by": null
+    },
+    {
+      "at": "2026-10-24T02:56:56+08:00",
+      "event": "advance",
+      "from": "review-code",
+      "to": "writeback",
+      "approved_by": null
+    },
+    {
+      "at": "2026-10-24T02:57:05+08:00",
+      "event": "advance",
+      "from": "writeback",
+      "to": null,
+      "approved_by": null
+    },
+    {
+      "at": "2026-10-24T02:57:06+08:00",
+      "event": "archive",
+      "path": "20261024-025706-ui-p2-scaffold-register"
+    }
+  ],
+  "tasks": [
+    {
+      "id": "T1",
+      "title": "先红：夹具骨架与可编译桩",
+      "description": "",
+      "acceptance": "新增 EditMode 夹具与 Python 单测可编译；正例与“负例断言具体失败语义（FailedAt/错误文本/磁盘字节）”运行后均断言失败（非编译/环境错误）；wf verify --red 记录失败清单",
+      "verify": "python scripts/gate/unity-tests.py --mode editor --filter UiPageScaffoldRegisterEditModeTests --timeout 600",
+      "files": [
+        "Assets/Tests/EditMode/UiPageScaffoldRegisterEditModeTests.cs",
+        "scripts/tests/test_uiform_row.py",
+        "Assets/LiteGame/Editor/UiTools/Page/UiPageScaffold.cs",
+        "Assets/LiteGame/Editor/UiTools/Page/UiPageRegistration.cs",
+        "Assets/LiteGame/Editor/UiTools/Page/UiPageTableHelper.cs",
+        ".workflow/config.json"
+      ],
+      "deps": [],
+      "status": "done",
+      "evidence": "UiPageScaffoldRegisterEditModeTests 25 例编译通过、24 失败 1 通过（断言失败，非编译/环境错误）；Python test_uiform_row 6 例 4 失败 1 错误（--table 未实现，usage 失败按 plan 记录）；编译 compilationFailed=false",
+      "status_reason": "",
+      "created_at": "2026-10-23T23:23:14+08:00",
+      "started_at": "2026-10-23T23:58:10+08:00",
+      "completed_at": "2026-10-23T23:58:10+08:00"
+    },
+    {
+      "id": "T2",
+      "title": "表门面与路径注入（UiPageTableHelper/ToolProcess）",
+      "description": "",
+      "acceptance": "UiPageTableRow/Helper/ToolProcess 单源落地，PageRow 全调用点迁移后编译通过；--table 覆盖 list/check/suggest/confirm/rollback/delete，备份目录随表隔离；layer 0–3 与 Page_ PascalCase 双侧一致；Python 单测全绿",
+      "verify": "python -m unittest scripts.tests.test_uiform_row -v",
+      "files": [
+        "Assets/LiteGame/Editor/UiTools/Page/UiPageTableHelper.cs",
+        "Assets/LiteGame/Editor/UiTools/Page/UiPageTableRow.cs",
+        "Assets/LiteGame/Editor/UiTools/Page/UiPageToolProcess.cs",
+        "scripts/codegen/_uiform_row.py",
+        "scripts/tests/test_uiform_row.py",
+        "Assets/LiteGame/Editor/UiTools/Page/UiPageManifestSync.cs",
+        "Assets/LiteGame/Editor/UiTools/Contract/UiContractGenerator.cs",
+        "Assets/LiteGame/Editor/UiTools/Contract/UiContractBatch.cs",
+        "Assets/Tests/EditMode/UiPageManifestEditModeTests.cs",
+        "Assets/Tests/EditMode/UiContractReconciliationEditModeTests.cs"
+      ],
+      "deps": [
+        "T1"
+      ],
+      "status": "done",
+      "evidence": "UiPageTableRow/Helper/ToolProcess 落地；PageRow 全调用点迁移（Sync/ContractGenerator/Batch/3 夹具）；_uiform_row.py --table/备份目录随表/layer 0-3/PascalCase/delete；Python 6/6；回归 PageManifest 16/16、Wiring 8/8、Reconciliation 9/9、ContractGenerator 10/10、ContractDiff 5/5、Workbench 21/21；unity-tests.py 增加 --project-path（多编辑器环境）",
+      "status_reason": "",
+      "created_at": "2026-10-23T23:23:14+08:00",
+      "started_at": "2026-10-24T00:24:05+08:00",
+      "completed_at": "2026-10-24T00:24:05+08:00"
+    },
+    {
+      "id": "T3",
+      "title": "清单原子写与缓存策略维护字段",
+      "description": "",
+      "acceptance": "UiPageManifestStore.Save 临时文件+原子替换且失败清理；SetCacheStrategy 按 UICacheStrategy 校验；Sync 保留 cacheStrategy 并刷新草稿 contractPresent；相关夹具绿",
+      "verify": "python scripts/gate/unity-tests.py --mode editor --filter UiPageManifestEditModeTests --timeout 600",
+      "files": [
+        "Assets/LiteGame/Editor/UiTools/Page/UiPageManifestJson.cs",
+        "Assets/LiteGame/Editor/UiTools/Page/UiPageManifestEditor.cs",
+        "Assets/LiteGame/Editor/UiTools/Page/UiPageManifestSync.cs"
+      ],
+      "deps": [
+        "T2"
+      ],
+      "status": "done",
+      "evidence": "UiPageManifestStore.Save 临时件+File.Replace（保留 folderKnown/Refresh）；SetCacheStrategy + UiPageContract.IsValidCacheStrategy 单源；Sync 保留 cacheStrategy 并刷新草稿 contractPresent；ApplyManifestEditorial 投影 cacheStrategy；新夹具 3 例通过；回归 PageManifest 16/16、ContractGenerator 10/10、ContractDiff 5/5",
+      "status_reason": "",
+      "created_at": "2026-10-23T23:23:14+08:00",
+      "started_at": "2026-10-24T00:24:05+08:00",
+      "completed_at": "2026-10-24T00:28:33+08:00"
+    },
+    {
+      "id": "T4",
+      "title": "草稿契约链（formId=0 · 批量 · 漂移 · diff 口径）",
+      "description": "",
+      "acceptance": "schema formId 允许 0；UiPageMetadata.IsDraft 与生成器草稿口径；UiContractBatch.Generate/Diff 纳入草稿并支持 manifest 注入；Regenerate(allowDraft)；ContractDriftRule 处理草稿；既有 11 份契约字节不变；diff 页面段口径（0→真实/缓存/层级非破坏）夹具绿",
+      "verify": "python scripts/gate/unity-tests.py --mode editor --filter UiContractDiffEditModeTests --timeout 600",
+      "files": [
+        "Docs/设计文档/客户端/UI系统/UiPageContract.schema.json",
+        "Assets/LiteGame/Editor/UiTools/Contract/UiPageContract.cs",
+        "Assets/LiteGame/Editor/UiTools/Contract/UiContractGenerator.cs",
+        "Assets/LiteGame/Editor/UiTools/Contract/UiContractBatch.cs",
+        "Assets/LiteGame/Editor/UiTools/Contract/UiContractDiff.cs",
+        "Assets/LiteGame/Editor/UiTools/Validation/Rules/ContractDriftRule.cs",
+        "Assets/Tests/EditMode/UiContractDiffEditModeTests.cs"
+      ],
+      "deps": [
+        "T3"
+      ],
+      "status": "done",
+      "evidence": "新夹具 UiPageScaffoldRegisterEditModeTests 28/28 通过（草稿契约/起页/登记/工作台/端口注入失败）；UI 回归 20 套件全绿；toolchain check 0 error（1 既存 warning）；Catalog 12/12",
+      "status_reason": "",
+      "created_at": "2026-10-23T23:23:14+08:00",
+      "started_at": "2026-10-24T00:28:33+08:00",
+      "completed_at": "2026-10-24T00:53:34+08:00"
+    },
+    {
+      "id": "T5",
+      "title": "起页内核（基线·根契约·安全区归属·原子清理）",
+      "description": "",
+      "acceptance": "Baselines 表与 IsValidPageName；EnsureRootContract 补四件套且安全区优先挂现有 Cot_* 拉伸容器/无容器则搬入新建 Cot_SafeArea；Scaffold 失败删除新 prefab 并恢复清单；Create 删除、调用点改指；起页夹具绿",
+      "verify": "python scripts/gate/unity-tests.py --mode editor --filter UiPageScaffoldRegisterEditModeTests --timeout 600",
+      "files": [
+        "Assets/LiteGame/Editor/UiTools/Page/UiPageScaffold.cs"
+      ],
+      "deps": [
+        "T4"
+      ],
+      "status": "done",
+      "evidence": "新夹具 UiPageScaffoldRegisterEditModeTests 28/28 通过（草稿契约/起页/登记/工作台/端口注入失败）；UI 回归 20 套件全绿；toolchain check 0 error（1 既存 warning）；Catalog 12/12",
+      "status_reason": "",
+      "created_at": "2026-10-23T23:23:29+08:00",
+      "started_at": "2026-10-24T00:53:34+08:00",
+      "completed_at": "2026-10-24T00:53:34+08:00"
+    },
+    {
+      "id": "T6",
+      "title": "登记内核（契约门槛·表核验·代码生成链·状态/缓存/契约刷新）",
+      "description": "",
+      "acceptance": "预检含草稿契约（formId=0）/Draft/layer 0–3/缓存策略；注入守卫；Lua 骨架；表写失败 TryFindRow→回滚→复核；Luban+BuildHash 失败回滚并重跑；清单 Registered+缓存；契约重生成真实 formId；无 BindRoot 不记 hash；登记夹具绿",
+      "verify": "python scripts/gate/unity-tests.py --mode editor --filter UiPageScaffoldRegisterEditModeTests --timeout 600",
+      "files": [
+        "Assets/LiteGame/Editor/UiTools/Page/UiPageRegistration.cs",
+        "Assets/LiteGame/Editor/UiTools/Page/UiPageCodegen.cs"
+      ],
+      "deps": [
+        "T5"
+      ],
+      "status": "done",
+      "evidence": "新夹具 UiPageScaffoldRegisterEditModeTests 28/28 通过（草稿契约/起页/登记/工作台/端口注入失败）；UI 回归 20 套件全绿；toolchain check 0 error（1 既存 warning）；Catalog 12/12",
+      "status_reason": "",
+      "created_at": "2026-10-23T23:23:29+08:00",
+      "started_at": "2026-10-24T00:53:34+08:00",
+      "completed_at": "2026-10-24T00:53:34+08:00"
+    },
+    {
+      "id": "T7",
+      "title": "窗口与工作台接线（事件·门控·冲突保护·焦点重载）",
+      "description": "",
+      "acceptance": "两个 IMGUI 窗口 Open/Open(prefill) 可用；工作台起页/登记事件与窗口打开；availability 全实现、能力标签补 page.scaffold/register；输入即标脏、保存前磁盘指纹冲突拒绝、ReloadIfChanged 保留选中与目标；工作台夹具绿",
+      "verify": "python scripts/gate/unity-tests.py --mode editor --filter UiWorkbenchEditModeTests --timeout 600",
+      "files": [
+        "Assets/LiteGame/Editor/UiTools/Page/UiPageScaffoldWindow.cs",
+        "Assets/LiteGame/Editor/UiTools/Page/UiPageRegisterWindow.cs",
+        "Assets/LiteGame/Editor/UiTools/Workbench/UiWorkbenchPageSection.cs",
+        "Assets/LiteGame/Editor/UiTools/Workbench/UiWorkbenchWindow.cs",
+        "Assets/LiteGame/Editor/UiTools/Workbench/UiWorkbenchAvailability.cs",
+        "Assets/LiteGame/Editor/UiTools/Workbench/UiWorkbenchPerspective.cs"
+      ],
+      "deps": [
+        "T6"
+      ],
+      "status": "done",
+      "evidence": "新夹具 UiPageScaffoldRegisterEditModeTests 28/28 通过（草稿契约/起页/登记/工作台/端口注入失败）；UI 回归 20 套件全绿；toolchain check 0 error（1 既存 warning）；Catalog 12/12",
+      "status_reason": "",
+      "created_at": "2026-10-23T23:23:29+08:00",
+      "started_at": "2026-10-24T00:53:34+08:00",
+      "completed_at": "2026-10-24T00:53:34+08:00"
+    },
+    {
+      "id": "T8",
+      "title": "工具面与索引（handlers + toolchain.json + 工具索引）",
+      "description": "",
+      "acceptance": "ui.page-scaffold/ui.page-register 登记为 window 且 handler 在册；Catalog 无 Error；toolchain.py check 0 error；工具索引重生成且 docs --check 通过",
+      "verify": "python scripts/toolchain.py check",
+      "files": [
+        "Assets/LiteGame/Editor/Toolchain/EditorToolHandlers.cs",
+        "scripts/gate/toolchain.json",
+        "Docs/工具链/工具索引.md"
+      ],
+      "deps": [
+        "T7"
+      ],
+      "status": "done",
+      "evidence": "新夹具 UiPageScaffoldRegisterEditModeTests 28/28 通过（草稿契约/起页/登记/工作台/端口注入失败）；UI 回归 20 套件全绿；toolchain check 0 error（1 既存 warning）；Catalog 12/12",
+      "status_reason": "",
+      "created_at": "2026-10-23T23:23:29+08:00",
+      "started_at": "2026-10-24T00:53:35+08:00",
+      "completed_at": "2026-10-24T00:53:35+08:00"
+    },
+    {
+      "id": "T9",
+      "title": "文档回写（08/修改指南/技术总结/设计/schema/进度）",
+      "description": "",
+      "acceptance": "08 手册入口与起页/草稿契约/登记/排障；修改指南工具表；技术总结 04；设计 §3.1/§3.5/§3.6/§5.2/§9.1/§9.2；schema；施工进度第 9 章；工具索引；doc-lint 0/0",
+      "verify": "python scripts/gate/doc-lint.py",
+      "files": [
+        "Docs/项目说明/08-UI工作台.md",
+        "Docs/修改指南.md",
+        "Docs/技术总结/04-UI系统与Lua脚本层.md",
+        "Docs/设计文档/客户端/UI系统/UI编辑器工具链专项设计.md",
+        "Docs/设计文档/客户端/UI系统/UiPageContract.schema.json",
+        "Docs/施工进度/UI系统线.md"
+      ],
+      "deps": [
+        "T8"
+      ],
+      "status": "done",
+      "evidence": "文档回写：08/修改指南/技术总结/设计 §3.1/§3.5/§3.6/§5.2/§9/schema/施工进度第9章/README/工具索引；doc-lint 0/0、Doc lane PASS。全量验证：wf verify PASS（L1/doc/toolchain/docs/契约/工作台/新夹具 28/28/Python 6/6）；数据面真实表与 11 份契约零变化；BuildHash --check-shared OK；eval_file 冒烟两窗口 Console 0 error",
+      "status_reason": "",
+      "created_at": "2026-10-23T23:23:30+08:00",
+      "started_at": "2026-10-24T01:11:25+08:00",
+      "completed_at": "2026-10-24T01:11:25+08:00"
+    },
+    {
+      "id": "T10",
+      "title": "全量验证与冒烟（UI 回归·L1·Doc·toolchain·wf verify·eval_file）",
+      "description": "",
+      "acceptance": "UI EditMode 全量回归与新增夹具绿；L1/Doc/toolchain 绿；wf verify 全绿；eval_file 打开两窗口 Console 0 error；真实表/清单/hash/契约零残留；BuildHash --check-shared 通过",
+      "verify": "python scripts/gate/test.py --lane L1 --profile PullRequest",
+      "files": [
+        ".workflow/active/ui-p2-scaffold-register/build-log.md"
+      ],
+      "deps": [
+        "T9"
+      ],
+      "status": "done",
+      "evidence": "文档回写：08/修改指南/技术总结/设计 §3.1/§3.5/§3.6/§5.2/§9/schema/施工进度第9章/README/工具索引；doc-lint 0/0、Doc lane PASS。全量验证：wf verify PASS（L1/doc/toolchain/docs/契约/工作台/新夹具 28/28/Python 6/6）；数据面真实表与 11 份契约零变化；BuildHash --check-shared OK；eval_file 冒烟两窗口 Console 0 error",
+      "status_reason": "",
+      "created_at": "2026-10-23T23:23:30+08:00",
+      "started_at": "2026-10-24T01:11:25+08:00",
+      "completed_at": "2026-10-24T01:11:26+08:00"
+    },
+    {
+      "id": "T11",
+      "title": "独立代码评审与修复复评",
+      "description": "",
+      "acceptance": "独立子代理评审无阻塞（结论/通用性/扩展性 PASS）；阻塞修复后重新验证并复评；wf verify 重跑",
+      "verify": "python .agents/skills/staged-delivery/scripts/workflow.py verify --run ui-p2-scaffold-register",
+      "files": [
+        ".workflow/active/ui-p2-scaffold-register/reviews/code-review.md"
+      ],
+      "deps": [
+        "T10"
+      ],
+      "status": "done",
+      "evidence": "独立评审 4 轮：FAIL(4 阻塞 B1-B4) → FAIL(I2 修复引入 R1) → FAIL(仅文档计数) → PASS；新夹具 31/31、Python 10/10、wf verify PASS；证据 reviews/code-review.md + evidence/verify.json",
+      "status_reason": "",
+      "created_at": "2026-10-23T23:23:30+08:00",
+      "started_at": "2026-10-24T01:11:26+08:00",
+      "completed_at": "2026-10-24T02:50:25+08:00"
+    }
+  ],
+  "verification": {
+    "at": "2026-10-24T02:54:25+08:00",
+    "ok": true,
+    "stale": false,
+    "evidence": "evidence/verify.json",
+    "command_fingerprint": "1cf94df5ba9517d48ede98818f03af331b98809e8167ccf285a9582e1518cdee",
+    "summary": {
+      "total": 9,
+      "passed": 9
+    }
+  },
+  "red_verification": {
+    "at": "2026-10-24T00:18:43+08:00",
+    "ok": true,
+    "stale": false,
+    "evidence": "evidence/red.json",
+    "command_fingerprint": "4bd700d2b440216f450fc4fd7bb4eaf3e9704b96e356ec0546df873848fee318",
+    "summary": {
+      "total": 2,
+      "passed": 2
+    }
+  },
+  "archived_at": "2026-10-24T02:57:06+08:00"
+}

@@ -56,9 +56,9 @@ namespace LiteGame.Tests.EditMode
             Object.DestroyImmediate(root);
         }
 
-        private static UiPageScaffold.PageRow Row(string name, int id, int layer = 1, bool fullScreen = true,
+        private static UiPageTableRow Row(string name, int id, int layer = 1, bool fullScreen = true,
             string lua = null)
-            => new UiPageScaffold.PageRow
+            => new UiPageTableRow
             {
                 id = id,
                 prefab = "ShareResource/UI/Screens/TempPageManifestTests/" + name + ".prefab",

@@ -1,0 +1,50 @@
+{
+  "schema_version": 1,
+  "kind": "red",
+  "at": "2026-10-24T00:18:43+08:00",
+  "ok": true,
+  "command_fingerprint": "4bd700d2b440216f450fc4fd7bb4eaf3e9704b96e356ec0546df873848fee318",
+  "commands": [
+    {
+      "name": "ui-page-scaffold-register-red",
+      "cmd": [
+        "python",
+        "scripts/gate/unity-tests.py",
+        "--mode",
+        "editor",
+        "--filter",
+        "UiPageScaffoldRegisterEditModeTests",
+        "--timeout",
+        "600"
+      ],
+      "cwd": null,
+      "exit_code": 1,
+      "timed_out": false,
+      "error": null,
+      "duration_ms": 37001,
+      "ok": true,
+      "output_tail": "\nFAILED: LiteGame.Tests.EditMode.UiPageScaffoldRegisterEditModeTests.草稿契约_重生成与盘上一致:   Expected: True\n\n  But was:  False\n\n\nFAILED: LiteGame.Tests.EditMode.UiPageScaffoldRegisterEditModeTests.起页_列表基线_无Cot容器时新建安全区并搬入内容:   P2-2 未实现：起页\n\n  Expected: True\n\n  But was:  False\n\n\nFAILED: LiteGame.Tests.EditMode.UiPageScaffoldRegisterEditModeTests.起页_基线复制_根契约齐备_安全区挂内容容器_草稿落盘:   P2-2 未实现：起页\n\n  Expected: True\n\n  But was:  False\n\n\nFAILED: LiteGame.Tests.EditMode.UiPageScaffoldRegisterEditModeTests.起页_清单写盘失败_删除prefab且清单不变:   P2-2 未实现：起页\n\n  Expected: Manifest\n\n  But was:  NotImplemented\n\n\nFAILED: LiteGame.Tests.EditMode.UiPageScaffoldRegisterEditModeTests.起页_目标已存在_拒绝且不写清单:   P2-2 未实现：起页\n\n  Expected: Validate\n\n  But was:  NotImplemented\n\n\nFAILED: LiteGame.Tests.EditMode.UiPageScaffoldRegisterEditModeTests.起页_非法页名与缺失基线_拒绝:   Expected: Validate\n\n  But was:  NotImplemented\n\n\ntests: 23/25 failed"
+    },
+    {
+      "name": "uiform-row-tests-red",
+      "cmd": [
+        "python",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "scripts/tests",
+        "-p",
+        "test_uiform_row.py",
+        "-v"
+      ],
+      "cwd": null,
+      "exit_code": 1,
+      "timed_out": false,
+      "error": null,
+      "duration_ms": 3352,
+      "ok": true,
+      "output_tail": "                      [--full-screen FULL_SCREEN] [--confirm] [--check]\n                      [--suggest] [--list] [--rollback ROLLBACK]\n                      [--delete-id DELETE_ID]\n_uiform_row.py: error: unrecognized arguments: --table C:\\Users\\hunter\\AppData\\Local\\Temp\\uiform-row-phck35dx\\uiform.xlsx\n\n\n======================================================================\nFAIL: test_delete_id_removes_row_and_leaves_backup (test_uiform_row.UiFormRowTests.test_delete_id_removes_row_and_leaves_backup)\n----------------------------------------------------------------------\nTraceback (most recent call last):\n  File \"E:\\unityProject\\Test\\scripts\\tests\\test_uiform_row.py\", line 115, in test_delete_id_removes_row_and_leaves_backup\n    self.assertEqual(code, 0, output)\n    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^\nAssertionError: 2 != 0 : usage: _uiform_row.py [-h] [--page PAGE] [--id ID] [--lua-path LUA_PATH]\n                      [--prefab PREFAB] [--layer LAYER]\n                      [--full-screen FULL_SCREEN] [--confirm] [--check]\n                      [--suggest] [--list] [--rollback ROLLBACK]\n                      [--delete-id DELETE_ID]\n_uiform_row.py: error: unrecognized arguments: --table C:\\Users\\hunter\\AppData\\Local\\Temp\\uiform-row-k_aqelx_\\uiform.xlsx\n\n\n======================================================================\nFAIL: test_list_uses_injected_table (test_uiform_row.UiFormRowTests.test_list_uses_injected_table)\n----------------------------------------------------------------------\nTraceback (most recent call last):\n  File \"E:\\unityProject\\Test\\scripts\\tests\\test_uiform_row.py\", line 63, in test_list_uses_injected_table\n    self.assertEqual(code, 0, output)\n    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^\nAssertionError: 2 != 0 : usage: _uiform_row.py [-h] [--page PAGE] [--id ID] [--lua-path LUA_PATH]\n                      [--prefab PREFAB] [--layer LAYER]\n                      [--full-screen FULL_SCREEN] [--confirm] [--check]\n                      [--suggest] [--list] [--rollback ROLLBACK]\n                      [--delete-id DELETE_ID]\n_uiform_row.py: error: unrecognized arguments: --table C:\\Users\\hunter\\AppData\\Local\\Temp\\uiform-row-m8e_ptlw\\uiform.xlsx\n\n\n----------------------------------------------------------------------\nRan 6 tests in 2.925s\n\nFAILED (failures=4, errors=1)"
+    }
+  ]
+}

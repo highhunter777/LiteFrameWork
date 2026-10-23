@@ -1,0 +1,173 @@
+{
+  "schema_version": 1,
+  "kind": "verify",
+  "at": "2026-10-24T02:54:25+08:00",
+  "ok": true,
+  "command_fingerprint": "1cf94df5ba9517d48ede98818f03af331b98809e8167ccf285a9582e1518cdee",
+  "commands": [
+    {
+      "name": "L1",
+      "cmd": [
+        "python",
+        "scripts/gate/test.py",
+        "--lane",
+        "L1",
+        "--profile",
+        "PullRequest"
+      ],
+      "cwd": null,
+      "exit_code": 0,
+      "timed_out": false,
+      "error": null,
+      "duration_ms": 35868,
+      "ok": true,
+      "output_tail": "已通过! - 失败:     0，通过:     7，已跳过:     0，总计:     7，持续时间: 22 ms - LiteTesting.Core.Tests.dll (net8.0)\n\n有可用的工作负载更新。有关详细信息，请运行 `dotnet workload list`。\nE:\\unityProject\\Test\\Tests\\MetaServer.Integration.Tests\\bin\\Release\\net8.0\\MetaServer.Integration.Tests.dll (.NETCoreApp,Version=v8.0)的测试运行\nVSTest 版本 17.14.1 (x64)\n\n正在启动测试执行，请稍候...\n总共 1 个测试文件与指定模式相匹配。\n没有测试匹配 E:\\unityProject\\Test\\Tests\\MetaServer.Integration.Tests\\bin\\Release\\net8.0\\MetaServer.Integration.Tests.dll 中的给定用例测试筛选器“Category!=Integration&Category!=EndToEnd&Category!=Performance&Category!=Quarantine&Duration!=LongRunning”\n数据收集器“Blame”消息: 所有测试都已运行完毕，将不生成序列文件。\n结果文件: E:\\unityProject\\Test\\TestResults\\l1-MetaServer.Integration.Tests-pullrequest-20261023-185030.trx\n\n\n有可用的工作负载更新。有关详细信息，请运行 `dotnet workload list`。\nE:\\unityProject\\Test\\Tests\\MetaServer.Tests\\bin\\Release\\net8.0\\MetaServer.Tests.dll (.NETCoreApp,Version=v8.0)的测试运行\nVSTest 版本 17.14.1 (x64)\n\n正在启动测试执行，请稍候...\n总共 1 个测试文件与指定模式相匹配。\n数据收集器“Blame”消息: 所有测试都已运行完毕，将不生成序列文件。\n结果文件: E:\\unityProject\\Test\\TestResults\\l1-MetaServer.Tests-pullrequest-20261023-185030.trx\n\n已通过! - 失败:     0，通过:   163，已跳过:     0，总计:   163，持续时间: 4 s - MetaServer.Tests.dll (net8.0)\n\n有可用的工作负载更新。有关详细信息，请运行 `dotnet workload list`。\n[quality/test] === L1 | PullRequest ===\n[quality/test] -> restore LiteFramework.Core.Tests (parallelism disabled)\n[quality/test] -> restore LiteNet.Tests (parallelism disabled)\n[quality/test] -> restore LiteSim.Core.Tests (parallelism disabled)\n[quality/test] -> restore LiteTesting.Core.Tests (parallelism disabled)\n[quality/test] -> restore MetaServer.Integration.Tests (parallelism disabled)\n[quality/test] -> restore MetaServer.Tests (parallelism disabled)\n[quality/test] -> build solution (single MSBuild node)\n[quality/test] -> LiteFramework.Core.Tests\n[quality/test] -> LiteNet.Tests\n[quality/test] -> LiteSim.Core.Tests\n[quality/test] -> LiteTesting.Core.Tests\n[quality/test] -> MetaServer.Integration.Tests\n[quality/test] -> MetaServer.Tests\n[quality/test] PASS: L1 completed 1821 tests."
+    },
+    {
+      "name": "doc",
+      "cmd": [
+        "python",
+        "scripts/gate/doc-lint.py"
+      ],
+      "cwd": null,
+      "exit_code": 0,
+      "timed_out": false,
+      "error": null,
+      "duration_ms": 1188,
+      "ok": true,
+      "output_tail": "[quality/doc-lint] OK: 0 violation(s), 0 warning(s)  (root=E:\\unityProject\\Test)"
+    },
+    {
+      "name": "toolchain-check",
+      "cmd": [
+        "python",
+        "scripts/toolchain.py",
+        "check"
+      ],
+      "cwd": null,
+      "exit_code": 0,
+      "timed_out": false,
+      "error": null,
+      "duration_ms": 221,
+      "ok": true,
+      "output_tail": "[toolchain] WARN: unregistered executable script: scripts/gate/unity-tests.py\n[toolchain] check OK (1 warning(s))"
+    },
+    {
+      "name": "toolchain-docs-check",
+      "cmd": [
+        "python",
+        "scripts/toolchain.py",
+        "docs",
+        "--check"
+      ],
+      "cwd": null,
+      "exit_code": 0,
+      "timed_out": false,
+      "error": null,
+      "duration_ms": 107,
+      "ok": true,
+      "output_tail": "[toolchain] generated index current: E:\\unityProject\\Test\\Docs\\工具链\\工具索引.md"
+    },
+    {
+      "name": "ui-contract-editmode",
+      "cmd": [
+        "python",
+        "scripts/gate/unity-tests.py",
+        "--mode",
+        "editor",
+        "--filter",
+        "UiContractGeneratorEditModeTests",
+        "--timeout",
+        "600"
+      ],
+      "cwd": null,
+      "exit_code": 0,
+      "timed_out": false,
+      "error": null,
+      "duration_ms": 16386,
+      "ok": true,
+      "output_tail": "    },\n    {\n      \"FullName\": \"LiteGame.Tests.EditMode.UiContractGeneratorEditModeTests.真实页面_模板依赖被记录\",\n      \"Status\": \"Passed\",\n      \"Duration\": 1.0344704,\n      \"Message\": null,\n      \"StackTrace\": null\n    },\n    {\n      \"FullName\": \"LiteGame.Tests.EditMode.UiContractGeneratorEditModeTests.类型不可解析_生成失败\",\n      \"Status\": \"Passed\",\n      \"Duration\": 0.7703589,\n      \"Message\": null,\n      \"StackTrace\": null\n    },\n    {\n      \"FullName\": \"LiteGame.Tests.EditMode.UiContractGeneratorEditModeTests.输出路径不在Assets下_生成失败且不写盘\",\n      \"Status\": \"Passed\",\n      \"Duration\": 0.9944519,\n      \"Message\": null,\n      \"StackTrace\": null\n    },\n    {\n      \"FullName\": \"LiteGame.Tests.EditMode.UiContractGeneratorEditModeTests.重复BindName_生成失败并列出错误\",\n      \"Status\": \"Passed\",\n      \"Duration\": 0.717807,\n      \"Message\": null,\n      \"StackTrace\": null\n    },\n    {\n      \"FullName\": \"LiteGame.Tests.EditMode.UiContractGeneratorEditModeTests.静态key为空_生成失败\",\n      \"Status\": \"Passed\",\n      \"Duration\": 0.7941088,\n      \"Message\": null,\n      \"StackTrace\": null\n    }\n  ]\n}\n[stderr]\ntests: 10/10 passed"
+    },
+    {
+      "name": "ui-contract-diff-editmode",
+      "cmd": [
+        "python",
+        "scripts/gate/unity-tests.py",
+        "--mode",
+        "editor",
+        "--filter",
+        "UiContractDiffEditModeTests",
+        "--timeout",
+        "600"
+      ],
+      "cwd": null,
+      "exit_code": 0,
+      "timed_out": false,
+      "error": null,
+      "duration_ms": 5969,
+      "ok": true,
+      "output_tail": "  \"results\": [\n    {\n      \"FullName\": \"LiteGame.Tests.EditMode.UiContractDiffEditModeTests.sourceHash_only变化_不误报破坏\",\n      \"Status\": \"Passed\",\n      \"Duration\": 0.0001887,\n      \"Message\": null,\n      \"StackTrace\": null\n    },\n    {\n      \"FullName\": \"LiteGame.Tests.EditMode.UiContractDiffEditModeTests.控件改名_判为破坏性\",\n      \"Status\": \"Passed\",\n      \"Duration\": 0.0002091,\n      \"Message\": null,\n      \"StackTrace\": null\n    },\n    {\n      \"FullName\": \"LiteGame.Tests.EditMode.UiContractDiffEditModeTests.控件类型与文案key变化_判为破坏性\",\n      \"Status\": \"Passed\",\n      \"Duration\": 0.0002136,\n      \"Message\": null,\n      \"StackTrace\": null\n    },\n    {\n      \"FullName\": \"LiteGame.Tests.EditMode.UiContractDiffEditModeTests.新增控件_向后兼容\",\n      \"Status\": \"Passed\",\n      \"Duration\": 0.0002029,\n      \"Message\": null,\n      \"StackTrace\": null\n    },\n    {\n      \"FullName\": \"LiteGame.Tests.EditMode.UiContractDiffEditModeTests.样式变化_非API破坏\",\n      \"Status\": \"Passed\",\n      \"Duration\": 0.0003104,\n      \"Message\": null,\n      \"StackTrace\": null\n    }\n  ]\n}\n[stderr]\ntests: 5/5 passed"
+    },
+    {
+      "name": "ui-workbench-editmode",
+      "cmd": [
+        "python",
+        "scripts/gate/unity-tests.py",
+        "--mode",
+        "editor",
+        "--filter",
+        "UiWorkbenchEditModeTests",
+        "--timeout",
+        "600"
+      ],
+      "cwd": null,
+      "exit_code": 0,
+      "timed_out": false,
+      "error": null,
+      "duration_ms": 16689,
+      "ok": true,
+      "output_tail": "    },\n    {\n      \"FullName\": \"LiteGame.Tests.EditMode.UiWorkbenchEditModeTests.页面清单投影_缺失时显式报错不伪造空表\",\n      \"Status\": \"Passed\",\n      \"Duration\": 0.0004098,\n      \"Message\": null,\n      \"StackTrace\": null\n    },\n    {\n      \"FullName\": \"LiteGame.Tests.EditMode.UiWorkbenchEditModeTests.页面编辑_维护字段落盘确定性\",\n      \"Status\": \"Passed\",\n      \"Duration\": 0.5219877,\n      \"Message\": null,\n      \"StackTrace\": null\n    },\n    {\n      \"FullName\": \"LiteGame.Tests.EditMode.UiWorkbenchEditModeTests.页面编辑_非法状态迁移原子失败\",\n      \"Status\": \"Passed\",\n      \"Duration\": 0.0044961,\n      \"Message\": null,\n      \"StackTrace\": null\n    },\n    {\n      \"FullName\": \"LiteGame.Tests.EditMode.UiWorkbenchEditModeTests.页面透视_缺清单显式错误不伪造\",\n      \"Status\": \"Passed\",\n      \"Duration\": 0.0007517,\n      \"Message\": null,\n      \"StackTrace\": null\n    },\n    {\n      \"FullName\": \"LiteGame.Tests.EditMode.UiWorkbenchEditModeTests.页面透视_选中回调与目标绑定\",\n      \"Status\": \"Passed\",\n      \"Duration\": 0.0048813,\n      \"Message\": null,\n      \"StackTrace\": null\n    }\n  ]\n}\n[stderr]\ntests: 21/21 passed"
+    },
+    {
+      "name": "ui-page-scaffold-register-editmode",
+      "cmd": [
+        "python",
+        "scripts/gate/unity-tests.py",
+        "--mode",
+        "editor",
+        "--filter",
+        "UiPageScaffoldRegisterEditModeTests",
+        "--timeout",
+        "600"
+      ],
+      "cwd": null,
+      "exit_code": 0,
+      "timed_out": false,
+      "error": null,
+      "duration_ms": 148956,
+      "ok": true,
+      "output_tail": "    },\n    {\n      \"FullName\": \"LiteGame.Tests.EditMode.UiPageScaffoldRegisterEditModeTests.起页_列表基线_保留既有安全区不重复\",\n      \"Status\": \"Passed\",\n      \"Duration\": 2.7607168,\n      \"Message\": null,\n      \"StackTrace\": null\n    },\n    {\n      \"FullName\": \"LiteGame.Tests.EditMode.UiPageScaffoldRegisterEditModeTests.起页_基线复制_根契约齐备_安全区挂内容容器_草稿落盘\",\n      \"Status\": \"Passed\",\n      \"Duration\": 2.7179297,\n      \"Message\": null,\n      \"StackTrace\": null\n    },\n    {\n      \"FullName\": \"LiteGame.Tests.EditMode.UiPageScaffoldRegisterEditModeTests.起页_清单写盘失败_删除prefab且清单不变\",\n      \"Status\": \"Passed\",\n      \"Duration\": 2.9324461,\n      \"Message\": null,\n      \"StackTrace\": null\n    },\n    {\n      \"FullName\": \"LiteGame.Tests.EditMode.UiPageScaffoldRegisterEditModeTests.起页_目标已存在_拒绝且不写清单\",\n      \"Status\": \"Passed\",\n      \"Duration\": 1.3582873,\n      \"Message\": null,\n      \"StackTrace\": null\n    },\n    {\n      \"FullName\": \"LiteGame.Tests.EditMode.UiPageScaffoldRegisterEditModeTests.起页_非法页名与缺失基线_拒绝\",\n      \"Status\": \"Passed\",\n      \"Duration\": 1.2546684,\n      \"Message\": null,\n      \"StackTrace\": null\n    }\n  ]\n}\n[stderr]\ntests: 31/31 passed"
+    },
+    {
+      "name": "uiform-row-tests",
+      "cmd": [
+        "python",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "scripts/tests",
+        "-p",
+        "test_uiform_row.py",
+        "-v"
+      ],
+      "cwd": null,
+      "exit_code": 0,
+      "timed_out": false,
+      "error": null,
+      "duration_ms": 10100,
+      "ok": true,
+      "output_tail": "[stderr]\ntest_check_rejects_duplicate_and_reserved_ids (test_uiform_row.UiFormRowTests.test_check_rejects_duplicate_and_reserved_ids) ... ok\ntest_confirm_writes_copy_and_backup_then_rollback_restores (test_uiform_row.UiFormRowTests.test_confirm_writes_copy_and_backup_then_rollback_restores) ... ok\ntest_delete_dry_run_keeps_row (test_uiform_row.UiFormRowTests.test_delete_dry_run_keeps_row) ... ok\ntest_delete_id_removes_row_and_leaves_backup (test_uiform_row.UiFormRowTests.test_delete_id_removes_row_and_leaves_backup) ... ok\ntest_layer_bounds_and_pascal_case (test_uiform_row.UiFormRowTests.test_layer_bounds_and_pascal_case) ... ok\ntest_list_uses_injected_table (test_uiform_row.UiFormRowTests.test_list_uses_injected_table) ... ok\ntest_missing_table_fails_explicitly (test_uiform_row.UiFormRowTests.test_missing_table_fails_explicitly) ... ok\ntest_real_table_untouched (test_uiform_row.UiFormRowTests.test_real_table_untouched) ... ok\ntest_rollback_rejects_backup_outside_table_backup_dir (test_uiform_row.UiFormRowTests.test_rollback_rejects_backup_outside_table_backup_dir) ... ok\ntest_save_failure_returns_backup_and_keeps_table (test_uiform_row.UiFormRowTests.test_save_failure_returns_backup_and_keeps_table) ... ok\n\n----------------------------------------------------------------------\nRan 10 tests in 9.612s\n\nOK"
+    }
+  ]
+}

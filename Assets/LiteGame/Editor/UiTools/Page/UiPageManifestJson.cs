@@ -43,12 +43,11 @@ namespace LiteGame.Editor.UiTools.Page
         {
             if (manifest == null) throw new ArgumentNullException(nameof(manifest));
             string full = UiPageManifestPaths.FullPath(assetPath);
-            string dir = Path.GetDirectoryName(full);
-            if (!string.IsNullOrEmpty(dir)) Directory.CreateDirectory(dir);
-
             string assetDir = (Path.GetDirectoryName(assetPath) ?? string.Empty).Replace('\\', '/');
             bool folderKnown = string.IsNullOrEmpty(assetDir) || AssetDatabase.IsValidFolder(assetDir);
-            File.WriteAllText(full, UiPageManifestJson.Serialize(manifest), new UTF8Encoding(false));
+
+            // 共享原子写：同目录临时件 + 替换（失败重试/退化为覆盖写），不留半截 JSON。
+            UiAtomicFile.WriteAllText(full, UiPageManifestJson.Serialize(manifest), new UTF8Encoding(false));
             if (!folderKnown) AssetDatabase.Refresh();
             AssetDatabase.ImportAsset(assetPath);
         }

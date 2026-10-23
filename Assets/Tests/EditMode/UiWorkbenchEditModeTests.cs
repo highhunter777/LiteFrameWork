@@ -224,16 +224,15 @@ namespace LiteGame.Tests.EditMode
         }
 
         [Test]
-        public void 阶段可用性_起页登记归P2二且原因优先()
+        public void 阶段可用性_起页登记已实现()
         {
-            Assert.IsFalse(UiWorkbenchAvailability.IsImplemented(UiWorkbenchAction.Scaffold), "起页 P2-1 未建");
-            Assert.IsFalse(UiWorkbenchAvailability.IsImplemented(UiWorkbenchAction.Register), "登记 P2-1 未建");
-            StringAssert.Contains("P2-2", UiWorkbenchAvailability.DisabledReason(UiWorkbenchAction.Scaffold));
-            StringAssert.Contains("P2-2", UiWorkbenchAvailability.DisabledReason(UiWorkbenchAction.Register));
-            Assert.IsTrue(UiWorkbenchAvailability.IsImplemented(UiWorkbenchAction.Validate), "校验已实现");
-            Assert.IsNull(UiWorkbenchAvailability.DisabledReason(UiWorkbenchAction.Validate));
+            Assert.IsTrue(UiWorkbenchAvailability.IsImplemented(UiWorkbenchAction.Scaffold), "起页 P2-2 已建");
+            Assert.IsTrue(UiWorkbenchAvailability.IsImplemented(UiWorkbenchAction.Register), "登记 P2-2 已建");
+            Assert.IsNull(UiWorkbenchAvailability.DisabledReason(UiWorkbenchAction.Scaffold));
+            Assert.IsNull(UiWorkbenchAvailability.DisabledReason(UiWorkbenchAction.Register));
             Assert.IsTrue(UiLanePolicy.IsAllowed(UiWorkbenchLane.Art, UiWorkbenchAction.Scaffold),
-                "Lane 允许但阶段未建——两层门控正交");
+                "Lane 仍按角色门控");
+            Assert.IsFalse(UiLanePolicy.IsAllowed(UiWorkbenchLane.Art, UiWorkbenchAction.Register));
         }
 
         [Test]
@@ -320,7 +319,7 @@ namespace LiteGame.Tests.EditMode
         [Test]
         public void 透视能力标签_逐透视精确匹配()
         {
-            CollectionAssert.AreEqual(new[] { "page.list", "page.metadata" },
+            CollectionAssert.AreEqual(new[] { "page.list", "page.metadata", "page.scaffold", "page.register" },
                 UiWorkbenchPerspectives.Find(UiWorkbenchPerspectiveId.Page).Capabilities, "页面透视");
             CollectionAssert.AreEqual(new[] { "widgets.insert", "widgets.properties" },
                 UiWorkbenchPerspectives.Find(UiWorkbenchPerspectiveId.Widgets).Capabilities, "控件库透视");

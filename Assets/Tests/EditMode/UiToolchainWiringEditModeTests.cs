@@ -210,7 +210,7 @@ namespace LiteGame.Tests.EditMode
             EnsureFolder(tempDir);
             try
             {
-                string message = UiPageScaffold.ReconcilePageManifest(tempManifest);
+                string message = UiPageManifestSync.ReconcileToDisk(tempManifest);
                 Assert.That(message, Does.Contain("已对账"), "起页对账应返回可读结论：" + message);
                 Assert.That(File.Exists(UiPageManifestPaths.FullPath(tempManifest)), Is.True,
                     "对账结果应写到注入路径");

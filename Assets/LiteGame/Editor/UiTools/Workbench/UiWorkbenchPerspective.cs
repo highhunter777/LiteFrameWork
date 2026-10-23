@@ -21,7 +21,7 @@ namespace LiteGame.Editor.UiTools.Workbench
     {
         private static readonly UiWorkbenchPerspective[] Items =
         {
-            Item(UiWorkbenchPerspectiveId.Page, "页面", 10, "page.list", "page.metadata"),
+            Item(UiWorkbenchPerspectiveId.Page, "页面", 10, "page.list", "page.metadata", "page.scaffold", "page.register"),
             Item(UiWorkbenchPerspectiveId.Widgets, "控件库", 20, "widgets.insert", "widgets.properties"),
             Item(UiWorkbenchPerspectiveId.Binding, "绑定", 30, "binding.edit", "binding.generate", "binding.hash"),
             Item(UiWorkbenchPerspectiveId.Contract, "契约", 40, "contract.generate", "contract.diff"),

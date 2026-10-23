@@ -147,6 +147,8 @@ Lua 侧只能经白名单门面访问 C#：`data`、`ui`、`content`、`text`（
 | 入口（toolchain id） | 形态 | 做什么 |
 |---|---|---|
 | `ui.workbench` | 工作台（纯 IMGUI 宿主） | 页面清单/维护字段、控件库+受控属性、绑定编辑、路径 B 生成+hash、契约生成/diff、校验窄档/全量；角色 Lane 与阶段门控 |
+| `ui.page-scaffold` | window（美术） | 视觉基线 → 自包含 prefab + 根契约/安全区 + 页面清单草稿；不写 Lua/表 |
+| `ui.page-register` | window（工程） | 草稿契约门槛 → `#uiform.xlsx` 行 + Lua 骨架 → Luban+BuildHash → 清单 `Registered`/缓存策略 → 契约刷新；失败按备份回滚并复核 |
 | `ui.validate` | action | 统一校验核心：菜单 / CLI（`RunCli`，供 CI）/ EditMode 三入口 |
 | `ui.binding-hash-all` / `-selected` | action | 记录/对账绑定生成物 hash |
 | `ui.style.*`（4 个） | action | 颜色刷新/对账、文字档对账/应用 |
@@ -176,7 +178,7 @@ Lua 侧只能经白名单门面访问 C#：`data`、`ui`、`content`、`text`（
 2. **红点未生效**：注册表存在 ≠ 红点会亮；没有 `Evaluate` 调用点。
 3. **控件"有模板"≠"有消费者"**：30 个控件里大量仅测试覆盖。
 4. **Lua 调试器/信号器未接线**：`LuaPanda.lua` 无 require，`Core/eventer.lua` 无调用方。
-5. **工具名已收敛**：P2-1 起唯一制作入口是 `ui.workbench`；`ui.compose`/`ui.page-new` 已退役，起页/登记随 P2-2（`ui.page-scaffold`/`ui.page-register`）。
+5. **工具名已收敛**：P2-2 起起页/登记拆为 `ui.page-scaffold`（仅 prefab+草稿）与 `ui.page-register`（契约门槛/表/Lua/生成链/清单/契约刷新）；工作台是编排入口，两窗口可直开；`ui.compose`/`ui.page-new` 已退役。
 6. **UIMain 已退役**：产品入口是登录/大厅；UIMain 的 prefab/Lua 已改为测试载体 `Tmp_UiTestPage`/`Tests.UiTestPage`，不再登记 tbuiform 或产出 LuaKeys 常量。
 7. **Bridge.content 零消费**：门面存在但没有 Lua 调用方，改它时要先找消费者。
 

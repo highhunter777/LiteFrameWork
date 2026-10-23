@@ -18,6 +18,7 @@
 | 6 | UI 系统 P1 边界收口：五族校验 · 契约补全 · 遍历统一 | — |
 | 7 | UI 系统 UIMain 退役：注册表锚迁移 · 产品注册摘除 · 测试载体归位 | — |
 | 8 | UI 系统 P2-1：单工作台与角色 Lane（宿主 + 透视迁移） | — |
+| 9 | UI 系统 P2-2：起页/登记拆分（草稿契约 · 表/Lua/生成链 · 冲突保护） | — |
 
 ---
 
@@ -50,7 +51,7 @@
 
 | 项 | 结果 |
 |---|---|
-| `python scripts/gate/unity-tests.py --mode editor --filter UiStaticTextEditModeTests` | **6/6 通过**（TMP 优先/UGUI 回退/语言刷新/关闭退订） |
+| `python scripts/gate/unity-tests.py --mode editor --filter UiStaticTextEditModeTests` | **10/10 通过**（TMP 优先/UGUI 回退/语言刷新/关闭退订） |
 | `python scripts/gate/unity-tests.py --mode editor --filter UiContractGeneratorEditModeTests` | **10/10 通过**（含模板边界过滤与输出路径守卫新例） |
 | `python scripts/gate/unity-tests.py --mode editor --filter UiContractDiffEditModeTests` | **5/5 通过** |
 | `python scripts/gate/unity-tests.py --mode editor --filter UiBindingToolsEditModeTests`（hash 回归） | **12/12 通过**——遍历抽取未改变既有 hash |
@@ -397,3 +398,53 @@
 - **页面清单基线 11 页/12 行**：与既有 P1 夹具同口径；页面增减时随批更新断言。
 - **已提交 92361185**（57 文件；按 hunk 拆分，共享文件只含本批改动）。工作区仍有并行 DevMenu/调参/测试房语义批未提交（debug.tunables/GmDebugTunablesPage 等）。
 - **手工冒烟限制**：窗口打开/状态/五透视已用 `eval_file` 冒烟（`title=UI 工作台 | Perspective=Page | 5`，Console error=0）；逐透视点击与截图受编辑器主循环限制未自动化，逻辑由 21 例夹具覆盖，视觉留人工一次确认。
+---
+
+## 第9章 UI 系统 P2-2：起页/登记拆分（草稿契约 · 表/Lua/生成链 · 冲突保护）
+
+<a id="ch9-UI系统P2二"></a>
+
+> **批次**：P2-2（2026-10-24，工作区未提交）
+> **设计**：[UI 编辑器工具链专项设计 §3.1 起页 / §3.5 契约 / §3.6 登记 / §9.1 工具](../设计文档/客户端/UI系统/UI编辑器工具链专项设计.md#ch-workbench) · [UI 系统总设计 §12 P2](../设计文档/客户端/UI系统/UI系统总设计.md)
+> **方案与任务**：`.workflow/active/ui-p2-scaffold-register/`（plan.md v4 / acceptance.md / tasks.md / test-plan.md / reviews）
+
+### 状态
+
+**功能完成（代码 + 静态夹具/命令证据；真实点击与人工签收待做；工作区未提交）**——`ui.page-scaffold` 与 `ui.page-register` 上任、草稿契约链、工作台/外窗冲突保护已落地；C# 骨架、运行时缓存消费、预览矩阵/样式令牌不在本批（见边界）。
+
+### 交付
+
+| 件 | 变化 |
+|---|---|
+| 起页内核 | `UiPageScaffold`：基线表（`Tmp_BaselineA/B`/`Tmp_ListScreen`/`Tmp_Page`）、`EnsureRootContract`（四件套幂等补齐；安全区优先挂现有拉伸 `Cot_*` 容器，`Tmp_ListScreen` 保留既有 `SafeAreaReceiver`）、`Scaffold`（基线复制→根契约→清单草稿；失败删除新 prefab 并恢复清单字节）；删除一键 `Create` |
+| 登记内核 | `UiPageRegistration`：契约门槛（草稿契约 `formId=0`、`page.name`、`prefabGuid` 一致）、Draft/表单空预检、id/layer/缓存策略校验、Lua 骨架（已存在保留）、表写核验→回滚→复核、`Luban → BuildHash` 代码生成链（失败回滚并重跑 Luban 复原）、清单 `Registered`+formId+缓存策略、契约按真实身份刷新、仅 `BindRoot` 页面记录绑定 hash；端口 `IUiPageTablePort`/`IUiPageCodegenPipeline`/`IUiPageContractRefresher` 供故障注入 |
+| 表门面 | `UiPageTableRow`/`UiPageTableHelper`/`UiPageToolProcess`：表读/写/回滚/删除单源；`_uiform_row.py` 增加 `--table`（备份目录随表）、layer 0–3、`Page_` PascalCase；`UiPageScaffold.PageRow` 全调用点迁移（Sync/ContractGenerator/Batch/3 夹具） |
+| 草稿契约 | schema `formId` 允许 0；`UiPageMetadata.IsDraft` + 生成器草稿口径（单源 `DraftLayer=0`/`DraftFullScreen=true`）；`UiContractBatch.Generate/Diff` 纳入草稿（可注入 manifest）、`Regenerate(allowDraft)`；漂移规则覆盖草稿；diff 页面段破坏性口径（0→真实/缓存/层级/`luaPath null→路径` 非破坏） |
+| 清单/缓存 | `UiPageManifestStore.Save` 与 `UiContractStore.Save` 共用 `UiAtomicFile`（临时件+替换/重试/退化覆盖）；`SetCacheStrategy`（词表 `UICacheStrategy` 单源）；对账保留缓存策略并刷新草稿 `contractPresent`；契约投影同值 |
+| 窗口/工作台 | `UiPageScaffoldWindow`/`UiPageRegisterWindow`（纯 IMGUI，`Open()`/`Open(prefill)`）；工作台页面透视按钮触发事件打开窗口；`UiWorkbenchAvailability` 起页/登记已实现、页面透视能力补 `page.scaffold`/`page.register`；输入即标脏、保存前磁盘 `sourceHash` 冲突拒绝、`ReloadIfChanged` 保留选中/目标 |
+| 工具面 | `ui.page-scaffold`/`ui.page-register` 登记为 window；`toolchain.json` 写面/产物/菜单；工具索引重生成 |
+| 夹具 | 新增 `UiPageScaffoldRegisterEditModeTests` **31 例**（起页/草稿契约/登记/工作台/端口注入失败）；Python `test_uiform_row` **10 例**；`unity-tests.py` 显式 `--project-path`（多编辑器环境） |
+
+### 验证证据
+
+| 项 | 结果 |
+|---|---|
+| 新 EditMode 夹具 | `UiPageScaffoldRegisterEditModeTests` **31/31 通过**（含表写“已落行但报失败”回滚复核、回滚后核验读表失败 Unknown、Luban/BuildHash 失败回滚、契约刷新失败、缓存策略对账保留、草稿晋升 diff 非破坏、工作台“应用→保存”落盘） |
+| Python 表助手 | `test_uiform_row` **10/10 通过**（Windows；非 Windows 跳过只读写入失败用例）——`--table` 副本上的 list/check/confirm/rollback/delete、layer 0–3、PascalCase、真实表字节不变 |
+| 先红证据 | 骨架阶段该夹具 **23/25 断言失败**（历史骨架口径，非 31 例全集；非编译/环境错误）；Python **4 failures + 1 error**（`--table` 未实现）；`evidence/red.json` |
+| UI 回归 | 20 套件全绿：Workbench 21、Preview 6、PageManifest 16、Validation 14、ValidationRules 10、RuleExceptions 7、ContractGenerator 10、ContractDiff 5、ContractReconciliation 9、ToolchainWiring 8、UimainRetirement 6、BindingTools 12、Catalog 12、Text 7、Style 4、LayoutPerformance 6、LuaReferenceScanner 6、BindSearch 7、WidgetManifest 11、WidgetSpec 3 |
+| 全量门禁 | `wf verify` **PASS**（L1 35s / doc / toolchain-check / docs-check / 契约/工作台/新夹具/ Python 表助手）；`doc-lint` **0/0**；`toolchain.py check` **OK**（1 条既存未注册脚本告警） |
+| 数据面 | 夹具结束断言真实 `#uiform.xlsx`、`UiPageManifest.json`、`UiBindManifest.json` 字节不变、真实契约基线 **11 份**逐字节不变；`gen-build-hash.py --check-shared` **OK**（`0a998c8ac6c9de89`，110 files） |
+| 冒烟 | `eval_file` 打开起页/登记窗口：`P2-2-SMOKE scaffold=UiPageScaffoldWindow register=UiPageRegisterWindow`，Console **0 error**；真实点击/输入流程留人工一次确认（自动化只证窗口对象） |
+
+### 边界与遗留（如实）
+
+- **C# 骨架不在本批**：窗口显示“逻辑语言固定 Lua”，C# 依赖页面先挂 `BindRoot`/命名空间配置，归接线前置；设计 §3.6 已按此口径改写。
+- **缓存策略只进清单/契约**：`tbuiform` 无缓存列，运行时暂不消费；登记写入 `UiPageManifest.cacheStrategy`，对账保留、契约投影同值。
+- **页面类型/目标模块**：页面类型由登记 `layer`+`full_screen` 表达；目标模块由资源收集目录/模块目录表达，不作为起页输入（设计 §3.1 已同步）。
+- **契约评审仍是人工门**：工具只机检“草稿契约存在/同名/guid 一致/`formId=0`”，G2 评审签字无机器信号。
+- **草稿批量依赖清单**：缺清单时批量显式告警“草稿契约未纳入”，登记侧会提示先生成契约；不静默。
+- **工作流配置未迁移**：项目仍用 8 阶段变体（缺独立方案/验收门禁阶段）；本批按技能契约手工执行独立评审与用户确认并落盘，待并行 TPS 线归档后再迁移配置。`red_commands` 精简为只跑新增测试（原 20 条历史红命令移除）。
+- **`unity-tests.py` 环境修正**：显式 `--project-path`（本机同时打开 WindFrameWork/Test 两个 Editor 时会因“Multiple Unity Editor instances”失败）；`eval_file` 冒烟走显式 `--timeout`。
+- **未跑 Player 构建**：本批只改编辑器工具与生成物，无运行时/协议变更；L1 与 UI EditMode 已覆盖逻辑面。
+- **提交**：工作区未提交（含本批与并行线快照），待用户裁决提交范围。

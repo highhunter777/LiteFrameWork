@@ -66,13 +66,16 @@ namespace LiteGame.Editor.UiTools.Contracts
                 return;
             }
 
-            CheckPageField(a.FormId != b.FormId, "formId", a.FormId, b.FormId, true, result);
+            // 页面段破坏性口径：只豁免“草稿晋升”（baseline=0 → 真实）；反向（真实→0，表行被删/回退）
+            // 仍判破坏性。layer/fullScreen/cacheStrategy 视为运行时/维护元数据，变化只进 Changed。
+            CheckPageField(a.FormId != b.FormId, "formId", a.FormId, b.FormId, a.FormId != 0, result);
             CheckPageField(!string.Equals(a.Name, b.Name, StringComparison.Ordinal), "name", a.Name, b.Name, true, result);
             CheckPageField(!string.Equals(a.PrefabPath, b.PrefabPath, StringComparison.Ordinal), "prefabPath", a.PrefabPath, b.PrefabPath, true, result);
-            CheckPageField(!string.Equals(a.LuaPath, b.LuaPath, StringComparison.Ordinal), "luaPath", a.LuaPath, b.LuaPath, true, result);
-            CheckPageField(a.Layer != b.Layer, "layer", a.Layer, b.Layer, true, result);
-            CheckPageField(a.FullScreen != b.FullScreen, "fullScreen", a.FullScreen, b.FullScreen, true, result);
-            CheckPageField(!string.Equals(a.CacheStrategy, b.CacheStrategy, StringComparison.Ordinal), "cacheStrategy", a.CacheStrategy, b.CacheStrategy, true, result);
+            CheckPageField(!string.Equals(a.LuaPath, b.LuaPath, StringComparison.Ordinal), "luaPath", a.LuaPath, b.LuaPath,
+                !(string.IsNullOrEmpty(a.LuaPath) && !string.IsNullOrEmpty(b.LuaPath)), result);
+            CheckPageField(a.Layer != b.Layer, "layer", a.Layer, b.Layer, false, result);
+            CheckPageField(a.FullScreen != b.FullScreen, "fullScreen", a.FullScreen, b.FullScreen, false, result);
+            CheckPageField(!string.Equals(a.CacheStrategy, b.CacheStrategy, StringComparison.Ordinal), "cacheStrategy", a.CacheStrategy, b.CacheStrategy, false, result);
             CheckPageField(!string.Equals(a.Owner, b.Owner, StringComparison.Ordinal), "owner", a.Owner, b.Owner, false, result);
             CheckPageField(!string.Equals(a.DesignRef, b.DesignRef, StringComparison.Ordinal), "designRef", a.DesignRef, b.DesignRef, false, result);
         }

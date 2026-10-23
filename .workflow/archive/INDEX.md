@@ -20,3 +20,4 @@
 | 2026-10-23T17:24:40+08:00 | ui-p1-boundary-closure | UI 系统 P1 边界收口：五族校验接入+契约补全+遍历统一 | 16/16 | PASS | [20261023-172440-ui-p1-boundary-closure](20261023-172440-ui-p1-boundary-closure/) |
 | 2026-10-23T18:34:25+08:00 | ui-uimain-retirement | UI 系统 UIMain 退役：注册表锚迁移 · 产品注册摘除 · 测试载体归位 | 7/7 | PASS | [20261023-183425-ui-uimain-retirement](20261023-183425-ui-uimain-retirement/) |
 | 2026-10-23T22:15:47+08:00 | ui-p2-workbench | UI 系统 P2-1：单工作台与角色 Lane（宿主 + 透视迁移） | 11/11 | PASS | [20261023-221547-ui-p2-workbench](20261023-221547-ui-p2-workbench/) |
+| 2026-10-24T02:57:06+08:00 | ui-p2-scaffold-register | UI 系统 P2-2：起页/登记拆分（ui.page-scaffold / ui.page-register） | 11/11 | PASS | [20261024-025706-ui-p2-scaffold-register](20261024-025706-ui-p2-scaffold-register/) |

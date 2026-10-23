@@ -62,6 +62,8 @@ namespace LiteGame.Toolchain
         private static void RegisterUi(EditorToolRegistry registry)
         {
             registry.RegisterWindow("ui.workbench", UiWorkbenchWindow.Open);
+            registry.RegisterWindow("ui.page-scaffold", UiPageScaffoldWindow.Open);
+            registry.RegisterWindow("ui.page-register", UiPageRegisterWindow.Open);
 
             registry.RegisterAction("ui.validate", ValidateUi);
             registry.RegisterAction("ui.contract", GenerateUiContracts);

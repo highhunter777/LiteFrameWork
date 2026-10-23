@@ -103,16 +103,19 @@
 
 ### 3.1 起页（美术）
 
-输入：页面名（`Page_<Semantic>`）、页面类型（全屏/浮层/HUD）、视觉基线（`Tmp_BaselineA/B`/`Tmp_ListScreen`）、目标模块。
+输入：页面名（`Page_<Semantic>`）、视觉基线（`Tmp_BaselineA/B`/`Tmp_ListScreen`/空白骨架 `Tmp_Page`）。页面类型（全屏/浮层/HUD）由登记时的 `layer`+`full_screen` 表达（HUD 走独立轨，不登记 `tbuiform`）；目标模块由资源收集目录/模块目录表达，不是起页输入。
 
 动作：
 
 1. 从视觉基线**复制**为自包含 prefab（不生成 Variant，避免跨 owner 继承）。
-2. 改根名与文件名一致；挂标准根组件（Canvas/CanvasScaler/GraphicRaycaster/CanvasGroup/SafeArea）。
+2. 改根名与文件名一致；`EnsureRootContract` 幂等补齐根组件：`Canvas`、`CanvasScaler`（`ScaleWithScreenSize`，1920×1080，`match=0.5`）、`GraphicRaycaster`、`CanvasGroup`；安全区优先挂**现有拉伸 `Cot_*` 内容容器**（`Tmp_BaselineA/B` → `Cot_Baseline`），已有 `SafeAreaReceiver` 则保留（`Tmp_ListScreen` 内容节点已带），都没有才新建 `Cot_SafeArea` 并把原内容按序搬入。
 3. 不写 `tbuiform`、不生成 Lua、不生成绑定类。
 4. 生成页面草稿元数据（`UiPageManifest` 条目：Owner=美术、状态=草案）。
+5. 草稿契约：美术跑 `ui.contract` 时，批量把草稿页纳入（`formId=0`，见 §5.2），作为交接前可评审产物。
 
-产物：`Assets/ShareResource/UI/Screens/Page_<Semantic>.prefab` + 草稿清单条目。
+产物：`Assets/ShareResource/UI/Screens/Page_<Semantic>.prefab` + 草稿清单条目 + 草稿契约。
+
+失败语义：预检失败零产物；复制/根契约/清单写盘任一步失败都删除新建 prefab，并把清单恢复为操作前状态（不静默、不留半成品）。
 
 ### 3.2 布局（美术）
 
@@ -139,23 +142,31 @@
 ### 3.5 生成契约（美术触发，双方消费）
 
 - 从 prefab 生成 `UiPageContract`（见 §5）；无契约不进入工程交接。
+- **草稿契约**：`ui.contract` 批量在按表行生成之后，纳入清单中 `forms` 为空、状态 `Draft` 的页面（`formId=0`、`luaPath=null`、草稿层/全屏默认，维护字段取清单）；同一 prefab 已在表行集合中则不重复。缺清单时显式告警“草稿契约未纳入”，不伪造。
+- 漂移对账：草稿走 `Regenerate(allowDraft:true)`，仍逐字节比较判 Error（布局改动后必须重生成）。
 - 契约生成是确定性动作：深度优先、无时间戳、字段排序稳定；重复生成无 diff。
-- 契约 diff 视为 UI API 变更；破坏性变更需双方评审。
+- 契约 diff 视为 UI API 变更；破坏性变更需双方评审。页面段破坏性口径：`formId 0→真实`、`layer`/`fullScreen`/`cacheStrategy` 变化、`luaPath null→路径` 非破坏；真实 `formId` 变更、路径→null/换路径仍破坏（草稿晋升不应被误判）。
 - 契约生成后，美术跑增量校验并出截图矩阵。
 
 ### 3.6 页面登记（工程）
 
-输入：已评审契约、页面名、id、layer、full_screen、逻辑语言（C#/Lua）、缓存策略。
+输入：草稿契约（`formId=0`，见 §3.5）、页面名、id、layer（0–3）、full_screen、缓存策略（维护字段，默认 `Lru`）。逻辑语言本版固定 Lua（C# 骨架依赖 `BindRoot`/命名空间配置，归 §3.7 接线前置；窗口显式显示该边界，不静默降级）。
 
 动作：
 
-1. 校验 id 不与现有冲突；layer/full_screen 合法；prefab 路径存在。
-2. 写 `Luban/Data/#uiform.xlsx` 一行（id/lua_path/prefab/layer/full_screen），跑 Luban 生成。
-3. 若 Lua：生成最小页面骨架（`class`/`_viewName`/`OnShow`/`OnHide`）；若 C#：生成 `UIBindBase` 派生类与 Designer。
-4. 生成绑定 hash 清单条目。
-5. 更新 `UiPageManifest` 状态（草案→已登记/已接线）。
+1. 预检：契约存在/可读、`page.name` 匹配、`formId=0`、`prefabGuid` 与当前 prefab 一致（防同名旧契约）；页面清单条目为 `Draft` 且无登记行；id 不冲突/不在保留区；layer 0–3；prefab 存在。全部在写面之前。
+2. 生成 Lua 最小骨架（已存在则保留，不覆盖作者逻辑）。
+3. 写 `Luban/Data/#uiform.xlsx` 一行（id/lua_path/prefab/layer/full_screen；**备份先于写**，失败也回传备份句柄），随后跑 `codegen.luban` → `codegen.build-hash`（红线 1）。
+4. 更新 `UiPageManifest`：对账 → 状态 `Draft → Registered`、写入缓存策略、刷新 `contractPresent`。
+5. 重生成契约填真实 `formId`/layer/fullScreen/luaPath（`ui.contract` 判据同源）；失败显式报红，不回滚已登记的清单，提示重跑 `ui.contract`。
+6. 绑定 hash 清单条目：仅页面挂 `BindRoot`（路径 B）时记录；路径 A 不伪造条目。
 
-安全：写表前备份；id 查重；失败给恢复/回滚指令；不静默成功。表写入由 Python 助手脚本承担（openpyxl 已在门禁依赖），Unity 窗口只编排与呈现。
+安全：
+- 契约/清单/表任一预检失败都零产物（不建 Lua、不写表）。
+- 表写失败：按备份回滚并**复核行不存在**；进程在保存后被杀/超时也走同一核验（假端口可注入该场景）。
+- Luban/BuildHash 失败：回滚表 → 复核 → 重跑 Luban 复原生成读码面；清单仍 `Draft`。
+- 清单保存失败（表已写）：显式错误 + 重跑 `ui.page-manifest`，不回滚表（避免生成物与表再次错位）。
+- 表写入仍由 Python 助手脚本承担；Unity 窗口只编排与呈现。
 
 ### 3.7 接线（工程）
 
@@ -279,7 +290,8 @@
 - **过滤**：`Clone_` 子树、嵌套 `BindRoot` 子树不进页面接口面；根节点上的 `BindName` 仍可暴露（`nodePath` 为空串）。
 - **`kind` 初始推断**：交互/列表/进度类组件（Selectable、ScrollRect、VirtualList、SimpleListView、UIWidget、ProgressBar、Stepper、UIDropdownWrap）记 `Command`；其余记 `None`。`Bound` 需静态绑定标记出现后再产生，当前生成器不臆造。
 - **`required` 初始推断**：`Command` 记 `true`，`None` 记 `false`；后续引用对账可细化。
-- **`cacheStrategy`**：`tbuiform` 尚无缓存策略列，生成器统一写 `Lru`；表列落地后只改投影层，不改生成器默认。
+- **`cacheStrategy`**：`tbuiform` 尚无缓存策略列；它是**页面清单维护字段**（默认 `Lru`，可在工作台/登记窗口选 `Resident`/`Lru`/`DestroyOnClose`），对账保留、契约投影同值，运行时暂不消费。
+- **草稿契约**：未登记页（起页后、`tbuiform` 无行）可生成契约，`page.formId=0`、`luaPath=null`、`layer/fullScreen` 取单源默认（`UiContractGenerator.DraftLayer=0`/`DraftFullScreen=true`）；登记后重生成填真实身份。`UiPageContract.schema.json` 的 `formId` 最小值为 0 即此义。
 - **批量与多行**：`ui.contract` 按 `tbuiform` 全量生成——表只读一次、按 prefab 去重、输出确定性。根名不在 `Page_/Hud_/Tmp_` 契约面的非常驻壳（若出现）显式跳过并告警，不计失败；同一 prefab 多行登记取**首行**，其余行由页面清单 `forms[]` 承担并告警。
 - **`LTextKeyRef`**：只存 `Key`；`text[]` 的 `args` 固定 0。参数/复数/富文本替换属于工程动态文案，不进静态契约。
 - **确定性**：深度优先、按 `nodePath`（事件按 `bindName|event`）稳定排序；JSON 固定字段序、LF 换行、UTF-8 无 BOM；负例只返回错误，不写盘。

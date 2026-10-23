@@ -212,7 +212,7 @@ namespace LiteGame.Tests.EditMode
         public void 生成器_真实Page_Login经清单投影与接线_契约含owner与events()
         {
             // 全链真实面：表行 + 真实清单 → 生成（投影 + Lua 接线）——契约补全的端到端钉
-            var rows = UiPageScaffold.ListPages();
+            var rows = UiPageTableHelper.ListPages();
             var manifest = UiPageManifestStore.Load();
             var entry = manifest.Pages.FirstOrDefault(p => p.Name == "Page_Login");
             Assert.IsNotNull(entry, "真实清单须有 Page_Login");

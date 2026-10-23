@@ -48,7 +48,8 @@ namespace LiteGame.Editor.UiTools.Validation.Rules
                 string contractFull = UiContractPaths.FullPath(entry.ContractPath);
                 if (!File.Exists(contractFull)) continue;                                           // 同上：文件缺＝清单口径
 
-                UiContractGenerationResult regenerated = UiContractBatch.Regenerate(entry);
+                UiContractGenerationResult regenerated = UiContractBatch.Regenerate(
+                    entry, allowDraft: entry.Forms == null || entry.Forms.Count == 0);
                 if (!regenerated.Ok)
                 {
                     issues.Add(new UiIssue

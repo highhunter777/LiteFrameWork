@@ -37,14 +37,14 @@ namespace LiteGame.Editor.UiTools.Page
         public static UiPageManifestSyncResult Sync() => Sync(null, null);
 
         /// <summary>按显式行与已有清单对账（测试/工具用；rows=null 表示读真实表）。</summary>
-        public static UiPageManifestSyncResult Sync(IReadOnlyList<UiPageScaffold.PageRow> rows, UiPageManifest existing)
+        public static UiPageManifestSyncResult Sync(IReadOnlyList<UiPageTableRow> rows, UiPageManifest existing)
         {
             var result = new UiPageManifestSyncResult { Manifest = new UiPageManifest() };
 
             bool readTable = rows == null;
             if (readTable)
             {
-                if (!UiPageScaffold.TryListPages(out List<UiPageScaffold.PageRow> tableRows, out string readError))
+                if (!UiPageTableHelper.TryListPages(out List<UiPageTableRow> tableRows, out string readError))
                 {
                     result.Errors.Add(readError);
                     return result;
@@ -64,9 +64,9 @@ namespace LiteGame.Editor.UiTools.Page
                 }
             }
 
-            var groups = new Dictionary<string, List<UiPageScaffold.PageRow>>(StringComparer.Ordinal);
+            var groups = new Dictionary<string, List<UiPageTableRow>>(StringComparer.Ordinal);
             var knownFormIds = new HashSet<int>();
-            foreach (UiPageScaffold.PageRow row in rows)
+            foreach (UiPageTableRow row in rows)
             {
                 if (row == null) continue;
                 string prefabPath = Normalize(row.PrefabPath);
@@ -81,19 +81,19 @@ namespace LiteGame.Editor.UiTools.Page
                     result.Errors.Add($"重复 formId {row.id}（{name}）");
                     continue;
                 }
-                if (!groups.TryGetValue(name, out List<UiPageScaffold.PageRow> group))
-                    groups[name] = group = new List<UiPageScaffold.PageRow>();
+                if (!groups.TryGetValue(name, out List<UiPageTableRow> group))
+                    groups[name] = group = new List<UiPageTableRow>();
                 group.Add(row);
             }
 
             var pages = new List<UiPageManifestEntry>();
             var byName = new HashSet<string>(StringComparer.Ordinal);
 
-            foreach (KeyValuePair<string, List<UiPageScaffold.PageRow>> pair in
+            foreach (KeyValuePair<string, List<UiPageTableRow>> pair in
                      groups.OrderBy(pair => pair.Key, StringComparer.Ordinal))
             {
                 string name = pair.Key;
-                List<UiPageScaffold.PageRow> groupRows = pair.Value;
+                List<UiPageTableRow> groupRows = pair.Value;
                 string prefabPath = Normalize(groupRows[0].PrefabPath);
 
                 UiPageManifestEntry entry = FindExisting(existing, name, groupRows)
@@ -115,7 +115,12 @@ namespace LiteGame.Editor.UiTools.Page
                         FullScreen = row.fullScreen,
                     })
                     .ToList();
-                entry.CacheStrategy = UiPageContract.DefaultCacheStrategy;
+                if (!UiPageContract.IsValidCacheStrategy(entry.CacheStrategy))
+                {
+                    result.Manifest.Warnings.Add(
+                        $"{name}：cacheStrategy 缺失/非法（{entry.CacheStrategy ?? "null"}）→ {UiPageContract.DefaultCacheStrategy}");
+                    entry.CacheStrategy = UiPageContract.DefaultCacheStrategy;
+                }
                 entry.ContractPath = UiContractPaths.ForPage(name);
                 entry.ContractPresent = File.Exists(UiPageManifestPaths.FullPath(entry.ContractPath));
 
@@ -163,6 +168,9 @@ namespace LiteGame.Editor.UiTools.Page
                 if (oldStatus != UiPageStatus.Draft)
                     result.Manifest.Warnings.Add($"{old.Name}：清单有但 tbuiform 无对应行（状态 {old.Status}）");
 
+                // 草稿页也要刷新契约存在性：草稿契约（formId=0）是登记门槛与漂移规则的输入。
+                old.ContractPath = Contracts.UiContractPaths.ForPage(old.Name);
+                old.ContractPresent = File.Exists(UiPageManifestPaths.FullPath(old.ContractPath));
                 byName.Add(old.Name);
                 pages.Add(old);
             }
@@ -177,8 +185,33 @@ namespace LiteGame.Editor.UiTools.Page
         /// <summary>对账并写盘；负例只返回错误、不落任何文件。</summary>
         public static UiPageManifestSyncResult SyncToDisk(string outputPath = null) => SyncToDisk(null, null, outputPath);
 
+        /// <summary>
+        /// 起页/登记后的对账入口（工具与夹具共用）：读表 → 对账 → 原子写盘，返回可读结论。
+        /// 失败只记结果、不改动已创建页面（清单是注册表、可重生成）。
+        /// </summary>
+        public static string ReconcileToDisk(string outputPath = null)
+        {
+            try
+            {
+                UiPageManifestSyncResult sync = SyncToDisk(outputPath);
+                if (!sync.Ok)
+                {
+                    return "页面清单对账失败：" + sync.ErrorText.Replace("\n", "；")
+                        + "（页面已创建，可重跑 ui.page-manifest）";
+                }
+
+                int pages = sync.Manifest?.Pages?.Count ?? 0;
+                int forms = sync.Manifest?.Pages?.Sum(page => page.Forms?.Count ?? 0) ?? 0;
+                return "页面清单已对账：" + pages + " 页 / " + forms + " 行登记";
+            }
+            catch (Exception exception)
+            {
+                return "页面清单对账异常：" + exception.Message + "（页面已创建，可重跑 ui.page-manifest）";
+            }
+        }
+
         /// <summary>按显式行/清单对账并写盘（测试用）。</summary>
-        public static UiPageManifestSyncResult SyncToDisk(IReadOnlyList<UiPageScaffold.PageRow> rows,
+        public static UiPageManifestSyncResult SyncToDisk(IReadOnlyList<UiPageTableRow> rows,
             UiPageManifest existing, string outputPath = null)
         {
             UiPageManifestSyncResult result = Sync(rows, existing);
@@ -212,7 +245,7 @@ namespace LiteGame.Editor.UiTools.Page
         }
 
         private static UiPageManifestEntry FindExisting(UiPageManifest existing, string name,
-            IReadOnlyList<UiPageScaffold.PageRow> rows)
+            IReadOnlyList<UiPageTableRow> rows)
         {
             if (existing?.Pages == null) return null;
             foreach (UiPageManifestEntry entry in existing.Pages)

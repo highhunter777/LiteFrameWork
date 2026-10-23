@@ -405,6 +405,35 @@
         "600"
       ],
       "timeout": 900
+    },
+    {
+      "name": "ui-page-scaffold-register-editmode",
+      "cmd": [
+        "python",
+        "scripts/gate/unity-tests.py",
+        "--mode",
+        "editor",
+        "--filter",
+        "UiPageScaffoldRegisterEditModeTests",
+        "--timeout",
+        "600"
+      ],
+      "timeout": 900
+    },
+    {
+      "name": "uiform-row-tests",
+      "cmd": [
+        "python",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "scripts/tests",
+        "-p",
+        "test_uiform_row.py",
+        "-v"
+      ],
+      "timeout": 300
     }
   ],
   "red_commands": [

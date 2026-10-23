@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using LiteClient.UI;
 using Newtonsoft.Json;
@@ -18,6 +19,12 @@ namespace LiteGame.Editor.UiTools.Contracts
         /// <see cref="UICacheStrategy"/>；表列落地后只改投影层，不另立第二默认）。
         /// </summary>
         public static readonly string DefaultCacheStrategy = UICacheStrategy.Lru.ToString();
+
+        /// <summary>缓存策略是否在词表内（词表真相＝<see cref="UICacheStrategy"/>）。</summary>
+        public static bool IsValidCacheStrategy(string cacheStrategy)
+            => !string.IsNullOrEmpty(cacheStrategy)
+               && Array.Exists(Enum.GetNames(typeof(UICacheStrategy)),
+                   value => string.Equals(value, cacheStrategy, StringComparison.Ordinal));
 
         [JsonProperty("schemaVersion", Order = 0)]
         public string SchemaVersion { get; set; } = CurrentSchemaVersion;

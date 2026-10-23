@@ -23,11 +23,21 @@ namespace LiteGame.Editor.UiTools.Workbench
         private string _designRef;
         private string _notes;
         private UiPageStatus _status;
+        private string _loadedSourceHash;
 
         private Vector2 _scroll;
 
         /// <summary>选中页面（宿主据此绑定目标 prefab；只读行数据，不改清单）。</summary>
         public event Action<UiWorkbenchPageRow> PageSelected;
+
+        /// <summary>起页请求（宿主打开 `ui.page-scaffold` 窗口）。</summary>
+        public event Action ScaffoldRequested;
+
+        /// <summary>登记请求（宿主打开 `ui.page-register` 窗口并预填选中页）。</summary>
+        public event Action RegisterRequested;
+
+        /// <summary>清单在磁盘上被外部窗口改过（保存前需刷新，避免陈旧覆盖）。</summary>
+        public bool ExternalChanged { get; private set; }
 
         public IReadOnlyList<UiWorkbenchPageRow> Rows => _rows;
 
@@ -70,6 +80,8 @@ namespace LiteGame.Editor.UiTools.Workbench
             }
 
             _selected = -1;
+            _loadedSourceHash = _manifest?.SourceHash;
+            ExternalChanged = false;
             state?.SelectPage(null);
         }
 
@@ -79,27 +91,32 @@ namespace LiteGame.Editor.UiTools.Workbench
             if (_error != null)
             {
                 EditorGUILayout.HelpBox(_error, MessageType.Error);
-                if (GUILayout.Button("重新读取清单", GUILayout.Width(120f))) Reload(state);
+                if (GUILayout.Button("重新读取清单", GUILayout.Width(120f))) Reload(state, _manifestPath);
                 return;
+            }
+
+            if (ExternalChanged)
+            {
+                EditorGUILayout.HelpBox("清单已被外部工具修改；当前未保存编辑未覆盖。", MessageType.Warning);
+                if (GUILayout.Button("放弃本地编辑并重新读取", GUILayout.Width(190f)))
+                {
+                    Reload(state, _manifestPath);
+                    log("[ui/workbench] 已重新读取外部清单（本地未保存编辑已放弃）");
+                }
             }
 
             using (new EditorGUILayout.HorizontalScope())
             {
                 using (new EditorGUI.DisabledScope(!canRun(UiWorkbenchAction.Scaffold)))
                 {
-                    var content = new GUIContent("起页（P2-2）",
-                        disabledReason(UiWorkbenchAction.Scaffold) ?? "起页");
-                    // P2-1 阶段门控保证不可点；启用后由 P2-2 接 ui.page-scaffold（此处只留显式提示，不静默）。
-                    if (GUILayout.Button(content, GUILayout.Width(110f)))
-                        log("[ui/workbench] 起页归 P2-2（ui.page-scaffold），本批未提供");
+                    var content = new GUIContent("起页", disabledReason(UiWorkbenchAction.Scaffold) ?? "起页（仅 prefab + 草稿）");
+                    if (GUILayout.Button(content, GUILayout.Width(90f))) RequestScaffold();
                 }
 
                 using (new EditorGUI.DisabledScope(!canRun(UiWorkbenchAction.Register)))
                 {
-                    var content = new GUIContent("页面登记（P2-2）",
-                        disabledReason(UiWorkbenchAction.Register) ?? "页面登记");
-                    if (GUILayout.Button(content, GUILayout.Width(130f)))
-                        log("[ui/workbench] 登记归 P2-2（ui.page-register），本批未提供");
+                    var content = new GUIContent("页面登记", disabledReason(UiWorkbenchAction.Register) ?? "页面登记（表/Lua/清单）");
+                    if (GUILayout.Button(content, GUILayout.Width(110f))) RequestRegister();
                 }
 
                 GUILayout.FlexibleSpace();
@@ -149,10 +166,12 @@ namespace LiteGame.Editor.UiTools.Workbench
 
             using (new EditorGUI.DisabledScope(!canEdit))
             {
+                EditorGUI.BeginChangeCheck();
                 _owner = EditorGUILayout.TextField("Owner", _owner);
                 _designRef = EditorGUILayout.TextField("设计稿", _designRef);
                 _notes = EditorGUILayout.TextField("备注", _notes);
                 _status = (UiPageStatus)EditorGUILayout.EnumPopup("状态", _status);
+                if (EditorGUI.EndChangeCheck()) state.MarkDirty();   // 未 Apply 的输入也算未保存
 
                 using (new EditorGUILayout.HorizontalScope())
                 {
@@ -167,6 +186,58 @@ namespace LiteGame.Editor.UiTools.Workbench
             }
 
             EditorGUILayout.LabelField(row.PrefabPath, EditorStyles.miniLabel);
+        }
+
+        /// <summary>请求起页（窗口按钮与夹具共用入口）。</summary>
+        public void RequestScaffold() => ScaffoldRequested?.Invoke();
+
+        /// <summary>请求登记（窗口按钮与夹具共用入口）。</summary>
+        public void RequestRegister() => RegisterRequested?.Invoke();
+
+        /// <summary>磁盘清单内容指纹变化且无未保存编辑时重载并保留选中；返回是否重载。</summary>
+        public bool ReloadIfChanged(UiWorkbenchState state)
+        {
+            if (state == null || !ManifestChangedOnDisk()) return false;
+            if (state.HasUnsavedEdits)
+            {
+                ExternalChanged = true;
+                return false;
+            }
+
+            string selected = state.SelectedPage;
+            string target = state.TargetPath;
+            Reload(state, _manifestPath);
+            if (!string.IsNullOrEmpty(selected))
+            {
+                int index = _rows.FindIndex(row => string.Equals(row.Name, selected, StringComparison.Ordinal));
+                if (index >= 0) Select(state, index);
+            }
+            state.SetTarget(target);
+            return true;
+        }
+
+        private bool HasUnappliedEdits(string pageName)
+        {
+            UiPageManifestEntry entry = _manifest?.Pages?.Find(item => item != null &&
+                string.Equals(item.Name, pageName, StringComparison.Ordinal));
+            if (entry == null) return false;
+            return !string.Equals(_owner ?? string.Empty, entry.Owner ?? string.Empty, StringComparison.Ordinal)
+                   || !string.Equals(_designRef ?? string.Empty, entry.DesignRef ?? string.Empty, StringComparison.Ordinal)
+                   || !string.Equals(_notes ?? string.Empty, entry.Notes ?? string.Empty, StringComparison.Ordinal)
+                   || !string.Equals(_status.ToString(), entry.Status ?? string.Empty, StringComparison.Ordinal);
+        }
+
+        private bool ManifestChangedOnDisk()
+        {
+            try
+            {
+                UiPageManifest disk = UiPageManifestStore.LoadIfExists(_manifestPath);
+                return !string.Equals(disk?.SourceHash, _loadedSourceHash, StringComparison.Ordinal);
+            }
+            catch (Exception)
+            {
+                return true;
+            }
         }
 
         /// <summary>当前内存清单的指纹（夹具用于断言“失败不动清单”）。</summary>
@@ -208,6 +279,21 @@ namespace LiteGame.Editor.UiTools.Workbench
 
             _manifest = working;
             state.MarkDirty();
+
+            // 应用成功同步编辑器字段与行投影：调用方显式传值（夹具/工具）与 UI 按钮走同一状态。
+            UiPageManifestEntry applied = working.Pages.Find(item => item != null &&
+                string.Equals(item.Name, row.Name, StringComparison.Ordinal));
+            _owner = applied?.Owner ?? owner;
+            _designRef = applied?.DesignRef ?? designRef;
+            _notes = applied?.Notes ?? notes;
+            if (applied != null && UiPageStatusRules.TryParse(applied.Status, out UiPageStatus appliedStatus))
+                _status = appliedStatus;
+            else
+                _status = status;
+            row.Owner = applied?.Owner;
+            row.DesignRef = applied?.DesignRef;
+            row.Notes = applied?.Notes;
+            row.Status = applied?.Status;
             log("[ui/workbench] 已应用到内存（未保存）：" + row.Name);
             return true;
         }
@@ -218,10 +304,25 @@ namespace LiteGame.Editor.UiTools.Workbench
         public bool TrySave(UiWorkbenchState state, Action<string> log)
         {
             if (_manifest == null) return false;
+            if (ExternalChanged || ManifestChangedOnDisk())
+            {
+                ExternalChanged = true;
+                log("[ui/workbench] 清单已被外部修改（磁盘指纹不一致），拒绝覆盖；请先刷新清单");
+                return false;
+            }
+
+            // 输入即脏，但字段只有「应用到内存」才进 _manifest——未应用的编辑不允许保存后静默丢弃。
+            if (_selected >= 0 && _selected < _rows.Count && HasUnappliedEdits(_rows[_selected].Name))
+            {
+                log("[ui/workbench] 有未应用的编辑：先「应用到内存」再保存（避免静默丢弃）");
+                return false;
+            }
+
             string selectedName = _selected >= 0 && _selected < _rows.Count ? _rows[_selected].Name : null;
             try
             {
                 UiPageManifestStore.Save(_manifest, _manifestPath);
+                _loadedSourceHash = _manifest.SourceHash;
                 state.ClearDirty();
                 log("[ui/workbench] 清单已保存：" + _manifestPath);
                 Reload(state, _manifestPath);

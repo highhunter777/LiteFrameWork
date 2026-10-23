@@ -1,8 +1,7 @@
 using System;
 using System.Collections.Generic;
-using System.Diagnostics;
-using System.IO;
 using System.Linq;
+using System.IO;
 using System.Text;
 using LiteClient.UI;
 using LiteGame.Editor.UiTools.Binding;
@@ -17,155 +16,142 @@ using Debug = UnityEngine.Debug;
 namespace LiteGame.Editor.UiTools.Page
 {
     /// <summary>
-    /// 新建页向导的引擎面（《UI编辑器工具专项设计》§8.3）：脚手架模板、prefab/Lua 生成、
-    /// tbuiform 行追加与 Luban 重生成。窗口只做输入与结果呈现；本类可脱离窗口直测。
+    /// 起页内核（《UI 编辑器工具链专项设计》§3.1）：视觉基线 → 自包含 prefab + 根契约 + 页面清单草稿。
+    /// **不写 Lua、不写 `tbuiform`、不跑 Luban**（归 <see cref="UiPageRegistration"/> 的登记动作）。
     ///
-    /// 表源是唯一数据面：写行由 `scripts/codegen/_uiform_row.py` 完成（校验/备份/回滚），
-    /// 生成物由清单里的 `codegen.luban` 命令重生成。任何一步失败都显式返回，不静默成功。
+    /// 表读写归 <see cref="UiPageTableHelper"/>；本类只负责资产面与页根契约。
     /// </summary>
     public static class UiPageScaffold
     {
         public const string TemplateDir = "Assets/LiteGame/Editor/UiTools/Templates";
         public const string TemplatePath = TemplateDir + "/Tmp_Page.prefab";
         public const string LuaDir = "Assets/LiteGame/Lua/UI";
-        public const string TableRelativePath = "Luban/Data/#uiform.xlsx";
-        public const string HelperRelativePath = "scripts/codegen/_uiform_row.py";
-        public const string LubanToolId = "codegen.luban";
-        public const int ReservedIdFloor = 201;
 
-        public enum Step
+        /// <summary>页根契约参数（模板与起页共用单源）。</summary>
+        public const float ReferenceWidth = 1920f;
+
+        public const float ReferenceHeight = 1080f;
+        public const float MatchWidthOrHeight = 0.5f;
+        public const string SafeAreaName = "Cot_SafeArea";
+
+        /// <summary>视觉基线（§3.1）：标签只用于窗口；路径是唯一真相。</summary>
+        public sealed class UiPageBaseline
         {
-            Validate,
-            CreatePrefab,
-            CreateLua,
-            WriteTable,
-            GenerateLuban,
-            OpenStage,
+            public string Label;
+            public string Path;
         }
 
-        public sealed class Result
+        /// <summary>起页失败步（夹具按步断言）。</summary>
+        public enum ScaffoldFailure
+        {
+            None = 0,
+            Validate,
+            Copy,
+            RootContract,
+            Manifest,
+            NotImplemented,
+        }
+
+        /// <summary>起页结果。</summary>
+        public sealed class ScaffoldResult
         {
             public bool Ok;
+            public ScaffoldFailure FailedAt = ScaffoldFailure.None;
             public string Error;
             public string PrefabPath;
-            public string LuaPath;
-            public string BackupPath;
-            public Step FailedAt;
+            public string ManifestPath;
+            public string EntryName;
             public readonly List<string> Log = new List<string>();
         }
 
-        /// <summary>tbuiform 行投影（页面选择器用；字段名与 Python 助手 JSON 一一对应）。</summary>
-        [Serializable]
-        public sealed class PageRow
+        /// <summary>基线表（单源）：新增基线只加一行；缺失项由窗口禁用并给原因。</summary>
+        public static IReadOnlyList<UiPageBaseline> Baselines { get; } = new List<UiPageBaseline>
         {
-            public int id;
-            public string lua;
-            public string prefab;
-            public int layer;
-            public bool fullScreen;
-
-            public string PrefabPath => "Assets/" + prefab;
-            public string FileName => string.IsNullOrEmpty(prefab)
-                ? string.Empty
-                : prefab.Substring(prefab.LastIndexOf('/') + 1);
-        }
-
-        /// <summary>已登记页面清单（按表顺序；读取失败返回空并记警告，不伪造条目）。</summary>
-        public static List<PageRow> ListPages()
-        {
-            if (TryListPages(out List<PageRow> rows, out string error)) return rows;
-            Debug.LogWarning("[UI 制作] " + error);
-            return new List<PageRow>();
-        }
+            new UiPageBaseline { Label = "全屏基线 A", Path = "Assets/ShareResource/UI/Screens/Tmp_BaselineA.prefab" },
+            new UiPageBaseline { Label = "全屏基线 B", Path = "Assets/ShareResource/UI/Screens/Tmp_BaselineB.prefab" },
+            new UiPageBaseline { Label = "列表页基线", Path = "Assets/ShareResource/UI/Screens/Tmp_ListScreen.prefab" },
+            new UiPageBaseline { Label = "空白骨架", Path = TemplatePath },
+        };
 
         /// <summary>
-        /// 读取页面清单并区分「读取失败」与「空表」（对账/清单工具用：失败必须显式，不得伪造空表）。
+        /// 起页内核（§3.1）：视觉基线复制为自包含 prefab + 补根契约 + 页面清单草稿；不写 Lua、不写表。
+        /// 任一步失败都删除新建 prefab，并把清单恢复为操作前状态（原子失败）。
         /// </summary>
-        public static bool TryListPages(out List<PageRow> rows, out string error)
+        public static ScaffoldResult Scaffold(string pageName, string baselinePath = null,
+            string manifestPath = null, bool openStage = true)
         {
-            var run = RunHelper("--list");
-            if (run.Parsed == null || !run.Parsed.ok)
+            var result = new ScaffoldResult();
+            if (!IsValidPageName(pageName))
+                return Fail(result, ScaffoldFailure.Validate, "页面名须为 Page_<PascalCase>（ASCII 字母数字）");
+
+            string manifest = string.IsNullOrEmpty(manifestPath) ? UiPageManifestPaths.DefaultPath
+                : manifestPath.Replace('\\', '/').Trim();
+            if (!manifest.StartsWith("Assets/", StringComparison.Ordinal) || !manifest.EndsWith(".json", StringComparison.Ordinal))
+                return Fail(result, ScaffoldFailure.Validate, "页面清单路径必须是 Assets/ 下的 .json：" + manifest);
+
+            // 空白骨架是编辑器模板：首次使用时补建，再走存在性校验（不能被“模板不存在”误拒）。
+            if (!string.IsNullOrEmpty(baselinePath)
+                && string.Equals(baselinePath.Replace('\\', '/').Trim(), TemplatePath, StringComparison.Ordinal))
             {
-                rows = null;
-                error = "页面清单读取失败：" + (run.Parsed?.error ?? run.Error);
-                return false;
+                EnsureTemplate();
             }
-            rows = run.Parsed.rows != null ? new List<PageRow>(run.Parsed.rows) : new List<PageRow>();
-            error = null;
-            return true;
-        }
 
-        /// <summary>
-        /// 起页后对账页面清单并落盘（《UI 编辑器工具链专项设计》§8.5）：身份字段以 `tbuiform` 为准、
-        /// 维护字段保留。失败不回滚页面——清单是注册表、可重生成；结论进结果日志，不静默。
-        /// </summary>
-        internal static string ReconcilePageManifest(string outputPath = null)
-        {
+            string baseline = ResolveBaseline(baselinePath);
+            if (string.IsNullOrEmpty(baseline) ||
+                AssetDatabase.LoadAssetAtPath<GameObject>(baseline) == null)
+            {
+                return Fail(result, ScaffoldFailure.Validate,
+                    "视觉基线不存在：" + (baselinePath ?? baseline ?? "（无可用基线）"));
+            }
+
+            string prefabPath = UiValidator.ScreensDir + "/" + pageName + ".prefab";
+            if (AssetDatabase.LoadAssetAtPath<GameObject>(prefabPath) != null || File.Exists(FullPath(prefabPath)))
+                return Fail(result, ScaffoldFailure.Validate, "目标 prefab 已存在：" + prefabPath);
+
+            UiPageManifest existing;
             try
             {
-                UiPageManifestSyncResult sync = UiPageManifestSync.SyncToDisk(outputPath);
-                if (!sync.Ok)
-                {
-                    return "页面清单对账失败：" + sync.ErrorText.Replace("\n", "；")
-                        + "（页面已创建，可重跑 ui.page-manifest）";
-                }
-                int pages = sync.Manifest?.Pages?.Count ?? 0;
-                int forms = sync.Manifest?.Pages?.Sum(page => page.Forms?.Count ?? 0) ?? 0;
-                return "页面清单已对账：" + pages + " 页 / " + forms + " 行登记";
+                existing = UiPageManifestStore.LoadIfExists(manifest);
             }
             catch (Exception exception)
             {
-                return "页面清单对账异常：" + exception.Message + "（页面已创建，可重跑 ui.page-manifest）";
+                return Fail(result, ScaffoldFailure.Validate, "页面清单不可读：" + exception.Message);
             }
-        }
 
-        /// <summary>建议 id：业务页最大 id + 1（跳过系统面/静态先例保留区）。</summary>
-        public static int SuggestId()
-        {
-            var output = RunHelper("--suggest");
-            return output.Parsed != null && output.Parsed.ok ? output.Parsed.id : -1;
-        }
+            UiPageManifestEntry listed = existing?.Pages?.Find(item => item != null &&
+                string.Equals(item.Name, pageName, StringComparison.Ordinal));
+            if (listed != null && listed.Forms != null && listed.Forms.Count > 0)
+                return Fail(result, ScaffoldFailure.Validate, "页面已登记（forms 非空），不能再起页：" + pageName);
 
-        /// <summary>
-        /// 一键起页内核（prefab + Lua + tbuiform + Luban）。**P2-2 接线**：向导退役后暂无窗口消费者，
-        /// P2-2 把它拆成美术起页（仅 prefab）与工程登记两段；当前消费者＝测试与工具脚本。
-        /// </summary>
-        public static Result Create(string pageName, int id, int layer, bool fullScreen, bool openStage = true)
-        {
-            var result = new Result();
+            byte[] manifestBefore;
             try
             {
-                if (!IsValidPageName(pageName))
-                    return Fail(result, Step.Validate, "页面名须为 Page_<PascalCase>（ASCII 字母数字）");
-                if (id <= 0)
-                    return Fail(result, Step.Validate, "id 必须为正整数");
+                manifestBefore = File.Exists(FullPath(manifest)) ? File.ReadAllBytes(FullPath(manifest)) : null;
+            }
+            catch (Exception exception)
+            {
+                return Fail(result, ScaffoldFailure.Validate, "页面清单不可读：" + exception.Message);
+            }
 
-                string prefabPath = UiValidator.ScreensDir + "/" + pageName + ".prefab";
-                string luaPath = LuaDir + "/" + pageName + ".lua";
-                if (AssetDatabase.LoadAssetAtPath<GameObject>(prefabPath) != null
-                    || File.Exists(Path.Combine(ToolchainManifestLoader.ProjectRoot, prefabPath)))
-                    return Fail(result, Step.Validate, "目标 prefab 已存在：" + prefabPath);
-                if (File.Exists(Path.Combine(ToolchainManifestLoader.ProjectRoot, luaPath)))
-                    return Fail(result, Step.Validate, "目标 Lua 已存在：" + luaPath);
-
-                var preflight = RunHelper(
-                    $"--page {Quote(pageName)} --id {id} --layer {layer} " +
-                    $"--full-screen {(fullScreen ? "true" : "false")} --check");
-                if (preflight.Parsed == null || !preflight.Parsed.ok)
-                    return Fail(result, Step.Validate, preflight.Parsed?.error ?? preflight.Error);
-
-                EnsureTemplate();
-                if (AssetDatabase.LoadAssetAtPath<GameObject>(TemplatePath) == null)
-                    return Fail(result, Step.CreatePrefab, "脚手架模板缺失且无法创建：" + TemplatePath);
-
-                // 复制资产而非实例化：页面产物必须是自包含 prefab，不能变成编辑器模板的 variant。
-                if (!AssetDatabase.CopyAsset(TemplatePath, prefabPath))
-                    return Fail(result, Step.CreatePrefab, "复制脚手架模板失败：" + TemplatePath);
+            try
+            {
+                if (!AssetDatabase.CopyAsset(baseline, prefabPath))
+                    return Fail(result, ScaffoldFailure.Copy, "复制视觉基线失败：" + baseline);
                 AssetDatabase.ImportAsset(prefabPath);
-                var contents = PrefabUtility.LoadPrefabContents(prefabPath);
+            }
+            catch (Exception exception)
+            {
+                                return Fail(result, ScaffoldFailure.Copy,
+                    "复制视觉基线失败：" + exception.Message + CleanupFailed(prefabPath, manifest, manifestBefore));
+            }
+
+            try
+            {
+                GameObject contents = PrefabUtility.LoadPrefabContents(prefabPath);
                 try
                 {
                     contents.name = pageName;
+                    EnsureRootContract(contents);
                     PrefabUtility.SaveAsPrefabAsset(contents, prefabPath);
                 }
                 finally
@@ -173,69 +159,100 @@ namespace LiteGame.Editor.UiTools.Page
                     PrefabUtility.UnloadPrefabContents(contents);
                 }
                 AssetDatabase.ImportAsset(prefabPath);
+            }
+            catch (Exception exception)
+            {
+                                return Fail(result, ScaffoldFailure.RootContract,
+                    "补齐页根契约失败：" + exception.Message + CleanupFailed(prefabPath, manifest, manifestBefore));
+            }
+
+            try
+            {
+                var target = existing ?? new UiPageManifest();
+                UiPageManifestEntry draft = UiPageManifestEditor.EnsureDraft(
+                    target, prefabPath, UiPageManifestSync.DefaultOwner, out string draftError);
+                if (draft == null) throw new InvalidOperationException(draftError);
+                UiPageManifestStore.Save(target, manifest);
+
+                result.Ok = true;
                 result.PrefabPath = prefabPath;
+                result.ManifestPath = manifest;
+                result.EntryName = draft.Name;
                 result.Log.Add("prefab：" + prefabPath);
-
-                EnsureFolder(LuaDir);
-                File.WriteAllText(
-                    Path.Combine(ToolchainManifestLoader.ProjectRoot, luaPath),
-                    BuildLuaSkeleton(pageName),
-                    new UTF8Encoding(false));
-                AssetDatabase.ImportAsset(luaPath);
-                result.LuaPath = luaPath;
-                result.Log.Add("Lua：" + luaPath);
-
-                var write = RunHelper(
-                    $"--page {Quote(pageName)} --id {id} --layer {layer} " +
-                    $"--full-screen {(fullScreen ? "true" : "false")} --confirm");
-                if (write.Parsed == null || !write.Parsed.ok)
-                {
-                    DeleteCreated(prefabPath, luaPath);
-                    return Fail(result, Step.WriteTable, write.Parsed?.error ?? write.Error);
-                }
-                result.BackupPath = write.Parsed.backup;
-                result.Log.Add("tbuiform 行已写入（备份：" + write.Parsed.backup + "）");
-
-                var luban = RunToolCommand(LubanToolId);
-                if (!luban.Ok)
-                {
-                    // 表行已写但生成失败：回滚表；prefab/Lua 保留给作者排查，明确告知未登记。
-                    var rollback = string.IsNullOrEmpty(result.BackupPath)
-                        ? null
-                        : RunHelper("--rollback " + Quote(result.BackupPath));
-                    result.Log.Add(rollback != null && rollback.Parsed != null && rollback.Parsed.ok
-                        ? "Luban 失败：表行已回滚（prefab/Lua 保留，未登记）"
-                        : "Luban 失败：表行回滚未完成，请按备份手动恢复：" + result.BackupPath);
-                    return Fail(result, Step.GenerateLuban,
-                        "Luban 重生成失败：" + luban.Error + "\n" + (luban.Output ?? string.Empty));
-                }
-                result.Log.Add("Luban 重生成完成");
-
+                result.Log.Add("草稿：" + manifest + "（" + draft.Status + "）");
                 AssetDatabase.SaveAssets();
                 AssetDatabase.Refresh();
-                result.Log.Add(ReconcilePageManifest());
-                if (!openStage)
-                {
-                    result.Ok = true;
-                    result.Log.Add("未打开 Prefab Stage（测试形态）");
-                    return result;
-                }
-                var stage = PrefabStageUtility.OpenPrefab(prefabPath);
-                if (stage == null)
-                {
-                    result.Ok = true;
+
+                if (openStage && PrefabStageUtility.OpenPrefab(prefabPath) == null)
                     result.Log.Add("Prefab Stage 打开失败，请手动打开：" + prefabPath);
-                    return result;
-                }
-                result.Ok = true;
-                result.Log.Add("Prefab Stage 已打开");
                 return result;
             }
             catch (Exception exception)
             {
-                return Fail(result, Step.Validate, exception.Message);
+                return Fail(result, ScaffoldFailure.Manifest,
+                    exception.Message + CleanupFailed(prefabPath, manifest, manifestBefore));
             }
         }
+
+        private static string ResolveBaseline(string baselinePath)
+        {
+            if (!string.IsNullOrEmpty(baselinePath)) return baselinePath.Replace('\\', '/').Trim();
+            foreach (UiPageBaseline baseline in Baselines)
+            {
+                if (AssetDatabase.LoadAssetAtPath<GameObject>(baseline.Path) != null) return baseline.Path;
+            }
+            return null;
+        }
+
+        /// <summary>清理失败现场并返回**按实际结果**生成的文案（不得在清理失败时宣称已恢复）。</summary>
+        private static string CleanupFailed(string prefabPath, string manifestPath, byte[] manifestBefore)
+        {
+            bool prefabCleaned;
+            try
+            {
+                if (AssetDatabase.LoadAssetAtPath<GameObject>(prefabPath) != null)
+                    AssetDatabase.DeleteAsset(prefabPath);
+                prefabCleaned = AssetDatabase.LoadAssetAtPath<GameObject>(prefabPath) == null && !File.Exists(FullPath(prefabPath));
+            }
+            catch (Exception exception)
+            {
+                prefabCleaned = false;
+                Debug.LogWarning("[UI 起页] 清理新 prefab 失败：" + prefabPath + "：" + exception.Message);
+            }
+
+            bool manifestRestored;
+            try
+            {
+                string full = FullPath(manifestPath);
+                if (manifestBefore != null) File.WriteAllBytes(full, manifestBefore);
+                else if (File.Exists(full)) File.Delete(full);
+                AssetDatabase.Refresh();
+                if (File.Exists(full)) AssetDatabase.ImportAsset(manifestPath);
+                manifestRestored = manifestBefore == null
+                    ? !File.Exists(full)
+                    : File.ReadAllBytes(full).SequenceEqual(manifestBefore);
+            }
+            catch (Exception exception)
+            {
+                manifestRestored = false;
+                Debug.LogWarning("[UI 起页] 恢复清单失败：可重跑 ui.page-manifest：" + exception.Message);
+            }
+
+            return "（" + (prefabCleaned ? "无新建 prefab 残留" : "新建 prefab 清理失败，见 Console")
+                        + "；" + (manifestRestored ? "无清单残留" : "清单恢复失败，可重跑 ui.page-manifest") + "）";
+        }
+
+        private static ScaffoldResult Fail(ScaffoldResult result, ScaffoldFailure step, string error)
+        {
+            result.Ok = false;
+            result.FailedAt = step;
+            result.Error = error;
+            result.Log.Add("失败：" + error);
+            return result;
+        }
+
+        private static string FullPath(string assetPath)
+            => Path.Combine(UiValidator.ProjectRoot, assetPath.Replace('/', Path.DirectorySeparatorChar));
 
         public static bool IsValidPageName(string pageName)
         {
@@ -252,34 +269,10 @@ namespace LiteGame.Editor.UiTools.Page
             if (AssetDatabase.LoadAssetAtPath<GameObject>(TemplatePath) != null) return;
             EnsureFolder(TemplateDir);
 
-            var root = new GameObject("Tmp_Page",
-                typeof(RectTransform), typeof(Canvas), typeof(CanvasScaler), typeof(GraphicRaycaster), typeof(CanvasGroup));
+            var root = new GameObject("Tmp_Page", typeof(RectTransform));
             try
             {
-                var rt = root.GetComponent<RectTransform>();
-                rt.anchorMin = Vector2.zero;
-                rt.anchorMax = Vector2.one;
-                rt.offsetMin = Vector2.zero;
-                rt.offsetMax = Vector2.zero;
-
-                var canvas = root.GetComponent<Canvas>();
-                canvas.renderMode = RenderMode.ScreenSpaceOverlay;
-                canvas.overrideSorting = false;
-
-                var scaler = root.GetComponent<CanvasScaler>();
-                scaler.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
-                scaler.referenceResolution = new Vector2(1920f, 1080f);
-                scaler.screenMatchMode = CanvasScaler.ScreenMatchMode.MatchWidthOrHeight;
-                scaler.matchWidthOrHeight = 0.5f;
-
-                var safe = new GameObject("Cot_SafeArea", typeof(RectTransform), typeof(SafeAreaReceiver));
-                safe.transform.SetParent(root.transform, false);
-                var safeRt = safe.GetComponent<RectTransform>();
-                safeRt.anchorMin = Vector2.zero;
-                safeRt.anchorMax = Vector2.one;
-                safeRt.offsetMin = Vector2.zero;
-                safeRt.offsetMax = Vector2.zero;
-
+                EnsureRootContract(root);
                 PrefabUtility.SaveAsPrefabAsset(root, TemplatePath);
             }
             finally
@@ -289,10 +282,77 @@ namespace LiteGame.Editor.UiTools.Page
             AssetDatabase.SaveAssets();
         }
 
-        private static string BuildLuaSkeleton(string pageName)
+        /// <summary>
+        /// 页根契约（《UI 制作规范》§3.1）：四件套缺则补；安全区优先挂现有拉伸 `Cot_*` 内容容器，
+        /// 无容器则新建 `Cot_SafeArea` 并把原有子节点按序移入（内容跟随安全区）。幂等、可 Undo。
+        /// </summary>
+        public static void EnsureRootContract(GameObject root)
+        {
+            if (root == null) throw new ArgumentNullException(nameof(root));
+
+            var canvas = root.GetComponent<Canvas>();
+            if (canvas == null)
+            {
+                canvas = root.AddComponent<Canvas>();
+                canvas.renderMode = RenderMode.ScreenSpaceOverlay;
+            }
+
+            var scaler = root.GetComponent<CanvasScaler>();
+            if (scaler == null) scaler = root.AddComponent<CanvasScaler>();
+            scaler.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
+            scaler.referenceResolution = new Vector2(ReferenceWidth, ReferenceHeight);
+            scaler.screenMatchMode = CanvasScaler.ScreenMatchMode.MatchWidthOrHeight;
+            scaler.matchWidthOrHeight = MatchWidthOrHeight;
+
+            if (root.GetComponent<GraphicRaycaster>() == null) root.AddComponent<GraphicRaycaster>();
+            if (root.GetComponent<CanvasGroup>() == null) root.AddComponent<CanvasGroup>();
+
+            if (root.GetComponentInChildren<SafeAreaReceiver>(true) != null) return;
+
+            Transform content = FindStretchContainer(root.transform);
+            if (content == null)
+            {
+                var safe = new GameObject(SafeAreaName, typeof(RectTransform));
+                var safeRect = safe.GetComponent<RectTransform>();
+                safeRect.SetParent(root.transform, false);
+                safeRect.anchorMin = Vector2.zero;
+                safeRect.anchorMax = Vector2.one;
+                safeRect.offsetMin = Vector2.zero;
+                safeRect.offsetMax = Vector2.zero;
+                content = safeRect;
+
+                // 无现成内容容器：把原有子节点按序搬入安全区（根与容器同为全屏，布局中性）。
+                Transform rootTransform = root.transform;
+                var children = new List<Transform>();
+                for (int i = 0; i < rootTransform.childCount; i++)
+                {
+                    Transform child = rootTransform.GetChild(i);
+                    if (child != content) children.Add(child);
+                }
+                foreach (Transform child in children) child.SetParent(content, false);
+            }
+
+            content.gameObject.AddComponent<SafeAreaReceiver>();
+        }
+
+        private static Transform FindStretchContainer(Transform root)
+        {
+            for (int i = 0; i < root.childCount; i++)
+            {
+                Transform child = root.GetChild(i);
+                if (!child.name.StartsWith("Cot_", StringComparison.Ordinal)) continue;
+                if (!child.TryGetComponent(out RectTransform rect)) continue;
+                if (rect.anchorMin != Vector2.zero || rect.anchorMax != Vector2.one) continue;
+                return child;
+            }
+
+            return null;
+        }
+
+        internal static string BuildLuaSkeleton(string pageName)
         {
             return
-                $"-- UI/{pageName}.lua：页面骨架（新建页向导生成）\n" +
+                $"-- UI/{pageName}.lua：页面骨架（登记生成）\n" +
                 "local class = require(\"Core.class\")\n\n" +
                 $"local M = class(\"{pageName}\")\n\n" +
                 "function M:ctor()\n" +
@@ -305,23 +365,7 @@ namespace LiteGame.Editor.UiTools.Page
                 "return M\n";
         }
 
-        private static Result Fail(Result result, Step step, string error)
-        {
-            result.Ok = false;
-            result.FailedAt = step;
-            result.Error = error;
-            result.Log.Add("失败：" + error);
-            return result;
-        }
-
-        private static void DeleteCreated(string prefabPath, string luaPath)
-        {
-            if (!string.IsNullOrEmpty(prefabPath)) AssetDatabase.DeleteAsset(prefabPath);
-            if (!string.IsNullOrEmpty(luaPath)) AssetDatabase.DeleteAsset(luaPath);
-            AssetDatabase.SaveAssets();
-        }
-
-        private static void EnsureFolder(string path)
+        internal static void EnsureFolder(string path)
         {
             if (AssetDatabase.IsValidFolder(path)) return;
             string parent = Path.GetDirectoryName(path)?.Replace('\\', '/');
@@ -330,133 +374,5 @@ namespace LiteGame.Editor.UiTools.Page
             EnsureFolder(parent);
             AssetDatabase.CreateFolder(parent, leaf);
         }
-
-        // ---------------- 外部命令 ----------------
-
-        private sealed class HelperResult
-        {
-            public bool ok;
-            public string error;
-            public bool dryRun;
-            public int id;
-            public string[] row;
-            public PageRow[] rows;
-            public string backup;
-            public string table;
-            public string rolledBack;
-        }
-
-        private sealed class HelperRun
-        {
-            public HelperResult Parsed;
-            public string Error;
-        }
-
-        private static HelperRun RunHelper(string arguments)
-        {
-            var run = RunProcess("python", Quote(Path.Combine(ToolchainManifestLoader.ProjectRoot, HelperRelativePath)) + " " + arguments);
-            if (!run.Ok)
-                return new HelperRun { Error = run.Error ?? run.Output };
-            try
-            {
-                var parsed = JsonUtility.FromJson<HelperResult>(ExtractJson(run.Output));
-                if (parsed == null)
-                    return new HelperRun { Error = "表行助手输出无法解析：" + run.Output };
-                return new HelperRun { Parsed = parsed };
-            }
-            catch (Exception exception)
-            {
-                return new HelperRun { Error = "表行助手输出无法解析：" + exception.Message + "\n" + run.Output };
-            }
-        }
-
-        private sealed class ProcessRun
-        {
-            public bool Ok;
-            public int ExitCode;
-            public string Output;
-            public string Error;
-        }
-
-        private static ProcessRun RunToolCommand(string toolId)
-        {
-            var load = ToolchainManifestLoader.Load();
-            if (!load.Ok)
-                return new ProcessRun { Ok = false, Error = string.Join("; ", load.Errors) };
-            var tool = load.Manifest.Tools.FirstOrDefault(item => item.id == toolId);
-            if (tool == null || tool.Command.Length == 0)
-                return new ProcessRun { Ok = false, Error = "工具清单缺少命令：" + toolId };
-
-            string fileName = tool.Command[0];
-            string arguments = string.Join(" ", tool.Command.Skip(1).Select(Quote));
-            if (fileName.EndsWith(".bat", StringComparison.OrdinalIgnoreCase) ||
-                fileName.EndsWith(".cmd", StringComparison.OrdinalIgnoreCase))
-            {
-                arguments = "/c " + Quote(fileName) + (arguments.Length > 0 ? " " + arguments : string.Empty);
-                fileName = "cmd";
-            }
-            return RunProcess(fileName, arguments);
-        }
-
-        private static ProcessRun RunProcess(string fileName, string arguments)
-        {
-            var output = new StringBuilder();
-            var error = new StringBuilder();
-            try
-            {
-                var start = new ProcessStartInfo
-                {
-                    FileName = fileName,
-                    Arguments = arguments,
-                    WorkingDirectory = ToolchainManifestLoader.ProjectRoot,
-                    UseShellExecute = false,
-                    RedirectStandardOutput = true,
-                    RedirectStandardError = true,
-                    CreateNoWindow = true,
-                    StandardOutputEncoding = Encoding.UTF8,
-                    StandardErrorEncoding = Encoding.UTF8,
-                };
-                start.Environment["PYTHONIOENCODING"] = "utf-8";
-                start.Environment["PYTHONUTF8"] = "1";
-
-                using (var process = new Process { StartInfo = start })
-                {
-                    process.OutputDataReceived += (_, args) => { if (args.Data != null) output.AppendLine(args.Data); };
-                    process.ErrorDataReceived += (_, args) => { if (args.Data != null) error.AppendLine(args.Data); };
-                    process.Start();
-                    process.BeginOutputReadLine();
-                    process.BeginErrorReadLine();
-                    if (!process.WaitForExit(300000))
-                    {
-                        try { process.Kill(); } catch { /* best effort */ }
-                        return new ProcessRun { Ok = false, Error = "命令超时（5 分钟）", Output = output.ToString() };
-                    }
-                    process.WaitForExit();
-                    bool ok = process.ExitCode == 0;
-                    return new ProcessRun
-                    {
-                        Ok = ok,
-                        ExitCode = process.ExitCode,
-                        Output = output.ToString(),
-                        Error = ok ? null : (error.Length > 0 ? error.ToString() : "退出码 " + process.ExitCode),
-                    };
-                }
-            }
-            catch (Exception exception)
-            {
-                return new ProcessRun { Ok = false, Error = exception.Message, Output = output.ToString() };
-            }
-        }
-
-        private static string ExtractJson(string text)
-        {
-            if (string.IsNullOrEmpty(text)) return "{}";
-            int start = text.IndexOf('{');
-            int end = text.LastIndexOf('}');
-            return start >= 0 && end > start ? text.Substring(start, end - start + 1) : "{}";
-        }
-
-        private static string Quote(string value)
-            => "\"" + (value ?? string.Empty).Replace("\"", "\\\"") + "\"";
     }
 }

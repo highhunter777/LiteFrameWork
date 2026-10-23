@@ -7,87 +7,6 @@ using LiteGame.Editor.UiTools.Reference;
 
 namespace LiteGame.Editor.UiTools.Contracts
 {
-    /// <summary>批量生成的一条产物记录。</summary>
-    public sealed class UiContractBatchEntry
-    {
-        public string PageName;
-        public string PrefabPath;
-        public string ContractPath;
-    }
-
-    /// <summary>批量生成结果：成功/跳过/告警/错误分开，避免"全有或全无"的假结论。</summary>
-    public sealed class UiContractBatchResult
-    {
-        public readonly List<UiContractBatchEntry> Written = new List<UiContractBatchEntry>();
-        public readonly List<string> Skipped = new List<string>();
-        public readonly List<string> Warnings = new List<string>();
-        public readonly List<string> Errors = new List<string>();
-
-        public bool Ok => Errors.Count == 0;
-
-        public string Summary =>
-            "契约生成：" + Written.Count + " 页 / 跳过 " + Skipped.Count
-            + " / 告警 " + Warnings.Count + " / 错误 " + Errors.Count;
-
-        public string ToReport()
-        {
-            var lines = new List<string> { Summary };
-            foreach (UiContractBatchEntry entry in Written)
-                lines.Add("  写入 " + entry.PageName + " → " + entry.ContractPath);
-            foreach (string item in Skipped) lines.Add("  跳过 " + item);
-            foreach (string item in Warnings) lines.Add("  告警 " + item);
-            foreach (string item in Errors) lines.Add("  错误 " + item);
-            return string.Join("\n", lines);
-        }
-    }
-
-    /// <summary>单页契约对账结果。</summary>
-    public sealed class UiContractDiffEntry
-    {
-        public string PageName;
-        public string ContractPath;
-        public UiContractDiffResult Diff;
-    }
-
-    /// <summary>批量对账结果：破坏性变更与错误分开计数（破坏性＝失败，其余只是变化）。</summary>
-    public sealed class UiContractBatchDiffResult
-    {
-        public readonly List<UiContractDiffEntry> Compared = new List<UiContractDiffEntry>();
-        public readonly List<string> MissingBaseline = new List<string>();
-        public readonly List<string> Warnings = new List<string>();
-        public readonly List<string> Errors = new List<string>();
-
-        public int BreakingCount => Compared.Count(entry => entry.Diff != null && entry.Diff.HasBreaking);
-
-        public int ChangedCount => Compared.Count(entry => entry.Diff != null && !entry.Diff.IsEmpty);
-
-        public bool Ok => Errors.Count == 0 && BreakingCount == 0;
-
-        public string Summary =>
-            "契约对账：" + Compared.Count + " 页 / 变更 " + ChangedCount + "（破坏性 " + BreakingCount + "）"
-            + " / 无基线 " + MissingBaseline.Count + " / 错误 " + Errors.Count;
-
-        public string ToReport()
-        {
-            var lines = new List<string> { Summary };
-            foreach (UiContractDiffEntry entry in Compared)
-            {
-                if (entry.Diff == null || entry.Diff.IsEmpty) continue;
-                lines.Add("  " + entry.PageName + "：变更 " + entry.Diff.Changes.Count
-                    + (entry.Diff.HasBreaking ? "（含破坏性）" : string.Empty));
-                foreach (UiContractChange change in entry.Diff.Changes)
-                {
-                    lines.Add("    [" + change.Kind + (change.Breaking ? "/破坏" : string.Empty) + "] "
-                        + change.Section + " " + change.Key + " " + change.Detail);
-                }
-            }
-            foreach (string item in MissingBaseline) lines.Add("  无基线 " + item);
-            foreach (string item in Warnings) lines.Add("  告警 " + item);
-            foreach (string item in Errors) lines.Add("  错误 " + item);
-            return string.Join("\n", lines);
-        }
-    }
-
     /// <summary>
     /// 页面契约批处理（《UI 编辑器工具链专项设计》§5/§8.3）：`tbuiform` 只读一次、按 prefab 去重，
     /// 生成/对账两入口。生成器仍是单页真相，本类只做编排——不复制接口面定义、不另造 metadata。
@@ -105,7 +24,7 @@ namespace LiteGame.Editor.UiTools.Contracts
         /// 事件接线从页面 Lua 源提取后应用进 events[]。清单缺本页条目＝投影留空并告警（不臆造）。
         /// </summary>
         public static UiContractGenerationResult GenerateRegistered(string prefabPath,
-            IReadOnlyList<UiPageScaffold.PageRow> rows, UiPageManifest manifest)
+            IReadOnlyList<UiPageTableRow> rows, UiPageManifest manifest)
         {
             UiContractGenerationResult result = UiContractGenerator.GenerateRegistered(prefabPath, rows);
             if (!result.Ok) return result;
@@ -118,7 +37,7 @@ namespace LiteGame.Editor.UiTools.Contracts
         /// 同步由 `ui.page-manifest` 规则另辖），维护字段与事件接线同批量口径。`ui.contract-drift` 规则与
         /// 本方法共用一份「什么算与盘上一致」，不另立重生成语义。
         /// </summary>
-        public static UiContractGenerationResult Regenerate(UiPageManifestEntry entry)
+        public static UiContractGenerationResult Regenerate(UiPageManifestEntry entry, bool allowDraft = false)
         {
             if (entry == null || string.IsNullOrEmpty(entry.PrefabPath))
             {
@@ -128,9 +47,14 @@ namespace LiteGame.Editor.UiTools.Contracts
             }
             if (entry.Forms == null || entry.Forms.Count == 0)
             {
-                var draft = new UiContractGenerationResult();
-                draft.Errors.Add("清单条目无登记行（草稿）——契约对账不辖");
-                return draft;
+                if (!allowDraft)
+                {
+                    var draft = new UiContractGenerationResult();
+                    draft.Errors.Add("清单条目无登记行（草稿）——契约对账不辖");
+                    return draft;
+                }
+
+                return GenerateDraft(entry);
             }
             var primary = entry.Forms[0];
             UiContractGenerationResult result = UiContractGenerator.Generate(entry.PrefabPath, new UiPageMetadata
@@ -148,7 +72,56 @@ namespace LiteGame.Editor.UiTools.Contracts
             return result;
         }
 
-        /// <summary>投影维护字段并应用事件接线（清单缺条目＝告警不臆造；Lua 源缺失＝events 留空并告警）。</summary>
+        /// <summary>
+        /// 草稿契约（§3.5/§3.6 登记门槛）：未登记页用 `formId=0` + 草稿层/全屏默认 + 清单维护字段生成；
+        /// 登记后由 <see cref="Regenerate"/> 以真实身份覆盖。同一口径供批量/漂移共用。
+        /// </summary>
+        public static UiContractGenerationResult GenerateDraft(UiPageManifestEntry entry)
+        {
+            if (entry == null || string.IsNullOrEmpty(entry.PrefabPath))
+            {
+                var bad = new UiContractGenerationResult();
+                bad.Errors.Add("草稿条目无效（缺 prefab 路径）");
+                return bad;
+            }
+
+            UiContractGenerationResult result = UiContractGenerator.Generate(entry.PrefabPath, new UiPageMetadata
+            {
+                IsDraft = true,
+                FormId = 0,
+                LuaPath = null,
+                Layer = UiContractGenerator.DraftLayer,
+                FullScreen = UiContractGenerator.DraftFullScreen,
+                CacheStrategy = UiPageContract.IsValidCacheStrategy(entry.CacheStrategy)
+                    ? entry.CacheStrategy
+                    : UiPageContract.DefaultCacheStrategy,
+                Owner = entry.Owner,
+                DesignRef = entry.DesignRef,
+            });
+            if (!result.Ok) return result;
+            UiContractGenerator.ApplyManifestEditorial(result.Contract, entry);
+            return result;
+        }
+
+        /// <summary>清单中的草稿页（forms 空、status Draft、prefab 存在、不重复已登记页）。</summary>
+        private static IEnumerable<UiPageManifestEntry> DraftEntries(UiPageManifest manifest,
+            ICollection<string> registered)
+        {
+            if (manifest?.Pages == null) yield break;
+            foreach (UiPageManifestEntry entry in manifest.Pages
+                         .Where(page => page != null)
+                         .OrderBy(page => page.Name, StringComparer.Ordinal))
+            {
+                if (string.IsNullOrEmpty(entry.Name) || registered.Contains(entry.Name)) continue;
+                if (entry.Forms != null && entry.Forms.Count > 0) continue;
+                if (!UiPageStatusRules.TryParse(entry.Status, out UiPageStatus status)
+                    || status != UiPageStatus.Draft) continue;
+                if (!UiContractGenerator.IsContractPageName(entry.Name)) continue;
+                if (!File.Exists(UiContractPaths.FullPath(entry.PrefabPath))) continue;
+                yield return entry;
+            }
+        }
+
         private static void ApplyEditorialAndEvents(UiContractGenerationResult result, UiPageManifestEntry entry)
         {
             if (entry == null)
@@ -195,16 +168,17 @@ namespace LiteGame.Editor.UiTools.Contracts
             }
         }
 
-        public static UiContractBatchResult Generate(string outputDirectory = null)
+        public static UiContractBatchResult Generate(string outputDirectory = null, UiPageManifest manifest = null)
         {
             var result = new UiContractBatchResult();
-            if (!UiPageScaffold.TryListPages(out List<UiPageScaffold.PageRow> rows, out string readError))
+            if (!UiPageTableHelper.TryListPages(out List<UiPageTableRow> rows, out string readError))
             {
                 result.Errors.Add(readError);
                 return result;
             }
-            UiPageManifest manifest = TryLoadManifest();
-            if (manifest == null) result.Warnings.Add("页面清单缺失——owner/designRef 与 events[] 不投影（重跑 ui.page-manifest）");
+            manifest = manifest ?? TryLoadManifest();
+            if (manifest == null)
+                result.Warnings.Add("页面清单缺失——草稿契约未纳入，owner/designRef 与 events[] 不投影（重跑 ui.page-manifest）");
 
             if (!TryResolveDirectory(outputDirectory, out string directory, out string directoryError))
             {
@@ -212,10 +186,12 @@ namespace LiteGame.Editor.UiTools.Contracts
                 return result;
             }
 
-            foreach (KeyValuePair<string, List<UiPageScaffold.PageRow>> group in GroupByPrefab(rows))
+            var registered = new HashSet<string>(StringComparer.Ordinal);
+            foreach (KeyValuePair<string, List<UiPageTableRow>> group in GroupByPrefab(rows))
             {
                 string prefabPath = group.Key;
                 string pageName = Path.GetFileNameWithoutExtension(prefabPath);
+                registered.Add(pageName);
                 if (!UiContractGenerator.IsContractPageName(pageName))
                 {
                     result.Skipped.Add(pageName + "（根名不在 Page_/Hud_/Tmp_ 契约面）");
@@ -248,18 +224,46 @@ namespace LiteGame.Editor.UiTools.Contracts
                     ContractPath = contractPath,
                 });
             }
+
+            foreach (UiPageManifestEntry entry in DraftEntries(manifest, registered))
+            {
+                UiContractGenerationResult generated = GenerateDraft(entry);
+                if (!generated.Ok)
+                {
+                    result.Errors.Add(entry.Name + "：" + generated.ErrorText);
+                    continue;
+                }
+                foreach (string warning in generated.Warnings) result.Warnings.Add(entry.Name + "：" + warning);
+                string contractPath = ContractPathOf(directory, entry.Name);
+                try
+                {
+                    UiContractStore.Save(contractPath, generated.Contract);
+                }
+                catch (Exception exception)
+                {
+                    result.Errors.Add(entry.Name + " 写盘失败：" + exception.Message);
+                    continue;
+                }
+                result.Written.Add(new UiContractBatchEntry
+                {
+                    PageName = entry.Name,
+                    PrefabPath = entry.PrefabPath,
+                    ContractPath = contractPath,
+                    Draft = true,
+                });
+            }
             return result;
         }
 
-        public static UiContractBatchDiffResult Diff(string baselineDirectory = null)
+        public static UiContractBatchDiffResult Diff(string baselineDirectory = null, UiPageManifest manifest = null)
         {
             var result = new UiContractBatchDiffResult();
-            if (!UiPageScaffold.TryListPages(out List<UiPageScaffold.PageRow> rows, out string readError))
+            if (!UiPageTableHelper.TryListPages(out List<UiPageTableRow> rows, out string readError))
             {
                 result.Errors.Add(readError);
                 return result;
             }
-            UiPageManifest manifest = TryLoadManifest();
+            manifest = manifest ?? TryLoadManifest();
 
             if (!TryResolveDirectory(baselineDirectory, out string directory, out string directoryError))
             {
@@ -267,10 +271,12 @@ namespace LiteGame.Editor.UiTools.Contracts
                 return result;
             }
 
-            foreach (KeyValuePair<string, List<UiPageScaffold.PageRow>> group in GroupByPrefab(rows))
+            var registered = new HashSet<string>(StringComparer.Ordinal);
+            foreach (KeyValuePair<string, List<UiPageTableRow>> group in GroupByPrefab(rows))
             {
                 string prefabPath = group.Key;
                 string pageName = Path.GetFileNameWithoutExtension(prefabPath);
+                registered.Add(pageName);
                 if (!UiContractGenerator.IsContractPageName(pageName))
                 {
                     result.Warnings.Add(pageName + " 未纳入契约：常驻壳/非页面根不产页面契约");
@@ -307,6 +313,36 @@ namespace LiteGame.Editor.UiTools.Contracts
                     result.Errors.Add(pageName + " 基线读取失败：" + exception.Message);
                 }
             }
+
+            foreach (UiPageManifestEntry entry in DraftEntries(manifest, registered))
+            {
+                UiContractGenerationResult current = GenerateDraft(entry);
+                if (!current.Ok)
+                {
+                    result.Errors.Add(entry.Name + " 生成失败：" + current.ErrorText);
+                    continue;
+                }
+                string contractPath = ContractPathOf(directory, entry.Name);
+                if (!File.Exists(UiContractPaths.FullPath(contractPath)))
+                {
+                    result.MissingBaseline.Add(entry.Name + "（" + contractPath + "）");
+                    continue;
+                }
+                try
+                {
+                    UiPageContract baseline = UiContractStore.Load(contractPath);
+                    result.Compared.Add(new UiContractDiffEntry
+                    {
+                        PageName = entry.Name,
+                        ContractPath = contractPath,
+                        Diff = UiContractDiff.Compare(baseline, current.Contract),
+                    });
+                }
+                catch (Exception exception)
+                {
+                    result.Errors.Add(entry.Name + " 基线读取失败：" + exception.Message);
+                }
+            }
             return result;
         }
 
@@ -331,18 +367,18 @@ namespace LiteGame.Editor.UiTools.Contracts
         }
 
         /// <summary>按 prefab 去重（保持确定性：键序按路径排序），同页多行归一组。</summary>
-        private static List<KeyValuePair<string, List<UiPageScaffold.PageRow>>> GroupByPrefab(
-            IReadOnlyList<UiPageScaffold.PageRow> rows)
+        private static List<KeyValuePair<string, List<UiPageTableRow>>> GroupByPrefab(
+            IReadOnlyList<UiPageTableRow> rows)
         {
-            var map = new Dictionary<string, List<UiPageScaffold.PageRow>>(StringComparer.Ordinal);
-            foreach (UiPageScaffold.PageRow row in rows ?? Array.Empty<UiPageScaffold.PageRow>())
+            var map = new Dictionary<string, List<UiPageTableRow>>(StringComparer.Ordinal);
+            foreach (UiPageTableRow row in rows ?? Array.Empty<UiPageTableRow>())
             {
                 if (row == null) continue;
                 string path = (row.PrefabPath ?? string.Empty).Replace('\\', '/').Trim();
                 if (path.Length == 0) continue;
-                if (!map.TryGetValue(path, out List<UiPageScaffold.PageRow> list))
+                if (!map.TryGetValue(path, out List<UiPageTableRow> list))
                 {
-                    list = new List<UiPageScaffold.PageRow>();
+                    list = new List<UiPageTableRow>();
                     map.Add(path, list);
                 }
                 list.Add(row);
@@ -350,7 +386,7 @@ namespace LiteGame.Editor.UiTools.Contracts
 
             return map.Keys
                 .OrderBy(path => path, StringComparer.Ordinal)
-                .Select(path => new KeyValuePair<string, List<UiPageScaffold.PageRow>>(path, map[path]))
+                .Select(path => new KeyValuePair<string, List<UiPageTableRow>>(path, map[path]))
                 .ToList();
         }
     }

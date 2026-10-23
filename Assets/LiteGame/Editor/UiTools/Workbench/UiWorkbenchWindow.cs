@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using LiteGame.Editor.UiTools.Compose;
+using LiteGame.Editor.UiTools.Page;
 using LiteGame.Editor.UiTools.Preview;
 using UnityEditor;
 using UnityEditor.SceneManagement;
@@ -55,6 +56,8 @@ namespace LiteGame.Editor.UiTools.Workbench
             _state.SetPerspective(_settings.Perspective);
             BuildDrawers();
             _page.PageSelected += OnPageSelected;
+            _page.ScaffoldRequested += OnScaffoldRequested;
+            _page.RegisterRequested += OnRegisterRequested;
             _page.Reload(_state);
             FollowTarget();
         }
@@ -68,6 +71,8 @@ namespace LiteGame.Editor.UiTools.Workbench
             }
 
             if (_page != null) _page.PageSelected -= OnPageSelected;
+            if (_page != null) _page.ScaffoldRequested -= OnScaffoldRequested;
+            if (_page != null) _page.RegisterRequested -= OnRegisterRequested;
 
             // 关闭时未保存提示（域重载/编译/进出 Play 不弹，避免打断导入与运行）。
             if (_state == null || !_state.HasUnsavedEdits || EditorApplication.isCompiling
@@ -86,7 +91,20 @@ namespace LiteGame.Editor.UiTools.Workbench
             }
         }
 
-        /// <summary>页面透视选中行 → 宿主绑定目标 prefab（共享上下文的目标单源在宿主）。</summary>
+        /// <summary>工具菜单/夹具可直接打开两个子工具；工作台按钮是编排入口。</summary>
+        private void OnScaffoldRequested()
+        {
+            UiPageScaffoldWindow.Open();
+            _status = LogPrefix + " 已打开起页窗口";
+            Repaint();
+        }
+
+        private void OnRegisterRequested()
+        {
+            UiPageRegisterWindow.Open(_state.SelectedPage);
+            _status = LogPrefix + " 已打开页面登记窗口";
+            Repaint();
+        }
         private void OnPageSelected(UiWorkbenchPageRow row)
         {
             var prefab = row == null ? null : AssetDatabase.LoadAssetAtPath<GameObject>(row.PrefabPath);
@@ -372,7 +390,12 @@ namespace LiteGame.Editor.UiTools.Workbench
         }
 
         /// <summary>窗口重新获得焦点时恢复目标跟随（打开/切换 Stage 后回绑）。</summary>
-        private void OnFocus() => FollowTarget();
+        private void OnFocus()
+        {
+            if (_page != null && _state != null && _page.ReloadIfChanged(_state))
+                _status = LogPrefix + " 清单已被外部工具更新，已重载";
+            FollowTarget();
+        }
 
         private void BindTarget(GameObject prefab)
         {

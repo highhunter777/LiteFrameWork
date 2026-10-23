@@ -13,5 +13,8 @@ namespace LiteGame.Editor.UiTools.Contracts
         public string CacheStrategy { get; set; } = UiPageContract.DefaultCacheStrategy;
         public string Owner { get; set; }
         public string DesignRef { get; set; }
+
+        /// <summary>草稿契约（未登记 `tbuiform`）：`formId=0`、`luaPath=null`、使用草稿默认层/全屏。</summary>
+        public bool IsDraft { get; set; }
     }
 }

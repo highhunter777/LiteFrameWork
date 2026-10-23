@@ -136,6 +136,47 @@
       "order": 30
     },
     {
+      "id": "ui.page-scaffold",
+      "title": "起页（美术）",
+      "category": "ui",
+      "kind": "window",
+      "plane": "editor",
+      "purpose": "dev",
+      "handler": "ui.page-scaffold",
+      "summary": "从视觉基线复制自包含 prefab、补页根契约并写页面清单草稿；不写 Lua/表。",
+      "docs": "Docs/设计文档/客户端/UI系统/UI编辑器工具链专项设计.md",
+      "menu": "LiteGame/UI/制作/起页（仅 prefab）",
+      "writes": ["asset"],
+      "outputs": [
+        { "path": "Assets/ShareResource/UI/Screens/", "kind": "asset" },
+        { "path": "Assets/LiteGame/Editor/UiTools/UiPageManifest.json", "kind": "data" }
+      ],
+      "destructive": false,
+      "order": 35
+    },
+    {
+      "id": "ui.page-register",
+      "title": "页面登记（工程）",
+      "category": "ui",
+      "kind": "window",
+      "plane": "editor",
+      "purpose": "dev",
+      "handler": "ui.page-register",
+      "summary": "草稿页登记：契约门槛校验、tbuiform 行、Lua 骨架、Luban+BuildHash、清单状态/缓存与契约刷新。",
+      "docs": "Docs/设计文档/客户端/UI系统/UI编辑器工具链专项设计.md",
+      "menu": "LiteGame/UI/制作/页面登记",
+      "writes": ["asset", "source", "generated"],
+      "outputs": [
+        { "path": "Luban/Data/#uiform.xlsx", "kind": "data" },
+        { "path": "Assets/LiteGame/Lua/UI/", "kind": "source" },
+        { "path": "Assets/GameData/Generated/", "kind": "generated" },
+        { "path": "Assets/LiteGame/Editor/UiTools/UiPageManifest.json", "kind": "data" },
+        { "path": "Assets/LiteGame/Editor/UiTools/Contracts/", "kind": "data" }
+      ],
+      "destructive": false,
+      "order": 36
+    },
+    {
       "id": "ui.validate",
       "title": "校验 UI 资产",
       "category": "ui",
