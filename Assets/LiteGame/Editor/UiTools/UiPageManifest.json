@@ -202,26 +202,8 @@
       "contractPath": "Assets/LiteGame/Editor/UiTools/Contracts/Tmp_Toast.contract.json",
       "contractPresent": true,
       "deviceProfiles": []
-    },
-    {
-      "name": "UIMain",
-      "prefabPath": "Assets/ShareResource/UI/Screens/UIMain.prefab",
-      "forms": [
-        {
-          "formId": 1,
-          "layer": 0,
-          "fullScreen": true
-        }
-      ],
-      "luaPath": "UI.UIMain",
-      "cacheStrategy": "Lru",
-      "owner": "art.ui",
-      "status": "Registered",
-      "contractPath": "Assets/LiteGame/Editor/UiTools/Contracts/UIMain.contract.json",
-      "contractPresent": false,
-      "deviceProfiles": []
     }
   ],
   "warnings": [],
-  "sourceHash": "sha256:7e6878d3d157fba9a6e49f09167bbe5c4e55f16488a86b932c4d2c1e2e8087b0"
+  "sourceHash": "sha256:df9d84d13c60813088e8c7a5d5f03831835b25b4f9a787338a1262da664c495d"
 }

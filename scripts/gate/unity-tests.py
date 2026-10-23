@@ -113,14 +113,43 @@ def ensure_compiled(wait_seconds=180):
     return True
 
 
+def wait_editor_ready(wait_seconds=180):
+    """测试发射前等编辑器真正可接收命令：域重载/编译/Play 都结束。
+    域重载期间发射 `run_tests` 会留下孤儿 request（runner 只 reattach 不启动），表现为 test_status 永 running。"""
+    deadline = time.time() + wait_seconds
+    while True:
+        st = _result(_run_json(["command", "--timeout", "20", "editor_status"], timeout=30))
+        if (isinstance(st, dict) and st.get("status") == "ready"
+                and not st.get("compiling") and not st.get("domainReloadInProgress")
+                and str(st.get("playMode")) == "stopped"):
+            return True
+        if time.time() >= deadline:
+            print("editor not ready for tests (domain reload/compiling/play mode not stopped); "
+                  "keep the Unity window restored and retry", file=sys.stderr)
+            return False
+        time.sleep(2)
+
+
+def _status_mtime():
+    try:
+        return os.path.getmtime(os.path.join("Temp", "pipeline_test_status.json"))
+    except OSError:
+        return None
+
+
 def run_async(args):
     """EditMode/PlayMode 统一走异步通道：同步 `run_tests` 受管线命令 30s 传输超时约束，
     长夹具会被中途取消（且可能只带回已完成用例的 summary——假绿风险）。
-    异步发射后轮询 `test_status` 终态（completed/failed/error/cancelled/interrupted）判绿红。"""
+    异步发射后轮询 `test_status` 终态（completed/failed/error/cancelled/interrupted）判绿红。
+
+    注意：`run_tests` 的工具参数 `--timeout` 若放在 `--filter` 之后，CLI 会丢 filter（实测跑全集）；
+    这里只用工具默认 300s，外层 `args.timeout` 只做轮询上限。"""
     launch = ["unity", "command", "run_tests", "--mode", args.mode,
-              "--async_tests", "--filter", args.filter, "--timeout", str(args.timeout)]
+              "--async_tests", "--filter", args.filter]
     if args.filter_type:
         launch.extend(["--filter_type", args.filter_type])
+    stale_mtime = _status_mtime()
+    started = time.time()
     try:
         subprocess.run(launch, capture_output=True, text=True, encoding="utf-8",
                        errors="replace", timeout=45)
@@ -136,6 +165,14 @@ def run_async(args):
         payload = _result(_run_json(["command", "--timeout", "20", "test_status"], timeout=30))
         status = payload.get("status")
         if status in ("completed", "failed", "error", "interrupted", "cancelled"):
+            # 发射前遗留的 completed 状态（上一轮/被杀任务）不得当本轮结果；等新文件出现
+            mtime = _status_mtime()
+            if status == "completed" and mtime is not None and mtime < started - 0.5:
+                if time.time() >= deadline:
+                    print("test_status stayed stale after launch——async run did not start", file=sys.stderr)
+                    return 1
+                time.sleep(3)
+                continue
             break
         if status == "idle":
             print("test_status=idle——异步任务未启动（发射请求未达服务端）", file=sys.stderr)
@@ -156,11 +193,17 @@ def run_async(args):
     summary = payload.get("summary") or {}
     total = int(summary.get("total", 0) or 0)
     failed = int(summary.get("failed", 0) or 0)
+    results = payload.get("results") or []
     if total <= 0:
         print(f"test run selected 0 tests (filter: {args.filter})", file=sys.stderr)
         return 1
+    if args.filter and (args.filter_type is None or args.filter_type.lower() == "testname"):
+        if not any(args.filter.lower() in str(case.get("FullName") or "").lower() for case in results):
+            print(f"filter not reflected in results (filter: {args.filter})——疑似跑了陈旧/全集结果",
+                  file=sys.stderr)
+            return 1
     if failed > 0:
-        for case in payload.get("results") or []:
+        for case in results:
             if case.get("Status") == "Failed":
                 print(f"FAILED: {case.get('FullName')}: {case.get('Message')}", file=sys.stderr)
         print(f"tests: {failed}/{total} failed", file=sys.stderr)
@@ -184,6 +227,9 @@ def main(argv=None):
     args = parser.parse_args(argv)
 
     if not ensure_compiled():
+        return 1
+
+    if not wait_editor_ready():
         return 1
 
     return run_async(args)

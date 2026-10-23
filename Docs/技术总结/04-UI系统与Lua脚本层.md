@@ -90,7 +90,7 @@ Loading → Active ⇄ Covered / Paused → Closing → Recycled → Disposed
 | `ContentLuaRegistry` | `tbcontententry.entry` | Lua 模块表 | `tbcontententry` |
 | `StrategyLuaRegistry` | `tbstrategy.lua_path` | 策略表 | `tbstrategy` |
 
-`LuaKeys.g.cs` 是生成物，当前 7 个 UI 常量：`Page_Login/Lobby/Room/Result/Settings/Records` + `UIMain`。`ValidateKnownKeys` 兜底校验其中 1 个（`UI.UIMain`）。
+`LuaKeys.g.cs` 是生成物，当前 6 个 UI 常量：`Page_Login/Lobby/Room/Result/Settings/Records`。`ValidateKnownKeys` 兜底校验其中 1 个（`UI.Page_Login`；UIMain 样例页已于 2026-10-23 退役）。
 
 ### 6.2 五步预载
 
@@ -165,11 +165,11 @@ Lua 侧只能经白名单门面访问 C#：`data`、`ui`、`content`、`text`（
 
 ## 8. 页面与控件现状
 
-- **页面**：`ShareResource/UI/Screens` 有 7 个产品页 prefab（`Page_Login/Lobby/Room/Result/Settings/Records` + `UIMain`）与 6 个模板（`Tmp_BaselineA/B`、`Tmp_Dialog`、`Tmp_ListScreen`、`Tmp_Loading`、`Tmp_Toast`）。
+- **页面**：`ShareResource/UI/Screens` 有 6 个产品页 prefab（`Page_Login/Lobby/Room/Result/Settings/Records`）、6 个产品模板（`Tmp_BaselineA/B`、`Tmp_Dialog`、`Tmp_ListScreen`、`Tmp_Loading`、`Tmp_Toast`）与 1 个测试载体 `Tmp_UiTestPage`（UIMain 退役后改名的 UI 栈夹具，不登记 tbuiform/页面清单）。
 - **控件模板**：`ShareResource/UI/Widgets` 有 30 个 prefab；生产接线集中在 `ProgressBar`/`HpBar`/`Countdown`/`Toast`/`UIBubble`/`FlyTextPool`/`UIWidget`/`VirtualList`/`UIDialog`/`LoadingMask`。
 - **未接线控件**：`AvatarFrame`/`GuideHighlight`/`StarRating`/`Stepper`/`BottomNav`/`TabGroup`/`SafeAreaReceiver`/`SimpleListView` 等多数只有模板 + `UIDemoPage` 全展 + 测试，不能宣称"已接入业务"。
 - **红点链**：`RedDotRegistry` 在 `UiServiceModule` 建实例并 `context.Put`，但 C# 侧**无 `Evaluate` 调用点**；`RedDot`/`RedDotTree` 只在 `UIDemoPage` 里 new，未接入 `UIBindIndex`。
-- **主流程**：`ProcedureMain` 现在会 `PageFlow.OpenLanding` 开登录/大厅页；`UIMain` 是样例页，主流程不打开它。
+- **主流程**：`ProcedureMain` 会 `PageFlow.OpenLanding` 开登录/大厅页；`UIMain` 样例页已退役，不再是入口或注册页。
 
 ## 9. 边界与坑
 
@@ -178,7 +178,7 @@ Lua 侧只能经白名单门面访问 C#：`data`、`ui`、`content`、`text`（
 3. **控件"有模板"≠"有消费者"**：30 个控件里大量仅测试覆盖。
 4. **Lua 调试器/信号器未接线**：`LuaPanda.lua` 无 require，`Core/eventer.lua` 无调用方。
 5. **文档与工具名漂移**：08 手册仍称"UI 工作台/起页/登记"目标流程，当前代码窗口叫「UI 制作」「新建 UI 页面」；旧 `ui.compose` 现在是新窗口，不是旧工具。
-6. **UIMain 不是产品入口**：主流程开的是登录/大厅；把 `UIMain` 当入口会误判"主流程不开 UI"。
+6. **UIMain 已退役**：产品入口是登录/大厅；UIMain 的 prefab/Lua 已改为测试载体 `Tmp_UiTestPage`/`Tests.UiTestPage`，不再登记 tbuiform 或产出 LuaKeys 常量。
 7. **Bridge.content 零消费**：门面存在但没有 Lua 调用方，改它时要先找消费者。
 
 ## 10. 本章要点

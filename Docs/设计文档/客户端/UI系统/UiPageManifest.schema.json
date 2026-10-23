@@ -56,7 +56,7 @@
       "properties": {
         "name": {
           "type": "string",
-          "pattern": "^(Page|Hud|Tmp|UIMain)_?[A-Za-z0-9_]*$",
+          "pattern": "^(Page|Hud|Tmp)_?[A-Za-z0-9_]*$",
           "description": "页面名（= prefab 根名 = 文件名）。"
         },
         "prefabPath": {

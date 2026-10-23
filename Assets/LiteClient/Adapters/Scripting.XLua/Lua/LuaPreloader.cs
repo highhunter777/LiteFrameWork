@@ -11,7 +11,7 @@ namespace LiteClient
     /// require 链上任何一个未缓存文件都意味着运行中途炸——不能带缺口进 Main（§3.4 致命级）。
     /// 清单来源：**tag `lua` 经 `GetAssetInfos("lua")`**——3.0.5 该重载即按 tag 查询，
     /// 无目录枚举 API（收集器 AssetTags 必须配 `lua`）。
-    /// key = require 路径：剥 `Assets/LiteGame/Lua/` 前缀与 `.lua` 后缀（如 `ui/UIMain`、`cfg/tbuiform`）。
+    /// key = require 路径：剥 `Assets/LiteGame/Lua/` 前缀与 `.lua` 后缀（如 `ui/Page_Login`、`cfg/tbuiform`）。
     /// 生命周期：Preload 锚点构造并填充，DevReload 时清空重载（§2.7）。
     ///
     /// 候选通道（《热更与内容发布专项设计》§10）：

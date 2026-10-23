@@ -20,8 +20,8 @@ namespace LiteClient.UI
     public sealed class UIFormInfo
     {
         public int Id;
-        public string LuaPath;      // 注册表 Lua 逻辑表路径（"UI.UIMain"，LuaKeys 收口；§2.3 适配器消费）
-        public string Location;     // prefab 资源完整路径（表列 = Assets/ 相对路径，如 "UI/UIMain.prefab"）
+        public string LuaPath;      // 注册表 Lua 逻辑表路径（"UI.Page_Login"，LuaKeys 收口；§2.3 适配器消费）
+        public string Location;     // prefab 资源完整路径（表列 = Assets/ 相对路径，如 "UI/Page_Login.prefab"）
         public int Layer;           // 语义层索引（0=Bottom 1=Window 2=Top 3=System；System 归反馈面，见 §6.2）
         public bool FullScreen;     // 全屏页：激活时批量遮盖更低层级组（组级批量暂停语义）
         /// <summary>per-form 缓存策略（§5.2 U2 表列——默认 LRU；Resident 不淘汰、DestroyOnClose 关即销毁）。</summary>

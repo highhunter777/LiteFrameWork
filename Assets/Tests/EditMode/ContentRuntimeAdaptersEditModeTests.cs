@@ -450,7 +450,7 @@ namespace LiteGame.Tests.EditMode
         private static readonly (string path, string content)[] FixtureFiles =
         {
             ("config/tbcombatnum.json", "{\"id\":1,\"hp\":100}"),
-            ("lua/ui/UIMain.lua", "return { OnShow = function() end }\n"),
+            ("lua/ui/Page_Login.lua", "return { OnShow = function() end }\n"),
         };
 
         [Test]

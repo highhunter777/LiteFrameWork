@@ -280,7 +280,7 @@
 - **`kind` 初始推断**：交互/列表/进度类组件（Selectable、ScrollRect、VirtualList、SimpleListView、UIWidget、ProgressBar、Stepper、UIDropdownWrap）记 `Command`；其余记 `None`。`Bound` 需静态绑定标记出现后再产生，当前生成器不臆造。
 - **`required` 初始推断**：`Command` 记 `true`，`None` 记 `false`；后续引用对账可细化。
 - **`cacheStrategy`**：`tbuiform` 尚无缓存策略列，生成器统一写 `Lru`；表列落地后只改投影层，不改生成器默认。
-- **批量与多行**：`ui.contract` 按 `tbuiform` 全量生成——表只读一次、按 prefab 去重、输出确定性。根名不在 `Page_/Hud_/Tmp_` 契约面的条目（常驻壳 `UIMain`）显式跳过并告警，不计失败；同一 prefab 多行登记取**首行**，其余行由页面清单 `forms[]` 承担并告警。
+- **批量与多行**：`ui.contract` 按 `tbuiform` 全量生成——表只读一次、按 prefab 去重、输出确定性。根名不在 `Page_/Hud_/Tmp_` 契约面的非常驻壳（若出现）显式跳过并告警，不计失败；同一 prefab 多行登记取**首行**，其余行由页面清单 `forms[]` 承担并告警。
 - **`LTextKeyRef`**：只存 `Key`；`text[]` 的 `args` 固定 0。参数/复数/富文本替换属于工程动态文案，不进静态契约。
 - **确定性**：深度优先、按 `nodePath`（事件按 `bindName|event`）稳定排序；JSON 固定字段序、LF 换行、UTF-8 无 BOM；负例只返回错误，不写盘。
 

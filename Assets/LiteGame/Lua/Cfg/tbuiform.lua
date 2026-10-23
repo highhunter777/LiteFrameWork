@@ -1,6 +1,5 @@
 return
 {
-[1] = {id=1,lua_path="UI.UIMain",prefab="ShareResource/UI/Screens/UIMain.prefab",layer=0,full_screen=true,},
 [11] = {id=11,lua_path="UI.Page_Login",prefab="ShareResource/UI/Screens/Page_Login.prefab",layer=0,full_screen=true,},
 [12] = {id=12,lua_path="UI.Page_Lobby",prefab="ShareResource/UI/Screens/Page_Lobby.prefab",layer=0,full_screen=true,},
 [13] = {id=13,lua_path="UI.Page_Room",prefab="ShareResource/UI/Screens/Page_Room.prefab",layer=0,full_screen=true,},

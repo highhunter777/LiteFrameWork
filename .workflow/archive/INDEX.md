@@ -18,3 +18,4 @@
 | 2026-10-23T00:21:58+08:00 | ui-p1-validation | UI 系统 P1-4：校验规则族与 UiRuleExceptions（结构/契约族 + 例外登记） | 5/5 | PASS | [20261023-002158-ui-p1-validation](20261023-002158-ui-p1-validation/) |
 | 2026-10-23T13:34:35+08:00 | ui-p1-hub-pilot | UI 系统 P1-5/P1-6：Hub/CLI 接线与试点页静态文案 | 7/7 | PASS | [20261023-133435-ui-p1-hub-pilot](20261023-133435-ui-p1-hub-pilot/) |
 | 2026-10-23T17:24:40+08:00 | ui-p1-boundary-closure | UI 系统 P1 边界收口：五族校验接入+契约补全+遍历统一 | 16/16 | PASS | [20261023-172440-ui-p1-boundary-closure](20261023-172440-ui-p1-boundary-closure/) |
+| 2026-10-23T18:34:25+08:00 | ui-uimain-retirement | UI 系统 UIMain 退役：注册表锚迁移 · 产品注册摘除 · 测试载体归位 | 7/7 | PASS | [20261023-183425-ui-uimain-retirement](20261023-183425-ui-uimain-retirement/) |

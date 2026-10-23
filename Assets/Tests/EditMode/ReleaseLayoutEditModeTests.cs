@@ -23,7 +23,7 @@ namespace LiteGame.Tests.EditMode
         [Test]
         public void 布局_config前缀_挑出配置文件()
         {
-            var m = ManifestWith("config/tbuiform.bytes", "lua/ui/UIMain.lua", "other/x.bin");
+            var m = ManifestWith("config/tbuiform.bytes", "lua/ui/Page_Login.lua", "other/x.bin");
             var paths = ReleaseLayout.ConfigPaths(m);
 
             Assert.AreEqual(1, paths.Count);
@@ -33,11 +33,11 @@ namespace LiteGame.Tests.EditMode
         [Test]
         public void 布局_lua前缀_派生require点分模块名()
         {
-            var m = ManifestWith("lua/ui/UIMain.lua", "lua/cfg/tbuiform.lua", "lua/main.lua", "lua/x.txt", "config/a.bytes");
+            var m = ManifestWith("lua/ui/Page_Login.lua", "lua/cfg/tbuiform.lua", "lua/main.lua", "lua/x.txt", "config/a.bytes");
             var scripts = ReleaseLayout.LuaScripts(m);
 
             Assert.AreEqual(3, scripts.Count, "只取 lua/ 前缀的 .lua");
-            Assert.AreEqual("ui.UIMain", scripts[0].Module);      // require 点分名（Lua 源码 require("ui.UIMain") 口径）
+            Assert.AreEqual("ui.Page_Login", scripts[0].Module);      // require 点分名（Lua 源码 require("ui.Page_Login") 口径）
             Assert.AreEqual("cfg.tbuiform", scripts[1].Module);
             Assert.AreEqual("main", scripts[2].Module);
             foreach (var s in scripts)

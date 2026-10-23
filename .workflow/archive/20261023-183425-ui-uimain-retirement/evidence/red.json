@@ -1,0 +1,388 @@
+{
+  "schema_version": 1,
+  "kind": "red",
+  "at": "2026-10-23T17:51:51+08:00",
+  "ok": true,
+  "command_fingerprint": "7acc01237b6ef3219dd2a599c1c53321583fc8ee25b00ead97a2e32a82be2746",
+  "commands": [
+    {
+      "name": "toolchain-tests-red",
+      "cmd": [
+        "python",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "scripts/tests",
+        "-p",
+        "test_*.py",
+        "-v"
+      ],
+      "cwd": null,
+      "exit_code": 0,
+      "timed_out": false,
+      "error": null,
+      "duration_ms": 30657,
+      "ok": false,
+      "output_tail": "test_run_help_uses_real_manifest (test_toolchain_l2d1.RealManifestTests.test_run_help_uses_real_manifest) ... ok\ntest_child_exit_code_passes_through (test_toolchain_l2d1.RunArgsTests.test_child_exit_code_passes_through) ... ok\ntest_help_renders_manifest_args_without_child (test_toolchain_l2d1.RunArgsTests.test_help_renders_manifest_args_without_child) ... ok\ntest_invalid_enum_fails_before_child (test_toolchain_l2d1.RunArgsTests.test_invalid_enum_fails_before_child) ... ok\ntest_invalid_int_fails_before_child (test_toolchain_l2d1.RunArgsTests.test_invalid_int_fails_before_child) ... ok\ntest_missing_required_argument_fails_before_child (test_toolchain_l2d1.RunArgsTests.test_missing_required_argument_fails_before_child) ... ok\ntest_unknown_option_before_separator_is_usage_error (test_toolchain_l2d1.RunArgsTests.test_unknown_option_before_separator_is_usage_error) ... ok\ntest_valid_arguments_run_child_and_print_exit (test_toolchain_l2d1.RunArgsTests.test_valid_arguments_run_child_and_print_exit) ... ok\ntest_compliant_files_are_clean (test_toolchain_scripts.EncodingCheckTests.test_compliant_files_are_clean) ... ok\ntest_crlf_is_reported (test_toolchain_scripts.EncodingCheckTests.test_crlf_is_reported) ... ok\ntest_powershell_script_is_not_allowed (test_toolchain_scripts.EncodingCheckTests.test_powershell_script_is_not_allowed) ... ok\ntest_python_bom_is_reported (test_toolchain_scripts.EncodingCheckTests.test_python_bom_is_reported) ... ok\ntest_global_entry_is_exempt (test_toolchain_scripts.OrphanCheckTests.test_global_entry_is_exempt) ... ok\ntest_hook_surface_reference_is_exempt (test_toolchain_scripts.OrphanCheckTests.test_hook_surface_reference_is_exempt) ... ok\ntest_internal_library_is_exempt (test_toolchain_scripts.OrphanCheckTests.test_internal_library_is_exempt) ... ok\ntest_leaf_referenced_by_registered_entry_is_exempt (test_toolchain_scripts.OrphanCheckTests.test_leaf_referenced_by_registered_entry_is_exempt) ... ok\ntest_oneshot_marker_is_exempt (test_toolchain_scripts.OrphanCheckTests.test_oneshot_marker_is_exempt) ... ok\ntest_registered_entry_is_exempt (test_toolchain_scripts.OrphanCheckTests.test_registered_entry_is_exempt) ... ok\ntest_strict_upgrades_orphan_to_error (test_toolchain_scripts.OrphanCheckTests.test_strict_upgrades_orphan_to_error) ... ok\ntest_tests_directory_is_exempt (test_toolchain_scripts.OrphanCheckTests.test_tests_directory_is_exempt) ... ok\ntest_unregistered_executable_is_warning (test_toolchain_scripts.OrphanCheckTests.test_unregistered_executable_is_warning) ... ok\ntest_powershell_script_is_rejected (test_toolchain_scripts.PowerShellBanTests.test_powershell_script_is_rejected) ... ok\ntest_repo_has_no_script_form_errors (test_toolchain_scripts.RepoCheckTests.test_repo_has_no_script_form_errors) ... ok\ntest_editor_version_reads_project_settings (test_unity_path.UnityPathTests.test_editor_version_reads_project_settings) ... ok\ntest_env_wins_over_local_config (test_unity_path.UnityPathTests.test_env_wins_over_local_config) ... ok\ntest_explicit_missing_path_fails_without_fallback (test_unity_path.UnityPathTests.test_explicit_missing_path_fails_without_fallback) ... ok\ntest_hub_editors_json_is_used (test_unity_path.UnityPathTests.test_hub_editors_json_is_used) ... ok\ntest_local_notes_file_is_used (test_unity_path.UnityPathTests.test_local_notes_file_is_used) ... ok\ntest_missing_editor_reports_actionable_chain (test_unity_path.UnityPathTests.test_missing_editor_reports_actionable_chain) ... ok\ntest_override_wins_over_env_and_local_config (test_unity_path.UnityPathTests.test_override_wins_over_env_and_local_config) ... ok\ntest_standard_install_root_is_used (test_unity_path.UnityPathTests.test_standard_install_root_is_used) ... ok\ntest_wrong_hub_version_is_ignored (test_unity_path.UnityPathTests.test_wrong_hub_version_is_ignored) ... ok\ntest_help (test_wg_peer.WgPeerTests.test_help) ... ok\ntest_invalid_name_is_usage_error (test_wg_peer.WgPeerTests.test_invalid_name_is_usage_error) ... ok\ntest_missing_name_is_usage_error (test_wg_peer.WgPeerTests.test_missing_name_is_usage_error) ... ok\n\n----------------------------------------------------------------------\nRan 222 tests in 30.063s\n\nOK"
+    },
+    {
+      "name": "debug-kernel-editmode",
+      "cmd": [
+        "python",
+        "scripts/gate/unity-tests.py",
+        "--mode",
+        "editor",
+        "--filter",
+        "DebugKernelEditModeTests"
+      ],
+      "cwd": null,
+      "exit_code": 0,
+      "timed_out": false,
+      "error": null,
+      "duration_ms": 13478,
+      "ok": false,
+      "output_tail": "    },\n    {\n      \"FullName\": \"LiteGame.Tests.EditMode.DebugKernelEditModeTests.无对局时_对局诊断为无样本\",\n      \"Status\": \"Passed\",\n      \"Duration\": 0.0014354,\n      \"Message\": null,\n      \"StackTrace\": null\n    },\n    {\n      \"FullName\": \"LiteGame.Tests.EditMode.DebugKernelEditModeTests.设置选项_已知id写入单表\",\n      \"Status\": \"Passed\",\n      \"Duration\": 0.0012837,\n      \"Message\": null,\n      \"StackTrace\": null\n    },\n    {\n      \"FullName\": \"LiteGame.Tests.EditMode.DebugKernelEditModeTests.设置选项_未知id返回错误\",\n      \"Status\": \"Passed\",\n      \"Duration\": 0.0004647,\n      \"Message\": null,\n      \"StackTrace\": null\n    },\n    {\n      \"FullName\": \"LiteGame.Tests.EditMode.DebugKernelEditModeTests.请求桥_写入后可被消费且读即清\",\n      \"Status\": \"Passed\",\n      \"Duration\": 0.0010455,\n      \"Message\": null,\n      \"StackTrace\": null\n    },\n    {\n      \"FullName\": \"LiteGame.Tests.EditMode.DebugKernelEditModeTests.读模型发现_包含命令选项与三类读数\",\n      \"Status\": \"Passed\",\n      \"Duration\": 0.0021245,\n      \"Message\": null,\n      \"StackTrace\": null\n    }\n  ]\n}\n[stderr]\ntests: 16/16 passed"
+    },
+    {
+      "name": "ui-static-text-red",
+      "cmd": [
+        "python",
+        "scripts/gate/unity-tests.py",
+        "--mode",
+        "editor",
+        "--filter",
+        "UiStaticTextEditModeTests",
+        "--timeout",
+        "600"
+      ],
+      "cwd": null,
+      "exit_code": 0,
+      "timed_out": false,
+      "error": null,
+      "duration_ms": 14261,
+      "ok": false,
+      "output_tail": "    },\n    {\n      \"FullName\": \"LiteGame.Tests.EditMode.UiStaticTextEditModeTests.无文本组件_不抛异常且不影响其他节点\",\n      \"Status\": \"Passed\",\n      \"Duration\": 0.011505,\n      \"Message\": null,\n      \"StackTrace\": null\n    },\n    {\n      \"FullName\": \"LiteGame.Tests.EditMode.UiStaticTextEditModeTests.空key_不写入作者文本\",\n      \"Status\": \"Passed\",\n      \"Duration\": 0.001317,\n      \"Message\": null,\n      \"StackTrace\": null\n    },\n    {\n      \"FullName\": \"LiteGame.Tests.EditMode.UiStaticTextEditModeTests.绑定器_按key写入_语言变更刷新_解绑后不刷新\",\n      \"Status\": \"Passed\",\n      \"Duration\": 0.001755,\n      \"Message\": null,\n      \"StackTrace\": null\n    },\n    {\n      \"FullName\": \"LiteGame.Tests.EditMode.UiStaticTextEditModeTests.编辑器文案表_可读取真实key\",\n      \"Status\": \"Passed\",\n      \"Duration\": 0.0351248,\n      \"Message\": null,\n      \"StackTrace\": null\n    },\n    {\n      \"FullName\": \"LiteGame.Tests.EditMode.UiStaticTextEditModeTests.页面打开与关闭_静态文案随页面生命周期刷新\",\n      \"Status\": \"Passed\",\n      \"Duration\": 0.0813219,\n      \"Message\": null,\n      \"StackTrace\": null\n    }\n  ]\n}\n[stderr]\ntests: 6/6 passed"
+    },
+    {
+      "name": "ui-contract-red",
+      "cmd": [
+        "python",
+        "scripts/gate/unity-tests.py",
+        "--mode",
+        "editor",
+        "--filter",
+        "UiContractGeneratorEditModeTests",
+        "--timeout",
+        "600"
+      ],
+      "cwd": null,
+      "exit_code": 0,
+      "timed_out": false,
+      "error": null,
+      "duration_ms": 27346,
+      "ok": false,
+      "output_tail": "    },\n    {\n      \"FullName\": \"LiteGame.Tests.EditMode.UiContractGeneratorEditModeTests.真实页面_模板依赖被记录\",\n      \"Status\": \"Passed\",\n      \"Duration\": 1.185832,\n      \"Message\": null,\n      \"StackTrace\": null\n    },\n    {\n      \"FullName\": \"LiteGame.Tests.EditMode.UiContractGeneratorEditModeTests.类型不可解析_生成失败\",\n      \"Status\": \"Passed\",\n      \"Duration\": 0.8733112,\n      \"Message\": null,\n      \"StackTrace\": null\n    },\n    {\n      \"FullName\": \"LiteGame.Tests.EditMode.UiContractGeneratorEditModeTests.输出路径不在Assets下_生成失败且不写盘\",\n      \"Status\": \"Passed\",\n      \"Duration\": 1.4069408,\n      \"Message\": null,\n      \"StackTrace\": null\n    },\n    {\n      \"FullName\": \"LiteGame.Tests.EditMode.UiContractGeneratorEditModeTests.重复BindName_生成失败并列出错误\",\n      \"Status\": \"Passed\",\n      \"Duration\": 1.0719796,\n      \"Message\": null,\n      \"StackTrace\": null\n    },\n    {\n      \"FullName\": \"LiteGame.Tests.EditMode.UiContractGeneratorEditModeTests.静态key为空_生成失败\",\n      \"Status\": \"Passed\",\n      \"Duration\": 1.0019365,\n      \"Message\": null,\n      \"StackTrace\": null\n    }\n  ]\n}\n[stderr]\ntests: 10/10 passed"
+    },
+    {
+      "name": "ui-contract-diff-red",
+      "cmd": [
+        "python",
+        "scripts/gate/unity-tests.py",
+        "--mode",
+        "editor",
+        "--filter",
+        "UiContractDiffEditModeTests",
+        "--timeout",
+        "600"
+      ],
+      "cwd": null,
+      "exit_code": 0,
+      "timed_out": false,
+      "error": null,
+      "duration_ms": 10959,
+      "ok": false,
+      "output_tail": "  \"results\": [\n    {\n      \"FullName\": \"LiteGame.Tests.EditMode.UiContractDiffEditModeTests.sourceHash_only变化_不误报破坏\",\n      \"Status\": \"Passed\",\n      \"Duration\": 0.0094315,\n      \"Message\": null,\n      \"StackTrace\": null\n    },\n    {\n      \"FullName\": \"LiteGame.Tests.EditMode.UiContractDiffEditModeTests.控件改名_判为破坏性\",\n      \"Status\": \"Passed\",\n      \"Duration\": 0.0014104,\n      \"Message\": null,\n      \"StackTrace\": null\n    },\n    {\n      \"FullName\": \"LiteGame.Tests.EditMode.UiContractDiffEditModeTests.控件类型与文案key变化_判为破坏性\",\n      \"Status\": \"Passed\",\n      \"Duration\": 0.0011928,\n      \"Message\": null,\n      \"StackTrace\": null\n    },\n    {\n      \"FullName\": \"LiteGame.Tests.EditMode.UiContractDiffEditModeTests.新增控件_向后兼容\",\n      \"Status\": \"Passed\",\n      \"Duration\": 0.0006442,\n      \"Message\": null,\n      \"StackTrace\": null\n    },\n    {\n      \"FullName\": \"LiteGame.Tests.EditMode.UiContractDiffEditModeTests.样式变化_非API破坏\",\n      \"Status\": \"Passed\",\n      \"Duration\": 0.0008031,\n      \"Message\": null,\n      \"StackTrace\": null\n    }\n  ]\n}\n[stderr]\ntests: 5/5 passed"
+    },
+    {
+      "name": "widget-spec-red",
+      "cmd": [
+        "python",
+        "scripts/gate/unity-tests.py",
+        "--mode",
+        "editor",
+        "--filter",
+        "WidgetSpecEditModeTests",
+        "--timeout",
+        "600"
+      ],
+      "cwd": null,
+      "exit_code": 0,
+      "timed_out": false,
+      "error": null,
+      "duration_ms": 10641,
+      "ok": false,
+      "output_tail": "{\n  \"status\": \"completed\",\n  \"duration\": 1.14,\n  \"summary\": {\n    \"total\": 3,\n    \"passed\": 3,\n    \"failed\": 0,\n    \"skipped\": 0,\n    \"inconclusive\": 0\n  },\n  \"results\": [\n    {\n      \"FullName\": \"LiteGame.Tests.EditMode.WidgetSpecEditModeTests.发现插槽_只收Cot与Slot_排除克隆与嵌套根与模板内部\",\n      \"Status\": \"Passed\",\n      \"Duration\": 0.7872924,\n      \"Message\": null,\n      \"StackTrace\": null\n    },\n    {\n      \"FullName\": \"LiteGame.Tests.EditMode.WidgetSpecEditModeTests.发现结果并入_幂等_保留作者填写\",\n      \"Status\": \"Passed\",\n      \"Duration\": 0.0019745,\n      \"Message\": null,\n      \"StackTrace\": null\n    },\n    {\n      \"FullName\": \"LiteGame.Tests.EditMode.WidgetSpecEditModeTests.默认声明_空插槽空状态_固定尺寸\",\n      \"Status\": \"Passed\",\n      \"Duration\": 0.0008645,\n      \"Message\": null,\n      \"StackTrace\": null\n    }\n  ]\n}\n[stderr]\ntests: 3/3 passed"
+    },
+    {
+      "name": "widget-manifest-red",
+      "cmd": [
+        "python",
+        "scripts/gate/unity-tests.py",
+        "--mode",
+        "editor",
+        "--filter",
+        "UiWidgetManifestEditModeTests",
+        "--timeout",
+        "600"
+      ],
+      "cwd": null,
+      "exit_code": 0,
+      "timed_out": false,
+      "error": null,
+      "duration_ms": 29905,
+      "ok": false,
+      "output_tail": "    },\n    {\n      \"FullName\": \"LiteGame.Tests.EditMode.UiWidgetManifestEditModeTests.清单_空事件名_报错\",\n      \"Status\": \"Passed\",\n      \"Duration\": 1.6063791,\n      \"Message\": null,\n      \"StackTrace\": null\n    },\n    {\n      \"FullName\": \"LiteGame.Tests.EditMode.UiWidgetManifestEditModeTests.清单_空约束_报错\",\n      \"Status\": \"Passed\",\n      \"Duration\": 1.4263362,\n      \"Message\": null,\n      \"StackTrace\": null\n    },\n    {\n      \"FullName\": \"LiteGame.Tests.EditMode.UiWidgetManifestEditModeTests.清单_缺spec_告警不阻断\",\n      \"Status\": \"Passed\",\n      \"Duration\": 1.39407,\n      \"Message\": null,\n      \"StackTrace\": null\n    },\n    {\n      \"FullName\": \"LiteGame.Tests.EditMode.UiWidgetManifestEditModeTests.清单_重复插槽_报错\",\n      \"Status\": \"Passed\",\n      \"Duration\": 1.6655269,\n      \"Message\": null,\n      \"StackTrace\": null\n    },\n    {\n      \"FullName\": \"LiteGame.Tests.EditMode.UiWidgetManifestEditModeTests.真实模板目录_全部声明且零告警\",\n      \"Status\": \"Passed\",\n      \"Duration\": 1.1267515,\n      \"Message\": null,\n      \"StackTrace\": null\n    }\n  ]\n}\n[stderr]\ntests: 11/11 passed"
+    },
+    {
+      "name": "page-manifest-red",
+      "cmd": [
+        "python",
+        "scripts/gate/unity-tests.py",
+        "--mode",
+        "editor",
+        "--filter",
+        "UiPageManifestEditModeTests",
+        "--timeout",
+        "600"
+      ],
+      "cwd": null,
+      "exit_code": 1,
+      "timed_out": false,
+      "error": null,
+      "duration_ms": 10704,
+      "ok": true,
+      "output_tail": "    },\n    {\n      \"FullName\": \"LiteGame.Tests.EditMode.UiPageManifestEditModeTests.草稿创建_幂等\",\n      \"Status\": \"Passed\",\n      \"Duration\": 0.0025878,\n      \"Message\": null,\n      \"StackTrace\": null\n    },\n    {\n      \"FullName\": \"LiteGame.Tests.EditMode.UiPageManifestEditModeTests.重复formId_报错\",\n      \"Status\": \"Passed\",\n      \"Duration\": 0.0010968,\n      \"Message\": null,\n      \"StackTrace\": null\n    },\n    {\n      \"FullName\": \"LiteGame.Tests.EditMode.UiPageManifestEditModeTests.非法状态_报错且不写盘\",\n      \"Status\": \"Passed\",\n      \"Duration\": 0.0034706,\n      \"Message\": null,\n      \"StackTrace\": null\n    },\n    {\n      \"FullName\": \"LiteGame.Tests.EditMode.UiPageManifestEditModeTests.首次生成_按表行建立条目\",\n      \"Status\": \"Passed\",\n      \"Duration\": 0.0032371,\n      \"Message\": null,\n      \"StackTrace\": null\n    }\n  ]\n}\n[stderr]\nFAILED: LiteGame.Tests.EditMode.UiPageManifestEditModeTests.真实页面_基线齐全且零错误:   UIMain 退役后应为 11 个页面\n\n  Expected: 11\n\n  But was:  12\n\n\ntests: 1/15 failed"
+    },
+    {
+      "name": "ui-validation-rules-red",
+      "cmd": [
+        "python",
+        "scripts/gate/unity-tests.py",
+        "--mode",
+        "editor",
+        "--filter",
+        "UiValidationRulesEditModeTests",
+        "--timeout",
+        "600"
+      ],
+      "cwd": null,
+      "exit_code": 0,
+      "timed_out": false,
+      "error": null,
+      "duration_ms": 24682,
+      "ok": false,
+      "output_tail": "    },\n    {\n      \"FullName\": \"LiteGame.Tests.EditMode.UiValidationRulesEditModeTests.控件规格_缺spec报Error_有spec通过\",\n      \"Status\": \"Passed\",\n      \"Duration\": 1.0512969,\n      \"Message\": null,\n      \"StackTrace\": null\n    },\n    {\n      \"FullName\": \"LiteGame.Tests.EditMode.UiValidationRulesEditModeTests.真实资产面_新规则零Error\",\n      \"Status\": \"Passed\",\n      \"Duration\": 2.3778738,\n      \"Message\": null,\n      \"StackTrace\": null\n    },\n    {\n      \"FullName\": \"LiteGame.Tests.EditMode.UiValidationRulesEditModeTests.页面清单_缺失报Warning_漂移报Error\",\n      \"Status\": \"Passed\",\n      \"Duration\": 1.314529,\n      \"Message\": null,\n      \"StackTrace\": null\n    },\n    {\n      \"FullName\": \"LiteGame.Tests.EditMode.UiValidationRulesEditModeTests.页面结构_完整根契约通过\",\n      \"Status\": \"Passed\",\n      \"Duration\": 0.8611759,\n      \"Message\": null,\n      \"StackTrace\": null\n    },\n    {\n      \"FullName\": \"LiteGame.Tests.EditMode.UiValidationRulesEditModeTests.页面结构_缺组件与安全区报Error\",\n      \"Status\": \"Passed\",\n      \"Duration\": 0.9368518,\n      \"Message\": null,\n      \"StackTrace\": null\n    }\n  ]\n}\n[stderr]\ntests: 10/10 passed"
+    },
+    {
+      "name": "ui-toolchain-wiring-red",
+      "cmd": [
+        "python",
+        "scripts/gate/unity-tests.py",
+        "--mode",
+        "editor",
+        "--filter",
+        "UiToolchainWiringEditModeTests",
+        "--timeout",
+        "600"
+      ],
+      "cwd": null,
+      "exit_code": 1,
+      "timed_out": false,
+      "error": null,
+      "duration_ms": 24943,
+      "ok": true,
+      "output_tail": "    },\n    {\n      \"FullName\": \"LiteGame.Tests.EditMode.UiToolchainWiringEditModeTests.试点页_Lua_不再动态写静态文案\",\n      \"Status\": \"Passed\",\n      \"Duration\": 0.002513,\n      \"Message\": null,\n      \"StackTrace\": null\n    },\n    {\n      \"FullName\": \"LiteGame.Tests.EditMode.UiToolchainWiringEditModeTests.试点页_Page_Login_静态文案三条进入契约\",\n      \"Status\": \"Passed\",\n      \"Duration\": 0.686206,\n      \"Message\": null,\n      \"StackTrace\": null\n    },\n    {\n      \"FullName\": \"LiteGame.Tests.EditMode.UiToolchainWiringEditModeTests.起页对账_注入清单路径可落盘\",\n      \"Status\": \"Passed\",\n      \"Duration\": 1.5356185,\n      \"Message\": null,\n      \"StackTrace\": null\n    },\n    {\n      \"FullName\": \"LiteGame.Tests.EditMode.UiToolchainWiringEditModeTests.页面清单_契约入库后contractPresent为真\",\n      \"Status\": \"Passed\",\n      \"Duration\": 0.0060997,\n      \"Message\": null,\n      \"StackTrace\": null\n    }\n  ]\n}\n[stderr]\nFAILED: LiteGame.Tests.EditMode.UiToolchainWiringEditModeTests.批量生成_常驻壳跳过并告警_其余页面写盘_重复生成零diff:   UIMain 退役后不应再有非常驻壳登记行\n\n  Expected: <empty>\n\n  But was:  < \"UIMain（根名不在 Page_/Hud_/Tmp_ 契约面）\" >\n\n\ntests: 1/8 failed"
+    },
+    {
+      "name": "ui-text-rule-red",
+      "cmd": [
+        "python",
+        "scripts/gate/unity-tests.py",
+        "--mode",
+        "editor",
+        "--filter",
+        "UiTextRuleEditModeTests",
+        "--timeout",
+        "600"
+      ],
+      "cwd": null,
+      "exit_code": 0,
+      "timed_out": false,
+      "error": null,
+      "duration_ms": 15511,
+      "ok": false,
+      "output_tail": "    },\n    {\n      \"FullName\": \"LiteGame.Tests.EditMode.UiTextRuleEditModeTests.富文本_白名单标签通过_越界标签报Warning\",\n      \"Status\": \"Passed\",\n      \"Duration\": 0.5156227,\n      \"Message\": null,\n      \"StackTrace\": null\n    },\n    {\n      \"FullName\": \"LiteGame.Tests.EditMode.UiTextRuleEditModeTests.语言列_源语言空报Error_英文空报Warning\",\n      \"Status\": \"Passed\",\n      \"Duration\": 0.6226744,\n      \"Message\": null,\n      \"StackTrace\": null\n    },\n    {\n      \"FullName\": \"LiteGame.Tests.EditMode.UiTextRuleEditModeTests.静态key_LTextKeyRef在表通过_缺key报Error\",\n      \"Status\": \"Passed\",\n      \"Duration\": 1.1676327,\n      \"Message\": null,\n      \"StackTrace\": null\n    },\n    {\n      \"FullName\": \"LiteGame.Tests.EditMode.UiTextRuleEditModeTests.静态key_Lua侧SetTextKey用缺key报Error\",\n      \"Status\": \"Passed\",\n      \"Duration\": 0.8597279,\n      \"Message\": null,\n      \"StackTrace\": null\n    },\n    {\n      \"FullName\": \"LiteGame.Tests.EditMode.UiTextRuleEditModeTests.静态key_Lua侧合法key零误报\",\n      \"Status\": \"Passed\",\n      \"Duration\": 1.109131,\n      \"Message\": null,\n      \"StackTrace\": null\n    }\n  ]\n}\n[stderr]\ntests: 7/7 passed"
+    },
+    {
+      "name": "ui-style-rule-red",
+      "cmd": [
+        "python",
+        "scripts/gate/unity-tests.py",
+        "--mode",
+        "editor",
+        "--filter",
+        "UiStyleRuleEditModeTests",
+        "--timeout",
+        "600"
+      ],
+      "cwd": null,
+      "exit_code": 0,
+      "timed_out": false,
+      "error": null,
+      "duration_ms": 15364,
+      "ok": false,
+      "output_tail": "  \"summary\": {\n    \"total\": 4,\n    \"passed\": 4,\n    \"failed\": 0,\n    \"skipped\": 0,\n    \"inconclusive\": 0\n  },\n  \"results\": [\n    {\n      \"FullName\": \"LiteGame.Tests.EditMode.UiStyleRuleEditModeTests.文字档_基线相符零误报\",\n      \"Status\": \"Passed\",\n      \"Duration\": 1.0640734,\n      \"Message\": null,\n      \"StackTrace\": null\n    },\n    {\n      \"FullName\": \"LiteGame.Tests.EditMode.UiStyleRuleEditModeTests.文字档_未标记文本报Warning\",\n      \"Status\": \"Passed\",\n      \"Duration\": 0.7703152,\n      \"Message\": null,\n      \"StackTrace\": null\n    },\n    {\n      \"FullName\": \"LiteGame.Tests.EditMode.UiStyleRuleEditModeTests.文字档_标记属性漂移报Warning_标记失效报Error\",\n      \"Status\": \"Passed\",\n      \"Duration\": 0.9458068,\n      \"Message\": null,\n      \"StackTrace\": null\n    },\n    {\n      \"FullName\": \"LiteGame.Tests.EditMode.UiStyleRuleEditModeTests.颜色对账_非token色报Warning_token色零误报\",\n      \"Status\": \"Passed\",\n      \"Duration\": 1.0423754,\n      \"Message\": null,\n      \"StackTrace\": null\n    }\n  ]\n}\n[stderr]\ntests: 4/4 passed"
+    },
+    {
+      "name": "ui-layout-performance-rule-red",
+      "cmd": [
+        "python",
+        "scripts/gate/unity-tests.py",
+        "--mode",
+        "editor",
+        "--filter",
+        "UiLayoutPerformanceRuleEditModeTests",
+        "--timeout",
+        "600"
+      ],
+      "cwd": null,
+      "exit_code": 0,
+      "timed_out": false,
+      "error": null,
+      "duration_ms": 20547,
+      "ok": false,
+      "output_tail": "    },\n    {\n      \"FullName\": \"LiteGame.Tests.EditMode.UiLayoutPerformanceRuleEditModeTests.射线目标_超预算报Warning_预算内零误报\",\n      \"Status\": \"Passed\",\n      \"Duration\": 1.1337181,\n      \"Message\": null,\n      \"StackTrace\": null\n    },\n    {\n      \"FullName\": \"LiteGame.Tests.EditMode.UiLayoutPerformanceRuleEditModeTests.布局深度_嵌套链超限报Warning_限内零误报\",\n      \"Status\": \"Passed\",\n      \"Duration\": 1.3317483,\n      \"Message\": null,\n      \"StackTrace\": null\n    },\n    {\n      \"FullName\": \"LiteGame.Tests.EditMode.UiLayoutPerformanceRuleEditModeTests.缩放器_基线相符通过_参数偏离报Error\",\n      \"Status\": \"Passed\",\n      \"Duration\": 2.0296285,\n      \"Message\": null,\n      \"StackTrace\": null\n    },\n    {\n      \"FullName\": \"LiteGame.Tests.EditMode.UiLayoutPerformanceRuleEditModeTests.缩放器_非Page根不检查\",\n      \"Status\": \"Passed\",\n      \"Duration\": 1.0308733,\n      \"Message\": null,\n      \"StackTrace\": null\n    },\n    {\n      \"FullName\": \"LiteGame.Tests.EditMode.UiLayoutPerformanceRuleEditModeTests.缩放器_页面子树第二套缩放报Error\",\n      \"Status\": \"Passed\",\n      \"Duration\": 0.9531684,\n      \"Message\": null,\n      \"StackTrace\": null\n    }\n  ]\n}\n[stderr]\ntests: 6/6 passed"
+    },
+    {
+      "name": "ui-lua-reference-scanner-red",
+      "cmd": [
+        "python",
+        "scripts/gate/unity-tests.py",
+        "--mode",
+        "editor",
+        "--filter",
+        "UiLuaReferenceScannerEditModeTests",
+        "--timeout",
+        "600"
+      ],
+      "cwd": null,
+      "exit_code": 0,
+      "timed_out": false,
+      "error": null,
+      "duration_ms": 11633,
+      "ok": false,
+      "output_tail": "    },\n    {\n      \"FullName\": \"LiteGame.Tests.EditMode.UiLuaReferenceScannerEditModeTests.事件接线_事件名映射与handler尽力解析\",\n      \"Status\": \"Passed\",\n      \"Duration\": 0.0018286,\n      \"Message\": null,\n      \"StackTrace\": null\n    },\n    {\n      \"FullName\": \"LiteGame.Tests.EditMode.UiLuaReferenceScannerEditModeTests.字面量全文匹配_覆盖变量中转\",\n      \"Status\": \"Passed\",\n      \"Duration\": 0.0005485,\n      \"Message\": null,\n      \"StackTrace\": null\n    },\n    {\n      \"FullName\": \"LiteGame.Tests.EditMode.UiLuaReferenceScannerEditModeTests.源读取_缺件显式null\",\n      \"Status\": \"Passed\",\n      \"Duration\": 0.0008529,\n      \"Message\": null,\n      \"StackTrace\": null\n    },\n    {\n      \"FullName\": \"LiteGame.Tests.EditMode.UiLuaReferenceScannerEditModeTests.调用点_名单外API与拼接名不产出\",\n      \"Status\": \"Passed\",\n      \"Duration\": 0.0016813,\n      \"Message\": null,\n      \"StackTrace\": null\n    },\n    {\n      \"FullName\": \"LiteGame.Tests.EditMode.UiLuaReferenceScannerEditModeTests.调用点_字面量名提取_变量名不产出\",\n      \"Status\": \"Passed\",\n      \"Duration\": 0.0017615,\n      \"Message\": null,\n      \"StackTrace\": null\n    }\n  ]\n}\n[stderr]\ntests: 6/6 passed"
+    },
+    {
+      "name": "ui-contract-reconciliation-red",
+      "cmd": [
+        "python",
+        "scripts/gate/unity-tests.py",
+        "--mode",
+        "editor",
+        "--filter",
+        "UiContractReconciliationEditModeTests",
+        "--timeout",
+        "600"
+      ],
+      "cwd": null,
+      "exit_code": 0,
+      "timed_out": false,
+      "error": null,
+      "duration_ms": 17238,
+      "ok": false,
+      "output_tail": "    },\n    {\n      \"FullName\": \"LiteGame.Tests.EditMode.UiContractReconciliationEditModeTests.漂移_手改契约与prefab重生成不一致报Error\",\n      \"Status\": \"Passed\",\n      \"Duration\": 0.7805803,\n      \"Message\": null,\n      \"StackTrace\": null\n    },\n    {\n      \"FullName\": \"LiteGame.Tests.EditMode.UiContractReconciliationEditModeTests.漂移_无契约页不重复报_由页面清单规则承担\",\n      \"Status\": \"Passed\",\n      \"Duration\": 0.7136349,\n      \"Message\": null,\n      \"StackTrace\": null\n    },\n    {\n      \"FullName\": \"LiteGame.Tests.EditMode.UiContractReconciliationEditModeTests.生成器_events应用_接线进契约并稳定排序\",\n      \"Status\": \"Passed\",\n      \"Duration\": 0.6924074,\n      \"Message\": null,\n      \"StackTrace\": null\n    },\n    {\n      \"FullName\": \"LiteGame.Tests.EditMode.UiContractReconciliationEditModeTests.生成器_清单维护字段投影进契约\",\n      \"Status\": \"Passed\",\n      \"Duration\": 0.6536092,\n      \"Message\": null,\n      \"StackTrace\": null\n    },\n    {\n      \"FullName\": \"LiteGame.Tests.EditMode.UiContractReconciliationEditModeTests.生成器_真实Page_Login经清单投影与接线_契约含owner与events\",\n      \"Status\": \"Passed\",\n      \"Duration\": 1.6120542,\n      \"Message\": null,\n      \"StackTrace\": null\n    }\n  ]\n}\n[stderr]\ntests: 9/9 passed"
+    },
+    {
+      "name": "bindsearch-unification-red",
+      "cmd": [
+        "python",
+        "scripts/gate/unity-tests.py",
+        "--mode",
+        "editor",
+        "--filter",
+        "BindSearchUnificationEditModeTests",
+        "--timeout",
+        "600"
+      ],
+      "cwd": null,
+      "exit_code": 0,
+      "timed_out": false,
+      "error": null,
+      "duration_ms": 16747,
+      "ok": false,
+      "output_tail": "    },\n    {\n      \"FullName\": \"LiteGame.Tests.EditMode.BindSearchUnificationEditModeTests.标识符_partial关键字拒识\",\n      \"Status\": \"Passed\",\n      \"Duration\": 0.5189517,\n      \"Message\": null,\n      \"StackTrace\": null\n    },\n    {\n      \"FullName\": \"LiteGame.Tests.EditMode.BindSearchUnificationEditModeTests.标识符_重名收集错误且marks稳定\",\n      \"Status\": \"Passed\",\n      \"Duration\": 0.5258681,\n      \"Message\": null,\n      \"StackTrace\": null\n    },\n    {\n      \"FullName\": \"LiteGame.Tests.EditMode.BindSearchUnificationEditModeTests.生成输入等价_常规层级marks与既有语义一致\",\n      \"Status\": \"Passed\",\n      \"Duration\": 0.6493669,\n      \"Message\": null,\n      \"StackTrace\": null\n    },\n    {\n      \"FullName\": \"LiteGame.Tests.EditMode.BindSearchUnificationEditModeTests.语义_嵌套BindRoot不深入且自身不入父列表\",\n      \"Status\": \"Passed\",\n      \"Duration\": 0.6289555,\n      \"Message\": null,\n      \"StackTrace\": null\n    },\n    {\n      \"FullName\": \"LiteGame.Tests.EditMode.BindSearchUnificationEditModeTests.语义_根节点自身不入marks\",\n      \"Status\": \"Passed\",\n      \"Duration\": 0.5684472,\n      \"Message\": null,\n      \"StackTrace\": null\n    }\n  ]\n}\n[stderr]\ntests: 7/7 passed"
+    },
+    {
+      "name": "ui-validation-core-red",
+      "cmd": [
+        "python",
+        "scripts/gate/unity-tests.py",
+        "--mode",
+        "editor",
+        "--filter",
+        "UiValidationEditModeTests",
+        "--timeout",
+        "600"
+      ],
+      "cwd": null,
+      "exit_code": 1,
+      "timed_out": false,
+      "error": null,
+      "duration_ms": 19766,
+      "ok": true,
+      "output_tail": "    },\n    {\n      \"FullName\": \"LiteGame.Tests.EditMode.UiValidationEditModeTests.视觉规则_端口标识与族\",\n      \"Status\": \"Passed\",\n      \"Duration\": 0.0004828,\n      \"Message\": null,\n      \"StackTrace\": null\n    },\n    {\n      \"FullName\": \"LiteGame.Tests.EditMode.UiValidationEditModeTests.负例_代码建Canvas_报一条Error\",\n      \"Status\": \"Passed\",\n      \"Duration\": 0.190924,\n      \"Message\": null,\n      \"StackTrace\": null\n    },\n    {\n      \"FullName\": \"LiteGame.Tests.EditMode.UiValidationEditModeTests.门禁_真实资产面_命名hash表路径零Error\",\n      \"Status\": \"Failed\",\n      \"Duration\": 1.6194692,\n      \"Message\": \"  UIMain 退役后不应再有根名存量 Warning\\r\\n  Expected: 0\\r\\n  But was:  1\\r\\n\",\n      \"StackTrace\": \"at LiteGame.Tests.EditMode.UiValidationEditModeTests.门禁_真实资产面_命名hash表路径零Error () [0x0016e] in E:\\\\unityProject\\\\Test\\\\Assets\\\\Tests\\\\EditMode\\\\UiValidationEditModeTests.cs:216\\r\\n\"\n    },\n    {\n      \"FullName\": \"LiteGame.Tests.EditMode.UiValidationEditModeTests.门禁_规则族全部接入登记_待接入子项描述含原因\",\n      \"Status\": \"Passed\",\n      \"Duration\": 0.1961034,\n      \"Message\": null,\n      \"StackTrace\": null\n    }\n  ]\n}\n[stderr]\nFAILED: LiteGame.Tests.EditMode.UiValidationEditModeTests.门禁_真实资产面_命名hash表路径零Error:   UIMain 退役后不应再有根名存量 Warning\n\n  Expected: 0\n\n  But was:  1\n\n\ntests: 1/14 failed"
+    },
+    {
+      "name": "ui-validation-rules-extended-red",
+      "cmd": [
+        "python",
+        "scripts/gate/unity-tests.py",
+        "--mode",
+        "editor",
+        "--filter",
+        "UiValidationRulesEditModeTests",
+        "--timeout",
+        "600"
+      ],
+      "cwd": null,
+      "exit_code": 0,
+      "timed_out": false,
+      "error": null,
+      "duration_ms": 24772,
+      "ok": false,
+      "output_tail": "    },\n    {\n      \"FullName\": \"LiteGame.Tests.EditMode.UiValidationRulesEditModeTests.控件规格_缺spec报Error_有spec通过\",\n      \"Status\": \"Passed\",\n      \"Duration\": 1.3153973,\n      \"Message\": null,\n      \"StackTrace\": null\n    },\n    {\n      \"FullName\": \"LiteGame.Tests.EditMode.UiValidationRulesEditModeTests.真实资产面_新规则零Error\",\n      \"Status\": \"Passed\",\n      \"Duration\": 2.1575251,\n      \"Message\": null,\n      \"StackTrace\": null\n    },\n    {\n      \"FullName\": \"LiteGame.Tests.EditMode.UiValidationRulesEditModeTests.页面清单_缺失报Warning_漂移报Error\",\n      \"Status\": \"Passed\",\n      \"Duration\": 1.3814321,\n      \"Message\": null,\n      \"StackTrace\": null\n    },\n    {\n      \"FullName\": \"LiteGame.Tests.EditMode.UiValidationRulesEditModeTests.页面结构_完整根契约通过\",\n      \"Status\": \"Passed\",\n      \"Duration\": 0.8056089,\n      \"Message\": null,\n      \"StackTrace\": null\n    },\n    {\n      \"FullName\": \"LiteGame.Tests.EditMode.UiValidationRulesEditModeTests.页面结构_缺组件与安全区报Error\",\n      \"Status\": \"Passed\",\n      \"Duration\": 0.9785756,\n      \"Message\": null,\n      \"StackTrace\": null\n    }\n  ]\n}\n[stderr]\ntests: 10/10 passed"
+    },
+    {
+      "name": "ui-uimain-retirement-red",
+      "cmd": [
+        "python",
+        "scripts/gate/unity-tests.py",
+        "--mode",
+        "editor",
+        "--filter",
+        "UiUimainRetirementEditModeTests",
+        "--timeout",
+        "600"
+      ],
+      "cwd": null,
+      "exit_code": 1,
+      "timed_out": false,
+      "error": null,
+      "duration_ms": 10752,
+      "ok": true,
+      "output_tail": "\n\n\n-- 单界面逻辑表（M4 UI 壳消费；M3 验收 = 可寻址、可 require）\n\nUI = UI or {}\n\nUI.UIMain = require(\"UI.UIMain\")\n\n\n\n-- 冒烟锚点：证明 main.lua 真实执行到尾\n\nlog.info(\"main.lua loaded: UI.UIMain = \" .. tostring(UI.UIMain ~= nil))\n\n\"\n\n\nFAILED: LiteGame.Tests.EditMode.UiUimainRetirementEditModeTests.启动锚_RegistryFiller指向PageLogin且源码无UIMain:   RegistryFiller 应暴露单源 KnownUiKey 供启动校验与守卫共用\n\n  Expected: not null\n\n  But was:  null\n\n\nFAILED: LiteGame.Tests.EditMode.UiUimainRetirementEditModeTests.测试载体_旧路径移除且新路径存在:   旧 UIMain prefab 应已改名\n\n  Expected: null\n\n  But was:  <UIMain (UnityEngine.GameObject)>\n\n\nFAILED: LiteGame.Tests.EditMode.UiUimainRetirementEditModeTests.页面清单_无UIMain且为11页12行:   UIMain 已退役：页面清单不得再登记该样例页\n\n  Expected: False\n\n  But was:  True\n\n\ntests: 5/6 failed"
+    }
+  ]
+}

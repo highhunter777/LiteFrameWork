@@ -377,6 +377,20 @@
         "600"
       ],
       "timeout": 1200
+    },
+    {
+      "name": "ui-uimain-retirement-editmode",
+      "cmd": [
+        "python",
+        "scripts/gate/unity-tests.py",
+        "--mode",
+        "editor",
+        "--filter",
+        "UiUimainRetirementEditModeTests",
+        "--timeout",
+        "600"
+      ],
+      "timeout": 900
     }
   ],
   "red_commands": [
@@ -626,6 +640,20 @@
         "editor",
         "--filter",
         "UiValidationRulesEditModeTests",
+        "--timeout",
+        "600"
+      ],
+      "timeout": 900
+    },
+    {
+      "name": "ui-uimain-retirement-red",
+      "cmd": [
+        "python",
+        "scripts/gate/unity-tests.py",
+        "--mode",
+        "editor",
+        "--filter",
+        "UiUimainRetirementEditModeTests",
         "--timeout",
         "600"
       ],

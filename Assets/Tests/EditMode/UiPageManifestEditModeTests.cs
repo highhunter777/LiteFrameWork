@@ -359,13 +359,30 @@ namespace LiteGame.Tests.EditMode
         }
 
         [Test]
+        public void 显式移除_退役条目删除并重算指纹()
+        {
+            var manifest = new UiPageManifest
+            {
+                Pages = { new UiPageManifestEntry { Name = "Page_Old", Status = "Registered" } },
+            };
+            string before = manifest.SourceHash;
+
+            Assert.IsTrue(UiPageManifestEditor.Remove(manifest, "Page_Old", out string error), error);
+            Assert.AreEqual(0, manifest.Pages.Count, "退役条目必须从清单移除");
+            Assert.AreNotEqual(before, manifest.SourceHash, "移除后重算指纹");
+            Assert.IsFalse(UiPageManifestEditor.Remove(manifest, "Page_Old", out error), "重复移除应失败");
+            StringAssert.Contains("不存在", error);
+        }
+
+        [Test]
         public void 真实页面_基线齐全且零错误()
         {
             var result = UiPageManifestSync.Sync();
 
             Assert.IsTrue(result.Ok, result.ErrorText);
-            Assert.GreaterOrEqual(result.Manifest.Pages.Count, 12, "真实 tbuiform 有 13 行、12 个唯一页面");
-            Assert.GreaterOrEqual(result.Manifest.Pages.Sum(page => page.Forms.Count), 13, "登记行总数不得少于 13");
+            Assert.AreEqual(11, result.Manifest.Pages.Count, "UIMain 退役后应为 11 个页面");
+            Assert.AreEqual(12, result.Manifest.Pages.Sum(page => page.Forms.Count), "登记行应为 12 行");
+            Assert.IsFalse(result.Manifest.Pages.Any(page => page.Name == "UIMain"), "页面清单不得再含样例页");
             Assert.IsTrue(result.Manifest.Pages.All(page => page.Forms.Count > 0), "真实页面都应有表行");
             Assert.IsTrue(result.Manifest.Pages.All(page => !string.IsNullOrEmpty(page.Owner)), "Owner 不得为空");
             Assert.IsTrue(result.Manifest.Pages.All(page => UiPageStatusRules.TryParse(page.Status, out _)),

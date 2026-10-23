@@ -18,8 +18,6 @@ namespace LiteGame
             public const string Page_Room = "UI.Page_Room";
             /// <summary>UI.Page_Settings</summary>
             public const string Page_Settings = "UI.Page_Settings";
-            /// <summary>UI.UIMain</summary>
-            public const string UIMain = "UI.UIMain";
         }
     }
 }

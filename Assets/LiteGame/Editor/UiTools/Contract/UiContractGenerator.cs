@@ -167,7 +167,7 @@ namespace LiteGame.Editor.UiTools.Contracts
             return result;
         }
 
-        /// <summary>页面根名是否属于契约面（<c>Page_/Hud_/Tmp_</c>；常驻壳 UIMain 不产契约）。</summary>
+        /// <summary>页面根名是否属于契约面（<c>Page_/Hud_/Tmp_</c>；非常驻壳不产契约）。</summary>
         public static bool IsContractPageName(string pageName)
         {
             return !string.IsNullOrEmpty(pageName) && PageNamePattern.IsMatch(pageName);

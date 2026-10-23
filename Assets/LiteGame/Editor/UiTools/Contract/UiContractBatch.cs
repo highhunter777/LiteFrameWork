@@ -93,7 +93,7 @@ namespace LiteGame.Editor.UiTools.Contracts
     /// 生成/对账两入口。生成器仍是单页真相，本类只做编排——不复制接口面定义、不另造 metadata。
     ///
     /// 口径：
-    /// - 根名不在 <c>Page_/Hud_/Tmp_</c> 契约面（如常驻壳 <c>UIMain</c>）显式跳过并告警，不计失败；
+    /// - 根名不在 <c>Page_/Hud_/Tmp_</c> 契约面（若未来出现常驻壳）显式跳过并告警，不计失败；
     /// - 同一 prefab 多行登记取首行，其余行由页面清单 `forms[]` 承担（告警见生成结果）；
     /// - 输出确定性（无时间戳），重复执行零 diff；负例不写盘。
     /// </summary>

@@ -8,7 +8,7 @@ namespace LiteNet
     /// **两端（客户端/服务器）必须一致**——不一致 = 逻辑或协议版本不同 = 必然分叉。
     /// 用途：`JoinRequest.build_hash` 握手校验 + 启动期断言（不等 → 拒绝进房，§40/§380）；
     /// 生成与校验规则单源 = `scripts/codegen/gen-build-hash.py`（含行尾归一化，保证跨机器可复现）：
-    /// 出包前由 `scripts/build/build-player.ps1` 跑 `--check` 复算拦截"改了源忘了重跑"（开发期不校验）。
+    /// 出包前由 `scripts/build/build-player.py` 跑 `--check` 复算拦截"改了源忘了重跑"（开发期不校验）。
     /// </summary>
     public static class BuildHash
     {

@@ -18,6 +18,8 @@ namespace LiteGame
     /// </summary>
     public sealed class RegistryFiller
     {
+        /// <summary>启动期 LuaKeys 校验锚：取真实产品首屏（UIMain 样例页已退役）；改首屏只改这一处。</summary>
+        public const string KnownUiKey = LuaKeys.UI.Page_Login;
         private readonly IConfigService _config;
         private readonly LuaComponent _lua;
         private readonly IUILuaRegistry _ui;
@@ -101,7 +103,7 @@ namespace LiteGame
         /// <summary>LuaKeys 常量校验（§2.0 消费点）：编译期已知的约定路径必须可解析——漏配在启动期当场暴露。</summary>
         private void ValidateKnownKeys(RegistryFillReport report, HashSet<string> failed)
         {
-            ValidateKey(report, failed, "UI", _ui, LuaKeys.UI.UIMain);
+            ValidateKey(report, failed, "UI", _ui, KnownUiKey);
         }
 
         private void ValidateKey(RegistryFillReport report, HashSet<string> failed,

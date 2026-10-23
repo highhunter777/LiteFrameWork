@@ -23,7 +23,7 @@ namespace LiteGame.Tests.UI.PlayMode
     /// 真实 PlayerLoop + 真实转场 runner——**转场期间的状态迁移在 EditMode 下根本不发生**。
     ///
     /// 链路：真 LuaEnv（loader 读磁盘 `LiteGame/Lua/**.lua`）→ `LuaBehaviourAdapter`
-    /// （真 ui-API 派发表）→ 真注册表模块 `UI.UIMain` → 真 prefab → `UIService` 真转场。
+    /// （真 ui-API 派发表）→ 真注册表模块 `Tests.UiTestPage`（测试载体）→ 真 prefab → `UIService` 真转场。
     ///
     /// 断言口径取 [UI测试开发专项 §4.3](../docs)：页面状态 / 实例 Created·Reused·Destroyed /
     /// 资源 Acquired·Released——**不只断言"最终可见"**。
@@ -31,9 +31,9 @@ namespace LiteGame.Tests.UI.PlayMode
     [Category(TestCategory.Contract)]
     public sealed class LuaPagePlayModeTests
     {
-        private const int UIMainFormId = 1;
-        private const string UIMainLocation = "Assets/ShareResource/UI/Screens/UIMain.prefab";
-        private const string UIMainRequire = "UI.UIMain";
+        private const int TestPageFormId = 9001;
+        private const string TestPageLocation = "Assets/ShareResource/UI/Screens/Tmp_UiTestPage.prefab";
+        private const string TestPageRequire = "Tests.UiTestPage";
 
         private sealed class StaticCatalog : IUIFormCatalog
         {
@@ -80,13 +80,13 @@ namespace LiteGame.Tests.UI.PlayMode
             }
 
             _env = NewLuaEnv();
-            LuaTable module = RequireCountedModule(_env, UIMainRequire);
+            LuaTable module = RequireCountedModule(_env, TestPageRequire);
 
             _ui = new UIService(
                 new StaticCatalog(new[]
                 {
-                    new UIFormInfo { Id = UIMainFormId, Layer = 0, FullScreen = true,
-                        LuaPath = UIMainRequire, Location = UIMainLocation },
+                    new UIFormInfo { Id = TestPageFormId, Layer = 0, FullScreen = true,
+                        LuaPath = TestPageRequire, Location = TestPageLocation },
                 }),
                 logicResolver: _ => new LuaBehaviourAdapter(_env, module),
                 loadPrefab: LoadRealPrefabAsync,
@@ -116,9 +116,9 @@ namespace LiteGame.Tests.UI.PlayMode
         [UnityTest]
         public IEnumerator 真Lua页面_冷开_OnShow执行且实例与租约各一次()
         {
-            var open = _ui.ShowAsync(UIMainFormId);
+            var open = _ui.ShowAsync(TestPageFormId);
             yield return WaitUniTask(open, 20f);
-            Assert.IsFalse(open.Status == UniTaskStatus.Pending, "UIMain 冷开超时（真 Lua + 真 prefab + 真转场）");
+            Assert.IsFalse(open.Status == UniTaskStatus.Pending, "测试载体冷开超时（真 Lua + 真 prefab + 真转场）");
 
             UIForm form = open.GetAwaiter().GetResult();
             Assert.IsNotNull(form, "冷开返回实例");
@@ -130,16 +130,16 @@ namespace LiteGame.Tests.UI.PlayMode
         [UnityTest]
         public IEnumerator 真Lua页面_关闭后复用_不重复OnInit但重跑OnShow()
         {
-            var open = _ui.ShowAsync(UIMainFormId);
+            var open = _ui.ShowAsync(TestPageFormId);
             yield return WaitUniTask(open, 20f);
             UIForm first = open.GetAwaiter().GetResult();
             Assert.AreEqual(1, LuaShows(_env), "首开 OnShow 一次");
 
-            var close = _ui.CloseAsync(UIMainFormId, UIService.CloseReason.User);
+            var close = _ui.CloseAsync(TestPageFormId, UIService.CloseReason.User);
             yield return WaitUniTask(close, 20f);
-            Assert.IsFalse(_ui.IsOpen(UIMainFormId), "已关闭");
+            Assert.IsFalse(_ui.IsOpen(TestPageFormId), "已关闭");
 
-            var reopen = _ui.ShowAsync(UIMainFormId);
+            var reopen = _ui.ShowAsync(TestPageFormId);
             yield return WaitUniTask(reopen, 20f);
             Assert.IsFalse(reopen.Status == UniTaskStatus.Pending, "复用打开超时");
             UIForm second = reopen.GetAwaiter().GetResult();
@@ -152,7 +152,7 @@ namespace LiteGame.Tests.UI.PlayMode
         [UnityTest]
         public IEnumerator 真Lua页面_Shutdown_释放租约且旧实例不可访问()
         {
-            var open = _ui.ShowAsync(UIMainFormId);
+            var open = _ui.ShowAsync(TestPageFormId);
             yield return WaitUniTask(open, 20f);
             Assert.AreEqual(1, CountingLease.Acquired);
 
@@ -161,22 +161,22 @@ namespace LiteGame.Tests.UI.PlayMode
             Assert.IsFalse(shutdown.Status == UniTaskStatus.Pending, "Shutdown 超时（§4.4 全链释放）");
 
             Assert.AreEqual(1, CountingLease.Released, "Shutdown 释放租约（引用归零）");
-            Assert.IsFalse(_ui.IsOpen(UIMainFormId), "旧实例不再打开");
+            Assert.IsFalse(_ui.IsOpen(TestPageFormId), "旧实例不再打开");
         }
 
         [UnityTest]
         public IEnumerator 真Lua页面_打开中关闭_在途被权威取消且不残留()
         {
             // 加载口显式让出一帧 → 在途窗口确定性存在（见 LoadRealPrefabAsync）。
-            var open = _ui.ShowAsync(UIMainFormId);
+            var open = _ui.ShowAsync(TestPageFormId);
             Assert.AreEqual(UniTaskStatus.Pending, open.Status, "首帧应处于在途");
 
-            var close = _ui.CloseAsync(UIMainFormId, UIService.CloseReason.User);
+            var close = _ui.CloseAsync(TestPageFormId, UIService.CloseReason.User);
             yield return WaitUniTask(close, 20f);
             yield return WaitUniTask(open, 20f);
 
             Assert.AreNotEqual(UniTaskStatus.Pending, open.Status, "在途 Show 必须收到终态（不悬挂）");
-            Assert.IsFalse(_ui.IsOpen(UIMainFormId), "权威取消后页面不得残留打开态");
+            Assert.IsFalse(_ui.IsOpen(TestPageFormId), "权威取消后页面不得残留打开态");
 
             // 取消必须**类型化**（§4.3）：不是静默吞掉，也不是普通异常
             var ex = Assert.Throws<UIOpenException>(() => open.GetAwaiter().GetResult(),
@@ -224,7 +224,7 @@ return m";
         }
 
         private static int LuaShows(LuaEnv env)
-            => Convert.ToInt32(env.DoString($"return require('{UIMainRequire}').__shows")[0]);
+            => Convert.ToInt32(env.DoString($"return require('{TestPageRequire}').__shows")[0]);
 
         private static async UniTask<IUIPrefabLease> LoadRealPrefabAsync(string location, CancellationToken ct)
         {

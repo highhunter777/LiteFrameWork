@@ -116,6 +116,16 @@ namespace LiteGame.Editor.UiTools.Page
             return true;
         }
 
+        /// <summary>显式移除条目（页面退役/撤销登记）：对账的孤儿策略会保留非 Draft 条目，故删除必须是显式编辑。</summary>
+        public static bool Remove(UiPageManifest manifest, string name, out string error)
+        {
+            UiPageManifestEntry entry = Find(manifest, name, out error);
+            if (entry == null) return false;
+            manifest.Pages.Remove(entry);
+            UiPageManifestSync.RefreshSourceHash(manifest);
+            return true;
+        }
+
         private static UiPageManifestEntry Find(UiPageManifest manifest, string name, out string error)
         {
             error = null;

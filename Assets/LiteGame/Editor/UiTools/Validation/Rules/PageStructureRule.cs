@@ -142,7 +142,7 @@ namespace LiteGame.Editor.UiTools.Validation.Rules
                     Severity = UiSeverity.Error,
                     Asset = asset,
                     Message = "系统面根自带 CanvasScaler——继承根缩放（UI-LAYOUT-01 同口径）",
-                    FixHint = "移除 CanvasScaler（嵌套 Canvas 继承 UIMain 根缩放）",
+                    FixHint = "移除 CanvasScaler（嵌套 Canvas 继承根 Canvas 缩放）",
                 });
             }
         }

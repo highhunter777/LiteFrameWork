@@ -136,7 +136,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   Comment: 
   CustomTypeName: 
-  BindName: BtnClose
+  BindName: Button_Close
 --- !u!1 &3226090436835435131
 GameObject:
   m_ObjectHideFlags: 0
@@ -231,7 +231,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   Comment: 
   CustomTypeName: 
-  BindName: Label
+  BindName: Txt_Label
 --- !u!1 &5977349160000205970
 GameObject:
   m_ObjectHideFlags: 0
@@ -317,10 +317,9 @@ GameObject:
   m_Component:
   - component: {fileID: 3742584062202065615}
   - component: {fileID: 1770973615737779323}
-  - component: {fileID: 7584528360388980342}
   - component: {fileID: 8309643652789222045}
   m_Layer: 0
-  m_Name: UIMain
+  m_Name: Tmp_UiTestPage
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -369,29 +368,6 @@ Canvas:
   m_SortingLayerID: 0
   m_SortingOrder: 0
   m_TargetDisplay: 0
---- !u!114 &7584528360388980342
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 6718403262113057891}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 0cd44c1031e13a943bb63640046fad76, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  m_UiScaleMode: 1
-  m_ReferencePixelsPerUnit: 100
-  m_ScaleFactor: 1
-  m_ReferenceResolution: {x: 1920, y: 1080}
-  m_ScreenMatchMode: 0
-  m_MatchWidthOrHeight: 0
-  m_PhysicalUnit: 3
-  m_FallbackScreenDPI: 96
-  m_DefaultSpriteDPI: 96
-  m_DynamicPixelsPerUnit: 1
-  m_PresetInfoIsWorld: 0
 --- !u!225 &8309643652789222045
 CanvasGroup:
   m_ObjectHideFlags: 0

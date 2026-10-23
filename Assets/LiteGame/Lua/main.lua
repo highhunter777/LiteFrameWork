@@ -4,9 +4,5 @@
 
 require("Core.class")
 
--- 单界面逻辑表（M4 UI 壳消费；M3 验收 = 可寻址、可 require）
-UI = UI or {}
-UI.UIMain = require("UI.UIMain")
-
 -- 冒烟锚点：证明 main.lua 真实执行到尾
-log.info("main.lua loaded: UI.UIMain = " .. tostring(UI.UIMain ~= nil))
+log.info("main.lua loaded")

@@ -212,9 +212,9 @@ namespace LiteGame.Tests.EditMode
         [Test]
         public void 引用扫描_真实Lua引用面命中()
         {
-            var hits = UiBindingReferenceScan.Scan("BtnClose");   // 默认扫描根（Lua/UI/App/Tests）
-            Assert.IsNotEmpty(hits, "UIMain.lua 的 OnButton/Flash(\"BtnClose\") 必须被清单列出");
-            Assert.IsTrue(hits.Any(h => h.File.EndsWith("Lua/UI/UIMain.lua")), "命中面包含 Lua 页面");
+            var hits = UiBindingReferenceScan.Scan("Button_Close");   // 默认扫描根（Lua/UI/App/Tests）
+            Assert.IsNotEmpty(hits, "UiTestPage.lua 的 OnButton/Flash(\"Button_Close\") 必须被清单列出");
+            Assert.IsTrue(hits.Any(h => h.File.EndsWith("Lua/Tests/UiTestPage.lua")), "命中面包含 Lua 测试载体");
         }
 
         // ---- 生成物 hash（§2.1.5） ----

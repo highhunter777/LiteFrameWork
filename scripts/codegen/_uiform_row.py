@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-"""Append/validate/rollback one tbuiform row for the UI page wizard.
+"""Append/delete/validate/rollback one tbuiform row for the UI page wizard.
 
 The Unity wizard owns the interactive flow; this helper is the only writer of
 Luban/Data/#uiform.xlsx. It never runs Luban itself: the caller commits the row
@@ -120,6 +120,7 @@ def main():
     parser.add_argument("--suggest", action="store_true")
     parser.add_argument("--list", action="store_true")
     parser.add_argument("--rollback", default="")
+    parser.add_argument("--delete-id", type=int, default=0)
     args = parser.parse_args()
 
     try:
@@ -148,6 +149,26 @@ def main():
             return emit(True, rows=rows)
         if args.suggest:
             return emit(True, id=suggest(ws))
+
+        if args.delete_id:
+            target = None
+            for row, values in data_rows(ws):
+                if values[COL_ID - 1] is not None and int(values[COL_ID - 1]) == args.delete_id:
+                    target = (row, values)
+                    break
+            if target is None:
+                raise ValueError(f"id 不存在：{args.delete_id}")
+            if not args.confirm:
+                return emit(True, dryRun=True, deleteId=args.delete_id, row=target[1])
+
+            BACKUP_DIR.mkdir(parents=True, exist_ok=True)
+            stamp = datetime.now().strftime("%Y%m%d-%H%M%S-%f")
+            backup = BACKUP_DIR / f"uiform-{stamp}.xlsx"
+            shutil.copy2(TABLE, backup)
+            ws.delete_rows(target[0], 1)
+            wb.save(TABLE)
+            return emit(True, deleteId=args.delete_id, row=target[1], backup=str(backup),
+                        table=str(TABLE.relative_to(ROOT)))
 
         if not args.page:
             raise ValueError("缺少 --page")

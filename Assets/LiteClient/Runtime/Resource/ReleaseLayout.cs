@@ -10,7 +10,7 @@ namespace LiteClient
     /// 候选根布局：`config/**`（Luban 表字节）+ `lua/**.lua`（热更脚本）+ `bundle/**`
     /// （**资产包根镜像**：YooAsset 包根的版本/清单/Bundle 文件，`bundle/` 本身即一个包根）。
     /// Lua 模块名 = **require 名**（剥 `lua/` 前缀与 `.lua` 后缀、`/` 归一化为 `.`）——与 Lua 源码
-    /// `require("UI.UIMain")` 及候选沙箱的 require 匹配同一口径；<c>LuaPreloader</c> 的斜杠键是
+    /// `require("UI.Page_Login")` 及候选沙箱的 require 匹配同一口径；<c>LuaPreloader</c> 的斜杠键是
     /// loader 内部缓存键（loader 做 '.'→'/' 转换），不是模块名约定。
     /// </summary>
     public static class ReleaseLayout
@@ -66,8 +66,8 @@ namespace LiteClient
             return entries;
         }
 
-        /// <summary>候选脚本路径 → Lua require 模块名（如 lua/UI/UIMain.lua → UI.UIMain；'/' 归一化为 '.'）。
-        /// 模块名 = Lua 源码里 require("UI.UIMain") 的名字（loader 侧再自行做 '.'→'/' 映射到缓存键）。</summary>
+        /// <summary>候选脚本路径 → Lua require 模块名（如 lua/UI/Page_Login.lua → UI.Page_Login；'/' 归一化为 '.'）。
+        /// 模块名 = Lua 源码里 require("UI.Page_Login") 的名字（loader 侧再自行做 '.'→'/' 映射到缓存键）。</summary>
         public static string LuaModuleOf(string candidatePath)
         {
             if (string.IsNullOrEmpty(candidatePath)) return candidatePath;

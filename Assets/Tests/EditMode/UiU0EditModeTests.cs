@@ -29,8 +29,8 @@ namespace LiteGame.Tests.EditMode
     /// </summary>
     public sealed class UiU0EditModeTests : UnityTestBase
     {
-        private const string UIMainPrefab = "Assets/ShareResource/UI/Screens/UIMain.prefab";
-        private const string UIMainRequire = "UI.UIMain";
+        private const string TestPagePrefab = "Assets/ShareResource/UI/Screens/Tmp_UiTestPage.prefab";
+        private const string TestPageRequire = "Tests.UiTestPage";
 
         [TearDown]
         protected void KillUiRoots()
@@ -106,8 +106,8 @@ namespace LiteGame.Tests.EditMode
         {
             private readonly Dictionary<int, UIFormInfo> _rows = new Dictionary<int, UIFormInfo>();
 
-            public void Add(int id, int layer, bool fullScreen, string location = "x")
-                => _rows[id] = new UIFormInfo { Id = id, Layer = layer, FullScreen = fullScreen, Location = location, LuaPath = "x" };
+            public void Add(int id, int layer, bool fullScreen, string location = "x", string luaPath = "x")
+                => _rows[id] = new UIFormInfo { Id = id, Layer = layer, FullScreen = fullScreen, Location = location, LuaPath = luaPath };
 
             public UIFormInfo Get(int id)
                 => _rows.TryGetValue(id, out var r) ? r : throw new KeyNotFoundException($"FakeCatalog 无行:{id}");
@@ -192,7 +192,7 @@ return m";
         }
 
         private static int LuaShows(LuaEnv env)
-            => Convert.ToInt32(env.DoString($"return require('{UIMainRequire}').__shows")[0]);
+            => Convert.ToInt32(env.DoString($"return require('{TestPageRequire}').__shows")[0]);
 
         private static Button FindButton(GameObject root, string name)
         {
@@ -204,19 +204,32 @@ return m";
         // ---- ① 真 Lua 首开/关闭/复用（UI-01：实例工厂 + 显式传 self）----
 
         [Test]
-        [Category(TestCategory.Integration)]
-        public void 真Lua页面_首开_关闭_复用_实例与self契约()
+        public void 真配置投影_UIMain行已移除_PageLogin仍在()
         {
-            // 真配置投影（磁盘 bytes → Luban 同步建表）+ 真 prefab + 真 Lua
             var config = new ConfigService((loc, ct) => UniTask.FromResult(File.ReadAllBytes(ToFullPath(loc))));
             config.LoadAsync(System.Threading.CancellationToken.None).GetAwaiter().GetResult();
             var catalog = new UIFormCatalog(config);
+
+            UIFormInfo login = catalog.Get(11);
+            Assert.AreEqual("UI.Page_Login", login.LuaPath);
+            Assert.AreEqual("Assets/ShareResource/UI/Screens/Page_Login.prefab", login.Location);
+            Assert.Throws<System.Collections.Generic.KeyNotFoundException>(() => catalog.Get(1),
+                "UIMain 退役后 tbuiform 不得再有 id=1");
+        }
+
+        [Test]
+        [Category(TestCategory.Integration)]
+        public void 真Lua页面_首开_关闭_复用_实例与self契约()
+        {
+            // 真 prefab + 真 Lua（静态测试 catalog；tbuiform 投影由下方独立用例覆盖）
+            var catalog = new FakeCatalog();
+            catalog.Add(1, layer: 0, fullScreen: true, location: TestPagePrefab, luaPath: TestPageRequire);
 
             LuaEnv env = NewLuaEnv();
             try
             {
                 var registry = new UiLuaRegistry();
-                registry.Fill(UIMainRequire, RequireCountedModule(env, UIMainRequire));
+                registry.Fill(TestPageRequire, RequireCountedModule(env, TestPageRequire));
 
                 var trans = new MimicTransition();
                 var service = new UIService(catalog,
@@ -224,7 +237,7 @@ return m";
                     logicResolver: info => new LuaBehaviourAdapter(env, registry.Get(info.LuaPath)),
                     loadPrefab: (loc, ct) => UniTask.FromResult(UIPrefabLeases.Unowned(AssetDatabase.LoadAssetAtPath<GameObject>(loc))));
 
-                // 首开：真 UIMain 的 OnShow 访问 self.ui:OnButton + self.ui:Pulse——self 未传必炸（§2.2 复现口径）
+                // 首开：真测试载体 的 OnShow 访问 self.ui:OnButton + self.ui:Pulse——self 未传必炸（§2.2 复现口径）
                 var form = Await(service.ShowAsync(1), service);
                 Assert.IsNotNull(form, "真 Lua 页面首开应成功");
                 Assert.IsTrue(service.IsOpen(1));
@@ -232,7 +245,7 @@ return m";
 
                 var adapter = (LuaBehaviourAdapter)form.Logic;
                 Assert.AreNotSame(adapter.Module, adapter.Logic, "实例工厂：页面应持实例而非共享模块（§5.1）");
-                Assert.AreEqual("UIMain", adapter.Logic.Get<string>("_viewName"), "module.new() 应跑过 ctor");
+                Assert.AreEqual("UiTestPage", adapter.Logic.Get<string>("_viewName"), "module.new() 应跑过 ctor");
                 Assert.IsNotNull(adapter.Logic.Get<object>("ui"), "self.ui 应挂在实例上");
                 Assert.AreEqual(1f, trans.AlphaAtShowEntry, 0.0001f, "首开入场前 alpha 应为 1");
 
@@ -384,9 +397,8 @@ return m";
         [Category(TestCategory.Integration)]
         public void env重建_逻辑落空后复用_按新注册表重解析且旧引用已释放()
         {
-            var config = new ConfigService((loc, ct) => UniTask.FromResult(File.ReadAllBytes(ToFullPath(loc))));
-            config.LoadAsync(System.Threading.CancellationToken.None).GetAwaiter().GetResult();
-            var catalog = new UIFormCatalog(config);
+            var catalog = new FakeCatalog();
+            catalog.Add(1, layer: 0, fullScreen: true, location: TestPagePrefab, luaPath: TestPageRequire);
 
             LuaEnv env = NewLuaEnv();
             var registry = new UiLuaRegistry();
@@ -400,7 +412,7 @@ return m";
             LuaEnv env2 = null;
             try
             {
-                registry.Fill(UIMainRequire, RequireCountedModule(env, UIMainRequire));
+                registry.Fill(TestPageRequire, RequireCountedModule(env, TestPageRequire));
                 var form = Await(service.ShowAsync(1), service);
                 var oldAdapter = (LuaBehaviourAdapter)form.Logic;
                 var oldInstance = oldAdapter.Logic;
@@ -415,7 +427,7 @@ return m";
                 env.Dispose();
                 env = env2 = NewLuaEnv();
                 registry.Clear();
-                registry.Fill(UIMainRequire, RequireCountedModule(env2, UIMainRequire));
+                registry.Fill(TestPageRequire, RequireCountedModule(env2, TestPageRequire));
 
                 // 复用：按当前注册表重解析 + 补跑 OnInit（否则按钮全不响应）
                 var form2 = Await(service.ShowAsync(1), service);

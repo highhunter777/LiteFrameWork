@@ -151,7 +151,7 @@ namespace LiteGame.Tests.EditMode
         {
             Assert.IsTrue(AssetTablePathRule.IsPathLike("ShareResource/UI/Screens/Tmp_Dialog.prefab"));
             Assert.IsTrue(AssetTablePathRule.IsPathLike("Assets/Scenes/Boot.unity"));
-            Assert.IsFalse(AssetTablePathRule.IsPathLike("UI.UIMain"), "LuaPath 点分模块名不是资产路径");
+            Assert.IsFalse(AssetTablePathRule.IsPathLike("UI.Page_Login"), "LuaPath 点分模块名不是资产路径");
             Assert.IsFalse(AssetTablePathRule.IsPathLike(""));
         }
 
@@ -194,7 +194,7 @@ namespace LiteGame.Tests.EditMode
         public void 门禁_真实资产面_命名hash表路径零Error()
         {
             // 全量规则跑真实数据：Error＝0；Warning＝校准基线（样式对账债——手调色/未标记文本，SHOULD 级可见不阻断；
-            // 整改或例外后基线随之更新——P1 边界收口批实测：颜色 161 + 文字 141 + UIMain 根名债 1）
+            // 整改或例外后基线随之更新——UIMain 退役批实测：颜色 161 + 文字 141，UIMain 根名债随退役清零）
             var assetsOnly = new UiValidationContext(UiValidator.ProjectRoot,
                 sourceDirs: null,
                 assetPaths: UiValidator.BuildDefaultContext().AssetPaths);
@@ -205,7 +205,7 @@ namespace LiteGame.Tests.EditMode
             Assert.AreEqual(0, report.Issues.Count(i => i.RuleId == "ui.binding-hash"), "hash 对账零问题");
             Assert.AreEqual(0, report.Issues.Count(i => i.RuleId == "ui.asset-table-paths" && i.Severity == UiSeverity.Error), "表路径零悬空");
 
-            // 校准钉：文本/引用对账/双写/布局/性能在真实面零问题；Warning 基线＝样式对账债 + UIMain 根名债
+            // 校准钉：文本/引用对账/双写/布局/性能在真实面零问题；Warning 基线＝样式对账债（UIMain 根名债已随退役清零）
             Assert.AreEqual(0, report.Issues.Count(i => i.RuleId == UiRuleIds.TextStaticKey
                 || i.RuleId == UiRuleIds.TextPlaceholder || i.RuleId == UiRuleIds.TextLocaleColumn
                 || i.RuleId == UiRuleIds.TextRichText || i.RuleId == UiRuleIds.LayoutScaler
@@ -213,13 +213,13 @@ namespace LiteGame.Tests.EditMode
                 || i.RuleId == UiRuleIds.PerformanceAnimator || i.RuleId == UiRuleIds.ContractDrift
                 || i.RuleId == UiRuleIds.ContractReference || i.RuleId == UiRuleIds.ContractTextDoubleWrite),
                 "文本/契约对账/布局/性能族真实面零问题：\n" + report.Render());
-            Assert.AreEqual(1, report.Issues.Count(i => i.RuleId == "ui.binding-naming" && i.Severity == UiSeverity.Warning),
-                "唯一既有 Warning＝UIMain 根名债（§9.6 登记随页面批次）");
+            Assert.AreEqual(0, report.Issues.Count(i => i.RuleId == "ui.binding-naming" && i.Severity == UiSeverity.Warning),
+                "UIMain 退役后不应再有根名存量 Warning");
             int colorDrift = report.Issues.Count(i => i.RuleId == UiRuleIds.StyleColorDrift);
             int textDrift = report.Issues.Count(i => i.RuleId == UiRuleIds.StyleTextDrift);
             Assert.AreEqual(161, colorDrift, "颜色对账基线（Screens+Widgets+Hud 手调色——债可见，整改后更新此钉）");
             Assert.AreEqual(141, textDrift, "文字档对账基线（未标记文本——债可见，整改后更新此钉）");
-            Assert.AreEqual(303, report.WarningCount, "Warning 总量＝161+141+1（样式债＋UIMain 根名债）");
+            Assert.AreEqual(302, report.WarningCount, "Warning 总量＝161+141（UIMain 根名债清零）");
         }
 
         /// <summary>造临时 prefab（Assets 下——规则经 AssetDatabase 装载），跑规则后删除。</summary>

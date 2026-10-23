@@ -125,13 +125,13 @@ namespace LiteGame.Tests.EditMode
 
         [Test]
         [Category(TestCategory.Contract)]
-        public void 模板契约_UIMain与ListScreen内容容器挂SafeAreaReceiver()
+        public void 模板契约_测试载体与ListScreen内容容器挂SafeAreaReceiver()
         {
-            var main = UnityEditor.AssetDatabase.LoadAssetAtPath<GameObject>("Assets/ShareResource/UI/Screens/UIMain.prefab");
-            Assert.IsNotNull(main, "UIMain 模板缺失");
+            var main = UnityEditor.AssetDatabase.LoadAssetAtPath<GameObject>("Assets/ShareResource/UI/Screens/Tmp_UiTestPage.prefab");
+            Assert.IsNotNull(main, "Tmp_UiTestPage 测试载体缺失");
             var safeNode = main.transform.Find("_SafeArea");
-            Assert.IsNotNull(safeNode, "UIMain 需有 _SafeArea 内容容器节点");
-            Assert.IsNotNull(safeNode.GetComponent<SafeAreaReceiver>(), "UIMain._SafeArea 挂 SafeAreaReceiver");
+            Assert.IsNotNull(safeNode, "Tmp_UiTestPage 需有 _SafeArea 内容容器节点");
+            Assert.IsNotNull(safeNode.GetComponent<SafeAreaReceiver>(), "Tmp_UiTestPage._SafeArea 挂 SafeAreaReceiver");
 
             var list = UnityEditor.AssetDatabase.LoadAssetAtPath<GameObject>("Assets/ShareResource/UI/Screens/Tmp_ListScreen.prefab");
             Assert.IsNotNull(list, "Tmp_ListScreen 模板缺失");

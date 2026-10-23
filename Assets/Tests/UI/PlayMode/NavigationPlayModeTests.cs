@@ -27,12 +27,12 @@ namespace LiteGame.Tests.UI.PlayMode
     ///   interactable——锁在阶段 OnEnter 已生效（"接受即锁，不等策略开始"），完成由 Runner 收尾
     ///   按协调者恢复——这依赖真实 PlayerLoop 驱动 UITransitionRunner。
     ///
-    /// 页面：UIMain（真 Lua）+ BaselineA/B（空 LuaPath 展示面——ResolveLogic 短路降级）。
+    /// 页面：Tmp_UiTestPage（真 Lua 测试载体）+ BaselineA/B（空 LuaPath 展示面——ResolveLogic 短路降级）。
     /// </summary>
     [Category(TestCategory.Contract)]
     public sealed class NavigationPlayModeTests
     {
-        private const int PageMain = 1;   // UIMain：真 Lua 页面
+        private const int PageMain = 9001;   // Tmp_UiTestPage：真 Lua 测试载体
         private const int PageA = 10;     // BaselineA：展示面（空 LuaPath）
         private const int PageB = 20;     // BaselineB：展示面
         // **层级语义**：前进页 A/B 必须与底页 Main **跨层**（1 vs 0）——
@@ -121,14 +121,14 @@ namespace LiteGame.Tests.UI.PlayMode
             }
 
             _env = NewLuaEnv();
-            LuaTable module = RequireCountedModule(_env, "UI.UIMain");
+            LuaTable module = RequireCountedModule(_env, "Tests.UiTestPage");
 
             _transition = new ObservingTransition();
             _ui = new UIService(
                 new StaticCatalog(new[]
                 {
                     new UIFormInfo { Id = PageMain, Layer = 0, FullScreen = true,
-                        LuaPath = "UI.UIMain", Location = "Assets/ShareResource/UI/Screens/UIMain.prefab" },
+                        LuaPath = "Tests.UiTestPage", Location = "Assets/ShareResource/UI/Screens/Tmp_UiTestPage.prefab" },
                     new UIFormInfo { Id = PageA, Layer = 1, FullScreen = true,
                         LuaPath = "", Location = "Assets/ShareResource/UI/Screens/Tmp_BaselineA.prefab" },
                     new UIFormInfo { Id = PageB, Layer = 1, FullScreen = true,

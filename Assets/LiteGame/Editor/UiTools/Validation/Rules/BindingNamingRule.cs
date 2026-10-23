@@ -54,7 +54,7 @@ namespace LiteGame.Editor.UiTools.Validation.Rules
                     string name = t.name;
 
                     // 根节点走"根名"判据（§9.3：Page_<语义> / Hud_<...> / Tmp_<...>）——
-                    // 存量页面根（UIMain 等）是 §9.6 登记的**待页面批次整改**债，报 Warning 不报 Error
+                    // 非常规根名（历史样例页已退役）仍按 §9.6 报 Warning 不报 Error，避免存量资产一刀切
                     if (t == root.transform)
                     {
                         if (name.StartsWith("Page_") || name.StartsWith("Hud_") || name.StartsWith("Tmp_")) continue;

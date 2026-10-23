@@ -109,7 +109,7 @@ namespace LiteGame.Tests.EditMode
         public void 契约基线_每个可生成页已入库()
         {
             List<UiPageManifestEntry> pages = LoadEligiblePages();
-            Assert.That(pages.Count, Is.GreaterThan(0), "页面清单为空或读取失败");
+            Assert.That(pages.Count, Is.EqualTo(11), "UIMain 退役后应恰有 11 个可生成页");
 
             foreach (UiPageManifestEntry entry in pages)
             {
@@ -117,16 +117,13 @@ namespace LiteGame.Tests.EditMode
                 Assert.That(File.Exists(UiContractPaths.FullPath(contractPath)), Is.True,
                     entry.Name + " 缺少契约基线：" + contractPath);
             }
-
-            string umain = UiContractPaths.FullPath(UiContractPaths.ForPage("UIMain"));
-            Assert.That(File.Exists(umain), Is.False, "UIMain 是常驻壳，不产页面契约（根名不在契约面）");
         }
 
         [Test]
         public void 页面清单_契约入库后contractPresent为真()
         {
             List<UiPageManifestEntry> pages = LoadEligiblePages();
-            Assert.That(pages.Count, Is.GreaterThan(0), "页面清单为空或读取失败");
+            Assert.That(pages.Count, Is.EqualTo(11), "UIMain 退役后应恰有 11 个可生成页");
 
             foreach (UiPageManifestEntry entry in pages)
             {
@@ -146,8 +143,7 @@ namespace LiteGame.Tests.EditMode
                 UiContractBatchResult first = UiContractBatch.Generate(tempDir);
                 Assert.That(first.Ok, Is.True, string.Join("\n", first.Errors));
                 Assert.That(first.Written.Count, Is.EqualTo(11), "应写入 11 份页面契约");
-                Assert.That(first.Skipped.Any(item => item.StartsWith("UIMain", StringComparison.Ordinal)), Is.True,
-                    "UIMain 应显式跳过");
+                Assert.That(first.Skipped, Is.Empty, "UIMain 退役后不应再有非常驻壳登记行");
                 Assert.That(first.Warnings.Any(item => item.Contains("多行登记")), Is.True,
                     "多行登记应告警（Tmp_Dialog 201/206）");
 

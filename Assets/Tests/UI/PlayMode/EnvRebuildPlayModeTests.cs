@@ -34,7 +34,7 @@ namespace LiteGame.Tests.UI.PlayMode
     [Category(TestCategory.Contract)]
     public sealed class EnvRebuildPlayModeTests
     {
-        private const int UIMainFormId = 1;
+        private const int TestPageFormId = 9001;
 
         private sealed class StaticCatalog : IUIFormCatalog
         {
@@ -77,13 +77,13 @@ namespace LiteGame.Tests.UI.PlayMode
                 _assetsReady = true;
             }
 
-            (_env, _module) = NewEnvWithModule("UI.UIMain");
+            (_env, _module) = NewEnvWithModule("Tests.UiTestPage");
 
             _ui = new UIService(
                 new StaticCatalog(new[]
                 {
-                    new UIFormInfo { Id = UIMainFormId, Layer = 0, FullScreen = true,
-                        LuaPath = "UI.UIMain", Location = "Assets/ShareResource/UI/Screens/UIMain.prefab" },
+                    new UIFormInfo { Id = TestPageFormId, Layer = 0, FullScreen = true,
+                        LuaPath = "Tests.UiTestPage", Location = "Assets/ShareResource/UI/Screens/Tmp_UiTestPage.prefab" },
                 }),
                 // resolver 读**实例字段**——env 重建后同一 UIService 的复用路径会解析到新 env 的模块
                 logicResolver: info => new LuaBehaviourAdapter(_env, _module),
@@ -113,22 +113,22 @@ namespace LiteGame.Tests.UI.PlayMode
         [UnityTest]
         public IEnumerator 环境重建_复刻DevReload顺序_缓存实例接管新逻辑零旧访问()
         {
-            var open = _ui.ShowAsync(UIMainFormId);
+            var open = _ui.ShowAsync(TestPageFormId);
             yield return WaitUniTask(open, 20f);
             var first = open.GetAwaiter().GetResult();
             var firstGo = first.Root;
             Assert.AreEqual(1, LuaShows(_env), "env1 首开 OnShow 一次");
 
-            var close = _ui.CloseAsync(UIMainFormId, UIService.CloseReason.User);
+            var close = _ui.CloseAsync(TestPageFormId, UIService.CloseReason.User);
             yield return WaitUniTask(close, 20f);
-            Assert.IsFalse(_ui.IsOpen(UIMainFormId), "已关闭入池（缓存实例仍在）");
+            Assert.IsFalse(_ui.IsOpen(TestPageFormId), "已关闭入池（缓存实例仍在）");
 
             // --- 复刻 §10.2 顺序：DropAllLogic（env.Dispose 前清旧引用）→ env 死亡 → 新 env/重 require ---
             _ui.DropAllLogic();
             _env.Dispose();                              // 旧 env 死亡时点——旧 LuaFunction 全部失效
-            (_env, _module) = NewEnvWithModule("UI.UIMain");   // 重预载/重 require（模块计数归零）
+            (_env, _module) = NewEnvWithModule("Tests.UiTestPage");   // 重预载/重 require（模块计数归零）
 
-            var reopen = _ui.ShowAsync(UIMainFormId);      // 复用缓存实例：新逻辑必须来自新 env
+            var reopen = _ui.ShowAsync(TestPageFormId);      // 复用缓存实例：新逻辑必须来自新 env
             yield return WaitUniTask(reopen, 20f);
             var second = reopen.GetAwaiter().GetResult();
 
@@ -136,7 +136,7 @@ namespace LiteGame.Tests.UI.PlayMode
                 "env 重建后复用同一 GameObject（缓存实例不重建——重建=丢复用语义）");
             Assert.AreEqual(1, LuaShows(_env),
                 "新 env 的 OnShow 恰好一次（新逻辑接管；若复用路径触碰旧 env 的 LuaFunction 会抛死环境异常）");
-            Assert.IsTrue(_ui.IsOpen(UIMainFormId), "重建后页面正常打开");
+            Assert.IsTrue(_ui.IsOpen(TestPageFormId), "重建后页面正常打开");
         }
 
         [UnityTest]
@@ -146,21 +146,21 @@ namespace LiteGame.Tests.UI.PlayMode
             var first = default(UIForm);
             for (int i = 0; i < Loops; i++)
             {
-                var open = _ui.ShowAsync(UIMainFormId);
+                var open = _ui.ShowAsync(TestPageFormId);
                 yield return WaitUniTask(open, 20f);
                 var form = open.GetAwaiter().GetResult();
                 if (i == 0) first = form;
                 Assert.AreSame(first, form, $"第 {i + 1} 次打开必须复用同一实例（无第二实例=无泄漏实例）");
                 Assert.AreEqual(i + 1, LuaShows(_env), $"OnShow 逐次递增（第 {i + 1} 次应计 {i + 1}）");
 
-                var close = _ui.CloseAsync(UIMainFormId, UIService.CloseReason.User);
+                var close = _ui.CloseAsync(TestPageFormId, UIService.CloseReason.User);
                 yield return WaitUniTask(close, 20f);
             }
 
             // 「资源与缓存稳定」循环判据：计数回基线、无持续增长（§12.1 断言回调次数与引用数量）
             Assert.AreEqual(1, CountingLease.Acquired, "十次开关租约恰好一次（缓存复用不获取第二份租约）");
             Assert.AreEqual(0, CountingLease.Released, "缓存实例寿命内租约不释放（§5.2 租约覆盖缓存期）");
-            Assert.IsFalse(_ui.IsOpen(UIMainFormId), "最终关闭");
+            Assert.IsFalse(_ui.IsOpen(TestPageFormId), "最终关闭");
             Assert.AreEqual(Loops, LuaShows(_env), "回调计数=循环次数（无重复/遗漏派发）");
 
             var shutdown = _ui.ShutdownAsync();           // 收尾销毁：对称释放
@@ -179,21 +179,21 @@ namespace LiteGame.Tests.UI.PlayMode
             int errBefore = LiteFramework.Log.ErrorCount;
 
             _env.DoString(@"
-local m = require('UI.UIMain')
+local m = require('Tests.UiTestPage')
 m.OnInit = function(self, ctx, data) error('诊断注入:OnInit 失败') end");
 
-            var open = _ui.ShowAsync(UIMainFormId);
+            var open = _ui.ShowAsync(TestPageFormId);
             yield return WaitUniTask(open, 20f);
             Assert.AreNotEqual(UniTaskStatus.Pending, open.Status, "打开必须终态（不悬挂）");
 
             var ex = Assert.Throws<UIOpenException>(() => open.GetAwaiter().GetResult(),
                 "初始化失败必须类型化交付（§4.1 初始化失败不得以 Active+NullLogic 伪装成功）");
             Assert.AreEqual(UIOpenFailure.InitFailed, ex.Reason, "失败分类 InitFailed");
-            Assert.AreEqual(UIMainFormId, ex.FormId, "异常携带 formId（§4.1 回调异常必须有 formId）");
+            Assert.AreEqual(TestPageFormId, ex.FormId, "异常携带 formId（§4.1 回调异常必须有 formId）");
             StringAssert.Contains("初始化失败", ex.Message, "异常消息含阶段（可定位到初始化阶段）");
-            StringAssert.Contains($"UIForm[{UIMainFormId}]", ex.Message, "异常消息含页面标识（诊断关联）");
+            StringAssert.Contains($"UIForm[{TestPageFormId}]", ex.Message, "异常消息含页面标识（诊断关联）");
 
-            Assert.IsFalse(_ui.IsOpen(UIMainFormId), "回滚：失败页不残留打开态");
+            Assert.IsFalse(_ui.IsOpen(TestPageFormId), "回滚：失败页不残留打开态");
             Assert.AreEqual(CountingLease.Acquired, CountingLease.Released,
                 "回滚对称：租约获取与释放一致（半成品清理，§4.4 引用归零）");
 
@@ -203,7 +203,7 @@ m.OnInit = function(self, ctx, data) error('诊断注入:OnInit 失败') end");
             foreach (var entry in LiteFramework.Log.Recent)
             {
                 if (entry.Level != LiteFramework.LogLevel.Error) continue;
-                if (entry.Message.Contains($"UIForm[{UIMainFormId}].OnInit")
+                if (entry.Message.Contains($"UIForm[{TestPageFormId}].OnInit")
                     && entry.Message.Contains("LuaException")
                     && entry.Message.Contains("诊断注入"))
                 { logged = true; break; }
@@ -240,7 +240,7 @@ return m";
         }
 
         private int LuaShows(LuaEnv env)
-            => Convert.ToInt32(env.DoString("return require('UI.UIMain').__shows")[0]);
+            => Convert.ToInt32(env.DoString("return require('Tests.UiTestPage').__shows")[0]);
 
         private static async UniTask<IUIPrefabLease> LoadRealPrefabAsync(string location, CancellationToken ct)
         {

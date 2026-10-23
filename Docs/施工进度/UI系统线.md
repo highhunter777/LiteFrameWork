@@ -16,6 +16,7 @@
 | 4 | UI 系统 P1-4：校验规则族与 UiRuleExceptions（结构/契约族 + 例外登记） | — |
 | 5 | UI 系统 P1-5/P1-6：Hub/CLI 接线与试点页静态文案（P1 收口） | — |
 | 6 | UI 系统 P1 边界收口：五族校验 · 契约补全 · 遍历统一 | — |
+| 7 | UI 系统 UIMain 退役：注册表锚迁移 · 产品注册摘除 · 测试载体归位 | — |
 
 ---
 
@@ -303,3 +304,47 @@
 - **`UiContractBatch.TryLoadManifest` 对损坏清单 fail-open**（`UiContractBatch.cs` 捕获所有异常返回 null）——`ui.contract` 可能在清单损坏时重写契约并丢 owner/events；`ui.page-manifest` 规则会显式 Error，但生成器应改 fail-fast（另批）。
 - **多行页面契约主行口径**：批量生成取表行顺序首行、漂移重生成取清单 `forms[0]`（按 formId 升序）——表行顺序非升序时会产生假漂移；当前 `Tmp_Dialog` 未触发，另批统一主行判据。
 - **本批已提交**（`fed30ebd`，工作区检查点；同提交含并行线 DevMenu 退役等改动）；按批收口纪律统一提交。
+
+---
+
+## 第7章 UI 系统 UIMain 退役：注册表锚迁移 · 产品注册摘除 · 测试载体归位
+
+<a id="ch7-UIMain退役"></a>
+
+> **批次**：UIMain 退役（2026-10-23，staged-delivery）
+> **设计**：[UI 系统总设计 §5.1 页面编号](../设计文档/客户端/UI系统/UI系统总设计.md#ch-page-catalog) · [UI 编辑器工具链专项设计 §5.2/§8.5](../设计文档/客户端/UI系统/UI编辑器工具链专项设计.md#ch-page-manifest) · [UI 制作规范 §3](../设计文档/客户端/UI系统/UI制作规范.md#ch-prefab)
+> **方案与任务**：`.workflow/archive/20261023-183425-ui-uimain-retirement/`（plan.md / tasks.md / test-plan.md / build-log / reviews）
+
+### 状态
+
+**已完成（附验证证据）**——产品注册/启动锚/main.lua/页面清单已摘除；测试载体已改名归位；定向夹具全绿；全量 `wf verify` **30/30 PASS**。待归档与提交。
+
+### 交付
+
+| 件 | 变化 |
+|---|---|
+| 产品注册 | `tbuiform` 删 id=1（唯一写入面 `_uiform_row.py` 新增 `--delete-id`，带备份/确认/回滚）；Luban 重生成 `tbuiform.lua`/表数据/`LuaKeys.g.cs`（UI 常量 7→6）；`ui.page-manifest` 对账 11 页/12 行、无 UIMain、0 告警 |
+| 启动锚 | `RegistryFiller.KnownUiKey = LuaKeys.UI.Page_Login` 单源；`main.lua` 去 `UI.UIMain` require/全局，冒烟日志改 `main.lua loaded` |
+| 测试载体 | `UIMain.prefab` → `Tmp_UiTestPage.prefab`（unity-pipeline 保 GUID；根同名、去 CanvasScaler、BindName `Button_Close`/`Txt_Label`）；`UIMain.lua` → `Lua/Tests/UiTestPage.lua`（模块/类/viewName 同步） |
+| 测试夹具 | 页面清单 11/12 断言；Wiring 无跳过；Validation 302/0；SafeArea/BindingTools/U0/LuaPage/EnvRebuild/Navigation 指向新载体；新增 `UiUimainRetirementEditModeTests` 6 例与 `UiPageManifestEditor.Remove` 显式退役 API |
+| 门禁 | 异步通道修 filter 透传（工具 `--timeout` 不能放在 filter 后）、域重载前置等待、陈旧 completed 忽略；本轮 red 19 命令与定向复跑均经该通道 |
+| 生成物 | `gen-build-hash.py` 复算 shared=`459a3145904693b7`；11 份产品契约不变 |
+| 文档 | 代码地图/技术总结 04·11/项目说明 03/UI 系统总设计/工具链设计/schema/审计/本章回写 |
+
+### 验证证据
+
+| 项 | 结果 |
+|---|---|
+| 先红 | `wf verify --red` PASS（19 命令；退役守卫 5/6 断言失败，page-manifest/ui-toolchain-wiring/ui-validation-core 三条既有断言按目标态转红） |
+| 退役守卫 | `UiUimainRetirementEditModeTests` **6/6**（页面清单/LuaKeys/锚/main.lua/载体路径/契约面判据） |
+| 定向夹具 | PageManifest **16/16** · Wiring **8/8** · Validation **14/14**（Warning 302、命名 0）· ValidationRules **10/10** · SafeArea **6/6** · BindingTools **12/12** · U0 **7/7** · LuaPage **4/4** · EnvRebuild **3/3** · Navigation **4/4** |
+| 生成物 | 页面清单 11 页/12 行；LuaKeys 6 常量；BuildHash shared 已复算 |
+| 终验 | 全量 `wf verify` **PASS 30/30**（2026-10-23T18:33:46；L1 1819 + 全部 UI EditMode + PlayMode 3/3 + 退役守卫 6/6 + doc/l0/toolchain） |
+
+### 边界与遗留（如实）
+
+- **测试载体仍在产品收集目录**：`Tmp_UiTestPage` 位于 `Assets/ShareResource/UI/Screens`（YooAsset `UIScreens` 按目录收集；PlayMode 真资源链路需要）。产品包仍有一个小测试 prefab/Lua；若要求包内零测试资产，另开测试收集组批（方案候选 C）。
+- **11 份产品契约不变**：UIMain 原本 `contractPresent=false`；退役只改页面清单，不改产品契约内容。
+- **UIMain 历史引用**：归档文档与 git 历史保留；live 文档仅在“已退役”说明中出现。合成夹具 `signed-candidate*.json` 的 `lua/ui/UIMain.lua` 是签名固定样例，未改。
+- **样式债基线**：`UiValidation` 的 Warning 从 303 降为 302（仅 UIMain 根名债消失）；颜色 161/文字 141 未变。
+- **工作区未提交**：本批与当前工作区改动待统一提交（是否提交由用户决定）。

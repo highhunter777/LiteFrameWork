@@ -1,0 +1,287 @@
+{
+  "schema_version": 1,
+  "slug": "ui-uimain-retirement",
+  "title": "UI 系统 UIMain 退役：注册表锚迁移 · 产品注册摘除 · 测试载体归位",
+  "status": "archived",
+  "current_stage": null,
+  "created_at": "2026-10-23T17:29:30+08:00",
+  "updated_at": "2026-10-23T18:34:25+08:00",
+  "completed_at": "2026-10-23T18:34:25+08:00",
+  "completed_stages": [
+    {
+      "id": "propose",
+      "title": "提出方案",
+      "completed_at": "2026-10-23T17:31:35+08:00"
+    },
+    {
+      "id": "breakdown",
+      "title": "实施任务清单",
+      "completed_at": "2026-10-23T17:32:17+08:00"
+    },
+    {
+      "id": "review-tasks",
+      "title": "评审任务",
+      "completed_at": "2026-10-23T17:32:17+08:00"
+    },
+    {
+      "id": "tests-first",
+      "title": "先写测试",
+      "completed_at": "2026-10-23T17:54:33+08:00"
+    },
+    {
+      "id": "implement",
+      "title": "正式施工",
+      "completed_at": "2026-10-23T18:18:01+08:00"
+    },
+    {
+      "id": "verify",
+      "title": "测试代码",
+      "completed_at": "2026-10-23T18:34:18+08:00"
+    },
+    {
+      "id": "review-code",
+      "title": "评审代码",
+      "completed_at": "2026-10-23T18:34:21+08:00"
+    },
+    {
+      "id": "writeback",
+      "title": "回写与收尾",
+      "completed_at": "2026-10-23T18:34:25+08:00"
+    }
+  ],
+  "history": [
+    {
+      "at": "2026-10-23T17:29:30+08:00",
+      "event": "init",
+      "stage": "propose"
+    },
+    {
+      "at": "2026-10-23T17:31:35+08:00",
+      "event": "advance",
+      "from": "propose",
+      "to": "breakdown",
+      "approved_by": null
+    },
+    {
+      "at": "2026-10-23T17:32:17+08:00",
+      "event": "advance",
+      "from": "breakdown",
+      "to": "review-tasks",
+      "approved_by": null
+    },
+    {
+      "at": "2026-10-23T17:32:17+08:00",
+      "event": "advance",
+      "from": "review-tasks",
+      "to": "tests-first",
+      "approved_by": null
+    },
+    {
+      "at": "2026-10-23T17:54:33+08:00",
+      "event": "advance",
+      "from": "tests-first",
+      "to": "implement",
+      "approved_by": null
+    },
+    {
+      "at": "2026-10-23T18:18:01+08:00",
+      "event": "advance",
+      "from": "implement",
+      "to": "verify",
+      "approved_by": null
+    },
+    {
+      "at": "2026-10-23T18:34:18+08:00",
+      "event": "advance",
+      "from": "verify",
+      "to": "review-code",
+      "approved_by": null
+    },
+    {
+      "at": "2026-10-23T18:34:21+08:00",
+      "event": "advance",
+      "from": "review-code",
+      "to": "writeback",
+      "approved_by": null
+    },
+    {
+      "at": "2026-10-23T18:34:25+08:00",
+      "event": "advance",
+      "from": "writeback",
+      "to": null,
+      "approved_by": null
+    },
+    {
+      "at": "2026-10-23T18:34:25+08:00",
+      "event": "archive",
+      "path": "20261023-183425-ui-uimain-retirement"
+    }
+  ],
+  "tasks": [
+    {
+      "id": "T1",
+      "title": "先红：退役守卫与既有夹具目标态",
+      "description": "",
+      "acceptance": "新增 UiUimainRetirementEditModeTests（页面清单无 UIMain/11页12行、载体新路径存在、main.lua 无 UIMain、RegistryFiller 锚用 Page_Login）；既有 PageManifest/Wiring/Validation/SafeArea/BindingTools/U0/LuaPage/EnvRebuild 夹具改到目标态；定向运行断言失败（非编译/环境错误）",
+      "verify": "python scripts/gate/unity-tests.py --mode editor --filter UiUimainRetirementEditModeTests",
+      "files": [
+        "Assets/Tests/EditMode/UiUimainRetirementEditModeTests.cs",
+        "Assets/Tests/EditMode/UiPageManifestEditModeTests.cs",
+        "Assets/Tests/EditMode/UiToolchainWiringEditModeTests.cs",
+        "Assets/Tests/EditMode/UiValidationEditModeTests.cs",
+        "Assets/Tests/EditMode/SafeAreaEditModeTests.cs",
+        "Assets/Tests/EditMode/UiBindingToolsEditModeTests.cs",
+        "Assets/Tests/EditMode/UiU0EditModeTests.cs",
+        "Assets/Tests/UI/PlayMode/LuaPagePlayModeTests.cs",
+        "Assets/Tests/UI/PlayMode/EnvRebuildPlayModeTests.cs"
+      ],
+      "deps": [],
+      "status": "done",
+      "evidence": "wf verify --red PASS（19 命令；4 条新失败 + 既有 14 条通过；退役守卫 5/6 断言失败）",
+      "status_reason": "",
+      "created_at": "2026-10-23T17:31:56+08:00",
+      "started_at": "2026-10-23T17:54:38+08:00",
+      "completed_at": "2026-10-23T17:54:38+08:00"
+    },
+    {
+      "id": "T2",
+      "title": "启动锚迁移：RegistryFiller KnownUiKey + main.lua 去 UIMain",
+      "description": "",
+      "acceptance": "RegistryFiller 单源常量指向 LuaKeys.UI.Page_Login 并用于 ValidateKnownKeys；main.lua 不再 require/暴露 UI.UIMain，冒烟日志改 main.lua loaded；无其它生产引用 LuaKeys.UI.UIMain",
+      "verify": "python scripts/gate/unity-tests.py --mode editor --filter UiUimainRetirementEditModeTests",
+      "files": [
+        "Assets/LiteGame/LuaBridge/RegistryFiller.cs",
+        "Assets/LiteGame/Lua/main.lua"
+      ],
+      "deps": [
+        "T1"
+      ],
+      "status": "done",
+      "evidence": "RegistryFiller 增 KnownUiKey=LuaKeys.UI.Page_Login 并用于 ValidateKnownKeys；main.lua 去 UI.UIMain require/全局，冒烟改 main.lua loaded",
+      "status_reason": "",
+      "created_at": "2026-10-23T17:31:56+08:00",
+      "started_at": "2026-10-23T17:54:42+08:00",
+      "completed_at": "2026-10-23T17:55:51+08:00"
+    },
+    {
+      "id": "T3",
+      "title": "测试载体归位：Tmp_UiTestPage prefab + Tests.UiTestPage Lua",
+      "description": "",
+      "acceptance": "UIMain.prefab 改名 Tmp_UiTestPage.prefab（根同名、去 CanvasScaler、BindName Button_Close/Txt_Label）；UIMain.lua 移到 Lua/Tests/UiTestPage.lua（class/viewName/绑定名同步）；旧路径不再存在；unity-pipeline 执行 asset 改名/组件/字段",
+      "verify": "python scripts/gate/unity-tests.py --mode editor --filter UiUimainRetirementEditModeTests",
+      "files": [
+        "Assets/ShareResource/UI/Screens/UIMain.prefab",
+        "Assets/LiteGame/Lua/UI/UIMain.lua",
+        "Assets/ShareResource/UI/Screens/Tmp_UiTestPage.prefab",
+        "Assets/LiteGame/Lua/Tests/UiTestPage.lua"
+      ],
+      "deps": [
+        "T1"
+      ],
+      "status": "done",
+      "evidence": "unity-pipeline rename_asset UIMain→Tmp_UiTestPage（保 GUID）；run_script 根名/去 CanvasScaler/BindName 2 处（ok bindRenamed=2）；create_folder+move_asset Lua→Lua/Tests/UiTestPage.lua；get_serialized_fields 证实 CanvasScaler 已无",
+      "status_reason": "",
+      "created_at": "2026-10-23T17:31:56+08:00",
+      "started_at": "2026-10-23T17:55:48+08:00",
+      "completed_at": "2026-10-23T17:55:48+08:00"
+    },
+    {
+      "id": "T4",
+      "title": "表与生成物：tbuiform 删 id=1 + Luban/LuaKeys/页面清单/BuildHash",
+      "description": "",
+      "acceptance": "_uiform_row.py 增 --delete-id 1（备份/确认/回滚）；Luban/gen.bat 重生成 tbuiform.lua/LuaKeys.g.cs/表数据；gen-build-hash.py 复算；ui.page-manifest 重生成 11页12行；11 契约不变",
+      "verify": "python scripts/codegen/gen-build-hash.py --check",
+      "files": [
+        "Luban/Data/#uiform.xlsx",
+        "scripts/codegen/_uiform_row.py",
+        "Assets/LiteGame/Lua/Cfg/tbuiform.lua",
+        "Assets/LiteGame/LuaBridge/Generated/LuaKeys.g.cs",
+        "Assets/LiteGame/Editor/UiTools/UiPageManifest.json"
+      ],
+      "deps": [
+        "T2",
+        "T3"
+      ],
+      "status": "done",
+      "evidence": "_uiform_row.py 增 --delete-id（备份/确认/回滚）删 id=1；Luban/gen.bat 发布 tbuiform.lua/LuaKeys.g.cs（6 UI 路径）；UiPageManifestEditor.Remove 显式退役；SyncToDisk 后 11 页/12 行、无 UIMain/告警 0；gen-build-hash 复算 shared=459a3145904693b7",
+      "status_reason": "",
+      "created_at": "2026-10-23T17:31:57+08:00",
+      "started_at": "2026-10-23T17:55:52+08:00",
+      "completed_at": "2026-10-23T17:58:45+08:00"
+    },
+    {
+      "id": "T5",
+      "title": "真实面校准与基线收口：11/12、302/0、Wiring 无跳过",
+      "description": "",
+      "acceptance": "UiValidator.Run 真实面 Error=0/Warning=302/命名 Warning=0；PageManifest 11页12行且无 UIMain；Wiring 写入 11 契约且不跳过 UIMain；6 个载体夹具全绿；合成夹具路径去 UIMain",
+      "verify": "python scripts/gate/unity-tests.py --mode editor --filter UiValidationEditModeTests",
+      "files": [],
+      "deps": [
+        "T4"
+      ],
+      "status": "done",
+      "evidence": "PageManifest 16/16（11页12行）· Wiring 8/8（无跳过）· Validation 14/14（Warning 302/命名0）· ValidationRules 10/10 · SafeArea 6/6 · BindingTools 12/12 · U0 7/7 · LuaPage 4/4 · EnvRebuild 3/3 · Navigation 4/4",
+      "status_reason": "",
+      "created_at": "2026-10-23T17:31:57+08:00",
+      "started_at": "2026-10-23T18:17:38+08:00",
+      "completed_at": "2026-10-23T18:17:38+08:00"
+    },
+    {
+      "id": "T6",
+      "title": "文档与审计回写：UIMain 退役事实+代码地图/技术总结/审计/进度",
+      "description": "",
+      "acceptance": "设计/注释去 UIMain 现行页表述；代码地图/技术总结页数变 6；审计登记 UIMain 根名债清零与退役；施工进度新章；doc-lint 0/0",
+      "verify": "python scripts/gate/doc-lint.py",
+      "files": [],
+      "deps": [
+        "T5"
+      ],
+      "status": "done",
+      "evidence": "代码地图/技术总结04·11/项目说明03/UI系统总设计/工具链设计/schema/审计/进度第7章回写；doc-lint 0/0",
+      "status_reason": "",
+      "created_at": "2026-10-23T17:31:57+08:00",
+      "started_at": "2026-10-23T18:17:38+08:00",
+      "completed_at": "2026-10-23T18:17:38+08:00"
+    },
+    {
+      "id": "T7",
+      "title": "gate 异步通道：过滤参数透传与陈旧状态防护",
+      "description": "",
+      "acceptance": "异步发射不再把工具 --timeout 放在 filter 后（实测会丢 filter 跑全集）；轮询忽略发射前遗留的 completed 状态；testName 结果必须命中 filter，否则判红",
+      "verify": "python scripts/gate/unity-tests.py --mode editor --filter UiUimainRetirementEditModeTests --timeout 600",
+      "files": [
+        "scripts/gate/unity-tests.py"
+      ],
+      "deps": [],
+      "status": "done",
+      "evidence": "异步发射去掉 filter 后的工具 --timeout（实测会丢 filter 跑全集）；发射前 wait_editor_ready 等域重载/编译/Play 结束；陈旧 completed 按 mtime 忽略；testName 结果必须命中 filter。red 全套经此通道完成",
+      "status_reason": "",
+      "created_at": "2026-10-23T17:38:30+08:00",
+      "started_at": "2026-10-23T17:38:30+08:00",
+      "completed_at": "2026-10-23T17:54:33+08:00"
+    }
+  ],
+  "verification": {
+    "at": "2026-10-23T18:33:46+08:00",
+    "ok": true,
+    "stale": false,
+    "evidence": "evidence/verify.json",
+    "command_fingerprint": "7db266b109ba8babf9b393a736e4575ee72bf0b03fc36d973f81099a54ae50de",
+    "summary": {
+      "total": 30,
+      "passed": 30
+    }
+  },
+  "red_verification": {
+    "at": "2026-10-23T17:51:51+08:00",
+    "ok": true,
+    "stale": false,
+    "evidence": "evidence/red.json",
+    "command_fingerprint": "7acc01237b6ef3219dd2a599c1c53321583fc8ee25b00ead97a2e32a82be2746",
+    "summary": {
+      "total": 19,
+      "passed": 4
+    }
+  },
+  "archived_at": "2026-10-23T18:34:25+08:00"
+}
