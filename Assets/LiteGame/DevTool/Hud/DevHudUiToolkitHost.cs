@@ -60,7 +60,7 @@ namespace LiteGame
 
         public DevHudUiToolkitHost(Transform parent)
         {
-            _font = CreateSdfFont();
+            _font = DevUiToolkitFont.CreateSdfFont();
             if (_font == null) throw new InvalidOperationException("没有可用的 SDF 系统字体");
 
             _go = new GameObject("[DevHUD-UI]");
@@ -343,50 +343,6 @@ namespace LiteGame
             }
         }
 
-        /// <summary>系统字体文件 → TextCore SDF（中文可读；失败返回 null，由调用方回退 IMGUI）。</summary>
-        private static FontAsset CreateSdfFont()
-        {
-            foreach ((string path, int face) in FontCandidates())
-            {
-                try
-                {
-                    if (!System.IO.File.Exists(path)) continue;
-                    FontAsset asset = FontAsset.CreateFontAsset(path, face, 90, 9,
-                        UnityEngine.TextCore.LowLevel.GlyphRenderMode.SDFAA, 1024, 1024);
-                    if (asset != null) return asset;
-                }
-                catch (Exception)
-                {
-                    // 该字体文件不可读/格式不支持：尝试下一个
-                }
-            }
-            return null;
-        }
-
-        private static (string path, int face)[] FontCandidates()
-        {
-            if (Application.platform == RuntimePlatform.WindowsPlayer ||
-                Application.platform == RuntimePlatform.WindowsEditor)
-            {
-                string dir = Environment.GetFolderPath(Environment.SpecialFolder.Fonts);
-                return new[]
-                {
-                    (System.IO.Path.Combine(dir, "msyh.ttc"), 0),   // 微软雅黑
-                    (System.IO.Path.Combine(dir, "simhei.ttf"), 0), // 黑体
-                    (System.IO.Path.Combine(dir, "simsun.ttc"), 0), // 宋体
-                };
-            }
-            if (Application.platform == RuntimePlatform.OSXPlayer ||
-                Application.platform == RuntimePlatform.OSXEditor)
-            {
-                return new[] { ("/System/Library/Fonts/PingFang.ttc", 0) };
-            }
-            return new[]
-            {
-                ("/usr/share/fonts/opentype/noto/NotoSansCJK-Regular.ttc", 0),
-                ("/usr/share/fonts/truetype/wqy/wqy-zenhei.ttc", 0),
-            };
-        }
     }
 }
 #endif

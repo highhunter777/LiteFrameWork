@@ -218,5 +218,82 @@ namespace LiteGame.Tests.EditMode
             Assert.AreEqual("Assets/Z.prefab", report.Issues[1].Asset);
             Assert.AreEqual("ui.b", report.Issues[2].RuleId);
         }
+
+        // ---- 结构族扩展：HUD 根与 Tmp_ 系统面（制作规范 §3.1/§3.3 对齐实况口径） ----
+
+        [Test]
+        public void HUD结构_缺根组件报Error_无射线合法()
+        {
+            SavePrefab("Hud_Good", root =>
+            {
+                root.AddComponent<Canvas>();
+                root.AddComponent<CanvasScaler>();
+                root.AddComponent<CanvasGroup>();
+                // 无 GraphicRaycaster＝合法（按需；子 Canvas 模式与根无射线都是已裁决形态）
+            });
+            var good = Check(new PageStructureRule(), ContextFor(PrefabPath("Hud_Good")));
+            CollectionAssert.IsEmpty(good, "HUD 根无射线合法（射线按需，不要求 SafeArea）：\n" +
+                string.Join("\n", good.Select(i => i.ToString())));
+
+            SavePrefab("Hud_Bad", root =>
+            {
+                root.AddComponent<Canvas>();
+                root.AddComponent<CanvasGroup>();
+                // 缺 CanvasScaler
+            });
+            var bad = Check(new PageStructureRule(), ContextFor(PrefabPath("Hud_Bad")));
+            Assert.AreEqual(1, bad.Count(i => i.Severity == UiSeverity.Error), "HUD 根缺缩放器须报 Error：\n" +
+                string.Join("\n", bad.Select(i => i.ToString())));
+            Assert.AreEqual(UiRuleIds.PageStructure, bad[0].RuleId);
+        }
+
+        [Test]
+        public void Tmp系统面结构_CanvasGroup必备_缺则Error_带缩放器报Error_无射线合法()
+        {
+            // 系统面按 Screens 路径段判定——合成目录带同名子目录（真实面＝Screens/Tmp_* 系统页）
+            string screensDir = TempDir + "/Screens";
+            EnsureFolder(screensDir);
+            string SaveInScreens(string name, System.Action<GameObject> build)
+            {
+                var root = new GameObject(name, typeof(RectTransform));
+                build(root);
+                string path = screensDir + "/" + name + ".prefab";
+                PrefabUtility.SaveAsPrefabAsset(root, path);
+                Object.DestroyImmediate(root);
+                return path;
+            }
+
+            string good = SaveInScreens("Tmp_SysGood", root =>
+            {
+                root.AddComponent<Canvas>();
+                root.AddComponent<CanvasGroup>();
+                // 无 CanvasScaler＝合法（继承缩放）；无射线＝合法（按需）
+            });
+            var goodIssues = Check(new PageStructureRule(), ContextFor(good));
+            CollectionAssert.IsEmpty(goodIssues, "系统面基线形态（Canvas+CanvasGroup+无缩放器）零误报：\n" +
+                string.Join("\n", goodIssues.Select(i => i.ToString())));
+
+            string noGroup = SaveInScreens("Tmp_SysNoGroup", root => root.AddComponent<Canvas>());
+            var noGroupIssues = Check(new PageStructureRule(), ContextFor(noGroup));
+            Assert.AreEqual(1, noGroupIssues.Count(i => i.Severity == UiSeverity.Error), "缺 CanvasGroup 须报 Error：\n" +
+                string.Join("\n", noGroupIssues.Select(i => i.ToString())));
+
+            string scaler = SaveInScreens("Tmp_SysScaler", root =>
+            {
+                root.AddComponent<Canvas>();
+                root.AddComponent<CanvasGroup>();
+                root.AddComponent<CanvasScaler>();       // 系统面禁自带缩放器（UI-LAYOUT-01）
+            });
+            var scalerIssues = Check(new PageStructureRule(), ContextFor(scaler));
+            Assert.AreEqual(1, scalerIssues.Count(i => i.Severity == UiSeverity.Error), "系统面自带缩放器须报 Error：\n" +
+                string.Join("\n", scalerIssues.Select(i => i.ToString())));
+            StringAssert.Contains("缩放", scalerIssues[0].Message, "报文说明继承缩放口径");
+
+            // Widgets 形态的 Tmp_（无 Screens 路径段）不辖——控件模板归 WidgetSpecRule/词表域
+            SavePrefab("Tmp_Widget", root => { });
+            var widgetIssues = Check(new PageStructureRule(), ContextFor(PrefabPath("Tmp_Widget")));
+            CollectionAssert.IsEmpty(widgetIssues, "控件模板（Widgets 形态）本规则不辖：\n" +
+                string.Join("\n", widgetIssues.Select(i => i.ToString())));
+        }
     }
 }

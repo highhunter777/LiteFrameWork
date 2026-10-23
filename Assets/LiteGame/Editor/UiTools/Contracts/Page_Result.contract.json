@@ -12,7 +12,8 @@
     "luaPath": "UI.Page_Result",
     "layer": 0,
     "fullScreen": true,
-    "cacheStrategy": "Lru"
+    "cacheStrategy": "Lru",
+    "owner": "art.ui"
   },
   "controls": [
     {
@@ -74,6 +75,12 @@
       "bindingHash": "5d2b1a4f79c79e02d6c5941ce1b569eae836500288d63d5e159de37e8d9e002f"
     }
   ],
-  "events": [],
-  "sourceHash": "sha256:d10e543eafe41a258ece24250014c4e7aa133dbfa687f9eacc605971d55f1518"
+  "events": [
+    {
+      "bindName": "Button_BackLobby",
+      "event": "onClick",
+      "handler": "anonymous"
+    }
+  ],
+  "sourceHash": "sha256:1a1efc17cfdc221378d74b33e212a1c495115a5e8907609164475fba6421899b"
 }

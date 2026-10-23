@@ -16,7 +16,7 @@ namespace LiteGame.Tests.EditMode
     {
         private const string TempDir = "Assets/ShareResource/UI/Screens/TempPageManifestTests";
 
-        [SetUp]
+        [OneTimeSetUp]
         public void SetUp()
         {
             EnsureFolder(TempDir);
@@ -24,15 +24,23 @@ namespace LiteGame.Tests.EditMode
             CreatePrefab("Page_Beta");
         }
 
-        [TearDown]
+        [OneTimeTearDown]
         public void TearDown()
         {
             if (AssetDatabase.IsValidFolder(TempDir)) AssetDatabase.DeleteAsset(TempDir);
+            AssetDatabase.Refresh(ImportAssetOptions.ForceSynchronousImport);
         }
 
         private static void EnsureFolder(string path)
         {
             if (AssetDatabase.IsValidFolder(path)) return;
+            string full = Absolute(path);
+            if (Directory.Exists(full))
+            {
+                // 上次运行被中断留下的裸目录（无 meta）会让 CreateFolder 在写 meta 时打日志——先清掉再建
+                Directory.Delete(full, true);
+                AssetDatabase.Refresh(ImportAssetOptions.ForceSynchronousImport);
+            }
             string parent = Path.GetDirectoryName(path).Replace('\\', '/');
             string leaf = Path.GetFileName(path);
             EnsureFolder(parent);
@@ -228,7 +236,7 @@ namespace LiteGame.Tests.EditMode
             Assert.IsFalse(result.Ok);
             StringAssert.Contains("状态", result.ErrorText);
 
-            string output = TempDir + "/manifest.json";
+            string output = TempDir + "/invalid-manifest.json";
             var disk = UiPageManifestSync.SyncToDisk(rows, existing, output);
             Assert.IsFalse(disk.Ok);
             Assert.IsFalse(File.Exists(Absolute(output)), "负例不得写盘");

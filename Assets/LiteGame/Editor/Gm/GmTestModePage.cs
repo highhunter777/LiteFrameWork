@@ -134,8 +134,8 @@ namespace LiteGame.Editor
 
             using (new EditorGUILayout.HorizontalScope())
             {
-                // 进入前把场景 DevStartupConfig 的启动配置快照进运行时（未挂则套默认口径）；开发页同一条链
-                if (GUILayout.Button("进入测试模式")) { DevStartupConfig.ApplySnapshotOrDefaults(); TestModeRuntime.RequestEnter(); }
+                // 启动快照由 ProcedureMain 在消费进房请求时单点落值（未挂 DevStartupConfig 则套默认口径）
+                if (GUILayout.Button("进入测试模式")) TestModeRuntime.RequestEnter();
                 if (GUILayout.Button("退出测试模式")) TestModeRuntime.RequestExit();              // 对局内 = 离场并关模式；主菜单 = 只关模式
                 if (GUILayout.Button("传送到准心")) TestModeRuntime.RequestTeleport();
             }

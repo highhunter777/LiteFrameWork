@@ -12,7 +12,8 @@
     "luaPath": "UI.Page_Room",
     "layer": 0,
     "fullScreen": true,
-    "cacheStrategy": "Lru"
+    "cacheStrategy": "Lru",
+    "owner": "art.ui"
   },
   "controls": [
     {
@@ -74,6 +75,17 @@
       "bindingHash": "5d2b1a4f79c79e02d6c5941ce1b569eae836500288d63d5e159de37e8d9e002f"
     }
   ],
-  "events": [],
-  "sourceHash": "sha256:53009d233b8645f9d6d4ed142e66a7f3260fd6198b97347701a747a8b44ccb3f"
+  "events": [
+    {
+      "bindName": "Button_Leave",
+      "event": "onClick",
+      "handler": "_Leave"
+    },
+    {
+      "bindName": "Button_StartMatch",
+      "event": "onClick",
+      "handler": "_StartMatch"
+    }
+  ],
+  "sourceHash": "sha256:cedab766dce6b149ff4e3077bdc5111e7877360b7f4054e176b7e8c54bf48a9f"
 }

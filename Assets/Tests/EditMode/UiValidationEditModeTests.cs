@@ -71,15 +71,18 @@ namespace LiteGame.Tests.EditMode
         }
 
         [Test]
-        public void 报告_未接入族显式列出不冒充通过()
+        public void 门禁_规则族全部接入登记_待接入子项描述含原因()
         {
             var report = UiValidator.Run(ContextWithSource("var x = 1;\n"));
             var pending = report.Families.Where(f => !f.Implemented).Select(f => f.Family).ToList();
-            Assert.IsNotEmpty(pending, "未接入的族必须在报告里列出");
-            Assert.Contains("文本", pending, "文本族未接入——须显式列出");
-            Assert.IsFalse(pending.Contains("资源"), "资源族步 5 已接入（表内路径存在性）——不应再列待接入");
-            Assert.IsFalse(pending.Contains("命名/绑定"), "绑定族已接入——不应再列待接入");
-            Assert.IsFalse(pending.Contains("渲染/适配"), "渲染/适配族已接入——不应再列待接入");
+            CollectionAssert.IsEmpty(pending, "十族须全部接入（本批收口后无整族待接入；"
+                + "族内未落地子项在描述里列明原因，不再以整族挂待接入）：\n" + string.Join(",", pending));
+
+            // 已接入族描述不得退化为空话——未落地子项必须写明原因（结构/资源/命名族等部分接入的先例口径）
+            foreach (var family in report.Families.Where(f => f.Implemented))
+            {
+                Assert.IsNotEmpty(family.Note, "已接入族的描述不得为空");
+            }
         }
 
         // ---- 规则端口 ----
@@ -190,7 +193,8 @@ namespace LiteGame.Tests.EditMode
         [Test]
         public void 门禁_真实资产面_命名hash表路径零Error()
         {
-            // 三条资产面规则（命名/hash/表路径）跑真实数据：Error＝0（Warning 是 §9.6 登记的 UIMain 根名债，随页面批次）
+            // 全量规则跑真实数据：Error＝0；Warning＝校准基线（样式对账债——手调色/未标记文本，SHOULD 级可见不阻断；
+            // 整改或例外后基线随之更新——P1 边界收口批实测：颜色 161 + 文字 141 + UIMain 根名债 1）
             var assetsOnly = new UiValidationContext(UiValidator.ProjectRoot,
                 sourceDirs: null,
                 assetPaths: UiValidator.BuildDefaultContext().AssetPaths);
@@ -200,7 +204,22 @@ namespace LiteGame.Tests.EditMode
             Assert.AreEqual(0, report.Issues.Count(i => i.RuleId == "ui.binding-naming" && i.Severity == UiSeverity.Error), "命名规则零 Error");
             Assert.AreEqual(0, report.Issues.Count(i => i.RuleId == "ui.binding-hash"), "hash 对账零问题");
             Assert.AreEqual(0, report.Issues.Count(i => i.RuleId == "ui.asset-table-paths" && i.Severity == UiSeverity.Error), "表路径零悬空");
-            Assert.AreEqual(1, report.WarningCount, "唯一 Warning＝UIMain 根名债（§9.6 登记随页面批次）");
+
+            // 校准钉：文本/引用对账/双写/布局/性能在真实面零问题；Warning 基线＝样式对账债 + UIMain 根名债
+            Assert.AreEqual(0, report.Issues.Count(i => i.RuleId == UiRuleIds.TextStaticKey
+                || i.RuleId == UiRuleIds.TextPlaceholder || i.RuleId == UiRuleIds.TextLocaleColumn
+                || i.RuleId == UiRuleIds.TextRichText || i.RuleId == UiRuleIds.LayoutScaler
+                || i.RuleId == UiRuleIds.PerformanceRaycastTarget || i.RuleId == UiRuleIds.PerformanceLayoutDepth
+                || i.RuleId == UiRuleIds.PerformanceAnimator || i.RuleId == UiRuleIds.ContractDrift
+                || i.RuleId == UiRuleIds.ContractReference || i.RuleId == UiRuleIds.ContractTextDoubleWrite),
+                "文本/契约对账/布局/性能族真实面零问题：\n" + report.Render());
+            Assert.AreEqual(1, report.Issues.Count(i => i.RuleId == "ui.binding-naming" && i.Severity == UiSeverity.Warning),
+                "唯一既有 Warning＝UIMain 根名债（§9.6 登记随页面批次）");
+            int colorDrift = report.Issues.Count(i => i.RuleId == UiRuleIds.StyleColorDrift);
+            int textDrift = report.Issues.Count(i => i.RuleId == UiRuleIds.StyleTextDrift);
+            Assert.AreEqual(161, colorDrift, "颜色对账基线（Screens+Widgets+Hud 手调色——债可见，整改后更新此钉）");
+            Assert.AreEqual(141, textDrift, "文字档对账基线（未标记文本——债可见，整改后更新此钉）");
+            Assert.AreEqual(303, report.WarningCount, "Warning 总量＝161+141+1（样式债＋UIMain 根名债）");
         }
 
         /// <summary>造临时 prefab（Assets 下——规则经 AssetDatabase 装载），跑规则后删除。</summary>

@@ -35,13 +35,20 @@ namespace LiteGame.Editor.UiTools.Validation
         /// <summary>页面清单路径（工程根相对）；缺省＝<see cref="Page.UiPageManifestPaths.DefaultPath"/>。</summary>
         public string PageManifestPath { get; }
 
+        /// <summary>
+        /// 文本表种子（测试注入合成 tbltext 条目；缺省 null＝规则走 <see cref="Text.UiLTextTable"/> 真实装载）。
+        /// 文本族规则的表数据面缝——与清单路径注入同型。
+        /// </summary>
+        public System.Collections.Generic.IReadOnlyList<Text.UiLTextEntry> LTextSeed { get; }
+
         public UiValidationContext(string projectRoot,
             IReadOnlyList<string> sourceDirs = null,
             IReadOnlyList<string> assetPaths = null,
             string bindManifestPath = null,
             string ruleExceptionsPath = null,
             string widgetManifestPath = null,
-            string pageManifestPath = null)
+            string pageManifestPath = null,
+            System.Collections.Generic.IReadOnlyList<Text.UiLTextEntry> lTextSeed = null)
         {
             ProjectRoot = projectRoot;
             SourceDirs = sourceDirs ?? new List<string>();
@@ -50,6 +57,7 @@ namespace LiteGame.Editor.UiTools.Validation
             RuleExceptionsPath = ruleExceptionsPath;
             WidgetManifestPath = widgetManifestPath;
             PageManifestPath = pageManifestPath;
+            LTextSeed = lTextSeed;
         }
     }
 

@@ -62,7 +62,7 @@ namespace LiteGame
             }
         }
 
-        /// <summary>进对局前关掉在开的页面（**dev 测试入口**路径用：从大厅/开发页直接进局时，
+        /// <summary>进对局前关掉在开的页面（**dev 测试入口**路径用：从大厅/开发控制台直接进局时，
         /// 页面会盖住对局 HUD——产品路径由"房间页→开局"自然收口，此处补 dev 入口的同一语义）。
         /// 幂等：无页面 = no-op。</summary>
         public void CloseOpenPagesForBattle() => _ui.CloseAllOpen().Forget();

@@ -251,6 +251,132 @@
         "600"
       ],
       "timeout": 900
+    },
+    {
+      "name": "ui-text-rule-editmode",
+      "cmd": [
+        "python",
+        "scripts/gate/unity-tests.py",
+        "--mode",
+        "editor",
+        "--filter",
+        "UiTextRuleEditModeTests",
+        "--timeout",
+        "600"
+      ],
+      "timeout": 900
+    },
+    {
+      "name": "ui-style-rule-editmode",
+      "cmd": [
+        "python",
+        "scripts/gate/unity-tests.py",
+        "--mode",
+        "editor",
+        "--filter",
+        "UiStyleRuleEditModeTests",
+        "--timeout",
+        "600"
+      ],
+      "timeout": 900
+    },
+    {
+      "name": "ui-layout-performance-rule-editmode",
+      "cmd": [
+        "python",
+        "scripts/gate/unity-tests.py",
+        "--mode",
+        "editor",
+        "--filter",
+        "UiLayoutPerformanceRuleEditModeTests",
+        "--timeout",
+        "600"
+      ],
+      "timeout": 900
+    },
+    {
+      "name": "ui-lua-reference-scanner-editmode",
+      "cmd": [
+        "python",
+        "scripts/gate/unity-tests.py",
+        "--mode",
+        "editor",
+        "--filter",
+        "UiLuaReferenceScannerEditModeTests",
+        "--timeout",
+        "600"
+      ],
+      "timeout": 900
+    },
+    {
+      "name": "ui-contract-reconciliation-editmode",
+      "cmd": [
+        "python",
+        "scripts/gate/unity-tests.py",
+        "--mode",
+        "editor",
+        "--filter",
+        "UiContractReconciliationEditModeTests",
+        "--timeout",
+        "600"
+      ],
+      "timeout": 900
+    },
+    {
+      "name": "bindsearch-unification-editmode",
+      "cmd": [
+        "python",
+        "scripts/gate/unity-tests.py",
+        "--mode",
+        "editor",
+        "--filter",
+        "BindSearchUnificationEditModeTests",
+        "--timeout",
+        "600"
+      ],
+      "timeout": 900
+    },
+    {
+      "name": "ui-validation-core-editmode",
+      "cmd": [
+        "python",
+        "scripts/gate/unity-tests.py",
+        "--mode",
+        "editor",
+        "--filter",
+        "UiValidationEditModeTests",
+        "--timeout",
+        "600"
+      ],
+      "timeout": 900
+    },
+    {
+      "name": "ui-binding-tools-editmode",
+      "cmd": [
+        "python",
+        "scripts/gate/unity-tests.py",
+        "--mode",
+        "editor",
+        "--filter",
+        "UiBindingToolsEditModeTests",
+        "--timeout",
+        "600"
+      ],
+      "timeout": 900
+    },
+    {
+      "name": "ui-behavior-playmode",
+      "cmd": [
+        "python",
+        "scripts/gate/unity-tests.py",
+        "--mode",
+        "playmode",
+        "--filter",
+        "UiBehaviorPlayModeTests",
+        "--timeout",
+        "600"
+      ],
+      "timeout": 1200
     }
   ],
   "red_commands": [
@@ -388,6 +514,118 @@
         "editor",
         "--filter",
         "UiToolchainWiringEditModeTests",
+        "--timeout",
+        "600"
+      ],
+      "timeout": 900
+    },
+    {
+      "name": "ui-text-rule-red",
+      "cmd": [
+        "python",
+        "scripts/gate/unity-tests.py",
+        "--mode",
+        "editor",
+        "--filter",
+        "UiTextRuleEditModeTests",
+        "--timeout",
+        "600"
+      ],
+      "timeout": 900
+    },
+    {
+      "name": "ui-style-rule-red",
+      "cmd": [
+        "python",
+        "scripts/gate/unity-tests.py",
+        "--mode",
+        "editor",
+        "--filter",
+        "UiStyleRuleEditModeTests",
+        "--timeout",
+        "600"
+      ],
+      "timeout": 900
+    },
+    {
+      "name": "ui-layout-performance-rule-red",
+      "cmd": [
+        "python",
+        "scripts/gate/unity-tests.py",
+        "--mode",
+        "editor",
+        "--filter",
+        "UiLayoutPerformanceRuleEditModeTests",
+        "--timeout",
+        "600"
+      ],
+      "timeout": 900
+    },
+    {
+      "name": "ui-lua-reference-scanner-red",
+      "cmd": [
+        "python",
+        "scripts/gate/unity-tests.py",
+        "--mode",
+        "editor",
+        "--filter",
+        "UiLuaReferenceScannerEditModeTests",
+        "--timeout",
+        "600"
+      ],
+      "timeout": 900
+    },
+    {
+      "name": "ui-contract-reconciliation-red",
+      "cmd": [
+        "python",
+        "scripts/gate/unity-tests.py",
+        "--mode",
+        "editor",
+        "--filter",
+        "UiContractReconciliationEditModeTests",
+        "--timeout",
+        "600"
+      ],
+      "timeout": 900
+    },
+    {
+      "name": "bindsearch-unification-red",
+      "cmd": [
+        "python",
+        "scripts/gate/unity-tests.py",
+        "--mode",
+        "editor",
+        "--filter",
+        "BindSearchUnificationEditModeTests",
+        "--timeout",
+        "600"
+      ],
+      "timeout": 900
+    },
+    {
+      "name": "ui-validation-core-red",
+      "cmd": [
+        "python",
+        "scripts/gate/unity-tests.py",
+        "--mode",
+        "editor",
+        "--filter",
+        "UiValidationEditModeTests",
+        "--timeout",
+        "600"
+      ],
+      "timeout": 900
+    },
+    {
+      "name": "ui-validation-rules-extended-red",
+      "cmd": [
+        "python",
+        "scripts/gate/unity-tests.py",
+        "--mode",
+        "editor",
+        "--filter",
+        "UiValidationRulesEditModeTests",
         "--timeout",
         "600"
       ],

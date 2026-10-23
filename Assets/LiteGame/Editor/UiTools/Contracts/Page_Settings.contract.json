@@ -12,7 +12,8 @@
     "luaPath": "UI.Page_Settings",
     "layer": 1,
     "fullScreen": true,
-    "cacheStrategy": "Lru"
+    "cacheStrategy": "Lru",
+    "owner": "art.ui"
   },
   "controls": [
     {
@@ -152,6 +153,32 @@
       "bindingHash": "5d2b1a4f79c79e02d6c5941ce1b569eae836500288d63d5e159de37e8d9e002f"
     }
   ],
-  "events": [],
-  "sourceHash": "sha256:2065e882f18d7b1239600b00f254f83b1877dc16d0efd8143b228b78a16fa5f8"
+  "events": [
+    {
+      "bindName": "Button_Close",
+      "event": "onClick",
+      "handler": "_Close"
+    },
+    {
+      "bindName": "Button_Exit",
+      "event": "onClick",
+      "handler": "_ConfirmExit"
+    },
+    {
+      "bindName": "Dropdown_Quality",
+      "event": "onDropdownChanged",
+      "handler": "anonymous"
+    },
+    {
+      "bindName": "Slider_Volume",
+      "event": "onSliderChanged",
+      "handler": "anonymous"
+    },
+    {
+      "bindName": "Toggle_Sound",
+      "event": "onToggleChanged",
+      "handler": "anonymous"
+    }
+  ],
+  "sourceHash": "sha256:fc91ce2062e1da5b251bd085f792a53a3efe861364520aec61712f4fe6543f45"
 }

@@ -322,9 +322,9 @@
 | 契约 | schema 不符、sourceHash 漂移、controls 越界/未消费、文本双写 | Error/Warning | EditMode/CI |
 | 样式 | 裸颜色/裸字号、令牌不存在、字号不在阶梯、状态色硬编码 | Warning/Error | EditMode |
 | 文本 | key 缺失、占位符不符、语言列缺失、富文本越界、缺字 | Error/Warning | EditMode + 表校验 |
-| 布局/适配 | CanvasScaler 不符、锚点漂移、安全区缺失、超宽屏溢出、布局嵌套过深 | Warning | EditMode |
+| 布局/适配 | CanvasScaler 不符、锚点漂移、安全区缺失、超宽屏溢出、布局嵌套过深 | Warning（页面根 CanvasScaler 偏离基线/第二套缩放＝Error——UI-LAYOUT-01 冻结值） | EditMode |
 | 资源 | 缺引用、收集组缺失、图集/字体/sprite 名册、第三方直引、debug 资产入包 | Error/Warning | EditMode + 构建 |
-| 性能 | raycastTarget 过多、LayoutGroup/ContentSizeFitter 过深、Animator、图集依赖过大、粒子/材质实例超预算 | Warning | EditMode + Player |
+| 性能 | raycastTarget 过多、LayoutGroup/ContentSizeFitter 过深、Animator、图集依赖过大、粒子/材质实例超预算 | Warning（页面根 Animator＝Error——UI-PREFAB-03） | EditMode + Player |
 | 行为 | 复用视觉残留、输入穿透、焦点、列表重绑、语言切换、取消 | Error | PlayMode |
 
 ### 6.3 严重级别与例外

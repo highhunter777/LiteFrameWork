@@ -32,18 +32,18 @@ namespace LiteGame.Editor.UiTools.Validation
         public const string WidgetsDir = "Assets/ShareResource/UI/Widgets";
         public const string HudDir = "Assets/ShareResource/UI/Hud";
 
-        /// <summary>规则族全表（设计 §6.2 九族 + 项目自定义「渲染/适配」）。未实现的族以 <c>implemented=false</c> 登记，报告"待接入"栏。</summary>
+        /// <summary>规则族全表（设计 §6.2 九族 + 项目自定义「渲染/适配」）。已接入＝有真实执行面；族内未落地子项在描述里列明原因。</summary>
         public static readonly UiRuleFamily[] Families =
         {
-            new UiRuleFamily("结构", true, "页面根契约（Canvas/CanvasScaler/GraphicRaycaster/CanvasGroup + SafeAreaReceiver）——`ui.page-structure` 已接入"),
-            new UiRuleFamily("命名/绑定", true, "命名文法/前缀词表/私有件（§9.2/§9.4）+ 生成物 hash 对账（§2.1.5）——已接入；BindName 同文/同页同词/编号连续性待接入"),
-            new UiRuleFamily("契约", true, "缺 WidgetSpec（Error）、控件清单漂移、页面清单漂移——已接入；schema/controls 越界/文本双写待接入"),
-            new UiRuleFamily("样式", false, "裸颜色/裸字号/令牌不存在/字号阶梯/状态色硬编码"),
-            new UiRuleFamily("文本", false, "key/占位符/语言列、富文本白名单、fallback 与缺字、样式覆盖"),
-            new UiRuleFamily("布局/适配", false, "CanvasScaler 参数、锚点漂移、安全区、超宽屏溢出、布局嵌套过深"),
-            new UiRuleFamily("资源", true, "表内资源路径存在性（.prefab/.unity 通用反射面——步 5 接入）；缺引用其余子项/收集组/图集字体名册/生产包排除待接入"),
-            new UiRuleFamily("性能", false, "rebuild/批次/GC/打开分段耗时（Profiler/Player，非静态正则）"),
-            new UiRuleFamily("行为", false, "复用视觉、输入穿透、焦点、列表重绑、语言变更、取消"),
+            new UiRuleFamily("结构", true, "页面根契约（Page 四件套 + SafeArea）与 HUD/Tmp_ 系统面根契约（制作规范 §3.1/§3.3 对齐实况口径）——`ui.page-structure` 已接入"),
+            new UiRuleFamily("命名/绑定", true, "命名文法/前缀词表/私有件（§9.2/§9.4）+ 生成物 hash 对账（§2.1.5）——已接入；BindName 同文/同页同词/编号连续性待接入（与五族边界无依赖，另批）"),
+            new UiRuleFamily("契约", true, "缺 WidgetSpec、控件/页面清单漂移、契约漂移对账（重生成逐字节——含手改检出）、引用对账（未消费/越界）、文本双写——已接入"),
+            new UiRuleFamily("样式", true, "颜色 token 对账（裸颜色——复用 UiStyleTool 单源）与文字档对账（未标记/漂移/失效——复用 UiTextStyleTool 单源）——已接入；令牌 SO 管线（§8.1 JSON→UiThemeAsset）、状态色硬编码、令牌不存在待令牌体系（P2/T3）"),
+            new UiRuleFamily("文本", true, "key 存在性（LTextKeyRef + Lua SetTextKey* 两路）、占位符相符、语言列完整、富文本白名单——已接入；缺字/字体 fallback 待静态化判据（SDF Dynamic 模式运行时补字，无静态口径）"),
+            new UiRuleFamily("布局/适配", true, "CanvasScaler 基线与第二套缩放禁令（Page_*，UI-LAYOUT-01）——已接入；锚点漂移/超宽屏溢出待设备档与布局基线（P4）"),
+            new UiRuleFamily("资源", true, "表内资源路径存在性（.prefab/.unity 通用反射面）已接入；缺引用其余子项/收集组/图集字体名册/生产包排除待接入（图集基建为零，另批）"),
+            new UiRuleFamily("性能", true, "raycastTarget 预算、布局嵌套深度、UI 禁 Animator——静态规则已接入（总设计 §11.6「Player 性能另测」）；图集依赖待图集基建；rebuild/GC/打开耗时归 Player 证据"),
+            new UiRuleFamily("行为", true, "PlayMode 执行面：复用复位/语言切换/模态射线穿透（UiBehaviorPlayModeTests）+ 既有覆盖（列表重绑/取消/转场输入锁）——已接入；焦点例待焦点契约冻结"),
             new UiRuleFamily("渲染/适配", true, "视觉单一来源（运行时不得构建视觉，§7）——首条已接入"),
         };
 
@@ -58,6 +58,19 @@ namespace LiteGame.Editor.UiTools.Validation
             new WidgetSpecRule(),
             new WidgetManifestRule(),
             new PageManifestRule(),
+            new TextStaticKeyRule(),
+            new TextPlaceholderRule(),
+            new TextLocaleColumnRule(),
+            new TextRichTextRule(),
+            new StyleColorDriftRule(),
+            new StyleTextDriftRule(),
+            new LayoutScalerRule(),
+            new PerformanceRaycastTargetRule(),
+            new PerformanceLayoutDepthRule(),
+            new PerformanceAnimatorRule(),
+            new ContractDriftRule(),
+            new ContractReferenceRule(),
+            new ContractTextDoubleWriteRule(),
         };
 
         /// <summary>工程根（Assets 之上）。</summary>

@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using LiteGame.Editor.UiTools.Page;
+using LiteGame.Editor.UiTools.Reference;
 
 namespace LiteGame.Editor.UiTools.Contracts
 {
@@ -98,6 +99,102 @@ namespace LiteGame.Editor.UiTools.Contracts
     /// </summary>
     public static class UiContractBatch
     {
+        /// <summary>
+        /// 单页「生成 + 清单维护字段投影 + Lua 事件接线」全链（批量入口的组成步）：
+        /// 表行提供身份（formId/lua/layer/fullScreen），页面清单提供维护字段（owner/designRef），
+        /// 事件接线从页面 Lua 源提取后应用进 events[]。清单缺本页条目＝投影留空并告警（不臆造）。
+        /// </summary>
+        public static UiContractGenerationResult GenerateRegistered(string prefabPath,
+            IReadOnlyList<UiPageScaffold.PageRow> rows, UiPageManifest manifest)
+        {
+            UiContractGenerationResult result = UiContractGenerator.GenerateRegistered(prefabPath, rows);
+            if (!result.Ok) return result;
+            ApplyEditorialAndEvents(result, FindEntry(manifest, prefabPath));
+            return result;
+        }
+
+        /// <summary>
+        /// 单页全链重生成（**漂移对账的判据单源**）：身份取页面清单条目（forms[0]＝主表单行——清单与表的
+        /// 同步由 `ui.page-manifest` 规则另辖），维护字段与事件接线同批量口径。`ui.contract-drift` 规则与
+        /// 本方法共用一份「什么算与盘上一致」，不另立重生成语义。
+        /// </summary>
+        public static UiContractGenerationResult Regenerate(UiPageManifestEntry entry)
+        {
+            if (entry == null || string.IsNullOrEmpty(entry.PrefabPath))
+            {
+                var bad = new UiContractGenerationResult();
+                bad.Errors.Add("清单条目无效（缺 prefab 路径）");
+                return bad;
+            }
+            if (entry.Forms == null || entry.Forms.Count == 0)
+            {
+                var draft = new UiContractGenerationResult();
+                draft.Errors.Add("清单条目无登记行（草稿）——契约对账不辖");
+                return draft;
+            }
+            var primary = entry.Forms[0];
+            UiContractGenerationResult result = UiContractGenerator.Generate(entry.PrefabPath, new UiPageMetadata
+            {
+                FormId = primary.FormId,
+                LuaPath = string.IsNullOrEmpty(entry.LuaPath) ? null : entry.LuaPath,
+                Layer = primary.Layer,
+                FullScreen = primary.FullScreen,
+                CacheStrategy = string.IsNullOrEmpty(entry.CacheStrategy)
+                    ? UiPageContract.DefaultCacheStrategy
+                    : entry.CacheStrategy,
+            });
+            if (!result.Ok) return result;
+            ApplyEditorialAndEvents(result, entry);
+            return result;
+        }
+
+        /// <summary>投影维护字段并应用事件接线（清单缺条目＝告警不臆造；Lua 源缺失＝events 留空并告警）。</summary>
+        private static void ApplyEditorialAndEvents(UiContractGenerationResult result, UiPageManifestEntry entry)
+        {
+            if (entry == null)
+            {
+                result.Warnings.Add("页面清单缺本页条目——owner/designRef 不投影（重跑 ui.page-manifest 对账）");
+            }
+            else
+            {
+                UiContractGenerator.ApplyManifestEditorial(result.Contract, entry);
+            }
+
+            string luaPath = result.Contract.Page.LuaPath;
+            if (string.IsNullOrEmpty(luaPath)) return;      // 无 Lua 页（纯表单面）——events 恒空
+            string luaFile = UiLuaReferenceScanner.TryResolveLuaFile(luaPath);
+            string source = luaFile != null ? UiLuaReferenceScanner.ReadSource(luaFile) : null;
+            if (source == null)
+            {
+                result.Warnings.Add("页面 Lua 源缺失——events[] 留空：" + luaPath);
+                return;
+            }
+            UiContractGenerator.ApplyEvents(result.Contract, UiLuaReferenceScanner.ScanEventWiring(source));
+        }
+
+        private static UiPageManifestEntry FindEntry(UiPageManifest manifest, string prefabPath)
+        {
+            if (manifest?.Pages == null) return null;
+            string normalized = (prefabPath ?? string.Empty).Replace('\\', '/').Trim();
+            foreach (UiPageManifestEntry page in manifest.Pages)
+                if (string.Equals((page.PrefabPath ?? string.Empty).Replace('\\', '/').Trim(), normalized,
+                    StringComparison.Ordinal))
+                    return page;
+            return null;
+        }
+
+        private static UiPageManifest TryLoadManifest()
+        {
+            try
+            {
+                return UiPageManifestStore.Load();
+            }
+            catch (Exception)
+            {
+                return null;       // 批量生成不依赖清单在场——缺清单＝投影/接线不生效并告警
+            }
+        }
+
         public static UiContractBatchResult Generate(string outputDirectory = null)
         {
             var result = new UiContractBatchResult();
@@ -106,6 +203,8 @@ namespace LiteGame.Editor.UiTools.Contracts
                 result.Errors.Add(readError);
                 return result;
             }
+            UiPageManifest manifest = TryLoadManifest();
+            if (manifest == null) result.Warnings.Add("页面清单缺失——owner/designRef 与 events[] 不投影（重跑 ui.page-manifest）");
 
             if (!TryResolveDirectory(outputDirectory, out string directory, out string directoryError))
             {
@@ -124,7 +223,7 @@ namespace LiteGame.Editor.UiTools.Contracts
                     continue;
                 }
 
-                UiContractGenerationResult generated = UiContractGenerator.GenerateRegistered(prefabPath, group.Value);
+                UiContractGenerationResult generated = GenerateRegistered(prefabPath, group.Value, manifest);
                 if (!generated.Ok)
                 {
                     result.Errors.Add(pageName + "：" + generated.ErrorText);
@@ -160,6 +259,7 @@ namespace LiteGame.Editor.UiTools.Contracts
                 result.Errors.Add(readError);
                 return result;
             }
+            UiPageManifest manifest = TryLoadManifest();
 
             if (!TryResolveDirectory(baselineDirectory, out string directory, out string directoryError))
             {
@@ -177,7 +277,7 @@ namespace LiteGame.Editor.UiTools.Contracts
                     continue;
                 }
 
-                UiContractGenerationResult current = UiContractGenerator.GenerateRegistered(prefabPath, group.Value);
+                UiContractGenerationResult current = GenerateRegistered(prefabPath, group.Value, manifest);
                 if (!current.Ok)
                 {
                     result.Errors.Add(pageName + " 生成失败：" + current.ErrorText);

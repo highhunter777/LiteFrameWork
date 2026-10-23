@@ -44,18 +44,18 @@ namespace LiteGame
             if (DevStartupConfig.DirectToTrainingEnabled && !_directEntryRequested)
             {
                 _directEntryRequested = true;
-                DevStartupConfig.ApplySnapshotOrDefaults();
                 TestModeRuntime.RequestEnter();
                 UnityEngine.Debug.Log("[Main] 直入训练场：请求测试模式对局（DevStartupConfig.DirectToTraining）");
             }
-            if (TestModeRuntime.TakeDirectRequest())            // 开发页「直连本机服」：原 F9 链（非测试房）
+            if (TestModeRuntime.TakeDirectRequest())            // 开发控制台 request direct：原 F9 链（非测试房）
             {
                 _pages?.CloseOpenPagesForBattle();
                 UnityEngine.Debug.Log("[Main] 直连对局：请求 Match（非测试房——真 KCP/本机服 Room-A）");
                 m.Request(ProcedureId.Match);
             }
-            if (TestModeRuntime.TakeEnterRequest())             // 开发页/GM 面板/直入 同一条链（读即清）
+            if (TestModeRuntime.TakeEnterRequest())             // 开发控制台/GM 面板/直入 同一消费点（读即清）
             {
+                DevStartupConfig.ApplySnapshotOrDefaults();     // 进房初值在此单点落值，任何入口语义一致
                 TestModeRuntime.Active = true;
                 _pages?.CloseOpenPagesForBattle();               // dev 入口直入对局：在开页面会盖住 HUD，先收
                 m.Request(ProcedureId.Match, new ProcedureArgs(testRoom: true));

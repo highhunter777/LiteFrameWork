@@ -12,7 +12,8 @@
     "luaPath": "UI.Page_Login",
     "layer": 0,
     "fullScreen": true,
-    "cacheStrategy": "Lru"
+    "cacheStrategy": "Lru",
+    "owner": "art.ui"
   },
   "controls": [
     {
@@ -84,6 +85,17 @@
   ],
   "styles": [],
   "templates": [],
-  "events": [],
-  "sourceHash": "sha256:38360dbc91d08be8513f25ac80fe013a95261b06152d979381260bfcb2cc4b82"
+  "events": [
+    {
+      "bindName": "Button_GuestLogin",
+      "event": "onClick",
+      "handler": "_Login"
+    },
+    {
+      "bindName": "Button_Settings",
+      "event": "onClick",
+      "handler": "anonymous"
+    }
+  ],
+  "sourceHash": "sha256:cd0373baf315462b4902417b5206b45778204ca209aff4f3f2b2066a667fe975"
 }

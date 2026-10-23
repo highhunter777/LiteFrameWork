@@ -11,8 +11,9 @@ using Object = UnityEngine.Object;
 namespace LiteGame
 {
     /// <summary>
-    /// 运行期操控投影（《GM 与调试工具分层专项设计》§7）：F12 文本控制台。
+    /// 运行期操控投影（《GM 与调试工具分层专项设计》§7）：F12 文本控制台，开发页退役后的唯一运行期开发入口。
     /// 只做词法解析与输出格式化；命令执行/选项/请求桥/读数全部经 <see cref="DebugKernel"/>。
+    /// 渲染走 UI Toolkit（<see cref="DebugConsoleUiToolkitHost"/>，无资产运行时面板）；输入仍经 DevHotkey 收口。
     /// 打开期间注册输入拦截并取得文本输入所有权，关闭/销毁幂等释放；release 随三宏剥离。
     /// </summary>
     [DisallowMultipleComponent]
@@ -27,16 +28,16 @@ namespace LiteGame
 
         private DebugKernel _kernel;
         private IDisposable _inputLease;
+        private DebugConsoleUiToolkitHost _ui;
         private bool _open;
         private bool _textOwned;
-        private Vector2 _scroll;
         private float _nextBind;
         private bool _scrollToBottom;
         private bool _blockerAttempted;
-
-        private GUIStyle _lineStyle;
-        private GUIStyle _inputStyle;
-        private GUIStyle _hintStyle;
+        private bool _dirty = true;
+        private bool _uiFailed;
+        private int _screenW;
+        private int _screenH;
 
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
         private static void Boot()
@@ -49,7 +50,7 @@ namespace LiteGame
 
         private void Awake()
         {
-            Log.Info("调试控制台已装配（F12 开关）", LogTag.None);
+            Log.Info("开发控制台已装配（F12 开关）", LogTag.UI);
         }
 
         private void Update()
@@ -69,31 +70,53 @@ namespace LiteGame
                 BindKernel();
                 EnsureInputBlocker();
             }
+            EnsureUi();
 
             if (!_textOwned)
             {
                 _textOwned = DevHotkey.SetTextInputActive(this, true);
-                if (_textOwned) Append("输入已接管（Esc/F12 关闭）");
+                if (_textOwned)
+                {
+                    Append("输入已接管（Esc/F12 关闭）");
+                    _dirty = true;
+                }
                 else if (Time.frameCount % 60 == 0) Append("输入被 HUD 过滤占用：先按 F7 退出过滤");
             }
 
-            if (!_textOwned) return;
-
-            string typed = DevHotkey.TakeTypedText(this);
-            if (typed.Length > 0) _input.Append(typed);
-
-            if (DevHotkey.Pressed(DevKey.Backspace) && _input.Length > 0)
-                _input.Length--;
-            if (DevHotkey.Pressed(DevKey.Enter))
+            if (_textOwned)
             {
-                string line = _input.ToString();
-                _input.Clear();
-                Execute(line);
+                string typed = DevHotkey.TakeTypedText(this);
+                if (typed.Length > 0)
+                {
+                    _input.Append(typed);
+                    _dirty = true;
+                }
+
+                if (DevHotkey.Pressed(DevKey.Backspace) && _input.Length > 0)
+                {
+                    _input.Length--;
+                    _dirty = true;
+                }
+                if (DevHotkey.Pressed(DevKey.Enter))
+                {
+                    string line = _input.ToString();
+                    _input.Clear();
+                    Execute(line);
+                    _dirty = true;
+                }
+                else if (DevHotkey.Pressed(DevKey.Escape))
+                {
+                    Close();
+                }
             }
-            else if (DevHotkey.Pressed(DevKey.Escape))
+
+            if (Screen.width != _screenW || Screen.height != _screenH)
             {
-                Close();
+                _screenW = Screen.width;
+                _screenH = Screen.height;
+                _dirty = true;
             }
+            RenderIfDirty();
         }
 
         private void Open()
@@ -103,9 +126,13 @@ namespace LiteGame
             _blockerAttempted = false;
             BindKernel();
             EnsureInputBlocker();
+            EnsureUi();
+            _ui?.SetVisible(true);
             _textOwned = DevHotkey.SetTextInputActive(this, true);
             if (!_textOwned) Append("输入被 HUD 过滤占用：先按 F7 退出过滤");
             _scrollToBottom = true;
+            _dirty = true;
+            RenderIfDirty();
         }
 
         private void Close()
@@ -117,13 +144,14 @@ namespace LiteGame
             _inputLease?.Dispose();
             _inputLease = null;
             _blockerAttempted = false;
+            _ui?.SetVisible(false);
         }
 
         private void EnsureInputBlocker()
         {
             if (!_open || _kernel == null || _inputLease != null || _blockerAttempted) return;
             _blockerAttempted = true;
-            try { _inputLease = _kernel.BlockInput(InputBlockerName, "调试控制台输入"); }
+            try { _inputLease = _kernel.BlockInput(InputBlockerName, "开发控制台输入"); }
             catch (Exception ex) { AppendError("输入拦截注册失败：" + ex.Message); }
         }
 
@@ -133,6 +161,36 @@ namespace LiteGame
             _textOwned = false;
             _inputLease?.Dispose();
             _inputLease = null;
+            _ui?.Dispose();
+            _ui = null;
+        }
+
+        private void EnsureUi()
+        {
+            if (_ui != null || _uiFailed) return;
+            try
+            {
+                _ui = new DebugConsoleUiToolkitHost(transform);
+                _ui.SetVisible(_open);
+                _dirty = true;
+            }
+            catch (Exception ex)
+            {
+                _uiFailed = true;
+                AppendError("UI Toolkit 渲染初始化失败：" + ex.Message);
+                Log.Error("开发控制台 UI Toolkit 初始化失败：" + ex.Message, LogTag.UI);
+            }
+        }
+
+        private void RenderIfDirty()
+        {
+            if (!_open || !_dirty || _ui == null) return;
+            _dirty = false;
+            string hint = _textOwned
+                ? "F12/Esc 关闭 · Enter 执行 · help 查看命令"
+                : "输入被 HUD 过滤占用：先按 F7 退出过滤";
+            _ui.Render(_lines, _input.ToString(), hint, _textOwned, _scrollToBottom);
+            _scrollToBottom = false;
         }
 
         private void BindKernel()
@@ -219,6 +277,7 @@ namespace LiteGame
                     break;
                 case "clear":
                     _lines.Clear();
+                    _dirty = true;
                     break;
                 default:
                     AppendError($"未知命令：{verb}（help 查看）");
@@ -238,7 +297,10 @@ namespace LiteGame
             Append("log [n]                    最近日志（默认 10）");
             Append("diag [n]                   DiagTrace（默认 8）");
             Append("battle                     对局诊断描述");
-            Append("request <enter|exit|teleport|direct>  一次性请求桥");
+            Append("request enter              进入测试模式（套 DevStartupConfig 快照）");
+            Append("request exit               退出测试模式");
+            Append("request teleport           传送到准心");
+            Append("request direct             直连对局（真 KCP/本机服）");
             Append("undo / redo                命令撤销/重做");
             Append("clear                      清空输出");
             Append("F12 / Esc                   关闭控制台");
@@ -344,6 +406,7 @@ namespace LiteGame
             _lines.Add(line);
             if (_lines.Count > MaxLines) _lines.RemoveAt(0);
             _scrollToBottom = true;
+            _dirty = true;
         }
 
         private void AppendError(string line) => Append("[!] " + line);
@@ -379,45 +442,6 @@ namespace LiteGame
             return false;
         }
 
-        private void OnGUI()
-        {
-            if (!_open) return;
-
-            EnsureStyles();
-            float height = Mathf.Clamp(Screen.height * 0.45f, 220f, Mathf.Max(220f, Screen.height - 40f));
-            var panel = new Rect(0f, Screen.height - height, Screen.width, height);
-            GUI.Box(panel, GUIContent.none);
-
-            float lineHeight = 16f;
-            var view = new Rect(panel.x + 8f, panel.y + 8f, panel.width - 16f, panel.height - 56f);
-            var content = new Rect(0f, 0f, view.width - 20f, Mathf.Max(view.height, _lines.Count * lineHeight));
-            if (_scrollToBottom)
-            {
-                _scroll.y = float.MaxValue;
-                _scrollToBottom = false;
-            }
-            _scroll = GUI.BeginScrollView(view, _scroll, content);
-            for (int i = 0; i < _lines.Count; i++)
-                GUI.Label(new Rect(0f, i * lineHeight, content.width, lineHeight), _lines[i], _lineStyle);
-            GUI.EndScrollView();
-
-            GUI.Label(new Rect(panel.x + 8f, panel.y + panel.height - 44f, panel.width - 16f, 18f),
-                _textOwned ? "F12/Esc 关闭 · Enter 执行 · help 查看命令" : "输入被 HUD 过滤占用：先按 F7 退出过滤",
-                _hintStyle);
-            GUI.Label(new Rect(panel.x + 8f, panel.y + panel.height - 24f, panel.width - 16f, 20f),
-                "> " + _input + (_textOwned ? "_" : ""), _inputStyle);
-        }
-
-        private void EnsureStyles()
-        {
-            if (_lineStyle != null) return;
-            _lineStyle = new GUIStyle(GUI.skin.label) { fontSize = 13, richText = false };
-            _lineStyle.normal.textColor = Color.white;
-            _inputStyle = new GUIStyle(_lineStyle) { fontStyle = FontStyle.Bold };
-            _inputStyle.normal.textColor = new Color(0.75f, 0.95f, 1f);
-            _hintStyle = new GUIStyle(_lineStyle) { fontSize = 11 };
-            _hintStyle.normal.textColor = new Color(0.75f, 0.75f, 0.75f);
-        }
     }
 }
 #endif

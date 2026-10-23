@@ -12,7 +12,8 @@
     "luaPath": null,
     "layer": 0,
     "fullScreen": true,
-    "cacheStrategy": "Lru"
+    "cacheStrategy": "Lru",
+    "owner": "art.ui"
   },
   "controls": [],
   "text": [],

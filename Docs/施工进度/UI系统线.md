@@ -15,6 +15,7 @@
 | 3 | UI 系统 P1-3：页面清单 UiPageManifest（工具维护注册表） | — |
 | 4 | UI 系统 P1-4：校验规则族与 UiRuleExceptions（结构/契约族 + 例外登记） | — |
 | 5 | UI 系统 P1-5/P1-6：Hub/CLI 接线与试点页静态文案（P1 收口） | — |
+| 6 | UI 系统 P1 边界收口：五族校验 · 契约补全 · 遍历统一 | — |
 
 ---
 
@@ -241,3 +242,64 @@
 - **多行登记只告警**：`Tmp_Dialog` 契约描述首行（201），206 由页面清单 `forms[]` 选择；契约带 `formIds[]` 属次版本追加。
 - **起页仍一键建页+登记**：P2 把它拆成「美术起页（仅 prefab）」与「工程登记（表/Lua/清单）」，本批钩子按现有单流程对账。
 - **工作区未提交**：本批改动（代码/契约与清单生成物/试点 prefab 与 Lua/文档/配置）未自行 commit；工作区另有 P2 工作台在途 WIP，不属本批。
+
+---
+
+## 第6章 UI 系统 P1 边界收口：五族校验 · 契约补全 · 遍历统一
+
+<a id="ch6-UI系统P1边界收口"></a>
+
+> **批次**：P1 边界收口（2026-10-23，staged-delivery）
+> **设计**：[UI 编辑器工具链专项设计 §6 校验核心](../设计文档/客户端/UI系统/UI编辑器工具链专项设计.md#ch-validation) · [§5.2 契约字段模型](../设计文档/客户端/UI系统/UI编辑器工具链专项设计.md#ch-contract) · [UI 制作规范 §3.1/§3.3 根契约（本批对齐实况改文）](../设计文档/客户端/UI系统/UI制作规范.md#ch-prefab)
+> **方案与任务**：`.workflow/archive/20261023-172440-ui-p1-boundary-closure/`（plan.md / tasks.md / test-plan.md / build-log / reviews）
+> **用户裁决**：①结构族扩覆盖前「改规范对齐实况」（§3.1 四件套限定 Page_*、系统面/HUD 根新口径）；②UIMain 冻结「无壳契约」。
+
+### 状态
+
+**已完成（附验证证据）**——P1 留下的五项待接边界（五族校验、owner/designRef 投影、events[] 填充、UIMain 裁决、遍历两份语义）全部收口；收口补遗（LF 行尾锁定/页面清单夹具稳定/门禁全异步）同批完成；终验 `wf verify` **29/29 PASS**。P2～P5 不在本批范围。
+
+### 交付
+
+| 件 | 变化 |
+|---|---|
+| 文本族（4 规则） | `ui.text.static-key`（`LTextKeyRef`＋Lua `SetTextKey*` 两路 key 对账；表读失败显式 Error）、`ui.text.placeholder`（静态键挂带参条目 Error／`SetTextKeyArgs` 参数数不符 Warning）、`ui.text.locale-column`（Zh 空 Error／En 空 Warning）、`ui.text.rich-text`（标签白名单 Warning）；表数据面＝`UiValidationContext.LTextSeed` 种子注入＋`UiLTextTable.TryGetEntries` 视图 |
+| 样式族（2 规则） | `ui.style.color-drift`（复用 `UiStyleTool.ReportDrift`——非 token 色 Warning）、`ui.style.text-drift`（复用 `ReportTextDrift`＋`ReportBrokenRefs` 两路——未标记/漂移 Warning、失效 Error）；零第二份阈值/遍历 |
+| 布局/性能（4 规则） | `ui.layout.scaler`（Page_* 根参数偏离＋子树第二套 Error）、`ui.performance.raycast-target`（预算 Warning）、`ui.performance.layout-depth`（嵌套链深度 Warning）、`ui.performance.animator`（页面根 Error／子树 Warning）；阈值单源 `UiRuleThresholds`（预算 60/深度 4/白名单/API 名单） |
+| 契约族（3 规则） | `ui.contract.drift`（重生成逐字节对账——含手改检出；判据单源 `UiContractBatch.Regenerate`）、`ui.contract.reference`（required 未消费 Warning／越界引用 Error）、`ui.contract.text-double-write`（静态文案节点被 Lua 再写 Error）；新增 `UiLuaReferenceScanner`（受控 API 调用点/事件接线/handler 尽力解析/字面量全文匹配） |
+| 行为族 | `UiBehaviorPlayModeTests` 三用例（复用复位＝`PrepareForShow` 复位面/语言切换＝`OnLocaleChanged` 只重写不重跑 OnShow/模态遮挡＝`UIModalStack.RecomputeBlocking`）；gate 脚本新增 **PlayMode 异步通道**（`run_tests --async_tests` 发射＋`test_status` 轮询终态） |
+| 契约生成器 | `ApplyManifestEditorial`（owner/designRef 从页面清单投影，元数据不入 hash）＋`ApplyEvents`（Lua 接线进 events[]，稳定排序＋hash 重算，幂等）；`UiContractBatch.GenerateRegistered(…, manifest)` 全链＋`Generate/Diff` 清单感知；**11 契约重生成入库**（owner=art.ui 全投影、`Page_Login` events=2〔`Button_GuestLogin.onClick→_Login`、`Button_Settings.onClick→anonymous`〕、Lobby 5/Room 2/Settings 5） |
+| 遍历统一 | 核心下沉 `LiteCodeGen/Editor/EditorTools/BindSurfaceWalk.cs`；`UiBindSurfaceWalker` 变委托包装（公共 API 不变）；`BindSearch` 变「核心遍历＋生成器域适配」（Clone_/模板边界不入；标识符校验/重名/OrderIndex 保留）；关键字表补 `partial`（审计 L268） |
+| 结构族扩覆盖 | `PageStructureRule` 三类口径（Page 四件套＋SafeArea／Hud 三件〔射线按需〕／Screens Tmp_ 系统面〔Canvas+CanvasGroup、**禁**缩放器、射线按需〕）；制作规范 §3.1/§3.3 同批改文（用户裁决 A） |
+| 收尾接线 | 13 规则注册进 `UiValidator.Rules`；`Families` 十族全部 `implemented=true`（各族 Note 列明未落地子项与原因）；config.json 增 10 门禁命令（9 EditMode＋1 PlayMode） |
+| 门禁脚本 | `unity-tests.py`：`_result` 统一解码双重编码字符串（recompile/test_status 路径 `AttributeError` 根治）＋ EditMode/PlayMode 统一异步通道（`run_async`）；审计修复登记 5 行回写（L247/L268/L252＋两项新登记） |
+| 收口补遗·行尾锁定 | `.gitattributes` 对 `Assets/LiteGame/Editor/UiTools/Contracts/**` 与 `UiTools/*.json` 固定 `text eol=lf`——`core.autocrlf=true` 下全新检出不再变 CRLF，契约漂移字节对账不因平台误报（`git checkout-index` 模拟检出 CRLF=0） |
+| 收口补遗·夹具稳定 | `UiPageManifestEditModeTests` 改 `OneTimeSetUp/TearDown`＋陈旧裸目录先清＋负例输出独立文件名——根治 `TempPageManifestTests.meta` 写入竞态（连续两次 15/15） |
+| 收口补遗·门禁通道 | EditMode/PlayMode 统一走 `run_tests --async_tests` 发射＋`test_status` 轮询终态；`cancelled/interrupted/error` 与 0 用例判红——长夹具不再被管线 30s 传输超时截断/部分通过假绿（控件清单 11/11 实测） |
+
+### 验证证据
+
+| 项 | 结果 |
+|---|---|
+| 先红 | `wf verify --red` **PASS**（新增 7 条 red 命令全部断言失败转红；既有 10 条通过；编译 0 错先行） |
+| 新夹具 | 文本 7/7 · 样式 4/4 · 布局性能 6/6 · 扫描器 6/6 · 契约对账 9/9 · 遍历统一 7/7 · 行为 PlayMode **3/3**（test_status 终态：`复用复位/语言切换/模态遮挡` 全过） |
+| 回归 | 校验核心 14/14（十族全接入门禁＋真实面校准钉）· 校验规则 10/10（HUD/Tmp_ 新口径）· hash 12/12（断言对齐后）· 接线 8/8 · 生成器 10/10 · diff 5/5 |
+| 真实面校准 | 全量 `UiValidator.Run()` **Error=0 / Warning=303**（颜色 161＋未标记文本 141＋UIMain 根名债 1——样式对账债 SHOULD 级可见，钉进门禁断言；文本/引用对账/双写/布局/性能在真实面零问题）；两轮探针（重生成前 11 Error 全为契约漂移→重生成后归零） |
+| 生成物 | 11 契约含 owner/events；重复生成逐字节一致；`UiToolchainWiringEditModeTests` 基线断言复绿 |
+| PlayMode 门禁 | `ui-behavior-playmode` 通道端到端 **3/3 passed**（发射→轮询→终态判定全绿） |
+| 收口补遗验证 | 页面清单夹具连续两次 **15/15**；控件清单异步通道 **11/11**；`git checkout-index` 模拟全新检出 CRLF=0；`python scripts/gate/doc-lint.py` **0/0** |
+| 终验 | `wf verify` **PASS 29/29**（2026-10-23T17:23；L1 1819 + 全部 UI 夹具 + PlayMode 3/3 + doc/l0/toolchain） |
+| 审计 | L247/L268/L252 修复登记＋两项新登记（HEAD 即有红夹具/gate 脚本两洞）回写 |
+
+### 边界与遗留（如实）
+
+- **UIMain 无壳契约为冻结决策**（用户裁决 B）：批量生成维持跳过＋告警；若将来需要壳级契约，先冻结壳根契约并放开命名规则，另批。
+- **样式族不含**：令牌 SO 管线（§8.1 JSON→`UiThemeAsset`——P2/T3）、状态色硬编码（Selectable ColorBlock 的 token 映射未裁决）、「令牌不存在」（无令牌引用机制）。
+- **文本族不含**：缺字/字体 fallback（SDF Dynamic 模式运行时补字，无静态判据）。
+- **布局/性能族不含**：锚点漂移/超宽屏溢出（待设备档与布局基线——P4）、图集依赖（项目零 spriteatlas 基建）、Player 侧 rebuild/GC/耗时（总设计 §11.6「Player 性能另测」）。
+- **行为族不含**：焦点例（焦点契约未冻结）；列表重绑/取消/转场输入锁已有既有夹具覆盖（List/LuaPage/Navigation PlayModeTests）。
+- **Warning 基线 303**（颜色 161＋未标记 141＋UIMain 1）是**如实登记的样式债**：本批只让债可见（SHOULD 级设计口径），prefab 整改（样式工具批量收敛/补标记）另批；整改后门禁钉随批更新。
+- **命名/绑定族 pending 子项**（BindName 同文/同页同词/编号连续性）与五族边界无依赖，另批。
+- **模板 `bindingHash` 不含模板根 `BindNode`**（`UiBindGenerationHash.cs` 跳过根）——根绑定变更不改变 hash，根绑定模板（Tmp_Dropdown 等）契约里恒为同一 hash；本批约束「既有 hash 逐位不变」，另批与生成器/令牌改造一起修。
+- **`UiContractBatch.TryLoadManifest` 对损坏清单 fail-open**（`UiContractBatch.cs` 捕获所有异常返回 null）——`ui.contract` 可能在清单损坏时重写契约并丢 owner/events；`ui.page-manifest` 规则会显式 Error，但生成器应改 fail-fast（另批）。
+- **多行页面契约主行口径**：批量生成取表行顺序首行、漂移重生成取清单 `forms[0]`（按 formId 升序）——表行顺序非升序时会产生假漂移；当前 `Tmp_Dialog` 未触发，另批统一主行判据。
+- **本批工作区未提交**（代码/11 契约生成物/规范与审计与进度文档/gate 脚本/config）；按批收口纪律统一提交。

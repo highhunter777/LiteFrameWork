@@ -29,7 +29,7 @@ namespace LiteGame
         public const int TestPort = 17777;
         /// <summary>测试房间（RoomConfig 默认房间号）。</summary>
         public const string DefaultRoomId = "Room-A";
-        /// <summary>测试房房间号（F10 入口：本地服专用于测试；全房免死规则见 <see cref="LiteSim.SimTestRules"/>）。</summary>
+        /// <summary>测试房房间号（开发控制台入口：本地服专用于测试；全房免死规则见 <see cref="LiteSim.SimTestRules"/>）。</summary>
         public const string TestRoomId = "Room-Test";
         /// <summary>隔离测试发行者的受控测试身份（服务端仍按红线拒绝公网）。</summary>
         public const string TestToken = "c2-dev-token";
@@ -136,7 +136,7 @@ namespace LiteGame
         }
 
         /// <summary>
-        /// 选择传输（<paramref name="testRoom"/> = F10 测试房：强制本地服 + 房号 Room-Test + 全房免死）：
+        /// 选择传输（<paramref name="testRoom"/> = 开发控制台测试房：强制本地服 + 房号 Room-Test + 全房免死）：
         /// **真 KCP（默认）** 还是 **进程内本地服务器**（离线隔离开发，开关 <see cref="DevStartupConfig.UseLocalServerEnabled"/>）。
         ///
         /// **只在开发/编辑器/开发包可用**——`DevStartupConfig` 整体在 `#if` 内，release 下该静态不存在，

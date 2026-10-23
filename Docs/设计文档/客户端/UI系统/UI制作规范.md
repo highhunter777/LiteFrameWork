@@ -46,7 +46,7 @@
 
 ### 3.1 页面根（MUST）
 
-`Page_*` / `Tmp_*`（Screens）根必须同时具备：
+`Page_*`（Screens）根必须同时具备：
 
 | 组件 | 要求 |
 | --- | --- |
@@ -57,7 +57,16 @@
 | `CanvasGroup` | alpha=1；interactable/blocksRaycasts 由运行时协调 |
 | `SafeAreaReceiver` | 在可交互内容容器上（可与根分离） |
 
-- **UI-PREFAB-01**：缺任一组件 = Error；运行时不得补建。
+**`Tmp_*`（Screens）系统面根**（对话框/Toast/加载等由 UIService 打开的系统页）与页面根契约不同：
+
+| 组件 | 要求 |
+| --- | --- |
+| `Canvas` / `CanvasGroup` | MUST（嵌套 Canvas 承载独立排序） |
+| `CanvasScaler` | **禁止**（继承根缩放——UI-LAYOUT-01「页面不得自带第二套缩放」同口径） |
+| `GraphicRaycaster` | 按需：模态/阻塞性系统面开（Dialog/Loading/Toast 实况）；纯展示面不开 |
+| `SafeAreaReceiver` | 不要求（系统面多为居中小面；特殊形态另登记） |
+
+- **UI-PREFAB-01**：缺任一 MUST 组件 = Error；运行时不得补建。
 - **UI-PREFAB-02**：页面根名与文件名一致（`Page_Lobby.prefab` → 根 `Page_Lobby`）。
 - **UI-PREFAB-03**：页面根不得挂 `Animator`；动效走 `UiFx`/转场。
 - **UI-PREFAB-04**：页面不得引用场景对象；不得通过字符串路径 `Find` 取控件。
@@ -73,9 +82,11 @@
 
 ### 3.3 HUD 根（MUST）
 
-- `Hud_*` 根：Canvas/CanvasScaler/GraphicRaycaster/CanvasGroup；排序带按总设计 §8.4。
-- 由对局视图装配，不挂 `tbuiform`，不走 `UIService` 导航。
+- `Hud_*` 根：Canvas/CanvasScaler/CanvasGroup；排序带按总设计 §8.4。
+- `GraphicRaycaster` **按需**：默认根不开（战斗 HUD 根无输入面，避免抢游戏输入）；需要交互的角组以**子 Canvas + GraphicRaycaster + `ignoreParentGroups`** 单独开射线（战斗 HUD 设置角组的已裁决模式）。
 - HUD 内部交互控件若需要点击，必须有明确输入锁/模态兼容；默认 `raycastTarget=false`。
+- SafeAreaReceiver 不要求（HUD 全屏贴合与安全区适配归设备档批次统一处理，不在根契约）。
+- 由对局视图装配，不挂 `tbuiform`，不走 `UIService` 导航。
 
 ## 4. 命名
 

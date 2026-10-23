@@ -200,6 +200,40 @@ namespace LiteGame.Editor.UiTools.Contracts
             return result;
         }
 
+        /// <summary>
+        /// 把页面清单维护字段（Owner/DesignRef）投影进契约页面元数据（§5.2 字段模型——清单是维护字段的家；
+        /// 元数据不入 sourceHash，故投影后不重算指纹）。清单缺条目（null）＝不臆造，透传 null 由调用方告警。
+        /// </summary>
+        public static void ApplyManifestEditorial(UiPageContract contract, Page.UiPageManifestEntry entry)
+        {
+            if (contract == null) return;
+            contract.Page.Owner = string.IsNullOrEmpty(entry?.Owner) ? null : entry.Owner;
+            contract.Page.DesignRef = string.IsNullOrEmpty(entry?.DesignRef) ? null : entry.DesignRef;
+        }
+
+        /// <summary>
+        /// 应用 Lua 事件接线（§5.2「events[] 可选——契约只做对账提示」）：按 <c>bindName|event</c> 稳定排序写入
+        /// <see cref="UiPageContract.Events"/> 并重算 <see cref="UiPageContract.SourceHash"/>（event 行在指纹内，
+        /// §5.2.1）。同一集合重复应用结果一致（幂等）。
+        /// </summary>
+        public static void ApplyEvents(UiPageContract contract, IReadOnlyList<Reference.UiLuaEventWiring> wiring)
+        {
+            if (contract == null) return;
+            contract.Events.Clear();
+            foreach (Reference.UiLuaEventWiring wire in wiring ?? Array.Empty<Reference.UiLuaEventWiring>())
+            {
+                if (wire == null || string.IsNullOrEmpty(wire.Name) || string.IsNullOrEmpty(wire.Event)) continue;
+                contract.Events.Add(new UiContractEventBinding
+                {
+                    BindName = wire.Name,
+                    Event = wire.Event,
+                    Handler = string.IsNullOrEmpty(wire.Handler) ? null : wire.Handler,
+                });
+            }
+            contract.Events.Sort((a, b) => string.CompareOrdinal(a.BindName + "|" + a.Event, b.BindName + "|" + b.Event));
+            contract.SourceHash = ComputeSourceHash(contract);
+        }
+
         private static void Collect(GameObject root, UiPageContract contract, UiContractGenerationResult result)
         {
             var seenBindNames = new HashSet<string>(StringComparer.Ordinal);

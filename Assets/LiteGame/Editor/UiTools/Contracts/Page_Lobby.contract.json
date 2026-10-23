@@ -12,7 +12,8 @@
     "luaPath": "UI.Page_Lobby",
     "layer": 0,
     "fullScreen": true,
-    "cacheStrategy": "Lru"
+    "cacheStrategy": "Lru",
+    "owner": "art.ui"
   },
   "controls": [
     {
@@ -140,6 +141,32 @@
       "bindingHash": "5d2b1a4f79c79e02d6c5941ce1b569eae836500288d63d5e159de37e8d9e002f"
     }
   ],
-  "events": [],
-  "sourceHash": "sha256:639dfcf8b4e954f22f082a6618a2801108d395a4ca38e1ba3d645f6d378ba51a"
+  "events": [
+    {
+      "bindName": "Button_CreateRoom",
+      "event": "onClick",
+      "handler": "_CreateRoom"
+    },
+    {
+      "bindName": "Button_QuickEnter",
+      "event": "onClick",
+      "handler": "_Enter"
+    },
+    {
+      "bindName": "Button_Records",
+      "event": "onClick",
+      "handler": "anonymous"
+    },
+    {
+      "bindName": "Button_Settings",
+      "event": "onClick",
+      "handler": "anonymous"
+    },
+    {
+      "bindName": "VirtualList_Rooms",
+      "event": "onListClick",
+      "handler": "_Enter"
+    }
+  ],
+  "sourceHash": "sha256:5fc450be6c33805e30784c67c774afa252dc4686b2f4dfa03eb1d518823ff981"
 }

@@ -18,8 +18,9 @@ namespace LiteCodeGen.EditorTools
     }
 
     /// <summary>
-    /// 从根节点递归收集 BindNode 标记。
-    /// 规则:遇到挂有 BindRoot 的子节点时不再深入(该子树独立生成)。
+    /// 绑定标记收集（生成器域）：遍历语义复用 <see cref="BindSurfaceWalk"/> 单源——
+    /// 根自身不入成员、嵌套 <c>BindRoot</c> 子树独立、<c>Clone_</c> 子树与模板（prefab 实例）边界不入本页；
+    /// 本类保留生成器域特有的成员资格校验（C# 标识符合法性/关键字/重名）与层级遍历序（OrderIndex）。
     /// </summary>
     public static class BindSearch
     {
@@ -34,62 +35,43 @@ namespace LiteCodeGen.EditorTools
             var seenNames = new HashSet<string>();
             var order = 0;
 
-            for (var i = 0; i < root.childCount; i++)
+            foreach (BindSurfaceNode node in BindSurfaceWalk.Walk(root.gameObject))
             {
-                Walk(root.GetChild(i), errors, seenNames, marks, ref order);
+                if (node.IsRoot) continue;                              // 根自身不是成员
+                if (node.InCloneScope) continue;                        // 克隆源不属于本页接口面
+                if (node.InsideNestedBindRoot) continue;                // 嵌套生成单位：根与子树都不入父列表
+                if (node.InsideTemplate || node.TemplateAssetPath != null) continue;   // 模板实例（含根）属模板自己的生成
+
+                var bind = node.Bind;
+                if (bind == null)
+                {
+                    continue;
+                }
+
+                var name = node.Node.name;
+                string reason;
+                if (!IsValidIdentifier(name, out reason))
+                {
+                    errors.Add(string.Format("节点 '{0}' 不能作为成员名:{1}(可改节点名或改名后重新生成)", name, reason));
+                }
+                else if (!seenNames.Add(name))
+                {
+                    errors.Add(string.Format("存在重名节点 '{0}',生成的成员名会冲突,请改名", name));
+                }
+                else
+                {
+                    marks.Add(new BindMark
+                    {
+                        Bind = bind,
+                        MemberName = name,
+                        TypeFullName = bind.ResolvedTypeName,
+                        Comment = bind.Comment,
+                        OrderIndex = order++
+                    });
+                }
             }
 
             return marks;
-        }
-
-        private static void Walk(Transform t, List<string> errors, HashSet<string> seenNames, List<BindMark> marks,
-            ref int order)
-        {
-            if (t == null)
-            {
-                return;
-            }
-
-            var isNestedRoot = t.GetComponent<BindRoot>() != null;
-
-            if (!isNestedRoot)
-            {
-                var bind = t.GetComponent<BindNode>();
-                if (bind != null)
-                {
-                    var name = t.name;
-                    string reason;
-                    if (!IsValidIdentifier(name, out reason))
-                    {
-                        errors.Add(string.Format("节点 '{0}' 不能作为成员名:{1}(可改节点名或改名后重新生成)", name, reason));
-                    }
-                    else if (!seenNames.Add(name))
-                    {
-                        errors.Add(string.Format("存在重名节点 '{0}',生成的成员名会冲突,请改名", name));
-                    }
-                    else
-                    {
-                        marks.Add(new BindMark
-                        {
-                            Bind = bind,
-                            MemberName = name,
-                            TypeFullName = bind.ResolvedTypeName,
-                            Comment = bind.Comment,
-                            OrderIndex = order++
-                        });
-                    }
-                }
-            }
-            else
-            {
-                // 嵌套根:自身不入父列表,也不深入
-                return;
-            }
-
-            for (var i = 0; i < t.childCount; i++)
-            {
-                Walk(t.GetChild(i), errors, seenNames, marks, ref order);
-            }
         }
 
         // ---------------- C# 标识符校验 ----------------
@@ -140,9 +122,9 @@ namespace LiteCodeGen.EditorTools
             "continue", "decimal", "default", "delegate", "do", "double", "else", "enum", "event", "explicit",
             "extern", "false", "finally", "fixed", "float", "for", "foreach", "goto", "if", "implicit", "in", "int",
             "interface", "internal", "is", "lock", "long", "namespace", "new", "null", "object", "operator", "out",
-            "override", "params", "private", "protected", "public", "readonly", "ref", "return", "sbyte", "sealed",
-            "short", "sizeof", "stackalloc", "static", "string", "struct", "switch", "this", "throw", "true", "try",
-            "typeof", "uint", "ulong", "unchecked", "unsafe", "ushort", "using", "virtual", "void", "volatile",
+            "override", "params", "partial", "private", "protected", "public", "readonly", "ref", "return", "sbyte",
+            "sealed", "short", "sizeof", "stackalloc", "static", "string", "struct", "switch", "this", "throw", "true",
+            "try", "typeof", "uint", "ulong", "unchecked", "unsafe", "ushort", "using", "virtual", "void", "volatile",
             "while"
         };
     }

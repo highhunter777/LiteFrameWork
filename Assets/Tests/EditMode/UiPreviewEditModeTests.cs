@@ -85,10 +85,21 @@ namespace LiteGame.Tests.EditMode
                 BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance), "启动开关已移除");
             Assert.IsNull(typeof(DevStartupConfig).GetField("WorkbenchModeEnabled",
                 BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Static), "静态镜像已移除");
-            Assert.IsNull(typeof(DevMenuLauncher).GetMethod("EnterWorkbench",
-                BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance), "开发页工作台入口已移除");
             Assert.IsNull(AssetDatabase.LoadAssetAtPath<SceneAsset>("Assets/Scenes/UiWorkbench.unity"), "工作台场景已删除");
             Assert.IsNull(AssetDatabase.LoadAssetAtPath<GameObject>("Assets/LiteGame/DevTool/WorkbenchUI.prefab"), "工作台面板已删除");
+        }
+
+        [Test]
+        public void 开发页_已退役()
+        {
+            Assert.IsNull(typeof(DevStartupConfig).GetField("DevMenu",
+                BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance), "开发页启动开关已移除");
+            Assert.IsNull(typeof(DevStartupConfig).GetField("DevMenuEnabled",
+                BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Static), "开发页静态镜像已移除");
+            Assert.IsNull(typeof(DevStartupConfig).Assembly.GetType("LiteGame.DevMenuLauncher"), "开发页引导已移除");
+            Assert.IsNull(AssetDatabase.LoadAssetAtPath<MonoScript>("Assets/LiteGame/DevTool/DevMenuPanel.cs"), "开发页面板脚本已删除");
+            Assert.IsNull(Type.GetType("LiteGame.DevMenuPanel, LiteGame.DevTool"), "开发页面板类型已移除");
+            Assert.IsNull(AssetDatabase.LoadAssetAtPath<GameObject>("Assets/LiteGame/DevTool/DevMenuUI.prefab"), "开发页预制体已删除");
         }
     }
 }

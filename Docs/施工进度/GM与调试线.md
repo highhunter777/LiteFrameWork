@@ -24,6 +24,7 @@
 | 12 | 清 P0-B 遗留债：DevHUD 拆分 | — |
 | 13 | 调试组件职责拆分（DebugTuner → DevStartupConfig） | — |
 | 14 | 统一调试内核与运行期控制台（F12） | — |
+| 15 | 开发页退役与开发控制台 UI Toolkit 化 | — |
 
 ---
 
@@ -745,3 +746,53 @@
 
 - 删除 `DebugKernel.cs`/`DebugStatsDiscovery.cs`/`DebugConsoleCommand.cs`/`DebugConsole.cs`，还原 `ContainerModule`/`GameEntry`/`DevHotkey`/`DevHUD`/`DevHudSectionSet`/两个 GM 页；旧 `DevHudStatsDiscovery.cs` 由 git 恢复。
 - 无资产/数据迁移；内核与控制台可分别撤回（先撤控制台不影响编辑器/HUD 收口）。
+
+## 第15章 开发页退役与开发控制台 UI Toolkit 化
+
+<a id="ch15-dev-console-uitoolkit"></a>
+
+> 2026-10-23。**状态：已完成（附验证证据）**——代码/退役/离线门禁/最终 Play 实测均完成；Unity 编辑器期间曾被并行会话的 PlayMode/TestRunner 状态短暂卡住，恢复后补跑了最终复编译与全宽截图。
+
+范围：用户裁决“开发页直接退役，相关功能接到开发控制台；纯命令；开发控制台改走 UI Toolkit”。
+
+### 交付面
+
+| 件 | 变更 |
+|---|---|
+| `Assets/LiteGame/DevTool/DevMenuPanel.cs`、`DevMenuUI.prefab`、`Assets/LiteGame/App/Debug/DevMenuLauncher.cs` | **删除**（含 `.meta`，经 unity-pipeline `delete_asset`） |
+| `Assets/LiteGame/App/Debug/DevStartupConfig.cs` | 删除 `DevMenu` 字段、`DevMenuEnabled` 静态镜像与发布行；保留启动落点/测试模式初值 |
+| `Assets/Scenes/Boot.unity` | `DevMenuLauncher` 组件经 pipeline 移除；`DevMenu` 序列化字段清除（重存后 14 行删除） |
+| `Assets/LiteGame/App/Procedure/ProcedureMain.cs` | `TakeEnterRequest` 消费点单点调用 `ApplySnapshotOrDefaults`；直入块不再预应用 |
+| `Assets/LiteGame/Editor/Gm/GmTestModePage.cs` | 「进入测试模式」只发请求，快照统一由消费点落值 |
+| `Assets/LiteGame/DevTool/DebugConsole.cs` | 删 `OnGUI`/`GUIStyle`；UI Toolkit 宿主渲染；保留 `DevHotkey` 输入与 `DebugKernel` 命令面 |
+| `Assets/LiteGame/DevTool/DebugConsoleUiToolkitHost.cs` | 新增：运行时 `PanelSettings`（`sortingOrder=10100`）+ 内联样式 + 系统 SDF 字体；输出行/输入行/滚轮滚动 |
+| `Assets/LiteGame/DevTool/DevUiToolkitFont.cs` | 新增：DevHUD 与控制台共用的系统 SDF 字体候选链 |
+| `Assets/LiteGame/DevTool/Hud/DevHudUiToolkitHost.cs` | 字体创建改走共享单源，删除重复候选链 |
+| `Assets/Tests/EditMode/UiPreviewEditModeTests.cs` | 新增 `开发页_已退役`（字段/类型/预制体三面断言）；工作台守卫去掉 `DevMenuLauncher` 依赖 |
+
+### 能力映射（纯命令）
+
+| 原开发页 | 控制台 |
+|---|---|
+| 测试模式（训练场） | `request enter`（`ProcedureMain` 消费时套 `DevStartupConfig` 快照） |
+| 直连对局（真 KCP/本机服） | `request direct` |
+| 关闭 | `F12` / `Esc` |
+| 形态/状态读数 | `options` / `battle` / `stats` |
+
+### 验证证据
+
+| 项 | 结果 |
+|---|---|
+| Unity 编译 | 首次改造后 `unity command recompile` → 0 错；最终 Play 实际运行宽度修复后的代码，`recompile_status` = `up_to_date`、`compilationFailed=false` |
+| 离线编译校验 | 三个控制台文件（`DebugConsole` / `DebugConsoleUiToolkitHost` / `DevUiToolkitFont`）用 Unity 2022.3 Roslyn 引用集单独编译 → 0 错（含宽度修复与调试名） |
+| EditMode | `UiPreviewEditModeTests` 6/6 PASS（含 `开发页_已退役`）；`DebugKernelEditModeTests` 16/16 PASS |
+| L1 | `python scripts/gate/test.py --lane L1 --profile PullRequest` → **1819/1819 PASS** |
+| Play：UI Toolkit | 真实 Input System：F12 开面板；`[DebugConsole-UI]` 在场，`panelSettings.sortingOrder=10100`；`help` 输出正常 |
+| Play：全宽布局 | 运行时探针：`Screen=1920x1080`，panel `layout/world = 1920x486`、`style.width=1920px`、`bg=RGBA(0,0,0,0.82)`；截图 `AgentScripts/Artifacts/dev-console-uitoolkit-final.png`（1280×720）与 `dev-console-uitoolkit-native.png`（1920×1080） |
+| Play：功能链 | 键入 `request enter` → 输出“已请求进入测试模式”，`TestModeRuntime.Active=True`、`Hud_Battle` 在场、场景 `Boot,BattleRig,TrainingGround` |
+| Play：启动快照 | `request enter` 后在控制台执行 `options`：`NoDeath = 关`（Boot 序列化 0）、`LaserSight = 开`（Boot 序列化 1）——证明快照由 `ProcedureMain` 消费点落值，而非沿用旧运行时值 |
+
+### 边界
+
+- 控制台 UI Toolkit 面板位于产品 uGUI Overlay 之下：全屏产品页（设置等）打开时会盖住底部面板，命令仍可执行；已在设计文档与调试手册登记。
+- 无资产/数据迁移；退役面可从 git 还原三个文件与 Boot 场景两处序列化内容。

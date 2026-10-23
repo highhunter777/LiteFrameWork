@@ -114,7 +114,7 @@
 | 密钥空 | `LITENET_GM_KEY` 未设 ⇒ 端点不启动 + 告警，宿主继续运行 |
 | 通配绑定 | `gm_bind=0.0.0.0` ⇒ 装载期 `InvalidDataException` |
 | 队列语义 | HTTP 只入队；`Pump` 后才生效（L1：入队 → `PumpUntil` → 断言效果） |
-| 模板可选 | 开发页指定 `template=sandbox` 建房成功；服务端启动横幅模板名正确 |
+| 模板可选 | GM 页「测试模式」指定 `template=sandbox` 建房成功；服务端启动横幅模板名正确 |
 | 默认不变 | 普通入口不指定 template 仍走 `default_template`（行为零变化） |
 | 越权拒绝 | 无/错口令请求 `template=sandbox` ⇒ 403，且房间未创建 |
 | 摘要不变 | 测试房开局不拒；`CombatConfigDigest` 与普通房同值（规则不进摘要） |
@@ -160,7 +160,7 @@
 | Meta 用例 | `CreateRoomUseCase.cs` | 模板名文法校验 + 授权判定 | 否 |
 | 票据 | `JoinTicketIssueUseCase.cs`、`JoinTicketFormat.cs`（v3→v4）、`JoinTicket.cs` | 票据带 `Template` 段并验签 | 否（仅 Meta 源链接） |
 | 房间服 | `InboundJoinHandlers.cs`、`ServerHost.OpenRoom`、`IRoomGateway.Open` | 按票据选模板；模板不存在 ⇒ 拒绝进房 | 否 |
-| 客户端 | 开发页 + `MetaContracts.cs` | 「测试房」入口 | 是（客户端代码） |
+| 客户端 | GM 页「测试模式」 + `MetaContracts.cs` | 「测试房」入口 | 是（客户端代码） |
 
 > 票据加字段不触发 BuildHash 共享闭包，但票据版本 v3→v4 **必须两端同批发布**（旧票据一律被拒）。
 
@@ -181,7 +181,7 @@
 | **B 测试房口令（推荐）** | Meta `gm_room_key`（进 `deploy/.env`，不入库）；口令恒定时间比对通过才盖章 `gm=true` | 中（口令泄露=可开，限测试期） | 一条配置 + 客户端输入框 |
 | C 票据 dev 标志 | 开发者先经"提权"端点换 dev 票据 | 强 | 多一条状态链 |
 
-红线：**授权判定只在服务端（Meta）**；客户端看得到开发页不等于已授权，未授权一律 403 并审计。
+红线：**授权判定只在服务端（Meta）**；客户端能打开 GM 页不等于已授权，未授权一律 403 并审计。
 
 ### 9.5 与判定面 GM、结算的关系
 
@@ -195,4 +195,4 @@
 |---|---|---|---|
 | 票据 v3→v4（`Template` 段） | 否（`META_EXTRA_FILES`） | 不变 | 否（票据不透明） |
 | `CreateRoomCommand.template/gmKey` | 否（Meta 私有） | 不变 | 否 |
-| 客户端开发页入口 + CreateRoom 带参 | 是（客户端代码） | 变 | 是 |
+| GM 页测试房入口 + CreateRoom 带参 | 是（客户端代码） | 变 | 是 |

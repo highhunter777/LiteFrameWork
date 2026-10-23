@@ -1,7 +1,7 @@
 # GM 与调试工具分层设计
 
-> 版本：1.1
-> 更新日期：2026-10-22
+> 版本：1.2
+> 更新日期：2026-10-23
 > 定位：GM/调试面的**分层裁决与形态契约**——回答“调试能力的内核放在哪、投影怎么长、写口与读口归谁”。
 > 不做的事：不裁决具体调试工具的能力清单与优先级（归[《调试与开发工具链演进路线图》](../测试与性能/调试与开发工具链演进路线图.md)）；不裁决工具平台形态（归[《开发工具链平台专项设计》](开发工具链平台专项设计.md)）；不登记施工批次（归 [施工进度/GM与调试线](../../施工进度/GM与调试线.md)）。
 > 冲突裁决：内核/投影职责与写口纪律以本文为准；能力优先级以调试路线图 T0～T3 为准；平台形态以平台专项为准；UI 专用投影以[《UI 运行时调试工具链专项设计》](../客户端/UI系统/UI运行时调试工具链专项设计.md)为准。
@@ -15,9 +15,9 @@
 | **启动配置** | 场景 `DevStartupConfig`（Inspector） | 随场景保存 | 进房初值（免死/bot 数/冻结/传送/表现开关）；进房前快照（`ApplySnapshotOrDefaults`）；入口初值随 `CombatValues` 进联机身份摘要 | 不承载局内可调项 |
 | **运行态规则** | `MatchTestRules` 每局持有件（LiteSim） | 进房新建（`ProcedureMatch` 按入口初值）、离场丢弃 | 免死/无限子弹/爆头带试验覆写的**运行态单源**；经 `SimStep` 脊柱注入确定性系统；`SimTestRules.ActiveMatch` 登记口供两端绑定与 GM 中局开合 | **判定路径不读任何静态**（修改指南 §1.3，含 dev 宏内） |
 | **开关写口** | `TestModeOptions` 单表 + `TestModeRuntime` 快照（LiteGame，开发三宏） | 三宏内 | **唯一开关写口**（Startup/Live 分组，新增开关零面板改动）；请求桥（进/退/传送一次性标志）；爆头覆写跨局待用值 | 不落盘、不进摘要 |
-| **投影面** | 编辑器 `LiteGame/工具链` Hub（页件宿主）/ `DevHUD`（只读） | — | 只读读数 + 调用写口/请求桥/命令 | **零业务逻辑**——投影不持规则、不写运行态（写只能经上述两个写口或命令） |
+| **投影面** | 编辑器 `LiteGame/工具链` Hub（页件宿主）/ `DevHUD`（只读）/ `DebugConsole`（F12，运行期操控） | — | 只读读数 + 调用写口/请求桥/命令 | **零业务逻辑**——投影不持规则、不写运行态（写只能经上述两个写口或命令） |
 
-> 2026-10-22 组件拆分：`DevStartupConfig` 只保留启动开关与测试模式初值；时钟/事件连续旋钮迁到 `DebugRuntimeTuner`；开发页与工作台场景生命周期迁到 `DevMenuLauncher`。三者同挂 `GameEntry`，均随开发三宏剥离。
+> 组件拆分：`DevStartupConfig` 只保留启动开关与测试模式初值；时钟/事件连续旋钮在 `DebugRuntimeTuner`；运行期开发入口为 `DebugConsole`（F12，UI Toolkit），不设独立开发页覆盖件。三者同挂 `GameEntry`，均随开发三宏剥离。
 
 ## 2. 动作三分口径（命令化边界）
 
@@ -42,15 +42,16 @@
 - 产物核对路径 = `TableLayout.TableDataPath` **单源**（领域分类布局——装载/服务端直读/编辑器预检三面共用，禁第二份拼接）。
 - 页件范式承自烘焙工具箱：一页一职责、说明→操作→报告自包含；寄宿件（如 `HeadHitLineTuner`）被页与窗口共享。
 
-## 5. 运行时投影：DevHUD
+## 5. 运行时投影：DevHUD 与开发控制台
 
 只读统计 HUD（自创建、F1 总开关、0.25s 节流、拉 `GameEntry.Stats`）——**保持只读**。将来真机/开发包若需 GM 动作，加命令通道（§2.2 形态复用），不给 HUD 加直写口。目录 `Assets/LiteGame/DevTool/`、程序集独立 `LiteGame.DevTool` + 三宏剥离；**禁移入 `Editor/` 特殊目录**（代码自创建形态，`MonoBehaviour` 须可 AddComponent——详见其类注释）。
 
 - **段构成**：模块 stats 段（容器注册件 + 场景组件型合并发现）＋联机诊断段（读口 `BattleDiagnostics`——对局上下文的 dev-only 单点登记，对局视图装配/拆视图两处接线；无对局整段不显示，不显示陈旧值）＋性能段（帧间隔环形样本自算：均值 FPS/最差帧/长帧计数）＋日志尾巴/错误行。各段渲染开关 = DevHUD public 字段。
 - **对局诊断读口**（`App/Debug/BattleDiagnostics`）：对局上下文是流程私有件——不进容器、非场景组件，HUD 与 GM 页经同一登记口读数（`Attach/Detach` + 快照/描述单源——两处消费不各拼一套文案）；RTT/丢包口径与 `BattleNetworkHudDriver` 同源（千分比 → 一位小数百分比）。
 - **编辑器投影**：`LiteGame/工具链` →「联机诊断」页＝DevHUD 开关投影（总开关/段开关，F1 等效）＋读数投影（同一描述单源）。包形态无 Hub，HUD 由 F1 开。
-- **开发包启用**：出包脚本消费 BuildProfile `channel`——`development` 通道传 `BuildOptions.Development`（三宏的 `DEVELOPMENT_BUILD` 在包内成立，dev 面随包编译：DevHUD/DevStartupConfig/DebugRuntimeTuner/DevMenuLauncher/GM 命令层）；其余通道维持原样（缺省仅 DetailedBuildReport）。**分发边界**：development 通道产物＝开发侧测试客户端专用，**不进测试者分发包**——测试者出包走 release 通道档（`BuildProfiles/windows-x64-release.json`），各通道产物目录独立（`profile.output` 透传 build 命令），Dist 打包测试者包指向 `Builds/StandaloneWindows64-release`。DevMenuPanel 包形态不开（开出动作 `#if UNITY_EDITOR` 收口 + dev 预制体不进收集组——入口分叉治理，非缺漏）。
+- **开发包启用**：出包脚本消费 BuildProfile `channel`——`development` 通道传 `BuildOptions.Development`（三宏的 `DEVELOPMENT_BUILD` 在包内成立，dev 面随包编译：DevHUD/DebugConsole/DevStartupConfig/DebugRuntimeTuner/GM 命令层）；其余通道维持原样（缺省仅 DetailedBuildReport）。**分发边界**：development 通道产物＝开发侧测试客户端专用，**不进测试者分发包**——测试者出包走 release 通道档（`BuildProfiles/windows-x64-release.json`），各通道产物目录独立（`profile.output` 透传 build 命令），Dist 打包测试者包指向 `Builds/StandaloneWindows64-release`。开发控制台随 `DebugConsole` 自创建（`RuntimeInitializeOnLoadMethod`），不需要 dev 预制体；运行期开发入口不随包通道分叉。
 - **演进与渲染后端**：分批、退出条件与 **UI Toolkit 决策**（已迁移 UI Toolkit；IMGUI 仅自动回退，只换渲染后端不换读口）见[《DevHUD 演进路线图》](../测试与性能/DevHUD演进路线图.md) §5。
+- **开发控制台**（`DebugConsole`，F12）：**唯一运行期开发入口**（不设独立开发页覆盖件）。UI Toolkit 渲染（运行时 `PanelSettings` + 内联样式 + 系统 SDF 字体；运行期无 `ThemeStyleSheet`，只用 `Label`/`VisualElement` 自绘），输入经 `DevHotkey` 收口；命令/选项/请求桥/读数全经内核。测试模式与直连对局分别由 `request enter` / `request direct` 触发；进房启动快照由 `ProcedureMain` 在消费进房请求时单点落值。面板位于产品 uGUI Overlay 之下，全屏产品页打开时会盖住底部面板，但命令仍可执行——这是当前渲染后端的已知边界。
 - **统一内核与投影**：DevHUD 只是运行期只读投影；写动作由运行期操控投影经内核命令通道执行，见 §7。UI 专用投影见[《UI 运行时调试工具链专项设计》](../客户端/UI系统/UI运行时调试工具链专项设计.md)。
 
 ## 6. 边界（如实）
@@ -88,7 +89,7 @@
 | --- | --- | --- | --- |
 | 编辑器投影 | Hub 内 `IEditorToolPage` | 富交互：表格/滑杆/多页；承载编辑器独占动作（起停本地服、静态检查、导出 `.g.cs`） | 可引用 `UnityEditor`；不进包 |
 | 运行期只读投影 | `DevHUD`（F1） | 展示读模型；不写运行态 | 保持只读；不加直写口 |
-| 运行期操控投影 | 文本控制台 / 专用调试面板（如 UI 调试面） | 解析调用名 → 内核命令；渲染读模型；面板可有自己的输入形态 | 只经内核写；不直调业务服务；载体形态归 T1 决策点 |
+| 运行期操控投影 | `DebugConsole`（F12，UI Toolkit 文本控制台）/ 专用调试面板（如 UI 调试面） | 解析调用名 → 内核命令；渲染读模型；面板可有自己的输入形态 | 只经内核写；不直调业务服务 |
 
 专用调试面板不是第四套逻辑：它是运行期操控投影的一个模块，同一命令集既可被文本控制台调用，也可被面板按钮调用。UI 专用投影见[《UI 运行时调试工具链专项设计》](../客户端/UI系统/UI运行时调试工具链专项设计.md)。
 

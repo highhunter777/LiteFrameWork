@@ -1,2 +1,7 @@
 # Engineering scripts are text; keep checkouts stable across Windows/Linux.
 scripts/** text eol=lf
+
+# Deterministic UI tool artifacts are byte-compared on disk (contract drift, manifests).
+# core.autocrlf=true would otherwise check them out as CRLF and make the drift rule red.
+Assets/LiteGame/Editor/UiTools/Contracts/** text eol=lf
+Assets/LiteGame/Editor/UiTools/*.json text eol=lf

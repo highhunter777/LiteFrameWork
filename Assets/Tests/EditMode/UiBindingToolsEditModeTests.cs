@@ -326,7 +326,7 @@ namespace LiteGame.Tests.EditMode
         {
             var rule = new UiBindingHashRule();
             Assert.AreEqual("ui.binding-hash", rule.RuleId);
-            Assert.AreEqual("绑定", rule.Family);
+            Assert.AreEqual("命名/绑定", rule.Family);      // P1-4 族名对齐九族表后的口径
         }
 
         // ---- 窗口壳冒烟（引擎建树经公开绑定口） ----

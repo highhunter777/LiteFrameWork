@@ -51,7 +51,7 @@ namespace LiteGame
         /// 与服务端环境变量 `LITENET_GM_KEY` 同值。</summary>
         public string GmKey = "";
 
-        /// <summary>解析后的 GM 端点（推导或显式）。空 = 无 GM 能力（开发页开关显性灰掉）。</summary>
+        /// <summary>解析后的 GM 端点（推导或显式）。空 = 无 GM 能力（GM 页配置显性灰掉）。</summary>
         public string ResolvedGmUrl
         {
             get
@@ -107,7 +107,7 @@ namespace LiteGame
         public static MetaEntryConfig Load() => Parse(Environment.GetCommandLineArgs());
 
         /// <summary>Unity 入口（**含包内烙入**）：命令行 &gt; `StreamingAssets/deploy.args` &gt; 默认。
-        /// 供宿主之外的消费方（开发页 GM 开关）取同一份配置——`DeployBake` 是程序集内件，外部不可直读。</summary>
+        /// 供宿主之外的消费方（GM 页）取同一份配置——`DeployBake` 是程序集内件，外部不可直读。</summary>
         public static MetaEntryConfig LoadWithBaked()
             => Load(Environment.GetCommandLineArgs(), DeployBake.ReadArgs());
 

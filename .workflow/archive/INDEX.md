@@ -17,3 +17,4 @@
 | 2026-10-22T23:59:30+08:00 | ui-p1-page-manifest | UI 系统 P1-3：页面清单 UiPageManifest（工具维护注册表） | 6/8 | PASS | [20261022-235930-ui-p1-page-manifest](20261022-235930-ui-p1-page-manifest/) |
 | 2026-10-23T00:21:58+08:00 | ui-p1-validation | UI 系统 P1-4：校验规则族与 UiRuleExceptions（结构/契约族 + 例外登记） | 5/5 | PASS | [20261023-002158-ui-p1-validation](20261023-002158-ui-p1-validation/) |
 | 2026-10-23T13:34:35+08:00 | ui-p1-hub-pilot | UI 系统 P1-5/P1-6：Hub/CLI 接线与试点页静态文案 | 7/7 | PASS | [20261023-133435-ui-p1-hub-pilot](20261023-133435-ui-p1-hub-pilot/) |
+| 2026-10-23T17:24:40+08:00 | ui-p1-boundary-closure | UI 系统 P1 边界收口：五族校验接入+契约补全+遍历统一 | 16/16 | PASS | [20261023-172440-ui-p1-boundary-closure](20261023-172440-ui-p1-boundary-closure/) |

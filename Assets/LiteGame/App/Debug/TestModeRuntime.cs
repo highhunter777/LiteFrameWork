@@ -5,7 +5,7 @@ namespace LiteGame
 {
     /// <summary>测试模式的运行时快照与控制桥（开发/编辑器/开发包专用；release 整段剥离）。
     /// **启动配置在场景 DevStartupConfig**（免死/人数/冻结/传送/三个表现开关的进房初值——进房时快照进来）；
-    /// **局内可调项在 GM 面板**（直接读写本快照的现场开关）。进入/退出由 GM 面板或 F10 发起。
+    /// **局内可调项在 GM 面板**（直接读写本快照的现场开关）。进入/退出由开发控制台（F12）或 GM 面板发起。
     /// **请求桥（进/退/传送）经 <see cref="RequestEnter"/>/<see cref="RequestExit"/>/<see cref="RequestTeleport"/>
     /// 与 <see cref="TakeEnterRequest"/>/<see cref="TakeExitRequest"/>/<see cref="TakeTeleportRequest"/>
     /// 类型化读写对收口**——消费侧读即清，一次性语义编译期保证（静态标志不再对外裸露）。
@@ -46,7 +46,7 @@ namespace LiteGame
         private static bool _teleportRequested;      //「传送到准心」请求（流程解析目标 → SimTestRules 分发）
         private static bool _directRequested;        //「直连对局」（非测试房：真 KCP/本机服 Room-A；原 F9 能力的 UI 入口）
 
-        /// <summary>请求进入测试模式（写侧：GM 面板按钮 / F10 热键）。</summary>
+        /// <summary>请求进入测试模式（写侧：开发控制台 / GM 面板）。</summary>
         public static void RequestEnter() => _enterRequested = true;
 
         /// <summary>请求退出测试模式（写侧：GM 面板；对局内=离场并关模式，主菜单=只关模式）。</summary>
@@ -56,7 +56,7 @@ namespace LiteGame
         public static void RequestTeleport() => _teleportRequested = true;
 
         /// <summary>请求直连对局（非测试房——真 KCP 到 `ProcedureMatch.TestHost/TestPort` 的 Room-A；
-        /// 原 F9 热键能力的 UI 入口，写侧：开发页「直连本机服」钮）。</summary>
+        /// 原 F9 热键能力，写侧：开发控制台 `request direct`）。</summary>
         public static void RequestDirect() => _directRequested = true;
 
         /// <summary>消费进入请求（读即清——一次性语义由本方法强制：忘清零/二次消费皆不可能）。</summary>
