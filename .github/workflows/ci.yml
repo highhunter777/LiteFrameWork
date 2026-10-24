@@ -3,12 +3,14 @@ name: CI
 # L1（dotnet 单测）门禁 —— 秒级、不需要 Unity。
 # 依据《测试开发方案》§4 ① 与 §7.2 缺口 a、§7.3 改进 ①。
 on:
-  push:
-    branches: [ LiteGame, main ]
-  pull_request:
   workflow_dispatch:
-  schedule:
-    - cron: '0 19 * * *'   # UTC 19:00 = 北京 03:00——夜间回归（M10 长跑层）
+  # 2026-10-24 用户裁决：停用自动触发（push/pull_request/夜间 schedule），止付 GitHub 失败邮件；
+  # 恢复时把下面注释的三段原样加回（原样见 git 历史）。
+  # push:
+  #   branches: [ LiteGame, main ]
+  # pull_request:
+  # schedule:
+  #   - cron: '0 19 * * *'   # UTC 19:00 = 北京 03:00——夜间回归（M10 长跑层）
 
 jobs:
   l1-dotnet-test:
