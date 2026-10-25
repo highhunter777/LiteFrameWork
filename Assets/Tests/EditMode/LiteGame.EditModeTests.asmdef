@@ -4,6 +4,7 @@
     "references": [
         "LiteClient.Abstractions",
         "LiteClient.Content.YooAsset",        "LiteClient.Platform.Unity",
+        "Unity.InputSystem",
         "LiteClient.Runtime",
         "Cinemachine",
         "LiteClient.Scripting.XLua",

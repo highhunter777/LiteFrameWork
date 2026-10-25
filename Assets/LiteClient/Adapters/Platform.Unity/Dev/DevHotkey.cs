@@ -97,7 +97,9 @@ namespace LiteClient
 #if ENABLE_INPUT_SYSTEM
         private static void OnTextInput(char c)
         {
-            if (_textOwner != null) Typed.Append(c);
+            // 只收可见字符：真实 Windows 键路里退格伴随 '\b' 文本事件（WM_CHAR），收进去会与
+            // Backspace 键删除相互抵消（表现为"删不掉字符"）——与旧 Input 路径的 c >= ' ' 同口径
+            if (_textOwner != null && c >= ' ') Typed.Append(c);
         }
 
         private static Key ToInputKey(DevKey key)
