@@ -1,0 +1,71 @@
+{
+  "schemaVersion": "2.0",
+  "meta": {
+    "name": "UiTheme",
+    "version": "1.0.0",
+    "theme": "Default",
+    "description": "现行 UI 色板与文字角色基线（P2-3a 首次冻结；五组空集＝尚无消费者，随首个应用器落地）"
+  },
+  "groups": {
+    "color": {
+      "tokens": {
+        "color.bg.screen": { "value": "#1F1F29F2", "description": "面板/模板底（旧名 Bg）" },
+        "color.bg.deep": { "value": "#14141AE6", "description": "深底：Toast/进度槽（旧名 BgDeep）" },
+        "color.bg.item": { "value": "#2E2E38FF", "description": "条目/次级底（旧名 ItemBg）" },
+        "color.brand.primary": { "value": "#E6BF40FF", "description": "主色金：选中/星框/主文字（旧名 Primary）" },
+        "color.brand.accent": { "value": "#4CB2F2FF", "description": "功能蓝：填充/确认钮（旧名 Accent）" },
+        "color.state.warn": { "value": "#E64033FF", "description": "警示红：红点/后血条（旧名 Warn）" },
+        "color.state.success": { "value": "#66D966FF", "description": "确认绿：勾选/前血条（旧名 Success）" },
+        "color.text.primary": { "value": "#EBEBF0FF", "description": "正文（旧名 Text）" },
+        "color.text.dim": { "value": "#9999A6FF", "description": "占位/弱文字/常态灰（旧名 TextDim）" },
+        "color.text.bright": { "value": "#FFFFFFFF", "description": "亮白：计数/倒计时/滑块钮/页签（旧名 TextBright）" },
+        "color.effect.raycast": { "value": "#FFFFFF03", "description": "近透明可点击（旧名 Raycast）" },
+        "color.effect.mark": { "value": "#FFD94C40", "description": "引导高亮框（旧名 Mark）" }
+      }
+    },
+    "typography": {
+      "tokens": {
+        "font.title": {
+          "fontFamily": "NotoSansSC SDF",
+          "fontSize": 24,
+          "lineHeight": 1.0,
+          "weight": "Regular",
+          "description": "标题（旧档 Title：24 号居中不换行）"
+        },
+        "font.body": {
+          "fontFamily": "NotoSansSC SDF",
+          "fontSize": 20,
+          "lineHeight": 1.0,
+          "weight": "Regular",
+          "description": "正文（旧档 Body：20 号居中换行）"
+        },
+        "font.caption": {
+          "fontFamily": "NotoSansSC SDF",
+          "fontSize": 14,
+          "lineHeight": 1.0,
+          "weight": "Regular",
+          "description": "说明/注脚（旧档 Caption：14 号左对齐换行）"
+        },
+        "font.label": {
+          "fontFamily": "NotoSansSC SDF",
+          "fontSize": 20,
+          "lineHeight": 1.0,
+          "weight": "Regular",
+          "description": "单行标签（旧档 LabelSingle：20 号居中不换行）"
+        },
+        "font.emphasis": {
+          "fontFamily": "NotoSansSC SDF",
+          "fontSize": 20,
+          "lineHeight": 1.0,
+          "weight": "Bold",
+          "description": "强调文本（旧档 Emphasis：20 号加粗）"
+        }
+      }
+    },
+    "spacing": { "tokens": {} },
+    "radius": { "tokens": {} },
+    "elevation": { "tokens": {} },
+    "motion": { "tokens": {} },
+    "icon": { "tokens": {} }
+  }
+}

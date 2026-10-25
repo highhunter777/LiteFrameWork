@@ -1,0 +1,320 @@
+{
+  "schema_version": 1,
+  "slug": "ui-p2-token-base",
+  "title": "UI 系统 P2-3a：令牌源与主题资产（JSON→UiThemeAsset，退役硬编码）",
+  "status": "archived",
+  "current_stage": null,
+  "created_at": "2026-10-24T12:10:40+08:00",
+  "updated_at": "2026-10-24T16:48:59+08:00",
+  "completed_at": "2026-10-24T16:48:53+08:00",
+  "completed_stages": [
+    {
+      "id": "propose",
+      "title": "提出方案",
+      "completed_at": "2026-10-24T12:13:24+08:00"
+    },
+    {
+      "id": "review-plan",
+      "title": "子代理评审方案",
+      "completed_at": "2026-10-24T13:04:38+08:00"
+    },
+    {
+      "id": "confirm-acceptance",
+      "title": "用户确认验收标准",
+      "completed_at": "2026-10-24T13:06:17+08:00",
+      "approved_by": "用户"
+    },
+    {
+      "id": "breakdown",
+      "title": "实施任务清单",
+      "completed_at": "2026-10-24T13:07:52+08:00"
+    },
+    {
+      "id": "review-tasks",
+      "title": "评审任务",
+      "completed_at": "2026-10-24T13:07:57+08:00"
+    },
+    {
+      "id": "tests-first",
+      "title": "先写测试",
+      "completed_at": "2026-10-24T13:35:32+08:00"
+    },
+    {
+      "id": "implement",
+      "title": "正式施工",
+      "completed_at": "2026-10-24T14:16:08+08:00"
+    },
+    {
+      "id": "verify",
+      "title": "测试代码",
+      "completed_at": "2026-10-24T14:16:08+08:00"
+    },
+    {
+      "id": "review-code",
+      "title": "评审代码",
+      "completed_at": "2026-10-24T16:48:16+08:00"
+    },
+    {
+      "id": "writeback",
+      "title": "回写与收尾",
+      "completed_at": "2026-10-24T16:48:53+08:00"
+    }
+  ],
+  "history": [
+    {
+      "at": "2026-10-24T12:10:40+08:00",
+      "event": "init",
+      "stage": "propose"
+    },
+    {
+      "at": "2026-10-24T12:13:24+08:00",
+      "event": "advance",
+      "from": "propose",
+      "to": "review-plan",
+      "approved_by": null
+    },
+    {
+      "at": "2026-10-24T13:04:38+08:00",
+      "event": "advance",
+      "from": "review-plan",
+      "to": "confirm-acceptance",
+      "approved_by": null
+    },
+    {
+      "at": "2026-10-24T13:06:17+08:00",
+      "event": "advance",
+      "from": "confirm-acceptance",
+      "to": "breakdown",
+      "approved_by": "用户"
+    },
+    {
+      "at": "2026-10-24T13:07:52+08:00",
+      "event": "advance",
+      "from": "breakdown",
+      "to": "review-tasks",
+      "approved_by": null
+    },
+    {
+      "at": "2026-10-24T13:07:57+08:00",
+      "event": "advance",
+      "from": "review-tasks",
+      "to": "tests-first",
+      "approved_by": null
+    },
+    {
+      "at": "2026-10-24T13:35:32+08:00",
+      "event": "advance",
+      "from": "tests-first",
+      "to": "implement",
+      "approved_by": null
+    },
+    {
+      "at": "2026-10-24T14:16:08+08:00",
+      "event": "advance",
+      "from": "implement",
+      "to": "verify",
+      "approved_by": null
+    },
+    {
+      "at": "2026-10-24T14:16:08+08:00",
+      "event": "advance",
+      "from": "verify",
+      "to": "review-code",
+      "approved_by": null
+    },
+    {
+      "at": "2026-10-24T16:48:16+08:00",
+      "event": "advance",
+      "from": "review-code",
+      "to": "writeback",
+      "approved_by": null
+    },
+    {
+      "at": "2026-10-24T16:48:53+08:00",
+      "event": "advance",
+      "from": "writeback",
+      "to": null,
+      "approved_by": null
+    },
+    {
+      "at": "2026-10-24T16:48:59+08:00",
+      "event": "archive",
+      "path": "20261024-164859-ui-p2-token-base"
+    }
+  ],
+  "tasks": [
+    {
+      "id": "T1",
+      "title": "令牌源 JSON 定稿（schema 2.0：12 色 + 5 文字角色 + 五组空集）",
+      "description": "",
+      "acceptance": "UiStyleTokens.json 过校验器：12 个 color.*、5 个 font.*，五组空集合法，ID 前缀/唯一性/颜色格式/字号范围全部合规（AC1 数据面）",
+      "verify": "unity-tests --filter UiThemeTokensEditModeTests",
+      "files": [
+        "Assets/LiteGame/Editor/UiTools/UiStyleTokens.json"
+      ],
+      "deps": [],
+      "status": "done",
+      "evidence": "UiStyleTokens.json：12 color.* + 5 font.* + 五组空集；UiThemeTokensEditModeTests 13/13",
+      "status_reason": "",
+      "created_at": "2026-10-24T13:07:21+08:00",
+      "started_at": "2026-10-24T13:44:27+08:00",
+      "completed_at": "2026-10-24T13:44:27+08:00"
+    },
+    {
+      "id": "T2",
+      "title": "令牌模型、校验器与规范序列化（sourceHash）",
+      "description": "",
+      "acceptance": "UiThemeTokens/校验器/UiThemeTokenJson 落地；规范文本两次一致、sourceHash 稳定；非法输入逐条报位置（AC1/AC2 前置）",
+      "verify": "unity-tests --filter UiThemeTokensEditModeTests",
+      "files": [
+        "Assets/LiteGame/Editor/Style/UiThemeTokens.cs",
+        "Assets/LiteGame/Editor/Style/UiThemeTokenValidator.cs",
+        "Assets/LiteGame/Editor/Style/UiThemeTokenJson.cs"
+      ],
+      "deps": [
+        "T1"
+      ],
+      "status": "done",
+      "evidence": "UiThemeTokens/校验器/UiThemeTokenJson 实现；UiThemeTokensEditModeTests 13/13（校验负例/未知字段/排序/指纹）",
+      "status_reason": "",
+      "created_at": "2026-10-24T13:07:21+08:00",
+      "started_at": "2026-10-24T13:44:27+08:00",
+      "completed_at": "2026-10-24T13:44:27+08:00"
+    },
+    {
+      "id": "T3",
+      "title": "UiThemeAsset SO 与确定性生成器（含首份生成物）",
+      "description": "",
+      "acceptance": "UiThemeAsset + UiThemeAssetGenerator：二次生成 changed=false 且字节不变、负例零写盘、路径守卫；生成 Assets/GameData/Config/UI/UiTheme.asset 并可读回 12/5/0×5（AC1/AC2）",
+      "verify": "unity-tests --filter UiThemeAssetGeneratorEditModeTests",
+      "files": [
+        "Assets/LiteClient/UI/Style/UiThemeAsset.cs",
+        "Assets/LiteGame/Editor/Style/UiThemeAssetGenerator.cs",
+        "Assets/LiteGame/Editor/Style/UiThemePaths.cs",
+        "Assets/GameData/Config/UI/UiTheme.asset"
+      ],
+      "deps": [
+        "T2"
+      ],
+      "status": "done",
+      "evidence": "UiThemeAsset + 生成器；UiThemeAssetGeneratorEditModeTests 7/7；eval 二次生成 变更=否；资产 12/5/0×5",
+      "status_reason": "",
+      "created_at": "2026-10-24T13:07:21+08:00",
+      "started_at": "2026-10-24T13:44:27+08:00",
+      "completed_at": "2026-10-24T13:44:27+08:00"
+    },
+    {
+      "id": "T4",
+      "title": "漂移规则 ui.style.token-drift 与上下文注入缝",
+      "description": "",
+      "acceptance": "规则在 JSON/SO 不一致时 Error（SO 过期/手改）、一致时无问题；UiValidationContext 增 ThemeJsonPath/ThemeAssetPath 且测试可注入（AC3）",
+      "verify": "unity-tests --filter UiStyleRetirementEditModeTests",
+      "files": [
+        "Assets/LiteGame/Editor/UiTools/Validation/Rules/StyleTokenDriftRule.cs",
+        "Assets/LiteGame/Editor/UiTools/Validation/IUiRule.cs",
+        "Assets/LiteGame/Editor/UiTools/Validation/UiRuleIds.cs",
+        "Assets/LiteGame/Editor/UiTools/Validation/UiValidator.cs"
+      ],
+      "deps": [
+        "T3"
+      ],
+      "status": "done",
+      "evidence": "StyleTokenDriftRule + UiValidationContext 注入缝；retirement 规则两例绿（一致 0 条 / 改 JSON 1 条 Error / 重生成 0 条）",
+      "status_reason": "",
+      "created_at": "2026-10-24T13:07:22+08:00",
+      "started_at": "2026-10-24T13:44:27+08:00",
+      "completed_at": "2026-10-24T13:44:28+08:00"
+    },
+    {
+      "id": "T5",
+      "title": "读面与值表退役（UiTokenCatalog / UiStyle / UiTextStyle / 工具 With 重载）",
+      "description": "",
+      "acceptance": "UiStyle/UiTextStyle 不再持有颜色或字号字面量（只读属性由 catalog 物化）；既有调用点源兼容；工具内部只装载一次并下传（AC2/AC4）",
+      "verify": "unity-tests --filter UiStyleRetirementEditModeTests; UiStyleRuleEditModeTests; UiTextStyleEditModeTests",
+      "files": [
+        "Assets/LiteGame/Editor/Style/UiTokenCatalog.cs",
+        "Assets/LiteGame/Editor/Style/UiStyle.cs",
+        "Assets/LiteGame/Editor/Style/UiStyleTool.cs",
+        "Assets/LiteGame/Editor/Style/UiTextStyle.cs",
+        "Assets/LiteGame/Editor/Style/UiTextStyleTool.cs",
+        "Assets/Tests/EditMode/UiStyleRuleEditModeTests.cs",
+        "Assets/Tests/EditMode/UiTextStyleEditModeTests.cs"
+      ],
+      "deps": [
+        "T3"
+      ],
+      "status": "done",
+      "evidence": "UiStyle/UiTextStyle 退役为 catalog 读口（无字面量）；retirement 7/7；style-rule 4/4；text-style 8/8；validation 14/14（302 不变）",
+      "status_reason": "",
+      "created_at": "2026-10-24T13:07:30+08:00",
+      "started_at": "2026-10-24T13:44:33+08:00",
+      "completed_at": "2026-10-24T13:44:33+08:00"
+    },
+    {
+      "id": "T6",
+      "title": "ui.style.tokens 工具登记与工具索引重生成",
+      "description": "",
+      "acceptance": "Hub/CLI 在册；toolchain.py check 0 error；docs 重生成后 --check 通过；list 可见 ui.style.tokens（AC6）",
+      "verify": "python scripts/toolchain.py check; python scripts/toolchain.py docs --check; python scripts/toolchain.py list",
+      "files": [
+        "Assets/LiteGame/Editor/Toolchain/EditorToolHandlers.cs",
+        "scripts/gate/toolchain.json",
+        "Docs/工具链/工具索引.md"
+      ],
+      "deps": [
+        "T3"
+      ],
+      "status": "done",
+      "evidence": "ui.style.tokens 登记；toolchain check OK（1 既存告警）；docs 重生成 + --check 通过；list 可见；Catalog 12/12 + Wiring 8/8",
+      "status_reason": "",
+      "created_at": "2026-10-24T13:07:30+08:00",
+      "started_at": "2026-10-24T13:44:34+08:00",
+      "completed_at": "2026-10-24T13:44:34+08:00"
+    },
+    {
+      "id": "T7",
+      "title": "文档回写与收尾门禁（含 AC5 白名单证据）",
+      "description": "",
+      "acceptance": "工具链 §8.1/§8.3、Families 样式族 Note、施工进度第 10 章回写；wf verify 全绿；AC5 白名单与 ShareResource 零变更证据入 build-log（AC4/AC5/AC6）",
+      "verify": "python scripts/gate/test.py --lane Doc; wf verify --run ui-p2-token-base; git status --porcelain Assets/",
+      "files": [
+        "Docs/设计文档/客户端/UI系统/UI编辑器工具链专项设计.md",
+        "Docs/施工进度/UI系统线.md"
+      ],
+      "deps": [
+        "T4",
+        "T5",
+        "T6"
+      ],
+      "status": "done",
+      "evidence": "工具链 §8.1/§8.3、Families Note、施工进度第 10 章 + 卷索引、build-log 回写；AC5：git status Assets/ 仅白名单、ShareResource 0 变更、临时目录已清；wf verify PASS 33/33",
+      "status_reason": "",
+      "created_at": "2026-10-24T13:07:30+08:00",
+      "started_at": "2026-10-24T14:06:51+08:00",
+      "completed_at": "2026-10-24T14:06:51+08:00"
+    }
+  ],
+  "verification": {
+    "at": "2026-10-24T16:48:15+08:00",
+    "ok": true,
+    "stale": false,
+    "evidence": "evidence/verify.json",
+    "command_fingerprint": "e4d671c344af8f7d17b1ef3be4e47bffef1ed085a3ae1649196e293ef2bc226c",
+    "summary": {
+      "total": 40,
+      "passed": 40
+    }
+  },
+  "red_verification": {
+    "at": "2026-10-24T13:34:56+08:00",
+    "ok": true,
+    "stale": false,
+    "evidence": "evidence/red.json",
+    "command_fingerprint": "bb787ef129a28dbf50d59823f5d1a03d64e62f63a05f2ccd6c2e69866c5e4fa7",
+    "summary": {
+      "total": 3,
+      "passed": 3
+    }
+  },
+  "archived_at": "2026-10-24T16:48:59+08:00"
+}

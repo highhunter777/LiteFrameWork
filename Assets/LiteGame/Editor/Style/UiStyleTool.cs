@@ -39,7 +39,12 @@ namespace LiteGame.EditorTools.UI
 
         /// <summary>刷新（扫描根可注入）：命中 token 的 Graphic 颜色改写为 token 现值。返回 (改动 prefab 数, 改动颜色数)。</summary>
         public static (int prefabs, int graphics) ApplyColors(IReadOnlyList<string> scanDirs)
+            => ApplyColorsWith(UiTokenCatalog.Load(), scanDirs);
+
+        /// <summary>刷新（给定目录；工具一次装载、逐 prefab 复用，不逐节点重读资产）。</summary>
+        public static (int prefabs, int graphics) ApplyColorsWith(UiTokenCatalog catalog, IReadOnlyList<string> scanDirs)
         {
+            if (catalog == null) throw new System.ArgumentNullException(nameof(catalog));
             var log = new StringBuilder();
             int changedPrefabs = 0, changedGraphics = 0;
 
@@ -51,7 +56,7 @@ namespace LiteGame.EditorTools.UI
 
                 foreach (var graphic in root.GetComponentsInChildren<Graphic>(true))
                 {
-                    if (TryMatch(graphic.color, out Color value) && UiStyle.Distance(graphic.color, value) > 0f)
+                    if (TryMatch(graphic.color, catalog, out Color value) && UiStyle.Distance(graphic.color, value) > 0f)
                     {
                         graphic.color = value;
                         dirty = true;
@@ -90,7 +95,13 @@ namespace LiteGame.EditorTools.UI
 
         /// <summary>颜色对账（扫描根可注入）：返回不命中 token 集的颜色（手调值或漂移——报告不擅改）。</summary>
         public static List<(string asset, string node, Color color)> ReportDrift(IReadOnlyList<string> scanDirs)
+            => ReportDriftWith(UiTokenCatalog.Load(), scanDirs);
+
+        /// <summary>颜色对账（给定目录；工具一次装载）。</summary>
+        public static List<(string asset, string node, Color color)> ReportDriftWith(
+            UiTokenCatalog catalog, IReadOnlyList<string> scanDirs)
         {
+            if (catalog == null) throw new System.ArgumentNullException(nameof(catalog));
             var drifts = new List<(string, string, Color)>();
             foreach (string path in PrefabPaths(scanDirs))
             {
@@ -98,7 +109,7 @@ namespace LiteGame.EditorTools.UI
                 try
                 {
                     foreach (var graphic in root.GetComponentsInChildren<Graphic>(true))
-                        if (!TryMatch(graphic.color, out _))
+                        if (!TryMatch(graphic.color, catalog, out _))
                             drifts.Add((path, graphic.transform.name, graphic.color));
                 }
                 finally
@@ -112,18 +123,18 @@ namespace LiteGame.EditorTools.UI
         // ---- 辅助 ----
 
         /// <summary>最近 token 匹配（阈值内）；命中返回 token 现值。</summary>
-        private static bool TryMatch(Color color, out Color value)
+        private static bool TryMatch(Color color, UiTokenCatalog catalog, out Color value)
         {
             value = default;
             bool hit = false;
             float best = HitEpsilon;
-            foreach (var (_, tokenValue) in UiStyle.Tokens)
+            foreach (var pair in catalog.Colors)
             {
-                float d = UiStyle.Distance(color, tokenValue);
+                float d = UiStyle.Distance(color, pair.Value);
                 if (d <= best)
                 {
                     best = d;
-                    value = tokenValue;
+                    value = pair.Value;
                     hit = true;
                 }
             }

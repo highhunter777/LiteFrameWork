@@ -35,6 +35,12 @@ namespace LiteGame.Editor.UiTools.Validation
         /// <summary>页面清单路径（工程根相对）；缺省＝<see cref="Page.UiPageManifestPaths.DefaultPath"/>。</summary>
         public string PageManifestPath { get; }
 
+        /// <summary>令牌源 JSON 路径（工程根相对）——样式令牌规则用；缺省＝<see cref="EditorTools.UI.UiThemePaths.DefaultJsonPath"/>。</summary>
+        public string ThemeJsonPath { get; }
+
+        /// <summary>主题资产路径（工程根相对）——样式令牌规则用；缺省＝<see cref="EditorTools.UI.UiThemePaths.DefaultAssetPath"/>。</summary>
+        public string ThemeAssetPath { get; }
+
         /// <summary>
         /// 文本表种子（测试注入合成 tbltext 条目；缺省 null＝规则走 <see cref="Text.UiLTextTable"/> 真实装载）。
         /// 文本族规则的表数据面缝——与清单路径注入同型。
@@ -48,7 +54,9 @@ namespace LiteGame.Editor.UiTools.Validation
             string ruleExceptionsPath = null,
             string widgetManifestPath = null,
             string pageManifestPath = null,
-            System.Collections.Generic.IReadOnlyList<Text.UiLTextEntry> lTextSeed = null)
+            System.Collections.Generic.IReadOnlyList<Text.UiLTextEntry> lTextSeed = null,
+            string themeJsonPath = null,
+            string themeAssetPath = null)
         {
             ProjectRoot = projectRoot;
             SourceDirs = sourceDirs ?? new List<string>();
@@ -58,6 +66,8 @@ namespace LiteGame.Editor.UiTools.Validation
             WidgetManifestPath = widgetManifestPath;
             PageManifestPath = pageManifestPath;
             LTextSeed = lTextSeed;
+            ThemeJsonPath = themeJsonPath;
+            ThemeAssetPath = themeAssetPath;
         }
     }
 

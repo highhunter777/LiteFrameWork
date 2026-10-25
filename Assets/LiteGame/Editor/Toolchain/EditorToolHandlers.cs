@@ -74,6 +74,7 @@ namespace LiteGame.Toolchain
             registry.RegisterAction("ui.style.colors-report", ReportUiColors);
             registry.RegisterAction("ui.style.text-report", ReportUiText);
             registry.RegisterAction("ui.style.text-apply", ApplyUiText);
+            registry.RegisterAction("ui.style.tokens", GenerateThemeTokens);
             registry.RegisterAction("ui.binding-hash-all", () =>
             {
                 UiBindGenerationHash.RecordAllForTool();
@@ -205,6 +206,13 @@ namespace LiteGame.Toolchain
             string text = string.Join("\n", issues.Select(issue =>
                 issue.Asset + " / " + issue.Node + " / " + issue.Kind + " / " + issue.Detail));
             return Ok("文字档漂移 " + issues.Count + " 条：\n" + text);
+        }
+
+        /// <summary>令牌源 JSON → 主题资产 SO（《UI 编辑器工具链专项设计》§8.1）：幂等、失败零写盘。</summary>
+        private static ToolResult GenerateThemeTokens()
+        {
+            UiThemeGenerationResult result = UiThemeAssetGenerator.Generate();
+            return result.Success ? Ok(result.Summary()) : ToolResult.Failed(result.Summary());
         }
     }
 }

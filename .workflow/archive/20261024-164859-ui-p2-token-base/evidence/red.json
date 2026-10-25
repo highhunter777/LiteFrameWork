@@ -1,0 +1,69 @@
+{
+  "schema_version": 1,
+  "kind": "red",
+  "at": "2026-10-24T13:34:56+08:00",
+  "ok": true,
+  "command_fingerprint": "bb787ef129a28dbf50d59823f5d1a03d64e62f63a05f2ccd6c2e69866c5e4fa7",
+  "commands": [
+    {
+      "name": "ui-theme-tokens-red",
+      "cmd": [
+        "python",
+        "scripts/gate/unity-tests.py",
+        "--mode",
+        "editor",
+        "--filter",
+        "UiThemeTokensEditModeTests",
+        "--timeout",
+        "600"
+      ],
+      "cwd": null,
+      "exit_code": 1,
+      "timed_out": false,
+      "error": null,
+      "duration_ms": 11253,
+      "ok": true,
+      "output_tail": "\n  But was:  False\n\n\nFAILED: LiteGame.Tests.EditMode.UiThemeTokensEditModeTests.校验_行高越界报错:   应指出行高越界：\n\n\n  Expected: True\n\n  But was:  False\n\n\nFAILED: LiteGame.Tests.EditMode.UiThemeTokensEditModeTests.校验_颜色格式非法报错:   应指出颜色格式：\n\n\n  Expected: True\n\n  But was:  False\n\n\nFAILED: LiteGame.Tests.EditMode.UiThemeTokensEditModeTests.规范文本_令牌按ID排序且两次一致:   组内令牌按 ID 排序\n\n  Expected: less than -1\n\n  But was:  -1\n\n\nFAILED: LiteGame.Tests.EditMode.UiThemeTokensEditModeTests.解析_七组齐全且按组计数:   Expected: \"2.0\"\n\n  But was:  null\n\n\nFAILED: LiteGame.Tests.EditMode.UiThemeTokensEditModeTests.解析_未知字段被拒绝:   未知字段必须报错，不静默忽略\n\n  Expected: an exception to be thrown\n\n  But was:  no exception thrown\n\n\ntests: 12/13 failed"
+    },
+    {
+      "name": "ui-theme-generator-red",
+      "cmd": [
+        "python",
+        "scripts/gate/unity-tests.py",
+        "--mode",
+        "editor",
+        "--filter",
+        "UiThemeAssetGeneratorEditModeTests",
+        "--timeout",
+        "600"
+      ],
+      "cwd": null,
+      "exit_code": 1,
+      "timed_out": false,
+      "error": null,
+      "duration_ms": 10843,
+      "ok": true,
+      "output_tail": "[stderr]\nFAILED: LiteGame.Tests.EditMode.UiThemeAssetGeneratorEditModeTests.生成_二次生成零变更且资产字节不变:   Expected: True\n\n  But was:  False\n\n\nFAILED: LiteGame.Tests.EditMode.UiThemeAssetGeneratorEditModeTests.生成_令牌源缺失报错:   错误应带缺失路径：UI 主题生成失败：主题生成器未实现（骨架）\n\n  Expected: True\n\n  But was:  False\n\n\nFAILED: LiteGame.Tests.EditMode.UiThemeAssetGeneratorEditModeTests.生成_手改资产后重生成覆盖并报告变更:   Expected: True\n\n  But was:  False\n\n\nFAILED: LiteGame.Tests.EditMode.UiThemeAssetGeneratorEditModeTests.生成_资产后缀非asset被拒绝:   错误应说明后缀约束：UI 主题生成失败：主题生成器未实现（骨架）\n\n  Expected: True\n\n  But was:  False\n\n\nFAILED: LiteGame.Tests.EditMode.UiThemeAssetGeneratorEditModeTests.生成_资产路径不在Assets下被拒绝:   错误应说明路径约束：UI 主题生成失败：主题生成器未实现（骨架）\n\n  Expected: True\n\n  But was:  False\n\n\nFAILED: LiteGame.Tests.EditMode.UiThemeAssetGeneratorEditModeTests.生成_首次生成资产并按组计数读回:   UI 主题生成失败：主题生成器未实现（骨架）\n\n  Expected: True\n\n  But was:  False\n\n\ntests: 6/7 failed"
+    },
+    {
+      "name": "ui-style-retirement-red",
+      "cmd": [
+        "python",
+        "scripts/gate/unity-tests.py",
+        "--mode",
+        "editor",
+        "--filter",
+        "UiStyleRetirementEditModeTests",
+        "--timeout",
+        "600"
+      ],
+      "cwd": null,
+      "exit_code": 1,
+      "timed_out": false,
+      "error": null,
+      "duration_ms": 9401,
+      "ok": true,
+      "output_tail": "        };\n\n\n\n        /// <summary>按旧名查令牌 ID；未知名返回 null（调用方显式处理，不猜）。</summary>\n\n        public static string TokenId(string legacyName)\n\n        {\n\n            foreach ((string name, string tokenId) in LegacyTokenIds)\n\n                if (string.Equals(name, legacyName, System.StringComparison.Ordinal)) return tokenId;\n\n            return null;\n\n        }\n\n\n\n        /// <summary>颜色与 token 的距离（逐通道差的平方和；alpha 参与比较——灰盒底色 alpha 是语义的一部分）。</summary>\n\n        public static float Distance(Color a, Color b)\n\n        {\n\n            float dr = a.r - b.r, dg = a.g - b.g, db = a.b - b.b, da = a.a - b.a;\n\n            return dr * dr + dg * dg + db * db + da * da;\n\n        }\n\n    }\n\n}\n\n\"\n\n\ntests: 6/7 failed"
+    }
+  ]
+}

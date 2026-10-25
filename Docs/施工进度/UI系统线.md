@@ -19,6 +19,7 @@
 | 7 | UI 系统 UIMain 退役：注册表锚迁移 · 产品注册摘除 · 测试载体归位 | — |
 | 8 | UI 系统 P2-1：单工作台与角色 Lane（宿主 + 透视迁移） | — |
 | 9 | UI 系统 P2-2：起页/登记拆分（草稿契约 · 表/Lua/生成链 · 冲突保护） | — |
+| 10 | UI 系统 P2-3a：令牌源与主题资产（JSON→UiThemeAsset，退役硬编码） | — |
 
 ---
 
@@ -448,3 +449,51 @@
 - **`unity-tests.py` 环境修正**：显式 `--project-path`（本机同时打开 WindFrameWork/Test 两个 Editor 时会因“Multiple Unity Editor instances”失败）；`eval_file` 冒烟走显式 `--timeout`。
 - **未跑 Player 构建**：本批只改编辑器工具与生成物，无运行时/协议变更；L1 与 UI EditMode 已覆盖逻辑面。
 - **提交**：工作区未提交（含本批与并行线快照），待用户裁决提交范围。
+
+---
+
+## 第10章 UI 系统 P2-3a：令牌源与主题资产（JSON→UiThemeAsset，退役硬编码）
+
+<a id="ch10-UI系统P2令牌底座"></a>
+
+> **批次**：P2-3a（2026-10-24，staged-delivery）
+> **设计**：[UI 编辑器工具链专项设计 §8.1 样式工具](../设计文档/客户端/UI系统/UI编辑器工具链专项设计.md#ch-style-tools) · [§8.3 生成物](../设计文档/客户端/UI系统/UI编辑器工具链专项设计.md#ch-artifacts) · [UI 系统总设计 §6.1 设计令牌](../设计文档/客户端/UI系统/UI系统总设计.md#ch-style)
+> **方案与任务**：`.workflow/active/ui-p2-token-base/`（plan.md / acceptance.md / tasks.md / test-plan.md / reviews / evidence）
+
+### 状态
+
+**已完成（附验证证据；工作区未提交）**——P2-3 四批中的第 1 批：令牌值收敛到 JSON→SO、两条旧值表退役、漂移规则与生成工具上任。B2（引用组件与应用）、B3（预览矩阵/设备档）、B4（存量收敛与收口）不在本批。
+
+### 交付
+
+| 件 | 变化 |
+|---|---|
+| 令牌源 | 新增 `Assets/LiteGame/Editor/UiTools/UiStyleTokens.json`：12 个 `color.*` + 5 个 `font.*`；`spacing/radius/elevation/motion/icon` 空集（按消费者落地，不预造）；格式对齐已冻结 schema 2.0 |
+| 模型与校验 | `UiThemeTokens`（七组模型，`JsonProperty(Order)` 固定字段序）+ `UiThemeTokenValidator`（ID 文法/组前缀/颜色 hex/字号 8–96/行高 1–2/字重枚举/七组必在；一次收集全部问题）+ `UiThemeColorHex`（`#RRGGBBAA` 与 `Color32` 编解码、量化取整单源） |
+| 规范文本 | `UiThemeTokenJson`：组内按 ID `Ordinal` 排序、LF + 末尾换行、可选字段省略、未知字段拒绝（`MissingMemberHandling.Error`）；`sourceHash`＝规范文本 SHA-256 |
+| 生成物 | `UiThemeAsset`（`LiteClient.UI`，纯数据）+ `UiThemeAssetGenerator`（快照比较决定是否写盘/负例零写盘/路径守卫/手改覆盖并报告）+ `UiThemeSnapshot`（生成与规则共用的比较面）+ `UiThemePaths`；生成 `Assets/GameData/Config/UI/UiTheme.asset`（12/5/0×5，`sourceHash=78f288ad…`） |
+| 读面退役 | `UiTokenCatalog`（每次操作装载一次、无静态缓存；缺资产/类型不符显式失败）；`UiStyle` 12 色与 `UiTextStyle` 5 档改为只读属性（值来自生成物，C# 零颜色/字号字面量）；`UiStyleTool`/`UiTextStyleTool` 增 `…With(catalog, …)` 重载，既有公开重载与调用点源兼容 |
+| 规则 | 新增 `ui.style.token-drift`（Family 样式）：按 JSON 重算快照与 SO 逐字段比对（含 `sourceHash`），不一致/缺文件/非法 JSON 均 Error、FixHint 指向 `ui.style.tokens`；`UiValidationContext` 增 `ThemeJsonPath`/`ThemeAssetPath` 注入缝 |
+| 工具 | `ui.style.tokens` 登记（Hub/CLI 在册，`toolchain.py list` 可见）；`toolchain.json` + 工具索引重生成 |
+| 夹具 | 新增 `UiThemeTokensEditModeTests`（13 例）、`UiThemeAssetGeneratorEditModeTests`（7 例）、`UiStyleRetirementEditModeTests`（7 例） |
+
+### 验证证据
+
+| 项 | 结果 |
+|---|---|
+| 先红 | `wf verify --red` PASS：三套 **12/13、6/7、6/7 断言失败**（断言失败，非编译/环境错误），`evidence/red.json` |
+| 新夹具 | tokens **13/13** · generator **7/7** · retirement **7/7** |
+| 生成幂等 | eval 连跑两次：首次「变更=是」、第二次「变更=否」；夹具断言二次生成后资产逐字节不变 |
+| 回归 | 样式两规则 4/4 · 文字档 8/8 · 校验核心 14/14（**Warning 302＝颜色 161 + 未标记文本 141，未漂**）· 工具清单 12/12 · 接线 8/8 |
+| 工具链 | `toolchain.py check` OK（1 条既存未注册脚本告警）；`docs` 重生成后 `docs --check` 通过；`ui.style.tokens` 在 `list` 可见 |
+| 资产面 | 无 prefab/场景改动；`Assets/ShareResource/` 零变更（生成物只有 JSON/SO/代码/夹具/文档） |
+| 全量门禁 | `wf verify` **PASS 40/40**（2026-10-24T16:52；L1 / doc / restore / l0 / toolchain 三件 / l2-meta / 全部 UI EditMode + PlayMode / 表助手 + 本批三套 + 并行线四条） |
+
+### 边界与遗留（如实）
+
+- **B1 无运行期消费者**：`UiThemeAsset` 是纯数据；B2 起由样式引用组件/解析器消费。SO 随 `Assets/GameData/Config` 收集组进包（≤20KB）。
+- **五组空集**：`spacing/radius/elevation/motion/icon` 尚无消费者，按"按消费者落地"留空；B2 补值时不改工具/规则/夹具形状。
+- **8bit 量化**：JSON 只能存 `#RRGGBBAA`，与旧浮点常量差 ≤0.5/255（不可见，且落在对账阈值 1e-4 内）；本批**未跑** `ui.style.colors-refresh`，存量 161 处颜色收敛归 B4。
+- **typography 预留字段**：`lineHeight`/`fontFamily` 是 schema 必填但 B1 无消费者（行高归 B2 应用器；字体名供交接/校验）。
+- **CLI 只能打开不能执行**：`toolchain.py run` 对 editor action 回「use open」；生成动作的可执行面是 Hub 按钮与 `unity command eval`，API 面已由夹具覆盖。
+- **批外修复**：`scripts/gate/unity-tests.py` 的重复根路径推导（P2-2 引入，`test_single_source_helpers` 基线红）改为复用 `_common.repo_root()`——与 `scripts/gate/test.py` 同型，不属本批设计面但阻塞全量门禁。

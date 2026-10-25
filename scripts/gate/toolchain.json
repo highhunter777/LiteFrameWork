@@ -2,7 +2,7 @@
   "$comment": "机器可读开发工具链清单（唯一工具注册源）。编辑器 Hub / scripts/toolchain.py / 生成工具索引 / 注册面检查都读取本文件；环境字段供 restore-check 使用。",
   "schemaVersion": 6,
   "name": "litegame-toolchain",
-  "updatedAt": "2026-10-22",
+  "updatedAt": "2026-10-24",
   "categories": [
     { "id": "baking", "title": "内容烘焙", "order": 10, "docs": "Docs/设计文档/游戏玩法/烘焙工具箱专项设计.md" },
     { "id": "ui", "title": "UI 工具", "order": 20, "docs": "Docs/设计文档/客户端/UI系统/UI编辑器工具链专项设计.md" },
@@ -1222,6 +1222,8 @@
       "destructive": false,
       "order": 60
     }
+,
+        {"id": "ui.style.tokens", "title": "生成主题资产（JSON→SO）", "category": "ui", "kind": "action", "plane": "editor", "purpose": "dev", "handler": "ui.style.tokens", "summary": "从令牌源 UiStyleTokens.json 确定性生成 UiThemeAsset（幂等；失败零写盘）。", "docs": "Docs/设计文档/客户端/UI系统/UI编辑器工具链专项设计.md", "menu": "LiteGame/UI/样式工具/生成主题资产（令牌 JSON→SO）", "writes": ["asset", "generated"], "outputs": [{"path": "Assets/GameData/Config/UI/", "kind": "asset"}], "destructive": false, "order": 59}
   ],
   "surfaces": [
     {

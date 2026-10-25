@@ -77,7 +77,13 @@ namespace LiteGame.EditorTools.UI
         /// <summary>把扫描面内所有带 <see cref="UiTextStyleRef"/> 文本的属性收敛到角色档基线（幂等）。
         /// 失效标记（无文本组件/未知角色）跳过不猜——归对账报告。返回 (改动 prefab 数, 写入属性数)。</summary>
         public static (int prefabs, int writes) ApplyTextStyles(IReadOnlyList<string> scanDirs = null)
+            => ApplyTextStylesWith(UiTokenCatalog.Load(), scanDirs);
+
+        /// <summary>应用（给定目录；工具一次装载，逐节点复用）。</summary>
+        public static (int prefabs, int writes) ApplyTextStylesWith(
+            UiTokenCatalog catalog, IReadOnlyList<string> scanDirs = null)
         {
+            if (catalog == null) throw new System.ArgumentNullException(nameof(catalog));
             int changedPrefabs = 0, writes = 0;
             var log = new StringBuilder();
 
@@ -88,7 +94,7 @@ namespace LiteGame.EditorTools.UI
                 try
                 {
                     foreach (var reference in root.GetComponentsInChildren<UiTextStyleRef>(true))
-                        count += ApplyToRef(reference);
+                        count += ApplyToRef(reference, catalog);
 
                     if (count > 0)
                     {
@@ -113,12 +119,12 @@ namespace LiteGame.EditorTools.UI
         }
 
         /// <summary>把一个标记的目标属性写为档位基线（逐项比对，值已符合即跳过）。返回写入的属性数。</summary>
-        private static int ApplyToRef(UiTextStyleRef reference)
+        private static int ApplyToRef(UiTextStyleRef reference, UiTokenCatalog catalog)
         {
             var tmp = reference.GetComponent<TMP_Text>();
             var legacy = tmp == null ? reference.GetComponent<Text>() : null;
             if (tmp == null && legacy == null) return 0;         // 失效标记：应用不猜不改，归对账
-            if (!UiTextStyle.TryGet(reference.Role, out var style)) return 0;
+            if (!UiTextStyle.TryGet(reference.Role, catalog, out var style)) return 0;
 
             int writes = 0;
             if (tmp != null)
@@ -152,7 +158,13 @@ namespace LiteGame.EditorTools.UI
         /// 无标记＝Unmarked；有标记：font 缺失/无文本组件＝BrokenRef；属性 ≠ 档位＝Mismatch（逐项列漂移明细）。
         /// </summary>
         public static List<UiTextIssue> ReportTextDrift(IReadOnlyList<string> scanDirs = null)
+            => ReportTextDriftWith(UiTokenCatalog.Load(), scanDirs);
+
+        /// <summary>对账（给定目录；工具一次装载，逐节点复用）。</summary>
+        public static List<UiTextIssue> ReportTextDriftWith(
+            UiTokenCatalog catalog, IReadOnlyList<string> scanDirs = null)
         {
+            if (catalog == null) throw new System.ArgumentNullException(nameof(catalog));
             var issues = new List<UiTextIssue>();
             foreach (string path in PrefabPaths(scanDirs))
             {
@@ -160,9 +172,9 @@ namespace LiteGame.EditorTools.UI
                 try
                 {
                     foreach (var tmp in root.GetComponentsInChildren<TMP_Text>(true))
-                        Check(issues, path, tmp.gameObject, tmp, null);
+                        Check(issues, path, tmp.gameObject, tmp, null, catalog);
                     foreach (var legacy in root.GetComponentsInChildren<Text>(true))
-                        Check(issues, path, legacy.gameObject, null, legacy);
+                        Check(issues, path, legacy.gameObject, null, legacy, catalog);
                 }
                 finally
                 {
@@ -173,7 +185,8 @@ namespace LiteGame.EditorTools.UI
         }
 
         /// <summary>单文本对账（tmp/legacy 二选一非空；TMP 与 UGUI 属性面不同，分别比对）。</summary>
-        private static void Check(List<UiTextIssue> issues, string path, GameObject node, TMP_Text tmp, Text legacy)
+        private static void Check(List<UiTextIssue> issues, string path, GameObject node, TMP_Text tmp, Text legacy,
+            UiTokenCatalog catalog)
         {
             var reference = node.GetComponent<UiTextStyleRef>();
             if (reference == null)
@@ -197,7 +210,7 @@ namespace LiteGame.EditorTools.UI
                 });
                 return;
             }
-            if (!UiTextStyle.TryGet(reference.Role, out var style)) return;   // 未知角色：不猜语义
+            if (!UiTextStyle.TryGet(reference.Role, catalog, out var style)) return;   // 未知角色：不猜语义
 
             var drift = new StringBuilder();
             if (tmp != null)

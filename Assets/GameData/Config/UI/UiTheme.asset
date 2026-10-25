@@ -1,0 +1,127 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 87395d45db9fe274ebb04c1659fa8d3d, type: 3}
+  m_Name: UiTheme
+  m_EditorClassIdentifier: 
+  SchemaVersion: 2.0
+  Theme: Default
+  Version: 1.0.0
+  SourceHash: 78f288ad37507bef02f8781571e45f450c69e2c2718bc0a180664815776a1219
+  Colors:
+  - Id: color.bg.deep
+    Value:
+      serializedVersion: 2
+      rgba: 3860468756
+    Description: "\u6DF1\u5E95\uFF1AToast/\u8FDB\u5EA6\u69FD\uFF08\u65E7\u540D BgDeep\uFF09"
+  - Id: color.bg.item
+    Value:
+      serializedVersion: 2
+      rgba: 4281871918
+    Description: "\u6761\u76EE/\u6B21\u7EA7\u5E95\uFF08\u65E7\u540D ItemBg\uFF09"
+  - Id: color.bg.screen
+    Value:
+      serializedVersion: 2
+      rgba: 4062781215
+    Description: "\u9762\u677F/\u6A21\u677F\u5E95\uFF08\u65E7\u540D Bg\uFF09"
+  - Id: color.brand.accent
+    Value:
+      serializedVersion: 2
+      rgba: 4294095436
+    Description: "\u529F\u80FD\u84DD\uFF1A\u586B\u5145/\u786E\u8BA4\u94AE\uFF08\u65E7\u540D
+      Accent\uFF09"
+  - Id: color.brand.primary
+    Value:
+      serializedVersion: 2
+      rgba: 4282433510
+    Description: "\u4E3B\u8272\u91D1\uFF1A\u9009\u4E2D/\u661F\u6846/\u4E3B\u6587\u5B57\uFF08\u65E7\u540D
+      Primary\uFF09"
+  - Id: color.effect.mark
+    Value:
+      serializedVersion: 2
+      rgba: 1078778367
+    Description: "\u5F15\u5BFC\u9AD8\u4EAE\u6846\uFF08\u65E7\u540D Mark\uFF09"
+  - Id: color.effect.raycast
+    Value:
+      serializedVersion: 2
+      rgba: 67108863
+    Description: "\u8FD1\u900F\u660E\u53EF\u70B9\u51FB\uFF08\u65E7\u540D Raycast\uFF09"
+  - Id: color.state.success
+    Value:
+      serializedVersion: 2
+      rgba: 4284930406
+    Description: "\u786E\u8BA4\u7EFF\uFF1A\u52FE\u9009/\u524D\u8840\u6761\uFF08\u65E7\u540D
+      Success\uFF09"
+  - Id: color.state.warn
+    Value:
+      serializedVersion: 2
+      rgba: 4281549030
+    Description: "\u8B66\u793A\u7EA2\uFF1A\u7EA2\u70B9/\u540E\u8840\u6761\uFF08\u65E7\u540D
+      Warn\uFF09"
+  - Id: color.text.bright
+    Value:
+      serializedVersion: 2
+      rgba: 4294967295
+    Description: "\u4EAE\u767D\uFF1A\u8BA1\u6570/\u5012\u8BA1\u65F6/\u6ED1\u5757\u94AE/\u9875\u7B7E\uFF08\u65E7\u540D
+      TextBright\uFF09"
+  - Id: color.text.dim
+    Value:
+      serializedVersion: 2
+      rgba: 4289108377
+    Description: "\u5360\u4F4D/\u5F31\u6587\u5B57/\u5E38\u6001\u7070\uFF08\u65E7\u540D
+      TextDim\uFF09"
+  - Id: color.text.primary
+    Value:
+      serializedVersion: 2
+      rgba: 4293979115
+    Description: "\u6B63\u6587\uFF08\u65E7\u540D Text\uFF09"
+  Typography:
+  - Id: font.body
+    FontFamily: NotoSansSC SDF
+    FontSize: 20
+    LineHeight: 1
+    Weight: Regular
+    LetterSpacing: 0
+    Description: "\u6B63\u6587\uFF08\u65E7\u6863 Body\uFF1A20 \u53F7\u5C45\u4E2D\u6362\u884C\uFF09"
+  - Id: font.caption
+    FontFamily: NotoSansSC SDF
+    FontSize: 14
+    LineHeight: 1
+    Weight: Regular
+    LetterSpacing: 0
+    Description: "\u8BF4\u660E/\u6CE8\u811A\uFF08\u65E7\u6863 Caption\uFF1A14 \u53F7\u5DE6\u5BF9\u9F50\u6362\u884C\uFF09"
+  - Id: font.emphasis
+    FontFamily: NotoSansSC SDF
+    FontSize: 20
+    LineHeight: 1
+    Weight: Bold
+    LetterSpacing: 0
+    Description: "\u5F3A\u8C03\u6587\u672C\uFF08\u65E7\u6863 Emphasis\uFF1A20 \u53F7\u52A0\u7C97\uFF09"
+  - Id: font.label
+    FontFamily: NotoSansSC SDF
+    FontSize: 20
+    LineHeight: 1
+    Weight: Regular
+    LetterSpacing: 0
+    Description: "\u5355\u884C\u6807\u7B7E\uFF08\u65E7\u6863 LabelSingle\uFF1A20
+      \u53F7\u5C45\u4E2D\u4E0D\u6362\u884C\uFF09"
+  - Id: font.title
+    FontFamily: NotoSansSC SDF
+    FontSize: 24
+    LineHeight: 1
+    Weight: Regular
+    LetterSpacing: 0
+    Description: "\u6807\u9898\uFF08\u65E7\u6863 Title\uFF1A24 \u53F7\u5C45\u4E2D\u4E0D\u6362\u884C\uFF09"
+  Spacing: []
+  Radius: []
+  Elevation: []
+  Motion: []
+  Icon: []

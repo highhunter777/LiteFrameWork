@@ -13,6 +13,9 @@ import sys
 import time
 from pathlib import Path
 
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+from _common import repo_root  # noqa: E402
+
 
 def _run_json(args, timeout=120):
     """跑一条 unity 命令并取 JSON 结果；失败返回 None（由调用方决定是否阻断）。
@@ -22,7 +25,7 @@ def _run_json(args, timeout=120):
     """
     command_args = list(args)
     if command_args and command_args[0] == "command" and "--project-path" not in command_args:
-        command_args[1:1] = ["--project-path", str(Path(__file__).resolve().parents[2])]
+        command_args[1:1] = ["--project-path", str(repo_root())]
     try:
         result = subprocess.run(
             ["unity", "--format", "json"] + command_args,
@@ -152,7 +155,7 @@ def run_async(args):
 
     注意：`run_tests` 的工具参数 `--timeout` 若放在 `--filter` 之后，CLI 会丢 filter（实测跑全集）；
     这里只用工具默认 300s，外层 `args.timeout` 只做轮询上限。"""
-    launch = ["unity", "command", "--project-path", str(Path(__file__).resolve().parents[2]),
+    launch = ["unity", "command", "--project-path", str(repo_root()),
               "run_tests", "--mode", args.mode,
               "--async_tests", "--filter", args.filter]
     if args.filter_type:

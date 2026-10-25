@@ -394,6 +394,10 @@
 ### 8.1 样式工具
 
 - 令牌源：JSON → 生成 `UiThemeAsset`（SO）；工具只读生成物与 prefab 引用。
+- **现行口径（P2-3a 冻结）**：源＝`Assets/LiteGame/Editor/UiTools/UiStyleTokens.json`（设计态、不进包；格式以 [UiStyleTokens.schema.json](UiStyleTokens.schema.json) 2.0 为准）；生成物＝`Assets/GameData/Config/UI/UiTheme.asset`（随 `Assets/GameData/Config` 收集组进包）；入口＝`ui.style.tokens`（幂等：同源重跑 `changed=false` 且不触碰资产；校验失败零写盘；手改资产被覆盖并报告变更）。
+- **组按消费者落地**：P2-3a 只写 `color`（12：`color.bg.*`/`color.brand.*`/`color.state.*`/`color.text.*`/`color.effect.*`）与 `typography`（5：`font.title/body/caption/label/emphasis`）；`spacing/radius/elevation/motion/icon` 空集，随首个应用器/解析器批次补值——不预造无消费者的令牌。
+- **读面**：编辑器侧经 `UiTokenCatalog`（每次操作装载一次、按参数下传，禁静态缓存）；`UiStyle`/`UiTextStyle` 的旧名保留为只读属性（调用点源兼容），值一律来自生成物。
+- **漂移判定**：`ui.style.token-drift` 按 JSON 重算快照（ID/值/`sourceHash`）与 SO 逐字段比对，不一致即 Error 并提示重跑生成；生成器的"是否写盘"用同一个快照比较（单源）。
 - 刷新/应用：按令牌应用颜色/字号/间距；幂等、Undo、报告。
 - 漂移报告：区分“引用缺失/解析值不符/裸值/令牌不存在”；运行时实例变化不进资产报告。
 - 字体检查：字体族/fallback/语言覆盖/缺字/atlas 容量。
@@ -419,6 +423,7 @@
 | `UiWidgetManifest` | `Assets/LiteGame/Editor/UiTools/UiWidgetManifest.json` | 控件库/文档/校验 |
 | `UiThemeAsset` | `Assets/GameData/Config/UI/`（SO） | 运行时样式解析 |
 
+> `UiThemeAsset`：P2-3a 起由 `ui.style.tokens` 从 `UiStyleTokens.json` 生成（当前 12 色 + 5 文字角色，其余五组空集）；B1 阶段为纯数据、无运行期消费者，B2 起由样式引用/解析消费。
 > 例外登记不是生成物，单独记：`Assets/LiteGame/Editor/UiTools/UiRuleExceptions.json`（手工维护，见 §6.3）。
 > 生成物禁手改；路径/格式变更与 schema 同批更新。
 
