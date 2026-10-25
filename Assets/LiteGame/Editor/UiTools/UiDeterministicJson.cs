@@ -1,4 +1,6 @@
+using System.IO;
 using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
 
 namespace LiteGame.Editor.UiTools
 {
@@ -24,5 +26,25 @@ namespace LiteGame.Editor.UiTools
         }
 
         public static T Deserialize<T>(string json) => JsonConvert.DeserializeObject<T>(json);
+
+        /// <summary>
+        /// 严格反序列化：未知字段/重复键报错（禁止静默丢字段）；其余口径与 <see cref="Deserialize{T}"/> 一致。
+        /// </summary>
+        public static T DeserializeStrict<T>(string json)
+        {
+            string text = json ?? string.Empty;
+            var loadSettings = new JsonLoadSettings { DuplicatePropertyNameHandling = DuplicatePropertyNameHandling.Error };
+            using (var reader = new JsonTextReader(new StringReader(text)))
+            {
+                reader.DateParseHandling = DateParseHandling.None;
+                JToken.ReadFrom(reader, loadSettings);
+            }
+            var settings = new JsonSerializerSettings
+            {
+                DateParseHandling = DateParseHandling.None,
+                MissingMemberHandling = MissingMemberHandling.Error,
+            };
+            return JsonConvert.DeserializeObject<T>(text, settings);
+        }
     }
 }

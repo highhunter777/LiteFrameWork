@@ -1,0 +1,50 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:litegame:ui:device-profiles:1.0",
+  "title": "UiDeviceProfiles",
+  "description": "UI 布局档设备档案（分辨率/方向/安全区 inset/DPI/入矩阵标记）。单源 JSON 供预览驱动、工作台与截图矩阵共用；代码不复制分辨率/inset 字面量。",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schemaVersion", "profiles"],
+  "properties": {
+    "schemaVersion": {
+      "type": "string",
+      "pattern": "^[0-9]+\\.[0-9]+$"
+    },
+    "profiles": {
+      "type": "array",
+      "minItems": 1,
+      "items": { "$ref": "#/$defs/profile" }
+    }
+  },
+  "$defs": {
+    "profile": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "name", "width", "height", "orientation", "aspect", "safeInsets", "inMatrix"],
+      "properties": {
+        "id": { "type": "string", "pattern": "^[a-z0-9]+(?:[.-][a-z0-9]+)*$" },
+        "name": { "type": "string", "minLength": 1 },
+        "width": { "type": "integer", "minimum": 1 },
+        "height": { "type": "integer", "minimum": 1 },
+        "orientation": { "enum": ["landscape", "portrait"] },
+        "aspect": { "type": "number", "exclusiveMinimum": 0 },
+        "dpi": { "type": "number", "exclusiveMinimum": 0 },
+        "safeInsets": { "$ref": "#/$defs/insets" },
+        "notes": { "type": "string" },
+        "inMatrix": { "type": "boolean" }
+      }
+    },
+    "insets": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["left", "top", "right", "bottom"],
+      "properties": {
+        "left": { "type": "number", "minimum": 0 },
+        "top": { "type": "number", "minimum": 0 },
+        "right": { "type": "number", "minimum": 0 },
+        "bottom": { "type": "number", "minimum": 0 }
+      }
+    }
+  }
+}

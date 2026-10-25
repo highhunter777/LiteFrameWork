@@ -393,6 +393,90 @@
       "timeout": 900
     },
     {
+      "name": "ui-device-profiles-editmode",
+      "cmd": [
+        "python",
+        "scripts/gate/unity-tests.py",
+        "--mode",
+        "editor",
+        "--filter",
+        "UiDeviceProfilesEditModeTests",
+        "--timeout",
+        "600"
+      ],
+      "timeout": 900
+    },
+    {
+      "name": "ui-preview-editmode",
+      "cmd": [
+        "python",
+        "scripts/gate/unity-tests.py",
+        "--mode",
+        "editor",
+        "--filter",
+        "UiPreviewEditModeTests",
+        "--timeout",
+        "600"
+      ],
+      "timeout": 900
+    },
+    {
+      "name": "ui-preview-locale-editmode",
+      "cmd": [
+        "python",
+        "scripts/gate/unity-tests.py",
+        "--mode",
+        "editor",
+        "--filter",
+        "UiPreviewLocaleEditModeTests",
+        "--timeout",
+        "600"
+      ],
+      "timeout": 900
+    },
+    {
+      "name": "ui-preview-matrix-editmode",
+      "cmd": [
+        "python",
+        "scripts/gate/unity-tests.py",
+        "--mode",
+        "editor",
+        "--filter",
+        "UiPreviewMatrixEditModeTests",
+        "--timeout",
+        "600"
+      ],
+      "timeout": 900
+    },
+    {
+      "name": "ui-workbench-device-editmode",
+      "cmd": [
+        "python",
+        "scripts/gate/unity-tests.py",
+        "--mode",
+        "editor",
+        "--filter",
+        "UiWorkbenchDeviceEditModeTests",
+        "--timeout",
+        "600"
+      ],
+      "timeout": 900
+    },
+    {
+      "name": "ui-preview-driver-playmode",
+      "cmd": [
+        "python",
+        "scripts/gate/unity-tests.py",
+        "--mode",
+        "playmode",
+        "--filter",
+        "UiPreviewDriverPlayModeTests",
+        "--timeout",
+        "600"
+      ],
+      "timeout": 1200
+    },
+    {
       "name": "ui-theme-apply-playmode",
       "cmd": [
         "python",
@@ -620,70 +704,70 @@
   ],
   "red_commands": [
     {
-      "name": "ui-style-resolver-red",
+      "name": "ui-device-profiles-red",
       "cmd": [
         "python",
         "scripts/gate/unity-tests.py",
         "--mode",
         "editor",
         "--filter",
-        "UiStyleResolverEditModeTests",
+        "UiDeviceProfilesEditModeTests",
         "--timeout",
         "600"
       ],
       "timeout": 900
     },
     {
-      "name": "ui-style-ref-red",
+      "name": "ui-preview-locale-red",
       "cmd": [
         "python",
         "scripts/gate/unity-tests.py",
         "--mode",
         "editor",
         "--filter",
-        "UiStyleRefEditModeTests",
+        "UiPreviewLocaleEditModeTests",
         "--timeout",
         "600"
       ],
       "timeout": 900
     },
     {
-      "name": "ui-theme-state-tokens-red",
+      "name": "ui-preview-matrix-red",
       "cmd": [
         "python",
         "scripts/gate/unity-tests.py",
         "--mode",
         "editor",
         "--filter",
-        "UiThemeStateTokensEditModeTests",
+        "UiPreviewMatrixEditModeTests",
         "--timeout",
         "600"
       ],
       "timeout": 900
     },
     {
-      "name": "ui-widget-theme-red",
+      "name": "ui-workbench-device-red",
       "cmd": [
         "python",
         "scripts/gate/unity-tests.py",
         "--mode",
         "editor",
         "--filter",
-        "UiWidgetThemeEditModeTests",
+        "UiWorkbenchDeviceEditModeTests",
         "--timeout",
         "600"
       ],
       "timeout": 900
     },
     {
-      "name": "ui-style-ref-rule-red",
+      "name": "ui-preview-driver-red",
       "cmd": [
         "python",
         "scripts/gate/unity-tests.py",
         "--mode",
-        "editor",
+        "playmode",
         "--filter",
-        "UiStyleRefRuleEditModeTests",
+        "UiPreviewDriverPlayModeTests",
         "--timeout",
         "600"
       ],

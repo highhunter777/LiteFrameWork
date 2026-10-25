@@ -177,6 +177,24 @@
       "order": 36
     },
     {
+      "id": "ui.preview-matrix",
+      "title": "UI 截图矩阵",
+      "category": "ui",
+      "kind": "window",
+      "plane": "editor",
+      "purpose": "dev",
+      "handler": "ui.preview-matrix",
+      "summary": "页×设备档×语言×字体缩放组合截图（Play 内逐档应用→稳定帧→ScreenCapture），产物落 Artifacts/PreviewMatrix/（不入库）。",
+      "docs": "Docs/设计文档/客户端/UI系统/UI编辑器工具链专项设计.md",
+      "menu": "LiteGame/UI/预览/截图矩阵",
+      "writes": ["none"],
+      "outputs": [
+        { "path": "Artifacts/PreviewMatrix/", "kind": "report" }
+      ],
+      "destructive": false,
+      "order": 37
+    },
+    {
       "id": "ui.validate",
       "title": "校验 UI 资产",
       "category": "ui",

@@ -6,6 +6,7 @@ using LiteGame.Editor.UiTools.Binding;
 using LiteGame.Editor.UiTools.Compose;
 using LiteGame.Editor.UiTools.Contracts;
 using LiteGame.Editor.UiTools.Page;
+using LiteGame.Editor.UiTools.Preview;
 using LiteGame.Editor.UiTools.Validation;
 using LiteGame.Editor.UiTools.Widgets;
 using LiteGame.Editor.UiTools.Workbench;
@@ -64,6 +65,7 @@ namespace LiteGame.Toolchain
             registry.RegisterWindow("ui.workbench", UiWorkbenchWindow.Open);
             registry.RegisterWindow("ui.page-scaffold", UiPageScaffoldWindow.Open);
             registry.RegisterWindow("ui.page-register", UiPageRegisterWindow.Open);
+            registry.RegisterWindow("ui.preview-matrix", UiPreviewMatrixWindow.Open);
 
             registry.RegisterAction("ui.validate", ValidateUi);
             registry.RegisterAction("ui.contract", GenerateUiContracts);

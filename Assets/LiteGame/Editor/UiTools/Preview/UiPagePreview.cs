@@ -1,4 +1,5 @@
 using System;
+using System.Globalization;
 using System.IO;
 using System.Linq;
 using UnityEditor;
@@ -24,8 +25,12 @@ namespace LiteGame.Editor.UiTools.Preview
             EditorApplication.playModeStateChanged += OnPlayModeChanged;
         }
 
-        /// <summary>打开目标 prefab 的布局预览；返回 false 表示用户取消或目标非法。</summary>
-        public static bool Open(string prefabPath)
+        /// <summary>
+        /// 打开目标 prefab 的布局预览；<paramref name="deviceProfileId"/> 为空＝跟随预览（全屏/默认安全区），
+        /// <paramref name="locale"/> 为空＝静态文案保持作者文本（不加载语言表）。
+        /// 返回 false 表示用户取消或目标非法。
+        /// </summary>
+        public static bool Open(string prefabPath, string deviceProfileId = null, string locale = null)
         {
             if (EditorApplication.isPlaying)
             {
@@ -47,9 +52,79 @@ namespace LiteGame.Editor.UiTools.Preview
                 EditorSceneManager.OpenScene(ScenePath, OpenSceneMode.Single);
             }
 
+            ApplyPreviewOptions(deviceProfileId, locale);
             EditorPrefs.SetString(UiPreviewDriver.TargetPrefabKey, prefabPath);
             EditorApplication.isPlaying = true;
             return true;
+        }
+
+        private static void ApplyPreviewOptions(string deviceProfileId, string locale)
+        {
+            SessionState.SetInt(UiPreviewDriver.OptionsRevisionKey, 0);
+            SessionState.SetInt(UiPreviewDriver.OptionsAppliedKey, 0);
+            SessionState.SetBool(UiPreviewDriver.HideOverlayKey, false);
+            SessionState.SetFloat(UiPreviewDriver.FontScaleKey, 1f);
+            SessionState.SetString(UiPreviewDriver.LocaleKey, locale ?? string.Empty);
+            SessionState.SetString(UiPreviewDriver.LocaleStatusKey,
+                string.IsNullOrEmpty(locale) ? "off" : "pending");
+            SessionState.SetString(UiPreviewDriver.LocaleDataDirKey, string.Empty);
+            if (UiPreviewGameView.TryGetSize(out int originalWidth, out int originalHeight))
+            {
+                SessionState.SetInt(UiPreviewDriver.OriginalGameViewWidthKey, originalWidth);
+                SessionState.SetInt(UiPreviewDriver.OriginalGameViewHeightKey, originalHeight);
+            }
+            else
+            {
+                SessionState.SetInt(UiPreviewDriver.OriginalGameViewWidthKey, 0);
+                SessionState.SetInt(UiPreviewDriver.OriginalGameViewHeightKey, 0);
+            }
+
+            UiDeviceProfileDocument document = null;
+            try
+            {
+                document = UiDeviceProfileCatalog.Load();
+            }
+            catch (Exception exception)
+            {
+                Debug.LogWarning("[UiPreview] 设备档案不可用：" + exception.Message);
+            }
+            SessionState.SetString(UiPreviewDriver.DeviceProfileChoicesKey,
+                document != null ? BuildDeviceChoices(document) : string.Empty);
+
+            if (document != null && !string.IsNullOrEmpty(deviceProfileId)
+                && UiDeviceProfileCatalog.TryGet(document, deviceProfileId, out UiDeviceProfile profile))
+            {
+                SessionState.SetString(UiPreviewDriver.DeviceProfileIdKey, profile.Id);
+                SessionState.SetInt(UiPreviewDriver.DeviceWidthKey, profile.Width);
+                SessionState.SetInt(UiPreviewDriver.DeviceHeightKey, profile.Height);
+                SessionState.SetFloat(UiPreviewDriver.InsetLeftKey, profile.SafeInsets?.Left ?? 0f);
+                SessionState.SetFloat(UiPreviewDriver.InsetTopKey, profile.SafeInsets?.Top ?? 0f);
+                SessionState.SetFloat(UiPreviewDriver.InsetRightKey, profile.SafeInsets?.Right ?? 0f);
+                SessionState.SetFloat(UiPreviewDriver.InsetBottomKey, profile.SafeInsets?.Bottom ?? 0f);
+                if (!UiPreviewGameView.TrySetSize(profile.Width, profile.Height))
+                    Debug.LogWarning("[UiPreview] GameView 分辨率切换失败（降级为仅模拟安全区）：" + profile.Id);
+                return;
+            }
+            if (document != null && !string.IsNullOrEmpty(deviceProfileId))
+                Debug.LogWarning("[UiPreview] 设备档不存在，回退跟随预览：" + deviceProfileId);
+
+            SessionState.SetString(UiPreviewDriver.DeviceProfileIdKey, string.Empty);
+            SessionState.SetInt(UiPreviewDriver.DeviceWidthKey, 0);
+            SessionState.SetInt(UiPreviewDriver.DeviceHeightKey, 0);
+            SessionState.SetFloat(UiPreviewDriver.InsetLeftKey, 0f);
+            SessionState.SetFloat(UiPreviewDriver.InsetTopKey, 0f);
+            SessionState.SetFloat(UiPreviewDriver.InsetRightKey, 0f);
+            SessionState.SetFloat(UiPreviewDriver.InsetBottomKey, 0f);
+        }
+
+        private static string BuildDeviceChoices(UiDeviceProfileDocument document)
+        {
+            return string.Join(";", UiDeviceProfileCatalog.MatrixProfiles(document).Select(profile =>
+                string.Join("|", profile.Id, profile.Width, profile.Height,
+                    (profile.SafeInsets?.Left ?? 0f).ToString(CultureInfo.InvariantCulture),
+                    (profile.SafeInsets?.Top ?? 0f).ToString(CultureInfo.InvariantCulture),
+                    (profile.SafeInsets?.Right ?? 0f).ToString(CultureInfo.InvariantCulture),
+                    (profile.SafeInsets?.Bottom ?? 0f).ToString(CultureInfo.InvariantCulture))));
         }
 
         private static void EnsureScene()
@@ -85,6 +160,7 @@ namespace LiteGame.Editor.UiTools.Preview
         private static void OnPlayModeChanged(PlayModeStateChange change)
         {
             if (change != PlayModeStateChange.EnteredEditMode) return;
+            RestoreGameViewSize();
             string returnScene = SessionState.GetString(ReturnSceneKey, string.Empty);
             if (string.IsNullOrEmpty(returnScene)) return;
             SessionState.EraseString(ReturnSceneKey);
@@ -93,6 +169,15 @@ namespace LiteGame.Editor.UiTools.Preview
             if (!string.Equals(active.path, ScenePath, StringComparison.Ordinal)) return;
             if (!File.Exists(returnScene)) return;
             EditorSceneManager.OpenScene(returnScene, OpenSceneMode.Single);
+        }
+
+        private static void RestoreGameViewSize()
+        {
+            int width = SessionState.GetInt(UiPreviewDriver.OriginalGameViewWidthKey, 0);
+            int height = SessionState.GetInt(UiPreviewDriver.OriginalGameViewHeightKey, 0);
+            SessionState.SetInt(UiPreviewDriver.OriginalGameViewWidthKey, 0);
+            SessionState.SetInt(UiPreviewDriver.OriginalGameViewHeightKey, 0);
+            if (width > 0 && height > 0) UiPreviewGameView.TrySetSize(width, height);
         }
 
         private static void EnsureFolder(string path)

@@ -1,0 +1,293 @@
+{
+  "schema_version": 1,
+  "slug": "ui-p3-device-preview",
+  "title": "UI 系统 P2-3 B3：设备档与预览矩阵",
+  "status": "archived",
+  "current_stage": null,
+  "created_at": "2026-10-25T19:47:59+08:00",
+  "updated_at": "2026-10-25T23:16:10+08:00",
+  "completed_at": "2026-10-25T23:16:10+08:00",
+  "completed_stages": [
+    {
+      "id": "propose",
+      "title": "提出方案",
+      "completed_at": "2026-10-25T19:49:24+08:00"
+    },
+    {
+      "id": "review-plan",
+      "title": "子代理评审方案",
+      "completed_at": "2026-10-25T20:18:31+08:00"
+    },
+    {
+      "id": "confirm-acceptance",
+      "title": "用户确认验收标准",
+      "completed_at": "2026-10-25T20:28:17+08:00",
+      "approved_by": "highhunter777"
+    },
+    {
+      "id": "breakdown",
+      "title": "实施任务清单",
+      "completed_at": "2026-10-25T20:28:31+08:00"
+    },
+    {
+      "id": "review-tasks",
+      "title": "评审任务",
+      "completed_at": "2026-10-25T20:28:41+08:00"
+    },
+    {
+      "id": "tests-first",
+      "title": "先写测试",
+      "completed_at": "2026-10-25T21:29:42+08:00"
+    },
+    {
+      "id": "implement",
+      "title": "正式施工",
+      "completed_at": "2026-10-25T22:32:56+08:00"
+    },
+    {
+      "id": "verify",
+      "title": "测试代码",
+      "completed_at": "2026-10-25T23:15:52+08:00"
+    },
+    {
+      "id": "review-code",
+      "title": "评审代码",
+      "completed_at": "2026-10-25T23:16:06+08:00"
+    },
+    {
+      "id": "writeback",
+      "title": "回写与收尾",
+      "completed_at": "2026-10-25T23:16:10+08:00"
+    }
+  ],
+  "history": [
+    {
+      "at": "2026-10-25T19:47:59+08:00",
+      "event": "init",
+      "stage": "propose"
+    },
+    {
+      "at": "2026-10-25T19:49:24+08:00",
+      "event": "advance",
+      "from": "propose",
+      "to": "review-plan",
+      "approved_by": null
+    },
+    {
+      "at": "2026-10-25T20:18:31+08:00",
+      "event": "advance",
+      "from": "review-plan",
+      "to": "confirm-acceptance",
+      "approved_by": null
+    },
+    {
+      "at": "2026-10-25T20:28:17+08:00",
+      "event": "advance",
+      "from": "confirm-acceptance",
+      "to": "breakdown",
+      "approved_by": "highhunter777"
+    },
+    {
+      "at": "2026-10-25T20:28:31+08:00",
+      "event": "advance",
+      "from": "breakdown",
+      "to": "review-tasks",
+      "approved_by": null
+    },
+    {
+      "at": "2026-10-25T20:28:41+08:00",
+      "event": "advance",
+      "from": "review-tasks",
+      "to": "tests-first",
+      "approved_by": null
+    },
+    {
+      "at": "2026-10-25T21:29:42+08:00",
+      "event": "advance",
+      "from": "tests-first",
+      "to": "implement",
+      "approved_by": null
+    },
+    {
+      "at": "2026-10-25T22:32:56+08:00",
+      "event": "advance",
+      "from": "implement",
+      "to": "verify",
+      "approved_by": null
+    },
+    {
+      "at": "2026-10-25T23:15:52+08:00",
+      "event": "advance",
+      "from": "verify",
+      "to": "review-code",
+      "approved_by": null
+    },
+    {
+      "at": "2026-10-25T23:16:06+08:00",
+      "event": "advance",
+      "from": "review-code",
+      "to": "writeback",
+      "approved_by": null
+    },
+    {
+      "at": "2026-10-25T23:16:10+08:00",
+      "event": "advance",
+      "from": "writeback",
+      "to": null,
+      "approved_by": null
+    },
+    {
+      "at": "2026-10-25T23:16:10+08:00",
+      "event": "archive",
+      "path": "20261025-231610-ui-p3-device-preview"
+    }
+  ],
+  "tasks": [
+    {
+      "id": "T1",
+      "title": "T1 设备档案 UiDeviceProfiles（JSON 单源+校验+确定性）",
+      "description": "",
+      "acceptance": "UiDeviceProfiles.json（六横屏档+竖屏预留 inMatrix=false，含分辨率/方向/安全区 inset/可选 dpi）+UiDeviceProfileCatalog（Load/Validate，禁静态缓存）+schema；校验负例（宽高比/inset 越界/ID 文法）；确定性（按 id 排序、重读逐字节一致、无时间戳）",
+      "verify": "unity-tests --filter UiDeviceProfilesEditModeTests",
+      "files": [
+        "Assets/LiteGame/Editor/UiTools/UiDeviceProfiles.json",
+        "Assets/LiteGame/Editor/UiTools/Preview/UiDeviceProfileCatalog.cs"
+      ],
+      "deps": [],
+      "status": "done",
+      "evidence": "UiDeviceProfilesEditModeTests 9/9；UiDeviceProfiles.json（8 档=6 横屏+2 竖屏预留）+ schema；确定性排序/严格解析",
+      "status_reason": "",
+      "created_at": "2026-10-25T20:28:30+08:00",
+      "started_at": "2026-10-25T21:29:43+08:00",
+      "completed_at": "2026-10-25T21:31:57+08:00"
+    },
+    {
+      "id": "T2",
+      "title": "T2 预览驱动升级（设备档/安全区/语言/字体缩放）",
+      "description": "",
+      "acceptance": "UiPreviewDriver 支持免重启切档：GameView 分辨率（反射 SetSize 容错降级+确保经典分辨率模式）、PreviewSafeAreaStrategy 注入/撤销（当前屏幕像素空间 Rect）、语言中/英/伪本地化（tbltext 直载 LocalizationService+PseudoLocale 装饰器驱动 LTextKeyRef）、字体缩放 1.0/1.15/1.3（TMP 原值恢复）；退出回场景无残留；SessionState 键收私有",
+      "verify": "UiPreviewDriverPlayModeTests+UiPreviewLocaleEditModeTests+eval 冒烟",
+      "files": [
+        "Assets/LiteGame/DevTool/UiPreviewDriver.cs",
+        "Assets/LiteGame/DevTool/PreviewSafeAreaStrategy.cs",
+        "Assets/LiteGame/DevTool/PseudoLocale.cs",
+        "Assets/LiteGame/Editor/UiTools/Preview/UiPagePreview.cs"
+      ],
+      "deps": [
+        "T1"
+      ],
+      "status": "done",
+      "evidence": "UiPreviewLocaleEditModeTests 5/5；UiPreviewDriverPlayModeTests 3/3；PreviewFontScale 用例通过；新增 ConfigTableFileSource 表字节直载单源",
+      "status_reason": "",
+      "created_at": "2026-10-25T20:28:31+08:00",
+      "started_at": "2026-10-25T21:31:57+08:00",
+      "completed_at": "2026-10-25T21:34:56+08:00"
+    },
+    {
+      "id": "T3",
+      "title": "T3 ui.preview-matrix 截图矩阵+.gitignore 机制",
+      "description": "",
+      "acceptance": "editor action：页×设备档×语言[×长文本]组合状态机（开场景 Play→逐组合应用→等稳定帧→ScreenCapture→matrix.json 索引含分辨率应用结果/降级记录）；中断安全；失败组合不中断；.gitignore 增 [Aa]rtifacts/；真跑一页小矩阵实产+git status 零污染",
+      "verify": "unity-tests --filter UiPreviewMatrixEditModeTests；真跑矩阵；git status",
+      "files": [
+        "Assets/LiteGame/Editor/UiTools/Preview/UiPreviewMatrix.cs",
+        ".gitignore",
+        "Assets/LiteGame/Editor/Toolchain/EditorToolHandlers.cs"
+      ],
+      "deps": [
+        "T1",
+        "T2"
+      ],
+      "status": "done",
+      "evidence": "UiPreviewMatrixEditModeTests 7/7；真跑 Page_Login 2 组合 1920×1080 截图+matrix.json（resolutionApplied=true）；中断实跑 status=Interrupted 索引落盘；.gitignore 已排除 Artifacts，git status 零污染",
+      "status_reason": "",
+      "created_at": "2026-10-25T20:28:31+08:00",
+      "started_at": "2026-10-25T21:34:56+08:00",
+      "completed_at": "2026-10-25T21:42:10+08:00"
+    },
+    {
+      "id": "T4",
+      "title": "T4 工作台接线（设备档下拉+预览携带）",
+      "description": "",
+      "acceptance": "上下文条设备档真下拉（档案单源+『跟随预览』缺省项，IWorkbenchSettings 新键持久）；预览按钮携当前设备档/语言打开；『设备档：P2-3』占位移除",
+      "verify": "unity-tests --filter UiPreviewEditModeTests,UiWorkbenchEditModeTests 回归+窗口冒烟",
+      "files": [
+        "Assets/LiteGame/Editor/UiTools/Workbench/UiWorkbenchWindow.cs",
+        "Assets/LiteGame/Editor/UiTools/Workbench/UiWorkbenchSettings.cs"
+      ],
+      "deps": [
+        "T1"
+      ],
+      "status": "done",
+      "evidence": "UiWorkbenchDeviceEditModeTests 3/3；UiPreviewEditModeTests 6/6；UiWorkbenchEditModeTests 21/21；开窗冒烟设备档=phone.19-5-9 真下拉（截图 evidence/workbench.png）；预览携带档冒烟 Screen=2436x1125、locale=en、退出回 Boot",
+      "status_reason": "",
+      "created_at": "2026-10-25T20:28:31+08:00",
+      "started_at": "2026-10-25T21:42:10+08:00",
+      "completed_at": "2026-10-25T21:49:47+08:00"
+    },
+    {
+      "id": "T5",
+      "title": "T5 文档回写+边界登记",
+      "description": "",
+      "acceptance": "总设计 §7.3（设备档现行口径）/§7.5（字体档 1.0/1.15/1.3 对齐）、工具链设计 §7.1（预览矩阵现行口径+减少动效延后注记）回写；非目标登记（数据档 P3/真链路/竖屏/减少动效/P4）；UI系统线新章；工具索引/toolchain.json 同步",
+      "verify": "doc-lint 0/0；docs --check",
+      "files": [
+        "Docs/设计文档/客户端/UI系统/UI系统总设计.md",
+        "Docs/设计文档/客户端/UI系统/UI编辑器工具链专项设计.md",
+        "Docs/施工进度/UI系统线.md"
+      ],
+      "deps": [
+        "T3",
+        "T4"
+      ],
+      "status": "done",
+      "evidence": "总设计 §7.3/§7.5 + 工具链 §7.1 回写；schema/README 登记；UI系统线第12章；toolchain docs 重生成；doc-lint 0/0、docs --check current、toolchain check OK（1 既存警告）",
+      "status_reason": "",
+      "created_at": "2026-10-25T20:28:31+08:00",
+      "started_at": "2026-10-25T21:49:47+08:00",
+      "completed_at": "2026-10-25T21:50:44+08:00"
+    },
+    {
+      "id": "T6",
+      "title": "T6 门禁收口",
+      "description": "",
+      "acceptance": "config.json 增本批门禁（EditMode 三套+PlayMode 一套）；toolchain.py check 0 error；wf verify 全绿",
+      "verify": "toolchain.py check；wf verify",
+      "files": [
+        ".workflow/config.json"
+      ],
+      "deps": [
+        "T5"
+      ],
+      "status": "done",
+      "evidence": "config.json 新增 5 条门禁（Device/Locale/Matrix/WorkbenchDevice/Driver PlayMode）；toolchain.py check OK；wf verify PASS（L1/doc/l0/toolchain/L2 + 全部 UI 套件）",
+      "status_reason": "",
+      "created_at": "2026-10-25T20:28:31+08:00",
+      "started_at": "2026-10-25T21:50:44+08:00",
+      "completed_at": "2026-10-25T22:32:40+08:00"
+    }
+  ],
+  "verification": {
+    "at": "2026-10-25T23:12:46+08:00",
+    "ok": true,
+    "stale": false,
+    "evidence": "evidence/verify.json",
+    "command_fingerprint": "b873021731e4d1b44ada1a07e9e7cb640e8fd37e80c2af4e66cab82fe82cb293",
+    "summary": {
+      "total": 52,
+      "passed": 52
+    }
+  },
+  "red_verification": {
+    "at": "2026-10-25T21:29:20+08:00",
+    "ok": true,
+    "stale": false,
+    "evidence": "evidence/red.json",
+    "command_fingerprint": "26cf03e4067ee20542113d84b591dbc6f6b725968c1fc1ac80a92d1d328435ec",
+    "summary": {
+      "total": 5,
+      "passed": 5
+    }
+  },
+  "archived_at": "2026-10-25T23:16:10+08:00"
+}

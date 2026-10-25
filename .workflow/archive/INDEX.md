@@ -25,3 +25,4 @@
 | 2026-10-24T16:19:24+08:00 | weaknet-injection | 弱网注入：传输层损伤注入与可视化 | 10/10 | PASS | [20261024-161924-weaknet-injection](20261024-161924-weaknet-injection/) |
 | 2026-10-24T16:48:59+08:00 | ui-p2-token-base | UI 系统 P2-3a：令牌源与主题资产（JSON→UiThemeAsset，退役硬编码） | 7/7 | PASS | [20261024-164859-ui-p2-token-base](20261024-164859-ui-p2-token-base/) |
 | 2026-10-25T18:40:02+08:00 | ui-p2-token-refs | UI 系统 P2-3 B2：令牌引用组件与应用 | 9/9 | PASS | [20261025-184002-ui-p2-token-refs](20261025-184002-ui-p2-token-refs/) |
+| 2026-10-25T23:16:10+08:00 | ui-p3-device-preview | UI 系统 P2-3 B3：设备档与预览矩阵 | 6/6 | PASS | [20261025-231610-ui-p3-device-preview](20261025-231610-ui-p3-device-preview/) |

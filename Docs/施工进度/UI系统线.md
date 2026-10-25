@@ -21,6 +21,7 @@
 | 9 | UI 系统 P2-2：起页/登记拆分（草稿契约 · 表/Lua/生成链 · 冲突保护） | — |
 | 10 | UI 系统 P2-3a：令牌源与主题资产（JSON→UiThemeAsset，退役硬编码） | — |
 | 11 | UI 系统 P2-3 B2：令牌引用组件与应用（UiStyleRef · 运行期解析 · 状态色令牌化） | — |
+| 12 | UI 系统 P2-3 B3：设备档与预览矩阵（UiDeviceProfiles · 驱动升级 · ui.preview-matrix） | — |
 
 ---
 
@@ -545,3 +546,59 @@
 - **五组空集不变**（spacing/radius/elevation/motion/icon）——按消费者落地。
 - **门禁脚本批外修复**：`unity-tests.py` unity 调用加 `--proxy-disable`（系统代理拦 127.0.0.1 报 502，实测 Clash 7890；脚本只连本机编辑器永不需要代理）。
 - **已提交 `5f5322bd`**（66 文件按批拆分——共享文件 surgical blob：config.json 仅 6 门禁、toolchain.json 仅 summary/updatedAt、unity-tests.py 仅 proxy 修复、审计仅本批 5 行、INDEX 仅本批行；并行线改动原样留工作区）。
+
+---
+
+## 第12章 UI 系统 P2-3 B3：设备档与预览矩阵（UiDeviceProfiles · 驱动升级 · ui.preview-matrix）
+
+<a id="ch12-UI系统P2设备预览矩阵"></a>
+
+> **批次**：P2-3 B3（2026-10-25，staged-delivery）
+> **设计**：[UI 系统总设计 §7.3/§7.5](../设计文档/客户端/UI系统/UI系统总设计.md#ch-adaptation) · [UI 编辑器工具链专项设计 §7.1/§7.2](../设计文档/客户端/UI系统/UI编辑器工具链专项设计.md#ch-preview)
+> **方案与任务**：`.workflow/archive/20261025-231610-ui-p3-device-preview/`（plan.md / acceptance.md / tasks.md / test-plan.md / reviews / evidence；archive 2026-10-25T23:16）
+> **用户裁决**：D1＝自动批量截图；D2＝GameView 反射 SetSize＋容错降级；D3＝设备档案 JSON 单源（2026-10-25 验收确认「通过，按推荐」）。
+
+### 状态
+
+**已完成（附验证证据；工作区未提交，提交号待补）**——设备档案、预览驱动升级、交互切档、截图矩阵与实际产物、工作台设备档下拉均落地；T1–T6 完成，独立代码评审的两个 major（语言降级假绿、交互预览缺切档入口）已修复并复测。B4（存量样式收敛）与 P3–P5 不在本批。
+
+### 交付
+
+| 件 | 变化 |
+|---|---|
+| 设备档案 | `Assets/LiteGame/Editor/UiTools/UiDeviceProfiles.json`：6 横屏档（16:9/19.5:9/20:9/4:3/16:10/21:9）＋2 竖屏预留（`inMatrix=false`）；`UiDeviceProfileCatalog`（严格解析/校验/确定性排序/`TryGet`/`MatrixProfiles`）；`Docs/设计文档/客户端/UI系统/UiDeviceProfiles.schema.json` 与 README schema 登记；`UiDeterministicJson.DeserializeStrict` 新增严格反序列化 |
+| 预览驱动 | `UiPreviewDriver`：`ApplySafeArea`（全部 `SafeAreaReceiver.SetStrategy`）/`ApplyFontScale`/`ApplyLocale`/`ResetPreviewOptions`；SessionState 参数键＋修订握手（`OptionsRevision/Applied`）；`Update` 轮询免重启切档；工具条设备档（含 GameView 分辨率）/语言/字体轮换按钮；`LocaleStatus` 上报（off/pending/ok/unavailable，失败不假绿；同指纹短路也落终态）；`PreviewAuthorText` 作者原串快照/还原；退出/重载清理；`HideOverlayKey` 供矩阵隐藏工具条 |
+| 语言/字体 | `UiPreviewLocale`（tbltext 文件直载）；`PseudoLocale`（≥30% 加长＋ASCII 音标，富文本标签透传）；`PreviewFontScale`（TMP 原值记录/恢复）；`ConfigTableFileSource`（表字节直载单源，`AnimationProfileTableSource` 复用） |
+| 安全区/分辨率 | `PreviewSafeAreaStrategy`（当前屏幕像素空间 inset 缩放）；`UiPreviewGameView`（DevTool 编辑器态；内部 `SetCustomResolution` 反射＋结果校验/回读，失败降级不抛；`TryGetSize` 供退出还原） |
+| 矩阵 | `UiPreviewMatrix`（组合展开/文件名/索引/运行态 `UiPreviewMatrixRun`）；`UiPreviewMatrixPlanner`（页/档/语言/字体档/产物目录解析校验，含 `..` 逃逸拒绝）；`UiPreviewMatrixJob`（作业状态 DTO＋SessionState 持久化/路径单源）；`UiPreviewMatrixRunner`（状态机：逐组合 Play 应用→稳定帧→`ScreenCapture`→索引；中断/失败隔离）；`UiPreviewMatrixWindow`（页/档/语言/字体档选择，入口 `LiteGame/UI/预览/截图矩阵`） |
+| 工作台 | 上下文条设备档真下拉（档案单源＋「跟随预览」缺省，`IWorkbenchSettings.PreviewDeviceProfileId` 持久）；预览按钮携带当前档；`UiPagePreview.Open(prefab, deviceProfileId, locale)` 写入预览参数并切 GameView 分辨率 |
+| 工具面 | `ui.preview-matrix` 登记（window；`toolchain.json`/EditorToolHandlers）；`writes: none`＋`Artifacts/PreviewMatrix/` report 产物；`.gitignore` 增 `[Aa]rtifacts/` |
+| 夹具 | `UiDeviceProfilesEditModeTests` 9 · `UiPreviewLocaleEditModeTests` 7 · `UiPreviewMatrixEditModeTests` 12 · `UiWorkbenchDeviceEditModeTests` 3 · `UiPreviewDriverPlayModeTests` 3（含评审补测：表缺失/状态词、planner 默认/逃逸/非法语言、语言不可用判定、失败保留分辨率；PlayMode 语言用例含作者文本还原） |
+
+### 验证证据
+
+| 项 | 结果 |
+|---|---|
+| 先红（重跑） | `wf verify --red` PASS：9/9、4/5（1 例透传守卫）、7/7、1/3（2 例 T4 预接偏好）、3/3 失败；断言级失败，非编译/环境错误 |
+| 新夹具 | Device **9/9** · Locale **7/7** · Matrix **12/12** · WorkbenchDevice **3/3** · Driver PlayMode **3/3** |
+| 回归 | UiPreview **6/6** · UiWorkbench **21/21** · UiValidation 14/14 等既有面（全量门禁复核） |
+| 真跑矩阵 | `Page_Login` × `pc.16-9` × {zh-CN,en,pseudo} × 1.0 → 多组合 **1920×1080 PNG + matrix.json**（`status=Completed`，`resolutionApplied=true`，`degraded=[]`）；伪本地化截图人工核对生长标记；`.gitignore` 生效，`git status` 无 Artifacts |
+| 中断实跑 | 6 组合运行中调用 `Cancel` → `matrix.json` `status=Interrupted` / `interrupted=true`，已完成集合保留、未完成标 `captured=false` |
+| 语言不可用实跑 | `LocaleDataDirKey` 注入无效目录 → `matrix.json` `status=CompletedWithFailures`、`degraded` 含“语言表直载失败”、该组合 `captured=false` 且 `resolutionApplied=true`（不假绿，分辨率结果不被失败覆盖） |
+| 工作台/预览冒烟 | 窗口打开（设备档下拉 `phone.19-5-9`，占位「P2-3」已移除）；预览进 Play 后工具条轮换：pseudo 文案生效、字体 60→78（1.3）、GameView 分辨率切换 API 生效；切回作者文本还原原串；退出还原 GameView 1920×1080 |
+| 评审修复 | 三轮独立子代理评审：首轮 FAIL（语言降级假绿、交互预览缺切档入口）→ 修语言状态/矩阵失败记录、工具条轮换、GameView 还原、测试隔离/弱断言、路径逃逸；复评 FAIL（切回作者文本不还原、同指纹不复报状态）→ 修 `PreviewAuthorText`、短路状态终态、失败保留分辨率、无表矩阵实跑；第三轮 PASS（无阻塞，minor 收口：字体档单源/注入选项/告警去重/审计条） |
+| 文档/工具 | 总设计 §7.3/§7.5、工具链 §7.1 回写；schema/README 登记；`toolchain.py docs` 已重生成；`doc-lint` 0/0、`toolchain.py check` OK（1 既存警告） |
+| 全量门禁 | `wf verify` **PASS 52/52**（2026-10-25T23:12；L1 1843＋doc/l0/restore/toolchain/L2＋全部 UI EditMode/PlayMode，含 `ui-preview-editmode`；证据 `evidence/verify.json`） |
+
+### 边界与遗留（如实）
+
+- **入口形态偏差（如实）**：方案写「editor action」，实作为 **window**（`ui.preview-matrix`）＋可 API 启动的 `UiPreviewMatrixRunner`。原因：Hub/Registry 的 editor action 无参数字段，页/档集合需要参数面；窗口作为参数面，运行器仍可 eval/自动化启动。AC3 产物与判定不变。
+- **GameView 内部 API**：`UnityEditor.GameView.SetCustomResolution` 为内部反射面，升版可能失效；失败已降级（仅模拟安全区，矩阵记 `resolutionApplied=false`＋降级记录）。真跑当前生效。
+- **布局档只切静态文案**：`LTextKeyRef` 走 tbltext；Lua 动态文案（如登录页 `Txt_Status`/`Txt_Version`）保持作者文本——布局档不跑 Lua，符合 §7.1「不跑 Boot/Lua/真实数据」。
+- **语言直载失败口径（评审修复）**：驱动上报 `LocaleStatus=unavailable`，矩阵将该组合记失败并写降级记录（不再静默成功）；交互预览工具条显示“语言表直载失败——静态文案保持作者文本”；已用无效表目录注入实跑验证（`CompletedWithFailures` + `degraded` + `captured=false`）。
+- **作者文本还原（评审修复）**：切回“作者文本”/退出/重载时，由 `PreviewAuthorText` 快照还原 LTextKeyRef 目标原串；不改运行时 `UiStaticTextBinder.Bind(null)` 语义。
+- **矩阵不弹保存对话框**：当前场景有未保存修改时直接拒绝启动并提示先保存（自动化口径）。
+- **伪本地化是近似**：≥30% 加长＋音标/生长标记，不承诺真实德语/俄语字形；用于暴露溢出，不作为翻译验收。
+- **竖屏/减少动效/数据档/真链路**：竖屏仅档案预留（P4 验收）；减少动效维度显式延后（P3/P4）；数据档归 P3；真链路沿用 Boot/PlayMode，不用布局档冒充。
+- **矩阵不是门禁**：产物落 `Artifacts/`（忽略区），只作交接证据；`matrix.json` 含时间戳（证据面，非确定性生成物）。
+- **工作区未提交**：本批代码/JSON/schema/文档/夹具未自行 commit；提交号待补。

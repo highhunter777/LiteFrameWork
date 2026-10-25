@@ -33,6 +33,7 @@ namespace LiteGame.Editor.UiTools.Workbench
         private UiWorkbenchState _state;
         private UiComposeTarget _target;
         private GameObject _targetPrefab;
+        private UiDeviceProfileDocument _deviceDocument;
         private string _status = "就绪";
         private Vector2 _perspectiveScroll;
 
@@ -41,6 +42,16 @@ namespace LiteGame.Editor.UiTools.Workbench
 
         /// <summary>偏好注入口（默认 EditorPrefs；夹具/无偏好环境可替换，不改窗口代码）。</summary>
         internal static Func<IWorkbenchSettings> SettingsFactory = () => new UiWorkbenchSettings();
+
+        /// <summary>设备档下拉选项（P2-3 B3；首项「跟随预览」＝空档，其余＝档案 inMatrix 档位 id Ordinal）。
+        /// 纯函数面：夹具不依赖 IMGUI 渲染即可断言选项集。</summary>
+        internal static IReadOnlyList<string> DeviceProfileOptions(UiDeviceProfileDocument document)
+        {
+            var options = new List<string> { string.Empty };
+            if (document?.Profiles != null)
+                options.AddRange(UiDeviceProfileCatalog.MatrixProfiles(document).Select(profile => profile.Id));
+            return options;
+        }
 
         public static void Open()
         {
@@ -52,6 +63,7 @@ namespace LiteGame.Editor.UiTools.Workbench
         private void OnEnable()
         {
             _settings = SettingsFactory();
+            ReloadDeviceProfiles();
             _state = new UiWorkbenchState(_settings.Lane);
             _state.SetPerspective(_settings.Perspective);
             BuildDrawers();
@@ -176,7 +188,26 @@ namespace LiteGame.Editor.UiTools.Workbench
                     _status = LogPrefix + " Lane → " + lane;
                 }
 
-                EditorGUILayout.LabelField("设备档：P2-3", EditorStyles.miniLabel, GUILayout.Width(96f));
+                GUILayout.Label("设备档", EditorStyles.miniLabel, GUILayout.Width(44f));
+                string[] options = DeviceProfileOptions(_deviceDocument).ToArray();
+                if (options.Length <= 1)
+                {
+                    EditorGUILayout.LabelField("档案不可用", EditorStyles.miniLabel, GUILayout.Width(120f));
+                }
+                else
+                {
+                    string selectedId = _settings?.PreviewDeviceProfileId ?? string.Empty;
+                    int index = Array.IndexOf(options, selectedId);
+                    if (index < 0) index = 0;
+                    string[] display = options.Select((id, i) => i == 0 ? "跟随预览" : id).ToArray();
+                    int picked = EditorGUILayout.Popup(index, display, EditorStyles.toolbarPopup, GUILayout.Width(150f));
+                    if (picked != index)
+                    {
+                        string id = options[picked];
+                        if (_settings != null) _settings.PreviewDeviceProfileId = id;
+                        _status = LogPrefix + " 预览设备档 → " + (string.IsNullOrEmpty(id) ? "跟随预览" : id);
+                    }
+                }
             }
 
             using (new EditorGUILayout.HorizontalScope())
@@ -422,8 +453,23 @@ namespace LiteGame.Editor.UiTools.Workbench
         private void OpenPreview()
         {
             if (_target == null) return;
-            UiPagePreview.Open(_target.PrefabPath);
-            Log(LogPrefix + " 已打开布局预览：" + _target.PrefabPath);
+            string deviceProfileId = _settings?.PreviewDeviceProfileId ?? string.Empty;
+            UiPagePreview.Open(_target.PrefabPath, deviceProfileId);
+            Log(LogPrefix + " 已打开布局预览：" + _target.PrefabPath +
+                (string.IsNullOrEmpty(deviceProfileId) ? "（跟随预览）" : "（设备档 " + deviceProfileId + "）"));
+        }
+
+        private void ReloadDeviceProfiles()
+        {
+            try
+            {
+                _deviceDocument = UiDeviceProfileCatalog.Load();
+            }
+            catch (Exception exception)
+            {
+                _deviceDocument = null;
+                _status = LogPrefix + " 设备档案装载失败：" + exception.Message;
+            }
         }
 
     }

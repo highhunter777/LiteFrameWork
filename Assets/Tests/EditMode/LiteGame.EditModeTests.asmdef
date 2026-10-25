@@ -16,6 +16,7 @@
         "LiteFramework.Unity",
         "LiteGame.App",
         "LiteGame.DevLocalServer",
+        "LiteGame.DevTool",
         "LiteGame.Editor",
         "LiteGame.LuaBridge",
         "LiteClient.UI",

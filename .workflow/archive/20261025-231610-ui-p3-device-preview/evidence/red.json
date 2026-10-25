@@ -1,0 +1,109 @@
+{
+  "schema_version": 1,
+  "kind": "red",
+  "at": "2026-10-25T21:29:20+08:00",
+  "ok": true,
+  "command_fingerprint": "26cf03e4067ee20542113d84b591dbc6f6b725968c1fc1ac80a92d1d328435ec",
+  "commands": [
+    {
+      "name": "ui-device-profiles-red",
+      "cmd": [
+        "python",
+        "scripts/gate/unity-tests.py",
+        "--mode",
+        "editor",
+        "--filter",
+        "UiDeviceProfilesEditModeTests",
+        "--timeout",
+        "600"
+      ],
+      "cwd": null,
+      "exit_code": 1,
+      "timed_out": false,
+      "error": null,
+      "duration_ms": 21153,
+      "ok": true,
+      "output_tail": "\n  But was:  <empty>\n\n\nFAILED: LiteGame.Tests.EditMode.UiDeviceProfilesEditModeTests.校验_宽高比与分辨率不符报错:   Aspect 声明与宽高派生不符应报错\n\n  Expected: not <empty>\n\n  But was:  <empty>\n\n\nFAILED: LiteGame.Tests.EditMode.UiDeviceProfilesEditModeTests.校验_预置档零问题:   预置档案应非空（防空集恒真）\n\n  Expected: not <empty>\n\n  But was:  <empty>\n\n\nFAILED: LiteGame.Tests.EditMode.UiDeviceProfilesEditModeTests.确定性_重读一致且按id排序无时间戳:   规范文本非空（防空集恒真）\n\n  Expected: not <empty>\n\n  But was:  <string.Empty>\n\n\nFAILED: LiteGame.Tests.EditMode.UiDeviceProfilesEditModeTests.装载_六横屏档入矩阵且竖屏预留:   总设计 §7.3 钦定至少六横屏档\n\n  Expected: greater than or equal to 6\n\n  But was:  0\n\n\nFAILED: LiteGame.Tests.EditMode.UiDeviceProfilesEditModeTests.装载_钦定宽高比全覆盖:   缺钦定宽高比：1.778\n\n  Expected: True\n\n  But was:  False\n\n\ntests: 9/9 failed"
+    },
+    {
+      "name": "ui-preview-locale-red",
+      "cmd": [
+        "python",
+        "scripts/gate/unity-tests.py",
+        "--mode",
+        "editor",
+        "--filter",
+        "UiPreviewLocaleEditModeTests",
+        "--timeout",
+        "600"
+      ],
+      "cwd": null,
+      "exit_code": 1,
+      "timed_out": false,
+      "error": null,
+      "duration_ms": 5658,
+      "ok": true,
+      "output_tail": "    },\n    {\n      \"FullName\": \"LiteGame.Tests.EditMode.UiPreviewLocaleEditModeTests.直载_英文切换可用\",\n      \"Status\": \"Failed\",\n      \"Duration\": 0.0003857,\n      \"Message\": \"  tbltext 直载应可用（绿测硬门槛）\\r\\n  Expected: not null\\r\\n  But was:  null\\r\\n\",\n      \"StackTrace\": \"at LiteGame.Tests.EditMode.UiPreviewLocaleEditModeTests.直载_英文切换可用 () [0x00007] in E:\\\\unityProject\\\\Test\\\\Assets\\\\Tests\\\\EditMode\\\\UiPreviewLocaleEditModeTests.cs:31\\r\\n\"\n    }\n  ]\n}\n[stderr]\nFAILED: LiteGame.Tests.EditMode.UiPreviewLocaleEditModeTests.伪本地化_加长且区分音标:   tbltext 直载应可用（绿测硬门槛）\n\n  Expected: not null\n\n  But was:  null\n\n\nFAILED: LiteGame.Tests.EditMode.UiPreviewLocaleEditModeTests.安全区策略_当前屏幕像素空间换算:   左 inset 按屏幕/设备宽缩放\n\n  Expected: 34.67980170249939d +/- 0.5d\n\n  But was:  0.0d\n\n\nFAILED: LiteGame.Tests.EditMode.UiPreviewLocaleEditModeTests.直载_服务非空且中文可用:   tbltext 直载应可用（AnimationProfileTableSource 模式）\n\n  Expected: not null\n\n  But was:  null\n\n\nFAILED: LiteGame.Tests.EditMode.UiPreviewLocaleEditModeTests.直载_英文切换可用:   tbltext 直载应可用（绿测硬门槛）\n\n  Expected: not null\n\n  But was:  null\n\n\ntests: 4/5 failed"
+    },
+    {
+      "name": "ui-preview-matrix-red",
+      "cmd": [
+        "python",
+        "scripts/gate/unity-tests.py",
+        "--mode",
+        "editor",
+        "--filter",
+        "UiPreviewMatrixEditModeTests",
+        "--timeout",
+        "600"
+      ],
+      "cwd": null,
+      "exit_code": 1,
+      "timed_out": false,
+      "error": null,
+      "duration_ms": 5702,
+      "ok": true,
+      "output_tail": "  But was:  20.0d\n\n\nFAILED: LiteGame.Tests.EditMode.UiPreviewMatrixEditModeTests.展开_排除非入矩阵档:   1 入矩阵档 × 3 语言 × 3 字体档应非空\n\n  Expected: not <empty>\n\n  But was:  <empty>\n\n\nFAILED: LiteGame.Tests.EditMode.UiPreviewMatrixEditModeTests.展开_组合数与确定性顺序:   档×语言×字体缩放全组合\n\n  Expected: 18\n\n  But was:  0\n\n\nFAILED: LiteGame.Tests.EditMode.UiPreviewMatrixEditModeTests.文件名_确定性与平台安全:   Expected: String ending with \".png\"\n\n  But was:  <string.Empty>\n\n\nFAILED: LiteGame.Tests.EditMode.UiPreviewMatrixEditModeTests.索引_结构含分辨率结果与降级记录: System.ArgumentOutOfRangeException : Index was out of range. Must be non-negative and less than the size of the collection.\n\nParameter name: index\nFAILED: LiteGame.Tests.EditMode.UiPreviewMatrixEditModeTests.运行_中断终态保留已完成组合:   中断为独立终态\n\n  Expected: Interrupted\n\n  But was:  Running\n\n\nFAILED: LiteGame.Tests.EditMode.UiPreviewMatrixEditModeTests.运行_失败组合不中断且索引留痕:   单组合失败不中断整体\n\n  Expected: CompletedWithFailures\n\n  But was:  Running\n\n\ntests: 7/7 failed"
+    },
+    {
+      "name": "ui-workbench-device-red",
+      "cmd": [
+        "python",
+        "scripts/gate/unity-tests.py",
+        "--mode",
+        "editor",
+        "--filter",
+        "UiWorkbenchDeviceEditModeTests",
+        "--timeout",
+        "600"
+      ],
+      "cwd": null,
+      "exit_code": 1,
+      "timed_out": false,
+      "error": null,
+      "duration_ms": 5676,
+      "ok": true,
+      "output_tail": "  \"summary\": {\n    \"total\": 3,\n    \"passed\": 2,\n    \"failed\": 1,\n    \"skipped\": 0,\n    \"inconclusive\": 0\n  },\n  \"results\": [\n    {\n      \"FullName\": \"LiteGame.Tests.EditMode.UiWorkbenchDeviceEditModeTests.偏好_EditorPrefs实现往返并回落默认\",\n      \"Status\": \"Passed\",\n      \"Duration\": 0.0014076,\n      \"Message\": null,\n      \"StackTrace\": null\n    },\n    {\n      \"FullName\": \"LiteGame.Tests.EditMode.UiWorkbenchDeviceEditModeTests.偏好_内存实现设备档键往返\",\n      \"Status\": \"Passed\",\n      \"Duration\": 0.0003772,\n      \"Message\": null,\n      \"StackTrace\": null\n    },\n    {\n      \"FullName\": \"LiteGame.Tests.EditMode.UiWorkbenchDeviceEditModeTests.选项_档案驱动且首项为跟随预览\",\n      \"Status\": \"Failed\",\n      \"Duration\": 0.0008623,\n      \"Message\": \"  钦定档在选项中\\r\\n  Expected: True\\r\\n  But was:  False\\r\\n\",\n      \"StackTrace\": \"at LiteGame.Tests.EditMode.UiWorkbenchDeviceEditModeTests.选项_档案驱动且首项为跟随预览 () [0x00088] in E:\\\\unityProject\\\\Test\\\\Assets\\\\Tests\\\\EditMode\\\\UiWorkbenchDeviceEditModeTests.cs:51\\r\\n\"\n    }\n  ]\n}\n[stderr]\nFAILED: LiteGame.Tests.EditMode.UiWorkbenchDeviceEditModeTests.选项_档案驱动且首项为跟随预览:   钦定档在选项中\n\n  Expected: True\n\n  But was:  False\n\n\ntests: 1/3 failed"
+    },
+    {
+      "name": "ui-preview-driver-red",
+      "cmd": [
+        "python",
+        "scripts/gate/unity-tests.py",
+        "--mode",
+        "playmode",
+        "--filter",
+        "UiPreviewDriverPlayModeTests",
+        "--timeout",
+        "600"
+      ],
+      "cwd": null,
+      "exit_code": 1,
+      "timed_out": false,
+      "error": null,
+      "duration_ms": 25017,
+      "ok": true,
+      "output_tail": "    },\n    {\n      \"FullName\": \"LiteGame.Tests.UI.PlayMode.UiPreviewDriverPlayModeTests.安全区_注入后anchors收缩_撤销后回归全屏\",\n      \"Status\": \"Failed\",\n      \"Duration\": 5.0698473,\n      \"Message\": \"  左 anchor 收缩\\r\\n  Expected: greater than 0.0500000007f\\r\\n  But was:  0.0f\\r\\n\",\n      \"StackTrace\": \"at LiteGame.Tests.UI.PlayMode.UiPreviewDriverPlayModeTests+<安全区_注入后anchors收缩_撤销后回归全屏>d__2.MoveNext () [0x0010b] in E:\\\\unityProject\\\\Test\\\\Assets\\\\Tests\\\\UI\\\\PlayMode\\\\UiPreviewDriverPlayModeTests.cs:58\\r\\nat UnityEngine.TestTools.TestEnumerator+<Execute>d__7.MoveNext () [0x0004e] in .\\\\Library\\\\PackageCache\\\\com.unity.test-framework@1.4.6\\\\UnityEngine.TestRunner\\\\NUnitExtensions\\\\Attributes\\\\TestEnumerator.cs:44\\r\\n\"\n    },\n    {\n      \"FullName\": \"LiteGame.Tests.UI.PlayMode.UiPreviewDriverPlayModeTests.语言_绑定后静态文案刷新_复位解绑无残留\",\n      \"Status\": \"Failed\",\n      \"Duration\": 0.0221562,\n      \"Message\": \"  绑定后静态文案按服务取值\\r\\n  Expected: \\\"中文文案\\\"\\r\\n  But was:  null\\r\\n\",\n      \"StackTrace\": \"at LiteGame.Tests.UI.PlayMode.UiPreviewDriverPlayModeTests+<语言_绑定后静态文案刷新_复位解绑无残留>d__4.MoveNext () [0x00132] in E:\\\\unityProject\\\\Test\\\\Assets\\\\Tests\\\\UI\\\\PlayMode\\\\UiPreviewDriverPlayModeTests.cs:111\\r\\nat UnityEngine.TestTools.TestEnumerator+<Execute>d__7.MoveNext () [0x0004e] in .\\\\Library\\\\PackageCache\\\\com.unity.test-framework@1.4.6\\\\UnityEngine.TestRunner\\\\NUnitExtensions\\\\Attributes\\\\TestEnumerator.cs:44\\r\\n\"\n    }\n  ]\n}\n[stderr]\nFAILED: LiteGame.Tests.UI.PlayMode.UiPreviewDriverPlayModeTests.字体缩放_应用后放大_复位回原值:   1.15 档\n\n  Expected: 23.0d +/- 0.0099999997764825821d\n\n  But was:  20.0d\n\n\nFAILED: LiteGame.Tests.UI.PlayMode.UiPreviewDriverPlayModeTests.安全区_注入后anchors收缩_撤销后回归全屏:   左 anchor 收缩\n\n  Expected: greater than 0.0500000007f\n\n  But was:  0.0f\n\n\nFAILED: LiteGame.Tests.UI.PlayMode.UiPreviewDriverPlayModeTests.语言_绑定后静态文案刷新_复位解绑无残留:   绑定后静态文案按服务取值\n\n  Expected: \"中文文案\"\n\n  But was:  null\n\n\ntests: 3/3 failed"
+    }
+  ]
+}

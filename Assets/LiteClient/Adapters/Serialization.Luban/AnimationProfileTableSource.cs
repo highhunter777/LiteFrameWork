@@ -1,7 +1,4 @@
-using System.Collections.Generic;
-using System.IO;
 using LiteFramework.Animation;
-using Luban;
 
 namespace LiteClient
 {
@@ -20,16 +17,7 @@ namespace LiteClient
         /// 目录内须齐备 <see cref="ConfigService.TableDataFiles"/> 全部 .bytes（建表器全表装载）。</summary>
         public static AnimationProfile Load(string dataDir, string modelFamily)
         {
-            var cache = new Dictionary<string, byte[]>(ConfigService.TableDataFiles.Length);
-            foreach (string file in ConfigService.TableDataFiles)
-            {
-                string path = $"{dataDir}{file}.bytes";
-                if (!File.Exists(path))
-                    throw new System.IO.FileNotFoundException($"表字节缺失：{path}（先跑 Luban\\gen.bat 生成）", path);
-                cache[TableLayout.TableName(file)] = File.ReadAllBytes(path);   // 键=裸表名（Luban loader 契约）
-            }
-
-            var tables = new cfg.Tables(name => new ByteBuf(cache[name]));
+            cfg.Tables tables = ConfigTableFileSource.Load(dataDir);
             var rows = AnimationProfileTableMapper.ToRows(tables.Tbanimationprofile);
             return AnimationProfileLoader.FromRows(rows, modelFamily);
         }

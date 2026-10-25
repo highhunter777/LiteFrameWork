@@ -281,3 +281,6 @@ screenshots/
 deploy/.env
 # ===== 本地测试 profile（含信封 PSK 等部署参数，机器私有不入库）=====
 BuildProfiles/*.local.json
+
+# ===== Artifacts/ (UI preview matrix screenshots/index; generated evidence, not versioned) =====
+[Aa]rtifacts/

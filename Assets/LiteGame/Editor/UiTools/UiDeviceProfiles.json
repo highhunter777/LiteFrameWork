@@ -1,0 +1,101 @@
+{
+  "schemaVersion": "1.0",
+  "profiles": [
+    {
+      "id": "pc.16-9",
+      "name": "桌面 16:9",
+      "width": 1920,
+      "height": 1080,
+      "orientation": "landscape",
+      "aspect": 1.7777778,
+      "dpi": 96,
+      "safeInsets": { "left": 0, "top": 0, "right": 0, "bottom": 0 },
+      "notes": "桌面基准档",
+      "inMatrix": true
+    },
+    {
+      "id": "phone.19-5-9",
+      "name": "手机 19.5:9（刘海）",
+      "width": 2436,
+      "height": 1125,
+      "orientation": "landscape",
+      "aspect": 2.1653333,
+      "dpi": 458,
+      "safeInsets": { "left": 132, "top": 0, "right": 132, "bottom": 0 },
+      "notes": "横屏刘海：左右 notch inset",
+      "inMatrix": true
+    },
+    {
+      "id": "phone.20-9",
+      "name": "手机 20:9",
+      "width": 2408,
+      "height": 1080,
+      "orientation": "landscape",
+      "aspect": 2.2296296,
+      "dpi": 402,
+      "safeInsets": { "left": 0, "top": 0, "right": 0, "bottom": 0 },
+      "notes": "长条屏横屏",
+      "inMatrix": true
+    },
+    {
+      "id": "phone.9-19-5.portrait",
+      "name": "手机 19.5:9 竖屏（预留）",
+      "width": 1125,
+      "height": 2436,
+      "orientation": "portrait",
+      "aspect": 0.4618227,
+      "dpi": 458,
+      "safeInsets": { "left": 0, "top": 132, "right": 0, "bottom": 0 },
+      "notes": "竖屏预留：P4 再验，默认不入矩阵",
+      "inMatrix": false
+    },
+    {
+      "id": "tablet.16-10",
+      "name": "平板 16:10",
+      "width": 1920,
+      "height": 1200,
+      "orientation": "landscape",
+      "aspect": 1.6,
+      "dpi": 224,
+      "safeInsets": { "left": 0, "top": 0, "right": 0, "bottom": 0 },
+      "notes": "平板横屏",
+      "inMatrix": true
+    },
+    {
+      "id": "tablet.3-4.portrait",
+      "name": "平板 3:4 竖屏（预留）",
+      "width": 1536,
+      "height": 2048,
+      "orientation": "portrait",
+      "aspect": 0.75,
+      "dpi": 264,
+      "safeInsets": { "left": 0, "top": 0, "right": 0, "bottom": 0 },
+      "notes": "竖屏预留：P4 再验，默认不入矩阵",
+      "inMatrix": false
+    },
+    {
+      "id": "tablet.4-3",
+      "name": "平板 4:3",
+      "width": 2048,
+      "height": 1536,
+      "orientation": "landscape",
+      "aspect": 1.3333333,
+      "dpi": 264,
+      "safeInsets": { "left": 0, "top": 0, "right": 0, "bottom": 0 },
+      "notes": "平板横屏",
+      "inMatrix": true
+    },
+    {
+      "id": "uw.21-9",
+      "name": "超宽 21:9",
+      "width": 2560,
+      "height": 1080,
+      "orientation": "landscape",
+      "aspect": 2.3703704,
+      "dpi": 109,
+      "safeInsets": { "left": 0, "top": 0, "right": 0, "bottom": 0 },
+      "notes": "2560×1080（64:27，市场称 21:9）",
+      "inMatrix": true
+    }
+  ]
+}

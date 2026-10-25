@@ -377,9 +377,14 @@
 | **真链路** | Boot → 登录 → 目标页 / PlayMode；真实数据与行为 | 不用布局档冒充运行时验收 |
 
 - 布局档场景是编辑器工具资产，不进收集组/不进包。
-- 设备档（分辨率/安全区/横竖屏/DPI）在预览工具栏统一切换；不在多个场景复制配置。
-- 语言/长文本/字体缩放/减少动效进入预览矩阵。
-- 截图矩阵：中/英/长文本/安全区/设备档；作为交接证据，不是门禁替代。
+- **现行口径（P2-3 B3 冻结）**：布局档由 `UiPreviewDriver` 实例化目标 prefab；设备档/语言/字体缩放在 Play 内免重启切换（编辑器写 `SessionState` → 驱动轮询应用；安全区经 `SafeAreaReceiver.SetStrategy` 注入）。
+- **设备档单源**：`Assets/LiteGame/Editor/UiTools/UiDeviceProfiles.json`（schema [UiDeviceProfiles.schema.json](UiDeviceProfiles.schema.json)）——六横屏档＋竖屏预留、`inMatrix` 标记；驱动/工作台/矩阵三方共用，不允许第二份分辨率/inset 字面量。GameView 分辨率经内部 API 反射切换（`SetCustomResolution`），失败降级为仅模拟安全区并在矩阵索引记 `resolutionApplied=false`。
+- **语言**：tbltext 文件直载（`ConfigTableFileSource` 全表字节模式 + `LTextCatalog`）构建 `LocalizationService`；`PseudoLocale` 装饰器产出 ≥30% 长文本与音标符；不改表、不写盘。直载失败时驱动上报 `LocaleStatus=unavailable`（静默保持作者文本），矩阵据此把该组合记失败并写降级记录，**不假绿**。
+- **字体缩放**：1.0/1.15/1.3（与总设计 §7.5 同源），对页面 TMP 记录原值后乘档，切档/退出恢复。
+- **交互切档**：预览工具条提供设备档（含分辨率）/语言/字体三组轮换按钮，写 `SessionState`＋修订号，驱动轮询免重启应用；退出预览还原 GameView 分辨率与页面状态。
+- **截图矩阵**：`ui.preview-matrix`（工作台 → `LiteGame/UI/预览/截图矩阵`；运行器亦可 API 启动）——页×设备档×语言×字体缩放组合，Play 内逐组合应用→稳定帧→`ScreenCapture`→`Artifacts/PreviewMatrix/<页>/`＋`matrix.json`（组合/分辨率应用结果/降级记录/中断标记）。**交接证据，不是门禁替代**；`.gitignore` 已排除 `[Aa]rtifacts/`。
+- **减少动效维度延后**（P2-3 B3 显式非目标）：布局档无质量档/系统设置基建，P3/P4 复议；矩阵维度保留扩位。
+- 竖屏预览、数据档注入与真链路验收不在 B3（分别归 P4、P3、既有 Boot/PlayMode）。
 
 ### 7.2 预览与调试的边界
 
