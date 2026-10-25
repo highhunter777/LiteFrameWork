@@ -512,9 +512,9 @@
 
 ### 状态
 
-**进行中（施工与门禁收口在途）**——方案经独立子代理 4 轮评审（两轮 FAIL：8 枚令牌清单补齐/33 处计数修正/双写者裁决；末轮 PASS）＋用户两轮确认（AC 总确认＋D3 增量确认）。T1–T7 已完成；T8/T9（文档与门禁收口）进行中。
+**已完成（附验证证据；已提交 `5f5322bd`）**——方案经独立子代理 4 轮评审（两轮 FAIL：8 枚令牌清单补齐/33 处计数修正/双写者裁决；末轮 PASS）＋用户两轮确认（AC 总确认＋D3 增量确认）；T1–T9 全部完成、独立代码评审 PASS（minor 修复复测收口）；终验 `wf verify` **46/46 PASS**（评审修复后复跑 2026-10-25T18:38：L1 1843 + 全部 UI EditMode/PlayMode + doc/toolchain + 并行线四条）。
 
-### 交付（T1–T7 已落地部分）
+### 交付
 
 | 件 | 变化 |
 |---|---|
@@ -527,7 +527,7 @@
 | 校验规则 | `ui.style.ref` 五判据（UiStyleRef 未知令牌 Error/值漂移 Warning/无 Graphic Error＋widget 三态〔未知 Error/漂移 Warning/空合法〕＋同节点 UiStyleRef＋IThemeBound 双写者 Error）；注册进 `UiValidator.Rules`，样式族 Note 更新 |
 | 试点与迁移 | `Page_Login/Cot_SafeArea/Txt_Title` ← `UiStyleRef(color.brand.primary)`（run_script 经 Unity API，非手改 YAML）；迁移 4 prefab/10 字段 0 未命中；幂等重跑 0/0 |
 
-### 验证证据（T1–T7）
+### 验证证据
 
 | 项 | 结果 |
 |---|---|
@@ -536,11 +536,12 @@
 | 先红 | 五套 26 例骨架期真红（8/4/2/6/6 失败——断言级非环境）；首轮红证据作废原因（测试编译错＋系统代理拦管线）如实记录于 test-plan |
 | 回归 | UiStyleRetirement 8/8 · UiThemeTokens 17/17 · UiThemeAssetGenerator 8/8 · UiStyleRule 4/4 · UiValidation **14/14**（真实面 Error=0，Warning 基线 302→298——widget 状态色入令牌集，债降 4，基线钉随批更新） |
 | 幂等 | refs 重跑 applied=0、迁移重跑 filled=0；SO 重生成 changed=False |
+| 终验 | `wf verify` **PASS 46/46**（两轮：17:41 首绿、18:38 评审修复后复跑）；评审修复面复跑 UiStyleRef 7/7、UiWidgetTheme 7/7 |
 
-### 边界与遗留（如实，施工中滚动更新）
+### 边界与遗留（如实）
 
 - **uGUI 原生 Selectable.colors**（33 处/17 prefab）与三 widget C# 默认色字面量：审计登记、留 B4（本批未新增同型）。
 - **克隆体边界（已登记设计）**：运行时动态克隆体不在 PrepareForShow 遍历面——B2 单主题下烘焙值＝令牌现值无可见差异；主题切换批前需补克隆体注入机制。
 - **五组空集不变**（spacing/radius/elevation/motion/icon）——按消费者落地。
 - **门禁脚本批外修复**：`unity-tests.py` unity 调用加 `--proxy-disable`（系统代理拦 127.0.0.1 报 502，实测 Clash 7890；脚本只连本机编辑器永不需要代理）。
-- **工作区未提交**（本批与并行线混杂，收口后按批拆分提交——P2-3a 同法）。
+- **已提交 `5f5322bd`**（66 文件按批拆分——共享文件 surgical blob：config.json 仅 6 门禁、toolchain.json 仅 summary/updatedAt、unity-tests.py 仅 proxy 修复、审计仅本批 5 行、INDEX 仅本批行；并行线改动原样留工作区）。
