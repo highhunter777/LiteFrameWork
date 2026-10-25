@@ -217,9 +217,9 @@ namespace LiteGame.Tests.EditMode
                 "UIMain 退役后不应再有根名存量 Warning");
             int colorDrift = report.Issues.Count(i => i.RuleId == UiRuleIds.StyleColorDrift);
             int textDrift = report.Issues.Count(i => i.RuleId == UiRuleIds.StyleTextDrift);
-            Assert.AreEqual(161, colorDrift, "颜色对账基线（Screens+Widgets+Hud 手调色——债可见，整改后更新此钉）");
+            Assert.AreEqual(157, colorDrift, "颜色对账基线（Screens+Widgets+Hud 手调色——债可见，整改后更新此钉；P2-3 B2：三 widget 状态色入令牌集 161→157）");
             Assert.AreEqual(141, textDrift, "文字档对账基线（未标记文本——债可见，整改后更新此钉）");
-            Assert.AreEqual(302, report.WarningCount, "Warning 总量＝161+141（UIMain 根名债清零）");
+            Assert.AreEqual(298, report.WarningCount, "Warning 总量＝颜色 157+文字 141（P2-3 B2 基线：widget 状态色令牌化减 4）");
         }
 
         /// <summary>造临时 prefab（Assets 下——规则经 AssetDatabase 装载），跑规则后删除。</summary>

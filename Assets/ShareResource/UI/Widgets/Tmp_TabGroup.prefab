@@ -315,6 +315,8 @@ MonoBehaviour:
   - {fileID: 6150134376511816856}
   SelectedColor: {r: 0.9, g: 0.7, b: 0.2, a: 1}
   NormalColor: {r: 1, g: 1, b: 1, a: 1}
+  SelectedColorToken: color.state.interact.selected
+  NormalColorToken: color.text.bright
 --- !u!114 &7363173987723452816
 MonoBehaviour:
   m_ObjectHideFlags: 0

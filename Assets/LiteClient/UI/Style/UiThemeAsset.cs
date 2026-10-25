@@ -60,6 +60,13 @@ namespace LiteClient.UI
         public string Description;
     }
 
+    /// <summary>主题链共享路径单源：生成器（编辑器侧写入）与运行期装载（内容服务 Acquire）引用同一常量。</summary>
+    public static class UiThemePaths
+    {
+        /// <summary>生成物 SO 路径（随 `Assets/GameData/Config` 收集组进包；编辑器侧另有 JSON 设计态源路径，见 Editor 程序集）。</summary>
+        public const string DefaultAssetPath = "Assets/GameData/Config/UI/UiTheme.asset";
+    }
+
     /// <summary>
     /// UI 主题资产（**生成物，禁手改**；《UI 编辑器工具链专项设计》§8.1「令牌源：JSON → 生成 UiThemeAsset（SO）」、
     /// §8.3 生成物表）。由编辑器工具 `ui.style.tokens` 从 `UiStyleTokens.json` 确定性生成；

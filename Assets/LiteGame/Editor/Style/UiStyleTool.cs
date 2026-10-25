@@ -32,19 +32,29 @@ namespace LiteGame.EditorTools.UI
             "Assets/ShareResource/UI/Screens",
         };
 
-        /// <summary>命中阈值：颜色到 token 的平方距离 ≤ 此值视为该 token 的实例（吸收浮点噪声与离散变体）。</summary>
-        private const float HitEpsilon = 1e-4f;
+        /// <summary>命中阈值（单源＝<see cref="LiteClient.UI.UiStyleResolver.HitEpsilon"/>：工具/规则/阈值面同源）。</summary>
+        private const float HitEpsilon = LiteClient.UI.UiStyleResolver.HitEpsilon;
 
         public static void ApplyColors() => ApplyColors(DefaultScanDirs);
 
         /// <summary>刷新（扫描根可注入）：命中 token 的 Graphic 颜色改写为 token 现值。返回 (改动 prefab 数, 改动颜色数)。</summary>
         public static (int prefabs, int graphics) ApplyColors(IReadOnlyList<string> scanDirs)
-            => ApplyColorsWith(UiTokenCatalog.Load(), scanDirs);
+        {
+            (int prefabs, int graphics) result = ApplyColorsWith(UiTokenCatalog.Load(), scanDirs);
+            return result;
+        }
 
-        /// <summary>刷新（给定目录；工具一次装载、逐 prefab 复用，不逐节点重读资产）。</summary>
+        /// <summary>
+        /// 刷新（给定目录；工具一次装载、逐 prefab 复用，不逐节点重读资产）。三段式（P2-3 B2）：
+        /// ① refs 段——按 <c>UiStyleRef</c> 声明精确应用（权威写者，见 <see cref="UiStyleRefApplier.ApplyRefs"/>）；
+        /// ② widget 迁移段——三 widget 状态色最近匹配填 token ID（不命中不填，见 <see cref="UiStyleRefApplier.MigrateWidgetTokens"/>）；
+        /// ③ 裸值段——未声明节点的裸颜色最近匹配收敛（跳过已声明 refs 与 IThemeBound 节点——单写者）。
+        /// </summary>
         public static (int prefabs, int graphics) ApplyColorsWith(UiTokenCatalog catalog, IReadOnlyList<string> scanDirs)
         {
             if (catalog == null) throw new System.ArgumentNullException(nameof(catalog));
+            UiStyleRefApplier.RefsReport refs = UiStyleRefApplier.ApplyRefs(catalog, scanDirs);
+            UiStyleRefApplier.MigrationReport migration = UiStyleRefApplier.MigrateWidgetTokens(catalog, scanDirs);
             var log = new StringBuilder();
             int changedPrefabs = 0, changedGraphics = 0;
 
@@ -56,6 +66,9 @@ namespace LiteGame.EditorTools.UI
 
                 foreach (var graphic in root.GetComponentsInChildren<Graphic>(true))
                 {
+                    // 单写者：已声明 refs 的节点归 refs 段；IThemeBound widget 自持自身 Graphic
+                    if (graphic.GetComponent<LiteClient.UI.UiStyleRef>() != null) continue;
+                    if (graphic.GetComponent<LiteClient.UI.IThemeBound>() != null) continue;
                     if (TryMatch(graphic.color, catalog, out Color value) && UiStyle.Distance(graphic.color, value) > 0f)
                     {
                         graphic.color = value;
@@ -75,7 +88,9 @@ namespace LiteGame.EditorTools.UI
             }
 
             if (changedPrefabs > 0) AssetDatabase.SaveAssets();
-            Debug.Log($"[UiStyleTool] 刷新完成：{changedPrefabs} 个 prefab / {changedGraphics} 处颜色收敛到 token 现值\n{log}");
+            Debug.Log($"[UiStyleTool] 刷新完成：refs 应用 {refs.Applied}（跳过 {refs.Skipped}/未知 {refs.UnknownToken}）、"
+                      + $"widget 迁移 {migration.Filled}（未命中 {migration.Missed}）、"
+                      + $"裸值收敛 {changedPrefabs} 个 prefab / {changedGraphics} 处\n{log}");
             return (changedPrefabs, changedGraphics);
         }
 
@@ -122,10 +137,11 @@ namespace LiteGame.EditorTools.UI
 
         // ---- 辅助 ----
 
-        /// <summary>最近 token 匹配（阈值内）；命中返回 token 现值。</summary>
-        private static bool TryMatch(Color color, UiTokenCatalog catalog, out Color value)
+        /// <summary>最近 token 匹配（阈值内）；命中返回 token 现值与 token ID（ID 供 widget 迁移段/报告用——单源）。</summary>
+        public static bool TryNearestMatch(Color color, UiTokenCatalog catalog, out Color value, out string tokenId)
         {
             value = default;
+            tokenId = null;
             bool hit = false;
             float best = HitEpsilon;
             foreach (var pair in catalog.Colors)
@@ -135,11 +151,16 @@ namespace LiteGame.EditorTools.UI
                 {
                     best = d;
                     value = pair.Value;
+                    tokenId = pair.Key;
                     hit = true;
                 }
             }
             return hit;
         }
+
+        /// <summary>最近 token 匹配（阈值内）；命中返回 token 现值。</summary>
+        private static bool TryMatch(Color color, UiTokenCatalog catalog, out Color value)
+            => TryNearestMatch(color, catalog, out value, out _);
 
         private static IEnumerable<string> PrefabPaths(IReadOnlyList<string> scanDirs)
         {

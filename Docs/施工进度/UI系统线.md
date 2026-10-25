@@ -20,6 +20,7 @@
 | 8 | UI 系统 P2-1：单工作台与角色 Lane（宿主 + 透视迁移） | — |
 | 9 | UI 系统 P2-2：起页/登记拆分（草稿契约 · 表/Lua/生成链 · 冲突保护） | — |
 | 10 | UI 系统 P2-3a：令牌源与主题资产（JSON→UiThemeAsset，退役硬编码） | — |
+| 11 | UI 系统 P2-3 B2：令牌引用组件与应用（UiStyleRef · 运行期解析 · 状态色令牌化） | — |
 
 ---
 
@@ -497,3 +498,49 @@
 - **typography 预留字段**：`lineHeight`/`fontFamily` 是 schema 必填但 B1 无消费者（行高归 B2 应用器；字体名供交接/校验）。
 - **CLI 只能打开不能执行**：`toolchain.py run` 对 editor action 回「use open」；生成动作的可执行面是 Hub 按钮与 `unity command eval`，API 面已由夹具覆盖。
 - **批外修复**：`scripts/gate/unity-tests.py` 的重复根路径推导（P2-2 引入，`test_single_source_helpers` 基线红）改为复用 `_common.repo_root()`——与 `scripts/gate/test.py` 同型，不属本批设计面但阻塞全量门禁。
+
+---
+
+## 第11章 UI 系统 P2-3 B2：令牌引用组件与应用（UiStyleRef · 运行期解析 · 状态色令牌化）
+
+<a id="ch11-UI系统P2引用应用"></a>
+
+> **批次**：P2-3 B2（2026-10-25，staged-delivery）
+> **设计**：[UI 系统总设计 §6.1/§6.2/§6.5](../设计文档/客户端/UI系统/UI系统总设计.md#ch-style) · [UI 编辑器工具链专项设计 §8.1/§8.3](../设计文档/客户端/UI系统/UI编辑器工具链专项设计.md#ch-style-tools)
+> **方案与任务**：`.workflow/active/ui-p2-token-refs/`（plan.md / acceptance.md / tasks.md / test-plan.md / reviews / evidence）
+> **用户裁决**：D1＝方案 B（装配期应用）；D2＝refs 应用并入 `ui.style.colors-refresh`；D3＝状态色**本批令牌化**（未采纳豁免推荐；范围只辖自研三 widget，uGUI Selectable 留 B4）。
+
+### 状态
+
+**进行中（施工与门禁收口在途）**——方案经独立子代理 4 轮评审（两轮 FAIL：8 枚令牌清单补齐/33 处计数修正/双写者裁决；末轮 PASS）＋用户两轮确认（AC 总确认＋D3 增量确认）。T1–T7 已完成；T8/T9（文档与门禁收口）进行中。
+
+### 交付（T1–T7 已落地部分）
+
+| 件 | 变化 |
+|---|---|
+| 解析核心单源 | `LiteClient.UI.UiStyleResolver`（FromAsset/TryColor/TryTypography/Apply 结果枚举/HitEpsilon 单源/Hits 判定）；编辑器 `UiTokenCatalog` 变委托壳（公开面签名不变，`Resolver` 属性透出核心）；SO 路径常量下沉 `LiteClient.UI.UiThemePaths`（编辑器引用之） |
+| 状态令牌补集 | `UiStyleTokens.json` 补 8 枚 `color.state.*`（值取 prefab 序列化现值量化、零可见变化；映射表含来源 file:line 落总设计 §6.5）；`ui.style.tokens` 重生成（20 色，幂等 changed=False） |
+| 引用组件 | `UiStyleRef`（colorToken 声明、空合法、只声明不驱动、单组件约束） |
+| 编辑期应用 | `UiStyleRefApplier`（refs 段：权威写者/幂等/报告/跳过 IThemeBound；迁移段：三 widget 状态色最近匹配填 token、不命中不填）＋ `UiStyleTool.ApplyColorsWith` 三段式编排（裸值段跳过已声明与 IThemeBound）＋ `TryNearestMatch` 带 ID 公开单源 |
+| 运行期消费链 | `UiServiceModule` 一次装载 `UiTheme.asset`（内容服务租约，失败降级 null＋Warning 一次）→ `UIService` ctor 形参 `themeProvider` → `RunOpenAsync` 赋值 `UIForm.ThemeProvider` → `PrepareForShow`/`ApplyTheme`（refs 应用＋`IThemeBound` 注入；降级＝保持烘焙值） |
+| widget 令牌化 | StateButton/TabGroup/StarRating 伴生 token 字段＋`IThemeBound`（组件层级能力接口；取值序＝token 可解析→令牌现值，否则序列化 fallback）；顺手修 `StateButton.OnSelectedChanged` 裸调用 NRE（存量债，新夹具撞出，审计登记） |
+| 校验规则 | `ui.style.ref` 五判据（UiStyleRef 未知令牌 Error/值漂移 Warning/无 Graphic Error＋widget 三态〔未知 Error/漂移 Warning/空合法〕＋同节点 UiStyleRef＋IThemeBound 双写者 Error）；注册进 `UiValidator.Rules`，样式族 Note 更新 |
+| 试点与迁移 | `Page_Login/Cot_SafeArea/Txt_Title` ← `UiStyleRef(color.brand.primary)`（run_script 经 Unity API，非手改 YAML）；迁移 4 prefab/10 字段 0 未命中；幂等重跑 0/0 |
+
+### 验证证据（T1–T7）
+
+| 项 | 结果 |
+|---|---|
+| 新夹具 | UiStyleResolver **10/10** · UiThemeStateTokens **3/3** · UiStyleRef **6/6** · UiWidgetTheme **7/7** · UiStyleRefRule **7/7** |
+| PlayMode | UiThemeApplyPlayModeTests **2/2**（真页面装配期＝令牌现值；null provider 降级不抛） |
+| 先红 | 五套 26 例骨架期真红（8/4/2/6/6 失败——断言级非环境）；首轮红证据作废原因（测试编译错＋系统代理拦管线）如实记录于 test-plan |
+| 回归 | UiStyleRetirement 8/8 · UiThemeTokens 17/17 · UiThemeAssetGenerator 8/8 · UiStyleRule 4/4 · UiValidation **14/14**（真实面 Error=0，Warning 基线 302→298——widget 状态色入令牌集，债降 4，基线钉随批更新） |
+| 幂等 | refs 重跑 applied=0、迁移重跑 filled=0；SO 重生成 changed=False |
+
+### 边界与遗留（如实，施工中滚动更新）
+
+- **uGUI 原生 Selectable.colors**（33 处/17 prefab）与三 widget C# 默认色字面量：审计登记、留 B4（本批未新增同型）。
+- **克隆体边界（已登记设计）**：运行时动态克隆体不在 PrepareForShow 遍历面——B2 单主题下烘焙值＝令牌现值无可见差异；主题切换批前需补克隆体注入机制。
+- **五组空集不变**（spacing/radius/elevation/motion/icon）——按消费者落地。
+- **门禁脚本批外修复**：`unity-tests.py` unity 调用加 `--proxy-disable`（系统代理拦 127.0.0.1 报 502，实测 Clash 7890；脚本只连本机编辑器永不需要代理）。
+- **工作区未提交**（本批与并行线混杂，收口后按批拆分提交——P2-3a 同法）。

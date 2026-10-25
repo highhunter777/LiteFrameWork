@@ -398,7 +398,7 @@
 - **组按消费者落地**：P2-3a 只写 `color`（12：`color.bg.*`/`color.brand.*`/`color.state.*`/`color.text.*`/`color.effect.*`）与 `typography`（5：`font.title/body/caption/label/emphasis`）；`spacing/radius/elevation/motion/icon` 空集，随首个应用器/解析器批次补值——不预造无消费者的令牌。
 - **读面**：编辑器侧经 `UiTokenCatalog`（每次操作装载一次、按参数下传，禁静态缓存）；`UiStyle`/`UiTextStyle` 的旧名保留为只读属性（调用点源兼容），值一律来自生成物。
 - **漂移判定**：`ui.style.token-drift` 按 JSON 重算快照（ID/值/`sourceHash`）与 SO 逐字段比对，不一致即 Error 并提示重跑生成；生成器的"是否写盘"用同一个快照比较（单源）。
-- 刷新/应用：按令牌应用颜色/字号/间距；幂等、Undo、报告。
+- 刷新/应用：`ui.style.colors-refresh` **三段式**（P2-3 B2）：① refs 段——按 `UiStyleRef` 声明精确应用（权威写者；跳过 IThemeBound 节点）；② widget 迁移段——三 widget（StateButton/TabGroup/StarRating）状态色字段按最近匹配填 token ID（已填跳过＝幂等、不命中不填＝留空合法）；③ 裸值段——未声明节点最近匹配收敛（跳过已声明与 IThemeBound）。幂等、报告分段（应用/跳过/未知令牌/填入/未命中）；"可回退"＝幂等重跑＋变更仅经工具落盘（版本管理可回退；总设计 §6.2 同批澄清）。字号/间距应用待对应引用组件批次。
 - 漂移报告：区分“引用缺失/解析值不符/裸值/令牌不存在”；运行时实例变化不进资产报告。
 - 字体检查：字体族/fallback/语言覆盖/缺字/atlas 容量。
 - 图集检查：引用 sprite 是否进图集、图集分组、九宫格边界、Image.Type。
@@ -423,7 +423,7 @@
 | `UiWidgetManifest` | `Assets/LiteGame/Editor/UiTools/UiWidgetManifest.json` | 控件库/文档/校验 |
 | `UiThemeAsset` | `Assets/GameData/Config/UI/`（SO） | 运行时样式解析 |
 
-> `UiThemeAsset`：P2-3a 起由 `ui.style.tokens` 从 `UiStyleTokens.json` 生成（当前 12 色 + 5 文字角色，其余五组空集）；B1 阶段为纯数据、无运行期消费者，B2 起由样式引用/解析消费。
+> `UiThemeAsset`：P2-3a 起由 `ui.style.tokens` 从 `UiStyleTokens.json` 生成；P2-3 B2 起有运行期消费链（bootstrap 一次装载 → `UIForm.ThemeProvider` → 装配期 `UiStyleResolver` 应用/注入），并补 8 枚 `color.state.*`（映射表见总设计 §6.5）；其余五组仍空集（按消费者落地）。
 > 例外登记不是生成物，单独记：`Assets/LiteGame/Editor/UiTools/UiRuleExceptions.json`（手工维护，见 §6.3）。
 > 生成物禁手改；路径/格式变更与 schema 同批更新。
 

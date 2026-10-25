@@ -2,6 +2,7 @@
 using System.Threading;
 using LiteFramework;
 using UnityEngine;
+using UnityEngine.UI;
 
 namespace LiteClient.UI
 {
@@ -87,7 +88,8 @@ namespace LiteClient.UI
         {
             Root.SetActive(true);
             _staticText ??= new UiStaticTextBinder(Root.transform);   // 页面级静态文案（无标记时零订阅）
-            BeginDisplay();                                    // 展示代次递增 + 新展示作用域 CTS（每次打开一份）
+            ApplyTheme();                                    // 令牌现值应用（P2-3 B2：refs + IThemeBound 注入；无 ThemeProvider 时零动作）
+            BeginDisplay();                                  // 展示代次递增 + 新展示作用域（每次打开一份）
             if (CanvasGroup != null)
             {
                 CanvasGroup.alpha = 1f;
@@ -141,8 +143,45 @@ namespace LiteClient.UI
         /// 池化复用不重跑 OnInit（绑定随索引留存），换表重建索引后再注入一次。</summary>
         internal Func<ILocalizationService> LocaleProvider { get; set; }
 
+        /// <summary>主题资产工厂（P2-3 B2；<see cref="UIService"/> 装配时转发；null = 不注入——测试/工具装配，
+        /// 页面保持 prefab 烘焙值）。经 <see cref="UiStyleRef"/>（声明应用）与 <see cref="IThemeBound"/>
+        /// （能力注入）两条面消费；注入时机 = PrepareForShow（首次与复用同缝——每次打开重应用，主题切换可演进）。</summary>
+        internal Func<UiThemeAsset> ThemeProvider { get; set; }
+
         /// <summary>页面静态文案（<see cref="LTextKeyRef"/>）绑定；与逻辑语言注入同寿命，关闭即退订。</summary>
         private UiStaticTextBinder _staticText;
+
+        /// <summary>主题降级是否已告警（每实例一次——ThemeProvider 装载失败不应每次开页刷 Warning）。</summary>
+        private bool _themeDegradedWarned;
+
+        /// <summary>应用主题令牌现值（PrepareForShow 内调用）：refs 声明应用（跳过 IThemeBound 节点——widget 是
+        /// 自身 Graphic 的唯一写者）＋ IThemeBound 能力注入。降级＝任一环节缺失保持烘焙值，Warning 一次不阻断开页。</summary>
+        private void ApplyTheme()
+        {
+            Func<UiThemeAsset> provider = ThemeProvider;
+            if (provider == null) return;                    // 未装配（测试/工具）——零动作
+
+            UiThemeAsset asset = SafeCall.Invoke(provider, $"UIForm[{Id}].ThemeProvider");
+            if (asset == null)
+            {
+                if (!_themeDegradedWarned)
+                {
+                    _themeDegradedWarned = true;
+                    Log.Warning($"主题资产未就绪——UIForm[{Id}] 保持 prefab 烘焙值（样式令牌不应用）", LogTag.UI);
+                }
+                return;
+            }
+
+            UiStyleResolver resolver = UiStyleResolver.FromAsset(asset);
+            foreach (IThemeBound bound in Root.GetComponentsInChildren<IThemeBound>(true))
+                SafeCall.Invoke(() => bound.OnThemeBound(resolver), $"UIForm[{Id}].OnThemeBound");
+            foreach (UiStyleRef styleRef in Root.GetComponentsInChildren<UiStyleRef>(true))
+            {
+                if (styleRef.GetComponent<IThemeBound>() != null) continue;   // 单写者：widget 自持 Graphic 写权（含子节点翻动，见 B4 登记盲区）
+                if (resolver.Apply(styleRef, styleRef.GetComponent<Graphic>()) == UiStyleApplyResult.UnknownToken)
+                    Log.Warning($"未知颜色令牌 {styleRef.ColorToken}——UIForm[{Id}].{styleRef.name} 保持现值（校验器应报 Error）", LogTag.UI);
+            }
+        }
 
         /// <summary>注入语言服务（两个 OnInit 调用点后各一次；实现 ILocaleBound 的逻辑才生效）。</summary>
         private void ApplyLocale()

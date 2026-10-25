@@ -1,0 +1,109 @@
+{
+  "schema_version": 1,
+  "kind": "red",
+  "at": "2026-10-25T15:18:21+08:00",
+  "ok": true,
+  "command_fingerprint": "a05c9f5f8276c338105579d407784963e883b3fd2ed89162f30bb42c65d7ecf4",
+  "commands": [
+    {
+      "name": "ui-style-resolver-red",
+      "cmd": [
+        "python",
+        "scripts/gate/unity-tests.py",
+        "--mode",
+        "editor",
+        "--filter",
+        "UiStyleResolverEditModeTests",
+        "--timeout",
+        "600"
+      ],
+      "cwd": null,
+      "exit_code": 1,
+      "timed_out": false,
+      "error": null,
+      "duration_ms": 6081,
+      "ok": true,
+      "output_tail": "\n  But was:  0\n\n\nFAILED: LiteGame.Tests.EditMode.UiStyleResolverEditModeTests.FromAsset_真实资产_颜色二十枚含八枚状态色:   12 既有 + 8 状态色（B2 补集）\n\n  Expected: 20\n\n  But was:  0\n\n\nFAILED: LiteGame.Tests.EditMode.UiStyleResolverEditModeTests.FromAsset_重复ID后写覆盖_空ID跳过:   重复合并为一、空 ID 跳过\n\n  Expected: 2\n\n  But was:  0\n\n\nFAILED: LiteGame.Tests.EditMode.UiStyleResolverEditModeTests.TryColor_已知令牌返回真实值_未知返回假:   已知 ID 应命中\n\n  Expected: True\n\n  But was:  False\n\n\nFAILED: LiteGame.Tests.EditMode.UiStyleResolverEditModeTests.TryTypography_已知令牌返回条目_未知返回假:   font.title 应命中\n\n  Expected: True\n\n  But was:  False\n\n\nFAILED: LiteGame.Tests.EditMode.UiStyleResolverEditModeTests.与UiTokenCatalog同源一致:   color.bg.screen resolver 应命中\n\n  Expected: True\n\n  But was:  False\n\n\ntests: 8/10 failed"
+    },
+    {
+      "name": "ui-style-ref-red",
+      "cmd": [
+        "python",
+        "scripts/gate/unity-tests.py",
+        "--mode",
+        "editor",
+        "--filter",
+        "UiStyleRefEditModeTests",
+        "--timeout",
+        "600"
+      ],
+      "cwd": null,
+      "exit_code": 1,
+      "timed_out": false,
+      "error": null,
+      "duration_ms": 13208,
+      "ok": true,
+      "output_tail": "    },\n    {\n      \"FullName\": \"LiteGame.Tests.EditMode.UiStyleRefEditModeTests.MigrateWidgetTokens_最近匹配填入\",\n      \"Status\": \"Failed\",\n      \"Duration\": 0.7702816,\n      \"Message\": \"  默认状态色应命中迁移\\r\\n  Expected: greater than or equal to 1\\r\\n  But was:  0\\r\\n\",\n      \"StackTrace\": \"at LiteGame.Tests.EditMode.UiStyleRefEditModeTests.MigrateWidgetTokens_最近匹配填入 () [0x0003e] in E:\\\\unityProject\\\\Test\\\\Assets\\\\Tests\\\\EditMode\\\\UiStyleRefEditModeTests.cs:133\\r\\n\"\n    }\n  ]\n}\n[stderr]\nFAILED: LiteGame.Tests.EditMode.UiStyleRefEditModeTests.ApplyColorsWith_裸值段跳过已声明节点:   已声明节点由 refs 段写令牌现值，不被裸值段改写\n\n  Expected: RGBA(0.902, 0.749, 0.251, 1.000)\n\n  But was:  RGBA(0.078, 0.078, 0.102, 0.902)\n\n\nFAILED: LiteGame.Tests.EditMode.UiStyleRefEditModeTests.ApplyRefs_按声明写令牌现值:   应应用 1 处声明\n\n  Expected: greater than or equal to 1\n\n  But was:  0\n\n\nFAILED: LiteGame.Tests.EditMode.UiStyleRefEditModeTests.ApplyRefs_未知令牌_不写值并计数:   未知令牌应计数\n\n  Expected: greater than or equal to 1\n\n  But was:  0\n\n\nFAILED: LiteGame.Tests.EditMode.UiStyleRefEditModeTests.MigrateWidgetTokens_最近匹配填入:   默认状态色应命中迁移\n\n  Expected: greater than or equal to 1\n\n  But was:  0\n\n\ntests: 4/6 failed"
+    },
+    {
+      "name": "ui-theme-state-tokens-red",
+      "cmd": [
+        "python",
+        "scripts/gate/unity-tests.py",
+        "--mode",
+        "editor",
+        "--filter",
+        "UiThemeStateTokensEditModeTests",
+        "--timeout",
+        "600"
+      ],
+      "cwd": null,
+      "exit_code": 1,
+      "timed_out": false,
+      "error": null,
+      "duration_ms": 5785,
+      "ok": true,
+      "output_tail": "  \"results\": [\n    {\n      \"FullName\": \"LiteGame.Tests.EditMode.UiThemeStateTokensEditModeTests.令牌源_八枚状态色齐全且值精确\",\n      \"Status\": \"Failed\",\n      \"Duration\": 0.003156,\n      \"Message\": \"  缺状态令牌：color.state.interact.normal\\r\\n  Expected: True\\r\\n  But was:  False\\r\\n\",\n      \"StackTrace\": \"at LiteGame.Tests.EditMode.UiThemeStateTokensEditModeTests.令牌源_八枚状态色齐全且值精确 () [0x00028] in E:\\\\unityProject\\\\Test\\\\Assets\\\\Tests\\\\EditMode\\\\UiThemeStateTokensEditModeTests.cs:45\\r\\n\"\n    },\n    {\n      \"FullName\": \"LiteGame.Tests.EditMode.UiThemeStateTokensEditModeTests.命名_状态色全部落在color_state组\",\n      \"Status\": \"Passed\",\n      \"Duration\": 0.0001633,\n      \"Message\": null,\n      \"StackTrace\": null\n    },\n    {\n      \"FullName\": \"LiteGame.Tests.EditMode.UiThemeStateTokensEditModeTests.生成物SO_八枚状态色同步\",\n      \"Status\": \"Failed\",\n      \"Duration\": 0.0017099,\n      \"Message\": \"  SO 缺状态令牌：color.state.interact.normal（跑 ui.style.tokens 重生成）\\r\\n  Expected: True\\r\\n  But was:  False\\r\\n\",\n      \"StackTrace\": \"at LiteGame.Tests.EditMode.UiThemeStateTokensEditModeTests.生成物SO_八枚状态色同步 () [0x00029] in E:\\\\unityProject\\\\Test\\\\Assets\\\\Tests\\\\EditMode\\\\UiThemeStateTokensEditModeTests.cs:56\\r\\n\"\n    }\n  ]\n}\n[stderr]\nFAILED: LiteGame.Tests.EditMode.UiThemeStateTokensEditModeTests.令牌源_八枚状态色齐全且值精确:   缺状态令牌：color.state.interact.normal\n\n  Expected: True\n\n  But was:  False\n\n\nFAILED: LiteGame.Tests.EditMode.UiThemeStateTokensEditModeTests.生成物SO_八枚状态色同步:   SO 缺状态令牌：color.state.interact.normal（跑 ui.style.tokens 重生成）\n\n  Expected: True\n\n  But was:  False\n\n\ntests: 2/3 failed"
+    },
+    {
+      "name": "ui-widget-theme-red",
+      "cmd": [
+        "python",
+        "scripts/gate/unity-tests.py",
+        "--mode",
+        "editor",
+        "--filter",
+        "UiWidgetThemeEditModeTests",
+        "--timeout",
+        "600"
+      ],
+      "cwd": null,
+      "exit_code": 1,
+      "timed_out": false,
+      "error": null,
+      "duration_ms": 9336,
+      "ok": true,
+      "output_tail": "  ]\n}\n[stderr]\nFAILED: LiteGame.Tests.EditMode.UiWidgetThemeEditModeTests.StarRating_注入后点亮熄灭取令牌值:   点亮星＝on 令牌\n\n  Expected: RGBA(0.000, 0.000, 0.000, 0.000)\n\n  But was:  RGBA(1.000, 0.000, 1.000, 1.000)\n\n\nFAILED: LiteGame.Tests.EditMode.UiWidgetThemeEditModeTests.StateButton_未注入保持序列化fallback:   未注入（编辑器域/测试）＝fallback，行为不漂\n\n  Expected: RGBA(0.000, 1.000, 1.000, 1.000)\n\n  But was:  RGBA(1.000, 1.000, 1.000, 1.000)\n\n\nFAILED: LiteGame.Tests.EditMode.UiWidgetThemeEditModeTests.StateButton_未知令牌走fallback:   未知令牌不猜色＝fallback\n\n  Expected: RGBA(0.000, 1.000, 1.000, 1.000)\n\n  But was:  RGBA(1.000, 1.000, 1.000, 1.000)\n\n\nFAILED: LiteGame.Tests.EditMode.UiWidgetThemeEditModeTests.StateButton_注入后常态取令牌值:   注入后常态＝令牌现值\n\n  Expected: RGBA(0.000, 0.000, 0.000, 0.000)\n\n  But was:  RGBA(1.000, 1.000, 1.000, 1.000)\n\n\nFAILED: LiteGame.Tests.EditMode.UiWidgetThemeEditModeTests.StateButton_选中态取选中令牌值: System.NullReferenceException : Object reference not set to an instance of an object\nFAILED: LiteGame.Tests.EditMode.UiWidgetThemeEditModeTests.TabGroup_选中与常态取令牌值:   选中页签＝选中令牌\n\n  Expected: RGBA(0.000, 0.000, 0.000, 0.000)\n\n  But was:  RGBA(1.000, 0.000, 1.000, 1.000)\n\n\ntests: 6/7 failed"
+    },
+    {
+      "name": "ui-style-ref-rule-red",
+      "cmd": [
+        "python",
+        "scripts/gate/unity-tests.py",
+        "--mode",
+        "editor",
+        "--filter",
+        "UiStyleRefRuleEditModeTests",
+        "--timeout",
+        "600"
+      ],
+      "cwd": null,
+      "exit_code": 1,
+      "timed_out": false,
+      "error": null,
+      "duration_ms": 12693,
+      "ok": true,
+      "output_tail": "\n  Expected: True\n\n  But was:  False\n\n\nFAILED: LiteGame.Tests.EditMode.UiStyleRefRuleEditModeTests.双写者_同节点UiStyleRef与IThemeBound_Error:   UiStyleRef＋IThemeBound 同节点（双写者）应报 Error：\n\n\n  Expected: True\n\n  But was:  False\n\n\nFAILED: LiteGame.Tests.EditMode.UiStyleRefRuleEditModeTests.无Graphic_Error:   挂 ref 无 Graphic 应报 Error：\n\n\n  Expected: True\n\n  But was:  False\n\n\nFAILED: LiteGame.Tests.EditMode.UiStyleRefRuleEditModeTests.未知令牌_Error:   未知令牌应报 Error：\n\n\n  Expected: True\n\n  But was:  False\n\n\nFAILED: LiteGame.Tests.EditMode.UiStyleRefRuleEditModeTests.规则注册进默认规则集:   ui.style.ref 应进 UiValidator 默认规则集：\nui.binding-naming\nui.binding-naming\n\n  Expected: True\n\n  But was:  False\n\n\ntests: 6/7 failed"
+    }
+  ]
+}

@@ -1,0 +1,356 @@
+{
+  "schema_version": 1,
+  "slug": "ui-p2-token-refs",
+  "title": "UI 系统 P2-3 B2：令牌引用组件与应用",
+  "status": "archived",
+  "current_stage": null,
+  "created_at": "2026-10-25T14:18:32+08:00",
+  "updated_at": "2026-10-25T18:40:02+08:00",
+  "completed_at": "2026-10-25T18:39:49+08:00",
+  "completed_stages": [
+    {
+      "id": "propose",
+      "title": "提出方案",
+      "completed_at": "2026-10-25T14:21:54+08:00"
+    },
+    {
+      "id": "review-plan",
+      "title": "子代理评审方案",
+      "completed_at": "2026-10-25T14:37:50+08:00"
+    },
+    {
+      "id": "confirm-acceptance",
+      "title": "用户确认验收标准",
+      "completed_at": "2026-10-25T14:53:45+08:00",
+      "approved_by": "highhunter777"
+    },
+    {
+      "id": "breakdown",
+      "title": "实施任务清单",
+      "completed_at": "2026-10-25T14:54:51+08:00"
+    },
+    {
+      "id": "review-tasks",
+      "title": "评审任务",
+      "completed_at": "2026-10-25T14:55:03+08:00"
+    },
+    {
+      "id": "tests-first",
+      "title": "先写测试",
+      "completed_at": "2026-10-25T15:19:48+08:00"
+    },
+    {
+      "id": "implement",
+      "title": "正式施工",
+      "completed_at": "2026-10-25T17:43:32+08:00"
+    },
+    {
+      "id": "verify",
+      "title": "测试代码",
+      "completed_at": "2026-10-25T17:54:16+08:00"
+    },
+    {
+      "id": "review-code",
+      "title": "评审代码",
+      "completed_at": "2026-10-25T18:39:20+08:00"
+    },
+    {
+      "id": "writeback",
+      "title": "回写与收尾",
+      "completed_at": "2026-10-25T18:39:49+08:00"
+    }
+  ],
+  "history": [
+    {
+      "at": "2026-10-25T14:18:32+08:00",
+      "event": "init",
+      "stage": "propose"
+    },
+    {
+      "at": "2026-10-25T14:21:54+08:00",
+      "event": "advance",
+      "from": "propose",
+      "to": "review-plan",
+      "approved_by": null
+    },
+    {
+      "at": "2026-10-25T14:37:50+08:00",
+      "event": "advance",
+      "from": "review-plan",
+      "to": "confirm-acceptance",
+      "approved_by": null
+    },
+    {
+      "at": "2026-10-25T14:53:45+08:00",
+      "event": "advance",
+      "from": "confirm-acceptance",
+      "to": "breakdown",
+      "approved_by": "highhunter777"
+    },
+    {
+      "at": "2026-10-25T14:54:51+08:00",
+      "event": "advance",
+      "from": "breakdown",
+      "to": "review-tasks",
+      "approved_by": null
+    },
+    {
+      "at": "2026-10-25T14:55:03+08:00",
+      "event": "advance",
+      "from": "review-tasks",
+      "to": "tests-first",
+      "approved_by": null
+    },
+    {
+      "at": "2026-10-25T15:19:48+08:00",
+      "event": "advance",
+      "from": "tests-first",
+      "to": "implement",
+      "approved_by": null
+    },
+    {
+      "at": "2026-10-25T17:43:32+08:00",
+      "event": "advance",
+      "from": "implement",
+      "to": "verify",
+      "approved_by": null
+    },
+    {
+      "at": "2026-10-25T17:54:16+08:00",
+      "event": "advance",
+      "from": "verify",
+      "to": "review-code",
+      "approved_by": null
+    },
+    {
+      "at": "2026-10-25T18:39:20+08:00",
+      "event": "advance",
+      "from": "review-code",
+      "to": "writeback",
+      "approved_by": null
+    },
+    {
+      "at": "2026-10-25T18:39:49+08:00",
+      "event": "advance",
+      "from": "writeback",
+      "to": null,
+      "approved_by": null
+    },
+    {
+      "at": "2026-10-25T18:40:02+08:00",
+      "event": "archive",
+      "path": "20261025-184002-ui-p2-token-refs"
+    }
+  ],
+  "tasks": [
+    {
+      "id": "T1",
+      "title": "T1 解析核心下沉 UiStyleResolver + UiTokenCatalog 委托化",
+      "description": "",
+      "acceptance": "LiteClient.UI 新增 UiStyleResolver（FromAsset/TryColor/TryTypography/Apply 结果枚举，命中阈值移驻单源）；UiTokenCatalog 变薄委托（公开面签名不变）；既有编辑器调用点零改动、全部既有 UI 夹具回归全绿",
+      "verify": "unity-tests --filter UiStyleResolverEditModeTests；既有 UiStyleRetirement/UiTheme* 回归",
+      "files": [
+        "Assets/LiteClient/UI/Style/UiStyleResolver.cs",
+        "Assets/LiteGame/Editor/Style/UiTokenCatalog.cs"
+      ],
+      "deps": [],
+      "status": "done",
+      "evidence": "UiStyleResolverEditModeTests 10/10（resolver 单源/Apply 结果枚举/重复空 ID 口径/与 catalog 同源）；UiStyleRetirement 8/8、UiThemeTokens 17/17、UiStyleRule 4/4 回归绿",
+      "status_reason": "",
+      "created_at": "2026-10-25T14:54:15+08:00",
+      "started_at": "2026-10-25T15:20:42+08:00",
+      "completed_at": "2026-10-25T15:27:56+08:00"
+    },
+    {
+      "id": "T2",
+      "title": "T2 状态令牌补集（8 枚）+ SO 重生成",
+      "description": "",
+      "acceptance": "UiStyleTokens.json 按 plan.md 8 枚清单补 color.state.*（值量化 ≤0.5/255、来源 file:line 落设计文档）；ui.style.tokens 重生成 UiTheme.asset 幂等（二次生成零变更）；token-drift/漂移规则回归全绿；schema 校验通过",
+      "verify": "unity-tests --filter UiThemeTokensEditModeTests,UiStyleTokenDrift；eval 连跑两次 changed=false",
+      "files": [
+        "Assets/LiteGame/Editor/UiTools/UiStyleTokens.json",
+        "Assets/GameData/Config/UI/UiTheme.asset"
+      ],
+      "deps": [
+        "T1"
+      ],
+      "status": "done",
+      "evidence": "UiThemeStateTokensEditModeTests 3/3；生成幂等 changed=False colors=20；生成器夹具 8/8",
+      "status_reason": "",
+      "created_at": "2026-10-25T14:54:15+08:00",
+      "started_at": "2026-10-25T15:28:19+08:00",
+      "completed_at": "2026-10-25T15:28:19+08:00"
+    },
+    {
+      "id": "T3",
+      "title": "T3 UiStyleRef 颜色引用组件",
+      "description": "",
+      "acceptance": "LiteClient.UI 新增 UiStyleRef（colorToken 字段、空合法、DisallowMultipleComponent、只声明不驱动）；组件夹具全绿",
+      "verify": "unity-tests --filter UiStyleRefEditModeTests",
+      "files": [
+        "Assets/LiteClient/UI/Style/UiStyleRef.cs"
+      ],
+      "deps": [
+        "T1"
+      ],
+      "status": "done",
+      "evidence": "UiStyleRef 组件即终态（声明式数据组件）；UiStyleRefEditModeTests 引用面 6/6",
+      "status_reason": "",
+      "created_at": "2026-10-25T14:54:15+08:00",
+      "started_at": "2026-10-25T15:28:19+08:00",
+      "completed_at": "2026-10-25T15:28:19+08:00"
+    },
+    {
+      "id": "T4",
+      "title": "T4 编辑期 applier：refs 应用段+迁移段并入 colors-refresh",
+      "description": "",
+      "acceptance": "刷新工具三段式：refs 按声明应用（幂等/报告）→ widget 状态 token 最近匹配迁移（不命中不填）→ 裸值最近匹配（跳过已声明/IThemeBound 节点）；报告分段计数；回退口径=幂等重跑+工具落盘",
+      "verify": "unity-tests --filter UiStyleRefEditModeTests,UiStyleTool 夹具；真实目录冒烟后字节不变",
+      "files": [
+        "Assets/LiteGame/Editor/Style/UiStyleRefApplier.cs",
+        "Assets/LiteGame/Editor/Style/UiStyleTool.cs"
+      ],
+      "deps": [
+        "T1",
+        "T2",
+        "T3"
+      ],
+      "status": "done",
+      "evidence": "UiStyleRefEditModeTests 6/6；三段式并入 colors-refresh（UiStyleTool 编排 + TryNearestMatch 单源）",
+      "status_reason": "",
+      "created_at": "2026-10-25T14:54:15+08:00",
+      "started_at": "2026-10-25T15:28:20+08:00",
+      "completed_at": "2026-10-25T15:28:20+08:00"
+    },
+    {
+      "id": "T5",
+      "title": "T5 运行期消费链：装载+注入+装配应用",
+      "description": "",
+      "acceptance": "bootstrap 一次装载 UiTheme.asset；UIService ctor 形参+RunOpenAsync 赋值注入 UIForm.ThemeProvider；PrepareForShow 应用 refs（跳过 IThemeBound 节点）并注入 IThemeBound；装载缺失/异常降级=保持烘焙值+Warning 一次",
+      "verify": "PlayMode 行为用例（真 prefab）+Editmode 夹具",
+      "files": [
+        "Assets/LiteClient/UI/UIForm.cs",
+        "Assets/LiteClient/UI/UIService.cs",
+        "Assets/LiteGame/App/Bootstrap/相关注入点"
+      ],
+      "deps": [
+        "T1",
+        "T3"
+      ],
+      "status": "done",
+      "evidence": "PlayMode UiThemeApplyPlayModeTests 2/2（真页面 Txt_Title 装配期=令牌现值；null provider 降级不抛）；UIService ctor 形参+RunOpenAsync 赋值+UIForm.ApplyTheme；UiServiceModule 一次装载（失败降级 Warning）",
+      "status_reason": "",
+      "created_at": "2026-10-25T14:54:15+08:00",
+      "started_at": "2026-10-25T15:28:20+08:00",
+      "completed_at": "2026-10-25T16:55:27+08:00"
+    },
+    {
+      "id": "T6",
+      "title": "T6 三 widget 令牌化 + ui.style.ref 规则族（五判据）",
+      "description": "",
+      "acceptance": "StateButton/TabGroup/StarRating 伴生 token 字段+IThemeBound 实现+RefreshVisual 取值序（token 可解析→令牌值，否则 fallback）；ui.style.ref 五判据进 UiValidator.Rules（组件未知/漂移/无目标+widget 三态+双写者）",
+      "verify": "unity-tests --filter UiValidationRules,UiStyleRef；widget 注入/降级夹具",
+      "files": [
+        "Assets/LiteClient/UI/Widgets/StateButton.cs",
+        "Assets/LiteClient/UI/Widgets/TabGroup.cs",
+        "Assets/LiteClient/UI/Widgets/StarRating.cs",
+        "Assets/LiteGame/Editor/UiTools/Validation/Rules/StyleRefRule.cs"
+      ],
+      "deps": [
+        "T2",
+        "T5"
+      ],
+      "status": "done",
+      "evidence": "UiWidgetThemeEditModeTests 7/7；UiStyleRefRuleEditModeTests 7/7（五判据+注册）；顺手修 StateButton.OnSelectedChanged 裸调用 NRE",
+      "status_reason": "",
+      "created_at": "2026-10-25T14:54:15+08:00",
+      "started_at": "2026-10-25T16:56:34+08:00",
+      "completed_at": "2026-10-25T16:56:34+08:00"
+    },
+    {
+      "id": "T7",
+      "title": "T7 试点挂载+真实面校准",
+      "description": "",
+      "acceptance": "≥1 产品页/控件模板经工具挂 refs（非手改 YAML）；UiValidator 真实面 0 新增 Error、Warning 基线只降不升（记录新基线）",
+      "verify": "unity-tests --filter UiValidation；真实面 RunCli 输出",
+      "files": [
+        "Assets/ShareResource/UI/试点prefab"
+      ],
+      "deps": [
+        "T4",
+        "T6"
+      ],
+      "status": "done",
+      "evidence": "试点 Txt_Title 挂 ref（Unity API）；迁移 4 prefab/10 字段；幂等 0/0；真实面 14/14（Error=0，基线 298）",
+      "status_reason": "",
+      "created_at": "2026-10-25T14:54:16+08:00",
+      "started_at": "2026-10-25T16:56:34+08:00",
+      "completed_at": "2026-10-25T16:56:34+08:00"
+    },
+    {
+      "id": "T8",
+      "title": "T8 文档回写+审计登记",
+      "description": "",
+      "acceptance": "总设计 §6.1/§6.2/§6.5（状态色裁决与映射表含 8 枚来源 file:line）/§8.1 刷新口径回写；「可 Undo」措辞澄清；审计登记 uGUI Selectable 33 处/17 prefab 清单与三 widget C# 默认色债；UI系统线新章",
+      "verify": "doc-lint 0 违规；docs --check",
+      "files": [
+        "Docs/设计文档/客户端/UI系统/*",
+        "Docs/审计/代码质量审计-客户端.md",
+        "Docs/施工进度/UI系统线.md"
+      ],
+      "deps": [
+        "T7"
+      ],
+      "status": "done",
+      "evidence": "总设计 §6.2/§6.5（映射表 8 枚含 file:line）/§8.1 三段式与 B2 消费者回写；审计 4 行登记；UI系统线第 11 章；doc-lint 0/0",
+      "status_reason": "",
+      "created_at": "2026-10-25T14:54:16+08:00",
+      "started_at": "2026-10-25T16:56:35+08:00",
+      "completed_at": "2026-10-25T17:41:39+08:00"
+    },
+    {
+      "id": "T9",
+      "title": "T9 工具/门禁面收口",
+      "description": "",
+      "acceptance": "toolchain.json/工具索引同步（colors-refresh 语义变化+新增产物）；config.json 增本批门禁命令；toolchain.py check 0 error；wf verify 全绿（L1+UI EditMode+PlayMode+doc）",
+      "verify": "toolchain.py check；wf verify",
+      "files": [
+        "scripts/gate/toolchain.json",
+        "Docs/工具链/工具索引.md",
+        ".workflow/config.json"
+      ],
+      "deps": [
+        "T7"
+      ],
+      "status": "done",
+      "evidence": "toolchain.json colors-refresh 三段式 summary+索引核对；config.json 6 门禁命令；toolchain check OK；wf verify 46/46 PASS",
+      "status_reason": "",
+      "created_at": "2026-10-25T14:54:16+08:00",
+      "started_at": "2026-10-25T17:41:40+08:00",
+      "completed_at": "2026-10-25T17:41:40+08:00"
+    }
+  ],
+  "verification": {
+    "at": "2026-10-25T18:38:32+08:00",
+    "ok": true,
+    "stale": false,
+    "evidence": "evidence/verify.json",
+    "command_fingerprint": "ec57a411e61cdef4e3512da13ba008caa4d11a53402f3d6fbb12ead9af466b61",
+    "summary": {
+      "total": 46,
+      "passed": 46
+    }
+  },
+  "red_verification": {
+    "at": "2026-10-25T15:18:21+08:00",
+    "ok": true,
+    "stale": false,
+    "evidence": "evidence/red.json",
+    "command_fingerprint": "a05c9f5f8276c338105579d407784963e883b3fd2ed89162f30bb42c65d7ecf4",
+    "summary": {
+      "total": 5,
+      "passed": 5
+    }
+  },
+  "archived_at": "2026-10-25T18:40:02+08:00"
+}

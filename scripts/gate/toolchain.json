@@ -2,7 +2,7 @@
   "$comment": "机器可读开发工具链清单（唯一工具注册源）。编辑器 Hub / scripts/toolchain.py / 生成工具索引 / 注册面检查都读取本文件；环境字段供 restore-check 使用。",
   "schemaVersion": 6,
   "name": "litegame-toolchain",
-  "updatedAt": "2026-10-24",
+  "updatedAt": "2026-10-25",
   "categories": [
     { "id": "baking", "title": "内容烘焙", "order": 10, "docs": "Docs/设计文档/游戏玩法/烘焙工具箱专项设计.md" },
     { "id": "ui", "title": "UI 工具", "order": 20, "docs": "Docs/设计文档/客户端/UI系统/UI编辑器工具链专项设计.md" },
@@ -199,7 +199,7 @@
       "plane": "editor",
       "purpose": "dev",
       "handler": "ui.style.colors-refresh",
-      "summary": "按 token 收敛 prefab 中的 UI 颜色。",
+      "summary": "三段式刷新：UiStyleRef 按声明应用 → 三 widget 状态色迁移填 token → 裸值最近匹配收敛（P2-3 B2）。",
       "docs": "Docs/设计文档/客户端/UI系统/UI编辑器工具链专项设计.md",
       "menu": "LiteGame/UI/样式工具/刷新 UI 颜色（按 token 收敛）",
       "writes": ["asset"],

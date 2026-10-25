@@ -59,6 +59,8 @@ MonoBehaviour:
   - {fileID: 3884402414063412374}
   SelectedColor: {r: 0.95, g: 0.8, b: 0.3, a: 1}
   NormalColor: {r: 0.75, g: 0.75, b: 0.78, a: 1}
+  SelectedColorToken: color.state.nav.selected
+  NormalColorToken: color.state.nav.normal
 --- !u!1 &844749168017692999
 GameObject:
   m_ObjectHideFlags: 0

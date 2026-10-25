@@ -97,6 +97,10 @@ MonoBehaviour:
   PressedColor: {r: 0.15, g: 0.3, b: 0.55, a: 1}
   DisabledColor: {r: 0.35, g: 0.35, b: 0.35, a: 1}
   SelectedColor: {r: 0.9, g: 0.7, b: 0.2, a: 1}
+  NormalColorToken: color.state.interact.normal
+  PressedColorToken: color.state.interact.pressed
+  DisabledColorToken: color.state.interact.disabled
+  SelectedColorToken: color.state.interact.selected
   LongPressSeconds: 0.6
   ClickCooldown: 0.15
 --- !u!114 &7906364916991724963

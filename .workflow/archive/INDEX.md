@@ -22,3 +22,4 @@
 | 2026-10-23T22:15:47+08:00 | ui-p2-workbench | UI 系统 P2-1：单工作台与角色 Lane（宿主 + 透视迁移） | 11/11 | PASS | [20261023-221547-ui-p2-workbench](20261023-221547-ui-p2-workbench/) |
 | 2026-10-24T02:57:06+08:00 | ui-p2-scaffold-register | UI 系统 P2-2：起页/登记拆分（ui.page-scaffold / ui.page-register） | 11/11 | PASS | [20261024-025706-ui-p2-scaffold-register](20261024-025706-ui-p2-scaffold-register/) |
 | 2026-10-24T16:48:59+08:00 | ui-p2-token-base | UI 系统 P2-3a：令牌源与主题资产（JSON→UiThemeAsset，退役硬编码） | 7/7 | PASS | [20261024-164859-ui-p2-token-base](20261024-164859-ui-p2-token-base/) |
+| 2026-10-25T18:40:02+08:00 | ui-p2-token-refs | UI 系统 P2-3 B2：令牌引用组件与应用 | 9/9 | PASS | [20261025-184002-ui-p2-token-refs](20261025-184002-ui-p2-token-refs/) |

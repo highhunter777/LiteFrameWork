@@ -22,13 +22,15 @@ def _run_json(args, timeout=120):
 
     显式带 `--project-path`：本机可能同时打开多个 Unity 工程（实测 WindFrameWork 与
     Test 各占一个 Pipeline 端口），不指定会因“Multiple Unity Editor instances”直接失败。
+    显式带 `--proxy-disable`：本脚本只连本机编辑器实例，绝不需要代理；系统代理开启时
+    （实测 Clash 系 127.0.0.1:7890，CLI 的 bypass 匹配对 127.0.0.1 失效）会拦本地请求报 502。
     """
     command_args = list(args)
     if command_args and command_args[0] == "command" and "--project-path" not in command_args:
         command_args[1:1] = ["--project-path", str(repo_root())]
     try:
         result = subprocess.run(
-            ["unity", "--format", "json"] + command_args,
+            ["unity", "--proxy-disable", "--format", "json"] + command_args,
             capture_output=True,
             text=True,
             encoding="utf-8",
@@ -155,7 +157,7 @@ def run_async(args):
 
     注意：`run_tests` 的工具参数 `--timeout` 若放在 `--filter` 之后，CLI 会丢 filter（实测跑全集）；
     这里只用工具默认 300s，外层 `args.timeout` 只做轮询上限。"""
-    launch = ["unity", "command", "--project-path", str(repo_root()),
+    launch = ["unity", "--proxy-disable", "command", "--project-path", str(repo_root()),
               "run_tests", "--mode", args.mode,
               "--async_tests", "--filter", args.filter]
     if args.filter_type:

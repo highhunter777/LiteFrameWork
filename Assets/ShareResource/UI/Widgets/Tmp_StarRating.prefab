@@ -438,6 +438,8 @@ MonoBehaviour:
   - {fileID: 4822445450142465770}
   OnColor: {r: 1, g: 0.8, b: 0.2, a: 1}
   OffColor: {r: 0.3, g: 0.3, b: 0.3, a: 1}
+  OnColorToken: color.state.star.on
+  OffColorToken: color.state.star.off
 --- !u!114 &8759773561828764825
 MonoBehaviour:
   m_ObjectHideFlags: 0

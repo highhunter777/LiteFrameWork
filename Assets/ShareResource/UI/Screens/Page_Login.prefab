@@ -806,6 +806,7 @@ GameObject:
   - component: {fileID: 113745988604559877}
   - component: {fileID: 3133011339392147102}
   - component: {fileID: 766436893651715174}
+  - component: {fileID: 8298895974777568705}
   m_Layer: 0
   m_Name: Txt_Title
   m_TagString: Untagged
@@ -871,7 +872,7 @@ MonoBehaviour:
   m_fontColor32:
     serializedVersion: 2
     rgba: 4282433510
-  m_fontColor: {r: 0.9, g: 0.75, b: 0.25, a: 1}
+  m_fontColor: {r: 0.9019608, g: 0.7490196, b: 0.2509804, a: 1}
   m_enableVertexGradient: 0
   m_colorMode: 3
   m_fontColorGradient:
@@ -958,6 +959,19 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   Key: UI.Login.Title
+--- !u!114 &8298895974777568705
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2701447188199850965}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 604f617316cb3794483658909a325237, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  colorToken: color.brand.primary
 --- !u!1 &2867127421067977312
 GameObject:
   m_ObjectHideFlags: 0

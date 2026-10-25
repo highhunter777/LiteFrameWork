@@ -15,7 +15,7 @@ MonoBehaviour:
   SchemaVersion: 2.0
   Theme: Default
   Version: 1.0.0
-  SourceHash: 78f288ad37507bef02f8781571e45f450c69e2c2718bc0a180664815776a1219
+  SourceHash: 2a765c78e5a92248138140ca4e4eaa1a5c642135333d97c220d6985f57853a64
   Colors:
   - Id: color.bg.deep
     Value:
@@ -54,6 +54,55 @@ MonoBehaviour:
       serializedVersion: 2
       rgba: 67108863
     Description: "\u8FD1\u900F\u660E\u53EF\u70B9\u51FB\uFF08\u65E7\u540D Raycast\uFF09"
+  - Id: color.state.interact.disabled
+    Value:
+      serializedVersion: 2
+      rgba: 4284045657
+    Description: "\u4EA4\u4E92\u7981\u7528\uFF08P2-3 B2/D3\uFF1AStateButton DisabledColor
+      \u73B0\u503C\u91CF\u5316\uFF09"
+  - Id: color.state.interact.normal
+    Value:
+      serializedVersion: 2
+      rgba: 4290736960
+    Description: "\u4EA4\u4E92\u5E38\u6001\uFF08P2-3 B2/D3\uFF1AStateButton/Tmp_StateButton.prefab
+      NormalColor \u73B0\u503C\u91CF\u5316\uFF09"
+  - Id: color.state.interact.pressed
+    Value:
+      serializedVersion: 2
+      rgba: 4287384870
+    Description: "\u4EA4\u4E92\u6309\u538B\uFF08P2-3 B2/D3\uFF1AStateButton PressedColor
+      \u73B0\u503C\u91CF\u5316\uFF09"
+  - Id: color.state.interact.selected
+    Value:
+      serializedVersion: 2
+      rgba: 4281578470
+    Description: "\u4EA4\u4E92\u9009\u4E2D\u91D1\uFF08P2-3 B2/D3\uFF1AStateButton/Tmp_TabGroup
+      \u9009\u4E2D\u91D1\u540C\u503C\u91CF\u5316\uFF1B\u8FD1\u91D1\u4E0D\u5408\u5E76\u2014\u2014\u5408\u5E76\u5C5E\u53EF\u89C1\u8272\u53D8\uFF09"
+  - Id: color.state.nav.normal
+    Value:
+      serializedVersion: 2
+      rgba: 4291280831
+    Description: "\u5E95\u5BFC\u822A\u9875\u7B7E\u5E38\u6001\uFF08P2-3 B2/D3\uFF1ATmp_BottomNav
+      TabGroup NormalColor \u91CF\u5316\uFF09"
+  - Id: color.state.nav.selected
+    Value:
+      serializedVersion: 2
+      rgba: 4283288818
+    Description: "\u5E95\u5BFC\u822A\u9009\u4E2D\u91D1\uFF08P2-3 B2/D3\uFF1ATmp_BottomNav
+      \u9009\u4E2D\u91D1\u91CF\u5316\uFF1B\u4E0E interact.selected \u5DEE 12/25/26
+      \u6BCF\u901A\u9053\uFF0C\u4E0D\u5408\u5E76\uFF09"
+  - Id: color.state.star.off
+    Value:
+      serializedVersion: 2
+      rgba: 4283256141
+    Description: "\u661F\u7EA7\u7184\u706D\uFF08P2-3 B2/D3\uFF1AStarRating OffColor
+      \u91CF\u5316\uFF09"
+  - Id: color.state.star.on
+    Value:
+      serializedVersion: 2
+      rgba: 4281584895
+    Description: "\u661F\u7EA7\u70B9\u4EAE\uFF08P2-3 B2/D3\uFF1AStarRating OnColor
+      \u91CF\u5316\uFF09"
   - Id: color.state.success
     Value:
       serializedVersion: 2

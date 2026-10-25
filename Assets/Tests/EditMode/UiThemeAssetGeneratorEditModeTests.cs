@@ -4,6 +4,7 @@ using LiteClient.UI;
 using LiteGame.EditorTools.UI;
 using NUnit.Framework;
 using UnityEditor;
+using UiThemePaths = LiteGame.EditorTools.UI.UiThemePaths;
 
 namespace LiteGame.Tests.EditMode
 {

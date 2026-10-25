@@ -39,6 +39,9 @@ namespace LiteGame.Editor.UiTools.Validation
         /// <summary>样式：令牌源 JSON 与主题资产 SO 不一致（SO 过期或手改；提示跑 `ui.style.tokens`）。</summary>
         public const string StyleTokenDrift = "ui.style.token-drift";
 
+        /// <summary>样式：颜色令牌引用对账（UiStyleRef 与 widget 状态 token——未知 ID/值漂移/无目标/双写者；P2-3 B2）。</summary>
+        public const string StyleRef = "ui.style.ref";
+
         /// <summary>布局/适配：根 CanvasScaler 参数偏离基线，或页面自带第二套缩放（UI-LAYOUT-01）。</summary>
         public const string LayoutScaler = "ui.layout.scaler";
 

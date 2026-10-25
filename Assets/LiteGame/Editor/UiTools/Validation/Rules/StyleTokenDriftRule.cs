@@ -23,11 +23,11 @@ namespace LiteGame.Editor.UiTools.Validation.Rules
         {
             var issues = new List<UiIssue>();
             string jsonPath = string.IsNullOrEmpty(context.ThemeJsonPath)
-                ? UiThemePaths.DefaultJsonPath : context.ThemeJsonPath;
+                ? LiteGame.EditorTools.UI.UiThemePaths.DefaultJsonPath : context.ThemeJsonPath;
             string assetPath = string.IsNullOrEmpty(context.ThemeAssetPath)
-                ? UiThemePaths.DefaultAssetPath : context.ThemeAssetPath;
+                ? LiteGame.EditorTools.UI.UiThemePaths.DefaultAssetPath : context.ThemeAssetPath;
 
-            string fullJson = UiThemePaths.FullPath(jsonPath);
+            string fullJson = LiteGame.EditorTools.UI.UiThemePaths.FullPath(jsonPath);
             if (!File.Exists(fullJson))
             {
                 issues.Add(Error(jsonPath, "令牌源不存在：" + jsonPath));
