@@ -408,29 +408,29 @@ def _pwsh():
 
 
 def cmd_verify(args):
-    lane = args.lane
-    if lane == "L0":
+    suite = args.suite
+    if suite == "L0":
         command = [sys.executable, str(ROOT / "scripts" / "gate" / "l0-dep-scan.py")]
-    elif lane in {"L1", "L2", "L3", "All"}:
+    elif suite in {"L1", "L2", "L3", "All"}:
         command = [
             sys.executable,
             str(ROOT / "scripts" / "gate" / "test.py"),
-            "--lane",
-            lane,
+            "--suite",
+            suite,
             "--profile",
             args.profile,
         ]
-    elif lane == "Doc":
+    elif suite == "Doc":
         command = [
             sys.executable,
             str(ROOT / "scripts" / "gate" / "test.py"),
-            "--lane",
+            "--suite",
             "Doc",
             "--profile",
             args.profile,
         ]
     else:
-        raise ToolchainError(f"unsupported lane: {lane}", EXIT_USAGE)
+        raise ToolchainError(f"unsupported suite: {suite}", EXIT_USAGE)
     return _run_child(command)
 
 
@@ -510,8 +510,8 @@ def build_parser():
     generate_parser.add_argument("args", nargs=argparse.REMAINDER)
     generate_parser.set_defaults(func=cmd_generate)
 
-    verify_parser = subparsers.add_parser("verify", help="run a gate lane")
-    verify_parser.add_argument("--lane", default="L1", choices=["L0", "L1", "L2", "L3", "Doc", "All"])
+    verify_parser = subparsers.add_parser("verify", help="run a gate suite")
+    verify_parser.add_argument("--suite", default="L1", choices=["L0", "L1", "L2", "L3", "Doc", "All"])
     verify_parser.add_argument("--profile", default="PullRequest", choices=["PullRequest", "Nightly", "Release"])
     verify_parser.set_defaults(func=cmd_verify)
 

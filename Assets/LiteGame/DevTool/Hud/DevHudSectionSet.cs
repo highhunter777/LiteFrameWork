@@ -33,7 +33,6 @@ namespace LiteGame
     internal sealed class DevHudSectionSet
     {
         private readonly DebugKernel _kernel;
-        private readonly DevHudPerfSampler _perf;
         private readonly DevHudFilter _filter;
         private readonly DevHudSectionOptions _options;
         private readonly DevHudNetHistory _net = new DevHudNetHistory();
@@ -51,11 +50,10 @@ namespace LiteGame
 
         public IReadOnlyList<DevHudSectionData> Data => _data;
 
-        public DevHudSectionSet(DebugKernel kernel, DevHudPerfSampler perf,
+        public DevHudSectionSet(DebugKernel kernel,
             DevHudFilter filter, DevHudSectionOptions options)
         {
             _kernel = kernel ?? throw new ArgumentNullException(nameof(kernel));
-            _perf = perf;
             _filter = filter;
             _options = options;
 
@@ -123,6 +121,12 @@ namespace LiteGame
             if (!_options.ShowNet) return;
             _sb.Clear();
             if (!_kernel.AppendExtendedBattle(_sb)) return;
+            WeakNetSnapshot weak = _kernel.WeakNet;
+            if (weak.Enabled)
+            {
+                _sb.Append('\n');
+                weak.AppendLines(_sb);
+            }
             EmitLines(_sb.ToString(), sink, HudTone.Normal, "Net");
 
             if (_net.TryFormat(40, out string rttLine, out string lossLine))
@@ -135,24 +139,24 @@ namespace LiteGame
         private void AppendPerf(IHudTextSink sink)
         {
             if (!_options.ShowPerf) return;
-            _perf.UpdateRecorders();
-            if (!_perf.TryGet(out PerfSnapshot p)) return;
+            if (!_kernel.TryTakePerf(out PerfReading p) || !p.HasFrames) return;
 
-            HudTone frameTone = p.P99Ms > 33f || p.Fps < 15 ? HudTone.Error
-                : p.P95Ms > 16.6f || p.Fps < 30 ? HudTone.Warn : HudTone.Normal;
-            sink.Line("FPS: " + p.Fps + "  p50: " + p.P50Ms.ToString("0.0", CultureInfo.InvariantCulture)
-                + "  p95: " + p.P95Ms.ToString("0.0", CultureInfo.InvariantCulture)
-                + "  p99: " + p.P99Ms.ToString("0.0", CultureInfo.InvariantCulture) + " ms", frameTone, "Perf");
+            PerfSnapshot f = p.Frames;
+            HudTone frameTone = f.P99Ms > 33f || f.Fps < 15 ? HudTone.Error
+                : f.P95Ms > 16.6f || f.Fps < 30 ? HudTone.Warn : HudTone.Normal;
+            sink.Line("FPS: " + f.Fps + "  p50: " + f.P50Ms.ToString("0.0", CultureInfo.InvariantCulture)
+                + "  p95: " + f.P95Ms.ToString("0.0", CultureInfo.InvariantCulture)
+                + "  p99: " + f.P99Ms.ToString("0.0", CultureInfo.InvariantCulture) + " ms", frameTone, "Perf");
 
-            string gc = _perf.GcAvailable ? FormatBytes(_perf.GcBytes) : "n/a";
-            HudTone gcTone = !_perf.GcAvailable ? HudTone.Muted
-                : _perf.GcBytes > 512 * 1024 ? HudTone.Error
-                : _perf.GcBytes > 64 * 1024 ? HudTone.Warn : HudTone.Normal;
-            string draw = _perf.DrawCallsAvailable ? _perf.DrawCalls.ToString(CultureInfo.InvariantCulture) : "n/a";
-            string batches = _perf.BatchesAvailable ? _perf.Batches.ToString(CultureInfo.InvariantCulture) : "n/a";
-            sink.Line("最差: " + Mathf.RoundToInt(p.WorstMs) + " ms  长帧: " + p.LongFrames
+            string gc = p.GcAvailable ? FormatBytes(p.GcBytes) : "n/a";
+            HudTone gcTone = !p.GcAvailable ? HudTone.Muted
+                : p.GcBytes > 512 * 1024 ? HudTone.Error
+                : p.GcBytes > 64 * 1024 ? HudTone.Warn : HudTone.Normal;
+            string draw = p.DrawCallsAvailable ? p.DrawCalls.ToString(CultureInfo.InvariantCulture) : "n/a";
+            string batches = p.BatchesAvailable ? p.Batches.ToString(CultureInfo.InvariantCulture) : "n/a";
+            sink.Line("最差: " + Mathf.RoundToInt(f.WorstMs) + " ms  长帧: " + f.LongFrames
                 + "  GC: " + gc + "/帧  Draw: " + draw + "  Batches: " + batches
-                + "  HUD: " + _perf.HudBuildMs.ToString("0.00", CultureInfo.InvariantCulture) + " ms", gcTone, "Perf");
+                + "  HUD: " + p.HudBuildMs.ToString("0.00", CultureInfo.InvariantCulture) + " ms", gcTone, "Perf");
         }
 
         private void AppendStats(IHudTextSink sink)
@@ -218,8 +222,8 @@ namespace LiteGame
         {
             if (_options.LogFilter == 1 && entry.Level < LogLevel.Warning) return false;
             if (_options.LogFilter == 2 && entry.Level < LogLevel.Error) return false;
-            if (_options.OnlyCurrentMatch && Log.CurrentMatchId.Length > 0 &&
-                !string.Equals(entry.MatchId, Log.CurrentMatchId)) return false;
+            if (_options.OnlyCurrentMatch && _kernel.CurrentMatchId.Length > 0 &&
+                !string.Equals(entry.MatchId, _kernel.CurrentMatchId)) return false;
             return true;
         }
 

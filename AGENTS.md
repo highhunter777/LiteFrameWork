@@ -8,12 +8,13 @@
 |---|---|---|
 | 1 | 本文件 | 基础原则、红线速查、常用命令 |
 | 2 | [Docs/修改指南.md](Docs/修改指南.md) | **§1 代码实现规范（红线，含审计反例）→ §2 修改规范（动手前/改动中/收尾流程）→ §3 领域查询表（"我想改 X 去哪改、改完跑什么"）** |
-| 3 | [Docs/审计/代码质量审计-客户端.md](Docs/审计/代码质量审计-客户端.md) · [Docs/审计/代码质量审计-服务端.md](Docs/审计/代码质量审计-服务端.md) | 存量质量债登记表（硬编码/重复/技术债/不统一路径/类设计，含 file:line 与修复状态）——改文件前查该文件有没有已登记债；**新代码禁止产生同型问题** |
-| 4 | [Docs/项目说明/README.md](Docs/项目说明/README.md) | 项目是什么、怎么跑、数据怎么流、怎么分层 |
-| 5 | [Docs/设计文档/README.md](Docs/设计文档/README.md) | 目标架构裁决（与本指南/代码冲突时以设计文档为准） |
-| 6 | [Docs/开发导航/README.md](Docs/开发导航/README.md) | 代码地图、程序集引用图 |
-| 7 | [Docs/项目说明/10-Windows云主机部署.md](Docs/项目说明/10-Windows云主机部署.md) | 云侧**现行形态**（Windows Server 2025 原生）的部署与运维——**动云主机前必读**；速查见本文件「云侧环境（外环）——操作必读」节 |
-| 8 | [Docs/项目说明/11-联机测试流程.md](Docs/项目说明/11-联机测试流程.md) | **从改完代码到云上打完一局**的主线（发版矩阵 / 一键部署 / 测试者接入 / 开测与 GM 兜底 / 观测 / 收尾）——联机测试照它走 |
+| 3 | [Docs/设计文档/架构/术语规范.md](Docs/设计文档/架构/术语规范.md) | 术语表（规范级）：全仓现用词 ↔ 业界通用词的权威对照（三档处置：换/留/英译）＋ Lane/登记一词多义消解 ＋ 代码标识符用词规约（UI/Hud 大小写、Take 消费语义）——新写的文档与代码即用，存量随改随换 |
+| 4 | [Docs/审计/代码质量审计-客户端.md](Docs/审计/代码质量审计-客户端.md) · [Docs/审计/代码质量审计-服务端.md](Docs/审计/代码质量审计-服务端.md) | 存量质量债登记表（硬编码/重复/技术债/不统一路径/类设计，含 file:line 与修复状态）——改文件前查该文件有没有已登记债；**新代码禁止产生同型问题** |
+| 5 | [Docs/项目说明/README.md](Docs/项目说明/README.md) | 项目是什么、怎么跑、数据怎么流、怎么分层 |
+| 6 | [Docs/设计文档/README.md](Docs/设计文档/README.md) | 目标架构裁决（与本指南/代码冲突时以设计文档为准） |
+| 7 | [Docs/开发导航/README.md](Docs/开发导航/README.md) | 代码地图、程序集引用图 |
+| 8 | [Docs/项目说明/10-Windows云主机部署.md](Docs/项目说明/10-Windows云主机部署.md) | 云侧**现行形态**（Windows Server 2025 原生）的部署与运维——**动云主机前必读**；速查见本文件「云侧环境（外环）——操作必读」节 |
+| 9 | [Docs/项目说明/11-联机测试流程.md](Docs/项目说明/11-联机测试流程.md) | **从改完代码到云上打完一局**的主线（发版矩阵 / 一键部署 / 测试者接入 / 开测与 GM 兜底 / 观测 / 收尾）——联机测试照它走 |
 
 ## 基础原则
 
@@ -36,7 +37,7 @@
 - 设计文档与施工进度文档分开。
 - 设计文档仅描述最新设计；进度文档仅保留最新进度。
 - 代码完成后，应回写对应文档。
-- 新增/修改/移动/合并/归档文档按 `doc-authoring` skill（落点决策 → 命名元数据 → 索引登记 → `--lane Doc` 自检）。
+- 新增/修改/移动/合并/归档文档按 `doc-authoring` skill（落点决策 → 命名元数据 → 索引登记 → `--suite Doc` 自检）。
 
 **工具规范**
 
@@ -72,7 +73,7 @@
 
 ## Skill 索引（按任务触发，ZCode）
 
-下列流程性规范已抽为通用级 skill（`.agents/skills/`，ZCode/Claude Code 等跨工具标准位），ZCode 会话中按任务自动加载；本文件的红线条目保留（同时服务无 skill 机制的其他工具）。另有 PostToolUse 提醒 hook：脚本单源在 `scripts/hooks/shared-source-reminder.py`（客户端中立），由 `.zcode/config.json`（ZCode）与 `.claude/settings.json`（Claude Code）各自挂载，在编辑器触碰共享源集/表/Unity 序列化资产时即时提醒，不依赖模型自觉。文档纪律（设计与进度分离 / 状态只由 git 事实回填）的守卫面是 `scripts/gate/doc-lint.py`，独立门禁 `scripts/gate/test.py --lane Doc`（或直跑 `python scripts/gate/doc-lint.py`）。
+下列流程性规范已抽为通用级 skill（`.agents/skills/`，ZCode/Claude Code 等跨工具标准位），ZCode 会话中按任务自动加载；本文件的红线条目保留（同时服务无 skill 机制的其他工具）。另有 PostToolUse 提醒 hook：脚本单源在 `scripts/hooks/shared-source-reminder.py`（客户端中立），由 `.zcode/config.json`（ZCode）与 `.claude/settings.json`（Claude Code）各自挂载，在编辑器触碰共享源集/表/Unity 序列化资产时即时提醒，不依赖模型自觉。文档纪律（设计与进度分离 / 状态只由 git 事实回填）的守卫面是 `scripts/gate/doc-lint.py`，独立门禁 `scripts/gate/test.py --suite Doc`（或直跑 `python scripts/gate/doc-lint.py`）。
 
 | skill | 触发 |
 |---|---|
@@ -94,7 +95,7 @@ python scripts/toolchain.py doctor                          # 环境 + 注册面
 python scripts/toolchain.py open <tool-id>                  # 在编辑器 Hub 打开并选中工具
 
 # 验证基线（白天代码批，一切改动的底线）
-python scripts/gate/test.py --lane L1 --profile PullRequest     # L1 纯逻辑（含纪律扫描/表守卫/BuildHash 守卫）
+python scripts/gate/test.py --suite L1 --profile PullRequest     # L1 纯逻辑（含纪律扫描/表守卫/BuildHash 守卫）
 python scripts/gate/l0-dep-scan.py                            # 依赖与秘密扫描
 python scripts/codegen/toolbox.py                            # 生成器工具箱（build-hash/proto/luban/sync-code/refresh-hash 统一入口；形态见专项设计）
 python scripts/codegen/gen-build-hash.py                     # ★ 共享源集/生成读码面/Meta 源集改动后必跑（一次写两常量；表值 .bytes 改动不必跑）

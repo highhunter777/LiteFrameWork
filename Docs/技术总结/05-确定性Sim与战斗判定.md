@@ -149,7 +149,7 @@ SortInputs（按 EntityId 升序就地稳定插入排序）
 2. **`MovementValues` 装载了没人读**：18 字段只有 `Gravity` 经 `CombatValues` 进机制，走/跑/冲/滑铲/钩爪等 17 字段无机制消费；`MovementConfig` 的 18 个读口也零生产读者。
 3. **静态读口仍在**：`CombatConfig.Loaded`、`WeaponConfig.Loaded` 作为表现面读口存在，机制面由 R13 禁止读取；生产构造仍从静态取实例（`BattleContext`），这是"实例化已治大半、未全清"的现状。
 4. **TPS 过渡态**：工作区已落地越肩相机/屏心瞄准（`TpsCameraMath`、相机服务 POV 轴、屏心射线求 AimPoint），但《固定斜视角射击方案专项设计》仍写固定斜视角/鼠标不驱动相机；本章按代码写，设计文档待回写。
-5. **文档数值滞后**：`04-技术细节-Sim与联机` 记 `CombatValues` 6 字段（实际 10）；`状态同步专项设计` 仍列 `AimX/AimZ`（实际 `reserved 4,5,10`）；`12-联机全栈参考` 的 checksum 常量与 `recent_kills/fires/hits` 字段已过时。
+5. **文档数值滞后**：`状态同步专项设计` 仍列 `AimX/AimZ`（实际 `reserved 4,5,10`）；`12-联机全栈参考` 的 checksum 常量与 `recent_kills/fires/hits` 字段已过时。
 6. **远端换弹已可读**：`WeaponSystem` 写主动作摘要 `ActionId=Reload/StartFrame`，`SimView.IsReloading` 对远端不再恒 false；旧文档的"远端换弹表现待公共位扩展"已部分过时。
 
 ## 10. 本章要点

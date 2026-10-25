@@ -57,7 +57,7 @@ namespace LiteGame
         private readonly ISceneService _scenes;      // 对局场景组加载与卸载（可空 = 测试装配）
         private readonly IMapProvider _maps;         // 地图表（多图批：场景路径查表行 scene 列／离场卸载按表枚举）
         private readonly FeedbackService _feedback;  // 开局入场加载遮罩（可空 = 测试装配不接 UI）
-        private readonly CrosshairFeelBook _crosshairFeel;   // 准心手感投影（tbcrosshair；可空 = 测试装配回落 Default）
+        private readonly CrosshairFeelProfile _crosshairFeel;   // 准心手感投影（tbcrosshair；可空 = 测试装配回落 Default）
 
         private BattleViewRig _rig;                  // 视图域（资源租约 / 视图与消费者 / 逆序拆除）
         private BattleContext _context;
@@ -78,7 +78,7 @@ namespace LiteGame
             IVFXService vfx = null, CancellationToken rootToken = default, bool requireCamera = false,
             LiteFramework.IWorldClock worldClock = null, IMatchSessionFactory matchSessions = null,
             AudioService audio = null, CommandCenter commands = null, PageFlow pages = null,
-            CrosshairFeelBook crosshairFeel = null, ISceneService scenes = null, IMapProvider maps = null,
+            CrosshairFeelProfile crosshairFeel = null, ISceneService scenes = null, IMapProvider maps = null,
             FeedbackService feedback = null)
             : base(rootToken)
         {
@@ -116,7 +116,7 @@ namespace LiteGame
                 _account = accountSession.Scope;
                 BattleClient battleClient = accountSession.Battle;
 
-                // 视图域：自有 BattleView 作用域 + 视图根 + 六个取件（缺角色资源回退程序化灰盒）
+                // 视图域：自有 BattleView 作用域 + 视图根 + 六个取件（缺角色资源＝无角色视图）
                 _rig = new BattleViewRig(_content, _input, _camera, _account, _vfx, _worldClock, _audio, _commands,
                     crosshairFeel: _crosshairFeel);   // 准心手感投影（可空 = 测试装配）
                 await _rig.LoadAsync(ct);

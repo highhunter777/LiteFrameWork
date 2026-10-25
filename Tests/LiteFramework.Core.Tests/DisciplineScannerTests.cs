@@ -586,5 +586,88 @@ namespace LiteFramework.Tests
             Assert.Equal(0, CountAt("Assets/LiteClient/Runtime/C.cs",
                 "// 该文件不用 using YooAsset; 了", LintRule.R12AdapterBoundary));
         }
+
+        // ---- R14 投影禁直调调试源（《GM 与调试工具分层专项设计》§7 统一内核与三投影）----
+
+        [Fact]
+        public void 纪律_R14_投影直调调试源被命中()
+        {
+            // 读口（读数另拼）
+            Assert.Equal(1, Count("var c = BattleDiagnostics.Current;", LintRule.R14ProjectionDebugPort));
+            Assert.Equal(1, Count("var s = BattleDiagnostics.Take(ctx);", LintRule.R14ProjectionDebugPort));
+            Assert.Equal(1, Count("var r = Log.Recent;", LintRule.R14ProjectionDebugPort));
+            Assert.Equal(1, Count("var n = Log.ErrorCount;", LintRule.R14ProjectionDebugPort));
+            Assert.Equal(1, Count("var m = Log.CurrentMatchId;", LintRule.R14ProjectionDebugPort));
+            Assert.Equal(1, Count("var d = DiagTrace.Recent;", LintRule.R14ProjectionDebugPort));
+            Assert.Equal(1, Count("var t = DiagTrace.Total;", LintRule.R14ProjectionDebugPort));
+            Assert.Equal(1, Count("var st = GameEntry.Stats;", LintRule.R14ProjectionDebugPort));
+            // 写口/发现面（另写动作/自建清单）
+            Assert.Equal(1, Count("TestModeRuntime.RequestEnter();", LintRule.R14ProjectionDebugPort));
+            Assert.Equal(1, Count("var a = TestModeRuntime.Active;", LintRule.R14ProjectionDebugPort));
+            Assert.Equal(1, Count("var b = TestModeOptions.Get(id);", LintRule.R14ProjectionDebugPort));
+            Assert.Equal(1, Count("TestModeOptions.Set(id, true);", LintRule.R14ProjectionDebugPort));
+            Assert.Equal(1, Count("foreach (var o in TestModeOptions.All) { }", LintRule.R14ProjectionDebugPort));
+            Assert.Equal(1, Count("LiteSim.SimTestRules.BotResetRequested = true;", LintRule.R14ProjectionDebugPort));
+            Assert.Equal(1, Count("var f = FeatureDebugTunables.CurrentHeadLine();", LintRule.R14ProjectionDebugPort));
+            Assert.Equal(1, Count("var cc = ResolveFromContainer<CommandCenter>();", LintRule.R14ProjectionDebugPort));
+            Assert.Equal(1, Count("var w = new WeakNetRuntime();", LintRule.R14ProjectionDebugPort));
+        }
+
+        [Fact]
+        public void 纪律_R14_契约类型与格式化助手不误报()
+        {
+            // 契约类型位置（枚举/描述结构/快照结构）放行
+            Assert.Equal(0, Count("var id = TestModeOptions.Id.NoDeath;", LintRule.R14ProjectionDebugPort));
+            Assert.Equal(0, Count("foreach (TestModeOptions.Info option in kernel.Options) { }", LintRule.R14ProjectionDebugPort));
+            Assert.Equal(0, Count("var g = TestModeOptions.Group.Live;", LintRule.R14ProjectionDebugPort));
+            Assert.Equal(0, Count("kernel.TryTakeBattleSnapshot(out BattleDiagnostics.Snapshot s);", LintRule.R14ProjectionDebugPort));
+            Assert.Equal(0, Count("var cr = result.Reason;", LintRule.R14ProjectionDebugPort));   // CommandResult 不误伤
+            Assert.Equal(0, Count("var ic = ResolveFromContainer<ICommandCenter>();", LintRule.R14ProjectionDebugPort));
+            // 纯格式化助手与门面写口放行
+            Assert.Equal(0, Count("Append(DiagTrace.Line(e));", LintRule.R14ProjectionDebugPort));
+            Assert.Equal(0, Count("Append('[' + Log.TagName(entry.Tag) + ']');", LintRule.R14ProjectionDebugPort));
+            Assert.Equal(0, Count("Log.Warning(\"HUD 初始化失败\", LogTag.UI);", LintRule.R14ProjectionDebugPort));
+            Assert.Equal(0, Count("var k = entry.DebugKernel;", LintRule.R14ProjectionDebugPort));
+            // 注释剔除同口径
+            Assert.Equal(0, Count("// var a = TestModeRuntime.Active;（注释不算）", LintRule.R14ProjectionDebugPort));
+        }
+
+        [Fact]
+        public void 纪律_R14_字符串字面量不误报()
+        {
+            // 页面文案/Tooltip 常含类型名——先剥字符串再匹配
+            Assert.Equal(0, Count("Append(\"命令与审计（CommandCenter）\");", LintRule.R14ProjectionDebugPort));
+            Assert.Equal(0, Count("[Tooltip(\"最近日志尾巴（Log.Recent 环缓冲渲染）\")]", LintRule.R14ProjectionDebugPort));
+            // 字符串外的真调用仍命中
+            Assert.Equal(1, Count("Append(\"x\"); var a = TestModeRuntime.Active;", LintRule.R14ProjectionDebugPort));
+        }
+
+        [Fact]
+        public void 纪律_R14_受守根已登记()
+        {
+            bool devTool = false, editorGm = false;
+            for (int i = 0; i < ScanTargets.Default.Length; i++)
+            {
+                ScanTarget t = ScanTargets.Default[i];
+                if (Array.IndexOf(t.Rules, LintRule.R14ProjectionDebugPort) < 0) continue;
+                if (t.Root == "Assets/LiteGame/DevTool") devTool = true;
+                if (t.Root == "Assets/LiteGame/Editor/Gm")
+                {
+                    editorGm = true;
+                    Assert.True(t.IncludeEditorDirs, "Editor/Gm 受守根必须 IncludeEditorDirs——默认排除面会静默吞掉整个根");
+                }
+            }
+            Assert.True(devTool, "R14 缺 Assets/LiteGame/DevTool 受守根——运行期投影将不受把守");
+            Assert.True(editorGm, "R14 缺 Assets/LiteGame/Editor/Gm 受守根——编辑器 GM 页将不受把守");
+        }
+
+        [Fact]
+        public void 纪律_R14_Editor子树覆盖只放行显式受守根()
+        {
+            Assert.True(DisciplineScanner.IsExcluded("Assets/LiteGame/Editor/Gm/GmScenePage.cs"));
+            Assert.False(DisciplineScanner.IsExcluded("Assets/LiteGame/Editor/Gm/GmScenePage.cs", true));
+            // 自引排除不随 includeEditorDirs 放行
+            Assert.True(DisciplineScanner.IsExcluded("Assets/Tools/DisciplineScanner/Scripts/DisciplineScanner.cs", true));
+        }
     }
 }

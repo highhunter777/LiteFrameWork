@@ -45,18 +45,18 @@ namespace LiteGame
     /// 缺行 → false（调用方回落 <see cref="CrosshairFeel.Default"/>）；行值域合法性闸在
     /// ConfigService.ValidateCandidate（错表炸 Preload，不在此重验）。
     /// </summary>
-    public sealed class CrosshairFeelBook
+    public sealed class CrosshairFeelProfile
     {
         private readonly IConfigService _config;                  // 生产形态（与 _direct 二选一）
         private readonly Dictionary<int, CrosshairFeel> _direct;  // 直构形态（EditMode 用例——免表装载）
         private Dictionary<int, CrosshairFeel> _projected;       // 惰性投影缓存（生产形态首用建）
 
-        public CrosshairFeelBook(IConfigService config)
+        public CrosshairFeelProfile(IConfigService config)
         {
             _config = config ?? throw new ArgumentNullException(nameof(config));
         }
 
-        public CrosshairFeelBook(Dictionary<int, CrosshairFeel> rows)
+        public CrosshairFeelProfile(Dictionary<int, CrosshairFeel> rows)
         {
             _direct = rows ?? throw new ArgumentNullException(nameof(rows));
         }

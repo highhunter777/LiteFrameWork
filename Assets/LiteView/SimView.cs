@@ -45,7 +45,7 @@ namespace LiteView
         /// prefab 本体住 `Assets/ShareResource/Characters/`，**不在 `Assets/CombatGirlsCharacterPack/` 内**——该包只是它的
         /// **依赖来源**（贴图/网格/动画/Avatar 全在该包内），故收集组必须**额外覆盖 `Assets/ShareResource/Characters`**，
         /// 否则 YooAsset 拿不到它（收集按目录走）；依赖资产仍由 `Assets/CombatGirlsCharacterPack/Runtime` 收。
-        /// 资源包未入库的克隆加载失败 → ProcedureBattle 回退程序化灰盒（可复现降级，勿删兜底）。</summary>
+        /// 资源包未入库的克隆加载失败 → 工厂拒绝＝无实体可见（不造占位替身）。</summary>
         public const string DefaultEntityPrefab = "Assets/ShareResource/Characters/Player(Rifle).prefab";
 
         /// <summary>快照间隔（秒）——插值窗口时长，由 <see cref="SimConfig.SnapshotHz"/> 派生。</summary>
@@ -449,7 +449,7 @@ namespace LiteView
         /// <summary>本地视图落位：**连续收敛走 CharacterController.Move**（Unity 物理管贴地/防穿模/台阶），
         /// **硬切/瞬移走 CC 关停 + 直写 transform**，旋转直写。
         /// CC **由预制体配置**（本类只解析消费，不建件不设参，见 <see cref="EnsureLocalCc"/>）；
-        /// 预制体没配 CC（灰盒视图/测试装配）退回 <see cref="Place"/> 直落。
+        /// 预制体没配 CC（无 CC 视图/测试装配）退回 <see cref="Place"/> 直落。
         ///
         /// **为什么瞬移不能走 Move**（2026-10-19 实测"复活被障碍物拦住"）：`cc.Move` 是**带扫掠的位移**，
         /// 复活时目标点常在同图另一端——中间隔着掩体就停在墙上、目标是墙内就更进不去，而 Sim 侧已经把你
@@ -488,7 +488,7 @@ namespace LiteView
 
         /// <summary>取本地视图的物理代理（**纯消费**：CC 与碰撞体由预制体配置——
         /// 这里不建件、不设参，只解析＋为本地实例启用；远端实例在 <see cref="SyncViews"/> 建立时禁用）。
-        /// 预制体没配 CC（灰盒视图/测试装配/尚未配置）→ 返回 null，<see cref="PlaceLocal"/> 退回
+        /// 预制体没配 CC（无 CC 视图/测试装配/尚未配置）→ 返回 null，<see cref="PlaceLocal"/> 退回
         /// <see cref="Place"/> 直落。
         /// **耦合提示**：CC 胶囊参数是 Sim 物理体（BodyRadius/HitscanHeight）的**烘焙单源**——
         /// 经工具 `BodyCylinderBaker` 生成 `BodyBake.g.cs` 供两端消费；改 CC 后重跑

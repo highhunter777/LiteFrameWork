@@ -1,0 +1,371 @@
+{
+  "schema_version": 1,
+  "slug": "weaknet-injection",
+  "title": "弱网注入：传输层损伤注入与可视化",
+  "status": "archived",
+  "current_stage": null,
+  "created_at": "2026-10-24T13:12:29+08:00",
+  "updated_at": "2026-10-24T16:19:24+08:00",
+  "completed_at": "2026-10-24T16:19:23+08:00",
+  "completed_stages": [
+    {
+      "id": "propose",
+      "title": "提出方案",
+      "completed_at": "2026-10-24T13:15:48+08:00"
+    },
+    {
+      "id": "review-plan",
+      "title": "子代理评审方案",
+      "completed_at": "2026-10-24T14:02:33+08:00"
+    },
+    {
+      "id": "confirm-acceptance",
+      "title": "用户确认验收标准",
+      "completed_at": "2026-10-24T14:11:52+08:00",
+      "approved_by": "hunter"
+    },
+    {
+      "id": "breakdown",
+      "title": "实施任务清单",
+      "completed_at": "2026-10-24T14:12:38+08:00"
+    },
+    {
+      "id": "review-tasks",
+      "title": "评审任务",
+      "completed_at": "2026-10-24T14:12:39+08:00"
+    },
+    {
+      "id": "tests-first",
+      "title": "先写测试",
+      "completed_at": "2026-10-24T14:15:54+08:00"
+    },
+    {
+      "id": "implement",
+      "title": "正式施工",
+      "completed_at": "2026-10-24T14:37:28+08:00"
+    },
+    {
+      "id": "verify",
+      "title": "测试代码",
+      "completed_at": "2026-10-24T15:39:41+08:00"
+    },
+    {
+      "id": "review-code",
+      "title": "评审代码",
+      "completed_at": "2026-10-24T16:19:23+08:00"
+    },
+    {
+      "id": "writeback",
+      "title": "回写与收尾",
+      "completed_at": "2026-10-24T16:19:23+08:00"
+    }
+  ],
+  "history": [
+    {
+      "at": "2026-10-24T13:12:29+08:00",
+      "event": "init",
+      "stage": "propose"
+    },
+    {
+      "at": "2026-10-24T13:15:48+08:00",
+      "event": "advance",
+      "from": "propose",
+      "to": "review-plan",
+      "approved_by": null
+    },
+    {
+      "at": "2026-10-24T14:02:33+08:00",
+      "event": "advance",
+      "from": "review-plan",
+      "to": "confirm-acceptance",
+      "approved_by": null
+    },
+    {
+      "at": "2026-10-24T14:11:52+08:00",
+      "event": "advance",
+      "from": "confirm-acceptance",
+      "to": "breakdown",
+      "approved_by": "hunter"
+    },
+    {
+      "at": "2026-10-24T14:12:38+08:00",
+      "event": "advance",
+      "from": "breakdown",
+      "to": "review-tasks",
+      "approved_by": null
+    },
+    {
+      "at": "2026-10-24T14:12:39+08:00",
+      "event": "advance",
+      "from": "review-tasks",
+      "to": "tests-first",
+      "approved_by": null
+    },
+    {
+      "at": "2026-10-24T14:15:54+08:00",
+      "event": "advance",
+      "from": "tests-first",
+      "to": "implement",
+      "approved_by": null
+    },
+    {
+      "at": "2026-10-24T14:37:28+08:00",
+      "event": "advance",
+      "from": "implement",
+      "to": "verify",
+      "approved_by": null
+    },
+    {
+      "at": "2026-10-24T15:39:41+08:00",
+      "event": "advance",
+      "from": "verify",
+      "to": "review-code",
+      "approved_by": null
+    },
+    {
+      "at": "2026-10-24T16:19:23+08:00",
+      "event": "advance",
+      "from": "review-code",
+      "to": "writeback",
+      "approved_by": null
+    },
+    {
+      "at": "2026-10-24T16:19:23+08:00",
+      "event": "advance",
+      "from": "writeback",
+      "to": null,
+      "approved_by": null
+    },
+    {
+      "at": "2026-10-24T16:19:24+08:00",
+      "event": "archive",
+      "path": "20261024-161924-weaknet-injection"
+    }
+  ],
+  "tasks": [
+    {
+      "id": "T1",
+      "title": "内核基础件（Profile/PRNG/Stats）",
+      "description": "",
+      "acceptance": "WeakNetProfile 不可变且校验；WeakNetRandom 固定种子可复现；WeakNetStats 含 RollCount/队列/丢/重复/重排/溢出；三宏守卫只覆盖 WeakNet 目录",
+      "verify": "dotnet build Tests/LiteNet.Tests/LiteNet.Tests.csproj",
+      "files": [
+        "Assets/LiteNet/Diagnostics/WeakNet",
+        "Tests/LiteNet.Tests/LiteNet.Tests.csproj"
+      ],
+      "deps": [],
+      "status": "done",
+      "evidence": "Profile/PRNG/Stats + 三宏守卫；dotnet build OK",
+      "status_reason": "",
+      "created_at": "2026-10-24T14:12:13+08:00",
+      "started_at": "2026-10-24T14:34:09+08:00",
+      "completed_at": "2026-10-24T14:34:09+08:00"
+    },
+    {
+      "id": "T2",
+      "title": "装饰器双队列与损伤语义",
+      "description": "",
+      "acceptance": "可靠帧 FIFO/due 单调/零丢零重零乱序；不可靠帧延迟抖动丢重复乱序；Tick 先释放后驱动；Send 同步拷贝；OnError 转发；Dispose/重连清队列",
+      "verify": "dotnet build Tests/LiteNet.Tests/LiteNet.Tests.csproj",
+      "files": [
+        "Assets/LiteNet/Diagnostics/WeakNet"
+      ],
+      "deps": [
+        "T1"
+      ],
+      "status": "done",
+      "evidence": "双队列/可靠 FIFO/不可靠损伤/Tick 序/OnError/Dispose；L3 10/10",
+      "status_reason": "",
+      "created_at": "2026-10-24T14:12:13+08:00",
+      "started_at": "2026-10-24T14:34:10+08:00",
+      "completed_at": "2026-10-24T14:34:10+08:00"
+    },
+    {
+      "id": "T3",
+      "title": "L3 内核用例",
+      "description": "",
+      "acceptance": "固定种子可复现、零注入 RollCount=0、各损伤生效、可靠 FIFO、队列溢出、Dispose/重连、同步拷贝全绿",
+      "verify": "python scripts/gate/test.py --lane L3 --filter FullyQualifiedName~WeakNet",
+      "files": [
+        "Tests/LiteNet.Tests/WeakNetTransportTests.cs"
+      ],
+      "deps": [
+        "T2"
+      ],
+      "status": "done",
+      "evidence": "WeakNetTransportTests 10/10",
+      "status_reason": "",
+      "created_at": "2026-10-24T14:12:14+08:00",
+      "started_at": "2026-10-24T14:34:10+08:00",
+      "completed_at": "2026-10-24T14:34:10+08:00"
+    },
+    {
+      "id": "T4",
+      "title": "App 层 runtime/预设/接线/快照/曲线",
+      "description": "",
+      "acceptance": "WeakNetRuntime 实例与 WrapFactory；预设表；Snapshot.AppendLines 单一文本；NetHistory 4Hz/240/40 列/真实窗口；IDebugTunableProvider 数值旋钮",
+      "verify": "dotnet build Tests/LiteNet.Tests/LiteNet.Tests.csproj",
+      "files": [
+        "Assets/LiteGame/App/Debug/WeakNet"
+      ],
+      "deps": [
+        "T2"
+      ],
+      "status": "done",
+      "evidence": "Runtime/Presets/Wiring/Snapshot/NetHistory；EditMode 7/7",
+      "status_reason": "",
+      "created_at": "2026-10-24T14:12:14+08:00",
+      "started_at": "2026-10-24T14:34:10+08:00",
+      "completed_at": "2026-10-24T14:34:10+08:00"
+    },
+    {
+      "id": "T5",
+      "title": "运行时接线（容器/内核/客户端/控制台）",
+      "description": "",
+      "acceptance": "ContainerModule 只在开发宏且 testRoom=false 包装；DebugKernel 注入并暴露快照；BattleClient 订阅 WeakNet.OnError；weak 命令经 CommandCenter 审计",
+      "verify": "python scripts/gate/unity-tests.py --mode editor --filter WeakNetWiringEditModeTests",
+      "files": [
+        "Assets/LiteGame/App/Bootstrap/ContainerModule.cs",
+        "Assets/LiteGame/App/Debug/DebugKernel.cs",
+        "Assets/LiteClient/Runtime/Battle/BattleClient.cs",
+        "Assets/LiteGame/DevTool/DebugConsole.cs"
+      ],
+      "deps": [
+        "T4"
+      ],
+      "status": "done",
+      "evidence": "ContainerModule/DebugKernel/BattleClient/DebugConsole 接线；Unity 0 error；EditMode 7/7",
+      "status_reason": "",
+      "created_at": "2026-10-24T14:12:14+08:00",
+      "started_at": "2026-10-24T14:34:10+08:00",
+      "completed_at": "2026-10-24T14:34:11+08:00"
+    },
+    {
+      "id": "T6",
+      "title": "HUD 接线",
+      "description": "",
+      "acceptance": "联机段追加注入行（同一 Snapshot 文本）；DevHudNetHistory 改用 App 层 NetHistory（4Hz 节流、240 窗口、40 列降采样、真实窗口标签）；无对局隐藏",
+      "verify": "python scripts/gate/unity-tests.py --mode editor --filter WeakNetWiringEditModeTests",
+      "files": [
+        "Assets/LiteGame/DevTool/Hud/DevHudSectionSet.cs",
+        "Assets/LiteGame/DevTool/Hud/DevHudNetHistory.cs"
+      ],
+      "deps": [
+        "T4"
+      ],
+      "status": "done",
+      "evidence": "HUD 注入行 + DevHudNetHistory 适配 NetHistory；Unity 0 error；渲染 Play 冒烟待人工",
+      "status_reason": "",
+      "created_at": "2026-10-24T14:12:14+08:00",
+      "started_at": "2026-10-24T14:34:11+08:00",
+      "completed_at": "2026-10-24T14:34:11+08:00"
+    },
+    {
+      "id": "T7",
+      "title": "EditMode 装配与守卫",
+      "description": "",
+      "acceptance": "WrapFactory 纯函数、ContainerModule 调用点、命令/tunable、快照/曲线文本、三宏剥离守卫全绿",
+      "verify": "python scripts/gate/unity-tests.py --mode editor --filter WeakNetWiringEditModeTests",
+      "files": [
+        "Assets/Tests/EditMode/WeakNetWiringEditModeTests.cs"
+      ],
+      "deps": [
+        "T5",
+        "T6"
+      ],
+      "status": "done",
+      "evidence": "WeakNetWiringEditModeTests 7/7",
+      "status_reason": "",
+      "created_at": "2026-10-24T14:12:14+08:00",
+      "started_at": "2026-10-24T14:34:11+08:00",
+      "completed_at": "2026-10-24T14:34:11+08:00"
+    },
+    {
+      "id": "T8",
+      "title": "Headless 固定种子弱网对跑",
+      "description": "",
+      "acceptance": "HeadlessClient 改收 IClientTransport；StartHeadless 按标志包装；共享逻辑时钟覆盖 RunFor/PumpAll/WaitFor；loss-only 对跑通过且输入被消费",
+      "verify": "python scripts/gate/test.py --lane L3 --filter FullyQualifiedName~WeakNet",
+      "files": [
+        "Tests/LiteNet.Tests/HeadlessClient.cs",
+        "Tests/LiteNet.Tests/WeakNetHeadlessRunTests.cs"
+      ],
+      "deps": [
+        "T3"
+      ],
+      "status": "done",
+      "evidence": "HeadlessClient 改 IClientTransport；WeakNet_LossOnly 通过；L3 11/11",
+      "status_reason": "",
+      "created_at": "2026-10-24T14:12:14+08:00",
+      "started_at": "2026-10-24T14:34:11+08:00",
+      "completed_at": "2026-10-24T14:34:12+08:00"
+    },
+    {
+      "id": "T9",
+      "title": "门禁设施（filter 与夜间 L3）",
+      "description": "",
+      "acceptance": "test.py --filter 替换默认表达式并追加 Quarantine 排除；nightly 增 L3 弱网步骤、独立 L3-* 日志、profile Nightly；可回读",
+      "verify": "python scripts/gate/test.py --lane L3 --filter FullyQualifiedName~WeakNet; python -m unittest discover -s scripts/tests -p test_*.py -v",
+      "files": [
+        "scripts/gate/test.py",
+        "scripts/gate/nightly-gate.py",
+        "scripts/tests"
+      ],
+      "deps": [
+        "T8"
+      ],
+      "status": "done",
+      "evidence": "test.py --filter + nightly L3；lane filter 4/4；L3 gate 11 PASS",
+      "status_reason": "",
+      "created_at": "2026-10-24T14:12:14+08:00",
+      "started_at": "2026-10-24T14:34:12+08:00",
+      "completed_at": "2026-10-24T14:34:12+08:00"
+    },
+    {
+      "id": "T10",
+      "title": "文档回写与审计登记",
+      "description": "",
+      "acceptance": "路线图 §3.4 现行形态、13 调试手册使用说明、施工进度新章；HUD 采样债登记；剥离/手动验证边界如实记录",
+      "verify": "python scripts/gate/doc-lint.py; python scripts/gate/test.py --lane Doc",
+      "files": [
+        "Docs/设计文档/测试与性能/调试与开发工具链演进路线图.md",
+        "Docs/项目说明/13-调试手册.md",
+        "Docs/施工进度/GM与调试线.md",
+        "Docs/审计/代码质量审计-客户端.md"
+      ],
+      "deps": [
+        "T7",
+        "T9"
+      ],
+      "status": "done",
+      "evidence": "路线图 §3.4/13 手册/GM 线第23章/审计登记；doc-lint 0/0",
+      "status_reason": "",
+      "created_at": "2026-10-24T14:12:15+08:00",
+      "started_at": "2026-10-24T14:34:12+08:00",
+      "completed_at": "2026-10-24T14:34:12+08:00"
+    }
+  ],
+  "verification": {
+    "at": "2026-10-24T16:18:55+08:00",
+    "ok": true,
+    "stale": false,
+    "evidence": "evidence/verify.json",
+    "command_fingerprint": "0ab03395995d5faa0227847d8cff58c666b71b2668778c58cd01cec0f26ea608",
+    "summary": {
+      "total": 16,
+      "passed": 16
+    }
+  },
+  "red_verification": {
+    "at": "2026-10-24T14:15:54+08:00",
+    "ok": true,
+    "stale": false,
+    "evidence": "evidence/red.json",
+    "command_fingerprint": "0360d5ddf424ed18f10a9ceb1b3329dba17bb7e380d6e04150d657e0e22e848f",
+    "summary": {
+      "total": 2,
+      "passed": 2
+    }
+  },
+  "archived_at": "2026-10-24T16:19:24+08:00"
+}

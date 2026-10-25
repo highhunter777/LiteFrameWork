@@ -709,7 +709,7 @@
       "purpose": "delivery",
       "summary": "dotnet 侧纯逻辑测试（含纪律扫描）。",
       "docs": "Docs/项目说明/05-验证与门禁.md",
-      "command": ["python", "scripts/gate/test.py", "--lane", "L1", "--profile", "PullRequest"],
+      "command": ["python", "scripts/gate/test.py", "--suite", "L1", "--profile", "PullRequest"],
       "args": [
         { "name": "profile", "type": "enum", "values": ["PullRequest", "Nightly", "Release"], "description": "测试 Profile" },
         { "name": "project-path", "type": "path", "description": "工程根路径" },
@@ -756,7 +756,7 @@
       "purpose": "delivery",
       "summary": "真 IO/网络/进程内服务端的集成与端到端测试。",
       "docs": "Docs/项目说明/05-验证与门禁.md",
-      "command": ["python", "scripts/gate/test.py", "--lane", "L3", "--profile", "PullRequest"],
+      "command": ["python", "scripts/gate/test.py", "--suite", "L3", "--profile", "PullRequest"],
       "args": [
         { "name": "profile", "type": "enum", "values": ["PullRequest", "Nightly", "Release"], "description": "测试 Profile" },
         { "name": "project-path", "type": "path", "description": "工程根路径" },
@@ -778,7 +778,7 @@
       "purpose": "delivery",
       "summary": "文档索引/链接/设计-进度分离与生成索引新鲜度。",
       "docs": "Docs/项目说明/05-验证与门禁.md",
-      "command": ["python", "scripts/gate/test.py", "--lane", "Doc"],
+      "command": ["python", "scripts/gate/test.py", "--suite", "Doc"],
       "args": [
         { "name": "profile", "type": "enum", "values": ["PullRequest", "Nightly", "Release"], "description": "测试 Profile" },
         { "name": "project-path", "type": "path", "description": "工程根路径" },
@@ -1223,7 +1223,8 @@
       "order": 60
     }
 ,
-        {"id": "ui.style.tokens", "title": "生成主题资产（JSON→SO）", "category": "ui", "kind": "action", "plane": "editor", "purpose": "dev", "handler": "ui.style.tokens", "summary": "从令牌源 UiStyleTokens.json 确定性生成 UiThemeAsset（幂等；失败零写盘）。", "docs": "Docs/设计文档/客户端/UI系统/UI编辑器工具链专项设计.md", "menu": "LiteGame/UI/样式工具/生成主题资产（令牌 JSON→SO）", "writes": ["asset", "generated"], "outputs": [{"path": "Assets/GameData/Config/UI/", "kind": "asset"}], "destructive": false, "order": 59}
+    {"id": "build.plan", "title": "构建 preflight", "category": "build", "kind": "cli", "plane": "external", "purpose": "delivery", "summary": "按 git diff 输出内环/交付两套最小重建集（只读，零写盘）。", "docs": "Docs/项目说明/05-验证与门禁.md", "command": ["python", "scripts/build/build-plan.py"], "args": [{"name": "base", "type": "string", "description": "git 基线（默认 origin/main）"}, {"name": "changed-file", "type": "string", "description": "直接指定改动路径（可重复，绕过 git）"}, {"name": "json", "type": "bool", "description": "输出机器可读 JSON"}, {"name": "project-path", "type": "path", "description": "工程根（必须是当前仓库）"}], "writes": ["none"], "destructive": false, "order": 5},
+    {"id": "ui.style.tokens", "title": "生成主题资产（JSON→SO）", "category": "ui", "kind": "action", "plane": "editor", "purpose": "dev", "handler": "ui.style.tokens", "summary": "从令牌源 UiStyleTokens.json 确定性生成 UiThemeAsset（幂等；失败零写盘）。", "docs": "Docs/设计文档/客户端/UI系统/UI编辑器工具链专项设计.md", "menu": "LiteGame/UI/样式工具/生成主题资产（令牌 JSON→SO）", "writes": ["asset", "generated"], "outputs": [{"path": "Assets/GameData/Config/UI/", "kind": "asset"}], "destructive": false, "order": 59}
   ],
   "surfaces": [
     {

@@ -29,11 +29,19 @@ ENV_KEYS = (
 
 def parse_args(argv=None):
     parser = argparse.ArgumentParser(description="LiteGame gate test entry")
-    parser.add_argument("--lane", choices=("L1", "L2", "L3", "All", "Doc"), default="L1")
+    parser.add_argument("--suite", choices=("L1", "L2", "L3", "All", "Doc"), default="L1")
     parser.add_argument("--profile", choices=("PullRequest", "Nightly", "Release"), default="PullRequest")
     parser.add_argument("--project-path", default=None)
     parser.add_argument("--results-directory", default="TestResults")
+    parser.add_argument("--filter", default=None,
+                        help="覆盖该套件的默认分类表达式（仍保留 Category!=Quarantine）")
     return parser.parse_args(argv)
+
+
+def compose_filter(default_filter, override):
+    if not override:
+        return default_filter
+    return f"({override})&(Category!=Quarantine)"
 
 
 def save_env():
@@ -84,8 +92,8 @@ def run_or_raise(command, label, cwd=None):
     return result
 
 
-class LaneError(RuntimeError):
-    """Lane failure carrying the counts collected before the failure."""
+class SuiteError(RuntimeError):
+    """Suite failure carrying the counts collected before the failure."""
 
     def __init__(self, message, counters=None, artifacts=()):
         super().__init__(message)
@@ -177,7 +185,7 @@ def _run_projects(name, projects, project, results, run_id, dotnet, filter_text,
     return counters, artifacts, failed
 
 
-def invoke_dotnet_lane(name, filter_text, hang_timeout, project, results, run_id, dotnet, profile):
+def invoke_dotnet_suite(name, filter_text, hang_timeout, project, results, run_id, dotnet, profile):
     info("quality/test", f"=== {name} | {profile} ===")
     counters = {"total": 0, "passed": 0, "failed": 0, "skipped": 0}
     artifacts = []
@@ -187,20 +195,20 @@ def invoke_dotnet_lane(name, filter_text, hang_timeout, project, results, run_id
             name, projects, project, results, run_id, dotnet, filter_text, hang_timeout
         )
         if failed:
-            raise LaneError(f"{name} failed in: {', '.join(failed)}. Results: {results}", counters, artifacts)
+            raise SuiteError(f"{name} failed in: {', '.join(failed)}. Results: {results}", counters, artifacts)
         if counters["total"] <= 0:
-            raise LaneError(
+            raise SuiteError(
                 f"{name} selected zero tests. Check traits and filter: {filter_text}", counters, artifacts
             )
-    except LaneError as exc:
-        write_summary(results, lane=name, profile=profile, status="fail", run_id=run_id,
+    except SuiteError as exc:
+        write_summary(results, suite=name, profile=profile, status="fail", run_id=run_id,
                       error=str(exc), artifacts=exc.artifacts, **exc.counters)
         raise
     except RuntimeError as exc:
-        write_summary(results, lane=name, profile=profile, status="fail", run_id=run_id,
+        write_summary(results, suite=name, profile=profile, status="fail", run_id=run_id,
                       error=str(exc), artifacts=artifacts, **counters)
         raise
-    write_summary(results, lane=name, profile=profile, status="pass", run_id=run_id,
+    write_summary(results, suite=name, profile=profile, status="pass", run_id=run_id,
                   artifacts=artifacts, **counters)
     info("quality/test", f"PASS: {name} completed {counters['total']} tests.")
 
@@ -220,9 +228,9 @@ def invoke_doc_lint(project, profile, results, run_id):
             run_or_raise([sys.executable, str(doc_lint), "--root", str(project)], "doc-lint", cwd=project)
             run_or_raise([sys.executable, str(toolchain), "docs", "--check"], "tool index check", cwd=project)
         except RuntimeError as exc:
-            write_summary(results, lane="Doc", profile=profile, status="fail", run_id=run_id, error=str(exc))
+            write_summary(results, suite="Doc", profile=profile, status="fail", run_id=run_id, error=str(exc))
             raise
-        write_summary(results, lane="Doc", profile=profile, status="pass", run_id=run_id)
+        write_summary(results, suite="Doc", profile=profile, status="pass", run_id=run_id)
     finally:
         if previous is None:
             os.environ.pop("PYTHONIOENCODING", None)
@@ -261,8 +269,8 @@ def main(argv=None):
     results.mkdir(parents=True, exist_ok=True)
 
     dotnet = shutil.which("dotnet")
-    if args.lane in {"L1", "L3", "All"} and not dotnet:
-        write_summary(results, lane=args.lane, profile=args.profile, status="fail",
+    if args.suite in {"L1", "L3", "All"} and not dotnet:
+        write_summary(results, suite=args.suite, profile=args.profile, status="fail",
                       error="dotnet not found on PATH")
         return fail("quality/test", "dotnet not found on PATH")
 
@@ -284,10 +292,12 @@ def main(argv=None):
         os.environ["NUGET_PACKAGES"] = str(nuget)
 
     try:
-        if args.lane == "L1":
-            invoke_dotnet_lane(
+        if args.suite == "L1":
+            invoke_dotnet_suite(
                 "L1",
-                "Category!=Integration&Category!=EndToEnd&Category!=Performance&Category!=Quarantine&Duration!=LongRunning",
+                compose_filter(
+                    "Category!=Integration&Category!=EndToEnd&Category!=Performance&Category!=Quarantine&Duration!=LongRunning",
+                    args.filter),
                 "5m",
                 project,
                 results,
@@ -295,7 +305,7 @@ def main(argv=None):
                 dotnet,
                 args.profile,
             )
-        elif args.lane == "L3":
+        elif args.suite == "L3":
             filter_text = "(Category=Integration|Category=EndToEnd)&Category!=Quarantine"
             timeout = "5m"
             if args.profile == "PullRequest":
@@ -303,13 +313,14 @@ def main(argv=None):
             else:
                 os.environ["M10_LONGRUN"] = "1"
                 timeout = "12m"
-            invoke_dotnet_lane("L3", filter_text, timeout, project, results, run_id, dotnet, args.profile)
-        elif args.lane == "L2":
+            filter_text = compose_filter(filter_text, args.filter)
+            invoke_dotnet_suite("L3", filter_text, timeout, project, results, run_id, dotnet, args.profile)
+        elif args.suite == "L2":
             invoke_l2(project, results)
-        elif args.lane == "Doc":
+        elif args.suite == "Doc":
             invoke_doc_lint(project, args.profile, results, run_id)
         else:
-            invoke_dotnet_lane(
+            invoke_dotnet_suite(
                 "L1",
                 "Category!=Integration&Category!=EndToEnd&Category!=Performance&Category!=Quarantine&Duration!=LongRunning",
                 "5m",
@@ -326,7 +337,8 @@ def main(argv=None):
             else:
                 os.environ["M10_LONGRUN"] = "1"
                 timeout = "12m"
-            invoke_dotnet_lane("L3", filter_text, timeout, project, results, run_id, dotnet, args.profile)
+            filter_text = compose_filter(filter_text, args.filter)
+            invoke_dotnet_suite("L3", filter_text, timeout, project, results, run_id, dotnet, args.profile)
             invoke_l2(project, results)
         return EXIT_OK
     except RuntimeError as exc:

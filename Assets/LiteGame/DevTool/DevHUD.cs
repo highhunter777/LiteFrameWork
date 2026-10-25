@@ -62,7 +62,7 @@ namespace LiteGame
         public bool showErrorsLine = true;
         [Tooltip("联机诊断段（相位/RTT/丢包/和解——BattleDiagnostics 读口；无对局整段不显示）")]
         public bool showNetDiag = true;
-        [Tooltip("性能段（帧率/最差帧/长帧计数——本机帧样本自算，非对局数据）")]
+        [Tooltip("性能段（帧率/最差帧/长帧计数——内核性能读模型，非对局数据）")]
         public bool showPerf = true;
 
         [Header("外观")]
@@ -107,7 +107,6 @@ namespace LiteGame
 
         private DiagnosticsBundleWriter _diagWriter;
         private DevHudUiToolkitHost _ui;          // null = IMGUI 回退
-        private readonly DevHudPerfSampler _perf = new DevHudPerfSampler();
 
         /// <summary>总开关（编辑器 GM 面板投影位；F1 等效翻转——开发包 Player 无 GM 面板时 F1 即唯一入口）。</summary>
         public bool Visible
@@ -157,7 +156,6 @@ namespace LiteGame
         {
             SavePrefs();
             DevHotkey.SetTextInputActive(this, false);
-            _perf.Dispose();
             _ui?.Dispose();
             _ui = null;
         }
@@ -176,14 +174,14 @@ namespace LiteGame
             _kernel = entry != null ? entry.DebugKernel : null;
             if (_kernel == null) return;
             _kernel.RebuildStats();
-            _sectionSet = new DevHudSectionSet(_kernel, _perf, _filter, _sectionOptions);
+            _sectionSet = new DevHudSectionSet(_kernel, _filter, _sectionOptions);
         }
 
         private void Update()
         {
-            _perf.SampleFrame(Time.unscaledDeltaTime);     // 采样与可见性解耦：隐藏期间性能窗不冻结
             if (_sectionSet == null) TryBindKernel();
             if (_sectionSet == null) return;               // 内核尚未装配：空态，不阻塞游戏
+            _kernel.SampleFrame(Time.unscaledDeltaTime);   // 采样与可见性解耦：隐藏期间性能窗不冻结
             _sectionSet.SampleNet();
             if (!_visible || Time.unscaledTime < _nextPoll) return;
             _nextPoll = Time.unscaledTime + 0.25f;
@@ -192,7 +190,7 @@ namespace LiteGame
             float started = Time.realtimeSinceStartup;
             BuildSections();
             float sampleMs = (float)((Time.realtimeSinceStartupAsDouble - started) * 1000.0);
-            _perf.HudBuildMs = _perf.HudBuildMs <= 0f ? sampleMs : Mathf.Lerp(_perf.HudBuildMs, sampleMs, 0.2f);
+            _kernel.RecordHudBuildMs(sampleMs);
         }
 
         private void BuildSections()
@@ -351,7 +349,7 @@ namespace LiteGame
             {
                 var ctx = new DevHudExportContext
                 {
-                    Session = Log.CurrentSessionId,
+                    Session = _kernel.CurrentSessionId,
                     Backend = _ui != null ? "uitk" : "imgui",
                     Visible = _visible,
                     Left = hudLeft,
@@ -384,11 +382,10 @@ namespace LiteGame
         /// <summary>把当前可见读数落成一份现场包（与 mismatch/异常同目录、同信封；reason=hud-snapshot）。</summary>
         private void DumpBundle()
         {
-            BattleContext context = BattleDiagnostics.Current;
-            if (context == null) { Toast("无对局上下文，未落盘"); return; }
+            if (_kernel == null || !_kernel.TryTakeBattleSnapshot(out BattleDiagnostics.Snapshot snapshot))
+            { Toast("无对局上下文，未落盘"); return; }
             try
             {
-                BattleDiagnostics.Snapshot snapshot = BattleDiagnostics.Take(context);
                 _diagWriter ??= new DiagnosticsBundleWriter(
                     Path.Combine(Application.persistentDataPath, "diagnostics"));
                 string path = ClientDiagnosticsBundle.Capture(_diagWriter, "hud-snapshot", snapshot.MatchId,

@@ -179,9 +179,17 @@ def run_async(args):
         payload = _result(_run_json(["command", "--timeout", "20", "test_status"], timeout=30))
         status = payload.get("status")
         if status in ("completed", "failed", "error", "interrupted", "cancelled"):
-            # 发射前遗留的 completed 状态（上一轮/被杀任务）不得当本轮结果；等新文件出现
+            # 发射前遗留的 completed 状态（上一轮/被杀任务）不得当本轮结果；等新文件出现。
+            # 同一机制也兜住"上一次终态被本轮读到"的错位：终态 payload 与本次 filter 不匹配时继续轮询，
+            # 直到本轮真正跑完（0 选中用例属真实结果，照旧快速判红）。
             mtime = _status_mtime()
-            if status == "completed" and mtime is not None and mtime < started - 0.5:
+            stale = mtime is not None and mtime < started - 0.5
+            results = payload.get("results") or []
+            total = int((payload.get("summary") or {}).get("total", 0) or 0)
+            filter_ok = (not args.filter or args.filter_type not in (None, "testName")
+                         or any(args.filter.lower() in str(case.get("FullName") or "").lower()
+                                for case in results))
+            if stale or (not filter_ok and total > 0):
                 if time.time() >= deadline:
                     print("test_status stayed stale after launch——async run did not start", file=sys.stderr)
                     return 1

@@ -29,7 +29,7 @@ namespace LiteNet.Tests
         public long MismatchReports;      // 上报的和解次数（和解率分子）
         public long InputsSent;
 
-        private readonly KcpTransportClient _transport;   // 本 harness 创建并拥有（生产路径由 KcpNetworkService 持有）
+        private readonly IClientTransport _transport;   // 本 harness 创建并拥有（生产路径由 KcpNetworkService 持有）
         private RollbackSim _sim;
         private SimMapData _map;
         private SimWorldState _mirror;             // 持久权威镜像（SnapshotReassembler 应用目标，§5.5——增量快照只在它上面累积才完整）
@@ -44,7 +44,7 @@ namespace LiteNet.Tests
         /// 无头客户端。<paramref name="roomId"/>/<paramref name="port"/> 参数化以支持**多房间并行对跑**
         /// （两客户端进不同房间）；缺省退回单房间形态（Room-A @ 27778）。
         /// </summary>
-        public HeadlessClient(string name, SimMapData map, KcpTransportClient transport,
+        public HeadlessClient(string name, SimMapData map, IClientTransport transport,
             string roomId = null, int port = 27778)
         {
             ClientName = name;

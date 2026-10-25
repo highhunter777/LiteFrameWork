@@ -40,7 +40,7 @@ class L2EntryTests(unittest.TestCase):
         self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
         self.assertIn("L2(meta)", result.stdout)
         summary = json.loads((ROOT / "TestResults" / "summary-l2.json").read_text(encoding="utf-8"))
-        self.assertEqual(summary["lane"], "L2")
+        self.assertEqual(summary["suite"], "L2")
         self.assertEqual(summary["status"], "pass")
 
     def test_bad_meta_fails(self):

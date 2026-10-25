@@ -213,7 +213,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: bdd7002cc2abb7a48a5be7b2e9ff1ba6, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  DirectToTraining: 0
+  DirectToTraining: 1
   NoDeath: 0
   InfiniteAmmo: 0
   LaserSight: 1

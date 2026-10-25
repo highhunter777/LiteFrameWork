@@ -88,7 +88,7 @@ jobs:
 
       - name: L1 快速测试
         shell: pwsh
-        run: python scripts/gate/test.py --lane L1 --profile PullRequest
+        run: python scripts/gate/test.py --suite L1 --profile PullRequest
 
       - name: Upload L1 results
         if: always()
@@ -118,7 +118,7 @@ jobs:
 
       - name: L3 网络与无头集成测试
         shell: pwsh
-        run: python scripts/gate/test.py --lane L3 --profile PullRequest
+        run: python scripts/gate/test.py --suite L3 --profile PullRequest
 
       - name: Upload L3 results
         if: always()
@@ -186,11 +186,11 @@ jobs:
 
       - name: 夜间 L1
         shell: pwsh
-        run: python scripts/gate/test.py --lane L1 --profile Nightly
+        run: python scripts/gate/test.py --suite L1 --profile Nightly
 
       - name: 夜间 L3（含 5 分钟长跑）
         shell: pwsh
-        run: python scripts/gate/test.py --lane L3 --profile Nightly
+        run: python scripts/gate/test.py --suite L3 --profile Nightly
 
       - name: Upload nightly results
         if: always()

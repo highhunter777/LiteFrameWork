@@ -30,6 +30,7 @@ namespace LiteGame
         private readonly VisualElement _panel;
         private readonly Label _status;
         private readonly FontAsset _font;
+        private readonly IReadOnlyList<TestModeOptions.Info> _options;
         private readonly Dictionary<TestModeOptions.Id, Button> _toggleButtons =
             new Dictionary<TestModeOptions.Id, Button>();
         private readonly Dictionary<string, TunableRow> _tunableRows =
@@ -59,6 +60,7 @@ namespace LiteGame
             _font = DevUiToolkitFont.CreateSdfFont();
             if (_font == null)
                 Log.Warning("开发面板：未找到可用的 SDF 系统字体，中文可能显示为方块", LogTag.UI);
+            _options = options;
 
             _go = new GameObject("[DebugPanel-UI]");
             _go.transform.SetParent(parent, false);
@@ -362,10 +364,10 @@ namespace LiteGame
             return button;
         }
 
-        private static TestModeOptions.Info FindInfo(TestModeOptions.Id id)
+        private TestModeOptions.Info FindInfo(TestModeOptions.Id id)
         {
-            foreach (TestModeOptions.Info info in TestModeOptions.All)
-                if (info.Id == id) return info;
+            for (int i = 0; _options != null && i < _options.Count; i++)
+                if (_options[i].Id == id) return _options[i];
             return default;
         }
 

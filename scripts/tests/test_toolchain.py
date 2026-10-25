@@ -255,15 +255,15 @@ class ManifestContractTests(unittest.TestCase):
         by_id = {tool["id"]: tool for tool in manifest["tools"]}
         self.assertEqual(
             by_id["quality.l1"]["command"],
-            ["python", "scripts/gate/test.py", "--lane", "L1", "--profile", "PullRequest"],
+            ["python", "scripts/gate/test.py", "--suite", "L1", "--profile", "PullRequest"],
         )
         self.assertEqual(
             by_id["quality.l3"]["command"],
-            ["python", "scripts/gate/test.py", "--lane", "L3", "--profile", "PullRequest"],
+            ["python", "scripts/gate/test.py", "--suite", "L3", "--profile", "PullRequest"],
         )
         self.assertEqual(
             by_id["quality.doc"]["command"],
-            ["python", "scripts/gate/test.py", "--lane", "Doc"],
+            ["python", "scripts/gate/test.py", "--suite", "Doc"],
         )
         self.assertTrue((ROOT / "scripts" / "gate" / "test.py").is_file())
         self.assertFalse((ROOT / "scripts" / "gate" / "test.ps1").exists())

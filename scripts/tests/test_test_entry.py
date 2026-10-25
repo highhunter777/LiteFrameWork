@@ -32,21 +32,21 @@ class TestEntryTests(unittest.TestCase):
         self.require_script()
         result = self.run_test("--help")
         self.assertEqual(result.returncode, 0, result.stderr)
-        self.assertIn("--lane", result.stdout)
+        self.assertIn("--suite", result.stdout)
         self.assertIn("--profile", result.stdout)
 
-    def test_invalid_lane_is_usage_error(self):
+    def test_invalid_suite_is_usage_error(self):
         self.require_script()
-        result = self.run_test("--lane", "BOGUS")
+        result = self.run_test("--suite", "BOGUS")
         self.assertEqual(result.returncode, 2, result.stdout + result.stderr)
 
-    def test_doc_lane(self):
+    def test_doc_suite(self):
         self.require_script()
-        result = self.run_test("--lane", "Doc")
+        result = self.run_test("--suite", "Doc")
         self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
         self.assertIn("doc-lint", result.stdout.lower())
         summary = json.loads((ROOT / "TestResults" / "summary-doc.json").read_text(encoding="utf-8"))
-        self.assertEqual(summary["lane"], "Doc")
+        self.assertEqual(summary["suite"], "Doc")
         self.assertEqual(summary["status"], "pass")
 
     def test_discovery_contract_guard(self):
@@ -56,7 +56,7 @@ class TestEntryTests(unittest.TestCase):
             (root / "Tests").mkdir()
             (root / "Tests" / "Bad.csproj").write_text("<Project />\n", encoding="utf-8")
             result = subprocess.run(
-                [sys.executable, str(SCRIPT), "--lane", "L1", "--project-path", str(root)],
+                [sys.executable, str(SCRIPT), "--suite", "L1", "--project-path", str(root)],
                 cwd=str(ROOT),
                 capture_output=True,
                 text=True,

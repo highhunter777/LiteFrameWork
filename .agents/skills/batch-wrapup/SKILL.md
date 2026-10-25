@@ -11,7 +11,7 @@ description: 一批代码改动完成后的收尾验证与文档回写流程。�
 
 | 情况 | 必跑 |
 |---|---|
-| 一切改动的基线 | Unity recompile 0 错误 + `python scripts/gate/test.py --lane L1 --profile PullRequest` |
+| 一切改动的基线 | Unity recompile 0 错误 + `python scripts/gate/test.py --suite L1 --profile PullRequest` |
 | 动过共享源集 / .proto / 表 | 按 `build-hash-sync` skill 重生成,再跑 L1(内含 BuildHash 守卫与表守卫) |
 | 目录搬动过 | 按 `directory-move-sync` skill 同步六面后跑 L1 |
 | 出包前 | `python scripts/codegen/gen-build-hash.py --check` |
@@ -34,4 +34,4 @@ L2(EditMode/PlayMode)留夜间流水线,白天不跑。
 2. 批次证据 → 记入 `Docs/施工进度/`(进度文档只保留最新进度)。
 3. 修了质量登记表条目 → 回写该审计文档"修复登记"表(**状态只由 git 事实回填**:「已提交 <hash>」/「工作区未提交」,禁裸「待提交」;**不删除条目**)。
 4. 新发现的质量问题 → 按登记表格式追加(严重度 + file:line + 一句话),让债可见。
-5. **文档纪律门禁**(独立 lane):`scripts/gate/test.py --lane Doc`(或直跑 `python scripts/gate/doc-lint.py`)——**D2 审计表裸「待提交」为违规**(须由 git 事实回填);D1 设计文档疑似内嵌施工状态为**提醒**(启发式,人工复核,勿把领域词如「待提交请求」当真。服务端卷 §2.1/§3.1 未收口前的已知债在脚本内 `PENDING` 过渡基线降级为提醒)。
+5. **文档纪律门禁**(独立套件):`scripts/gate/test.py --suite Doc`(或直跑 `python scripts/gate/doc-lint.py`)——**D2 审计表裸「待提交」为违规**(须由 git 事实回填);D1 设计文档疑似内嵌施工状态为**提醒**(启发式,人工复核,勿把领域词如「待提交请求」当真。服务端卷 §2.1/§3.1 未收口前的已知债在脚本内 `PENDING` 过渡基线降级为提醒)。

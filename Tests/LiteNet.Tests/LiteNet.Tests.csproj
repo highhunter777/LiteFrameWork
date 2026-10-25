@@ -5,6 +5,9 @@
     <ImplicitUsings>disable</ImplicitUsings>
     <IsTestProject>true</IsTestProject>
     <IsPackable>false</IsPackable>
+    <!-- WeakNet 内核源码链接进测试工程：LiteNet.csproj 不定义三宏（服务端/release 不含类型），
+         测试侧显式开启宏以编译同一份源码。 -->
+    <DefineConstants>$(DefineConstants);LITEFRAMEWORK_DEBUG</DefineConstants>
   </PropertyGroup>  <ItemGroup>
     <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.11.1" />
     <PackageReference Include="xunit" Version="2.9.2" />
@@ -26,6 +29,10 @@
   <!-- DI-3 会话工厂 L1 直测：Account 半边（工厂 + BattleClient）零引擎依赖，按源链接惯例纳入——
        测**真工厂**非复制品（与 LiteSim.Core.Tests 链接 Input 件同款纪律）。
        Match 半边依赖 BattleContext（SimView → UnityEngine），Unity 面，验收归 DI-4。 -->
+  <ItemGroup>
+    <Compile Include="..\..\Assets\LiteNet\Diagnostics\WeakNet\*.cs" Link="WeakNet\%(Filename)%(Extension)" />
+  </ItemGroup>
+
   <ItemGroup>
     <Compile Include="..\..\Assets\LiteGame\App\Procedure\AccountSessionFactory.cs" Link="Session\AccountSessionFactory.cs" />
     <Compile Include="..\..\Assets\LiteClient\Runtime\Battle\BattleClient.cs" Link="Session\BattleClient.cs" />

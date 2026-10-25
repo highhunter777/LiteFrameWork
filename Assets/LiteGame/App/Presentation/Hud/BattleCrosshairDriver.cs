@@ -58,7 +58,7 @@ namespace LiteGame
         private readonly RectTransform _reticle;
         private readonly GameObject _hip;
         private readonly GameObject _ads;
-        private readonly CrosshairFeelBook _feel;            // null = 无表装配（灰盒/测试）→ 防御回落 Default
+        private readonly CrosshairFeelProfile _feel;            // null = 无表装配（灰盒/测试）→ 防御回落 Default
         private readonly Action<bool> _setCursorVisible;    // 注入位：默认 no-op（光标实写已收编 PointerLockService）；测试注入断言驱动意向
         private float _lastScale = MinSpreadScale;          // 准心缩放脏位（值变化才写 Transform）
         private float _burstOpen;                            // 连发临时张开残余（倍率增量，≥0）
@@ -68,7 +68,7 @@ namespace LiteGame
         public BattleCrosshairDriver(SimView view, IInputService input, RectTransform plane,
             RectTransform reticle, GameObject hip, GameObject ads,
             Action<bool> setCursorVisible = null,
-            CrosshairFeelBook feel = null)
+            CrosshairFeelProfile feel = null)
         {
             _view = view ?? throw new ArgumentNullException(nameof(view));
             _input = input;

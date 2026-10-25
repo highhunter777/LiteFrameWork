@@ -272,6 +272,13 @@ namespace LiteGame
                     if (!Require(args, 1, "request <enter|exit|teleport>")) break;
                     Request(args[0]);
                     break;
+                case "weak":
+                    if (!Require(args, 1, "weak <none|lan|mobile|lossy>")) break;
+                    if (_kernel.TrySetWeakNetPreset(args[0], out string weakError))
+                        Append("weak = " + args[0]);
+                    else
+                        AppendError(weakError);
+                    break;
                 case "undo":
                     Append(_kernel.Undo() ? "Undo 已执行" : "无可撤销命令");
                     break;

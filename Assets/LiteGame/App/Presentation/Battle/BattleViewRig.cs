@@ -27,7 +27,7 @@ namespace LiteGame
     /// 的租约由本件持有——视图是上下文的消费者，**先拆视图再拆上下文**（反向释放会读到已拆的 Sim）。
     /// 服务本体（内容/输入/相机/VFX/音频/命令）归装配根，本件只持引用。
     ///
-    /// **降级口径**：缺资源/缺服务一律"警告 + 显式降级"（缺角色 prefab → 程序化灰盒；缺 HUD/激光/飘字/
+    /// **降级口径**：缺资源/缺服务一律"警告 + 显式降级"（缺角色 prefab → 无角色视图，不造假人；缺 HUD/激光/飘字/
     /// 音效 → 该项静默降级），不把表现增益当成对局失败。
     /// </summary>
     internal sealed class BattleViewRig
@@ -36,7 +36,7 @@ namespace LiteGame
         /// 短按也走完一次完整混合，连点不重启混合（相机抖动的输入侧治理）。</summary>
         private const float AimMinHoldSeconds = 0.3f;
 
-        /// <summary>玩家实体 prefab（内容包路径；资源缺失时 <see cref="AssetService"/> 侧**回退程序化灰盒**）。</summary>
+        /// <summary>玩家实体 prefab（内容包路径；资源缺失时**无角色视图**——不造占位替身）。</summary>
         private const string EntityPrefab = SimView.DefaultEntityPrefab;
 
         /// <summary>瞄准激光束 prefab（内容包路径：Assets/FX 归置副本 fx_lazer_sight——KriptoFX Lazer 单源）。</summary>
@@ -86,7 +86,7 @@ namespace LiteGame
         private SimView _view;
         private CharacterLocomotionDriver _locomotion;   // 移动动画驱动（视图的消费者——先于视图拆除）
         private BattleCrosshairDriver _crosshair;       // 对局准心（Hud_Battle prefab）
-        private readonly CrosshairFeelBook _crosshairFeel;   // 准心手感投影（tbcrosshair——可空 = 测试装配回落 Default）
+        private readonly CrosshairFeelProfile _crosshairFeel;   // 准心手感投影（tbcrosshair——可空 = 测试装配回落 Default）
         private BattleHudDriver _hud;                   // HUD 面板（血条/弹药——技能栏静态占位）
         private BattleRankboardDriver _rankboard;       // 局内排行榜（FFA 比分＝击杀——镜像公共面）
         private BattleRespawnHudDriver _respawnHud;      // 死亡/复活 HUD（中央倒计时 + 归属 + 保护角标）
@@ -128,7 +128,7 @@ namespace LiteGame
         /// <param name="worldClock">世界钟（伤害数字寿命/合并窗；null = 飘字降级）。</param>
         internal BattleViewRig(IContentService content, IInputService input, ICameraService camera,
             ClientScope account, IVFXService vfx = null, LiteFramework.IWorldClock worldClock = null,
-            AudioService audio = null, CommandCenter commands = null, CrosshairFeelBook crosshairFeel = null)
+            AudioService audio = null, CommandCenter commands = null, CrosshairFeelProfile crosshairFeel = null)
         {
             _content = content ?? throw new ArgumentNullException(nameof(content));
             if (account == null) throw new ArgumentNullException(nameof(account));
@@ -149,7 +149,7 @@ namespace LiteGame
         // ---- 取件（资源租约；逐项降级）----
 
         /// <summary>取全部对局表现资源（角色 prefab → 激光束 → 飘字底件 → 逐档材质 → 片段清单 → 音效 clip）。
-        /// 逐项失败只降级该项（缺角色资源回退程序化灰盒），不把缺美术当对局失败。</summary>
+        /// 逐项失败只降级该项（缺角色资源＝无角色视图），不把缺美术当对局失败。</summary>
         internal async UniTask LoadAsync(CancellationToken ct)
         {
             await AcquireEntityPrefabAsync(ct);
@@ -164,7 +164,8 @@ namespace LiteGame
 
         /// <summary>
         /// 取玩家实体 prefab（经内容服务租约，登记进视图作用域）。资源包未入库的克隆（第三方素材按
-        /// 仓库政策不入 VCS）或加载失败时**回退程序化灰盒**——缺角色资源是可复现降级而非错误态。
+        /// 仓库政策不入 VCS）或加载失败时**无角色视图**——工厂拒绝＝无实体可见（EntityViewMap 契约），
+        /// 不造占位替身；缺角色资源如实告警，不把缺美术当对局失败。
         /// </summary>
         private async UniTask AcquireEntityPrefabAsync(CancellationToken ct)
         {
@@ -176,17 +177,9 @@ namespace LiteGame
             }
             catch (Exception ex) when (!(ex is OperationCanceledException))
             {
-                Log.Warning($"实体 prefab 缺失，回退程序化灰盒:{EntityPrefab}（{ex.Message}）", LogTag.Battle);
+                Log.Warning($"实体 prefab 缺失，本局无角色视图:{EntityPrefab}（{ex.Message}）", LogTag.Battle);
                 _prefabLease = null;
-                _prefab = GreyboxEntity.Make();
-                _viewScope.Register(new DelegatedDisposable(() =>
-                {
-                    if (_prefab != null)
-                    {
-                        if (Application.isPlaying) UnityEngine.Object.Destroy(_prefab);
-                        else UnityEngine.Object.DestroyImmediate(_prefab);
-                    }
-                }));
+                _prefab = null;
             }
         }
 

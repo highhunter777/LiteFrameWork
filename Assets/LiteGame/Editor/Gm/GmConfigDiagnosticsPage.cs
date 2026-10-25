@@ -90,8 +90,11 @@ namespace LiteGame.Editor
             var config = GetConfigService();
             string configText = config == null ? "未装配" : config.Loaded ? "已加载" : "未加载";
 
+            DebugKernel kernel = GmEditorResolve.ResolveFromContainer<DebugKernel>();
+            string errorText = kernel != null ? kernel.ErrorCount.ToString() : "—";
+
             _status = $"Play={(Application.isPlaying ? "是" : "否")}｜AssetService={(AssetService.Initialized ? "就绪" : "未初始化")}"
-                      + $"｜配置={configText}｜FSM={fsmState}｜ErrorCount={Log.ErrorCount}";
+                      + $"｜配置={configText}｜FSM={fsmState}｜ErrorCount={errorText}";
         }
 
         // ---- 表查询 ----

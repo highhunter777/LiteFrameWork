@@ -294,6 +294,57 @@ namespace LiteGame.Tests.EditMode
             StringAssert.Contains("超出范围", error);
         }
 
+        [Test]
+        public void 测试模式与日志上下文读口_经内核()
+        {
+            Assert.AreEqual(TestModeRuntime.Active, _kernel.IsTestModeActive);
+            Assert.AreEqual(Log.CurrentMatchId, _kernel.CurrentMatchId);
+            Assert.AreEqual(Log.CurrentSessionId, _kernel.CurrentSessionId);
+        }
+
+        [Test]
+        public void 重置假人_宿主钩子经内核置位()
+        {
+            try
+            {
+                _kernel.RequestBotReset();
+                Assert.IsTrue(LiteSim.SimTestRules.BotResetRequested);
+            }
+            finally
+            {
+                LiteSim.SimTestRules.BotResetRequested = false;
+            }
+        }
+
+        [Test]
+        public void 性能读模型_帧样本与HUD耗时回填()
+        {
+            var kernel = new DebugKernel(_commands, null);
+            for (int i = 0; i < 40; i++) kernel.SampleFrame(0.016f);   // 30 帧预热 + 10 帧样本
+
+            Assert.IsTrue(kernel.TryTakePerf(out PerfReading perf));
+            Assert.AreEqual(10, perf.Frames.SampleCount);
+            Assert.GreaterOrEqual(perf.Frames.Fps, 50);
+            Assert.LessOrEqual(perf.Frames.Fps, 70);
+            Assert.AreEqual(0, perf.Frames.LongFrames);
+            Assert.Greater(perf.Frames.P50Ms, 15f);
+            Assert.Less(perf.Frames.P99Ms, 18f);
+
+            kernel.RecordHudBuildMs(5f);
+            kernel.RecordHudBuildMs(5f);
+            Assert.IsTrue(kernel.TryTakePerf(out PerfReading after));
+            Assert.AreEqual(5f, after.HudBuildMs, 0.01f);
+        }
+
+        [Test]
+        public void 性能读模型_无帧样本为空()
+        {
+            var kernel = new DebugKernel(_commands, null);
+
+            Assert.IsFalse(kernel.TryTakePerf(out PerfReading perf));
+            Assert.IsFalse(perf.HasFrames);
+        }
+
         private void RegisterProbe()
         {
             _registrations.Add(_commands.Register<DebugKernelProbeCommand>(

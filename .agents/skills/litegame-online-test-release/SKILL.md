@@ -265,7 +265,7 @@ pwsh -NoProfile -File Dist/New-Packages.ps1 -Testers <tester> -Overlay -Zip -For
 
 - 把本次 shared/meta hash、Room/Meta 任务状态、大厅投影、客户端产物时间、偏差项追加到当前上云进度卷（现为 `Docs/施工进度/上云测试线.md`），并写明“双人真对局是否已执行”；仅对外分发时再记包大小。
 - 默认本机测试，不产出发布包；`Dist/out` 出现 `LiteGame-base.zip` 或 testers 的 `.conf` 即说明走了分发形态，发布记录需写明。
-- 跑 `python scripts/gate/doc-lint.py --no-links`（或 `python scripts/gate/test.py --lane Doc`）。
+- 跑 `python scripts/gate/doc-lint.py --no-links`（或 `python scripts/gate/test.py --suite Doc`）。
 - 提交/推送前先问用户；不要自动提交云侧配置、测试包或任何 `LocalNotes`/`.conf`。
 - 交接提醒：必须用新客户端（旧 exe 会 409）；云上 `sandbox` 不限时/无击杀上限/1s 复活/不产结算；同机第二客户端用 `-device.id`；测结算要把 `default_template` 切回 `standard` 并重发配置。
 - 本 skill 不验证实际对局；不把封闭测试环境当作公开可发布环境；不硬编码本次 hash（以生成器与日志为准）。

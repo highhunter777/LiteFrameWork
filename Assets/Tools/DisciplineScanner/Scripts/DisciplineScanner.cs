@@ -59,6 +59,17 @@ namespace Tools.DisciplineScan
         /// DefaultRifleId 等 const——两端编译期同值）。值一律经 `CombatValues`/`MovementValues`/`WeaponTable`
         /// 实例参数传递。例外行 lint-allow R13 并写明理由。</summary>
         R13StaticConfigPort = 13,
+
+        /// <summary>R14 投影禁直调调试源（《GM 与调试工具分层专项设计》§7"统一内核与三投影"）：
+        /// 两个投影根（`Assets/LiteGame/DevTool` 运行期投影程序集 + `Assets/LiteGame/Editor/Gm` 编辑器 GM 页）内，
+        /// 调试**读数/动作/发现面**一律经 `DebugKernel` 门面——禁直调底层读口（`BattleDiagnostics.Current/Take`、
+        /// `Log.Recent/ErrorCount/Current*`、`DiagTrace.Recent/Total`、`GameEntry.Stats`）与写口
+        /// （`TestModeOptions.Get/Set/All`、`TestModeRuntime.*`、`SimTestRules.*`、`CommandCenter`、
+        /// `StructuredLogInstaller`、`WeakNetRuntime`/`WeakNetClientTransport`、`FeatureDebugTunables`/`WeaponDebugTunables`）。
+        /// 豁免面：契约类型引用（`TestModeOptions.Id/Info/Group`、`BattleDiagnostics.Snapshot` 等类型位置）、
+        /// 纯格式化助手（`DiagTrace.Line`、`Log.TagName`）、日志门面写口（`Log.Warning/Error/Info`——投影自身运维日志）。
+        /// 例外行 `lint-allow R14` 并写明理由（如场景页＝带参命令专面板）。</summary>
+        R14ProjectionDebugPort = 14,
     }
 
     /// <summary>一条纪律违规。</summary>
@@ -165,6 +176,28 @@ namespace Tools.DisciplineScan
             RegexOptions.Compiled);
 
         /// <summary>
+        /// R14：投影禁直调调试源（§7 内核+投影——读数/动作/发现面经 DebugKernel 门面）。
+        /// 成员级禁令：契约类型（Id/Info/Group/Snapshot）与纯格式化助手（DiagTrace.Line、Log.TagName）
+        /// 不在禁列；Log 门面写口（Warning/Error/Info）放行。字符串字面量先行剥离（页面标签/
+        /// Tooltip 常含类型名文案——见 <see cref="StripStrings"/>）。
+        /// </summary>
+        private static readonly Regex R14Regex = new Regex(
+            @"\bBattleDiagnostics\s*\.\s*(?:Current|Take|DescribeCurrent|AppendExtendedCurrent|Attach|Detach)\b" +
+            @"|\bTestModeOptions\s*\.\s*(?:Get\s*\(|Set\s*\(|All\b|ApplyDefaults\s*\()" +
+            @"|\bTestModeRuntime\s*\." +
+            @"|\bDiagTrace\s*\.\s*(?:Recent|Total)\b" +
+            @"|\bLog\s*\.\s*(?:Recent|ErrorCount|CurrentSessionId|CurrentMatchId|SetMatchContext|SetFrame)\b" +
+            @"|\bCommandCenter\b" +
+            @"|\bStructuredLogInstaller\b" +
+            @"|\bWeakNetRuntime\b" +
+            @"|\bWeakNetClientTransport\b" +
+            @"|\bSimTestRules\s*\." +
+            @"|\bFeatureDebugTunables\s*\." +
+            @"|\bWeaponDebugTunables\s*\." +
+            @"|\bGameEntry\s*\.\s*Stats\b",
+            RegexOptions.Compiled);
+
+        /// <summary>
         /// R12 边界表：适配器 → 允许 import 它的目录前缀（相对**项目根**，正斜杠）。
         /// <b>这是"形成逻辑边界"的唯一登记点</b>——新增适配器时在这里加一行，
         /// 而不是到处散写字符串（与动画 Profile 的"ID→状态绑定唯一登记点"同一纪律）。
@@ -264,6 +297,7 @@ namespace Tools.DisciplineScan
             LintRule.R11RuntimePurity,
             LintRule.R12AdapterBoundary,
             LintRule.R13StaticConfigPort,
+            LintRule.R14ProjectionDebugPort,
         };
 
         public static string RuleId(LintRule rule)
@@ -283,6 +317,7 @@ namespace Tools.DisciplineScan
                 case LintRule.R11RuntimePurity: return "R11";
                 case LintRule.R12AdapterBoundary: return "R12";
                 case LintRule.R13StaticConfigPort: return "R13";
+                case LintRule.R14ProjectionDebugPort: return "R14";
                 default: return "R?";
             }
         }
@@ -291,13 +326,18 @@ namespace Tools.DisciplineScan
         /// 默认排除：Editor 目录下的工具码、生成物 SimTrigTables.cs、以及引擎自身的规则定义文件
         /// （规则里含 <c>FusedMultiplyAdd</c> / <c>Math.</c> 等字面串，会被自己误报）。
         /// </summary>
-        public static bool IsExcluded(string path)
+        public static bool IsExcluded(string path) => IsExcluded(path, false);
+
+        /// <summary><paramref name="includeEditorDirs"/>：受守根显式覆盖 /Editor/ 子树时（如 Editor/Gm 投影纪律）
+        /// 不按 Editor 目录排除——只排除自引文件与生成物；其余排除面不变。</summary>
+        public static bool IsExcluded(string path, bool includeEditorDirs)
         {
             if (string.IsNullOrEmpty(path)) return false;
             string p = path.Replace('\\', '/');
             if (p.EndsWith("/SimTrigTables.cs", StringComparison.Ordinal)) return true;
             if (p.EndsWith("/DisciplineScanner.cs", StringComparison.Ordinal)) return true;
-            if (p.Contains("/Editor/") || p.EndsWith("/Editor", StringComparison.Ordinal)) return true;
+            if (!includeEditorDirs
+                && (p.Contains("/Editor/") || p.EndsWith("/Editor", StringComparison.Ordinal))) return true;
             if (p.Contains("/Vendor/")) return true; // 第三方 vendored 源码（kcp2k 等）——非自研代码不入纪律扫描
             return false;
         }
@@ -327,9 +367,10 @@ namespace Tools.DisciplineScan
         }
 
         /// <summary>扫描一个源根目录（相对 <paramref name="projectRoot"/>）下的全部 *.cs。
-        /// <paramref name="excludeRoots"/> 内的子根被跳过（相对路径前缀匹配，用于同一大根下的异域子目录）。</summary>
+        /// <paramref name="excludeRoots"/> 内的子根被跳过（相对路径前缀匹配，用于同一大根下的异域子目录）。
+        /// <paramref name="includeEditorDirs"/> 为真时 /Editor/ 子树不被默认排除（受守根显式含 Editor 的场合）。</summary>
         public static List<LintViolation> ScanRoot(string projectRoot, string relativeRoot, LintRule[] rules,
-            string[] excludeRoots = null)
+            string[] excludeRoots = null, bool includeEditorDirs = false)
         {
             var result = new List<LintViolation>();
             string root = Path.Combine(projectRoot, relativeRoot);
@@ -340,7 +381,7 @@ namespace Tools.DisciplineScan
             for (int i = 0; i < files.Length; i++)
             {
                 string normalized = files[i].Replace('\\', '/');
-                if (IsExcluded(normalized)) continue;
+                if (IsExcluded(normalized, includeEditorDirs)) continue;
                 string display = RelativeDisplay(projectRoot, normalized);
                 if (IsUnderExcludedRoot(display, excludeRoots)) continue;
                 result.AddRange(ScanText(display, File.ReadAllText(files[i]), rules));
@@ -371,7 +412,8 @@ namespace Tools.DisciplineScan
             ScanTarget[] targets = ScanTargets.Default;
             for (int t = 0; t < targets.Length; t++)
             {
-                List<LintViolation> hits = ScanRoot(projectRoot, targets[t].Root, targets[t].Rules, targets[t].ExcludeRoots);
+                List<LintViolation> hits = ScanRoot(projectRoot, targets[t].Root, targets[t].Rules,
+                    targets[t].ExcludeRoots, targets[t].IncludeEditorDirs);
                 for (int i = 0; i < hits.Count; i++)
                     result.Add(new KeyValuePair<string, LintViolation>(targets[t].Root, hits[i]));
             }
@@ -468,6 +510,7 @@ namespace Tools.DisciplineScan
                     return !IsAdapterBoundaryAllowed(fileName, adapter);
                 }
                 case LintRule.R13StaticConfigPort: return R13Regex.IsMatch(code);
+                case LintRule.R14ProjectionDebugPort: return R14Regex.IsMatch(StripStrings(code));
                 default: return false;
             }
         }
@@ -520,6 +563,36 @@ namespace Tools.DisciplineScan
             if (code.IndexOf("UNITY_EDITOR", StringComparison.Ordinal) < 0) return false;
             if (code.IndexOf("LITEFRAMEWORK_DEBUG", StringComparison.Ordinal) >= 0) return false;
             return true;
+        }
+
+        /// <summary>把字符串/字符字面量内容替换为空（引号保留）——供 R14 这类"类型名可能出现在
+        /// 页面文案/Tooltip"的规则避免字面量误报；输入应为已剔注释的行。</summary>
+        private static string StripStrings(string line)
+        {
+            var sb = new StringBuilder(line.Length);
+            bool inString = false;
+            bool inChar = false;
+
+            for (int i = 0; i < line.Length; i++)
+            {
+                char c = line[i];
+                if (inString)
+                {
+                    if (c == '\\' && i + 1 < line.Length) { i++; continue; }
+                    if (c == '"') { inString = false; sb.Append(c); }
+                    continue;
+                }
+                if (inChar)
+                {
+                    if (c == '\\' && i + 1 < line.Length) { i++; continue; }
+                    if (c == '\'') { inChar = false; sb.Append(c); }
+                    continue;
+                }
+                if (c == '"') { inString = true; sb.Append(c); continue; }
+                if (c == '\'') { inChar = true; sb.Append(c); continue; }
+                sb.Append(c);
+            }
+            return sb.ToString();
         }
 
         /// <summary>去掉行注释与块注释（字符串字面量感知）。</summary>

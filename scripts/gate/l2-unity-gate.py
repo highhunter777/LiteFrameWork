@@ -279,7 +279,7 @@ def main(argv=None):
                     artifacts.append(relative_path(project, path))
         write_summary(
             results,
-            lane="L2",
+            suite="L2",
             profile="",
             status=status,
             total=gate.metrics["total"],

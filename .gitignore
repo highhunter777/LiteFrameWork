@@ -5,6 +5,9 @@
 [Bb]in/
 [Bb]uild/
 [Bb]uilds/
+# scripts/build 是工具链源码目录，不是构建产物目录
+!scripts/build/
+!scripts/build/**
 [Bb]in.meta
 [Oo]bj.meta
 [Ll]ogs/

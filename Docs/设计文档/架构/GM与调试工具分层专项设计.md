@@ -1,7 +1,7 @@
 # GM 与调试工具分层设计
 
-> 版本：1.5
-> 更新日期：2026-10-23
+> 版本：1.6
+> 更新日期：2026-10-25
 > 定位：GM/调试面的**分层裁决与形态契约**——回答“调试能力的内核放在哪、投影怎么长、写口与读口归谁”。
 > 不做的事：不裁决具体调试工具的能力清单与优先级（归[《调试与开发工具链演进路线图》](../测试与性能/调试与开发工具链演进路线图.md)）；不裁决工具平台形态（归[《开发工具链平台专项设计》](开发工具链平台专项设计.md)）；不登记施工批次（归 [施工进度/GM与调试线](../../施工进度/GM与调试线.md)）。
 > 冲突裁决：内核/投影职责与写口纪律以本文为准；能力优先级以调试路线图 T0～T3 为准；平台形态以平台专项为准；UI 专用投影以[《UI 运行时调试工具链专项设计》](../客户端/UI系统/UI运行时调试工具链专项设计.md)为准。
@@ -44,9 +44,9 @@
 
 ## 5. 运行时投影：DevHUD、开发控制台与常用面板
 
-只读统计 HUD（自创建、F1 总开关、0.25s 节流、拉 `GameEntry.Stats`）——**保持只读**。将来真机/开发包若需 GM 动作，加命令通道（§2.2 形态复用），不给 HUD 加直写口。目录 `Assets/LiteGame/DevTool/`、程序集独立 `LiteGame.DevTool` + 三宏剥离；**禁移入 `Editor/` 特殊目录**（代码自创建形态，`MonoBehaviour` 须可 AddComponent——详见其类注释）。
+只读统计 HUD（自创建、F1 总开关、0.25s 节流、经 `GameEntry.DebugKernel` 读内核读模型）——**保持只读**。将来真机/开发包若需 GM 动作，加命令通道（§2.2 形态复用），不给 HUD 加直写口。目录 `Assets/LiteGame/DevTool/`、程序集独立 `LiteGame.DevTool` + 三宏剥离；**禁移入 `Editor/` 特殊目录**（代码自创建形态，`MonoBehaviour` 须可 AddComponent——详见其类注释）。
 
-- **段构成**：模块 stats 段（容器注册件 + 场景组件型合并发现）＋联机诊断段（读口 `BattleDiagnostics`——对局上下文的 dev-only 单点登记，对局视图装配/拆视图两处接线；无对局整段不显示，不显示陈旧值）＋性能段（帧间隔环形样本自算：均值 FPS/最差帧/长帧计数）＋日志尾巴/错误行。各段渲染开关 = DevHUD public 字段。
+- **段构成**：模块 stats 段（容器注册件 + 场景组件型合并发现）＋联机诊断段（读口 `BattleDiagnostics`——对局上下文的 dev-only 单点登记，对局视图装配/拆视图两处接线；无对局整段不显示，不显示陈旧值）＋性能段（内核性能读模型：FPS/p50/p95/p99/最差帧/长帧 + GC/Draw/Batches recorder——投影只喂时钟差并读 `DebugKernel` 读口）＋日志尾巴/错误行。各段渲染开关 = DevHUD public 字段。
 - **对局诊断读口**（`App/Debug/BattleDiagnostics`）：对局上下文是流程私有件——不进容器、非场景组件，HUD 与 GM 页经同一登记口读数（`Attach/Detach` + 快照/描述单源——两处消费不各拼一套文案）；RTT/丢包口径与 `BattleNetworkHudDriver` 同源（千分比 → 一位小数百分比）。
 - **编辑器投影**：`LiteGame/工具链` →「联机诊断」页＝DevHUD 开关投影（总开关/段开关，F1 等效）＋读数投影（同一描述单源）。包形态无 Hub，HUD 由 F1 开。
 - **开发包启用**：出包脚本消费 BuildProfile `channel`——`development` 通道传 `BuildOptions.Development`（三宏的 `DEVELOPMENT_BUILD` 在包内成立，dev 面随包编译：DevHUD/DebugConsole/DebugPanel/DevStartupConfig/DebugRuntimeTuner/GM 命令层）；其余通道维持原样（缺省仅 DetailedBuildReport）。**分发边界**：development 通道产物＝开发侧测试客户端专用，**不进测试者分发包**——测试者出包走 release 通道档（`BuildProfiles/windows-x64-release.json`），各通道产物目录独立（`profile.output` 透传 build 命令），Dist 打包测试者包指向 `Builds/StandaloneWindows64-release`。开发控制台随 `DebugConsole` 自创建（`RuntimeInitializeOnLoadMethod`），不需要 dev 预制体；运行期开发入口不随包通道分叉。
@@ -61,6 +61,7 @@
 - 审计环不覆盖 pre-Play 请求桥与高频旋钮（§2 取舍，非遗漏）。
 - `MatchTestRules` 链路依赖"客户端预测与进程内服务器同进程同实例"——**本地测试模式/本地服形态专属**；真 KCP 的云端测试房只提供 `gm_flags`（免死/无限弹药）在线下发，爆头带/持枪幅度等覆写仍只在本地测试模式验（`ProcedureMatch` 入口口径）。
 - GM 面板对局中导出爆头区会触发 domain reload 中断对局（既有行为，页内 HelpBox 已提示）。
+- **投影直调禁令（R14）**：两个投影根（`LiteGame.DevTool` + `Editor/Gm`）的调试读数/动作/发现面一律经内核；直调底层调试源由纪律扫描把守。唯一 lint-allow 判例＝场景页（带参命令专面板——`CommandCenter.SendAsync` 直用，全量审计）；编辑器页在非 Play（内核未装配）时相关节空态提示。
 
 ## 7. 统一内核与三投影
 
@@ -70,6 +71,7 @@
 
 - **内核**：与 UI/载体无关的读模型、动作模型与发现协议——一项能力只在这里实现一次；
 - **投影**：编辑器 Hub 页、运行期只读面、运行期操控面——只做读取、渲染、输入与编排，不持规则、不写运行态、不另拼读数；
+- **投影禁直调**：读数、动作、发现面一律经内核门面——直调底层调试源（读口/写口/发现表）由纪律扫描 **R14** 把守（受守根＝`Assets/LiteGame/DevTool` 与 `Assets/LiteGame/Editor/Gm`；豁免＝契约类型引用（`TestModeOptions.Id/Info`、`BattleDiagnostics.Snapshot` 等类型位置）、纯格式化助手（`DiagTrace.Line`/`Log.TagName`）、`Log` 门面写口；例外行 `lint-allow R14` 注明理由）；
 - 新增投影不改内核；新增内核能力由所有投影按发现面自动获得，或由投影显式声明不支持。
 
 这条裁决把“编辑器工具能做的，开发包也能做”变成结构性结果，而不是每批再补一套面板。
@@ -78,8 +80,8 @@
 
 | 子面 | 内容 | 现行承载 |
 | --- | --- | --- |
-| 读模型 | 模块统计、对局诊断、日志/结构化诊断、页面状态与焦点、配置/内容身份、性能样本 | `GameEntry.Stats`、`BattleDiagnostics`、`Log`/`DiagTrace`、`UIService`/`UIModalStack.IUIFormQuery` 只读查询 |
-| 动作模型 | 低频离散动作（命令化 + 审计 + 可撤销）、测试开关单表、pre-Play 一次性请求桥 | `CommandCenter`、`TestModeOptions`、`TestModeRuntime` |
+| 读模型 | 模块统计、对局诊断、日志/结构化诊断、页面状态与焦点、配置/内容身份、性能样本、测试模式/日志关联上下文（`IsTestModeActive`/`CurrentMatchId`/`CurrentSessionId`/`StartupBotCount`） | `GameEntry.Stats`、`BattleDiagnostics`、`Log`/`DiagTrace`、`UIService`/`UIModalStack.IUIFormQuery` 只读查询、`DebugPerfSampler`（帧统计 + GC/Draw/Batches recorder——经 `DebugKernel.SampleFrame/TryTakePerf/RecordHudBuildMs`） |
+| 动作模型 | 低频离散动作（命令化 + 审计 + 可撤销）、测试开关单表、pre-Play 一次性请求桥、一次性宿主钩子（bot 重置 `RequestBotReset`） | `CommandCenter`、`TestModeOptions`、`TestModeRuntime`、`SimTestRules.BotResetRequested`（经内核收口） |
 | 发现协议 | 命令注册表（类型/描述/GmOnly/注册时序）、选项表、读模型段表、调参描述表 | `CommandCenter.GetRegisteredInfos()`、`TestModeOptions.All`、`IDevHudSection`、`IDebugTunableProvider` |
 | 调参模型 | `DebugTunable` 描述（Id/Group/Tags/Scope/Default/Min/Max/Decimals/RuntimeVisible/Get/Set/Reset）；默认值来自功能数据源 | `DebugKernel.Tunables/RuntimeTunables/TrySetTunable/ResetTunable` + `DebugTunableDiscovery`（容器 + 场景 provider） |
 
@@ -98,6 +100,8 @@
 | 运行期操控投影 | `DebugConsole`（F12，UI Toolkit 文本控制台）/ `DebugPanel`（F11，常用动作/即时开关）/ 专用调试面板（如 UI 调试面） | 解析调用名/按钮 → 内核命令或选项表；渲染读模型；面板可有自己的输入形态 | 只经内核写；不直调业务服务 |
 
 专用调试面板不是第四套逻辑：它是运行期操控投影的一个模块，同一命令集既可被文本控制台调用，也可被面板按钮调用。UI 专用投影见[《UI 运行时调试工具链专项设计》](../客户端/UI系统/UI运行时调试工具链专项设计.md)。
+
+投影与内核之下的单源写口没有第二写路径（开关单表/请求桥仍由内核包装调用，R14 拦投影直调）；场景操作页是唯一 `lint-allow R14` 判例——带参/异步命令经 `CommandCenter.SendAsync` 派发（权限门/拦截器/审计链全量生效），内核 `TryExecute` 只覆盖无参形态。
 
 ### 7.4 取件与依赖方向
 
@@ -133,7 +137,7 @@
 | L2 PlayMode | 投影在真实 `UIService`/`CommandCenter` 下的空态、拒绝、读模型与清理 |
 | 开发包人工验证 | 真实操作路径（红线 13）：入口 → 操作 → 副作用断言 → 证据 |
 | release | 类型与资产零残留；调试命令不可达 |
-| Doc | 设计与索引一致（`--lane Doc`） |
+| Doc | 设计与索引一致（`--suite Doc`） |
 
 ### 7.8 非目标
 

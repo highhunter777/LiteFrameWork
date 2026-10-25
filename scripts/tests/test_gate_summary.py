@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""Gate summary writer contracts (TestResults/summary-<lane>.json)."""
+"""Gate summary writer contracts (TestResults/summary-<suite>.json)."""
 
 import json
 import sys
@@ -14,7 +14,7 @@ from _gate_summary import relative_path, summary_path, write_summary  # noqa: E4
 
 
 class SummaryWriterTests(unittest.TestCase):
-    def test_path_is_lane_scoped_and_lowercase(self):
+    def test_path_is_suite_scoped_and_lowercase(self):
         self.assertEqual(summary_path("out", "L1").name, "summary-l1.json")
         self.assertEqual(summary_path("out", "Doc").name, "summary-doc.json")
 
@@ -22,7 +22,7 @@ class SummaryWriterTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as temp:
             path = write_summary(
                 temp,
-                lane="L1",
+                suite="L1",
                 profile="PullRequest",
                 status="pass",
                 total=10,
@@ -35,8 +35,8 @@ class SummaryWriterTests(unittest.TestCase):
             raw = path.read_bytes()
             self.assertNotIn(b"\r\n", raw)
             payload = json.loads(raw.decode("utf-8"))
-        self.assertEqual(payload["schemaVersion"], 1)
-        self.assertEqual(payload["lane"], "L1")
+        self.assertEqual(payload["schemaVersion"], 2)
+        self.assertEqual(payload["suite"], "L1")
         self.assertEqual(payload["profile"], "PullRequest")
         self.assertEqual(payload["status"], "pass")
         self.assertEqual(payload["runId"], "run-1")
@@ -46,22 +46,22 @@ class SummaryWriterTests(unittest.TestCase):
         self.assertEqual(payload["skipped"], 0)
         self.assertEqual(payload["artifacts"], ["TestResults/a.trx"])
         self.assertNotIn("error", payload)
-        self.assertNotIn("lanes", payload)
+        self.assertNotIn("suites", payload)
 
-    def test_error_and_lanes_are_optional(self):
+    def test_error_and_suites_are_optional(self):
         with tempfile.TemporaryDirectory() as temp:
             path = write_summary(
                 temp,
-                lane="Nightly",
+                suite="Nightly",
                 profile="Nightly",
                 status="fail",
                 failed=1,
                 error="L2 failed",
-                lanes=[{"lane": "L1", "status": "pass", "exitCode": 0}],
+                suites=[{"suite": "L1", "status": "pass", "exitCode": 0}],
             )
             payload = json.loads(path.read_text(encoding="utf-8"))
         self.assertEqual(payload["error"], "L2 failed")
-        self.assertEqual(payload["lanes"][0]["lane"], "L1")
+        self.assertEqual(payload["suites"][0]["suite"], "L1")
 
     def test_relative_path_inside_and_outside_root(self):
         with tempfile.TemporaryDirectory() as temp:

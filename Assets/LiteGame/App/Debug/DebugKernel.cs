@@ -26,16 +26,33 @@ namespace LiteGame
         private readonly IInputService _input;
         private readonly DebugStatsDiscovery _stats = new DebugStatsDiscovery();
         private readonly DebugTunableDiscovery _tunables;
+        private readonly DebugPerfSampler _perf = new DebugPerfSampler();
+        private readonly WeakNetRuntime _weakNet;
         private readonly Dictionary<Type, MethodInfo> _sendMethods = new Dictionary<Type, MethodInfo>(16);
         private bool _statsInitialized;
         private bool _tunablesInitialized;
 
         public DebugKernel(CommandCenter commands, IInputService input,
-            IEnumerable<IDebugTunableProvider> tunableProviders = null)
+            IEnumerable<IDebugTunableProvider> tunableProviders = null, WeakNetRuntime weakNet = null)
         {
             _commands = commands ?? throw new ArgumentNullException(nameof(commands));
             _input = input;
+            _weakNet = weakNet;
             _tunables = new DebugTunableDiscovery(tunableProviders);
+        }
+
+        public WeakNetSnapshot WeakNet => _weakNet != null ? _weakNet.TakeSnapshot() : default;
+
+        public bool TrySetWeakNetPreset(string preset, out string error)
+        {
+            if (_weakNet == null)
+            {
+                error = "弱网注入未装配";
+                return false;
+            }
+            CommandResult result = _commands.Send(new SetWeakNetPresetCommand { Preset = preset });
+            error = result.Ok ? null : (string.IsNullOrEmpty(result.Detail) ? result.Reason.ToString() : result.Detail);
+            return result.Ok;
         }
 
         public IReadOnlyList<IModuleStats> Stats
@@ -92,6 +109,34 @@ namespace LiteGame
         public long DiagTotal => DiagTrace.Total;
         public StructuredLogSink LogSink => StructuredLogInstaller.Current;
         public bool HasBattle => BattleDiagnostics.Current != null;
+
+        /// <summary>测试模式进行中（请求桥的运行态反映；投影读数经此口，不直读 TestModeRuntime）。</summary>
+        public bool IsTestModeActive => TestModeRuntime.Active;
+
+        /// <summary>当前对局日志关联键（日志过滤用；与 RecentLogs 同源的读模型上下文）。</summary>
+        public string CurrentMatchId => Log.CurrentMatchId;
+
+        /// <summary>当前会话日志关联键（现场包/导出面用）。</summary>
+        public string CurrentSessionId => Log.CurrentSessionId;
+
+        /// <summary>进房 bot 数快照（启动项一览行用）。</summary>
+        public int StartupBotCount => TestModeRuntime.BotCount;
+
+        /// <summary>重置补位假人：一次性宿主钩子（权威侧满血回出生点）；写口经内核收口。</summary>
+        public void RequestBotReset() => LiteSim.SimTestRules.BotResetRequested = true;
+
+        /// <summary>帧样本入读模型：投影只喂本帧时钟差（Time.unscaledDeltaTime）；统计与 recorder 读数在内核。</summary>
+        public void SampleFrame(float deltaTime) => _perf.SampleFrame(deltaTime);
+
+        /// <summary>投影自聚合耗时回填（毫秒；指数平滑在采样器内）。</summary>
+        public void RecordHudBuildMs(float milliseconds) => _perf.RecordHudBuildMs(milliseconds);
+
+        /// <summary>读性能段：刷新 recorder 读数并取整段读模型（无帧样本时 HasFrames=false）。</summary>
+        public bool TryTakePerf(out PerfReading perf)
+        {
+            perf = _perf.Read();
+            return perf.HasFrames;
+        }
 
         public static IReadOnlyList<string> ReadSections => Sections;
 

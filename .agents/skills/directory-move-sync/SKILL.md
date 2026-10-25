@@ -19,4 +19,4 @@ description: 目录搬动/文件移动同步清单。只要涉及在 Assets/ 或
    - `Docs/开发导航/代码地图.md`
    - **外部注册面**(Windows 计划任务 / CI workflow / hook 配置 / `scripts/gate/toolchain.json` 中的脚本与文档路径)
 3. **新增收集目录 = collector + 本清单 + 专项文档三面同批**。
-4. **验证**:`python scripts/gate/test.py --lane L1 --profile PullRequest`(DisciplineScannerTests 钉 ScanTargets);`python scripts/toolchain.py check`(清单路径/CI/hook/计划任务注册面);资源收集变更另用出包冒烟验证。
+4. **验证**:`python scripts/gate/test.py --suite L1 --profile PullRequest`(DisciplineScannerTests 钉 ScanTargets);`python scripts/toolchain.py check`(清单路径/CI/hook/计划任务注册面);资源收集变更另用出包冒烟验证。

@@ -11,10 +11,10 @@ namespace LiteGame.Editor
     /// <summary>
     /// GM 工具箱·测试模式页：进入/退出/传送到准心 + 现场开关（即时生效）+ 爆头区/持枪幅度实时调。
     /// **静态启动配置不在本页**——在场景 DevStartupConfig（Inspector 随场景保存，进房快照）；本页只管进入/退出与局内可调项。
-    /// 分层裁决：现场开关清单/显示名/写口全部经 <see cref="TestModeOptions"/>（新增开关只改那张表——本页零改动）；
-    /// 进入/退出/传送 = 一次性请求桥（<see cref="TestModeRuntime"/> 的 Request*/Take* 类型化读写对——**pre-Play 容器尚不存在**，不走命令中心；
-    /// 传送的实际派发在对局内经 ProcedureBattle → <c>SendQueued(TeleportToAimCommand)</c> 进审计环）；
-    /// 爆头带覆写写通道 = <see cref="MatchTestRules"/> 活动局实例 + <see cref="TestModeRuntime"/> 待用值双落
+    /// 分层裁决：读数与动作全部经 <see cref="DebugKernel"/> 门面（《GM 与调试工具分层专项设计》§7——投影不另拼读数、
+    /// 不另写动作）；内核之下开关单表/请求桥仍是唯一写口（新增开关只改那张表——本页零改动）；
+    /// 进入/退出/传送 = 一次性请求桥（传送的实际派发在对局内经 ProcedureBattle → <c>SendQueued(TeleportToAimCommand)</c> 进审计环）；
+    /// 爆头带覆写写通道 = <see cref="MatchTestRules"/> 活动局实例 + TestModeRuntime 待用值双落
     /// （判定路径读注入实例——确定性判定不读静态，含 dev 宏内）。
     /// </summary>
     internal sealed class GmTestModePage : IGmPage
@@ -232,37 +232,47 @@ namespace LiteGame.Editor
         private void DrawTestModeSection()
         {
             EditorGUILayout.LabelField("本地测试模式（Room-Test）", EditorStyles.boldLabel);
-            EditorGUILayout.LabelField(TestModeRuntime.Active ? "进行中（本地服 Room-Test）" : "未进入");
-
-            using (new EditorGUILayout.HorizontalScope())
+            DebugKernel kernel = GmEditorResolve.ResolveFromContainer<DebugKernel>();
+            if (kernel == null)
             {
-                // 启动快照由 ProcedureMain 在消费进房请求时单点落值（未挂 DevStartupConfig 则套默认口径）
-                if (GUILayout.Button("进入本地测试模式")) TestModeRuntime.RequestEnter();
-                if (GUILayout.Button("退出本地测试模式")) TestModeRuntime.RequestExit();         // 对局内 = 离场并关模式；主菜单 = 只关模式
-                if (GUILayout.Button("传送到准心")) TestModeRuntime.RequestTeleport();
+                EditorGUILayout.HelpBox("DebugKernel 未装配——先进入 Play。", MessageType.Warning);
+            }
+            else
+            {
+                EditorGUILayout.LabelField(kernel.IsTestModeActive ? "进行中（本地服 Room-Test）" : "未进入");
+
+                using (new EditorGUILayout.HorizontalScope())
+                {
+                    // 启动快照由 ProcedureMain 在消费进房请求时单点落值（未挂 DevStartupConfig 则套默认口径）
+                    if (GUILayout.Button("进入本地测试模式")) kernel.RequestEnterTestMode();
+                    if (GUILayout.Button("退出本地测试模式")) kernel.RequestExitTestMode();   // 对局内 = 离场并关模式；主菜单 = 只关模式
+                    if (GUILayout.Button("传送到准心")) kernel.RequestTeleport();
+                }
+
+                EditorGUILayout.LabelField("现场开关（即时生效，不必重进房）", EditorStyles.miniBoldLabel);
+                // 清单/显示名经内核发现面（选项表单源）；写点唯一（TrySetOption → 单表 Set）
+                foreach (TestModeOptions.Info option in kernel.Options)
+                {
+                    if (option.Group != TestModeOptions.Group.Live) continue;      // 启动项在 DevStartupConfig（下方只读一览）
+                    bool value = GUILayout.Toggle(kernel.GetOption(option.Id), "  " + option.Label);
+                    if (value != kernel.GetOption(option.Id))
+                        kernel.TrySetOption(option.Id.ToString(), value, out _);
+                }
+
+                var startup = new System.Text.StringBuilder("启动项（进房时快照）：");
+                foreach (TestModeOptions.Info option in kernel.Options)
+                {
+                    if (option.Group != TestModeOptions.Group.Startup) continue;
+                    startup.Append(' ').Append(option.Id).Append('=').Append(kernel.GetOption(option.Id) ? "开" : "关");
+                }
+                startup.Append(" bot=").Append(kernel.StartupBotCount);
+                EditorGUILayout.LabelField(startup.ToString(), EditorStyles.wordWrappedLabel);
             }
             EditorGUILayout.HelpBox(
                 "本地测试模式＝本进程内本地服（Room-Test，无 Socket/票据），用于单机逻辑与表现；云端测试房见下方「云端测试房」块。\n"
                 + "启动项（免死/bot 数/冻结/传送）与表现类开关的**进房初值**都在场景 DevStartupConfig 上编辑（Inspector，随场景保存）；"
                 + "本节以下是**局内可调**项，即时生效。", MessageType.Info);
 
-            EditorGUILayout.LabelField("现场开关（即时生效，不必重进房）", EditorStyles.miniBoldLabel);
-            // 开关清单/显示名/写点全部经 TestModeOptions（新增开关只改那张表——本面板零改动）
-            foreach (TestModeOptions.Info option in TestModeOptions.All)
-            {
-                if (option.Group != TestModeOptions.Group.Live) continue;      // 启动项在 DevStartupConfig（下方只读一览）
-                bool value = GUILayout.Toggle(TestModeOptions.Get(option.Id), "  " + option.Label);
-                if (value != TestModeOptions.Get(option.Id)) TestModeOptions.Set(option.Id, value);
-            }
-
-            var startup = new System.Text.StringBuilder("启动项（进房时快照）：");
-            foreach (TestModeOptions.Info option in TestModeOptions.All)
-            {
-                if (option.Group != TestModeOptions.Group.Startup) continue;
-                startup.Append(' ').Append(option.Id).Append('=').Append(TestModeOptions.Get(option.Id) ? "开" : "关");
-            }
-            startup.Append(" bot=").Append(TestModeRuntime.BotCount);
-            EditorGUILayout.LabelField(startup.ToString(), EditorStyles.wordWrappedLabel);
             using (new EditorGUILayout.HorizontalScope())
             {
                 if (GUILayout.Button("选中场景 DevStartupConfig", GUILayout.Width(150)))
@@ -282,17 +292,19 @@ namespace LiteGame.Editor
 
         // ---- bot 操作（测试房补位假人：重置 + 无限生命开关指引）----
 
-        private static void DrawBotOpsBlock()
+        private void DrawBotOpsBlock()
         {
             EditorGUILayout.Space(6);
             EditorGUILayout.LabelField("bot 操作", EditorStyles.boldLabel);
-            using (new EditorGUILayout.HorizontalScope())
+            DebugKernel kernel = GmEditorResolve.ResolveFromContainer<DebugKernel>();
+            using (new EditorGUI.DisabledScope(kernel == null))
             {
-                if (GUILayout.Button("重置假人（满血回出生点）")) LiteSim.SimTestRules.BotResetRequested = true;
+                if (GUILayout.Button("重置假人（满血回出生点）") && kernel != null) kernel.RequestBotReset();
             }
+            bool botInfiniteHp = kernel != null && kernel.GetOption(TestModeOptions.Id.BotInfiniteHp);
             EditorGUILayout.LabelField(
                 "「bot 无限生命」开关在上方「现场开关」清单（当前 "
-                + (TestModeRuntime.BotInfiniteHp ? "开" : "关")
+                + (botInfiniteHp ? "开" : "关")
                 + "）——开启后假人每帧回满、永不死（命中/飘字反馈照常）；两项都只作用于补位假人。",
                 EditorStyles.wordWrappedLabel);
             EditorGUILayout.HelpBox(
@@ -303,14 +315,20 @@ namespace LiteGame.Editor
 
         // ---- 爆头区实时调（运行态覆写；判定与身位可视化同读注入实例）----
 
-        /// <summary>爆头区导出（调参滑杆在「调试参数」页；本块只保留编辑器独占的导出动作）。</summary>
+        /// <summary>爆头区导出（调参滑杆在「调试参数」页；本块只保留编辑器独占的导出动作）。当前值读数经内核调参发现面。</summary>
         private static void DrawHeadExportBlock()
         {
             EditorGUILayout.Space(6);
             EditorGUILayout.LabelField("爆头区导出（滑杆在「调试参数」页）", EditorStyles.boldLabel);
+            DebugKernel kernel = GmEditorResolve.ResolveFromContainer<DebugKernel>();
+            if (kernel == null)
+            {
+                EditorGUILayout.HelpBox("DebugKernel 未装配——先进入 Play（当前值读数经内核调参发现面）。", MessageType.Warning);
+                return;
+            }
             float height = LiteSim.CombatConfig.HitscanHeight;
-            float shown = FeatureDebugTunables.CurrentHeadLine();
-            float radiusShown = FeatureDebugTunables.CurrentHeadRadius();
+            float shown = TunableValue(kernel, "head.line");
+            float radiusShown = TunableValue(kernel, "head.radius");
             EditorGUILayout.LabelField($"比例 {shown / height:F3}    带高 {height - shown:F3} m    当前导出值：下沿 {LiteSim.CombatConfig.HeadHitLine:F3} m / 半径 {LiteSim.CombatConfig.HeadshotRadius:F3} m");
             if (GUILayout.Button("导出当前爆头区到 HeadBake.g.cs"))
             {
@@ -320,6 +338,15 @@ namespace LiteGame.Editor
             EditorGUILayout.HelpBox(
                 "对局中点导出会触发重编译并中断对局（domain reload）——先记下数值，出对局后再导。",
                 MessageType.Info);
+        }
+
+        /// <summary>按 Id 读调参当前值（经内核发现面——投影不自拼读数；未登记返回 0 并不再深究）。</summary>
+        private static float TunableValue(DebugKernel kernel, string id)
+        {
+            IReadOnlyList<DebugTunable> tunables = kernel.Tunables;
+            for (int i = 0; i < tunables.Count; i++)
+                if (string.Equals(tunables[i].Id, id, StringComparison.Ordinal)) return tunables[i].Get();
+            return 0f;
         }
 
         // ---- 视角 FOV（编辑器独占场景值；灵敏度/ADS 收敛在「调试参数」页）----

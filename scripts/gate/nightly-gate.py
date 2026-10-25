@@ -20,6 +20,7 @@ def parse_args(argv=None):
     parser = argparse.ArgumentParser(description="LiteGame nightly gate (L1 + L2)")
     parser.add_argument("--project-path", default=None)
     parser.add_argument("--skip-l1", action="store_true")
+    parser.add_argument("--skip-l3", action="store_true")
     return parser.parse_args(argv)
 
 
@@ -56,6 +57,7 @@ def main(argv=None):
     log_dir = project / "TestResults" / "nightly"
     log_dir.mkdir(parents=True, exist_ok=True)
     log_file = log_dir / f"L2-{stamp}.log"
+    l3_log = log_dir / f"L3-{stamp}.log"
 
     def write_log(text=""):
         print(f"[env/nightly] {text}")
@@ -63,7 +65,7 @@ def main(argv=None):
             handle.write(f"[env/nightly] {text}\n")
 
     exit_code = 0
-    lanes = []
+    suites = []
     error_text = ""
     write_log(f"==== LiteGame 夜间门禁 {stamp} ====")
     write_log(f"工程：{project}")
@@ -75,7 +77,7 @@ def main(argv=None):
             write_log("")
             write_log("---- L1 ----")
             result = run_capture(
-                [sys.executable, str(project / "scripts" / "gate" / "test.py"), "--lane", "L1", "--profile", "Nightly"],
+                [sys.executable, str(project / "scripts" / "gate" / "test.py"), "--suite", "L1", "--profile", "Nightly"],
                 project,
             )
             for line in (result.stdout + result.stderr).splitlines():
@@ -85,8 +87,8 @@ def main(argv=None):
                 exit_code = 1
             else:
                 write_log("  [PASS] L1")
-            lanes.append({
-                "lane": "L1",
+            suites.append({
+                "suite": "L1",
                 "status": "fail" if result.returncode != 0 else "pass",
                 "exitCode": result.returncode,
             })
@@ -105,11 +107,36 @@ def main(argv=None):
             exit_code = 1
         else:
             write_log("  [PASS] L2")
-        lanes.append({
-            "lane": "L2",
+        suites.append({
+            "suite": "L2",
             "status": "fail" if l2_result.returncode != 0 else "pass",
             "exitCode": l2_result.returncode,
         })
+
+        if not args.skip_l3:
+            write_log("")
+            write_log("---- L3 (WeakNet) ----")
+            l3_result = run_capture(
+                [sys.executable, str(project / "scripts" / "gate" / "test.py"), "--suite", "L3",
+                 "--profile", "Nightly",
+                 "--filter", "FullyQualifiedName~WeakNet&(Category!=Quarantine)"],
+                project,
+            )
+            l3_text = l3_result.stdout + l3_result.stderr
+            for line in l3_text.splitlines():
+                print(f"[env/nightly]   {line}")
+                with l3_log.open("a", encoding="utf-8", newline="\n") as handle:
+                    handle.write(f"[env/nightly]   {line}\n")
+            if l3_result.returncode != 0:
+                write_log(f"  [FAIL] L3 退出码 {l3_result.returncode}")
+                exit_code = 1
+            else:
+                write_log("  [PASS] L3")
+            suites.append({
+                "suite": "L3-WeakNet",
+                "status": "fail" if l3_result.returncode != 0 else "pass",
+                "exitCode": l3_result.returncode,
+            })
 
         ran_playmode = bool(
             re.search(r"run_tests\(PlayMode\)", l2_text) or re.search(r"PlayMode 测试(通过|未通过)", l2_text)
@@ -127,16 +154,18 @@ def main(argv=None):
         write_log(f"日志：{log_file}")
     write_summary(
         project / "TestResults",
-        lane="Nightly",
+        suite="Nightly",
         profile="Nightly",
         status="pass" if exit_code == 0 else "fail",
-        failed=sum(1 for lane in lanes if lane["status"] == "fail"),
-        artifacts=[relative_path(project, log_file)],
+        failed=sum(1 for suite in suites if suite["status"] == "fail"),
+        artifacts=[relative_path(project, log_file)]
+        + ([relative_path(project, l3_log)] if l3_log.exists() else []),
         error=error_text,
-        lanes=lanes,
+        suites=suites,
     )
     return exit_code
 
 
 if __name__ == "__main__":
     sys.exit(main())
+

@@ -6,6 +6,7 @@ using LiteTesting;
 using LiteNet;
 using LiteNet.Protocol;
 using LiteNet.Transport;
+using LiteNet.Diagnostics;
 using LiteSim;
 using LiteSim.Tests;
 using RoomServer;
@@ -31,6 +32,7 @@ namespace LiteNet.Tests
         private readonly ServerHost _host;
         private readonly KcpTransportServer _serverTransport;
         private readonly List<HeadlessClient> _clients = new List<HeadlessClient>();
+        private long _clockMs;
         private readonly SimMapData _map = new SimMapData
         {
             GroundY = 0f,
@@ -55,7 +57,11 @@ namespace LiteNet.Tests
         /// <summary>起一个无头客户端（连接 + Join；Sim 在 StartGame.Seed 下发后惰性建）。</summary>
         private HeadlessClient StartHeadless(string name, int delaySteps = 0)
         {
-            var transport = new KcpTransportClient();
+            return StartHeadless(name, new KcpTransportClient());
+        }
+
+        private HeadlessClient StartHeadless(string name, IClientTransport transport)
+        {
             var client = new HeadlessClient(name, _map, transport);
             _clients.Add(client);
             client.Client.Connect("127.0.0.1", Port);
@@ -67,6 +73,7 @@ namespace LiteNet.Tests
             var watch = Stopwatch.StartNew();
             while (watch.ElapsedMilliseconds < ms)
             {
+                _clockMs += 1;
                 _host.Pump();
                 foreach (var c in _clients) { c.Client.TickIncoming(); c.Client.TickOutgoing(); }
                 Thread.Sleep(2);
@@ -96,6 +103,7 @@ namespace LiteNet.Tests
         {
             for (int t = 0; t < ticks; t++)
             {
+                _clockMs += 16;
                 // 丢包模拟：skipEvery > 0 时每 skipEvery 步跳过一次客户端发送（发送侧丢包）
                 if (skipEvery == 0 || t % skipEvery != 0)
                 {
@@ -116,6 +124,33 @@ namespace LiteNet.Tests
         }
 
         // ---- L1 短对跑：30s 帧号稳定 + 快照到达 + 和解链路通 + 不发散 ----
+        // ---- 固定种子弱网：loss-only 不碰可靠信令 ----
+
+        [Fact]
+        public void WeakNet_LossOnly_StillCompletes()
+        {
+            var profile = new WeakNetProfile(true, 0, 0, 100, 0, 0, 21);
+            var weak = new WeakNetClientTransport(new KcpTransportClient(), () => profile, () => _clockMs);
+            var a = StartHeadless("A", weak);
+            var b = StartHeadless("B");
+            Assert.True(WaitFor(() => BothJoined(2), 5000), "双客户端未完成 Join");
+            Assert.True(WaitFor(() => a.Client.PlayerId >= 0 && b.Client.PlayerId >= 0), "双方未收到 JoinAck");
+            StartAsOwner(a);
+            Assert.True(WaitFor(() => a.Sim != null && b.Sim != null, 10000), "StartGame 未到达");
+
+            int startFrame = _host.Room.AuthSim.Frame;
+            int clientStartFrame = a.Sim.State.Frame;
+            RunFor(a, b, 600);
+            Assert.True(_host.Room.AuthSim.Frame > startFrame, "权威帧号停滞");
+            Assert.True(a.Sim.State.Frame > clientStartFrame, "客户端预测未推进");
+            Assert.True(a.InputsSent > 0, "客户端未发送输入");
+            Assert.True(weak.Stats.Released > 0, "弱网层未释放任何上行包");
+            Assert.True(weak.Stats.Dropped > 0, "固定种子丢包未生效");
+            Assert.True(weak.Stats.DroppedUp > 0, "固定种子上行丢包未生效");
+            Assert.True(_clockMs > 0, "共享逻辑时钟未推进");
+        }
+
+
 
         [Fact]
         public void 短对跑_双客户端30秒_帧号稳定快照到达不发散()

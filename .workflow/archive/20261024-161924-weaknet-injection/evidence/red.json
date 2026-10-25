@@ -1,0 +1,48 @@
+{
+  "schema_version": 1,
+  "kind": "red",
+  "at": "2026-10-24T14:15:54+08:00",
+  "ok": true,
+  "command_fingerprint": "0360d5ddf424ed18f10a9ceb1b3329dba17bb7e380d6e04150d657e0e22e848f",
+  "commands": [
+    {
+      "name": "build-plan-red",
+      "cmd": [
+        "python",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "scripts/tests",
+        "-p",
+        "test_build_plan.py",
+        "-v"
+      ],
+      "cwd": null,
+      "exit_code": 1,
+      "timed_out": false,
+      "error": null,
+      "duration_ms": 771,
+      "ok": true,
+      "output_tail": "AssertionError: finding missing for Server/RoomServer/Program.cs: []\n\n======================================================================\nFAIL: test_shared_link_file_is_shared (test_build_plan.BuildPlanTests.test_shared_link_file_is_shared)\n----------------------------------------------------------------------\nTraceback (most recent call last):\n  File \"E:\\unityProject\\Test\\scripts\\tests\\test_build_plan.py\", line 62, in test_shared_link_file_is_shared\n    self.assertEqual(self.finding(plan, \"Assets/LiteClient/Adapters/Serialization.Luban/TableLayout.cs\")[\"area\"], \"shared\")\n                     ~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"E:\\unityProject\\Test\\scripts\\tests\\test_build_plan.py\", line 39, in finding\n    self.fail(f\"finding missing for {path}: {plan['findings']}\")\n    ~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\nAssertionError: finding missing for Assets/LiteClient/Adapters/Serialization.Luban/TableLayout.cs: []\n\n======================================================================\nFAIL: test_shared_source_requires_hash_client_server_and_publish (test_build_plan.BuildPlanTests.test_shared_source_requires_hash_client_server_and_publish)\n----------------------------------------------------------------------\nTraceback (most recent call last):\n  File \"E:\\unityProject\\Test\\scripts\\tests\\test_build_plan.py\", line 54, in test_shared_source_requires_hash_client_server_and_publish\n    item = self.finding(plan, \"Assets/LiteNet/Protocol/Wire.cs\")\n  File \"E:\\unityProject\\Test\\scripts\\tests\\test_build_plan.py\", line 39, in finding\n    self.fail(f\"finding missing for {path}: {plan['findings']}\")\n    ~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\nAssertionError: finding missing for Assets/LiteNet/Protocol/Wire.cs: []\n\n======================================================================\nFAIL: test_unknown_path_is_conservative (test_build_plan.BuildPlanTests.test_unknown_path_is_conservative)\n----------------------------------------------------------------------\nTraceback (most recent call last):\n  File \"E:\\unityProject\\Test\\scripts\\tests\\test_build_plan.py\", line 183, in test_unknown_path_is_conservative\n    item = self.finding(plan, \"Weird/file.bin\")\n  File \"E:\\unityProject\\Test\\scripts\\tests\\test_build_plan.py\", line 39, in finding\n    self.fail(f\"finding missing for {path}: {plan['findings']}\")\n    ~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\nAssertionError: finding missing for Weird/file.bin: []\n\n----------------------------------------------------------------------\nRan 30 tests in 0.551s\n\nFAILED (failures=25, errors=1)"
+    },
+    {
+      "name": "weaknet-red",
+      "cmd": [
+        "dotnet",
+        "test",
+        "Tests/LiteNet.Tests/LiteNet.Tests.csproj",
+        "--filter",
+        "FullyQualifiedName~WeakNet",
+        "--nologo"
+      ],
+      "cwd": null,
+      "exit_code": 1,
+      "timed_out": false,
+      "error": null,
+      "duration_ms": 9016,
+      "ok": true,
+      "output_tail": "   at System.Reflection.MethodBaseInvoker.InvokeWithNoArgs(Object obj, BindingFlags invokeAttr)\n  失败 Disabled_IsPassthrough_AndConsumesNoRolls [< 1 ms]\n  错误消息:\n   Assert.Equal() Failure: Values differ\nExpected: 2\nActual:   0\n  堆栈跟踪:\n     at LiteNet.Tests.WeakNetTransportTests.Disabled_IsPassthrough_AndConsumesNoRolls() in E:\\unityProject\\Test\\Tests\\LiteNet.Tests\\WeakNetTransportTests.cs:line 65\n   at System.RuntimeMethodHandle.InvokeMethod(Object target, Void** arguments, Signature sig, Boolean isConstructor)\n   at System.Reflection.MethodBaseInvoker.InvokeWithNoArgs(Object obj, BindingFlags invokeAttr)\n  失败 QueueOverflow_DropsOldestUnreliable [8 ms]\n  错误消息:\n   0\n  堆栈跟踪:\n     at LiteNet.Tests.WeakNetTransportTests.QueueOverflow_DropsOldestUnreliable() in E:\\unityProject\\Test\\Tests\\LiteNet.Tests\\WeakNetTransportTests.cs:line 165\n   at System.RuntimeMethodHandle.InvokeMethod(Object target, Void** arguments, Signature sig, Boolean isConstructor)\n   at System.Reflection.MethodBaseInvoker.InvokeWithNoArgs(Object obj, BindingFlags invokeAttr)\n  失败 Unreliable_LossApplies [< 1 ms]\n  错误消息:\n   Assert.Equal() Failure: Values differ\nExpected: 5\nActual:   0\n  堆栈跟踪:\n     at LiteNet.Tests.WeakNetTransportTests.Unreliable_LossApplies() in E:\\unityProject\\Test\\Tests\\LiteNet.Tests\\WeakNetTransportTests.cs:line 113\n   at System.RuntimeMethodHandle.InvokeMethod(Object target, Void** arguments, Signature sig, Boolean isConstructor)\n   at System.Reflection.MethodBaseInvoker.InvokeWithNoArgs(Object obj, BindingFlags invokeAttr)\n\n失败!  - 失败:     9，通过:     1，已跳过:     0，总计:    10，持续时间: 70 ms - LiteNet.Tests.dll (net8.0)\n\n有可用的工作负载更新。有关详细信息，请运行 `dotnet workload list`。\n[stderr]\n[xUnit.net 00:00:00.32]     Send_CopiesCallerBuffer [FAIL]\n[xUnit.net 00:00:00.33]     Reliable_IsNotLostDuplicatedOrReordered [FAIL]\n[xUnit.net 00:00:00.33]     Incoming_IsDelayedUntilDue [FAIL]\n[xUnit.net 00:00:00.33]     ReliableFifo_HoldsOrderWhenLatencyChanges [FAIL]\n[xUnit.net 00:00:00.33]     SameSeed_SameSequence_DifferentSeed_Different [FAIL]\n[xUnit.net 00:00:00.33]     Unreliable_DuplicateAndReorderApply [FAIL]\n[xUnit.net 00:00:00.33]     Disabled_IsPassthrough_AndConsumesNoRolls [FAIL]\n[xUnit.net 00:00:00.34]     QueueOverflow_DropsOldestUnreliable [FAIL]\n[xUnit.net 00:00:00.38]     Unreliable_LossApplies [FAIL]"
+    }
+  ]
+}

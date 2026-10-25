@@ -292,7 +292,7 @@ namespace LiteGame.Tests.EditMode
                 [0] = new CrosshairFeel(2.2f, 0.1f, 2.6f, 8f),
             };
             var driver = new BattleCrosshairDriver(view, null, plane, reticle, hip, ads,
-                feel: new CrosshairFeelBook(rows));
+                feel: new CrosshairFeelProfile(rows));
 
             world.Entities[0].Flags |= EntityFlags.Aiming;   // 瞄准：有效散布角 = 表值（期望式确定）
             driver.Tick(0f);
@@ -303,7 +303,7 @@ namespace LiteGame.Tests.EditMode
                 "非默认行——表行→手感的分档面真实生效");
 
             // book 缺行 → 防御回落 Default（如实降级不猜）
-            var noRow = new CrosshairFeelBook(new Dictionary<int, CrosshairFeel> { [99] = CrosshairFeel.Default });
+            var noRow = new CrosshairFeelProfile(new Dictionary<int, CrosshairFeel> { [99] = CrosshairFeel.Default });
             var driver2 = new BattleCrosshairDriver(view, null, plane, reticle, hip, ads,
                 feel: noRow);
             driver2.Tick(0f);

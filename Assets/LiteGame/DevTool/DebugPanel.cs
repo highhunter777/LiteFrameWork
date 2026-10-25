@@ -41,8 +41,6 @@ namespace LiteGame
 
         private void Awake()
         {
-            foreach (TestModeOptions.Info option in TestModeOptions.All)
-                if (option.Group == TestModeOptions.Group.Live) _liveOptions.Add(option);
             Log.Info("开发面板已装配（F11 开关）", LogTag.UI);
         }
 
@@ -107,7 +105,20 @@ namespace LiteGame
             if (_kernel != null) return;
             GameEntry entry = Object.FindAnyObjectByType<GameEntry>();
             _kernel = entry != null ? entry.DebugKernel : null;
-            if (_kernel != null) _nextRefresh = 0f;
+            if (_kernel == null) return;
+            _nextRefresh = 0f;
+            if (_liveOptions.Count == 0)
+            {
+                foreach (TestModeOptions.Info option in _kernel.Options)
+                    if (option.Group == TestModeOptions.Group.Live) _liveOptions.Add(option);
+                // 早于内核装配建过 UI（空开关表）时重建一次，补上 Live 开关按钮
+                if (_ui != null)
+                {
+                    _ui.Dispose();
+                    _ui = null;
+                    _tunablesBound = false;
+                }
+            }
         }
 
         private void EnsureInputBlocker()
@@ -142,7 +153,7 @@ namespace LiteGame
                 return;
             }
 
-            _ui.SetStatus("本地测试模式：" + (TestModeRuntime.Active ? "开" : "关")
+            _ui.SetStatus("本地测试模式：" + (_kernel.IsTestModeActive ? "开" : "关")
                 + " · 即时开关走本进程");
             for (int i = 0; i < _liveOptions.Count; i++)
             {

@@ -14,13 +14,20 @@ namespace Tools.DisciplineScan
         /// 用途：同一大根下混有不同领域的代码（如 LiteSim 的确定性 Core 与表现层 View）。</summary>
         public string[] ExcludeRoots;
 
-        public ScanTarget(string root, LintRule[] rules) : this(root, rules, null) { }
+        /// <summary>受守根显式含 /Editor/ 子树（默认 IsExcluded 排除 Editor 目录；投影纪律的
+        /// Editor/Gm 受守根需要扫进去——只放行该目标，不改变全局排除面）。</summary>
+        public bool IncludeEditorDirs;
 
-        public ScanTarget(string root, LintRule[] rules, string[] excludeRoots)
+        public ScanTarget(string root, LintRule[] rules) : this(root, rules, null, false) { }
+
+        public ScanTarget(string root, LintRule[] rules, string[] excludeRoots) : this(root, rules, excludeRoots, false) { }
+
+        public ScanTarget(string root, LintRule[] rules, string[] excludeRoots, bool includeEditorDirs)
         {
             Root = root;
             Rules = rules;
             ExcludeRoots = excludeRoots;
+            IncludeEditorDirs = includeEditorDirs;
         }
     }
 
@@ -92,6 +99,15 @@ namespace Tools.DisciplineScan
         public static readonly LintRule[] ConfigPortRules =
         {
             LintRule.R13StaticConfigPort,
+        };
+
+        /// <summary>R14 投影禁直调调试源（《GM 与调试工具分层专项设计》§7"统一内核与三投影"）：
+        /// 运行期投影程序集（DevTool）与编辑器 GM 页只经 DebugKernel 门面读数/写动作/发现——
+        /// 禁直调底层读口与写口；豁免＝契约类型、纯格式化助手（DiagTrace.Line/Log.TagName）、
+        /// Log 门面写口；例外行 lint-allow R14 写明理由（判例：场景页＝带参命令专面板）。</summary>
+        public static readonly LintRule[] ProjectionRules =
+        {
+            LintRule.R14ProjectionDebugPort,
         };
 
         /// <summary>R13 在 LiteSim 大根上的排除：表现层（View——读口服务表现面，线程化退役随 Unity 环境批）
@@ -182,6 +198,10 @@ namespace Tools.DisciplineScan
             new ScanTarget("Assets/RoomServer/Application", ConfigPortRules),                  // R13（Application 无 IO 子集同守）
             new ScanTarget("Server/RoomServer", ConfigPortRules),                              // R13（宿主链——装载产物显式传递，不读读口）
             new ScanTarget("Server/MetaServer", MetaPurityRules, MetaHostExcludes),                    // Meta 模块/契约层（《Meta 服务专项设计》§4.2）
+            // R14 投影纪律（《GM 与调试工具分层专项设计》§7）：两个投影根的读数/动作/发现面经内核门面。
+            // Editor/Gm 受守根显式含 Editor 子树（IncludeEditorDirs——默认排除面不覆盖它）。
+            new ScanTarget("Assets/LiteGame/DevTool", ProjectionRules),                        // 运行期投影程序集（DevHUD/DebugConsole/DebugPanel）
+            new ScanTarget("Assets/LiteGame/Editor/Gm", ProjectionRules, null, true),          // 编辑器 GM 页（Hub 七页）
         };
 
         /// <summary>
