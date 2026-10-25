@@ -1167,7 +1167,7 @@
 
 <a id="ch24-kernel-gate-r14"></a>
 
-> 2026-10-25。**状态：已完成（附验证证据；工作区未提交——多并行线在途，见边界）**——L1 **1843/1843**（含 R14 新用例 5 例与「真实源码_全部目标_零违规」含两新受守根）；EditMode `DebugKernelEditModeTests` **26/26**（含新增 4 例）；Unity 编译 0 错；L0 依赖/秘密扫描 PASS；BuildHash `--check-shared` 不变（`0a998c8ac6c9de89`，110 files）。
+> 2026-10-25。**状态：已完成（已提交 3b50f245——与在途并行线同快照入库，见边界）**——L1 **1843/1843**（含 R14 新用例 5 例与「真实源码_全部目标_零违规」含两新受守根）；EditMode `DebugKernelEditModeTests` **26/26**（含新增 4 例）；Unity 编译 0 错；L0 依赖/秘密扫描 PASS；BuildHash `--check-shared` 不变（`0a998c8ac6c9de89`，110 files）。
 
 范围：两个投影程序集根（`LiteGame.DevTool` + `Editor/Gm`）的调试**读数/动作/发现面**全部收口经 `DebugKernel` 门面，并新增纪律扫描 R14 防复辟（设计 §7.1 裁决落成机制）。
 
@@ -1201,4 +1201,4 @@
 - GmTestModePage 相关段在非 Play（内核未装配）时空态提示——编辑态直改静态表的旧路径退役（静态表态随 domain reload 归零，该路径本就不可靠）。
 - DevHUD 性能段采样起点改为内核装配后（原为 HUD 自创建即采样；装配前空态，与 §7.5 失败语义一致）。
 - `ClientDiagnosticsBundle`（业务诊断包）与 Runtime Pipeline/云端 GM 通道不在 R14 辖区（§7.8 非目标维持）。
-- **未提交原因**：工作区有 ≥4 条并行在途线（弱网注入批〔第23章，已完成未提交〕、UI P2 令牌引用线、准心手感线、build-preflight 线），本批与弱网批共享 `DebugKernel.cs`/`DebugConsole.cs`/`DevHudSectionSet.cs`/施工进度卷 4 个文件——**建议提交顺序：先弱网注入批 → 再本批**（文件级暂存即可干净拆分；本批触碰的其余文件不与任何在途线重叠）。
+- **入库形态**：与并行线（弱网注入批〔第23章〕、UI P2 令牌引用线、准心手感线、build-preflight 线）同入并行线快照 **3b50f245**——本批与弱网批共享 `DebugKernel.cs`/`DebugConsole.cs`/`DevHudSectionSet.cs`/施工进度卷 4 个文件，文件级暂存无法拆分两批 hunks，按仓库并行线快照惯例一并入库。
