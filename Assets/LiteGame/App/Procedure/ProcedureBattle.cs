@@ -8,6 +8,7 @@ using LiteSim;
 using LiteView;
 using LiteClient;
 using UnityEngine;
+using UnityEngine.SceneManagement;
 
 namespace LiteGame
 {
@@ -58,11 +59,13 @@ namespace LiteGame
         private readonly IMapProvider _maps;         // 地图表（多图批：场景路径查表行 scene 列／离场卸载按表枚举）
         private readonly FeedbackService _feedback;  // 开局入场加载遮罩（可空 = 测试装配不接 UI）
         private readonly CrosshairFeelProfile _crosshairFeel;   // 准心手感投影（tbcrosshair；可空 = 测试装配回落 Default）
+        private readonly Func<UiThemeAsset> _themeProvider;      // 主题资产工厂（P2-3 B4：HUD 注入复用；可空 = 保持烘焙值）
 
         private BattleViewRig _rig;                  // 视图域（资源租约 / 视图与消费者 / 逆序拆除）
         private BattleContext _context;
         private MatchSession _matchSession;
         private ClientScope _account;
+        private Scene _sceneBeforeBattle;            // 进场前活动场景（离场还原端点——UnloadBattleScenes 一次性消费）
 
         /// <param name="input">输入服务（装配根注册的跨对局实例）。**流程不持"UI 是否拦截"这类判断**：
         /// 上下文门是登记进服务的具名拦截源（`ui.modal` 由装配根登记），流程只负责本局的设备源与
@@ -79,7 +82,7 @@ namespace LiteGame
             LiteFramework.IWorldClock worldClock = null, IMatchSessionFactory matchSessions = null,
             AudioService audio = null, CommandCenter commands = null, PageFlow pages = null,
             CrosshairFeelProfile crosshairFeel = null, ISceneService scenes = null, IMapProvider maps = null,
-            FeedbackService feedback = null)
+            FeedbackService feedback = null, Func<UiThemeAsset> themeProvider = null)
             : base(rootToken)
         {
             _content = content ?? throw new ArgumentNullException(nameof(content));
@@ -96,6 +99,7 @@ namespace LiteGame
             _maps = maps;
             _feedback = feedback;
             _crosshairFeel = crosshairFeel;
+            _themeProvider = themeProvider;
         }
 
         protected override void RunAsync(IStageHost<ProcedureId, ProcedureArgs> m, in ProcedureArgs req, CancellationToken ct)
@@ -118,7 +122,8 @@ namespace LiteGame
 
                 // 视图域：自有 BattleView 作用域 + 视图根 + 六个取件（缺角色资源＝无角色视图）
                 _rig = new BattleViewRig(_content, _input, _camera, _account, _vfx, _worldClock, _audio, _commands,
-                    crosshairFeel: _crosshairFeel);   // 准心手感投影（可空 = 测试装配）
+                    crosshairFeel: _crosshairFeel,       // 准心手感投影（可空 = 测试装配）
+                    themeProvider: _themeProvider);       // HUD 主题注入（可空 = 保持烘焙值）
                 await _rig.LoadAsync(ct);
 
                 _matchSession = _matchSessions?.Create(accountSession)
@@ -225,6 +230,7 @@ namespace LiteGame
             // 排队中的开面随后落地即成孤儿面（落地即收，但会闪一下）——等就绪再载，过渡更稳。
             for (int i = 0; i < 120 && _feedback != null && !_feedback.LoadingVisible; i++)
                 await UniTask.Yield(ct);
+            _sceneBeforeBattle = SceneManager.GetActiveScene();      // 离场还原端点（进场前活动场景）
             int mapId = BattleScenes.ResolveMapId(joinedMapId);      // 0 = 服务器未标注 → 首图口径（单源裁决）
             string map = _maps.ScenePath(mapId);
             _feedback?.ReportLoading("正在加载对局场景…", 0.05f);
@@ -233,11 +239,23 @@ namespace LiteGame
             _feedback?.ReportLoading("正在加载地图…", 0.5f);
             if (!_scenes.IsLoaded(map))
                 await _scenes.LoadAdditiveAsync(map, ct);
+            // 对局活动场景 = 地图（显式裁决，不依赖"Rig 先、地图后"的加载顺序隐含态）：清屏天空盒与
+            // 环境光/雾按**活动场景**的 RenderSettings 取——视觉决策归地图场景资产（启动底色批）。
+            Scene mapScene = SceneManager.GetSceneByPath(map);
+            if (mapScene.IsValid())
+            {
+                if (SceneManager.GetActiveScene() != mapScene) SceneManager.SetActiveScene(mapScene);
+            }
+            else
+            {
+                Log.Warning($"[Battle] 对局场景已加载但按路径找不到场景对象，活动场景保持现状:{map}", LogTag.Scene);
+            }
             _feedback?.ReportLoading("场景就绪", 0.95f);
-            UnityEngine.Debug.Log($"[Battle] 对局场景组已加载:Rig={BattleScenes.Rig} Map={map}（map_id={mapId} 叠加数 {_scenes.AdditiveCount}）");
+            Log.Info($"[Battle] 对局场景组已加载:Rig={BattleScenes.Rig} Map={map}（map_id={mapId} 叠加数 {_scenes.AdditiveCount}）", LogTag.Battle);
         }
 
         /// <summary>离场卸载对局场景组（Rig ＋ 表内全部地图场景；幂等——未加载 = 服务侧 no-op）。
+        /// 卸载前活动场景显式还原进场前值（<see cref="RestoreActiveSceneBeforeUnload"/>）。
         /// 多图批：地图场景清单按地图表枚举（`IMapProvider.ScenePaths`——加图不改卸载代码）；
         /// 表面不可用（未装载/缺 scene 列）只记日志并退化为只卸 Rig（离场不因表现面失败而阻塞）。
         /// 失败只记日志不阻塞离场（场景留驻是表现问题，不是会话正确性问题）；
@@ -248,6 +266,7 @@ namespace LiteGame
         private void UnloadBattleScenes()
         {
             if (_scenes == null) return;
+            RestoreActiveSceneBeforeUnload();
             if (_maps != null)
             {
                 try
@@ -263,13 +282,22 @@ namespace LiteGame
             UnloadOne(BattleScenes.Rig);
         }
 
+        /// <summary>卸载前显式还原活动场景到进场前值：不依赖 Unity 对"卸载活动场景"的自动回落
+        /// （回落目标的选择顺序未文档化——地图先卸会短暂落回 Rig 的环境设置）。</summary>
+        private void RestoreActiveSceneBeforeUnload()
+        {
+            if (!_sceneBeforeBattle.IsValid()) return;
+            if (SceneManager.GetActiveScene() != _sceneBeforeBattle)
+                SceneManager.SetActiveScene(_sceneBeforeBattle);
+            _sceneBeforeBattle = default;                // 一次性消费，不跨场次持留
+        }
+
         /// <summary>单场景卸载（异步、不阻塞离场）。失败经 <c>Forget</c> 回调落 Warning——async 体内的异常
         /// 进的是返回任务而非调用点，裸 <c>Forget()</c> 会让"失败只记日志"失效（转 UnobservedTaskException 红栈）。</summary>
         private void UnloadOne(string location)
             => _scenes.UnloadAdditiveAsync(location)
                 .Forget(ex => Log.Warning($"[Battle] 离场卸载场景失败 {location}:{ex.Message}", LogTag.Scene));
 
-        /// <summary>
         /// <summary>
         /// 等 StartGame，**与对局终止竞速**：等待期房间被服务器中止（等待超时/运维关闭/排空——
         /// MatchEnded 先于 StartGame 到达）时返回 false，调用方跳过视图建立、经 WaitEnded 的
