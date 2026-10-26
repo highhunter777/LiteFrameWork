@@ -39,7 +39,7 @@ namespace LiteGame
         public float Max;
         /// <summary>显示小数位（Bool 忽略）。默认 3；极小值参数可设 4～6。</summary>
         public int Decimals = 3;
-        /// <summary>是否进入运行期快捷调参（F11）。只放常用、现场可解释的参数；长尾仍走编辑器。</summary>
+        /// <summary>是否进入运行期快捷调参（F2 面板）。只放常用、现场可解释的参数；长尾仍走编辑器。</summary>
         public bool RuntimeVisible;
         public Func<float> Get;
         public Action<float> Set;

@@ -10,7 +10,7 @@
 |---|---|
 | 这是什么 | 一个 **Unity 2022.3 客户端 + .NET 8 服务端**的工程：自研"商业级通用客户端框架"（C0～C5）＋一个**确定性联机射击 Demo**（G0～G6 关口）作为框架的首个真实业务 |
 | 怎么跑起来 | Unity 打开本工程 → 运行 `Assets/Scenes/Boot.unity` → 启动件 `GameEntry` 起宿主与流程机；`Launch→Patch→Preload→Main` 后可玩 |
-| 现在能玩到什么 | 启动落点＝登录页（正式）/大厅页（本地服务器形态）；**对局场景组按对局加载**（进局才加载 `BattleRig` + 地图，离场卸载）。开发入口＝**F12 开发控制台**（`request enter` 本地测试模式）/ **F11 常用调试面板** 与 `DevStartupConfig` 直入本地测试模式开关；本地真 KCP 走 Meta+Room 全链；云端测试房由编辑器 GM 页创建 |
+| 现在能玩到什么 | 启动落点＝登录页（正式）/大厅页（本地服务器形态）；**对局场景组按对局加载**（进局才加载 `BattleRig` + 地图，离场卸载）。开发入口＝**F3 开发控制台**（`request enter` 本地测试模式）/ **F2 常用调试面板** 与 `DevStartupConfig` 直入本地测试模式开关；本地真 KCP 走 Meta+Room 全链；云端测试房由编辑器 GM 页创建 |
 | 权威在哪 | 判定逻辑在 `Assets/LiteSim/Core`（纯 C#、两端共编）；服务端权威在 `Assets/RoomServer`；表现只读 Sim 与事件 |
 | 改完怎么验 | 纯逻辑 `scripts/gate/test.py --suite L1`；含 Unity/资源 `scripts/gate/l2-unity-gate.py`；**改 Sim/协议/玩法表必须重跑 `python scripts/codegen/gen-build-hash.py`** |
 | 当前关口 | 《框架先行》准入**已达成（2026-10-04，桌面先行口径——Android 热更真机矩阵阻塞于无设备、随 G4 登记、不阻塞业务切片）**；主关口现为 **G2 正式联机业务切片**——关口与缺口以 [待办总览](../待办总览.md) 为准 |

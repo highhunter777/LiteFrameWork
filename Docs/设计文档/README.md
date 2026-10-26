@@ -134,7 +134,7 @@
 - [测试开发框架总设计](测试与性能/测试开发框架总设计.md)
 - [性能工程专项设计](测试与性能/性能工程专项设计.md)：Sim/网络/宿主侧性能预算、三层度量、热点清单与 P0～P3 阶段门禁；草案，预算数值待基线回填。
 - [调试与开发工具链演进路线图](测试与性能/调试与开发工具链演进路线图.md)：调试/开发/交付工具链的能力评估、统一形态与 T0～T3 演进顺序——§4 给出调试工具的六个形态面（发现/宿主/写盘为平台共用，写口/读数/产物为调试专属）与准入清单（能力分、平台形态不分，不新立契约）；在线房间命令日志与真实 `RoomRuntime` 重放、双端现场包、弱网与性能、可调试开发 Player、构建 preflight、CI 生成物漂移与工具链度量；契约仍以热更/测试/性能/GM 专项为准。
-- [DevHUD 演进路线图](测试与性能/DevHUD演进路线图.md)：只读 Overlay 的目标形态（宿主 + `IDevHudSection`/`IHudTextSink` 段件）、P0-A 宿主收口（段化/输入兼容/折叠/持久化/DiagTrace/日志 sink 状态/F6 导出）、P0-B 段能力（p95/GC/draw/sparkline）、P1 能力件边界与 P2 度量；含暴露问题处置归属与 **UI Toolkit 迁移决策/实测约束**（系统 TTF→TextCore SDF、sortingOrder 10000 盖 uGUI、无主题时仅 Label 可用、IMGUI 自动回退）。
+- [DevHUD 演进路线图](测试与性能/DevHUD演进路线图.md)：只读 Overlay 的目标形态（宿主 + `IDevHudSection`/`IHudTextSink` 段件）、P0-A 宿主收口（段化/输入兼容/折叠/持久化/DiagTrace/日志 sink 状态/F8 导出）、P0-B 段能力（p95/GC/draw/sparkline）、P1 能力件边界与 P2 度量；含暴露问题处置归属与 **UI Toolkit 迁移决策/实测约束**（系统 TTF→TextCore SDF、sortingOrder 10000 盖 uGUI、无主题时仅 Label 可用、IMGUI 自动回退）。
 
 ## 5. 维护规则
 

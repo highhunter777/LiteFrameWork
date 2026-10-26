@@ -1,17 +1,37 @@
 #if UNITY_EDITOR || DEVELOPMENT_BUILD || LITEFRAMEWORK_DEBUG
+using System;
 using UnityEngine;
 
 namespace LiteGame
 {
+    /// <summary>DevHUD 内建段的身份位（启动布局选择用；每段一位，段定义侧逐一登记）。</summary>
+    [Flags]
+    public enum DevHudSectionFlags
+    {
+        None = 0,
+        Errors = 1 << 0,
+        NetDiag = 1 << 1,
+        Perf = 1 << 2,
+        Stats = 1 << 3,
+        LogRecent = 1 << 4,
+        DiagTrace = 1 << 5,
+        LogSink = 1 << 6,
+    }
+
     /// <summary>开发启动配置：**场景级启动开关与本地测试模式初值**（Inspector 编辑，场景序列化，进 Play 前定好；
     /// Play 中改 Inspector 值同样生效）。只发布开关的静态镜像，不持有服务引用。
-    /// 时钟/事件旋钮见 <see cref="DebugRuntimeTuner"/>；运行期开发入口见 <see cref="DebugConsole"/>（F12）。
+    /// 时钟/事件旋钮见 <see cref="DebugRuntimeTuner"/>；运行期开发入口见 <see cref="DebugConsole"/>（F3）。
     /// 挂 GameEntry 同 GameObject，随 DontDestroyOnLoad 常驻。release 构建零残留（条件编译）。</summary>
     public sealed class DevStartupConfig : MonoBehaviour
     {
         [Header("开发落点（直入）")]
         [Tooltip("直入训练场：启动即进本地测试模式对局（本地服 Room-Test），不加载登录页；退出按 UI（ESC→设置页→退出）回大厅页。")]
         public bool DirectToTraining;
+
+        /// <summary>DevHUD 出厂默认展开集（精简四段：错误/联机诊断/性能/模块 Stats）。</summary>
+        public const DevHudSectionFlags DefaultDevHudExpanded =
+            DevHudSectionFlags.Errors | DevHudSectionFlags.NetDiag |
+            DevHudSectionFlags.Perf | DevHudSectionFlags.Stats;
 
         [Header("本地测试模式启动配置（进房时快照进运行时；局内可调项在 GM 面板）")]
         [Tooltip("全房免死：跨死线 Hp 保底 1、不写 Kill/Death——目标不消失，命中/受击反馈保留")]
@@ -33,8 +53,19 @@ namespace LiteGame
         [Tooltip("补位 bot 数量（总席位 = 1 + 本值）"), Min(0)]
         public int BotCount = 1;
 
+        [Header("DevHUD 初始布局")]
+        [Tooltip("首次运行（本机无折叠记忆）时默认展开的段；未勾选段默认折叠。运行中在 HUD 里折叠/展开会持久化并覆盖本设置；GM「联机诊断」页可一键按此重排。")]
+        public DevHudSectionFlags DevHudDefaultExpanded = DefaultDevHudExpanded;
+
         /// <summary>直入训练场开关的全局读点（流程层不认识本组件）。</summary>
         public static bool DirectToTrainingEnabled;
+
+        /// <summary>DevHUD 初始展开集（场景无本组件时套出厂默认）。</summary>
+        public static DevHudSectionFlags ResolveDevHudDefaultExpanded()
+        {
+            var config = UnityEngine.Object.FindAnyObjectByType<DevStartupConfig>(FindObjectsInactive.Include);
+            return config != null ? config.DevHudDefaultExpanded : DefaultDevHudExpanded;
+        }
 
         /// <summary>把**本组件的启动配置**快照进运行时并置位本地测试模式（ProcedureMain 消费进房请求时单点调用）；
         /// 场景未挂本组件时套默认口径（<see cref="TestModeRuntime.ApplyDefaults"/>）。

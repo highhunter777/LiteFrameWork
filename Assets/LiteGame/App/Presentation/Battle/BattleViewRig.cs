@@ -87,6 +87,7 @@ namespace LiteGame
         private CharacterLocomotionDriver _locomotion;   // 移动动画驱动（视图的消费者——先于视图拆除）
         private BattleCrosshairDriver _crosshair;       // 对局准心（Hud_Battle prefab）
         private readonly CrosshairFeelProfile _crosshairFeel;   // 准心手感投影（tbcrosshair——可空 = 测试装配回落 Default）
+        private readonly Func<UiThemeAsset> _themeProvider;      // 主题资产工厂（P2-3 B4：HUD 状态色注入；可空 = 保持烘焙值）
         private BattleHudDriver _hud;                   // HUD 面板（血条/弹药——技能栏静态占位）
         private BattleRankboardDriver _rankboard;       // 局内排行榜（FFA 比分＝击杀——镜像公共面）
         private BattleRespawnHudDriver _respawnHud;      // 死亡/复活 HUD（中央倒计时 + 归属 + 保护角标）
@@ -128,7 +129,8 @@ namespace LiteGame
         /// <param name="worldClock">世界钟（伤害数字寿命/合并窗；null = 飘字降级）。</param>
         internal BattleViewRig(IContentService content, IInputService input, ICameraService camera,
             ClientScope account, IVFXService vfx = null, LiteFramework.IWorldClock worldClock = null,
-            AudioService audio = null, CommandCenter commands = null, CrosshairFeelProfile crosshairFeel = null)
+            AudioService audio = null, CommandCenter commands = null, CrosshairFeelProfile crosshairFeel = null,
+            Func<UiThemeAsset> themeProvider = null)
         {
             _content = content ?? throw new ArgumentNullException(nameof(content));
             if (account == null) throw new ArgumentNullException(nameof(account));
@@ -139,6 +141,7 @@ namespace LiteGame
             _audio = audio;
             _commands = commands;
             _crosshairFeel = crosshairFeel;
+            _themeProvider = themeProvider;
 
             _viewScope = account.CreateChild("BattleView");
             _viewRootGo = new GameObject("[BattleView]");
@@ -219,14 +222,32 @@ namespace LiteGame
                 _hudInstance = UnityEngine.Object.Instantiate(_hudLease.Asset);
                 _hudInstance.name = "Hud_Battle";
                 _hudView = _hudInstance.GetComponent<BattleHudView>();
+                ApplyHudTheme();
             }
             catch (Exception ex) when (!(ex is OperationCanceledException))
             {
                 Log.Warning($"[Battle] HUD prefab 缺失/加载失败，HUD 降级:{BattleHudView.PrefabLocation}（{ex.Message}）", LogTag.Battle);
                 _hudLease = null;
+                if (_hudInstance != null) UnityEngine.Object.Destroy(_hudInstance);   // 防孤儿：实例化后失败不留在场景
                 _hudInstance = null;
                 _hudView = null;
             }
+        }
+
+        /// <summary>HUD 状态色注入（P2-3 B4）：provider 已装载 → `UiThemeBinder` 注入；null/资产缺失保持烘焙值并 Warning 一次（本局）。</summary>
+        private void ApplyHudTheme()
+        {
+            if (_themeProvider == null || _hudInstance == null) return;
+            SafeCall.Invoke(() =>
+            {
+                UiThemeAsset asset = _themeProvider();
+                if (asset == null)
+                {
+                    Log.Warning("[Battle] 主题资产未就绪——HUD 保持 prefab 烘焙值（状态色不注入）", LogTag.UI);
+                    return;
+                }
+                UiThemeBinder.Apply(_hudInstance, UiStyleResolver.FromAsset(asset), "HUD");
+            }, "BattleViewRig.ApplyHudTheme");
         }
 
         /// <summary>
@@ -772,7 +793,8 @@ namespace LiteGame
                 Log.Warning($"激光束 prefab 缺 LineRenderer——瞄准激光降级:{LaserSightPrefab}", LogTag.Battle);
                 return;
             }
-            _laser = new BattleLaserDriver(_view, _input, _context.Sim, _context.Map, line);
+            // 本局规则随装配注入（爆头带覆写随动；驱动不读 SimTestRules 静态读口）
+            _laser = new BattleLaserDriver(_view, _input, _context.Sim, _context.Map, line, _context.MatchRules);
             Log.Info("laser-attached", LogTag.Battle);
         }
 

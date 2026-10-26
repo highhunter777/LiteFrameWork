@@ -8,13 +8,13 @@
 
 ## 1. 现行基线
 
-- 宿主 `DevHUD`（约 455 行）只持生命周期/输入/持久化/编排；七段由 `DevHudSectionSet` 构建（错误 / 联机诊断 / 性能 / 模块 Stats / Log Recent / DiagTrace / 日志 sink），Stats 发现/过滤/性能采样/网络历史/JSON 导出各自独立件。0.25s 节流、F1 总开关、F2 复制、F3 级别、F4 本局、F5 现场包、F6 JSON、F7 过滤。
+- 宿主 `DevHUD`（约 455 行）只持生命周期/输入/持久化/编排；七段由 `DevHudSectionSet` 构建（错误 / 联机诊断 / 性能 / 模块 Stats / Log Recent / DiagTrace / 日志 sink），Stats 发现/过滤/性能采样/网络历史/JSON 导出各自独立件。0.25s 节流、F1 总开关、F4 复制、F5 级别、F6 本局、F7 现场包、F8 JSON、F9 过滤。
 - 性能段：240 帧环 → `FPS / p50 / p95 / p99 / 最差 / 长帧`；`ProfilerRecorder` 读 `GC Allocated In Frame`、`Draw Calls Count`、`Batches Count`（marker 缺失显示 `n/a`）；`HUD: x ms` 自报聚合耗时（指数平滑）。
 - 联机段：相位/RTT/丢包/和解 + `回滚/延后/输入领先/快照年龄`；RTT/丢包 60s sparkline（240 采样 @4Hz，换局 Reset）。
 - 生命周期：`[RuntimeInitializeOnLoadMethod]` 自创建 + `DontDestroyOnLoad`；程序集 `LiteGame.DevTool` + 三宏剥离；不得移入 `Editor/`。
 - 数据面：`GameEntry.Stats` + 场景 `IModuleStats`（场景加载后重扫、每轮剔除销毁件）；联机读数走 `BattleDiagnostics` 单读口；日志条目带 `[m/f/p]`；`DiagTrace`/`StructuredLogSink` 状态直读。
 - 只读：不持规则、不写运行态；无控制台/命令面。
-- 已知边界：tag 过滤用 `@tag` 文本（不做多选控件）；`hudScale` 只缩放字号；无 ThemeStyleSheet（标准控件无样式）；IMGUI 回退无色调/折叠；折叠/位置/过滤/缩放已持久化。
+- 已知边界：tag 过滤用 `@tag` 文本（不做多选控件）；`hudScale` 只缩放字号；无 ThemeStyleSheet（标准控件无样式）；IMGUI 回退无色调/折叠；折叠/位置/过滤/缩放已持久化；初始展开集读 `DevStartupConfig.DevHudDefaultExpanded`（出厂精简四段），仅本机无折叠记忆时套用。
 
 ## 2. 目标形态
 
@@ -36,10 +36,10 @@ interface IHudTextSink
 ```
 
 - **段清单**：Errors、Net、Perf、Stats、Log、DiagTrace、LogSink（`Written/Dropped/LastError`）。
-- **输入**：`DevHotkey` 抽象——优先 Input System、回退旧 `Input`；F1–F7 + 过滤模式的字符输入（`onTextInput`/`inputString`）。
-- **过滤**：F7 进入过滤模式；空格分 token，`@tag` 为标签（OR），其余为文本子串（AND）；Enter 应用、Esc 清除。
+- **输入**：`DevHotkey` 抽象——优先 Input System、回退旧 `Input`；F1–F9 + 过滤模式的字符输入（`onTextInput`/`inputString`）。
+- **过滤**：F9 进入过滤模式；空格分 token，`@tag` 为标签（OR），其余为文本子串（AND）；Enter 应用、Esc 清除。
 - **布局**：段可折叠、半透明底板、`hudScale`（字号）、状态行拖动、Toast 夹取在屏内。
-- **持久化**：`DevHudPrefs`（Editor = EditorPrefs，Player = PlayerPrefs）保存宽度/字号/左/顶/缩放/级别/仅本局/过滤词/折叠段。
+- **持久化**：`DevHudPrefs`（Editor = EditorPrefs，Player = PlayerPrefs）保存宽度/字号/左/顶/缩放/级别/仅本局/过滤词/折叠段。**初始展开集**由启动配置 `DevStartupConfig.DevHudDefaultExpanded`（段掩码；出厂＝错误/联机诊断/性能/模块 Stats）提供，仅在本机无折叠记忆时生效；GM「联机诊断」页可手动按它重排并写回折叠记忆。
 - **数据面扩展**：`BattleDiagnostics.Snapshot` 增回滚次数、输入领先、快照年龄；`StructuredLogSink` 状态接入段。
 - **渲染后端可替换**：**UI Toolkit 为现役后端**（P0-A 起，IMGUI 自动回退，§5）；段接口不绑定具体渲染器。
 
@@ -47,9 +47,9 @@ interface IHudTextSink
 
 ### P0-A 宿主收口
 
-段化（`IDevHudSection` + `IHudTextSink`）、**UI Toolkit 后端（IMGUI 回退）**、`DevHotkey`、折叠/DPI/拖拽/持久化、`DiagTrace` 段、日志 sink 状态段、F6 JSON 导出、过滤（`@tag` + 文本）、sink 轮转/清理用例、Toast 夹取。
+段化（`IDevHudSection` + `IHudTextSink`）、**UI Toolkit 后端（IMGUI 回退）**、`DevHotkey`、折叠/DPI/拖拽/持久化、`DiagTrace` 段、日志 sink 状态段、F8 JSON 导出、过滤（`@tag` + 文本）、sink 轮转/清理用例、Toast 夹取。
 
-**退出条件**：旧热键行为等价；Input System 与旧 Input 两种设置下热键均可用；任一段抛异常不影响其他段；重启 Play 后设置保持；F6 JSON 可被脚本解析；sink 轮转/保留数用例绿；Play 冒烟通过。
+**退出条件**：旧热键行为等价；Input System 与旧 Input 两种设置下热键均可用；任一段抛异常不影响其他段；重启 Play 后设置保持；F8 JSON 可被脚本解析；sink 轮转/保留数用例绿；Play 冒烟通过。
 
 ### P0-B 段能力（现行形态）
 
@@ -78,12 +78,12 @@ Player 控制台（`CommandCenter` 通道）、弱网注入面板、世界/实�
 | 每轮 `new StringBuilder` + net-diag 数组 | `_sb` 复用 + `AppendCurrent` | 现行基线 |
 | IMGUI 长行裁剪 | 换行 + 滚动 + 字号 | 现行基线 |
 | 无 DPI/拖拽/持久化 | `hudScale` + 状态行拖动 + `DevHudPrefs` | 现行基线 |
-| 无文本/tag 过滤 | F7 过滤模式 + `@tag`/文本 token | 现行基线 |
+| 无文本/tag 过滤 | F9 过滤模式 + `@tag`/文本 token | 现行基线 |
 | 旧 `Input` 硬绑 | `DevHotkey`（Input System 优先/旧 Input 回退） | 现行基线 |
 | 段异常只护了 Stats | 段宿主统一 try/catch | 现行基线 |
 | 段不可折叠 | 段标题 `[-]/[+]` 点击折叠（PointerDown） | 现行基线 |
 | 折叠态不落盘 | `DevHudPrefs.collapsed` | 现行基线 |
-| 读数不可结构化导出 | F6 JSON（与 F2/F5 并存） | 现行基线 |
+| 读数不可结构化导出 | F8 JSON（与 F4/F7 并存） | 现行基线 |
 | `DiagTrace` 无 UI 读面 | `DiagTrace` 段（最近 8 条 + total） | 现行基线 |
 | 日志 sink 丢弃量游戏内不可见 | `LogSink` 状态段（`Written/Dropped/LastError`） | 现行基线 |
 | sink 轮转/清理无测试 | 小上限轮转 + 保留数用例 | 现行基线 |
@@ -134,13 +134,13 @@ section.Append(sink, ctx);        // IMGUI: ImguiHudSink(StringBuilder)
 
 - 过渡：`DevHUD.renderWithUiToolkit`（默认 true）+ 构造失败自动回退 IMGUI；稳定后删 IMGUI 分支。
 - 剥离：`DevHudUiToolkitHost` 与 DevHUD 同程序集、同三宏；无资产，release 零残留。
-- 输入：F1–F6 仍在 DevHUD；滚动走 `WheelEvent`；过滤框待自定义输入（避免与 WASD 冲突）。
+- 输入：F1、F4–F9 仍在 DevHUD；滚动走 `WheelEvent`；过滤框待自定义输入（避免与 WASD 冲突）。
 
 ### 5.5 分段落地
 
 | 阶段 | 内容 |
 |---|---|
-| 当前 | 七段 + 行色调/标签 + 折叠 + F7 `@tag`/文本过滤 + F6 JSON + 拖动/缩放/持久化 + P0-B 性能/联机/Stats 读数 |
+| 当前 | 七段 + 行色调/标签 + 折叠 + F9 `@tag`/文本过滤 + F8 JSON + 拖动/缩放/持久化 + P0-B 性能/联机/Stats 读数 |
 | P1 | 控制台/弱网/世界查看器（HUD 只接状态行，不做交互） |
 | P2 | 会话度量、`metrics-<session>.json`、夜间阈值；HUD 自身开销量化与优化 |
 
@@ -158,7 +158,7 @@ section.Append(sink, ctx);        // IMGUI: ImguiHudSink(StringBuilder)
 
 ## 6. 验收与度量
 
-- 每批：Unity 编译 0 错 + L1 + Play 冒烟（真实操作路径：F1–F6、折叠、过滤、导出）；涉及资产/序列化时按 unity-pipeline 规范。
+- 每批：Unity 编译 0 错 + L1 + Play 冒烟（真实操作路径：F1、F4–F9、折叠、过滤、导出）；涉及资产/序列化时按 unity-pipeline 规范。
 - UI Toolkit 后端：中文可读、`sortingOrder` 盖住产品 uGUI（当前 6000）、系统字体不可用时自动回退 IMGUI；滚动/折叠在真实输入下可用。
 - HUD 自身：帧耗时与分配可读（P0-B）；sink `Dropped` 在段内可见（P0-A）。
 - 不进入 release：三宏剥离 + 程序集边界；新增资产必须验证收集组排除。

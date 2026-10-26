@@ -79,6 +79,11 @@ namespace LiteClient
         /// 瞄准激光的障碍射线等 View 侧判定共享同一份，不另建第二事实源）。</summary>
         public SimMapData Map => _map;
 
+        /// <summary>本局规则持有件（StartGame 绑定一次；随权威 GM 位更新同实例；null = 无测试规则）。
+        /// **表现消费者经构造注入本引用**（如瞄准激光的爆头带覆写）——不读 `SimTestRules` 静态读口，
+        /// 常规房/正式包的静态差异不会漏进表现判定。</summary>
+        public MatchTestRules MatchRules => _matchRules;
+
         /// <summary>最近一次收到的快照帧号（诊断/兜底——视点帧请用 <see cref="ViewRenderFrame"/>）。</summary>
         public int LastSnapshotFrame => _battle.Client.LastSnapshotFrame;
 
@@ -98,6 +103,16 @@ namespace LiteClient
         /// <summary>网络质量观测（会话面透传——HUD 展示；表现/诊断面，不参与判定）。</summary>
         public NetworkQuality NetworkQuality => _battle.Quality;
 
+#if UNITY_EDITOR || DEVELOPMENT_BUILD || LITEFRAMEWORK_DEBUG
+        /// <summary>调试口（开发三宏）：会话客户端——断线/重连动作经 <c>DebugKernel.Network</c> 收口，
+        /// 投影不直调（《GM 与调试工具分层专项设计》§7"投影不另写动作"）。release 无此面。</summary>
+        public BattleClient DebugBattle => _battle;
+
+        /// <summary>调试开关（开发三宏）：true = <see cref="ClientSessionPhase.SuspectedLost"/> 时**不自动重连**，
+        /// 停在断线态等待手动重连（验证失败/等待窗口/手动恢复路径）。默认 false＝产品行为。</summary>
+        public bool DebugSuppressAutoReconnect { get; set; }
+#endif
+
         private readonly BattleClient _battle;
         private readonly ClientScope _matchScope;
         private readonly SimMapData _map;
@@ -107,6 +122,7 @@ namespace LiteClient
         private readonly PublicCombatFeed _combatFeed = new PublicCombatFeed();       // 公共战斗事件面（独立事件批 → 按 kind 分流入队）
 
         private RollbackSim _sim;
+        private MatchTestRules _matchRules;               // 本局规则引用（StartGame 绑定；表现面注入源）
         private long _localEntityId;
         private long _reconcileCount;
         private bool _disposed;
@@ -256,7 +272,8 @@ namespace LiteClient
 
         private void End(EndReason reason)
         {
-            if (Interlocked.Exchange(ref _ended, 1) != 0) return;   // 恰好一次
+            if (Interlocked.Exchange(ref _ended, 1) != 0) return;   // 恰好一次（重复 Leave 不重复发）
+            if (reason == EndReason.Leave) _battle.Client.SendLeave();   // 先告知服务端释放席位（未入座/已断开自动 no-op）
             EndedReason = reason;
             Ended?.Invoke(reason);
         }
@@ -296,6 +313,10 @@ namespace LiteClient
                 values.NoDeath = rules.NoDeath;
                 values.InfiniteAmmo = rules.InfiniteAmmo;
             }
+
+            // 表现面（瞄准激光等）注入的是**本局同一个引用**：此后规则字段更新（GM 中局开合）
+            // 驱动侧可见，且驱动不再每帧读 SimTestRules 静态读口。
+            _matchRules = rules;
 
             // **玩法数据身份校验（批 E）**：服务端 `StartGame.ConfigHash` = 房间固定快照摘要
             // （判定面表字节 + 本局规则位，见 `CombatConfigDigest`）；本地按同一算法、同一份**本地装载字节**
@@ -460,7 +481,7 @@ namespace LiteClient
         /// 权威 GM 规则位 → 活动规则实例（联机测试房批）。常规房（flags=0）不创建规则对象——热路径零分配。
         /// 复用同一实例改字段是**有意**的：<see cref="RollbackSim"/> 构造时持有该引用，运行期无需重建。
         /// </summary>
-        private static void ApplyAuthoritativeGmFlags(int flags)
+        private void ApplyAuthoritativeGmFlags(int flags)
         {
             MatchTestRules rules = SimTestRules.ActiveMatch;
             if (rules == null)
@@ -471,6 +492,7 @@ namespace LiteClient
             }
             rules.NoDeath = (flags & MatchTestRules.FlagNoDeath) != 0;
             rules.InfiniteAmmo = (flags & MatchTestRules.FlagInfiniteAmmo) != 0;
+            _matchRules = rules;               // 表现面注入引用同源（同实例，字段已更新）
         }
 
         /// <summary>
@@ -497,13 +519,16 @@ namespace LiteClient
             _battle.Client.CompleteRestore();
         }
 
-        /// <summary>相位迁移：断线自动重连（凭票据）；Failed → 对局终结（流程层裁决去留）。</summary>
+        /// <summary>相位迁移：断线自动重连（凭票据；调试开关可抑制）；Failed → 对局终结（流程层裁决去留）。</summary>
         private void OnPhaseChanged(ClientSessionPhase from, ClientSessionPhase to)
         {
             if (_disposed) return;
             switch (to)
             {
                 case ClientSessionPhase.SuspectedLost:
+#if UNITY_EDITOR || DEVELOPMENT_BUILD || LITEFRAMEWORK_DEBUG
+                    if (DebugSuppressAutoReconnect) break;   // 调试：停在断线态，等待手动重连
+#endif
                     _battle.BeginReconnect();            // false = 无票据（内部已转 Failed，下一事件收口）
                     break;
                 case ClientSessionPhase.Failed:

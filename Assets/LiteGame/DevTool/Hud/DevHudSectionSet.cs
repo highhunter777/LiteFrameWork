@@ -57,13 +57,13 @@ namespace LiteGame
             _filter = filter;
             _options = options;
 
-            AddSection("错误", 10, AppendErrors);
-            AddSection("联机诊断", 20, AppendNet);
-            AddSection("性能", 30, AppendPerf);
-            AddSection("模块 Stats", 40, AppendStats);
-            AddSection("Log Recent", 50, AppendLogRecent);
-            AddSection("DiagTrace", 60, AppendDiagTrace);
-            AddSection("日志 sink", 70, AppendLogSink);
+            AddSection(DevHudSectionFlags.Errors, "错误", 10, AppendErrors);
+            AddSection(DevHudSectionFlags.NetDiag, "联机诊断", 20, AppendNet);
+            AddSection(DevHudSectionFlags.Perf, "性能", 30, AppendPerf);
+            AddSection(DevHudSectionFlags.Stats, "模块 Stats", 40, AppendStats);
+            AddSection(DevHudSectionFlags.LogRecent, "Log Recent", 50, AppendLogRecent);
+            AddSection(DevHudSectionFlags.DiagTrace, "DiagTrace", 60, AppendDiagTrace);
+            AddSection(DevHudSectionFlags.LogSink, "日志 sink", 70, AppendLogSink);
         }
 
         public void InvalidateStats() => _statsCacheAt = 0f;
@@ -104,10 +104,15 @@ namespace LiteGame
                 _net.Sample(snapshot.Quality.RttMs, snapshot.Quality.LossPermille);
         }
 
-        private void AddSection(string title, int order, Action<IHudTextSink> append)
+        private void AddSection(DevHudSectionFlags flag, string title, int order, Action<IHudTextSink> append)
         {
+            if (flag == DevHudSectionFlags.None)
+                throw new ArgumentException("DevHUD 段必须登记非 None 的 DevHudSectionFlags：" + title, nameof(flag));
+            for (int i = 0; i < _data.Count; i++)
+                if (_data[i].Flag == flag)
+                    throw new ArgumentException("DevHUD 段位重复：" + title + " / " + _data[i].Title, nameof(flag));
             _sections.Add(new DelegateSection(title, order, append));
-            _data.Add(new DevHudSectionData(title));
+            _data.Add(new DevHudSectionData(title, flag));
         }
 
         private void AppendErrors(IHudTextSink sink)
@@ -120,13 +125,8 @@ namespace LiteGame
         {
             if (!_options.ShowNet) return;
             _sb.Clear();
-            if (!_kernel.AppendExtendedBattle(_sb)) return;
-            WeakNetSnapshot weak = _kernel.WeakNet;
-            if (weak.Enabled)
-            {
-                _sb.Append('\n');
-                weak.AppendLines(_sb);
-            }
+            // 会话 + 弱网注入同一文案单源（DebugKernel.Network）；无对局 = false ⇒ 整段不显示
+            if (_kernel.Network == null || !_kernel.Network.AppendLines(_sb)) return;
             EmitLines(_sb.ToString(), sink, HudTone.Normal, "Net");
 
             if (_net.TryFormat(40, out string rttLine, out string lossLine))

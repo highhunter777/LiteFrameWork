@@ -1,6 +1,7 @@
 #if UNITY_EDITOR || DEVELOPMENT_BUILD || LITEFRAMEWORK_DEBUG
 using System;
 using System.Collections.Generic;
+using System.Text;
 using LiteClient;
 using LiteFramework;
 using UnityEngine;
@@ -9,7 +10,7 @@ using Object = UnityEngine.Object;
 namespace LiteGame
 {
     /// <summary>
-    /// 常用调试面板（F11，UI Toolkit）：控制台之外的轻量投影——本地测试模式进入/退出/传送 +
+    /// 常用调试面板（F2，UI Toolkit）：控制台之外的轻量投影——本地测试模式进入/退出/传送 +
     /// <see cref="TestModeOptions"/> 的 Live 开关。动作与读写全部经 <see cref="DebugKernel"/>，
     /// 不直调业务服务、不另拼读数；release 随三宏剥离。
     /// </summary>
@@ -41,12 +42,12 @@ namespace LiteGame
 
         private void Awake()
         {
-            Log.Info("开发面板已装配（F11 开关）", LogTag.UI);
+            Log.Info("开发面板已装配（F2 开关）", LogTag.UI);
         }
 
         private void Update()
         {
-            if (DevHotkey.Pressed(DevKey.F11))
+            if (DevHotkey.Pressed(DevKey.F2))
             {
                 if (_open) Close();
                 else Open();
@@ -133,7 +134,8 @@ namespace LiteGame
             if (_ui != null || _uiFailed) return;
             try
             {
-                _ui = new DebugPanelUiToolkitHost(transform, _liveOptions, OnToggle, OnEnter, OnExit, OnTeleport);
+                _ui = new DebugPanelUiToolkitHost(transform, _liveOptions, OnToggle, OnEnter, OnExit, OnTeleport,
+                    null, null, null, OnForceDisconnect, OnForceReconnect, OnToggleSuppressReconnect);
                 _ui.SetVisible(_open);
                 _tunablesBound = false;
             }
@@ -155,6 +157,7 @@ namespace LiteGame
 
             _ui.SetStatus("本地测试模式：" + (_kernel.IsTestModeActive ? "开" : "关")
                 + " · 即时开关走本进程");
+            UpdateNetStatus();
             for (int i = 0; i < _liveOptions.Count; i++)
             {
                 TestModeOptions.Info option = _liveOptions[i];
@@ -232,6 +235,46 @@ namespace LiteGame
             if (_kernel == null) { SetStatus("调试内核未装配", true); return; }
             _kernel.RequestTeleport();
             SetStatus("已请求传送到准心");
+        }
+
+        private void OnForceDisconnect()
+        {
+            if (_kernel == null) { SetStatus("调试内核未装配", true); return; }
+            bool ok = _kernel.TryForceDisconnect(out string error);
+            SetStatus(ok ? "已断线（等待自动重连）" : "拒绝：" + error, !ok);
+            Refresh();
+        }
+
+        private void OnForceReconnect()
+        {
+            if (_kernel == null) { SetStatus("调试内核未装配", true); return; }
+            bool ok = _kernel.TryBeginReconnect(out string error);
+            SetStatus(ok ? "已发起重连" : "拒绝：" + error, !ok);
+            Refresh();
+        }
+
+        private void OnToggleSuppressReconnect()
+        {
+            if (_kernel == null) { SetStatus("调试内核未装配", true); return; }
+            bool next = !(_kernel.Network != null && _kernel.Network.SuppressAutoReconnect);
+            bool ok = _kernel.TrySetSuppressAutoReconnect(next, out string error);
+            SetStatus(ok ? (next ? "已抑制自动重连（断线后停住）" : "已恢复自动重连") : "拒绝：" + error, !ok);
+            Refresh();
+        }
+
+        /// <summary>联机读数行（DebugKernel.Network 单源；无对局/未装配各自给空态文案）。</summary>
+        private void UpdateNetStatus()
+        {
+            if (_ui == null) return;
+            if (_kernel == null) { _ui.SetNetStatus("网络调试未装配", true); return; }
+            NetworkDebug network = _kernel.Network;
+            if (network == null) { _ui.SetNetStatus("网络调试未装配", true); return; }
+            if (!network.HasBattle) { _ui.SetNetStatus("无对局（未进房）"); return; }
+
+            var sb = new StringBuilder(160);
+            network.AppendLines(sb);
+            _ui.SetNetStatus(sb.ToString().Replace('\n', ' '));
+            _ui.SetSuppressReconnect(network.SuppressAutoReconnect);
         }
 
         private void SetStatus(string text) => SetStatus(text, false);

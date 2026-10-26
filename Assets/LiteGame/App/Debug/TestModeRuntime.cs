@@ -5,7 +5,7 @@ namespace LiteGame
 {
     /// <summary>本地测试模式（Room-Test）的运行时快照与控制桥（开发/编辑器/开发包专用；release 整段剥离）。
     /// **启动配置在场景 DevStartupConfig**（免死/人数/冻结/传送/三个表现开关的进房初值——进房时快照进来）；
-    /// **局内可调项在 GM 面板**（直接读写本快照的现场开关）。进入/退出由开发控制台（F12）或 GM 面板发起。
+    /// **局内可调项在 GM 面板**（直接读写本快照的现场开关）。进入/退出由开发控制台（F3）或 GM 面板发起。
     /// **请求桥（进/退/传送）经 <see cref="RequestEnter"/>/<see cref="RequestExit"/>/<see cref="RequestTeleport"/>
     /// 与 <see cref="TakeEnterRequest"/>/<see cref="TakeExitRequest"/>/<see cref="TakeTeleportRequest"/>
     /// 类型化读写对收口**——消费侧读即清，一次性语义编译期保证（静态标志不再对外裸露）。

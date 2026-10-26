@@ -27,13 +27,15 @@ namespace LiteGame
     /// **各段渲染开关 = public 字段**（Inspector 可配 / 代码可改）：showStats /
     /// statToggles（单模块段 bool 开关）/ showNetDiag（联机诊断段——读口 <see cref="BattleDiagnostics"/>，
     /// 无对局整段不显示）/ showPerf（性能段——本机帧样本自算）/ showLogRecent / logRecentLines / showErrorsLine。
+    /// 首次运行（本机无折叠记忆）的展开集读 `DevStartupConfig.DevHudDefaultExpanded`；此后以持久化折叠态为准。
     /// 0.25s 节流轮询：聚合单串，交 UI Toolkit `Label` 渲染（`DevHudUiToolkitHost`；字体不可用或
     /// `renderWithUiToolkit=false` 时自动回退 IMGUI）；**帧采样与可见性解耦**（隐藏期间性能窗不冻结）。
-    /// 热键：F1 总开关 / F2 复制文本 / F3 日志级别过滤 / F4 仅本局 / F5 落现场包。
+    /// 热键：F1 总开关 / F4 复制文本 / F5 日志级别过滤 / F6 仅本局 / F7 落现场包 / F8 导出 JSON / F9 过滤模式
+    /// （F2 = 开发面板、F3 = 开发控制台）。
     /// 日志行带关联上下文（会话/对局/帧/席位，见 <see cref="LogEntry"/>）；只读，不写运行态。</summary>
     public sealed class DevHUD : MonoBehaviour
     {
-        /// <summary>单模块 stats 段开关（按 StatsName 一段一 bool，Inspector 直改；未列出的模块默认显示）。</summary>
+        /// <summary>单模块 stats 段开关（按 StatsName 一段一 bool，Inspector 直改；未列出的模块默认隐藏＝白名单）。</summary>
         [Serializable]
         public class StatToggle
         {
@@ -85,6 +87,7 @@ namespace LiteGame
         private readonly DevHudSectionOptions _sectionOptions = new DevHudSectionOptions();
         private DevHudSectionSet _sectionSet;
         private readonly HashSet<string> _collapsed = new HashSet<string>(StringComparer.Ordinal);
+        private bool _hasSavedLayout;
         private readonly DevHudFilter _filter = new DevHudFilter();
         private bool _filterMode;
         private string _statusLine = "";
@@ -120,11 +123,83 @@ namespace LiteGame
             }
         }
 
+        /// <summary>模块 Stats 段白名单：只显示 <see cref="statToggles"/> 里勾选的模块，未登记默认隐藏
+        /// （按需显隐——新模块不再一注册就冒出来；勾选状态经 <see cref="DevHudPrefs"/> 持久化）。</summary>
         private bool ShowSection(string statsName)
         {
-            foreach (var t in statToggles)
-                if (t.statsName == statsName) return t.show;
-            return true;                                    // 未登记的模块默认显示
+            for (int i = 0; i < statToggles.Count; i++)
+                if (string.Equals(statToggles[i].statsName, statsName, StringComparison.Ordinal))
+                    return statToggles[i].show;
+            return false;
+        }
+
+        /// <summary>当前发现的模块名（容器件 + 场景件；GM 页/F3 控制台生成勾选清单用）。</summary>
+        public IReadOnlyList<string> StatsSectionNames
+        {
+            get
+            {
+                if (_kernel == null) return Array.Empty<string>();
+                IReadOnlyList<IModuleStats> stats = _kernel.Stats;
+                var names = new List<string>(stats.Count);
+                for (int i = 0; i < stats.Count; i++) names.Add(stats[i].StatsName);
+                return names;
+            }
+        }
+
+        public bool IsStatsSectionVisible(string statsName) => ShowSection(statsName);
+
+        /// <summary>按需显隐单个模块段（GM 页/F3 控制台入口；未登记的模块首次设置时补登记）。</summary>
+        public void SetStatsSectionVisible(string statsName, bool visible)
+        {
+            if (string.IsNullOrEmpty(statsName)) return;
+            for (int i = 0; i < statToggles.Count; i++)
+            {
+                if (!string.Equals(statToggles[i].statsName, statsName, StringComparison.Ordinal)) continue;
+                statToggles[i].show = visible;
+                SaveStatsVisibility();
+                return;
+            }
+            statToggles.Add(new StatToggle { statsName = statsName, show = visible });
+            SaveStatsVisibility();
+        }
+
+        /// <summary>批量显隐（F3 <c>hud stats all|none</c>）。</summary>
+        public void SetAllStatsSectionsVisible(bool visible)
+        {
+            for (int i = 0; i < statToggles.Count; i++) statToggles[i].show = visible;
+            SaveStatsVisibility();
+        }
+
+        private void SaveStatsVisibility()
+        {
+            var sb = new StringBuilder(128);
+            for (int i = 0; i < statToggles.Count; i++)
+            {
+                if (!statToggles[i].show || string.IsNullOrEmpty(statToggles[i].statsName)) continue;
+                if (sb.Length > 0) sb.Append('|');
+                sb.Append(statToggles[i].statsName);
+            }
+            DevHudPrefs.SetString("statsOn", sb.ToString());
+            _cacheDirty = true;
+            _sectionSet?.InvalidateStats();
+        }
+
+        /// <summary>会话间恢复白名单（有记忆时覆盖 Inspector 预置：与折叠态同口径「保存态优先」）。</summary>
+        private void LoadStatsVisibility()
+        {
+            if (!DevHudPrefs.Has("statsOn")) return;
+            var enabled = new HashSet<string>(StringComparer.Ordinal);
+            foreach (string name in DevHudPrefs.GetString("statsOn", "").Split('|'))
+                if (name.Length > 0) enabled.Add(name);
+            for (int i = 0; i < statToggles.Count; i++)
+                statToggles[i].show = enabled.Contains(statToggles[i].statsName);
+            foreach (string name in enabled)
+            {
+                bool known = false;
+                for (int i = 0; i < statToggles.Count; i++)
+                    if (string.Equals(statToggles[i].statsName, name, StringComparison.Ordinal)) { known = true; break; }
+                if (!known) statToggles.Add(new StatToggle { statsName = name, show = true });
+            }
         }
 
         private void Awake()
@@ -175,6 +250,7 @@ namespace LiteGame
             if (_kernel == null) return;
             _kernel.RebuildStats();
             _sectionSet = new DevHudSectionSet(_kernel, _filter, _sectionOptions);
+            if (!_hasSavedLayout) ApplyStartupSectionLayout();
         }
 
         private void Update()
@@ -233,9 +309,9 @@ namespace LiteGame
         {
             _sb.Clear();
             if (_filterMode)
-                _sb.Append("过滤模式：输入文本或 @tag · Enter 应用 · Esc 清除 · F7 退出");
+                _sb.Append("过滤模式：输入文本或 @tag · Enter 应用 · Esc 清除 · F9 退出");
             else
-                _sb.Append("F1 隐藏 · F2 复制 · F3 级别 · F4 本局 · F5 现场包 · F6 JSON · F7 过滤 · F12 控制台 · 拖状态行移动");
+                _sb.Append("F1 隐藏 · F2 面板 · F3 控制台 · F4 复制 · F5 级别 · F6 本局 · F7 现场包 · F8 JSON · F9 过滤 · 拖状态行移动");
             if (_filter.Raw.Length > 0) _sb.Append(" · 过滤=\"").Append(_filter.Raw).Append('"');
             if (_logFilter != 0) _sb.Append(" · 级别=").Append(LevelFilterNames[_logFilter]);
             if (_onlyCurrentMatch) _sb.Append(" · 仅本局");
@@ -262,7 +338,7 @@ namespace LiteGame
             bool enable = !_filterMode;
             if (enable && !DevHotkey.SetTextInputActive(this, true))
             {
-                Toast("输入被其他调试面占用（F12 控制台）");
+                Toast("输入被其他调试面占用（F3 控制台）");
                 return;
             }
             _filterMode = enable;
@@ -308,11 +384,13 @@ namespace LiteGame
             if (DevHudPrefs.Has("onlyMatch")) _onlyCurrentMatch = DevHudPrefs.GetInt("onlyMatch", 0) != 0;
             if (DevHudPrefs.Has("filter"))
                 _filter.Set(DevHudPrefs.GetString("filter", ""));
-            if (DevHudPrefs.Has("collapsed"))
+            _hasSavedLayout = DevHudPrefs.Has("collapsed");
+            if (_hasSavedLayout)
             {
                 foreach (string title in DevHudPrefs.GetString("collapsed", "").Split('|'))
                     if (title.Length > 0) _collapsed.Add(title);
             }
+            LoadStatsVisibility();
         }
 
         private void SavePrefs()
@@ -339,6 +417,29 @@ namespace LiteGame
             hudLeft = left;
             hudTop = top;
             SavePrefs();
+        }
+
+        /// <summary>按 `DevStartupConfig.DevHudDefaultExpanded` 重排展开集（覆盖已持久化的折叠记忆；GM 页入口）。</summary>
+        public void ApplyDefaultSectionLayout()
+        {
+            if (_sectionSet == null) TryBindKernel();
+            if (_sectionSet == null) { Toast("HUD 未就绪"); return; }
+            _hasSavedLayout = true;
+            ApplyStartupSectionLayout();
+            SavePrefs();
+            _cacheDirty = true;
+            Toast("已按启动配置重排段布局");
+        }
+
+        private void ApplyStartupSectionLayout()
+        {
+            DevHudSectionFlags expanded = DevStartupConfig.ResolveDevHudDefaultExpanded();
+            _collapsed.Clear();
+            for (int i = 0; i < _sectionSet.Data.Count; i++)
+            {
+                DevHudSectionData data = _sectionSet.Data[i];
+                if ((expanded & data.Flag) == 0) _collapsed.Add(data.Title);
+            }
         }
 
         /// <summary>导出当前读数（含段/行/色调/过滤/后端）为 JSON；脚本可直接消费。</summary>
@@ -441,18 +542,18 @@ namespace LiteGame
             }
             if (!_visible) return;
 
-            if (DevHotkey.Pressed(DevKey.F7)) ToggleFilterMode();
+            if (DevHotkey.Pressed(DevKey.F9)) ToggleFilterMode();
             if (_filterMode)
             {
                 HandleFilterInput();
                 return;
             }
 
-            if (DevHotkey.Pressed(DevKey.F2)) CopyToClipboard();
-            else if (DevHotkey.Pressed(DevKey.F3)) { _logFilter = (_logFilter + 1) % LevelFilterNames.Length; SavePrefs(); }
-            else if (DevHotkey.Pressed(DevKey.F4)) { _onlyCurrentMatch = !_onlyCurrentMatch; SavePrefs(); }
-            else if (DevHotkey.Pressed(DevKey.F5)) DumpBundle();
-            else if (DevHotkey.Pressed(DevKey.F6)) ExportJson();
+            if (DevHotkey.Pressed(DevKey.F4)) CopyToClipboard();
+            else if (DevHotkey.Pressed(DevKey.F5)) { _logFilter = (_logFilter + 1) % LevelFilterNames.Length; SavePrefs(); }
+            else if (DevHotkey.Pressed(DevKey.F6)) { _onlyCurrentMatch = !_onlyCurrentMatch; SavePrefs(); }
+            else if (DevHotkey.Pressed(DevKey.F7)) DumpBundle();
+            else if (DevHotkey.Pressed(DevKey.F8)) ExportJson();
         }
     }
 

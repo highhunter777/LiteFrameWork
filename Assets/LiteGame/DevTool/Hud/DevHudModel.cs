@@ -54,10 +54,15 @@ namespace LiteGame
     internal sealed class DevHudSectionData
     {
         public readonly string Title;
+        public readonly DevHudSectionFlags Flag;
         public readonly List<HudLine> Lines = new List<HudLine>(32);
         public bool Visible = true;
 
-        public DevHudSectionData(string title) => Title = title;
+        public DevHudSectionData(string title, DevHudSectionFlags flag)
+        {
+            Title = title;
+            Flag = flag;
+        }
     }
 }
 #endif

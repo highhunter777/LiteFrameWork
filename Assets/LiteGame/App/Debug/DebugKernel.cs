@@ -28,20 +28,51 @@ namespace LiteGame
         private readonly DebugTunableDiscovery _tunables;
         private readonly DebugPerfSampler _perf = new DebugPerfSampler();
         private readonly WeakNetRuntime _weakNet;
+        private readonly NetworkDebug _network;
         private readonly Dictionary<Type, MethodInfo> _sendMethods = new Dictionary<Type, MethodInfo>(16);
         private bool _statsInitialized;
         private bool _tunablesInitialized;
 
         public DebugKernel(CommandCenter commands, IInputService input,
-            IEnumerable<IDebugTunableProvider> tunableProviders = null, WeakNetRuntime weakNet = null)
+            IEnumerable<IDebugTunableProvider> tunableProviders = null, WeakNetRuntime weakNet = null,
+            NetworkDebug network = null)
         {
             _commands = commands ?? throw new ArgumentNullException(nameof(commands));
             _input = input;
             _weakNet = weakNet;
+            _network = network;
             _tunables = new DebugTunableDiscovery(tunableProviders);
         }
 
         public WeakNetSnapshot WeakNet => _weakNet != null ? _weakNet.TakeSnapshot() : default;
+
+        /// <summary>网络调试组件（读模型 + 断线/重连动作）——投影只经此消费（§7 单一门面）。</summary>
+        public NetworkDebug Network => _network;
+
+        /// <summary>强制断线（走命令中心 → 审计；断后由会话相位策略自动重连）。</summary>
+        public bool TryForceDisconnect(out string error)
+            => SendNetworkAction(new ForceDisconnectCommand(), out error);
+
+        /// <summary>强制重连（走命令中心 → 审计；仅 SuspectedLost 有效）。</summary>
+        public bool TryBeginReconnect(out string error)
+            => SendNetworkAction(new ForceReconnectCommand(), out error);
+
+        /// <summary>抑制/恢复自动重连（走命令中心 → 审计；抑制后断线停在 SuspectedLost）。</summary>
+        public bool TrySetSuppressAutoReconnect(bool suppressed, out string error)
+            => SendNetworkAction(new SetAutoReconnectSuppressedCommand { Suppressed = suppressed }, out error);
+
+        private bool SendNetworkAction<TCommand>(TCommand command, out string error) where TCommand : ICommand
+        {
+            if (_network == null)
+            {
+                error = "网络调试未装配";
+                return false;
+            }
+
+            CommandResult result = _commands.Send(command);
+            error = result.Ok ? null : (string.IsNullOrEmpty(result.Detail) ? result.Reason.ToString() : result.Detail);
+            return result.Ok;
+        }
 
         public bool TrySetWeakNetPreset(string preset, out string error)
         {

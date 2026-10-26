@@ -21,6 +21,9 @@ namespace LiteGame
 #if UNITY_EDITOR || DEVELOPMENT_BUILD || LITEFRAMEWORK_DEBUG
         private IDisposable _gmSceneCommands;   // GM 场景命令注册（场景操作命令化批）——随模块 Shutdown 释放
         private IDisposable _weakNetCommand;    // 弱网预设命令注册
+        private IDisposable _disconnectCommand; // 强制断线命令注册
+        private IDisposable _reconnectCommand;  // 强制重连命令注册
+        private IDisposable _suppressReconnectCommand; // 自动重连抑制命令注册
 #endif
 
         public string Name => "Container";
@@ -72,11 +75,21 @@ namespace LiteGame
             _gmSceneCommands = GmSceneCommands.RegisterAll(commands, _scenes);
             WeakNetRuntime weakNet = new WeakNetRuntime();
             context.Put(weakNet);
+            // 网络调试组件（读模型 + 断线/重连动作）：会话上下文是流程私有件，经静态读口取件。
+            var networkDebug = new NetworkDebug(weakNet, () => BattleDiagnostics.Current);
+            context.Put(networkDebug);
             _weakNetCommand = commands.Register(new SetWeakNetPresetHandler(weakNet),
                 new CommandOptions(gmOnly: true, description: "切换弱网预设（none/lan/mobile/lossy）"));
+            _disconnectCommand = commands.Register(new ForceDisconnectHandler(networkDebug),
+                new CommandOptions(gmOnly: true, description: "强制断线（调试：断后走自动重连）"));
+            _reconnectCommand = commands.Register(new ForceReconnectHandler(networkDebug),
+                new CommandOptions(gmOnly: true, description: "强制重连（仅 SuspectedLost 相位有效）"));
+            _suppressReconnectCommand = commands.Register(new SetAutoReconnectSuppressedHandler(networkDebug),
+                new CommandOptions(gmOnly: true, description: "抑制/恢复自动重连（断线停在 SuspectedLost）"));
             // 调试内核：读模型/动作模型/发现协议的唯一门面；投影（编辑器页/HUD/控制台）只消费它。
             context.Put(new DebugKernel(commands, context.Require<IInputService>(),
-                new IDebugTunableProvider[] { new FeatureDebugTunables(), new WeaponDebugTunables(), weakNet }, weakNet));
+                new IDebugTunableProvider[] { new FeatureDebugTunables(), new WeaponDebugTunables(), weakNet },
+                weakNet, networkDebug));
 #endif
             _services.RegisterInstance<IConfigTableSource>(config);
             _services.RegisterInstance<IConfigService>(config);
@@ -88,7 +101,8 @@ namespace LiteGame
             _services.RegisterInstance<IVFXService>(context.Require<VfxService>());
 
             // 会话工厂（DI-3）：Account 半边零引擎依赖（L1 源链接直测）；Match 半边 Unity 面（DI-4 验收）。
-            // 传输裁决经委托留给产品装配根（ProcedureMatch.CreateTransportForFactory——工厂不认识测试开关语义）。
+            // 传输裁决经委托留给产品装配根（ProcedureMatch.CreateTransport——工厂不认识测试开关语义）；
+            // **每局规则播种是显式步骤**（MatchRulesSeeder.Seed），传输工厂只接收规则实例产传输。
             // 注册面＝服务接口（消费者经构造注入解析；Put 与 RegisterInstance 写同一容器——接口键只注册一次，
             // 具体类型无产物消费者不占键）。
             var deploy = MetaDeployConfig.Load(Environment.GetCommandLineArgs(), DeployBake.ReadArgs());
@@ -100,7 +114,8 @@ namespace LiteGame
             var maps = new MapProvider(config);            // 地图提供者（D9）：已装载表链 → 判定图（两端同源投影）
             _services.RegisterInstance<IMapProvider>(maps);
             Func<bool, IClientTransport> transportFactory =
-                testRoom => ProcedureMatch.CreateTransportForFactory(testRoom, deploy, gameplayDigestBase, maps);
+                testRoom => ProcedureMatch.CreateTransport(testRoom, MatchRulesSeeder.Seed(testRoom),
+                    deploy, gameplayDigestBase, maps);
 #if UNITY_EDITOR || DEVELOPMENT_BUILD || LITEFRAMEWORK_DEBUG
             transportFactory = WeakNetWiring.WrapFactory(transportFactory, weakNet);
 #endif
@@ -175,6 +190,12 @@ namespace LiteGame
 #if UNITY_EDITOR || DEVELOPMENT_BUILD || LITEFRAMEWORK_DEBUG
             _weakNetCommand?.Dispose();
             _weakNetCommand = null;
+            _disconnectCommand?.Dispose();
+            _disconnectCommand = null;
+            _reconnectCommand?.Dispose();
+            _reconnectCommand = null;
+            _suppressReconnectCommand?.Dispose();
+            _suppressReconnectCommand = null;
             _gmSceneCommands?.Dispose();          // 注销先于容器释放（注册/注销对称——幂等注销器）
             _gmSceneCommands = null;
 #endif
@@ -208,7 +229,8 @@ namespace LiteGame
                     crosshairFeel: new CrosshairFeelProfile(config),     // 准心手感（tbcrosshair 惰性投影——装载后首用建）
                     scenes: _scenes,                                  // 开局入场加载 / 离场卸载对局场景组（都在 Battle）
                     maps: context.Require<IMapProvider>(),             // 多图批：场景路径查表行 scene 列 / 卸载按表枚举
-                    feedback: feedback)),                              // 开局入场加载遮罩（"正在进入对局…"）
+                    feedback: feedback,                                // 开局入场加载遮罩（"正在进入对局…"）
+                    themeProvider: context.Require<UIService>().ThemeAssetProvider)),   // HUD 状态色主题注入（P2-3 B4）
                 (ProcedureId.Error, new ProcedureError(rootToken)));
         }
 

@@ -12,12 +12,12 @@
 
 | 层 | 载体 | 生命周期 | 职责 | 不做什么 |
 |---|---|---|---|---|
-| **启动配置** | 场景 `DevStartupConfig`（Inspector） | 随场景保存 | 进房初值（免死/bot 数/冻结/传送/表现开关）；进房前快照（`ApplySnapshotOrDefaults`）；入口初值随 `CombatValues` 进联机身份摘要 | 不承载局内可调项 |
+| **启动配置** | 场景 `DevStartupConfig`（Inspector） | 随场景保存 | 进房初值（免死/bot 数/冻结/传送/表现开关）；进房前快照（`ApplySnapshotOrDefaults`）；入口初值随 `CombatValues` 进联机身份摘要；**DevHUD 初始展开集**（`DevHudDefaultExpanded`，仅本机无折叠记忆时生效） | 不承载局内可调项 |
 | **运行态规则** | `MatchTestRules` 每局持有件（LiteSim） | 进房新建（`ProcedureMatch` 按入口初值）、离场丢弃 | 免死/无限子弹/爆头带试验覆写的**运行态单源**；经 `SimStep` 脊柱注入确定性系统；`SimTestRules.ActiveMatch` 登记口供两端绑定与 GM 中局开合 | **判定路径不读任何静态**（修改指南 §1.3，含 dev 宏内） |
 | **开关写口** | `TestModeOptions` 单表 + `TestModeRuntime` 快照（LiteGame，开发三宏） | 三宏内 | **唯一开关写口**（Startup/Live 分组，新增开关零面板改动）；请求桥（进/退/传送一次性标志）；爆头覆写跨局待用值 | 不落盘、不进摘要 |
-| **投影面** | 编辑器 `LiteGame/工具链` Hub（页件宿主）/ `DevHUD`（只读）/ `DebugConsole`（F12，运行期操控）/ `DebugPanel`（F11，常用动作/即时开关） | — | 只读读数 + 调用写口/请求桥/命令 | **零业务逻辑**——投影不持规则、不写运行态（写只能经上述两个写口或命令） |
+| **投影面** | 编辑器 `LiteGame/工具链` Hub（页件宿主）/ `DevHUD`（只读）/ `DebugPanel`（F2，常用动作/即时开关）/ `DebugConsole`（F3，运行期操控） | — | 只读读数 + 调用写口/请求桥/命令 | **零业务逻辑**——投影不持规则、不写运行态（写只能经上述两个写口或命令） |
 
-> 组件拆分：`DevStartupConfig` 只保留启动开关与本地测试模式初值；时钟/事件连续旋钮在 `DebugRuntimeTuner`；运行期开发入口为 `DebugConsole`（F12，UI Toolkit），不设独立开发页覆盖件。三者同挂 `GameEntry`，均随开发三宏剥离。
+> 组件拆分：`DevStartupConfig` 只保留启动开关与本地测试模式初值；时钟/事件连续旋钮在 `DebugRuntimeTuner`；运行期开发入口为 `DebugConsole`（F3，UI Toolkit），不设独立开发页覆盖件。三者同挂 `GameEntry`，均随开发三宏剥离。
 
 ## 2. 动作三分口径（命令化边界）
 
@@ -36,7 +36,7 @@
 
 - 契约 `IGmPage : IEditorToolPage`（`Editor/Gm/`）：`OnShow` / `OnHide` / `Draw` / `Poll`——宿主在翻页/开窗时调生命周期，`Poll` **仅活动页**在 Play 中按 0.5s 节拍被调（非活动页不轮询）。
 - 宿主 `LiteGame/工具链` Hub（`Editor/Toolchain/`）职责仅三件：页签生命周期、轮询调度、页签记忆（EditorPrefs **统一前缀 `LiteGame.Toolchain.*`**）；GM 七页作为 `page` 工具登记在 `scripts/gate/toolchain.json`。
-- 七页：本地测试模式（请求桥+开关+**bot 操作**+**云端测试房创建/选图与 GM 规则**+爆头导出/FOV 试调）、调试参数（`IDebugTunableProvider` 描述自动渲染，见 §7）、命令与审计（发现面/无参执行/审计环）、场景操作（SceneService 加载机制验证——经场景命令 `SendAsync` 派发，忙碌守卫）、配置诊断（运行状态+表查询+产物核对）、本地联测（联测环境页件——`deploy/.env` 单源驱动的两端起停/探针/日志尾随；**自管 `EditorApplication.update` 心跳**，编辑态即刷新——不受宿主 `Poll` 的 Play 门禁约束；被投影物是本地部署环境，不是游戏运行态）、联机诊断（DevHUD 的编辑器投影：HUD 总开关/段开关 + `BattleDiagnostics` 单源读数——读口与包形态启用口径见 §5）。
+- 七页：本地测试模式（请求桥+开关+**bot 操作**+**云端测试房创建/选图与 GM 规则**+爆头导出/FOV 试调）、调试参数（`IDebugTunableProvider` 描述自动渲染，见 §7）、命令与审计（发现面/无参执行/审计环）、场景操作（SceneService 加载机制验证——经场景命令 `SendAsync` 派发，忙碌守卫）、配置诊断（运行状态+表查询+产物核对）、本地联测（联测环境页件——`deploy/.env` 单源驱动的两端起停/探针/日志尾随；**自管 `EditorApplication.update` 心跳**，编辑态即刷新——不受宿主 `Poll` 的 Play 门禁约束；被投影物是本地部署环境，不是游戏运行态）、联机诊断（DevHUD 的编辑器投影：HUD 总开关/段开关 + 按启动配置重排段 + `BattleDiagnostics` 单源读数——读口与包形态启用口径见 §5）。
 - **bot 操作（本地测试模式页）**：补位假人两项——**bot 无限生命**（`TestModeOptions` 现场开关，Live；权威侧宿主钩子 `SimTestRules.BotInfiniteHp` 每帧回满 ⇒ 假人永不死、命中/飘字反馈照常）与**重置假人**（一次性宿主钩子 `SimTestRules.BotResetRequested`：补位席位满血回出生点 + `LifeStartFrame` 生命更替 ⇒ 动画按"新生命"退出死亡叶；进房清残留同 TeleportDispatch 口径）。假人=补位席位（本地玩家不受两项管辖）。**未做（挂账）**：房内**追加**新假人——需放开"固定 2 座"世界规模（客户端定容重建/预测口径），归 G2 8 人基线面另立批。
 - 诊断取件单源：`GmEditorResolve.ResolveFromContainer<T>`（`GameEntry.TakeContainer()` 口径——编辑器工具豁免形态，业务侧禁）；未装配按空态显示。
 - 产物核对路径 = `TableLayout.TableDataPath` **单源**（领域分类布局——装载/服务端直读/编辑器预检三面共用，禁第二份拼接）。
@@ -46,13 +46,13 @@
 
 只读统计 HUD（自创建、F1 总开关、0.25s 节流、经 `GameEntry.DebugKernel` 读内核读模型）——**保持只读**。将来真机/开发包若需 GM 动作，加命令通道（§2.2 形态复用），不给 HUD 加直写口。目录 `Assets/LiteGame/DevTool/`、程序集独立 `LiteGame.DevTool` + 三宏剥离；**禁移入 `Editor/` 特殊目录**（代码自创建形态，`MonoBehaviour` 须可 AddComponent——详见其类注释）。
 
-- **段构成**：模块 stats 段（容器注册件 + 场景组件型合并发现）＋联机诊断段（读口 `BattleDiagnostics`——对局上下文的 dev-only 单点登记，对局视图装配/拆视图两处接线；无对局整段不显示，不显示陈旧值）＋性能段（内核性能读模型：FPS/p50/p95/p99/最差帧/长帧 + GC/Draw/Batches recorder——投影只喂时钟差并读 `DebugKernel` 读口）＋日志尾巴/错误行。各段渲染开关 = DevHUD public 字段。
+- **段构成**：模块 stats 段（容器注册件 + 场景组件型合并发现）＋联机诊断段（读口 `BattleDiagnostics`——对局上下文的 dev-only 单点登记，对局视图装配/拆视图两处接线；无对局整段不显示，不显示陈旧值）＋性能段（内核性能读模型：FPS/p50/p95/p99/最差帧/长帧 + GC/Draw/Batches recorder——投影只喂时钟差并读 `DebugKernel` 读口）＋日志尾巴/错误行。各段渲染开关 = DevHUD public 字段；**模块 stats 段按白名单显示**（`statToggles` 未登记默认隐藏，勾选态持久化 `LiteGame.DevHUD.statsOn`；GM 页勾选清单与 F3 `hud stats` 按需开关）。联机诊断段的「会话 + 弱网注入」文案单源＝`DebugKernel.Network.AppendLines`。**初始展开集**由 `DevStartupConfig.DevHudDefaultExpanded`（段掩码）提供，仅在本机无折叠记忆时套用；此后折叠态持久化优先。
 - **对局诊断读口**（`App/Debug/BattleDiagnostics`）：对局上下文是流程私有件——不进容器、非场景组件，HUD 与 GM 页经同一登记口读数（`Attach/Detach` + 快照/描述单源——两处消费不各拼一套文案）；RTT/丢包口径与 `BattleNetworkHudDriver` 同源（千分比 → 一位小数百分比）。
-- **编辑器投影**：`LiteGame/工具链` →「联机诊断」页＝DevHUD 开关投影（总开关/段开关，F1 等效）＋读数投影（同一描述单源）。包形态无 Hub，HUD 由 F1 开。
+- **编辑器投影**：`LiteGame/工具链` →「联机诊断」页＝DevHUD 开关投影（总开关/段开关，F1 等效）＋初始展开集重排（按 `DevStartupConfig.DevHudDefaultExpanded` 覆盖当前折叠记忆）＋读数投影（同一描述单源）。包形态无 Hub，HUD 由 F1 开。
 - **开发包启用**：出包脚本消费 BuildProfile `channel`——`development` 通道传 `BuildOptions.Development`（三宏的 `DEVELOPMENT_BUILD` 在包内成立，dev 面随包编译：DevHUD/DebugConsole/DebugPanel/DevStartupConfig/DebugRuntimeTuner/GM 命令层）；其余通道维持原样（缺省仅 DetailedBuildReport）。**分发边界**：development 通道产物＝开发侧测试客户端专用，**不进测试者分发包**——测试者出包走 release 通道档（`BuildProfiles/windows-x64-release.json`），各通道产物目录独立（`profile.output` 透传 build 命令），Dist 打包测试者包指向 `Builds/StandaloneWindows64-release`。开发控制台随 `DebugConsole` 自创建（`RuntimeInitializeOnLoadMethod`），不需要 dev 预制体；运行期开发入口不随包通道分叉。
 - **演进与渲染后端**：分批、退出条件与 **UI Toolkit 决策**（已迁移 UI Toolkit；IMGUI 仅自动回退，只换渲染后端不换读口）见[《DevHUD 演进路线图》](../测试与性能/DevHUD演进路线图.md) §5。
-- **开发控制台**（`DebugConsole`，F12）：运行期操控投影（不设独立开发页覆盖件）。UI Toolkit 渲染（运行时 `PanelSettings` + 内联样式 + 系统 SDF 字体；运行期无 `ThemeStyleSheet`，只用 `Label`/`VisualElement` 自绘），输入经 `DevHotkey` 收口；命令/选项/请求桥/读数全经内核。本地测试模式由 `request enter` 触发；真 KCP（本地全链/云端）只走 Meta 票据，不再有直连测试身份入口；进房启动快照由 `ProcedureMain` 在消费进房请求时单点落值。面板位于产品 uGUI Overlay 之下，全屏产品页打开时会盖住底部面板，但命令仍可执行——这是当前渲染后端的已知边界。
-- **常用调试面板**（`DebugPanel`，F11）：同一个内核的轻量 UI Toolkit 投影——本地测试模式进入/退出/传送 + `TestModeOptions` 的 `Live` 开关 + `RuntimeVisible` 的 Sandbox/Presentation 快捷调参（滑杆/开关/复位）。`Product` 参数默认只在编辑器页出现（当前为准心 6 项与视角 2 项，默认值仍写在代码常量、定档后迁表/配置）；长尾参数也只进编辑器。打开时注册 `debug.panel` 输入拦截；任意命令仍走 F12 控制台。
+- **开发控制台**（`DebugConsole`，F3）：运行期操控投影（不设独立开发页覆盖件）。UI Toolkit 渲染（运行时 `PanelSettings` + 内联样式 + 系统 SDF 字体；运行期无 `ThemeStyleSheet`，只用 `Label`/`VisualElement` 自绘），输入经 `DevHotkey` 收口；命令/选项/请求桥/读数全经内核。本地测试模式由 `request enter` 触发；真 KCP（本地全链/云端）只走 Meta 票据，不再有直连测试身份入口；进房启动快照由 `ProcedureMain` 在消费进房请求时单点落值。面板位于产品 uGUI Overlay 之下，全屏产品页打开时会盖住底部面板，但命令仍可执行——这是当前渲染后端的已知边界。
+- **常用调试面板**（`DebugPanel`，F2）：同一个内核的轻量 UI Toolkit 投影——本地测试模式进入/退出/传送 + `TestModeOptions` 的 `Live` 开关 + `RuntimeVisible` 的 Sandbox/Presentation 快捷调参（滑杆/开关/复位）。`Product` 参数默认只在编辑器页出现（当前为准心 6 项与视角 2 项，默认值仍写在代码常量、定档后迁表/配置）；长尾参数也只进编辑器。打开时注册 `debug.panel` 输入拦截；任意命令仍走 F3 控制台。
 - **统一内核与投影**：DevHUD 只是运行期只读投影；写动作由运行期操控投影经内核命令通道执行，见 §7。UI 专用投影见[《UI 运行时调试工具链专项设计》](../客户端/UI系统/UI运行时调试工具链专项设计.md)。
 
 ## 6. 边界（如实）
@@ -80,12 +80,12 @@
 
 | 子面 | 内容 | 现行承载 |
 | --- | --- | --- |
-| 读模型 | 模块统计、对局诊断、日志/结构化诊断、页面状态与焦点、配置/内容身份、性能样本、测试模式/日志关联上下文（`IsTestModeActive`/`CurrentMatchId`/`CurrentSessionId`/`StartupBotCount`） | `GameEntry.Stats`、`BattleDiagnostics`、`Log`/`DiagTrace`、`UIService`/`UIModalStack.IUIFormQuery` 只读查询、`DebugPerfSampler`（帧统计 + GC/Draw/Batches recorder——经 `DebugKernel.SampleFrame/TryTakePerf/RecordHudBuildMs`） |
-| 动作模型 | 低频离散动作（命令化 + 审计 + 可撤销）、测试开关单表、pre-Play 一次性请求桥、一次性宿主钩子（bot 重置 `RequestBotReset`） | `CommandCenter`、`TestModeOptions`、`TestModeRuntime`、`SimTestRules.BotResetRequested`（经内核收口） |
+| 读模型 | 模块统计、对局诊断、日志/结构化诊断、页面状态与焦点、配置/内容身份、性能样本、网络调试读数（会话相位/RTT/丢包/弱网注入）、测试模式/日志关联上下文（`IsTestModeActive`/`CurrentMatchId`/`CurrentSessionId`/`StartupBotCount`） | `GameEntry.Stats`、`BattleDiagnostics`、`Log`/`DiagTrace`、`UIService`/`UIModalStack.IUIFormQuery` 只读查询、`DebugPerfSampler`（帧统计 + GC/Draw/Batches recorder——经 `DebugKernel.SampleFrame/TryTakePerf/RecordHudBuildMs`）、`DebugKernel.Network`（`NetworkDebug` 组件） |
+| 动作模型 | 低频离散动作（命令化 + 审计 + 可撤销）、测试开关单表、pre-Play 一次性请求桥、一次性宿主钩子（bot 重置 `RequestBotReset`）、会话动作（强制断线 `ForceDisconnectCommand`／无状态重连 `ForceReconnectCommand`／自动重连抑制 `SetAutoReconnectSuppressedCommand`） | `CommandCenter`、`TestModeOptions`、`TestModeRuntime`、`SimTestRules.BotResetRequested`（经内核收口）、`DebugKernel.TryForceDisconnect/TryBeginReconnect/TrySetSuppressAutoReconnect` |
 | 发现协议 | 命令注册表（类型/描述/GmOnly/注册时序）、选项表、读模型段表、调参描述表 | `CommandCenter.GetRegisteredInfos()`、`TestModeOptions.All`、`IDevHudSection`、`IDebugTunableProvider` |
 | 调参模型 | `DebugTunable` 描述（Id/Group/Tags/Scope/Default/Min/Max/Decimals/RuntimeVisible/Get/Set/Reset）；默认值来自功能数据源 | `DebugKernel.Tunables/RuntimeTunables/TrySetTunable/ResetTunable` + `DebugTunableDiscovery`（容器 + 场景 provider） |
 
-> 调参描述不是业务接口开放：功能自己提供 get/set 并保证不变量；编辑器「调试参数」页按全量渲染，F11 只按 `RuntimeVisible` 白名单渲染 Sandbox/Presentation；`Product` 默认不进运行期。F12 `tune` 可显式访问全量。连续/开关参数不强制命令化（避免审计刷屏），离散动作仍走 `CommandCenter`；`Product` scope 只作临时试验，定档后迁回表/配置；release 三宏剥离。
+> 调参描述不是业务接口开放：功能自己提供 get/set 并保证不变量；编辑器「调试参数」页按全量渲染，F2 只按 `RuntimeVisible` 白名单渲染 Sandbox/Presentation；`Product` 默认不进运行期。F3 `tune` 可显式访问全量。连续/开关参数不强制命令化（避免审计刷屏），离散动作仍走 `CommandCenter`；`Product` scope 只作临时试验，定档后迁回表/配置；release 三宏剥离。
 > `Product` 用于“默认值仍写在代码常量、尚未迁入表/配置”的参数（准心/视角）；默认值已由烘焙产物提供的参数（爆头区/持枪幅度）不标 Product，其覆写按调试维度归 Sandbox/Presentation。
 > 参数规模管理：Id 采用 `group.item` 命名、Group 分组、Tags 检索；功能各自 provider，不建中央手写清单；运行期白名单只放现场能解释的少量参数，长尾/未定型参数留在编辑器。
 
@@ -97,7 +97,7 @@
 | --- | --- | --- | --- |
 | 编辑器投影 | Hub 内 `IEditorToolPage` | 富交互：表格/滑杆/多页；承载编辑器独占动作（起停本地服、静态检查、导出 `.g.cs`） | 可引用 `UnityEditor`；不进包 |
 | 运行期只读投影 | `DevHUD`（F1） | 展示读模型；不写运行态 | 保持只读；不加直写口 |
-| 运行期操控投影 | `DebugConsole`（F12，UI Toolkit 文本控制台）/ `DebugPanel`（F11，常用动作/即时开关）/ 专用调试面板（如 UI 调试面） | 解析调用名/按钮 → 内核命令或选项表；渲染读模型；面板可有自己的输入形态 | 只经内核写；不直调业务服务 |
+| 运行期操控投影 | `DebugConsole`（F3，UI Toolkit 文本控制台）/ `DebugPanel`（F2，常用动作/即时开关）/ 专用调试面板（如 UI 调试面） | 解析调用名/按钮 → 内核命令或选项表；渲染读模型；会话断线/重连与模块 Stats 白名单同样经内核口 | 只经内核写；不直调业务服务 |
 
 专用调试面板不是第四套逻辑：它是运行期操控投影的一个模块，同一命令集既可被文本控制台调用，也可被面板按钮调用。UI 专用投影见[《UI 运行时调试工具链专项设计》](../客户端/UI系统/UI运行时调试工具链专项设计.md)。
 

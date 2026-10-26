@@ -38,6 +38,8 @@ namespace LiteGame
         private readonly VisualElement _tunablesSection;
         private readonly VisualElement _tunablesBody;
         private readonly Button _tunablesHeader;
+        private readonly Label _netStatus;
+        private readonly Button _suppressButton;
         private Action<DebugTunable, float> _onTunableSet;
         private Action<DebugTunable> _onTunableReset;
         private bool _tunablesExpanded = true;
@@ -55,7 +57,9 @@ namespace LiteGame
             Action<TestModeOptions.Id> onToggle, Action onEnter, Action onExit, Action onTeleport,
             IReadOnlyList<DebugTunable> tunables = null,
             Action<DebugTunable, float> onTunableSet = null,
-            Action<DebugTunable> onTunableReset = null)
+            Action<DebugTunable> onTunableReset = null,
+            Action onForceDisconnect = null, Action onForceReconnect = null,
+            Action onToggleSuppress = null)
         {
             _font = DevUiToolkitFont.CreateSdfFont();
             if (_font == null)
@@ -111,6 +115,22 @@ namespace LiteGame
             AddActionButton(actions, "传送到准心", onTeleport, NormalColor);
             _panel.Add(actions);
 
+            AddLabel(_panel, "联机（会话）", MutedColor, HintFontSize, true);
+            _netStatus = AddLabel(_panel, "无对局", MutedColor, HintFontSize, false);
+            var netActions = new VisualElement { pickingMode = PickingMode.Ignore };
+            netActions.style.flexDirection = FlexDirection.Row;
+            netActions.style.marginBottom = 6f;
+            AddActionButton(netActions, "强制断线", onForceDisconnect, NormalColor);
+            AddActionButton(netActions, "强制重连", onForceReconnect, NormalColor);
+            _panel.Add(netActions);
+
+            _suppressButton = CreateButton(onToggleSuppress);
+            _suppressButton.text = "☐ 抑制自动重连";
+            _suppressButton.tooltip = "抑制后断线停在 SuspectedLost，用「强制重连」手动恢复（仅本局）";
+            _suppressButton.style.color = NormalColor;
+            _suppressButton.style.marginBottom = 6f;
+            _panel.Add(_suppressButton);
+
             _tunablesSection = new VisualElement { pickingMode = PickingMode.Ignore };
             _tunablesSection.style.marginBottom = 4f;
             _tunablesHeader = CreateButton(ToggleTunables);
@@ -135,7 +155,7 @@ namespace LiteGame
                 _toggleButtons[option.Id] = button;
             }
 
-            var hint = AddLabel(_panel, "F11 关闭 · F12 控制台", MutedColor, HintFontSize, false);
+            var hint = AddLabel(_panel, "F2 关闭 · F3 控制台", MutedColor, HintFontSize, false);
             hint.style.marginTop = 6f;
 
             _root.Add(_panel);
@@ -154,6 +174,22 @@ namespace LiteGame
         {
             _status.text = status ?? string.Empty;
             _status.style.color = error ? new Color(1f, 0.55f, 0.55f, 1f) : MutedColor;
+        }
+
+        /// <summary>联机会话读数行（相位/RTT/丢包/弱网）——由 DebugPanel 从 <c>DebugKernel.Network</c> 取。</summary>
+        public void SetNetStatus(string text, bool warn = false)
+        {
+            if (_netStatus == null) return;
+            _netStatus.text = text ?? string.Empty;
+            _netStatus.style.color = warn ? new Color(1f, 0.78f, 0.45f, 1f) : MutedColor;
+        }
+
+        /// <summary>自动重连抑制开关的状态投影（☑/☐ + 色调）。</summary>
+        public void SetSuppressReconnect(bool suppressed)
+        {
+            if (_suppressButton == null) return;
+            _suppressButton.text = (suppressed ? "☑ " : "☐ ") + "抑制自动重连";
+            _suppressButton.style.color = suppressed ? new Color(1f, 0.78f, 0.45f, 1f) : NormalColor;
         }
 
         public void SetOption(TestModeOptions.Id id, bool value)

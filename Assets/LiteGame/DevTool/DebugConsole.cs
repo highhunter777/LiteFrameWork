@@ -11,7 +11,7 @@ using Object = UnityEngine.Object;
 namespace LiteGame
 {
     /// <summary>
-    /// 运行期操控投影（《GM 与调试工具分层专项设计》§7）：F12 文本控制台，开发页退役后的唯一运行期开发入口。
+    /// 运行期操控投影（《GM 与调试工具分层专项设计》§7）：F3 文本控制台，开发页退役后的唯一运行期开发入口。
     /// 只做词法解析与输出格式化；命令执行/选项/请求桥/读数全部经 <see cref="DebugKernel"/>。
     /// 渲染走 UI Toolkit（<see cref="DebugConsoleUiToolkitHost"/>，无资产运行时面板）；输入仍经 DevHotkey 收口。
     /// 打开期间注册输入拦截并取得文本输入所有权，关闭/销毁幂等释放；release 随三宏剥离。
@@ -50,12 +50,12 @@ namespace LiteGame
 
         private void Awake()
         {
-            Log.Info("开发控制台已装配（F12 开关）", LogTag.UI);
+            Log.Info("开发控制台已装配（F3 开关）", LogTag.UI);
         }
 
         private void Update()
         {
-            if (DevHotkey.Pressed(DevKey.F12))
+            if (DevHotkey.Pressed(DevKey.F3))
             {
                 if (_open) Close();
                 else Open();
@@ -77,10 +77,10 @@ namespace LiteGame
                 _textOwned = DevHotkey.SetTextInputActive(this, true);
                 if (_textOwned)
                 {
-                    Append("输入已接管（Esc/F12 关闭）");
+                    Append("输入已接管（Esc/F3 关闭）");
                     _dirty = true;
                 }
-                else if (Time.frameCount % 60 == 0) Append("输入被 HUD 过滤占用：先按 F7 退出过滤");
+                else if (Time.frameCount % 60 == 0) Append("输入被 HUD 过滤占用：先按 F9 退出过滤");
             }
 
             if (_textOwned)
@@ -129,7 +129,7 @@ namespace LiteGame
             EnsureUi();
             _ui?.SetVisible(true);
             _textOwned = DevHotkey.SetTextInputActive(this, true);
-            if (!_textOwned) Append("输入被 HUD 过滤占用：先按 F7 退出过滤");
+            if (!_textOwned) Append("输入被 HUD 过滤占用：先按 F9 退出过滤");
             _scrollToBottom = true;
             _dirty = true;
             RenderIfDirty();
@@ -187,8 +187,8 @@ namespace LiteGame
             if (!_open || !_dirty || _ui == null) return;
             _dirty = false;
             string hint = _textOwned
-                ? "F12/Esc 关闭 · Enter 执行 · help 查看命令"
-                : "输入被 HUD 过滤占用：先按 F7 退出过滤";
+                ? "F3/Esc 关闭 · Enter 执行 · help 查看命令"
+                : "输入被 HUD 过滤占用：先按 F9 退出过滤";
             _ui.Render(_lines, _input.ToString(), hint, _textOwned, _scrollToBottom);
             _scrollToBottom = false;
         }
@@ -279,6 +279,12 @@ namespace LiteGame
                     else
                         AppendError(weakError);
                     break;
+                case "net":
+                    DispatchNet(args);
+                    break;
+                case "hud":
+                    DispatchHud(args);
+                    break;
                 case "undo":
                     Append(_kernel.Undo() ? "Undo 已执行" : "无可撤销命令");
                     break;
@@ -311,12 +317,20 @@ namespace LiteGame
             Append("tune <id>                  查看单项当前值/默认值/范围");
             Append("tune <id> <value>          设置数值或 on/off");
             Append("tune <id> reset            复位单项；tune resetall 复位全部");
+            Append("weak <none|lan|mobile|lossy> 切换弱网预设");
+            Append("net                        会话网络状态（相位/RTT/丢包/弱网）");
+            Append("net drop                   强制断线（断后自动重连）");
+            Append("net reconnect              强制重连（仅 SuspectedLost 有效）");
+            Append("net auto on|off            抑制/恢复自动重连（抑制后断线停在 SuspectedLost）");
+            Append("hud stats                  模块 Stats 段白名单（开/关）");
+            Append("hud stats on|off <模块名>   按需显隐单个模块段");
+            Append("hud stats all|none         全部显示/全部隐藏");
             Append("request enter              进入本地测试模式（Room-Test，套 DevStartupConfig 快照）");
             Append("request exit               退出本地测试模式");
             Append("request teleport           传送到准心（本地测试模式）");
             Append("undo / redo                命令撤销/重做");
             Append("clear                      清空输出");
-            Append("F12 / Esc                   关闭控制台");
+            Append("F3 / Esc                   关闭控制台");
         }
 
         private void AppendCommands()
@@ -411,6 +425,87 @@ namespace LiteGame
                 case "teleport": _kernel.RequestTeleport(); Append("已请求传送到准心"); break;
                 default: AppendError("request 参数需为 enter/exit/teleport"); break;
             }
+        }
+
+        private void DispatchNet(string[] args)
+        {
+            if (args == null || args.Length == 0)
+            {
+                if (_kernel.Network == null) { AppendError("网络调试未装配"); return; }
+                var sb = new StringBuilder(160);
+                _kernel.Network.AppendLines(sb);
+                Append(sb.ToString());
+                return;
+            }
+
+            string action = args[0];
+            if (string.Equals(action, "auto", StringComparison.OrdinalIgnoreCase))
+            {
+                if (args.Length < 2)
+                {
+                    Append("自动重连抑制 = " + (_kernel.Network != null && _kernel.Network.SuppressAutoReconnect ? "开" : "关"));
+                    return;
+                }
+                if (!TryParseBool(args[1], out bool suppressed)) { AppendError("值需为 on/off/true/false/1/0"); return; }
+                Append(_kernel.TrySetSuppressAutoReconnect(suppressed, out string autoError)
+                    ? "自动重连 = " + (suppressed ? "抑制（断线后停住）" : "恢复")
+                    : "拒绝：" + autoError);
+                return;
+            }
+            if (string.Equals(action, "drop", StringComparison.OrdinalIgnoreCase))
+            {
+                Append(_kernel.TryForceDisconnect(out string error) ? "已断线（等待自动重连）" : "拒绝：" + error);
+                return;
+            }
+            if (string.Equals(action, "reconnect", StringComparison.OrdinalIgnoreCase))
+            {
+                Append(_kernel.TryBeginReconnect(out string error) ? "已发起重连" : "拒绝：" + error);
+                return;
+            }
+            AppendError("net 参数需为 auto on|off / drop / reconnect（留空看状态）");
+        }
+
+        private void DispatchHud(string[] args)
+        {
+            if (args == null || args.Length == 0
+                || !string.Equals(args[0], "stats", StringComparison.OrdinalIgnoreCase))
+            {
+                AppendError("hud stats [on|off <模块名>|all|none]");
+                return;
+            }
+
+            DevHUD hud = Object.FindAnyObjectByType<DevHUD>();
+            if (hud == null) { AppendError("DevHUD 不在场（F1 打开后重试）"); return; }
+
+            if (args.Length == 1)
+            {
+                IReadOnlyList<string> names = hud.StatsSectionNames;
+                if (names.Count == 0) { Append("(无统计模块)"); return; }
+                for (int i = 0; i < names.Count; i++)
+                    Append((hud.IsStatsSectionVisible(names[i]) ? "[开] " : "[关] ") + names[i]);
+                return;
+            }
+
+            string action = args[1];
+            if (string.Equals(action, "all", StringComparison.OrdinalIgnoreCase)
+                || string.Equals(action, "none", StringComparison.OrdinalIgnoreCase))
+            {
+                bool visible = string.Equals(action, "all", StringComparison.OrdinalIgnoreCase);
+                hud.SetAllStatsSectionsVisible(visible);
+                Append(visible ? "模块 Stats 段已全部显示" : "模块 Stats 段已全部隐藏");
+                return;
+            }
+
+            if ((string.Equals(action, "on", StringComparison.OrdinalIgnoreCase)
+                 || string.Equals(action, "off", StringComparison.OrdinalIgnoreCase)) && args.Length >= 3)
+            {
+                bool visible = string.Equals(action, "on", StringComparison.OrdinalIgnoreCase);
+                hud.SetStatsSectionVisible(args[2], visible);
+                Append($"{args[2]} = {(visible ? "显示" : "隐藏")}");
+                return;
+            }
+
+            AppendError("hud stats on|off <模块名>（或 all/none）");
         }
 
         private void DispatchTune(string[] args)

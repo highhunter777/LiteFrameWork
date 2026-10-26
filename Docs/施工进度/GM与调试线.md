@@ -34,6 +34,9 @@
 | 22 | 武器试验参数运行期调参（伤害/射速） | — |
 | 23 | 弱网注入（传输层损伤 + HUD 可视化） | — |
 | 24 | 调试内核收口（投影旁路修复 + R14 纪律守卫） | — |
+| 25 | DevHUD 初始展开集（启动配置 + GM 重排） | — |
+| 26 | 网络调试收口（会话断线/重连动作 + 模块 Stats 白名单） | — |
+| 27 | 热键收口（F11/F12 → F2/F3，HUD 内部键顺延 F4–F9） | — |
 
 ---
 
@@ -1202,3 +1205,134 @@
 - DevHUD 性能段采样起点改为内核装配后（原为 HUD 自创建即采样；装配前空态，与 §7.5 失败语义一致）。
 - `ClientDiagnosticsBundle`（业务诊断包）与 Runtime Pipeline/云端 GM 通道不在 R14 辖区（§7.8 非目标维持）。
 - **入库形态**：与并行线（弱网注入批〔第23章〕、UI P2 令牌引用线、准心手感线、build-preflight 线）同入并行线快照 **3b50f245**——本批与弱网批共享 `DebugKernel.cs`/`DebugConsole.cs`/`DevHudSectionSet.cs`/施工进度卷 4 个文件，文件级暂存无法拆分两批 hunks，按仓库并行线快照惯例一并入库。
+
+## 第25章 DevHUD 初始展开集（启动配置 + GM 重排）
+
+<a id="ch25-hud-default-layout"></a>
+
+> 2026-10-26。**状态：已完成（附验证证据）**——Unity 编译 0 错；L1 **1843/1843 PASS**；Play 首启布局、GM 重排、折叠持久化三路径通过。不动共享闭包（BuildHash 不变）。
+
+范围：DevHUD 首次运行的段展开集改为可配置（Boot 场景 `DevStartupConfig` 段掩码），折叠记忆仍优先；GM「联机诊断」页提供按启动配置重排入口。
+
+### 交付面
+
+| 件 | 变更 |
+|---|---|
+| `Assets/LiteGame/App/Debug/DevStartupConfig.cs` | 新 `DevHudSectionFlags`（七段身份位）+ `DevHudDefaultExpanded`（出厂＝错误/联机诊断/性能/模块 Stats）+ `ResolveDevHudDefaultExpanded()`（未挂组件套出厂默认） |
+| `Assets/LiteGame/DevTool/DevHUD.cs` | 无 `LiteGame.DevHUD.collapsed` 记忆时按启动配置初始化折叠集；public `ApplyDefaultSectionLayout()`（覆盖记忆、保存、Toast） |
+| `Assets/LiteGame/DevTool/Hud/DevHudModel.cs` | `DevHudSectionData` 增 `Flag`（段位） |
+| `Assets/LiteGame/DevTool/Hud/DevHudSectionSet.cs` | 七段逐一登记段位；`AddSection` 拒绝 `None` 与重复位（构造期 fail-fast） |
+| `Assets/LiteGame/Editor/Gm/GmNetDiagPage.cs` | 增「按启动配置重排段」与「选中场景 DevStartupConfig」 |
+| 文档 | 13 手册 §1.3/§2.1/§2.3、GM 分层设计 §1/§4/§5、DevHUD 演进路线图 §1/§2 |
+
+### 验证证据
+
+| 项 | 结果 |
+|---|---|
+| Unity 编译 | `recompile_status` → completed / failed=false / errors=[] |
+| Play：首次运行 | 备份并删除 `LiteGame.DevHUD.collapsed` 后进 Play → 展开「联机诊断/性能/模块 Stats」，折叠「Log Recent/DiagTrace/日志 sink」；「错误」段无错误自动隐藏 |
+| Play：GM 重排 | 运行时把掩码改为 `Perf\|LogSink` 并调 `ApplyDefaultSectionLayout()` → 仅展开「性能/日志 sink」，其余段折叠 |
+| Play：折叠持久化 | 退出 Play 后 `collapsed=错误\|联机诊断\|模块 Stats\|Log Recent\|DiagTrace`（与最后布局一致）；随后恢复验证前原值 `模块 Stats\|Log Recent\|日志 sink\|DiagTrace` |
+| L1 | `python scripts/gate/test.py --suite L1 --profile PullRequest` → **1843/1843 PASS** |
+| BuildHash | `gen-build-hash.py --check-shared` → OK `0a998c8ac6c9de89`（110 files；本批不动闭包） |
+| Doc | `python scripts/gate/doc-lint.py` → 0 violation / 0 warning |
+
+### 边界（如实）
+
+- 启动配置只在**本机无折叠记忆**时自动生效；已有记忆以 HUD 内折叠态为准，GM 重排或清 `LiteGame.DevHUD.collapsed` 才会按新配置重排。
+- 新增段必须登记非 `None` 且唯一的段位（构造期抛错）；同时要在 `DevHudSectionFlags` 加位，否则无法纳入初始布局配置。
+- GM 重排是编辑器入口（`Editor/Gm`，不进包）；开发包 Player 只能改 Boot 配置（随包/场景）或清偏好。
+- GM 页按钮本批以入口方法直调验证重排副作用；IMGUI 按钮的 OS 级点击可点性未验（与 F11 滑杆同口径挂账）。
+- 本批不动共享源集与 Luban 生成面，BuildHash 无变化。
+
+## 第26章 网络调试收口（会话断线/重连动作 + 模块 Stats 白名单）
+
+<a id="ch26-net-debug-actions"></a>
+
+> 2026-10-26。**状态：已完成（附验证证据）**——Unity 编译 0 错；L1 1844/1844 PASS；EditMode 定向 38/38；Play 运行态校验通过。不动共享闭包（BuildHash 不变）。
+
+范围：网络调试统一收进调试内核的网络组件（读数 + 动作单门面）；补"强制断线 / 强制重连"两个会话动作（F11、GM 联机诊断页、F12 三个入口）；DevHUD 模块 Stats 从"未登记默认显示"改为"白名单按需显隐 + 持久化"。
+
+### 交付面
+
+| 件 | 变更 |
+|---|---|
+| `Assets/LiteGame/App/Debug/NetDebug/NetworkDebug.cs` | 新件：网络调试组件——读数（`HasBattle/Phase/Quality/WeakNet/MatchId` + `AppendLines` 文案单源）＋动作（`TryForceDisconnect`/`TryBeginReconnect`/`TrySetSuppressAutoReconnect`）＋相位判定（`CanForceDisconnect` = Connected/Restoring；`CanBeginReconnect` = SuspectedLost） |
+| `Assets/LiteGame/App/Debug/NetDebug/NetworkDebugCommands.cs` | 新件：`ForceDisconnectCommand`/`ForceReconnectCommand`/`SetAutoReconnectSuppressedCommand` 与处理器（命令中心审计链） |
+| `Assets/LiteClient/Runtime/Battle/BattleContext.cs` | 开发三宏内新增 `DebugBattle`（会话客户端调试口）与 `DebugSuppressAutoReconnect`（抑制位；`OnPhaseChanged` 的 SuspectedLost 分支据此跳过自动重连），release 无此面 |
+| `Assets/LiteGame/App/Debug/DebugKernel.cs` | 新 `Network` 属性 + `TryForceDisconnect`/`TryBeginReconnect`（走命令中心）；构造参数追加 `NetworkDebug`（可选，保持既有测试构造可用） |
+| `Assets/LiteGame/App/Bootstrap/ContainerModule.cs` | 装配 `NetworkDebug`（会话取件 `BattleDiagnostics.Current`）＋两条命令注册＋内核注入；Shutdown 对称注销 |
+| `Assets/LiteGame/DevTool/DebugConsole.cs` | F12 新 `net`（状态/`auto on|off`/`drop`/`reconnect`）与 `hud stats`（列表/`on|off <模块名>`/`all|none`）；帮助文本同步 |
+| `Assets/LiteGame/DevTool/DebugPanel.cs` + `DebugPanelUiToolkitHost.cs` | F11 增「联机（会话）」区：相位/RTT/弱网读数行 + 两个动作按钮 + 「抑制自动重连」勾选钮 |
+| `Assets/LiteGame/Editor/Gm/GmNetDiagPage.cs` | GM「联机诊断」页增会话动作块（两按钮 + 抑制开关 + 结果行）与模块 Stats 白名单勾选清单（含全开/全关） |
+| `Assets/LiteGame/DevTool/DevHUD.cs` | `ShowSection` 改白名单（未登记默认隐藏）；新增 `StatsSectionNames/IsStatsSectionVisible/SetStatsSectionVisible/SetAllStatsSectionsVisible`；勾选态持久化键 `LiteGame.DevHUD.statsOn`（有记忆时覆盖 Inspector 预置） |
+| `Assets/LiteGame/DevTool/Hud/DevHudSectionSet.cs` | 联机诊断段改调 `DebugKernel.Network.AppendLines`（会话 + 弱网注入文案单源） |
+| `Assets/Tests/EditMode/NetworkDebugEditModeTests.cs` | 新用例 3 例：无对局动作拒绝原因、相位判定、读数空态 |
+| 文档 | 13 手册 §1.1/§2.2/§2.3/§3.8/§7.5、GM 分层设计 §5/§7.2/§7.3、本卷第 26 章 |
+
+### 验证证据
+
+| 项 | 结果 |
+|---|---|
+| Unity 编译 | `refresh` → 0 error（16 warning 全为既存 CS0618/CS0628 噪声） |
+| EditMode 定向 | `NetworkDebugEditModeTests` + `DebugKernelEditModeTests` → **30/30 PASS**（含新增「无对局抑制拒绝」用例） |
+| L1 | `python scripts/gate/test.py --suite L1 --profile PullRequest` → **1844/1844 PASS**（含纪律扫描） |
+| Play：组件装配 | Boot 场景进 Play：`entry/kernel/hud` 均就绪，`kernel.Network` 非空且 `HasBattle=False`（未进房） |
+| Play：动作拒绝 | 无对局时 `TryForceDisconnect`/`TryBeginReconnect` 均返回 false，原因＝「无对局（未进房）」 |
+| Play：Stats 白名单 | 发现 16 个模块，仅 5 个白名单段显示（Clock.World/Clock.UI/EventCenter/Lua/MainThreadDispatcher），其余 11 个隐藏 |
+| Play：按需显隐 | 取一个隐藏模块 `SetStatsSectionVisible(true/false)` 往返 → `False→True→False`，随后恢复原值 |
+| Play：抑制自动重连（本地测试局） | 进 Room-Test（`Connected`）→ `TrySetSuppressAutoReconnect(true)` ok → `TryForceDisconnect` ok → 观察 2.5s **停在 `SuspectedLost`**（未自动重拨）→ `TryBeginReconnect` ok → 相位进 `Reconnecting`；本地测试房无真实重连响应（`LocalServerTransport` 无 Socket），restore 不完成属既有边界 |
+
+### 边界（如实）
+
+- **自动重连抑制是"每局"开关**：`BattleContext.DebugSuppressAutoReconnect`（开发三宏内实例属性，默认 false）只影响当前对局，换局复位；`SuspectedLost` 时若开启则不自动 `BeginReconnect`，需要时用「强制重连」手动恢复。release 编译后该属性与守卫一并剔除，产品行为不变。
+- **"强制重连"是状态机接管后的一击式**：`BattleContext` 在进入 `SuspectedLost` 时会自动发起重连（凭 JoinAck 票据）；未抑制时按钮只在仍处 `SuspectedLost` 时有效，其余相位如实拒绝。抑制开启后该按钮才是常规恢复路径。
+- **本地测试房只验协议层**：`LocalServerTransport` 无 Socket（无丢包/乱序/延迟/MTU），断线后手动重连会停在 `Reconnecting`（无真实重连响应）；恢复完成链仍须真 KCP 服务器；弱网注入同样不覆盖本地测试房。
+- **白名单是行为变更**：`statToggles` 未登记的模块默认**不显示**；首次运行只显示预置 5–6 项。需要时经 GM 页或 F12 `hud stats on <模块名>` 打开，勾选态跨 Play 持久化（清 `LiteGame.DevHUD.statsOn` 可回到 Inspector 预置）。
+- **同 StatsName 的重复模块**（本机观测到两个 `Scheduler`）按名共用同一可见性开关——归属既存问题（两个 `IModuleStats` 同名），不在本批处理。
+- Play 校验走 API 直调（`DebugKernel`/`DevHUD` 公共面）；F11/GM 页按钮的 OS 级点击可点性未验（与既有面板同口径挂账）。
+- 本批不动共享源集（`LiteSim`/`LiteNet` 协议与传输）与 Luban 生成面，BuildHash 无变化。
+
+## 第27章 热键收口（F11/F12 → F2/F3，HUD 内部键顺延 F4–F9）
+
+<a id="ch27-hotkey-remap"></a>
+
+> 2026-10-26。**状态：已完成（工作区未提交）**——按用户裁决重排功能键；Unity 编译 0 错；文档全量同步；一条既有 EditMode 边沿用例在后台环境恒红（非本次映射引入，已登记技术债）。
+
+### 映射
+
+| 键 | 现功能 | 原功能 |
+|---|---|---|
+| F1 | DevHUD 总开关 | F1（不变） |
+| F2 | 常用调试面板总开关 | F11 |
+| F3 | 开发控制台总开关 | F12 |
+| F4 | DevHUD 复制文本 | F2 |
+| F5 | DevHUD 日志级别 | F3 |
+| F6 | DevHUD 仅本局 | F4 |
+| F7 | DevHUD 落现场包 | F5 |
+| F8 | DevHUD 导出读数 JSON | F6 |
+| F9 | DevHUD 过滤模式 | F7 |
+| F10 | 预留给 UI 运行时调试面板（目标形态，未落地） | 原规划的 F8 面板 |
+
+### 落点
+
+- `DevHotkey.cs`：`DevKey` 收敛到 F1–F9（删除 F11/F12），Input System / 旧 Input 两张映射同步。
+- `DevHUD.cs`：内部键 F2–F7 → F4–F9；帮助行与过滤提示同步。
+- `DebugPanel.cs` / `DebugConsole.cs`：入口 F11/F12 → F2/F3；帮助文本同步；控制台两处"先按 F7 退出过滤"改 F9。
+- 文档：13 调试手册（§0/§1.1/§2.1/§2.6–2.8/§10.1）、07 本地联测、14 能力地图、项目说明 README、代码地图、GM 分层设计、UI 运行时调试设计（F8 面板 → F10）、DevHUD 演进路线图、设计文档 README。
+
+### 验证
+
+| 项 | 结果 |
+|---|---|
+| Unity 编译 | 0 错（`recompile_status failed=false`） |
+| DevHotkey 用例 | 文本过滤 1/1 通过；`退格键边沿_经状态事件可见` 在后台 EditMode 恒红（`wasPressedThisFrame` 需聚焦/PlayMode），已登记技术债，非本次映射引入 |
+| 文档门禁 | `doc-lint` 0 violation / 0 warning |
+| BuildHash | 不涉及（仅 DevTool/DevHotkey/文档） |
+
+### 边界
+
+- UI 运行时调试面板仍未落地；原规划的 F8 已被 DevHUD 导出占用，现预留 **F10**（`DevKey` 尚未扩到 F10——面板落地时再加）。
+- 本批只覆盖开发三宏内热键；release 无这些键。
+
+
