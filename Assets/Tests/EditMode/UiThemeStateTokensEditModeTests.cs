@@ -8,13 +8,13 @@ using UnityEngine;
 namespace LiteGame.Tests.EditMode
 {
     /// <summary>
-    /// 状态色令牌补集（P2-3 B2 / AC6-①，D3 用户裁决"本批令牌化"）：令牌源 JSON 与生成物 SO 各含 8 枚
-    /// `color.state.*`（值＝prefab 序列化现值量化，零可见变化；清单与来源见 plan.md 映射表）。
+    /// 状态色令牌补集（P2-3 B2/B4）：令牌源 JSON 与生成物 SO 各含 8 枚自研 widget 状态色 + 5 枚
+    /// uGUI Selectable 状态色（值＝prefab 序列化现值量化，零可见变化；清单与来源见 plan.md 附录 B）。
     /// </summary>
     [Category(LiteTesting.TestCategory.Contract)]
     public sealed class UiThemeStateTokensEditModeTests
     {
-        /// <summary>8 枚状态令牌（ID → 量化值；来源 file:line 见 .workflow/active/ui-p2-token-refs/plan.md 映射表）。</summary>
+        /// <summary>13 枚状态令牌（8 自研 widget + 5 Selectable；来源见 plan.md 附录 B）。</summary>
         private static readonly (string Id, string Hex)[] StateTokens =
         {
             ("color.state.interact.normal", "#4073BFFF"),
@@ -25,6 +25,11 @@ namespace LiteGame.Tests.EditMode
             ("color.state.nav.normal", "#BFBFC7FF"),
             ("color.state.star.on", "#FFCC33FF"),
             ("color.state.star.off", "#4D4D4DFF"),
+            ("color.state.selectable.normal", "#FFFFFFFF"),
+            ("color.state.selectable.highlighted", "#F5F5F5FF"),
+            ("color.state.selectable.pressed", "#C8C8C8FF"),
+            ("color.state.selectable.selected", "#F5F5F5FF"),
+            ("color.state.selectable.disabled", "#C8C8C880"),
         };
 
         private static Dictionary<string, string> LoadColorTokens()
@@ -37,7 +42,7 @@ namespace LiteGame.Tests.EditMode
         }
 
         [Test]
-        public void 令牌源_八枚状态色齐全且值精确()
+        public void 令牌源_十三枚状态色齐全且值精确()
         {
             Dictionary<string, string> colors = LoadColorTokens();
             foreach ((string id, string hex) in StateTokens)
@@ -48,7 +53,7 @@ namespace LiteGame.Tests.EditMode
         }
 
         [Test]
-        public void 生成物SO_八枚状态色同步()
+        public void 生成物SO_十三枚状态色同步()
         {
             UiTokenCatalog catalog = UiTokenCatalog.Load();
             foreach ((string id, string hex) in StateTokens)

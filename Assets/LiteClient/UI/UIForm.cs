@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Threading;
 using LiteFramework;
 using UnityEngine;
@@ -154,8 +154,8 @@ namespace LiteClient.UI
         /// <summary>主题降级是否已告警（每实例一次——ThemeProvider 装载失败不应每次开页刷 Warning）。</summary>
         private bool _themeDegradedWarned;
 
-        /// <summary>应用主题令牌现值（PrepareForShow 内调用）：refs 声明应用（跳过 IThemeBound 节点——widget 是
-        /// 自身 Graphic 的唯一写者）＋ IThemeBound 能力注入。降级＝任一环节缺失保持烘焙值，Warning 一次不阻断开页。</summary>
+        /// <summary>应用主题令牌现值（PrepareForShow 内调用）：委托 <see cref="UiThemeBinder"/>——IThemeBound 注入
+        /// ＋ UiStyleRef 应用（跳过 IThemeGraphicWriter 真正认领的 Graphic）。降级＝资产缺失保持烘焙值，Warning 一次不阻断开页。</summary>
         private void ApplyTheme()
         {
             Func<UiThemeAsset> provider = ThemeProvider;
@@ -172,15 +172,7 @@ namespace LiteClient.UI
                 return;
             }
 
-            UiStyleResolver resolver = UiStyleResolver.FromAsset(asset);
-            foreach (IThemeBound bound in Root.GetComponentsInChildren<IThemeBound>(true))
-                SafeCall.Invoke(() => bound.OnThemeBound(resolver), $"UIForm[{Id}].OnThemeBound");
-            foreach (UiStyleRef styleRef in Root.GetComponentsInChildren<UiStyleRef>(true))
-            {
-                if (styleRef.GetComponent<IThemeBound>() != null) continue;   // 单写者：widget 自持 Graphic 写权（含子节点翻动，见 B4 登记盲区）
-                if (resolver.Apply(styleRef, styleRef.GetComponent<Graphic>()) == UiStyleApplyResult.UnknownToken)
-                    Log.Warning($"未知颜色令牌 {styleRef.ColorToken}——UIForm[{Id}].{styleRef.name} 保持现值（校验器应报 Error）", LogTag.UI);
-            }
+            UiThemeBinder.Apply(Root, UiStyleResolver.FromAsset(asset), $"UIForm[{Id}]");
         }
 
         /// <summary>注入语言服务（两个 OnInit 调用点后各一次；实现 ILocaleBound 的逻辑才生效）。</summary>

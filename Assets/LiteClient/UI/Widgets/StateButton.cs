@@ -11,13 +11,13 @@ namespace LiteClient.UI
     /// 事件：OnClick（经连点保护）、OnLongPress、OnSelectedChanged。
     /// 状态色令牌化（P2-3 B2）：各态色旁伴生 token 字段（空＝未令牌化用序列化色；装配期经 <see cref="IThemeBound"/> 注入解析）。
     /// </summary>
-    public class StateButton : UIWidget, IPointerDownHandler, IPointerUpHandler, IThemeBound
+    public class StateButton : UIWidget, IPointerDownHandler, IPointerUpHandler, IThemeBound, IThemeGraphicWriter
     {
         [Header("多态色彩")]
-        public Color NormalColor = new Color(0.25f, 0.45f, 0.75f);
-        public Color PressedColor = new Color(0.15f, 0.3f, 0.55f);
-        public Color DisabledColor = new Color(0.35f, 0.35f, 0.35f);
-        public Color SelectedColor = new Color(0.9f, 0.7f, 0.2f);
+        public Color NormalColor;
+        public Color PressedColor;
+        public Color DisabledColor;
+        public Color SelectedColor;
 
         [Header("多态色彩令牌（空＝未令牌化，用上面序列化色）")]
         [Tooltip("常态色令牌（如 color.state.interact.normal）")]
@@ -65,17 +65,15 @@ namespace LiteClient.UI
         {
             if (_image == null) _image = GetComponent<Image>();
             if (_image == null) return;
-            _image.color = !Interactable ? Pick(DisabledColor, DisabledColorToken)
-                : _pressed ? Pick(PressedColor, PressedColorToken)
-                : _selected ? Pick(SelectedColor, SelectedColorToken)
-                : Pick(NormalColor, NormalColorToken);
+            _image.color = !Interactable ? Resolve(DisabledColor, DisabledColorToken)
+                : _pressed ? Resolve(PressedColor, PressedColorToken)
+                : _selected ? Resolve(SelectedColor, SelectedColorToken)
+                : Resolve(NormalColor, NormalColorToken);
         }
 
-        /// <summary>取值序（P2-3 B2）：token 已填且可解析 → 令牌现值；否则序列化 fallback（未注入/未令牌化/未知——不猜色）。</summary>
-        private Color Pick(Color fallback, string token)
-            => _theme != null && !string.IsNullOrEmpty(token) && _theme.TryColor(token, out Color value)
-                ? value
-                : fallback;
+        /// <summary>取值序（P2-3 B4）：token 可解析 → 令牌现值；否则序列化 fallback（未注入/未令牌化/未知——不猜色）。</summary>
+        private Color Resolve(Color fallback, string token)
+            => _theme?.Resolve(token, fallback) ?? fallback;
 
         private UiStyleResolver _theme;
 
@@ -85,6 +83,10 @@ namespace LiteClient.UI
             _theme = resolver;
             RefreshVisual();
         }
+
+        /// <summary>写权：只拥有自身 Image（不认领子树）。</summary>
+        public bool Owns(UnityEngine.UI.Graphic graphic)
+            => graphic != null && graphic == GetComponent<UnityEngine.UI.Image>();
 
         public void OnPointerDown(PointerEventData eventData)
         {

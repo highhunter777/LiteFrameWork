@@ -62,8 +62,8 @@ namespace LiteGame.EditorTools.UI
                     bool dirty = false;
                     foreach (UiStyleRef styleRef in root.GetComponentsInChildren<UiStyleRef>(true))
                     {
-                        // 写者裁决：widget 是自身 Graphic 的唯一写者——refs 不越权（双写者由规则报 Error）
-                        if (styleRef.GetComponent<IThemeBound>() != null) { report.Skipped++; continue; }
+                        // 写者裁决：writer 自持其自身/子树 Graphic——refs 不越权（双写者由规则报 Error）
+                        if (UiThemeBinder.IsGraphicOwnedByWidget(styleRef)) { report.Skipped++; continue; }
                         string token = styleRef.ColorToken;
                         if (string.IsNullOrEmpty(token)) { report.Skipped++; continue; }
                         if (!catalog.TryColor(token, out Color value)) { report.UnknownToken++; continue; }
@@ -143,7 +143,8 @@ namespace LiteGame.EditorTools.UI
                         foreach (var field in WidgetFields(component))
                         {
                             if (!string.IsNullOrEmpty(field.Token())) continue;      // 已填跳过＝幂等
-                            if (UiStyleTool.TryNearestMatch(field.Color(), catalog, out _, out string tokenId))
+                            if (UiStyleTool.TryNearestMatch(field.Color(), catalog, out _, out string tokenId,
+                                    id => !id.StartsWith(UiSelectableTheme.TokenPrefix, System.StringComparison.Ordinal)))
                             {
                                 field.SetToken(tokenId);
                                 report.Filled++;

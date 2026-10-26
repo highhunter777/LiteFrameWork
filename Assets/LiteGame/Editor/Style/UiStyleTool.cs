@@ -66,9 +66,9 @@ namespace LiteGame.EditorTools.UI
 
                 foreach (var graphic in root.GetComponentsInChildren<Graphic>(true))
                 {
-                    // 单写者：已声明 refs 的节点归 refs 段；IThemeBound widget 自持自身 Graphic
+                    // 单写者：已声明 refs 的节点归 refs 段；writer 只跳过其真正认领的 Graphic（UiSelectableTheme 只写 tint，不跳过基色）
                     if (graphic.GetComponent<LiteClient.UI.UiStyleRef>() != null) continue;
-                    if (graphic.GetComponent<LiteClient.UI.IThemeBound>() != null) continue;
+                    if (LiteClient.UI.UiThemeBinder.IsGraphicOwnedByWidget(graphic)) continue;
                     if (TryMatch(graphic.color, catalog, out Color value) && UiStyle.Distance(graphic.color, value) > 0f)
                     {
                         graphic.color = value;
@@ -138,7 +138,8 @@ namespace LiteGame.EditorTools.UI
         // ---- 辅助 ----
 
         /// <summary>最近 token 匹配（阈值内）；命中返回 token 现值与 token ID（ID 供 widget 迁移段/报告用——单源）。</summary>
-        public static bool TryNearestMatch(Color color, UiTokenCatalog catalog, out Color value, out string tokenId)
+        public static bool TryNearestMatch(Color color, UiTokenCatalog catalog, out Color value, out string tokenId,
+            System.Func<string, bool> accept = null)
         {
             value = default;
             tokenId = null;
@@ -146,6 +147,7 @@ namespace LiteGame.EditorTools.UI
             float best = HitEpsilon;
             foreach (var pair in catalog.Colors)
             {
+                if (accept != null && !accept(pair.Key)) continue;
                 float d = UiStyle.Distance(color, pair.Value);
                 if (d <= best)
                 {

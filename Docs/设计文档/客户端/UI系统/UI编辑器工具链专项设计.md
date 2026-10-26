@@ -400,10 +400,12 @@
 
 - 令牌源：JSON → 生成 `UiThemeAsset`（SO）；工具只读生成物与 prefab 引用。
 - **现行口径（P2-3a 冻结）**：源＝`Assets/LiteGame/Editor/UiTools/UiStyleTokens.json`（设计态、不进包；格式以 [UiStyleTokens.schema.json](UiStyleTokens.schema.json) 2.0 为准）；生成物＝`Assets/GameData/Config/UI/UiTheme.asset`（随 `Assets/GameData/Config` 收集组进包）；入口＝`ui.style.tokens`（幂等：同源重跑 `changed=false` 且不触碰资产；校验失败零写盘；手改资产被覆盖并报告变更）。
-- **组按消费者落地**：P2-3a 只写 `color`（12：`color.bg.*`/`color.brand.*`/`color.state.*`/`color.text.*`/`color.effect.*`）与 `typography`（5：`font.title/body/caption/label/emphasis`）；`spacing/radius/elevation/motion/icon` 空集，随首个应用器/解析器批次补值——不预造无消费者的令牌。
+- **组按消费者落地**：P2-3a 写 `color`（12）与 `typography`（5）；P2-3 B2 补 8 枚 `color.state.*`；P2-3 B4 补 44 枚精确色（含 2 枚 `color.debug.*` 夹具色）与 5 枚 `color.state.selectable.*`，共 **69 个唯一 ID**（值允许按状态语义重值，显式 ID 消费）；`spacing/radius/elevation/motion/icon` 仍空集，随首个应用器/解析器批次补值——不预造无消费者的令牌。
 - **读面**：编辑器侧经 `UiTokenCatalog`（每次操作装载一次、按参数下传，禁静态缓存）；`UiStyle`/`UiTextStyle` 的旧名保留为只读属性（调用点源兼容），值一律来自生成物。
 - **漂移判定**：`ui.style.token-drift` 按 JSON 重算快照（ID/值/`sourceHash`）与 SO 逐字段比对，不一致即 Error 并提示重跑生成；生成器的"是否写盘"用同一个快照比较（单源）。
-- 刷新/应用：`ui.style.colors-refresh` **三段式**（P2-3 B2）：① refs 段——按 `UiStyleRef` 声明精确应用（权威写者；跳过 IThemeBound 节点）；② widget 迁移段——三 widget（StateButton/TabGroup/StarRating）状态色字段按最近匹配填 token ID（已填跳过＝幂等、不命中不填＝留空合法）；③ 裸值段——未声明节点最近匹配收敛（跳过已声明与 IThemeBound）。幂等、报告分段（应用/跳过/未知令牌/填入/未命中）；"可回退"＝幂等重跑＋变更仅经工具落盘（版本管理可回退；总设计 §6.2 同批澄清）。字号/间距应用待对应引用组件批次。
+- 刷新/应用：`ui.style.colors-refresh` **三段式**：① refs 段——按 `UiStyleRef` 声明精确应用（权威写者；跳过 `IThemeGraphicWriter` 认领的目标 Graphic）；② widget 迁移段——三 widget（StateButton/TabGroup/StarRating）状态色字段按最近匹配填 token ID（已填跳过＝幂等、不命中不填＝留空合法；**不填 `color.state.selectable.*`**）；③ 裸值段——未声明节点最近匹配收敛（跳过已声明与 writer 子树）。幂等、报告分段（应用/跳过/未知令牌/填入/未命中）；"可回退"＝幂等重跑＋变更仅经工具落盘（版本管理可回退；总设计 §6.2 同批澄清）。字号/间距应用待对应引用组件批次。
+- **Selectable 状态色迁移**（P2-3 B4）：`UiSelectableThemeApplier.EnsureAll(dirs)` 只给直挂 ColorTint Selectable 补 `UiSelectableTheme`，跳过嵌套 prefab 实例（源模板继承），**不写任何颜色/ColorBlock**；报告 Added/Direct/Inherited/Skipped，幂等。真实面 33 直挂 + 13 继承 = 46 覆盖。
+- **文字档精确迁移**（P2-3 B4）：`UiTextStyleTool.MigrateExactRoleRefs(catalog, dirs)` 只给属性与角色档逐项一致、无标记、非嵌套实例的文本补 `UiTextStyleRef`；只加组件不改属性；多档歧义跳过并报告；实例合法覆盖由 `UiTextStyleRef.UseInstanceOverrides` 标记（不应用/不判 Mismatch，仍计未标记债）。真实面新增 23 组件/覆盖 37 节点（14 继承）。
 - 漂移报告：区分“引用缺失/解析值不符/裸值/令牌不存在”；运行时实例变化不进资产报告。
 - 字体检查：字体族/fallback/语言覆盖/缺字/atlas 容量。
 - 图集检查：引用 sprite 是否进图集、图集分组、九宫格边界、Image.Type。
@@ -428,7 +430,7 @@
 | `UiWidgetManifest` | `Assets/LiteGame/Editor/UiTools/UiWidgetManifest.json` | 控件库/文档/校验 |
 | `UiThemeAsset` | `Assets/GameData/Config/UI/`（SO） | 运行时样式解析 |
 
-> `UiThemeAsset`：P2-3a 起由 `ui.style.tokens` 从 `UiStyleTokens.json` 生成；P2-3 B2 起有运行期消费链（bootstrap 一次装载 → `UIForm.ThemeProvider` → 装配期 `UiStyleResolver` 应用/注入），并补 8 枚 `color.state.*`（映射表见总设计 §6.5）；其余五组仍空集（按消费者落地）。
+> `UiThemeAsset`：P2-3a 起由 `ui.style.tokens` 从 `UiStyleTokens.json` 生成；P2-3 B2/B4 有运行期消费链（bootstrap 一次装载 → `UIForm.ThemeProvider` / HUD `BattleViewRig` → 装配期 `UiThemeBinder` 注入），共 69 色（12 基础 + 8 B2 状态 + 44 精确 + 5 Selectable；映射表见总设计 §6.5）；其余五组仍空集（按消费者落地）。
 > 例外登记不是生成物，单独记：`Assets/LiteGame/Editor/UiTools/UiRuleExceptions.json`（手工维护，见 §6.3）。
 > 生成物禁手改；路径/格式变更与 schema 同批更新。
 

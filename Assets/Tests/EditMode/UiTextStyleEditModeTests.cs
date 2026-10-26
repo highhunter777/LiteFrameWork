@@ -211,6 +211,150 @@ namespace LiteGame.Tests.EditMode
             Assert.IsTrue(issues.All(i => i.Asset.StartsWith(TempDir)), "注入扫描根只扫临时面——真实资产不进合成用例报告");
         }
 
+        // ---- 精确角色迁移（P2-3 B4 / AC4） ----
+
+        [Test]
+        public void 迁移_直挂加Body_嵌套跳过_幂等()
+        {
+            string sourcePath = MakeTempPrefab("Src_Body", node =>
+            {
+                var tmp = node.AddComponent<TextMeshProUGUI>();
+                tmp.fontSize = 20f;
+                tmp.alignment = TextAlignmentOptions.Center;
+                tmp.enableWordWrapping = true;
+                tmp.overflowMode = TextOverflowModes.Overflow;
+                tmp.fontStyle = FontStyles.Normal;
+            });
+
+            // 页面里放一份源 prefab 的嵌套实例
+            var root = new GameObject("Page_Nested", typeof(RectTransform));
+            try
+            {
+                var instance = (GameObject)PrefabUtility.InstantiatePrefab(
+                    AssetDatabase.LoadAssetAtPath<GameObject>(sourcePath), root.transform);
+                instance.name = "Txt_SourceInstance";
+                string pagePath = TempDir + "/Page_Nested.prefab";
+                PrefabUtility.SaveAsPrefabAsset(root, pagePath);
+            }
+            finally { Object.DestroyImmediate(root); }
+
+            var report = UiTextStyleTool.MigrateExactRoleRefs(UiTokenCatalog.Load(), TempDirs);
+
+            Assert.AreEqual(1, report.Added, "只给直挂源节点加组件：" + string.Join("\n", report.Details));
+            Assert.AreEqual(1, report.Inherited, "嵌套实例跳过并计数");
+            var source = LoadTemp("Src_Body").GetComponentInChildren<TMP_Text>(true);
+            var sourceRef = source.GetComponent<UiTextStyleRef>();
+            Assert.IsNotNull(sourceRef, "源模板应加标记");
+            Assert.AreEqual(UiTextRole.Body, sourceRef.Role);
+
+            var page = AssetDatabase.LoadAssetAtPath<GameObject>(TempDir + "/Page_Nested.prefab");
+            var nested = page.GetComponentInChildren<TMP_Text>(true);
+            var inherited = nested.GetComponent<UiTextStyleRef>();
+            Assert.IsNotNull(inherited, "嵌套实例应继承源模板标记");
+            Assert.IsFalse(PrefabUtility.IsAddedComponentOverride(inherited),
+                "不得在嵌套实例上制造新增组件 override");
+
+            var second = UiTextStyleTool.MigrateExactRoleRefs(UiTokenCatalog.Load(), TempDirs);
+            Assert.AreEqual(0, second.Added, "幂等：二次新增 0");
+        }
+
+        [Test]
+        public void 迁移_UGUI按Legacy档匹配()
+        {
+            MakeTempPrefab("Page_LegacyCaption", node =>
+            {
+                var legacy = node.AddComponent<Text>();
+                legacy.fontSize = 14;
+                legacy.alignment = TextAnchor.MiddleLeft;
+                legacy.horizontalOverflow = HorizontalWrapMode.Wrap;
+                legacy.fontStyle = FontStyle.Normal;
+            });
+
+            var report = UiTextStyleTool.MigrateExactRoleRefs(UiTokenCatalog.Load(), TempDirs);
+
+            Assert.AreEqual(1, report.Added);
+            var legacyNode = LoadTemp("Page_LegacyCaption").GetComponentInChildren<Text>(true);
+            Assert.AreEqual(UiTextRole.Caption, legacyNode.GetComponent<UiTextStyleRef>().Role);
+        }
+
+        [Test]
+        public void 迁移_不匹配不加_36号留债()
+        {
+            MakeTempPrefab("Page_36", node =>
+            {
+                var tmp = node.AddComponent<TextMeshProUGUI>();
+                tmp.fontSize = 36f;
+            });
+
+            var report = UiTextStyleTool.MigrateExactRoleRefs(UiTokenCatalog.Load(), TempDirs);
+
+            Assert.AreEqual(0, report.Added, "不匹配任何角色档——留债");
+            Assert.IsNull(LoadTemp("Page_36").GetComponentInChildren<TMP_Text>(true).GetComponent<UiTextStyleRef>());
+        }
+
+        [Test]
+        public void 实例覆盖_嵌套实例保留属性且仍计未标记债()
+        {
+            string sourcePath = MakeTempPrefab("Src_OverrideBody", node =>
+            {
+                var tmp = node.AddComponent<TextMeshProUGUI>();
+                tmp.fontSize = 20f;
+                tmp.alignment = TextAlignmentOptions.Center;
+                tmp.enableWordWrapping = true;
+                tmp.overflowMode = TextOverflowModes.Overflow;
+                node.AddComponent<UiTextStyleRef>().Role = UiTextRole.Body;
+            });
+
+            var root = new GameObject("Page_InstanceOverride", typeof(RectTransform));
+            try
+            {
+                var instance = (GameObject)PrefabUtility.InstantiatePrefab(
+                    AssetDatabase.LoadAssetAtPath<GameObject>(sourcePath), root.transform);
+                instance.name = "Txt_Instance";
+                var tmp = instance.GetComponentInChildren<TMP_Text>(true);
+                tmp.alignment = TextAlignmentOptions.Left;      // 实例有意覆盖
+                var reference = tmp.GetComponent<UiTextStyleRef>();
+                var so = new SerializedObject(reference);
+                so.FindProperty("UseInstanceOverrides").boolValue = true;
+                so.ApplyModifiedPropertiesWithoutUndo();
+                PrefabUtility.RecordPrefabInstancePropertyModifications(reference);
+                PrefabUtility.SaveAsPrefabAsset(root, TempDir + "/Page_InstanceOverride.prefab");
+            }
+            finally { Object.DestroyImmediate(root); }
+
+            var issues = UiTextStyleTool.ReportTextDrift(TempDirs);
+            Assert.AreEqual(1, issues.Count, "实例覆盖仍计未标记债（不静默通过）");
+            Assert.AreEqual(UiTextIssueKind.Unmarked, issues[0].Kind);
+            StringAssert.Contains("UseInstanceOverrides", issues[0].Detail);
+
+            var (prefabs, writes) = UiTextStyleTool.ApplyTextStyles(TempDirs);
+            Assert.AreEqual(0, prefabs, "实例覆盖不被应用改写");
+            Assert.AreEqual(0, writes);
+            var page = AssetDatabase.LoadAssetAtPath<GameObject>(TempDir + "/Page_InstanceOverride.prefab");
+            Assert.AreEqual(TextAlignmentOptions.Left,
+                page.GetComponentInChildren<TMP_Text>(true).alignment,
+                "保留实例自身对齐");
+        }
+
+        [Test]
+        public void 实例覆盖_直挂节点非法_OverrideMisuse()
+        {
+            MakeTempPrefab("Page_DirectOverride", node =>
+            {
+                var tmp = node.AddComponent<TextMeshProUGUI>();
+                tmp.fontSize = 20f;
+                tmp.alignment = TextAlignmentOptions.Left;
+                var reference = node.AddComponent<UiTextStyleRef>();
+                reference.Role = UiTextRole.Body;
+                reference.UseInstanceOverrides = true;             // 直挂节点不得关闭角色
+            });
+
+            var issues = UiTextStyleTool.ReportTextDrift(TempDirs);
+            Assert.AreEqual(1, issues.Count);
+            Assert.AreEqual(UiTextIssueKind.OverrideMisuse, issues[0].Kind);
+            StringAssert.Contains("仅限嵌套", issues[0].Detail);
+        }
+
         // ---- 辅助 ----
 
         private static GameObject LoadTemp(string name)

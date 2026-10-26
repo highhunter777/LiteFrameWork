@@ -1,3 +1,4 @@
+using System.IO;
 using System.Linq;
 using LiteGame.EditorTools.UI;
 using NUnit.Framework;
@@ -12,6 +13,36 @@ namespace LiteGame.Tests.EditMode
     [Category(LiteTesting.TestCategory.Contract)]
     public sealed class UiThemeTokensEditModeTests
     {
+        /// <summary>B4 补集 44 枚精确色（ID → 8bit 值；与 plan 附录 A 逐项一致）。</summary>
+        private static readonly (string Id, string Hex)[] B4Colors =
+        {
+            ("color.bg.screen.opaque", "#1F1F29FF"), ("color.bg.panel", "#2B303DFF"), ("color.bg.panel.alt", "#272835FF"), ("color.bg.header", "#6B7A94FF"),
+            ("color.bg.dialog", "#1F1F24F5"), ("color.bg.toast", "#1A1A1FEB"), ("color.bg.dropdown", "#67678AFF"), ("color.bg.dropdown.item", "#292933FF"),
+            ("color.bg.dropdown.template", "#1A1A21FA"), ("color.bg.control", "#1F1F26FF"), ("color.bg.toggle.on", "#1E4228FF"), ("color.bg.toggle.off", "#262633FF"),
+            ("color.bg.input", "#1A1A21E6"), ("color.bg.avatar", "#4C5973FF"), ("color.bg.progress.track", "#14141AD9"), ("color.bg.hpbar", "#050A16CC"),
+            ("color.bg.button.secondary", "#8D8DA3FF"), ("color.bg.button.muted", "#4C4C57FF"), ("color.bg.button.accent", "#515193FF"), ("color.bg.item.alt", "#334C73FF"),
+            ("color.bg.transparent", "#14141A00"), ("color.bg.placeholder", "#666673FF"), ("color.debug.baseline", "#0F0F14EB"), ("color.debug.fixture", "#1F242EFF"),
+            ("color.text.hud.primary", "#EBF5FFFF"), ("color.text.hud.accent", "#FFB840FF"), ("color.text.fly", "#FFE666FF"), ("color.effect.highlight", "#FFFFFF26"),
+            ("color.effect.vignette", "#E6F2FF73"), ("color.effect.spinner", "#FFFFFFE6"), ("color.effect.blocker", "#0000008C"), ("color.effect.backdrop", "#FFFFFF0D"),
+            ("color.effect.loading.track", "#00000099"), ("color.effect.hpbar.backfill", "#FFFFFF59"), ("color.effect.hud.weapon", "#FFFFFF57"), ("color.effect.hud.button", "#FFFFFF40"),
+            ("color.effect.avatar.frame", "#D9B240E6"), ("color.state.hp.fill", "#2CC057FF"), ("color.state.check", "#59CC73FF"), ("color.state.success.bright", "#4CD973FF"),
+            ("color.state.warn.bright", "#E63333FF"), ("color.state.danger", "#E25C50FF"), ("color.state.star.on.deep", "#D9B240FF"), ("color.brand.accent.soft", "#4CBFF2FF"),
+        };
+
+        [Test]
+        public void 真实源_四十四枚精确补集齐全且值逐项一致()
+        {
+            UiThemeTokens tokens = UiThemeTokenJson.Deserialize(
+                File.ReadAllText(UiThemePaths.FullPath(UiThemePaths.DefaultJsonPath)));
+            Assert.AreEqual(69, tokens.Groups.Color.Tokens.Count, "20 既有 + 44 精确 + 5 Selectable");
+            Assert.AreEqual(44, B4Colors.Length, "附录 A 行数");
+            foreach ((string id, string hex) in B4Colors)
+            {
+                Assert.IsTrue(tokens.Groups.Color.Tokens.TryGetValue(id, out UiThemeColorToken token), "缺精确令牌：" + id);
+                Assert.AreEqual(hex, (token.Value ?? string.Empty).ToUpperInvariant(), id + " 值应与附录 A 一致");
+            }
+        }
+
         private const string BaseJson =
             "{\"schemaVersion\":\"2.0\"," +
             "\"meta\":{\"name\":\"UiTheme\",\"version\":\"1.0.0\",\"theme\":\"Default\"}," +

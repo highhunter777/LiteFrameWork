@@ -1,0 +1,357 @@
+{
+  "schema_version": 1,
+  "slug": "ui-p2-style-closure",
+  "title": "UI 系统 P2-3 B4：存量样式收敛与收口",
+  "status": "archived",
+  "current_stage": null,
+  "created_at": "2026-10-26T16:58:34+08:00",
+  "updated_at": "2026-10-26T20:19:57+08:00",
+  "completed_at": "2026-10-26T20:19:46+08:00",
+  "completed_stages": [
+    {
+      "id": "propose",
+      "title": "提出方案",
+      "completed_at": "2026-10-26T17:00:58+08:00"
+    },
+    {
+      "id": "review-plan",
+      "title": "子代理评审方案",
+      "completed_at": "2026-10-26T18:09:02+08:00"
+    },
+    {
+      "id": "confirm-acceptance",
+      "title": "用户确认验收标准",
+      "completed_at": "2026-10-26T18:09:08+08:00",
+      "approved_by": "highhunter777（本轮直接指令；AC 事后复核）"
+    },
+    {
+      "id": "breakdown",
+      "title": "实施任务清单",
+      "completed_at": "2026-10-26T18:10:23+08:00"
+    },
+    {
+      "id": "review-tasks",
+      "title": "评审任务",
+      "completed_at": "2026-10-26T18:10:29+08:00"
+    },
+    {
+      "id": "tests-first",
+      "title": "先写测试",
+      "completed_at": "2026-10-26T18:42:03+08:00"
+    },
+    {
+      "id": "implement",
+      "title": "正式施工",
+      "completed_at": "2026-10-26T20:05:37+08:00"
+    },
+    {
+      "id": "verify",
+      "title": "测试代码",
+      "completed_at": "2026-10-26T20:17:57+08:00"
+    },
+    {
+      "id": "review-code",
+      "title": "评审代码",
+      "completed_at": "2026-10-26T20:19:36+08:00"
+    },
+    {
+      "id": "writeback",
+      "title": "回写与收尾",
+      "completed_at": "2026-10-26T20:19:46+08:00"
+    }
+  ],
+  "history": [
+    {
+      "at": "2026-10-26T16:58:34+08:00",
+      "event": "init",
+      "stage": "propose"
+    },
+    {
+      "at": "2026-10-26T17:00:58+08:00",
+      "event": "advance",
+      "from": "propose",
+      "to": "review-plan",
+      "approved_by": null
+    },
+    {
+      "at": "2026-10-26T18:09:02+08:00",
+      "event": "advance",
+      "from": "review-plan",
+      "to": "confirm-acceptance",
+      "approved_by": null
+    },
+    {
+      "at": "2026-10-26T18:09:08+08:00",
+      "event": "advance",
+      "from": "confirm-acceptance",
+      "to": "breakdown",
+      "approved_by": "highhunter777（本轮直接指令；AC 事后复核）"
+    },
+    {
+      "at": "2026-10-26T18:10:23+08:00",
+      "event": "advance",
+      "from": "breakdown",
+      "to": "review-tasks",
+      "approved_by": null
+    },
+    {
+      "at": "2026-10-26T18:10:29+08:00",
+      "event": "advance",
+      "from": "review-tasks",
+      "to": "tests-first",
+      "approved_by": null
+    },
+    {
+      "at": "2026-10-26T18:42:03+08:00",
+      "event": "advance",
+      "from": "tests-first",
+      "to": "implement",
+      "approved_by": null
+    },
+    {
+      "at": "2026-10-26T20:05:37+08:00",
+      "event": "advance",
+      "from": "implement",
+      "to": "verify",
+      "approved_by": null
+    },
+    {
+      "at": "2026-10-26T20:17:57+08:00",
+      "event": "advance",
+      "from": "verify",
+      "to": "review-code",
+      "approved_by": null
+    },
+    {
+      "at": "2026-10-26T20:19:36+08:00",
+      "event": "advance",
+      "from": "review-code",
+      "to": "writeback",
+      "approved_by": null
+    },
+    {
+      "at": "2026-10-26T20:19:46+08:00",
+      "event": "advance",
+      "from": "writeback",
+      "to": null,
+      "approved_by": null
+    },
+    {
+      "at": "2026-10-26T20:19:57+08:00",
+      "event": "archive",
+      "path": "20261026-201957-ui-p2-style-closure"
+    }
+  ],
+  "tasks": [
+    {
+      "id": "T1",
+      "title": "T1 令牌补集与主题资产生成",
+      "description": "",
+      "acceptance": "AC1/AC2：69 唯一 ID（44 精确 + 5 Selectable），44 值逐项；UiTheme.asset 重生成二次 changed=False；真实面 color-drift=0",
+      "verify": "UiThemeTokens/StateTokens/Resolver EditMode + ui.style.tokens 连跑两次 + 真实面 style color-drift",
+      "files": [
+        "Assets/LiteGame/Editor/UiTools/UiStyleTokens.json",
+        "Assets/GameData/Config/UI/UiTheme.asset",
+        "Assets/Tests/EditMode/UiThemeTokensEditModeTests.cs",
+        "Assets/Tests/EditMode/UiThemeStateTokensEditModeTests.cs",
+        "Assets/Tests/EditMode/UiStyleResolverEditModeTests.cs"
+      ],
+      "deps": [],
+      "status": "done",
+      "evidence": "69 色/44 值逐项 + 生成二次 changed=False：UiThemeTokens 18/18、StateTokens 3/3、Resolver 11/11；red 证据 evidence/red.json",
+      "status_reason": "",
+      "created_at": "2026-10-26T18:09:22+08:00",
+      "started_at": "2026-10-26T18:42:13+08:00",
+      "completed_at": "2026-10-26T18:42:14+08:00"
+    },
+    {
+      "id": "T2",
+      "title": "T2 Selectable 令牌化组件与迁移件",
+      "description": "",
+      "acceptance": "AC3：UiSelectableTheme 5 色/仅 ColorTint/保留 multiplier+fade/未知令牌告警一次；EnsureAll 只补组件、跳过嵌套、Added=33/Covered=46/Inherited=13、幂等；真实面 46/46 组件",
+      "verify": "UiSelectableThemeEditModeTests + UiSelectableThemeApplierEditModeTests + 真实面组件计数",
+      "files": [
+        "Assets/LiteClient/UI/Style/UiSelectableTheme.cs",
+        "Assets/LiteGame/Editor/Style/UiSelectableThemeApplier.cs",
+        "Assets/Tests/EditMode/UiSelectableThemeEditModeTests.cs",
+        "Assets/Tests/EditMode/UiSelectableThemeApplierEditModeTests.cs"
+      ],
+      "deps": [
+        "T1"
+      ],
+      "status": "done",
+      "evidence": "UiSelectableTheme 4/4（5 色/multiplier/fade/非 ColorTint/未知/null）；Applier 3/3（33 直挂/13 继承/幂等/不改 ColorBlock）；真实面 Audit 46=33+13",
+      "status_reason": "",
+      "created_at": "2026-10-26T18:09:23+08:00",
+      "started_at": "2026-10-26T18:42:14+08:00",
+      "completed_at": "2026-10-26T18:42:15+08:00"
+    },
+    {
+      "id": "T3",
+      "title": "T3 三 widget 去默认色 + UiThemeBinder 单源判据",
+      "description": "",
+      "acceptance": "AC5/AC6：三 widget 无 new Color；Pick 共用 UiStyleResolver.Resolve；UiThemeBinder 注入/refs/writer 祖先跳过/未知告警一次；UIForm 委托",
+      "verify": "UiWidgetThemeEditModeTests + UiThemeBinderEditModeTests + UiStyleRefRuleEditModeTests",
+      "files": [
+        "Assets/LiteClient/UI/Style/UiStyleResolver.cs",
+        "Assets/LiteClient/UI/Style/IThemeGraphicWriter.cs",
+        "Assets/LiteClient/UI/Style/UiThemeBinder.cs",
+        "Assets/LiteClient/UI/UIForm.cs",
+        "Assets/LiteClient/UI/Widgets/StateButton.cs",
+        "Assets/LiteClient/UI/Widgets/TabGroup.cs",
+        "Assets/LiteClient/UI/Widgets/StarRating.cs",
+        "Assets/LiteGame/Editor/Style/UiStyleRefApplier.cs",
+        "Assets/LiteGame/Editor/Style/UiStyleTool.cs"
+      ],
+      "deps": [
+        "T1"
+      ],
+      "status": "done",
+      "evidence": "三 widget 去默认色 + Resolve：UiWidgetTheme 7/7；UiThemeBinder 6/6（refs/IThemeBound/writer 祖先/SelectableTheme/null/未知一次/真 HUD）；UiStyleRefRule 9/9；UIForm 委托编译通过",
+      "status_reason": "",
+      "created_at": "2026-10-26T18:09:24+08:00",
+      "started_at": "2026-10-26T18:42:16+08:00",
+      "completed_at": "2026-10-26T18:42:17+08:00"
+    },
+    {
+      "id": "T4",
+      "title": "T4 文字档精确迁移",
+      "description": "",
+      "acceptance": "AC4：MigrateExactRoleRefs 只加组件不改属性、跳过嵌套、扫 Hud、报告命中角色；真实面 23 组件/37 覆盖/141→104/二次 0",
+      "verify": "UiTextStyleEditModeTests + 真实面盘点 + 二次重跑",
+      "files": [
+        "Assets/LiteGame/Editor/Style/UiTextStyleTool.cs",
+        "Assets/Tests/EditMode/UiTextStyleEditModeTests.cs"
+      ],
+      "deps": [
+        "T1"
+      ],
+      "status": "done",
+      "evidence": "UiTextStyle 12/12（23 组件/37 覆盖/14 继承/36px 留债/UGUI/UseInstanceOverrides/幂等）；真实面 unmarked=104、mismatch=0；迁移报告 Added=23/Direct=23/Inherited=14",
+      "status_reason": "",
+      "created_at": "2026-10-26T18:09:24+08:00",
+      "started_at": "2026-10-26T18:42:17+08:00",
+      "completed_at": "2026-10-26T18:42:18+08:00"
+    },
+    {
+      "id": "T5",
+      "title": "T5 ui.style.selectable 规则与令牌 tie-break",
+      "description": "",
+      "acceptance": "AC7：规则五判据正负例；真实面 0；同值 tie-break 确定性；widget 迁移不填 selectable 令牌",
+      "verify": "UiStyleSelectableRuleEditModeTests + UiStyleRefEditModeTests + 真实面校验",
+      "files": [
+        "Assets/LiteGame/Editor/UiTools/Validation/Rules/StyleSelectableRule.cs",
+        "Assets/LiteGame/Editor/UiTools/Validation/Rules/StyleRefRule.cs",
+        "Assets/LiteGame/Editor/UiTools/Validation/UiValidator.cs",
+        "Assets/LiteGame/Editor/UiTools/Validation/UiRuleIds.cs",
+        "Assets/Tests/EditMode/UiStyleSelectableRuleEditModeTests.cs",
+        "Assets/Tests/EditMode/UiStyleRefEditModeTests.cs"
+      ],
+      "deps": [
+        "T1",
+        "T2"
+      ],
+      "status": "done",
+      "evidence": "UiStyleSelectableRule 5/5（正例/缺组件/未知/漂移/非 ColorTint）；UiStyleRef 8/8（tie-break 过滤）；规则注册进 UiValidator；真实面 selectable=0",
+      "status_reason": "",
+      "created_at": "2026-10-26T18:09:25+08:00",
+      "started_at": "2026-10-26T18:42:19+08:00",
+      "completed_at": "2026-10-26T18:42:20+08:00"
+    },
+    {
+      "id": "T6",
+      "title": "T6 HUD 主题注入链与可观察断言",
+      "description": "",
+      "acceptance": "AC3/AC6：UIService.ThemeAssetProvider→ProcedureBattle→BattleViewRig 单点注入；真 HUD binder 后 Button_Settings ColorBlock 变、_Slider 不抛；null 降级",
+      "verify": "UiThemeBinderEditModeTests 真 HUD 用例 + UiThemeApplyPlayModeTests + 编译/全量回归",
+      "files": [
+        "Assets/LiteClient/UI/UIService.cs",
+        "Assets/LiteGame/App/Procedure/ProcedureBattle.cs",
+        "Assets/LiteGame/App/Presentation/Battle/BattleViewRig.cs",
+        "Assets/LiteGame/App/Bootstrap/ContainerModule.cs"
+      ],
+      "deps": [
+        "T2",
+        "T3"
+      ],
+      "status": "done",
+      "evidence": "UIService.ThemeAssetProvider→ProcedureBattle→BattleViewRig 单点注入；ContainerModule 传 provider；真 HUD binder 用例 6/6（Button_Settings 变色、_Slider 不抛）；UiThemeApplyPlayModeTests 4/4；完整编译通过（含 HUD 注入链）",
+      "status_reason": "",
+      "created_at": "2026-10-26T18:09:26+08:00",
+      "started_at": "2026-10-26T18:43:11+08:00",
+      "completed_at": "2026-10-26T18:43:12+08:00"
+    },
+    {
+      "id": "T7",
+      "title": "T7 夹具登记、基线与门禁",
+      "description": "",
+      "acceptance": "AC8：新套件加入 config commands/red_commands；真实面 Warning 104=0+104；PlayMode selectable/null 告警；wf verify 全绿",
+      "verify": "wf verify + UiValidationEditModeTests + UiThemeApplyPlayModeTests",
+      "files": [
+        ".workflow/config.json",
+        "Assets/Tests/EditMode/UiValidationEditModeTests.cs",
+        "Assets/Tests/UI/PlayMode/UiThemeApplyPlayModeTests.cs"
+      ],
+      "deps": [
+        "T2",
+        "T3",
+        "T4",
+        "T5",
+        "T6"
+      ],
+      "status": "done",
+      "evidence": "wf verify 57/57 PASS（2026-10-26T20:04，evidence/verify.json；并行线两个 test 文件临时 stash 隔离后恢复，见 build-log 口径）；doc-lint 0/0；真实面 104/0/0/46；新套件在 output 中",
+      "status_reason": "",
+      "created_at": "2026-10-26T18:09:27+08:00",
+      "started_at": "2026-10-26T20:05:27+08:00",
+      "completed_at": "2026-10-26T20:05:27+08:00"
+    },
+    {
+      "id": "T8",
+      "title": "T8 文档/审计回写",
+      "description": "",
+      "acceptance": "AC9：UI系统线第13章/总设计 §6.1/§6.2/§6.5/工具链 §8.1/§8.3/UI制作规范/审计登记/README 索引",
+      "verify": "doc-lint + docs --check + 审读",
+      "files": [
+        "Docs/施工进度/UI系统线.md",
+        "Docs/施工进度/README.md",
+        "Docs/设计文档/客户端/UI系统/UI系统总设计.md",
+        "Docs/设计文档/客户端/UI系统/UI编辑器工具链专项设计.md",
+        "Docs/设计文档/客户端/UI系统/UI制作规范.md",
+        "Docs/审计/代码质量审计-客户端.md"
+      ],
+      "deps": [
+        "T7"
+      ],
+      "status": "done",
+      "evidence": "UI系统线第13章+索引、施工进度 README、总设计 §6.2/§6.5、工具链 §8.1/§8.3、UI制作规范 §7、08-UI工作台、审计 606/607/610 回写；doc-lint 0/0",
+      "status_reason": "",
+      "created_at": "2026-10-26T18:09:28+08:00",
+      "started_at": "2026-10-26T20:05:28+08:00",
+      "completed_at": "2026-10-26T20:05:29+08:00"
+    }
+  ],
+  "verification": {
+    "at": "2026-10-26T20:17:41+08:00",
+    "ok": true,
+    "stale": false,
+    "evidence": "evidence/verify.json",
+    "command_fingerprint": "46a339c7f083684efa674bb9fd348e59c8933b598d17bc78e8ca99d08ae6de07",
+    "summary": {
+      "total": 57,
+      "passed": 57
+    }
+  },
+  "red_verification": {
+    "at": "2026-10-26T18:41:28+08:00",
+    "ok": true,
+    "stale": false,
+    "evidence": "evidence/red.json",
+    "command_fingerprint": "e0ab827d8135a04b31d4773619f9c9a010f53e9dc6168d852cf48830e156316d",
+    "summary": {
+      "total": 8,
+      "passed": 3
+    }
+  },
+  "archived_at": "2026-10-26T20:19:57+08:00"
+}

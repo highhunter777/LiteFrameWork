@@ -65,6 +65,7 @@ GameObject:
   - component: {fileID: 9032616604806833781}
   - component: {fileID: 4264866753967890182}
   - component: {fileID: 4878501927249563754}
+  - component: {fileID: 1273163146605109669}
   m_Layer: 0
   m_Name: Button_Settings
   m_TagString: Untagged
@@ -189,6 +190,18 @@ MonoBehaviour:
   Comment: 
   CustomTypeName: 
   BindName: Button_Settings
+--- !u!114 &1273163146605109669
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 479683907605473411}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 6520777769920864680ef6cbc4d53a3d, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
 --- !u!1 &624413694904459254
 GameObject:
   m_ObjectHideFlags: 0
@@ -202,6 +215,7 @@ GameObject:
   - component: {fileID: 3118890465668676747}
   - component: {fileID: 5611279738047599950}
   - component: {fileID: 5636744727707200735}
+  - component: {fileID: 5180551613057144236}
   m_Layer: 0
   m_Name: Button_GuestLogin
   m_TagString: Untagged
@@ -326,6 +340,18 @@ MonoBehaviour:
   Comment: 
   CustomTypeName: 
   BindName: Button_GuestLogin
+--- !u!114 &5180551613057144236
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 624413694904459254}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 6520777769920864680ef6cbc4d53a3d, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
 --- !u!1 &928667880723987761
 GameObject:
   m_ObjectHideFlags: 0

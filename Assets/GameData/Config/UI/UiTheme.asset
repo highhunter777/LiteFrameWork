@@ -15,35 +15,203 @@ MonoBehaviour:
   SchemaVersion: 2.0
   Theme: Default
   Version: 1.0.0
-  SourceHash: 2a765c78e5a92248138140ca4e4eaa1a5c642135333d97c220d6985f57853a64
+  SourceHash: 4481b757852a206abd8847becc33c5263298490a61fb7ea0b448f430ac4043c6
   Colors:
+  - Id: color.bg.avatar
+    Value:
+      serializedVersion: 2
+      rgba: 4285749580
+    Description: "\u5934\u50CF\u5360\u4F4D\u5E95\uFF08Tmp_AvatarFrame/_Avatar\uFF09"
+  - Id: color.bg.button.accent
+    Value:
+      serializedVersion: 2
+      rgba: 4287844689
+    Description: "\u5F3A\u8C03\u6309\u94AE\u5E95\uFF08Lobby Button_Records\uFF09"
+  - Id: color.bg.button.muted
+    Value:
+      serializedVersion: 2
+      rgba: 4283911244
+    Description: "\u5F31\u5316\u6309\u94AE\u5E95\uFF08Cancel/Minus/Plus\uFF09"
+  - Id: color.bg.button.secondary
+    Value:
+      serializedVersion: 2
+      rgba: 4288908685
+    Description: "\u6B21\u7EA7\u6309\u94AE\u5E95\uFF08Settings/Leave/Close\uFF09"
+  - Id: color.bg.control
+    Value:
+      serializedVersion: 2
+      rgba: 4280688415
+    Description: "Slider/Toggle \u8F68\u9053\u5E95\uFF08_Background\uFF09"
   - Id: color.bg.deep
     Value:
       serializedVersion: 2
       rgba: 3860468756
     Description: "\u6DF1\u5E95\uFF1AToast/\u8FDB\u5EA6\u69FD\uFF08\u65E7\u540D BgDeep\uFF09"
+  - Id: color.bg.dialog
+    Value:
+      serializedVersion: 2
+      rgba: 4112785183
+    Description: "\u5BF9\u8BDD\u6846\u5E95\uFF08Dialog_Confirm/Tmp_Dialog\uFF09"
+  - Id: color.bg.dropdown
+    Value:
+      serializedVersion: 2
+      rgba: 4287260519
+    Description: "\u4E0B\u62C9\u6846\u5E95\uFF08Dropdown_*/Tmp_Dropdown\uFF09"
+  - Id: color.bg.dropdown.item
+    Value:
+      serializedVersion: 2
+      rgba: 4281542953
+    Description: "\u4E0B\u62C9\u9009\u9879\u5E95\uFF08_Item\uFF09"
+  - Id: color.bg.dropdown.template
+    Value:
+      serializedVersion: 2
+      rgba: 4196473370
+    Description: "\u4E0B\u62C9\u5C55\u5F00\u6A21\u677F\u5E95\uFF08Clone_Template\uFF09"
+  - Id: color.bg.header
+    Value:
+      serializedVersion: 2
+      rgba: 4287920747
+    Description: "\u9875\u5934\u5E95\uFF08Bg_Header\uFF09"
+  - Id: color.bg.hpbar
+    Value:
+      serializedVersion: 2
+      rgba: 3423996421
+    Description: "\u8840\u6761\u69FD\u5E95\uFF08Hud_Battle/Tmp_HpBar/_Background\uFF09"
+  - Id: color.bg.input
+    Value:
+      serializedVersion: 2
+      rgba: 3860929050
+    Description: "\u8F93\u5165\u6846\u5E95\uFF08Tmp_InputField\uFF09"
   - Id: color.bg.item
     Value:
       serializedVersion: 2
       rgba: 4281871918
     Description: "\u6761\u76EE/\u6B21\u7EA7\u5E95\uFF08\u65E7\u540D ItemBg\uFF09"
+  - Id: color.bg.item.alt
+    Value:
+      serializedVersion: 2
+      rgba: 4285746227
+    Description: "\u5217\u8868\u6761\u76EE\u5E95\uFF08\u5404\u9875 Clone_Item\uFF09"
+  - Id: color.bg.panel
+    Value:
+      serializedVersion: 2
+      rgba: 4282200107
+    Description: "\u5185\u5BB9\u9762\u677F\u5E95\uFF08Bg_RecordsPanel/Bg_ScorePanel/Bg_PlayersPanel/Bg_OptionsPanel\uFF09"
+  - Id: color.bg.panel.alt
+    Value:
+      serializedVersion: 2
+      rgba: 4281673767
+    Description: "\u6B21\u7EA7\u9762\u677F\u5E95\uFF08Bg_RoomsPanel/Bg_RecordsPanel\uFF09"
+  - Id: color.bg.placeholder
+    Value:
+      serializedVersion: 2
+      rgba: 4285752934
+    Description: "\u56FE\u7247\u5360\u4F4D\u5E95\uFF08Tmp_AnimatedImage/Tmp_RotatingImage\uFF09"
+  - Id: color.bg.progress.track
+    Value:
+      serializedVersion: 2
+      rgba: 3642364948
+    Description: "\u8FDB\u5EA6\u69FD\u5E95\uFF08Tmp_ProgressBar/_Bg\uFF09"
   - Id: color.bg.screen
     Value:
       serializedVersion: 2
       rgba: 4062781215
     Description: "\u9762\u677F/\u6A21\u677F\u5E95\uFF08\u65E7\u540D Bg\uFF09"
+  - Id: color.bg.screen.opaque
+    Value:
+      serializedVersion: 2
+      rgba: 4280885023
+    Description: "\u9875\u9762\u4E0D\u900F\u660E\u5E95\uFF08Bg_Lobby/Login/Result/Room/Settings\u3001Tmp_BottomNav\uFF09"
+  - Id: color.bg.toast
+    Value:
+      serializedVersion: 2
+      rgba: 3944684058
+    Description: "Toast \u5E95\uFF08Tmp_Toast/Clone_Template\uFF09"
+  - Id: color.bg.toggle.off
+    Value:
+      serializedVersion: 2
+      rgba: 4281542182
+    Description: "Toggle \u5173\u95ED\u5E95\uFF08Tmp_Toggle/_Background\uFF09"
+  - Id: color.bg.toggle.on
+    Value:
+      serializedVersion: 2
+      rgba: 4280828446
+    Description: "Toggle \u5F00\u542F\u5E95\uFF08Page_Settings/_Background\uFF09"
+  - Id: color.bg.transparent
+    Value:
+      serializedVersion: 2
+      rgba: 1709076
+    Description: "\u5168\u900F\u660E\u5BB9\u5668\u5E95\uFF08VirtualList_*\uFF09"
   - Id: color.brand.accent
     Value:
       serializedVersion: 2
       rgba: 4294095436
     Description: "\u529F\u80FD\u84DD\uFF1A\u586B\u5145/\u786E\u8BA4\u94AE\uFF08\u65E7\u540D
       Accent\uFF09"
+  - Id: color.brand.accent.soft
+    Value:
+      serializedVersion: 2
+      rgba: 4294098764
+    Description: "\u8FDB\u5EA6\u586B\u5145\u6D45\u84DD\uFF08Tmp_ProgressBar/_Fill\uFF09"
   - Id: color.brand.primary
     Value:
       serializedVersion: 2
       rgba: 4282433510
     Description: "\u4E3B\u8272\u91D1\uFF1A\u9009\u4E2D/\u661F\u6846/\u4E3B\u6587\u5B57\uFF08\u65E7\u540D
       Primary\uFF09"
+  - Id: color.debug.baseline
+    Value:
+      serializedVersion: 2
+      rgba: 3943960335
+    Description: "\u89C6\u89C9\u57FA\u7EBF\u5939\u5177\u5E95\uFF08Tmp_Baseline*\uFF1B\u975E\u4EA7\u54C1\u8BED\u4E49\uFF0C\u9650\u5B9A
+      debug \u547D\u540D\uFF09"
+  - Id: color.debug.fixture
+    Value:
+      serializedVersion: 2
+      rgba: 4281213983
+    Description: "\u6D4B\u8BD5\u8F7D\u4F53\u5E95\uFF08Tmp_UiTestPage\uFF1B\u975E\u4EA7\u54C1\u8BED\u4E49\uFF0C\u9650\u5B9A
+      debug \u547D\u540D\uFF09"
+  - Id: color.effect.avatar.frame
+    Value:
+      serializedVersion: 2
+      rgba: 3862999769
+    Description: "\u5934\u50CF\u6846\uFF08Tmp_AvatarFrame/_Frame\uFF09"
+  - Id: color.effect.backdrop
+    Value:
+      serializedVersion: 2
+      rgba: 234881023
+    Description: "\u8BB0\u5F55\u9875\u80CC\u666F\u5F31\u9AD8\u4EAE\uFF08Image_Backdrop\uFF09"
+  - Id: color.effect.blocker
+    Value:
+      serializedVersion: 2
+      rgba: 2348810240
+    Description: "\u52A0\u8F7D\u906E\u7F69\uFF08Bg_Blocker\uFF09"
+  - Id: color.effect.highlight
+    Value:
+      serializedVersion: 2
+      rgba: 654311423
+    Description: "\u6392\u884C/\u9AD8\u4EAE\u906E\u7F69\uFF08Image_Highlight\uFF0C9
+      \u5904\uFF09"
+  - Id: color.effect.hpbar.backfill
+    Value:
+      serializedVersion: 2
+      rgba: 1509949439
+    Description: "\u8840\u6761\u4F59\u91CF\u5C42\uFF08_BackFill\uFF09"
+  - Id: color.effect.hud.button
+    Value:
+      serializedVersion: 2
+      rgba: 1090519039
+    Description: "HUD \u8BBE\u7F6E\u6309\u94AE\u5E95\uFF08Button_Settings\uFF09"
+  - Id: color.effect.hud.weapon
+    Value:
+      serializedVersion: 2
+      rgba: 1476395007
+    Description: "HUD \u6B66\u5668\u533A\u5E95\uFF08Bg_Weapon\uFF09"
+  - Id: color.effect.loading.track
+    Value:
+      serializedVersion: 2
+      rgba: 2566914048
+    Description: "\u52A0\u8F7D\u8FDB\u5EA6\u69FD\uFF08ProgressBar_Load\uFF09"
   - Id: color.effect.mark
     Value:
       serializedVersion: 2
@@ -54,6 +222,31 @@ MonoBehaviour:
       serializedVersion: 2
       rgba: 67108863
     Description: "\u8FD1\u900F\u660E\u53EF\u70B9\u51FB\uFF08\u65E7\u540D Raycast\uFF09"
+  - Id: color.effect.spinner
+    Value:
+      serializedVersion: 2
+      rgba: 3875536895
+    Description: "\u52A0\u8F7D\u8F6C\u5708\u73AF\uFF08Image_SpinRing/RotatingImage_Spin\uFF09"
+  - Id: color.effect.vignette
+    Value:
+      serializedVersion: 2
+      rgba: 1946153702
+    Description: "\u9875\u9762\u6697\u89D2\uFF08Image_Vignette\uFF0C6 \u5904\uFF09"
+  - Id: color.state.check
+    Value:
+      serializedVersion: 2
+      rgba: 4285779033
+    Description: "Toggle \u52FE\u9009\uFF08Checkmark\uFF09"
+  - Id: color.state.danger
+    Value:
+      serializedVersion: 2
+      rgba: 4283456738
+    Description: "\u5371\u9669\u64CD\u4F5C\u6309\u94AE\uFF08Settings Button_Exit\uFF09"
+  - Id: color.state.hp.fill
+    Value:
+      serializedVersion: 2
+      rgba: 4283940908
+    Description: "\u8840\u6761\u586B\u5145\uFF08_Fill\uFF09"
   - Id: color.state.interact.disabled
     Value:
       serializedVersion: 2
@@ -91,6 +284,31 @@ MonoBehaviour:
     Description: "\u5E95\u5BFC\u822A\u9009\u4E2D\u91D1\uFF08P2-3 B2/D3\uFF1ATmp_BottomNav
       \u9009\u4E2D\u91D1\u91CF\u5316\uFF1B\u4E0E interact.selected \u5DEE 12/25/26
       \u6BCF\u901A\u9053\uFF0C\u4E0D\u5408\u5E76\uFF09"
+  - Id: color.state.selectable.disabled
+    Value:
+      serializedVersion: 2
+      rgba: 2160642248
+    Description: "disabledColor\uFF08alpha 0.5\uFF09"
+  - Id: color.state.selectable.highlighted
+    Value:
+      serializedVersion: 2
+      rgba: 4294309365
+    Description: highlightedColor
+  - Id: color.state.selectable.normal
+    Value:
+      serializedVersion: 2
+      rgba: 4294967295
+    Description: normalColor
+  - Id: color.state.selectable.pressed
+    Value:
+      serializedVersion: 2
+      rgba: 4291348680
+    Description: pressedColor
+  - Id: color.state.selectable.selected
+    Value:
+      serializedVersion: 2
+      rgba: 4294309365
+    Description: selectedColor
   - Id: color.state.star.off
     Value:
       serializedVersion: 2
@@ -103,18 +321,35 @@ MonoBehaviour:
       rgba: 4281584895
     Description: "\u661F\u7EA7\u70B9\u4EAE\uFF08P2-3 B2/D3\uFF1AStarRating OnColor
       \u91CF\u5316\uFF09"
+  - Id: color.state.star.on.deep
+    Value:
+      serializedVersion: 2
+      rgba: 4282430169
+    Description: "\u661F\u7EA7\u5E95\u56FE\u70D8\u7119\u91D1\uFF08Tmp_StarRating/_Star0-4\uFF1B\u4E0E
+      color.state.star.on #FFCC33FF **\u4E0D\u540C\u503C**\uFF0C\u8FD0\u884C\u65F6
+      widget \u7528\u540E\u8005\uFF09"
   - Id: color.state.success
     Value:
       serializedVersion: 2
       rgba: 4284930406
     Description: "\u786E\u8BA4\u7EFF\uFF1A\u52FE\u9009/\u524D\u8840\u6761\uFF08\u65E7\u540D
       Success\uFF09"
+  - Id: color.state.success.bright
+    Value:
+      serializedVersion: 2
+      rgba: 4285782348
+    Description: "\u52A0\u8F7D\u5B8C\u6210\u586B\u5145\uFF08Tmp_Loading/_Fill\uFF09"
   - Id: color.state.warn
     Value:
       serializedVersion: 2
       rgba: 4281549030
     Description: "\u8B66\u793A\u7EA2\uFF1A\u7EA2\u70B9/\u540E\u8840\u6761\uFF08\u65E7\u540D
       Warn\uFF09"
+  - Id: color.state.warn.bright
+    Value:
+      serializedVersion: 2
+      rgba: 4281545702
+    Description: "\u7EA2\u70B9\uFF08Tmp_RedDot/_Dot\uFF09"
   - Id: color.text.bright
     Value:
       serializedVersion: 2
@@ -127,6 +362,22 @@ MonoBehaviour:
       rgba: 4289108377
     Description: "\u5360\u4F4D/\u5F31\u6587\u5B57/\u5E38\u6001\u7070\uFF08\u65E7\u540D
       TextDim\uFF09"
+  - Id: color.text.fly
+    Value:
+      serializedVersion: 2
+      rgba: 4284933887
+    Description: "\u98D8\u5B57\u6587\u672C\uFF08Tmp_FlyText\uFF09"
+  - Id: color.text.hud.accent
+    Value:
+      serializedVersion: 2
+      rgba: 4282431743
+    Description: "HUD \u5F3A\u8C03\u6570\u5B57\uFF08\u51FB\u6740/\u6362\u5F39/\u4FDD\u62A4\u8272\uFF0C12
+      \u5904\uFF09"
+  - Id: color.text.hud.primary
+    Value:
+      serializedVersion: 2
+      rgba: 4294964715
+    Description: "HUD \u6B63\u6587/\u8BA1\u6570/\u51FB\u6740\u6761\uFF0831 \u5904\uFF09"
   - Id: color.text.primary
     Value:
       serializedVersion: 2

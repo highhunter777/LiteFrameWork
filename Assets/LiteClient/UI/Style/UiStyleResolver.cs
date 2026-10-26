@@ -94,6 +94,10 @@ namespace LiteClient.UI
             return UiStyleApplyResult.Applied;
         }
 
+        /// <summary>取值序（P2-3 B4 单源）：token 非空且可解析 → 令牌现值；否则 fallback（未注入/未令牌化/未知——不猜色）。</summary>
+        public Color Resolve(string token, Color fallback)
+            => !string.IsNullOrEmpty(token) && TryColor(token, out Color value) ? value : fallback;
+
         /// <summary>颜色与令牌值的命中判定（逐通道差平方和 ≤ <see cref="HitEpsilon"/>——最近匹配与规则漂移共用单源）。</summary>
         public static bool Hits(Color a, Color b)
         {

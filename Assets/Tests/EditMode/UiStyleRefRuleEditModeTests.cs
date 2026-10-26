@@ -140,6 +140,43 @@ namespace LiteGame.Tests.EditMode
         }
 
         [Test]
+        public void 双写者_writer认领的tab目标_Error()
+        {
+            Color primary = TokenColor("color.brand.primary");
+            string asset = SavePrefab("ref_writer_ancestor", root =>
+            {
+                var tabs = root.AddComponent<TabGroup>();
+                var tab = new GameObject("Tab0", typeof(RectTransform), typeof(Image), typeof(Button));
+                tab.transform.SetParent(root.transform, false);
+                tabs.Tabs.Add(tab.GetComponent<Button>());
+                tab.GetComponent<Image>().color = primary;
+                tab.AddComponent<UiStyleRef>().ColorToken = "color.brand.primary";
+            });
+
+            List<UiIssue> issues = CheckRule(asset);
+            Assert.IsTrue(issues.Any(i => i.Severity == UiSeverity.Error && i.Node.Contains("Tab0")),
+                "writer 子树内的 UiStyleRef 应报 Error（不只同节点）：\n" + string.Join("\n", issues));
+        }
+
+        [Test]
+        public void SelectableTheme同节点ref_不误报()
+        {
+            Color primary = TokenColor("color.brand.primary");
+            string asset = SavePrefab("ref_selectable_theme", root =>
+            {
+                var node = new GameObject("Btn", typeof(RectTransform), typeof(Image), typeof(Button));
+                node.transform.SetParent(root.transform, false);
+                node.GetComponent<Image>().color = primary;
+                node.AddComponent<UiSelectableTheme>();
+                node.AddComponent<UiStyleRef>().ColorToken = "color.brand.primary";
+            });
+
+            List<UiIssue> issues = CheckRule(asset);
+            Assert.IsFalse(issues.Any(i => i.Severity == UiSeverity.Error),
+                "UiSelectableTheme 只写 tint，不是 Graphic writer——基色 ref 不应报双写者：\n" + string.Join("\n", issues));
+        }
+
+        [Test]
         public void widget状态token_未知Error_漂移Warning_空合法()
         {
             Color normal = TokenColor("color.state.interact.normal");

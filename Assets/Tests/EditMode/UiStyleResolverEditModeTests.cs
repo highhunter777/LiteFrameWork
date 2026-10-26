@@ -27,11 +27,11 @@ namespace LiteGame.Tests.EditMode
         }
 
         [Test]
-        public void FromAsset_真实资产_颜色二十枚含八枚状态色()
+        public void FromAsset_真实资产_颜色六十九枚含十三枚状态色()
         {
             UiStyleResolver resolver = UiStyleResolver.FromAsset(LoadAsset());
             Assert.IsNotNull(resolver);
-            Assert.AreEqual(20, resolver.ColorCount, "12 既有 + 8 状态色（B2 补集）");
+            Assert.AreEqual(69, resolver.ColorCount, "12 既有 + 8 B2 状态 + 44 精确 + 5 Selectable（B4 补集）");
         }
 
         [Test]
@@ -149,6 +149,17 @@ namespace LiteGame.Tests.EditMode
         public void HitEpsilon_单源阈值驻Resolver()
         {
             Assert.AreEqual(1e-4f, UiStyleResolver.HitEpsilon, "命中阈值＝1e-4（工具/规则/阈值表引用本常量）");
+        }
+
+        [Test]
+        public void Resolve_已知取令牌_空与未知与空解析器回落()
+        {
+            UiStyleResolver resolver = UiStyleResolver.FromAsset(LoadAsset());
+            Assert.IsTrue(resolver.TryColor("color.brand.primary", out Color primary));
+            Assert.AreEqual(primary, resolver.Resolve("color.brand.primary", Color.magenta), "已知令牌取现值");
+            Assert.AreEqual(Color.magenta, resolver.Resolve(null, Color.magenta), "空 token＝fallback");
+            Assert.AreEqual(Color.magenta, resolver.Resolve(string.Empty, Color.magenta), "空串 token＝fallback");
+            Assert.AreEqual(Color.magenta, resolver.Resolve("color.nope", Color.magenta), "未知 token＝fallback");
         }
     }
 }

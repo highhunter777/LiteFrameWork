@@ -1525,6 +1525,7 @@ GameObject:
   - component: {fileID: 1540017557675287690}
   - component: {fileID: 2209747736151585251}
   - component: {fileID: 6112530903673983388}
+  - component: {fileID: 1255809657280297580}
   m_Layer: 0
   m_Name: Button_Settings
   m_TagString: Untagged
@@ -1634,6 +1635,18 @@ MonoBehaviour:
   m_OnClick:
     m_PersistentCalls:
       m_Calls: []
+--- !u!114 &1255809657280297580
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3868922373472928023}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 6520777769920864680ef6cbc4d53a3d, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
 --- !u!1 &4438238689774613559
 GameObject:
   m_ObjectHideFlags: 0
@@ -2572,6 +2585,7 @@ GameObject:
   - component: {fileID: 7059820514208260552}
   - component: {fileID: 6514562281499907647}
   - component: {fileID: 3642096871724633142}
+  - component: {fileID: 4653736268804384961}
   m_Layer: 0
   m_Name: Txt_Settings
   m_TagString: Untagged
@@ -2695,6 +2709,19 @@ MonoBehaviour:
   m_hasFontAssetChanged: 0
   m_baseMaterial: {fileID: 0}
   m_maskOffset: {x: 0, y: 0, z: 0, w: 0}
+--- !u!114 &4653736268804384961
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7114527446162604633}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 21e80ec30a6acf547bd94886b6d1a74f, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  Role: 1
 --- !u!1 &7129509642151113652
 GameObject:
   m_ObjectHideFlags: 0

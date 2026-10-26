@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Threading;
 using Cysharp.Threading.Tasks;
@@ -70,6 +70,9 @@ namespace LiteClient.UI
         /// <summary>焦点协调者（平台返回的输入侧接线点：装配层把 <c>UINavigationController.BackAsync</c>
         /// 挂 <c>Focus.PlatformBack</c>——语义侧推导在导航器，见 <see cref="UIFocusCoordinator"/>）。</summary>
         public UIFocusCoordinator Focus => _focus;
+
+        /// <summary>主题资产工厂（P2-3 B4：HUD 注入复用同一 provider；null = 未装载，HUD 保持烘焙值）。</summary>
+        public Func<UiThemeAsset> ThemeAssetProvider => _themeProvider;
         private readonly IPopInterceptor _pop;
         private readonly Func<UIFormInfo, IUIFormLogic> _logicResolver;
         private readonly Func<string, CancellationToken, UniTask<IUIPrefabLease>> _loadPrefab;

@@ -4,31 +4,287 @@
     "name": "UiTheme",
     "version": "1.0.0",
     "theme": "Default",
-    "description": "现行 UI 色板与文字角色基线（P2-3a 首次冻结；五组空集＝尚无消费者，随首个应用器落地）"
+    "description": "现行 UI 色板与文字角色基线（P2-3a 首次冻结；B2/B4 补 8 状态 + 44 精确 + 5 Selectable；五组空集＝尚无消费者，随首个应用器落地）"
   },
   "groups": {
     "color": {
       "tokens": {
-        "color.bg.screen": { "value": "#1F1F29F2", "description": "面板/模板底（旧名 Bg）" },
-        "color.bg.deep": { "value": "#14141AE6", "description": "深底：Toast/进度槽（旧名 BgDeep）" },
-        "color.bg.item": { "value": "#2E2E38FF", "description": "条目/次级底（旧名 ItemBg）" },
-        "color.brand.primary": { "value": "#E6BF40FF", "description": "主色金：选中/星框/主文字（旧名 Primary）" },
-        "color.brand.accent": { "value": "#4CB2F2FF", "description": "功能蓝：填充/确认钮（旧名 Accent）" },
-        "color.state.warn": { "value": "#E64033FF", "description": "警示红：红点/后血条（旧名 Warn）" },
-        "color.state.success": { "value": "#66D966FF", "description": "确认绿：勾选/前血条（旧名 Success）" },
-        "color.state.interact.normal": { "value": "#4073BFFF", "description": "交互常态（P2-3 B2/D3：StateButton/Tmp_StateButton.prefab NormalColor 现值量化）" },
-        "color.state.interact.pressed": { "value": "#264D8CFF", "description": "交互按压（P2-3 B2/D3：StateButton PressedColor 现值量化）" },
-        "color.state.interact.disabled": { "value": "#595959FF", "description": "交互禁用（P2-3 B2/D3：StateButton DisabledColor 现值量化）" },
-        "color.state.interact.selected": { "value": "#E6B333FF", "description": "交互选中金（P2-3 B2/D3：StateButton/Tmp_TabGroup 选中金同值量化；近金不合并——合并属可见色变）" },
-        "color.state.nav.selected": { "value": "#F2CC4DFF", "description": "底导航选中金（P2-3 B2/D3：Tmp_BottomNav 选中金量化；与 interact.selected 差 12/25/26 每通道，不合并）" },
-        "color.state.nav.normal": { "value": "#BFBFC7FF", "description": "底导航页签常态（P2-3 B2/D3：Tmp_BottomNav TabGroup NormalColor 量化）" },
-        "color.state.star.on": { "value": "#FFCC33FF", "description": "星级点亮（P2-3 B2/D3：StarRating OnColor 量化）" },
-        "color.state.star.off": { "value": "#4D4D4DFF", "description": "星级熄灭（P2-3 B2/D3：StarRating OffColor 量化）" },
-        "color.text.primary": { "value": "#EBEBF0FF", "description": "正文（旧名 Text）" },
-        "color.text.dim": { "value": "#9999A6FF", "description": "占位/弱文字/常态灰（旧名 TextDim）" },
-        "color.text.bright": { "value": "#FFFFFFFF", "description": "亮白：计数/倒计时/滑块钮/页签（旧名 TextBright）" },
-        "color.effect.raycast": { "value": "#FFFFFF03", "description": "近透明可点击（旧名 Raycast）" },
-        "color.effect.mark": { "value": "#FFD94C40", "description": "引导高亮框（旧名 Mark）" }
+        "color.bg.avatar": {
+          "value": "#4C5973FF",
+          "description": "头像占位底（Tmp_AvatarFrame/_Avatar）"
+        },
+        "color.bg.button.accent": {
+          "value": "#515193FF",
+          "description": "强调按钮底（Lobby Button_Records）"
+        },
+        "color.bg.button.muted": {
+          "value": "#4C4C57FF",
+          "description": "弱化按钮底（Cancel/Minus/Plus）"
+        },
+        "color.bg.button.secondary": {
+          "value": "#8D8DA3FF",
+          "description": "次级按钮底（Settings/Leave/Close）"
+        },
+        "color.bg.control": {
+          "value": "#1F1F26FF",
+          "description": "Slider/Toggle 轨道底（_Background）"
+        },
+        "color.bg.deep": {
+          "value": "#14141AE6",
+          "description": "深底：Toast/进度槽（旧名 BgDeep）"
+        },
+        "color.bg.dialog": {
+          "value": "#1F1F24F5",
+          "description": "对话框底（Dialog_Confirm/Tmp_Dialog）"
+        },
+        "color.bg.dropdown": {
+          "value": "#67678AFF",
+          "description": "下拉框底（Dropdown_*/Tmp_Dropdown）"
+        },
+        "color.bg.dropdown.item": {
+          "value": "#292933FF",
+          "description": "下拉选项底（_Item）"
+        },
+        "color.bg.dropdown.template": {
+          "value": "#1A1A21FA",
+          "description": "下拉展开模板底（Clone_Template）"
+        },
+        "color.bg.header": {
+          "value": "#6B7A94FF",
+          "description": "页头底（Bg_Header）"
+        },
+        "color.bg.hpbar": {
+          "value": "#050A16CC",
+          "description": "血条槽底（Hud_Battle/Tmp_HpBar/_Background）"
+        },
+        "color.bg.input": {
+          "value": "#1A1A21E6",
+          "description": "输入框底（Tmp_InputField）"
+        },
+        "color.bg.item": {
+          "value": "#2E2E38FF",
+          "description": "条目/次级底（旧名 ItemBg）"
+        },
+        "color.bg.item.alt": {
+          "value": "#334C73FF",
+          "description": "列表条目底（各页 Clone_Item）"
+        },
+        "color.bg.panel": {
+          "value": "#2B303DFF",
+          "description": "内容面板底（Bg_RecordsPanel/Bg_ScorePanel/Bg_PlayersPanel/Bg_OptionsPanel）"
+        },
+        "color.bg.panel.alt": {
+          "value": "#272835FF",
+          "description": "次级面板底（Bg_RoomsPanel/Bg_RecordsPanel）"
+        },
+        "color.bg.placeholder": {
+          "value": "#666673FF",
+          "description": "图片占位底（Tmp_AnimatedImage/Tmp_RotatingImage）"
+        },
+        "color.bg.progress.track": {
+          "value": "#14141AD9",
+          "description": "进度槽底（Tmp_ProgressBar/_Bg）"
+        },
+        "color.bg.screen": {
+          "value": "#1F1F29F2",
+          "description": "面板/模板底（旧名 Bg）"
+        },
+        "color.bg.screen.opaque": {
+          "value": "#1F1F29FF",
+          "description": "页面不透明底（Bg_Lobby/Login/Result/Room/Settings、Tmp_BottomNav）"
+        },
+        "color.bg.toast": {
+          "value": "#1A1A1FEB",
+          "description": "Toast 底（Tmp_Toast/Clone_Template）"
+        },
+        "color.bg.toggle.off": {
+          "value": "#262633FF",
+          "description": "Toggle 关闭底（Tmp_Toggle/_Background）"
+        },
+        "color.bg.toggle.on": {
+          "value": "#1E4228FF",
+          "description": "Toggle 开启底（Page_Settings/_Background）"
+        },
+        "color.bg.transparent": {
+          "value": "#14141A00",
+          "description": "全透明容器底（VirtualList_*）"
+        },
+        "color.brand.accent": {
+          "value": "#4CB2F2FF",
+          "description": "功能蓝：填充/确认钮（旧名 Accent）"
+        },
+        "color.brand.accent.soft": {
+          "value": "#4CBFF2FF",
+          "description": "进度填充浅蓝（Tmp_ProgressBar/_Fill）"
+        },
+        "color.brand.primary": {
+          "value": "#E6BF40FF",
+          "description": "主色金：选中/星框/主文字（旧名 Primary）"
+        },
+        "color.debug.baseline": {
+          "value": "#0F0F14EB",
+          "description": "视觉基线夹具底（Tmp_Baseline*；非产品语义，限定 debug 命名）"
+        },
+        "color.debug.fixture": {
+          "value": "#1F242EFF",
+          "description": "测试载体底（Tmp_UiTestPage；非产品语义，限定 debug 命名）"
+        },
+        "color.effect.avatar.frame": {
+          "value": "#D9B240E6",
+          "description": "头像框（Tmp_AvatarFrame/_Frame）"
+        },
+        "color.effect.backdrop": {
+          "value": "#FFFFFF0D",
+          "description": "记录页背景弱高亮（Image_Backdrop）"
+        },
+        "color.effect.blocker": {
+          "value": "#0000008C",
+          "description": "加载遮罩（Bg_Blocker）"
+        },
+        "color.effect.highlight": {
+          "value": "#FFFFFF26",
+          "description": "排行/高亮遮罩（Image_Highlight，9 处）"
+        },
+        "color.effect.hpbar.backfill": {
+          "value": "#FFFFFF59",
+          "description": "血条余量层（_BackFill）"
+        },
+        "color.effect.hud.button": {
+          "value": "#FFFFFF40",
+          "description": "HUD 设置按钮底（Button_Settings）"
+        },
+        "color.effect.hud.weapon": {
+          "value": "#FFFFFF57",
+          "description": "HUD 武器区底（Bg_Weapon）"
+        },
+        "color.effect.loading.track": {
+          "value": "#00000099",
+          "description": "加载进度槽（ProgressBar_Load）"
+        },
+        "color.effect.mark": {
+          "value": "#FFD94C40",
+          "description": "引导高亮框（旧名 Mark）"
+        },
+        "color.effect.raycast": {
+          "value": "#FFFFFF03",
+          "description": "近透明可点击（旧名 Raycast）"
+        },
+        "color.effect.spinner": {
+          "value": "#FFFFFFE6",
+          "description": "加载转圈环（Image_SpinRing/RotatingImage_Spin）"
+        },
+        "color.effect.vignette": {
+          "value": "#E6F2FF73",
+          "description": "页面暗角（Image_Vignette，6 处）"
+        },
+        "color.state.check": {
+          "value": "#59CC73FF",
+          "description": "Toggle 勾选（Checkmark）"
+        },
+        "color.state.danger": {
+          "value": "#E25C50FF",
+          "description": "危险操作按钮（Settings Button_Exit）"
+        },
+        "color.state.hp.fill": {
+          "value": "#2CC057FF",
+          "description": "血条填充（_Fill）"
+        },
+        "color.state.interact.disabled": {
+          "value": "#595959FF",
+          "description": "交互禁用（P2-3 B2/D3：StateButton DisabledColor 现值量化）"
+        },
+        "color.state.interact.normal": {
+          "value": "#4073BFFF",
+          "description": "交互常态（P2-3 B2/D3：StateButton/Tmp_StateButton.prefab NormalColor 现值量化）"
+        },
+        "color.state.interact.pressed": {
+          "value": "#264D8CFF",
+          "description": "交互按压（P2-3 B2/D3：StateButton PressedColor 现值量化）"
+        },
+        "color.state.interact.selected": {
+          "value": "#E6B333FF",
+          "description": "交互选中金（P2-3 B2/D3：StateButton/Tmp_TabGroup 选中金同值量化；近金不合并——合并属可见色变）"
+        },
+        "color.state.nav.normal": {
+          "value": "#BFBFC7FF",
+          "description": "底导航页签常态（P2-3 B2/D3：Tmp_BottomNav TabGroup NormalColor 量化）"
+        },
+        "color.state.nav.selected": {
+          "value": "#F2CC4DFF",
+          "description": "底导航选中金（P2-3 B2/D3：Tmp_BottomNav 选中金量化；与 interact.selected 差 12/25/26 每通道，不合并）"
+        },
+        "color.state.selectable.disabled": {
+          "value": "#C8C8C880",
+          "description": "disabledColor（alpha 0.5）"
+        },
+        "color.state.selectable.highlighted": {
+          "value": "#F5F5F5FF",
+          "description": "highlightedColor"
+        },
+        "color.state.selectable.normal": {
+          "value": "#FFFFFFFF",
+          "description": "normalColor"
+        },
+        "color.state.selectable.pressed": {
+          "value": "#C8C8C8FF",
+          "description": "pressedColor"
+        },
+        "color.state.selectable.selected": {
+          "value": "#F5F5F5FF",
+          "description": "selectedColor"
+        },
+        "color.state.star.off": {
+          "value": "#4D4D4DFF",
+          "description": "星级熄灭（P2-3 B2/D3：StarRating OffColor 量化）"
+        },
+        "color.state.star.on": {
+          "value": "#FFCC33FF",
+          "description": "星级点亮（P2-3 B2/D3：StarRating OnColor 量化）"
+        },
+        "color.state.star.on.deep": {
+          "value": "#D9B240FF",
+          "description": "星级底图烘焙金（Tmp_StarRating/_Star0-4；与 color.state.star.on #FFCC33FF **不同值**，运行时 widget 用后者）"
+        },
+        "color.state.success": {
+          "value": "#66D966FF",
+          "description": "确认绿：勾选/前血条（旧名 Success）"
+        },
+        "color.state.success.bright": {
+          "value": "#4CD973FF",
+          "description": "加载完成填充（Tmp_Loading/_Fill）"
+        },
+        "color.state.warn": {
+          "value": "#E64033FF",
+          "description": "警示红：红点/后血条（旧名 Warn）"
+        },
+        "color.state.warn.bright": {
+          "value": "#E63333FF",
+          "description": "红点（Tmp_RedDot/_Dot）"
+        },
+        "color.text.bright": {
+          "value": "#FFFFFFFF",
+          "description": "亮白：计数/倒计时/滑块钮/页签（旧名 TextBright）"
+        },
+        "color.text.dim": {
+          "value": "#9999A6FF",
+          "description": "占位/弱文字/常态灰（旧名 TextDim）"
+        },
+        "color.text.fly": {
+          "value": "#FFE666FF",
+          "description": "飘字文本（Tmp_FlyText）"
+        },
+        "color.text.hud.accent": {
+          "value": "#FFB840FF",
+          "description": "HUD 强调数字（击杀/换弹/保护色，12 处）"
+        },
+        "color.text.hud.primary": {
+          "value": "#EBF5FFFF",
+          "description": "HUD 正文/计数/击杀条（31 处）"
+        },
+        "color.text.primary": {
+          "value": "#EBEBF0FF",
+          "description": "正文（旧名 Text）"
+        }
       }
     },
     "typography": {
@@ -70,10 +326,20 @@
         }
       }
     },
-    "spacing": { "tokens": {} },
-    "radius": { "tokens": {} },
-    "elevation": { "tokens": {} },
-    "motion": { "tokens": {} },
-    "icon": { "tokens": {} }
+    "spacing": {
+      "tokens": {}
+    },
+    "radius": {
+      "tokens": {}
+    },
+    "elevation": {
+      "tokens": {}
+    },
+    "motion": {
+      "tokens": {}
+    },
+    "icon": {
+      "tokens": {}
+    }
   }
 }

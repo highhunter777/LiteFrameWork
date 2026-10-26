@@ -42,6 +42,9 @@ namespace LiteGame.Editor.UiTools.Validation
         /// <summary>样式：颜色令牌引用对账（UiStyleRef 与 widget 状态 token——未知 ID/值漂移/无目标/双写者；P2-3 B2）。</summary>
         public const string StyleRef = "ui.style.ref";
 
+        /// <summary>样式：uGUI Selectable 状态色接缝（缺 UiSelectableTheme/未知令牌/ColorBlock 漂移；P2-3 B4）。</summary>
+        public const string StyleSelectable = "ui.style.selectable";
+
         /// <summary>布局/适配：根 CanvasScaler 参数偏离基线，或页面自带第二套缩放（UI-LAYOUT-01）。</summary>
         public const string LayoutScaler = "ui.layout.scaler";
 

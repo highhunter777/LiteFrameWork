@@ -252,6 +252,7 @@ GameObject:
   - component: {fileID: 5835984635135262137}
   - component: {fileID: 768341356880668404}
   - component: {fileID: 1690015104676542122}
+  - component: {fileID: 3182876868661784200}
   m_Layer: 0
   m_Name: Button_Back
   m_TagString: Untagged
@@ -376,6 +377,18 @@ MonoBehaviour:
   Comment: 
   CustomTypeName: 
   BindName: Button_Back
+--- !u!114 &3182876868661784200
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2916598712840147721}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 6520777769920864680ef6cbc4d53a3d, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
 --- !u!1 &3356076684671506336
 GameObject:
   m_ObjectHideFlags: 0
@@ -1280,6 +1293,7 @@ GameObject:
   - component: {fileID: 6018702277393929182}
   - component: {fileID: 1796400320443509646}
   - component: {fileID: 4053426065110885874}
+  - component: {fileID: 3895786968125155890}
   m_Layer: 0
   m_Name: Txt_Kill
   m_TagString: Untagged
@@ -1404,6 +1418,20 @@ MonoBehaviour:
   m_hasFontAssetChanged: 0
   m_baseMaterial: {fileID: 0}
   m_maskOffset: {x: 0, y: 0, z: 0, w: 0}
+--- !u!114 &3895786968125155890
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7001304913245572791}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 21e80ec30a6acf547bd94886b6d1a74f, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  Role: 1
+  UseInstanceOverrides: 0
 --- !u!1 &7631340883829602398
 GameObject:
   m_ObjectHideFlags: 0
@@ -1487,6 +1515,11 @@ PrefabInstance:
     serializedVersion: 3
     m_TransformParent: {fileID: 81464551714592857}
     m_Modifications:
+    - target: {fileID: 2975809944982033016, guid: 22d0dbf9dfe06ca4eb7412b6501e5d24,
+        type: 3}
+      propertyPath: UseInstanceOverrides
+      value: 1
+      objectReference: {fileID: 0}
     - target: {fileID: 3021784422643924235, guid: 22d0dbf9dfe06ca4eb7412b6501e5d24,
         type: 3}
       propertyPath: m_AnchorMax.x

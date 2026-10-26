@@ -22,6 +22,7 @@
 | 10 | UI 系统 P2-3a：令牌源与主题资产（JSON→UiThemeAsset，退役硬编码） | — |
 | 11 | UI 系统 P2-3 B2：令牌引用组件与应用（UiStyleRef · 运行期解析 · 状态色令牌化） | — |
 | 12 | UI 系统 P2-3 B3：设备档与预览矩阵（UiDeviceProfiles · 驱动升级 · ui.preview-matrix） | — |
+| 13 | UI 系统 P2-3 B4：存量样式收敛与收口（44 精确令牌 · UiSelectableTheme · 文字档迁移 · UiThemeBinder） | — |
 
 ---
 
@@ -602,3 +603,55 @@
 - **竖屏/减少动效/数据档/真链路**：竖屏仅档案预留（P4 验收）；减少动效维度显式延后（P3/P4）；数据档归 P3；真链路沿用 Boot/PlayMode，不用布局档冒充。
 - **矩阵不是门禁**：产物落 `Artifacts/`（忽略区），只作交接证据；`matrix.json` 含时间戳（证据面，非确定性生成物）。
 - **已提交 `44c0d3d7`**（本批 75 文件；并行线 `ClientHost` 空白、代码地图/审计的 2026-10-25 复核、审计表本批条目（与并行审计新增同段）未纳入，保留工作区随并行批入库）。
+
+## 第13章 UI 系统 P2-3 B4：存量样式收敛与收口（44 精确令牌 · UiSelectableTheme · 文字档迁移 · UiThemeBinder）
+
+<a id="ch13-UI系统P2样式收口"></a>
+
+> **批次**：P2-3 B4（2026-10-26，staged-delivery）
+> **设计**：[UI 系统总设计 §6](../设计文档/客户端/UI系统/UI系统总设计.md#ch-style) · [UI 编辑器工具链专项设计 §8.1/§8.3](../设计文档/客户端/UI系统/UI编辑器工具链专项设计.md#ch-style-tools) · [UI 制作规范 §7](../设计文档/客户端/UI系统/UI制作规范.md#ch-text)
+> **方案与任务**：[.workflow/archive/20261026-201957-ui-p2-style-closure/](../../.workflow/archive/20261026-201957-ui-p2-style-closure/)（plan.md / acceptance.md / tasks.md / test-plan.md / reviews / evidence）
+> **用户裁决**：D1＝精确补 44 枚令牌；D2＝只标精确匹配的 37 个文本节点；D3＝Selectable 专用组件 + 5 枚令牌，运行时随主题注入（2026-10-26）。
+
+### 状态
+
+**已完成（附验证证据；工作区未提交）**——P2-3 四批中的第 4 批：颜色漂移 157→0、Selectable 46/46 覆盖、文本未标记 141→104、三 widget C# 默认色清零、双写者判据扩到 writer 认领的目标、新增 ui.style.selectable；T1–T8 完成。全量门禁结果见下「验证证据」。
+
+### 交付
+
+| 件 | 变化 |
+|---|---|
+| 令牌补集 | UiStyleTokens.json 20→69 色：44 枚精确值（含 2 枚 color.debug.* 夹具色）+ 5 枚 color.state.selectable.*；UiTheme.asset 重生成（sourceHash 4481b757…，二次 changed=False） |
+| Selectable 接缝 | 新增 UiSelectableTheme（IThemeBound，5 个令牌常量，仅 ColorTint，一次写 ColorBlock，保留 multiplier/fade，未知令牌保持现值）；UiSelectableThemeApplier.EnsureAll（只补组件、跳过嵌套实例、幂等、报告 Added/Direct/Inherited/Skipped） |
+| 文字档迁移 | UiTextStyleTool.MigrateExactRoleRefs（TMP 五项/UGUI 四项精确匹配、跳过嵌套实例、扫 Widgets/Screens/Hud、只加组件不改属性、多档歧义报告）；UiTextStyleRef.UseInstanceOverrides（实例合法属性覆盖，工具不应用/不判 Mismatch，仍计未标记债） |
+| 应用核心 | 新增 UiThemeBinder（IThemeBound 注入 → UiStyleRef 应用 → IThemeGraphicWriter 自身/祖先跳过 → 未知令牌 Warning 一次）；UIForm.ApplyTheme 委托；UiStyleRefApplier/ui.style.ref 共用 IsGraphicOwnedByWidget 单源判据 |
+| HUD 注入 | UIService.ThemeAssetProvider → ProcedureBattle 可选形参 → BattleViewRig HUD 实例化后调用 binder；null 保持烘焙值并 Warning 一次 |
+| widget 收口 | StateButton/TabGroup/StarRating 删除 new Color(...) 初始化器；实现 IThemeGraphicWriter；Pick 收敛 UiStyleResolver.Resolve |
+| 规则 | 新增 ui.style.selectable（缺组件 Warning/无 Selectable Error/未知令牌 Error/ColorBlock 漂移 Warning/非 ColorTint 跳过）；ui.style.ref 双写者扩到 writer 自身/祖先，UiSelectableTheme 不误报；样式族 Note 更新 |
+| 真实面 | 24 个 prefab 仅新增组件/字段（773 insertions / 0 deletions；无颜色/ColorBlock/文本属性改动）；Selectable 46=33 直挂+13 继承；文本 23 组件/37 覆盖（14 继承）/104 未标记/0 Mismatch；4 个列表实例 Left 对齐以 UseInstanceOverrides 合法覆盖（直挂节点使用则报 BrokenRef） |
+| 夹具 | 新增 UiSelectableThemeEditModeTests 4、UiSelectableThemeApplierEditModeTests 3、UiThemeBinderEditModeTests 7、UiStyleSelectableRuleEditModeTests 7；扩展 UiThemeTokens 18、UiThemeStateTokens 3、UiStyleResolver 11、UiTextStyle 13、UiStyleRef 9、UiWidgetTheme 7、UiStyleRefRule 9、UiValidation 14、UiThemeApplyPlayMode 4 |
+| 门禁 | .workflow/config.json 新增 5 条 commands + 7 条 red_commands；UiValidator.Rules 注册新规则 |
+
+### 验证证据
+
+| 项 | 结果 |
+|---|---|
+| 先行测试 | wf verify --red PASS（evidence/red.json）：ui-selectable-theme-red / ui-theme-binder-red 断言级失败；build-player-platform-red 为并行线既有失败（非本批） |
+| 令牌/解析 | Tokens 18/18 · StateTokens 3/3 · Resolver 11/11（真实资产 69 色） |
+| Selectable | Theme 4/4 · Applier 3/3 · Binder 7/7（真 HUD Button_Settings 变色、_Slider targetGraphic=null 不抛、writer 不认领子标签仍应用） |
+| 文字/规则 | TextStyle 13/13（含嵌套实例覆盖/直挂滥用 BrokenRef）· StyleRef 9/9（tie-break 过滤/SelectableTheme 基色收敛）· StyleSelectableRule 7/7（无 Selectable/嵌套跳过）· StyleRefRule 9/9 · WidgetTheme 7/7 |
+| 真实面 | UiValidationEditModeTests 14/14：Error 0、颜色 0、文本 104（104 未标记 + 0 Mismatch）、selectable 0；StyleInventory 309/309 命中、141 文本/104 未标记、46/46 Selectable |
+| PlayMode | UiThemeApplyPlayModeTests 4/4（页面 selectable token 变化、null 只告警一次、ref 节点=令牌值） |
+| 零可见变化 | git diff --stat -- Assets/ShareResource/UI：24 文件、773 insertions、0 deletions；颜色/ColorBlock/文本属性行无增删；运行时注入按 8bit 量化（≤0.5/255） |
+| 全量门禁 | `wf verify` **PASS 57/57**（2026-10-26T20:04；L1/doc/restore/l0/toolchain/L2/全部 UI EditMode+PlayMode/表助手/新 5 套；证据 `evidence/verify.json`）。**口径**：该轮在并行线 `scripts/tests/test_build_player.py`/`test_player_smoke.py` 临时 `git stash` 隔离下取得（其 Android 契约与现有 `player-smoke.py` 不同步，非 B4）；验证后已恢复，B4 代码/文档未变；并行线合入前需其自绿 |
+
+### 边界与遗留（如实）
+
+- **ui.style.colors-refresh 未作为本批步骤**：补 44 令牌后裸值段会把 154/157 处浮点收敛到 8bit 令牌值（不可见，但“逐位不变”不成立）；本批零可见变化按 Color32 8bit 判据，迁移只新增组件/字段。
+- **4 个列表文本实例的 Left 对齐是有意覆盖**：UiTextStyleRef.UseInstanceOverrides=true，工具不应用/不判 Mismatch，但仍计未标记债（104 不变）；不是静默豁免。
+- **Hud_Battle/_Slider targetGraphic=null**：组件继承但无 tint 视觉；HUD 有效可观察目标是 Button_Settings。
+- **运行时克隆体不在本批**：下拉项/动态克隆体继承实例上的组件，但 binder 不在克隆后重注入；主题切换批前补（B2 已登记）。
+- **主题切换/多主题资产不在本批**：UiThemeBinder/ThemeAssetProvider 是既有入口，不新增无消费者 API。
+- **同值令牌**：color.state.selectable.normal 与 color.text.bright 同白、highlighted/selected 同值；显式 ID 消费，最近匹配按 ID Ordinal 取后者为契约，widget 迁移不填 selectable 令牌。
+- **测试夹具色**：color.debug.baseline/color.debug.fixture 只服务 Tmp_Baseline*/Tmp_UiTestPage，非产品语义。
+- **未提交**：本批改动在工作区；并行线改动（GM/DevTool/Boot 等）未纳入。

@@ -6,11 +6,11 @@ namespace LiteClient.UI
 {
     /// <summary>星级评分：N 颗星（Image 子节点，顺序即星级），整星粒度；onChange 回调。
     /// 状态色令牌化（P2-3 B2）：伴生 token 字段（空＝未令牌化用序列化色；装配期经 <see cref="IThemeBound"/> 注入解析）。</summary>
-    public class StarRating : MonoBehaviour, IThemeBound
+    public class StarRating : MonoBehaviour, IThemeBound, IThemeGraphicWriter
     {
         public Image[] Stars;
-        public Color OnColor = new Color(1f, 0.8f, 0.2f);
-        public Color OffColor = new Color(0.3f, 0.3f, 0.3f);
+        public Color OnColor;
+        public Color OffColor;
 
         [Tooltip("点亮色令牌（空＝未令牌化，用序列化色）")]
         public string OnColorToken;
@@ -43,14 +43,12 @@ namespace LiteClient.UI
         {
             if (Stars == null) return;
             for (int i = 0; i < Stars.Length; i++)
-                if (Stars[i] != null) Stars[i].color = i < _value ? Pick(OnColor, OnColorToken) : Pick(OffColor, OffColorToken);
+                if (Stars[i] != null) Stars[i].color = i < _value ? Resolve(OnColor, OnColorToken) : Resolve(OffColor, OffColorToken);
         }
 
-        /// <summary>取值序（P2-3 B2）：token 已填且可解析 → 令牌现值；否则序列化 fallback（不猜色）。</summary>
-        private Color Pick(Color fallback, string token)
-            => _theme != null && !string.IsNullOrEmpty(token) && _theme.TryColor(token, out Color value)
-                ? value
-                : fallback;
+        /// <summary>取值序（P2-3 B4）：token 可解析 → 令牌现值；否则序列化 fallback（不猜色）。</summary>
+        private Color Resolve(Color fallback, string token)
+            => _theme?.Resolve(token, fallback) ?? fallback;
 
         private UiStyleResolver _theme;
 
@@ -59,6 +57,15 @@ namespace LiteClient.UI
         {
             _theme = resolver;
             if (Stars != null && Stars.Length > 0) Apply();
+        }
+
+        /// <summary>写权：只拥有 Stars 列表里的 Image（不认领子树）。</summary>
+        public bool Owns(UnityEngine.UI.Graphic graphic)
+        {
+            if (graphic == null || Stars == null) return false;
+            for (int i = 0; i < Stars.Length; i++)
+                if (Stars[i] == graphic) return true;
+            return false;
         }
     }
 

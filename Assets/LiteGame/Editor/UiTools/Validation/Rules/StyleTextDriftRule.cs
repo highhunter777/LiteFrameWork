@@ -41,19 +41,28 @@ namespace LiteGame.Editor.UiTools.Validation.Rules
 
                 UiSeverity severity;
                 string kind;
+                string fixHint;
                 switch (issue.Kind)
                 {
                     case UiTextIssueKind.Unmarked:
                         severity = UiSeverity.Warning;
                         kind = "未标记（裸字号）";
+                        fixHint = "挂 UiTextStyleRef 声明角色档，或重跑样式工具按声明收敛（报告不擅改）";
                         break;
                     case UiTextIssueKind.Mismatch:
                         severity = UiSeverity.Warning;
                         kind = "标记漂移";
+                        fixHint = "重跑样式工具按声明收敛，或核对角色档（报告不擅改）";
+                        break;
+                    case UiTextIssueKind.OverrideMisuse:
+                        severity = UiSeverity.Error;
+                        kind = "实例覆盖滥用";
+                        fixHint = "UseInstanceOverrides 仅限嵌套 prefab 实例；直挂节点请移除该标记";
                         break;
                     default:
                         severity = UiSeverity.Error;
                         kind = "标记失效";
+                        fixHint = "修复失效标记（补文本组件/字体引用）";
                         break;
                 }
                 issues.Add(new UiIssue
@@ -63,9 +72,7 @@ namespace LiteGame.Editor.UiTools.Validation.Rules
                     Asset = assetPath,
                     Node = issue.Node,
                     Message = kind + "：" + issue.Detail,
-                    FixHint = severity == UiSeverity.Error
-                        ? "修复失效标记（补文本组件/字体引用）"
-                        : "挂 UiTextStyleRef 声明角色档，或重跑样式工具按声明收敛（报告不擅改）",
+                    FixHint = fixHint,
                 });
             }
             return issues;

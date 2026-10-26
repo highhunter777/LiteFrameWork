@@ -180,7 +180,8 @@ BindName:  默认与节点名同文（页面内唯一；可为 API 稳定性独�
 - **UI-TEXT-06**：正文换行/滚动边界明确；英文/伪本地化长文本预览通过。
 - **UI-TEXT-07**：字体 fallback 链覆盖目标语言；缺字审计进校验；共享材质优先，实例材质有 Owner/预算。
 - **UI-TEXT-08**：颜色/文字样式优先令牌引用；裸颜色/裸字号 = Warning，需登记例外。
-- **UI-TEXT-09**：按钮/标签的 Disabled/Selected 状态色由样式状态表定义，不在 Lua/C# 写 RGB。
+- **UI-TEXT-09**：按钮/标签的 Disabled/Selected 状态色由样式状态表定义，不在 Lua/C# 写 RGB；uGUI `Selectable` 一律挂 `UiSelectableTheme`（5 枚 `color.state.selectable.*`，只写状态 tint，保留 multiplier/fade）。
+- **UI-TEXT-10**：模板实例需要保留自身文字属性（如列表项 `Left` 对齐）时，在实例的 `UiTextStyleRef` 上开 `UseInstanceOverrides`——工具不应用/不判 Mismatch，但该节点仍计入未标记债，不得用来隐藏普通漂移。
 
 ## 8. 动效与效果
 

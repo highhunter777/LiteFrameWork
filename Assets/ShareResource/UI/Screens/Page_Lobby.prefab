@@ -13,6 +13,7 @@ GameObject:
   - component: {fileID: 3746764556487846533}
   - component: {fileID: 3024670902531785302}
   - component: {fileID: 6422060057619716988}
+  - component: {fileID: 8597427883527652046}
   m_Layer: 0
   m_Name: Button_Settings
   m_TagString: Untagged
@@ -137,6 +138,18 @@ MonoBehaviour:
   Comment: 
   CustomTypeName: 
   BindName: Button_Settings
+--- !u!114 &8597427883527652046
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 437986862881081200}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 6520777769920864680ef6cbc4d53a3d, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
 --- !u!1 &653672775344992253
 GameObject:
   m_ObjectHideFlags: 0
@@ -1360,6 +1373,7 @@ GameObject:
   - component: {fileID: 4735914885391386196}
   - component: {fileID: 6134316266122285696}
   - component: {fileID: 1542292233599773123}
+  - component: {fileID: 5863443640534258808}
   m_Layer: 0
   m_Name: Button_RowClick
   m_TagString: Untagged
@@ -1468,6 +1482,18 @@ MonoBehaviour:
   m_OnClick:
     m_PersistentCalls:
       m_Calls: []
+--- !u!114 &5863443640534258808
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3690587965956525072}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 6520777769920864680ef6cbc4d53a3d, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
 --- !u!1 &3804068916610567223
 GameObject:
   m_ObjectHideFlags: 0
@@ -1934,6 +1960,7 @@ GameObject:
   - component: {fileID: 5387092401666478989}
   - component: {fileID: 1509763946136641413}
   - component: {fileID: 354441093837296743}
+  - component: {fileID: 4814391098574884794}
   m_Layer: 0
   m_Name: Button_Records
   m_TagString: Untagged
@@ -2058,6 +2085,18 @@ MonoBehaviour:
   Comment: 
   CustomTypeName: 
   BindName: Button_Records
+--- !u!114 &4814391098574884794
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6979973843029790865}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 6520777769920864680ef6cbc4d53a3d, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
 --- !u!1 &7098662434029337793
 GameObject:
   m_ObjectHideFlags: 0
@@ -2297,6 +2336,7 @@ GameObject:
   - component: {fileID: 3199117175475410125}
   - component: {fileID: 6086085448587125713}
   - component: {fileID: 6030558275031865355}
+  - component: {fileID: 4984638936997318909}
   m_Layer: 0
   m_Name: Button_CreateRoom
   m_TagString: Untagged
@@ -2421,6 +2461,18 @@ MonoBehaviour:
   Comment: 
   CustomTypeName: 
   BindName: Button_CreateRoom
+--- !u!114 &4984638936997318909
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7731191340829715786}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 6520777769920864680ef6cbc4d53a3d, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
 --- !u!1 &7863162490544107582
 GameObject:
   m_ObjectHideFlags: 0
@@ -2585,6 +2637,7 @@ GameObject:
   - component: {fileID: 687776757609717995}
   - component: {fileID: 975668806940293208}
   - component: {fileID: 182750907559835129}
+  - component: {fileID: 3219911943985625523}
   m_Layer: 0
   m_Name: Button_QuickEnter
   m_TagString: Untagged
@@ -2709,6 +2762,18 @@ MonoBehaviour:
   Comment: 
   CustomTypeName: 
   BindName: Button_QuickEnter
+--- !u!114 &3219911943985625523
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8819869740890613171}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 6520777769920864680ef6cbc4d53a3d, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
 --- !u!1001 &4447691758719212870
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -2861,6 +2926,11 @@ PrefabInstance:
         type: 3}
       propertyPath: m_IsActive
       value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 2975809944982033016, guid: 22d0dbf9dfe06ca4eb7412b6501e5d24,
+        type: 3}
+      propertyPath: UseInstanceOverrides
+      value: 1
       objectReference: {fileID: 0}
     - target: {fileID: 3021784422643924235, guid: 22d0dbf9dfe06ca4eb7412b6501e5d24,
         type: 3}

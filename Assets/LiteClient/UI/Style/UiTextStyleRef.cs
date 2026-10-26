@@ -38,5 +38,10 @@ namespace LiteClient.UI
         /// <summary>本文本的角色档（§3.1 基线表；改动基线值＝改编辑器 UiTextStyle 单源后重跑应用）。</summary>
         [Tooltip("文字语义角色——档位基线见编辑器 UiTextStyle 单源；工具按此应用/对账")]
         public UiTextRole Role = UiTextRole.Body;
+
+        /// <summary>实例保留自身属性（模板角色不应用/不对账）——用于模板实例的合法属性覆盖；
+        /// 本节点仍计入未标记债（不静默通过），不改变任何现有属性。</summary>
+        [Tooltip("实例保留自身属性（模板角色不应用/不对账）；仍计入未标记债")]
+        public bool UseInstanceOverrides;
     }
 }

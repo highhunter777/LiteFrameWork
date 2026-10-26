@@ -709,6 +709,7 @@ GameObject:
   - component: {fileID: 6663738188194570507}
   - component: {fileID: 834649197891568737}
   - component: {fileID: 8558025926480106070}
+  - component: {fileID: 7982476192578700775}
   m_Layer: 0
   m_Name: Txt_Kills
   m_TagString: Untagged
@@ -833,6 +834,20 @@ MonoBehaviour:
   m_hasFontAssetChanged: 0
   m_baseMaterial: {fileID: 0}
   m_maskOffset: {x: 0, y: 0, z: 0, w: 0}
+--- !u!114 &7982476192578700775
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2714043570390737428}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 21e80ec30a6acf547bd94886b6d1a74f, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  Role: 1
+  UseInstanceOverrides: 0
 --- !u!1 &3130659705754077689
 GameObject:
   m_ObjectHideFlags: 0
@@ -845,6 +860,7 @@ GameObject:
   - component: {fileID: 6302291235108577642}
   - component: {fileID: 2133327882539917156}
   - component: {fileID: 7082216368226337873}
+  - component: {fileID: 2759676105867363708}
   m_Layer: 0
   m_Name: Button_RowClick
   m_TagString: Untagged
@@ -953,6 +969,18 @@ MonoBehaviour:
   m_OnClick:
     m_PersistentCalls:
       m_Calls: []
+--- !u!114 &2759676105867363708
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3130659705754077689}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 6520777769920864680ef6cbc4d53a3d, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
 --- !u!1 &3581940438068149244
 GameObject:
   m_ObjectHideFlags: 0
@@ -1267,6 +1295,7 @@ GameObject:
   - component: {fileID: 960018800806696320}
   - component: {fileID: 4723546497473801291}
   - component: {fileID: 5574858491019200508}
+  - component: {fileID: 6326750880429401798}
   m_Layer: 0
   m_Name: Button_BackLobby
   m_TagString: Untagged
@@ -1391,6 +1420,18 @@ MonoBehaviour:
   Comment: 
   CustomTypeName: 
   BindName: Button_BackLobby
+--- !u!114 &6326750880429401798
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4925438278415096161}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 6520777769920864680ef6cbc4d53a3d, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
 --- !u!1 &5159865343388950745
 GameObject:
   m_ObjectHideFlags: 0
@@ -2050,6 +2091,11 @@ PrefabInstance:
         type: 3}
       propertyPath: m_Color.a
       value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 2975809944982033016, guid: 22d0dbf9dfe06ca4eb7412b6501e5d24,
+        type: 3}
+      propertyPath: UseInstanceOverrides
+      value: 1
       objectReference: {fileID: 0}
     - target: {fileID: 3021784422643924235, guid: 22d0dbf9dfe06ca4eb7412b6501e5d24,
         type: 3}

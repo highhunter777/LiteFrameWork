@@ -26,6 +26,9 @@ namespace LiteGame.EditorTools.UI
         Mismatch,
         /// <summary>标记失效：节点无 TMP_Text/Text 组件，或 TMP font 资产缺失（资源引用失效）。</summary>
         BrokenRef,
+
+        /// <summary>实例覆盖滥用：UseInstanceOverrides 落在直挂节点（仅嵌套 prefab 实例合法）——Error。</summary>
+        OverrideMisuse,
     }
 
     /// <summary>
@@ -58,7 +61,7 @@ namespace LiteGame.EditorTools.UI
         {
             var issues = ReportTextDrift(DefaultScanDirs);
             var log = new StringBuilder();
-            int unmarked = 0, mismatch = 0, broken = 0;
+            int unmarked = 0, mismatch = 0, broken = 0, misuse = 0;
             foreach (var issue in issues)
             {
                 switch (issue.Kind)
@@ -66,10 +69,11 @@ namespace LiteGame.EditorTools.UI
                     case UiTextIssueKind.Unmarked: unmarked++; break;
                     case UiTextIssueKind.Mismatch: mismatch++; break;
                     case UiTextIssueKind.BrokenRef: broken++; break;
+                    case UiTextIssueKind.OverrideMisuse: misuse++; break;
                 }
                 log.AppendLine($"[{issue.Kind}] {System.IO.Path.GetFileName(issue.Asset)} :: {issue.Node} :: {issue.Detail}");
             }
-            Debug.Log($"[UiTextStyleTool] 文字档对账：未标记 {unmarked} · 属性漂移 {mismatch} · 引用失效 {broken}\n{log}");
+            Debug.Log($"[UiTextStyleTool] 文字档对账：未标记 {unmarked} · 属性漂移 {mismatch} · 引用失效 {broken} · 实例覆盖滥用 {misuse}\n{log}");
         }
 
         // ---------------- 应用 ----------------
@@ -124,6 +128,7 @@ namespace LiteGame.EditorTools.UI
             var tmp = reference.GetComponent<TMP_Text>();
             var legacy = tmp == null ? reference.GetComponent<Text>() : null;
             if (tmp == null && legacy == null) return 0;         // 失效标记：应用不猜不改，归对账
+            if (reference.UseInstanceOverrides) return 0;           // 实例保留自身属性（合法覆盖）
             if (!UiTextStyle.TryGet(reference.Role, catalog, out var style)) return 0;
 
             int writes = 0;
@@ -189,6 +194,26 @@ namespace LiteGame.EditorTools.UI
             UiTokenCatalog catalog)
         {
             var reference = node.GetComponent<UiTextStyleRef>();
+            if (reference != null && reference.UseInstanceOverrides)
+            {
+                if (!PrefabUtility.IsPartOfPrefabInstance(reference))
+                {
+                    issues.Add(new UiTextIssue
+                    {
+                        Asset = path, Node = NodePath(node.transform),
+                        Kind = UiTextIssueKind.OverrideMisuse,
+                        Detail = "UseInstanceOverrides 仅限嵌套 prefab 实例（直挂节点不得关闭角色）",
+                    });
+                    return;
+                }
+                issues.Add(new UiTextIssue
+                {
+                    Asset = path, Node = NodePath(node.transform),
+                    Kind = UiTextIssueKind.Unmarked,
+                    Detail = "实例属性覆盖（UseInstanceOverrides）——角色不应用，仍留未标记债",
+                });
+                return;
+            }
             if (reference == null)
             {
                 issues.Add(new UiTextIssue
@@ -275,6 +300,117 @@ namespace LiteGame.EditorTools.UI
             }
             return issues;
         }
+
+        // ---------------- 精确角色迁移（P2-3 B4） ----------------
+
+        /// <summary>精确角色迁移默认扫描面：控件模板 + 页面 + HUD（37 个匹配中 9 个在 HUD）。</summary>
+        private static readonly string[] MigrationScanDirs =
+        {
+            "Assets/ShareResource/UI/Widgets",
+            "Assets/ShareResource/UI/Screens",
+            "Assets/ShareResource/UI/Hud",
+        };
+
+        /// <summary>精确角色迁移报告（Added=新增组件；Direct=直挂已有/新增；Inherited=嵌套实例跳过；Ambiguous=多档歧义；Skipped=不匹配）。</summary>
+        public sealed class TextStyleMigrationReport
+        {
+            public int Prefabs;
+            public int Added;
+            public int Direct;
+            public int Inherited;
+            public int Ambiguous;
+            public int Skipped;
+            public readonly List<string> Details = new List<string>();
+        }
+
+        /// <summary>只给属性与角色档逐项一致、且未标记/非嵌套实例的文本补 `UiTextStyleRef`；只加组件不改属性；幂等。</summary>
+        public static TextStyleMigrationReport MigrateExactRoleRefs(UiTokenCatalog catalog, IReadOnlyList<string> scanDirs = null)
+        {
+            if (catalog == null) throw new System.ArgumentNullException(nameof(catalog));
+            var report = new TextStyleMigrationReport();
+            UiTextStyleDef[] defs = UiTextStyle.BuildFrom(catalog);
+
+            foreach (string path in PrefabPaths(scanDirs ?? MigrationScanDirs))
+            {
+                GameObject root = PrefabUtility.LoadPrefabContents(path);
+                try
+                {
+                    bool dirty = false;
+                    var seen = new HashSet<int>();
+                    foreach (TMP_Text tmp in root.GetComponentsInChildren<TMP_Text>(true))
+                    {
+                        seen.Add(tmp.GetInstanceID());
+                        dirty |= MigrateOne(report, defs, path, tmp.gameObject, tmp, null);
+                    }
+                    foreach (Text legacy in root.GetComponentsInChildren<Text>(true))
+                    {
+                        if (seen.Contains(legacy.GetInstanceID())) continue;
+                        dirty |= MigrateOne(report, defs, path, legacy.gameObject, null, legacy);
+                    }
+
+                    if (dirty)
+                    {
+                        PrefabUtility.SaveAsPrefabAsset(root, path);
+                        report.Prefabs++;
+                    }
+                }
+                finally { PrefabUtility.UnloadPrefabContents(root); }
+            }
+
+            if (report.Prefabs > 0) AssetDatabase.SaveAssets();
+            Debug.Log($"[UiTextStyleTool] 精确角色迁移：{report.Prefabs} prefab / 新增 {report.Added}"
+                      + $"（直挂 {report.Direct}、嵌套跳过 {report.Inherited}、歧义 {report.Ambiguous}、不匹配 {report.Skipped}）");
+            return report;
+        }
+
+        /// <summary>单节点迁移：嵌套实例跳过（由源模板继承）；已标记跳过；多档歧义跳过并报告；只加组件。</summary>
+        private static bool MigrateOne(TextStyleMigrationReport report, UiTextStyleDef[] defs, string path,
+            GameObject node, TMP_Text tmp, Text legacy)
+        {
+            var roles = new List<UiTextRole>();
+            foreach (UiTextStyleDef def in defs)
+                if (tmp != null ? MatchesTmp(tmp, def) : MatchesLegacy(legacy, def)) roles.Add(def.Role);
+
+            Component component = tmp != null ? (Component)tmp : legacy;
+            if (component != null && PrefabUtility.IsPartOfPrefabInstance(component))
+            {
+                // 嵌套实例不补组件（由源模板继承）；只把「精确匹配的继承节点」计入 Inherited。
+                if (roles.Count == 1) report.Inherited++;
+                else report.Skipped++;
+                return false;
+            }
+            if (node.GetComponent<UiTextStyleRef>() != null)
+            {
+                report.Direct++;
+                return false;
+            }
+
+            if (roles.Count == 0) { report.Skipped++; return false; }
+            if (roles.Count > 1)
+            {
+                report.Ambiguous++;
+                report.Details.Add(path + " :: " + NodePath(node.transform) + " 多档匹配：" + string.Join(",", roles));
+                return false;
+            }
+
+            node.AddComponent<UiTextStyleRef>().Role = roles[0];
+            report.Added++;
+            report.Direct++;
+            return true;
+        }
+
+        private static bool MatchesTmp(TMP_Text tmp, UiTextStyleDef def)
+            => Mathf.Abs(tmp.fontSize - def.FontSize) < 0.01f
+               && tmp.alignment == def.TmpAlignment
+               && tmp.enableWordWrapping == def.WordWrap
+               && tmp.overflowMode == (def.Truncate ? TextOverflowModes.Truncate : TextOverflowModes.Overflow)
+               && ((tmp.fontStyle & FontStyles.Bold) != 0) == def.Bold;
+
+        private static bool MatchesLegacy(Text legacy, UiTextStyleDef def)
+            => legacy.fontSize == (int)def.FontSize
+               && legacy.alignment == def.LegacyAlignment
+               && legacy.horizontalOverflow == (def.WordWrap ? HorizontalWrapMode.Wrap : HorizontalWrapMode.Overflow)
+               && ((legacy.fontStyle & FontStyle.Bold) != 0) == def.Bold;
 
         // ---------------- 辅助 ----------------
 

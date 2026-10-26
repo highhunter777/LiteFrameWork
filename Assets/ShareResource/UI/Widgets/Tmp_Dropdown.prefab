@@ -12,6 +12,7 @@ GameObject:
   - component: {fileID: 7396076275137179943}
   - component: {fileID: 7389399147335463699}
   - component: {fileID: 8630018869595245670}
+  - component: {fileID: 3343461817199444994}
   m_Layer: 0
   m_Name: _Item
   m_TagString: Untagged
@@ -125,6 +126,18 @@ MonoBehaviour:
   m_FillOrigin: 0
   m_UseSpriteMesh: 0
   m_PixelsPerUnitMultiplier: 1
+--- !u!114 &3343461817199444994
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 27317659167974094}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 6520777769920864680ef6cbc4d53a3d, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
 --- !u!1 &459834463702077209
 GameObject:
   m_ObjectHideFlags: 0
@@ -648,6 +661,7 @@ GameObject:
   - component: {fileID: 6855908099428203114}
   - component: {fileID: 4002425027431377311}
   - component: {fileID: 832236536920962173}
+  - component: {fileID: 6565768486329464332}
   m_Layer: 0
   m_Name: Tmp_Dropdown
   m_TagString: Untagged
@@ -817,3 +831,15 @@ MonoBehaviour:
   - UIDropdownWrap.OnIndexChanged
   SizeBehavior: 1
   Constraints: []
+--- !u!114 &6565768486329464332
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8849819735536475285}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 6520777769920864680ef6cbc4d53a3d, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 

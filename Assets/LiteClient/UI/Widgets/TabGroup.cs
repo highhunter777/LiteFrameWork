@@ -7,12 +7,12 @@ namespace LiteClient.UI
 {
     /// <summary>页签组：N 个按钮互斥选中；选中态 = 可交互反转 + 高亮色。onTabChanged(index)。
     /// 状态色令牌化（P2-3 B2）：伴生 token 字段（空＝未令牌化用序列化色；装配期经 <see cref="IThemeBound"/> 注入解析）。</summary>
-    public class TabGroup : MonoBehaviour, IThemeBound
+    public class TabGroup : MonoBehaviour, IThemeBound, IThemeGraphicWriter
     {
         [Tooltip("页签按钮（顺序即索引）")]
         public List<Button> Tabs = new List<Button>();
-        public Color SelectedColor = new Color(1f, 0.8f, 0.3f);
-        public Color NormalColor = Color.white;
+        public Color SelectedColor;
+        public Color NormalColor;
 
         [Tooltip("选中色令牌（空＝未令牌化，用序列化色）")]
         public string SelectedColorToken;
@@ -48,15 +48,13 @@ namespace LiteClient.UI
             for (int i = 0; i < Tabs.Count; i++)
             {
                 var img = Tabs[i].GetComponent<Image>();
-                if (img != null) img.color = i == _selected ? Pick(SelectedColor, SelectedColorToken) : Pick(NormalColor, NormalColorToken);
+                if (img != null) img.color = i == _selected ? Resolve(SelectedColor, SelectedColorToken) : Resolve(NormalColor, NormalColorToken);
             }
         }
 
-        /// <summary>取值序（P2-3 B2）：token 已填且可解析 → 令牌现值；否则序列化 fallback（不猜色）。</summary>
-        private Color Pick(Color fallback, string token)
-            => _theme != null && !string.IsNullOrEmpty(token) && _theme.TryColor(token, out Color value)
-                ? value
-                : fallback;
+        /// <summary>取值序（P2-3 B4）：token 可解析 → 令牌现值；否则序列化 fallback（不猜色）。</summary>
+        private Color Resolve(Color fallback, string token)
+            => _theme?.Resolve(token, fallback) ?? fallback;
 
         private UiStyleResolver _theme;
 
@@ -65,6 +63,15 @@ namespace LiteClient.UI
         {
             _theme = resolver;
             if (_selected >= 0) RefreshTabs();
+        }
+
+        /// <summary>写权：只拥有 Tabs 列表上的按钮 Graphic（不认领子树）。</summary>
+        public bool Owns(UnityEngine.UI.Graphic graphic)
+        {
+            if (graphic == null) return false;
+            for (int i = 0; i < Tabs.Count; i++)
+                if (Tabs[i] != null && Tabs[i].GetComponent<UnityEngine.UI.Image>() == graphic) return true;
+            return false;
         }
     }
 

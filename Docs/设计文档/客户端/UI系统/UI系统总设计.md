@@ -392,11 +392,11 @@ Page Logic (C# UIBindBase 或 Lua)
 
 ### 6.2 引用与应用
 
-- prefab 上的颜色/字号/间距优先挂**引用组件**（`UiStyleRef`〔颜色，P2-3 B2 上任〕/`UiTextStyleRef`〔文字档〕），而不是裸值；`UiStyleRef` 只声明不驱动，值由应用核心单写。
-- 编辑期 Applier 按令牌批量应用（`ui.style.colors-refresh` 三段式：refs 声明应用 → widget 状态 token 迁移 → 裸值最近匹配收敛〔跳过已声明与 IThemeBound 节点〕）。批量工具的"可回退"＝**幂等重跑零变更＋变更仅经工具落盘（版本管理可回退）**——Unity Undo 记录在 PrefabUtility 批量模式下不跨资产落盘生效，交互式单页 Undo 如未来需要另批上机制（2026-10-25 澄清）。
-- 运行期只读解析（`UiStyleResolver`，核心住 LiteClient.UI、编辑器 `UiTokenCatalog` 委托）；主题由 bootstrap 一次装载 `UiTheme.asset`，经 `UIService` ctor 形参 → `UIForm.ThemeProvider` 注入，页面装配期（PrepareForShow）按声明写令牌现值并注入 `IThemeBound`——装载缺失降级＝保持烘焙值＋Warning 一次。主题切换的驱动点即该注入缝（换资产重注入＋重开页面重应用；`UiThemeBinder` 未单独建类）。不允许页面自行改全局材质/颜色。
-- 状态色（Normal/Pressed/Disabled/Selected）**已令牌化**（2026-10-25 用户裁决，P2-3 B2）：自研三 widget（StateButton/TabGroup/StarRating）以伴生 token 字段声明、装配期经 `IThemeBound` 解析，取值序＝token 可解析→令牌现值，否则序列化 fallback；uGUI 原生 `Selectable.colors`（33 处/17 prefab）留 B4 复议。不在业务代码里写 RGB。
-- 裸值必须能被校验器识别并登记例外（Owner/原因/到期），不得静默通过；引用对账由 `ui.style.ref` 五判据（未知令牌 Error/值漂移 Warning/无目标 Error/widget 三态/同节点双写者 Error）。
+- prefab 上的颜色/字号/间距优先挂**引用组件**（`UiStyleRef`〔颜色，P2-3 B2〕/`UiTextStyleRef`〔文字档〕），而不是裸值；`UiStyleRef` 只声明不驱动，值由应用核心单写。`UiTextStyleRef.UseInstanceOverrides` 供模板实例保留自身属性（合法覆盖，工具不应用/不判 Mismatch，仍计未标记债）。
+- 编辑期 Applier 按令牌批量应用（`ui.style.colors-refresh` 三段式：refs 声明应用 → widget 状态 token 迁移 → 裸值最近匹配收敛〔跳过已声明与 `IThemeGraphicWriter` 认领的目标 Graphic〕）。批量工具的"可回退"＝**幂等重跑零变更＋变更仅经工具落盘（版本管理可回退）**——Unity Undo 记录在 PrefabUtility 批量模式下不跨资产落盘生效，交互式单页 Undo 如未来需要另批上机制。
+- 运行期只读解析（`UiStyleResolver`，核心住 LiteClient.UI、编辑器 `UiTokenCatalog` 委托）；主题由 bootstrap 一次装载 `UiTheme.asset`，经 `UIService` ctor 形参 → `UIForm.ThemeProvider` 注入，页面装配期（PrepareForShow）**统一走 `UiThemeBinder`**（`IThemeBound` 注入 → `UiStyleRef` 应用 → writer 自身/祖先跳过 → 未知令牌 Warning 一次）——装载缺失降级＝保持烘焙值＋Warning 一次。HUD 经 `UIService.ThemeAssetProvider` → `ProcedureBattle` → `BattleViewRig` 在实例化后调用同一 binder。主题切换的驱动点即该注入缝（换资产重注入＋重开页面重应用）。不允许页面自行改全局材质/颜色。
+- 状态色（Normal/Pressed/Disabled/Selected）**已令牌化**：自研三 widget（StateButton/TabGroup/StarRating）以伴生 token 字段声明、装配期经 `IThemeBound` 解析，取值序＝token 可解析→令牌现值，否则序列化 fallback；uGUI 原生 `Selectable.colors` 由 `UiSelectableTheme` 接缝覆盖（5 枚 `color.state.selectable.*`，46 个 ColorTint Selectable = 33 直挂组件 + 13 模板继承；只写状态 tint、保留 multiplier/fade，仅 ColorTint 生效）。不在业务代码里写 RGB。
+- 裸值必须能被校验器识别并登记例外（Owner/原因/到期），不得静默通过；引用对账由 `ui.style.ref` 五判据（未知令牌 Error/值漂移 Warning/无目标 Error/widget 三态/`IThemeGraphicWriter` 自身或祖先双写者 Error）；Selectable 状态色由 `ui.style.selectable`（缺组件 Warning/无 Selectable Error/未知令牌 Error/ColorBlock 漂移 Warning/非 ColorTint 跳过）。
 
 ### 6.3 字体与文本
 
@@ -418,7 +418,7 @@ Page Logic (C# UIBindBase 或 Lua)
 
 - 每个控件模板声明状态：Normal/Hover/Pressed/Disabled/Selected/Loading/Empty/Error（按需）。
 - 状态用 Animator 之外的显式组件/`UiFx`/`Selectable` 驱动；UI prefab 默认禁用 Animator（例外登记）。
-- 状态色映射表（P2-3 B2 冻结，D3 用户裁决「本批令牌化」；取值权威＝prefab 序列化现值量化，零可见变化；近金/近灰不合并——合并属可见色变需另行裁决）：
+- 状态色映射表（P2-3 B2/B4 冻结；取值权威＝prefab 序列化现值量化，零可见变化；近金/近灰不合并——合并属可见色变需另行裁决）：
 
   | 令牌 | 值 | 来源 |
   |---|---|---|
@@ -430,8 +430,14 @@ Page Logic (C# UIBindBase 或 Lua)
   | color.state.nav.normal | #BFBFC7FF | Tmp_BottomNav.prefab:61 TabGroup NormalColor（0.75,0.75,0.78） |
   | color.state.star.on | #FFCC33FF | Tmp_StarRating.prefab:439 On（1,0.8,0.2） |
   | color.state.star.off | #4D4D4DFF | Tmp_StarRating.prefab:440 Off（0.3,0.3,0.3） |
+  | color.state.selectable.normal | #FFFFFFFF | uGUI ColorBlock normalColor（33 直挂实测同值；与 `color.text.bright` 同白，显式 ID 消费） |
+  | color.state.selectable.highlighted | #F5F5F5FF | highlightedColor |
+  | color.state.selectable.pressed | #C8C8C8FF | pressedColor |
+  | color.state.selectable.selected | #F5F5F5FF | selectedColor（与 highlighted 同值，状态语义分开） |
+  | color.state.selectable.disabled | #C8C8C880 | disabledColor（alpha 0.5） |
 
   复用 1 枚：Tmp_TabGroup 常态白＝`color.text.bright`。
+  **实例覆盖**：模板实例有意的属性偏离由 `UiTextStyleRef.UseInstanceOverrides` 标为合法覆盖——工具不应用/不判 Mismatch，但仍计入未标记债（不静默通过）。
 - 变体（Variant）只用于同一控件的尺寸/风格差异；业务页面不得成为模板的 Variant（避免跨 owner 继承）。
 - 模板插槽用命名容器（`Cot_Header`/`Cot_Body`/`Cot_Footer`），插槽内容由页面填充；模板不读取业务数据。
 

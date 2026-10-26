@@ -43,7 +43,7 @@
                 UI 调试内核（LiteGame.App，dev 三宏，装配期持有）
        读模型 / 命令集 / 页面目录 / 状态场景 / 深检快照 / 可点性
                     ▲                    ▲                    ▲
-      编辑器深检窗口（Play）      F8 运行内面板         文本命令（ui.*）
+      编辑器深检窗口（Play）      F10 运行内面板         文本命令（ui.*）
       LiteGame.Editor            LiteGame.DevTool      LiteGame.DevTool
       （UITK，Hub 入口）          （UITK Overlay）       （解析 → 内核命令）
                     ▲
@@ -51,7 +51,7 @@
 
 写回（仅编辑器）：
   实例属性 diff → UiPatch（预览/属性选择/冲突检查）→ 标准 prefab（Undo/审计/归档）
-  Player/F8 只采集 patch 文件，不调用 UnityEditor API、不写资产
+  Player/F10 只采集 patch 文件，不调用 UnityEditor API、不写资产
 ```
 
 - **内核**负责“有哪些页面、当前什么状态、能执行什么动作”，不画 UI、不写资产；住 `LiteGame.App` dev 区，与 `TestModeOptions`/`DevStartupConfig` 同一装配根。
@@ -197,7 +197,7 @@ Seed / Language / PageId
 ### 7.1 编辑器深检窗口（`ui.runtime-debug`）
 
 - 入口：Hub → UI 运行时调试；仅 Play 可用；非 Play 显示“进入 Play 后可用”，不伪造空快照。
-- 渲染：UI Toolkit EditorWindow + dev-only UXML/USS/ThemeStyleSheet；与 F8 共用快照与主题链，不共用绘制代码。
+- 渲染：UI Toolkit EditorWindow + dev-only UXML/USS/ThemeStyleSheet；与 F10 共用快照与主题链，不共用绘制代码。
 - 布局：左页面/层树；右页签 `概览 / 绑定与契约 / 布局与安全区 / 文本与本地化 / 样式与写回 / 输入与焦点 / 性能 / 反馈面 / 操作记录`；底拾取/定位/复制路径/冻结快照/采集/应用/撤销。
 - 深查能力：
   - 页面 → `UIForm` 状态、prefab/lua、显示代次、复用/租约、Canvas/Group/Raycaster、sortingOrder。
@@ -211,10 +211,10 @@ Seed / Language / PageId
 - 默认只读；写回是显式模式（§8）。
 - 性能：可见时 ≤2–4Hz；隐藏/失焦即停；树/表格折叠或虚拟化。
 
-### 7.2 F8 运行内面板
+### 7.2 F10 运行内面板
 
 - 渲染：UI Toolkit Overlay；`sortingOrder=10001`（DevHUD 10000，产品最高 6000 以内）；复用 DevHUD 系统字体候选链。
-- 入口：F8 总开关；面板聚焦时 Esc 关闭并恢复原焦点，不触发产品 Back。
+- 入口：F10 总开关；面板聚焦时 Esc 关闭并恢复原焦点，不触发产品 Back。
 - 布局：左页面目录（搜索+打开中标记+layer）；右上状态/层序/模态/焦点；右中动作区（Open/Replace/Back/Close/Reopen、语言、设备档、状态场景、样式试调）；右下可点性摘要与证据按钮。
 - 深检：紧凑 Inspect 页签（页面/绑定/布局/输入摘要）；完整树与契约差异引导到编辑器窗口。
 - 写回：只采集 Patch（`persistentDataPath/ui-debug/patches/`），不调用 UnityEditor API、不写资产。
@@ -237,7 +237,7 @@ Seed / Language / PageId
 | 目标 | `Assets/ShareResource/UI/{Screens,Widgets,Hud}/**` 的 prefab；scene-only 对象拒绝 |
 | 粒度 | 属性级（已有组件的序列化字段）；不做节点/组件增删、资产创建/删除 |
 | 载体 | `UiPatch`（diff/属性选择/冲突检查/Undo/归档）；不建第二套格式 |
-| 通道 | 编辑器 Play：实例 diff → patch → 标准 prefab；Player/F8：只采集 patch 文件，编辑器导入应用 |
+| 通道 | 编辑器 Play：实例 diff → patch → 标准 prefab；Player/F10：只采集 patch 文件，编辑器导入应用 |
 | 冲突 | 应用前复核 prefab 当前内容/`sourceHash`；与采集时不一致即中止并显示冲突项 |
 | 审计 | 每次 apply 记录 patch、目标、操作者、结果、Undo 标记；不自动保存、不静默成功 |
 
@@ -271,7 +271,7 @@ Seed / Language / PageId
 ## 10. 与 DevHUD / GM / 日志的边界
 
 - DevHUD 只读；本面可增加一行状态（当前页/遮挡数），不把 HUD 变成写面板。
-- GM 页是编辑器富交互投影；Player 内只留本面与开发控制台（F12，`DebugConsole`）的轻量入口。
+- GM 页是编辑器富交互投影；Player 内只留本面与开发控制台（F3，`DebugConsole`）的轻量入口。
 - 命令统一走命令中心；高频旋钮（滑杆/连续拖动）不进审计环。
 - 日志用 `Log` 门面；结构化日志/现场包由诊断设施提供；本面不另造日志格式。
 - `DiagTrace` 等非 UI 诊断归调试手册，不塞进 UI 深检。
@@ -290,7 +290,7 @@ Seed / Language / PageId
 
 | 情形 | 契约 |
 | --- | --- |
-| 非 Play/内核未装配 | 窗口显示原因；F8 空态，不启动 |
+| 非 Play/内核未装配 | 窗口显示原因；F10 空态，不启动 |
 | `tbuiform` 不可用 | 页面目录错误行；命令拒绝 |
 | 页面 id 不存在 | 返回“未找到”，不猜测 |
 | 打开/关闭失败/超时 | 显示类型化原因；不重试、不静默 |
@@ -305,7 +305,7 @@ Seed / Language / PageId
 - 仅开发三宏内存在；内核住 `LiteGame.App`，投影住 `LiteGame.DevTool`（单向引用 App）；资产不进收集组。
 - release 零残留：类型/资产/命令/启动行均不可达。
 - 调试工具自身可用 UI Toolkit（dev-only UXML/USS/ThemeStyleSheet），产品 UI 不迁移。
-- 写回仅编辑器应用；Player/F8 只采集 patch；不调用 UnityEditor API、不写资产。
+- 写回仅编辑器应用；Player/F10 只采集 patch；不调用 UnityEditor API、不写资产。
 - 不做 release/测试者分发包写回；不做远程/多客户端聚合。
 
 ## 12. 验收与阶段
@@ -323,9 +323,9 @@ Seed / Language / PageId
 **验收层级**：
 
 - L1：目录投影、命令解析、状态枚举、dump 字段、可点性判定、patch 模型/diff/冲突/白名单（不依赖 Unity 运行时）。
-- L2 PlayMode：真实 `UIService`/导航/命令中心下的开关/返回/重开；状态注入；截图/dump/patch；租约/订阅对称；深检一致；F8/Player 不写资产。
+- L2 PlayMode：真实 `UIService`/导航/命令中心下的开关/返回/重开；状态注入；截图/dump/patch；租约/订阅对称；深检一致；F10/Player 不写资产。
 - 编辑器人工：Hub → 选页 → 深检页签 → Ping/高亮 → 写回 diff/Undo/冲突；失焦即停。
-- 开发包人工：F8 → 打开 → 切场景 → Raycast → Capture/Dump/Patch → 关闭；面板自身可点。
+- 开发包人工：F10 → 打开 → 切场景 → Raycast → Capture/Dump/Patch → 关闭；面板自身可点。
 - release：零残留（类型/资产/命令/启动行）。
 
 ## 13. 非目标

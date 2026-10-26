@@ -64,11 +64,11 @@ namespace LiteGame.Editor.UiTools.Validation.Rules
                 foreach (UiStyleRef styleRef in root.GetComponentsInChildren<UiStyleRef>(true))
                 {
                     string node = styleRef.transform.name;
-                    if (styleRef.GetComponent<IThemeBound>() != null)
+                    if (UiThemeBinder.IsGraphicOwnedByWidget(styleRef))
                     {
                         issues.Add(Issue(UiSeverity.Error, assetPath, node,
-                            "同节点挂 UiStyleRef 与 IThemeBound 组件（双写者）——widget 自持 Graphic 写权，摘除其一",
-                            "摘除 UiStyleRef（状态色由 widget token 字段声明）或摘除状态 widget"));
+                            "UiStyleRef 的目标 Graphic 被自身/祖先 IThemeGraphicWriter 认领（双写者）——摘除其一",
+                            "摘除 UiStyleRef（状态色由 widget token 字段声明）或摘除 writer"));
                         continue;
                     }
 

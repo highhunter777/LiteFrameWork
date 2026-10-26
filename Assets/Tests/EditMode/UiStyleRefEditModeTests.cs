@@ -137,6 +137,27 @@ namespace LiteGame.Tests.EditMode
                 "refs 段不越权写 widget 自持的 Graphic");
         }
 
+        [Test]
+        public void ApplyColorsWith_UiSelectableTheme节点基色仍收敛()
+        {
+            UiTokenCatalog catalog = UiTokenCatalog.Load();
+            catalog.TryColor("color.bg.screen", out Color screen);
+            Color near = new Color(screen.r + 0.002f, screen.g, screen.b, screen.a);
+            SavePrefab("selectable_bare_converge", root =>
+            {
+                var image = root.AddComponent<Image>();
+                image.color = near;
+                root.AddComponent<Button>();
+                root.AddComponent<UiSelectableTheme>();           // IThemeBound 但只写 tint，不拥有基色
+            });
+
+            UiStyleTool.ApplyColorsWith(catalog, Dirs());
+
+            var loaded = AssetDatabase.LoadAssetAtPath<GameObject>(PrefabPath("selectable_bare_converge"));
+            Assert.AreEqual(screen, loaded.GetComponent<Image>().color,
+                "UiSelectableTheme 不拥有基色写权——裸值段仍应收敛");
+        }
+
         // ---- widget 状态色迁移段 ----
 
         [Test]
@@ -147,7 +168,9 @@ namespace LiteGame.Tests.EditMode
             {
                 var node = new GameObject("Btn", typeof(RectTransform), typeof(Image));
                 node.transform.SetParent(root.transform, false);
-                node.AddComponent<StateButton>();   // C# 默认＝#4073BF 系，应命中 color.state.interact.normal
+                var button = node.AddComponent<StateButton>();
+                catalog.TryColor("color.state.interact.normal", out Color normal);
+                button.NormalColor = normal;        // 显式赋色（C# 默认值已随 B4 清零）
             });
 
             UiStyleRefApplier.MigrationReport report = UiStyleRefApplier.MigrateWidgetTokens(catalog, Dirs());
@@ -156,6 +179,26 @@ namespace LiteGame.Tests.EditMode
             var loaded = AssetDatabase.LoadAssetAtPath<GameObject>(PrefabPath("migrate_hit"));
             var button = loaded.transform.Find("Btn").GetComponent<StateButton>();
             Assert.AreEqual("color.state.interact.normal", button.NormalColorToken, "常态色最近匹配＝interact.normal");
+        }
+
+        [Test]
+        public void MigrateWidgetTokens_不填selectable专用令牌()
+        {
+            UiTokenCatalog catalog = UiTokenCatalog.Load();
+            catalog.TryColor(UiSelectableTheme.PressedToken, out Color pressed);
+            SavePrefab("migrate_selectable_filter", root =>
+            {
+                var node = new GameObject("Btn", typeof(RectTransform), typeof(Image));
+                node.transform.SetParent(root.transform, false);
+                var button = node.AddComponent<StateButton>();
+                button.PressedColor = pressed;      // 仅命中 selectable.pressed——不得填入 widget 字段
+            });
+
+            UiStyleRefApplier.MigrateWidgetTokens(catalog, Dirs());
+
+            var loaded = AssetDatabase.LoadAssetAtPath<GameObject>(PrefabPath("migrate_selectable_filter"));
+            Assert.IsTrue(string.IsNullOrEmpty(loaded.transform.Find("Btn").GetComponent<StateButton>().PressedColorToken),
+                "selectable 专用令牌不得填进 widget 状态色字段");
         }
 
         [Test]

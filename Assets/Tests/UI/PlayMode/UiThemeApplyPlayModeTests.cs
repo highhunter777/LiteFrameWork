@@ -1,5 +1,6 @@
 using System;
 using System.Collections;
+using System.Linq;
 using System.Threading;
 using Cysharp.Threading.Tasks;
 using LiteClient;
@@ -60,6 +61,7 @@ namespace LiteGame.Tests.UI.PlayMode
         private PlayModeTestScope _scope;
         private UIService _ui;
         private UiThemeAsset _theme;
+        private UiThemeAsset _themeClone;
         private static bool _assetsReady;
 
         [UnitySetUp]
@@ -89,6 +91,7 @@ namespace LiteGame.Tests.UI.PlayMode
                 yield return Wait(shutdown, 20f);
                 _ui = null;
             }
+            if (_themeClone != null) { UnityEngine.Object.Destroy(_themeClone); _themeClone = null; }
             yield return _scope.DisposeAsync();
         }
 
@@ -147,6 +150,58 @@ namespace LiteGame.Tests.UI.PlayMode
             // 烘焙值＝refs 应用段落盘写入的令牌现值（试点零视觉变化前提），降级路径只是"不再重写"
             Assert.AreEqual(tokenValue, title.GetComponent<Graphic>().color, "降级＝保持 prefab 烘焙值（本例与注入态同值）");
             Assert.IsNotNull(title.GetComponent<UiStyleRef>(), "声明组件仍在（下次注入即恢复应用）");
+        }
+
+        [UnityTest]
+        public IEnumerator 装配应用_Selectable状态色随主题变化()
+        {
+            Assume.That(_theme, Is.Not.Null, "仅编辑器 PlayMode");
+            _themeClone = UnityEngine.Object.Instantiate(_theme);
+            Color custom = new Color(0.12f, 0.34f, 0.56f, 1f);
+            UiThemeColorEntry[] colors = _themeClone.Colors;
+            for (int i = 0; i < colors.Length; i++)
+                if (colors[i].Id == UiSelectableTheme.NormalToken) colors[i].Value = custom;
+            _themeClone.Colors = colors;
+
+            _ui = BuildService(() => _themeClone);
+            var host = _scope.CreateGameObject("Host");
+            PlayModeTicker.Attach(host, _ui.Tick);
+
+            var open = _ui.ShowAsync(PageLogin);
+            yield return Wait(open, 20f);
+            UIForm form = open.GetAwaiter().GetResult();
+            Assert.IsNotNull(form, "页面打开须成功");
+
+            var themes = form.Root.GetComponentsInChildren<UiSelectableTheme>(true);
+            Assert.IsNotEmpty(themes, "Page_Login 应至少有 1 个 Selectable 状态色接缝（迁移后）");
+            var selectable = themes[0].GetComponent<UnityEngine.UI.Selectable>();
+            Assert.IsNotNull(selectable, "接缝节点应带 Selectable");
+            Assert.IsTrue(UiStyleResolver.Hits(selectable.colors.normalColor, custom),
+                $"装配期应按修改后的 selectable token 注入（实得 {selectable.colors.normalColor}）");
+        }
+
+        [UnityTest]
+        public IEnumerator 降级_主题资产null只告警一次()
+        {
+            _ui = BuildService(() => null);
+            var host = _scope.CreateGameObject("Host");
+            PlayModeTicker.Attach(host, _ui.Tick);
+            LiteFramework.Log.ResetForTesting();
+
+            var open = _ui.ShowAsync(PageLogin);
+            yield return Wait(open, 20f);
+            UIForm form = open.GetAwaiter().GetResult();
+            Assert.IsNotNull(form, "null 资产不得阻断开页");
+
+            var close = _ui.CloseAsync(PageLogin);
+            yield return Wait(close, 20f);
+            var reopen = _ui.ShowAsync(PageLogin);
+            yield return Wait(reopen, 20f);
+            Assert.IsNotNull(reopen.GetAwaiter().GetResult(), "复用/重开应成功");
+
+            int warnings = LiteFramework.Log.Recent.Count(e => e.Level == LiteFramework.LogLevel.Warning
+                && (e.Message ?? string.Empty).Contains("主题资产未就绪"));
+            Assert.AreEqual(1, warnings, "同一 UIForm 实例的 null 资产只告警一次（C-4）");
         }
 
         private static async UniTask<IUIPrefabLease> LoadLeaseAsync(string location, CancellationToken ct)

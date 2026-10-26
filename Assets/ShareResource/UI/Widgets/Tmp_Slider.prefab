@@ -199,6 +199,7 @@ GameObject:
   - component: {fileID: 2897688326286354995}
   - component: {fileID: 3471178947891546538}
   - component: {fileID: 1255385187751790665}
+  - component: {fileID: 5020223543346435282}
   m_Layer: 0
   m_Name: Tmp_Slider
   m_TagString: Untagged
@@ -327,6 +328,18 @@ MonoBehaviour:
   - UISliderWrap.OnChanged
   SizeBehavior: 1
   Constraints: []
+--- !u!114 &5020223543346435282
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4415241957674906943}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 6520777769920864680ef6cbc4d53a3d, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
 --- !u!1 &5269445938185254895
 GameObject:
   m_ObjectHideFlags: 0

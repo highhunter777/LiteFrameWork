@@ -26,3 +26,4 @@
 | 2026-10-24T16:48:59+08:00 | ui-p2-token-base | UI 系统 P2-3a：令牌源与主题资产（JSON→UiThemeAsset，退役硬编码） | 7/7 | PASS | [20261024-164859-ui-p2-token-base](20261024-164859-ui-p2-token-base/) |
 | 2026-10-25T18:40:02+08:00 | ui-p2-token-refs | UI 系统 P2-3 B2：令牌引用组件与应用 | 9/9 | PASS | [20261025-184002-ui-p2-token-refs](20261025-184002-ui-p2-token-refs/) |
 | 2026-10-25T23:16:10+08:00 | ui-p3-device-preview | UI 系统 P2-3 B3：设备档与预览矩阵 | 6/6 | PASS | [20261025-231610-ui-p3-device-preview](20261025-231610-ui-p3-device-preview/) |
+| 2026-10-26T20:19:57+08:00 | ui-p2-style-closure | UI 系统 P2-3 B4：存量样式收敛与收口 | 8/8 | PASS | [20261026-201957-ui-p2-style-closure](20261026-201957-ui-p2-style-closure/) |
