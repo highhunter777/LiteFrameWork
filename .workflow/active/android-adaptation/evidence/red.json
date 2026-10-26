@@ -1,0 +1,30 @@
+{
+  "schema_version": 1,
+  "kind": "red",
+  "at": "2026-10-26T17:33:20+08:00",
+  "ok": true,
+  "command_fingerprint": "2da483c849a2a31860cd742cb2a08cf19a4e945d4c880e454f4cb94a47e240b2",
+  "commands": [
+    {
+      "name": "build-player-platform-red",
+      "cmd": [
+        "python",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "scripts/tests",
+        "-p",
+        "test_build_player.py",
+        "-v"
+      ],
+      "cwd": null,
+      "exit_code": 1,
+      "timed_out": false,
+      "error": null,
+      "duration_ms": 293,
+      "ok": true,
+      "output_tail": "======================================================================\nERROR: test_windows_player_extension_is_exe (test_build_player.BuildPlayerPlatformContractTests.test_windows_player_extension_is_exe)\n----------------------------------------------------------------------\nTraceback (most recent call last):\n  File \"E:\\unityProject\\Test\\scripts\\tests\\test_build_player.py\", line 66, in test_windows_player_extension_is_exe\n    self.assertEqual(self.mod.player_extension(WINDOWS), \".exe\")\n                     ^^^^^^^^^^^^^^^^^^^^^^^^^\nAttributeError: module 'build_player_under_test' has no attribute 'player_extension'\n\n======================================================================\nERROR: test_windows_profile_named_target (test_build_player.BuildPlayerPlatformContractTests.test_windows_profile_named_target)\n----------------------------------------------------------------------\nTraceback (most recent call last):\n  File \"E:\\unityProject\\Test\\scripts\\tests\\test_build_player.py\", line 50, in test_windows_profile_named_target\n    self.assertEqual(self.mod.named_build_target(WINDOWS), \"Standalone\")\n                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^\nAttributeError: module 'build_player_under_test' has no attribute 'named_build_target'\n\n======================================================================\nERROR: test_build_command_uses_double_dash_profile (test_build_player.ToolchainBuildCommandTests.test_build_command_uses_double_dash_profile)\n----------------------------------------------------------------------\nTraceback (most recent call last):\n  File \"E:\\unityProject\\Test\\scripts\\tests\\test_build_player.py\", line 130, in test_build_command_uses_double_dash_profile\n    command = self.mod.build_command(\"BuildProfiles/android-il2cpp.json\")\n              ^^^^^^^^^^^^^^^^^^^^^^\nAttributeError: module 'toolchain_under_test' has no attribute 'build_command'\n\n======================================================================\nERROR: test_build_command_without_profile (test_build_player.ToolchainBuildCommandTests.test_build_command_without_profile)\n----------------------------------------------------------------------\nTraceback (most recent call last):\n  File \"E:\\unityProject\\Test\\scripts\\tests\\test_build_player.py\", line 138, in test_build_command_without_profile\n    command = self.mod.build_command(None)\n              ^^^^^^^^^^^^^^^^^^^^^^\nAttributeError: module 'toolchain_under_test' has no attribute 'build_command'\n\n----------------------------------------------------------------------\nRan 19 tests in 0.071s\n\nFAILED (errors=18)"
+    }
+  ]
+}

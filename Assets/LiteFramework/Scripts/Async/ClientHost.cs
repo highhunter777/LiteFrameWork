@@ -138,7 +138,8 @@ namespace LiteFramework
                 // 回滚：只关闭已成功模块（逆序），再重新抛原异常。回滚自身的失败不向上叠加（聚合丢弃——
                 // 原因优先，回滚细节走 ModuleTrace）。
                 await RollbackInitializedAsync();
-                lock (_gate) _state = 4;
+                lock (_gate) 
+                    _state = 4;
                 throw;
             }
         }

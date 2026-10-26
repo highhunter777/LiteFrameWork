@@ -700,74 +700,187 @@
         "600"
       ],
       "timeout": 900
+    },
+    {
+      "name": "ui-selectable-theme-editmode",
+      "cmd": [
+        "python",
+        "scripts/gate/unity-tests.py",
+        "--mode",
+        "editor",
+        "--filter",
+        "UiSelectableThemeEditModeTests",
+        "--timeout",
+        "600"
+      ],
+      "timeout": 900
+    },
+    {
+      "name": "ui-selectable-applier-editmode",
+      "cmd": [
+        "python",
+        "scripts/gate/unity-tests.py",
+        "--mode",
+        "editor",
+        "--filter",
+        "UiSelectableThemeApplierEditModeTests",
+        "--timeout",
+        "600"
+      ],
+      "timeout": 900
+    },
+    {
+      "name": "ui-theme-binder-editmode",
+      "cmd": [
+        "python",
+        "scripts/gate/unity-tests.py",
+        "--mode",
+        "editor",
+        "--filter",
+        "UiThemeBinderEditModeTests",
+        "--timeout",
+        "600"
+      ],
+      "timeout": 900
+    },
+    {
+      "name": "ui-style-selectable-rule-editmode",
+      "cmd": [
+        "python",
+        "scripts/gate/unity-tests.py",
+        "--mode",
+        "editor",
+        "--filter",
+        "UiStyleSelectableRuleEditModeTests",
+        "--timeout",
+        "600"
+      ],
+      "timeout": 900
+    },
+    {
+      "name": "ui-text-style-editmode",
+      "cmd": [
+        "python",
+        "scripts/gate/unity-tests.py",
+        "--mode",
+        "editor",
+        "--filter",
+        "UiTextStyleEditModeTests",
+        "--timeout",
+        "600"
+      ],
+      "timeout": 900
     }
   ],
   "red_commands": [
     {
-      "name": "ui-device-profiles-red",
+      "name": "build-player-platform-red",
+      "cmd": [
+        "python",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "scripts/tests",
+        "-p",
+        "test_build_player.py",
+        "-v"
+      ],
+      "timeout": 300
+    },
+    {
+      "name": "ui-selectable-theme-red",
       "cmd": [
         "python",
         "scripts/gate/unity-tests.py",
         "--mode",
         "editor",
         "--filter",
-        "UiDeviceProfilesEditModeTests",
+        "UiSelectableThemeEditModeTests",
         "--timeout",
         "600"
       ],
       "timeout": 900
     },
     {
-      "name": "ui-preview-locale-red",
+      "name": "ui-selectable-applier-red",
       "cmd": [
         "python",
         "scripts/gate/unity-tests.py",
         "--mode",
         "editor",
         "--filter",
-        "UiPreviewLocaleEditModeTests",
+        "UiSelectableThemeApplierEditModeTests",
         "--timeout",
         "600"
       ],
       "timeout": 900
     },
     {
-      "name": "ui-preview-matrix-red",
+      "name": "ui-theme-binder-red",
       "cmd": [
         "python",
         "scripts/gate/unity-tests.py",
         "--mode",
         "editor",
         "--filter",
-        "UiPreviewMatrixEditModeTests",
+        "UiThemeBinderEditModeTests",
         "--timeout",
         "600"
       ],
       "timeout": 900
     },
     {
-      "name": "ui-workbench-device-red",
+      "name": "ui-style-selectable-rule-red",
       "cmd": [
         "python",
         "scripts/gate/unity-tests.py",
         "--mode",
         "editor",
         "--filter",
-        "UiWorkbenchDeviceEditModeTests",
+        "UiStyleSelectableRuleEditModeTests",
         "--timeout",
         "600"
       ],
       "timeout": 900
     },
     {
-      "name": "ui-preview-driver-red",
+      "name": "ui-text-migration-red",
       "cmd": [
         "python",
         "scripts/gate/unity-tests.py",
         "--mode",
-        "playmode",
+        "editor",
         "--filter",
-        "UiPreviewDriverPlayModeTests",
+        "UiTextStyleEditModeTests",
+        "--timeout",
+        "600"
+      ],
+      "timeout": 900
+    },
+    {
+      "name": "ui-style-ref-red",
+      "cmd": [
+        "python",
+        "scripts/gate/unity-tests.py",
+        "--mode",
+        "editor",
+        "--filter",
+        "UiStyleRefEditModeTests",
+        "--timeout",
+        "600"
+      ],
+      "timeout": 900
+    },
+    {
+      "name": "ui-validation-b4-red",
+      "cmd": [
+        "python",
+        "scripts/gate/unity-tests.py",
+        "--mode",
+        "editor",
+        "--filter",
+        "UiValidationEditModeTests",
         "--timeout",
         "600"
       ],
