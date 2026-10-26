@@ -198,13 +198,13 @@ namespace LiteFramework.Diagnostics
                      .Append("\",\"lvl\":\"").Append(LevelName(entry.Level))
                      .Append("\",\"tag\":\"").Append(Log.TagName(entry.Tag))
                      .Append("\",\"sid\":\"");
-                AppendEscaped(_line, entry.SessionId);
+                JsonText.AppendEscaped(_line, entry.SessionId);
                 _line.Append("\",\"mid\":\"");
-                AppendEscaped(_line, entry.MatchId);
+                JsonText.AppendEscaped(_line, entry.MatchId);
                 _line.Append("\",\"f\":").Append(entry.Frame)
                      .Append(",\"p\":").Append(entry.PlayerId)
                      .Append(",\"msg\":\"");
-                AppendEscaped(_line, entry.Message);
+                JsonText.AppendEscaped(_line, entry.Message);
                 _line.Append("\"}\n");
 
                 int length = _line.Length;
@@ -281,28 +281,5 @@ namespace LiteFramework.Diagnostics
             }
         }
 
-        /// <summary>JSON 字符串转义（不分配中间串；控制字符走 \uXXXX）。</summary>
-        private static void AppendEscaped(StringBuilder sb, string value)
-        {
-            if (string.IsNullOrEmpty(value)) return;
-            for (int i = 0; i < value.Length; i++)
-            {
-                char c = value[i];
-                switch (c)
-                {
-                    case '"': sb.Append("\\\""); break;
-                    case '\\': sb.Append("\\\\"); break;
-                    case '\n': sb.Append("\\n"); break;
-                    case '\r': sb.Append("\\r"); break;
-                    case '\t': sb.Append("\\t"); break;
-                    case '\b': sb.Append("\\b"); break;
-                    case '\f': sb.Append("\\f"); break;
-                    default:
-                        if (c < 0x20) sb.Append("\\u").Append(((int)c).ToString("x4", CultureInfo.InvariantCulture));
-                        else sb.Append(c);
-                        break;
-                }
-            }
-        }
     }
 }

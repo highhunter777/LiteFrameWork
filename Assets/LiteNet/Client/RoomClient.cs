@@ -440,6 +440,15 @@ namespace LiteNet
 
         public void Disconnect() => _transport.Disconnect();
 
+        /// <summary>优雅离场（可靠）：服务端按 Leave 立即释放席位（与传输断线同一控制面语义，但不等重连窗口）。
+        /// 仅 Connected/Restoring 发送；未入座/已断开/已释放 → no-op（调用方不必判相位）。</summary>
+        public void SendLeave()
+        {
+            if (_disposed) return;
+            if (_phase != ClientSessionPhase.Connected && _phase != ClientSessionPhase.Restoring) return;
+            Send(PacketType.Leave, new Proto.Leave(), reliable: true);
+        }
+
         /// <summary>
         /// 退订 + 释放自身缓冲；**不 Dispose 传输**（注入依赖，所有权归创建方）。
         /// 退订是必需的：传输通常比 RoomClient 活得久（重连/换房/服务重建），漏退订会重复回调与内存滞留。

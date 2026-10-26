@@ -155,6 +155,40 @@ namespace LiteFramework.Tests
         }
 
         [Fact]
+        public void 恢复栈_表驱动到点_AutoResume识别层级抢占机端口()
+        {
+            // 历史缺陷：TableStage 只按 PreemptiveStageMachine 探测 ⇒ 层级抢占机上的
+            // AutoResumeOnEnd 静默跳过恢复、直落 NextId。端口化（IResumeHost）后两机同判例。
+            var atk = Table(Pid.Atk, priority: 10, resume: ResumeMode.Resume);
+            var hurt = Table(Pid.Hurt, priority: 20);
+            hurt.Spec.DurationFrames = 2;                    // 硬直 2 帧
+            hurt.Spec.AutoResumeOnEnd = true;                // 到点回被抢占动作
+            var m = new PreemptiveHierarchicalStageMachine<Pid, int>("PH",
+                new[]
+                {
+                    (Pid.Root, (IStage<Pid, int>)Table(Pid.Root)),
+                    (Pid.Idle, Table(Pid.Idle)),
+                    (Pid.Atk, atk),
+                    (Pid.Hurt, hurt),
+                },
+                new[] { new CompositeSpec<Pid>(Pid.Root, Pid.Idle, HistoryMode.None, Pid.Idle, Pid.Atk, Pid.Hurt) });
+            m.Start(Pid.Root);
+            m.Request(Pid.Atk);
+            m.Advance();
+            Assert.Equal(Pid.Atk, m.Current);
+
+            m.Request(Pid.Hurt);
+            m.Advance();
+            Assert.Equal(Pid.Hurt, m.Current);
+            Assert.Equal(1, m.ResumeDepth);                  // Atk 入栈
+
+            m.Tick(0.016f);                                  // 帧 1
+            m.Tick(0.016f);                                  // 帧 2 → 到点 → 经端口恢复
+            Assert.Equal(Pid.Atk, m.Current);
+            Assert.Equal(0, m.ResumeDepth);
+        }
+
+        [Fact]
         public void TryResume_栈空与已在目标()
         {
             var m = Standard();

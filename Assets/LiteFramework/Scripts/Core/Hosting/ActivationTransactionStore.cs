@@ -25,7 +25,7 @@ namespace LiteFramework
         public int SchemaVersion = 1;
 
         /// <summary>当前已确认（健康检查通过）的发布身份；builtin = 内置兜底，永远合法可用。</summary>
-        public string ConfirmedReleaseId = "builtin";
+        public string ConfirmedReleaseId = ContentGeneration.BuiltinReleaseId;
 
         /// <summary>已确认发布的代次值（单调）。</summary>
         public ulong ConfirmedVersion;

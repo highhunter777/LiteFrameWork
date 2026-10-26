@@ -35,6 +35,7 @@ namespace LiteGame.Tests.EditMode
         {
             TestModeRuntime.Active = false;
             TestModeRuntime.LaserSight = true;
+            SimTestRules.ActiveMatch = null;          // 活动局规则登记口不跨例（用例自行注入/改静态）
         }
 
         private static SimMapData NoObstacleMap() => new SimMapData();
@@ -105,13 +106,13 @@ namespace LiteGame.Tests.EditMode
         }
 
         private (InputService Input, BattleLaserDriver Driver, LineRenderer Beam) BuildDriver(
-            SimView view, RollbackSim sim, SimMapData map)
+            SimView view, RollbackSim sim, SimMapData map, MatchTestRules rules = null)
         {
             var input = new InputService();
             input.SetSource(new FixedAimSource());           // 只用被拦门；激光不读瞄准输入
             var beamGo = Scope.CreateGameObject("Beam", typeof(LineRenderer));
             LineRenderer beam = beamGo.GetComponent<LineRenderer>();
-            var driver = new BattleLaserDriver(view, input, sim, map, beam);
+            var driver = new BattleLaserDriver(view, input, sim, map, beam, rules);
             return (input, driver, beam);
         }
         /// <summary>生产序：渲染帧采样（门在此裁决）→ 上行取值（帧边界清）→ 供 Tick 消费。</summary>
@@ -386,6 +387,43 @@ namespace LiteGame.Tests.EditMode
             driver.Tick();
             Assert.IsFalse(beam.gameObject.activeSelf, "本地表现未建 → 隐藏");
             driver.Dispose();
+        }
+
+        [Test]
+        [Category(TestCategory.Contract)]
+        public void 激光_规则走注入_不读活动局静态读口()
+        {
+            // 侧向 1.2m 的目标：默认双柱（身体 0.45 / 爆头 0.32、爆头线下沿 ~1.4）打不中；
+            // 注入"爆头带下移到 0 + 爆头柱 1.5"才在 9.1m 处命中。两个方向各验一次：
+            // ① 注入命中规则 + 静态默认 → 命中（读注入）；② 注入 null + 静态命中规则 → 未命中（不读静态）。
+            var map = NoObstacleMap();
+            var (world, sim, view, localView) = BuildBattle(map, new Vector3(10f, 0f, 1.2f));
+            BuildMount(localView, new Vector3(0f, 1f, 0f));                    // 枪口 (0,1,0) 前向 +X
+            _ = world;
+
+            var wideHead = new MatchTestRules { HeadHitLineOverride = 0f, HeadshotRadiusOverride = 1.5f };
+            try
+            {
+                SimTestRules.ActiveMatch = new MatchTestRules();               // 静态 = 默认窄柱（会漏）
+                var (input1, driver1, beam1) = BuildDriver(view, sim, map, wideHead);
+                SampleInput(input1);
+                driver1.Tick();
+                AssertLocal(beam1.GetPosition(1), new Vector3(0f, 0f, 10f - 0.9f), 1e-2f,
+                    "注入的宽爆头柱生效——端点不是射程上限");
+                driver1.Dispose();
+
+                SimTestRules.ActiveMatch = wideHead;                           // 静态 = 会命中的规则
+                var (input2, driver2, beam2) = BuildDriver(view, sim, map, rules: null);
+                SampleInput(input2);
+                driver2.Tick();
+                AssertLocal(beam2.GetPosition(1), new Vector3(0f, 0f, CombatConfig.HitscanRange), 1e-2f,
+                    "未注入规则 → 默认几何（不看静态——否则会跟着静态命中）");
+                driver2.Dispose();
+            }
+            finally
+            {
+                SimTestRules.ActiveMatch = null;
+            }
         }
 
         /// <summary>空载荷设备源替身（装配兼容保留——激光驱动不读瞄准输入，只读被拦门，此源不承载数据）。</summary>

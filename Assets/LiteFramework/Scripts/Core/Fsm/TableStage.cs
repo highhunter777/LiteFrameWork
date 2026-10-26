@@ -46,9 +46,10 @@ namespace LiteFramework
 
             if (_spec.DurationFrames <= 0 || m.StageFrames < _spec.DurationFrames) return;
 
-            // 到点：优先恢复栈顶（"被打断的动作/硬直结束回到原状态"），否则走表里配的下一步
-            //   恢复栈只在抢占机上有 → 探针指向 PreemptiveStageMachine
-            if (_spec.AutoResumeOnEnd && m is PreemptiveStageMachine<TId, TReq> machine && machine.TryResume()) return;
+            // 到点：优先恢复栈顶（"被打断的动作/硬直结束回到原状态"），否则走表里配的下一步。
+            //   恢复能力走 IResumeHost 端口（平面/层级两台抢占机都实现）——不按具体类探测，
+            //   新增抢占机形态只要实现端口即被识别。
+            if (_spec.AutoResumeOnEnd && m is IResumeHost resumeHost && resumeHost.TryResume()) return;
             if (_spec.HasNext) m.Request(_spec.NextId);
         }
 

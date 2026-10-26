@@ -38,7 +38,7 @@ namespace LiteFramework
     public sealed class FsmAudit<TId> where TId : struct
     {
         /// <summary>审计环容量（对齐命令中心审计环）。</summary>
-        public const int Capacity = 32;
+        public const int Capacity = DiagnosticsDefaults.AuditRingCapacity;
 
         private struct StageBox
         {

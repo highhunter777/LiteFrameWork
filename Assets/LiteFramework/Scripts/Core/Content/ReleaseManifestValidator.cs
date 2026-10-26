@@ -286,12 +286,9 @@ namespace LiteFramework
             if (string.IsNullOrEmpty(p))
                 return ReleaseVerdict.Reject(ReleaseRejectReason.InvalidPath, "路径为空");
 
-            if (p.IndexOf('\\') >= 0)
-                return ReleaseVerdict.Reject(ReleaseRejectReason.InvalidPath, $"路径含反斜杠:{p}");
-            if (p[0] == '/')
-                return ReleaseVerdict.Reject(ReleaseRejectReason.InvalidPath, $"绝对路径:{p}");
-            if (p.Length >= 2 && p[1] == ':')
-                return ReleaseVerdict.Reject(ReleaseRejectReason.InvalidPath, $"含盘符:{p}");
+            // 语法面（反斜杠/根/盘符/空段/./..）由共享规则判定；本类只加清单预算。
+            if (!SafeRelativePath.IsPortableRelative(p, out string syntaxError))
+                return ReleaseVerdict.Reject(ReleaseRejectReason.InvalidPath, $"{syntaxError}:{p}");
 
             string[] segments = p.Split('/');
             if (segments.Length > budget.MaxPathDepth)
@@ -300,10 +297,6 @@ namespace LiteFramework
 
             foreach (string seg in segments)
             {
-                if (seg.Length == 0)
-                    return ReleaseVerdict.Reject(ReleaseRejectReason.InvalidPath, $"空路径段:{p}");
-                if (seg == "." || seg == "..")
-                    return ReleaseVerdict.Reject(ReleaseRejectReason.InvalidPath, $"越界路径段:{p}");
                 if (seg.Length > budget.MaxPathSegmentLength)
                     return ReleaseVerdict.Reject(ReleaseRejectReason.BudgetExceeded,
                         $"路径段过长({seg.Length}):{p}");

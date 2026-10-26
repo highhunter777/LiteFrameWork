@@ -145,7 +145,7 @@ namespace LiteFramework.Tests
         [Fact]
         public void EventCenter_有界队列_溢出丢弃计数_池化事件丢弃路径回收()
         {
-            var events = new EventCenter { MaxQueued = 2, StrictMode = false };
+            var events = new EventCenter(maxQueued: 2) { StrictMode = false };
             var e1 = ReferencePool.Acquire<PooledProbe>();
             var e2 = ReferencePool.Acquire<PooledProbe>();
             var e3 = ReferencePool.Acquire<PooledProbe>();

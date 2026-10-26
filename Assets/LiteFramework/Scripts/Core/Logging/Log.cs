@@ -31,7 +31,7 @@ namespace LiteFramework
 
     public static partial class Log
     {
-        private const int Capacity = 32;
+        private const int Capacity = DiagnosticsDefaults.AuditRingCapacity;
         private static readonly LogEntry[] _ring = new LogEntry[Capacity];
         private static int _start;                              // 最旧条目下标
         private static int _count;

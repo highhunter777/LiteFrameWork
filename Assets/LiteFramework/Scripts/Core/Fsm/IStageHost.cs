@@ -8,7 +8,8 @@ namespace LiteFramework
     ///
     /// 只暴露阶段真正需要的能力（发起请求 + 读当前态）；**机器专属能力不进本接口**：
     /// 层级机的 `ActivePath` / `Raise` / `Interrupted` 等，由阶段自行
-    /// `if (m is HierarchicalStageMachine&lt;TId,TReq&gt; hsm) { ... }` 取用。
+    /// `if (m is HierarchicalStageMachine&lt;TId,TReq&gt; hsm) { ... }` 取用；
+    /// 恢复能力走独立端口 <see cref="IResumeHost"/>（两台抢占机都实现——阶段不按具体类探测）。
     /// </summary>
     public interface IStageHost<TId, TReq> where TId : struct
     {

@@ -194,18 +194,7 @@ namespace LiteFramework
 
         /// <summary>脚本路径约束与 <see cref="ReleaseManifestValidator"/> 同口径（相对、正斜杠、无越界）。</summary>
         private static bool IsValidScriptPath(string path)
-        {
-            if (string.IsNullOrEmpty(path)) return false;
-            if (path.IndexOf('\\') >= 0) return false;
-            if (path[0] == '/') return false;
-            if (path.Length >= 2 && path[1] == ':') return false;
-
-            foreach (string seg in path.Split('/'))
-            {
-                if (seg.Length == 0 || seg == "." || seg == "..") return false;
-            }
-            return true;
-        }
+            => SafeRelativePath.IsPortableRelative(path, out _);
 
         /// <summary>深度优先环检测（迭代实现，避免深依赖链爆栈）。</summary>
         private static bool TryFindCycle(Dictionary<string, ScriptEntry> byModule, out string cycle)

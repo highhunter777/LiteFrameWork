@@ -191,38 +191,16 @@ namespace LiteFramework.Diagnostics
         private static void AppendNumber(StringBuilder sb, string name, long value, bool first = false)
         {
             if (!first) sb.Append(',');
-            AppendEscaped(sb, name);
+            JsonText.AppendQuoted(sb, name);
             sb.Append(':').Append(value.ToString(CultureInfo.InvariantCulture));
         }
 
         private static void AppendString(StringBuilder sb, string name, string value)
         {
             sb.Append(',');
-            AppendEscaped(sb, name);
+            JsonText.AppendQuoted(sb, name);
             sb.Append(':');
-            AppendEscaped(sb, value ?? string.Empty);
-        }
-
-        private static void AppendEscaped(StringBuilder sb, string value)
-        {
-            sb.Append('"');
-            for (int i = 0; i < value.Length; i++)
-            {
-                char c = value[i];
-                switch (c)
-                {
-                    case '"': sb.Append("\\\""); break;
-                    case '\\': sb.Append("\\\\"); break;
-                    case '\n': sb.Append("\\n"); break;
-                    case '\r': sb.Append("\\r"); break;
-                    case '\t': sb.Append("\\t"); break;
-                    default:
-                        if (c < 0x20) sb.Append("\\u").Append(((int)c).ToString("x4", CultureInfo.InvariantCulture));
-                        else sb.Append(c);
-                        break;
-                }
-            }
-            sb.Append('"');
+            JsonText.AppendQuoted(sb, value ?? string.Empty);
         }
 
         private static string Sanitize(string value, int maxChars)

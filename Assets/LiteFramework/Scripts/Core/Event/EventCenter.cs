@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 
 namespace LiteFramework
@@ -23,8 +23,15 @@ namespace LiteFramework
 #endif
 
         /// <summary>队列容量上限（《事件中心专项设计》§3.2）。入队超限丢弃并计数——
-        /// Tick 驱动的队列在消费不及（卡顿/漏 Tick）时有界可诊断，不无界堆积。</summary>
-        public int MaxQueued { get; set; } = 256;
+        /// Tick 驱动的队列在消费不及（卡顿/漏 Tick）时有界可诊断，不无界堆积。
+        /// 构造注入（缺省 = <see cref="QueueLimits.DefaultCapacity"/>），运行期不可改。</summary>
+        public int MaxQueued { get; }
+
+        public EventCenter(int maxQueued = QueueLimits.DefaultCapacity)
+        {
+            if (maxQueued < 1) throw new ArgumentOutOfRangeException(nameof(maxQueued));
+            MaxQueued = maxQueued;
+        }
 
         /// <summary>队列溢出丢弃累计（诊断：消费不及的可见信号）。</summary>
         public long QueuedDroppedCount { get; private set; }

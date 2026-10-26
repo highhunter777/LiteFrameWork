@@ -35,20 +35,24 @@ namespace LiteGame
         private readonly IInputService _input;          // 仅被拦门（模态 UI）；null = 无输入形态（不拦）
         private readonly RollbackSim _sim;             // 本地预测态（SelectedWeapon/WeaponDefId——只读）
         private readonly SimMapData _map;              // 障碍射线用图（两端单源：同份 tbmap 投影——经 BattleContext 注入）
+        private readonly MatchTestRules _rules;        // 本局规则持有件（构造注入一次——不读 SimTestRules 静态读口）
         private readonly LineRenderer _beam;
         private bool _disposed;
 
         private GameObject _mountView;                 // 挂载点缓存键：所属视图实例（视图重建 → 重解析重挂）
         private Transform _mount;                     // 武器激光挂载点（Weapon_Rifle/Muzzle）
 
+        /// <param name="rules">本局规则持有件（<see cref="BattleContext.MatchRules"/>——爆头带/爆头柱覆写随动；
+        /// null = 无测试规则，恒用烘焙导出值）。**每局稳定引用**，构造注入一次，帧路径不碰静态读口。</param>
         public BattleLaserDriver(SimView view, IInputService input, RollbackSim sim, SimMapData map,
-            LineRenderer beam)
+            LineRenderer beam, MatchTestRules rules = null)
         {
             _view = view ?? throw new ArgumentNullException(nameof(view));
             _input = input;
             _sim = sim ?? throw new ArgumentNullException(nameof(sim));
             _map = map ?? throw new ArgumentNullException(nameof(map));
             _beam = beam ?? throw new ArgumentNullException(nameof(beam));
+            _rules = rules;
 
             // 实例一次性配置（prefab 是 2 点/宽 0.03 的美术资产，驱动只改驱动面）：
             // 挂载点本地空间 + 不投影——发光束不该在场景里拉出影子（束位姿归挂载点，驱动不写）
@@ -120,7 +124,7 @@ namespace LiteGame
         private float TraceBeam(float ox, float oy, float oz, float dx, float dz, float dy, float maxT, int skipSlot)
         {
             SimRaycast.RaycastEntities(_sim.State, skipSlot,
-                new SimVector3(ox, oy, oz), new SimVector3(dx, dy, dz), maxT, out _, out float t, SimTestRules.ActiveMatch);
+                new SimVector3(ox, oy, oz), new SimVector3(dx, dy, dz), maxT, out _, out float t, _rules);
 
             float h = Mathf.Sqrt(dx * dx + dz * dz);
             if (h > SimRaycast.ParallelEpsilon)

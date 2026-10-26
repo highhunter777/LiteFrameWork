@@ -20,7 +20,7 @@ namespace LiteFramework
     /// 选型：复合状态树 + 角色动作抢占（如"战斗根/移动根下的动作态可被受击抢占后恢复"）用本类；
     /// 纯流程/UI 编排用基类即可。
     /// </summary>
-    public class PreemptiveHierarchicalStageMachine<TId, TReq> : HierarchicalStageMachine<TId, TReq>
+    public class PreemptiveHierarchicalStageMachine<TId, TReq> : HierarchicalStageMachine<TId, TReq>, IResumeHost
         where TId : struct
     {
         /// <summary>恢复栈深度上限（超出丢最老并计入 <see cref="ResumeDropped"/>）。</summary>

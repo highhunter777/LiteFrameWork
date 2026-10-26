@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.IO;
@@ -418,15 +418,9 @@ namespace LiteFramework
         private static void ValidateRelPath(string p)
         {
             if (string.IsNullOrEmpty(p)) throw new ArgumentException("路径段为空");
-            if (p[0] == '/' || p[0] == '\\') throw new ArgumentException($"禁绝对路径:{p}");
-            if (p.Length > 1 && p[1] == ':') throw new ArgumentException($"禁盘符:{p}");
-            for (int i = 0; i < p.Length - 1; i++)
-            {
-                if (p[i] == '.' && p[i + 1] == '.'
-                    && (i == 0 || p[i - 1] == '/' || p[i - 1] == '\\')
-                    && (i + 2 == p.Length || p[i + 2] == '/' || p[i + 2] == '\\'))
-                    throw new ArgumentException($"禁 .. 越界:{p}");
-            }
+            if (SafeRelativePath.IsRooted(p)) throw new ArgumentException($"禁绝对路径:{p}");
+            if (SafeRelativePath.HasDriveLetter(p)) throw new ArgumentException($"禁盘符:{p}");
+            if (SafeRelativePath.HasTraversalSegment(p)) throw new ArgumentException($"禁 .. 越界:{p}");
         }
 
         private static void EnsureDirFor(string path)   // File.WriteAllText 不建目录——首笔存档必炸,补上

@@ -45,7 +45,7 @@ namespace LiteGame
             {
                 _directEntryRequested = true;
                 TestModeRuntime.RequestEnter();
-                UnityEngine.Debug.Log("[Main] 直入训练场：请求本地测试模式对局（DevStartupConfig.DirectToTraining）");
+                Log.Info("[Main] 直入训练场：请求本地测试模式对局（DevStartupConfig.DirectToTraining）", LogTag.Procedure);
             }
             if (TestModeRuntime.TakeEnterRequest())             // 开发控制台/GM 面板/直入 同一消费点（读即清）
             {

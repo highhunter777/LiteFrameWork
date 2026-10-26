@@ -407,7 +407,7 @@ namespace LiteGame.Tests.EditMode
                     context.Tick(1f / 60);                           // 首个对局 Tick：发输入（帧 1）+ 预测推进
                     Assert.That(_transport.CountOf(PacketType.Input), Is.EqualTo(1));
                     InputMessage input = (InputMessage)_transport.Sent.Find(s => s.type == PacketType.Input).msg;
-                    Assert.That(input.Frame, Is.EqualTo(1), "inputDelay=1：发下一帧");
+                    Assert.That(input.Frame, Is.EqualTo(BattleContext.InputLeadFrames), "InputLeadFrames 提前帧：发未来帧");
                     Assert.That(context.Sim.State.Frame, Is.EqualTo(1));
                 }
                 finally

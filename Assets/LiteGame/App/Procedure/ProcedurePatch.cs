@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Threading;
 using Cysharp.Threading.Tasks;
 using LiteFramework;
@@ -93,7 +93,7 @@ namespace LiteGame
                         m.Request(ProcedureId.Error, new ProcedureArgs(probeError));
                         return;
                     }
-                    UnityEngine.Debug.Log($"[Content] entry-assets ok probe={_entryAssetsProbe.Name} checked={_entryAssetsProbe.LastChecked} skipped={_entryAssetsProbe.LastSkipped}");   // 证据行（冒烟核对）
+                    Log.Info($"[Content] entry-assets ok probe={_entryAssetsProbe.Name} checked={_entryAssetsProbe.LastChecked} skipped={_entryAssetsProbe.LastSkipped}", LogTag.Content);   // 证据行（冒烟核对）
                     Log.Info($"入口资源可加载（{_entryAssetsProbe.Name}）：checked={_entryAssetsProbe.LastChecked} skipped={_entryAssetsProbe.LastSkipped}", LogTag.Content);
                 }
 

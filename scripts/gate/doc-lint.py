@@ -4,8 +4,10 @@
 规则：
   D1（提醒）设计文档表格行内嵌批次**状态**——`Docs/设计文档/**/*.md` 中表格行含状态词
              （已交付/已实施；或 已完成/待提交 + 日期）。依据：《设计文档 README》§5 / 红线 12。
-  D2（违规）审计表出现裸 `，待提交）` 状态——状态须按 git 事实回填为「已提交 <hash>」或「工作区未提交」。
+  D2（违规）审计文件出现裸 `，待提交）` 状态——状态须按 git 事实回填为「已提交 <hash>」或「工作区未提交」。
              依据：修改指南 §2.4「提交状态只由 git 事实回填」。
+  D8（违规）审计归档单文件超过 100 条记录——一行一条，满 100 条须新建编号递增的下一个文件。
+             依据：《审计流程》§4「归档规则」。
   D3（违规）索引覆盖：`Docs/设计文档/**/*.md`（除 README）必须被《设计文档 README》引用；
              `Docs/施工进度/*.md`（除 README）必须被《施工进度 README》引用。
              依据：《设计文档 README》§5「设计改名或移动时必须在同一变更中更新索引」。
@@ -58,7 +60,8 @@ ANCHOR_ID = re.compile(r'<a id="([^"]+)"></a>')
 DOCS = 'Docs'
 DESIGN_DIR = 'Docs/设计文档'
 PROGRESS_DIR = 'Docs/施工进度'
-AUDIT_TABLES = ('审计/代码质量审计-客户端.md', '审计/代码质量审计-服务端.md')
+AUDIT_DIR = '审计'
+ARCHIVE_MAX_RECORDS = 100
 # Docs/ 根目录允许的文档（入口 / 进度权威 / 动手指南）
 ROOT_ALLOWED = {'README.md', '待办总览.md', '修改指南.md'}
 
@@ -116,15 +119,26 @@ def scan(root: Path, check_links: bool = True):
                     add('D6', rel, i, '设计文档正文疑似施工状态叙述（状态应移入 Docs/施工进度/，本文只留现行形态+指针）',
                         warn_only=True)
 
-    # ---- D2：审计表裸「待提交」 ----
-    for name in AUDIT_TABLES:
-        f = root / DOCS / name
-        if not f.is_file():
-            continue
-        rel = f.relative_to(root).as_posix()
-        for i, line in enumerate(f.read_text(encoding='utf-8', errors='replace').splitlines(), 1):
-            if D2.search(line):
-                add('D2', rel, i, '审计表裸「，待提交）」——按 git 事实回填')
+    # ---- D2：审计文件裸「待提交」 ----
+    audit_root = root / DOCS / AUDIT_DIR
+    if audit_root.is_dir():
+        for f in sorted(audit_root.rglob('*.md')):
+            rel = f.relative_to(root).as_posix()
+            for i, line in enumerate(f.read_text(encoding='utf-8', errors='replace').splitlines(), 1):
+                if D2.search(line):
+                    add('D2', rel, i, '审计文件裸「，待提交）」——按 git 事实回填')
+
+    # ---- D8：归档单文件记录数上限（一行一条，满 100 条须开新编号文件）----
+    if audit_root.is_dir():
+        for f in sorted(audit_root.rglob('*.md')):
+            if f.parent.name != '归档':
+                continue
+            rel = f.relative_to(root).as_posix()
+            records = sum(1 for line in f.read_text(encoding='utf-8', errors='replace').splitlines()
+                          if line.startswith('- '))
+            if records > ARCHIVE_MAX_RECORDS:
+                add('D8', rel, 0,
+                    f'归档 {records} 条 > {ARCHIVE_MAX_RECORDS} 条上限——须新建编号递增的下一个文件')
 
     # ---- D7：Docs 根目录白名单 ----
     docs_root = root / DOCS

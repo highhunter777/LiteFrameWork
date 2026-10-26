@@ -110,7 +110,7 @@ namespace LiteGame
                 _pending = battle;                        // 交给 OnUpdate 驱动泵（握手/收发全靠它推进）
 
                 await WaitJoined(battle, linkedCts.Token);
-                UnityEngine.Debug.Log("[Battle] joined (JoinAck)");
+                Log.Info("[Battle] joined (JoinAck)", LogTag.Battle);
 
                 _pending = null;                          // 泵交棒给 BattleContext.Tick（不双泵）
                 LaunchLoading.End();                      // 收场后移交（遮罩不能挡房间页/对局）
@@ -126,7 +126,7 @@ namespace LiteGame
                 // 外部 Request/宿主关闭由发起方负责流转，这里不得再抢转一次。
                 if (!ct.IsCancellationRequested && loadingToken.IsCancellationRequested)
                 {
-                    UnityEngine.Debug.Log("[Match] 进入房间已取消（加载面 Back）");
+                    Log.Info("[Match] 进入房间已取消（加载面 Back）", LogTag.Procedure);
                     m.Request(ProcedureId.Main);
                 }
             }
@@ -141,14 +141,16 @@ namespace LiteGame
         }
 
         /// <summary>
-        /// 选择传输（<paramref name="testRoom"/> = 本地测试模式：进程内 LocalServerTransport + 房号 Room-Test + 全房免死）：
+        /// 建传输（<paramref name="testRoom"/> = 本地测试模式：进程内 LocalServerTransport + 房号 Room-Test）：
         /// **只有**本地测试模式走进程内服；其余（Meta 票据 / 本地全链 / 云端普通房/测试房）一律真 KCP。
+        /// **本方法只产传输**——每局规则由装配根先经 <see cref="MatchRulesSeeder.Seed"/> 播种，
+        /// 规则实例作为 <paramref name="rules"/> 入参（不在这里写任何 `SimTestRules` 静态）。
         ///
         /// **只在开发/编辑器/开发包可用**——`DevStartupConfig` 整体在 `#if` 内，release 下该静态不存在，
         /// 故此处也包在同一门禁里，正式包恒走真 KCP（不给"悄悄退化成假服务器"留窗口，
         /// 框架先行 §6"生产配置缺真实依赖时拒绝启动或拒绝相应功能，不能悄悄退回 fake"）。
         /// **本地测试模式不提供 KCP 形态**：免死规则靠"客户端预测与进程内服务器同持一个规则实例"
-        /// （<see cref="LiteSim.MatchTestRules"/> 经 <see cref="LiteSim.SimTestRules.ActiveMatch"/> 登记），
+        /// （<see cref="LiteSim.MatchTestRules"/> 由播种件登记 <see cref="LiteSim.SimTestRules.ActiveMatch"/>），
         /// 真服务器的房间级规则下发未做。
         ///
         /// 信封 PSK 注入口（批C）：<paramref name="deploy"/> 带 <c>-envelope.key</c> 时优先（构建期/启动参数注入）；
@@ -160,31 +162,16 @@ namespace LiteGame
         /// <paramref name="maps"/>（批4）= 地图提供者（D9）：本地服房间的判定图必须与客户端逐位同图
         /// （出生点/碰撞/遮挡），故两处取同一提供者；本地服形态缺它即抛（无图不得起权威局——D22）。
         /// </summary>
-        internal static LiteNet.Transport.IClientTransport CreateTransportForFactory(bool testRoom,
+        internal static LiteNet.Transport.IClientTransport CreateTransport(bool testRoom, LiteSim.MatchTestRules rules,
             MetaEntryConfig deploy = null, Func<uint> gameplayDigestBase = null, IMapProvider maps = null)
         {
 #if UNITY_EDITOR || DEVELOPMENT_BUILD || LITEFRAMEWORK_DEBUG
-            // 每局规则持有件：初值随入口定（常规入口一律 false——与既有"随入口复位"同语义），
-            // 登记后客户端预测（BattleContext.StartGame 绑定）与本地服（ForRoom 注入）同实例。
-            // 爆头带覆写随 TestModeRuntime 待用值（本地服形态的调参延续；真服务器无此链——「在线房间级下发未做」）。
-            var rules = new LiteSim.MatchTestRules
-            {
-                NoDeath = testRoom && TestModeRuntime.NoDeath,
-                InfiniteAmmo = testRoom && TestModeRuntime.InfiniteAmmo,
-                HeadHitLineOverride = TestModeRuntime.HeadHitLineOverride,
-                HeadshotRadiusOverride = TestModeRuntime.HeadshotRadiusOverride,
-                DamageOverride = TestModeRuntime.WeaponDamageOverride,
-                RpmOverride = TestModeRuntime.WeaponRpmOverride,
-            };
-            LiteSim.SimTestRules.ActiveMatch = rules;             // 活动局登记口（GM 中局开合的写通道；判定路径不读）
-            LiteSim.SimTestRules.Active = testRoom;                // 宿主钩子（冻结/传送/假人操作）开关
-            LiteSim.SimTestRules.BotFrozen = testRoom && TestModeRuntime.BotFrozen;
-            LiteSim.SimTestRules.BotInfiniteHp = testRoom && TestModeRuntime.BotInfiniteHp;   // 进房初值镜像（Live 开关另有 Set 时镜像）
-            LiteSim.SimTestRules.TeleportDispatch = false;         // 进房清残留请求
-            LiteSim.SimTestRules.BotResetRequested = false;        // 同上（进房前的面板误点不带到对局）
             if (testRoom)
             {
-                UnityEngine.Debug.Log("[Match] **本地测试模式**：本地服 Room-Test + 全房免死（Hp 保底 1、目标不消失——测试专用）");
+                if (rules == null)
+                    throw new InvalidOperationException(
+                        "本地测试模式缺每局规则持有件——MatchRulesSeeder.Seed(testRoom) 未执行（装配序错）");
+                Log.Info("[Match] **本地测试模式**：本地服 Room-Test + 全房免死（Hp 保底 1、目标不消失——测试专用）", LogTag.Procedure);
                 int players = 1 + UnityEngine.Mathf.Max(0, TestModeRuntime.BotCount);
                 if (maps == null)
                     throw new InvalidOperationException(

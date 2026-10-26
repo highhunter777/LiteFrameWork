@@ -21,7 +21,7 @@ namespace LiteFramework
     /// 准入判定/恢复栈/拒绝上报由共用件 <see cref="PreemptionCore{TId,TReq}"/> 承担
     /// （《状态机专项设计》§3.3：与层级抢占机同判例），本类只做接线。
     /// </summary>
-    public class PreemptiveStageMachine<TId, TReq> : StageMachine<TId, TReq>
+    public class PreemptiveStageMachine<TId, TReq> : StageMachine<TId, TReq>, IResumeHost
         where TId : struct
     {
         /// <summary>恢复栈深度上限（超出丢最老并计入 <see cref="ResumeDropped"/>）。</summary>

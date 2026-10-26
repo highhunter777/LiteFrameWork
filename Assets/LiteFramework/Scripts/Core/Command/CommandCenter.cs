@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
@@ -38,7 +38,7 @@ namespace LiteFramework
         private readonly Queue<PendingCommand> _queue = new Queue<PendingCommand>(16);   // 排队/延迟（Tick 驱动）
         private readonly Dictionary<Type, Func<object, CommandResult>> _adapters = new Dictionary<Type, Func<object, CommandResult>>(16);   // 每类型一次闭包（恢复强类型）
         private readonly Dictionary<Type, Action<object>> _undoAdapters = new Dictionary<Type, Action<object>>(8);   // 可撤销命令的 Undo 闭包
-        public int MaxQueued { get; set; } = 256;           // 排队上限（溢出丢弃与事件中心同口径）
+        public int MaxQueued { get; }             // 排队上限（构造注入；溢出丢弃与事件中心同口径）
         private long _tickCount;
         private long _queuedDropped;
         private readonly List<ICommandInterceptor> _interceptors = new List<ICommandInterceptor>(2);   // 登记序
@@ -53,11 +53,13 @@ namespace LiteFramework
         private readonly CommandAuditEntry[] _audit = new CommandAuditEntry[AuditCapacity];
         private int _auditNext;             // 环写指针
         private long _auditSeq;
-        private const int AuditCapacity = 32;
+        private const int AuditCapacity = DiagnosticsDefaults.AuditRingCapacity;
 
-        public CommandCenter(bool gmEnabled = true)
+        public CommandCenter(bool gmEnabled = true, int maxQueued = QueueLimits.DefaultCapacity)
         {
+            if (maxQueued < 1) throw new ArgumentOutOfRangeException(nameof(maxQueued));
             _gmEnabled = gmEnabled;
+            MaxQueued = maxQueued;
         }
 
         public IDisposable Register<TCommand>(ICommandHandler<TCommand> handler, CommandOptions options = null) where TCommand : ICommand

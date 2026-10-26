@@ -84,7 +84,7 @@ namespace LiteFramework.Tests
         [Fact]
         public void SendQueued_溢出丢弃计数_池化命令回收()
         {
-            var commands = new CommandCenter { MaxQueued = 1 };
+            var commands = new CommandCenter(maxQueued: 1);
             commands.Register(new PooledEcho());
 
             var p1 = ReferencePool.Acquire<PooledPing>();

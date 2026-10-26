@@ -8,14 +8,17 @@ namespace LiteFramework
     /// </summary>
     public readonly struct ContentGeneration : IEquatable<ContentGeneration>
     {
-        /// <summary>发布身份（ReleaseId：一次不可变内容发布；内置内容为 "builtin"）。</summary>
+        /// <summary>内置内容的发布身份（无热更兜底；激活记录初值同源）。</summary>
+        public const string BuiltinReleaseId = "builtin";
+
+        /// <summary>发布身份（ReleaseId：一次不可变内容发布；内置内容为 <see cref="BuiltinReleaseId"/>）。</summary>
         public string ReleaseId { get; }
 
         /// <summary>同 Release 内单调代次（内置/初始 = 0；候选激活递增）。</summary>
         public ulong Value { get; }
 
         /// <summary>内置代次（无热更、始终可用——启动与恢复的兜底身份）。</summary>
-        public static ContentGeneration Default { get; } = new ContentGeneration("builtin", 0);
+        public static ContentGeneration Default { get; } = new ContentGeneration(BuiltinReleaseId, 0);
 
         public ContentGeneration(string releaseId, ulong value)
         {

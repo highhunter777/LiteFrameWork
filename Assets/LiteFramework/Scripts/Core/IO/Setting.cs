@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Globalization;
 
 namespace LiteFramework
@@ -31,18 +31,10 @@ namespace LiteFramework
 
         public T Get()
         {
-            var raw = _svc.GetString(_key);
-            if (raw == null) return _default;                     // 首启:正常状态,静默
-            try
-            {
-                var v = _deser(raw);
-                return _clamp != null ? _clamp(v) : v;
-            }
-            catch (Exception ex)
-            {
-                Log.Warning($"设置 \"{_key}\" 值 \"{raw}\" 解析失败,按默认值 {_default}({ex.Message})", LogTag.Setting);
-                return _default;
-            }
+            // 缺键 → 默认（首启静默）；坏值 → 默认 + Warning——与 SettingService.GetInt/GetBool/GetFloat
+            // 同一入口（GetTyped），解析失败语义不再两份。
+            var v = _svc.GetTyped(_key, _default, _deser);
+            return _clamp != null ? _clamp(v) : v;
         }
 
         public void Set(T value)

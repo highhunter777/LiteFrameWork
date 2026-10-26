@@ -29,6 +29,9 @@ namespace LiteFramework
     /// </summary>
     public sealed class GameObjectPool
     {
+        /// <summary>自建池根的对象名（诊断面识别；勿在别处再写一份）。</summary>
+        public const string RootName = "[GameObjectPool]";
+
         private readonly Dictionary<string, ObjectPool<GameObject>> _buckets = new Dictionary<string, ObjectPool<GameObject>>(8);
         private Transform _root;                           // 池化停放容器（整体隐藏——池内物必非激活）；Dispose 后置空
 
@@ -43,7 +46,7 @@ namespace LiteFramework
             else
             {
                 _ownsRoot = true;
-                _root = new GameObject("[GameObjectPool]").transform;
+                _root = new GameObject(RootName).transform;
                 // DontDestroyOnLoad 仅 Play mode 合法（编辑器脚本/EditMode 用例直调抛 InvalidOperationException）——
                 // 与 UIService/AudioService 同口径：编辑态跳过，编辑态池随测试作用域销毁即可。
                 if (Application.isPlaying)

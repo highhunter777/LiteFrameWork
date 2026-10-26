@@ -77,33 +77,31 @@ namespace LiteFramework
             _dirty = true;
         }
 
-        // ---- 值类型:Get = TryGetValue → TryParse(失败 Warning + 默认);Set = Invariant 格式化 + 标脏 ----
+        // ---- 值类型:Get = TryGetValue → 解析(失败 Warning + 默认);Set = Invariant 格式化 + 标脏 ----
 
-        public int GetInt(string key, int defaultValue = 0)
+        /// <summary>类型化读取的统一入口（<see cref="Setting{T}"/> 与 GetInt/GetBool/GetFloat 共用）：
+        /// 缺键静默默认；解析异常 → 默认 + Log.Warning（不再各写一份）。</summary>
+        public T GetTyped<T>(string key, T defaultValue, Func<string, T> parse)
         {
             if (!TryGet(key, out var s)) return defaultValue;
-            return int.TryParse(s, NumberStyles.Integer, CultureInfo.InvariantCulture, out var v)
-                ? v : Bad(key, s, defaultValue);
+            try { return parse(s); }
+            catch (Exception ex) { return Bad(key, s, defaultValue, ex.Message); }
         }
+
+        public int GetInt(string key, int defaultValue = 0)
+            => GetTyped(key, defaultValue, s => int.Parse(s, NumberStyles.Integer, CultureInfo.InvariantCulture));
 
         public void SetInt(string key, int value)
             => SetRaw(key, value.ToString(CultureInfo.InvariantCulture));
 
         public bool GetBool(string key, bool defaultValue = false)
-        {
-            if (!TryGet(key, out var s)) return defaultValue;
-            return bool.TryParse(s, out var v) ? v : Bad(key, s, defaultValue);
-        }
+            => GetTyped(key, defaultValue, bool.Parse);
 
         public void SetBool(string key, bool value)
             => SetRaw(key, value ? "true" : "false");
 
         public float GetFloat(string key, float defaultValue = 0f)
-        {
-            if (!TryGet(key, out var s)) return defaultValue;
-            return float.TryParse(s, NumberStyles.Float, CultureInfo.InvariantCulture, out var v)
-                ? v : Bad(key, s, defaultValue);
-        }
+            => GetTyped(key, defaultValue, s => float.Parse(s, NumberStyles.Float, CultureInfo.InvariantCulture));
 
         public void SetFloat(string key, float value)
             => SetRaw(key, value.ToString("R", CultureInfo.InvariantCulture));   // R = 往返无损,0.1f 不缩水
@@ -123,9 +121,11 @@ namespace LiteFramework
             _dirty = true;
         }
 
-        private T Bad<T>(string key, string raw, T defaultValue)
+        private T Bad<T>(string key, string raw, T defaultValue, string detail = null)
         {
-            Log.Warning($"键 \"{key}\" 值 \"{raw}\" 解析失败,按默认值 {defaultValue}", LogTag.Setting);
+            Log.Warning(detail == null
+                ? $"键 \"{key}\" 值 \"{raw}\" 解析失败,按默认值 {defaultValue}"
+                : $"键 \"{key}\" 值 \"{raw}\" 解析失败,按默认值 {defaultValue}({detail})", LogTag.Setting);
             return defaultValue;
         }
 
