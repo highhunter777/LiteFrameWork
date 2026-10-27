@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using LiteFramework;
 using UnityEngine;
@@ -20,6 +20,9 @@ namespace LiteClient.UI
     /// 绑按钮 = 替换式（重绑先移除旧监听，池化复用安全）；SetText = TMP 优先回退 UGUI Text；未命中/类型不符 = 抛。
     /// **所有权互斥**（设计方案 §4.7/§453）：每个控件登记驱动方式，Bind 后禁命令式、命令式后禁 Bind——
     /// Debug 三宏下违例当场抛（"谁最后生效"竞态极难复现，必须启动期/使用期当场暴露）。
+    ///
+    /// 域状态按协作件外提（本类只做门面与所有权登记）：本地化 → <see cref="UIBindLocale"/>、
+    /// 输入控件订阅 → <see cref="UIBindEvents"/>、列表源 → <see cref="UIBindListSource"/>。
     /// </summary>
     public sealed class UIBindIndex
     {
@@ -27,10 +30,17 @@ namespace LiteClient.UI
 
         private readonly Dictionary<string, Component> _controls;
         private readonly Dictionary<string, ControlDriver> _drivers = new Dictionary<string, ControlDriver>(16);
+        private readonly UIBindLocale _localeBinder;
+        private readonly UIBindEvents _eventBinder;
+        private readonly UIBindListSource _listBinder;
 
         public UIBindIndex(Dictionary<string, Component> controls)
         {
             _controls = controls ?? throw new ArgumentNullException(nameof(controls));
+            _localeBinder = new UIBindLocale();
+            _eventBinder = new UIBindEvents(this);
+            _listBinder = new UIBindListSource(this, _localeBinder);
+            _localeBinder.Changed += OnLocaleChanged;
         }
 
         public T Get<T>(string name) where T : Component
@@ -89,15 +99,12 @@ namespace LiteClient.UI
                 if (c is Button btn) btn.onClick.RemoveAllListeners();
 
             // 本地化绑定与订阅一并解除——池化复用不得留旧订阅（否则旧页继续被语言事件刷新）
-            _ltext.Clear();
-            DetachLocale();
+            _localeBinder.Clear();
+            _localeBinder.Detach();
 
             // 输入控件订阅与列表条目一并解除（同上纪律；页面 OnShow 会重推数据与控件值）
-            foreach (KeyValuePair<string, Action> kv in _controlUnsub) kv.Value();
-            _controlUnsub.Clear();
-            _listClick.Clear();
-            foreach (KeyValuePair<string, BindListSource> kv in _listSources) kv.Value.Clear();
-            _listSources.Clear();
+            _eventBinder.ClearAll();
+            _listBinder.Clear();
         }
 
         /// <summary>命令式写文本（所有权登记：与 Bind 互斥）。
@@ -112,7 +119,7 @@ namespace LiteClient.UI
         }
 
         /// <summary>命令式路径的打字机路由（绑定路径 <see cref="WriteTextRaw"/> 恒瞬时——数值不走打字机）。</summary>
-        private void RevealOrSetText(GameObject owner, string value)
+        internal void RevealOrSetText(GameObject owner, string value)
         {
             var label = owner.GetComponent<LTextLabel>();
             if (label != null) { label.Reveal(value); return; }
@@ -123,51 +130,17 @@ namespace LiteClient.UI
         // ---- LText：按 key 设文本 + 语言变更自动刷新（《UI框架总设计》§9）----
 
         /// <summary>
-        /// 本地化绑定（控件名 → key + 模板参数）。语言变更时**只重写这些控件的文本**——
-        /// §9"语言变更刷新本地化组件…不重跑 OnShow、不重新订阅按钮、不重发业务请求"。
-        /// </summary>
-        private readonly Dictionary<string, LTextBinding> _ltext = new Dictionary<string, LTextBinding>(8);
-
-        /// <summary>已订阅的语言服务（<see cref="UnbindAll"/> 时退订——池化复用不留旧订阅）。</summary>
-        private ILocalizationService _locale;
-
-        private sealed class LTextBinding
-        {
-            public string Key;
-            public object[] Args;
-            public long Plural;
-            public bool IsPlural;
-        }
-
-        /// <summary>
-        /// 绑定语言服务（装配点注入）。切换语言时经 <see cref="OnLocaleChanged"/> 刷新全部已绑定项。
+        /// 绑定语言服务（装配点注入）。切换语言时经 <see cref="UIBindLocale.Changed"/> 刷新全部已绑定项。
         /// 重复注入会先退订旧的——避免同实例多份订阅导致重复刷新。
         /// </summary>
-        public void BindLocale(ILocalizationService localization)
-        {
-            if (ReferenceEquals(_locale, localization)) return;
-            DetachLocale();
-            _locale = localization;
-            if (_locale != null) _locale.OnLocaleChanged += OnLocaleChanged;
-        }
-
-        private void DetachLocale()
-        {
-            if (_locale != null) _locale.OnLocaleChanged -= OnLocaleChanged;
-            _locale = null;
-        }
+        public void BindLocale(ILocalizationService localization) => _localeBinder.Bind(localization);
 
         /// <summary>语言变更：按已登记 key 重写文本（不触碰未绑定 key 的控件）；列表行文案走整表重绑
         /// （行是复用条目——不做逐行订阅，滚动路径零残留）。</summary>
-        private void OnLocaleChanged(string _)
+        private void OnLocaleChanged()
         {
-            foreach (KeyValuePair<string, LTextBinding> kv in _ltext)
-            {
-                LTextBinding b = kv.Value;
-                SetText(kv.Key, Resolve(b));
-            }
-
-            foreach (KeyValuePair<string, BindListSource> kv in _listSources) kv.Value.RebindVisible();
+            _localeBinder.RewriteAll(SetText);
+            _listBinder.RebindVisible();
         }
 
         /// <summary>
@@ -176,33 +149,21 @@ namespace LiteClient.UI
         /// </summary>
         public void SetTextKey(string name, string key, params object[] args)
         {
-            if (_locale == null)
-                throw new InvalidOperationException($"绑定索引[{name}] SetTextKey 需先 BindLocale（未注入语言服务）");
-
+            _localeBinder.RequireBound(name, "SetTextKey");
             MarkDriver(name, ControlDriver.Command);
-            var b = new LTextBinding { Key = key, Args = args, IsPlural = false };
-            _ltext[name] = b;
-            SetText(name, Resolve(b));
+            SetText(name, _localeBinder.Set(name, key, args));
         }
 
         /// <summary>按 key 设文本（带复数；§9"英文 one/other 显式选取"）。</summary>
         public void SetTextKeyPlural(string name, string key, long count, params object[] args)
         {
-            if (_locale == null)
-                throw new InvalidOperationException($"绑定索引[{name}] SetTextKeyPlural 需先 BindLocale（未注入语言服务）");
-
+            _localeBinder.RequireBound(name, "SetTextKeyPlural");
             MarkDriver(name, ControlDriver.Command);
-            var b = new LTextBinding { Key = key, Args = args, Plural = count, IsPlural = true };
-            _ltext[name] = b;
-            SetText(name, Resolve(b));
+            SetText(name, _localeBinder.SetPlural(name, key, count, args));
         }
 
-        /// <summary>解出当前语言下的文本（复数走 FormatPlural，否则 Format）。</summary>
-        private string Resolve(LTextBinding b)
-            => b.IsPlural ? _locale.FormatPlural(b.Key, b.Plural, b.Args) : _locale.Format(b.Key, b.Args);
-
         /// <summary>解除单个控件的本地化绑定（不随语言刷新）。</summary>
-        public bool UnbindTextKey(string name) => _ltext.Remove(name);
+        public bool UnbindTextKey(string name) => _localeBinder.Unbind(name);
 
         public void SetVisible(string name, bool visible)
         {
@@ -294,9 +255,7 @@ namespace LiteClient.UI
         // ---- 输入控件族（G15～G17，《UI控件Lua API 参考》§4/§5）----
         // 语义（§5"输入控件"）：**程序 Set 不触发用户变化回调**（Set*WithoutNotify）；
         // 变化通知只在**用户操作**时回调（回调带值）；重复登记替换旧回调；UnbindAll 退订全部
-        // （池化复用不留旧回调——与 _ltext 同纪律）；防递归：程序 Set 静默，回调内再 Set 不会自激。
-
-        private readonly Dictionary<string, Action> _controlUnsub = new Dictionary<string, Action>(8);
+        // （池化复用不留旧回调——与本地化绑定同纪律）；防递归：程序 Set 静默，回调内再 Set 不会自激。
 
         /// <summary>滑块设值（0~1，程序 Set——不触发变化回调）。G15。</summary>
         public void SetSlider(string name, float value01)
@@ -309,15 +268,7 @@ namespace LiteClient.UI
         public float GetSlider(string name) => Get<Slider>(name).value;
 
         /// <summary>滑块变化通知（用户拖动；回调带值）。重复登记替换；<c>null</c> = 仅退订。G15。</summary>
-        public void OnSliderChanged(string name, Action<float> handler)
-        {
-            var slider = Get<Slider>(name);
-            SubscribeControl(name, () => slider.onValueChanged.RemoveAllListeners());
-            if (handler == null) return;
-            UnityEngine.Events.UnityAction<float> h =
-                v => SafeCall.Invoke(() => handler(v), $"OnSliderChanged[{name}]");
-            slider.onValueChanged.AddListener(h);
-        }
+        public void OnSliderChanged(string name, Action<float> handler) => _eventBinder.OnSliderChanged(name, handler);
 
         /// <summary>开关设值（程序 Set——不触发变化回调）。G16。</summary>
         public void SetToggle(string name, bool on)
@@ -330,19 +281,11 @@ namespace LiteClient.UI
         public bool GetToggle(string name) => Get<Toggle>(name).isOn;
 
         /// <summary>开关变化通知（用户点击；回调带值）。重复登记替换；<c>null</c> = 仅退订。G16。</summary>
-        public void OnToggleChanged(string name, Action<bool> handler)
-        {
-            var toggle = Get<Toggle>(name);
-            SubscribeControl(name, () => toggle.onValueChanged.RemoveAllListeners());
-            if (handler == null) return;
-            UnityEngine.Events.UnityAction<bool> h =
-                v => SafeCall.Invoke(() => handler(v), $"OnToggleChanged[{name}]");
-            toggle.onValueChanged.AddListener(h);
-        }
+        public void OnToggleChanged(string name, Action<bool> handler) => _eventBinder.OnToggleChanged(name, handler);
 
         /// <summary>下拉件解析：**控件库 `UIDropdownWrap`（TMP 封装）优先**，兼容 UGUI `Dropdown`
         /// （既有页面/用例）——两者都在时以包装件为准（它是项目侧的控件面）。</summary>
-        private Component ResolveDropdown(string name)
+        internal Component ResolveDropdown(string name)
         {
             var control = Get<Component>(name);
             if (control is UIDropdownWrap || control is Dropdown) return control;
@@ -386,241 +329,29 @@ namespace LiteClient.UI
         }
 
         /// <summary>下拉变化通知（用户选择；回调带索引）。重复登记替换；<c>null</c> = 仅退订。G17。</summary>
-        public void OnDropdownChanged(string name, Action<int> handler)
-        {
-            var control = ResolveDropdown(name);
-            if (control is UIDropdownWrap wrap)
-            {
-                Action<int> h = v => SafeCall.Invoke(() => handler(v), $"OnDropdownChanged[{name}]");
-                SubscribeControl(name, () => wrap.OnIndexChanged -= h);
-                if (handler != null) wrap.OnIndexChanged += h;
-                return;
-            }
-
-            var dropdown = (Dropdown)control;
-            SubscribeControl(name, () => dropdown.onValueChanged.RemoveAllListeners());
-            if (handler == null) return;
-            UnityEngine.Events.UnityAction<int> uh =
-                v => SafeCall.Invoke(() => handler(v), $"OnDropdownChanged[{name}]");
-            dropdown.onValueChanged.AddListener(uh);
-        }
-
-        /// <summary>控件订阅登记（同名替换：先退旧再登记——池化复用/重开不留双份回调）。</summary>
-        private void SubscribeControl(string name, Action unsubscribe)
-        {
-            if (_controlUnsub.TryGetValue(name, out var old)) old();
-            _controlUnsub[name] = unsubscribe;
-        }
+        public void OnDropdownChanged(string name, Action<int> handler) => _eventBinder.OnDropdownChanged(name, handler);
 
         // ---- 列表（G6，《UI控件Lua API 参考》§5"SetList"）----
-
-        private readonly Dictionary<string, BindListSource> _listSources = new Dictionary<string, BindListSource>(4);
-        private readonly Dictionary<string, Action<string, string>> _listClick = new Dictionary<string, Action<string, string>>(4);
 
         /// <summary>
         /// 装配列表数据源（**整表替换语义**：更新/缩容同一入口——换数据再调一次即可，内核按新 Count 重算窗口）。
         /// 目标节点取其**自身或子级**的 VirtualList/SimpleListView（列表节点的组件住 Content 子级，绑定索引存的是
         /// 根上自动检测组件）。行含文案键而语言服务未注入 = 装配错误（fail-fast——不在滚动回调路径上抛）。G6。
         /// </summary>
-        public void SetList(string name, IUIListRows rows)
-        {
-            if (rows == null) throw new ArgumentNullException(nameof(rows));
-            MarkDriver(name, ControlDriver.Command);
-            GuardLocalizedRows(name, rows);
-
-            var source = new BindListSource(this, name, rows);
-            _listSources[name] = source;
-            // 空源过渡 → 新源：强迫已实体化条目**全部重绑**（内核只在索引进出窗口时绑定；
-            // 整表替换时同一索引的数据已变，不重绑会显示旧行——缩容/更新同判据）
-            var emptySource = new BindListSource(this, name, EmptyRows);
-            if (TryGetList<VirtualList>(name, out var virtualList))
-            {
-                virtualList.SetSource(emptySource);
-                virtualList.SetSource(source);
-                return;
-            }
-            if (TryGetList<SimpleListView>(name, out var simpleView))
-            {
-                simpleView.SetSource(emptySource);
-                simpleView.SetSource(source);
-                return;
-            }
-            throw new InvalidOperationException(
-                $"绑定索引[{name}] 无 VirtualList / SimpleListView 组件（SetList 目标必须是列表控件）");
-        }
+        public void SetList(string name, IUIListRows rows) => _listBinder.Set(name, rows);
 
         /// <summary>
         /// 行点击通知：回调带 (key, 按钮节点名)——**条目根按钮 = 空串**，条目内其余按钮各回自己的节点名。
-        /// 可在 SetList 前后调用（后登记 = 对已实体化条目补挂，见 <see cref="BindListSource.RebindVisible"/>）。G6。
+        /// 可在 SetList 前后调用（后登记 = 对已实体化条目补挂）。G6。
         /// </summary>
-        public void OnListClick(string name, Action<string, string> handler)
-        {
-            if (handler == null) _listClick.Remove(name);
-            else _listClick[name] = handler;
-            if (_listSources.TryGetValue(name, out var source)) source.RebindVisible();
-        }
+        public void OnListClick(string name, Action<string, string> handler) => _listBinder.OnClick(name, handler);
 
-        /// <summary>行含文案键时要求语言服务在位（缺 = 装配错误；行文案刷新走整表重绑，不做逐行订阅）。</summary>
-        private void GuardLocalizedRows(string name, IUIListRows rows)
-        {
-            if (_locale != null) return;
-            int count = rows.Count;
-            for (int i = 0; i < count; i++)
-            {
-                IReadOnlyList<UIListField> fields = rows.FieldsAt(i);
-                if (fields == null) continue;
-                for (int j = 0; j < fields.Count; j++)
-                    if (!string.IsNullOrEmpty(fields[j].Key))
-                        throw new InvalidOperationException(
-                            $"绑定索引[{name}] SetList 行含文案键但未 BindLocale（未注入语言服务）");
-            }
-        }
-
-        private Action<string, string> HandlerFor(string listName)
-            => _listClick.TryGetValue(listName, out var h) ? h : null;
-
-        /// <summary>空行源（SetList 的"清空过渡"——内核 count≤0 即 ReleaseAll，随后换真源全部重绑）。</summary>
-        private static readonly IUIListRows EmptyRows = new EmptyListRows();
-
-        private sealed class EmptyListRows : IUIListRows
-        {
-            public int Count => 0;
-            public string KeyAt(int index) => string.Empty;
-            public IReadOnlyList<UIListField> FieldsAt(int index) => Array.Empty<UIListField>();
-        }
-
-        /// <summary>条目文本写值（数据直写；文案键解出后直写——轮询式本地化）。</summary>
-        private void WriteListItem(GameObject node, in UIListField field)
-        {
-            string text = !string.IsNullOrEmpty(field.Text)
-                ? field.Text
-                : _locale != null
-                    ? _locale.Format(field.Key, field.Args)
-                    : "[" + field.Key + "]";               // 理论不可达：SetList 已拦未注入态
-            RevealOrSetText(node, text);
-        }
-
-        private bool TryGetList<T>(string name, out T list) where T : Component
+        internal bool TryGetList<T>(string name, out T list) where T : Component
         {
             list = null;
             if (!_controls.TryGetValue(name, out var c) || c == null) return false;
             list = c.GetComponent<T>() ?? c.GetComponentInChildren<T>(true);
             return list != null;
-        }
-
-        /// <summary>
-        /// 行 → 条目投影（G6）：字段按**子节点名**寻址（条目子树不设 BindName——"条目内部不暴露"）；
-        /// 重绑先解除旧监听/旧 key 再写新数据（《UI框架总设计》§8.2 绑定代次纪律）。
-        /// 内核（VirtualList/SimpleListView）只负责窗口与复用，内容投影全在本件。
-        /// </summary>
-        private sealed class BindListSource : IVirtualListSource, IVirtualListUnbind
-        {
-            private sealed class ClickHook
-            {
-                public Button Button;
-                public UnityEngine.Events.UnityAction Handler;
-            }
-
-            private readonly UIBindIndex _index;
-            private readonly string _listName;
-            private readonly IUIListRows _rows;
-            private readonly Dictionary<Component, int> _bound = new Dictionary<Component, int>(16);
-            private readonly Dictionary<Component, List<ClickHook>> _clicks = new Dictionary<Component, List<ClickHook>>(16);
-
-            public BindListSource(UIBindIndex index, string listName, IUIListRows rows)
-            {
-                _index = index;
-                _listName = listName;
-                _rows = rows;
-            }
-
-            public int Count => _rows.Count;
-
-            public void Bind(int index, Component item)
-            {
-                Unbind(item);                                  // 池化复用跨行：先解除旧回调/旧键
-                _bound[item] = index;
-
-                IReadOnlyList<UIListField> fields = _rows.FieldsAt(index);
-                if (fields != null)
-                {
-                    for (int i = 0; i < fields.Count; i++)
-                    {
-                        UIListField field = fields[i];
-                        Transform node = FindChild(item.transform, field.Node);
-                        if (node == null) continue;            // 缺节点 = 该字段不显（行协议允许留空）
-                        _index.WriteListItem(node.gameObject, field);
-                    }
-                }
-
-                AttachClicks(item, _rows.KeyAt(index));
-            }
-
-            public void Unbind(Component item)
-            {
-                if (item == null) return;
-                _bound.Remove(item);
-                if (_clicks.TryGetValue(item, out var hooks))
-                {
-                    for (int i = 0; i < hooks.Count; i++)
-                        if (hooks[i].Button != null) hooks[i].Button.onClick.RemoveListener(hooks[i].Handler);
-                    _clicks.Remove(item);
-                }
-            }
-
-            /// <summary>清除全部已绑条目（UnbindAll 用——页面 OnShow 会重推数据）。</summary>
-            public void Clear()
-            {
-                var items = new List<Component>(_bound.Keys);
-                for (int i = 0; i < items.Count; i++) Unbind(items[i]);
-            }
-
-            /// <summary>重绑已实体化条目：语言切换重刷行文案 / 点击回调后补挂（滚动路径零开销——只碰窗口内条目）。</summary>
-            public void RebindVisible()
-            {
-                var items = new List<KeyValuePair<Component, int>>(_bound);
-                for (int i = 0; i < items.Count; i++)
-                {
-                    Component item = items[i].Key;
-                    if (item == null) continue;
-                    if (items[i].Value >= _rows.Count) { Unbind(item); continue; }
-                    Bind(items[i].Value, item);
-                }
-            }
-
-            private void AttachClicks(Component item, string key)
-            {
-                Action<string, string> handler = _index.HandlerFor(_listName);
-                if (handler == null) return;
-                Button[] buttons = item.GetComponentsInChildren<Button>(true);
-                if (buttons.Length == 0) return;               // 条目无按钮 = 只读行（合法）
-
-                var hooks = new List<ClickHook>(buttons.Length);
-                for (int i = 0; i < buttons.Length; i++)
-                {
-                    Button button = buttons[i];
-                    string action = ReferenceEquals(button.transform, item.transform) ? string.Empty : button.name;
-                    UnityEngine.Events.UnityAction h =
-                        () => SafeCall.Invoke(() => handler(key, action), $"OnListClick[{_listName}]");
-                    button.onClick.RemoveAllListeners();       // 条目池化复用：只保留本次绑定的监听
-                    button.onClick.AddListener(h);
-                    hooks.Add(new ClickHook { Button = button, Handler = h });
-                }
-                _clicks[item] = hooks;
-            }
-
-            private static Transform FindChild(Transform root, string nodeName)
-            {
-                if (root == null || string.IsNullOrEmpty(nodeName)) return null;
-                for (int i = 0; i < root.childCount; i++)
-                {
-                    Transform child = root.GetChild(i);
-                    if (child.name == nodeName) return child;
-                    Transform deeper = FindChild(child, nodeName);
-                    if (deeper != null) return deeper;
-                }
-                return null;
-            }
         }
 
         // ---- 动效口（《动效设计方案》附 A.3）----
