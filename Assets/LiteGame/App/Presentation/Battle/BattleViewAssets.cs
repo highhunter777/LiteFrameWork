@@ -194,7 +194,7 @@ namespace LiteGame
                     return;
                 }
                 UiThemeBinder.Apply(HudInstance, UiStyleResolver.FromAsset(asset), "HUD");
-            }, "BattleViewRig.ApplyHudTheme");
+            }, "BattleViewAssets.ApplyHudTheme");
         }
 
         /// <summary>取出生保护壳 prefab 租约（FX 域；实例由保护壳驱动按槽位惰性创建）。资源缺失 → **静默降级**。</summary>
