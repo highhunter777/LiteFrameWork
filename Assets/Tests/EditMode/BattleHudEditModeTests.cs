@@ -40,7 +40,8 @@ namespace LiteGame.Tests.EditMode
         private static BattleHudDriver BuildDriver(SimWorldState world, long selfId,
             CanvasGroup panel, HpBar bar, TextMeshProUGUI ammo, GameObject reload,
             TextMeshProUGUI reserveAmmo = null, GameObject slash = null)
-            => new BattleHudDriver(world, () => selfId, panel, bar, ammo, reload, reserveAmmo, slash);
+            => new BattleHudDriver(new LiteGame.BattleReadModel(() => world, () => selfId),
+                panel, bar, ammo, reload, reserveAmmo, slash);
 
         [Test]
         [Category(TestCategory.Contract)]

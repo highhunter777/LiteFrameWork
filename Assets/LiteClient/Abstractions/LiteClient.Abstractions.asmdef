@@ -4,6 +4,7 @@
     "references": [
         "LiteFramework.Async",
         "LiteFramework.Core",
+        "LiteSim.Core",
         "UniTask"
     ],
     "includePlatforms": [],

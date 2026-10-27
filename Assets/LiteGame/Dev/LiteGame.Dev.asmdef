@@ -1,0 +1,24 @@
+{
+    "name": "LiteGame.Dev",
+    "rootNamespace": "LiteGame.Dev",
+    "references": [
+        "LiteClient.Runtime",
+        "LiteFramework.Core",
+        "LiteGame.App",
+        "LiteGame.DevLocalServer",
+        "LiteNet",
+        "LiteSim.Core",
+        "UniTask"
+    ],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": false,
+    "defineConstraints": [
+        "UNITY_EDITOR || DEVELOPMENT_BUILD || LITEFRAMEWORK_DEBUG"
+    ],
+    "versionDefines": [],
+    "noEngineReferences": false
+}

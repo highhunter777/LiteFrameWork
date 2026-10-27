@@ -33,6 +33,12 @@ namespace LiteGame
             _services = context.Services;
             try
             {
+                // 开发会话端口（M0 接缝 6）：产品代码只经端口取测试面；release 注入全关空实现。
+#if UNITY_EDITOR || DEVELOPMENT_BUILD || LITEFRAMEWORK_DEBUG
+                context.Put<IDevSession>(new DevSession());
+#else
+                context.Put<IDevSession>(NullDevSession.Instance);
+#endif
                 Assemble(context);
                 return UniTask.CompletedTask;
             }

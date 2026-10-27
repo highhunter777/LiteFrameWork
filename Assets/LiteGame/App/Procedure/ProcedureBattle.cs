@@ -63,7 +63,7 @@ namespace LiteGame
 
         private BattleViewRig _rig;                  // 视图域（资源租约 / 视图与消费者 / 逆序拆除）
         private BattleContext _context;
-        private MatchSession _matchSession;
+        private BattleSession _session;
         private ClientScope _account;
         private Scene _sceneBeforeBattle;            // 进场前活动场景（离场还原端点——UnloadBattleScenes 一次性消费）
 
@@ -126,9 +126,9 @@ namespace LiteGame
                     themeProvider: _themeProvider);       // HUD 主题注入（可空 = 保持烘焙值）
                 await _rig.LoadAsync(ct);
 
-                _matchSession = _matchSessions?.Create(accountSession)
-                    ?? throw new InvalidOperationException("缺少 MatchSessionFactory（完整 DI 装配要求由工厂创建 Match 域）");
-                _context = _matchSession.Context;
+                _session = new BattleSession(_matchSessions?.Create(accountSession)
+                    ?? throw new InvalidOperationException("缺少 MatchSessionFactory（完整 DI 装配要求由工厂创建 Match 域）"));
+                _context = _session.Context;
                 RoomBridge.BindSession(new RoomSessionFace(battleClient));   // 房间会话门面（房主开局批）——页面经 Bridge.room 读房主事实/发提前开局；收尾必摘
                 Log.Info("context-created (Match Scope built)", LogTag.Battle);
 
@@ -193,8 +193,8 @@ namespace LiteGame
             {
                 // 关闭序（§6.2）：输入接线 → 视图（含租约/实例/消费者）→ BattleContext（Match Scope 一并 Dispose）→ Account Scope
                 DetachView();
-                _matchSession?.Dispose();
-                _matchSession = null;
+                _session?.Dispose();
+                _session = null;
                 _context = null;
                 accountSession?.Dispose();
                 _account = null;

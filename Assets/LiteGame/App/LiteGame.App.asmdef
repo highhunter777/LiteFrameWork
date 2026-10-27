@@ -10,7 +10,6 @@
         "LiteFramework.Async",
         "LiteFramework.Core",
         "LiteFramework.Unity",
-        "LiteGame.DevLocalServer",
         "LiteGame.LuaBridge",
         "LiteClient.UI",
         "LiteNet",

@@ -156,6 +156,7 @@ namespace Tools.DisciplineScan
             "Editor",                // 编辑器工具程序集（不在 §5 层内，登记为例外）
             "DevTool",               // 开发面工具（同上；**不能并进 Editor/**——其中的 MonoBehaviour 无法 AddComponent）
             "DevLocalServer",        // 开发面：进程内本地服（《共享代码范围专项设计》§3 D2 调试宿主档位；见下）
+            "Dev",                   // 开发装配层（LiteGame.Dev：本地传输工厂等开发期组合；defineConstraints 三宏，发布包不参与）
             "Lua",                   // 脚本资产（非程序集目录；Luban lua pass 的产物 + 业务脚本）
             "LuaBridge",             // 产品侧 Lua 桥（LiteGame.LuaBridge：生命周期/数据门面/注册表；宿主 LiteClient.Scripting.XLua 的消费者）
         };

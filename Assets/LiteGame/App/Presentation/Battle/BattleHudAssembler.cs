@@ -138,7 +138,9 @@ namespace LiteGame
                 return;
             }
 
-            _hud = new BattleHudDriver(context.Sim.State, () => view != null ? view.LocalEntityId : 0L,
+            var hudModel = new BattleReadModel(() => context.Sim.State,
+                () => view != null ? view.LocalEntityId : 0L);
+            _hud = new BattleHudDriver(hudModel,
                 _hudView.PanelGroup, _hudView.HpBar, _hudView.AmmoText,
                 _hudView.ReloadLabel,                               // 缺标签件=驱动内静默降级（不显示换弹态）
                 _hudView.ReserveAmmoText, _hudView.SlashSeparator); // 剩余备弹读出（缺件=静默降级：只显当前弹匣）
@@ -156,7 +158,9 @@ namespace LiteGame
                 Log.Warning("HUD prefab 排行榜格不齐（格根/名字/击杀/高亮）×8——排行榜静默降级", LogTag.Battle);
                 return;
             }
-            _rankboard = new BattleRankboardDriver(publicFactState,
+            var rankModel = new BattleReadModel(publicFactState,
+                () => view != null ? view.LocalEntityId : 0L);
+            _rankboard = new BattleRankboardDriver(rankModel,
                 () => view != null ? view.LocalEntityId : 0L,
                 _hudView.RankCells, _hudView.RankNames, _hudView.RankKills, _hudView.RankHighlights,
                 _hudView.TeamScoreText);                   // 团队比分预留节点（缺 = 驱动内跳过）

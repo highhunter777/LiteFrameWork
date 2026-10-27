@@ -1,4 +1,5 @@
 using System;
+using LiteClient;
 using LiteSim;
 using LiteClient.UI;
 using TMPro;
@@ -21,7 +22,7 @@ namespace LiteGame
     /// 本地未对齐（StartGame 未达/首快照未对齐）整组 CanvasGroup 归零隐藏（比 SetActive 省重建）；
     /// <see cref="Dispose"/> 归零面板（离场不残留）。
     ///
-    /// 测试注：预测态经构造注入（<see cref="SimWorldState"/> + 本地实体 Id 取数函数）——
+    /// 测试注：事实经构造注入（<see cref="IBattleReadModel"/> 替身或 `BattleReadModel`）——
     /// EditMode 确定性驱动，不依赖运行时流程。
     /// </summary>
     public sealed class BattleHudDriver : IDisposable
@@ -29,8 +30,7 @@ namespace LiteGame
         /// <summary>未装备（懒装备前/测试形态）时的弹匣占位（备弹读出随它一起收起）。</summary>
         public const string UnarmedAmmoPlaceholder = "--";
 
-        private readonly SimWorldState _state;
-        private readonly Func<long> _localEntityId;
+        private readonly IBattleReadModel _readModel;
         private readonly CanvasGroup _panel;
         private readonly HpBar _hpBar;
         private readonly TextMeshProUGUI _ammoText;
@@ -44,12 +44,11 @@ namespace LiteGame
         private bool _lastVisible = true;
         private bool _disposed;
 
-        public BattleHudDriver(SimWorldState state, Func<long> localEntityId,
+        public BattleHudDriver(IBattleReadModel readModel,
             CanvasGroup panel, HpBar hpBar, TextMeshProUGUI ammoText, GameObject reloadLabel,
             TextMeshProUGUI reserveAmmoText = null, GameObject slashSeparator = null)
         {
-            _state = state ?? throw new ArgumentNullException(nameof(state));
-            _localEntityId = localEntityId ?? throw new ArgumentNullException(nameof(localEntityId));
+            _readModel = readModel ?? throw new ArgumentNullException(nameof(readModel));
             _panel = panel ?? throw new ArgumentNullException(nameof(panel));
             _hpBar = hpBar ?? throw new ArgumentNullException(nameof(hpBar));
             _ammoText = ammoText ?? throw new ArgumentNullException(nameof(ammoText));
@@ -63,9 +62,7 @@ namespace LiteGame
         {
             if (_disposed) return;
 
-            long id = _localEntityId();
-            int slot = -1;
-            bool visible = id != 0 && _state.TryResolve(id, out slot);
+            bool visible = _readModel.TryGetLocalPlayer(out BattleLocalPlayerFacts local);
             if (visible != _lastVisible)
             {
                 _lastVisible = visible;
@@ -73,16 +70,13 @@ namespace LiteGame
             }
             if (!visible) return;
 
-            ref EntitySlot e = ref _state.Entities[slot];
-
-            if (e.Hp != _lastHp)
+            if (local.Hp != _lastHp)
             {
-                _lastHp = e.Hp;
-                _hpBar.Set(e.Hp, CombatConfig.EntityHp);   // HpBar 控件 API（前条瞬时 + 后条延迟滑落）
+                _lastHp = local.Hp;
+                _hpBar.Set(local.Hp, CombatConfig.EntityHp);   // HpBar 控件 API（前条瞬时 + 后条延迟滑落）
             }
 
-            int sel = e.SelectedWeapon;
-            if (sel < 0 || sel >= SimConfig.WeaponSlotsPerEntity)
+            if (local.WeaponSlot < 0)
             {
                 if (_lastAmmo != -1)
                 {
@@ -94,14 +88,13 @@ namespace LiteGame
                 return;
             }
 
-            ref WeaponRuntime w = ref _state.Weapons[slot * SimConfig.WeaponSlotsPerEntity + sel];
-            if (w.MagAmmo != _lastAmmo)
+            if (local.MagAmmo != _lastAmmo)
             {
-                _lastAmmo = w.MagAmmo;
-                _ammoText.SetText("{0}", w.MagAmmo);
+                _lastAmmo = local.MagAmmo;
+                _ammoText.SetText("{0}", local.MagAmmo);
             }
-            UpdateReserve(w.ReserveAmmo);
-            SetReload(w.State == WeaponSlotState.Reloading);
+            UpdateReserve(local.ReserveAmmo);
+            SetReload(local.Reloading);
         }
 
         /// <summary>剩余备弹读出（本人私有面 <see cref="WeaponRuntime.ReserveAmmo"/>——换弹从备弹扣、

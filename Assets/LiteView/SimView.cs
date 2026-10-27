@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using LiteClient;
 using LiteFramework;
 using LiteSim;
 using UnityEngine;
@@ -28,7 +29,7 @@ namespace LiteView
     /// 去重后交 <see cref="EventSink"/>；具体表现（VFX/音效/飘字）由编排方接线——本类不调 VFX 服务，
     /// 服务间不互相调用（《动作与特效设计》§2.3）。
     /// </summary>
-    public sealed class SimView : ITickable
+    public sealed class SimView : ITickable, IBattleView
     {
         /// <summary>视图工厂（按 prefab location 造实例；生产接 EntityService，测试接替身）。</summary>
         public delegate GameObject ViewFactory(string prefabLocation, Transform parent);

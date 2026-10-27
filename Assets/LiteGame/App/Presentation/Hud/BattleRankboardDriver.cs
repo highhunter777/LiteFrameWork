@@ -1,4 +1,5 @@
 using System;
+using LiteClient;
 using LiteSim;
 using TMPro;
 using UnityEngine;
@@ -12,8 +13,8 @@ namespace LiteGame
     /// （最左＝第一名）；只有"击杀分布"变化才重排/写（脏位）；**自己那格**点亮高亮件；
     /// 人数 &lt; 8 的尾部空格隐藏。
     ///
-    /// - **数据源**：镜像公共面（<see cref="EntitySlot.Kills"/> ＋ <see cref="EntityFlags.Player"/>）——
-    ///   权威事实、非预测，天然正确（同面板驱动的读法，不跨 Lua）；
+    /// - **数据源**：只读事实端口 <see cref="IBattleReadModel"/>（权威镜像优先；规范序由端口给出）——
+    ///   事件与平台无关，测试可注入替身（同面板驱动的读法，不跨 Lua）；
     /// - **名字**：本批**占位** <c>玩家{k}</c>（k = 参赛玩家按 EntityId 升序的序号，局内稳定；
     ///   真名字/昵称归 G3 Profile——见审计登记）；
     /// - **`Txt_Score`（团队比分）**：预留节点——<see cref="MatchStateData.Team"/>==0（FFA）时隐藏，
@@ -28,8 +29,7 @@ namespace LiteGame
         /// <summary>格数（= <c>eight</c> 房间模板上限——>8 人裁剪，见审计登记）。</summary>
         public const int CellCount = 8;
 
-        private SimWorldState _state;                  // 每帧从 _stateOf 刷新（权威镜像优先）
-        private readonly Func<SimWorldState> _stateOf;
+        private readonly IBattleReadModel _readModel;
         private readonly Func<long> _localEntityId;
         private readonly GameObject[] _cells;        // 格根＝单元（隐藏/显示只关它；格内子件保持激活）
         private readonly TextMeshProUGUI[] _names;
@@ -37,14 +37,12 @@ namespace LiteGame
         private readonly GameObject[] _highlights;
         private readonly TextMeshProUGUI _teamScore;
 
-        // 每帧采集缓冲（零分配——容量上界 = MaxEntities）；_ids/_killCounts 与 _slots 同索引
-        private readonly int[] _slots;
+        // 每帧采集缓冲（零分配——容量上界 = MaxEntities；索引即规范序）
         private readonly long[] _ids;
         private readonly int[] _killCounts;
         private int _count;
 
-        // 排序用索引（两轮：规范序 Id 升 / 展示序 Kills 降）
-        private readonly int[] _canonical;
+        // 展示序索引（Kills 降序 → Id 升序）
         private readonly int[] _display;
 
         // 格内脏位（值变化才写）——_cellId[i]==0 表示该格当前为空（隐藏）
@@ -63,20 +61,12 @@ namespace LiteGame
 
         /// <param name="cells">格根（单元）——**隐藏/显示只关它**；格内名字/击杀件保持激活
         /// （prefab 里可直接读/调，不必先逐个点亮）。</param>
-        public BattleRankboardDriver(SimWorldState state, Func<long> localEntityId,
-            GameObject[] cells, TextMeshProUGUI[] names, TextMeshProUGUI[] kills, GameObject[] highlights,
-            TextMeshProUGUI teamScore = null)
-            : this(() => state, localEntityId, cells, names, kills, highlights, teamScore)
-        {
-        }
-
-        /// <summary>读源为委托的形态（生产：优先权威镜像、首快照前回落预测态；测试可传固定世界）。</summary>
-        public BattleRankboardDriver(Func<SimWorldState> stateOf, Func<long> localEntityId,
+        /// <summary>读源为只读事实端口（生产：权威镜像优先的 `BattleReadModel`；测试可传替身）。</summary>
+        public BattleRankboardDriver(IBattleReadModel readModel, Func<long> localEntityId,
             GameObject[] cells, TextMeshProUGUI[] names, TextMeshProUGUI[] kills, GameObject[] highlights,
             TextMeshProUGUI teamScore = null)
         {
-            _stateOf = stateOf ?? throw new ArgumentNullException(nameof(stateOf));
-            _state = stateOf() ?? throw new ArgumentNullException(nameof(stateOf), "读源首帧不得为 null");
+            _readModel = readModel ?? throw new ArgumentNullException(nameof(readModel));
             _localEntityId = localEntityId ?? throw new ArgumentNullException(nameof(localEntityId));
             _cells = cells ?? throw new ArgumentNullException(nameof(cells));
             if (_cells.Length != CellCount)
@@ -89,10 +79,8 @@ namespace LiteGame
             _teamScore = teamScore;                       // null = 无预留节点（静默跳过）
 
             int capacity = SimConfig.MaxEntities;
-            _slots = new int[capacity];
             _ids = new long[capacity];
             _killCounts = new int[capacity];
-            _canonical = new int[capacity];
             _display = new int[capacity];
             _printIds = new long[capacity];
             _printKills = new int[capacity];
@@ -112,8 +100,6 @@ namespace LiteGame
         {
             if (_disposed) return;
 
-            SimWorldState state = _stateOf();
-            if (state != null) _state = state;             // 权威镜像到达后整帧换读源（同帧内一致）
             TickTeamScore();
 
             CollectPlayers();
@@ -124,8 +110,7 @@ namespace LiteGame
                 return;
             }
 
-            SortByCanonical();                            // Id 升序 → 序号/指纹共用规范序
-            if (!FingerprintChanged())
+            if (!FingerprintChanged())                     // 规范序（EntityId 升序）由事实端口给出
             {
                 MarkPrint();
                 return;                                   // 击杀分布未变——零写
@@ -138,43 +123,22 @@ namespace LiteGame
 
         // ---- 采集 ----
 
-        /// <summary>收参赛玩家：<see cref="EntityFlags.Player"/> 且槽位在册（阵亡/断线保留槽位——不看存活）。</summary>
+        /// <summary>从事实端口收参赛玩家（规范序：EntityId 升序——序号/名字与指纹的稳定基准）。</summary>
         private void CollectPlayers()
         {
-            _count = 0;
-            EntitySlot[] entities = _state.Entities;
-            for (int slot = 0; slot < entities.Length; slot++)
+            _count = _readModel.PlayerCount;
+            for (int i = 0; i < _count; i++)
             {
-                ref EntitySlot e = ref entities[slot];
-                if (!PlayerIdentity.IsPlayer(in e)) continue;   // 空槽/非参赛（bot 以外的道具/投射物等）
-                _slots[_count] = slot;
-                _ids[_count] = e.Id;
-                _killCounts[_count] = e.Kills;
-                _count++;
-            }
-        }
-
-        /// <summary>规范序：EntityId 升序（序号/名字与指纹的稳定基准）。</summary>
-        private void SortByCanonical()
-        {
-            for (int i = 0; i < _count; i++) _canonical[i] = i;
-            for (int i = 1; i < _count; i++)
-            {
-                int cur = _canonical[i];
-                int j = i - 1;
-                while (j >= 0 && _ids[_canonical[j]] > _ids[cur])
-                {
-                    _canonical[j + 1] = _canonical[j];
-                    j--;
-                }
-                _canonical[j + 1] = cur;
+                if (!_readModel.TryGetPlayerAt(i, out BattlePlayerFacts facts)) { _count = i; break; }
+                _ids[i] = facts.Id;
+                _killCounts[i] = facts.Kills;
             }
         }
 
         /// <summary>展示序：Kills 降序 → EntityId 升序（与规范序同集合；左＝第一名）。</summary>
         private void SortByDisplay()
         {
-            Array.Copy(_canonical, _display, _count);
+            for (int i = 0; i < _count; i++) _display[i] = i;
             for (int i = 1; i < _count; i++)
             {
                 int cur = _display[i];
@@ -211,7 +175,7 @@ namespace LiteGame
                 int idx = _display[cell];
                 long id = _ids[idx];
                 int kills = _killCounts[idx];
-                string name = PlayerIdentity.PlaceholderName(_state, id);   // 身份序号（与阵亡归属共用单源）
+                string name = _readModel.DisplayName(id);          // 身份序号（与阵亡归属共用单源）
 
                 if (_cellId[cell] != id || _cellName[cell] != name)
                 {
@@ -252,10 +216,10 @@ namespace LiteGame
         private void TickTeamScore()
         {
             if (_teamScore == null) return;
-            bool team = _state.Match.Team != 0;
+            bool team = _readModel.TeamMode != 0;
             if (_teamScore.gameObject.activeSelf != team) _teamScore.gameObject.SetActive(team);
             if (!team) return;
-            SetText(_teamScore, _state.Match.Score.ToString());
+            SetText(_teamScore, _readModel.TeamScore.ToString());
         }
 
         // ---- 指纹 ----
@@ -264,11 +228,10 @@ namespace LiteGame
         {
             if (_printCount != _count) return true;
             if (_printLocalId != _localEntityId()) return true;
-            if (_printTeam != _state.Match.Team) return true;
+            if (_printTeam != _readModel.TeamMode) return true;
             for (int i = 0; i < _count; i++)
             {
-                int idx = _canonical[i];
-                if (_printIds[i] != _ids[idx] || _printKills[i] != _killCounts[idx]) return true;
+                if (_printIds[i] != _ids[i] || _printKills[i] != _killCounts[i]) return true;
             }
             return false;
         }
@@ -277,12 +240,11 @@ namespace LiteGame
         {
             _printCount = _count;
             _printLocalId = _localEntityId();
-            _printTeam = _state.Match.Team;
+            _printTeam = _readModel.TeamMode;
             for (int i = 0; i < _count; i++)
             {
-                int idx = _canonical[i];
-                _printIds[i] = _ids[idx];
-                _printKills[i] = _killCounts[idx];
+                _printIds[i] = _ids[i];
+                _printKills[i] = _killCounts[i];
             }
         }
 

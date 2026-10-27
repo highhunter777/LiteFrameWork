@@ -1,7 +1,6 @@
 using LiteNet;
 using LiteNet.Protocol;
 using LiteSim;
-using LiteView;
 
 namespace LiteClient
 {
@@ -67,7 +66,7 @@ namespace LiteClient
         /// 视图要的是**完整**槽位（增量包的槽位可能没被这帧指到，必须从持久镜像整体取）。
         /// 视图未挂（纯会话/测试形态）= no-op。
         /// </summary>
-        public void PushToView(SimView view)
+        public void PushToView(IBattleView view)
         {
             if (view == null || _state == null) return;
 

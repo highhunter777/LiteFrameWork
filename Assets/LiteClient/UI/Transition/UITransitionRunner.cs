@@ -28,8 +28,7 @@ namespace LiteClient.UI
         private readonly float _maxDuration;
 
         private TransitionContext _current;
-        private TransitionContext _queued;
-        private int _dropped;
+        private readonly IUiOperationQueue<TransitionContext> _queued = new UiOperationQueue<TransitionContext>(1);
 
         /// <summary>事务开始（Lua 侧 begin 事件的来源）。</summary>
         public event Action<TransitionContext> Began;
@@ -66,10 +65,10 @@ namespace LiteClient.UI
             => _current != null && (ReferenceEquals(_current.Outgoing, form) || ReferenceEquals(_current.Incoming, form));
 
         /// <summary>待办队列长度（0 或 1）。</summary>
-        public int QueueLength => _queued != null ? 1 : 0;
+        public int QueueLength => _queued.Count;
 
         /// <summary>因队列满被丢弃的请求数。</summary>
-        public int DroppedCount => _dropped;
+        public int DroppedCount => _queued.RejectedCount;
 
         /// <summary>累计转场迁移次数。</summary>
         public long TotalTransitions => _machine.TransitionCount;
@@ -105,15 +104,13 @@ namespace LiteClient.UI
                 return ctx.Tcs.Task;
             }
 
-            if (_queued == null)
+            if (_queued.TryEnqueue(ctx))
             {
-                _queued = ctx;
                 Log.Info($"转场进行中——请求已排队(mode={mode})", LogTag.UI);
             }
             else
             {
-                _dropped++;
-                Log.Warning($"转场队列已满——请求丢弃(mode={mode}，累计 {_dropped})", LogTag.UI);
+                Log.Warning($"转场队列已满——请求丢弃(mode={mode}，累计 {_queued.RejectedCount})", LogTag.UI);
                 ctx.Skipped = true;
                 ctx.Tcs.TrySetResult(OutcomeOf(ctx));
             }
@@ -167,10 +164,8 @@ namespace LiteClient.UI
             }
 
             // 队列取出放帧末最后一步：保证"一帧最多一变"（§1.5.2）
-            if (_current == null && _queued != null)
+            if (_current == null && _queued.TryDequeue(out TransitionContext next))
             {
-                var next = _queued;
-                _queued = null;
                 Start(next);
             }
         }
@@ -294,7 +289,7 @@ namespace LiteClient.UI
             into["阶段时长"] = _machine.StageTime.ToString("0.0");
             into["忙"] = Busy ? "是" : "否";
             into["队列"] = QueueLength.ToString();
-            into["丢弃"] = _dropped.ToString();
+            into["丢弃"] = _queued.RejectedCount.ToString();
             into["累计"] = _machine.TransitionCount.ToString();
         }
     }

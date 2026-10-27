@@ -6,7 +6,6 @@ using LiteFramework.Diagnostics;
 using LiteNet;
 using LiteNet.Protocol;
 using LiteSim;
-using LiteView;
 
 namespace LiteClient
 {
@@ -122,8 +121,12 @@ namespace LiteClient
         private readonly PublicCombatFeed _combatFeed = new PublicCombatFeed();       // 公共战斗事件面（独立事件批 → 按 kind 分流入队）
 
         private RollbackSim _sim;
-        private SimView _wiredView;                        // 已接线的视图（重复绑定先摘旧——event 叠加防重）
+        private IBattleView _wiredView;                    // 已接线的视图（重复绑定先摘旧——event 叠加防重）
         private MatchTestRules _matchRules;               // 本局规则引用（StartGame 绑定；表现面注入源）
+
+        /// <summary>本局规则实例绑定/更新通知（Session 据此成为 `SimTestRules.ActiveMatch` 的唯一写者）。</summary>
+        public event Action<MatchTestRules> RulesBound;
+
         private long _localEntityId;
         private long _reconcileCount;
         private bool _disposed;
@@ -136,8 +139,8 @@ namespace LiteClient
         private bool _diagnosticsRateLimited;   // 同局限频只提示一次（防 mismatch 刷屏 Warning）
         private readonly object _diagnosticsGate = new object();   // mismatch（主线程）与异常钩子（任意线程）互斥
 
-        /// <summary>表现视图（SimView 建后挂上；null = 无视图——纯会话/测试形态仍完整可跑）。</summary>
-        public SimView View { get; private set; }
+        /// <summary>表现视图端口（视图建后挂上；null = 无视图——纯会话/测试形态仍完整可跑）。</summary>
+        public IBattleView View { get; private set; }
 
         /// <param name="inputProvider">本地输入源（<see cref="IInputService"/>：
         /// 采样/上下文门/帧边界门都在服务里；本类只按逻辑帧推进并取用。null = 空输入——纯会话/测试形态）。</param>
@@ -193,10 +196,10 @@ namespace LiteClient
         }
 
         /// <summary>
-        /// 挂上表现视图（须在 StartGame 之后调用：SimView 要本地预测态 <see cref="RollbackSim.State"/>）。
+        /// 挂上表现视图端口（须在 StartGame 之后调用：视图要本地预测态 <see cref="RollbackSim.State"/>）。
         /// 视图生命周期由调用方（ProcedureBattle 的视图域）随 Match Scope 收尾；本方法只做接线与首帧对齐。
         /// </summary>
-        public void AttachView(SimView view)
+        public void AttachView(IBattleView view)
         {
             if (_disposed) throw new ObjectDisposedException(nameof(BattleContext));
             View = view ?? throw new ArgumentNullException(nameof(view));
@@ -304,7 +307,7 @@ namespace LiteClient
                 rules ??= new MatchTestRules();
                 rules.NoDeath = (gmFlags & MatchTestRules.FlagNoDeath) != 0;
                 rules.InfiniteAmmo = (gmFlags & MatchTestRules.FlagInfiniteAmmo) != 0;
-                SimTestRules.ActiveMatch = rules;
+                RulesBound?.Invoke(rules);               // 发布给 Session（唯一写者）
             }
             else if (rules != null)
             {
@@ -362,7 +365,7 @@ namespace LiteClient
         }
 
         /// <summary>Sim → 视图接线（单写者：重复绑定先摘旧视图，避免 event 叠加重复投递）。</summary>
-        private void WireSimView(SimView view)
+        private void WireSimView(IBattleView view)
         {
             if (_sim == null) return;
             if (_wiredView != null)
@@ -497,12 +500,12 @@ namespace LiteClient
         /// </summary>
         private void ApplyAuthoritativeGmFlags(int flags)
         {
-            MatchTestRules rules = SimTestRules.ActiveMatch;
+            MatchTestRules rules = _matchRules ?? SimTestRules.ActiveMatch;
             if (rules == null)
             {
                 if (flags == 0) return;
                 rules = new MatchTestRules();
-                SimTestRules.ActiveMatch = rules;
+                RulesBound?.Invoke(rules);               // 发布给 Session（唯一写者）
             }
             rules.NoDeath = (flags & MatchTestRules.FlagNoDeath) != 0;
             rules.InfiniteAmmo = (flags & MatchTestRules.FlagInfiniteAmmo) != 0;

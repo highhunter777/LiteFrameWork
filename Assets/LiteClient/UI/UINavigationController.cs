@@ -28,12 +28,16 @@ namespace LiteClient.UI
         public const float DefaultOpenTimeoutSeconds = 10f;
 
         private readonly UIService _ui;
-        private readonly Queue<NavOp> _queue = new Queue<NavOp>(4);
+        private readonly IUiOperationQueue<NavOp> _queue = new UiOperationQueue<NavOp>(DefaultQueueCapacity);
         private readonly Func<long> _nowMs;
         private bool _running;
 
         /// <summary>排队中操作数上限（不含正在执行的操作）。</summary>
-        public int QueueCapacity { get; set; }
+        public int QueueCapacity
+        {
+            get => _queue.Capacity;
+            set => _queue.Capacity = value;
+        }
 
         /// <summary>排队等待上限（秒；≤0 = 不超时）。</summary>
         public float OpenTimeoutSeconds { get; set; }
@@ -108,15 +112,13 @@ namespace LiteClient.UI
             // 安全调度点①：入队前清点过期排队项（可观测地尽早失败，不等出队）
             SweepExpired();
 
-            if (_running && _queue.Count >= QueueCapacity)
+            var op = new NavOp(kind, formId, data, _nowMs());
+            if (!_queue.TryEnqueue(op))
             {
                 RejectedByCapacity++;
                 throw new UIOpenException(UIOpenFailure.Rejected, formId,
                     $"导航队列已满（{QueueCapacity}）——拒绝排队（§4.3 队列满在创建/入栈/OnShow 之前拒绝）");
             }
-
-            var op = new NavOp(kind, formId, data, _nowMs());
-            _queue.Enqueue(op);
 
             if (ct.CanBeCanceled)
             {
@@ -149,9 +151,8 @@ namespace LiteClient.UI
             _running = true;
             try
             {
-                while (_queue.Count > 0)
+                while (_queue.TryDequeue(out NavOp op))
                 {
-                    var op = _queue.Dequeue();
                     if (op.Abandoned) { op.Registration.Dispose(); continue; }
 
                     // 安全调度点②：出队判等待超时（排队期被取消的项由 Abandon 标记跳过）
@@ -230,9 +231,8 @@ namespace LiteClient.UI
 
             var keep = new List<NavOp>(_queue.Count);
             long limitMs = (long)(OpenTimeoutSeconds * 1000f);
-            while (_queue.Count > 0)
+            while (_queue.TryDequeue(out NavOp op))
             {
-                var op = _queue.Dequeue();
                 if (!op.Abandoned && (_nowMs() - op.EnqueuedAtMs) > limitMs)
                 {
                     TimedOut++;
@@ -245,7 +245,7 @@ namespace LiteClient.UI
                 }
                 keep.Add(op);
             }
-            foreach (var op in keep) _queue.Enqueue(op);
+            foreach (var op in keep) _queue.TryEnqueue(op);
         }
 
         private bool IsExpired(NavOp op)

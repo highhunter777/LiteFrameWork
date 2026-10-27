@@ -8,7 +8,6 @@
         "LiteFramework.Unity",
         "LiteNet",
         "LiteSim.Core",
-        "LiteView",
         "UniTask"
     ],
     "includePlatforms": [],

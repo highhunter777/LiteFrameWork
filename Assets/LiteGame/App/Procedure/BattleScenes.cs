@@ -14,7 +14,7 @@ namespace LiteGame
     /// （Rig ＋ 本局地图，进度进"正在进入对局…"开场遮罩，早于相机硬门与视图取件），离场收尾卸载
     /// （正常结束/主动离场/失败三条出口统一；场景清单按表枚举）。
     /// </summary>
-    internal static class BattleScenes
+    public static class BattleScenes
     {
         /// <summary>对局装配场景（Rig：`Player Camera`/`Aim Camera` 两台 vcam）。</summary>
         public const string Rig = "Assets/Scenes/BattleRig.unity";
