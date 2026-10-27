@@ -44,7 +44,7 @@
 
 ## 5. 运行时投影：DevHUD、开发控制台与常用面板
 
-只读统计 HUD（自创建、F1 总开关、0.25s 节流、经 `GameEntry.DebugKernel` 读内核读模型）——**保持只读**。将来真机/开发包若需 GM 动作，加命令通道（§2.2 形态复用），不给 HUD 加直写口。目录 `Assets/LiteGame/DevTool/`、程序集独立 `LiteGame.DevTool` + 三宏剥离；**禁移入 `Editor/` 特殊目录**（代码自创建形态，`MonoBehaviour` 须可 AddComponent——详见其类注释）。
+只读统计 HUD（自创建、F1 总开关、0.25s 节流、经 `GameEntry.DebugKernel` 读内核读模型）——**保持只读**。将来真机/开发包若需 GM 动作，加命令通道（§2.2 形态复用），不给 HUD 加直写口。目录 `Assets/LiteGame/Dev/Projection/`、程序集 `LiteGame.Dev`（开发装配层）+ 三宏约束；**禁移入 `Editor/` 特殊目录**（代码自创建形态，`MonoBehaviour` 须可 AddComponent——详见其类注释）。
 
 - **段构成**：模块 stats 段（容器注册件 + 场景组件型合并发现）＋联机诊断段（读口 `BattleDiagnostics`——对局上下文的 dev-only 单点登记，对局视图装配/拆视图两处接线；无对局整段不显示，不显示陈旧值）＋性能段（内核性能读模型：FPS/p50/p95/p99/最差帧/长帧 + GC/Draw/Batches recorder——投影只喂时钟差并读 `DebugKernel` 读口）＋日志尾巴/错误行。各段渲染开关 = DevHUD public 字段；**模块 stats 段按白名单显示**（`statToggles` 未登记默认隐藏，勾选态持久化 `LiteGame.DevHUD.statsOn`；GM 页勾选清单与 F3 `hud stats` 按需开关）。联机诊断段的「会话 + 弱网注入」文案单源＝`DebugKernel.Network.AppendLines`。**初始展开集**由 `DevStartupConfig.DevHudDefaultExpanded`（段掩码）提供，仅在本机无折叠记忆时套用；此后折叠态持久化优先。
 - **对局诊断读口**（`App/Debug/BattleDiagnostics`）：对局上下文是流程私有件——不进容器、非场景组件，HUD 与 GM 页经同一登记口读数（`Attach/Detach` + 快照/描述单源——两处消费不各拼一套文案）；RTT/丢包口径与 `BattleNetworkHudDriver` 同源（千分比 → 一位小数百分比）。
@@ -61,7 +61,7 @@
 - 审计环不覆盖 pre-Play 请求桥与高频旋钮（§2 取舍，非遗漏）。
 - `MatchTestRules` 链路依赖"客户端预测与进程内服务器同进程同实例"——**本地测试模式/本地服形态专属**；真 KCP 的云端测试房只提供 `gm_flags`（免死/无限弹药）在线下发，爆头带/持枪幅度等覆写仍只在本地测试模式验（`ProcedureMatch` 入口口径）。
 - GM 面板对局中导出爆头区会触发 domain reload 中断对局（既有行为，页内 HelpBox 已提示）。
-- **投影直调禁令（R14）**：两个投影根（`LiteGame.DevTool` + `Editor/Gm`）的调试读数/动作/发现面一律经内核；直调底层调试源由纪律扫描把守。唯一 lint-allow 判例＝场景页（带参命令专面板——`CommandCenter.SendAsync` 直用，全量审计）；编辑器页在非 Play（内核未装配）时相关节空态提示。
+- **投影直调禁令（R14）**：两个投影根（`LiteGame.Dev/Projection` + `Editor/Gm`）的调试读数/动作/发现面一律经内核；直调底层调试源由纪律扫描把守。唯一 lint-allow 判例＝场景页（带参命令专面板——`CommandCenter.SendAsync` 直用，全量审计）；编辑器页在非 Play（内核未装配）时相关节空态提示。
 
 ## 7. 统一内核与三投影
 
@@ -71,7 +71,7 @@
 
 - **内核**：与 UI/载体无关的读模型、动作模型与发现协议——一项能力只在这里实现一次；
 - **投影**：编辑器 Hub 页、运行期只读面、运行期操控面——只做读取、渲染、输入与编排，不持规则、不写运行态、不另拼读数；
-- **投影禁直调**：读数、动作、发现面一律经内核门面——直调底层调试源（读口/写口/发现表）由纪律扫描 **R14** 把守（受守根＝`Assets/LiteGame/DevTool` 与 `Assets/LiteGame/Editor/Gm`；豁免＝契约类型引用（`TestModeOptions.Id/Info`、`BattleDiagnostics.Snapshot` 等类型位置）、纯格式化助手（`DiagTrace.Line`/`Log.TagName`）、`Log` 门面写口；例外行 `lint-allow R14` 注明理由）；
+- **投影禁直调**：读数、动作、发现面一律经内核门面——直调底层调试源（读口/写口/发现表）由纪律扫描 **R14** 把守（受守根＝`Assets/LiteGame/Dev/Projection` 与 `Assets/LiteGame/Editor/Gm`；豁免＝契约类型引用（`TestModeOptions.Id/Info`、`BattleDiagnostics.Snapshot` 等类型位置）、纯格式化助手（`DiagTrace.Line`/`Log.TagName`）、`Log` 门面写口；例外行 `lint-allow R14` 注明理由）；
 - 新增投影不改内核；新增内核能力由所有投影按发现面自动获得，或由投影显式声明不支持。
 
 这条裁决把“编辑器工具能做的，开发包也能做”变成结构性结果，而不是每批再补一套面板。

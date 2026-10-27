@@ -31,15 +31,19 @@ namespace LiteGame
     {
         private readonly RollbackSim _sim;
 
+        /// <summary>本局规则提供者（对局上下文持有；null = 无测试规则 → 用烘焙默认）。</summary>
+        private readonly System.Func<MatchTestRules> _rules;
+
         /// <summary>水平圆的折线段数（诊断观感——段数越高越圆，绘制量线性增长）。</summary>
         private const int Segments = 20;
 
         /// <summary>身位圆柱轮廓色（灰——与爆头带的两色区分：柱=判定边界，带=奖励区）。</summary>
         private static readonly Color BodyColor = new Color(0.65f, 0.65f, 0.65f);
 
-        public BattleHeadshotDebugDrawer(RollbackSim sim)
+        public BattleHeadshotDebugDrawer(RollbackSim sim, System.Func<MatchTestRules> rules = null)
         {
             _sim = sim;
+            _rules = rules;
         }
 
         /// <summary>每渲染帧重画（常驻跟随）。开关关时立即返回（零开销）。</summary>
@@ -59,8 +63,8 @@ namespace LiteGame
 
                 Vector3 foot = new Vector3(e.Pos.X, e.Pos.Y, e.Pos.Z);
                 Vector3 top = foot + Vector3.up * bodyTop;                        // 身位上沿（= 顶面）
-                Vector3 headLow = foot + Vector3.up * MatchTestRules.ResolveHeadHitLine(SimTestRules.ActiveMatch);   // 双柱分界（测试模式滑杆覆写随动）
-                float headR = MatchTestRules.ResolveHeadshotRadius(SimTestRules.ActiveMatch);                    // 爆头柱半径（滑杆覆写随动）
+                Vector3 headLow = foot + Vector3.up * MatchTestRules.ResolveHeadHitLine(_rules?.Invoke());   // 双柱分界（测试模式滑杆覆写随动）
+                float headR = MatchTestRules.ResolveHeadshotRadius(_rules?.Invoke());                    // 爆头柱半径（滑杆覆写随动）
 
                 // 服务端命中几何＝双柱阶梯：灰＝身体柱 [0, 分界) × 命中柱全径（含台阶顶面圈）；
                 // 黄红＝爆头柱 [分界, 顶] × 爆头柱半径。分界以上的环状空隙按裁决不可命中——不画。

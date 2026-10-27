@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Threading;
 using Cysharp.Threading.Tasks;
 using LiteFramework;
@@ -11,7 +11,7 @@ namespace LiteGame
     /// + LText 语言服务（tbltext→目录→服务，批C-② 生产装配——页面 SetTextKey 由"必抛"转正）
     /// + 主题资产（P2-3 B2：内容服务一次装载 → ThemeProvider 注入 → 页面装配期应用令牌现值；失败降级保持烘焙值）。
     /// prefab 加载经内容服务租约（实例持租约到销毁）；Shutdown 释放面。</summary>
-    internal sealed class UiServiceModule : IClientModule
+    internal sealed class UiServiceModule : IClientModule, IClientModuleGraph
     {
         private RedDotRegistry _redDotRegistry;
         private UIService _uiService;
@@ -20,7 +20,9 @@ namespace LiteGame
 
         public string Name => "UiService";
 
-        public async UniTask InitializeAsync(ClientContext context, CancellationToken ct)
+        /// <summary>依赖的模块（与 GameEntry 注册序一致；供 Host DAG 校验）。</summary>
+        public System.Collections.Generic.IReadOnlyList<System.Type> DependsOn => new System.Type[] { typeof(LuaHostModule), typeof(ConfigModule), typeof(ContentModule) };
+        public async UniTask InitializeAsync(ModuleContext context, CancellationToken ct)
         {
             var config = context.Require<ConfigService>();
             var lua = context.Require<LuaComponent>();
@@ -85,7 +87,7 @@ namespace LiteGame
         /// <summary>页面确认缝（<c>self.ui:ShowConfirm</c> 的服务端）：懒解析 FeedbackService——本模块装配
         /// 早于 Container 段（该服务在后段建），resolver 执行（首次开页）时已在容器；装配缺口在首次调用
         /// 即显性失败。确认链＝FeedbackService.ConfirmAsync → DialogService（首个生产消费者）。</summary>
-        private static Func<string, string, string, string, UniTask<bool>> ConfirmOf(ClientContext context)
+        private static Func<string, string, string, string, UniTask<bool>> ConfirmOf(ModuleContext context)
             => (title, message, okText, cancelText)
                 => context.Require<FeedbackService>().ConfirmAsync(title, message, okText, cancelText);
 

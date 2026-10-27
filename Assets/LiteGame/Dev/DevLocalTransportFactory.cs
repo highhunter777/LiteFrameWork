@@ -9,7 +9,7 @@ namespace LiteGame.Dev
 {
     /// <summary>
     /// 本地服传输工厂（开发装配）：把"进程内本地服"从 <see cref="ProcedureMatch"/> 里搬出来——
-    /// App 不再引用 `LiteGame.DevLocalServer`/`RoomServer.*`，发布依赖图因此不含服务端程序集。
+    /// App 不引用 `LiteGame.Dev`/`RoomServer.*`，发布依赖图因此不含服务端程序集。
     ///
     /// 装订：`RuntimeInitializeOnLoadMethod(BeforeSceneLoad)` 在引导前登记到
     /// <see cref="LocalTransportRegistry"/>（本程序集按三宏约束编译，发布包不参与）。

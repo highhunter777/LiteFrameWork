@@ -264,7 +264,7 @@ namespace LiteGame.Tests.EditMode
                 Assert.AreEqual(2, kernel.RuntimeTunables.Count);
                 Assert.IsTrue(kernel.TrySetTunable("weapon.damage", 50f, out string error), error);
                 Assert.AreEqual(50, TestModeRuntime.WeaponDamageOverride);
-                Assert.AreEqual(50f, WeaponDebugTunables.CurrentDamage());
+                Assert.AreEqual(50f, new WeaponDebugTunables().CurrentDamage());
                 Assert.IsTrue(kernel.TrySetTunable("weapon.rpm", 1200f, out error), error);
                 Assert.AreEqual(1200, TestModeRuntime.WeaponRpmOverride);
                 Assert.IsTrue(kernel.ResetTunable("weapon.damage", out error), error);

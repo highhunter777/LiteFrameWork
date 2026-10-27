@@ -71,7 +71,8 @@ namespace LiteGame.Tests.EditMode
                 Countdown = cdGo.GetComponent<TextMeshProUGUI>(),
                 Protection = (RectTransform)protGo.transform,
             };
-            h.Driver = new BattleRespawnHudDriver(world, () => h.LocalSlot, () => h.Dead,
+            var model = new BattleReadModel(() => h.World, () => h.LocalId, () => h.Dead);
+            h.Driver = new BattleRespawnHudDriver(model,
                 h.Respawn, h.Title, h.Countdown, h.Protection);
             return h;
         }
@@ -158,7 +159,7 @@ namespace LiteGame.Tests.EditMode
             h.Driver.Tick();
             Assert.IsTrue(h.Respawn.gameObject.activeSelf);
 
-            h.LocalSlot = -1;                                // 未对齐（视图未建/拆）
+            h.LocalId = 0L;                                  // 未对齐（视图未建/拆）
             h.Driver.Tick();
             Assert.IsFalse(h.Respawn.gameObject.activeSelf, "未对齐 → 收起（不猜）");
             Assert.IsFalse(h.Protection.gameObject.activeSelf);

@@ -44,7 +44,7 @@
        读模型 / 命令集 / 页面目录 / 状态场景 / 深检快照 / 可点性
                     ▲                    ▲                    ▲
       编辑器深检窗口（Play）      F10 运行内面板         文本命令（ui.*）
-      LiteGame.Editor            LiteGame.DevTool      LiteGame.DevTool
+      LiteGame.Editor            LiteGame.Dev          LiteGame.Dev
       （UITK，Hub 入口）          （UITK Overlay）       （解析 → 内核命令）
                     ▲
             DevHUD 状态行（只读）
@@ -55,7 +55,7 @@
 ```
 
 - **内核**负责“有哪些页面、当前什么状态、能执行什么动作”，不画 UI、不写资产；住 `LiteGame.App` dev 区，与 `TestModeOptions`/`DevStartupConfig` 同一装配根。
-- **投影**住 `LiteGame.DevTool`（运行内）与 `LiteGame.Editor`（编辑器），单向引用 `LiteGame.App`；内核不反向引用投影。
+- **投影**住 `LiteGame.Dev`（运行内，`Dev/Projection`）与 `LiteGame.Editor`（编辑器），单向引用 `LiteGame.App`；内核不反向引用投影。
 - 投影取件经 `GameEntry` 公开只读访问器，不反射私有服务、不新建全局单例。
 - 面板最终载体（独立 Overlay / 控制台外壳中的模块）归调试路线图 T1 决策点；本文只锁模块契约与交互形态。
 - 随开发三宏剥离；release 与测试者分发包零残留。
@@ -302,7 +302,7 @@ Seed / Language / PageId
 
 ### 11.3 发布
 
-- 仅开发三宏内存在；内核住 `LiteGame.App`，投影住 `LiteGame.DevTool`（单向引用 App）；资产不进收集组。
+- 仅开发三宏内存在；内核住 `LiteGame.App`，投影住 `LiteGame.Dev`（单向引用 App）；资产不进收集组。
 - release 零残留：类型/资产/命令/启动行均不可达。
 - 调试工具自身可用 UI Toolkit（dev-only UXML/USS/ThemeStyleSheet），产品 UI 不迁移。
 - 写回仅编辑器应用；Player/F10 只采集 patch；不调用 UnityEditor API、不写资产。

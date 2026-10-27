@@ -10,7 +10,7 @@
         "LiteFramework.Core",
         "LiteFramework.Unity",
         "LiteGame.App",
-        "LiteGame.DevTool",
+        "LiteGame.Dev",
         "LiteGame.LuaBridge",
         "LiteClient.UI",
         "LiteSim.Core",

@@ -494,6 +494,58 @@ namespace LiteFramework.Tests.Content
             }
         }
 
+        // ---- 能力开关（M0 条件 6：显式 Off 取代"全 0 值 + 逐轴比较"的半实现）----
+
+        [Fact]
+        public void 能力开关_Off跳过数值五轴_身份串仍校验()
+        {
+            var (verifier, sign) = NewKeyPair();
+
+            var offPlayer = Player();
+            offPlayer.CompatibilityMode = PlayerCapabilities.CapabilityMode.Off;
+
+            // 下限远高于"本机"（Off 应放行——能力位未接入）
+            var high = NewManifest();
+            high.Compatibility.ProtocolVersion = 99;
+            high.Compatibility.SimVersion = 99;
+            byte[] bytes = Encoding.UTF8.GetBytes("m");
+            Assert.True(ReleaseManifestValidator.Validate(high, bytes, sign(bytes), verifier, offPlayer, 1).Accepted,
+                "Off：数值五轴不做下限校验");
+
+            // AppVersion 是身份串，不受开关影响（声明即要求相等）
+            var wrongApp = NewManifest();
+            wrongApp.Compatibility.AppVersion = "9.9.9";
+            var verdict = ReleaseManifestValidator.Validate(wrongApp, bytes, sign(bytes), verifier, offPlayer, 1);
+            Assert.False(verdict.Accepted);
+            Assert.Equal(ReleaseRejectReason.IncompatiblePlayer, verdict.Reason);
+
+            // Enforce 下同一份高下限清单仍应被拒（防止开关被误接成"恒放行"）
+            var enforceVerdict = ReleaseManifestValidator.Validate(high, bytes, sign(bytes), verifier, Player(), 1);
+            Assert.False(enforceVerdict.Accepted);
+            Assert.Equal(ReleaseRejectReason.IncompatiblePlayer, enforceVerdict.Reason);
+        }
+
+        [Fact]
+        public void 能力开关_现有清单在开关前后判定一致()
+        {
+            // 当前发布侧清单的能力下限全 0 / 身份串为空——这类清单在 Enforce 与 Off 下结果必须一致。
+            var (verifier, sign) = NewKeyPair();
+            byte[] bytes = Encoding.UTF8.GetBytes("m");
+
+            var manifest = NewManifest();
+            manifest.Compatibility = new ReleaseCompatibility();          // 全 0 下限
+            manifest.Compatibility.AppVersion = "";
+
+            var enforce = Player();
+            var off = Player();
+            off.CompatibilityMode = PlayerCapabilities.CapabilityMode.Off;
+
+            var a = ReleaseManifestValidator.Validate(manifest, bytes, sign(bytes), verifier, enforce, 1);
+            var b = ReleaseManifestValidator.Validate(manifest, bytes, sign(bytes), verifier, off, 1);
+            Assert.Equal(a.Accepted, b.Accepted);
+            Assert.Equal(a.Reason, b.Reason);
+        }
+
         [Fact]
         public void 顺序_签名在路径校验之后_畸形路径不消耗验签算力()
         {

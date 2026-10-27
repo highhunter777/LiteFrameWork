@@ -27,9 +27,8 @@ namespace LiteNet
     }
 
     /// <summary>
-    /// 房间客户端（§4.5 协议矩阵的 C→S 侧封装）：
-    /// Join/输入（**未确认段冗余窗口**——锚"最近快照帧+1"，容量 16 帧）/MismatchReport 上报
-    /// + JoinAck/StartGame/StateSnapshot 事件化。
+    /// 房间客户端（§4.5 协议矩阵的 C→S 侧封装）：Join/输入（**未确认段冗余窗口**——锚"最近快照帧+1"，
+    /// 容量 16 帧）/MismatchReport 上报 + JoinAck/StartGame/StateSnapshot 事件化。
     /// 传输走窄端口 <see cref="IClientTransport"/>（双通道：信令 Reliable / 输入与快照 Unreliable）。
     /// 纯会话与打包——Sim 预测/和解不在此（客户端 Sim 侧由 RollbackSim 承担，M10 全量预测形态）。
     ///
@@ -38,6 +37,10 @@ namespace LiteNet
     /// 响应 Ok 且版本确认（seed/配置摘要/构建哈希与 StartGame/Join 一致）→ <see cref="ClientSessionPhase.Restoring"/>
     /// （应用层经 OnReconnectResponse 应用权威快照与输入历史）→ <see cref="CompleteRestore"/> 发
     /// RestoreComplete（Reliable）→ 回 Connected。拒绝/版本不符/超时 → Failed（不自动重试——应用层决策）。
+    ///
+    /// **M2 拆分（路线图 §4.6）**：输入冗余窗口、RTT/丢包探针、重连相位与凭据各自成行内件
+    /// （<see cref="InputWindow"/> / <see cref="NetworkQualityProbe"/> / <see cref="ReconnectState"/>），
+    /// 本类只留会话编排、协议分发与打包发送；公共 API 不变。
     ///
     /// **生命周期**：传输是**注入依赖、所有权归创建方**——`Dispose` 只退订与
     /// 释放自身缓冲，**不 Dispose 传输**（持有方〔如 BattleClient〕负责它的生命周期）。
@@ -48,67 +51,45 @@ namespace LiteNet
         public const long ReconnectTimeoutMs = 10_000;
 
         /// <summary>RTT/丢包探针发送周期（毫秒）。</summary>
-        public const long ProbeIntervalMs = 1000;
+        public const long ProbeIntervalMs = NetworkQualityProbe.IntervalMs;
 
         /// <summary>探针滚动窗口（丢包统计分母——越大越平滑、越钝；须 ≥ 1）。</summary>
-        public const int ProbeWindow = 8;
+        public const int ProbeWindow = NetworkQualityProbe.Window;
 
         private readonly IClientTransport _transport;
         private readonly Func<long> _nowMs;                                          // 单调毫秒（可注入：L1 用虚拟时钟）
         private readonly PacketWriter _writer = new PacketWriter();                 // 复用编码（高频输入零分配）
-        private readonly SimInputFrame[] _ring = new SimInputFrame[InputPacker.MaxRedundancy];   // 环形：frame % Max
-        private readonly SimInputFrame[] _window = new SimInputFrame[InputPacker.MaxRedundancy]; // 打包用连续窗口
-        private int _recentFrame = -1;      // 最近记录的逻辑帧（-1 = 尚未记录）
-        private int _recentCount;           // 从 _recentFrame 往回**连续**可用的帧数（跳帧即重置为 1）
-        private int _lastWindowCount;       // 最近一包实际携带的冗余帧数（未确认段长度，诊断/测试用）
+        private readonly InputWindow _inputWindow = new InputWindow();              // 输入冗余窗口
+        private readonly NetworkQualityProbe _probe = new NetworkQualityProbe();    // RTT/丢包探针
+        private readonly ReconnectState _reconnect;                                 // 相位/票据/版本基准
+        private readonly RoomSession _session = new RoomSession();                  // 席位/房主/载荷/终局事实
+
         private int _lastInputAck;          // 最近收到的"输入确认"（服务器 AckInput 字段——诊断用，不上报）
         private bool _disposed;
 
-        // ---- 重连状态机（§9.3）----
-        private ClientSessionPhase _phase = ClientSessionPhase.Idle;
-        private string _reconnectToken;      // JoinAck 下发的一次性票据（断线重连凭据）
-        private string _joinedBuildHash;     // 本端 Join 时发送的构建哈希（版本确认比对基准）
-        private string _joinAttemptRoomId;   // 最近一次进房尝试的目标房间（诊断记录用）
-        private bool _joinAttemptPending;    // 已发 Join 未收 JoinAck（诊断：断线记录据此判定"未获应答"）
-        private string _lastHost;            // 最近一次连接端点（重拨用）
-        private int _lastPort;
-        private bool _hasStartGame;         // StartGame 已达（版本确认的 seed/配置基准）
-        private Proto.StartGame _startGame; // **最近一次 StartGame 载荷**（晚订阅者补发用——见 OnStartGame 的契约）
-        private long _matchSeed;
-        private uint _matchConfigHash;
-        private long _reconnectDeadlineMs;   // Reconnecting 相位的超时线（注入时钟口径）
-
-        // ---- 网络质量探针（RTT/丢包观测；1Hz Unreliable，S→C 原样回显——表现/诊断面，不参与判定）----
-        private readonly long[] _probeSentAt = new long[ProbeWindow];    // 环形：探针发送时刻（client_time 兼探针 id）
-        private readonly bool[] _probeEchoed = new bool[ProbeWindow];    // 对应探针是否已收回声
-        private int _probeWrite;                                         // 下一写入下标
-        private int _probeCount;                                         // 窗口内有效探针数（≤ ProbeWindow）
-        private long _lastProbeMs = long.MinValue;                       // 上次发探针时刻（节流）
-        private int _rttMs = NetworkQuality.NoSample;                    // 最近一次回声推得的 RTT
-
         public bool Connected => _transport.Connected;
-        public int PlayerId { get; private set; } = -1;
+        public int PlayerId => _session.PlayerId;
 
         /// <summary>本机是否房主（开房裁决 owner 位 + 房主迁移续批——**协议派生态单源**）：
         /// JoinAck.IsOwner 定初值；OwnerChanged 广播维护（PlayerId == 本机席位）。
         /// UI 的"开始对局"按钮归属按此事实（迁移后旧主重连不夺回——服务器侧确定性裁决，本端只消费）。</summary>
-        public bool IsOwner { get; private set; }
+        public bool IsOwner => _session.IsOwner;
 
         /// <summary>本房地图行键（多图批；**JoinAck 权威事实**——JoinAck 定值，重连重进同源刷新）。
         /// 0 = 服务器未标注（嵌入式/测试直构形态）：消费者按首图口径回落（裁决单源见客户端 `BattleScenes.ResolveMapId`）。
         /// 本类只搬运协议事实，不认识地图表/场景。</summary>
-        public int MapId { get; private set; }
+        public int MapId => _session.MapId;
 
         /// <summary>本房期望人数（开房参数批；**JoinAck 权威事实**——JoinAck 定值，重连重进同源刷新）。
         /// 0 = 服务器未标注（嵌入式/测试直构形态）：消费者按默认 2 座回落
         /// （裁决单源见 `BattleContext` 的定容口径）。本类只搬运协议事实。</summary>
-        public int ExpectedPlayers { get; private set; }
+        public int ExpectedPlayers => _session.ExpectedPlayers;
 
         /// <summary>当前会话相位（§9.3 状态机的观测面）。</summary>
-        public ClientSessionPhase Phase => _phase;
+        public ClientSessionPhase Phase => _reconnect.Phase;
 
         /// <summary>网络质量观测（1Hz 探针推断的 RTT/丢包；表现/诊断面——不参与任何游戏逻辑或准入）。</summary>
-        public NetworkQuality Quality => new NetworkQuality(_rttMs, LossPermille(), _phase == ClientSessionPhase.Connected);
+        public NetworkQuality Quality => _probe.Quality(Phase == ClientSessionPhase.Connected);
 
         /// <summary>
         /// 内容/事务诊断上下文（**组合根注入**；null/空 = 未注入）：发布身份/内容代次/激活事务 ID 的自由文本，
@@ -131,7 +112,7 @@ namespace LiteNet
         public int LastSnapshotFrame { get; private set; } = -1;
 
         /// <summary>StartGame 是否已到达（版本确认基准已就位）。</summary>
-        public bool HasStartGame => _hasStartGame;
+        public bool HasStartGame => _reconnect.HasStartGame;
 
         /// <summary>
         /// 最近一次 StartGame（未到达 = null）。**晚订阅者必须先读这里**：
@@ -140,10 +121,10 @@ namespace LiteNet
         /// 都可能落在应用层建对局对象之前（应用层往往要等 JoinAck 回来才开始建）。
         /// 消费范式：先查本属性，为 null 再订阅事件。
         /// </summary>
-        public Proto.StartGame StartGame => _startGame;
+        public Proto.StartGame StartGame => _session.StartGame;
 
         /// <summary>最近一包携带的冗余帧数（诊断/测试用：= 未确认段长度（含本帧），≤ <see cref="InputPacker.MaxRedundancy"/>）。</summary>
-        public int RedundancyWindowSize => _lastWindowCount;
+        public int RedundancyWindowSize => _inputWindow.LastWindowCount;
 
         public event Action<Proto.JoinAck> OnJoinAck;
         public event Action<Proto.StartGame> OnStartGame;
@@ -167,14 +148,13 @@ namespace LiteNet
         /// <summary>席位实时面广播（全量快照——进房/断线/恢复完成时到达；UI 列表整表重绑。
         /// 载荷为接收实例，订阅方即取即用；缓存读侧 Clone 防御见 <see cref="Seats"/>）。</summary>
         public event Action<Proto.RoomSeats> OnRoomSeats;
-        private Proto.MatchEnded _matchResult;
-        private string _activeMatchId;
-        public Proto.MatchEnded MatchResult => _matchResult?.Clone();
 
-        private Proto.RoomSeats _seats;
+        public Proto.MatchEnded MatchResult => _session.MatchResult;
+
         /// <summary>席位实时面最新快照（房间页玩家列表——进房/断线/恢复完成广播全量；未收到前为 null。
         /// 读侧 Clone 防御——同 <see cref="MatchResult"/> 先例：订阅方不得拿到可变的共享缓存实例）。</summary>
-        public Proto.RoomSeats Seats => _seats?.Clone();
+        public Proto.RoomSeats Seats => _session.Seats;
+
         /// <summary>重连响应（§5.6/§9.3：版本确认 + 权威快照[公共全量+比赛状态+本人私有] + 输入历史）。
         /// 应用原语见 <see cref="Protocol.SnapshotReassembler"/>（镜像 Apply + 输入历史喂 RollbackSim）。
         /// 契约：只有 <see cref="Phase"/> == <see cref="ClientSessionPhase.Restoring"/> 时本响应可应用——
@@ -186,6 +166,8 @@ namespace LiteNet
         {
             _transport = transport ?? throw new ArgumentNullException(nameof(transport));
             _nowMs = nowMsProvider ?? DefaultNowMs;
+            _reconnect = new ReconnectState(_nowMs, ReconnectTimeoutMs);
+            _reconnect.Changed += HandlePhaseChanged;
             _transport.OnData += OnWireData;
             _transport.OnConnected += HandleTransportConnected;
             _transport.OnDisconnected += HandleTransportDisconnected;
@@ -198,23 +180,17 @@ namespace LiteNet
 
         public void Connect(string host, int port)
         {
-            _lastHost = host;                              // 记住端点——BeginReconnect 重拨用
-            _lastPort = port;
+            _reconnect.RememberEndpoint(host, port);       // 记住端点——BeginReconnect 重拨用
             _transport.Connect(host, port);
         }
 
         public void SendJoin(string roomId, string token, string buildHash)
         {
-            _matchResult = null;
-            _hasStartGame = false;
-            _activeMatchId = null;
-            _startGame = null;
-            _recentCount = 0;
-            _recentFrame = -1;
+            _session.ResetOnJoin();
+            _inputWindow.Reset();
             LastSnapshotFrame = -1;
-            _joinedBuildHash = buildHash;                 // 版本确认基准（§9.3 步骤 2：重连响应须同值）
-            _joinAttemptRoomId = roomId;
-            _joinAttemptPending = true;
+            _reconnect.ResetMatchIdentity();
+            _reconnect.MarkJoinSent(roomId, buildHash);    // 版本确认基准（§9.3 步骤 2：重连响应须同值）
             // 结构化诊断（§8「可诊断」）：与服务器 RejectJoin 的拒绝记录**同键**（DiagTrace.JoinKey 单源）——
             // detail 带内容/事务上下文，使一次失败可把 版本/内容/事务/会话/房间 的记录串起来。
             DiagTrace.Emit(DiagStage.Session, DiagCode.JoinAttempt,
@@ -253,22 +229,12 @@ namespace LiteNet
         /// </summary>
         public void SendInput(int frame, in SimInputFrame input, int viewFrame)
         {
-            if (_matchResult != null) return;
-            RecordRecent(frame, input);
+            if (_session.HasMatchResult) return;
+            _inputWindow.Record(frame, input);
 
-            // 未确认段帧数（frame .. 最近快照帧+1）；无快照（-1）时退化为"最近连续可用段"。
-            int span = frame - LastSnapshotFrame;
-            int count = span < _recentCount ? span : _recentCount;
-            if (count < 1) count = 1;
-            if (count > InputPacker.MaxRedundancy) count = InputPacker.MaxRedundancy;
-            _lastWindowCount = count;
-
-            for (int i = 0; i < count; i++)
-                _window[i] = _ring[RingIndex(frame - i)];
-
+            ReadOnlySpan<SimInputFrame> window = _inputWindow.Build(frame, LastSnapshotFrame);
             int ackSnapshot = LastSnapshotFrame >= 0 ? LastSnapshotFrame : 0;
-            var msg = InputPacker.Pack(frame, new ReadOnlySpan<SimInputFrame>(_window, 0, count),
-                ackSnapshot, viewFrame);
+            var msg = InputPacker.Pack(frame, window, ackSnapshot, viewFrame);
             Send(PacketType.Input, msg, reliable: false);
         }
 
@@ -283,23 +249,14 @@ namespace LiteNet
         /// <summary>
         /// 发起重连（SuspectedLost → Reconnecting）：凭 JoinAck 票据重拨传输——连接建立后自动发
         /// ReconnectRequest（Reliable）。返回 false = 未发起（相位不符，或无票据 → 已转 Failed——
-        /// 票据一次性，耗尽后唯一出路是重新 Join，由应用层决策）。超时窗口 <see cref="ReconnectTimeoutMs"/>。
+        /// 票据一次性，耗尽后唯一出路是重新 Join，由应用层决策）。
         /// </summary>
         public bool BeginReconnect()
         {
             if (_disposed) throw new ObjectDisposedException(nameof(RoomClient));
-            if (_matchResult != null) return false;
-            if (_phase != ClientSessionPhase.SuspectedLost) return false;
-
-            if (string.IsNullOrEmpty(_reconnectToken))
-            {
-                Transition(ClientSessionPhase.Failed);   // 无票据：重连窗口已耗尽/从未进房
-                return false;
-            }
-
-            Transition(ClientSessionPhase.Reconnecting);
-            _reconnectDeadlineMs = _nowMs() + ReconnectTimeoutMs;
-            _transport.Connect(_lastHost, _lastPort);    // KcpTransportClient.Connect 支持重拨（内部重建 KcpClient）
+            if (_session.HasMatchResult) return false;
+            if (!_reconnect.BeginReconnect(out string host, out int port)) return false;
+            _transport.Connect(host, port);                // KcpTransportClient.Connect 支持重拨（内部重建 KcpClient）
             return true;
         }
 
@@ -311,92 +268,39 @@ namespace LiteNet
         public bool CompleteRestore()
         {
             if (_disposed) throw new ObjectDisposedException(nameof(RoomClient));
-            if (_phase != ClientSessionPhase.Restoring) return false;
+            if (Phase != ClientSessionPhase.Restoring) return false;
 
             Send(PacketType.RestoreComplete, new Proto.RestoreComplete(), reliable: true);
-            Transition(ClientSessionPhase.Connected);
+            _reconnect.Transition(ClientSessionPhase.Connected);
             return true;
         }
 
-        /// <summary>相位迁移唯一入口（非法路径不静默改态——见各调用点的前置校验）。</summary>
-        private void Transition(ClientSessionPhase to)
+        /// <summary>相位迁移副作用：离开在房/恢复相位即重置探针窗口（新会话/重连不把上一段的丢包带进本轮统计）。</summary>
+        private void HandlePhaseChanged(ClientSessionPhase from, ClientSessionPhase to)
         {
-            if (_phase == to) return;
-            ClientSessionPhase from = _phase;
-            _phase = to;
-            // 离开在房/恢复相位即重置探针窗口：新会话/重连不把上一段的丢包带进本轮统计
-            if (to != ClientSessionPhase.Connected && to != ClientSessionPhase.Restoring) ResetProbe();
+            if (to != ClientSessionPhase.Connected && to != ClientSessionPhase.Restoring) _probe.Reset();
             OnPhaseChanged?.Invoke(from, to);
         }
 
         /// <summary>
         /// RTT/丢包探针（1Hz，Unreliable）：仅 Connected/Restoring 相位发——离线期不产生新样本
-        /// （<see cref="ResetProbe"/> 已把窗口清零，展示面据 <see cref="NetworkQuality.Connected"/> 决定是否显示）。
+        /// （<see cref="NetworkQualityProbe.Reset"/> 已把窗口清零，展示面据 <see cref="NetworkQuality.Connected"/> 决定是否显示）。
         /// client_time = 发送时刻（单调毫秒），兼作探针 id——服务器原样回显，本端据此配对算 RTT。
         /// </summary>
         private void PumpProbe()
         {
             if (_disposed) return;
-            if (_phase != ClientSessionPhase.Connected && _phase != ClientSessionPhase.Restoring) return;
-
-            long now = _nowMs();
-            if (_lastProbeMs != long.MinValue && now - _lastProbeMs < ProbeIntervalMs) return;
-            _lastProbeMs = now;
-
-            Send(PacketType.Heartbeat, new Proto.Heartbeat { ClientTime = now }, reliable: false);
-
-            _probeSentAt[_probeWrite] = now;
-            _probeEchoed[_probeWrite] = false;
-            _probeWrite = (_probeWrite + 1) % ProbeWindow;
-            if (_probeCount < ProbeWindow) _probeCount++;
-        }
-
-        /// <summary>回声配对：client_time 命中在途探针 → 记 RTT（未命中的回声忽略——重发/旧回声）。</summary>
-        private void HandleProbeEcho(long clientTime)
-        {
-            long now = _nowMs();
-            for (int i = 0; i < _probeCount; i++)
-            {
-                int idx = (_probeWrite - 1 - i + ProbeWindow * 2) % ProbeWindow;
-                if (_probeSentAt[idx] != clientTime || _probeEchoed[idx]) continue;
-                _probeEchoed[idx] = true;
-                int rtt = (int)(now - clientTime);
-                _rttMs = rtt < 0 ? 0 : rtt;
-                return;
-            }
-        }
-
-        /// <summary>丢包千分比：窗口内"未回声"占比（无样本 = <see cref="NetworkQuality.NoSample"/>）。</summary>
-        private int LossPermille()
-        {
-            if (_probeCount == 0) return NetworkQuality.NoSample;
-            int lost = 0;
-            for (int i = 0; i < _probeCount; i++)
-            {
-                int idx = (_probeWrite - 1 - i + ProbeWindow * 2) % ProbeWindow;
-                if (!_probeEchoed[idx]) lost++;
-            }
-            return lost * 1000 / _probeCount;
-        }
-
-        /// <summary>探针窗口清零（相位切换/进房起新一轮统计）。</summary>
-        private void ResetProbe()
-        {
-            _probeCount = 0;
-            _probeWrite = 0;
-            _lastProbeMs = long.MinValue;
-            _rttMs = NetworkQuality.NoSample;
-            Array.Clear(_probeSentAt, 0, _probeSentAt.Length);
-            Array.Clear(_probeEchoed, 0, _probeEchoed.Length);
+            ClientSessionPhase phase = Phase;
+            if (phase != ClientSessionPhase.Connected && phase != ClientSessionPhase.Restoring) return;
+            _probe.Pump(_nowMs(), time =>
+                Send(PacketType.Heartbeat, new Proto.Heartbeat { ClientTime = time }, reliable: false));
         }
 
         /// <summary>重拨连接建立（Reconnecting 中）：自动发 ReconnectRequest；连接等待窗重置（握手耗时不再挤占响应预算）。</summary>
         private void HandleTransportConnected()
         {
-            if (_phase != ClientSessionPhase.Reconnecting) return;
-
-            _reconnectDeadlineMs = _nowMs() + ReconnectTimeoutMs;
-            Send(PacketType.ReconnectRequest, new Proto.ReconnectRequest { OneTimeToken = _reconnectToken }, reliable: true);
+            if (!_reconnect.OnTransportConnected()) return;
+            Send(PacketType.ReconnectRequest, new Proto.ReconnectRequest { OneTimeToken = _reconnect.Token }, reliable: true);
         }
 
         /// <summary>
@@ -406,12 +310,10 @@ namespace LiteNet
         /// </summary>
         private void HandleReconnectResponse(Proto.ReconnectResponse response)
         {
-            if (_phase == ClientSessionPhase.Reconnecting)
+            if (Phase == ClientSessionPhase.Reconnecting)
             {
-                if (response.Ok && VersionMatches(response))
-                    Transition(ClientSessionPhase.Restoring);
-                else
-                    Transition(ClientSessionPhase.Failed);
+                bool ok = response.Ok && _reconnect.VersionMatches(response.Seed, response.ConfigHash, response.BuildHash);
+                _reconnect.Transition(ok ? ClientSessionPhase.Restoring : ClientSessionPhase.Failed);
             }
             // 恢复快照推进快照帧水位（增量广播从该帧之后继续；陈旧快照守卫不会被恢复帧误伤）。
             if (response.Ok && response.Snapshot != null && response.Snapshot.Frame > LastSnapshotFrame)
@@ -419,24 +321,8 @@ namespace LiteNet
             OnReconnectResponse?.Invoke(response);
         }
 
-        /// <summary>版本确认（§9.3 步骤 2）：seed/配置摘要/构建哈希须与 StartGame/Join 事实一致——跨版本混房即失败。</summary>
-        private bool VersionMatches(Proto.ReconnectResponse response)
-        {
-            if (_hasStartGame && (response.Seed != _matchSeed || response.ConfigHash != _matchConfigHash)) return false;
-            if (_joinedBuildHash != null && response.BuildHash != _joinedBuildHash) return false;
-            return true;
-        }
-
-        /// <summary>Reconnecting 超时巡检（§9.3"超时 → Failed"；Tick 驱动——无独立线程/定时器）。</summary>
-        private void CheckReconnectDeadline()
-        {
-            if (_phase != ClientSessionPhase.Reconnecting) return;
-            if (_nowMs() < _reconnectDeadlineMs) return;
-            Transition(ClientSessionPhase.Failed);
-        }
-
-        public void TickIncoming() { CheckReconnectDeadline(); _transport.TickIncoming(); }
-        public void TickOutgoing() { CheckReconnectDeadline(); PumpProbe(); _transport.TickOutgoing(); }
+        public void TickIncoming() { _reconnect.CheckDeadline(); _transport.TickIncoming(); }
+        public void TickOutgoing() { _reconnect.CheckDeadline(); PumpProbe(); _transport.TickOutgoing(); }
 
         public void Disconnect() => _transport.Disconnect();
 
@@ -445,7 +331,8 @@ namespace LiteNet
         public void SendLeave()
         {
             if (_disposed) return;
-            if (_phase != ClientSessionPhase.Connected && _phase != ClientSessionPhase.Restoring) return;
+            ClientSessionPhase phase = Phase;
+            if (phase != ClientSessionPhase.Connected && phase != ClientSessionPhase.Restoring) return;
             Send(PacketType.Leave, new Proto.Leave(), reliable: true);
         }
 
@@ -460,36 +347,9 @@ namespace LiteNet
             _transport.OnData -= OnWireData;
             _transport.OnConnected -= HandleTransportConnected;
             _transport.OnDisconnected -= HandleTransportDisconnected;
+            _reconnect.Changed -= HandlePhaseChanged;
             _writer.Dispose();
         }
-
-        /// <summary>
-        /// 记录本帧输入并维护冗余窗口（**只向前**、**只取连续段**）：
-        /// - 重发同帧（frame == _recentFrame）：只覆盖内容，不推进窗口；
-        /// - 更早的帧：忽略（窗口语义是"最近若干帧"，回退无意义）；
-        /// - 跳帧（frame &gt; _recentFrame + 1）：连续性断裂 → 窗口重置为 1（**绝不用陈旧帧冒充缺失帧**，
-        ///   否则服务器会把上一帧的移动当成这一帧的输入）。
-        /// </summary>
-        private void RecordRecent(int frame, in SimInputFrame input)
-        {
-            if (frame < 0) throw new ArgumentOutOfRangeException(nameof(frame), frame, "逻辑帧号不能为负");
-
-            if (_recentFrame >= 0 && frame <= _recentFrame)
-            {
-                if (frame == _recentFrame) _ring[RingIndex(frame)] = input;   // 重发：覆盖即可
-                return;
-            }
-
-            if (_recentFrame < 0) _recentCount = 1;
-            else if (frame == _recentFrame + 1) _recentCount = Math.Min(InputPacker.MaxRedundancy, _recentCount + 1);
-            else _recentCount = 1;                                            // 跳帧 → 断连续
-
-            _ring[RingIndex(frame)] = input;
-            _recentFrame = frame;
-        }
-
-        private static int RingIndex(int frame) => ((frame % InputPacker.MaxRedundancy) + InputPacker.MaxRedundancy)
-                                                   % InputPacker.MaxRedundancy;
 
         private void Send(PacketType type, Google.Protobuf.IMessage message, bool reliable)
         {
@@ -503,15 +363,15 @@ namespace LiteNet
         {
             // 诊断（§8「可诊断」）：发了 Join 又没等到 JoinAck 就断开——服务器侧拒绝（未回原因，见
             // ServerHost.RejectJoin）的**客户端侧事实**；与服务器记录同键，两端据此对齐。
-            if (_joinAttemptPending && _phase == ClientSessionPhase.Idle)
+            if (_reconnect.JoinAttemptPending && Phase == ClientSessionPhase.Idle)
             {
-                _joinAttemptPending = false;
+                _reconnect.MarkJoinUnanswered();
                 DiagTrace.Emit(DiagStage.Session, DiagCode.JoinNoAckDisconnected,
-                    DiagTrace.JoinKey(_joinAttemptRoomId, PlayerId, _joinedBuildHash),
+                    DiagTrace.JoinKey(_reconnect.JoinAttemptRoomId, PlayerId, _reconnect.BuildHash),
                     "content=" + (string.IsNullOrEmpty(ContentContext) ? "-" : ContentContext));
             }
-            if (_matchResult == null && (_phase == ClientSessionPhase.Connected || _phase == ClientSessionPhase.Restoring))
-                Transition(ClientSessionPhase.SuspectedLost);
+            if (!_session.HasMatchResult && (Phase == ClientSessionPhase.Connected || Phase == ClientSessionPhase.Restoring))
+                _reconnect.Transition(ClientSessionPhase.SuspectedLost);
             OnDisconnected?.Invoke();
         }
 
@@ -522,39 +382,30 @@ namespace LiteNet
             {
                 case PacketType.JoinAck:
                     var ack = (Proto.JoinAck)msg;
-                    PlayerId = ack.PlayerId;
-                    IsOwner = ack.IsOwner;                     // 房主位随 JoinAck 定初值（重连重进同源刷新——迁移后旧主不夺回）
-                    MapId = ack.MapId;                         // 多图批：本房地图行键（0 = 未标注）——场景/表行选择的事实源
-                    ExpectedPlayers = ack.ExpectedPlayers;     // 开房参数批：本房席位规模（0 = 未标注）——客户端定容依据
-                    _joinAttemptPending = false;                // 进房已有应答（诊断判定用）
-                    _reconnectToken = string.IsNullOrEmpty(ack.ReconnectToken) ? null : ack.ReconnectToken;
-                    Transition(ClientSessionPhase.Connected);   // 进房/重新 Join 均以 JoinAck 为准
+                    // 席位/房主/地图/期望人数：JoinAck 权威事实（重连重进同源刷新——迁移后旧主不夺回）
+                    _session.ApplyJoinAck(ack);
+                    _reconnect.MarkJoinAnswered(ack.ReconnectToken);
+                    _reconnect.Transition(ClientSessionPhase.Connected);   // 进房/重新 Join 均以 JoinAck 为准
                     OnJoinAck?.Invoke(ack);
                     break;
                 case PacketType.StartGame:
                     var start = (Proto.StartGame)msg;
-                    _matchSeed = start.Seed;                     // §9.3 步骤 2：重连版本确认基准
-                    _activeMatchId = string.IsNullOrEmpty(start.MatchId) ? _joinAttemptRoomId : start.MatchId;
-                    _matchConfigHash = start.ConfigHash;
-                    _startGame = start;                          // 缓存载荷：晚订阅者靠它补发（见 StartGame 属性）
-                    _hasStartGame = true;
+                    _reconnect.MarkStartGame(start.Seed, start.ConfigHash);   // §9.3 步骤 2：重连版本确认基准
+                    _session.ApplyStartGame(start, _reconnect.JoinAttemptRoomId);   // 缓存载荷：晚订阅者补发（见 StartGame 属性）
                     OnStartGame?.Invoke(start);
                     break;
                 case PacketType.MatchEnded:
-                    if (_matchResult != null || !reliable) break;
+                    if (!reliable) break;
                     var ended = (Proto.MatchEnded)msg;
-                    // 未开局（StartGame 未达）也接受：等待期房间被服务器中止（等待超时/运维关闭/
-                    // 排空——无结果可结算）时经 MatchEnded 通知散场。此时无活动对局号可比对
-                    // （对局号随 StartGame 建立，中止包带的是房间侧局号——客户端未见过），
-                    // 判据退为"本次进房已有应答"（JoinAck 已回且非新一次 Join 的未决窗口——
-                    // 重新 Join 期间到达的终局属于上一局，由既有纪律丢弃）。
-                    if (_hasStartGame ? ended.MatchId != _activeMatchId : (_joinAttemptPending || PlayerId < 0)) break;
-                    _matchResult = ended;
-                    _reconnectToken = null;
+                    // 终局判据：未开局也接受（等待期房间被服务器中止）——判据退为"本次进房已有应答"；
+                    // 重新 Join 期间到达的旧局终局由 TryAcceptMatchEnded 丢弃。
+                    if (!_session.TryAcceptMatchEnded(ended, _reconnect.HasStartGame, _reconnect.JoinAttemptPending))
+                        break;
+                    _reconnect.MarkMatchEnded();
                     OnMatchEnded?.Invoke(ended.Clone());
                     break;
                 case PacketType.StateSnapshot:
-                    if (_matchResult != null) break;
+                    if (_session.HasMatchResult) break;
                     var snapshot = (Proto.StateSnapshot)msg;
                     // **帧号单调守卫**：快照走 Unreliable，UDP 可乱序；旧包若继续应用，会把 Hp/
                     // 死亡/比分/插值窗口整体回退（表现为血条回血、尸体复活、远端角色倒退）。
@@ -577,14 +428,14 @@ namespace LiteNet
                     OnStartMatchResponse?.Invoke((Proto.StartMatchResponse)msg);
                     break;
                 case PacketType.OwnerChanged:                          // 房主迁移：UI 换按钮归属
-                    IsOwner = ((Proto.OwnerChanged)msg).PlayerId == PlayerId;   // 事实重算（迁移后旧主失位/新主到位）
+                    _session.ApplyOwnerChanged(((Proto.OwnerChanged)msg).PlayerId);   // 事实重算（旧主失位/新主到位）
                     OnOwnerChanged?.Invoke((Proto.OwnerChanged)msg);
                     break;
                 case PacketType.Heartbeat:                              // RTT/丢包探针回声（服务器原样回显 client_time）
-                    HandleProbeEcho(((Proto.Heartbeat)msg).ClientTime);
+                    _probe.ObserveEcho(((Proto.Heartbeat)msg).ClientTime, _nowMs());
                     break;
                 case PacketType.RoomSeats:                              // 席位实时面：房间页玩家列表全量快照
-                    _seats = ((Proto.RoomSeats)msg).Clone();            // 入缓 Clone（读侧再 Clone——同 MatchResult 防御）
+                    _session.ApplySeats((Proto.RoomSeats)msg);          // 入缓 Clone（读侧再 Clone——同 MatchResult 防御）
                     OnRoomSeats?.Invoke((Proto.RoomSeats)msg);
                     break;
             }

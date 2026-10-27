@@ -44,8 +44,28 @@ namespace LiteClient
         }
     }
 
+    /// <summary>本地阵亡等待事实（复活面板）。</summary>
+    public readonly struct BattleRespawnFacts
+    {
+        /// <summary>本地是否阵亡（表现侧死亡锁存——预测态判据）。</summary>
+        public readonly bool Dead;
+
+        /// <summary>距复活的剩余逻辑帧（≤0 = 已可复活；Dead=false 时无意义）。</summary>
+        public readonly int RemainingFrames;
+
+        /// <summary>复活保护期是否生效（端点不含）。</summary>
+        public readonly bool Protected;
+
+        public BattleRespawnFacts(bool dead, int remainingFrames, bool protectedNow)
+        {
+            Dead = dead;
+            RemainingFrames = remainingFrames;
+            Protected = protectedNow;
+        }
+    }
+
     /// <summary>
-    /// 对局只读事实端口（路线图 M0 接缝 2）：表现层（HUD/排行）只经本端口取事实，
+    /// 对局只读事实端口（路线图 M0 接缝 2 / M2）：表现层（HUD/排行/击杀提示/复活面板）只经本端口取事实，
     /// 不直读 <c>SimWorldState</c> 的槽位数组布局——测试可注入替身。
     ///
     /// **顺序契约**：<see cref="PlayerCount"/> 同时刷新内部规范序（EntityId 升序）；
@@ -56,8 +76,14 @@ namespace LiteClient
         /// <summary>当前帧号（读取快照的时间轴）。</summary>
         int Frame { get; }
 
+        /// <summary>本地实体 Id（0 = 尚未对齐）。</summary>
+        long LocalEntityId { get; }
+
         /// <summary>本地玩家事实；未对齐/未解析 = false（调用方如实收起面板）。</summary>
         bool TryGetLocalPlayer(out BattleLocalPlayerFacts local);
+
+        /// <summary>本地阵亡等待事实；未对齐/未解析 = false（调用方如实收起面板）。</summary>
+        bool TryGetLocalRespawn(out BattleRespawnFacts respawn);
 
         /// <summary>参赛玩家数（读取即刷新规范序）。</summary>
         int PlayerCount { get; }

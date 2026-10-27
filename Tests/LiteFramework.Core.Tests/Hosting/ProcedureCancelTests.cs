@@ -144,7 +144,7 @@ namespace LiteFramework.Tests
             private readonly List<string> _trace;
             public string Name { get; }
             public TracerModule(string name, List<string> trace) { Name = name; _trace = trace; }
-            public UniTask InitializeAsync(ClientContext context, CancellationToken ct)
+            public UniTask InitializeAsync(ModuleContext context, CancellationToken ct)
             {
                 _trace.Add("init:" + Name);
                 return UniTask.CompletedTask;
@@ -186,7 +186,7 @@ namespace LiteFramework.Tests
             {
                 Name = name; _trace = trace; _probe = probe;
             }
-            public UniTask InitializeAsync(ClientContext context, CancellationToken ct)
+            public UniTask InitializeAsync(ModuleContext context, CancellationToken ct)
             {
                 _trace.Add("init:" + Name);
                 return UniTask.CompletedTask;
@@ -232,7 +232,7 @@ namespace LiteFramework.Tests
             {
                 Name = name; _trace = trace; _pending = pending;
             }
-            public UniTask InitializeAsync(ClientContext context, CancellationToken ct)
+            public UniTask InitializeAsync(ModuleContext context, CancellationToken ct)
             {
                 _trace.Add("init:" + Name);
                 return _pending.Task;

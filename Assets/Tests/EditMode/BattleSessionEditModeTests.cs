@@ -94,12 +94,12 @@ namespace LiteGame.Tests.EditMode
         private FakeClientTransport _transport;
 
         /// <summary>StartGame 信令（ConfigHash 按**本地装载复算**——批 E 起 BattleContext 校验它）：
-        /// 基摘要 = 本测试直构形态的 0（测试不装载配置），规则位取 <see cref="SimTestRules.ActiveMatch"/>
-        /// ——与 BattleContext.OnStartGame 的绑定源同一处（不是"抄一个魔数"）。
+        /// 基摘要 = 本测试直构形态的 0（测试不装载配置），规则位取**显式传入的本局规则实例**
+        /// ——M2 起无静态"当前局"，本测试不带规则（null）；与 BattleContext.OnStartGame 的绑定源同一处。
         /// <paramref name="configHashOverride"/> = 显式伪造（拒局用例构造"两端不同源"）。</summary>
-        private static StartGame StartGameMessage(long seed, uint baseDigest = 0u, uint? configHashOverride = null)
+        private static StartGame StartGameMessage(long seed, uint baseDigest = 0u, uint? configHashOverride = null,
+            MatchTestRules rules = null)
         {
-            MatchTestRules rules = SimTestRules.ActiveMatch;
             uint expected = CombatConfigDigest.WithTestRules(baseDigest,
                 rules != null && rules.NoDeath, rules != null && rules.InfiniteAmmo);
             return new StartGame { Seed = seed, ConfigHash = configHashOverride ?? expected, Frame = 0 };

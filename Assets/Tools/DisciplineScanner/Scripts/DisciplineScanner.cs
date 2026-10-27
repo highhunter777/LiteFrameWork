@@ -61,7 +61,7 @@ namespace Tools.DisciplineScan
         R13StaticConfigPort = 13,
 
         /// <summary>R14 投影禁直调调试源（《GM 与调试工具分层专项设计》§7"统一内核与三投影"）：
-        /// 两个投影根（`Assets/LiteGame/DevTool` 运行期投影程序集 + `Assets/LiteGame/Editor/Gm` 编辑器 GM 页）内，
+        /// 两个投影根（`Assets/LiteGame/Dev/Projection` 运行期投影程序集 + `Assets/LiteGame/Editor/Gm` 编辑器 GM 页）内，
         /// 调试**读数/动作/发现面**一律经 `DebugKernel` 门面——禁直调底层读口（`BattleDiagnostics.Current/Take`、
         /// `Log.Recent/ErrorCount/Current*`、`DiagTrace.Recent/Total`、`GameEntry.Stats`）与写口
         /// （`TestModeOptions.Get/Set/All`、`TestModeRuntime.*`、`SimTestRules.*`、`CommandCenter`、

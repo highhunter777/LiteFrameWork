@@ -154,9 +154,7 @@ namespace Tools.DisciplineScan
         {
             "App",                   // §5 顶层第一层 Game.App
             "Editor",                // 编辑器工具程序集（不在 §5 层内，登记为例外）
-            "DevTool",               // 开发面工具（同上；**不能并进 Editor/**——其中的 MonoBehaviour 无法 AddComponent）
-            "DevLocalServer",        // 开发面：进程内本地服（《共享代码范围专项设计》§3 D2 调试宿主档位；见下）
-            "Dev",                   // 开发装配层（LiteGame.Dev：本地传输工厂等开发期组合；defineConstraints 三宏，发布包不参与）
+            "Dev",                   // 开发装配层（LiteGame.Dev：DevHUD/调试控制台/调试面板 + 本地服 + 本地传输工厂；defineConstraints 三宏，发布包不参与）
             "Lua",                   // 脚本资产（非程序集目录；Luban lua pass 的产物 + 业务脚本）
             "LuaBridge",             // 产品侧 Lua 桥（LiteGame.LuaBridge：生命周期/数据门面/注册表；宿主 LiteClient.Scripting.XLua 的消费者）
         };
@@ -201,7 +199,7 @@ namespace Tools.DisciplineScan
             new ScanTarget("Server/MetaServer", MetaPurityRules, MetaHostExcludes),                    // Meta 模块/契约层（《Meta 服务专项设计》§4.2）
             // R14 投影纪律（《GM 与调试工具分层专项设计》§7）：两个投影根的读数/动作/发现面经内核门面。
             // Editor/Gm 受守根显式含 Editor 子树（IncludeEditorDirs——默认排除面不覆盖它）。
-            new ScanTarget("Assets/LiteGame/DevTool", ProjectionRules),                        // 运行期投影程序集（DevHUD/DebugConsole/DebugPanel）
+            new ScanTarget("Assets/LiteGame/Dev/Projection", ProjectionRules),                 // 运行期投影件（DevHUD/DebugConsole/DebugPanel）
             new ScanTarget("Assets/LiteGame/Editor/Gm", ProjectionRules, null, true),          // 编辑器 GM 页（Hub 七页）
         };
 
@@ -229,9 +227,10 @@ namespace Tools.DisciplineScan
         /// </summary>
         public static readonly string[] DevHostMayReferenceServerAssemblies =
         {
-            // 唯一合法档位：进程内本地服（离线隔离开发）。它是 RoomRuntime/SnapshotPipeline 的调试宿主，
-            // 不进生产路径——`ProcedureMatch.CreateTransport` 在 release 宏下恒走真 KCP。
-            "Assets/LiteGame/DevLocalServer",
+            // 唯一合法档位：开发装配层（离线隔离开发的本地服 + 本地传输工厂 + 投影件）。
+            // 它是 RoomRuntime/SnapshotPipeline 的调试宿主，不进生产路径——该程序集受三宏 defineConstraints
+            // 排除在发布包外，`ProcedureMatch.CreateTransport` 只经 `ILocalTransportFactory` 取实现。
+            "Assets/LiteGame/Dev",
         };
 
         /// <summary>客户端侧禁止出现的服务端程序集名（引它们必须落在上表的登记目录里）。</summary>

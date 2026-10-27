@@ -24,7 +24,6 @@ namespace LiteSim.Tests
             TestModeRuntime.TakeTeleportRequest();
             TestModeRuntime.HeadHitLineOverride = -1f;
             TestModeRuntime.HeadshotRadiusOverride = -1f;
-            SimTestRules.ActiveMatch = null;
             SimTestRules.BotInfiniteHp = false;
             TestModeOptions.ApplyDefaults();              // 开关全默认 + BotCount 回 1（数量项不在开关表）
         }
@@ -76,26 +75,24 @@ namespace LiteSim.Tests
         [Fact]
         public void 无限子弹副作用_仅测试模式且有活动局才写规则持有件()
         {
-            // 非测试模式：快照照记，活动局不武装（判定路径读注入实例——测试模式外不受 GM 开关影响）
+            // 非测试模式：快照照记，规则持有件不武装（判定路径读注入实例——测试模式外不受 GM 开关影响）
             Reset();
             var match = new MatchTestRules();
-            SimTestRules.ActiveMatch = match;
-            TestModeOptions.Set(TestModeOptions.Id.InfiniteAmmo, true);
+            TestModeOptions.Set(TestModeOptions.Id.InfiniteAmmo, true, match);
             Assert.True(TestModeRuntime.InfiniteAmmo);
             Assert.False(match.InfiniteAmmo);
 
-            // 测试模式 + 无活动局：只记快照（下次进房入口种子），不炸
+            // 测试模式 + 无对局（未给持有件）：只记快照（下次进房入口种子），不炸
             Reset();
             TestModeRuntime.Active = true;
             TestModeOptions.Set(TestModeOptions.Id.InfiniteAmmo, true);
             Assert.True(TestModeRuntime.InfiniteAmmo);
 
-            // 测试模式 + 有活动局：快照与持有件同步（本地服同进程——滑杆一动两端同值）
+            // 测试模式 + 有对局：快照与持有件同步（本地服同进程——滑杆一动两端同值）
             Reset();
             TestModeRuntime.Active = true;
             match = new MatchTestRules();
-            SimTestRules.ActiveMatch = match;
-            TestModeOptions.Set(TestModeOptions.Id.InfiniteAmmo, true);
+            TestModeOptions.Set(TestModeOptions.Id.InfiniteAmmo, true, match);
             Assert.True(match.InfiniteAmmo);
         }
 

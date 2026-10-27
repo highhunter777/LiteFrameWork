@@ -10,24 +10,30 @@ namespace LiteGame
     ///
     /// 读源为委托：HUD 用本地**预测态**、排行榜用**权威镜像**（首快照前回落预测），两者的实例
     /// 各自持不同委托；容量的内部缓冲（规范序）每帧重建一次，玩家数上界 = MaxEntities。
+    /// 阵亡判据（表现侧死亡锁存）同样以委托注入——驱动不再自己接 <c>SimView</c>。
     /// </summary>
     public sealed class BattleReadModel : IBattleReadModel
     {
         private readonly Func<SimWorldState> _stateOf;
         private readonly Func<long> _localEntityId;
+        private readonly Func<bool> _isLocalDead;
         private readonly long[] _ids;
         private readonly int[] _kills;
         private int _count;
 
-        public BattleReadModel(Func<SimWorldState> stateOf, Func<long> localEntityId)
+        /// <param name="isLocalDead">本地阵亡判据（表现侧锁存；null = 不提供复活事实）。</param>
+        public BattleReadModel(Func<SimWorldState> stateOf, Func<long> localEntityId, Func<bool> isLocalDead = null)
         {
             _stateOf = stateOf ?? throw new ArgumentNullException(nameof(stateOf));
             _localEntityId = localEntityId ?? throw new ArgumentNullException(nameof(localEntityId));
+            _isLocalDead = isLocalDead;
             _ids = new long[SimConfig.MaxEntities];
             _kills = new int[SimConfig.MaxEntities];
         }
 
         public int Frame => _stateOf()?.Frame ?? 0;
+
+        public long LocalEntityId => _localEntityId();
 
         public int TeamMode => _stateOf()?.Match.Team ?? 0;
 
@@ -58,6 +64,21 @@ namespace LiteGame
             ref WeaponRuntime weapon = ref state.Weapons[slot * SimConfig.WeaponSlotsPerEntity + selected];
             local = new BattleLocalPlayerFacts(e.Hp, selected, weapon.MagAmmo, weapon.ReserveAmmo,
                 weapon.State == WeaponSlotState.Reloading);
+            return true;
+        }
+
+        public bool TryGetLocalRespawn(out BattleRespawnFacts respawn)
+        {
+            respawn = default;
+            SimWorldState state = _stateOf();
+            if (state == null) return false;
+            long id = _localEntityId();
+            if (id == 0L || !state.TryResolve(id, out int slot)) return false;
+
+            ref EntitySlot e = ref state.Entities[slot];
+            bool dead = _isLocalDead != null && _isLocalDead();
+            respawn = new BattleRespawnFacts(dead, e.RespawnFrame - state.Frame,
+                state.Frame < e.InvulnerableUntilFrame);       // 端点不含
             return true;
         }
 

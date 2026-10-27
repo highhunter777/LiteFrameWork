@@ -28,7 +28,9 @@ namespace LiteClient.UI
     /// - **优先级**：同组出队按 <see cref="Request.Priority"/> 降序，同优先级 FIFO。
     /// - **合并**（"重复断线/错误弹窗不无限堆叠"）：同 <see cref="Request.MergeKey"/> 的在途请求
     ///   （排队或展示中）**共享同一结果任务**——后来的调用方并入等待，不产生新队列条目。
-    /// - **有界队列**：排队数达 <see cref="QueueCapacity"/> 拒绝（类型化 Rejected——与导航同语义）。
+    /// - **有界队列**：排队走统一原语 <see cref="IUiOperationQueue{T}"/>（M2 全量迁移）——
+    ///   排队数达 <see cref="QueueCapacity"/> 拒绝（类型化 Rejected——与导航同语义），
+    ///   出队按 <see cref="Request.Priority"/> 降序、同级 FIFO（互斥组忙的条目留在队里，不阻塞其他组）。
     /// - **收口**：对话框被非按钮路径关闭（Back/Shutdown/其他 Close）→ 结果落 <see cref="DialogResult.Closed"/>
     ///   （经 <see cref="UIService.FormClosed"/> 单一漏斗）；等待者自身的 Scope 取消只解除本人等待
     ///   （<c>AttachExternalCancellation</c>），不影响对话框与其他等待者。
@@ -69,22 +71,20 @@ namespace LiteClient.UI
         {
             public readonly Request Request;
             public readonly UniTaskCompletionSource<DialogResult> Result = new UniTaskCompletionSource<DialogResult>();
-            public readonly long Seq;                          // FIFO 平局判据（入队序）
             public UIDialog Dialog;                            // 展示成功后挂上（外部收口入口）
             public int FormId = -1;                            // 展示成功后登记（FormClosed 按它匹配）
             public bool ExternallyClosed;                      // 收口路径标记（区分 Closed 与 Cancel）
 
-            public Entry(Request request, long seq) { Request = request; Seq = seq; }
+            public Entry(Request request) { Request = request; }
         }
 
         private readonly UIService _ui;
         private readonly UINavigationController _nav;      // 产品形态非空：打开经单写者；null = 工具/测试直调
-        private readonly List<Entry> _queue = new List<Entry>(8);                        // 排队（跨组共用，出队按组+优先级筛选）
+        private readonly IUiOperationQueue<Entry> _queue;                                // 排队（统一 UI 队列原语；跨组共用）
         private readonly Dictionary<string, Entry> _activeByGroup = new Dictionary<string, Entry>(2);  // 组 → 展示中条目
         private readonly HashSet<string> _openingGroups = new HashSet<string>(2);        // 打开在途占组（formId 未定时先占）
         private readonly Dictionary<string, Entry> _byMergeKey = new Dictionary<string, Entry>(4);      // 合并键 → 在途条目（排队或展示中）
         private readonly Dictionary<int, Entry> _activeByFormId = new Dictionary<int, Entry>(2);        // formId → 展示中条目（FormClosed 收口）
-        private long _seq;
 
         /// <summary>排队容量（超出拒绝；§4.3"不无限堆叠"的硬边界）。</summary>
         public int QueueCapacity { get; }
@@ -103,6 +103,7 @@ namespace LiteClient.UI
             _ui = ui ?? throw new ArgumentNullException(nameof(ui));
             _nav = nav;
             QueueCapacity = queueCapacity > 0 ? queueCapacity : 1;
+            _queue = new UiOperationQueue<Entry>(QueueCapacity);
             _ui.FormClosed += OnFormClosed;               // 与 UIService 同生命周期（同一容器装配）；Dispose 退订
         }
 
@@ -119,44 +120,28 @@ namespace LiteClient.UI
             if (request.MergeKey != null && _byMergeKey.TryGetValue(request.MergeKey, out Entry pending))
                 return pending.Result.Task.AttachExternalCancellation(ct);
 
-            if (_queue.Count >= QueueCapacity)
+            var entry = new Entry(request);
+            if (!_queue.TryEnqueue(entry, request.Priority))
                 throw new UIOpenException(UIOpenFailure.Rejected, request.FormId,
                     $"弹窗队列已满（{QueueCapacity}）——拒绝入队（§4.3 不无限堆叠）");
-
-            var entry = new Entry(request, ++_seq);
-            _queue.Add(entry);
             if (request.MergeKey != null) _byMergeKey[request.MergeKey] = entry;
             Pump();                                       // 入队即尝试出队（组空闲则立即展示）
             return entry.Result.Task.AttachExternalCancellation(ct);
         }
 
-        /// <summary>队列泵：为每个空闲互斥组挑最高优先级条目启动展示（每 Tick 至多一个）。</summary>
+        /// <summary>队列泵：为空闲互斥组挑最高优先级条目启动展示（每 Tick 至多一个）。</summary>
         public void Tick(float deltaTime) => Pump();
 
         private void Pump()
         {
-            Entry next = PickNext();
-            if (next == null) return;
-            _queue.Remove(next);
+            if (!_queue.TryDequeueWhere(IsGroupFree, out Entry next)) return;
             _openingGroups.Add(next.Request.Group);       // 打开在途先占组（防同组重复展示）
             ShowCoreAsync(next).Forget();
         }
 
-        /// <summary>出队选择：组空闲（无展示、无打开在途）条目中取优先级最高、同级 FIFO。</summary>
-        private Entry PickNext()
-        {
-            Entry best = null;
-            for (int i = 0; i < _queue.Count; i++)
-            {
-                Entry e = _queue[i];
-                if (_activeByGroup.ContainsKey(e.Request.Group) || _openingGroups.Contains(e.Request.Group))
-                    continue;
-                if (best == null || e.Request.Priority > best.Request.Priority
-                    || (e.Request.Priority == best.Request.Priority && e.Seq < best.Seq))
-                    best = e;
-            }
-            return best;
-        }
+        /// <summary>出队就绪判据：组空闲（无展示、无打开在途）——忙组条目留在队里，不阻塞其他组。</summary>
+        private bool IsGroupFree(Entry e)
+            => !_activeByGroup.ContainsKey(e.Request.Group) && !_openingGroups.Contains(e.Request.Group);
 
         /// <summary>打开弹窗表单：产品形态经导航单写者排队（三通道收口口径）；
         /// null 导航（工具/测试）直调 <see cref="UIService.ShowAsync"/>。</summary>

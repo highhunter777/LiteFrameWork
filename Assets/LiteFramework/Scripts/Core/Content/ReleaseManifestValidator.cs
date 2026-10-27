@@ -71,6 +71,23 @@ namespace LiteFramework
     /// </summary>
     public sealed class PlayerCapabilities
     {
+        /// <summary>
+        /// 数值能力位的兼容判定模式。
+        /// **只有两种合法状态**：`Enforce`（各轴为真实能力值，逐轴比较下限）或 `Off`（能力位未接入，
+        /// 显式关闭数值下限校验）——不允许"全 0 值 + 逐轴比较"的半实现（0 会被当成真实能力值）。
+        /// 身份串（Platform/Channel/AppVersion）不受本开关影响：它们描述"是不是同一个产品/渠道/版本"。
+        /// </summary>
+        public enum CapabilityMode
+        {
+            /// <summary>开启：逐轴比较（各轴必须是真实能力值）。</summary>
+            Enforce = 0,
+
+            /// <summary>关闭：数值能力位不做下限校验（能力生成物未接入时的显式形态）。</summary>
+            Off = 1,
+        }
+
+        public CapabilityMode CompatibilityMode = CapabilityMode.Enforce;
+
         public string AppVersion = "";
         public string Platform = "";
         public string Channel = "";
@@ -211,26 +228,30 @@ namespace LiteFramework
                     $"渠道不符:{manifest.Channel} != {player.Channel}");
 
             // ⑩ 兼容（候选声明的是**下限**；Player 低于下限即拒绝——不静默降级）
+            // `CompatibilityMode.Off` = 数值能力位未接入：显式跳过五轴下限校验（身份串仍校验）。
             var compat = manifest.Compatibility;
             if (compat != null)
             {
-                if (compat.ProtocolVersion > player.ProtocolVersion)
-                    return ReleaseVerdict.Reject(ReleaseRejectReason.IncompatiblePlayer,
-                        $"协议版本不足:需 {compat.ProtocolVersion}，本机 {player.ProtocolVersion}");
-                if (compat.SimVersion > player.SimVersion)
-                    return ReleaseVerdict.Reject(ReleaseRejectReason.IncompatiblePlayer,
-                        $"Sim 版本不足:需 {compat.SimVersion}，本机 {player.SimVersion}");
-                if (compat.BridgeApiVersion > player.BridgeApiVersion)
-                    return ReleaseVerdict.Reject(ReleaseRejectReason.IncompatiblePlayer,
-                        $"Bridge 能力不足:需 {compat.BridgeApiVersion}，本机 {player.BridgeApiVersion}");
-                if (compat.ConfigSchemaVersion > player.ConfigSchemaVersion)
-                    return ReleaseVerdict.Reject(ReleaseRejectReason.IncompatiblePlayer,
-                        $"配置 schema 不足:需 {compat.ConfigSchemaVersion}，本机 {player.ConfigSchemaVersion}");
-                if (compat.SaveSchemaVersion > player.SaveSchemaVersion)
-                    return ReleaseVerdict.Reject(ReleaseRejectReason.IncompatiblePlayer,
-                        $"存档 schema 不足:需 {compat.SaveSchemaVersion}，本机 {player.SaveSchemaVersion}");
+                if (player.CompatibilityMode == PlayerCapabilities.CapabilityMode.Enforce)
+                {
+                    if (compat.ProtocolVersion > player.ProtocolVersion)
+                        return ReleaseVerdict.Reject(ReleaseRejectReason.IncompatiblePlayer,
+                            $"协议版本不足:需 {compat.ProtocolVersion}，本机 {player.ProtocolVersion}");
+                    if (compat.SimVersion > player.SimVersion)
+                        return ReleaseVerdict.Reject(ReleaseRejectReason.IncompatiblePlayer,
+                            $"Sim 版本不足:需 {compat.SimVersion}，本机 {player.SimVersion}");
+                    if (compat.BridgeApiVersion > player.BridgeApiVersion)
+                        return ReleaseVerdict.Reject(ReleaseRejectReason.IncompatiblePlayer,
+                            $"Bridge 能力不足:需 {compat.BridgeApiVersion}，本机 {player.BridgeApiVersion}");
+                    if (compat.ConfigSchemaVersion > player.ConfigSchemaVersion)
+                        return ReleaseVerdict.Reject(ReleaseRejectReason.IncompatiblePlayer,
+                            $"配置 schema 不足:需 {compat.ConfigSchemaVersion}，本机 {player.ConfigSchemaVersion}");
+                    if (compat.SaveSchemaVersion > player.SaveSchemaVersion)
+                        return ReleaseVerdict.Reject(ReleaseRejectReason.IncompatiblePlayer,
+                            $"存档 schema 不足:需 {compat.SaveSchemaVersion}，本机 {player.SaveSchemaVersion}");
+                }
 
-                // AppVersion 采用**精确匹配**（声明即要求相等）。
+                // AppVersion 采用**精确匹配**（声明即要求相等）——身份串，不受能力开关影响。
                 // 不在此自造 semver 比较器；"范围匹配"未实现——
                 // 需要时引入受测比较器再放宽，**不得静默失效**（声明了却不生效比不声明更危险）。
                 if (!string.IsNullOrEmpty(compat.AppVersion) &&

@@ -19,9 +19,10 @@ namespace LiteGame
     ///
     /// **不要把本目录移进任何 `Editor/` 下**：`Assets/.../Editor/` 是特殊文件夹，其中的
     /// MonoBehaviour **不能 AddComponent**——运行时报 "it is an editor script"，组件加不上、
-    /// HUD 彻底不出现（本件为**代码创建**形态，直接命中）——故程序集独立为 `LiteGame.DevTool` +
-    /// 三宏 `#if` 剥离。Player 里的剥离由三宏负责，不靠程序集边界。
-    /// 自拉取模式：LiteGame.DevTool → LiteClient.Runtime 单向引用，HUD 在 Start 经
+    /// HUD 彻底不出现（本件为**代码创建**形态，直接命中）——故本件住开发装配层
+    /// `Assets/LiteGame/Dev/Projection`（asmdef 三宏 defineConstraints + 文件内 `#if` 双重剥离）。
+    /// Player 里的剥离由三宏负责，不靠程序集边界。
+    /// 自拉取模式：LiteGame.Dev → LiteClient.Runtime 单向引用，HUD 在 Start 经
     /// FindAnyObjectByType 拉 `GameEntry.Stats`（只读统计访问器，非解析入口）+ 场景组件型 IModuleStats 合并；
     /// **场景加载后重扫**（对局场景里的 Animation/Lua 组件才进得来），每轮轮询剔除已销毁件。
     /// **各段渲染开关 = public 字段**（Inspector 可配 / 代码可改）：showStats /

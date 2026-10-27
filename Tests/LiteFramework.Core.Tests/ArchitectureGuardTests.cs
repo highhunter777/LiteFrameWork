@@ -13,17 +13,50 @@ namespace LiteFramework.Core.Tests
     public sealed class ArchitectureGuardTests
     {
         [Fact]
-        public void 硬边_Runtime不得引用View_App不得引用DevLocalServer()
+        public void 硬边_Runtime不得引用View_App不得引用Dev与服务端()
         {
             string root = RepoRoot();
 
             // 《路线图》§4.2：LiteClient.Runtime 不引用 LiteView（表现经 IBattleView 端口进入）
             AssertNoReference(root, "Assets/LiteClient/Runtime/LiteClient.Runtime.asmdef", "LiteView");
 
-            // §4.2/§3.6：LiteGame.App 的 release 依赖图不含 DevLocalServer / RoomServer.*
+            // §4.2/§3.6：LiteGame.App 的 release 依赖图不含开发装配层 / RoomServer.*
             // （本地传输经 ILocalTransportFactory，由 LiteGame.Dev 装配）
-            AssertNoReference(root, "Assets/LiteGame/App/LiteGame.App.asmdef", "LiteGame.DevLocalServer");
+            AssertNoReference(root, "Assets/LiteGame/App/LiteGame.App.asmdef", "LiteGame.Dev");
             AssertNoReferencePrefix(root, "Assets/LiteGame/App/LiteGame.App.asmdef", "RoomServer.");
+        }
+
+        [Fact]
+        public void 硬边_开发装配层只在三宏内编译_客户端程序集不引服务端()
+        {
+            // 路线图 §4.8/§4.11 7：DEVELOPMENT_BUILD / LITEFRAMEWORK_DEBUG 只允许出现在 LiteGame.Dev*；
+            // release 依赖图不得含 Dev / RoomServer.*——asmdef 引用是程序集级的，#if 挡不住。
+            string root = RepoRoot();
+            string devAsmdef = Path.Combine(root, "Assets", "LiteGame", "Dev", "LiteGame.Dev.asmdef");
+            Assert.True(File.Exists(devAsmdef), "LiteGame.Dev.asmdef 缺失（开发装配层是 M1 的单一开发边界）");
+
+            string devText = File.ReadAllText(devAsmdef);
+            Assert.False(string.IsNullOrWhiteSpace(devText), "LiteGame.Dev.asmdef 为空");
+            Assert.Contains("UNITY_EDITOR", devText);
+            Assert.Contains("DEVELOPMENT_BUILD", devText);
+            Assert.Contains("LITEFRAMEWORK_DEBUG", devText);
+
+            var offenders = new List<string>();
+            string[] clientRoots = { "Assets/LiteClient", "Assets/LiteGame", "Assets/LiteView" };
+            foreach (string clientRoot in clientRoots)
+            {
+                string dir = Path.Combine(root, clientRoot.Replace('/', Path.DirectorySeparatorChar));
+                if (!Directory.Exists(dir)) continue;
+                foreach (string asmdef in Directory.GetFiles(dir, "*.asmdef", SearchOption.AllDirectories))
+                {
+                    string rel = Path.GetRelativePath(root, asmdef).Replace('\\', '/');
+                    if (rel.StartsWith("Assets/LiteGame/Dev/", StringComparison.Ordinal)) continue;
+                    string text = File.ReadAllText(asmdef);
+                    if (text.Contains("\"RoomServer.", StringComparison.Ordinal)) offenders.Add(rel);
+                }
+            }
+            Assert.True(offenders.Count == 0,
+                "客户端程序集不得引用服务端程序集（只允许 LiteGame.Dev 登记目录）：" + string.Join(" | ", offenders));
         }
 
         [Fact]

@@ -1,4 +1,5 @@
 using LiteClient;
+using LiteSim;
 
 namespace LiteGame
 {
@@ -27,6 +28,12 @@ namespace LiteGame
         public int WeaponDamageOverride => -1;
         public int WeaponRpmOverride => -1;
         public bool DrawHeadshotDebug => false;
+
+        public MatchTestRules MatchRules => null;
+
+        public void AttachMatchRules(MatchTestRules rules) { }
+
+        public void DetachMatchRules(MatchTestRules rules) { }
 
         public void RequestEnter() { }
         public void RequestExit() { }

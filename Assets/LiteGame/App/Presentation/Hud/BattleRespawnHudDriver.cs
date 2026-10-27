@@ -1,4 +1,5 @@
 using System;
+using LiteClient;
 using LiteSim;
 using LiteView;
 using TMPro;
@@ -9,31 +10,30 @@ namespace LiteGame
     /// <summary>
     /// 死亡/复活 HUD 驱动（阵亡批）：**中央复活倒计时** ＋ **阵亡归属** ＋ **保护期角标**。
     ///
-    /// - **显隐/倒计时**读**本地预测态**：<see cref="SimView.IsDead"/> 的死亡锁存判据 ＋
-    ///   `EntitySlot.RespawnFrame − Frame`（复活目标绝对帧——剩余帧转整秒，**秒粒度才写**）；
+    /// - **事实来源**：一律经 <see cref="IBattleReadModel.TryGetLocalRespawn"/>（M2 读模型收口）——
+    ///   显隐/倒计时/保护期不再直读 <see cref="SimWorldState"/>；阵亡锁存判据由读模型实例注入
+    ///   （表现侧预测态）。
     /// - **归属**吃 `Death` 帧事件（<see cref="IHitFeedbackConsumer"/>）：仅 `role==Received`（我阵亡）
     ///   记击杀者（<see cref="HitFeedbackContext.OtherId"/>，0 = 自杀/环境无归属）；命中/开火不吃；
-    ///   **名字为占位**（<see cref="PlayerIdentity"/> 身份序号——与排行榜**共用单源**，真名字归 G3）；
-    /// - **保护期** = `Frame &lt; InvulnerableUntilFrame`（**端点不含**；仅**成功开火**取消、超时自然结束
+    ///   **名字为占位**（<see cref="PlayerIdentity"/> 身份序号——与排行榜**共用单源**，真名字归 G3），
+    ///   经读模型的 <see cref="IBattleReadModel.DisplayName"/> 取（驱动的唯一名字入口）。
+    /// - **保护期** = 读模型 `Protected`（**端点不含**；仅**成功开火**取消、超时自然结束
     ///   ——口径由 `MatchRulesTests.AcceptedShotCancelsProtectionButBlockedWeaponDoesNot` 钉住）；
     /// - **写纪律**：全部**值变化才写**（两个根按开关、倒计时按整秒、标题按串变）；
-    /// - 测试注：镜像 / 本地槽解析走构造注入（同面板与排行榜驱动）——EditMode 确定性驱动。
+    /// - 测试注：读模型注入（同面板与排行榜驱动）——EditMode 确定性驱动。
     /// </summary>
     public sealed class BattleRespawnHudDriver : IHitFeedbackConsumer, IDisposable
     {
         /// <summary>无归属（自杀/环境伤害）时的标题。</summary>
         public const string DeathTitle = "已阵亡";
 
-        /// <summary>保护期角标文案（HUD 固定英文口径——同 <c>RELOADING</c>/<c>SETTINGS</c>）。</summary>
+        /// <summary>保护期角标文案（HUD 固定英文口径——同 `RELOADING`/`SETTINGS`）。</summary>
         public const string ProtectedLabel = "PROTECTED";
 
         /// <summary>60Hz 逻辑帧 → 秒（倒计时换算；不引浮点取整误差）。</summary>
         private const int TicksPerSecond = 60;
 
-        private SimWorldState _state;                  // 每帧从 _stateOf 刷新（权威镜像优先）
-        private readonly Func<SimWorldState> _stateOf;
-        private readonly Func<int> _localSlot;
-        private readonly Func<bool> _isLocalDead;
+        private readonly IBattleReadModel _model;
         private readonly RectTransform _respawnRoot;
         private readonly TextMeshProUGUI _title;
         private readonly TextMeshProUGUI _countdown;
@@ -46,26 +46,13 @@ namespace LiteGame
         private long _killerId;
         private bool _disposed;
 
-        /// <param name="state">逻辑镜像（`RespawnFrame`/`InvulnerableUntilFrame`/`Frame` 读面）。</param>
-        /// <param name="localSlot">本地槽位（-1 = 未对齐/解析失败）——注入缝（EditMode 免构造 SimView）。</param>
-        /// <param name="isLocalDead">本地是否阵亡（预测态锁存判据）。</param>
+        /// <param name="model">对局只读事实端口（本地阵亡/剩余帧/保护期/显示名）。</param>
         /// <param name="protectionRoot">保护期角标根（null = 无角标，静默跳过）。</param>
-        public BattleRespawnHudDriver(SimWorldState state, Func<int> localSlot, Func<bool> isLocalDead,
-            RectTransform respawnRoot, TextMeshProUGUI title, TextMeshProUGUI countdown,
-            RectTransform protectionRoot = null)
-            : this(() => state, localSlot, isLocalDead, respawnRoot, title, countdown, protectionRoot)
-        {
-        }
-
-        /// <summary>读源为委托的形态（生产：权威镜像优先；测试可传固定世界）。</summary>
-        public BattleRespawnHudDriver(Func<SimWorldState> stateOf, Func<int> localSlot, Func<bool> isLocalDead,
+        public BattleRespawnHudDriver(IBattleReadModel model,
             RectTransform respawnRoot, TextMeshProUGUI title, TextMeshProUGUI countdown,
             RectTransform protectionRoot = null)
         {
-            _stateOf = stateOf ?? throw new ArgumentNullException(nameof(stateOf));
-            _state = stateOf() ?? throw new ArgumentNullException(nameof(stateOf), "读源首帧不得为 null");
-            _localSlot = localSlot ?? throw new ArgumentNullException(nameof(localSlot));
-            _isLocalDead = isLocalDead ?? throw new ArgumentNullException(nameof(isLocalDead));
+            _model = model ?? throw new ArgumentNullException(nameof(model));
             _respawnRoot = respawnRoot ?? throw new ArgumentNullException(nameof(respawnRoot));
             _title = title ?? throw new ArgumentNullException(nameof(title));
             _countdown = countdown ?? throw new ArgumentNullException(nameof(countdown));
@@ -78,16 +65,13 @@ namespace LiteGame
         {
             if (_disposed) return;
 
-            SimWorldState state = _stateOf();
-            if (state != null) _state = state;
-            int slot = _localSlot();
-            if (slot < 0)
+            if (!_model.TryGetLocalRespawn(out BattleRespawnFacts facts))
             {
                 HideAll();                                  // 未对齐：如实收起，不猜
                 return;
             }
 
-            bool dead = _isLocalDead();
+            bool dead = facts.Dead;
             if (dead != _lastDead)
             {
                 _lastDead = dead;
@@ -97,7 +81,7 @@ namespace LiteGame
             if (dead)
             {
                 UpdateTitle();
-                UpdateCountdown(slot);
+                UpdateCountdown(facts.RemainingFrames);
             }
             else
             {
@@ -106,7 +90,7 @@ namespace LiteGame
                 _lastSeconds = int.MinValue;                // 下次阵亡 0 秒也要写
             }
 
-            UpdateProtection(slot);
+            UpdateProtection(facts.Protected);
         }
 
         /// <summary>阵亡归属（只吃 Death × 我阵亡）——命中/开火等其余事件不处理。</summary>
@@ -119,26 +103,24 @@ namespace LiteGame
 
         private void UpdateTitle()
         {
-            string killer = _killerId != 0L ? PlayerIdentity.PlaceholderName(_state, _killerId) : string.Empty;
+            string killer = _killerId != 0L ? _model.DisplayName(_killerId) : string.Empty;
             string text = string.IsNullOrEmpty(killer) ? DeathTitle : "被 " + killer + " 击杀";
             if (text == _lastTitle) return;
             _lastTitle = text;
             _title.text = text;
         }
 
-        private void UpdateCountdown(int slot)
+        private void UpdateCountdown(int remainingFrames)
         {
-            int remaining = _state.Entities[slot].RespawnFrame - _state.Frame;
-            int seconds = remaining <= 0 ? 0 : (remaining + TicksPerSecond - 1) / TicksPerSecond;
+            int seconds = remainingFrames <= 0 ? 0 : (remainingFrames + TicksPerSecond - 1) / TicksPerSecond;
             if (seconds == _lastSeconds) return;            // 整秒未变不写（逐帧递减不逐帧写）
             _lastSeconds = seconds;
             _countdown.text = seconds.ToString();
         }
 
-        private void UpdateProtection(int slot)
+        private void UpdateProtection(bool on)
         {
             if (_protectionRoot == null) return;
-            bool on = _state.Frame < _state.Entities[slot].InvulnerableUntilFrame;   // 端点不含
             if (on == _lastProtected) return;
             _lastProtected = on;
             _protectionRoot.gameObject.SetActive(on);

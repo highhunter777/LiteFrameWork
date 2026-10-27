@@ -4,12 +4,13 @@ using System.Collections.Generic;
 namespace LiteClient.UI
 {
     /// <summary>
-    /// UI 操作队列端口（路线图 M0 接缝 3 / I4）：导航与转场共用同一套"容量 / 拒绝 / 取队"原语，
-    /// 不再各自持有 <c>Queue&lt;T&gt;</c> 与容量计数。
+    /// UI 操作队列端口（路线图 M0 接缝 3 / M2 全量迁移）：导航、转场、弹窗共用同一套
+    /// "容量 / 优先级 / 就绪筛选 / 拒绝 / 取队"原语，不再各自持有私有队列与容量计数。
     ///
-    /// **为什么是原语而不是统一执行器**：转场是在导航操作**内部**被 UIService 调用的（打开/关闭页面时
-    /// 播放出入场），若共用同一个执行器会形成"导航槽内等转场槽"的嵌套等待。故两边保留各自的执行时序，
-    /// 只把排队语义（FIFO、容量上限、拒绝计数）收成一份实现；M2 的 UI 队列全量迁移再统一执行面。
+    /// **为什么仍是原语而不是统一执行器**：转场是在导航操作**内部**被 UIService 调用的（打开/关闭页面时
+    /// 播放出入场），若共用同一个执行器会形成"导航槽内等转场槽"的嵌套等待；弹窗的互斥组/合并语义
+    /// 也需要各自的出队判据。故保留各自执行时序，只把"排队"收成一份实现——M2 的收敛点是
+    /// **一个队列实现**，M3 再把超时/取消/合并策略抽成统一操作对象。
     /// </summary>
     public interface IUiOperationQueue<T>
     {
@@ -22,26 +23,42 @@ namespace LiteClient.UI
         /// <summary>因队列满被拒绝的累计次数（可观测拒绝）。</summary>
         int RejectedCount { get; }
 
-        /// <summary>入队；队列满 → false 并累计拒绝（调用方决定抛出/丢弃并记日志）。</summary>
-        bool TryEnqueue(T item);
+        /// <summary>入队（默认优先级 = 0）；队列满 → false 并累计拒绝（调用方决定抛出/丢弃并记日志）。</summary>
+        bool TryEnqueue(T item, int priority = 0);
 
-        /// <summary>取队首；空 → false。</summary>
+        /// <summary>取队首（按优先级降序、同级 FIFO）；空 → false。</summary>
         bool TryDequeue(out T item);
+
+        /// <summary>取"就绪项"中优先级最高者（同级 FIFO）；<paramref name="ready"/> = null 表示全部就绪。
+        /// 弹窗用它按互斥组筛选（组忙的条目留在队里，不阻塞其他组）。</summary>
+        bool TryDequeueWhere(Func<T, bool> ready, out T item);
 
         /// <summary>清空排队（不改变拒绝计数）。</summary>
         void Clear();
     }
 
-    /// <summary>统一队列原语实现（唯一允许 `Queue&lt;T&gt;` 作为 UI 调度器的地方）。</summary>
+    /// <summary>
+    /// 统一队列原语实现（唯一允许 <c>Queue&lt;T&gt;</c> 语义作为 UI 调度器的地方）。
+    /// 内部用 List 承载优先级插入：导航/转场容量小、全默认优先级，行为与 FIFO 完全一致；
+    /// 弹窗按优先级出队（高先出、同级 FIFO）。
+    /// </summary>
     public sealed class UiOperationQueue<T> : IUiOperationQueue<T>
     {
-        private readonly Queue<T> _items;
+        private struct Slot
+        {
+            public T Item;
+            public int Priority;
+            public long Seq;
+        }
+
+        private readonly List<Slot> _items;
         private int _capacity;
+        private long _seq;
 
         public UiOperationQueue(int capacity)
         {
             _capacity = capacity > 0 ? capacity : 1;
-            _items = new Queue<T>(Math.Min(_capacity, 8));
+            _items = new List<Slot>(Math.Min(_capacity, 8));
         }
 
         public int Count => _items.Count;
@@ -54,25 +71,41 @@ namespace LiteClient.UI
 
         public int RejectedCount { get; private set; }
 
-        public bool TryEnqueue(T item)
+        public bool TryEnqueue(T item, int priority = 0)
         {
             if (_items.Count >= _capacity)
             {
                 RejectedCount++;
                 return false;
             }
-            _items.Enqueue(item);
+            _items.Add(new Slot { Item = item, Priority = priority, Seq = _seq++ });
             return true;
         }
 
-        public bool TryDequeue(out T item)
+        public bool TryDequeue(out T item) => TryDequeueWhere(null, out item);
+
+        public bool TryDequeueWhere(Func<T, bool> ready, out T item)
         {
-            if (_items.Count == 0)
+            int best = -1;
+            for (int i = 0; i < _items.Count; i++)
+            {
+                Slot candidate = _items[i];
+                if (ready != null && !ready(candidate.Item)) continue;
+                if (best < 0) { best = i; continue; }
+                Slot current = _items[best];
+                if (candidate.Priority > current.Priority
+                    || (candidate.Priority == current.Priority && candidate.Seq < current.Seq))
+                    best = i;
+            }
+
+            if (best < 0)
             {
                 item = default;
                 return false;
             }
-            item = _items.Dequeue();
+
+            item = _items[best].Item;
+            _items.RemoveAt(best);
             return true;
         }
 

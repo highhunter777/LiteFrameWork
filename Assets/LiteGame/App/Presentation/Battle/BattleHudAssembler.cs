@@ -17,6 +17,7 @@ namespace LiteGame
         private readonly CrosshairFeelProfile _crosshairFeel;   // 准心手感投影（tbcrosshair——可空 = 测试装配回落 Default）
 
         private BattleCrosshairDriver _crosshair;
+        private BattleReadModel _predictedModel;              // HUD/击杀提示共用（预测态读源）
         private BattleHudDriver _hud;
         private BattleRankboardDriver _rankboard;
         private BattleKillFeedDriver _killFeed;
@@ -138,9 +139,9 @@ namespace LiteGame
                 return;
             }
 
-            var hudModel = new BattleReadModel(() => context.Sim.State,
+            _predictedModel = new BattleReadModel(() => context.Sim.State,
                 () => view != null ? view.LocalEntityId : 0L);
-            _hud = new BattleHudDriver(hudModel,
+            _hud = new BattleHudDriver(_predictedModel,
                 _hudView.PanelGroup, _hudView.HpBar, _hudView.AmmoText,
                 _hudView.ReloadLabel,                               // 缺标签件=驱动内静默降级（不显示换弹态）
                 _hudView.ReserveAmmoText, _hudView.SlashSeparator); // 剩余备弹读出（缺件=静默降级：只显当前弹匣）
@@ -167,6 +168,11 @@ namespace LiteGame
             Log.Info("rankboard-attached", LogTag.Battle);
         }
 
+        /// <summary>击杀提示读模型：优先复用 HUD 的预测态实例（同一读源、少一份缓冲）。</summary>
+        private BattleReadModel KillFeedModel(BattleContext context, SimView view)
+            => _predictedModel ?? new BattleReadModel(() => context.Sim.State,
+                () => view != null ? view.LocalEntityId : 0L);
+
         /// <summary>挂全局击杀提示：消费会话公共战斗事件面的击杀队列；行件不齐 → 静默降级。</summary>
         private void AttachKillFeed(BattleContext context, SimView view)
         {
@@ -176,8 +182,7 @@ namespace LiteGame
                 Log.Warning("HUD prefab 击杀提示行件不齐（行四组）×4——击杀提示静默降级", LogTag.Battle);
                 return;
             }
-            _killFeed = new BattleKillFeedDriver(context.Sim.State,
-                () => view != null ? view.LocalEntityId : 0L,
+            _killFeed = new BattleKillFeedDriver(KillFeedModel(context, view),
                 context.CombatFeed,
                 _hudView.WeaponIcons,
                 _hudView.KillFeedRows, _hudView.KillFeedKillers, _hudView.KillFeedWeapons, _hudView.KillFeedVictims);
@@ -200,7 +205,7 @@ namespace LiteGame
 
         /// <summary>挂死亡/复活 HUD（中央倒计时 + 归属 + 保护角标）；件不齐 → 静默降级。
         /// 调用时点保持在激光/保护壳之后（与原接线序一致）。</summary>
-        public void AttachRespawnHud(Func<SimWorldState> publicFactState, Func<int> localSlot,
+        public void AttachRespawnHud(Func<SimWorldState> publicFactState, Func<long> localEntityId,
             Func<bool> isLocalDead, HitFeedbackDispatcher dispatcher)
         {
             if (_hudView == null) return;                  // HUD 已整体降级（AttachHud/准心处已警告）
@@ -209,8 +214,8 @@ namespace LiteGame
                 Log.Warning("HUD prefab 死亡/复活件不齐（中央面板 3 件）——死亡等待面板静默降级", LogTag.Battle);
                 return;
             }
-            _respawnHud = new BattleRespawnHudDriver(publicFactState,
-                localSlot, isLocalDead,
+            _respawnHud = new BattleRespawnHudDriver(
+                new BattleReadModel(publicFactState, localEntityId, isLocalDead),
                 _hudView.RespawnRoot, _hudView.RespawnTitle, _hudView.RespawnCountdown,
                 _hudView.ProtectionRoot);
             dispatcher?.Register(_respawnHud);

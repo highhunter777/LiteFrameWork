@@ -33,6 +33,7 @@ namespace LiteFramework
     {
         private const int Capacity = DiagnosticsDefaults.AuditRingCapacity;
         private static readonly LogEntry[] _ring = new LogEntry[Capacity];
+        private static readonly object _ringGate = new object();   // 环形缓冲读写互斥（主线程写 + 任意线程回调读）
         private static int _start;                              // 最旧条目下标
         private static int _count;
         private static readonly RingView _recent = new();
@@ -149,19 +150,24 @@ namespace LiteFramework
 
         private static void Record(LogLevel level, LogTag tag, string message)
         {
-            if (_count == Capacity)
+            LogEntry entry;
+            lock (_ringGate)
             {
-                _ring[_start] = default;                 // 放开滚出条目的 string 引用
-                _start = (_start + 1) % Capacity;
-                _count--;
+                if (_count == Capacity)
+                {
+                    _ring[_start] = default;                 // 放开滚出条目的 string 引用
+                    _start = (_start + 1) % Capacity;
+                    _count--;
+                }
+                int tail = (_start + _count) % Capacity;
+                entry = new LogEntry(level, Environment.TickCount, tag, message,
+                    _sessionId, _matchId, _frame, _playerId);
+                _ring[tail] = entry;
+                _count++;
             }
-            int tail = (_start + _count) % Capacity;
-            var entry = new LogEntry(level, Environment.TickCount, tag, message,
-                _sessionId, _matchId, _frame, _playerId);
-            _ring[tail] = entry;
-            _count++;
 
-            // 结构化出口：调用线程只做入队（实现契约），异常吞掉——日志设施故障不反噬业务
+            // 结构化出口：调用线程只做入队（实现契约），异常吞掉——日志设施故障不反噬业务。
+            // 放在锁外：出口实现可能较慢/回调式，不能把任意代码带进环形缓冲的临界区。
             ILogSink sink = _sink;
             if (sink != null)
             {
@@ -169,24 +175,37 @@ namespace LiteFramework
                 catch { /* 同 ILogHelper：出口故障不影响记录/业务 */ }
             }
         }
+        /// <summary>
+        /// 最近日志的只读视图（**线程安全**：下标/计数逐次加锁；枚举取快照，迭代期间不撕裂）。
+        /// 快照在枚举开始时分配一次——DevHUD/现场包低频读取，代价可接受。
+        /// </summary>
         private sealed class RingView : IReadOnlyList<LogEntry>
         {
-            public LogEntry this[int i] => i < 0 || i >= _count
-                ? throw new ArgumentOutOfRangeException(nameof(i))
-                : _ring[(_start + i) % Capacity];
-            public int Count => _count;
-            public Enumerator GetEnumerator() => new();
-            IEnumerator<LogEntry> IEnumerable<LogEntry>.GetEnumerator() => GetEnumerator();
+            public LogEntry this[int i]
+            {
+                get
+                {
+                    lock (_ringGate)
+                    {
+                        if (i < 0 || i >= _count) throw new ArgumentOutOfRangeException(nameof(i));
+                        return _ring[(_start + i) % Capacity];
+                    }
+                }
+            }
+
+            public int Count { get { lock (_ringGate) return _count; } }
+
+            public IEnumerator<LogEntry> GetEnumerator() => ((IEnumerable<LogEntry>)Snapshot()).GetEnumerator();
             IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
 
-            public struct Enumerator : IEnumerator<LogEntry>
+            private static LogEntry[] Snapshot()
             {
-                private int _index;  // 0 = 未开始;Current 用 _index-1
-                public LogEntry Current => Log._ring[(Log._start + _index - 1) % Capacity];
-                object IEnumerator.Current => Current;
-                public bool MoveNext() => _index < Log._count && ++_index <= Log._count;
-                public void Reset() => _index = 0;
-                public void Dispose() { }
+                lock (_ringGate)
+                {
+                    var copy = new LogEntry[_count];
+                    for (int i = 0; i < _count; i++) copy[i] = _ring[(_start + i) % Capacity];
+                    return copy;
+                }
             }
         }
     }

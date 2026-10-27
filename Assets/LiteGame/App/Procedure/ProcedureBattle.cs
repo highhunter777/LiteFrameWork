@@ -60,10 +60,15 @@ namespace LiteGame
         private readonly FeedbackService _feedback;  // 开局入场加载遮罩（可空 = 测试装配不接 UI）
         private readonly CrosshairFeelProfile _crosshairFeel;   // 准心手感投影（tbcrosshair；可空 = 测试装配回落 Default）
         private readonly Func<UiThemeAsset> _themeProvider;      // 主题资产工厂（P2-3 B4：HUD 注入复用；可空 = 保持烘焙值）
+        private readonly LiteClient.IDevSession _devSession;     // 开发会话端口（dev 投影读本局规则；可空 = 测试装配）
 
-        private BattleViewRig _rig;                  // 视图域（资源租约 / 视图与消费者 / 逆序拆除）
-        private BattleContext _context;
-        private BattleSession _session;
+        private BattleSession _session;              // 对局聚合（唯一状态所有者：Match 域 + 上下文 + 视图域）
+
+        /// <summary>视图域（经会话消费——Battle 阶段不直接持有生命周期）。</summary>
+        private BattleViewRig _rig => _session?.View;
+
+        /// <summary>对局上下文（经会话消费）。</summary>
+        private BattleContext _context => _session?.Context;
         private ClientScope _account;
         private Scene _sceneBeforeBattle;            // 进场前活动场景（离场还原端点——UnloadBattleScenes 一次性消费）
 
@@ -82,7 +87,8 @@ namespace LiteGame
             LiteFramework.IWorldClock worldClock = null, IMatchSessionFactory matchSessions = null,
             AudioService audio = null, CommandCenter commands = null, PageFlow pages = null,
             CrosshairFeelProfile crosshairFeel = null, ISceneService scenes = null, IMapProvider maps = null,
-            FeedbackService feedback = null, Func<UiThemeAsset> themeProvider = null)
+            FeedbackService feedback = null, Func<UiThemeAsset> themeProvider = null,
+            LiteClient.IDevSession devSession = null)
             : base(rootToken)
         {
             _content = content ?? throw new ArgumentNullException(nameof(content));
@@ -100,6 +106,7 @@ namespace LiteGame
             _feedback = feedback;
             _crosshairFeel = crosshairFeel;
             _themeProvider = themeProvider;
+            _devSession = devSession;
         }
 
         protected override void RunAsync(IStageHost<ProcedureId, ProcedureArgs> m, in ProcedureArgs req, CancellationToken ct)
@@ -121,14 +128,15 @@ namespace LiteGame
                 BattleClient battleClient = accountSession.Battle;
 
                 // 视图域：自有 BattleView 作用域 + 视图根 + 六个取件（缺角色资源＝无角色视图）
-                _rig = new BattleViewRig(_content, _input, _camera, _account, _vfx, _worldClock, _audio, _commands,
+                var rig = new BattleViewRig(_content, _input, _camera, _account, _vfx, _worldClock, _audio, _commands,
                     crosshairFeel: _crosshairFeel,       // 准心手感投影（可空 = 测试装配）
                     themeProvider: _themeProvider);       // HUD 主题注入（可空 = 保持烘焙值）
-                await _rig.LoadAsync(ct);
+                await rig.LoadAsync(ct);
 
-                _session = new BattleSession(_matchSessions?.Create(accountSession)
-                    ?? throw new InvalidOperationException("缺少 MatchSessionFactory（完整 DI 装配要求由工厂创建 Match 域）"));
-                _context = _session.Context;
+                _session = new BattleSession(_matchSessions?.Create(accountSession, accountSession.Rules)
+                    ?? throw new InvalidOperationException("缺少 MatchSessionFactory（完整 DI 装配要求由工厂创建 Match 域）"),
+                    _devSession);
+                _session.AttachView(rig);            // 视图域归会话持有（拆除由 Session 统一逆序）
                 RoomBridge.BindSession(new RoomSessionFace(battleClient));   // 房间会话门面（房主开局批）——页面经 Bridge.room 读房主事实/发提前开局；收尾必摘
                 Log.Info("context-created (Match Scope built)", LogTag.Battle);
 
@@ -175,8 +183,8 @@ namespace LiteGame
                 BattleContext.EndReason reason = await WaitEnded(_context, ct);
                 Log.Info($"ended reason={reason} reconciles={_context.ReconcileCount}", LogTag.Battle);
                 completed = reason == BattleContext.EndReason.Completed;
-                matchResult = _context.MatchResult;          // 冻结结果（MatchEnded → 结算页数据源；批C-④）
-                localPlayerId = _context.PlayerId;
+                matchResult = _session.MatchResult;          // 冻结结果（会话聚合读口 → 结算页数据源；批C-④）
+                localPlayerId = _session.PlayerId;
                 next = ProcedureId.Main;              // 会话失败也回 Main（日志已留痕）
             }
             catch (OperationCanceledException)
@@ -195,7 +203,6 @@ namespace LiteGame
                 DetachView();
                 _session?.Dispose();
                 _session = null;
-                _context = null;
                 accountSession?.Dispose();
                 _account = null;
                 // 收尾卸载对局场景组——**只在宿主关闭时跳过**：该路径的 Scene 行退出动作是"释放资源租约"
@@ -346,8 +353,7 @@ namespace LiteGame
             RoomBridge.UnbindSession();            // 会话门面先摘（页面订阅不得命中死会话——未在途回调随作废）
             _pages?.DisableBattleMenuBack();   // 对局菜单 Back 随视图拆除（ESC 恢复原 Back 链——对局外不得开设置页）
             _input?.Reset();   // 离场即清派发状态（设备源与拦截源都是装配根的，不在此摘）
-            _rig?.Dispose();
-            _rig = null;
+            _session?.DetachView();            // 视图域拆除归会话（消费者 → 视图 → 租约作用域）
         }
 
         public override void OnUpdate(IStageHost<ProcedureId, ProcedureArgs> m, float elapseSeconds)

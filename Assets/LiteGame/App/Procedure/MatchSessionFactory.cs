@@ -15,8 +15,8 @@ namespace LiteGame
     public interface IMatchSessionFactory
     {
         /// <summary>建 Match 会话：服务子域 + BattleContext（工厂产物，容器承担其释放）。
-        /// 失败就地回滚（服务域 Dispose 后重抛）。</summary>
-        MatchSession Create(AccountSession account);
+        /// 失败就地回滚（服务域 Dispose 后重抛）。<paramref name="rules"/>＝本局规则持有件（与权威侧同实例；null = 常规房）。</summary>
+        MatchSession Create(AccountSession account, LiteSim.MatchTestRules rules = null);
     }
 
     /// <summary>
@@ -65,7 +65,7 @@ namespace LiteGame
             _maps = maps ?? throw new ArgumentNullException(nameof(maps));
         }
 
-        public MatchSession Create(AccountSession account)
+        public MatchSession Create(AccountSession account, LiteSim.MatchTestRules rules = null)
         {
             if (account == null) throw new ArgumentNullException(nameof(account));
             ServiceContainer matchServices = null;
@@ -81,7 +81,8 @@ namespace LiteGame
                         int mapId = BattleScenes.ResolveMapId(battle.Client.MapId);
                         return new BattleContext(battle, account.Scope, _input,
                             _maps.GetMap(mapId),
-                            gameplayDigestBase: _gameplayDigestBase());
+                            gameplayDigestBase: _gameplayDigestBase(),
+                            rules: rules);            // 每局规则随会话显式注入（无静态"当前局"）
                     },
                     ServiceLifetime.Scoped, typeof(BattleClient));
                 matchServices.Seal();

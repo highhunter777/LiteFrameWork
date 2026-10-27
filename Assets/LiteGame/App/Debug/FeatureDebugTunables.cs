@@ -1,5 +1,6 @@
 #if UNITY_EDITOR || DEVELOPMENT_BUILD || LITEFRAMEWORK_DEBUG
 using System.Collections.Generic;
+using LiteClient;
 using LiteSim;
 using LiteView.Animation;
 
@@ -10,9 +11,14 @@ namespace LiteGame
     /// 默认值来自烘焙/表/机制常量，覆写复位统一回源值；编辑器「调试参数」页按描述渲染，
     /// 不再为每组写专用滑杆代码。准心/视角默认值仍写在代码常量里（定档后迁表/配置），
     /// 标 <see cref="DebugTunableScope.Product"/>；爆头区/持枪默认值已由烘焙产物提供，覆写按调试维度归类。
+    /// 当前对局规则经 <see cref="IDevSession.MatchRules"/> 读（实例状态，无 Sim 侧静态"当前局"）。
     /// </summary>
     public sealed class FeatureDebugTunables : IDebugTunableProvider
     {
+        private readonly IDevSession _dev;
+
+        public FeatureDebugTunables(IDevSession dev = null) => _dev = dev;
+
         public void CollectDebugTunables(ICollection<DebugTunable> into)
         {
             AddHead(into);
@@ -23,29 +29,29 @@ namespace LiteGame
 
         // ---- 爆头区（判定面沙箱件；活动局 + 跨局待用值双落）----
 
-        public static float CurrentHeadLine()
+        public float CurrentHeadLine()
         {
-            var match = LiteSim.SimTestRules.ActiveMatch;
+            var match = _dev?.MatchRules;
             if (match != null) return LiteSim.MatchTestRules.ResolveHeadHitLine(match);
             return TestModeRuntime.HeadHitLineOverride >= 0f
                 ? TestModeRuntime.HeadHitLineOverride
                 : LiteSim.CombatConfig.HeadHitLine;
         }
 
-        public static float CurrentHeadRadius()
+        public float CurrentHeadRadius()
         {
-            var match = LiteSim.SimTestRules.ActiveMatch;
+            var match = _dev?.MatchRules;
             if (match != null) return LiteSim.MatchTestRules.ResolveHeadshotRadius(match);
             return TestModeRuntime.HeadshotRadiusOverride >= 0f
                 ? TestModeRuntime.HeadshotRadiusOverride
                 : LiteSim.CombatConfig.HeadshotRadius;
         }
 
-        public static void SetHead(float line, float radius)
+        public void SetHead(float line, float radius)
         {
             TestModeRuntime.HeadHitLineOverride = line;
             TestModeRuntime.HeadshotRadiusOverride = radius;
-            var match = LiteSim.SimTestRules.ActiveMatch;
+            var match = _dev?.MatchRules;
             if (match != null)
             {
                 match.HeadHitLineOverride = line;
@@ -53,7 +59,7 @@ namespace LiteGame
             }
         }
 
-        private static void AddHead(ICollection<DebugTunable> into)
+        private void AddHead(ICollection<DebugTunable> into)
         {
             into.Add(new DebugTunable
             {

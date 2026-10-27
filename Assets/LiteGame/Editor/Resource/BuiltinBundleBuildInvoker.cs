@@ -29,8 +29,7 @@ namespace LiteGame.EditorTools
         {
             "/Editor/",
             "/Editor Resources/",
-            "Assets/LiteGame/DevTool/",
-            "Assets/LiteGame/DevLocalServer/",
+            "Assets/LiteGame/Dev/",
         };
 
         /// <summary>版本号每次构建唯一化（YooAsset 同版本输出目录已存在会拒绝重跑——ErrorCode115）。</summary>

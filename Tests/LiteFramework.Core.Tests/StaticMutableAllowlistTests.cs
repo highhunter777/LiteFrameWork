@@ -42,7 +42,6 @@ namespace LiteFramework.Core.Tests
             "Assets/LiteGame/App/Presentation/Hud/CrosshairFeel.cs :: StaticMaxDevOverride",
             "Assets/LiteGame/Editor/GenConfig/GenConfig.cs :: CSharpCallLua",
             "Assets/LiteSim/Core/Scripts/SimTestRules.cs :: Active",
-            "Assets/LiteSim/Core/Scripts/SimTestRules.cs :: ActiveMatch",
             "Assets/LiteSim/Core/Scripts/SimTestRules.cs :: BotFrozen",
             "Assets/LiteSim/Core/Scripts/SimTestRules.cs :: BotInfiniteHp",
             "Assets/LiteSim/Core/Scripts/SimTestRules.cs :: BotResetRequested",

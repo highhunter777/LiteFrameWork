@@ -24,6 +24,31 @@ namespace LiteFramework
 
         private ClientHost _host;
         private bool _quitting;
+        private bool _quitApproved;
+
+        private void OnEnable() => Application.wantsToQuit += OnWantsToQuit;
+        private void OnDisable() => Application.wantsToQuit -= OnWantsToQuit;
+
+        /// <summary>
+        /// 退出闸门：**先拦下退出**（主循环仍在跑 ⇒ 关闭链的 UniTask 续体可推进），
+        /// 异步关闭完成后置放行标志并再次 <see cref="Application.Quit"/>——这次直接放行。
+        /// 编辑器停播不走此路（`Application.Quit` 在编辑器不生效）——由 <see cref="OnDestroy"/> 兜底。
+        /// </summary>
+        private bool OnWantsToQuit()
+        {
+            if (_quitApproved || _host == null) return true;
+            if (Application.isEditor) return true;      // 编辑器：交给 OnDestroy 兜底，避免拦下后无法再放行
+            _quitting = true;
+            ApproveAfterShutdownAsync().Forget();
+            return false;
+        }
+
+        private async UniTaskVoid ApproveAfterShutdownAsync()
+        {
+            await RunGracefulQuitAsync();
+            _quitApproved = true;
+            Application.Quit();                          // 二次退出：本次直接放行
+        }
 
         /// <summary>桥接目标 Host。绑定后本件接管其平台事件转发与退出善后（一对一；二次绑定即装配错误）。</summary>
         public void Bind(ClientHost host)
@@ -64,21 +89,19 @@ namespace LiteFramework
             _host.RaiseLowMemory();
         }
 
-        /// <summary>Unity 退出消息 → 优雅关闭序列（public 原因同上）。</summary>
+        /// <summary>Unity 退出消息 → 优雅关闭序列（public 原因同上）。
+        /// **不阻塞主线程**：正常退出已在 <see cref="OnWantsToQuit"/> 拦下并完成关闭；此入口若仍拿到未完成的
+        /// 关闭链（编辑器停播/引擎直接退出），只做确定性兜底——强制释放根 Scope，不再用 sleep 空转。</summary>
         public void OnApplicationQuit()
         {
             if (_host == null || _quitting) return;
             _quitting = true;
 
-            // 优雅退出：同步有界等待（Unity 退出只给主线程这一窗口）。
-            // QuitIntent → ShutdownAsync（刷新钩子 + 逆序模块关闭 + 根 Scope）→ 超时放行。
-            // 挂死模块不应把进程退出拖成僵尸：超时后由 OS/引擎回收残余。
             UniTask quitFlow = RunGracefulQuitAsync();
-            float deadline = Time.realtimeSinceStartup + GracefulShutdownMaxMs / 1000f;
-            while (!quitFlow.GetAwaiter().IsCompleted && Time.realtimeSinceStartup < deadline)
+            if (!quitFlow.GetAwaiter().IsCompleted)
             {
-                // 主线程泵：驱动关闭流程里的异步延续（UniTask 的同步完成模式下通常瞬间完成）
-                System.Threading.Thread.Sleep(1);
+                Log.Warning("退出时异步关闭未完成——强制释放根 Scope（刷新钩子可能被跳过）", LogTag.Bootstrap);
+                _host.ForceReleaseRoot();
             }
         }
 
@@ -97,14 +120,14 @@ namespace LiteFramework
 
         private void OnDestroy()
         {
-            // 非 Quit 场景的宿主销毁（场景切换误删引导件等）：同样走完整关闭，保证不因销毁路径泄漏模块
+            // 非 Quit 场景的宿主销毁（场景切换误删引导件等）：同样走完整关闭，保证不因销毁路径泄漏模块。
             if (_host == null || _quitting) return;
             _quitting = true;
             UniTask destructionFlow = RunGracefulQuitAsync();
-            float deadline = Time.realtimeSinceStartup + GracefulShutdownMaxMs / 1000f;
-            while (!destructionFlow.GetAwaiter().IsCompleted && Time.realtimeSinceStartup < deadline)
+            if (!destructionFlow.GetAwaiter().IsCompleted)
             {
-                System.Threading.Thread.Sleep(1);
+                Log.Warning("宿主销毁时异步关闭未完成——强制释放根 Scope（刷新钩子可能被跳过）", LogTag.Bootstrap);
+                _host.ForceReleaseRoot();
             }
         }
     }

@@ -15,6 +15,8 @@ namespace LiteGame
     ///
     /// - **数据源**：客户端会话的公共战斗事件面（独立事件批携带的房间级事件窗口）——**全局**
     ///   （含他人击杀），不止本地造成的击杀；本地造成的击杀同样经此路（权威记录含本人）；
+    /// - **事实来源**：名字/本地实体只经 <see cref="IBattleReadModel"/>（M2 读模型收口）——不直读
+    ///   <see cref="SimWorldState"/>；
     /// - **行格式** <c>击杀者 [武器图标] 死者</c>：击杀者为本地 → "你"，否则占位 <c>玩家{k}</c>
     ///   （<see cref="PlayerIdentity"/> 身份序号单源——与排行榜/阵亡归属共用）；`killer==0`（自杀/环境）
     ///   → <c>玩家{v} 阵亡</c>（无图标）；武器图标按击杀帧装备槽取图（缺件静默降级：不显示图标）；
@@ -42,8 +44,7 @@ namespace LiteGame
         /// <summary>无归属（自杀/环境）行文案的动词。</summary>
         public const string DeathVerb = "阵亡";
 
-        private readonly SimWorldState _state;
-        private readonly Func<long> _localEntityId;
+        private readonly IBattleReadModel _model;
         private readonly PublicCombatFeed _feed;
         private readonly Sprite[] _weaponIcons;      // 可缺（缺件静默降级：隐藏图标）
         private readonly GameObject[] _rows;
@@ -55,15 +56,13 @@ namespace LiteGame
         private readonly bool[] _active = new bool[RowCount];
         private bool _disposed;
 
-        /// <param name="state">逻辑镜像（占位名 <see cref="PlayerIdentity"/> 读面）。</param>
-        /// <param name="localEntityId">本地实体 Id 来源（"你"判定）。</param>
+        /// <param name="model">对局只读事实端口（占位名 / 本地实体 Id）。</param>
         /// <param name="feed">公共击杀面（待展示队列；null = 无源，驱动静默空转）。</param>
         /// <param name="weaponIcons">武器图标（下标 = 装备槽；null/短数组 = 图标降级）。</param>
-        public BattleKillFeedDriver(SimWorldState state, Func<long> localEntityId, PublicCombatFeed feed,
+        public BattleKillFeedDriver(IBattleReadModel model, PublicCombatFeed feed,
             Sprite[] weaponIcons, GameObject[] rows, TextMeshProUGUI[] killers, Image[] weapons, TextMeshProUGUI[] victims)
         {
-            _state = state ?? throw new ArgumentNullException(nameof(state));
-            _localEntityId = localEntityId ?? throw new ArgumentNullException(nameof(localEntityId));
+            _model = model ?? throw new ArgumentNullException(nameof(model));
             _feed = feed;                                        // null = 空转（静默降级）
             _weaponIcons = weaponIcons;
             _rows = Require(rows, nameof(rows));
@@ -116,7 +115,7 @@ namespace LiteGame
             _remaining[idx] = RowDwellSeconds;
             _rows[idx].SetActive(true);
 
-            string victim = PlayerIdentity.PlaceholderName(_state, e.Victim);
+            string victim = _model.DisplayName(e.Victim);
             string killer = KillerLabel(e.Killer);
 
             if (string.IsNullOrEmpty(killer))
@@ -140,8 +139,8 @@ namespace LiteGame
         private string KillerLabel(long killerId)
         {
             if (killerId == 0L) return string.Empty;
-            if (killerId == _localEntityId()) return LocalKillerLabel;
-            return PlayerIdentity.PlaceholderName(_state, killerId);
+            if (killerId == _model.LocalEntityId) return LocalKillerLabel;
+            return _model.DisplayName(killerId);
         }
 
         private Sprite IconOf(int slot)

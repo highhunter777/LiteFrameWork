@@ -24,7 +24,7 @@ namespace LiteGame.Tests.EditMode
             private readonly List<string> _trace;
             public string Name { get; }
             public FakeModule(string name, List<string> trace) { Name = name; _trace = trace; }
-            public UniTask InitializeAsync(ClientContext context, CancellationToken ct)
+            public UniTask InitializeAsync(ModuleContext context, CancellationToken ct)
             {
                 _trace.Add("init:" + Name);
                 return UniTask.CompletedTask;

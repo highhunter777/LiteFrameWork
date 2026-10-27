@@ -7,11 +7,13 @@ namespace LiteGame
 {
     /// <summary>⑦ 配置：表投影数据源（UIFormCatalog/注册表填充依赖）。字节通道经 ②内容服务租约
     /// （代次/引用统一——提取 bytes 即释放源资产，热更专项 §9）；候选校验→原子发布见 <see cref="ConfigService"/>。</summary>
-    internal sealed class ConfigModule : IClientModule
+    internal sealed class ConfigModule : IClientModule, IClientModuleGraph
     {
         public string Name => "Config";
 
-        public UniTask InitializeAsync(ClientContext context, CancellationToken ct)
+        /// <summary>依赖的模块（与 GameEntry 注册序一致；供 Host DAG 校验）。</summary>
+        public System.Collections.Generic.IReadOnlyList<System.Type> DependsOn => new System.Type[] { typeof(ContentModule) };
+        public UniTask InitializeAsync(ModuleContext context, CancellationToken ct)
         {
             var content = context.Require<IContentService>();   // 依赖②——注册序即依赖序
             context.Put(new ConfigService((location, token) => LoadBytesViaContentLease(content, location, token)));

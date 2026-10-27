@@ -36,7 +36,7 @@ namespace LiteFramework.Tests
                 _delayFrames = delayFrames;
             }
 
-            public async UniTask InitializeAsync(ClientContext context, CancellationToken ct)
+            public async UniTask InitializeAsync(ModuleContext context, CancellationToken ct)
             {
                 _trace.Add("init:" + Name);
                 for (int i = 0; i < _delayFrames; i++)
@@ -158,7 +158,7 @@ namespace LiteFramework.Tests
 
             public CancellingModule(List<string> trace, CancellationTokenSource cts) { _trace = trace; _cts = cts; }
 
-            public UniTask InitializeAsync(ClientContext context, CancellationToken ct)
+            public UniTask InitializeAsync(ModuleContext context, CancellationToken ct)
             {
                 _trace.Add("init:" + Name);
                 _cts.Cancel();                                 // 模拟上游取消（父级令牌失效）
@@ -302,6 +302,248 @@ namespace LiteFramework.Tests
         private sealed class BoomDisposer : IDisposable
         {
             public void Dispose() => throw new InvalidOperationException("boom");
+        }
+
+        // ---- M1：模块依赖图（重复/缺失/环）与关闭链全路径释放 ----
+
+        /// <summary>带依赖声明的 fake 模块（M1 DAG 校验用）。</summary>
+        private sealed class GraphModule : IClientModule, IClientModuleGraph
+        {
+            public string Name { get; }
+            public IReadOnlyList<Type> DependsOn { get; }
+            public ClientScope CapturedRoot { get; private set; }
+
+            public GraphModule(string name, params Type[] deps)
+            {
+                Name = name;
+                DependsOn = deps ?? Array.Empty<Type>();
+            }
+
+            public UniTask InitializeAsync(ModuleContext context, CancellationToken ct)
+            {
+                CapturedRoot = context.RootScope;
+                return UniTask.CompletedTask;
+            }
+
+            public UniTask ShutdownAsync(CancellationToken ct) => UniTask.CompletedTask;
+        }
+
+        [Fact]
+        public void 模块图_重复模块名拒绝()
+        {
+            var host = Host(new GraphModule("A"), new GraphModule("A"));
+            Assert.Throws<InvalidOperationException>(() => Pump(host.InitializeAsync()));
+        }
+
+        [Fact]
+        public void 模块图_依赖缺失拒绝()
+        {
+            var host = Host(new GraphModule("A"), new GraphModule("B", typeof(GraphModule2NotRegistered)));
+            Assert.Throws<InvalidOperationException>(() => Pump(host.InitializeAsync()));
+        }
+
+        [Fact]
+        public void 模块图_依赖成环拒绝()
+        {
+            // 环只能在**不同类型**之间形成；用两个不同 fake 类型互相依赖。
+            var host = new ClientHost();
+            host.AddModule(new CycleA());
+            host.AddModule(new CycleB());
+            Assert.Throws<InvalidOperationException>(() => Pump(host.InitializeAsync()));
+        }
+
+        [Fact]
+        public void 关闭_取消令牌不跳过根Scope释放()
+        {
+            var module = new GraphModule("A");
+            var host = Host(module);
+            Pump(host.InitializeAsync());
+            Assert.NotNull(module.CapturedRoot);
+            Assert.False(module.CapturedRoot.IsDisposed);
+
+            using (var cts = new CancellationTokenSource())
+            {
+                cts.Cancel();
+                Assert.ThrowsAny<OperationCanceledException>(() => Pump(host.ShutdownAsync(cts.Token)));
+            }
+
+            Assert.True(module.CapturedRoot.IsDisposed,
+                "关闭被取消也必须释放根 Scope（路线图 §4.3：令牌只约束等待上限）");
+        }
+
+        private sealed class GraphModule2NotRegistered : IClientModule
+        {
+            public string Name => "not-registered";
+            public UniTask InitializeAsync(ModuleContext context, CancellationToken ct) => UniTask.CompletedTask;
+            public UniTask ShutdownAsync(CancellationToken ct) => UniTask.CompletedTask;
+        }
+
+        // ---- M1：装配窗口与装配面密封（路线图 §4.3） ----
+
+        private sealed class SealedProbe { }
+
+        /// <summary>捕获本模块装配窗口的模块（用于验证窗口关闭/跨模块拒绝）。</summary>
+        private sealed class CaptureModule : IClientModule
+        {
+            private readonly Action<ModuleContext> _capture;
+            public CaptureModule(Action<ModuleContext> capture) => _capture = capture;
+            public string Name => "capture";
+            public UniTask InitializeAsync(ModuleContext context, CancellationToken ct)
+            {
+                _capture(context);
+                return UniTask.CompletedTask;
+            }
+            public UniTask ShutdownAsync(CancellationToken ct) => UniTask.CompletedTask;
+        }
+
+        /// <summary>在初始化中执行外部动作的模块（跨模块登记用例）。</summary>
+        private sealed class ActionModule : IClientModule
+        {
+            private readonly Action _action;
+            private readonly string _name;
+            public ActionModule(string name, Action action) { _name = name; _action = action; }
+            public string Name => _name;
+            public UniTask InitializeAsync(ModuleContext context, CancellationToken ct)
+            {
+                _action();
+                return UniTask.CompletedTask;
+            }
+            public UniTask ShutdownAsync(CancellationToken ct) => UniTask.CompletedTask;
+        }
+
+        private sealed class FailingModule : IClientModule
+        {
+            public string Name => "failing";
+            public UniTask InitializeAsync(ModuleContext context, CancellationToken ct)
+                => throw new InvalidOperationException("init failed");
+            public UniTask ShutdownAsync(CancellationToken ct) => UniTask.CompletedTask;
+        }
+
+        [Fact]
+        public void 装配窗口_模块初始化返回后关闭_迟到登记拒绝()
+        {
+            ModuleContext captured = null;
+            var host = Host(new CaptureModule(context => captured = context));
+
+            Pump(host.InitializeAsync());
+
+            Assert.NotNull(captured);
+            Assert.True(host.IsAssemblySealed);
+            var ex = Assert.Throws<InvalidOperationException>(() => captured.Put(new SealedProbe()));
+            Assert.Contains("装配窗口已关闭", ex.Message);
+        }
+
+        [Fact]
+        public void 装配窗口_不得跨模块登记()
+        {
+            ModuleContext firstWindow = null;
+            var host = Host(
+                new CaptureModule(context => firstWindow = context),
+                new ActionModule("late-put", () => firstWindow.Put(new SealedProbe())));
+
+            var ex = Assert.Throws<InvalidOperationException>(() => Pump(host.InitializeAsync()));
+            Assert.Contains("装配窗口已关闭", ex.Message);
+        }
+
+        [Fact]
+        public void 装配失败回滚_装配面同样密封_迟到登记拒绝()
+        {
+            ModuleContext captured = null;
+            var host = Host(new CaptureModule(context => captured = context), new FailingModule());
+
+            Assert.Throws<InvalidOperationException>(() => Pump(host.InitializeAsync()));
+            Assert.True(host.IsAssemblySealed);
+            Assert.Throws<InvalidOperationException>(() => captured.Put(new SealedProbe()));
+        }
+
+        // ---- M2：逐模块资源作用域（路线图 §4.3） ----
+
+        /// <summary>把资源登记进本模块作用域的模块：验证释放时机与顺序。</summary>
+        private sealed class ScopedModule : IClientModule
+        {
+            private readonly List<string> _trace;
+            private readonly string _name;
+            private readonly bool _fail;
+
+            public ScopedModule(string name, List<string> trace, bool fail = false)
+            {
+                _name = name;
+                _trace = trace;
+                _fail = fail;
+            }
+
+            public string Name => _name;
+
+            public UniTask InitializeAsync(ModuleContext context, CancellationToken ct)
+            {
+                _trace.Add("init:" + _name);
+                context.Scope.Register(new Tracer(_trace, "scope:" + _name));
+                if (_fail) throw new InvalidOperationException("init failed: " + _name);
+                return UniTask.CompletedTask;
+            }
+
+            public UniTask ShutdownAsync(CancellationToken ct)
+            {
+                _trace.Add("shutdown:" + _name);
+                return UniTask.CompletedTask;
+            }
+        }
+
+        [Fact]
+        public void 模块作用域_失败模块先释放自己的资源_再回滚已成功模块()
+        {
+            var trace = new List<string>();
+            var host = Host(new ScopedModule("A", trace), new ScopedModule("B", trace, fail: true));
+
+            Assert.Throws<InvalidOperationException>(() => Pump(host.InitializeAsync()));
+
+            Assert.Equal(new[] { "init:A", "init:B", "release:scope:B", "shutdown:A", "release:scope:A" }, trace.ToArray());
+        }
+
+        [Fact]
+        public void 模块作用域_关闭时随模块逆序释放_先句柄后资源()
+        {
+            var trace = new List<string>();
+            var host = Host(new ScopedModule("A", trace), new ScopedModule("B", trace));
+
+            Pump(host.InitializeAsync());
+            trace.Clear();
+            Pump(host.ShutdownAsync());
+
+            Assert.Equal(new[] { "shutdown:B", "release:scope:B", "shutdown:A", "release:scope:A" }, trace.ToArray());
+        }
+
+        [Fact]
+        public void 模块作用域_关闭被取消也释放()
+        {
+            var trace = new List<string>();
+            var host = Host(new ScopedModule("A", trace));
+
+            Pump(host.InitializeAsync());
+            trace.Clear();
+            using (var cts = new CancellationTokenSource())
+            {
+                cts.Cancel();
+                Assert.ThrowsAny<OperationCanceledException>(() => Pump(host.ShutdownAsync(cts.Token)));
+            }
+
+            Assert.Contains("release:scope:A", trace);
+        }
+
+        private sealed class CycleA : IClientModule, IClientModuleGraph
+        {
+            public string Name => "CycleA";
+            public IReadOnlyList<Type> DependsOn => new[] { typeof(CycleB) };
+            public UniTask InitializeAsync(ModuleContext context, CancellationToken ct) => UniTask.CompletedTask;
+            public UniTask ShutdownAsync(CancellationToken ct) => UniTask.CompletedTask;
+        }
+
+        private sealed class CycleB : IClientModule, IClientModuleGraph
+        {
+            public string Name => "CycleB";
+            public IReadOnlyList<Type> DependsOn => new[] { typeof(CycleA) };
+            public UniTask InitializeAsync(ModuleContext context, CancellationToken ct) => UniTask.CompletedTask;
+            public UniTask ShutdownAsync(CancellationToken ct) => UniTask.CompletedTask;
         }
     }
 }

@@ -67,7 +67,7 @@ namespace LiteSim
         /// <param name="dy">射线方向 Y（**0 = 水平射线**，等价旧 2.5D 行为）。</param>
         /// <param name="maxT">射程上界（沿三维方向的长度）。</param>
         /// <param name="rules">本局测试规则（爆头带试验覆写随动；null = 烘焙导出值）。判定链经 SimStep 注入；
-        /// 可视化调用方传 <see cref="SimTestRules.ActiveMatch"/>——与真实弹道同值。</param>
+        /// 可视化调用方传本局规则实例（`BattleContext.MatchRules` / `IDevSession.MatchRules`）——与真实弹道同值。</param>
         /// <param name="hitSlot">命中槽位（未命中 = -1）。</param>
         /// <param name="t">命中距离（未命中 = maxT）。</param>
         public static bool RaycastEntities(SimWorldState s, int skipSlot,

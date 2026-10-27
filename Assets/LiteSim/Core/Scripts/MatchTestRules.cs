@@ -8,8 +8,9 @@ namespace LiteSim
     /// 同进程的客户端预测与本地服同引用同值）。
     ///
     /// 生命周期：进房时由入口（ProcedureMatch——LiteGame 侧，框架不引它）按入口初值新建，
-    /// 经 <see cref="SimTestRules.ActiveMatch"/> 登记供两端绑定（客户端预测在 StartGame 一次性绑定，
-    /// 之后热路径只读注入实例）；下次进房整体替换（常规入口初值恒 false——与既有"随入口复位"同语义）。
+    /// 随会话显式传递（`MatchRulesSeeder` → `MatchTransport` → `AccountSession` → `BattleContext`）供两端绑定
+    /// （客户端预测在 StartGame 一次性绑定，之后热路径只读注入实例）；调试投影经 `IDevSession.MatchRules` 读同一实例。
+    /// 下次进房整体替换（常规入口初值恒 false——与既有"随入口复位"同语义）。
     /// 入口初值同时进 <see cref="CombatValues"/>（联机身份摘要 + 重放随装载值覆盖）；
     /// 中局开合属开发操作——不进摘要、不可重放（与既有口径一致）。
     /// </summary>

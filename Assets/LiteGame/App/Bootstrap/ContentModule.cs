@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Threading;
 using Cysharp.Threading.Tasks;
 using LiteFramework;
@@ -9,13 +9,15 @@ namespace LiteGame
     /// <summary>② 内容服务：IContentService 注入装配（YooAsset 适配 + 共享加载协调器 + 租约）——
     /// 配置/Lua 字节通道与租约消费者依赖它（注册序即依赖序：先于 Config/Presentation）；
     /// 资源包初始化仍由 ProcedurePreload 经本服务触发。</summary>
-    internal sealed class ContentModule : IClientModule
+    internal sealed class ContentModule : IClientModule, IClientModuleGraph
     {
         private YooAssetContentService _content;
 
         public string Name => "Content";
 
-        public UniTask InitializeAsync(ClientContext context, CancellationToken ct)
+        /// <summary>依赖的模块（与 GameEntry 注册序一致；供 Host DAG 校验）。</summary>
+        public System.Collections.Generic.IReadOnlyList<System.Type> DependsOn => new System.Type[] { typeof(PlatformInfrastructureModule) };
+        public UniTask InitializeAsync(ModuleContext context, CancellationToken ct)
         {
             _content = new YooAssetContentService();
             context.Put<IContentService>(_content);
@@ -96,11 +98,14 @@ namespace LiteGame
         /// 运行时可接受的能力下限（§5 版本元组"当前 Player 实际具备"的一侧）。
         /// 由编译期常量/生成物填充——**不接受运行时可变来源**（否则兼容判定可被内容影响）。
         ///
-        /// 本形态下多数维度取 0 = 不限；`AppVersion` 留空 = 不要求精确匹配。
-        /// 真实能力声明须来自编译期生成物，不能只上报 Player 内旧常量（§5）。
+        /// 本形态：能力生成物尚未接入，故**显式** <see cref="PlayerCapabilities.CapabilityMode.Off"/>
+        /// 关闭数值五轴下限校验（不是"全 0 值 + 逐轴比较"的半实现——0 会被当成真实能力值）。
+        /// 身份串（Platform/Channel/AppVersion）照常填充与校验；接入生成物时改回 `Enforce` 并填真实值，
+        /// 与内容发布侧同一次发布切换。
         /// </summary>
         private static PlayerCapabilities BuildPlayerCapabilities() => new PlayerCapabilities
         {
+            CompatibilityMode = PlayerCapabilities.CapabilityMode.Off,
             AppVersion = "",
             Platform = UnityEngine.Application.platform.ToString(),
             Channel = "",

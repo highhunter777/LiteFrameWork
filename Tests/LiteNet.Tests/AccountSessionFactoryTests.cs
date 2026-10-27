@@ -72,15 +72,16 @@ namespace LiteNet.Tests
         }
 
         private static AccountSessionFactory NewFactory(ClientScope rootScope, ServiceContainer rootServices,
-            Func<bool, IClientTransport> transportFactory = null)
-            => new AccountSessionFactory(rootScope, rootServices, transportFactory ?? (_ => new FakeClientTransport()));
+            Func<bool, MatchTransport> transportFactory = null)
+            => new AccountSessionFactory(rootScope, rootServices,
+                transportFactory ?? (_ => new MatchTransport(new FakeClientTransport(), null)));
 
         [Fact]
         public void 创建即入域_连接发Join_BattleClient解析同引用()
         {
             ServiceContainer root = NewRoot(out ClientScope rootScope);
             var transport = new FakeClientTransport();
-            AccountSessionFactory factory = NewFactory(rootScope, root, _ => transport);
+            AccountSessionFactory factory = NewFactory(rootScope, root, _ => new MatchTransport(transport, null));
 
             AccountSession session = factory.Create(Host, Port, RoomId, Token, LiteNet.BuildHash.Value, testRoom: false);
 
@@ -100,7 +101,7 @@ namespace LiteNet.Tests
         {
             ServiceContainer root = NewRoot(out ClientScope rootScope);
             var transport = new FakeClientTransport();
-            AccountSessionFactory factory = NewFactory(rootScope, root, _ => transport);
+            AccountSessionFactory factory = NewFactory(rootScope, root, _ => new MatchTransport(transport, null));
             AccountSession session = factory.Create(Host, Port, RoomId, Token, LiteNet.BuildHash.Value, testRoom: false);
 
             session.Dispose();
@@ -147,7 +148,7 @@ namespace LiteNet.Tests
             {
                 IClientTransport t = current;
                 current = secondTransport;
-                return t;
+                return new MatchTransport(t, null);
             });
 
             AccountSession first = factory.Create(Host, Port, RoomId, Token, LiteNet.BuildHash.Value, testRoom: false);
@@ -177,7 +178,7 @@ namespace LiteNet.Tests
             AccountSessionFactory factory = NewFactory(rootScope, root, testRoom =>
             {
                 seen.Add(testRoom);
-                return new FakeClientTransport();
+                return new MatchTransport(new FakeClientTransport(), null);
             });
 
             factory.Create(Host, Port, RoomId, Token, LiteNet.BuildHash.Value, testRoom: false).Dispose();

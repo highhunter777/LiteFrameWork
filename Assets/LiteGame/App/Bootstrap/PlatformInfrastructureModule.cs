@@ -11,11 +11,13 @@ namespace LiteGame
     /// 装配清单与依赖序见 <see cref="GameEntry"/>；模块契约见 <see cref="IClientModule"/>。
     /// 结构化日志文件（dev 三宏内）：`persistentDataPath/logs/*.jsonl`，检索见 `scripts/logs/query.py`。
     /// </summary>
-    internal sealed class PlatformInfrastructureModule : IClientModule
+    internal sealed class PlatformInfrastructureModule : IClientModule, IClientModuleGraph
     {
         public string Name => "PlatformInfrastructure";
 
-        public UniTask InitializeAsync(ClientContext context, CancellationToken ct)
+        /// <summary>依赖的模块（与 GameEntry 注册序一致；供 Host DAG 校验）。</summary>
+        public System.Collections.Generic.IReadOnlyList<System.Type> DependsOn => System.Array.Empty<System.Type>();
+        public UniTask InitializeAsync(ModuleContext context, CancellationToken ct)
         {
             FileSys.Init(new UnityPathProvider(), new NewtonsoftJsonSerializer());
             Log.SetHelper(new UnityLogHelper());

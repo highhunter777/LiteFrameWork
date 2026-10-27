@@ -150,7 +150,7 @@ namespace LiteGame
         /// 故此处也包在同一门禁里，正式包恒走真 KCP（不给"悄悄退化成假服务器"留窗口，
         /// 框架先行 §6"生产配置缺真实依赖时拒绝启动或拒绝相应功能，不能悄悄退回 fake"）。
         /// **本地测试模式不提供 KCP 形态**：免死规则靠"客户端预测与进程内服务器同持一个规则实例"
-        /// （<see cref="LiteSim.MatchTestRules"/> 由播种件登记 <see cref="LiteSim.SimTestRules.ActiveMatch"/>），
+        /// （<see cref="LiteSim.MatchTestRules"/> 由播种件产出、随传输与 AccountSession 显式移交对局），
         /// 真服务器的房间级规则下发未做。
         ///
         /// 信封 PSK 注入口（批C）：<paramref name="deploy"/> 带 <c>-envelope.key</c> 时优先（构建期/启动参数注入）；

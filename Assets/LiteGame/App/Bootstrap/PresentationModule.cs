@@ -1,4 +1,4 @@
-﻿using System.Threading;
+using System.Threading;
 using Cysharp.Threading.Tasks;
 using LiteFramework;
 using LiteView;
@@ -21,7 +21,7 @@ namespace LiteGame
     ///
     /// 主相机一律本模块保证（场景没配就建一台默认的）：**它是投影面**，与"构图归 vcam 配置"
     /// 是两件事——没有 Camera 组件连画面都没有，那不是构图问题。</summary>
-    internal sealed class PresentationModule : IClientModule
+    internal sealed class PresentationModule : IClientModule, IClientModuleGraph
     {
         private PrefabLeaseCache _prefabs;
         private AudioService _audio;
@@ -32,7 +32,9 @@ namespace LiteGame
 
         public string Name => "Presentation";
 
-        public UniTask InitializeAsync(ClientContext context, CancellationToken ct)
+        /// <summary>依赖的模块（与 GameEntry 注册序一致；供 Host DAG 校验）。</summary>
+        public System.Collections.Generic.IReadOnlyList<System.Type> DependsOn => new System.Type[] { typeof(ContentModule), typeof(ClocksModule) };
+        public UniTask InitializeAsync(ModuleContext context, CancellationToken ct)
         {
             var content = context.Require<IContentService>();   // 依赖②——注册序即依赖序
             _prefabs = new PrefabLeaseCache(content);

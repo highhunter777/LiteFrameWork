@@ -3,7 +3,7 @@ using System;
 
 namespace LiteGame
 {
-    /// <summary>DevTool 薄适配：窗口/节流/降采样逻辑在 App 层 NetHistory（可测）。</summary>
+    /// <summary>投影薄适配：窗口/节流/降采样逻辑在 App 层 NetHistory（可测）。</summary>
     internal sealed class DevHudNetHistory
     {
         private readonly NetHistory _inner = new NetHistory();

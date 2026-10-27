@@ -36,6 +36,7 @@ namespace LiteFramework
         private int _state;                                // 0=构造未启动 1=初始化中 2=运行 3=关闭中 4=已关闭
         private bool _shutdownRequested;
         private bool _scopeFailuresReported;
+        private readonly List<(IClientModuleHandle handle, ModuleScope scope)> _handles = new List<(IClientModuleHandle, ModuleScope)>();   // 已成功模块的关闭句柄 + 资源作用域（逆序关闭/释放）
 
         /// <summary>模块初始化/关闭事件（诊断：模块名 + 阶段）。
         /// 字段而非 event：引导适配器整钩替换（= 赋值）+ Host 内部 invoke，订阅语义由使用方自理。</summary>
@@ -46,6 +47,10 @@ namespace LiteFramework
 
         /// <summary>运行期根作用域（初始化成功后可用；未初始化时为 null）。</summary>
         public ClientScope RootScope => _rootScope;
+
+        /// <summary>装配面是否已密封（路线图 §4.3）：初始化成功或启动回滚结束后为 true，
+        /// 运行期任何新增登记都被拒绝。诊断/用例读口。</summary>
+        public bool IsAssemblySealed => _context != null && _context.IsAssemblySealed;
 
         /// <summary>按类型读模块产物（引导完成后装配面；未初始化返回 null——调用方决定 fail-fast）。
         /// 只读透传 <see cref="ClientContext"/>：引导适配器（GameEntry）驱动容器/流程机用。</summary>
@@ -108,6 +113,9 @@ namespace LiteFramework
                 modules = new List<IClientModule>(_modules);
             }
 
+            // 启动前图校验（路线图 M1）：重复名/缺失依赖/依赖环一律 fail-fast——早于任何副作用。
+            ValidateModuleGraph(modules);
+
             _rootScope = new ClientScope("Root");
             _context = new ClientContext(_rootScope);
 
@@ -125,11 +133,32 @@ namespace LiteFramework
                     }
                     IClientModule module = modules[i];
                     ModuleTrace?.Invoke(module.Name, "init:start");
-                    await module.InitializeAsync(_context, ct);
+                    // 每个模块独立资源作用域（路线图 §4.3）：失败时本模块 scope 就地释放，不留给根作用域。
+                    var moduleScope = new ModuleScope(_rootScope, module.Name);
+                    // 装配窗口只覆盖本模块初始化：返回/抛出/取消/异步泄漏都在 finally 关窗。
+                    var moduleContext = new ModuleContext(_context, module.Name, moduleScope);
+                    try
+                    {
+                        await module.InitializeAsync(moduleContext, ct);
+                    }
+                    catch
+                    {
+                        moduleScope.Dispose();                 // 失败模块先释放自己的登记资源
+                        throw;
+                    }
+                    finally
+                    {
+                        moduleContext.Close();
+                    }
                     ModuleTrace?.Invoke(module.Name, "init:done");
-                    lock (_gate) _initializedCount = i + 1;
+                    lock (_gate)
+                    {
+                        _handles.Add((new ModuleHandle(module), moduleScope));   // 成功即产出关闭句柄（M1：初始化成功与可关闭绑定）
+                        _initializedCount = i + 1;
+                    }
                 }
 
+                _context.SealAssembly();                       // 装配完成：运行期不再新增注册
                 if (!_context.Services.IsSealed) _context.Services.Seal();
                 lock (_gate) _state = 2;
             }
@@ -137,6 +166,7 @@ namespace LiteFramework
             {
                 // 回滚：只关闭已成功模块（逆序），再重新抛原异常。回滚自身的失败不向上叠加（聚合丢弃——
                 // 原因优先，回滚细节走 ModuleTrace）。
+                _context?.SealAssembly();                      // 失败/取消后同样是"装配已结束"，迟到的 Put 一律拒绝
                 await RollbackInitializedAsync();
                 lock (_gate) 
                     _state = 4;
@@ -181,36 +211,40 @@ namespace LiteFramework
             }
 
             // ③ 逆序关闭已初始化模块（未初始化者跳过——启动失败回滚后再次关闭不应触碰未初始化模块）
-            List<IClientModule> modules;
-            int initialized;
-            lock (_gate)
+            List<(IClientModuleHandle handle, ModuleScope scope)> handles;
+            lock (_gate) handles = new List<(IClientModuleHandle, ModuleScope)>(_handles);
+            try
             {
-                modules = new List<IClientModule>(_modules);
-                initialized = _initializedCount;
+                for (int i = handles.Count - 1; i >= 0; i--)
+                {
+                    try
+                    {
+                        ct.ThrowIfCancellationRequested();     // 关闭路径的取消只约束"还没开始的关闭"；已开始的必须收尾
+                        await handles[i].handle.ShutdownAsync(ct);
+                    }
+                    catch (OperationCanceledException)
+                    {
+                        throw;                                  // 主动放弃关闭：语义留给调用方（作用域仍由 finally 释放）
+                    }
+                    catch (Exception ex)
+                    {
+                        lock (_gate) _shutdownFailures.Add(ex); // 模块关闭失败：记录、继续其余
+                    }
+                    finally
+                    {
+                        // 模块资源作用域随模块关闭释放（先句柄后资源；取消/失败路径同样释放）
+                        handles[i].scope.Dispose();
+                        lock (_gate) _shutdownFailures.AddRange(handles[i].scope.DisposeFailures);
+                    }
+                }
             }
-            for (int i = initialized - 1; i >= 0; i--)
+            finally
             {
-                try
-                {
-                    ct.ThrowIfCancellationRequested();     // 关闭路径的取消只约束"还没开始的关闭"；已开始的必须收尾
-                    ModuleTrace?.Invoke(modules[i].Name, "shutdown:start");
-                    await modules[i].ShutdownAsync(ct);
-                    ModuleTrace?.Invoke(modules[i].Name, "shutdown:done");
-                }
-                catch (OperationCanceledException)
-                {
-                    lock (_gate) _state = 4;
-                    throw;                                  // 主动放弃关闭：语义留给调用方（默认关闭不被外部 token 绑架）
-                }
-                catch (Exception ex)
-                {
-                    lock (_gate) _shutdownFailures.Add(ex); // 模块关闭失败：记录、继续其余
-                }
+                // ④ 根 Scope 释放（LIFO 资源逆序 + 根取消）+ 终态——**任何提前退出路径都必须释放**
+                // （Roadmap §4.3：取消令牌只约束等待上限，不得跳过根 Scope 释放）。
+                DisposeRoot();
+                lock (_gate) _state = 4;
             }
-
-            // ④ 根 Scope 释放（LIFO 资源逆序 + 根取消）+ 终态
-            DisposeRoot();
-            lock (_gate) _state = 4;
         }
 
         /// <summary>关闭路径聚合的异常（刷新钩子 + 模块关闭；诊断上报用，Host 不抛）。</summary>
@@ -260,31 +294,111 @@ namespace LiteFramework
             catch (Exception ex) { lock (_gate) _shutdownFailures.Add(ex); }
         }
 
-        /// <summary>启动失败回滚：逆序关闭已成功模块 + 根 Scope；异常全部吞掉（原异常优先上抛）。</summary>
-        private async UniTask RollbackInitializedAsync()
+        /// <summary>
+        /// 模块图校验（路线图 M1）：模块名/类型重复、依赖缺失、依赖环——全部 fail-fast，且早于任何副作用。
+        /// **只校验已声明依赖**（实现 <see cref="IClientModuleGraph"/> 的模块）；未声明者按注册序初始化。
+        /// </summary>
+        private static void ValidateModuleGraph(List<IClientModule> modules)
         {
-            List<IClientModule> modules;
-            int initialized;
-            lock (_gate)
+            var byName = new Dictionary<string, IClientModule>(StringComparer.Ordinal);
+            var byType = new Dictionary<Type, IClientModule>();
+            for (int i = 0; i < modules.Count; i++)
             {
-                modules = new List<IClientModule>(_modules);
-                initialized = _initializedCount;
+                IClientModule m = modules[i];
+                if (byName.ContainsKey(m.Name))
+                    throw new InvalidOperationException($"模块名重复：{m.Name}（模块集必须唯一）");
+                byName.Add(m.Name, m);
+                // 同类型多实例是合法形态（测试替身/同构模块）；类型映射供依赖图寻址，后者覆盖前者。
+                byType[m.GetType()] = m;
             }
 
-            for (int i = initialized - 1; i >= 0; i--)
+            for (int i = 0; i < modules.Count; i++)
+            {
+                if (!(modules[i] is IClientModuleGraph graph) || graph.DependsOn == null) continue;
+                for (int d = 0; d < graph.DependsOn.Count; d++)
+                {
+                    Type dep = graph.DependsOn[d];
+                    if (dep == null || !byType.ContainsKey(dep))
+                        throw new InvalidOperationException(
+                            $"模块 {modules[i].Name} 依赖缺失：{dep?.Name ?? "<null>"} 未注册（注册序/装配错误）");
+                }
+            }
+
+            // 环检测（DFS 三色；只走已声明边）
+            var state = new Dictionary<Type, int>();   // 0=未访问 1=在栈 2=完成
+            for (int i = 0; i < modules.Count; i++)
+                VisitModule(modules[i].GetType(), byType, state);
+        }
+
+        private static void VisitModule(Type type, Dictionary<Type, IClientModule> byType, Dictionary<Type, int> state)
+        {
+            if (state.TryGetValue(type, out int s))
+            {
+                if (s == 1) throw new InvalidOperationException($"模块依赖成环：{type.Name}");
+                if (s == 2) return;
+            }
+            state[type] = 1;
+            if (byType.TryGetValue(type, out IClientModule module)
+                && module is IClientModuleGraph graph && graph.DependsOn != null)
+            {
+                for (int i = 0; i < graph.DependsOn.Count; i++)
+                {
+                    Type dep = graph.DependsOn[i];
+                    if (dep != null) VisitModule(dep, byType, state);
+                }
+            }
+            state[type] = 2;
+        }
+
+        /// <summary>
+        /// 强制同步释放根 Scope（退出/销毁路径的确定性兜底）：异步关闭未完成时也必须释放根资源。
+        /// 幂等（`DisposeRoot` 内部有重复上报守卫）；只在主线程调用。
+        /// </summary>
+        public void ForceReleaseRoot()
+        {
+            lock (_gate) _state = 4;
+            DisposeRoot();
+        }
+
+        /// <summary>启动失败回滚：逆序关闭已成功模块 + 释放各自作用域 + 根 Scope；异常全部吞掉（原异常优先上抛）。</summary>
+        private async UniTask RollbackInitializedAsync()
+        {
+            List<(IClientModuleHandle handle, ModuleScope scope)> handles;
+            lock (_gate) handles = new List<(IClientModuleHandle, ModuleScope)>(_handles);
+
+            for (int i = handles.Count - 1; i >= 0; i--)
             {
                 try
                 {
-                    ModuleTrace?.Invoke(modules[i].Name, "rollback:shutdown");
-                    await modules[i].ShutdownAsync(CancellationToken.None);
+                    ModuleTrace?.Invoke(handles[i].handle.GetType().Name, "rollback:shutdown");
+                    await handles[i].handle.ShutdownAsync(CancellationToken.None);
                 }
                 catch (Exception ex)
                 {
-                    ModuleTrace?.Invoke(modules[i].Name, "rollback:failed:" + ex.GetType().Name);
+                    ModuleTrace?.Invoke(handles[i].handle.GetType().Name, "rollback:failed:" + ex.GetType().Name);
+                }
+                finally
+                {
+                    handles[i].scope.Dispose();                // 模块资源随回滚释放（顺序：先句柄后资源）
                 }
             }
 
             DisposeRoot();
+        }
+
+        /// <summary>模块关闭句柄（初始化成功后创建；把"成功"与"可关闭"绑成一个对象）。</summary>
+        private sealed class ModuleHandle : IClientModuleHandle
+        {
+            private readonly IClientModule _module;
+            public ModuleHandle(IClientModule module) => _module = module;
+
+            public UniTask ShutdownAsync(CancellationToken ct)
+            {
+                // 诊断轨迹保留模块名（句柄本身不带 Name）。
+                return _module.ShutdownAsync(ct);
+            }
+
+            public override string ToString() => "ModuleHandle(" + _module.Name + ")";
         }
 
         /// <summary>资源域与服务域的同步释放异常统一进入宿主诊断；重复关闭不重复上报。</summary>

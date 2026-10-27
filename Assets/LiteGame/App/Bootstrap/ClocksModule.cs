@@ -8,7 +8,7 @@ namespace LiteGame
     /// <summary>④ 事件与时钟：双轨时钟分域（逻辑轨受时停/变速，UI 轨不受）+ 墙钟。
     ///
     /// 注册序见 <see cref="GameEntry"/>（⑤ Schedulers 依赖本模块产物——模块序即依赖序）。</summary>
-    internal sealed class ClocksModule : IClientModule
+    internal sealed class ClocksModule : IClientModule, IClientModuleGraph
     {
         private EventCenter _events;
         private WorldClock _worldClock;
@@ -17,7 +17,9 @@ namespace LiteGame
 
         public string Name => "Clocks";
 
-        public UniTask InitializeAsync(ClientContext context, CancellationToken ct)
+        /// <summary>依赖的模块（与 GameEntry 注册序一致；供 Host DAG 校验）。</summary>
+        public System.Collections.Generic.IReadOnlyList<System.Type> DependsOn => System.Array.Empty<System.Type>();
+        public UniTask InitializeAsync(ModuleContext context, CancellationToken ct)
         {
             _events = new EventCenter();
             _worldClock = new WorldClock();

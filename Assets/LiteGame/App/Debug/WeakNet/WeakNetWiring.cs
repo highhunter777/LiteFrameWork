@@ -7,21 +7,22 @@ namespace LiteGame
     /// <summary>传输工厂包装：只包真 KCP 形态，本地测试房（进程内服）不包。</summary>
     public static class WeakNetWiring
     {
-        public static Func<bool, IClientTransport> WrapFactory(
-            Func<bool, IClientTransport> factory, WeakNetRuntime runtime)
+        /// <summary>包装传输工厂（规则持有件原样透传）：本地测试房不注入弱网，真 KCP 形态按运行时状态包装。</summary>
+        public static Func<bool, MatchTransport> WrapFactory(
+            Func<bool, MatchTransport> factory, WeakNetRuntime runtime)
         {
             if (factory == null) throw new ArgumentNullException(nameof(factory));
             if (runtime == null) return factory;
             return testRoom =>
             {
-                IClientTransport transport = factory(testRoom);
-                if (transport == null) return null;
+                MatchTransport match = factory(testRoom);
+                if (match.Transport == null) return match;
                 if (testRoom)
                 {
                     runtime.Detach();
-                    return transport;
+                    return match;
                 }
-                return runtime.Wrap(transport);
+                return new MatchTransport(runtime.Wrap(match.Transport), match.Rules);
             };
         }
     }

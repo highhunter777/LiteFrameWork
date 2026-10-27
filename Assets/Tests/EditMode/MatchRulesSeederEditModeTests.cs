@@ -12,7 +12,6 @@ namespace LiteGame.Tests.EditMode
         [SetUp]
         public void ResetStatics()
         {
-            SimTestRules.ActiveMatch = null;
             SimTestRules.Active = false;
             SimTestRules.BotFrozen = false;
             SimTestRules.BotInfiniteHp = false;
@@ -27,7 +26,6 @@ namespace LiteGame.Tests.EditMode
         [TearDown]
         public void Cleanup()
         {
-            SimTestRules.ActiveMatch = null;
             SimTestRules.Active = false;
             SimTestRules.BotFrozen = false;
             SimTestRules.BotInfiniteHp = false;
@@ -50,7 +48,6 @@ namespace LiteGame.Tests.EditMode
             MatchTestRules rules = MatchRulesSeeder.Seed(testRoom: true);
 
             Assert.IsNotNull(rules);
-            Assert.AreSame(rules, SimTestRules.ActiveMatch, "活动局登记口＝返回的本局持有件（预测/本地服同实例）");
             Assert.IsTrue(rules.NoDeath);
             Assert.IsTrue(rules.InfiniteAmmo);
             Assert.IsTrue(SimTestRules.Active, "宿主钩子开关＝测试房");
@@ -66,7 +63,6 @@ namespace LiteGame.Tests.EditMode
             MatchTestRules rules = MatchRulesSeeder.Seed(testRoom: false);
 
             Assert.IsNotNull(rules);
-            Assert.AreSame(rules, SimTestRules.ActiveMatch);
             Assert.IsFalse(rules.NoDeath, "常规入口不从 TestModeRuntime 继承免死");
             Assert.IsFalse(rules.InfiniteAmmo);
             Assert.IsFalse(SimTestRules.Active);
@@ -80,7 +76,6 @@ namespace LiteGame.Tests.EditMode
             MatchTestRules second = MatchRulesSeeder.Seed(testRoom: false);
 
             Assert.AreNotSame(first, second, "每局新建持有件（运行期不跨局复用）");
-            Assert.AreSame(second, SimTestRules.ActiveMatch);
             Assert.IsFalse(second.NoDeath);
         }
     }

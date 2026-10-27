@@ -33,19 +33,25 @@ namespace LiteGame
         public ServiceContainer Services { get; }
         public BattleClient Battle { get; }
 
-        /// <summary>本地测试模式/本地房标记（进房入口带入；**每局规则**用——`SimTestRules` 免死/无限子弹
+        /// <summary>本地测试模式/本地房标记（进房入口带入；**每局规则**用——`MatchTestRules` 免死/无限子弹
         /// 的入口语义）。多图批后**不再承担地图选行**：本局地图行键以 JoinAck 权威事实为准
         /// （`RoomClient.MapId` → `BattleScenes.ResolveMapId`）。</summary>
         public bool TestRoom { get; }
 
+        /// <summary>本局规则持有件（与本地服权威侧同实例；常规房 = null）。
+        /// 随会话显式移交给 Battle（`MatchSessionFactory` → `BattleContext`），不经静态登记口。</summary>
+        public LiteSim.MatchTestRules Rules { get; }
+
         private bool _disposed;
 
-        public AccountSession(ClientScope scope, ServiceContainer services, BattleClient battle, bool testRoom = false)
+        public AccountSession(ClientScope scope, ServiceContainer services, BattleClient battle, bool testRoom = false,
+            LiteSim.MatchTestRules rules = null)
         {
             Scope = scope ?? throw new ArgumentNullException(nameof(scope));
             Services = services ?? throw new ArgumentNullException(nameof(services));
             Battle = battle ?? throw new ArgumentNullException(nameof(battle));
             TestRoom = testRoom;
+            Rules = rules;
         }
 
         public void Dispose()
@@ -61,10 +67,10 @@ namespace LiteGame
     {
         private readonly ClientScope _rootScope;
         private readonly ServiceContainer _rootServices;
-        private readonly Func<bool, IClientTransport> _transportFactory;
+        private readonly Func<bool, MatchTransport> _transportFactory;
 
         public AccountSessionFactory(ClientScope rootScope, ServiceContainer rootServices,
-            Func<bool, IClientTransport> transportFactory)
+            Func<bool, MatchTransport> transportFactory)
         {
             _rootScope = rootScope ?? throw new ArgumentNullException(nameof(rootScope));
             _rootServices = rootServices ?? throw new ArgumentNullException(nameof(rootServices));
@@ -81,11 +87,12 @@ namespace LiteGame
                 // AccountScope 负责动态会话资源（取消/租约/订阅）；服务域作为其一个同步资源登记，
                 // 释放顺序由登记顺序决定（LIFO：BattleClient 先、服务域后）。
                 accountScope.Register(accountServices);
+                MatchTransport match = _transportFactory(testRoom);   // 每局规则随传输同刻产出（同一装配步骤）
                 var battle = accountScope.Register(new BattleClient(host, port, roomId, token, buildHash,
-                    transport: _transportFactory(testRoom)));
+                    transport: match.Transport));
                 accountServices.RegisterInstance(battle, ServiceLifetime.Scoped, ServiceOwnership.Borrowed);
                 accountServices.Seal();
-                return new AccountSession(accountScope, accountServices, battle, testRoom);
+                return new AccountSession(accountScope, accountServices, battle, testRoom, match.Rules);
             }
             catch
             {

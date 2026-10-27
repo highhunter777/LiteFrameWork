@@ -163,7 +163,8 @@ namespace LiteGame.Tests.EditMode
                 Rifle = rifle,
                 Shotgun = shotgun,
             };
-            h.Driver = new BattleKillFeedDriver(world, () => h.LocalId, feed,
+            var model = new BattleReadModel(() => h.World, () => h.LocalId);
+            h.Driver = new BattleKillFeedDriver(model, feed,
                 new[] { rifle, shotgun }, rows, killers, weapons, victims);
             return h;
         }

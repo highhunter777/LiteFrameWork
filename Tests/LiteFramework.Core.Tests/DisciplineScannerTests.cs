@@ -650,14 +650,14 @@ namespace LiteFramework.Tests
             {
                 ScanTarget t = ScanTargets.Default[i];
                 if (Array.IndexOf(t.Rules, LintRule.R14ProjectionDebugPort) < 0) continue;
-                if (t.Root == "Assets/LiteGame/DevTool") devTool = true;
+                if (t.Root == "Assets/LiteGame/Dev/Projection") devTool = true;
                 if (t.Root == "Assets/LiteGame/Editor/Gm")
                 {
                     editorGm = true;
                     Assert.True(t.IncludeEditorDirs, "Editor/Gm 受守根必须 IncludeEditorDirs——默认排除面会静默吞掉整个根");
                 }
             }
-            Assert.True(devTool, "R14 缺 Assets/LiteGame/DevTool 受守根——运行期投影将不受把守");
+            Assert.True(devTool, "R14 缺 Assets/LiteGame/Dev/Projection 受守根——运行期投影将不受把守");
             Assert.True(editorGm, "R14 缺 Assets/LiteGame/Editor/Gm 受守根——编辑器 GM 页将不受把守");
         }
 

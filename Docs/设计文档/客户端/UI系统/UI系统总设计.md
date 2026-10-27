@@ -146,7 +146,7 @@ Assets/LiteClient/UI/        运行时基座（不改结构）
 Assets/LiteGame/App/Ui/      页面流程适配（PageFlow/ResultRanking 等）
 Assets/LiteGame/Lua/UI/      Lua 页面逻辑
 Assets/LiteGame/Editor/UiTools/  编辑器工具链（可重构）
-Assets/LiteGame/DevTool/     运行内只读 HUD/菜单（dev-only）
+Assets/LiteGame/Dev/Projection/  运行内只读 HUD/控制台/面板（dev-only）
 Docs/设计文档/客户端/UI/      本套设计文档
 ```
 
@@ -367,6 +367,25 @@ Page Logic (C# UIBindBase 或 Lua)
 - Lua 环境重建前必须 `UIService.DropAllLogic()`（释放旧 Lua 引用），再重建 env；池中页面复用前重新解析并补跑 `OnInit`。
 - 内容版本切换时清缓存实例或按版本键隔离；不得复用旧 env 的对象。
 - 调试补丁只走 `UiPatch`，不形成第二套资产真相。
+
+### 5.13 UI 操作串行化（IUiOperationQueue）
+
+<a id="ch-ui-queue"></a>
+
+- **唯一排队原语**：`LiteClient.UI.IUiOperationQueue<T>`（实现 `UiOperationQueue<T>`）提供容量、优先级、
+  就绪筛选、拒绝计数与取队；**运行时代码不得再为 UI 调度私建 `Queue<T>`/`List<T>` 队列**。
+  执行时序仍归各消费者（导航/转场/弹窗各自泵动），排队语义只此一份。
+- **使用面**：
+  - 导航：容量 8、FIFO、10s 排队等待超时；Back 前置拦截（Loading 阻断期取消）在导航链首位。
+  - 转场：容量 1、丢弃计数；同帧 last-wins，超时 2s 兜底。
+  - 弹窗：容量 8、优先级降序（同级 FIFO）、互斥组就绪筛选（组忙条目留队，不阻塞其他组）、同 `MergeKey` 合并。
+  - Loading：**不单建队列**——遮罩打开走导航单写者（`FeedbackService` → `UINavigationController.GoAsync`），
+    阻断期 Back 由导航拦截器取消当前操作；嵌套计数只表达阻断深度，不承担排队。
+- **为什么不共用执行器**：转场在导航操作**内部**播放，共用执行器会形成"导航槽等转场槽"的嵌套等待；
+  弹窗的互斥组/合并也需各自出队判据。执行面收敛（统一超时/取消/合并状态）是后续阶段的操作对象化，
+  不在本节假装已生效。
+- **契约**：队列满在创建/入栈/OnShow 之前拒绝（类型化 `UIOpenException(Rejected)`）；排队期取消 = 不执行、
+  不加载；拒绝与丢弃均可观测（`RejectedCount` / `DroppedCount`）。
 
 ## 6. 视觉与样式体系
 

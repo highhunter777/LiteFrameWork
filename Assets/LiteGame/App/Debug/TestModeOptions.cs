@@ -86,8 +86,10 @@ namespace LiteGame
             }
         }
 
-        /// <summary>写当前值（**单一写点**：副作用在此收口）。</summary>
-        public static void Set(Id id, bool value)
+        /// <summary>写当前值（**单一写点**：副作用在此收口）。
+        /// <paramref name="match"/>＝当前对局规则持有件（调用方给出——dev 侧经 `IDevSession.MatchRules`；
+        /// null = 无对局：只记待用初值，下次进房生效）。</summary>
+        public static void Set(Id id, bool value, LiteSim.MatchTestRules match = null)
         {
             switch (id)
             {
@@ -102,11 +104,11 @@ namespace LiteGame
                 case Id.BotInfiniteHp: TestModeRuntime.BotInfiniteHp = value; break;
             }
 
-            // 副作用：无限子弹写**当前活动局**的规则持有件（客户端预测与本地服同实例——同进程两端同值；
-            // 面板写值落在渲染帧之间，不会在 tick 中途换口径）。非测试模式一律不武装；无活动局（未进对局）
-            // 时只记 TestModeRuntime 初值，下次进房生效。
-            if (id == Id.InfiniteAmmo && TestModeRuntime.Active && LiteSim.SimTestRules.ActiveMatch != null)
-                LiteSim.SimTestRules.ActiveMatch.InfiniteAmmo = value;
+            // 副作用：无限子弹写**当前对局**的规则持有件（由调用方给出——对局会话绑定在 IDevSession 上的同一实例；
+            // 客户端预测与本地服同实例，同进程两端同值）。非测试模式一律不武装；无对局（未进对局）时只记
+            // TestModeRuntime 初值，下次进房生效。
+            if (id == Id.InfiniteAmmo && TestModeRuntime.Active && match != null)
+                match.InfiniteAmmo = value;
 
             // bot 无限生命（Live）：同步写宿主钩子（本地服宿主循环读取——同帧起效；进房镜像兜底在
             // ProcedureMatch）。非测试模式一律不武装（同 InfiniteAmmo 口径）。

@@ -24,15 +24,17 @@ namespace LiteFramework.Tests
 
         private sealed class Module : IClientModule
         {
-            private readonly Action<ClientContext> _initialize;
+            private static int s_sequence;
+            private readonly Action<ModuleContext> _initialize;
             private readonly Action _shutdown;
-            public string Name => "Composition";
-            public Module(Action<ClientContext> initialize, Action shutdown = null)
+            public string Name { get; }
+            public Module(Action<ModuleContext> initialize, Action shutdown = null)
             {
+                Name = "Composition#" + (++s_sequence);   // 模块名必须唯一（M1 图校验）
                 _initialize = initialize;
                 _shutdown = shutdown;
             }
-            public UniTask InitializeAsync(ClientContext context, CancellationToken ct)
+            public UniTask InitializeAsync(ModuleContext context, CancellationToken ct)
             {
                 _initialize(context);
                 return UniTask.CompletedTask;
@@ -103,7 +105,7 @@ namespace LiteFramework.Tests
         {
             var product = new Product();
             var host = new ClientHost();
-            ClientContext assembly = null;
+            ModuleContext assembly = null;
             host.AddModule(new Module(context => { assembly = context; context.Put(product); }, product.Dispose));
             host.AddModule(new Module(context => context.Put<IProduct>(context.Require<Product>())));
             await host.InitializeAsync();

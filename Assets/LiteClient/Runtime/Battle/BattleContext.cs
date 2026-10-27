@@ -78,10 +78,10 @@ namespace LiteClient
         /// 瞄准激光的障碍射线等 View 侧判定共享同一份，不另建第二事实源）。</summary>
         public SimMapData Map => _map;
 
-        /// <summary>本局规则持有件（StartGame 绑定一次；随权威 GM 位更新同实例；null = 无测试规则）。
-        /// **表现消费者经构造注入本引用**（如瞄准激光的爆头带覆写）——不读 `SimTestRules` 静态读口，
+        /// <summary>本局规则持有件（进房装配带入的种子规则；StartGame 绑定后同实例；null = 无测试规则）。
+        /// **表现消费者经构造注入本引用**（如瞄准激光的爆头带覆写）——不读静态读口，
         /// 常规房/正式包的静态差异不会漏进表现判定。</summary>
-        public MatchTestRules MatchRules => _matchRules;
+        public MatchTestRules MatchRules => _matchRules ?? _seedRules;
 
         /// <summary>最近一次收到的快照帧号（诊断/兜底——视点帧请用 <see cref="ViewRenderFrame"/>）。</summary>
         public int LastSnapshotFrame => _battle.Client.LastSnapshotFrame;
@@ -123,8 +123,9 @@ namespace LiteClient
         private RollbackSim _sim;
         private IBattleView _wiredView;                    // 已接线的视图（重复绑定先摘旧——event 叠加防重）
         private MatchTestRules _matchRules;               // 本局规则引用（StartGame 绑定；表现面注入源）
+        private readonly MatchTestRules _seedRules;       // 进房装配带入的本局规则（与权威侧同实例；常规房 null）
 
-        /// <summary>本局规则实例绑定/更新通知（Session 据此成为 `SimTestRules.ActiveMatch` 的唯一写者）。</summary>
+        /// <summary>本局规则实例绑定/更新通知（Session 据此把实例绑定到 `IDevSession`，供调试投影读）。</summary>
         public event Action<MatchTestRules> RulesBound;
 
         private long _localEntityId;
@@ -151,13 +152,15 @@ namespace LiteClient
         /// <see cref="OnStartGame"/> 校验点）。0 = 无表身份形态（测试直构）——与真服务端的房间摘要比对必不等的
         /// 形态由 L1 用例显式构造，生产链恒为装载产物。</param>
         public BattleContext(BattleClient battle, ClientScope accountScope,
-            IInputService inputProvider = null, SimMapData map = null, uint gameplayDigestBase = 0)
+            IInputService inputProvider = null, SimMapData map = null, uint gameplayDigestBase = 0,
+            MatchTestRules rules = null)
         {
             _battle = battle ?? throw new ArgumentNullException(nameof(battle));
             if (accountScope == null) throw new ArgumentNullException(nameof(accountScope));
             _map = map ?? throw new ArgumentException(
                 "地图必填——装配经 IMapProvider 注入（D22：无回退地图）", nameof(map));
             _gameplayDigestBase = gameplayDigestBase;
+            _seedRules = rules;      // 本局规则随会话显式带入（路线图 §4.4：无全局"当前局"登记口）
             // 定容依据＝**JoinAck 权威事实**（开房参数批：玩家开房时可选人数；0 = 未标注 → 默认 2 座回落）。
             // 构造点晚于 JoinAck（同地图：MapId 已定值）——见 MatchSessionFactory 装配序。
             ExpectedPlayers = battle.Client.ExpectedPlayers > 0
@@ -301,7 +304,7 @@ namespace LiteClient
             // 联机测试房批：权威规则位随 StartGame 快照下发（`gm_flags`）。**不写回 `CombatValues`**——
             // 摘要（`ConfigHash`）不含运行期 GM 位；写回会让本地复算与服务器不一致而误拒局。
             int gmFlags = sg.Match?.GmFlags ?? 0;
-            MatchTestRules rules = SimTestRules.ActiveMatch;
+            MatchTestRules rules = _seedRules;
             if (gmFlags != 0)
             {
                 rules ??= new MatchTestRules();
@@ -500,7 +503,7 @@ namespace LiteClient
         /// </summary>
         private void ApplyAuthoritativeGmFlags(int flags)
         {
-            MatchTestRules rules = _matchRules ?? SimTestRules.ActiveMatch;
+            MatchTestRules rules = _matchRules;
             if (rules == null)
             {
                 if (flags == 0) return;

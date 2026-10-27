@@ -75,7 +75,7 @@ namespace LiteGame.EditorTools
                 }
                 if (GUILayout.Button("取当前覆写值"))
                 {
-                    var match = LiteSim.SimTestRules.ActiveMatch;
+                    var match = LiteGame.Editor.GmEditorResolve.ResolveFromContainer<LiteClient.IDevSession>()?.MatchRules;
                     float lineNow = match != null
                         ? LiteSim.MatchTestRules.ResolveHeadHitLine(match)
                         : TestModeRuntime.HeadHitLineOverride;
@@ -91,7 +91,7 @@ namespace LiteGame.EditorTools
                 {
                     TestModeRuntime.HeadHitLineOverride = -1f;
                     TestModeRuntime.HeadshotRadiusOverride = -1f;
-                    var live = LiteSim.SimTestRules.ActiveMatch;
+                    var live = LiteGame.Editor.GmEditorResolve.ResolveFromContainer<LiteClient.IDevSession>()?.MatchRules;
                     if (live != null) { live.HeadHitLineOverride = -1f; live.HeadshotRadiusOverride = -1f; }
                 }
             }

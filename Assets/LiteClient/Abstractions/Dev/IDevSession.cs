@@ -1,3 +1,5 @@
+using LiteSim;
+
 namespace LiteClient
 {
     /// <summary>
@@ -38,6 +40,16 @@ namespace LiteClient
 
         /// <summary>身位/爆头调试绘制开关。</summary>
         bool DrawHeadshotDebug { get; }
+
+        /// <summary>当前对局规则持有件（dev 投影的读面：HUD/面板/GM/绘制；null = 无对局或常规房）。
+        /// 由对局会话在进房时绑定、离场解绑——模拟侧不再有"当前局"静态。</summary>
+        MatchTestRules MatchRules { get; }
+
+        /// <summary>绑定本局规则（对局会话唯一调用方）。</summary>
+        void AttachMatchRules(MatchTestRules rules);
+
+        /// <summary>解绑本局规则（只解绑自己绑定的同一实例）。</summary>
+        void DetachMatchRules(MatchTestRules rules);
 
         void RequestEnter();
         void RequestExit();

@@ -29,18 +29,20 @@ namespace LiteGame
         private readonly DebugPerfSampler _perf = new DebugPerfSampler();
         private readonly WeakNetRuntime _weakNet;
         private readonly NetworkDebug _network;
+        private readonly LiteClient.IDevSession _devSession;
         private readonly Dictionary<Type, MethodInfo> _sendMethods = new Dictionary<Type, MethodInfo>(16);
         private bool _statsInitialized;
         private bool _tunablesInitialized;
 
         public DebugKernel(CommandCenter commands, IInputService input,
             IEnumerable<IDebugTunableProvider> tunableProviders = null, WeakNetRuntime weakNet = null,
-            NetworkDebug network = null)
+            NetworkDebug network = null, LiteClient.IDevSession devSession = null)
         {
             _commands = commands ?? throw new ArgumentNullException(nameof(commands));
             _input = input;
             _weakNet = weakNet;
             _network = network;
+            _devSession = devSession;
             _tunables = new DebugTunableDiscovery(tunableProviders);
         }
 
@@ -319,7 +321,7 @@ namespace LiteGame
 
             try
             {
-                TestModeOptions.Set(id, value);
+                TestModeOptions.Set(id, value, _devSession?.MatchRules);
                 error = null;
                 return true;
             }

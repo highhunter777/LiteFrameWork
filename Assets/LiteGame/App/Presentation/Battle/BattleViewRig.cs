@@ -112,17 +112,17 @@ namespace LiteGame
 
             _viewAssembler.AttachLaser(_context, _input, _assets.LaserBeam);
             _viewAssembler.AttachProtectionFx(_assets.ProtectionShellLease);
-            _hudAssembler.AttachRespawnHud(PublicFactState, _viewAssembler.LocalSlot,
+            _hudAssembler.AttachRespawnHud(PublicFactState,
+                () => _viewAssembler.View != null ? _viewAssembler.View.LocalEntityId : 0L,
                 _viewAssembler.IsLocalDead, dispatcher);
             _lookController.Attach(_viewAssembler.View);
             _feedbackAssembler.AttachConsumers(_context, _viewAssembler.View);
 #if UNITY_EDITOR || DEVELOPMENT_BUILD || LITEFRAMEWORK_DEBUG
             // 爆头区域常驻可视化（测试模式诊断件）：只读预测态，不改判定；release 剥离
-            _headshotDebug = new BattleHeadshotDebugDrawer(_context.Sim);
+            _headshotDebug = new BattleHeadshotDebugDrawer(_context.Sim, () => _context.MatchRules);
             // 爆头自动验证件（GM 面板现场开关）：替换输入源 + 统计爆头/命中，用于真实对局端到端验链路
             _autoHeadshot = new AutoHeadshotRig(_context.Sim.State, _context.LocalEntityId);
             _feedbackAssembler.Register(_autoHeadshot);
-            BattleDiagnostics.Attach(context);       // 对局诊断读口登记（DevHUD/GM 页只读——三宏剥离零残留）
 #endif
             AttachInputWiring();
             _teleportReg = _commands?.RegisterUndoable(new TeleportToAimHandler(
@@ -211,7 +211,6 @@ namespace LiteGame
             // 自动验证件：**先关闭**（还原设备源）再弃引用——否则输入源会停留在替身态直到下次进房
             _autoHeadshot?.Disable();
             _autoHeadshot = null;
-            BattleDiagnostics.Detach(_context);      // 诊断读口注销（只注销本局实例——防误注下一局）
 #endif
             _feedbackAssembler.DisposeDispatcher();      // 命中分发（视图消费者——先于视图本体拆）
             _lookController.Dispose();                   // 视角源/瞄准点摘除 → 指针解锁 → 相机瞄准还原

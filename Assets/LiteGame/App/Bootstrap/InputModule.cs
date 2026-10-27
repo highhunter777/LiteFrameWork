@@ -15,17 +15,20 @@ namespace LiteGame
     /// （组合根本该认识适配器，§5）；对局相机在 <see cref="PresentationModule"/> 建好后经
     /// <see cref="IInputService.SetAimCamera"/> 补上——两者不同时可用，故分两步。
     /// </summary>
-    internal sealed class InputModule : IClientModule
+    internal sealed class InputModule : IClientModule, IClientModuleGraph
     {
         private InputService _service;
         private NewInputIntentSource _source;
 
         public string Name => "Input";
 
-        public UniTask InitializeAsync(ClientContext context, CancellationToken ct)
+        /// <summary>依赖的模块（与 GameEntry 注册序一致；供 Host DAG 校验）。</summary>
+        public System.Collections.Generic.IReadOnlyList<System.Type> DependsOn =>
+            new System.Type[] { typeof(PresentationModule), typeof(DevSessionModule) };
+        public UniTask InitializeAsync(ModuleContext context, CancellationToken ct)
         {
             _service = new InputService();
-            _source = new NewInputIntentSource();          // Action 资产在本类内建
+            _source = new NewInputIntentSource(dev: context.Require<LiteClient.IDevSession>());   // Action 资产在本类内建；本局规则走 dev 端口
             _source.SetAimCamera(context.Get<UnityEngine.Camera>());   // ⑨ 表现域建的主相机（注册序保证已就绪；null = 不做换算）
             _service.SetSource(_source);
             context.Put<IInputService>(_service);

@@ -6,7 +6,7 @@ namespace LiteGame
 {
     /// <summary>
     /// 联机读数环形窗（纯逻辑）：按 250ms 节流（4Hz）采 RTT/丢包，240 样本≈60s；
-    /// 显示时降采样到指定列数并标注真实窗口。DevTool 只负责喂样与渲染。
+    /// 显示时降采样到指定列数并标注真实窗口。开发面投影只负责喂样与渲染。
     /// </summary>
     public sealed class NetHistory
     {

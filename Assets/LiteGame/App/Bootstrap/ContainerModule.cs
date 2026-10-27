@@ -14,7 +14,7 @@ namespace LiteGame
     /// 客户端装配末段：复用 Host 的 Root 来源，绑定产品能力，明确帧驱动序并预检密封。
     /// 本模块产物在 UI/内容等设施关闭前释放；场景句柄由本模块收尾。
     /// </summary>
-    internal sealed class ContainerModule : IClientModule
+    internal sealed class ContainerModule : IClientModule, IClientModuleGraph
     {
         private SceneService _scenes;
         private ServiceContainer _services;
@@ -28,17 +28,27 @@ namespace LiteGame
 
         public string Name => "Container";
 
-        public UniTask InitializeAsync(ClientContext context, CancellationToken ct)
+        /// <summary>装配末段消费以上全部模块产物（注册序之外的第二道显式声明，供 DAG 校验）。</summary>
+        public IReadOnlyList<Type> DependsOn => new[]
+        {
+            typeof(PlatformInfrastructureModule),
+            typeof(DevSessionModule),
+            typeof(ContentModule),
+            typeof(SettingsModule),
+            typeof(ClocksModule),
+            typeof(SchedulersModule),
+            typeof(LuaHostModule),
+            typeof(ConfigModule),
+            typeof(UiServiceModule),
+            typeof(PresentationModule),
+            typeof(InputModule),
+        };
+
+        public UniTask InitializeAsync(ModuleContext context, CancellationToken ct)
         {
             _services = context.Services;
             try
             {
-                // 开发会话端口（M0 接缝 6）：产品代码只经端口取测试面；release 注入全关空实现。
-#if UNITY_EDITOR || DEVELOPMENT_BUILD || LITEFRAMEWORK_DEBUG
-                context.Put<IDevSession>(new DevSession());
-#else
-                context.Put<IDevSession>(NullDevSession.Instance);
-#endif
                 Assemble(context);
                 return UniTask.CompletedTask;
             }
@@ -50,7 +60,7 @@ namespace LiteGame
             }
         }
 
-        private void Assemble(ClientContext context)
+        private void Assemble(ModuleContext context)
         {
             var config = context.Require<ConfigService>();
             var content = context.Require<IContentService>();
@@ -93,9 +103,13 @@ namespace LiteGame
             _suppressReconnectCommand = commands.Register(new SetAutoReconnectSuppressedHandler(networkDebug),
                 new CommandOptions(gmOnly: true, description: "抑制/恢复自动重连（断线停在 SuspectedLost）"));
             // 调试内核：读模型/动作模型/发现协议的唯一门面；投影（编辑器页/HUD/控制台）只消费它。
+            var devSession = context.Require<IDevSession>();
             context.Put(new DebugKernel(commands, context.Require<IInputService>(),
-                new IDebugTunableProvider[] { new FeatureDebugTunables(), new WeaponDebugTunables(), weakNet },
-                weakNet, networkDebug));
+                new IDebugTunableProvider[]
+                {
+                    new FeatureDebugTunables(devSession), new WeaponDebugTunables(devSession), weakNet,
+                },
+                weakNet, networkDebug, devSession));
 #endif
             _services.RegisterInstance<IConfigTableSource>(config);
             _services.RegisterInstance<IConfigService>(config);
@@ -119,9 +133,14 @@ namespace LiteGame
             Func<uint> gameplayDigestBase = () => config.GameplayDigestBase;
             var maps = new MapProvider(config);            // 地图提供者（D9）：已装载表链 → 判定图（两端同源投影）
             _services.RegisterInstance<IMapProvider>(maps);
-            Func<bool, IClientTransport> transportFactory =
-                testRoom => ProcedureMatch.CreateTransport(testRoom, MatchRulesSeeder.Seed(testRoom),
-                    deploy, gameplayDigestBase, maps);
+            Func<bool, MatchTransport> transportFactory =
+                testRoom =>
+                {
+                    // 每局规则播种（显式步骤）：规则实例随传输同刻产出，经 AccountSession 显式移交给对局。
+                    LiteSim.MatchTestRules rules = MatchRulesSeeder.Seed(testRoom);
+                    return new MatchTransport(
+                        ProcedureMatch.CreateTransport(testRoom, rules, deploy, gameplayDigestBase, maps), rules);
+                };
 #if UNITY_EDITOR || DEVELOPMENT_BUILD || LITEFRAMEWORK_DEBUG
             transportFactory = WeakNetWiring.WrapFactory(transportFactory, weakNet);
 #endif
@@ -210,7 +229,7 @@ namespace LiteGame
             return UniTask.CompletedTask;
         }
 
-        private StageMachine<ProcedureId, ProcedureArgs> CreateMachine(ClientContext context,
+        private StageMachine<ProcedureId, ProcedureArgs> CreateMachine(ModuleContext context,
             IContentService content, ConfigService config, LuaComponent lua,
             UiLuaRegistry uiRegistry, ContentLuaRegistry contentRegistry, StrategyLuaRegistry strategyRegistry,
             PageFlow pageFlow, MetaEntryService metaEntry, FeedbackService feedback)
@@ -236,7 +255,8 @@ namespace LiteGame
                     scenes: _scenes,                                  // 开局入场加载 / 离场卸载对局场景组（都在 Battle）
                     maps: context.Require<IMapProvider>(),             // 多图批：场景路径查表行 scene 列 / 卸载按表枚举
                     feedback: feedback,                                // 开局入场加载遮罩（"正在进入对局…"）
-                    themeProvider: context.Require<UIService>().ThemeAssetProvider)),   // HUD 状态色主题注入（P2-3 B4）
+                    themeProvider: context.Require<UIService>().ThemeAssetProvider,   // HUD 状态色主题注入（P2-3 B4）
+                    devSession: context.Require<IDevSession>())),       // dev 投影读本局规则（实例端口，无静态当前局）
                 (ProcedureId.Error, new ProcedureError(rootToken)));
         }
 
