@@ -37,11 +37,12 @@ namespace LiteSim
         private int _reconcileCount;
         private SimWorldState _probe;           // 和解比对探针态（惰性创建，复用——低频事件不违预分配精神）
 
-        /// <summary>回滚回调（View.Realign 接缝：参数 = 重放到的帧号）。Sim 不做 IO——订阅方自理。</summary>
-        public Action<int> OnRollback;
+        /// <summary>回滚回调（View.Realign 接缝：参数 = 重放到的帧号）。Sim 不做 IO——订阅方自理；
+        /// event 形态：多家订阅互不覆盖（解订阅对称）。</summary>
+        public event Action<int> OnRollback;
 
-        /// <summary>和解回调（客户端上报 MismatchReport 的接缝：参数 = 和解帧号）。</summary>
-        public Action<int> OnReconcile;
+        /// <summary>和解回调（客户端上报 MismatchReport 的接缝：参数 = 和解帧号）。event 形态同 <see cref="OnRollback"/>。</summary>
+        public event Action<int> OnReconcile;
 
         /// <summary>
         /// 帧事件交付（**消费帧事件的唯一时机**——<see cref="FrameDriver"/> 在回调返回后立即清空
@@ -52,7 +53,7 @@ namespace LiteSim
         /// 重放段（<see cref="ExecuteRollback"/>/<see cref="OnAuthoritativeSnapshot"/> 内部）不走本回调：
         /// 那些 Step 的事件不消费即清，正是不重播一次性副作用的来源。
         /// </summary>
-        public Action<SimWorldState> OnFrameEvents;
+        public event Action<SimWorldState> OnFrameEvents;
 
         /// <summary><paramref name="rules"/> = 本局测试规则持有件（null = 无规则）——绑定后随每一次
         /// 步进/重放注入（含回滚重放段，两端同一实例口径见 <see cref="MatchTestRules"/>）。</summary>

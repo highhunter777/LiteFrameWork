@@ -38,14 +38,21 @@ namespace LiteGame.Tests.EditMode
         /// <summary>测试用混合 ID：单槽位 Reload（Overlay——验证混合路径的层权重淡入）。</summary>
         private static readonly AnimationId TestOverlayBlend = new AnimationId("Test.OverlayBlend");
 
+        // 基础片段语义：生产词汇表不再声明（移动走 MoveBlend、战斗只保留 Reload/Death）；
+        // 用例仍按表行键（Locomotion.*/Combat.*）验证 Profile 与清单，故在此以测试 ID 引用。
+        private static readonly AnimationId TestWalk = new AnimationId("Locomotion.Walk");
+        private static readonly AnimationId TestRun = new AnimationId("Locomotion.Run");
+        private static readonly AnimationId TestHit = new AnimationId("Combat.Hit");
+        private static readonly AnimationId TestEvade = new AnimationId("Combat.Evade");
+
         /// <summary>测试 Profile：真实片段名 + 可控 Loop（覆盖"定义与资产 loop 相反"两个方向）+ 两个混合定义。</summary>
         private static AnimationProfile TestProfile()
             => new AnimationProfile()
                 .Register(new AnimationDefinition(CharacterAnimationIds.Idle, AnimationChannel.Base,
                     "Idle", loop: true, minSpeed: 0.1f, maxSpeed: 2f))
-                .Register(new AnimationDefinition(CharacterAnimationIds.Walk, AnimationChannel.Base,
+                .Register(new AnimationDefinition(TestWalk, AnimationChannel.Base,
                     "Walk", loop: true, minSpeed: 0.1f, maxSpeed: 2f))
-                .Register(new AnimationDefinition(CharacterAnimationIds.Run, AnimationChannel.Base,
+                .Register(new AnimationDefinition(TestRun, AnimationChannel.Base,
                     "Run", loop: true, minSpeed: 0.1f, maxSpeed: 2f))
                 .Register(new AnimationDefinition(OverlayLoop, AnimationChannel.Overlay,
                     "Reload", loop: true, minSpeed: 0.1f, maxSpeed: 2f))          // 循环定义 × 一次性资产
@@ -102,7 +109,7 @@ namespace LiteGame.Tests.EditMode
             var backend = Backend(go);
             var player = new AnimationPlayer(backend, AnimationProfileTableSource.Load(ConfigService.DataDir, CombatGirlsAnimationProfile.ModelFamily));
 
-            var ok = player.Play(new AnimationRequest(CharacterAnimationIds.Run, AnimationChannel.Base));
+            var ok = player.Play(new AnimationRequest(TestRun, AnimationChannel.Base));
             Assert.IsTrue(ok.Accepted, "已登记且控制器存在的状态必须被接受");
             Assert.IsTrue(backend.IsChannelActive(AnimationChannel.Base));
 
@@ -177,8 +184,8 @@ namespace LiteGame.Tests.EditMode
                 Assert.Ignore("Avatar 非 humanoid——叠加层 Mask 不可用（能力位拒绝路径由「能力」用例覆盖）");
             Assert.IsTrue(backendB.HasOverlayMask, "humanoid Avatar 必须构造出叠加层 LayerMask");
 
-            Assert.IsTrue(playerA.Play(new AnimationRequest(CharacterAnimationIds.Walk, AnimationChannel.Base)).Accepted);
-            Assert.IsTrue(playerB.Play(new AnimationRequest(CharacterAnimationIds.Walk, AnimationChannel.Base)).Accepted);
+            Assert.IsTrue(playerA.Play(new AnimationRequest(TestWalk, AnimationChannel.Base)).Accepted);
+            Assert.IsTrue(playerB.Play(new AnimationRequest(TestWalk, AnimationChannel.Base)).Accepted);
             Assert.IsTrue(playerB.Play(new AnimationRequest(OverlayLoop, AnimationChannel.Overlay)).Accepted,
                 "Overlay 通道必须被接受（不得只占一半——§6）");
 
@@ -228,7 +235,7 @@ namespace LiteGame.Tests.EditMode
             var backend = Backend(animator);
             var player = new AnimationPlayer(backend, TestProfile());
             Assert.IsTrue(player.Play(new AnimationRequest(
-                CharacterAnimationIds.Run, AnimationChannel.Base)).Accepted);
+                TestRun, AnimationChannel.Base)).Accepted);
 
             Transform hand = animator.GetBoneTransform(HumanBodyBones.RightHand);
             Assume.That(hand != null, "humanoid 骨架应含右手骨");
@@ -263,7 +270,7 @@ namespace LiteGame.Tests.EditMode
             var playerA = new AnimationPlayer(
                 Backend(animA, 0f), TestProfile());
             Assert.IsTrue(playerA.Play(new AnimationRequest(
-                CharacterAnimationIds.Walk, AnimationChannel.Base)).Accepted);
+                TestWalk, AnimationChannel.Base)).Accepted);
 
             // 被测实例 B：**经 Profile/播放器**的普通混合器（Walk/Run 两槽位）
             var goB = Scope.Track(Object.Instantiate(prefab));
@@ -319,7 +326,7 @@ namespace LiteGame.Tests.EditMode
             var player = new AnimationPlayer(backend, TestProfile());
 
             Assert.IsTrue(player.Play(new AnimationRequest(
-                CharacterAnimationIds.Walk, AnimationChannel.Base)).Accepted);
+                TestWalk, AnimationChannel.Base)).Accepted);
             for (int i = 0; i < 5; i++) player.Tick(0.05f);
             Assert.IsTrue(backend.TryGetChannelDebug(AnimationChannel.Base, out var before));
 
@@ -427,7 +434,7 @@ namespace LiteGame.Tests.EditMode
                 else
                 {
                     Assert.IsTrue(player.Play(new AnimationRequest(
-                        i % 4 == 1 ? CharacterAnimationIds.Idle : CharacterAnimationIds.Run,
+                        i % 4 == 1 ? CharacterAnimationIds.Idle : TestRun,
                         AnimationChannel.Base)).Accepted);
                 }
                 player.Tick(0.02f);
@@ -540,7 +547,7 @@ namespace LiteGame.Tests.EditMode
             var backend = Backend(go);
             var player = new AnimationPlayer(backend, TestProfile());
 
-            Assert.IsTrue(player.Play(new AnimationRequest(CharacterAnimationIds.Walk, AnimationChannel.Base)).Accepted);
+            Assert.IsTrue(player.Play(new AnimationRequest(TestWalk, AnimationChannel.Base)).Accepted);
             for (int i = 0; i < 10; i++) player.Tick(0.05f);
             Assert.IsTrue(backend.TryGetChannelDebug(AnimationChannel.Base, out var move1));
             float t1 = move1.Time;
@@ -584,7 +591,7 @@ namespace LiteGame.Tests.EditMode
             for (int i = 0; i < 200; i++)
             {
                 player.Play(new AnimationRequest(
-                    i % 2 == 0 ? CharacterAnimationIds.Idle : CharacterAnimationIds.Run, AnimationChannel.Base));
+                    i % 2 == 0 ? CharacterAnimationIds.Idle : TestRun, AnimationChannel.Base));
                 player.Tick(0.016f);
             }
             Assert.Greater(backend.TruncatedBlends, 0, "在途混合尾部被打断必须计数（§12 确定截断策略）");
@@ -597,7 +604,7 @@ namespace LiteGame.Tests.EditMode
             for (int i = 0; i < 100; i++)
             {
                 player.Play(new AnimationRequest(
-                    i % 2 == 0 ? CharacterAnimationIds.Run : CharacterAnimationIds.Idle, AnimationChannel.Base));
+                    i % 2 == 0 ? TestRun : CharacterAnimationIds.Idle, AnimationChannel.Base));
                 player.Tick(0.016f);
             }
             for (int i = 0; i < 20; i++) player.Tick(0.05f);
@@ -738,9 +745,9 @@ namespace LiteGame.Tests.EditMode
             var profile = AnimationProfileTableSource.Load(ConfigService.DataDir, CombatGirlsAnimationProfile.ModelFamily);
             var ids = new[]
             {
-                CharacterAnimationIds.Idle, CharacterAnimationIds.Walk, CharacterAnimationIds.Run,
+                CharacterAnimationIds.Idle, TestWalk, TestRun,
                 CharacterAnimationIds.AimIdle, CharacterAnimationIds.Reload,
-                CharacterAnimationIds.Hit, CharacterAnimationIds.Death, CharacterAnimationIds.Evade,
+                TestHit, CharacterAnimationIds.Death, TestEvade,
             };
 
             foreach (var id in ids)
@@ -753,9 +760,9 @@ namespace LiteGame.Tests.EditMode
             // 词汇表全行覆盖：CharacterAnimationIds 的每个常量在表中都有行（表与词汇表漂移的守门）
             foreach (var id in new[]
             {
-                CharacterAnimationIds.Idle, CharacterAnimationIds.Walk, CharacterAnimationIds.Run,
+                CharacterAnimationIds.Idle, TestWalk, TestRun,
                 CharacterAnimationIds.AimIdle, CharacterAnimationIds.Reload,
-                CharacterAnimationIds.Hit, CharacterAnimationIds.Death, CharacterAnimationIds.Evade,
+                TestHit, CharacterAnimationIds.Death, TestEvade,
                 CharacterAnimationIds.MoveBlend, CharacterAnimationIds.AimMoveBlend,
             })
             {

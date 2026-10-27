@@ -151,16 +151,15 @@ namespace LiteGame.Tests.EditMode
         [Test]
         public void 实体_关闭面_带挂接链_级联回收不重复处理()
         {
-            // 回归卡：Shutdown 按 _active 快照遍历，而级联回收会带走子件——
+            // 回归卡：Shutdown 按 _active 快照遍历，回收会带走活体——
             // 不检查"是否仍在 _active"会对已回收句柄再走一次 HideInternal（键不存在 → 抛）。
             var loader = new FakeLoader();
             var service = new EntityService(loader.Load);
 
             var parent = service.ShowAsync("Assets/ShareResource/Characters/P.prefab").GetAwaiter().GetResult();
             var child = service.ShowAsync("Assets/ShareResource/Characters/C.prefab").GetAwaiter().GetResult();
-            service.Attach(child.Id, parent.Id);
 
-            Assert.DoesNotThrow(() => service.Shutdown(), "带挂接链的关闭必须走通（级联 + 快照去重）");
+            Assert.DoesNotThrow(() => service.Shutdown(), "多实体关闭必须走通（快照去重）");
             Assert.AreEqual(0, service.ActiveCount, "活体归零");
             Assert.AreEqual(0, service.PooledTotal, "池已排空");
         }

@@ -228,7 +228,8 @@ namespace LiteGame.Tests.EditMode
             var rig = NewRig();
             var catalog = new VfxCatalog().Register(
                 new VfxDef("fx_boom", VfxCategories.Heavy, "Assets/x.prefab"));
-            var svc = rig.Make(catalog: catalog, budget: VfxBudget.LowEnd());
+            var svc = rig.Make(catalog: catalog,
+                budget: new VfxBudget(32, VfxOverflowPolicy.RecycleOldest, new[] { VfxCategories.Heavy }));
 
             var h = svc.Play("fx_boom", null, false);
 

@@ -15,8 +15,8 @@ namespace LiteClient.UI
     }
 
     /// <summary>
-    /// 名字 → 控件索引：受控 API 的查询底座。两种来源——BindNode 标记（路径 A，BindIndexBuilder）
-    /// / Designer 字段登记（路径 B，UIBindBase.RegisterControl）。受控语义在此收口：
+    /// 名字 → 控件索引：受控 API 的查询底座。来源＝BindNode 标记（BindIndexBuilder 构建）。
+    /// 受控语义在此收口：
     /// 绑按钮 = 替换式（重绑先移除旧监听，池化复用安全）；SetText = TMP 优先回退 UGUI Text；未命中/类型不符 = 抛。
     /// **所有权互斥**（设计方案 §4.7/§453）：每个控件登记驱动方式，Bind 后禁命令式、命令式后禁 Bind——
     /// Debug 三宏下违例当场抛（"谁最后生效"竞态极难复现，必须启动期/使用期当场暴露）。
@@ -46,7 +46,7 @@ namespace LiteClient.UI
         public T Get<T>(string name) where T : Component
         {
             if (!_controls.TryGetValue(name, out var c) || c == null)
-                throw new KeyNotFoundException($"绑定索引未命中:{name}——核对 BindNode.BindName / Designer 登记");
+                throw new KeyNotFoundException($"绑定索引未命中:{name}——核对 BindNode.BindName");
             if (c is T typed) return typed;
             throw new InvalidOperationException(
                 $"绑定索引[{name}] 类型不符:期望 {typeof(T).Name} 实得 {c.GetType().Name}");
@@ -389,7 +389,7 @@ namespace LiteClient.UI
         public Graphic ResolveGraphic(string name)
         {
             if (!_controls.TryGetValue(name, out var c) || c == null)
-                throw new KeyNotFoundException($"绑定索引未命中:{name}——核对 BindNode.BindName / Designer 登记");
+                throw new KeyNotFoundException($"绑定索引未命中:{name}——核对 BindNode.BindName");
             if (c is Graphic g) return g;
             if (c is Button btn && btn.targetGraphic != null) return btn.targetGraphic;
             var found = c.GetComponent<Graphic>() ?? c.GetComponentInChildren<Graphic>(true);
@@ -406,7 +406,7 @@ namespace LiteClient.UI
         public RectTransform ResolveRect(string name)
         {
             if (!_controls.TryGetValue(name, out var c) || c == null)
-                throw new KeyNotFoundException($"绑定索引未命中:{name}——核对 BindNode.BindName / Designer 登记");
+                throw new KeyNotFoundException($"绑定索引未命中:{name}——核对 BindNode.BindName");
             if (c.transform is RectTransform rt) return rt;
             throw new InvalidOperationException(
                 $"绑定索引[{name}] 的 transform 不是 RectTransform（实得 {c.transform.GetType().Name}）");

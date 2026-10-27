@@ -51,18 +51,5 @@ namespace LiteView.Animation
                 if (string.Equals(_entries[i].Key, key, StringComparison.Ordinal)) return true;
             return false;
         }
-
-        /// <summary>按绑定键取片段（登记面）。键未登记或引用缺失 → false（调用方显性处理，不猜兜底）。</summary>
-        public bool TryGetClip(string key, out AnimationClip clip)
-        {
-            clip = null;
-            for (int i = 0; i < _entries.Length; i++)
-            {
-                if (!string.Equals(_entries[i].Key, key, StringComparison.Ordinal)) continue;
-                clip = _entries[i].Clip;
-                return clip != null;
-            }
-            return false;
-        }
     }
 }

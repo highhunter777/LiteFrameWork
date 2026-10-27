@@ -84,7 +84,7 @@ namespace LiteCodeGen.EditorTools
             var designerPath = folder + "/" + className + ".Designer.cs";
 
             var mainContent = BindTemplates.BuildMainFile(className, ns, root.BaseClassFullName);
-            var designerContent = BindTemplates.BuildDesignerFile(className, ns, marks, root.EmitRegisterControl);
+            var designerContent = BindTemplates.BuildDesignerFile(className, ns, marks);
 
             EnsureFolderExists(folder);
 

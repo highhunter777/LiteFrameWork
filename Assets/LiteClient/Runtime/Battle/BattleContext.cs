@@ -122,6 +122,7 @@ namespace LiteClient
         private readonly PublicCombatFeed _combatFeed = new PublicCombatFeed();       // 公共战斗事件面（独立事件批 → 按 kind 分流入队）
 
         private RollbackSim _sim;
+        private SimView _wiredView;                        // 已接线的视图（重复绑定先摘旧——event 叠加防重）
         private MatchTestRules _matchRules;               // 本局规则引用（StartGame 绑定；表现面注入源）
         private long _localEntityId;
         private long _reconcileCount;
@@ -203,9 +204,7 @@ namespace LiteClient
             // 回滚/和解 → 视图静默闸；帧事件在**逻辑帧边界**交付（事件是帧内瞬态，事后轮询读不到）
             if (_sim != null)
             {
-                _sim.OnRollback = View.OnRollback;
-                _sim.OnReconcile = View.OnReconcile;
-                _sim.OnFrameEvents = View.OnFrameEvents;
+                WireSimView(view);
                 View.AlignLocal(_localEntityId);
             }
         }
@@ -358,10 +357,25 @@ namespace LiteClient
             // 视图若已挂（AttachView 早于 StartGame），补上回滚/和解/帧事件接线
             if (View != null)
             {
-                _sim.OnRollback = View.OnRollback;
-                _sim.OnReconcile = View.OnReconcile;
-                _sim.OnFrameEvents = View.OnFrameEvents;
+                WireSimView(View);
             }
+        }
+
+        /// <summary>Sim → 视图接线（单写者：重复绑定先摘旧视图，避免 event 叠加重复投递）。</summary>
+        private void WireSimView(SimView view)
+        {
+            if (_sim == null) return;
+            if (_wiredView != null)
+            {
+                _sim.OnRollback -= _wiredView.OnRollback;
+                _sim.OnReconcile -= _wiredView.OnReconcile;
+                _sim.OnFrameEvents -= _wiredView.OnFrameEvents;
+            }
+            _wiredView = view;
+            if (view == null) return;
+            _sim.OnRollback += view.OnRollback;
+            _sim.OnReconcile += view.OnReconcile;
+            _sim.OnFrameEvents += view.OnFrameEvents;
         }
 
         private void OnMatchEnded(LiteNet.Proto.MatchEnded result)

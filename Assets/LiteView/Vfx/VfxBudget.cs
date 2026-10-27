@@ -37,9 +37,6 @@ namespace LiteView
         /// <summary>默认（桌面向）：64 同屏，超限回收最旧。</summary>
         public static VfxBudget Default() => new VfxBudget(64);
 
-        /// <summary>低端机：32 同屏 + 跳过重特效类别（`heavy` 类别需显式 <see cref="VfxCatalog.Register"/> 才会生效）。</summary>
-        public static VfxBudget LowEnd() => new VfxBudget(32, VfxOverflowPolicy.RecycleOldest, new[] { VfxCategories.Heavy });
-
         /// <summary>无上限（测试/调试）。</summary>
         public static VfxBudget Unlimited() => new VfxBudget(int.MaxValue, VfxOverflowPolicy.Reject);
     }

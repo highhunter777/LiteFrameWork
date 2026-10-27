@@ -1,4 +1,6 @@
 using System;
+using System.Collections.Generic;
+using System.IO;
 using UnityEditor;
 using UnityEngine;
 using YooAsset;
@@ -21,6 +23,15 @@ namespace LiteGame.EditorTools
     public static class BuiltinBundleBuildInvoker
     {
         private const string PackageName = "DefaultPackage";
+
+        /// <summary>dev 件路径标记：编辑器资源与开发装配层不得进运行时包（命中即构建失败）。</summary>
+        private static readonly string[] DevAssetPathMarkers =
+        {
+            "/Editor/",
+            "/Editor Resources/",
+            "Assets/LiteGame/DevTool/",
+            "Assets/LiteGame/DevLocalServer/",
+        };
 
         /// <summary>版本号每次构建唯一化（YooAsset 同版本输出目录已存在会拒绝重跑——ErrorCode115）。</summary>
         private static string NewVersion() =>
@@ -105,6 +116,44 @@ namespace LiteGame.EditorTools
         public static void Run(BuildTarget buildTarget = BuildTarget.StandaloneWindows64)
             => RunCore(buildTarget, EBundledCopyOption.ClearAndCopyAll, out _);
 
+        public static bool IsDevAssetPath(string assetPath)
+        {
+            if (string.IsNullOrEmpty(assetPath)) return false;
+            for (int i = 0; i < DevAssetPathMarkers.Length; i++)
+                if (assetPath.IndexOf(DevAssetPathMarkers[i], StringComparison.Ordinal) >= 0)
+                    return true;
+            return false;
+        }
+
+        /// <summary>构建清单不得含 dev 件：读 YooAsset 构建报告逐资源核对，命中即抛（构建失败，
+        /// 不交给人眼在发布侧兜）。</summary>
+        private static void GuardNoDevAssets(string packageOutputDirectory, string packageVersion)
+        {
+            string reportPath = Path.Combine(packageOutputDirectory,
+                YooAssetConfiguration.GetBuildReportFileName(PackageName, packageVersion));
+            if (!File.Exists(reportPath))
+                throw new InvalidOperationException($"构建报告缺失，无法核对 dev 件隔离：{reportPath}");
+
+            BuildReport report = BuildReport.Deserialize(File.ReadAllText(reportPath));
+            var offenders = new List<string>();
+            for (int i = 0; i < report.AssetInfos.Count; i++)
+            {
+                ReportAssetInfo asset = report.AssetInfos[i];
+                if (IsDevAssetPath(asset.AssetPath)) offenders.Add(asset.AssetPath);
+            }
+            if (offenders.Count == 0)
+            {
+                Debug.Log($"[BuiltinBundle] dev 件隔离核对通过（清单 {report.AssetInfos.Count} 项）");
+                return;
+            }
+
+            offenders.Sort(StringComparer.Ordinal);
+            int shown = Math.Min(offenders.Count, 20);
+            throw new InvalidOperationException(
+                $"bundle 清单含 dev 件（{offenders.Count} 项）——核对收集组/忽略规则：\n"
+                + string.Join("\n", offenders.GetRange(0, shown)));
+        }
+
         private static void RunCore(BuildTarget buildTarget, EBundledCopyOption copyOption, out string outputDirectory)
         {
             if (EditorUserBuildSettings.activeBuildTarget != buildTarget)
@@ -139,6 +188,9 @@ namespace LiteGame.EditorTools
             LastOutputDirectory = result.OutputPackageDirectory;
             outputDirectory = result.OutputPackageDirectory;
             Debug.Log($"[BuiltinBundle] 构建成功：package={PackageName} version={buildParameters.PackageVersion} target={buildTarget} copy={copyOption} output={result.OutputPackageDirectory}");
+
+            // dev 件隔离守卫（构建清单核对）：dev 资产打进运行时包＝层泄漏，构建直接失败。
+            GuardNoDevAssets(result.OutputPackageDirectory, buildParameters.PackageVersion);
 
             // 候选路径（copy=None 会跳过 YooAsset 的 TaskCreateCatalog）补生成内置目录文件：
             // 运行时以候选包根初始化时，内置文件系统必读 `BuiltinCatalog.bytes`（文件名 → 包 GUID 映射）——

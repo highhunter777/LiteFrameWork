@@ -44,6 +44,19 @@ namespace LiteGame.Tests.EditMode
             Assert.IsNotNull(prefab.GetComponentInChildren<SkinnedMeshRenderer>(true), "角色模型必须含蒙皮网格");
         }
 
+        /// <summary>清单按绑定键扫描（与装配侧同一遍历面：键 → 片段；键缺失或引用缺失返回 false）。</summary>
+        private static bool TryFindClip(AnimationClipManifest manifest, string key, out AnimationClip clip)
+        {
+            clip = null;
+            for (int i = 0; i < manifest.EntryCount; i++)
+            {
+                if (!manifest.TryGetEntry(i, out var entry) || entry.Key != key) continue;
+                clip = entry.Clip;
+                return clip != null;
+            }
+            return false;
+        }
+
         [Test]
         [Category(TestCategory.Contract)]
         public void 片段清单_覆盖Profile全绑定键且片段可解析()
@@ -59,14 +72,14 @@ namespace LiteGame.Tests.EditMode
             var profile = AnimationProfileTableSource.Load(ConfigService.DataDir, CombatGirlsAnimationProfile.ModelFamily);
             foreach (var def in profile.Definitions)
             {
-                Assert.IsTrue(manifest.TryGetClip(def.Binding, out var clip) && clip != null,
+                Assert.IsTrue(TryFindClip(manifest, def.Binding, out var clip) && clip != null,
                     $"清单缺绑定或片段断引用:{def.Id}:{def.Binding}");
             }
             foreach (var blend in profile.BlendDefinitions)
             {
                 for (int slot = 0; slot < blend.SlotCount; slot++)
                 {
-                    Assert.IsTrue(manifest.TryGetClip(blend.Bindings[slot], out var clip) && clip != null,
+                    Assert.IsTrue(TryFindClip(manifest, blend.Bindings[slot], out var clip) && clip != null,
                         $"清单缺混合槽位或片段断引用:{blend.Id}:槽{slot}:{blend.Bindings[slot]}");
                 }
             }

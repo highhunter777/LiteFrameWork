@@ -63,12 +63,12 @@ Loading → Active ⇄ Covered / Paused → Closing → Recycled → Disposed
 
 `GoAsync` 保留旧页（新页覆盖其上），`ReplaceAsync` 显式关闭当前记录（旧页收到 `Replace` 原因）。两者都排队串行，避免"同帧连点两个按钮"在转场中互相打断。
 
-## 5. 绑定与代码生成：两条路径、一个索引
+## 5. 绑定与代码生成：一个索引
 
-控件暴露有两条路径：
+控件暴露只有一条运行期索引来源：
 
-- **路径 A（标记）**：prefab 上挂 `BindNode`，`BindName` 非空；`BindIndexBuilder` 实例化后扫全树登记。空名跳过（只参与代码生成），重名抛。
-- **路径 B（Designer 字段）**：`UIBindBase` 子类用字段登记控件，适合复杂页/编辑器手写。
+- **标记**：prefab 上挂 `BindNode`，`BindName` 非空；`BindIndexBuilder` 实例化后扫全树登记。空名跳过（只参与代码生成），重名抛。Lua 页面与 C# 页面（`UIBindBase` 派生）共用这条索引。
+- **C# 生成类**：`BindRoot` + `BindNode` → `BindGenerator` 生成 `Xxx.cs` / `Xxx.Designer.cs`，只提供强类型字段引用（`UIBindBase` 的受控 API 仍走 `BindIndexBuilder`）。
 
 `UIBindIndex` 是运行期查询底座：
 
@@ -146,7 +146,7 @@ Lua 侧只能经白名单门面访问 C#：`data`、`ui`、`content`、`text`（
 
 | 入口（toolchain id） | 形态 | 做什么 |
 |---|---|---|
-| `ui.workbench` | 工作台（纯 IMGUI 宿主） | 页面清单/维护字段、控件库+受控属性、绑定编辑、路径 B 生成+hash、契约生成/diff、校验窄档/全量；角色 Lane 与阶段门控 |
+| `ui.workbench` | 工作台（纯 IMGUI 宿主） | 页面清单/维护字段、控件库+受控属性、绑定编辑、C# 生成类+hash、契约生成/diff、校验窄档/全量；角色 Lane 与阶段门控 |
 | `ui.page-scaffold` | window（美术） | 视觉基线 → 自包含 prefab + 根契约/安全区 + 页面清单草稿；不写 Lua/表 |
 | `ui.page-register` | window（工程） | 草稿契约门槛 → `#uiform.xlsx` 行 + Lua 骨架 → Luban+BuildHash → 清单 `Registered`/缓存策略 → 契约刷新；失败按备份回滚并复核 |
 | `ui.validate` | action | 统一校验核心：菜单 / CLI（`RunCli`，供 CI）/ EditMode 三入口 |
@@ -168,8 +168,8 @@ Lua 侧只能经白名单门面访问 C#：`data`、`ui`、`content`、`text`（
 
 - **页面**：`ShareResource/UI/Screens` 有 6 个产品页 prefab（`Page_Login/Lobby/Room/Result/Settings/Records`）、6 个产品模板（`Tmp_BaselineA/B`、`Tmp_Dialog`、`Tmp_ListScreen`、`Tmp_Loading`、`Tmp_Toast`）与 1 个测试载体 `Tmp_UiTestPage`（UIMain 退役后改名的 UI 栈夹具，不登记 tbuiform/页面清单）。
 - **控件模板**：`ShareResource/UI/Widgets` 有 30 个 prefab；生产接线集中在 `ProgressBar`/`HpBar`/`Countdown`/`Toast`/`UIBubble`/`FlyTextPool`/`UIWidget`/`VirtualList`/`UIDialog`/`LoadingMask`。
-- **未接线控件**：`AvatarFrame`/`GuideHighlight`/`StarRating`/`Stepper`/`BottomNav`/`TabGroup`/`SafeAreaReceiver`/`SimpleListView` 等多数只有模板 + `UIDemoPage` 全展 + 测试，不能宣称"已接入业务"。
-- **红点链**：`RedDotRegistry` 在 `UiServiceModule` 建实例并 `context.Put`，但 C# 侧**无 `Evaluate` 调用点**；`RedDot`/`RedDotTree` 只在 `UIDemoPage` 里 new，未接入 `UIBindIndex`。
+- **未接线控件**：`AvatarFrame`/`GuideHighlight`/`StarRating`/`Stepper`/`BottomNav`/`TabGroup`/`SafeAreaReceiver`/`SimpleListView` 等多数只有模板 + 测试，不能宣称"已接入业务"。
+- **红点链**：`RedDotRegistry` 在 `UiServiceModule` 建实例并 `context.Put`，但 C# 侧**无 `Evaluate` 调用点**；`RedDot`/`RedDotTree` 未接入 `UIBindIndex`。
 - **主流程**：`ProcedureMain` 会 `PageFlow.OpenLanding` 开登录/大厅页；`UIMain` 样例页已退役，不再是入口或注册页。
 
 ## 9. 边界与坑

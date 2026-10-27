@@ -631,8 +631,8 @@ namespace LiteClient.UI
 
         private IUIFormLogic ResolveLogic(UIFormInfo info, UnityEngine.GameObject root)
         {
-            // **prefab 自带 C# 逻辑组件优先**（路径 B 接线口：UIBindBase 派生页挂 prefab 根，
-            // Designer/生成器登记控件——显式挂件优先于表行 Lua 逻辑）。
+            // **prefab 自带 C# 逻辑组件优先**（UIBindBase 派生页挂 prefab 根，
+            // 生成器登记控件——显式挂件优先于表行 Lua 逻辑）。
             if (root != null)
             {
                 var carried = root.GetComponentInChildren<IUIFormLogic>(true);

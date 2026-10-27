@@ -45,6 +45,12 @@ namespace LiteGame.Tests.EditMode
         [Test]
         public void 退格键边沿_经状态事件可见()
         {
+            // wasPressedThisFrame 依赖动态帧循环：编辑器在后台时不推进该标志，
+            // InputSystem.Update() 也不刷新——后台跑必红，属环境非缺陷（语义由前台/PlayMode 验）。
+            // 判据用 isApplicationActive（Application.isFocused 在后台仍为 true，不可用作守卫）。
+            if (!UnityEditorInternal.InternalEditorUtility.isApplicationActive)
+                Assert.Ignore("编辑器在后台：wasPressedThisFrame 无动态帧循环");
+
             Keyboard kb = Keyboard.current;
             Assume.That(kb, Is.Not.Null, "本机无键盘设备（无头环境跳过）");
 

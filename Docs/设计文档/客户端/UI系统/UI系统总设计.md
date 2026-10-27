@@ -27,7 +27,7 @@
 | UI 服务与页面实例 | `Assets/LiteClient/UI/UIService.cs`、`UIForm.cs`、`UIFormStore.cs`、`UIStack.cs`、`UILayerGroup.cs` | 已具备打开合流、取消、缓存、租约、遮盖、状态机与失败回滚 |
 | 导航/模态/焦点/输入 | `UINavigationController.cs`、`UIModalStack.cs`、`UIFocusCoordinator.cs`、`Input/UiInput.cs` | 单写者、Back 优先级、模态射线与焦点已收口 |
 | 转场与动效原语 | `Transition/UITransitionRunner.cs`、`Anim/UiAnimationClock.cs`、`Anim/UiFx.cs` | 状态机 + 超时 + 时钟 + 唯一 DOTween 入口 |
-| 绑定与生成 | `Assets/LiteCodeGen/**`、`Bind/UIBindIndex.cs`、`Bind/UIBindBase.cs`、`Bind/BindIndexBuilder.cs` | 名字绑定、路径 A/B、受控 API、所有权互斥 |
+| 绑定与生成 | `Assets/LiteCodeGen/**`、`Bind/UIBindIndex.cs`、`Bind/UIBindBase.cs`、`Bind/BindIndexBuilder.cs` | 名字绑定、运行时索引、C# 生成类、受控 API、所有权互斥 |
 | 控件与列表 | `Widgets/**`、`VirtualList.cs`、`SimpleListView.cs` | 既有控件模板与窗口复用内核 |
 | Lua 桥接 | `LuaUI.cs`、`LuaBridge/LuaBehaviourAdapter.cs` | 页面逻辑、白名单、环境重建 |
 | 本地化 | `ILocaleBound`、`LTextLabel`、`LText` 服务 | 文案 key、语言切换刷新 |
@@ -197,8 +197,8 @@ Docs/设计文档/客户端/UI/      本套设计文档
 
 <a id="ch-binding-base"></a>
 
-- **路径 A（运行时标记）**：`BindNode.BindName` → `BindIndexBuilder.Build` → `UIBindIndex`，按名字取控件。
-- **路径 B（生成类）**：`BindRoot` + `BindNode` → `BindGenerator` 生成 `Xxx.cs` / `Xxx.Designer.cs`；Designer 调 `RegisterControl`，`UIBindBase` 优先使用登记字典。
+- **唯一索引来源（运行时标记）**：`BindNode.BindName` → `BindIndexBuilder.Build` → `UIBindIndex`，按名字取控件；Lua 页面与 C# 页面（`UIBindBase` 派生）共用同一条索引。
+- **C# 生成类**：`BindRoot` + `BindNode` → `BindGenerator` 生成 `Xxx.cs` / `Xxx.Designer.cs`，只提供强类型字段引用（不参与索引登记）。
 - **所有权互斥**：同一控件只能被数据绑定或命令式之一驱动；Debug 三宏下违例当场抛。
 - **生命周期**：按钮、输入控件、列表行、本地化 key 的订阅随 `UnbindAll`/展示作用域清理；池化复用不得留旧回调。
 - **受控 API**：`SetText/SetTextKey/SetVisible/SetInteractable/SetProgress/SetHp/StartCountdown/SetSlider/SetToggle/SetDropdown/SetList/OnListClick/UiFx` 等；详见[UI 逻辑 API 参考](UI逻辑API参考.md)。
@@ -339,7 +339,7 @@ Page Logic (C# UIBindBase 或 Lua)
 
 - `BindNode` 只挂在**暴露给逻辑**的节点；模板内部件不暴露（`Clone_` 条目不进索引）。
 - `BindName` 页面内唯一；默认与节点名同文（前缀_语义），作为契约 `controls[]` 的 API 名。允许为 API 稳定性显式指定独立名，但契约/引用必须使用 `BindName`，不得随视觉改名漂移。
-- 路径 A 用于 Lua/轻量页；路径 B 用于 C#/高频/复杂页。选择规则见[UI 编辑器工具链专项设计 §绑定](UI编辑器工具链专项设计.md#ch-binding)。
+- Lua 页面与 C# 页面（`UIBindBase` 派生）共用同一条运行时索引；C# 生成类只提供强类型字段，不另建索引。选择规则见[UI 编辑器工具链专项设计 §绑定](UI编辑器工具链专项设计.md#ch-binding)。
 - 生成类只由生成器写；手写逻辑在 partial 主文件；生成物 hash 与清单由工具维护。
 - 控件内部状态（Slider/Toggle/Dropdown）用 `Set*WithoutNotify` 程序写入；用户操作才触发回调。
 

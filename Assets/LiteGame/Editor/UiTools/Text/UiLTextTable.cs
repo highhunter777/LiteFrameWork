@@ -78,20 +78,21 @@ namespace LiteGame.Editor.UiTools.Text
             try
             {
                 string root = UiValidator.ProjectRoot;
-                var cache = new Dictionary<string, byte[]>(StringComparer.Ordinal);
+                // 表名 → 文件（清单单源）：loader 惰性读盘——只装载被访问的表（Tbltext），
+                // 不再预读全部 TableLayout.Files（表量增长后 Inspector 下拉会被拖慢）。
+                var files = new Dictionary<string, string>(StringComparer.Ordinal);
                 foreach (string file in TableLayout.Files)
-                {
-                    string full = Path.Combine(root, TableLayout.TableDataPath(file).Replace('/', Path.DirectorySeparatorChar));
-                    if (!File.Exists(full))
-                        throw new FileNotFoundException("表数据缺失：" + TableLayout.TableDataPath(file), full);
-                    cache[TableLayout.TableName(file)] = File.ReadAllBytes(full);
-                }
+                    files[TableLayout.TableName(file)] = file;
 
                 var tables = new cfg.Tables(name =>
                 {
-                    if (!cache.TryGetValue(name, out byte[] bytes))
+                    if (!files.TryGetValue(name, out string file))
                         throw new InvalidOperationException("表清单未登记生成表：" + name);
-                    return new ByteBuf(bytes);
+                    string relative = TableLayout.TableDataPath(file);
+                    string full = Path.Combine(root, relative.Replace('/', Path.DirectorySeparatorChar));
+                    if (!File.Exists(full))
+                        throw new FileNotFoundException("表数据缺失：" + relative, full);
+                    return new ByteBuf(File.ReadAllBytes(full));
                 });
 
                 var rows = new Dictionary<string, cfg.ltext>(StringComparer.Ordinal);

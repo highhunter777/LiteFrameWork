@@ -158,6 +158,12 @@ namespace RoomServer.Runtime
             // 判定地图：装配注入必填（D22——回退构造已删；缺图 = 无图不得起权威局，fail-fast 不静默兜底）。
             Map = config.Map ?? throw new ArgumentException(
                 "RoomConfig.Map 必填——装配经 ServerMapLoader 装载注入（D22：无回退地图）", nameof(config));
+            // 出生点必须覆盖满员：不足时 SpawnPointSelector 会退化为重叠选点（同点双人出生）——
+            // 地图是共享资源、人数是房型配置，故校验放房间构造（烘焙期无权威人数）。
+            if (config.ExpectedPlayers > 0 && Map.SpawnPointCount < config.ExpectedPlayers)
+                throw new ArgumentException(
+                    $"地图出生点不足：spawns={Map.SpawnPointCount} < ExpectedPlayers={config.ExpectedPlayers}（满员会重叠出生）",
+                    nameof(config));
             AuthSim = new SimWorldState();
             SnapshotHistory = new SnapshotRing(SimConfig.LagCompHistory);
             int players = ExpectedPlayers;                     // 配置定容（席位/输入槽/实体表/回溯环一致）

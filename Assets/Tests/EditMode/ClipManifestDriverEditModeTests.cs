@@ -22,6 +22,10 @@ namespace LiteGame.Tests.EditMode
     {
         // ---- 替身与工具 ----
 
+        // 基础片段语义：生产词汇表不再声明，用例以测试 ID 引用表行键（绑定仍指向 Walk/Run 片段）。
+        private static readonly AnimationId WalkId = new AnimationId("Locomotion.Walk");
+        private static readonly AnimationId RunId = new AnimationId("Locomotion.Run");
+
         /// <summary>程序化片段：曲线打在**子骨**（路径 Bone）——真实角色片段只动骨骼不覆写根位移；
         /// 根位移是驱动的测量输入（帧间位移→速度），动画层覆写它会污染测试的运动输入。</summary>
         private static AnimationClip Clip(string name, float seconds)
@@ -117,9 +121,9 @@ namespace LiteGame.Tests.EditMode
             => new AnimationProfile()
                 .Register(new AnimationDefinition(CharacterAnimationIds.Idle, AnimationChannel.Base,
                     "Idle", loop: true, minSpeed: 0.01f, maxSpeed: 2f))
-                .Register(new AnimationDefinition(CharacterAnimationIds.Walk, AnimationChannel.Base,
+                .Register(new AnimationDefinition(WalkId, AnimationChannel.Base,
                     "Walk", loop: true, minSpeed: 0.01f, maxSpeed: 2f))
-                .Register(new AnimationDefinition(CharacterAnimationIds.Run, AnimationChannel.Base,
+                .Register(new AnimationDefinition(RunId, AnimationChannel.Base,
                     "Run", loop: true, minSpeed: 0.01f, maxSpeed: 2f))
                 .Register(new AnimationDefinition(CharacterAnimationIds.AimIdle, AnimationChannel.Override,
                     "AimIdle", loop: true, minSpeed: 0.01f, maxSpeed: 2f))
@@ -172,9 +176,10 @@ namespace LiteGame.Tests.EditMode
             Assert.IsTrue(manifest.ContainsKey("Reload"), "引用缺失是资源态——键仍在（覆盖校验不因此失败）");
             Assert.IsFalse(manifest.ContainsKey("Walk"));
 
-            Assert.IsTrue(manifest.TryGetClip("Idle", out var clip) && clip == idle);
-            Assert.IsFalse(manifest.TryGetClip("Reload", out _), "引用缺失：不猜、不回退，交调用方显性处理");
-            Assert.IsFalse(manifest.TryGetClip("Walk", out _));
+            Assert.IsTrue(manifest.TryGetEntry(0, out var idleEntry) && idleEntry.Key == "Idle" && idleEntry.Clip == idle);
+            Assert.IsTrue(manifest.TryGetEntry(1, out var reloadEntry) && reloadEntry.Key == "Reload",
+                "引用缺失：键留档、片段为空，交调用方显性处理");
+            Assert.IsNull(reloadEntry.Clip, "引用缺失不得兜底别的片段");
 
             Assert.IsTrue(manifest.TryGetEntry(0, out var entry) && entry.Key == "Idle");
             Assert.IsFalse(manifest.TryGetEntry(-1, out _), "越界不猜");

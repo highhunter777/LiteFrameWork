@@ -159,7 +159,7 @@
 3. 写 `Luban/Data/#uiform.xlsx` 一行（id/lua_path/prefab/layer/full_screen；**备份先于写**，失败也回传备份句柄），随后跑 `codegen.luban` → `codegen.build-hash`（红线 1）。
 4. 更新 `UiPageManifest`：对账 → 状态 `Draft → Registered`、写入缓存策略、刷新 `contractPresent`。
 5. 重生成契约填真实 `formId`/layer/fullScreen/luaPath（`ui.contract` 判据同源）；失败显式报红，不回滚已登记的清单，提示重跑 `ui.contract`。
-6. 绑定 hash 清单条目：仅页面挂 `BindRoot`（路径 B）时记录；路径 A 不伪造条目。
+6. 绑定 hash 清单条目：仅页面挂 `BindRoot`（C# 生成类）时记录；无 `BindRoot` 不伪造条目。
 
 安全：
 - 契约/清单/表任一预检失败都零产物（不建 Lua、不写表）。
@@ -183,7 +183,7 @@
 
 | 标记/组件 | 作用 | 规则 |
 | --- | --- | --- |
-| `BindRoot` | 生成根：ScriptName/Namespace/ScriptsFolder/BaseClass/EmitRegisterControl | 一个生成单位一个根；嵌套 `BindRoot` 独立生成 |
+| `BindRoot` | 生成根：ScriptName/Namespace/ScriptsFolder/BaseClass | 一个生成单位一个根；嵌套 `BindRoot` 独立生成 |
 | `BindNode` | 暴露节点：BindName/CustomTypeName/Comment | 只挂暴露节点；BindName 唯一；空名=仅代码生成不进运行时索引 |
 | `BindName` | 运行时索引名/契约 API 名 | 默认等于节点名，可独立命名；PascalCase + 前缀_语义；禁空格/中文/重复 |
 | `CustomTypeName` | 手动指定类型 | 留空自动检测；`GameObject` 表示引用节点；其余填完整类型名 |
@@ -200,11 +200,11 @@
 
 ### 4.3 生成
 
-- **路径 A（Lua/运行时索引）**：`BindNode.BindName` → `BindIndexBuilder`；不需要生成类。Lua 通过 `self.ui:SetText("Button_Ok", ...)` 等调用。
-- **路径 B（C#）**：`BindRoot` → `BindGenerator` 生成 `Xxx.cs`（可手写 partial 主类）与 `Xxx.Designer.cs`（字段/`CollectControls`）；`UIBindBase` 优先使用登记字典。
+- **运行时索引**：`BindNode.BindName` → `BindIndexBuilder`；不需要生成类。Lua 通过 `self.ui:SetText("Button_Ok", ...)` 等调用。
+- **C# 生成类**：`BindRoot` → `BindGenerator` 生成 `Xxx.cs`（可手写 partial 主类）与 `Xxx.Designer.cs`（字段）；字段是强类型引用，**不参与运行期索引登记**（`UIBindBase` 仍经 `BindIndexBuilder` 取控件）。
 - **选择规则**：
-  - 高频/复杂/需要强类型/需要 C# 服务调用 → 路径 B。
-  - 低频/纯展示/由 Lua 业务编排 → 路径 A。
+  - 高频/复杂/需要强类型/需要 C# 服务调用 → C# 页面（`UIBindBase` + 生成类）。
+  - 低频/纯展示/由 Lua 业务编排 → Lua 页面。
   - 同一页面只选一种主逻辑语言，不混用两套生成。
 - **生成物纪律**：生成文件禁手改；主类可手写；生成器确定性、重复执行无 diff。
 - **hash/清单**：记录源 prefab 绑定面 hash + 生成物路径；CI 复算；改了 prefab 未重生成/未记录 → 红。
@@ -562,7 +562,7 @@
 | `ui.workbench` | UI 工作台 | window | asset/source | 唯一制作入口；页面/控件/绑定/样式/契约/校验/预览透视 |
 | `ui.page-scaffold` | 起页（美术） | window | asset | 复制视觉基线为自包含 prefab；不写 Lua/表 |
 | `ui.page-register` | 页面登记（工程） | window | asset/source/generated | 写 tbuiform、Lua/C# 骨架、Luban、hash |
-| `ui.bind-generate` | 绑定生成 | action | generated | 路径 B 生成 + hash 记录 |
+| `ui.bind-generate` | 绑定生成 | action | generated | C# 生成类 + hash 记录 |
 | `ui.binding-hash` | 绑定 hash 对账 | action | data | 记录/校验生成物 |
 | `ui.contract` | 契约生成/刷新 | action | asset(data) | 生成 `UiPageContract` |
 | `ui.contract-diff` | 契约 diff | action | none | 与基线比较；CI 可用 |

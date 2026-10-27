@@ -521,30 +521,20 @@ namespace LiteGame.Editor
             return Path.Combine(_root, LogDirRelative, logName);
         }
 
-        /// <summary>起 apphost 并重定向输出到日志文件（GUI 尾随源——无独立控制台窗口）。</summary>
+        /// <summary>起 apphost 并把输出**OS 级重定向**到日志文件（GUI 尾随源——无独立控制台窗口）。
+        /// 重定向由 cmd 完成、子进程直接写盘：读取端不驻编辑器托管域，域重载后日志继续增长
+        /// （尾随端按 `FileShare.ReadWrite` 读同一文件）。</summary>
         private Process LaunchCaptured(string exePath, string args, string logPath)
         {
             Directory.CreateDirectory(Path.GetDirectoryName(logPath));
-            var psi = new ProcessStartInfo(exePath, args)
+            string command = "\"\"" + exePath + "\" " + args + " > \"" + logPath + "\" 2>&1\"";
+            var psi = new ProcessStartInfo("cmd.exe", "/c " + command)
             {
                 WorkingDirectory = _root,
                 UseShellExecute = false,
                 CreateNoWindow = true,
-                RedirectStandardOutput = true,
-                RedirectStandardError = true,
             };
-            var p = Process.Start(psi);
-            var logLock = new object();
-            void Append(string line)
-            {
-                if (string.IsNullOrEmpty(line)) return;
-                lock (logLock) File.AppendAllText(logPath, line + "\n");
-            }
-            p.OutputDataReceived += (_, e) => Append(e.Data);
-            p.ErrorDataReceived += (_, e) => Append(e.Data);
-            p.BeginOutputReadLine();
-            p.BeginErrorReadLine();
-            return p;
+            return Process.Start(psi);
         }
 
         // ---- 日志尾随（后台探针内读取——主线程只消费快照）----

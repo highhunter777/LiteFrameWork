@@ -17,8 +17,8 @@ namespace LiteGame.Tests.EditMode
     /// 批C-② LText 生产装配链（《UI框架总设计》§9 文本链 + 《上云测试页面层级设计》§10"BindLocale 注入待办"收口）：
     /// ① LTextCatalog 真表投射（tbltext 行 → zh-CN/en 双 locale 目录）；② 表内 key 命名全过 LTextKey（表源守卫）；
     /// ③ LocalizationService 真目录行为（Get/Format/切语言/缺 key 开发期显 [key]）；
-    /// ④ UIBindBase（路径 B）经 ILocaleBound 接受注入——OnInit 建索引后 BindLocale 即 SetTextKey 可用、
-    /// OnInit 前注入为 no-op（Empty 守卫）；⑤ LuaBehaviourAdapter（路径 A）实现 ILocaleBound（页面级
+    /// ④ UIBindBase 经 ILocaleBound 接受注入——OnInit 建索引后 BindLocale 即 SetTextKey 可用、
+    /// OnInit 前注入为 no-op（Empty 守卫）；⑤ LuaBehaviourAdapter 实现 ILocaleBound（页面级
     /// 全链验收走 PlayMode/夜间——索引面行为由 LTextBindEditModeTests 既有 11 例钉住）。
     /// </summary>
     public sealed class LTextWiringEditModeTests : UnityTestBase
@@ -97,7 +97,7 @@ namespace LiteGame.Tests.EditMode
         }
 
         [Test]
-        public void 路径B_ILocaleBound注入_OnInit后可用_OnInit前no_op()
+        public void 界面逻辑基类_ILocaleBound注入_OnInit后可用_OnInit前no_op()
         {
             var tables = LoadRealTables();
             var service = new LocalizationService(LTextCatalog.Build(tables),
@@ -108,12 +108,13 @@ namespace LiteGame.Tests.EditMode
             GameObject label = Scope.CreateGameObject("Label", typeof(RectTransform), typeof(Text));
             label.transform.SetParent(root.transform, false);
             logic.Label = label.GetComponent<Text>();
+            label.AddComponent<LiteCodeGen.BindNode>().BindName = "Label";
 
             // OnInit 前注入 = no-op（Empty 全局件守卫——不得抛、不得串订阅）
             ((ILocaleBound)logic).BindLocale(service);
 
             var form = new UIForm(new UIFormInfo { Id = 901, LuaPath = "", Location = "", Layer = 0, FullScreen = true }, root);
-            ((IUIFormLogic)logic).OnInit(form, null);              // 路径 B：登记面选型（RegisterControl）
+            ((IUIFormLogic)logic).OnInit(form, null);              // 标记索引构建
             ((ILocaleBound)logic).BindLocale(service);              // UIForm 同款注入（ApplyLocale 的等价调用）
 
             logic.WriteTextKey("Label", "UI.Login.Title");
@@ -135,18 +136,13 @@ namespace LiteGame.Tests.EditMode
             Assert.IsTrue(typeof(ILocaleBound).IsAssignableFrom(typeof(LuaBehaviourAdapter)),
                 "LuaBehaviourAdapter 必须实现 ILocaleBound（UIForm 注入缝的存在前提）");
             Assert.IsTrue(typeof(ILocaleBound).IsAssignableFrom(typeof(UIBindBase)),
-                "UIBindBase 必须实现 ILocaleBound（路径 B 与路径 A 同面）");
+                "UIBindBase 必须实现 ILocaleBound（与 Lua 适配器同面）");
         }
 
-        /// <summary>路径 B 测试探针：登记面（RegisterControl）+ LText 写入口暴露。</summary>
+        /// <summary>界面逻辑测试探针：LText 写入口暴露。</summary>
         private sealed class TextBindProbeLogic : UIBindBase
         {
             public Text Label;
-
-            protected override void CollectControls()
-            {
-                if (Label != null) RegisterControl("Label", Label);
-            }
 
             public void WriteTextKey(string name, string key) => SetTextKey(name, key);
             public bool UnbindKey(string name) => UnbindTextKey(name);

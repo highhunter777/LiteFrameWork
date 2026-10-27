@@ -79,12 +79,9 @@ namespace LiteClient
 
         public void SampleOnRenderFrame(SimVector3 localOrigin)
         {
-            // 每渲染帧只裁决一次。**开闸点必须唯一**：只在这里清标记，而置位只发生在本帧有确定结论时
-            // （下面三条路径：被拦零、无设备零、真采样——结论无论是谁，都恰好被消费一次）。
-            bool alreadyHandled = _sampledThisRenderFrame;
-            _sampledThisRenderFrame = false;
-
-            if (alreadyHandled) return;
+            // 同渲染帧内重入（追帧/多 procedure 步进）：**沿用本帧已裁决结论**——不重采样、也不清标记。
+            // 清标记的唯一时机是 TryTakeForSend（上行消费本帧结论）；此处清标记会吞掉本帧上行输入。
+            if (_sampledThisRenderFrame) return;
 
             _gate.Evaluate();
             if (_gate.IsBlocked)
@@ -156,7 +153,7 @@ namespace LiteClient
         {
             input = default;
             bool fresh = _sampledThisRenderFrame;
-            _sampledThisRenderFrame = false;               // 无论是否连得上，渲染帧边界一律清
+            _sampledThisRenderFrame = false;               // 上行消费本帧结论 = 唯一清标记点（下一帧采样才重新开闸）
 
             if (!fresh) return false;
             input = _pending;

@@ -59,7 +59,7 @@ namespace LiteGame.Editor.UiTools.Binding
                     .Append(root.Namespace ?? string.Empty).Append('|')
                     .Append(root.ScriptsFolder ?? string.Empty).Append('|')
                     .Append(root.BaseClassFullName ?? string.Empty).Append('|')
-                    .Append(root.EmitRegisterControl).Append('\n');
+                    .Append('\n');
             }
             else
             {

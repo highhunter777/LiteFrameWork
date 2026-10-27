@@ -314,7 +314,7 @@ namespace LiteView
             // 落位（池复用不残留）：
             // - 跟随：挂点**本地归零**（束/火光贴挂点出射——池取回件可能带着上一轮的局部位/转）；
             // - 非跟随 + 显式世界位（PlayAt）：写世界坐标（弹着"打哪留哪"）；
-            // - 非跟随 + 无位（旧 Play 形态）：保持池内原位——旧行为兼容。
+            // - 非跟随 + 无位：不写位置（落点由调用方/父级决定，本服务不猜）。
             if (inst.Follow && inst.Attach != null)
             {
                 go.transform.localPosition = Vector3.zero;

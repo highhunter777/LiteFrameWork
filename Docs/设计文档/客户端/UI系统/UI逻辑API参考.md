@@ -52,7 +52,7 @@ protected virtual void OnReveal();
 protected virtual void OnHide();
 ```
 
-- `Form` 属性在 `OnInit` 后可读；`OnInit` 内先 `CollectControls`（生成类）或走 `BindIndexBuilder`。
+- `Form` 属性在 `OnInit` 后可读；`OnInit` 内走 `BindIndexBuilder` 构建索引。
 - 页面关闭清理 `Form.Subscriptions`；不得在 Closing/Recycled 再订阅。
 
 ## 3. Lua `self.ui` API
@@ -245,8 +245,8 @@ IReadOnlyList<UIListField> FieldsAt(int index);
 | 场景 | 建议 |
 | --- | --- |
 | 高频 HUD/每帧数值 | C# `HudModel` + 绑定；不跨 Lua |
-| 复杂列表/大量交互 | C# 页面（路径 B） |
-| 低频业务编排/文案/按钮 | Lua 页面（路径 A） |
+| 复杂列表/大量交互 | C# 页面（`UIBindBase` + 生成类） |
+| 低频业务编排/文案/按钮 | Lua 页面 |
 | 静态文案 | `LTextKeyRef` + key；不写 Lua |
 | 需要强类型/服务调用 | C# + `GetControl<T>` |
 | 需要热更快速迭代 | Lua（遵守白名单与限频） |

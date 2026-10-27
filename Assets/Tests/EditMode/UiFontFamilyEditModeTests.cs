@@ -1,6 +1,5 @@
+using System;
 using System.Collections.Generic;
-using System.Linq;
-using LiteClient.UI;
 using LiteTesting;
 using NUnit.Framework;
 using TMPro;
@@ -8,14 +7,14 @@ using TMPro;
 namespace LiteGame.Tests.EditMode
 {
     /// <summary>
-    /// 字体族接线与缺字审计（《UI框架总设计》§9"字体作为字体族和 fallback 链配置，检查缺字"；
+    /// 字体族接线与覆盖（《UI框架总设计》§9"字体作为字体族和 fallback 链配置"；
     /// 制作规范 §7"按所支持语言检查缺字"）。
     ///
     /// 字体族单源 = TMP Settings（默认字体 + 全局 fallback 链）；本套件钉住两件事：
     /// ①配置契约——NotoSansSC-Regular 挂全局 fallback 且图集为 Dynamic/多图集
     /// （Static 图集遇未预烘焙字符即缺字，Dynamic 才具备 fallback 的"缺字动态补"能力）；
-    /// ②审计器行为——覆盖判定逐级、控制字符不计缺字、去重、报告可读。
-    /// 代表文本语料在此内联；tbtext 表落库后装载侧平铺全量文本进审计入口（见 FontGlyphAudit 注释）。
+    /// ②代表文本覆盖——逐字符按"主字体 → fallback 逐级"判定（与 TMP 运行时同序）。
+    /// 代表文本语料在此内联；全量文本表覆盖检查由文本表侧落库流程负责。
     /// </summary>
     public sealed class UiFontFamilyEditModeTests
     {
@@ -60,52 +59,52 @@ namespace LiteGame.Tests.EditMode
                 "Main", "Gold {0}", "OK, Cancel!", "Loading...", "items",
             };
 
-            var results = FontGlyphAudit.Audit(corpus, TMP_Settings.defaultFontAsset, TMP_Settings.fallbackFontAssets);
-            var missing = results.Where(r => !r.Covered).ToList();
-            Assert.IsEmpty(missing, "代表文本缺字:\n" + FontGlyphAudit.Report(results));
+            var main = TMP_Settings.defaultFontAsset;
+            var fallbacks = TMP_Settings.fallbackFontAssets;
+            var missing = new List<string>();
+            foreach (string text in corpus)
+            {
+                var seen = new HashSet<char>();
+                foreach (char c in text)
+                {
+                    if (IsControl(c) || !seen.Add(c)) continue;       // 控制字符不占字形；同字只报一次
+                    if (!FamilyHas(main, fallbacks, c)) missing.Add($"{text}: 缺 [{c}]");
+                }
+            }
+
+            Assert.IsEmpty(missing, "代表文本缺字:\n" + string.Join("\n", missing));
         }
 
-        // ---- 审计器行为 ----
+        // ---- 覆盖判定：主字体未命中时经 fallback ----
 
         [Test]
-        public void 审计器_主字体未覆盖时经fallback命中()
+        public void 主字体不含中文_中文经fallback命中()
         {
             var noto = LoadNotoSansSc();
             Assert.IsNotNull(noto);
 
             // 默认字体（LiberationSans SDF）不含中文——中文必须经 fallback 命中
-            Assert.IsFalse(FontGlyphAudit.FamilyHas(TMP_Settings.defaultFontAsset,
-                new List<TMP_FontAsset>(), '中'), "前置失效：主字体本就含'中'（换默认字体后请调整用例构造）");
-            Assert.IsTrue(FontGlyphAudit.FamilyHas(TMP_Settings.defaultFontAsset,
-                new List<TMP_FontAsset> { noto }, '中'), "fallback 命中即覆盖");
+            Assert.IsFalse(FamilyHas(TMP_Settings.defaultFontAsset, new List<TMP_FontAsset>(), '中'),
+                "前置失效：主字体本就含'中'（换默认字体后请调整用例构造）");
+            Assert.IsTrue(FamilyHas(TMP_Settings.defaultFontAsset, new List<TMP_FontAsset> { noto }, '中'),
+                "fallback 命中即覆盖");
         }
 
-        [Test]
-        public void 审计器_缺字检出_控制字符不计_同字去重()
+        /// <summary>单字符是否被字体族覆盖（主字体 → fallback 逐级；与 TMP 运行时查找序一致）。</summary>
+        private static bool FamilyHas(TMP_FontAsset main, IReadOnlyList<TMP_FontAsset> fallbacks, char c)
         {
-            // fallback 置空：中文全部缺字
-            var results = FontGlyphAudit.Audit(new[] { "中\n文A\t文" }, TMP_Settings.defaultFontAsset,
-                new List<TMP_FontAsset>());
-
-            Assert.AreEqual(1, results.Count);
-            var r = results[0];
-            Assert.IsFalse(r.Covered);
-            CollectionAssert.AreEqual(new[] { '中', '文' }, r.Missing,
-                "缺字 = 中文两字符（换行/制表不计、'文'重复只报一次、'A' 主字体已覆盖）");
+            if (main != null && main.HasCharacter(c, false, false)) return true;
+            if (fallbacks == null) return false;
+            for (int i = 0; i < fallbacks.Count; i++)
+            {
+                var font = fallbacks[i];
+                if (font != null && font.HasCharacter(c, false, false)) return true;
+            }
+            return false;
         }
 
-        [Test]
-        public void 审计器_报告可读_全覆盖为单行()
-        {
-            var covered = FontGlyphAudit.Audit(new[] { "Main" }, TMP_Settings.defaultFontAsset,
-                TMP_Settings.fallbackFontAssets);
-            StringAssert.Contains("全覆盖", FontGlyphAudit.Report(covered));
-
-            var missing = FontGlyphAudit.Audit(new[] { "中文" }, TMP_Settings.defaultFontAsset,
-                new List<TMP_FontAsset>());
-            var report = FontGlyphAudit.Report(missing);
-            StringAssert.Contains("1 条文本缺字", report);
-            StringAssert.Contains("中", report);
-        }
+        /// <summary>排版控制字符（不占字形——由 TMP/排版层处理，不是缺字）。</summary>
+        private static bool IsControl(char c)
+            => c == '\n' || c == '\r' || c == '\t' || char.IsControl(c);
     }
 }

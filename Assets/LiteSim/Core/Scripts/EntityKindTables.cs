@@ -6,7 +6,7 @@ namespace LiteSim
     /// 迷你 archetype mask）。携带面不在本表——进背包后是 <c>MatchBag</c> 的事（既有面）。
     ///
     /// 布局契约同 P0 运行态：纯值类型 struct、定容数组行、零引擎依赖；进快照/checksum 的字段
-    /// 只允许值类型（<c>SimWorldState</c> 布局硬约束 #5 同款）。消费者 = ItemSystem。
+    /// 只允许值类型（<c>SimWorldState</c> 布局硬约束 #5 同款）。消费者＝道具分型系统（尚未实现，G2 排期）。
     /// </summary>
     public partial struct ItemState
     {
@@ -18,7 +18,7 @@ namespace LiteSim
         [StateLayer(StateLayer.Public)]
         public int Count;
 
-        /// <summary>归属实体 Id（0 = 无主地面件；被拾取判定的近侧候选标记，ItemSystem 维护）。</summary>
+        /// <summary>归属实体 Id（0 = 无主地面件；被拾取判定的近侧候选标记，由道具分型系统维护——尚未实现，G2 排期）。</summary>
         [StateLayer(StateLayer.Public)]
         public long OwnerId;
 
@@ -29,7 +29,7 @@ namespace LiteSim
 
     /// <summary>
     /// 投掷物分型行：<c>Projectiles[slot]</c>——行有效 ⟺ KindProjectile 置位。
-    /// 手雷/闪光等抛物面（hitscan 之外的弹道命中在 ProjectileSystem 结算）。
+    /// 手雷/闪光等抛物面（hitscan 之外的弹道命中由投掷物分型系统结算——尚未实现，G2 排期）。
     /// </summary>
     public partial struct ProjectileState
     {
@@ -52,7 +52,7 @@ namespace LiteSim
 
     /// <summary>
     /// 区域效果分型行：<c>Zones[slot]</c>——行有效 ⟺ KindZone 置位。
-    /// EMP/雷达等驻留区域：出生点 + 半径 + 剩余时长（ZoneSystem 衰减）。
+    /// EMP/雷达等驻留区域：出生点 + 半径 + 剩余时长（区域系统衰减——尚未实现，G2 排期）。
     /// </summary>
     public partial struct ZoneState
     {
@@ -64,11 +64,11 @@ namespace LiteSim
         [StateLayer(StateLayer.Public)]
         public float Radius;
 
-        /// <summary>剩余持续帧数（每帧递减，0 即由 ZoneSystem 回收）。</summary>
+        /// <summary>剩余持续帧数（每帧递减，0 即回收——区域系统尚未实现，G2 排期）。</summary>
         [StateLayer(StateLayer.Public)]
         public int RemainingFrames;
 
-        /// <summary>归属实体 Id（雷达私有可见性/EMP 中立判定，ZoneSystem 维护）。</summary>
+        /// <summary>归属实体 Id（雷达私有可见性/EMP 中立判定，由区域系统维护——尚未实现，G2 排期）。</summary>
         [StateLayer(StateLayer.Public)]
         public long OwnerId;
     }

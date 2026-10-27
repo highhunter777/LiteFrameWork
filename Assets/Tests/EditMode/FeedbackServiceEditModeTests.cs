@@ -381,5 +381,43 @@ namespace LiteGame.Tests.EditMode
             Assert.AreEqual(3, toast.PooledCount, "池中直取复用（不再 Instantiate）");
             Assert.AreEqual(1, toast.VisibleCount);
         }
+
+        // ---- 加载面代次竞态（旧段开面晚于新段：转认领，不留孤儿/不误收）----
+
+        [Test]
+        public void 加载面_旧段开面晚于新段_转认领_不留孤儿也不误收()
+        {
+            var form = new UIForm(
+                new UIFormInfo { Id = LoadingFormId, Layer = 3, FullScreen = false, Location = "x202", LuaPath = "" },
+                FakeLoadingPrefab("loadingRace"));
+
+            var opens = new List<UniTaskCompletionSource<UIForm>>();
+            int closes = 0;
+            var feedback = new FeedbackService(_ui, _dialogs, _nav,
+                errorFormId: ErrorFormId, confirmFormId: 206,
+                loadingFormId: LoadingFormId, toastFormId: ToastFormId,
+                open: _ => { var src = new UniTaskCompletionSource<UIForm>(); opens.Add(src); return src.Task; },
+                close: _ => { closes++; return UniTask.CompletedTask; },
+                isOpen: _ => true);
+            try
+            {
+                FeedbackService.LoadingScope a = feedback.BeginLoading("A");
+                a.Dispose();                                  // A 段结束（开面仍在途）
+                FeedbackService.LoadingScope b = feedback.BeginLoading("B");
+                Assert.AreEqual(2, opens.Count, "两段各一次开面");
+
+                opens[0].TrySetResult(form);                  // A 的旧代开面落地：新段已在场 → 转认领
+                Assert.IsTrue(feedback.LoadingVisible, "旧代面应转给当前段认领（不留孤儿）");
+                Assert.AreEqual(0, closes, "转认领不得收面");
+
+                opens[1].TrySetResult(form);                  // B 自己的开面落地（同一实例）
+                Assert.AreEqual(0, closes, "同一实例不重复收");
+
+                b.Dispose();
+                Assert.AreEqual(1, closes, "B 收场只收一次");
+                Assert.IsFalse(feedback.IsLoading);
+            }
+            finally { feedback.Dispose(); }
+        }
     }
 }

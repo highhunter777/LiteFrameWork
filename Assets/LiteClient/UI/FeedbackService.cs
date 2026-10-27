@@ -124,23 +124,23 @@ namespace LiteClient.UI
                 UIForm form = await _open(_loadingFormId);
                 if (epoch != _loadingEpoch)
                 {
-                    // 本段阻断已在开面落地前结束（快路径进房：Begin→End 快于异步入队的开面——
-                    // 见 <see cref="LoadingVisible"/> 注）——面落地即成**孤儿面**：无更新窗口认领
-                    // （无在场活动面、且不在阻断中）时**落地即收**，不留永久阻断；
-                    // 否则留给更新窗口自己的开面/收口（不抢收——防误关活面）。
-                    if (_loadingForm == null && _loadingDepth <= 0)
+                    // 本段阻断已在开面落地前结束（快路径进房：Begin→End 快于异步入队的开面）：
+                    // - 新段已在场且尚无认领面 → 本面转给当前段（同一表单实例——收养，不留孤儿）；
+                    // - 无新段且无认领面 → 落地即收（不留永久阻断）；
+                    // - 已有认领面 → 不动（可能就是同一实例，抢收会误关活面）。
+                    if (_loadingDepth > 0 && _loadingForm == null)
+                    {
+                        _loadingForm = form;
+                        ApplyLoadingState(form);
+                    }
+                    else if (_loadingForm == null)
+                    {
                         await CloseFormAsync(form);
+                    }
                     return;
                 }
                 _loadingForm = form;
-                var mask = form.Root.GetComponentInChildren<LoadingMask>(true);
-                if (mask != null)
-                {
-                    mask.SetStatus(_loadingMessage, _loadingProgress);   // 首写不丢：开面完成写缓存全量
-                    mask.SetBlocking(true);
-                }
-                else
-                    Log.Error($"加载遮罩表单[{_loadingFormId}] 缺少 LoadingMask 组件——表单装配错误", LogTag.UI);
+                ApplyLoadingState(form);
             }
             catch (OperationCanceledException) { /* 遮罩打开被取消（Shutdown/Close）——静默 */ }
             catch (Exception ex)
@@ -148,6 +148,19 @@ namespace LiteClient.UI
                 // 反馈面失败不该吞掉被门控操作——只落日志（§6.1"请求失败的反馈可观察"）
                 Log.Error($"加载遮罩打开失败[{_loadingFormId}]:{ex.Message}", LogTag.UI);
             }
+        }
+
+        /// <summary>把当前文案/进度/阻断态写到遮罩（开面落地、旧代面转认领两路共用）。</summary>
+        private void ApplyLoadingState(UIForm form)
+        {
+            var mask = form.Root.GetComponentInChildren<LoadingMask>(true);
+            if (mask == null)
+            {
+                Log.Error($"加载遮罩表单[{_loadingFormId}] 缺少 LoadingMask 组件——表单装配错误", LogTag.UI);
+                return;
+            }
+            mask.SetStatus(_loadingMessage, _loadingProgress);   // 首写不丢：开面完成写缓存全量
+            mask.SetBlocking(true);
         }
 
         /// <summary>当前加载文案（工作台/诊断回读——缓存值，非活动期回落默认文案）。</summary>
@@ -182,7 +195,7 @@ namespace LiteClient.UI
             if (_loadingDepth <= 0)
             {
                 _loadingDepth = 0;
-                _loadingEpoch++;                  // 收场换代：在途开面落地即成孤儿面（由 OpenLoadingAsync 自收）
+                _loadingEpoch++;                  // 收场换代：在途开面落地时——新段已在场则转认领，否则自收
                 _loadingMessage = "加载中…";      // 复位（下次开面写全量）
                 _loadingProgress = null;
                 _loadingCts?.Dispose();

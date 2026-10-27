@@ -33,6 +33,10 @@ namespace LiteGame.Tests.UI.PlayMode
     [Category(TestCategory.Contract)]
     public sealed class AnimationResourcePlayModeTests
     {
+        // 基础片段语义：生产词汇表不再声明，用例直接引用表行键（Profile 行仍在 tbanimationprofile）。
+        private static readonly AnimationId RunId = new AnimationId("Locomotion.Run");
+        private static readonly AnimationId WalkId = new AnimationId("Locomotion.Walk");
+
         private PlayModeTestScope _scope;
         private bool _assetsReady;
 
@@ -101,7 +105,7 @@ namespace LiteGame.Tests.UI.PlayMode
             var player = new AnimationPlayer(
                 backend, AnimationProfileTableSource.Load(ConfigService.DataDir, CombatGirlsAnimationProfile.ModelFamily));
             bool accepted = player.Play(new AnimationRequest(
-                CharacterAnimationIds.Run, AnimationChannel.Base)).Accepted;
+                new AnimationId("Locomotion.Run"), AnimationChannel.Base)).Accepted;
             Assert.IsTrue(accepted, "清单应含 Run 绑定（Profile 绑定与清单一致）");
             Assert.IsTrue(backend.IsChannelActive(AnimationChannel.Base),
                 "提交后 Base 通道激活");
@@ -177,14 +181,14 @@ namespace LiteGame.Tests.UI.PlayMode
 
             // ① 先起 Run
             AnimationStartResult first = player.Play(new AnimationRequest(
-                CharacterAnimationIds.Run, AnimationChannel.Base));
+                RunId, AnimationChannel.Base));
             Assert.IsTrue(first.Accepted, "清单应含 Run 绑定");
 
             for (int i = 0; i < 5; i++) { player.Tick(0.05f); player.Tick(0.05f); }
 
             // ② 同通道再起 Walk → Run 应得 **Interrupted**（被接受的新播放接管替换）
             AnimationStartResult second = player.Play(new AnimationRequest(
-                CharacterAnimationIds.Walk, AnimationChannel.Base));
+                WalkId, AnimationChannel.Base));
             Assert.IsTrue(second.Accepted, "清单应含 Walk 绑定");
 
             yield return null;                                  // 让真实 PlayerLoop 转一帧
@@ -203,7 +207,7 @@ namespace LiteGame.Tests.UI.PlayMode
             for (int i = 0; i < 12; i++)
             {
                 player.Play(new AnimationRequest(
-                    i % 2 == 0 ? CharacterAnimationIds.Idle : CharacterAnimationIds.Run,
+                    i % 2 == 0 ? CharacterAnimationIds.Idle : RunId,
                     AnimationChannel.Base));
                 player.Tick(0.02f);
             }
@@ -239,7 +243,7 @@ namespace LiteGame.Tests.UI.PlayMode
             AnimationTerminalState? terminal = null;
             player.OnTerminal += (h, t) => terminal = t;
 
-            player.Play(new AnimationRequest(CharacterAnimationIds.Run, AnimationChannel.Base));
+            player.Play(new AnimationRequest(RunId, AnimationChannel.Base));
             for (int i = 0; i < 5; i++) player.Tick(0.05f);
 
             player.Dispose();                                    // Owner 释放
