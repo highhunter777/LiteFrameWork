@@ -34,11 +34,21 @@ namespace LiteFramework
     {
         private readonly List<TId> _active = new List<TId>(4);      // 根 → 最深活动态
 
+        // ---- 层级树表示法（本机独有；共享内核不持有树语义）----
+        private readonly Dictionary<TId, CompositeSpec<TId>> _composite = new Dictionary<TId, CompositeSpec<TId>>();
+        private readonly Dictionary<TId, TId> _parent = new Dictionary<TId, TId>();   // 非根 → 父
+        private readonly Dictionary<TId, List<TId>> _history = new Dictionary<TId, List<TId>>();   // 复合态 → 上次退出时的子路径
+        private readonly List<TId> _roots = new List<TId>(2);       // 根集合（无父者；HSM 允许多根）
+
         public HierarchicalStageMachine(string name,
             (TId id, IStage<TId, TReq> stage)[] stages,
             CompositeSpec<TId>[] composites,
             TransitionTable<TId, TReq> transitions = null)
-            : base(name, transitions, stages, composites, buildTree: true) { }
+            : base(name, stages)
+        {
+            BuildTree(composites);                                  // 原序：注册 → 建树 → 迁移表校验 → 审计 → OnInit
+            InitializeCore(transitions);
+        }
 
         /// <summary>根集合（无父的阶段；HSM 允许多根，跨根迁移即全退全进）。</summary>
         public IReadOnlyList<TId> Roots => _roots;
@@ -70,6 +80,7 @@ namespace LiteFramework
         /// <summary>启动：从给定根一路展开到叶（无历史 → 全用 `InitialChild`）。只能一次。</summary>
         public void Start(TId root)
         {
+            EnsureInitialized();
             if (_active.Count > 0) throw new InvalidOperationException($"{_name}:Start 只能调用一次");
             if (_parent.ContainsKey(root))
                 throw new InvalidOperationException($"{_name}:{root} 不是根（它有父态）");
@@ -265,6 +276,7 @@ namespace LiteFramework
         /// </summary>
         public virtual void Reset()
         {
+            EnsureInitialized();
             _hasPending = false;
             _pendingReq = default;
 
@@ -441,6 +453,7 @@ namespace LiteFramework
         /// 诊断计数段单源在内核（§4；既有键不动，HUD 兼容）。</summary>
         public virtual void Snapshot(Dictionary<string, string> into)
         {
+            EnsureInitialized();
             into.Clear();
             if (_active.Count == 0)
             {
@@ -477,5 +490,55 @@ namespace LiteFramework
                     sb.AppendLine($"  \"{spec.Id}\" -> \"{spec.Children[i]}\" [style=dotted, label=\"child\"];");
         }
 #endif
+
+        // ---- 层级树构建（本机表示法；共享内核不持有）----
+
+        /// <summary>复合树装配与校验（fail-fast）：重复复合态/子态未注册/多父/无根/成环当场抛。
+        /// composites = null 时为**全根形态**（多根流程线）——根推导与环检测仍执行。</summary>
+        private void BuildTree(CompositeSpec<TId>[] composites)
+        {
+            if (composites != null)
+            {
+                foreach (var spec in composites)
+                {
+                    if (spec == null) throw new ArgumentException("composites 含 null 元素", nameof(composites));
+                    if (!_stages.ContainsKey(spec.Id))
+                        throw new ArgumentException($"复合态 {spec.Id} 未在 stages 里注册阶段实例", nameof(composites));
+                    if (_composite.ContainsKey(spec.Id))
+                        throw new ArgumentException($"重复复合态声明:{spec.Id}", nameof(composites));
+                    _composite.Add(spec.Id, spec);
+
+                    foreach (var child in spec.Children)
+                    {
+                        if (!_stages.ContainsKey(child))
+                            throw new ArgumentException($"复合态 {spec.Id} 的子态 {child} 未在 stages 里注册", nameof(composites));
+                        if (_parent.TryGetValue(child, out var exist))
+                            throw new ArgumentException(
+                                $"阶段 {child} 有多个父（{exist} / {spec.Id}）——HSM 要求是一棵树", nameof(composites));
+                        _parent.Add(child, spec.Id);
+                    }
+                }
+            }
+
+            // 允许多根（如流程线的 Launch/Preload/Main/Error 是平级根）：跨根迁移 = 全退全进（LCA=0）。
+            // 只要求：每个非根至多一个父、且父子关系无环（下面逐点上行探测）。
+            var roots = new List<TId>();
+            foreach (var id in _stages.Keys)
+                if (!_parent.ContainsKey(id)) roots.Add(id);
+            if (roots.Count == 0)
+                throw new ArgumentException("HSM 无根（父子关系成环）", nameof(composites));
+            _roots.AddRange(roots);
+
+            foreach (var id in _stages.Keys)
+            {
+                var cur = id;
+                int hops = 0;
+                while (_parent.TryGetValue(cur, out var p))
+                {
+                    cur = p;
+                    if (++hops > _stages.Count) throw new ArgumentException($"父子关系存在环（经过 {id}）", nameof(composites));
+                }
+            }
+        }
     }
 }

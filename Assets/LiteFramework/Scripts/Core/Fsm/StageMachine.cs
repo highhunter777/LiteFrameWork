@@ -46,11 +46,11 @@ namespace LiteFramework
         private TId _currentId;
 
         public StageMachine(string name, params (TId id, IStage<TId, TReq> stage)[] stages)
-            : base(name, null, stages, null, buildTree: false) { }
+            : base(name, stages) { InitializeCore(null); }
 
         /// <summary>带迁移表的构造（配置期 fail-fast：边 From/To 未注册 / To==From 当场抛）。</summary>
         public StageMachine(string name, TransitionTable<TId, TReq> transitions, params (TId id, IStage<TId, TReq> stage)[] stages)
-            : base(name, transitions, stages, null, buildTree: false) { }
+            : base(name, stages) { InitializeCore(transitions); }
 
         /// <summary>当前阶段 id（未 Start 时无意义，配 <see cref="Started"/> 判读）。</summary>
         public override TId Current => _currentId;
@@ -67,6 +67,7 @@ namespace LiteFramework
         /// <summary>启动（一次）；全部阶段已 OnInit。</summary>
         public void Start(TId initialId)
         {
+            EnsureInitialized();
             if (_current != null) throw new InvalidOperationException($"{_name}:Start 只能调用一次");
             _transitions?.Lock();                                // 封板（Start 后加边抛——§3.6）
 #if UNITY_EDITOR || DEVELOPMENT_BUILD || LITEFRAMEWORK_DEBUG
@@ -189,6 +190,7 @@ namespace LiteFramework
         /// </summary>
         public virtual void Reset()
         {
+            EnsureInitialized();
             var leaving = _current;
             if (leaving != null)
             {
@@ -256,6 +258,7 @@ namespace LiteFramework
         /// 诊断计数段单源在内核（§4；既有键不动，HUD 兼容）。</summary>
         public virtual void Snapshot(Dictionary<string, string> into)
         {
+            EnsureInitialized();
             into.Clear();
             into["当前阶段"] = _current == null ? "(未启动)" : _currentId.ToString();
             into["阶段时长"] = _stageTime.ToString("0.0");
