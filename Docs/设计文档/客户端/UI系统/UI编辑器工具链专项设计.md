@@ -430,7 +430,7 @@
 | `UiWidgetManifest` | `Assets/LiteGame/Editor/UiTools/UiWidgetManifest.json` | 控件库/文档/校验 |
 | `UiThemeAsset` | `Assets/GameData/Config/UI/`（SO） | 运行时样式解析 |
 
-> `UiThemeAsset`：P2-3a 起由 `ui.style.tokens` 从 `UiStyleTokens.json` 生成；P2-3 B2/B4 有运行期消费链（bootstrap 一次装载 → `UIForm.ThemeProvider` / HUD `BattleViewRig` → 装配期 `UiThemeBinder` 注入），共 69 色（12 基础 + 8 B2 状态 + 44 精确 + 5 Selectable；映射表见总设计 §6.5）；其余五组仍空集（按消费者落地）。
+> `UiThemeAsset`：P2-3a 起由 `ui.style.tokens` 从 `UiStyleTokens.json` 生成；P2-3 B2/B4 有运行期消费链（bootstrap 一次装载 → `UIForm.ThemeProvider` / HUD `BattleViewAssets` → 装配期 `UiThemeBinder` 注入），共 69 色（12 基础 + 8 B2 状态 + 44 精确 + 5 Selectable；映射表见总设计 §6.5）；其余五组仍空集（按消费者落地）。
 > 例外登记不是生成物，单独记：`Assets/LiteGame/Editor/UiTools/UiRuleExceptions.json`（手工维护，见 §6.3）。
 > 生成物禁手改；路径/格式变更与 schema 同批更新。
 
