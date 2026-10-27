@@ -219,7 +219,8 @@ Docs/设计文档/客户端/UI/      本套设计文档
 
 <a id="ch-page-catalog"></a>
 
-- **运行时目录**：`Luban/Data/#uiform.xlsx` → `UIFormInfo`（`id`/`lua_path`/`prefab`/`layer`/`full_screen`）。运行时只认这五列，新增列不进运行时。
+- **运行时目录**：`PageDefinition`（生成物 `UiPageCatalog.g.cs`，运行时经 `IPageCatalog` 取件）。运行时只认 `Id`/`Name`/`Prefab`/`LuaPath`/`Layer`/`FullScreen`/`CacheStrategy` 七项；`#uiform`、contract、manifest、hash 均为生成器输入或编辑器域，不进运行时。
+- **页面单制品**：一个页面 = 一条 `PageDefinition` + 一个 prefab；Lua 是页面逻辑代码，不计入制品数。
 - **页面 ID 段**（推荐）：
 
 | 段 | 用途 |
@@ -231,8 +232,18 @@ Docs/设计文档/客户端/UI/      本套设计文档
 | 900–999 | 开发/调试专用页（不得进 release 目录） |
 
 - **页面清单（页面关系）**：登录 → 大厅 → 房间 → 对局 → 结算 → 大厅；设置可从大厅/对局返回；战绩从大厅进入；加载/Toast/Dialog 是系统面，不占业务导航历史。
-- **编辑器清单**：`UiPageManifest`（工具维护的注册表，不进运行时）记录页面 Owner、契约路径、设计稿链接、设备档、状态（五态词表与迁移表见[工具链专项设计 §8.5](UI编辑器工具链专项设计.md#ch-page-manifest)）。运行时不得读取该清单。
+- **编辑器清单**：`UiPageManifest`（工具维护的注册表，不进运行时）记录页面 Owner、契约路径、设计稿链接、设备档、状态（五态词表与迁移表见[工具链专项设计 §8.5](UI编辑器工具链专项设计.md#ch-page-manifest)）。它是 `PageDefinition` 生成器的输入，不再是独立的运行时制品。
 - **命名**：`Page_<Semantic>`、`Hud_<Semantic>`、`Tmp_<Widget>`；详见[UI 制作规范 §命名](UI制作规范.md#ch-naming)。
+
+### 5.1.1 页面单制品（PageDefinition）
+
+<a id="ch-page-definition"></a>
+
+- **唯一源**：`#uiform`（id/prefab/lua/layer/fullscreen）+ `UiPageManifest`（Owner/状态/设备档/缓存策略）+ `UiPageContract`（绑定表/文案/样式引用）+ prefab 的 BindNode，由 `ui.page-definition` 生成器合并为一条 `PageDefinition`。
+- **生成物**：`Assets/LiteGame/App/Product/Generated/UiPageCatalog.g.cs`（按 Id 排序、确定性输出）；运行时只读该目录，不读 `#uiform`/contract/manifest/hash。
+- **缺失处理**：缺失 contract 的 Tmp 页告警并以空绑定表生成；缺失 prefab/table 行 fail-fast；同一 prefab 多行取首行，其余行由 manifest `forms[]` 承载。
+- **工具边界**：contract/manifest/hash 保留在编辑器域，作为生成器输入与评审产物；运行时程序集出现引用即由架构守卫拦截。
+- **迁移约束**：旧 `UIFormInfo`/`UIFormCatalog` 仅在生成目录接入的适配窗口内保留；窗口结束后运行时只认 `PageDefinition`。
 
 ### 5.2 生命周期与状态机
 
@@ -386,6 +397,17 @@ Page Logic (C# UIBindBase 或 Lua)
   不在本节假装已生效。
 - **契约**：队列满在创建/入栈/OnShow 之前拒绝（类型化 `UIOpenException(Rejected)`）；排队期取消 = 不执行、
   不加载；拒绝与丢弃均可观测（`RejectedCount` / `DroppedCount`）。
+- **目标形态（架构收敛线 §4.5）**：导航、转场、弹窗降级为 `IUiOperationQueue` 的策略/适配器，不再各自持有队列、超时与取消状态；`OperationScope` 统一承载超时/取消/合并键。上文的“各自泵动”仅作过渡形态保留，不是终态。
+
+### 5.14 UI API 单源（UiApiSpec）
+
+<a id="ch-ui-api-spec"></a>
+
+- **唯一源**：`Assets/LiteGame/Editor/UiTools/UiApi/UiApiSpec.json`（schema `UiApiSpec.schema.json`）逐条声明 C# 名、Lua 名、参数/返回、文档、暴露面与手工处理器。
+- **生成物**：`UIBindIndex.Api.g.cs`、`UIBindBase.Api.g.cs`、`UiApiShim.g.cs`、`LuaBehaviourAdapter.Dispatch.g.cs`、`UI逻辑API参考.md` 与生成测试；禁止四处手写同步。
+- **手工例外**：`showConfirm`（异步确认）、`setList`/`onListClick`（LuaTable 行转换）、`onButton`（Lua 闭包）可在 spec 标 `manual`，由生成器保留手工处理器入口；其余 API 不得手写。
+- **版本**：`BridgeCapabilitySet.ApiVersion` 由 spec 的 `apiVersion` 生成；新增 API = 改 spec + 重生成，版本随生成物递增。
+- **守卫**：非生成文件出现 API 名/shim 字符串即由架构守卫拦截；生成器连跑两次字节一致。
 
 ## 6. 视觉与样式体系
 
