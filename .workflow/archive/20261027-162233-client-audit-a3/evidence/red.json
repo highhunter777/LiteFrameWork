@@ -1,0 +1,23 @@
+{
+  "schema_version": 1,
+  "kind": "red",
+  "at": "2026-10-27T12:56:45+08:00",
+  "ok": true,
+  "command_fingerprint": "9c9ae340c7cd1acc3ddaf7e9ff4de5242d8a8e83595c9b309ecf0075e71e46aa",
+  "commands": [
+    {
+      "name": "a3-structure-red",
+      "cmd": [
+        "python",
+        ".workflow/active/client-audit-a3/red-structure-check.py"
+      ],
+      "cwd": null,
+      "exit_code": 1,
+      "timed_out": false,
+      "error": null,
+      "duration_ms": 80,
+      "ok": true,
+      "output_tail": " - Assets\\LiteGame\\App\\Presentation\\Battle\\BattleViewRig.cs 仍存在 域状态/引用 _battleAudio（应归协作件）\n - Assets\\LiteGame\\App\\Presentation\\Battle\\BattleViewRig.cs 仍存在 域状态/引用 _remoteFire（应归协作件）\n - Assets\\LiteGame\\App\\Presentation\\Battle\\BattleViewRig.cs 仍存在 域状态/引用 _vfx（应归协作件）\n - Assets\\LiteGame\\App\\Presentation\\Battle\\BattleViewRig.cs 仍存在 域状态/引用 _audio（应归协作件）\n - Assets\\LiteGame\\App\\Presentation\\Battle\\BattleViewRig.cs 仍存在 域状态/引用 _worldClock（应归协作件）\n - Assets\\LiteGame\\App\\Presentation\\Battle\\BattleViewRig.cs 仍存在 域状态/引用 _pointer（应归协作件）\n - Assets\\LiteGame\\App\\Presentation\\Battle\\BattleViewRig.cs 仍存在 域状态/引用 _aimGate（应归协作件）\n - Assets\\LiteGame\\App\\Presentation\\Battle\\BattleViewRig.cs 仍存在 域状态/引用 _lookDeltaOf（应归协作件）\n - Assets\\LiteGame\\App\\Presentation\\Battle\\BattleViewRig.cs 仍存在 域状态/引用 _aimPointOf（应归协作件）\n - Assets\\LiteGame\\App\\Presentation\\Battle\\BattleViewRig.cs 仍存在 域状态/引用 _lastRespawnSerial（应归协作件）\n - Assets\\LiteGame\\App\\Presentation\\Battle\\BattleViewRig.cs 仍存在 域状态/引用 _content（应归协作件）\n - Assets\\LiteGame\\App\\Presentation\\Battle\\BattleViewRig.cs 仍存在 域状态/引用 _themeProvider（应归协作件）\n - Assets\\LiteGame\\App\\Presentation\\Battle\\BattleViewRig.cs 仍存在 域状态/引用 _prefab（应归协作件）\n - Assets\\LiteGame\\App\\Presentation\\Battle\\BattleViewRig.cs 仍存在 域状态/引用 _prefabLease（应归协作件）\n - Assets\\LiteGame\\App\\Presentation\\Battle\\BattleViewRig.cs 仍存在 域状态/引用 _laser（应归协作件）\n - Assets\\LiteGame\\App\\Presentation\\Battle\\BattleViewRig.cs 仍存在 域状态/引用 _laserBeam（应归协作件）\n - Assets\\LiteGame\\App\\Presentation\\Battle\\BattleViewRig.cs 仍存在 域状态/引用 _laserLease（应归协作件）\n - Assets\\LiteGame\\App\\Presentation\\Battle\\BattleViewRig.cs 仍存在 域状态/引用 _protectionFx（应归协作件）\n - Assets\\LiteGame\\App\\Presentation\\Battle\\BattleViewRig.cs 仍存在 域状态/引用 _protectionShellLease（应归协作件）\n - Assets\\LiteGame\\App\\Presentation\\Battle\\BattleViewRig.cs 仍存在 域状态/引用 _damageNumberLease（应归协作件）\n - Assets\\LiteGame\\App\\Presentation\\Battle\\BattleViewRig.cs 仍存在 域状态/引用 _damageNumberMaterials（应归协作件）\n - Assets\\LiteGame\\App\\Presentation\\Battle\\BattleViewRig.cs 仍存在 域状态/引用 _clipManifestLease（应归协作件）\n - Assets\\LiteGame\\App\\Presentation\\Battle\\BattleViewRig.cs 仍存在 域状态/引用 _audioLeases（应归协作件）\n - Assets\\LiteGame\\App\\Presentation\\Battle\\BattleViewRig.cs 仍存在 域状态/引用 _locomotion（应归协作件）\n - Assets\\LiteGame\\App\\Presentation\\Battle\\BattleViewRig.cs 仍存在 嵌套反馈类（应外提一文件）\n - 缺文件: Assets\\LiteClient\\UI\\Bind\\UIBindLocale.cs\n - 缺文件: Assets\\LiteClient\\UI\\Bind\\UIBindEvents.cs\n - 缺文件: Assets\\LiteClient\\UI\\Bind\\UIBindListSource.cs\n - Assets\\LiteClient\\UI\\Bind\\UIBindIndex.cs 仍存在 绑定域状态 _listSources（应归协作件）\n - Assets\\LiteClient\\UI\\Bind\\UIBindIndex.cs 仍存在 绑定域状态 _listClick（应归协作件）\n - Assets\\LiteClient\\UI\\Bind\\UIBindIndex.cs 仍存在 绑定域状态 _ltext（应归协作件）\n - Assets\\LiteClient\\UI\\Bind\\UIBindIndex.cs 仍存在 绑定域状态 _locale（应归协作件）\n - Assets\\LiteClient\\UI\\Bind\\UIBindIndex.cs 仍存在 绑定域状态 _controlUnsub（应归协作件）\n - Assets\\LiteFramework\\Scripts\\Core\\Fsm\\StageMachineCore.cs 仍存在 树字段 _composite（应收回层级机）\n - Assets\\LiteFramework\\Scripts\\Core\\Fsm\\StageMachineCore.cs 仍存在 树字段 _parent（应收回层级机）\n - Assets\\LiteFramework\\Scripts\\Core\\Fsm\\StageMachineCore.cs 仍存在 树字段 _history（应收回层级机）\n - Assets\\LiteFramework\\Scripts\\Core\\Fsm\\StageMachineCore.cs 仍存在 树字段 _roots（应收回层级机）\n - Assets\\LiteFramework\\Scripts\\Core\\Fsm\\StageMachineCore.cs 仍存在 BuildTree（应收回层级机）\n - Assets\\LiteFramework\\Scripts\\Core\\Fsm\\HierarchicalStageMachine.cs 缺少 BuildTree 定义\n - Assets\\LiteFramework\\Scripts\\Core\\Fsm\\HierarchicalStageMachine.cs 缺少 复合树字段"
+    }
+  ]
+}

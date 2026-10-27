@@ -1,0 +1,196 @@
+tests: 26/26 passed
+{
+  "status": "completed",
+  "duration": 0.43,
+  "summary": {
+    "total": 26,
+    "passed": 26,
+    "failed": 0,
+    "skipped": 0,
+    "inconclusive": 0
+  },
+  "results": [
+    {
+      "FullName": "LiteGame.Tests.EditMode.DebugKernelEditModeTests.产品参数_准心与视角已定档且不进运行期白名单",
+      "Status": "Passed",
+      "Duration": 0.0213708,
+      "Message": null,
+      "StackTrace": null
+    },
+    {
+      "FullName": "LiteGame.Tests.EditMode.DebugKernelEditModeTests.命令发现_按注册序返回且带GmOnly",
+      "Status": "Passed",
+      "Duration": 0.0023283,
+      "Message": null,
+      "StackTrace": null
+    },
+    {
+      "FullName": "LiteGame.Tests.EditMode.DebugKernelEditModeTests.性能读模型_帧样本与HUD耗时回填",
+      "Status": "Passed",
+      "Duration": 0.0058039,
+      "Message": null,
+      "StackTrace": null
+    },
+    {
+      "FullName": "LiteGame.Tests.EditMode.DebugKernelEditModeTests.性能读模型_无帧样本为空",
+      "Status": "Passed",
+      "Duration": 0.0003983,
+      "Message": null,
+      "StackTrace": null
+    },
+    {
+      "FullName": "LiteGame.Tests.EditMode.DebugKernelEditModeTests.执行带参命令_拒绝并说明需专面板",
+      "Status": "Passed",
+      "Duration": 0.0021569,
+      "Message": null,
+      "StackTrace": null
+    },
+    {
+      "FullName": "LiteGame.Tests.EditMode.DebugKernelEditModeTests.执行无参命令_字符串精确名与唯一后缀都命中",
+      "Status": "Passed",
+      "Duration": 0.0017026,
+      "Message": null,
+      "StackTrace": null
+    },
+    {
+      "FullName": "LiteGame.Tests.EditMode.DebugKernelEditModeTests.执行无参命令_类型名命中并进审计",
+      "Status": "Passed",
+      "Duration": 0.0008795,
+      "Message": null,
+      "StackTrace": null
+    },
+    {
+      "FullName": "LiteGame.Tests.EditMode.DebugKernelEditModeTests.执行未知命令_返回错误",
+      "Status": "Passed",
+      "Duration": 0.0002998,
+      "Message": null,
+      "StackTrace": null
+    },
+    {
+      "FullName": "LiteGame.Tests.EditMode.DebugKernelEditModeTests.控制台解析_切出verb与参数",
+      "Status": "Passed",
+      "Duration": 0.0007383,
+      "Message": null,
+      "StackTrace": null
+    },
+    {
+      "FullName": "LiteGame.Tests.EditMode.DebugKernelEditModeTests.控制台解析_空白与大小写与参数(\"\",False)",
+      "Status": "Passed",
+      "Duration": 0.0018282,
+      "Message": null,
+      "StackTrace": null
+    },
+    {
+      "FullName": "LiteGame.Tests.EditMode.DebugKernelEditModeTests.控制台解析_空白与大小写与参数(\"   \",False)",
+      "Status": "Passed",
+      "Duration": 0.0002619,
+      "Message": null,
+      "StackTrace": null
+    },
+    {
+      "FullName": "LiteGame.Tests.EditMode.DebugKernelEditModeTests.控制台解析_空白与大小写与参数(\"help\",True)",
+      "Status": "Passed",
+      "Duration": 0.0001934,
+      "Message": null,
+      "StackTrace": null
+    },
+    {
+      "FullName": "LiteGame.Tests.EditMode.DebugKernelEditModeTests.控制台解析_空白与大小写与参数(\"  HeLP  a  b \",True)",
+      "Status": "Passed",
+      "Duration": 0.0002008,
+      "Message": null,
+      "StackTrace": null
+    },
+    {
+      "FullName": "LiteGame.Tests.EditMode.DebugKernelEditModeTests.控制台解析_空白与大小写与参数(\"option InfiniteAmmo on\",True)",
+      "Status": "Passed",
+      "Duration": 0.0001893,
+      "Message": null,
+      "StackTrace": null
+    },
+    {
+      "FullName": "LiteGame.Tests.EditMode.DebugKernelEditModeTests.无对局时_对局诊断为无样本",
+      "Status": "Passed",
+      "Duration": 0.0006466,
+      "Message": null,
+      "StackTrace": null
+    },
+    {
+      "FullName": "LiteGame.Tests.EditMode.DebugKernelEditModeTests.武器试验参数_发现写口与待用值双落",
+      "Status": "Passed",
+      "Duration": 0.0026943,
+      "Message": null,
+      "StackTrace": null
+    },
+    {
+      "FullName": "LiteGame.Tests.EditMode.DebugKernelEditModeTests.测试模式与日志上下文读口_经内核",
+      "Status": "Passed",
+      "Duration": 0.0004792,
+      "Message": null,
+      "StackTrace": null
+    },
+    {
+      "FullName": "LiteGame.Tests.EditMode.DebugKernelEditModeTests.直连测试身份_已退役",
+      "Status": "Passed",
+      "Duration": 0.0004842,
+      "Message": null,
+      "StackTrace": null
+    },
+    {
+      "FullName": "LiteGame.Tests.EditMode.DebugKernelEditModeTests.设置选项_已知id写入单表",
+      "Status": "Passed",
+      "Duration": 0.0007678,
+      "Message": null,
+      "StackTrace": null
+    },
+    {
+      "FullName": "LiteGame.Tests.EditMode.DebugKernelEditModeTests.设置选项_未知id返回错误",
+      "Status": "Passed",
+      "Duration": 0.0003405,
+      "Message": null,
+      "StackTrace": null
+    },
+    {
+      "FullName": "LiteGame.Tests.EditMode.DebugKernelEditModeTests.请求桥_写入后可被消费且读即清",
+      "Status": "Passed",
+      "Duration": 0.0003266,
+      "Message": null,
+      "StackTrace": null
+    },
+    {
+      "FullName": "LiteGame.Tests.EditMode.DebugKernelEditModeTests.读模型发现_包含命令选项与三类读数",
+      "Status": "Passed",
+      "Duration": 0.0006569,
+      "Message": null,
+      "StackTrace": null
+    },
+    {
+      "FullName": "LiteGame.Tests.EditMode.DebugKernelEditModeTests.调参发现_按描述读写与复位",
+      "Status": "Passed",
+      "Duration": 0.0009019,
+      "Message": null,
+      "StackTrace": null
+    },
+    {
+      "FullName": "LiteGame.Tests.EditMode.DebugKernelEditModeTests.调参文本_Bool与Float解析",
+      "Status": "Passed",
+      "Duration": 0.0011385,
+      "Message": null,
+      "StackTrace": null
+    },
+    {
+      "FullName": "LiteGame.Tests.EditMode.DebugKernelEditModeTests.运行期调参_只保留白名单且排除Product",
+      "Status": "Passed",
+      "Duration": 0.0009049,
+      "Message": null,
+      "StackTrace": null
+    },
+    {
+      "FullName": "LiteGame.Tests.EditMode.DebugKernelEditModeTests.重置假人_宿主钩子经内核置位",
+      "Status": "Passed",
+      "Duration": 0.0003058,
+      "Message": null,
+      "StackTrace": null
+    }
+  ]
+}

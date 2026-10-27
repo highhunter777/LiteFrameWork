@@ -1,0 +1,22 @@
+{
+  "success": true,
+  "command": "command find_gameobjects",
+  "data": {
+    "command": "find_gameobjects",
+    "parameters": {
+      "name": "[BattleView]"
+    },
+    "result": {
+      "count": 0,
+      "gameObjects": []
+    },
+    "target": {
+      "host": "127.0.0.1",
+      "port": 7800,
+      "projectPath": "E:\\unityProject\\Test"
+    },
+    "success": true
+  },
+  "errors": [],
+  "warnings": []
+}

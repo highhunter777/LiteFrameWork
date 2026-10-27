@@ -1,0 +1,259 @@
+tests: 9/9 passed
+{
+  "status": "completed",
+  "duration": 0.33,
+  "summary": {
+    "total": 9,
+    "passed": 9,
+    "failed": 0,
+    "skipped": 0,
+    "inconclusive": 0
+  },
+  "results": [
+    {
+      "FullName": "LiteGame.Tests.EditMode.LTextBindEditModeTests.UnbindAll_退订语言事件_池化复用不留旧订阅",
+      "Status": "Passed",
+      "Duration": 0.0098138,
+      "Message": null,
+      "StackTrace": null
+    },
+    {
+      "FullName": "LiteGame.Tests.EditMode.LTextBindEditModeTests.复数文本_切语言后按新语言规则",
+      "Status": "Passed",
+      "Duration": 0.001952,
+      "Message": null,
+      "StackTrace": null
+    },
+    {
+      "FullName": "LiteGame.Tests.EditMode.LTextBindEditModeTests.带参文本_切语言后参数保留",
+      "Status": "Passed",
+      "Duration": 0.0009411,
+      "Message": null,
+      "StackTrace": null
+    },
+    {
+      "FullName": "LiteGame.Tests.EditMode.LTextBindEditModeTests.按key设文本_取当前语言",
+      "Status": "Passed",
+      "Duration": 0.0008072,
+      "Message": null,
+      "StackTrace": null
+    },
+    {
+      "FullName": "LiteGame.Tests.EditMode.LTextBindEditModeTests.未注入语言服务_按键设文本抛",
+      "Status": "Passed",
+      "Duration": 0.0008207,
+      "Message": null,
+      "StackTrace": null
+    },
+    {
+      "FullName": "LiteGame.Tests.EditMode.LTextBindEditModeTests.解除绑定_不再随语言刷新",
+      "Status": "Passed",
+      "Duration": 0.0008132,
+      "Message": null,
+      "StackTrace": null
+    },
+    {
+      "FullName": "LiteGame.Tests.EditMode.LTextBindEditModeTests.语言变更_已绑定文本自动刷新",
+      "Status": "Passed",
+      "Duration": 0.0006867,
+      "Message": null,
+      "StackTrace": null
+    },
+    {
+      "FullName": "LiteGame.Tests.EditMode.LTextBindEditModeTests.语言变更_未绑定key的控件不受影响",
+      "Status": "Passed",
+      "Duration": 0.000682,
+      "Message": null,
+      "StackTrace": null
+    },
+    {
+      "FullName": "LiteGame.Tests.EditMode.LTextBindEditModeTests.重复注入语言服务_只订阅一次",
+      "Status": "Passed",
+      "Duration": 0.0006428,
+      "Message": null,
+      "StackTrace": null
+    }
+  ]
+}
+tests: 10/10 passed
+{
+  "status": "completed",
+  "duration": 0.32,
+  "summary": {
+    "total": 10,
+    "passed": 10,
+    "failed": 0,
+    "skipped": 0,
+    "inconclusive": 0
+  },
+  "results": [
+    {
+      "FullName": "LiteGame.Tests.EditMode.LTextTypewriterEditModeTests.命令式SetText_经打字机_首字符起播",
+      "Status": "Passed",
+      "Duration": 0.0024147,
+      "Message": null,
+      "StackTrace": null
+    },
+    {
+      "FullName": "LiteGame.Tests.EditMode.LTextTypewriterEditModeTests.富文本_截点不落标签内_中间态无半截标签",
+      "Status": "Passed",
+      "Duration": 0.000731,
+      "Message": null,
+      "StackTrace": null
+    },
+    {
+      "FullName": "LiteGame.Tests.EditMode.LTextTypewriterEditModeTests.富文本_每一步中间态标签配平",
+      "Status": "Passed",
+      "Duration": 0.000612,
+      "Message": null,
+      "StackTrace": null
+    },
+    {
+      "FullName": "LiteGame.Tests.EditMode.LTextTypewriterEditModeTests.新Reveal取消旧任务_旧任务不触发完成",
+      "Status": "Passed",
+      "Duration": 0.0008802,
+      "Message": null,
+      "StackTrace": null
+    },
+    {
+      "FullName": "LiteGame.Tests.EditMode.LTextTypewriterEditModeTests.绑定路径BindText_恒瞬时_不走打字机",
+      "Status": "Passed",
+      "Duration": 0.0021465,
+      "Message": null,
+      "StackTrace": null
+    },
+    {
+      "FullName": "LiteGame.Tests.EditMode.LTextTypewriterEditModeTests.节拍_按速率推进_完成即全量且事件恰一次",
+      "Status": "Passed",
+      "Duration": 0.0011606,
+      "Message": null,
+      "StackTrace": null
+    },
+    {
+      "FullName": "LiteGame.Tests.EditMode.LTextTypewriterEditModeTests.语言变更_SetTextKey重入路由_旧任务取消",
+      "Status": "Passed",
+      "Duration": 0.0007768,
+      "Message": null,
+      "StackTrace": null
+    },
+    {
+      "FullName": "LiteGame.Tests.EditMode.LTextTypewriterEditModeTests.速率非正_直接全量_完成语义",
+      "Status": "Passed",
+      "Duration": 0.0006407,
+      "Message": null,
+      "StackTrace": null
+    },
+    {
+      "FullName": "LiteGame.Tests.EditMode.LTextTypewriterEditModeTests.隐藏即取消_文本落全量_重开不残留半截",
+      "Status": "Passed",
+      "Duration": 0.0007443,
+      "Message": null,
+      "StackTrace": null
+    },
+    {
+      "FullName": "LiteGame.Tests.EditMode.LTextTypewriterEditModeTests.隐藏时Reveal登记待播_激活起播",
+      "Status": "Passed",
+      "Duration": 0.0007857,
+      "Message": null,
+      "StackTrace": null
+    }
+  ]
+}
+tests: 5/5 passed
+{
+  "status": "completed",
+  "duration": 4.56,
+  "summary": {
+    "total": 5,
+    "passed": 5,
+    "failed": 0,
+    "skipped": 0,
+    "inconclusive": 0
+  },
+  "results": [
+    {
+      "FullName": "LiteGame.Tests.EditMode.UiControlListProtocolEditModeTests.列表_行含文案键而语言服务未注入_装配期显性拒绝",
+      "Status": "Passed",
+      "Duration": 0.8755458,
+      "Message": null,
+      "StackTrace": null
+    },
+    {
+      "FullName": "LiteGame.Tests.EditMode.UiControlListProtocolEditModeTests.列表_行投影按子节点名_稳定key_缩容清空",
+      "Status": "Passed",
+      "Duration": 0.8562978,
+      "Message": null,
+      "StackTrace": null
+    },
+    {
+      "FullName": "LiteGame.Tests.EditMode.UiControlListProtocolEditModeTests.列表_行点击回传key与按钮名_缺节点字段留空",
+      "Status": "Passed",
+      "Duration": 0.8439033,
+      "Message": null,
+      "StackTrace": null
+    },
+    {
+      "FullName": "LiteGame.Tests.EditMode.UiControlListProtocolEditModeTests.控件族_用户操作触发回调_带值_重开退订",
+      "Status": "Passed",
+      "Duration": 0.8416099,
+      "Message": null,
+      "StackTrace": null
+    },
+    {
+      "FullName": "LiteGame.Tests.EditMode.UiControlListProtocolEditModeTests.控件族_程序设值不触发回调_读取回当前值",
+      "Status": "Passed",
+      "Duration": 0.8273743,
+      "Message": null,
+      "StackTrace": null
+    }
+  ]
+}
+tests: 5/5 passed
+{
+  "status": "completed",
+  "duration": 0.4,
+  "summary": {
+    "total": 5,
+    "passed": 5,
+    "failed": 0,
+    "skipped": 0,
+    "inconclusive": 0
+  },
+  "results": [
+    {
+      "FullName": "LiteGame.Tests.EditMode.LTextWiringEditModeTests.服务行为_真目录取文案_切语言_缺key占位",
+      "Status": "Passed",
+      "Duration": 0.0121735,
+      "Message": null,
+      "StackTrace": null
+    },
+    {
+      "FullName": "LiteGame.Tests.EditMode.LTextWiringEditModeTests.表投射_真表行数与双locale",
+      "Status": "Passed",
+      "Duration": 0.0097747,
+      "Message": null,
+      "StackTrace": null
+    },
+    {
+      "FullName": "LiteGame.Tests.EditMode.LTextWiringEditModeTests.表源守卫_key命名全过LTextKey",
+      "Status": "Passed",
+      "Duration": 0.0098255,
+      "Message": null,
+      "StackTrace": null
+    },
+    {
+      "FullName": "LiteGame.Tests.EditMode.LTextWiringEditModeTests.路径A_Lua适配器实现ILocaleBound",
+      "Status": "Passed",
+      "Duration": 0.0006543,
+      "Message": null,
+      "StackTrace": null
+    },
+    {
+      "FullName": "LiteGame.Tests.EditMode.LTextWiringEditModeTests.路径B_ILocaleBound注入_OnInit后可用_OnInit前no_op",
+      "Status": "Passed",
+      "Duration": 0.0136316,
+      "Message": null,
+      "StackTrace": null
+    }
+  ]
+}

@@ -1,0 +1,1351 @@
+{
+  "status": "completed",
+  "duration": 2.37,
+  "summary": {
+    "total": 111,
+    "passed": 111,
+    "failed": 0,
+    "skipped": 0,
+    "inconclusive": 0
+  },
+  "results": [
+    {
+      "FullName": "LiteGame.Tests.EditMode.BattleAudioDriverEditModeTests.Dispose后_事件不再路由",
+      "Status": "Passed",
+      "Duration": 0.0054324,
+      "Message": null,
+      "StackTrace": null
+    },
+    {
+      "FullName": "LiteGame.Tests.EditMode.BattleAudioDriverEditModeTests.开火_本地同源重触发_他人逐槽位voice_代理预算恒一",
+      "Status": "Passed",
+      "Duration": 0.0040443,
+      "Message": null,
+      "StackTrace": null
+    },
+    {
+      "FullName": "LiteGame.Tests.EditMode.BattleAudioDriverEditModeTests.缺clip_对应kind静默跳过_其余正常路由",
+      "Status": "Passed",
+      "Duration": 0.000648,
+      "Message": null,
+      "StackTrace": null
+    },
+    {
+      "FullName": "LiteGame.Tests.EditMode.BattleAudioDriverEditModeTests.路由矩阵_五类事件全路由_计数递增",
+      "Status": "Passed",
+      "Duration": 0.0016019,
+      "Message": null,
+      "StackTrace": null
+    },
+    {
+      "FullName": "LiteGame.Tests.EditMode.BattleCombatFxEditModeTests.Dispose后_两个驱动都不再播放",
+      "Status": "Passed",
+      "Duration": 0.0110063,
+      "Message": null,
+      "StackTrace": null
+    },
+    {
+      "FullName": "LiteGame.Tests.EditMode.BattleCombatFxEditModeTests.命中特效_承受与旁观与Fire_不播",
+      "Status": "Passed",
+      "Duration": 0.0006879,
+      "Message": null,
+      "StackTrace": null
+    },
+    {
+      "FullName": "LiteGame.Tests.EditMode.BattleCombatFxEditModeTests.命中特效_本地造成HitCrit_受击点世界位播放_爆头放大",
+      "Status": "Passed",
+      "Duration": 0.0012284,
+      "Message": null,
+      "StackTrace": null
+    },
+    {
+      "FullName": "LiteGame.Tests.EditMode.BattleCombatFxEditModeTests.火光_Fire事件_武器挂点跟随播放",
+      "Status": "Passed",
+      "Duration": 0.0010055,
+      "Message": null,
+      "StackTrace": null
+    },
+    {
+      "FullName": "LiteGame.Tests.EditMode.BattleCombatFxEditModeTests.火光_非Fire与无挂点与无效槽位_不播",
+      "Status": "Passed",
+      "Duration": 0.0006663,
+      "Message": null,
+      "StackTrace": null
+    },
+    {
+      "FullName": "LiteGame.Tests.EditMode.BattleCombatFxEditModeTests.着墙特效_承受旁观不播_命中敌人仍走敌人面",
+      "Status": "Passed",
+      "Duration": 0.0006824,
+      "Message": null,
+      "StackTrace": null
+    },
+    {
+      "FullName": "LiteGame.Tests.EditMode.BattleCombatFxEditModeTests.着墙特效_本地Caused_障碍命中点世界位播放",
+      "Status": "Passed",
+      "Duration": 0.0006564,
+      "Message": null,
+      "StackTrace": null
+    },
+    {
+      "FullName": "LiteGame.Tests.EditMode.BattleCrosshairEditModeTests.准心_上下文门被拦_藏准心还光标_解拦恢复",
+      "Status": "Passed",
+      "Duration": 0.0053687,
+      "Message": null,
+      "StackTrace": null
+    },
+    {
+      "FullName": "LiteGame.Tests.EditMode.BattleCrosshairEditModeTests.准心_后坐冲量_上跳并入位置_指数回弹归零",
+      "Status": "Passed",
+      "Duration": 0.0021169,
+      "Message": null,
+      "StackTrace": null
+    },
+    {
+      "FullName": "LiteGame.Tests.EditMode.BattleCrosshairEditModeTests.准心_手感按武器行_book行值驱动满张倍率",
+      "Status": "Passed",
+      "Duration": 0.0040642,
+      "Message": null,
+      "StackTrace": null
+    },
+    {
+      "FullName": "LiteGame.Tests.EditMode.BattleCrosshairEditModeTests.准心_按有效散布角缩放_腰射大于瞄准_未装备回基线",
+      "Status": "Passed",
+      "Duration": 0.0008541,
+      "Message": null,
+      "StackTrace": null
+    },
+    {
+      "FullName": "LiteGame.Tests.EditMode.BattleCrosshairEditModeTests.准心_本地表现未建_整体隐藏还光标",
+      "Status": "Passed",
+      "Duration": 0.0010752,
+      "Message": null,
+      "StackTrace": null
+    },
+    {
+      "FullName": "LiteGame.Tests.EditMode.BattleCrosshairEditModeTests.准心_本地预测态瞄准位切Ads组_松开回Hip组",
+      "Status": "Passed",
+      "Duration": 0.0009145,
+      "Message": null,
+      "StackTrace": null
+    },
+    {
+      "FullName": "LiteGame.Tests.EditMode.BattleCrosshairEditModeTests.准心_表值与防御默认同源_tbcrosshair零行钉住Default",
+      "Status": "Passed",
+      "Duration": 0.0209225,
+      "Message": null,
+      "StackTrace": null
+    },
+    {
+      "FullName": "LiteGame.Tests.EditMode.BattleCrosshairEditModeTests.准心_连发临时张开_每发累加钳上限_停火指数回正",
+      "Status": "Passed",
+      "Duration": 0.0012245,
+      "Message": null,
+      "StackTrace": null
+    },
+    {
+      "FullName": "LiteGame.Tests.EditMode.BattleDamageNumberEditModeTests.到期_淡出终点释放归池_新命中复用不新建",
+      "Status": "Passed",
+      "Duration": 0.2134903,
+      "Message": null,
+      "StackTrace": null
+    },
+    {
+      "FullName": "LiteGame.Tests.EditMode.BattleDamageNumberEditModeTests.合并_锚点目标改最新受击点_平滑追随不瞬跳",
+      "Status": "Passed",
+      "Duration": 0.0020626,
+      "Message": null,
+      "StackTrace": null
+    },
+    {
+      "FullName": "LiteGame.Tests.EditMode.BattleDamageNumberEditModeTests.合并窗口_同目标二连击_一条实例文本累计",
+      "Status": "Passed",
+      "Duration": 0.0014352,
+      "Message": null,
+      "StackTrace": null
+    },
+    {
+      "FullName": "LiteGame.Tests.EditMode.BattleDamageNumberEditModeTests.材质_逐档调色板注入_按档取材质_无调色板不碰底件材质",
+      "Status": "Passed",
+      "Duration": 0.0037293,
+      "Message": null,
+      "StackTrace": null
+    },
+    {
+      "FullName": "LiteGame.Tests.EditMode.BattleDamageNumberEditModeTests.档位_承受染红造成白_暴击升级字号",
+      "Status": "Passed",
+      "Duration": 0.0020986,
+      "Message": null,
+      "StackTrace": null
+    },
+    {
+      "FullName": "LiteGame.Tests.EditMode.BattleDamageNumberEditModeTests.视图消失_受击点锚不受影响_照常淡出收口",
+      "Status": "Passed",
+      "Duration": 0.001814,
+      "Message": null,
+      "StackTrace": null
+    },
+    {
+      "FullName": "LiteGame.Tests.EditMode.BattleDamageNumberEditModeTests.过滤_只显本地造成与承受_旁观不产实例",
+      "Status": "Passed",
+      "Duration": 0.001521,
+      "Message": null,
+      "StackTrace": null
+    },
+    {
+      "FullName": "LiteGame.Tests.EditMode.BattleDamageNumberEditModeTests.锚定_受击点_不随视图移动",
+      "Status": "Passed",
+      "Duration": 0.0011005,
+      "Message": null,
+      "StackTrace": null
+    },
+    {
+      "FullName": "LiteGame.Tests.EditMode.BattleDamageNumberEditModeTests.预算_超限淘汰最旧_实例归池不静默丢",
+      "Status": "Passed",
+      "Duration": 0.009058,
+      "Message": null,
+      "StackTrace": null
+    },
+    {
+      "FullName": "LiteGame.Tests.EditMode.BattleDiagnosticsEditModeTests.扩展快照_回滚与快照年龄透传_GM两行口径不变",
+      "Status": "Passed",
+      "Duration": 0.0011601,
+      "Message": null,
+      "StackTrace": null
+    },
+    {
+      "FullName": "LiteGame.Tests.EditMode.BattleDiagnosticsEditModeTests.无对局_DescribeCurrent为空_消费方整组隐藏",
+      "Status": "Passed",
+      "Duration": 0.0004369,
+      "Message": null,
+      "StackTrace": null
+    },
+    {
+      "FullName": "LiteGame.Tests.EditMode.BattleDiagnosticsEditModeTests.诊断行_无样本_占位不显示数值",
+      "Status": "Passed",
+      "Duration": 0.0004687,
+      "Message": null,
+      "StackTrace": null
+    },
+    {
+      "FullName": "LiteGame.Tests.EditMode.BattleDiagnosticsEditModeTests.诊断行_有样本_千分比转一位小数百分比",
+      "Status": "Passed",
+      "Duration": 0.0004344,
+      "Message": null,
+      "StackTrace": null
+    },
+    {
+      "FullName": "LiteGame.Tests.EditMode.BattleHudEditModeTests.Dispose_面板归零不残留",
+      "Status": "Passed",
+      "Duration": 0.0223263,
+      "Message": null,
+      "StackTrace": null
+    },
+    {
+      "FullName": "LiteGame.Tests.EditMode.BattleHudEditModeTests.可见性_本地未对齐整组隐藏_对齐恢复",
+      "Status": "Passed",
+      "Duration": 0.001626,
+      "Message": null,
+      "StackTrace": null
+    },
+    {
+      "FullName": "LiteGame.Tests.EditMode.BattleHudEditModeTests.备弹_换弹消耗递减写值_值未变不重写",
+      "Status": "Passed",
+      "Duration": 0.0021003,
+      "Message": null,
+      "StackTrace": null
+    },
+    {
+      "FullName": "LiteGame.Tests.EditMode.BattleHudEditModeTests.弹药_弹匣与剩余备弹读出_未装备随占位整组收起",
+      "Status": "Passed",
+      "Duration": 0.0022274,
+      "Message": null,
+      "StackTrace": null
+    },
+    {
+      "FullName": "LiteGame.Tests.EditMode.BattleHudEditModeTests.血条_预测态HP写入文本与填充_值变化才刷新",
+      "Status": "Passed",
+      "Duration": 0.0013,
+      "Message": null,
+      "StackTrace": null
+    },
+    {
+      "FullName": "LiteGame.Tests.EditMode.BattleHudMenuEditModeTests.HUD_击杀提示面_预置行_引用件已接_缺省非激活",
+      "Status": "Passed",
+      "Duration": 0.1665665,
+      "Message": null,
+      "StackTrace": null
+    },
+    {
+      "FullName": "LiteGame.Tests.EditMode.BattleHudMenuEditModeTests.HUD_弹药读出_当前弹匣与备弹_引用件已接_缺省在显",
+      "Status": "Passed",
+      "Duration": 0.0009701,
+      "Message": null,
+      "StackTrace": null
+    },
+    {
+      "FullName": "LiteGame.Tests.EditMode.BattleHudMenuEditModeTests.HUD_排行榜_八格预置_引用件已接_零新射线",
+      "Status": "Passed",
+      "Duration": 0.0014857,
+      "Message": null,
+      "StackTrace": null
+    },
+    {
+      "FullName": "LiteGame.Tests.EditMode.BattleHudMenuEditModeTests.HUD_死亡复活面_预置_引用件已接_缺省非激活",
+      "Status": "Passed",
+      "Duration": 0.0008682,
+      "Message": null,
+      "StackTrace": null
+    },
+    {
+      "FullName": "LiteGame.Tests.EditMode.BattleHudMenuEditModeTests.HUD_网络质量件_在位_引用已接_缺省非激活",
+      "Status": "Passed",
+      "Duration": 0.0006703,
+      "Message": null,
+      "StackTrace": null
+    },
+    {
+      "FullName": "LiteGame.Tests.EditMode.BattleHudMenuEditModeTests.HUD_菜单角组_单独开射线_其余零射线",
+      "Status": "Passed",
+      "Duration": 0.0013038,
+      "Message": null,
+      "StackTrace": null
+    },
+    {
+      "FullName": "LiteGame.Tests.EditMode.BattleHudMenuEditModeTests.大厅页_创房钮在位_BindName同文_三钮并排",
+      "Status": "Passed",
+      "Duration": 0.0160558,
+      "Message": null,
+      "StackTrace": null
+    },
+    {
+      "FullName": "LiteGame.Tests.EditMode.BattleHudMenuEditModeTests.大厅页_开房参数控件在位_引用名同文",
+      "Status": "Passed",
+      "Duration": 0.0030705,
+      "Message": null,
+      "StackTrace": null
+    },
+    {
+      "FullName": "LiteGame.Tests.EditMode.BattleHudMenuEditModeTests.房间页_开局钮在位_缺省隐藏_BindName同文",
+      "Status": "Passed",
+      "Duration": 0.0030574,
+      "Message": null,
+      "StackTrace": null
+    },
+    {
+      "FullName": "LiteGame.Tests.EditMode.BattleHudMenuEditModeTests.设置页_退场钮在位_缺省隐藏_BindName同文",
+      "Status": "Passed",
+      "Duration": 0.0043812,
+      "Message": null,
+      "StackTrace": null
+    },
+    {
+      "FullName": "LiteGame.Tests.EditMode.BattleKillFeedEditModeTests.击杀行_不在册击杀者按无归属_Dispose归位",
+      "Status": "Passed",
+      "Duration": 0.01713,
+      "Message": null,
+      "StackTrace": null
+    },
+    {
+      "FullName": "LiteGame.Tests.EditMode.BattleKillFeedEditModeTests.击杀行_他人击杀_你击杀_自杀三种格式_武器图标按槽取图",
+      "Status": "Passed",
+      "Duration": 0.0050857,
+      "Message": null,
+      "StackTrace": null
+    },
+    {
+      "FullName": "LiteGame.Tests.EditMode.BattleKillFeedEditModeTests.击杀行_行满留队等待_不丢弃不覆盖",
+      "Status": "Passed",
+      "Duration": 0.0035253,
+      "Message": null,
+      "StackTrace": null
+    },
+    {
+      "FullName": "LiteGame.Tests.EditMode.BattleKillFeedEditModeTests.击杀行_驻留到时整组回收",
+      "Status": "Passed",
+      "Duration": 0.0036291,
+      "Message": null,
+      "StackTrace": null
+    },
+    {
+      "FullName": "LiteGame.Tests.EditMode.BattleKillFeedEditModeTests.击杀面_Reset后按首份处理_不重播断线前击杀",
+      "Status": "Passed",
+      "Duration": 0.0009849,
+      "Message": null,
+      "StackTrace": null
+    },
+    {
+      "FullName": "LiteGame.Tests.EditMode.BattleKillFeedEditModeTests.击杀面_首份快照不重播_新条入队_重复重发去重",
+      "Status": "Passed",
+      "Duration": 0.0009007,
+      "Message": null,
+      "StackTrace": null
+    },
+    {
+      "FullName": "LiteGame.Tests.EditMode.BattleLaserEditModeTests.激光_不支持武器_隐藏",
+      "Status": "Passed",
+      "Duration": 0.0041297,
+      "Message": null,
+      "StackTrace": null
+    },
+    {
+      "FullName": "LiteGame.Tests.EditMode.BattleLaserEditModeTests.激光_方向随枪不追鼠标_无输入也出束",
+      "Status": "Passed",
+      "Duration": 0.0033658,
+      "Message": null,
+      "StackTrace": null
+    },
+    {
+      "FullName": "LiteGame.Tests.EditMode.BattleLaserEditModeTests.激光_无挂载点_隐藏_灰盒诚实退化",
+      "Status": "Passed",
+      "Duration": 0.000898,
+      "Message": null,
+      "StackTrace": null
+    },
+    {
+      "FullName": "LiteGame.Tests.EditMode.BattleLaserEditModeTests.激光_未装备武器_隐藏",
+      "Status": "Passed",
+      "Duration": 0.000881,
+      "Message": null,
+      "StackTrace": null
+    },
+    {
+      "FullName": "LiteGame.Tests.EditMode.BattleLaserEditModeTests.激光_本地表现未建_隐藏",
+      "Status": "Passed",
+      "Duration": 0.0008319,
+      "Message": null,
+      "StackTrace": null
+    },
+    {
+      "FullName": "LiteGame.Tests.EditMode.BattleLaserEditModeTests.激光_束挂武器挂载点_空旷端点为射程",
+      "Status": "Passed",
+      "Duration": 0.0017126,
+      "Message": null,
+      "StackTrace": null
+    },
+    {
+      "FullName": "LiteGame.Tests.EditMode.BattleLaserEditModeTests.激光_死亡_隐藏",
+      "Status": "Passed",
+      "Duration": 0.0013245,
+      "Message": null,
+      "StackTrace": null
+    },
+    {
+      "FullName": "LiteGame.Tests.EditMode.BattleLaserEditModeTests.激光_测试模式_任何武器都支持_退出回策略",
+      "Status": "Passed",
+      "Duration": 0.0011265,
+      "Message": null,
+      "StackTrace": null
+    },
+    {
+      "FullName": "LiteGame.Tests.EditMode.BattleLaserEditModeTests.激光_玩家挡路_端点为圆柱近弧",
+      "Status": "Passed",
+      "Duration": 0.0008973,
+      "Message": null,
+      "StackTrace": null
+    },
+    {
+      "FullName": "LiteGame.Tests.EditMode.BattleLaserEditModeTests.激光_瞄准与开火语境_端点仍沿枪管不收敛准心",
+      "Status": "Passed",
+      "Duration": 0.0011746,
+      "Message": null,
+      "StackTrace": null
+    },
+    {
+      "FullName": "LiteGame.Tests.EditMode.BattleLaserEditModeTests.激光_规则走注入_不读活动局静态读口",
+      "Status": "Passed",
+      "Duration": 0.0013407,
+      "Message": null,
+      "StackTrace": null
+    },
+    {
+      "FullName": "LiteGame.Tests.EditMode.BattleLaserEditModeTests.激光_输入被拦_藏_解拦恢复",
+      "Status": "Passed",
+      "Duration": 0.0013579,
+      "Message": null,
+      "StackTrace": null
+    },
+    {
+      "FullName": "LiteGame.Tests.EditMode.BattleLaserEditModeTests.激光_障碍挡在身后_不挡弹_玩家正常截停",
+      "Status": "Passed",
+      "Duration": 0.0013915,
+      "Message": null,
+      "StackTrace": null
+    },
+    {
+      "FullName": "LiteGame.Tests.EditMode.BattleLaserEditModeTests.激光_障碍更近_截停在障碍面",
+      "Status": "Passed",
+      "Duration": 0.0008536,
+      "Message": null,
+      "StackTrace": null
+    },
+    {
+      "FullName": "LiteGame.Tests.EditMode.BattleNetworkHudEditModeTests.网络质量_无源形态静默空转",
+      "Status": "Passed",
+      "Duration": 0.0020447,
+      "Message": null,
+      "StackTrace": null
+    },
+    {
+      "FullName": "LiteGame.Tests.EditMode.BattleNetworkHudEditModeTests.网络质量_离线与无样本隐藏_有样本才显示",
+      "Status": "Passed",
+      "Duration": 0.0015079,
+      "Message": null,
+      "StackTrace": null
+    },
+    {
+      "FullName": "LiteGame.Tests.EditMode.BattleProtectionFxEditModeTests.保护期内_壳亮_并跟随本地视图位姿",
+      "Status": "Passed",
+      "Duration": 0.0029785,
+      "Message": null,
+      "StackTrace": null
+    },
+    {
+      "FullName": "LiteGame.Tests.EditMode.BattleProtectionFxEditModeTests.无视图不显示_Dispose幂等",
+      "Status": "Passed",
+      "Duration": 0.0016086,
+      "Message": null,
+      "StackTrace": null
+    },
+    {
+      "FullName": "LiteGame.Tests.EditMode.BattleProtectionFxEditModeTests.端点不含_到期或开火取消即关",
+      "Status": "Passed",
+      "Duration": 0.0006083,
+      "Message": null,
+      "StackTrace": null
+    },
+    {
+      "FullName": "LiteGame.Tests.EditMode.BattleProtectionFxEditModeTests.远端保护_独立壳_各自跟随视图",
+      "Status": "Passed",
+      "Duration": 0.000651,
+      "Message": null,
+      "StackTrace": null
+    },
+    {
+      "FullName": "LiteGame.Tests.EditMode.BattleRankboardEditModeTests.Dispose_格归位不残留",
+      "Status": "Passed",
+      "Duration": 0.006534,
+      "Message": null,
+      "StackTrace": null
+    },
+    {
+      "FullName": "LiteGame.Tests.EditMode.BattleRankboardEditModeTests.人数少于八格_尾部格隐藏",
+      "Status": "Passed",
+      "Duration": 0.0045774,
+      "Message": null,
+      "StackTrace": null
+    },
+    {
+      "FullName": "LiteGame.Tests.EditMode.BattleRankboardEditModeTests.团队比分_FFA隐藏_Team模式才显示",
+      "Status": "Passed",
+      "Duration": 0.004349,
+      "Message": null,
+      "StackTrace": null
+    },
+    {
+      "FullName": "LiteGame.Tests.EditMode.BattleRankboardEditModeTests.排行_击杀降序_第一名在最左_名字为身份序号",
+      "Status": "Passed",
+      "Duration": 0.0039552,
+      "Message": null,
+      "StackTrace": null
+    },
+    {
+      "FullName": "LiteGame.Tests.EditMode.BattleRankboardEditModeTests.排行_同击杀按EntityId升序_两次Tick不抖",
+      "Status": "Passed",
+      "Duration": 0.0052779,
+      "Message": null,
+      "StackTrace": null
+    },
+    {
+      "FullName": "LiteGame.Tests.EditMode.BattleRankboardEditModeTests.脏位_击杀分布不变不重写",
+      "Status": "Passed",
+      "Duration": 0.0040726,
+      "Message": null,
+      "StackTrace": null
+    },
+    {
+      "FullName": "LiteGame.Tests.EditMode.BattleRankboardEditModeTests.自己格高亮_唯一",
+      "Status": "Passed",
+      "Duration": 0.0044914,
+      "Message": null,
+      "StackTrace": null
+    },
+    {
+      "FullName": "LiteGame.Tests.EditMode.BattleRankboardEditModeTests.非参赛实体_不计入排行",
+      "Status": "Passed",
+      "Duration": 0.0040177,
+      "Message": null,
+      "StackTrace": null
+    },
+    {
+      "FullName": "LiteGame.Tests.EditMode.BattleRemoteFireEditModeTests.开火面_Reset后按首份处理_不重播断线前开火",
+      "Status": "Passed",
+      "Duration": 0.0011609,
+      "Message": null,
+      "StackTrace": null
+    },
+    {
+      "FullName": "LiteGame.Tests.EditMode.BattleRemoteFireEditModeTests.开火面_首份快照不重播_新条入队_重复重发去重",
+      "Status": "Passed",
+      "Duration": 0.0007801,
+      "Message": null,
+      "StackTrace": null
+    },
+    {
+      "FullName": "LiteGame.Tests.EditMode.BattleRemoteFireEditModeTests.远端火光_Dispose后不再播",
+      "Status": "Passed",
+      "Duration": 0.0019622,
+      "Message": null,
+      "StackTrace": null
+    },
+    {
+      "FullName": "LiteGame.Tests.EditMode.BattleRemoteFireEditModeTests.远端火光_本地开火与无挂点与无效实体_不播",
+      "Status": "Passed",
+      "Duration": 0.0008996,
+      "Message": null,
+      "StackTrace": null
+    },
+    {
+      "FullName": "LiteGame.Tests.EditMode.BattleRemoteFireEditModeTests.远端火光_队列条目_落开火者枪口挂点播放",
+      "Status": "Passed",
+      "Duration": 0.000777,
+      "Message": null,
+      "StackTrace": null
+    },
+    {
+      "FullName": "LiteGame.Tests.EditMode.BattleRespawnHudEditModeTests.保护角标_端点不含_开火取消即关",
+      "Status": "Passed",
+      "Duration": 0.0022128,
+      "Message": null,
+      "StackTrace": null
+    },
+    {
+      "FullName": "LiteGame.Tests.EditMode.BattleRespawnHudEditModeTests.归属_只吃Death且我阵亡_带占位名",
+      "Status": "Passed",
+      "Duration": 0.0016269,
+      "Message": null,
+      "StackTrace": null
+    },
+    {
+      "FullName": "LiteGame.Tests.EditMode.BattleRespawnHudEditModeTests.未对齐_整体收起_Dispose幂等",
+      "Status": "Passed",
+      "Duration": 0.0018711,
+      "Message": null,
+      "StackTrace": null
+    },
+    {
+      "FullName": "LiteGame.Tests.EditMode.BattleRespawnHudEditModeTests.阵亡_面板显示_倒计时整秒脏位_复活收起",
+      "Status": "Passed",
+      "Duration": 0.0012453,
+      "Message": null,
+      "StackTrace": null
+    },
+    {
+      "FullName": "LiteGame.Tests.EditMode.BattleSessionEditModeTests.StartGame建立预测Sim_快照和解对齐本地实体",
+      "Status": "Passed",
+      "Duration": 0.0504567,
+      "Message": null,
+      "StackTrace": null
+    },
+    {
+      "FullName": "LiteGame.Tests.EditMode.BattleSessionEditModeTests.StartGame数据身份不符_拒局不建Sim_Ended为SessionFailed",
+      "Status": "Passed",
+      "Duration": 0.0075666,
+      "Message": null,
+      "StackTrace": null
+    },
+    {
+      "FullName": "LiteGame.Tests.EditMode.BattleSessionEditModeTests.Tick驱动_未开局只泵网络_开局上行输入并推进预测",
+      "Status": "Passed",
+      "Duration": 0.0106729,
+      "Message": null,
+      "StackTrace": null
+    },
+    {
+      "FullName": "LiteGame.Tests.EditMode.BattleSessionEditModeTests.会话失败触发Ended_SessionFailed_自动重连先行",
+      "Status": "Passed",
+      "Duration": 0.0066573,
+      "Message": null,
+      "StackTrace": null
+    },
+    {
+      "FullName": "LiteGame.Tests.EditMode.BattleSessionEditModeTests.定容依据_按JoinAck期望人数_未标注回落默认座数",
+      "Status": "Passed",
+      "Duration": 0.0013438,
+      "Message": null,
+      "StackTrace": null
+    },
+    {
+      "FullName": "LiteGame.Tests.EditMode.BattleSessionEditModeTests.快照先于StartGame到达_被安全丢弃",
+      "Status": "Passed",
+      "Duration": 0.0014291,
+      "Message": null,
+      "StackTrace": null
+    },
+    {
+      "FullName": "LiteGame.Tests.EditMode.BattleSessionEditModeTests.断线重连闭环_重拨自动发请求_恢复完成回Connected",
+      "Status": "Passed",
+      "Duration": 0.0017479,
+      "Message": null,
+      "StackTrace": null
+    },
+    {
+      "FullName": "LiteGame.Tests.EditMode.BattleSessionEditModeTests.无图拒构_D22必填注入",
+      "Status": "Passed",
+      "Duration": 0.0012057,
+      "Message": null,
+      "StackTrace": null
+    },
+    {
+      "FullName": "LiteGame.Tests.EditMode.BattleSessionEditModeTests.无票据断线_BeginReconnect失败转Failed",
+      "Status": "Passed",
+      "Duration": 0.000504,
+      "Message": null,
+      "StackTrace": null
+    },
+    {
+      "FullName": "LiteGame.Tests.EditMode.BattleSessionEditModeTests.离场收尾_Ended恰好一次_Dispose拆订阅且MatchScope清零",
+      "Status": "Passed",
+      "Duration": 0.0017665,
+      "Message": null,
+      "StackTrace": null
+    },
+    {
+      "FullName": "LiteGame.Tests.EditMode.BattleSessionEditModeTests.连接即Join_收JoinAck进入Connected",
+      "Status": "Passed",
+      "Duration": 0.0005441,
+      "Message": null,
+      "StackTrace": null
+    },
+    {
+      "FullName": "LiteGame.Tests.EditMode.BattleSessionEditModeTests.重连响应版本不符_转Failed_不发恢复ACK",
+      "Status": "Passed",
+      "Duration": 0.0005968,
+      "Message": null,
+      "StackTrace": null
+    },
+    {
+      "FullName": "LiteGame.Tests.EditMode.BattleViewAssetsEditModeTests.取件成功但未Attach_离场销毁HUD实例",
+      "Status": "Passed",
+      "Duration": 0.0100488,
+      "Message": null,
+      "StackTrace": null
+    },
+    {
+      "FullName": "LiteGame.Tests.EditMode.PageFlowBattleMenuEditModeTests.OnMatchEnded_菜单开着_随对局结束收口",
+      "Status": "Passed",
+      "Duration": 0.3761738,
+      "Message": null,
+      "StackTrace": null
+    },
+    {
+      "FullName": "LiteGame.Tests.EditMode.PageFlowBattleMenuEditModeTests.对局Back_空栈_开菜单页并带battleExit数据",
+      "Status": "Passed",
+      "Duration": 0.1656455,
+      "Message": null,
+      "StackTrace": null
+    },
+    {
+      "FullName": "LiteGame.Tests.EditMode.PageFlowBattleMenuEditModeTests.对局Back_菜单开着_先关菜单不重开",
+      "Status": "Passed",
+      "Duration": 0.1682883,
+      "Message": null,
+      "StackTrace": null
+    },
+    {
+      "FullName": "LiteGame.Tests.EditMode.PageFlowBattleMenuEditModeTests.菜单Back策略_启用幂等_停用还原基线",
+      "Status": "Passed",
+      "Duration": 0.1640038,
+      "Message": null,
+      "StackTrace": null
+    },
+    {
+      "FullName": "LiteGame.Tests.EditMode.TpsBattleRigEditModeTests.越肩rig_双机POV视线_非Composer",
+      "Status": "Passed",
+      "Duration": 0.0126002,
+      "Message": null,
+      "StackTrace": null
+    },
+    {
+      "FullName": "LiteGame.Tests.EditMode.TpsBattleRigEditModeTests.越肩rig_双机带收臂件且近肩距离",
+      "Status": "Passed",
+      "Duration": 0.0029384,
+      "Message": null,
+      "StackTrace": null
+    },
+    {
+      "FullName": "LiteGame.Tests.EditMode.TpsBattleRigEditModeTests.越肩rig_双机轨道无输入源且不回正",
+      "Status": "Passed",
+      "Duration": 0.0027812,
+      "Message": null,
+      "StackTrace": null
+    },
+    {
+      "FullName": "LiteGame.Tests.EditMode.TpsBattleRigEditModeTests.越肩rig_玩家prefab带Player标记_供相机忽略自身",
+      "Status": "Passed",
+      "Duration": 0.0277054,
+      "Message": null,
+      "StackTrace": null
+    }
+  ]
+}tests: 111/111 passed
+
+tests: 8/8 passed
+{
+  "status": "completed",
+  "duration": 0.32,
+  "summary": {
+    "total": 8,
+    "passed": 8,
+    "failed": 0,
+    "skipped": 0,
+    "inconclusive": 0
+  },
+  "results": [
+    {
+      "FullName": "LiteGame.Tests.EditMode.HitFeedbackDispatcherEditModeTests.分发_Fire无对象_对象槽位负一_本地开火为造成",
+      "Status": "Passed",
+      "Duration": 0.0029846,
+      "Message": null,
+      "StackTrace": null
+    },
+    {
+      "FullName": "LiteGame.Tests.EditMode.HitFeedbackDispatcherEditModeTests.分发_Hit上下文字段_值位置槽位对象槽位",
+      "Status": "Passed",
+      "Duration": 0.0009384,
+      "Message": null,
+      "StackTrace": null
+    },
+    {
+      "FullName": "LiteGame.Tests.EditMode.HitFeedbackDispatcherEditModeTests.分发_Unregister单个摘除_其余照常消费",
+      "Status": "Passed",
+      "Duration": 0.0009825,
+      "Message": null,
+      "StackTrace": null
+    },
+    {
+      "FullName": "LiteGame.Tests.EditMode.HitFeedbackDispatcherEditModeTests.分发_摘订阅_Dispose后事件不再到达",
+      "Status": "Passed",
+      "Duration": 0.0005894,
+      "Message": null,
+      "StackTrace": null
+    },
+    {
+      "FullName": "LiteGame.Tests.EditMode.HitFeedbackDispatcherEditModeTests.分发_未知主体槽位负一_如实解析不造事实",
+      "Status": "Passed",
+      "Duration": 0.0005466,
+      "Message": null,
+      "StackTrace": null
+    },
+    {
+      "FullName": "LiteGame.Tests.EditMode.HitFeedbackDispatcherEditModeTests.分发_本地角色三档_造成承受旁观",
+      "Status": "Passed",
+      "Duration": 0.0006379,
+      "Message": null,
+      "StackTrace": null
+    },
+    {
+      "FullName": "LiteGame.Tests.EditMode.HitFeedbackDispatcherEditModeTests.分发_注册序转发_多消费者按注册序收到",
+      "Status": "Passed",
+      "Duration": 0.0007718,
+      "Message": null,
+      "StackTrace": null
+    },
+    {
+      "FullName": "LiteGame.Tests.EditMode.HitFeedbackDispatcherEditModeTests.分发_自伤优先承受档",
+      "Status": "Passed",
+      "Duration": 0.0005119,
+      "Message": null,
+      "StackTrace": null
+    }
+  ]
+}
+tests: 20/20 passed
+{
+  "status": "completed",
+  "duration": 0.34,
+  "summary": {
+    "total": 20,
+    "passed": 20,
+    "failed": 0,
+    "skipped": 0,
+    "inconclusive": 0
+  },
+  "results": [
+    {
+      "FullName": "LiteGame.Tests.EditMode.SimViewEditModeTests.事件静默门_和解与回滚接缝推进闸门",
+      "Status": "Passed",
+      "Duration": 0.0011445,
+      "Message": null,
+      "StackTrace": null
+    },
+    {
+      "FullName": "LiteGame.Tests.EditMode.SimViewEditModeTests.事件静默门_正常帧派发_静默帧丢弃",
+      "Status": "Passed",
+      "Duration": 0.0006943,
+      "Message": null,
+      "StackTrace": null
+    },
+    {
+      "FullName": "LiteGame.Tests.EditMode.SimViewEditModeTests.事件静默门_渲染帧不轮询事件_只走逻辑帧交付",
+      "Status": "Passed",
+      "Duration": 0.001452,
+      "Message": null,
+      "StackTrace": null
+    },
+    {
+      "FullName": "LiteGame.Tests.EditMode.SimViewEditModeTests.保护读口_本地预测态_远端快照_端点不含",
+      "Status": "Passed",
+      "Duration": 0.0017943,
+      "Message": null,
+      "StackTrace": null
+    },
+    {
+      "FullName": "LiteGame.Tests.EditMode.SimViewEditModeTests.复活_生命变化_相机无条件落位_复活序号递增",
+      "Status": "Passed",
+      "Duration": 0.0017492,
+      "Message": null,
+      "StackTrace": null
+    },
+    {
+      "FullName": "LiteGame.Tests.EditMode.SimViewEditModeTests.复活_近距离_语义硬切_强制瞬移落位_普通收敛不瞬移",
+      "Status": "Passed",
+      "Duration": 0.002446,
+      "Message": null,
+      "StackTrace": null
+    },
+    {
+      "FullName": "LiteGame.Tests.EditMode.SimViewEditModeTests.新生命读口_本地预测态_远端快照_未见槽位为假",
+      "Status": "Passed",
+      "Duration": 0.000964,
+      "Message": null,
+      "StackTrace": null
+    },
+    {
+      "FullName": "LiteGame.Tests.EditMode.SimViewEditModeTests.本地_大幅位移触发硬切_小位移走衰减",
+      "Status": "Passed",
+      "Duration": 0.0006247,
+      "Message": null,
+      "StackTrace": null
+    },
+    {
+      "FullName": "LiteGame.Tests.EditMode.SimViewEditModeTests.本地_首帧落位_随后跟预测",
+      "Status": "Passed",
+      "Duration": 0.0004545,
+      "Message": null,
+      "StackTrace": null
+    },
+    {
+      "FullName": "LiteGame.Tests.EditMode.SimViewEditModeTests.渲染帧权威位_按槽位取快照时间线_无快照为假",
+      "Status": "Passed",
+      "Duration": 0.0010859,
+      "Message": null,
+      "StackTrace": null
+    },
+    {
+      "FullName": "LiteGame.Tests.EditMode.SimViewEditModeTests.相机_未对齐本地实体时不喂_对齐后才开始",
+      "Status": "Passed",
+      "Duration": 0.0005367,
+      "Message": null,
+      "StackTrace": null
+    },
+    {
+      "FullName": "LiteGame.Tests.EditMode.SimViewEditModeTests.相机_跟随本地表现位置_按渲染帧喂给相机端口",
+      "Status": "Passed",
+      "Duration": 0.0008168,
+      "Message": null,
+      "StackTrace": null
+    },
+    {
+      "FullName": "LiteGame.Tests.EditMode.SimViewEditModeTests.自有池_容量上限可配_超限销毁不驻留",
+      "Status": "Passed",
+      "Duration": 0.0019129,
+      "Message": null,
+      "StackTrace": null
+    },
+    {
+      "FullName": "LiteGame.Tests.EditMode.SimViewEditModeTests.自有池_池中件被外部销毁_复用时失效转新建",
+      "Status": "Passed",
+      "Duration": 0.0008401,
+      "Message": null,
+      "StackTrace": null
+    },
+    {
+      "FullName": "LiteGame.Tests.EditMode.SimViewEditModeTests.远端插值_两份快照之间平滑推进",
+      "Status": "Passed",
+      "Duration": 0.000933,
+      "Message": null,
+      "StackTrace": null
+    },
+    {
+      "FullName": "LiteGame.Tests.EditMode.SimViewEditModeTests.远端插值_前后快照跳变超SnapDistance硬切_不播成飞人",
+      "Status": "Passed",
+      "Duration": 0.0006302,
+      "Message": null,
+      "StackTrace": null
+    },
+    {
+      "FullName": "LiteGame.Tests.EditMode.SimViewEditModeTests.远端插值_生命更替_硬切到复活位_不按alpha滑行",
+      "Status": "Passed",
+      "Duration": 0.0005833,
+      "Message": null,
+      "StackTrace": null
+    },
+    {
+      "FullName": "LiteGame.Tests.EditMode.SimViewEditModeTests.镜像_活体建视图_死亡回收",
+      "Status": "Passed",
+      "Duration": 0.000835,
+      "Message": null,
+      "StackTrace": null
+    },
+    {
+      "FullName": "LiteGame.Tests.EditMode.SimViewEditModeTests.镜像_视图位置跟随Sim态_朝向按Yaw",
+      "Status": "Passed",
+      "Duration": 0.0005209,
+      "Message": null,
+      "StackTrace": null
+    },
+    {
+      "FullName": "LiteGame.Tests.EditMode.SimViewEditModeTests.镜像_视图复用_同prefab从池取不重建",
+      "Status": "Passed",
+      "Duration": 0.0008339,
+      "Message": null,
+      "StackTrace": null
+    }
+  ]
+}
+tests: 17/17 passed
+{
+  "status": "completed",
+  "duration": 0.57,
+  "summary": {
+    "total": 17,
+    "passed": 17,
+    "failed": 0,
+    "skipped": 0,
+    "inconclusive": 0
+  },
+  "results": [
+    {
+      "FullName": "LiteGame.Tests.EditMode.TpsAimPitchEditModeTests.俯仰映射_区间内恒等_越界钳制",
+      "Status": "Passed",
+      "Duration": 0.0003876,
+      "Message": null,
+      "StackTrace": null
+    },
+    {
+      "FullName": "LiteGame.Tests.EditMode.TpsAimPointEditModeTests.屏心射线解算_瞄准点落屏心射线与地面交点",
+      "Status": "Passed",
+      "Duration": 0.0229956,
+      "Message": null,
+      "StackTrace": null
+    },
+    {
+      "FullName": "LiteGame.Tests.EditMode.TpsAimPointEditModeTests.瞄天_无地面交_射程截断点有效且距离闸内",
+      "Status": "Passed",
+      "Duration": 0.0009146,
+      "Message": null,
+      "StackTrace": null
+    },
+    {
+      "FullName": "LiteGame.Tests.EditMode.TpsAimPointEditModeTests.远地超程_地面交点截断到距离闸内",
+      "Status": "Passed",
+      "Duration": 0.0005313,
+      "Message": null,
+      "StackTrace": null
+    },
+    {
+      "FullName": "LiteGame.Tests.EditMode.TpsBattleRigEditModeTests.越肩rig_双机POV视线_非Composer",
+      "Status": "Passed",
+      "Duration": 0.0026175,
+      "Message": null,
+      "StackTrace": null
+    },
+    {
+      "FullName": "LiteGame.Tests.EditMode.TpsBattleRigEditModeTests.越肩rig_双机带收臂件且近肩距离",
+      "Status": "Passed",
+      "Duration": 0.0034391,
+      "Message": null,
+      "StackTrace": null
+    },
+    {
+      "FullName": "LiteGame.Tests.EditMode.TpsBattleRigEditModeTests.越肩rig_双机轨道无输入源且不回正",
+      "Status": "Passed",
+      "Duration": 0.0023482,
+      "Message": null,
+      "StackTrace": null
+    },
+    {
+      "FullName": "LiteGame.Tests.EditMode.TpsBattleRigEditModeTests.越肩rig_玩家prefab带Player标记_供相机忽略自身",
+      "Status": "Passed",
+      "Duration": 0.0079479,
+      "Message": null,
+      "StackTrace": null
+    },
+    {
+      "FullName": "LiteGame.Tests.EditMode.TpsCameraLookEditModeTests.ADS翻转_视角状态保持_不重置",
+      "Status": "Passed",
+      "Duration": 0.003015,
+      "Message": null,
+      "StackTrace": null
+    },
+    {
+      "FullName": "LiteGame.Tests.EditMode.TpsCameraLookEditModeTests.Reset_清视角态_硬切回默认视角",
+      "Status": "Passed",
+      "Duration": 0.000586,
+      "Message": null,
+      "StackTrace": null
+    },
+    {
+      "FullName": "LiteGame.Tests.EditMode.TpsCameraLookEditModeTests.Shutdown后_视角增量静默no_op",
+      "Status": "Passed",
+      "Duration": 0.0004049,
+      "Message": null,
+      "StackTrace": null
+    },
+    {
+      "FullName": "LiteGame.Tests.EditMode.TpsCameraLookEditModeTests.视角增量_pitch超限钳在限位常量",
+      "Status": "Passed",
+      "Duration": 0.0003964,
+      "Message": null,
+      "StackTrace": null
+    },
+    {
+      "FullName": "LiteGame.Tests.EditMode.TpsCameraLookEditModeTests.视角增量_累进yaw与pitch_零起",
+      "Status": "Passed",
+      "Duration": 0.0003208,
+      "Message": null,
+      "StackTrace": null
+    },
+    {
+      "FullName": "LiteGame.Tests.EditMode.TpsCameraLookEditModeTests.视角数学_POV轴角与恒定臂长俯仰弧_符号单源",
+      "Status": "Passed",
+      "Duration": 0.0013422,
+      "Message": null,
+      "StackTrace": null
+    },
+    {
+      "FullName": "LiteGame.Tests.EditMode.TpsCrosshairCenterEditModeTests.准心_位置恒屏心",
+      "Status": "Passed",
+      "Duration": 0.0012838,
+      "Message": null,
+      "StackTrace": null
+    },
+    {
+      "FullName": "LiteGame.Tests.EditMode.TpsPointerLockEditModeTests.指针锁定_幂等_重复Lock不翻转",
+      "Status": "Passed",
+      "Duration": 0.0012093,
+      "Message": null,
+      "StackTrace": null
+    },
+    {
+      "FullName": "LiteGame.Tests.EditMode.TpsPointerLockEditModeTests.指针锁定_锁定并隐藏_解锁恢复",
+      "Status": "Passed",
+      "Duration": 0.0004639,
+      "Message": null,
+      "StackTrace": null
+    }
+  ]
+}
+tests: 20/20 passed
+{
+  "status": "completed",
+  "duration": 0.43,
+  "summary": {
+    "total": 20,
+    "passed": 20,
+    "failed": 0,
+    "skipped": 0,
+    "inconclusive": 0
+  },
+  "results": [
+    {
+      "FullName": "LiteGame.Tests.EditMode.PresentationLifecycleEditModeTests.场景_未加载时卸载为幂等noop",
+      "Status": "Passed",
+      "Duration": 0.0024488,
+      "Message": null,
+      "StackTrace": null
+    },
+    {
+      "FullName": "LiteGame.Tests.EditMode.PresentationLifecycleEditModeTests.场景_释放后拒绝新加载",
+      "Status": "Passed",
+      "Duration": 0.0044945,
+      "Message": null,
+      "StackTrace": null
+    },
+    {
+      "FullName": "LiteGame.Tests.EditMode.PresentationLifecycleEditModeTests.场景_释放幂等_且使在途加载过期",
+      "Status": "Passed",
+      "Duration": 0.0007199,
+      "Message": null,
+      "StackTrace": null
+    },
+    {
+      "FullName": "LiteGame.Tests.EditMode.PresentationLifecycleEditModeTests.实体_关闭面_取消在途加载_收回活体_排空池_幂等",
+      "Status": "Passed",
+      "Duration": 0.009135,
+      "Message": null,
+      "StackTrace": null
+    },
+    {
+      "FullName": "LiteGame.Tests.EditMode.PresentationLifecycleEditModeTests.实体_关闭面_带挂接链_级联回收不重复处理",
+      "Status": "Passed",
+      "Duration": 0.0023441,
+      "Message": null,
+      "StackTrace": null
+    },
+    {
+      "FullName": "LiteGame.Tests.EditMode.PresentationLifecycleEditModeTests.实体_实体作用域随回收取消_不留裸任务",
+      "Status": "Passed",
+      "Duration": 0.0009422,
+      "Message": null,
+      "StackTrace": null
+    },
+    {
+      "FullName": "LiteGame.Tests.EditMode.PresentationLifecycleEditModeTests.实体_宿主作用域注入_实体作用域随宿主级联",
+      "Status": "Passed",
+      "Duration": 0.0007753,
+      "Message": null,
+      "StackTrace": null
+    },
+    {
+      "FullName": "LiteGame.Tests.EditMode.PresentationLifecycleEditModeTests.实体_已回收句柄拒绝再订阅_当场抛",
+      "Status": "Passed",
+      "Duration": 0.0008701,
+      "Message": null,
+      "StackTrace": null
+    },
+    {
+      "FullName": "LiteGame.Tests.EditMode.PresentationLifecycleEditModeTests.实体_活句柄重复Show_fail_fast拒绝",
+      "Status": "Passed",
+      "Duration": 0.0011426,
+      "Message": null,
+      "StackTrace": null
+    },
+    {
+      "FullName": "LiteGame.Tests.EditMode.PresentationLifecycleEditModeTests.实体_重复归还幂等_不抛且计数留痕",
+      "Status": "Passed",
+      "Duration": 0.0007715,
+      "Message": null,
+      "StackTrace": null
+    },
+    {
+      "FullName": "LiteGame.Tests.EditMode.PresentationLifecycleEditModeTests.音频_未绑定时钟_退化为真实帧步进不抛",
+      "Status": "Passed",
+      "Duration": 0.0027579,
+      "Message": null,
+      "StackTrace": null
+    },
+    {
+      "FullName": "LiteGame.Tests.EditMode.PresentationLifecycleEditModeTests.音频_绑定分域时钟后_StopAll与Shutdown仍幂等",
+      "Status": "Passed",
+      "Duration": 0.0010599,
+      "Message": null,
+      "StackTrace": null
+    },
+    {
+      "FullName": "LiteGame.Tests.EditMode.PresentationOwnershipEditModeTests.动效时钟_Driver按UIClock派发Manual轨_暂停即停",
+      "Status": "Passed",
+      "Duration": 0.0069402,
+      "Message": null,
+      "StackTrace": null
+    },
+    {
+      "FullName": "LiteGame.Tests.EditMode.PresentationOwnershipEditModeTests.动效时钟_Manual轨只推进Manual_引擎轨不受影响",
+      "Status": "Passed",
+      "Duration": 0.0006221,
+      "Message": null,
+      "StackTrace": null
+    },
+    {
+      "FullName": "LiteGame.Tests.EditMode.PresentationOwnershipEditModeTests.动效时钟_未绑定退化真实帧步进",
+      "Status": "Passed",
+      "Duration": 0.0004104,
+      "Message": null,
+      "StackTrace": null
+    },
+    {
+      "FullName": "LiteGame.Tests.EditMode.PresentationOwnershipEditModeTests.序列帧_按UIClock步进_暂停不推进",
+      "Status": "Passed",
+      "Duration": 0.0017395,
+      "Message": null,
+      "StackTrace": null
+    },
+    {
+      "FullName": "LiteGame.Tests.EditMode.PresentationOwnershipEditModeTests.旋转件_按UIClock步进_暂停不推进",
+      "Status": "Passed",
+      "Duration": 0.001345,
+      "Message": null,
+      "StackTrace": null
+    },
+    {
+      "FullName": "LiteGame.Tests.EditMode.PresentationOwnershipEditModeTests.租约缓存_ReleaseAll归零_释放后拒绝",
+      "Status": "Passed",
+      "Duration": 0.0021533,
+      "Message": null,
+      "StackTrace": null
+    },
+    {
+      "FullName": "LiteGame.Tests.EditMode.PresentationOwnershipEditModeTests.租约缓存_同location共享一份_首次获取后不重复取",
+      "Status": "Passed",
+      "Duration": 0.0006775,
+      "Message": null,
+      "StackTrace": null
+    },
+    {
+      "FullName": "LiteGame.Tests.EditMode.PresentationOwnershipEditModeTests.音频_StopAll全局停止_Shutdown销毁根_幂等",
+      "Status": "Passed",
+      "Duration": 0.0008187,
+      "Message": null,
+      "StackTrace": null
+    }
+  ]
+}
+tests: 5/5 passed
+{
+  "status": "completed",
+  "duration": 0.31,
+  "summary": {
+    "total": 5,
+    "passed": 5,
+    "failed": 0,
+    "skipped": 0,
+    "inconclusive": 0
+  },
+  "results": [
+    {
+      "FullName": "LiteGame.Tests.EditMode.AimHoldGateEditModeTests.推迟窗口内再按_取消推迟重新武装",
+      "Status": "Passed",
+      "Duration": 0.0009582,
+      "Message": null,
+      "StackTrace": null
+    },
+    {
+      "FullName": "LiteGame.Tests.EditMode.AimHoldGateEditModeTests.短按_释放推迟到满宽度才落",
+      "Status": "Passed",
+      "Duration": 0.0005077,
+      "Message": null,
+      "StackTrace": null
+    },
+    {
+      "FullName": "LiteGame.Tests.EditMode.AimHoldGateEditModeTests.连点_瞄准持续不翻转_点按停止后窗口释放",
+      "Status": "Passed",
+      "Duration": 0.0005677,
+      "Message": null,
+      "StackTrace": null
+    },
+    {
+      "FullName": "LiteGame.Tests.EditMode.AimHoldGateEditModeTests.长按_释放立即生效_再短按重新得完整窗口",
+      "Status": "Passed",
+      "Duration": 0.00031,
+      "Message": null,
+      "StackTrace": null
+    },
+    {
+      "FullName": "LiteGame.Tests.EditMode.AimHoldGateEditModeTests.零宽度_退化为直通",
+      "Status": "Passed",
+      "Duration": 0.0002049,
+      "Message": null,
+      "StackTrace": null
+    }
+  ]
+}
