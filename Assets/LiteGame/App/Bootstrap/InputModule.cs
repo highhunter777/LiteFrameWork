@@ -27,9 +27,12 @@ namespace LiteGame
             new System.Type[] { typeof(PresentationModule), typeof(DevSessionModule) };
         public UniTask InitializeAsync(ModuleContext context, CancellationToken ct)
         {
+            // 资源归属＝本模块作用域（路线图 §4.3）：初始化中途失败时 Host 释放 scope 即回收，
+            // 不必依赖 ShutdownAsync（失败模块不会被调用关闭）。
+            context.Scope.Register(new DelegatedDisposable(DisposeModuleResources));
             _service = new InputService();
             _source = new NewInputIntentSource(dev: context.Require<LiteClient.IDevSession>());   // Action 资产在本类内建；本局规则走 dev 端口
-            _source.SetAimCamera(context.Get<UnityEngine.Camera>());   // ⑨ 表现域建的主相机（注册序保证已就绪；null = 不做换算）
+            _source.SetAimCamera(context.Get<UnityEngine.Camera>());   // ⑩ 表现域建的主相机（注册序保证已就绪；null = 不做换算）
             _service.SetSource(_source);
             context.Put<IInputService>(_service);
             return UniTask.CompletedTask;
@@ -44,13 +47,17 @@ namespace LiteGame
         /// "设备源一定被 Dispose"——把那条依赖藏在"某个方法顺带做掉"里，改动顺序时就会静默漏掉
         /// （触发点正是生成类析构断言：表现为关服时刷一行 Assert，而非崩溃，很容易被忽略）。
         /// </summary>
-        public UniTask ShutdownAsync(CancellationToken ct)
+        /// <summary>模块资源释放（由模块作用域在关闭/回滚时调用；顺序不可颠倒：
+        /// ① 设备源 action map Disable + 资产销毁（必须在清引用之前）→ ② 服务引用/计数全清。</summary>
+        private void DisposeModuleResources()
         {
             _source?.Dispose();                          // ① 设备源：action map Disable + 资产销毁（必须在清引用之前）
             _source = null;
             _service?.ResetAll();                        // ② 服务：拦截源/设备源引用/计数全清（关服语义）
             _service = null;
-            return UniTask.CompletedTask;
         }
+
+        /// <summary>关闭面：资源已随 <see cref="ModuleContext.Scope"/> 释放（本方法无常驻清理）。</summary>
+        public UniTask ShutdownAsync(CancellationToken ct) => UniTask.CompletedTask;
     }
 }

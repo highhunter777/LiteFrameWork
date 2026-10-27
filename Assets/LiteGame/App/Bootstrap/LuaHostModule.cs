@@ -19,15 +19,20 @@ namespace LiteGame
 
         public UniTask InitializeAsync(ModuleContext context, CancellationToken ct)
         {
+            // 资源归属＝本模块作用域（路线图 §4.3）：Lua env/回调随模块关闭或初始化失败释放。
+            context.Scope.Register(new DelegatedDisposable(DisposeModuleResources));
             _lua = _hostObject.AddComponent<LuaComponent>();
             context.Put(_lua);
             return UniTask.CompletedTask;
         }
 
-        public UniTask ShutdownAsync(CancellationToken ct)
+        private void DisposeModuleResources()
         {
             _lua?.Shutdown();
-            return UniTask.CompletedTask;
+            _lua = null;
         }
+
+        /// <summary>关闭面：Lua 宿主资源已随 <see cref="ModuleContext.Scope"/> 释放。</summary>
+        public UniTask ShutdownAsync(CancellationToken ct) => UniTask.CompletedTask;
     }
 }

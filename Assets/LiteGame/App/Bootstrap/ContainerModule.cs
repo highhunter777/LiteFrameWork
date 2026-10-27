@@ -47,17 +47,11 @@ namespace LiteGame
         public UniTask InitializeAsync(ModuleContext context, CancellationToken ct)
         {
             _services = context.Services;
-            try
-            {
-                Assemble(context);
-                return UniTask.CompletedTask;
-            }
-            catch
-            {
-                _services.Dispose();
-                _scenes?.ReleaseAll();
-                throw;
-            }
+            // 资源归属＝本模块作用域（路线图 §4.3）：装配中途失败时 Host 释放 scope 即回收
+            // （命令注销 → 容器 → 场景租约，顺序与原 catch/Shutdown 一致）。
+            context.Scope.Register(new DelegatedDisposable(DisposeModuleResources));
+            Assemble(context);
+            return UniTask.CompletedTask;
         }
 
         private void Assemble(ModuleContext context)
@@ -210,7 +204,9 @@ namespace LiteGame
             _services.Seal();
         }
 
-        public UniTask ShutdownAsync(CancellationToken ct)
+        /// <summary>模块资源释放（由模块作用域在关闭/回滚时调用）。
+        /// 顺序：命令注销 → 容器 → 场景租约（注销先于容器释放；场景句柄最后归零）。</summary>
+        private void DisposeModuleResources()
         {
 #if UNITY_EDITOR || DEVELOPMENT_BUILD || LITEFRAMEWORK_DEBUG
             _weakNetCommand?.Dispose();
@@ -225,9 +221,13 @@ namespace LiteGame
             _gmSceneCommands = null;
 #endif
             _services?.Dispose();
+            _services = null;
             _scenes?.ReleaseAll();
-            return UniTask.CompletedTask;
+            _scenes = null;
         }
+
+        /// <summary>关闭面：资源已随 <see cref="ModuleContext.Scope"/> 释放（本方法无常驻清理）。</summary>
+        public UniTask ShutdownAsync(CancellationToken ct) => UniTask.CompletedTask;
 
         private StageMachine<ProcedureId, ProcedureArgs> CreateMachine(ModuleContext context,
             IContentService content, ConfigService config, LuaComponent lua,

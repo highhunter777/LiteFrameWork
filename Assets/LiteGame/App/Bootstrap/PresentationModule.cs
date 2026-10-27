@@ -36,7 +36,10 @@ namespace LiteGame
         public System.Collections.Generic.IReadOnlyList<System.Type> DependsOn => new System.Type[] { typeof(ContentModule), typeof(ClocksModule) };
         public UniTask InitializeAsync(ModuleContext context, CancellationToken ct)
         {
-            var content = context.Require<IContentService>();   // 依赖②——注册序即依赖序
+            // 资源归属＝本模块作用域（路线图 §4.3）：初始化中途失败（缺服务/注册冲突）时
+            // 已建的租约缓存/实体/音频/VFX/相机也随 scope 回收。
+            context.Scope.Register(new DelegatedDisposable(DisposeModuleResources));
+            var content = context.Require<IContentService>();   // 依赖③——注册序即依赖序
             _prefabs = new PrefabLeaseCache(content);
             _audio = new AudioService();
             _audio.BindClocks(context.Require<IWorldClock>(), context.Require<IUIClock>());   // 淡变分域（§7 时钟表）
@@ -61,7 +64,9 @@ namespace LiteGame
             return UniTask.CompletedTask;
         }
 
-        public UniTask ShutdownAsync(CancellationToken ct)
+        /// <summary>模块资源释放（由模块作用域在关闭/回滚时调用）：
+        /// 相机 → 实体 → 音频 → VFX → 租约（先收使用者再放租约）。</summary>
+        private void DisposeModuleResources()
         {
             _camera?.Shutdown();                         // 只销毁自建的焦点目标；vcam/Brain 归场景
             _camera = null;
@@ -72,11 +77,17 @@ namespace LiteGame
                 _cameraHost = null;
             }
             _entities?.Shutdown();                       // 取消在途加载 + 连锁回收活体 + 排空实例池
+            _entities = null;
             _audio?.Shutdown();                          // 总线全局停止 + [Audio] 根销毁
+            _audio = null;
             _vfxService?.Shutdown();                     // 取消在途加载 + 回收活体 + 排空池 + 清缓存引用
+            _vfxService = null;
             _prefabs?.ReleaseAll();                      // 表现域 prefab 租约归零（最后：先收使用者再放租约）
-            return UniTask.CompletedTask;
+            _prefabs = null;
         }
+
+        /// <summary>关闭面：表现域资源已随 <see cref="ModuleContext.Scope"/> 释放。</summary>
+        public UniTask ShutdownAsync(CancellationToken ct) => UniTask.CompletedTask;
 
         /// <summary>
         /// 保证有一台主相机：场景里有（含 tag MainCamera）就用它，没有才建一台默认的。

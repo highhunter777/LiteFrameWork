@@ -24,6 +24,9 @@ namespace LiteGame
         public System.Collections.Generic.IReadOnlyList<System.Type> DependsOn => new System.Type[] { typeof(LuaHostModule), typeof(ConfigModule), typeof(ContentModule) };
         public async UniTask InitializeAsync(ModuleContext context, CancellationToken ct)
         {
+            // 同步资源归属＝本模块作用域（路线图 §4.3）：初始化中途失败（主题已装载、UIService 构造抛出）
+            // 由 Host 释放 scope 回收；UIService 的异步关闭仍在 ShutdownAsync（scope 只收 IDisposable）。
+            context.Scope.Register(new DelegatedDisposable(DisposeSyncResources));
             var config = context.Require<ConfigService>();
             var lua = context.Require<LuaComponent>();
             var content = context.Require<IContentService>();   // 依赖②内容服务——注册序即依赖序
@@ -54,13 +57,22 @@ namespace LiteGame
             Bridge.BindText(localeProvider);                   // Lua 门面后端（Bridge.text——与页面索引共用同一实例）
         }
 
-        public UniTask ShutdownAsync(CancellationToken ct)
+        /// <summary>同步资源释放（由模块作用域在关闭/回滚时调用）：红点登记清空 + 主题资产租约归还。
+        /// 调用时机在 <see cref="ShutdownAsync"/>（页面全关）之后——页面先销毁，主题引用后释放。</summary>
+        private void DisposeSyncResources()
         {
             _redDotRegistry?.Clear();
+            _redDotRegistry = null;
             _themeLease?.Dispose();                           // 主题资产租约归还（引用计数递减）
             _themeLease = null;
             _themeAsset = null;
-            return _uiService?.ShutdownAsync() ?? UniTask.CompletedTask;   // 全关+缓存销毁+租约归零+Root 销毁
+        }
+
+        public UniTask ShutdownAsync(CancellationToken ct)
+        {
+            UniTask shutdown = _uiService?.ShutdownAsync() ?? UniTask.CompletedTask;   // 全关+缓存销毁+租约归零+Root 销毁
+            _uiService = null;
+            return shutdown;
         }
 
         /// <summary>主题资产一次装载（P2-3 B2 / 总设计 §6.2「运行期只读解析」）：成功＝持租约到 Shutdown、
