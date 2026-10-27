@@ -468,7 +468,7 @@ namespace LiteClient
         /// **与快照解耦**：事件面丢了不影响状态（下次批还带窗口），状态面丢了也不影响事件——
         /// 两条平面各有自己的丢包收敛，这正是拆包的意义。
         /// 命中/击杀/开火的**顺序稳定性**由 <see cref="PublicCombatFeed"/> 的分类 FIFO 保证；
-        /// "命中先于死亡"的听感顺序由消费者（<c>BattleViewRig.AuthoritativeCombatFeedback</c>）按先在
+        /// "命中先于死亡"的听感顺序由消费者（<c>AuthoritativeCombatFeedback</c>）按先在
         /// 命中队列取完再取击杀队列维持（同帧击杀）。
         /// </summary>
         private void OnCombatEvents(LiteNet.Proto.CombatEventBatch batch)

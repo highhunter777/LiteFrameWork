@@ -1,13 +1,10 @@
 using System;
-using System.Collections.Generic;
 using System.Threading;
 using Cysharp.Threading.Tasks;
 using LiteClient;
 using LiteFramework;
-using LiteFramework.Animation;
 using LiteSim;
 using LiteView;
-using LiteView.Animation;
 using UnityEngine;
 using LiteClient.UI;
 
@@ -15,115 +12,47 @@ namespace LiteGame
 {
     /// <summary>
     /// 对局视图装配件（<see cref="ProcedureBattle"/> 的视图域，一处收口全部表现件接线）：
-    /// 自有 `BattleView` 子作用域 → 资源租约（角色 prefab / 激光束 / 飘字底件与四档材质 /
-    /// 片段清单 / 四组音效 clip）→ <see cref="SimView"/> → 移动动画驱动 / 准心 / HUD / 瞄准激光 /
-    /// 命中分发 / 伤害数字 / 枪口火光与命中特效 / 对局音效 /〔编辑器〕爆头诊断与自动验证件。
+    /// 自有 `BattleView` 子作用域 → 资源取件（<see cref="BattleViewAssets"/>）→ 视图本体
+    /// （<see cref="BattleViewSceneAssembler"/>）→ HUD 族（<see cref="BattleHudAssembler"/>）→
+    /// 战斗反馈（<see cref="BattleFeedbackAssembler"/>）→ 视角/指针（<see cref="BattleLookController"/>）。
     ///
     /// **三面**：<see cref="LoadAsync"/>（取件与降级）、<see cref="Attach"/>（建视图与接线）、
-    /// <see cref="Tick"/>（每帧驱动视图消费者）、<see cref="Dispose"/>（逆序拆：消费者先于生产者）。
+    /// <see cref="Tick"/>（按相位驱动各域）、<see cref="Dispose"/>（按相位逆序拆：消费者先于生产者）。
     /// 流程层只保留"取会话 → 等信令 → 每帧驱动 → 收尾"的编排。
     ///
-    /// **所有权**：视图根 GameObject、全部驱动实例与全部租约归本件；<see cref="SimView"/> 与实体 prefab
-    /// 的租约由本件持有——视图是上下文的消费者，**先拆视图再拆上下文**（反向释放会读到已拆的 Sim）。
-    /// 服务本体（内容/输入/相机/VFX/音频/命令）归装配根，本件只持引用。
+    /// **所有权**：视图根 GameObject 与 `BattleView` 作用域归本件；驱动实例与租约归各协作件
+    /// （视图/ HUD / 反馈 / 视角）。视图是上下文的消费者，**先拆视图再拆上下文**（反向释放会读到已拆的 Sim）。
+    /// 服务本体（内容/输入/相机/VFX/音频/命令）归装配根，本件只持接线所需的引用。
+    ///
+    /// **相位顺序**（tick/dispose 与拆分前逐项一致，见批次计划 A3）：
+    /// tick = 移动动画 → 权威反馈 → HUD 族 → 世界表现件 → 反馈消费者 → 视角/指针；
+    /// dispose = 移动动画 → HUD 族（逐件）→ 世界表现件 → HUD 根件 → 反馈消费者（逐件）→ 传送/诊断 →
+    /// 分发器 → 视角/指针 → 上下文/视图根/租约作用域。
     ///
     /// **降级口径**：缺资源/缺服务一律"警告 + 显式降级"（缺角色 prefab → 无角色视图，不造假人；缺 HUD/激光/飘字/
     /// 音效 → 该项静默降级），不把表现增益当成对局失败。
     /// </summary>
     internal sealed class BattleViewRig
     {
-        /// <summary>瞄准滞回的最小保持宽度——与 Brain DefaultBlend（EaseInOut 0.3s）对齐：
-        /// 短按也走完一次完整混合，连点不重启混合（相机抖动的输入侧治理）。</summary>
-        private const float AimMinHoldSeconds = 0.3f;
-
-        /// <summary>玩家实体 prefab（内容包路径；资源缺失时**无角色视图**——不造占位替身）。</summary>
-        private const string EntityPrefab = SimView.DefaultEntityPrefab;
-
-        /// <summary>瞄准激光束 prefab（内容包路径：Assets/FX 归置副本 fx_lazer_sight——KriptoFX Lazer 单源）。</summary>
-        private const string LaserSightPrefab = "Assets/ShareResource/FX/fx_lazer_sight.prefab";
-
-        /// <summary>伤害数字底件 prefab（世界空间 TMP 飘字；实例由驱动按预算逐条实例化）。</summary>
-        private const string DamageNumberPrefab = "Assets/ShareResource/FX/fx_damage_number.prefab";
-
-        /// <summary>出生保护壳件 prefab（FX 域；**金色**半透明包裹壳——表现件走 ShareResource/FX，收集组件级热更）。</summary>
-        private const string ProtectionShellPrefab = "Assets/ShareResource/FX/fx_spawn_protection.prefab";
-
-        /// <summary>伤害数字逐档材质（黑描边+软影+按档光晕；面部颜色归顶点渐变，不进材质）。
-        /// **四档路径与 builder（AgentScripts/BuildDamageNumberAssets）单源同串**——任缺整组不注入。</summary>
-        private const string DamageNumberMatCaused = "Assets/ShareResource/FX/fx_damage_number_caused.mat";
-        private const string DamageNumberMatCausedCrit = "Assets/ShareResource/FX/fx_damage_number_caused_crit.mat";
-        private const string DamageNumberMatReceived = "Assets/ShareResource/FX/fx_damage_number_received.mat";
-        private const string DamageNumberMatReceivedCrit = "Assets/ShareResource/FX/fx_damage_number_received_crit.mat";
-
-        /// <summary>角色片段清单（去 AC 主路径的片源：键→Clip 显式引用的纯配置资产）。
-        /// 路径单源在动画 Profile——角色族配置归一处。</summary>
-        private const string ClipManifestPath = CombatGirlsAnimationProfile.ClipManifestPath;
-
-        private readonly IContentService _content;
-        private readonly IVFXService _vfx;
-        private readonly AudioService _audio;        // 音频服务（装配根注册；对局音效的组+代理后端）
-        private readonly CommandCenter _commands;    // 命令中心（传送命令化：撤销/重做/排队派发）
         private readonly IInputService _input;       // 输入服务（设备源注入/清派发状态）
         private readonly ICameraService _camera;     // 相机服务（Cinemachine 适配器；装配根建、跨对局复用）
-        private Func<Vector2> _lookDeltaOf;           // 视角增量来源（设备源适配器 LookDelta；随本局设备源挂/摘）
-        private readonly PointerLockService _pointer = new PointerLockService();   // 指针锁定（TPS 输入形态——Cursor 的唯一写者）
-
-        /// <summary>视角灵敏度（弧度/像素）——机制初档常量单源：0.0025 ≈ 0.14°/px，1440px 横扫 ≈ 206°
-        /// （约三分之一圈，主流 TPS 鼠标灵敏度中位起点）；ADS 档缩放与 GM/Inspector 调参面随 T6 落位
-        /// （以本常量为默认基线）。</summary>
-        internal const float LookSensitivityRadPerPixel = 0.0025f;
-
-        /// <summary>ADS 期视角灵敏度收敛比——机制初档常量单源：ADS 视场收窄（FOV 60→50，收窄比 50/60≈0.83）
-        /// 下同像素位移对应更大的视角变化，灵敏度须同比收敛再叠手感衰减（同类 TPS 常见 0.5~0.7 的中位）；
-        /// ADS 构图档位本体＝双机优先级切换 + brain 的 FOV/构图混合（场景 rig 值），本常量只管增量缩放。</summary>
-        internal const float AdsLookSensitivityScale = 0.6f;
-        private readonly LiteFramework.IWorldClock _worldClock;   // 世界钟（伤害数字寿命/合并窗）
-        private readonly AimHoldGate _aimGate = new AimHoldGate(AimMinHoldSeconds);   // 瞄准态滞回
-        private int _lastRespawnSerial;                              // 本地复活序号（瞄准门一次性复位用）
-
+        private readonly CommandCenter _commands;    // 命令中心（传送命令化：撤销/重做/排队派发）
         private readonly ClientScope _viewScope;     // 视图资源（prefab 租约/视图根）自有作用域
-        private BattleContext _context;
-        private SimView _view;
-        private CharacterLocomotionDriver _locomotion;   // 移动动画驱动（视图的消费者——先于视图拆除）
-        private BattleCrosshairDriver _crosshair;       // 对局准心（Hud_Battle prefab）
-        private readonly CrosshairFeelProfile _crosshairFeel;   // 准心手感投影（tbcrosshair——可空 = 测试装配回落 Default）
-        private readonly Func<UiThemeAsset> _themeProvider;      // 主题资产工厂（P2-3 B4：HUD 状态色注入；可空 = 保持烘焙值）
-        private BattleHudDriver _hud;                   // HUD 面板（血条/弹药——技能栏静态占位）
-        private BattleRankboardDriver _rankboard;       // 局内排行榜（FFA 比分＝击杀——镜像公共面）
-        private BattleRespawnHudDriver _respawnHud;      // 死亡/复活 HUD（中央倒计时 + 归属 + 保护角标）
-        private BattleKillFeedDriver _killFeed;          // 全局击杀提示（快照携带的最近击杀窗口——多条堆叠）
-        private BattleNetworkHudDriver _netStats;        // 网络质量显示（会话探针 RTT/丢包——离线隐藏）
-        private BattleRemoteMuzzleFlashDriver _remoteFire;   // 远端开火火光（快照携带的最近开火窗口——静默降级）
-        private BattleProtectionFxDriver _protectionFx;  // 出生保护壳（金色包裹壳按槽位跟随玩家视图）
-        private AssetLease<GameObject> _protectionShellLease;   // 保护壳 prefab 租约（实例按槽位惰性创建，随 _viewRoot 拆）
-        private UnityEngine.Events.UnityAction _menuClick;   // 菜单钮监听（装配期加、拆除期摘——存实例供移除）
-        private BattleLaserDriver _laser;               // 瞄准激光（准心的世界空间兄弟件）
-        private GameObject _laserBeam;                  // 激光束实例（挂 _viewRoot，随离场拆）
-        private AssetLease<GameObject> _laserLease;     // 激光束租约（登记 _viewScope）
 
-        private AssetLease<GameObject> _hudLease;       // HUD prefab 租约（登记 _viewScope）
-        private GameObject _hudInstance;                // HUD 根件（ScreenSpace Canvas——随离场销毁）
-        private BattleHudView _hudView;                 // 引用件（序列化引用——八节点，零 Find）
-        private HitFeedbackDispatcher _hitFeedback;     // 命中分发（帧事件 → 命中反馈消费者）
-        private AuthoritativeCombatFeedback _authorityFeedback;   // 权威命中/击杀窗口 → 命中/死亡反馈
-        private BattleDamageNumberDriver _damageNumbers;   // 伤害数字（命中反馈首个消费者）
-        private BattleMuzzleFlashDriver _muzzleFlash;      // 枪口火光（Fire 帧事件 → 武器挂点跟随 VFX）
-        private BattleImpactFxDriver _impactFx;            // 敌人命中特效（本地 Caused Hit/Crit → 受击点）
-        private BattleAudioDriver _battleAudio;            // 对局音效（帧事件路由的 Audio 消费者）
-        private readonly List<AssetLease<AudioClip>> _audioLeases = new List<AssetLease<AudioClip>>(4);
-        private IDisposable _teleportReg;                  // 传送命令处理器注册（进房登记 / 离场注销）
-        private AssetLease<GameObject> _damageNumberLease; // 飘字底件租约
-        private DamageNumberMaterialSet _damageNumberMaterials;   // 飘字逐档材质（四档不齐则不注入）
-        private AssetLease<AnimationClipManifest> _clipManifestLease;    // 片段清单租约
-        private Func<Vector3?> _aimPointOf;             // 瞄准点来源（世界坐标；null = 无设备形态）
+        private readonly BattleViewAssets _assets;
+        private readonly BattleViewSceneAssembler _viewAssembler = new BattleViewSceneAssembler();
+        private readonly BattleHudAssembler _hudAssembler;
+        private readonly BattleFeedbackAssembler _feedbackAssembler;
+        private readonly BattleLookController _lookController;
+
+        private BattleContext _context;
+        private Transform _viewRoot;
+        private GameObject _viewRootGo;
+        private IDisposable _teleportReg;            // 传送命令处理器注册（进房登记 / 离场注销）
 #if UNITY_EDITOR || DEVELOPMENT_BUILD || LITEFRAMEWORK_DEBUG
         private BattleHeadshotDebugDrawer _headshotDebug;   // 身位圆柱/爆头带常驻可视化（release 剥离）
         private AutoHeadshotRig _autoHeadshot;              // 爆头自动验证件（GM 面板现场开关；release 剥离）
 #endif
-        private Transform _viewRoot;
-        private GameObject _viewRootGo;
-        private GameObject _prefab;
-        private AssetLease<GameObject> _prefabLease;
 
         /// <param name="account">Account 作用域（本件在其下建 `BattleView` 子作用域——离场即整体回收）。</param>
         /// <param name="worldClock">世界钟（伤害数字寿命/合并窗；null = 飘字降级）。</param>
@@ -132,241 +61,34 @@ namespace LiteGame
             AudioService audio = null, CommandCenter commands = null, CrosshairFeelProfile crosshairFeel = null,
             Func<UiThemeAsset> themeProvider = null)
         {
-            _content = content ?? throw new ArgumentNullException(nameof(content));
+            if (content == null) throw new ArgumentNullException(nameof(content));
             if (account == null) throw new ArgumentNullException(nameof(account));
             _input = input;
             _camera = camera;
-            _vfx = vfx;
-            _worldClock = worldClock;
-            _audio = audio;
             _commands = commands;
-            _crosshairFeel = crosshairFeel;
-            _themeProvider = themeProvider;
 
             _viewScope = account.CreateChild("BattleView");
             _viewRootGo = new GameObject("[BattleView]");
             if (Application.isPlaying) UnityEngine.Object.DontDestroyOnLoad(_viewRootGo);
             _viewRoot = _viewRootGo.transform;
+
+            _assets = new BattleViewAssets(content, _viewScope, _viewRoot, themeProvider);
+            _hudAssembler = new BattleHudAssembler(crosshairFeel);
+            _feedbackAssembler = new BattleFeedbackAssembler(vfx, audio, worldClock, camera, _assets, _viewRoot);
+            _lookController = new BattleLookController(input, camera);
         }
 
         // ---- 取件（资源租约；逐项降级）----
 
-        /// <summary>取全部对局表现资源（角色 prefab → 激光束 → 飘字底件 → 逐档材质 → 片段清单 → 音效 clip）。
+        /// <summary>取全部对局表现资源（角色 prefab → 激光束 → HUD → 保护壳 → 飘字底件 → 逐档材质 → 片段清单 → 音效 clip）。
         /// 逐项失败只降级该项（缺角色资源＝无角色视图），不把缺美术当对局失败。</summary>
-        internal async UniTask LoadAsync(CancellationToken ct)
-        {
-            await AcquireEntityPrefabAsync(ct);
-            await AcquireLaserSightAsync(ct);
-            await AcquireHudAsync(ct);
-            await AcquireProtectionShellAsync(ct);
-            await AcquireDamageNumberAsync(ct);
-            await AcquireDamageNumberMaterialsAsync(ct);
-            await AcquireClipManifestAsync(ct);
-            await AcquireAudioClipsAsync(ct);
-        }
-
-        /// <summary>
-        /// 取玩家实体 prefab（经内容服务租约，登记进视图作用域）。资源包未入库的克隆（第三方素材按
-        /// 仓库政策不入 VCS）或加载失败时**无角色视图**——工厂拒绝＝无实体可见（EntityViewMap 契约），
-        /// 不造占位替身；缺角色资源如实告警，不把缺美术当对局失败。
-        /// </summary>
-        private async UniTask AcquireEntityPrefabAsync(CancellationToken ct)
-        {
-            try
-            {
-                _prefabLease = await _content.AcquireAsync<GameObject>(EntityPrefab, ct: ct);
-                _viewScope.Register(_prefabLease);
-                _prefab = _prefabLease.Asset;
-            }
-            catch (Exception ex) when (!(ex is OperationCanceledException))
-            {
-                Log.Warning($"实体 prefab 缺失，本局无角色视图:{EntityPrefab}（{ex.Message}）", LogTag.Battle);
-                _prefabLease = null;
-                _prefab = null;
-            }
-        }
-
-        /// <summary>取瞄准激光束 prefab 并实例化（实例挂 _viewRoot 随离场拆）。资源缺失/加载失败 →
-        /// **静默降级**（只警告）：激光是表现增益，不把"缺特效资产"当对局失败。</summary>
-        private async UniTask AcquireLaserSightAsync(CancellationToken ct)
-        {
-            try
-            {
-                _laserLease = await _content.AcquireAsync<GameObject>(LaserSightPrefab, ct: ct);
-                _viewScope.Register(_laserLease);
-                _laserBeam = UnityEngine.Object.Instantiate(_laserLease.Asset, _viewRoot);
-                _laserBeam.name = "LaserSight";
-                _laserBeam.SetActive(false);
-            }
-            catch (Exception ex) when (!(ex is OperationCanceledException))
-            {
-                Log.Warning($"激光束 prefab 缺失/加载失败，瞄准激光降级:{LaserSightPrefab}（{ex.Message}）", LogTag.Battle);
-                _laserLease = null;
-                _laserBeam = null;
-            }
-        }
-
-        /// <summary>取伤害数字底件 prefab（只取租约不实例化——实例由驱动工厂按预算逐条实例化）。
-        /// 资源缺失/加载失败 → **静默降级**（只警告）。</summary>
-        /// <summary>
-        /// 取战斗 HUD prefab 并实例化（经内容服务租约，登记进视图作用域；ScreenSpace Overlay 根件随离场销毁）。
-        /// 资源缺失/加载失败 → **静默降级**（只警告）：HUD 是表现增益，不把"缺 HUD 资产"当对局失败
-        /// （同激光/飘字/准心缺失口径）。——《战斗HUD专项设计》批 A：场景对象退役，HUD 改 prefab 实例。
-        /// </summary>
-        private async UniTask AcquireHudAsync(CancellationToken ct)
-        {
-            try
-            {
-                _hudLease = await _content.AcquireAsync<GameObject>(BattleHudView.PrefabLocation, ct: ct);
-                _viewScope.Register(_hudLease);
-                _hudInstance = UnityEngine.Object.Instantiate(_hudLease.Asset);
-                _hudInstance.name = "Hud_Battle";
-                _hudView = _hudInstance.GetComponent<BattleHudView>();
-                ApplyHudTheme();
-            }
-            catch (Exception ex) when (!(ex is OperationCanceledException))
-            {
-                Log.Warning($"[Battle] HUD prefab 缺失/加载失败，HUD 降级:{BattleHudView.PrefabLocation}（{ex.Message}）", LogTag.Battle);
-                _hudLease = null;
-                if (_hudInstance != null) UnityEngine.Object.Destroy(_hudInstance);   // 防孤儿：实例化后失败不留在场景
-                _hudInstance = null;
-                _hudView = null;
-            }
-        }
-
-        /// <summary>HUD 状态色注入（P2-3 B4）：provider 已装载 → `UiThemeBinder` 注入；null/资产缺失保持烘焙值并 Warning 一次（本局）。</summary>
-        private void ApplyHudTheme()
-        {
-            if (_themeProvider == null || _hudInstance == null) return;
-            SafeCall.Invoke(() =>
-            {
-                UiThemeAsset asset = _themeProvider();
-                if (asset == null)
-                {
-                    Log.Warning("[Battle] 主题资产未就绪——HUD 保持 prefab 烘焙值（状态色不注入）", LogTag.UI);
-                    return;
-                }
-                UiThemeBinder.Apply(_hudInstance, UiStyleResolver.FromAsset(asset), "HUD");
-            }, "BattleViewRig.ApplyHudTheme");
-        }
-
-        /// <summary>
-        /// 取出生保护壳 prefab 租约（FX 域；实例由 <see cref="BattleProtectionFxDriver"/> 按槽位惰性创建、
-        /// 挂 `_viewRoot`、缺省收起——实例随离场拆）。资源缺失/加载失败 → **静默降级**（只警告）：
-        /// 保护特效是表现增益，不把"缺件"当对局失败。
-        /// </summary>
-        private async UniTask AcquireProtectionShellAsync(CancellationToken ct)
-        {
-            try
-            {
-                _protectionShellLease = await _content.AcquireAsync<GameObject>(ProtectionShellPrefab, ct: ct);
-                _viewScope.Register(_protectionShellLease);
-            }
-            catch (Exception ex) when (!(ex is OperationCanceledException))
-            {
-                Log.Warning($"出生保护壳缺失/加载失败，保护特效降级:{ProtectionShellPrefab}（{ex.Message}）", LogTag.Battle);
-                _protectionShellLease = null;
-            }
-        }
-
-        /// <summary>取伤害数字底件 prefab（只取租约不实例化——实例由驱动工厂按预算逐条实例化）。
-        /// 资源缺失/加载失败 → **静默降级**（只警告）。</summary>
-        private async UniTask AcquireDamageNumberAsync(CancellationToken ct)
-        {
-            try
-            {
-                _damageNumberLease = await _content.AcquireAsync<GameObject>(DamageNumberPrefab, ct: ct);
-                _viewScope.Register(_damageNumberLease);
-            }
-            catch (Exception ex) when (!(ex is OperationCanceledException))
-            {
-                Log.Warning($"伤害数字底件缺失/加载失败，飘字降级:{DamageNumberPrefab}（{ex.Message}）", LogTag.Battle);
-                _damageNumberLease = null;
-            }
-        }
-
-        /// <summary>
-        /// 取伤害数字逐档材质（黑描边/软影/按档光晕）。**整组注入**：任缺一档 → 整组不注入
-        /// （警告），飘字退回底件默认材质——不做部分档位的混合观感（"为什么这发没有光晕"会变成
-        /// 不可解释的随机）。取件序 = <see cref="DamageNumberMaterialSet"/> 构造参数序（enum 序）。
-        /// </summary>
-        private async UniTask AcquireDamageNumberMaterialsAsync(CancellationToken ct)
-        {
-            string[] locations =
-            {
-                DamageNumberMatCaused,
-                DamageNumberMatCausedCrit,
-                DamageNumberMatReceived,
-                DamageNumberMatReceivedCrit,
-            };
-            var materials = new Material[locations.Length];
-            for (int i = 0; i < locations.Length; i++)
-            {
-                try
-                {
-                    AssetLease<Material> lease = await _content.AcquireAsync<Material>(locations[i], ct: ct);
-                    _viewScope.Register(lease);
-                    materials[i] = lease.Asset;
-                }
-                catch (Exception ex) when (!(ex is OperationCanceledException))
-                {
-                    Log.Warning($"伤害数字材质缺失/加载失败，飘字退回默认材质:{locations[i]}（{ex.Message}）", LogTag.Battle);
-                    return;                                  // 整组不注入（已取件租约已登记，随 _viewScope 归还）
-                }
-            }
-            _damageNumberMaterials = new DamageNumberMaterialSet(
-                materials[0], materials[1], materials[2], materials[3]);
-        }
-
-        /// <summary>
-        /// 取角色片段清单（去 AC 主路径的片源——键→Clip 显式引用的纯配置，键单源在动画 Profile）。
-        /// 资源缺失/加载失败 → **静默降级**（只警告）：驱动回退控制器便利源。清单在则驱动按 Profile 绑定
-        /// 做全覆盖校验——清单与 Profile 不同步属配置错误，由驱动构造期显性失败。
-        /// </summary>
-        private async UniTask AcquireClipManifestAsync(CancellationToken ct)
-        {
-            try
-            {
-                _clipManifestLease = await _content.AcquireAsync<AnimationClipManifest>(ClipManifestPath, ct: ct);
-                _viewScope.Register(_clipManifestLease);
-            }
-            catch (Exception ex) when (!(ex is OperationCanceledException))
-            {
-                Log.Warning($"片段清单缺失/加载失败，动画回退控制器便利源:{ClipManifestPath}（{ex.Message}）", LogTag.Battle);
-                _clipManifestLease = null;
-            }
-        }
-
-        /// <summary>取对局音效 clip 租约（开火/命中/爆头/死亡——逐条独立降级，单条缺失只静默该 kind）。</summary>
-        private async UniTask AcquireAudioClipsAsync(CancellationToken ct)
-        {
-            string[] locations =
-            {
-                BattleAudioDriver.FireClipLocation,
-                BattleAudioDriver.HitClipLocation,
-                BattleAudioDriver.CritClipLocation,
-                BattleAudioDriver.DeathClipLocation,
-            };
-            foreach (string location in locations)
-            {
-                try
-                {
-                    AssetLease<AudioClip> lease = await _content.AcquireAsync<AudioClip>(location, ct: ct);
-                    _viewScope.Register(lease);
-                    _audioLeases.Add(lease);
-                }
-                catch (Exception ex) when (!(ex is OperationCanceledException))
-                {
-                    Log.Warning($"音效缺失/加载失败，该音降级:{location}（{ex.Message}）", LogTag.Battle);
-                }
-            }
-        }
+        internal UniTask LoadAsync(CancellationToken ct) => _assets.LoadAsync(ct);
 
         // ---- 装配（建视图 + 接线；须在 StartGame 之后调用）----
 
         /// <summary>
-        /// 建视图并接线：<see cref="SimView"/>（镜像/插值/静默门/相机服务）→ 移动动画驱动 → 准心 / HUD /
-        /// 瞄准激光 → 命中分发 → 伤害数字 / 战斗特效 / 对局音效 →〔编辑器〕爆头诊断件 → 传送命令登记。
+        /// 建视图并接线：<see cref="SimView"/>（镜像/插值/静默门/相机服务）→ 移动动画驱动 → HUD 族 →
+        /// 瞄准激光/保护壳 → 命中分发与反馈消费者 →〔编辑器〕爆头诊断件 → 传送命令登记。
         ///
         /// **相机不由本件创建**：装配根建好 <see cref="ICameraService"/>（内含场景配置好的虚拟相机）并
         /// 跨对局复用，本件只把端口交给 SimView，并在开局 <see cref="ICameraService.Reset"/> 一次
@@ -378,113 +100,48 @@ namespace LiteGame
         internal void Attach(BattleContext context, Action openBattleMenu = null)
         {
             _context = context ?? throw new ArgumentNullException(nameof(context));
-            if (openBattleMenu != null) _menuClick = new UnityEngine.Events.UnityAction(openBattleMenu);
+            UnityEngine.Events.UnityAction menuClick =
+                openBattleMenu != null ? new UnityEngine.Events.UnityAction(openBattleMenu) : null;
 
-            _view = new SimView(_context.Sim.State, _viewRoot,
-                factory: InstantiateView,
-                recycler: null,                                   // 自有池（EntityService 接线归表现域批）
-                camera: _camera);
-            _context.AttachView(_view);
+            _viewAssembler.AttachCore(_context, _viewRoot, _assets.Prefab, _camera,
+                _assets.ClipManifestLease?.Asset);
 
-            // 动画 Profile：表单源（读口行 → 按模型族装载——缺行/坏行在装配期显性失败）
-            var animationProfile = AnimationProfileLoader.FromRows(
-                AnimationProfileConfig.Rows, CombatGirlsAnimationProfile.ModelFamily);
-            _locomotion = new CharacterLocomotionDriver(_view, animationProfile,
-                manifest: _clipManifestLease?.Asset,           // 清单在 = 去 AC 主路径供片；缺清单回退控制器便利源
-                cameraPitchOf: _camera != null ? (Func<float>)(() => _camera.LookPitch) : null);   // TPS 俯仰姿态源（视角端口读口）
+            HitFeedbackDispatcher dispatcher = _feedbackAssembler.CreateDispatcher(_viewAssembler.View);
+            _hudAssembler.Attach(_context, _viewAssembler.View, _input,
+                _assets.HudView, _assets.HudInstance, menuClick, dispatcher, PublicFactState);
 
-            AttachCrosshair();                                  // 对局准心（视图/输入均已就绪，场景对象按名解析）
-            AttachHud();                                        // HUD 面板（血条/弹药——同根场景对象，静默降级）
-            AttachRankboard();                                  // 局内排行榜（FFA 比分＝击杀——8 格预置，静默降级）
-            AttachKillFeed();                                   // 全局击杀提示（最近击杀窗口——多条堆叠，静默降级）
-            AttachNetworkHud();                                 // 网络质量显示（会话探针 RTT/丢包——静默降级）
-            _aimPointOf = AimPointOf(_input);                   // 瞄准点（世界）→ 瞄准机近距后撤（激光不读）
-            AttachLaserSight();                                 // 瞄准激光（束实例已取，接线驱动）
-            AttachProtectionFx();                              // 出生保护壳（FX 域；金色包裹壳跟随本地角色）
-            _hitFeedback = new HitFeedbackDispatcher(_view);   // 命中分发骨架：EventSink 并列订阅
-            _hitFeedback.Register(_crosshair);                // 准心：本地 Fire → 连发张开/后坐（null 拒收 = HUD 缺件静默降级）
-            AttachRespawnHud();                               // 死亡/复活 HUD（阵亡批；归属走帧事件消费）
-            AttachDamageNumbers();                             // 伤害数字（命中反馈首个消费者）
-            AttachCombatFx();                                  // 枪口火光 + 敌人命中特效（帧事件路由的 VFX 消费者）
-            AttachRemoteFireFx();                             // 远端开火火光（开火窗口快照面 → 他人枪口挂点）
-            AttachAudio();                                     // 对局音效（帧事件路由的 Audio 消费者）
-            _authorityFeedback = new AuthoritativeCombatFeedback(
-                _context.CombatFeed, _view, _hitFeedback);
+            _viewAssembler.AttachLaser(_context, _input, _assets.LaserBeam);
+            _viewAssembler.AttachProtectionFx(_assets.ProtectionShellLease);
+            _hudAssembler.AttachRespawnHud(PublicFactState, _viewAssembler.LocalSlot,
+                _viewAssembler.IsLocalDead, dispatcher);
+            _lookController.Attach(_viewAssembler.View);
+            _feedbackAssembler.AttachConsumers(_context, _viewAssembler.View);
 #if UNITY_EDITOR || DEVELOPMENT_BUILD || LITEFRAMEWORK_DEBUG
             // 爆头区域常驻可视化（测试模式诊断件）：只读预测态，不改判定；release 剥离
             _headshotDebug = new BattleHeadshotDebugDrawer(_context.Sim);
             // 爆头自动验证件（GM 面板现场开关）：替换输入源 + 统计爆头/命中，用于真实对局端到端验链路
             _autoHeadshot = new AutoHeadshotRig(_context.Sim.State, _context.LocalEntityId);
-            _hitFeedback?.Register(_autoHeadshot);
+            _feedbackAssembler.Register(_autoHeadshot);
             BattleDiagnostics.Attach(context);       // 对局诊断读口登记（DevHUD/GM 页只读——三宏剥离零残留）
 #endif
             AttachInputWiring();
             _teleportReg = _commands?.RegisterUndoable(new TeleportToAimHandler(
-                aimOf: () => _aimPointOf?.Invoke(),
+                aimOf: () => _lookController.AimPoint,
                 originOf: ReadLocalOrigin,
                 dispatch: DispatchTeleport));                       // 传送命令化：撤销/重做随命令中心可用
-            Log.Info($"view-attached prefab={EntityPrefab}", LogTag.Battle);
+            Log.Info($"view-attached prefab={BattleViewAssets.EntityPrefab}", LogTag.Battle);
         }
 
-        /// <summary>每帧驱动视图消费者（<see cref="BattleContext.Tick"/> 之后调用——权威已应用）：移动动画 →
-        /// 准心 → HUD → 激光 → 伤害数字 → 瞄准相机（语义态 + 构图 z 偏移）→〔编辑器〕诊断件。</summary>
+        /// <summary>每帧驱动视图消费者（<see cref="BattleContext.Tick"/> 之后调用——权威已应用）：
+        /// 移动动画 → 权威反馈 → HUD 族 → 世界表现件 → 反馈消费者 → 视角/指针（相位顺序固定）。</summary>
         internal void Tick(float elapseSeconds)
         {
-            _locomotion?.Tick(elapseSeconds);    // 移动动画：视图位置已更新，再解析目标姿态
-            _authorityFeedback?.Tick();          // 权威命中/击杀队列 → 命中反馈/阵亡归属（先于 HUD/消费者）
-            _crosshair?.Tick(elapseSeconds);          // 对局准心（HUD）：位置/形态/光标 + 连发张开/后坐回正（真实帧时长）
-            _hud?.Tick();                        // HUD 面板：血条/弹药（预测态值变化写）
-            _rankboard?.Tick();                  // 局内排行榜：击杀分布变化才重排/写（镜像公共面）
-            _killFeed?.Tick();                   // 全局击杀提示：待展示队列 → 行（驻留到时回收）
-            _netStats?.Tick();                   // 网络质量：探针 RTT/丢包（值变才写，离线隐藏）
-            _respawnHud?.Tick();                 // 死亡/复活：阵亡倒计时/归属/保护角标（值变化才写）
-            _protectionFx?.Tick();               // 出生保护壳：保护态内跟随本地角色显隐
-            _laser?.Tick();                      // 瞄准激光：端点 = 开火射线（实体/障碍截停）
-            _damageNumbers?.Tick();              // 伤害数字：命中事件的视觉收尾（合并窗口/淡出/跟随）
-            _remoteFire?.Tick();                 // 远端开火火光：开火窗口队列 → 远端枪口挂点播放
-
-            // 瞄准相机接管（每帧幂等；适配器按沿生效——视图态已解析；滞回门控短按，防频繁点按重启混合）
-            // 复活复位：上一条命的 ADS 门控态不得跨命沿用（否则复活瞬间镜头被钉在瞄准机上）。
-            // **`_view` 可空**：本方法在进场加载期就会每帧被调（视图是 `Attach` 场景加载完才建），
-            // 判空是必须的——漏了就是每帧一条 NRE（联机实测 217 条，全在加载段）。
-            if (_view != null && _view.LocalRespawnSerial != _lastRespawnSerial)
-            {
-                _lastRespawnSerial = _view.LocalRespawnSerial;
-                _aimGate.Reset();
-            }
-            // 对局控制中（视图建好、本地在场、未被上下文门拦、存活）才吃视角增量：
-            // 模态 UI/死亡/加载段鼠标不应在背后带动相机（PUBG 的解锁形态同口径）。
-            bool pointerLocked = _view != null && _view.HasLocalDisplay && _view.LocalEntityId != 0
-                && (_input == null || !_input.IsBlocked) && !IsLocalDead();
-
-            // 视角增量（第三人称自由视角）：鼠标 delta → 相机 yaw/pitch（纯视图侧，不上行）。
-            // Unity 屏幕系 y 向上：鼠标上推（delta.y>0）= 上仰（pitch 正）；POV 垂直轴取负归实现。
-            // ADS 期灵敏度收敛（档位缩放——档位本体=双机优先级+brain FOV/构图混合，场景 rig 值）。
-            // 灵敏度/收敛比经 GM「视角调参」实时覆写（LookTuning——实机定档后写回机制常量）。
-            if (pointerLocked && _lookDeltaOf != null)
-            {
-                Vector2 look = _lookDeltaOf();
-                if (look != Vector2.zero)
-                {
-                    float sensitivity = LookTuning.SensitivityOf(LookSensitivityRadPerPixel)
-                        * (IsLocalAiming() ? LookTuning.AdsScaleOf(AdsLookSensitivityScale) : 1f);
-                    _camera?.AddLookDelta(
-                        look.x * sensitivity,
-                        look.y * sensitivity);
-                }
-            }
-            _camera?.SetAiming(_aimGate.Feed(IsLocalAiming(), elapseSeconds));
-            if (_camera != null)                 // 瞄准点（世界）→ 瞄准机近距后撤（适配器按视角前向投影换算）
-            {
-                Vector3? aimPoint = _aimPointOf?.Invoke();
-                _camera.SetAimPoint(aimPoint ?? default, aimPoint.HasValue);
-            }
-
-            // 指针锁定（TPS 输入形态）：控制中 = 锁定+隐藏（准心是唯一瞄准标示）；
-            // 门被拦/视图未建/死亡 = 解锁恢复（模态要点按钮）。Cursor 唯一写者是 PointerLockService。
-            if (pointerLocked) _pointer.Lock(); else _pointer.Unlock();
-
-
+            _viewAssembler.TickMovement(elapseSeconds);
+            _feedbackAssembler.TickAuthority();
+            _hudAssembler.Tick(elapseSeconds);
+            _viewAssembler.TickWorldFx();
+            _feedbackAssembler.TickVisual();
+            _lookController.Tick(elapseSeconds);
         }
 
         /// <summary>渲染帧采样**之前**的诊断件驱动（编辑器专用；release 空实现）：自瞄验证件要替换输入源，
@@ -513,7 +170,6 @@ namespace LiteGame
         private void AttachInputWiring()
         {
             if (_input == null) return;                           // 无服务（替身/测试装配）= 无输入形态
-            _lookDeltaOf = LookDeltaOf(_input);                   // 视角增量源（设备源适配器；随本局挂/摘）
 
             // **对局相机注入**：设备源持有的是装配根 boot 相机——叠加开发形态下它
             // **不随场景销毁**，`Camera.main` 回落也拿错机（两台相机在场），瞄准/相机相对移动会
@@ -530,57 +186,24 @@ namespace LiteGame
             _camera?.Reset();                                     // 镜头重新落位（不从上一局位置飞过来）
         }
 
-        /// <summary>拆视图（逆序：动画 → HUD → 准心 → 激光 → 飘字 → 特效 → 音效 → 传送命令 → 诊断件 →
-        /// 命中分发 → 相机语义态 → 视图根 → 作用域）。不触发对局结束——那是流程层的裁决。</summary>
+        /// <summary>拆视图（按相位逆序：消费者 → 分发器 → 视图 → 根件 → 作用域）。不触发对局结束——那是流程层的裁决。</summary>
         internal void Dispose()
         {
-            _locomotion?.Dispose();               // 先停动画驱动（视图消费者），再拆视图本体
-            _locomotion = null;
-            _rankboard?.Dispose();                // 排行榜（格归位——同属视图消费者）
-            _rankboard = null;
-            _killFeed?.Dispose();                 // 击杀提示（行归位——同属视图消费者）
-            _killFeed = null;
-            _remoteFire?.Dispose();               // 远端火光（挂点缓存归零——同属视图消费者）
-            _remoteFire = null;
-            _netStats?.Dispose();                 // 网络质量件（归位——同属视图消费者）
-            _netStats = null;
-            _hud?.Dispose();                      // HUD 面板（面板归零——视图消费者，先于准心拆）
-            _hud = null;
-            _respawnHud?.Dispose();               // 死亡/复活 HUD（帧事件消费者——先于分发器摘）
-            _respawnHud = null;
-            _crosshair?.Dispose();                // 准心驱动（还系统光标——同属视图消费者）
-            _crosshair = null;
-            _laser?.Dispose();                    // 激光驱动（束实例随 _viewRoot 销毁；租约随 _viewScope.Dispose 归还）
-            _laser = null;
-
-            _protectionFx?.Dispose();             // 保护壳驱动（实例同样随 _viewRoot 销毁、租约随作用域归还）
-            _protectionFx = null;
-            _protectionShellLease = null;
-            _laserBeam = null;
-            _laserLease = null;
-            if (_hudInstance != null)             // HUD 根件（ScreenSpace Canvas——随离场销毁）
-            {
-                if (_hudView != null && _hudView.SettingsButton != null && _menuClick != null)
-                    _hudView.SettingsButton.onClick.RemoveListener(_menuClick);   // 菜单钮监听随拆（存实例移除）
-                _menuClick = null;
-                if (Application.isPlaying) UnityEngine.Object.Destroy(_hudInstance);
-                else UnityEngine.Object.DestroyImmediate(_hudInstance);
-                _hudInstance = null;
-            }
-            _hudView = null;
-            _hudLease = null;                     // 租约随 _viewScope.Dispose 归还
-            _damageNumbers?.Dispose();            // 伤害数字（消费者先于分发器拆——实例全归还池）
-            _damageNumbers = null;
-            _damageNumberMaterials = null;        // 材质引用随驱动拆弃（租约本体已登记 _viewScope）
-            _muzzleFlash?.Dispose();              // 枪口火光/命中特效（同上——消费者先于分发器拆）
-            _muzzleFlash = null;
-            _impactFx?.Dispose();
-            _impactFx = null;
-            _authorityFeedback?.Dispose();        // 权威命中/死亡反馈（先摘订阅，再拆分发器/视图）
-            _authorityFeedback = null;
-            _battleAudio?.Dispose();              // 对局音效（消费者先于分发器/作用域拆；在播代理自然播完）
-            _battleAudio = null;
-            _audioLeases.Clear();                 // 租约本体已登记 _viewScope（作用域统一归还）
+            _viewAssembler.DisposeMovement();     // 先停动画驱动（视图消费者），再拆视图本体
+            _hudAssembler.DisposeRankboard();     // 排行榜（格归位——同属视图消费者）
+            _hudAssembler.DisposeKillFeed();      // 击杀提示（行归位——同属视图消费者）
+            _feedbackAssembler.DisposeRemoteFire();   // 远端火光（挂点缓存归零——同属视图消费者）
+            _hudAssembler.DisposeNetworkHud();    // 网络质量件（归位——同属视图消费者）
+            _hudAssembler.DisposePanel();         // HUD 面板（面板归零——视图消费者，先于准心拆）
+            _hudAssembler.DisposeRespawnHud();    // 死亡/复活 HUD（帧事件消费者——先于分发器摘）
+            _hudAssembler.DisposeCrosshair();     // 准心驱动（还系统光标——同属视图消费者）
+            _viewAssembler.DisposeLaser();        // 激光驱动（束实例随视图根销毁；租约随作用域归还）
+            _viewAssembler.DisposeProtectionFx(); // 保护壳驱动（实例同样随视图根销毁、租约随作用域归还）
+            _hudAssembler.DisposeRoot();          // HUD 根件（ScreenSpace Canvas）+ 菜单监听
+            _feedbackAssembler.DisposeDamageNumbers();   // 伤害数字（消费者先于分发器拆——实例全归还池）
+            _feedbackAssembler.DisposeCombatFx();        // 枪口火光/命中特效（同上——消费者先于分发器拆）
+            _feedbackAssembler.DisposeAuthority();       // 权威命中/死亡反馈（先摘订阅，再拆分发器/视图）
+            _feedbackAssembler.DisposeAudio();           // 对局音效（消费者先于分发器/作用域拆；在播代理自然播完）
             _teleportReg?.Dispose();              // 传送命令处理器（随本局装配注销——下局重登记）
             _teleportReg = null;
 #if UNITY_EDITOR || DEVELOPMENT_BUILD || LITEFRAMEWORK_DEBUG
@@ -590,15 +213,11 @@ namespace LiteGame
             _autoHeadshot = null;
             BattleDiagnostics.Detach(_context);      // 诊断读口注销（只注销本局实例——防误注下一局）
 #endif
-            _hitFeedback?.Dispose();              // 命中分发（视图消费者——先于视图本体拆；消费者随各自批自管）
-            _hitFeedback = null;
-            _aimPointOf = null;                   // 瞄准点来源随本局设备源一起摘（方法组不跨局持有）
-            _lookDeltaOf = null;                  // 视角增量源同摘（离场不遗留设备源闭包）
-            _pointer.Unlock();                    // 指针解锁恢复（离场不遗留锁定态——模态/桌面要可点）
-            _camera?.SetAiming(false);            // 瞄准机还原（优先级/Follow 归还场景值——离场不得遗留接管态）
+            _feedbackAssembler.DisposeDispatcher();      // 命中分发（视图消费者——先于视图本体拆）
+            _lookController.Dispose();                   // 视角源/瞄准点摘除 → 指针解锁 → 相机瞄准还原
             _context?.AttachInput(null);
             _context = null;
-            _view = null;                                         // 视图实例随 _viewRoot 销毁
+            _viewAssembler.Detach();                     // 视图实例随视图根销毁
             if (_viewRootGo != null)
             {
                 if (Application.isPlaying) UnityEngine.Object.Destroy(_viewRootGo);
@@ -606,9 +225,7 @@ namespace LiteGame
                 _viewRootGo = null;
             }
             _viewRoot = null;
-            _prefab = null;
-            _prefabLease = null;                                  // 租约随 _viewScope.Dispose 归还
-            _clipManifestLease = null;                            // 同上（清单租约只持引用——登记面已在驱动装配完成）
+            _assets.ClearReferences();                   // 租约本性随 _viewScope 归还
             _viewScope.Dispose();
         }
 
@@ -630,312 +247,6 @@ namespace LiteGame
         }
 
         /// <summary>
-        /// 挂对局准心（场景对象 `/<see cref="HudRootName"/>`——构建器确定性生成，AgentScripts/BuildBattleHud.cs）
-        /// 由本件按名解析；**缺失静默降级**（只警告）——HUD 是表现增益，不把"场景没配 HUD"当对局失败。
-        /// 准心画布无 GraphicRaycaster 且 CanvasGroup 不拦射线——**永不参与输入**；上下文门被拦
-        /// （模态 UI 开）时由驱动自己藏准心还系统光标。
-        /// </summary>
-        private void AttachCrosshair()
-        {
-            if (_hudView == null)
-            {
-                Log.Warning("HUD prefab 缺失/未实例化——准心静默降级", LogTag.Battle);
-                return;
-            }
-
-            _crosshair = new BattleCrosshairDriver(_view, _input, (RectTransform)_hudView.transform, _hudView.CrosshairRoot,
-                hip: _hudView.HipForm,
-                ads: _hudView.AdsForm,
-                feel: _crosshairFeel);                             // 手感投影（tbcrosshair；null = 测试装配回落 Default）——位置恒屏心（TPS），无位置注入位
-            Log.Info("crosshair-attached", LogTag.Battle);
-        }
-
-        /// <summary>
-        /// 挂 HUD 面板（血条/弹药——技能栏静态占位）：与准心同根（`/<see cref="HudRootName"/>/Panel`）
-        /// 按名解析；**缺失/结构不符静默降级**（只警告）。驱动读本地**预测态**（HP/已选武器/弹匣/换弹
-        /// ——本人私有面），值变化才写、未对齐整组隐藏。
-        /// </summary>
-        private void AttachHud()
-        {
-            if (_hudView == null)
-            {
-                Log.Warning("HUD prefab 缺失/未实例化——HUD 面板静默降级", LogTag.Battle);
-                return;
-            }
-
-            _hud = new BattleHudDriver(_context.Sim.State, () => _view != null ? _view.LocalEntityId : 0L,
-                _hudView.PanelGroup, _hudView.HpBar, _hudView.AmmoText,
-                _hudView.ReloadLabel,                               // 缺标签件=驱动内静默降级（不显示换弹态）
-                _hudView.ReserveAmmoText, _hudView.SlashSeparator); // 剩余备弹读出（缺件=静默降级：只显当前弹匣）
-            if (_hudView.SettingsButton != null && _menuClick != null)
-                _hudView.SettingsButton.onClick.AddListener(_menuClick);   // 对局菜单钮 → 流程层开设置页（退场链）
-            Log.Info("hud-attached", LogTag.Battle);
-        }
-
-        /// <summary>
-        /// 挂局内排行榜（<see cref="BattleRankboardDriver"/>——FFA "比分"＝击杀，排行榜批）：
-        /// 读**镜像公共面**（参赛玩家 <see cref="EntityFlags.Player"/> ＋ <see cref="EntitySlot.Kills"/>），
-        /// **8 格全部 prefab 预置** → 驱动只显隐/写值（禁运行时建视觉元素）。格件不齐（旧 prefab /
-        /// 结构变更）→ **静默降级**（只警告）：排行榜是表现增益，不影响 HUD 其余面。
-        /// </summary>
-        private void AttachRankboard()
-        {
-            if (_hudView == null) return;                  // HUD 已整体降级（AttachHud/准心处已警告）
-            if (!_hudView.HasRankboard)
-            {
-                Log.Warning("HUD prefab 排行榜格不齐（格根/名字/击杀/高亮）×8——排行榜静默降级", LogTag.Battle);
-                return;
-            }
-            _rankboard = new BattleRankboardDriver(PublicFactState,
-                () => _view != null ? _view.LocalEntityId : 0L,
-                _hudView.RankCells, _hudView.RankNames, _hudView.RankKills, _hudView.RankHighlights,
-                _hudView.TeamScoreText);                   // 团队比分预留节点（缺 = 驱动内跳过）
-            Log.Info("rankboard-attached", LogTag.Battle);
-        }
-
-        /// <summary>
-        /// 挂全局击杀提示（<see cref="BattleKillFeedDriver"/>——击杀提示批）：消费会话公共战斗事件面
-        /// 的击杀队列（<see cref="BattleContext.CombatFeed"/>）。行件不齐（旧 prefab / 结构变更）
-        /// → **静默降级**（只警告）：击杀提示是表现增益，不影响 HUD 其余面。武器图标可缺（缺件不显示图标）。
-        /// </summary>
-        private void AttachKillFeed()
-        {
-            if (_hudView == null) return;                  // HUD 已整体降级（AttachHud/准心处已警告）
-            if (!_hudView.HasKillFeed)
-            {
-                Log.Warning("HUD prefab 击杀提示行件不齐（行四组）×4——击杀提示静默降级", LogTag.Battle);
-                return;
-            }
-            _killFeed = new BattleKillFeedDriver(_context.Sim.State,
-                () => _view != null ? _view.LocalEntityId : 0L,
-                _context.CombatFeed,
-                _hudView.WeaponIcons,
-                _hudView.KillFeedRows, _hudView.KillFeedKillers, _hudView.KillFeedWeapons, _hudView.KillFeedVictims);
-            Log.Info("kill-feed-attached", LogTag.Battle);
-        }
-
-        /// <summary>
-        /// 挂网络质量显示（<see cref="BattleNetworkHudDriver"/>——ping/丢包批）：显示会话探针推断的
-        /// RTT/丢包千分比。件缺失（旧 prefab / 结构变更）→ **静默降级**（只警告）：网络质量显示是
-        /// 表现/诊断增益，不影响 HUD 其余面。数据源走 <see cref="BattleContext.NetworkQuality"/>（会话透传）。
-        /// </summary>
-        private void AttachNetworkHud()
-        {
-            if (_hudView == null) return;                  // HUD 已整体降级（AttachHud/准心处已警告）
-            if (_hudView.NetStatsRoot == null || _hudView.NetStatsText == null)
-            {
-                Log.Warning("HUD prefab 网络质量件缺失——网络质量显示静默降级", LogTag.Battle);
-                return;
-            }
-            _netStats = new BattleNetworkHudDriver(() => _context.NetworkQuality,
-                _hudView.NetStatsRoot.gameObject, _hudView.NetStatsText);
-            Log.Info("net-stats-attached", LogTag.Battle);
-        }
-
-        /// <summary>
-        /// 挂死亡/复活 HUD（<see cref="BattleRespawnHudDriver"/>——阵亡批）：中央复活倒计时 ＋ 阵亡归属
-        /// ＋ 保护期角标。中央面板件不齐（旧 prefab / 结构变更）→ **静默降级**（只警告）；保护角标可缺
-        /// （驱动内跳过）。归属走帧事件（注册进 <see cref="HitFeedbackDispatcher"/>——只吃 Death×我阵亡）。
-        /// </summary>
-        private void AttachRespawnHud()
-        {
-            if (_hudView == null) return;                  // HUD 已整体降级（AttachHud/准心处已警告）
-            if (!_hudView.HasRespawnHud)
-            {
-                Log.Warning("HUD prefab 死亡/复活件不齐（中央面板 3 件）——死亡等待面板静默降级", LogTag.Battle);
-                return;
-            }
-            _respawnHud = new BattleRespawnHudDriver(PublicFactState,
-                LocalSlot, IsLocalDead,
-                _hudView.RespawnRoot, _hudView.RespawnTitle, _hudView.RespawnCountdown,
-                _hudView.ProtectionRoot);
-            _hitFeedback?.Register(_respawnHud);
-            Log.Info("respawn-hud-attached", LogTag.Battle);
-        }
-
-        /// <summary>
-        /// 挂出生保护壳（<see cref="BattleProtectionFxDriver"/>——FX 域；金色包裹壳）：保护态内**按槽位
-        /// 跟随对应玩家视图**显隐（本地读预测态、远端读权威快照——读口在 <see cref="SimView.IsProtected"/>）。
-        /// 壳件挂 `_viewRoot`——不挂角色视图，避免回池复用把壳留给别的实体。壳件未取（缺件已警告）→ 本段静默跳过。
-        /// </summary>
-        private void AttachProtectionFx()
-        {
-            if (_protectionShellLease == null) return;     // 取件降级已警告
-            _protectionFx = new BattleProtectionFxDriver(
-                _view.IsProtected,
-                ViewOf,
-                slot =>
-                {
-                    GameObject shell = UnityEngine.Object.Instantiate(_protectionShellLease.Asset, _viewRoot);
-                    shell.name = "SpawnProtection_" + slot;
-                    shell.SetActive(false);
-                    return shell;
-                });
-            Log.Info("protection-fx-attached", LogTag.Battle);
-        }
-
-        /// <summary>
-        /// 挂瞄准激光（<see cref="BattleLaserDriver"/>——端点判定与显隐归驱动；本方法只装配）。
-        /// 束实例缺 <see cref="UnityEngine.LineRenderer"/>（资产被改）或 Sim 未建（装配序理论不达）→
-        /// 警告并降级，不失败。
-        /// </summary>
-        private void AttachLaserSight()
-        {
-            if (_laserBeam == null) return;                      // 资产缺失已在取件处降级（警告过）
-            if (_context.Sim == null)
-            {
-                Log.Warning("Sim 未建——瞄准激光本局降级（Attach 早于 StartGame 的装配序）", LogTag.Battle);
-                return;
-            }
-            var line = _laserBeam.GetComponent<UnityEngine.LineRenderer>();
-            if (line == null)
-            {
-                Log.Warning($"激光束 prefab 缺 LineRenderer——瞄准激光降级:{LaserSightPrefab}", LogTag.Battle);
-                return;
-            }
-            // 本局规则随装配注入（爆头带覆写随动；驱动不读 SimTestRules 静态读口）
-            _laser = new BattleLaserDriver(_view, _input, _context.Sim, _context.Map, line, _context.MatchRules);
-            Log.Info("laser-attached", LogTag.Battle);
-        }
-
-        /// <summary>
-        /// 挂伤害数字（<see cref="BattleDamageNumberDriver"/>——命中反馈首个消费者；文本/位形/池归驱动；
-        /// 寿命与合并窗走世界钟——变速/暂停语义内建）。底件缺 <see cref="TMPro.TextMeshPro"/>（资产被改）
-        /// 或世界钟未注入（装配缺口）→ 警告并降级，不失败。
-        /// </summary>
-        private void AttachDamageNumbers()
-        {
-            if (_damageNumberLease == null) return;             // 取件降级已警告
-            if (_damageNumberLease.Asset == null || _damageNumberLease.Asset.GetComponent<TMPro.TextMeshPro>() == null)
-            {
-                Log.Warning($"伤害数字底件缺 TextMeshPro——飘字降级:{DamageNumberPrefab}", LogTag.Battle);
-                _damageNumberLease = null;
-                return;
-            }
-            if (_worldClock == null)
-            {
-                Log.Warning("世界钟未注入——伤害数字降级（装配缺口，见 ContainerModule）", LogTag.Battle);
-                _damageNumberLease = null;
-                return;
-            }
-
-            _damageNumbers = new BattleDamageNumberDriver(_view, NewDamageNumber, _worldClock,
-                cameraOf: RenderCameraOf(),       // billboard 面对局渲染相机（非 Camera.main——叠加形态会拿错）
-                materials: _damageNumberMaterials);   // 逐档材质（四档不齐 = null 走底件默认，取件处已警告）
-            _hitFeedback?.Register(_damageNumbers);
-            Log.Info("damage-numbers-attached", LogTag.Battle);
-        }
-
-        /// <summary>战斗特效装配（帧事件路由的 VFX 消费者）：火光吃 Fire、命中特效吃本地 Caused 的 Hit/Crit；
-        /// VFX 服务由容器注入（缺服务整段降级——如实警告，不静默）。特效实例由 VfxService 池化/预算，
-        /// 随实体视图回收（StopAll 归各自宿主——火光 follow 挂点、弹着落世界容器）。</summary>
-        private void AttachCombatFx()
-        {
-            if (_vfx == null)
-            {
-                Log.Warning("VFX 服务未注入——枪口火光/命中特效降级（装配缺口，见 ContainerModule）", LogTag.Battle);
-                return;
-            }
-            _muzzleFlash = new BattleMuzzleFlashDriver(_view, _vfx);
-            _impactFx = new BattleImpactFxDriver(_vfx);
-            _hitFeedback?.Register(_muzzleFlash);
-            _hitFeedback?.Register(_impactFx);
-        }
-
-        /// <summary>
-        /// 挂远端开火火光（<see cref="BattleRemoteMuzzleFlashDriver"/>）：消费会话公共战斗事件面的
-        /// 开火队列（<see cref="BattleContext.CombatFeed"/>），把他人开火落到其枪口挂点。
-        /// VFX 服务未注入 → **静默降级**（<see cref="AttachCombatFx"/> 处已警告）。
-        /// </summary>
-        private void AttachRemoteFireFx()
-        {
-            if (_vfx == null) return;                      // VFX 已整体降级（AttachCombatFx 处已警告）
-            _remoteFire = new BattleRemoteMuzzleFlashDriver(_view, _context.CombatFeed, _vfx);
-            Log.Info("remote-fire-attached", LogTag.Battle);
-        }
-
-        /// <summary>
-        /// 挂对局音效（<see cref="BattleAudioDriver"/>——命中反馈消费者；并发预算归 AudioService Effect 组）。
-        /// Audio 服务未注入（装配缺口）或全部 clip 缺失 → 警告并整段降级，不失败。
-        /// </summary>
-        private void AttachAudio()
-        {
-            if (_audio == null)
-            {
-                Log.Warning("Audio 服务未注入——对局音效降级（装配缺口，见 ContainerModule）", LogTag.Battle);
-                return;
-            }
-            if (_audioLeases.Count == 0) return;                 // 全缺已在取件处逐条警告
-
-            _battleAudio = new BattleAudioDriver(_audio,
-                fire: LeasedClip(BattleAudioDriver.FireClipLocation),
-                hit: LeasedClip(BattleAudioDriver.HitClipLocation),
-                crit: LeasedClip(BattleAudioDriver.CritClipLocation),
-                death: LeasedClip(BattleAudioDriver.DeathClipLocation));
-            _hitFeedback?.Register(_battleAudio);
-        }
-
-        /// <summary>按 location 反查已取得的 clip（缺 = null——驱动按 kind 降级）。</summary>
-        private AudioClip LeasedClip(string location)
-        {
-            for (int i = 0; i < _audioLeases.Count; i++)
-                if (_audioLeases[i].Key == location)
-                    return _audioLeases[i].Asset;
-            return null;
-        }
-
-        /// <summary>
-        /// 对局**渲染相机**解析（伤害飘字 billboard 面用；每帧调，故须轻量且如实降级）：
-        /// Cinemachine brain 的 <c>OutputCamera</c>——**不走 <c>Camera.main</c>**：叠加开发形态下
-        /// boot 相机不随场景销毁且带 MainCamera tag，<c>Camera.main</c> 会拿到错的那台。
-        /// 解析不到 → null，驱动退回不跟随朝向。
-        /// </summary>
-        private Func<Camera> RenderCameraOf()
-            => _camera is CinemachineCameraService ccs
-                ? new Func<Camera>(ccs.TryGetRenderCamera)
-                : (Func<Camera>)null;
-
-        /// <summary>飘字实例工厂（驱动池的 create 回调）：底件实例化挂 _viewRoot，随离场拆。</summary>
-        private TMPro.TextMeshPro NewDamageNumber()
-        {
-            var go = UnityEngine.Object.Instantiate(_damageNumberLease.Asset, _viewRoot);
-            go.name = "DamageNumber";
-            go.SetActive(false);                                 // 池化语义：归还/空闲即隐藏
-            return go.GetComponent<TMPro.TextMeshPro>();
-        }
-
-        /// <summary>
-        /// 视角增量来源：设备源适配器的 <see cref="NewInputIntentSource.LookDelta"/>（像素）。
-        /// 与准心/移动同源（设备源适配器）——非该实现返回 null（无自由视角形态）；
-        /// 不在此 import InputSystem（纪律 R12）。
-        /// </summary>
-        private static Func<Vector2> LookDeltaOf(IInputService input)
-        {
-            return input != null && input.Source is NewInputIntentSource source
-                ? () => source.LookDelta
-                : null;
-        }
-
-        /// <summary>
-        /// 瞄准点来源：**待上行输入帧**（<see cref="IInputService.Pending"/>）的 AimPoint 三分量——
-        /// 与准心/开火/上行同一份事实（AimPoint 单口径）。**为什么不绑具体设备源**：曾经绑定
-        /// "鼠标源实例"（开局抓取），自瞄验证件/触屏/测试替身换源后激光与构图仍追旧源（鼠标停在地面
-        /// ⇒ 激光"瞄地"、与真实弹道脱节）。改绑 Pending 后**任何意图源**下"激光=准心=弹道"同源不失效。
-        /// 零值 = 无点（与判定同约定）→ null。**不在此 import InputSystem**（R12）。
-        /// </summary>
-        private static Func<Vector3?> AimPointOf(IInputService input)
-        {
-            if (input == null) return null;
-            return () =>
-            {
-                SimInputFrame f = input.Pending;
-                return (f.AimPointX != 0f || f.AimPointY != 0f || f.AimPointZ != 0f)
-                    ? (Vector3?)new Vector3(f.AimPointX, f.AimPointY, f.AimPointZ)
-                    : null;
-            };
-        }
-
-        /// <summary>
         /// 公共事实读源：**权威镜像优先**（`BattleContext.AuthorityState`，首份快照后可用），
         /// 首快照前回落本地预测态。排行榜/阵亡面板等公共展示只吃它——预测的击杀/死亡不得先上板
         /// （否则会出现"我这边死了/我这边加击杀，对方没死"的单边展示）。
@@ -944,115 +255,5 @@ namespace LiteGame
             => _context != null
                 ? (_context.AuthorityState ?? _context.Sim?.State)
                 : null;
-
-        /// <summary>本地槽位（未对齐/解析失败 = -1）——死亡 HUD / 保护壳驱动的注入缝。</summary>
-        private int LocalSlot()
-        {
-            if (_view == null || _view.LocalEntityId == 0L) return -1;
-            return _view.TryGetSlot(_view.LocalEntityId, out int slot) ? slot : -1;
-        }
-
-        /// <summary>本地是否阵亡（预测态锁存判据——<see cref="SimView.IsDead"/> 单源）。</summary>
-        private bool IsLocalDead()
-        {
-            int slot = LocalSlot();
-            return slot >= 0 && _view.IsDead(slot);
-        }
-
-        /// <summary>槽位 → 角色视图（保护壳跟随目标；缺 = null）。</summary>
-        private GameObject ViewOf(int slot)
-            => _view != null && _view.TryGetView(slot, out GameObject view) ? view : null;
-
-        /// <summary>按子路径取对象（形态组缺失 = 单形态退化——准心驱动容忍 null）。</summary>
-        /// <summary>
-        /// 本地玩家是否处于瞄准态（右键 ADS）——喂 <see cref="ICameraService.SetAiming"/> 的语义源。
-        /// 读 <see cref="SimView.IsAiming"/>（本地预测态：连续位进 PredictedButtons，与本地手感同帧），
-        /// 按实体 Id 解析槽位（同准心驱动的读法）；未对齐/视图未建 = false。
-        /// </summary>
-        private bool IsLocalAiming()
-        {
-            return _view != null && _view.LocalEntityId != 0
-                && _view.TryGetSlot(_view.LocalEntityId, out int slot)
-                && _view.IsAiming(slot);
-        }
-
-        private GameObject InstantiateView(string location, Transform parent)
-        {
-            if (_prefab == null) return null;
-            var go = UnityEngine.Object.Instantiate(_prefab, parent);
-            go.name = location;
-
-            // 复活/传送会把视图瞬移到出生点：预制体部分 SkinnedMeshRenderer 关闭了离屏更新，
-            // 死亡姿态留下的包围盒仍停在旧位置，传送后渲染器会被永久剔除（模型消失）。
-            var skinned = go.GetComponentsInChildren<SkinnedMeshRenderer>(true);
-            for (int i = 0; i < skinned.Length; i++) skinned[i].updateWhenOffscreen = true;
-            return go;
-        }
-
-        /// <summary>
-        /// 权威命中/击杀事件 → 表现反馈：<see cref="PublicCombatFeed"/> 的命中/阵亡队列（含他人命中/击杀）
-        /// 交给 <see cref="HitFeedbackDispatcher"/>——命中数字/受击特效/命中音效/阵亡归属不再依赖
-        /// "本地预测的帧事件"（受害方本地从不模拟敌方开火，旧路径下自己阵亡永远收不到归属/音效；
-        /// 预测命中则可能在服务端未命中时误显）。去重已在 <see cref="PublicCombatFeed"/> 完成。
-        ///
-        /// 数据源是统一的公共事件面（事件面独立成包后按 kind 分流入队）。
-        /// </summary>
-        private sealed class AuthoritativeCombatFeedback : IDisposable
-        {
-            private readonly PublicCombatFeed _feed;
-            private readonly SimView _view;
-            private readonly HitFeedbackDispatcher _dispatcher;
-            private bool _disposed;
-
-            public AuthoritativeCombatFeedback(PublicCombatFeed feed, SimView view,
-                HitFeedbackDispatcher dispatcher)
-            {
-                _feed = feed;
-                _view = view;
-                _dispatcher = dispatcher;
-            }
-
-            /// <summary>每渲染帧消费权威队列——**队列而非事件**：视图 Attach 前到达的事件
-            /// （或一帧内多批事件）不会丢反馈；命中先于死亡（同帧击杀的听感/飘字顺序稳定）。</summary>
-            public void Tick()
-            {
-                if (_disposed || _dispatcher == null) return;
-
-                if (_feed != null)
-                {
-                    while (_feed.TryDequeueHit(out PublicCombatFeed.HitEntry hit))
-                    {
-                        var e = new FrameEvent
-                        {
-                            Kind = hit.Crit ? FrameEventKind.Crit : FrameEventKind.Hit,
-                            EntityId = hit.Target,
-                            OtherId = hit.Shooter,
-                            Value = hit.Value,
-                            Pos = new SimVector3(hit.PosX, hit.PosY, hit.PosZ),
-                        };
-                        _dispatcher.DispatchAuthoritative(in e);
-                    }
-
-                    while (_feed.TryDequeueKillFeedback(out PublicCombatFeed.KillEntry kill))
-                    {
-                        Vector3 pos = Vector3.zero;
-                        if (_view != null && _view.TryGetSlot(kill.Victim, out int slot)
-                            && _view.TryGetView(slot, out GameObject go) && go != null)
-                            pos = go.transform.position;
-
-                        var e = new FrameEvent
-                        {
-                            Kind = FrameEventKind.Death,
-                            EntityId = kill.Victim,
-                            OtherId = kill.Killer,
-                            Pos = new SimVector3(pos.x, pos.y, pos.z),
-                        };
-                        _dispatcher.DispatchAuthoritative(in e);
-                    }
-                }
-            }
-
-            public void Dispose() => _disposed = true;
-        }
     }
 }
