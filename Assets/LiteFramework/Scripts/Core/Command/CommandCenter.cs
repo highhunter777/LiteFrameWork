@@ -28,6 +28,7 @@ namespace LiteFramework
 
         private readonly Dictionary<Type, Registration> _handlers = new Dictionary<Type, Registration>(16);
         private readonly bool _gmEnabled;
+        private readonly IReferencePool _pool;
         private long _registeredSeq;
         private long _sent;
         private long _gmBlocked;
@@ -55,11 +56,13 @@ namespace LiteFramework
         private long _auditSeq;
         private const int AuditCapacity = DiagnosticsDefaults.AuditRingCapacity;
 
-        public CommandCenter(bool gmEnabled = true, int maxQueued = QueueLimits.DefaultCapacity)
+        public CommandCenter(IReferencePool pool, bool gmEnabled = true,
+            int maxQueued = QueueLimits.DefaultCapacity)
         {
             if (maxQueued < 1) throw new ArgumentOutOfRangeException(nameof(maxQueued));
             _gmEnabled = gmEnabled;
             MaxQueued = maxQueued;
+            _pool = pool ?? throw new System.ArgumentNullException(nameof(pool), "IReferencePool 未注入");
         }
 
         public IDisposable Register<TCommand>(ICommandHandler<TCommand> handler, CommandOptions options = null) where TCommand : ICommand
@@ -315,9 +318,9 @@ namespace LiteFramework
             }
         }
 
-        private static void RecycleCommand(object command)
+        private void RecycleCommand(object command)
         {
-            if (command is IReference pooled) ReferencePool.Release(pooled);   // 排队命令入队即移交：执行完（含失败/拦截/溢出）回收
+            if (command is IReference pooled) _pool.Release(pooled);   // 排队命令入队即移交：执行完（含失败/拦截/溢出）回收
         }
 
         private sealed class CommandInterceptorUnsubscription : IDisposable

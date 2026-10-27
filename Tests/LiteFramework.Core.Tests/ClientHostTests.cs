@@ -340,6 +340,7 @@ namespace LiteFramework.Tests
         {
             var host = Host(new GraphModule("A"), new GraphModule("B", typeof(GraphModule2NotRegistered)));
             Assert.Throws<InvalidOperationException>(() => Pump(host.InitializeAsync()));
+            Assert.Equal(4, host.State);   // 图校验失败 = 终态，不得停在"初始化中"
         }
 
         [Fact]
@@ -528,6 +529,50 @@ namespace LiteFramework.Tests
             }
 
             Assert.Contains("release:scope:A", trace);
+        }
+
+        [Fact]
+        public void 模块作用域_关闭被取消时多模块也全部释放()
+        {
+            var trace = new List<string>();
+            var host = Host(new ScopedModule("A", trace), new ScopedModule("B", trace));
+
+            Pump(host.InitializeAsync());
+            trace.Clear();
+            using (var cts = new CancellationTokenSource())
+            {
+                cts.Cancel();
+                Assert.ThrowsAny<OperationCanceledException>(() => Pump(host.ShutdownAsync(cts.Token)));
+            }
+
+            Assert.Contains("release:scope:A", trace);
+            Assert.Contains("release:scope:B", trace);
+        }
+
+        [Fact]
+        public async System.Threading.Tasks.Task 关闭_并发第二调用等待首次完成()
+        {
+            var gate = new UniTaskCompletionSource();
+            var host = Host(new GatedModule(gate));
+            await host.InitializeAsync();
+
+            UniTask first = host.ShutdownAsync();
+            UniTask second = host.ShutdownAsync();
+            Assert.False(second.Status.IsCompleted(), "第二调用必须等待首次关闭，而不是立即返回");
+
+            gate.TrySetResult();
+            await first;
+            await second;
+            Assert.Equal(4, host.State);
+        }
+
+        private sealed class GatedModule : IClientModule
+        {
+            private readonly UniTaskCompletionSource _gate;
+            public GatedModule(UniTaskCompletionSource gate) => _gate = gate;
+            public string Name => "gated";
+            public UniTask InitializeAsync(ModuleContext context, CancellationToken ct) => UniTask.CompletedTask;
+            public UniTask ShutdownAsync(CancellationToken ct) => _gate.Task;
         }
 
         private sealed class CycleA : IClientModule, IClientModuleGraph

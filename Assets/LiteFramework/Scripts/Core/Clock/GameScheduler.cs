@@ -80,6 +80,7 @@ namespace LiteFramework
             item.Canceled = true;
             item.Callback = null;
             _canceledPendingCleanup++;
+            CompactCanceledIfNeeded();
         }
 
         public void Tick(float realDelta)
@@ -120,7 +121,7 @@ namespace LiteFramework
 
             if (due == null) return;
             for (int i = 0; i < due.Count; i++)
-                SafeCall.Invoke(due[i].Callback, $"Schedule[{due[i].Id}]");
+                SafeCall.Invoke(due[i].Callback, "Schedule", due[i].Id);
         }
 
         public string StatsName => "Scheduler";
@@ -154,6 +155,33 @@ namespace LiteFramework
         {
             _itemsById.Remove(item.Id);
             _canceledPendingCleanup--;
+        }
+
+        /// <summary>
+        /// 惰性取消的堆压缩：取消项平时留在堆里到到期；累计到 64 条且占堆一半以上时重建堆，
+        /// 避免大量"取消远期任务"把内存拖到原到期时间才释放。重建是 O(n log n)，低频触发。
+        /// </summary>
+        private void CompactCanceledIfNeeded()
+        {
+            const int threshold = 64;
+            if (_canceledPendingCleanup < threshold) return;
+            if (_canceledPendingCleanup * 2 < _heap.Count) return;
+
+            var alive = new List<ScheduledItem>(_heap.Count - _canceledPendingCleanup);
+            for (int i = 0; i < _heap.Count; i++)
+            {
+                ScheduledItem item = _heap[i];
+                if (item.Canceled)
+                {
+                    _itemsById.Remove(item.Id);
+                    continue;
+                }
+                alive.Add(item);
+            }
+
+            _heap.Clear();
+            for (int i = 0; i < alive.Count; i++) HeapPush(alive[i]);
+            _canceledPendingCleanup = 0;
         }
 
         private static bool IsEarlier(ScheduledItem left, ScheduledItem right)

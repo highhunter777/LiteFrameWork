@@ -23,6 +23,13 @@ namespace LiteFramework
             (_items ??= new List<Action>(4)).Add(unsubscribe);
         }
 
+        /// <summary>主流订阅句柄形态：直接收纳 IDisposable（事件总线 Subscribe 的返回值）。</summary>
+        public void Add(IDisposable subscription)
+        {
+            if (subscription == null) throw new ArgumentNullException(nameof(subscription));
+            Add(subscription.Dispose);
+        }
+
         public void Dispose()
         {
             if (_disposed) return;                 // 幂等：靠标志位，不靠列表空判

@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using LiteFramework;
 
 namespace LiteClient
@@ -6,7 +6,7 @@ namespace LiteClient
     /// <summary>
     /// 磁盘余量探测（**桌面平台的诚实实现**；移动端回退不可知）。
     ///
-    /// 用 <see cref="FileSys.GetAvailableBytes"/> 查询 <c>persistentDataPath</c> 所在卷的可用空间：
+    /// 用 <see cref="FileSystem.GetAvailableBytes"/> 查询 <c>persistentDataPath</c> 所在卷的可用空间：
     /// - **桌面（Editor / Standalone）** → 真实可用字节；
     /// - **移动端 / 不支持时** → -1 = 不可知（<see cref="SpacePrecheck"/> 按不足处理，fail-closed）。
     ///
@@ -15,17 +15,19 @@ namespace LiteClient
     public sealed class DriveInfoSpaceProbe : IDiskSpaceProbe
     {
         private readonly string _relDir;
+        private readonly IFileStore _files;
 
-        /// <param name="relDir">目标目录（<b>FileSys 相对路径</b>，如 <c>.</c> 表示 RootPath 所在卷）。</param>
-        public DriveInfoSpaceProbe(string relDir)
+        /// <param name="relDir">目标目录（<b>IFileStore 相对路径</b>，如 <c>.</c> 表示 RootPath 所在卷）。</param>
+        public DriveInfoSpaceProbe(string relDir, IFileStore files = null)
         {
             if (string.IsNullOrEmpty(relDir)) throw new ArgumentNullException(nameof(relDir));
             _relDir = relDir;
+            _files = files ?? throw new System.ArgumentNullException(nameof(files), "IFileStore 未注入");
         }
 
         public long GetAvailableBytes()
         {
-            long available = FileSys.GetAvailableBytes(_relDir);
+            long available = _files.GetAvailableBytes(_relDir);
             if (available < 0)
             {
                 // 静默 -1 会让"桌面拿不到余量"成为不可见事故（SpacePrecheck 按不足拒绝所有候选，
@@ -39,7 +41,7 @@ namespace LiteClient
     /// <summary>
     /// 写探针（**通用实现**；<see cref="DriveInfoSpaceProbe"/> 探不到时的回退）。
     ///
-    /// 策略：先试桌面精确路径（廉价）；不可用时回退 <see cref="FileSys.WriteProbe"/>——
+    /// 策略：先试桌面精确路径（廉价）；不可用时回退 <see cref="FileSystem.WriteProbe"/>——
     /// 向目标目录逐级试探写入固定块直到失败，得出"至少能写多少"。写探针拿到的是**下界**，
     /// 故报告值保守（宁可少报也不多报：多报会让预检放行、更新写到一半失败）。
     ///
@@ -49,7 +51,7 @@ namespace LiteClient
     /// - 它测量的是"**当前能写多少**"，不是"总剩余空间"——有配额/写保护的目录会被如实判小；
     /// - **不是精确计量**：报告值只够做"够/不够"的判定，不能用于展示给用户的容量数字。
     ///
-    /// **IO 纪律**：写路径经 <see cref="FileSys"/>（<see cref="FileSys.WriteProbe"/>），
+    /// **IO 纪律**：写路径经 <see cref="FileSystem"/>（<see cref="FileSystem.WriteProbe"/>），
     /// 本类不直接触碰 <see cref="System.IO"/>——IO 唯一入口是门面。
     /// </summary>
     public sealed class WriteProbeDiskSpaceProbe : IDiskSpaceProbe
@@ -57,15 +59,18 @@ namespace LiteClient
         private readonly string _relDir;
         private readonly long _probeCapBytes;
         private readonly DriveInfoSpaceProbe _desktop;
+        private readonly IFileStore _files;
 
-        /// <param name="relDir">目标目录（FileSys 相对路径）。</param>
+        /// <param name="relDir">目标目录（IFileStore 相对路径）。</param>
         /// <param name="probeCapBytes">写探针上限（默认 512MB；避免在低存储设备上制造压力）。</param>
-        public WriteProbeDiskSpaceProbe(string relDir, long probeCapBytes = 512L * 1024 * 1024)
+        public WriteProbeDiskSpaceProbe(string relDir, long probeCapBytes = 512L * 1024 * 1024,
+            IFileStore files = null)
         {
             if (string.IsNullOrEmpty(relDir)) throw new ArgumentNullException(nameof(relDir));
             _relDir = relDir;
             _probeCapBytes = probeCapBytes < 1024 * 1024 ? 1024 * 1024 : probeCapBytes;
-            _desktop = new DriveInfoSpaceProbe(relDir);
+            _files = files ?? throw new System.ArgumentNullException(nameof(files), "IFileStore 未注入");
+            _desktop = new DriveInfoSpaceProbe(relDir, _files);
         }
 
         public long GetAvailableBytes()
@@ -75,7 +80,7 @@ namespace LiteClient
             if (desktop >= 0) return desktop;
 
             // ② 通用写探针（下界）
-            return FileSys.WriteProbe(_relDir, capBytes: _probeCapBytes);
+            return _files.WriteProbe(_relDir, capBytes: _probeCapBytes);
         }
     }
 

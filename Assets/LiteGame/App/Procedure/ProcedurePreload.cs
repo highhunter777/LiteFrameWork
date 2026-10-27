@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Threading;
 using Cysharp.Threading.Tasks;
 using LiteFramework;
@@ -19,12 +19,12 @@ namespace LiteGame
         private readonly IConfigService _config;
         private readonly LuaComponent _lua;
         private readonly RegistryFiller _filler;
-        private readonly IEventCenter _events;
+        private readonly IEventBus _events;
         private readonly UIService _ui;
         private readonly FeedbackService _feedback;        // 启动走廊装载面（窗口③）
         private readonly Func<string[]> _listLuaFiles;     // Lua 清单（装配点绑定——静态门面收口于装配点）
 
-        public ProcedurePreload(IContentService content, IConfigService config, LuaComponent lua, RegistryFiller filler, IEventCenter events,
+        public ProcedurePreload(IContentService content, IConfigService config, LuaComponent lua, RegistryFiller filler, IEventBus events,
             UIService ui, Func<string[]> listLuaFiles = null, CancellationToken rootToken = default, FeedbackService feedback = null)
             : base(rootToken)
         {

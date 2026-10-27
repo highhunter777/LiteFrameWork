@@ -2,7 +2,7 @@
     "name": "LiteClient.Runtime",
     "rootNamespace": "LiteClient",
     "references": [
-        "LiteClient.Abstractions",
+        "LiteFramework.Abstractions",
         "LiteFramework.Async",
         "LiteFramework.Core",
         "LiteFramework.Unity",

@@ -53,7 +53,7 @@ namespace LiteGame
             new StatToggle { statsName = "MainThreadDispatcher" },
             new StatToggle { statsName = "Clock.World" },
             new StatToggle { statsName = "Clock.UI" },
-            new StatToggle { statsName = "EventCenter" },
+            new StatToggle { statsName = "EventBus" },
             new StatToggle { statsName = "Game" },
             new StatToggle { statsName = "Lua" },
         };

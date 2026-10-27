@@ -79,6 +79,7 @@ namespace LiteFramework
         public CancellationToken Token => _scope.Token;
         public int OwnedCount => _scope.OwnedCount;
         public IReadOnlyList<Exception> DisposeFailures => _scope.DisposeFailures;
+        internal bool IsDisposed => _scope.IsDisposed;
 
         public void Register(IDisposable resource) => _scope.Register(resource);
 

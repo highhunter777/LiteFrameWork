@@ -6,39 +6,40 @@ using Xunit;
 namespace LiteFramework.Tests
 {
     [Collection("CoreStatic")]   // StrictMode 用例断言 Log.Recent（全局静态）
-    public sealed class EventCenterTests
+    public sealed class EventBusTests
     {
-        private sealed class ProbeEvent { }
+
+        private readonly ReferencePoolService _pool = new ReferencePoolService();        private sealed class ProbeEvent { }
         private sealed class UnheardEvent { }
 
         [Fact]
-        public void EventCenter_订阅派发收到_注销后再派发不收到()
+        public void EventBus_订阅派发收到_注销后再派发不收到()
         {
-            var events = new EventCenter();
+            var events = new EventBus(_pool);
             var received = 0;
             var unsub = events.Subscribe<ProbeEvent>(_ => received++);
 
             events.Publish(new ProbeEvent());
             Assert.Equal(1, received);
 
-            unsub();
+            unsub.Dispose();
             events.Publish(new ProbeEvent());
             Assert.Equal(1, received);   // 注销后不再收到
         }
 
         [Fact]
-        public void EventCenter_注销委托重复执行_幂等不抛()
+        public void EventBus_注销委托重复执行_幂等不抛()
         {
-            var events = new EventCenter();
+            var events = new EventBus(_pool);
             var unsub = events.Subscribe<ProbeEvent>(_ => { });
-            unsub();
-            unsub();                     // 幂等：EventChannel.Remove no-op
+            unsub.Dispose();
+            unsub.Dispose();                     // 幂等：EventChannel.Remove no-op
         }
 
         [Fact]
-        public void EventCenter_派发中改集_本轮快照不崩_下轮生效()
+        public void EventBus_派发中改集_本轮快照不崩_下轮生效()
         {
-            var events = new EventCenter();
+            var events = new EventBus(_pool);
             var secondReceived = 0;
 
             events.Subscribe<ProbeEvent>(_ =>
@@ -54,9 +55,9 @@ namespace LiteFramework.Tests
         }
 
         [Fact]
-        public void EventCenter_PublishQueued_当帧不触发_Tick后触发()
+        public void EventBus_PublishQueued_当帧不触发_Tick后触发()
         {
-            var events = new EventCenter();
+            var events = new EventBus(_pool);
             var received = 0;
             events.Subscribe<ProbeEvent>(_ => received++);
 
@@ -68,9 +69,9 @@ namespace LiteFramework.Tests
         }
 
         [Fact]
-        public void EventCenter_StrictMode_未订阅派发_Recent出现Warning()
+        public void EventBus_StrictMode_未订阅派发_Recent出现Warning()
         {
-            var events = new EventCenter { StrictMode = true };
+            var events = new EventBus(_pool) { StrictMode = true };
             events.Publish(new UnheardEvent());
             var last = Log.Recent[Log.Recent.Count - 1];
             Assert.Equal(LogLevel.Warning, last.Level);
@@ -78,9 +79,9 @@ namespace LiteFramework.Tests
         }
 
         [Fact]
-        public void EventCenter_热路径稳态零GC()
+        public void EventBus_热路径稳态零GC()
         {
-            var events = new EventCenter();
+            var events = new EventBus(_pool);
             events.Subscribe<ProbeEvent>(_ => { });
             events.Publish(new ProbeEvent());          // 热身：通道/快照缓冲就位
 
@@ -95,20 +96,66 @@ namespace LiteFramework.Tests
         }
 
         [Fact]
-        public void EventCenter_池化事件_无订阅者路径同样回收()
+        public void EventBus_池化事件_无订阅者路径同样回收()
         {
-            var events = new EventCenter { StrictMode = false };
-            var e = ReferencePool.Acquire<PooledProbe>();
-            events.Publish(e);                          // 无订阅者：发布即移交，中心统一回收
-            Assert.Same(e, ReferencePool.Acquire<PooledProbe>());   // 已回池 → 再取是同一实例
+            var events = new EventBus(_pool) { StrictMode = false };
+            var e = _pool.Acquire<PooledProbe>();
+            events.PublishPooled(e);                    // 显式池化发布：中心回收
+            Assert.Same(e, _pool.Acquire<PooledProbe>());   // 已回池 → 再取是同一实例
+        }
+
+
+        [Fact]
+        public void EventBus_队列_池化事件派发后回收()
+        {
+            var events = new EventBus(_pool) { StrictMode = false };
+            var e = _pool.Acquire<PooledProbe>();
+            events.PublishQueued(e);
+            events.Tick(0.016f);
+            Assert.Same(e, _pool.Acquire<PooledProbe>());   // 队列接管到派发完成，再回池
+        }
+
+
+        [Fact]
+        public void EventBus_Dispose_清空订阅与队列_后续操作抛()
+        {
+            var events = new EventBus(_pool) { StrictMode = false };
+            var sub = events.Subscribe<ProbeEvent>(_ => { });
+            var queued = _pool.Acquire<PooledProbe>();
+            events.PublishQueued(queued);
+
+            events.Dispose();
+
+            Assert.True(events.IsDisposed);
+            Assert.True(sub.IsDisposed);
+            Assert.Same(queued, _pool.Acquire<PooledProbe>());
+            Assert.Throws<ObjectDisposedException>(() => events.Publish(new ProbeEvent()));
+        }
+
+        [Fact]
+        public void EventBus_跨线程发布_守卫拒绝()
+        {
+            var events = new EventBus(_pool);
+            Exception caught = null;
+            var thread = new System.Threading.Thread(() =>
+            {
+                try { events.Publish(new ProbeEvent()); }
+                catch (Exception ex) { caught = ex; }
+            });
+            thread.Start();
+            thread.Join();
+
+            Assert.NotNull(caught);
+            Assert.IsType<InvalidOperationException>(caught);
+            Assert.Contains("主线程", caught.Message);
         }
 
         // ---- 批1（《事件中心专项设计》§3.1/§3.2/§3.3/§3.4）----
 
         [Fact]
-        public void EventCenter_优先级_小值先派发_同优先级保持注册序()
+        public void EventBus_优先级_小值先派发_同优先级保持注册序()
         {
-            var events = new EventCenter();
+            var events = new EventBus(_pool);
             var order = new List<int>();
             events.Subscribe<ProbeEvent>(_ => order.Add(1), priority: 2);
             events.Subscribe<ProbeEvent>(_ => order.Add(2), priority: 0);
@@ -121,9 +168,9 @@ namespace LiteFramework.Tests
         }
 
         [Fact]
-        public void EventCenter_重复订阅_Debug告警不抛_双计次单注销余一()
+        public void EventBus_重复订阅_Debug告警不抛_双计次单注销余一()
         {
-            var events = new EventCenter();
+            var events = new EventBus(_pool);
             var received = 0;
             Action<ProbeEvent> handler = _ => received++;
             events.Subscribe(handler);
@@ -137,18 +184,18 @@ namespace LiteFramework.Tests
             Assert.Equal(2, received);                  // 两次订阅 = 派发两次（告警不改变注册行为）
 
             var unsub = events.Subscribe(handler);       // 第三次订阅取一个注销委托
-            unsub();
+            unsub.Dispose();
             events.Publish(new ProbeEvent());
             Assert.Equal(4, received);                   // 三条订阅注销一条 → 余两条仍派发
         }
 
         [Fact]
-        public void EventCenter_有界队列_溢出丢弃计数_池化事件丢弃路径回收()
+        public void EventBus_有界队列_溢出丢弃计数_池化事件丢弃路径回收()
         {
-            var events = new EventCenter(maxQueued: 2) { StrictMode = false };
-            var e1 = ReferencePool.Acquire<PooledProbe>();
-            var e2 = ReferencePool.Acquire<PooledProbe>();
-            var e3 = ReferencePool.Acquire<PooledProbe>();
+            var events = new EventBus(_pool, maxQueued: 2) { StrictMode = false };
+            var e1 = _pool.Acquire<PooledProbe>();
+            var e2 = _pool.Acquire<PooledProbe>();
+            var e3 = _pool.Acquire<PooledProbe>();
 
             events.PublishQueued(e1);
             events.PublishQueued(e2);
@@ -158,13 +205,13 @@ namespace LiteFramework.Tests
             var last = Log.Recent[Log.Recent.Count - 1];
             Assert.Equal(LogLevel.Error, last.Level);
             Assert.Contains("溢出", last.Message);
-            Assert.Same(e3, ReferencePool.Acquire<PooledProbe>());   // 被丢弃的池化事件同样回收——再取是同一实例
+            Assert.Same(e3, _pool.Acquire<PooledProbe>());   // 被丢弃的池化事件同样回收——再取是同一实例
         }
 
         [Fact]
-        public void EventCenter_延迟派发_到期帧触发_入队序保持_与当帧队列先后分明()
+        public void EventBus_延迟派发_到期帧触发_入队序保持_与当帧队列先后分明()
         {
-            var events = new EventCenter();
+            var events = new EventBus(_pool);
             var order = new List<string>();
             events.Subscribe<TaggedProbe>(e => order.Add(e.Tag));
 
@@ -186,9 +233,9 @@ namespace LiteFramework.Tests
         // ---- 批2（《事件中心专项设计》§4：统计与诊断面）----
 
         [Fact]
-        public void EventCenter_统计_Snapshot追加键与健康度计数()
+        public void EventBus_统计_Snapshot追加键与健康度计数()
         {
-            var events = new EventCenter { StrictMode = true };
+            var events = new EventBus(_pool) { StrictMode = true };
             var into = new Dictionary<string, string>();
 
             events.Publish(new UnheardEvent());                     // Strict 告警 +1
@@ -212,12 +259,12 @@ namespace LiteFramework.Tests
         }
 
         [Fact]
-        public void EventCenter_统计_池化事件回收计数_含订阅者路径()
+        public void EventBus_统计_池化事件回收计数_含订阅者路径()
         {
-            var events = new EventCenter { StrictMode = false };
-            var e = ReferencePool.Acquire<PooledProbe>();
+            var events = new EventBus(_pool) { StrictMode = false };
+            var e = _pool.Acquire<PooledProbe>();
             events.Subscribe<PooledProbe>(_ => { });
-            events.Publish(e);                                       // 派发完同样回收（所有权移交）
+            events.PublishPooled(e);                                 // 显式池化发布：中心回收
 
             var into = new Dictionary<string, string>();
             ((IModuleStats)events).Snapshot(into);
@@ -225,9 +272,9 @@ namespace LiteFramework.Tests
         }
 
         [Fact]
-        public void EventCenter_诊断_通道级信息_订阅数_派发累计_空转与异常可见()
+        public void EventBus_诊断_通道级信息_订阅数_派发累计_空转与异常可见()
         {
-            var events = new EventCenter { StrictMode = false };
+            var events = new EventBus(_pool) { StrictMode = false };
             events.Subscribe<ProbeEvent>(_ => { });
             events.Subscribe<ProbeEvent>(_ => { });
             events.Subscribe<ProbeEvent>(_ => throw new InvalidOperationException("订阅者故障注入"));
@@ -275,9 +322,9 @@ namespace LiteFramework.Tests
         }
 
         [Fact]
-        public void EventCenter_拦截_观测放行_派发正常()
+        public void EventBus_拦截_观测放行_派发正常()
         {
-            var events = new EventCenter();
+            var events = new EventBus(_pool);
             var received = 0;
             events.Subscribe<ProbeEvent>(_ => received++);
             var pass = new PassAll();
@@ -289,9 +336,9 @@ namespace LiteFramework.Tests
         }
 
         [Fact]
-        public void EventCenter_拦截_否决丢弃_不派发_否决路径池化回收()
+        public void EventBus_拦截_否决丢弃_不派发_否决路径池化回收()
         {
-            var events = new EventCenter();
+            var events = new EventBus(_pool);
             var received = 0;
             events.Subscribe<ProbeEvent>(_ => received++);
             var veto = new Veto<ProbeEvent>();
@@ -303,15 +350,15 @@ namespace LiteFramework.Tests
 
             var pooledVeto = new Veto<PooledProbe>();
             events.RegisterInterceptor(pooledVeto);
-            var pooled = ReferencePool.Acquire<PooledProbe>();
-            events.Publish(pooled);                        // 否决 + 池化事件回收（不因否决泄漏）
-            Assert.Same(pooled, ReferencePool.Acquire<PooledProbe>());
+            var pooled = _pool.Acquire<PooledProbe>();
+            events.PublishPooled(pooled);                  // 否决 + 显式池化回收（不因否决泄漏）
+            Assert.Same(pooled, _pool.Acquire<PooledProbe>());
         }
 
         [Fact]
-        public void EventCenter_拦截_注册序运行_注销幂等()
+        public void EventBus_拦截_注册序运行_注销幂等()
         {
-            var events = new EventCenter();
+            var events = new EventBus(_pool);
             var order = new List<string>();
             var unsubA = events.RegisterInterceptor(new Recorder("A", order));
             events.RegisterInterceptor(new Recorder("B", order));
@@ -319,16 +366,16 @@ namespace LiteFramework.Tests
             events.Publish(new ProbeEvent());
             Assert.Equal(new[] { "A", "B" }, order);       // 先注册先执行
 
-            unsubA();
-            unsubA();                                      // 幂等：二次注销 no-op
+            unsubA.Dispose();
+            unsubA.Dispose();                                      // 幂等：二次注销 no-op
             events.Publish(new ProbeEvent());
             Assert.Equal(new[] { "A", "B", "B" }, order);  // A 已移除，B 仍在
         }
 
         [Fact]
-        public void EventCenter_拦截_异常隔离_fail_open_不阻断派发()
+        public void EventBus_拦截_异常隔离_fail_open_不阻断派发()
         {
-            var events = new EventCenter();
+            var events = new EventBus(_pool);
             var received = 0;
             events.Subscribe<ProbeEvent>(_ => received++);
             events.RegisterInterceptor(new Throwing());    // 拦截器作者代码炸了
@@ -343,9 +390,9 @@ namespace LiteFramework.Tests
         }
 
         [Fact]
-        public void EventCenter_拦截_否决计数进Snapshot()
+        public void EventBus_拦截_否决计数进Snapshot()
         {
-            var events = new EventCenter();
+            var events = new EventBus(_pool);
             events.RegisterInterceptor(new Veto<ProbeEvent>());
             events.Publish(new ProbeEvent());
             events.Publish(new ProbeEvent());
@@ -356,9 +403,9 @@ namespace LiteFramework.Tests
         }
 
         [Fact]
-        public void EventCenter_拦截_队列路径同样适用_零特例()
+        public void EventBus_拦截_队列路径同样适用_零特例()
         {
-            var events = new EventCenter();
+            var events = new EventBus(_pool);
             var received = 0;
             events.Subscribe<ProbeEvent>(_ => received++);
             events.RegisterInterceptor(new Veto<ProbeEvent>());

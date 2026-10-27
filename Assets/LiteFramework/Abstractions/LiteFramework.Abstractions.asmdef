@@ -1,5 +1,5 @@
 {
-    "name": "LiteClient.Abstractions",
+    "name": "LiteFramework.Abstractions",
     "rootNamespace": "LiteClient",
     "references": [
         "LiteFramework.Async",
@@ -15,5 +15,5 @@
     "autoReferenced": true,
     "defineConstraints": [],
     "versionDefines": [],
-    "noEngineReferences": false
+    "noEngineReferences": true
 }

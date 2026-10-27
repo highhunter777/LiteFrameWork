@@ -20,6 +20,16 @@ namespace LiteFramework
             }
         }
 
+        /// <summary>带轻量上下文（前缀 + 值）的调用：上下文只在异常路径格式化，热路径零字符串分配。</summary>
+        public static void Invoke<TContext>(Action call, string prefix, TContext context)
+        {
+            try { call(); }
+            catch (Exception ex)
+            {
+                Log.Error($"[SafeCall:{prefix}[{context}]] {ex.GetType().Name}:{ex.Message}", LogTag.SafeCall);
+            }
+        }
+
         /// <summary>
         /// 成败可判的调用（无返回值）：异常同样被隔离并记录，但调用方拿得到"这一步失败了"——
         /// 用于**必须能回滚**的编排步骤（如 UI 首次打开 OnInit/OnShow 失败要清理半成品），

@@ -51,9 +51,9 @@
   -->
   <ItemGroup>
     <Compile Include="..\..\Assets\LiteClient\Runtime\Input\InputService.cs" Link="Input\InputService.cs" />
-    <Compile Include="..\..\Assets\LiteClient\Runtime\Input\IntentGate.cs" Link="Input\IntentGate.cs" />
-    <Compile Include="..\..\Assets\LiteClient\Runtime\Input\IIntentSource.cs" Link="Input\IIntentSource.cs" />
-    <Compile Include="..\..\Assets\LiteClient\Runtime\Input\IInputService.cs" Link="Input\IInputService.cs" />
+    <Compile Include="..\..\Assets\LiteFramework\Abstractions\Input\IntentGate.cs" Link="Input\IntentGate.cs" />
+    <Compile Include="..\..\Assets\LiteFramework\Abstractions\Input\IIntentSource.cs" Link="Input\IIntentSource.cs" />
+    <Compile Include="..\..\Assets\LiteFramework\Abstractions\Input\IInputService.cs" Link="Input\IInputService.cs" />
     <Compile Include="..\..\Assets\LiteClient\Runtime\Input\IntentVectorLimit.cs" Link="Input\IntentVectorLimit.cs" />
     <!--
       **平台实现不在 L1**：`NewInputIntentSource` / `CinemachineCameraService`（`Adapters/Platform.Unity/`）

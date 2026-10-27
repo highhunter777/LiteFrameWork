@@ -24,13 +24,13 @@ namespace LiteClient
         /// <summary>资产包前缀（候选根相对路径；前缀下即一个 YooAsset 包根镜像）。</summary>
         public const string BundlePrefix = "bundle/";
 
-        /// <summary>候选根（FileSys 相对路径；装配与发布脚本共用单源）。</summary>
+        /// <summary>候选根（FileSystem 相对路径；装配与发布脚本共用单源）。</summary>
         public const string CandidateRootRelative = "content/candidate";
 
         /// <summary>候选根内的资产包根相对路径（= <see cref="BundlePrefix"/> 去尾斜杠——YooAsset 包根用之）。</summary>
         public const string BundleRootRelative = "bundle";
 
-        /// <summary>候选资产包根（FileSys 相对路径；资源层解析根与存在性探测共用单源）。</summary>
+        /// <summary>候选资产包根（FileSystem 相对路径；资源层解析根与存在性探测共用单源）。</summary>
         public const string CandidateBundleRootRelative = CandidateRootRelative + "/" + BundleRootRelative;
 
         /// <summary>清单 → 配置文件相对路径集合（health 探针与发布流水线共用）。</summary>

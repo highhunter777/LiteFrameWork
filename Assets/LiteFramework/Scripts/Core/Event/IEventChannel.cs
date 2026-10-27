@@ -12,6 +12,9 @@ namespace LiteFramework
         Type EventType { get; }
         long PublishedCount { get; }
         long DispatchErrors { get; }
+
+        /// <summary>清空全部订阅（总线 Dispose 用；句柄之后 Dispose 为 no-op）。</summary>
+        void Clear();
     }
 
 }

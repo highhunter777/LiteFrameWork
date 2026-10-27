@@ -29,12 +29,15 @@ namespace LiteGame
     {
         public ServiceContainer Services { get; }
         public BattleContext Context { get; }
+        /// <summary>本局事件总线（Match Scope 独占；Dispose 随服务域释放，清空局内订阅）。</summary>
+        public IEventBus Events { get; }
         private bool _disposed;
 
-        public MatchSession(ServiceContainer services, BattleContext context)
+        public MatchSession(ServiceContainer services, BattleContext context, IMatchEventBus events)
         {
             Services = services ?? throw new ArgumentNullException(nameof(services));
             Context = context ?? throw new ArgumentNullException(nameof(context));
+            Events = events ?? throw new ArgumentNullException(nameof(events));
         }
 
         public void Dispose()
@@ -51,6 +54,7 @@ namespace LiteGame
         private readonly IInputService _input;
         private readonly Func<uint> _gameplayDigestBase;
         private readonly IMapProvider _maps;
+        private readonly IReferencePool _pool;
 
         /// <param name="gameplayDigestBase">本地装载产物的玩法数据身份基摘要提供者
         /// （装配点绑定 `ConfigService.GameplayDigestBase`——**惰性读**:本工厂在 Preload 之前构造，
@@ -58,11 +62,13 @@ namespace LiteGame
         /// 见该类批 E 校验点）。</param>
         /// <param name="maps">地图提供者（D9）：进房装配点经它取判定图传给 BattleContext（D22：无回退地图；
         /// 取值同刻于 Create——恒在装载之后；表缺 Map 域即抛）。</param>
-        public MatchSessionFactory(IInputService input, Func<uint> gameplayDigestBase, IMapProvider maps)
+        public MatchSessionFactory(IInputService input, Func<uint> gameplayDigestBase, IMapProvider maps,
+            IReferencePool pool)
         {
             _input = input;
             _gameplayDigestBase = gameplayDigestBase ?? throw new ArgumentNullException(nameof(gameplayDigestBase));
             _maps = maps ?? throw new ArgumentNullException(nameof(maps));
+            _pool = pool ?? throw new ArgumentNullException(nameof(pool));
         }
 
         public MatchSession Create(AccountSession account, LiteSim.MatchTestRules rules = null)
@@ -72,6 +78,8 @@ namespace LiteGame
             try
             {
                 matchServices = (ServiceContainer)account.Services.CreateScope("Match");
+                var matchEvents = new EventBus(_pool);
+                matchServices.RegisterInstance<IMatchEventBus>(matchEvents, ServiceOwnership.ContainerOwned);
                 matchServices.RegisterFactory<BattleContext>(
                     c =>
                     {
@@ -82,12 +90,13 @@ namespace LiteGame
                         return new BattleContext(battle, account.Scope, _input,
                             _maps.GetMap(mapId),
                             gameplayDigestBase: _gameplayDigestBase(),
-                            rules: rules);            // 每局规则随会话显式注入（无静态"当前局"）
+                            rules: rules,             // 每局规则随会话显式注入（无静态"当前局"）
+                            events: matchEvents);     // 局内事件总线随 Match Scope 释放
                     },
                     ServiceLifetime.Scoped, typeof(BattleClient));
                 matchServices.Seal();
                 var context = matchServices.Resolve<BattleContext>();
-                return new MatchSession(matchServices, context);
+                return new MatchSession(matchServices, context, matchEvents);
             }
             catch
             {

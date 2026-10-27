@@ -19,7 +19,21 @@ namespace LiteGame
         public System.Collections.Generic.IReadOnlyList<System.Type> DependsOn => System.Array.Empty<System.Type>();
         public UniTask InitializeAsync(ModuleContext context, CancellationToken ct)
         {
-            FileSys.Init(new UnityPathProvider(), new NewtonsoftJsonSerializer());
+            // 引用池实例（Root 域）：生产消费者经 IReferencePool 注入（静态门面已删除）。
+            var references = new ReferencePoolService();
+            context.Put<IReferencePool>(references);
+            context.Put(references);
+            context.Scope.Register(references);          // 随本模块关闭 Dispose（清空全部空闲件）
+
+            var files = new FileSystem(new UnityPathProvider(), new NewtonsoftJsonSerializer());
+
+            // 文件端口（进程级）：消费者经 IFileStore 注入（静态门面已删除）。
+            context.Put<IFileStore>(files);
+
+            // 日志实例（进程级）：静态 Log 只是门面；新代码/适配器经 ILog 注入。
+            var logService = new LogService();
+            context.Put<ILog>(logService);
+            Log.Install(logService);
             Log.SetHelper(new UnityLogHelper());
 #if UNITY_EDITOR || DEVELOPMENT_BUILD || LITEFRAMEWORK_DEBUG
             StructuredLogInstaller.Install();

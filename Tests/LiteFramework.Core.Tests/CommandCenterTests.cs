@@ -15,7 +15,8 @@ namespace LiteFramework.Tests
     [Collection("CoreStatic")]
     public sealed class CommandCenterTests
     {
-        private sealed class Ping : ICommand { }
+
+        private readonly ReferencePoolService _pool = new ReferencePoolService();        private sealed class Ping : ICommand { }
         private sealed class GmPing : ICommand { }
         private sealed class Nobody : ICommand { }
 
@@ -39,7 +40,7 @@ namespace LiteFramework.Tests
         [Fact]
         public void 注册Send_成功路径_处理器收到且结果Ok()
         {
-            var commands = new CommandCenter();
+            var commands = new CommandCenter(_pool);
             var handler = new ProbeHandler();
             commands.Register(handler);
 
@@ -54,7 +55,7 @@ namespace LiteFramework.Tests
         [Fact]
         public void 处理器主动拒绝_失败结果透传且计数()
         {
-            var commands = new CommandCenter();
+            var commands = new CommandCenter(_pool);
             commands.Register(new ProbeHandler { Reject = true });
 
             var result = commands.Send(new Ping());
@@ -70,7 +71,7 @@ namespace LiteFramework.Tests
         [Fact]
         public void 处理器异常_隔离为Failed不炸调用方_日志与审计留痕()
         {
-            var commands = new CommandCenter();
+            var commands = new CommandCenter(_pool);
             commands.Register(new ProbeHandler { Throw = true });
 
             var result = commands.Send(new Ping());        // 不抛：隔离为失败结果
@@ -87,14 +88,14 @@ namespace LiteFramework.Tests
         [Fact]
         public void 无处理器_编程错误直接抛()
         {
-            var commands = new CommandCenter();
+            var commands = new CommandCenter(_pool);
             Assert.Throws<InvalidOperationException>(() => commands.Send(new Nobody()));
         }
 
         [Fact]
         public void 重复注册_唯一处理器契约抛()
         {
-            var commands = new CommandCenter();
+            var commands = new CommandCenter(_pool);
             commands.Register(new ProbeHandler());
             Assert.Throws<InvalidOperationException>(() => commands.Register(new ProbeHandler()));
         }
@@ -102,7 +103,7 @@ namespace LiteFramework.Tests
         [Fact]
         public void 注销幂等_注销后Send转无处理器抛()
         {
-            var commands = new CommandCenter();
+            var commands = new CommandCenter(_pool);
             var un = commands.Register(new ProbeHandler());
             un.Dispose();
             un.Dispose();                                   // 幂等
@@ -116,7 +117,7 @@ namespace LiteFramework.Tests
         [Fact]
         public void 权限门_GmOnly三宏内放行()
         {
-            var commands = new CommandCenter(gmEnabled: true);   // 三宏内语义（L1 构建带 LITEFRAMEWORK_DEBUG）
+            var commands = new CommandCenter(_pool, gmEnabled: true);   // 三宏内语义（L1 构建带 LITEFRAMEWORK_DEBUG）
             var handler = new GmProbeHandler();
             commands.Register(handler, new CommandOptions(gmOnly: true, description: "GM 示例"));
 
@@ -129,7 +130,7 @@ namespace LiteFramework.Tests
         [Fact]
         public void 权限门_GmOnly三宏外拒绝_不执行不抛且计数()
         {
-            var commands = new CommandCenter(gmEnabled: false);  // release 语义（构造注入可测接缝）
+            var commands = new CommandCenter(_pool, gmEnabled: false);  // release 语义（构造注入可测接缝）
             var handler = new GmProbeHandler();
             commands.Register(handler, new CommandOptions(gmOnly: true));
 
@@ -147,7 +148,7 @@ namespace LiteFramework.Tests
         [Fact]
         public void 权限门_非Gm命令不受门影响()
         {
-            var commands = new CommandCenter(gmEnabled: false);
+            var commands = new CommandCenter(_pool, gmEnabled: false);
             commands.Register(new ProbeHandler());
 
             Assert.True(commands.Send(new Ping()).Ok);      // 业务命令 release 正常执行
@@ -156,7 +157,7 @@ namespace LiteFramework.Tests
         [Fact]
         public void 审计环_容量32_环形覆盖_旧到新序()
         {
-            var commands = new CommandCenter();
+            var commands = new CommandCenter(_pool);
             commands.Register(new ProbeHandler());
             for (int i = 0; i < 40; i++) commands.Send(new Ping());   // 超容量：前 8 条被覆盖
 
@@ -171,7 +172,7 @@ namespace LiteFramework.Tests
         [Fact]
         public void 统计_Snapshot四键()
         {
-            var commands = new CommandCenter();
+            var commands = new CommandCenter(_pool);
             var into = new Dictionary<string, string>();
             ((IModuleStats)commands).Snapshot(into);
 
@@ -186,7 +187,7 @@ namespace LiteFramework.Tests
         [Fact]
         public void 发现面_注册清单含类型GmOnly描述与时序()
         {
-            var commands = new CommandCenter();
+            var commands = new CommandCenter(_pool);
             commands.Register(new ProbeHandler(), new CommandOptions(gmOnly: false, description: "常规命令"));
             commands.Register(new ThrowlessGmHandler(), new CommandOptions(gmOnly: true, description: "GM 命令"));
 
@@ -204,7 +205,7 @@ namespace LiteFramework.Tests
         [Fact]
         public void 发现面_注销后清单同步消失()
         {
-            var commands = new CommandCenter();
+            var commands = new CommandCenter(_pool);
             var un = commands.Register(new ProbeHandler());
             Assert.Single(commands.GetRegisteredInfos());
             un.Dispose();

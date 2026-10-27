@@ -18,7 +18,8 @@ namespace LiteFramework.Tests
     [Collection("CoreStatic")]
     public sealed class CommandAdvancedTests
     {
-        private sealed class Ping : ICommand { }
+
+        private readonly ReferencePoolService _pool = new ReferencePoolService();        private sealed class Ping : ICommand { }
         private sealed class Plain : ICommand { }
         private sealed class GmPing : ICommand { }
         private sealed class PooledPing : ICommand, IReference { public void Clear() { } }
@@ -64,44 +65,44 @@ namespace LiteFramework.Tests
         [Fact]
         public void SendQueued_到期按入队序执行_池化命令执行完回收()
         {
-            var commands = new CommandCenter();
+            var commands = new CommandCenter(_pool);
             var echo = new EchoHandler();
             commands.Register(echo);
             commands.Register(new PooledEcho());
 
-            var p1 = ReferencePool.Acquire<PooledPing>();
-            var p2 = ReferencePool.Acquire<PooledPing>();
+            var p1 = _pool.Acquire<PooledPing>();
+            var p2 = _pool.Acquire<PooledPing>();
             commands.SendQueued(p1, delayFrames: 1);
             commands.SendQueued(new Ping(), delayFrames: 1);
             commands.SendQueued(p2, delayFrames: 1);
 
             commands.Tick(0.016f);                          // 到期（delay 0 域）：三件全执行？见下——本帧快照 3 件都到期
             Assert.Equal(1, echo.Calls);                    // 池化件走 PooledEcho（不同处理器）
-            Assert.Same(p1, ReferencePool.Acquire<PooledPing>());   // 执行完回收（FIFO 顺序：p1 先还）
-            Assert.Same(p2, ReferencePool.Acquire<PooledPing>());
+            Assert.Same(p1, _pool.Acquire<PooledPing>());   // 执行完回收（FIFO 顺序：p1 先还）
+            Assert.Same(p2, _pool.Acquire<PooledPing>());
         }
 
         [Fact]
         public void SendQueued_溢出丢弃计数_池化命令回收()
         {
-            var commands = new CommandCenter(maxQueued: 1);
+            var commands = new CommandCenter(_pool, maxQueued: 1);
             commands.Register(new PooledEcho());
 
-            var p1 = ReferencePool.Acquire<PooledPing>();
-            var p2 = ReferencePool.Acquire<PooledPing>();
+            var p1 = _pool.Acquire<PooledPing>();
+            var p2 = _pool.Acquire<PooledPing>();
             commands.SendQueued(p1);                        // 入队
             commands.SendQueued(p2);                        // 溢出：丢弃 + 回收
 
             var into = new Dictionary<string, string>();
             ((IModuleStats)commands).Snapshot(into);
             Assert.Equal("1", into["QueuedDropped"]);       // 丢弃可观察
-            Assert.Same(p2, ReferencePool.Acquire<PooledPing>());   // 丢弃路径同样回收
+            Assert.Same(p2, _pool.Acquire<PooledPing>());   // 丢弃路径同样回收
         }
 
         [Fact]
         public void SendQueued_执行时过权限门_入队时不拦()
         {
-            var commands = new CommandCenter(gmEnabled: false);   // release 语义
+            var commands = new CommandCenter(_pool, gmEnabled: false);   // release 语义
             var gm = new GmEcho();
             commands.Register(gm, new CommandOptions(gmOnly: true));
 
@@ -119,11 +120,11 @@ namespace LiteFramework.Tests
         [Fact]
         public void 同步异步注册互斥()
         {
-            var a = new CommandCenter();
+            var a = new CommandCenter(_pool);
             a.Register(new EchoHandler());
             Assert.Throws<InvalidOperationException>(() => a.RegisterAsync(new AsyncPingHandler()));
 
-            var b = new CommandCenter();
+            var b = new CommandCenter(_pool);
             b.RegisterAsync(new AsyncPingHandler());
             Assert.Throws<InvalidOperationException>(() => b.Register(new EchoHandler()));
         }
@@ -131,7 +132,7 @@ namespace LiteFramework.Tests
         [Fact]
         public void SendAsync_成功路径()
         {
-            var commands = new CommandCenter();
+            var commands = new CommandCenter(_pool);
             var async_ = new AsyncPingHandler();
             commands.RegisterAsync(async_);
 
@@ -144,7 +145,7 @@ namespace LiteFramework.Tests
         [Fact]
         public void Send打在异步注册上_类型错配fail_fast()
         {
-            var commands = new CommandCenter();
+            var commands = new CommandCenter(_pool);
             commands.RegisterAsync(new AsyncPingHandler());
             Assert.Throws<InvalidOperationException>(() => commands.Send(new Ping()));
         }
@@ -152,7 +153,7 @@ namespace LiteFramework.Tests
         [Fact]
         public void SendAsync_处理器异常隔离为Failed()
         {
-            var commands = new CommandCenter();
+            var commands = new CommandCenter(_pool);
             commands.RegisterAsync(new AsyncPingHandler { Throw = true });
 
             var result = commands.SendAsync(new Ping()).GetAwaiter().GetResult();   // 不炸调用方
@@ -177,7 +178,7 @@ namespace LiteFramework.Tests
         [Fact]
         public void 拦截器_拒绝短路_处理器不执行()
         {
-            var commands = new CommandCenter();
+            var commands = new CommandCenter(_pool);
             var echo = new EchoHandler();
             commands.Register(echo);
             commands.RegisterInterceptor(new RejectAll());
@@ -192,7 +193,7 @@ namespace LiteFramework.Tests
         [Fact]
         public void 拦截链_登记序_异常跳过fail_open_注销幂等()
         {
-            var commands = new CommandCenter();
+            var commands = new CommandCenter(_pool);
             var echo = new EchoHandler();
             commands.Register(echo);
             var throwingUn = commands.RegisterInterceptor(new ThrowingICommandInterceptor());   // 第一个炸
@@ -228,7 +229,7 @@ namespace LiteFramework.Tests
         [Fact]
         public void 撤销重做_闭环_Undo逆序_Redo重新Execute()
         {
-            var commands = new CommandCenter();
+            var commands = new CommandCenter(_pool);
             var handler = new UndoableEcho();
             commands.RegisterUndoable(handler);
 
@@ -252,7 +253,7 @@ namespace LiteFramework.Tests
         [Fact]
         public void 撤销_失败命令与不可撤销命令不入栈()
         {
-            var commands = new CommandCenter();
+            var commands = new CommandCenter(_pool);
             var undoable = new UndoableEcho { Reject = true };
             commands.RegisterUndoable(undoable);
             commands.Send(new Ping());                      // 失败：不入栈
@@ -271,7 +272,7 @@ namespace LiteFramework.Tests
         [Fact]
         public void 撤销栈_容量64_淘汰最旧()
         {
-            var commands = new CommandCenter();
+            var commands = new CommandCenter(_pool);
             var handler = new UndoableEcho();
             commands.RegisterUndoable(handler);
             for (int i = 0; i < 70; i++) commands.Send(new Ping());   // 超容量：最旧 6 条被淘汰

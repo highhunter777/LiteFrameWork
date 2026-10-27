@@ -44,16 +44,13 @@ namespace LiteFramework
         {
             if (candidate == null) throw new ArgumentNullException(nameof(candidate));
 
-            string rejectReason;
+            // 校验与发布在同一临界区：避免两个并发发布者"各自校验、按不同顺序发布"的竞态。
             lock (_gate)
             {
-                rejectReason = _validate(candidate);
-            }
-            if (rejectReason != null)
-                throw new InvalidOperationException($"配置快照校验失败：{rejectReason}");
+                string rejectReason = _validate(candidate);
+                if (rejectReason != null)
+                    throw new InvalidOperationException($"配置快照校验失败：{rejectReason}");
 
-            lock (_gate)
-            {
                 _published = candidate;
                 _version++;
                 return _version;

@@ -10,7 +10,7 @@ namespace LiteGame
     /// 注册序见 <see cref="GameEntry"/>（⑤ Schedulers 依赖本模块产物——模块序即依赖序）。</summary>
     internal sealed class ClocksModule : IClientModule, IClientModuleGraph
     {
-        private EventCenter _events;
+        private EventBus _events;
         private WorldClock _worldClock;
         private UIClock _uiClock;
         private SystemWallClock _wallClock;
@@ -21,11 +21,12 @@ namespace LiteGame
         public System.Collections.Generic.IReadOnlyList<System.Type> DependsOn => System.Array.Empty<System.Type>();
         public UniTask InitializeAsync(ModuleContext context, CancellationToken ct)
         {
-            _events = new EventCenter();
+            _events = new EventBus(pool: context.Require<IReferencePool>());
             _worldClock = new WorldClock();
             _uiClock = new UIClock();
             _wallClock = new SystemWallClock();
             context.Put(_events);
+            context.Scope.Register(_events);               // Root 总线随 ⑤ 模块关闭 Dispose（清订阅/队列）
             context.Put<IWorldClock>(_worldClock);
             context.Put<IUIClock>(_uiClock);
             context.Put<IWallClock>(_wallClock);

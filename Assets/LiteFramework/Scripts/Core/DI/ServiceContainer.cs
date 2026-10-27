@@ -74,6 +74,8 @@ namespace LiteFramework
             ThrowIfRegistrationClosed();
             if (instance == null) throw new ArgumentNullException(nameof(instance));
             ValidateLifetime(lifetime);
+            if (lifetime == ServiceLifetime.Transient)
+                throw new ArgumentException("实例注册不支持 Transient——实例天然是单例；需要每次新建请用 RegisterFactory", nameof(lifetime));
             if (ownership != ServiceOwnership.Borrowed && ownership != ServiceOwnership.ContainerOwned)
                 throw new ArgumentOutOfRangeException(nameof(ownership));
             var entry = new Entry { Interface = typeof(TInterface), Instance = instance, Constructed = true, Lifetime = lifetime };

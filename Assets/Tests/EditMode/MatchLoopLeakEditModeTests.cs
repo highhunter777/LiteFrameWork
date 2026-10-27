@@ -86,7 +86,7 @@ namespace LiteGame.Tests.EditMode
                 return new MatchTransport(transport, null);
             });
             var matches = new MatchSessionFactory(input: null, gameplayDigestBase: () => 0u,
-                maps: new FakeMapProvider());
+                maps: new FakeMapProvider(), pool: new LiteFramework.ReferencePoolService());
 
             for (int i = 0; i < Loops; i++)
             {
@@ -102,6 +102,7 @@ namespace LiteGame.Tests.EditMode
                 account.Dispose();
 
                 Assert.IsTrue(match.Services.IsDisposed, $"第 {i + 1} 次：Match 服务域未释放");
+                Assert.IsTrue(match.Events.IsDisposed, $"第 {i + 1} 次：Match 事件总线未随域释放");
                 Assert.IsTrue(account.Scope.IsDisposed, $"第 {i + 1} 次：Account 作用域未释放");
                 Assert.AreEqual(0, rootScope.OwnedCount, $"第 {i + 1} 次：根作用域残留 {rootScope.OwnedCount} 项");
                 Assert.AreEqual(1, transports[i].DisposeCalls, $"第 {i + 1} 次：传输未恰好释放一次");

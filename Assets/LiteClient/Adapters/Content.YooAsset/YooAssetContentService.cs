@@ -51,6 +51,7 @@ namespace LiteClient
         }
 
         private readonly SharedLoadCoordinator<LoadKey, AssetHandle> _loads;
+        private readonly IFileStore _files;
         private ContentGeneration _generation = ContentGeneration.Default;
         private int _initialized;                                 // 0=未 1=已
 
@@ -60,8 +61,9 @@ namespace LiteClient
         /// <summary>存活加载条目数（在途等待 + 有效持有——诊断/泄漏断言用）。</summary>
         public int LiveEntries => _loads.LiveEntryCount;
 
-        public YooAssetContentService()
+        public YooAssetContentService(IFileStore files = null)
         {
+            _files = files ?? throw new System.ArgumentNullException(nameof(files), "IFileStore 未注入");
             _loads = new SharedLoadCoordinator<LoadKey, AssetHandle>(LoadHandleAsync, UnloadHandle);
         }
 
@@ -77,13 +79,13 @@ namespace LiteClient
 
         /// <summary>
         /// 解析已确认候选的资产包根绝对路径；不满足（无候选身份/版本文件缺失）返回 null = 沿用内置包根。
-        /// 激活记录经 <see cref="FileActivationRecordIO"/> 读（与 Patch 流程同一记录、同一 FileSys 根）。
+        /// 激活记录经 <see cref="FileActivationRecordIO"/> 读（与 Patch 流程同一记录、同一 FileSystem 根）。
         /// </summary>
-        private static string ResolveConfirmedBundleRoot()
+        private string ResolveConfirmedBundleRoot()
         {
-            ActivationRecord record = new FileActivationRecordIO().TryLoad();
+            ActivationRecord record = new FileActivationRecordIO(files: _files).TryLoad();
             if (!CandidateBundleRootResolver.IsCandidateBundleReady(record?.ConfirmedReleaseId,
-                ReleaseLayout.CandidateBundleRootRelative, AssetService.DefaultPackageName, FileSys.Exists))
+                ReleaseLayout.CandidateBundleRootRelative, AssetService.DefaultPackageName, _files.Exists))
                 return null;
             return string.Concat(UnityEngine.Application.persistentDataPath, "/",
                 ReleaseLayout.CandidateBundleRootRelative);

@@ -28,9 +28,9 @@ namespace LiteFramework.Tests
         [Fact]
         public void Log_带tag_Recent条目Tag与Message分离()
         {
-            Log.Info("hello", LogTag.FileSys);
+            Log.Info("hello", LogTag.FileSystem);
             var last = Log.Recent[Log.Recent.Count - 1];
-            Assert.Equal(LogTag.FileSys, last.Tag);
+            Assert.Equal(LogTag.FileSystem, last.Tag);
             Assert.Equal("hello", last.Message);   // Message 不含前缀——HUD 自行格式化
         }
 

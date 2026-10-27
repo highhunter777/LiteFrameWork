@@ -2,7 +2,7 @@
     "name": "LiteClient.Serialization.Luban",
     "rootNamespace": "LiteClient",
     "references": [
-        "LiteClient.Abstractions",
+        "LiteFramework.Abstractions",
         "LiteFramework.Async",
         "LiteFramework.Core",
         "LiteSim.Core",

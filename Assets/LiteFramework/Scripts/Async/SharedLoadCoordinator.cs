@@ -123,6 +123,11 @@ namespace LiteFramework
             {
                 entry.LoadSource.TrySetException(ex);
             }
+            finally
+            {
+                // 加载结束即释放取消源；OnWaiterGone/Dispose 的 Cancel 已捕获 ObjectDisposedException。
+                entry.LoadCts.Dispose();
+            }
         }
 
         private async UniTask<AssetLease<TAsset>> WaitAsync(Entry entry, CancellationToken ct)

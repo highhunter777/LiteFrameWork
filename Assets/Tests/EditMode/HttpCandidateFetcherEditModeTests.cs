@@ -32,6 +32,7 @@ namespace LiteGame.Tests.EditMode
     /// </summary>
     public sealed class HttpCandidateFetcherEditModeTests : UnityTestBase
     {
+        private FileSystem _files;
         private const string Root = "test_http_candidate";
 
         private LocalHttpTestServer _server;
@@ -39,8 +40,8 @@ namespace LiteGame.Tests.EditMode
         [SetUp]
         protected void Init()
         {
-            FileSys.Init(new UnityPathProvider(), new NewtonsoftJsonSerializer());
-            if (FileSys.DirectoryExists(Root)) FileSys.DeleteDirectory(Root);
+            _files = new FileSystem(new UnityPathProvider(), new NewtonsoftJsonSerializer());
+            if (_files.DirectoryExists(Root)) _files.DeleteDirectory(Root);
             _server = new LocalHttpTestServer();
         }
 
@@ -49,7 +50,7 @@ namespace LiteGame.Tests.EditMode
         {
             _server?.Dispose();
             _server = null;
-            if (FileSys.DirectoryExists(Root)) FileSys.DeleteDirectory(Root);
+            if (_files.DirectoryExists(Root)) _files.DeleteDirectory(Root);
         }
 
         private static byte[] B(string s) => Encoding.UTF8.GetBytes(s);
@@ -76,7 +77,7 @@ namespace LiteGame.Tests.EditMode
         private DownloadPlan PlanFor(ReleaseManifest m)
             => new DownloadPlan(m, new[] { new DownloadSource("http", _server.BaseUrl) }, ZeroBackoff());
 
-        private HttpCandidateFetcher Fetcher() => new HttpCandidateFetcher(Root);
+        private HttpCandidateFetcher Fetcher() => new HttpCandidateFetcher(Root, files: _files);
 
         // ---- 正常路径 ----
 
@@ -91,12 +92,12 @@ namespace LiteGame.Tests.EditMode
             yield return Fetcher().FetchAsync(m, PlanFor(m)).ToCoroutine(x => r = x);
 
             Assert.IsTrue(r.Succeeded, r.Failure.ToString());
-            Assert.AreEqual("AAA", Encoding.UTF8.GetString(FileSys.ReadAllBytes(Root + "/a.bin")));
-            Assert.AreEqual("BB", Encoding.UTF8.GetString(FileSys.ReadAllBytes(Root + "/sub/b.bin")));
+            Assert.AreEqual("AAA", Encoding.UTF8.GetString(_files.ReadAllBytes(Root + "/a.bin")));
+            Assert.AreEqual("BB", Encoding.UTF8.GetString(_files.ReadAllBytes(Root + "/sub/b.bin")));
 
             // 落盘后过校验器（真实摘要复算）
             CandidateVerifyResult verify =
-                CandidateContentVerifier.Verify(m, new FileSysCandidateFileSource(Root), r.Paths);
+                CandidateContentVerifier.Verify(m, new FileSystemCandidateFileSource(Root, _files), r.Paths);
             Assert.IsTrue(verify.Passed, verify.Failure.ToString());
         }
 
@@ -125,7 +126,7 @@ namespace LiteGame.Tests.EditMode
         {
             ReleaseManifest m = ManifestWith(("a.bin", "AAA"));
             // 不注册任何路由——若真去下载会 404，证明走了跳过路径
-            FileSys.WriteAllBytes(Root + "/a.bin", B("AAA"));
+            _files.WriteAllBytes(Root + "/a.bin", B("AAA"));
 
             CandidateFetchResult r = default;
             yield return Fetcher().FetchAsync(m, PlanFor(m)).ToCoroutine(x => r = x);
@@ -177,7 +178,7 @@ namespace LiteGame.Tests.EditMode
 
             Assert.IsTrue(r.Succeeded, r.Failure.ToString());
             Assert.AreEqual(2, _server.HitCount("/rel-http/a.bin"));
-            Assert.AreEqual("AAA", Encoding.UTF8.GetString(FileSys.ReadAllBytes(Root + "/a.bin")));
+            Assert.AreEqual("AAA", Encoding.UTF8.GetString(_files.ReadAllBytes(Root + "/a.bin")));
         }
 
         [UnityTest]
@@ -199,7 +200,7 @@ namespace LiteGame.Tests.EditMode
             Assert.IsTrue(r.Succeeded, r.Failure.ToString());
             Assert.AreEqual(1, _server.HitCount("/srcA/rel-http/a.bin"), "首选源一次暂态后轮转");
             Assert.AreEqual(1, _server.HitCount("/srcB/rel-http/a.bin"));
-            Assert.AreEqual("AAA", Encoding.UTF8.GetString(FileSys.ReadAllBytes(Root + "/a.bin")));
+            Assert.AreEqual("AAA", Encoding.UTF8.GetString(_files.ReadAllBytes(Root + "/a.bin")));
         }
 
         [UnityTest]
@@ -234,7 +235,7 @@ namespace LiteGame.Tests.EditMode
 
             Assert.IsFalse(r.Succeeded);
             Assert.AreEqual(DownloadFailureKind.LengthMismatch, r.Failure.Kind);
-            Assert.AreEqual(-1L, FileSys.GetFileLength(Root + "/a.bin"));   // 目标路径未被写入
+            Assert.AreEqual(-1L, _files.GetFileLength(Root + "/a.bin"));   // 目标路径未被写入
         }
 
         [UnityTest]
@@ -258,7 +259,7 @@ namespace LiteGame.Tests.EditMode
         [Test]
         public void 临时路径_归属到Release()
         {
-            var f = new HttpCandidateFetcher(Root);
+            var f = new HttpCandidateFetcher(Root, files: _files);
 
             string p1 = f.TempPath("rel-A", "a.bin");
             string p2 = f.TempPath("rel-B", "a.bin");
@@ -280,23 +281,23 @@ namespace LiteGame.Tests.EditMode
             Assert.IsTrue(r.Succeeded, r.Failure.ToString());
 
             // .tmp 下不应留下本次的临时件（否则清点会判 UnexpectedFile）
-            foreach (string f in FileSys.GetFilesRecursive(Root + "/.tmp"))
+            foreach (string f in _files.GetFilesRecursive(Root + "/.tmp"))
                 StringAssert.DoesNotContain("a.bin", f);
         }
 
         [Test]
         public void 临时目录回收_按发布隔离_幂等不抛()
         {
-            var f = new HttpCandidateFetcher(Root);
+            var f = new HttpCandidateFetcher(Root, files: _files);
 
             // 两个 Release 各留一个临时件——只回收 rel-A，rel-B 不受牵连（§7 Release 归属）
-            FileSys.WriteAllBytes(f.TempPath("rel-A", "a.bin"), B("AAA"));
-            FileSys.WriteAllBytes(f.TempPath("rel-B", "a.bin"), B("BBB"));
+            _files.WriteAllBytes(f.TempPath("rel-A", "a.bin"), B("AAA"));
+            _files.WriteAllBytes(f.TempPath("rel-B", "a.bin"), B("BBB"));
 
             f.CleanupTempAsync("rel-A").GetAwaiter().GetResult();   // 全程同步完成（无网络）
 
-            Assert.AreEqual(-1L, FileSys.GetFileLength(f.TempPath("rel-A", "a.bin")));  // 已回收
-            Assert.AreEqual(3L, FileSys.GetFileLength(f.TempPath("rel-B", "a.bin")));   // 不误伤
+            Assert.AreEqual(-1L, _files.GetFileLength(f.TempPath("rel-A", "a.bin")));  // 已回收
+            Assert.AreEqual(3L, _files.GetFileLength(f.TempPath("rel-B", "a.bin")));   // 不误伤
 
             f.CleanupTempAsync("rel-A").GetAwaiter().GetResult();   // 幂等：目录已不存在 = no-op
             f.CleanupTempAsync(null).GetAwaiter().GetResult();     // 空发布身份按 no-op，不抛
@@ -307,7 +308,7 @@ namespace LiteGame.Tests.EditMode
         [Test]
         public void 构造参数_空候选根拒绝()
         {
-            Assert.Throws<ArgumentException>(() => new HttpCandidateFetcher(""));
+            Assert.Throws<ArgumentException>(() => new HttpCandidateFetcher("", files: _files));
         }
     }
 }

@@ -26,18 +26,20 @@ namespace LiteClient
     {
         private readonly string _candidateRoot;
         private readonly Func<ReleaseManifest, IReadOnlyList<string>> _configPaths;
+        private readonly IFileStore _files;
 
         public string Name => "candidate-config";
 
-        /// <param name="candidateRoot">候选根（FileSys 相对路径）。</param>
+        /// <param name="candidateRoot">候选根（IFileStore 相对路径）。</param>
         /// <param name="configPaths">清单 → 配置文件的相对路径集合（装配点注入——哪些文件是配置属发布约定）。</param>
         public CandidateConfigHealthProbe(string candidateRoot,
-            Func<ReleaseManifest, IReadOnlyList<string>> configPaths)
+            Func<ReleaseManifest, IReadOnlyList<string>> configPaths, IFileStore files = null)
         {
             _candidateRoot = string.IsNullOrEmpty(candidateRoot)
                 ? throw new ArgumentException("候选根不能为空", nameof(candidateRoot))
                 : candidateRoot.TrimEnd('/');
             _configPaths = configPaths ?? throw new ArgumentNullException(nameof(configPaths));
+            _files = files ?? throw new System.ArgumentNullException(nameof(files), "IFileStore 未注入");
         }
 
         public UniTask<string> CheckAsync(ReleaseManifest candidate, CancellationToken ct = default)
@@ -53,7 +55,7 @@ namespace LiteClient
             {
                 if (ct.IsCancellationRequested) return UniTask.FromResult("配置健康检查已取消");
 
-                byte[] bytes = FileSys.ReadAllBytes(_candidateRoot + "/" + rel);
+                byte[] bytes = _files.ReadAllBytes(_candidateRoot + "/" + rel);
                 if (bytes == null || bytes.Length == 0)
                 {
                     problems.Add($"{rel}：缺失或为空");
@@ -111,16 +113,18 @@ namespace LiteClient
     {
         private readonly string _candidateRoot;
         private readonly Func<ReleaseManifest, IReadOnlyList<string>> _entryPaths;
+        private readonly IFileStore _files;
 
         public string Name => "candidate-entry-files";
 
         public CandidateEntryFilesHealthProbe(string candidateRoot,
-            Func<ReleaseManifest, IReadOnlyList<string>> entryPaths)
+            Func<ReleaseManifest, IReadOnlyList<string>> entryPaths, IFileStore files = null)
         {
             _candidateRoot = string.IsNullOrEmpty(candidateRoot)
                 ? throw new ArgumentException("候选根不能为空", nameof(candidateRoot))
                 : candidateRoot.TrimEnd('/');
             _entryPaths = entryPaths ?? throw new ArgumentNullException(nameof(entryPaths));
+            _files = files ?? throw new System.ArgumentNullException(nameof(files), "IFileStore 未注入");
         }
 
         public UniTask<string> CheckAsync(ReleaseManifest candidate, CancellationToken ct = default)
@@ -134,7 +138,7 @@ namespace LiteClient
             foreach (string rel in paths)
             {
                 if (ct.IsCancellationRequested) return UniTask.FromResult("入口资源检查已取消");
-                if (FileSys.GetFileLength(_candidateRoot + "/" + rel) <= 0)
+                if (_files.GetFileLength(_candidateRoot + "/" + rel) <= 0)
                     problems.Add(rel);
             }
             return UniTask.FromResult(problems.Count == 0

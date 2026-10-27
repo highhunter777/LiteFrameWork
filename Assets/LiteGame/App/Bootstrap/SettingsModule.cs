@@ -16,7 +16,7 @@ namespace LiteGame
         public System.Collections.Generic.IReadOnlyList<System.Type> DependsOn => new System.Type[] { typeof(PlatformInfrastructureModule) };
         public UniTask InitializeAsync(ModuleContext context, CancellationToken ct)
         {
-            _settings = new SettingService();
+            _settings = new SettingService(context.Require<IFileStore>());
             _settings.Load();
             context.Put(_settings);
             context.Put(new GameSettings(_settings));

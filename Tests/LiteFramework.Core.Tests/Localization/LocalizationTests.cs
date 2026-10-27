@@ -7,7 +7,7 @@ namespace LiteFramework.Tests
 {
     /// <summary>
     /// <see cref="IJsonSerializer"/> 的测试替身——.NET 内建 <c>System.Text.Json</c>，
-    /// 零新依赖（与 <c>FileSysTests.FakeJsonSerializer</c> 同款；Newtonsoft 属 Unity 层）。
+    /// 零新依赖（与 <c>FileSystemTests.FakeJsonSerializer</c> 同款；Newtonsoft 属 Unity 层）。
     /// </summary>
     internal sealed class TestJsonSerializer : IJsonSerializer
     {

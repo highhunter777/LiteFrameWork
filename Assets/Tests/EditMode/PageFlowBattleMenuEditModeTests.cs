@@ -75,7 +75,7 @@ namespace LiteGame.Tests.EditMode
 
             var lua = Scope.CreateGameObject("lua-host").AddComponent<LuaComponent>();
             lua.Init(new LuaPreloader((path, ct) => UniTask.FromResult<byte[]>(null), () => Array.Empty<string>()),
-                new EventCenter());
+                new EventBus(new ReferencePoolService()));
             Bridge.Bind(LoadRealTables);                            // 页面寻址反查（真表——与生产同源）
 
             _flow = new PageFlow(_nav, _ui, lua);

@@ -58,7 +58,7 @@ namespace LiteGame.Tests.EditMode
         public void PresetCommand_IsAudited_AndUpdatesSnapshot()
         {
             var runtime = new WeakNetRuntime(() => 0);
-            var commands = new CommandCenter(true);
+            var commands = new CommandCenter(new ReferencePoolService(), true);
             using (commands.Register(new SetWeakNetPresetHandler(runtime), new CommandOptions(true, "弱网预设")))
             {
                 var kernel = new DebugKernel(commands, null, new IDebugTunableProvider[] { runtime }, runtime);

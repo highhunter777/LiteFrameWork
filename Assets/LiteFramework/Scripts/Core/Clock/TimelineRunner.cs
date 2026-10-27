@@ -37,7 +37,7 @@ namespace LiteFramework
         {
             float dt = _clock.ScaledDelta;
             if (float.IsNaN(dt) || float.IsInfinity(dt) || dt < 0f)
-                throw new ArgumentOutOfRangeException(nameof(realDelta), "时钟 ScaledDelta 必须是非负有限数值");
+                throw new ArgumentOutOfRangeException("ScaledDelta", "时钟 ScaledDelta 必须是非负有限数值");
 
             int remainingSteps = MaxStepsPerTick;
             int countAtStart = _running.Count;
@@ -227,7 +227,7 @@ namespace LiteFramework
                 Step step = _steps[_nextStepIndex];
                 MoveToNextStep();
                 remainingSteps--;
-                SafeCall.Invoke(step.Action, $"Timeline[{occurrence:0.###}]");
+                SafeCall.Invoke(step.Action, "Timeline", occurrence);
 
                 if (!_running) return; // 回调中 Stop：立即中断本次推进
                 if (_position > target) target = _position; // 回调中 Seek 到未来位置时不被本帧目标覆盖

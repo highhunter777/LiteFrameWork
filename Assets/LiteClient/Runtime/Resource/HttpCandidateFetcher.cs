@@ -34,18 +34,21 @@ namespace LiteClient
     /// </summary>
     public sealed class HttpCandidateFetcher : ICandidateFetcher
     {
-        private readonly string _candidateRoot;      // 落盘根（FileSys 相对路径）
+        private readonly string _candidateRoot;      // 落盘根（IFileStore 相对路径）
         private readonly int _timeoutSeconds;
+        private readonly IFileStore _files;
 
         /// <summary>下载进度回调（已完成文件数、总文件数、当前文件名）；null = 不回调。</summary>
         public Action<int, int, string> OnProgress;
 
-        public HttpCandidateFetcher(string candidateRoot, int timeoutSeconds = 30)
+        public HttpCandidateFetcher(string candidateRoot, int timeoutSeconds = 30,
+            IFileStore files = null)
         {
             _candidateRoot = string.IsNullOrEmpty(candidateRoot)
                 ? throw new ArgumentException("候选根不能为空", nameof(candidateRoot))
                 : candidateRoot.TrimEnd('/');
             _timeoutSeconds = timeoutSeconds < 1 ? 30 : timeoutSeconds;
+            _files = files ?? throw new System.ArgumentNullException(nameof(files), "IFileStore 未注入");
         }
 
         public async UniTask<CandidateFetchResult> FetchAsync(
@@ -74,7 +77,7 @@ namespace LiteClient
             // 落盘文件清点（清单外文件一并返回，交由校验器判 UnexpectedFile）
             var paths = new List<string>(files.Count);
             foreach (ReleaseFileEntry f in files) paths.Add(f.Path);
-            foreach (string extra in FileSysCandidateFileSource.ListAll(_candidateRoot))
+            foreach (string extra in FileSystemCandidateFileSource.ListAll(_files, _candidateRoot))
             {
                 bool declared = false;
                 foreach (ReleaseFileEntry f in files)
@@ -98,7 +101,7 @@ namespace LiteClient
             if (string.IsNullOrEmpty(releaseId)) return UniTask.CompletedTask;
             try
             {
-                FileSys.DeleteDirectory(_candidateRoot + "/.tmp/" + releaseId);
+                _files.DeleteDirectory(_candidateRoot + "/.tmp/" + releaseId);
             }
             catch (Exception)
             {
@@ -115,14 +118,14 @@ namespace LiteClient
         {
             // 已完整落盘（长度一致）则跳过——幂等重跑不重复下载
             string target = _candidateRoot + "/" + entry.Path;
-            if (FileSys.GetFileLength(target) == entry.Length)
+            if (_files.GetFileLength(target) == entry.Length)
                 return default;
 
             // 临时文件归属到 Release（§7：换 Release 不误用旧半截）
             string temp = TempPath(releaseId, entry.Path);
-            long have = FileSys.GetFileLength(temp);
+            long have = _files.GetFileLength(temp);
             if (have > entry.Length)
-                FileSys.Delete(temp);                 // 超出清单长度 = 无归属价值，弃置重下
+                _files.Delete(temp);                 // 超出清单长度 = 无归属价值，弃置重下
 
             while (true)
             {
@@ -189,12 +192,12 @@ namespace LiteClient
                         expected: entry.Length.ToString(), actual: body.LongLength.ToString());
 
                 // 内容摘要由上层 CandidateContentVerifier 统一复算——本类不重复实现摘要
-                FileSys.WriteAllBytes(temp, body);
+                _files.WriteAllBytes(temp, body);
 
                 // 原子提交到目标路径（临时件随即移除）
-                byte[] committed = FileSys.ReadAllBytes(temp);
-                FileSys.WriteAllBytes(target, committed);
-                FileSys.Delete(temp);
+                byte[] committed = _files.ReadAllBytes(temp);
+                _files.WriteAllBytes(target, committed);
+                _files.Delete(temp);
                 return default;
             }
         }
@@ -213,7 +216,7 @@ namespace LiteClient
         }
 
         /// <summary>
-        /// 临时文件路径（**相对 FileSys 根**）：`&lt;候选根&gt;/.tmp/&lt;releaseId&gt;/&lt;相对路径&gt;`。
+        /// 临时文件路径（**相对 FileSystem 根**）：`&lt;候选根&gt;/.tmp/&lt;releaseId&gt;/&lt;相对路径&gt;`。
         /// 归属到 Release——换 Release 不会误用旧半截（§7"验证临时文件的 Release 归属"）。
         /// 完成后必须移到目标路径，否则会被清点判为清单外文件。
         ///

@@ -117,6 +117,7 @@ namespace LiteClient
         private readonly SimMapData _map;
         private readonly uint _gameplayDigestBase;        // 本地装载产物的玩法数据身份基摘要（批 E 校验点用）
         private readonly BattleInputPipeline _inputs;      // 输入三件（顺序与上行）
+        private readonly IEventBus _events;                // 局内事件总线（Match Scope；null = 测试直构）
         private readonly BattleSnapshotMirror _mirror = new BattleSnapshotMirror();   // 持久镜像 + 和解 + 插值源
         private readonly PublicCombatFeed _combatFeed = new PublicCombatFeed();       // 公共战斗事件面（独立事件批 → 按 kind 分流入队）
 
@@ -153,7 +154,7 @@ namespace LiteClient
         /// 形态由 L1 用例显式构造，生产链恒为装载产物。</param>
         public BattleContext(BattleClient battle, ClientScope accountScope,
             IInputService inputProvider = null, SimMapData map = null, uint gameplayDigestBase = 0,
-            MatchTestRules rules = null)
+            MatchTestRules rules = null, IEventBus events = null)
         {
             _battle = battle ?? throw new ArgumentNullException(nameof(battle));
             if (accountScope == null) throw new ArgumentNullException(nameof(accountScope));
@@ -161,6 +162,7 @@ namespace LiteClient
                 "地图必填——装配经 IMapProvider 注入（D22：无回退地图）", nameof(map));
             _gameplayDigestBase = gameplayDigestBase;
             _seedRules = rules;      // 本局规则随会话显式带入（路线图 §4.4：无全局"当前局"登记口）
+            _events = events;         // 局内事件总线（Match Scope 持有；null = 测试直构）
             // 定容依据＝**JoinAck 权威事实**（开房参数批：玩家开房时可选人数；0 = 未标注 → 默认 2 座回落）。
             // 构造点晚于 JoinAck（同地图：MapId 已定值）——见 MatchSessionFactory 装配序。
             ExpectedPlayers = battle.Client.ExpectedPlayers > 0

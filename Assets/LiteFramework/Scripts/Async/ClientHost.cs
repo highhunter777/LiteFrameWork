@@ -35,6 +35,7 @@ namespace LiteFramework
         private int _initializedCount;                    // 已成功初始化的模块数（回滚/关闭的边界）
         private int _state;                                // 0=构造未启动 1=初始化中 2=运行 3=关闭中 4=已关闭
         private bool _shutdownRequested;
+        private UniTaskCompletionSource _shutdownSignal;   // 并发关闭的完成信号：第二调用等待首次收尾，而不是立即返回
         private bool _scopeFailuresReported;
         private readonly List<(IClientModuleHandle handle, ModuleScope scope)> _handles = new List<(IClientModuleHandle, ModuleScope)>();   // 已成功模块的关闭句柄 + 资源作用域（逆序关闭/释放）
 
@@ -114,7 +115,20 @@ namespace LiteFramework
             }
 
             // 启动前图校验（路线图 M1）：重复名/缺失依赖/依赖环一律 fail-fast——早于任何副作用。
-            ValidateModuleGraph(modules);
+            // 校验失败 = 启动终止：进入终态（4），否则 Host 会停在"初始化中"且无法重试。
+            try
+            {
+                ValidateModuleGraph(modules);
+            }
+            catch
+            {
+                lock (_gate)
+                {
+                    _shutdownRequested = true;
+                    _state = 4;
+                }
+                throw;
+            }
 
             _rootScope = new ClientScope("Root");
             _context = new ClientContext(_rootScope);
@@ -182,13 +196,29 @@ namespace LiteFramework
         /// </summary>
         public async UniTask ShutdownAsync(CancellationToken ct = default)
         {
-            List<(string name, Func<CancellationToken, UniTask> flush)> flushes;
+            List<(string name, Func<CancellationToken, UniTask> flush)> flushes = null;
+            UniTaskCompletionSource waitSignal = null;
             lock (_gate)
             {
-                if (_shutdownRequested) return;
-                _shutdownRequested = true;
-                _state = 3;
-                flushes = new List<(string, Func<CancellationToken, UniTask>)>(_flushHooks);
+                if (_shutdownRequested)
+                {
+                    waitSignal = _shutdownSignal;
+                    if (waitSignal == null) return;          // 已强制收尾（ForceReleaseRoot）——没有可等待的在途关闭
+                }
+                else
+                {
+                    _shutdownRequested = true;
+                    _state = 3;
+                    _shutdownSignal = new UniTaskCompletionSource();
+                    flushes = new List<(string, Func<CancellationToken, UniTask>)>(_flushHooks);
+                }
+            }
+
+            if (waitSignal != null)
+            {
+                // 并发/重复调用：等待首次关闭真正结束（含取消路径的 finally），而不是立即返回。
+                await waitSignal.Task;
+                return;
             }
 
             // ① 统一取消链先行：根取消级联全部链接令牌（流程阶段 CTS/子 Scope 在途异步），
@@ -233,17 +263,21 @@ namespace LiteFramework
                     finally
                     {
                         // 模块资源作用域随模块关闭释放（先句柄后资源；取消/失败路径同样释放）
-                        handles[i].scope.Dispose();
-                        lock (_gate) _shutdownFailures.AddRange(handles[i].scope.DisposeFailures);
+                        ReleaseModuleScope(handles[i]);
                     }
                 }
             }
             finally
             {
-                // ④ 根 Scope 释放（LIFO 资源逆序 + 根取消）+ 终态——**任何提前退出路径都必须释放**
+                // ④ 取消/异常路径兜底：未走到的模块 scope 也必须释放（Dispose 幂等；IsDisposed 防重复记账）。
+                for (int i = handles.Count - 1; i >= 0; i--) ReleaseModuleScope(handles[i]);
+
+                // ⑤ 根 Scope 释放（LIFO 资源逆序 + 根取消）+ 终态——**任何提前退出路径都必须释放**
                 // （Roadmap §4.3：取消令牌只约束等待上限，不得跳过根 Scope 释放）。
                 DisposeRoot();
-                lock (_gate) _state = 4;
+                UniTaskCompletionSource signal;
+                lock (_gate) { _state = 4; signal = _shutdownSignal; }
+                signal?.TrySetResult();
             }
         }
 
@@ -356,8 +390,23 @@ namespace LiteFramework
         /// </summary>
         public void ForceReleaseRoot()
         {
-            lock (_gate) _state = 4;
+            UniTaskCompletionSource signal;
+            lock (_gate)
+            {
+                _state = 4;
+                _shutdownRequested = true;      // 迟到 ShutdownAsync 不再重复跑关闭链
+                signal = _shutdownSignal;
+            }
             DisposeRoot();
+            signal?.TrySetResult();              // 唤醒并发等待者（若有）
+        }
+
+        /// <summary>释放一个模块的资源作用域（幂等；只在该 scope 首次释放时聚合其失败，避免兜底路径重复记账）。</summary>
+        private void ReleaseModuleScope((IClientModuleHandle handle, ModuleScope scope) entry)
+        {
+            if (entry.scope.IsDisposed) return;
+            entry.scope.Dispose();
+            lock (_gate) _shutdownFailures.AddRange(entry.scope.DisposeFailures);
         }
 
         /// <summary>启动失败回滚：逆序关闭已成功模块 + 释放各自作用域 + 根 Scope；异常全部吞掉（原异常优先上抛）。</summary>
@@ -422,7 +471,7 @@ namespace LiteFramework
         public static void ResetForEditorReload()
         {
             // 当前无静态状态（Host 实例由 GameEntry 持有，随场景/GO 销毁）。
-            // 预留：静态门面（如未来 Log/FileSys 的编辑器态）在此统一重置。
+            // 预留：静态门面（如未来 Log/FileSystem 的编辑器态）在此统一重置。
         }
     }
 }

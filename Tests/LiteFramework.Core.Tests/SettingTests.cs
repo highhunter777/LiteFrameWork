@@ -1,4 +1,6 @@
 using System;
+using System.IO;
+using System.Text.Json;
 using Xunit;
 
 namespace LiteFramework.Tests
@@ -6,7 +8,8 @@ namespace LiteFramework.Tests
     [Collection("CoreStatic")]   // 解析失败路径读 Log（全局静态）
     public sealed class SettingTests
     {
-        private readonly SettingService _svc = new SettingService();   // 纯内存（不 Load/Save，不触 FileSys）
+        private static readonly FileSystem TestFiles = new FileSystem(new TempPathProvider(), new SystemTextJsonSerializer());
+        private readonly SettingService _svc = new SettingService(TestFiles);   // 纯内存（不 Load/Save，不触 IO）
 
         [Fact]
         public void Setting_缺失_返回默认值()
@@ -70,6 +73,17 @@ namespace LiteFramework.Tests
         public void Setting_不支持的类型_构造时抛()
         {
             Assert.Throws<NotSupportedException>(() => new Setting<double>(_svc, "k_d", 0d));
+        }
+
+        private sealed class TempPathProvider : IPathProvider
+        {
+            public string RootPath => Path.Combine(Path.GetTempPath(), "liteframework-setting-tests");
+        }
+
+        private sealed class SystemTextJsonSerializer : IJsonSerializer
+        {
+            public string Serialize<T>(T value) => JsonSerializer.Serialize(value);
+            public T Deserialize<T>(string json) => JsonSerializer.Deserialize<T>(json);
         }
     }
 }

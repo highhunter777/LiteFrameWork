@@ -1,9 +1,10 @@
 using System;
 using System.Collections.Generic;
+using System.Threading;
 
 namespace LiteFramework
 {
-    public sealed class EventCenter : IEventCenter, ITickable, IModuleStats
+    public sealed class EventBus : IEventBus, IMatchEventBus, ITickable, IModuleStats
     {
         private readonly Dictionary<Type, IEventChannel> _channels = new Dictionary<Type, IEventChannel>(32);
         private readonly Queue<PendingEvent> _queue = new Queue<PendingEvent>(16);
@@ -15,6 +16,8 @@ namespace LiteFramework
         private long _strictWarnings;                      // StrictMode 告警累计（没人听的事件信号）
         private long _intercepted;                         // 拦截否决累计（§3.5——被拦截管掉的事件信号）
         private readonly List<IEventInterceptor> _interceptors = new List<IEventInterceptor>(2);   // 注册序运行
+        private readonly int _mainThreadId = Thread.CurrentThread.ManagedThreadId;
+        private bool _disposed;
 
 #if UNITY_EDITOR || DEVELOPMENT_BUILD || LITEFRAMEWORK_DEBUG
         public bool StrictMode { get; set; } = true;    // 编辑器/开发构建：未订阅事件告警
@@ -26,32 +29,39 @@ namespace LiteFramework
         /// Tick 驱动的队列在消费不及（卡顿/漏 Tick）时有界可诊断，不无界堆积。
         /// 构造注入（缺省 = <see cref="QueueLimits.DefaultCapacity"/>），运行期不可改。</summary>
         public int MaxQueued { get; }
+        public bool IsDisposed => _disposed;
+        private readonly IReferencePool _pool;
 
-        public EventCenter(int maxQueued = QueueLimits.DefaultCapacity)
+        public EventBus(IReferencePool pool, int maxQueued = QueueLimits.DefaultCapacity)
         {
             if (maxQueued < 1) throw new ArgumentOutOfRangeException(nameof(maxQueued));
             MaxQueued = maxQueued;
+            _pool = pool ?? throw new System.ArgumentNullException(nameof(pool), "IReferencePool 未注入");
         }
 
         /// <summary>队列溢出丢弃累计（诊断：消费不及的可见信号）。</summary>
         public long QueuedDroppedCount { get; private set; }
 
         /// <summary>订阅（§3.1 优先级派发：小值先派发，同优先级保持注册序）。priority 默认 0 = 既有调用零改动。</summary>
-        public Action Subscribe<T>(Action<T> handler, int priority = 0) where T : class
+        public IEventSubscription Subscribe<T>(Action<T> handler, int priority = 0) where T : class
         {
+            EnsureMainThread();
+            ThrowIfDisposed();
             if (handler == null) throw new ArgumentNullException(nameof(handler));
             var channel = (EventChannel<T>)GetOrAddChannel<T>();
             channel.Add(handler, priority);
-            return () => channel.Remove(handler);          // 闭包分配一次/订阅;订阅是生命周期边界低频操作,可接受
+            return new EventSubscription(this, () => channel.Remove(handler));
         }
 
         /// <summary>注册发布拦截器（§3.5）：Publish 管线在派发之前按注册序运行；返回注销委托（幂等）。
         /// 返回 false = 否决（该次发布丢弃、InterceptedCount 记账、池化事件否决路径同样回收）。</summary>
-        public Action RegisterInterceptor(IEventInterceptor interceptor)
+        public IDisposable RegisterInterceptor(IEventInterceptor interceptor)
         {
+            EnsureMainThread();
+            ThrowIfDisposed();
             if (interceptor == null) throw new ArgumentNullException(nameof(interceptor));
             _interceptors.Add(interceptor);
-            return () => _interceptors.Remove(interceptor);    // 幂等（同订阅/注销语义）
+            return new EventSubscription(this, () => _interceptors.Remove(interceptor));
         }
 
         /// <summary>拦截管线（§3.5）：全部放行返回 true；任一否决返回 false。
@@ -79,10 +89,11 @@ namespace LiteFramework
 
         public void Publish<T>(T e) where T : class
         {
+            EnsureMainThread();
+            ThrowIfDisposed();
             if (e == null) throw new ArgumentNullException(nameof(e));
             if (!RunInterceptors(e))
             {
-                RecycleIfPooled(e);                        // 否决路径同样回收——不派发、不告警、不计数发布
                 return;
             }
             _published++;
@@ -93,7 +104,16 @@ namespace LiteFramework
                 _strictWarnings++;
                 Log.Warning($"no subscriber: {typeof(T).Name}", LogTag.Event);
             }
-            RecycleIfPooled(e);                            // 无订阅者路径同样回收——否则无订阅事件 = 泄漏
+        }
+
+        /// <summary>显式池化发布：派发完成后由中心回收（仅 IReference 事件）。普通事件请用 Publish。</summary>
+        public void PublishPooled<T>(T e) where T : class, IReference
+        {
+            EnsureMainThread();
+            ThrowIfDisposed();
+            if (e == null) throw new ArgumentNullException(nameof(e));
+            try { Publish(e); }
+            finally { RecycleIfPooled(e); }
         }
 
         /// <summary>入队，Tick 统一派发（低频便利）。class 约束下 object 装箱为零成本引用上转。
@@ -101,6 +121,8 @@ namespace LiteFramework
         /// 经同一派发核心（StrictMode/回收/异常隔离/优先级全适用）。UI 反馈的"下一拍"时序不必各自起计时器。</summary>
         public void PublishQueued<T>(T e, int delayFrames = 1) where T : class
         {
+            EnsureMainThread();
+            ThrowIfDisposed();
             if (e == null) throw new ArgumentNullException(nameof(e));
             if (delayFrames < 1) delayFrames = 1;            // 当帧不触发是队列语义下限
 
@@ -108,7 +130,7 @@ namespace LiteFramework
             {
                 QueuedDroppedCount++;
                 Log.Error($"队列溢出丢弃（MaxQueued={MaxQueued}）: {typeof(T).Name}", LogTag.Event);
-                RecycleIfPooled(e);                         // 丢弃路径同样回收——与"无订阅者路径同样回收"同纪律
+                RecycleIfPooled(e);                         // 队列丢弃路径回收（队列已接管池化事件）
                 return;
             }
 
@@ -120,6 +142,8 @@ namespace LiteFramework
 
         public void Tick(float realDelta)
         {
+            EnsureMainThread();
+            ThrowIfDisposed();
             _tickCount++;
             int n = _queue.Count;                          // 快照量:派发期间新入队留到下帧,防互相触发同帧死循环
             for (int i = 0; i < n; i++)
@@ -130,8 +154,38 @@ namespace LiteFramework
                     _queue.Enqueue(pe);                    // 未到期（延迟在途）:留队到未来帧——不属于"当帧快照"级联防护语义
                     continue;
                 }
-                if (_adapters.TryGetValue(pe.EventType, out var fire)) fire(pe.Event);
+                if (_adapters.TryGetValue(pe.EventType, out var fire))
+                {
+                    fire(pe.Event);
+                    RecycleIfPooled(pe.Event);              // 队列接管池化事件：派发完成统一回收
+                }
             }
+        }
+
+        public void Dispose()
+        {
+            EnsureMainThread();
+            if (_disposed) return;
+            _disposed = true;
+
+            foreach (var pe in _queue) RecycleIfPooled(pe.Event);   // 队列接管中的池化事件在关闭时归还
+            _queue.Clear();
+            _adapters.Clear();
+            foreach (var channel in _channels.Values) channel.Clear();
+            _channels.Clear();
+            _interceptors.Clear();
+        }
+
+        private void ThrowIfDisposed()
+        {
+            if (_disposed) throw new ObjectDisposedException(nameof(EventBus));
+        }
+
+        private void EnsureMainThread()
+        {
+            int current = Thread.CurrentThread.ManagedThreadId;
+            if (current != _mainThreadId)
+                throw new InvalidOperationException($"EventBus 只能主线程访问（构造线程 {_mainThreadId}，当前 {current}）");
         }
 
         private IEventChannel GetOrAddChannel<T>() where T : class
@@ -142,22 +196,24 @@ namespace LiteFramework
             return created;
         }
 
-        /// <summary>所有权移交的落点:发布即移交,派发完成后中心统一回收。channel 保持纯机制,不知道 IReference 存在。</summary>
+        /// <summary>池化事件回收点：仅 PublishPooled 与队列路径调用；Publish 不接管所有权。channel 保持纯机制。</summary>
         private void RecycleIfPooled(object e)
         {
             if (e is IReference pooled)
             {
                 _recycled++;
-                ReferencePool.Release(pooled);
+                _pool.Release(pooled);
             }
         }
 
-        public string StatsName => "EventCenter";
+        public string StatsName => "EventBus";
 
         /// <summary>契约：实现负责 into.Clear() 再填入；key 为常量串零分配，value 为插值串（HUD 低频轮询可接受）。
         /// 批2 追加键（《事件中心专项设计》§4）——既有键不动，HUD 消费方兼容。</summary>
         public void Snapshot(Dictionary<string, string> into)
         {
+            EnsureMainThread();
+            ThrowIfDisposed();
             into.Clear();
             int subscribers = 0;
             long dispatchErrors = 0;
@@ -201,6 +257,34 @@ namespace LiteFramework
             public readonly object Event;
             public readonly long DueTick;                    // 到期帧（Tick 计数域）
             public PendingEvent(Type eventType, object e, long dueTick) { EventType = eventType; Event = e; DueTick = dueTick; }
+        }
+    }
+
+
+    /// <summary>订阅句柄实现：Dispose 注销；总线 Dispose 后 IsDisposed 亦为 true。</summary>
+    internal sealed class EventSubscription : IEventSubscription
+    {
+        private EventBus _owner;
+        private Action _onDispose;
+        private int _disposed;
+
+        public EventSubscription(EventBus owner, Action onDispose)
+        {
+            _owner = owner ?? throw new ArgumentNullException(nameof(owner));
+            _onDispose = onDispose ?? throw new ArgumentNullException(nameof(onDispose));
+        }
+
+        public bool IsDisposed
+            => Volatile.Read(ref _disposed) != 0 || (_owner != null && _owner.IsDisposed);
+
+        public void Dispose()
+        {
+            if (Interlocked.Exchange(ref _disposed, 1) != 0) return;
+            Action onDispose = _onDispose;
+            _onDispose = null;
+            _owner = null;
+            try { onDispose?.Invoke(); }
+            catch (Exception ex) { Log.Error(ex, "EventSubscription.Dispose", LogTag.Event); }
         }
     }
 

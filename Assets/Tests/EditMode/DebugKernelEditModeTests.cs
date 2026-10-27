@@ -21,7 +21,7 @@ namespace LiteGame.Tests.EditMode
         [SetUp]
         public void SetUp()
         {
-            _commands = new CommandCenter(true);
+            _commands = new CommandCenter(new ReferencePoolService(), true);
             _kernel = new DebugKernel(_commands, null);
             _registrations.Clear();
             _optionSnapshot.Clear();

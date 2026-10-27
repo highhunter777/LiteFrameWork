@@ -2,7 +2,7 @@
     "name": "LiteGame.UI.PlayModeTests",
     "rootNamespace": "LiteGame.Tests.UI.PlayMode",
     "references": [
-        "LiteClient.Abstractions",
+        "LiteFramework.Abstractions",
         "LiteClient.Content.YooAsset",        "LiteClient.Runtime",
         "LiteClient.Scripting.XLua",
         "LiteClient.Serialization.Luban",

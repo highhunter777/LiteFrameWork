@@ -365,7 +365,7 @@ namespace LiteGame.Tests.UI.PlayMode
             // 载体是 `PrefabLeaseCache`——**装配层的租约归属方**（表现域只持引用，释放归它）。
             // 用**真 `IContentService`**（YooAssetContentService → AssetService 真资源链路），
             // 不是替身：租约的引用计数语义只有真链路才成立。
-            var content = new YooAssetContentService();
+            var content = new YooAssetContentService(new FileSystem(new UnityPathProvider(), new NewtonsoftJsonSerializer()));
             var init = content.InitializeAsync();
             yield return Wait(init, 60f);
             Assert.IsFalse(init.Status == UniTaskStatus.Pending, "内容服务初始化超时");
@@ -406,7 +406,7 @@ namespace LiteGame.Tests.UI.PlayMode
         {
             // PrefabLeaseCache.GetAsync 的竞态分支：`await AcquireAsync` 期间被 ReleaseAll
             // → **就地归还租约后上抛**（不能泄漏那份刚取到的引用）。这条与帧时序无关，是同步可判定的。
-            var content = new YooAssetContentService();
+            var content = new YooAssetContentService(new FileSystem(new UnityPathProvider(), new NewtonsoftJsonSerializer()));
             var init = content.InitializeAsync();
             yield return Wait(init, 60f);
             Assert.IsFalse(init.Status == UniTaskStatus.Pending, "内容服务初始化超时");

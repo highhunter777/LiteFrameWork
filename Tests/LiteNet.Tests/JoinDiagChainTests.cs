@@ -193,7 +193,7 @@ namespace LiteNet.Tests
                 => DiagTrace.Emit(stage, code, key, detail);
         }
 
-        /// <summary>内存激活记录（真存储由 Unity 侧 FileSys/JSON 适配；本样例只验诊断链）。</summary>
+        /// <summary>内存激活记录（真存储由 Unity 侧 FileSystem/JSON 适配；本样例只验诊断链）。</summary>
         private sealed class MemoryActivationIO : IActivationRecordIO
         {
             private ActivationRecord _record;

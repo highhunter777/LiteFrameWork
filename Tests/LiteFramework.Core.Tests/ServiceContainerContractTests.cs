@@ -89,6 +89,14 @@ namespace LiteFramework.Tests
         }
 
         [Fact]
+        public void InstanceRegistrationRejectsTransientLifetime()
+        {
+            using var container = new ServiceContainer();
+            Assert.Throws<ArgumentException>(
+                () => container.RegisterInstance(new object(), ServiceLifetime.Transient));
+        }
+
+        [Fact]
         public void PreflightReportsFullMissingDependencyChain()
         {
             using var container = new ServiceContainer();

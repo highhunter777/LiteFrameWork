@@ -46,14 +46,14 @@ return function(name, fn)
     end
 end";
 
-        private readonly IEventCenter _center;
+        private readonly IEventBus _bus;
         private readonly LuaTable _callbacks;                  // 事件名 → { fn, ... }（events.on 写入，C# 派发读取）
-        private readonly List<Action> _detachments = new List<Action>(4);
+        private readonly List<IDisposable> _detachments = new List<IDisposable>(4);
         private bool _disposed;
 
-        public EventBridge(LuaEnv env, IEventCenter center)
+        public EventBridge(LuaEnv env, IEventBus bus)
         {
-            _center = center ?? throw new ArgumentNullException(nameof(center));
+            _bus = bus ?? throw new ArgumentNullException(nameof(bus));
             _callbacks = env.NewTable();
 
             env.Global.Set("__bridge_callbacks", _callbacks);
@@ -69,7 +69,7 @@ end";
         /// <summary>一行注册：C# 事件类型 → Lua 事件名；handler 收事件后按映射名逐回调派发。</summary>
         private void Map<TEvent>(string luaEvent, Func<TEvent, object[]> pack) where TEvent : class
         {
-            _detachments.Add(_center.Subscribe<TEvent>(e => Dispatch(luaEvent, pack(e))));
+            _detachments.Add(_bus.Subscribe<TEvent>(e => Dispatch(luaEvent, pack(e))));
         }
 
         /// <summary>派发：逐回调 SafeCall（单个抛异常不中断链路，异常经 C# 日志可见）。</summary>
@@ -92,7 +92,7 @@ end";
             if (_disposed) return;
             _disposed = true;
             foreach (var detach in _detachments)
-                SafeCall.Invoke(detach, "eventbridge.detach");
+                SafeCall.Invoke(detach.Dispose, "eventbridge.detach");
             _detachments.Clear();
             _callbacks.Dispose();                              // env 释放前先解桥（Shutdown 编排顺序，§2.7）
         }

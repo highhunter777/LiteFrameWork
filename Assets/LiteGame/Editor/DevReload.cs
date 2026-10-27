@@ -1,4 +1,4 @@
-﻿using System.Threading;
+using System.Threading;
 using Cysharp.Threading.Tasks;
 using LiteFramework;
 using UnityEditor;
@@ -48,7 +48,7 @@ namespace LiteGame.Editor
 
             var container = Object.FindFirstObjectByType<LiteGame.GameEntry>().TakeContainer();
             var config = container.Resolve<LiteClient.IConfigService>();
-            var events = container.Resolve<LiteFramework.IEventCenter>();
+            var events = container.Resolve<LiteFramework.IEventBus>();
             var uiService = container.Resolve<LiteClient.UI.UIService>();
             var ui = container.Resolve<LiteGame.IUILuaRegistry>();
             var content = container.Resolve<LiteGame.IContentLuaRegistry>();

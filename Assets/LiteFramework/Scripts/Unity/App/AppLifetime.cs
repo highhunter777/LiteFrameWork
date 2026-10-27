@@ -107,6 +107,27 @@ namespace LiteFramework
 
         private async UniTask RunGracefulQuitAsync()
         {
+            using var timeoutCts = new CancellationTokenSource();
+            UniTask shutdownFlow = RunShutdownFlowAsync();
+            UniTask timeout = UniTask.Delay(
+                TimeSpan.FromMilliseconds(GracefulShutdownMaxMs),
+                DelayType.UnscaledDeltaTime,
+                PlayerLoopTiming.Update,
+                timeoutCts.Token);
+
+            // 有界退出：模块善后挂死时不再无限等待——超时即强制释放根 Scope 并放行退出。
+            int winner = await UniTask.WhenAny(shutdownFlow, timeout);
+            if (winner == 1)
+            {
+                Log.Warning($"优雅关闭超过 {GracefulShutdownMaxMs}ms——强制释放根 Scope 并放行退出", LogTag.Bootstrap);
+                _host.ForceReleaseRoot();
+            }
+
+            timeoutCts.Cancel();
+        }
+
+        private async UniTask RunShutdownFlowAsync()
+        {
             try
             {
                 await _host.RaiseQuitIntentAsync();

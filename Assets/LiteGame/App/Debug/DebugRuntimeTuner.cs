@@ -13,7 +13,7 @@ namespace LiteGame
     {
         private IWorldClock _world;
         private IUIClock _ui;
-        private EventCenter _events;
+        private EventBus _events;
         private CommandCenter _commands;                     // 命令中心（离散调试动作经 GM 命令——§6 闭环）
         private IDisposable _gmCommandRegistration;          // GM 示范命令注册（重注入先注销——幂等）
 
@@ -106,7 +106,7 @@ namespace LiteGame
             });
         }
 
-        public void Inject(IWorldClock world, IUIClock ui, EventCenter events, CommandCenter commands)
+        public void Inject(IWorldClock world, IUIClock ui, EventBus events, CommandCenter commands)
         {
             _world = world; _ui = ui; _events = events; _commands = commands;
             // GM 示范命令（§6/批2 消费端闭环）：发现面据此列命令，不硬编码清单；重注入先注销

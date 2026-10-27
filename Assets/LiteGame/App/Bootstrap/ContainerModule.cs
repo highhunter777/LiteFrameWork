@@ -69,12 +69,13 @@ namespace LiteGame
             _services.RegisterInstance<ISceneService>(_scenes);
             _services.RegisterInstance<IMainThreadDispatcher>(new MainThreadDispatcher());
             _services.RegisterInstance(new DotweenUiClockDriver(context.Require<IUIClock>()));
-            _services.RegisterInstance<IEventCenter>(context.Require<EventCenter>());
+            _services.RegisterInstance<IEventBus>(context.Require<EventBus>());
             var commands = new CommandCenter(
+                context.Require<IReferencePool>(),
 #if UNITY_EDITOR || DEVELOPMENT_BUILD || LITEFRAMEWORK_DEBUG
-                true
+                gmEnabled: true
 #else
-                false
+                gmEnabled: false
 #endif
             );
             context.Put(commands);                                 // 产物登记＝具体键 CommandCenter（执行形态消费者经 Require<CommandCenter> 取）
@@ -139,7 +140,8 @@ namespace LiteGame
             transportFactory = WeakNetWiring.WrapFactory(transportFactory, weakNet);
 #endif
             var accounts = new AccountSessionFactory(context.RootScope, _services, transportFactory);
-            var matches = new MatchSessionFactory(context.Require<IInputService>(), gameplayDigestBase, maps);
+            var matches = new MatchSessionFactory(context.Require<IInputService>(), gameplayDigestBase, maps,
+                context.Require<IReferencePool>());
             _services.RegisterInstance<IAccountSessionFactory>(accounts);
             _services.RegisterInstance<IMatchSessionFactory>(matches);
 
@@ -196,7 +198,7 @@ namespace LiteGame
             // CommandCenter 置流程机前：排队/延迟命令到期派发先于机器 Tick——命令对流程机的 Request 当帧可被应用。
             _services.SetTickOrder(
                 typeof(IMainThreadDispatcher), typeof(IWorldClock), typeof(IUIClock),
-                typeof(DotweenUiClockDriver), typeof(IEventCenter), typeof(UIService),
+                typeof(DotweenUiClockDriver), typeof(IEventBus), typeof(UIService),
                 typeof(ILogicScheduler), typeof(IUIScheduler), typeof(ITimelineRunner),
                 typeof(IVFXService), typeof(DialogService), typeof(ToastTicker),
                 typeof(ICommandCenter),
@@ -241,7 +243,7 @@ namespace LiteGame
                 (ProcedureId.Patch, new ProcedurePatch(content, context.Require<ActivationTransactionStore>(),
                     context.Require<PatchRunner>(), rootToken, context.Require<AssetsHealthProbe>())),
                 (ProcedureId.Preload, new ProcedurePreload(content, config, lua, filler,
-                    context.Require<EventCenter>(), context.Require<UIService>(), () => ListLuaAssetPaths(content), rootToken,
+                    context.Require<EventBus>(), context.Require<UIService>(), () => ListLuaAssetPaths(content), rootToken,
                     feedback)),
                 (ProcedureId.Main, new ProcedureMain(rootToken, pageFlow, metaEntry)),
                 (ProcedureId.Match, new ProcedureMatch(context.Require<IAccountSessionFactory>(), feedback, rootToken)),

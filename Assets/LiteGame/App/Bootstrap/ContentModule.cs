@@ -19,10 +19,11 @@ namespace LiteGame
         public System.Collections.Generic.IReadOnlyList<System.Type> DependsOn => new System.Type[] { typeof(PlatformInfrastructureModule) };
         public UniTask InitializeAsync(ModuleContext context, CancellationToken ct)
         {
-            _content = new YooAssetContentService();
+            IFileStore files = context.Require<IFileStore>();
+            _content = new YooAssetContentService(files);
             context.Put<IContentService>(_content);
             context.Put<IGenerationSink>(_content);                                      // 代次推进（§9：确认后切换，失败回退）
-            context.Put(new ActivationTransactionStore(new FileActivationRecordIO()));   // 启动恢复决策（Patch 流程消费）
+            context.Put(new ActivationTransactionStore(new FileActivationRecordIO(files: files)));   // 启动恢复决策（Patch 流程消费）
 
             // 热更链生产装配。装配形态决定能力边界：
             // - **信任锚**：内置锚表（ContentTrustAnchors——根信任编入应用本体，不放可写存储）。
@@ -52,32 +53,32 @@ namespace LiteGame
             if (deploy.HasCdn)
             {
                 var source = new DownloadSource("cdn", deploy.BaseUrl);
-                fetcher = new HttpCandidateFetcher(candidateRoot, deploy.TimeoutSeconds);
+                fetcher = new HttpCandidateFetcher(candidateRoot, deploy.TimeoutSeconds, files);
                 provider = new HttpCandidateProvider(deploy.BaseUrl, deploy.OfferPath, deploy.TimeoutSeconds);
                 planFactory = manifest => new DownloadPlan(manifest, new[] { source });
                 Log.Info($"内容通道：CDN {deploy.BaseUrl}（信封 {deploy.OfferPath}）", LogTag.Content);
             }
             else
             {
-                fetcher = new LocalDirectoryCandidateFetcher(candidateRoot);
-                provider = new FileSystemCandidateProvider();
+                fetcher = new LocalDirectoryCandidateFetcher(candidateRoot, files);
+                provider = new FileSystemCandidateProvider(files: files);
                 planFactory = null;                       // PatchRunner 默认计划（本地通道只清点落盘、不消费来源）
                 Log.Info("内容通道：本地信封（未配置 CDN）", LogTag.Content);
             }
 
             var trustedKeys = new TrustedKeyStore();
             ContentTrustAnchors.ApplyTo(trustedKeys);                                // 锚点已 provisioning
-            var candidateFiles = new FileSysCandidateFileSource(candidateRoot);
+            var candidateFiles = new FileSystemCandidateFileSource(candidateRoot, files);
             var coordinator = new PatchCoordinator(
                 context.Require<ActivationTransactionStore>(),
                 candidateFiles,
-                // 空间预检探**内容将写入的卷**——候选根即写入目标（FileSys 相对路径，
+                // 空间预检探**内容将写入的卷**——候选根即写入目标（FileSystem 相对路径，
                 // 卷归属与 RootPath 同卷：RootPath = Application.persistentDataPath）。
-                new WriteProbeDiskSpaceProbe(candidateRoot),
+                new WriteProbeDiskSpaceProbe(candidateRoot, files: files),
                 fetcher,
                 new CompositeHealthCheck(
-                    new CandidateConfigHealthProbe(candidateRoot, ReleaseLayout.ConfigPaths),
-                    new LuaScriptsHealthProbe(candidateRoot, ReleaseLayout.LuaScripts)),
+                    new CandidateConfigHealthProbe(candidateRoot, ReleaseLayout.ConfigPaths, files),
+                    new LuaScriptsHealthProbe(candidateRoot, ReleaseLayout.LuaScripts, files)),
                 new ContentActivator(_content));
             context.Put(new PatchRunner(
                 provider,

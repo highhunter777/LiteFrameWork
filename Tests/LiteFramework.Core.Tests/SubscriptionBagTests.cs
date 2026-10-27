@@ -73,7 +73,7 @@ namespace LiteFramework.Tests
         public void 注册空委托_抛参数异常()
         {
             var bag = new SubscriptionBag();
-            Assert.Throws<ArgumentNullException>(() => bag.Add(null));
+            Assert.Throws<ArgumentNullException>(() => bag.Add((Action)null));
         }
 
         [Fact]

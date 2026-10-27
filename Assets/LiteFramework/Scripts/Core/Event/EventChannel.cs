@@ -36,6 +36,13 @@ namespace LiteFramework
         public long PublishedCount => _published;
         public long DispatchErrors => _errors;
 
+        public void Clear()
+        {
+            _subs.Clear();
+            _snapshot = Empty;
+            _depth = 0;
+        }
+
         /// <summary>有序插入：插到首个"优先级严格更大"的条目之前——同优先级保持注册序（稳定排序）。
         /// Debug 三宏下同一委托重复订阅 → Log.Warning（不抛——多实例订阅者复用同一静态方法是合法形态，§3.4）。</summary>
         public void Add(Action<T> handler, int priority)

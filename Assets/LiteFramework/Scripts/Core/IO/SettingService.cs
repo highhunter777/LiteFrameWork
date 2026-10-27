@@ -7,12 +7,12 @@ using System.Globalization;
 namespace LiteFramework
 {
     /// <summary>
-    /// 玩家偏好服务(音量/画质/语言:**存档不经过它**,存档结构业务自持走 FileSys + TryReadJson 迁移)。
+    /// 玩家偏好服务(音量/画质/语言:**存档不经过它**,存档结构业务自持走 FileSystem + TryReadJson 迁移)。
     /// DI 单例;构造纯(不 IO),Load 由 ProcedureLaunch 显式调。
     /// 契约:
     /// ① 内部全存字符串(文件即字典,可读可调试;新增 key = 天然兼容,无需版本迁移);类型转换在 Get 处;
-    /// ② 持久化经 FileSys 原子写;文件不存在 = 空白(**首启是正常状态,静默**);
-    ///    损坏 = 空白 + FileSys 层已 Log.Error——ReadJson 二分口径的直接兑现,本类不重复报警;
+    /// ② 持久化经 FileSystem 原子写;文件不存在 = 空白(**首启是正常状态,静默**);
+    ///    损坏 = 空白 + FileSystem 层已 Log.Error——ReadJson 二分口径的直接兑现,本类不重复报警;
     /// ③ **脏标记协议**:Set/Remove 只标脏;持久化在显式时机调 SaveIfDirty——
     ///    标准调用点:设置界面关闭 / OnApplicationPause(true) / OnApplicationQuit(三处纪律,不是机制);
     /// ④ 数值转换恒 InvariantCulture——区域设置的逗号小数点是跨设备往返 bug 源;
@@ -24,13 +24,20 @@ namespace LiteFramework
     {
         private const string FilePath = "settings.json";
         private readonly Dictionary<string, string> _values = new Dictionary<string, string>(16);
+        private readonly IFileStore _files;
         private bool _dirty;
+
+        /// <summary>注入文件端口（必需；未注入即装配错误）。</summary>
+        public SettingService(IFileStore files = null)
+        {
+            _files = files ?? throw new System.ArgumentNullException(nameof(files), "IFileStore 未注入");
+        }
 
         /// <summary>文件 → 字典。可重调(重载语义:丢弃内存中未存修改)。</summary>
         public void Load()
         {
             _values.Clear();
-            var data = FileSys.ReadJson<Dictionary<string, string>>(FilePath);
+            var data = _files.ReadJson<Dictionary<string, string>>(FilePath);
             if (data == null) return;                      // 首启:空白,静默
             foreach (var kv in data) _values[kv.Key] = kv.Value;
             _dirty = false;
@@ -39,7 +46,7 @@ namespace LiteFramework
         /// <summary>写回(原子写)。失败(磁盘满等)→ Log.Error 不抛——宁丢偏好不炸调用方;脏标记保持,下次时机再试。</summary>
         public void Save()
         {
-            try { FileSys.WriteJson(FilePath, _values); _dirty = false; }
+            try { _files.WriteJson(FilePath, _values); _dirty = false; }
             catch (Exception ex) { Log.Error(ex, null, LogTag.Setting); }
         }
 

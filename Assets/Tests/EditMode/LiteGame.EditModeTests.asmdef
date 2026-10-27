@@ -2,7 +2,7 @@
     "name": "LiteGame.EditModeTests",
     "rootNamespace": "LiteGame.Tests.EditMode",
     "references": [
-        "LiteClient.Abstractions",
+        "LiteFramework.Abstractions",
         "LiteClient.Content.YooAsset",        "LiteClient.Platform.Unity",
         "Unity.InputSystem",
         "LiteClient.Runtime",

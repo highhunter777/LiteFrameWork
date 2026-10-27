@@ -444,7 +444,7 @@ namespace Tools.DisciplineScan
         /// </summary>
         public static readonly string[] ClientFrameworkPurityAsmdefs =
         {
-            "Assets/LiteClient/Abstractions/LiteClient.Abstractions.asmdef",
+            "Assets/LiteFramework/Abstractions/LiteFramework.Abstractions.asmdef",
             "Assets/LiteClient/Runtime/LiteClient.Runtime.asmdef",
             "Assets/LiteClient/UI/LiteClient.UI.asmdef",
             "Assets/LiteClient/Adapters/Content.YooAsset/LiteClient.Content.YooAsset.asmdef",

@@ -21,7 +21,7 @@ namespace LiteGame
     /// 静态状态仅 `s_booted` 幂等标记（重复引导守卫；不持真实生命周期）。
     /// 容器/流程机为实例字段，随引导件销毁；AppLifetime.OnDestroy 执行完整关闭（无遗留）。
     /// </summary>
-    [DefaultExecutionOrder(-1000)]   // 引导件必须最先 Awake：FileSys/Log/容器由本件经 ClientHost 建立，其余组件依赖这套基础设施
+    [DefaultExecutionOrder(-1000)]   // 引导件必须最先 Awake：FileSystem/Log/容器由本件经 ClientHost 建立，其余组件依赖这套基础设施
     public sealed class GameEntry : MonoBehaviour
     {
         private static bool s_booted;   // 重复引导守卫（场景误含引导件时静默销毁新件；不持生命周期）
@@ -41,6 +41,8 @@ namespace LiteGame
         private StageMachine<ProcedureId, ProcedureArgs> _fsm;
         private CancellationTokenSource _bootCts;
         private bool _active;
+        private bool _startRequested;      // Start 已到（流程可以启动）；实际启动等依赖就绪
+        private bool _proceduresStarted;   // 流程机已启动（幂等标记）
 
         /// <summary>引导与开发工具取得已装配的根容器；业务流程只消费注入的能力。</summary>
         public ServiceContainer TakeContainer()
@@ -97,9 +99,15 @@ namespace LiteGame
                 await _host.InitializeAsync(ct);
                 _container = _host.Product<ServiceContainer>();
                 _fsm = _host.Product<StageMachine<ProcedureId, ProcedureArgs>>();
+                if (_fsm == null)
+                {
+                    Log.Error("宿主初始化完成但流程机缺失（进入 Error 态）", LogTag.GameEntry);
+                    ProcedureError.ShowBootstrapError("host bootstrap incomplete: procedure machine missing");
+                    return;
+                }
 #if UNITY_EDITOR || DEVELOPMENT_BUILD || LITEFRAMEWORK_DEBUG
                 // 运行态调试旋钮注入（同 GameObject；可选——未挂即跳过；守卫与定义处一致：release Player 下类型被条件编译移除）
-                GetComponent<DebugRuntimeTuner>()?.Inject(_host.Product<IWorldClock>(), _host.Product<IUIClock>(), _host.Product<EventCenter>(), _host.Product<CommandCenter>());
+                GetComponent<DebugRuntimeTuner>()?.Inject(_host.Product<IWorldClock>(), _host.Product<IUIClock>(), _host.Product<EventBus>(), _host.Product<CommandCenter>());
                 try { _debugKernel = _container.Resolve<DebugKernel>(); }
                 catch (Exception ex) { Log.Warning($"调试内核未装配：{ex.Message}", LogTag.GameEntry); }
 #endif
@@ -108,6 +116,8 @@ namespace LiteGame
                 MemoryLoopProbe.TryArm(_container);
                 // 模态输入恢复探针：同款命令行门控（-inputmodal）——正常启动零影响
                 InputModalProbe.TryArm(_host);
+                // 模块初始化若异步完成，流程机在这里启动；同步完成时 Start 已启动（幂等）。
+                TryStartProcedures();
             }
             catch (OperationCanceledException)
             {
@@ -126,13 +136,16 @@ namespace LiteGame
         private void Start()
         {
             if (!_active) return;                            // 重复引导件：Awake 已销毁，不参与
-            TakeContainer();                                 // 断言已装配
-            if (_fsm == null)
-            {
-                Log.Error("宿主初始化未完成——流程机缺失（进入 Error 态）", LogTag.GameEntry);
-                ProcedureError.ShowBootstrapError("host bootstrap incomplete");
-                return;
-            }
+            // 模块初始化可能异步完成：这里只登记"流程可以启动"，不假设 Awake 内已装配完。
+            _startRequested = true;
+            TryStartProcedures();
+        }
+
+        /// <summary>依赖就绪后启动流程机（幂等）：同步完成由 Start 调用，异步完成由引导续体调用。</summary>
+        private void TryStartProcedures()
+        {
+            if (!_startRequested || !_active || _proceduresStarted || _fsm == null) return;
+            _proceduresStarted = true;
             _fsm.Start(ProcedureId.Launch);
         }
 
@@ -162,8 +175,10 @@ namespace LiteGame
         private void Update()
         {
             if (!_active || _container == null) return;      // 重复引导件销毁前 / 引导未完成不驱动
-            // 统一喂真实帧间隔：变速由 IGameClock 内部缩放（勿用 Time.deltaTime 二次乘）
-            foreach (var t in _container.Tickables) t.Tick(Time.unscaledDeltaTime);
+            // 统一喂真实帧间隔：变速由 IGameClock 内部缩放（勿用 Time.deltaTime 二次乘）。
+            // 按索引遍历：IReadOnlyList 的接口枚举器会每帧箱化一次（60fps 零分配纪律）。
+            var tickables = _container.Tickables;
+            for (int i = 0; i < tickables.Count; i++) tickables[i].Tick(Time.unscaledDeltaTime);
         }
 
         private void OnDestroy()

@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Threading;
 using Cysharp.Threading.Tasks;
@@ -49,7 +49,7 @@ namespace LiteClient
 
         /// <summary>初始化 env + 注册自定义 loader + 绑定事件桥，并经 <paramref name="bindGameGlobals"/> 注入游戏桥
         /// （AddComponent 后调用一次；重复调用抛）。游戏桥由装配点/编辑器工具传入——宿主不认识 Bridge（方向=产品→框架）。</summary>
-        public void Init(LuaPreloader preloader, IEventCenter eventCenter, Action<LuaEnv> bindGameGlobals = null)
+        public void Init(LuaPreloader preloader, IEventBus eventBus, Action<LuaEnv> bindGameGlobals = null)
         {
             if (_env != null) throw new InvalidOperationException("LuaComponent 已初始化——重复 Init");
             _preloader = preloader ?? throw new ArgumentNullException(nameof(preloader));
@@ -58,7 +58,7 @@ namespace LiteClient
             _env.AddLoader(LoadFromCache);
             BindLog();
             bindGameGlobals?.Invoke(_env);                     // 游戏桥（§2.5）：Bridge.data/ui/content 由注入方绑定
-            _eventBridge = new EventBridge(_env, eventCenter); // 事件桥（§2.6）：events.on + 显式映射注册
+            _eventBridge = new EventBridge(_env, eventBus); // 事件桥（§2.6）：events.on + 显式映射注册
 #if UNITY_EDITOR
             // LuaPanda 断点钩子：仅编辑器启用（宏隔离——hook 进包 = 真机莫名掉帧）。
             // LuaPanda.lua 随 Lua 目录分发进预载缓存；未放入时静默跳过，不阻塞开发流。

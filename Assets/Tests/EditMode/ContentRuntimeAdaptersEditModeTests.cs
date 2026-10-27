@@ -10,29 +10,30 @@ namespace LiteGame.Tests.EditMode
 {
     /// <summary>
     /// 内容运行时适配（《热更与内容发布专项设计》§7"下载、候选校验与容量"）：
-    /// <see cref="FileSysCandidateFileSource"/>（候选文件读取）、
+    /// <see cref="FileSystemCandidateFileSource"/>（候选文件读取）、
     /// <see cref="LocalDirectoryCandidateFetcher"/>（本地候选清点）、
     /// <see cref="UnavailableDiskSpaceProbe"/>（空间不可知的 fail-closed）、
     /// <see cref="WriteProbeDiskSpaceProbe"/>（生产装配的空间余量链：DriveInfo → 写探针回退）。
     ///
-    /// 同时覆盖 <see cref="FileSys"/> 的字节/递归 API ——
-    /// LiteGame 层零 System.IO，候选文件（含二进制）必须走 FileSys 通道。
+    /// 同时覆盖 <see cref="FileSystem"/> 的字节/递归 API ——
+    /// LiteGame 层零 System.IO，候选文件（含二进制）必须走 FileSystem 通道。
     /// </summary>
     public sealed class ContentRuntimeAdaptersEditModeTests : UnityTestBase
     {
+        private FileSystem _files;
         private const string Root = "test_candidate_root";
 
         [SetUp]
         protected void Init()
         {
-            FileSys.Init(new UnityPathProvider(), new NewtonsoftJsonSerializer());
-            if (FileSys.DirectoryExists(Root)) FileSys.DeleteDirectory(Root);
+            _files = new FileSystem(new UnityPathProvider(), new NewtonsoftJsonSerializer());
+            if (_files.DirectoryExists(Root)) _files.DeleteDirectory(Root);
         }
 
         [TearDown]
         protected void Clean()
         {
-            if (FileSys.DirectoryExists(Root)) FileSys.DeleteDirectory(Root);
+            if (_files.DirectoryExists(Root)) _files.DeleteDirectory(Root);
         }
 
         private static byte[] Bytes(string s) => System.Text.Encoding.UTF8.GetBytes(s);
@@ -41,7 +42,7 @@ namespace LiteGame.Tests.EditMode
         private readonly List<(string path, string content)> _candidateContents = new List<(string, string)>();
 
         private void WriteCandidate(string relPath, string content)
-            => FileSys.WriteAllBytes(Root + "/" + relPath, Bytes(content));
+            => _files.WriteAllBytes(Root + "/" + relPath, Bytes(content));
 
         /// <summary>构造清单并把内容登记到 <see cref="_candidateContents"/>（长度/摘要与内容同源）。</summary>
         private ReleaseManifest ManifestWith(params (string path, string content)[] files)
@@ -64,34 +65,34 @@ namespace LiteGame.Tests.EditMode
         private static DownloadPlan PlanFor(ReleaseManifest m)
             => new DownloadPlan(m, new[] { new DownloadSource("local", "file://local") });
 
-        // ---- FileSys API ----
+        // ---- FileSystem API ----
 
         [Test]
         public void FileSys_字节往返_保留二进制()
         {
             // 非 UTF-8 序列字节——文本通道会损坏
             var raw = new byte[] { 0x00, 0xFF, 0x80, 0x7F, 0x0A, 0x0D };
-            FileSys.WriteAllBytes(Root + "/bin.dat", raw);
+            _files.WriteAllBytes(Root + "/bin.dat", raw);
 
-            byte[] read = FileSys.ReadAllBytes(Root + "/bin.dat");
+            byte[] read = _files.ReadAllBytes(Root + "/bin.dat");
             Assert.AreEqual(raw, read);
-            Assert.AreEqual(raw.LongLength, FileSys.GetFileLength(Root + "/bin.dat"));
+            Assert.AreEqual(raw.LongLength, _files.GetFileLength(Root + "/bin.dat"));
         }
 
         [Test]
         public void FileSys_不存在的文件_长度负一_读取为空()
         {
-            Assert.AreEqual(-1L, FileSys.GetFileLength(Root + "/nope.dat"));
-            Assert.IsNull(FileSys.ReadAllBytes(Root + "/nope.dat"));
+            Assert.AreEqual(-1L, _files.GetFileLength(Root + "/nope.dat"));
+            Assert.IsNull(_files.ReadAllBytes(Root + "/nope.dat"));
         }
 
         [Test]
         public void FileSys_递归枚举_看到全部层级()
         {
             WriteCandidate("a.bin", "A");
-            FileSys.WriteAllBytes(Root + "/nested/deep/b.bin", Bytes("B"));
+            _files.WriteAllBytes(Root + "/nested/deep/b.bin", Bytes("B"));
 
-            IReadOnlyList<string> all = FileSysCandidateFileSource.ListAll(Root);
+            IReadOnlyList<string> all = FileSystemCandidateFileSource.ListAll(_files, Root);
             CollectionAssert.Contains((System.Collections.ICollection)all, "a.bin");
             CollectionAssert.Contains((System.Collections.ICollection)all, "nested/deep/b.bin");
         }
@@ -99,26 +100,26 @@ namespace LiteGame.Tests.EditMode
         [Test]
         public void FileSys_递归枚举_目录不存在_返回空()
         {
-            Assert.IsEmpty(FileSys.GetFilesRecursive(Root + "/missing"));
+            Assert.IsEmpty(_files.GetFilesRecursive(Root + "/missing"));
         }
 
         [Test]
         public void FileSys_删除目录_幂等()
         {
             WriteCandidate("x.bin", "X");
-            Assert.IsTrue(FileSys.DirectoryExists(Root));
-            FileSys.DeleteDirectory(Root);
-            Assert.IsFalse(FileSys.DirectoryExists(Root));
-            FileSys.DeleteDirectory(Root);                       // 再次删除不抛（幂等）
+            Assert.IsTrue(_files.DirectoryExists(Root));
+            _files.DeleteDirectory(Root);
+            Assert.IsFalse(_files.DirectoryExists(Root));
+            _files.DeleteDirectory(Root);                       // 再次删除不抛（幂等）
         }
 
         [Test]
         public void FileSys_拒绝删除根目录()
         {
             // 越界保护：空/根路径不得被当作可删目录
-            Assert.Throws<System.ArgumentException>(() => FileSys.DeleteDirectory(""));
-            Assert.Throws<System.ArgumentException>(() => FileSys.DeleteDirectory(null));
-            Assert.Throws<System.ArgumentException>(() => FileSys.DeleteDirectory("../escape"));
+            Assert.Throws<System.ArgumentException>(() => _files.DeleteDirectory(""));
+            Assert.Throws<System.ArgumentException>(() => _files.DeleteDirectory(null));
+            Assert.Throws<System.ArgumentException>(() => _files.DeleteDirectory("../escape"));
         }
 
         // ---- 候选文件端口 ----
@@ -127,7 +128,7 @@ namespace LiteGame.Tests.EditMode
         public void 候选文件端口_读句柄报长度与字节()
         {
             WriteCandidate("a.bin", "AAA");
-            var source = new FileSysCandidateFileSource(Root);
+            var source = new FileSystemCandidateFileSource(Root, _files);
 
             ICandidateFile f = source.Open("a.bin");
             Assert.IsNotNull(f);
@@ -138,7 +139,7 @@ namespace LiteGame.Tests.EditMode
         [Test]
         public void 候选文件端口_缺失返回null()
         {
-            var src = new FileSysCandidateFileSource(Root);
+            var src = new FileSystemCandidateFileSource(Root, _files);
             Assert.IsNull(src.Open("missing.bin"));
             Assert.IsNull(src.Open(null));
         }
@@ -152,7 +153,7 @@ namespace LiteGame.Tests.EditMode
             WriteCandidate("sub/b.bin", "BB");
             ReleaseManifest m = ManifestWith(("a.bin", "AAA"), ("sub/b.bin", "BB"));
 
-            CandidateFetchResult r = new LocalDirectoryCandidateFetcher(Root)
+            CandidateFetchResult r = new LocalDirectoryCandidateFetcher(Root, _files)
                 .FetchAsync(m, PlanFor(m)).GetAwaiter().GetResult();
 
             Assert.IsTrue(r.Succeeded, r.Failure.ToString());
@@ -165,7 +166,7 @@ namespace LiteGame.Tests.EditMode
             WriteCandidate("a.bin", "AAA");
             ReleaseManifest m = ManifestWith(("a.bin", "AAA"), ("missing.bin", "X"));
 
-            CandidateFetchResult r = new LocalDirectoryCandidateFetcher(Root)
+            CandidateFetchResult r = new LocalDirectoryCandidateFetcher(Root, _files)
                 .FetchAsync(m, PlanFor(m)).GetAwaiter().GetResult();
 
             Assert.IsFalse(r.Succeeded);
@@ -178,7 +179,7 @@ namespace LiteGame.Tests.EditMode
         {
             ReleaseManifest m = ManifestWith(("a.bin", "A"));
 
-            CandidateFetchResult r = new LocalDirectoryCandidateFetcher(Root + "/nope")
+            CandidateFetchResult r = new LocalDirectoryCandidateFetcher(Root + "/nope", _files)
                 .FetchAsync(m, PlanFor(m)).GetAwaiter().GetResult();
 
             Assert.IsFalse(r.Succeeded);
@@ -192,7 +193,7 @@ namespace LiteGame.Tests.EditMode
             WriteCandidate("sneaked.bin", "S");
             ReleaseManifest m = ManifestWith(("a.bin", "AAA"));
 
-            CandidateFetchResult r = new LocalDirectoryCandidateFetcher(Root)
+            CandidateFetchResult r = new LocalDirectoryCandidateFetcher(Root, _files)
                 .FetchAsync(m, PlanFor(m)).GetAwaiter().GetResult();
 
             Assert.IsTrue(r.Succeeded);
@@ -217,8 +218,8 @@ namespace LiteGame.Tests.EditMode
         public void 空间探测_DriveInfo_桌面返回真实余量()
         {
             // 桌面/Editor 下应能拿到真实可用空间；移动端/不支持时返回 -1（fail-closed）。
-            // 走 FileSys 相对路径（IO 唯一入口；绝对路径会被 ValidateRelPath 拒绝）。
-            var probe = new DriveInfoSpaceProbe(ReleaseLayout.CandidateRootRelative);
+            // 走 FileSystem 相对路径（IO 唯一入口；绝对路径会被 ValidateRelPath 拒绝）。
+            var probe = new DriveInfoSpaceProbe(ReleaseLayout.CandidateRootRelative, _files);
             long available = probe.GetAvailableBytes();
 
             Assert.IsTrue(available == -1L || available > 0,
@@ -230,9 +231,9 @@ namespace LiteGame.Tests.EditMode
         {
             // 探针只报**相对**目录所在卷的余量；"探不到"的正确触发是 DriveInfo 不可用
             // （平台不支持 / 卷未就绪），而非"目录不存在"——不存在目录仍与 RootPath 同卷，
-            // 返回真实余量才是正确行为（目录会被写入侧自动创建，见 FileSys.WriteProbe）。
+            // 返回真实余量才是正确行为（目录会被写入侧自动创建，见 _files.WriteProbe）。
             // 这里断言"绝不抛、且返回值属于 {正数, -1}"这一真实契约。
-            var probe = new DriveInfoSpaceProbe("no_such_dir_yet");
+            var probe = new DriveInfoSpaceProbe("no_such_dir_yet", _files);
             long available = probe.GetAvailableBytes();
 
             Assert.IsTrue(available == -1L || available > 0,
@@ -246,7 +247,7 @@ namespace LiteGame.Tests.EditMode
             // （精确值或写探针下界），绝不能是 -1——否则空间预检 fail-closed 会让热更链在 Player 上整体不可用
             // （实测 IL2CPP Player 的 DriveInfo 拿不到卷余量）。小上限避免测试期大额写入。
             var probe = new WriteProbeDiskSpaceProbe(ReleaseLayout.CandidateRootRelative,
-                probeCapBytes: 8L * 1024 * 1024);
+                probeCapBytes: 8L * 1024 * 1024, files: _files);
             long available = probe.GetAvailableBytes();
 
             Assert.IsTrue(available > 0, $"桌面应给出可用余量（下界），实得 {available}（-1 = 不可知）");
@@ -299,7 +300,7 @@ namespace LiteGame.Tests.EditMode
         [Test]
         public void 文件候选来源_无信封文件_返回无候选()
         {
-            var provider = new FileSystemCandidateProvider("test_no_such_candidate.json");
+            var provider = new FileSystemCandidateProvider("test_no_such_candidate.json", _files);
             CandidateOffer offer = provider.TryGetCandidateAsync().GetAwaiter().GetResult();
             Assert.IsTrue(offer.IsEmpty);
         }
@@ -356,13 +357,13 @@ namespace LiteGame.Tests.EditMode
 
             // 落盘候选内容（ManifestWith 已按同一内容算好摘要与长度）
             foreach ((string path, string content) in _candidateContents)
-                FileSys.WriteAllBytes(Root + "/" + path, Bytes(content));
+                _files.WriteAllBytes(Root + "/" + path, Bytes(content));
 
             var coord = new PatchCoordinator(
                 store,
-                new FileSysCandidateFileSource(Root),
-                new DriveInfoSpaceProbe(Root),
-                new LocalDirectoryCandidateFetcher(Root),
+                new FileSystemCandidateFileSource(Root, _files),
+                new DriveInfoSpaceProbe(Root, _files),
+                new LocalDirectoryCandidateFetcher(Root, _files),
                 healthy ? (ICandidateHealthCheck)new AlwaysHealthy() : new CompositeHealthCheck(),   // 空聚合 = 不健康
                 new NoOpActivator(),
                 generationSink: null);
@@ -450,7 +451,9 @@ namespace LiteGame.Tests.EditMode
         private static readonly (string path, string content)[] FixtureFiles =
         {
             ("config/tbcombatnum.json", "{\"id\":1,\"hp\":100}"),
-            ("lua/ui/Page_Login.lua", "return { OnShow = function() end }\n"),
+            // 签名夹具是 2026-09-26 固定的样例（`lua/ui/UIMain.lua`），UIMain 退役只改页面注册，
+            // 不改签名数据——路径必须与夹具清单逐字一致，否则验签/摘要链断（见 UI系统线 §UIMain 退役）。
+            ("lua/ui/UIMain.lua", "return { OnShow = function() end }\n"),
         };
 
         [Test]
@@ -469,9 +472,9 @@ namespace LiteGame.Tests.EditMode
             var store = new ActivationTransactionStore(new MemoryActivationIO(), () => 1);
             var coord = new PatchCoordinator(
                 store,
-                new FileSysCandidateFileSource(Root),
-                new DriveInfoSpaceProbe(Root),
-                new LocalDirectoryCandidateFetcher(Root),
+                new FileSystemCandidateFileSource(Root, _files),
+                new DriveInfoSpaceProbe(Root, _files),
+                new LocalDirectoryCandidateFetcher(Root, _files),
                 new AlwaysHealthy(),
                 new NoOpActivator(),
                 generationSink: null);
@@ -520,9 +523,9 @@ namespace LiteGame.Tests.EditMode
             var store = new ActivationTransactionStore(new MemoryActivationIO(), () => 1);
             var coord = new PatchCoordinator(
                 store,
-                new FileSysCandidateFileSource(Root),
-                new DriveInfoSpaceProbe(Root),
-                new LocalDirectoryCandidateFetcher(Root),
+                new FileSystemCandidateFileSource(Root, _files),
+                new DriveInfoSpaceProbe(Root, _files),
+                new LocalDirectoryCandidateFetcher(Root, _files),
                 new AlwaysHealthy(),
                 new NoOpActivator(),
                 generationSink: null);
@@ -569,9 +572,9 @@ namespace LiteGame.Tests.EditMode
         {
             var coord = new PatchCoordinator(
                 store,
-                new FileSysCandidateFileSource(Root),
-                new DriveInfoSpaceProbe(Root),
-                new LocalDirectoryCandidateFetcher(Root),
+                new FileSystemCandidateFileSource(Root, _files),
+                new DriveInfoSpaceProbe(Root, _files),
+                new LocalDirectoryCandidateFetcher(Root, _files),
                 new AlwaysHealthy(),
                 new NoOpActivator(),
                 generationSink: null);
