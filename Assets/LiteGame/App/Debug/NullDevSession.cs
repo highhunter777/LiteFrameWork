@@ -14,6 +14,10 @@ namespace LiteGame
         private NullDevSession() { }
 
         public bool Active => false;
+        public void SetActive(bool active) { }
+        public bool IsDevelopmentBuild => false;
+        public bool DirectToTrainingEnabled => false;
+        public void ApplyEnterDefaults() { }
         public bool NoDeath => false;
         public bool InfiniteAmmo => false;
         public bool LaserSight => false;

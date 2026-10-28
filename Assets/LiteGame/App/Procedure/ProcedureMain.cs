@@ -2,6 +2,7 @@ using System;
 using System.Threading;
 using Cysharp.Threading.Tasks;
 using LiteFramework;
+using LiteClient;
 using LiteClient.UI;
 
 namespace LiteGame
@@ -17,20 +18,21 @@ namespace LiteGame
         /// <summary>五页页面流（批C-④；可空 = 测试装配不接 UI）。</summary>
         private readonly PageFlow _pages;
 
-#if UNITY_EDITOR || DEVELOPMENT_BUILD || LITEFRAMEWORK_DEBUG
-        /// <summary>直入训练场只发一次请求（Main 可能重进）。</summary>
         private bool _directEntryRequested;
-#endif
 
         /// <summary>联机入口编排件（判"是否配置了 Meta 基址"——入口页只在配置形态开；可空 = 离线装配）。</summary>
         private readonly MetaEntryService _meta;
 
+        /// <summary>开发会话端口（直入训练场/进退出请求/启动快照的**唯一**读取面；发布 = NullDevSession）。</summary>
+        private readonly IDevSession _dev;
+
         public ProcedureMain(CancellationToken rootToken = default,
-            PageFlow pages = null, MetaEntryService meta = null)
+            PageFlow pages = null, MetaEntryService meta = null, IDevSession dev = null)
             : base(rootToken)
         {
             _pages = pages;
             _meta = meta;
+            _dev = dev ?? NullDevSession.Instance;
         }
 
         protected override void RunAsync(IStageHost<ProcedureId, ProcedureArgs> m, in ProcedureArgs req, CancellationToken ct)
@@ -38,27 +40,25 @@ namespace LiteGame
 
         public override void OnUpdate(IStageHost<ProcedureId, ProcedureArgs> m, float elapseSeconds)
         {
-#if UNITY_EDITOR || DEVELOPMENT_BUILD || LITEFRAMEWORK_DEBUG
-            // 开发直入（DevStartupConfig 开关）：**直入不加载登录页**——训练场的进入请求在本阶段
-            // （Main 已就绪）发出一次，由下面的请求桥消费后进 Match(testRoom)。
-            if (DevStartupConfig.DirectToTrainingEnabled && !_directEntryRequested)
+            // 开发直入（启动配置开关，经 IDevSession 读）：**直入不加载登录页**——训练场的进入请求在本阶段
+            // （Main 已就绪）发出一次，由下面的请求桥消费后进 Match(testRoom)。发布形态端口全关 = 整段 no-op。
+            if (_dev.DirectToTrainingEnabled && !_directEntryRequested)
             {
                 _directEntryRequested = true;
-                TestModeRuntime.RequestEnter();
+                _dev.RequestEnter();
                 Log.Info("[Main] 直入训练场：请求本地测试模式对局（DevStartupConfig.DirectToTraining）", LogTag.Procedure);
             }
-            if (TestModeRuntime.TakeEnterRequest())             // 开发控制台/GM 面板/直入 同一消费点（读即清）
+            if (_dev.TakeEnterRequest())                        // 开发控制台/GM 面板/直入 同一消费点（读即清）
             {
-                DevStartupConfig.ApplySnapshotOrDefaults();     // 进房初值在此单点落值，任何入口语义一致
-                TestModeRuntime.Active = true;
+                _dev.ApplyEnterDefaults();                      // 进房初值在此单点落值，任何入口语义一致
+                _dev.SetActive(true);
                 _pages?.CloseOpenPagesForBattle();               // dev 入口直入对局：在开页面会盖住 HUD，先收
                 m.Request(ProcedureId.Match, new ProcedureArgs(testRoom: true));
             }
-            if (TestModeRuntime.TakeExitRequest())              // 主菜单里点退出：只关模式（对局内由 Battle 消费=离场）
+            if (_dev.TakeExitRequest())                         // 主菜单里点退出：只关模式（对局内由 Battle 消费=离场）
             {
-                TestModeRuntime.Active = false;
+                _dev.SetActive(false);
             }
-#endif
         }
 
         private async UniTask RunAsyncCore(IStageHost<ProcedureId, ProcedureArgs> m, CancellationToken ct)
@@ -86,9 +86,7 @@ namespace LiteGame
         /// <summary>启动落点决策（**单点**）：直入本地测试模式 &gt; Meta→登录页 &gt; 不开页。</summary>
         private PageFlow.Landing ResolveLanding()
         {
-#if UNITY_EDITOR || DEVELOPMENT_BUILD || LITEFRAMEWORK_DEBUG
-            if (DevStartupConfig.DirectToTrainingEnabled) return PageFlow.Landing.None;
-#endif
+            if (_dev.DirectToTrainingEnabled) return PageFlow.Landing.None;
             return _meta != null && _meta.IsConfigured ? PageFlow.Landing.Login : PageFlow.Landing.None;
         }
     }

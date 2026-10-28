@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using LiteClient;
 using LiteFramework;
 using LiteSim;
 using LiteView;
@@ -61,6 +62,7 @@ namespace LiteGame
         private readonly IDamageNumberStyleResolver _style;
         private readonly DamageNumberMaterialSet _materials;   // 逐档材质（null = 不换材质——底件默认档；测试/降级形态）
         private readonly Func<Camera> _cameraOf;         // **对局渲染相机**（billboard 面——不是 Camera.main，见下）
+        private readonly IDevSession _dev;               // 开发会话端口（飘字开关；null = 测试装配 = 恒显）
         private readonly ObjectPool<GameObject> _pool;
         private readonly DamageNumberAggregator _aggregator = new DamageNumberAggregator();
         private readonly Dictionary<(long TargetId, HitLocalRole Role, bool Crit), Active> _active =
@@ -95,7 +97,7 @@ namespace LiteGame
 
         public BattleDamageNumberDriver(SimView view, Func<TextMeshPro> factory, IWorldClock clock,
             IDamageNumberStyleResolver style = null, Func<Camera> cameraOf = null,
-            DamageNumberMaterialSet materials = null)
+            DamageNumberMaterialSet materials = null, IDevSession dev = null)
         {
             _view = view ?? throw new ArgumentNullException(nameof(view));
             _factory = factory ?? throw new ArgumentNullException(nameof(factory));
@@ -108,6 +110,7 @@ namespace LiteGame
             // OutputCamera）；null = 无设备形态（如测试装配），此时回落 Camera.main，camScale 恒 1、
             // 朝向不跟随（诚实退化——不猜相机）。同 `ProcedureBattle` 给设备源注入相机的同一口径。
             _cameraOf = cameraOf;
+            _dev = dev;
             _pool = new ObjectPool<GameObject>(
                 () => _factory().gameObject,
                 onGet: go => go.SetActive(true),
@@ -123,10 +126,8 @@ namespace LiteGame
             if (_disposed) return;
             if (ctx.Kind != FrameEventKind.Hit && ctx.Kind != FrameEventKind.Crit) return;   // 死亡/开火不进飘字
             if (ctx.LocalRole == HitLocalRole.Bystander) return;                             // 口径：只显本地造成/承受
-#if UNITY_EDITOR || DEVELOPMENT_BUILD || LITEFRAMEWORK_DEBUG
-            // 测试模式开关：飘字是正式特性（非测试模式恒显），测试房内可由 GM 面板现场开合
-            if (TestModeRuntime.Active && !TestModeRuntime.DamageNumbers) return;
-#endif
+            // 开发形态开关：飘字是正式特性（非开发模式恒显），测试房内可由 GM 面板现场开合
+            if (_dev != null && _dev.Active && !_dev.DamageNumbers) return;
 
             // **同键旧代际收口（账实一致，必须在 `MergeOrSpawn` 之前）**：`_active` 的键是 (目标, 角色, 爆头档)，
             // **同目标同角色同档的条目共用一键**（爆头与普通各成一条——用户裁决"连击合并区分爆头/普通"）。间隔射击（超出 `MergeWindowSeconds`）时本帧会起新条目

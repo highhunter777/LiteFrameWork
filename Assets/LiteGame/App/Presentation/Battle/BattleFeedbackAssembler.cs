@@ -20,6 +20,7 @@ namespace LiteGame
         private readonly ICameraService _camera;
         private readonly BattleViewAssets _assets;
         private readonly Transform _viewRoot;
+        private readonly IDevSession _dev;            // 开发会话端口（伤害数字开关；可空 = 测试装配）
 
         private HitFeedbackDispatcher _dispatcher;
         private AuthoritativeCombatFeedback _authority;
@@ -30,7 +31,7 @@ namespace LiteGame
         private BattleAudioDriver _battleAudio;
 
         public BattleFeedbackAssembler(IVFXService vfx, AudioService audio, IWorldClock worldClock,
-            ICameraService camera, BattleViewAssets assets, Transform viewRoot)
+            ICameraService camera, BattleViewAssets assets, Transform viewRoot, IDevSession dev = null)
         {
             _vfx = vfx;
             _audio = audio;
@@ -38,6 +39,7 @@ namespace LiteGame
             _camera = camera;
             _assets = assets ?? throw new ArgumentNullException(nameof(assets));
             _viewRoot = viewRoot ?? throw new ArgumentNullException(nameof(viewRoot));
+            _dev = dev;
         }
 
         public HitFeedbackDispatcher Dispatcher => _dispatcher;
@@ -131,7 +133,8 @@ namespace LiteGame
 
             _damageNumbers = new BattleDamageNumberDriver(view, NewDamageNumber, _worldClock,
                 cameraOf: RenderCameraOf(),       // billboard 面对局渲染相机（非 Camera.main——叠加形态会拿错）
-                materials: _assets.DamageNumberMaterials);   // 逐档材质（四档不齐 = null 走底件默认，取件处已警告）
+                materials: _assets.DamageNumberMaterials,   // 逐档材质（四档不齐 = null 走底件默认，取件处已警告）
+                dev: _dev);                        // 开发会话端口（飘字开关；null = 恒显）
             _dispatcher?.Register(_damageNumbers);
             Log.Info("damage-numbers-attached", LogTag.Battle);
         }

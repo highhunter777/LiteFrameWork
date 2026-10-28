@@ -14,6 +14,10 @@ namespace LiteGame
         private MatchTestRules _matchRules;
 
         public bool Active => TestModeRuntime.Active;
+        public void SetActive(bool active) => TestModeRuntime.Active = active;
+        public bool IsDevelopmentBuild => true;
+        public bool DirectToTrainingEnabled => DevStartupConfig.DirectToTrainingEnabled;
+        public void ApplyEnterDefaults() => DevStartupConfig.ApplySnapshotOrDefaults();
         public bool NoDeath => TestModeRuntime.NoDeath;
         public bool InfiniteAmmo => TestModeRuntime.InfiniteAmmo;
         public bool LaserSight => TestModeRuntime.LaserSight;

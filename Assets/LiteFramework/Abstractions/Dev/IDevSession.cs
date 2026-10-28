@@ -14,6 +14,19 @@ namespace LiteClient
         /// <summary>是否处于本地测试模式。</summary>
         bool Active { get; }
 
+        /// <summary>置位/清除本地测试模式（流程层：进入=置位、离场=清除；发布实现 = no-op）。</summary>
+        void SetActive(bool active);
+
+        /// <summary>本程序集是否为开发装配（开发 = true / 发布空实现 = false）。
+        /// 供"整件开发能力是否存在"的判据（如每局测试规则持有件只在开发形态产出）。</summary>
+        bool IsDevelopmentBuild { get; }
+
+        /// <summary>启动配置：直入训练场开关（场景 DevStartupConfig 的只读镜像；发布恒 false）。</summary>
+        bool DirectToTrainingEnabled { get; }
+
+        /// <summary>进房前把开发启动配置快照进运行时（发布实现 = 空操作）。</summary>
+        void ApplyEnterDefaults();
+
         bool NoDeath { get; }
         bool InfiniteAmmo { get; }
         bool LaserSight { get; }

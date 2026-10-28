@@ -105,13 +105,14 @@ namespace LiteGame.Tests.EditMode
         }
 
         private (InputService Input, BattleLaserDriver Driver, LineRenderer Beam) BuildDriver(
-            SimView view, RollbackSim sim, SimMapData map, MatchTestRules rules = null)
+            SimView view, RollbackSim sim, SimMapData map, MatchTestRules rules = null,
+            LiteClient.IDevSession dev = null)
         {
             var input = new InputService();
             input.SetSource(new FixedAimSource());           // 只用被拦门；激光不读瞄准输入
             var beamGo = Scope.CreateGameObject("Beam", typeof(LineRenderer));
             LineRenderer beam = beamGo.GetComponent<LineRenderer>();
-            var driver = new BattleLaserDriver(view, input, sim, map, beam, rules);
+            var driver = new BattleLaserDriver(view, input, sim, map, beam, rules, dev);
             return (input, driver, beam);
         }
         /// <summary>生产序：渲染帧采样（门在此裁决）→ 上行取值（帧边界清）→ 供 Tick 消费。</summary>
@@ -291,7 +292,7 @@ namespace LiteGame.Tests.EditMode
             var (world, sim, view, localView) = BuildBattle(map);
             BuildMount(localView, new Vector3(0f, 1f, 0f));
             world.Weapons[0].WeaponDefId = 999;
-            var (input, driver, beam) = BuildDriver(view, sim, map);
+            var (input, driver, beam) = BuildDriver(view, sim, map, dev: new DevSession());   // 开发端口读 TestModeRuntime 快照
 
             try
             {

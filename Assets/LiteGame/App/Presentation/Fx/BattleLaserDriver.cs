@@ -36,6 +36,7 @@ namespace LiteGame
         private readonly RollbackSim _sim;             // 本地预测态（SelectedWeapon/WeaponDefId——只读）
         private readonly SimMapData _map;              // 障碍射线用图（两端单源：同份 tbmap 投影——经 BattleContext 注入）
         private readonly MatchTestRules _rules;        // 本局规则持有件（构造注入一次——不读 SimTestRules 静态读口）
+        private readonly LiteClient.IDevSession _dev;  // 开发会话端口（激光开关；null = 发布/测试装配 = 恒按支持位）
         private readonly LineRenderer _beam;
         private bool _disposed;
 
@@ -45,7 +46,7 @@ namespace LiteGame
         /// <param name="rules">本局规则持有件（<see cref="BattleContext.MatchRules"/>——爆头带/爆头柱覆写随动；
         /// null = 无测试规则，恒用烘焙导出值）。**每局稳定引用**，构造注入一次，帧路径不碰静态读口。</param>
         public BattleLaserDriver(SimView view, IInputService input, RollbackSim sim, SimMapData map,
-            LineRenderer beam, MatchTestRules rules = null)
+            LineRenderer beam, MatchTestRules rules = null, LiteClient.IDevSession dev = null)
         {
             _view = view ?? throw new ArgumentNullException(nameof(view));
             _input = input;
@@ -53,6 +54,7 @@ namespace LiteGame
             _map = map ?? throw new ArgumentNullException(nameof(map));
             _beam = beam ?? throw new ArgumentNullException(nameof(beam));
             _rules = rules;
+            _dev = dev;
 
             // 实例一次性配置（prefab 是 2 点/宽 0.03 的美术资产，驱动只改驱动面）：
             // 挂载点本地空间 + 不投影——发光束不该在场景里拉出影子（束位姿归挂载点，驱动不写）
@@ -96,7 +98,7 @@ namespace LiteGame
             ref EntitySlot e = ref _sim.State.Entities[slot];
             if (e.SelectedWeapon < 0 || e.SelectedWeapon >= SimConfig.WeaponSlotsPerEntity) return false;
             int defId = _sim.State.Weapons[slot * SimConfig.WeaponSlotsPerEntity + e.SelectedWeapon].WeaponDefId;
-            if (!LaserSightPolicy.Supports(defId)) return false;
+            if (!LaserSightPolicy.Supports(defId, _dev)) return false;
 
             // 激光器装在武器上：无挂载点（灰盒无武器）→ 无激光——诚实退化，不拿 Sim 原点造第二视觉源
             Transform mount = ResolveMount(slot);

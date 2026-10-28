@@ -46,7 +46,8 @@ namespace LiteGame
         }
 
         /// <summary>挂瞄准激光（端点判定与显隐归驱动；本方法只装配）。</summary>
-        public void AttachLaser(BattleContext context, IInputService input, GameObject laserBeam)
+        public void AttachLaser(BattleContext context, IInputService input, GameObject laserBeam,
+            LiteClient.IDevSession dev = null)
         {
             if (laserBeam == null) return;                        // 资产缺失已在取件处降级（警告过）
             if (context.Sim == null)
@@ -61,7 +62,7 @@ namespace LiteGame
                 return;
             }
             // 本局规则随装配注入（爆头带覆写随动；驱动不读 SimTestRules 静态读口）
-            Laser = new BattleLaserDriver(View, input, context.Sim, context.Map, line, context.MatchRules);
+            Laser = new BattleLaserDriver(View, input, context.Sim, context.Map, line, context.MatchRules, dev);
             Log.Info("laser-attached", LogTag.Battle);
         }
 

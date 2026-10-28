@@ -66,6 +66,7 @@ namespace LiteGame
             var uiRegistry = context.Require<UiLuaRegistry>();
             var contentRegistry = context.Require<ContentLuaRegistry>();
             var strategyRegistry = context.Require<StrategyLuaRegistry>();
+            IDevSession devSession = context.Require<IDevSession>();   // 开发会话端口（③ 已产出；发布 = Null 实现）
 
             _scenes = new SceneService();
             _services.RegisterInstance<ISceneService>(_scenes);
@@ -95,7 +96,6 @@ namespace LiteGame
             _suppressReconnectCommand = commands.Register(new SetAutoReconnectSuppressedHandler(networkDebug),
                 new CommandOptions(gmOnly: true, description: "抑制/恢复自动重连（断线停在 SuspectedLost）"));
             // 调试内核：读模型/动作模型/发现协议的唯一门面；投影（编辑器页/HUD/控制台）只消费它。
-            var devSession = context.Require<IDevSession>();
             context.Put(new DebugKernel(commands, context.Require<IInputService>(),
                 new IDebugTunableProvider[]
                 {
@@ -129,7 +129,7 @@ namespace LiteGame
                 testRoom =>
                 {
                     // 每局规则播种（显式步骤）：规则实例随传输同刻产出，经 AccountSession 显式移交给对局。
-                    LiteSim.MatchTestRules rules = MatchRulesSeeder.Seed(testRoom);
+                    LiteSim.MatchTestRules rules = MatchRulesSeeder.Seed(testRoom, devSession);
                     return new MatchTransport(
                         ProcedureMatch.CreateTransport(testRoom, rules, deploy, gameplayDigestBase, maps), rules);
                 };

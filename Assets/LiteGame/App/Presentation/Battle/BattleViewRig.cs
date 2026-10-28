@@ -37,6 +37,7 @@ namespace LiteGame
         private readonly IInputService _input;       // 输入服务（设备源注入/清派发状态）
         private readonly ICameraService _camera;     // 相机服务（Cinemachine 适配器；装配根建、跨对局复用）
         private readonly CommandCenter _commands;    // 命令中心（传送命令化：撤销/重做/排队派发）
+        private readonly LiteClient.IDevSession _dev;  // 开发会话端口（激光/飘字开关；可空 = 测试装配）
         private readonly ClientScope _viewScope;     // 视图资源（prefab 租约/视图根）自有作用域
 
         private readonly BattleViewAssets _assets;
@@ -59,13 +60,14 @@ namespace LiteGame
         internal BattleViewRig(IContentService content, IInputService input, ICameraService camera,
             ClientScope account, IVFXService vfx = null, LiteFramework.IWorldClock worldClock = null,
             AudioService audio = null, CommandCenter commands = null, CrosshairFeelProfile crosshairFeel = null,
-            Func<UiThemeAsset> themeProvider = null)
+            Func<UiThemeAsset> themeProvider = null, LiteClient.IDevSession dev = null)
         {
             if (content == null) throw new ArgumentNullException(nameof(content));
             if (account == null) throw new ArgumentNullException(nameof(account));
             _input = input;
             _camera = camera;
             _commands = commands;
+            _dev = dev;
 
             _viewScope = account.CreateChild("BattleView");
             _viewRootGo = new GameObject("[BattleView]");
@@ -74,7 +76,7 @@ namespace LiteGame
 
             _assets = new BattleViewAssets(content, _viewScope, _viewRoot, themeProvider);
             _hudAssembler = new BattleHudAssembler(crosshairFeel);
-            _feedbackAssembler = new BattleFeedbackAssembler(vfx, audio, worldClock, camera, _assets, _viewRoot);
+            _feedbackAssembler = new BattleFeedbackAssembler(vfx, audio, worldClock, camera, _assets, _viewRoot, dev);
             _lookController = new BattleLookController(input, camera);
         }
 
@@ -110,7 +112,7 @@ namespace LiteGame
             _hudAssembler.Attach(_context, _viewAssembler.View, _input,
                 _assets.HudView, _assets.HudInstance, menuClick, dispatcher, PublicFactState);
 
-            _viewAssembler.AttachLaser(_context, _input, _assets.LaserBeam);
+            _viewAssembler.AttachLaser(_context, _input, _assets.LaserBeam, _dev);
             _viewAssembler.AttachProtectionFx(_assets.ProtectionShellLease);
             _hudAssembler.AttachRespawnHud(PublicFactState,
                 () => _viewAssembler.View != null ? _viewAssembler.View.LocalEntityId : 0L,

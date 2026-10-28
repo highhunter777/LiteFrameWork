@@ -45,7 +45,7 @@ namespace LiteGame.Tests.EditMode
             SimTestRules.TeleportDispatch = true;          // 进房前的残留请求
             SimTestRules.BotResetRequested = true;
 
-            MatchTestRules rules = MatchRulesSeeder.Seed(testRoom: true);
+            MatchTestRules rules = MatchRulesSeeder.Seed(testRoom: true, dev: new DevSession());
 
             Assert.IsNotNull(rules);
             Assert.IsTrue(rules.NoDeath);
@@ -60,7 +60,7 @@ namespace LiteGame.Tests.EditMode
         [Test]
         public void 常规入口_不继承测试房开关_宿主钩子复位()
         {
-            MatchTestRules rules = MatchRulesSeeder.Seed(testRoom: false);
+            MatchTestRules rules = MatchRulesSeeder.Seed(testRoom: false, dev: new DevSession());
 
             Assert.IsNotNull(rules);
             Assert.IsFalse(rules.NoDeath, "常规入口不从 TestModeRuntime 继承免死");
@@ -72,8 +72,8 @@ namespace LiteGame.Tests.EditMode
         [Test]
         public void 重复播种_替换活动局持有件()
         {
-            MatchTestRules first = MatchRulesSeeder.Seed(testRoom: true);
-            MatchTestRules second = MatchRulesSeeder.Seed(testRoom: false);
+            MatchTestRules first = MatchRulesSeeder.Seed(testRoom: true, dev: new DevSession());
+            MatchTestRules second = MatchRulesSeeder.Seed(testRoom: false, dev: new DevSession());
 
             Assert.AreNotSame(first, second, "每局新建持有件（运行期不跨局复用）");
             Assert.IsFalse(second.NoDeath);

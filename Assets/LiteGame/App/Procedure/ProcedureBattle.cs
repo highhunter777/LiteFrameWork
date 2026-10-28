@@ -39,11 +39,8 @@ namespace LiteGame
     /// </summary>
     public sealed class ProcedureBattle : ProcedureStageBase<ProcedureId, ProcedureArgs>
     {
-#if UNITY_EDITOR || DEVELOPMENT_BUILD || LITEFRAMEWORK_DEBUG
-        /// <summary>主动离场热键（测试入口）。</summary>
-        /// <summary>测试模式传送键（传送到当前准心点）。</summary>
+        /// <summary>开发形态传送键（传送到当前准心点；端口全关时按键无效果）。</summary>
         private const UnityEngine.KeyCode TeleportKey = UnityEngine.KeyCode.T;
-#endif
 
         private readonly IContentService _content;
         private readonly IVFXService _vfx;
@@ -106,7 +103,7 @@ namespace LiteGame
             _feedback = feedback;
             _crosshairFeel = crosshairFeel;
             _themeProvider = themeProvider;
-            _devSession = devSession;
+            _devSession = devSession ?? NullDevSession.Instance;   // 发布/测试装配 = 全关端口
         }
 
         protected override void RunAsync(IStageHost<ProcedureId, ProcedureArgs> m, in ProcedureArgs req, CancellationToken ct)
@@ -130,7 +127,8 @@ namespace LiteGame
                 // 视图域：自有 BattleView 作用域 + 视图根 + 六个取件（缺角色资源＝无角色视图）
                 var rig = new BattleViewRig(_content, _input, _camera, _account, _vfx, _worldClock, _audio, _commands,
                     crosshairFeel: _crosshairFeel,       // 准心手感投影（可空 = 测试装配）
-                    themeProvider: _themeProvider);       // HUD 主题注入（可空 = 保持烘焙值）
+                    themeProvider: _themeProvider,       // HUD 主题注入（可空 = 保持烘焙值）
+                    dev: _devSession);                   // 开发会话端口（激光/飘字开关；发布 = 全关）
                 await rig.LoadAsync(ct);
 
                 _session = new BattleSession(_matchSessions?.Create(accountSession, accountSession.Rules)
@@ -360,17 +358,15 @@ namespace LiteGame
         {
             if (_context == null) return;
 
-#if UNITY_EDITOR || DEVELOPMENT_BUILD || LITEFRAMEWORK_DEBUG
-            // 主动离场热键（测试入口，与 ProcedureMain F9 进对局同门禁）：Leave → Ended(Leave) → 收尾回 Main。
-            // 此处只留热键，不进正式 UI（正式离场入口由 UI 层提供）。
-            // 离场入口＝UI（ESC → 设置页 → 退出对局），无热键（《UI工作台设计》§5 入口矩阵）
-            if (UnityEngine.Input.GetKeyDown(TeleportKey)) TestModeRuntime.RequestTeleport();      // T = 传送到准心（测试模式）
-            if (TestModeRuntime.TakeExitRequest())                                                          // GM 面板退出：离场并关模式（读即清）
+            // 主动离场热键（开发入口）：Leave → Ended(Leave) → 收尾回 Main。
+            // 离场入口＝UI（ESC → 设置页 → 退出对局），无热键（《UI工作台设计》§5 入口矩阵）；
+            // 发布形态端口全关 = 本段 no-op。
+            if (UnityEngine.Input.GetKeyDown(TeleportKey)) _devSession.RequestTeleport();   // T = 传送到准心（开发形态）
+            if (_devSession.TakeExitRequest())                                              // GM 面板退出：离场并关模式（读即清）
             {
-                TestModeRuntime.Active = false;
+                _devSession.SetActive(false);
                 _context.Leave();
             }
-#endif
 
             // Leave() 会在本调用栈内同步走完 Ended → finally 收尾（_context 置空）——
             // 上面的顶门检过后本帧仍可能已被拆空，此处必须复检，否则本帧余下驱动面读空引用。
@@ -400,14 +396,12 @@ namespace LiteGame
             _context.Tick(elapseSeconds);         // ② 网络双泵 + 输入上行 + 预测推进 + 表现视图（唯一驱动入口）
             _rig?.Tick(elapseSeconds);            // ③ 视图消费者（动画/准心/HUD/激光/飘字/瞄准相机）——权威已应用
 
-#if UNITY_EDITOR || DEVELOPMENT_BUILD || LITEFRAMEWORK_DEBUG
-            if (TestModeRuntime.TakeTeleportRequest())            // 测试模式传送：入队命令（帧边界派发 + 可撤销；读即清）
+            if (_devSession.TakeTeleportRequest())                // 开发形态传送：入队命令（帧边界派发 + 可撤销；读即清）
             {
-                if (TestModeRuntime.Active && TestModeRuntime.TeleportEnabled)
+                if (_devSession.Active && _devSession.TeleportEnabled)
                     _commands.SendQueued(new TeleportToAimCommand());
                 else Log.Warning("[TestMode] 传送请求忽略（未开测试模式/未启用）", LogTag.Battle);
             }
-#endif
         }
 
         /// <summary>等对局结束（Ended 恰好一次；ct 打断 = 宿主关闭路径）。</summary>
