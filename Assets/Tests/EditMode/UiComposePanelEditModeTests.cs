@@ -124,8 +124,11 @@ namespace LiteGame.Tests.EditMode
             string path = MakePrefab("Page_ComposePending", "Txt_Title");
             var report = UiValidator.Run(new UiValidationContext(SyntheticRoot(), new string[0], new[] { path }));
 
-            Assert.IsNotEmpty(report.Families.Where(f => !f.Implemented).Select(f => f.Family).ToList(),
-                "未接入的族必须在报告里列出（§4）");
+            // §4：报告必须带**族清单**（含 Implemented 标志）——未接入的族才可能被显式列出。
+            // 全部族都已接入时"未接入集合为空"是合法结论，不能反过来要求恒非空。
+            Assert.IsNotEmpty(report.Families, "族清单必须进报告（§4：未接入族靠它显式列出）");
+            foreach (var family in report.Families)
+                Assert.IsFalse(string.IsNullOrEmpty(family.Family), "族名不可为空");
         }
     }
 }

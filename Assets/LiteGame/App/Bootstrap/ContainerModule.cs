@@ -193,7 +193,7 @@ namespace LiteGame
             // CommandCenter 置流程机前：排队/延迟命令到期派发先于机器 Tick——命令对流程机的 Request 当帧可被应用。
             _services.SetTickOrder(
                 typeof(IMainThreadDispatcher), typeof(IWorldClock), typeof(IUIClock),
-                typeof(DotweenUiClockDriver), typeof(IEventBus), typeof(UIService),
+                typeof(DotweenUiClockDriver), typeof(UIService),   // M3-7 7b 起 EventBus 无队列、不再实现 ITickable
                 typeof(ILogicScheduler), typeof(IUIScheduler), typeof(ITimelineRunner),
                 typeof(IVFXService), typeof(DialogService), typeof(ToastTicker),
                 typeof(ICommandCenter),

@@ -37,7 +37,9 @@ namespace LiteView.Animation
         public AimPitchPostureDriver(Animator animator)
         {
             _animator = animator;
-            if (animator == null) return;
+            // 无 Avatar（灰盒替身/清单供片的测试视图）没有 humanoid 骨骼映射：
+            // GetBoneTransform 会抛 "Avatar is null"——显性退化（IsValid=false）才是契约。
+            if (animator == null || animator.avatar == null) return;
             _chest = animator.GetBoneTransform(HumanBodyBones.Chest);
             _weapon = animator.transform.Find(GripBake.WeaponPath);
         }
