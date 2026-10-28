@@ -24,7 +24,7 @@
 
 | 基座 | 代码入口 | 保留理由 |
 | --- | --- | --- |
-| UI 服务与页面实例 | `Assets/LiteClient/UI/UIService.cs`、`UIForm.cs`、`UIFormStore.cs`、`UIStack.cs`、`UILayerGroup.cs` | 已具备打开合流、取消、缓存、租约、遮盖、状态机与失败回滚 |
+| UI 服务与页面实例 | `Assets/LiteClient/UI/UIService.cs`、`UIForm.cs`、`UIFormStore.cs`、`UIStack.cs`、`UILayerGroup.cs`、`UIFormLogicBinder.cs`、`UIFormCacheEvictor.cs`、`UIFormStats.cs`、`UILayerGroupFactory.cs` | 已具备打开合流、取消、缓存、租约、遮盖、状态机与失败回滚；服务只留开关管线与缓存记账，逻辑解析/换表、预算淘汰、统计、根装配各成协作件 |
 | 导航/模态/焦点/输入 | `UINavigationController.cs`、`UIModalStack.cs`、`UIFocusCoordinator.cs`、`Input/UiInput.cs` | 单写者、Back 优先级、模态射线与焦点已收口 |
 | 转场与动效原语 | `Transition/UITransitionRunner.cs`、`Anim/UiAnimationClock.cs`、`Anim/UiFx.cs` | 状态机 + 超时 + 时钟 + 唯一 DOTween 入口 |
 | 绑定与生成 | `Assets/LiteCodeGen/**`、`Bind/UIBindIndex.cs`、`Bind/UIBindBase.cs`、`Bind/BindIndexBuilder.cs` | 名字绑定、运行时索引、C# 生成类、受控 API、所有权互斥 |

@@ -22,22 +22,23 @@ namespace LiteClient.UI
     /// 调用方 token 只取消本人、全员退出撤工作；Close 对在途加载发权威取消；失败类型化（<see cref="UIOpenException"/>）。
     ///
     /// **职责边界（单一职责）**：本类只做**开关管线编排**（校验 → 取/建实例 → 转场 → 落池 →
-    /// 重算遮盖/模态遮蔽）+ 逻辑换表。四个协作件各管一件，本类不重复它们的机制：
+    /// 重算遮盖/模态遮蔽）与缓存记账（登记/租约/预算）。七个协作件各管一件，本类不重复它们的机制：
     /// - <see cref="UIFormStore"/>（实例 + 租约 + LRU 记账 + 淘汰候选）——缓存域；
     /// - <see cref="UICoverageResolver"/>（遮盖推导与焦点联动）——在开关事务序内调用；
     /// - <see cref="UIModalStack"/>（模态栈/射线遮蔽/Back 目标）——独立输入协调子域，
     ///   本类经 <see cref="UIModalStack.IUIFormQuery"/> 提供窄查询口（RegisterModal/IsModalOpen/
     ///   TryGetBackTarget 等是**转发面**——公共 API 不变）；
     /// - <see cref="UITransitionRunner"/>（转场状态机 + 排队 + 超时兜底）。
-    /// 逻辑换表（<see cref="MarkLogicStale"/> 族）仍留本类：它是实例生命周期的一环
-    /// （复用前必须换表，与 <see cref="CloseFormInternal"/> 的 OnHide 时序绑定）。
+    /// - <see cref="UIFormLogicBinder"/>（逻辑解析/注入缝/换表标记）——换表时机仍由本类在事务序里驱动；
+    /// - <see cref="UIFormCacheEvictor"/>（预算淘汰选谁）与 <see cref="UIFormStats"/>（统计投影）；
+    /// - <see cref="UILayerGroupFactory"/>（运行时根与层级组装配）。
     /// </summary>
     public sealed class UIService : ITickable, IModuleStats, UIModalStack.IUIFormQuery
     {
         /// <summary>语义层名（§6.2"保留 Bottom/Window/Top，可增 Modal/Loading/System"）。
         /// <c>System</c>：Toast/Loading/错误重试等统一反馈面占此层，经统一排序器分配 order——
         /// 反馈面不得自建 Canvas 或私有 sortingOrder（§7 视觉单一来源）。索引即 PageDefinition.Layer（生成目录）。</summary>
-        public static readonly string[] GroupNames = { "Bottom", "Window", "Top", "System" };
+        public static readonly IReadOnlyList<string> GroupNames = new[] { "Bottom", "Window", "Top", "System" };
 
         /// <summary>缓存实例数默认预算（§5.2：缓存有预算——Resident 也计入总预算）。</summary>
         public const int DefaultCacheBudget = 16;
@@ -55,11 +56,11 @@ namespace LiteClient.UI
 
         private readonly IPageCatalog _catalog;
         private readonly UIFormStore _store = new UIFormStore();             // 实例 + 租约 + LRU 记账（缓存域）
+        private readonly UIFormCacheEvictor _evictor;                        // 缓存预算淘汰（缓存域策略）
+        private readonly UIFormLogicBinder _logic;                          // 逻辑解析/注入/换表（逻辑生命周期域）
         private readonly Dictionary<int, OpenOperation> _openOps = new Dictionary<int, OpenOperation>(4);   // 在途打开操作（并发合流）
         private readonly HashSet<int> _closing = new HashSet<int>();                         // 关闭在途（转场动画期间防并发 Close 重入）
-        private readonly HashSet<int> _staleLogic = new HashSet<int>();   // 逻辑待更新（运行期增量重填，§2.3）
         private readonly List<UIForm> _tickSnapshot = new List<UIForm>(16);   // Tick 快照（§4.3 重入正确性：回调内开关界面不改枚举集合）
-        private readonly List<(int id, long used)> _evictCandidates = new List<(int id, long used)>(16);   // 淘汰候选（复用，零分配）
         private readonly UILayerGroup[] _groups;
         private readonly Transform _root;
         private readonly UITransitionRunner _transitions;                  // 转场编排层（§1.5，不注册 ITickable）
@@ -74,14 +75,20 @@ namespace LiteClient.UI
         /// <summary>主题资产工厂（P2-3 B4：HUD 注入复用同一 provider；null = 未装载，HUD 保持烘焙值）。</summary>
         public Func<UiThemeAsset> ThemeAssetProvider => _themeProvider;
         private readonly IPopInterceptor _pop;
-        private readonly Func<PageDefinition, IUIFormLogic> _logicResolver;
         private readonly Func<string, CancellationToken, UniTask<IUIPrefabLease>> _loadPrefab;
-        private readonly Func<ILocalizationService> _localeProvider;    // LText 装配缝（批C-②——null = 不注入）
         private readonly Func<UiThemeAsset> _themeProvider;              // 主题资产装配缝（P2-3 B2——null = 不注入，页面保持烘焙值）
         private bool _shutdown;
 
-        /// <summary>缓存实例数预算（池中 Recycled 计数上限；超预算淘汰最久未用的非打开实例）。</summary>
-        public int CacheBudget { get; set; }
+        /// <summary>缓存实例数预算（池中 Recycled 计数上限；超预算淘汰最久未用的非打开实例）。只读——
+        /// 调整走 <see cref="SetCacheBudget"/>（非法值拒绝，避免"预算 0/负数"静默淘汰全部池）。</summary>
+        public int CacheBudget { get; private set; }
+
+        /// <summary>调整缓存预算（&gt;0；≤0 抛——预算不是业务状态，配置错误应显性失败）。</summary>
+        public void SetCacheBudget(int budget)
+        {
+            if (budget <= 0) throw new ArgumentOutOfRangeException(nameof(budget), budget, "缓存预算必须 > 0");
+            CacheBudget = budget;
+        }
 
         /// <param name="replaceTransition">可选：Replace 的"两组并发"定制位；null = 壳合成 WhenAll(Close, Show)。</param>
         /// <param name="transitionMaxDuration">转场超时兜底（§1.5.4 规则④），默认 2s。</param>
@@ -106,27 +113,17 @@ namespace LiteClient.UI
             _transitions = new UITransitionRunner(transitionStrategy ?? new InstantTransition(),   // 默认零动效：通用层不认识动效适配器（§5.1）；生产装配显式传 FadeSlideTransition
                                                   replaceTransition, transitionMaxDuration);
             _pop = popInterceptor ?? new DefaultPopInterceptor();
-            _logicResolver = logicResolver;
             _loadPrefab = loadPrefab ?? throw new ArgumentNullException(nameof(loadPrefab),
                 "UI prefab 加载口必填（租约语义——生产绑内容服务，测试绑 Unowned）");
-            _localeProvider = localeProvider;
             _themeProvider = themeProvider;
-            CacheBudget = cacheBudget > 0 ? cacheBudget : DefaultCacheBudget;
+            SetCacheBudget(cacheBudget > 0 ? cacheBudget : DefaultCacheBudget);
 
-            _root = new GameObject("[UIRoot]").transform;
-            if (Application.isPlaying) UnityEngine.Object.DontDestroyOnLoad(_root.gameObject);   // EditMode 用例不得走 DDOL
-            _groups = new UILayerGroup[GroupNames.Length];
-            for (int i = 0; i < GroupNames.Length; i++)
-            {
-                var node = new GameObject(GroupNames[i]).transform;
-                node.SetParent(_root, false);
-                _groups[i] = new UILayerGroup(GroupNames[i], (i + 1) * UILayerGroup.DepthStride, node,
-                    layerStrategy ?? new DefaultLayerStrategy());
-            }
+            _groups = UILayerGroupFactory.Create(GroupNames, layerStrategy, out _root);   // 运行时根 + 层级组（装配域）
+            _logic = new UIFormLogicBinder(_store, logicResolver, localeProvider, themeProvider);   // 逻辑解析/注入/换表
+            _evictor = new UIFormCacheEvictor(_store, DestroyFormInternal);                        // 预算淘汰（走完整销毁路径）
             _modals = new UIModalStack(this);      // 查询口 = 本类（暴露"谁开着/某层栈顶"两个窄事实）
             _focus = new UIFocusCoordinator();    // 焦点协调（§6.2——保存/恢复/平台返回；U2-⑦）
             _coverage = new UICoverageResolver(_groups, _focus);   // 遮盖推导（开/关事务序内调用）
-            UiInput.EnsureEventSystem();          // 输入底座（幂等；§7 基础设施例外见 UiInput 判据）
             Log.Info("UI 服务就绪:层级组 Bottom/Window/Top（策略三件默认实现）", LogTag.UI);
         }
 
@@ -153,8 +150,8 @@ namespace LiteClient.UI
                 switch (existing.State)
                 {
                     case UIFormState.Recycled:
-                        SwapIfStale(existing);            // 换表重建（运行期增量重填）后再复用
-                        EnsureLogic(existing);            // env 重建后逻辑已落空：按当前注册表重新解析
+                        _logic.SwapIfStale(existing);       // 换表重建（运行期增量重填）后再复用
+                        _logic.EnsureAfterReload(existing);  // env 重建后逻辑已落空：按当前注册表重新解析
                         return ReuseAsync(existing, group, data);
                     case UIFormState.Active:
                     case UIFormState.Covered:
@@ -229,9 +226,7 @@ namespace LiteClient.UI
 
                 var root = UnityEngine.Object.Instantiate(lease.Prefab, group.Root);
                 form = new UIForm(info, root);
-                form.Logic = ResolveLogic(info, root);
-                form.LocaleProvider = _localeProvider;      // 语言服务注入缝（ILocaleBound——批C-②；null = 未装配不注入）
-                form.ThemeProvider = _themeProvider;        // 主题注入缝（UiStyleRef/IThemeBound——P2-3 B2；null = 保持烘焙值）
+                _logic.BindNew(form);                       // 逻辑解析 + 语言/主题注入缝（打开管线唯一绑定点）
                 form.PrepareForShow();
                 _store.Register(op.FormId, form, lease);              // 所有权移交：租约由本表持有到实例真正销毁
                 lease = null;                                         // 登记成功——失败路径不就地释放
@@ -482,12 +477,7 @@ namespace LiteClient.UI
         /// </summary>
         public void DropAllLogic()
         {
-            foreach (var form in _store.All)
-            {
-                form.DropLogic();
-                form.NeedsReinit = true;
-            }
-            _staleLogic.Clear();                              // 待更新标记已被"落空 + 重解析"承接
+            _logic.DropAll();                                 // 落空 + 标记待重解析（待更新标记一并清）
             Log.Info($"UI 逻辑已全部落空（env 重建前置）：{_store.Count} 件待重解析", LogTag.UI);
         }
 
@@ -546,43 +536,25 @@ namespace LiteClient.UI
 
 
         // ---- 逻辑换表：运行期增量重填（§2.3）----
+        // 标记/换表判定/解析与降级归 UIFormLogicBinder；本类只保留**时机**（关闭事务序 / 复用前 /
+        // env 重建前置）——顺序不能反：OnHide 跑完前换表会让界面"一半旧一半新"。
 
         /// <summary>
         /// 全量打标"逻辑已过期"（幂等）。由重填服务在**清注册表之前**调用——先标后清，窗口内界面仍能用旧表跑完。
         /// Active 界面**不立刻换表**（§2.3：已打开的界面换代码会"一半旧一半新"），等它关闭后再换。
         /// </summary>
-        public void MarkLogicStale()
-        {
-            foreach (var form in _store.All) _staleLogic.Add(form.Id);
-        }
+        public void MarkLogicStale() => _logic.MarkAllStale();
 
         /// <summary>单界面打标（调试口用）。</summary>
-        public void MarkLogicStale(int formId) => _staleLogic.Add(formId);
+        public void MarkLogicStale(int formId) => _logic.MarkStale(formId);
 
         /// <summary>
         /// 重填完成后调用：池中（Recycled）界面立刻换表；Active/Covered/Paused 保留标记，等 Close 时换。
         /// </summary>
-        public void ApplyStaleLogic()
-        {
-            foreach (var form in _store.All)
-                if (form.State == UIFormState.Recycled) SwapIfStale(form);
-        }
+        public void ApplyStaleLogic() => _logic.ApplyToRecycled();
 
-        /// <summary>仍带"待更新"标记的界面数（HUD 读数：>0 = 新逻辑尚未在该界面生效）。</summary>
-        public int StaleLogicCount => _staleLogic.Count;
-
-        /// <summary>
-        /// 换表（幂等）：旧适配器解绑并释放 Lua 引用 → 用当前注册表重新解析 → 池中界面标记需补跑 OnInit。
-        /// 只在"已无人在用旧逻辑"时调用（Reuse 之前 / EnterClosing 之后 / ApplyStaleLogic 的池中件）。
-        /// </summary>
-        private void SwapIfStale(UIForm form)
-        {
-            if (!_staleLogic.Remove(form.Id)) return;
-
-            form.Logic?.Release();   // 通用钩子——UI 服务不认识脚本适配器（§5.1）
-            form.Logic = ResolveLogic(form.Info, form.Root);
-            if (form.State == UIFormState.Recycled) form.NeedsReinit = true;
-        }
+        /// <summary>仍带"待更新"标记的界面数（HUD 读数：&gt;0 = 新逻辑尚未在该界面生效）。</summary>
+        public int StaleLogicCount => _logic.StaleCount;
 
         // ---- 内部 ----
 
@@ -617,51 +589,10 @@ namespace LiteClient.UI
             return form;
         }
 
-        /// <summary>
-        /// env 重建后的逻辑补解析（§10.2）：只有"逻辑已被 <see cref="DropAllLogic"/> 落空且标记待重解析"
-        /// 才动它——C# 逻辑与非空逻辑一律不越权替换。
-        /// </summary>
-        private void EnsureLogic(UIForm form)
-        {
-            if (!form.NeedsReinit) return;
-            if (!ReferenceEquals(form.Logic, NullUIFormLogic.Instance)) return;
-            form.Logic = ResolveLogic(form.Info, form.Root);
-        }
-
         /// <summary>遮盖重算（幂等）：以"**仍逻辑打开**的最高全屏界面"所在组为界（含 Covered/Paused——
         /// §6.2：遮盖从仍打开且有遮盖能力的全部页面推导，不能只看 Active），**严格更低**的组全遮、其余照常；
         /// 逐界面按目标态做最小迁移（Active↔Covered 配对回调不重复触发，Paused 不被遮盖改写）。</summary>
         private void RecomputeCovering() => _coverage.Recompute();
-
-        private IUIFormLogic ResolveLogic(PageDefinition info, UnityEngine.GameObject root)
-        {
-            // **prefab 自带 C# 逻辑组件优先**（UIBindBase 派生页挂 prefab 根，
-            // 生成器登记控件——显式挂件优先于表行 Lua 逻辑）。
-            if (root != null)
-            {
-                var carried = root.GetComponentInChildren<IUIFormLogic>(true);
-                if (carried != null) return carried;
-            }
-
-            // 空 LuaPath = 无业务逻辑的展示面（Loading/Toast/错误弹窗）：
-            // **正常降级，不打日志**。若无此分支会落到下方 catch 打 Error，而测试专项 §8.2 把
-            // "Console 新增 Error" 判为 UI Lane 失败——纯展示面会凭空制造门禁红灯。
-            if (string.IsNullOrEmpty(info.LuaPath)) return NullUIFormLogic.Instance;
-
-            // 逻辑解析：resolver（GameEntry 装配 LuaBehaviourAdapter ← UI 注册表）→ 失败降级 NullLogic
-            // （错误语义"注册失败"，§3.4——启动期已知键由 RegistryFiller 校验兜底，此处为运行期降级）
-            if (_logicResolver == null) return NullUIFormLogic.Instance;
-            try
-            {
-                var logic = _logicResolver(info);
-                return logic ?? NullUIFormLogic.Instance;
-            }
-            catch (Exception ex)
-            {
-                Log.Error($"界面逻辑解析失败[{info.LuaPath}]:{ex.Message}", LogTag.UI);
-                return NullUIFormLogic.Instance;
-            }
-        }
 
         /// <summary>本组内查找"仍打开的全屏界面"（§1.5.3 Replace 推导用；排除刚入栈的新界面）。
         /// 覆盖 Active 与 Paused——同组全屏互斥对"手动暂停但没关"的页同样成立。</summary>
@@ -698,7 +629,7 @@ namespace LiteClient.UI
             group.Stack.Remove(form);
             group.RecalculateOrders();                        // 移除后统一重算（紧缩——不复用 order 也不留洞）
             form.Recycle();
-            SwapIfStale(form);
+            _logic.SwapIfStale(form);
             if (form.Info.FullScreen) RecomputeCovering();
             _modals.RecomputeBlocking();                  // 模态射线遮蔽随关闭重算（关掉模态 → 下方恢复可命中）
 
@@ -712,30 +643,8 @@ namespace LiteClient.UI
             }
 
             _store.MarkUsed(form.Id);                      // LRU 记账（最近使用序号）
-            EvictBeyondBudget();
+            _evictor.Evict(CacheBudget);                   // 超预算按 LRU 淘汰（缓存域策略）
             FormClosed?.Invoke(form.Id);
-        }
-
-        /// <summary>缓存预算淘汰（§5.2 LRU：只淘汰**未打开、未被操作引用**的缓存实例；
-        /// per-form 策略 Resident 不参与淘汰——预算满时跳过常驻页，淘汰候选仅限 LRU 策略的实例）。</summary>
-        private void EvictBeyondBudget()
-        {
-            int cached = 0;
-            foreach (var form in _store.All)
-                if (form.State == UIFormState.Recycled) cached++;
-            if (cached <= CacheBudget) return;
-
-            // 候选 = 池中 LRU 策略实例（Resident 不淘汰），按最近使用序升序（最旧先淘汰）
-            _evictCandidates.Clear();
-            _store.CollectEvictionCandidates(_evictCandidates);
-            _evictCandidates.Sort((a, b) => a.used.CompareTo(b.used));
-
-            int toEvict = cached - CacheBudget;
-            for (int i = 0; i < toEvict && i < _evictCandidates.Count; i++)
-            {
-                DestroyFormInternal(_evictCandidates[i].id);
-                Log.Info($"UIForm[{_evictCandidates[i].id}] 缓存超出预算 {CacheBudget}——LRU 淘汰（租约释放）", LogTag.UI);
-            }
         }
 
         /// <summary>完整销毁：摘登记 → 实例销毁（GameObject + 逻辑/Lua 引用 + 展示令牌）→ 租约释放。
@@ -743,7 +652,7 @@ namespace LiteClient.UI
         private void DestroyFormInternal(int formId)
         {
             if (!_store.Detach(formId, out var form, out var lease)) return;   // 幂等：不在册 = 已销毁
-            _staleLogic.Remove(formId);
+            _logic.Forget(formId);                          // 摘待换表标记（幂等）
             form.DestroyInstance();
             lease?.Release();                              // 最后一个依赖实例已销毁——底层引用归零（§5.2）
         }
@@ -772,28 +681,6 @@ namespace LiteClient.UI
         public string StatsName => "UI";
 
         public void Snapshot(Dictionary<string, string> into)
-        {
-            into.Clear();                                    // 契约：实现 Clear + 填（HUD 不清，全实现统一）
-            int active = 0, covered = 0, paused = 0, recycled = 0, loading = 0;
-            foreach (var form in _store.All)
-            {
-                switch (form.State)
-                {
-                    case UIFormState.Active: active++; break;
-                    case UIFormState.Covered: covered++; break;
-                    case UIFormState.Paused: paused++; break;
-                    case UIFormState.Recycled: recycled++; break;
-                    case UIFormState.Loading: loading++; break;
-                }
-            }
-            into["打开"] = active.ToString();
-            into["遮盖"] = covered.ToString();
-            into["暂停"] = paused.ToString();
-            into["池中"] = recycled.ToString();
-            into["加载中"] = loading.ToString();
-            into["待更新"] = StaleLogicCount.ToString();
-            into["转场"] = _transitions.Phase.ToString();
-            into["转场队列"] = _transitions.QueueLength.ToString();
-        }
+            => UIFormStats.Snapshot(_store, _transitions, _logic.StaleCount, into);   // 统计投影（统计域）
     }
 }

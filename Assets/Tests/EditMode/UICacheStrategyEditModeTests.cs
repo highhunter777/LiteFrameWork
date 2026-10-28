@@ -110,7 +110,7 @@ namespace LiteGame.Tests.EditMode
         {
             _catalog.Add(1, strategy: UICacheStrategy.Resident);
             _catalog.Add(2, strategy: UICacheStrategy.Lru);
-            _svc.CacheBudget = 1;
+            _svc.SetCacheBudget(1);
 
             Await(_svc.ShowAsync(1));
             Await(_svc.ShowAsync(2));
@@ -128,7 +128,7 @@ namespace LiteGame.Tests.EditMode
             _catalog.Add(1, strategy: UICacheStrategy.Resident);
             _catalog.Add(2, strategy: UICacheStrategy.Lru);
             _catalog.Add(3, strategy: UICacheStrategy.Lru);
-            _svc.CacheBudget = 2;
+            _svc.SetCacheBudget(2);
 
             Await(_svc.ShowAsync(1));
             Await(_svc.ShowAsync(2));
