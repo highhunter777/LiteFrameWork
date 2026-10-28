@@ -28,12 +28,12 @@ namespace LiteGame.Tests.EditMode
         private const int ToastFormId = 203;
         private const int NormalPageId = 10;
 
-        private sealed class FakeCatalog : IUIFormCatalog
+        private sealed class FakeCatalog : IPageCatalog
         {
-            private readonly Dictionary<int, UIFormInfo> _rows = new Dictionary<int, UIFormInfo>();
+            private readonly Dictionary<int, PageDefinition> _rows = new Dictionary<int, PageDefinition>();
             public void Add(int id, int layer = 1, bool fullScreen = false)
-                => _rows[id] = new UIFormInfo { Id = id, Layer = layer, FullScreen = fullScreen, Location = "x" + id, LuaPath = "" };
-            public UIFormInfo Get(int id)
+                => _rows[id] = new PageDefinition { Id = id, Layer = layer, FullScreen = fullScreen, Location = "x" + id, LuaPath = "" };
+            public PageDefinition Get(int id)
                 => _rows.TryGetValue(id, out var r) ? r : throw new KeyNotFoundException($"FakeCatalog 无行:{id}");
         }
 
@@ -388,7 +388,7 @@ namespace LiteGame.Tests.EditMode
         public void 加载面_旧段开面晚于新段_转认领_不留孤儿也不误收()
         {
             var form = new UIForm(
-                new UIFormInfo { Id = LoadingFormId, Layer = 3, FullScreen = false, Location = "x202", LuaPath = "" },
+                new PageDefinition { Id = LoadingFormId, Layer = 3, FullScreen = false, Location = "x202", LuaPath = "" },
                 FakeLoadingPrefab("loadingRace"));
 
             var opens = new List<UniTaskCompletionSource<UIForm>>();

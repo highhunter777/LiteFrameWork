@@ -79,7 +79,7 @@ namespace LiteGame
                 // 故落在放行闸口而非页面流内部。
                 int settingsFormId = Bridge.Data.ResolveUIFormId(LuaKeys.UI.Page_Settings);
                 if (settingsFormId >= 0) _ui.RegisterModal(settingsFormId);
-                else Log.Error($"模态登记失败：tbuiform 未登记 '{LuaKeys.UI.Page_Settings}'", LogTag.UI);
+                else Log.Error($"模态登记失败：生成页面目录未登记 '{LuaKeys.UI.Page_Settings}'", LogTag.UI);
 
                 m.Request(ProcedureId.Main);                     // ⑤ 放行（启动走廊跨流程存续——Main 报进度、首屏收）
             }

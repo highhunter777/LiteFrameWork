@@ -113,7 +113,7 @@ namespace LiteGame
             _services.RegisterInstance<IUILuaRegistry>(uiRegistry);
             _services.RegisterInstance<IContentLuaRegistry>(contentRegistry);
             _services.RegisterInstance<IStrategyLuaRegistry>(strategyRegistry);
-            _services.RegisterInstance(new LuaRegistryRefillService(lua, ui, config, uiRegistry, contentRegistry, strategyRegistry));
+            _services.RegisterInstance(new LuaRegistryRefillService(lua, ui, config, UiPageCatalog.All, uiRegistry, contentRegistry, strategyRegistry));
             _services.RegisterInstance<ITimelineRunner>(context.Require<GameTimelineRunner>());
             _services.RegisterInstance<IVFXService>(context.Require<VfxService>());
 
@@ -182,7 +182,7 @@ namespace LiteGame
             // 模态登记（生产装配——与测试同口径，见 DialogServiceEditModeTests/FeedbackServiceEditModeTests）：
             // 设置页＝对局中的暂停菜单（打开即拦游戏输入——上面的 `ui.modal` 拦截源经 IsModalOpen 生效）；
             // 错误/确认弹窗＝模态弹窗（开着时其下不可命中、Back 先关最顶）。Loading/Toast 走射线阻断，不是模态。
-            // **设置页（表单 15）不在此登记**：它须经 tbuiform 表驱动反查（单源，id 不写第二份），而本装配点
+            // **设置页（表单 15）不在此登记**：它须经生成页面目录反查（单源，id 不写第二份），而本装配点
             // 早于 ProcedurePreload 的 `LoadAsync`——此处查表必抛「配置未加载」阻断引导（实伤：SampleTripleChain）。
             // 登记随 ProcedurePreload 放行闸口（配置装载后）就位；此处只留不依赖表的两个弹窗 id
             // （单源在 FeedbackService 构造默认——审计 [低]「表单 id 单处」口径）。
@@ -249,7 +249,7 @@ namespace LiteGame
             UiLuaRegistry uiRegistry, ContentLuaRegistry contentRegistry, StrategyLuaRegistry strategyRegistry,
             PageFlow pageFlow, MetaEntryService metaEntry, FeedbackService feedback)
         {
-            var filler = new RegistryFiller(config, lua, uiRegistry, contentRegistry, strategyRegistry);
+            var filler = new RegistryFiller(config, UiPageCatalog.All, lua, uiRegistry, contentRegistry, strategyRegistry);
             var rootToken = context.RootScope.Token;
             return new StageMachine<ProcedureId, ProcedureArgs>("Procedure",
                 (ProcedureId.Launch, new ProcedureLaunch(rootToken)),

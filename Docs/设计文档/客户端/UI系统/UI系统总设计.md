@@ -219,7 +219,7 @@ Docs/设计文档/客户端/UI/      本套设计文档
 
 <a id="ch-page-catalog"></a>
 
-- **运行时目录**：`PageDefinition`（生成物 `UiPageCatalog.g.cs`，运行时经 `IPageCatalog` 取件）。运行时只认 `Id`/`Name`/`Prefab`/`LuaPath`/`Layer`/`FullScreen`/`CacheStrategy` 七项；`#uiform`、contract、manifest、hash 均为生成器输入或编辑器域，不进运行时。
+- **运行时目录**：`PageDefinition`（生成物 `UiPageCatalog.g.cs`，运行时经 `IPageCatalog` 取件）。运行时只认 `Id`/`Name`/`Location`/`LuaPath`/`Layer`/`FullScreen`/`CacheStrategy` 七项；`#uiform`、contract、manifest、hash 均为生成器输入或编辑器域，不进运行时。
 - **页面单制品**：一个页面 = 一条 `PageDefinition` + 一个 prefab；Lua 是页面逻辑代码，不计入制品数。
 - **页面 ID 段**（推荐）：
 
@@ -239,11 +239,11 @@ Docs/设计文档/客户端/UI/      本套设计文档
 
 <a id="ch-page-definition"></a>
 
-- **唯一源**：`#uiform`（id/prefab/lua/layer/fullscreen）+ `UiPageManifest`（Owner/状态/设备档/缓存策略）+ `UiPageContract`（绑定表/文案/样式引用）+ prefab 的 BindNode，由 `ui.page-definition` 生成器合并为一条 `PageDefinition`。
-- **生成物**：`Assets/LiteGame/App/Product/Generated/UiPageCatalog.g.cs`（按 Id 排序、确定性输出）；运行时只读该目录，不读 `#uiform`/contract/manifest/hash。
-- **缺失处理**：缺失 contract 的 Tmp 页告警并以空绑定表生成；缺失 prefab/table 行 fail-fast；同一 prefab 多行取首行，其余行由 manifest `forms[]` 承载。
-- **工具边界**：contract/manifest/hash 保留在编辑器域，作为生成器输入与评审产物；运行时程序集出现引用即由架构守卫拦截。
-- **迁移约束**：旧 `UIFormInfo`/`UIFormCatalog` 仅在生成目录接入的适配窗口内保留；窗口结束后运行时只认 `PageDefinition`。
+- **唯一源**：`#uiform`（id/prefab/lua/layer/fullscreen）+ `UiPageManifest`（Owner/状态/设备档/缓存策略）+ `UiPageContract`（绑定表/文案；控件表已由 prefab BindNode 生成），由 `codegen.ui-page` 生成器合并为 `PageDefinition`。
+- **生成物**：`Assets/LiteClient/UI/Generated/UiPageCatalog.g.cs`（按 Id 排序、确定性输出）。放在 `LiteClient` 而不是 `App`：`IPageCatalog`/`PageDefinition` 是壳契约，`LiteGame.LuaBridge` 也要消费；生成物只依赖壳类型，不依赖产品程序集。
+- **缺失处理**：缺失 contract 的 Tmp 页告警并以空绑定表生成；缺失 prefab/table 行 fail-fast；同一 prefab 多行（如 201/206）各生成一条，id 独立。
+- **工具边界**：contract/manifest/hash 保留在编辑器域，作为生成器输入与评审产物；`Assets/LiteClient`、`Assets/LiteGame/App`、`Assets/LiteGame/LuaBridge` 直读表/清单/契约由 `PageDefinitionGuardTests` 拦截。
+- **迁移结果**：旧 `UIFormInfo`/`UIFormCatalog` 已删除；运行时只认 `PageDefinition`/`IPageCatalog`。
 
 ### 5.2 生命周期与状态机
 

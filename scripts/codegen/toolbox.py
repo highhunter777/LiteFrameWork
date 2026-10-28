@@ -11,6 +11,7 @@ center; per-tool why/notes stay in each script's header):
   proto         battle.proto -> Assets/LiteNet/Proto/Generated/Battle.cs
   luban         table chain regen (C#/binary/lua/LuaKeys); alias of Luban/gen.bat
   sync-code     [StateLayer] fields -> EntitySlot.Sync.g.cs (checksum plumbing)
+  ui-page       #uiform + UiPageManifest + Contracts -> UiPageCatalog.g.cs
   refresh-hash  refresh orchestration: gen -> RoomServer build -> Unity recompile -> reconcile
 
 Direct per-script invocation stays valid (CI/gate callers keep their exact
@@ -37,6 +38,7 @@ TOOLS = {
     'proto':        ('gen_proto.py',      '--protoc <protoc.exe>',           'battle.proto -> Generated/Battle.cs (protoc must match runtime version)'),
     'luban':        ('gen_luban.py',      '[--python <python>]',             'table chain regen (C#/binary/lua/LuaKeys); alias of Luban/gen.bat'),
     'sync-code':    ('gen_sync_code.py',  '',                                '[StateLayer] fields -> EntitySlot.Sync.g.cs (checksum plumbing)'),
+    'ui-page':      ('gen-ui-page.py',    '[--check]',                        '#uiform + UiPageManifest + Contracts -> UiPageCatalog.g.cs'),
     'refresh-hash': ('refresh-hash.py',   '[--skip-server-build] [--skip-unity-recompile] [--allow-incomplete]', 'refresh orchestration: gen -> RoomServer build -> Unity recompile -> reconcile'),
 }
 

@@ -34,7 +34,7 @@ namespace LiteGame.Editor
             typeof(System.Action<int>),                     // Bridge.settings.SetQuality
             typeof(System.Func<string, string>),            // Bridge.text.Get
             typeof(System.Func<string, bool>),              // Bridge.ui.IsOpen
-            typeof(System.Func<int, XLua.LuaTable>),        // Bridge.data.GetItem/GetUIForm、Bridge.content.GetProcessor
+            typeof(System.Func<int, XLua.LuaTable>),        // Bridge.data.GetItem、Bridge.content.GetProcessor
             typeof(System.Func<XLua.LuaTable>),             // Bridge.data.ListMaps（开房选图下拉目录）
             typeof(System.Func<string, XLua.LuaTable>),     // Bridge.ui.GetLogic
             typeof(System.Func<string, object, object, object, object, string>),   // Bridge.text.Format

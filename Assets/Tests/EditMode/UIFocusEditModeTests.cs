@@ -43,7 +43,7 @@ namespace LiteGame.Tests.EditMode
                 btnGo.transform.SetParent(root.transform, false);
                 btnGo.GetComponent<Button>().interactable = buttonInteractable;
             }
-            return new UIForm(new UIFormInfo { Id = id, Layer = 1, Location = "x" + id, LuaPath = "x" }, root);
+            return new UIForm(new PageDefinition { Id = id, Layer = 1, Location = "x" + id, LuaPath = "x" }, root);
         }
 
         private static GameObject ButtonOf(UIForm form)

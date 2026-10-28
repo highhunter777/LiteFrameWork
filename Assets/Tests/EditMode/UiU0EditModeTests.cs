@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Threading;
@@ -102,14 +102,14 @@ namespace LiteGame.Tests.EditMode
         }
 
         /// <summary>目录替身（§3 可注入面）：不拉配置链路即可声明任意层/全屏组合。</summary>
-        private sealed class FakeCatalog : IUIFormCatalog
+        private sealed class FakeCatalog : IPageCatalog
         {
-            private readonly Dictionary<int, UIFormInfo> _rows = new Dictionary<int, UIFormInfo>();
+            private readonly Dictionary<int, PageDefinition> _rows = new Dictionary<int, PageDefinition>();
 
             public void Add(int id, int layer, bool fullScreen, string location = "x", string luaPath = "x")
-                => _rows[id] = new UIFormInfo { Id = id, Layer = layer, FullScreen = fullScreen, Location = location, LuaPath = luaPath };
+                => _rows[id] = new PageDefinition { Id = id, Layer = layer, FullScreen = fullScreen, Location = location, LuaPath = luaPath };
 
-            public UIFormInfo Get(int id)
+            public PageDefinition Get(int id)
                 => _rows.TryGetValue(id, out var r) ? r : throw new KeyNotFoundException($"FakeCatalog 无行:{id}");
         }
 
@@ -204,24 +204,23 @@ return m";
         // ---- ① 真 Lua 首开/关闭/复用（UI-01：实例工厂 + 显式传 self）----
 
         [Test]
-        public void 真配置投影_UIMain行已移除_PageLogin仍在()
+        public void 生成目录_UIMain行已移除_PageLogin仍在()
         {
-            var config = new ConfigService((loc, ct) => UniTask.FromResult(File.ReadAllBytes(ToFullPath(loc))));
-            config.LoadAsync(System.Threading.CancellationToken.None).GetAwaiter().GetResult();
-            var catalog = new UIFormCatalog(config);
+            IPageCatalog catalog = UiPageCatalog.Instance;
 
-            UIFormInfo login = catalog.Get(11);
+            PageDefinition login = catalog.Get(11);
+            Assert.AreEqual("Page_Login", login.Name);
             Assert.AreEqual("UI.Page_Login", login.LuaPath);
             Assert.AreEqual("Assets/ShareResource/UI/Screens/Page_Login.prefab", login.Location);
             Assert.Throws<System.Collections.Generic.KeyNotFoundException>(() => catalog.Get(1),
-                "UIMain 退役后 tbuiform 不得再有 id=1");
+                "UIMain 退役后生成的页面目录不得再有 id=1");
         }
 
         [Test]
         [Category(TestCategory.Integration)]
         public void 真Lua页面_首开_关闭_复用_实例与self契约()
         {
-            // 真 prefab + 真 Lua（静态测试 catalog；tbuiform 投影由下方独立用例覆盖）
+            // 真 prefab + 真 Lua（静态测试 catalog；生成目录由下方独立用例覆盖）
             var catalog = new FakeCatalog();
             catalog.Add(1, layer: 0, fullScreen: true, location: TestPagePrefab, luaPath: TestPageRequire);
 

@@ -19,7 +19,7 @@ namespace LiteGame.Tests.EditMode
     /// <see cref="PageFlow.OpenBattleSettings"/> 导航数据（battleExit 只经对局中入口产生——设置页
     /// 退场钮门控依据）。真 PageFlow + 真导航/UIService（替身目录：设置页＝合成 form、非空
     /// LuaPath 走探针逻辑记录导航数据）+ 真 LuaComponent（仅用 Env 建数据表）+ 真表反查
-    /// （Bridge.Data.ResolveUIFormId——tbuiform 单源）。对局视图/真 prefab 装配归 PlayMode/夜间。
+    /// （Bridge.Data.ResolveUIFormId——生成页面目录单源）。对局视图/真 prefab 装配归 PlayMode/夜间。
     /// </summary>
     public sealed class PageFlowBattleMenuEditModeTests : UnityTestBase
     {
@@ -47,11 +47,11 @@ namespace LiteGame.Tests.EditMode
             public void Release() { }
         }
 
-        private sealed class StaticCatalog : IUIFormCatalog
+        private sealed class StaticCatalog : IPageCatalog
         {
-            private readonly UIFormInfo[] _rows;
-            public StaticCatalog(UIFormInfo[] rows) => _rows = rows;
-            public UIFormInfo Get(int id)
+            private readonly PageDefinition[] _rows;
+            public StaticCatalog(PageDefinition[] rows) => _rows = rows;
+            public PageDefinition Get(int id)
             {
                 foreach (var row in _rows) if (row.Id == id) return row;
                 return null;
@@ -64,7 +64,7 @@ namespace LiteGame.Tests.EditMode
             _probe = new ProbeLogic();
             _ui = new UIService(new StaticCatalog(new[]
                 {
-                    new UIFormInfo { Id = SettingsFormId, Layer = 1, FullScreen = true, LuaPath = "probe.settings", Location = "probe" },
+                    new PageDefinition { Id = SettingsFormId, Layer = 1, FullScreen = true, LuaPath = "probe.settings", Location = "probe" },
                 }),
                 logicResolver: info => _probe,
                 loadPrefab: (loc, ct) => UniTask.FromResult<IUIPrefabLease>(UIPrefabLeases.Unowned(FakePrefab())),

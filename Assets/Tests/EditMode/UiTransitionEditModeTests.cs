@@ -64,7 +64,7 @@ namespace LiteGame.Tests.EditMode
         /// </summary>
         private UIForm MakeForm(int id, bool fullScreen = false)
         {
-            var info = new UIFormInfo { Id = id, FullScreen = fullScreen, Layer = 1, Location = "x", LuaPath = "x" };
+            var info = new PageDefinition { Id = id, FullScreen = fullScreen, Layer = 1, Location = "x", LuaPath = "x" };
             var go = Scope.CreateGameObject("F" + id, typeof(RectTransform), typeof(Canvas), typeof(CanvasGroup));
             return new UIForm(info, go);
         }

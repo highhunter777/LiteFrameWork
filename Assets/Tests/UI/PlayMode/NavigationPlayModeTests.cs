@@ -40,11 +40,11 @@ namespace LiteGame.Tests.UI.PlayMode
         // UIService 按组内契约"复用_同组已有全屏_判定Replace"关闭底页，
         // "Go 不关下层"即假红。A/B 同层（1）表达 Replace 的"替换当前记录"位置语义。
 
-        private sealed class StaticCatalog : IUIFormCatalog
+        private sealed class StaticCatalog : IPageCatalog
         {
-            private readonly UIFormInfo[] _rows;
-            public StaticCatalog(UIFormInfo[] rows) => _rows = rows;
-            public UIFormInfo Get(int id)
+            private readonly PageDefinition[] _rows;
+            public StaticCatalog(PageDefinition[] rows) => _rows = rows;
+            public PageDefinition Get(int id)
             {
                 foreach (var row in _rows) if (row.Id == id) return row;
                 throw new KeyNotFoundException($"StaticCatalog 无行:{id}");
@@ -127,11 +127,11 @@ namespace LiteGame.Tests.UI.PlayMode
             _ui = new UIService(
                 new StaticCatalog(new[]
                 {
-                    new UIFormInfo { Id = PageMain, Layer = 0, FullScreen = true,
+                    new PageDefinition { Id = PageMain, Layer = 0, FullScreen = true,
                         LuaPath = "Tests.UiTestPage", Location = "Assets/ShareResource/UI/Screens/Tmp_UiTestPage.prefab" },
-                    new UIFormInfo { Id = PageA, Layer = 1, FullScreen = true,
+                    new PageDefinition { Id = PageA, Layer = 1, FullScreen = true,
                         LuaPath = "", Location = "Assets/ShareResource/UI/Screens/Tmp_BaselineA.prefab" },
-                    new UIFormInfo { Id = PageB, Layer = 1, FullScreen = true,
+                    new PageDefinition { Id = PageB, Layer = 1, FullScreen = true,
                         LuaPath = "", Location = "Assets/ShareResource/UI/Screens/Tmp_BaselineB.prefab" },
                 }),
                 transitionStrategy: _transition,

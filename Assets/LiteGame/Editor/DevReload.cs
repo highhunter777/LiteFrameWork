@@ -69,7 +69,7 @@ namespace LiteGame.Editor
             lua.Init(preloader, events, ProductBridges.BindGlobals);   //    env 重建 + 事件桥/游戏桥重绑（产品门面单源装订——与 Preload 同口）
             lua.DoMain();                                  // ⑤ 重跑 main.lua
 
-            var filler = new LiteGame.RegistryFiller(config, lua, ui, content, strategy);
+            var filler = new LiteGame.RegistryFiller(config, LiteClient.UI.UiPageCatalog.All, lua, ui, content, strategy);
             var report = filler.FillAll(CancellationToken.None);   // ⑥ 同一条填充路径（§2.4 ③）
             if (report.HasFailures)
             {

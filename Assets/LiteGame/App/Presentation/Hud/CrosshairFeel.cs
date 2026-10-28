@@ -39,7 +39,7 @@ namespace LiteGame
     }
 
     /// <summary>
-    /// 准心手感投影（装配层投影件——UIFormCatalog/LTextCatalog 同族）：<c>cfg.Tables.Tbcrosshair</c> 行
+    /// 准心手感投影（装配层投影件——与 LTextCatalog 同层）：<c>cfg.Tables.Tbcrosshair</c> 行
     /// → 武器定义 Id → <see cref="CrosshairFeel"/>。**惰性投影**（MapProvider 同口径：装配期表未装载，
     /// 首次 <see cref="TryGet"/> 才读 <see cref="IConfigService.Tables"/>——未装载即访问由其抛）。
     /// 缺行 → false（调用方回落 <see cref="CrosshairFeel.Default"/>）；行值域合法性闸在

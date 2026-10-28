@@ -46,7 +46,7 @@ function m.new()
 end
 return m")[0];
             _adapter = new LuaBehaviourAdapter(_env, module, confirm);
-            _form = new UIForm(new UIFormInfo { Id = 902, LuaPath = "", Location = "", Layer = 0, FullScreen = true }, _root);
+            _form = new UIForm(new PageDefinition { Id = 902, LuaPath = "", Location = "", Layer = 0, FullScreen = true }, _root);
             _adapter.OnInit(_form, null);
             _adapter.OnShow(null);
             _env.DoString("assert(_test_ui ~= nil, 'ui 门面未挂')");

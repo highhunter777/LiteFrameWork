@@ -34,22 +34,22 @@ namespace LiteGame.Tests.UI.PlayMode
         private const int LoadingFormId = 202;
         private const int ToastFormId = 203;
 
-        /// <summary>真表投影（与生产同源：TbUIForm 行 → UIFormInfo）。</summary>
-        private static IUIFormCatalog BuildCatalog()
+        /// <summary>生成目录（与生产同源：PageDefinition）。</summary>
+        private static IPageCatalog BuildCatalog()
         {
             return new StaticCatalog(new[]
             {
-                new UIFormInfo { Id = ErrorFormId, Layer = 3, FullScreen = false, LuaPath = "", Location = "Assets/ShareResource/UI/Screens/Tmp_Dialog.prefab" },
-                new UIFormInfo { Id = LoadingFormId, Layer = 3, FullScreen = false, LuaPath = "", Location = "Assets/ShareResource/UI/Screens/Tmp_Loading.prefab" },
-                new UIFormInfo { Id = ToastFormId,   Layer = 3, FullScreen = false, LuaPath = "", Location = "Assets/ShareResource/UI/Screens/Tmp_Toast.prefab" },
+                new PageDefinition { Id = ErrorFormId, Layer = 3, FullScreen = false, LuaPath = "", Location = "Assets/ShareResource/UI/Screens/Tmp_Dialog.prefab" },
+                new PageDefinition { Id = LoadingFormId, Layer = 3, FullScreen = false, LuaPath = "", Location = "Assets/ShareResource/UI/Screens/Tmp_Loading.prefab" },
+                new PageDefinition { Id = ToastFormId,   Layer = 3, FullScreen = false, LuaPath = "", Location = "Assets/ShareResource/UI/Screens/Tmp_Toast.prefab" },
             });
         }
 
-        private sealed class StaticCatalog : IUIFormCatalog
+        private sealed class StaticCatalog : IPageCatalog
         {
-            private readonly UIFormInfo[] _rows;
-            public StaticCatalog(UIFormInfo[] rows) => _rows = rows;
-            public UIFormInfo Get(int id)
+            private readonly PageDefinition[] _rows;
+            public StaticCatalog(PageDefinition[] rows) => _rows = rows;
+            public PageDefinition Get(int id)
             {
                 foreach (var row in _rows) if (row.Id == id) return row;
                 throw new System.Collections.Generic.KeyNotFoundException($"StaticCatalog 无行:{id}");

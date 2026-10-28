@@ -13,7 +13,7 @@ namespace LiteClient
     /// <summary>
     /// Luban 专用的配置服务视图（`Tables` 是 **Luban 生成类型** `cfg.Tables`）。
     ///
-    /// **只有本来就认识 Luban 的消费方**才取这一面：表投影（`UIFormCatalog`）、
+    /// **只有本来就认识 Luban 的消费方**才取这一面：表投影（`LTextCatalog` 等）、
     /// Lua 数据桥（`Bridge.Data`）。流程/装配只依赖 <see cref="IConfigTableSource"/>。
     /// 这样"Luban 是序列化适配器"这件事在类型上就成立，而不是靠约定。
     /// </summary>

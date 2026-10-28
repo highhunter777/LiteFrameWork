@@ -36,7 +36,7 @@ namespace LiteClient.UI
     {
         /// <summary>语义层名（§6.2"保留 Bottom/Window/Top，可增 Modal/Loading/System"）。
         /// <c>System</c>：Toast/Loading/错误重试等统一反馈面占此层，经统一排序器分配 order——
-        /// 反馈面不得自建 Canvas 或私有 sortingOrder（§7 视觉单一来源）。索引即 tbuiform.layer 列。</summary>
+        /// 反馈面不得自建 Canvas 或私有 sortingOrder（§7 视觉单一来源）。索引即 PageDefinition.Layer（生成目录）。</summary>
         public static readonly string[] GroupNames = { "Bottom", "Window", "Top", "System" };
 
         /// <summary>缓存实例数默认预算（§5.2：缓存有预算——Resident 也计入总预算）。</summary>
@@ -53,7 +53,7 @@ namespace LiteClient.UI
             Shutdown,    // 宿主关闭（系统）
         }
 
-        private readonly IUIFormCatalog _catalog;
+        private readonly IPageCatalog _catalog;
         private readonly UIFormStore _store = new UIFormStore();             // 实例 + 租约 + LRU 记账（缓存域）
         private readonly Dictionary<int, OpenOperation> _openOps = new Dictionary<int, OpenOperation>(4);   // 在途打开操作（并发合流）
         private readonly HashSet<int> _closing = new HashSet<int>();                         // 关闭在途（转场动画期间防并发 Close 重入）
@@ -74,7 +74,7 @@ namespace LiteClient.UI
         /// <summary>主题资产工厂（P2-3 B4：HUD 注入复用同一 provider；null = 未装载，HUD 保持烘焙值）。</summary>
         public Func<UiThemeAsset> ThemeAssetProvider => _themeProvider;
         private readonly IPopInterceptor _pop;
-        private readonly Func<UIFormInfo, IUIFormLogic> _logicResolver;
+        private readonly Func<PageDefinition, IUIFormLogic> _logicResolver;
         private readonly Func<string, CancellationToken, UniTask<IUIPrefabLease>> _loadPrefab;
         private readonly Func<ILocalizationService> _localeProvider;    // LText 装配缝（批C-②——null = 不注入）
         private readonly Func<UiThemeAsset> _themeProvider;              // 主题资产装配缝（P2-3 B2——null = 不注入，页面保持烘焙值）
@@ -90,11 +90,11 @@ namespace LiteClient.UI
         /// <param name="cacheBudget">缓存实例数预算（默认 <see cref="DefaultCacheBudget"/>）。</param>
         /// <param name="localeProvider">语言服务工厂（批C-② 装配缝：页面经 <see cref="ILocaleBound"/>
         /// 收注入、文案键自动随语言切换刷新；null = 不注入——测试/工具装配，此时 SetTextKey 由索引抛）。</param>
-        public UIService(IUIFormCatalog catalog,
+        public UIService(IPageCatalog catalog,
             ILayerStrategy layerStrategy = null,
             ITransitionStrategy transitionStrategy = null,
             IPopInterceptor popInterceptor = null,
-            Func<UIFormInfo, IUIFormLogic> logicResolver = null,
+            Func<PageDefinition, IUIFormLogic> logicResolver = null,
             IReplaceTransition replaceTransition = null,
             float transitionMaxDuration = UITransitionRunner.DefaultMaxDuration,
             Func<string, CancellationToken, UniTask<IUIPrefabLease>> loadPrefab = null,
@@ -208,7 +208,7 @@ namespace LiteClient.UI
 
         /// <summary>执行一次打开（工作侧）：加载 → 实例化挂组 → 画布就位 → 入栈 → OnInit/OnShow → 转场表现。
         /// 权威取消在各提交检查点核验（迟到结果不提交、半成品就地回滚）；成功/失败统一经 Completion 交付全部等待者。</summary>
-        private async UniTaskVoid RunOpenAsync(OpenOperation op, UIFormInfo info, UILayerGroup group)
+        private async UniTaskVoid RunOpenAsync(OpenOperation op, PageDefinition info, UILayerGroup group)
         {
             UIForm form = null;
             IUIPrefabLease lease = null;
@@ -602,7 +602,7 @@ namespace LiteClient.UI
         {
             if (layer < 0 || layer >= _groups.Length)
                 throw new ArgumentOutOfRangeException(nameof(layer),
-                    $"层级越界:{layer}（语义层 0..{_groups.Length - 1}={string.Join("/", GroupNames)}，核对 tbuiform.layer 列）");
+                    $"层级越界:{layer}（语义层 0..{_groups.Length - 1}={string.Join("/", GroupNames)}，核对 PageDefinition.Layer（生成目录））");
             return _groups[layer];
         }
 
@@ -629,7 +629,7 @@ namespace LiteClient.UI
         /// 逐界面按目标态做最小迁移（Active↔Covered 配对回调不重复触发，Paused 不被遮盖改写）。</summary>
         private void RecomputeCovering() => _coverage.Recompute();
 
-        private IUIFormLogic ResolveLogic(UIFormInfo info, UnityEngine.GameObject root)
+        private IUIFormLogic ResolveLogic(PageDefinition info, UnityEngine.GameObject root)
         {
             // **prefab 自带 C# 逻辑组件优先**（UIBindBase 派生页挂 prefab 根，
             // 生成器登记控件——显式挂件优先于表行 Lua 逻辑）。

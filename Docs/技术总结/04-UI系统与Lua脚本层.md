@@ -46,7 +46,7 @@ Loading → Active ⇄ Covered / Paused → Closing → Recycled → Disposed
 
 **缓存**：默认预算 `DefaultCacheBudget=16`；`Lru` 参与淘汰、`Resident` 不淘汰但仍计入预算、`DestroyOnClose` 关即销毁。
 
-> **现状陷阱**：`UIFormCatalog.Reload()` 只投影 Id/LuaPath/Location/Layer/FullScreen，**没有赋值 `CacheStrategy`**——所以 `Resident`/`DestroyOnClose` 两个枚举值当前**没有配置来源、不可达**，生产页面实际全是默认 LRU。
+> **缓存来源**：`PageDefinition.CacheStrategy` 由 `UiPageCatalog.g.cs` 从 `UiPageManifest` 生成；`Resident`/`DestroyOnClose` 已有配置入口（改清单后重跑 `gen-ui-page.py`）。
 
 ## 4. 导航：单写者、队列、超时
 

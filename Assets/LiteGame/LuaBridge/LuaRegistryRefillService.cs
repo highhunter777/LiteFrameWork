@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Threading;
 using Cysharp.Threading.Tasks;
@@ -31,16 +31,19 @@ namespace LiteGame
         private readonly LuaComponent _lua;
         private readonly UIService _ui;
         private readonly IConfigService _config;
+        private readonly IReadOnlyList<PageDefinition> _pages;
         private readonly IUILuaRegistry _uiRegistry;
         private readonly IContentLuaRegistry _contentRegistry;
         private readonly IStrategyLuaRegistry _strategyRegistry;
 
         public LuaRegistryRefillService(LuaComponent lua, UIService ui, IConfigService config,
+            IReadOnlyList<PageDefinition> pages,
             IUILuaRegistry uiRegistry, IContentLuaRegistry contentRegistry, IStrategyLuaRegistry strategyRegistry)
         {
             _lua = lua ?? throw new ArgumentNullException(nameof(lua));
             _ui = ui ?? throw new ArgumentNullException(nameof(ui));
             _config = config ?? throw new ArgumentNullException(nameof(config));
+            _pages = pages ?? throw new ArgumentNullException(nameof(pages));
             _uiRegistry = uiRegistry ?? throw new ArgumentNullException(nameof(uiRegistry));
             _contentRegistry = contentRegistry ?? throw new ArgumentNullException(nameof(contentRegistry));
             _strategyRegistry = strategyRegistry ?? throw new ArgumentNullException(nameof(strategyRegistry));
@@ -75,7 +78,7 @@ namespace LiteGame
             _strategyRegistry.Clear();
 
             // ⑥ 同一条填充路径（与启动期 / DevReload 共用 RegistryFiller，不写第二份）
-            var filler = new RegistryFiller(_config, _lua, _uiRegistry, _contentRegistry, _strategyRegistry);
+            var filler = new RegistryFiller(_config, _pages, _lua, _uiRegistry, _contentRegistry, _strategyRegistry);
             var report = filler.FillAll(ct);
             LastReport = report;
 

@@ -21,15 +21,17 @@ namespace LiteGame
         /// <summary>启动期 LuaKeys 校验锚：取真实产品首屏（UIMain 样例页已退役）；改首屏只改这一处。</summary>
         public const string KnownUiKey = LuaKeys.UI.Page_Login;
         private readonly IConfigService _config;
+        private readonly IReadOnlyList<PageDefinition> _pages;
         private readonly LuaComponent _lua;
         private readonly IUILuaRegistry _ui;
         private readonly IContentLuaRegistry _content;
         private readonly IStrategyLuaRegistry _strategies;
 
-        public RegistryFiller(IConfigService config, LuaComponent lua,
+        public RegistryFiller(IConfigService config, IReadOnlyList<PageDefinition> pages, LuaComponent lua,
             IUILuaRegistry ui, IContentLuaRegistry content, IStrategyLuaRegistry strategies)
         {
             _config = config ?? throw new ArgumentNullException(nameof(config));
+            _pages = pages ?? throw new ArgumentNullException(nameof(pages));
             _lua = lua ?? throw new ArgumentNullException(nameof(lua));
             _ui = ui ?? throw new ArgumentNullException(nameof(ui));
             _content = content ?? throw new ArgumentNullException(nameof(content));
@@ -45,7 +47,7 @@ namespace LiteGame
             var report = new RegistryFillReport();
             var failed = new HashSet<string>(StringComparer.Ordinal);      // "kind|key"——LuaKeys 校验去重
 
-            FillRows(report, failed, "UI", _config.Tables.Tbuiform.DataList, static r => r.LuaPath, _ui, ct);
+            FillRows(report, failed, "UI", _pages, static p => p.LuaPath, _ui, ct);
             FillRows(report, failed, "Content", _config.Tables.Tbcontententry.DataList, static r => r.Entry, _content, ct);
             FillRows(report, failed, "Strategies", _config.Tables.Tbstrategy.DataList, static r => r.LuaPath, _strategies, ct);
             ValidateKnownKeys(report, failed);

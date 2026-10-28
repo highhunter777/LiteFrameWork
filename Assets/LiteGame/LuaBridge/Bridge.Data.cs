@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.IO;
 using System.Collections.Generic;
 using Cysharp.Threading.Tasks;
@@ -68,7 +68,6 @@ namespace LiteGame
         {
             var data = env.NewTable();
             data.Set("GetItem", new Func<int, LuaTable>(id => Data.GetItemLua(env, id)));
-            data.Set("GetUIForm", new Func<int, LuaTable>(id => Data.GetUIFormLua(env, id)));
             data.Set("ListMaps", new Func<LuaTable>(() => Data.ListMapsLua(env)));   // 地图目录（开房选图下拉）
             var ui = env.NewTable();
             ui.Set("GetLogic", new Func<string, LuaTable>(Ui.GetLogic));
@@ -101,9 +100,6 @@ namespace LiteGame
             /// <summary>查道具表（ItemConfig：类型 + 刷新/拾取/携带/使用 + 各类型效果数值）。</summary>
             public static cfg.itemconfig GetItem(int id) => Tables().Tbitemconfig.Get(id);
 
-            /// <summary>查 UI 界面注册表（LuaPath/Prefab/层级/全屏）。</summary>
-            public static cfg.uiform GetUIForm(int id) => Tables().Tbuiform.Get(id);
-
             /// <summary>查内容条目（解释器消费）。</summary>
             public static cfg.contententry GetContentEntry(int id) => Tables().Tbcontententry.Get(id);
 
@@ -121,8 +117,6 @@ namespace LiteGame
 
         private static readonly Dictionary<int, LuaTable> s_itemLua = new Dictionary<int, LuaTable>(16);
         private static LuaTable s_mapsLua;                      // 地图目录（整表一次——静态内容）
-        private static readonly Dictionary<int, LuaTable> s_uiFormLua = new Dictionary<int, LuaTable>(16);
-        private static readonly Dictionary<string, int> s_uiFormIdByPath = new Dictionary<string, int>(16);
 
             /// <summary>Lua 侧查道具表：同 id 恒返回同一 LuaTable 实例（缓存命中）。
             /// 全字段展开（19 列）——道具玩法（拾取/使用/投掷）在 Lua 侧落地时按需取用。</summary>
@@ -172,61 +166,34 @@ namespace LiteGame
                 return t;
             }
 
-            /// <summary>Lua 侧查 UI 界面行：同 id 恒返回同一 LuaTable 实例。</summary>
-            public static LuaTable GetUIFormLua(LuaEnv env, int id)
-            {
-                if (s_uiFormLua.TryGetValue(id, out var hit)) return hit;
-                var row = GetUIForm(id);
-                var t = env.NewTable();
-                t.Set("Id", row.Id);
-                t.Set("LuaPath", row.LuaPath);
-                t.Set("Prefab", row.Prefab);
-                t.Set("Layer", row.Layer);
-                t.Set("FullScreen", row.FullScreen);
-                s_uiFormLua[id] = t;
-                return t;
-            }
-
         /// <summary>
-        /// lua_path → tbuiform id（**表驱动反查 + 会话内缓存**；未登记返回 -1）。
+        /// lua_path → 页面 id（生成目录反查；未登记返回 -1）。
         /// 页面寻址的单源解析口——页面脚本与产品流程（PageFlow）都按 lua_path 寻址（如 `UI.Page_Lobby`，
         /// 与 <c>LuaKeys</c> 常量同文），magic id 不进脚本（禁硬编码）。
-        /// 未登记是装配错误：负结果同样缓存（重查无益），调用方按 -1 显性失败。
         /// </summary>
         public static int ResolveUIFormId(string luaPath)
         {
             if (string.IsNullOrEmpty(luaPath)) return -1;
-            if (s_uiFormIdByPath.TryGetValue(luaPath, out int hit)) return hit;
-            int found = -1;
-            foreach (cfg.uiform row in Tables().Tbuiform.DataList)
-            {
-                if (string.Equals(row.LuaPath, luaPath, StringComparison.Ordinal))
-                {
-                    found = row.Id;
-                    break;
-                }
-            }
-            s_uiFormIdByPath[luaPath] = found;
-            return found;
+            foreach (PageDefinition page in UiPageCatalog.All)
+                if (string.Equals(page.LuaPath, luaPath, StringComparison.Ordinal)) return page.Id;
+            return -1;
         }
 
         /// <summary>DevReload 专用（§2.7）：env 重建后旧 LuaTable 引用全失效，缓存必须清空。</summary>
         public static void ClearLuaCaches()
         {
             s_itemLua.Clear();
-            s_uiFormLua.Clear();
-            s_uiFormIdByPath.Clear();
             s_mapsLua = null;
         }
         }
 
         /// <summary>ui 门面（真实语义）：Show/Replace/Close/IsOpen/GetLogic——**Lua 不碰 GameObject**。
-        /// **按 lua_path 寻址**（如 `UI.Page_Lobby`，与 LuaKeys 常量同文）：id 反查走 tbuiform 单源
+        /// **按 lua_path 寻址**（如 `UI.Page_Lobby`，与 LuaKeys 常量同文）：id 反查走生成页面目录
         /// （<see cref="Data.ResolveUIFormId"/>），magic id 不进脚本。
         /// Show/Replace 经导航单写者排队（产品打开三通道收口口径），fire-and-forget（Lua 无 await），错误经日志观测。</summary>
         public static class Ui
         {
-            /// <summary>打开界面（压栈）：lua_path → tbuiform 行（经单写者队列）；data 为 Lua 表（包装成 LuaUIData 传入生命周期）。</summary>
+            /// <summary>打开界面（压栈）：lua_path → PageDefinition（经单写者队列）；data 为 Lua 表（包装成 LuaUIData 传入生命周期）。</summary>
             public static void Show(string pagePath, LuaTable data)
             {
                 if (!TryResolve(pagePath, "Show", out int id)) return;
@@ -266,7 +233,7 @@ namespace LiteGame
                     return false;
                 }
                 id = Data.ResolveUIFormId(pagePath);
-                if (id < 0) Log.Error($"Bridge.ui.{method}: 未登记的 lua_path '{pagePath}'（核对 tbuiform）", LogTag.UI);
+                if (id < 0) Log.Error($"Bridge.ui.{method}: 未登记的 lua_path '{pagePath}'（核对生成页面目录）", LogTag.UI);
                 return id >= 0;
             }
 

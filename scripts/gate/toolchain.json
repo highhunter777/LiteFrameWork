@@ -567,6 +567,26 @@
       "order": 20
     },
     {
+      "id": "codegen.ui-page",
+      "title": "页面目录生成",
+      "category": "codegen",
+      "kind": "cli",
+      "plane": "external",
+      "purpose": "dev",
+      "summary": "#uiform + UiPageManifest + Contracts → UiPageCatalog.g.cs（PageDefinition 单源）。",
+      "docs": "Docs/设计文档/架构/生成器工具箱专项设计.md",
+      "command": ["python", "scripts/codegen/gen-ui-page.py"],
+      "args": [
+        { "name": "check", "type": "bool", "description": "只复算并比对生成物，不写文件" }
+      ],
+      "writes": ["generated"],
+      "outputs": [
+        { "path": "Assets/LiteClient/UI/Generated/UiPageCatalog.g.cs", "kind": "generated" }
+      ],
+      "destructive": false,
+      "order": 25
+    },
+    {
       "id": "codegen.luban",
       "title": "表链重生成",
       "category": "codegen",

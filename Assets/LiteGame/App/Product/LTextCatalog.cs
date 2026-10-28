@@ -4,7 +4,7 @@ using LiteFramework;
 namespace LiteGame
 {
     /// <summary>
-    /// LText 文案目录投射器（装配层投影件——UIFormCatalog 同族）：<c>cfg.Tables.Tbltext</c> 行
+    /// LText 文案目录投射器（装配层投影件——与生成页面目录同层）：<c>cfg.Tables.Tbltext</c> 行
     /// （key/zh/en 三列）平铺为 key→(locale→text) 的 <see cref="LocalizationCatalog"/>。
     ///
     /// **列名→locale 的映射单源在此**：表内列名受 C# 标识符约束（zh/en），与 BCP-47 口径的映射为

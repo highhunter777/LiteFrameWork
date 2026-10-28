@@ -41,7 +41,7 @@ namespace LiteGame
 
             var localeProvider = BuildLocaleProvider(config);
             var themeProvider = await TryLoadThemeProviderAsync(content, ct);   // P2-3 B2：失败降级 null（页面保持烘焙值）
-            _uiService = new UIService(new UIFormCatalog(config),
+            _uiService = new UIService(UiPageCatalog.Instance,
                 logicResolver: info => new LuaBehaviourAdapter(lua.Env, uiRegistry.Get(info.LuaPath), ConfirmOf(context)),
                 loadPrefab: (location, token) => LoadPrefabLeaseAsync(content, location, token),
                 // 转场策略**必须显式传**（《客户端总设计》§5.1 逻辑边界）：UIService 默认为零动效
@@ -105,7 +105,7 @@ namespace LiteGame
 
         /// <summary>语言服务工厂（懒建 + 单实例——SetLocale 订阅者要求实例稳定）：
         /// tbltext 行经 <see cref="LTextCatalog"/> 投射为目录；缺 key 开发期显 <c>[key]</c>（发布期回退占位，
-        /// <see cref="LocalizationService"/> 口径）。表未装载时访问 Tables 会抛——与 UIFormCatalog 懒投影同判据
+        /// <see cref="LocalizationService"/> 口径）。表未装载时访问 Tables 会抛——LText 目录按需构建同判据
         /// （首次消费在 Show，Show 在 Preload 后）。</summary>
         private static Func<ILocalizationService> BuildLocaleProvider(ConfigService config)
         {

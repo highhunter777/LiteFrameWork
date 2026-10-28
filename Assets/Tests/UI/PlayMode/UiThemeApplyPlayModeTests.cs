@@ -25,14 +25,14 @@ namespace LiteGame.Tests.UI.PlayMode
     {
         private const int PageLogin = 11;
 
-        private sealed class StaticCatalog : IUIFormCatalog
+        private sealed class StaticCatalog : IPageCatalog
         {
-            private readonly System.Collections.Generic.Dictionary<int, UIFormInfo> _rows =
-                new System.Collections.Generic.Dictionary<int, UIFormInfo>();
+            private readonly System.Collections.Generic.Dictionary<int, PageDefinition> _rows =
+                new System.Collections.Generic.Dictionary<int, PageDefinition>();
             public void Add(int id, int layer, bool fullScreen, string location)
-                => _rows[id] = new UIFormInfo
+                => _rows[id] = new PageDefinition
                 { Id = id, Layer = layer, FullScreen = fullScreen, LuaPath = null, Location = location };
-            public UIFormInfo Get(int id)
+            public PageDefinition Get(int id)
             {
                 if (_rows.TryGetValue(id, out var r)) return r;
                 throw new System.Collections.Generic.KeyNotFoundException($"StaticCatalog 无行:{id}");

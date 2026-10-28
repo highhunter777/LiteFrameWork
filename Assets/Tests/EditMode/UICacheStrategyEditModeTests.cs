@@ -16,12 +16,12 @@ namespace LiteGame.Tests.EditMode
     /// </summary>
     public sealed class UICacheStrategyEditModeTests : UnityTestBase
     {
-        private sealed class FakeCatalog : IUIFormCatalog
+        private sealed class FakeCatalog : IPageCatalog
         {
-            private readonly Dictionary<int, UIFormInfo> _rows = new Dictionary<int, UIFormInfo>();
+            private readonly Dictionary<int, PageDefinition> _rows = new Dictionary<int, PageDefinition>();
             public void Add(int id, int layer = 1, UICacheStrategy strategy = UICacheStrategy.Lru)
-                => _rows[id] = new UIFormInfo { Id = id, Layer = layer, Location = "x" + id, LuaPath = "x", CacheStrategy = strategy };
-            public UIFormInfo Get(int id)
+                => _rows[id] = new PageDefinition { Id = id, Layer = layer, Location = "x" + id, LuaPath = "x", CacheStrategy = strategy };
+            public PageDefinition Get(int id)
                 => _rows.TryGetValue(id, out var r) ? r : throw new KeyNotFoundException($"FakeCatalog 无行:{id}");
         }
 

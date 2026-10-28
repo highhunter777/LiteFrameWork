@@ -23,7 +23,7 @@ namespace LiteGame
     /// <see cref="IInputService.SetSource"/> 注入——与对局挂设备源同一 API；无头 Player 无真实按键，
     /// 恒定意图让"拦下/放行"可分辨。
     ///
-    /// 模态对象是<b>真实窗体</b>：按 prefab 路径从 tbuiform 解析 id（不硬编码），按生产约定
+    /// 模态对象是<b>真实窗体</b>：按 prefab 路径从生成页面目录解析 id（不硬编码），按生产约定
     /// "弹窗按模态登记"（<see cref="UIService.RegisterModal"/>）后经 <see cref="UIService.ShowAsync"/>
     /// 真实打开（真 prefab + 真转场），关闭走 <see cref="UIService.CloseAsync"/>。
     ///
@@ -91,7 +91,6 @@ namespace LiteGame
             {
                 input = host.Product<IInputService>();
                 var ui = host.Product<UIService>();
-                var config = host.Product<ConfigService>();
 
                 originalSource = input.Source;
                 input.SetSource(new HeldIntentSource());
@@ -119,11 +118,12 @@ namespace LiteGame
                     {
                         if (formId <= 0)
                         {
-                            foreach (var row in config.Tables.Tbuiform.DataList)
-                                if (row.Prefab == ModalFormPrefab) { formId = row.Id; break; }
+                            string modalPrefab = "Assets/" + ModalFormPrefab;
+                            foreach (PageDefinition page in UiPageCatalog.All)
+                                if (page.Location == modalPrefab) { formId = page.Id; break; }
                             if (formId <= 0)
                             {
-                                Fail($"form-not-found prefab={ModalFormPrefab}——核对 tbuiform 行");
+                                Fail($"form-not-found prefab={ModalFormPrefab}——核对生成的页面目录");
                                 return;
                             }
                         }

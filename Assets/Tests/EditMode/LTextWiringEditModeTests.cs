@@ -113,7 +113,7 @@ namespace LiteGame.Tests.EditMode
             // OnInit 前注入 = no-op（Empty 全局件守卫——不得抛、不得串订阅）
             ((ILocaleBound)logic).BindLocale(service);
 
-            var form = new UIForm(new UIFormInfo { Id = 901, LuaPath = "", Location = "", Layer = 0, FullScreen = true }, root);
+            var form = new UIForm(new PageDefinition { Id = 901, LuaPath = "", Location = "", Layer = 0, FullScreen = true }, root);
             ((IUIFormLogic)logic).OnInit(form, null);              // 标记索引构建
             ((ILocaleBound)logic).BindLocale(service);              // UIForm 同款注入（ApplyLocale 的等价调用）
 

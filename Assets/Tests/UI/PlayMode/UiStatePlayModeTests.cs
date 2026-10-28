@@ -35,18 +35,18 @@ namespace LiteGame.Tests.UI.PlayMode
         private const int PageA = 204;
         private const int PageB = 205;
 
-        private sealed class StaticCatalog : IUIFormCatalog
+        private sealed class StaticCatalog : IPageCatalog
         {
             // 非空 LuaPath：本用例走 **resolver 注入**（类层计数替身，不落盘、不建 LuaEnv）。
             // 空 LuaPath 会被 ResolveLogic 短路成 NullUIFormLogic（"无业务逻辑的展示面"口径，
             // 那条路径由 FeedbackSurface 用例覆盖），此处要的是可计数的逻辑层。
             private const string InjectedLogicPath = "Tests.CountingLogic";
 
-            private readonly Dictionary<int, UIFormInfo> _rows = new Dictionary<int, UIFormInfo>();
+            private readonly Dictionary<int, PageDefinition> _rows = new Dictionary<int, PageDefinition>();
             public void Add(int id, int layer, bool fullScreen, string location)
-                => _rows[id] = new UIFormInfo
+                => _rows[id] = new PageDefinition
                 { Id = id, Layer = layer, FullScreen = fullScreen, LuaPath = InjectedLogicPath, Location = location };
-            public UIFormInfo Get(int id)
+            public PageDefinition Get(int id)
             {
                 if (_rows.TryGetValue(id, out var r)) return r;
                 throw new KeyNotFoundException($"StaticCatalog 无行:{id}");

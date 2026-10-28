@@ -35,11 +35,11 @@ namespace LiteGame.Tests.UI.PlayMode
         private const string TestPageLocation = "Assets/ShareResource/UI/Screens/Tmp_UiTestPage.prefab";
         private const string TestPageRequire = "Tests.UiTestPage";
 
-        private sealed class StaticCatalog : IUIFormCatalog
+        private sealed class StaticCatalog : IPageCatalog
         {
-            private readonly UIFormInfo[] _rows;
-            public StaticCatalog(UIFormInfo[] rows) => _rows = rows;
-            public UIFormInfo Get(int id)
+            private readonly PageDefinition[] _rows;
+            public StaticCatalog(PageDefinition[] rows) => _rows = rows;
+            public PageDefinition Get(int id)
             {
                 foreach (var row in _rows) if (row.Id == id) return row;
                 throw new System.Collections.Generic.KeyNotFoundException($"StaticCatalog 无行:{id}");
@@ -85,7 +85,7 @@ namespace LiteGame.Tests.UI.PlayMode
             _ui = new UIService(
                 new StaticCatalog(new[]
                 {
-                    new UIFormInfo { Id = TestPageFormId, Layer = 0, FullScreen = true,
+                    new PageDefinition { Id = TestPageFormId, Layer = 0, FullScreen = true,
                         LuaPath = TestPageRequire, Location = TestPageLocation },
                 }),
                 logicResolver: _ => new LuaBehaviourAdapter(_env, module),

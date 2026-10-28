@@ -25,9 +25,9 @@ namespace LiteGame.Tests.EditMode
             return c;
         }
 
-        private sealed class FakeCatalog : IUIFormCatalog
+        private sealed class FakeCatalog : IPageCatalog
         {
-            private readonly UIFormInfo _row = new UIFormInfo
+            private readonly PageDefinition _row = new PageDefinition
             {
                 Id = 11,
                 LuaPath = "UI.Page_Static",
@@ -36,7 +36,7 @@ namespace LiteGame.Tests.EditMode
                 FullScreen = true,
             };
 
-            public UIFormInfo Get(int id) => id == _row.Id ? _row : throw new System.Collections.Generic.KeyNotFoundException();
+            public PageDefinition Get(int id) => id == _row.Id ? _row : throw new System.Collections.Generic.KeyNotFoundException();
         }
 
         private GameObject BuildPrefab()

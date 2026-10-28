@@ -17,7 +17,7 @@ namespace LiteClient.UI
     public sealed class UIForm
     {
         public int Id { get; }
-        public UIFormInfo Info { get; }
+        public PageDefinition Info { get; }
         public UIFormState State { get; private set; }
         public GameObject Root { get; }
         public Canvas Canvas { get; }
@@ -57,7 +57,7 @@ namespace LiteClient.UI
         public bool IsDisplayCurrent(int generation)
             => generation == _displayGeneration && IsOpen;
 
-        public UIForm(UIFormInfo info, GameObject root)
+        public UIForm(PageDefinition info, GameObject root)
         {
             Info = info ?? throw new ArgumentNullException(nameof(info));
             Id = info.Id;
