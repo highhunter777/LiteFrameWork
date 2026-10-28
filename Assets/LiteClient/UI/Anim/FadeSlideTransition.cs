@@ -19,10 +19,10 @@ namespace LiteClient.UI
     public sealed class FadeSlideTransition : ITransitionStrategy
     {
         public UniTask PlayShow(UIForm form, CancellationToken ct)
-            => PlayShow(form, new MotionPlayback(null));      // 无终态容器（壳按完成处理）
+            => PlayShow(form, new MotionPlayback());      // 无终态容器（壳按完成处理）
 
         public UniTask PlayClose(UIForm form, CancellationToken ct)
-            => PlayClose(form, new MotionPlayback(null));
+            => PlayClose(form, new MotionPlayback());
 
         public UniTask PlayShow(UIForm form, MotionPlayback playback)
         {

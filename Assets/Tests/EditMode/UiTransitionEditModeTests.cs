@@ -373,7 +373,7 @@ namespace LiteGame.Tests.EditMode
         {
             var form = MakeForm(1);
             form.CanvasGroup.alpha = 0f;                       // 入场起点
-            var playback = new MotionPlayback(null);
+            var playback = new MotionPlayback();
 
             var task = new FadeSlideTransition().PlayShow(form, playback);
             Assert.AreEqual(UniTaskStatus.Pending, task.Status, "Manual 轨需显式推进——任务不应立即完成");
@@ -397,7 +397,7 @@ namespace LiteGame.Tests.EditMode
             var form = MakeForm(1);
             form.CanvasGroup.alpha = 0f;
             using var cts = new System.Threading.CancellationTokenSource();
-            var playback = new MotionPlayback(cts);
+            var playback = new MotionPlayback(cts.Token);
 
             var task = new FadeSlideTransition().PlayShow(form, playback);
             DG.Tweening.DOTween.ManualUpdate(0.05f, 0.05f);   // 推进一点（未到终值）

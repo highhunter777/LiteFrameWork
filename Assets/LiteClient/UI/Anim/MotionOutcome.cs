@@ -24,54 +24,20 @@ namespace LiteClient.UI
     }
 
     /// <summary>
-    /// 一次表现播放的句柄（可取消 + 带原因的终态）——动画专项 §10"原语专注视觉效果，
-    /// 适配层管理 UIClock、顶层 Tween、**结束原因**和属性恢复"的"结束原因"出口。
-    ///
-    /// 与角色动画的 <c>AnimationHandle</c> 分层不同：UI 表现是**单次、短暂、无通道仲裁**的，
-    /// 这里只需要"可取消 + 终态可选查询"。
-    /// </summary>
-    public readonly struct MotionHandle
-    {
-        private readonly CancellationTokenSource _cts;
-
-        /// <summary>终态（完成即写；未完成时读取返回 <see cref="MotionOutcome.Completed"/> 的占位——
-        /// 请先看 <see cref="IsFinished"/>）。</summary>
-        public MotionOutcome Outcome { get; }
-
-        /// <summary>是否已收终态。</summary>
-        public bool IsFinished { get; }
-
-        /// <summary>该播放的取消源（宿主关闭/超时经它停工作；无取消源时 IsCancellationRequested 恒 false）。</summary>
-        public CancellationToken Token => _cts != null ? _cts.Token : CancellationToken.None;
-
-        internal MotionHandle(CancellationTokenSource cts, MotionOutcome outcome, bool finished)
-        {
-            _cts = cts;
-            Outcome = outcome;
-            IsFinished = finished;
-        }
-
-        /// <summary>请求取消（幂等；只发信号，复位由策略自身完成——§6.3）。</summary>
-        public void Cancel()
-        {
-            try { _cts?.Cancel(); } catch (ObjectDisposedException) { }
-        }
-
-        internal MotionHandle With(MotionOutcome outcome, bool finished) => new MotionHandle(_cts, outcome, finished);
-    }
-
-    /// <summary>
     /// 动效播放结果容器（可变引用型——策略内部写回，调用方事后读）。
     /// 由 <see cref="UITransitionRunner"/> 创建并交给策略，策略在收尾时 <see cref="Finish"/>。
+    ///
+    /// **取消面只是令牌**（M3-5c 转场解耦）：取消源归宿主（<c>OperationScope</c>），
+    /// 本容器不再持有/释放 <c>CancellationTokenSource</c>——策略只读令牌、不拥有生命周期。
     /// </summary>
     public sealed class MotionPlayback
     {
-        private readonly CancellationTokenSource _cts;
+        private readonly CancellationToken _token;
 
-        public MotionPlayback(CancellationTokenSource cts) => _cts = cts;
+        public MotionPlayback(CancellationToken token = default) => _token = token;
 
-        /// <summary>调用方（宿主/超时）请求取消的信号源。</summary>
-        public CancellationToken Token => _cts != null ? _cts.Token : CancellationToken.None;
+        /// <summary>调用方（宿主/超时）请求取消的令牌（无取消源时恒为 None）。</summary>
+        public CancellationToken Token => _token;
 
         /// <summary>已收终态？</summary>
         public bool Finished { get; private set; }

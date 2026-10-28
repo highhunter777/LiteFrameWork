@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using Cysharp.Threading.Tasks;
 using LiteFramework;
@@ -85,9 +85,12 @@ namespace LiteClient.UI
                 Outgoing = outgoing,
                 Incoming = incoming,
                 MaxDuration = _maxDuration,
-                Cts = new System.Threading.CancellationTokenSource(),   // 本事务取消源（超时/权威取消停策略工作）
+                // 本事务操作作用域：取消/超时/合并键/状态统一走 M3-5 的 OperationScope（超时仍由 Tick 判定）
+                Scope = OperationScope.Start("ui.transition",
+                    $"transition:{mode}:{(outgoing != null ? outgoing.Id : 0)}->{(incoming != null ? incoming.Id : 0)}"),
             };
-            ctx.Playback = new MotionPlayback(ctx.Cts);              // 终态出口与取消源同址（§6.3 + 动画专项 §10）
+            ctx.Scope.MarkRunning();
+            ctx.Playback = new MotionPlayback(ctx.Scope.Token);      // 终态出口只读令牌（§6.3 + 动画专项 §10）
             ctx.Play = BuildPlay(ctx);
 
             if (_current == null)
@@ -100,6 +103,8 @@ namespace LiteClient.UI
             {
                 Log.Warning($"转场中重复请求同一界面[{incoming.Id}]——忽略", LogTag.UI);
                 ctx.Skipped = true;
+                ctx.Scope.Cancel();
+                ctx.Scope.Dispose();
                 ctx.Tcs.TrySetResult(OutcomeOf(ctx));
                 return ctx.Tcs.Task;
             }
@@ -112,6 +117,8 @@ namespace LiteClient.UI
             {
                 Log.Warning($"转场队列已满——请求丢弃(mode={mode}，累计 {_queued.RejectedCount})", LogTag.UI);
                 ctx.Skipped = true;
+                ctx.Scope.Cancel();
+                ctx.Scope.Dispose();
                 ctx.Tcs.TrySetResult(OutcomeOf(ctx));
             }
             return ctx.Tcs.Task;
@@ -139,14 +146,14 @@ namespace LiteClient.UI
                 {
                     c.OwnerGone = true;
                     Log.Warning($"转场期间界面已回收——取消策略工作并收尾(mode={c.Mode})", LogTag.UI);
-                    try { c.Cts?.Cancel(); } catch (ObjectDisposedException) { }
+                    c.Scope.Cancel();
                     _machine.Request(TransitionId.Idle);
                 }
                 else if (inTransition && !c.TimedOut && !c.Done && _machine.StageTime > c.MaxDuration)
                 {
                     c.TimedOut = true;
                     Log.Error($"转场超时({c.MaxDuration:0.##}s)——取消策略工作并强制收尾(mode={c.Mode})", LogTag.UI);
-                    try { c.Cts?.Cancel(); } catch (ObjectDisposedException) { }   // 先停 Tween/异步工作（§6.3），再收尾
+                    c.Scope.Cancel();                                      // 先停 Tween/异步工作（§6.3），再收尾
                     _machine.Request(TransitionId.Idle);
                 }
                 else if (inTransition && !c.TimedOut && c.Done)
@@ -195,10 +202,13 @@ namespace LiteClient.UI
             _current = null;                                // 先清当前事务：恢复按"无转场锁"的协调值计算
             ApplyComputedInput(ctx.Outgoing);
             ApplyComputedInput(ctx.Incoming);
-            try { ctx.Cts?.Dispose(); } catch (ObjectDisposedException) { }
-            ctx.Cts = null;
-
             var outcome = OutcomeOf(ctx);
+            if (outcome.Kind == TransitionResultKind.Completed) ctx.Scope.MarkSucceeded();
+            else if (outcome.Kind == TransitionResultKind.Failed) ctx.Scope.MarkFailed();
+            else ctx.Scope.Cancel();                       // TimedOut/Skipped/Cancelled 统一记取消态
+            ctx.Scope.Dispose();
+            ctx.Scope = null;
+
             ctx.Tcs.TrySetResult(outcome);
             Finished?.Invoke(outcome);
         }

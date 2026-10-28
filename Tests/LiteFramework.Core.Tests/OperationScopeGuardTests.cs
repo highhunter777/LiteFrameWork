@@ -13,6 +13,7 @@ namespace LiteFramework.Core.Tests
         [Theory]
         [InlineData("Assets/LiteClient/UI/UIService.cs")]
         [InlineData("Assets/LiteClient/UI/UINavigationController.cs")]
+        [InlineData("Assets/LiteClient/UI/Transition/UITransitionRunner.cs")]
         [InlineData("Assets/LiteClient/Runtime/Resource/PatchRunner.cs")]
         [InlineData("Assets/LiteClient/Runtime/Resource/HttpCandidateFetcher.cs")]
         public void 已迁移文件_只经OperationScope持有取消(string relativePath)
@@ -25,6 +26,18 @@ namespace LiteFramework.Core.Tests
             Assert.DoesNotContain("new CancellationTokenSource", text);
             Assert.DoesNotContain("WorkCts", text);
             Assert.Contains("OperationScope.Start(", text);
+        }
+
+        [Fact]
+        public void 转场_取消源归作用域_播放容器只读令牌()
+        {
+            string root = RepoRoot();
+            string motion = File.ReadAllText(Path.Combine(root, "Assets/LiteClient/UI/Anim/MotionOutcome.cs"));
+            Assert.DoesNotContain("new CancellationTokenSource", motion);
+
+            string context = File.ReadAllText(Path.Combine(root, "Assets/LiteClient/UI/Transition/TransitionReq.cs"));
+            Assert.Contains("OperationScope Scope", context);
+            Assert.DoesNotContain("CancellationTokenSource", context);
         }
 
         [Fact]

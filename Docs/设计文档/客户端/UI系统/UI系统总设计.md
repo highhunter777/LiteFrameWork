@@ -186,6 +186,7 @@ Docs/设计文档/客户端/UI/      本套设计文档
 - 转场是表现阶段，不决定页面是否存在；结果区分 Completed/Skipped/TimedOut/Cancelled/Failed。
 - 输入锁在转场接受时生效，恢复由协调者计算，不无条件写 `blocksRaycasts=true`。
 - UI 动效只走 `UiFx`（唯一 DOTween 入口）与 `UIClock`；转场策略是 `UiFx` 的组合消费者。
+- 事务取消源归 `OperationScope`（`ui.transition`）：策略只读 `MotionPlayback.Token`；超时/页面回收/权威取消统一 `Scope.Cancel`，收尾按结果标记后 `Dispose`；播放容器不再持有 `CancellationTokenSource`。
 
 **资源与缓存**：
 

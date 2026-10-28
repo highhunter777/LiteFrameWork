@@ -1,5 +1,6 @@
 using System;
 using Cysharp.Threading.Tasks;
+using LiteFramework;
 
 namespace LiteClient.UI
 {
@@ -23,11 +24,11 @@ namespace LiteClient.UI
         /// <summary>超时兜底时长（§1.5.4 规则④）。</summary>
         public float MaxDuration;
 
-        /// <summary>本事务的取消源（§6.3：超时/权威取消经它停止策略的 Tween/异步工作）。</summary>
-        public System.Threading.CancellationTokenSource Cts;
+        /// <summary>本事务的操作作用域（§6.1：超时/权威取消经它停止策略的 Tween/异步工作；
+        /// 取消源与状态单处持有，Playback 只读令牌）。</summary>
+        public OperationScope Scope;
 
-        /// <summary>表现终态容器（动画专项 §10"结束原因"出口；策略写、收尾读）。
-        /// 与 <see cref="Cts"/> 同址：取消信号与终态原因配对，避免"取消后不知道是取消还是完成"。</summary>
+        /// <summary>表现终态容器（动画专项 §10"结束原因"出口；策略写、收尾读）。</summary>
         public MotionPlayback Playback;
 
         /// <summary>表现入口（由 Runner 按模式绑定：策略 / IReplaceTransition 合成）。</summary>
