@@ -18,6 +18,7 @@
         "LiteTesting.Core",
         "LiteTesting.Runtime",
         "UniTask",
+        "Unity.InputSystem",
         "Unity.TextMeshPro",
         "UnityEngine.TestRunner",
         "xLuaMain"
