@@ -55,20 +55,6 @@ namespace LiteFramework.Tests
         }
 
         [Fact]
-        public void EventBus_PublishQueued_当帧不触发_Tick后触发()
-        {
-            var events = new EventBus(_pool);
-            var received = 0;
-            events.Subscribe<ProbeEvent>(_ => received++);
-
-            events.PublishQueued(new ProbeEvent());
-            Assert.Equal(0, received);   // 队列路径不经 Publish 直派
-
-            events.Tick(0.016f);
-            Assert.Equal(1, received);
-        }
-
-        [Fact]
         public void EventBus_StrictMode_未订阅派发_Recent出现Warning()
         {
             var events = new EventBus(_pool) { StrictMode = true };
@@ -106,29 +92,15 @@ namespace LiteFramework.Tests
 
 
         [Fact]
-        public void EventBus_队列_池化事件派发后回收()
-        {
-            var events = new EventBus(_pool) { StrictMode = false };
-            var e = _pool.Acquire<PooledProbe>();
-            events.PublishQueued(e);
-            events.Tick(0.016f);
-            Assert.Same(e, _pool.Acquire<PooledProbe>());   // 队列接管到派发完成，再回池
-        }
-
-
-        [Fact]
-        public void EventBus_Dispose_清空订阅与队列_后续操作抛()
+        public void EventBus_Dispose_清空订阅_后续操作抛()
         {
             var events = new EventBus(_pool) { StrictMode = false };
             var sub = events.Subscribe<ProbeEvent>(_ => { });
-            var queued = _pool.Acquire<PooledProbe>();
-            events.PublishQueued(queued);
 
             events.Dispose();
 
             Assert.True(events.IsDisposed);
             Assert.True(sub.IsDisposed);
-            Assert.Same(queued, _pool.Acquire<PooledProbe>());
             Assert.Throws<ObjectDisposedException>(() => events.Publish(new ProbeEvent()));
         }
 
@@ -190,49 +162,6 @@ namespace LiteFramework.Tests
         }
 
         [Fact]
-        public void EventBus_有界队列_溢出丢弃计数_池化事件丢弃路径回收()
-        {
-            var events = new EventBus(_pool, maxQueued: 2) { StrictMode = false };
-            var e1 = _pool.Acquire<PooledProbe>();
-            var e2 = _pool.Acquire<PooledProbe>();
-            var e3 = _pool.Acquire<PooledProbe>();
-
-            events.PublishQueued(e1);
-            events.PublishQueued(e2);
-            events.PublishQueued(e3);                    // 溢出：丢弃并回收（不因溢出产生池泄漏）
-
-            Assert.Equal(1, events.QueuedDroppedCount);
-            var last = Log.Recent[Log.Recent.Count - 1];
-            Assert.Equal(LogLevel.Error, last.Level);
-            Assert.Contains("溢出", last.Message);
-            Assert.Same(e3, _pool.Acquire<PooledProbe>());   // 被丢弃的池化事件同样回收——再取是同一实例
-        }
-
-        [Fact]
-        public void EventBus_延迟派发_到期帧触发_入队序保持_与当帧队列先后分明()
-        {
-            var events = new EventBus(_pool);
-            var order = new List<string>();
-            events.Subscribe<TaggedProbe>(e => order.Add(e.Tag));
-
-            events.PublishQueued(new TaggedProbe { Tag = "a" }, delayFrames: 2);
-            events.PublishQueued(new TaggedProbe { Tag = "b" }, delayFrames: 2);
-            events.PublishQueued(new TaggedProbe { Tag = "c" });            // 默认 1 = 现状语义
-
-            events.Tick(0.016f);
-            Assert.Equal(new[] { "c" }, order);          // 当帧队列先走；a/b 延迟在途未触发
-            events.Tick(0.016f);
-            Assert.Equal(new[] { "c", "a", "b" }, order); // 到期帧按入队序派发
-        }
-
-        private sealed class TaggedProbe
-        {
-            public string Tag;
-        }
-
-        // ---- 批2（《事件中心专项设计》§4：统计与诊断面）----
-
-        [Fact]
         public void EventBus_统计_Snapshot追加键与健康度计数()
         {
             var events = new EventBus(_pool) { StrictMode = true };
@@ -241,21 +170,6 @@ namespace LiteFramework.Tests
             events.Publish(new UnheardEvent());                     // Strict 告警 +1
             events.Subscribe<ProbeEvent>(_ => throw new InvalidOperationException("订阅者故障注入"));
             events.Publish(new ProbeEvent());                        // 异常隔离 + DispatchErrors +1
-            events.PublishQueued(new ProbeEvent(), delayFrames: 2);  // 延迟在途 +1
-            events.PublishQueued(new ProbeEvent());                  // 峰值 2
-
-            ((IModuleStats)events).Snapshot(into);
-            Assert.Equal("1", into["StrictWarnings"]);
-            Assert.Equal("1", into["DispatchErrors"]);
-            Assert.Equal("2", into["DelayedCount"]);                 // 延迟 + 当帧队列件此刻均"未到期在途"
-            Assert.Equal("2", into["QueuedPeak"]);
-            Assert.Equal("0", into["QueuedDropped"]);
-
-            events.Tick(0.016f);                                     // 当帧队列派发（异常再 +1）
-            events.Tick(0.016f);                                     // 延迟到期派发（异常再 +1）
-            ((IModuleStats)events).Snapshot(into);
-            Assert.Equal("0", into["DelayedCount"]);                // 延迟在途随到期清零
-            Assert.Equal("3", into["DispatchErrors"]);              // 直发 1 + 当帧队列 1 + 延迟到期 1（队列路径同走派发核心）
         }
 
         [Fact]
@@ -293,131 +207,6 @@ namespace LiteFramework.Tests
             Assert.Equal(0, unheardInfo.Subscribers);
             Assert.Equal(1, unheardInfo.Published);                  // "有没有空转"可见
         }
-
-        // ---- 批3（§3.5 发布拦截链）----
-
-        private sealed class PassAll : IEventInterceptor
-        {
-            public int Calls;
-            public bool Intercept(Type eventType, object e) { Calls++; return true; }
-        }
-
-        private sealed class Veto<TEvent> : IEventInterceptor where TEvent : class
-        {
-            public int Calls;
-            public bool Intercept(Type eventType, object e) { Calls++; return eventType != typeof(TEvent); }
-        }
-
-        private sealed class Recorder : IEventInterceptor
-        {
-            private readonly string _tag;
-            private readonly List<string> _log;
-            public Recorder(string tag, List<string> log) { _tag = tag; _log = log; }
-            public bool Intercept(Type eventType, object e) { _log.Add(_tag); return true; }
-        }
-
-        private sealed class Throwing : IEventInterceptor
-        {
-            public bool Intercept(Type eventType, object e) => throw new InvalidOperationException("拦截器故障注入");
-        }
-
-        [Fact]
-        public void EventBus_拦截_观测放行_派发正常()
-        {
-            var events = new EventBus(_pool);
-            var received = 0;
-            events.Subscribe<ProbeEvent>(_ => received++);
-            var pass = new PassAll();
-            events.RegisterInterceptor(pass);
-
-            events.Publish(new ProbeEvent());
-            Assert.Equal(1, received);                     // 放行不改变派发
-            Assert.Equal(1, pass.Calls);
-        }
-
-        [Fact]
-        public void EventBus_拦截_否决丢弃_不派发_否决路径池化回收()
-        {
-            var events = new EventBus(_pool);
-            var received = 0;
-            events.Subscribe<ProbeEvent>(_ => received++);
-            var veto = new Veto<ProbeEvent>();
-            events.RegisterInterceptor(veto);
-
-            events.Publish(new ProbeEvent());              // 否决：订阅者存在也不派发
-            Assert.Equal(0, received);
-            Assert.Equal(1, veto.Calls);
-
-            var pooledVeto = new Veto<PooledProbe>();
-            events.RegisterInterceptor(pooledVeto);
-            var pooled = _pool.Acquire<PooledProbe>();
-            events.PublishPooled(pooled);                  // 否决 + 显式池化回收（不因否决泄漏）
-            Assert.Same(pooled, _pool.Acquire<PooledProbe>());
-        }
-
-        [Fact]
-        public void EventBus_拦截_注册序运行_注销幂等()
-        {
-            var events = new EventBus(_pool);
-            var order = new List<string>();
-            var unsubA = events.RegisterInterceptor(new Recorder("A", order));
-            events.RegisterInterceptor(new Recorder("B", order));
-
-            events.Publish(new ProbeEvent());
-            Assert.Equal(new[] { "A", "B" }, order);       // 先注册先执行
-
-            unsubA.Dispose();
-            unsubA.Dispose();                                      // 幂等：二次注销 no-op
-            events.Publish(new ProbeEvent());
-            Assert.Equal(new[] { "A", "B", "B" }, order);  // A 已移除，B 仍在
-        }
-
-        [Fact]
-        public void EventBus_拦截_异常隔离_fail_open_不阻断派发()
-        {
-            var events = new EventBus(_pool);
-            var received = 0;
-            events.Subscribe<ProbeEvent>(_ => received++);
-            events.RegisterInterceptor(new Throwing());    // 拦截器作者代码炸了
-            var pass = new PassAll();
-            events.RegisterInterceptor(pass);              // 后续拦截器照常运行
-
-            events.Publish(new ProbeEvent());
-            Assert.Equal(1, pass.Calls);                   // 抛异常的跳过，管线继续
-            Assert.Equal(1, received);                     // fail-open：观测性缺陷不阻断业务流
-            var last = Log.Recent[Log.Recent.Count - 1];
-            Assert.Equal(LogLevel.Error, last.Level);
-        }
-
-        [Fact]
-        public void EventBus_拦截_否决计数进Snapshot()
-        {
-            var events = new EventBus(_pool);
-            events.RegisterInterceptor(new Veto<ProbeEvent>());
-            events.Publish(new ProbeEvent());
-            events.Publish(new ProbeEvent());
-
-            var into = new Dictionary<string, string>();
-            ((IModuleStats)events).Snapshot(into);
-            Assert.Equal("2", into["Intercepted"]);        // 否决可观察（健康度信号）
-        }
-
-        [Fact]
-        public void EventBus_拦截_队列路径同样适用_零特例()
-        {
-            var events = new EventBus(_pool);
-            var received = 0;
-            events.Subscribe<ProbeEvent>(_ => received++);
-            events.RegisterInterceptor(new Veto<ProbeEvent>());
-
-            events.PublishQueued(new ProbeEvent());         // 入队不拦（拦截在派发核心内）
-            events.Tick(0.016f);                            // Tick 派发 → 经 Publish 核 → 被否决
-            Assert.Equal(0, received);
-            var into = new Dictionary<string, string>();
-            ((IModuleStats)events).Snapshot(into);
-            Assert.Equal("1", into["Intercepted"]);        // 队列/延迟路径拦截全适用（§3.5：同一核心零特例）
-        }
-
 
         private sealed class PooledProbe : IReference
         {

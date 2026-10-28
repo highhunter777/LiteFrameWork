@@ -162,59 +162,6 @@ namespace LiteFramework.Tests
             Assert.Equal(CommandReject.HandlerFault, result.Reason);
         }
 
-        // ---- 拦截器（§4） ----
-
-        private sealed class RejectAll : ICommandInterceptor
-        {
-            public bool Intercept(Type commandType, object command) => false;
-        }
-
-        private sealed class Recorder2 : ICommandInterceptor
-        {
-            public int Calls;
-            public bool Intercept(Type commandType, object command) { Calls++; return true; }
-        }
-
-        [Fact]
-        public void 拦截器_拒绝短路_处理器不执行()
-        {
-            var commands = new CommandCenter(_pool);
-            var echo = new EchoHandler();
-            commands.Register(echo);
-            commands.RegisterInterceptor(new RejectAll());
-
-            var result = commands.Send(new Ping());
-
-            Assert.False(result.Ok);
-            Assert.Equal(CommandReject.InterceptorRejected, result.Reason);
-            Assert.Equal(0, echo.Calls);                    // 短路：处理器物理不执行
-        }
-
-        [Fact]
-        public void 拦截链_登记序_异常跳过fail_open_注销幂等()
-        {
-            var commands = new CommandCenter(_pool);
-            var echo = new EchoHandler();
-            commands.Register(echo);
-            var throwingUn = commands.RegisterInterceptor(new ThrowingICommandInterceptor());   // 第一个炸
-            var rec = new Recorder2();
-            var recUn = commands.RegisterInterceptor(rec);   // 第二个照常
-
-            Assert.True(commands.Send(new Ping()).Ok);      // fail-open：异常的跳过，链继续，执行到达
-            Assert.Equal(1, rec.Calls);
-
-            recUn.Dispose();
-            recUn.Dispose();                                // 幂等
-            throwingUn.Dispose();
-            commands.Send(new Ping());                      // 链空 → 直达
-            Assert.Equal(2, echo.Calls);
-        }
-
-        private sealed class ThrowingICommandInterceptor : ICommandInterceptor
-        {
-            public bool Intercept(Type commandType, object command) => throw new InvalidOperationException("拦截器故障注入");
-        }
-
         // ---- 撤销/重做（§4） ----
 
         private sealed class UndoableEcho : IUndoableCommandHandler<Ping>

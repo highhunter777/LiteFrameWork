@@ -16,7 +16,7 @@ namespace LiteFramework
     }
 
     /// <summary>
-    /// 事件总线主端口：发布 + 订阅 + 池化发布 + 延迟队列 + 生命周期。
+    /// 事件总线主端口：发布 + 订阅 + 池化发布 + 生命周期（M3-7 起无延迟队列——§4.5 无消费者机制已删）。
     /// 静态/单例总线不得绕过本接口；作用域内由组合根持有并在 Scope 关闭时 Dispose。
     /// </summary>
     public interface IEventBus : IEventPublisher, IEventSubscriber, IDisposable
@@ -25,9 +25,6 @@ namespace LiteFramework
 
         /// <summary>显式池化发布：Publish 后由中心回收（仅 IReference 事件）。普通事件请用 Publish。</summary>
         void PublishPooled<T>(T evt) where T : class, IReference;
-
-        /// <summary>入队，Tick 统一派发（低频便利）。队列接管池化事件到派发/丢弃完成。</summary>
-        void PublishQueued<T>(T evt, int delayFrames = 1) where T : class;
 
         /// <summary>默认按构建分流：编辑器/开发构建 true（未订阅事件告警），release false；运行时可覆盖。</summary>
         bool StrictMode { get; set; }

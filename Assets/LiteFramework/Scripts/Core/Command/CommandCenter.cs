@@ -42,7 +42,6 @@ namespace LiteFramework
         public int MaxQueued { get; }             // 排队上限（构造注入；溢出丢弃与事件中心同口径）
         private long _tickCount;
         private long _queuedDropped;
-        private readonly List<ICommandInterceptor> _interceptors = new List<ICommandInterceptor>(2);   // 登记序
         private readonly List<UndoEntry> _undo = new List<UndoEntry>(64);    // 历史栈（队尾=最新；容量 64 淘汰最旧）
         private readonly Stack<UndoEntry> _redo = new Stack<UndoEntry>(16);  // 重做栈
 
@@ -113,12 +112,6 @@ namespace LiteFramework
                 return CommandResult.Fail(CommandReject.GmBlocked, "GM 命令在当前构建不可用");
             }
 
-            if (!RunCommandInterceptors(type, command))
-            {
-                RecordAudit(type, false, CommandReject.InterceptorRejected, "被拦截器拒绝");
-                return CommandResult.Fail(CommandReject.InterceptorRejected, "被拦截器拒绝（§4 执行序：门→拦截器→处理器）");
-            }
-
             var handler = (ICommandHandler<TCommand>)reg.Handler;
             CommandResult result;
             try
@@ -154,29 +147,11 @@ namespace LiteFramework
             return result;
         }
 
-        /// <summary>命令拦截器链（§4 登记序）：任一拒绝即终止 → InterceptorRejected 短路；
-        /// 拦截器异常 = 记日志跳过继续（与事件拦截 fail-open 同口径——界定登记在注释）。</summary>
-        private bool RunCommandInterceptors(Type commandType, object command)
-        {
-            for (int i = 0; i < _interceptors.Count; i++)
-            {
-                bool pass;
-                try { pass = _interceptors[i].Intercept(commandType, command); }
-                catch (Exception ex)
-                {
-                    Log.Error(ex, $"Command.Interceptor.{_interceptors[i].GetType().Name}");
-                    continue;
-                }
-                if (!pass) return false;
-            }
-            return true;
-        }
-
         // ---- 批3 高级执行形态方法（§4）----
 
         /// <summary>排队执行（§4 fire-and-forget）：入队，Tick 驱动到期按入队序执行——无返回结果，
         /// 失败走审计与日志；命令实现 IReference 则执行完由中心回收（入队即移交）。
-        /// 执行时同样过权限门与拦截器链（经 Send 同一核心）；无处理器=编程错误，入队时早暴露。</summary>
+        /// 执行时同样过权限门（经 Send 同一核心）；无处理器=编程错误，入队时早暴露。</summary>
         public void SendQueued<TCommand>(TCommand command, int delayFrames = 0) where TCommand : ICommand
         {
             if (command == null) throw new ArgumentNullException(nameof(command));
@@ -230,12 +205,6 @@ namespace LiteFramework
                 RecordAudit(type, false, CommandReject.GmBlocked, "GM 命令被权限门拦截（release）");
                 return CommandResult.Fail(CommandReject.GmBlocked, "GM 命令在当前构建不可用");
             }
-            if (!RunCommandInterceptors(type, command))
-            {
-                RecordAudit(type, false, CommandReject.InterceptorRejected, "被拦截器拒绝");
-                return CommandResult.Fail(CommandReject.InterceptorRejected, "被拦截器拒绝");
-            }
-
             var handler = (IAsyncCommandHandler<TCommand>)reg.Handler;
             CommandResult result;
             try
@@ -260,14 +229,6 @@ namespace LiteFramework
             }
             RecordAudit(type, true, CommandReject.None, result.Detail);
             return result;
-        }
-
-        /// <summary>命令拦截器注册（§4 登记序；返回注销委托幂等）。</summary>
-        public IDisposable RegisterInterceptor(ICommandInterceptor interceptor)
-        {
-            if (interceptor == null) throw new ArgumentNullException(nameof(interceptor));
-            _interceptors.Add(interceptor);
-            return new CommandInterceptorUnsubscription(_interceptors, interceptor);
         }
 
         /// <summary>撤销（§4）：弹出最新一条成功命令执行 Undo；Undo 异常=隔离（半途即弃不回塞——防死循环）；成功转入重做栈。</summary>
@@ -321,14 +282,6 @@ namespace LiteFramework
         private void RecycleCommand(object command)
         {
             if (command is IReference pooled) _pool.Release(pooled);   // 排队命令入队即移交：执行完（含失败/拦截/溢出）回收
-        }
-
-        private sealed class CommandInterceptorUnsubscription : IDisposable
-        {
-            private readonly List<ICommandInterceptor> _list;
-            private readonly ICommandInterceptor _item;
-            public CommandInterceptorUnsubscription(List<ICommandInterceptor> list, ICommandInterceptor item) { _list = list; _item = item; }
-            public void Dispose() => _list.Remove(_item);    // 幂等
         }
 
         private struct PendingCommand

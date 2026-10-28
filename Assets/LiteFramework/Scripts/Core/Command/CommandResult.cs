@@ -11,8 +11,6 @@ namespace LiteFramework
         HandlerRejected,
         /// <summary>处理器异常（作者代码缺陷——隔离为 Failed 结果，不炸调用方）。</summary>
         HandlerFault,
-        /// <summary>拦截器链否决（§4：任一拒绝即终止）。</summary>
-        InterceptorRejected,
     }
 
     /// <summary>

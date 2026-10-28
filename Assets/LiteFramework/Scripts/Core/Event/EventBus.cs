@@ -4,18 +4,12 @@ using System.Threading;
 
 namespace LiteFramework
 {
-    public sealed class EventBus : IEventBus, IMatchEventBus, ITickable, IModuleStats
+    public sealed class EventBus : IEventBus, IMatchEventBus, IModuleStats
     {
         private readonly Dictionary<Type, IEventChannel> _channels = new Dictionary<Type, IEventChannel>(32);
-        private readonly Queue<PendingEvent> _queue = new Queue<PendingEvent>(16);
-        private readonly Dictionary<Type, Action<object>> _adapters = new Dictionary<Type, Action<object>>(16);
         private long _published;
-        private long _tickCount;                           // 帧计数（延迟派发的到期基准，Tick 自增）
-        private int _queuedPeak;                            // 队列峰值（消费不及的留存信号）
         private long _recycled;                            // 池化事件回收累计
         private long _strictWarnings;                      // StrictMode 告警累计（没人听的事件信号）
-        private long _intercepted;                         // 拦截否决累计（§3.5——被拦截管掉的事件信号）
-        private readonly List<IEventInterceptor> _interceptors = new List<IEventInterceptor>(2);   // 注册序运行
         private readonly int _mainThreadId = Thread.CurrentThread.ManagedThreadId;
         private bool _disposed;
 
@@ -23,23 +17,14 @@ namespace LiteFramework
         /// 运行期可改（既有测试面），但**通道创建时刻**的快照决定该通道是否告警重复订阅。</summary>
         public bool StrictMode { get; set; }
 
-        /// <summary>队列容量上限（《事件中心专项设计》§3.2）。入队超限丢弃并计数——
-        /// Tick 驱动的队列在消费不及（卡顿/漏 Tick）时有界可诊断，不无界堆积。
-        /// 构造注入（缺省 = <see cref="QueueLimits.DefaultCapacity"/>），运行期不可改。</summary>
-        public int MaxQueued { get; }
         public bool IsDisposed => _disposed;
         private readonly IReferencePool _pool;
 
-        public EventBus(IReferencePool pool, int maxQueued = QueueLimits.DefaultCapacity, bool strictMode = false)
+        public EventBus(IReferencePool pool, bool strictMode = false)
         {
-            if (maxQueued < 1) throw new ArgumentOutOfRangeException(nameof(maxQueued));
-            MaxQueued = maxQueued;
             StrictMode = strictMode;
             _pool = pool ?? throw new System.ArgumentNullException(nameof(pool), "IReferencePool 未注入");
         }
-
-        /// <summary>队列溢出丢弃累计（诊断：消费不及的可见信号）。</summary>
-        public long QueuedDroppedCount { get; private set; }
 
         /// <summary>订阅（§3.1 优先级派发：小值先派发，同优先级保持注册序）。priority 默认 0 = 既有调用零改动。</summary>
         public IEventSubscription Subscribe<T>(Action<T> handler, int priority = 0) where T : class
@@ -52,49 +37,11 @@ namespace LiteFramework
             return new EventSubscription(this, () => channel.Remove(handler));
         }
 
-        /// <summary>注册发布拦截器（§3.5）：Publish 管线在派发之前按注册序运行；返回注销委托（幂等）。
-        /// 返回 false = 否决（该次发布丢弃、InterceptedCount 记账、池化事件否决路径同样回收）。</summary>
-        public IDisposable RegisterInterceptor(IEventInterceptor interceptor)
-        {
-            EnsureMainThread();
-            ThrowIfDisposed();
-            if (interceptor == null) throw new ArgumentNullException(nameof(interceptor));
-            _interceptors.Add(interceptor);
-            return new EventSubscription(this, () => _interceptors.Remove(interceptor));
-        }
-
-        /// <summary>拦截管线（§3.5）：全部放行返回 true；任一否决返回 false。
-        /// 拦截器异常 = 记日志跳过继续（fail-open——观测性缺陷不阻断业务流）。零拦截器 = 一次计数判断。</summary>
-        private bool RunInterceptors<T>(T e) where T : class
-        {
-            if (_interceptors.Count == 0) return true;
-            for (int i = 0; i < _interceptors.Count; i++)
-            {
-                bool pass;
-                try { pass = _interceptors[i].Intercept(typeof(T), e); }
-                catch (Exception ex)
-                {
-                    Log.Error(ex, $"Event.Interceptor.{_interceptors[i].GetType().Name}");
-                    continue;
-                }
-                if (!pass)
-                {
-                    _intercepted++;
-                    return false;
-                }
-            }
-            return true;
-        }
-
         public void Publish<T>(T e) where T : class
         {
             EnsureMainThread();
             ThrowIfDisposed();
             if (e == null) throw new ArgumentNullException(nameof(e));
-            if (!RunInterceptors(e))
-            {
-                return;
-            }
             _published++;
             var channel = (EventChannel<T>)GetOrAddChannel<T>();
             bool dispatched = channel.Publish(e);
@@ -115,64 +62,14 @@ namespace LiteFramework
             finally { RecycleIfPooled(e); }
         }
 
-        /// <summary>入队，Tick 统一派发（低频便利）。class 约束下 object 装箱为零成本引用上转。
-        /// delayFrames（§3.3 延迟派发，默认 1 = 现状语义）：入队后第 N 帧 Tick 派发——到期条目按入队序，
-        /// 经同一派发核心（StrictMode/回收/异常隔离/优先级全适用）。UI 反馈的"下一拍"时序不必各自起计时器。</summary>
-        public void PublishQueued<T>(T e, int delayFrames = 1) where T : class
-        {
-            EnsureMainThread();
-            ThrowIfDisposed();
-            if (e == null) throw new ArgumentNullException(nameof(e));
-            if (delayFrames < 1) delayFrames = 1;            // 当帧不触发是队列语义下限
-
-            if (_queue.Count >= MaxQueued)
-            {
-                QueuedDroppedCount++;
-                Log.Error($"队列溢出丢弃（MaxQueued={MaxQueued}）: {typeof(T).Name}", LogTag.Event);
-                RecycleIfPooled(e);                         // 队列丢弃路径回收（队列已接管池化事件）
-                return;
-            }
-
-            if (!_adapters.ContainsKey(typeof(T)))
-                _adapters[typeof(T)] = obj => Publish((T)obj);   // 每类型一次,恢复强类型后走同一派发核心
-            _queue.Enqueue(new PendingEvent(typeof(T), e, _tickCount + delayFrames));   // class 约束:引用上转,零装箱
-            if (_queue.Count > _queuedPeak) _queuedPeak = _queue.Count;
-        }
-
-        public void Tick(float realDelta)
-        {
-            EnsureMainThread();
-            ThrowIfDisposed();
-            _tickCount++;
-            int n = _queue.Count;                          // 快照量:派发期间新入队留到下帧,防互相触发同帧死循环
-            for (int i = 0; i < n; i++)
-            {
-                PendingEvent pe = _queue.Dequeue();
-                if (pe.DueTick > _tickCount)
-                {
-                    _queue.Enqueue(pe);                    // 未到期（延迟在途）:留队到未来帧——不属于"当帧快照"级联防护语义
-                    continue;
-                }
-                if (_adapters.TryGetValue(pe.EventType, out var fire))
-                {
-                    fire(pe.Event);
-                    RecycleIfPooled(pe.Event);              // 队列接管池化事件：派发完成统一回收
-                }
-            }
-        }
-
         public void Dispose()
         {
             EnsureMainThread();
             if (_disposed) return;
             _disposed = true;
 
-            foreach (var pe in _queue) RecycleIfPooled(pe.Event);   // 队列接管中的池化事件在关闭时归还
-            _queue.Clear();
-            _adapters.Clear();
             foreach (var channel in _channels.Values) channel.Clear();
             _channels.Clear();
-            _interceptors.Clear();
         }
 
         private void ThrowIfDisposed()
@@ -216,26 +113,18 @@ namespace LiteFramework
             into.Clear();
             int subscribers = 0;
             long dispatchErrors = 0;
-            int delayed = 0;
             foreach (var ch in _channels.Values)
             {
                 subscribers += ch.SubscriberCount;
                 dispatchErrors += ch.DispatchErrors;
             }
-            foreach (var pe in _queue)
-                if (pe.DueTick > _tickCount) delayed++;    // HUD 低频轮询，队列扫描可接受
 
             into["事件类型数"] = _channels.Count.ToString();
             into["订阅者总数"] = subscribers.ToString();
-            into["队列长度"] = _queue.Count.ToString();
             into["累计发布"] = _published.ToString();
-            into["QueuedPeak"] = _queuedPeak.ToString();
-            into["QueuedDropped"] = QueuedDroppedCount.ToString();
             into["DispatchErrors"] = dispatchErrors.ToString();
             into["Recycled"] = _recycled.ToString();
             into["StrictWarnings"] = _strictWarnings.ToString();
-            into["DelayedCount"] = delayed.ToString();
-            into["Intercepted"] = _intercepted.ToString();
         }
 
         /// <summary>通道级诊断（§4——"哪个事件被谁订阅了几次、有没有空转"；镜像 ReferencePoolInfo 形态）。
@@ -246,14 +135,6 @@ namespace LiteFramework
             foreach (var ch in _channels.Values)
                 list.Add(new EventChannelInfo(ch.EventType, ch.SubscriberCount, ch.PublishedCount, ch.DispatchErrors));
             return list;
-        }
-
-        private readonly struct PendingEvent
-        {
-            public readonly Type EventType;
-            public readonly object Event;
-            public readonly long DueTick;                    // 到期帧（Tick 计数域）
-            public PendingEvent(Type eventType, object e, long dueTick) { EventType = eventType; Event = e; DueTick = dueTick; }
         }
     }
 
