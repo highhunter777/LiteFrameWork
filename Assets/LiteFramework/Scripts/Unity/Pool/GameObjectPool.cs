@@ -159,7 +159,8 @@ namespace LiteFramework
                     onRelease: go => go.SetActive(false),
                     onDestroy: go => DestroyAtRuntime(go),
                     maxIdle: MaxIdlePerKey,
-                    statsName: $"GameObjectPool.{key}");
+                    statsName: $"GameObjectPool.{key}",
+                    diagnoseDoubleRelease: DevBuildFacts.IsDevelopment);
                 _buckets[key] = pool;
             }
             return pool;

@@ -12,13 +12,14 @@ namespace LiteFramework
     {
         private readonly ObjectPool<TCollection> _pool;
 
-        public CollectionPool(int maxIdle = 8, string statsName = null)
+        public CollectionPool(int maxIdle = 8, string statsName = null, bool diagnoseDoubleRelease = false)
         {
             _pool = new ObjectPool<TCollection>(
                 create: () => new TCollection(),
                 onRelease: c => c.Clear(),
                 maxIdle: maxIdle,
-                statsName: statsName ?? $"CollectionPool.{typeof(TCollection).Name}");
+                statsName: statsName ?? $"CollectionPool.{typeof(TCollection).Name}",
+                diagnoseDoubleRelease: diagnoseDoubleRelease);
         }
 
         /// <summary>取一个已清空的集合（状态未定义契约同内核：内容由调用方填充）。</summary>

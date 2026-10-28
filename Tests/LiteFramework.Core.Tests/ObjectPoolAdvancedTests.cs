@@ -131,7 +131,7 @@ namespace LiteFramework.Tests
         [Fact]
         public void 重复归还_Debug三宏下抛()
         {
-            var pool = new ObjectPool<Item>(NewItem);
+            var pool = new ObjectPool<Item>(NewItem, diagnoseDoubleRelease: true);
             var a = pool.Acquire();
             pool.Release(a);
             Assert.Throws<InvalidOperationException>(() => pool.Release(a));

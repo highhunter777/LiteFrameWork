@@ -20,7 +20,7 @@ namespace LiteGame
         public UniTask InitializeAsync(ModuleContext context, CancellationToken ct)
         {
             // 引用池实例（Root 域）：生产消费者经 IReferencePool 注入（静态门面已删除）。
-            var references = new ReferencePoolService();
+            var references = new ReferencePoolService(trackUsage: DevBuildFacts.IsDevelopment);   // 开发形态检测重复归还
             context.Put<IReferencePool>(references);
             context.Put(references);
             context.Scope.Register(references);          // 随本模块关闭 Dispose（清空全部空闲件）
@@ -31,7 +31,7 @@ namespace LiteGame
             context.Put<IFileStore>(files);
 
             // 日志实例（进程级）：静态 Log 只是门面；新代码/适配器经 ILog 注入。
-            var logService = new LogService();
+            var logService = new LogService(DevBuildFacts.IsDevelopment ? LogLevel.Info : LogLevel.Warning);
             context.Put<ILog>(logService);
             Log.Install(logService);
             Log.SetHelper(new UnityLogHelper());

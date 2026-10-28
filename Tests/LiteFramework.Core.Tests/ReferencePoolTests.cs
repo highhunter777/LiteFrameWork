@@ -8,7 +8,8 @@ namespace LiteFramework.Tests
     public sealed class ReferencePoolTests
     {
 
-        private readonly ReferencePoolService _pool = new ReferencePoolService();        private sealed class RefA : IReference { public void Clear() { } }
+        private readonly ReferencePoolService _pool = new ReferencePoolService(trackUsage: true);   // 重复归还检测用例
+        private sealed class RefA : IReference { public void Clear() { } }
         private sealed class RefB : IReference { public void Clear() { } }
         private sealed class RefC : IReference { public void Clear() { } }
         private sealed class RefD : IReference { public void Clear() { } }

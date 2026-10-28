@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections;
 using System.Collections.Generic;
 
@@ -25,7 +25,14 @@ namespace LiteFramework
             public Sub(Action<T> handler, int priority) { Handler = handler; Priority = priority; }
         }
 
+        private readonly bool _warnDuplicateSubscribe;   // 重复订阅告警（开发形态；由 EventBus.StrictMode 创建时传入）
         private readonly List<Sub> _subs = new List<Sub>(4);
+
+        /// <param name="warnDuplicateSubscribe">同一委托重复订阅时告警（开发形态开；发布形态关）。</param>
+        public EventChannel(bool warnDuplicateSubscribe = false)
+        {
+            _warnDuplicateSubscribe = warnDuplicateSubscribe;
+        }
         private Action<T>[] _snapshot = Empty;
         private int _depth;                                  // 嵌套派发深度
         private long _published;                              // 累计派发（含无订阅者——"空转"诊断信号）
@@ -47,11 +54,10 @@ namespace LiteFramework
         /// Debug 三宏下同一委托重复订阅 → Log.Warning（不抛——多实例订阅者复用同一静态方法是合法形态，§3.4）。</summary>
         public void Add(Action<T> handler, int priority)
         {
-#if UNITY_EDITOR || DEVELOPMENT_BUILD || LITEFRAMEWORK_DEBUG
-            for (int i = 0; i < _subs.Count; i++)
-                if (_subs[i].Handler == handler)
-                    Log.Warning($"重复订阅（多实例复用同一委托合法，但通常是遗忘注销的信号）: {typeof(T).Name}", LogTag.Event);
-#endif
+            if (_warnDuplicateSubscribe)
+                for (int i = 0; i < _subs.Count; i++)
+                    if (_subs[i].Handler == handler)
+                        Log.Warning($"重复订阅（多实例复用同一委托合法，但通常是遗忘注销的信号）: {typeof(T).Name}", LogTag.Event);
             int insertAt = _subs.Count;
             for (int i = 0; i < _subs.Count; i++)
             {

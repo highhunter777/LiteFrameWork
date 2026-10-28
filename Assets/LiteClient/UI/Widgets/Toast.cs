@@ -132,7 +132,8 @@ namespace LiteClient.UI
             onGet: item => item.gameObject.SetActive(true),
             onRelease: item => item.gameObject.SetActive(false),
             onDestroy: item => Destroy(item.gameObject),
-            maxIdle: MaxVisible);
+            maxIdle: MaxVisible,
+            diagnoseDoubleRelease: DevBuildFacts.IsDevelopment);
 
         /// <summary>纵向堆叠排布：间隔由 Spacing/StackDirection 给定，顺序与创建序一致（旧在上）。</summary>
         private void ApplyLayout()

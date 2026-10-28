@@ -19,11 +19,9 @@ namespace LiteFramework
         private readonly int _mainThreadId = Thread.CurrentThread.ManagedThreadId;
         private bool _disposed;
 
-#if UNITY_EDITOR || DEVELOPMENT_BUILD || LITEFRAMEWORK_DEBUG
-        public bool StrictMode { get; set; } = true;    // 编辑器/开发构建：未订阅事件告警
-#else
-        public bool StrictMode { get; set; } = false;   // release：收紧
-#endif
+        /// <summary>严格模式（未订阅事件告警）：装配点按 <c>DevBuildFacts.IsDevelopment</c> 传初值；
+        /// 运行期可改（既有测试面），但**通道创建时刻**的快照决定该通道是否告警重复订阅。</summary>
+        public bool StrictMode { get; set; }
 
         /// <summary>队列容量上限（《事件中心专项设计》§3.2）。入队超限丢弃并计数——
         /// Tick 驱动的队列在消费不及（卡顿/漏 Tick）时有界可诊断，不无界堆积。
@@ -32,10 +30,11 @@ namespace LiteFramework
         public bool IsDisposed => _disposed;
         private readonly IReferencePool _pool;
 
-        public EventBus(IReferencePool pool, int maxQueued = QueueLimits.DefaultCapacity)
+        public EventBus(IReferencePool pool, int maxQueued = QueueLimits.DefaultCapacity, bool strictMode = false)
         {
             if (maxQueued < 1) throw new ArgumentOutOfRangeException(nameof(maxQueued));
             MaxQueued = maxQueued;
+            StrictMode = strictMode;
             _pool = pool ?? throw new System.ArgumentNullException(nameof(pool), "IReferencePool 未注入");
         }
 
@@ -191,7 +190,7 @@ namespace LiteFramework
         private IEventChannel GetOrAddChannel<T>() where T : class
         {
             if (_channels.TryGetValue(typeof(T), out var ch)) return ch;
-            var created = new EventChannel<T>();
+            var created = new EventChannel<T>(StrictMode);   // 通道创建时刻快照决定重复订阅告警（见 StrictMode 注释）
             _channels[typeof(T)] = created;
             return created;
         }
@@ -239,9 +238,8 @@ namespace LiteFramework
             into["Intercepted"] = _intercepted.ToString();
         }
 
-#if UNITY_EDITOR || DEVELOPMENT_BUILD || LITEFRAMEWORK_DEBUG
         /// <summary>通道级诊断（§4——"哪个事件被谁订阅了几次、有没有空转"；镜像 ReferencePoolInfo 形态）。
-        /// Debug 三宏——HUD asmdef 本身 Development-only；每次调用分配一个列表（低频轮询可接受）。</summary>
+        /// 低频轮询面（每次调用分配一个列表可接受）；HUD 只在开发形态消费。</summary>
         public IReadOnlyList<EventChannelInfo> GetChannelInfos()
         {
             var list = new List<EventChannelInfo>(_channels.Count);
@@ -249,7 +247,6 @@ namespace LiteFramework
                 list.Add(new EventChannelInfo(ch.EventType, ch.SubscriberCount, ch.PublishedCount, ch.DispatchErrors));
             return list;
         }
-#endif
 
         private readonly struct PendingEvent
         {

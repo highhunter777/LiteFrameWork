@@ -70,9 +70,7 @@ namespace LiteFramework
             EnsureInitialized();
             if (_current != null) throw new InvalidOperationException($"{_name}:Start 只能调用一次");
             _transitions?.Lock();                                // 封板（Start 后加边抛——§3.6）
-#if UNITY_EDITOR || DEVELOPMENT_BUILD || LITEFRAMEWORK_DEBUG
-            StageGraphDiagnostics<TId, TReq>.Audit(_name, _stages, null, null, _transitions, initialId);   // §3.5 深校验
-#endif
+            StageGraphDiagnostics<TId, TReq>.Audit(_name, _stages, null, null, _transitions, initialId);   // §3.5 深校验（一次性、只告警）
             var stage = GetStage(initialId);
             _current = stage;
             _currentId = initialId;

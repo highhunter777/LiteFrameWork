@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using LiteFramework;
 using LiteSim;
@@ -122,6 +122,7 @@ namespace LiteView
                 string key = location;                        // 闭包捕获键（逐桶一份）
                 pool = new ObjectPool<GameObject>(
                     create: () => _factory(key, _root),
+                    diagnoseDoubleRelease: DevBuildFacts.IsDevelopment,
                     onGet: go => go.SetActive(true),           // Release 侧停用入池——取件必须重新激活（对偶缺失 = 复用件永久隐形）
                     onRelease: go =>
                     {

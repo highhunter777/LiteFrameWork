@@ -112,7 +112,8 @@ namespace LiteGame
                 () => _factory().gameObject,
                 onGet: go => go.SetActive(true),
                 onRelease: go => go.SetActive(false),
-                maxIdle: Budget, statsName: "Pool.BattleDamageNumber");
+                maxIdle: Budget, statsName: "Pool.BattleDamageNumber",
+                diagnoseDoubleRelease: DevBuildFacts.IsDevelopment);
         }
 
         // ---- IHitFeedbackConsumer（逻辑帧边界——分发器按注册序转发）----

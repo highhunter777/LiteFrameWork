@@ -25,6 +25,7 @@ namespace LiteClient.UI
         public int PooledCount => _pool?.UnusedCount ?? 0;
 
         private ObjectPool<TMP_Text> Pool => _pool ??= new ObjectPool<TMP_Text>(
+            diagnoseDoubleRelease: DevBuildFacts.IsDevelopment,
             create: () => Instantiate(Template, transform).GetComponent<TMP_Text>(),
             onGet: label => label.gameObject.SetActive(true),
             onRelease: label =>

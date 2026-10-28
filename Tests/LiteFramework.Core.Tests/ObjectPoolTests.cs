@@ -13,7 +13,8 @@ namespace LiteFramework.Tests
 
         private static ObjectPool<Pooled> NewPool(int maxIdle = 64, string name = null,
             Action<Pooled> onGet = null, Action<Pooled> onRelease = null, Action<Pooled> onDestroy = null)
-            => new ObjectPool<Pooled>(() => new Pooled(), onGet, onRelease, onDestroy, maxIdle, name);
+            => new ObjectPool<Pooled>(() => new Pooled(), onGet, onRelease, onDestroy, maxIdle, name,
+                diagnoseDoubleRelease: true);   // 测试面 = 开发形态（发布形态由装配点按 DevBuildFacts 关闭）
 
         [Fact]
         public void ObjectPool_空池Acquire_走create并计数()

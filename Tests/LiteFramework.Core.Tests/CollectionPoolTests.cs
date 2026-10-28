@@ -70,7 +70,7 @@ namespace LiteFramework.Tests
         [Fact]
         public void 重复归还_内核口径抛()
         {
-            var pool = new CollectionPool<List<int>, int>();
+            var pool = new CollectionPool<List<int>, int>(diagnoseDoubleRelease: true);
             var list = pool.Acquire();
             pool.Release(list);
             Assert.Throws<InvalidOperationException>(() => pool.Release(list));

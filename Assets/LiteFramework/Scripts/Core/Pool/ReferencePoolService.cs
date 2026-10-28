@@ -14,6 +14,7 @@ namespace LiteFramework
         public const int DefaultMaxSize = 64;
 
         private readonly Dictionary<Type, Bucket> _buckets = new Dictionary<Type, Bucket>(32);
+        private readonly bool _trackUsage;                              // 重复归还检测（开发形态开；发布形态关）
         private bool _disposed;
 
         private sealed class Bucket
@@ -31,15 +32,23 @@ namespace LiteFramework
             public long DroppedCount;
             public long EvictedCount;
             public long PoolHits;
-#if UNITY_EDITOR || DEVELOPMENT_BUILD || LITEFRAMEWORK_DEBUG
-            public readonly HashSet<IReference> Using = new HashSet<IReference>(4);   // 重复归还检测——Debug-only
-#endif
+            public HashSet<IReference> Using;                            // 重复归还检测（null = 不跟踪）
+        }
+
+        /// <param name="trackUsage">是否跟踪在途引用（重复归还检测/在途计数）。装配点按 `DevBuildFacts.IsDevelopment` 传入；
+        /// 发布形态关（false）= 与历史 release 行为一致（不抛、不算在途）。</param>
+        public ReferencePoolService(bool trackUsage = false)
+        {
+            _trackUsage = trackUsage;
         }
 
         private Bucket GetOrAdd(Type type)
         {
             if (_buckets.TryGetValue(type, out Bucket bucket)) return bucket;
-            return _buckets[type] = new Bucket();
+            return _buckets[type] = new Bucket
+            {
+                Using = _trackUsage ? new HashSet<IReference>(4) : null,
+            };
         }
 
         public T Acquire<T>() where T : class, IReference, new()
@@ -58,9 +67,7 @@ namespace LiteFramework
                 bucket.CreatedCount++;
             }
             bucket.AcquireCount++;
-#if UNITY_EDITOR || DEVELOPMENT_BUILD || LITEFRAMEWORK_DEBUG
-            bucket.Using.Add(obj);
-#endif
+            bucket.Using?.Add(obj);
             return obj;
         }
 
@@ -68,10 +75,8 @@ namespace LiteFramework
         {
             if (reference == null) throw new ArgumentNullException(nameof(reference));
             Bucket bucket = GetOrAdd(reference.GetType());
-#if UNITY_EDITOR || DEVELOPMENT_BUILD || LITEFRAMEWORK_DEBUG
-            if (!bucket.Using.Remove(reference))
+            if (_trackUsage && !bucket.Using.Remove(reference))
                 throw new InvalidOperationException($"ReferencePool: 重复归还或非 Acquire 所得:{reference.GetType().Name}");
-#endif
             bucket.ReleaseCount++;
             try { reference.Clear(); }
             catch (Exception ex)
@@ -204,9 +209,7 @@ namespace LiteFramework
                 acquired += bucket.AcquireCount;
                 released += bucket.ReleaseCount;
                 hits += bucket.PoolHits;
-#if UNITY_EDITOR || DEVELOPMENT_BUILD || LITEFRAMEWORK_DEBUG
-                usingCount += bucket.Using.Count;
-#endif
+                usingCount += bucket.Using?.Count ?? 0;
             }
             into["类型数"] = _buckets.Count.ToString();
             into["空闲"] = unused.ToString();
@@ -225,21 +228,20 @@ namespace LiteFramework
             _buckets.Clear();
         }
 
-#if UNITY_EDITOR || DEVELOPMENT_BUILD || LITEFRAMEWORK_DEBUG
-        /// <summary>HUD 调用；每次分配一个列表（低频轮询可接受）。</summary>
+        /// <summary>HUD 调用；每次分配一个列表（低频轮询可接受）。在途计数仅在
+        /// <c>trackUsage</c> 开启时有值（发布形态 = 0，与历史 release 行为一致）。</summary>
         public IReadOnlyList<ReferencePoolInfo> GetAllInfos()
         {
             var list = new List<ReferencePoolInfo>(_buckets.Count);
             foreach (KeyValuePair<Type, Bucket> kv in _buckets)
             {
                 Bucket bucket = kv.Value;
-                list.Add(new ReferencePoolInfo(kv.Key, bucket.Pool.Count, bucket.Using.Count,
+                list.Add(new ReferencePoolInfo(kv.Key, bucket.Pool.Count, bucket.Using?.Count ?? 0,
                     bucket.CreatedCount, bucket.AcquireCount, bucket.ReleaseCount,
                     bucket.MaxSize, bucket.PeakUnused, bucket.DroppedCount,
                     bucket.EvictedCount, bucket.PoolHits));
             }
             return list;
         }
-#endif
     }
 }

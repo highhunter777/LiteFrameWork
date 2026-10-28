@@ -21,7 +21,7 @@ namespace LiteGame
         public System.Collections.Generic.IReadOnlyList<System.Type> DependsOn => System.Array.Empty<System.Type>();
         public UniTask InitializeAsync(ModuleContext context, CancellationToken ct)
         {
-            _events = new EventBus(pool: context.Require<IReferencePool>());
+            _events = new EventBus(pool: context.Require<IReferencePool>(), strictMode: DevBuildFacts.IsDevelopment);
             _worldClock = new WorldClock();
             _uiClock = new UIClock();
             _wallClock = new SystemWallClock();

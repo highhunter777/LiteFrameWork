@@ -22,20 +22,20 @@ namespace LiteFramework
         private ILogHelper _helper;
         private ILogSink _sink;
         private LogLevel _minOutput;
+        private readonly LogLevel _defaultMinOutput;   // 构造给定的最低级别（ResetForTesting 复位到此）
         private readonly string _sessionId = Guid.NewGuid().ToString("N").Substring(0, 8);
         private string _matchId = string.Empty;
         private int _frame;
         private int _playerId = -1;
         private readonly AsyncLocal<LogScope?> _scope = new AsyncLocal<LogScope?>();
 
-        public LogService()
+        /// <param name="minOutput">最低输出级别：开发形态传 <see cref="LogLevel.Info"/>，发布形态保持默认
+        /// <see cref="LogLevel.Warning"/>（装配点按 `DevBuildFacts.IsDevelopment` 传入；默认 = 历史 release 行为）。</param>
+        public LogService(LogLevel minOutput = LogLevel.Warning)
         {
             _recent = new RingView(this);
-#if UNITY_EDITOR || DEVELOPMENT_BUILD || LITEFRAMEWORK_DEBUG
-            _minOutput = LogLevel.Info;
-#else
-            _minOutput = LogLevel.Warning;
-#endif
+            _minOutput = minOutput;
+            _defaultMinOutput = minOutput;
         }
 
         public bool IsEnabled(LogLevel level) => level >= _minOutput;
@@ -142,11 +142,7 @@ namespace LiteFramework
             _frame = 0;
             _playerId = -1;
             _scope.Value = null;
-#if UNITY_EDITOR || DEVELOPMENT_BUILD || LITEFRAMEWORK_DEBUG
-            _minOutput = LogLevel.Info;
-#else
-            _minOutput = LogLevel.Warning;
-#endif
+            _minOutput = _defaultMinOutput;   // 复位到装配点给的级别（不再按编译宏猜）
         }
 
         private sealed class Scope : IDisposable

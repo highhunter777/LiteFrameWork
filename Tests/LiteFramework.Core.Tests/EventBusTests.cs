@@ -170,7 +170,7 @@ namespace LiteFramework.Tests
         [Fact]
         public void EventBus_重复订阅_Debug告警不抛_双计次单注销余一()
         {
-            var events = new EventBus(_pool);
+            var events = new EventBus(_pool, strictMode: true);   // 重复订阅告警随 StrictMode 快照到通道
             var received = 0;
             Action<ProbeEvent> handler = _ => received++;
             events.Subscribe(handler);

@@ -61,13 +61,12 @@ namespace LiteFramework
         public int PeakUnused { get; private set; }
 
         private int _inUse;
-#if UNITY_EDITOR || DEVELOPMENT_BUILD || LITEFRAMEWORK_DEBUG
-        private readonly HashSet<T> _inUseSet = new HashSet<T>(16);   // 重复归还检测
-#endif
+        private readonly HashSet<T> _inUseSet;   // 重复归还检测（null = 不检测；见 diagnoseDoubleRelease）
 
         public ObjectPool(Func<T> create, Action<T> onGet = null, Action<T> onRelease = null,
                           Action<T> onDestroy = null, int maxIdle = 64, string statsName = null,
-                          PoolEviction eviction = PoolEviction.DropNewest, Func<T, bool> validateOnAcquire = null)
+                          PoolEviction eviction = PoolEviction.DropNewest, Func<T, bool> validateOnAcquire = null,
+                          bool diagnoseDoubleRelease = false)
         {
             _create = create ?? throw new ArgumentNullException(nameof(create));
             _onGet = onGet;
@@ -79,6 +78,7 @@ namespace LiteFramework
             _idleAtMs = new Queue<long>(Math.Min(maxIdle, 16));
             _eviction = eviction;
             _validateOnAcquire = validateOnAcquire;
+            _inUseSet = diagnoseDoubleRelease ? new HashSet<T>(16) : null;   // 开发形态开、发布形态关（装配点传 DevBuildFacts）
             _statsName = statsName ?? $"ObjectPool.{typeof(T).Name}";
         }
 
@@ -91,7 +91,6 @@ namespace LiteFramework
         public T Acquire()
         {
             T obj = null;
-            bool fromPool = false;
             while (_idle.Count > 0)
             {
                 T candidate = _idle.Dequeue();
@@ -118,7 +117,6 @@ namespace LiteFramework
                     }
                 }
                 obj = candidate;
-                fromPool = true;
                 break;
             }
             if (obj == null)
@@ -137,9 +135,7 @@ namespace LiteFramework
 
             _inUse++;
             AcquiredCount++;
-#if UNITY_EDITOR || DEVELOPMENT_BUILD || LITEFRAMEWORK_DEBUG
-            _inUseSet.Add(obj);
-#endif
+            _inUseSet?.Add(obj);
             _onGet?.Invoke(obj);
             if (obj is IPoolable spawnable)
             {
@@ -161,9 +157,7 @@ namespace LiteFramework
         {
             _inUse--;
             AcquiredCount--;
-#if UNITY_EDITOR || DEVELOPMENT_BUILD || LITEFRAMEWORK_DEBUG
-            _inUseSet.Remove(obj);
-#endif
+            _inUseSet?.Remove(obj);
             RunOnDestroy(obj);
         }
 
@@ -175,10 +169,8 @@ namespace LiteFramework
         public void Release(T obj, long nowMs = 0)
         {
             if (obj == null) throw new ArgumentNullException(nameof(obj));
-#if UNITY_EDITOR || DEVELOPMENT_BUILD || LITEFRAMEWORK_DEBUG
-            if (!_inUseSet.Remove(obj))
+            if (_inUseSet != null && !_inUseSet.Remove(obj))
                 throw new InvalidOperationException($"ObjectPool<{typeof(T).Name}>: 重复归还或非 Acquire 所得");
-#endif
             _inUse--;
             ReleasedCount++;
             try

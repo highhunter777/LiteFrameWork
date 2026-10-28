@@ -34,13 +34,15 @@ namespace LiteFramework
     /// </summary>
     public static partial class Log
     {
-        private static ILog s_log = new LogService();
+        // 门面兜底实例：记录全部级别（无出口/未安装时只进环形缓冲——测试与引导期可读；
+        // 产品由组合根 Install 安装带真实最小级别的 LogService）。
+        private static ILog s_log = new LogService(LogLevel.Info);
 
         /// <summary>当前实例（诊断/测试可直接读；业务不要拿它做服务定位）。</summary>
         public static ILog Current => s_log;
 
         /// <summary>装配期安装实例（组合根调用一次）；null = 恢复默认实例。</summary>
-        public static void Install(ILog log) => s_log = log ?? new LogService();
+        public static void Install(ILog log) => s_log = log ?? new LogService(LogLevel.Info);
 
         public static bool IsEnabled(LogLevel level) => s_log.IsEnabled(level);
 
@@ -88,6 +90,6 @@ namespace LiteFramework
         /// 复位门面到全新实例（测试/编辑器域重载用；生产不要调）。
         /// 为什么必须有：helper/sink 是进程级设施，PlayMode 引导链注入后会跨用例存活。
         /// </summary>
-        public static void ResetForTesting() => s_log = new LogService();
+        public static void ResetForTesting() => s_log = new LogService(LogLevel.Info);
     }
 }

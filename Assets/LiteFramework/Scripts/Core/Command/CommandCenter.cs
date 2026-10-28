@@ -352,9 +352,8 @@ namespace LiteFramework
             _auditNext = (_auditNext + 1) % AuditCapacity;
         }
 
-        // ---- 读取面（§6：Debug 三宏——HUD/GM 面板同生命周期）----
+        // ---- 读取面（§6：低频轮询；HUD/GM 面板消费）----
 
-#if UNITY_EDITOR || DEVELOPMENT_BUILD || LITEFRAMEWORK_DEBUG
         /// <summary>注册清单发现面：GM 面板据此列出可用命令（GmOnly/描述/注册时序），不硬编码命令清单。</summary>
         public IReadOnlyList<CommandInfo> GetRegisteredInfos()
         {
@@ -374,7 +373,6 @@ namespace LiteFramework
                 list.Add(_audit[(start + i) % AuditCapacity]);
             return list;
         }
-#endif
 
         private sealed class Unsubscription : IDisposable
         {

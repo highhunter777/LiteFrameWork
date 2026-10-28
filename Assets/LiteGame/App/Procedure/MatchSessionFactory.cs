@@ -81,7 +81,7 @@ namespace LiteGame
             try
             {
                 matchServices = (ServiceContainer)account.Services.CreateScope("Match");
-                var matchEvents = new EventBus(_pool);
+                var matchEvents = new EventBus(_pool, strictMode: DevBuildFacts.IsDevelopment);
                 matchServices.RegisterInstance<IMatchEventBus>(matchEvents, ServiceOwnership.ContainerOwned);
                 matchServices.RegisterFactory<BattleContext>(
                     c =>

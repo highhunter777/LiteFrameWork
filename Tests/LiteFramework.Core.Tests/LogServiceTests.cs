@@ -9,7 +9,7 @@ namespace LiteFramework.Tests
         [Fact]
         public void 作用域_覆盖会话对局帧与席位()
         {
-            var log = new LogService();
+            var log = new LogService(LogLevel.Info);   // 测试面 = 开发形态（默认发布级别 = Warning）
             using (log.BeginScope(new LogScope("session", "match", 42, 7)))
                 log.Write(LogLevel.Info, LogTag.Battle, "hello");
 
@@ -24,7 +24,7 @@ namespace LiteFramework.Tests
         [Fact]
         public void 安装实例_静态门面转发到同一记录()
         {
-            var log = new LogService();
+            var log = new LogService(LogLevel.Info);
             try
             {
                 Log.Install(log);

@@ -85,9 +85,7 @@ namespace LiteFramework
             if (_parent.ContainsKey(root))
                 throw new InvalidOperationException($"{_name}:{root} 不是根（它有父态）");
             _transitions?.Lock();                               // 封板——两机同口径
-#if UNITY_EDITOR || DEVELOPMENT_BUILD || LITEFRAMEWORK_DEBUG
-            StageGraphDiagnostics<TId, TReq>.Audit(_name, _stages, _composite, _parent, _transitions, root);   // §3.5 深校验
-#endif
+            StageGraphDiagnostics<TId, TReq>.Audit(_name, _stages, _composite, _parent, _transitions, root);   // §3.5 深校验（一次性、只告警）
 
             _active.Add(root);
             ExpandDown(_active);
@@ -480,7 +478,6 @@ namespace LiteFramework
             AppendSharedCounters(into);
         }
 
-#if UNITY_EDITOR || DEVELOPMENT_BUILD || LITEFRAMEWORK_DEBUG
         /// <summary>DOT 边段覆写：默认段（迁移边 + 时长链）之后补复合父子（虚线）。</summary>
         protected override void ExportGraphEdges(System.Text.StringBuilder sb)
         {
@@ -489,7 +486,6 @@ namespace LiteFramework
                 for (int i = 0; i < spec.Children.Count; i++)
                     sb.AppendLine($"  \"{spec.Id}\" -> \"{spec.Children[i]}\" [style=dotted, label=\"child\"];");
         }
-#endif
 
         // ---- 层级树构建（本机表示法；共享内核不持有）----
 

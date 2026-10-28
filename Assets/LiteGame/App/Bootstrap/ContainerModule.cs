@@ -74,12 +74,7 @@ namespace LiteGame
             _services.RegisterInstance<IEventBus>(context.Require<EventBus>());
             var commands = new CommandCenter(
                 context.Require<IReferencePool>(),
-#if UNITY_EDITOR || DEVELOPMENT_BUILD || LITEFRAMEWORK_DEBUG
-                gmEnabled: true
-#else
-                gmEnabled: false
-#endif
-            );
+                gmEnabled: DevBuildFacts.IsDevelopment);   // GM 命令只在开发形态可执行/可发现
             context.Put(commands);                                 // 产物登记＝具体键 CommandCenter（执行形态消费者经 Require<CommandCenter> 取）
             _services.RegisterInstance<ICommandCenter>(commands);  // 接口键（引擎面消费者/帧驱动表用——同实例、别名键）
 #if UNITY_EDITOR || DEVELOPMENT_BUILD || LITEFRAMEWORK_DEBUG

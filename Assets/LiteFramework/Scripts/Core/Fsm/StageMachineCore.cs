@@ -291,8 +291,7 @@ namespace LiteFramework
             into["恢复成功"] = _audit.ResumeSuccess.ToString();
         }
 
-#if UNITY_EDITOR || DEVELOPMENT_BUILD || LITEFRAMEWORK_DEBUG
-        /// <summary>审计读取面（§4）：最近 32 条迁移，旧 → 新序；低频轮询分配可接受。</summary>
+        /// <summary>审计读取面（§4）：最近 32 条迁移，旧 → 新序；低频轮询分配可接受（HUD/GM 面板消费）。</summary>
         public IReadOnlyList<TransitionAuditEntry<TId>> GetTransitionAudit()
         {
             EnsureInitialized();
@@ -335,6 +334,5 @@ namespace LiteFramework
                 if (kv.Value is TableStage<TId, TReq> ts && ts.Spec.HasNext)
                     sb.AppendLine($"  \"{kv.Key}\" -> \"{ts.Spec.NextId}\" [label=\"dur{ts.Spec.DurationFrames}f\", style=dashed];");
         }
-#endif
     }
 }

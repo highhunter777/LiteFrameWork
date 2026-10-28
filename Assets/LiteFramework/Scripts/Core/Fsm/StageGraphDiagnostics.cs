@@ -1,4 +1,3 @@
-﻿#if UNITY_EDITOR || DEVELOPMENT_BUILD || LITEFRAMEWORK_DEBUG
 using System.Collections.Generic;
 
 namespace LiteFramework
@@ -81,4 +80,3 @@ namespace LiteFramework
         }
     }
 }
-#endif
