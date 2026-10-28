@@ -202,8 +202,10 @@ namespace LiteGame
             var appSettings = new ProductSettings(context.Require<GameSettings>(),
                 context.Require<SettingService>(), context.Require<AudioService>());
             ProductSettings.Bind(appSettings);            // Lua 设置门面后端（Bridge.settings——批C-⑥；构造即应用持久化值）
+            var recovery = new ErrorRecoveryService(new AppRecoveryActions());
+            context.Put(recovery);                        // 恢复执行器（Root：启动/内容/会话失败共用）
             var fsm = CreateMachine(context, content, config, lua, uiRegistry, contentRegistry, strategyRegistry,
-                pageFlow, metaEntry, feedback);
+                pageFlow, metaEntry, feedback, recovery);
             context.Put(fsm);
             metaEntry.BindMachine(fsm);                   // 进房 = Request(Match, MetaJoin)——走既有 Join 管道
 
@@ -247,14 +249,14 @@ namespace LiteGame
         private StageMachine<ProcedureId, ProcedureArgs> CreateMachine(ModuleContext context,
             IContentService content, ConfigService config, LuaComponent lua,
             UiLuaRegistry uiRegistry, ContentLuaRegistry contentRegistry, StrategyLuaRegistry strategyRegistry,
-            PageFlow pageFlow, MetaEntryService metaEntry, FeedbackService feedback)
+            PageFlow pageFlow, MetaEntryService metaEntry, FeedbackService feedback, ErrorRecoveryService recovery)
         {
             var filler = new RegistryFiller(config, UiPageCatalog.All, lua, uiRegistry, contentRegistry, strategyRegistry);
             var rootToken = context.RootScope.Token;
             return new StageMachine<ProcedureId, ProcedureArgs>("Procedure",
                 (ProcedureId.Launch, new ProcedureLaunch(rootToken)),
                 (ProcedureId.Patch, new ProcedurePatch(content, context.Require<ActivationTransactionStore>(),
-                    context.Require<PatchRunner>(), rootToken, context.Require<AssetsHealthProbe>())),
+                    context.Require<PatchRunner>(), rootToken, context.Require<AssetsHealthProbe>(), recovery)),
                 (ProcedureId.Preload, new ProcedurePreload(content, config, lua, filler,
                     context.Require<EventBus>(), context.Require<UIService>(), () => ListLuaAssetPaths(content), rootToken,
                     feedback)),
@@ -272,7 +274,7 @@ namespace LiteGame
                     feedback: feedback,                                // 开局入场加载遮罩（"正在进入对局…"）
                     themeProvider: context.Require<UIService>().ThemeAssetProvider,   // HUD 状态色主题注入（P2-3 B4）
                     devSession: context.Require<IDevSession>())),       // dev 投影读本局规则（实例端口，无静态当前局）
-                (ProcedureId.Error, new ProcedureError(rootToken)));
+                (ProcedureId.Error, new ProcedureError(rootToken, recovery)));
         }
 
         /// <summary>Lua 资源清单由内容适配器按发布约定查询，装配点绑定预载委托。</summary>

@@ -29,6 +29,7 @@ namespace LiteGame
         private readonly ActivationTransactionStore _activations;
         private readonly PatchRunner _patchRunner;
         private readonly AssetsHealthProbe _entryAssetsProbe;
+        private readonly ErrorRecoveryService _recovery;
 
         /// <param name="patchRunner">内容事务编排（可空——为空时退化为"仅启动恢复 + 初始化"，
         /// 用于无候选来源的装配形态；**不得**据此宣称具备热更能力）。</param>
@@ -36,17 +37,58 @@ namespace LiteGame
         /// 不属于当前代次清单的入口会被探针跳过（内置启动不因候选专属入口而失败）。</param>
         public ProcedurePatch(IContentService content, ActivationTransactionStore activations,
             PatchRunner patchRunner = null, CancellationToken rootToken = default,
-            AssetsHealthProbe entryAssetsProbe = null)
+            AssetsHealthProbe entryAssetsProbe = null, ErrorRecoveryService recovery = null)
             : base(rootToken)
         {
             _content = content ?? throw new ArgumentNullException(nameof(content));
             _activations = activations ?? throw new ArgumentNullException(nameof(activations));
             _patchRunner = patchRunner;
             _entryAssetsProbe = entryAssetsProbe;
+            _recovery = recovery;
         }
 
         protected override void RunAsync(IStageHost<ProcedureId, ProcedureArgs> m, in ProcedureArgs req, CancellationToken ct)
             => RunAsyncCore(m, ct).Forget();          // 一行转发，仅此而已——禁止 async void
+
+        /// <summary>下载/校验失败 → 统一错误分类（暂态可重试；摘要不符按安全；其余可恢复）。</summary>
+        private static ErrorKind ClassifyFailure(DownloadFailureInfo failure)
+        {
+            if (failure.IsTransient) return ErrorKind.Transient;
+            switch (failure.Kind)
+            {
+                case DownloadFailureKind.DigestMismatch:
+                    return ErrorKind.Security;
+                case DownloadFailureKind.Canceled:
+                    return ErrorKind.Transient;
+                default:
+                    return ErrorKind.Recoverable;
+            }
+        }
+
+        /// <summary>
+        /// 内容失败恢复：分类后对暂态/可恢复错误做有界重试；返回 null = 已恢复，
+        /// 非 null = 需进错误态的分类异常（error page 消费 ErrorKind）。
+        /// </summary>
+        private async UniTask<ClientErrorException> RecoverPatchAsync(PatchRunResult result, CancellationToken ct)
+        {
+            ErrorKind kind = ClassifyFailure(result.Failure);
+            var patchError = new ClientErrorException(kind,
+                $"内容更新失败（{result.FinalPhase}）：{result.Failure}");
+            if (_recovery == null || kind is not (ErrorKind.Transient or ErrorKind.Recoverable))
+                return patchError;
+
+            RecoveryOutcome outcome = await _recovery.HandleAsync(patchError, "content.patch", RetryPatchAsync, ct);
+            Log.Info($"内容失败恢复：kind={kind} result={outcome.Result} attempts={outcome.Attempts}", LogTag.Patch);
+            return outcome.Recovered ? null : patchError;
+        }
+
+        /// <summary>重试委托：重跑一次完整编排（编排自带启动恢复与回退；成功或无需更新即算恢复）。</summary>
+        private async UniTask<bool> RetryPatchAsync(CancellationToken ct)
+        {
+            PatchRunResult retry = await _patchRunner.RunAsync(ct);
+            Log.Info($"内容重试：phase={retry.FinalPhase} succeeded={retry.Succeeded} noWork={retry.NoWork}", LogTag.Patch);
+            return retry.Succeeded || retry.NoWork;
+        }
 
         private async UniTask RunAsyncCore(IStageHost<ProcedureId, ProcedureArgs> m, CancellationToken ct)
         {
@@ -60,12 +102,14 @@ namespace LiteGame
 
                     if (!result.Succeeded && !result.NoWork)
                     {
-                        // 编排已 RecordFailure + 重建已确认版本；此处只负责进确定错误态
-                        var patchError = new InvalidOperationException(
-                            $"内容更新失败（{result.FinalPhase}）：{result.Failure}");
-                        Fail(m, patchError, nameof(RunAsyncCore));
-                        m.Request(ProcedureId.Error, new ProcedureArgs(patchError));
-                        return;
+                        // 编排已 RecordFailure + 重建已确认版本；暂态/可恢复先有界重试，否则进错误态。
+                        ClientErrorException patchError = await RecoverPatchAsync(result, ct);
+                        if (patchError != null)
+                        {
+                            Fail(m, patchError, nameof(RunAsyncCore));
+                            m.Request(ProcedureId.Error, new ProcedureArgs(patchError));
+                            return;
+                        }
                     }
                 }
                 else

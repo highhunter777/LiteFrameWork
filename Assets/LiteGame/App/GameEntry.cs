@@ -127,7 +127,7 @@ namespace LiteGame
             catch (Exception ex)
             {
                 Log.Error($"GameEntry 引导失败：{ex.Message}", LogTag.GameEntry);
-                ProcedureError.ShowBootstrapError(ex.Message);
+                ProcedureError.ShowBootstrapError(ex);   // 分类展示（未标记 = Fatal）
             }
         }
 
