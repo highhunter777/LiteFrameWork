@@ -1,0 +1,1534 @@
+{
+  "$schema": "./UiApiSpec.schema.json",
+  "version": 1,
+  "apiVersion": 5,
+  "note": "UI 受控 API 唯一源：生成 UIBindIndex 声明 / UIBindBase 转发 / Lua shim / dispatch / 参考表 / 清单。新增 API = 改本文件 + 重生成。",
+  "categories": [
+    {
+      "id": "text",
+      "title": "文本",
+      "notes": [
+        "未注入语言服务时 `SetTextKey*` 抛（静默显示 key 是隐蔽故障）。",
+        "同一节点只能有一个文案写者（静态 key 与动态 SetText 互斥）。"
+      ]
+    },
+    {
+      "id": "state",
+      "title": "显隐/交互/数值",
+      "notes": []
+    },
+    {
+      "id": "feedback",
+      "title": "提示/反馈",
+      "notes": []
+    },
+    {
+      "id": "controls",
+      "title": "输入控件",
+      "notes": []
+    },
+    {
+      "id": "fx",
+      "title": "动效",
+      "notes": [
+        "动效只写表现；页面关闭/隐藏即杀；与业务写入冲突时先 Kill。"
+      ]
+    },
+    {
+      "id": "list",
+      "title": "列表",
+      "notes": []
+    },
+    {
+      "id": "bind",
+      "title": "按钮绑定",
+      "notes": [
+        "按钮回调替换式绑定；`UnbindButton` 只解绑该控件，`OnHide` 时框架统一 `UnbindAll`。"
+      ]
+    }
+  ],
+  "methods": [
+    {
+      "name": "Get",
+      "returns": "T",
+      "generic": "T",
+      "constraint": "Component",
+      "params": [
+        {
+          "name": "name",
+          "type": "string"
+        }
+      ],
+      "summary": "按名取强类型控件；未命中 / 类型不符即抛（调试定位用）。"
+    },
+    {
+      "name": "Has",
+      "returns": "bool",
+      "params": [
+        {
+          "name": "name",
+          "type": "string"
+        }
+      ],
+      "summary": "控件是否存在（不抛）。"
+    },
+    {
+      "name": "BindButton",
+      "returns": "void",
+      "params": [
+        {
+          "name": "name",
+          "type": "string"
+        },
+        {
+          "name": "onClick",
+          "type": "Action"
+        }
+      ],
+      "summary": "替换式绑按钮（重绑先移除旧监听；回调经 SafeCall 隔离）。",
+      "lua": [
+        {
+          "name": "onButton",
+          "manual": true,
+          "category": "bind",
+          "call": [
+            {
+              "arg": "name",
+              "field": "name",
+              "kind": "passthrough"
+            },
+            {
+              "arg": "fn",
+              "field": "fn",
+              "kind": "passthrough"
+            }
+          ],
+          "doc": {
+            "args": "控件名, 回调",
+            "note": "替换式绑定；框架在 OnHide 统一解绑"
+          }
+        }
+      ]
+    },
+    {
+      "name": "UnbindButton",
+      "returns": "void",
+      "params": [
+        {
+          "name": "name",
+          "type": "string"
+        }
+      ],
+      "summary": "解绑该控件的按钮监听（不影响其它控件）。",
+      "lua": [
+        {
+          "name": "offButton",
+          "category": "bind",
+          "call": [
+            {
+              "arg": "name",
+              "field": "name",
+              "kind": "string"
+            }
+          ],
+          "doc": {
+            "args": "控件名",
+            "note": "只解绑该控件"
+          }
+        }
+      ]
+    },
+    {
+      "name": "SetText",
+      "returns": "void",
+      "params": [
+        {
+          "name": "name",
+          "type": "string"
+        },
+        {
+          "name": "value",
+          "type": "string"
+        }
+      ],
+      "summary": "命令式写文本（与 Bind 互斥；挂 LTextLabel 时走打字机）。",
+      "lua": [
+        {
+          "name": "setText",
+          "category": "text",
+          "call": [
+            {
+              "arg": "name",
+              "field": "name",
+              "kind": "string"
+            },
+            {
+              "arg": "text",
+              "field": "text",
+              "kind": "string"
+            }
+          ],
+          "doc": {
+            "args": "控件名, 文本",
+            "note": "数据直写；不随语言刷新"
+          }
+        }
+      ]
+    },
+    {
+      "name": "SetTextKey",
+      "returns": "void",
+      "params": [
+        {
+          "name": "name",
+          "type": "string"
+        },
+        {
+          "name": "key",
+          "type": "string"
+        },
+        {
+          "name": "args",
+          "type": "object[]",
+          "params": true
+        }
+      ],
+      "summary": "按 key 写文本；未注入语言服务即抛。",
+      "lua": [
+        {
+          "name": "setTextKey",
+          "category": "text",
+          "call": [
+            {
+              "arg": "name",
+              "field": "name",
+              "kind": "string"
+            },
+            {
+              "arg": "key",
+              "field": "key",
+              "kind": "string"
+            }
+          ],
+          "doc": {
+            "args": "控件名, key",
+            "note": "按 key 写；语言切换自动刷新"
+          }
+        },
+        {
+          "name": "setTextKeyArgs",
+          "category": "text",
+          "call": [
+            {
+              "arg": "name",
+              "field": "name",
+              "kind": "string"
+            },
+            {
+              "arg": "key",
+              "field": "key",
+              "kind": "string"
+            },
+            {
+              "kind": "formatArgs"
+            }
+          ],
+          "extraArgs": 4,
+          "doc": {
+            "args": "控件名, key, a0..a3",
+            "note": "带参格式化（最多 4 个参数）",
+            "sig": "SetTextKeyArgs(name, key, a0..a3)"
+          }
+        }
+      ]
+    },
+    {
+      "name": "SetTextKeyPlural",
+      "returns": "void",
+      "params": [
+        {
+          "name": "name",
+          "type": "string"
+        },
+        {
+          "name": "key",
+          "type": "string"
+        },
+        {
+          "name": "count",
+          "type": "long"
+        },
+        {
+          "name": "args",
+          "type": "object[]",
+          "params": true
+        }
+      ],
+      "summary": "按 key 写文本（英文 one/other 显式复数）。",
+      "lua": [
+        {
+          "name": "setTextKeyPlural",
+          "category": "text",
+          "call": [
+            {
+              "arg": "name",
+              "field": "name",
+              "kind": "string"
+            },
+            {
+              "arg": "key",
+              "field": "key",
+              "kind": "string"
+            },
+            {
+              "arg": "count",
+              "field": "count",
+              "kind": "count"
+            },
+            {
+              "kind": "formatArgs"
+            }
+          ],
+          "extraArgs": 4,
+          "doc": {
+            "args": "控件名, key, 复数 count, a0..a3",
+            "note": "英文 one/other 显式选择",
+            "sig": "SetTextKeyPlural(name, key, count, a0..a3)"
+          }
+        }
+      ]
+    },
+    {
+      "name": "UnbindTextKey",
+      "returns": "bool",
+      "params": [
+        {
+          "name": "name",
+          "type": "string"
+        }
+      ],
+      "summary": "解除该控件的本地化绑定（不再随语言刷新）。",
+      "lua": [
+        {
+          "name": "unbindTextKey",
+          "category": "text",
+          "call": [
+            {
+              "arg": "name",
+              "field": "name",
+              "kind": "string"
+            }
+          ],
+          "doc": {
+            "args": "控件名",
+            "note": "解除该控件本地化绑定"
+          }
+        }
+      ]
+    },
+    {
+      "name": "SetVisible",
+      "returns": "void",
+      "params": [
+        {
+          "name": "name",
+          "type": "string"
+        },
+        {
+          "name": "visible",
+          "type": "bool"
+        }
+      ],
+      "summary": "显隐（直接 SetActive）。",
+      "lua": [
+        {
+          "name": "setVisible",
+          "category": "state",
+          "call": [
+            {
+              "arg": "name",
+              "field": "name",
+              "kind": "string"
+            },
+            {
+              "arg": "visible",
+              "field": "visible",
+              "kind": "bool"
+            }
+          ],
+          "doc": {
+            "args": "bool",
+            "note": "直接 `SetActive`"
+          }
+        }
+      ]
+    },
+    {
+      "name": "SetInteractable",
+      "returns": "void",
+      "params": [
+        {
+          "name": "name",
+          "type": "string"
+        },
+        {
+          "name": "on",
+          "type": "bool"
+        }
+      ],
+      "summary": "可交互开关（Selectable 优先，回退 UIWidget.Interactable）。",
+      "lua": [
+        {
+          "name": "setInteractable",
+          "category": "state",
+          "call": [
+            {
+              "arg": "name",
+              "field": "name",
+              "kind": "string"
+            },
+            {
+              "arg": "on",
+              "field": "on",
+              "kind": "bool"
+            }
+          ],
+          "doc": {
+            "args": "bool",
+            "note": "`Selectable` 优先，回退 `UIWidget.Interactable`"
+          }
+        }
+      ]
+    },
+    {
+      "name": "SetProgress",
+      "returns": "void",
+      "params": [
+        {
+          "name": "name",
+          "type": "string"
+        },
+        {
+          "name": "value01",
+          "type": "float"
+        }
+      ],
+      "summary": "进度条：归一化值（0~1）。",
+      "lua": [
+        {
+          "name": "setProgress",
+          "category": "state",
+          "call": [
+            {
+              "arg": "name",
+              "field": "name",
+              "kind": "string"
+            },
+            {
+              "arg": "value",
+              "field": "value",
+              "kind": "float"
+            }
+          ],
+          "doc": {
+            "args": "0~1",
+            "note": "进度条"
+          }
+        }
+      ]
+    },
+    {
+      "name": "SetProgress",
+      "returns": "void",
+      "params": [
+        {
+          "name": "name",
+          "type": "string"
+        },
+        {
+          "name": "current",
+          "type": "float"
+        },
+        {
+          "name": "max",
+          "type": "float"
+        }
+      ],
+      "summary": "进度条：当前/上限。",
+      "lua": [
+        {
+          "name": "setProgressRange",
+          "category": "state",
+          "call": [
+            {
+              "arg": "name",
+              "field": "name",
+              "kind": "string"
+            },
+            {
+              "arg": "cur",
+              "field": "cur",
+              "kind": "float"
+            },
+            {
+              "arg": "max",
+              "field": "max",
+              "kind": "float"
+            }
+          ],
+          "doc": {
+            "args": "当前/上限",
+            "note": "进度条"
+          }
+        }
+      ]
+    },
+    {
+      "name": "SetHp",
+      "returns": "void",
+      "params": [
+        {
+          "name": "name",
+          "type": "string"
+        },
+        {
+          "name": "current",
+          "type": "float"
+        },
+        {
+          "name": "max",
+          "type": "float"
+        }
+      ],
+      "summary": "血条（前条瞬时 + 后条滑落）。",
+      "lua": [
+        {
+          "name": "setHp",
+          "category": "state",
+          "call": [
+            {
+              "arg": "name",
+              "field": "name",
+              "kind": "string"
+            },
+            {
+              "arg": "cur",
+              "field": "cur",
+              "kind": "float"
+            },
+            {
+              "arg": "max",
+              "field": "max",
+              "kind": "float"
+            }
+          ],
+          "doc": {
+            "args": "当前/上限",
+            "note": "血条（前条瞬时 + 后条滑落）"
+          }
+        }
+      ]
+    },
+    {
+      "name": "StartCountdown",
+      "returns": "void",
+      "params": [
+        {
+          "name": "name",
+          "type": "string"
+        },
+        {
+          "name": "seconds",
+          "type": "float"
+        }
+      ],
+      "summary": "倒计时启动。",
+      "lua": [
+        {
+          "name": "startCountdown",
+          "category": "state",
+          "call": [
+            {
+              "arg": "name",
+              "field": "name",
+              "kind": "string"
+            },
+            {
+              "arg": "seconds",
+              "field": "seconds",
+              "kind": "float"
+            }
+          ],
+          "doc": {
+            "args": "秒",
+            "note": "倒计时启动"
+          }
+        }
+      ]
+    },
+    {
+      "name": "StopCountdown",
+      "returns": "void",
+      "params": [
+        {
+          "name": "name",
+          "type": "string"
+        }
+      ],
+      "summary": "倒计时停止（不触发完成）。",
+      "lua": [
+        {
+          "name": "stopCountdown",
+          "category": "state",
+          "call": [
+            {
+              "arg": "name",
+              "field": "name",
+              "kind": "string"
+            }
+          ],
+          "doc": {
+            "args": "—",
+            "note": "停止（不触发完成）"
+          }
+        }
+      ]
+    },
+    {
+      "name": "ShowToast",
+      "returns": "void",
+      "params": [
+        {
+          "name": "text",
+          "type": "string"
+        }
+      ],
+      "summary": "轻提示（无 Toast 实例时记日志不抛）。",
+      "lua": [
+        {
+          "name": "showToast",
+          "category": "feedback",
+          "call": [
+            {
+              "arg": "text",
+              "field": "text",
+              "kind": "string"
+            }
+          ],
+          "doc": {
+            "args": "文本",
+            "note": "无 Toast 实例时记日志不抛"
+          }
+        }
+      ]
+    },
+    {
+      "name": "ShowBubble",
+      "returns": "void",
+      "params": [
+        {
+          "name": "name",
+          "type": "string"
+        },
+        {
+          "name": "text",
+          "type": "string"
+        },
+        {
+          "name": "duration",
+          "type": "float"
+        }
+      ],
+      "summary": "控件旁气泡（缺省时长来自 UiFxDefaults）。",
+      "lua": [
+        {
+          "name": "showBubble",
+          "category": "feedback",
+          "call": [
+            {
+              "arg": "name",
+              "field": "name",
+              "kind": "string"
+            },
+            {
+              "arg": "text",
+              "field": "text",
+              "kind": "string"
+            },
+            {
+              "arg": "duration",
+              "field": "duration",
+              "kind": "float",
+              "default": "%FxBubbleDuration%"
+            }
+          ],
+          "doc": {
+            "args": "控件名/文本/时长",
+            "note": "挂点旁气泡"
+          }
+        }
+      ]
+    },
+    {
+      "name": "ShowFlyText",
+      "returns": "void",
+      "params": [
+        {
+          "name": "name",
+          "type": "string"
+        },
+        {
+          "name": "text",
+          "type": "string"
+        }
+      ],
+      "summary": "飘字（位置取控件 anchoredPosition）。",
+      "lua": [
+        {
+          "name": "showFlyText",
+          "category": "feedback",
+          "call": [
+            {
+              "arg": "name",
+              "field": "name",
+              "kind": "string"
+            },
+            {
+              "arg": "text",
+              "field": "text",
+              "kind": "string"
+            }
+          ],
+          "doc": {
+            "args": "控件名/文本",
+            "note": "飘字（位置取控件 anchoredPosition）"
+          }
+        }
+      ]
+    },
+    {
+      "name": "ShowConfirm",
+      "returns": "void",
+      "params": [
+        {
+          "name": "title",
+          "type": "string"
+        },
+        {
+          "name": "message",
+          "type": "string"
+        },
+        {
+          "name": "okText",
+          "type": "string"
+        },
+        {
+          "name": "cancelText",
+          "type": "string"
+        },
+        {
+          "name": "fn",
+          "type": "LuaFunction"
+        }
+      ],
+      "summary": "确认弹窗（经确认缝；无服务/取消/异常回调 false）。注意：C# 侧无此方法体（Lua 专属，实现住适配器）。",
+      "lua": [
+        {
+          "name": "showConfirm",
+          "manual": true,
+          "category": "feedback",
+          "call": [
+            {
+              "arg": "title",
+              "field": "title",
+              "kind": "passthrough"
+            },
+            {
+              "arg": "message",
+              "field": "message",
+              "kind": "passthrough"
+            },
+            {
+              "arg": "okText",
+              "field": "okText",
+              "kind": "passthrough"
+            },
+            {
+              "arg": "cancelText",
+              "field": "cancelText",
+              "kind": "passthrough"
+            },
+            {
+              "arg": "fn",
+              "field": "fn",
+              "kind": "passthrough"
+            }
+          ],
+          "doc": {
+            "args": "标题/正文/确认文案/取消文案/回调",
+            "note": "经确认缝；无服务/取消/异常回调 false",
+            "sig": "ShowConfirm(title, message, okText, cancelText, fn)"
+          }
+        }
+      ],
+      "index": false
+    },
+    {
+      "name": "SetAnchoredPosition",
+      "returns": "void",
+      "params": [
+        {
+          "name": "name",
+          "type": "string"
+        },
+        {
+          "name": "pos",
+          "type": "Vector2"
+        }
+      ],
+      "summary": "位置（表现驱动；走 ResolveRect）。"
+    },
+    {
+      "name": "SetSlider",
+      "returns": "void",
+      "params": [
+        {
+          "name": "name",
+          "type": "string"
+        },
+        {
+          "name": "value01",
+          "type": "float"
+        }
+      ],
+      "summary": "滑块设值（0~1，程序 Set 不触发变化回调）。",
+      "lua": [
+        {
+          "name": "setSlider",
+          "category": "controls",
+          "call": [
+            {
+              "arg": "name",
+              "field": "name",
+              "kind": "text"
+            },
+            {
+              "arg": "value",
+              "field": "value",
+              "kind": "float"
+            }
+          ],
+          "doc": {
+            "args": "0~1",
+            "note": "程序设值，不触发变化回调"
+          }
+        }
+      ]
+    },
+    {
+      "name": "GetSlider",
+      "returns": "float",
+      "params": [
+        {
+          "name": "name",
+          "type": "string"
+        }
+      ],
+      "summary": "滑块当前值（0~1）。",
+      "lua": [
+        {
+          "name": "getSlider",
+          "category": "controls",
+          "returns": "number",
+          "call": [
+            {
+              "arg": "name",
+              "field": "name",
+              "kind": "text"
+            }
+          ],
+          "doc": {
+            "args": "→ number",
+            "note": "当前值"
+          }
+        }
+      ]
+    },
+    {
+      "name": "OnSliderChanged",
+      "returns": "void",
+      "params": [
+        {
+          "name": "name",
+          "type": "string"
+        },
+        {
+          "name": "handler",
+          "type": "Action<float>"
+        }
+      ],
+      "summary": "滑块变化通知（用户拖动；重复登记替换）。",
+      "lua": [
+        {
+          "name": "onSliderChanged",
+          "category": "controls",
+          "call": [
+            {
+              "arg": "name",
+              "field": "name",
+              "kind": "text"
+            },
+            {
+              "kind": "callbackFloat"
+            }
+          ],
+          "doc": {
+            "args": "回调 `fn(value)`",
+            "note": "用户拖动；重复登记替换",
+            "sig": "OnSliderChanged(name, fn(value))"
+          }
+        }
+      ]
+    },
+    {
+      "name": "SetToggle",
+      "returns": "void",
+      "params": [
+        {
+          "name": "name",
+          "type": "string"
+        },
+        {
+          "name": "on",
+          "type": "bool"
+        }
+      ],
+      "summary": "开关设值（程序 Set 不触发变化回调）。",
+      "lua": [
+        {
+          "name": "setToggle",
+          "category": "controls",
+          "call": [
+            {
+              "arg": "name",
+              "field": "name",
+              "kind": "text"
+            },
+            {
+              "arg": "on",
+              "field": "on",
+              "kind": "bool"
+            }
+          ],
+          "doc": {
+            "args": "bool",
+            "note": "程序设值，不触发变化回调"
+          }
+        }
+      ]
+    },
+    {
+      "name": "GetToggle",
+      "returns": "bool",
+      "params": [
+        {
+          "name": "name",
+          "type": "string"
+        }
+      ],
+      "summary": "开关当前值。",
+      "lua": [
+        {
+          "name": "getToggle",
+          "category": "controls",
+          "returns": "boolean",
+          "call": [
+            {
+              "arg": "name",
+              "field": "name",
+              "kind": "text"
+            }
+          ],
+          "doc": {
+            "args": "→ bool",
+            "note": "当前值"
+          }
+        }
+      ]
+    },
+    {
+      "name": "OnToggleChanged",
+      "returns": "void",
+      "params": [
+        {
+          "name": "name",
+          "type": "string"
+        },
+        {
+          "name": "handler",
+          "type": "Action<bool>"
+        }
+      ],
+      "summary": "开关变化通知（用户点击；重复登记替换）。",
+      "lua": [
+        {
+          "name": "onToggleChanged",
+          "category": "controls",
+          "call": [
+            {
+              "arg": "name",
+              "field": "name",
+              "kind": "text"
+            },
+            {
+              "kind": "callbackBool"
+            }
+          ],
+          "doc": {
+            "args": "回调 `fn(on)`",
+            "note": "用户点击；重复登记替换",
+            "sig": "OnToggleChanged(name, fn(on))"
+          }
+        }
+      ]
+    },
+    {
+      "name": "SetDropdownOptions",
+      "returns": "void",
+      "params": [
+        {
+          "name": "name",
+          "type": "string"
+        },
+        {
+          "name": "options",
+          "type": "IReadOnlyList<string>"
+        }
+      ],
+      "summary": "下拉选项（文本须已本地化；值保持）。",
+      "lua": [
+        {
+          "name": "setDropdownOptions",
+          "category": "controls",
+          "call": [
+            {
+              "arg": "name",
+              "field": "name",
+              "kind": "text"
+            },
+            {
+              "arg": "options",
+              "field": "options",
+              "kind": "strings"
+            }
+          ],
+          "doc": {
+            "args": "字符串数组",
+            "note": "选项文本由页面给已本地化文本；值保持"
+          }
+        }
+      ]
+    },
+    {
+      "name": "SetDropdownValue",
+      "returns": "void",
+      "params": [
+        {
+          "name": "name",
+          "type": "string"
+        },
+        {
+          "name": "index",
+          "type": "int"
+        }
+      ],
+      "summary": "下拉设值（索引；程序 Set 不触发变化回调）。",
+      "lua": [
+        {
+          "name": "setDropdown",
+          "category": "controls",
+          "call": [
+            {
+              "arg": "name",
+              "field": "name",
+              "kind": "text"
+            },
+            {
+              "arg": "index",
+              "field": "index",
+              "kind": "int"
+            }
+          ],
+          "doc": {
+            "args": "索引",
+            "note": "程序设值，不触发变化回调"
+          }
+        }
+      ]
+    },
+    {
+      "name": "GetDropdownValue",
+      "returns": "int",
+      "params": [
+        {
+          "name": "name",
+          "type": "string"
+        }
+      ],
+      "summary": "下拉当前索引。",
+      "lua": [
+        {
+          "name": "getDropdown",
+          "category": "controls",
+          "returns": "number",
+          "call": [
+            {
+              "arg": "name",
+              "field": "name",
+              "kind": "text"
+            }
+          ],
+          "doc": {
+            "args": "→ number",
+            "note": "当前索引"
+          }
+        }
+      ]
+    },
+    {
+      "name": "OnDropdownChanged",
+      "returns": "void",
+      "params": [
+        {
+          "name": "name",
+          "type": "string"
+        },
+        {
+          "name": "handler",
+          "type": "Action<int>"
+        }
+      ],
+      "summary": "下拉变化通知（用户选择；重复登记替换）。",
+      "lua": [
+        {
+          "name": "onDropdownChanged",
+          "category": "controls",
+          "call": [
+            {
+              "arg": "name",
+              "field": "name",
+              "kind": "text"
+            },
+            {
+              "kind": "callbackInt"
+            }
+          ],
+          "doc": {
+            "args": "回调 `fn(index)`",
+            "note": "用户选择；重复登记替换",
+            "sig": "OnDropdownChanged(name, fn(index))"
+          }
+        }
+      ]
+    },
+    {
+      "name": "SetList",
+      "returns": "void",
+      "params": [
+        {
+          "name": "name",
+          "type": "string"
+        },
+        {
+          "name": "rows",
+          "type": "IUIListRows"
+        }
+      ],
+      "summary": "装配列表数据源（整表替换语义）。",
+      "lua": [
+        {
+          "name": "setList",
+          "manual": true,
+          "category": "list",
+          "call": [
+            {
+              "arg": "name",
+              "field": "name",
+              "kind": "passthrough"
+            },
+            {
+              "arg": "rows",
+              "field": "rows",
+              "kind": "passthrough"
+            }
+          ],
+          "doc": {
+            "args": "行表",
+            "note": "整表替换；空源过渡 + 换源会重绑已实体化条目"
+          }
+        }
+      ]
+    },
+    {
+      "name": "OnListClick",
+      "returns": "void",
+      "params": [
+        {
+          "name": "name",
+          "type": "string"
+        },
+        {
+          "name": "handler",
+          "type": "Action<string, string>"
+        }
+      ],
+      "summary": "行点击通知（key + 按钮节点名；条目根按钮为空串）。",
+      "lua": [
+        {
+          "name": "onListClick",
+          "manual": true,
+          "category": "list",
+          "call": [
+            {
+              "arg": "name",
+              "field": "name",
+              "kind": "passthrough"
+            },
+            {
+              "arg": "fn",
+              "field": "fn",
+              "kind": "passthrough"
+            }
+          ],
+          "doc": {
+            "args": "回调 `fn(key, action)`",
+            "note": "条目根按钮 action 为空串；条目内按钮回节点名",
+            "sig": "OnListClick(name, fn(key, action))"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Pulse",
+      "returns": "bool",
+      "params": [
+        {
+          "name": "name",
+          "type": "string"
+        },
+        {
+          "name": "strength",
+          "type": "float",
+          "default": "UiFxDefaults.PulseStrength"
+        },
+        {
+          "name": "duration",
+          "type": "float",
+          "default": "UiFxDefaults.PulseDuration"
+        }
+      ],
+      "summary": "脉冲（透明度呼吸两次）；true = tween 已创建。",
+      "lua": [
+        {
+          "name": "pulse",
+          "category": "fx",
+          "call": [
+            {
+              "arg": "name",
+              "field": "name",
+              "kind": "string"
+            },
+            {
+              "arg": "strength",
+              "field": "strength",
+              "kind": "float",
+              "default": "%FxPulseStrength%"
+            },
+            {
+              "arg": "duration",
+              "field": "duration",
+              "kind": "float",
+              "default": "%FxPulseDuration%"
+            }
+          ],
+          "doc": {
+            "args": "强度/时长",
+            "note": "透明度呼吸两次；缺省来自 `UiFxDefaults`"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Flash",
+      "returns": "bool",
+      "params": [
+        {
+          "name": "name",
+          "type": "string"
+        },
+        {
+          "name": "duration",
+          "type": "float",
+          "default": "UiFxDefaults.FlashDuration"
+        }
+      ],
+      "summary": "闪烁（一次性高亮回落）。",
+      "lua": [
+        {
+          "name": "flash",
+          "category": "fx",
+          "call": [
+            {
+              "arg": "name",
+              "field": "name",
+              "kind": "string"
+            },
+            {
+              "arg": "duration",
+              "field": "duration",
+              "kind": "float",
+              "default": "%FxFlashDuration%"
+            }
+          ],
+          "doc": {
+            "args": "时长",
+            "note": "一次性高亮回落"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Slide",
+      "returns": "bool",
+      "params": [
+        {
+          "name": "name",
+          "type": "string"
+        },
+        {
+          "name": "offset",
+          "type": "Vector2"
+        },
+        {
+          "name": "duration",
+          "type": "float",
+          "default": "UiFxDefaults.SlideDuration"
+        }
+      ],
+      "summary": "位移入场（从 offset 滑回原位）。",
+      "lua": [
+        {
+          "name": "slide",
+          "category": "fx",
+          "call": [
+            {
+              "arg": "name",
+              "field": "name",
+              "kind": "string"
+            },
+            {
+              "arg": "ox",
+              "field": "ox",
+              "kind": "float",
+              "group": "vector2",
+              "default": "0"
+            },
+            {
+              "arg": "oy",
+              "field": "oy",
+              "kind": "float",
+              "group": "vector2",
+              "default": "0"
+            },
+            {
+              "arg": "duration",
+              "field": "duration",
+              "kind": "float",
+              "default": "%FxSlideDuration%"
+            }
+          ],
+          "doc": {
+            "args": "偏移/时长",
+            "note": "从偏移滑回原位"
+          }
+        }
+      ]
+    }
+  ],
+  "baseForwards": [
+    {
+      "name": "GetControl",
+      "access": "protected",
+      "returns": "T",
+      "generic": "T",
+      "constraint": "Component",
+      "params": [
+        {
+          "name": "name",
+          "type": "string"
+        }
+      ],
+      "forward": "Get<T>",
+      "summary": "取控件（类型不符抛）。"
+    },
+    {
+      "name": "HasControl",
+      "access": "protected",
+      "returns": "bool",
+      "params": [
+        {
+          "name": "name",
+          "type": "string"
+        }
+      ],
+      "forward": "Has",
+      "summary": "控件是否存在。"
+    },
+    {
+      "name": "OnButton",
+      "access": "protected",
+      "returns": "Action",
+      "params": [
+        {
+          "name": "name",
+          "type": "string"
+        },
+        {
+          "name": "onClick",
+          "type": "Action"
+        }
+      ],
+      "shape": "bindButton",
+      "summary": "替换式绑按钮；返回注销委托。"
+    },
+    {
+      "name": "SetText",
+      "access": "protected",
+      "returns": "void",
+      "params": [
+        {
+          "name": "name",
+          "type": "string"
+        },
+        {
+          "name": "value",
+          "type": "string"
+        }
+      ],
+      "forward": "SetText",
+      "summary": "数据直写。"
+    },
+    {
+      "name": "SetTextKey",
+      "access": "protected",
+      "returns": "void",
+      "params": [
+        {
+          "name": "name",
+          "type": "string"
+        },
+        {
+          "name": "key",
+          "type": "string"
+        },
+        {
+          "name": "args",
+          "type": "object[]",
+          "params": true
+        }
+      ],
+      "forward": "SetTextKey",
+      "summary": "按 key 写（语言切换自动刷新）。"
+    },
+    {
+      "name": "SetTextKeyPlural",
+      "access": "protected",
+      "returns": "void",
+      "params": [
+        {
+          "name": "name",
+          "type": "string"
+        },
+        {
+          "name": "key",
+          "type": "string"
+        },
+        {
+          "name": "count",
+          "type": "long"
+        },
+        {
+          "name": "args",
+          "type": "object[]",
+          "params": true
+        }
+      ],
+      "forward": "SetTextKeyPlural",
+      "summary": "按 key 写（英文 one/other 显式复数）。"
+    },
+    {
+      "name": "UnbindTextKey",
+      "access": "protected",
+      "returns": "bool",
+      "params": [
+        {
+          "name": "name",
+          "type": "string"
+        }
+      ],
+      "forward": "UnbindTextKey",
+      "summary": "解除该控件本地化绑定。"
+    },
+    {
+      "name": "SetVisible",
+      "access": "protected",
+      "returns": "void",
+      "params": [
+        {
+          "name": "name",
+          "type": "string"
+        },
+        {
+          "name": "visible",
+          "type": "bool"
+        }
+      ],
+      "forward": "SetVisible",
+      "summary": "显隐。"
+    },
+    {
+      "name": "SetInteractable",
+      "access": "protected",
+      "returns": "void",
+      "params": [
+        {
+          "name": "name",
+          "type": "string"
+        },
+        {
+          "name": "on",
+          "type": "bool"
+        }
+      ],
+      "forward": "SetInteractable",
+      "summary": "可交互。"
+    },
+    {
+      "name": "SetAnchoredPosition",
+      "access": "protected",
+      "returns": "void",
+      "params": [
+        {
+          "name": "name",
+          "type": "string"
+        },
+        {
+          "name": "pos",
+          "type": "Vector2"
+        }
+      ],
+      "forward": "SetAnchoredPosition",
+      "summary": "位置（表现驱动）。"
+    }
+  ]
+}

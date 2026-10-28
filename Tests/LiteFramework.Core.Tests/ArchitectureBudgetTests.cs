@@ -51,7 +51,6 @@ namespace LiteFramework.Core.Tests
             "Assets/LiteGame/App/Procedure/ProcedureBattle.cs::ProcedureBattle.RunAsyncCore",
             "Assets/LiteGame/App/Bootstrap/InputModalProbe.cs::InputModalProbe.RunAsync",
             "Assets/LiteGame/Editor/UiTools/Validation/Rules/ContractReferenceRule.cs::ContractReferenceRule.Check",
-            "Assets/LiteGame/LuaBridge/LuaBehaviourAdapter.cs::LuaBehaviourAdapter.Dispatch",
             "Assets/LiteGame/Editor/UiTools/Preview/UiPreviewMatrixRunner.cs::UiPreviewMatrixRunner.Tick",
             "Assets/LiteGame/Dev/Projection/DebugPanelUiToolkitHost.cs::DebugPanelUiToolkitHost.AddTunableRow",
             "Assets/LiteGame/Editor/UiTools/Contract/UiContractBatch.cs::UiContractBatch.Diff",

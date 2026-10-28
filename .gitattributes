@@ -5,3 +5,4 @@ scripts/** text eol=lf
 # core.autocrlf=true would otherwise check them out as CRLF and make the drift rule red.
 Assets/LiteGame/Editor/UiTools/Contracts/** text eol=lf
 Assets/LiteGame/Editor/UiTools/*.json text eol=lf
+Assets/LiteGame/Editor/UiTools/UiApi/** text eol=lf

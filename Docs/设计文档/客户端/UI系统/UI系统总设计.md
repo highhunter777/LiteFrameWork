@@ -404,10 +404,17 @@ Page Logic (C# UIBindBase 或 Lua)
 <a id="ch-ui-api-spec"></a>
 
 - **唯一源**：`Assets/LiteGame/Editor/UiTools/UiApi/UiApiSpec.json`（schema `UiApiSpec.schema.json`）逐条声明 C# 名、Lua 名、参数/返回、文档、暴露面与手工处理器。
-- **生成物**：`UIBindIndex.Api.g.cs`、`UIBindBase.Api.g.cs`、`UiApiShim.g.cs`、`LuaBehaviourAdapter.Dispatch.g.cs`、`UI逻辑API参考.md` 与生成测试；禁止四处手写同步。
-- **手工例外**：`showConfirm`（异步确认）、`setList`/`onListClick`（LuaTable 行转换）、`onButton`（Lua 闭包）可在 spec 标 `manual`，由生成器保留手工处理器入口；其余 API 不得手写。
-- **版本**：`BridgeCapabilitySet.ApiVersion` 由 spec 的 `apiVersion` 生成；新增 API = 改 spec + 重生成，版本随生成物递增。
-- **守卫**：非生成文件出现 API 名/shim 字符串即由架构守卫拦截；生成器连跑两次字节一致。
+- **生成物**（`scripts/codegen/gen-ui-api.py`，`--check` 逐字节确定性）：
+  - `Assets/LiteClient/UI/Bind/Generated/UIBindIndex.Api.g.cs`——受控 API 的 **partial 方法声明**；实现体留在 `UIBindIndex.cs`，签名漂移即编译失败（不靠测试兜）；
+  - `Assets/LiteClient/UI/Bind/Generated/UIBindBase.Api.g.cs`——`UIBindBase` 的转发体（手写文件只留生命周期与索引装配）；
+  - `Assets/LiteClient/UI/Bind/Generated/UiApiManifest.g.cs`——`ApiVersion` 与三张清单（Lua 名 / shim 名 / 手工处理器名），供能力声明与守卫对账；
+  - `Assets/LiteGame/LuaBridge/Generated/UiApiShim.g.cs`——Lua `self.ui` 门面模板；
+  - `Assets/LiteGame/LuaBridge/Generated/LuaBehaviourAdapter.Dispatch.g.cs`——payload 表派发 switch；
+  - `Docs/设计文档/客户端/UI系统/UI逻辑API参考.md` §3 的生成区（`<!-- BEGIN/END:ui-api:lua -->` 之间）。
+- **手工例外**：`showConfirm`（异步确认）、`setList`/`onListClick`（LuaTable 行转换）、`onButton`（Lua 闭包）在 spec 标 `manual`；生成的 dispatch `default` 转 `TryDispatchManual`，其余 API 不得手写派发。
+- **默认值单源**：动效/气泡缺省仍只认 `UiFxDefaults`——shim 生成 `%Fx*%` 占位符，适配器启动期用常量替换；spec 不复制数值。
+- **版本**：`BridgeCapabilitySet.ApiVersion` 读生成的 `UiApiManifest.ApiVersion`（spec `apiVersion`）；新增 API = 改 spec + 重生成。
+- **守卫**：`UiApiSpecGuardTests` 对账清单/版本/shim/dispatch；`gen-ui-api.py --check` 挂工具链（`codegen.ui-api`）。
 
 ## 6. 视觉与样式体系
 

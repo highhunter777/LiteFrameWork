@@ -35,54 +35,11 @@ namespace LiteGame
     /// ⑥ **所有权分开（§5.1）**：注册表拥有模块引用，页面拥有实例与回调引用——<see cref="Release"/>
     ///    只释放实例/回调/ui 门面表，**绝不 Dispose 共享模块**。
     /// </summary>
-    public sealed class LuaBehaviourAdapter : IUIFormLogic, ILocaleBound
+    public sealed partial class LuaBehaviourAdapter : IUIFormLogic, ILocaleBound
     {
-        /// <summary>ui-API 派发 shim 模板（payload 表协议见 <see cref="Dispatch"/>）。
-        /// 动效/气泡缺省时长经占位符注入——单源＝<see cref="UiFxDefaults"/>，改默认不碰本模板
-        /// （杜绝 Lua 侧再持一份默认值副本）。</summary>
-        private const string UiApiShimTemplate = @"
-local c = __ui_api_c
-__ui_api_c = nil
-return {
-    OnButton = function(_, name, fn) c('onButton', { name = name, fn = fn }) end,
-    OffButton = function(_, name) c('offButton', { name = name }) end,
-    SetText = function(_, name, text) c('setText', { name = name, text = text }) end,
-    SetTextKey = function(_, name, key) c('setTextKey', { name = name, key = key }) end,
-    SetTextKeyArgs = function(_, name, key, a0, a1, a2, a3) c('setTextKeyArgs',
-        { name = name, key = key, arg0 = a0, arg1 = a1, arg2 = a2, arg3 = a3 }) end,
-    SetTextKeyPlural = function(_, name, key, count, a0, a1, a2, a3) c('setTextKeyPlural',
-        { name = name, key = key, count = count, arg0 = a0, arg1 = a1, arg2 = a2, arg3 = a3 }) end,
-    UnbindTextKey = function(_, name) c('unbindTextKey', { name = name }) end,
-    SetVisible = function(_, name, visible) c('setVisible', { name = name, visible = visible }) end,
-    SetInteractable = function(_, name, on) c('setInteractable', { name = name, on = on }) end,
-    SetProgress = function(_, name, value) c('setProgress', { name = name, value = value }) end,
-    SetProgressRange = function(_, name, cur, max) c('setProgressRange', { name = name, cur = cur, max = max }) end,
-    SetHp = function(_, name, cur, max) c('setHp', { name = name, cur = cur, max = max }) end,
-    StartCountdown = function(_, name, seconds) c('startCountdown', { name = name, seconds = seconds }) end,
-    StopCountdown = function(_, name) c('stopCountdown', { name = name }) end,
-    ShowToast = function(_, text) c('showToast', { text = text }) end,
-    ShowBubble = function(_, name, text, duration) c('showBubble', { name = name, text = text, duration = duration or %FxBubbleDuration% }) end,
-    ShowFlyText = function(_, name, text) c('showFlyText', { name = name, text = text }) end,
-    ShowConfirm = function(_, title, message, okText, cancelText, fn) c('showConfirm',
-        { title = title, message = message, okText = okText, cancelText = cancelText, fn = fn }) end,
-    Pulse = function(_, name, strength, duration) c('pulse', { name = name, strength = strength or %FxPulseStrength%, duration = duration or %FxPulseDuration% }) end,
-    Flash = function(_, name, duration) c('flash', { name = name, duration = duration or %FxFlashDuration% }) end,
-    Slide = function(_, name, ox, oy, duration) c('slide', { name = name, ox = ox or 0, oy = oy or 0, duration = duration or %FxSlideDuration% }) end,
-    SetSlider = function(_, name, value) c('setSlider', { name = name, value = value }) end,
-    GetSlider = function(_, name) return c('getSlider', { name = name }) end,
-    OnSliderChanged = function(_, name, fn) c('onSliderChanged', { name = name, fn = fn }) end,
-    SetToggle = function(_, name, on) c('setToggle', { name = name, on = on }) end,
-    GetToggle = function(_, name) return c('getToggle', { name = name }) end,
-    OnToggleChanged = function(_, name, fn) c('onToggleChanged', { name = name, fn = fn }) end,
-    SetDropdownOptions = function(_, name, options) c('setDropdownOptions', { name = name, options = options }) end,
-    SetDropdown = function(_, name, index) c('setDropdown', { name = name, index = index }) end,
-    GetDropdown = function(_, name) return c('getDropdown', { name = name }) end,
-    OnDropdownChanged = function(_, name, fn) c('onDropdownChanged', { name = name, fn = fn }) end,
-    SetList = function(_, name, rows) c('setList', { name = name, rows = rows }) end,
-    OnListClick = function(_, name, fn) c('onListClick', { name = name, fn = fn }) end,
-}";
-
-        private static readonly string UiApiShim = UiApiShimTemplate
+        /// <summary>ui-API 的 Lua 门面模板（生成物 <see cref="UiApiShim.LuaTemplate"/>；
+        /// 缺省时长占位符在此替换为 <see cref="UiFxDefaults"/> 的值）。</summary>
+        private static readonly string UiApiShimSource = UiApiShim.LuaTemplate
             .Replace("%FxPulseStrength%", ToLuaLiteral(UiFxDefaults.PulseStrength))
             .Replace("%FxPulseDuration%", ToLuaLiteral(UiFxDefaults.PulseDuration))
             .Replace("%FxFlashDuration%", ToLuaLiteral(UiFxDefaults.FlashDuration))
@@ -148,7 +105,7 @@ return {
             var api = _env.NewTable();
             var dispatch = new Func<string, LuaTable, object>(Dispatch);
             _env.Global.Set<string, Func<string, LuaTable, object>>("__ui_api_c", dispatch);
-            var shim = _env.DoString(UiApiShim, "ui_api_shim");
+            var shim = _env.DoString(UiApiShimSource, "ui_api_shim");
             _env.DoString("__ui_api_c = nil");
             if (shim != null && shim.Length > 0 && shim[0] is LuaTable apiTable)
             {
@@ -234,21 +191,22 @@ return {
             return args.Count == 0 ? null : args.ToArray();
         }
 
-        /// <summary>ui-API 通用派发（payload 表协议）：onButton{name,fn} / offButton{name} /
-        /// setText{name,text} / setVisible{name,visible} / setInteractable{name,on} /
-        /// setProgress{name,value} / setProgressRange{name,cur,max} / setHp{name,cur,max} /
-        /// startCountdown{name,seconds} / stopCountdown{name} / showToast{text} /
-        /// showBubble{name,text,duration} / showFlyText{name,text} /
-        /// showConfirm{title,message,okText,cancelText,fn(ok)} /
-        /// pulse{name,strength,duration} / flash{name,duration} / slide{name,ox,oy,duration} /
-        /// setSlider{name,value} / getSlider{name}→number / onSliderChanged{name,fn(value)} /
-        /// setToggle{name,on} / getToggle{name}→boolean / onToggleChanged{name,fn(on)} /
-        /// setDropdownOptions{name,options:字符串数组} / setDropdown{name,index} / getDropdown{name}→number /
-        /// onDropdownChanged{name,fn(index)} / setList{name,rows} / onListClick{name,fn(key,action)}。
-        /// **返回值**：仅 get* 系回值（其余回 nil）；未知方法开发期告警（不静默吞拼写错误）。</summary>
+        /// <summary>ui-API 派发入口：生成表命中即走 <see cref="TryDispatchApi"/>；
+        /// 未命中交给手工处理器；仍未知则开发期告警（拼写错误不得静默吞）。</summary>
         private object Dispatch(string method, LuaTable payload)
         {
             if (_index == null || payload == null) return null;
+            if (TryDispatchApi(method, payload, out object result)) return result;
+#if UNITY_EDITOR || DEVELOPMENT_BUILD || LITEFRAMEWORK_DEBUG
+            Log.Warning($"ui-API 未知方法:{method}（拼写错误不得静默吞——《UI控件Lua API 参考》§3）", LogTag.UI);
+#endif
+            return null;
+        }
+
+        /// <summary>手工处理器（spec 标 manual 的条目）：Lua 闭包按钮、确认弹窗、列表行转换、行点击。</summary>
+        private bool TryDispatchManual(string method, LuaTable payload, out object result)
+        {
+            result = null;
             switch (method)
             {
                 case "onButton":
@@ -258,88 +216,24 @@ return {
                         var fn = payload.Get<LuaFunction>("fn");
                         if (fn != null) fn.Call();
                     });
-                    break;
-                case "offButton": _index.UnbindButton(payload.Get<string, string>("name")); break;
-                case "setText": _index.SetText(payload.Get<string, string>("name"), payload.Get<string, string>("text")); break;
-                // ---- LText（《UI框架总设计》§9；Lua API 参考 Bridge.text.Get/Format 的控件面）----
-                case "setTextKey":
-                    _index.SetTextKey(payload.Get<string, string>("name"), payload.Get<string, string>("key"));
-                    break;
-                case "setTextKeyPlural":
-                    // 参数以具名 arg0/arg1/... 传递（Lua 侧拼表；定长上限见 MaxLuaFormatArgs）
-                    _index.SetTextKeyPlural(payload.Get<string, string>("name"), payload.Get<string, string>("key"),
-                        (long)payload.Get<string, double>("count"), LuaFormatArgs(payload));
-                    break;
-                case "setTextKeyArgs":
-                    _index.SetTextKey(payload.Get<string, string>("name"), payload.Get<string, string>("key"),
-                        LuaFormatArgs(payload));
-                    break;
-                case "unbindTextKey":
-                    _index.UnbindTextKey(payload.Get<string, string>("name"));
-                    break;
-                case "setVisible": _index.SetVisible(payload.Get<string, string>("name"), payload.Get<string, bool>("visible")); break;
-                case "setInteractable": _index.SetInteractable(payload.Get<string, string>("name"), payload.Get<string, bool>("on")); break;
-                // ---- 受控 API 扩展 ----
-                case "setProgress": _index.SetProgress(payload.Get<string, string>("name"), payload.Get<string, float>("value")); break;
-                case "setProgressRange": _index.SetProgress(payload.Get<string, string>("name"), payload.Get<string, float>("cur"), payload.Get<string, float>("max")); break;
-                case "setHp": _index.SetHp(payload.Get<string, string>("name"), payload.Get<string, float>("cur"), payload.Get<string, float>("max")); break;
-                case "startCountdown": _index.StartCountdown(payload.Get<string, string>("name"), payload.Get<string, float>("seconds")); break;
-                case "stopCountdown": _index.StopCountdown(payload.Get<string, string>("name")); break;
-                case "showToast": _index.ShowToast(payload.Get<string, string>("text")); break;
-                case "showBubble": _index.ShowBubble(payload.Get<string, string>("name"), payload.Get<string, string>("text"), payload.Get<string, float>("duration")); break;
-                case "showFlyText": _index.ShowFlyText(payload.Get<string, string>("name"), payload.Get<string, string>("text")); break;
-                case "showConfirm": ShowConfirmAsync(payload); break;
-                // ---- 动效口（《动效设计方案》附 A.3）----
-                case "pulse":
-                    _index.Pulse(payload.Get<string, string>("name"),
-                                 payload.Get<string, float>("strength"),
-                                 payload.Get<string, float>("duration"));
-                    break;
-                case "flash":
-                    _index.Flash(payload.Get<string, string>("name"),
-                                 payload.Get<string, float>("duration"));
-                    break;
-                case "slide":
-                    _index.Slide(payload.Get<string, string>("name"),
-                                 new Vector2(payload.Get<string, float>("ox"), payload.Get<string, float>("oy")),
-                                 payload.Get<string, float>("duration"));
-                    break;
-                // ---- 输入控件族（G15～G17，《UI控件Lua API 参考》§4）----
-                case "setSlider": _index.SetSlider(Text(payload, "name"), payload.Get<string, float>("value")); break;
-                case "getSlider": return _index.GetSlider(Text(payload, "name"));
-                case "onSliderChanged":
-                    _index.OnSliderChanged(Text(payload, "name"), Arg1<float>(payload, (fn, v) => fn.Call(v)));
-                    break;
-                case "setToggle": _index.SetToggle(Text(payload, "name"), payload.Get<string, bool>("on")); break;
-                case "getToggle": return _index.GetToggle(Text(payload, "name"));
-                case "onToggleChanged":
-                    _index.OnToggleChanged(Text(payload, "name"), Arg1<bool>(payload, (fn, v) => fn.Call(v)));
-                    break;
-                case "setDropdownOptions": _index.SetDropdownOptions(Text(payload, "name"), ReadStrings(payload, "options")); break;
-                case "setDropdown": _index.SetDropdownValue(Text(payload, "name"), payload.Get<string, int>("index")); break;
-                case "getDropdown": return _index.GetDropdownValue(Text(payload, "name"));
-                case "onDropdownChanged":
-                    _index.OnDropdownChanged(Text(payload, "name"), Arg1<int>(payload, (fn, v) => fn.Call(v)));
-                    break;
-                // ---- 列表（G6）----
+                    return true;
+                case "showConfirm":
+                    ShowConfirmAsync(payload);
+                    return true;
                 case "setList":
                     _index.SetList(Text(payload, "name"),
                         new LuaListRows(payload.Get<string, LuaTable>("rows")));
-                    break;
+                    return true;
                 case "onListClick":
                     {
                         LuaFunction fn = payload.Get<LuaFunction>("fn");
                         _index.OnListClick(Text(payload, "name"),
                             fn == null ? (Action<string, string>)null : (key, action) => fn.Call(key, action));
                     }
-                    break;
-#if UNITY_EDITOR || DEVELOPMENT_BUILD || LITEFRAMEWORK_DEBUG
+                    return true;
                 default:
-                    Log.Warning($"ui-API 未知方法:{method}（拼写错误不得静默吞——《UI控件Lua API 参考》§3）", LogTag.UI);
-                    break;
-#endif
+                    return false;
             }
-            return null;
         }
 
         /// <summary>确认弹窗（payload：<c>showConfirm{title,message,okText,cancelText,fn}</c>）：经装配注入的

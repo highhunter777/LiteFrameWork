@@ -12,6 +12,7 @@ center; per-tool why/notes stay in each script's header):
   luban         table chain regen (C#/binary/lua/LuaKeys); alias of Luban/gen.bat
   sync-code     [StateLayer] fields -> EntitySlot.Sync.g.cs (checksum plumbing)
   ui-page       #uiform + UiPageManifest + Contracts -> UiPageCatalog.g.cs
+  ui-api        UiApiSpec.json -> UIBindIndex/UIBindBase/shim/dispatch/manifest/参考表
   refresh-hash  refresh orchestration: gen -> RoomServer build -> Unity recompile -> reconcile
 
 Direct per-script invocation stays valid (CI/gate callers keep their exact
@@ -39,6 +40,7 @@ TOOLS = {
     'luban':        ('gen_luban.py',      '[--python <python>]',             'table chain regen (C#/binary/lua/LuaKeys); alias of Luban/gen.bat'),
     'sync-code':    ('gen_sync_code.py',  '',                                '[StateLayer] fields -> EntitySlot.Sync.g.cs (checksum plumbing)'),
     'ui-page':      ('gen-ui-page.py',    '[--check]',                        '#uiform + UiPageManifest + Contracts -> UiPageCatalog.g.cs'),
+    'ui-api':       ('gen-ui-api.py',     '[--check]',                        'UiApiSpec.json -> UIBindIndex/UIBindBase/shim/dispatch/manifest/参考表'),
     'refresh-hash': ('refresh-hash.py',   '[--skip-server-build] [--skip-unity-recompile] [--allow-incomplete]', 'refresh orchestration: gen -> RoomServer build -> Unity recompile -> reconcile'),
 }
 

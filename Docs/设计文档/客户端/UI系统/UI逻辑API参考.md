@@ -4,8 +4,9 @@
 > 版本：1.0
 > 日期：2026-10-22
 > 定位：回答“页面逻辑（Lua/C#）能调用哪些受控 API、参数与错误语义是什么、列表行怎么传”。本文只做查询，不裁决生命周期/架构。
+> 生成：§3 表由 `scripts/codegen/gen-ui-api.py` 从 `Assets/LiteGame/Editor/UiTools/UiApi/UiApiSpec.json` 生成（`<!-- BEGIN/END:ui-api:lua -->` 之间，勿手改；改 API 先改 spec）。
 > 不做的事：不定义页面业务；不替代[UI 系统总设计](UI系统总设计.md)的状态机/导航契约；不记录施工状态。
-> 冲突裁决：与代码不一致以代码为准，并顺手修本文。源码入口：`Assets/LiteClient/UI/Bind/UIBindIndex.cs`、`Bind/UIBindBase.cs`、`Assets/LiteGame/LuaBridge/LuaBehaviourAdapter.cs`、`LuaBridge/LuaListRows.cs`、`LuaBridge/Bridge.Data.cs`。
+> 冲突裁决：与代码不一致以代码为准，并顺手修本文。源码入口：`Assets/LiteGame/Editor/UiTools/UiApi/UiApiSpec.json`（API 单源）、`Assets/LiteClient/UI/Bind/UIBindIndex.cs`、`Bind/UIBindBase.cs`、`Assets/LiteGame/LuaBridge/LuaBehaviourAdapter.cs`、`LuaBridge/LuaListRows.cs`、`LuaBridge/Bridge.Data.cs`。
 > 关联：[UI 系统总设计](UI系统总设计.md) · [UI 制作规范](UI制作规范.md) · [UI 命名与控件词表参考](UI命名与控件词表参考.md)
 
 ## 1. 分层与入口
@@ -59,14 +60,16 @@ protected virtual void OnHide();
 
 > 以下为适配器 shim 的现行方法；未列方法不存在。未知方法在开发期告警（拼写错误不静默）。
 
+<!-- BEGIN:ui-api:lua -->
+
 ### 3.1 文本
 
 | 方法 | 参数 | 说明 |
 | --- | --- | --- |
 | `SetText(name, text)` | 控件名, 文本 | 数据直写；不随语言刷新 |
 | `SetTextKey(name, key)` | 控件名, key | 按 key 写；语言切换自动刷新 |
-| `SetTextKeyArgs(name, key, a0..a3)` | 最多 4 个参数 | 带参格式化 |
-| `SetTextKeyPlural(name, key, count, a0..a3)` | 复数 count | 英文 one/other 显式选择 |
+| `SetTextKeyArgs(name, key, a0..a3)` | 控件名, key, a0..a3 | 带参格式化（最多 4 个参数） |
+| `SetTextKeyPlural(name, key, count, a0..a3)` | 控件名, key, 复数 count, a0..a3 | 英文 one/other 显式选择 |
 | `UnbindTextKey(name)` | 控件名 | 解除该控件本地化绑定 |
 
 - 未注入语言服务时 `SetTextKey*` 抛（静默显示 key 是隐蔽故障）。
@@ -78,7 +81,7 @@ protected virtual void OnHide();
 | --- | --- | --- |
 | `SetVisible(name, visible)` | bool | 直接 `SetActive` |
 | `SetInteractable(name, on)` | bool | `Selectable` 优先，回退 `UIWidget.Interactable` |
-| `SetProgress(name, value01)` | 0~1 | 进度条 |
+| `SetProgress(name, value)` | 0~1 | 进度条 |
 | `SetProgressRange(name, cur, max)` | 当前/上限 | 进度条 |
 | `SetHp(name, cur, max)` | 当前/上限 | 血条（前条瞬时 + 后条滑落） |
 | `StartCountdown(name, seconds)` | 秒 | 倒计时启动 |
@@ -91,22 +94,22 @@ protected virtual void OnHide();
 | `ShowToast(text)` | 文本 | 无 Toast 实例时记日志不抛 |
 | `ShowBubble(name, text, duration?)` | 控件名/文本/时长 | 挂点旁气泡 |
 | `ShowFlyText(name, text)` | 控件名/文本 | 飘字（位置取控件 anchoredPosition） |
-| `ShowConfirm(title, message, okText, cancelText, fn)` | 回调 `fn(ok)` | 经确认缝；无服务/取消/异常回调 false |
+| `ShowConfirm(title, message, okText, cancelText, fn)` | 标题/正文/确认文案/取消文案/回调 | 经确认缝；无服务/取消/异常回调 false |
 
 ### 3.4 输入控件
 
 | 方法 | 参数 | 说明 |
 | --- | --- | --- |
-| `SetSlider(name, value01)` | 0~1 | 程序设值，不触发变化回调 |
+| `SetSlider(name, value)` | 0~1 | 程序设值，不触发变化回调 |
 | `GetSlider(name)` | → number | 当前值 |
-| `OnSliderChanged(name, fn(value))` | 回调 | 用户拖动；重复登记替换 |
+| `OnSliderChanged(name, fn(value))` | 回调 `fn(value)` | 用户拖动；重复登记替换 |
 | `SetToggle(name, on)` | bool | 程序设值，不触发变化回调 |
 | `GetToggle(name)` | → bool | 当前值 |
-| `OnToggleChanged(name, fn(on))` | 回调 | 用户点击；重复登记替换 |
+| `OnToggleChanged(name, fn(on))` | 回调 `fn(on)` | 用户点击；重复登记替换 |
 | `SetDropdownOptions(name, options)` | 字符串数组 | 选项文本由页面给已本地化文本；值保持 |
 | `SetDropdown(name, index)` | 索引 | 程序设值，不触发变化回调 |
 | `GetDropdown(name)` | → number | 当前索引 |
-| `OnDropdownChanged(name, fn(index))` | 回调 | 用户选择；重复登记替换 |
+| `OnDropdownChanged(name, fn(index))` | 回调 `fn(index)` | 用户选择；重复登记替换 |
 
 ### 3.5 动效
 
@@ -114,7 +117,7 @@ protected virtual void OnHide();
 | --- | --- | --- |
 | `Pulse(name, strength?, duration?)` | 强度/时长 | 透明度呼吸两次；缺省来自 `UiFxDefaults` |
 | `Flash(name, duration?)` | 时长 | 一次性高亮回落 |
-| `Slide(name, ox, oy, duration?)` | 偏移/时长 | 从偏移滑回原位 |
+| `Slide(name, ox?, oy?, duration?)` | 偏移/时长 | 从偏移滑回原位 |
 
 - 动效只写表现；页面关闭/隐藏即杀；与业务写入冲突时先 Kill。
 
@@ -123,7 +126,18 @@ protected virtual void OnHide();
 | 方法 | 参数 | 说明 |
 | --- | --- | --- |
 | `SetList(name, rows)` | 行表 | 整表替换；空源过渡 + 换源会重绑已实体化条目 |
-| `OnListClick(name, fn(key, action))` | 回调 | 条目根按钮 action 为空串；条目内按钮回节点名 |
+| `OnListClick(name, fn(key, action))` | 回调 `fn(key, action)` | 条目根按钮 action 为空串；条目内按钮回节点名 |
+
+### 3.7 按钮绑定
+
+| 方法 | 参数 | 说明 |
+| --- | --- | --- |
+| `OnButton(name, fn)` | 控件名, 回调 | 替换式绑定；框架在 OnHide 统一解绑 |
+| `OffButton(name)` | 控件名 | 只解绑该控件 |
+
+- 按钮回调替换式绑定；`UnbindButton` 只解绑该控件，`OnHide` 时框架统一 `UnbindAll`。
+
+<!-- END:ui-api:lua -->
 
 ## 4. Lua 导航 `Bridge.ui`
 

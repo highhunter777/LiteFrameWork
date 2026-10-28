@@ -587,6 +587,30 @@
       "order": 25
     },
     {
+      "id": "codegen.ui-api",
+      "title": "UI API 生成",
+      "category": "codegen",
+      "kind": "cli",
+      "plane": "external",
+      "purpose": "dev",
+      "summary": "UiApiSpec.json → UIBindIndex 声明 / UIBindBase 转发 / Lua shim / dispatch / 清单 / 参考表（UI API 单源）。",
+      "docs": "Docs/设计文档/架构/生成器工具箱专项设计.md",
+      "command": ["python", "scripts/codegen/gen-ui-api.py"],
+      "args": [
+        { "name": "check", "type": "bool", "description": "只复算并比对生成物，不写文件" }
+      ],
+      "writes": ["generated"],
+      "outputs": [
+        { "path": "Assets/LiteClient/UI/Bind/Generated/UIBindIndex.Api.g.cs", "kind": "generated" },
+        { "path": "Assets/LiteClient/UI/Bind/Generated/UIBindBase.Api.g.cs", "kind": "generated" },
+        { "path": "Assets/LiteClient/UI/Bind/Generated/UiApiManifest.g.cs", "kind": "generated" },
+        { "path": "Assets/LiteGame/LuaBridge/Generated/UiApiShim.g.cs", "kind": "generated" },
+        { "path": "Assets/LiteGame/LuaBridge/Generated/LuaBehaviourAdapter.Dispatch.g.cs", "kind": "generated" }
+      ],
+      "destructive": false,
+      "order": 26
+    },
+    {
       "id": "codegen.luban",
       "title": "表链重生成",
       "category": "codegen",

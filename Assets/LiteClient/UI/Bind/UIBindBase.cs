@@ -12,7 +12,7 @@ namespace LiteClient.UI
     /// 七回调拆成 protected virtual（子类覆写业务，本类承接 IUIFormLogic 转发）；
     /// OnButton 返回注销委托（事件语义 §7.3）。
     /// </summary>
-    public abstract class UIBindBase : MonoBehaviour, IUIFormLogic, ILocaleBound
+    public abstract partial class UIBindBase : MonoBehaviour, IUIFormLogic, ILocaleBound
     {
         private UIBindIndex _index = UIBindIndex.Empty;
 
@@ -40,38 +40,8 @@ namespace LiteClient.UI
         protected virtual void OnReveal() { }
         protected virtual void OnHide() { }
 
-        // ---- 受控 API（转发索引；强类型面，子类专用）----
-
-        protected T GetControl<T>(string name) where T : Component => _index.Get<T>(name);
-
-        protected bool HasControl(string name) => _index.Has(name);
-
-        /// <summary>替换式绑按钮；返回注销委托（事件语义 §7.3）。onClick 抛经 SafeCall 隔离。</summary>
-        protected Action OnButton(string name, Action onClick)
-        {
-            _index.BindButton(name, onClick);
-            return () => _index.UnbindButton(name);
-        }
-
-        protected void SetText(string name, string value) => _index.SetText(name, value);
-
-        // ---- LText 面（与 Lua shim 同面：《UI框架总设计》§9——文案经 key 写入，语言切换自动刷新）----
-
-        /// <summary>按 key 设文本（带参复数外的常规形态；<see cref="UIBindIndex.SetTextKey"/> 同语义：
-        /// 未注入语言服务时抛——静默显示 key 是隐蔽故障）。</summary>
-        protected void SetTextKey(string name, string key, params object[] args)
-            => _index.SetTextKey(name, key, args);
-
-        /// <summary>按 key 设文本（英文 one/other 显式复数选取）。</summary>
-        protected void SetTextKeyPlural(string name, string key, long count, params object[] args)
-            => _index.SetTextKeyPlural(name, key, count, args);
-
-        /// <summary>解除单控件本地化绑定（不再随语言刷新）。</summary>
-        protected bool UnbindTextKey(string name) => _index.UnbindTextKey(name);
-
-        protected void SetVisible(string name, bool visible) => _index.SetVisible(name, visible);
-        protected void SetInteractable(string name, bool on) => _index.SetInteractable(name, on);
-        protected void SetAnchoredPosition(string name, Vector2 pos) => _index.SetAnchoredPosition(name, pos);
+        // 受控 API（GetControl/HasControl/OnButton/SetText/SetTextKey*/SetVisible/SetInteractable/SetAnchoredPosition）
+        // 由 UiApiSpec 生成到 UIBindBase.Api.g.cs；本文件只留生命周期与索引装配。
 
         /// <summary>语言服务注入（<see cref="ILocaleBound"/> 可选能力——UIForm 在 OnInit 后调用）。
         /// OnInit 前索引为全局 Empty = no-op（防 Empty 被串订阅）；幂等语义同 UIBindIndex.BindLocale。</summary>

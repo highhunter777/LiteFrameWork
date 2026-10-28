@@ -1,0 +1,290 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "UiApiSpec.schema.json",
+  "title": "UiApiSpec",
+  "description": "UI 受控 API 唯一源（《UI 系统总设计》§5.14）。一条 method = 一个 C# 方法；lua 数组 = 该方法对 Lua 暴露的门面名。",
+  "type": "object",
+  "required": [
+    "version",
+    "apiVersion",
+    "categories",
+    "methods",
+    "baseForwards"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "$schema": {
+      "type": "string"
+    },
+    "version": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "apiVersion": {
+      "type": "integer",
+      "minimum": 0,
+      "description": "Bridge API 版本；生成到 UiApiManifest.ApiVersion"
+    },
+    "note": {
+      "type": "string"
+    },
+    "categories": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": [
+          "id",
+          "title"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "type": "string",
+            "pattern": "^[a-z][a-z0-9-]*$"
+          },
+          "title": {
+            "type": "string"
+          },
+          "notes": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      }
+    },
+    "methods": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": [
+          "name",
+          "returns",
+          "params",
+          "summary"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "name": {
+            "type": "string",
+            "pattern": "^[A-Z][A-Za-z0-9]*$"
+          },
+          "returns": {
+            "type": "string"
+          },
+          "generic": {
+            "type": "string"
+          },
+          "constraint": {
+            "type": "string"
+          },
+          "index": {
+            "type": "boolean",
+            "description": "false = 不在 UIBindIndex 上生成声明（Lua 专属）"
+          },
+          "summary": {
+            "type": "string"
+          },
+          "params": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": [
+                "name",
+                "type"
+              ],
+              "additionalProperties": false,
+              "properties": {
+                "name": {
+                  "type": "string"
+                },
+                "type": {
+                  "type": "string"
+                },
+                "params": {
+                  "type": "boolean"
+                },
+                "default": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "lua": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": [
+                "name",
+                "category",
+                "call",
+                "doc"
+              ],
+              "additionalProperties": false,
+              "properties": {
+                "name": {
+                  "type": "string",
+                  "pattern": "^[a-z][A-Za-z0-9]*$"
+                },
+                "manual": {
+                  "type": "boolean",
+                  "description": "true = dispatch 走手工处理器"
+                },
+                "category": {
+                  "type": "string"
+                },
+                "returns": {
+                  "enum": [
+                    "number",
+                    "boolean"
+                  ]
+                },
+                "extraArgs": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 4
+                },
+                "call": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "required": [
+                      "kind"
+                    ],
+                    "additionalProperties": false,
+                    "properties": {
+                      "arg": {
+                        "type": "string"
+                      },
+                      "field": {
+                        "type": "string"
+                      },
+                      "kind": {
+                        "enum": [
+                          "string",
+                          "text",
+                          "bool",
+                          "float",
+                          "int",
+                          "count",
+                          "formatArgs",
+                          "strings",
+                          "callbackFloat",
+                          "callbackBool",
+                          "callbackInt",
+                          "passthrough"
+                        ]
+                      },
+                      "group": {
+                        "enum": [
+                          "vector2"
+                        ]
+                      },
+                      "default": {
+                        "type": "string"
+                      }
+                    }
+                  }
+                },
+                "doc": {
+                  "type": "object",
+                  "required": [
+                    "args",
+                    "note"
+                  ],
+                  "additionalProperties": false,
+                  "properties": {
+                    "sig": {
+                      "type": "string"
+                    },
+                    "args": {
+                      "type": "string"
+                    },
+                    "note": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "baseForwards": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "name",
+          "access",
+          "returns",
+          "params",
+          "summary"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "access": {
+            "enum": [
+              "protected",
+              "public",
+              "private",
+              "internal"
+            ]
+          },
+          "returns": {
+            "type": "string"
+          },
+          "generic": {
+            "type": "string"
+          },
+          "constraint": {
+            "type": "string"
+          },
+          "forward": {
+            "type": "string"
+          },
+          "shape": {
+            "enum": [
+              "bindButton"
+            ]
+          },
+          "summary": {
+            "type": "string"
+          },
+          "params": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": [
+                "name",
+                "type"
+              ],
+              "additionalProperties": false,
+              "properties": {
+                "name": {
+                  "type": "string"
+                },
+                "type": {
+                  "type": "string"
+                },
+                "params": {
+                  "type": "boolean"
+                },
+                "default": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}
