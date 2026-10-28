@@ -14,19 +14,11 @@ namespace LiteFramework.Core.Tests
     {
         private static readonly Dictionary<string, int> Allowed = new Dictionary<string, int>(StringComparer.Ordinal)
         {
-            ["Assets/LiteClient/Adapters/Platform.Unity/CinemachineCameraService.cs"] = 1,
             ["Assets/LiteClient/Adapters/Platform.Unity/Dev/DevHotkey.cs"] = 1,
-            ["Assets/LiteClient/Runtime/Battle/BattleClient.cs"] = 2,
             ["Assets/LiteClient/Runtime/Battle/BattleContext.cs"] = 2,
-            ["Assets/LiteClient/Runtime/Diagnostics/StructuredLogInstaller.cs"] = 1,
-            ["Assets/LiteClient/Runtime/Entity/EntityService.cs"] = 1,
-            ["Assets/LiteClient/UI/Bind/UIBindIndex.cs"] = 1,
-            ["Assets/LiteClient/UI/UIForm.cs"] = 1,
-            ["Assets/LiteClient/UI/Widgets/LTextLabel.cs"] = 1,
             ["Assets/LiteGame/App/Battle/BattleSession.cs"] = 2,
             ["Assets/LiteGame/App/Bootstrap/ContainerModule.cs"] = 5,
             ["Assets/LiteGame/App/Bootstrap/DevSessionModule.cs"] = 1,
-            ["Assets/LiteGame/App/Bootstrap/PlatformInfrastructureModule.cs"] = 1,
             ["Assets/LiteGame/App/Bootstrap/UiServiceModule.cs"] = 1,
             ["Assets/LiteGame/App/Commands/Gm/GmSceneCommands.cs"] = 1,
             ["Assets/LiteGame/App/Debug/BattleDiagnostics.cs"] = 1,
@@ -76,8 +68,6 @@ namespace LiteFramework.Core.Tests
             ["Assets/LiteFramework/Scripts/Core/Logging/LogService.cs"] = 2,
             ["Assets/LiteFramework/Scripts/Core/Pool/ObjectPool.cs"] = 4,
             ["Assets/LiteFramework/Scripts/Core/Pool/ReferencePoolService.cs"] = 5,
-            ["Assets/LiteView/Animation/Backends/AnimatorAnimationBackend.cs"] = 1,
-            ["Assets/LiteView/Animation/Drivers/CharacterLocomotionDriver.cs"] = 3,
             ["Assets/LiteView/Animation/Drivers/GripTuning.cs"] = 1,
         };
 
@@ -105,6 +95,16 @@ namespace LiteFramework.Core.Tests
 
             Assert.True(offenders.Count == 0,
                 "开发宏只能出现在 LiteGame.Dev；新增/增加即失败（M3-6b 清零）:" + string.Join(" | ", offenders));
+
+            // 基线诚实性：条目一旦清零/减少，必须同步收紧基线——否则"清零进度"不可见（只减不增的另一面）
+            var stale = new List<string>();
+            foreach (var pair in Allowed)
+            {
+                string path = Path.Combine(root, pair.Key.Replace('/', Path.DirectorySeparatorChar));
+                int actual = File.Exists(path) ? CountConditionLines(path) : 0;
+                if (actual < pair.Value) stale.Add(pair.Key + " :: " + pair.Value + " -> " + actual);
+            }
+            Assert.True(stale.Count == 0, "基线条目已减少/清零——请从基线删除:" + string.Join(" | ", stale));
         }
 
         private static int CountConditionLines(string file)

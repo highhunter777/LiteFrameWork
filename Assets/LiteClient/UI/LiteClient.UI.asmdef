@@ -6,6 +6,7 @@
         "LiteCodeGen.Runtime",
         "LiteFramework.Async",
         "LiteFramework.Core",
+        "LiteFramework.Unity",
         "UniTask",
         "Unity.InputSystem",
         "Unity.TextMeshPro"

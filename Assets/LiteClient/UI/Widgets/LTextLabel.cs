@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using LiteFramework;
 using UnityEngine;
@@ -103,13 +103,11 @@ namespace LiteClient.UI
         {
             if (!_playing) return;
 
-#if UNITY_EDITOR || DEVELOPMENT_BUILD || LITEFRAMEWORK_DEBUG
-            if (AutoTick)
+            if (DevBuildFacts.IsDevelopment && AutoTick)
             {
                 Log.Error("LTextLabel: AutoTick 与外部 Tick 双驱动（§8.1 唯一驱动者）——请关闭 AutoTick 或停用自驱", LogTag.UI);
                 return;
             }
-#endif
             Advance(delta);
         }
 

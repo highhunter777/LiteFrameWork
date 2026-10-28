@@ -9,7 +9,7 @@ namespace LiteNet.Diagnostics
     /// 客户端弱网注入装饰器：可靠帧只做固定延迟且严格保序；不可靠帧做延迟/抖动/丢包/重复/乱序。
     /// 只依赖窄口 IClientTransport，供开发/编辑器/开发包装配；release 不编译。
     /// </summary>
-    public sealed class WeakNetClientTransport : IClientTransport
+    public sealed class WeakNetClientTransport : IClientTransport, IClientTransportErrorSource
     {
         private const int UnreliableQueueLimit = 1024;
         private const int ReorderWindowMs = 16;

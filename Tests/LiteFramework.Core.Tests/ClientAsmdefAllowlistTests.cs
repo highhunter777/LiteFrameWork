@@ -23,7 +23,7 @@ namespace LiteFramework.Core.Tests
             ["Assets/LiteCodeGen/Runtime/LiteCodeGen.Runtime.asmdef"] = Array.Empty<string>(),
             ["Assets/LiteCodeGen/Editor/LiteCodeGen.Editor.asmdef"] = new[] { "LiteCodeGen.Runtime" },
             ["Assets/LiteClient/Runtime/LiteClient.Runtime.asmdef"] = new[] { "LiteFramework.Abstractions", "LiteFramework.Async", "LiteFramework.Core", "LiteFramework.Unity", "LiteNet", "LiteSim.Core", "UniTask" },
-            ["Assets/LiteClient/UI/LiteClient.UI.asmdef"] = new[] { "DOTween.Modules", "LiteCodeGen.Runtime", "LiteFramework.Async", "LiteFramework.Core", "UniTask", "Unity.InputSystem", "Unity.TextMeshPro" },
+            ["Assets/LiteClient/UI/LiteClient.UI.asmdef"] = new[] { "DOTween.Modules", "LiteCodeGen.Runtime", "LiteFramework.Async", "LiteFramework.Core", "LiteFramework.Unity", "UniTask", "Unity.InputSystem", "Unity.TextMeshPro" },
             ["Assets/LiteClient/Adapters/Content.YooAsset/LiteClient.Content.YooAsset.asmdef"] = new[] { "LiteFramework.Abstractions", "LiteClient.Runtime", "LiteFramework.Async", "LiteFramework.Core", "LiteFramework.Unity", "UniTask", "YooAsset" },
             ["Assets/LiteClient/Adapters/Platform.Unity/LiteClient.Platform.Unity.asmdef"] = new[] { "Cinemachine", "LiteFramework.Abstractions", "LiteClient.Runtime", "LiteFramework.Async", "LiteFramework.Core", "LiteSim.Core", "LiteView", "UniTask", "Unity.InputSystem" },
             ["Assets/LiteClient/Adapters/Scripting.XLua/LiteClient.Scripting.XLua.asmdef"] = new[] { "LiteFramework.Abstractions", "LiteClient.Runtime", "LiteFramework.Async", "LiteFramework.Core", "LiteFramework.Unity", "UniTask", "xLuaMain" },

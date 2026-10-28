@@ -1,9 +1,6 @@
 using System;
 using LiteNet;
 using LiteNet.Transport;
-#if UNITY_EDITOR || DEVELOPMENT_BUILD || LITEFRAMEWORK_DEBUG
-using LiteNet.Diagnostics;
-#endif
 
 namespace LiteClient
 {
@@ -81,10 +78,8 @@ namespace LiteClient
                 kcp.OnError += error => _lastError = error;   // 诊断面：会话语义由相位承担，错误只留文本
             if (_transport is SecureEnvelopeClientTransport secure)
                 secure.OnError += error => _lastError = error;
-#if UNITY_EDITOR || DEVELOPMENT_BUILD || LITEFRAMEWORK_DEBUG
-            if (_transport is WeakNetClientTransport weak)
-                weak.OnError += error => _lastError = error;
-#endif
+            if (_transport is IClientTransportErrorSource errorSource)
+                errorSource.OnError += error => _lastError = error;   // 可选诊断端口（含开发期弱网装饰器）
             _client.Connect(_host, _port);                    // 初次连接（重拨由 BeginReconnect 走 RoomClient）
         }
 

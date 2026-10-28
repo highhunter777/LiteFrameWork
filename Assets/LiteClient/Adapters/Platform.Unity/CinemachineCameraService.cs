@@ -305,12 +305,6 @@ namespace LiteClient
             for (int i = 0; i < _warpTargets.Count; i++)
                 core.OnTargetObjectWarped(_warpTargets[i], delta);
 
-#if UNITY_EDITOR || DEVELOPMENT_BUILD || LITEFRAMEWORK_DEBUG
-            // [Diag] warp 留痕（联机实测表现诊断批，收口时删除）：判"没对准"是没 warp 还是 warp 后目标仍偏。
-            Log.Info($"[Diag][Camera] warp delta={delta.x:0.00},{delta.y:0.00},{delta.z:0.00}"
-                + $" focus={Focus.x:0.00},{Focus.y:0.00},{Focus.z:0.00}"
-                + $" vm={_vcam?.name}{(_aiming ? "+aim" : string.Empty)} targets={_warpTargets.Count}", LogTag.Camera);
-#endif
         }
 
         /// <summary>warp 目标登记（同名去重：ReferenceEquals 判 Unity 伪 null 后的同一件）。</summary>

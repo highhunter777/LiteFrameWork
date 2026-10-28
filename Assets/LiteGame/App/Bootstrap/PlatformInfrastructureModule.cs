@@ -35,9 +35,7 @@ namespace LiteGame
             context.Put<ILog>(logService);
             Log.Install(logService);
             Log.SetHelper(new UnityLogHelper());
-#if UNITY_EDITOR || DEVELOPMENT_BUILD || LITEFRAMEWORK_DEBUG
-            StructuredLogInstaller.Install();
-#endif
+            if (DevBuildFacts.IsDevelopment) StructuredLogInstaller.Install();   // 开发形态装结构化日志（发布不落盘）
             return UniTask.CompletedTask;
         }
 

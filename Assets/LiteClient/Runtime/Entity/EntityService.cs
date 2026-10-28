@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Threading;
 using Cysharp.Threading.Tasks;
@@ -38,11 +38,8 @@ namespace LiteClient
                 if (_released)
                 {
                     const string msg = "已回收实体的句柄不得再订阅事件（订阅袋不会再被释放 → 必然泄漏）";
-#if UNITY_EDITOR || DEVELOPMENT_BUILD || LITEFRAMEWORK_DEBUG
-                    throw new InvalidOperationException($"Entity[{Id}]: {msg}");
-#else
+                    if (DevBuildFacts.IsDevelopment) throw new InvalidOperationException($"Entity[{Id}]: {msg}");
                     Log.Error($"Entity[{Id}]: {msg}", LogTag.Entity);
-#endif
                 }
                 return _subs ??= new SubscriptionBag();
             }

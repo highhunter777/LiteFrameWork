@@ -57,13 +57,14 @@ namespace LiteClient.UI
         /// <summary>所有权登记：首次登记生效；异_kind 违例 Debug 下抛（release 信任 Debug 全绿）。</summary>
         public void MarkDriver(string name, ControlDriver kind)
         {
-#if UNITY_EDITOR || DEVELOPMENT_BUILD || LITEFRAMEWORK_DEBUG
-            _drivers.TryGetValue(name, out var current);
-            if (current != ControlDriver.None && current != kind)
-                throw new InvalidOperationException(
-                    $"控件[{name}] 所有权互斥违例：已被 {(current == ControlDriver.Bound ? "数据绑定" : "命令式")} 驱动，" +
-                    $"禁止再以 {(kind == ControlDriver.Bound ? "数据绑定" : "命令式")} 驱动（设计方案 §4.7——谁最后生效竞态）");
-#endif
+            if (DevBuildFacts.IsDevelopment)
+            {
+                _drivers.TryGetValue(name, out var current);
+                if (current != ControlDriver.None && current != kind)
+                    throw new InvalidOperationException(
+                        $"控件[{name}] 所有权互斥违例：已被 {(current == ControlDriver.Bound ? "数据绑定" : "命令式")} 驱动，" +
+                        $"禁止再以 {(kind == ControlDriver.Bound ? "数据绑定" : "命令式")} 驱动（设计方案 §4.7——谁最后生效竞态）");
+            }
             _drivers[name] = kind;
         }
 

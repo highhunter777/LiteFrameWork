@@ -288,11 +288,8 @@ namespace LiteClient.UI
                 if (State == UIFormState.Closing || State == UIFormState.Recycled)
                 {
                     const string msg = "已关闭/已回收的界面不得再订阅事件（订阅袋不会再被释放 → 必然泄漏）";
-#if UNITY_EDITOR || DEVELOPMENT_BUILD || LITEFRAMEWORK_DEBUG
-                    throw new InvalidOperationException($"UIForm[{Id}]: {msg}");
-#else
+                    if (DevBuildFacts.IsDevelopment) throw new InvalidOperationException($"UIForm[{Id}]: {msg}");
                     Log.Error($"UIForm[{Id}]: {msg}", LogTag.UI);
-#endif
                 }
                 // 每次展示一枚新袋、登记进本次展示作用域——关闭时随作用域逆序释放，
                 // 不跨展示复用（复用即"旧订阅打进新页面"的来源）。同一展示内重复取到同一枚（惰性）。

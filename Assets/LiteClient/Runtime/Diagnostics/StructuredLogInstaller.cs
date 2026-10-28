@@ -1,4 +1,3 @@
-#if UNITY_EDITOR || DEVELOPMENT_BUILD || LITEFRAMEWORK_DEBUG
 using System.IO;
 using LiteFramework;
 using LiteFramework.Diagnostics;
@@ -7,7 +6,8 @@ using UnityEngine;
 namespace LiteClient
 {
     /// <summary>
-    /// 结构化日志的安装/卸载（dev 三宏内）。路径 = `persistentDataPath/logs`；
+    /// 结构化日志的安装/卸载（**开发形态**由装配点经 <see cref="DevBuildFacts.IsDevelopment"/> 门控安装）。
+    /// 路径 = `persistentDataPath/logs`；
     /// 随 `Application.quitting` 收口（Editor 停止 Play 也会触发）。
     /// 失败不阻断启动：sink 的 IO/线程错误只进 `LastError`，业务照常跑。
     /// </summary>
@@ -41,4 +41,3 @@ namespace LiteClient
         }
     }
 }
-#endif

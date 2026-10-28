@@ -63,12 +63,6 @@ namespace LiteView.Animation
         private readonly float[] _moveWeights = new float[3];
         private readonly float[] _aimWeights = new float[4];
 
-#if UNITY_EDITOR || DEVELOPMENT_BUILD || LITEFRAMEWORK_DEBUG
-        /// <summary>[Diag] 形态切换留痕（联机实测表现诊断批 N8/N9，收口时整段删除）——
-        /// "位置在动但身体僵着"时看机器停在哪一叶、句柄是否还在。</summary>
-        private readonly string[] _diagForm = new string[SimConfig.MaxEntities];
-#endif
-
         private bool _disposed;
 
         public CharacterLocomotionDriver(SimView view, AnimationProfile profile,
@@ -396,9 +390,6 @@ namespace LiteView.Animation
                     // 放在机 Tick 之后：机不再因换弹迁根，腿的权重维护与叠加层提交互不干扰。
                     s.Ctx.UpdateReloadUpper(s.Ctx.IsReloading, s.Ctx.IsDead);
 
-#if UNITY_EDITOR || DEVELOPMENT_BUILD || LITEFRAMEWORK_DEBUG
-                    LogFormChange(i, s, dead, speed);
-#endif
                 }
 
                 RememberPosition(s, go);
@@ -418,21 +409,6 @@ namespace LiteView.Animation
                         _cameraPitchOf());
             }
         }
-
-#if UNITY_EDITOR || DEVELOPMENT_BUILD || LITEFRAMEWORK_DEBUG
-        /// <summary>[Diag] 形态变化时留痕（同形态不重复打印）。诊断"身体僵着"用：
-        /// form=(none) 表示 `TryGetCurrent` 读不到（机器未启动/无播放器）；
-        /// body/loco 句柄同时 false 且 form 恒定 = 通道已收口、无人在维持姿态。</summary>
-        private void LogFormChange(int slot, SlotAnim s, bool dead, float speed)
-        {
-            string form = TryGetCurrent(slot, out AnimationId id) ? id.Value : "(none)";
-            if (string.Equals(form, _diagForm[slot], System.StringComparison.Ordinal)) return;
-            _diagForm[slot] = form;
-            Log.Info($"[Diag][Anim] slot={slot} local={_view.IsLocalSlot(slot)} form={form}"
-                + $" machine={s.Machine.Current} moving={s.MovingLatch} speed={speed:0.00} dead={dead}"
-                + $" loco={s.Ctx.LocoHandle.IsValid} body={s.Ctx.BodyHandle.IsValid} bodyForm={s.Ctx.BodyForm}", LogTag.Anim);
-        }
-#endif
 
         public void Dispose()
         {
