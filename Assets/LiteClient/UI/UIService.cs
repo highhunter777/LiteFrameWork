@@ -181,7 +181,7 @@ namespace LiteClient.UI
             op = new OpenOperation(formId, data);
             _openOps[formId] = op;
             Interlocked.Increment(ref op.Waiters);
-            RunOpenAsync(op, info, group).Forget();       // 工作与等待分离：工作只受权威取消（WorkCts），不随单人等待走
+            RunOpenAsync(op, info, group).Forget();       // 工作与等待分离：工作只受权威取消（OperationScope），不随单人等待走
             return WaitOpenAsync(op, ct);
         }
 
@@ -196,7 +196,7 @@ namespace LiteClient.UI
             catch (OperationCanceledException)
             {
                 if (Interlocked.Decrement(ref op.Waiters) <= 0 && !op.Completion.Task.Status.IsCompleted())
-                    op.WorkCts.Cancel();                  // 最后一个等待者退出：撤销尚未提交的工作
+                    op.Scope.Cancel();                  // 最后一个等待者退出：撤销尚未提交的工作
                 throw;
             }
             catch (UIOpenException)
@@ -212,11 +212,12 @@ namespace LiteClient.UI
         {
             UIForm form = null;
             IUIPrefabLease lease = null;
+            op.Scope.MarkRunning();
             try
             {
                 try
                 {
-                    lease = await _loadPrefab(info.Location, op.WorkCts.Token);
+                    lease = await _loadPrefab(info.Location, op.Scope.Token);
                 }
                 catch (OperationCanceledException) { throw; }
                 catch (Exception ex)
@@ -224,7 +225,7 @@ namespace LiteClient.UI
                     throw new UIOpenException(UIOpenFailure.LoadFailed, op.FormId,
                         $"UIForm[{op.FormId}] prefab 加载失败:{info.Location}", ex);   // 类型化 + 含 location（§4.3）
                 }
-                op.WorkCts.Token.ThrowIfCancellationRequested();      // 迟到结果不提交（权威取消在加载完成后核）
+                op.Scope.Token.ThrowIfCancellationRequested();      // 迟到结果不提交（权威取消在加载完成后核）
 
                 var root = UnityEngine.Object.Instantiate(lease.Prefab, group.Root);
                 form = new UIForm(info, root);
@@ -252,6 +253,7 @@ namespace LiteClient.UI
 
                 var opened = await FinishOpenAsync(form, group);
                 Retire(op);                               // 交付前摘登记（见 Retire 注）
+                op.Scope.MarkSucceeded();
                 op.Completion.TrySetResult(opened);
             }
             catch (OperationCanceledException)
@@ -271,13 +273,14 @@ namespace LiteClient.UI
             catch (Exception ex)
             {
                 Retire(op);                               // 交付前摘登记（同上）
+                op.Scope.MarkFailed();
                 op.Completion.TrySetException(ex);       // 全部等待者收到同一异常（加载失败等）
             }
             finally
             {
                 lease?.Release();                        // 所有权未移交成功的就地释放（加载到、但未登记）
                 Retire(op);                              // 兜底（幂等——正常路径已交付前摘除）
-                op.WorkCts.Dispose();
+                op.Scope.Dispose();
             }
         }
 
@@ -298,13 +301,14 @@ namespace LiteClient.UI
             public readonly int FormId;
             public readonly IUIData Data;                 // 首个请求持有数据（§4.3：数据冲突 = Busy，不静默覆盖）
             public readonly UniTaskCompletionSource<UIForm> Completion = new UniTaskCompletionSource<UIForm>();
-            public readonly CancellationTokenSource WorkCts = new CancellationTokenSource();   // 权威取消源
+            public readonly OperationScope Scope;           // 权威取消源（owner=ui.open，mergeKey=form:<id>）
             public int Waiters;                           // 在途等待者数（全员退出才撤工作）
 
             public OpenOperation(int formId, IUIData data)
             {
                 FormId = formId;
                 Data = data;
+                Scope = OperationScope.Start("ui.open", "form:" + formId);
             }
         }
 
@@ -354,7 +358,7 @@ namespace LiteClient.UI
             // 关闭在途加载 = 权威取消（页面从未打开，Close 即完成——不抛"未打开"）
             if (_openOps.TryGetValue(formId, out var op))
             {
-                op.WorkCts.Cancel();                      // 先取消再摘登记：新 Show 不会并入将死操作
+                op.Scope.Cancel();                      // 先取消再摘登记：新 Show 不会并入将死操作
                 _openOps.Remove(formId);
                 Log.Info($"UIForm[{formId}] 在途打开被 Close 取消", LogTag.UI);
                 return;
@@ -447,7 +451,7 @@ namespace LiteClient.UI
             {
                 var cancelling = new List<OpenOperation>(_openOps.Values);
                 _openOps.Clear();
-                foreach (var op in cancelling) op.WorkCts.Cancel();
+                foreach (var op in cancelling) op.Scope.Cancel();
             }
 
             // ③ 全关（系统语义：不播离场、跳过拦截——OnHide/订阅/展示令牌照常清理）

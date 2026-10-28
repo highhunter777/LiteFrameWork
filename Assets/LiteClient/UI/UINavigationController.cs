@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Threading;
 using Cysharp.Threading.Tasks;
@@ -115,6 +115,7 @@ namespace LiteClient.UI
             var op = new NavOp(kind, formId, data, _nowMs());
             if (!_queue.TryEnqueue(op))
             {
+                op.Scope.Dispose();                    // 未入队即拒绝：作用域随拒绝立即释放
                 RejectedByCapacity++;
                 throw new UIOpenException(UIOpenFailure.Rejected, formId,
                     $"导航队列已满（{QueueCapacity}）——拒绝排队（§4.3 队列满在创建/入栈/OnShow 之前拒绝）");
@@ -138,7 +139,7 @@ namespace LiteClient.UI
             CancelledWhileQueued++;
             op.Abandoned = true;
             Log.Info($"[Nav] 放弃排队项 id={op.FormId}（排队期取消）", LogTag.UI);
-            op.Cts.Cancel();
+            op.Scope.Cancel();
 
             var fail = new UIOpenException(UIOpenFailure.Canceled, op.FormId,
                 op.Kind == NavKind.Back ? "导航 Back 被取消（排队期）" : $"导航 {op.Kind}[{op.FormId}] 被取消（排队期）");
@@ -153,58 +154,27 @@ namespace LiteClient.UI
             {
                 while (_queue.TryDequeue(out NavOp op))
                 {
-                    if (op.Abandoned) { op.Registration.Dispose(); continue; }
+                    if (op.Abandoned) { op.Registration.Dispose(); op.Scope.Dispose(); continue; }
 
                     // 安全调度点②：出队判等待超时（排队期被取消的项由 Abandon 标记跳过）
                     if (IsExpired(op))
                     {
                         TimedOut++;
-                        op.Cts.Cancel();
+                        op.Scope.Cancel();
                         op.Fail(new UIOpenException(UIOpenFailure.Timeout, op.FormId,
                             op.Kind == NavKind.Back
                                 ? $"导航 Back 排队等待超时（{OpenTimeoutSeconds}s）"
                                 : $"导航 {op.Kind}[{op.FormId}] 排队等待超时（{OpenTimeoutSeconds}s）——队列被长操作阻塞"));
                         op.Registration.Dispose();
+                        op.Scope.Dispose();
                         continue;
                     }
 
                     op.Started = true;
+                    op.Scope.MarkRunning();
                     try
                     {
-                        switch (op.Kind)
-                        {
-                            case NavKind.Go:
-                            {
-                                var form = await _ui.ShowAsync(op.FormId, op.Data, op.Cts.Token);
-                                op.FormCompletion.TrySetResult(form);
-                                break;
-                            }
-                            case NavKind.Back:
-                            {
-                                bool hasTarget = _ui.TryGetBackTarget(out int target);
-                                if (hasTarget)
-                                    await _ui.CloseAsync(target, UIService.CloseReason.Back);
-                                op.BoolCompletion.TrySetResult(hasTarget);
-                                break;
-                            }
-                            case NavKind.Replace:
-                            {
-                                // 当前顶即目标 → 幂等（不先关后开）
-                                if (_ui.TryGetBackTarget(out int cur) && cur == op.FormId)
-                                {
-                                    var opened = await _ui.ShowAsync(op.FormId, op.Data, op.Cts.Token);
-                                    op.FormCompletion.TrySetResult(opened);
-                                    break;
-                                }
-                                // 显式替换当前记录：先关当前顶（Replace 离场原因），再打开新页；
-                                // 关闭失败/被拦截与打开失败同归 op.Fail——半成品由 UIService 回滚
-                                if (cur != 0)
-                                    await _ui.CloseAsync(cur, UIService.CloseReason.Replace);
-                                var form = await _ui.ShowAsync(op.FormId, op.Data, op.Cts.Token);
-                                op.FormCompletion.TrySetResult(form);
-                                break;
-                            }
-                        }
+                        await ExecuteAsync(op);
                         Executed++;
                     }
                     catch (Exception ex)
@@ -214,12 +184,56 @@ namespace LiteClient.UI
                     finally
                     {
                         op.Registration.Dispose();       // 该 op 已消费完——登记随 NavOp 生命周期释放
+                        op.Scope.Dispose();              // 作用域随 op 生命周期释放（幂等）
                     }
                 }
             }
             finally
             {
                 _running = false;
+            }
+        }
+
+        /// <summary>单条导航操作执行（Go/Back/Replace）：成功即标记终态；异常由 Pump 统一转 Fail。</summary>
+        private async UniTask ExecuteAsync(NavOp op)
+        {
+            switch (op.Kind)
+            {
+                case NavKind.Go:
+                {
+                    var form = await _ui.ShowAsync(op.FormId, op.Data, op.Scope.Token);
+                    op.Scope.MarkSucceeded();
+                    op.FormCompletion.TrySetResult(form);
+                    break;
+                }
+                case NavKind.Back:
+                {
+                    bool hasTarget = _ui.TryGetBackTarget(out int target);
+                    if (hasTarget)
+                        await _ui.CloseAsync(target, UIService.CloseReason.Back);
+                    op.Scope.MarkSucceeded();
+                    op.BoolCompletion.TrySetResult(hasTarget);
+                    break;
+                }
+                case NavKind.Replace:
+                {
+                    // 当前顶即目标 → 幂等（不先关后开）
+                    if (_ui.TryGetBackTarget(out int cur) && cur == op.FormId)
+                    {
+                        var opened = await _ui.ShowAsync(op.FormId, op.Data, op.Scope.Token);
+                        op.Scope.MarkSucceeded();
+                        op.FormCompletion.TrySetResult(opened);
+                        break;
+                    }
+                    // 显式替换当前记录：先关当前顶（Replace 离场原因），再打开新页；
+                    // 关闭失败/被拦截与打开失败同归 op.Fail——半成品由 UIService 回滚
+                    if (cur != 0)
+                        await _ui.CloseAsync(cur, UIService.CloseReason.Replace);
+                    var form = await _ui.ShowAsync(op.FormId, op.Data, op.Scope.Token);
+                    op.Scope.MarkSucceeded();
+                    op.FormCompletion.TrySetResult(form);
+                    break;
+                }
             }
         }
 
@@ -236,11 +250,12 @@ namespace LiteClient.UI
                 if (!op.Abandoned && (_nowMs() - op.EnqueuedAtMs) > limitMs)
                 {
                     TimedOut++;
-                    op.Cts.Cancel();
+                    op.Scope.Cancel();
                     op.Fail(new UIOpenException(UIOpenFailure.Timeout, op.FormId,
                         op.Kind == NavKind.Back
                             ? $"导航 Back 排队等待超时（{OpenTimeoutSeconds}s）"
                             : $"导航 {op.Kind}[{op.FormId}] 排队等待超时（{OpenTimeoutSeconds}s）——队列被长操作阻塞"));
+                    op.Scope.Dispose();
                     continue;
                 }
                 keep.Add(op);
@@ -288,7 +303,7 @@ namespace LiteClient.UI
             public readonly int FormId;
             public readonly IUIData Data;
             public readonly long EnqueuedAtMs;
-            public readonly CancellationTokenSource Cts = new CancellationTokenSource();
+            public readonly OperationScope Scope;          // 操作作用域（取消/合并键/状态）
             public readonly UniTaskCompletionSource<UIForm> FormCompletion = new UniTaskCompletionSource<UIForm>();
             public readonly UniTaskCompletionSource<bool> BoolCompletion = new UniTaskCompletionSource<bool>();
             public CancellationTokenRegistration Registration;
@@ -301,12 +316,14 @@ namespace LiteClient.UI
                 FormId = formId;
                 Data = data;
                 EnqueuedAtMs = enqueuedAtMs;
+                Scope = OperationScope.Start("ui.nav", kind + ":" + formId);
             }
 
             /// <summary>只故障本种类的完成源（Back 走 Bool 源；Go/Replace 走 Form 源——
             /// 另一源无人等待，故障它会成为 UniTask 未观察异常）。</summary>
             public void Fail(Exception ex)
             {
+                Scope.MarkFailed();
                 if (Kind == NavKind.Back) BoolCompletion.TrySetException(ex);
                 else FormCompletion.TrySetException(ex);
             }
