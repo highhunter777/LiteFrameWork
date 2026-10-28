@@ -25,6 +25,7 @@ namespace LiteGame
         private readonly Func<LuaEnv> _env;                 // 结算页数据表构造（LuaUIData）——懒取（env 随 DevReload 重建）
 
         private bool _entryOpened;
+        private Landing _landing;                            // 启动落点（对局失败回大厅的语境判据：dev 直入不强行开大厅）
         private Func<UniTask<bool>> _savedPlatformBack;      // 对局菜单 Back 策略启用前的原装订（还原用）
 
         public PageFlow(UINavigationController nav, UIService ui, LuaComponent lua)
@@ -52,6 +53,7 @@ namespace LiteGame
         /// 由页面流自身接管（结算页/大厅在场），重开入口会把已在大厅的玩家弹回登录页。</summary>
         public void OpenLanding(Landing landing)
         {
+            _landing = landing;
             if (_entryOpened) return;
             _entryOpened = true;
             switch (landing)
@@ -73,7 +75,9 @@ namespace LiteGame
 
         /// <summary>
         /// 对局结束（BattleContext.Ended）：正常结束（Completed + 冻结结果在）→ 结算页（带本局结果）；
-        /// 失败/主动离场 → 房间页在则替换回大厅（"断开 + 返回大厅"；房间页不在 = 无从谈回大厅，留在现状）。
+        /// 失败/主动离场 → **回大厅**（"断开 + 返回大厅"）。回大厅不依赖房间页是否还开着：
+        /// 对局中房间页已随开局关闭，会话失败（RoomClient Failed → BattleContext SessionFailed）后
+        /// 若无页面可回，玩家会停在 Main 的空栈上——故空栈也开大厅；dev 直入（Landing.None）无大厅语境，不强行开。
         /// </summary>
         public void OnMatchEnded(bool completed, LiteNet.Proto.MatchEnded result, int localPlayerId)
         {
@@ -85,7 +89,15 @@ namespace LiteGame
                 return;
             }
 
-            if (IsOpen(LuaKeys.UI.Page_Room)) Replace(LuaKeys.UI.Page_Lobby, null);
+            ReturnToLobby();
+        }
+
+        /// <summary>失败/离场统一回大厅（已在大厅 = no-op；dev 直入不涉大厅）。</summary>
+        private void ReturnToLobby()
+        {
+            if (_landing == Landing.None && !IsOpen(LuaKeys.UI.Page_Lobby)) return;
+            if (IsOpen(LuaKeys.UI.Page_Lobby)) return;
+            Replace(LuaKeys.UI.Page_Lobby, null);
         }
 
         /// <summary>对局中打开设置页（HUD 菜单钮与空栈 Back 共用入口）：导航数据带 <c>battleExit</c>——

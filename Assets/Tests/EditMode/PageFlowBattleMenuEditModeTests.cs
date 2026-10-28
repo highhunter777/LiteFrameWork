@@ -62,9 +62,12 @@ namespace LiteGame.Tests.EditMode
         public void SetUp()
         {
             _probe = new ProbeLogic();
+            PageDefinition lobbyPage = Array.Find(UiPageCatalog.All, page => page.LuaPath == LuaKeys.UI.Page_Lobby);
+            Assert.IsNotNull(lobbyPage, "生成页面目录缺大厅页（页面流回大厅用例前置）");
             _ui = new UIService(new StaticCatalog(new[]
                 {
                     new PageDefinition { Id = SettingsFormId, Layer = 1, FullScreen = true, LuaPath = "probe.settings", Location = "probe" },
+                    lobbyPage,
                 }),
                 logicResolver: info => _probe,
                 loadPrefab: (loc, ct) => UniTask.FromResult<IUIPrefabLease>(UIPrefabLeases.Unowned(FakePrefab())),
@@ -172,6 +175,34 @@ namespace LiteGame.Tests.EditMode
             // 停用后空栈 Back 不得再开菜单页
             Await(_baselineBack());
             Assert.IsFalse(_ui.IsOpen(SettingsFormId), "停用后空栈 Back 不开设置页");
+        }
+
+        [Test]
+        public void 会话失败_房间页不在也回大厅()
+        {
+            int lobbyId = Bridge.Data.ResolveUIFormId(LuaKeys.UI.Page_Lobby);
+            _flow.OpenLanding(PageFlow.Landing.Lobby);
+            Pump();
+            Assert.IsTrue(_ui.IsOpen(lobbyId), "前置：大厅已开");
+
+            _ui.CloseAsync(lobbyId).ForgetLogged("test");
+            Pump();
+            Assert.IsFalse(_ui.IsOpen(lobbyId), "前置：大厅已关（模拟对局中房间页/大厅均已收口）");
+
+            _flow.OnMatchEnded(completed: false, result: null, localPlayerId: 1);
+            Pump();
+            Assert.IsTrue(_ui.IsOpen(lobbyId), "会话失败后回大厅——不依赖房间页是否还开着");
+        }
+
+        [Test]
+        public void dev直入_会话失败不强行开大厅()
+        {
+            int lobbyId = Bridge.Data.ResolveUIFormId(LuaKeys.UI.Page_Lobby);
+            _flow.OpenLanding(PageFlow.Landing.None);      // dev 直入：无大厅语境
+
+            _flow.OnMatchEnded(completed: false, result: null, localPlayerId: 1);
+            Pump();
+            Assert.IsFalse(_ui.IsOpen(lobbyId), "dev 直入形态不为失败强行弹大厅");
         }
 
         [Test]
