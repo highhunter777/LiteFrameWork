@@ -18,7 +18,7 @@ namespace LiteGame
     /// <c>Bridge.ui</c> 驱动（同一导航单写者）；本件只接流程不认识 UI、UI 不认识流程的那几处接缝——
     /// 流程层（ProcedureMain/ProcedureBattle）持有本件，UI 层不知道它存在。
     /// </summary>
-    public sealed class PageFlow
+    public sealed class PageFlow : ILoginSurface
     {
         private readonly UINavigationController _nav;
         private readonly UIService _ui;
@@ -62,6 +62,21 @@ namespace LiteGame
                 case Landing.Lobby: Go(LuaKeys.UI.Page_Lobby, null); break;
                 default: break;                                        // None：直入形态，场景/面板接管
             }
+        }
+
+        /// <summary>登录页是否已在场（账号重入的幂等判据）。</summary>
+        public bool IsLoginOpen => IsOpen(LuaKeys.UI.Page_Login);
+
+        /// <summary>
+        /// 账号重入（恢复链单点）：把页面栈替换为登录页——**忽略启动落点的一次性守卫**
+        /// （<see cref="OpenLanding"/> 只在首进 Main 开一次页；登录失效发生在运行期，必须能再次出现）。
+        /// 重入的登录态清理/离场由 <see cref="AccountReentry"/> 先行完成，本方法只做导航。
+        /// </summary>
+        public void ShowLogin(string reason)
+        {
+            _landing = Landing.Login;
+            Log.Info($"账号重入：回登录页（{reason}）", LogTag.UI);
+            Replace(LuaKeys.UI.Page_Login, null);
         }
 
         /// <summary>进对局前关掉在开的页面（**dev 测试入口**路径用：从大厅/开发控制台直接进局时，

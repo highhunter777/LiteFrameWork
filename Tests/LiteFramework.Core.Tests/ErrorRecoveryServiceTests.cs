@@ -18,6 +18,7 @@ namespace LiteFramework.Core.Tests
         {
             public int ExportCount;
             public int ExitCount;
+            public int ClearCount;
             public string LastReason;
 
             public UniTask<string> ExportDiagnosticsAsync(string reason, CancellationToken ct)
@@ -31,6 +32,12 @@ namespace LiteFramework.Core.Tests
             {
                 ExitCount++;
                 return UniTask.CompletedTask;
+            }
+
+            public UniTask<bool> ClearContentCacheAsync(CancellationToken ct)
+            {
+                ClearCount++;
+                return UniTask.FromResult(true);
             }
         }
 
@@ -107,6 +114,46 @@ namespace LiteFramework.Core.Tests
         }
 
         [Fact]
+        public async Task 可恢复_重试耗尽_清受控缓存一次_再阻断()
+        {
+            (ErrorRecoveryService service, FakeActions actions, _) = Build();
+
+            RecoveryOutcome outcome = await service.HandleAsync(
+                new ClientErrorException(ErrorKind.Recoverable, "缓存损坏"), "content.patch",
+                ct => UniTask.FromResult(false));
+
+            Assert.Equal(RecoveryResult.Exhausted, outcome.Result);
+            Assert.Equal(1, actions.ClearCount);                   // 升级动作只做一次（不随重试次数放大）
+            Assert.Contains("已清理受控内容缓存", outcome.Message);
+        }
+
+        [Fact]
+        public async Task 可恢复_重试成功_不清缓存()
+        {
+            (ErrorRecoveryService service, FakeActions actions, _) = Build();
+
+            RecoveryOutcome outcome = await service.HandleAsync(
+                new ClientErrorException(ErrorKind.Recoverable, "旧清单"), "content.patch",
+                ct => UniTask.FromResult(true));
+
+            Assert.True(outcome.Recovered);
+            Assert.Equal(0, actions.ClearCount);
+        }
+
+        [Fact]
+        public async Task 可恢复_无重试委托_清受控缓存后阻断()
+        {
+            (ErrorRecoveryService service, FakeActions actions, _) = Build();
+
+            RecoveryOutcome outcome = await service.HandleAsync(
+                new ClientErrorException(ErrorKind.Recoverable, "缓存损坏"), "bootstrap.error");
+
+            Assert.Equal(RecoveryResult.Blocked, outcome.Result);
+            Assert.Equal(1, actions.ClearCount);
+            Assert.Contains("已清理受控内容缓存", outcome.Message);
+        }
+
+        [Fact]
         public async Task 重试_委托抛异常_记为失败并继续()
         {
             (ErrorRecoveryService service, _, _) = Build();
@@ -136,6 +183,17 @@ namespace LiteFramework.Core.Tests
 
             Assert.Equal(RecoveryResult.Blocked, outcome.Result);
             Assert.Equal(0, outcome.Attempts);
+        }
+
+        [Fact]
+        public async Task 暂态_不清缓存_网络抖动与本地缓存无关()
+        {
+            (ErrorRecoveryService service, FakeActions actions, _) = Build();
+
+            await service.HandleAsync(new ClientErrorException(ErrorKind.Transient, "超时"), "content.patch",
+                ct => UniTask.FromResult(false));
+
+            Assert.Equal(0, actions.ClearCount);
         }
 
         [Fact]

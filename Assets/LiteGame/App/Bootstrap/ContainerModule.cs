@@ -175,7 +175,6 @@ namespace LiteGame
             Bridge.BindRegistries(uiRegistry, contentRegistry);
             Bridge.BindUIService(ui);
             Bridge.BindNavigation(nav);
-            MetaBridge.Bind(metaEntry, identity, () => config.Tables);   // Lua 联机门面后端（Bridge.meta——批C-③；表供房间行地图名显示）
             context.Require<IInputService>().RegisterBlocker(
                 new IntentGate.BlockerKey("ui.modal", "模态 UI 打开——游戏意图被拦截"), () => ui.IsModalOpen);
 
@@ -199,10 +198,18 @@ namespace LiteGame
                 LiteSim.RootMotionCatalog.ContentDigest));
 
             var pageFlow = new PageFlow(nav, ui, lua);    // 五页页面流（批C-④）：入口/开局关房/结算三处流程×页面接缝
+            // 账号重入单点（《客户端依赖注入专项设计》§6.2「重新登录」）：登录失效（Meta 401）→ 清登录态 →
+            // 在途对局回 Main → 登录页；Bridge.meta 是唯一调用方（凭证失效分支），页面不各自处理。
+            var reentry = new AccountReentry(metaEntry, pageFlow);
+            _services.RegisterInstance<IAccountReentry>(reentry);
+            MetaBridge.Bind(metaEntry, identity, () => config.Tables, reentry);   // Lua 联机门面后端（Bridge.meta——批C-③；表供房间行地图名显示）
             var appSettings = new ProductSettings(context.Require<GameSettings>(),
                 context.Require<SettingService>(), context.Require<AudioService>());
             ProductSettings.Bind(appSettings);            // Lua 设置门面后端（Bridge.settings——批C-⑥；构造即应用持久化值）
-            var recovery = new ErrorRecoveryService(new AppRecoveryActions());
+            // 恢复动作的「清缓存」实现面：删候选内容产物 + 激活记录回退 builtin（内置包根不动）。
+            var contentCache = new ContentCacheMaintenance(content, context.Require<IFileStore>(), activation);
+            _services.RegisterInstance<IContentCacheMaintenance>(contentCache);
+            var recovery = new ErrorRecoveryService(new AppRecoveryActions(cache: contentCache));
             context.Put(recovery);                        // 恢复执行器（Root：启动/内容/会话失败共用）
             var fsm = CreateMachine(context, content, config, lua, uiRegistry, contentRegistry, strategyRegistry,
                 pageFlow, metaEntry, feedback, recovery);

@@ -9,7 +9,12 @@ namespace LiteFramework
     /// 错误恢复执行器（《客户端依赖注入专项设计》§6.2）：分类 → 动作 → **执行**。
     ///
     /// 与旧 <c>ClientErrorRecovery</c> 的区别：旧件只做“分类 → 枚举”的静态映射、没有执行器，
-    /// 也没有生产消费者；本件按分类真正执行有界重试/导出诊断/退出/阻断，并由装配点注入动作实现。
+    /// 也没有生产消费者；本件按分类真正执行有界重试/清缓存/导出诊断/退出/阻断，并由装配点注入动作实现。
+    ///
+    /// **Recoverable 的升级阶梯**（《商业级通用客户端框架总设计》§7.2“缓存损坏/旧清单 → 清受控缓存”）：
+    /// 先有界重试（调用点给了重试委托时）；重试耗尽**或**调用点无法重试 → 清受控内容缓存 → 阻断。
+    /// 缓存清理是“下一次启动见效”的动作（不重建运行时），故清理后不再重试；Transient 不清缓存
+    /// （网络抖动与本地缓存无关）。
     ///
     /// 取消不是错误：<see cref="OperationCanceledException"/> 直接返回 <see cref="RecoveryResult.Canceled"/>，
     /// 不触发任何动作（与 <c>ClientHost.ShutdownAsync</c> 的取消口径一致）。
@@ -99,8 +104,11 @@ namespace LiteFramework
             Func<CancellationToken, UniTask<bool>> retry, CancellationToken ct)
         {
             if (retry == null)
-                return RecoveryOutcome.Of(RecoveryResult.Blocked, kind, action, 0, operation,
-                    message + "（调用点未提供重试委托）");
+            {
+                string detail = message + "（调用点未提供重试委托）";
+                if (kind == ErrorKind.Recoverable) detail += await ClearCacheAsync(operation, ct);
+                return RecoveryOutcome.Of(RecoveryResult.Blocked, kind, action, 0, operation, detail);
+            }
 
             Exception lastError = null;
             int attempts = 0;
@@ -126,8 +134,33 @@ namespace LiteFramework
                     await _delay(_policy.DelayFor(attempt), ct);
             }
 
-            string detail = lastError == null ? message : message + " / 末次：" + lastError.Message;
-            return RecoveryOutcome.Of(RecoveryResult.Exhausted, kind, action, attempts, operation, detail);
+            string exhausted = lastError == null ? message : message + " / 末次：" + lastError.Message;
+            if (kind == ErrorKind.Recoverable) exhausted += await ClearCacheAsync(operation, ct);
+            return RecoveryOutcome.Of(RecoveryResult.Exhausted, kind, action, attempts, operation, exhausted);
+        }
+
+        /// <summary>
+        /// 清受控内容缓存（Recoverable 的升级动作）；返回给结果文案的后缀。
+        /// 清理本身失败不改变阻断结论（记录到文案与日志，错误页仍停住）。
+        /// </summary>
+        private async UniTask<string> ClearCacheAsync(string operation, CancellationToken ct)
+        {
+            if (_actions == null) return "；受控内容缓存未清理（动作端口未注入）";
+            try
+            {
+                bool cleared = await _actions.ClearContentCacheAsync(ct);
+                return cleared
+                    ? "；已清理受控内容缓存（重启后以内置/重新下载内容启动）"
+                    : "；受控内容缓存未清理（见日志）";
+            }
+            catch (OperationCanceledException) when (ct.IsCancellationRequested)
+            {
+                throw;
+            }
+            catch (Exception ex)
+            {
+                return "；受控内容缓存清理失败：" + ex.Message;
+            }
         }
 
         private UniTask ExportAsync(ErrorKind kind, string operation, string message, CancellationToken ct)

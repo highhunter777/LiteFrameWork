@@ -87,6 +87,14 @@ namespace LiteGame
         public string Code;
         public string Detail;
 
+        /// <summary>
+        /// 是否"凭证失效"（401 / `auth.unauthorized`）：恢复链据此走**账号重入**（回登录页），
+        /// 而不是普通重试或继续用旧令牌（旧令牌重放只会继续 401）。
+        /// </summary>
+        public bool IsAuthLost => Kind == MetaFailureKind.Rejected
+            && (HttpStatus == MetaErrorCodes.HttpUnauthorized
+                || string.Equals(Code, MetaErrorCodes.Unauthorized, StringComparison.Ordinal));
+
         public static MetaFailure Network(string detail)
             => new MetaFailure { Kind = MetaFailureKind.Network, HttpStatus = 0, Detail = detail ?? "" };
 
@@ -121,6 +129,16 @@ namespace LiteGame
 
         public static MetaCall<T> Failed(MetaFailure failure)
             => new MetaCall<T>(false, default, failure ?? throw new ArgumentNullException(nameof(failure)));
+    }
+
+    /// <summary>稳定错误码的单源（与服务端 <c>AuthErrorCodes</c> 同值；客户端只比对，不发明）。</summary>
+    public static class MetaErrorCodes
+    {
+        /// <summary>访问令牌缺失/失效（服务端 401；恢复链判"账号重入"）。</summary>
+        public const string Unauthorized = "auth.unauthorized";
+
+        /// <summary>凭证失效的 HTTP 状态码（与 <see cref="Unauthorized"/> 同判据，两端都收）。</summary>
+        public const long HttpUnauthorized = 401;
     }
 
     /// <summary>端点路径单源（服务端 <c>AuthEndpoints/LobbyEndpoints/SettlementEndpoints.Map</c> 的挂载名——

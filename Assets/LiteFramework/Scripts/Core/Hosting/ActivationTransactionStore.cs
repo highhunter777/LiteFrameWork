@@ -278,6 +278,23 @@ namespace LiteFramework
             Save();
         }
 
+        /// <summary>
+        /// 回退到内置内容（恢复动作「清缓存」的记录侧）：放弃已确认候选与在途事务，
+        /// 使 <see cref="ActiveGeneration"/> 回到 builtin——调用方必须先删掉候选产物，
+        /// 否则记录与磁盘不一致（本类不碰文件）。
+        /// </summary>
+        public void RollbackToBuiltin(string reason)
+        {
+            Current.ConfirmedReleaseId = ContentGeneration.BuiltinReleaseId;
+            Current.ConfirmedVersion = 0;
+            Current.ConfirmedRevision = 0;
+            Current.PendingReleaseId = null;
+            Current.PendingState = default;
+            Current.LastFailure = reason ?? "";
+            Current.TransactionId = null;                        // 事务已了结（与正常恢复/确认路径一致）
+            Save();                                              // 诊断走调用方日志 + LastFailure（不新增诊断码，避免与诊断面词表双写）
+        }
+
         /// <summary>记录失败（候选隔离/保留 Confirmed——不部分发布）。</summary>
         public void RecordFailure(string reason)
         {

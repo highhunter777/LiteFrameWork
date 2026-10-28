@@ -1,6 +1,7 @@
 namespace LiteFramework
 {
-    /// <summary>恢复动作（当前能力集；清缓存/回登录随内容/会话接入扩展）。</summary>
+    /// <summary>恢复动作（当前能力集；Recoverable 的“清受控缓存”在执行器内升级执行，不改映射表；
+    /// “重新登录”走会话路径的账号重入单点，不占启动错误动作）。</summary>
     public enum RecoveryAction
     {
         /// <summary>有界重试。</summary>

@@ -18,7 +18,7 @@ namespace LiteGame
     /// - **fail-closed**：未配置 Meta 基址（无 -meta.url）= <see cref="IsConfigured"/> false，一切入口显性失败，
     ///   不悄悄回退本地/测试身份。
     /// </summary>
-    public sealed class MetaEntryService
+    public sealed class MetaEntryService : IAccountSessionControl
     {
         private readonly IMetaClient _client;          // null = 未配置（装配面按 HasMeta 决定）
         private readonly Func<string> _deviceId;
@@ -56,6 +56,21 @@ namespace LiteGame
 
         /// <summary>当前登录账号（null = 未登录——登录页/大厅据此分支）。</summary>
         public string AccountId { get; private set; }
+
+        /// <summary>是否已登录（令牌在手；账号重入/页面分支的判据）。</summary>
+        public bool IsLoggedIn => _accessToken != null;
+
+        /// <summary>
+        /// 清登录态（账号重入单点用）：令牌/账号即弃——后续 Meta 调用一律 NotLoggedIn，
+        /// 不重放旧令牌、不落令牌原文。幂等。
+        /// </summary>
+        public void Logout(string reason)
+        {
+            if (AccountId == null && _accessToken == null) return;
+            AccountId = null;
+            _accessToken = null;
+            Log.Info($"登录态已清除（{reason}）", LogTag.Meta);
+        }
 
         /// <summary>Meta 基址（设置页只读展示——来自部署注入）。</summary>
         public string ServerUrl { get; }

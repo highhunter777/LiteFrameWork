@@ -24,13 +24,16 @@ namespace LiteGame
         private static MetaEntryService s_meta;
         private static IdentityContext s_identity;
         private static Func<cfg.Tables> s_tables;      // 地图表（多图批：房间行地图名显示面；可空 = 不解析名）
+        private static IAccountReentry s_reentry;      // 凭证失效（401）→ 账号重入单点（可空 = 未接）
 
         /// <summary>装配期注入编排件（ContainerModule——未配置部署时也注入：IsConfigured=false 由页面显性拒绝）。</summary>
-        public static void Bind(MetaEntryService meta, IdentityContext identity = null, Func<cfg.Tables> tables = null)
+        public static void Bind(MetaEntryService meta, IdentityContext identity = null,
+            Func<cfg.Tables> tables = null, IAccountReentry reentry = null)
         {
             s_meta = meta ?? throw new ArgumentNullException(nameof(meta));
             s_identity = identity;
             s_tables = tables;
+            s_reentry = reentry;
         }
 
         /// <summary>装订 meta 门面进全局 Bridge 表（ProductBridges 调用——在框架四门面之后）。</summary>
@@ -99,12 +102,23 @@ namespace LiteGame
             {
                 MetaCall<T> call = await task;
                 Done(cb, call.Ok, call.Ok ? okPayload(call) : (object)Reason(call.Failure));
+                // 凭证失效 = 恢复链的"重新登录"（先回报页面失败，再走单点重入——不拿旧令牌反复重试）
+                if (!call.Ok && call.Failure.IsAuthLost)
+                    await ReenterAsync("meta." + Reason(call.Failure));
             }
             catch (Exception ex)
             {
                 Log.Error($"Bridge.meta 异常:{ex.Message}", LogTag.Meta);
                 Done(cb, false, "Internal");
             }
+        }
+
+        /// <summary>账号重入（失败不外溢——页面回调已回报，重入只是恢复动作）。</summary>
+        private static async UniTask ReenterAsync(string reason)
+        {
+            if (s_reentry == null) return;
+            try { await s_reentry.ReturnToLoginAsync(reason); }
+            catch (Exception ex) { Log.Error($"账号重入失败:{ex.Message}", LogTag.Meta); }
         }
 
         private static void Done(LuaFunction cb, bool ok, object payload)

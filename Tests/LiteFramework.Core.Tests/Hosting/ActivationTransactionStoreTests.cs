@@ -161,5 +161,38 @@ namespace LiteFramework.Tests
             Assert.Equal("release-1", store.Current.ConfirmedReleaseId);   // Confirmed 不动
             Assert.Equal("候选校验失败：tbcombatnum 损坏", store.Current.LastFailure);
         }
+
+        [Fact]
+        public void 回退内置_清Confirmed与在途_序号递增_可诊断原因留档()
+        {
+            var io = new MemoryIO
+            {
+                Preloaded = new ActivationRecord
+                {
+                    ConfirmedReleaseId = "release-7",
+                    ConfirmedVersion = 9UL,
+                    ConfirmedRevision = 42,
+                    PendingReleaseId = "release-8",
+                    PendingState = ActivationState.PendingActivation,
+                    TransactionId = "txn-old",
+                },
+            };
+            var store = Store(io);
+            long before = store.RecordSequence;
+
+            store.RollbackToBuiltin("恢复动作：清理受控内容缓存");
+
+            var record = store.Current;
+            Assert.Equal(ContentGeneration.BuiltinReleaseId, record.ConfirmedReleaseId);
+            Assert.Equal(0UL, record.ConfirmedVersion);
+            Assert.Equal(0, record.ConfirmedRevision);
+            Assert.Null(record.PendingReleaseId);
+            Assert.Null(record.TransactionId);
+            Assert.Equal("恢复动作：清理受控内容缓存", record.LastFailure);
+            Assert.Equal(before + 1, store.RecordSequence);                 // 提交序号递增（防旧记录回填）
+            Assert.Equal(new ContentGeneration("builtin", 0UL), store.ActiveGeneration);
+            Assert.Single(io.Saved);
+            Assert.True(ActivationRecordIntegrity.Verify(io.Preloaded));     // 写盘记录带完整性与盖章
+        }
     }
 }
