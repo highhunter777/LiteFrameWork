@@ -105,15 +105,13 @@ namespace LiteClient
         /// <summary>网络质量观测（会话面透传——HUD 展示；表现/诊断面，不参与判定）。</summary>
         public NetworkQuality NetworkQuality => _battle.Quality;
 
-#if UNITY_EDITOR || DEVELOPMENT_BUILD || LITEFRAMEWORK_DEBUG
-        /// <summary>调试口（开发三宏）：会话客户端——断线/重连动作经 <c>DebugKernel.Network</c> 收口，
-        /// 投影不直调（《GM 与调试工具分层专项设计》§7"投影不另写动作"）。release 无此面。</summary>
+        /// <summary>调试口（开发装配消费）：会话客户端——断线/重连动作经 <c>DebugKernel.Network</c> 收口，
+        /// 投影不直调（《GM 与调试工具分层专项设计》§7"投影不另写动作"）。发布形态无写入者。</summary>
         public BattleClient DebugBattle => _battle;
 
-        /// <summary>调试开关（开发三宏）：true = <see cref="ClientSessionPhase.SuspectedLost"/> 时**不自动重连**，
-        /// 停在断线态等待手动重连（验证失败/等待窗口/手动恢复路径）。默认 false＝产品行为。</summary>
+        /// <summary>调试开关（开发装配消费）：true = <see cref="ClientSessionPhase.SuspectedLost"/> 时**不自动重连**，
+        /// 停在断线态等待手动重连（验证失败/等待窗口/手动恢复路径）。默认 false＝产品行为（发布无写入者）。</summary>
         public bool DebugSuppressAutoReconnect { get; set; }
-#endif
 
         private readonly BattleClient _battle;
         private readonly ClientScope _matchScope;
@@ -556,9 +554,7 @@ namespace LiteClient
             switch (to)
             {
                 case ClientSessionPhase.SuspectedLost:
-#if UNITY_EDITOR || DEVELOPMENT_BUILD || LITEFRAMEWORK_DEBUG
-                    if (DebugSuppressAutoReconnect) break;   // 调试：停在断线态，等待手动重连
-#endif
+                    if (DebugSuppressAutoReconnect) break;   // 调试：停在断线态，等待手动重连（发布无写入者 = 恒 false）
                     _battle.BeginReconnect();            // false = 无票据（内部已转 Failed，下一事件收口）
                     break;
                 case ClientSessionPhase.Failed:

@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using Cysharp.Threading.Tasks;
 using LiteFramework;
@@ -197,9 +197,8 @@ namespace LiteGame
         {
             if (_index == null || payload == null) return null;
             if (TryDispatchApi(method, payload, out object result)) return result;
-#if UNITY_EDITOR || DEVELOPMENT_BUILD || LITEFRAMEWORK_DEBUG
+            // 未知方法 = Lua 侧拼写错误（一次性告警，不在热路径）：发布也保留，便于线上排查。
             Log.Warning($"ui-API 未知方法:{method}（拼写错误不得静默吞——《UI控件Lua API 参考》§3）", LogTag.UI);
-#endif
             return null;
         }
 

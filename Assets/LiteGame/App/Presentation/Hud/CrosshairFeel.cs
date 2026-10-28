@@ -85,8 +85,7 @@ namespace LiteGame
     /// </summary>
     public static class CrosshairTuning
     {
-#if UNITY_EDITOR || DEVELOPMENT_BUILD || LITEFRAMEWORK_DEBUG
-        /// <summary>静态满张倍率覆写（&lt; 0 = 不覆写，用表值）。</summary>
+        /// <summary>静态满张倍率覆写（&lt; 0 = 不覆写，用表值；发布形态无写入者）。</summary>
         public static float StaticMaxDevOverride = -1f;
 
         /// <summary>连发每发张开增量覆写（&lt; 0 = 不覆写）。</summary>
@@ -127,24 +126,5 @@ namespace LiteGame
         /// <summary>解析后坐回弹速率（覆写优先，否则机制常量）。</summary>
         public static float KickRecoverOf(float constValue)
             => KickRecoverDevOverride >= 0f ? KickRecoverDevOverride : constValue;
-#else
-        /// <summary>解析静态满张倍率（release：恒表值——覆写面随三宏编译剥离）。</summary>
-        public static float StaticMaxOf(float tableValue) => tableValue;
-
-        /// <summary>解析连发每发增量（release：恒表值）。</summary>
-        public static float BurstGrowthOf(float tableValue) => tableValue;
-
-        /// <summary>解析连发总上限（release：恒表值）。</summary>
-        public static float BurstCapOf(float tableValue) => tableValue;
-
-        /// <summary>解析后坐冲量（release：恒表值）。</summary>
-        public static float KickOf(float tableValue) => tableValue;
-
-        /// <summary>解析连发回正速率（release：恒机制常量）。</summary>
-        public static float BurstRecoverOf(float constValue) => constValue;
-
-        /// <summary>解析后坐回弹速率（release：恒机制常量）。</summary>
-        public static float KickRecoverOf(float constValue) => constValue;
-#endif
     }
 }

@@ -69,27 +69,21 @@ namespace LiteGame
                 RunAsyncCore(m, ct, join.Host, join.Port, join.RoomId, join.Ticket, testRoom: false).ForgetLogged("ProcedureMatch");
                 return;
             }
-#if UNITY_EDITOR || DEVELOPMENT_BUILD || LITEFRAMEWORK_DEBUG
-            // 唯一免票据入口 = 本地测试模式（进程内 Room-Test）。真 KCP 一律走上方 Meta 票据路径
-            // （本地全链/云端普通房/云端测试房）；直连 Room-A/TestToken 链已退役。
-            if (req.TestRoom)
+            // 唯一免票据入口 = 本地测试模式（进程内 Room-Test）——**只在开发装配存在**（DevBuildFacts）。
+            // 真 KCP 一律走上方 Meta 票据路径（本地全链/云端普通房/云端测试房）；直连 Room-A/TestToken 链已退役。
+            if (req.TestRoom && DevBuildFacts.IsDevelopment)
             {
                 RunAsyncCore(m, ct, TestHost, TestPort, TestRoomId, string.Empty, testRoom: true).ForgetLogged("ProcedureMatch");
                 return;
             }
 
-            var missing = new InvalidOperationException(
-                "无 Meta 票据：本地测试请用 request enter（Room-Test）；真 KCP 请走本地全链或云端房间");
-            Fail(m, missing, nameof(RunAsync));
-            m.Request(ProcedureId.Error, new ProcedureArgs(missing));
-#else
-            // 生产配置缺真实依赖时拒绝启动或拒绝相应功能，不能悄悄退回 fake：
-            // 正式包未接入真实登录——**拒绝以测试身份进房**（联机路径已在上方放行——真实票据不受此门禁）。
-            var ex = new InvalidOperationException(
-                "正式构建拒绝以测试身份进房——真实进房走 Meta 票据（框架先行 §6；上云批C）");
+            // 生产配置缺真实依赖时拒绝启动或拒绝相应功能，不能悄悄退回 fake（框架先行 §6）：
+            // 正式包拒绝以测试身份进房；无票据一律显式失败（联机路径已在上方放行——真实票据不受此门禁）。
+            var ex = new InvalidOperationException(req.TestRoom
+                ? "正式构建拒绝以测试身份进房——真实进房走 Meta 票据（框架先行 §6；上云批C）"
+                : "无 Meta 票据：本地测试请用 request enter（Room-Test）；真 KCP 请走本地全链或云端房间");
             Fail(m, ex, nameof(RunAsync));
             m.Request(ProcedureId.Error, new ProcedureArgs(ex));
-#endif
         }
 
         private async UniTask RunAsyncCore(IStageHost<ProcedureId, ProcedureArgs> m, CancellationToken ct,
@@ -165,15 +159,13 @@ namespace LiteGame
         internal static LiteNet.Transport.IClientTransport CreateTransport(bool testRoom, LiteSim.MatchTestRules rules,
             MetaEntryConfig deploy = null, Func<uint> gameplayDigestBase = null, IMapProvider maps = null)
         {
-#if UNITY_EDITOR || DEVELOPMENT_BUILD || LITEFRAMEWORK_DEBUG
-            if (testRoom)
+            if (testRoom && DevBuildFacts.IsDevelopment)
             {
                 if (!LocalTransportRegistry.TryGet(out ILocalTransportFactory local))
                     throw new InvalidOperationException(
                         "本地测试模式缺本地传输工厂——`LiteGame.Dev` 未装配（开发程序集不在场/装订失败）");
                 return local.Create(testRoom, rules, gameplayDigestBase, maps);
             }
-#endif
             return new LiteNet.Transport.SecureEnvelopeClientTransport(
                 new LiteNet.Transport.KcpTransportClient(),
                 string.IsNullOrEmpty(deploy?.EnvelopeKeyBase64)

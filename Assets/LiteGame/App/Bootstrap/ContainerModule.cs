@@ -18,13 +18,7 @@ namespace LiteGame
     {
         private SceneService _scenes;
         private ServiceContainer _services;
-#if UNITY_EDITOR || DEVELOPMENT_BUILD || LITEFRAMEWORK_DEBUG
-        private IDisposable _gmSceneCommands;   // GM 场景命令注册（场景操作命令化批）——随模块 Shutdown 释放
-        private IDisposable _weakNetCommand;    // 弱网预设命令注册
-        private IDisposable _disconnectCommand; // 强制断线命令注册
-        private IDisposable _reconnectCommand;  // 强制重连命令注册
-        private IDisposable _suppressReconnectCommand; // 自动重连抑制命令注册
-#endif
+        private IDisposable _devDecoration;     // 开发装配装饰句柄（GM/弱网/调试内核；null = 发布形态）
 
         public string Name => "Container";
 
@@ -78,31 +72,16 @@ namespace LiteGame
                 gmEnabled: DevBuildFacts.IsDevelopment);   // GM 命令只在开发形态可执行/可发现
             context.Put(commands);                                 // 产物登记＝具体键 CommandCenter（执行形态消费者经 Require<CommandCenter> 取）
             _services.RegisterInstance<ICommandCenter>(commands);  // 接口键（引擎面消费者/帧驱动表用——同实例、别名键）
-#if UNITY_EDITOR || DEVELOPMENT_BUILD || LITEFRAMEWORK_DEBUG
-            // GM 场景命令（带参+异步，GmOnly）：注册即进发现面——场景页从直调改命令派发（加载/卸载进审计环）。
-            // 注册点=装配期（app 生命周期，不依赖场景 DevStartupConfig 是否挂——GM 发现面在 dev 构建恒可用）。
-            _gmSceneCommands = GmSceneCommands.RegisterAll(commands, _scenes);
-            WeakNetRuntime weakNet = new WeakNetRuntime();
-            context.Put(weakNet);
-            // 网络调试组件（读模型 + 断线/重连动作）：会话上下文是流程私有件，经静态读口取件。
-            var networkDebug = new NetworkDebug(weakNet, () => BattleDiagnostics.Current);
-            context.Put(networkDebug);
-            _weakNetCommand = commands.Register(new SetWeakNetPresetHandler(weakNet),
-                new CommandOptions(gmOnly: true, description: "切换弱网预设（none/lan/mobile/lossy）"));
-            _disconnectCommand = commands.Register(new ForceDisconnectHandler(networkDebug),
-                new CommandOptions(gmOnly: true, description: "强制断线（调试：断后走自动重连）"));
-            _reconnectCommand = commands.Register(new ForceReconnectHandler(networkDebug),
-                new CommandOptions(gmOnly: true, description: "强制重连（仅 SuspectedLost 相位有效）"));
-            _suppressReconnectCommand = commands.Register(new SetAutoReconnectSuppressedHandler(networkDebug),
-                new CommandOptions(gmOnly: true, description: "抑制/恢复自动重连（断线停在 SuspectedLost）"));
-            // 调试内核：读模型/动作模型/发现协议的唯一门面；投影（编辑器页/HUD/控制台）只消费它。
-            context.Put(new DebugKernel(commands, context.Require<IInputService>(),
-                new IDebugTunableProvider[]
-                {
-                    new FeatureDebugTunables(devSession), new WeaponDebugTunables(devSession), weakNet,
-                },
-                weakNet, networkDebug, devSession));
-#endif
+            // 开发装配（GM 命令/弱网/调试内核）整段归 LiteGame.Dev，经钩子装饰；发布形态无 Dev 程序集 = 不装饰。
+            _devDecoration = DevHooks.Current?.Decorate(new DevServices
+            {
+                Context = context,
+                Commands = commands,
+                Services = _services,
+                Session = devSession,
+                Scenes = _scenes,
+                Input = context.Require<IInputService>(),
+            });
             _services.RegisterInstance<IConfigTableSource>(config);
             _services.RegisterInstance<IConfigService>(config);
             _services.RegisterInstance<IUILuaRegistry>(uiRegistry);
@@ -133,9 +112,8 @@ namespace LiteGame
                     return new MatchTransport(
                         ProcedureMatch.CreateTransport(testRoom, rules, deploy, gameplayDigestBase, maps), rules);
                 };
-#if UNITY_EDITOR || DEVELOPMENT_BUILD || LITEFRAMEWORK_DEBUG
-            transportFactory = WeakNetWiring.WrapFactory(transportFactory, weakNet);
-#endif
+            if (DevHooks.Current != null)
+                transportFactory = DevHooks.Current.WrapTransportFactory(transportFactory);   // 弱网注入装饰器（开发形态）
             var accounts = new AccountSessionFactory(context.RootScope, _services, transportFactory,
                 identity.Handshake);
             var matches = new MatchSessionFactory(context.Require<IInputService>(), gameplayDigestBase, maps,
@@ -227,18 +205,8 @@ namespace LiteGame
         /// 顺序：命令注销 → 容器 → 场景租约（注销先于容器释放；场景句柄最后归零）。</summary>
         private void DisposeModuleResources()
         {
-#if UNITY_EDITOR || DEVELOPMENT_BUILD || LITEFRAMEWORK_DEBUG
-            _weakNetCommand?.Dispose();
-            _weakNetCommand = null;
-            _disconnectCommand?.Dispose();
-            _disconnectCommand = null;
-            _reconnectCommand?.Dispose();
-            _reconnectCommand = null;
-            _suppressReconnectCommand?.Dispose();
-            _suppressReconnectCommand = null;
-            _gmSceneCommands?.Dispose();          // 注销先于容器释放（注册/注销对称——幂等注销器）
-            _gmSceneCommands = null;
-#endif
+            _devDecoration?.Dispose();            // 开发装饰：命令注销 + Dev 静态读口收口（先于容器释放）
+            _devDecoration = null;
             _services?.Dispose();
             _services = null;
             _scenes?.ReleaseAll();

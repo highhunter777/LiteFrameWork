@@ -17,20 +17,6 @@ namespace LiteFramework.Core.Tests
         /// <summary>存量直读基线（只减不增；新增文件必须改经 <c>IDevSession</c>）。</summary>
         private static readonly HashSet<string> Allowed = new HashSet<string>(StringComparer.Ordinal)
         {
-            "Assets/LiteGame/App/Debug/DebugKernel.cs",
-            "Assets/LiteGame/App/Debug/DevSession.cs",          // 端口适配器（唯一合法转发点）
-            "Assets/LiteGame/App/Debug/DevStartupConfig.cs",
-            "Assets/LiteGame/App/Debug/FeatureDebugTunables.cs",
-            "Assets/LiteGame/App/Debug/TestModeOptions.cs",
-            "Assets/LiteGame/App/Debug/WeaponDebugTunables.cs",
-            "Assets/LiteGame/App/Presentation/Battle/BattleHeadshotDebugDrawer.cs",
-            "Assets/LiteGame/App/Presentation/Battle/BattleViewRig.cs",
-            "Assets/LiteGame/App/Presentation/Fx/BattleDamageNumberDriver.cs",
-            "Assets/LiteGame/App/Presentation/Fx/LaserSightPolicy.cs",
-            "Assets/LiteGame/App/Procedure/MatchRulesSeeder.cs",
-            "Assets/LiteGame/App/Procedure/ProcedureBattle.cs",
-            "Assets/LiteGame/App/Procedure/ProcedureMain.cs",
-            "Assets/LiteGame/App/Procedure/ProcedureMatch.cs",
             "Assets/LiteGame/Editor/Baking/HeadHitLineTuner.cs",
         };
 

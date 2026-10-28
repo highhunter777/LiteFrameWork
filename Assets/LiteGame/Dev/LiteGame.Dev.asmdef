@@ -16,6 +16,7 @@
         "LiteGame.LuaBridge",
         "LiteNet",
         "LiteSim.Core",
+        "LiteView",
         "Luban.Tables",
         "RoomServer.Application.Runtime",
         "RoomServer.Runtime",

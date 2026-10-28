@@ -104,8 +104,7 @@ namespace LiteGame
         private void BindKernel()
         {
             if (_kernel != null) return;
-            GameEntry entry = Object.FindAnyObjectByType<GameEntry>();
-            _kernel = entry != null ? entry.DebugKernel : null;
+            _kernel = DevRuntime.Kernel;   // 开发装配装饰期登记（不再经 GameEntry 的调试口）
             if (_kernel == null) return;
             _nextRefresh = 0f;
             if (_liveOptions.Count == 0)

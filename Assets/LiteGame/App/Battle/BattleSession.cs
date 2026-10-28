@@ -48,9 +48,7 @@ namespace LiteGame
             _dev = dev;
             Context.RulesBound += PublishRules;
             if (Rules != null) _dev?.AttachMatchRules(Rules);   // 进房即有种子规则（StartGame 前投影也可读）
-#if UNITY_EDITOR || DEVELOPMENT_BUILD || LITEFRAMEWORK_DEBUG
-            BattleDiagnostics.Attach(Context);                  // 诊断读口登记（DevHUD/GM 页只读——三宏剥离零残留）
-#endif
+            DevHooks.Diagnostics?.Attach(Context);               // 诊断读口登记（开发装配实现；发布无实现 = 不登记）
         }
 
         /// <summary>挂入视图域（Battle 阶段 StartGame 后建立；生命周期随本会话，先于 Match 域释放）。</summary>
@@ -78,9 +76,7 @@ namespace LiteGame
             Context.RulesBound -= PublishRules;
             MatchTestRules rules = Rules;
             if (rules != null) _dev?.DetachMatchRules(rules);   // 离场解绑（只解绑本会话的实例）
-#if UNITY_EDITOR || DEVELOPMENT_BUILD || LITEFRAMEWORK_DEBUG
-            BattleDiagnostics.Detach(Context);                  // 诊断读口注销（只注销本局实例——防误注下一局）
-#endif
+            DevHooks.Diagnostics?.Detach(Context);               // 诊断读口注销（只注销本局实例——防误注下一局）
             DetachView();
             Match.Dispose();
         }

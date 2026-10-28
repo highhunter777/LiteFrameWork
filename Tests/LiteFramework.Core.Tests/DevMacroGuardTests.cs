@@ -12,48 +12,13 @@ namespace LiteFramework.Core.Tests
     /// </summary>
     public sealed class DevMacroGuardTests
     {
+        // M3-6b 3b：开发面已整件迁入 LiteGame.Dev——产品程序集只剩**一处**平台适配件例外。
+        // 任何其它文件出现 DEVELOPMENT_BUILD/LITEFRAMEWORK_DEBUG 即时失败（hard fail）。
         private static readonly Dictionary<string, int> Allowed = new Dictionary<string, int>(StringComparer.Ordinal)
         {
+            // 平台层输入后端：R12 禁 App/LiteGame.Dev 直接 import InputSystem，故热键件必须留在
+            // LiteClient.Platform.Unity（release 由宏剥离）。6b-4 收尾时评估改为自绘 Hotkey 端口。
             ["Assets/LiteClient/Adapters/Platform.Unity/Dev/DevHotkey.cs"] = 1,
-            ["Assets/LiteClient/Runtime/Battle/BattleContext.cs"] = 2,
-            ["Assets/LiteGame/App/Battle/BattleSession.cs"] = 2,
-            ["Assets/LiteGame/App/Bootstrap/ContainerModule.cs"] = 4,
-            ["Assets/LiteGame/App/Bootstrap/DevSessionModule.cs"] = 1,
-            ["Assets/LiteGame/App/Bootstrap/UiServiceModule.cs"] = 1,
-            ["Assets/LiteGame/App/Commands/Gm/GmSceneCommands.cs"] = 1,
-            ["Assets/LiteGame/App/Debug/BattleDiagnostics.cs"] = 1,
-            ["Assets/LiteGame/App/Debug/DebugConsoleCommand.cs"] = 1,
-            ["Assets/LiteGame/App/Debug/DebugKernel.cs"] = 1,
-            ["Assets/LiteGame/App/Debug/DebugPerfSampler.cs"] = 1,
-            ["Assets/LiteGame/App/Debug/DebugRuntimeTuner.cs"] = 1,
-            ["Assets/LiteGame/App/Debug/DebugStatsDiscovery.cs"] = 1,
-            ["Assets/LiteGame/App/Debug/DebugTunable.cs"] = 1,
-            ["Assets/LiteGame/App/Debug/DebugTunableDiscovery.cs"] = 1,
-            ["Assets/LiteGame/App/Debug/DebugTunableText.cs"] = 1,
-            ["Assets/LiteGame/App/Debug/DevSession.cs"] = 1,
-            ["Assets/LiteGame/App/Debug/DevStartupConfig.cs"] = 1,
-            ["Assets/LiteGame/App/Debug/FeatureDebugTunables.cs"] = 1,
-            ["Assets/LiteGame/App/Debug/GmClockCommands.cs"] = 1,
-            ["Assets/LiteGame/App/Debug/NetDebug/NetworkDebug.cs"] = 1,
-            ["Assets/LiteGame/App/Debug/NetDebug/NetworkDebugCommands.cs"] = 1,
-            ["Assets/LiteGame/App/Debug/TestModeOptions.cs"] = 1,
-            ["Assets/LiteGame/App/Debug/TestModeRuntime.cs"] = 1,
-            ["Assets/LiteGame/App/Debug/WeakNet/NetHistory.cs"] = 1,
-            ["Assets/LiteGame/App/Debug/WeakNet/WeakNetCommands.cs"] = 1,
-            ["Assets/LiteGame/App/Debug/WeakNet/WeakNetPresets.cs"] = 1,
-            ["Assets/LiteGame/App/Debug/WeakNet/WeakNetRuntime.cs"] = 1,
-            ["Assets/LiteGame/App/Debug/WeakNet/WeakNetSnapshot.cs"] = 1,
-            ["Assets/LiteGame/App/Debug/WeakNet/WeakNetWiring.cs"] = 1,
-            ["Assets/LiteGame/App/Debug/WeaponDebugTunables.cs"] = 1,
-            ["Assets/LiteGame/App/GameEntry.cs"] = 2,
-            ["Assets/LiteGame/App/Presentation/Battle/AutoHeadshotRig.cs"] = 1,
-            ["Assets/LiteGame/App/Presentation/Battle/BattleHeadshotDebugDrawer.cs"] = 1,
-            ["Assets/LiteGame/App/Presentation/Battle/BattleViewRig.cs"] = 4,
-            ["Assets/LiteGame/App/Presentation/Battle/LookTuning.cs"] = 1,
-            ["Assets/LiteGame/App/Presentation/Hud/CrosshairFeel.cs"] = 1,
-            ["Assets/LiteGame/App/Procedure/ProcedureMatch.cs"] = 2,
-            ["Assets/LiteGame/LuaBridge/LuaBehaviourAdapter.cs"] = 1,
-            ["Assets/LiteView/Animation/Drivers/GripTuning.cs"] = 1,
         };
 
         [Fact]

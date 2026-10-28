@@ -34,7 +34,7 @@ namespace LiteFramework.Core.Tests
             "Assets/LiteFramework/Scripts/Core/DI/ServiceContainer.cs::ServiceContainer",
             "Assets/LiteGame/Editor/UiTools/Contract/UiContractGenerator.cs::UiContractGenerator",
             "Assets/LiteGame/Editor/Toolchain/LiteGameToolboxWindow.cs::LiteGameToolboxWindow",
-            "Assets/LiteGame/App/Debug/DebugKernel.cs::DebugKernel",
+            "Assets/LiteGame/Dev/Debug/DebugKernel.cs::DebugKernel",
             "Assets/LiteGame/Dev/Projection/DebugPanelUiToolkitHost.cs::DebugPanelUiToolkitHost",
             "Assets/LiteClient/UI/Bind/UIBindIndex.cs::UIBindIndex",
         };

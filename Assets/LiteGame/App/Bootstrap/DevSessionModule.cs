@@ -19,11 +19,8 @@ namespace LiteGame
 
         public UniTask InitializeAsync(ModuleContext context, CancellationToken ct)
         {
-#if UNITY_EDITOR || DEVELOPMENT_BUILD || LITEFRAMEWORK_DEBUG
-            context.Put<IDevSession>(new DevSession());
-#else
-            context.Put<IDevSession>(NullDevSession.Instance);
-#endif
+            // 开发装配钩子给会话实现；无 Dev 程序集（发布形态）= 全关空实现。
+            context.Put<IDevSession>(DevHooks.Current?.CreateSession() ?? NullDevSession.Instance);
             return UniTask.CompletedTask;
         }
 

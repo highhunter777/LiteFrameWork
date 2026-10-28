@@ -10,8 +10,7 @@ namespace LiteGame
     /// </summary>
     public static class LookTuning
     {
-#if UNITY_EDITOR || DEVELOPMENT_BUILD || LITEFRAMEWORK_DEBUG
-        /// <summary>视角灵敏度覆写（rad/px；&lt; 0 = 不覆写，用机制常量）。</summary>
+        /// <summary>视角灵敏度覆写（rad/px；&lt; 0 = 不覆写，用机制常量；发布形态无写入者）。</summary>
         public static float SensitivityDevOverride = -1f;
 
         /// <summary>ADS 灵敏度收敛比覆写（&lt; 0 = 不覆写）。</summary>
@@ -24,12 +23,5 @@ namespace LiteGame
         /// <summary>解析 ADS 收敛比（覆写优先，否则机制常量）。</summary>
         public static float AdsScaleOf(float constValue)
             => AdsScaleDevOverride >= 0f ? AdsScaleDevOverride : constValue;
-#else
-        /// <summary>解析视角灵敏度（release：恒机制常量——覆写面随三宏编译剥离）。</summary>
-        public static float SensitivityOf(float constValue) => constValue;
-
-        /// <summary>解析 ADS 收敛比（release：恒机制常量）。</summary>
-        public static float AdsScaleOf(float constValue) => constValue;
-#endif
     }
 }

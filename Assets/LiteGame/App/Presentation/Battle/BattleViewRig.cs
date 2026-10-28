@@ -50,10 +50,7 @@ namespace LiteGame
         private Transform _viewRoot;
         private GameObject _viewRootGo;
         private IDisposable _teleportReg;            // 传送命令处理器注册（进房登记 / 离场注销）
-#if UNITY_EDITOR || DEVELOPMENT_BUILD || LITEFRAMEWORK_DEBUG
-        private BattleHeadshotDebugDrawer _headshotDebug;   // 身位圆柱/爆头带常驻可视化（release 剥离）
-        private AutoHeadshotRig _autoHeadshot;              // 爆头自动验证件（GM 面板现场开关；release 剥离）
-#endif
+        private IBattleDevOverlay _devOverlay;             // 开发叠加层（爆头绘制/自瞄验证；开发装配提供，发布 = null）
 
         /// <param name="account">Account 作用域（本件在其下建 `BattleView` 子作用域——离场即整体回收）。</param>
         /// <param name="worldClock">世界钟（伤害数字寿命/合并窗；null = 飘字降级）。</param>
@@ -119,13 +116,9 @@ namespace LiteGame
                 _viewAssembler.IsLocalDead, dispatcher);
             _lookController.Attach(_viewAssembler.View);
             _feedbackAssembler.AttachConsumers(_context, _viewAssembler.View);
-#if UNITY_EDITOR || DEVELOPMENT_BUILD || LITEFRAMEWORK_DEBUG
-            // 爆头区域常驻可视化（测试模式诊断件）：只读预测态，不改判定；release 剥离
-            _headshotDebug = new BattleHeadshotDebugDrawer(_context.Sim, () => _context.MatchRules);
-            // 爆头自动验证件（GM 面板现场开关）：替换输入源 + 统计爆头/命中，用于真实对局端到端验链路
-            _autoHeadshot = new AutoHeadshotRig(_context.Sim.State, _context.LocalEntityId);
-            _feedbackAssembler.Register(_autoHeadshot);
-#endif
+            // 开发叠加层（爆头区域常驻可视化 + 爆头自动验证件）：由 Dev 装配实现，发布形态 null = 零开销。
+            _devOverlay = DevHooks.Current?.CreateBattleOverlay();
+            _devOverlay?.Attach(_context, _input, consumer => _feedbackAssembler.Register(consumer));
             AttachInputWiring();
             _teleportReg = _commands?.RegisterUndoable(new TeleportToAimHandler(
                 aimOf: () => _lookController.AimPoint,
@@ -150,18 +143,7 @@ namespace LiteGame
         /// 必须在本帧采样前落位，否则自瞄点落后一帧（GM 面板现场开关；关闭即还原设备源）。</summary>
         internal void TickPreSample()
         {
-#if UNITY_EDITOR || DEVELOPMENT_BUILD || LITEFRAMEWORK_DEBUG
-            _headshotDebug?.Tick();              // 爆头区域常驻可视化（开关关时零开销）
-            if (TestModeRuntime.AutoHeadshot)
-            {
-                if (_autoHeadshot != null && !_autoHeadshot.Active) _autoHeadshot.Enable(_input);
-            }
-            else if (_autoHeadshot != null && _autoHeadshot.Active)
-            {
-                _autoHeadshot.Disable();         // 还原设备源（与离场清理同一路径）
-            }
-            _autoHeadshot?.Tick();
-#endif
+            _devOverlay?.TickPreSample();        // 爆头绘制 + 自瞄验证（发布无叠加层 = 空调用）
         }
 
         /// <summary>
@@ -208,12 +190,8 @@ namespace LiteGame
             _feedbackAssembler.DisposeAudio();           // 对局音效（消费者先于分发器/作用域拆；在播代理自然播完）
             _teleportReg?.Dispose();              // 传送命令处理器（随本局装配注销——下局重登记）
             _teleportReg = null;
-#if UNITY_EDITOR || DEVELOPMENT_BUILD || LITEFRAMEWORK_DEBUG
-            _headshotDebug = null;                // 纯每帧重绘（无持有状态），随分发器一并走
-            // 自动验证件：**先关闭**（还原设备源）再弃引用——否则输入源会停留在替身态直到下次进房
-            _autoHeadshot?.Disable();
-            _autoHeadshot = null;
-#endif
+            _devOverlay?.Detach();                // 先关闭自瞄（还原设备源）再弃引用
+            _devOverlay = null;
             _feedbackAssembler.DisposeDispatcher();      // 命中分发（视图消费者——先于视图本体拆）
             _lookController.Dispose();                   // 视角源/瞄准点摘除 → 指针解锁 → 相机瞄准还原
             _context?.AttachInput(null);

@@ -115,11 +115,7 @@ namespace LiteGame
                 if (service == null)
                 {
                     bool developmentMode =
-#if UNITY_EDITOR || DEVELOPMENT_BUILD || LITEFRAMEWORK_DEBUG
-                        true;
-#else
-                        false;
-#endif
+                        DevBuildFacts.IsDevelopment;   // 缺 key 显示 [key] 的开发期口径（发布走占位文案）
                     var built = new LocalizationService(LTextCatalog.Build(config.Tables),
                         LocalizationCatalog.SourceLocale, developmentMode);
                     built.OnMissingKey = key => Log.Warning($"LText 缺 key:{key}", LogTag.LText);
