@@ -7,22 +7,15 @@ namespace LiteFramework.Core.Tests
 {
     /// <summary>
     /// 开发宏边界（《客户端架构重构演进路线图》§4.8/§4.11 7）：
-    /// `DEVELOPMENT_BUILD` / `LITEFRAMEWORK_DEBUG` 只允许出现在 `LiteGame.Dev`。
-    /// M3-1 先按文件建存量基线（只减不增）；M3-6b 清零后转 hard fail。
+    /// <c>DEVELOPMENT_BUILD</c> / <c>LITEFRAMEWORK_DEBUG</c> 只允许出现在 `LiteGame.Dev`。
+    ///
+    /// M3-1 建立存量基线（只减不增）→ M3-6b 逐段收紧 → **6b-4 清零转纯 hard fail**：
+    /// 产品程序集（LiteClient/LiteGame 非 Dev/LiteFramework/LiteView）出现任何一处即失败，无允许表。
     /// </summary>
     public sealed class DevMacroGuardTests
     {
-        // M3-6b 3b：开发面已整件迁入 LiteGame.Dev——产品程序集只剩**一处**平台适配件例外。
-        // 任何其它文件出现 DEVELOPMENT_BUILD/LITEFRAMEWORK_DEBUG 即时失败（hard fail）。
-        private static readonly Dictionary<string, int> Allowed = new Dictionary<string, int>(StringComparer.Ordinal)
-        {
-            // 平台层输入后端：R12 禁 App/LiteGame.Dev 直接 import InputSystem，故热键件必须留在
-            // LiteClient.Platform.Unity（release 由宏剥离）。6b-4 收尾时评估改为自绘 Hotkey 端口。
-            ["Assets/LiteClient/Adapters/Platform.Unity/Dev/DevHotkey.cs"] = 1,
-        };
-
         [Fact]
-        public void 开发宏只允许出现在Dev装配层_存量只减不增()
+        public void 开发宏只允许出现在Dev装配层_零容忍()
         {
             string root = RepoRoot();
             var offenders = new List<string>();
@@ -37,24 +30,12 @@ namespace LiteFramework.Core.Tests
                     string rel = Path.GetRelativePath(root, file).Replace(Path.DirectorySeparatorChar, '/');
                     if (rel.StartsWith("Assets/LiteGame/Dev/", StringComparison.Ordinal)) continue;
                     int count = CountConditionLines(file);
-                    if (count == 0) continue;
-                    if (!Allowed.TryGetValue(rel, out int allowed) || count > allowed)
-                        offenders.Add(rel + " :: " + count + " > 基线 " + (Allowed.TryGetValue(rel, out int value) ? value : 0));
+                    if (count > 0) offenders.Add(rel + " :: " + count);
                 }
             }
 
             Assert.True(offenders.Count == 0,
-                "开发宏只能出现在 LiteGame.Dev；新增/增加即失败（M3-6b 清零）:" + string.Join(" | ", offenders));
-
-            // 基线诚实性：条目一旦清零/减少，必须同步收紧基线——否则"清零进度"不可见（只减不增的另一面）
-            var stale = new List<string>();
-            foreach (var pair in Allowed)
-            {
-                string path = Path.Combine(root, pair.Key.Replace('/', Path.DirectorySeparatorChar));
-                int actual = File.Exists(path) ? CountConditionLines(path) : 0;
-                if (actual < pair.Value) stale.Add(pair.Key + " :: " + pair.Value + " -> " + actual);
-            }
-            Assert.True(stale.Count == 0, "基线条目已减少/清零——请从基线删除:" + string.Join(" | ", stale));
+                "开发宏只能出现在 LiteGame.Dev（M3-6b 已清零——新增即失败）:" + string.Join(" | ", offenders));
         }
 
         private static int CountConditionLines(string file)
