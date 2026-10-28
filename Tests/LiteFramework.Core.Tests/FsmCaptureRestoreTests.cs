@@ -91,31 +91,6 @@ namespace LiteFramework.Tests
             Assert.Equal(Sid.B, m.Current);
         }
 
-        [Fact]
-        public void 抢占机_恢复栈随快照往返()
-        {
-            TableStage<Sid, int> Atk() => new TableStage<Sid, int>(new StageSpec<Sid, int>
-            { Id = Sid.A, Priority = 10, Resume = ResumeMode.Resume });
-            TableStage<Sid, int> Hurt() => new TableStage<Sid, int>(new StageSpec<Sid, int>
-            { Id = Sid.C, Priority = 20 });
-
-            var m = new PreemptiveStageMachine<Sid, int>("P",
-                (Sid.A, Atk()), (Sid.B, new LogStage(new List<string>(), "B")), (Sid.C, Hurt()));
-            m.Start(Sid.A);
-            m.Request(Sid.C);
-            m.Advance();                                   // A 被抢占入栈
-            Assert.Equal(1, m.ResumeDepth);
-            var snap = m.Capture();
-
-            Assert.True(m.TryResume());                    // 恢复（栈清空）
-            m.Advance();
-            Assert.Equal(0, m.ResumeDepth);
-
-            m.Restore(snap, FsmRestoreMode.Silent);
-            Assert.Equal(1, m.ResumeDepth);                // 栈随快照回来
-            Assert.Equal(Sid.C, m.Current);                // 结构态同快照
-        }
-
         private enum Hid { Root, A, A1, A2, B }
 
         private sealed class HLog : IStage<Hid, int>

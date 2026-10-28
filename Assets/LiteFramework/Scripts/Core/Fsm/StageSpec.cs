@@ -35,27 +35,6 @@ namespace LiteFramework
         ResumeAlreadyCurrent = 4,
     }
 
-    /// <summary>优先级声明（可选接口）：值大者胜，同值可互相抢占；未实现 = 0。</summary>
-    public interface IPriorityStage
-    {
-        int Priority { get; }
-    }
-
-    /// <summary>
-    /// 中断规则（可选接口）：**"谁能打断我"**。未实现 = 默认可被打断。
-    /// 实现后，`StageMachine` 的抢占判定会问它（而不是只看"是否有优先级"）。
-    /// </summary>
-    public interface IInterruptPolicy<TId>
-    {
-        bool CanBeInterruptedBy(TId incoming);
-    }
-
-    /// <summary>恢复意愿声明（可选接口）：被抢占时是否入恢复栈（见 <see cref="ResumeMode"/>）。</summary>
-    public interface IResumeStage
-    {
-        ResumeMode Resume { get; }
-    }
-
     /// <summary>
     /// 驻留看门狗声明（可选接口，《状态机专项设计》§3.2）：当前阶段驻留帧数超限且无挂起时，
     /// 机器在 Tick 统一裁决并 <see cref="StageMachineCore{TId,TReq}.ForceState"/> 强制迁往 <see cref="TimeoutTarget"/>。
@@ -83,16 +62,16 @@ namespace LiteFramework
         /// <summary>该行对应的阶段 id。</summary>
         public TId Id;
 
-        /// <summary>静态优先级：大者胜；`Request` 的 `priorityOverride` 可临时覆盖。</summary>
+        /// <summary>表数据兼容字段（M3-7 删抢占机后**无读取方**；保留以免表源/用例大改）。</summary>
         public int Priority;
 
-        /// <summary>被抢占后是否入恢复栈。</summary>
+        /// <summary>表数据兼容字段（无读取方——恢复栈随抢占机删除）。</summary>
         public ResumeMode Resume = ResumeMode.Cancel;
 
-        /// <summary>是否可被打断（简化规则）；`CanBeInterruptedBy` 非空时以它为准。霸体 = false。</summary>
+        /// <summary>表数据兼容字段（无读取方——抢占准入已删除）。</summary>
         public bool CanBeInterrupted = true;
 
-        /// <summary>细粒度中断规则：谁能打断我（null = 只看 <see cref="CanBeInterrupted"/>）。</summary>
+        /// <summary>表数据兼容字段（无读取方）。</summary>
         public Func<TId, bool> CanBeInterruptedBy;
 
         /// <summary>&gt;0 时：本阶段驻留到该帧数即自动迁移（表驱动的"时长"）。</summary>
@@ -104,7 +83,7 @@ namespace LiteFramework
         /// <summary>时长到点后去哪。</summary>
         public TId NextId;
 
-        /// <summary>时长到点时优先"恢复栈顶"（而不是 <see cref="NextId"/>）。</summary>
+        /// <summary>表数据兼容字段（M3-7 起无读取方：抢占机删除后无恢复栈；`TableStage` 恒走 <see cref="NextId"/>）。</summary>
         public bool AutoResumeOnEnd;
 
         /// <summary>驻留看门狗（§3.2）：&gt; 0 且无挂起时驻留到该帧数即强制迁往 <see cref="TimeoutTarget"/>。</summary>

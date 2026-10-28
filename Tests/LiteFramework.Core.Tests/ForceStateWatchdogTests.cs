@@ -47,23 +47,6 @@ namespace LiteFramework.Tests
         }
 
         [Fact]
-        public void ForceState_抢占机绕准入_对照Request被拒()
-        {
-            // B 霸体 + 优先级 10；C 优先级 0
-            var m = new PreemptiveStageMachine<Tid, int>("P",
-                (Tid.A, Table(Tid.A)), (Tid.B, Table(Tid.B, priority: 10, interruptible: false)), (Tid.C, Table(Tid.C)));
-            m.Start(Tid.B);
-
-            Assert.False(m.Request(Tid.C));                 // 准入拒绝：霸体
-            Assert.Equal(RejectReason.InterruptDisallowed, m.LastReject);
-
-            m.ForceState(Tid.C);                            // 绕准入
-            Assert.Equal(RejectReason.None, m.LastReject);
-            m.Advance();
-            Assert.Equal(Tid.C, m.Current);
-        }
-
-        [Fact]
         public void ForceState_编程错误照抛_重入未注册Start前OnLeave窗口()
         {
             var m = new StageMachine<Tid, int>("E", (Tid.A, new SpyStage()), (Tid.B, new SpyStage()));
@@ -100,20 +83,6 @@ namespace LiteFramework.Tests
 
             m.Reset();
             Assert.Equal(0, m.TimeoutCount);                // 复位清零
-        }
-
-        [Fact]
-        public void 看门狗_抢占机上目标低优先级仍强制()
-        {
-            var m = new PreemptiveStageMachine<Tid, int>("WP",
-                (Tid.A, Table(Tid.A)), (Tid.B, Table(Tid.B, priority: 10, interruptible: false, timeoutFrames: 2, timeoutTarget: Tid.A)));
-            m.Start(Tid.B);
-
-            Assert.False(m.Request(Tid.A));                 // 常规通道被霸体拒绝
-            m.Tick(0.016f);
-            m.Tick(0.016f);
-            Assert.Equal(Tid.A, m.Current);                 // 看门狗走 ForceState：绕准入
-            Assert.Equal(1, m.TimeoutCount);
         }
 
         [Fact]

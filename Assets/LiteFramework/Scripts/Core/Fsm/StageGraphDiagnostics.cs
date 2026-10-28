@@ -74,8 +74,8 @@ namespace LiteFramework
                 if (!reachable.Contains(kv.Key))
                     Log.Warning($"[{machineName}] 阶段 {kv.Key} 静态不可达（仅经带守卫的边可达时属误报，允许保留）", LogTag.Fsm);
                 if (kv.Value is TableStage<TId, TReq> spec && spec.Spec.DurationFrames > 0
-                    && !spec.Spec.HasNext && !spec.Spec.AutoResumeOnEnd && spec.Spec.TimeoutFrames <= 0)
-                    Log.Warning($"[{machineName}] 阶段 {kv.Key} 配置了时长但无出口（NextId/AutoResumeOnEnd/看门狗均未设置）——到点后死底", LogTag.Fsm);
+                    && !spec.Spec.HasNext && spec.Spec.TimeoutFrames <= 0)
+                    Log.Warning($"[{machineName}] 阶段 {kv.Key} 配置了时长但无出口（NextId/看门狗均未设置）——到点后死底；AutoResumeOnEnd 自 M3-7 起不再生效", LogTag.Fsm);
             }
         }
     }

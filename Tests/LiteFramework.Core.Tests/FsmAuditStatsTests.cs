@@ -30,39 +30,6 @@ namespace LiteFramework.Tests
             => new TableStage<Sid, int>(new StageSpec<Sid, int> { Id = id, Priority = priority, CanBeInterrupted = interruptible, Resume = resume });
 
         [Fact]
-        public void 审计Kind_手动自动恢复强制齐全()
-        {
-            var t = new TransitionTable<Sid, int>();
-            t.AddEdge<Evt>(Sid.B, Sid.A);                       // 事件边（Auto）
-            var m = new PreemptiveStageMachine<Sid, int>("K", t,
-                (Sid.A, Table(Sid.A, resume: ResumeMode.Resume)),
-                (Sid.B, Table(Sid.B, priority: 10, interruptible: false)),
-                (Sid.C, Table(Sid.C)));
-            m.Start(Sid.A);
-
-            m.Request(Sid.B);                                   // Manual（10 ≥ 0）
-            m.Advance();
-            m.ForceState(Sid.C);                                // Forced（绕霸体）
-            m.Advance();
-            m.Raise(new Evt());                                 // Auto：边命中 B→A（被优先级拒——不入审计）
-            m.Tick(0.016f);                                     // 挂起未发生（被拒）→ 无迁移
-            Assert.True(m.TryResume());                         // Resume：A 被抢占时入栈（Resume 模式）
-            m.Advance();
-
-            var audit = m.GetTransitionAudit();
-            Assert.Equal(3, audit.Count);                       // 被拒的事件边不产生迁移记录
-            Assert.Equal(TransitionKind.Manual, audit[0].Kind);
-            Assert.Equal(Sid.A, audit[0].From);
-            Assert.Equal(Sid.B, audit[0].To);
-            Assert.Equal(TransitionKind.Forced, audit[1].Kind);
-            Assert.Equal(TransitionKind.Resume, audit[2].Kind);
-            Assert.Equal(Sid.C, audit[2].From);
-            Assert.Equal(Sid.A, audit[2].To);
-            Assert.Equal(1, audit[0].Seq);                      // 序号单调
-            Assert.Equal(3, audit[2].Seq);
-        }
-
-        [Fact]
         public void 审计Kind_自动条件边与快照恢复()
         {
             var t = new TransitionTable<Sid, int>();
@@ -124,33 +91,6 @@ namespace LiteFramework.Tests
             m.Advance();
             infos = m.GetStageInfos().ToDictionary(i => i.Id, i => i);
             Assert.Equal(0.1, infos[Sid.B].TotalSeconds, 5);    // B 段完结计入
-        }
-
-        [Fact]
-        public void 计数_拒绝_Auto边命中_恢复成功()
-        {
-            var t = new TransitionTable<Sid, int>();
-            t.AddEdge<Evt>(Sid.A, Sid.C);
-            t.AddEdge(Sid.A, Sid.B);
-            var m = new PreemptiveStageMachine<Sid, int>("C", t,
-                (Sid.A, Table(Sid.A, priority: 10, resume: ResumeMode.Resume)),   // 可打断但优先级高
-                (Sid.B, Table(Sid.B)),
-                (Sid.C, Table(Sid.C)));
-            m.Start(Sid.A);
-
-            m.Request(Sid.B);                                   // 拒绝：B(0) < A(10)（Priority +1）
-            Assert.True(m.Raise(new Evt()));                    // 边命中 = 机器已裁决（返回 true 与准入无关）；C(0) < A(10) → 准入拒（Priority +1）
-            Assert.False(m.TryResume());                        // 栈空（ResumeStackEmpty）
-            m.ForceState(Sid.C);                                // 强制成功（A 入恢复栈）
-            m.Advance();
-            Assert.True(m.TryResume());                         // 恢复成功（ResumeSuccess +1）
-
-            var dict = new Dictionary<string, string>();
-            m.Snapshot(dict);
-            Assert.Equal("1", dict["自动边命中"]);               // 一次事件边命中
-            Assert.Equal("2", dict["拒绝-优先级"]);              // Request(B) + Raise 边(C) 各一次
-            Assert.Equal("0", dict["拒绝-中断规则"]);
-            Assert.Equal("1", dict["恢复成功"]);
         }
 
         [Fact]

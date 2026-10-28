@@ -18,7 +18,7 @@ namespace LiteFramework
 
     /// <summary>
     /// 阶段状态机（**基础机**）：状态表 + payload + 两段式迁移 + 帧末应用。
-    /// 只负责"状态怎么切"——**不含抢占/恢复/优先级**；需要那些能力用 <see cref="PreemptiveStageMachine{TId,TReq}"/>（子类，纯加法）；
+    /// 只负责"状态怎么切"——**不含抢占/恢复/优先级**（M3-7 起抢占型子类已删除——§4.5 无消费者机制）；
     /// 层级 / 历史 / 冒泡用独立的 <see cref="HierarchicalStageMachine{TId,TReq}"/>。
     ///
     /// **迁移语义（守卫/准入/挂起/自动边/看门狗）单源在 <see cref="StageMachineCore{TId,TReq}"/>**

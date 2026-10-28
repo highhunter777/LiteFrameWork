@@ -10,8 +10,7 @@ namespace LiteFramework
     /// **迁移语义（守卫/准入/挂起/自动边/看门狗）单源在 <see cref="StageMachineCore{TId,TReq}"/>**
     /// ——与平面机共享同一内核，改语义只动内核一处；本类只持有层级表示法：活动路径树 +
     /// LCA 事务 + 事件冒泡 + 复合历史。
-    /// flat 机 = 无复合态时的退化形态。需要优先级抢占/恢复时用子类
-    /// <see cref="PreemptiveHierarchicalStageMachine{TId,TReq}"/>（《状态机专项设计》§3.3，纯加法）。
+    /// flat 机 = 无复合态时的退化形态（M3-7 起抢占型子类已删除——§4.5 无消费者机制）。
     ///
     /// 与平面机的差异（表示法层）：
     /// ① **一次迁移 = 一次事务**：`Request` 只入队，`Advance` 应用——算出目标路径与当前活动路径的**共同祖先（LCA）**，
