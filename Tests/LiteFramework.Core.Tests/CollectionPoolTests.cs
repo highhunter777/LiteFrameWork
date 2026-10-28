@@ -76,44 +76,5 @@ namespace LiteFramework.Tests
             Assert.Throws<InvalidOperationException>(() => pool.Release(list));
         }
 
-        // ---- 静态门面 ----
-
-        [Fact]
-        public void 静态门面_ListPool按类型分桶_跨类型不串桶()
-        {
-            var ints = ListPool<int>.Get();
-            ints.Add(42);
-            ListPool<int>.Release(ints);                       // ListPool<int> 桶：1 件
-
-            var strs = ListPool<string>.Get();                 // ListPool<string> 桶：独立分桶
-            Assert.Empty(strs);                                // 跨类型不串桶（string 桶是全新实例）
-            Assert.Equal(1, ListPool<int>.UnusedCount);        // int 桶不受 string 桶取件影响
-
-            var taken = ListPool<int>.Get();
-            Assert.True(ReferenceEquals(ints, taken), "同桶取件");
-            Assert.Empty(taken);                               // 同桶取件已自清
-        }
-
-        [Fact]
-        public void 静态门面_三家族取还闭环()
-        {
-            var list = ListPool<long>.Get(); list.Add(1L); ListPool<long>.Release(list);
-            var dict = DictionaryPool<int, string>.Get(); dict[1] = "a"; DictionaryPool<int, string>.Release(dict);
-            var set = HashSetPool<byte>.Get(); set.Add(3); HashSetPool<byte>.Release(set);
-
-            Assert.Empty(ListPool<long>.Get());
-            Assert.Empty(DictionaryPool<int, string>.Get());
-            Assert.Empty(HashSetPool<byte>.Get());
-        }
-
-        [Fact]
-        public void 静态门面_maxIdle默认8_超限丢弃()
-        {
-            var lists = new List<List<short>>();
-            for (int i = 0; i < 10; i++) lists.Add(ListPool<short>.Get());
-            foreach (var l in lists) ListPool<short>.Release(l);
-
-            Assert.Equal(8, ListPool<short>.UnusedCount);      // 默认容量 8：超出丢弃不驻留
-        }
     }
 }

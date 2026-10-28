@@ -34,35 +34,4 @@ namespace LiteFramework
         public long PoolHits => _pool.PoolHits;
     }
 
-    /// <summary>临时 List 池静态门面：Get/Release 同实例（每闭合类型一组桶状态，静态天然按 T 分桶）。
-    /// maxIdle 默认 8（集合池典型小容量）。</summary>
-    public static class ListPool<T>
-    {
-        private static readonly CollectionPool<List<T>, T> s_pool = new CollectionPool<List<T>, T>();
-
-        public static List<T> Get() => s_pool.Acquire();
-        public static void Release(List<T> list) => s_pool.Release(list);
-        public static int UnusedCount => s_pool.UnusedCount;
-    }
-
-    /// <summary>临时 Dictionary 池静态门面（TItem = KeyValuePair——Dictionary 实现 ICollection&lt;KeyValuePair&lt;K,V&gt;&gt;）。</summary>
-    public static class DictionaryPool<K, V>
-    {
-        private static readonly CollectionPool<Dictionary<K, V>, KeyValuePair<K, V>> s_pool =
-            new CollectionPool<Dictionary<K, V>, KeyValuePair<K, V>>();
-
-        public static Dictionary<K, V> Get() => s_pool.Acquire();
-        public static void Release(Dictionary<K, V> dict) => s_pool.Release(dict);
-        public static int UnusedCount => s_pool.UnusedCount;
-    }
-
-    /// <summary>临时 HashSet 池静态门面。</summary>
-    public static class HashSetPool<T>
-    {
-        private static readonly CollectionPool<HashSet<T>, T> s_pool = new CollectionPool<HashSet<T>, T>();
-
-        public static HashSet<T> Get() => s_pool.Acquire();
-        public static void Release(HashSet<T> set) => s_pool.Release(set);
-        public static int UnusedCount => s_pool.UnusedCount;
-    }
 }

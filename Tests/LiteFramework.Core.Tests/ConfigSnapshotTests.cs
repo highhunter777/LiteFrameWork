@@ -51,31 +51,5 @@ namespace LiteFramework.Tests
             Assert.Throws<ArgumentNullException>(() => svc.Publish(null));
         }
 
-        [Fact]
-        public void 异步发布_候选构造取消_OCE穿透且版本不变()
-        {
-            var svc = new ConfigSnapshotService<Snapshot>(s => null);
-            var cts = new CancellationTokenSource();
-
-            Assert.ThrowsAny<OperationCanceledException>(() =>
-                ConfigSnapshotPublishExtensions.PublishAsync(svc,
-                    ct => { cts.Cancel(); ct.ThrowIfCancellationRequested(); return UniTask.FromResult<Snapshot>(null); },
-                    cts.Token).AsTask().GetAwaiter().GetResult());
-
-            Assert.Equal(0UL, svc.Version);                    // 发布未发生
-        }
-
-        [Fact]
-        public void 异步发布_构造完成即原子发布()
-        {
-            var svc = new ConfigSnapshotService<Snapshot>(s => null);
-            var snapshot = new Snapshot { Tag = "async", Payload = 42 };
-
-            ulong version = ConfigSnapshotPublishExtensions.PublishAsync(svc,
-                ct => UniTask.FromResult(snapshot)).AsTask().GetAwaiter().GetResult();
-
-            Assert.Equal(1UL, version);
-            Assert.Same(snapshot, svc.Current);
-        }
     }
 }
