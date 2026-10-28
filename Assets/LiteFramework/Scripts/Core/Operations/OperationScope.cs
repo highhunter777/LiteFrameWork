@@ -37,21 +37,37 @@ namespace LiteFramework
         private readonly CancellationTokenSource _cts;
         private readonly CancellationToken _token;
         private readonly CancellationTokenRegistration _tokenRegistration;
+        private readonly Timer _timeoutTimer;
         private readonly object _gate = new object();
         private int _state;
+        private int _timedOut;
         private bool _disposed;
 
-        private OperationScope(string owner, string mergeKey, TimeSpan? timeout, CancellationToken parent)
+        private OperationScope(string owner, string mergeKey, TimeSpan? timeout, CancellationToken[] parents)
         {
             Owner = owner;
             MergeKey = mergeKey;
             Timeout = timeout;
-            _cts = parent.CanBeCanceled
-                ? CancellationTokenSource.CreateLinkedTokenSource(parent)
-                : new CancellationTokenSource();
-            if (timeout.HasValue) _cts.CancelAfter(timeout.Value);
+
+            int linked = 0;
+            if (parents != null)
+                foreach (CancellationToken parent in parents)
+                    if (parent.CanBeCanceled) linked++;
+
+            var effective = new CancellationToken[linked];
+            int index = 0;
+            if (parents != null)
+                foreach (CancellationToken parent in parents)
+                    if (parent.CanBeCanceled) effective[index++] = parent;
+
+            _cts = linked == 0
+                ? new CancellationTokenSource()
+                : CancellationTokenSource.CreateLinkedTokenSource(effective);
+
             _token = _cts.Token;
             _tokenRegistration = _token.Register(OnTokenCanceled);
+            if (timeout.HasValue)
+                _timeoutTimer = new Timer(OnTimeout, null, timeout.Value, System.Threading.Timeout.InfiniteTimeSpan);
         }
 
         /// <summary>发起者标识（诊断/审计；不进容器）。</summary>
@@ -65,6 +81,9 @@ namespace LiteFramework
 
         /// <summary>本操作的取消令牌（链接父令牌；超时到点自动取消）。</summary>
         public CancellationToken Token => _token;
+
+        /// <summary>是否因超时被取消（区分“调用方取消”与“超时”——下载/加载据此选错误分类）。</summary>
+        public bool IsTimedOut => Volatile.Read(ref _timedOut) != 0;
 
         /// <summary>当前状态。</summary>
         public OperationState State => (OperationState)Volatile.Read(ref _state);
@@ -98,7 +117,20 @@ namespace LiteFramework
                 throw new ArgumentException("OperationScope.Owner 不能为空", nameof(owner));
             if (timeout.HasValue && timeout.Value <= TimeSpan.Zero)
                 throw new ArgumentOutOfRangeException(nameof(timeout), "超时必须为正时长");
-            return new OperationScope(owner, mergeKey, timeout, parent);
+            return new OperationScope(owner, mergeKey, timeout, new[] { parent });
+        }
+
+        /// <summary>
+        /// 创建一次性操作作用域（多父令牌：调用方取消 + 宿主生命周期等，任一取消即级联）。
+        /// </summary>
+        public static OperationScope StartLinked(
+            string owner, string mergeKey = null, TimeSpan? timeout = null, params CancellationToken[] parents)
+        {
+            if (string.IsNullOrWhiteSpace(owner))
+                throw new ArgumentException("OperationScope.Owner 不能为空", nameof(owner));
+            if (timeout.HasValue && timeout.Value <= TimeSpan.Zero)
+                throw new ArgumentOutOfRangeException(nameof(timeout), "超时必须为正时长");
+            return new OperationScope(owner, mergeKey, timeout, parents);
         }
 
         /// <summary>标记进入执行（Pending → Running；终态后调用无效）。</summary>
@@ -168,9 +200,21 @@ namespace LiteFramework
                 }
             }
 
+            _timeoutTimer?.Dispose();
             _tokenRegistration.Dispose();
             if (cts != null) CancelCore(cts);
             _cts.Dispose();
+        }
+
+        /// <summary>超时回调（Timer 线程）：标记超时原因后取消；已终态则忽略。</summary>
+        private void OnTimeout(object _)
+        {
+            lock (_gate)
+            {
+                if (IsTerminalLocked()) return;
+                Volatile.Write(ref _timedOut, 1);
+            }
+            Cancel();
         }
 
         /// <summary>令牌取消（超时/父令牌/显式）→ 未终态者记 Canceled（状态与令牌不漂移）。</summary>

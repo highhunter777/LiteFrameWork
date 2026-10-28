@@ -83,8 +83,39 @@ namespace LiteFramework.Core.Tests
 
             await Task.Delay(400);
             Assert.True(scope.Token.IsCancellationRequested);
+            Assert.True(scope.IsTimedOut);
             Assert.Equal(OperationState.Canceled, scope.State);
             scope.Dispose();
+        }
+
+        [Fact]
+        public void 显式取消_不算超时()
+        {
+            var scope = OperationScope.Start("content.fetch", timeout: TimeSpan.FromSeconds(30));
+            scope.Cancel();
+            Assert.True(scope.Token.IsCancellationRequested);
+            Assert.False(scope.IsTimedOut);
+            scope.Dispose();
+        }
+
+        [Fact]
+        public async Task 多父令牌_任一取消即级联()
+        {
+            using var caller = new CancellationTokenSource();
+            using var lifetime = new CancellationTokenSource();
+            var scope = OperationScope.StartLinked("scene.load", "single:x", null, caller.Token, lifetime.Token);
+
+            lifetime.Cancel();
+            await Task.Yield();
+            Assert.True(scope.Token.IsCancellationRequested);
+
+            var second = OperationScope.StartLinked("scene.load", "single:y", null, caller.Token, CancellationToken.None);
+            caller.Cancel();
+            await Task.Yield();
+            Assert.True(second.Token.IsCancellationRequested);
+
+            scope.Dispose();
+            second.Dispose();
         }
 
         [Fact]

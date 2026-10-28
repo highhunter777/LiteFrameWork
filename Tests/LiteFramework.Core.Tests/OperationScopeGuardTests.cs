@@ -13,6 +13,8 @@ namespace LiteFramework.Core.Tests
         [Theory]
         [InlineData("Assets/LiteClient/UI/UIService.cs")]
         [InlineData("Assets/LiteClient/UI/UINavigationController.cs")]
+        [InlineData("Assets/LiteClient/Runtime/Resource/PatchRunner.cs")]
+        [InlineData("Assets/LiteClient/Runtime/Resource/HttpCandidateFetcher.cs")]
         public void 已迁移文件_只经OperationScope持有取消(string relativePath)
         {
             string root = RepoRoot();
@@ -23,6 +25,30 @@ namespace LiteFramework.Core.Tests
             Assert.DoesNotContain("new CancellationTokenSource", text);
             Assert.DoesNotContain("WorkCts", text);
             Assert.Contains("OperationScope.Start(", text);
+        }
+
+        [Fact]
+        public void 场景服务_操作经作用域_生命周期CTS仅一处()
+        {
+            string path = Path.Combine(RepoRoot(), "Assets/LiteClient/Adapters/Content.YooAsset/Scene/SceneService.cs");
+            string text = File.ReadAllText(path);
+
+            Assert.Contains("OperationScope.StartLinked(", text);
+            Assert.Contains("scene.load", text);
+            Assert.Contains("scene.unload", text);
+            // 仅服务生命周期一枚（_lifetime）；操作面不得再各持 CTS。
+            Assert.Equal(1, CountOccurrences(text, "new CancellationTokenSource"));
+        }
+
+        private static int CountOccurrences(string text, string token)
+        {
+            int count = 0, index = 0;
+            while ((index = text.IndexOf(token, index, StringComparison.Ordinal)) >= 0)
+            {
+                count++;
+                index += token.Length;
+            }
+            return count;
         }
 
         private static string RepoRoot()

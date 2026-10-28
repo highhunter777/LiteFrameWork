@@ -94,50 +94,79 @@ namespace LiteClient
         /// <summary>最近一次描述校验的拒绝原因（诊断；接受时为 None）。</summary>
         public ReleaseRejectReason LastRejectReason { get; private set; }
 
+        /// <summary>跑一次补丁编排：整条内容事务共享一个操作作用域（owner=content.patch，取消级联调用方）。</summary>
         public async UniTask<PatchRunResult> RunAsync(CancellationToken ct = default)
         {
-            CandidateOffer offer = await _provider.TryGetCandidateAsync(ct);
-            if (offer.IsEmpty)
+            using OperationScope scope = OperationScope.Start("content.patch", "patch", parent: ct);
+            scope.MarkRunning();
+            CancellationToken token = scope.Token;
+            try
             {
-                // 无候选：仍走一次编排以执行**启动恢复**（§8 中断/失败阶段表）——
-                // 上次激活中断的记录必须在本次启动被处理，不能因"这次没有候选"而跳过。
-                return await _coordinator.RunAsync(null, null, null, ct);
+                CandidateOffer offer = await _provider.TryGetCandidateAsync(token);
+                if (offer.IsEmpty)
+                {
+                    // 无候选：仍走一次编排以执行**启动恢复**（§8 中断/失败阶段表）——
+                    // 上次激活中断的记录必须在本次启动被处理，不能因"这次没有候选"而跳过。
+                    PatchRunResult recovery = await _coordinator.RunAsync(null, null, null, token);
+                    MarkResult(scope, recovery);
+                    return recovery;
+                }
+
+                // §6 信任门：描述未过校验的候选**不得**进入编排。
+                //
+                // 验签器按清单 KeyId 从受信公钥库解析（§6"签名公钥标识（对应 TrustedKeyRing）"）：
+                // 未登记/已撤销 → 解析为 null → 校验器按 UnknownOrRevokedKey 拒（fail-closed）。
+                // 反回退基线取**已确认的发布修订**（非代次）——`ConfirmedRevision` 与 `ConfirmedVersion`
+                // 语义不同，前者才是 §6 说的"已确认修订"。该字段未并入完整性摘要（见 ActivationRecord 注释），
+                // 故它只提高拒绝门槛、不是安全边界；重放防护由签名与发布修订单调性共同承担。
+                ReleaseVerdict verdict = ReleaseManifestValidator.Validate(
+                    offer.Manifest, offer.SignedBytes, offer.Signature,
+                    _verifierResolver(offer.Manifest.KeyId), _player,
+                    confirmedRevision: _store.Current.ConfirmedRevision,
+                    budget: _budget);
+
+                LastRejectReason = verdict.Accepted ? ReleaseRejectReason.None : verdict.Reason;
+                if (!verdict.Accepted)
+                {
+                    _store.RecordFailure("候选描述被拒：" + verdict);
+                    scope.MarkFailed();
+                    return PatchRunResult.Fail(PatchPhase.Recovering,
+                        new DownloadFailureInfo(DownloadFailureKind.ReadError, detail: verdict.Reason.ToString()), null);
+                }
+
+                ReleaseVerdict windowVerdict = ReleaseManifestValidator.ValidateEffectWindow(offer.Manifest);
+                if (!windowVerdict.Accepted)
+                {
+                    LastRejectReason = windowVerdict.Reason;
+                    _store.RecordFailure("生效窗口不支持：" + windowVerdict);
+                    scope.MarkFailed();
+                    return PatchRunResult.Fail(PatchPhase.Recovering,
+                        new DownloadFailureInfo(DownloadFailureKind.ReadError, detail: windowVerdict.Reason.ToString()), null);
+                }
+
+                DownloadPlan plan = _planFactory(offer.Manifest);
+
+                PatchRunResult result = await _coordinator.RunAsync(
+                    offer.Manifest, plan, _spaceRequestFactory(offer.Manifest), token);
+                MarkResult(scope, result);
+                return result;
             }
-
-            // §6 信任门：描述未过校验的候选**不得**进入编排。
-            //
-            // 验签器按清单 KeyId 从受信公钥库解析（§6"签名公钥标识（对应 TrustedKeyRing）"）：
-            // 未登记/已撤销 → 解析为 null → 校验器按 UnknownOrRevokedKey 拒（fail-closed）。
-            // 反回退基线取**已确认的发布修订**（非代次）——`ConfirmedRevision` 与 `ConfirmedVersion`
-            // 语义不同，前者才是 §6 说的"已确认修订"。该字段未并入完整性摘要（见 ActivationRecord 注释），
-            // 故它只提高拒绝门槛、不是安全边界；重放防护由签名与发布修订单调性共同承担。
-            ReleaseVerdict verdict = ReleaseManifestValidator.Validate(
-                offer.Manifest, offer.SignedBytes, offer.Signature,
-                _verifierResolver(offer.Manifest.KeyId), _player,
-                confirmedRevision: _store.Current.ConfirmedRevision,
-                budget: _budget);
-
-            LastRejectReason = verdict.Accepted ? ReleaseRejectReason.None : verdict.Reason;
-            if (!verdict.Accepted)
+            catch (OperationCanceledException)
             {
-                _store.RecordFailure("候选描述被拒：" + verdict);
-                return PatchRunResult.Fail(PatchPhase.Recovering,
-                    new DownloadFailureInfo(DownloadFailureKind.ReadError, detail: verdict.Reason.ToString()), null);
+                scope.Cancel();
+                throw;
             }
-
-            ReleaseVerdict windowVerdict = ReleaseManifestValidator.ValidateEffectWindow(offer.Manifest);
-            if (!windowVerdict.Accepted)
+            catch
             {
-                LastRejectReason = windowVerdict.Reason;
-                _store.RecordFailure("生效窗口不支持：" + windowVerdict);
-                return PatchRunResult.Fail(PatchPhase.Recovering,
-                    new DownloadFailureInfo(DownloadFailureKind.ReadError, detail: windowVerdict.Reason.ToString()), null);
+                scope.MarkFailed();
+                throw;
             }
+        }
 
-            DownloadPlan plan = _planFactory(offer.Manifest);
-
-            return await _coordinator.RunAsync(
-                offer.Manifest, plan, _spaceRequestFactory(offer.Manifest), ct);
+        private static void MarkResult(OperationScope scope, PatchRunResult result)
+        {
+            if (result.Succeeded || result.NoWork) scope.MarkSucceeded();
+            else scope.MarkFailed();
         }
 
         /// <summary>本地通道默认计划：来源仅作诊断标识——<see cref="LocalDirectoryCandidateFetcher"/>

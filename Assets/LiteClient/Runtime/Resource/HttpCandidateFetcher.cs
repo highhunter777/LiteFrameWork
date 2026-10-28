@@ -161,16 +161,20 @@ namespace LiteClient
             string url, ReleaseFileEntry entry, string temp, string target, CancellationToken ct)
         {
             using (var request = UnityWebRequest.Get(url))
+            using (OperationScope scope = OperationScope.Start(
+                       "content.fetch", entry.Path, TimeSpan.FromSeconds(_timeoutSeconds), ct))
             {
-                request.timeout = _timeoutSeconds;
-
                 try
                 {
-                    await request.SendWebRequest().WithCancellation(ct);
+                    await request.SendWebRequest().WithCancellation(scope.Token);
                 }
                 catch (OperationCanceledException)
                 {
-                    return new DownloadFailureInfo(DownloadFailureKind.Canceled, entry.Path);
+                    // 超时与调用方取消都表现为取消；按作用域原因区分（超时是暂态，可重试/换源）
+                    return scope.IsTimedOut
+                        ? new DownloadFailureInfo(DownloadFailureKind.TransientNetwork, entry.Path,
+                            detail: $"超时 {_timeoutSeconds}s")
+                        : new DownloadFailureInfo(DownloadFailureKind.Canceled, entry.Path);
                 }
                 catch (UnityWebRequestException ex)
                 {

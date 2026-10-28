@@ -101,41 +101,59 @@ namespace LiteClient
             ValidateLocation(location);
             ThrowIfReleased(nameof(LoadSingleAsync));
 
-            int generation = _generation;
-            await UnloadSingleAsync(ct);
-
-            SceneHandle handle = null;
+            using OperationScope operation = OperationScope.StartLinked(
+                "scene.load", "single:" + location, timeout: null, ct, _lifetime.Token);
+            operation.MarkRunning();
             try
             {
-                handle = await LoadHandleAsync(location, LoadSceneMode.Single, ct);
+                int generation = _generation;
+                await UnloadSingleAsync(operation.Token);
+
+                SceneHandle handle = null;
+                try
+                {
+                    handle = await LoadHandleAsync(location, LoadSceneMode.Single, operation.Token);
+                }
+                catch
+                {
+                    // 失败路径也要清理叠加登记（Single 语义可能已销毁旧场景）——见 finally 的说明
+                    ClearAdditiveRegistry();
+                    throw;
+                }
+
+                // Single 语义已销毁全部旧场景：无论成败，叠加登记都失效（Dispose 释放引用，不再 Unload）
+                ClearAdditiveRegistry();
+
+                // 迟到检查（§9）：等待期间宿主可能已 ReleaseAll——此时不得回写已释放的服务
+                if (generation != _generation || IsReleased)
+                {
+                    handle.Dispose();
+                    DiscardedLateLoads++;
+                    operation.Cancel();
+                    Log.Warning($"单场景加载完成但宿主已释放，结果就地丢弃:{location}", LogTag.Scene);
+                    return;
+                }
+
+                _single = handle;
+                _singleLocation = location;
+                // 场景作用域（§6.2"Scene：场景加载到卸载"）：句柄登记进作用域后，
+                // 卸载/释放路径**只 Dispose 作用域**就完成了"卸场景 + 释放引用"两件事——
+                // 顺序与容错由 ClientScope 保证（先 UnloadSceneAsync 再 Dispose，见 SceneLease 的 LIFO 语义）。
+                _singleScope = new ClientScope($"Scene.Single[{location}]");
+                _singleScope.Register(new SceneLease(handle));
+                operation.MarkSucceeded();
+                Log.Info($"单场景已加载:{location}", LogTag.Scene);
+            }
+            catch (OperationCanceledException)
+            {
+                operation.Cancel();
+                throw;
             }
             catch
             {
-                // 失败路径也要清理叠加登记（Single 语义可能已销毁旧场景）——见 finally 的说明
-                ClearAdditiveRegistry();
+                operation.MarkFailed();
                 throw;
             }
-
-            // Single 语义已销毁全部旧场景：无论成败，叠加登记都失效（Dispose 释放引用，不再 Unload）
-            ClearAdditiveRegistry();
-
-            // 迟到检查（§9）：等待期间宿主可能已 ReleaseAll——此时不得回写已释放的服务
-            if (generation != _generation || IsReleased)
-            {
-                handle.Dispose();
-                DiscardedLateLoads++;
-                Log.Warning($"单场景加载完成但宿主已释放，结果就地丢弃:{location}", LogTag.Scene);
-                return;
-            }
-
-            _single = handle;
-            _singleLocation = location;
-            // 场景作用域（§6.2"Scene：场景加载到卸载"）：句柄登记进作用域后，
-            // 卸载/释放路径**只 Dispose 作用域**就完成了"卸场景 + 释放引用"两件事——
-            // 顺序与容错由 ClientScope 保证（先 UnloadSceneAsync 再 Dispose，见 SceneLease 的 LIFO 语义）。
-            _singleScope = new ClientScope($"Scene.Single[{location}]");
-            _singleScope.Register(new SceneLease(handle));
-            Log.Info($"单场景已加载:{location}", LogTag.Scene);
         }
 
         /// <summary>卸载当前单场景；无场景 = no-op（幂等宽容）。</summary>
@@ -143,13 +161,30 @@ namespace LiteClient
         {
             if (_single == null) return;
 
-            SceneHandle handle = _single;
-            ClientScope scope = _singleScope;
-            _single = null;
-            _singleScope = null;
-            _singleLocation = null;                            // 先摘引用：重入/失败都不指向半卸场景
-            await UnloadHandleAsync(handle, ct);
-            scope?.Dispose();                                  // 作用域收尾：登记项已由上面的显式卸载归还，此处保幂等与容错聚合
+            using OperationScope operation = OperationScope.StartLinked(
+                "scene.unload", "single", timeout: null, ct, _lifetime.Token);
+            operation.MarkRunning();
+            try
+            {
+                SceneHandle handle = _single;
+                ClientScope scope = _singleScope;
+                _single = null;
+                _singleScope = null;
+                _singleLocation = null;                        // 先摘引用：重入/失败都不指向半卸场景
+                await UnloadHandleAsync(handle, operation.Token);
+                scope?.Dispose();                              // 作用域收尾：登记项已由上面的显式卸载归还，此处保幂等与容错聚合
+                operation.MarkSucceeded();
+            }
+            catch (OperationCanceledException)
+            {
+                operation.Cancel();
+                throw;
+            }
+            catch
+            {
+                operation.MarkFailed();
+                throw;
+            }
         }
 
         // ---- 叠加（并发） ----
@@ -163,35 +198,56 @@ namespace LiteClient
         {
             ValidateLocation(location);
             ThrowIfReleased(nameof(LoadAdditiveAsync));
-            if (IsLoaded(location))
-            {
-                Log.Warning($"叠加场景已加载，忽略重复请求:{location}", LogTag.Scene);
-                return;
-            }
-            if (IsLoadedExternally(location))
-            {
-                _additives[location] = null;              // 领养登记：无句柄（场景归编辑器会话所有）
-                Log.Warning($"同名场景已在场（预置场景开发形态），跳过叠加加载并登记:{location}", LogTag.Scene);
-                return;
-            }
 
-            int generation = _generation;
-            SceneHandle handle = await LoadHandleAsync(location, LoadSceneMode.Additive, ct);
-
-            // 迟到检查（§9）：等待期间宿主已释放 / 已发生单场景切换清理 → 就地释放引用
-            if (generation != _generation || IsReleased || _additives.ContainsKey(location))
+            using OperationScope operation = OperationScope.StartLinked(
+                "scene.load", "additive:" + location, timeout: null, ct, _lifetime.Token);
+            operation.MarkRunning();
+            try
             {
-                handle.Dispose();
-                DiscardedLateLoads++;
-                Log.Warning($"叠加场景加载完成但宿主已释放或登记已变更，结果就地丢弃:{location}", LogTag.Scene);
-                return;
-            }
+                if (IsLoaded(location))
+                {
+                    Log.Warning($"叠加场景已加载，忽略重复请求:{location}", LogTag.Scene);
+                    operation.MarkSucceeded();
+                    return;
+                }
+                if (IsLoadedExternally(location))
+                {
+                    _additives[location] = null;              // 领养登记：无句柄（场景归编辑器会话所有）
+                    Log.Warning($"同名场景已在场（预置场景开发形态），跳过叠加加载并登记:{location}", LogTag.Scene);
+                    operation.MarkSucceeded();
+                    return;
+                }
 
-            _additives[location] = handle;
-            var additiveScope = new ClientScope($"Scene.Additive[{location}]");
-            additiveScope.Register(new SceneLease(handle));
-            _additiveScopes[location] = additiveScope;
-            Log.Info($"叠加场景已加载:{location}（当前叠加数 {_additives.Count}）", LogTag.Scene);
+                int generation = _generation;
+                SceneHandle handle = await LoadHandleAsync(location, LoadSceneMode.Additive, operation.Token);
+
+                // 迟到检查（§9）：等待期间宿主已释放 / 已发生单场景切换清理 → 就地释放引用
+                if (generation != _generation || IsReleased || _additives.ContainsKey(location))
+                {
+                    handle.Dispose();
+                    DiscardedLateLoads++;
+                    operation.Cancel();
+                    Log.Warning($"叠加场景加载完成但宿主已释放或登记已变更，结果就地丢弃:{location}", LogTag.Scene);
+                    return;
+                }
+
+                _additives[location] = handle;
+                var additiveScope = new ClientScope($"Scene.Additive[{location}]");
+                additiveScope.Register(new SceneLease(handle));
+                _additiveScopes[location] = additiveScope;
+                operation.MarkSucceeded();
+                Log.Info($"叠加场景已加载:{location}（当前叠加数 {_additives.Count}）", LogTag.Scene);
+            }
+            catch (OperationCanceledException)
+            {
+                operation.Cancel();
+                throw;
+            }
+            catch
+            {
+                operation.MarkFailed();
+                throw;
+            }
         }
 
         /// <summary>卸载指定叠加场景；未加载 = no-op（幂等宽容）。**领养实例 = no-op 警告**：
@@ -201,16 +257,34 @@ namespace LiteClient
             ValidateLocation(location);
             if (!_additives.TryGetValue(location, out SceneHandle handle)) return;
 
-            _additives.Remove(location);                       // 先摘引用：重入/失败都不指向半卸场景
-            _additiveScopes.Remove(location, out ClientScope scope);
-            if (handle == null)
+            using OperationScope operation = OperationScope.StartLinked(
+                "scene.unload", "additive:" + location, timeout: null, ct, _lifetime.Token);
+            operation.MarkRunning();
+            try
             {
-                Log.Warning($"叠加场景为领养实例（预置场景开发形态），只摘登记、不执行卸载:{location}", LogTag.Scene);
-                return;
+                _additives.Remove(location);                   // 先摘引用：重入/失败都不指向半卸场景
+                _additiveScopes.Remove(location, out ClientScope scope);
+                if (handle == null)
+                {
+                    Log.Warning($"叠加场景为领养实例（预置场景开发形态），只摘登记、不执行卸载:{location}", LogTag.Scene);
+                    operation.MarkSucceeded();
+                    return;
+                }
+                await UnloadHandleAsync(handle, operation.Token);
+                scope?.Dispose();                              // 作用域收尾（同单场景）
+                operation.MarkSucceeded();
+                Log.Info($"叠加场景已卸载:{location}（余 {_additives.Count}）", LogTag.Scene);
             }
-            await UnloadHandleAsync(handle, ct);
-            scope?.Dispose();                                  // 作用域收尾（同单场景）
-            Log.Info($"叠加场景已卸载:{location}（余 {_additives.Count}）", LogTag.Scene);
+            catch (OperationCanceledException)
+            {
+                operation.Cancel();
+                throw;
+            }
+            catch
+            {
+                operation.MarkFailed();
+                throw;
+            }
         }
 
         // ---- 释放（宿主关闭面） ----
@@ -274,6 +348,11 @@ namespace LiteClient
             try
             {
                 await handle.AsUniTask(ct);
+            }
+            catch (OperationCanceledException)
+            {
+                handle.Dispose();                              // 取消也立即释放半截句柄
+                throw;
             }
             catch (Exception ex)
             {
