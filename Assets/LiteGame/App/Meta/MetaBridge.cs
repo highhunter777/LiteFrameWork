@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Globalization;
 using Cysharp.Threading.Tasks;
@@ -22,12 +22,14 @@ namespace LiteGame
     public static class MetaBridge
     {
         private static MetaEntryService s_meta;
+        private static IdentityContext s_identity;
         private static Func<cfg.Tables> s_tables;      // 地图表（多图批：房间行地图名显示面；可空 = 不解析名）
 
         /// <summary>装配期注入编排件（ContainerModule——未配置部署时也注入：IsConfigured=false 由页面显性拒绝）。</summary>
-        public static void Bind(MetaEntryService meta, Func<cfg.Tables> tables = null)
+        public static void Bind(MetaEntryService meta, IdentityContext identity = null, Func<cfg.Tables> tables = null)
         {
             s_meta = meta ?? throw new ArgumentNullException(nameof(meta));
+            s_identity = identity;
             s_tables = tables;
         }
 
@@ -55,7 +57,7 @@ namespace LiteGame
         public static string ServerUrl => s_meta != null ? s_meta.ServerUrl : "";
 
         /// <summary>客户端构建身份（buildHash）：页面版本展示（`Common.Version {0}`，登录/设置页）——与 Join 握手同值。</summary>
-        public static string Version => LiteNet.BuildHash.Value;
+        public static string Version => s_identity != null ? s_identity.Build.BuildHash : string.Empty;
 
         /// <summary>离房/离局（Page_Room「离开」）：请求流程机回 Main——Match/Battle 阶段由既有管道取消、
         /// 资源在各自 finally 收尾；页面侧再导航替换回 Page_Lobby（"断开 + 返回大厅"，《页面层级设计》§3）。</summary>

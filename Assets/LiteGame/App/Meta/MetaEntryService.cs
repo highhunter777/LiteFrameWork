@@ -22,15 +22,20 @@ namespace LiteGame
     {
         private readonly IMetaClient _client;          // null = 未配置（装配面按 HasMeta 决定）
         private readonly Func<string> _deviceId;
+        private readonly IdentityContext _identity;
         private IStageHost<ProcedureId, ProcedureArgs> _machine;
         private string _accessToken;                    // 访问令牌（只住本服务——不出日志不出服务面）
 
-        public MetaEntryService(IMetaClient client, Func<string> deviceId, string serverUrl)
+        public MetaEntryService(IMetaClient client, Func<string> deviceId, string serverUrl, IdentityContext identity)
         {
             _client = client;                           // 可空（未配置装配——IsConfigured 判据）
             _deviceId = deviceId ?? throw new ArgumentNullException(nameof(deviceId));
+            _identity = identity ?? throw new ArgumentNullException(nameof(identity));
             ServerUrl = serverUrl ?? string.Empty;
         }
+
+        /// <summary>本安装包构建身份（门面版本展示与换票/建房同源）。</summary>
+        public string BuildHash => _identity.Handshake.BuildHash;
 
         /// <summary>云端测试房模板名（服务端 `roomserver.*.json` 的 `rooms.sandbox`；显式建房用）。</summary>
         public const string TestRoomTemplate = "sandbox";
@@ -91,7 +96,7 @@ namespace LiteGame
             if (_machine == null) return MachineUnbound<JoinTicketInfo>();
 
             return JoinWith(await _client.RequestJoinTicketAsync(
-                _accessToken, roomId ?? "", LiteNet.BuildHash.Value));
+                _accessToken, roomId ?? "", _identity.Handshake.BuildHash));
         }
 
         /// <summary>创建房间（**服务端出号 → 票据即达**）：调 create-room 拿唯一新号票据，随后与换票进房
@@ -112,7 +117,7 @@ namespace LiteGame
             if (_accessToken == null) return NotLoggedIn<JoinTicketInfo>();
             if (_machine == null) return MachineUnbound<JoinTicketInfo>();
 
-            return JoinWith(await _client.CreateRoomAsync(_accessToken, LiteNet.BuildHash.Value, mapId,
+            return JoinWith(await _client.CreateRoomAsync(_accessToken, _identity.Handshake.BuildHash, mapId,
                 expectedPlayers, template, gmKey));
         }
 

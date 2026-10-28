@@ -6,7 +6,7 @@ using LiteFramework;
 namespace LiteGame
 {
     /// <summary>
-    /// ② 开发会话端口（M0 接缝 6；M2 装配序修正）：产品代码只经 <see cref="IDevSession"/> 取测试面，
+    /// ③ 开发会话端口（M0 接缝 6；M2 装配序修正）：产品代码只经 <see cref="IDevSession"/> 取测试面，
     /// 开发三宏内注入 <see cref="DevSession"/>、发布包注入全关空实现（<see cref="NullDevSession"/>）。
     ///
     /// **为什么单独成模块**：设备源（<see cref="InputModule"/>）构造即消费端口，而装配根

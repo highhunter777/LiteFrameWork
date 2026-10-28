@@ -60,6 +60,9 @@ namespace LiteClient
         public string MatchId => _matchId;
         /// <summary>本局玩法配置摘要（ConfigHash 复算值；0 = 未校验）——现场包身份面。</summary>
         public uint ConfigDigest => _configDigest;
+
+        /// <summary>现场包身份（BuildHash/AppVersion/Platform；装配注入，测试可为空）。</summary>
+        public DiagnosticIdentity DiagnosticsIdentity => _diagnosticsIdentity;
         public LiteNet.Proto.MatchEnded MatchResult => _battle.Client.MatchResult;
 
         /// <summary>本地玩家实体 Id（0 = 尚未对齐——首份快照按 Slot==PlayerId 解析）。</summary>
@@ -115,7 +118,8 @@ namespace LiteClient
         private readonly BattleClient _battle;
         private readonly ClientScope _matchScope;
         private readonly SimMapData _map;
-        private readonly uint _gameplayDigestBase;        // 本地装载产物的玩法数据身份基摘要（批 E 校验点用）
+        private readonly IMatchIdentity _identity;        // 本局玩法数据身份（基摘要 + 规则位）
+        private readonly DiagnosticIdentity _diagnosticsIdentity;
         private readonly BattleInputPipeline _inputs;      // 输入三件（顺序与上行）
         private readonly IEventBus _events;                // 局内事件总线（Match Scope；null = 测试直构）
         private readonly BattleSnapshotMirror _mirror = new BattleSnapshotMirror();   // 持久镜像 + 和解 + 插值源
@@ -154,13 +158,16 @@ namespace LiteClient
         /// 形态由 L1 用例显式构造，生产链恒为装载产物。</param>
         public BattleContext(BattleClient battle, ClientScope accountScope,
             IInputService inputProvider = null, SimMapData map = null, uint gameplayDigestBase = 0,
-            MatchTestRules rules = null, IEventBus events = null)
+            MatchTestRules rules = null, IEventBus events = null,
+            IMatchIdentity matchIdentity = null, DiagnosticIdentity? diagnosticsIdentity = null)
         {
             _battle = battle ?? throw new ArgumentNullException(nameof(battle));
             if (accountScope == null) throw new ArgumentNullException(nameof(accountScope));
             _map = map ?? throw new ArgumentException(
                 "地图必填——装配经 IMapProvider 注入（D22：无回退地图）", nameof(map));
-            _gameplayDigestBase = gameplayDigestBase;
+            _identity = matchIdentity ?? new GameplayMatchIdentity(gameplayDigestBase);
+            _diagnosticsIdentity = diagnosticsIdentity ?? new DiagnosticIdentity(string.Empty,
+                UnityEngine.Application.version, UnityEngine.Application.platform.ToString());
             _seedRules = rules;      // 本局规则随会话显式带入（路线图 §4.4：无全局"当前局"登记口）
             _events = events;         // 局内事件总线（Match Scope 持有；null = 测试直构）
             // 定容依据＝**JoinAck 权威事实**（开房参数批：玩家开房时可选人数；0 = 未标注 → 默认 2 座回落）。
@@ -330,12 +337,12 @@ namespace LiteClient
             // 复算——不等 = 两端判据不同源（表数据漏更/回退一端：服务端换表未同批、客户端内容热更滞后……）。
             // 带着分叉数据开局必然和解风暴，故**拒局**：留 Error 痕迹（双方摘要 + 基摘要）→ Ended(SessionFailed)
             // 交流程层回 Main（与"版本不符"同口径——该原因的处理路径已存在）。
-            uint expectedDigest = CombatConfigDigest.WithTestRules(_gameplayDigestBase, values.NoDeath, values.InfiniteAmmo);
+            uint expectedDigest = _identity.Compute(values.NoDeath, values.InfiniteAmmo);
             if (sg.ConfigHash != expectedDigest)
             {
                 Log.Error(
                     $"玩法数据身份不符:StartGame.ConfigHash=0x{sg.ConfigHash:x8} 本地复算=0x{expectedDigest:x8}" +
-                    $"（本地基摘要=0x{_gameplayDigestBase:x8} noDead={values.NoDeath} infiniteAmmo={values.InfiniteAmmo}）" +
+                    $"（本地基摘要=0x{_identity.ConfigDigestBase:x8} noDead={values.NoDeath} infiniteAmmo={values.InfiniteAmmo}）" +
                     "——两端判定面表数据不同源（服务端换表重启与客户端内容热更未同批？）；本局拒绝建立", LogTag.Battle);
                 CaptureDiagnosticsBundle(0, "config-digest-mismatch");
                 End(EndReason.SessionFailed);
@@ -431,7 +438,7 @@ namespace LiteClient
                     int frame = _sim?.State?.Frame ?? 0;
                     ClientDiagnosticsBundle.CaptureUnityException(writer, condition, stackTrace, type,
                         _matchId, frame, _localEntityId, (int)Math.Min(_reconcileCount, int.MaxValue),
-                        _configDigest);
+                        _configDigest, _diagnosticsIdentity);
                 }
             }
             catch
@@ -460,7 +467,8 @@ namespace LiteClient
                     }
 
                     string path = ClientDiagnosticsBundle.Capture(writer, reason, _matchId, frame,
-                        _localEntityId, (int)Math.Min(_reconcileCount, int.MaxValue), _configDigest);
+                        _localEntityId, (int)Math.Min(_reconcileCount, int.MaxValue), _configDigest,
+                        identity: _diagnosticsIdentity);
 
                     if (path != null) Log.Info("诊断现场包已落盘: " + path, LogTag.Battle);
                     else Log.Warning("诊断现场包写出失败（IO/权限）", LogTag.Battle);

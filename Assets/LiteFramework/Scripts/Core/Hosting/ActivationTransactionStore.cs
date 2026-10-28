@@ -21,8 +21,11 @@ namespace LiteFramework
     /// <summary>激活事务记录（持久化 DTO——序列化由 IO 适配承担，Core 不依赖具体格式）。</summary>
     public sealed class ActivationRecord
     {
+        /// <summary>当前记录结构版本（单源；写入初值与该字段同源）。</summary>
+        public const int CurrentSchemaVersion = 1;
+
         /// <summary>记录结构版本（不识别的版本 = 记录不可信，按无记录处理——fail-safe 回内置）。</summary>
-        public int SchemaVersion = 1;
+        public int SchemaVersion = CurrentSchemaVersion;
 
         /// <summary>当前已确认（健康检查通过）的发布身份；builtin = 内置兜底，永远合法可用。</summary>
         public string ConfirmedReleaseId = ContentGeneration.BuiltinReleaseId;

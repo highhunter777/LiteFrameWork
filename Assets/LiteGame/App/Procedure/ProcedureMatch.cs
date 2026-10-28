@@ -16,7 +16,7 @@ namespace LiteGame
     /// 身份口径：真 KCP 路径**只接受 Meta 签发的票据**；开发/编辑器/开发包唯一的免票据入口是
     /// 本地测试模式（进程内 `Room-Test`，不经过 Socket/票据）。**正式构建缺真实身份依赖时
     /// 直接拒绝进房**（确定错误态，不悄悄退回 fake——见 <see cref="RunAsync"/> 门禁）。
-    /// buildHash 用 <see cref="LiteNet.BuildHash.Value"/>（两端同源——不一致服务端拒绝进房）。
+    /// 握手身份经 <see cref="IdentityContext"/> 注入会话工厂（两端同源——不一致服务端拒绝进房）。
     ///
     /// 所有权：Account Scope 在本阶段创建；正常路径随 <see cref="ProcedureArgs"/> 移交 Battle
     /// （离场收尾在 Battle，关闭序见 <see cref="ProcedureBattle"/>）；本阶段失败/取消则就地 Dispose。
@@ -105,7 +105,7 @@ namespace LiteGame
             using CancellationTokenSource linkedCts = CancellationTokenSource.CreateLinkedTokenSource(ct, loadingToken);
             try
             {
-                account = _accounts.Create(host, port, roomId, token, LiteNet.BuildHash.Value, testRoom);
+                account = _accounts.Create(host, port, roomId, token, testRoom);
                 battle = account.Battle;
                 _pending = battle;                        // 交给 OnUpdate 驱动泵（握手/收发全靠它推进）
 

@@ -84,14 +84,15 @@ namespace LiteGame.Tests.EditMode
                 var transport = new FakeClientTransport();
                 transports.Add(transport);
                 return new MatchTransport(transport, null);
-            });
+            }, new HandshakeIdentity(LiteNet.BuildHash.Value));
             var matches = new MatchSessionFactory(input: null, gameplayDigestBase: () => 0u,
-                maps: new FakeMapProvider(), pool: new LiteFramework.ReferencePoolService());
+                maps: new FakeMapProvider(), pool: new LiteFramework.ReferencePoolService(),
+                diagnostics: new LiteFramework.Diagnostics.DiagnosticIdentity(
+                    LiteNet.BuildHash.Value, "test", "Editor"));
 
             for (int i = 0; i < Loops; i++)
             {
-                AccountSession account = accounts.Create(Host, Port, RoomId, Token,
-                    LiteNet.BuildHash.Value, testRoom: false);
+                AccountSession account = accounts.Create(Host, Port, RoomId, Token, testRoom: false);
                 MatchSession match = matches.Create(account, new MatchTestRules());
                 var session = new BattleSession(match);
 

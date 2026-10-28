@@ -100,10 +100,14 @@ namespace LiteGame.Tests.EditMode
             public bool Request(ProcedureId nextId) => Request(nextId, default);
         }
 
+        private static IdentityContext Identity() => new IdentityContext(
+            new BuildIdentity(LiteNet.BuildHash.Value, "0.1.0", "WindowsPlayer", string.Empty, 5),
+            new SchemaIdentity(0, 0, 0, ActivationRecord.CurrentSchemaVersion));
+
         private static MetaEntryService Service(FakeMetaClient client, FakeStageHost machine = null,
             bool configured = true)
         {
-            var service = new MetaEntryService(configured ? client : null, () => "device-1", "http://meta.test");
+            var service = new MetaEntryService(configured ? client : null, () => "device-1", "http://meta.test", Identity());
             if (machine != null) service.BindMachine(machine);
             return service;
         }

@@ -4,7 +4,6 @@ using System.IO;
 using System.Text;
 using LiteFramework;
 using LiteFramework.Diagnostics;
-using LiteNet;
 
 namespace LiteClient
 {
@@ -21,14 +20,15 @@ namespace LiteClient
         /// </summary>
         public static string CaptureUnityException(DiagnosticsBundleWriter writer, string condition,
             string stackTrace, UnityEngine.LogType type, string matchId, int frame,
-            long localEntityId, int reconcileCount, uint configDigest)
+            long localEntityId, int reconcileCount, uint configDigest,
+            DiagnosticIdentity? identity = null)
         {
             if (writer == null) throw new ArgumentNullException(nameof(writer));
             if (type != UnityEngine.LogType.Exception && type != UnityEngine.LogType.Assert) return null;
             if (!writer.CanAccept(matchId)) return null;
 
             return Capture(writer, "unity-exception", matchId, frame, localEntityId, reconcileCount,
-                configDigest, BuildExceptionExtra(condition, stackTrace));
+                configDigest, BuildExceptionExtra(condition, stackTrace), identity);
         }
 
         /// <summary>异常上下文进 ExtraJson（截尾防超长——完整堆栈在 Player.log 尾部件里）。</summary>
@@ -41,10 +41,12 @@ namespace LiteClient
         }
 
         public static string Capture(DiagnosticsBundleWriter writer, string reason, string matchId, int frame,
-            long localEntityId, int reconcileCount, uint configDigest, string extraJson = null)
+            long localEntityId, int reconcileCount, uint configDigest, string extraJson = null,
+            DiagnosticIdentity? identity = null)
         {
             if (writer == null) throw new ArgumentNullException(nameof(writer));
             if (!writer.CanAccept(matchId)) return null;
+            DiagnosticIdentity diag = identity ?? DiagnosticIdentity.Unknown;
 
             var logs = new List<string>(Log.Recent.Count);
             for (int i = 0; i < Log.Recent.Count; i++)
@@ -61,10 +63,10 @@ namespace LiteClient
                 Frame = frame,
                 LocalEntityId = localEntityId,
                 ReconcileCount = reconcileCount,
-                BuildHash = BuildHash.Value,
+                BuildHash = diag.BuildHash,
                 ConfigDigest = configDigest,
-                Platform = UnityEngine.Application.platform.ToString(),
-                AppVersion = UnityEngine.Application.version,
+                Platform = diag.Platform,
+                AppVersion = diag.AppVersion,
                 RecentLogs = logs,
                 PlayerLogTail = ReadPlayerLogTail(64 * 1024),
                 ExtraJson = extraJson,

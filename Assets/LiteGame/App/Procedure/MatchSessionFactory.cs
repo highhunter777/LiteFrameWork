@@ -1,6 +1,7 @@
 using System;
 using LiteClient;
 using LiteFramework;
+using LiteFramework.Diagnostics;
 
 namespace LiteGame
 {
@@ -55,6 +56,7 @@ namespace LiteGame
         private readonly Func<uint> _gameplayDigestBase;
         private readonly IMapProvider _maps;
         private readonly IReferencePool _pool;
+        private readonly DiagnosticIdentity _diagnostics;
 
         /// <param name="gameplayDigestBase">本地装载产物的玩法数据身份基摘要提供者
         /// （装配点绑定 `ConfigService.GameplayDigestBase`——**惰性读**:本工厂在 Preload 之前构造，
@@ -63,12 +65,13 @@ namespace LiteGame
         /// <param name="maps">地图提供者（D9）：进房装配点经它取判定图传给 BattleContext（D22：无回退地图；
         /// 取值同刻于 Create——恒在装载之后；表缺 Map 域即抛）。</param>
         public MatchSessionFactory(IInputService input, Func<uint> gameplayDigestBase, IMapProvider maps,
-            IReferencePool pool)
+            IReferencePool pool, DiagnosticIdentity diagnostics)
         {
             _input = input;
             _gameplayDigestBase = gameplayDigestBase ?? throw new ArgumentNullException(nameof(gameplayDigestBase));
             _maps = maps ?? throw new ArgumentNullException(nameof(maps));
             _pool = pool ?? throw new ArgumentNullException(nameof(pool));
+            _diagnostics = diagnostics;
         }
 
         public MatchSession Create(AccountSession account, LiteSim.MatchTestRules rules = null)
@@ -87,11 +90,14 @@ namespace LiteGame
                         // 多图批：本局判定图行键取 **JoinAck 权威事实**（0 = 未标注 → 首图口径，
                         // 单源裁决见 BattleScenes.ResolveMapId）——与 Match 加载的地图场景同一行键（视觉=判定同图）。
                         int mapId = BattleScenes.ResolveMapId(battle.Client.MapId);
+                        uint digestBase = _gameplayDigestBase();
                         return new BattleContext(battle, account.Scope, _input,
                             _maps.GetMap(mapId),
-                            gameplayDigestBase: _gameplayDigestBase(),
+                            gameplayDigestBase: digestBase,
                             rules: rules,             // 每局规则随会话显式注入（无静态"当前局"）
-                            events: matchEvents);     // 局内事件总线随 Match Scope 释放
+                            events: matchEvents,      // 局内事件总线随 Match Scope 释放
+                            matchIdentity: new GameplayMatchIdentity(digestBase),
+                            diagnosticsIdentity: _diagnostics);
                     },
                     ServiceLifetime.Scoped, typeof(BattleClient));
                 matchServices.Seal();

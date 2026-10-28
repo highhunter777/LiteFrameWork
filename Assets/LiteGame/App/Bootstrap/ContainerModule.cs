@@ -32,6 +32,7 @@ namespace LiteGame
         public IReadOnlyList<Type> DependsOn => new[]
         {
             typeof(PlatformInfrastructureModule),
+            typeof(IdentityModule),
             typeof(DevSessionModule),
             typeof(ContentModule),
             typeof(SettingsModule),
@@ -58,6 +59,7 @@ namespace LiteGame
         {
             var config = context.Require<ConfigService>();
             var content = context.Require<IContentService>();
+            var identity = context.Require<IdentityContext>();
             var lua = context.Require<LuaComponent>();
             var ui = context.Require<UIService>();
             var nav = context.Require<UINavigationController>();
@@ -139,9 +141,10 @@ namespace LiteGame
 #if UNITY_EDITOR || DEVELOPMENT_BUILD || LITEFRAMEWORK_DEBUG
             transportFactory = WeakNetWiring.WrapFactory(transportFactory, weakNet);
 #endif
-            var accounts = new AccountSessionFactory(context.RootScope, _services, transportFactory);
+            var accounts = new AccountSessionFactory(context.RootScope, _services, transportFactory,
+                identity.Handshake);
             var matches = new MatchSessionFactory(context.Require<IInputService>(), gameplayDigestBase, maps,
-                context.Require<IReferencePool>());
+                context.Require<IReferencePool>(), identity.Diagnostics);
             _services.RegisterInstance<IAccountSessionFactory>(accounts);
             _services.RegisterInstance<IMatchSessionFactory>(matches);
 
@@ -156,7 +159,8 @@ namespace LiteGame
             var metaEntry = new MetaEntryService(
                 deploy.HasMeta ? new UnityMetaClient(deploy.MetaUrl, deploy.TimeoutSeconds) : null,
                 accountDeviceId,
-                deploy.MetaUrl);
+                deploy.MetaUrl,
+                identity);
             // 云端测试房：模板/口令随部署注入（开发者本地才有；测试者包不带 ⇒ 建不了云端测试房）
             metaEntry.ConfigureTestRoom(deploy.RoomTemplate, deploy.RoomGmKey);
             _services.RegisterInstance(metaEntry);   // GM 页云端测试房入口取件（MetaBridge 仍是主消费者）
@@ -171,7 +175,7 @@ namespace LiteGame
             Bridge.BindRegistries(uiRegistry, contentRegistry);
             Bridge.BindUIService(ui);
             Bridge.BindNavigation(nav);
-            MetaBridge.Bind(metaEntry, () => config.Tables);   // Lua 联机门面后端（Bridge.meta——批C-③；表供房间行地图名显示）
+            MetaBridge.Bind(metaEntry, identity, () => config.Tables);   // Lua 联机门面后端（Bridge.meta——批C-③；表供房间行地图名显示）
             context.Require<IInputService>().RegisterBlocker(
                 new IntentGate.BlockerKey("ui.modal", "模态 UI 打开——游戏意图被拦截"), () => ui.IsModalOpen);
 
@@ -184,6 +188,15 @@ namespace LiteGame
             // （单源在 FeedbackService 构造默认——审计 [低]「表单 id 单处」口径）。
             ui.RegisterModal(feedback.ErrorFormId);
             ui.RegisterModal(feedback.ConfirmFormId);
+
+            // 内容身份绑定（只此一次）：内容/配置装配完成后，身份上下文用同一份 Activation/Config 事实回答。
+            var activation = context.Require<ActivationTransactionStore>();
+            identity.BindContent(() => new ContentIdentity(
+                activation.ActiveGeneration.ReleaseId,
+                activation.ActiveGeneration.Value,
+                activation.Current.ConfirmedRevision,
+                config.GameplayDigestBase,
+                LiteSim.RootMotionCatalog.ContentDigest));
 
             var pageFlow = new PageFlow(nav, ui, lua);    // 五页页面流（批C-④）：入口/开局关房/结算三处流程×页面接缝
             var appSettings = new ProductSettings(context.Require<GameSettings>(),

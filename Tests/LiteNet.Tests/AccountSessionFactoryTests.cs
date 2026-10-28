@@ -74,7 +74,8 @@ namespace LiteNet.Tests
         private static AccountSessionFactory NewFactory(ClientScope rootScope, ServiceContainer rootServices,
             Func<bool, MatchTransport> transportFactory = null)
             => new AccountSessionFactory(rootScope, rootServices,
-                transportFactory ?? (_ => new MatchTransport(new FakeClientTransport(), null)));
+                transportFactory ?? (_ => new MatchTransport(new FakeClientTransport(), null)),
+                new HandshakeIdentity(LiteNet.BuildHash.Value));
 
         [Fact]
         public void 创建即入域_连接发Join_BattleClient解析同引用()
@@ -83,7 +84,7 @@ namespace LiteNet.Tests
             var transport = new FakeClientTransport();
             AccountSessionFactory factory = NewFactory(rootScope, root, _ => new MatchTransport(transport, null));
 
-            AccountSession session = factory.Create(Host, Port, RoomId, Token, LiteNet.BuildHash.Value, testRoom: false);
+            AccountSession session = factory.Create(Host, Port, RoomId, Token, testRoom: false);
 
             Assert.Equal(1, transport.ConnectCalls);                    // 连接已发起（BattleClient 构造即 Connect）
             Assert.True(session.Battle.Connected);
@@ -102,7 +103,7 @@ namespace LiteNet.Tests
             ServiceContainer root = NewRoot(out ClientScope rootScope);
             var transport = new FakeClientTransport();
             AccountSessionFactory factory = NewFactory(rootScope, root, _ => new MatchTransport(transport, null));
-            AccountSession session = factory.Create(Host, Port, RoomId, Token, LiteNet.BuildHash.Value, testRoom: false);
+            AccountSession session = factory.Create(Host, Port, RoomId, Token, testRoom: false);
 
             session.Dispose();
             session.Dispose();                                          // 幂等：第二次为 no-op
@@ -124,7 +125,7 @@ namespace LiteNet.Tests
             AccountSession session = null;
             try
             {
-                session = factory.Create(Host, Port, RoomId, Token, LiteNet.BuildHash.Value, testRoom: false);
+                session = factory.Create(Host, Port, RoomId, Token, testRoom: false);
                 Assert.True(false, "传输工厂抛出时 Create 必须失败");
             }
             catch (InvalidOperationException)
@@ -151,12 +152,12 @@ namespace LiteNet.Tests
                 return new MatchTransport(t, null);
             });
 
-            AccountSession first = factory.Create(Host, Port, RoomId, Token, LiteNet.BuildHash.Value, testRoom: false);
+            AccountSession first = factory.Create(Host, Port, RoomId, Token, testRoom: false);
             BattleClient firstBattle = first.Battle;
             ClientScope firstScope = first.Scope;
             first.Dispose();
 
-            AccountSession second = factory.Create(Host, Port, RoomId, Token, LiteNet.BuildHash.Value, testRoom: false);
+            AccountSession second = factory.Create(Host, Port, RoomId, Token, testRoom: false);
 
             Assert.Equal(1, firstTransport.DisposeCalls);               // 旧局传输已释放（无旧局对象残留）
             Assert.NotSame(firstBattle, second.Battle);                  // 新会话新客户端
@@ -181,8 +182,8 @@ namespace LiteNet.Tests
                 return new MatchTransport(new FakeClientTransport(), null);
             });
 
-            factory.Create(Host, Port, RoomId, Token, LiteNet.BuildHash.Value, testRoom: false).Dispose();
-            factory.Create(Host, Port, RoomId, Token, LiteNet.BuildHash.Value, testRoom: true).Dispose();
+            factory.Create(Host, Port, RoomId, Token, testRoom: false).Dispose();
+            factory.Create(Host, Port, RoomId, Token, testRoom: true).Dispose();
 
             Assert.Equal(new[] { false, true }, seen);                   // 委托逐次透传——工厂不吞测试开关语义
         }

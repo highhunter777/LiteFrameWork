@@ -1,6 +1,7 @@
 #if UNITY_EDITOR || DEVELOPMENT_BUILD || LITEFRAMEWORK_DEBUG
 using System.Text;
 using LiteClient;
+using LiteFramework.Diagnostics;
 using LiteNet;
 
 namespace LiteGame
@@ -51,6 +52,8 @@ namespace LiteGame
             public readonly int InputLeadFrames;
             /// <summary>视图帧落后最近快照帧的帧数（-1 = 无快照）。</summary>
             public readonly int SnapshotAgeFrames;
+            /// <summary>现场包身份（BuildHash/AppVersion/Platform）。</summary>
+            public readonly DiagnosticIdentity Identity;
 
             public Snapshot(ClientSessionPhase phase, NetworkQuality quality, long reconcileCount)
                 : this(phase, quality, reconcileCount, string.Empty, 0, -1, 0, 0u, 0, 0, BattleContext.InputLeadFrames, -1)
@@ -66,7 +69,8 @@ namespace LiteGame
 
             public Snapshot(ClientSessionPhase phase, NetworkQuality quality, long reconcileCount,
                 string matchId, int frame, int playerId, long localEntityId, uint configDigest,
-                int rollbackCount, int deferredRollbacks, int inputLeadFrames, int snapshotAgeFrames)
+                int rollbackCount, int deferredRollbacks, int inputLeadFrames, int snapshotAgeFrames,
+                DiagnosticIdentity? identity = null)
             {
                 Phase = phase;
                 Quality = quality;
@@ -80,6 +84,7 @@ namespace LiteGame
                 DeferredRollbacks = deferredRollbacks;
                 InputLeadFrames = inputLeadFrames;
                 SnapshotAgeFrames = snapshotAgeFrames;
+                Identity = identity ?? DiagnosticIdentity.Unknown;
             }
         }
 
@@ -92,7 +97,7 @@ namespace LiteGame
                 context.MatchId, context.ViewRenderFrame, context.PlayerId, context.LocalEntityId, context.ConfigDigest,
                 context.Sim != null ? context.Sim.RollbackCount : 0,
                 context.Sim != null ? context.Sim.DeferredRollbacks : 0,
-                BattleContext.InputLeadFrames, snapshotAge);
+                BattleContext.InputLeadFrames, snapshotAge, context.DiagnosticsIdentity);
         }
 
         /// <summary>当前对局的诊断行（无对局 = null——消费方按空态隐藏，不显示陈旧值）。</summary>

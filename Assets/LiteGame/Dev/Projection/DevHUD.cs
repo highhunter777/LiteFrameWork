@@ -492,7 +492,7 @@ namespace LiteGame
                     Path.Combine(Application.persistentDataPath, "diagnostics"));
                 string path = ClientDiagnosticsBundle.Capture(_diagWriter, "hud-snapshot", snapshot.MatchId,
                     snapshot.Frame, snapshot.LocalEntityId, (int)Math.Min(snapshot.ReconcileCount, int.MaxValue),
-                    snapshot.ConfigDigest);
+                    snapshot.ConfigDigest, identity: snapshot.Identity);
                 Toast(path != null ? "已落盘: " + path : "未写出（限频/IO）");
             }
             catch (Exception ex) { Toast("落盘失败: " + ex.Message); }
