@@ -451,7 +451,7 @@ namespace LiteGame.Tests.EditMode
         private static readonly (string path, string content)[] FixtureFiles =
         {
             ("config/tbcombatnum.json", "{\"id\":1,\"hp\":100}"),
-            // 签名夹具是 2026-09-26 固定的样例（`lua/ui/UIMain.lua`），UIMain 退役只改页面注册，
+            // 签名夹具是签名时固定的样例（`lua/ui/UIMain.lua`），UIMain 退役只改页面注册，
             // 不改签名数据——路径必须与夹具清单逐字一致，否则验签/摘要链断（见 UI系统线 §UIMain 退役）。
             ("lua/ui/UIMain.lua", "return { OnShow = function() end }\n"),
         };
