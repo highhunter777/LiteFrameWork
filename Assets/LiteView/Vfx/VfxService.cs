@@ -153,7 +153,7 @@ namespace LiteView
             }
             else
             {
-                LoadAndMaterializeAsync(inst).Forget();            // 禁原生协程：UniTask
+                LoadAndMaterializeAsync(inst).ForgetLogged("VfxService");            // 禁原生协程：UniTask
             }
 
             return new VfxHandle(inst.Id);
@@ -259,7 +259,7 @@ namespace LiteView
 
         // ---- 内部 ----
 
-        private async UniTaskVoid LoadAndMaterializeAsync(VfxInstance inst)
+        private async UniTask LoadAndMaterializeAsync(VfxInstance inst)
         {
             _loading++;
             try

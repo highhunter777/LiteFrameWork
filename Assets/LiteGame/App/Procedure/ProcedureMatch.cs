@@ -66,7 +66,7 @@ namespace LiteGame
             if (req.MetaJoin.Ticket != null)
             {
                 var join = req.MetaJoin;
-                RunAsyncCore(m, ct, join.Host, join.Port, join.RoomId, join.Ticket, testRoom: false).Forget();
+                RunAsyncCore(m, ct, join.Host, join.Port, join.RoomId, join.Ticket, testRoom: false).ForgetLogged("ProcedureMatch");
                 return;
             }
 #if UNITY_EDITOR || DEVELOPMENT_BUILD || LITEFRAMEWORK_DEBUG
@@ -74,7 +74,7 @@ namespace LiteGame
             // （本地全链/云端普通房/云端测试房）；直连 Room-A/TestToken 链已退役。
             if (req.TestRoom)
             {
-                RunAsyncCore(m, ct, TestHost, TestPort, TestRoomId, string.Empty, testRoom: true).Forget();
+                RunAsyncCore(m, ct, TestHost, TestPort, TestRoomId, string.Empty, testRoom: true).ForgetLogged("ProcedureMatch");
                 return;
             }
 

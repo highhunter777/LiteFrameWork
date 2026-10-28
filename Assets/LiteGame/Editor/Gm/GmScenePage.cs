@@ -54,10 +54,10 @@ namespace LiteGame.Editor
             using (new EditorGUI.DisabledScope(!ready))
             using (new EditorGUILayout.HorizontalScope())
             {
-                if (GUILayout.Button("单场景加载")) RunSceneOp(new GmLoadSingleSceneCommand { Location = _sceneLocation }, "单场景加载").Forget();
-                if (GUILayout.Button("叠加加载")) RunSceneOp(new GmLoadAdditiveSceneCommand { Location = _sceneLocation }, "叠加加载").Forget();
-                if (GUILayout.Button("卸载单场景")) RunSceneOp(new GmUnloadSingleSceneCommand(), "卸载单场景").Forget();
-                if (GUILayout.Button("卸载叠加")) RunSceneOp(new GmUnloadAdditiveSceneCommand { Location = _sceneLocation }, "卸载叠加").Forget();
+                if (GUILayout.Button("单场景加载")) RunSceneOp(new GmLoadSingleSceneCommand { Location = _sceneLocation }, "单场景加载").ForgetLogged("GmScenePage");
+                if (GUILayout.Button("叠加加载")) RunSceneOp(new GmLoadAdditiveSceneCommand { Location = _sceneLocation }, "叠加加载").ForgetLogged("GmScenePage");
+                if (GUILayout.Button("卸载单场景")) RunSceneOp(new GmUnloadSingleSceneCommand(), "卸载单场景").ForgetLogged("GmScenePage");
+                if (GUILayout.Button("卸载叠加")) RunSceneOp(new GmUnloadAdditiveSceneCommand { Location = _sceneLocation }, "卸载叠加").ForgetLogged("GmScenePage");
             }
 
             if (!Application.isPlaying) EditorGUILayout.HelpBox("场景操作需 Play（AssetService 初始化后才可加载）", MessageType.Info);
@@ -73,7 +73,7 @@ namespace LiteGame.Editor
         /// 运行态失败以结果返回，编程错误兜底不外泄到编辑器；忙碌守卫与结果落面板保留）。
         /// 本页＝带参命令的专面板（《GM 与调试工具分层专项设计》§2.2 裁决）——内核 TryExecute 只覆盖
         /// 无参形态，带参/异步派发直用命令总线（仍全量审计），故 lint-allow R14。</summary>
-        private async UniTaskVoid RunSceneOp<TCommand>(TCommand command, string label) where TCommand : ICommand
+        private async UniTask RunSceneOp<TCommand>(TCommand command, string label) where TCommand : ICommand
         {
             CommandCenter center = GetCommandCenter();   // lint-allow R14 场景页＝带参命令专面板（§2.2）：SendAsync 经命令总线审计，非旁路
             if (center == null) { _sceneResult = $"{label}失败：CommandCenter 未装配"; return; }

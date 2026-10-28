@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using Cysharp.Threading.Tasks;
+using LiteFramework;
 using UnityEngine;
 using UnityEngine.EventSystems;
 using UnityEngine.UI;
@@ -100,7 +101,7 @@ namespace LiteClient.UI
         {
             var handler = PlatformBack;
             if (handler == null) return false;
-            handler().Forget();
+            handler().ForgetLogged("UIFocusCoordinator");
             return true;
         }
 

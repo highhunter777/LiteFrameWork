@@ -136,7 +136,7 @@ namespace LiteClient.UI
         {
             if (!_queue.TryDequeueWhere(IsGroupFree, out Entry next)) return;
             _openingGroups.Add(next.Request.Group);       // 打开在途先占组（防同组重复展示）
-            ShowCoreAsync(next).Forget();
+            ShowCoreAsync(next).ForgetLogged("DialogService");
         }
 
         /// <summary>出队就绪判据：组空闲（无展示、无打开在途）——忙组条目留在队里，不阻塞其他组。</summary>
@@ -148,7 +148,7 @@ namespace LiteClient.UI
         private UniTask<UIForm> OpenFormAsync(int formId)
             => _nav != null ? _nav.GoAsync(formId) : _ui.ShowAsync(formId, null);
 
-        private async UniTaskVoid ShowCoreAsync(Entry entry)
+        private async UniTask ShowCoreAsync(Entry entry)
         {
             string group = entry.Request.Group;
             try

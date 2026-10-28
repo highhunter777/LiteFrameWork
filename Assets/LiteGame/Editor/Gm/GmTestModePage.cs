@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using Cysharp.Threading.Tasks;
 using LiteClient;
 using LiteClient.UI;
+using LiteFramework;
 using UnityEditor;
 using UnityEngine;
 
@@ -101,7 +102,7 @@ namespace LiteGame.Editor
             using (new EditorGUI.DisabledScope(!loggedIn || !roomKeyReady || _testRoomMaps.Count == 0 || _testRoomBusy))
             {
                 if (GUILayout.Button(_testRoomBusy ? "创建中……" : "创建并进入云端测试房"))
-                    CreateTestRoomAsync().Forget();
+                    CreateTestRoomAsync().ForgetLogged("GmTestModePage");
             }
             EditorGUILayout.LabelField("测试房状态：" + _testRoomStatus, EditorStyles.wordWrappedLabel);
 
@@ -157,7 +158,7 @@ namespace LiteGame.Editor
 
         /// <summary>显式 sandbox 建房：模板固定 <see cref="MetaEntryService.TestRoomTemplate"/>，口令取部署注入；
         /// 成功后服务端票据即达、流程机进房，房号回填到 GM 规则区。</summary>
-        private async UniTaskVoid CreateTestRoomAsync()
+        private async UniTask CreateTestRoomAsync()
         {
             MetaEntryService meta = GmEditorResolve.ResolveFromContainer<MetaEntryService>();
             if (meta == null || !meta.IsConfigured) { _testRoomStatus = "Meta 未装配/未配置"; return; }

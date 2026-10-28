@@ -127,7 +127,7 @@ namespace LiteClient.UI
             }
 
             Log.Info($"[Nav] 入队 {kind} id={formId} 排队深度={_queue.Count} 执行中={_running}", LogTag.UI);
-            PumpAsync().Forget();
+            PumpAsync().ForgetLogged("UINavigationController");
             return op;
         }
 
@@ -146,7 +146,7 @@ namespace LiteClient.UI
             op.Fail(fail);
         }
 
-        private async UniTaskVoid PumpAsync()
+        private async UniTask PumpAsync()
         {
             if (_running) return;                          // 单写者：已在跑的操作链继续消费队列
             _running = true;

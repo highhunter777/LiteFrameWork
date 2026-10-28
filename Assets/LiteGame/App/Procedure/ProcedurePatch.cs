@@ -48,7 +48,7 @@ namespace LiteGame
         }
 
         protected override void RunAsync(IStageHost<ProcedureId, ProcedureArgs> m, in ProcedureArgs req, CancellationToken ct)
-            => RunAsyncCore(m, ct).Forget();          // 一行转发，仅此而已——禁止 async void
+            => RunAsyncCore(m, ct).ForgetLogged("ProcedurePatch");          // 一行转发，仅此而已——禁止 async void
 
         /// <summary>下载/校验失败 → 统一错误分类（暂态可重试；摘要不符按安全；其余可恢复）。</summary>
         private static ErrorKind ClassifyFailure(DownloadFailureInfo failure)

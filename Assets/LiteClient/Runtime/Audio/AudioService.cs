@@ -172,7 +172,7 @@ namespace LiteClient
             {
                 pick.Source.volume = 0f;                       // 淡入从 0 起步
                 pick.Source.Play();
-                FadeAsync(g, pick, handle, 0f, 1f, fadeIn).Forget();
+                FadeAsync(g, pick, handle, 0f, 1f, fadeIn).ForgetLogged("AudioService");
             }
             else
             {
@@ -291,7 +291,7 @@ namespace LiteClient
                     {
                         if (fadeOut > 0f)
                         {
-                            FadeAsync(g, p, handle, 1f, 0f, fadeOut).Forget();
+                            FadeAsync(g, p, handle, 1f, 0f, fadeOut).ForgetLogged("AudioService");
                             return;
                         }
                         ReleaseProxy(p);
@@ -383,7 +383,7 @@ namespace LiteClient
         /// Ui/Bgm 吃 UIClock。暂停期间 dt 为 0，淡变原地保持（不推进也不误判完成）。
         /// 自检退出：句柄被抢占/停止即取消（不靠时钟推进来发现失效）。
         /// </summary>
-        private async UniTaskVoid FadeAsync(GroupDef g, Proxy p, int handle, float fromK, float toK, float duration)
+        private async UniTask FadeAsync(GroupDef g, Proxy p, int handle, float fromK, float toK, float duration)
         {
             if (duration <= 0f) return;
             float t = 0f;

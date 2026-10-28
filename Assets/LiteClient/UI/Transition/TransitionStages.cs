@@ -24,10 +24,10 @@ namespace LiteClient.UI
                 c.Completed = true;
                 return;
             }
-            RunAsync(c).Forget();
+            RunAsync(c).ForgetLogged("TransitionStages");
         }
 
-        private static async UniTaskVoid RunAsync(TransitionContext c)
+        private static async UniTask RunAsync(TransitionContext c)
         {
             try
             {

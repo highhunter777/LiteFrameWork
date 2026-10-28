@@ -213,7 +213,7 @@ namespace LiteGame
             public static void Close(string pagePath)
             {
                 if (!TryResolve(pagePath, "Close", out int id) || !s_uiService.IsOpen(id)) return;
-                s_uiService.CloseAsync(id).Forget();               // fire-and-forget 显式化（CS4014 收口）
+                s_uiService.CloseAsync(id).ForgetLogged("Bridge.Data");               // fire-and-forget 显式化（CS4014 收口）
             }
 
             /// <summary>是否打开（Active/Covered/Paused 任一）。</summary>

@@ -35,11 +35,11 @@ namespace LiteGame
         public static bool TryArm(ServiceContainer container)
         {
             if (Array.IndexOf(Environment.GetCommandLineArgs(), Arg) < 0) return false;
-            RunAsync(container).Forget();
+            RunAsync(container).ForgetLogged("MemoryLoopProbe");
             return true;
         }
 
-        private static async UniTaskVoid RunAsync(ServiceContainer container)
+        private static async UniTask RunAsync(ServiceContainer container)
         {
             try
             {

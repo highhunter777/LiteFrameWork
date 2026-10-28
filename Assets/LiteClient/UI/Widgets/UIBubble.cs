@@ -4,6 +4,7 @@ using System;
 using System.Collections.Generic;
 using System.Threading;
 using Cysharp.Threading.Tasks;
+using LiteFramework;
 using UnityEngine;
 using UnityEngine.UI;
 
@@ -26,10 +27,10 @@ namespace LiteClient.UI
             _hideCts?.Cancel();
             _hideCts?.Dispose();
             _hideCts = CancellationTokenSource.CreateLinkedTokenSource(this.GetCancellationTokenOnDestroy());
-            HideAfterAsync(duration, _hideCts.Token).Forget();
+            HideAfterAsync(duration, _hideCts.Token).ForgetLogged("UIBubble");
         }
 
-        private async UniTaskVoid HideAfterAsync(float seconds, CancellationToken ct)
+        private async UniTask HideAfterAsync(float seconds, CancellationToken ct)
         {
             // cancelImmediately: true —— 宿主销毁/被下一次 Show 取消时**立即**观测（默认要等下一个 player loop 刻度，
             // 编辑态/回收路径下会晚到，导致已销毁对象仍被 SetActive → MissingReferenceException）

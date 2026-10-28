@@ -19,7 +19,7 @@ namespace LiteGame
         }
 
         protected override void RunAsync(IStageHost<ProcedureId, ProcedureArgs> m, in ProcedureArgs req, CancellationToken ct)
-            => RunAsyncCore(m, ct).Forget();          // 一行转发，仅此而已——禁止 async void
+            => RunAsyncCore(m, ct).ForgetLogged("ProcedureLaunch");          // 一行转发，仅此而已——禁止 async void
 
         private async UniTask RunAsyncCore(IStageHost<ProcedureId, ProcedureArgs> m, CancellationToken ct)
         {

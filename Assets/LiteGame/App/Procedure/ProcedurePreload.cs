@@ -39,7 +39,7 @@ namespace LiteGame
         }
 
         protected override void RunAsync(IStageHost<ProcedureId, ProcedureArgs> m, in ProcedureArgs req, CancellationToken ct)
-            => RunAsyncCore(m, ct).Forget();
+            => RunAsyncCore(m, ct).ForgetLogged("ProcedurePreload");
 
         private async UniTask RunAsyncCore(IStageHost<ProcedureId, ProcedureArgs> m, CancellationToken ct)
         {

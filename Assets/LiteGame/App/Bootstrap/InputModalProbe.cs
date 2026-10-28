@@ -43,7 +43,7 @@ namespace LiteGame
         public static bool TryArm(ClientHost host)
         {
             if (Array.IndexOf(Environment.GetCommandLineArgs(), Arg) < 0) return false;
-            RunAsync(host).Forget();
+            RunAsync(host).ForgetLogged("InputModalProbe");
             return true;
         }
 
@@ -83,7 +83,7 @@ namespace LiteGame
             }
         }
 
-        private static async UniTaskVoid RunAsync(ClientHost host)
+        private static async UniTask RunAsync(ClientHost host)
         {
             IInputService input = null;
             IIntentSource originalSource = null;

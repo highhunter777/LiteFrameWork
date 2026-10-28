@@ -67,28 +67,28 @@ namespace LiteGame
         public const int RecordsLimit = 20;
 
         public static void GuestLogin(LuaFunction cb)
-            => Run(s_meta.GuestLoginAsync(), cb, r => r.Value.AccountId).Forget();
+            => Run(s_meta.GuestLoginAsync(), cb, r => r.Value.AccountId).ForgetLogged("MetaBridge");
 
         public static void ListRooms(LuaEnv env, LuaFunction cb)
-            => Run(s_meta.ListRoomsAsync(), cb, r => RoomsTable(env, r.Value)).Forget();
+            => Run(s_meta.ListRoomsAsync(), cb, r => RoomsTable(env, r.Value)).ForgetLogged("MetaBridge");
 
         /// <summary>快速进入（空 roomId = 服务端缺省房/容量分配）。成功载荷 = 换票结果的房号（房间页展示用）。</summary>
         public static void QuickEnter(LuaFunction cb)
-            => Run(s_meta.EnterRoomAsync(""), cb, r => r.Value.RoomId).Forget();
+            => Run(s_meta.EnterRoomAsync(""), cb, r => r.Value.RoomId).ForgetLogged("MetaBridge");
 
         /// <summary>创建房间（服务端出唯一新号 → 票据即达，客户端不发明房号）。成功载荷 = 新房号
         /// （房间页展示用）——与 <see cref="QuickEnter"/>/<see cref="EnterRoom"/> 同：成功后流程机接管进房。
         /// <paramref name="mapId"/> 0 = 未指定（宿主默认图）、<paramref name="expectedPlayers"/> 0 = 未指定
         /// （按房间模板）——（开房参数批）两值随票据盖章，房间端建房时校验（越界拒建房）。</summary>
         public static void CreateRoom(int mapId, int expectedPlayers, LuaFunction cb)
-            => Run(s_meta.CreateRoomAsync(mapId, expectedPlayers), cb, r => r.Value.RoomId).Forget();
+            => Run(s_meta.CreateRoomAsync(mapId, expectedPlayers), cb, r => r.Value.RoomId).ForgetLogged("MetaBridge");
 
         /// <summary>选择式进房（房间列表行点击——列表行协议挂批C-⑥）。成功载荷 = 房号（同 QuickEnter）。</summary>
         public static void EnterRoom(string roomId, LuaFunction cb)
-            => Run(s_meta.EnterRoomAsync(roomId), cb, r => r.Value.RoomId).Forget();
+            => Run(s_meta.EnterRoomAsync(roomId), cb, r => r.Value.RoomId).ForgetLogged("MetaBridge");
 
         public static void ListRecords(LuaEnv env, LuaFunction cb)
-            => Run(s_meta.ListRecordsAsync(RecordsLimit), cb, r => RecordsTable(env, r.Value)).Forget();
+            => Run(s_meta.ListRecordsAsync(RecordsLimit), cb, r => RecordsTable(env, r.Value)).ForgetLogged("MetaBridge");
 
         /// <summary>统一异步收口：恰好一次回调；异常不外抛（转 reason）——页面回调异常不得外溢。
         /// fire-and-forget 显式化（.Forget()——CS4014 收口，Bridge.Ui.Close 同款）。</summary>

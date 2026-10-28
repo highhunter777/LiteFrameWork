@@ -71,14 +71,14 @@ namespace LiteFramework
                         LoadSource = new UniTaskCompletionSource<TAsset>(),
                         LoadCts = new CancellationTokenSource(),
                     };
-                    entry.LoadSource.Task.ContinueWith(asset => OnLateCompleted(entry, asset)).Forget();   // 迟到结果兜底（成功路径才会触发）
+                    entry.LoadSource.Task.ContinueWith(asset => OnLateCompleted(entry, asset)).ForgetLogged("SharedLoadCoordinator");   // 迟到结果兜底（成功路径才会触发）
                     _entries[key] = entry;
                     startLoad = true;
                 }
                 entry.Waiters++;
             }
 
-            if (startLoad) RunLoaderAsync(entry).Forget();       // 锁外启动：loader 可回调本类
+            if (startLoad) RunLoaderAsync(entry).ForgetLogged("SharedLoadCoordinator");       // 锁外启动：loader 可回调本类
 
             return WaitAsync(entry, ct);
         }
@@ -112,7 +112,7 @@ namespace LiteFramework
 
         // ---- 内部 ----
 
-        private async UniTaskVoid RunLoaderAsync(Entry entry)
+        private async UniTask RunLoaderAsync(Entry entry)
         {
             try
             {

@@ -39,11 +39,11 @@ namespace LiteFramework
             if (_quitApproved || _host == null) return true;
             if (Application.isEditor) return true;      // 编辑器：交给 OnDestroy 兜底，避免拦下后无法再放行
             _quitting = true;
-            ApproveAfterShutdownAsync().Forget();
+            ApproveAfterShutdownAsync().ForgetLogged("AppLifetime");
             return false;
         }
 
-        private async UniTaskVoid ApproveAfterShutdownAsync()
+        private async UniTask ApproveAfterShutdownAsync()
         {
             await RunGracefulQuitAsync();
             _quitApproved = true;

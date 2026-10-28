@@ -57,12 +57,12 @@ namespace LiteClient.UI
             var rt = (RectTransform)label.transform;
             rt.anchoredPosition = anchoredPosition;
             label.text = text;
-            FlyAsync(rt, label, this.GetCancellationTokenOnDestroy()).Forget();
+            FlyAsync(rt, label, this.GetCancellationTokenOnDestroy()).ForgetLogged("FlyTextPool");
         }
 
         private TMP_Text Acquire() => Pool.Acquire();
 
-        private async UniTaskVoid FlyAsync(RectTransform rt, TMP_Text label, CancellationToken ct)
+        private async UniTask FlyAsync(RectTransform rt, TMP_Text label, CancellationToken ct)
         {
             // 淡出走 CanvasGroup.alpha（§3.2）；位置走 transform（纯 transform，不触发 mesh 重建）。
             // 组件由模板自带 → 取不到（模板缺组件）时守卫语义 = **只跳过淡出**：alpha 写入逐处判空，

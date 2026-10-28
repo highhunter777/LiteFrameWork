@@ -181,7 +181,7 @@ namespace LiteClient.UI
             op = new OpenOperation(formId, data);
             _openOps[formId] = op;
             Interlocked.Increment(ref op.Waiters);
-            RunOpenAsync(op, info, group).Forget();       // 工作与等待分离：工作只受权威取消（OperationScope），不随单人等待走
+            RunOpenAsync(op, info, group).ForgetLogged("UIService");       // 工作与等待分离：工作只受权威取消（OperationScope），不随单人等待走
             return WaitOpenAsync(op, ct);
         }
 
@@ -208,7 +208,7 @@ namespace LiteClient.UI
 
         /// <summary>执行一次打开（工作侧）：加载 → 实例化挂组 → 画布就位 → 入栈 → OnInit/OnShow → 转场表现。
         /// 权威取消在各提交检查点核验（迟到结果不提交、半成品就地回滚）；成功/失败统一经 Completion 交付全部等待者。</summary>
-        private async UniTaskVoid RunOpenAsync(OpenOperation op, PageDefinition info, UILayerGroup group)
+        private async UniTask RunOpenAsync(OpenOperation op, PageDefinition info, UILayerGroup group)
         {
             UIForm form = null;
             IUIPrefabLease lease = null;

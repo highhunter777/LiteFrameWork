@@ -25,7 +25,7 @@ namespace LiteGame.Editor
                 Debug.LogWarning("[DevRefill] 仅 Play 模式可用（LuaEnv 需存活）");
                 return;
             }
-            RefillAsync().Forget();                        // 一行转发，禁止 async void
+            RefillAsync().ForgetLogged("LuaDevRefill");                        // 一行转发，禁止 async void
         }
 
         /// <summary>工具平台入口：与菜单同一条 Refill 路径。</summary>
@@ -34,7 +34,7 @@ namespace LiteGame.Editor
             Refill();
         }
 
-        private static async UniTaskVoid RefillAsync()
+        private static async UniTask RefillAsync()
         {
             var lua = Object.FindFirstObjectByType<LuaComponent>();
             if (lua == null) { Debug.LogError("[DevRefill] 未找到 LuaComponent"); return; }

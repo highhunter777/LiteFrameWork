@@ -110,7 +110,7 @@ namespace LiteGame
         }
 
         protected override void RunAsync(IStageHost<ProcedureId, ProcedureArgs> m, in ProcedureArgs req, CancellationToken ct)
-            => RunAsyncCore(m, req.AccountSession, ct).Forget();   // 一行转发，仅此而已——禁止 async void
+            => RunAsyncCore(m, req.AccountSession, ct).ForgetLogged("ProcedureBattle");   // 一行转发，仅此而已——禁止 async void
 
         /// <summary>async 方法不能带 <c>in</c> 参数（CS1988）——payload 在转发处取值，async 体只收所需字段。</summary>
         private async UniTask RunAsyncCore(IStageHost<ProcedureId, ProcedureArgs> m, AccountSession accountSession,

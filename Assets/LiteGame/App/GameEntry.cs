@@ -88,11 +88,11 @@ namespace LiteGame
             // 跨场景存活（引导件被场景卸载销毁 = 泵停转 = 全局静默冻结）
             DontDestroyOnLoad(gameObject);
 
-            RunBootstrapAsync(_bootCts.Token).Forget();
+            RunBootstrapAsync(_bootCts.Token).ForgetLogged("GameEntry");
         }
 
         /// <summary>宿主初始化（首批全同步完成 → 产物在 Awake 内即就绪）；失败进入确定错误态（§C1）。</summary>
-        private async UniTaskVoid RunBootstrapAsync(CancellationToken ct)
+        private async UniTask RunBootstrapAsync(CancellationToken ct)
         {
             try
             {

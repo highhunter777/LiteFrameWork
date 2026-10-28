@@ -111,13 +111,13 @@ namespace LiteClient.UI
                 _loadingMessage = string.IsNullOrEmpty(message) ? "加载中…" : message;   // 写全量复位（不留上次残留）
                 _loadingProgress = null;                                                  // 开场默认不定态
                 _loadingEpoch++;                                                          // 新代：本段开面以此认领
-                OpenLoadingAsync(_loadingMessage, _loadingEpoch).Forget();
+                OpenLoadingAsync(_loadingMessage, _loadingEpoch).ForgetLogged("FeedbackService");
             }
             _loadingDepth++;
             return new LoadingScope(this);
         }
 
-        private async UniTaskVoid OpenLoadingAsync(string message, int epoch)
+        private async UniTask OpenLoadingAsync(string message, int epoch)
         {
             try
             {
@@ -200,11 +200,11 @@ namespace LiteClient.UI
                 _loadingProgress = null;
                 _loadingCts?.Dispose();
                 _loadingCts = null;
-                CloseLoadingAsync().Forget();
+                CloseLoadingAsync().ForgetLogged("FeedbackService");
             }
         }
 
-        private async UniTaskVoid CloseLoadingAsync()
+        private async UniTask CloseLoadingAsync()
         {
             UIForm form = _loadingForm;
             _loadingForm = null;
@@ -271,10 +271,10 @@ namespace LiteClient.UI
         public void ShowToast(string message, float seconds = DefaultToastSeconds)
         {
             if (_disposed) throw new ObjectDisposedException(nameof(FeedbackService));
-            PushToastAsync(message, seconds).Forget();
+            PushToastAsync(message, seconds).ForgetLogged("FeedbackService");
         }
 
-        private async UniTaskVoid PushToastAsync(string message, float seconds)
+        private async UniTask PushToastAsync(string message, float seconds)
         {
             try
             {

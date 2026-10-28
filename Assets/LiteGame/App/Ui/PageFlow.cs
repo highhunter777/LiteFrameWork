@@ -65,7 +65,7 @@ namespace LiteGame
         /// <summary>进对局前关掉在开的页面（**dev 测试入口**路径用：从大厅/开发控制台直接进局时，
         /// 页面会盖住对局 HUD——产品路径由"房间页→开局"自然收口，此处补 dev 入口的同一语义）。
         /// 幂等：无页面 = no-op。</summary>
-        public void CloseOpenPagesForBattle() => _ui.CloseAllOpen().Forget();
+        public void CloseOpenPagesForBattle() => _ui.CloseAllOpen().ForgetLogged("PageFlow");
 
         /// <summary>对局开局（StartGame 已到）关房间页——对局场景接管画面（房间页若在），
         /// 页面栈随之清空（结算页压栈即新根）。</summary>
@@ -186,7 +186,7 @@ namespace LiteGame
         private void CloseIfOpen(string luaPath)
         {
             if (!TryResolve(luaPath, "Close", out int id) || !_ui.IsOpen(id)) return;
-            _ui.CloseAsync(id).Forget();
+            _ui.CloseAsync(id).ForgetLogged("PageFlow");
         }
 
         private bool IsOpen(string luaPath)

@@ -28,7 +28,7 @@ namespace LiteGame.Editor
                 Log.Warning("DevReload 仅 Play 模式可用（LuaEnv 需存活）", LogTag.DevReload);
                 return;
             }
-            ReloadAsync().Forget();                        // 一行转发，禁止 async void
+            ReloadAsync().ForgetLogged("DevReload");                        // 一行转发，禁止 async void
         }
 
         /// <summary>工具平台入口：与菜单同一条 Reload 路径。</summary>
@@ -37,7 +37,7 @@ namespace LiteGame.Editor
             Reload();
         }
 
-        private static async UniTaskVoid ReloadAsync()
+        private static async UniTask ReloadAsync()
         {
             var lua = Object.FindFirstObjectByType<LiteClient.LuaComponent>();
             if (lua == null)

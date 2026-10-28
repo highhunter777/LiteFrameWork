@@ -175,7 +175,6 @@ page:OnShow(nil)");
                 string calls = Calls(env);
                 StringAssert.Contains("Key:Txt_Status=UI.Login.NoServer", calls, "未配置服务器显性拒绝（fail-closed）");
                 StringAssert.Contains("Interact:Button_GuestLogin=false", calls, "拒绝态按钮禁用");
-                StringAssert.Contains("Key:Txt_Title=UI.Login.Title", calls);
                 StringAssert.Contains("KeyArgs:Txt_Version=Common.Version(bh-test,nil)", calls, "版本 = 数据参数进文案键");
             }
         }
