@@ -8,63 +8,69 @@ using Xunit;
 namespace LiteFramework.Core.Tests
 {
     /// <summary>
-    /// 复杂度预算（《客户端架构重构演进路线图》§4.11 9）：
-    /// 类 >400 行、方法 >80 行为预算超限；存量按“文件::类/方法”登记，新增超限即失败。
-    /// M3-1 先把预算变成可见基线；M3-7 转 hard fail（存量允许，只减不增）。
+    /// 复杂度预算硬门禁（《客户端架构重构演进路线图》§4.11 9）：
+    /// 类 >400 行、方法 >80 行为预算超限。**M3-7 7d 起**：
+    /// ① 新增超限即失败；② 存量按"文件::类/方法 → 行数上限"冻结，**涨一行即失败**；
+    /// ③ 降到阈值内必须从冻结表删除（否则"清账不可见"）。
+    /// 例外只有一条且带理由：`UIService`（用户裁决"只留开关管线"，不拆开/关管线换行数）。
+    /// Dev/Editor 程序集同样在冻结表内（不进发布包，但同样只减不增）。
     /// </summary>
     public sealed class ArchitectureBudgetTests
     {
-        private static readonly HashSet<string> AllowedClasses = new HashSet<string>(StringComparer.Ordinal)
+        // M3-7 7d：存量基线转"冻结上限"——键 = 文件::类，值 = 当前行数上限（只许降，涨一行即失败）。
+        // 范围含 Dev/Editor：它们不进发布包，但同样只减不增；UIService 为用户裁决例外（只留开关管线，不拆）。
+        private static readonly Dictionary<string, int> ClassCaps = new Dictionary<string, int>(StringComparer.Ordinal)
         {
-            "Assets/LiteClient/UI/UIService.cs::UIService",
-            "Assets/LiteView/SimView.cs::SimView",
-            "Assets/LiteGame/Dev/Projection/DebugConsole.cs::DebugConsole",
-            "Assets/LiteGame/Editor/Baking/SimMapBaker.cs::SimMapBaker",
-            "Assets/LiteClient/Adapters/Platform.Unity/CinemachineCameraService.cs::CinemachineCameraService",
-            "Assets/LiteClient/Runtime/Battle/BattleContext.cs::BattleContext",
-            "Assets/LiteGame/Editor/Gm/GmLocalChainPage.cs::GmLocalChainPage",
-            "Assets/LiteView/Animation/Drivers/CharacterLocomotionDriver.cs::CharacterLocomotionDriver",
-            "Assets/LiteGame/Dev/Projection/DevHUD.cs::DevHUD",
-            "Assets/LiteView/Animation/Backends/AnimatorAnimationBackend.cs::AnimatorAnimationBackend",
-            "Assets/LiteFramework/Scripts/Core/Fsm/HierarchicalStageMachine.cs::HierarchicalStageMachine",
-            "Assets/LiteGame/Editor/UiTools/Workbench/UiWorkbenchWindow.cs::UiWorkbenchWindow",
-            "Assets/LiteFramework/Scripts/Async/ClientHost.cs::ClientHost",
-            "Assets/LiteFramework/Scripts/Core/Animation/AnimationPlayer.cs::AnimationPlayer",
-            "Assets/LiteGame/Dev/LocalServer/LocalServerTransport.cs::LocalServerTransport",
-            "Assets/LiteFramework/Scripts/Core/DI/ServiceContainer.cs::ServiceContainer",
-            "Assets/LiteGame/Editor/UiTools/Contract/UiContractGenerator.cs::UiContractGenerator",
-            "Assets/LiteGame/Editor/Toolchain/LiteGameToolboxWindow.cs::LiteGameToolboxWindow",
-            "Assets/LiteGame/Dev/Debug/DebugKernel.cs::DebugKernel",
-            "Assets/LiteGame/Dev/Projection/DebugPanelUiToolkitHost.cs::DebugPanelUiToolkitHost",
-            "Assets/LiteClient/UI/Bind/UIBindIndex.cs::UIBindIndex",
+            ["Assets/LiteClient/Adapters/Platform.Unity/CinemachineCameraService.cs::CinemachineCameraService"] = 578,
+            ["Assets/LiteClient/Runtime/Battle/BattleContext.cs::BattleContext"] = 563,
+            ["Assets/LiteClient/UI/Bind/UIBindIndex.cs::UIBindIndex"] = 402,
+            ["Assets/LiteClient/UI/UIService.cs::UIService"] = 650,
+            ["Assets/LiteFramework/Scripts/Async/ClientHost.cs::ClientHost"] = 454,
+            ["Assets/LiteFramework/Scripts/Core/Animation/AnimationPlayer.cs::AnimationPlayer"] = 447,
+            ["Assets/LiteFramework/Scripts/Core/DI/ServiceContainer.cs::ServiceContainer"] = 429,
+            ["Assets/LiteFramework/Scripts/Core/Fsm/HierarchicalStageMachine.cs::HierarchicalStageMachine"] = 508,
+            ["Assets/LiteGame/Dev/Debug/DebugKernel.cs::DebugKernel"] = 404,
+            ["Assets/LiteGame/Dev/LocalServer/LocalServerTransport.cs::LocalServerTransport"] = 442,
+            ["Assets/LiteGame/Dev/Projection/DebugConsole.cs::DebugConsole"] = 660,
+            ["Assets/LiteGame/Dev/Projection/DebugPanelUiToolkitHost.cs::DebugPanelUiToolkitHost"] = 403,
+            ["Assets/LiteGame/Dev/Projection/DevHUD.cs::DevHUD"] = 522,
+            ["Assets/LiteGame/Editor/Baking/SimMapBaker.cs::SimMapBaker"] = 646,
+            ["Assets/LiteGame/Editor/Gm/GmLocalChainPage.cs::GmLocalChainPage"] = 527,
+            ["Assets/LiteGame/Editor/Toolchain/LiteGameToolboxWindow.cs::LiteGameToolboxWindow"] = 409,
+            ["Assets/LiteGame/Editor/UiTools/Contract/UiContractGenerator.cs::UiContractGenerator"] = 424,
+            ["Assets/LiteGame/Editor/UiTools/Workbench/UiWorkbenchWindow.cs::UiWorkbenchWindow"] = 457,
+            ["Assets/LiteView/Animation/Backends/AnimatorAnimationBackend.cs::AnimatorAnimationBackend"] = 505,
+            ["Assets/LiteView/Animation/Drivers/CharacterLocomotionDriver.cs::CharacterLocomotionDriver"] = 500,
+            ["Assets/LiteView/SimView.cs::SimView"] = 741,
         };
 
-        private static readonly HashSet<string> AllowedMethods = new HashSet<string>(StringComparer.Ordinal)
+        /// <summary>方法行数冻结上限（同 7d 口径；超 80 行的方法只许降）。</summary>
+        private static readonly Dictionary<string, int> MethodCaps = new Dictionary<string, int>(StringComparer.Ordinal)
         {
-            "Assets/LiteGame/Editor/UiTools/Page/UiPageRegistration.cs::UiPageRegistration.Register",
-            "Assets/LiteView/Animation/Drivers/CharacterLocomotionDriver.cs::CharacterLocomotionDriver.Tick",
-            "Assets/LiteGame/App/Bootstrap/ContainerModule.cs::ContainerModule.Assemble",
-            "Assets/LiteGame/Editor/UiTools/Page/UiPageManifestSync.cs::UiPageManifestSync.Sync",
-            "Assets/LiteGame/Editor/Gm/GmNetDiagPage.cs::GmNetDiagPage.Draw",
-            "Assets/LiteGame/Editor/UiTools/Page/UiPageScaffold.cs::UiPageScaffold.Scaffold",
-            "Assets/LiteGame/Editor/Toolchain/ToolchainManifest.cs::ToolchainManifestLoader.Validate",
-            "Assets/LiteGame/App/Procedure/ProcedureBattle.cs::ProcedureBattle.RunAsyncCore",
-            "Assets/LiteGame/App/Bootstrap/InputModalProbe.cs::InputModalProbe.RunAsync",
-            "Assets/LiteGame/Editor/UiTools/Validation/Rules/ContractReferenceRule.cs::ContractReferenceRule.Check",
-            "Assets/LiteGame/Editor/UiTools/Preview/UiPreviewMatrixRunner.cs::UiPreviewMatrixRunner.Tick",
-            "Assets/LiteGame/Dev/Projection/DebugPanelUiToolkitHost.cs::DebugPanelUiToolkitHost.AddTunableRow",
-            "Assets/LiteGame/Editor/UiTools/Contract/UiContractBatch.cs::UiContractBatch.Diff",
-            "Assets/LiteGame/Editor/UiTools/Contract/UiContractGenerator.cs::UiContractGenerator.Generate",
-            "Assets/LiteClient/Adapters/Scripting.XLua/Lua/CandidateLuaValidator.cs::CandidateLuaValidator.Validate",
-            "Assets/LiteFramework/Scripts/Core/Content/CandidateContentVerifier.cs::CandidateContentVerifier.Verify",
-            "Assets/LiteGame/Editor/UiTools/Contract/UiContractBatch.cs::UiContractBatch.Generate",
-            "Assets/LiteFramework/Scripts/Async/ClientHost.cs::ClientHost.ShutdownAsync",
-            "Assets/LiteGame/Editor/Style/UiTextStyleTool.cs::UiTextStyleTool.Check",
-            "Assets/LiteFramework/Scripts/Async/ClientHost.cs::ClientHost.InitializeAsync",
-            "Assets/LiteGame/App/Presentation/Fx/BattleDamageNumberDriver.cs::BattleDamageNumberDriver.Tick",
-            "Assets/LiteGame/Editor/UiTools/Preview/UiDeviceProfileCatalog.cs::UiDeviceProfileCatalog.Validate",
-            "Assets/LiteGame/Editor/Gm/GmTestModePage.cs::GmTestModePage.DrawCloudGmBlock",
-            "Assets/LiteGame/Editor/Toolchain/EditorToolCatalog.cs::EditorToolCatalog.Load",
+            ["Assets/LiteClient/Adapters/Scripting.XLua/Lua/CandidateLuaValidator.cs::CandidateLuaValidator.Validate"] = 87,
+            ["Assets/LiteFramework/Scripts/Async/ClientHost.cs::ClientHost.InitializeAsync"] = 83,
+            ["Assets/LiteFramework/Scripts/Async/ClientHost.cs::ClientHost.ShutdownAsync"] = 86,
+            ["Assets/LiteFramework/Scripts/Core/Content/CandidateContentVerifier.cs::CandidateContentVerifier.Verify"] = 87,
+            ["Assets/LiteGame/App/Bootstrap/ContainerModule.cs::ContainerModule.Assemble"] = 151,
+            ["Assets/LiteGame/App/Bootstrap/InputModalProbe.cs::InputModalProbe.RunAsync"] = 103,
+            ["Assets/LiteGame/App/Presentation/Fx/BattleDamageNumberDriver.cs::BattleDamageNumberDriver.Tick"] = 82,
+            ["Assets/LiteGame/App/Procedure/ProcedureBattle.cs::ProcedureBattle.RunAsyncCore"] = 108,
+            ["Assets/LiteGame/Dev/Projection/DebugPanelUiToolkitHost.cs::DebugPanelUiToolkitHost.AddTunableRow"] = 91,
+            ["Assets/LiteGame/Editor/Gm/GmNetDiagPage.cs::GmNetDiagPage.Draw"] = 130,
+            ["Assets/LiteGame/Editor/Gm/GmTestModePage.cs::GmTestModePage.DrawCloudGmBlock"] = 81,
+            ["Assets/LiteGame/Editor/Style/UiTextStyleTool.cs::UiTextStyleTool.Check"] = 83,
+            ["Assets/LiteGame/Editor/Toolchain/EditorToolCatalog.cs::EditorToolCatalog.Load"] = 81,
+            ["Assets/LiteGame/Editor/Toolchain/ToolchainManifest.cs::ToolchainManifestLoader.Validate"] = 110,
+            ["Assets/LiteGame/Editor/UiTools/Contract/UiContractBatch.cs::UiContractBatch.Diff"] = 90,
+            ["Assets/LiteGame/Editor/UiTools/Contract/UiContractBatch.cs::UiContractBatch.Generate"] = 86,
+            ["Assets/LiteGame/Editor/UiTools/Contract/UiContractGenerator.cs::UiContractGenerator.Generate"] = 87,
+            ["Assets/LiteGame/Editor/UiTools/Page/UiPageManifestSync.cs::UiPageManifestSync.Sync"] = 144,
+            ["Assets/LiteGame/Editor/UiTools/Page/UiPageRegistration.cs::UiPageRegistration.Register"] = 196,
+            ["Assets/LiteGame/Editor/UiTools/Page/UiPageScaffold.cs::UiPageScaffold.Scaffold"] = 116,
+            ["Assets/LiteGame/Editor/UiTools/Preview/UiDeviceProfileCatalog.cs::UiDeviceProfileCatalog.Validate"] = 81,
+            ["Assets/LiteGame/Editor/UiTools/Preview/UiPreviewMatrixRunner.cs::UiPreviewMatrixRunner.Tick"] = 91,
+            ["Assets/LiteGame/Editor/UiTools/Validation/Rules/ContractReferenceRule.cs::ContractReferenceRule.Check"] = 100,
+            ["Assets/LiteView/Animation/Drivers/CharacterLocomotionDriver.cs::CharacterLocomotionDriver.Tick"] = 163,
         };
 
         [Fact]
@@ -73,8 +79,8 @@ namespace LiteFramework.Core.Tests
             string root = RepoRoot();
             var classOffenders = new List<string>();
             var methodOffenders = new List<string>();
-            int classCount = 0;
-            int methodCount = 0;
+            var classActual = new Dictionary<string, int>(StringComparer.Ordinal);
+            var methodActual = new Dictionary<string, int>(StringComparer.Ordinal);
             string[] roots = { "Assets/LiteClient", "Assets/LiteGame", "Assets/LiteFramework", "Assets/LiteView" };
 
             foreach (string relativeRoot in roots)
@@ -88,27 +94,35 @@ namespace LiteFramework.Core.Tests
                     var classes = FindClasses(lines);
                     foreach (var item in classes)
                     {
-                        if (item.Span <= 400) continue;
-                        classCount++;
                         string key = rel + "::" + item.Name;
-                        if (!AllowedClasses.Contains(key)) classOffenders.Add(key + " (" + item.Span + " 行)");
+                        if (item.Span <= 400) continue;
+                        classActual[key] = item.Span;              // 同名块（嵌套/重复声明）取后者；与基线键一一对应
+                        if (!ClassCaps.TryGetValue(key, out int cap))
+                            classOffenders.Add(key + " 新增超限 (" + item.Span + " 行)");
+                        else if (item.Span > cap)
+                            classOffenders.Add(key + " 增长 " + cap + " → " + item.Span);
                     }
                     foreach (var item in FindMethods(lines, classes))
                     {
-                        if (item.Span <= 80) continue;
-                        methodCount++;
                         string key = rel + "::" + item.Name;
-                        if (!AllowedMethods.Contains(key)) methodOffenders.Add(key + " (" + item.Span + " 行)");
+                        if (item.Span <= 80) continue;
+                        methodActual[key] = item.Span;
+                        if (!MethodCaps.TryGetValue(key, out int cap))
+                            methodOffenders.Add(key + " 新增超限 (" + item.Span + " 行)");
+                        else if (item.Span > cap)
+                            methodOffenders.Add(key + " 增长 " + cap + " → " + item.Span);
                     }
                 }
             }
 
-            Assert.True(classOffenders.Count == 0, "新增超 400 行类（先拆或登记预算例外）:" + string.Join(" | ", classOffenders));
-            Assert.True(methodOffenders.Count == 0, "新增超 80 行方法（先拆或登记预算例外）:" + string.Join(" | ", methodOffenders));
-            Assert.True(classCount == AllowedClasses.Count,
-                "预算扫描发现超 400 行类 " + classCount + " 个，基线 " + AllowedClasses.Count + " 个——解析器失效或基线需随拆分更新");
-            Assert.True(methodCount == AllowedMethods.Count,
-                "预算扫描发现超 80 行方法 " + methodCount + " 个，基线 " + AllowedMethods.Count + " 个——解析器失效或基线需随拆分更新");
+            // 收紧方向：拆完的件必须从冻结表删除（否则"清账不可见"）；上限只许降。
+            var classStale = ClassCaps.Where(p => !classActual.ContainsKey(p.Key)).Select(p => p.Key).ToList();
+            var methodStale = MethodCaps.Where(p => !methodActual.ContainsKey(p.Key)).Select(p => p.Key).ToList();
+
+            Assert.True(classOffenders.Count == 0, "类预算硬门禁（新增/增长一律失败）:" + string.Join(" | ", classOffenders));
+            Assert.True(methodOffenders.Count == 0, "方法预算硬门禁（新增/增长一律失败）:" + string.Join(" | ", methodOffenders));
+            Assert.True(classStale.Count == 0, "类已降到 ≤400 行（或解析失效）——请从冻结表删除:" + string.Join(" | ", classStale));
+            Assert.True(methodStale.Count == 0, "方法已降到 ≤80 行（或解析失效）——请从冻结表删除:" + string.Join(" | ", methodStale));
         }
 
         private sealed class Block
