@@ -105,7 +105,7 @@ namespace LiteGame.Tests.EditMode
         [Test]
         public void 插入守卫_模板缺失返回空并给原因()
         {
-            Assert.IsNull(UiWidgetInstaller.Install(null, null, "Assets/LiteClient/UI/Nope.prefab", out string reason));
+            Assert.IsNull(UiWidgetInstaller.Install(null, null, "Assets/LiteFramework/Runtime/Modules/UI/Nope.prefab", out string reason));
             Assert.AreEqual("模板资产缺失", reason);
         }
     }

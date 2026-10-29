@@ -2,7 +2,7 @@
     "name": "LiteGame.Editor.Core",
     "rootNamespace": "LiteGame",
     "references": [
-        "LiteClient.UI",
+        "LiteFramework.Runtime",
         "Unity.TextMeshPro"
     ],
     "includePlatforms": [

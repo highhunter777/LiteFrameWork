@@ -8,7 +8,7 @@ Inputs:
   - Assets/LiteGame/Editor/UiTools/Contracts/*.contract.json
 
 Output:
-  - Assets/LiteClient/UI/Generated/UiPageCatalog.g.cs
+  - Assets/LiteFramework/Runtime/Modules/UI/Generated/UiPageCatalog.g.cs
 
 The generated file is the only runtime page directory. Contracts/manifest/hash stay
 editor-side; runtime code reads PageDefinition via IPageCatalog.

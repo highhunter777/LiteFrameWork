@@ -68,8 +68,8 @@ class BuildPlanTests(unittest.TestCase):
         plan = self.plan([])
         paths = {entry["path"] for entry in plan["manifestDrift"]}
         for registered in (
-            "Assets/LiteClient/Adapters/Serialization.Luban/SimConfigMapper.cs",
-            "Assets/LiteClient/Adapters/Serialization.Luban/TableLayout.cs",
+            "Assets/LiteFramework/Runtime/Adapters/Luban/SimConfigMapper.cs",
+            "Assets/LiteFramework/Runtime/Adapters/Luban/TableLayout.cs",
             "Assets/RoomServer/Application/JoinTicketFormat.cs",
             "Assets/RoomServer/Application/Base64Url.cs",
             "Assets/RoomServer/Runtime/MatchStateMachine.cs",
@@ -105,12 +105,12 @@ class BuildPlanTests(unittest.TestCase):
             self.assertIn(action, item["deliveryActions"])
 
     def test_shared_link_file_is_shared(self):
-        plan = self.plan(["Assets/LiteClient/Adapters/Serialization.Luban/TableLayout.cs"])
-        self.assertEqual(self.finding(plan, "Assets/LiteClient/Adapters/Serialization.Luban/TableLayout.cs")["area"], "shared")
+        plan = self.plan(["Assets/LiteFramework/Runtime/Adapters/Luban/TableLayout.cs"])
+        self.assertEqual(self.finding(plan, "Assets/LiteFramework/Runtime/Adapters/Luban/TableLayout.cs")["area"], "shared")
 
     def test_known_missing_shared_link_is_shared_with_warning(self):
-        plan = self.plan(["Assets/LiteClient/Adapters/Serialization.Luban/MapTableProjection.cs"])
-        item = self.finding(plan, "Assets/LiteClient/Adapters/Serialization.Luban/MapTableProjection.cs")
+        plan = self.plan(["Assets/LiteFramework/Runtime/Adapters/Luban/MapTableProjection.cs"])
+        item = self.finding(plan, "Assets/LiteFramework/Runtime/Adapters/Luban/MapTableProjection.cs")
         self.assertEqual(item["area"], "shared")
         self.assertIn("rebuild_server_room", item["deliveryActions"])
         self.assertTrue(any("MapTableProjection" in note for note in plan["notes"]), plan["notes"])
@@ -194,10 +194,10 @@ class BuildPlanTests(unittest.TestCase):
 
     def test_meta_files_follow_their_asset_area(self):
         plan = self.plan([
-            "Assets/LiteClient/UI/Style/UiThemeAsset.cs.meta",
+            "Assets/LiteFramework/Runtime/Modules/UI/Style/UiThemeAsset.cs.meta",
             "Assets/ShareResource/UI/Screens/Page_Lobby.prefab.meta",
         ])
-        self.assertEqual(self.finding(plan, "Assets/LiteClient/UI/Style/UiThemeAsset.cs.meta")["area"], "client_code")
+        self.assertEqual(self.finding(plan, "Assets/LiteFramework/Runtime/Modules/UI/Style/UiThemeAsset.cs.meta")["area"], "client_code")
         self.assertEqual(self.finding(plan, "Assets/ShareResource/UI/Screens/Page_Lobby.prefab.meta")["area"], "content")
 
     def test_editor_code(self):
@@ -258,7 +258,7 @@ class BuildPlanTests(unittest.TestCase):
         drift = self.mod.drift_for_links(
             [meta_link], ROOT, registered=set(build_hash.SHARED_LINK_FILES), wildcards=())
         self.assertTrue(any(not entry["known"] for entry in drift), drift)
-        shared_link = "../../Assets/LiteClient/Adapters/Serialization.Luban/TableLayout.cs"
+        shared_link = "../../Assets/LiteFramework/Runtime/Adapters/Luban/TableLayout.cs"
         drift = self.mod.drift_for_links(
             [shared_link], ROOT, registered=set(build_hash.META_EXTRA_FILES), wildcards=())
         self.assertTrue(any(not entry["known"] for entry in drift), drift)

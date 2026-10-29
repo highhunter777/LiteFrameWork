@@ -26,7 +26,7 @@ namespace LiteFramework.Core.Tests
             string root = RepoRoot();
             string[] roots =
             {
-                Path.Combine(root, "Assets", "LiteClient"),
+                Path.Combine(root, "Assets", "LiteFramework"),
                 Path.Combine(root, "Assets", "LiteGame", "App"),
                 Path.Combine(root, "Assets", "LiteGame", "Editor"),
             };

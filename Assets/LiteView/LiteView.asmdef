@@ -3,9 +3,7 @@
     "rootNamespace": "LiteView",
     "references": [
         "LiteBattle.Abstractions",
-        "LiteFramework.Async",
-        "LiteFramework.Core",
-        "LiteFramework.Unity",
+        "LiteFramework.Runtime",
         "LiteSim.Core",
         "UniTask"
     ],

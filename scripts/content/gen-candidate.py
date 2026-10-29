@@ -18,7 +18,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from _common import EXIT_FAIL, EXIT_OK, configure_stdio, fail, info, repo_root  # noqa: E402
 
 DEFAULT_KEY = Path.home() / ".unitylib-content-signing" / "release-key-2026-09-26.xml"
-DEFAULT_ANCHORS = "Assets/LiteClient/Content/ContentTrustAnchors.cs"
+DEFAULT_ANCHORS = "Assets/LiteFramework/Runtime/Modules/Content/ContentTrustAnchors.cs"
 
 
 def parse_args(argv=None):

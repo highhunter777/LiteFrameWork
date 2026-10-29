@@ -20,17 +20,17 @@ namespace LiteFramework.Core.Tests
         private static readonly Dictionary<string, int> SafeCallBoundaries = new Dictionary<string, int>(StringComparer.Ordinal)
         {
             // Lua 回调边界（页面/桥脚本回调不得炸派发链）
-            ["Assets/LiteClient/Adapters/Scripting.XLua/Lua/EventBridge.cs"] = 2,
+            ["Assets/LiteFramework/Runtime/Adapters/XLua/Lua/EventBridge.cs"] = 2,
             ["Assets/LiteGame/App/Meta/MetaBridge.cs"] = 1,
             ["Assets/LiteGame/App/Room/RoomBridge.cs"] = 3,
             // UI 逻辑/控件回调边界（页面生命周期、控件事件、主题/静态文案绑定、红点规则）
-            ["Assets/LiteClient/UI/UIForm.cs"] = 13,
-            ["Assets/LiteClient/UI/Bind/UIBindEvents.cs"] = 4,
-            ["Assets/LiteClient/UI/Bind/UIBindIndex.cs"] = 1,
-            ["Assets/LiteClient/UI/Bind/UIBindListSource.cs"] = 1,
-            ["Assets/LiteClient/UI/Localization/UiStaticTextBinder.cs"] = 1,
-            ["Assets/LiteClient/UI/Style/UiThemeBinder.cs"] = 1,
-            ["Assets/LiteClient/UI/Widgets/RedDotRegistry.cs"] = 1,
+            ["Assets/LiteFramework/Runtime/Modules/UI/UIForm.cs"] = 13,
+            ["Assets/LiteFramework/Runtime/Modules/UI/Bind/UIBindEvents.cs"] = 4,
+            ["Assets/LiteFramework/Runtime/Modules/UI/Bind/UIBindIndex.cs"] = 1,
+            ["Assets/LiteFramework/Runtime/Modules/UI/Bind/UIBindListSource.cs"] = 1,
+            ["Assets/LiteFramework/Runtime/Modules/UI/Localization/UiStaticTextBinder.cs"] = 1,
+            ["Assets/LiteFramework/Runtime/Modules/UI/Style/UiThemeBinder.cs"] = 1,
+            ["Assets/LiteFramework/Runtime/Modules/UI/Widgets/RedDotRegistry.cs"] = 1,
             // 调度器/Timeline 用户回调边界（单个回调抛异常不得中断派发）
             ["Assets/LiteFramework/Runtime/Core/Clock/GameScheduler.cs"] = 1,
             ["Assets/LiteFramework/Runtime/Core/Clock/TimelineRunner.cs"] = 1,
@@ -40,7 +40,7 @@ namespace LiteFramework.Core.Tests
 
         private static readonly string[] ProductRoots =
         {
-            "Assets/LiteClient", "Assets/LiteGame", "Assets/LiteFramework", "Assets/LiteView", "Assets/LiteNet",
+            "Assets/LiteFramework/Runtime/Modules", "Assets/LiteGame", "Assets/LiteFramework", "Assets/LiteView", "Assets/LiteNet",
         };
 
         /// <summary>产品代码禁裸 <c>.Forget()</c>：无回调 = 异常静默；改用 <c>ForgetLogged(op)</c>。</summary>

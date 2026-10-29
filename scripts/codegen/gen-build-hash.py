@@ -66,8 +66,8 @@ SHARED_LINK_FILES = [
     # 显式出树链接进服务端编译）。它们同时决定两端的装载映射/路径/摘要取数，改一端而另一端不重建 =
     # 静默分叉且 buildHash 不动。登记规则（与 META_EXTRA_FILES 同一条）：csproj 每加一条出树链接，
     # 这里必须同批加对应条目。
-    'Assets/LiteClient/Adapters/Serialization.Luban/SimConfigMapper.cs',   # 表 → CombatValues 投影（两端同链）
-    'Assets/LiteClient/Adapters/Serialization.Luban/TableLayout.cs',       # 表清单/判定面清单/取数键单源
+    'Assets/LiteFramework/Runtime/Adapters/Luban/SimConfigMapper.cs',   # 表 → CombatValues 投影（两端同链）
+    'Assets/LiteFramework/Runtime/Adapters/Luban/TableLayout.cs',       # 表清单/判定面清单/取数键单源
 ]
 # 第二目标（P1④）：**Meta 服务自身**的构建身份——"接真"取代原手写占位常量
 # （`Host/BuildHash.cs` 的 "meta-0.0.0-unwired"，该文件随本批删除）。

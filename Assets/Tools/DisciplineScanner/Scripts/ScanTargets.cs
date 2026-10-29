@@ -144,7 +144,7 @@ namespace Tools.DisciplineScan
 
         /// <summary>
         /// `Assets/LiteGame/` 下**允许存在的顶层目录**（《客户端总设计》§5 顶层分层）；
-        /// 框架侧 `LiteClient.*` 住 `Assets/LiteClient/`（见 <see cref="Default"/> 扫描目标）。
+        /// 框架侧 `LiteClient.*` 住 `Assets/LiteFramework/Runtime/Modules/`（见 <see cref="Default"/> 扫描目标）。
         ///
         /// 新增顶层目录必须在此登记，并说明它属于 §5 的哪一层（或为何是例外）。
         /// 未登记的目录会让本规则报红——**目录一变就红**，与 R12 边界表同一纪律。
@@ -189,9 +189,13 @@ namespace Tools.DisciplineScan
             new ScanTarget("Assets/LiteBattle", CoreRules),                                    // 对局/开发端口契约层：零引擎、零实现（R5 宏并集）
             // R6 的正则 `\byield\s+return\b` **不区分 C# 迭代器与 Unity 协程**——
             // IEnumerable 迭代器的 `yield return` 会被误报。
-            new ScanTarget("Assets/LiteClient", GameRules),                                    // R8 资源唯一入口 + R12 适配器边界（框架侧：Abstractions/Runtime/Adapters/UI）
+            new ScanTarget("Assets/LiteFramework/Runtime/Modules", GameRules),                                    // R8 资源唯一入口 + R12 适配器边界（框架侧：Modules）
+            new ScanTarget("Assets/LiteFramework/Runtime/Adapters/YooAsset", GameRules),                          // R8/R12（第三方桥接件）
+            new ScanTarget("Assets/LiteFramework/Runtime/Adapters/XLua", GameRules),
+            new ScanTarget("Assets/LiteFramework/Runtime/Adapters/Luban", GameRules),
+            new ScanTarget("Assets/LiteFramework/Runtime/Adapters/UnityPlatform", GameRules),
             new ScanTarget("Assets/LiteGame", GameRules),                                      // R8 资源唯一入口 + R12 适配器边界（产品侧）
-            new ScanTarget("Assets/LiteClient/UI", UiLayerRules),                                // R10 UI 层不发业务包
+            new ScanTarget("Assets/LiteFramework/Runtime/Modules/UI", UiLayerRules),                                // R10 UI 层不发业务包
             // 该目标的存在性由 `纪律_R12_已接入真实扫描目标_且目标路径存在` 钉住。
             new ScanTarget("Assets/RoomServer/Runtime", RuntimePurityRules),                  // R1 纯运行时层（R1《服务端总设计》§8.1）
             new ScanTarget("Assets/LiteSim", ConfigPortRules, ConfigPortExcludes),             // R13 数值读口禁读（机制面；表现层与读口定义文件除外）
@@ -277,8 +281,6 @@ namespace Tools.DisciplineScan
             "Assets/RoomServer/Runtime/RoomServer.Runtime.asmdef",
             "Assets/RoomServer/Application/RoomServer.Application.Runtime.asmdef",
             "Assets/LiteNet/LiteNet.asmdef",
-            // S2 契约共享：只有形状共享，两端各自实现（**零第三方实现依赖**——见下）
-            "Assets/LiteFramework/Runtime/Core/LiteFramework.Core.asmdef",
         };
 
         /// <summary>
@@ -290,7 +292,8 @@ namespace Tools.DisciplineScan
         /// </summary>
         public static readonly (string Asmdef, string[] AllowedThirdParty)[] ContractZeroDepDefs =
         {
-            ("Assets/LiteFramework/Runtime/Core/LiteFramework.Core.asmdef", new string[0]),
+            // 框架并根后 Core 无独立 asmdef；S2 义务改由目录级用例
+            // ClientAsmdefAllowlistTests.框架Core与SimCore不得依赖Unity 守。
         };
 
         /// <summary>
@@ -445,21 +448,14 @@ namespace Tools.DisciplineScan
         /// </summary>
         public static readonly string[] ClientFrameworkPurityAsmdefs =
         {
-            "Assets/LiteFramework/Runtime/Abstractions/LiteFramework.Abstractions.asmdef",
+            "Assets/LiteFramework/Runtime/LiteFramework.Runtime.asmdef",
             "Assets/LiteBattle/Abstractions/LiteBattle.Abstractions.asmdef",
-            "Assets/LiteClient/Runtime/LiteClient.Runtime.asmdef",
-            "Assets/LiteClient/Content/LiteClient.Content.asmdef",
-            "Assets/LiteClient/UI/LiteClient.UI.asmdef",
-            "Assets/LiteClient/Adapters/Content.YooAsset/LiteClient.Content.YooAsset.asmdef",
-            "Assets/LiteClient/Adapters/Platform.Unity/LiteClient.Platform.Unity.asmdef",
-            "Assets/LiteClient/Adapters/Scripting.XLua/LiteClient.Scripting.XLua.asmdef",
-            "Assets/LiteClient/Adapters/Serialization.Luban/LiteClient.Serialization.Luban.asmdef",
         };
 
         /// <summary>第一方代码根（注释卫生扫描范围；第三方与生成物不在内）。</summary>
         public static readonly string[] CommentHygieneRoots =
         {
-            "Assets/LiteClient",
+            "Assets/LiteFramework/Runtime/Modules",
             "Assets/LiteGame",
             "Assets/LiteFramework",
             "Assets/LiteBattle",

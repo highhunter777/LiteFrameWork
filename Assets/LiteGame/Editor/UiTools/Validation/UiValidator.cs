@@ -21,7 +21,7 @@ namespace LiteGame.Editor.UiTools.Validation
         /// <summary>UI 源码扫描面（视觉单一来源规则用——与《修改指南》§7 约束面一致）。</summary>
         public static readonly string[] SourceScanDirs =
         {
-            "Assets/LiteClient/Runtime",
+            "Assets/LiteFramework/Runtime/Modules/ClientRuntime",
             "Assets/LiteGame/App",
             "Assets/LiteFramework/Runtime",
             "Assets/LiteView",

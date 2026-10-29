@@ -5,7 +5,7 @@
 > 日期：2026-10-22
 > 定位：回答“大型/多端项目里，UI 资产、页面、运行时、工具与协作如何分层并互相约束”。本文是 UI 领域的唯一架构入口；运行时与绑定的**现行能力**以代码为准，本文只裁决目标契约与边界。
 > 不做的事：不替代 Prefab Stage 做布局编辑；不定义具体页面的业务逻辑；不定义 GM/网络/世界 VFX；不把目标能力描述成当前能力；不记录施工状态（归 `Docs/施工进度/`）。
-> 冲突裁决：UI 运行时状态机、导航单写者、资源租约、绑定所有权以 `Assets/LiteClient/UI/**`、`Assets/LiteCodeGen/**` 的现行代码为准；工具形态以[UI 编辑器工具链专项设计](UI编辑器工具链专项设计.md)为准；美术/工程接口以[UI 美术协作与交接规范](UI美术协作与交接规范.md)为准；制作硬规则以[UI 制作规范](UI制作规范.md)为准。
+> 冲突裁决：UI 运行时状态机、导航单写者、资源租约、绑定所有权以 `Assets/LiteFramework/Runtime/Modules/UI/**`、`Assets/LiteCodeGen/**` 的现行代码为准；工具形态以[UI 编辑器工具链专项设计](UI编辑器工具链专项设计.md)为准；美术/工程接口以[UI 美术协作与交接规范](UI美术协作与交接规范.md)为准；制作硬规则以[UI 制作规范](UI制作规范.md)为准。
 > 关联：[UI 编辑器工具链专项设计](UI编辑器工具链专项设计.md) · [UI 运行时调试工具链专项设计](UI运行时调试工具链专项设计.md) · [UI 美术协作与交接规范](UI美术协作与交接规范.md) · [UI 制作规范](UI制作规范.md) · [UI 命名与控件词表参考](UI命名与控件词表参考.md) · [UI 逻辑 API 参考](UI逻辑API参考.md)
 
 ## 1. 定位与裁决
@@ -24,7 +24,7 @@
 
 | 基座 | 代码入口 | 保留理由 |
 | --- | --- | --- |
-| UI 服务与页面实例 | `Assets/LiteClient/UI/UIService.cs`、`UIForm.cs`、`UIFormStore.cs`、`UIStack.cs`、`UILayerGroup.cs`、`UIFormLogicBinder.cs`、`UIFormCacheEvictor.cs`、`UIFormStats.cs`、`UILayerGroupFactory.cs` | 已具备打开合流、取消、缓存、租约、遮盖、状态机与失败回滚；服务只留开关管线与缓存记账，逻辑解析/换表、预算淘汰、统计、根装配各成协作件 |
+| UI 服务与页面实例 | `Assets/LiteFramework/Runtime/Modules/UI/UIService.cs`、`UIForm.cs`、`UIFormStore.cs`、`UIStack.cs`、`UILayerGroup.cs`、`UIFormLogicBinder.cs`、`UIFormCacheEvictor.cs`、`UIFormStats.cs`、`UILayerGroupFactory.cs` | 已具备打开合流、取消、缓存、租约、遮盖、状态机与失败回滚；服务只留开关管线与缓存记账，逻辑解析/换表、预算淘汰、统计、根装配各成协作件 |
 | 导航/模态/焦点/输入 | `UINavigationController.cs`、`UIModalStack.cs`、`UIFocusCoordinator.cs`、`Input/UiInput.cs` | 单写者、Back 优先级、模态射线与焦点已收口 |
 | 转场与动效原语 | `Transition/UITransitionRunner.cs`、`Anim/UiAnimationClock.cs`、`Anim/UiFx.cs` | 状态机 + 超时 + 时钟 + 唯一 DOTween 入口 |
 | 绑定与生成 | `Assets/LiteCodeGen/**`、`Bind/UIBindIndex.cs`、`Bind/UIBindBase.cs`、`Bind/BindIndexBuilder.cs` | 名字绑定、运行时索引、C# 生成类、受控 API、所有权互斥 |
@@ -142,7 +142,7 @@ Assets/ShareResource/UI/
   Hud/            Hud_*.prefab（战斗 HUD 组合）
   Icons/          图标源/图集输入
   Patches/        仅编辑器/dev 的 UIPatch 输出（不进包）
-Assets/LiteClient/UI/        运行时基座（不改结构）
+Assets/LiteFramework/Runtime/Modules/UI/        运行时基座（不改结构）
 Assets/LiteGame/App/Ui/      页面流程适配（PageFlow/ResultRanking 等）
 Assets/LiteGame/Lua/UI/      Lua 页面逻辑
 Assets/LiteGame/Editor/UiTools/  编辑器工具链（可重构）
@@ -241,9 +241,9 @@ Docs/设计文档/客户端/UI/      本套设计文档
 <a id="ch-page-definition"></a>
 
 - **唯一源**：`#uiform`（id/prefab/lua/layer/fullscreen）+ `UiPageManifest`（Owner/状态/设备档/缓存策略）+ `UiPageContract`（绑定表/文案；控件表已由 prefab BindNode 生成），由 `codegen.ui-page` 生成器合并为 `PageDefinition`。
-- **生成物**：`Assets/LiteClient/UI/Generated/UiPageCatalog.g.cs`（按 Id 排序、确定性输出）。放在 `LiteClient` 而不是 `App`：`IPageCatalog`/`PageDefinition` 是壳契约，`LiteGame.LuaBridge` 也要消费；生成物只依赖壳类型，不依赖产品程序集。
+- **生成物**：`Assets/LiteFramework/Runtime/Modules/UI/Generated/UiPageCatalog.g.cs`（按 Id 排序、确定性输出）。放在 `LiteClient` 而不是 `App`：`IPageCatalog`/`PageDefinition` 是壳契约，`LiteGame.LuaBridge` 也要消费；生成物只依赖壳类型，不依赖产品程序集。
 - **缺失处理**：缺失 contract 的 Tmp 页告警并以空绑定表生成；缺失 prefab/table 行 fail-fast；同一 prefab 多行（如 201/206）各生成一条，id 独立。
-- **工具边界**：contract/manifest/hash 保留在编辑器域，作为生成器输入与评审产物；`Assets/LiteClient`、`Assets/LiteGame/App`、`Assets/LiteGame/LuaBridge` 直读表/清单/契约由 `PageDefinitionGuardTests` 拦截。
+- **工具边界**：contract/manifest/hash 保留在编辑器域，作为生成器输入与评审产物；`Assets/LiteFramework/Runtime/Modules`、`Assets/LiteGame/App`、`Assets/LiteGame/LuaBridge` 直读表/清单/契约由 `PageDefinitionGuardTests` 拦截。
 - **迁移结果**：旧 `UIFormInfo`/`UIFormCatalog` 已删除；运行时只认 `PageDefinition`/`IPageCatalog`。
 
 ### 5.2 生命周期与状态机
@@ -406,9 +406,9 @@ Page Logic (C# UIBindBase 或 Lua)
 
 - **唯一源**：`Assets/LiteGame/Editor/UiTools/UiApi/UiApiSpec.json`（schema `UiApiSpec.schema.json`）逐条声明 C# 名、Lua 名、参数/返回、文档、暴露面与手工处理器。
 - **生成物**（`scripts/codegen/gen-ui-api.py`，`--check` 逐字节确定性）：
-  - `Assets/LiteClient/UI/Bind/Generated/UIBindIndex.Api.g.cs`——受控 API 的 **partial 方法声明**；实现体留在 `UIBindIndex.cs`，签名漂移即编译失败（不靠测试兜）；
-  - `Assets/LiteClient/UI/Bind/Generated/UIBindBase.Api.g.cs`——`UIBindBase` 的转发体（手写文件只留生命周期与索引装配）；
-  - `Assets/LiteClient/UI/Bind/Generated/UiApiManifest.g.cs`——`ApiVersion` 与三张清单（Lua 名 / shim 名 / 手工处理器名），供能力声明与守卫对账；
+  - `Assets/LiteFramework/Runtime/Modules/UI/Bind/Generated/UIBindIndex.Api.g.cs`——受控 API 的 **partial 方法声明**；实现体留在 `UIBindIndex.cs`，签名漂移即编译失败（不靠测试兜）；
+  - `Assets/LiteFramework/Runtime/Modules/UI/Bind/Generated/UIBindBase.Api.g.cs`——`UIBindBase` 的转发体（手写文件只留生命周期与索引装配）；
+  - `Assets/LiteFramework/Runtime/Modules/UI/Bind/Generated/UiApiManifest.g.cs`——`ApiVersion` 与三张清单（Lua 名 / shim 名 / 手工处理器名），供能力声明与守卫对账；
   - `Assets/LiteGame/LuaBridge/Generated/UiApiShim.g.cs`——Lua `self.ui` 门面模板；
   - `Assets/LiteGame/LuaBridge/Generated/LuaBehaviourAdapter.Dispatch.g.cs`——payload 表派发 switch；
   - `Docs/设计文档/客户端/UI系统/UI逻辑API参考.md` §3 的生成区（`<!-- BEGIN/END:ui-api:lua -->` 之间）。

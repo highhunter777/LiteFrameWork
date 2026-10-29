@@ -49,7 +49,7 @@ IGNORED_PREFIXES = (
     "__pycache__/",
 )
 
-KNOWN_MISSING_SHARED = "Assets/LiteClient/Adapters/Serialization.Luban/MapTableProjection.cs"
+KNOWN_MISSING_SHARED = "Assets/LiteFramework/Runtime/Adapters/Luban/MapTableProjection.cs"
 CSProj_FILES = (
     "Server/RoomServer/RoomServer.csproj",
     "Server/MetaServer/MetaServer.csproj",
@@ -174,7 +174,7 @@ def normalize_path(path):
 def _is_shared_path(path, shared_files, shared_targets, shared_links):
     if path in shared_files or path in shared_links or path == KNOWN_MISSING_SHARED:
         return True
-    if path.startswith("Assets/LiteClient/Adapters/Serialization.Luban/") and path.endswith(".cs"):
+    if path.startswith("Assets/LiteFramework/Runtime/Adapters/Luban/") and path.endswith(".cs"):
         return True
     if not path.endswith(".cs"):
         return False
@@ -202,7 +202,7 @@ def _area_for(path, shared_files, shared_targets, shared_links, meta_targets, me
     if p.endswith(".asmdef"):
         return "client_code"
     if p.endswith(".cs") and (
-        p.startswith("Assets/LiteClient/")
+        p.startswith("Assets/LiteFramework/Runtime/Modules/")
         or p.startswith("Assets/LiteGame/")
         or p.startswith("Assets/LiteFramework/")
         or p.startswith("Assets/LiteView/")

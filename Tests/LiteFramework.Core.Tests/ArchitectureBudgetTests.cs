@@ -21,10 +21,10 @@ namespace LiteFramework.Core.Tests
         // 范围含 Dev/Editor：它们不进发布包，但同样只减不增；UIService 为用户裁决例外（只留开关管线，不拆）。
         private static readonly Dictionary<string, int> ClassCaps = new Dictionary<string, int>(StringComparer.Ordinal)
         {
-            ["Assets/LiteClient/Adapters/Platform.Unity/CinemachineCameraService.cs::CinemachineCameraService"] = 578,
-            ["Assets/LiteClient/Runtime/Battle/BattleContext.cs::BattleContext"] = 491,
-            ["Assets/LiteClient/UI/Bind/UIBindIndex.cs::UIBindIndex"] = 402,
-            ["Assets/LiteClient/UI/UIService.cs::UIService"] = 650,
+            ["Assets/LiteFramework/Runtime/Adapters/UnityPlatform/CinemachineCameraService.cs::CinemachineCameraService"] = 578,
+            ["Assets/LiteFramework/Runtime/Modules/ClientRuntime/Battle/BattleContext.cs::BattleContext"] = 491,
+            ["Assets/LiteFramework/Runtime/Modules/UI/Bind/UIBindIndex.cs::UIBindIndex"] = 402,
+            ["Assets/LiteFramework/Runtime/Modules/UI/UIService.cs::UIService"] = 650,
             ["Assets/LiteFramework/Runtime/Async/ClientHost.cs::ClientHost"] = 454,
             ["Assets/LiteFramework/Runtime/Core/Animation/AnimationPlayer.cs::AnimationPlayer"] = 447,
             ["Assets/LiteFramework/Runtime/Core/DI/ServiceContainer.cs::ServiceContainer"] = 429,
@@ -45,7 +45,7 @@ namespace LiteFramework.Core.Tests
         /// <summary>方法行数冻结上限（同 7d 口径；超 80 行的方法只许降）。</summary>
         private static readonly Dictionary<string, int> MethodCaps = new Dictionary<string, int>(StringComparer.Ordinal)
         {
-            ["Assets/LiteClient/Adapters/Scripting.XLua/Lua/CandidateLuaValidator.cs::CandidateLuaValidator.Validate"] = 87,
+            ["Assets/LiteFramework/Runtime/Adapters/XLua/Lua/CandidateLuaValidator.cs::CandidateLuaValidator.Validate"] = 87,
             ["Assets/LiteFramework/Runtime/Async/ClientHost.cs::ClientHost.InitializeAsync"] = 83,
             ["Assets/LiteFramework/Runtime/Async/ClientHost.cs::ClientHost.ShutdownAsync"] = 86,
             ["Assets/LiteFramework/Runtime/Core/Content/CandidateContentVerifier.cs::CandidateContentVerifier.Verify"] = 87,
@@ -81,7 +81,7 @@ namespace LiteFramework.Core.Tests
             var methodOffenders = new List<string>();
             var classActual = new Dictionary<string, int>(StringComparer.Ordinal);
             var methodActual = new Dictionary<string, int>(StringComparer.Ordinal);
-            string[] roots = { "Assets/LiteClient", "Assets/LiteGame", "Assets/LiteFramework", "Assets/LiteView", "Assets/LiteBattle" };
+            string[] roots = { "Assets/LiteFramework/Runtime/Modules", "Assets/LiteGame", "Assets/LiteFramework", "Assets/LiteView", "Assets/LiteBattle" };
 
             foreach (string relativeRoot in roots)
             {

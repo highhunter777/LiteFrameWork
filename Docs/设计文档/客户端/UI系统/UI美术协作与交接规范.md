@@ -77,7 +77,7 @@ A=负责批准，R=负责执行，C=需咨询，I=需知会。
 | `Assets/ShareResource/UI/Hud/**` | 美术 + 工程 | 视觉归美术，接线归工程 |
 | `Assets/ShareResource/UI/Icons/**`、图集 | TA | 图标源、图集分组、压缩 |
 | `Assets/ShareResource/Fonts/**` | TA | 字体、fallback、SDF |
-| `Assets/LiteClient/UI/**` | 工程 | 运行时框架与控件代码 |
+| `Assets/LiteFramework/Runtime/Modules/UI/**` | 工程 | 运行时框架与控件代码 |
 | `Assets/LiteGame/Lua/UI/**` | 工程 | 页面逻辑与动态文案 |
 | `Assets/LiteGame/Editor/UiTools/**` | 工程 | 工具链 |
 | `Assets/LiteGame/Editor/UiTools/Contracts/**` | 美术生成、双方评审 | 生成物禁手改 |

@@ -49,7 +49,7 @@ namespace LiteGame.Editor
             // 引导期错误界面：内置资源不可用时仍要能显示（§7）；绑冒烟标记 BootstrapError
             "ProcedureError.cs",
             // UI 输入底座：EventSystem/UI 输入模块是输入基础设施非视觉（§7 基础设施例外——
-            // 与 [UIRoot] 层级骨架同判据，见 Assets/LiteClient/UI/Input/UiInput.cs 类注释）
+            // 与 [UIRoot] 层级骨架同判据，见 Assets/LiteFramework/Runtime/Modules/UI/Input/UiInput.cs 类注释）
             "UiInput.cs",
         };
 

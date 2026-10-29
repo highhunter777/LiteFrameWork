@@ -36,7 +36,7 @@
   <ItemGroup>
     <Compile Include="..\..\Assets\LiteGame\App\Procedure\AccountSessionFactory.cs" Link="Session\AccountSessionFactory.cs" />
     <Compile Include="..\..\Assets\LiteGame\App\Procedure\MatchTransport.cs" Link="Session\MatchTransport.cs" />
-    <Compile Include="..\..\Assets\LiteClient\Runtime\Battle\BattleClient.cs" Link="Session\BattleClient.cs" />
+    <Compile Include="..\..\Assets\LiteFramework\Runtime\Modules\ClientRuntime\Battle\BattleClient.cs" Link="Session\BattleClient.cs" />
     <!-- 测试地图夹具源链接：与 LiteSim.Core.Tests 共编同一份 TestMaps（单源）——StandardBattleMap 退役后测试侧地图单源 -->
     <Compile Include="..\LiteSim.Core.Tests\TestMaps.cs" Link="Test\TestMaps.cs" />
     <Compile Include="..\LiteSim.Core.Tests\TestWeapons.cs" Link="Test\TestWeapons.cs" />

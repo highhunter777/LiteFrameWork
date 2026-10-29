@@ -18,7 +18,7 @@ namespace LiteFramework.Core.Tests
             string root = RepoRoot();
 
             // 《路线图》§4.2：LiteClient.Runtime 不引用 LiteView（表现经 IBattleView 端口进入）
-            AssertNoReference(root, "Assets/LiteClient/Runtime/LiteClient.Runtime.asmdef", "LiteView");
+            AssertNoReference(root, "Assets/LiteFramework/Runtime/LiteFramework.Runtime.asmdef", "LiteView");
 
             // §4.2/§3.6：LiteGame.App 的 release 依赖图不含开发装配层 / RoomServer.*
             // （本地传输经 ILocalTransportFactory，由 LiteGame.Dev 装配）
@@ -42,7 +42,7 @@ namespace LiteFramework.Core.Tests
             Assert.Contains("LITEFRAMEWORK_DEBUG", devText);
 
             var offenders = new List<string>();
-            string[] clientRoots = { "Assets/LiteClient", "Assets/LiteGame", "Assets/LiteView", "Assets/LiteBattle" };
+            string[] clientRoots = { "Assets/LiteFramework", "Assets/LiteGame", "Assets/LiteView", "Assets/LiteBattle" };
             foreach (string clientRoot in clientRoots)
             {
                 string dir = Path.Combine(root, clientRoot.Replace('/', Path.DirectorySeparatorChar));
@@ -64,7 +64,7 @@ namespace LiteFramework.Core.Tests
         {
             // I4 / §4.11 10：除 IUiOperationQueue 的实现外，UI 运行时代码不得声明 Queue<...> 作为调度器。
             string root = RepoRoot();
-            string uiRoot = Path.Combine(root, "Assets", "LiteClient", "UI");
+            string uiRoot = Path.Combine(root, "Assets", "LiteFramework", "Runtime", "Modules", "UI");
             var offenders = new List<string>();
             var pattern = new Regex(@"\bQueue\s*<", RegexOptions.Compiled);
 

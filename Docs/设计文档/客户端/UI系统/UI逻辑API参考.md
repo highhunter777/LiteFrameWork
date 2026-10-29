@@ -6,7 +6,7 @@
 > 定位：回答“页面逻辑（Lua/C#）能调用哪些受控 API、参数与错误语义是什么、列表行怎么传”。本文只做查询，不裁决生命周期/架构。
 > 生成：§3 表由 `scripts/codegen/gen-ui-api.py` 从 `Assets/LiteGame/Editor/UiTools/UiApi/UiApiSpec.json` 生成（`<!-- BEGIN/END:ui-api:lua -->` 之间，勿手改；改 API 先改 spec）。
 > 不做的事：不定义页面业务；不替代[UI 系统总设计](UI系统总设计.md)的状态机/导航契约；不记录施工状态。
-> 冲突裁决：与代码不一致以代码为准，并顺手修本文。源码入口：`Assets/LiteGame/Editor/UiTools/UiApi/UiApiSpec.json`（API 单源）、`Assets/LiteClient/UI/Bind/UIBindIndex.cs`、`Bind/UIBindBase.cs`、`Assets/LiteGame/LuaBridge/LuaBehaviourAdapter.cs`、`LuaBridge/LuaListRows.cs`、`LuaBridge/Bridge.Data.cs`。
+> 冲突裁决：与代码不一致以代码为准，并顺手修本文。源码入口：`Assets/LiteGame/Editor/UiTools/UiApi/UiApiSpec.json`（API 单源）、`Assets/LiteFramework/Runtime/Modules/UI/Bind/UIBindIndex.cs`、`Bind/UIBindBase.cs`、`Assets/LiteGame/LuaBridge/LuaBehaviourAdapter.cs`、`LuaBridge/LuaListRows.cs`、`LuaBridge/Bridge.Data.cs`。
 > 关联：[UI 系统总设计](UI系统总设计.md) · [UI 制作规范](UI制作规范.md) · [UI 命名与控件词表参考](UI命名与控件词表参考.md)
 
 ## 1. 分层与入口

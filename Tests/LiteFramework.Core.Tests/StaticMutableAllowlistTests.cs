@@ -33,7 +33,7 @@ namespace LiteFramework.Core.Tests
         public void 静态可变字段仅限基线()
         {
             string root = RepoRoot();
-            string[] roots = { "Assets/LiteClient", "Assets/LiteGame", "Assets/LiteFramework", "Assets/LiteView", "Assets/LiteSim", "Assets/LiteBattle" };
+            string[] roots = { "Assets/LiteFramework/Runtime/Modules", "Assets/LiteGame", "Assets/LiteFramework", "Assets/LiteView", "Assets/LiteSim", "Assets/LiteBattle" };
             var rx = new Regex(@"^\s*public\s+static\s+(?!readonly\b)(?!const\b)(?!class\b)(?!partial\b)(?!void\b)(?!event\b)[\w<>,\[\]\.]+\s+([A-Za-z_]\w*)\s*(=[^=>]|;)");
             var offenders = new List<string>();
             foreach (string dir in roots)

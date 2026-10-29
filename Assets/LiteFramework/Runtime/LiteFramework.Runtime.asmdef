@@ -1,15 +1,20 @@
 {
-    "name": "LiteClient.UI",
-    "rootNamespace": "LiteClient",
+    "name": "LiteFramework.Runtime",
+    "rootNamespace": "LiteFramework",
     "references": [
-        "DOTween.Modules",
+        "LiteBattle.Abstractions",
         "LiteCodeGen.Runtime",
-        "LiteFramework.Async",
-        "LiteFramework.Core",
-        "LiteFramework.Unity",
+        "LiteNet",
+        "LiteSim.Core",
+        "Cinemachine",
+        "DOTween.Modules",
         "UniTask",
         "Unity.InputSystem",
-        "Unity.TextMeshPro"
+        "Unity.TextMeshPro",
+        "YooAsset",
+        "xLuaMain",
+        "Luban.Runtime",
+        "Luban.Tables"
     ],
     "includePlatforms": [],
     "excludePlatforms": [],

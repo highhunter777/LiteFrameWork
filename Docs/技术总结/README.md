@@ -21,9 +21,9 @@
 |---|---|---|---|
 | 01 | [项目定位与技术栈](01-项目定位与技术栈.md) | 这是什么项目、由哪几块组成、用了什么、规模多大、现在做到哪 | `ProjectSettings/`、`Packages/`、各模块源码统计 |
 | 02 | [总体架构与程序集分层](02-总体架构与程序集分层.md) | 分层原则是什么、程序集怎么依赖、一次启动与一局对战怎么串起来、关键架构决策的代价 | asmdef/csproj、[程序集引用图](../开发导航/程序集引用图.md)、装配根 |
-| 03 | [客户端框架与运行时](03-客户端框架与运行时.md) | Host/模块/Scope/时钟/事件/命令/状态机/池/内容服务如何协作，生命周期与关闭序怎么保证 | `Assets/LiteFramework`、`Assets/LiteClient/Runtime`、`App/Bootstrap` |
-| 04 | [UI 系统与 Lua 脚本层](04-UI系统与Lua脚本层.md) | UI 运行时、导航单写者、绑定生成、Lua 注册表与工具链如何组成一条制作流水线 | `LiteClient/UI`、`LiteGame/LuaBridge`、`Editor/UiTools` |
-| 05 | [确定性 Sim 与战斗判定](05-确定性Sim与战斗判定.md) | 定长逻辑帧、系统顺序、确定性边界、数值实例化、预测/回滚/和解如何成立 | `LiteSim/Core`、`LiteView/SimView`、`LiteClient/Runtime/Battle` |
+| 03 | [客户端框架与运行时](03-客户端框架与运行时.md) | Host/模块/Scope/时钟/事件/命令/状态机/池/内容服务如何协作，生命周期与关闭序怎么保证 | `Assets/LiteFramework`、`Assets/LiteFramework/Runtime/Modules/ClientRuntime`、`App/Bootstrap` |
+| 04 | [UI 系统与 Lua 脚本层](04-UI系统与Lua脚本层.md) | UI 运行时、导航单写者、绑定生成、Lua 注册表与工具链如何组成一条制作流水线 | `LiteFramework/Runtime/Modules/UI`、`LiteGame/LuaBridge`、`Editor/UiTools` |
+| 05 | [确定性 Sim 与战斗判定](05-确定性Sim与战斗判定.md) | 定长逻辑帧、系统顺序、确定性边界、数值实例化、预测/回滚/和解如何成立 | `LiteSim/Core`、`LiteView/SimView`、`LiteFramework/Runtime/Modules/ClientRuntime/Battle` |
 | 06 | [联机同步与网络协议](06-联机同步与网络协议.md) | 协议信封、快照链、AOI、KCP、输入冗余、BuildHash 与重连如何拼成一条可靠链路 | `LiteNet`、`RoomServer/Application`、`RoomClient` |
 | 07 | [服务端：房间内核与 Meta](07-服务端房间内核与Meta.md) | 权威房间如何步进与裁决、宿主如何编排多房与排空、Meta 如何签发与结算 | `Assets/RoomServer`、`Server/RoomServer`、`Server/MetaServer` |
 | 08 | [内容、热更与资源管线](08-内容热更与资源管线.md) | 配置表、资源租约、候选包、签名、激活事务、收集目录如何构成可回滚的内容链 | `LiteFramework/Content`、`Content.YooAsset`、`scripts/content` |

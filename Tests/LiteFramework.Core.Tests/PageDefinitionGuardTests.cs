@@ -13,8 +13,8 @@ namespace LiteFramework.Core.Tests
     {
         private static readonly HashSet<string> Allowed = new HashSet<string>(StringComparer.Ordinal)
         {
-            "Assets/LiteClient/Adapters/Serialization.Luban/TableLayout.cs",
-            "Assets/LiteClient/UI/Generated/UiPageCatalog.g.cs",
+            "Assets/LiteFramework/Runtime/Adapters/Luban/TableLayout.cs",
+            "Assets/LiteFramework/Runtime/Modules/UI/Generated/UiPageCatalog.g.cs",
         };
 
         [Fact]
@@ -22,7 +22,7 @@ namespace LiteFramework.Core.Tests
         {
             string root = RepoRoot();
             var offenders = new List<string>();
-            string[] roots = { "Assets/LiteClient", "Assets/LiteGame/App", "Assets/LiteGame/LuaBridge" };
+            string[] roots = { "Assets/LiteFramework/Runtime/Modules", "Assets/LiteGame/App", "Assets/LiteGame/LuaBridge" };
 
             foreach (string relativeRoot in roots)
             {

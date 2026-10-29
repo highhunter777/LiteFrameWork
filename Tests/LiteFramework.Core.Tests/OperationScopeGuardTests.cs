@@ -11,11 +11,11 @@ namespace LiteFramework.Core.Tests
     public sealed class OperationScopeGuardTests
     {
         [Theory]
-        [InlineData("Assets/LiteClient/UI/UIService.cs")]
-        [InlineData("Assets/LiteClient/UI/UINavigationController.cs")]
-        [InlineData("Assets/LiteClient/UI/Transition/UITransitionRunner.cs")]
-        [InlineData("Assets/LiteClient/Content/PatchRunner.cs")]
-        [InlineData("Assets/LiteClient/Content/HttpCandidateFetcher.cs")]
+        [InlineData("Assets/LiteFramework/Runtime/Modules/UI/UIService.cs")]
+        [InlineData("Assets/LiteFramework/Runtime/Modules/UI/UINavigationController.cs")]
+        [InlineData("Assets/LiteFramework/Runtime/Modules/UI/Transition/UITransitionRunner.cs")]
+        [InlineData("Assets/LiteFramework/Runtime/Modules/Content/PatchRunner.cs")]
+        [InlineData("Assets/LiteFramework/Runtime/Modules/Content/HttpCandidateFetcher.cs")]
         public void 已迁移文件_只经OperationScope持有取消(string relativePath)
         {
             string root = RepoRoot();
@@ -32,10 +32,10 @@ namespace LiteFramework.Core.Tests
         public void 转场_取消源归作用域_播放容器只读令牌()
         {
             string root = RepoRoot();
-            string motion = File.ReadAllText(Path.Combine(root, "Assets/LiteClient/UI/Anim/MotionOutcome.cs"));
+            string motion = File.ReadAllText(Path.Combine(root, "Assets/LiteFramework/Runtime/Modules/UI/Anim/MotionOutcome.cs"));
             Assert.DoesNotContain("new CancellationTokenSource", motion);
 
-            string context = File.ReadAllText(Path.Combine(root, "Assets/LiteClient/UI/Transition/TransitionReq.cs"));
+            string context = File.ReadAllText(Path.Combine(root, "Assets/LiteFramework/Runtime/Modules/UI/Transition/TransitionReq.cs"));
             Assert.Contains("OperationScope Scope", context);
             Assert.DoesNotContain("CancellationTokenSource", context);
         }
@@ -43,7 +43,7 @@ namespace LiteFramework.Core.Tests
         [Fact]
         public void 场景服务_操作经作用域_生命周期CTS仅一处()
         {
-            string path = Path.Combine(RepoRoot(), "Assets/LiteClient/Adapters/Content.YooAsset/Scene/SceneService.cs");
+            string path = Path.Combine(RepoRoot(), "Assets/LiteFramework/Runtime/Adapters/YooAsset/Scene/SceneService.cs");
             string text = File.ReadAllText(path);
 
             Assert.Contains("OperationScope.StartLinked(", text);
