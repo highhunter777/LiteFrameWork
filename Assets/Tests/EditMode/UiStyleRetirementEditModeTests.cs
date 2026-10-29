@@ -147,7 +147,7 @@ namespace LiteGame.Tests.EditMode
         public void 颜色_生产读口不再持有颜色字面量()
         {
             string source = File.ReadAllText(
-                Path.Combine(UiThemePaths.ProjectRoot, "Assets/LiteGame/Editor/Style/UiStyle.cs"));
+                Path.Combine(UiThemePaths.ProjectRoot, "Assets/LiteGame/Editor/Core/Style/UiStyle.cs"));
 
             StringAssert.DoesNotContain("new Color(", source, "颜色值只允许出现在令牌 JSON（红线 5）");
             StringAssert.DoesNotContain("0.12f", source, "旧色值应已退役");
@@ -170,7 +170,7 @@ namespace LiteGame.Tests.EditMode
         public void 文字_生产读口不再持有字号字面量()
         {
             string source = File.ReadAllText(
-                Path.Combine(UiThemePaths.ProjectRoot, "Assets/LiteGame/Editor/Style/UiTextStyle.cs"));
+                Path.Combine(UiThemePaths.ProjectRoot, "Assets/LiteGame/Editor/Core/Style/UiTextStyle.cs"));
 
             StringAssert.DoesNotContain("24f", source, "字号只允许来自令牌");
             StringAssert.DoesNotContain("14f", source, "字号只允许来自令牌");

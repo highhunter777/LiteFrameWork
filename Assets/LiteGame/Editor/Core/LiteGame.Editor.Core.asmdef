@@ -1,0 +1,19 @@
+{
+    "name": "LiteGame.Editor.Core",
+    "rootNamespace": "LiteGame",
+    "references": [
+        "LiteClient.UI",
+        "Unity.TextMeshPro"
+    ],
+    "includePlatforms": [
+        "Editor"
+    ],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": false,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}

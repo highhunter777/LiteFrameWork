@@ -144,7 +144,7 @@ namespace LiteGame
         public bool HasBattle => BattleDiagnostics.Current != null;
 
         /// <summary>测试模式进行中（请求桥的运行态反映；投影读数经此口，不直读 TestModeRuntime）。</summary>
-        public bool IsTestModeActive => TestModeRuntime.Active;
+        public bool IsTestModeActive => TestModeRuntime.Current.Active;
 
         /// <summary>当前对局日志关联键（日志过滤用；与 RecentLogs 同源的读模型上下文）。</summary>
         public string CurrentMatchId => Log.CurrentMatchId;
@@ -153,10 +153,10 @@ namespace LiteGame
         public string CurrentSessionId => Log.CurrentSessionId;
 
         /// <summary>进房 bot 数快照（启动项一览行用）。</summary>
-        public int StartupBotCount => TestModeRuntime.BotCount;
+        public int StartupBotCount => TestModeRuntime.Current.BotCount;
 
         /// <summary>重置补位假人：一次性宿主钩子（权威侧满血回出生点）；写口经内核收口。</summary>
-        public void RequestBotReset() => LiteSim.SimTestRules.BotResetRequested = true;
+        public void RequestBotReset() => SimTestRules.BotResetRequested = true;
 
         /// <summary>帧样本入读模型：投影只喂本帧时钟差（Time.unscaledDeltaTime）；统计与 recorder 读数在内核。</summary>
         public void SampleFrame(float deltaTime) => _perf.SampleFrame(deltaTime);
@@ -332,9 +332,9 @@ namespace LiteGame
             }
         }
 
-        public void RequestEnterTestMode() => TestModeRuntime.RequestEnter();
-        public void RequestExitTestMode() => TestModeRuntime.RequestExit();
-        public void RequestTeleport() => TestModeRuntime.RequestTeleport();
+        public void RequestEnterTestMode() => TestModeRuntime.Current.RequestEnter();
+        public void RequestExitTestMode() => TestModeRuntime.Current.RequestExit();
+        public void RequestTeleport() => TestModeRuntime.Current.RequestTeleport();
 
         public IDisposable BlockInput(string name, string reason)
         {

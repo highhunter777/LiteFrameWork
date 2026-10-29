@@ -448,6 +448,7 @@ namespace Tools.DisciplineScan
             "Assets/LiteFramework/Abstractions/LiteFramework.Abstractions.asmdef",
             "Assets/LiteBattle/Abstractions/LiteBattle.Abstractions.asmdef",
             "Assets/LiteClient/Runtime/LiteClient.Runtime.asmdef",
+            "Assets/LiteClient/Content/LiteClient.Content.asmdef",
             "Assets/LiteClient/UI/LiteClient.UI.asmdef",
             "Assets/LiteClient/Adapters/Content.YooAsset/LiteClient.Content.YooAsset.asmdef",
             "Assets/LiteClient/Adapters/Platform.Unity/LiteClient.Platform.Unity.asmdef",

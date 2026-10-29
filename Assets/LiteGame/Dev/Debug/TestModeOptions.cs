@@ -73,15 +73,15 @@ namespace LiteGame
         {
             switch (id)
             {
-                case Id.NoDeath: return TestModeRuntime.NoDeath;
-                case Id.InfiniteAmmo: return TestModeRuntime.InfiniteAmmo;
-                case Id.LaserSight: return TestModeRuntime.LaserSight;
-                case Id.DamageNumbers: return TestModeRuntime.DamageNumbers;
-                case Id.AutoHeadshot: return TestModeRuntime.AutoHeadshot;
-                case Id.DrawHeadshotDebug: return TestModeRuntime.DrawHeadshotDebug;
-                case Id.TeleportEnabled: return TestModeRuntime.TeleportEnabled;
-                case Id.BotFrozen: return TestModeRuntime.BotFrozen;
-                case Id.BotInfiniteHp: return TestModeRuntime.BotInfiniteHp;
+                case Id.NoDeath: return TestModeRuntime.Current.NoDeath;
+                case Id.InfiniteAmmo: return TestModeRuntime.Current.InfiniteAmmo;
+                case Id.LaserSight: return TestModeRuntime.Current.LaserSight;
+                case Id.DamageNumbers: return TestModeRuntime.Current.DamageNumbers;
+                case Id.AutoHeadshot: return TestModeRuntime.Current.AutoHeadshot;
+                case Id.DrawHeadshotDebug: return TestModeRuntime.Current.DrawHeadshotDebug;
+                case Id.TeleportEnabled: return TestModeRuntime.Current.TeleportEnabled;
+                case Id.BotFrozen: return TestModeRuntime.Current.BotFrozen;
+                case Id.BotInfiniteHp: return TestModeRuntime.Current.BotInfiniteHp;
                 default: return false;
             }
         }
@@ -93,30 +93,30 @@ namespace LiteGame
         {
             switch (id)
             {
-                case Id.NoDeath: TestModeRuntime.NoDeath = value; break;
-                case Id.InfiniteAmmo: TestModeRuntime.InfiniteAmmo = value; break;
-                case Id.LaserSight: TestModeRuntime.LaserSight = value; break;
-                case Id.DamageNumbers: TestModeRuntime.DamageNumbers = value; break;
-                case Id.AutoHeadshot: TestModeRuntime.AutoHeadshot = value; break;
-                case Id.DrawHeadshotDebug: TestModeRuntime.DrawHeadshotDebug = value; break;
-                case Id.TeleportEnabled: TestModeRuntime.TeleportEnabled = value; break;
-                case Id.BotFrozen: TestModeRuntime.BotFrozen = value; break;
-                case Id.BotInfiniteHp: TestModeRuntime.BotInfiniteHp = value; break;
+                case Id.NoDeath: TestModeRuntime.Current.NoDeath = value; break;
+                case Id.InfiniteAmmo: TestModeRuntime.Current.InfiniteAmmo = value; break;
+                case Id.LaserSight: TestModeRuntime.Current.LaserSight = value; break;
+                case Id.DamageNumbers: TestModeRuntime.Current.DamageNumbers = value; break;
+                case Id.AutoHeadshot: TestModeRuntime.Current.AutoHeadshot = value; break;
+                case Id.DrawHeadshotDebug: TestModeRuntime.Current.DrawHeadshotDebug = value; break;
+                case Id.TeleportEnabled: TestModeRuntime.Current.TeleportEnabled = value; break;
+                case Id.BotFrozen: TestModeRuntime.Current.BotFrozen = value; break;
+                case Id.BotInfiniteHp: TestModeRuntime.Current.BotInfiniteHp = value; break;
             }
 
             // 副作用：无限子弹写**当前对局**的规则持有件（由调用方给出——对局会话绑定在 IDevSession 上的同一实例；
             // 客户端预测与本地服同实例，同进程两端同值）。非测试模式一律不武装；无对局（未进对局）时只记
             // TestModeRuntime 初值，下次进房生效。
-            if (id == Id.InfiniteAmmo && TestModeRuntime.Active && match != null)
+            if (id == Id.InfiniteAmmo && TestModeRuntime.Current.Active && match != null)
                 match.InfiniteAmmo = value;
 
             // bot 无限生命（Live）：同步写宿主钩子（本地服宿主循环读取——同帧起效；进房镜像兜底在
             // ProcedureMatch）。非测试模式一律不武装（同 InfiniteAmmo 口径）。
             if (id == Id.BotInfiniteHp)
-                LiteSim.SimTestRules.BotInfiniteHp = TestModeRuntime.Active && value;
+                SimTestRules.BotInfiniteHp = TestModeRuntime.Current.Active && value;
         }
 
-        /// <summary>套本表默认口径（<see cref="TestModeRuntime.ApplyDefaults"/> 的数据源）。</summary>
+        /// <summary>套本表默认口径（<see cref="TestModeRuntime.Current.ApplyDefaults"/> 的数据源）。</summary>
         public static void ApplyDefaults()
         {
             for (int i = 0; i < All.Length; i++) Set(All[i].Id, All[i].Default);

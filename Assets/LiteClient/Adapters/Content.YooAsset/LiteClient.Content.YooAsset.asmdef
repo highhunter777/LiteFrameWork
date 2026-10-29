@@ -3,6 +3,7 @@
     "rootNamespace": "LiteClient",
     "references": [
         "LiteFramework.Abstractions",
+        "LiteClient.Content",
         "LiteClient.Runtime",
         "LiteFramework.Async",
         "LiteFramework.Core",

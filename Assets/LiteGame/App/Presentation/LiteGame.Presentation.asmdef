@@ -1,0 +1,30 @@
+{
+    "name": "LiteGame.Presentation",
+    "rootNamespace": "LiteGame",
+    "references": [
+        "LiteBattle.Abstractions",
+        "LiteClient.Platform.Unity",
+        "LiteClient.Runtime",
+        "LiteClient.Serialization.Luban",
+        "LiteClient.UI",
+        "LiteFramework.Async",
+        "LiteFramework.Core",
+        "LiteFramework.Unity",
+        "LiteNet",
+        "LiteSim.Core",
+        "LiteView",
+        "Luban.Runtime",
+        "Luban.Tables",
+        "UniTask",
+        "Unity.TextMeshPro"
+    ],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}

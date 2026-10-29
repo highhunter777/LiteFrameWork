@@ -33,8 +33,8 @@ namespace LiteGame
         {
             var match = _dev?.MatchRules;
             if (match != null) return LiteSim.MatchTestRules.ResolveHeadHitLine(match);
-            return TestModeRuntime.HeadHitLineOverride >= 0f
-                ? TestModeRuntime.HeadHitLineOverride
+            return TestModeRuntime.Current.HeadHitLineOverride >= 0f
+                ? TestModeRuntime.Current.HeadHitLineOverride
                 : LiteSim.CombatConfig.HeadHitLine;
         }
 
@@ -42,15 +42,15 @@ namespace LiteGame
         {
             var match = _dev?.MatchRules;
             if (match != null) return LiteSim.MatchTestRules.ResolveHeadshotRadius(match);
-            return TestModeRuntime.HeadshotRadiusOverride >= 0f
-                ? TestModeRuntime.HeadshotRadiusOverride
+            return TestModeRuntime.Current.HeadshotRadiusOverride >= 0f
+                ? TestModeRuntime.Current.HeadshotRadiusOverride
                 : LiteSim.CombatConfig.HeadshotRadius;
         }
 
         public void SetHead(float line, float radius)
         {
-            TestModeRuntime.HeadHitLineOverride = line;
-            TestModeRuntime.HeadshotRadiusOverride = radius;
+            TestModeRuntime.Current.HeadHitLineOverride = line;
+            TestModeRuntime.Current.HeadshotRadiusOverride = radius;
             var match = _dev?.MatchRules;
             if (match != null)
             {

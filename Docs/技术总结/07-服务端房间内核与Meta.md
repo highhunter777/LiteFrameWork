@@ -12,7 +12,7 @@
 | 无 IO 应用子集 | `Assets/RoomServer/Application` | `RoomServer.Application.Runtime` | proto、快照/会话编排 | 文件/网络 IO |
 | 可执行宿主 | `Server/RoomServer` | `RoomServer` | Socket/HTTP/文件/DI | —— |
 
-`Application` 在 Unity 侧也有 asmdef（用 vendor Protobuf DLL），但 `autoReferenced:false`，只有开发档 `DevLocalServer` 引用，不进入正式客户端运行链。这条分层不是审美：它让**房间裁决可以在 L1 里被纯函数式测试**，不需要起进程/开端口。
+`Application` 在 Unity 侧也有 asmdef（用 vendor Protobuf DLL），但 `autoReferenced:false`，只有开发档 `LiteGame.Dev`（`Dev/LocalServer/`）引用，不进入正式客户端运行链。这条分层不是审美：它让**房间裁决可以在 L1 里被纯函数式测试**，不需要起进程/开端口。
 
 ## 2. 权威步进：`StepFrame` 的固定顺序
 

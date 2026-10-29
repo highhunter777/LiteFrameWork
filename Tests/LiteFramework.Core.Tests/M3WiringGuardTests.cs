@@ -30,7 +30,7 @@ namespace LiteFramework.Core.Tests
         public void 内容缓存清理_先关运行时_再删产物_最后回退记录()
         {
             string text = File.ReadAllText(Path.Combine(RepoRoot(),
-                "Assets/LiteClient/Runtime/Resource/ContentCacheMaintenance.cs"));
+                "Assets/LiteClient/Content/ContentCacheMaintenance.cs"));
 
             int shutdown = text.IndexOf("ShutdownAsync(", StringComparison.Ordinal);
             int delete = text.IndexOf("DeleteDirectory(ReleaseLayout.CandidateRootRelative", StringComparison.Ordinal);

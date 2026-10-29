@@ -1,0 +1,26 @@
+{
+    "name": "LiteGame.Editor.UiTools",
+    "rootNamespace": "LiteGame",
+    "references": [
+        "LiteClient.Serialization.Luban",
+        "LiteClient.UI",
+        "LiteCodeGen.Editor",
+        "LiteCodeGen.Runtime",
+        "LiteGame.Dev",
+        "LiteGame.Editor.Core",
+        "Luban.Runtime",
+        "Luban.Tables",
+        "Unity.TextMeshPro"
+    ],
+    "includePlatforms": [
+        "Editor"
+    ],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": false,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}

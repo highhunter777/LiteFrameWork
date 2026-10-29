@@ -22,7 +22,7 @@ namespace LiteFramework.Core.Tests
         private static readonly Dictionary<string, int> ClassCaps = new Dictionary<string, int>(StringComparer.Ordinal)
         {
             ["Assets/LiteClient/Adapters/Platform.Unity/CinemachineCameraService.cs::CinemachineCameraService"] = 578,
-            ["Assets/LiteClient/Runtime/Battle/BattleContext.cs::BattleContext"] = 563,
+            ["Assets/LiteClient/Runtime/Battle/BattleContext.cs::BattleContext"] = 491,
             ["Assets/LiteClient/UI/Bind/UIBindIndex.cs::UIBindIndex"] = 402,
             ["Assets/LiteClient/UI/UIService.cs::UIService"] = 650,
             ["Assets/LiteFramework/Scripts/Async/ClientHost.cs::ClientHost"] = 454,
@@ -41,7 +41,6 @@ namespace LiteFramework.Core.Tests
             ["Assets/LiteGame/Editor/UiTools/Workbench/UiWorkbenchWindow.cs::UiWorkbenchWindow"] = 457,
             ["Assets/LiteView/Animation/Backends/AnimatorAnimationBackend.cs::AnimatorAnimationBackend"] = 505,
             ["Assets/LiteView/Animation/Drivers/CharacterLocomotionDriver.cs::CharacterLocomotionDriver"] = 500,
-            ["Assets/LiteView/SimView.cs::SimView"] = 741,
         };
 
         /// <summary>方法行数冻结上限（同 7d 口径；超 80 行的方法只许降）。</summary>
@@ -58,9 +57,9 @@ namespace LiteFramework.Core.Tests
             ["Assets/LiteGame/Dev/Projection/DebugPanelUiToolkitHost.cs::DebugPanelUiToolkitHost.AddTunableRow"] = 91,
             ["Assets/LiteGame/Editor/Gm/GmNetDiagPage.cs::GmNetDiagPage.Draw"] = 130,
             ["Assets/LiteGame/Editor/Gm/GmTestModePage.cs::GmTestModePage.DrawCloudGmBlock"] = 81,
-            ["Assets/LiteGame/Editor/Style/UiTextStyleTool.cs::UiTextStyleTool.Check"] = 83,
+            ["Assets/LiteGame/Editor/Core/Style/UiTextStyleTool.cs::UiTextStyleTool.Check"] = 83,
             ["Assets/LiteGame/Editor/Toolchain/EditorToolCatalog.cs::EditorToolCatalog.Load"] = 81,
-            ["Assets/LiteGame/Editor/Toolchain/ToolchainManifest.cs::ToolchainManifestLoader.Validate"] = 110,
+            ["Assets/LiteGame/Editor/Core/ToolchainManifest.cs::ToolchainManifestLoader.Validate"] = 110,
             ["Assets/LiteGame/Editor/UiTools/Contract/UiContractBatch.cs::UiContractBatch.Diff"] = 90,
             ["Assets/LiteGame/Editor/UiTools/Contract/UiContractBatch.cs::UiContractBatch.Generate"] = 86,
             ["Assets/LiteGame/Editor/UiTools/Contract/UiContractGenerator.cs::UiContractGenerator.Generate"] = 87,

@@ -1,0 +1,19 @@
+{
+    "name": "LiteClient.Content",
+    "rootNamespace": "LiteClient",
+    "references": [
+        "LiteFramework.Abstractions",
+        "LiteFramework.Async",
+        "LiteFramework.Core",
+        "UniTask"
+    ],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}

@@ -25,7 +25,7 @@ namespace LiteGame.Tests.EditMode
     {
         /// <summary>
         /// **静态态隔离（每例前置复位）**：<see cref="LaserSightPolicy.Supports"/> 在
-        /// <c>TestModeRuntime.Active</c> 置位时**绕过 def id 集合**直接返回快照开关——若前序用例
+        /// <c>TestModeRuntime.Current.Active</c> 置位时**绕过 def id 集合**直接返回快照开关——若前序用例
         /// （含同夹具的测试模式用例、或任何触发 <c>DevStartupConfig.ApplySnapshotOrDefaults</c> 的路径）
         /// 留下 Active=true，后续「不支持武器应隐藏」这类用例会拿到"支持"而被误判失败。
         /// 故每例开工前把该静态快照复位到**非测试模式默认口径**（用例内自行置位的仍可覆盖）。
@@ -33,8 +33,8 @@ namespace LiteGame.Tests.EditMode
         [SetUp]
         public void ResetTestModeSnapshot()
         {
-            TestModeRuntime.Active = false;
-            TestModeRuntime.LaserSight = true;
+            TestModeRuntime.Current.Active = false;
+            TestModeRuntime.Current.LaserSight = true;
         }
 
         private static SimMapData NoObstacleMap() => new SimMapData();
@@ -296,19 +296,19 @@ namespace LiteGame.Tests.EditMode
 
             try
             {
-                TestModeRuntime.Active = true;           // 测试模式直通——任何武器都支持
+                TestModeRuntime.Current.Active = true;           // 测试模式直通——任何武器都支持
                 SampleInput(input);
                 driver.Tick();
                 Assert.IsTrue(beam.gameObject.activeSelf, "测试模式 → 999 也支持");
 
-                TestModeRuntime.Active = false;          // 退出回策略口径
+                TestModeRuntime.Current.Active = false;          // 退出回策略口径
                 SampleInput(input);
                 driver.Tick();
                 Assert.IsFalse(beam.gameObject.activeSelf, "退出测试模式 → 策略集合重新生效");
             }
             finally
             {
-                TestModeRuntime.Active = false;           // 静态态复位（勿泄漏进其他用例）
+                TestModeRuntime.Current.Active = false;           // 静态态复位（勿泄漏进其他用例）
             }
             driver.Dispose();
         }

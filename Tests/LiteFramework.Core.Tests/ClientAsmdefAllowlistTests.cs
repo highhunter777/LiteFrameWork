@@ -21,19 +21,26 @@ namespace LiteFramework.Core.Tests
             ["Assets/LiteFramework/Abstractions/LiteFramework.Abstractions.asmdef"] = Array.Empty<string>(),
             ["Assets/LiteBattle/Abstractions/LiteBattle.Abstractions.asmdef"] = new[] { "LiteSim.Core" },
             ["Assets/LiteFramework/Scripts/Unity/LiteFramework.Unity.asmdef"] = new[] { "LiteFramework.Async", "LiteFramework.Core", "UniTask" },
+            ["Assets/LiteSim/Core/LiteSim.Core.asmdef"] = Array.Empty<string>(),
+            ["Assets/LiteSim/Core/Editor/LiteSim.Core.Editor.asmdef"] = new[] { "LiteSim.Core" },
+            ["Assets/LiteNet/LiteNet.asmdef"] = new[] { "LiteSim.Core" },
             ["Assets/LiteCodeGen/Runtime/LiteCodeGen.Runtime.asmdef"] = Array.Empty<string>(),
             ["Assets/LiteCodeGen/Editor/LiteCodeGen.Editor.asmdef"] = new[] { "LiteCodeGen.Runtime" },
             ["Assets/LiteClient/Runtime/LiteClient.Runtime.asmdef"] = new[] { "LiteBattle.Abstractions", "LiteFramework.Abstractions", "LiteFramework.Async", "LiteFramework.Core", "LiteFramework.Unity", "LiteNet", "LiteSim.Core", "UniTask" },
+            ["Assets/LiteClient/Content/LiteClient.Content.asmdef"] = new[] { "LiteFramework.Abstractions", "LiteFramework.Async", "LiteFramework.Core", "UniTask" },
             ["Assets/LiteClient/UI/LiteClient.UI.asmdef"] = new[] { "DOTween.Modules", "LiteCodeGen.Runtime", "LiteFramework.Async", "LiteFramework.Core", "LiteFramework.Unity", "UniTask", "Unity.InputSystem", "Unity.TextMeshPro" },
-            ["Assets/LiteClient/Adapters/Content.YooAsset/LiteClient.Content.YooAsset.asmdef"] = new[] { "LiteFramework.Abstractions", "LiteClient.Runtime", "LiteFramework.Async", "LiteFramework.Core", "LiteFramework.Unity", "UniTask", "YooAsset" },
+            ["Assets/LiteClient/Adapters/Content.YooAsset/LiteClient.Content.YooAsset.asmdef"] = new[] { "LiteFramework.Abstractions", "LiteClient.Content", "LiteClient.Runtime", "LiteFramework.Async", "LiteFramework.Core", "LiteFramework.Unity", "UniTask", "YooAsset" },
             ["Assets/LiteClient/Adapters/Platform.Unity/LiteClient.Platform.Unity.asmdef"] = new[] { "Cinemachine", "LiteBattle.Abstractions", "LiteClient.Runtime", "LiteFramework.Async", "LiteFramework.Core", "LiteSim.Core", "LiteView", "UniTask", "Unity.InputSystem" },
             ["Assets/LiteClient/Adapters/Scripting.XLua/LiteClient.Scripting.XLua.asmdef"] = new[] { "LiteFramework.Abstractions", "LiteClient.Runtime", "LiteFramework.Async", "LiteFramework.Core", "LiteFramework.Unity", "UniTask", "xLuaMain" },
             ["Assets/LiteClient/Adapters/Serialization.Luban/LiteClient.Serialization.Luban.asmdef"] = new[] { "LiteFramework.Abstractions", "LiteFramework.Async", "LiteFramework.Core", "LiteSim.Core", "Luban.Runtime", "Luban.Tables", "UniTask" },
             ["Assets/LiteView/LiteView.asmdef"] = new[] { "LiteBattle.Abstractions", "LiteFramework.Async", "LiteFramework.Core", "LiteFramework.Unity", "LiteSim.Core", "UniTask" },
             ["Assets/LiteGame/LuaBridge/LiteGame.LuaBridge.asmdef"] = new[] { "LiteFramework.Abstractions", "LiteClient.Scripting.XLua", "LiteClient.Serialization.Luban", "LiteFramework.Async", "LiteFramework.Core", "LiteClient.UI", "Luban.Runtime", "Luban.Tables", "UniTask", "xLuaMain" },
-            ["Assets/LiteGame/App/LiteGame.App.asmdef"] = new[] { "LiteBattle.Abstractions", "LiteFramework.Abstractions", "LiteClient.Content.YooAsset", "LiteClient.Platform.Unity", "LiteClient.Runtime", "LiteClient.Scripting.XLua", "LiteClient.Serialization.Luban", "LiteFramework.Async", "LiteFramework.Core", "LiteFramework.Unity", "LiteGame.LuaBridge", "LiteClient.UI", "LiteNet", "LiteSim.Core", "LiteView", "Luban.Runtime", "Luban.Tables", "UniTask", "Unity.TextMeshPro", "xLuaMain" },
-            ["Assets/LiteGame/Dev/LiteGame.Dev.asmdef"] = new[] { "LiteBattle.Abstractions", "LiteClient.Content.YooAsset", "LiteClient.Platform.Unity", "LiteClient.Runtime", "LiteClient.Scripting.XLua", "LiteClient.Serialization.Luban", "LiteClient.UI", "LiteFramework.Async", "LiteFramework.Core", "LiteFramework.Unity", "LiteGame.App", "LiteGame.LuaBridge", "LiteNet", "LiteSim.Core", "LiteView", "Luban.Tables", "RoomServer.Application.Runtime", "RoomServer.Runtime", "UniTask", "Unity.TextMeshPro", "xLuaMain" },
-            ["Assets/LiteGame/Editor/LiteGame.Editor.asmdef"] = new[] { "LiteBattle.Abstractions", "LiteFramework.Abstractions", "LiteClient.Content.YooAsset", "LiteClient.Runtime", "LiteClient.Scripting.XLua", "LiteClient.Serialization.Luban", "LiteCodeGen.Editor", "LiteCodeGen.Runtime", "LiteFramework.Async", "LiteFramework.Core", "LiteFramework.Unity", "LiteGame.App", "LiteGame.Dev", "LiteGame.LuaBridge", "LiteClient.UI", "LiteNet", "LiteSim.Core", "LiteSim.Core.Editor", "DisciplineScanner.Editor", "LiteView", "Luban.Tables", "Luban.Runtime", "UniTask", "Unity.TextMeshPro", "xLuaMain", "YooAsset", "YooAsset.Editor" },
+            ["Assets/LiteGame/App/LiteGame.App.asmdef"] = new[] { "LiteBattle.Abstractions", "LiteFramework.Abstractions", "LiteClient.Content", "LiteClient.Content.YooAsset", "LiteClient.Platform.Unity", "LiteClient.Runtime", "LiteClient.Scripting.XLua", "LiteClient.Serialization.Luban", "LiteFramework.Async", "LiteFramework.Core", "LiteFramework.Unity", "LiteGame.LuaBridge", "LiteGame.Presentation", "LiteClient.UI", "LiteNet", "LiteSim.Core", "LiteView", "Luban.Runtime", "Luban.Tables", "UniTask", "Unity.TextMeshPro", "xLuaMain" },
+            ["Assets/LiteGame/App/Presentation/LiteGame.Presentation.asmdef"] = new[] { "LiteBattle.Abstractions", "LiteClient.Platform.Unity", "LiteClient.Runtime", "LiteClient.Serialization.Luban", "LiteClient.UI", "LiteFramework.Async", "LiteFramework.Core", "LiteFramework.Unity", "LiteNet", "LiteSim.Core", "LiteView", "Luban.Runtime", "Luban.Tables", "UniTask", "Unity.TextMeshPro" },
+            ["Assets/LiteGame/Dev/LiteGame.Dev.asmdef"] = new[] { "LiteBattle.Abstractions", "LiteClient.Content.YooAsset", "LiteClient.Platform.Unity", "LiteClient.Runtime", "LiteClient.Scripting.XLua", "LiteClient.Serialization.Luban", "LiteClient.UI", "LiteFramework.Async", "LiteFramework.Core", "LiteFramework.Unity", "LiteGame.App", "LiteGame.Presentation", "LiteGame.LuaBridge", "LiteNet", "LiteSim.Core", "LiteView", "Luban.Tables", "RoomServer.Application.Runtime", "RoomServer.Runtime", "UniTask", "Unity.TextMeshPro", "xLuaMain" },
+            ["Assets/LiteGame/Editor/Core/LiteGame.Editor.Core.asmdef"] = new[] { "LiteClient.UI", "Unity.TextMeshPro" },
+            ["Assets/LiteGame/Editor/UiTools/LiteGame.Editor.UiTools.asmdef"] = new[] { "LiteClient.Serialization.Luban", "LiteClient.UI", "LiteCodeGen.Editor", "LiteCodeGen.Runtime", "LiteGame.Dev", "LiteGame.Editor.Core", "Luban.Runtime", "Luban.Tables", "Unity.TextMeshPro" },
+            ["Assets/LiteGame/Editor/LiteGame.Editor.asmdef"] = new[] { "LiteBattle.Abstractions", "LiteFramework.Abstractions", "LiteClient.Content.YooAsset", "LiteClient.Runtime", "LiteClient.Scripting.XLua", "LiteClient.Serialization.Luban", "LiteCodeGen.Editor", "LiteCodeGen.Runtime", "LiteFramework.Async", "LiteFramework.Core", "LiteFramework.Unity", "LiteGame.App", "LiteGame.Presentation", "LiteGame.Dev", "LiteGame.Editor.Core", "LiteGame.Editor.UiTools", "LiteGame.LuaBridge", "LiteClient.UI", "LiteNet", "LiteSim.Core", "LiteSim.Core.Editor", "DisciplineScanner.Editor", "LiteView", "Luban.Tables", "Luban.Runtime", "UniTask", "Unity.TextMeshPro", "xLuaMain", "YooAsset", "YooAsset.Editor" },
         };
 
         [Fact]
@@ -56,6 +63,41 @@ namespace LiteFramework.Core.Tests
             }
             Assert.True(offenders.Count == 0,
                 "未登记的程序集引用边（先改允许表并说明理由）：" + string.Join(" | ", offenders));
+        }
+
+        private static readonly string[] ClientRoots =
+        {
+            "Assets/LiteFramework",
+            "Assets/LiteBattle",
+            "Assets/LiteClient",
+            "Assets/LiteView",
+            "Assets/LiteGame",
+            "Assets/LiteSim",
+            "Assets/LiteNet",
+            "Assets/LiteCodeGen",
+        };
+
+        [Fact]
+        public void 客户端根下所有asmdef必须登记在允许表()
+        {
+            // 允许表测试只遍历已登记项——新程序集若未登记会完全逃出依赖治理。
+            // 本用例反向枚举客户端根，把“漏登记”本身钉成失败。
+            string root = RepoRoot();
+            var known = new HashSet<string>(Allowed.Keys, StringComparer.Ordinal);
+            var offenders = new List<string>();
+            foreach (string clientRoot in ClientRoots)
+            {
+                string dir = Path.Combine(root, clientRoot.Replace('/', Path.DirectorySeparatorChar));
+                if (!Directory.Exists(dir)) continue;
+                foreach (string asmdef in Directory.GetFiles(dir, "*.asmdef", SearchOption.AllDirectories))
+                {
+                    string rel = Path.GetRelativePath(root, asmdef).Replace('\\', '/');
+                    if (!known.Contains(rel)) offenders.Add(rel);
+                }
+            }
+
+            Assert.True(offenders.Count == 0,
+                "客户端根下存在未登记 asmdef（先加入允许表并说明依赖）：" + string.Join(" | ", offenders));
         }
 
         [Fact]

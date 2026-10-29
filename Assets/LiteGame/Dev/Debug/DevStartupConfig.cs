@@ -68,14 +68,14 @@ namespace LiteGame
         }
 
         /// <summary>把**本组件的启动配置**快照进运行时并置位本地测试模式（ProcedureMain 消费进房请求时单点调用）；
-        /// 场景未挂本组件时套默认口径（<see cref="TestModeRuntime.ApplyDefaults"/>）。
+        /// 场景未挂本组件时套默认口径（<see cref="TestModeRuntime.Current.ApplyDefaults"/>）。
         /// 逐项经 <see cref="TestModeOptions.Set"/> 落值（副作用收口在该表）。</summary>
         public static void ApplySnapshotOrDefaults()
         {
             var config = UnityEngine.Object.FindAnyObjectByType<DevStartupConfig>(FindObjectsInactive.Include);
             if (config == null)
             {
-                TestModeRuntime.ApplyDefaults();
+                TestModeRuntime.Current.ApplyDefaults();
             }
             else
             {
@@ -87,9 +87,9 @@ namespace LiteGame
                 TestModeOptions.Set(TestModeOptions.Id.DrawHeadshotDebug, config.DrawHeadshotDebug);
                 TestModeOptions.Set(TestModeOptions.Id.TeleportEnabled, config.TeleportEnabled);
                 TestModeOptions.Set(TestModeOptions.Id.BotFrozen, config.BotFrozen);
-                TestModeRuntime.BotCount = config.BotCount;               // 数量项不在开关表（int）
+                TestModeRuntime.Current.BotCount = config.BotCount;               // 数量项不在开关表（int）
             }
-            TestModeRuntime.Active = true;
+            TestModeRuntime.Current.Active = true;
         }
 
         private void Awake() => PublishSwitches();

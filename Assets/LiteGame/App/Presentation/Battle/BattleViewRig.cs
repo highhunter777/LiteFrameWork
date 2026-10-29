@@ -50,6 +50,7 @@ namespace LiteGame
         private Transform _viewRoot;
         private GameObject _viewRootGo;
         private IDisposable _teleportReg;            // 传送命令处理器注册（进房登记 / 离场注销）
+        private readonly Action<SimVector3> _teleportDispatch;   // 传送分发（产品侧注入本地服宿主钩子）
         private IBattleDevOverlay _devOverlay;             // 开发叠加层（爆头绘制/自瞄验证；开发装配提供，发布 = null）
 
         /// <param name="account">Account 作用域（本件在其下建 `BattleView` 子作用域——离场即整体回收）。</param>
@@ -57,7 +58,8 @@ namespace LiteGame
         internal BattleViewRig(IContentService content, IInputService input, ICameraService camera,
             ClientScope account, IVFXService vfx = null, LiteFramework.IWorldClock worldClock = null,
             AudioService audio = null, CommandCenter commands = null, CrosshairFeelProfile crosshairFeel = null,
-            Func<UiThemeAsset> themeProvider = null, LiteClient.IDevSession dev = null)
+            Func<UiThemeAsset> themeProvider = null, LiteClient.IDevSession dev = null,
+            IBattleDevOverlay devOverlay = null, Action<SimVector3> teleportDispatch = null)
         {
             if (content == null) throw new ArgumentNullException(nameof(content));
             if (account == null) throw new ArgumentNullException(nameof(account));
@@ -65,6 +67,8 @@ namespace LiteGame
             _camera = camera;
             _commands = commands;
             _dev = dev;
+            _devOverlay = devOverlay;
+            _teleportDispatch = teleportDispatch;
 
             _viewScope = account.CreateChild("BattleView");
             _viewRootGo = new GameObject("[BattleView]");
@@ -117,13 +121,15 @@ namespace LiteGame
             _lookController.Attach(_viewAssembler.View);
             _feedbackAssembler.AttachConsumers(_context, _viewAssembler.View);
             // 开发叠加层（爆头区域常驻可视化 + 爆头自动验证件）：由 Dev 装配实现，发布形态 null = 零开销。
-            _devOverlay = DevHooks.Current?.CreateBattleOverlay();
             _devOverlay?.Attach(_context, _input, consumer => _feedbackAssembler.Register(consumer));
             AttachInputWiring();
-            _teleportReg = _commands?.RegisterUndoable(new TeleportToAimHandler(
-                aimOf: () => _lookController.AimPoint,
-                originOf: ReadLocalOrigin,
-                dispatch: DispatchTeleport));                       // 传送命令化：撤销/重做随命令中心可用
+            if (_commands != null && _teleportDispatch != null)
+            {
+                _teleportReg = _commands.RegisterUndoable(new TeleportToAimHandler(
+                    aimOf: () => _lookController.AimPoint,
+                    originOf: ReadLocalOrigin,
+                    dispatch: _teleportDispatch));                     // 传送命令化：撤销/重做随命令中心可用
+            }
             Log.Info($"view-attached prefab={BattleViewAssets.EntityPrefab}", LogTag.Battle);
         }
 
@@ -216,13 +222,6 @@ namespace LiteGame
             if (_context == null || _context.Sim == null || _context.LocalEntityId == 0) return null;
             if (!_context.Sim.State.TryResolve(_context.LocalEntityId, out int slot)) return null;
             return _context.Sim.State.Entities[slot].Pos;
-        }
-
-        /// <summary>传送分发单点：写宿主钩子（本地服宿主循环消费——T 键/GM 面板/撤销共用同一通道）。</summary>
-        private static void DispatchTeleport(SimVector3 pos)
-        {
-            SimTestRules.TeleportTarget = pos;
-            SimTestRules.TeleportDispatch = true;      // 交权威侧（本地服宿主）执行
         }
 
         /// <summary>

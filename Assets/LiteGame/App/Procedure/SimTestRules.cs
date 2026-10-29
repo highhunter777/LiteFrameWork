@@ -1,4 +1,6 @@
-namespace LiteSim
+using LiteSim;
+
+namespace LiteGame
 {
     /// <summary>
     /// 测试模式宿主钩子（本地测试形态专用）。

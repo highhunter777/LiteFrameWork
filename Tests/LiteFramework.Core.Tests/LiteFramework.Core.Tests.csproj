@@ -43,8 +43,8 @@
     按源链接纳入——真件行为在 L1 直测，Unity 面只提供 ILoginSurface/IContentService 实现。
   -->
   <ItemGroup>
-    <Compile Include="..\..\Assets\LiteClient\Runtime\Resource\ReleaseLayout.cs" Link="Content\ReleaseLayout.cs" />
-    <Compile Include="..\..\Assets\LiteClient\Runtime\Resource\ContentCacheMaintenance.cs" Link="Content\ContentCacheMaintenance.cs" />
+    <Compile Include="..\..\Assets\LiteClient\Content\ReleaseLayout.cs" Link="Content\ReleaseLayout.cs" />
+    <Compile Include="..\..\Assets\LiteClient\Content\ContentCacheMaintenance.cs" Link="Content\ContentCacheMaintenance.cs" />
     <Compile Include="..\..\Assets\LiteGame\App\Meta\AccountReentry.cs" Link="Meta\AccountReentry.cs" />
   </ItemGroup>
 

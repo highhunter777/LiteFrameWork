@@ -78,19 +78,19 @@ namespace LiteGame.EditorTools
                     var match = LiteGame.Editor.GmEditorResolve.ResolveFromContainer<LiteClient.IDevSession>()?.MatchRules;
                     float lineNow = match != null
                         ? LiteSim.MatchTestRules.ResolveHeadHitLine(match)
-                        : TestModeRuntime.HeadHitLineOverride;
+                        : TestModeRuntime.Current.HeadHitLineOverride;
                     if (lineNow >= 0f)
                         _ratio = Mathf.Clamp(lineNow / height, RatioMin, RatioMax);
                     float radiusNow = match != null
                         ? LiteSim.MatchTestRules.ResolveHeadshotRadius(match)
-                        : TestModeRuntime.HeadshotRadiusOverride;
+                        : TestModeRuntime.Current.HeadshotRadiusOverride;
                     if (radiusNow >= 0f)
                         _radius = Mathf.Clamp(radiusNow, RadiusMin, RadiusMax);
                 }
                 if (GUILayout.Button("复位覆写"))
                 {
-                    TestModeRuntime.HeadHitLineOverride = -1f;
-                    TestModeRuntime.HeadshotRadiusOverride = -1f;
+                    TestModeRuntime.Current.HeadHitLineOverride = -1f;
+                    TestModeRuntime.Current.HeadshotRadiusOverride = -1f;
                     var live = LiteGame.Editor.GmEditorResolve.ResolveFromContainer<LiteClient.IDevSession>()?.MatchRules;
                     if (live != null) { live.HeadHitLineOverride = -1f; live.HeadshotRadiusOverride = -1f; }
                 }

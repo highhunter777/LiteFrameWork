@@ -128,7 +128,7 @@ namespace LiteGame
                 var rig = new BattleViewRig(_content, _input, _camera, _account, _vfx, _worldClock, _audio, _commands,
                     crosshairFeel: _crosshairFeel,       // 准心手感投影（可空 = 测试装配）
                     themeProvider: _themeProvider,       // HUD 主题注入（可空 = 保持烘焙值）
-                    dev: _devSession);                   // 开发会话端口（激光/飘字开关；发布 = 全关）
+                    dev: _devSession, devOverlay: DevHooks.Current?.CreateBattleOverlay(), teleportDispatch: DispatchTeleport);
                 await rig.LoadAsync(ct);
 
                 _session = new BattleSession(_matchSessions?.Create(accountSession, accountSession.Rules)
@@ -402,6 +402,13 @@ namespace LiteGame
                     _commands.SendQueued(new TeleportToAimCommand());
                 else Log.Warning("[TestMode] 传送请求忽略（未开测试模式/未启用）", LogTag.Battle);
             }
+        }
+
+        /// <summary>传送分发单点（本地服宿主钩子；T 键/GM 面板/撤销共用同一通道）。</summary>
+        private static void DispatchTeleport(SimVector3 pos)
+        {
+            SimTestRules.TeleportTarget = pos;
+            SimTestRules.TeleportDispatch = true;
         }
 
         /// <summary>等对局结束（Ended 恰好一次；ct 打断 = 宿主关闭路径）。</summary>

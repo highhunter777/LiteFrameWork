@@ -14,8 +14,8 @@ namespace LiteFramework.Core.Tests
         [InlineData("Assets/LiteClient/UI/UIService.cs")]
         [InlineData("Assets/LiteClient/UI/UINavigationController.cs")]
         [InlineData("Assets/LiteClient/UI/Transition/UITransitionRunner.cs")]
-        [InlineData("Assets/LiteClient/Runtime/Resource/PatchRunner.cs")]
-        [InlineData("Assets/LiteClient/Runtime/Resource/HttpCandidateFetcher.cs")]
+        [InlineData("Assets/LiteClient/Content/PatchRunner.cs")]
+        [InlineData("Assets/LiteClient/Content/HttpCandidateFetcher.cs")]
         public void 已迁移文件_只经OperationScope持有取消(string relativePath)
         {
             string root = RepoRoot();

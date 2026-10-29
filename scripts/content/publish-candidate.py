@@ -12,7 +12,7 @@ from _common import EXIT_OK, configure_stdio, fail, info, repo_root  # noqa: E40
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from _local_cdn import load_config  # noqa: E402
 
-DEFAULT_ANCHORS = "Assets/LiteClient/Runtime/Resource/ContentTrustAnchors.cs"
+DEFAULT_ANCHORS = "Assets/LiteClient/Content/ContentTrustAnchors.cs"
 
 
 def parse_args(argv=None):

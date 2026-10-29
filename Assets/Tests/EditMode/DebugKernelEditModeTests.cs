@@ -27,11 +27,11 @@ namespace LiteGame.Tests.EditMode
             _optionSnapshot.Clear();
             foreach (TestModeOptions.Info option in TestModeOptions.All)
                 _optionSnapshot[option.Id] = TestModeOptions.Get(option.Id);
-            _activeSnapshot = TestModeRuntime.Active;
-            TestModeRuntime.Active = false;               // 选项副作用不武装到活动局
-            TestModeRuntime.TakeEnterRequest();
-            TestModeRuntime.TakeExitRequest();
-            TestModeRuntime.TakeTeleportRequest();
+            _activeSnapshot = TestModeRuntime.Current.Active;
+            TestModeRuntime.Current.Active = false;               // 选项副作用不武装到活动局
+            TestModeRuntime.Current.TakeEnterRequest();
+            TestModeRuntime.Current.TakeExitRequest();
+            TestModeRuntime.Current.TakeTeleportRequest();
         }
 
         [TearDown]
@@ -43,10 +43,10 @@ namespace LiteGame.Tests.EditMode
 
             foreach (KeyValuePair<TestModeOptions.Id, bool> pair in _optionSnapshot)
                 TestModeOptions.Set(pair.Key, pair.Value);
-            TestModeRuntime.Active = _activeSnapshot;
-            TestModeRuntime.TakeEnterRequest();
-            TestModeRuntime.TakeExitRequest();
-            TestModeRuntime.TakeTeleportRequest();
+            TestModeRuntime.Current.Active = _activeSnapshot;
+            TestModeRuntime.Current.TakeEnterRequest();
+            TestModeRuntime.Current.TakeExitRequest();
+            TestModeRuntime.Current.TakeTeleportRequest();
         }
 
         [Test]
@@ -127,12 +127,12 @@ namespace LiteGame.Tests.EditMode
         public void 请求桥_写入后可被消费且读即清()
         {
             _kernel.RequestEnterTestMode();
-            Assert.IsTrue(TestModeRuntime.TakeEnterRequest());
-            Assert.IsFalse(TestModeRuntime.TakeEnterRequest());
+            Assert.IsTrue(TestModeRuntime.Current.TakeEnterRequest());
+            Assert.IsFalse(TestModeRuntime.Current.TakeEnterRequest());
 
             _kernel.RequestTeleport();
-            Assert.IsTrue(TestModeRuntime.TakeTeleportRequest());
-            Assert.IsFalse(TestModeRuntime.TakeTeleportRequest());
+            Assert.IsTrue(TestModeRuntime.Current.TakeTeleportRequest());
+            Assert.IsFalse(TestModeRuntime.Current.TakeTeleportRequest());
         }
 
         [Test]
@@ -253,8 +253,8 @@ namespace LiteGame.Tests.EditMode
         [Test]
         public void 武器试验参数_发现写口与待用值双落()
         {
-            int damageSnapshot = TestModeRuntime.WeaponDamageOverride;
-            int rpmSnapshot = TestModeRuntime.WeaponRpmOverride;
+            int damageSnapshot = TestModeRuntime.Current.WeaponDamageOverride;
+            int rpmSnapshot = TestModeRuntime.Current.WeaponRpmOverride;
             try
             {
                 var kernel = new DebugKernel(_commands, null, new IDebugTunableProvider[] { new WeaponDebugTunables() });
@@ -263,17 +263,17 @@ namespace LiteGame.Tests.EditMode
                 Assert.AreEqual(2, kernel.Tunables.Count);
                 Assert.AreEqual(2, kernel.RuntimeTunables.Count);
                 Assert.IsTrue(kernel.TrySetTunable("weapon.damage", 50f, out string error), error);
-                Assert.AreEqual(50, TestModeRuntime.WeaponDamageOverride);
+                Assert.AreEqual(50, TestModeRuntime.Current.WeaponDamageOverride);
                 Assert.AreEqual(50f, new WeaponDebugTunables().CurrentDamage());
                 Assert.IsTrue(kernel.TrySetTunable("weapon.rpm", 1200f, out error), error);
-                Assert.AreEqual(1200, TestModeRuntime.WeaponRpmOverride);
+                Assert.AreEqual(1200, TestModeRuntime.Current.WeaponRpmOverride);
                 Assert.IsTrue(kernel.ResetTunable("weapon.damage", out error), error);
-                Assert.AreEqual(-1, TestModeRuntime.WeaponDamageOverride);
+                Assert.AreEqual(-1, TestModeRuntime.Current.WeaponDamageOverride);
             }
             finally
             {
-                TestModeRuntime.WeaponDamageOverride = damageSnapshot;
-                TestModeRuntime.WeaponRpmOverride = rpmSnapshot;
+                TestModeRuntime.Current.WeaponDamageOverride = damageSnapshot;
+                TestModeRuntime.Current.WeaponRpmOverride = rpmSnapshot;
             }
         }
 
@@ -297,7 +297,7 @@ namespace LiteGame.Tests.EditMode
         [Test]
         public void 测试模式与日志上下文读口_经内核()
         {
-            Assert.AreEqual(TestModeRuntime.Active, _kernel.IsTestModeActive);
+            Assert.AreEqual(TestModeRuntime.Current.Active, _kernel.IsTestModeActive);
             Assert.AreEqual(Log.CurrentMatchId, _kernel.CurrentMatchId);
             Assert.AreEqual(Log.CurrentSessionId, _kernel.CurrentSessionId);
         }
@@ -308,11 +308,11 @@ namespace LiteGame.Tests.EditMode
             try
             {
                 _kernel.RequestBotReset();
-                Assert.IsTrue(LiteSim.SimTestRules.BotResetRequested);
+                Assert.IsTrue(SimTestRules.BotResetRequested);
             }
             finally
             {
-                LiteSim.SimTestRules.BotResetRequested = false;
+                SimTestRules.BotResetRequested = false;
             }
         }
 

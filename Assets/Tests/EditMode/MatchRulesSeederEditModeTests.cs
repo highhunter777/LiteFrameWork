@@ -17,10 +17,10 @@ namespace LiteGame.Tests.EditMode
             SimTestRules.BotInfiniteHp = false;
             SimTestRules.TeleportDispatch = false;
             SimTestRules.BotResetRequested = false;
-            TestModeRuntime.NoDeath = true;
-            TestModeRuntime.InfiniteAmmo = false;
-            TestModeRuntime.BotFrozen = false;
-            TestModeRuntime.BotInfiniteHp = false;
+            TestModeRuntime.Current.NoDeath = true;
+            TestModeRuntime.Current.InfiniteAmmo = false;
+            TestModeRuntime.Current.BotFrozen = false;
+            TestModeRuntime.Current.BotInfiniteHp = false;
         }
 
         [TearDown]
@@ -29,19 +29,19 @@ namespace LiteGame.Tests.EditMode
             SimTestRules.Active = false;
             SimTestRules.BotFrozen = false;
             SimTestRules.BotInfiniteHp = false;
-            TestModeRuntime.NoDeath = true;
-            TestModeRuntime.InfiniteAmmo = false;
-            TestModeRuntime.BotFrozen = false;
-            TestModeRuntime.BotInfiniteHp = false;
+            TestModeRuntime.Current.NoDeath = true;
+            TestModeRuntime.Current.InfiniteAmmo = false;
+            TestModeRuntime.Current.BotFrozen = false;
+            TestModeRuntime.Current.BotInfiniteHp = false;
         }
 
         [Test]
         public void 测试房_播种活动局与宿主钩子_同实例登记()
         {
-            TestModeRuntime.NoDeath = true;
-            TestModeRuntime.InfiniteAmmo = true;
-            TestModeRuntime.BotFrozen = true;
-            TestModeRuntime.BotInfiniteHp = true;
+            TestModeRuntime.Current.NoDeath = true;
+            TestModeRuntime.Current.InfiniteAmmo = true;
+            TestModeRuntime.Current.BotFrozen = true;
+            TestModeRuntime.Current.BotInfiniteHp = true;
             SimTestRules.TeleportDispatch = true;          // 进房前的残留请求
             SimTestRules.BotResetRequested = true;
 

@@ -12,26 +12,27 @@ namespace LiteGame
     public sealed class DevSession : IDevSession
     {
         private MatchTestRules _matchRules;
+        private readonly TestModeRuntime _runtime = TestModeRuntime.Current;
 
-        public bool Active => TestModeRuntime.Active;
-        public void SetActive(bool active) => TestModeRuntime.Active = active;
+        public bool Active => _runtime.Active;
+        public void SetActive(bool active) => _runtime.Active = active;
         public bool IsDevelopmentBuild => true;
         public bool DirectToTrainingEnabled => DevStartupConfig.DirectToTrainingEnabled;
         public void ApplyEnterDefaults() => DevStartupConfig.ApplySnapshotOrDefaults();
-        public bool NoDeath => TestModeRuntime.NoDeath;
-        public bool InfiniteAmmo => TestModeRuntime.InfiniteAmmo;
-        public bool LaserSight => TestModeRuntime.LaserSight;
-        public bool DamageNumbers => TestModeRuntime.DamageNumbers;
-        public bool AutoHeadshot => TestModeRuntime.AutoHeadshot;
-        public bool TeleportEnabled => TestModeRuntime.TeleportEnabled;
-        public bool BotFrozen => TestModeRuntime.BotFrozen;
-        public bool BotInfiniteHp => TestModeRuntime.BotInfiniteHp;
-        public int BotCount => TestModeRuntime.BotCount;
-        public float HeadHitLineOverride => TestModeRuntime.HeadHitLineOverride;
-        public float HeadshotRadiusOverride => TestModeRuntime.HeadshotRadiusOverride;
-        public int WeaponDamageOverride => TestModeRuntime.WeaponDamageOverride;
-        public int WeaponRpmOverride => TestModeRuntime.WeaponRpmOverride;
-        public bool DrawHeadshotDebug => TestModeRuntime.DrawHeadshotDebug;
+        public bool NoDeath => _runtime.NoDeath;
+        public bool InfiniteAmmo => _runtime.InfiniteAmmo;
+        public bool LaserSight => _runtime.LaserSight;
+        public bool DamageNumbers => _runtime.DamageNumbers;
+        public bool AutoHeadshot => _runtime.AutoHeadshot;
+        public bool TeleportEnabled => _runtime.TeleportEnabled;
+        public bool BotFrozen => _runtime.BotFrozen;
+        public bool BotInfiniteHp => _runtime.BotInfiniteHp;
+        public int BotCount => _runtime.BotCount;
+        public float HeadHitLineOverride => _runtime.HeadHitLineOverride;
+        public float HeadshotRadiusOverride => _runtime.HeadshotRadiusOverride;
+        public int WeaponDamageOverride => _runtime.WeaponDamageOverride;
+        public int WeaponRpmOverride => _runtime.WeaponRpmOverride;
+        public bool DrawHeadshotDebug => _runtime.DrawHeadshotDebug;
 
         /// <summary>当前对局规则持有件（对局会话绑定；null = 无对局）。</summary>
         public MatchTestRules MatchRules => _matchRules;
@@ -43,13 +44,13 @@ namespace LiteGame
             if (ReferenceEquals(_matchRules, rules)) _matchRules = null;
         }
 
-        public void RequestEnter() => TestModeRuntime.RequestEnter();
-        public void RequestExit() => TestModeRuntime.RequestExit();
-        public void RequestTeleport() => TestModeRuntime.RequestTeleport();
+        public void RequestEnter() => _runtime.RequestEnter();
+        public void RequestExit() => _runtime.RequestExit();
+        public void RequestTeleport() => _runtime.RequestTeleport();
 
-        public bool TakeEnterRequest() => TestModeRuntime.TakeEnterRequest();
-        public bool TakeExitRequest() => TestModeRuntime.TakeExitRequest();
-        public bool TakeTeleportRequest() => TestModeRuntime.TakeTeleportRequest();
+        public bool TakeEnterRequest() => _runtime.TakeEnterRequest();
+        public bool TakeExitRequest() => _runtime.TakeExitRequest();
+        public bool TakeTeleportRequest() => _runtime.TakeTeleportRequest();
     }
 }
 #endif

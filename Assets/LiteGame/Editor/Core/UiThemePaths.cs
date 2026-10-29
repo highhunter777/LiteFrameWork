@@ -1,5 +1,5 @@
 using System.IO;
-using LiteGame.Editor.UiTools.Validation;
+using LiteGame.Toolchain;
 
 namespace LiteGame.EditorTools.UI
 {
@@ -17,7 +17,7 @@ namespace LiteGame.EditorTools.UI
         public const string DefaultAssetPath = LiteClient.UI.UiThemePaths.DefaultAssetPath;
 
         /// <summary>工程根绝对路径（资产/源码相对路径的解析基准，与校验核心同一单源）。</summary>
-        public static string ProjectRoot => UiValidator.ProjectRoot;
+        public static string ProjectRoot => ToolchainManifestLoader.ProjectRoot;
 
         /// <summary>把工程根相对路径转为绝对路径。</summary>
         public static string FullPath(string assetPath)

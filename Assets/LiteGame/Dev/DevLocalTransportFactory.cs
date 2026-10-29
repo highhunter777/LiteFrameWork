@@ -37,7 +37,7 @@ namespace LiteGame.Dev
 
             Log.Info("[Match] **本地测试模式**：本地服 Room-Test + 全房免死（Hp 保底 1、目标不消失——测试专用）",
                 LogTag.Procedure);
-            int players = 1 + Mathf.Max(0, TestModeRuntime.BotCount);
+            int players = 1 + Mathf.Max(0, TestModeRuntime.Current.BotCount);
             int mapId = BattleScenes.LocalServerMapId(testRoom: true);   // 本地测试模式 = 训练图
             return LocalServerTransport.ForRoom(ProcedureMatch.TestRoomId, players, rules,
                 gameplayDigestBase?.Invoke() ?? 0u,   // 房间身份与客户端同源（同进程同一份装载——批 E）

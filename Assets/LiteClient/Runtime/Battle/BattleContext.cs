@@ -1,5 +1,4 @@
 using System;
-using System.IO;
 using System.Threading;
 using LiteFramework;
 using LiteFramework.Diagnostics;
@@ -139,9 +138,7 @@ namespace LiteClient
         // ---- 诊断现场包（mismatch/配置身份不符/托管异常时落本地；不在正常路径产生 IO）----
         private string _matchId = string.Empty;
         private uint _configDigest;
-        private DiagnosticsBundleWriter _diagnosticsBundles;
-        private bool _diagnosticsRateLimited;   // 同局限频只提示一次（防 mismatch 刷屏 Warning）
-        private readonly object _diagnosticsGate = new object();   // mismatch（主线程）与异常钩子（任意线程）互斥
+        private readonly BattleDiagnosticsRecorder _diagnostics = new BattleDiagnosticsRecorder();
 
         /// <summary>表现视图端口（视图建后挂上；null = 无视图——纯会话/测试形态仍完整可跑）。</summary>
         public IBattleView View { get; private set; }
@@ -301,8 +298,6 @@ namespace LiteClient
             // T1 日志关联：开局即登记对局/席位，此后同局日志都带得上（清理在 Dispose，只清自己那局）
             Log.SetMatchContext(_matchId, PlayerId);
 
-            var world = new SimWorldState { RngState = (ulong)sg.Seed };
-            if (sg.Match != null) world.Match = SnapshotReassembler.FromProto(sg.Match);
             CombatValues values = CombatConfig.Loaded;   // 装载实例（技术债 #1：房间/世界构造按实例取值）
             WeaponTable weapons = WeaponConfig.Loaded;   // 武器表实例（同链显式传递）
 
@@ -347,21 +342,9 @@ namespace LiteClient
                 return;
             }
 
-            uint used = 0u;
-            for (int i = 0; i < ExpectedPlayers; i++)
-            {
-                int spawnIndex = SpawnPointSelector.Pick(_map, used,
-                    SpawnPointSelector.InitialHash((ulong)sg.Seed, sg.MatchId, i));
-                used |= 1u << spawnIndex;
-                SimVector3 spawn = _map.SpawnPoints[spawnIndex];
-                world.Spawn(new EntitySlot { Hp = values.EntityHp, Pos = spawn, Yaw = 0f,
-                    Flags = EntityFlags.Player, SpawnPointIndex = spawnIndex }, out int _);
-            }
-
             _configDigest = expectedDigest;
 
-            var template = new SimInputFrame[ExpectedPlayers];
-            for (int i = 0; i < ExpectedPlayers; i++) template[i].EntityId = i;   // 服务器覆写防伪；本地预测按 playerId 对齐
+            SimWorldState world = MatchWorldFactory.Build(sg, _map, values, ExpectedPlayers, out var template);
 
             // resolveCombat:false = 客户端预测模式：开火/开火窗/弹药照常预测，但命中/伤害/死亡/
             // 击杀不落本地态（《状态同步专项设计》§6.1/§6.2——权威结果只由快照/权威反馈面驱动）。
@@ -428,68 +411,12 @@ namespace LiteClient
         private void OnUnityLogForDiagnostics(string condition, string stackTrace, UnityEngine.LogType type)
         {
             if (_disposed) return;
-            try
-            {
-                lock (_diagnosticsGate)
-                {
-                    DiagnosticsBundleWriter writer = EnsureDiagnosticsWriter();
-                    int frame = _sim?.State?.Frame ?? 0;
-                    ClientDiagnosticsBundle.CaptureUnityException(writer, condition, stackTrace, type,
-                        _matchId, frame, _localEntityId, (int)Math.Min(_reconcileCount, int.MaxValue),
-                        _configDigest, _diagnosticsIdentity);
-                }
-            }
-            catch
-            {
-                // 诊断钩子不得把异常回灌 Unity 日志（递归触发自身）
-            }
+            _diagnostics.CaptureException(condition, stackTrace, type, _matchId,
+                _sim?.State?.Frame ?? 0, _localEntityId, _reconcileCount, _configDigest, _diagnosticsIdentity);
         }
 
         private void CaptureDiagnosticsBundle(int frame, string reason)
-        {
-            try
-            {
-                lock (_diagnosticsGate)
-                {
-                    DiagnosticsBundleWriter writer = EnsureDiagnosticsWriter();
-
-                    // 限频是预期行为（每局上限由 writer 控制）：只在首次提示一次，避免 mismatch 每帧刷 Warning
-                    if (!writer.CanAccept(_matchId))
-                    {
-                        if (!_diagnosticsRateLimited)
-                        {
-                            _diagnosticsRateLimited = true;
-                            Log.Info("诊断现场包同局限频，后续不再落包（每局上限由 writer 控制）", LogTag.Battle);
-                        }
-                        return;
-                    }
-
-                    string path = ClientDiagnosticsBundle.Capture(writer, reason, _matchId, frame,
-                        _localEntityId, (int)Math.Min(_reconcileCount, int.MaxValue), _configDigest,
-                        identity: _diagnosticsIdentity);
-
-                    if (path != null) Log.Info("诊断现场包已落盘: " + path, LogTag.Battle);
-                    else Log.Warning("诊断现场包写出失败（IO/权限）", LogTag.Battle);
-                }
-            }
-            catch (Exception ex)
-            {
-                Log.Warning("诊断现场包异常: " + ex.Message, LogTag.Battle);
-            }
-        }
-
-        /// <summary>现场包写入器惰性构造（须在 _diagnosticsGate 内调用——mismatch 与异常钩子双线程安全）。</summary>
-        private DiagnosticsBundleWriter EnsureDiagnosticsWriter()
-        {
-            DiagnosticsBundleWriter writer = _diagnosticsBundles;
-            if (writer == null)
-            {
-                writer = new DiagnosticsBundleWriter(Path.Combine(
-                    UnityEngine.Application.persistentDataPath, "diagnostics"));
-                _diagnosticsBundles = writer;
-            }
-            return writer;
-        }
+            => _diagnostics.Capture(frame, reason, _matchId, _localEntityId, _reconcileCount, _configDigest, _diagnosticsIdentity);
 
         /// <summary>
         /// 公共战斗事件批（独立包）：去重后按 kind 分流到表现面队列。

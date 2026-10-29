@@ -25,7 +25,7 @@ namespace LiteGame
         public void TickPreSample()
         {
             _headshotDebug?.Tick();
-            if (TestModeRuntime.AutoHeadshot)
+            if (TestModeRuntime.Current.AutoHeadshot)
             {
                 if (_autoHeadshot != null && !_autoHeadshot.Active) _autoHeadshot.Enable(_input);
             }

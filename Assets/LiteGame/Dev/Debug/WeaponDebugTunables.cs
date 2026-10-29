@@ -62,7 +62,7 @@ namespace LiteGame
             var match = _dev?.MatchRules;
             int table = WeaponConfig.Default.Damage;
             if (match != null) return MatchTestRules.ResolveWeaponDamage(match, table);
-            return TestModeRuntime.WeaponDamageOverride >= 0 ? TestModeRuntime.WeaponDamageOverride : table;
+            return TestModeRuntime.Current.WeaponDamageOverride >= 0 ? TestModeRuntime.Current.WeaponDamageOverride : table;
         }
 
         public float CurrentRpm()
@@ -70,19 +70,19 @@ namespace LiteGame
             var match = _dev?.MatchRules;
             int table = WeaponConfig.Default.Rpm;
             if (match != null) return match.RpmOverride > 0 ? match.RpmOverride : table;
-            return TestModeRuntime.WeaponRpmOverride > 0 ? TestModeRuntime.WeaponRpmOverride : table;
+            return TestModeRuntime.Current.WeaponRpmOverride > 0 ? TestModeRuntime.Current.WeaponRpmOverride : table;
         }
 
         public void SetDamage(int value)
         {
-            TestModeRuntime.WeaponDamageOverride = value;
+            TestModeRuntime.Current.WeaponDamageOverride = value;
             var match = _dev?.MatchRules;
             if (match != null) match.DamageOverride = value;
         }
 
         public void SetRpm(int value)
         {
-            TestModeRuntime.WeaponRpmOverride = value;
+            TestModeRuntime.Current.WeaponRpmOverride = value;
             var match = _dev?.MatchRules;
             if (match != null) match.RpmOverride = value;
         }
