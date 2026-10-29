@@ -35,7 +35,7 @@ TOOL = "codegen/ui-page"
 DEFAULT_TABLE = ROOT / "Luban" / "Data" / "#uiform.xlsx"
 DEFAULT_MANIFEST = ROOT / "Assets" / "LiteGame" / "Editor" / "UiTools" / "UiPageManifest.json"
 DEFAULT_CONTRACTS = ROOT / "Assets" / "LiteGame" / "Editor" / "UiTools" / "Contracts"
-DEFAULT_OUTPUT = ROOT / "Assets" / "LiteClient" / "UI" / "Generated" / "UiPageCatalog.g.cs"
+DEFAULT_OUTPUT = ROOT / "Assets" / "LiteFramework" / "Runtime" / "Modules" / "UI" / "Generated" / "UiPageCatalog.g.cs"
 
 
 def parse_args(argv=None):
@@ -167,7 +167,7 @@ def render(definitions):
         "using System;",
         "using System.Collections.Generic;",
         "",
-        "namespace LiteClient.UI",
+        "namespace LiteFramework.UI",
         "{",
         "    /// <summary>生成的页面目录（PageDefinition 单制品）；运行时经 IPageCatalog 取件。</summary>",
         "    public sealed class UiPageCatalog : IPageCatalog",

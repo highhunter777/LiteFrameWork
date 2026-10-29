@@ -43,6 +43,7 @@ end
 -- self.ui 面（冒号调用：首参 self 占位——与 LuaBehaviourAdapter 门面同形）
 ui = {}
 dropdowns = {}
+tabs = {}
 ui.OnButton = function(_, name, fn) buttons[name] = fn end
 ui.SetTextKey = function(_, name, key) calls[#calls + 1] = 'Key:' .. name .. '=' .. key end
 ui.SetTextKeyArgs = function(_, name, key, a0, a1)
@@ -64,6 +65,12 @@ ui.SetDropdown = function(_, name, index)
 end
 ui.GetDropdown = function(_, name) return dropdowns[name] or 0 end
 ui.OnDropdownChanged = function(_, name, fn) controls['dropdown:' .. name] = fn end
+ui.SetTab = function(_, name, index)
+    tabs[name] = index
+    calls[#calls + 1] = 'Tab:' .. name .. '=' .. tostring(index)
+end
+ui.GetTab = function(_, name) return tabs[name] or -1 end
+ui.OnTabChanged = function(_, name, fn) controls['tab:' .. name] = fn end
 ui.SetList = function(_, name, rows) lists[name] = rows; calls[#calls + 1] = 'List:' .. name .. '=' .. tostring(#rows) end
 ui.OnListClick = function(_, name, fn) lists['click:' .. name] = fn end
 ui.ShowConfirm = function(_, title, message, okText, cancelText, fn)
@@ -107,6 +114,52 @@ settings.SetSoundEnabled = function(on) settings.sound = on; calls[#calls + 1] =
 settings.Quality = function() return settings.quality end
 settings.SetQuality = function(i) settings.quality = i; calls[#calls + 1] = 'SetQuality:' .. tostring(i) end
 settings.Save = function() calls[#calls + 1] = 'Save' end
+settings.ResetDefaults = function()
+    settings.volume = 0.8; settings.sound = true; settings.quality = 2; settings.tab = 0
+    calls[#calls + 1] = 'ResetDefaults'
+end
+
+-- 分组批（《设置系统专项设计》§6）：display / control / general 三个子表；取值桩对齐 C# 侧允许值集
+settings.display = {
+    mode = 1, resolutionIndex = -1, frameRate = 0, vsync = -1,
+    resolutions = { '1920 × 1080', '1600 × 900' },
+    frameRates = { 0, 60, 144 },
+}
+settings.display.Mode = function() return settings.display.mode end
+settings.display.SetMode = function(v) settings.display.mode = v; calls[#calls + 1] = 'SetMode:' .. tostring(v) end
+settings.display.SupportsMode = function() return true end
+settings.display.ResolutionCount = function() return #settings.display.resolutions end
+settings.display.ResolutionLabel = function(i) return settings.display.resolutions[i + 1] or '' end
+settings.display.ResolutionIndex = function() return settings.display.resolutionIndex end
+settings.display.SetResolutionIndex = function(i)
+    settings.display.resolutionIndex = i; calls[#calls + 1] = 'SetResolution:' .. tostring(i)
+end
+settings.display.SupportsResolution = function() return true end
+settings.display.FrameRateOptionCount = function() return #settings.display.frameRates end
+settings.display.FrameRateOption = function(i) return settings.display.frameRates[i + 1] or 0 end
+settings.display.FrameRate = function() return settings.display.frameRate end
+settings.display.SetFrameRate = function(v) settings.display.frameRate = v; calls[#calls + 1] = 'SetFrameRate:' .. tostring(v) end
+settings.display.VSync = function() return settings.display.vsync end
+settings.display.SetVSync = function(v) settings.display.vsync = v; calls[#calls + 1] = 'SetVSync:' .. tostring(v) end
+settings.display.SupportsVSync = function() return true end
+
+settings.control = { lookSens = 1.0, adsSens = 1.0, invert = false }
+settings.control.LookSensitivity = function() return settings.control.lookSens end
+settings.control.SetLookSensitivity = function(v)
+    settings.control.lookSens = v; calls[#calls + 1] = 'SetLookSens:' .. tostring(v)
+end
+settings.control.AdsSensitivity = function() return settings.control.adsSens end
+settings.control.SetAdsSensitivity = function(v)
+    settings.control.adsSens = v; calls[#calls + 1] = 'SetAdsSens:' .. tostring(v)
+end
+settings.control.InvertLookY = function() return settings.control.invert end
+settings.control.SetInvertLookY = function(on)
+    settings.control.invert = on; calls[#calls + 1] = 'SetInvertY:' .. tostring(on)
+end
+
+settings.general = { tab = 0 }
+settings.general.LastTab = function() return settings.general.tab end
+settings.general.SetLastTab = function(i) settings.general.tab = i; calls[#calls + 1] = 'SetLastTab:' .. tostring(i) end
 
 -- room 面（点调用；全局——房主开局批：页面订阅房主事实/发提前开局；席位实时面批：页面订阅席位名单；
 -- 测试手动驱动 owner_fn/members_fn 模拟回放与迁移；房规模拉取形同 settings.Quality——房间页等待人数分母）
@@ -559,6 +612,85 @@ controls['dropdown:Dropdown_Language'](1)");
 
                 env.DoString("calls = {}; page:OnHide()");
                 StringAssert.Contains("Save", Calls(env), "OnHide（Back/ESC 路径）同径落盘");
+            }
+        }
+
+        // ---- 分组批（《设置系统专项设计》§7）：五页签 / 显示控制接线 / 恢复默认 ----
+
+        [Test]
+        public void 设置页_页签名与初值取记忆_切换即记忆()
+        {
+            using (var env = NewEnv())
+            {
+                env.DoString(@"
+settings.general.tab = 2
+page = NewPage('UI.Page_Settings')
+page:OnShow(nil)");
+                string init = Calls(env);
+                StringAssert.Contains("Tab:TabGroup_Settings=2", init, "初值 = 记忆页签（程序 Set 静默，不触发回调）");
+                StringAssert.Contains("Visible:Cot_DisplayPanel=true", init, "记忆页签对应面板可见");
+                StringAssert.Contains("Visible:Cot_AudioPanel=false", init, "其余面板隐藏（互斥）");
+
+                env.DoString("controls['tab:TabGroup_Settings'](3)");
+                string switched = Calls(env);
+                StringAssert.Contains("Visible:Cot_ControlPanel=true", switched, "切换 → 目标面板可见");
+                StringAssert.Contains("Visible:Cot_DisplayPanel=false", switched, "切换 → 原面板隐藏");
+                StringAssert.Contains("SetLastTab:3", switched, "切换即记忆（跨会话保持）");
+            }
+        }
+
+        [Test]
+        public void 设置页_对局中_显示类置灰_控制类仍可改()
+        {
+            using (var env = NewEnv())
+            {
+                env.DoString(@"
+page = NewPage('UI.Page_Settings')
+page:OnShow({ battleExit = true })");
+                string calls = Calls(env);
+                StringAssert.Contains("Interact:Dropdown_DisplayMode=false", calls, "对局中禁用显示模式（窗口重建卡战斗帧）");
+                StringAssert.Contains("Interact:Dropdown_VSync=false", calls, "对局中禁用垂直同步");
+                StringAssert.DoesNotContain("Interact:Slider_LookSensitivity=false", calls, "控制类不受对局态限制");
+            }
+        }
+
+        [Test]
+        public void 设置页_恢复默认_确认后重刷控件()
+        {
+            using (var env = NewEnv())
+            {
+                env.DoString(@"
+page = NewPage('UI.Page_Settings')
+page:OnShow(nil)
+buttons['Button_ResetDefaults']()
+confirm_fn(true)");
+                string calls = Calls(env);
+                StringAssert.Contains("ResetDefaults", calls, "确认 → 门面全量回默认");
+                StringAssert.Contains("Slider:Slider_Volume=0.8", calls, "回默认后重刷音量（0.8 = 默认值）");
+                StringAssert.Contains("Dropdown:Dropdown_Quality=2", calls, "回默认后重刷画质（2 = 高）");
+            }
+        }
+
+        [Test]
+        public void 设置页_显示与控制控件接线()
+        {
+            using (var env = NewEnv())
+            {
+                env.DoString(@"
+page = NewPage('UI.Page_Settings')
+page:OnShow(nil)
+controls['dropdown:Dropdown_DisplayMode'](2)
+controls['dropdown:Dropdown_FrameRate'](1)
+controls['dropdown:Dropdown_VSync'](2)
+controls['slider:Slider_LookSensitivity'](1.5)
+controls['toggle:Toggle_InvertLookY'](true)");
+                string calls = Calls(env);
+                StringAssert.Contains("SetMode:2", calls, "显示模式 → 门面（窗口）");
+                StringAssert.Contains("SetFrameRate:60", calls, "帧率档按 C# 值表翻译（索引 1 → 60）");
+                StringAssert.Contains("SetVSync:0", calls, "垂直同步三态（索引 2 → 关）");
+                StringAssert.Contains("SetLookSens:1.5", calls, "视角灵敏度 → 门面");
+                StringAssert.Contains("SetInvertY:true", calls, "Y 轴反转 → 门面");
+                StringAssert.Contains("Text:Txt_LookSensitivityValue=150%", calls, "滑条值文本（百分比，拖动即刷新）");
             }
         }
 

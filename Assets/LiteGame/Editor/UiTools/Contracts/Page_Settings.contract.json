@@ -17,6 +17,237 @@
   },
   "controls": [
     {
+      "bindName": "TabGroup_Settings",
+      "nodePath": "Cot_SafeArea/Cot_Body/Cot_Nav/TabGroup_Settings",
+      "type": "LiteFramework.UI.TabGroup",
+      "kind": "None",
+      "required": false
+    },
+    {
+      "bindName": "Txt_TabAudio",
+      "nodePath": "Cot_SafeArea/Cot_Body/Cot_Nav/TabGroup_Settings/Button_TabAudio/Txt_TabAudio",
+      "type": "TMPro.TextMeshProUGUI",
+      "kind": "None",
+      "required": false
+    },
+    {
+      "bindName": "Txt_TabControl",
+      "nodePath": "Cot_SafeArea/Cot_Body/Cot_Nav/TabGroup_Settings/Button_TabControl/Txt_TabControl",
+      "type": "TMPro.TextMeshProUGUI",
+      "kind": "None",
+      "required": false
+    },
+    {
+      "bindName": "Txt_TabDisplay",
+      "nodePath": "Cot_SafeArea/Cot_Body/Cot_Nav/TabGroup_Settings/Button_TabDisplay/Txt_TabDisplay",
+      "type": "TMPro.TextMeshProUGUI",
+      "kind": "None",
+      "required": false
+    },
+    {
+      "bindName": "Txt_TabGeneral",
+      "nodePath": "Cot_SafeArea/Cot_Body/Cot_Nav/TabGroup_Settings/Button_TabGeneral/Txt_TabGeneral",
+      "type": "TMPro.TextMeshProUGUI",
+      "kind": "None",
+      "required": false
+    },
+    {
+      "bindName": "Txt_TabGraphics",
+      "nodePath": "Cot_SafeArea/Cot_Body/Cot_Nav/TabGroup_Settings/Button_TabGraphics/Txt_TabGraphics",
+      "type": "TMPro.TextMeshProUGUI",
+      "kind": "None",
+      "required": false
+    },
+    {
+      "bindName": "Slider_Volume",
+      "nodePath": "Cot_SafeArea/Cot_Body/Cot_Panel/Cot_AudioPanel/Slider_Volume",
+      "type": "UnityEngine.UI.Slider",
+      "kind": "Command",
+      "required": true
+    },
+    {
+      "bindName": "Toggle_Sound",
+      "nodePath": "Cot_SafeArea/Cot_Body/Cot_Panel/Cot_AudioPanel/Toggle_Sound",
+      "type": "UnityEngine.UI.Toggle",
+      "kind": "Command",
+      "required": true
+    },
+    {
+      "bindName": "Txt_Sound",
+      "nodePath": "Cot_SafeArea/Cot_Body/Cot_Panel/Cot_AudioPanel/Txt_Sound",
+      "type": "TMPro.TextMeshProUGUI",
+      "kind": "None",
+      "required": false
+    },
+    {
+      "bindName": "Txt_Volume",
+      "nodePath": "Cot_SafeArea/Cot_Body/Cot_Panel/Cot_AudioPanel/Txt_Volume",
+      "type": "TMPro.TextMeshProUGUI",
+      "kind": "None",
+      "required": false
+    },
+    {
+      "bindName": "Slider_AdsSensitivity",
+      "nodePath": "Cot_SafeArea/Cot_Body/Cot_Panel/Cot_ControlPanel/Slider_AdsSensitivity",
+      "type": "UnityEngine.UI.Slider",
+      "kind": "Command",
+      "required": true
+    },
+    {
+      "bindName": "Slider_LookSensitivity",
+      "nodePath": "Cot_SafeArea/Cot_Body/Cot_Panel/Cot_ControlPanel/Slider_LookSensitivity",
+      "type": "UnityEngine.UI.Slider",
+      "kind": "Command",
+      "required": true
+    },
+    {
+      "bindName": "Toggle_InvertLookY",
+      "nodePath": "Cot_SafeArea/Cot_Body/Cot_Panel/Cot_ControlPanel/Toggle_InvertLookY",
+      "type": "UnityEngine.UI.Toggle",
+      "kind": "Command",
+      "required": true
+    },
+    {
+      "bindName": "Txt_AdsSensitivity",
+      "nodePath": "Cot_SafeArea/Cot_Body/Cot_Panel/Cot_ControlPanel/Txt_AdsSensitivity",
+      "type": "TMPro.TextMeshProUGUI",
+      "kind": "None",
+      "required": false
+    },
+    {
+      "bindName": "Txt_AdsSensitivityValue",
+      "nodePath": "Cot_SafeArea/Cot_Body/Cot_Panel/Cot_ControlPanel/Txt_AdsSensitivityValue",
+      "type": "TMPro.TextMeshProUGUI",
+      "kind": "None",
+      "required": false
+    },
+    {
+      "bindName": "Txt_InvertLookY",
+      "nodePath": "Cot_SafeArea/Cot_Body/Cot_Panel/Cot_ControlPanel/Txt_InvertLookY",
+      "type": "TMPro.TextMeshProUGUI",
+      "kind": "None",
+      "required": false
+    },
+    {
+      "bindName": "Txt_LookSensitivity",
+      "nodePath": "Cot_SafeArea/Cot_Body/Cot_Panel/Cot_ControlPanel/Txt_LookSensitivity",
+      "type": "TMPro.TextMeshProUGUI",
+      "kind": "None",
+      "required": false
+    },
+    {
+      "bindName": "Txt_LookSensitivityValue",
+      "nodePath": "Cot_SafeArea/Cot_Body/Cot_Panel/Cot_ControlPanel/Txt_LookSensitivityValue",
+      "type": "TMPro.TextMeshProUGUI",
+      "kind": "None",
+      "required": false
+    },
+    {
+      "bindName": "Dropdown_DisplayMode",
+      "nodePath": "Cot_SafeArea/Cot_Body/Cot_Panel/Cot_DisplayPanel/Dropdown_DisplayMode",
+      "type": "LiteFramework.UI.UIDropdownWrap",
+      "kind": "Command",
+      "required": true
+    },
+    {
+      "bindName": "Dropdown_FrameRate",
+      "nodePath": "Cot_SafeArea/Cot_Body/Cot_Panel/Cot_DisplayPanel/Dropdown_FrameRate",
+      "type": "LiteFramework.UI.UIDropdownWrap",
+      "kind": "Command",
+      "required": true
+    },
+    {
+      "bindName": "Dropdown_Resolution",
+      "nodePath": "Cot_SafeArea/Cot_Body/Cot_Panel/Cot_DisplayPanel/Dropdown_Resolution",
+      "type": "LiteFramework.UI.UIDropdownWrap",
+      "kind": "Command",
+      "required": true
+    },
+    {
+      "bindName": "Dropdown_VSync",
+      "nodePath": "Cot_SafeArea/Cot_Body/Cot_Panel/Cot_DisplayPanel/Dropdown_VSync",
+      "type": "LiteFramework.UI.UIDropdownWrap",
+      "kind": "Command",
+      "required": true
+    },
+    {
+      "bindName": "Txt_DisplayMode",
+      "nodePath": "Cot_SafeArea/Cot_Body/Cot_Panel/Cot_DisplayPanel/Txt_DisplayMode",
+      "type": "TMPro.TextMeshProUGUI",
+      "kind": "None",
+      "required": false
+    },
+    {
+      "bindName": "Txt_FrameRate",
+      "nodePath": "Cot_SafeArea/Cot_Body/Cot_Panel/Cot_DisplayPanel/Txt_FrameRate",
+      "type": "TMPro.TextMeshProUGUI",
+      "kind": "None",
+      "required": false
+    },
+    {
+      "bindName": "Txt_Resolution",
+      "nodePath": "Cot_SafeArea/Cot_Body/Cot_Panel/Cot_DisplayPanel/Txt_Resolution",
+      "type": "TMPro.TextMeshProUGUI",
+      "kind": "None",
+      "required": false
+    },
+    {
+      "bindName": "Txt_VSync",
+      "nodePath": "Cot_SafeArea/Cot_Body/Cot_Panel/Cot_DisplayPanel/Txt_VSync",
+      "type": "TMPro.TextMeshProUGUI",
+      "kind": "None",
+      "required": false
+    },
+    {
+      "bindName": "Button_ResetDefaults",
+      "nodePath": "Cot_SafeArea/Cot_Body/Cot_Panel/Cot_GeneralPanel/Button_ResetDefaults",
+      "type": "UnityEngine.UI.Button",
+      "kind": "Command",
+      "required": true
+    },
+    {
+      "bindName": "Txt_ResetDefaults",
+      "nodePath": "Cot_SafeArea/Cot_Body/Cot_Panel/Cot_GeneralPanel/Button_ResetDefaults/Txt_ResetDefaults",
+      "type": "TMPro.TextMeshProUGUI",
+      "kind": "None",
+      "required": false
+    },
+    {
+      "bindName": "Dropdown_Language",
+      "nodePath": "Cot_SafeArea/Cot_Body/Cot_Panel/Cot_GeneralPanel/Dropdown_Language",
+      "type": "LiteFramework.UI.UIDropdownWrap",
+      "kind": "Command",
+      "required": true
+    },
+    {
+      "bindName": "Txt_Account",
+      "nodePath": "Cot_SafeArea/Cot_Body/Cot_Panel/Cot_GeneralPanel/Txt_Account",
+      "type": "TMPro.TextMeshProUGUI",
+      "kind": "None",
+      "required": false
+    },
+    {
+      "bindName": "Txt_Language",
+      "nodePath": "Cot_SafeArea/Cot_Body/Cot_Panel/Cot_GeneralPanel/Txt_Language",
+      "type": "TMPro.TextMeshProUGUI",
+      "kind": "None",
+      "required": false
+    },
+    {
+      "bindName": "Dropdown_Quality",
+      "nodePath": "Cot_SafeArea/Cot_Body/Cot_Panel/Cot_GraphicsPanel/Dropdown_Quality",
+      "type": "LiteFramework.UI.UIDropdownWrap",
+      "kind": "Command",
+      "required": true
+    },
+    {
+      "bindName": "Txt_Quality",
+      "nodePath": "Cot_SafeArea/Cot_Body/Cot_Panel/Cot_GraphicsPanel/Txt_Quality",
+      "type": "TMPro.TextMeshProUGUI",
+      "kind": "None",
+      "required": false
+    },
+    {
       "bindName": "Button_Close",
       "nodePath": "Cot_SafeArea/Cot_Header/Button_Close",
       "type": "UnityEngine.UI.Button",
@@ -52,69 +283,6 @@
       "required": false
     },
     {
-      "bindName": "Dropdown_Language",
-      "nodePath": "Cot_SafeArea/Cot_Options/Dropdown_Language",
-      "type": "LiteClient.UI.UIDropdownWrap",
-      "kind": "Command",
-      "required": true
-    },
-    {
-      "bindName": "Dropdown_Quality",
-      "nodePath": "Cot_SafeArea/Cot_Options/Dropdown_Quality",
-      "type": "LiteClient.UI.UIDropdownWrap",
-      "kind": "Command",
-      "required": true
-    },
-    {
-      "bindName": "Slider_Volume",
-      "nodePath": "Cot_SafeArea/Cot_Options/Slider_Volume",
-      "type": "UnityEngine.UI.Slider",
-      "kind": "Command",
-      "required": true
-    },
-    {
-      "bindName": "Toggle_Sound",
-      "nodePath": "Cot_SafeArea/Cot_Options/Toggle_Sound",
-      "type": "UnityEngine.UI.Toggle",
-      "kind": "Command",
-      "required": true
-    },
-    {
-      "bindName": "Txt_Account",
-      "nodePath": "Cot_SafeArea/Cot_Options/Txt_Account",
-      "type": "TMPro.TextMeshProUGUI",
-      "kind": "None",
-      "required": false
-    },
-    {
-      "bindName": "Txt_Language",
-      "nodePath": "Cot_SafeArea/Cot_Options/Txt_Language",
-      "type": "TMPro.TextMeshProUGUI",
-      "kind": "None",
-      "required": false
-    },
-    {
-      "bindName": "Txt_Quality",
-      "nodePath": "Cot_SafeArea/Cot_Options/Txt_Quality",
-      "type": "TMPro.TextMeshProUGUI",
-      "kind": "None",
-      "required": false
-    },
-    {
-      "bindName": "Txt_Sound",
-      "nodePath": "Cot_SafeArea/Cot_Options/Txt_Sound",
-      "type": "TMPro.TextMeshProUGUI",
-      "kind": "None",
-      "required": false
-    },
-    {
-      "bindName": "Txt_Volume",
-      "nodePath": "Cot_SafeArea/Cot_Options/Txt_Volume",
-      "type": "TMPro.TextMeshProUGUI",
-      "kind": "None",
-      "required": false
-    },
-    {
       "bindName": "Txt_ServerAddress",
       "nodePath": "Cot_SafeArea/Cot_ServerInfo/Txt_ServerAddress",
       "type": "TMPro.TextMeshProUGUI",
@@ -133,23 +301,58 @@
   "styles": [],
   "templates": [
     {
-      "nodePath": "Cot_SafeArea/Cot_Options/Dropdown_Language",
-      "template": "Tmp_Dropdown",
-      "bindingHash": "5d2b1a4f79c79e02d6c5941ce1b569eae836500288d63d5e159de37e8d9e002f"
-    },
-    {
-      "nodePath": "Cot_SafeArea/Cot_Options/Dropdown_Quality",
-      "template": "Tmp_Dropdown",
-      "bindingHash": "5d2b1a4f79c79e02d6c5941ce1b569eae836500288d63d5e159de37e8d9e002f"
-    },
-    {
-      "nodePath": "Cot_SafeArea/Cot_Options/Slider_Volume",
+      "nodePath": "Cot_SafeArea/Cot_Body/Cot_Panel/Cot_AudioPanel/Slider_Volume",
       "template": "Tmp_Slider",
       "bindingHash": "5d2b1a4f79c79e02d6c5941ce1b569eae836500288d63d5e159de37e8d9e002f"
     },
     {
-      "nodePath": "Cot_SafeArea/Cot_Options/Toggle_Sound",
+      "nodePath": "Cot_SafeArea/Cot_Body/Cot_Panel/Cot_AudioPanel/Toggle_Sound",
       "template": "Tmp_Toggle",
+      "bindingHash": "5d2b1a4f79c79e02d6c5941ce1b569eae836500288d63d5e159de37e8d9e002f"
+    },
+    {
+      "nodePath": "Cot_SafeArea/Cot_Body/Cot_Panel/Cot_ControlPanel/Slider_AdsSensitivity",
+      "template": "Tmp_Slider",
+      "bindingHash": "5d2b1a4f79c79e02d6c5941ce1b569eae836500288d63d5e159de37e8d9e002f"
+    },
+    {
+      "nodePath": "Cot_SafeArea/Cot_Body/Cot_Panel/Cot_ControlPanel/Slider_LookSensitivity",
+      "template": "Tmp_Slider",
+      "bindingHash": "5d2b1a4f79c79e02d6c5941ce1b569eae836500288d63d5e159de37e8d9e002f"
+    },
+    {
+      "nodePath": "Cot_SafeArea/Cot_Body/Cot_Panel/Cot_ControlPanel/Toggle_InvertLookY",
+      "template": "Tmp_Toggle",
+      "bindingHash": "5d2b1a4f79c79e02d6c5941ce1b569eae836500288d63d5e159de37e8d9e002f"
+    },
+    {
+      "nodePath": "Cot_SafeArea/Cot_Body/Cot_Panel/Cot_DisplayPanel/Dropdown_DisplayMode",
+      "template": "Tmp_Dropdown",
+      "bindingHash": "5d2b1a4f79c79e02d6c5941ce1b569eae836500288d63d5e159de37e8d9e002f"
+    },
+    {
+      "nodePath": "Cot_SafeArea/Cot_Body/Cot_Panel/Cot_DisplayPanel/Dropdown_FrameRate",
+      "template": "Tmp_Dropdown",
+      "bindingHash": "5d2b1a4f79c79e02d6c5941ce1b569eae836500288d63d5e159de37e8d9e002f"
+    },
+    {
+      "nodePath": "Cot_SafeArea/Cot_Body/Cot_Panel/Cot_DisplayPanel/Dropdown_Resolution",
+      "template": "Tmp_Dropdown",
+      "bindingHash": "5d2b1a4f79c79e02d6c5941ce1b569eae836500288d63d5e159de37e8d9e002f"
+    },
+    {
+      "nodePath": "Cot_SafeArea/Cot_Body/Cot_Panel/Cot_DisplayPanel/Dropdown_VSync",
+      "template": "Tmp_Dropdown",
+      "bindingHash": "5d2b1a4f79c79e02d6c5941ce1b569eae836500288d63d5e159de37e8d9e002f"
+    },
+    {
+      "nodePath": "Cot_SafeArea/Cot_Body/Cot_Panel/Cot_GeneralPanel/Dropdown_Language",
+      "template": "Tmp_Dropdown",
+      "bindingHash": "5d2b1a4f79c79e02d6c5941ce1b569eae836500288d63d5e159de37e8d9e002f"
+    },
+    {
+      "nodePath": "Cot_SafeArea/Cot_Body/Cot_Panel/Cot_GraphicsPanel/Dropdown_Quality",
+      "template": "Tmp_Dropdown",
       "bindingHash": "5d2b1a4f79c79e02d6c5941ce1b569eae836500288d63d5e159de37e8d9e002f"
     }
   ],
@@ -163,6 +366,11 @@
       "bindName": "Button_Exit",
       "event": "onClick",
       "handler": "_ConfirmExit"
+    },
+    {
+      "bindName": "Button_ResetDefaults",
+      "event": "onClick",
+      "handler": "_ConfirmReset"
     },
     {
       "bindName": "Dropdown_Quality",
@@ -180,5 +388,5 @@
       "handler": "anonymous"
     }
   ],
-  "sourceHash": "sha256:fc91ce2062e1da5b251bd085f792a53a3efe861364520aec61712f4fe6543f45"
+  "sourceHash": "sha256:a1145264e89fa1b70d92664ede1e49c26081329b28ebd7f537f37cc4b71a69e7"
 }

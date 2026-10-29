@@ -110,6 +110,9 @@ protected virtual void OnHide();
 | `SetDropdown(name, index)` | 索引 | 程序设值，不触发变化回调 |
 | `GetDropdown(name)` | → number | 当前索引 |
 | `OnDropdownChanged(name, fn(index))` | 回调 `fn(index)` | 用户选择；重复登记替换 |
+| `SetTab(name, index)` | 页签索引 | 程序设值，不触发变化回调 |
+| `GetTab(name)` | → number | 当前页签索引；-1 = 未选中 |
+| `OnTabChanged(name, fn(index))` | 回调 `fn(index)` | 用户点击页签；重复登记替换 |
 
 ### 3.5 动效
 

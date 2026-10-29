@@ -96,6 +96,15 @@ namespace LiteFramework.UI
         /// <summary>下拉变化通知（用户选择；重复登记替换）。</summary>
         public partial void OnDropdownChanged(string name, Action<int> handler);
 
+        /// <summary>程序设页签（静默：不触发 OnTabChanged，避免页面重入）</summary>
+        public partial void SetTab(string name, int index);
+
+        /// <summary>取当前选中页签（无选中 = -1）</summary>
+        public partial int GetTab(string name);
+
+        /// <summary>页签变化通知（用户点击；程序 SetTab 不触发）。重复登记替换；null = 仅退订</summary>
+        public partial void OnTabChanged(string name, Action<int> handler);
+
         /// <summary>装配列表数据源（整表替换语义）。</summary>
         public partial void SetList(string name, IUIListRows rows);
 

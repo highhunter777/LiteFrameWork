@@ -1,7 +1,7 @@
 {
   "$schema": "./UiApiSpec.schema.json",
   "version": 1,
-  "apiVersion": 5,
+  "apiVersion": 6,
   "note": "UI 受控 API 唯一源：生成 UIBindIndex 声明 / UIBindBase 转发 / Lua shim / dispatch / 参考表 / 清单。新增 API = 改本文件 + 重生成。",
   "categories": [
     {
@@ -1127,6 +1127,108 @@
             "args": "回调 `fn(index)`",
             "note": "用户选择；重复登记替换",
             "sig": "OnDropdownChanged(name, fn(index))"
+          }
+        }
+      ]
+    },
+    {
+      "name": "SetTab",
+      "returns": "void",
+      "params": [
+        {
+          "name": "name",
+          "type": "string"
+        },
+        {
+          "name": "index",
+          "type": "int"
+        }
+      ],
+      "summary": "程序设页签（静默：不触发 OnTabChanged，避免页面重入）",
+      "lua": [
+        {
+          "name": "setTab",
+          "category": "controls",
+          "call": [
+            {
+              "arg": "name",
+              "field": "name",
+              "kind": "text"
+            },
+            {
+              "arg": "index",
+              "field": "index",
+              "kind": "int"
+            }
+          ],
+          "doc": {
+            "args": "页签索引",
+            "note": "程序设值，不触发变化回调"
+          }
+        }
+      ]
+    },
+    {
+      "name": "GetTab",
+      "returns": "int",
+      "params": [
+        {
+          "name": "name",
+          "type": "string"
+        }
+      ],
+      "summary": "取当前选中页签（无选中 = -1）",
+      "lua": [
+        {
+          "name": "getTab",
+          "category": "controls",
+          "returns": "number",
+          "call": [
+            {
+              "arg": "name",
+              "field": "name",
+              "kind": "text"
+            }
+          ],
+          "doc": {
+            "args": "→ number",
+            "note": "当前页签索引；-1 = 未选中"
+          }
+        }
+      ]
+    },
+    {
+      "name": "OnTabChanged",
+      "returns": "void",
+      "params": [
+        {
+          "name": "name",
+          "type": "string"
+        },
+        {
+          "name": "handler",
+          "type": "Action<int>"
+        }
+      ],
+      "summary": "页签变化通知（用户点击；程序 SetTab 不触发）。重复登记替换；null = 仅退订",
+      "lua": [
+        {
+          "name": "onTabChanged",
+          "category": "controls",
+          "call": [
+            {
+              "arg": "name",
+              "field": "name",
+              "kind": "text"
+            },
+            {
+              "kind": "callbackInt"
+            }
+          ],
+          "doc": {
+            "args": "回调 `fn(index)`",
+            "note": "用户点击页签；重复登记替换",
+            "sig": "OnTabChanged(name, fn(index))"
           }
         }
       ]

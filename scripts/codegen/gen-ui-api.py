@@ -23,9 +23,9 @@ from _common import repo_root  # noqa: E402
 ROOT = Path(repo_root())
 TOOL = "codegen/ui-api"
 SPEC_PATH = ROOT / "Assets" / "LiteGame" / "Editor" / "UiTools" / "UiApi" / "UiApiSpec.json"
-OUT_INDEX = ROOT / "Assets" / "LiteClient" / "UI" / "Bind" / "Generated" / "UIBindIndex.Api.g.cs"
-OUT_BASE = ROOT / "Assets" / "LiteClient" / "UI" / "Bind" / "Generated" / "UIBindBase.Api.g.cs"
-OUT_MANIFEST = ROOT / "Assets" / "LiteClient" / "UI" / "Bind" / "Generated" / "UiApiManifest.g.cs"
+OUT_INDEX = ROOT / "Assets" / "LiteFramework" / "Runtime" / "Modules" / "UI" / "Bind" / "Generated" / "UIBindIndex.Api.g.cs"
+OUT_BASE = ROOT / "Assets" / "LiteFramework" / "Runtime" / "Modules" / "UI" / "Bind" / "Generated" / "UIBindBase.Api.g.cs"
+OUT_MANIFEST = ROOT / "Assets" / "LiteFramework" / "Runtime" / "Modules" / "UI" / "Bind" / "Generated" / "UiApiManifest.g.cs"
 OUT_SHIM = ROOT / "Assets" / "LiteGame" / "LuaBridge" / "Generated" / "UiApiShim.g.cs"
 OUT_DISPATCH = ROOT / "Assets" / "LiteGame" / "LuaBridge" / "Generated" / "LuaBehaviourAdapter.Dispatch.g.cs"
 DOC = ROOT / "Docs" / "设计文档" / "客户端" / "UI系统" / "UI逻辑API参考.md"
@@ -126,7 +126,7 @@ def render_index(spec):
         "using System.Collections.Generic;",
         "using UnityEngine;",
         "",
-        "namespace LiteClient.UI",
+        "namespace LiteFramework.UI",
         "{",
         "    /// <summary>UIBindIndex 的受控 API 声明（生成；实现体在 UIBindIndex.cs）。</summary>",
         "    public sealed partial class UIBindIndex",
@@ -162,7 +162,7 @@ def render_base(spec):
         "using System;",
         "using UnityEngine;",
         "",
-        "namespace LiteClient.UI",
+        "namespace LiteFramework.UI",
         "{",
         "    /// <summary>UIBindBase 的受控 API 转发（生成；生命周期回调与索引装配在 UIBindBase.cs）。</summary>",
         "    public abstract partial class UIBindBase",
@@ -334,7 +334,7 @@ def render_manifest(spec):
         HEADER.rstrip("\n"),
         "using System.Collections.Generic;",
         "",
-        "namespace LiteClient.UI",
+        "namespace LiteFramework.UI",
         "{",
         "    /// <summary>UI API 清单（生成）：版本与门面名清单，供能力声明与守卫测试比对。</summary>",
         "    public static class UiApiManifest",

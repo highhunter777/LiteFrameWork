@@ -11,6 +11,7 @@
 | [UI 制作规范](../../../规范/05-UI制作.md) | 目录、Prefab 根、命名、布局、渲染、文本、动效、列表、交互、提交与门禁硬规则 |
 | [UI 命名与控件词表参考](UI命名与控件词表参考.md) | 名字模型、角色词表、控件模板清单、选段指引、硬约束速查 |
 | [UI 逻辑 API 参考](UI逻辑API参考.md) | Lua `self.ui`/`Bridge.ui`、C# `UIBindBase`/`UIBindIndex`、列表行协议、错误语义 |
+| [设置系统专项设计](设置系统专项设计.md) | 设置项单源（分组/存储键/值域/默认）、四组生效器（音频/图形/显示/控制）、影子管线资产与平台能力矩阵、`Bridge.settings` 门面、设置面板页签结构与文案键 |
 
 - 机器可读 schema：[UiPageContract.schema.json](UiPageContract.schema.json) · [UiStyleTokens.schema.json](UiStyleTokens.schema.json) · [UiWidgetManifest.schema.json](UiWidgetManifest.schema.json) · [UiPageManifest.schema.json](UiPageManifest.schema.json) · [UiRuleExceptions.schema.json](UiRuleExceptions.schema.json) · [UiDeviceProfiles.schema.json](UiDeviceProfiles.schema.json)。
 - 旧体系（已退役）：全文见 [2026-10-22/UI旧体系](../../../归档记录/2026-10-22/UI旧体系/README.md)；旧路径 `客户端/UI/` 的跳转壳已退役，映射见 [2026-10-29 归档说明](../../../归档记录/2026-10-29/README.md)。

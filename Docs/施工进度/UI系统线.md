@@ -23,6 +23,7 @@
 | 11 | UI 系统 P2-3 B2：令牌引用组件与应用（UiStyleRef · 运行期解析 · 状态色令牌化） | — |
 | 12 | UI 系统 P2-3 B3：设备档与预览矩阵（UiDeviceProfiles · 驱动升级 · ui.preview-matrix） | — |
 | 13 | UI 系统 P2-3 B4：存量样式收敛与收口（44 精确令牌 · UiSelectableTheme · 文字档迁移 · UiThemeBinder） | — |
+| 14 | 设置系统分批：生成器落点校正 · 数据层/生效器/门面 · 设置页五页签骨架 | — |
 
 ---
 
@@ -655,3 +656,46 @@
 - **同值令牌**：color.state.selectable.normal 与 color.text.bright 同白、highlighted/selected 同值；显式 ID 消费，最近匹配按 ID Ordinal 取后者为契约，widget 迁移不填 selectable 令牌。
 - **测试夹具色**：color.debug.baseline/color.debug.fixture 只服务 Tmp_Baseline*/Tmp_UiTestPage，非产品语义。
 - **未提交**：本批改动在工作区；并行线改动（GM/DevTool/Boot 等）未纳入。
+
+---
+
+## 第14章 设置系统分批：生成器落点校正 · 数据层/生效器/门面 · 设置页五页签骨架
+
+<a id="ch14-settings-system"></a>
+
+> 设计：[设置系统专项设计](../设计文档/客户端/UI系统/设置系统专项设计.md)。用户裁决：5 页签；图形覆盖走影子管线（阶段 B）；按键重绑 P2；本批先做「生成器落点 + 数据层 + 页签骨架 + 既有 4 项迁移」。
+
+### 范围与做法
+
+| 面 | 落地 |
+|---|---|
+| 生成器落点（阶段 0） | `gen-ui-page.py` 的 `DEFAULT_OUTPUT` 与 namespace（`LiteClient.UI` → `LiteFramework.UI`）、`gen-ui-api.py` 的三个 `OUT_*` 全部改指现役产物目录；两条 `--check` 由恒 FAIL 转绿 |
+| 契约漂移顺带修 | 2 份契约的 `type` 仍是旧命名空间 `LiteClient.UI.UIDropdownWrap`（运行时类型已迁 `LiteFramework`）——改回全名后 `gen-ui-page --check` 才能复现现役产物；契约批量重生成后 `Page_Lobby` 4 行、`Page_Settings` 全量刷新 |
+| 数据层 | `GameSettings` 5 项 → 16 项（音频 2 / 图形 4 / 显示 4 / 控制 4 / 常规 2），删死项 `fullscreen`；新增 `FrameRateOptions`/`GraphicsOptions`/`DisplayOptions`/`ControlOptions` 四个值域常量类；`Setting<T>` 增 `ISetting`/`Default`/`ResetToDefault`（恢复默认的单源） |
+| 生效层 | `AudioSettingsApplier`/`GraphicsSettingsApplier`/`DisplaySettingsApplier`（**住 `Adapters/Unity/Settings/`**——`Modules/Settings` 被 L1 纯项目 glob，带 UnityEngine 会编译失败）+ `ILookPreferences`/`LookPreferences`（视角倍率端口，注入 `ProcedureBattle → BattleViewRig → BattleLookController`）；`ProductSettings` 变四组编排，`ApplyAll` 顺序固定 |
+| 门面 | `Bridge.settings` 平铺旧项不变，新增 `display`（模式/分辨率/帧率/垂直同步 + 能力查询）、`control`（灵敏度/ADS 倍率/Y 反转）、`general`（页签记忆）、`ResetDefaults` |
+| 页签 API | `UiApiSpec` 增 `SetTab/GetTab/OnTabChanged`（apiVersion 5→6），`UIBindIndex` 实现**拆到 `UIBindIndex.Tabs.cs`**（类行数门禁 402 不许增长）、`UIBindEvents` 增页签订阅；`TabGroup.SelectSilent` 补静默设值 |
+| 页面 | `Page_Settings.prefab` 重构：`Cot_Body = Cot_Nav（TabGroup_Settings + 5 按钮）+ Cot_Panel（5 面板）`，既有四行迁入对应面板；新增显示 4 行、控制 3 行、恢复默认钮；控件一律**实例化 `Tmp_*` 模板**（克隆页面实例会把 `_Background` 等私有子节点摊成页面节点，触发命名规则）；页签名/面板名按机器词表（`Button_TabAudio`、`Cot_*Panel`） |
+| 文案 | `#ltext` 增 23 键（页签 5 / 标签与选项 16 / `Common.On/Off` / `FollowPreset`），56 → **79**；`Luban/gen.bat` 重生成 |
+| Lua | `Page_Settings.lua` 重写：页签切换 + 五面板 + 全部控件接线 + 对局中显示类置灰 + 恢复默认（确认后全量重刷） |
+
+### 验证证据
+
+| 项 | 结果 |
+|---|---|
+| `gen-ui-page.py --check` | `CHECK OK: 12 pages` |
+| `gen-ui-api.py --check` | `CHECK OK: 38 methods / 36 lua entries` |
+| `MetaPagesEditModeTests` | **31/31 通过**（新增 4 例：页签记忆/对局中置灰/恢复默认重刷/显示控制接线） |
+| `LTextWiringEditModeTests` | **5/5 通过**（键数 79） |
+| 设置页 UI 校验（单资产上下文） | **errors=0**，warnings=39（全部 `ui.style.text-drift`，与 `Page_Lobby` 同型的存量文字档债） |
+| BindName 自检 | binds=45，重名 0、不同文 0、非法名 0 |
+| L1 | 解决方案编译通过；`LiteFramework.Core.Tests` 787/789——SafeCall 与 UIBindIndex 两条门禁由本批修复（SafeCall 4→1、UIBindIndex 拆件），**剩余 2 条红来自并行线的类增长**（`CinemachineCameraService` 578→590、`CharacterLocomotionDriver` 500→520），非本批改动 |
+
+### 挂账（如实）
+
+- **图形覆盖（渲染缩放/抗锯齿/阴影）未接线**：数据项与门面入口留到阶段 B（影子管线资产），本批 UI 不暴露这三项——不摆"点了没反应"的控件。
+- **按键重绑 P2**：`GameSettings.Bindings` 字段已建（默认空串），避免下期动存档结构；`IInputBindings` 端口未做。
+- **语言不持久化（存量缺口，已登记审计）**：`GameSettings.Language` 无消费者，`Bridge.text.SetLocale` 只在会话内生效；"恢复默认"因此不重设语言（避免伪造默认语言常量）。
+- **既有 4 行未迁 `LTextKeyRef`**：与新控件写法并存；本批优先保结构重构不叠文案链路改造。
+- **实机/Play 验收未跑**：页签切换手感、分辨率/模式切换、对局中置灰、多分辨率布局归手测（设计 §9.3 清单）。
+- **页面预览截图工具失效**：`BuildUiPages.CaptureAll` 本次产出两张全黑同 hash 图（旧工具与新页面结构无关；已登记工具链债），故本批视觉核对改为几何/校验数值面。

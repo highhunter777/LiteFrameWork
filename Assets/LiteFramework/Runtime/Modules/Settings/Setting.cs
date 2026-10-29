@@ -4,13 +4,23 @@ using System.Globalization;
 namespace LiteFramework
 {
     /// <summary>
+    /// 设置项的**非泛型面**：只需要"回默认"与"默认值快照"的消费者（恢复默认、设置项清单）
+    /// 不应为每个类型写一遍。`Setting&lt;T&gt;` 实现它，`GameSettings.Settings` 以它枚举全部项。
+    /// </summary>
+    public interface ISetting
+    {
+        /// <summary>该设置项的默认值（写入同值即回到默认；不删除键——删除语义归 SettingService）。</summary>
+        void ResetToDefault();
+    }
+
+    /// <summary>
     /// 单个设置项的强类型值对象（**机制件**）：key/默认值/范围校验**单源**（调用处不散落硬编码默认值与裸字符串键）。
     /// Get：缺失 → 默认值（首启正常）；解析失败 → 默认值 + Log.Warning（事故可见）。
     /// Set：先经 clamp（可选范围校验）再写入——越界值在写入口死掉。
     /// 只支持 float/int/bool/string（SettingService 的四种口径）；其他 T 在构造时抛。
     /// 具体设置清单（键/默认值/范围）由业务定义——见 LiteFramework.GameSettings。
     /// </summary>
-    public sealed class Setting<T>
+    public sealed class Setting<T> : ISetting
     {
         private readonly SettingService _svc;
         private readonly string _key;
@@ -28,6 +38,12 @@ namespace LiteFramework
             _deser = GetDeser<T>();
             _ser = GetSer<T>();
         }
+
+        /// <summary>默认值单源（"恢复默认"与首启缺键同源；不在调用处重写一遍字面量）。</summary>
+        public T Default => _default;
+
+        /// <summary>回默认（写默认值并标脏；不抛、不删键）。</summary>
+        public void ResetToDefault() => Set(_default);
 
         public T Get()
         {

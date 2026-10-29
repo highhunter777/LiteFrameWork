@@ -8,7 +8,7 @@ namespace LiteFramework.UI
     public static class UiApiManifest
     {
         /// <summary>Bridge API 版本（spec apiVersion；新增 API 时随之递增）。</summary>
-        public const int ApiVersion = 5;
+        public const int ApiVersion = 6;
 
         public static IReadOnlyList<string> LuaMethods { get; } = new[]
         {
@@ -40,6 +40,9 @@ namespace LiteFramework.UI
             "setDropdown",
             "getDropdown",
             "onDropdownChanged",
+            "setTab",
+            "getTab",
+            "onTabChanged",
             "setList",
             "onListClick",
             "pulse",
@@ -77,6 +80,9 @@ namespace LiteFramework.UI
             "SetDropdown",
             "GetDropdown",
             "OnDropdownChanged",
+            "SetTab",
+            "GetTab",
+            "OnTabChanged",
             "SetList",
             "OnListClick",
             "Pulse",
@@ -123,6 +129,9 @@ namespace LiteFramework.UI
             "SetDropdownValue",
             "GetDropdownValue",
             "OnDropdownChanged",
+            "SetTab",
+            "GetTab",
+            "OnTabChanged",
             "SetList",
             "OnListClick",
             "Pulse",

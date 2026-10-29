@@ -22,6 +22,14 @@ namespace LiteFramework
         /// <summary>优雅关闭的等待上限（毫秒）：Quit 路径必须有界——模块善后不能把进程退出拖成挂死。</summary>
         public const int GracefulShutdownMaxMs = 3000;
 
+        /// <summary>移动端目标帧率档：Unity 在 Android/iOS 未显式设置时按平台默认（约 30）跑，
+        /// 与编辑器 60 形成"同一份构建两种手感"；射击游戏按 60 定格。
+        /// 默认值单源在 <see cref="FrameRateOptions"/>（设置项与启动兜底共用，避免两处各写一份）。</summary>
+        public static int MobileTargetFrameRate => FrameRateOptions.ToAppTarget(FrameRateOptions.DefaultFor(true));
+
+        /// <summary>非移动平台沿用引擎默认（-1＝由 vSync/平台决定）——桌面出包观感不变。</summary>
+        public static int DesktopTargetFrameRate => FrameRateOptions.ToAppTarget(FrameRateOptions.DefaultFor(false));
+
         private ClientHost _host;
         private bool _quitting;
         private bool _quitApproved;
@@ -65,6 +73,20 @@ namespace LiteFramework
         private static void ResetStaticsForEditorReload()
         {
             ClientHost.ResetForEditorReload();
+        }
+
+        /// <summary>帧率档的单点决策（纯函数——用例可直接断言两态；运行时只由
+        /// <see cref="ApplyPlatformFrameRate"/> 消费）。默认值取 <see cref="FrameRateOptions"/>，
+        /// 与设置项首启默认同源。</summary>
+        public static int ResolveTargetFrameRate(bool isMobilePlatform)
+            => isMobilePlatform ? MobileTargetFrameRate : DesktopTargetFrameRate;
+
+        /// <summary>启动期帧率档的唯一设置点（设计口径"移动 targetFrameRate 档"）。
+        /// 用**运行时平台查询**而非条件编译——平台差异不得散落成 `#if`（纪律扫描 R15）。</summary>
+        [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.BeforeSceneLoad)]
+        private static void ApplyPlatformFrameRate()
+        {
+            Application.targetFrameRate = ResolveTargetFrameRate(Application.isMobilePlatform);
         }
 
         /// <summary>Unity 生命周期消息 → Host 转发。**public 供 EditMode 直调**（编辑态 SendMessage 不派发
