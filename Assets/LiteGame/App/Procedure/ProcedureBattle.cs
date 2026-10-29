@@ -405,10 +405,12 @@ namespace LiteGame
         }
 
         /// <summary>传送分发单点（本地服宿主钩子；T 键/GM 面板/撤销共用同一通道）。</summary>
-        private static void DispatchTeleport(SimVector3 pos)
+        private void DispatchTeleport(SimVector3 pos)
         {
-            SimTestRules.TeleportTarget = pos;
-            SimTestRules.TeleportDispatch = true;
+            ILocalTestHooks hooks = _devSession?.LocalTest;
+            if (hooks == null) return;
+            hooks.TeleportTarget = pos;
+            hooks.TeleportDispatch = true;
         }
 
         /// <summary>等对局结束（Ended 恰好一次；ct 打断 = 宿主关闭路径）。</summary>

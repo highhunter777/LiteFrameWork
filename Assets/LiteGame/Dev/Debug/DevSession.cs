@@ -37,6 +37,9 @@ namespace LiteGame
         /// <summary>当前对局规则持有件（对局会话绑定；null = 无对局）。</summary>
         public MatchTestRules MatchRules => _matchRules;
 
+        /// <summary>本地测试房宿主钩子（Dev 实例；产品只经 IDevSession 端口使用）。</summary>
+        public ILocalTestHooks LocalTest => TestModeRuntime.Current.LocalTest;
+
         public void AttachMatchRules(MatchTestRules rules) => _matchRules = rules;
 
         public void DetachMatchRules(MatchTestRules rules)

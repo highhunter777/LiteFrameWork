@@ -35,6 +35,8 @@ namespace LiteGame
 
         public MatchTestRules MatchRules => null;
 
+        public ILocalTestHooks LocalTest => NullLocalTestHooks.Instance;
+
         public void AttachMatchRules(MatchTestRules rules) { }
 
         public void DetachMatchRules(MatchTestRules rules) { }

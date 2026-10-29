@@ -1,7 +1,7 @@
 # GM 与调试工具分层设计
 
-> 版本：1.6
-> 更新日期：2026-10-25
+> 版本：1.7
+> 更新日期：2026-10-29
 > 定位：GM/调试面的**分层裁决与形态契约**——回答“调试能力的内核放在哪、投影怎么长、写口与读口归谁”。
 > 不做的事：不裁决具体调试工具的能力清单与优先级（归[《调试与开发工具链演进路线图》](../测试与性能/调试与开发工具链演进路线图.md)）；不裁决工具平台形态（归[《开发工具链平台专项设计》](开发工具链平台专项设计.md)）；不登记施工批次（归 [施工进度/GM与调试线](../../施工进度/GM与调试线.md)）。
 > 冲突裁决：内核/投影职责与写口纪律以本文为准；能力优先级以调试路线图 T0～T3 为准；平台形态以平台专项为准；UI 专用投影以[《UI 运行时调试工具链专项设计》](../客户端/UI系统/UI运行时调试工具链专项设计.md)为准。
@@ -13,11 +13,31 @@
 | 层 | 载体 | 生命周期 | 职责 | 不做什么 |
 |---|---|---|---|---|
 | **启动配置** | 场景 `DevStartupConfig`（Inspector） | 随场景保存 | 进房初值（免死/bot 数/冻结/传送/表现开关）；进房前快照（`ApplySnapshotOrDefaults`）；入口初值随 `CombatValues` 进联机身份摘要；**DevHUD 初始展开集**（`DevHudDefaultExpanded`，仅本机无折叠记忆时生效） | 不承载局内可调项 |
-| **运行态规则** | `MatchTestRules` 每局持有件（LiteSim） | 进房新建（`ProcedureMatch` 按入口初值）、离场丢弃 | 免死/无限子弹/爆头带试验覆写的**运行态单源**；经 `SimStep` 脊柱注入确定性系统；`SimTestRules.ActiveMatch` 登记口供两端绑定与 GM 中局开合 | **判定路径不读任何静态**（修改指南 §1.3，含 dev 宏内） |
+| **运行态规则** | `MatchTestRules` 每局持有件（LiteSim） | 进房新建（`ProcedureMatch` 按入口初值）、离场丢弃 | 免死/无限子弹/爆头带试验覆写的**运行态单源**；经 `SimStep` 脊柱注入确定性系统；实例随会话显式传递（无全局“当前局”）；开发宿主钩子见 `ILocalTestHooks` | **判定路径不读任何静态**（修改指南 §1.3，含 dev 宏内） |
 | **开关写口** | `TestModeOptions` 单表 + `TestModeRuntime` 快照（LiteGame，开发三宏） | 三宏内 | **唯一开关写口**（Startup/Live 分组，新增开关零面板改动）；请求桥（进/退/传送一次性标志）；爆头覆写跨局待用值 | 不落盘、不进摘要 |
 | **投影面** | 编辑器 `LiteGame/工具链` Hub（页件宿主）/ `DevHUD`（只读）/ `DebugPanel`（F2，常用动作/即时开关）/ `DebugConsole`（F3，运行期操控） | — | 只读读数 + 调用写口/请求桥/命令 | **零业务逻辑**——投影不持规则、不写运行态（写只能经上述两个写口或命令） |
 
 > 组件拆分：`DevStartupConfig` 只保留启动开关与本地测试模式初值；时钟/事件连续旋钮在 `DebugRuntimeTuner`；运行期开发入口为 `DebugConsole`（F3，UI Toolkit），不设独立开发页覆盖件。三者同挂 `GameEntry`，均随开发三宏剥离。
+
+### 1.1 信任边界分类（“作弊”能力的四类裁决）
+
+“作弊”不是单一模块，按**谁有权写、在哪一层生效、是否发布**分四类；禁止用单字“作弊”混指。
+
+| 类别 | 信任边界 | 所有者/落点 | 发布面 | 鉴权/审计 | 失败语义 |
+|---|---|---|---|---|---|
+| **DevCheat**（开发作弊） | 本机开发/编辑器 | `LiteGame.Dev`：`TestModeRuntime`、`DebugKernel`、`DevHUD`、`DebugConsole`、`DebugPanel`；编辑器 GM 页只做投影 | `defineConstraints` 三宏，release 不编译 | 无（本机）；产品只经 `IDevSession` 读 | 端口缺失 = 发布形态空实现；不静默造开发副作用 |
+| **MatchSandbox**（测试沙盒） | 本地测试房/单局 | `MatchTestRules`（LiteSim，每局实例）、`ILocalTestHooks`（LiteBattle.Abstractions，开发端口）、`LocalServerTransport`（LiteGame.Dev） | 只在本地测试房生效；不进正式匹配 | 测试房由入口/GM 显式创建；钩子只由本地服消费 | 规则缺失 = 本地服构造失败；发布端口恒空 |
+| **OpsGm**（运维 GM） | 云端运维面 | `Server/RoomServer` 的 `/gm/*`（`start`/`abort`/`kick`/`settle-flush`/`rules`/`diag-*`）；`CommandCenter` GM 命令；编辑器 `Gm*Page` 只是投影 | 服务端常驻；客户端 GM 页仅 Editor | `X-GM-Key` + 隧道绑定；命令进审计环 | 缺密钥/隧道 = 拒绝；不降级为开发作弊 |
+| **AntiCheat**（反作弊） | 服务端判定/校验面 | `RoomServer.Runtime` 的 `InputGate`/`LagCompensator`/快照 checksum；`LiteNet` 协议校验；BuildHash/ConfigHash/CombatConfigDigest 身份 | 服务端与客户端校验链；不是可开关模块 | 服务器权威；客户端只报事实/被拒 | 超界即夹取/拒绝；不得由客户端自证 |
+
+**四条硬规则**：
+
+1. **DevCheat 与 MatchSandbox 只能住开发面**：产品程序集（`LiteFramework.Runtime`、`LiteGame.App`、`LiteGame.Presentation`、`LiteGame.LuaBridge`）不得直读 `TestModeRuntime`/`DebugKernel`/`TestModeOptions` 等实现；只能经 `IDevSession`/`ILocalTestHooks` 端口。
+2. **OpsGm 不得下放到客户端**：GM 动作只在服务端端点或编辑器页出现；客户端运行时不得编译 GM 端点/密钥。
+3. **AntiCheat 不是模块**：不新建“反作弊服务”或客户端反作弊组件；判定/夹取/校验分别归 `InputGate`、`LagCompensator`、checksum/identity 链。
+4. **新增“作弊类”能力先选类别**：跨类别复用（如把 DevCheat 开关接进正式匹配、把 OpsGm 动作暴露给玩家）一律拒绝；选不出类别则不实现。
+
+> 守卫：`CheatBoundaryGuardTests`（L1）扫描产品程序集禁止直读开发作弊源；`ArchitectureGuardTests` 守住 `LiteGame.App` 不引 `LiteGame.Dev`/`RoomServer.*`；服务端方向由 `D1` 守卫。
 
 ## 2. 动作三分口径（命令化边界）
 
@@ -30,14 +50,14 @@
 - **爆头带**：`MatchTestRules.HeadHitLineOverride` / `HeadshotRadiusOverride`（判定面）。**不进 `CombatValues` 摘要、不可重放**——连续调参旋钮进摘要会让每次试验抖动联机身份；同"中局开合"裁决。生效值统一经 `MatchTestRules.ResolveHeadHitLine/ResolveHeadshotRadius(rules)` 解析（null ⇒ 恒烘焙导出值，release/常规入口形态）。
 - **持枪幅度**：`GripTuning.TorsoWeightDevOverride`（纯表现，LiteView）。
 - **统一口径**：仅开发三宏内存在、不落盘、复位即回烘焙/导出值、判定路径读注入实例；定型值经 `HeadHitLineTuner.Export` → `HeadBake.g.cs`（**进 digest 的只有导出常量**）。
-- 判定与可视化的同值机制：判定链（`ShootingSystem`/`SimRaycast`）经 SimStep 注入 rules；客户端可视化（激光/瞄准射线/调试绘制）传 `SimTestRules.ActiveMatch`——本地服同进程同实例，滑杆一动实弹即见。
+- 判定与可视化的同值机制：判定链（`ShootingSystem`/`SimRaycast`）经 SimStep 注入 rules；客户端可视化（激光/瞄准射线/调试绘制）传本局 `MatchTestRules` 实例——本地服同进程同实例，滑杆一动实弹即见。
 
 ## 4. 编辑器投影：页件契约与宿主
 
 - 契约 `IGmPage : IEditorToolPage`（`Editor/Gm/`）：`OnShow` / `OnHide` / `Draw` / `Poll`——宿主在翻页/开窗时调生命周期，`Poll` **仅活动页**在 Play 中按 0.5s 节拍被调（非活动页不轮询）。
 - 宿主 `LiteGame/工具链` Hub（`Editor/Toolchain/`）职责仅三件：页签生命周期、轮询调度、页签记忆（EditorPrefs **统一前缀 `LiteGame.Toolchain.*`**）；GM 七页作为 `page` 工具登记在 `scripts/gate/toolchain.json`。
 - 七页：本地测试模式（请求桥+开关+**bot 操作**+**云端测试房创建/选图与 GM 规则**+爆头导出/FOV 试调）、调试参数（`IDebugTunableProvider` 描述自动渲染，见 §7）、命令与审计（发现面/无参执行/审计环）、场景操作（SceneService 加载机制验证——经场景命令 `SendAsync` 派发，忙碌守卫）、配置诊断（运行状态+表查询+产物核对）、本地联测（联测环境页件——`deploy/.env` 单源驱动的两端起停/探针/日志尾随；**自管 `EditorApplication.update` 心跳**，编辑态即刷新——不受宿主 `Poll` 的 Play 门禁约束；被投影物是本地部署环境，不是游戏运行态）、联机诊断（DevHUD 的编辑器投影：HUD 总开关/段开关 + 按启动配置重排段 + `BattleDiagnostics` 单源读数——读口与包形态启用口径见 §5）。
-- **bot 操作（本地测试模式页）**：补位假人两项——**bot 无限生命**（`TestModeOptions` 现场开关，Live；权威侧宿主钩子 `SimTestRules.BotInfiniteHp` 每帧回满 ⇒ 假人永不死、命中/飘字反馈照常）与**重置假人**（一次性宿主钩子 `SimTestRules.BotResetRequested`：补位席位满血回出生点 + `LifeStartFrame` 生命更替 ⇒ 动画按"新生命"退出死亡叶；进房清残留同 TeleportDispatch 口径）。假人=补位席位（本地玩家不受两项管辖）。**未做（挂账）**：房内**追加**新假人——需放开"固定 2 座"世界规模（客户端定容重建/预测口径），归 G2 8 人基线面另立批。
+- **bot 操作（本地测试模式页）**：补位假人两项——**bot 无限生命**（`TestModeOptions` 现场开关，Live；权威侧宿主钩子 `ILocalTestHooks.BotInfiniteHp` 每帧回满 ⇒ 假人永不死、命中/飘字反馈照常）与**重置假人**（一次性宿主钩子 `ILocalTestHooks.BotResetRequested`：补位席位满血回出生点 + `LifeStartFrame` 生命更替 ⇒ 动画按"新生命"退出死亡叶；进房清残留同 TeleportDispatch 口径）。假人=补位席位（本地玩家不受两项管辖）。**未做（挂账）**：房内**追加**新假人——需放开"固定 2 座"世界规模（客户端定容重建/预测口径），归 G2 8 人基线面另立批。
 - 诊断取件单源：`GmEditorResolve.ResolveFromContainer<T>`（`GameEntry.TakeContainer()` 口径——编辑器工具豁免形态，业务侧禁）；未装配按空态显示。
 - 产物核对路径 = `TableLayout.TableDataPath` **单源**（领域分类布局——装载/服务端直读/编辑器预检三面共用，禁第二份拼接）。
 - 页件范式承自烘焙工具箱：一页一职责、说明→操作→报告自包含；寄宿件（如 `HeadHitLineTuner`）被页与窗口共享。
@@ -81,7 +101,7 @@
 | 子面 | 内容 | 现行承载 |
 | --- | --- | --- |
 | 读模型 | 模块统计、对局诊断、日志/结构化诊断、页面状态与焦点、配置/内容身份、性能样本、网络调试读数（会话相位/RTT/丢包/弱网注入）、测试模式/日志关联上下文（`IsTestModeActive`/`CurrentMatchId`/`CurrentSessionId`/`StartupBotCount`） | `GameEntry.Stats`、`BattleDiagnostics`、`Log`/`DiagTrace`、`UIService`/`UIModalStack.IUIFormQuery` 只读查询、`DebugPerfSampler`（帧统计 + GC/Draw/Batches recorder——经 `DebugKernel.SampleFrame/TryTakePerf/RecordHudBuildMs`）、`DebugKernel.Network`（`NetworkDebug` 组件） |
-| 动作模型 | 低频离散动作（命令化 + 审计 + 可撤销）、测试开关单表、pre-Play 一次性请求桥、一次性宿主钩子（bot 重置 `RequestBotReset`）、会话动作（强制断线 `ForceDisconnectCommand`／无状态重连 `ForceReconnectCommand`／自动重连抑制 `SetAutoReconnectSuppressedCommand`） | `CommandCenter`、`TestModeOptions`、`TestModeRuntime`、`SimTestRules.BotResetRequested`（经内核收口）、`DebugKernel.TryForceDisconnect/TryBeginReconnect/TrySetSuppressAutoReconnect` |
+| 动作模型 | 低频离散动作（命令化 + 审计 + 可撤销）、测试开关单表、pre-Play 一次性请求桥、一次性宿主钩子（bot 重置 `RequestBotReset`）、会话动作（强制断线 `ForceDisconnectCommand`／无状态重连 `ForceReconnectCommand`／自动重连抑制 `SetAutoReconnectSuppressedCommand`） | `CommandCenter`、`TestModeOptions`、`TestModeRuntime`、`ILocalTestHooks.BotResetRequested`（经内核收口）、`DebugKernel.TryForceDisconnect/TryBeginReconnect/TrySetSuppressAutoReconnect` |
 | 发现协议 | 命令注册表（类型/描述/GmOnly/注册时序）、选项表、读模型段表、调参描述表 | `CommandCenter.GetRegisteredInfos()`、`TestModeOptions.All`、`IDevHudSection`、`IDebugTunableProvider` |
 | 调参模型 | `DebugTunable` 描述（Id/Group/Tags/Scope/Default/Min/Max/Decimals/RuntimeVisible/Get/Set/Reset）；默认值来自功能数据源 | `DebugKernel.Tunables/RuntimeTunables/TrySetTunable/ResetTunable` + `DebugTunableDiscovery`（容器 + 场景 provider） |
 

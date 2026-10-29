@@ -176,7 +176,7 @@ Join Ticket 是 Meta 与 RoomServer 之间**唯一**的身份接缝，必须满�
 
 **裁决：RSA-2048 + PKCS#1 v1.5 + SHA-256，与 `SignatureVerifier` 同源。**
 
-- 依据：该组合与热更内容签名的发布信任根同源（`Assets/LiteFramework/Scripts/Core/Content/SignatureVerifier.cs`），保持**单一密钥体系**。客户端运行时（Mono）无 `ECDsa` 实现、无 Ed25519 类型，换档位无效；Meta 侧虽是完整 .NET，但"服务端用更强曲线、客户端无法验证"没有价值。
+- 依据：该组合与热更内容签名的发布信任根同源（`Assets/LiteFramework/Runtime/Core/Content/SignatureVerifier.cs`），保持**单一密钥体系**。客户端运行时（Mono）无 `ECDsa` 实现、无 Ed25519 类型，换档位无效；Meta 侧虽是完整 .NET，但"服务端用更强曲线、客户端无法验证"没有价值。
 - **密钥标识**：签名信封携带 `kid`，验签方按 `kid` 选择公钥；轮换期间新旧公钥并存。
 - **轮换与撤销**：必须有可执行流程与到期策略；禁止把"换密钥"实现为需要同时停机的操作。
 - **私钥永不入库**、不进入仓库或客户端产物；由受控签名环境持有，经 Secret Provider 注入（热更专项 §6）。
@@ -372,4 +372,4 @@ CI 仍以 `scripts/gate/test.py` 为唯一入口；HTTP/数据库夹具随实现
 - [框架先行建设与业务接入专项设计](../架构/框架先行建设与业务接入专项设计.md)：§4 施工包、§5 必须先稳定的接缝、§7 后置事项。
 - [测试开发框架总设计](../测试与性能/测试开发框架总设计.md)：L0～L4、执行器与完成定义。
 - [待办总览](../../待办总览.md)：项目级当前优先级；本文不改变其排序。
-- `Assets/LiteFramework/Scripts/Core/Content/SignatureVerifier.cs`：签名原语的唯一实现与算法选型依据。
+- `Assets/LiteFramework/Runtime/Core/Content/SignatureVerifier.cs`：签名原语的唯一实现与算法选型依据。

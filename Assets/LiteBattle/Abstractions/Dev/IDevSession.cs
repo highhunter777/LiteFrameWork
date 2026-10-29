@@ -58,6 +58,9 @@ namespace LiteClient
         /// 由对局会话在进房时绑定、离场解绑——模拟侧不再有"当前局"静态。</summary>
         MatchTestRules MatchRules { get; }
 
+        /// <summary>本地测试房宿主钩子（产品只经本端口写；实现/实例住开发装配层）。</summary>
+        ILocalTestHooks LocalTest { get; }
+
         /// <summary>绑定本局规则（对局会话唯一调用方）。</summary>
         void AttachMatchRules(MatchTestRules rules);
 

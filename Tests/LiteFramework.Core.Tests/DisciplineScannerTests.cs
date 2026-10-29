@@ -607,7 +607,7 @@ namespace LiteFramework.Tests
             Assert.Equal(1, Count("var b = TestModeOptions.Get(id);", LintRule.R14ProjectionDebugPort));
             Assert.Equal(1, Count("TestModeOptions.Set(id, true);", LintRule.R14ProjectionDebugPort));
             Assert.Equal(1, Count("foreach (var o in TestModeOptions.All) { }", LintRule.R14ProjectionDebugPort));
-            Assert.Equal(1, Count("LiteSim.SimTestRules.BotResetRequested = true;", LintRule.R14ProjectionDebugPort));
+            Assert.Equal(1, Count("TestModeRuntime.Current.BotResetRequested = true;", LintRule.R14ProjectionDebugPort));
             Assert.Equal(1, Count("var f = FeatureDebugTunables.CurrentHeadLine();", LintRule.R14ProjectionDebugPort));
             Assert.Equal(1, Count("var cc = ResolveFromContainer<CommandCenter>();", LintRule.R14ProjectionDebugPort));
             Assert.Equal(1, Count("var w = new WeakNetRuntime();", LintRule.R14ProjectionDebugPort));

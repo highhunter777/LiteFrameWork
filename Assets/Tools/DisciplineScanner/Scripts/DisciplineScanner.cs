@@ -64,7 +64,7 @@ namespace Tools.DisciplineScan
         /// 两个投影根（`Assets/LiteGame/Dev/Projection` 运行期投影程序集 + `Assets/LiteGame/Editor/Gm` 编辑器 GM 页）内，
         /// 调试**读数/动作/发现面**一律经 `DebugKernel` 门面——禁直调底层读口（`BattleDiagnostics.Current/Take`、
         /// `Log.Recent/ErrorCount/Current*`、`DiagTrace.Recent/Total`、`GameEntry.Stats`）与写口
-        /// （`TestModeOptions.Get/Set/All`、`TestModeRuntime.*`、`SimTestRules.*`、`CommandCenter`、
+        /// （`TestModeOptions.Get/Set/All`、`TestModeRuntime.*`、`CommandCenter`、
         /// `StructuredLogInstaller`、`WeakNetRuntime`/`WeakNetClientTransport`、`FeatureDebugTunables`/`WeaponDebugTunables`）。
         /// 豁免面：契约类型引用（`TestModeOptions.Id/Info/Group`、`BattleDiagnostics.Snapshot` 等类型位置）、
         /// 纯格式化助手（`DiagTrace.Line`、`Log.TagName`）、日志门面写口（`Log.Warning/Error/Info`——投影自身运维日志）。
@@ -191,7 +191,6 @@ namespace Tools.DisciplineScan
             @"|\bStructuredLogInstaller\b" +
             @"|\bWeakNetRuntime\b" +
             @"|\bWeakNetClientTransport\b" +
-            @"|\bSimTestRules\s*\." +
             @"|\bFeatureDebugTunables\s*\." +
             @"|\bWeaponDebugTunables\s*\." +
             @"|\bGameEntry\s*\.\s*Stats\b",

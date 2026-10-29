@@ -26,7 +26,7 @@ namespace LiteGame
         /// <summary>本地测试模式的占位端点（进程内 LocalServerTransport 不建 Socket；GM 本地联测页复用端口常量）。</summary>
         public const string TestHost = "127.0.0.1";
         public const int TestPort = 17777;
-        /// <summary>本地测试模式房间号（进程内 Room-Test；全房免死规则见 <see cref="LiteSim.SimTestRules"/>）。</summary>
+        /// <summary>本地测试模式房间号（进程内 Room-Test；全房免死规则见 <see cref="LiteClient.ILocalTestHooks"/>）。</summary>
         public const string TestRoomId = "Room-Test";
 
         /// <summary>JoinAck 等待预算（毫秒）——超时进 Error（确定失败态，不静默重试）。</summary>
@@ -138,7 +138,7 @@ namespace LiteGame
         /// 建传输（<paramref name="testRoom"/> = 本地测试模式：进程内 LocalServerTransport + 房号 Room-Test）：
         /// **只有**本地测试模式走进程内服；其余（Meta 票据 / 本地全链 / 云端普通房/测试房）一律真 KCP。
         /// **本方法只产传输**——每局规则由装配根先经 <see cref="MatchRulesSeeder.Seed"/> 播种，
-        /// 规则实例作为 <paramref name="rules"/> 入参（不在这里写任何 `SimTestRules` 静态）。
+        /// 规则实例作为 <paramref name="rules"/> 入参（不在这里写任何本地测试钩子静态）。
         ///
         /// **只在开发/编辑器/开发包可用**——`DevStartupConfig` 整体在 `#if` 内，release 下该静态不存在，
         /// 故此处也包在同一门禁里，正式包恒走真 KCP（不给"悄悄退化成假服务器"留窗口，

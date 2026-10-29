@@ -113,7 +113,10 @@ namespace LiteGame
             // bot 无限生命（Live）：同步写宿主钩子（本地服宿主循环读取——同帧起效；进房镜像兜底在
             // ProcedureMatch）。非测试模式一律不武装（同 InfiniteAmmo 口径）。
             if (id == Id.BotInfiniteHp)
-                SimTestRules.BotInfiniteHp = TestModeRuntime.Current.Active && value;
+            {
+                TestModeRuntime.Current.BotInfiniteHp = value;
+                TestModeRuntime.Current.LocalTest.BotInfiniteHp = TestModeRuntime.Current.Active && value;
+            }
         }
 
         /// <summary>套本表默认口径（<see cref="TestModeRuntime.Current.ApplyDefaults"/> 的数据源）。</summary>

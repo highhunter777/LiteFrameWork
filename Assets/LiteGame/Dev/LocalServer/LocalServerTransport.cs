@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using LiteClient;
 using LiteNet;
 using LiteNet.Proto;
 using LiteNet.Protocol;
@@ -56,10 +57,6 @@ namespace LiteGame
         private bool _connectPending;                // Connect 已请求、等下一次泵建立（时序对齐真 KCP，见 Connect）
         private bool _disposed;
 
-        // ---- 测试模式钩子（bot 冻结 / 传送分发）；按最大席位定容，避免热路径分配 ----
-        private readonly SimVector3[] _botHomePos = new SimVector3[16];
-        private readonly bool[] _botHomeCaptured = new bool[16];
-
         public bool Connected => _connected;
 
         public event Action OnConnected;
@@ -73,15 +70,16 @@ namespace LiteGame
         /// <summary>测试房规则持有件（null = 常规对局）——盖初值进数值快照 + 注入权威步进。</summary>
         private readonly MatchTestRules _testRules;
 
-        /// <summary>满血基准（bot 无限生命/重置假人的回满值——与房间构造取值同口径 combat ?? Default）。</summary>
-        private readonly int _botRefillHp;
+        /// <summary>本地测试房宿主钩子执行件（bot 冻结/传送/无限生命/重置）。</summary>
+        private readonly LocalTestOverrides _testOverrides;
 
         /// <param name="roomConfig">房间配置（人数/种子/时限——与真服务端同类型）。</param>
         /// <param name="testRules">测试房规则持有件（null = 常规对局）——盖初值进数值快照 + 注入权威步进。</param>
         /// <param name="gameplayDigestBase">判定面表字节基摘要（批 E）= 客户端 `ConfigService.GameplayDigestBase`
         /// ——本地房间身份必须与客户端同源（客户端 `BattleContext` 按同一提供者复算 `StartGame.ConfigHash`；
         /// 本形态的房间数值取 `CombatValues.Default`＝表值，L1 守卫钉住两者一致）。</param>
-        public LocalServerTransport(RoomConfig roomConfig, MatchTestRules testRules = null, uint gameplayDigestBase = 0)
+        public LocalServerTransport(RoomConfig roomConfig, MatchTestRules testRules = null,
+            uint gameplayDigestBase = 0, ILocalTestHooks hooks = null)
         {
             if (roomConfig == null) throw new ArgumentNullException(nameof(roomConfig));
             _testRules = testRules;
@@ -95,7 +93,8 @@ namespace LiteGame
                 combat = stamped;
             }
             _runtime = new RoomRuntime(roomConfig, combat, testRules: testRules, gameplayDigestBase: gameplayDigestBase);
-            _botRefillHp = (combat ?? CombatValues.Default).EntityHp;   // 与 RoomRuntime 取值同口径（combat ?? Default）
+            int botRefillHp = (combat ?? CombatValues.Default).EntityHp;   // 与 RoomRuntime 取值同口径（combat ?? Default）
+            _testOverrides = new LocalTestOverrides(_runtime, botRefillHp, hooks);
             _seats = new Session[_runtime.ExpectedPlayers];
             _pipeline = new SnapshotPipeline(_seats)
             {
@@ -127,14 +126,14 @@ namespace LiteGame
         /// <param name="mapId">地图行键（多图批；随 JoinAck 回执——客户端按它选表行/场景，与真服务器同一条
         /// 权威路径；0 = 未标注）。</param>
         public static LocalServerTransport ForRoom(string roomId, int expectedPlayers = 0, MatchTestRules testRules = null,
-            uint gameplayDigestBase = 0, SimMapData map = null, int mapId = 0)
+            uint gameplayDigestBase = 0, SimMapData map = null, int mapId = 0, ILocalTestHooks hooks = null)
         {
             if (string.IsNullOrEmpty(roomId)) throw new ArgumentException("房间号不得为空", nameof(roomId));
             if (map == null)
                 throw new ArgumentException("地图必填——装配根经 IMapProvider 注入（D22：无回退地图）", nameof(map));
             var config = new RoomConfig { RoomId = roomId, Map = map, MapId = mapId };
             if (expectedPlayers > 0) config.ExpectedPlayers = expectedPlayers;
-            return new LocalServerTransport(config, testRules, gameplayDigestBase);
+            return new LocalServerTransport(config, testRules, gameplayDigestBase, hooks);
         }
 
         public void Connect(string address, int port)
@@ -264,88 +263,6 @@ namespace LiteGame
             }
         }
 
-        /// <summary>测试模式钩子（本地服 = 权威侧）：bot 冻结（位置回写进房快照）、传送分发、
-        /// **bot 无限生命（每帧回满）**与**重置假人**（满血回出生点+新生命）。
-        /// 规则读 <see cref="SimTestRules"/> 宿主钩子与 <see cref="TestModeRuntime"/> 现场开关
-        /// （均为开发面静态，读取方=宿主循环非判定路径；写入的 Sim 字段照常进快照/校验——两端一致）。</summary>
-        private void ApplyTestModeOverrides()
-        {
-            if (!SimTestRules.Active || !_joined) return;
-            SimWorldState sim = _runtime.AuthSim;
-
-            if (SimTestRules.BotFrozen)
-            {
-                for (int p = 0; p < _runtime.ExpectedPlayers && p < _botHomePos.Length; p++)
-                {
-                    if (p == _playerId) continue;
-                    long id = _runtime.EntityIdOf(p);
-                    if (id == 0 || !sim.TryResolve(id, out int slot)) continue;
-                    if (_botHomeCaptured[p]) sim.Entities[slot].Pos = _botHomePos[p];
-                    else { _botHomePos[p] = sim.Entities[slot].Pos; _botHomeCaptured[p] = true; }
-                }
-            }
-
-            if (SimTestRules.TeleportDispatch)
-            {
-                SimTestRules.TeleportDispatch = false;
-                long id = _runtime.EntityIdOf(_playerId);
-                if (id != 0 && sim.TryResolve(id, out int slot))
-                    sim.Entities[slot].Pos = SimTestRules.TeleportTarget;
-            }
-
-            // bot 无限生命（GM 现场开关，Live）：补位席位每帧回满——单帧伤害量恒小于满血 ⇒ 永不跨死线
-            // （命中/飘字反馈走命中链不经 HP）。已死（尸体期 Hp≤0）者跳过——让它走完复活链自然回满：
-            // 直写 HP 复活会绕过 RespawnSystem 的"生命更替"语义（动画侧按 LifeStartFrame 判复活）。
-            if (SimTestRules.BotInfiniteHp)
-            {
-                for (int p = 0; p < _runtime.ExpectedPlayers; p++)
-                {
-                    if (p == _playerId) continue;
-                    long id = _runtime.EntityIdOf(p);
-                    if (id == 0 || !sim.TryResolve(id, out int slot)) continue;
-                    ref EntitySlot e = ref sim.Entities[slot];
-                    if (e.Hp > 0) e.Hp = _botRefillHp;
-                }
-            }
-
-            // 「重置假人」（GM 现场操作）：补位席位满血回出生点、清死亡/尸体/复活账——等效"重新生成一个干净假人"。
-            // 生命起始帧改写 ⇒ 视图侧死亡锁存按"新生命"复位（动画退出死亡叶，不用重进房）。
-            if (SimTestRules.BotResetRequested)
-            {
-                SimTestRules.BotResetRequested = false;
-                for (int p = 0; p < _runtime.ExpectedPlayers; p++)
-                {
-                    if (p == _playerId) continue;
-                    long id = _runtime.EntityIdOf(p);
-                    if (id == 0 || !sim.TryResolve(id, out int slot)) continue;
-                    ResetBotSeat(sim, slot);
-                }
-            }
-        }
-
-        /// <summary>席位复位为"新生命"（重置假人用——镜像 RespawnSystem 的复活写法：保留 Id/K/D 与
-        /// 出生点索引，满血回出生点，清战斗运行态与死亡/尸体/复活账；`LifeStartFrame` 更新为当前帧
-        /// ⇒ 视图/动画侧按"新生命"复位死亡锁存（<c>CharacterLocomotionDriver</c> 的复活判据）。</summary>
-        private void ResetBotSeat(SimWorldState sim, int slot)
-        {
-            ref EntitySlot e = ref sim.Entities[slot];
-            long id = e.Id;
-            int kills = e.Kills, deaths = e.Deaths, spawnIndex = e.SpawnPointIndex;
-            SimMapData map = _runtime.Map;
-            sim.ResetCombatRuntime(slot);
-            e = new EntitySlot
-            {
-                Id = id,
-                Hp = _botRefillHp,
-                Kills = kills,
-                Deaths = deaths,
-                Flags = EntityFlags.Player,
-                SpawnPointIndex = spawnIndex,
-                Pos = map.SpawnPoints[spawnIndex],
-                LifeStartFrame = sim.Frame,
-            };
-        }
-
         /// <summary>权威步进（`RoomClient.TickOutgoing` → 这里 → 内核与快照）。</summary>
         public void TickOutgoing()
         {
@@ -361,7 +278,7 @@ namespace LiteGame
                 _tickAccumMs -= stepMs;
                 _nowMs += (long)stepMs;
 
-                ApplyTestModeOverrides();
+                _testOverrides.Apply(_joined, _playerId);
                 _runtime.Execute(RoomCommand.Tick(_nowMs), _outputs);
                 DrainOutputs();
 

@@ -1,4 +1,5 @@
 using System;
+using LiteClient;
 using LiteFramework;
 using LiteSim;
 using UnityEngine;
@@ -7,7 +8,7 @@ namespace LiteGame
 {
     /// <summary>
     /// 传送处理器（dev 专用，GmOnly 注册）：Execute = 解析准心点 → 记录出发位 → 交权威侧分发
-    /// （本地服宿主钩子，见 <see cref="SimTestRules.TeleportDispatch"/>）；Undo = 回出发位（同通道）。
+    /// （本地服宿主钩子，见 <see cref="ILocalTestHooks.TeleportDispatch"/>）；Undo = 回出发位（同通道）。
     /// 捕获的委托全部由注册方（ProcedureBattle）按本局装配注入——准心解析、本地位置、权威分发。
     /// 门（测试模式开启/传送启用）在入队侧裁决；Execute 不再复查（命令即已过入队门）。
     /// </summary>

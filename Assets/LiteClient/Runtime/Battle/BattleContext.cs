@@ -322,7 +322,7 @@ namespace LiteClient
             }
 
             // 表现面（瞄准激光等）注入的是**本局同一个引用**：此后规则字段更新（GM 中局开合）
-            // 驱动侧可见，且驱动不再每帧读 SimTestRules 静态读口。
+            // 驱动侧可见，且驱动不再每帧读 ILocalTestHooks 静态读口。
             _matchRules = rules;
 
             // **玩法数据身份校验（批 E）**：服务端 `StartGame.ConfigHash` = 房间固定快照摘要

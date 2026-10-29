@@ -4,7 +4,7 @@
     "references": [
         "LiteClient.Serialization.Luban",
         "LiteClient.UI",
-        "LiteCodeGen.Editor",
+        "LiteFramework.Editor",
         "LiteCodeGen.Runtime",
         "LiteGame.Dev",
         "LiteGame.Editor.Core",

@@ -184,8 +184,8 @@ namespace Tools.DisciplineScan
             new ScanTarget("Assets/LiteSim", SimRules, SimLayerExcludes),
             new ScanTarget("Assets/LiteView", UnityRules),                                 // 表现层：只守 R6
             new ScanTarget("Assets/LiteNet", NetRules),
-            new ScanTarget("Assets/LiteFramework/Scripts/Core", CoreRules),
-            new ScanTarget("Assets/LiteFramework/Scripts/Unity", UnityRules),
+            new ScanTarget("Assets/LiteFramework/Runtime/Core", CoreRules),
+            new ScanTarget("Assets/LiteFramework/Runtime/Adapters/Unity", UnityRules),
             new ScanTarget("Assets/LiteBattle", CoreRules),                                    // 对局/开发端口契约层：零引擎、零实现（R5 宏并集）
             // R6 的正则 `\byield\s+return\b` **不区分 C# 迭代器与 Unity 协程**——
             // IEnumerable 迭代器的 `yield return` 会被误报。
@@ -278,7 +278,7 @@ namespace Tools.DisciplineScan
             "Assets/RoomServer/Application/RoomServer.Application.Runtime.asmdef",
             "Assets/LiteNet/LiteNet.asmdef",
             // S2 契约共享：只有形状共享，两端各自实现（**零第三方实现依赖**——见下）
-            "Assets/LiteFramework/Scripts/Core/LiteFramework.Core.asmdef",
+            "Assets/LiteFramework/Runtime/Core/LiteFramework.Core.asmdef",
         };
 
         /// <summary>
@@ -290,7 +290,7 @@ namespace Tools.DisciplineScan
         /// </summary>
         public static readonly (string Asmdef, string[] AllowedThirdParty)[] ContractZeroDepDefs =
         {
-            ("Assets/LiteFramework/Scripts/Core/LiteFramework.Core.asmdef", new string[0]),
+            ("Assets/LiteFramework/Runtime/Core/LiteFramework.Core.asmdef", new string[0]),
         };
 
         /// <summary>
@@ -445,7 +445,7 @@ namespace Tools.DisciplineScan
         /// </summary>
         public static readonly string[] ClientFrameworkPurityAsmdefs =
         {
-            "Assets/LiteFramework/Abstractions/LiteFramework.Abstractions.asmdef",
+            "Assets/LiteFramework/Runtime/Abstractions/LiteFramework.Abstractions.asmdef",
             "Assets/LiteBattle/Abstractions/LiteBattle.Abstractions.asmdef",
             "Assets/LiteClient/Runtime/LiteClient.Runtime.asmdef",
             "Assets/LiteClient/Content/LiteClient.Content.asmdef",

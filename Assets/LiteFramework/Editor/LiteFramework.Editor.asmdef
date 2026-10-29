@@ -1,5 +1,5 @@
 {
-    "name": "LiteCodeGen.Editor",
+    "name": "LiteFramework.Editor",
     "rootNamespace": "LiteCodeGen",
     "references": [
         "LiteCodeGen.Runtime"

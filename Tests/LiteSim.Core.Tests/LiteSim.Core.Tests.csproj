@@ -66,7 +66,7 @@
   <!--
     测试模式开关写口的 L1 覆盖（《GM 与调试工具分层设计》§1"开关写口/请求桥"层）：
     TestModeOptions（开关唯一写点 + 副作用收口）、TestModeRuntime（运行时快照 + 请求桥 + 爆头跨局
-    待用值）。两件零引擎依赖（只引 LiteGame.SimTestRules），住 LiteGame Unity 程序集无 dotnet csproj——
+    待用值）。两件零引擎依赖（只引 LiteGame.TestModeRuntime），住 LiteGame Unity 程序集无 dotnet csproj——
     按源链接纳入 L1（同 ViewTransform/Input 先例，同一份 .cs 两侧编译，语义不可能漂移）。
     请求桥经 Request*/Take* 类型化读写对收口（读即清——一次性语义编译期保证，审计中债已根治），
     L1 用例钉住消费即清/二次为假的行为面。
@@ -74,7 +74,7 @@
   <ItemGroup>
     <Compile Include="..\..\Assets\LiteGame\Dev\Debug\TestModeOptions.cs" Link="Gm\TestModeOptions.cs" />
     <Compile Include="..\..\Assets\LiteGame\Dev\Debug\TestModeRuntime.cs" Link="Gm\TestModeRuntime.cs" />
-    <Compile Include="..\..\Assets\LiteGame\App\Procedure\SimTestRules.cs" Link="Gm\SimTestRules.cs" />
+    <Compile Include="..\..\Assets\LiteBattle\Abstractions\Dev\ILocalTestHooks.cs" Link="Dev\ILocalTestHooks.cs" />
   </ItemGroup>
 
   <ItemGroup>

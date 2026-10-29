@@ -308,11 +308,11 @@ namespace LiteGame.Tests.EditMode
             try
             {
                 _kernel.RequestBotReset();
-                Assert.IsTrue(SimTestRules.BotResetRequested);
+                Assert.IsTrue(TestModeRuntime.Current.LocalTest.BotResetRequested);
             }
             finally
             {
-                SimTestRules.BotResetRequested = false;
+                TestModeRuntime.Current.LocalTest.BotResetRequested = false;
             }
         }
 

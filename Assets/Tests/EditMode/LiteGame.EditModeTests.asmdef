@@ -12,7 +12,7 @@
         "LiteClient.Scripting.XLua",
         "LiteClient.Serialization.Luban",
         "LiteCodeGen.Runtime",
-        "LiteCodeGen.Editor",
+        "LiteFramework.Editor",
         "LiteFramework.Async",
         "LiteFramework.Core",
         "LiteFramework.Unity",

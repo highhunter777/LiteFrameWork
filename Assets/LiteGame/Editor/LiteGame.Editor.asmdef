@@ -7,7 +7,7 @@
         "LiteClient.Content.YooAsset",        "LiteClient.Runtime",
         "LiteClient.Scripting.XLua",
         "LiteClient.Serialization.Luban",
-        "LiteCodeGen.Editor",
+        "LiteFramework.Editor",
         "LiteCodeGen.Runtime",
         "LiteFramework.Async",
         "LiteFramework.Core",

@@ -35,11 +35,12 @@ namespace LiteGame
                 DamageOverride = dev.WeaponDamageOverride,
                 RpmOverride = dev.WeaponRpmOverride,
             };
-            SimTestRules.Active = testRoom;                // 宿主钩子（冻结/传送/假人操作）开关
-            SimTestRules.BotFrozen = testRoom && dev.BotFrozen;
-            SimTestRules.BotInfiniteHp = testRoom && dev.BotInfiniteHp;   // 进房初值镜像
-            SimTestRules.TeleportDispatch = false;         // 进房清残留请求
-            SimTestRules.BotResetRequested = false;        // 同上（进房前的面板误点不带到对局）
+            ILocalTestHooks hooks = dev.LocalTest ?? NullLocalTestHooks.Instance;
+            hooks.Active = testRoom;                // 宿主钩子（冻结/传送/假人操作）开关
+            hooks.BotFrozen = testRoom && dev.BotFrozen;
+            hooks.BotInfiniteHp = testRoom && dev.BotInfiniteHp;   // 进房初值镜像
+            hooks.TeleportDispatch = false;         // 进房清残留请求
+            hooks.BotResetRequested = false;        // 同上（进房前的面板误点不带到对局）
             return rules;
         }
     }

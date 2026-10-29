@@ -9,7 +9,7 @@
 ## 0. 背景与问题
 
 - 云上 GM 有两块：**进云端测试房**（模板/口令/选图，§9）与**对房间下手**（§1–§8 端点；判定面规则见 §6）。
-- 客户端 GM 能力（`MatchTestRules` / `SimTestRules`：免死、无限子弹、爆头覆写、bot 补位）依赖"客户端预测与进程内服务器**同进程同实例**"；真 KCP 独立进程房间服下够不到权威侧（《GM与调试工具分层设计》§6 第 3 条）。
+- 客户端 GM 能力（`MatchTestRules` / `ILocalTestHooks`：免死、无限子弹、爆头覆写、bot 补位）依赖"客户端预测与进程内服务器**同进程同实例**"；真 KCP 独立进程房间服下够不到权威侧（《GM与调试工具分层设计》§6 第 3 条）。
 - 服务端现状（代码事实）：除 9100 `/metrics`（**只读**）外**无任何写通道**；房间级动作 `ExecuteStartEarly` / `Abort` / `TransferOwner` 全是 private，唯一入口是 `RoomRuntime.Execute`；踢席位无现成 API。
 - 云上 exe 无 DevHUD（`DevHUD.cs:7` 限定 `UNITY_EDITOR || DEVELOPMENT_BUILD || LITEFRAMEWORK_DEBUG`，工程 `developmentBuild: false`）。
 - **已确认的既有便利**：`RoomRuntime.ExecuteStartEarly`（`RoomRuntime.cs:285-299`）**无人数下限** ⇒ 单人即可开局，缺位是站桩实体。

@@ -23,7 +23,7 @@ namespace LiteFramework.Core.Tests
         };
 
         /// <summary>唯一允许的后台卸载点：FileSystem 的 JSON 序列化（纯 BCL，不触达 UnityEngine）。</summary>
-        private const string AllowedFile = "Assets/LiteFramework/Scripts/Core/IO/FileSystem.cs";
+        private const string AllowedFile = "Assets/LiteFramework/Runtime/Core/IO/FileSystem.cs";
 
         [Fact]
         public void 后台卸载仅限纯BCL的FileSystem()

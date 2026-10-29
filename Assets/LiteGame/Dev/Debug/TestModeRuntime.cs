@@ -1,4 +1,5 @@
 #if UNITY_EDITOR || DEVELOPMENT_BUILD || LITEFRAMEWORK_DEBUG
+using LiteClient;
 using LiteSim;
 
 namespace LiteGame
@@ -10,7 +11,7 @@ namespace LiteGame
     /// 与 <see cref="TakeEnterRequest"/>/<see cref="TakeExitRequest"/>/<see cref="TakeTeleportRequest"/>
     /// 类型化读写对收口**——消费侧读即清，一次性语义编译期保证（静态标志不再对外裸露）。
     /// 对局行为全部由本快照驱动——本地测试模式恒为本地服形态，两端同进程同源。</summary>
-    public sealed class TestModeRuntime
+    public sealed class TestModeRuntime : ILocalTestHooks
     {
         /// <summary>进程内唯一实例（开发面单所有者；后续批次可改为 DevSession 构造注入）。</summary>
         public static TestModeRuntime Current { get; } = new TestModeRuntime();
@@ -28,6 +29,17 @@ namespace LiteGame
         public bool BotFrozen;               // bot 冻结（权威侧位置每帧回写）
         public bool BotInfiniteHp;           // bot 无限生命（权威侧每帧回满——假人永不死；命中/飘字反馈照常）
         public int BotCount = 1;             // 补位bot 数量（总席位 = 1 + BotCount）
+
+        // ---- 本地测试房宿主钩子（与上面的“开关快照”分离：快照管 UI/配置，钩子管权威侧消费）----
+        private bool _localTestActive;
+        private bool _localTestBotFrozen;
+        private bool _localTestBotInfiniteHp;
+        private bool _localTestBotResetRequested;
+        private bool _localTestTeleportDispatch;
+        private SimVector3 _localTestTeleportTarget;
+
+        /// <summary>本地测试房宿主钩子（Dev 实例；产品只经 IDevSession 端口使用）。</summary>
+        public ILocalTestHooks LocalTest => this;
 
         /// <summary>爆头带试验覆写的**跨局待用值**（&lt; 0 = 不覆写）：GM 面板滑杆/爆头带调带工具在**无活动局**
         /// 时的写点——进房由 ProcedureMatch 种子进 <see cref="MatchTestRules"/>（有活动局时面板直写活动局实例
@@ -52,7 +64,7 @@ namespace LiteGame
         // ---- 请求桥（编辑器面板/热键 → 运行时；一次性语义经类型化读写对编译期强制——根治审计中债）----
         private bool _enterRequested;        // 进入本地测试模式（主菜单消费 → 进 Room-Test）
         private bool _exitRequested;          // 退出本地测试模式（对局内 = 请求离场并关模式；主菜单 = 只关模式）
-        private bool _teleportRequested;      //「传送到准心」请求（流程解析目标 → SimTestRules 分发）
+        private bool _teleportRequested;      //「传送到准心」请求（流程解析目标 → ILocalTestHooks 分发）
 
         /// <summary>请求进入本地测试模式（写侧：开发控制台 / GM 面板）。</summary>
         public void RequestEnter() => _enterRequested = true;
@@ -72,7 +84,7 @@ namespace LiteGame
         /// <summary>消费传送请求（读即清——消费即移交派发权）。</summary>
         public bool TakeTeleportRequest() { bool v = _teleportRequested; _teleportRequested = false; return v; }
 
-        // 「重置假人」是一次性宿主钩子（SimTestRules.BotResetRequested，面板直写、本地服消费即清）——
+        // 「重置假人」是一次性宿主钩子（ILocalTestHooks.BotResetRequested，面板直写、本地服消费即清）——
         // 宿主不持本类的引用（程序集方向），故不在此设桥。
 
         /// <summary>默认口径（未挂 DevStartupConfig 时的进房兜底）：数据源是 <see cref="TestModeOptions.All"/>（单一来源）。</summary>
@@ -81,6 +93,14 @@ namespace LiteGame
             TestModeOptions.ApplyDefaults();
             BotCount = 1;                     // 数量项不在开关表（int），随默认口径单独落
         }
+
+        // ILocalTestHooks：宿主钩子与 UI/配置快照分离（同一开关快照经 MatchRulesSeeder 进房时镜像到钩子）。
+        bool ILocalTestHooks.Active { get => _localTestActive; set => _localTestActive = value; }
+        bool ILocalTestHooks.BotFrozen { get => _localTestBotFrozen; set => _localTestBotFrozen = value; }
+        bool ILocalTestHooks.BotInfiniteHp { get => _localTestBotInfiniteHp; set => _localTestBotInfiniteHp = value; }
+        bool ILocalTestHooks.BotResetRequested { get => _localTestBotResetRequested; set => _localTestBotResetRequested = value; }
+        bool ILocalTestHooks.TeleportDispatch { get => _localTestTeleportDispatch; set => _localTestTeleportDispatch = value; }
+        SimVector3 ILocalTestHooks.TeleportTarget { get => _localTestTeleportTarget; set => _localTestTeleportTarget = value; }
     }
 }
 #endif

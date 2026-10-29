@@ -156,7 +156,7 @@ namespace LiteGame
         public int StartupBotCount => TestModeRuntime.Current.BotCount;
 
         /// <summary>重置补位假人：一次性宿主钩子（权威侧满血回出生点）；写口经内核收口。</summary>
-        public void RequestBotReset() => SimTestRules.BotResetRequested = true;
+        public void RequestBotReset() => TestModeRuntime.Current.LocalTest.BotResetRequested = true;
 
         /// <summary>帧样本入读模型：投影只喂本帧时钟差（Time.unscaledDeltaTime）；统计与 recorder 读数在内核。</summary>
         public void SampleFrame(float deltaTime) => _perf.SampleFrame(deltaTime);

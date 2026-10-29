@@ -10,7 +10,7 @@ namespace LiteSim.Tests
     /// 测试模式开关写口用例（《GM 与调试工具分层设计》§1：TestModeOptions=开关唯一写点+副作用收口，
     /// TestModeRuntime=运行时快照+请求桥+爆头跨局待用值）。两件零引擎依赖按源链接纳入 L1；
     /// 被测面是全局静态——开测前复位（程序集串行纪律见 <see cref="TestParallelization"/>，历史动因正是
-    /// TestMode/SimTestRules 一族静态）。副作用口径：InfiniteAmmo/BotInfiniteHp 仅测试模式（Active 门）武装，
+    /// TestMode/TestModeRuntime 一族静态）。副作用口径：InfiniteAmmo/BotInfiniteHp 仅测试模式（Active 门）武装，
     /// 非测试模式一律不写运行态。
     /// </summary>
     public sealed class TestModeOptionsTests
@@ -24,7 +24,8 @@ namespace LiteSim.Tests
             TestModeRuntime.Current.TakeTeleportRequest();
             TestModeRuntime.Current.HeadHitLineOverride = -1f;
             TestModeRuntime.Current.HeadshotRadiusOverride = -1f;
-            SimTestRules.BotInfiniteHp = false;
+            TestModeRuntime.Current.BotInfiniteHp = false;
+            TestModeRuntime.Current.LocalTest.BotInfiniteHp = false;
             TestModeOptions.ApplyDefaults();              // 开关全默认 + BotCount 回 1（数量项不在开关表）
         }
 
@@ -102,14 +103,14 @@ namespace LiteSim.Tests
             Reset();
             TestModeRuntime.Current.Active = false;
             TestModeOptions.Set(TestModeOptions.Id.BotInfiniteHp, true);
-            Assert.False(SimTestRules.BotInfiniteHp);                      // 非测试模式一律不武装
+            Assert.False(TestModeRuntime.Current.LocalTest.BotInfiniteHp);                      // 非测试模式一律不武装
 
             TestModeRuntime.Current.Active = true;
             TestModeOptions.Set(TestModeOptions.Id.BotInfiniteHp, true);
-            Assert.True(SimTestRules.BotInfiniteHp);                        // 与门开
+            Assert.True(TestModeRuntime.Current.LocalTest.BotInfiniteHp);                        // 与门开
 
             TestModeOptions.Set(TestModeOptions.Id.BotInfiniteHp, false);
-            Assert.False(SimTestRules.BotInfiniteHp);                       // 现场关经同一写口收口（不残留 true）
+            Assert.False(TestModeRuntime.Current.LocalTest.BotInfiniteHp);                       // 现场关经同一写口收口（不残留 true）
         }
 
         [Fact]

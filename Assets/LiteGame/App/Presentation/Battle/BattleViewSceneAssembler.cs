@@ -61,7 +61,7 @@ namespace LiteGame
                 Log.Warning($"激光束 prefab 缺 LineRenderer——瞄准激光降级:{BattleViewAssets.LaserSightPrefab}", LogTag.Battle);
                 return;
             }
-            // 本局规则随装配注入（爆头带覆写随动；驱动不读 SimTestRules 静态读口）
+            // 本局规则随装配注入（爆头带覆写随动；驱动不读 ILocalTestHooks 静态读口）
             Laser = new BattleLaserDriver(View, input, context.Sim, context.Map, line, context.MatchRules, dev);
             Log.Info("laser-attached", LogTag.Battle);
         }

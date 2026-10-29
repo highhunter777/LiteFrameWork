@@ -10,29 +10,24 @@ namespace LiteGame.Tests.EditMode
     public sealed class MatchRulesSeederEditModeTests
     {
         [SetUp]
-        public void ResetStatics()
-        {
-            SimTestRules.Active = false;
-            SimTestRules.BotFrozen = false;
-            SimTestRules.BotInfiniteHp = false;
-            SimTestRules.TeleportDispatch = false;
-            SimTestRules.BotResetRequested = false;
-            TestModeRuntime.Current.NoDeath = true;
-            TestModeRuntime.Current.InfiniteAmmo = false;
-            TestModeRuntime.Current.BotFrozen = false;
-            TestModeRuntime.Current.BotInfiniteHp = false;
-        }
+        public void Reset() => ResetState();
 
         [TearDown]
-        public void Cleanup()
+        public void Cleanup() => ResetState();
+
+        private static void ResetState()
         {
-            SimTestRules.Active = false;
-            SimTestRules.BotFrozen = false;
-            SimTestRules.BotInfiniteHp = false;
-            TestModeRuntime.Current.NoDeath = true;
-            TestModeRuntime.Current.InfiniteAmmo = false;
+            TestModeRuntime.Current.Active = false;
             TestModeRuntime.Current.BotFrozen = false;
             TestModeRuntime.Current.BotInfiniteHp = false;
+            TestModeRuntime.Current.NoDeath = true;
+            TestModeRuntime.Current.InfiniteAmmo = false;
+
+            TestModeRuntime.Current.LocalTest.Active = false;
+            TestModeRuntime.Current.LocalTest.BotFrozen = false;
+            TestModeRuntime.Current.LocalTest.BotInfiniteHp = false;
+            TestModeRuntime.Current.LocalTest.TeleportDispatch = false;
+            TestModeRuntime.Current.LocalTest.BotResetRequested = false;
         }
 
         [Test]
@@ -42,19 +37,19 @@ namespace LiteGame.Tests.EditMode
             TestModeRuntime.Current.InfiniteAmmo = true;
             TestModeRuntime.Current.BotFrozen = true;
             TestModeRuntime.Current.BotInfiniteHp = true;
-            SimTestRules.TeleportDispatch = true;          // 进房前的残留请求
-            SimTestRules.BotResetRequested = true;
+            TestModeRuntime.Current.LocalTest.TeleportDispatch = true;          // 进房前的残留请求
+            TestModeRuntime.Current.LocalTest.BotResetRequested = true;
 
             MatchTestRules rules = MatchRulesSeeder.Seed(testRoom: true, dev: new DevSession());
 
             Assert.IsNotNull(rules);
             Assert.IsTrue(rules.NoDeath);
             Assert.IsTrue(rules.InfiniteAmmo);
-            Assert.IsTrue(SimTestRules.Active, "宿主钩子开关＝测试房");
-            Assert.IsTrue(SimTestRules.BotFrozen);
-            Assert.IsTrue(SimTestRules.BotInfiniteHp);
-            Assert.IsFalse(SimTestRules.TeleportDispatch, "进房清残留");
-            Assert.IsFalse(SimTestRules.BotResetRequested, "进房清残留");
+            Assert.IsTrue(TestModeRuntime.Current.LocalTest.Active, "宿主钩子开关＝测试房");
+            Assert.IsTrue(TestModeRuntime.Current.LocalTest.BotFrozen);
+            Assert.IsTrue(TestModeRuntime.Current.LocalTest.BotInfiniteHp);
+            Assert.IsFalse(TestModeRuntime.Current.LocalTest.TeleportDispatch, "进房清残留");
+            Assert.IsFalse(TestModeRuntime.Current.LocalTest.BotResetRequested, "进房清残留");
         }
 
         [Test]
@@ -65,8 +60,8 @@ namespace LiteGame.Tests.EditMode
             Assert.IsNotNull(rules);
             Assert.IsFalse(rules.NoDeath, "常规入口不从 TestModeRuntime 继承免死");
             Assert.IsFalse(rules.InfiniteAmmo);
-            Assert.IsFalse(SimTestRules.Active);
-            Assert.IsFalse(SimTestRules.BotFrozen);
+            Assert.IsFalse(TestModeRuntime.Current.LocalTest.Active);
+            Assert.IsFalse(TestModeRuntime.Current.LocalTest.BotFrozen);
         }
 
         [Test]

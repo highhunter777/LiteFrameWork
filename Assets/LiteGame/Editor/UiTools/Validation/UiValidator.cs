@@ -23,7 +23,7 @@ namespace LiteGame.Editor.UiTools.Validation
         {
             "Assets/LiteClient/Runtime",
             "Assets/LiteGame/App",
-            "Assets/LiteFramework/Scripts",
+            "Assets/LiteFramework/Runtime",
             "Assets/LiteView",
         };
 

@@ -26,12 +26,6 @@ namespace LiteFramework.Core.Tests
             "Assets/LiteGame/App/Presentation/Hud/CrosshairFeel.cs :: KickRecoverDevOverride",
             "Assets/LiteGame/App/Presentation/Hud/CrosshairFeel.cs :: StaticMaxDevOverride",
             "Assets/LiteGame/Editor/GenConfig/GenConfig.cs :: CSharpCallLua",
-            "Assets/LiteGame/App/Procedure/SimTestRules.cs :: Active",
-            "Assets/LiteGame/App/Procedure/SimTestRules.cs :: BotFrozen",
-            "Assets/LiteGame/App/Procedure/SimTestRules.cs :: BotInfiniteHp",
-            "Assets/LiteGame/App/Procedure/SimTestRules.cs :: BotResetRequested",
-            "Assets/LiteGame/App/Procedure/SimTestRules.cs :: TeleportDispatch",
-            "Assets/LiteGame/App/Procedure/SimTestRules.cs :: TeleportTarget",
             "Assets/LiteView/Animation/Drivers/GripTuning.cs :: TorsoWeightDevOverride",
         };
 

@@ -35,7 +35,7 @@ namespace LiteGame
         private readonly IInputService _input;          // 仅被拦门（模态 UI）；null = 无输入形态（不拦）
         private readonly RollbackSim _sim;             // 本地预测态（SelectedWeapon/WeaponDefId——只读）
         private readonly SimMapData _map;              // 障碍射线用图（两端单源：同份 tbmap 投影——经 BattleContext 注入）
-        private readonly MatchTestRules _rules;        // 本局规则持有件（构造注入一次——不读 SimTestRules 静态读口）
+        private readonly MatchTestRules _rules;        // 本局规则持有件（构造注入一次——不读 ILocalTestHooks 静态读口）
         private readonly LiteClient.IDevSession _dev;  // 开发会话端口（激光开关；null = 发布/测试装配 = 恒按支持位）
         private readonly LineRenderer _beam;
         private bool _disposed;

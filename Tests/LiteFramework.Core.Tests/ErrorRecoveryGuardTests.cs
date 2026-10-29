@@ -21,7 +21,7 @@ namespace LiteFramework.Core.Tests
         {
             string root = RepoRoot();
             Assert.False(File.Exists(Path.Combine(root,
-                "Assets/LiteFramework/Scripts/Core/Hosting/ClientErrorRecovery.cs")));
+                "Assets/LiteFramework/Runtime/Core/Hosting/ClientErrorRecovery.cs")));
 
             int errorEnums = 0;
             foreach (string file in Files(root))
