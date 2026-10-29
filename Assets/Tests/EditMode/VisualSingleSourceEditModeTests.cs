@@ -98,7 +98,7 @@ namespace LiteGame.Tests.EditMode
             // 此处**必须同步**——例外只对"被扫到的文件"生效，漏扫该目录等于让唯一例外与整个目录一起失去把守。
             List<VisualConstructionScanner.Violation> found =
                 VisualConstructionScanner.ScanDirectory(root,
-                    "Assets/LiteFramework/Runtime/Modules/ClientRuntime", "Assets/LiteGame/App",
+                    "Assets/LiteFramework/Runtime/Modules", "Assets/LiteGame/App",
                     "Assets/LiteFramework/Runtime", "Assets/LiteView");
 
             if (found.Count > 0)

@@ -45,7 +45,7 @@ namespace LiteFramework.Core.Tests
         {
             string root = RepoRoot();
             string service = File.ReadAllText(Path.Combine(root,
-                "Assets/LiteFramework/Runtime/Async/Recovery/ErrorRecoveryService.cs"));
+                "Assets/LiteFramework/Runtime/Modules/Hosting/Recovery/ErrorRecoveryService.cs"));
             string actions = File.ReadAllText(Path.Combine(root,
                 "Assets/LiteGame/App/Recovery/AppRecoveryActions.cs"));
             string container = File.ReadAllText(Path.Combine(root,

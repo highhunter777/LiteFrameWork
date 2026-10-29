@@ -193,7 +193,9 @@ namespace Tools.DisciplineScan
             new ScanTarget("Assets/LiteFramework/Runtime/Adapters/YooAsset", GameRules),                          // R8/R12（第三方桥接件）
             new ScanTarget("Assets/LiteFramework/Runtime/Adapters/XLua", GameRules),
             new ScanTarget("Assets/LiteFramework/Runtime/Adapters/Luban", GameRules),
-            new ScanTarget("Assets/LiteFramework/Runtime/Adapters/UnityPlatform", GameRules),
+            new ScanTarget("Assets/LiteFramework/Runtime/Adapters/InputSystem", GameRules),
+            new ScanTarget("Assets/LiteFramework/Runtime/Adapters/Cinemachine", GameRules),
+            new ScanTarget("Assets/LiteFramework/Runtime/Adapters/Newtonsoft", GameRules),
             new ScanTarget("Assets/LiteGame", GameRules),                                      // R8 资源唯一入口 + R12 适配器边界（产品侧）
             new ScanTarget("Assets/LiteFramework/Runtime/Modules/UI", UiLayerRules),                                // R10 UI 层不发业务包
             // 该目标的存在性由 `纪律_R12_已接入真实扫描目标_且目标路径存在` 钉住。

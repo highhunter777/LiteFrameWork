@@ -21,7 +21,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\Assets\LiteFramework\LiteFramework.Core.csproj" />
-    <ProjectReference Include="..\..\Assets\LiteFramework\Runtime\Async\LiteFramework.Async.csproj" />
+    <ProjectReference Include="..\..\Assets\LiteFramework\Runtime\Modules\LiteFramework.Async.csproj" />
     <ProjectReference Include="..\..\Assets\Tools\DisciplineScanner\DisciplineScanner.csproj" />
     <ProjectReference Include="..\..\Assets\LiteTesting\LiteTesting.Core.csproj" />
   </ItemGroup>
@@ -34,7 +34,7 @@
     归 L2——机制不在本测试工程。
   -->
   <ItemGroup>
-    <Compile Include="..\..\Assets\LiteFramework\Runtime\Adapters\Unity\Scene\ISceneService.cs" Link="Gm\ISceneService.cs" />
+    <Compile Include="..\..\Assets\LiteFramework\Runtime\Modules\Scene\Abstractions\ISceneService.cs" Link="Gm\ISceneService.cs" />
     <Compile Include="..\..\Assets\LiteGame\Dev\Commands\GmSceneCommands.cs" Link="Gm\GmSceneCommands.cs" />
   </ItemGroup>
 

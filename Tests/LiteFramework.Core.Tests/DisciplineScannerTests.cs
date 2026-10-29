@@ -550,7 +550,7 @@ namespace LiteFramework.Tests
         [Fact]
         public void 纪律_R12_边界外_适配器import被命中()
         {
-            Assert.Equal(1, CountAt("Assets/LiteFramework/Runtime/Modules/ClientRuntime/C.cs",
+            Assert.Equal(1, CountAt("Assets/LiteFramework/Runtime/Modules/C.cs",
                 "using YooAsset;", LintRule.R12AdapterBoundary));
             Assert.Equal(1, CountAt("Assets/LiteGame/App/C.cs",
                 "using DG.Tweening;", LintRule.R12AdapterBoundary));
@@ -571,7 +571,7 @@ namespace LiteFramework.Tests
         [Fact]
         public void 纪律_R12_非适配器import与限定名不受影响()
         {
-            Assert.Equal(0, CountAt("Assets/LiteFramework/Runtime/Modules/ClientRuntime/C.cs",
+            Assert.Equal(0, CountAt("Assets/LiteFramework/Runtime/Modules/C.cs",
                 "using System.Collections;", LintRule.R12AdapterBoundary));
 
             // 边界表只列 YooAsset/XLua/DG.Tweening——其它第三方不受 R12 管
@@ -583,7 +583,7 @@ namespace LiteFramework.Tests
         public void 纪律_R12_注释里的using不算违规()
         {
             // 与其它规则同口径：注释先剔除再匹配
-            Assert.Equal(0, CountAt("Assets/LiteFramework/Runtime/Modules/ClientRuntime/C.cs",
+            Assert.Equal(0, CountAt("Assets/LiteFramework/Runtime/Modules/C.cs",
                 "// 该文件不用 using YooAsset; 了", LintRule.R12AdapterBoundary));
         }
 

@@ -213,9 +213,9 @@ namespace Tools.DisciplineScan
             // Unity.InputSystem：输入设备适配——框架侧设备源只认 Platform.Unity；**UI 输入适配**
             // （EventSystem/输入模块建位 + 平台返回键直读）随 UI 服务装配归 UI 框架侧（同下 DOTween 的
             // `UI/Anim` 判例——UI 框架专属适配住专属子目录，收敛在一个文件）
-            ("UnityEngine.InputSystem", new[] { "Assets/LiteFramework/Runtime/Adapters/UnityPlatform/", "Assets/LiteFramework/Runtime/Modules/UI/Input/" }),
+            ("UnityEngine.InputSystem", new[] { "Assets/LiteFramework/Runtime/Adapters/InputSystem/", "Assets/LiteFramework/Runtime/Modules/UI/Input/" }),
             // Cinemachine：相机适配（同上）——消费者只认 ICameraService 端口，不认识这个包
-            ("Cinemachine", new[] { "Assets/LiteFramework/Runtime/Adapters/UnityPlatform/" }),
+            ("Cinemachine", new[] { "Assets/LiteFramework/Runtime/Adapters/Cinemachine/" }),
             // DG.Tweening：UI 动效适配。**不在 Adapters 层**——它是 UI 框架（LiteFramework.UI）的
             // 专属适配，住其 Anim 子目录（同 InputSystem 的 UI/Input 判例）
             ("DG.Tweening", new[] { "Assets/LiteFramework/Runtime/Modules/UI/Anim/" }),

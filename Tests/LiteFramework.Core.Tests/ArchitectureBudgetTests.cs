@@ -21,12 +21,12 @@ namespace LiteFramework.Core.Tests
         // 范围含 Dev/Editor：它们不进发布包，但同样只减不增；UIService 为用户裁决例外（只留开关管线，不拆）。
         private static readonly Dictionary<string, int> ClassCaps = new Dictionary<string, int>(StringComparer.Ordinal)
         {
-            ["Assets/LiteFramework/Runtime/Adapters/UnityPlatform/CinemachineCameraService.cs::CinemachineCameraService"] = 578,
-            ["Assets/LiteFramework/Runtime/Modules/ClientRuntime/Battle/BattleContext.cs::BattleContext"] = 491,
+            ["Assets/LiteFramework/Runtime/Adapters/Cinemachine/CinemachineCameraService.cs::CinemachineCameraService"] = 578,
+            ["Assets/LiteFramework/Runtime/Modules/Battle/BattleContext.cs::BattleContext"] = 491,
             ["Assets/LiteFramework/Runtime/Modules/UI/Bind/UIBindIndex.cs::UIBindIndex"] = 402,
             ["Assets/LiteFramework/Runtime/Modules/UI/UIService.cs::UIService"] = 650,
-            ["Assets/LiteFramework/Runtime/Async/ClientHost.cs::ClientHost"] = 454,
-            ["Assets/LiteFramework/Runtime/Core/Animation/AnimationPlayer.cs::AnimationPlayer"] = 447,
+            ["Assets/LiteFramework/Runtime/Modules/Hosting/ClientHost.cs::ClientHost"] = 454,
+            ["Assets/LiteFramework/Runtime/Modules/Animation/AnimationPlayer.cs::AnimationPlayer"] = 447,
             ["Assets/LiteFramework/Runtime/Core/DI/ServiceContainer.cs::ServiceContainer"] = 429,
             ["Assets/LiteFramework/Runtime/Core/Fsm/HierarchicalStageMachine.cs::HierarchicalStageMachine"] = 508,
             ["Assets/LiteGame/Dev/Debug/DebugKernel.cs::DebugKernel"] = 404,
@@ -46,9 +46,9 @@ namespace LiteFramework.Core.Tests
         private static readonly Dictionary<string, int> MethodCaps = new Dictionary<string, int>(StringComparer.Ordinal)
         {
             ["Assets/LiteFramework/Runtime/Adapters/XLua/Lua/CandidateLuaValidator.cs::CandidateLuaValidator.Validate"] = 87,
-            ["Assets/LiteFramework/Runtime/Async/ClientHost.cs::ClientHost.InitializeAsync"] = 83,
-            ["Assets/LiteFramework/Runtime/Async/ClientHost.cs::ClientHost.ShutdownAsync"] = 86,
-            ["Assets/LiteFramework/Runtime/Core/Content/CandidateContentVerifier.cs::CandidateContentVerifier.Verify"] = 87,
+            ["Assets/LiteFramework/Runtime/Modules/Hosting/ClientHost.cs::ClientHost.InitializeAsync"] = 83,
+            ["Assets/LiteFramework/Runtime/Modules/Hosting/ClientHost.cs::ClientHost.ShutdownAsync"] = 86,
+            ["Assets/LiteFramework/Runtime/Modules/Content/Abstractions/CandidateContentVerifier.cs::CandidateContentVerifier.Verify"] = 87,
             ["Assets/LiteFramework/Editor/EditorTools/BindGenerator.cs::BindGenerator.DoGenerate"] = 130,
             ["Assets/LiteFramework/Editor/Inspectors/BindNodeInspector.cs::BindNodeInspector.OnInspectorGUI"] = 99,
             ["Assets/LiteGame/App/Bootstrap/ContainerModule.cs::ContainerModule.Assemble"] = 151,

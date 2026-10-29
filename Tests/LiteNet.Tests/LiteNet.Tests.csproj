@@ -24,6 +24,7 @@
          IDiagRecordSink 端口）与本组的会话/房间面在**一次失败**里对齐——测试项目专用引用，
          不改变生产依赖边界（Core 无引擎引用；服务端/客户端程序集不新增依赖）。 -->
     <ProjectReference Include="..\..\Assets\LiteFramework\LiteFramework.Core.csproj" />
+    <ProjectReference Include="..\..\Assets\LiteFramework\Runtime\Modules\LiteFramework.Async.csproj" />
   </ItemGroup>
 
   <!-- DI-3 会话工厂 L1 直测：Account 半边（工厂 + BattleClient）零引擎依赖，按源链接惯例纳入——
@@ -36,7 +37,7 @@
   <ItemGroup>
     <Compile Include="..\..\Assets\LiteGame\App\Procedure\AccountSessionFactory.cs" Link="Session\AccountSessionFactory.cs" />
     <Compile Include="..\..\Assets\LiteGame\App\Procedure\MatchTransport.cs" Link="Session\MatchTransport.cs" />
-    <Compile Include="..\..\Assets\LiteFramework\Runtime\Modules\ClientRuntime\Battle\BattleClient.cs" Link="Session\BattleClient.cs" />
+    <Compile Include="..\..\Assets\LiteFramework\Runtime\Modules\Battle\BattleClient.cs" Link="Session\BattleClient.cs" />
     <!-- 测试地图夹具源链接：与 LiteSim.Core.Tests 共编同一份 TestMaps（单源）——StandardBattleMap 退役后测试侧地图单源 -->
     <Compile Include="..\LiteSim.Core.Tests\TestMaps.cs" Link="Test\TestMaps.cs" />
     <Compile Include="..\LiteSim.Core.Tests\TestWeapons.cs" Link="Test\TestWeapons.cs" />
