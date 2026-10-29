@@ -34,7 +34,7 @@ from _toolchain_surfaces import check_surfaces
 
 ROOT = repo_root()
 DEFAULT_MANIFEST = default_manifest(ROOT)
-DOC_INDEX = ROOT / "Docs" / "工具链" / "工具索引.md"
+DOC_INDEX = ROOT / "Docs" / "说明" / "工具索引.md"
 EDITOR_KINDS = {"page", "window", "action"}
 EXIT_OK = 0
 EXIT_FAIL = 1

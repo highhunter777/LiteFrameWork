@@ -22,7 +22,7 @@ UI 工具已纳入 `scripts/gate/toolchain.json` 的 `ui` 域：唯一入口是 
 | 样式 | `ui.style.colors-refresh`、`ui.style.colors-report`、`ui.style.text-apply`、`ui.style.text-report` | 动作 | `python scripts/toolchain.py open ui.style.colors-refresh`（其余同形） | asset / none |
 | 绑定 hash | `ui.binding-hash-all`、`ui.binding-hash-selected` | 动作 | `python scripts/toolchain.py open ui.binding-hash-all`（其余同形） | asset（产物 data） |
 
-ID、形态、入口与写面以 `scripts/gate/toolchain.json` 和[工具索引](../../../工具链/工具索引.md)为准；本表只按接缝分组，不复制完整清单。
+ID、形态、入口与写面以 `scripts/gate/toolchain.json` 和[工具索引](../../../说明/工具索引.md)为准；本表只按接缝分组，不复制完整清单。
 
 **接缝规则**：
 

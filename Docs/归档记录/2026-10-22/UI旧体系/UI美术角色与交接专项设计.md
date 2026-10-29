@@ -271,7 +271,7 @@ R = 执行，A = 最终负责，C = 咨询，I = 知会。
 | 8 | Boot/PlayMode 可开页、无绑定/加载错误；关键交互可点（布局预览只验静态） | 工程 | Boot/PlayMode 记录 / 用例 |
 | 9 | 契约破坏性变更已双方评审 | 双方 | PR 评审记录 |
 | 10 | 视觉签收 + 行为签收 | 双方 | 交接记录 |
-| 11 | 新增/变更工具已进 `toolchain.json`，从 Hub/CLI 可达；未登记不建第二菜单 | 客户端 UI 工程 | `toolchain.py check` + [工具索引](../../../工具链/工具索引.md) |
+| 11 | 新增/变更工具已进 `toolchain.json`，从 Hub/CLI 可达；未登记不建第二菜单 | 客户端 UI 工程 | `toolchain.py check` + [工具索引](../../../说明/工具索引.md) |
 
 ### 5.3 评审门
 
@@ -359,7 +359,7 @@ UI 工具已纳入 `scripts/gate/toolchain.json` 的 `ui` 域：Hub（`LiteGame/
 
 ### 9.1 入口与权威
 
-UI 工具按两组接入：制作/新建页（`window`）、校验/样式/hash（`action`）。**ID、形态、入口、写面与安全声明**以 `scripts/gate/toolchain.json`、[工具索引](../../../工具链/工具索引.md) 与 [UI 编辑器工具专项设计 §1.1](UI编辑器工具专项设计.md) 为准；本文不复制完整表。
+UI 工具按两组接入：制作/新建页（`window`）、校验/样式/hash（`action`）。**ID、形态、入口、写面与安全声明**以 `scripts/gate/toolchain.json`、[工具索引](../../../说明/工具索引.md) 与 [UI 编辑器工具专项设计 §1.1](UI编辑器工具专项设计.md) 为准；本文不复制完整表。
 
 美术侧只从 Hub 打开工具（`python scripts/toolchain.py open <id>` 为深链），不直接跑编辑器脚本、不新增菜单。
 

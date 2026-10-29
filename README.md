@@ -1,51 +1,52 @@
 # LiteFramework
 
-轻量自研游戏框架：骨架九件（事件 / 引用池 / 对象池 / 游戏时钟 / FSM / Setting / 日志 / FileSys / 装配）+ DI + Lua 逻辑注册表。
+轻量自研游戏框架：确定性 Sim ＋ 服务器权威状态同步 ＋ 客户端框架（生命周期/作用域/内容事务/UI/热更）＋ 联机射击 Demo 与云侧服务端。
 
-> 本仓库不止框架本体，还包含**一个确定性联机射击 Demo**（框架的首个真实业务）与其服务端。
-> 完整的项目说明按主题分成多文件，入口见下。
+> 文档分四层：**规范**（必须遵守）、**说明**（是什么/怎么跑）、**设计文档**（应该怎样）、**施工进度**（实际怎样）。入口：[Docs/README.md](Docs/README.md)。
 
-## 项目说明文档
+## 文档入口
 
-**先读** → [Docs/项目说明/README.md](Docs/项目说明/README.md)（是什么 / 怎么跑 / 数据怎么流 / 怎么验）
-
-| 文件 | 回答的问题 |
-| --- | --- |
-| [01-项目总览](Docs/项目说明/01-项目总览.md) | 组成、技术栈与版本、仓库地图、程序集分层、已交付/未交付边界 |
-| [02-总体流程](Docs/项目说明/02-总体流程.md) | 启动与运行流程、对局数据流、开发与交付流程 |
-| [03-技术细节-客户端](Docs/项目说明/03-技术细节-客户端.md) | 装配与作用域、时钟与暂停、UI 与 Lua、内容与热更、表现层、输入三件 |
-| [04-技术细节-服务端](Docs/项目说明/04-技术细节-服务端.md) | 服务端程序设计：三宿主与双编内核、线程模型与权威链路、会话与重连、安全模型、Meta 与结算链 |
-| [05-验证与门禁](Docs/项目说明/05-验证与门禁.md) | L0～L4 分层与命令、L2 门禁、构建与冒烟、纪律扫描、CI |
-| [06-环境与协作纪律](Docs/项目说明/06-环境与协作纪律.md) | 环境恢复、Unity 操作纪律、文档权威层级、三条红线、常见坑 |
+| 目的 | 去 |
+|---|---|
+| 动代码前：红线与流程 | [AGENTS.md](AGENTS.md) ＋ [规范 02 代码与修改规范](Docs/规范/02-代码与修改规范.md) |
+| 想改 X 去哪改 | [规范 03 领域查询表](Docs/规范/03-领域查询表.md) |
+| 项目是什么、怎么跑 | [说明 01 项目定位](Docs/说明/01-项目定位与技术栈.md) · [说明 02 架构](Docs/说明/02-架构总览与程序集分层.md) · [说明索引](Docs/说明/README.md) |
+| 测试、构建、联测、云侧 | [说明 10](Docs/说明/10-测试与门禁.md) · [说明 11](Docs/说明/11-构建与本地联测.md) · [说明 12](Docs/说明/12-云侧部署与联机测试.md) |
+| 代码地图与根目录 | [说明 14 代码地图与根目录](Docs/说明/14-代码地图与根目录.md) |
+| 目标架构 | [设计文档中心](Docs/设计文档/README.md) |
+| 当前进度与剩余面 | [待办总览](Docs/待办总览.md) · [施工进度](Docs/施工进度/README.md) |
 
 ## 目录结构
 
 | 目录 | 说明 |
 | --- | --- |
-| `Assets/LiteFramework` | 框架本体（UPM 本地包 `com.litegame.framework`） |
-| `Assets/LiteFramework/Scripts/Core` | `LiteFramework.Core`：纯 C#，无引擎依赖 |
-| `Assets/LiteFramework/Scripts/Unity` | `LiteFramework.Unity`：Unity 封装层，依赖 UniTask |
-| `Assets/LiteSim` | `Core`＝确定性判定逻辑（两端共编）；`View`＝表现层 |
-| `Assets/LiteNet` | 协议（proto 单源）、打包解包纯函数、KCP 传输 |
-| `Assets/RoomServer` | 权威房间内核（`Runtime` 纯化 / `Application` 编排） |
-| `Assets/LiteGame` | 业务与装配（`App` 引导与流程、`Runtime` 会话/输入、`UI`、`Adapters`） |
-| `Assets/Plugins/UniTask` | 框架唯一第三方依赖（随库内置） |
-| `Docs` | 文档中心：`设计文档/`（目标架构）、`施工进度/`（证据）、`开发导航/`（代码地图）、`项目说明/`（本文档集） |
-| `Assets/LiteTesting` | Unity/.NET 双轨测试基础设施 |
-| `Tests` | dotnet 测试（xUnit，net8.0） |
-| `RoomServer/`、`MetaServer/`、`scripts/` | .NET 服务端宿主、构建与门禁脚本 |
+| `Assets/LiteFramework/Runtime` | `LiteFramework.Runtime`：Host、Modules（UI/内容/动画/相机/输入/音频/实体/对局/本地化…）、Core（DI/Scope/Event/Command/Fsm/Pool/Clock/IO/Logging） |
+| `Assets/LiteFramework/Editor` | 编辑器侧（工具页件、诊断） |
+| `Assets/LiteSim` | 确定性判定：单 `LiteSim.asmdef`（Scripts/Systems）＋ `LiteSim.Editor`；客户端/服务端/测试三处共编 |
+| `Assets/LiteNet/Core` | 协议（proto 生成物）、编解码纯函数、KCP 传输、安全信封、会话 |
+| `Assets/LiteView/Modules` | 表现层：SimView、角色/动画、VFX、相机驱动 |
+| `Assets/LiteView/Core` · `Adapters` | 表现纯件（伤害数字/命中反馈/变换）与引擎适配 |
+| `Assets/LiteBattle/Abstractions` | 对局接口（`IBattleView`/`IIntentSource` 等端口） |
+| `Assets/RoomServer/{Core,Modules}` | 权威房间内核（纯化）与应用层（编排/宿主协作） |
+| `Assets/LiteGame/{App,Dev,Editor,Lua,LuaBridge}` | 业务：引导/流程/UI 逻辑/开发调试面/Lua 注册表与桥 |
+| `Assets/ShareResource` | 跨模块共享收集目录（UI 模板、字体、角色、FX） |
+| `Assets/Tests` | Unity EditMode/PlayMode 用例 |
+| `Server/{RoomServer,MetaServer,ReplayTool}` | .NET 服务端宿主（房间服/元服务/回放工具） |
+| `Tests` | dotnet 测试工程（xUnit，`Tests.slnx`） |
+| `scripts` | 门禁/生成/构建/部署（全 Python） |
+| `Docs` | 文档中心：`说明/`、`规范/`、`设计文档/`、`施工进度/`、`审计/`、`归档记录/` |
 
-## 运行单元测试
+## 运行测试
 
 ```powershell
-# 快速纯逻辑回路
-powershell -NoProfile -File scripts/gate/test.ps1 -Lane L1 -Profile PullRequest
+# 纯逻辑（秒级，无需 Unity）
+python scripts/gate/test.py --suite L1 --profile PullRequest
 
-# 网络与无头集成回路
-powershell -NoProfile -File scripts/gate/test.ps1 -Lane L3 -Profile PullRequest
+# 网络与无头集成
+python scripts/gate/test.py --suite L3 --profile PullRequest
 
-# Unity 编译、资源和 EditMode 门禁
-powershell -NoProfile -File scripts/gate/test.ps1 -Lane L2 -Profile PullRequest
+# Unity 编译 + EditMode 门禁（需运行中的编辑器/CI 机器）
+python scripts/gate/l2-unity-gate.py
 ```
 
-客户端商业化、运行闭环和发布门槛见 [商业级通用客户端框架总设计](Docs/设计文档/架构/商业级通用客户端框架总设计.md)；共享测试分层、分类约定、确定性与 CI 基础见 [测试开发框架总设计](Docs/设计文档/测试与性能/测试开发框架总设计.md)。
+客户端商业化与发布门槛见 [商业级通用客户端框架总设计](Docs/设计文档/架构/商业级通用客户端框架总设计.md)；测试分层与完成定义见 [测试开发框架总设计](Docs/设计文档/测试与性能/测试开发框架总设计.md)。

@@ -5,7 +5,7 @@ description: 目录搬动/文件移动同步清单。只要涉及在 Assets/ 或
 
 # 目录搬动同步清单
 
-**为什么存在**:目录结构被纪律扫描、资源收集、双轨工程文件等多个机制按路径引用,它们不会随文件系统移动自动更新;漏同步的表现是静默的——守卫失效、资源断链、编译报错找不到源头。规则原文在 `Docs/修改指南.md` §2.3"目录搬动"行与 AGENTS.md 工作约定。
+**为什么存在**:目录结构被纪律扫描、资源收集、双轨工程文件等多个机制按路径引用,它们不会随文件系统移动自动更新;漏同步的表现是静默的——守卫失效、资源断链、编译报错找不到源头。规则原文在 `Docs/规范/02-代码与修改规范.md` §2.3"目录搬动"行与 AGENTS.md 工作约定。
 
 ## 步骤
 
@@ -16,7 +16,7 @@ description: 目录搬动/文件移动同步清单。只要涉及在 Assets/ 或
    - `Tests.slnx` / csproj 引用(双轨源链接,框架用例直接链 Assets/ 源文件)
    - `.gitignore` 白名单
    - 构建器路径(`build-player.py` 等)
-   - `Docs/开发导航/代码地图.md`
+   - `Docs/说明/14-代码地图与根目录.md`
    - **外部注册面**(Windows 计划任务 / CI workflow / hook 配置 / `scripts/gate/toolchain.json` 中的脚本与文档路径)
 3. **新增收集目录 = collector + 本清单 + 专项文档三面同批**。
 4. **验证**:`python scripts/gate/test.py --suite L1 --profile PullRequest`(DisciplineScannerTests 钉 ScanTargets);`python scripts/toolchain.py check`(清单路径/CI/hook/计划任务注册面);资源收集变更另用出包冒烟验证。

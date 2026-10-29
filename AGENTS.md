@@ -1,20 +1,20 @@
 # AGENTS.md——代理与新成员必读入口
 
-> 本文件是**动代码前的必读清单与红线速查**。详细规则与查询表在 `Docs/修改指南.md`，本文件只做收敛索引；两者冲突以 `Docs/修改指南.md` 为准。
+> 本文件是**动代码前的必读清单与红线速查**。完整规则在 `Docs/规范/`（02 代码与修改规范 / 03 领域查询表），解释在 `Docs/说明/`；本文件只做收敛索引，两者冲突以 `Docs/规范/` 为准。
 
 ## 必读顺序（动代码前）
 
 | 序 | 文档 | 回答什么 |
 |---|---|---|
-| 1 | 本文件 | 基础原则、红线速查、常用命令 |
-| 2 | [Docs/修改指南.md](Docs/修改指南.md) | **§1 代码实现规范（红线，含审计反例）→ §2 修改规范（动手前/改动中/收尾流程）→ §3 领域查询表（"我想改 X 去哪改、改完跑什么"）** |
-| 3 | [Docs/设计文档/架构/术语规范.md](Docs/设计文档/架构/术语规范.md) | 术语表（规范级）：全仓现用词 ↔ 业界通用词的权威对照（三档处置：换/留/英译）＋ Lane/登记一词多义消解 ＋ 代码标识符用词规约（UI/Hud 大小写、Take 消费语义）——新写的文档与代码即用，存量随改随换 |
-| 4 | [Docs/审计/README.md](Docs/审计/README.md) · [客户端登记](Docs/审计/客户端/登记/) · [服务端审计表](Docs/审计/代码质量审计-服务端.md) | 审计流程与按类型登记/归档（一类型一文件；归档一行一条、单文件 ≤100 条；客户端已拆分，服务端迁移中）——改文件前查该文件有没有已登记债；**新代码禁止产生同型问题** |
-| 5 | [Docs/项目说明/README.md](Docs/项目说明/README.md) | 项目是什么、怎么跑、数据怎么流、怎么分层 |
-| 6 | [Docs/设计文档/README.md](Docs/设计文档/README.md) | 目标架构裁决（与本指南/代码冲突时以设计文档为准） |
-| 7 | [Docs/开发导航/README.md](Docs/开发导航/README.md) | 代码地图、程序集引用图 |
-| 8 | [Docs/项目说明/10-Windows云主机部署.md](Docs/项目说明/10-Windows云主机部署.md) | 云侧**现行形态**（Windows Server 2025 原生）的部署与运维——**动云主机前必读**；速查见本文件「云侧环境（外环）——操作必读」节 |
-| 9 | [Docs/项目说明/11-联机测试流程.md](Docs/项目说明/11-联机测试流程.md) | **从改完代码到云上打完一局**的主线（发版矩阵 / 一键部署 / 测试者接入 / 开测与 GM 兜底 / 观测 / 收尾）——联机测试照它走 |
+| 1 | 本文件 | 红线速查、常用命令、云侧必读 |
+| 2 | [Docs/规范/02-代码与修改规范.md](Docs/规范/02-代码与修改规范.md) | 代码红线、动手前/改动中/收尾流程、回写与提交 |
+| 3 | [Docs/规范/03-领域查询表.md](Docs/规范/03-领域查询表.md) | "我想改 X 去哪改、改完跑什么" |
+| 4 | [Docs/规范/01-文档体系与写作.md](Docs/规范/01-文档体系与写作.md) | 文档分层/落点/命名/索引/链接纪律 |
+| 5 | [Docs/规范/07-审计与债登记.md](Docs/规范/07-审计与债登记.md) · [客户端登记](Docs/审计/客户端/登记/) · [服务端登记](Docs/审计/服务端/登记/) | 改文件前查该文件有没有已登记债；新代码禁止产生同型问题 |
+| 6 | [Docs/说明/README.md](Docs/说明/README.md)（先 01/02） | 项目是什么、怎么跑、数据怎么流、怎么分层 |
+| 7 | [Docs/设计文档/README.md](Docs/设计文档/README.md) | 目标架构裁决（与本文件/代码冲突时以设计文档为准） |
+| 8 | [Docs/说明/14-代码地图与根目录.md](Docs/说明/14-代码地图与根目录.md) | 代码地图、根目录每个条目是什么 |
+| 9 | [Docs/说明/12-云侧部署与联机测试.md](Docs/说明/12-云侧部署与联机测试.md) | 云侧现行形态与"从改完代码到云上打完一局"的主线 |
 
 ## 基础原则
 
@@ -53,14 +53,14 @@
 - 其他资源不纳入版本管理。
 - **目录分层（2026-10-11 裁决）**：Assets 顶层只放原始资源；进包资源只放两类收集来源——**模块内使用资源目录**（模块聚合，样板 `LiteGame/Lua`）与**共享资源目录 `Assets/ShareResource`**（其下自建顶层子目录分类）；映射与迁移面见 [Docs/设计文档/客户端/内容/资源收集目录专项设计.md](Docs/设计文档/客户端/内容/资源收集目录专项设计.md) §2/§5。
 
-> 以上原则的落地细则与审计反例见 [Docs/修改指南.md](Docs/修改指南.md) §1 与两份质量登记表。
+> 以上原则的落地细则与审计反例见 [规范 02](Docs/规范/02-代码与修改规范.md) §1 与[审计与债登记](Docs/规范/07-审计与债登记.md)。
 
 ## 核心红线速查
 
 1. **BuildHash 源集**：改 `Assets/LiteSim/{Scripts,Systems}`、`Assets/LiteNet/{Proto,Protocol,Transport/Security}`、`Assets/GameData/Generated`（Luban 生成表行类/读取器）、脚本 `SHARED_LINK_FILES` 登记的两端源链接共编件（`Serialization.Luban/{SimConfigMapper,TableLayout}.cs`）→ ★ `python scripts/codegen/gen-build-hash.py`（权威清单＝该脚本 `SHARED_TARGETS/SHARED_LINK_FILES`）；漏跑＝出包门禁被拦、两端常量不同步时 Join 握手拒进房（2026-10-07 起开发期不校验，守卫在 build-player.py 门禁步 `--check-shared`）。**表数据（`.bytes` 数值）已移出闭包**（2026-10-14 批 E）——数据面守卫＝装载后**运行期摘要**（`CombatConfigDigest`：判定面表字节 + 本局规则；客户端按 `StartGame.ConfigHash` 复算比对，不等拒局），表值可两端热更不出包；但**改表源跑完 `Luban/gen.bat` 后仍要重跑本脚本**（生成读码面在闭包内），再走 `ConfigService.GameplayDigestBase` 侧的两端发布顺序。**同一脚本还产出第二个目标**：`Server/MetaServer/Host/BuildHash.g.cs`（Meta 构建身份＝`META_TARGETS` 源集摘要，启动日志 `build=` 用它；**不参与准入判定**，故不挂出包门禁——发布 Meta 产物前跑 `--check` 复算两个常量）。
 2. **R11 房间内核纯度**：`Assets/RoomServer/Core/` 禁 Console/系统时钟/文件 IO/proto/LiteNet。
 3. **R13 数值读口**：机制面禁读静态读口可变值，数值经实例参数传递（consts 豁免）。
-4. **Unity 序列化资产**（场景/Prefab/Material/.meta）：一律走 unity-pipeline CLI（`Docs/工具链/Unity操作规范.md`），禁直改文件。
+4. **Unity 序列化资产**（场景/Prefab/Material/.meta）：一律走 unity-pipeline CLI（[说明 15 工具链手册](Docs/说明/15-工具链手册.md)），禁直改文件。
 5. **禁硬编码**：魔法数字/字符串进常量或表；跨层共享常量 C# 单源权威，Lua shim/工具引用它；生成器引用运行时常量；"必须与 X 一致"只靠注释＝违规，要机制化（单源/生成/守卫测试三选一）。
 6. **禁新增 public static 可变状态**（豁免名单封闭）；确定性判定路径（伤害/弹药/命中/checksum）禁读任何静态可变值——包括 dev 宏内。
 7. **错误契约统一**：已关闭服务再调用抛 `ObjectDisposedException`；程序员错误 fail-fast、内容降级 Log.Warning+默认值；同层姊妹服务同契约。
@@ -69,7 +69,7 @@
 10. **接线纪律**：注册进容器的服务必须有生产消费者；"待接线"必须挂施工进度批次号；禁反射取私有服务（走 `GameEntry.TakeContainer()`）。
 11. **类设计**：单一职责；>400 行多职责先给拆分方案；禁 public 可变字段状态袋；禁哈希当身份键；事件回调上接口端口。
 12. **文档回写**：代码完成后回写设计文档/施工进度；修了审计登记条目回写"修复登记"表；新问题按格式追加登记。
-13. **真机验证必须模拟人类操作**：真机/Play 端到端验证必须走真实操作路径（真实指针/键盘模拟驱动界面与流程：入口 → 操作 → 副作用断言）；UI 面先"可点性自检"（交互控件射线命中）再模拟点击；禁以直调 API/桩调用冒充"操作过"——结论必须覆盖"可操作"，全绿 ≠ 可点（细则见 [Docs/修改指南.md](Docs/修改指南.md) §2.3）。
+13. **真机验证必须模拟人类操作**：真机/Play 端到端验证必须走真实操作路径（真实指针/键盘模拟驱动界面与流程：入口 → 操作 → 副作用断言）；UI 面先"可点性自检"（交互控件射线命中）再模拟点击；禁以直调 API/桩调用冒充"操作过"——结论必须覆盖"可操作"，全绿 ≠ 可点（细则见 [规范 02](Docs/规范/02-代码与修改规范.md) §2.3）。
 
 ## Skill 索引（按任务触发，ZCode）
 
@@ -80,10 +80,10 @@
 | `build-hash-sync` | 动共享源集（红线 1）、`.proto`、Luban 表源/生成读码面；出包前哈希检查（表**数值**走数据面运行期摘要，见该 skill） |
 | `unity-asset-pipeline` | 场景/Prefab/Material/SO/.meta、Assets 内移动删除、工程设置（红线 4） |
 | `directory-move-sync` | 目录搬动（六面同步 + unity-pipeline） |
-| `batch-wrapup` | 一批改动收尾/提交前（修改指南 §2.3 必跑 + §2.4 回写） |
-| `audit-debt-check` | 动源码文件前查两份质量登记表（修改指南 §2.1 第 3 步） |
+| `batch-wrapup` | 一批改动收尾/提交前（规范 02 §2.3 必跑 + §2.4 回写） |
+| `audit-debt-check` | 动源码文件前查质量登记表（规范 02 §2.1 第 3 步） |
 | `unity-pipeline` | 驱动运行中的 Unity Editor/开发 Player（CLI 包 `unity-pipeline`：装包、后台保活、edit→recompile→run_tests 环、eval C#、运行时热改码）——红线 4 的 CLI 执行层 |
-| `doc-authoring` | 新增/修改/移动/合并/归档 `Docs/` 下文档：落点决策、命名与元数据、设计↔进度分离、索引零孤儿、卷内追加章、链接与锚自检（D1～D6 门禁） |
+| `doc-authoring` | 新增/修改/移动/合并/归档 `Docs/` 下文档：落点决策、命名与元数据、设计↔进度分离、索引零孤儿、卷内追加章、链接与锚自检（D1～D9 门禁） |
 
 ## 常用命令
 
@@ -107,11 +107,11 @@ python scripts/gate/l2-unity-gate.py                          # L2 Unity 门禁�
 python scripts/gate/restore-check.py                          # 环境可复现检查
 ```
 
-Unity 交互（改场景/Prefab/跑 PlayMode）一律走 unity-pipeline CLI，见 `Docs/工具链/Unity操作规范.md`。
+Unity 交互（改场景/Prefab/跑 PlayMode）一律走 unity-pipeline CLI，见 [说明 15 工具链手册](Docs/说明/15-工具链手册.md)。
 
 ## 云侧环境（外环）——操作必读
 
-> 联机测试云主机（Windows Server 2025 Server Core，**2026-10-18 起为现行形态**）。部署/运维全细节见 [Docs/项目说明/10-Windows云主机部署.md](Docs/项目说明/10-Windows云主机部署.md)；Linux/compose 旧形态见 [09-上云联机测试](Docs/项目说明/09-上云联机测试.md)（备用）。
+> 联机测试云主机（Windows Server 2025 Server Core，**2026-10-18 起为现行形态**）。部署/运维全细节见 [说明 12 云侧部署与联机测试](Docs/说明/12-云侧部署与联机测试.md)；Linux/compose 旧形态见 [归档的 09 手册](Docs/归档记录/2026-10-29/上云联机测试（Linux compose 备用）.md)（备用）。
 
 | 项 | 值 |
 |---|---|
@@ -128,7 +128,7 @@ Unity 交互（改场景/Prefab/跑 PlayMode）一律走 unity-pipeline CLI，�
 3. **禁止在 SSH 会话里 `Start-Process` 起常驻进程**（随会话被回收）——一律走任务计划（10 手册 §6）。
 4. 换机/换公网 IP ⇒ **已发出的测试者 `.conf` 全部作废**（`Endpoint` + 服务端 `PublicKey` 两处要重生成）；客户端与游戏包不用动（连的是 `10.8.0.1`）。
 
-命令级速查（发布 / 模板 / GM / 接入 / 观测）：[Docs/开发导航/云侧速查.md](Docs/开发导航/云侧速查.md)；流程与判据见 [11-联机测试流程](Docs/项目说明/11-联机测试流程.md)。
+命令级速查（发布 / 模板 / GM / 接入 / 观测）与流程判据见 [说明 12 云侧部署与联机测试](Docs/说明/12-云侧部署与联机测试.md)。
 
 **常用（换房间配置后让它生效）**：
 
@@ -161,5 +161,5 @@ ssh litegame-cloud-tunnel powershell -NoProfile -ExecutionPolicy Bypass -File C:
   - Unity 一切操作只走 unity-pipeline CLI（与 shell 无关）；深度嵌套引号的 eval 改用 run_script 落文件。
 - 设计文档与施工进度分开：设计文档只描述最新设计，进度文档只保留最新进度。
 - 文档与代码不一致：以代码为准，并顺手修文档。
-- 目录搬动当批同步：`ScanTargets.cs`（纪律目标）、YooAsset 收集组、`Tests.slnx`/csproj、构建器路径、[Docs/开发导航/代码地图.md](Docs/开发导航/代码地图.md)。
+- 目录搬动当批同步：`ScanTargets.cs`（纪律目标）、YooAsset 收集组、`Tests.slnx`/csproj、构建器路径、[说明 14 代码地图](Docs/说明/14-代码地图与根目录.md)。
 - 资源放置与收集目录规划（打资源包热更）按「基础原则·资源规范」＋ [资源收集目录专项设计](Docs/设计文档/客户端/内容/资源收集目录专项设计.md)；版本管理按既有 `.gitignore` 裁决执行，两者无关。

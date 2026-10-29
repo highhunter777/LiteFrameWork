@@ -1,6 +1,6 @@
 # UI 工作台设计
 
-> 状态：**W0/W1/W2 均落地**——场景 `UiWorkbench.unity`（由 `HUDDesign.unity` 改造：用户裁决复用避免历史场景累积）+ 面板（WorkbenchPanel：目录 Clone_FormRow/演示组五钮/状态行）+ 工具条（WorkbenchOverlay：语言行/状态注入三钮/HUD 预览/回写入口，页面层之上）+ `UIWorkbenchDriver`（DevHUD 程序集，整件套三宏；asmdef 补 UniTask/Unity.TextMeshPro/Luban.Tables/LiteGame.LuaBridge 引用）。W1 进度演示接线、W2 六项（含回写工具）逐项见 §6 与 [施工进度/UI工作台W2.md](../../../施工进度/UI线.md#ch7-UI工作台W2)。操作手册：[Docs/项目说明/08-UI工作台.md](../../../项目说明/08-UI工作台.md)（打开/就绪、开页、语言与边界态注入、HUD 预览、回写闭环、排障）；实机验证：可点性射线自检 36/36 + 模拟点击全链（见施工记录）
+> 状态：**W0/W1/W2 均落地**——场景 `UiWorkbench.unity`（由 `HUDDesign.unity` 改造：用户裁决复用避免历史场景累积）+ 面板（WorkbenchPanel：目录 Clone_FormRow/演示组五钮/状态行）+ 工具条（WorkbenchOverlay：语言行/状态注入三钮/HUD 预览/回写入口，页面层之上）+ `UIWorkbenchDriver`（DevHUD 程序集，整件套三宏；asmdef 补 UniTask/Unity.TextMeshPro/Luban.Tables/LiteGame.LuaBridge 引用）。W1 进度演示接线、W2 六项（含回写工具）逐项见 §6 与 [施工进度/UI工作台W2.md](../../../施工进度/UI线.md#ch7-UI工作台W2)。操作手册：[Docs/项目说明/08-UI工作台.md](../../../说明/08-UI与Lua脚本层.md)（打开/就绪、开页、语言与边界态注入、HUD 预览、回写闭环、排障）；实机验证：可点性射线自检 36/36 + 模拟点击全链（见施工记录）
 > 范围：dev-only 手测工作台——不必跑完整业务流程即可开/关任意已登记页、驱动加载/错误/Toast 反馈面、目检多语言与布局
 > 上位：[UI框架总设计](UI框架总设计.md)（真装配、视觉单一来源、反馈面）；[UI测试开发专项设计](UI测试开发专项设计.md)（自动化与人工分工）
 > 先例：~~`HUDDesign.unity`（场景内设计 UI）~~——**已改造为本工作台场景**（2026-10-11）；`SimSandbox` + 开发面程序集 `LiteGame.DevTool`（场景级调试件、标注"不担产品职责"、零产品程序集改动）
@@ -82,7 +82,7 @@ WorkbenchOverlay               SRS）工具条根（Canvas sortingOrder 5000—�
 ## 5. 边界与防锈
 
 - **dev-only 与发布剥离（W2 已落实）**：不担产品职责（SimSandbox 同款标注）。剥离面三件——①`UIWorkbenchDriver` **整件套三宏**（`UNITY_EDITOR || DEVELOPMENT_BUILD || LITEFRAMEWORK_DEBUG`，与 `DevHUD.cs` 同款，release 剥净）；②`LiteGameIgnoreRule.DevAssetExclusions` **dev 资产排除**（`Assets/Scenes/UiWorkbench.unity` 不入 Scenes 收集组 ⇒ 不进生产包）；③EditMode 守卫钉"排除路径存在 + 规则真的忽略 + 产品场景不误伤"。**余**：出包流程侧"bundle 清单不含 dev 件"的静态检查（《热更与内容发布专项设计》§304 L0）未实施——已登记审计表。
-- **防锈登记**：owner = 客户端 UI 线；失效条件 = ① L2 PlayMode 已覆盖其手测场景，或 ② 制作线出现更顺的页面预览工具；到期未用即退役（防 Boot/GuideScene 式历史场景累积；[代码地图](../../../开发导航/代码地图.md) 已标"历史场景"）。
+- **防锈登记**：owner = 客户端 UI 线；失效条件 = ① L2 PlayMode 已覆盖其手测场景，或 ② 制作线出现更顺的页面预览工具；到期未用即退役（防 Boot/GuideScene 式历史场景累积；[代码地图](../../../说明/14-代码地图与根目录.md) 已标"历史场景"）。
 - **不做整场景运行时保存**：Play 态真装配链的运行时生成物不得烤进场景资产（视觉单一来源/脏 diff/不代存三重违反）；需要的固化走 prefab 回写（W2）——场景与 prefab 的分工：场景不承载可调视觉，prefab 承载。
 - 不新增第二个"打开任意页"入口：对局入口＝开发页（测试模式/直连对局）+ `DevStartupConfig` 直入开关（原 F9/F10 热键已删）；本件只管 UI 页。
 - **启动落点与开发入口（2026-10-16 流程整理，取代先前的"不做"评估）**：**一个决策点**（`ProcedureMain.ResolveLanding`）＋**一张入口矩阵**：

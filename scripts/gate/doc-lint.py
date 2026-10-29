@@ -19,7 +19,8 @@
   D6（提醒）设计文档**正文/引用块**（非表格行）含批次状态强标记且带日期——D1 的放宽面，
              用于捕获「状态：已实施（2026-10-16…）」这类头部叙述。
   D7（提醒）`Docs/` 根目录出现未登记的白名单外 .md——根目录只留入口/进度权威/动手指南；
-             其余文档按职能入 设计文档/施工进度/项目说明/开发导航/工具链/环境/审计/归档记录。
+             其余文档按职能入 设计文档/施工进度/说明/规范/审计/归档记录。
+  D9（违规）`Docs/说明/` 与 `Docs/规范/` 下章节文件须 `NN-` 两位数前缀且编号连续无跳号（README 与生成物除外）。
              依据：Docs/README「目录结构」2026-10-18 分层裁决。
 
 用法：python scripts/gate/doc-lint.py [--root <repo>] [--warn] [--no-links]
@@ -139,6 +140,25 @@ def scan(root: Path, check_links: bool = True):
             if records > ARCHIVE_MAX_RECORDS:
                 add('D8', rel, 0,
                     f'归档 {records} 条 > {ARCHIVE_MAX_RECORDS} 条上限——须新建编号递增的下一个文件')
+
+    # ---- D9：说明/规范 章节编号连续 ----
+    for ch_dir in ('Docs/说明', 'Docs/规范'):
+        d = root / ch_dir
+        if not d.is_dir():
+            continue
+        nums = []
+        for f in sorted(d.glob('*.md')):
+            if f.name in ('README.md', '工具索引.md'):
+                continue
+            m = re.match(r'^(\d{2})-', f.name)
+            if not m:
+                add('D9', f.relative_to(root).as_posix(), 0, '章节文件须以两位数编号开头（NN-）')
+                continue
+            nums.append(int(m.group(1)))
+        if nums:
+            expect = list(range(1, len(nums) + 1))
+            if sorted(nums) != expect:
+                add('D9', ch_dir, 0, f'章节编号须连续无跳号：实得 {sorted(nums)}，应为 {expect}')
 
     # ---- D7：Docs 根目录白名单 ----
     docs_root = root / DOCS

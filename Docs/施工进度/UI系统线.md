@@ -31,7 +31,7 @@
 <a id="ch1-UI系统P1契约内核"></a>
 
 > **批次**：P1-0/P1-1（2026-10-22，工作区未提交）
-> **设计**：[UI 编辑器工具链专项设计 §5 页面契约](../设计文档/客户端/UI系统/UI编辑器工具链专项设计.md#ch-contract) · [UI 美术协作与交接规范 §3](../设计文档/客户端/UI系统/UI美术协作与交接规范.md#ch-contract) · [UI 系统总设计 §4 保留基座](../设计文档/客户端/UI系统/UI系统总设计.md#ch-runtime-base)
+> **设计**：[UI 编辑器工具链专项设计 §5 页面契约](../设计文档/客户端/UI系统/UI编辑器工具链专项设计.md#ch-contract) · [UI 美术协作与交接规范 §3](../规范/06-UI美术协作与交接.md) · [UI 系统总设计 §4 保留基座](../设计文档/客户端/UI系统/UI系统总设计.md#ch-runtime-base)
 > **方案与任务**：`.workflow/archive/20261022-222119-ui-p1-contract/`（plan.md / tasks.md / test-plan.md / reviews）
 
 ### 状态
@@ -42,7 +42,7 @@
 
 | 件 | 变化 |
 |---|---|
-| P1-0 口径冻结 | `sourceHash` 只覆盖接口面（control/text/style/template/event 五域规范行 + SHA-256，不含页面元数据/生成器版本/时间戳）；`controls[].kind`/`required` 初始推断（交互/列表/进度类记 `Command`+`true`，其余 `None`+`false`）；模板边界（`Tmp_*` 实例根记一条 `templates[]`，内部件不展开，非 `Tmp_*` 不透明跳过 + Warning）；`cacheStrategy` 默认词表真相＝`UICacheStrategy`（表列未落地前统一 `Lru`）；口径写入[工具链专项设计 §5.2.1](../设计文档/客户端/UI系统/UI编辑器工具链专项设计.md#ch-contract-rules)与[协作规范 §3](../设计文档/客户端/UI系统/UI美术协作与交接规范.md#ch-contract) |
+| P1-0 口径冻结 | `sourceHash` 只覆盖接口面（control/text/style/template/event 五域规范行 + SHA-256，不含页面元数据/生成器版本/时间戳）；`controls[].kind`/`required` 初始推断（交互/列表/进度类记 `Command`+`true`，其余 `None`+`false`）；模板边界（`Tmp_*` 实例根记一条 `templates[]`，内部件不展开，非 `Tmp_*` 不透明跳过 + Warning）；`cacheStrategy` 默认词表真相＝`UICacheStrategy`（表列未落地前统一 `Lru`）；口径写入[工具链专项设计 §5.2.1](../设计文档/客户端/UI系统/UI编辑器工具链专项设计.md#ch-contract-rules)与[协作规范 §3](../规范/06-UI美术协作与交接.md) |
 | schema 漂移 | `UiPageContract.schema.json` 无 `generatedAt`；设计样例与 schema 一致（契约无时间戳，审计由工具日志承担） |
 | 静态文案 | 新增 `LTextKeyRef`（只存 `Key`，`[DisallowMultipleComponent]`）与 `UiStaticTextBinder`（TMP 优先/UGUI `Text` 回退，缺目标与空 key 告警一次不阻断同页）；`UIForm` 增量接缝：`PrepareForShow` 惰性建 binder、`ApplyLocale` 一次取 locale 同驱 `ILocaleBound` 与静态文案、`EnterClosing` 退订、`DestroyInstance` 释放 |
 | 编辑器读面 | `UiLTextTable`（`tbltext` 装载与 key 清单，失败显式返回错误）+ `LTextKeyRefInspector`（key 下拉 + 中/英预览 + 重载） |
@@ -123,7 +123,7 @@
 <a id="ch3-UI系统P1页面清单"></a>
 
 > **批次**：P1-3（2026-10-22，工作区未提交）
-> **设计**：[UI 编辑器工具链专项设计 §8.5 页面清单与状态词表](../设计文档/客户端/UI系统/UI编辑器工具链专项设计.md#ch-page-manifest) · [UI 系统总设计 §5.1](../设计文档/客户端/UI系统/UI系统总设计.md#ch-page-catalog) · [UI 美术协作与交接规范 §5.3](../设计文档/客户端/UI系统/UI美术协作与交接规范.md#ch-change)
+> **设计**：[UI 编辑器工具链专项设计 §8.5 页面清单与状态词表](../设计文档/客户端/UI系统/UI编辑器工具链专项设计.md#ch-page-manifest) · [UI 系统总设计 §5.1](../设计文档/客户端/UI系统/UI系统总设计.md#ch-page-catalog) · [UI 美术协作与交接规范 §5.3](../规范/06-UI美术协作与交接.md)
 > **方案与任务**：`.workflow/archive/20261022-235930-ui-p1-page-manifest/`（plan.md / tasks.md / test-plan.md / reviews）
 
 ### 状态
@@ -257,7 +257,7 @@
 <a id="ch6-UI系统P1边界收口"></a>
 
 > **批次**：P1 边界收口（2026-10-23，staged-delivery）
-> **设计**：[UI 编辑器工具链专项设计 §6 校验核心](../设计文档/客户端/UI系统/UI编辑器工具链专项设计.md#ch-validation) · [§5.2 契约字段模型](../设计文档/客户端/UI系统/UI编辑器工具链专项设计.md#ch-contract) · [UI 制作规范 §3.1/§3.3 根契约（本批对齐实况改文）](../设计文档/客户端/UI系统/UI制作规范.md#ch-prefab)
+> **设计**：[UI 编辑器工具链专项设计 §6 校验核心](../设计文档/客户端/UI系统/UI编辑器工具链专项设计.md#ch-validation) · [§5.2 契约字段模型](../设计文档/客户端/UI系统/UI编辑器工具链专项设计.md#ch-contract) · [UI 制作规范 §3.1/§3.3 根契约（本批对齐实况改文）](../规范/05-UI制作.md)
 > **方案与任务**：`.workflow/archive/20261023-172440-ui-p1-boundary-closure/`（plan.md / tasks.md / test-plan.md / build-log / reviews）
 > **用户裁决**：①结构族扩覆盖前「改规范对齐实况」（§3.1 四件套限定 Page_*、系统面/HUD 根新口径）；②UIMain 冻结「无壳契约」。
 
@@ -318,7 +318,7 @@
 <a id="ch7-UIMain退役"></a>
 
 > **批次**：UIMain 退役（2026-10-23，staged-delivery）
-> **设计**：[UI 系统总设计 §5.1 页面编号](../设计文档/客户端/UI系统/UI系统总设计.md#ch-page-catalog) · [UI 编辑器工具链专项设计 §5.2/§8.5](../设计文档/客户端/UI系统/UI编辑器工具链专项设计.md#ch-page-manifest) · [UI 制作规范 §3](../设计文档/客户端/UI系统/UI制作规范.md#ch-prefab)
+> **设计**：[UI 系统总设计 §5.1 页面编号](../设计文档/客户端/UI系统/UI系统总设计.md#ch-page-catalog) · [UI 编辑器工具链专项设计 §5.2/§8.5](../设计文档/客户端/UI系统/UI编辑器工具链专项设计.md#ch-page-manifest) · [UI 制作规范 §3](../规范/05-UI制作.md)
 > **方案与任务**：`.workflow/archive/20261023-183425-ui-uimain-retirement/`（plan.md / tasks.md / test-plan.md / build-log / reviews）
 
 ### 状态
@@ -609,7 +609,7 @@
 <a id="ch13-UI系统P2样式收口"></a>
 
 > **批次**：P2-3 B4（2026-10-26，staged-delivery）
-> **设计**：[UI 系统总设计 §6](../设计文档/客户端/UI系统/UI系统总设计.md#ch-style) · [UI 编辑器工具链专项设计 §8.1/§8.3](../设计文档/客户端/UI系统/UI编辑器工具链专项设计.md#ch-style-tools) · [UI 制作规范 §7](../设计文档/客户端/UI系统/UI制作规范.md#ch-text)
+> **设计**：[UI 系统总设计 §6](../设计文档/客户端/UI系统/UI系统总设计.md#ch-style) · [UI 编辑器工具链专项设计 §8.1/§8.3](../设计文档/客户端/UI系统/UI编辑器工具链专项设计.md#ch-style-tools) · [UI 制作规范 §7](../规范/05-UI制作.md)
 > **方案与任务**：[.workflow/archive/20261026-201957-ui-p2-style-closure/](../../.workflow/archive/20261026-201957-ui-p2-style-closure/)（plan.md / acceptance.md / tasks.md / test-plan.md / reviews / evidence）
 > **用户裁决**：D1＝精确补 44 枚令牌；D2＝只标精确匹配的 37 个文本节点；D3＝Selectable 专用组件 + 5 枚令牌，运行时随主题注入（2026-10-26）。
 

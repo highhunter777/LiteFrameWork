@@ -6,13 +6,13 @@
   "categories": [
     { "id": "baking", "title": "内容烘焙", "order": 10, "docs": "Docs/设计文档/游戏玩法/烘焙工具箱专项设计.md" },
     { "id": "ui", "title": "UI 工具", "order": 20, "docs": "Docs/设计文档/客户端/UI系统/UI编辑器工具链专项设计.md" },
-    { "id": "debug", "title": "调试与诊断", "order": 30, "docs": "Docs/设计文档/架构/GM与调试工具分层专项设计.md", "allowDocs": ["Docs/项目说明/07-本地联测.md", "Docs/项目说明/13-调试手册.md"] },
-    { "id": "codegen", "title": "代码生成", "order": 40, "docs": "Docs/设计文档/架构/生成器工具箱专项设计.md", "allowDocs": ["Docs/开发导航/代码地图.md", "Docs/项目说明/07-本地联测.md", "Docs/设计文档/客户端/UI系统/UI编辑器工具链专项设计.md"] },
-    { "id": "deploy", "title": "部署与云运维", "order": 45, "docs": "Docs/项目说明/10-Windows云主机部署.md", "allowDocs": ["Docs/开发导航/云侧速查.md"] },
-    { "id": "quality", "title": "质量门禁", "order": 50, "docs": "Docs/项目说明/05-验证与门禁.md", "allowDocs": ["Docs/修改指南.md", "Docs/工具链/技术支持.md"] },
-    { "id": "build", "title": "构建", "order": 60, "docs": "Docs/项目说明/05-验证与门禁.md" },
+    { "id": "debug", "title": "调试与诊断", "order": 30, "docs": "Docs/设计文档/架构/GM与调试工具分层专项设计.md", "allowDocs": ["Docs/说明/11-构建与本地联测.md", "Docs/说明/13-调试面与排障.md"] },
+    { "id": "codegen", "title": "代码生成", "order": 40, "docs": "Docs/设计文档/架构/生成器工具箱专项设计.md", "allowDocs": ["Docs/说明/14-代码地图与根目录.md", "Docs/说明/11-构建与本地联测.md", "Docs/设计文档/客户端/UI系统/UI编辑器工具链专项设计.md"] },
+    { "id": "deploy", "title": "部署与云运维", "order": 45, "docs": "Docs/说明/12-云侧部署与联机测试.md", "allowDocs": ["Docs/说明/12-云侧部署与联机测试.md"] },
+    { "id": "quality", "title": "质量门禁", "order": 50, "docs": "Docs/说明/10-测试与门禁.md", "allowDocs": ["Docs/规范/03-领域查询表.md", "Docs/说明/15-工具链手册.md"] },
+    { "id": "build", "title": "构建", "order": 60, "docs": "Docs/说明/10-测试与门禁.md" },
     { "id": "content", "title": "内容发布", "order": 65, "docs": "Docs/设计文档/客户端/内容/资源收集目录专项设计.md" },
-    { "id": "env", "title": "环境与索引", "order": 70, "docs": "Docs/工具链/技术支持.md", "allowDocs": ["Docs/项目说明/05-验证与门禁.md", "Docs/环境/环境恢复指南.md", "Docs/项目说明/07-本地联测.md", "Docs/工具链/UnityPipeline本地补丁与运维.md", "Docs/设计文档/测试与性能/调试与开发工具链演进路线图.md"] }
+    { "id": "env", "title": "环境与索引", "order": 70, "docs": "Docs/说明/15-工具链手册.md", "allowDocs": ["Docs/说明/10-测试与门禁.md", "Docs/说明/16-环境复原与机器差异.md", "Docs/说明/11-构建与本地联测.md", "Docs/说明/15-工具链手册.md", "Docs/设计文档/测试与性能/调试与开发工具链演进路线图.md"] }
   ],
   "tools": [
     {
@@ -466,7 +466,7 @@
       "purpose": "debug",
       "handler": "debug.local-chain",
       "summary": "本地 Meta/Room/Mongo 进程、BuildHash 与日志尾随。",
-      "docs": "Docs/项目说明/07-本地联测.md",
+      "docs": "Docs/说明/11-构建与本地联测.md",
       "writes": ["none"],
       "destructive": false,
       "order": 50
@@ -481,7 +481,7 @@
       "requires": ["play"],
       "handler": "debug.net-diag",
       "summary": "联机链路与对局状态诊断。",
-      "docs": "Docs/项目说明/13-调试手册.md",
+      "docs": "Docs/说明/13-调试面与排障.md",
       "writes": ["none"],
       "destructive": false,
       "order": 60
@@ -494,7 +494,7 @@
       "plane": "external",
       "purpose": "debug",
       "summary": "按对局/席位/帧/标签/级别/时间/关键字检索客户端 JSONL 日志（persistentDataPath/logs）。",
-      "docs": "Docs/项目说明/13-调试手册.md",
+      "docs": "Docs/说明/13-调试面与排障.md",
       "command": ["python", "scripts/logs/query.py"],
       "args": [
         { "name": "path", "type": "path", "required": true, "description": "日志文件或目录" },
@@ -680,7 +680,7 @@
       "purpose": "dev",
       "handler": "codegen.sim-trig",
       "summary": "生成 Sim 三角函数查表（生成期允许 Math.Sin）。",
-      "docs": "Docs/开发导航/代码地图.md",
+      "docs": "Docs/说明/14-代码地图与根目录.md",
       "menu": "LiteSim/生成 SimTrig 查表",
       "writes": ["generated"],
       "destructive": false,
@@ -700,7 +700,7 @@
       "requires": ["play"],
       "handler": "codegen.lua-reload",
       "summary": "Play 模式下重建 Lua env 并重填注册表。",
-      "docs": "Docs/项目说明/07-本地联测.md",
+      "docs": "Docs/说明/11-构建与本地联测.md",
       "menu": "LiteGame/快捷/Lua Reload Env %&r",
       "writes": ["none"],
       "destructive": false,
@@ -716,7 +716,7 @@
       "requires": ["play"],
       "handler": "codegen.lua-refill",
       "summary": "Play 模式下增量重填 Lua 注册表（不重建 env）。",
-      "docs": "Docs/项目说明/07-本地联测.md",
+      "docs": "Docs/说明/11-构建与本地联测.md",
       "menu": "LiteGame/快捷/Lua Refill Registries %&f",
       "writes": ["none"],
       "destructive": false,
@@ -743,7 +743,7 @@
       "plane": "none",
       "purpose": "dev",
       "summary": "vendored Tools/XLuaGenerate.exe；重生成 xLua 适配代码时手动使用。",
-      "docs": "Docs/开发导航/代码地图.md",
+      "docs": "Docs/说明/14-代码地图与根目录.md",
       "writes": ["none"],
       "destructive": false,
       "order": 100
@@ -756,7 +756,7 @@
       "plane": "external",
       "purpose": "delivery",
       "summary": "manifest/依赖/许可证/密钥静态扫描。",
-      "docs": "Docs/项目说明/05-验证与门禁.md",
+      "docs": "Docs/说明/10-测试与门禁.md",
       "command": ["python", "scripts/gate/l0-dep-scan.py"],
       "writes": ["none"],
       "destructive": false,
@@ -770,7 +770,7 @@
       "plane": "external",
       "purpose": "delivery",
       "summary": "dotnet 侧纯逻辑测试（含纪律扫描）。",
-      "docs": "Docs/项目说明/05-验证与门禁.md",
+      "docs": "Docs/说明/10-测试与门禁.md",
       "command": ["python", "scripts/gate/test.py", "--suite", "L1", "--profile", "PullRequest"],
       "args": [
         { "name": "profile", "type": "enum", "values": ["PullRequest", "Nightly", "Release"], "description": "测试 Profile" },
@@ -793,7 +793,7 @@
       "purpose": "delivery",
       "requires": ["unity-batch"],
       "summary": "meta 扫描 + Unity 编译 + EditMode/PlayMode。",
-      "docs": "Docs/项目说明/05-验证与门禁.md",
+      "docs": "Docs/说明/10-测试与门禁.md",
       "command": ["python", "scripts/gate/l2-unity-gate.py"],
       "args": [
         { "name": "project-path", "type": "path", "description": "Unity 工程根路径" },
@@ -817,7 +817,7 @@
       "plane": "external",
       "purpose": "delivery",
       "summary": "真 IO/网络/进程内服务端的集成与端到端测试。",
-      "docs": "Docs/项目说明/05-验证与门禁.md",
+      "docs": "Docs/说明/10-测试与门禁.md",
       "command": ["python", "scripts/gate/test.py", "--suite", "L3", "--profile", "PullRequest"],
       "args": [
         { "name": "profile", "type": "enum", "values": ["PullRequest", "Nightly", "Release"], "description": "测试 Profile" },
@@ -839,7 +839,7 @@
       "plane": "external",
       "purpose": "delivery",
       "summary": "文档索引/链接/设计-进度分离与生成索引新鲜度。",
-      "docs": "Docs/项目说明/05-验证与门禁.md",
+      "docs": "Docs/说明/10-测试与门禁.md",
       "command": ["python", "scripts/gate/test.py", "--suite", "Doc"],
       "args": [
         { "name": "profile", "type": "enum", "values": ["PullRequest", "Nightly", "Release"], "description": "测试 Profile" },
@@ -862,7 +862,7 @@
       "purpose": "dev",
       "handler": "quality.discipline",
       "summary": "R1～R13 机制纪律扫描（常规随 L1）。",
-      "docs": "Docs/项目说明/05-验证与门禁.md",
+      "docs": "Docs/说明/10-测试与门禁.md",
       "menu": "Tools/纪律扫描",
       "writes": ["none"],
       "destructive": false,
@@ -877,7 +877,7 @@
       "purpose": "dev",
       "handler": "quality.ieee",
       "summary": "对账 IEEE 基线（SimTrig 等）。",
-      "docs": "Docs/项目说明/05-验证与门禁.md",
+      "docs": "Docs/说明/10-测试与门禁.md",
       "menu": "LiteSim/对账 IEEE 基线",
       "writes": ["none"],
       "destructive": false,
@@ -892,7 +892,7 @@
       "purpose": "delivery",
       "requires": ["unity-batch"],
       "summary": "走 restore/L0/BuildHash/内置包/IL2CPP 的出包链。",
-      "docs": "Docs/项目说明/05-验证与门禁.md",
+      "docs": "Docs/说明/10-测试与门禁.md",
       "command": ["python", "scripts/build/build-player.py"],
       "args": [
         { "name": "project-path", "type": "path", "description": "Unity 工程根路径" },
@@ -916,7 +916,7 @@
       "purpose": "delivery",
       "requires": ["player"],
       "summary": "启动构建产物并等待定义态标记。",
-      "docs": "Docs/项目说明/05-验证与门禁.md",
+      "docs": "Docs/说明/10-测试与门禁.md",
       "command": ["python", "scripts/build/player-smoke.py"],
       "args": [
         { "name": "project-path", "type": "path", "description": "Unity 工程根路径" },
@@ -1056,7 +1056,7 @@
       "plane": "external",
       "purpose": "delivery",
       "summary": "校验 Unity/.NET/Python/包/付费插件等环境项。",
-      "docs": "Docs/环境/环境恢复指南.md",
+      "docs": "Docs/说明/16-环境复原与机器差异.md",
       "command": ["python", "scripts/gate/restore-check.py"],
       "writes": ["none"],
       "destructive": false,
@@ -1070,7 +1070,7 @@
       "plane": "external",
       "purpose": "delivery",
       "summary": "L1 + L2 夜间编排并落盘日志。",
-      "docs": "Docs/项目说明/05-验证与门禁.md",
+      "docs": "Docs/说明/10-测试与门禁.md",
       "command": ["python", "scripts/gate/nightly-gate.py"],
       "writes": ["none"],
       "outputs": [
@@ -1087,7 +1087,7 @@
       "plane": "external",
       "purpose": "delivery",
       "summary": "把 Windows 计划任务修回 python + scripts/gate/nightly-gate.py（--force 覆盖既有任务）。",
-      "docs": "Docs/工具链/技术支持.md",
+      "docs": "Docs/说明/15-工具链手册.md",
       "command": ["python", "scripts/gate/install-nightly-task.py", "--force"],
       "args": [
         { "name": "project-path", "type": "path", "description": "工程根路径" },
@@ -1123,7 +1123,7 @@
       "plane": "none",
       "purpose": "dev",
       "summary": "com.unity.pipeline 的版本、本地补丁与 HTTP 驱动说明。",
-      "docs": "Docs/工具链/UnityPipeline本地补丁与运维.md",
+      "docs": "Docs/说明/15-工具链手册.md",
       "writes": ["none"],
       "destructive": false,
       "order": 40
@@ -1136,7 +1136,7 @@
       "plane": "none",
       "purpose": "dev",
       "summary": "运行 python scripts/toolchain.py doctor 检查环境/清单/注册面。",
-      "docs": "Docs/工具链/技术支持.md",
+      "docs": "Docs/说明/15-工具链手册.md",
       "writes": ["none"],
       "destructive": false,
       "order": 50
@@ -1149,7 +1149,7 @@
       "plane": "external",
       "purpose": "delivery",
       "summary": "校验/安装云上 embedded Python 并上传 remote_runner.py（部署前置）。",
-      "docs": "Docs/项目说明/10-Windows云主机部署.md",
+      "docs": "Docs/说明/12-云侧部署与联机测试.md",
       "command": ["python", "scripts/deploy/bootstrap-cloud-python.py"],
       "args": [
         { "name": "ssh-host", "type": "string", "description": "SSH 主机或别名" },
@@ -1170,7 +1170,7 @@
       "plane": "external",
       "purpose": "delivery",
       "summary": "发布/打包/停服/上传/解压/起服/回读判据；改房间服二进制或配置后使用。",
-      "docs": "Docs/项目说明/10-Windows云主机部署.md",
+      "docs": "Docs/说明/12-云侧部署与联机测试.md",
       "command": ["python", "scripts/deploy/deploy-room.py"],
       "args": [
         { "name": "project-path", "type": "path", "description": "工程根路径" },
@@ -1194,7 +1194,7 @@
       "plane": "external",
       "purpose": "delivery",
       "summary": "经 SSH 隧道调用云上 GM 端点（rooms/diag-list/diag-fetch/start/abort/kick/settle-flush/rules）。",
-      "docs": "Docs/开发导航/云侧速查.md",
+      "docs": "Docs/说明/12-云侧部署与联机测试.md",
       "command": ["python", "scripts/deploy/gm.py"],
       "args": [
         { "name": "action", "type": "enum", "required": true, "values": ["rooms", "diag-list", "diag-fetch", "start", "abort", "kick", "settle-flush", "rules"], "description": "GM 动作（权威：Server/RoomServer/gm-contract.json）" },
@@ -1222,7 +1222,7 @@
       "plane": "external",
       "purpose": "delivery",
       "summary": "云上生成 WireGuard 密钥并追加 peer，本机落地测试者 .conf。",
-      "docs": "Docs/开发导航/云侧速查.md",
+      "docs": "Docs/说明/12-云侧部署与联机测试.md",
       "command": ["python", "scripts/deploy/wg-peer.py"],
       "args": [
         { "name": "name", "type": "string", "required": true, "description": "测试者标识" },
@@ -1247,7 +1247,7 @@
       "plane": "external",
       "purpose": "debug",
       "summary": "init/meta/room/up/status/keys；按机器私有密钥起本地 Meta/RoomServer。",
-      "docs": "Docs/项目说明/07-本地联测.md",
+      "docs": "Docs/说明/11-构建与本地联测.md",
       "command": ["python", "scripts/local/local-chain.py"],
       "writes": ["source", "distribution"],
       "outputs": [
@@ -1264,7 +1264,7 @@
       "plane": "external",
       "purpose": "delivery",
       "summary": "检查设计/进度分离、索引覆盖、链接/锚与命名（Doc 车道同源）。",
-      "docs": "Docs/修改指南.md",
+      "docs": "Docs/规范/03-领域查询表.md",
       "command": ["python", "scripts/gate/doc-lint.py"],
       "writes": ["none"],
       "destructive": false,
@@ -1278,14 +1278,14 @@
       "plane": "external",
       "purpose": "delivery",
       "summary": "扫描 Assets/ProjectSettings 中指向不存在资产的 GUID 引用。",
-      "docs": "Docs/工具链/技术支持.md",
+      "docs": "Docs/说明/15-工具链手册.md",
       "command": ["python", "scripts/content/scan-missing-guids.py"],
       "writes": ["none"],
       "destructive": false,
       "order": 60
     }
 ,
-    {"id": "build.plan", "title": "构建 preflight", "category": "build", "kind": "cli", "plane": "external", "purpose": "delivery", "summary": "按 git diff 输出内环/交付两套最小重建集（只读，零写盘）。", "docs": "Docs/项目说明/05-验证与门禁.md", "command": ["python", "scripts/build/build-plan.py"], "args": [{"name": "base", "type": "string", "description": "git 基线（默认 origin/main）"}, {"name": "changed-file", "type": "string", "description": "直接指定改动路径（可重复，绕过 git）"}, {"name": "json", "type": "bool", "description": "输出机器可读 JSON"}, {"name": "project-path", "type": "path", "description": "工程根（必须是当前仓库）"}], "writes": ["none"], "destructive": false, "order": 5},
+    {"id": "build.plan", "title": "构建 preflight", "category": "build", "kind": "cli", "plane": "external", "purpose": "delivery", "summary": "按 git diff 输出内环/交付两套最小重建集（只读，零写盘）。", "docs": "Docs/说明/10-测试与门禁.md", "command": ["python", "scripts/build/build-plan.py"], "args": [{"name": "base", "type": "string", "description": "git 基线（默认 origin/main）"}, {"name": "changed-file", "type": "string", "description": "直接指定改动路径（可重复，绕过 git）"}, {"name": "json", "type": "bool", "description": "输出机器可读 JSON"}, {"name": "project-path", "type": "path", "description": "工程根（必须是当前仓库）"}], "writes": ["none"], "destructive": false, "order": 5},
     {"id": "ui.style.tokens", "title": "生成主题资产（JSON→SO）", "category": "ui", "kind": "action", "plane": "editor", "purpose": "dev", "handler": "ui.style.tokens", "summary": "从令牌源 UiStyleTokens.json 确定性生成 UiThemeAsset（幂等；失败零写盘）。", "docs": "Docs/设计文档/客户端/UI系统/UI编辑器工具链专项设计.md", "menu": "LiteGame/UI/样式工具/生成主题资产（令牌 JSON→SO）", "writes": ["asset", "generated"], "outputs": [{"path": "Assets/GameData/Config/UI/", "kind": "asset"}], "destructive": false, "order": 59}
   ],
   "surfaces": [

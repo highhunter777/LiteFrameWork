@@ -7,7 +7,7 @@ description: LiteGame 联机测试发布前置流水线：BuildHash 复算与门
 
 **为什么存在**：联机发布不是“重打个包”。共享源一改，客户端、Room、Meta 的身份常量与云上产物会分别漂移；漏掉任何一端，症状都是签票 `409 version-mismatch` 或开局拒，而不是“连不上”。本 skill 把 2026-10-18 实际跑通的发布链固化下来，并收录本机已踩过的工具链坑。
 
-**边界**：默认本机测试，本 skill 结束于“两端版本一致、客户端可启动”；仅对外分发形态才追加“测试包已生成”。实际双人对局、死亡/血量/动画、RTT/丢包验收按 `Docs/项目说明/11-联机测试流程.md` §5–§7 另行执行；本环境是封闭测试，不得作为公开/可发布判据。
+**边界**：默认本机测试，本 skill 结束于“两端版本一致、客户端可启动”；仅对外分发形态才追加“测试包已生成”。实际双人对局、死亡/血量/动画、RTT/丢包验收按 `Docs/说明/12-云侧部署与联机测试.md` §5–§7 另行执行；本环境是封闭测试，不得作为公开/可发布判据。
 
 ## 0. 测试形态与发布面
 
@@ -28,7 +28,7 @@ description: LiteGame 联机测试发布前置流水线：BuildHash 复算与门
 | 纯表现 / Lua / prefab / 美术 | 不动 | 编辑器重编译；重打包 |
 | 只改 `deploy/roomserver.windows.json` | `deploy-room.py --skip-publish --with-config` | 不动 |
 
-判据永远是两端 `buildHash` 同值。表**数值**（`.bytes`）不在 BuildHash 闭包内（数据面走运行期摘要），但表源改动后仍要 `Luban/gen.bat` 重生成读码面，再跑 BuildHash。表源改动时服务端 `C:\litegame\GameData\Config` 是否要重传，按 `Docs/项目说明/10-Windows云主机部署.md` §2 现场确认；本 skill 的已验证路径未覆盖这一分支。
+判据永远是两端 `buildHash` 同值。表**数值**（`.bytes`）不在 BuildHash 闭包内（数据面走运行期摘要），但表源改动后仍要 `Luban/gen.bat` 重生成读码面，再跑 BuildHash。表源改动时服务端 `C:\litegame\GameData\Config` 是否要重传，按 `Docs/说明/12-云侧部署与联机测试.md` §2 现场确认；本 skill 的已验证路径未覆盖这一分支。
 
 ## 1. 前置门禁（不通过不发布）
 
@@ -272,8 +272,8 @@ pwsh -NoProfile -File Dist/New-Packages.ps1 -Testers <tester> -Overlay -Zip -For
 
 ## 参考
 
-- `Docs/项目说明/11-联机测试流程.md`（发布矩阵、测试者接入、开测与收尾）
-- `Docs/项目说明/10-Windows云主机部署.md`（云主机布局、Meta/Room 发布、任务计划、坑清单）
-- `Docs/开发导航/云侧速查.md`（发布/模板/GM 命令速查）
+- `Docs/说明/12-云侧部署与联机测试.md`（发布矩阵、测试者接入、开测与收尾）
+- `Docs/说明/12-云侧部署与联机测试.md`（云主机布局、Meta/Room 发布、任务计划、坑清单）
+- `Docs/说明/12-云侧部署与联机测试.md`（发布/模板/GM 命令速查）
 - `build-hash-sync` skill（生成物与 BuildHash 的权威流程）
 - `batch-wrapup` skill（L1、文档回写、审计登记）
