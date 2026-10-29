@@ -4,7 +4,7 @@ using Cysharp.Threading.Tasks;
 using LiteFramework;
 using UnityEngine;
 
-namespace LiteClient.UI
+namespace LiteFramework.UI
 {
     /// <summary>
     /// 统一反馈入口（《UI框架总设计》§6.1"Loading、空状态、错误/重试、Toast 有统一入口；

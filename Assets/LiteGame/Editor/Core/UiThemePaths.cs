@@ -13,8 +13,8 @@ namespace LiteGame.EditorTools.UI
         /// <summary>令牌源（编辑器目录，不进包；`Assets/GameData/Config` 是 YooAsset 收集路径）。</summary>
         public const string DefaultJsonPath = "Assets/LiteGame/Editor/UiTools/UiStyleTokens.json";
 
-        /// <summary>生成物（设计 §8.3 指定的运行时读面落点；单源＝<see cref="LiteClient.UI.UiThemePaths.DefaultAssetPath"/>——运行期装载与编辑器生成共用）。</summary>
-        public const string DefaultAssetPath = LiteClient.UI.UiThemePaths.DefaultAssetPath;
+        /// <summary>生成物（设计 §8.3 指定的运行时读面落点；单源＝<see cref="LiteFramework.UI.UiThemePaths.DefaultAssetPath"/>——运行期装载与编辑器生成共用）。</summary>
+        public const string DefaultAssetPath = LiteFramework.UI.UiThemePaths.DefaultAssetPath;
 
         /// <summary>工程根绝对路径（资产/源码相对路径的解析基准，与校验核心同一单源）。</summary>
         public static string ProjectRoot => ToolchainManifestLoader.ProjectRoot;

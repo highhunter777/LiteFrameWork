@@ -1,5 +1,5 @@
 using System;
-using LiteClient;
+using LiteFramework;
 using LiteFramework;
 using UnityEngine;
 using XLua; // lint-allow R12：设置门面本体住 App（须引用 GameSettings/AudioService/SettingService——与 MetaBridge 同判据），只做值域收敛与生效面

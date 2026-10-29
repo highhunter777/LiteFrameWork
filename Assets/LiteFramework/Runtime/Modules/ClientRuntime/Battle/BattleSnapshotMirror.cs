@@ -1,8 +1,9 @@
 using LiteNet;
 using LiteNet.Protocol;
 using LiteSim;
+using LiteBattle;
 
-namespace LiteClient
+namespace LiteFramework
 {
     /// <summary>
     /// 权威快照镜像（从对局上下文外提）：**持久镜像重建** + 和解判定 + 视图插值源推进。

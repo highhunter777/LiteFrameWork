@@ -4,7 +4,7 @@
 using System;
 using System.Collections.Generic;
 
-namespace LiteClient.UI
+namespace LiteFramework.UI
 {
     /// <summary>生成的页面目录（PageDefinition 单制品）；运行时经 IPageCatalog 取件。</summary>
     public sealed class UiPageCatalog : IPageCatalog
@@ -55,8 +55,8 @@ namespace LiteClient.UI
                     new PageControlDefinition("Txt_QuickEnter", "Cot_SafeArea/Cot_Actions/Button_QuickEnter/Txt_QuickEnter", "TMPro.TextMeshProUGUI", "None", false),
                     new PageControlDefinition("Button_Records", "Cot_SafeArea/Cot_Actions/Button_Records", "UnityEngine.UI.Button", "Command", true),
                     new PageControlDefinition("Txt_Records", "Cot_SafeArea/Cot_Actions/Button_Records/Txt_Records", "TMPro.TextMeshProUGUI", "None", false),
-                    new PageControlDefinition("Dropdown_Map", "Cot_SafeArea/Cot_CreateSetup/Dropdown_Map", "LiteClient.UI.UIDropdownWrap", "Command", true),
-                    new PageControlDefinition("Dropdown_Players", "Cot_SafeArea/Cot_CreateSetup/Dropdown_Players", "LiteClient.UI.UIDropdownWrap", "Command", true),
+                    new PageControlDefinition("Dropdown_Map", "Cot_SafeArea/Cot_CreateSetup/Dropdown_Map", "LiteFramework.UI.UIDropdownWrap", "Command", true),
+                    new PageControlDefinition("Dropdown_Players", "Cot_SafeArea/Cot_CreateSetup/Dropdown_Players", "LiteFramework.UI.UIDropdownWrap", "Command", true),
                     new PageControlDefinition("Txt_MapLabel", "Cot_SafeArea/Cot_CreateSetup/Txt_MapLabel", "TMPro.TextMeshProUGUI", "None", false),
                     new PageControlDefinition("Txt_PlayersLabel", "Cot_SafeArea/Cot_CreateSetup/Txt_PlayersLabel", "TMPro.TextMeshProUGUI", "None", false),
                     new PageControlDefinition("Button_Settings", "Cot_SafeArea/Cot_Header/Button_Settings", "UnityEngine.UI.Button", "Command", true),
@@ -122,8 +122,8 @@ namespace LiteClient.UI
                     new PageControlDefinition("Button_Exit", "Cot_SafeArea/Cot_Header/Button_Exit", "UnityEngine.UI.Button", "Command", true),
                     new PageControlDefinition("Txt_Exit", "Cot_SafeArea/Cot_Header/Button_Exit/Txt_Exit", "TMPro.TextMeshProUGUI", "None", false),
                     new PageControlDefinition("Txt_Title", "Cot_SafeArea/Cot_Header/Txt_Title", "TMPro.TextMeshProUGUI", "None", false),
-                    new PageControlDefinition("Dropdown_Language", "Cot_SafeArea/Cot_Options/Dropdown_Language", "LiteClient.UI.UIDropdownWrap", "Command", true),
-                    new PageControlDefinition("Dropdown_Quality", "Cot_SafeArea/Cot_Options/Dropdown_Quality", "LiteClient.UI.UIDropdownWrap", "Command", true),
+                    new PageControlDefinition("Dropdown_Language", "Cot_SafeArea/Cot_Options/Dropdown_Language", "LiteFramework.UI.UIDropdownWrap", "Command", true),
+                    new PageControlDefinition("Dropdown_Quality", "Cot_SafeArea/Cot_Options/Dropdown_Quality", "LiteFramework.UI.UIDropdownWrap", "Command", true),
                     new PageControlDefinition("Slider_Volume", "Cot_SafeArea/Cot_Options/Slider_Volume", "UnityEngine.UI.Slider", "Command", true),
                     new PageControlDefinition("Toggle_Sound", "Cot_SafeArea/Cot_Options/Toggle_Sound", "UnityEngine.UI.Toggle", "Command", true),
                     new PageControlDefinition("Txt_Account", "Cot_SafeArea/Cot_Options/Txt_Account", "TMPro.TextMeshProUGUI", "None", false),

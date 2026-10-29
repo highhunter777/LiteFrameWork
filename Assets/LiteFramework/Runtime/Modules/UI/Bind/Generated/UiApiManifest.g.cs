@@ -2,7 +2,7 @@
 // 源：Assets/LiteGame/Editor/UiTools/UiApi/UiApiSpec.json；重跑 python scripts/codegen/gen-ui-api.py。>
 using System.Collections.Generic;
 
-namespace LiteClient.UI
+namespace LiteFramework.UI
 {
     /// <summary>UI API 清单（生成）：版本与门面名清单，供能力声明与守卫测试比对。</summary>
     public static class UiApiManifest

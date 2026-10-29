@@ -1,7 +1,7 @@
 using System;
 using Cysharp.Threading.Tasks;
 using LiteGame;
-using LiteClient.UI;
+using LiteFramework.UI;
 using LiteTesting.Unity;
 using NUnit.Framework;
 using UnityEngine;

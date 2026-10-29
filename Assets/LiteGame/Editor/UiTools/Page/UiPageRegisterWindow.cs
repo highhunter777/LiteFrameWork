@@ -2,7 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using LiteClient.UI;
+using LiteFramework.UI;
 using LiteGame.Editor.UiTools.Contracts;
 using LiteGame.Editor.UiTools.Validation;
 using UnityEditor;

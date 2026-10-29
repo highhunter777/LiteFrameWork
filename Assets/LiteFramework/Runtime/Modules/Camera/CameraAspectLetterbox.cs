@@ -1,6 +1,6 @@
 using UnityEngine;
 
-namespace LiteView
+namespace LiteFramework
 {
     /// <summary>
     /// 固定 16:9 信箱式视口（N1）：把 3D 渲染视口居中裁成 16:9，非 16:9 屏幕留黑边。

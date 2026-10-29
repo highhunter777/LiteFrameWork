@@ -3,8 +3,8 @@ using Cysharp.Threading.Tasks;
 using LiteFramework;
 using UnityEditor;
 using UnityEngine;
-using LiteClient;
-using LiteClient.UI;
+using LiteFramework;
+using LiteFramework.UI;
 
 namespace LiteGame.Editor
 {

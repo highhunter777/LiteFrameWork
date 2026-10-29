@@ -1,6 +1,6 @@
 using System.Threading;
 using Cysharp.Threading.Tasks;
-using LiteClient;
+using LiteFramework;
 using LiteFramework;
 
 namespace LiteGame

@@ -241,7 +241,7 @@ Docs/设计文档/客户端/UI/      本套设计文档
 <a id="ch-page-definition"></a>
 
 - **唯一源**：`#uiform`（id/prefab/lua/layer/fullscreen）+ `UiPageManifest`（Owner/状态/设备档/缓存策略）+ `UiPageContract`（绑定表/文案；控件表已由 prefab BindNode 生成），由 `codegen.ui-page` 生成器合并为 `PageDefinition`。
-- **生成物**：`Assets/LiteFramework/Runtime/Modules/UI/Generated/UiPageCatalog.g.cs`（按 Id 排序、确定性输出）。放在 `LiteClient` 而不是 `App`：`IPageCatalog`/`PageDefinition` 是壳契约，`LiteGame.LuaBridge` 也要消费；生成物只依赖壳类型，不依赖产品程序集。
+- **生成物**：`Assets/LiteFramework/Runtime/Modules/UI/Generated/UiPageCatalog.g.cs`（按 Id 排序、确定性输出）。放在 `LiteFramework` 而不是 `App`：`IPageCatalog`/`PageDefinition` 是壳契约，`LiteGame.LuaBridge` 也要消费；生成物只依赖壳类型，不依赖产品程序集。
 - **缺失处理**：缺失 contract 的 Tmp 页告警并以空绑定表生成；缺失 prefab/table 行 fail-fast；同一 prefab 多行（如 201/206）各生成一条，id 独立。
 - **工具边界**：contract/manifest/hash 保留在编辑器域，作为生成器输入与评审产物；`Assets/LiteFramework/Runtime/Modules`、`Assets/LiteGame/App`、`Assets/LiteGame/LuaBridge` 直读表/清单/契约由 `PageDefinitionGuardTests` 拦截。
 - **迁移结果**：旧 `UIFormInfo`/`UIFormCatalog` 已删除；运行时只认 `PageDefinition`/`IPageCatalog`。
@@ -384,7 +384,7 @@ Page Logic (C# UIBindBase 或 Lua)
 
 <a id="ch-ui-queue"></a>
 
-- **唯一排队原语**：`LiteClient.UI.IUiOperationQueue<T>`（实现 `UiOperationQueue<T>`）提供容量、优先级、
+- **唯一排队原语**：`LiteFramework.UI.IUiOperationQueue<T>`（实现 `UiOperationQueue<T>`）提供容量、优先级、
   就绪筛选、拒绝计数与取队；**运行时代码不得再为 UI 调度私建 `Queue<T>`/`List<T>` 队列**。
   执行时序仍归各消费者（导航/转场/弹窗各自泵动），排队语义只此一份。
 - **使用面**：
@@ -443,7 +443,7 @@ Page Logic (C# UIBindBase 或 Lua)
 
 - prefab 上的颜色/字号/间距优先挂**引用组件**（`UiStyleRef`〔颜色，P2-3 B2〕/`UiTextStyleRef`〔文字档〕），而不是裸值；`UiStyleRef` 只声明不驱动，值由应用核心单写。`UiTextStyleRef.UseInstanceOverrides` 供模板实例保留自身属性（合法覆盖，工具不应用/不判 Mismatch，仍计未标记债）。
 - 编辑期 Applier 按令牌批量应用（`ui.style.colors-refresh` 三段式：refs 声明应用 → widget 状态 token 迁移 → 裸值最近匹配收敛〔跳过已声明与 `IThemeGraphicWriter` 认领的目标 Graphic〕）。批量工具的"可回退"＝**幂等重跑零变更＋变更仅经工具落盘（版本管理可回退）**——Unity Undo 记录在 PrefabUtility 批量模式下不跨资产落盘生效，交互式单页 Undo 如未来需要另批上机制。
-- 运行期只读解析（`UiStyleResolver`，核心住 LiteClient.UI、编辑器 `UiTokenCatalog` 委托）；主题由 bootstrap 一次装载 `UiTheme.asset`，经 `UIService` ctor 形参 → `UIForm.ThemeProvider` 注入，页面装配期（PrepareForShow）**统一走 `UiThemeBinder`**（`IThemeBound` 注入 → `UiStyleRef` 应用 → writer 自身/祖先跳过 → 未知令牌 Warning 一次）——装载缺失降级＝保持烘焙值＋Warning 一次。HUD 经 `UIService.ThemeAssetProvider` → `ProcedureBattle` → `BattleViewAssets` 在实例化后调用同一 binder。主题切换的驱动点即该注入缝（换资产重注入＋重开页面重应用）。不允许页面自行改全局材质/颜色。
+- 运行期只读解析（`UiStyleResolver`，核心住 LiteFramework.UI、编辑器 `UiTokenCatalog` 委托）；主题由 bootstrap 一次装载 `UiTheme.asset`，经 `UIService` ctor 形参 → `UIForm.ThemeProvider` 注入，页面装配期（PrepareForShow）**统一走 `UiThemeBinder`**（`IThemeBound` 注入 → `UiStyleRef` 应用 → writer 自身/祖先跳过 → 未知令牌 Warning 一次）——装载缺失降级＝保持烘焙值＋Warning 一次。HUD 经 `UIService.ThemeAssetProvider` → `ProcedureBattle` → `BattleViewAssets` 在实例化后调用同一 binder。主题切换的驱动点即该注入缝（换资产重注入＋重开页面重应用）。不允许页面自行改全局材质/颜色。
 - 状态色（Normal/Pressed/Disabled/Selected）**已令牌化**：自研三 widget（StateButton/TabGroup/StarRating）以伴生 token 字段声明、装配期经 `IThemeBound` 解析，取值序＝token 可解析→令牌现值，否则序列化 fallback；uGUI 原生 `Selectable.colors` 由 `UiSelectableTheme` 接缝覆盖（5 枚 `color.state.selectable.*`，46 个 ColorTint Selectable = 33 直挂组件 + 13 模板继承；只写状态 tint、保留 multiplier/fade，仅 ColorTint 生效）。不在业务代码里写 RGB。
 - 裸值必须能被校验器识别并登记例外（Owner/原因/到期），不得静默通过；引用对账由 `ui.style.ref` 五判据（未知令牌 Error/值漂移 Warning/无目标 Error/widget 三态/`IThemeGraphicWriter` 自身或祖先双写者 Error）；Selectable 状态色由 `ui.style.selectable`（缺组件 Warning/无 Selectable Error/未知令牌 Error/ColorBlock 漂移 Warning/非 ColorTint 跳过）。
 

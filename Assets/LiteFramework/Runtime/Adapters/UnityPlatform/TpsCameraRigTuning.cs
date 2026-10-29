@@ -1,6 +1,6 @@
 using UnityEngine;
 
-namespace LiteClient
+namespace LiteFramework
 {
     /// <summary>
     /// TPS 相机机位调参（场景单源）：挂在主 vcam 根上，由相机服务读取（瞄准机位置由主视线派生）。

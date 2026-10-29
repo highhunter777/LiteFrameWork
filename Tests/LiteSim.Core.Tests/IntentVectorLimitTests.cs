@@ -1,6 +1,6 @@
 using System;
 using Xunit;
-using LiteClient;
+using LiteFramework;
 
 namespace LiteSim.Tests
 {

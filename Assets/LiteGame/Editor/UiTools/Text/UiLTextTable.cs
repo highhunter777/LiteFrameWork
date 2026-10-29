@@ -2,7 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using LiteClient;
+using LiteFramework;
 using LiteGame.Editor.UiTools.Validation;
 using Luban;
 

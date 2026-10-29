@@ -2,7 +2,7 @@ using System;
 using Cysharp.Threading.Tasks;
 using LiteFramework;
 
-namespace LiteClient.UI
+namespace LiteFramework.UI
 {
     /// <summary>
     /// 一次转场事务的可变状态 + 表现入口（§1.5.2 的 payload 载荷）。

@@ -2,7 +2,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Text;
 using cfg;
-using LiteClient;
+using LiteFramework;
 using LiteSim;
 using Luban;
 using NUnit.Framework;

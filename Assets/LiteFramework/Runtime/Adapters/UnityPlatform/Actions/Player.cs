@@ -15,7 +15,7 @@ using System.Collections.Generic;
 using UnityEngine.InputSystem;
 using UnityEngine.InputSystem.Utilities;
 
-namespace LiteClient
+namespace LiteFramework
 {
     public partial class @PlayerInputActions: IInputActionCollection2, IDisposable
     {

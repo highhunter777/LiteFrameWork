@@ -1,6 +1,6 @@
 using LiteSim;
 
-namespace LiteClient
+namespace LiteBattle
 {
     /// <summary>
     /// 本地测试房宿主钩子（开发/沙箱面端口）：产品只经本接口读写，具体实例住 `LiteGame.Dev`。

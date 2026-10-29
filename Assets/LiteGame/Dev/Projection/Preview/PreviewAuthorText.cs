@@ -1,6 +1,6 @@
 #if UNITY_EDITOR
 using System.Collections.Generic;
-using LiteClient.UI;
+using LiteFramework.UI;
 using TMPro;
 using UnityEngine;
 using UnityEngine.UI;

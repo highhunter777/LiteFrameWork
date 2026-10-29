@@ -2,7 +2,7 @@ using System;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UI;
-namespace LiteClient.UI
+namespace LiteFramework.UI
 {
     /// <summary>红点控件（RedDotRegistry 的完整实现）：绑定红点树节点，计数 &gt; 0 显示 Dot。</summary>
     public class RedDot : UIWidget

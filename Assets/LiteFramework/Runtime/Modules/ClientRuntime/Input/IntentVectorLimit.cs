@@ -1,4 +1,4 @@
-namespace LiteClient
+namespace LiteFramework
 {
     /// <summary>
     /// 意图向量的闸门边界守卫（《角色状态与动作专项设计》§3"长度 ≤1 契约"的浮点边界收口）。

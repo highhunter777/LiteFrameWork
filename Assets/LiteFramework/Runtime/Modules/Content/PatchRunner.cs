@@ -3,7 +3,7 @@ using System.Threading;
 using Cysharp.Threading.Tasks;
 using LiteFramework;
 
-namespace LiteClient
+namespace LiteFramework
 {
     /// <summary>
     /// 内容激活器（§8 安全窗口）。把 <see cref="IContentService"/> 的重建能力接到编排端口。

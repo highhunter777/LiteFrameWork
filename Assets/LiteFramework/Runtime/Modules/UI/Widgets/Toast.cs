@@ -5,7 +5,7 @@ using System.Collections.Generic;
 using LiteFramework;
 using UnityEngine;
 
-namespace LiteClient.UI
+namespace LiteFramework.UI
 {
     /// <summary>
     /// 轻提示承载控件（§6.1：**多条并存**）。

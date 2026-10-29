@@ -4,7 +4,7 @@ using LiteFramework;
 using UnityEngine;
 using UnityEngine.UI;
 
-namespace LiteClient.UI
+namespace LiteFramework.UI
 {
     /// <summary>
     /// 绑定索引的**列表域**：列表源登记、行 → 条目投影、行点击钩子、窗口重绑与池化解绑。

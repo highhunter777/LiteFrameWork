@@ -1,6 +1,6 @@
 {
     "name": "LiteBattle.Abstractions",
-    "rootNamespace": "LiteClient",
+    "rootNamespace": "LiteBattle",
     "references": [
         "LiteSim.Core"
     ],

@@ -1,7 +1,7 @@
 using System;
 using UnityEngine;
 
-namespace LiteClient.UI
+namespace LiteFramework.UI
 {
     /// <summary>
     /// 控件模板插槽声明（《UI 系统总设计》§6.5「模板插槽用命名容器（`Cot_Header`/`Cot_Body`/

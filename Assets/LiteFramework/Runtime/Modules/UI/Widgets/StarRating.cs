@@ -2,7 +2,7 @@ using System;
 using UnityEngine;
 using UnityEngine.UI;
 
-namespace LiteClient.UI
+namespace LiteFramework.UI
 {
     /// <summary>星级评分：N 颗星（Image 子节点，顺序即星级），整星粒度；onChange 回调。
     /// 状态色令牌化（P2-3 B2）：伴生 token 字段（空＝未令牌化用序列化色；装配期经 <see cref="IThemeBound"/> 注入解析）。</summary>

@@ -7,7 +7,7 @@ using UnityEngine;
 using TMPro;
 using UnityEngine.UI;
 
-namespace LiteClient.UI
+namespace LiteFramework.UI
 {
     /// <summary>飘字池：屏幕坐标文本上飘淡出，池化复用（规格：池深 16——经 <see cref="ObjectPool{T}"/>
     /// 内核收编，《对象池专项设计》§5：复位动作映射进 onRelease 回调，maxIdle=PoolDepth 语义保留）。

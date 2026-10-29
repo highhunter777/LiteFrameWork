@@ -12,7 +12,7 @@ namespace LiteGame.Tests.EditMode
 {
     /// <summary>
     /// P1-5/P1-6 收口：契约与清单能力必须有工具入口（Hub/CLI），生成物必须有可对账基线，
-    /// 试点页的静态文案必须由 <see cref="LiteClient.UI.LTextKeyRef"/> 声明而不是 Lua 动态写。
+    /// 试点页的静态文案必须由 <see cref="LiteFramework.UI.LTextKeyRef"/> 声明而不是 Lua 动态写。
     /// 只断言可观察面（目录/清单/契约产物），不依赖工具内部实现。
     /// </summary>
     public sealed class UiToolchainWiringEditModeTests

@@ -2,7 +2,7 @@ using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
 
-namespace LiteClient.UI
+namespace LiteFramework.UI
 {
     /// <summary>进度条：直线（Filled Horizontal）与环形（Filled Radial）共用本件——
     /// 形态由 Image 的 fillMethod/精灵决定，组件只驱动 fillAmount 与可选数值文本。</summary>

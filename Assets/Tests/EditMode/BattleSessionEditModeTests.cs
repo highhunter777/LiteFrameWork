@@ -10,7 +10,8 @@ using LiteSim;
 using LiteTesting;
 using LiteTesting.Unity;
 using NUnit.Framework;
-using LiteClient;
+using LiteFramework;
+using LiteBattle;
 
 namespace LiteGame.Tests.EditMode
 {

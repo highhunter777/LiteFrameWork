@@ -4,7 +4,7 @@ using System;
 using UnityEngine;
 using UnityEngine.UI;
 
-namespace LiteClient.UI
+namespace LiteFramework.UI
 {
     /// <summary>头像框：头像 + 框 + 等级角标三件套的组装件（Set 一口喂）。</summary>
     public class AvatarFrame : MonoBehaviour

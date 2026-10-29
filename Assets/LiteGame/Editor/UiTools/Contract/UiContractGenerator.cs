@@ -5,7 +5,7 @@ using System.Linq;
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.RegularExpressions;
-using LiteClient.UI;
+using LiteFramework.UI;
 using LiteCodeGen;
 using LiteGame.Editor.UiTools.Binding;
 using LiteGame.Editor.UiTools.Page;

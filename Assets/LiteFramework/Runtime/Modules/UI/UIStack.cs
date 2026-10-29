@@ -1,7 +1,7 @@
 using System;
 using System.Collections.Generic;
 
-namespace LiteClient.UI
+namespace LiteFramework.UI
 {
     /// <summary>
     /// 组内界面栈：开序即深序（尾 = 最上）；Top/Pop 语义供 §2.2 IPopInterceptor 消费。

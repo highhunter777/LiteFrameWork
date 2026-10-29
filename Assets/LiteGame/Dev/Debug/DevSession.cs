@@ -1,6 +1,7 @@
 #if UNITY_EDITOR || DEVELOPMENT_BUILD || LITEFRAMEWORK_DEBUG
-using LiteClient;
+using LiteFramework;
 using LiteSim;
+using LiteBattle;
 
 namespace LiteGame
 {

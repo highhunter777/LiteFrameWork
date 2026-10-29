@@ -3,10 +3,11 @@ using System.Collections.Generic;
 using System.Threading;
 using Cysharp.Threading.Tasks;
 using LiteFramework;
-using LiteClient.UI;
+using LiteFramework.UI;
 using LiteView;
-using LiteClient;
+using LiteFramework;
 using LiteNet.Transport;
+using LiteBattle;
 
 namespace LiteGame
 {

@@ -1,10 +1,11 @@
 using System.Collections;
-using LiteClient;
+using LiteFramework;
 using NUnit.Framework;
 using UnityEngine;
 using UnityEngine.InputSystem;
 using UnityEngine.InputSystem.LowLevel;
 using UnityEngine.TestTools;
+using LiteBattle;
 
 namespace LiteGame.Tests.UI.PlayMode
 {

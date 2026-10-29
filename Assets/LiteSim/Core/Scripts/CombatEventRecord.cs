@@ -11,7 +11,7 @@ namespace LiteSim
     /// - 词汇单源：<see cref="FrameEventKind"/> 已定义全词汇，本记录就是它的**可跨帧携带**版本
     ///   （<see cref="FrameEvent"/> 只在逻辑帧内活，帧末即清）；
     /// - 两端共享：LiteNet（协议映射）、RoomServer.Runtime（窗口只持纯数据，R11 纯度）、
-    ///   LiteClient（公共事件面）都引用 <c>LiteSim.Core</c>——放进任何一端都会造成反向依赖；
+    ///   LiteFramework（公共事件面）都引用 <c>LiteSim.Core</c>——放进任何一端都会造成反向依赖；
     /// - 泛化点：**新增一种事件 = 加一个 <see cref="FrameEventKind"/> 值 + 一个产出点**，
     ///   窗口/wire/客户端分发零改动（字段按 kind 释义复用，不新增协议字段）。
     ///

@@ -1,7 +1,7 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using LiteClient.UI;
+using LiteFramework.UI;
 using LiteCodeGen;
 using LiteGame.Editor.UiTools.Contracts;
 using NUnit.Framework;

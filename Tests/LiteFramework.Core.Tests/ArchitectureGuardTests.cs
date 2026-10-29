@@ -17,7 +17,7 @@ namespace LiteFramework.Core.Tests
         {
             string root = RepoRoot();
 
-            // 《路线图》§4.2：LiteClient.Runtime 不引用 LiteView（表现经 IBattleView 端口进入）
+            // 《路线图》§4.2：LiteFramework.Runtime 不引用 LiteView（表现经 IBattleView 端口进入）
             AssertNoReference(root, "Assets/LiteFramework/Runtime/LiteFramework.Runtime.asmdef", "LiteView");
 
             // §4.2/§3.6：LiteGame.App 的 release 依赖图不含开发装配层 / RoomServer.*

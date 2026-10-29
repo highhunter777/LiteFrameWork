@@ -2,7 +2,7 @@ using System;
 using System.Collections.Generic;
 using LiteFramework;
 
-namespace LiteClient.UI
+namespace LiteFramework.UI
 {
     /// <summary>
     /// 缓存预算淘汰（从 <see cref="UIService"/> 外提的"缓存淘汰策略"域，M3-6 §4.5）：

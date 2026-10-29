@@ -2,7 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Text.RegularExpressions;
-using LiteClient.UI;
+using LiteFramework.UI;
 
 namespace LiteGame.Editor
 {

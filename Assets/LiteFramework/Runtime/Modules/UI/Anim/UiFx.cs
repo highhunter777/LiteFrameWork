@@ -3,7 +3,7 @@ using DG.Tweening;
 using UnityEngine;
 using UnityEngine.UI;
 
-namespace LiteClient.UI
+namespace LiteFramework.UI
 {
     /// <summary>
     /// 动效原语句柄（《动画模块专项设计》§14 原语复位清单 + 《UI框架总设计》§6.3 复位契约）：

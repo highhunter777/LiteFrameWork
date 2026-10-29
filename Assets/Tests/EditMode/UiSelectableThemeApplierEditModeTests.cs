@@ -1,4 +1,4 @@
-using LiteClient.UI;
+using LiteFramework.UI;
 using LiteGame.EditorTools.UI;
 using NUnit.Framework;
 using UnityEditor;

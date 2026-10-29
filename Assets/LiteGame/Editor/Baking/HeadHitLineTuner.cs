@@ -2,6 +2,7 @@ using System.Globalization;
 using System.Text;
 using UnityEditor;
 using UnityEngine;
+using LiteBattle;
 
 namespace LiteGame.EditorTools
 {
@@ -75,7 +76,7 @@ namespace LiteGame.EditorTools
                 }
                 if (GUILayout.Button("取当前覆写值"))
                 {
-                    var match = LiteGame.Editor.GmEditorResolve.ResolveFromContainer<LiteClient.IDevSession>()?.MatchRules;
+                    var match = LiteGame.Editor.GmEditorResolve.ResolveFromContainer<LiteBattle.IDevSession>()?.MatchRules;
                     float lineNow = match != null
                         ? LiteSim.MatchTestRules.ResolveHeadHitLine(match)
                         : TestModeRuntime.Current.HeadHitLineOverride;
@@ -91,7 +92,7 @@ namespace LiteGame.EditorTools
                 {
                     TestModeRuntime.Current.HeadHitLineOverride = -1f;
                     TestModeRuntime.Current.HeadshotRadiusOverride = -1f;
-                    var live = LiteGame.Editor.GmEditorResolve.ResolveFromContainer<LiteClient.IDevSession>()?.MatchRules;
+                    var live = LiteGame.Editor.GmEditorResolve.ResolveFromContainer<LiteBattle.IDevSession>()?.MatchRules;
                     if (live != null) { live.HeadHitLineOverride = -1f; live.HeadshotRadiusOverride = -1f; }
                 }
             }

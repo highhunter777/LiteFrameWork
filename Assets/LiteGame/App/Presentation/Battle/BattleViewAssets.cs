@@ -2,13 +2,13 @@ using System;
 using System.Collections.Generic;
 using System.Threading;
 using Cysharp.Threading.Tasks;
-using LiteClient;
+using LiteFramework;
 using LiteFramework;
 using LiteFramework.Animation;
 using LiteView;
 using LiteView.Animation;
 using UnityEngine;
-using LiteClient.UI;
+using LiteFramework.UI;
 
 namespace LiteGame
 {

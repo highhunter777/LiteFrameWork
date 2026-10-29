@@ -2,14 +2,14 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Text.RegularExpressions;
-using LiteClient;
+using LiteFramework;
 using LiteGame;
 using LiteTesting.Unity;
 using Luban;
 using NUnit.Framework;
 using UnityEngine;
 using XLua;
-using LiteClient.UI;
+using LiteFramework.UI;
 
 namespace LiteGame.Tests.EditMode
 {

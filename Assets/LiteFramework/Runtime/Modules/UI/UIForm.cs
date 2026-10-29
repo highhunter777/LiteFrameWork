@@ -4,7 +4,7 @@ using LiteFramework;
 using UnityEngine;
 using UnityEngine.UI;
 
-namespace LiteClient.UI
+namespace LiteFramework.UI
 {
     /// <summary>
     /// 界面运行时实例：状态机 + 逻辑持有 + 画布就位。

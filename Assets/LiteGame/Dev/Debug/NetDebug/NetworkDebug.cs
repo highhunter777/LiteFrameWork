@@ -1,7 +1,7 @@
 #if UNITY_EDITOR || DEVELOPMENT_BUILD || LITEFRAMEWORK_DEBUG
 using System;
 using System.Text;
-using LiteClient;
+using LiteFramework;
 using LiteNet;
 using LiteNet.Diagnostics;
 

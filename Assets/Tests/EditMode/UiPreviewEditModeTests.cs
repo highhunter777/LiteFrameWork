@@ -1,7 +1,7 @@
 using System;
 using System.Linq;
 using System.Reflection;
-using LiteClient.UI;
+using LiteFramework.UI;
 using LiteGame.Editor.UiTools.Page;
 using LiteGame.Editor.UiTools.Preview;
 using LiteGame.Toolchain;

@@ -1,6 +1,6 @@
 using System;
 using System.Collections.Generic;
-using LiteClient;
+using LiteFramework;
 using LiteNet;
 using LiteNet.Proto;
 using LiteNet.Protocol;
@@ -8,6 +8,7 @@ using LiteNet.Transport;
 using LiteSim;
 using RoomServer.Application;
 using RoomServer.Runtime;
+using LiteBattle;
 
 // 开发面剥离：与 DevHUD/DevStartupConfig 同款三宏 #if（release Player 中本件整体不编译；
 // asmdef 层不设约束）。

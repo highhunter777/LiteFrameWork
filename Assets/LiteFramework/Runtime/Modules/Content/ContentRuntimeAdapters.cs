@@ -4,7 +4,7 @@ using System.Threading;
 using Cysharp.Threading.Tasks;
 using LiteFramework;
 
-namespace LiteClient
+namespace LiteFramework
 {
     /// <summary>
     /// 候选文件访问的 FileSystem 适配（《热更与内容发布专项设计》§7）。

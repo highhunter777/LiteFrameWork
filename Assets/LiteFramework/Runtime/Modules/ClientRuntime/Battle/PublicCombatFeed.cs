@@ -3,7 +3,7 @@ using LiteNet.Protocol;
 using LiteNet.Proto;
 using LiteSim;
 
-namespace LiteClient
+namespace LiteFramework
 {
     /// <summary>
     /// 公共战斗事件面（《状态同步专项设计》§5.2 CombatEvent 面）：独立包

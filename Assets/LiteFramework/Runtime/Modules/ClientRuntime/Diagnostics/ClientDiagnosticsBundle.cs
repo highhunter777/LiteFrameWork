@@ -5,7 +5,7 @@ using System.Text;
 using LiteFramework;
 using LiteFramework.Diagnostics;
 
-namespace LiteClient
+namespace LiteFramework
 {
     /// <summary>
     /// 客户端 mismatch 现场包的请求组装：从 Unity/Log 面取现场，写盘交给

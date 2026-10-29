@@ -5,7 +5,7 @@ using UnityEngine;
 using UnityEngine.InputSystem;
 #endif
 
-namespace LiteClient
+namespace LiteFramework
 {
     /// <summary>平台层功能键名（不暴露 InputSystem/KeyCode 类型，便于后端切换与上层复用）。</summary>
     public enum PlatformKey

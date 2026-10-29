@@ -1,6 +1,6 @@
 #if UNITY_EDITOR
 using System.Collections;
-using LiteClient.UI;
+using LiteFramework.UI;
 using LiteFramework;
 using LiteGame;
 using NUnit.Framework;

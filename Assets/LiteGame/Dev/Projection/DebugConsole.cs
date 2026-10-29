@@ -2,7 +2,7 @@
 using System;
 using System.Collections.Generic;
 using System.Text;
-using LiteClient;
+using LiteFramework;
 using LiteFramework;
 using LiteNet.Diagnostics;
 using UnityEngine;

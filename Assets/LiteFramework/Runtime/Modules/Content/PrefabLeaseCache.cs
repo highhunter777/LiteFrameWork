@@ -5,7 +5,7 @@ using Cysharp.Threading.Tasks;
 using LiteFramework;
 using UnityEngine;
 
-namespace LiteClient
+namespace LiteFramework
 {
     /// <summary>
     /// 表现域 prefab 租约缓存（《商业级通用客户端总设计》§8.2——"Prefab 租约从加载完成持有至

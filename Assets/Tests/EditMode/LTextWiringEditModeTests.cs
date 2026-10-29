@@ -8,8 +8,8 @@ using Luban;
 using NUnit.Framework;
 using UnityEngine;
 using UnityEngine.UI;
-using LiteClient;
-using LiteClient.UI;
+using LiteFramework;
+using LiteFramework.UI;
 
 namespace LiteGame.Tests.EditMode
 {

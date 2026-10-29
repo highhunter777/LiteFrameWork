@@ -1,6 +1,6 @@
 using System.Collections.Generic;
 using System.Linq;
-using LiteClient.UI;
+using LiteFramework.UI;
 using LiteGame.Editor.UiTools.Contracts;
 using LiteGame.Editor.UiTools.Page;
 using NUnit.Framework;

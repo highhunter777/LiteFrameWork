@@ -1,6 +1,7 @@
 using LiteSim;
+using LiteBattle;
 
-namespace LiteClient
+namespace LiteFramework
 {
     /// <summary>
     /// 本地输入上行管线（《角色状态与动作专项设计》§3"输入三件"的落点，从对局上下文外提）：

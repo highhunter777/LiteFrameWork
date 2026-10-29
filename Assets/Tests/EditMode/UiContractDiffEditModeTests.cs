@@ -83,7 +83,7 @@ namespace LiteGame.Tests.EditMode
         {
             UiPageContract baseline = Contract();
             UiPageContract current = Contract();
-            current.Controls.Single(x => x.BindName == "Button_Start").Type = "LiteClient.UI.UIWidget";
+            current.Controls.Single(x => x.BindName == "Button_Start").Type = "LiteFramework.UI.UIWidget";
             current.Text.Single().Key = "UI.Test.Changed";
 
             var diff = UiContractDiff.Compare(baseline, current);

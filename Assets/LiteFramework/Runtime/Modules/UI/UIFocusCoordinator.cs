@@ -6,7 +6,7 @@ using UnityEngine;
 using UnityEngine.EventSystems;
 using UnityEngine.UI;
 
-namespace LiteClient.UI
+namespace LiteFramework.UI
 {
     /// <summary>
     /// 焦点协调者（《UI框架总设计》§6.2"焦点保存/恢复、键盘/手柄 Submit/Cancel 和平台返回统一处理"；

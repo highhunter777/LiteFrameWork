@@ -1,6 +1,6 @@
 using LiteFramework;
 using XLua;
-using LiteClient.UI;
+using LiteFramework.UI;
 
 namespace LiteGame
 {

@@ -1,5 +1,5 @@
 using System.Collections.Generic;
-using LiteClient;
+using LiteFramework;
 using LiteFramework;
 using LiteFramework.Animation;
 using LiteSim;
@@ -10,7 +10,7 @@ using LiteTesting.Unity;
 using NUnit.Framework;
 using UnityEditor;
 using UnityEngine;
-using LiteClient.UI;
+using LiteFramework.UI;
 
 namespace LiteGame.Tests.EditMode
 {

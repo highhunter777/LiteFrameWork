@@ -1,7 +1,7 @@
 using System;
 using LiteFramework;
 
-namespace LiteClient
+namespace LiteFramework
 {
     /// <summary>
     /// 设置项的**唯一消费面**（DI 单例）。**业务层件**：机制（SettingService 存储引擎 /

@@ -1,4 +1,4 @@
-using LiteClient;
+using LiteFramework;
 using LiteView;
 using NUnit.Framework;
 using UnityEngine;

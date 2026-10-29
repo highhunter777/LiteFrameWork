@@ -17,7 +17,7 @@ namespace LiteGame
     ///   **空 = 不注入**，回落平台机器标识（<c>SystemInfo.deviceUniqueIdentifier</c>）——同一台机器上的
     ///   编辑器与 player 会因此**落到同一账号**；同机多客户端要各自身份时注入不同值。
     ///
-    /// 与 <see cref="LiteClient.ContentCdnConfig"/> 同源先例：运行时来源是命令行参数（部署/测试注入），
+    /// 与 <see cref="LiteFramework.ContentCdnConfig"/> 同源先例：运行时来源是命令行参数（部署/测试注入），
     /// 解析是纯函数（EditMode 直测）；基址不是信任边界——访问令牌/Join Ticket 的效力由服务端验签把守。
     /// </summary>
     public sealed class MetaEntryConfig
@@ -74,7 +74,7 @@ namespace LiteGame
     /// <see cref="Parse"/> 是纯函数（参数数组进、配置出）——EditMode 直测；
     /// <see cref="Load"/> 是 Unity 入口（读进程命令行）。
     ///
-    /// 参数形态（与 <see cref="LiteClient.ContentDeployConfig"/> 同款，两种等价支持）：
+    /// 参数形态（与 <see cref="LiteFramework.ContentDeployConfig"/> 同款，两种等价支持）：
     /// <c>-meta.url=https://meta.example.com</c> 或 <c>-meta.url https://meta.example.com</c>；
     /// 未出现的键保持默认。非法值静默保持默认——部署参数不是攻击面，但也不让它让启动失败。
     ///

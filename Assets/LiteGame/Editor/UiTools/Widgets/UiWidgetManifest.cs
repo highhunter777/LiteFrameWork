@@ -6,7 +6,7 @@ namespace LiteGame.Editor.UiTools.Widgets
     /// <summary>
     /// 控件清单（《UI 编辑器工具链专项设计》§8.3：`UiWidgetManifest` → `Assets/LiteGame/Editor/UiTools/
     /// UiWidgetManifest.json`，消费者＝控件库/文档/校验）。由 <see cref="UiWidgetManifestGenerator"/>
-    /// 从 `Tmp_*` 模板 + <see cref="LiteClient.UI.WidgetSpec"/> + 受控属性白名单汇总；生成物只读、禁手改。
+    /// 从 `Tmp_*` 模板 + <see cref="LiteFramework.UI.WidgetSpec"/> + 受控属性白名单汇总；生成物只读、禁手改。
     ///
     /// 字段序固定、无时间戳、稳定排序——重复生成逐字节一致。
     /// </summary>
@@ -56,7 +56,7 @@ namespace LiteGame.Editor.UiTools.Widgets
         [JsonProperty("usageSegment", Order = 3, NullValueHandling = NullValueHandling.Ignore)]
         public string UsageSegment { get; set; }
 
-        /// <summary>模板根是否声明了 <see cref="LiteClient.UI.WidgetSpec"/>。</summary>
+        /// <summary>模板根是否声明了 <see cref="LiteFramework.UI.WidgetSpec"/>。</summary>
         [JsonProperty("specPresent", Order = 4)]
         public bool SpecPresent { get; set; }
 

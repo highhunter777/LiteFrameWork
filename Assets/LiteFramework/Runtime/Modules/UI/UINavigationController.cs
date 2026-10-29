@@ -4,7 +4,7 @@ using System.Threading;
 using Cysharp.Threading.Tasks;
 using LiteFramework;
 
-namespace LiteClient.UI
+namespace LiteFramework.UI
 {
     /// <summary>
     /// 导航协调者（《UI框架总设计》§4.3：**单写者串行** + 队列上限 + 等待超时 + 可观测拒绝）。

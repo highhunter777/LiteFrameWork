@@ -216,7 +216,7 @@ namespace Tools.DisciplineScan
             ("UnityEngine.InputSystem", new[] { "Assets/LiteFramework/Runtime/Adapters/UnityPlatform/", "Assets/LiteFramework/Runtime/Modules/UI/Input/" }),
             // Cinemachine：相机适配（同上）——消费者只认 ICameraService 端口，不认识这个包
             ("Cinemachine", new[] { "Assets/LiteFramework/Runtime/Adapters/UnityPlatform/" }),
-            // DG.Tweening：UI 动效适配。**不在 Adapters 层**——它是 UI 框架（LiteClient.UI）的
+            // DG.Tweening：UI 动效适配。**不在 Adapters 层**——它是 UI 框架（LiteFramework.UI）的
             // 专属适配，住其 Anim 子目录（同 InputSystem 的 UI/Input 判例）
             ("DG.Tweening", new[] { "Assets/LiteFramework/Runtime/Modules/UI/Anim/" }),
         };

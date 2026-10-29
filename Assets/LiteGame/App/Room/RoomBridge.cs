@@ -1,6 +1,6 @@
 using System;
 using Cysharp.Threading.Tasks;
-using LiteClient;
+using LiteFramework;
 using LiteFramework;
 using XLua; // lint-allow R12：房间会话门面本体住 App（须引用 BattleClient——LuaBridge 不引用 App，依赖方向不可反），本体只做 env 装订/回调转发——与 MetaBridge 同判
 
@@ -161,7 +161,7 @@ namespace LiteGame
             => SafeCall.Invoke(() => cb?.Call(ok, reason), "Bridge.room.StartMatch");
     }
 
-    /// <summary>房间会话端口（App 域——LiteClient 不反引 LiteGame，故端口在此、由 App 侧适配
+    /// <summary>房间会话端口（App 域——LiteFramework 不反引 LiteGame，故端口在此、由 App 侧适配
     /// <see cref="BattleClient"/>；IMetaClient 先例同形）。测试注 fake 即可直测门面语义。</summary>
     public interface IRoomSessionFace
     {

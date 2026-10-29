@@ -3,7 +3,7 @@ using LiteFramework;
 using LiteFramework.Diagnostics;
 using UnityEngine;
 
-namespace LiteClient
+namespace LiteFramework
 {
     /// <summary>
     /// 结构化日志的安装/卸载（**开发形态**由装配点经 <see cref="DevBuildFacts.IsDevelopment"/> 门控安装）。

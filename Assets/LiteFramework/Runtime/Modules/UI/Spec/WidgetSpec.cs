@@ -1,7 +1,7 @@
 using System;
 using UnityEngine;
 
-namespace LiteClient.UI
+namespace LiteFramework.UI
 {
     /// <summary>
     /// 控件模板能力声明（《UI 系统总设计》§1.4「Widget Spec＝控件模板的能力声明：插槽、属性、状态、

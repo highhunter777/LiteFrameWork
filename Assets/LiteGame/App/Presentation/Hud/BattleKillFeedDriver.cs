@@ -1,10 +1,11 @@
 using System;
-using LiteClient;
-using LiteClient.UI;
+using LiteFramework;
+using LiteFramework.UI;
 using LiteSim;
 using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
+using LiteBattle;
 
 namespace LiteGame
 {

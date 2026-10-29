@@ -5,7 +5,7 @@ using Cysharp.Threading.Tasks;
 using LiteFramework;
 using UnityEngine;
 
-namespace LiteClient.UI
+namespace LiteFramework.UI
 {
     /// <summary>弹窗结果（§4.3"返回确认/取消/关闭原因"）。</summary>
     public enum DialogResult

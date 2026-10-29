@@ -5,7 +5,7 @@ using DG.Tweening;
 using LiteFramework;
 using UnityEngine;
 
-namespace LiteClient.UI
+namespace LiteFramework.UI
 {
 
     /// <summary>

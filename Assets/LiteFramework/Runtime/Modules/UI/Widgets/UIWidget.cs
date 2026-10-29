@@ -4,7 +4,7 @@ using UnityEngine;
 using UnityEngine.EventSystems;
 using UnityEngine.UI;
 
-namespace LiteClient.UI
+namespace LiteFramework.UI
 {
     /// <summary>控件基类：可交互性 + 按压微动效 hook（走 UiFx 原语——全项目唯一 tween 出口）。
     /// 派生类覆写 Awake 时必须调 base.Awake()；OnClick/OnInteractableChanged 为多态挂点。</summary>

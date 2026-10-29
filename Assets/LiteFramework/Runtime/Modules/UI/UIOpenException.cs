@@ -1,6 +1,6 @@
 using System;
 
-namespace LiteClient.UI
+namespace LiteFramework.UI
 {
     /// <summary>UI 打开操作的失败分类（《UI框架总设计》§4.3——失败抛类型化异常，不返回 null 表示进行中）。</summary>
     public enum UIOpenFailure

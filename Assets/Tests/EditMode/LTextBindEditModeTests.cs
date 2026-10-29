@@ -5,7 +5,7 @@ using LiteTesting.Unity;
 using NUnit.Framework;
 using UnityEngine;
 using UnityEngine.UI;
-using LiteClient.UI;
+using LiteFramework.UI;
 
 namespace LiteGame.Tests.EditMode
 {

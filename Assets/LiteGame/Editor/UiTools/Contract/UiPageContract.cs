@@ -1,6 +1,6 @@
 using System;
 using System.Collections.Generic;
-using LiteClient.UI;
+using LiteFramework.UI;
 using Newtonsoft.Json;
 
 namespace LiteGame.Editor.UiTools.Contracts

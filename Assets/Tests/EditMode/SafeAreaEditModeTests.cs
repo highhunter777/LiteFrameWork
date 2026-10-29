@@ -1,4 +1,4 @@
-using LiteClient.UI;
+using LiteFramework.UI;
 using LiteTesting;
 using LiteTesting.Unity;
 using NUnit.Framework;

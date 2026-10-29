@@ -56,11 +56,11 @@ namespace LiteGame
         /// 恢复完成重发；委托形同为 Action&lt;LuaFunction&gt;，零新增生成形）。
         /// ApiVersion 5（房间等待人数批）：room 门面增 ExpectedPlayers（本房房规模拉取——房间页
         /// "等待玩家 N/M" 的分母；委托形 Func&lt;int&gt; 与 settings.Quality 同形，零新增生成形）。
-        /// 版本值自 M3-4 起由 <see cref="LiteClient.UI.UiApiManifest.ApiVersion"/> 生成（UiApiSpec 单源）；
+        /// 版本值自 M3-4 起由 <see cref="LiteFramework.UI.UiApiManifest.ApiVersion"/> 生成（UiApiSpec 单源）；
         /// 上面的历史条目记录的是该值到达 5 的由来，不改写。
         /// </summary>
         public static BridgeCapabilitySet Default() => new BridgeCapabilitySet(
-            apiVersion: LiteClient.UI.UiApiManifest.ApiVersion,
+            apiVersion: LiteFramework.UI.UiApiManifest.ApiVersion,
             capabilities: new[]
             {
                 "bridge.data",      // Bridge.data 门面（配置/数值读取）

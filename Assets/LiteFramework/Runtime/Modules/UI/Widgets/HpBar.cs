@@ -3,7 +3,7 @@ using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
 
-namespace LiteClient.UI
+namespace LiteFramework.UI
 {
     /// <summary>
     /// 血条控件（模板 `Assets/ShareResource/UI/Widgets/Tmp_HpBar.prefab`）：双条血格——

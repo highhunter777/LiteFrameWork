@@ -1,6 +1,6 @@
 using System;
 
-namespace LiteClient.UI
+namespace LiteFramework.UI
 {
     /// <summary>
     /// 界面数据契约：ShowAsync / OnInit / OnShow 的传参统一收口到此接口——

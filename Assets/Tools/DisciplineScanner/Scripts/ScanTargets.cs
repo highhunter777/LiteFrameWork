@@ -144,7 +144,7 @@ namespace Tools.DisciplineScan
 
         /// <summary>
         /// `Assets/LiteGame/` 下**允许存在的顶层目录**（《客户端总设计》§5 顶层分层）；
-        /// 框架侧 `LiteClient.*` 住 `Assets/LiteFramework/Runtime/Modules/`（见 <see cref="Default"/> 扫描目标）。
+        /// 框架侧 `LiteFramework.*` 住 `Assets/LiteFramework/Runtime/Modules/`（见 <see cref="Default"/> 扫描目标）。
         ///
         /// 新增顶层目录必须在此登记，并说明它属于 §5 的哪一层（或为何是例外）。
         /// 未登记的目录会让本规则报红——**目录一变就红**，与 R12 边界表同一纪律。
@@ -156,7 +156,7 @@ namespace Tools.DisciplineScan
             "Editor",                // 编辑器工具程序集（不在 §5 层内，登记为例外）
             "Dev",                   // 开发装配层（LiteGame.Dev：DevHUD/调试控制台/调试面板 + 本地服 + 本地传输工厂；defineConstraints 三宏，发布包不参与）
             "Lua",                   // 脚本资产（非程序集目录；Luban lua pass 的产物 + 业务脚本）
-            "LuaBridge",             // 产品侧 Lua 桥（LiteGame.LuaBridge：生命周期/数据门面/注册表；宿主 LiteClient.Scripting.XLua 的消费者）
+            "LuaBridge",             // 产品侧 Lua 桥（LiteGame.LuaBridge：生命周期/数据门面/注册表；宿主 LiteFramework.Scripting.XLua 的消费者）
         };
 
         /// <summary>
@@ -261,7 +261,6 @@ namespace Tools.DisciplineScan
         {
             "LiteFramework",
             "LiteGame",
-            "LiteClient",
             "LiteView",
         };
 
@@ -442,7 +441,7 @@ namespace Tools.DisciplineScan
         }
 
         /// <summary>
-        /// **客户端框架侧纯度**（《客户端总设计》§5.1）：`LiteClient.*`（通用核心 + 适配器）整体不得引用
+        /// **客户端框架侧纯度**（《客户端总设计》§5.1）：`LiteFramework.*`（通用核心 + 适配器）整体不得引用
         /// 任何 `LiteGame.*` 程序集——产品面（含 `LuaBridge`）依赖框架，反向一律禁止。
         /// 方向一旦被破坏，框架侧就只能随产品走（§C5 通用包提取被挡）——本判据把它钉成可执行规则。
         /// </summary>

@@ -1,8 +1,9 @@
 #if UNITY_EDITOR || DEVELOPMENT_BUILD || LITEFRAMEWORK_DEBUG
 using System.Collections.Generic;
-using LiteClient;
+using LiteFramework;
 using LiteSim;
 using LiteView.Animation;
+using LiteBattle;
 
 namespace LiteGame
 {

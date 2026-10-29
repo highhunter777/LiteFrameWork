@@ -1,10 +1,9 @@
 using LiteFramework;
-using LiteView;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 using Cinemachine;
 
-namespace LiteClient
+namespace LiteFramework
 {
     /// <summary>
     /// Cinemachine 相机服务（<see cref="ICameraService"/> 的 Cinemachine 实现，

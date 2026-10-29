@@ -2,7 +2,7 @@ using LiteFramework;
 using UnityEngine;
 using UnityEngine.UI;
 
-namespace LiteClient.UI
+namespace LiteFramework.UI
 {
     /// <summary>
     /// 页面静态文案绑定：扫描页面根下的 <see cref="LTextKeyRef"/>，在页面打开与语言变更时按 key 写入。

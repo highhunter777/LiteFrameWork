@@ -1,7 +1,7 @@
 using System;
 using LiteFramework;
-using LiteClient;
-using LiteClient.UI;
+using LiteFramework;
+using LiteFramework.UI;
 
 namespace LiteGame
 {

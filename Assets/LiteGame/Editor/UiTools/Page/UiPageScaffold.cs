@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.IO;
 using System.Text;
-using LiteClient.UI;
+using LiteFramework.UI;
 using LiteGame.Editor.UiTools.Binding;
 using LiteGame.Editor.UiTools.Validation;
 using LiteGame.Toolchain;

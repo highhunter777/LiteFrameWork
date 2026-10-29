@@ -251,7 +251,7 @@
   },
   "controls": [
     { "bindName": "Button_Start", "nodePath": "Cot_Body/Button_Start", "type": "UnityEngine.UI.Button", "kind": "Command", "required": true },
-    { "bindName": "List_Rooms", "nodePath": "Cot_Body/List_Rooms", "type": "LiteClient.UI.VirtualList", "kind": "Command", "required": true }
+    { "bindName": "List_Rooms", "nodePath": "Cot_Body/List_Rooms", "type": "LiteFramework.UI.VirtualList", "kind": "Command", "required": true }
   ],
   "text": [
     { "nodePath": "Cot_Header/Txt_Title", "key": "UI.Lobby.Title", "args": 0 }

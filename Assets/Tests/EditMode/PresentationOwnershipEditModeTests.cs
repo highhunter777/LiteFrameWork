@@ -5,13 +5,13 @@ using Cysharp.Threading.Tasks;
 using DG.Tweening;
 using LiteFramework;
 using LiteGame;
-using LiteClient.UI;
+using LiteFramework.UI;
 using LiteTesting;
 using LiteTesting.Unity;
 using NUnit.Framework;
 using UnityEngine;
 using UnityEngine.UI;
-using LiteClient;
+using LiteFramework;
 
 namespace LiteGame.Tests.EditMode
 {

@@ -10,7 +10,7 @@ namespace LiteFramework.Core.Tests
     /// <c>DEVELOPMENT_BUILD</c> / <c>LITEFRAMEWORK_DEBUG</c> 只允许出现在 `LiteGame.Dev`。
     ///
     /// M3-1 建立存量基线（只减不增）→ M3-6b 逐段收紧 → **6b-4 清零转纯 hard fail**：
-    /// 产品程序集（LiteClient/LiteGame 非 Dev/LiteFramework/LiteView）出现任何一处即失败，无允许表。
+    /// 产品程序集（LiteFramework/LiteGame 非 Dev/LiteFramework/LiteView）出现任何一处即失败，无允许表。
     /// </summary>
     public sealed class DevMacroGuardTests
     {

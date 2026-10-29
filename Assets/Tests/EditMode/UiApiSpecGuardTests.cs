@@ -2,7 +2,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Reflection;
-using LiteClient.UI;
+using LiteFramework.UI;
 using LiteGame;
 using NUnit.Framework;
 using UnityEngine;

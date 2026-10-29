@@ -1,7 +1,7 @@
 using System;
 using System.Collections.Generic;
-using LiteClient;
-using LiteClient.UI;
+using LiteFramework;
+using LiteFramework.UI;
 using UnityEditor;
 using UnityEngine;
 

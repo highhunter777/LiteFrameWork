@@ -3,7 +3,7 @@ using System.Threading;
 using Cysharp.Threading.Tasks;
 using LiteFramework;
 using LiteView;
-using LiteClient.UI;
+using LiteFramework.UI;
 
 namespace LiteGame
 {

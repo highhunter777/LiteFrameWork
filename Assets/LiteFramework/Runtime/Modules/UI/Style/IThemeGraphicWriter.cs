@@ -1,7 +1,7 @@
 using UnityEngine;
 using UnityEngine.UI;
 
-namespace LiteClient.UI
+namespace LiteFramework.UI
 {
     /// <summary>
     /// Graphic 写权能力（《UI 系统总设计》§6.2 单写者）：实现方声明"我拥有哪些 Graphic 的颜色写权"——

@@ -1,7 +1,7 @@
 using UnityEngine;
 using UnityEngine.UI;
 using TMPro;
-using LiteClient.UI;
+using LiteFramework.UI;
 
 namespace LiteGame
 {

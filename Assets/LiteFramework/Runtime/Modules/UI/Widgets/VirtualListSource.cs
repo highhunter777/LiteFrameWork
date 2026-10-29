@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using LiteFramework;
 using UnityEngine;
 
-namespace LiteClient.UI
+namespace LiteFramework.UI
 {
     /// <summary>虚拟列表数据源接口（口子）：计数 + 按位刷新渲染项。C# 直实现 / Lua 经适配器实现均可。
     /// 完整虚拟化控件（复用池 / 布局回收 / 裁剪）见控件库 <c>VirtualList</c>——本件只含接口与最小渲染验证件。</summary>

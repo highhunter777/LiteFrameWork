@@ -1,6 +1,6 @@
 using System.Collections.Generic;
 
-namespace LiteClient.UI
+namespace LiteFramework.UI
 {
     /// <summary>
     /// UI 运行统计投影（从 <see cref="UIService"/> 外提的"统计"域，M3-6 §4.5）：

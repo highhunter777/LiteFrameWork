@@ -1,7 +1,7 @@
 using System;
 using System.Collections.Generic;
 
-namespace LiteClient.UI
+namespace LiteFramework.UI
 {
     /// <summary>
     /// 模态栈（《UI框架总设计》§6.2 视觉/输入单一来源）：**从仍打开的全部页面推导**，不独立记账。

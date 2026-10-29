@@ -1,11 +1,12 @@
 using System;
-using LiteClient;
+using LiteFramework;
 using LiteFramework;
 using LiteFramework.Animation;
 using LiteSim;
 using LiteView;
 using LiteView.Animation;
 using UnityEngine;
+using LiteBattle;
 
 namespace LiteGame
 {
@@ -47,7 +48,7 @@ namespace LiteGame
 
         /// <summary>挂瞄准激光（端点判定与显隐归驱动；本方法只装配）。</summary>
         public void AttachLaser(BattleContext context, IInputService input, GameObject laserBeam,
-            LiteClient.IDevSession dev = null)
+            LiteBattle.IDevSession dev = null)
         {
             if (laserBeam == null) return;                        // 资产缺失已在取件处降级（警告过）
             if (context.Sim == null)

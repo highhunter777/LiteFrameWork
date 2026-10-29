@@ -32,8 +32,8 @@ namespace LiteGame.EditorTools.UI
             "Assets/ShareResource/UI/Screens",
         };
 
-        /// <summary>命中阈值（单源＝<see cref="LiteClient.UI.UiStyleResolver.HitEpsilon"/>：工具/规则/阈值面同源）。</summary>
-        private const float HitEpsilon = LiteClient.UI.UiStyleResolver.HitEpsilon;
+        /// <summary>命中阈值（单源＝<see cref="LiteFramework.UI.UiStyleResolver.HitEpsilon"/>：工具/规则/阈值面同源）。</summary>
+        private const float HitEpsilon = LiteFramework.UI.UiStyleResolver.HitEpsilon;
 
         public static void ApplyColors() => ApplyColors(DefaultScanDirs);
 
@@ -67,8 +67,8 @@ namespace LiteGame.EditorTools.UI
                 foreach (var graphic in root.GetComponentsInChildren<Graphic>(true))
                 {
                     // 单写者：已声明 refs 的节点归 refs 段；writer 只跳过其真正认领的 Graphic（UiSelectableTheme 只写 tint，不跳过基色）
-                    if (graphic.GetComponent<LiteClient.UI.UiStyleRef>() != null) continue;
-                    if (LiteClient.UI.UiThemeBinder.IsGraphicOwnedByWidget(graphic)) continue;
+                    if (graphic.GetComponent<LiteFramework.UI.UiStyleRef>() != null) continue;
+                    if (LiteFramework.UI.UiThemeBinder.IsGraphicOwnedByWidget(graphic)) continue;
                     if (TryMatch(graphic.color, catalog, out Color value) && UiStyle.Distance(graphic.color, value) > 0f)
                     {
                         graphic.color = value;

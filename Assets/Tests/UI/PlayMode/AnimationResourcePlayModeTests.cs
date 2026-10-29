@@ -12,8 +12,8 @@ using LiteTesting.Unity;
 using NUnit.Framework;
 using UnityEngine;
 using UnityEngine.TestTools;
-using LiteClient;
-using LiteClient.UI;
+using LiteFramework;
+using LiteFramework.UI;
 
 namespace LiteGame.Tests.UI.PlayMode
 {

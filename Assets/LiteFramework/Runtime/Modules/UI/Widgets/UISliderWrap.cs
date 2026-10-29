@@ -6,7 +6,7 @@ using UnityEngine.Events;
 using UnityEngine.EventSystems;
 using UnityEngine.UI;
 
-namespace LiteClient.UI
+namespace LiteFramework.UI
 {
     /// <summary>滑条封装：Set（免回调）与 onChanged 分离。</summary>
     public class UISliderWrap : MonoBehaviour

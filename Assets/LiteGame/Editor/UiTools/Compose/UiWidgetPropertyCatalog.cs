@@ -2,7 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Reflection;
 using LiteGame.Editor.UiTools.Binding;
-using LiteClient.UI;
+using LiteFramework.UI;
 using UnityEngine;
 
 namespace LiteGame.Editor.UiTools.Compose
@@ -49,7 +49,7 @@ namespace LiteGame.Editor.UiTools.Compose
 
     /// <summary>
     /// 受控属性白名单发现（《UI编辑器工具专项设计》§5"受控属性"）：遍历自有控件组件（程序集＝
-    /// <c>LiteClient.UI</c>，锚点为本单源 attribute 自身），只收带 <see cref="UiWidgetPropertyAttribute"/>
+    /// <c>LiteFramework.UI</c>，锚点为本单源 attribute 自身），只收带 <see cref="UiWidgetPropertyAttribute"/>
     /// 的公开实例字段。**未标注成员不进枚举**——UGUI 契约件（Slider/Image/TMP）与 <c>_私有件</c> 天然不在白名单，
     /// "不改控件内部实现"由此成为机制而非按钮禁用。
     ///
@@ -57,7 +57,7 @@ namespace LiteGame.Editor.UiTools.Compose
     /// </summary>
     public static class UiWidgetPropertyCatalog
     {
-        /// <summary>LiteClient.UI 程序集锚点（本单源 attribute 自身——不写死程序集名字符串）。</summary>
+        /// <summary>LiteFramework.UI 程序集锚点（本单源 attribute 自身——不写死程序集名字符串）。</summary>
         private static readonly Assembly UiAssembly = typeof(UiWidgetPropertyAttribute).Assembly;
 
         /// <summary>该组件是否属自有 UI 程序集（受控面只认自有控件）。</summary>

@@ -1,7 +1,7 @@
 using System;
 using System.Collections.Generic;
 
-namespace LiteClient.UI
+namespace LiteFramework.UI
 {
     /// <summary>
     /// UI 操作队列端口（路线图 M0 接缝 3 / M2 全量迁移）：导航、转场、弹窗共用同一套

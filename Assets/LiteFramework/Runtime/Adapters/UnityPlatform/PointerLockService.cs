@@ -1,6 +1,6 @@
 using UnityEngine;
 
-namespace LiteClient
+namespace LiteFramework
 {
     /// <summary>
     /// 指针锁定管理（第三人称自由视角的输入形态件）：对局内锁定并隐藏系统指针——鼠标增量

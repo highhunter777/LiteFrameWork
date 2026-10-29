@@ -2,7 +2,7 @@ using System;
 using LiteFramework;
 using UnityEngine;
 
-namespace LiteClient.UI
+namespace LiteFramework.UI
 {
     /// <summary>
     /// 层级组：组内栈 + Depth 分配（分配规则经 <see cref="ILayerStrategy"/> 注入）。

@@ -1,5 +1,6 @@
 using LiteView;
 using NUnit.Framework;
+using LiteFramework;
 
 namespace LiteGame.Tests.EditMode
 {

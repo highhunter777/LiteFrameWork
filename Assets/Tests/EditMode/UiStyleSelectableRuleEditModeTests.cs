@@ -1,6 +1,6 @@
 using System.Collections.Generic;
 using System.Linq;
-using LiteClient.UI;
+using LiteFramework.UI;
 using LiteGame.Editor.UiTools.Validation;
 using LiteGame.EditorTools.UI;
 using LiteGame.Editor.UiTools.Validation.Rules;

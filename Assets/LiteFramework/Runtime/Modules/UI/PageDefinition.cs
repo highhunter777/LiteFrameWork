@@ -1,7 +1,7 @@
 using System;
 using System.Collections.Generic;
 
-namespace LiteClient.UI
+namespace LiteFramework.UI
 {
     /// <summary>per-form 缓存策略（§5.2——关闭后实例去向）。</summary>
     public enum UICacheStrategy

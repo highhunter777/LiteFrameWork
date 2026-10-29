@@ -1,12 +1,12 @@
 using LiteSim;
 
-namespace LiteClient
+namespace LiteBattle
 {
     /// <summary>
     /// 表现视图端口（路线图 M0 接缝 1）：对局上下文只持本端口，不认识具体视图实现
     /// （通用表现层 <c>LiteView.SimView</c> 实现它；纯会话/测试形态可注入替身）。
     ///
-    /// **为什么在 Abstractions**：<c>LiteClient.Runtime</c> 不得引用 <c>LiteView</c>（单向依赖不变量 I3），
+    /// **为什么在 Abstractions**：<c>LiteFramework.Runtime</c> 不得引用 <c>LiteView</c>（单向依赖不变量 I3），
     /// 端口必须住双方都允许引用的契约程序集；<c>SimWorldState</c>/<c>SimWorldStateSnapshot</c> 来自
     /// <c>LiteSim.Core</c>（两端共编的纯逻辑件）。
     ///

@@ -1,7 +1,7 @@
 using System;
 using UnityEngine;
 
-namespace LiteClient.UI
+namespace LiteFramework.UI
 {
     /// <summary>
     /// 主题颜色令牌（《UI 编辑器工具链专项设计》§8.1/§8.3）：`UiThemeAsset` 内的一条记录。

@@ -2,7 +2,7 @@ using System;
 using System.Collections.Generic;
 using LiteFramework;
 
-namespace LiteClient.UI
+namespace LiteFramework.UI
 {
     /// <summary>
     /// 绑定索引的**本地化域**：语言服务注入/退订、控件名 → key 的绑定表、语言变更通知与复数解析。

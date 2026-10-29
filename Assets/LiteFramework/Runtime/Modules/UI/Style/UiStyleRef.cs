@@ -1,6 +1,6 @@
 using UnityEngine;
 
-namespace LiteClient.UI
+namespace LiteFramework.UI
 {
     /// <summary>
     /// 颜色令牌引用（《UI 系统总设计》§6.2「prefab 上的颜色优先挂引用组件，而不是裸值」）：

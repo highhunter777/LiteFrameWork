@@ -1,5 +1,5 @@
 using System.Linq;
-using LiteClient.UI;
+using LiteFramework.UI;
 using LiteFramework;
 using NUnit.Framework;
 using UnityEditor;

@@ -1,6 +1,6 @@
 using System;
 using System.Collections.Generic;
-using LiteClient;
+using LiteFramework;
 using LiteFramework;
 using LiteGame;
 using LiteNet;

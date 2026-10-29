@@ -11,7 +11,7 @@ namespace LiteFramework.Core.Tests
     /// 每条边必须在允许表内；未登记的新边、反向边、跨层边一律失败。
     /// 允许表是**架构契约**——新增引用必须先改表并说明理由，不能靠“能编过”默认放行。
     /// 框架侧合并为单程序集 `LiteFramework.Runtime`（+ `LiteFramework.Editor`）后，
-    /// 原 `LiteClient.*` / `LiteFramework.{Core,Async,Unity,Abstractions}` 之间的边收敛为一条。
+    /// 原 `LiteFramework.*` / `LiteFramework.{Core,Async,Unity,Abstractions}` 之间的边收敛为一条。
     /// </summary>
     public sealed class ClientAsmdefAllowlistTests
     {

@@ -4,7 +4,7 @@ using LiteFramework;
 using UnityEngine;
 using UnityEngine.UI;
 
-namespace LiteClient.UI
+namespace LiteFramework.UI
 {
     /// <summary>
     /// LTextLabel：本地化文本控件的**打字机表现行为**（《UI框架总设计》§9——"LTextLabel 打字机为

@@ -3,14 +3,14 @@ using System.Collections;
 using System.Threading;
 using Cysharp.Threading.Tasks;
 using LiteGame;
-using LiteClient.UI;
+using LiteFramework.UI;
 using LiteTesting;
 using LiteTesting.Unity;
 using NUnit.Framework;
 using UnityEngine;
 using UnityEngine.TestTools;
 using UnityEngine.UI;
-using LiteClient;
+using LiteFramework;
 
 namespace LiteGame.Tests.UI.PlayMode
 {

@@ -4,7 +4,7 @@ using UnityEngine.EventSystems;
 using UnityEngine.InputSystem;
 using UnityEngine.InputSystem.UI;
 
-namespace LiteClient.UI
+namespace LiteFramework.UI
 {
     /// <summary>
     /// UI 输入适配（R12 边界判例同 <c>UI/Anim</c> 的 DOTween——**UI 专属适配随 UI 服务装配归 UI 框架侧**，

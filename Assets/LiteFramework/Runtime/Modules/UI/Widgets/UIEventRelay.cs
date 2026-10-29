@@ -6,7 +6,7 @@ using UnityEngine.Events;
 using UnityEngine.EventSystems;
 using UnityEngine.UI;
 
-namespace LiteClient.UI
+namespace LiteFramework.UI
 {
     /// <summary>数值事件转发辅助（灰盒：UIEventTrigger 位——Pointer 点击转发为 UnityEvent）。</summary>
     public class UIEventRelay : MonoBehaviour, IPointerClickHandler

@@ -2,7 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Threading;
 using Cysharp.Threading.Tasks;
-using LiteClient.UI;
+using LiteFramework.UI;
 using LiteTesting;
 using LiteTesting.Unity;
 using NUnit.Framework;

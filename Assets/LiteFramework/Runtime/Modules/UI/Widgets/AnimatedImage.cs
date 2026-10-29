@@ -3,7 +3,7 @@ using System;
 using UnityEngine;
 using UnityEngine.UI;
 
-namespace LiteClient.UI
+namespace LiteFramework.UI
 {
     /// <summary>帧序列动画：Sprite 数组按 fps 循环/单次播放（灰盒动图——序列帧 UI 元素）。</summary>
     public class AnimatedImage : MonoBehaviour

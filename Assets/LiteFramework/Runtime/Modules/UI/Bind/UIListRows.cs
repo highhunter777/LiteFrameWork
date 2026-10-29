@@ -1,6 +1,6 @@
 using System.Collections.Generic;
 
-namespace LiteClient.UI
+namespace LiteFramework.UI
 {
     /// <summary>
     /// 列表行数据口（G6，《UI控件Lua API 参考》§5"SetList"）：**C# 持数据源**——内核滚动时按位回填，

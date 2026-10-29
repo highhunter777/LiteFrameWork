@@ -1,8 +1,9 @@
 using System;
-using LiteClient;
+using LiteFramework;
 using LiteSim;
 using TMPro;
 using UnityEngine;
+using LiteBattle;
 
 namespace LiteGame
 {

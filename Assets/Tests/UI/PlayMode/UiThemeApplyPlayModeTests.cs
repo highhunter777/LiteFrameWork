@@ -3,8 +3,8 @@ using System.Collections;
 using System.Linq;
 using System.Threading;
 using Cysharp.Threading.Tasks;
-using LiteClient;
-using LiteClient.UI;
+using LiteFramework;
+using LiteFramework.UI;
 using LiteTesting.Unity;
 using NUnit.Framework;
 using UnityEngine;
@@ -77,7 +77,7 @@ namespace LiteGame.Tests.UI.PlayMode
             }
 #if UNITY_EDITOR
             _theme = UnityEditor.AssetDatabase.LoadAssetAtPath<UiThemeAsset>(
-                LiteClient.UI.UiThemePaths.DefaultAssetPath);
+                LiteFramework.UI.UiThemePaths.DefaultAssetPath);
             Assert.IsNotNull(_theme, "编辑器 PlayMode 直载主题 SO（生成物）");
 #endif
         }

@@ -3,8 +3,8 @@ using System.Collections.Generic;
 using System.Threading;
 using LiteFramework;
 using XLua;
-using LiteClient;
-using LiteClient.UI;
+using LiteFramework;
+using LiteFramework.UI;
 
 namespace LiteGame
 {

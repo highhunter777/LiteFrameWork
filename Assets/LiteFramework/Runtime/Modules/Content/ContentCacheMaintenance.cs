@@ -3,7 +3,7 @@ using System.Threading;
 using Cysharp.Threading.Tasks;
 using LiteFramework;
 
-namespace LiteClient
+namespace LiteFramework
 {
     /// <summary>受控内容缓存清理结果（恢复链诊断面——如实记录删了什么、记录是否回退）。</summary>
     public readonly struct ContentCacheClearResult

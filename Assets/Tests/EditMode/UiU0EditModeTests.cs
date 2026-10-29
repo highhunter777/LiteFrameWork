@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Threading;
 using Cysharp.Threading.Tasks;
-using LiteClient.UI;
+using LiteFramework.UI;
 using LiteTesting;
 using LiteTesting.Unity;
 using NUnit.Framework;
@@ -11,7 +11,7 @@ using UnityEditor;
 using UnityEngine;
 using UnityEngine.UI;
 using XLua;
-using LiteClient;
+using LiteFramework;
 
 namespace LiteGame.Tests.EditMode
 {

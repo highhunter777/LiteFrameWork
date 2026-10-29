@@ -1,4 +1,4 @@
-namespace LiteClient.UI
+namespace LiteFramework.UI
 {
     /// <summary>
     /// 界面七态（GF UIManager 同款）：Loading→OnInit→Active⇄Covered/Paused→Closing→Recycled。

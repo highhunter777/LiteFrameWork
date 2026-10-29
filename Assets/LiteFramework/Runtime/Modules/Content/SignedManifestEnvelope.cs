@@ -1,7 +1,7 @@
 using System;
 using LiteFramework;
 
-namespace LiteClient
+namespace LiteFramework
 {
     /// <summary>
     /// 签名候选文件解析（§6"发布描述至少含 schemaVersion、…keyId/signature"）。

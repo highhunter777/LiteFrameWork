@@ -1,9 +1,10 @@
 using System;
-using LiteClient;
+using LiteFramework;
 using LiteSim;
 using LiteView;
 using UnityEngine;
 using UnityEngine.Rendering;
+using LiteBattle;
 
 namespace LiteGame
 {
@@ -36,7 +37,7 @@ namespace LiteGame
         private readonly RollbackSim _sim;             // 本地预测态（SelectedWeapon/WeaponDefId——只读）
         private readonly SimMapData _map;              // 障碍射线用图（两端单源：同份 tbmap 投影——经 BattleContext 注入）
         private readonly MatchTestRules _rules;        // 本局规则持有件（构造注入一次——不读 ILocalTestHooks 静态读口）
-        private readonly LiteClient.IDevSession _dev;  // 开发会话端口（激光开关；null = 发布/测试装配 = 恒按支持位）
+        private readonly LiteBattle.IDevSession _dev;  // 开发会话端口（激光开关；null = 发布/测试装配 = 恒按支持位）
         private readonly LineRenderer _beam;
         private bool _disposed;
 
@@ -46,7 +47,7 @@ namespace LiteGame
         /// <param name="rules">本局规则持有件（<see cref="BattleContext.MatchRules"/>——爆头带/爆头柱覆写随动；
         /// null = 无测试规则，恒用烘焙导出值）。**每局稳定引用**，构造注入一次，帧路径不碰静态读口。</param>
         public BattleLaserDriver(SimView view, IInputService input, RollbackSim sim, SimMapData map,
-            LineRenderer beam, MatchTestRules rules = null, LiteClient.IDevSession dev = null)
+            LineRenderer beam, MatchTestRules rules = null, LiteBattle.IDevSession dev = null)
         {
             _view = view ?? throw new ArgumentNullException(nameof(view));
             _input = input;

@@ -407,7 +407,7 @@ namespace LiteFramework.Tests
         /// <summary>D2 守卫（《客户端与服务端共享代码范围专项设计》§3）：客户端 asmdef 引服务端程序集，
         /// 必须落在 <c>DevHostMayReferenceServerAssemblies</c> 登记目录里。
         ///
-        /// 原因：`LiteClient.Runtime` 若无条件引用两个 RoomServer 程序集，唯一消费者却是一个开发面文件
+        /// 原因：`LiteFramework.Runtime` 若无条件引用两个 RoomServer 程序集，唯一消费者却是一个开发面文件
         /// （进程内本地服）→ 两个服务端程序集进**所有** Player 构建。`ProcedureMatch` 的 `#if`
         /// 只挡调用点、挡不住 asmdef 引用（引用是程序集级的）。</summary>
         [Fact]
@@ -444,7 +444,7 @@ namespace LiteFramework.Tests
                 + "）：" + string.Join(" | ", offenders));
         }
 
-        /// <summary>客户端框架侧纯度（《客户端总设计》§5.1）：`LiteClient.*`（通用核心 + 适配器）整体
+        /// <summary>客户端框架侧纯度（《客户端总设计》§5.1）：`LiteFramework.*`（通用核心 + 适配器）整体
         /// 不得引用 `LiteGame.*`——产品面（含 `LuaBridge`）依赖框架，反向一律禁止。
         /// 没有本用例，"框架侧可提取"只是文字约定。</summary>
         [Fact]
@@ -463,7 +463,7 @@ namespace LiteFramework.Tests
         }
 
         /// <summary>D1 守卫（《客户端与服务端共享代码范围专项设计》§3）：服务端宿主工程的
-        /// `ProjectReference` **不得**指向客户端面（`LiteFramework`/`LiteGame`/`LiteClient`/`LiteView`
+        /// `ProjectReference` **不得**指向客户端面（`LiteFramework`/`LiteGame`/`LiteFramework`/`LiteView`
         /// ——View 用**程序集名**作标记，目录无关：住 `Assets/LiteView`）。
         ///
         /// 本用例把它钉成判据，

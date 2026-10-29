@@ -8,7 +8,7 @@ using LiteSim;
 using Luban;
 using cfg;
 
-namespace LiteClient
+namespace LiteFramework
 {
     /// <summary>
     /// Luban 专用的配置服务视图（`Tables` 是 **Luban 生成类型** `cfg.Tables`）。

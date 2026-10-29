@@ -2,7 +2,8 @@ using System;
 using LiteSim;
 using LiteView;
 using UnityEngine;
-using LiteClient;
+using LiteFramework;
+using LiteBattle;
 
 namespace LiteGame
 {

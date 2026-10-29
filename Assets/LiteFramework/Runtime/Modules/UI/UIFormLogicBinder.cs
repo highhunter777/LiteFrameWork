@@ -2,7 +2,7 @@ using System;
 using System.Collections.Generic;
 using LiteFramework;
 
-namespace LiteClient.UI
+namespace LiteFramework.UI
 {
     /// <summary>
     /// 页面逻辑绑定与换表（从 <see cref="UIService"/> 外提的"逻辑生命周期"域，M3-6 §4.5）：

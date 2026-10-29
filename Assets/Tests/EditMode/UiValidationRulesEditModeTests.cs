@@ -5,7 +5,7 @@ using LiteGame.Editor.UiTools.Page;
 using LiteGame.Editor.UiTools.Validation;
 using LiteGame.Editor.UiTools.Validation.Rules;
 using LiteGame.Editor.UiTools.Widgets;
-using LiteClient.UI;
+using LiteFramework.UI;
 using NUnit.Framework;
 using UnityEditor;
 using UnityEngine;

@@ -2,7 +2,7 @@
 using Cysharp.Threading.Tasks;
 using LiteFramework;
 
-namespace LiteClient.UI
+namespace LiteFramework.UI
 {
     /// <summary>阶段共用动作（Out/In 两个阶段完全同构，收口在一处）。</summary>
     internal static class TransitionStageOps

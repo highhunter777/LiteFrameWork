@@ -7,7 +7,7 @@ using UnityEngine.Events;
 using UnityEngine.EventSystems;
 using UnityEngine.UI;
 
-namespace LiteClient.UI
+namespace LiteFramework.UI
 {
     /// <summary>下拉选择封装：SetOptions 重建选项；onIndexChanged 出索引。</summary>
     public class UIDropdownWrap : MonoBehaviour

@@ -5,7 +5,7 @@ using Cysharp.Threading.Tasks;
 using LiteFramework;
 using XLua;
 using cfg;
-using LiteClient.UI;
+using LiteFramework.UI;
 
 namespace LiteGame
 {
@@ -59,7 +59,7 @@ namespace LiteGame
 
         /// <summary>
         /// 绑定 Bridge 四门面为 Lua 全局表：
-        /// 由装配点/编辑器工具经 <c>LuaComponent.Init</c> 注入——宿主（LiteClient.Scripting.XLua）不认识 Bridge，
+        /// 由装配点/编辑器工具经 <c>LuaComponent.Init</c> 注入——宿主（LiteFramework.Scripting.XLua）不认识 Bridge，
         /// 依赖方向 = 产品 → 框架。门面方法全走白名单委托；只导出四门面（data/ui/content/text），
         /// ILuaRegistry/玩法系统一律不导出；禁止 CS. 直引业务类型。
         /// 产品侧扩展门面（meta）经 <c>ProductBridges.BindGlobals</c> 同 env 装订（见类头注释）。

@@ -3,7 +3,7 @@ using DG.Tweening;
 using LiteFramework;
 using UnityEngine;
 
-namespace LiteClient.UI
+namespace LiteFramework.UI
 {
     /// <summary>
     /// UI 动效时钟适配（《动画模块专项设计》§1——"SetUpdate(true) 不等价

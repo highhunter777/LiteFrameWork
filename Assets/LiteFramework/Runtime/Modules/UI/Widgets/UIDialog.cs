@@ -6,7 +6,7 @@ using Cysharp.Threading.Tasks;
 using UnityEngine;
 using UnityEngine.UI;
 
-namespace LiteClient.UI
+namespace LiteFramework.UI
 {
     /// <summary>确认/警告对话框控件：Configure 后由 UI 服务装配按表行打开；按钮回调一次性（弹起即清）。
     ///

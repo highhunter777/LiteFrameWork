@@ -1,4 +1,4 @@
-namespace LiteClient.UI
+namespace LiteFramework.UI
 {
     /// <summary>
     /// 主题能力注入接口（**组件层级**；《UI 系统总设计》§6.2）：`UIForm` 装配期（PrepareForShow，

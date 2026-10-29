@@ -1,5 +1,5 @@
 #if UNITY_EDITOR
-using LiteClient.UI;
+using LiteFramework.UI;
 using UnityEngine;
 
 namespace LiteGame

@@ -1,12 +1,13 @@
 using System;
 using System.Threading;
 using Cysharp.Threading.Tasks;
-using LiteClient;
+using LiteFramework;
 using LiteFramework;
 using LiteSim;
 using LiteView;
 using UnityEngine;
-using LiteClient.UI;
+using LiteFramework.UI;
+using LiteBattle;
 
 namespace LiteGame
 {
@@ -37,7 +38,7 @@ namespace LiteGame
         private readonly IInputService _input;       // 输入服务（设备源注入/清派发状态）
         private readonly ICameraService _camera;     // 相机服务（Cinemachine 适配器；装配根建、跨对局复用）
         private readonly CommandCenter _commands;    // 命令中心（传送命令化：撤销/重做/排队派发）
-        private readonly LiteClient.IDevSession _dev;  // 开发会话端口（激光/飘字开关；可空 = 测试装配）
+        private readonly LiteBattle.IDevSession _dev;  // 开发会话端口（激光/飘字开关；可空 = 测试装配）
         private readonly ClientScope _viewScope;     // 视图资源（prefab 租约/视图根）自有作用域
 
         private readonly BattleViewAssets _assets;
@@ -58,7 +59,7 @@ namespace LiteGame
         internal BattleViewRig(IContentService content, IInputService input, ICameraService camera,
             ClientScope account, IVFXService vfx = null, LiteFramework.IWorldClock worldClock = null,
             AudioService audio = null, CommandCenter commands = null, CrosshairFeelProfile crosshairFeel = null,
-            Func<UiThemeAsset> themeProvider = null, LiteClient.IDevSession dev = null,
+            Func<UiThemeAsset> themeProvider = null, LiteBattle.IDevSession dev = null,
             IBattleDevOverlay devOverlay = null, Action<SimVector3> teleportDispatch = null)
         {
             if (content == null) throw new ArgumentNullException(nameof(content));

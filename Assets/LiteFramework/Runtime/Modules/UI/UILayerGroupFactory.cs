@@ -2,7 +2,7 @@ using System;
 using System.Collections.Generic;
 using UnityEngine;
 
-namespace LiteClient.UI
+namespace LiteFramework.UI
 {
     /// <summary>
     /// UI 运行时根与层级组装配（从 <see cref="UIService"/> 外提的"装配"域，M3-6 §4.5）：

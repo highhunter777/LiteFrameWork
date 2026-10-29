@@ -3,7 +3,7 @@
 using System;
 using UnityEngine;
 
-namespace LiteClient.UI
+namespace LiteFramework.UI
 {
     /// <summary>UIBindBase 的受控 API 转发（生成；生命周期回调与索引装配在 UIBindBase.cs）。</summary>
     public abstract partial class UIBindBase

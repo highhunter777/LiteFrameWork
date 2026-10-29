@@ -5,7 +5,7 @@ using Cysharp.Threading.Tasks;
 using LiteFramework;
 using YooAsset;
 
-namespace LiteClient
+namespace LiteFramework
 {
     /// <summary>
     /// IContentService 的 YooAsset 适配（《商业级通用客户端框架总设计》§8.1"用可注入

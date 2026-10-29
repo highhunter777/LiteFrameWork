@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using LiteFramework;
 using LiteGame;
-using LiteClient.UI;
+using LiteFramework.UI;
 using LiteTesting.Unity;
 using NUnit.Framework;
 using TMPro;

@@ -4,7 +4,8 @@ using LiteTesting;
 using LiteTesting.Unity;
 using NUnit.Framework;
 using UnityEngine;
-using LiteClient;
+using LiteFramework;
+using LiteBattle;
 
 namespace LiteGame.Tests.EditMode
 {
@@ -106,7 +107,7 @@ namespace LiteGame.Tests.EditMode
 
         private (InputService Input, BattleLaserDriver Driver, LineRenderer Beam) BuildDriver(
             SimView view, RollbackSim sim, SimMapData map, MatchTestRules rules = null,
-            LiteClient.IDevSession dev = null)
+            LiteBattle.IDevSession dev = null)
         {
             var input = new InputService();
             input.SetSource(new FixedAimSource());           // 只用被拦门；激光不读瞄准输入

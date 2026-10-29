@@ -1,4 +1,4 @@
-namespace LiteClient.UI
+namespace LiteFramework.UI
 {
     /// <summary>
     /// 转场阶段（《UI扩展能力设计》§1.5.2）：平铺三维足够——Replace 的"两组并发"在 In 阶段内部编排。

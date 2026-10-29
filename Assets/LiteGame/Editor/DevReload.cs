@@ -3,8 +3,8 @@ using Cysharp.Threading.Tasks;
 using LiteFramework;
 using UnityEditor;
 using UnityEngine;
-using LiteClient;
-using LiteClient.UI;
+using LiteFramework;
+using LiteFramework.UI;
 
 namespace LiteGame.Editor
 {
@@ -39,7 +39,7 @@ namespace LiteGame.Editor
 
         private static async UniTask ReloadAsync()
         {
-            var lua = Object.FindFirstObjectByType<LiteClient.LuaComponent>();
+            var lua = Object.FindFirstObjectByType<LiteFramework.LuaComponent>();
             if (lua == null)
             {
                 Log.Error("DevReload 未找到 LuaComponent", LogTag.DevReload);
@@ -47,9 +47,9 @@ namespace LiteGame.Editor
             }
 
             var container = Object.FindFirstObjectByType<LiteGame.GameEntry>().TakeContainer();
-            var config = container.Resolve<LiteClient.IConfigService>();
+            var config = container.Resolve<LiteFramework.IConfigService>();
             var events = container.Resolve<LiteFramework.IEventBus>();
-            var uiService = container.Resolve<LiteClient.UI.UIService>();
+            var uiService = container.Resolve<LiteFramework.UI.UIService>();
             var ui = container.Resolve<LiteGame.IUILuaRegistry>();
             var content = container.Resolve<LiteGame.IContentLuaRegistry>();
             var strategy = container.Resolve<LiteGame.IStrategyLuaRegistry>();
@@ -62,14 +62,14 @@ namespace LiteGame.Editor
             strategy.Clear();
             lua.Shutdown();                                // ③ 事件桥退订 → env.Dispose（旧对象全失效时点）
 
-            var preloader = new LiteClient.LuaPreloader(
+            var preloader = new LiteFramework.LuaPreloader(
                 DevReloadBytesAsync,   // 磁盘直读：响应编辑器里刚改的 .lua（不走资源包）
                 ListLuaFilesOnDisk);   // 磁盘枚举：同上
             await preloader.PreloadAllAsync();             // ④ 重预载：改动后的 .lua 进缓存
             lua.Init(preloader, events, ProductBridges.BindGlobals);   //    env 重建 + 事件桥/游戏桥重绑（产品门面单源装订——与 Preload 同口）
             lua.DoMain();                                  // ⑤ 重跑 main.lua
 
-            var filler = new LiteGame.RegistryFiller(config, LiteClient.UI.UiPageCatalog.All, lua, ui, content, strategy);
+            var filler = new LiteGame.RegistryFiller(config, LiteFramework.UI.UiPageCatalog.All, lua, ui, content, strategy);
             var report = filler.FillAll(CancellationToken.None);   // ⑥ 同一条填充路径（§2.4 ③）
             if (report.HasFailures)
             {
@@ -100,7 +100,7 @@ namespace LiteGame.Editor
         {
             string root = System.IO.Path.Combine(
                 System.IO.Directory.GetCurrentDirectory(),
-                LiteClient.LuaPreloader.LuaDir.Replace('/', System.IO.Path.DirectorySeparatorChar));
+                LiteFramework.LuaPreloader.LuaDir.Replace('/', System.IO.Path.DirectorySeparatorChar));
             if (!System.IO.Directory.Exists(root)) return new string[0];
 
             string[] files = System.IO.Directory.GetFiles(root, "*.lua", System.IO.SearchOption.AllDirectories);

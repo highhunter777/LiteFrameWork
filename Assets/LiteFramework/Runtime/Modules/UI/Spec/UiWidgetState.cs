@@ -1,4 +1,4 @@
-namespace LiteClient.UI
+namespace LiteFramework.UI
 {
     /// <summary>
     /// 控件模板视觉状态词表（《UI 系统总设计》§6.5「每个控件模板声明状态：Normal/Hover/Pressed/

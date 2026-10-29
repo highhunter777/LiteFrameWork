@@ -2,7 +2,7 @@ using LiteNet.Proto;
 using LiteNet.Protocol;
 using LiteSim;
 
-namespace LiteClient
+namespace LiteFramework
 {
     /// <summary>
     /// 对局世界构建：按服务器 seed/地图/房间规模重建同构 Sim 世界与输入模板。

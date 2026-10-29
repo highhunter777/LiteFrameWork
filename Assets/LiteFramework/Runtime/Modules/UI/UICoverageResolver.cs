@@ -1,6 +1,6 @@
 using System;
 
-namespace LiteClient.UI
+namespace LiteFramework.UI
 {
     /// <summary>
     /// 遮盖推导（从 <see cref="UIService"/> 外提的纯推演）：以"**仍逻辑打开**的最高全屏界面"所在组为界

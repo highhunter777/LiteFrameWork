@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using LiteBattle;
 
 namespace LiteGame
 {
@@ -7,8 +8,8 @@ namespace LiteGame
     /// <see cref="BattleLaserDriver"/>）。按 <see cref="LiteSim.WeaponRuntime.WeaponDefId"/> 集合判定
     /// "哪些武器带激光"——tb_weapon（G2-P1 武器战斗）落地后迁列进表，届时只改本类。
     ///
-    /// **开发形态**：<see cref="LiteClient.IDevSession.Active"/> 置位期间由端口开关
-    /// <see cref="LiteClient.IDevSession.LaserSight"/> 决定（测试面板/GM 面板可对局中现场开合）；
+    /// **开发形态**：<see cref="LiteBattle.IDevSession.Active"/> 置位期间由端口开关
+    /// <see cref="LiteBattle.IDevSession.LaserSight"/> 决定（测试面板/GM 面板可对局中现场开合）；
     /// 非开发形态走 def id 支持位。端口发布实现全关 = 行为与历史 release 一致。
     /// </summary>
     public static class LaserSightPolicy
@@ -19,7 +20,7 @@ namespace LiteGame
         private static readonly HashSet<int> SupportedDefIds = new HashSet<int> { 0 };
 
         /// <summary>该武器是否支持瞄准激光（开发形态由端口开关决定——见类注释）。</summary>
-        public static bool Supports(int weaponDefId, LiteClient.IDevSession dev = null)
+        public static bool Supports(int weaponDefId, LiteBattle.IDevSession dev = null)
         {
             if (dev != null && dev.Active) return dev.LaserSight;
             return SupportedDefIds.Contains(weaponDefId);

@@ -2,7 +2,7 @@ using System;
 using System.Collections.Generic;
 using UnityEngine;
 
-namespace LiteClient.UI
+namespace LiteFramework.UI
 {
     /// <summary>标记索引构建器（路径 A）：实例化后扫根下全部 BindNode，按 BindName 登记。
     /// 空名跳过（该节点仅参与代码生成，不进运行期索引——设计允许）；重名抛（§3.4 fail-fast）。

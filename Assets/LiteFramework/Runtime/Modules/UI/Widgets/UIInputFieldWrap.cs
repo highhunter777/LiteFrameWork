@@ -6,7 +6,7 @@ using UnityEngine.Events;
 using UnityEngine.EventSystems;
 using UnityEngine.UI;
 
-namespace LiteClient.UI
+namespace LiteFramework.UI
 {
     /// <summary>输入框封装（控件库）：UGUI InputField + 校验 hook（返回 false = 拒绝本次提交）。</summary>
     public class UIInputFieldWrap : MonoBehaviour

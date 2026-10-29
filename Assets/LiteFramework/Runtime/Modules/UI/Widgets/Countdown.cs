@@ -4,7 +4,7 @@ using System;
 using UnityEngine;
 using UnityEngine.UI;
 
-namespace LiteClient.UI
+namespace LiteFramework.UI
 {
     /// <summary>倒计时：unscaled 时钟驱动（UI 时层），OnDone 一次性回调。格式默认 mm:ss。
     /// Awake 惰性初始化 OnDone——运行时 AddComponent 不走反序列化，UnityEvent 字段为 null。</summary>

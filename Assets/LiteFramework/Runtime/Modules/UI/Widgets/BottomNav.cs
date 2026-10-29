@@ -4,7 +4,7 @@ using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UI;
 
-namespace LiteClient.UI
+namespace LiteFramework.UI
 {
     /// <summary>底部导航：TabGroup 的横排预设——收集子按钮组成页签，选中回调即页切换。</summary>
     public class BottomNav : MonoBehaviour

@@ -7,7 +7,7 @@ using UnityEngine.Events;
 using UnityEngine.EventSystems;
 using UnityEngine.UI;
 
-namespace LiteClient.UI
+namespace LiteFramework.UI
 {
     /// <summary>步进器：-/值/+，min/max/step 钳制；onChanged 出整数值。</summary>
     public class Stepper : MonoBehaviour

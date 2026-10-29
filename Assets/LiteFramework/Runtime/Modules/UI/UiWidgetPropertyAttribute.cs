@@ -1,6 +1,6 @@
 using System;
 
-namespace LiteClient.UI
+namespace LiteFramework.UI
 {
     /// <summary>
     /// 受控属性声明（《UI编辑器工具专项设计》§5"受控属性"面板）：标在**自有控件组件的序列化字段**上，

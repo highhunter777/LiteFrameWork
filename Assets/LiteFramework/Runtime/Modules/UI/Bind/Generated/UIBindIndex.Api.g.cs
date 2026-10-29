@@ -4,7 +4,7 @@ using System;
 using System.Collections.Generic;
 using UnityEngine;
 
-namespace LiteClient.UI
+namespace LiteFramework.UI
 {
     /// <summary>UIBindIndex 的受控 API 声明（生成；实现体在 UIBindIndex.cs）。</summary>
     public sealed partial class UIBindIndex

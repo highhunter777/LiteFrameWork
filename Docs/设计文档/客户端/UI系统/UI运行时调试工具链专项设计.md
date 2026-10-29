@@ -153,7 +153,7 @@ Seed / Language / PageId
 ```
 
 - **页面选择加入**：C# 页面在 `OnInit/OnShow` 识别并应用；Lua 页面经 `LuaBehaviourAdapter` 的 `IUIData` 通道接收保留字段（仅 dev 分支）；未接入页面忽略并记录一次 Info，不伪造状态。
-- **类型落位**：`UiDebugState` 住 `LiteClient.UI` dev 区，release 剥离；内核构造并传入。
+- **类型落位**：`UiDebugState` 住 `LiteFramework.UI` dev 区，release 剥离；内核构造并传入。
 - **不反射页面私有字段**，不替换实例，不绕过生命周期；状态注入只影响页面自己的数据模型与展示。
 - **已打开页换场景**：先按关闭语义收尾，再带新状态重新打开；不直接改现有实例数据模型。
 - **确定性**：同一 `Scenario + Seed` 得到同一份数据；随机数据来自测试种子。

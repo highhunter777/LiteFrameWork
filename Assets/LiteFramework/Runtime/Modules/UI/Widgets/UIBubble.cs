@@ -8,7 +8,7 @@ using LiteFramework;
 using UnityEngine;
 using UnityEngine.UI;
 
-namespace LiteClient.UI
+namespace LiteFramework.UI
 {
     /// <summary>气泡：挂点旁的短命提示（带朝上小三角由美术补；灰盒=文本条）。
     /// 重复 Show 取消上一次等待（用 CTS 显式表达）。</summary>

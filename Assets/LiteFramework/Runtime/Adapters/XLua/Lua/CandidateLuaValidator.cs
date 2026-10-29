@@ -4,7 +4,7 @@ using System.Text;
 using LiteFramework;
 using XLua;
 
-namespace LiteClient
+namespace LiteFramework
 {
     /// <summary>单个脚本的验证结论。</summary>
     public readonly struct LuaScriptVerdict

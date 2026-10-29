@@ -1,6 +1,6 @@
 using System.Collections.Generic;
 
-namespace LiteClient.UI
+namespace LiteFramework.UI
 {
     /// <summary>
     /// 界面实例注册表（从 <see cref="UIService"/> 外提的"缓存实例 + 租约 + LRU 记账"域）：

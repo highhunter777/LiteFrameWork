@@ -1,4 +1,4 @@
-namespace LiteClient
+namespace LiteFramework
 {
     /// <summary>
     /// 内容定位清单查询端口（<see cref="IContentService"/> 的可选扩展）：当前位置是否在**当前代次**的

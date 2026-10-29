@@ -1,7 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
-using LiteClient;
+using LiteFramework;
 using LiteSim;
 using LiteSim.Tests;
 using Luban;

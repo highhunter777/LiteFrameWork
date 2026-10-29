@@ -3,12 +3,13 @@ using System.Collections.Generic;
 using System.Threading;
 using Cysharp.Threading.Tasks;
 using LiteFramework;
-using LiteClient.UI;
+using LiteFramework.UI;
 using LiteSim;
 using LiteView;
-using LiteClient;
+using LiteFramework;
 using UnityEngine;
 using UnityEngine.SceneManagement;
+using LiteBattle;
 
 namespace LiteGame
 {
@@ -57,7 +58,7 @@ namespace LiteGame
         private readonly FeedbackService _feedback;  // 开局入场加载遮罩（可空 = 测试装配不接 UI）
         private readonly CrosshairFeelProfile _crosshairFeel;   // 准心手感投影（tbcrosshair；可空 = 测试装配回落 Default）
         private readonly Func<UiThemeAsset> _themeProvider;      // 主题资产工厂（P2-3 B4：HUD 注入复用；可空 = 保持烘焙值）
-        private readonly LiteClient.IDevSession _devSession;     // 开发会话端口（dev 投影读本局规则；可空 = 测试装配）
+        private readonly LiteBattle.IDevSession _devSession;     // 开发会话端口（dev 投影读本局规则；可空 = 测试装配）
 
         private BattleSession _session;              // 对局聚合（唯一状态所有者：Match 域 + 上下文 + 视图域）
 
@@ -85,7 +86,7 @@ namespace LiteGame
             AudioService audio = null, CommandCenter commands = null, PageFlow pages = null,
             CrosshairFeelProfile crosshairFeel = null, ISceneService scenes = null, IMapProvider maps = null,
             FeedbackService feedback = null, Func<UiThemeAsset> themeProvider = null,
-            LiteClient.IDevSession devSession = null)
+            LiteBattle.IDevSession devSession = null)
             : base(rootToken)
         {
             _content = content ?? throw new ArgumentNullException(nameof(content));

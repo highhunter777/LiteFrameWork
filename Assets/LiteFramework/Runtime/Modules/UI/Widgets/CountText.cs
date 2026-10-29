@@ -4,7 +4,7 @@ using System;
 using UnityEngine;
 using UnityEngine.UI;
 
-namespace LiteClient.UI
+namespace LiteFramework.UI
 {
     /// <summary>数值滚动文本：CountUp 原语驱动，format 自定义（金币/伤害数字）。</summary>
     public class CountText : MonoBehaviour

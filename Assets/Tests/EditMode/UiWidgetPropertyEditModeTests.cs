@@ -1,6 +1,6 @@
 using System.Linq;
 using LiteGame.Editor.UiTools.Compose;
-using LiteClient.UI;
+using LiteFramework.UI;
 using NUnit.Framework;
 using UnityEditor;
 using UnityEngine;
@@ -47,7 +47,7 @@ namespace LiteGame.Tests.EditMode
             _probe.AddComponent<UnityEngine.UI.Slider>();                 // UGUI 契约件
             _probe.AddComponent<TMPro.TextMeshProUGUI>();
 
-            CollectionAssert.IsEmpty(UiWidgetPropertyCatalog.Collect(_probe), "非 LiteClient.UI 组件不产生受控行");
+            CollectionAssert.IsEmpty(UiWidgetPropertyCatalog.Collect(_probe), "非 LiteFramework.UI 组件不产生受控行");
         }
 
         [Test]

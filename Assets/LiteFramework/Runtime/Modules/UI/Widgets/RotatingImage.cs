@@ -1,7 +1,7 @@
 // 一类一文件：非首个 MonoBehaviour 无法序列化进 prefab
 using UnityEngine;
 
-namespace LiteClient.UI
+namespace LiteFramework.UI
 {
     /// <summary>连续旋转装饰：按角速度绕 z 轴自转（加载转圈等**循环装饰**——同 <see cref="AnimatedImage"/>
     /// 口径：自播件直挂 prefab，不走 UiEffectBinder；依据《UI效果系统专项设计》§5.1"循环装饰不走本组件

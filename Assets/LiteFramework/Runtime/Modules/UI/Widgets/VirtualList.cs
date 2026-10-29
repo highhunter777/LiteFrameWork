@@ -2,7 +2,7 @@ using System;
 using System.Collections.Generic;
 using UnityEngine;
 
-namespace LiteClient.UI
+namespace LiteFramework.UI
 {
     /// <summary>
     /// 虚拟列表（《UI框架总设计》§8.2）：**窗口复用**——节点数由"可见容量 + overscan"决定，

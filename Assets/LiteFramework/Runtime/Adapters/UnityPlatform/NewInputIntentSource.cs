@@ -3,8 +3,9 @@ using LiteFramework;
 using LiteSim;
 using UnityEngine;
 using UnityEngine.InputSystem;
+using LiteBattle;
 
-namespace LiteClient
+namespace LiteFramework
 {
     /// <summary>
     /// New Input System 设备源（<see cref="IIntentSource"/> 的 Input System 实现，
@@ -36,7 +37,7 @@ namespace LiteClient
         private readonly PlayerInputActions _actions;
         private readonly bool _ownsActions;      // 自建资产时负责释放；外部传入（装配根共享）由调用方释放
         private Camera _camera;
-        private readonly LiteClient.IDevSession _dev;   // 本局规则来源（爆头带覆写；null = 常规房/发布形态）
+        private readonly LiteBattle.IDevSession _dev;   // 本局规则来源（爆头带覆写；null = 常规房/发布形态）
 
         // 瞄准点（AimPoint 单口径：**唯一瞄准表示**——相机射线与实体/地面的交点，世界坐标；
         // 朝向与弹道方向两端自本点派生，方向字段已随重规划退役）
@@ -67,7 +68,7 @@ namespace LiteClient
         /// <param name="camera">瞄准解算相机（null = 不做瞄准换算，沿用上次方向）。</param>
         /// <param name="dev">开发会话端口（读本局规则的爆头带覆写；null = 无覆写——常规房/发布形态）。</param>
         public NewInputIntentSource(PlayerInputActions actions = null, Camera camera = null,
-            LiteClient.IDevSession dev = null)
+            LiteBattle.IDevSession dev = null)
         {
             _ownsActions = actions == null;
             _actions = actions ?? new PlayerInputActions();
@@ -86,7 +87,7 @@ namespace LiteClient
         /// <summary>
         /// 瞄准解算相机（装配根注入：表现域建好主相机后设一次）。
         /// **为什么不进 <see cref="IIntentSource"/> 接口**：那会让核心接口依赖 <c>UnityEngine.Camera</c>，
-        /// 从而把 `LiteClient.Runtime` 的输入三件排除出 L1 的源链接覆盖（纯逻辑那部分必须能脱离引擎编译）。
+        /// 从而把 `LiteFramework.Runtime` 的输入三件排除出 L1 的源链接覆盖（纯逻辑那部分必须能脱离引擎编译）。
         /// 相机只是**本实现**的输入之一，由装配根对具体类型设置即可——接口不必为实现的设备差异扩面。
         ///
         /// 传进来的相机**可能随场景切换被销毁**（主相机是场景对象）：<see cref="ResolveCamera"/> 在采样时

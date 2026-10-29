@@ -1,6 +1,6 @@
 using System;
 using System.IO;
-using LiteClient;
+using LiteFramework;
 using LiteSim;
 
 namespace RoomServer

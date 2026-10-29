@@ -4,7 +4,7 @@ using LiteFramework;
 using UnityEngine;
 using UnityEngine.UI;
 
-namespace LiteClient.UI
+namespace LiteFramework.UI
 {
     /// <summary>
     /// 绑定索引的**输入控件订阅域**：滑块/开关/下拉的用户变化回调登记与退订

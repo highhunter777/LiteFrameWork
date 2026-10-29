@@ -1,5 +1,5 @@
 using System.Collections.Generic;
-using LiteClient.UI;
+using LiteFramework.UI;
 using LiteCodeGen;
 using LiteGame.Editor.UiTools.Widgets;
 using NUnit.Framework;

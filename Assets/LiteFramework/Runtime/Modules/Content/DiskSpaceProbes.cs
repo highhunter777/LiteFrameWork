@@ -1,7 +1,7 @@
 using System;
 using LiteFramework;
 
-namespace LiteClient
+namespace LiteFramework
 {
     /// <summary>
     /// 磁盘余量探测（**桌面平台的诚实实现**；移动端回退不可知）。

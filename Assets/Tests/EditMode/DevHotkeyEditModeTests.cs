@@ -1,5 +1,5 @@
 using System;
-using LiteClient;
+using LiteFramework;
 using NUnit.Framework;
 using UnityEngine.InputSystem;
 using UnityEngine.InputSystem.LowLevel;

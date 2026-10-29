@@ -3,7 +3,7 @@ using LiteFramework;
 using UnityEngine;
 using UnityEngine.UI;
 
-namespace LiteClient.UI
+namespace LiteFramework.UI
 {
     /// <summary>
     /// 主题应用核心（P2-3 B4）：页面/HUD/未来克隆体的唯一应用入口。

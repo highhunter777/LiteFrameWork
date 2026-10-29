@@ -2,7 +2,7 @@ using LiteFramework;
 using UnityEngine;
 using UnityEngine.UI;
 
-namespace LiteClient.UI
+namespace LiteFramework.UI
 {
     /// <summary>
     /// uGUI Selectable 状态色令牌接缝（P2-3 B4 / D3）：5 个状态色令牌常量，装配期经 <see cref="IThemeBound"/>

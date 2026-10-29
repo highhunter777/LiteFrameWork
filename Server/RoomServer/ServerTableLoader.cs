@@ -2,7 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using LiteSim;
-using LiteClient;
+using LiteFramework;
 
 namespace RoomServer
 {

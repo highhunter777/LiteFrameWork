@@ -1,6 +1,6 @@
 using System.Linq;
 using LiteGame.EditorTools.UI;
-using LiteClient.UI;
+using LiteFramework.UI;
 using NUnit.Framework;
 using TMPro;
 using UnityEditor;

@@ -1,6 +1,6 @@
 using UnityEngine;
 
-namespace LiteClient.UI
+namespace LiteFramework.UI
 {
     /// <summary>文字语义角色（《UI编辑器工具专项设计》§3.1 初始基线；可按语言/可访问性扩展声明覆盖——随真实需求）。</summary>
     public enum UiTextRole

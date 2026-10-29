@@ -1,5 +1,5 @@
 using System;
-using LiteClient;
+using LiteFramework;
 using LiteGame;
 using NUnit.Framework;
 

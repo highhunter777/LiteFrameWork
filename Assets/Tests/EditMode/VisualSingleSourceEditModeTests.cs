@@ -3,7 +3,7 @@ using System.IO;
 using System.Linq;
 using LiteGame.Editor;
 using NUnit.Framework;
-using LiteClient.UI;
+using LiteFramework.UI;
 
 namespace LiteGame.Tests.EditMode
 {

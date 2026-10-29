@@ -1,4 +1,4 @@
-namespace LiteClient.UI
+namespace LiteFramework.UI
 {
     /// <summary>
     /// 动效默认值单源表：C# 原语默认参（<see cref="UiFx"/>）、绑定索引默认参（<see cref="UIBindIndex"/>）、

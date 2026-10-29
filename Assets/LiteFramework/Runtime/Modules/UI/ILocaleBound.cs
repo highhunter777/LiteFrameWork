@@ -1,6 +1,6 @@
 using LiteFramework;
 
-namespace LiteClient.UI
+namespace LiteFramework.UI
 {
     /// <summary>
     /// 界面逻辑的可选能力：接受语言服务注入（《UI框架总设计》§5.1"可选能力"扩展——不进七回调主契约，

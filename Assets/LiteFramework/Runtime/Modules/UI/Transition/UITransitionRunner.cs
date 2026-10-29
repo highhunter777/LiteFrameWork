@@ -2,7 +2,7 @@ using System;
 using System.Collections.Generic;
 using Cysharp.Threading.Tasks;
 using LiteFramework;
-namespace LiteClient.UI
+namespace LiteFramework.UI
 {
     /// <summary>
     /// 转场编排层（《UI扩展能力设计》§1.5，Layer 2）：通用状态机 + 待办队列（容量 1）+ 超时兜底 + 交互门 + 统计。

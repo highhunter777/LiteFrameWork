@@ -1,4 +1,4 @@
-using LiteClient;
+using LiteFramework;
 
 namespace LiteGame
 {

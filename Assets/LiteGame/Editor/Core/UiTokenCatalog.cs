@@ -2,7 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using LiteClient.UI;
+using LiteFramework.UI;
 using UnityEditor;
 using UnityEngine;
 
@@ -12,7 +12,7 @@ namespace LiteGame.EditorTools.UI
     /// 令牌读面（《UI 编辑器工具链专项设计》§8.1「工具只读生成物与 prefab 引用」）：
     /// 从盘上 `UiThemeAsset` 装载颜色/文字令牌，供样式工具、校验规则与夹具共用。
     ///
-    /// **委托壳（P2-3 B2 起解析核心单源＝<see cref="UiStyleResolver"/>〔LiteClient.UI，运行时同源〕；
+    /// **委托壳（P2-3 B2 起解析核心单源＝<see cref="UiStyleResolver"/>〔LiteFramework.UI，运行时同源〕；
     /// 本类只保留编辑器装载面（AssetDatabase）与既有公开签名，调用点源兼容）。**
     ///
     /// 纪律：**不做静态缓存**——编辑器域重载后静态缓存会读到旧值；样式工具每次操作只装载一次，

@@ -2,7 +2,7 @@ using System;
 using LiteFramework;
 using UnityEngine;
 
-namespace LiteClient.UI
+namespace LiteFramework.UI
 {
     /// <summary>
     /// UI prefab 租约（《UI框架总设计》§5.2 资源租约与缓存——Unity 对象引用不能代替包引用计数）：

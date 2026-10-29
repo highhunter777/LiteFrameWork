@@ -4,7 +4,7 @@ using System.Linq;
 using UnityEngine;
 using UnityEngine.UI;
 
-namespace LiteClient.UI
+namespace LiteFramework.UI
 {
     /// <summary>引用应用结果（《UI 系统总设计》§6.2）：编辑器工具报告、校验规则与运行期 Warning 三方共用的判据单源。</summary>
     public enum UiStyleApplyResult

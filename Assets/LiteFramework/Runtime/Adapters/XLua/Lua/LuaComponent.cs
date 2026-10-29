@@ -6,7 +6,7 @@ using LiteFramework;
 using UnityEngine;
 using XLua;
 
-namespace LiteClient
+namespace LiteFramework
 {
     /// <summary>
     /// Lua 宿主（框架唯一新增核心模块）。职责四件：
