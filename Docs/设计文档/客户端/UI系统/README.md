@@ -13,5 +13,5 @@
 | [UI 逻辑 API 参考](UI逻辑API参考.md) | Lua `self.ui`/`Bridge.ui`、C# `UIBindBase`/`UIBindIndex`、列表行协议、错误语义 |
 
 - 机器可读 schema：[UiPageContract.schema.json](UiPageContract.schema.json) · [UiStyleTokens.schema.json](UiStyleTokens.schema.json) · [UiWidgetManifest.schema.json](UiWidgetManifest.schema.json) · [UiPageManifest.schema.json](UiPageManifest.schema.json) · [UiRuleExceptions.schema.json](UiRuleExceptions.schema.json) · [UiDeviceProfiles.schema.json](UiDeviceProfiles.schema.json)。
-- 旧体系：见 [客户端/UI/README.md](../UI/README.md) 与 [归档全文](../../../归档记录/2026-10-22/UI旧体系/README.md)。
+- 旧体系（已退役）：全文见 [2026-10-22/UI旧体系](../../../归档记录/2026-10-22/UI旧体系/README.md)；旧路径 `客户端/UI/` 的跳转壳已退役，映射见 [2026-10-29 归档说明](../../../归档记录/2026-10-29/README.md)。
 - 操作手册：[08-UI 制作与调试](../../../项目说明/08-UI工作台.md)；调试：[13-调试手册](../../../项目说明/13-调试手册.md)。

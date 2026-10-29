@@ -44,7 +44,7 @@
       "destructive": false,
       "order": 20,
       "outputs": [
-        { "path": "Assets/LiteSim/Scripts/BodyBake.g.cs", "kind": "generated" }
+        { "path": "Assets/LiteSim/Scripts/Map/BodyBake.g.cs", "kind": "generated" }
       ],
       "safety": { "dryRun": "supported", "undo": "file", "confirmation": "none" }
     },
@@ -62,7 +62,7 @@
       "destructive": false,
       "order": 30,
       "outputs": [
-        { "path": "Assets/LiteSim/Scripts/MuzzleBake.g.cs", "kind": "generated" }
+        { "path": "Assets/LiteSim/Scripts/Map/MuzzleBake.g.cs", "kind": "generated" }
       ],
       "safety": { "dryRun": "supported", "undo": "file", "confirmation": "none" }
     },
@@ -80,7 +80,7 @@
       "destructive": false,
       "order": 40,
       "outputs": [
-        { "path": "Assets/LiteView/Animation/GripBake.g.cs", "kind": "generated" }
+        { "path": "Assets/LiteView/Modules/Animation/GripBake.g.cs", "kind": "generated" }
       ],
       "safety": { "dryRun": "supported", "undo": "file", "confirmation": "none" }
     },
@@ -98,7 +98,7 @@
       "destructive": false,
       "order": 50,
       "outputs": [
-        { "path": "Assets/LiteSim/Scripts/RootMotionData.g.cs", "kind": "generated" }
+        { "path": "Assets/LiteSim/Scripts/Map/RootMotionData.g.cs", "kind": "generated" }
       ],
       "safety": { "dryRun": "supported", "undo": "file", "confirmation": "none" }
     },
@@ -540,7 +540,7 @@
       ],
       "writes": ["generated"],
       "outputs": [
-        { "path": "Assets/LiteNet/Protocol/BuildHash.g.cs", "kind": "generated" },
+        { "path": "Assets/LiteNet/Core/Protocol/BuildHash.g.cs", "kind": "generated" },
         { "path": "Server/MetaServer/Host/BuildHash.g.cs", "kind": "generated" }
       ],
       "destructive": false,
@@ -561,7 +561,7 @@
       ],
       "writes": ["generated"],
       "outputs": [
-        { "path": "Assets/LiteNet/Proto/Generated/Battle.cs", "kind": "generated" }
+        { "path": "Assets/LiteNet/Core/Proto/Generated/Battle.cs", "kind": "generated" }
       ],
       "destructive": false,
       "order": 20
@@ -665,7 +665,7 @@
       ],
       "writes": ["generated"],
       "outputs": [
-        { "path": "Assets/LiteNet/Protocol/BuildHash.g.cs", "kind": "generated" },
+        { "path": "Assets/LiteNet/Core/Protocol/BuildHash.g.cs", "kind": "generated" },
         { "path": "Server/MetaServer/Host/BuildHash.g.cs", "kind": "generated" }
       ],
       "destructive": false,
@@ -686,7 +686,7 @@
       "destructive": false,
       "order": 60,
       "outputs": [
-        { "path": "Assets/LiteSim/Scripts/SimTrigTables.cs", "kind": "generated" }
+        { "path": "Assets/LiteSim/Scripts/Map/SimTrigTables.cs", "kind": "generated" }
       ],
       "safety": { "dryRun": "supported", "undo": "file", "confirmation": "none" }
     },

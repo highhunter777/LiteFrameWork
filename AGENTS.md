@@ -116,7 +116,7 @@ Unity 交互（改场景/Prefab/跑 PlayMode）一律走 unity-pipeline CLI，�
 | 项 | 值 |
 |---|---|
 | 公网 IP / 登录账号 | **见 `LocalNotes/cloud-host.md`**（机器私有、**不入库**；只走 SSH 密钥、无口令登录）——仓库文档一律只指向该文件，不回显其值 |
-| 通道 | **运维 SSH 走 WireGuard 隧道入口 `10.8.0.1:22`**（安全组不保留公网 `22/tcp` 入方向：本机出口 IP 会变，IP 白名单不可靠；本机别名 `litegame-cloud-tunnel`，`scripts/deploy/*.py` 默认只走隧道，隧道不可达直接 fail-fast；公网仅显式破窗）。应用面同样走隧道 `10.8.0.1`（Meta `5000`、Room UDP `17777` 只绑隧道地址）。细节/破窗见 10 手册 §4.1 |
+| 通道 | **运维 SSH 走 WireGuard 隧道入口 `10.8.0.1:22`**（安全组不保留公网 `22/tcp` 入方向：本机出口 IP 会变，IP 白名单不可靠；本机别名 `litegame-cloud-tunnel`，`scripts/deploy/*.py` 默认只走隧道，隧道不可达直接 fail-fast；公网仅显式破窗）。应用面同样走隧道 `10.8.0.1`（Meta `5000` 绑隧道地址；**Room UDP `17777` 由 kcp2k 绑 `0.0.0.0`**——可达性靠安全组/主机防火墙只放行隧道网段，不是绑定面保证，部署核验时按 10 手册 §4.1 查。细节/破窗见 10 手册 §4.1 |
 | 托管 | 任务计划 `LiteGame-Meta` / `LiteGame-Room`（`SYSTEM` + `AtStartup`）；**改配置必须重启任务才生效**（配置是启动期快照） |
 | 云上路径 | `C:\litegame\{meta,room,GameData,mongo,wg}`；配置源＝`deploy/roomserver.windows.json`（**普通房默认 `standard`，验结算**；`sandbox` 仅由 GM 页显式创建云端测试房：隐藏、不限时、无击杀上限、不结算） |
 | 运维(GM)端点 | `http://10.8.0.1:9101/gm/*`（只绑隧道地址、仅 POST + 头 `X-GM-Key`，密钥见 `LocalNotes/cloud-host.md`）：`rooms` / `start` / `abort` / `kick` / `settle-flush`；设计见 [《云端GM通道专项设计》](Docs/设计文档/架构/云端GM通道专项设计.md)。**改房间服 C# 后必须重新 `dotnet publish -r win-x64 --self-contained` 并上传 `room/`**（只改配置则重启任务即可） |
@@ -151,7 +151,7 @@ ssh litegame-cloud-tunnel powershell -NoProfile -ExecutionPolicy Bypass -File C:
 
 ## 工作约定
 
-- **脚本语言**：`scripts/` 已**全量 Python**（P0–P5 完成，2026-10-21）；新增脚本一律 Python，不再新增 `.ps1`；`toolchain.py check` 对任何 `scripts/**/*.ps1` 报错。
+- **脚本语言**：`scripts/` 已**全量 Python**（P0–P5 完成，2026-10-21）；新增脚本一律 Python，不再新增 `.ps1`；`toolchain.py check` 对任何 `scripts/**/*.ps1` 报警（默认 warning，`--strict` 升 error）。
 - PowerShell 存量脚本统一用 `pwsh`。
 - **Agent 命令执行环境约定（2026-10-11，按本会话实测坑位沉淀）**：
   - 跑门禁/项目 `.ps1` 脚本 → `pwsh`（勿用 powershell 5.1）；GBK/乱码读面也用 `pwsh Get-Content`；
