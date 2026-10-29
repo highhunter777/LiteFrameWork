@@ -118,9 +118,9 @@ namespace LiteFramework.Tests
         public void 纪律_默认排除_编辑器目录与生成物与引擎自身()
         {
             Assert.True(DisciplineScanner.IsExcluded("Assets/LiteSim/Core/Scripts/Editor/Foo.cs"));
-            Assert.True(DisciplineScanner.IsExcluded("Assets/LiteSim/Core/Scripts/SimTrigTables.cs"));
+            Assert.True(DisciplineScanner.IsExcluded("Assets/LiteSim/Core/Scripts/Map/SimTrigTables.cs"));
             Assert.True(DisciplineScanner.IsExcluded("Assets/Tools/DisciplineScanner/Scripts/DisciplineScanner.cs"));
-            Assert.False(DisciplineScanner.IsExcluded("Assets/LiteSim/Core/Scripts/SimTrig.cs"));
+            Assert.False(DisciplineScanner.IsExcluded("Assets/LiteSim/Core/Scripts/Map/SimTrig.cs"));
         }
 
         [Fact]

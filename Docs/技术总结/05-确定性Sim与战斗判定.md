@@ -16,7 +16,7 @@
 
 ## 2. 逻辑帧：60Hz 定长 + 累加器追帧
 
-`Assets/LiteSim/Core/Scripts/FrameDriver.cs`：
+`Assets/LiteSim/Core/Scripts/Pipeline/FrameDriver.cs`：
 
 ```text
 _accumulator += realDelta
@@ -45,7 +45,7 @@ if (_accumulator >= Dt) _accumulator = 0;   // 追不上就丢余量，防死亡
 
 ## 3. 系统顺序：`SimStep` 是唯一契约
 
-`Assets/LiteSim/Core/Scripts/SimStep.cs` 是**硬编码直线调用**，没有注册表/数组/特性扫描：
+`Assets/LiteSim/Core/Scripts/Pipeline/SimStep.cs` 是**硬编码直线调用**，没有注册表/数组/特性扫描：
 
 ```text
 前置：Match.Phase == Finished → 清命令缓冲并 return

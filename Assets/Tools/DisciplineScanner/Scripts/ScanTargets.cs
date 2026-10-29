@@ -114,9 +114,9 @@ namespace Tools.DisciplineScan
         /// + 三个读口定义文件（定义面自含 Publish/Loaded 声明，非消费）。</summary>
         public static readonly string[] ConfigPortExcludes =
         {
-            "Assets/LiteSim/Core/Scripts/CombatConfig.cs",
-            "Assets/LiteSim/Core/Scripts/MovementConfig.cs",
-            "Assets/LiteSim/Core/Scripts/WeaponConfig.cs",
+            "Assets/LiteSim/Core/Scripts/Config/CombatConfig.cs",
+            "Assets/LiteSim/Core/Scripts/Config/MovementConfig.cs",
+            "Assets/LiteSim/Core/Scripts/Config/WeaponConfig.cs",
         };
 
         /// <summary>MetaServer：R11 同类把守（《Meta 服务专项设计》§3.2/§4.2）——
