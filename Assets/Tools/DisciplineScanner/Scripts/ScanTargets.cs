@@ -84,7 +84,7 @@ namespace Tools.DisciplineScan
             LintRule.R10UiSendsBusinessPacket,
         };
 
-        /// <summary>RoomServer/Runtime：R11 纯化（《商业级通用服务端框架总设计》§8.1 禁止项——
+        /// <summary>RoomServer/Core：R11 纯化（《商业级通用服务端框架总设计》§8.1 禁止项——
         /// Transport/墙钟/Console/文件/proto 引用一概不得进入纯运行时层）＋ R13 数值读口禁读
         /// （机制面：内核不读静态读口——值经房间快照参数传递）。</summary>
         public static readonly LintRule[] RuntimePurityRules =
@@ -114,14 +114,14 @@ namespace Tools.DisciplineScan
         /// + 三个读口定义文件（定义面自含 Publish/Loaded 声明，非消费）。</summary>
         public static readonly string[] ConfigPortExcludes =
         {
-            "Assets/LiteSim/Core/Scripts/Config/CombatConfig.cs",
-            "Assets/LiteSim/Core/Scripts/Config/MovementConfig.cs",
-            "Assets/LiteSim/Core/Scripts/Config/WeaponConfig.cs",
+            "Assets/LiteSim/Scripts/Config/CombatConfig.cs",
+            "Assets/LiteSim/Scripts/Config/MovementConfig.cs",
+            "Assets/LiteSim/Scripts/Config/WeaponConfig.cs",
         };
 
         /// <summary>MetaServer：R11 同类把守（《Meta 服务专项设计》§3.2/§4.2）——
         /// Meta 的模块层与契约层不得引用 IO/墙钟/Console，也不得引用 LiteNet/proto/Kcp：
-        /// 局外契约不混进战斗协议，且 Meta 类型永不进入 RoomServer/Runtime。
+        /// 局外契约不混进战斗协议，且 Meta 类型永不进入 RoomServer/Core。
         /// 宿主装配层（Host/Infrastructure）合法使用 Web/IO，故排除在外。</summary>
         public static readonly LintRule[] MetaPurityRules =
         {
@@ -199,9 +199,9 @@ namespace Tools.DisciplineScan
             new ScanTarget("Assets/LiteGame", GameRules),                                      // R8 资源唯一入口 + R12 适配器边界（产品侧）
             new ScanTarget("Assets/LiteFramework/Runtime/Modules/UI", UiLayerRules),                                // R10 UI 层不发业务包
             // 该目标的存在性由 `纪律_R12_已接入真实扫描目标_且目标路径存在` 钉住。
-            new ScanTarget("Assets/RoomServer/Runtime", RuntimePurityRules),                  // R1 纯运行时层（R1《服务端总设计》§8.1）
+            new ScanTarget("Assets/RoomServer/Core", RuntimePurityRules),                  // R1 纯运行时层（R1《服务端总设计》§8.1）
             new ScanTarget("Assets/LiteSim", ConfigPortRules, ConfigPortExcludes),             // R13 数值读口禁读（机制面；表现层与读口定义文件除外）
-            new ScanTarget("Assets/RoomServer/Application", ConfigPortRules),                  // R13（Application 无 IO 子集同守）
+            new ScanTarget("Assets/RoomServer/Modules", ConfigPortRules),                  // R13（Application 无 IO 子集同守）
             new ScanTarget("Server/RoomServer", ConfigPortRules),                              // R13（宿主链——装载产物显式传递，不读读口）
             new ScanTarget("Server/MetaServer", MetaPurityRules, MetaHostExcludes),                    // Meta 模块/契约层（《Meta 服务专项设计》§4.2）
             // R14 投影纪律（《GM 与调试工具分层专项设计》§7）：两个投影根的读数/动作/发现面经内核门面。
@@ -279,8 +279,8 @@ namespace Tools.DisciplineScan
         public static readonly string[] SharedAssemblyDefs =
         {
             // S1 机制共享：两端都要跑这套机制，但结果不需逐位一致
-            "Assets/RoomServer/Runtime/RoomServer.Runtime.asmdef",
-            "Assets/RoomServer/Application/RoomServer.Application.Runtime.asmdef",
+            "Assets/RoomServer/Core/RoomServer.Runtime.asmdef",
+            "Assets/RoomServer/Modules/RoomServer.Application.Runtime.asmdef",
             "Assets/LiteNet/LiteNet.asmdef",
         };
 

@@ -32,7 +32,7 @@
       MatchStateMachine.cs——MatchPhase/MatchStateMachine 同样不得在测试代码中命名，
       相位断言用字面量 + 注释。）
     -->
-    <ProjectReference Include="..\..\Assets\RoomServer\Application\RoomServer.Application.Runtime.csproj" />
+    <ProjectReference Include="..\..\Assets\RoomServer\Modules\RoomServer.Application.Runtime.csproj" />
     <!-- 房间侧注册客户端（L3 闭环：真 LobbyRegistrationClient → 真 Meta HTTP）。同为测试项目专用引用。 -->
     <ProjectReference Include="..\..\Server\RoomServer\RoomServer.csproj" />
   </ItemGroup>

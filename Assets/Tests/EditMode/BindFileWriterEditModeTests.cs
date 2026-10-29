@@ -52,7 +52,7 @@ namespace LiteGame.Tests.EditMode
         public void 共享源集目录被拒绝()
         {
             string reason;
-            Assert.That(BindOutputPolicy.IsForbidden("Assets/LiteSim/Core/Scripts", out reason), Is.True);
+            Assert.That(BindOutputPolicy.IsForbidden("Assets/LiteSim/Scripts", out reason), Is.True);
             Assert.That(reason, Is.Not.Null);
             Assert.That(reason, Is.Not.Empty);
             Assert.That(BindOutputPolicy.IsForbidden("Assets/LiteGame/UI/Bind", out reason), Is.False);

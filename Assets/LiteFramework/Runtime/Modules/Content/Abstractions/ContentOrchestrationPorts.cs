@@ -38,7 +38,7 @@ namespace LiteFramework
     /// 候选内容获取端口：只下载固定 Release 的不可变文件。
     ///
     /// **为什么是独立端口而非复用 <see cref="ICandidateFileSource"/>**：
-    /// 获取**有网络 IO 特性**（HTTP/Host 模式），而这属于装配层——`RoomServer/Runtime` 与
+    /// 获取**有网络 IO 特性**（HTTP/Host 模式），而这属于装配层——`RoomServer/Core` 与
     /// `LiteFramework.Core` 的纯化纪律禁止核心逻辑直接引用 HTTP/传输。
     /// 端口分离让编排保持纯逻辑可 L1 覆盖，真实下载适配留在装配层。
     ///

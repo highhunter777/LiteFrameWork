@@ -117,10 +117,10 @@ namespace LiteFramework.Tests
         [Fact]
         public void 纪律_默认排除_编辑器目录与生成物与引擎自身()
         {
-            Assert.True(DisciplineScanner.IsExcluded("Assets/LiteSim/Core/Scripts/Editor/Foo.cs"));
-            Assert.True(DisciplineScanner.IsExcluded("Assets/LiteSim/Core/Scripts/Map/SimTrigTables.cs"));
+            Assert.True(DisciplineScanner.IsExcluded("Assets/LiteSim/Scripts/Editor/Foo.cs"));
+            Assert.True(DisciplineScanner.IsExcluded("Assets/LiteSim/Scripts/Map/SimTrigTables.cs"));
             Assert.True(DisciplineScanner.IsExcluded("Assets/Tools/DisciplineScanner/Scripts/DisciplineScanner.cs"));
-            Assert.False(DisciplineScanner.IsExcluded("Assets/LiteSim/Core/Scripts/Map/SimTrig.cs"));
+            Assert.False(DisciplineScanner.IsExcluded("Assets/LiteSim/Scripts/Map/SimTrig.cs"));
         }
 
         [Fact]
@@ -210,13 +210,13 @@ namespace LiteFramework.Tests
                 ScanTarget t = ScanTargets.Default[i];
                 if (Array.IndexOf(t.Rules, LintRule.R13StaticConfigPort) < 0) continue;
                 if (t.Root == "Assets/LiteSim") sim = true;
-                if (t.Root == "Assets/RoomServer/Runtime") runtime = true;
-                if (t.Root == "Assets/RoomServer/Application") app = true;
+                if (t.Root == "Assets/RoomServer/Core") runtime = true;
+                if (t.Root == "Assets/RoomServer/Modules") app = true;
                 if (t.Root == "Server/RoomServer") host = true;
             }
             Assert.True(sim, "R13 缺 Assets/LiteSim 受守根——Sim 机制面将不受纪律扫描把守");
-            Assert.True(runtime, "R13 缺 Assets/RoomServer/Runtime 受守根");
-            Assert.True(app, "R13 缺 Assets/RoomServer/Application 受守根");
+            Assert.True(runtime, "R13 缺 Assets/RoomServer/Core 受守根");
+            Assert.True(app, "R13 缺 Assets/RoomServer/Modules 受守根");
             Assert.True(host, "R13 缺 Server/RoomServer 受守根");
         }
 
@@ -314,7 +314,7 @@ namespace LiteFramework.Tests
             Assert.Equal(0, Count("Resources.Load(\"x\"); // lint-allow R8", LintRule.R8ResourcesLoad));
         }
 
-        // ---- R11：RoomServer/Runtime 纯化（《商业级通用服务端框架总设计》§8.1 禁止项）----
+        // ---- R11：RoomServer/Core 纯化（《商业级通用服务端框架总设计》§8.1 禁止项）----
 
         [Fact]
         public void 纪律_R11_运行时纯化违例被逐类命中()
@@ -350,7 +350,7 @@ namespace LiteFramework.Tests
             Assert.Equal(0, Count("public const int MaxFrames = 16;", LintRule.R11RuntimePurity));
             // 注释里的禁用 API 名不算违规
             Assert.Equal(0, Count("// 不打印 Console、不读 DateTime.Now（§8.1 禁止项）", LintRule.R11RuntimePurity));
-            // 规则号命名 + 门控（R11 只对 RoomServer/Runtime 目标启用，其他根的文本不经过本规则）
+            // 规则号命名 + 门控（R11 只对 RoomServer/Core 目标启用，其他根的文本不经过本规则）
             Assert.Equal("R11", DisciplineScanner.RuleId(LintRule.R11RuntimePurity));
             Assert.Equal(0, Count("Console.WriteLine(\"ok\"); // lint-allow R11", LintRule.R11RuntimePurity));
         }

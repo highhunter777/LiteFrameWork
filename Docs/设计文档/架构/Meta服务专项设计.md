@@ -57,7 +57,7 @@ Meta 当前处于**骨架＋持久化接缝＋R3 Auth 首批＋R3-Lobby＋R3-Pro
 - **不阻塞 Room Worker**。Meta 不向房间热路径回调用；房间需要持久化的结果先写**有界 Outbox**，由后台服务重试（服务端总设计 §6 末段）。
 - **不向房间提供可变的永久数据**。入场数据固定为不可变 `MatchStartSnapshot`；`Running` 期间房间不读取永久角色数据（§9.1）。
 - **不成为第二个内容控制面**。发布描述、信任根、兼容矩阵归热更专项；Meta 最多读其产物。
-- **不在 `RoomRuntime` 内被引用**。`RoomServer/Runtime` 的纯化红线由 L0 纪律扫描 R11 把守，Meta 的任何类型都不得进入该层。
+- **不在 `RoomRuntime` 内被引用**。`RoomServer/Core` 的纯化红线由 L0 纪律扫描 R11 把守，Meta 的任何类型都不得进入该层。
 
 ## 4. 拓扑、宿主与工程结构
 
@@ -194,7 +194,7 @@ Join Ticket 是 Meta 与 RoomServer 之间**唯一**的身份接缝，必须满�
 - **Join Ticket 在此签发**：Lobby 完成分配后签发 §6.2 的票据，与 `roomId`/`matchId` 一并下发。
 - **Match 状态投影**：Lobby 展示的房间/对局状态是 RoomServer 上报事实的**投影**，不是权威；投影过期即降级显示，不猜状态。
 
-**R3-Lobby 已按本节落地（实装口径）**：`POST /lobby/instances/register`（实例密钥 Bearer——常量时间比较；注册即心跳，TTL 超时移出、表满拒新）、`POST /lobby/join-ticket`（访问令牌鉴权——Lobby 为首个受保护端点；分配 → 按实例构建哈希盖章签发）与 `GET /lobby/rooms`（投影查询，同实例密钥鉴权）。**房间发现（房间列表批）**：`GET /lobby/rooms/public`（玩家可见——实例+房间明细投影，Bearer=玩家访问令牌，与票据签发同凭据链；挑 `roomId` → 换票 → 进房）。**创房出号（创建房间批，2026-10-14）**：`POST /lobby/create-room（开房参数批起带 `mapId`/`expectedPlayers`——只透传盖章、不查表／不校验上界，归房间端）`（Bearer=访问令牌）——**服务端生成唯一新房号并按号签发进房票据**（客户端**不发明房号**）；出号**防撞两层**＝避让 `InstanceRegistry.ProjectRooms()` 在册号 + **保留集**（TTL 覆盖"签发→首入座→心跳上报"窗口，过期让位、无幽灵房）；响应形状与 `/lobby/join-ticket` 同款（房间实体仍随**首入座者**物化，开房者=房主）。分配排序**确定**（玩家占用 → 房间占用 → Ordinal 实例标识）；版本准入分两态：声明构建与可用实例不符 → `lobby.version-mismatch`，无可用实例/容量 → `lobby.no-capacity`。签发端形状单源 = `Assets/RoomServer/Application/JoinTicketFormat.cs`（源链接共编进 MetaServer），与房间端同 key 验签（HMAC 共享密钥——框架期同信任域，换非对称只替换两端签发/验证器）。注册表当前驻 Meta 进程内存（单实例形态；多实例部署需 Redis 级共享注册表——§9.2"可丢失/可重建"数据），drain 上报由 RoomServer 心跳携带（排空期间持续上报至进程退出）。
+**R3-Lobby 已按本节落地（实装口径）**：`POST /lobby/instances/register`（实例密钥 Bearer——常量时间比较；注册即心跳，TTL 超时移出、表满拒新）、`POST /lobby/join-ticket`（访问令牌鉴权——Lobby 为首个受保护端点；分配 → 按实例构建哈希盖章签发）与 `GET /lobby/rooms`（投影查询，同实例密钥鉴权）。**房间发现（房间列表批）**：`GET /lobby/rooms/public`（玩家可见——实例+房间明细投影，Bearer=玩家访问令牌，与票据签发同凭据链；挑 `roomId` → 换票 → 进房）。**创房出号（创建房间批，2026-10-14）**：`POST /lobby/create-room（开房参数批起带 `mapId`/`expectedPlayers`——只透传盖章、不查表／不校验上界，归房间端）`（Bearer=访问令牌）——**服务端生成唯一新房号并按号签发进房票据**（客户端**不发明房号**）；出号**防撞两层**＝避让 `InstanceRegistry.ProjectRooms()` 在册号 + **保留集**（TTL 覆盖"签发→首入座→心跳上报"窗口，过期让位、无幽灵房）；响应形状与 `/lobby/join-ticket` 同款（房间实体仍随**首入座者**物化，开房者=房主）。分配排序**确定**（玩家占用 → 房间占用 → Ordinal 实例标识）；版本准入分两态：声明构建与可用实例不符 → `lobby.version-mismatch`，无可用实例/容量 → `lobby.no-capacity`。签发端形状单源 = `Assets/RoomServer/Modules/JoinTicketFormat.cs`（源链接共编进 MetaServer），与房间端同 key 验签（HMAC 共享密钥——框架期同信任域，换非对称只替换两端签发/验证器）。注册表当前驻 Meta 进程内存（单实例形态；多实例部署需 Redis 级共享注册表——§9.2"可丢失/可重建"数据），drain 上报由 RoomServer 心跳携带（排空期间持续上报至进程退出）。
 
 ## 8. Profile：进度、库存与结算
 
@@ -331,7 +331,7 @@ RoomRuntime 冻结 MatchResult
 
 | 层级 | 覆盖 |
 | --- | --- |
-| L0 | 依赖方向（`Contracts` 不被反向引用；Meta 类型不得进入 `RoomServer/Runtime`）；Secret 与凭据扫描；错误码表与 DTO 生成物一致性；`GetHashCode()` 不用于持久化标识与协议字段 |
+| L0 | 依赖方向（`Contracts` 不被反向引用；Meta 类型不得进入 `RoomServer/Core`）；Secret 与凭据扫描；错误码表与 DTO 生成物一致性；`GetHashCode()` 不用于持久化标识与协议字段 |
 | L1 | 错误码与规范化 JSON 稳定性；幂等键语义；revision CAS 冲突路径；票据/令牌的过期、篡改、重放、`audience` 不符、`kid` 未知与**时钟回拨**；配置校验失败拒绝启动 |
 | L3 | 真实 HTTP + **Mongo 测试容器**：唯一 Ledger 与事务重试；Outbox 提交前后失败、响应丢失、重复提交；进程重启后 Outbox 恢复；限流分层生效；drain 期间不再分配新 Match |
 | L4 | 目标容量下长稳；Mongo 暂停、磁盘受限、Outbox 堆积与恢复；滚动升级与回滚演练；备份恢复演练 |

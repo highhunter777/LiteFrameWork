@@ -61,7 +61,7 @@
 
 **不做的动作与原因**：
 
-- **转移房主**：需新增 `RoomCommandKind`，而 `Assets/RoomServer/Runtime/RoomCommand.cs` 属**双编共享源集** ⇒ BuildHash 变化 ⇒ **客户端必须重打包**，与"客户端零改动"冲突。替代：要换人就 `kick` 当前 owner（下一席位按既有规则接任）。
+- **转移房主**：需新增 `RoomCommandKind`，而 `Assets/RoomServer/Core/RoomCommand.cs` 属**双编共享源集** ⇒ BuildHash 变化 ⇒ **客户端必须重打包**，与"客户端零改动"冲突。替代：要换人就 `kick` 当前 owner（下一席位按既有规则接任）。
 - **判定面 GM**（免死/弹药/爆头）：见 §6，单独立批。
 
 ### 3.1 契约单源（机器可读）

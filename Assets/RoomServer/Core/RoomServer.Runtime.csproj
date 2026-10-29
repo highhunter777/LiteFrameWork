@@ -26,7 +26,7 @@
 
   <ItemGroup>
     <!-- **只引 LiteSim**：R11 红线禁止本层出现 proto/LiteNet（纯化扫描会命中 "using LiteNet"）。 -->
-    <ProjectReference Include="..\..\..\Assets\LiteSim\Core\LiteSim.Core.csproj" />
+    <ProjectReference Include="..\..\..\Assets\LiteSim\LiteSim.Core.csproj" />
   </ItemGroup>
 
 </Project>

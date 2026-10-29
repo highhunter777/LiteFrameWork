@@ -1,5 +1,5 @@
 <Project Sdk="Microsoft.NET.Sdk">  <!--
-    双轨编译（同 Assets/LiteSim/Core/LiteSim.Core.csproj 模式）：LiteNet 在 Unity（asmdef）与 dotnet（本 csproj）两侧编译。
+    双轨编译（同 Assets/LiteSim/LiteSim.Core.csproj 模式）：LiteNet 在 Unity（asmdef）与 dotnet（本 csproj）两侧编译。
     - noEngineReferences: true / 禁 UniTask（Server .NET 控制台共用，异步只用 BCL Task）——《状态同步实施方案》§7.1
     - Protocol/ 纯函数零 kcp2k 依赖（§4.6 可替换性）；Transport/ 是唯一允许碰 kcp2k 的地方
     - 引用 LiteSim.Core：输入/槽位与 Sim 结构体的 proto 映射是协议层职责（协议单源）
@@ -21,7 +21,7 @@
     <Compile Include="Client/**/*.cs" />
     <Compile Include="Diagnostics/**/*.cs" />
     <Compile Include="Proto/Generated/**/*.cs" />
-    <Compile Include="Vendor/kcp2k/**/*.cs" />
+    <Compile Include="Adapters/**/*.cs" />
   </ItemGroup>
 
   <ItemGroup>
@@ -31,7 +31,7 @@
 
   <ItemGroup>
     <!-- 协议层打包 Sim 输入/槽位（asmdef 侧 references: LiteSim.Core 的 dotnet 对应物） -->
-    <ProjectReference Include="..\LiteSim\Core\LiteSim.Core.csproj" />
+    <ProjectReference Include="..\LiteSim\LiteSim.Core.csproj" />
   </ItemGroup>
 
 </Project>

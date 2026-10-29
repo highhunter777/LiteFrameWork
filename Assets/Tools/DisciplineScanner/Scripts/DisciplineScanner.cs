@@ -39,7 +39,7 @@ namespace Tools.DisciplineScan
         /// <summary>R10 禁 INetworkService（`UI 层`）：UI 层不得直发业务包（网络契约归框架层，业务数据经事件/桥过）。</summary>
         R10UiSendsBusinessPacket = 10,
 
-        /// <summary>R11 RoomServer/Runtime 纯化（《商业级通用服务端框架总设计》§8.1 禁止项）：
+        /// <summary>R11 RoomServer/Core 纯化（《商业级通用服务端框架总设计》§8.1 禁止项）：
         /// 禁 Transport/Socket/kcp、系统墙钟/Stopwatch/LongSleep、Console、文件 IO、proto/LiteNet 引用与全局随机。</summary>
         R11RuntimePurity = 11,
 
@@ -134,7 +134,7 @@ namespace Tools.DisciplineScan
         private static readonly Regex R10Regex = new Regex(@"\bINetworkService\b", RegexOptions.Compiled);
 
         /// <summary>
-        /// R11：RoomServer/Runtime 纯化（§8.1 禁止项——Runtime 只持确定性房间状态，时间经 RoomCommand.Tick 注入、
+        /// R11：RoomServer/Core 纯化（§8.1 禁止项——Runtime 只持确定性房间状态，时间经 RoomCommand.Tick 注入、
         /// 输入经 ClientInputBatch 纯数据、输出经 RoomOutput 纯事件）。命中任一即违规：
         /// Console / DateTime.Now / Environment.TickCount / Stopwatch / Thread.Sleep / System.Net / Socket / Kcp* /
         /// IRoomTransport / using LiteNet 或 LiteNet. 限定名（proto 单源在 LiteNet）/ Google.Protobuf /

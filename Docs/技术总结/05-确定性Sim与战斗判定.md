@@ -2,7 +2,7 @@
 
 > **本章回答**：一局战斗的"真相"如何被计算出来——逻辑帧怎么推进、系统按什么顺序跑、确定性靠什么守住、客户端预测/回滚/和解如何与权威对齐、表现层如何不闪不抖。
 > **上游权威**：[状态同步专项设计](../设计文档/网络/状态同步专项设计.md)（契约）、[Sim组织专项设计](../设计文档/游戏玩法/Sim组织专项设计.md)（系统组织）、[角色状态与动作专项设计](../设计文档/游戏玩法/角色状态与动作专项设计.md)（输入/动作）。本章讲实现事实。
-> **口径**：2026-10-22 工作区；Sim 源码在 `Assets/LiteSim/Core`，两端共编。
+> **口径**：2026-10-22 工作区；Sim 源码在 `Assets/LiteSim`，两端共编。
 
 ## 1. 为什么必须是确定性的
 
@@ -16,7 +16,7 @@
 
 ## 2. 逻辑帧：60Hz 定长 + 累加器追帧
 
-`Assets/LiteSim/Core/Scripts/Pipeline/FrameDriver.cs`：
+`Assets/LiteSim/Scripts/Pipeline/FrameDriver.cs`：
 
 ```text
 _accumulator += realDelta
@@ -45,7 +45,7 @@ if (_accumulator >= Dt) _accumulator = 0;   // 追不上就丢余量，防死亡
 
 ## 3. 系统顺序：`SimStep` 是唯一契约
 
-`Assets/LiteSim/Core/Scripts/Pipeline/SimStep.cs` 是**硬编码直线调用**，没有注册表/数组/特性扫描：
+`Assets/LiteSim/Scripts/Pipeline/SimStep.cs` 是**硬编码直线调用**，没有注册表/数组/特性扫描：
 
 ```text
 前置：Match.Phase == Finished → 清命令缓冲并 return

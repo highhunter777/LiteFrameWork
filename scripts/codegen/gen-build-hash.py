@@ -3,7 +3,7 @@
 # 用途：Join 握手 buildHash 校验 + 启动期断言——两端 hash 不等 → 拒绝进房（《状态同步实施方案》§40/§380）。
 #
 # 覆盖范围（**两端必须逐字节一致的东西**）：
-#   Assets/LiteSim/Core/Scripts/**   —— 判定逻辑（Sim 内所有确定性行为）
+#   Assets/LiteSim/Scripts/**   —— 判定逻辑（Sim 内所有确定性行为）
 #   Assets/LiteNet/Proto/**          —— 协议单源（.proto + 生成物）
 #   Assets/LiteNet/Protocol/**       —— 打包解包纯函数
 #   SHARED_LINK_FILES                —— 两端源链接共编的映射/布局件（RoomServer.csproj <Compile Include>；
@@ -49,8 +49,8 @@ from _codegen import info, repo_root  # noqa: E402
 
 ROOT = repo_root()
 SHARED_TARGETS = [
-    'Assets/LiteSim/Core/Scripts',
-    'Assets/LiteSim/Core/Systems',
+    'Assets/LiteSim/Scripts',
+    'Assets/LiteSim/Systems',
     'Assets/LiteNet/Proto',
     'Assets/LiteNet/Protocol',
     # 安全信封（2026-10-03）：装饰在 Transport 上的线上协议层——密文帧形状/握手版本
@@ -79,12 +79,12 @@ META_TARGETS = [
     'Server/MetaServer',
 ]
 META_EXTRA_FILES = [
-    'Assets/RoomServer/Application/JoinTicketFormat.cs',   # 源链接共编（MetaServer.csproj）
+    'Assets/RoomServer/Modules/JoinTicketFormat.cs',   # 源链接共编（MetaServer.csproj）
     # 2026-10-12 两处修正：Base64Url.cs 链接自 P2 引入起漏登记（改它 Meta 身份不动 = 静默失联）；
     # MatchStateMachine.cs 为房间明细批新增链接（相位闸单源）。登记规则：csproj 每加一条
     # <Compile Include> 出树链接，这里必须同批加对应条目。
-    'Assets/RoomServer/Application/Base64Url.cs',
-    'Assets/RoomServer/Runtime/MatchStateMachine.cs',
+    'Assets/RoomServer/Modules/Base64Url.cs',
+    'Assets/RoomServer/Core/MatchStateMachine.cs',
 ]
 SHARED_OUT_FILE = os.path.join(ROOT, 'Assets', 'LiteNet', 'Protocol', 'BuildHash.g.cs')
 META_OUT_FILE = os.path.join(ROOT, 'Server', 'MetaServer', 'Host', 'BuildHash.g.cs')

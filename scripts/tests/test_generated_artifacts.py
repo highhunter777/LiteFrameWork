@@ -33,7 +33,7 @@ SYNC_OUTPUT = ROOT / "Assets" / "LiteSim" / "Core" / "Diagnostics" / "Generated"
 GENERATED = {
     "Assets/LiteNet/Protocol/BuildHash.g.cs": "scripts/codegen/gen-build-hash.py",
     "Server/MetaServer/Host/BuildHash.g.cs": "scripts/codegen/gen-build-hash.py",
-    "Assets/LiteSim/Core/Diagnostics/Generated/EntitySlot.Sync.g.cs": "scripts/codegen/gen_sync_code.py",
+    "Assets/LiteSim/Diagnostics/Generated/EntitySlot.Sync.g.cs": "scripts/codegen/gen_sync_code.py",
     "Assets/LiteGame/LuaBridge/Generated/LuaKeys.g.cs": "Luban/gen_lua_keys.py",
 }
 

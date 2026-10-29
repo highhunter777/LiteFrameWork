@@ -41,20 +41,20 @@
       与 RoomServer 工程链接 Luban/SimConfigMapper 同款惯例；**不得**在本工程另写第二份拼串。
       本文件只依赖 BCL（System/Security.Cryptography/Text），不引入 LiteNet/proto。
     -->
-    <Compile Include="..\..\Assets\RoomServer\Application\JoinTicketFormat.cs" Link="Shared\JoinTicketFormat.cs" />
+    <Compile Include="..\..\Assets\RoomServer\Modules\JoinTicketFormat.cs" Link="Shared\JoinTicketFormat.cs" />
     <!--
       Base64Url 编解码单源（P2）：票据线格式（JoinTicketFormat）与访问令牌线格式（AccessTokenFormat）
       此前各手写一份逐字相同的实现，重连票据又写了第三份——本文件即那三处的唯一实现。
       只依赖 BCL（System/System.Text），不引入 LiteNet/proto。
     -->
-    <Compile Include="..\..\Assets\RoomServer\Application\Base64Url.cs" Link="Shared\Base64Url.cs" />
+    <Compile Include="..\..\Assets\RoomServer\Modules\Base64Url.cs" Link="Shared\Base64Url.cs" />
     <!--
       Match 相位词汇与终态判据单源（房间明细批）：Meta 的 phase 闸（InstanceRegistry）此前以字面量
       0..5 + 注释绑内核 MatchPhase（实有 8 值，Closed=6/Aborted=7）——内核新增相位即静默漂移。
       源链接共编后，值域（Created..Aborted）与终态判据（IsTerminal）直接由本枚举派生。
       本文件纯 BCL（无 using），不引入 LiteSim/proto。
     -->
-    <Compile Include="..\..\Assets\RoomServer\Runtime\MatchStateMachine.cs" Link="Shared\MatchStateMachine.cs" />
+    <Compile Include="..\..\Assets\RoomServer\Core\MatchStateMachine.cs" Link="Shared\MatchStateMachine.cs" />
   </ItemGroup>
 
   <ItemGroup>

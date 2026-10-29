@@ -44,7 +44,7 @@
       "destructive": false,
       "order": 20,
       "outputs": [
-        { "path": "Assets/LiteSim/Core/Scripts/BodyBake.g.cs", "kind": "generated" }
+        { "path": "Assets/LiteSim/Scripts/BodyBake.g.cs", "kind": "generated" }
       ],
       "safety": { "dryRun": "supported", "undo": "file", "confirmation": "none" }
     },
@@ -62,7 +62,7 @@
       "destructive": false,
       "order": 30,
       "outputs": [
-        { "path": "Assets/LiteSim/Core/Scripts/MuzzleBake.g.cs", "kind": "generated" }
+        { "path": "Assets/LiteSim/Scripts/MuzzleBake.g.cs", "kind": "generated" }
       ],
       "safety": { "dryRun": "supported", "undo": "file", "confirmation": "none" }
     },
@@ -98,7 +98,7 @@
       "destructive": false,
       "order": 50,
       "outputs": [
-        { "path": "Assets/LiteSim/Core/Scripts/RootMotionData.g.cs", "kind": "generated" }
+        { "path": "Assets/LiteSim/Scripts/RootMotionData.g.cs", "kind": "generated" }
       ],
       "safety": { "dryRun": "supported", "undo": "file", "confirmation": "none" }
     },
@@ -642,7 +642,7 @@
       "command": ["python", "scripts/codegen/toolbox.py", "sync-code"],
       "writes": ["generated"],
       "outputs": [
-        { "path": "Assets/LiteSim/Core/Diagnostics/Generated/EntitySlot.Sync.g.cs", "kind": "generated" }
+        { "path": "Assets/LiteSim/Diagnostics/Generated/EntitySlot.Sync.g.cs", "kind": "generated" }
       ],
       "destructive": false,
       "order": 40
@@ -686,7 +686,7 @@
       "destructive": false,
       "order": 60,
       "outputs": [
-        { "path": "Assets/LiteSim/Core/Scripts/SimTrigTables.cs", "kind": "generated" }
+        { "path": "Assets/LiteSim/Scripts/SimTrigTables.cs", "kind": "generated" }
       ],
       "safety": { "dryRun": "supported", "undo": "file", "confirmation": "none" }
     },

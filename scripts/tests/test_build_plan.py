@@ -53,7 +53,7 @@ class BuildPlanTests(unittest.TestCase):
         self.assertEqual(self.finding(plan, "Assets/LiteNet/Protocol/Deleted.cs")["area"], "shared")
 
     def test_project_file_is_two_end_build_config(self):
-        path = "Assets/LiteSim/Core/LiteSim.Core.csproj"
+        path = "Assets/LiteSim/LiteSim.Core.csproj"
         item = self.finding(self.plan([path]), path)
         self.assertEqual(item["area"], "project_settings")
         self.assertIn("rebuild_client_player", item["deliveryActions"])
@@ -70,9 +70,9 @@ class BuildPlanTests(unittest.TestCase):
         for registered in (
             "Assets/LiteFramework/Runtime/Adapters/Luban/SimConfigMapper.cs",
             "Assets/LiteFramework/Runtime/Adapters/Luban/TableLayout.cs",
-            "Assets/RoomServer/Application/JoinTicketFormat.cs",
-            "Assets/RoomServer/Application/Base64Url.cs",
-            "Assets/RoomServer/Runtime/MatchStateMachine.cs",
+            "Assets/RoomServer/Modules/JoinTicketFormat.cs",
+            "Assets/RoomServer/Modules/Base64Url.cs",
+            "Assets/RoomServer/Core/MatchStateMachine.cs",
         ):
             self.assertNotIn(registered, paths)
         self.assertTrue(any(path.endswith("MapTableProjection.cs") for path in paths))
@@ -139,7 +139,7 @@ class BuildPlanTests(unittest.TestCase):
         self.assertIn("publish_meta", item["deliveryActions"])
 
     def test_meta_extra_room_file_also_rebuilds_server(self):
-        path = "Assets/RoomServer/Application/JoinTicketFormat.cs"
+        path = "Assets/RoomServer/Modules/JoinTicketFormat.cs"
         item = self.finding(self.plan([path]), path)
         self.assertEqual(item["area"], "meta")
         for action in ("publish_meta", "rebuild_server_room", "publish_server"):
@@ -153,8 +153,8 @@ class BuildPlanTests(unittest.TestCase):
         self.assertIn("publish_server", item["deliveryActions"])
 
     def test_room_kernel_does_not_rebuild_client(self):
-        plan = self.plan(["Assets/RoomServer/Runtime/Ghost.cs"])
-        item = self.finding(plan, "Assets/RoomServer/Runtime/Ghost.cs")
+        plan = self.plan(["Assets/RoomServer/Core/Ghost.cs"])
+        item = self.finding(plan, "Assets/RoomServer/Core/Ghost.cs")
         self.assertEqual(item["area"], "room_kernel")
         self.assertIn("editor_reload", item["innerActions"])
         self.assertIn("rebuild_server_room", item["deliveryActions"])
@@ -243,18 +243,18 @@ class BuildPlanTests(unittest.TestCase):
 
     def test_priority_conflicts(self):
         plan = self.plan([
-            "Assets/LiteSim/Core/Scripts/Editor/Helper.cs",
+            "Assets/LiteSim/Scripts/Editor/Helper.cs",
             "Assets/LiteGame/Lua/UI/Page_Login.lua",
             "Assets/LiteGame/Editor/Toolchain/EditorToolHandlers.cs",
         ])
-        self.assertEqual(self.finding(plan, "Assets/LiteSim/Core/Scripts/Editor/Helper.cs")["area"], "editor_code")
+        self.assertEqual(self.finding(plan, "Assets/LiteSim/Scripts/Editor/Helper.cs")["area"], "editor_code")
         self.assertEqual(self.finding(plan, "Assets/LiteGame/Lua/UI/Page_Login.lua")["area"], "content")
         self.assertEqual(self.finding(plan, "Assets/LiteGame/Editor/Toolchain/EditorToolHandlers.cs")["area"], "editor_code")
 
 
     def test_drift_is_project_scoped(self):
         build_hash = self.mod._load_build_hash()
-        meta_link = "../../Assets/RoomServer/Application/JoinTicketFormat.cs"
+        meta_link = "../../Assets/RoomServer/Modules/JoinTicketFormat.cs"
         drift = self.mod.drift_for_links(
             [meta_link], ROOT, registered=set(build_hash.SHARED_LINK_FILES), wildcards=())
         self.assertTrue(any(not entry["known"] for entry in drift), drift)
@@ -307,7 +307,7 @@ class BuildPlanTests(unittest.TestCase):
             ("Assets/ShareResource/UI/Screens/Page_Lobby.prefab", {"rebuild_content_bundle", "rebuild_client_player"}),
             ("Server/RoomServer/Program.cs", {"rebuild_server_room", "publish_server"}),
             ("Assets/LiteNet/Protocol/Wire.cs", {"rebuild_client_player", "rebuild_server_room", "publish_server"}),
-            ("Assets/RoomServer/Runtime/Ghost.cs", {"rebuild_server_room", "publish_server"}),
+            ("Assets/RoomServer/Core/Ghost.cs", {"rebuild_server_room", "publish_server"}),
             ("Luban/Data/weapons.xlsx", {"rebuild_content_bundle", "rebuild_client_player", "rebuild_server_room", "publish_server"}),
             ("deploy/roomserver.windows.json", {"publish_room_config", "restart_room"}),
         ]

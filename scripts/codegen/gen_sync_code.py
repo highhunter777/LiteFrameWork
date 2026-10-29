@@ -20,7 +20,7 @@
 #
 # Toolbox entry:  python scripts/codegen/toolbox.py sync-code
 # Direct entry:   python scripts/codegen/gen_sync_code.py
-# Output:         Assets/LiteSim/Core/Diagnostics/Generated/EntitySlot.Sync.g.cs
+# Output:         Assets/LiteSim/Diagnostics/Generated/EntitySlot.Sync.g.cs
 #                 (checked in -- same convention as Battle.cs / BuildHash.g.cs;
 #                  CRLF line endings -- matches the checked-in artifact)
 # Rerun when:     a [StateLayer]-decorated struct/field changed (then rerun build-hash).
@@ -43,14 +43,14 @@ OUT_FILE = os.path.join(ROOT, 'Assets', 'LiteSim', 'Core', 'Diagnostics', 'Gener
 # The three kind tables (ItemState/ProjectileState/ZoneState) are world-visible
 # faces folded identically into BOTH profiles, like EntitySlot.
 TARGETS = [
-    ('EntitySlot',      'Assets/LiteSim/Core/Scripts/World/EntitySlot.cs'),
-    ('WeaponRuntime',   'Assets/LiteSim/Core/Scripts/Pipeline/SimCombatRuntime.cs'),
-    ('ActionRuntime',   'Assets/LiteSim/Core/Scripts/Pipeline/SimCombatRuntime.cs'),
-    ('StatusSlotData',  'Assets/LiteSim/Core/Scripts/Pipeline/SimCombatRuntime.cs'),
-    ('MatchBagSlot',    'Assets/LiteSim/Core/Scripts/Pipeline/SimMatchRuntime.cs'),
-    ('ItemState',       'Assets/LiteSim/Core/Scripts/World/EntityKindTables.cs'),
-    ('ProjectileState', 'Assets/LiteSim/Core/Scripts/World/EntityKindTables.cs'),
-    ('ZoneState',       'Assets/LiteSim/Core/Scripts/World/EntityKindTables.cs'),
+    ('EntitySlot',      'Assets/LiteSim/Scripts/World/EntitySlot.cs'),
+    ('WeaponRuntime',   'Assets/LiteSim/Scripts/Pipeline/SimCombatRuntime.cs'),
+    ('ActionRuntime',   'Assets/LiteSim/Scripts/Pipeline/SimCombatRuntime.cs'),
+    ('StatusSlotData',  'Assets/LiteSim/Scripts/Pipeline/SimCombatRuntime.cs'),
+    ('MatchBagSlot',    'Assets/LiteSim/Scripts/Pipeline/SimMatchRuntime.cs'),
+    ('ItemState',       'Assets/LiteSim/Scripts/World/EntityKindTables.cs'),
+    ('ProjectileState', 'Assets/LiteSim/Scripts/World/EntityKindTables.cs'),
+    ('ZoneState',       'Assets/LiteSim/Scripts/World/EntityKindTables.cs'),
 ]
 
 

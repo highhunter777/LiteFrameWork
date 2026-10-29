@@ -4,7 +4,7 @@
 # Why this exists: buildHash is the Join handshake version red line
 # (ServerHost.cs: `join.BuildHash != ServerBuildHash` -> reject). It covers the
 # three things that must be byte-identical on both ends: Sim decision source
-# (LiteSim/Core/Scripts|Systems), protocol (LiteNet/Proto|Protocol) and the
+# (LiteSim/Scripts|Systems), protocol (LiteNet/Proto|Protocol) and the
 # table data on both ends.
 #
 # So after touching Sim/protocol/tables you must run all three:

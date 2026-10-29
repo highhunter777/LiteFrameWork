@@ -18,6 +18,6 @@ namespace MetaServer
     public static class BuildHash
     {
         /// <summary>当前构建的 Meta 构建身份（16 位小写 hex）。</summary>
-        public const string Value = "a149cc4b1906e9f7";
+        public const string Value = "599c06a554f3710a";
     }
 }

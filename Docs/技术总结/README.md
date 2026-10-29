@@ -23,8 +23,8 @@
 | 02 | [总体架构与程序集分层](02-总体架构与程序集分层.md) | 分层原则是什么、程序集怎么依赖、一次启动与一局对战怎么串起来、关键架构决策的代价 | asmdef/csproj、[程序集引用图](../开发导航/程序集引用图.md)、装配根 |
 | 03 | [客户端框架与运行时](03-客户端框架与运行时.md) | Host/模块/Scope/时钟/事件/命令/状态机/池/内容服务如何协作，生命周期与关闭序怎么保证 | `Assets/LiteFramework`、`Assets/LiteFramework/Runtime/Modules`、`App/Bootstrap` |
 | 04 | [UI 系统与 Lua 脚本层](04-UI系统与Lua脚本层.md) | UI 运行时、导航单写者、绑定生成、Lua 注册表与工具链如何组成一条制作流水线 | `LiteFramework/Runtime/Modules/UI`、`LiteGame/LuaBridge`、`Editor/UiTools` |
-| 05 | [确定性 Sim 与战斗判定](05-确定性Sim与战斗判定.md) | 定长逻辑帧、系统顺序、确定性边界、数值实例化、预测/回滚/和解如何成立 | `LiteSim/Core`、`LiteView/SimView`、`LiteFramework/Runtime/Modules/Battle` |
-| 06 | [联机同步与网络协议](06-联机同步与网络协议.md) | 协议信封、快照链、AOI、KCP、输入冗余、BuildHash 与重连如何拼成一条可靠链路 | `LiteNet`、`RoomServer/Application`、`RoomClient` |
+| 05 | [确定性 Sim 与战斗判定](05-确定性Sim与战斗判定.md) | 定长逻辑帧、系统顺序、确定性边界、数值实例化、预测/回滚/和解如何成立 | `LiteSim`、`LiteView/SimView`、`LiteFramework/Runtime/Modules/Battle` |
+| 06 | [联机同步与网络协议](06-联机同步与网络协议.md) | 协议信封、快照链、AOI、KCP、输入冗余、BuildHash 与重连如何拼成一条可靠链路 | `LiteNet`、`RoomServer/Modules`、`RoomClient` |
 | 07 | [服务端：房间内核与 Meta](07-服务端房间内核与Meta.md) | 权威房间如何步进与裁决、宿主如何编排多房与排空、Meta 如何签发与结算 | `Assets/RoomServer`、`Server/RoomServer`、`Server/MetaServer` |
 | 08 | [内容、热更与资源管线](08-内容热更与资源管线.md) | 配置表、资源租约、候选包、签名、激活事务、收集目录如何构成可回滚的内容链 | `LiteFramework/Content`、`Content.YooAsset`、`scripts/content` |
 | 09 | [测试、门禁与工程质量](09-测试门禁与工程质量.md) | L0～L4 各守什么、纪律扫描拦什么、CI 与工具链如何把规范变成门禁 | `scripts/gate`、`DisciplineScanner`、`.github/workflows` |
@@ -63,7 +63,7 @@
 
 | 术语 | 在本项目中的含义 |
 |---|---|
-| **Sim** | `Assets/LiteSim/Core` 的确定性战斗模拟：定长逻辑帧 + 纯 C# 系统步进，客户端与服务端共编同一份源码 |
+| **Sim** | `Assets/LiteSim` 的确定性战斗模拟：定长逻辑帧 + 纯 C# 系统步进，客户端与服务端共编同一份源码 |
 | **逻辑帧 / 渲染帧** | 逻辑帧固定步长推进判定；渲染帧按显示器刷新驱动表现，二者由 `FrameDriver` 解耦 |
 | **快照（Snapshot）** | 服务端按 30Hz 下发的权威状态切片，可全量或差分；客户端据此和解与插值 |
 | **AOI** | 兴趣域过滤：按玩家位置裁剪快照实体集合，降低带宽 |
