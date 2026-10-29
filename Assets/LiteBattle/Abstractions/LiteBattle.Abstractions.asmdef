@@ -1,0 +1,16 @@
+{
+    "name": "LiteBattle.Abstractions",
+    "rootNamespace": "LiteClient",
+    "references": [
+        "LiteSim.Core"
+    ],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": false,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": true
+}

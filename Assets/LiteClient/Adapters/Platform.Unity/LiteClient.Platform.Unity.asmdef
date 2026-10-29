@@ -3,7 +3,7 @@
     "rootNamespace": "LiteClient",
     "references": [
         "Cinemachine",
-        "LiteFramework.Abstractions",
+        "LiteBattle.Abstractions",
         "LiteClient.Runtime",
         "LiteFramework.Async",
         "LiteFramework.Core",

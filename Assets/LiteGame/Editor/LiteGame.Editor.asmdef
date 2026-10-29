@@ -2,6 +2,7 @@
     "name": "LiteGame.Editor",
     "rootNamespace": "LiteGame",
     "references": [
+        "LiteBattle.Abstractions",
         "LiteFramework.Abstractions",
         "LiteClient.Content.YooAsset",        "LiteClient.Runtime",
         "LiteClient.Scripting.XLua",

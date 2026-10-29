@@ -2,8 +2,10 @@
     "name": "LiteGame.App",
     "rootNamespace": "LiteGame",
     "references": [
+        "LiteBattle.Abstractions",
         "LiteFramework.Abstractions",
-        "LiteClient.Content.YooAsset",        "LiteClient.Platform.Unity",
+        "LiteClient.Content.YooAsset",
+        "LiteClient.Platform.Unity",
         "LiteClient.Runtime",
         "LiteClient.Scripting.XLua",
         "LiteClient.Serialization.Luban",

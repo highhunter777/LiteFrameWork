@@ -2,7 +2,7 @@
     "name": "LiteGame.Dev",
     "rootNamespace": "LiteGame.Dev",
     "references": [
-        "LiteFramework.Abstractions",
+        "LiteBattle.Abstractions",
         "LiteClient.Content.YooAsset",
         "LiteClient.Platform.Unity",
         "LiteClient.Runtime",

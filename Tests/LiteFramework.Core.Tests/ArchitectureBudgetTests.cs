@@ -81,7 +81,7 @@ namespace LiteFramework.Core.Tests
             var methodOffenders = new List<string>();
             var classActual = new Dictionary<string, int>(StringComparer.Ordinal);
             var methodActual = new Dictionary<string, int>(StringComparer.Ordinal);
-            string[] roots = { "Assets/LiteClient", "Assets/LiteGame", "Assets/LiteFramework", "Assets/LiteView" };
+            string[] roots = { "Assets/LiteClient", "Assets/LiteGame", "Assets/LiteFramework", "Assets/LiteView", "Assets/LiteBattle" };
 
             foreach (string relativeRoot in roots)
             {

@@ -2,7 +2,7 @@
     "name": "LiteView",
     "rootNamespace": "LiteView",
     "references": [
-        "LiteFramework.Abstractions",
+        "LiteBattle.Abstractions",
         "LiteFramework.Async",
         "LiteFramework.Core",
         "LiteFramework.Unity",

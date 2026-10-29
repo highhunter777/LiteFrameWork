@@ -18,21 +18,22 @@ namespace LiteFramework.Core.Tests
         {
             ["Assets/LiteFramework/Scripts/Core/LiteFramework.Core.asmdef"] = Array.Empty<string>(),
             ["Assets/LiteFramework/Scripts/Async/LiteFramework.Async.asmdef"] = new[] { "LiteFramework.Core", "UniTask" },
-            ["Assets/LiteFramework/Abstractions/LiteFramework.Abstractions.asmdef"] = new[] { "LiteFramework.Async", "LiteFramework.Core", "LiteSim.Core", "UniTask" },
+            ["Assets/LiteFramework/Abstractions/LiteFramework.Abstractions.asmdef"] = Array.Empty<string>(),
+            ["Assets/LiteBattle/Abstractions/LiteBattle.Abstractions.asmdef"] = new[] { "LiteSim.Core" },
             ["Assets/LiteFramework/Scripts/Unity/LiteFramework.Unity.asmdef"] = new[] { "LiteFramework.Async", "LiteFramework.Core", "UniTask" },
             ["Assets/LiteCodeGen/Runtime/LiteCodeGen.Runtime.asmdef"] = Array.Empty<string>(),
             ["Assets/LiteCodeGen/Editor/LiteCodeGen.Editor.asmdef"] = new[] { "LiteCodeGen.Runtime" },
-            ["Assets/LiteClient/Runtime/LiteClient.Runtime.asmdef"] = new[] { "LiteFramework.Abstractions", "LiteFramework.Async", "LiteFramework.Core", "LiteFramework.Unity", "LiteNet", "LiteSim.Core", "UniTask" },
+            ["Assets/LiteClient/Runtime/LiteClient.Runtime.asmdef"] = new[] { "LiteBattle.Abstractions", "LiteFramework.Abstractions", "LiteFramework.Async", "LiteFramework.Core", "LiteFramework.Unity", "LiteNet", "LiteSim.Core", "UniTask" },
             ["Assets/LiteClient/UI/LiteClient.UI.asmdef"] = new[] { "DOTween.Modules", "LiteCodeGen.Runtime", "LiteFramework.Async", "LiteFramework.Core", "LiteFramework.Unity", "UniTask", "Unity.InputSystem", "Unity.TextMeshPro" },
             ["Assets/LiteClient/Adapters/Content.YooAsset/LiteClient.Content.YooAsset.asmdef"] = new[] { "LiteFramework.Abstractions", "LiteClient.Runtime", "LiteFramework.Async", "LiteFramework.Core", "LiteFramework.Unity", "UniTask", "YooAsset" },
-            ["Assets/LiteClient/Adapters/Platform.Unity/LiteClient.Platform.Unity.asmdef"] = new[] { "Cinemachine", "LiteFramework.Abstractions", "LiteClient.Runtime", "LiteFramework.Async", "LiteFramework.Core", "LiteSim.Core", "LiteView", "UniTask", "Unity.InputSystem" },
+            ["Assets/LiteClient/Adapters/Platform.Unity/LiteClient.Platform.Unity.asmdef"] = new[] { "Cinemachine", "LiteBattle.Abstractions", "LiteClient.Runtime", "LiteFramework.Async", "LiteFramework.Core", "LiteSim.Core", "LiteView", "UniTask", "Unity.InputSystem" },
             ["Assets/LiteClient/Adapters/Scripting.XLua/LiteClient.Scripting.XLua.asmdef"] = new[] { "LiteFramework.Abstractions", "LiteClient.Runtime", "LiteFramework.Async", "LiteFramework.Core", "LiteFramework.Unity", "UniTask", "xLuaMain" },
             ["Assets/LiteClient/Adapters/Serialization.Luban/LiteClient.Serialization.Luban.asmdef"] = new[] { "LiteFramework.Abstractions", "LiteFramework.Async", "LiteFramework.Core", "LiteSim.Core", "Luban.Runtime", "Luban.Tables", "UniTask" },
-            ["Assets/LiteView/LiteView.asmdef"] = new[] { "LiteFramework.Abstractions", "LiteFramework.Async", "LiteFramework.Core", "LiteFramework.Unity", "LiteSim.Core", "UniTask" },
+            ["Assets/LiteView/LiteView.asmdef"] = new[] { "LiteBattle.Abstractions", "LiteFramework.Async", "LiteFramework.Core", "LiteFramework.Unity", "LiteSim.Core", "UniTask" },
             ["Assets/LiteGame/LuaBridge/LiteGame.LuaBridge.asmdef"] = new[] { "LiteFramework.Abstractions", "LiteClient.Scripting.XLua", "LiteClient.Serialization.Luban", "LiteFramework.Async", "LiteFramework.Core", "LiteClient.UI", "Luban.Runtime", "Luban.Tables", "UniTask", "xLuaMain" },
-            ["Assets/LiteGame/App/LiteGame.App.asmdef"] = new[] { "LiteFramework.Abstractions", "LiteClient.Content.YooAsset", "LiteClient.Platform.Unity", "LiteClient.Runtime", "LiteClient.Scripting.XLua", "LiteClient.Serialization.Luban", "LiteFramework.Async", "LiteFramework.Core", "LiteFramework.Unity", "LiteGame.LuaBridge", "LiteClient.UI", "LiteNet", "LiteSim.Core", "LiteView", "Luban.Runtime", "Luban.Tables", "UniTask", "Unity.TextMeshPro", "xLuaMain" },
-            ["Assets/LiteGame/Dev/LiteGame.Dev.asmdef"] = new[] { "LiteFramework.Abstractions", "LiteClient.Content.YooAsset", "LiteClient.Platform.Unity", "LiteClient.Runtime", "LiteClient.Scripting.XLua", "LiteClient.Serialization.Luban", "LiteClient.UI", "LiteFramework.Async", "LiteFramework.Core", "LiteFramework.Unity", "LiteGame.App", "LiteGame.LuaBridge", "LiteNet", "LiteSim.Core", "LiteView", "Luban.Tables", "RoomServer.Application.Runtime", "RoomServer.Runtime", "UniTask", "Unity.TextMeshPro", "xLuaMain" },
-            ["Assets/LiteGame/Editor/LiteGame.Editor.asmdef"] = new[] { "LiteFramework.Abstractions", "LiteClient.Content.YooAsset", "LiteClient.Runtime", "LiteClient.Scripting.XLua", "LiteClient.Serialization.Luban", "LiteCodeGen.Editor", "LiteCodeGen.Runtime", "LiteFramework.Async", "LiteFramework.Core", "LiteFramework.Unity", "LiteGame.App", "LiteGame.Dev", "LiteGame.LuaBridge", "LiteClient.UI", "LiteNet", "LiteSim.Core", "LiteSim.Core.Editor", "DisciplineScanner.Editor", "LiteView", "Luban.Tables", "Luban.Runtime", "UniTask", "Unity.TextMeshPro", "xLuaMain", "YooAsset", "YooAsset.Editor" },
+            ["Assets/LiteGame/App/LiteGame.App.asmdef"] = new[] { "LiteBattle.Abstractions", "LiteFramework.Abstractions", "LiteClient.Content.YooAsset", "LiteClient.Platform.Unity", "LiteClient.Runtime", "LiteClient.Scripting.XLua", "LiteClient.Serialization.Luban", "LiteFramework.Async", "LiteFramework.Core", "LiteFramework.Unity", "LiteGame.LuaBridge", "LiteClient.UI", "LiteNet", "LiteSim.Core", "LiteView", "Luban.Runtime", "Luban.Tables", "UniTask", "Unity.TextMeshPro", "xLuaMain" },
+            ["Assets/LiteGame/Dev/LiteGame.Dev.asmdef"] = new[] { "LiteBattle.Abstractions", "LiteClient.Content.YooAsset", "LiteClient.Platform.Unity", "LiteClient.Runtime", "LiteClient.Scripting.XLua", "LiteClient.Serialization.Luban", "LiteClient.UI", "LiteFramework.Async", "LiteFramework.Core", "LiteFramework.Unity", "LiteGame.App", "LiteGame.LuaBridge", "LiteNet", "LiteSim.Core", "LiteView", "Luban.Tables", "RoomServer.Application.Runtime", "RoomServer.Runtime", "UniTask", "Unity.TextMeshPro", "xLuaMain" },
+            ["Assets/LiteGame/Editor/LiteGame.Editor.asmdef"] = new[] { "LiteBattle.Abstractions", "LiteFramework.Abstractions", "LiteClient.Content.YooAsset", "LiteClient.Runtime", "LiteClient.Scripting.XLua", "LiteClient.Serialization.Luban", "LiteCodeGen.Editor", "LiteCodeGen.Runtime", "LiteFramework.Async", "LiteFramework.Core", "LiteFramework.Unity", "LiteGame.App", "LiteGame.Dev", "LiteGame.LuaBridge", "LiteClient.UI", "LiteNet", "LiteSim.Core", "LiteSim.Core.Editor", "DisciplineScanner.Editor", "LiteView", "Luban.Tables", "Luban.Runtime", "UniTask", "Unity.TextMeshPro", "xLuaMain", "YooAsset", "YooAsset.Editor" },
         };
 
         [Fact]
@@ -67,6 +68,12 @@ namespace LiteFramework.Core.Tests
                 var refs = ReadRefs(root, pair.Key);
                 switch (pair.Key)
                 {
+                    case "Assets/LiteBattle/Abstractions/LiteBattle.Abstractions.asmdef":
+                        ForbidPrefix(refs, pair.Key, "LiteGame.", offenders);
+                        ForbidPrefix(refs, pair.Key, "LiteClient.", offenders);
+                        Forbid(refs, pair.Key, "LiteView", offenders);
+                        ForbidPrefix(refs, pair.Key, "RoomServer.", offenders);
+                        break;
                     case "Assets/LiteClient/Runtime/LiteClient.Runtime.asmdef":
                         Forbid(refs, pair.Key, "LiteView", offenders);
                         break;
@@ -101,8 +108,10 @@ namespace LiteFramework.Core.Tests
             AssertNoEngineReferences(root, "Assets/LiteFramework/Scripts/Core/LiteFramework.Core.asmdef");
             AssertNoEngineReferences(root, "Assets/LiteFramework/Scripts/Async/LiteFramework.Async.asmdef");
             AssertNoEngineReferences(root, "Assets/LiteFramework/Abstractions/LiteFramework.Abstractions.asmdef");
+            AssertNoEngineReferences(root, "Assets/LiteBattle/Abstractions/LiteBattle.Abstractions.asmdef");
             ScanUnityReferences(Path.Combine(root, "Assets", "LiteFramework", "Scripts", "Core"), offenders, root);
             ScanUnityReferences(Path.Combine(root, "Assets", "LiteSim", "Core"), offenders, root);
+            ScanUnityReferences(Path.Combine(root, "Assets", "LiteBattle"), offenders, root);
             Assert.True(offenders.Count == 0, "Core 不得出现 UnityEngine（注释引用不计；Editor 工具面除外）：" + string.Join(" | ", offenders));
         }
 

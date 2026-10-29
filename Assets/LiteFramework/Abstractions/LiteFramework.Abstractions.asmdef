@@ -1,12 +1,7 @@
 {
     "name": "LiteFramework.Abstractions",
     "rootNamespace": "LiteClient",
-    "references": [
-        "LiteFramework.Async",
-        "LiteFramework.Core",
-        "LiteSim.Core",
-        "UniTask"
-    ],
+    "references": [],
     "includePlatforms": [],
     "excludePlatforms": [],
     "allowUnsafeCode": false,
