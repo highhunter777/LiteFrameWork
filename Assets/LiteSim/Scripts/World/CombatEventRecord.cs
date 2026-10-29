@@ -11,7 +11,7 @@ namespace LiteSim
     /// - 词汇单源：<see cref="FrameEventKind"/> 已定义全词汇，本记录就是它的**可跨帧携带**版本
     ///   （<see cref="FrameEvent"/> 只在逻辑帧内活，帧末即清）；
     /// - 两端共享：LiteNet（协议映射）、RoomServer.Runtime（窗口只持纯数据，R11 纯度）、
-    ///   LiteFramework（公共事件面）都引用 <c>LiteSim.Core</c>——放进任何一端都会造成反向依赖；
+    ///   LiteFramework（公共事件面）都引用 <c>LiteSim</c>——放进任何一端都会造成反向依赖；
     /// - 泛化点：**新增一种事件 = 加一个 <see cref="FrameEventKind"/> 值 + 一个产出点**，
     ///   窗口/wire/客户端分发零改动（字段按 kind 释义复用，不新增协议字段）。
     ///
@@ -71,8 +71,8 @@ namespace LiteSim
     /// 战斗事件窗口的**只读端口**（《状态同步专项设计》§5.2 CombatEvent 面）。
     ///
     /// **为什么在 LiteSim**：这是"房间内核 ↔ 协议层"之间唯一需要共享的形状。
-    /// 房间内核（`RoomServer.Runtime`）只引用 <c>LiteSim.Core</c>（R11 纯度：禁 proto），
-    /// 协议层（`LiteNet`）也只引用 <c>LiteSim.Core</c>——把端口放在任何一端都会逼出一条反向引用。
+    /// 房间内核（`RoomServer.Runtime`）只引用 <c>LiteSim</c>（R11 纯度：禁 proto），
+    /// 协议层（`LiteNet`）也只引用 <c>LiteSim</c>——把端口放在任何一端都会逼出一条反向引用。
     /// 放在词汇单源旁边，两端各自实现/消费，谁也不认识谁的类型。
     ///
     /// 实现方：<c>RoomServer.Runtime.CombatEventWindow</c>；消费方：<c>LiteNet.Protocol.CombatEventCodec</c>。

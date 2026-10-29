@@ -16,7 +16,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\Assets\LiteNet\LiteNet.csproj" />
-    <ProjectReference Include="..\..\Assets\LiteSim\LiteSim.Core.csproj" />
+    <ProjectReference Include="..\..\Assets\LiteSim\LiteSim.csproj" />
     <!-- 房间内核已按《服务端总设计》§7 目标结构独立成项目：
          纯运行时、无 Socket/无文件/无时钟，现由服务端宿主与 Unity 客户端**共编同一份源码**。 -->
     <ProjectReference Include="..\..\Assets\RoomServer\Core\RoomServer.Runtime.csproj" />

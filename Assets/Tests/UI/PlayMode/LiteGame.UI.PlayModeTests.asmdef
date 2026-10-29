@@ -8,7 +8,7 @@
         "LiteGame.Presentation",
         "LiteGame.Dev",
         "LiteGame.LuaBridge",
-        "LiteSim.Core",
+        "LiteSim",
         "LiteView",
         "LiteTesting.Core",
         "LiteTesting.Runtime",

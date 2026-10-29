@@ -7,7 +7,7 @@
         "LiteGame.LuaBridge",
         "LiteGame.Presentation",
         "LiteNet",
-        "LiteSim.Core",
+        "LiteSim",
         "LiteView",
         "Luban.Runtime",
         "Luban.Tables",

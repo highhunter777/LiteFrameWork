@@ -26,7 +26,7 @@ namespace LiteFramework.Core.Tests
             "Assets/LiteGame/App/Presentation/Hud/CrosshairFeel.cs :: KickRecoverDevOverride",
             "Assets/LiteGame/App/Presentation/Hud/CrosshairFeel.cs :: StaticMaxDevOverride",
             "Assets/LiteGame/Editor/GenConfig/GenConfig.cs :: CSharpCallLua",
-            "Assets/LiteView/Animation/Drivers/GripTuning.cs :: TorsoWeightDevOverride",
+            "Assets/LiteView/Modules/Animation/Drivers/GripTuning.cs :: TorsoWeightDevOverride",
         };
 
         [Fact]

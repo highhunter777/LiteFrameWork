@@ -5,7 +5,7 @@
         "LiteBattle.Abstractions",
         "LiteCodeGen.Runtime",
         "LiteNet",
-        "LiteSim.Core",
+        "LiteSim",
         "Cinemachine",
         "DOTween.Modules",
         "UniTask",

@@ -57,16 +57,6 @@ namespace LiteView.DamageNumbers
     }
 
     /// <summary>
-    /// 样式解析单源接口（《命中反馈与伤害数字专项设计》§4.2）：**初版常量表实现**，样式编辑器批
-    /// （《UI编辑器工具专项设计》§3）落地后换 token 来源——接口不变，消费者零改动。
-    /// </summary>
-    public interface IDamageNumberStyleResolver
-    {
-        /// <summary>值/角色/暴击 → 样式档。</summary>
-        DamageNumberStyle Resolve(int value, HitLocalRole role, bool crit);
-    }
-
-    /// <summary>
     /// 常量表初版（样式编辑器落地前的唯一单源）：**造成=白、爆头=亮红、承受=暗砖红、承受暴击=深红**；
     /// 每档带**顶→底渐变**（顶亮底暗）＋**材质档键**（逐档描边/光晕材质，见调色板）。
     /// 暴击档放大字号并带抖动（见 <see cref="DamageNumberMotion"/>）。旁观档落造成色兜底（驱动已滤，

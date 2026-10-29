@@ -14,7 +14,7 @@ namespace LiteFramework.Core.Tests
         public void RoomClient_拆分后小于350行_协议分发已外提()
         {
             string root = RepoRoot();
-            string path = Path.Combine(root, "Assets/LiteNet/Client/RoomClient.cs");
+            string path = Path.Combine(root, "Assets/LiteNet/Core/Client/RoomClient.cs");
             string text = File.ReadAllText(path);
             int lines = File.ReadAllLines(path).Length;
 
@@ -22,8 +22,8 @@ namespace LiteFramework.Core.Tests
             Assert.Contains("_inbound.Handle(", text);                  // 入站走分发件
             Assert.Contains("_outbound.", text);                        // 出站走打包件
             Assert.DoesNotContain("switch (type)", text);               // 协议分发表不得回涨到门面类
-            Assert.True(File.Exists(Path.Combine(root, "Assets/LiteNet/Client/RoomInbound.cs")));
-            Assert.True(File.Exists(Path.Combine(root, "Assets/LiteNet/Client/RoomOutbound.cs")));
+            Assert.True(File.Exists(Path.Combine(root, "Assets/LiteNet/Core/Client/RoomInbound.cs")));
+            Assert.True(File.Exists(Path.Combine(root, "Assets/LiteNet/Core/Client/RoomOutbound.cs")));
         }
 
         [Fact]

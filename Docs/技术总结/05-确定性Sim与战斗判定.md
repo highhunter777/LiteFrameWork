@@ -123,7 +123,7 @@ SortInputs（按 EntityId 升序就地稳定插入排序）
 
 ## 7. 表现侧：插值、衰减、静默门
 
-`Assets/LiteView/SimView.cs`：
+`Assets/LiteView/Modules/SimView.cs`：
 
 - **远端 jitter buffer**：容量 8，按**快照帧号**推进；渲染帧 = 最新快照帧 − `RenderDelayFrames(4)`，按 60Hz 匀速推进并封顶；插值 alpha 用真实帧差（丢包时铺满，不冻结）。
 - **硬切条件**：远端 `LifeStartFrame` 变化（复活）或位移 > `SnapDistance=3m`；本地复活无条件硬切（直写 `CharacterController`，不走带扫掠的 `Move`），异常单帧跳变兜底 2m。

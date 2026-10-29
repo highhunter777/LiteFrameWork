@@ -23,7 +23,7 @@ namespace LiteFramework.Core.Tests
         {
             string root = RepoRoot();
             var offenders = new List<string>();
-            string[] roots = { "Assets/LiteFramework/Runtime/Modules", "Assets/LiteGame/App", "Assets/LiteNet/Client" };
+            string[] roots = { "Assets/LiteFramework/Runtime/Modules", "Assets/LiteGame/App", "Assets/LiteNet/Core/Client" };
 
             foreach (string relativeRoot in roots)
             {

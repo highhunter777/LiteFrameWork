@@ -33,7 +33,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\..\Assets\LiteNet\LiteNet.csproj" />
-    <ProjectReference Include="..\..\..\Assets\LiteSim\LiteSim.Core.csproj" />
+    <ProjectReference Include="..\..\..\Assets\LiteSim\LiteSim.csproj" />
     <ProjectReference Include="..\Core\RoomServer.Runtime.csproj" />
     <!-- protobuf：本程序集**不进 Unity 双轨**——它依赖 protobuf，而本仓 Unity 侧用的是
          Vendor DLL（Assets/LiteNet/Vendor/Google.Protobuf）而非 NuGet。若日后要进 Unity，

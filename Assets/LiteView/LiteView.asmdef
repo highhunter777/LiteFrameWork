@@ -4,7 +4,7 @@
     "references": [
         "LiteBattle.Abstractions",
         "LiteFramework.Runtime",
-        "LiteSim.Core",
+        "LiteSim",
         "UniTask"
     ],
     "includePlatforms": [],

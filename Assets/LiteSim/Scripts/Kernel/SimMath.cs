@@ -3,7 +3,7 @@ using System;
 namespace LiteSim
 {
     /// <summary>
-    /// Sim 数值基础件（LiteSim.Core，零依赖纯 C#）。
+    /// Sim 数值基础件（LiteSim，零依赖纯 C#）。
     ///
     /// 单位约定（§1-9）：长度 = 米(m)，时间 = 秒(s)，角度 = 弧度(rad)，
     /// y 轴 = 2.5D 向上（《状态同步实施方案》§3.5）；逻辑帧步长 <see cref="Dt"/> = 1/60（与 SimConfig 同源）。

@@ -1,5 +1,5 @@
 <Project Sdk="Microsoft.NET.Sdk">  <!--
-    双轨编译（测试开发方案 §1.2）：LiteSim.Core 在 Unity（asmdef）与 dotnet（本 csproj）两侧编译。
+    双轨编译（测试开发方案 §1.2）：LiteSim 在 Unity（asmdef）与 dotnet（本 csproj）两侧编译。
     - 范围锁死 Scripts/ 运行时代码：Core 是 references:[] 零依赖程序集（noEngineReferences:true），纯 BCL
     - Systems/ 同为运行时代码，与 Scripts/ 平级，故显式 include
     - Editor/ 与 Scripts/Editor 用 UnityEditor，不进双轨（UnityEditor 命名空间 dotnet 侧编不过）

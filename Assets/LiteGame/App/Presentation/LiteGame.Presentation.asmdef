@@ -5,7 +5,7 @@
         "LiteBattle.Abstractions",
         "LiteFramework.Runtime",
         "LiteNet",
-        "LiteSim.Core",
+        "LiteSim",
         "LiteView",
         "Luban.Runtime",
         "Luban.Tables",

@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 # Generate LiteNet protocol code from battle.proto. The generated file is
-# checked in (Assets/LiteNet/Proto/Generated/Battle.cs) so the runtime keeps
+# checked in (Assets/LiteNet/Core/Proto/Generated/Battle.cs) so the runtime keeps
 # zero toolchain dependency.
 #
 # protoc source: nuget package Google.Protobuf.Tools (tools/windows_x64/protoc.exe);
@@ -8,7 +8,7 @@
 #
 # Toolbox entry:  python scripts/codegen/toolbox.py proto --protoc <protoc.exe>
 # Direct entry:   python scripts/codegen/gen_proto.py --protoc <protoc.exe>
-# Output:         Assets/LiteNet/Proto/Generated/Battle.cs (generated file, DO NOT EDIT)
+# Output:         Assets/LiteNet/Core/Proto/Generated/Battle.cs (generated file, DO NOT EDIT)
 # Rerun when:     battle.proto changed (then rerun build-hash: Proto/ is in its source set)
 
 import argparse
@@ -21,7 +21,7 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from _codegen import info, repo_root, run_tool
 
 TOOL = 'proto'
-PROTO_REL = 'Assets/LiteNet/Proto/battle.proto'
+PROTO_REL = 'Assets/LiteNet/Core/Proto/battle.proto'
 NUGET_HINT = 'nuget Google.Protobuf.Tools, tools/windows_x64/protoc.exe'
 
 
@@ -47,7 +47,7 @@ def main():
     result = subprocess.run([protoc, f'--proto_path={proto_dir}', f'--csharp_out={out_dir}', proto_file])
     if result.returncode != 0:
         raise ValueError(f'protoc generation failed (exit {result.returncode})')
-    info(TOOL, 'generated: Assets/LiteNet/Proto/Generated/Battle.cs')
+    info(TOOL, 'generated: Assets/LiteNet/Core/Proto/Generated/Battle.cs')
     return 0
 
 

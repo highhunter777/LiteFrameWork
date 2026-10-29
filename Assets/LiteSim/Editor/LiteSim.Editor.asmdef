@@ -1,8 +1,8 @@
 {
-        "name": "LiteSim.Core.Editor",
+        "name": "LiteSim.Editor",
         "rootNamespace": "LiteSim.Editor",
         "references": [
-                "LiteSim.Core"
+                "LiteSim"
         ],
         "includePlatforms": [
                 "Editor"

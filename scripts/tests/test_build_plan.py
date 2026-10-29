@@ -53,7 +53,7 @@ class BuildPlanTests(unittest.TestCase):
         self.assertEqual(self.finding(plan, "Assets/LiteNet/Protocol/Deleted.cs")["area"], "shared")
 
     def test_project_file_is_two_end_build_config(self):
-        path = "Assets/LiteSim/LiteSim.Core.csproj"
+        path = "Assets/LiteSim/LiteSim.csproj"
         item = self.finding(self.plan([path]), path)
         self.assertEqual(item["area"], "project_settings")
         self.assertIn("rebuild_client_player", item["deliveryActions"])

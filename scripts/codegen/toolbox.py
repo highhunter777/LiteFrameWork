@@ -8,7 +8,7 @@ Usage:
 Tools (form/operation details: the generator toolbox design doc, Docs design
 center; per-tool why/notes stay in each script's header):
   build-hash    buildHash generator; --check = build gate (Join handshake red line)
-  proto         battle.proto -> Assets/LiteNet/Proto/Generated/Battle.cs
+  proto         battle.proto -> Assets/LiteNet/Core/Proto/Generated/Battle.cs
   luban         table chain regen (C#/binary/lua/LuaKeys); alias of Luban/gen.bat
   sync-code     [StateLayer] fields -> EntitySlot.Sync.g.cs (checksum plumbing)
   ui-page       #uiform + UiPageManifest + Contracts -> UiPageCatalog.g.cs

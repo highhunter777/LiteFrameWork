@@ -2,7 +2,7 @@
 	"name": "LiteNet",
 	"rootNamespace": "LiteNet",
 	"references": [
-		"LiteSim.Core"
+		"LiteSim"
 	],
 	"includePlatforms": [],
 	"excludePlatforms": [],

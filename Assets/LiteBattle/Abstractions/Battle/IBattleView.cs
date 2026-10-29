@@ -8,7 +8,7 @@ namespace LiteBattle
     ///
     /// **为什么在 Abstractions**：<c>LiteFramework.Runtime</c> 不得引用 <c>LiteView</c>（单向依赖不变量 I3），
     /// 端口必须住双方都允许引用的契约程序集；<c>SimWorldState</c>/<c>SimWorldStateSnapshot</c> 来自
-    /// <c>LiteSim.Core</c>（两端共编的纯逻辑件）。
+    /// <c>LiteSim</c>（两端共编的纯逻辑件）。
     ///
     /// 成员语义与 <c>SimView</c> 同名方法一致（本端口只是类型边界，不改行为）：
     /// 回滚/和解 → 视图静默；帧事件在逻辑帧边界交付；权威快照推入视图插值缓冲。

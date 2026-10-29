@@ -17,21 +17,21 @@ namespace LiteFramework.Core.Tests
     {
         private static readonly Dictionary<string, string[]> Allowed = new Dictionary<string, string[]>(StringComparer.Ordinal)
         {
-            ["Assets/LiteFramework/Runtime/LiteFramework.Runtime.asmdef"] = new[] { "Cinemachine", "DOTween.Modules", "LiteBattle.Abstractions", "LiteCodeGen.Runtime", "LiteNet", "LiteSim.Core", "Luban.Runtime", "Luban.Tables", "UniTask", "Unity.InputSystem", "Unity.TextMeshPro", "YooAsset", "xLuaMain" },
+            ["Assets/LiteFramework/Runtime/LiteFramework.Runtime.asmdef"] = new[] { "Cinemachine", "DOTween.Modules", "LiteBattle.Abstractions", "LiteCodeGen.Runtime", "LiteNet", "LiteSim", "Luban.Runtime", "Luban.Tables", "UniTask", "Unity.InputSystem", "Unity.TextMeshPro", "YooAsset", "xLuaMain" },
             ["Assets/LiteFramework/Editor/LiteFramework.Editor.asmdef"] = new[] { "LiteCodeGen.Runtime" },
-            ["Assets/LiteBattle/Abstractions/LiteBattle.Abstractions.asmdef"] = new[] { "LiteSim.Core" },
-            ["Assets/LiteSim/LiteSim.Core.asmdef"] = Array.Empty<string>(),
-            ["Assets/LiteSim/Editor/LiteSim.Core.Editor.asmdef"] = new[] { "LiteSim.Core" },
-            ["Assets/LiteNet/LiteNet.asmdef"] = new[] { "LiteSim.Core" },
+            ["Assets/LiteBattle/Abstractions/LiteBattle.Abstractions.asmdef"] = new[] { "LiteSim" },
+            ["Assets/LiteSim/LiteSim.asmdef"] = Array.Empty<string>(),
+            ["Assets/LiteSim/Editor/LiteSim.Editor.asmdef"] = new[] { "LiteSim" },
+            ["Assets/LiteNet/LiteNet.asmdef"] = new[] { "LiteSim" },
             ["Assets/LiteCodeGen/Runtime/LiteCodeGen.Runtime.asmdef"] = Array.Empty<string>(),
-            ["Assets/LiteView/LiteView.asmdef"] = new[] { "LiteBattle.Abstractions", "LiteFramework.Runtime", "LiteSim.Core", "UniTask" },
+            ["Assets/LiteView/LiteView.asmdef"] = new[] { "LiteBattle.Abstractions", "LiteFramework.Runtime", "LiteSim", "UniTask" },
             ["Assets/LiteGame/LuaBridge/LiteGame.LuaBridge.asmdef"] = new[] { "LiteFramework.Runtime", "Luban.Runtime", "Luban.Tables", "UniTask", "xLuaMain" },
-            ["Assets/LiteGame/App/LiteGame.App.asmdef"] = new[] { "LiteBattle.Abstractions", "LiteFramework.Runtime", "LiteGame.LuaBridge", "LiteGame.Presentation", "LiteNet", "LiteSim.Core", "LiteView", "Luban.Runtime", "Luban.Tables", "UniTask", "Unity.TextMeshPro", "xLuaMain" },
-            ["Assets/LiteGame/App/Presentation/LiteGame.Presentation.asmdef"] = new[] { "LiteBattle.Abstractions", "LiteFramework.Runtime", "LiteNet", "LiteSim.Core", "LiteView", "Luban.Runtime", "Luban.Tables", "UniTask", "Unity.TextMeshPro" },
-            ["Assets/LiteGame/Dev/LiteGame.Dev.asmdef"] = new[] { "LiteBattle.Abstractions", "LiteFramework.Runtime", "LiteGame.App", "LiteGame.Presentation", "LiteGame.LuaBridge", "LiteNet", "LiteSim.Core", "LiteView", "Luban.Tables", "RoomServer.Application.Runtime", "RoomServer.Runtime", "UniTask", "Unity.TextMeshPro", "xLuaMain" },
+            ["Assets/LiteGame/App/LiteGame.App.asmdef"] = new[] { "LiteBattle.Abstractions", "LiteFramework.Runtime", "LiteGame.LuaBridge", "LiteGame.Presentation", "LiteNet", "LiteSim", "LiteView", "Luban.Runtime", "Luban.Tables", "UniTask", "Unity.TextMeshPro", "xLuaMain" },
+            ["Assets/LiteGame/App/Presentation/LiteGame.Presentation.asmdef"] = new[] { "LiteBattle.Abstractions", "LiteFramework.Runtime", "LiteNet", "LiteSim", "LiteView", "Luban.Runtime", "Luban.Tables", "UniTask", "Unity.TextMeshPro" },
+            ["Assets/LiteGame/Dev/LiteGame.Dev.asmdef"] = new[] { "LiteBattle.Abstractions", "LiteFramework.Runtime", "LiteGame.App", "LiteGame.Presentation", "LiteGame.LuaBridge", "LiteNet", "LiteSim", "LiteView", "Luban.Tables", "RoomServer.Application.Runtime", "RoomServer.Runtime", "UniTask", "Unity.TextMeshPro", "xLuaMain" },
             ["Assets/LiteGame/Editor/Core/LiteGame.Editor.Core.asmdef"] = new[] { "LiteFramework.Runtime", "Unity.TextMeshPro" },
             ["Assets/LiteGame/Editor/UiTools/LiteGame.Editor.UiTools.asmdef"] = new[] { "LiteFramework.Runtime", "LiteFramework.Editor", "LiteCodeGen.Runtime", "LiteGame.Dev", "LiteGame.Editor.Core", "Luban.Runtime", "Luban.Tables", "Unity.TextMeshPro" },
-            ["Assets/LiteGame/Editor/LiteGame.Editor.asmdef"] = new[] { "LiteBattle.Abstractions", "LiteFramework.Runtime", "LiteFramework.Editor", "LiteCodeGen.Runtime", "LiteGame.App", "LiteGame.Presentation", "LiteGame.Dev", "LiteGame.Editor.Core", "LiteGame.Editor.UiTools", "LiteGame.LuaBridge", "LiteNet", "LiteSim.Core", "LiteSim.Core.Editor", "DisciplineScanner.Editor", "LiteView", "Luban.Tables", "Luban.Runtime", "UniTask", "Unity.TextMeshPro", "xLuaMain", "YooAsset", "YooAsset.Editor" },
+            ["Assets/LiteGame/Editor/LiteGame.Editor.asmdef"] = new[] { "LiteBattle.Abstractions", "LiteFramework.Runtime", "LiteFramework.Editor", "LiteCodeGen.Runtime", "LiteGame.App", "LiteGame.Presentation", "LiteGame.Dev", "LiteGame.Editor.Core", "LiteGame.Editor.UiTools", "LiteGame.LuaBridge", "LiteNet", "LiteSim", "LiteSim.Editor", "DisciplineScanner.Editor", "LiteView", "Luban.Tables", "Luban.Runtime", "UniTask", "Unity.TextMeshPro", "xLuaMain", "YooAsset", "YooAsset.Editor" },
         };
 
         [Fact]

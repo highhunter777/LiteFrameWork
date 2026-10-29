@@ -3,7 +3,7 @@
     "rootNamespace": "RoomServer.Application",
     "references": [
         "LiteNet",
-        "LiteSim.Core",
+        "LiteSim",
         "RoomServer.Runtime"
     ],
     "includePlatforms": [],

@@ -2,7 +2,7 @@
     "name": "LiteBattle.Abstractions",
     "rootNamespace": "LiteBattle",
     "references": [
-        "LiteSim.Core"
+        "LiteSim"
     ],
     "includePlatforms": [],
     "excludePlatforms": [],

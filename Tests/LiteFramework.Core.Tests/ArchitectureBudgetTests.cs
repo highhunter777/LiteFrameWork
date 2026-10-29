@@ -38,8 +38,8 @@ namespace LiteFramework.Core.Tests
             ["Assets/LiteGame/Editor/Toolchain/LiteGameToolboxWindow.cs::LiteGameToolboxWindow"] = 409,
             ["Assets/LiteGame/Editor/UiTools/Contract/UiContractGenerator.cs::UiContractGenerator"] = 424,
             ["Assets/LiteGame/Editor/UiTools/Workbench/UiWorkbenchWindow.cs::UiWorkbenchWindow"] = 457,
-            ["Assets/LiteView/Animation/Backends/AnimatorAnimationBackend.cs::AnimatorAnimationBackend"] = 505,
-            ["Assets/LiteView/Animation/Drivers/CharacterLocomotionDriver.cs::CharacterLocomotionDriver"] = 500,
+            ["Assets/LiteView/Adapters/Unity/AnimationBackends/AnimatorAnimationBackend.cs::AnimatorAnimationBackend"] = 505,
+            ["Assets/LiteView/Modules/Animation/Drivers/CharacterLocomotionDriver.cs::CharacterLocomotionDriver"] = 500,
         };
 
         /// <summary>方法行数冻结上限（同 7d 口径；超 80 行的方法只许降）。</summary>
@@ -70,7 +70,7 @@ namespace LiteFramework.Core.Tests
             ["Assets/LiteGame/Editor/UiTools/Preview/UiDeviceProfileCatalog.cs::UiDeviceProfileCatalog.Validate"] = 81,
             ["Assets/LiteGame/Editor/UiTools/Preview/UiPreviewMatrixRunner.cs::UiPreviewMatrixRunner.Tick"] = 91,
             ["Assets/LiteGame/Editor/UiTools/Validation/Rules/ContractReferenceRule.cs::ContractReferenceRule.Check"] = 100,
-            ["Assets/LiteView/Animation/Drivers/CharacterLocomotionDriver.cs::CharacterLocomotionDriver.Tick"] = 163,
+            ["Assets/LiteView/Modules/Animation/Drivers/CharacterLocomotionDriver.cs::CharacterLocomotionDriver.Tick"] = 163,
         };
 
         [Fact]
