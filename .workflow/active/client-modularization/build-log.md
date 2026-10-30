@@ -20,6 +20,8 @@
 - 2026-10-30T21:35:48+08:00 · 更新任务 T2（deps）
 - 2026-10-30T21:35:49+08:00 · 开始任务 T3「批1 适配器委托注入与能力端口」
 - 2026-10-30T22:24:54+08:00 · 完成任务 T3 · 证据: 能力端口 IRenderCameraSource/IAimCameraSink/ILookDevice 落地并替换 4 处 is 具体适配器；新增 App/AppComposition.cs 的工厂委托（ConfigService/NewInputIntentSource/CinemachineCameraServi…
+- 2026-10-30T22:45:23+08:00 · 开始任务 T2「批1 装配段就地迁移与守卫同步」
+- 2026-10-30T22:45:24+08:00 · 完成任务 T2 · 证据: 12 段就地迁入 Modules/<域>/<域>Composition.cs，Container/Ui 移 App/ 并删 Bootstrap/Modules；DependsOn 改模块名；BridgeCapabilitySet 下沉解环；各域 asmdef 补 UniTask/LiteGame.Core + 允许表…
 
 ## 关键决定
 

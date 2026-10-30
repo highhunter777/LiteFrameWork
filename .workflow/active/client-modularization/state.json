@@ -5,7 +5,7 @@
   "status": "active",
   "current_stage": "implement",
   "created_at": "2026-10-30T19:40:28+08:00",
-  "updated_at": "2026-10-30T22:24:54+08:00",
+  "updated_at": "2026-10-30T22:45:24+08:00",
   "completed_at": null,
   "completed_stages": [
     {
@@ -125,12 +125,12 @@
         "T1",
         "T3"
       ],
-      "status": "todo",
-      "evidence": "",
+      "status": "done",
+      "evidence": "12 段就地迁入 Modules/<域>/<域>Composition.cs，Container/Ui 移 App/ 并删 Bootstrap/Modules；DependsOn 改模块名；BridgeCapabilitySet 下沉解环；各域 asmdef 补 UniTask/LiteGame.Core + 允许表三处；守卫路径/双根基/身份/预算键同步。验证 Unity 0 error、L1 795/798（3 红=批2 目标态）、Boot 冒烟 current=Battle。",
       "status_reason": "",
       "created_at": "2026-10-30T21:15:46+08:00",
-      "started_at": null,
-      "completed_at": null
+      "started_at": "2026-10-30T22:45:23+08:00",
+      "completed_at": "2026-10-30T22:45:24+08:00"
     },
     {
       "id": "T3",

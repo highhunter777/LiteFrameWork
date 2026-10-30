@@ -4,12 +4,12 @@
 
 ## 任务清单
 
-阶段：正式施工（implement） ｜ 完成 2/9（取消 0，阻塞 0）
+阶段：正式施工（implement） ｜ 完成 3/9（取消 0，阻塞 0）
 
 | ID | 任务 | 依赖 | 状态 | 验收标准 | 验证方式 | 证据 |
 |---|---|---|---|---|---|---|
 | T1 | 批1 框架装配入口与 Events 独立 | - | 完成 | A3/A5：三个 Create 入口存在；Modules/**Composition.cs 无 new ReferencePoolService(/new LogService(/new FileSystem(/new WorldClock(/new EventBus(；EventsComposition 独立产出 EventBus | unity_editor.refresh 0 error + rg 负断言 + L1 | 新增 LiteFramework/Runtime/Framework/{FrameworkInfrastructure,FrameworkClocks}.cs；PlatformInfrastructureModule 改用 Create … |
-| T2 | 批1 装配段就地迁移与守卫同步 | T1, T3 | 待办 | A1/A2/A6：Bootstrap/Modules 不存在；Modules/** 13 个 Composition；ContainerModule 在 App/；守卫全绿 L1 全量；CompositionBudgetTests 迁移前红后绿 | wf verify --red（CompositionBudgetTests）+ unity_editor.refresh 0 error + L1 | - |
+| T2 | 批1 装配段就地迁移与守卫同步 | T1, T3 | 完成 | A1/A2/A6：Bootstrap/Modules 不存在；Modules/** 13 个 Composition；ContainerModule 在 App/；守卫全绿 L1 全量；CompositionBudgetTests 迁移前红后绿 | wf verify --red（CompositionBudgetTests）+ unity_editor.refresh 0 error + L1 | 12 段就地迁入 Modules/<域>/<域>Composition.cs，Container/Ui 移 App/ 并删 Bootstrap/Modules；DependsOn 改模块名；BridgeCapabilitySet 下沉解环… |
 | T3 | 批1 适配器委托注入与能力端口 | T1 | 完成 | A4：三个 new 只在 AppComposition；Modules/** 无 is 具体适配器；首采样前 Camera==null、ComposeAfter 后 ==Camera.main | rg 负断言 + 启动冒烟断言 + L1 | 能力端口 IRenderCameraSource/IAimCameraSink/ILookDevice 落地并替换 4 处 is 具体适配器；新增 App/AppComposition.cs 的工厂委托（ConfigService/New… |
 | T4 | 批2 业务域垂直化与 asmdef 合并 | T3 | 待办 | A7/A8/A8b/A9/A10/A10a/A11 | unity_editor.refresh 0 error + wf verify --red（DomainBoundaryTests）+ L1 | - |
 | T5 | 批2 对局冒烟用例与命令接线 | T4 | 待办 | A12 | wf verify（含 battle-smoke-playmode） | - |
