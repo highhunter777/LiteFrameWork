@@ -604,8 +604,8 @@
         { "path": "Assets/LiteFramework/Runtime/Modules/UI/Bind/Generated/UIBindIndex.Api.g.cs", "kind": "generated" },
         { "path": "Assets/LiteFramework/Runtime/Modules/UI/Bind/Generated/UIBindBase.Api.g.cs", "kind": "generated" },
         { "path": "Assets/LiteFramework/Runtime/Modules/UI/Bind/Generated/UiApiManifest.g.cs", "kind": "generated" },
-        { "path": "Assets/LiteGame/LuaBridge/Generated/UiApiShim.g.cs", "kind": "generated" },
-        { "path": "Assets/LiteGame/LuaBridge/Generated/LuaBehaviourAdapter.Dispatch.g.cs", "kind": "generated" }
+        { "path": "Assets/LiteGame/Adapters/LuaBridge/Generated/UiApiShim.g.cs", "kind": "generated" },
+        { "path": "Assets/LiteGame/Adapters/LuaBridge/Generated/LuaBehaviourAdapter.Dispatch.g.cs", "kind": "generated" }
       ],
       "destructive": false,
       "order": 26
@@ -625,7 +625,7 @@
         { "path": "Assets/GameData/Generated/", "kind": "generated" },
         { "path": "Assets/GameData/Config/", "kind": "data" },
         { "path": "Assets/LiteGame/Lua/Cfg/", "kind": "data" },
-        { "path": "Assets/LiteGame/LuaBridge/Generated/LuaKeys.g.cs", "kind": "generated" }
+        { "path": "Assets/LiteGame/Adapters/LuaBridge/Generated/LuaKeys.g.cs", "kind": "generated" }
       ],
       "destructive": false,
       "order": 30

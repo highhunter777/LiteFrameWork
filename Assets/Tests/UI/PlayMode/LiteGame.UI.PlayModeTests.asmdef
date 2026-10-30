@@ -2,6 +2,7 @@
     "name": "LiteGame.UI.PlayModeTests",
     "rootNamespace": "LiteGame.Tests.UI.PlayMode",
     "references": [
+        "LiteGame.Modules",
         "LiteGame.Adapters.Unity",
         "LiteGame.Core",
         "LiteGame.Modules.Battle",

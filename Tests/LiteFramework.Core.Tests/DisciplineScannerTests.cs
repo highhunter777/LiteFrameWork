@@ -526,12 +526,12 @@ namespace LiteFramework.Tests
         {
             // **每个边界只放行它对应的那一个适配器**——不是"边界目录里什么都能 import"。
             // 适配器在 `Adapters/` 层；框架侧在 `Assets/LiteFramework/Runtime/Modules/`，
-            // Lua 桥归 `Assets/LiteGame/LuaBridge/`（目录一变规则就红，本用例即其表现）。
+            // Lua 桥归 `Assets/LiteGame/Adapters/LuaBridge/`（目录一变规则就红，本用例即其表现）。
             Assert.Equal(0, CountAt("Assets/LiteFramework/Runtime/Adapters/YooAsset/C.cs",
                 "using YooAsset;", LintRule.R12AdapterBoundary));
             Assert.Equal(0, CountAt("Assets/LiteFramework/Runtime/Adapters/XLua/Lua/C.cs",
                 "using XLua;", LintRule.R12AdapterBoundary));
-            Assert.Equal(0, CountAt("Assets/LiteGame/LuaBridge/C.cs",
+            Assert.Equal(0, CountAt("Assets/LiteGame/Adapters/LuaBridge/C.cs",
                 "using XLua;", LintRule.R12AdapterBoundary));
             Assert.Equal(0, CountAt("Assets/LiteFramework/Runtime/Modules/UI/Anim/C.cs",
                 "using DG.Tweening;", LintRule.R12AdapterBoundary));
@@ -544,7 +544,7 @@ namespace LiteFramework.Tests
                 "using XLua;", LintRule.R12AdapterBoundary));
             Assert.Equal(1, CountAt("Assets/LiteFramework/Runtime/Adapters/XLua/Lua/C.cs",
                 "using YooAsset;", LintRule.R12AdapterBoundary));
-            Assert.Equal(1, CountAt("Assets/LiteGame/LuaBridge/C.cs",
+            Assert.Equal(1, CountAt("Assets/LiteGame/Adapters/LuaBridge/C.cs",
                 "using YooAsset;", LintRule.R12AdapterBoundary));
             Assert.Equal(1, CountAt("Assets/LiteFramework/Runtime/Modules/UI/Anim/C.cs",
                 "using YooAsset;", LintRule.R12AdapterBoundary));
@@ -560,7 +560,7 @@ namespace LiteFramework.Tests
             Assert.Equal(1, CountAt("Assets/LiteFramework/Runtime/Modules/UI/Adapter.cs",
                 "using XLua;", LintRule.R12AdapterBoundary));
             // JSON 序列化器同守：业务/框架代码只认 IJsonSerializer / IJsonCodec 端口
-            Assert.Equal(1, CountAt("Assets/LiteGame/App/Meta/MetaJson.cs",
+            Assert.Equal(1, CountAt("Assets/LiteGame/Modules/Meta/MetaJson.cs",
                 "using Newtonsoft.Json.Linq;", LintRule.R12AdapterBoundary));
             Assert.Equal(1, CountAt("Assets/LiteFramework/Runtime/Modules/C.cs",
                 "using Newtonsoft.Json;", LintRule.R12AdapterBoundary));
@@ -658,14 +658,14 @@ namespace LiteFramework.Tests
             {
                 ScanTarget t = ScanTargets.Default[i];
                 if (Array.IndexOf(t.Rules, LintRule.R14ProjectionDebugPort) < 0) continue;
-                if (t.Root == "Assets/LiteGame/Dev/Projection") devTool = true;
+                if (t.Root == "Assets/LiteGame/Adapters/Dev/Projection") devTool = true;
                 if (t.Root == "Assets/LiteGame/Editor/Gm")
                 {
                     editorGm = true;
                     Assert.True(t.IncludeEditorDirs, "Editor/Gm 受守根必须 IncludeEditorDirs——默认排除面会静默吞掉整个根");
                 }
             }
-            Assert.True(devTool, "R14 缺 Assets/LiteGame/Dev/Projection 受守根——运行期投影将不受把守");
+            Assert.True(devTool, "R14 缺 Assets/LiteGame/Adapters/Dev/Projection 受守根——运行期投影将不受把守");
             Assert.True(editorGm, "R14 缺 Assets/LiteGame/Editor/Gm 受守根——编辑器 GM 页将不受把守");
         }
 
@@ -692,7 +692,7 @@ namespace LiteFramework.Tests
             }
 
             // 允许面是精确文件匹配（不是目录前缀）——名字相近的邻文件照样报红
-            Assert.Equal(1, CountAt("Assets/LiteGame/App/Meta/DeployBakeExtra.cs",
+            Assert.Equal(1, CountAt("Assets/LiteGame/Modules/Meta/DeployBakeExtra.cs",
                 "#if UNITY_ANDROID\n", LintRule.R15PlatformFork));
         }
 

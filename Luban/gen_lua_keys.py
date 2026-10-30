@@ -11,10 +11,10 @@ import os
 import re
 
 DATA_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "Data")
-# OUT_FILE 必须与 Lua 桥正本同目录（Assets/LiteGame/LuaBridge/Generated）——
+# OUT_FILE 必须与 Lua 桥正本同目录（Assets/LiteGame/Adapters/LuaBridge/Generated）——
 #   写到别处会在桥正本旁再造一份同名 LuaKeys（CS0101，Unity 编译直接炸）。
 OUT_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)),
-                        "..", "Assets", "LiteGame", "LuaBridge", "Generated", "LuaKeys.g.cs")
+                        "..", "Assets", "LiteGame", "Adapters", "LuaBridge", "Generated", "LuaKeys.g.cs")
 
 PATH_FIELDS = ("lua_path", "entry")               # 注册表路径列字段名
 ROOTS = ("UI", "Content", "Strategies")           # §4.4 三个固定根

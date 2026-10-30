@@ -57,7 +57,7 @@ Loading → Active ⇄ Covered / Paused → Closing → Recycled → Disposed
 
 ### 6.1 三注册表
 
-`UiServiceModule` 构造并 `context.Put` 三个注册表（`Assets/LiteGame/LuaBridge/LuaRegistries.cs`），键为全路径，重复注册抛：
+`UiServiceModule` 构造并 `context.Put` 三个注册表（`Assets/LiteGame/Adapters/LuaBridge/LuaRegistries.cs`），键为全路径，重复注册抛：
 
 | 注册表（kind） | 键 | 来源表 |
 |---|---|---|
@@ -69,7 +69,7 @@ Loading → Active ⇄ Covered / Paused → Closing → Recycled → Disposed
 
 ### 6.2 预载五步序
 
-`ProcedurePreload`（`Assets/LiteGame/App/Procedure/Stages/ProcedurePreload.cs`）在配置装载后执行五步，任一失败即阻断进 Main：① Lua 全量预载（字节经 `IContentService` 租约，清单由装配点注入）→ ② `_lua.Init(...)`（env + 事件桥）+`DoMain()` 执行 `main.lua` → ③ `RegistryFiller.FillAll()` 逐行 require/校验/填充并出报告 → ④ 报告整批判定（有失败→记 Error、进 Error 流程）→ ⑤ 放行：登记设置页为模态（表驱动反查 `formId`）后 `Request(Main)`。失败/取消都先 `LaunchLoading.End()`；`LuaPreloader` 缓存键用斜杠、模块名用点分（与 `ReleaseLayout` 同口径）。
+`ProcedurePreload`（`Assets/LiteGame/Modules/Procedure/Stages/ProcedurePreload.cs`）在配置装载后执行五步，任一失败即阻断进 Main：① Lua 全量预载（字节经 `IContentService` 租约，清单由装配点注入）→ ② `_lua.Init(...)`（env + 事件桥）+`DoMain()` 执行 `main.lua` → ③ `RegistryFiller.FillAll()` 逐行 require/校验/填充并出报告 → ④ 报告整批判定（有失败→记 Error、进 Error 流程）→ ⑤ 放行：登记设置页为模态（表驱动反查 `formId`）后 `Request(Main)`。失败/取消都先 `LaunchLoading.End()`；`LuaPreloader` 缓存键用斜杠、模块名用点分（与 `ReleaseLayout` 同口径）。
 
 ### 6.3 填充与失败分类
 
@@ -77,7 +77,7 @@ Loading → Active ⇄ Covered / Paused → Closing → Recycled → Disposed
 
 ### 6.4 生命周期桥与 `self.ui`
 
-`LuaBehaviourAdapter`（`Assets/LiteGame/LuaBridge/LuaBehaviourAdapter.cs`）把 `IUIFormLogic` 七回调翻译成 `self:OnInit/OnShow/OnUpdate/OnPause/OnCover/OnReveal/OnHide`：注册表存**模块表**，适配器构造期 `module.new()` 得实例（无 `new` 的旧表退化为"模块即实例"），七个 `LuaFunction` 构造期一次缓存；方法缺失静默跳过，异常由 `UIForm.SafeCall` 隔离（单页降级）；`OnInit` 建绑定索引 + 挂 `self.ui`，`OnHide` 解绑全部按钮；**所有权分开**：注册表拥有模块引用，页面拥有实例/回调，`Release` 不 Dispose 共享模块。
+`LuaBehaviourAdapter`（`Assets/LiteGame/Adapters/LuaBridge/LuaBehaviourAdapter.cs`）把 `IUIFormLogic` 七回调翻译成 `self:OnInit/OnShow/OnUpdate/OnPause/OnCover/OnReveal/OnHide`：注册表存**模块表**，适配器构造期 `module.new()` 得实例（无 `new` 的旧表退化为"模块即实例"），七个 `LuaFunction` 构造期一次缓存；方法缺失静默跳过，异常由 `UIForm.SafeCall` 隔离（单页降级）；`OnInit` 建绑定索引 + 挂 `self.ui`，`OnHide` 解绑全部按钮；**所有权分开**：注册表拥有模块引用，页面拥有实例/回调，`Release` 不 Dispose 共享模块。
 
 `self.ui` 是生成的白名单门面（`UiApiShim.g.cs` 的 `LuaTemplate`，**33 个方法**：按钮/文本/key 文本/进度/倒计时/提示/确认/表单控件/列表/动效），经单委托 `Action<string, LuaTable>` 派发，缺省动效时长由适配器用 `UiFxDefaults` 替换。源头 `Assets/LiteGame/Editor/UiTools/UiApi/UiApiSpec.json`，重生成 `python scripts/codegen/gen-ui-api.py`。
 
@@ -92,9 +92,9 @@ Loading → Active ⇄ Covered / Paused → Closing → Recycled → Disposed
 
 ### 6.6 Bridge 门面与页面流
 
-Lua 只能经白名单门面访问 C#：`Bridge` 只导出 `data / ui / content / text` 四件（`Assets/LiteGame/LuaBridge/Bridge.Data.cs`），产品侧 `meta`/`settings` 经 `ProductBridges.BindGlobals` 在同一 env 装订；`ILuaRegistry` 与业务系统不导出。当前 Lua 消费（`Assets/LiteGame/Lua/**/*.lua`）：`Bridge.meta` 22 处、`Bridge.text` 13、`Bridge.settings` 10、`Bridge.ui` 10、`Bridge.data` 2、`Bridge.content` **0**。
+Lua 只能经白名单门面访问 C#：`Bridge` 只导出 `data / ui / content / text` 四件（`Assets/LiteGame/Adapters/LuaBridge/Bridge.Data.cs`），产品侧 `meta`/`settings` 经 `ProductBridges.BindGlobals` 在同一 env 装订；`ILuaRegistry` 与业务系统不导出。当前 Lua 消费（`Assets/LiteGame/Lua/**/*.lua`）：`Bridge.meta` 22 处、`Bridge.text` 13、`Bridge.settings` 10、`Bridge.ui` 10、`Bridge.data` 2、`Bridge.content` **0**。
 
-`PageFlow`（`Assets/LiteGame/App/Ui/PageFlow.cs`）只接流程与 UI 之间的接缝，页面跳转由 Lua 经 `Bridge.ui` 驱动（仍走导航单写者）。`Landing` 三值 `Login`（正式）/`Lobby`（本地服务器、开发）/`None`（直入训练场、工作台）；`OpenLanding` 只在首进 Main 开一次页，账号重入走 `ShowLogin`。开局关房间页、结束开结算页、对局中开设置页（导航数据 `battleExit` 门控"退出对局"）。
+`PageFlow`（`Assets/LiteGame/Modules/Ui/PageFlow.cs`）只接流程与 UI 之间的接缝，页面跳转由 Lua 经 `Bridge.ui` 驱动（仍走导航单写者）。`Landing` 三值 `Login`（正式）/`Lobby`（本地服务器、开发）/`None`（直入训练场、工作台）；`OpenLanding` 只在首进 Main 开一次页，账号重入走 `ShowLogin`。开局关房间页、结束开结算页、对局中开设置页（导航数据 `battleExit` 门控"退出对局"）。
 
 ## 7. 工具链
 

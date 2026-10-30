@@ -35,7 +35,7 @@
   -->
   <ItemGroup>
     <Compile Include="..\..\Assets\LiteFramework\Runtime\Modules\Scene\Abstractions\ISceneService.cs" Link="Gm\ISceneService.cs" />
-    <Compile Include="..\..\Assets\LiteGame\Dev\Commands\GmSceneCommands.cs" Link="Gm\GmSceneCommands.cs" />
+    <Compile Include="..\..\Assets\LiteGame\Adapters\Dev\Commands\GmSceneCommands.cs" Link="Gm\GmSceneCommands.cs" />
   </ItemGroup>
 
   <!--
@@ -45,7 +45,7 @@
   <ItemGroup>
     <Compile Include="..\..\Assets\LiteFramework\Runtime\Modules\Content\ReleaseLayout.cs" Link="Content\ReleaseLayout.cs" />
     <Compile Include="..\..\Assets\LiteFramework\Runtime\Modules\Content\ContentCacheMaintenance.cs" Link="Content\ContentCacheMaintenance.cs" />
-    <Compile Include="..\..\Assets\LiteGame\App\Meta\AccountReentry.cs" Link="Meta\AccountReentry.cs" />
+    <Compile Include="..\..\Assets\LiteGame\Modules\Meta\AccountReentry.cs" Link="Meta\AccountReentry.cs" />
   </ItemGroup>
 
   <!--
@@ -55,12 +55,12 @@
     Assets/Tests/EditMode/MetaClientEditModeTests 经真实 HTTP 覆盖。
   -->
   <ItemGroup>
-    <Compile Include="..\..\Assets\LiteGame\App\Meta\MetaContracts.cs" Link="Meta\MetaContracts.cs" />
-    <Compile Include="..\..\Assets\LiteGame\App\Meta\MetaJson.cs" Link="Meta\MetaJson.cs" />
-    <Compile Include="..\..\Assets\LiteGame\App\Meta\MetaWireValidator.cs" Link="Meta\MetaWireValidator.cs" />
-    <Compile Include="..\..\Assets\LiteGame\App\Meta\Wire\MetaWireContracts.cs" Link="Meta\Wire\MetaWireContracts.cs" />
-    <Compile Include="..\..\Assets\LiteGame\App\Meta\Wire\MetaWireEndpoints.cs" Link="Meta\Wire\MetaWireEndpoints.cs" />
-    <Compile Include="..\..\Assets\LiteGame\App\Meta\Wire\MetaWireLimits.cs" Link="Meta\Wire\MetaWireLimits.cs" />
+    <Compile Include="..\..\Assets\LiteGame\Modules\Meta\MetaContracts.cs" Link="Meta\MetaContracts.cs" />
+    <Compile Include="..\..\Assets\LiteGame\Modules\Meta\MetaJson.cs" Link="Meta\MetaJson.cs" />
+    <Compile Include="..\..\Assets\LiteGame\Modules\Meta\MetaWireValidator.cs" Link="Meta\MetaWireValidator.cs" />
+    <Compile Include="..\..\Assets\LiteGame\Modules\Meta\Wire\MetaWireContracts.cs" Link="Meta\Wire\MetaWireContracts.cs" />
+    <Compile Include="..\..\Assets\LiteGame\Modules\Meta\Wire\MetaWireEndpoints.cs" Link="Meta\Wire\MetaWireEndpoints.cs" />
+    <Compile Include="..\..\Assets\LiteGame\Modules\Meta\Wire\MetaWireLimits.cs" Link="Meta\Wire\MetaWireLimits.cs" />
   </ItemGroup>
 
 </Project>

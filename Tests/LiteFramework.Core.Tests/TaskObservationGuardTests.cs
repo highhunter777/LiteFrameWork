@@ -21,8 +21,8 @@ namespace LiteFramework.Core.Tests
         {
             // Lua 回调边界（页面/桥脚本回调不得炸派发链）
             ["Assets/LiteFramework/Runtime/Adapters/XLua/Lua/EventBridge.cs"] = 2,
-            ["Assets/LiteGame/App/Meta/MetaBridge.cs"] = 1,
-            ["Assets/LiteGame/App/Room/RoomBridge.cs"] = 3,
+            ["Assets/LiteGame/Modules/Meta/MetaBridge.cs"] = 1,
+            ["Assets/LiteGame/Modules/Room/RoomBridge.cs"] = 3,
             // UI 逻辑/控件回调边界（页面生命周期、控件事件、主题/静态文案绑定、红点规则）
             ["Assets/LiteFramework/Runtime/Modules/UI/UIForm.cs"] = 13,
             ["Assets/LiteFramework/Runtime/Modules/UI/Bind/UIBindEvents.cs"] = 4,
@@ -35,7 +35,7 @@ namespace LiteFramework.Core.Tests
             ["Assets/LiteFramework/Runtime/Core/Clock/GameScheduler.cs"] = 1,
             ["Assets/LiteFramework/Runtime/Core/Clock/TimelineRunner.cs"] = 1,
             // 表现降级边界（HUD 主题注入失败保持烘焙值，不阻断对局）
-            ["Assets/LiteGame/App/Presentation/Battle/Rig/BattleViewAssets.cs"] = 1,
+            ["Assets/LiteGame/Modules/Presentation/Battle/Rig/BattleViewAssets.cs"] = 1,
         };
 
         private static readonly string[] ProductRoots =

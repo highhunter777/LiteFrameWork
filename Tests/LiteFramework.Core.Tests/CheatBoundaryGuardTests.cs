@@ -17,7 +17,7 @@ namespace LiteFramework.Core.Tests
         {
             "Assets/LiteFramework/Runtime/Modules",
             "Assets/LiteGame/App",
-            "Assets/LiteGame/LuaBridge",
+            "Assets/LiteGame/Adapters/LuaBridge",
         };
 
         private static readonly string[] Forbidden =
@@ -66,8 +66,8 @@ namespace LiteFramework.Core.Tests
         public void 开发作弊实现必须住LiteGameDev()
         {
             string root = RepoRoot();
-            Assert.True(File.Exists(Path.Combine(root, "Assets/LiteGame/Dev/Debug/Session/TestModeRuntime.cs")));
-            Assert.True(File.Exists(Path.Combine(root, "Assets/LiteGame/Dev/Debug/Kernel/DebugKernel.cs")));
+            Assert.True(File.Exists(Path.Combine(root, "Assets/LiteGame/Adapters/Dev/Debug/Session/TestModeRuntime.cs")));
+            Assert.True(File.Exists(Path.Combine(root, "Assets/LiteGame/Adapters/Dev/Debug/Kernel/DebugKernel.cs")));
             Assert.False(File.Exists(Path.Combine(root, "Assets/LiteGame/App/Debug/TestModeRuntime.cs")));
             Assert.True(File.Exists(Path.Combine(root, "Assets/LiteGame/Core/Dev/ILocalTestHooks.cs")));
         }

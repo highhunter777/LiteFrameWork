@@ -32,7 +32,7 @@ namespace LiteFramework.Core.Tests
             // 路线图 §4.8/§4.11 7：DEVELOPMENT_BUILD / LITEFRAMEWORK_DEBUG 只允许出现在 LiteGame.Dev*；
             // release 依赖图不得含 Dev / RoomServer.*——asmdef 引用是程序集级的，#if 挡不住。
             string root = RepoRoot();
-            string devAsmdef = Path.Combine(root, "Assets", "LiteGame", "Dev", "LiteGame.Dev.asmdef");
+            string devAsmdef = Path.Combine(root, "Assets", "LiteGame", "Adapters", "Dev", "LiteGame.Dev.asmdef");
             Assert.True(File.Exists(devAsmdef), "LiteGame.Dev.asmdef 缺失（开发装配层是 M1 的单一开发边界）");
 
             string devText = File.ReadAllText(devAsmdef);
@@ -50,7 +50,7 @@ namespace LiteFramework.Core.Tests
                 foreach (string asmdef in Directory.GetFiles(dir, "*.asmdef", SearchOption.AllDirectories))
                 {
                     string rel = Path.GetRelativePath(root, asmdef).Replace('\\', '/');
-                    if (rel.StartsWith("Assets/LiteGame/Dev/", StringComparison.Ordinal)) continue;
+                    if (rel.StartsWith("Assets/LiteGame/Adapters/Dev/", StringComparison.Ordinal)) continue;
                     string text = File.ReadAllText(asmdef);
                     if (text.Contains("\"RoomServer.", StringComparison.Ordinal)) offenders.Add(rel);
                 }
@@ -94,9 +94,9 @@ namespace LiteFramework.Core.Tests
             string root = RepoRoot();
             var allowed = new HashSet<string>(StringComparer.Ordinal)
             {
-                "Assets/LiteGame/LuaBridge/Bridge.Data.cs",
-                "Assets/LiteGame/App/Meta/MetaBridge.cs",
-                "Assets/LiteGame/App/Room/RoomBridge.cs",
+                "Assets/LiteGame/Adapters/LuaBridge/Bridge.Data.cs",
+                "Assets/LiteGame/Modules/Meta/MetaBridge.cs",
+                "Assets/LiteGame/Modules/Room/RoomBridge.cs",
             };
             var pattern = new Regex(@"public\s+static\s+class\s+\w*(Bridge|Facade)\b", RegexOptions.Compiled);
             var offenders = new List<string>();

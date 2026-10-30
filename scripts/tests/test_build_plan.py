@@ -163,8 +163,8 @@ class BuildPlanTests(unittest.TestCase):
     # ---- client / content / editor / docs ----
 
     def test_client_code(self):
-        plan = self.plan(["Assets/LiteGame/App/Procedure/Stages/ProcedureMatch.cs"])
-        item = self.finding(plan, "Assets/LiteGame/App/Procedure/Stages/ProcedureMatch.cs")
+        plan = self.plan(["Assets/LiteGame/Modules/Procedure/Stages/ProcedureMatch.cs"])
+        item = self.finding(plan, "Assets/LiteGame/Modules/Procedure/Stages/ProcedureMatch.cs")
         self.assertEqual(item["area"], "client_code")
         self.assertIn("rebuild_client_player", item["deliveryActions"])
         self.assertNotIn("publish_server", item["deliveryActions"])
@@ -270,7 +270,7 @@ class BuildPlanTests(unittest.TestCase):
     def test_mixed_changes_are_deduped_in_semantic_order(self):
         plan = self.plan([
             "Assets/LiteNet/Protocol/Wire.cs",
-            "Assets/LiteGame/App/Procedure/Stages/ProcedureMatch.cs",
+            "Assets/LiteGame/Modules/Procedure/Stages/ProcedureMatch.cs",
             "Assets/ShareResource/UI/Screens/Page_Lobby.prefab",
             "Docs/项目说明/11-联机测试流程.md",
         ])

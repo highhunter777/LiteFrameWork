@@ -61,7 +61,7 @@ namespace Tools.DisciplineScan
         R13StaticConfigPort = 13,
 
         /// <summary>R14 投影禁直调调试源（《GM 与调试工具分层专项设计》§7"统一内核与三投影"）：
-        /// 两个投影根（`Assets/LiteGame/Dev/Projection` 运行期投影程序集 + `Assets/LiteGame/Editor/Gm` 编辑器 GM 页）内，
+        /// 两个投影根（`Assets/LiteGame/Adapters/Dev/Projection` 运行期投影程序集 + `Assets/LiteGame/Editor/Gm` 编辑器 GM 页）内，
         /// 调试**读数/动作/发现面**一律经 `DebugKernel` 门面——禁直调底层读口（`BattleDiagnostics.Current/Take`、
         /// `Log.Recent/ErrorCount/Current*`、`DiagTrace.Recent/Total`、`GameEntry.Stats`）与写口
         /// （`TestModeOptions.Get/Set/All`、`TestModeRuntime.*`、`CommandCenter`、
@@ -221,9 +221,9 @@ namespace Tools.DisciplineScan
         /// </summary>
         public static readonly string[] PlatformForkAllowedFiles =
         {
-            "Assets/LiteGame/App/Meta/DeployBake.cs",
+            "Assets/LiteGame/Modules/Meta/DeployBake.cs",
             "Assets/LiteGame/App/Bootstrap/Modules/InputModule.cs",
-            "Assets/LiteGame/App/Presentation/Battle/Rig/BattleViewRig.cs",
+            "Assets/LiteGame/Modules/Presentation/Battle/Rig/BattleViewRig.cs",
         };
 
         /// <summary>
@@ -238,8 +238,8 @@ namespace Tools.DisciplineScan
             // **目录名 = 层标签**（程序集名不含 Adapters 前缀；asmdef 不要求目录名与程序集名相同）。
             ("YooAsset", new[] { "Assets/LiteFramework/Runtime/Adapters/YooAsset/" }),
             // XLua：宿主（env/预载/校验）住框架侧 Adapters；**Lua 桥**（生命周期/数据门面/注册表）是产品侧绑定层，
-            // 住 `Assets/LiteGame/LuaBridge/`——同守本边界
-            ("XLua", new[] { "Assets/LiteFramework/Runtime/Adapters/XLua/", "Assets/LiteGame/LuaBridge/" }),
+            // 住 `Assets/LiteGame/Adapters/LuaBridge/`——同守本边界
+            ("XLua", new[] { "Assets/LiteFramework/Runtime/Adapters/XLua/", "Assets/LiteGame/Adapters/LuaBridge/" }),
             // Unity.InputSystem：输入设备适配——框架侧设备源只认 Platform.Unity；**UI 输入适配**
             // （EventSystem/输入模块建位 + 平台返回键直读）随 UI 服务装配归 UI 框架侧（同下 DOTween 的
             // `UI/Anim` 判例——UI 框架专属适配住专属子目录，收敛在一个文件）

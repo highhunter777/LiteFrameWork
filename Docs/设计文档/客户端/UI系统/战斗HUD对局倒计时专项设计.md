@@ -5,7 +5,7 @@
 > 日期：2026-10-30
 > 定位：回答"一局还剩多少时间"这件事如何从权威逻辑帧轴变成 `Hud_Battle` 上的一行 `mm:ss`——数据语义、真值源、显示状态机、刷新纪律、prefab 形态与验收判据。
 > 不做的事：不定义赛制（时长/击杀上限/复活与保护期归 `MatchRules` 与房间模板配置）；不做开局倒计时、等待期倒计时、加时赛；不做低时音效/脉冲动效（归 §12 扩展）；不改协议与公共快照字段（`MatchStateDelta` 既有 `timer` 承载）；不决定字体与配色的美术定稿（制作侧/TA 定档，本文只给约束与语义档位）。
-> 冲突裁决：数据语义以 `Assets/LiteSim/Scripts/Pipeline/SimMatchRuntime.cs`（`MatchStateData`）、`Assets/LiteSim/Systems/MatchSystem.cs` 为准；HUD 装配与刷新纪律以 [UI 系统总设计](UI系统总设计.md#ch-hud) §8 与 `Assets/LiteGame/App/Presentation/Hud/**` 现行代码为准；制作硬规则以[规范 05 UI 制作](../../../规范/05-UI制作.md)为准。
+> 冲突裁决：数据语义以 `Assets/LiteSim/Scripts/Pipeline/SimMatchRuntime.cs`（`MatchStateData`）、`Assets/LiteSim/Systems/MatchSystem.cs` 为准；HUD 装配与刷新纪律以 [UI 系统总设计](UI系统总设计.md#ch-hud) §8 与 `Assets/LiteGame/Modules/Presentation/Hud/**` 现行代码为准；制作硬规则以[规范 05 UI 制作](../../../规范/05-UI制作.md)为准。
 > 关联：[UI 系统总设计](UI系统总设计.md) · [UI 命名与控件词表参考](UI命名与控件词表参考.md) · [规范 05 UI 制作](../../../规范/05-UI制作.md) · [说明 05 Sim 与战斗判定](../../../说明/05-Sim与战斗判定.md) · [说明 07 联机全栈参考](../../../说明/07-联机全栈参考.md) · 施工状态归 `Docs/施工进度/`
 
 ## 1. 需求与口径
@@ -147,7 +147,7 @@ HUD 属对局表现域，由 `BattleHudAssembler` 随对局视图创建/销毁�
 
 ### 6.1 新增驱动
 
-`Assets/LiteGame/App/Presentation/Hud/BattleMatchTimerDriver.cs`（`IDisposable`，单一职责）：
+`Assets/LiteGame/Modules/Presentation/Hud/BattleMatchTimerDriver.cs`（`IDisposable`，单一职责）：
 
 | 成员 | 契约 |
 | --- | --- |
@@ -171,7 +171,7 @@ HUD 属对局表现域，由 `BattleHudAssembler` 随对局视图创建/销毁�
 
 ## 7. 读模型契约扩展
 
-HUD 目录有守卫：`Tests/LiteFramework.Core.Tests/PresentationReadModelGuardTests.cs` 规定 `App/Presentation/Hud/**` 除 `BattleReadModel.cs` 外不得出现 `SimWorldState`。因此不得在驱动里直读 `Match`，必须扩端口：
+HUD 目录有守卫：`Tests/LiteFramework.Core.Tests/PresentationReadModelGuardTests.cs` 规定 `Modules/Presentation/Hud/**` 除 `BattleReadModel.cs` 外不得出现 `SimWorldState`。因此不得在驱动里直读 `Match`，必须扩端口：
 
 ```csharp
 // Assets/LiteGame/Core/Battle/IBattleReadModel.cs
@@ -187,7 +187,7 @@ bool TryGetMatchClock(out BattleMatchClockFacts clock);   // false = 未对齐/�
 
 | 面 | 影响 |
 | --- | --- |
-| 实现 | 仅 `Assets/LiteGame/App/Presentation/Hud/BattleReadModel.cs`（唯一翻译点）：`state == null → false`，否则读 `state.Match` |
+| 实现 | 仅 `Assets/LiteGame/Modules/Presentation/Hud/BattleReadModel.cs`（唯一翻译点）：`state == null → false`，否则读 `state.Match` |
 | 其他实现者 | 无（全仓仅 `BattleReadModel` 实现该接口；EditMode 用例走真实 `BattleReadModel` + 委托注入） |
 | 二进制/协议 | 无——`Assets/LiteGame/Core/**` 不在 BuildHash 源集（`scripts/codegen/gen-build-hash.py` 的 `SHARED_TARGETS`），也不被服务端链接 |
 | 备选（未采纳） | 驱动直接吃 `Func<MatchStateData>`：绕开读模型收口，把 Sim 布局知识带回驱动，且与守卫基线冲突 |

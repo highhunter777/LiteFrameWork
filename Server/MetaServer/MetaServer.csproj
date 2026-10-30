@@ -65,9 +65,9 @@
       Meta HTTP 契约的**线形状单源**（客户端 LiteGame.App 编译同一份）：改字段 = 两端同时编译失败。
       三个文件均零引擎、零第三方（属性 POCO / 常量表），可直接进服务端编译。
     -->
-    <Compile Include="..\..\Assets\LiteGame\App\Meta\Wire\MetaWireContracts.cs" Link="Shared\MetaWire\MetaWireContracts.cs" />
-    <Compile Include="..\..\Assets\LiteGame\App\Meta\Wire\MetaWireEndpoints.cs" Link="Shared\MetaWire\MetaWireEndpoints.cs" />
-    <Compile Include="..\..\Assets\LiteGame\App\Meta\Wire\MetaWireLimits.cs" Link="Shared\MetaWire\MetaWireLimits.cs" />
+    <Compile Include="..\..\Assets\LiteGame\Modules\Meta\Wire\MetaWireContracts.cs" Link="Shared\MetaWire\MetaWireContracts.cs" />
+    <Compile Include="..\..\Assets\LiteGame\Modules\Meta\Wire\MetaWireEndpoints.cs" Link="Shared\MetaWire\MetaWireEndpoints.cs" />
+    <Compile Include="..\..\Assets\LiteGame\Modules\Meta\Wire\MetaWireLimits.cs" Link="Shared\MetaWire\MetaWireLimits.cs" />
     <!--
       契约序列化行为单源（camelCase + 禁日期自动解析 + 未知字段报错）。它引用 Newtonsoft，
       因此住客户端适配层（R12 允许），服务端链接同一份——**两端的字段名/转义/日期口径只有一个定义**。

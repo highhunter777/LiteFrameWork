@@ -49,8 +49,8 @@
       Meta HTTP 契约的线形状单源（与客户端 LiteGame.App、MetaServer 编译同一份）：
       注册心跳载荷与房间明细不再在本工程手写镜像 DTO。
     -->
-    <Compile Include="..\..\Assets\LiteGame\App\Meta\Wire\MetaWireContracts.cs" Link="Shared\MetaWire\MetaWireContracts.cs" />
-    <Compile Include="..\..\Assets\LiteGame\App\Meta\Wire\MetaWireEndpoints.cs" Link="Shared\MetaWire\MetaWireEndpoints.cs" />
+    <Compile Include="..\..\Assets\LiteGame\Modules\Meta\Wire\MetaWireContracts.cs" Link="Shared\MetaWire\MetaWireContracts.cs" />
+    <Compile Include="..\..\Assets\LiteGame\Modules\Meta\Wire\MetaWireEndpoints.cs" Link="Shared\MetaWire\MetaWireEndpoints.cs" />
   </ItemGroup>
 
   <ItemGroup>

@@ -28,7 +28,7 @@ namespace LiteFramework.Core.Tests
                 foreach (string file in Directory.GetFiles(directory, "*.cs", SearchOption.AllDirectories))
                 {
                     string rel = Path.GetRelativePath(root, file).Replace(Path.DirectorySeparatorChar, '/');
-                    if (rel.StartsWith("Assets/LiteGame/Dev/", StringComparison.Ordinal)) continue;
+                    if (rel.StartsWith("Assets/LiteGame/Adapters/Dev/", StringComparison.Ordinal)) continue;
                     int count = CountConditionLines(file);
                     if (count > 0) offenders.Add(rel + " :: " + count);
                 }

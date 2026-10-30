@@ -143,10 +143,10 @@ Assets/ShareResource/UI/
   Icons/          图标源/图集输入
   Patches/        仅编辑器/dev 的 UIPatch 输出（不进包）
 Assets/LiteFramework/Runtime/Modules/UI/        运行时基座（不改结构）
-Assets/LiteGame/App/Ui/      页面流程适配（PageFlow/ResultRanking 等）
+Assets/LiteGame/Modules/Ui/      页面流程适配（PageFlow/ResultRanking 等）
 Assets/LiteGame/Lua/UI/      Lua 页面逻辑
 Assets/LiteGame/Editor/UiTools/  编辑器工具链（可重构）
-Assets/LiteGame/Dev/Projection/  运行内只读 HUD/控制台/面板（dev-only）
+Assets/LiteGame/Adapters/Dev/Projection/  运行内只读 HUD/控制台/面板（dev-only）
 Docs/设计文档/客户端/UI/      本套设计文档
 ```
 
@@ -409,8 +409,8 @@ Page Logic (C# UIBindBase 或 Lua)
   - `Assets/LiteFramework/Runtime/Modules/UI/Bind/Generated/UIBindIndex.Api.g.cs`——受控 API 的 **partial 方法声明**；实现体留在 `UIBindIndex.cs`，签名漂移即编译失败（不靠测试兜）；
   - `Assets/LiteFramework/Runtime/Modules/UI/Bind/Generated/UIBindBase.Api.g.cs`——`UIBindBase` 的转发体（手写文件只留生命周期与索引装配）；
   - `Assets/LiteFramework/Runtime/Modules/UI/Bind/Generated/UiApiManifest.g.cs`——`ApiVersion` 与三张清单（Lua 名 / shim 名 / 手工处理器名），供能力声明与守卫对账；
-  - `Assets/LiteGame/LuaBridge/Generated/UiApiShim.g.cs`——Lua `self.ui` 门面模板；
-  - `Assets/LiteGame/LuaBridge/Generated/LuaBehaviourAdapter.Dispatch.g.cs`——payload 表派发 switch；
+  - `Assets/LiteGame/Adapters/LuaBridge/Generated/UiApiShim.g.cs`——Lua `self.ui` 门面模板；
+  - `Assets/LiteGame/Adapters/LuaBridge/Generated/LuaBehaviourAdapter.Dispatch.g.cs`——payload 表派发 switch；
   - `Docs/设计文档/客户端/UI系统/UI逻辑API参考.md` §3 的生成区（`<!-- BEGIN/END:ui-api:lua -->` 之间）。
 - **手工例外**：`showConfirm`（异步确认）、`setList`/`onListClick`（LuaTable 行转换）、`onButton`（Lua 闭包）在 spec 标 `manual`；生成的 dispatch `default` 转 `TryDispatchManual`，其余 API 不得手写派发。
 - **默认值单源**：动效/气泡缺省仍只认 `UiFxDefaults`——shim 生成 `%Fx*%` 占位符，适配器启动期用常量替换；spec 不复制数值。

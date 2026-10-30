@@ -58,7 +58,7 @@ namespace LiteGame.Tests.EditMode
             Assert.IsNotNull(knownKey, "RegistryFiller 应暴露单源 KnownUiKey 供启动校验与守卫共用");
             Assert.AreEqual("UI.Page_Login", knownKey.GetValue(null), "启动校验锚应指向真实产品页");
 
-            string source = ReadProjectFile("Assets/LiteGame/LuaBridge/RegistryFiller.cs");
+            string source = ReadProjectFile("Assets/LiteGame/Adapters/LuaBridge/RegistryFiller.cs");
             StringAssert.DoesNotContain("LuaKeys.UI.UIMain", source,
                 "启动校验不得再引用样例页常量");
         }

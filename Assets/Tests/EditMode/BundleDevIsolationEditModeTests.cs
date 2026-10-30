@@ -23,8 +23,8 @@ namespace LiteGame.Tests.EditMode
         {
             Assert.IsTrue(BuiltinBundleBuildInvoker.IsDevAssetPath("Assets/LiteGame/Editor/Gm/GmPanel.cs"));
             Assert.IsTrue(BuiltinBundleBuildInvoker.IsDevAssetPath("Assets/ShareResource/UI/Screens/Editor/Preview.prefab"));
-            Assert.IsTrue(BuiltinBundleBuildInvoker.IsDevAssetPath("Assets/LiteGame/Dev/Projection/Hud/DevHud.prefab"));
-            Assert.IsTrue(BuiltinBundleBuildInvoker.IsDevAssetPath("Assets/LiteGame/Dev/LocalServer/Room.prefab"));
+            Assert.IsTrue(BuiltinBundleBuildInvoker.IsDevAssetPath("Assets/LiteGame/Adapters/Dev/Projection/Hud/DevHud.prefab"));
+            Assert.IsTrue(BuiltinBundleBuildInvoker.IsDevAssetPath("Assets/LiteGame/Adapters/Dev/LocalServer/Room.prefab"));
 
             Assert.IsFalse(BuiltinBundleBuildInvoker.IsDevAssetPath("Assets/ShareResource/UI/Screens/Page_Login.prefab"));
             Assert.IsFalse(BuiltinBundleBuildInvoker.IsDevAssetPath("Assets/LiteGame/Lua/UI/Page_Login.lua"));

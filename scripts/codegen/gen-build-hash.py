@@ -87,9 +87,9 @@ META_EXTRA_FILES = [
     'Assets/RoomServer/Core/MatchStateMachine.cs',
     # Meta HTTP 契约线形状与序列化行为（客户端编译、MetaServer/RoomServer 源链接共编）：
     # 改字段名/口径 = 协议变更，Meta 构建身份必须跟着变。
-    'Assets/LiteGame/App/Meta/Wire/MetaWireContracts.cs',
-    'Assets/LiteGame/App/Meta/Wire/MetaWireEndpoints.cs',
-    'Assets/LiteGame/App/Meta/Wire/MetaWireLimits.cs',
+    'Assets/LiteGame/Modules/Meta/Wire/MetaWireContracts.cs',
+    'Assets/LiteGame/Modules/Meta/Wire/MetaWireEndpoints.cs',
+    'Assets/LiteGame/Modules/Meta/Wire/MetaWireLimits.cs',
     'Assets/LiteFramework/Runtime/Adapters/Newtonsoft/WireJsonSettings.cs',
 ]
 SHARED_OUT_FILE = os.path.join(ROOT, 'Assets', 'LiteNet', 'Core', 'Protocol', 'BuildHash.g.cs')

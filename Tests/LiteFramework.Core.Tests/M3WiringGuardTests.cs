@@ -47,7 +47,7 @@ namespace LiteFramework.Core.Tests
             string service = File.ReadAllText(Path.Combine(root,
                 "Assets/LiteFramework/Runtime/Modules/Hosting/Recovery/ErrorRecoveryService.cs"));
             string actions = File.ReadAllText(Path.Combine(root,
-                "Assets/LiteGame/App/Recovery/AppRecoveryActions.cs"));
+                "Assets/LiteGame/Modules/Recovery/AppRecoveryActions.cs"));
             string container = File.ReadAllText(Path.Combine(root,
                 "Assets/LiteGame/App/Bootstrap/Modules/ContainerModule.cs"));
 
@@ -61,10 +61,10 @@ namespace LiteFramework.Core.Tests
         public void 账号重入_401到回登录页单点接线()
         {
             string root = RepoRoot();
-            string bridge = File.ReadAllText(Path.Combine(root, "Assets/LiteGame/App/Meta/MetaBridge.cs"));
+            string bridge = File.ReadAllText(Path.Combine(root, "Assets/LiteGame/Modules/Meta/MetaBridge.cs"));
             string container = File.ReadAllText(Path.Combine(root, "Assets/LiteGame/App/Bootstrap/Modules/ContainerModule.cs"));
-            string pageFlow = File.ReadAllText(Path.Combine(root, "Assets/LiteGame/App/Ui/PageFlow.cs"));
-            string meta = File.ReadAllText(Path.Combine(root, "Assets/LiteGame/App/Meta/MetaEntryService.cs"));
+            string pageFlow = File.ReadAllText(Path.Combine(root, "Assets/LiteGame/Modules/Ui/PageFlow.cs"));
+            string meta = File.ReadAllText(Path.Combine(root, "Assets/LiteGame/Modules/Meta/MetaEntryService.cs"));
 
             Assert.Contains("IsAuthLost", bridge);                       // 401/凭证失效判据
             Assert.Contains("ReturnToLoginAsync", bridge);               // 唯一重入调用点

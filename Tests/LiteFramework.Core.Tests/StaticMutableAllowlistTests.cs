@@ -16,15 +16,15 @@ namespace LiteFramework.Core.Tests
         /// <summary>存量基线（路径 :: 字段名）。</summary>
         private static readonly HashSet<string> Allowed = new HashSet<string>(StringComparer.Ordinal)
         {
-            "Assets/LiteGame/Dev/Debug/Session/DevStartupConfig.cs :: DirectToTrainingEnabled",
-            "Assets/LiteGame/App/Presentation/Battle/Look/LookTuning.cs :: AdsScaleDevOverride",
-            "Assets/LiteGame/App/Presentation/Battle/Look/LookTuning.cs :: SensitivityDevOverride",
-            "Assets/LiteGame/App/Presentation/Hud/CrosshairFeel.cs :: BurstCapDevOverride",
-            "Assets/LiteGame/App/Presentation/Hud/CrosshairFeel.cs :: BurstGrowthDevOverride",
-            "Assets/LiteGame/App/Presentation/Hud/CrosshairFeel.cs :: BurstRecoverDevOverride",
-            "Assets/LiteGame/App/Presentation/Hud/CrosshairFeel.cs :: KickDevOverride",
-            "Assets/LiteGame/App/Presentation/Hud/CrosshairFeel.cs :: KickRecoverDevOverride",
-            "Assets/LiteGame/App/Presentation/Hud/CrosshairFeel.cs :: StaticMaxDevOverride",
+            "Assets/LiteGame/Adapters/Dev/Debug/Session/DevStartupConfig.cs :: DirectToTrainingEnabled",
+            "Assets/LiteGame/Modules/Presentation/Battle/Look/LookTuning.cs :: AdsScaleDevOverride",
+            "Assets/LiteGame/Modules/Presentation/Battle/Look/LookTuning.cs :: SensitivityDevOverride",
+            "Assets/LiteGame/Modules/Presentation/Hud/CrosshairFeel.cs :: BurstCapDevOverride",
+            "Assets/LiteGame/Modules/Presentation/Hud/CrosshairFeel.cs :: BurstGrowthDevOverride",
+            "Assets/LiteGame/Modules/Presentation/Hud/CrosshairFeel.cs :: BurstRecoverDevOverride",
+            "Assets/LiteGame/Modules/Presentation/Hud/CrosshairFeel.cs :: KickDevOverride",
+            "Assets/LiteGame/Modules/Presentation/Hud/CrosshairFeel.cs :: KickRecoverDevOverride",
+            "Assets/LiteGame/Modules/Presentation/Hud/CrosshairFeel.cs :: StaticMaxDevOverride",
             "Assets/LiteGame/Editor/GenConfig/GenConfig.cs :: CSharpCallLua",
             "Assets/LiteGame/Modules/View/Animation/Drivers/GripTuning.cs :: TorsoWeightDevOverride",
         };

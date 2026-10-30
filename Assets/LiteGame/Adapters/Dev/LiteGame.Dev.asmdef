@@ -1,0 +1,34 @@
+{
+    "name": "LiteGame.Dev",
+    "rootNamespace": "LiteGame.Dev",
+    "references": [
+        "LiteGame.Modules",
+        "LiteGame.Adapters.Unity",
+        "LiteGame.Core",
+        "LiteGame.Modules.Battle",
+        "LiteGame.Modules.View",
+        "LiteFramework.Runtime",
+        "LiteGame.App",
+        "LiteGame.Presentation",
+        "LiteGame.LuaBridge",
+        "LiteNet",
+        "LiteSim",
+        "Luban.Tables",
+        "RoomServer.Application.Runtime",
+        "RoomServer.Runtime",
+        "UniTask",
+        "Unity.TextMeshPro",
+        "xLuaMain"
+    ],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": false,
+    "defineConstraints": [
+        "UNITY_EDITOR || DEVELOPMENT_BUILD || LITEFRAMEWORK_DEBUG"
+    ],
+    "versionDefines": [],
+    "noEngineReferences": false
+}

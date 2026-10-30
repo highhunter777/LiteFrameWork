@@ -8,7 +8,7 @@
 # Direct entry:   python scripts/codegen/gen_luban.py [--python <python>]
 # Shim alias:     Luban/gen.bat (delegates here)
 # Outputs:        Assets/GameData/Generated/*.cs, Assets/GameData/Config/*.bytes,
-#                 Assets/LiteGame/Lua/Cfg/*.lua, Assets/LiteGame/LuaBridge/Generated/LuaKeys.g.cs
+#                 Assets/LiteGame/Lua/Cfg/*.lua, Assets/LiteGame/Adapters/LuaBridge/Generated/LuaKeys.g.cs
 # Rerun when:     table source (Luban/Data/*.xlsx) or schema changed - then rerun
 #                 build-hash (table data is in its source set); Unity import is separate.
 

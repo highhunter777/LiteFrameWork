@@ -40,8 +40,8 @@ namespace LiteFramework.Core.Tests
         public void 恢复执行器有生产消费者()
         {
             string root = RepoRoot();
-            string patch = File.ReadAllText(Path.Combine(root, "Assets/LiteGame/App/Procedure/Stages/ProcedurePatch.cs"));
-            string error = File.ReadAllText(Path.Combine(root, "Assets/LiteGame/App/Procedure/Stages/ProcedureError.cs"));
+            string patch = File.ReadAllText(Path.Combine(root, "Assets/LiteGame/Modules/Procedure/Stages/ProcedurePatch.cs"));
+            string error = File.ReadAllText(Path.Combine(root, "Assets/LiteGame/Modules/Procedure/Stages/ProcedureError.cs"));
 
             Assert.Contains("ErrorRecoveryService", patch);
             Assert.Contains("HandleAsync", patch);

@@ -2,6 +2,7 @@
     "name": "LiteGame.Editor",
     "rootNamespace": "LiteGame",
     "references": [
+        "LiteGame.Modules",
         "LiteGame.Adapters.Unity",
         "LiteGame.Core",
         "LiteGame.Modules.Battle",

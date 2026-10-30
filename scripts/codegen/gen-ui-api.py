@@ -26,8 +26,8 @@ SPEC_PATH = ROOT / "Assets" / "LiteGame" / "Editor" / "UiTools" / "UiApi" / "UiA
 OUT_INDEX = ROOT / "Assets" / "LiteFramework" / "Runtime" / "Modules" / "UI" / "Bind" / "Generated" / "UIBindIndex.Api.g.cs"
 OUT_BASE = ROOT / "Assets" / "LiteFramework" / "Runtime" / "Modules" / "UI" / "Bind" / "Generated" / "UIBindBase.Api.g.cs"
 OUT_MANIFEST = ROOT / "Assets" / "LiteFramework" / "Runtime" / "Modules" / "UI" / "Bind" / "Generated" / "UiApiManifest.g.cs"
-OUT_SHIM = ROOT / "Assets" / "LiteGame" / "LuaBridge" / "Generated" / "UiApiShim.g.cs"
-OUT_DISPATCH = ROOT / "Assets" / "LiteGame" / "LuaBridge" / "Generated" / "LuaBehaviourAdapter.Dispatch.g.cs"
+OUT_SHIM = ROOT / "Assets" / "LiteGame" / "Adapters" / "LuaBridge" / "Generated" / "UiApiShim.g.cs"
+OUT_DISPATCH = ROOT / "Assets" / "LiteGame" / "Adapters" / "LuaBridge" / "Generated" / "LuaBehaviourAdapter.Dispatch.g.cs"
 DOC = ROOT / "Docs" / "设计文档" / "客户端" / "UI系统" / "UI逻辑API参考.md"
 
 BEGIN_MARK = "<!-- BEGIN:ui-api:lua -->"
