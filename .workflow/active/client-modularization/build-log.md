@@ -123,7 +123,7 @@
 - UiValidationEditModeTests.门禁_真实资产面_命名hash表路径零Error：文字档基线写 104，实测 128（24 条新增未标记文本）。属 UI 样式对账债，不属本批；需 UI 线确认是补标记还是更新基线。
 - A17 人工点界面未做：当前以 BattleSmokePlayModeTests 自动化链替代（真实指针/键盘操作仍待）。
 - 全量 L2（l2-unity-gate 含 EditMode/PlayMode 全套）未跑；本轮跑了全量 EditMode、定向 PlayMode 与 meta 扫描。
-- 工作区改动尚未 commit（本轮未提交）。
+- 工作区改动已提交 `59d971d8` 并推送 `origin/main`（2026-10-31）；仅保留 3 个既有未跟踪 workflow 运行目录未提交。
 
 ## 文件清单
 
