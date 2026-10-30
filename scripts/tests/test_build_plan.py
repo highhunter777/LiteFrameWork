@@ -49,8 +49,8 @@ class BuildPlanTests(unittest.TestCase):
             "Missing/Link.cs", set(), (), {"Missing/Link.cs"}))
 
     def test_deleted_or_renamed_shared_prefix_is_still_shared(self):
-        plan = self.plan(["Assets/LiteNet/Protocol/Deleted.cs"])
-        self.assertEqual(self.finding(plan, "Assets/LiteNet/Protocol/Deleted.cs")["area"], "shared")
+        plan = self.plan(["Assets/LiteNet/Core/Protocol/Deleted.cs"])
+        self.assertEqual(self.finding(plan, "Assets/LiteNet/Core/Protocol/Deleted.cs")["area"], "shared")
 
     def test_project_file_is_two_end_build_config(self):
         path = "Assets/LiteSim/LiteSim.csproj"
@@ -68,8 +68,8 @@ class BuildPlanTests(unittest.TestCase):
         plan = self.plan([])
         paths = {entry["path"] for entry in plan["manifestDrift"]}
         for registered in (
-            "Assets/LiteFramework/Runtime/Adapters/Luban/SimConfigMapper.cs",
-            "Assets/LiteFramework/Runtime/Adapters/Luban/TableLayout.cs",
+            "Assets/LiteGame/Modules/Config/SimConfigMapper.cs",
+            "Assets/LiteGame/Modules/Config/TableLayout.cs",
             "Assets/RoomServer/Modules/JoinTicketFormat.cs",
             "Assets/RoomServer/Modules/Base64Url.cs",
             "Assets/RoomServer/Core/MatchStateMachine.cs",
@@ -97,20 +97,20 @@ class BuildPlanTests(unittest.TestCase):
         self.assertTrue(any("不需要出包" in note for note in plan["notes"]), plan["notes"])
 
     def test_shared_source_requires_hash_client_server_and_publish(self):
-        plan = self.plan(["Assets/LiteNet/Protocol/Wire.cs"])
-        item = self.finding(plan, "Assets/LiteNet/Protocol/Wire.cs")
+        plan = self.plan(["Assets/LiteNet/Core/Protocol/Wire.cs"])
+        item = self.finding(plan, "Assets/LiteNet/Core/Protocol/Wire.cs")
         self.assertEqual(item["area"], "shared")
         self.assertIn("regen_buildhash", item["innerActions"])
         for action in ("rebuild_client_player", "rebuild_server_room", "publish_server"):
             self.assertIn(action, item["deliveryActions"])
 
     def test_shared_link_file_is_shared(self):
-        plan = self.plan(["Assets/LiteFramework/Runtime/Adapters/Luban/TableLayout.cs"])
-        self.assertEqual(self.finding(plan, "Assets/LiteFramework/Runtime/Adapters/Luban/TableLayout.cs")["area"], "shared")
+        plan = self.plan(["Assets/LiteGame/Modules/Config/TableLayout.cs"])
+        self.assertEqual(self.finding(plan, "Assets/LiteGame/Modules/Config/TableLayout.cs")["area"], "shared")
 
     def test_known_missing_shared_link_is_shared_with_warning(self):
-        plan = self.plan(["Assets/LiteFramework/Runtime/Adapters/Luban/MapTableProjection.cs"])
-        item = self.finding(plan, "Assets/LiteFramework/Runtime/Adapters/Luban/MapTableProjection.cs")
+        plan = self.plan(["Assets/LiteGame/Modules/Config/MapTableProjection.cs"])
+        item = self.finding(plan, "Assets/LiteGame/Modules/Config/MapTableProjection.cs")
         self.assertEqual(item["area"], "shared")
         self.assertIn("rebuild_server_room", item["deliveryActions"])
         self.assertTrue(any("MapTableProjection" in note for note in plan["notes"]), plan["notes"])
@@ -258,7 +258,7 @@ class BuildPlanTests(unittest.TestCase):
         drift = self.mod.drift_for_links(
             [meta_link], ROOT, registered=set(build_hash.SHARED_LINK_FILES), wildcards=())
         self.assertTrue(any(not entry["known"] for entry in drift), drift)
-        shared_link = "../../Assets/LiteFramework/Runtime/Adapters/Luban/TableLayout.cs"
+        shared_link = "../../Assets/LiteGame/Modules/Config/TableLayout.cs"
         drift = self.mod.drift_for_links(
             [shared_link], ROOT, registered=set(build_hash.META_EXTRA_FILES), wildcards=())
         self.assertTrue(any(not entry["known"] for entry in drift), drift)
@@ -269,7 +269,7 @@ class BuildPlanTests(unittest.TestCase):
 
     def test_mixed_changes_are_deduped_in_semantic_order(self):
         plan = self.plan([
-            "Assets/LiteNet/Protocol/Wire.cs",
+            "Assets/LiteNet/Core/Protocol/Wire.cs",
             "Assets/LiteGame/Modules/Procedure/Stages/ProcedureMatch.cs",
             "Assets/ShareResource/UI/Screens/Page_Lobby.prefab",
             "Docs/项目说明/11-联机测试流程.md",
@@ -306,7 +306,7 @@ class BuildPlanTests(unittest.TestCase):
         rows = [
             ("Assets/ShareResource/UI/Screens/Page_Lobby.prefab", {"rebuild_content_bundle", "rebuild_client_player"}),
             ("Server/RoomServer/Program.cs", {"rebuild_server_room", "publish_server"}),
-            ("Assets/LiteNet/Protocol/Wire.cs", {"rebuild_client_player", "rebuild_server_room", "publish_server"}),
+            ("Assets/LiteNet/Core/Protocol/Wire.cs", {"rebuild_client_player", "rebuild_server_room", "publish_server"}),
             ("Assets/RoomServer/Core/Ghost.cs", {"rebuild_server_room", "publish_server"}),
             ("Luban/Data/weapons.xlsx", {"rebuild_content_bundle", "rebuild_client_player", "rebuild_server_room", "publish_server"}),
             ("deploy/roomserver.windows.json", {"publish_room_config", "restart_room"}),
@@ -319,7 +319,7 @@ class BuildPlanTests(unittest.TestCase):
     # ---- AC5 JSON ----
 
     def test_json_shape(self):
-        plan = self.plan(["Assets/LiteNet/Protocol/Wire.cs"])
+        plan = self.plan(["Assets/LiteNet/Core/Protocol/Wire.cs"])
         self.assertEqual(plan["schemaVersion"], 1)
         for key in (
             "base", "head", "innerLoop", "delivery", "deliveryNeedsPlayerBuild",
@@ -333,9 +333,9 @@ class BuildPlanTests(unittest.TestCase):
     # ---- AC9 normalization ----
 
     def test_path_normalization_and_dedup(self):
-        plan = self.plan([".\\Assets\\LiteNet\\Protocol\\Wire.cs", "Assets/LiteNet/Protocol/Wire.cs"])
+        plan = self.plan([".\\Assets\\LiteNet\\Core\\Protocol\\Wire.cs", "Assets/LiteNet/Core/Protocol/Wire.cs"])
         self.assertEqual(len(plan["findings"]), 1)
-        self.assertEqual(plan["findings"][0]["path"], "Assets/LiteNet/Protocol/Wire.cs")
+        self.assertEqual(plan["findings"][0]["path"], "Assets/LiteNet/Core/Protocol/Wire.cs")
 
     # ---- AC4 drift ----
 
@@ -376,7 +376,7 @@ class BuildPlanTests(unittest.TestCase):
 
     def test_cli_changed_file_json(self):
         result = subprocess.run(
-            [sys.executable, str(SCRIPT), "--changed-file", "Assets/LiteNet/Protocol/Wire.cs", "--json"],
+            [sys.executable, str(SCRIPT), "--changed-file", "Assets/LiteNet/Core/Protocol/Wire.cs", "--json"],
             cwd=str(ROOT), capture_output=True, text=True, encoding="utf-8", errors="replace", timeout=120,
         )
         self.assertEqual(result.returncode, 0, result.stdout + result.stderr)

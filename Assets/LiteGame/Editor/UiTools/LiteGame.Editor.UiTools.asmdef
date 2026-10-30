@@ -2,6 +2,7 @@
     "name": "LiteGame.Editor.UiTools",
     "rootNamespace": "LiteGame",
     "references": [
+        "LiteGame.Modules.Config",
         "LiteFramework.Runtime",
         "LiteFramework.Editor",
         "LiteCodeGen.Runtime",

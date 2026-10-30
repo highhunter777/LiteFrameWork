@@ -196,7 +196,6 @@ namespace Tools.DisciplineScan
             new ScanTarget("Assets/LiteFramework/Runtime/Modules", GameRules),                                    // R8 资源唯一入口 + R12 适配器边界（框架侧：Modules）
             new ScanTarget("Assets/LiteFramework/Runtime/Adapters/YooAsset", GameRules),                          // R8/R12（第三方桥接件）
             new ScanTarget("Assets/LiteFramework/Runtime/Adapters/XLua", GameRules),
-            new ScanTarget("Assets/LiteFramework/Runtime/Adapters/Luban", GameRules),
             new ScanTarget("Assets/LiteFramework/Runtime/Adapters/InputSystem", GameRules),
             new ScanTarget("Assets/LiteFramework/Runtime/Adapters/Newtonsoft", GameRules),
             new ScanTarget("Assets/LiteGame", GameRules),                                      // R8 资源唯一入口 + R12 适配器边界（产品侧）

@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using LiteFramework;
+using LiteGame;
 using LiteSim;
 using LiteSim.Tests;
 using Luban;

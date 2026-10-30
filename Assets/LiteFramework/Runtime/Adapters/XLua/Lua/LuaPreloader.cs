@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Threading;
 using Cysharp.Threading.Tasks;
@@ -11,7 +11,7 @@ namespace LiteFramework
     /// require 链上任何一个未缓存文件都意味着运行中途炸——不能带缺口进 Main（§3.4 致命级）。
     /// 清单来源：**tag `lua` 经 `GetAssetInfos("lua")`**——3.0.5 该重载即按 tag 查询，
     /// 无目录枚举 API（收集器 AssetTags 必须配 `lua`）。
-    /// key = require 路径：剥 `Assets/LiteGame/Lua/` 前缀与 `.lua` 后缀（如 `ui/Page_Login`、`cfg/tbuiform`）。
+    /// key = require 路径：剥注入的 Lua 根前缀与 `.lua` 后缀（如 `ui/Page_Login`、`cfg/tbuiform`）。
     /// 生命周期：Preload 锚点构造并填充，DevReload 时清空重载（§2.7）。
     ///
     /// 候选通道（《热更与内容发布专项设计》§10）：
@@ -22,9 +22,7 @@ namespace LiteFramework
     /// </summary>
     public sealed class LuaPreloader
     {
-        /// <summary>Lua 资源收集目录（YooAsset location 前缀；跨平台恒为 Assets 路径——单源：Editor 的 LiteGameIgnoreRule 亦引用此常量）。</summary>
-        public const string LuaDir = "Assets/LiteGame/Lua/";
-
+        private readonly string _luaDir;                   // 产品 Lua 根（装配根注入——框架不写死产品路径）
         private readonly Func<string, CancellationToken, UniTask<byte[]>> _bytesProvider;   // 必注入（内容租约）
         private readonly Func<string[]> _listLuaFiles;    // 必注入（装配点绑定的清单来源）
         private readonly Dictionary<string, byte[]> _scripts = new Dictionary<string, byte[]>(256);
@@ -38,10 +36,12 @@ namespace LiteFramework
         /// <param name="listLuaFiles">清单通道（装配点绑定——返回 .lua 资产路径数组；
         /// 以发布清单替换绑定时本类零改动）。**必注入**。</param>
         public LuaPreloader(Func<string, CancellationToken, UniTask<byte[]>> bytesProvider,
-            Func<string[]> listLuaFiles)
+            Func<string[]> listLuaFiles, string luaDir)
         {
             _bytesProvider = bytesProvider;
             _listLuaFiles = listLuaFiles;
+            _luaDir = luaDir ?? throw new ArgumentNullException(nameof(luaDir),
+                "Lua 根目录必填——由产品装配根注入（框架不写死产品路径）");
         }
 
         public async UniTask PreloadAllAsync(CancellationToken ct = default)
@@ -92,14 +92,14 @@ namespace LiteFramework
         }
 
         /// <summary>资源路径 → require 路径（loader 的 filepath 契约）。</summary>
-        public static string ToRequireKey(string assetPath)
+        public string ToRequireKey(string assetPath)
         {
             if (assetPath == null) throw new ArgumentNullException(nameof(assetPath));
-            if (assetPath.StartsWith(LuaDir, StringComparison.Ordinal) == false
+            if (assetPath.StartsWith(_luaDir, StringComparison.Ordinal) == false
                 || assetPath.EndsWith(".lua", StringComparison.Ordinal) == false)
                 throw new ArgumentException($"非 Lua 目录资源:{assetPath}");
             //去除后缀名作为键名
-            return assetPath.Substring(LuaDir.Length, assetPath.Length - LuaDir.Length - 4);
+            return assetPath.Substring(_luaDir.Length, assetPath.Length - _luaDir.Length - 4);
         }
     }
 }

@@ -2,7 +2,7 @@ using System;
 using System.IO;
 using LiteSim;
 
-namespace LiteFramework
+namespace LiteGame
 {
     /// <summary>
     /// 地图表行 → <see cref="SimMapData"/> 的**共享投影**（服务端源链接共编同一物理文件——

@@ -49,7 +49,7 @@ IGNORED_PREFIXES = (
     "__pycache__/",
 )
 
-KNOWN_MISSING_SHARED = "Assets/LiteFramework/Runtime/Adapters/Luban/MapTableProjection.cs"
+KNOWN_MISSING_SHARED = "Assets/LiteGame/Modules/Config/MapTableProjection.cs"
 CSProj_FILES = (
     "Server/RoomServer/RoomServer.csproj",
     "Server/MetaServer/MetaServer.csproj",
@@ -174,7 +174,8 @@ def normalize_path(path):
 def _is_shared_path(path, shared_files, shared_targets, shared_links):
     if path in shared_files or path in shared_links or path == KNOWN_MISSING_SHARED:
         return True
-    if path.startswith("Assets/LiteFramework/Runtime/Adapters/Luban/") and path.endswith(".cs"):
+    if path.startswith("Assets/LiteGame/Modules/Config/") and path.endswith(
+            ("SimConfigMapper.cs", "TableLayout.cs", "MapTableProjection.cs")):
         return True
     if not path.endswith(".cs"):
         return False

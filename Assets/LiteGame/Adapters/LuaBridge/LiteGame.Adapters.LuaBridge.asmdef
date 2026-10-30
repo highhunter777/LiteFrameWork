@@ -2,6 +2,7 @@
     "name": "LiteGame.Adapters.LuaBridge",
     "rootNamespace": "LiteGame",
     "references": [
+        "LiteGame.Modules.Config",
         "LiteFramework.Runtime",
         "Luban.Runtime",
         "Luban.Tables",

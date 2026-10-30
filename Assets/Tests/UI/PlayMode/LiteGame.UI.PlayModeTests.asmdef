@@ -2,6 +2,8 @@
     "name": "LiteGame.UI.PlayModeTests",
     "rootNamespace": "LiteGame.Tests.UI.PlayMode",
     "references": [
+        "LiteGame.Adapters.Luban",
+        "LiteGame.Modules.Config",
         "LiteGame.Modules.Settings",
         "LiteGame.Modules.Input",
         "LiteGame.Modules.Camera",

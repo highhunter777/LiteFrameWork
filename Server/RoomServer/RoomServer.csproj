@@ -30,9 +30,9 @@
   <ItemGroup>
     <Compile Include="..\..\Packages\com.code-philosophy.luban\Runtime\*.cs" Link="LubanRuntime\%(Filename)%(Extension)" />
     <Compile Include="..\..\Assets\GameData\Generated\**\*.cs" Link="LubanGenerated\%(RecursiveDir)%(Filename)%(Extension)" />
-    <Compile Include="..\..\Assets\LiteFramework\Runtime\Adapters\Luban\SimConfigMapper.cs" Link="LubanMappings\SimConfigMapper.cs" />
-    <Compile Include="..\..\Assets\LiteFramework\Runtime\Adapters\Luban\TableLayout.cs" Link="LubanMappings\TableLayout.cs" />
-    <Compile Include="..\..\Assets\LiteFramework\Runtime\Adapters\Luban\MapTableProjection.cs" Link="LubanMappings\MapTableProjection.cs" />
+    <Compile Include="..\..\Assets\LiteGame\Modules\Config\SimConfigMapper.cs" Link="LubanMappings\SimConfigMapper.cs" />
+    <Compile Include="..\..\Assets\LiteGame\Modules\Config\TableLayout.cs" Link="LubanMappings\TableLayout.cs" />
+    <Compile Include="..\..\Assets\LiteGame\Modules\Config\MapTableProjection.cs" Link="LubanMappings\MapTableProjection.cs" />
   </ItemGroup>
 
   <!-- 服务端 NuGet 登记处（依赖治理在服务端侧的承载）：l0-dep-scan 管 Unity manifest/lock 与密钥，

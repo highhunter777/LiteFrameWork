@@ -1,0 +1,21 @@
+{
+    "name": "LiteGame.Adapters.Luban",
+    "rootNamespace": "LiteGame",
+    "references": [
+        "LiteFramework.Runtime",
+        "LiteGame.Modules.Config",
+        "LiteSim",
+        "Luban.Runtime",
+        "Luban.Tables",
+        "UniTask"
+    ],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}

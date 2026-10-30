@@ -2,7 +2,7 @@ using System;
 using System.Collections.Generic;
 using LiteFramework.Animation;
 
-namespace LiteFramework
+namespace LiteGame
 {
     /// <summary>
     /// tbanimationprofile 生成行 → Core <see cref="AnimationProfileRow"/> 的**翻译边界**

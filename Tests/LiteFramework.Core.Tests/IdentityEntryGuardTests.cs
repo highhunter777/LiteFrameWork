@@ -15,7 +15,7 @@ namespace LiteFramework.Core.Tests
         {
             "Assets/LiteGame/App/Bootstrap/Modules/IdentityModule.cs",
             "Assets/LiteGame/Modules/Battle/GameplayMatchIdentity.cs",
-            "Assets/LiteFramework/Runtime/Adapters/Luban/TableLayout.cs",
+            "Assets/LiteGame/Modules/Config/TableLayout.cs",
         };
 
         [Fact]

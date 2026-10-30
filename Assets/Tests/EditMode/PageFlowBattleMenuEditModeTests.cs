@@ -77,7 +77,7 @@ namespace LiteGame.Tests.EditMode
             _ui.Focus.PlatformBack = _baselineBack;
 
             var lua = Scope.CreateGameObject("lua-host").AddComponent<LuaComponent>();
-            lua.Init(new LuaPreloader((path, ct) => UniTask.FromResult<byte[]>(null), () => Array.Empty<string>()),
+            lua.Init(new LuaPreloader((path, ct) => UniTask.FromResult<byte[]>(null), () => Array.Empty<string>(), LuaLayout.LuaDir),
                 new EventBus(new ReferencePoolService()));
             Bridge.Bind(LoadRealTables);                            // 页面寻址反查（真表——与生产同源）
 

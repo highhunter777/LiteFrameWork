@@ -3,17 +3,12 @@
     "rootNamespace": "LiteFramework",
     "references": [
         "LiteCodeGen.Runtime",
-        "LiteNet",
-        "LiteSim",
-        "Cinemachine",
         "DOTween.Modules",
         "UniTask",
         "Unity.InputSystem",
         "Unity.TextMeshPro",
         "YooAsset",
-        "xLuaMain",
-        "Luban.Runtime",
-        "Luban.Tables"
+        "xLuaMain"
     ],
     "includePlatforms": [],
     "excludePlatforms": [],

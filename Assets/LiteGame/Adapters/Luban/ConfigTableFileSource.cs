@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using Luban;
 
-namespace LiteFramework
+namespace LiteGame
 {
     /// <summary>
     /// 配置表的文件直载源（编辑器工具与测试共用——不经 DI/内容服务全链）：

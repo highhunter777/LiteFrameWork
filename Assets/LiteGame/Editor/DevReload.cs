@@ -47,7 +47,7 @@ namespace LiteGame.Editor
             }
 
             var container = Object.FindFirstObjectByType<LiteGame.GameEntry>().TakeContainer();
-            var config = container.Resolve<LiteFramework.IConfigService>();
+            var config = container.Resolve<LiteGame.IConfigService>();
             var events = container.Resolve<LiteFramework.IEventBus>();
             var uiService = container.Resolve<LiteFramework.UI.UIService>();
             var ui = container.Resolve<LiteGame.IUILuaRegistry>();
@@ -64,7 +64,8 @@ namespace LiteGame.Editor
 
             var preloader = new LiteFramework.LuaPreloader(
                 DevReloadBytesAsync,   // 磁盘直读：响应编辑器里刚改的 .lua（不走资源包）
-                ListLuaFilesOnDisk);   // 磁盘枚举：同上
+                ListLuaFilesOnDisk,    // 磁盘枚举：同上
+                LuaLayout.LuaDir);
             await preloader.PreloadAllAsync();             // ④ 重预载：改动后的 .lua 进缓存
             lua.Init(preloader, events, ProductBridges.BindGlobals);   //    env 重建 + 事件桥/游戏桥重绑（产品门面单源装订——与 Preload 同口）
             lua.DoMain();                                  // ⑤ 重跑 main.lua
@@ -100,7 +101,7 @@ namespace LiteGame.Editor
         {
             string root = System.IO.Path.Combine(
                 System.IO.Directory.GetCurrentDirectory(),
-                LiteFramework.LuaPreloader.LuaDir.Replace('/', System.IO.Path.DirectorySeparatorChar));
+                LuaLayout.LuaDir.Replace('/', System.IO.Path.DirectorySeparatorChar));
             if (!System.IO.Directory.Exists(root)) return new string[0];
 
             string[] files = System.IO.Directory.GetFiles(root, "*.lua", System.IO.SearchOption.AllDirectories);

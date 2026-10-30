@@ -1,6 +1,7 @@
 using System;
 using LiteFramework;
 using LiteFramework.Animation;
+using LiteGame.Animation;
 using LiteSim;
 using LiteGame.View;
 using LiteGame.View.Animation;

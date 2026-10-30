@@ -2,6 +2,8 @@
     "name": "LiteGame.App",
     "rootNamespace": "LiteGame",
     "references": [
+        "LiteGame.Adapters.Luban",
+        "LiteGame.Modules.Config",
         "LiteGame.Modules.Settings",
         "LiteGame.Modules.Input",
         "LiteGame.Modules.Camera",

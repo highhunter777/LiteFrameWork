@@ -2,6 +2,7 @@ using System;
 using System.IO;
 using LiteFramework;
 using LiteSim;
+using LiteGame;
 
 namespace RoomServer
 {

@@ -71,7 +71,7 @@ namespace LiteGame.EditorTools
 
         /// <summary>训练场目标（第二张地图；场景灰盒训练场，与首图共用拓扑约定）。</summary>
         public static readonly MapTarget TrainingMap = new MapTarget(
-            "Assets/Scenes/TrainingGround.unity", LiteFramework.MapTableProjection.TrainingMapId,
+            "Assets/Scenes/TrainingGround.unity", LiteGame.MapTableProjection.TrainingMapId,
             "training_ground", "Luban/Data/Map/map_training_ground.json");
 
         /// <summary>地图烘焙目标**注册表**（加图＝加一条）：工具箱「地图」页按本表逐图出按钮，

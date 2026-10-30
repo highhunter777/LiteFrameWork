@@ -479,7 +479,7 @@ namespace MetaServer.IntegrationTests
 
             SimMapData defaultMap = ServerMapLoader.LoadFromRepo();
             var mapCatalog = new ServerMapCatalog(ServerMapLoader.LoadFromRepo, defaultMap,
-                LiteFramework.MapTableProjection.DefaultMapId);
+                LiteGame.MapTableProjection.DefaultMapId);
 
             var inputs = new HostAssembly.Inputs
             {

@@ -3,6 +3,7 @@ using System.IO;
 using LiteSim;
 using RoomServer;
 using Xunit;
+using LiteGame;
 
 namespace LiteNet.Tests
 {

@@ -35,7 +35,7 @@ PUBLISH_TARGETS = [
 
 # TableLayout 是表清单/域归属的单源；生成器只读它，不维护第二份清单。
 TABLE_LAYOUT_REL = os.path.join(
-    'Assets', 'LiteFramework', 'Runtime', 'Adapters', 'Luban', 'TableLayout.cs')
+    'Assets', 'LiteGame', 'Modules', 'Config', 'TableLayout.cs')
 
 
 def sha256_b64(path):

@@ -55,7 +55,7 @@ namespace LiteGame
                 // ① 全量预载：同步 loader 的咽喉（§4.2），env 依赖它，先建缓存再 Init
                 //    （字节经 IContentService 租约通道——代次/引用统一，提取即释放；
                 //     清单经装配点注入——不直查静态门面）
-                var preloader = new LuaPreloader(LoadLuaBytesViaContent, _listLuaFiles);
+                var preloader = new LuaPreloader(LoadLuaBytesViaContent, _listLuaFiles, LuaLayout.LuaDir);
                 await preloader.PreloadAllAsync(ct);
                 _lua.Init(preloader, _events, ProductBridges.BindGlobals);   // env + 事件桥；游戏桥经注入（产品→框架——框架四门面+meta 单源装订）
                 _lua.DoMain();                                   // ② 执行 main.lua（require/定义，§4.4）

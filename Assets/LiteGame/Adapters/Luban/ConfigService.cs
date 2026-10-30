@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Threading;
 using Cysharp.Threading.Tasks;
@@ -7,8 +7,9 @@ using LiteFramework.Animation;
 using LiteSim;
 using Luban;
 using cfg;
+using LiteGame.Animation;
 
-namespace LiteFramework
+namespace LiteGame
 {
     /// <summary>
     /// Luban 专用的配置服务视图（`Tables` 是 **Luban 生成类型** `cfg.Tables`）。
@@ -17,11 +18,6 @@ namespace LiteFramework
     /// Lua 数据桥（`Bridge.Data`）。流程/装配只依赖 <see cref="IConfigTableSource"/>。
     /// 这样"Luban 是序列化适配器"这件事在类型上就成立，而不是靠约定。
     /// </summary>
-    public interface IConfigService : IConfigTableSource
-    {
-        Tables Tables { get; }                     // Luban 生成物，cfg 命名空间；未加载访问抛
-    }
-
     /// <summary>
     /// 配置装载服务（DI 单例，ProcedureLaunch 注册只注册不加载，ProcedurePreload 尾部 LoadAsync 放行）。
     /// 快照化（《商业级通用客户端框架总设计》§9 + §4 原则 6/10 + 热更专项 §11）：

@@ -1,6 +1,7 @@
 using LiteFramework.Animation;
+using LiteGame.Animation;
 
-namespace LiteFramework
+namespace LiteGame
 {
     /// <summary>
     /// 动画 Profile 的**文件直载源**（编辑器工具与测试共用——不经 DI/内容服务全链）：

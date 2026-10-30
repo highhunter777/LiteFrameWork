@@ -2,6 +2,7 @@
     "name": "LiteGame.Modules.View",
     "rootNamespace": "LiteGame.View",
     "references": [
+        "LiteGame.Modules.Config",
         "LiteGame.Modules.Camera",
         "LiteGame.Core",
         "LiteFramework.Runtime",
