@@ -38,6 +38,7 @@ namespace LiteGame
 
         private ClientHost _host;
         private AppComposition _appComposition;   // 组合根：适配器工厂 + 跨域装订（ComposeAfter）
+        private DeployBake _deployBake;           // 包内烙入（内容/联机两段共用同一实例，只读一次）
         private ServiceContainer _container;   // 实例全程持有，随引导件销毁
         private StageMachine<ProcedureId, ProcedureArgs> _fsm;
         private CancellationTokenSource _bootCts;
@@ -80,6 +81,7 @@ namespace LiteGame
 
             // 装配（§6.1：注册顺序 = 初始化顺序 = 关闭逆序——依赖图由调用序表达）
             _appComposition = new AppComposition();
+            _deployBake = new DeployBake();
             RegisterModules(_host);
             // 组合根：全部模块成功后、装配面密封前做跨域装订（桥/模态/身份/输入拦截/开发装饰/帧驱动序/密封）
             _host.ComposeRoot(_appComposition.ComposeAfter);
@@ -161,7 +163,7 @@ namespace LiteGame
                 .AddModule(new CameraComposition(_appComposition.CameraServiceFactory()))    // ② 主相机 + 相机服务（薄段）
                 .AddModule(new IdentityModule())                 // ③ 身份上下文（Build/Schema 唯一构造点）
                 .AddModule(new DevSessionModule())               // ④ 开发会话端口（设备源构造即消费——必须早于 ⑭）
-                .AddModule(new ContentModule())                  // ⑤ 内容/场景/缓存租约（配置/Lua 字节通道来源）
+                .AddModule(new ContentModule(_deployBake))       // ⑤ 内容/场景/缓存租约（配置/Lua 字节通道来源）
                 .AddModule(new SettingsModule())                 // ⑥ 玩家偏好 + 视角偏好单实例（先于 UI/音频）
                 .AddModule(new EventsModule())                   // ⑦ 事件总线（唯一产出方；只需 ① 的池）
                 .AddModule(new ClocksModule())                   // ⑧ 双轨时钟（事件域已独立，时钟只负责时间）
@@ -171,7 +173,7 @@ namespace LiteGame
                 .AddModule(new MapComposition())                 // ⑫ 地图提供者（依赖 ⑪ 的表链）
                 .AddModule(new UiServiceModule())                // ⑬ UI 能力：服务/导航/反馈面（投影面由 ② 保证）
                 .AddModule(new InputModule(_appComposition.IntentSourceFactory()))            // ⑭ 输入服务（设备源由组合根注入）
-                .AddModule(new MetaComposition())                // ⑮ 联机入口（部署快照 + 客户端 + 入口编排件）
+                .AddModule(new MetaComposition(_deployBake))     // ⑮ 联机入口（部署快照 + 客户端 + 入口编排件）
                 .AddModule(new BattleComposition())              // ⑯ 战斗域（表现内核 + 视图组工厂；相机归 ②）
                 .AddModule(new SessionComposition())             // ⑰ 会话（账号/对局工厂 + 传输端口）
                 .AddModule(new ProcedureComposition(_appComposition.LuaBridgesFactory()));    // ⑱ 应用壳（流程机 + 页面流 + 恢复）

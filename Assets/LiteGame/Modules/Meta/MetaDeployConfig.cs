@@ -109,7 +109,7 @@ namespace LiteGame
         /// <summary>Unity 入口（**含包内烙入**）：命令行 &gt; `StreamingAssets/deploy.args` &gt; 默认。
         /// 供宿主之外的消费方（GM 页）取同一份配置——`DeployBake` 是程序集内件，外部不可直读。</summary>
         public static MetaEntryConfig LoadWithBaked()
-            => Load(Environment.GetCommandLineArgs(), DeployBake.ReadArgs());
+            => Load(Environment.GetCommandLineArgs(), new DeployBake().ReadArgs());   // 编辑器工具一次性读取（无静态 memo）
 
         /// <summary>三源装载：命令行 > 包内烙入（<paramref name="bakedArgsText"/> = deploy.args 全文；
         /// null/空白 = 无烙入文件，退化为纯命令行装载）。纯函数可直测。

@@ -4,6 +4,7 @@
     "references": [
         "LiteGame.Modules",
         "LiteGame.Modules.Config",
+        "LiteGame.Modules.Settings",
         "LiteFramework.Runtime",
         "LiteNet",
         "Luban.Runtime",

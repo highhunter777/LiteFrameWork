@@ -2,12 +2,11 @@ using System;
 using System.Collections.Generic;
 using LiteFramework;
 using UnityEngine;
-using XLua; // lint-allow R12：设置门面本体住 App（须引用 GameSettings/AudioService/SettingService——与 MetaBridge 同判据），只做值域收敛与生效面
 
 namespace LiteGame
 {
     /// <summary>
-    /// 设置门面（`Bridge.settings`）：**四组设置的读写 + 立即生效**。
+    /// 设置门面本体（Lua 面 `Bridge.settings` 在 <c>Adapters/LuaBridge/ProductBridges</c>）：**四组设置的读写 + 立即生效**。
     /// 存储走 <see cref="GameSettings"/>（设置项清单在其单源；业务禁裸用 SettingService），
     /// 生效面按组拆给四个生效器：音频 <see cref="AudioSettingsApplier"/>、图形 <see cref="GraphicsSettingsApplier"/>、
     /// 显示 <see cref="DisplaySettingsApplier"/>、控制 <see cref="LookPreferences"/>（视角倍率端口）。
@@ -54,61 +53,8 @@ namespace LiteGame
         /// <summary>视角偏好端口（对局视图装配时注入，供 <see cref="BattleLookController"/> 读）。</summary>
         public ILookPreferences Look => _look;
 
-        /// <summary>装订 `Bridge.settings` 进全局 Bridge 表（ProductBridges 调用——在框架门面与 meta 之后）。
-        /// **未装订也照装**（与 meta 门面同口径）：读取点 <see cref="Instance"/> 在建用错配时 fail-fast。</summary>
-        public static void BindGlobals(LuaEnv env)
-        {
-            var settings = env.NewTable();
-
-            // 既有平铺面（保持兼容：页面与既有用例不破）
-            settings.Set("Volume", new Func<float>(() => Instance().Volume));
-            settings.Set("SetVolume", new Action<float>(v => Instance().SetVolume(v)));
-            settings.Set("SoundEnabled", new Func<bool>(() => Instance().SoundEnabled));
-            settings.Set("SetSoundEnabled", new Action<bool>(on => Instance().SetSoundEnabled(on)));
-            settings.Set("Quality", new Func<int>(() => Instance().Quality));
-            settings.Set("SetQuality", new Action<int>(tier => Instance().SetQuality(tier)));
-            settings.Set("Save", new Action(() => Instance().Save()));
-            settings.Set("ResetDefaults", new Action(() => Instance().ResetDefaults()));
-
-            // 显示组（桌面专属项由 Supports* 查询，页面据此隐藏——不在 Lua 写平台分支）
-            var display = env.NewTable();
-            display.Set("Mode", new Func<int>(() => Instance().DisplayMode));
-            display.Set("SetMode", new Action<int>(v => Instance().SetDisplayMode(v)));
-            display.Set("SupportsMode", new Func<bool>(() => Instance().SupportsWindowSettings));
-            display.Set("ResolutionCount", new Func<int>(() => Instance().ResolutionCount()));
-            display.Set("ResolutionLabel", new Func<int, string>(i => Instance().ResolutionLabel(i)));
-            display.Set("ResolutionIndex", new Func<int>(() => Instance().ResolutionIndex));
-            display.Set("SetResolutionIndex", new Action<int>(i => Instance().SetResolutionIndex(i)));
-            display.Set("SupportsResolution", new Func<bool>(() => Instance().SupportsWindowSettings));
-            display.Set("FrameRateOptionCount", new Func<int>(() => Instance().FrameRateOptionCount));
-            display.Set("FrameRateOption", new Func<int, int>(i => Instance().FrameRateOption(i)));
-            display.Set("FrameRate", new Func<int>(() => Instance().FrameRate));
-            display.Set("SetFrameRate", new Action<int>(v => Instance().SetFrameRate(v)));
-            display.Set("VSync", new Func<int>(() => Instance().VSync));
-            display.Set("SetVSync", new Action<int>(v => Instance().SetVSync(v)));
-            display.Set("SupportsVSync", new Func<bool>(() => Instance().SupportsWindowSettings));
-            settings.Set("display", display);
-
-            // 控制组（视角手感；键位覆盖为 P2，届时在此加子表）
-            var control = env.NewTable();
-            control.Set("LookSensitivity", new Func<float>(() => Instance().LookSensitivity));
-            control.Set("SetLookSensitivity", new Action<float>(v => Instance().SetLookSensitivity(v)));
-            control.Set("AdsSensitivity", new Func<float>(() => Instance().AdsSensitivity));
-            control.Set("SetAdsSensitivity", new Action<float>(v => Instance().SetAdsSensitivity(v)));
-            control.Set("InvertLookY", new Func<bool>(() => Instance().InvertLookY));
-            control.Set("SetInvertLookY", new Action<bool>(on => Instance().SetInvertLookY(on)));
-            settings.Set("control", control);
-
-            // 常规组（页签记忆；语言走 Bridge.text、账号/服务器是只读事实，不在此）
-            var general = env.NewTable();
-            general.Set("LastTab", new Func<int>(() => Instance().LastTab));
-            general.Set("SetLastTab", new Action<int>(i => Instance().SetLastTab(i)));
-            settings.Set("general", general);
-
-            env.Global.Get<LuaTable>("Bridge").Set("settings", settings);
-        }
-
-        private static ProductSettings Instance()
+        /// <summary>已装订的设置门面（Lua 装订面在 <c>ProductBridges</c>；未装订即 fail-fast）。</summary>
+        public static ProductSettings Current
             => s_instance ?? throw new InvalidOperationException("Bridge.settings 未装订（装配点未 Bind 设置门面）");
 
         // ---- 音频 ----

@@ -221,7 +221,7 @@ namespace Tools.DisciplineScan
         /// </summary>
         public static readonly string[] PlatformForkAllowedFiles =
         {
-            "Assets/LiteGame/Modules/Meta/DeployBake.cs",
+            "Assets/LiteGame/Modules/Framework/DeployBake.cs",
             "Assets/LiteGame/Modules/Input/InputComposition.cs",
             "Assets/LiteGame/Modules/Battle/Setup/BattleViewRig.cs",
         };

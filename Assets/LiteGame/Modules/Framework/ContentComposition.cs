@@ -10,8 +10,12 @@ namespace LiteGame
     /// 资源包初始化仍由 ProcedurePreload 经本服务触发。</summary>
     public sealed class ContentModule : IClientModule, IClientModuleGraph
     {
+        private readonly DeployBake _deployBake;   // 包内烙入（命令行 > 烙入 > 默认；实例只读一次）
         private YooAssetContentService _content;
         private SceneService _scenes;      // 场景句柄服务（流程/工具体消费；租约面归内容域）
+
+        public ContentModule(DeployBake deployBake)
+            => _deployBake = deployBake ?? throw new ArgumentNullException(nameof(deployBake));
 
         public string Name => "Content";
 
@@ -46,7 +50,7 @@ namespace LiteGame
             //   入口取真实实体 prefab（Characters 收集组），不再依赖已退役的样例①标记素材。
             // 部署配置三源（命令行 > 包内 deploy.args 烙入 > 默认——分发包零参数启动；基址非信任边界不变）
             ContentCdnConfig deploy = ContentDeployConfig.Load(
-                Environment.GetCommandLineArgs(), DeployBake.ReadArgs());
+                Environment.GetCommandLineArgs(), _deployBake.ReadArgs());
             string candidateRoot = ReleaseLayout.CandidateRootRelative;
             ICandidateFetcher fetcher;
             ICandidateProvider provider;

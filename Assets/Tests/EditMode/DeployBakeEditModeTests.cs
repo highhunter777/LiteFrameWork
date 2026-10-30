@@ -23,13 +23,11 @@ namespace LiteGame.Tests.EditMode
         {
             _root = Path.Combine(Path.GetTempPath(), "deploybake-" + Guid.NewGuid().ToString("N"));
             Directory.CreateDirectory(_root);
-            DeployBake.ResetForTests();
         }
 
         [TearDown]
         public void TearDown()
         {
-            DeployBake.ResetForTests();
             try
             {
                 if (Directory.Exists(_root)) Directory.Delete(_root, true);
@@ -64,67 +62,67 @@ namespace LiteGame.Tests.EditMode
         public void memo_三处消费点只读一次()
         {
             int reads = 0;
-            DeployBake.Reader = _ =>
+            var bake = new DeployBake(_ =>
             {
                 reads++;
                 return "-a=1";
-            };
+            });
 
-            Assert.AreEqual("-a=1", DeployBake.ReadArgs());
-            Assert.AreEqual("-a=1", DeployBake.ReadArgs());
-            Assert.AreEqual("-a=1", DeployBake.ReadArgs());
-            Assert.AreEqual(1, reads, "memo 失效——引导期三处消费点会重复读包内文件");
+            Assert.AreEqual("-a=1", bake.ReadArgs());
+            Assert.AreEqual("-a=1", bake.ReadArgs());
+            Assert.AreEqual("-a=1", bake.ReadArgs());
+            Assert.AreEqual(1, reads, "memo 失效——引导期多处消费点会重复读包内文件");
         }
 
         [Test]
         public void 缺烙入_missing日志一次且返回null()
         {
-            DeployBake.Reader = _ => null;
+            var bake = new DeployBake(_ => null);
             LogAssert.Expect(LogType.Log, new System.Text.RegularExpressions.Regex("DeployBake.*missing"));
 
-            Assert.IsNull(DeployBake.ReadArgs());
-            Assert.IsNull(DeployBake.ReadArgs());
+            Assert.IsNull(bake.ReadArgs());
+            Assert.IsNull(bake.ReadArgs());
             // 只有一条 missing 日志（memo + 一次性标记双保险）——多余日志会被 LogAssert 判失败
         }
 
         [Test]
         public void 读失败_退化为无烙入并留一次性警告()
         {
-            DeployBake.Reader = _ => throw new IOException("jar read exploded");
+            var bake = new DeployBake(_ => throw new IOException("jar read exploded"));
             LogAssert.Expect(LogType.Warning, new System.Text.RegularExpressions.Regex("DeployBake.*read failed.*jar read exploded"));
 
-            Assert.IsNull(DeployBake.ReadArgs());
-            Assert.IsNull(DeployBake.ReadArgs());
+            Assert.IsNull(bake.ReadArgs());
+            Assert.IsNull(bake.ReadArgs());
         }
 
         [Test]
         public void 读成功后不再读取也不打日志()
         {
             int reads = 0;
-            DeployBake.Reader = _ =>
+            var bake = new DeployBake(_ =>
             {
                 reads++;
                 return "-b=2";
-            };
+            });
             LogAssert.Expect(LogType.Log, new System.Text.RegularExpressions.Regex("DeployBake.*read 4 chars"));
 
-            Assert.AreEqual("-b=2", DeployBake.ReadArgs());
+            Assert.AreEqual("-b=2", bake.ReadArgs());
             Assert.AreEqual(1, reads);
-            Assert.AreEqual("-b=2", DeployBake.ReadArgs());
+            Assert.AreEqual("-b=2", bake.ReadArgs());
             Assert.AreEqual(1, reads);
         }
 
         [Test]
-        public void 复位后可重新读取失效结果()
+        public void 新实例不复用旧实例的失效结果()
         {
-            DeployBake.Reader = _ => null;
+            var first = new DeployBake(_ => null);
             LogAssert.Expect(LogType.Log, new System.Text.RegularExpressions.Regex("DeployBake.*missing"));
-            Assert.IsNull(DeployBake.ReadArgs());
+            Assert.IsNull(first.ReadArgs());
 
-            DeployBake.ResetForTests();
-            DeployBake.Reader = _ => "-c=3";
+            // 新实例 = 全新 memo（不再有"全局复位"这种可变静态状态）
+            var second = new DeployBake(_ => "-c=3");
             LogAssert.Expect(LogType.Log, new System.Text.RegularExpressions.Regex("DeployBake.*read 4 chars"));
-            Assert.AreEqual("-c=3", DeployBake.ReadArgs());
+            Assert.AreEqual("-c=3", second.ReadArgs());
         }
 
         private string CreateZip(string entryName, string content)

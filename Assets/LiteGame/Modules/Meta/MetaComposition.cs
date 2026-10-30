@@ -9,6 +9,11 @@ namespace LiteGame
     /// 只产出事实与客户端；页面与脚本经 Bridge 门面消费（装订在组合根）。</summary>
     public sealed class MetaComposition : IClientModule, IClientModuleGraph
     {
+        private readonly DeployBake _deployBake;   // 包内烙入（与内容段同一实例；实例只读一次）
+
+        public MetaComposition(DeployBake deployBake)
+            => _deployBake = deployBake ?? throw new ArgumentNullException(nameof(deployBake));
+
         public string Name => "Meta";
 
         /// <summary>依赖的模块（与 GameEntry 注册序一致；供 Host DAG 校验）。</summary>
@@ -17,7 +22,7 @@ namespace LiteGame
         public UniTask InitializeAsync(ModuleContext context, CancellationToken ct)
         {
             // 联机部署三源注入（-meta.url/-envelope.key——命令行 > 包内 deploy.args 烙入 > 默认；单次快照）
-            MetaEntryConfig deploy = MetaDeployConfig.Load(Environment.GetCommandLineArgs(), DeployBake.ReadArgs());
+            MetaEntryConfig deploy = MetaDeployConfig.Load(Environment.GetCommandLineArgs(), _deployBake.ReadArgs());
             context.Put<MetaEntryConfig>(deploy);
 
             // 未配置 Meta 基址 = client 置空（IsConfigured false——页面显性拒绝），不造"指向空址"的客户端。

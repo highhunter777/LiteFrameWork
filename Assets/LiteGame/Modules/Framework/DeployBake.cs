@@ -21,10 +21,9 @@ namespace LiteGame
     /// 故按 zip 条目 <c>assets/deploy.args</c> 读（真同步、无帧泵依赖）。
     ///
     /// **读取契约**：返回 null ＝"无烙入"（缺文件/缺条目，正常路径）；抛异常 ＝读失败（退化为无烙入，
-    /// 但留一次性 Warning）。三处消费点（ContainerModule / ContentModule / MetaDeployConfig.LoadWithBaked）
-    /// 的调用形态不变。
+    /// 但留一次性 Warning）。**本实例只读一次**：引导期多处消费点共用同一实例的 memo（不再有可变静态）。
     /// </summary>
-    internal static class DeployBake
+    public sealed class DeployBake
     {
         /// <summary>烙入文件名（StreamingAssets 下；内容 = 参数行流）。</summary>
         public const string FileName = "deploy.args";
@@ -32,17 +31,18 @@ namespace LiteGame
         /// <summary>Android APK 内的 StreamingAssets 条目名（zip 条目以 assets/ 为前缀）。</summary>
         internal const string AndroidAssetsEntry = "assets/" + FileName;
 
-        private static bool _loaded;
-        private static string _text;
-        private static bool _missingLogged;
-        private static bool _failedLogged;
+        private readonly Func<string, string> _reader;
+        private bool _loaded;
+        private string _text;
+        private bool _missingLogged;
+        private bool _failedLogged;
 
-        /// <summary>读取缝（用例替换；默认走平台实现）。入参＝设备侧 deploy.args 路径。</summary>
-        internal static Func<string, string> Reader = ReadPlatform;
+        /// <param name="reader">读取缝（用例注入；默认走平台实现）。入参＝设备侧 deploy.args 路径。</param>
+        public DeployBake(Func<string, string> reader = null) => _reader = reader ?? ReadPlatform;
 
-        /// <summary>读烙入全文（**进程内只读一次**：首读结果（含 null）即缓存，引导期三处消费点共用）。
+        /// <summary>读烙入全文（**本实例只读一次**：首读结果（含 null）即缓存，引导期消费点共用）。
         /// 返回 null ＝无烙入（缺文件/缺条目），不报错不猜。</summary>
-        public static string ReadArgs()
+        public string ReadArgs()
         {
             if (_loaded) return _text;
             _loaded = true;
@@ -51,7 +51,7 @@ namespace LiteGame
             var watch = Stopwatch.StartNew();
             try
             {
-                _text = Reader(path);
+                _text = _reader(path);
                 watch.Stop();
                 if (_text == null)
                 {
@@ -83,8 +83,7 @@ namespace LiteGame
             }
         }
 
-        /// <summary>平台分发（唯一一处按平台分叉；<c>#if UNITY_ANDROID</c> 在本件白名单内——
-        /// 部署读取是本批四个平台收敛点之一）。</summary>
+        /// <summary>平台分发（唯一一处按平台分叉；<c>#if UNITY_ANDROID</c> 在本件白名单内）。</summary>
         private static string ReadPlatform(string path)
         {
 #if UNITY_ANDROID
@@ -111,16 +110,6 @@ namespace LiteGame
                 using (var reader = new StreamReader(entry.Open()))
                     return reader.ReadToEnd();
             }
-        }
-
-        /// <summary>用例钩子：复位 memo 与一次性日志标记（进程级语义在用例间需要隔离）。</summary>
-        internal static void ResetForTests()
-        {
-            _loaded = false;
-            _text = null;
-            _missingLogged = false;
-            _failedLogged = false;
-            Reader = ReadPlatform;
         }
     }
 }
