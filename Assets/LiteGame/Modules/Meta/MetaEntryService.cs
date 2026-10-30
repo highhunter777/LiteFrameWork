@@ -19,7 +19,7 @@ namespace LiteGame
     /// - **fail-closed**：未配置 Meta 基址（无 -meta.url）= <see cref="IsConfigured"/> false，一切入口显性失败，
     ///   不悄悄回退本地/测试身份。
     /// </summary>
-    public sealed class MetaEntryService : IAccountSessionControl
+    public sealed class MetaEntryService : IAccountSessionControl, IMetaConfigFacts
     {
         private readonly IMetaClient _client;          // null = 未配置（装配面按 HasMeta 决定）
         private readonly Func<string> _deviceId;

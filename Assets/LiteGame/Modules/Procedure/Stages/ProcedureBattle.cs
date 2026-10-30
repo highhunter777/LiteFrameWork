@@ -47,7 +47,7 @@ namespace LiteGame
 
         private readonly IInputService _input;       // 输入服务
         private readonly ICameraService _camera;     // 相机服务（Cinemachine 适配器；装配根建、跨对局复用）
-        private readonly CommandCenter _commands;    // 命令中心（传送命令化：撤销/重做/排队派发）
+        private readonly IBattleCommands _commands;  // 战斗命令端口（传送命令化；命令类型归战斗域）
         private readonly IBattleViewGroupFactory _views;   // 视图组工厂（表现层实现；装订根注入）
         private readonly IRoomSessionBridge _roomBridge;   // 房间会话门面装订口（Lua 桥实现；房主开局批）
         private readonly bool _requireCamera;        // 缺相机 = 装配缺口（见 ctor 注释）
@@ -80,7 +80,7 @@ namespace LiteGame
         /// 这种最难的静默失效变成显性失败，而不是进了对局才发现画面纹丝不动。</param>
         /// <param name="views">视图组工厂（表现层实现；本流程只认端口——不持有视图装配件类型）。</param>
         /// <param name="roomBridge">房间会话门面装订口（Lua 桥适配器实现；房主开局批）。</param>
-        public ProcedureBattle(IInputService input, ICameraService camera, CommandCenter commands,
+        public ProcedureBattle(IInputService input, ICameraService camera, IBattleCommands commands,
             IBattleViewGroupFactory views, IRoomSessionBridge roomBridge,
             CancellationToken rootToken = default, bool requireCamera = false,
             IMatchSessionFactory matchSessions = null, PageFlow pages = null,
@@ -391,7 +391,7 @@ namespace LiteGame
             if (_devSession.TakeTeleportRequest())                // 开发形态传送：入队命令（帧边界派发 + 可撤销；读即清）
             {
                 if (_devSession.Active && _devSession.TeleportEnabled)
-                    _commands.SendQueued(new TeleportToAimCommand());
+                    _commands.RequestTeleportToAim();
                 else Log.Warning("[TestMode] 传送请求忽略（未开测试模式/未启用）", LogTag.Battle);
             }
         }

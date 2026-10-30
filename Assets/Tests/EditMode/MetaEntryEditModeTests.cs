@@ -439,14 +439,14 @@ namespace LiteGame.Tests.EditMode
         public void 传输工厂_envelope注入优先_非法键fail_fast抛()
         {
             var good = new MetaEntryConfig { EnvelopeKeyBase64 = Convert.ToBase64String(new byte[32]) };
-            Assert.DoesNotThrow(() => ProcedureMatch.CreateTransport(false, null, good),
+            Assert.DoesNotThrow(() => ProductTransportFactory.CreateTransport(false, null, good),
                 "合法 32 字节 Base64 键可构造信封传输");
 
             var bad = new MetaEntryConfig { EnvelopeKeyBase64 = "not-base64!!" };
-            Assert.Throws<FormatException>(() => ProcedureMatch.CreateTransport(false, null, bad),
+            Assert.Throws<FormatException>(() => ProductTransportFactory.CreateTransport(false, null, bad),
                 "非法键当场抛（Convert.FromBase64String）——密钥配错不得静默回落环境变量");
 
-            Assert.Throws<InvalidOperationException>(() => ProcedureMatch.CreateTransport(true, null),
+            Assert.Throws<InvalidOperationException>(() => ProductTransportFactory.CreateTransport(true, null),
                 "本地测试模式缺每局规则持有件 → 显式失败（播种步骤漏调不再静默）");
         }
     }

@@ -134,45 +134,6 @@ namespace LiteGame
             }
         }
 
-        /// <summary>
-        /// 建传输（<paramref name="testRoom"/> = 本地测试模式：进程内 LocalServerTransport + 房号 Room-Test）：
-        /// **只有**本地测试模式走进程内服；其余（Meta 票据 / 本地全链 / 云端普通房/测试房）一律真 KCP。
-        /// **本方法只产传输**——每局规则由装配根先经 <see cref="MatchRulesSeeder.Seed"/> 播种，
-        /// 规则实例作为 <paramref name="rules"/> 入参（不在这里写任何本地测试钩子静态）。
-        ///
-        /// **只在开发/编辑器/开发包可用**——`DevStartupConfig` 整体在 `#if` 内，release 下该静态不存在，
-        /// 故此处也包在同一门禁里，正式包恒走真 KCP（不给"悄悄退化成假服务器"留窗口，
-        /// 框架先行 §6"生产配置缺真实依赖时拒绝启动或拒绝相应功能，不能悄悄退回 fake"）。
-        /// **本地测试模式不提供 KCP 形态**：免死规则靠"客户端预测与进程内服务器同持一个规则实例"
-        /// （<see cref="LiteSim.MatchTestRules"/> 由播种件产出、随传输与 AccountSession 显式移交对局），
-        /// 真服务器的房间级规则下发未做。
-        ///
-        /// 信封 PSK 注入口（批C）：<paramref name="deploy"/> 带 <c>-envelope.key</c> 时优先（构建期/启动参数注入）；
-        /// 空 = 回落 <c>LITENET_SECURE_ENVELOPE_KEY</c> 环境变量既有口（两道注入口不互斥——与部署侧同 key）。
-        ///
-        /// <paramref name="gameplayDigestBase"/>（批 E）= 本地装载产物的玩法数据身份基摘要提供者：本地服形态
-        /// 的**房间身份必须与客户端同源**（同进程同一份装载 —— 客户端 `BattleContext` 校验点按它复算 `StartGame.ConfigHash`），
-        /// 故由装配根传同一提供者；null = 测试/未配置形态（摘要按 0 基值，双方一致即可——见 `LocalServerTransport`）。
-        /// <paramref name="maps"/>（批4）= 地图提供者（D9）：本地服房间的判定图必须与客户端逐位同图
-        /// （出生点/碰撞/遮挡），故两处取同一提供者；本地服形态缺它即抛（无图不得起权威局——D22）。
-        /// </summary>
-        internal static LiteNet.Transport.IClientTransport CreateTransport(bool testRoom, LiteSim.MatchTestRules rules,
-            MetaEntryConfig deploy = null, Func<uint> gameplayDigestBase = null, IMapProvider maps = null)
-        {
-            if (testRoom && DevBuildFacts.IsDevelopment)
-            {
-                if (!LocalTransportRegistry.TryGet(out ILocalTransportFactory local))
-                    throw new InvalidOperationException(
-                        "本地测试模式缺本地传输工厂——`LiteGame.Dev` 未装配（开发程序集不在场/装订失败）");
-                return local.Create(testRoom, rules, gameplayDigestBase, maps);
-            }
-            return new LiteNet.Transport.SecureEnvelopeClientTransport(
-                new LiteNet.Transport.KcpTransportClient(),
-                string.IsNullOrEmpty(deploy?.EnvelopeKeyBase64)
-                    ? LiteNet.Transport.SecureEnvelopeOptions.FromEnvironment()   // 既有口（部署侧 env 注入）
-                    : LiteNet.Transport.SecureEnvelopeOptions.FromBase64(deploy.EnvelopeKeyBase64));  // -envelope.key 优先
-        }
-
         /// <summary>等 JoinAck（RoomClient 相位 Idle → Connected；超时 = 确定失败态）。</summary>
         private static UniTask WaitJoined(BattleClient battle, CancellationToken ct)
             => StageSignal.Wait<JoinAck>(

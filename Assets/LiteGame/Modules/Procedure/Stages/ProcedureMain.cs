@@ -22,13 +22,13 @@ namespace LiteGame
         private bool _directEntryRequested;
 
         /// <summary>联机入口编排件（判"是否配置了 Meta 基址"——入口页只在配置形态开；可空 = 离线装配）。</summary>
-        private readonly MetaEntryService _meta;
+        private readonly IMetaConfigFacts _meta;
 
         /// <summary>开发会话端口（直入训练场/进退出请求/启动快照的**唯一**读取面；发布 = NullDevSession）。</summary>
         private readonly IDevSession _dev;
 
         public ProcedureMain(CancellationToken rootToken = default,
-            PageFlow pages = null, MetaEntryService meta = null, IDevSession dev = null)
+            PageFlow pages = null, IMetaConfigFacts meta = null, IDevSession dev = null)
             : base(rootToken)
         {
             _pages = pages;

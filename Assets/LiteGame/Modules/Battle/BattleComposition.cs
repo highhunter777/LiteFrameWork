@@ -50,6 +50,7 @@ namespace LiteGame
             context.Put(_audio);
             context.Put(_vfxService);
             context.Put<IVFXService>(_vfxService);               // 接口键（HUD/消费方只经端口取；与具体键同实例）
+            context.Put<IBattleCommands>(new BattleCommands(context.Require<CommandCenter>()));   // 流程→战斗的命令端口
             // 视图组工厂：战斗域自持的装配点（流程只认端口；每局再注入 account 作用域/开发叠加层/传送分发）
             context.Put<IBattleViewGroupFactory>(new BattleViewGroupFactory(
                 content, context.Require<IInputService>(), context.Require<ICameraService>(),

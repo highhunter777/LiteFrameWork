@@ -89,7 +89,7 @@ namespace LiteGame
                 (ProcedureId.Match, new ProcedureMatch(context.Require<IAccountSessionFactory>(),
                     context.Require<FeedbackService>(), rootToken)),
                 (ProcedureId.Battle, new ProcedureBattle(context.Require<IInputService>(),
-                    context.Require<ICameraService>(), context.Require<CommandCenter>(),
+                    context.Require<ICameraService>(), context.Require<IBattleCommands>(),
                     context.Require<IBattleViewGroupFactory>(), roomBridge,
                     rootToken, requireCamera: true,
                     matchSessions: context.Require<IMatchSessionFactory>(),
