@@ -36,6 +36,8 @@
 
 - **设置门面按"本体/脚本面"切两半**：值域收敛与生效面住 `Modules/Settings`（不认识脚本环境），`Bridge.settings` 的 40+ 绑定随 `XLua` 适配器住 `Adapters/LuaBridge/ProductBridges`——设置域因此不再引 xLua；LuaBridge asmdef 增 `LiteGame.Modules.Settings`（允许表同步）。
 - **`DeployBake` 由静态可变改实例**：读取缝构造注入、memo 收进实例（`Reader`/`ResetForTests` 这类进程级可变静态消失）；内容段与联机段共用 GameEntry 创建的同一实例。
+- **联机入口经 `IAppFlow` 端口化**：`MetaEntryService` 不再持 `IStageHost<ProcedureId,ProcedureArgs>`（那是反向认识流程域类型）；
+  端口只表达 `IsAtMain`/`RequestMatch(MetaJoin)`/`RequestMain`，实现 `ProcedureFlow` 住流程段（App）——Meta → Procedure 的边从"类型直引"降为"语义端口"。
 - **批 5 分三个检查点**：1/3 文件归位（会话/地图/UI 纯化/错位件）——已提交；2/3 契约与命名空间收口（Meta 端口、Procedure 去直引、8 域命名空间、排序与瞄准单源）；3/3 域间矩阵门禁与文档回写。
 - **会话域收敛口径**：`Modules/Session/` 收 `AccountSession+Factory`、`MatchSession+Factory`、`MatchTransport`、`BattleSession` 聚合、`RoomSessionFace` 与两契约；`Modules/Room/`、`Modules/Procedure/Session/` 删除。`BattleSession` 与既有 `MatchSession`（Match 域本体）同名冲突，故聚合保留原名——A18 的 "MatchSession(Factory)" 指既有类型 + 工厂。
 - **批 4 段拆解的归属落位**（归属表逐行落地，段名即模块名）：⑤ Content 收场景/缓存租约（`SceneService`/`IContentCacheMaintenance`）、
