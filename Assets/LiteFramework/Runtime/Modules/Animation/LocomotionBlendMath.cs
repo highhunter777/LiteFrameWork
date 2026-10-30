@@ -1,6 +1,6 @@
-using UnityEngine;
+using System;
 
-namespace LiteGame.View.Animation
+namespace LiteFramework.Animation
 {
     /// <summary>
     /// 移动混合权重数学（《动画模块专项设计》§4"权重由 Driver 给"的**纯计算面**）：
@@ -138,7 +138,7 @@ namespace LiteGame.View.Animation
         public static void BuildAimWeights(float relativeAngleDeg, float[] weights)
         {
             float t = relativeAngleDeg / 90f;                               // 槽位坐标：F=0 / R=1 / B=2 / L=-1
-            int idx = Mathf.FloorToInt(t);
+            int idx = (int)Math.Floor(t);
             float frac = t - idx;
             int slotA = ((idx % 4) + 4) % 4;
             int slotB = (slotA + 1) % 4;

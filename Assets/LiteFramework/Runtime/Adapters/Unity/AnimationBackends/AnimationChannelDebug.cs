@@ -1,4 +1,4 @@
-namespace LiteGame.View.Animation
+namespace LiteFramework.Animation
 {
     /// <summary>
     /// 单通道诊断读数（《动画模块专项设计》§11；纯值结构，调用方复用，零分配）。

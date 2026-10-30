@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using LiteFramework;
 
 namespace LiteGame.View
 {
@@ -7,7 +8,7 @@ namespace LiteGame.View
     /// `fx_hit` → `{Root}fx_hit.prefab`。需要额外元信息（类别/覆盖时长）的特效在构造时
     /// <see cref="Register"/> 登记；未登记的按命名约定合成默认项（值类型，零分配）。
     /// </summary>
-    public sealed class VfxCatalog
+    public sealed class VfxCatalog : IVfxCatalog
     {
         /// <summary>
         /// 特效 prefab 根目录（与《联机Demo美术资源清单》§0-6 的 `fx_` 命名约定配套）：

@@ -5,7 +5,7 @@ using Cysharp.Threading.Tasks;
 using LiteFramework;
 using UnityEngine;
 
-namespace LiteGame.View
+namespace LiteFramework
 {
     /// <summary>
     /// VFX 服务实现（《VFX服务实施指导》§2）：加载 / 池化 / 挂点跟随 / 预算降级 / 到期回收 / 关闭释放面。
@@ -27,7 +27,7 @@ namespace LiteGame.View
 
         private readonly VfxAssetLoader _loader;
         private readonly IWorldClock _clock;
-        private readonly VfxCatalog _catalog;
+        private readonly IVfxCatalog _catalog;
         private readonly VfxBudget _budget;
         private Transform _worldRoot;                       // Shutdown 销毁自建根后置 null（注入的归注入方）
         private readonly GameObjectPool _pool;
@@ -59,12 +59,12 @@ namespace LiteGame.View
         /// <param name="poolRoot">池化停放容器；null = 池自建（DontDestroyOnLoad）。测试传入可避免编辑态触碰 DontDestroyOnLoad。</param>
         /// <param name="maxIdlePerPrefab">每 prefab 池深（防池膨胀）。</param>
         public VfxService(VfxAssetLoader loader, IWorldClock clock,
-                          VfxCatalog catalog = null, VfxBudget budget = null,
+                          IVfxCatalog catalog = null, VfxBudget budget = null,
                           Transform worldRoot = null, Transform poolRoot = null, int maxIdlePerPrefab = 16)
         {
             _loader = loader ?? throw new ArgumentNullException(nameof(loader));
             _clock = clock ?? throw new ArgumentNullException(nameof(clock));
-            _catalog = catalog ?? new VfxCatalog();
+            _catalog = catalog ?? EmptyVfxCatalog.Instance;
             _budget = budget ?? VfxBudget.Default();
             _pool = new GameObjectPool(poolRoot, maxIdlePerPrefab);
 

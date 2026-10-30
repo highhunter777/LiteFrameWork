@@ -7,8 +7,7 @@
         "LiteSim",
         "LiteGame.Modules.Input",
         "LiteGame.Modules.Camera",
-        "LiteFramework.Runtime",
-        "LiteGame.Modules.View"
+        "LiteFramework.Runtime"
     ],
     "includePlatforms": [],
     "excludePlatforms": [],

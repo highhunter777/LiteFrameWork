@@ -30,7 +30,7 @@ namespace LiteFramework.Core.Tests
             ["Assets/LiteGame/Modules/LiteGame.Modules.asmdef"] = new[] { "LiteGame.Modules.Config", "LiteGame.Modules.Settings", "LiteGame.Modules.Input", "LiteGame.Modules.Camera", "LiteFramework.Runtime", "LiteGame.Core", "LiteGame.Adapters.LuaBridge", "LiteGame.Modules.Battle", "LiteGame.Modules.View", "LiteGame.Presentation", "LiteNet", "LiteSim", "Luban.Runtime", "Luban.Tables", "UniTask", "Unity.TextMeshPro", "xLuaMain" },
             ["Assets/LiteGame/Modules/Battle/LiteGame.Modules.Battle.asmdef"] = new[] { "LiteGame.Modules.Config", "LiteGame.Modules.Input", "LiteGame.Core", "LiteFramework.Runtime", "LiteNet", "LiteSim", "UniTask" },
             ["Assets/LiteGame/Modules/View/LiteGame.Modules.View.asmdef"] = new[] { "LiteGame.Modules.Config", "LiteGame.Modules.Camera", "LiteGame.Core", "LiteFramework.Runtime", "LiteSim", "UniTask" },
-            ["Assets/LiteGame/Adapters/Unity/LiteGame.Adapters.Unity.asmdef"] = new[] { "Unity.InputSystem", "Cinemachine", "LiteSim", "LiteGame.Modules.Input", "LiteGame.Modules.Camera", "LiteFramework.Runtime", "LiteGame.Modules.View" },
+            ["Assets/LiteGame/Adapters/Unity/LiteGame.Adapters.Unity.asmdef"] = new[] { "Unity.InputSystem", "Cinemachine", "LiteSim", "LiteGame.Modules.Input", "LiteGame.Modules.Camera", "LiteFramework.Runtime" },
             ["Assets/LiteSim/LiteSim.asmdef"] = Array.Empty<string>(),
             ["Assets/LiteSim/Editor/LiteSim.Editor.asmdef"] = new[] { "LiteSim" },
             ["Assets/LiteNet/LiteNet.asmdef"] = new[] { "LiteSim" },

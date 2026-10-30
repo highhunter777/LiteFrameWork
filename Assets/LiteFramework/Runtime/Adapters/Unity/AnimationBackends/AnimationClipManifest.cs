@@ -1,7 +1,7 @@
 using System;
 using UnityEngine;
 
-namespace LiteGame.View.Animation
+namespace LiteFramework.Animation
 {
     /// <summary>
     /// 片段清单（《动画模块专项设计》§4 片源载体裁决）：**键 → <see cref="AnimationClip"/> 显式引用**

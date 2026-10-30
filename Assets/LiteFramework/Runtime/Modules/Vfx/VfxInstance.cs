@@ -1,6 +1,6 @@
 using UnityEngine;
 
-namespace LiteGame.View
+namespace LiteFramework
 {
     /// <summary>
     /// 一个活跃特效实例（《VFX服务实施指导》§2.2 第 1 件）：句柄 + 定义 + 挂点 + 到期时刻。

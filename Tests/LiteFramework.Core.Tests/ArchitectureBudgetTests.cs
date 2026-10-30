@@ -38,7 +38,7 @@ namespace LiteFramework.Core.Tests
             ["Assets/LiteGame/Editor/Toolchain/Window/LiteGameToolboxWindow.cs::LiteGameToolboxWindow"] = 409,
             ["Assets/LiteGame/Editor/UiTools/Contract/UiContractGenerator.cs::UiContractGenerator"] = 424,
             ["Assets/LiteGame/Editor/UiTools/Workbench/Window/UiWorkbenchWindow.cs::UiWorkbenchWindow"] = 457,
-            ["Assets/LiteGame/Adapters/Unity/AnimationBackends/AnimatorAnimationBackend.cs::AnimatorAnimationBackend"] = 505,
+            ["Assets/LiteFramework/Runtime/Adapters/Unity/AnimationBackends/AnimatorAnimationBackend.cs::AnimatorAnimationBackend"] = 505,
             ["Assets/LiteGame/Modules/View/Animation/Drivers/CharacterLocomotionDriver.cs::CharacterLocomotionDriver"] = 524,
         };
 

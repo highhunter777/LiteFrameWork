@@ -79,7 +79,7 @@ namespace LiteGame.Tests.EditMode
             var full = FullManifest();
             SetManifest(go.GetComponent<LiteAnimator>(), full);   // 面板上声明的清单（组件序列化引用）
 
-            using var driver = new CharacterLocomotionDriver(view, DriverProfile(), backendFactory: new LiteGame.View.Animation.AnimatorAnimationBackendFactory());   // 不传清单参数
+            using var driver = new CharacterLocomotionDriver(view, DriverProfile(), backendFactory: new LiteFramework.Animation.AnimatorAnimationBackendFactory());   // 不传清单参数
             const float dt = 1f / 60f;
             view.Tick(dt);
             driver.Tick(dt);
@@ -202,7 +202,7 @@ namespace LiteGame.Tests.EditMode
                 ("AimWalk_F", Clip("AimWalk_F", 1f)), ("AimWalk_R", Clip("AimWalk_R", 1f)),
                 ("AimWalk_B", Clip("AimWalk_B", 1f)));
 
-            Assert.Throws<ArgumentException>(() => new CharacterLocomotionDriver(view, profile, broken, backendFactory: new LiteGame.View.Animation.AnimatorAnimationBackendFactory()),
+            Assert.Throws<ArgumentException>(() => new CharacterLocomotionDriver(view, profile, broken, backendFactory: new LiteFramework.Animation.AnimatorAnimationBackendFactory()),
                 "缺键必须装配期失败——不等到运行时逐提交静默失败");
 
             // 键全齐（引用可有缺失——资源态不拦装配）：构造成立
@@ -211,7 +211,7 @@ namespace LiteGame.Tests.EditMode
                 ("AimIdle", Clip("AimIdle", 1f)), ("Reload", Clip("Reload", 1f)),
                 ("AimWalk_F", Clip("AimWalk_F", 1f)), ("AimWalk_R", Clip("AimWalk_R", 1f)),
                 ("AimWalk_B", Clip("AimWalk_B", 1f)), ("AimWalk_L", null));
-            using (var driver = new CharacterLocomotionDriver(view, profile, resourceBroken, backendFactory: new LiteGame.View.Animation.AnimatorAnimationBackendFactory()))
+            using (var driver = new CharacterLocomotionDriver(view, profile, resourceBroken, backendFactory: new LiteFramework.Animation.AnimatorAnimationBackendFactory()))
             {
                 Assert.IsNotNull(driver, "键覆盖成立即放行（引用缺失归槽位登记计数，不拦装配）");
             }
@@ -227,7 +227,7 @@ namespace LiteGame.Tests.EditMode
             Assert.IsNull(go.GetComponent<Animator>().runtimeAnimatorController, "前置：直 Clip 模型——无控制器资产");
             var view = ViewWith(go);
 
-            using var driver = new CharacterLocomotionDriver(view, DriverProfile(), FullManifest(), backendFactory: new LiteGame.View.Animation.AnimatorAnimationBackendFactory());
+            using var driver = new CharacterLocomotionDriver(view, DriverProfile(), FullManifest(), backendFactory: new LiteFramework.Animation.AnimatorAnimationBackendFactory());
             const float dt = 1f / 60f;
             view.Tick(dt);
             driver.Tick(dt);
@@ -266,7 +266,7 @@ namespace LiteGame.Tests.EditMode
                 ("AimWalk_F", Clip("AimWalk_F", 1f)), ("AimWalk_R", Clip("AimWalk_R", 1f)),
                 ("AimWalk_B", Clip("AimWalk_B", 1f)), ("AimWalk_L", null));
 
-            using var driver = new CharacterLocomotionDriver(view, DriverProfile(), manifest, backendFactory: new LiteGame.View.Animation.AnimatorAnimationBackendFactory());
+            using var driver = new CharacterLocomotionDriver(view, DriverProfile(), manifest, backendFactory: new LiteFramework.Animation.AnimatorAnimationBackendFactory());
             const float dt = 1f / 60f;
             view.Tick(dt);
             driver.Tick(dt);
@@ -286,7 +286,7 @@ namespace LiteGame.Tests.EditMode
             // ① 无绑定组件（纯 GameObject）：真灰盒——清单在场也不建（发现面＝组件，唯一判据）
             var plain = new GameObject("plain");
             var viewA = ViewWith(plain);
-            using (var driver = new CharacterLocomotionDriver(viewA, DriverProfile(), FullManifest(), backendFactory: new LiteGame.View.Animation.AnimatorAnimationBackendFactory()))
+            using (var driver = new CharacterLocomotionDriver(viewA, DriverProfile(), FullManifest(), backendFactory: new LiteFramework.Animation.AnimatorAnimationBackendFactory()))
             {
                 viewA.Tick(1f / 60f);
                 driver.Tick(1f / 60f);
@@ -297,7 +297,7 @@ namespace LiteGame.Tests.EditMode
             //    （防误挂：任何带 Animator 的物体不再被建播放器）
             var bare = new GameObject("bare", typeof(Animator));
             var viewB = ViewWith(bare);
-            using (var driver = new CharacterLocomotionDriver(viewB, DriverProfile(), backendFactory: new LiteGame.View.Animation.AnimatorAnimationBackendFactory()))
+            using (var driver = new CharacterLocomotionDriver(viewB, DriverProfile(), backendFactory: new LiteFramework.Animation.AnimatorAnimationBackendFactory()))
             {
                 viewB.Tick(1f / 60f);
                 driver.Tick(1f / 60f);
@@ -307,7 +307,7 @@ namespace LiteGame.Tests.EditMode
             // ③ 绑定组件在场、但既无控制器又无清单：无任何片源——同样不建
             var bindingOnly = NewDirectClipView();
             var viewC = ViewWith(bindingOnly);
-            using (var driver = new CharacterLocomotionDriver(viewC, DriverProfile(), backendFactory: new LiteGame.View.Animation.AnimatorAnimationBackendFactory()))
+            using (var driver = new CharacterLocomotionDriver(viewC, DriverProfile(), backendFactory: new LiteFramework.Animation.AnimatorAnimationBackendFactory()))
             {
                 viewC.Tick(1f / 60f);
                 driver.Tick(1f / 60f);
