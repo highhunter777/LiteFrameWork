@@ -1,4 +1,4 @@
-namespace LiteGame
+﻿namespace LiteGame.Modules.Settings
 {
     /// <summary>
     /// 视角手感的**玩家偏好端口**（只读实例；设置层写入、表现层消费）。

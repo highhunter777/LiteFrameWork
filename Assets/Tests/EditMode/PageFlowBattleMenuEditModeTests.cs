@@ -11,6 +11,9 @@ using Luban;
 using NUnit.Framework;
 using UnityEngine;
 using XLua;
+using LiteGame.Modules.Config;
+using LiteGame.Modules.Framework;
+using LiteGame.Modules.Ui;
 
 namespace LiteGame.Tests.EditMode
 {
@@ -62,7 +65,7 @@ namespace LiteGame.Tests.EditMode
         public void SetUp()
         {
             _probe = new ProbeLogic();
-            PageDefinition lobbyPage = Array.Find(LiteGame.UI.UiPageCatalog.All, page => page.LuaPath == LuaKeys.UI.Page_Lobby);
+            PageDefinition lobbyPage = Array.Find(LiteGame.Modules.Ui.UiPageCatalog.All, page => page.LuaPath == LuaKeys.UI.Page_Lobby);
             Assert.IsNotNull(lobbyPage, "生成页面目录缺大厅页（页面流回大厅用例前置）");
             _ui = new UIService(new StaticCatalog(new[]
                 {

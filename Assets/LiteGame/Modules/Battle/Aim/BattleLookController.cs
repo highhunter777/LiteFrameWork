@@ -5,20 +5,19 @@ using LiteGame.View;
 using UnityEngine;
 using LiteFramework;
 using LiteGame;
+using LiteGame.Modules.Camera;
+using LiteGame.Modules.Input;
+using LiteGame.Modules.Settings;
 
 namespace LiteGame
 {
     /// <summary>
     /// 对局**视角/指针输入控制器**：鼠标增量 → 相机 yaw/pitch（含 ADS 灵敏度收敛与 GM 调参覆写）、
-    /// 瞄准态滞回（含复活复位）、瞄准点注入、指针锁定（Cursor 唯一写者 <see cref="PointerLockService"/>）。
+    /// 相机瞄准混合门（含复活复位）、瞄准点注入、指针锁定（Cursor 唯一写者 <see cref="PointerLockService"/>）。
     /// 纯视图侧（不上行、不进意图三件）；只读 <see cref="SimView"/> 的本地预测事实。
     /// </summary>
     internal sealed class BattleLookController
     {
-        /// <summary>瞄准滞回的最小保持宽度——与 Brain DefaultBlend（EaseInOut 0.3s）对齐：
-        /// 短按也走完一次完整混合，连点不重启混合（相机抖动的输入侧治理）。</summary>
-        private const float AimMinHoldSeconds = 0.3f;
-
         /// <summary>视角灵敏度（弧度/像素）——机制初档常量单源：0.0025 ≈ 0.14°/px，1440px 横扫 ≈ 206°
         /// （约三分之一圈，主流 TPS 鼠标灵敏度中位起点）；ADS 档缩放与 GM/Inspector 调参面随 T6 落位
         /// （以本常量为默认基线）。</summary>
@@ -33,7 +32,7 @@ namespace LiteGame
         private readonly ICameraService _camera;
         private readonly ILookPreferences _lookPreferences;   // 玩家偏好（倍率/反转；null = 纯机制常量，测试装配）
         private readonly PointerLockService _pointer = new PointerLockService();   // Cursor 的唯一写者
-        private readonly AimHoldGate _aimGate = new AimHoldGate(AimMinHoldSeconds);
+        private readonly CameraAimBlendDriver _aimBlend;   // 瞄准事实 → 相机混合（宽度取相机域常量单源）
 
         private SimView _view;
         private Func<Vector2> _lookDeltaOf;           // 视角增量来源（设备源适配器 LookDelta；随本局设备源挂/摘）
@@ -46,6 +45,7 @@ namespace LiteGame
             _input = input;
             _camera = camera;
             _lookPreferences = lookPreferences;
+            _aimBlend = new CameraAimBlendDriver(camera, CameraBlendDefaults.AimBlendSeconds);
         }
 
         /// <summary>本帧瞄准点（世界坐标；无设备形态/无点 = null）——传送命令等外部消费者读口。</summary>
@@ -69,7 +69,7 @@ namespace LiteGame
             if (_view != null && _view.LocalRespawnSerial != _lastRespawnSerial)
             {
                 _lastRespawnSerial = _view.LocalRespawnSerial;
-                _aimGate.Reset();
+                _aimBlend.Reset();
             }
             // 对局控制中（视图建好、本地在场、未被上下文门拦、存活）才吃视角增量：
             // 模态 UI/死亡/加载段鼠标不应在背后带动相机（PUBG 的解锁形态同口径）。
@@ -101,7 +101,7 @@ namespace LiteGame
             if (pointerLocked && _shoulderSwapOf != null && _shoulderSwapOf())
                 _camera?.ToggleShoulder();                 // 左右肩切换（纯视图侧，不上行）
 
-            _camera?.SetAiming(_aimGate.Feed(IsLocalAiming(), elapseSeconds));
+            _aimBlend.Tick(IsLocalAiming(), elapseSeconds);
             if (_camera != null)                 // 瞄准点（世界）→ 瞄准机近距后撤（适配器按视角前向投影换算）
             {
                 Vector3? aimPoint = _aimPointOf?.Invoke();
@@ -120,7 +120,7 @@ namespace LiteGame
             _lookDeltaOf = null;                  // 视角增量源同摘（离场不遗留设备源闭包）
             _shoulderSwapOf = null;               // 肩位切换沿同摘
             _pointer.Unlock();                    // 指针解锁恢复（离场不遗留锁定态——模态/桌面要可点）
-            _camera?.SetAiming(false);            // 瞄准机还原（优先级/Follow 归还场景值——离场不得遗留接管态）
+            _aimBlend.Reset();                    // 瞄准机还原（优先级/Follow 归还场景值——离场不得遗留接管态）
             _view = null;
         }
 

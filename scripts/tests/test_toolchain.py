@@ -16,7 +16,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[2]
 CLI = ROOT / "scripts" / "toolchain.py"
 MANIFEST = ROOT / "scripts" / "gate" / "toolchain.json"
-DOC_INDEX = ROOT / "Docs" / "工具链" / "工具索引.md"
+DOC_INDEX = ROOT / "Docs" / "说明" / "工具索引.md"
 
 
 def run_cli(*args, timeout=60):

@@ -168,7 +168,7 @@ def render(definitions):
         "using System.Collections.Generic;",
         "using LiteFramework.UI;",
         "",
-        "namespace LiteGame.UI",
+        "namespace LiteGame.Modules.Ui",
         "{",
         "    /// <summary>生成的页面目录（PageDefinition 单制品）；运行时经 IPageCatalog 取件。</summary>",
         "    public sealed class UiPageCatalog : IPageCatalog",

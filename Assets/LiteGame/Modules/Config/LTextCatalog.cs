@@ -1,7 +1,7 @@
-using System;
+﻿using System;
 using LiteFramework;
 
-namespace LiteGame
+namespace LiteGame.Modules.Config
 {
     /// <summary>
     /// LText 文案目录投射器（装配层投影件——与生成页面目录同层）：<c>cfg.Tables.Tbltext</c> 行

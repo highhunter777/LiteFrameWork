@@ -1,11 +1,11 @@
-using System;
+﻿using System;
 using System.Diagnostics;
 using System.IO;
 using System.IO.Compression;
 using UnityEngine;
 using Debug = UnityEngine.Debug;
 
-namespace LiteGame
+namespace LiteGame.Modules.Framework
 {
     /// <summary>
     /// 部署烙入读取件（构建流水线的客户端半边）：<c>StreamingAssets/deploy.args</c> → 参数全文。

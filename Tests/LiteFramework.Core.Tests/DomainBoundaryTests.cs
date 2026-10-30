@@ -19,6 +19,12 @@ namespace LiteFramework.Core.Tests
         /// <summary>业务域子目录里禁止出现的技术分层名（`Abstractions/` 是唯一保留的技术名）。</summary>
         private static readonly string[] ForbiddenDirectoryNames = { "View", "Presentation", "Domain", "Logic" };
 
+        /// <summary>8 个共享能力域（每个域一份命名空间；批 5 · A25）。</summary>
+        private static readonly string[] SharedDomains =
+        {
+            "Framework", "Ui", "Input", "Settings", "Config", "Camera", "Map", "Dev",
+        };
+
         /// <summary>批 2 后战斗域 `Abstractions/` 必须包含的业务端口。</summary>
         private static readonly string[] BattleAbstractions =
         {
@@ -91,6 +97,48 @@ namespace LiteFramework.Core.Tests
             Assert.True(offenders.Count == 0,
                 "业务域子目录须表达职责（Match/Arena/Characters/Combat/Aim/Hud/Settlement/Setup/Commands）；"
                 + "禁 View/Presentation/Domain/Logic：" + string.Join(", ", offenders));
+        }
+
+        [Fact]
+        public void 共享域文件必须使用各自命名空间()
+        {
+            string root = RepoRoot();
+            var offenders = new List<string>();
+            string modules = Path.Combine(root, "Assets", "LiteGame", "Modules");
+
+            foreach (string domain in SharedDomains)
+            {
+                string directory = Path.Combine(modules, domain);
+                if (!Directory.Exists(directory))
+                {
+                    offenders.Add("缺共享域目录:" + Relative(root, directory));
+                    continue;
+                }
+
+                string expected = "LiteGame.Modules." + domain;
+                foreach (string file in Directory.GetFiles(directory, "*.cs", SearchOption.AllDirectories))
+                {
+                    string actual = FirstNamespace(file);
+                    if (!string.Equals(actual, expected, StringComparison.Ordinal))
+                        offenders.Add(Relative(root, file) + " → " + (actual ?? "(无)") + "，期望 " + expected);
+                }
+            }
+
+            Assert.True(offenders.Count == 0,
+                "8 个共享域必须各自使用 LiteGame.Modules.<域> 命名空间（批 5 · A25）:" + string.Join(" | ", offenders));
+        }
+
+        private static string FirstNamespace(string file)
+        {
+            foreach (string line in File.ReadLines(file))
+            {
+                string trimmed = line.TrimStart();
+                if (!trimmed.StartsWith("namespace ", StringComparison.Ordinal)) continue;
+                string rest = trimmed.Substring("namespace ".Length).Trim();
+                int end = rest.IndexOfAny(new[] { ' ', '{', ';' });
+                return end >= 0 ? rest.Substring(0, end) : rest;
+            }
+            return null;
         }
 
         private static string Relative(string root, string path)

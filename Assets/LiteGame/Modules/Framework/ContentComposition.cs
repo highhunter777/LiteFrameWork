@@ -1,9 +1,9 @@
-using System;
+﻿using System;
 using System.Threading;
 using Cysharp.Threading.Tasks;
 using LiteFramework;
 
-namespace LiteGame
+namespace LiteGame.Modules.Framework
 {
     /// <summary>④ 内容服务：IContentService 注入装配（YooAsset 适配 + 共享加载协调器 + 租约）——
     /// 配置/Lua 字节通道与租约消费者依赖它（注册序即依赖序：先于 Config/Presentation）；

@@ -4,6 +4,7 @@ using System.IO.Compression;
 using NUnit.Framework;
 using UnityEngine;
 using UnityEngine.TestTools;
+using LiteGame.Modules.Framework;
 
 namespace LiteGame.Tests.EditMode
 {

@@ -1,8 +1,8 @@
-using System.Threading;
+﻿using System.Threading;
 using Cysharp.Threading.Tasks;
 using LiteFramework;
 
-namespace LiteGame
+namespace LiteGame.Modules.Framework
 {
     /// <summary>⑤ 时序执行：逻辑/UI 调度器 + 时间轴执行器（依赖 ④ Clocks——模块序即依赖序）。</summary>
     public sealed class SchedulersModule : IClientModule, IClientModuleGraph

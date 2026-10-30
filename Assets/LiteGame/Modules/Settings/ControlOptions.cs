@@ -1,5 +1,5 @@
-using LiteFramework;
-namespace LiteGame
+﻿using LiteFramework;
+namespace LiteGame.Modules.Settings
 {
     /// <summary>
     /// 控制设置的值域（视角手感），单源。

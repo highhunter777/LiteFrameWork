@@ -1,11 +1,11 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Threading;
 using Cysharp.Threading.Tasks;
 using LiteFramework;
 using LiteNet;
 
-namespace LiteGame
+namespace LiteGame.Modules.Framework
 {
     /// <summary>
     /// ② 身份上下文（路线图 §4.9）：Build/Schema 的唯一构造点。

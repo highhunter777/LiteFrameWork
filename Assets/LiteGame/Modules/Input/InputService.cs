@@ -1,8 +1,8 @@
-using System;
+﻿using System;
 using LiteSim;
 using LiteFramework;
 
-namespace LiteGame
+namespace LiteGame.Modules.Input
 {
     /// <summary>
     /// <see cref="IInputService"/> 的实现（《角色状态与动作专项设计》§3"输入三件"的协调者）。

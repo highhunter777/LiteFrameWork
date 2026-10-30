@@ -1,6 +1,6 @@
-using UnityEngine;
+﻿using UnityEngine;
 
-namespace LiteGame
+namespace LiteGame.Modules.Map
 {
     /// <summary>
     /// 地图场景作者标注（烘焙器 `SimMapBaker` 的单源读取面；运行时零消费者）：判定边界与地面高度。

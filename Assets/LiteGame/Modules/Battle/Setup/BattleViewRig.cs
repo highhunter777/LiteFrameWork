@@ -8,6 +8,9 @@ using UnityEngine;
 using LiteFramework.UI;
 using LiteFramework;
 using LiteGame;
+using LiteGame.Modules.Camera;
+using LiteGame.Modules.Input;
+using LiteGame.Modules.Settings;
 
 namespace LiteGame
 {

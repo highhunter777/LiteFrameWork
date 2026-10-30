@@ -1,7 +1,7 @@
-using System;
+﻿using System;
 using LiteFramework;
 
-namespace LiteGame
+namespace LiteGame.Modules.Settings
 {
     /// <summary>
     /// 显示设置的值域与换算（显示模式 / 垂直同步 / 窗口尺寸 / 分辨率字符串），单源。

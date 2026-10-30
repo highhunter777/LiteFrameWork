@@ -1,7 +1,7 @@
-using System.IO;
+﻿using System.IO;
 using LiteSim;
 
-namespace LiteGame
+namespace LiteGame.Modules.Config
 {
     /// <summary>表到 Sim 数值的共用投影。服务端源链接同一文件，避免维护第二份映射。</summary>
     public static class SimConfigMapper

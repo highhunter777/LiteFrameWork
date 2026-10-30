@@ -4,6 +4,10 @@ using Cysharp.Threading.Tasks;
 using LiteFramework;
 using LiteFramework.UI;
 using LiteGame.View;
+using LiteGame.Modules.Camera;
+using LiteGame.Modules.Config;
+using LiteGame.Modules.Input;
+using LiteGame.Modules.Settings;
 
 namespace LiteGame
 {

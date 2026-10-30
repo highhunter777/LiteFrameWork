@@ -3,6 +3,7 @@ using LiteFramework;
 using LiteGame.View;
 using LiteFramework;
 using LiteGame;
+using LiteGame.Modules.Input;
 
 namespace LiteGame
 {

@@ -1,0 +1,31 @@
+# 客户端模块化 · 批 5 收口验证（2026-10-31）
+
+## L1
+命令：python scripts/gate/test.py --suite L1 --profile PullRequest
+结果：PASS（LiteFramework.Core.Tests 805 / LiteNet.Tests 568 / LiteSim.Core.Tests 378 / LiteTesting.Core.Tests 7 / MetaServer.Tests 163；合计 1921）
+
+## Unity EditMode（全量）
+命令：python scripts/gate/unity-tests.py --mode editor --filter LiteGame.EditModeTests --filter-type assembly --timeout 1200
+结果：1098 总 / 6 红（首跑）；修复后逐类复跑 5 类全绿，余 1 类为既有 UI 债
+- ClipManifestDriverEditModeTests ×3：WeaponAimConstraint 空 Avatar 无守卫（已修 → 7/7 绿）
+- UiApiSpecGuardTests ×1：dispatch 路径旧目录（已修 → 4/4 绿）
+- VisualSingleSourceEditModeTests ×1：目录扫描 231s > 180s（已把该用例超时提到 300s → 8/8 绿）
+- UiValidationEditModeTests ×1：文字档基线 104 vs 实测 128（既有 UI 样式债，记未决；未改基线）
+
+## 定向 / PlayMode
+- BattleRankboardEditModeTests 8/8
+- BattleRankingConsistencyEditModeTests 1/1
+- CameraAimBlendEditModeTests 6/6
+- BattleSessionEditModeTests 12/12
+- MatchLoopLeakEditModeTests 1/1
+- BattleSmokePlayModeTests 1/1（Boot→Main→进测试房→开火→离场→容器归零）
+
+## 生成物 / 门禁
+- gen-build-hash.py --check：shared=cf3c3453057b28a4（109 files）/ meta=75e0e85fe3c33cf2（50 files）
+- gen-ui-page.py --check：12 pages
+- domain-matrix.py --check：12 域矩阵一致
+- doc-lint：0 violation / 0 warning
+- l2-unity-gate --meta-scan-only：14618 meta 全合法
+- restore-check：PASS
+- toolchain check：OK（1 warning：unity-tests.py 未登记为既有项）
+- scripts/tests 全量：exit 0

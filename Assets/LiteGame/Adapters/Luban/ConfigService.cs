@@ -7,7 +7,7 @@ using LiteFramework.Animation;
 using LiteSim;
 using Luban;
 using cfg;
-using LiteGame.Animation;
+using LiteGame.Modules.Config;
 
 namespace LiteGame
 {

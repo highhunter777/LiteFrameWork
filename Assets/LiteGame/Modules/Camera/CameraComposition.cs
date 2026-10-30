@@ -4,7 +4,7 @@ using Cysharp.Threading.Tasks;
 using LiteFramework;
 using UnityEngine;
 
-namespace LiteGame
+namespace LiteGame.Modules.Camera
 {
     /// <summary>② 相机薄段：主相机保证 + 相机服务（Cinemachine 实现由组合根注入，本段只接工厂委托）。
     ///
@@ -67,13 +67,13 @@ namespace LiteGame
         /// 保证有一台主相机：场景里有（含 tag MainCamera）就用它，没有才建一台默认的。
         /// **只保证"有投影面"**——构图/档位/跟随全部归 vcam 的场景配置（本段不写档位常量）。
         /// </summary>
-        private Camera EnsureCamera()
+        private UnityEngine.Camera EnsureCamera()
         {
-            Camera scene = Camera.main;
+            UnityEngine.Camera scene = UnityEngine.Camera.main;
             if (scene != null) return scene;
 
             _cameraHost = new GameObject("[MainCamera]");
-            var created = _cameraHost.AddComponent<Camera>();
+            var created = _cameraHost.AddComponent<UnityEngine.Camera>();
             _cameraHost.tag = "MainCamera";
             return created;
         }

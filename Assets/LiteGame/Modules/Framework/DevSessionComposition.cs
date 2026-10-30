@@ -2,8 +2,10 @@ using System.Threading;
 using Cysharp.Threading.Tasks;
 using LiteFramework;
 using LiteGame;
+using LiteGame.Modules.Dev;
+using LiteGame.Modules.Input;
 
-namespace LiteGame
+namespace LiteGame.Modules.Framework
 {
     /// <summary>
     /// ③ 开发会话端口（M0 接缝 6；M2 装配序修正）：产品代码只经 <see cref="IDevSession"/> 取测试面，

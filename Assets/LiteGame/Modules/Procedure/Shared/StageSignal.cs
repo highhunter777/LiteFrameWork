@@ -7,7 +7,7 @@ namespace LiteGame
     /// <summary>
     /// 一次性事件等待（"订阅 → 完成源 → await → finally 必退订"的**单一实现**）：流程层等 Reliable
     /// 信令（JoinAck / StartGame）与对局结束共用。同一模式手写多份的两个真实风险——漏退订（订阅泄漏）
-    /// 与退订时序抄错——由此结构性消除；持久订阅（BattleContext 那一侧）不归此面。
+    /// 与退订时序抄错——由此结构性消除；持久订阅（对局运行端口那一侧）不归此面。
     /// </summary>
     internal static class StageSignal
     {

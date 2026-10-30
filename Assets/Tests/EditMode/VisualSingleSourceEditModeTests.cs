@@ -91,6 +91,7 @@ namespace LiteGame.Tests.EditMode
         // ---- 真实代码面扫描 ----
 
         [Test]
+        [Timeout(300000)]   // 目录级冷扫描实测约 231s；180s 默认会误判超时
         public void 真实代码_运行时无未登记的视觉构建()
         {
             string root = ProjectRoot();

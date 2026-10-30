@@ -4,6 +4,7 @@ using LiteFramework;
 using LiteNet.Transport;
 using LiteSim;
 using UnityEngine;
+using LiteGame.Modules.Map;
 
 namespace LiteGame.Adapters.Dev
 {

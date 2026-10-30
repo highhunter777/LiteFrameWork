@@ -1,8 +1,8 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using LiteFramework;
 
-namespace LiteGame
+namespace LiteGame.Modules.Settings
 {
     /// <summary>
     /// 设置项的**唯一消费面**（DI 单例）。**业务层件**：机制（SettingService 存储引擎 /

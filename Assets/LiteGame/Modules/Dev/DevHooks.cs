@@ -1,10 +1,11 @@
-using System;
+﻿﻿using System;
 using LiteFramework;
 using LiteFramework.UI;
 using LiteFramework;
 using LiteGame;
+using LiteGame.Modules.Input;
 
-namespace LiteGame
+namespace LiteGame.Modules.Dev
 {
     /// <summary>
     /// 开发装配端口（由 `LiteGame.Dev` 实现；产品程序集只认本接口，不引用开发程序集）。

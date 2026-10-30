@@ -3,8 +3,9 @@ using System.Collections.Generic;
 using System.IO;
 using LiteFramework;
 using LiteSim;
+using LiteGame.Modules.Config;
 
-namespace LiteGame
+namespace LiteGame.Modules.Map
 {
     /// <summary>
     /// 客户端地图提供者（D9——地图装载自成一件事）：按 <c>map_id</c> 从已装载表链产出判定图，

@@ -1,9 +1,9 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using LiteFramework;
 using UnityEngine;
 
-namespace LiteGame
+namespace LiteGame.Modules.Settings
 {
     /// <summary>
     /// 设置门面本体（Lua 面 `Bridge.settings` 在 <c>Adapters/LuaBridge/ProductBridges</c>）：**四组设置的读写 + 立即生效**。

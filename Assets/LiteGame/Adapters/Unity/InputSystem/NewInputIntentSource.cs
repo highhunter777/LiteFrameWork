@@ -4,6 +4,8 @@ using LiteSim;
 using UnityEngine;
 using UnityEngine.InputSystem;
 using LiteFramework;
+using LiteGame.Modules.Camera;
+using LiteGame.Modules.Input;
 
 namespace LiteGame
 {

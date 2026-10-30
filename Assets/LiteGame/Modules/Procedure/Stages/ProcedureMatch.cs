@@ -4,12 +4,11 @@ using Cysharp.Threading.Tasks;
 using LiteFramework;
 using LiteFramework.UI;
 using LiteNet.Proto;
-using LiteFramework;
 
 namespace LiteGame
 {
     /// <summary>
-    /// 进房流程：创建 **Account Scope** → BattleClient 连接 + Join → JoinAck 即移交 Battle。
+    /// 进房流程：创建 **Account Scope** → 连接 + Join（经 <see cref="IMatchJoin"/> 端口）→ JoinAck 即移交 Battle。
     /// **本阶段不加载对局场景组**——场景组的加载与卸载都归 <see cref="ProcedureBattle"/>
     /// （开局入场时加载；《地图数据专项设计》加载链修订）。
     ///
@@ -35,8 +34,8 @@ namespace LiteGame
         private readonly IAccountSessionFactory _accounts;
         private readonly FeedbackService _feedback;        // 进房等待场（窗口⑤——不定态；可空 = 测试装配）
 
-        /// <summary>本阶段在途的会话（<see cref="OnUpdate"/> 据它驱动传输泵；未连接时为 null）。</summary>
-        private BattleClient _pending;
+        /// <summary>本阶段在途的进房连接（<see cref="OnUpdate"/> 据它驱动传输泵；未连接时为 null）。</summary>
+        private IMatchJoin _pending;
 
         public ProcedureMatch(IAccountSessionFactory accounts, FeedbackService feedback = null,
             CancellationToken rootToken = default) : base(rootToken)
@@ -49,11 +48,11 @@ namespace LiteGame
         /// 驱动传输泵（**本阶段必需的**，不是可选优化）：KCP 的 cookie 握手与后续收发全靠
         /// <c>TickIncoming/TickOutgoing</c> 轮询推进——不泵就永远连不上，Join 也永远发不出去。
         /// 泵挂在本阶段的 <see cref="OnUpdate"/> 上：阶段生命周期 = 泵的生命周期，
-        /// 迁移进 Battle 后由 <c>BattleContext.Tick</c> 接续（不会双泵）。
+        /// 迁移进 Battle 后由对局运行端口接续（不会双泵）。
         /// </summary>
         public override void OnUpdate(IStageHost<ProcedureId, ProcedureArgs> m, float elapseSeconds)
         {
-            BattleClient pending = _pending;
+            IMatchJoin pending = _pending;
             if (pending == null) return;
             pending.TickIncoming();
             pending.TickOutgoing();
@@ -62,7 +61,7 @@ namespace LiteGame
         protected override void RunAsync(IStageHost<ProcedureId, ProcedureArgs> m, in ProcedureArgs req, CancellationToken ct)
         {
             // 联机路径（批C）：Meta 签发的真实票据——开发与正式构建同链（区别于下面的测试身份门禁）。
-            // 票据经验服务端验签才能进房；参数由 MetaEntryService 换票后经 ProcedureArgs 移交。
+            // 票据经验服务端验签才能进房；参数由联机入口换票后经 ProcedureArgs 移交。
             if (req.MetaJoin.Ticket != null)
             {
                 var join = req.MetaJoin;
@@ -90,7 +89,6 @@ namespace LiteGame
             string host, int port, string roomId, string token, bool testRoom)
         {
             AccountSession account = null;
-            BattleClient battle = null;
             // 进房等待场（窗口⑤——不定态；可空 = 测试装配）：开场即阻断，JoinAck/失败/取消三路收口
             LaunchLoading.Begin(_feedback, "正在进入房间…");
             // 加载面 Back（阻断期取消）必须能打断进房等待：服务只给取消信号，被门控操作自行响应
@@ -100,13 +98,12 @@ namespace LiteGame
             try
             {
                 account = _accounts.Create(host, port, roomId, token, testRoom);
-                battle = account.Battle;
-                _pending = battle;                        // 交给 OnUpdate 驱动泵（握手/收发全靠它推进）
+                _pending = account;                       // 交给 OnUpdate 驱动泵（握手/收发全靠它推进）
 
-                await WaitJoined(battle, linkedCts.Token);
+                await WaitJoined(account, linkedCts.Token);
                 Log.Info("[Battle] joined (JoinAck)", LogTag.Battle);
 
-                _pending = null;                          // 泵交棒给 BattleContext.Tick（不双泵）
+                _pending = null;                          // 泵交棒给对局运行端口（不双泵）
                 LaunchLoading.End();                      // 收场后移交（遮罩不能挡房间页/对局）
                 // 移交所有权：AccountSession 随迁移进 Battle（离场收尾在 Battle；对局场景组也在 Battle 加载）。
                 m.Request(ProcedureId.Battle, new ProcedureArgs(accountSession: account));
@@ -128,17 +125,17 @@ namespace LiteGame
             {
                 LaunchLoading.End();                      // 失败收口（Error 页不能被遮罩挡住）
                 _pending = null;
-                account?.Dispose();                       // 失败收尾（含 BattleClient/传输释放）
+                account?.Dispose();                       // 失败收尾（含连接/传输释放）
                 Fail(m, ex, nameof(RunAsyncCore));
                 m.Request(ProcedureId.Error, new ProcedureArgs(ex));
             }
         }
 
         /// <summary>等 JoinAck（RoomClient 相位 Idle → Connected；超时 = 确定失败态）。</summary>
-        private static UniTask WaitJoined(BattleClient battle, CancellationToken ct)
+        private static UniTask WaitJoined(IMatchJoin join, CancellationToken ct)
             => StageSignal.Wait<JoinAck>(
-                h => battle.Client.OnJoinAck += h,
-                h => battle.Client.OnJoinAck -= h,       // 临时订阅必须退——持久订阅归 BattleContext
+                h => join.Joined += h,
+                h => join.Joined -= h,                   // 临时订阅必须退——持久订阅归对局运行端口
                 alreadyDone: false,
                 ct,
                 timeoutMs: JoinTimeoutMs);

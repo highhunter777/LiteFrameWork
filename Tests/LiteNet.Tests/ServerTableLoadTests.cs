@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.IO;
 using LiteFramework;
@@ -8,6 +8,7 @@ using LiteSim.Tests;
 using RoomServer;
 using RoomServer.Runtime;
 using Xunit;
+using LiteGame.Modules.Config;
 
 namespace LiteNet.Tests
 {

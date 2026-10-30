@@ -7,6 +7,7 @@ using NUnit.Framework;
 using UnityEngine;
 
 using LiteFramework;
+using LiteGame.Modules.Camera;
 
 namespace LiteGame.Tests.EditMode
 {

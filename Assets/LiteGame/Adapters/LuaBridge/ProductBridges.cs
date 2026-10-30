@@ -1,5 +1,6 @@
 using System;
 using XLua; // lint-allow R12：产品桥装订口（框架四门面+产品门面同 env 单源）——本件住 Lua 桥适配器，装配根注入流程端口
+using LiteGame.Modules.Settings;
 
 namespace LiteGame
 {

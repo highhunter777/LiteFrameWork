@@ -1,5 +1,5 @@
 using LiteFramework.Animation;
-using LiteGame.Animation;
+using LiteGame.Modules.Config;
 
 namespace LiteGame
 {

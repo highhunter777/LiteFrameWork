@@ -6,19 +6,21 @@ using LiteFramework;
 using LiteFramework.UI;
 using LiteSim;
 using LiteGame.View;
-using LiteFramework;
 using UnityEngine;
 using UnityEngine.SceneManagement;
-using LiteFramework;
 using LiteGame;
+using LiteGame.Modules.Camera;
+using LiteGame.Modules.Dev;
+using LiteGame.Modules.Input;
+using LiteGame.Modules.Map;
 
 namespace LiteGame
 {
     /// <summary>
     /// 对局流程（**只做编排**）：
-    /// OnEnter 建 <see cref="BattleContext"/>（Match Scope 全套）→ 会话建立后由
-    /// <see cref="IBattleViewGroup"/> 取件并挂视图/输入接线 → 每帧驱动（上下文 + 视图消费者）；
-    /// Ended（主动离场 / 会话失败）→ 逆序收尾（视图 → BattleContext → Match Scope → Account Scope，
+    /// OnEnter 经 <see cref="IBattleRunFactory"/> 建对局运行端口（Match Scope 全套）→ 会话建立后由
+    /// <see cref="IBattleViewGroup"/> 取件并挂视图/输入接线 → 每帧驱动（运行端口 + 视图消费者）；
+    /// Ended（主动离场 / 会话失败）→ 逆序收尾（视图 → 运行端口 → Account Scope，
     /// §6.2 关闭序）→ 回 Main。
     ///
     /// **对局场景组（Rig ＋ 地图）装载与卸载都在本阶段**（加载链修订）：StartGame 到达后加载
@@ -51,20 +53,17 @@ namespace LiteGame
         private readonly IBattleViewGroupFactory _views;   // 视图组工厂（表现层实现；装订根注入）
         private readonly IRoomSessionBridge _roomBridge;   // 房间会话门面装订口（Lua 桥实现；房主开局批）
         private readonly bool _requireCamera;        // 缺相机 = 装配缺口（见 ctor 注释）
-        private readonly IMatchSessionFactory _matchSessions;
+        private readonly IBattleRunFactory _runs;    // 对局运行工厂（会话域产物；流程不构造 Match/Battle 会话）
         private readonly PageFlow _pages;            // 五页页面流（批C-④；可空 = 测试装配不接 UI）
         private readonly ISceneService _scenes;      // 对局场景组加载与卸载（可空 = 测试装配）
         private readonly IMapProvider _maps;         // 地图表（多图批：场景路径查表行 scene 列／离场卸载按表枚举）
         private readonly FeedbackService _feedback;  // 开局入场加载遮罩（可空 = 测试装配不接 UI）
         private readonly LiteGame.IDevSession _devSession;     // 开发会话端口（dev 投影读本局规则；可空 = 测试装配）
 
-        private BattleSession _session;              // 对局聚合（唯一状态所有者：Match 域 + 上下文 + 视图域）
+        private IBattleRun _run;                     // 对局运行端口（会话域实现；流程唯一状态入口）
 
-        /// <summary>视图域（经会话消费——Battle 阶段不直接持有生命周期）。</summary>
-        private IBattleViewGroup _rig => _session?.View;
-
-        /// <summary>对局上下文（经会话消费）。</summary>
-        private BattleContext _context => _session?.Context;
+        /// <summary>视图域（经运行端口消费——Battle 阶段不直接持有生命周期）。</summary>
+        private IBattleViewGroup _rig => _run?.View;
         private ClientScope _account;
         private Scene _sceneBeforeBattle;            // 进场前活动场景（离场还原端点——UnloadBattleScenes 一次性消费）
 
@@ -83,7 +82,7 @@ namespace LiteGame
         public ProcedureBattle(IInputService input, ICameraService camera, IBattleCommands commands,
             IBattleViewGroupFactory views, IRoomSessionBridge roomBridge,
             CancellationToken rootToken = default, bool requireCamera = false,
-            IMatchSessionFactory matchSessions = null, PageFlow pages = null,
+            IBattleRunFactory runs = null, PageFlow pages = null,
             ISceneService scenes = null, IMapProvider maps = null, FeedbackService feedback = null,
             LiteGame.IDevSession devSession = null)
             : base(rootToken)
@@ -94,7 +93,7 @@ namespace LiteGame
             _views = views ?? throw new ArgumentNullException(nameof(views));
             _roomBridge = roomBridge ?? throw new ArgumentNullException(nameof(roomBridge));
             _requireCamera = requireCamera;
-            _matchSessions = matchSessions ?? throw new ArgumentNullException(nameof(matchSessions));
+            _runs = runs ?? throw new ArgumentNullException(nameof(runs));
             _pages = pages;
             _scenes = scenes;
             _maps = maps;
@@ -118,27 +117,25 @@ namespace LiteGame
             {
                 accountSession = accountSession ?? throw new InvalidOperationException("Battle 阶段缺少 AccountSession（必须由 Match 移交）");
                 _account = accountSession.Scope;
-                BattleClient battleClient = accountSession.Battle;
 
                 // 视图域：工厂建视图组（表现层装配点：自有 BattleView 作用域 + 视图根 + 资源取件；缺角色资源＝无角色视图）
                 IBattleViewGroup rig = _views.Create(_account, DevHooks.Current?.CreateBattleOverlay(), DispatchTeleport);
                 await rig.LoadAsync(ct);
 
-                _session = new BattleSession(_matchSessions?.Create(accountSession, accountSession.Rules)
-                    ?? throw new InvalidOperationException("缺少 MatchSessionFactory（完整 DI 装配要求由工厂创建 Match 域）"),
-                    _devSession);
-                _session.AttachView(rig);            // 视图域归会话持有（拆除由 Session 统一逆序）
-                _roomBridge.BindSession(new RoomSessionFace(battleClient));   // 房间会话门面（房主开局批）——页面经 Bridge.room 读房主事实/发提前开局；收尾必摘
+                // 对局运行端口（会话域构造 Match/Battle 会话；流程不认战斗域内部件）
+                _run = _runs.Create(accountSession);
+                _run.AttachView(rig);                // 视图域归运行端口持有（拆除由会话统一逆序）
+                _roomBridge.BindSession(_run.RoomSession);   // 房间会话门面（房主开局批）——页面经 Bridge.room 读房主事实/发提前开局；收尾必摘
                 Log.Info("context-created (Match Scope built)", LogTag.Battle);
 
-                bool started = await WaitStartGameOrEnded(battleClient, _context, ct);   // Sim 就绪 = 视图可建（SimView 要读预测态）
+                bool started = await _run.WaitStartedOrEndedAsync(ct);   // Sim 就绪 = 视图可建（SimView 要读预测态）
                 if (!started)
                 {
                     // 未开局即散场（等待超时/运维关闭/排空——MatchEnded 先于 StartGame 到达）：
                     // 跳过视图建立，经下方 WaitEnded 的 earlyResult 立即收尾（回 Main；房间页由页面流替换回大厅）。
                     Log.Info("room aborted before start (MatchEnded arrived before StartGame)", LogTag.Battle);
                 }
-                else if (_context.Sim != null)
+                else if (_run.HasSimulation)
                 {
                     // 开局入场（加载链修订）：**对局场景组在本阶段、StartGame 之后加载**（Rig ＋ 地图，行键取
                     // JoinAck 权威事实）——本阶段独有装载与卸载（不在 Match 载、避免"未开局即付费"与跨阶段
@@ -146,14 +143,14 @@ namespace LiteGame
                     FeedbackService.LoadingScope entry = _feedback?.BeginLoading("正在进入对局…") ?? default;
                     try
                     {
-                        await LoadBattleScenesAsync(battleClient.Client.MapId, ct);
+                        await LoadBattleScenesAsync(_run.MapId, ct);
                         // 相机缺失 = 装配缺口（场景没配 vcam / 没切到玩法场景）：不静默降级成"跑得动但看不见"
                         // 的对局，在开打前显性失败——vcam 随 Rig 场景，故硬门必须在场景就位之后裁决。
                         if (_requireCamera && !CameraReady())
                             throw new InvalidOperationException(
                                 "对局相机未就绪：场景里没有接上的 CinemachineVirtualCamera"
                                 + "（相机配置归场景——确认已切到配了 vcam 的玩法场景）");
-                        _rig.Attach(_context, openBattleMenu: () => _pages?.OpenBattleSettings());
+                        _run.ActivateView(openBattleMenu: () => _pages?.OpenBattleSettings());
                         _pages?.EnableBattleMenuBack();       // 对局中"ESC＝菜单"（与 HUD 菜单钮同源）
                     }
                     finally { entry.Dispose(); }              // 视图建成才收遮罩；失败路径遮罩一并收（异常走 Error）
@@ -165,17 +162,17 @@ namespace LiteGame
                 }
                 else
                 {
-                    // **StartGame 被拒**（批 E：玩法数据身份不符——`BattleContext` 校验点已 End(SessionFailed)）：
+                    // **StartGame 被拒**（批 E：玩法数据身份不符——运行端口上游已 End(SessionFailed)）：
                     // SimView 构造要读预测态，无 Sim 进 Attach 必炸——按会话失败收尾，不把"数据分叉拒局"变成错误态。
                     // 下面的 WaitEnded 经 earlyResult 立即拿到原因（Ended 已在上游发出）。
                     Log.Warning("StartGame 未建立解读世界（玩法数据身份不符/被拒）——跳过视图建立，按会话失败收尾", LogTag.Battle);
                 }
 
-                BattleContext.EndReason reason = await WaitEnded(_context, ct);
-                Log.Info($"ended reason={reason} reconciles={_context.ReconcileCount}", LogTag.Battle);
-                completed = reason == BattleContext.EndReason.Completed;
-                matchResult = _session.MatchResult;          // 冻结结果（会话聚合读口 → 结算页数据源；批C-④）
-                localPlayerId = _session.PlayerId;
+                BattleRunOutcome outcome = await WaitEnded(_run, ct);
+                Log.Info($"ended reason={outcome} reconciles={_run.ReconcileCount}", LogTag.Battle);
+                completed = outcome == BattleRunOutcome.Completed;
+                matchResult = _run.MatchResult;              // 冻结结果（运行端口读口 → 结算页数据源；批C-④）
+                localPlayerId = _run.PlayerId;
                 next = ProcedureId.Main;              // 会话失败也回 Main（日志已留痕）
             }
             catch (OperationCanceledException)
@@ -190,10 +187,10 @@ namespace LiteGame
             }
             finally
             {
-                // 关闭序（§6.2）：输入接线 → 视图（含租约/实例/消费者）→ BattleContext（Match Scope 一并 Dispose）→ Account Scope
+                // 关闭序（§6.2）：输入接线 → 视图（含租约/实例/消费者）→ 运行端口（Match Scope 一并 Dispose）→ Account Scope
                 DetachView();
-                _session?.Dispose();
-                _session = null;
+                _run?.Dispose();
+                _run = null;
                 accountSession?.Dispose();
                 _account = null;
                 // 收尾卸载对局场景组——**只在宿主关闭时跳过**：该路径的 Scene 行退出动作是"释放资源租约"
@@ -297,35 +294,6 @@ namespace LiteGame
                 .Forget(ex => Log.Warning($"[Battle] 离场卸载场景失败 {location}:{ex.Message}", LogTag.Scene));
 
         /// <summary>
-        /// 等 StartGame，**与对局终止竞速**：等待期房间被服务器中止（等待超时/运维关闭/排空——
-        /// MatchEnded 先于 StartGame 到达）时返回 false，调用方跳过视图建立、经 WaitEnded 的
-        /// earlyResult 立即收尾——不竞速会让流程永远停在"等开局"（房间已销毁，信令永不再来）。
-        /// 两路信号先到先得，败者随 finally 一并退订（<see cref="StageSignal"/> 是单源单事件等待，
-        /// 双源竞速在此就地实现并循同一退订纪律）。
-        /// </summary>
-        private static async UniTask<bool> WaitStartGameOrEnded(BattleClient battle, BattleContext context,
-            CancellationToken ct)
-        {
-            if (battle.Client.HasStartGame && battle.Client.StartGame != null) return true;
-            if (context.EndedReason.HasValue) return false;
-
-            var ready = new UniTaskCompletionSource<bool>();
-            void OnStart(LiteNet.Proto.StartGame _) => ready.TrySetResult(true);
-            void OnEnd(BattleContext.EndReason _) => ready.TrySetResult(false);
-            battle.Client.OnStartGame += OnStart;
-            context.Ended += OnEnd;
-            try
-            {
-                return await ready.Task.AttachExternalCancellation(ct);
-            }
-            finally
-            {
-                battle.Client.OnStartGame -= OnStart;   // 胜者败者一并退——一次性等待不留悬挂订阅
-                context.Ended -= OnEnd;
-            }
-        }
-
-        /// <summary>
         /// 相机是否真的就绪（"有服务"不等于"接上了 vcam"——服务常驻，vcam 随场景）。
         /// **按需解析**：此刻视图还没建立、<see cref="ICameraService.Follow"/> 一次都没调过，
         /// 光读状态必然是"未接线"，所以这里主动让适配器再解析一次（场景可能刚被 Main 切到 TrainingGround）。
@@ -343,12 +311,12 @@ namespace LiteGame
             _roomBridge.UnbindSession();           // 会话门面先摘（页面订阅不得命中死会话——未在途回调随作废）
             _pages?.DisableBattleMenuBack();   // 对局菜单 Back 随视图拆除（ESC 恢复原 Back 链——对局外不得开设置页）
             _input?.Reset();   // 离场即清派发状态（设备源与拦截源都是装配根的，不在此摘）
-            _session?.DetachView();            // 视图域拆除归会话（消费者 → 视图 → 租约作用域）
+            _run?.DetachView();                // 视图域拆除归会话（消费者 → 视图 → 租约作用域）
         }
 
         public override void OnUpdate(IStageHost<ProcedureId, ProcedureArgs> m, float elapseSeconds)
         {
-            if (_context == null) return;
+            if (_run == null) return;
 
             // 主动离场热键（开发入口）：Leave → Ended(Leave) → 收尾回 Main。
             // 离场入口＝UI（ESC → 设置页 → 退出对局），无热键（《UI工作台设计》§5 入口矩阵）；
@@ -357,35 +325,24 @@ namespace LiteGame
             if (_devSession.TakeExitRequest())                                              // GM 面板退出：离场并关模式（读即清）
             {
                 _devSession.SetActive(false);
-                _context.Leave();
+                _run.Leave();
             }
 
-            // Leave() 会在本调用栈内同步走完 Ended → finally 收尾（_context 置空）——
+            // Leave() 会在本调用栈内同步走完 Ended → finally 收尾（_run 置空）——
             // 上面的顶门检过后本帧仍可能已被拆空，此处必须复检，否则本帧余下驱动面读空引用。
-            if (_context == null) return;
+            if (_run == null) return;
 
             // ① 渲染帧采样（上下文门在此裁决：登记源任一成立 → 本帧输入为空，见 IInputService）。
             //    瞄准 = **AimPoint 单口径**（《固定斜视角射击方案专项设计》§3）：设备源把准心射线与
             //    预测世界求交（实体圆柱 → 地面兜底）解出目标点；朝向与弹道两端自该点派生
             //    ——点不读 Yaw ⇒ "Yaw → 枪口 → 方向 → Yaw"闭环自激不存在，锚点选择问题整体消亡。
             //
-            //    **瞄准世界注入（§3）**：设备源要用**同一个 SimRaycast** 把准心射线与实体圆柱求交，
-            //    而世界所有权在流程层——设备源不缓存权威状态（否则是与裁决不同帧的陈旧世界）。
-            //    未对齐（LocalEntityId=0）时按 slot=-1 注入 ⇒ 设备源退化为纯地面点解算（合法退化）。
-            //
             //    采样前的诊断件驱动（自瞄验证件换源）必须**先于采样**——否则自瞄点落后一帧。
             _rig?.TickPreSample();
-            if (_input != null && _context.Sim != null)
-            {
-                // 解析失败一律给 -1（**不可沿用 TryResolve 的 out 值**：失败时它可能是 0，
-                // 而 0 是合法槽位——会让设备源跳过错误的实体）。
-                int localSlot = _context.LocalEntityId != 0
-                    && _context.Sim.State.TryResolve(_context.LocalEntityId, out int resolved) ? resolved : -1;
-                _input.SetAimWorld(_context.Sim.State, localSlot);
-                _input.SampleOnRenderFrame(_context.LocalPosition);
-            }
 
-            _context.Tick(elapseSeconds);         // ② 网络双泵 + 输入上行 + 预测推进 + 表现视图（唯一驱动入口）
+            // ② 运行端口推进：瞄准世界注入 → 输入采样 → 网络双泵/上行/预测/表现视图（唯一驱动入口）。
+            //    世界所有权归运行端口——设备源不缓存权威状态（否则是与裁决不同帧的陈旧世界）。
+            _run.Tick(elapseSeconds, _input);
             _rig?.Tick(elapseSeconds);            // ③ 视图消费者（动画/准心/HUD/激光/飘字/瞄准相机）——权威已应用
 
             if (_devSession.TakeTeleportRequest())                // 开发形态传送：入队命令（帧边界派发 + 可撤销；读即清）
@@ -406,11 +363,11 @@ namespace LiteGame
         }
 
         /// <summary>等对局结束（Ended 恰好一次；ct 打断 = 宿主关闭路径）。</summary>
-        private static UniTask<BattleContext.EndReason> WaitEnded(BattleContext context, CancellationToken ct)
-            => StageSignal.WaitValue<BattleContext.EndReason>(
-                h => context.Ended += h,
-                h => context.Ended -= h,
-                earlyResult: () => context.EndedReason,
+        private static UniTask<BattleRunOutcome> WaitEnded(IBattleRun run, CancellationToken ct)
+            => StageSignal.WaitValue<BattleRunOutcome>(
+                h => run.Ended += h,
+                h => run.Ended -= h,
+                earlyResult: () => run.Outcome,
                 ct);
     }
 }

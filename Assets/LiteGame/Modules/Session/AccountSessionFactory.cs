@@ -1,6 +1,7 @@
 using System;
 using LiteFramework;
 using LiteFramework;
+using LiteNet.Proto;
 using LiteNet.Transport;
 
 namespace LiteGame
@@ -27,11 +28,24 @@ namespace LiteGame
     /// 移交给 Battle 流程后由其收尾：<see cref="Dispose"/> 释放 Account Scope（资源域 LIFO——
     /// BattleClient 先于服务域释放）；服务域已作为同步资源登记进 Scope，随 Scope 一并释放。
     /// </summary>
-    public sealed class AccountSession : IDisposable
+    public sealed class AccountSession : IMatchJoin, IDisposable
     {
         public ClientScope Scope { get; }
         public ServiceContainer Services { get; }
         public BattleClient Battle { get; }
+
+        /// <summary>JoinAck 到达（进房阶段经端口等待；透传 BattleClient 客户端事件）。</summary>
+        public event Action<JoinAck> Joined
+        {
+            add => Battle.Client.OnJoinAck += value;
+            remove => Battle.Client.OnJoinAck -= value;
+        }
+
+        /// <summary>推进接收泵（KCP 握手与收包；进房阶段由流程段每帧驱动）。</summary>
+        public void TickIncoming() => Battle.TickIncoming();
+
+        /// <summary>推进发送泵（KCP 发包；进房阶段由流程段每帧驱动）。</summary>
+        public void TickOutgoing() => Battle.TickOutgoing();
 
         /// <summary>本地测试模式/本地房标记（进房入口带入；**每局规则**用——`MatchTestRules` 免死/无限子弹
         /// 的入口语义）。多图批后**不再承担地图选行**：本局地图行键以 JoinAck 权威事实为准

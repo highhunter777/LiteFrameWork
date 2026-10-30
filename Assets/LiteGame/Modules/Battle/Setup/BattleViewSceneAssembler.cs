@@ -1,13 +1,15 @@
 using System;
 using LiteFramework;
 using LiteFramework.Animation;
-using LiteGame.Animation;
 using LiteSim;
 using LiteGame.View;
 using LiteGame.View.Animation;
 using UnityEngine;
 using LiteFramework;
 using LiteGame;
+using LiteGame.Modules.Camera;
+using LiteGame.Modules.Config;
+using LiteGame.Modules.Input;
 
 namespace LiteGame
 {

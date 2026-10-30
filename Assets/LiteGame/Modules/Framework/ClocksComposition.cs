@@ -1,9 +1,9 @@
-using System.Threading;
+﻿using System.Threading;
 using Cysharp.Threading.Tasks;
 using LiteFramework;
 using LiteFramework.UI;
 
-namespace LiteGame
+namespace LiteGame.Modules.Framework
 {
     /// <summary>⑦ 时钟域：双轨时钟分域（逻辑轨受时停/变速，UI 轨不受）+ 墙钟。
     ///

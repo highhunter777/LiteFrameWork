@@ -1,6 +1,6 @@
-using UnityEngine;
+﻿using UnityEngine;
 
-namespace LiteGame
+namespace LiteGame.Modules.Camera
 {
     /// <summary>
     /// TPS 相机视角数学（纯函数）：视角状态 → Cinemachine POV 轴角、恒定臂长俯仰弧、视线方向。

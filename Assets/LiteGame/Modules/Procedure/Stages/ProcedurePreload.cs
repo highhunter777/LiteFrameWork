@@ -4,6 +4,9 @@ using Cysharp.Threading.Tasks;
 using LiteFramework;
 using LiteFramework;
 using LiteFramework.UI;
+using LiteGame.Modules.Config;
+using LiteGame.Modules.Framework;
+using LiteGame.Modules.Ui;
 
 namespace LiteGame
 {
@@ -80,7 +83,7 @@ namespace LiteGame
                 // ---- 模态登记（配置已装载——表驱动反查单源；装配期查表必抛，见 ContainerModule 注）----
                 // 设置页模态要在**任何打开路径**（登录/大厅/结算/对局菜单；Lua 直开与 PageFlow 两条链）之前全局注册，
                 // 故落在放行闸口而非页面流内部。
-                int settingsFormId = UI.UiPageResolver.Resolve(LuaKeys.UI.Page_Settings);
+                int settingsFormId = UiPageResolver.Resolve(LuaKeys.UI.Page_Settings);
                 if (settingsFormId >= 0) _ui.RegisterModal(settingsFormId);
                 else Log.Error($"模态登记失败：生成页面目录未登记 '{LuaKeys.UI.Page_Settings}'", LogTag.UI);
 

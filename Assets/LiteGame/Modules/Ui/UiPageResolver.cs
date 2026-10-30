@@ -1,7 +1,7 @@
-using System;
+﻿using System;
 using LiteFramework.UI;
 
-namespace LiteGame.UI
+namespace LiteGame.Modules.Ui
 {
     /// <summary>
     /// lua_path → 页面 id（生成页面目录反查，未登记返回 -1）。

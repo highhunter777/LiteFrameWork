@@ -6,6 +6,13 @@ using LiteFramework;
 using LiteGame.View;
 using UnityEngine;
 using LiteFramework.UI;
+using LiteGame.Modules.Camera;
+using LiteGame.Modules.Config;
+using LiteGame.Modules.Dev;
+using LiteGame.Modules.Framework;
+using LiteGame.Modules.Input;
+using LiteGame.Modules.Map;
+using LiteGame.Modules.Settings;
 
 namespace LiteGame
 {

@@ -4,6 +4,7 @@ using LiteSim;
 using NUnit.Framework;
 using LiteFramework;
 using LiteGame;
+using LiteGame.Modules.Input;
 
 namespace LiteGame.Tests.EditMode
 {

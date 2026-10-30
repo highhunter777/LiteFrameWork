@@ -1,8 +1,8 @@
-using System;
+﻿using System;
 using LiteSim;
 using Xunit;
 using LiteFramework;
-using LiteGame;
+using LiteGame.Modules.Input;
 
 namespace LiteSim.Tests
 {

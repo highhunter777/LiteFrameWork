@@ -5,7 +5,7 @@
   "status": "active",
   "current_stage": "implement",
   "created_at": "2026-10-30T19:40:28+08:00",
-  "updated_at": "2026-10-31T00:37:27+08:00",
+  "updated_at": "2026-10-31T02:36:22+08:00",
   "completed_at": null,
   "completed_stages": [
     {
@@ -257,12 +257,12 @@
       "deps": [
         "T7"
       ],
-      "status": "doing",
-      "evidence": "",
+      "status": "done",
+      "evidence": "批5 3/3：A24 IBattleRun/IBattleRunFactory/IMatchJoin 端口化 Procedure（ProcedureBoundaryTests 2/2）；A25 8 共享域 LiteGame.Modules.<域>（DomainBoundaryTests 5/5 先红后绿）；A26 BattleRankOrder 单源 + 一致性 1/1；A27 CameraAimBlendGate/Driver + CameraBlendDefaults + 黄金值 6/6；A28 domain-matrix 脚本/说明18/命令 + 12×12 矩阵；打包 12 域（Product/Recovery→Procedure、Hosting→Dev）。验证：Unity 0 错；L1 1921 PASS；BattleSmoke 1/1；BuildHash shared=cf3c3453057b28a4；doc-lint 0。",
       "status_reason": "",
       "created_at": "2026-10-30T21:15:52+08:00",
       "started_at": "2026-10-31T00:37:27+08:00",
-      "completed_at": null
+      "completed_at": "2026-10-31T02:34:49+08:00"
     },
     {
       "id": "T9",
@@ -277,12 +277,12 @@
       "deps": [
         "T8"
       ],
-      "status": "todo",
-      "evidence": "",
+      "status": "done",
+      "evidence": "文档回写：说明 02/14/17/18/README、规范 03、框架总设计/设置专项、技术债、进度卷第18章、test-plan（A30 新域步骤+命名空间/矩阵）；门禁实测：L1 1921 PASS、doc-lint 0/0、doc-lane PASS、restore PASS、l0 6/6、toolchain-tests exit0、toolchain-check OK（1 既有 warning）、toolchain-docs-check OK、l2-meta 14618 meta 合法、domain-matrix OK；BuildHash shared=cf3c3453057b28a4。未跑全量 wf verify（59 条，含全量 PlayMode）；已知余项见 build-log 未决。",
       "status_reason": "",
       "created_at": "2026-10-30T21:15:53+08:00",
-      "started_at": null,
-      "completed_at": null
+      "started_at": "2026-10-31T02:36:04+08:00",
+      "completed_at": "2026-10-31T02:36:22+08:00"
     }
   ],
   "verification": null,

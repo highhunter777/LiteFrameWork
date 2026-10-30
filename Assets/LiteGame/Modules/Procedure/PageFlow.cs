@@ -3,6 +3,8 @@ using Cysharp.Threading.Tasks;
 using LiteFramework;
 using LiteFramework.UI;
 using LiteFramework;
+using LiteGame.Modules.Settings;
+using LiteGame.Modules.Ui;
 using XLua; // lint-allow R12：页面数据表（LuaUIData，模块层包装）与结算数据构造点在流程侧——与 MetaBridge/ProductSettings 同判据（模块自持 Lua 门面形）
 
 namespace LiteGame
@@ -89,9 +91,9 @@ namespace LiteGame
         public void CloseRoomIfOpen() => CloseIfOpen(LuaKeys.UI.Page_Room);
 
         /// <summary>
-        /// 对局结束（BattleContext.Ended）：正常结束（Completed + 冻结结果在）→ 结算页（带本局结果）；
+        /// 对局结束（对局运行端口 Ended）：正常结束（Completed + 冻结结果在）→ 结算页（带本局结果）；
         /// 失败/主动离场 → **回大厅**（"断开 + 返回大厅"）。回大厅不依赖房间页是否还开着：
-        /// 对局中房间页已随开局关闭，会话失败（RoomClient Failed → BattleContext SessionFailed）后
+        /// 对局中房间页已随开局关闭，会话失败（RoomClient Failed → 运行端口 SessionFailed）后
         /// 若无页面可回，玩家会停在 Main 的空栈上——故空栈也开大厅；dev 直入（Landing.None）无大厅语境，不强行开。
         /// </summary>
         public void OnMatchEnded(bool completed, LiteNet.Proto.MatchEnded result, int localPlayerId)
@@ -222,7 +224,7 @@ namespace LiteGame
         /// <summary>lua_path → id；未登记 = 装配错误（表漏登记）→ 错误日志 + 跳过（不炸流程）。</summary>
         private static bool TryResolve(string luaPath, string method, out int id)
         {
-            id = UI.UiPageResolver.Resolve(luaPath);
+            id = UiPageResolver.Resolve(luaPath);
             if (id < 0) Log.Error($"PageFlow.{method}: 未登记的 lua_path '{luaPath}'（核对生成页面目录）", LogTag.UI);
             return id >= 0;
         }

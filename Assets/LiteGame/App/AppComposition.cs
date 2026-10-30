@@ -2,8 +2,13 @@ using System;
 using Cysharp.Threading.Tasks;
 using LiteFramework;
 using LiteFramework.UI;
-using LiteGame.UI;
 using UnityEngine;
+using LiteGame.Modules.Camera;
+using LiteGame.Modules.Config;
+using LiteGame.Modules.Dev;
+using LiteGame.Modules.Input;
+using LiteGame.Modules.Settings;
+using LiteGame.Modules.Ui;
 
 namespace LiteGame
 {

@@ -1,8 +1,8 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using LiteFramework;
 
-namespace LiteGame
+namespace LiteGame.Modules.Settings
 {
     /// <summary>
     /// 图形覆盖档（图形设置）：渲染缩放 / 抗锯齿 / 阴影三组允许值 + 阴影档参数，单源。

@@ -1,8 +1,8 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using LiteFramework.Animation;
 
-namespace LiteGame.Animation
+namespace LiteGame.Modules.Config
 {
     /// <summary>
     /// 动画 Profile 行读口（客户端单世界便捷读，同 <c>CombatConfig</c>/<c>WeaponConfig</c> 家族）：

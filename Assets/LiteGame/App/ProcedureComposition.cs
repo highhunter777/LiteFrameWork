@@ -4,8 +4,12 @@ using System.Threading;
 using Cysharp.Threading.Tasks;
 using LiteFramework;
 using LiteFramework.UI;
-using LiteGame.UI;
 using LiteGame.View;
+using LiteGame.Modules.Camera;
+using LiteGame.Modules.Config;
+using LiteGame.Modules.Input;
+using LiteGame.Modules.Map;
+using LiteGame.Modules.Ui;
 
 namespace LiteGame
 {
@@ -39,12 +43,12 @@ namespace LiteGame
             LuaComponent lua = context.Require<LuaComponent>();
             UIService ui = context.Require<UIService>();
             UINavigationController nav = context.Require<UINavigationController>();
-            MetaEntryService metaEntry = context.Require<MetaEntryService>();
+            IAccountSessionControl accountControl = context.Require<IAccountSessionControl>();
 
             // 页面流（入口/开局关房/结算三处流程×页面接缝）
             var pageFlow = new PageFlow(nav, ui, lua);
             // 账号重入单点（登录失效 → 清登录态 → 在途对局回 Main → 登录页）；Bridge.meta 是唯一调用方
-            context.Put<IAccountReentry>(new AccountReentry(metaEntry, pageFlow));
+            context.Put<IAccountReentry>(new AccountReentry(accountControl, pageFlow));
 
             // Lua 桥装订口：房间会话门面与产品桥共用同一实例（实现住 Adapters.LuaBridge，本段只经接口）
             var (roomBridge, productBridge) = _createBridges();
@@ -56,7 +60,7 @@ namespace LiteGame
                 new AppRecoveryActions(cache: context.Require<IContentCacheMaintenance>()));
             context.Put(recovery);
 
-            var machine = CreateMachine(context, pageFlow, metaEntry, recovery, productBridge, roomBridge);
+            var machine = CreateMachine(context, pageFlow, context.Require<IMetaConfigFacts>(), recovery, productBridge, roomBridge);
             context.Put(machine);
             // 联机入口只认流程端口（不回看阶段机/阶段参数类型）
             context.Put<IAppFlow>(new ProcedureFlow(machine));
@@ -67,7 +71,7 @@ namespace LiteGame
 
         /// <summary>阶段表（注册序之外的第二道显式拼装面）：每阶段只吃端口/阶段实例。</summary>
         private static StageMachine<ProcedureId, ProcedureArgs> CreateMachine(ModuleContext context,
-            PageFlow pageFlow, MetaEntryService metaEntry, ErrorRecoveryService recovery,
+            PageFlow pageFlow, IMetaConfigFacts metaFacts, ErrorRecoveryService recovery,
             ILuaProductBridge productBridge, IRoomSessionBridge roomBridge)
         {
             IContentService content = context.Require<IContentService>();
@@ -84,7 +88,7 @@ namespace LiteGame
                 (ProcedureId.Preload, new ProcedurePreload(content, config, context.Require<LuaComponent>(), filler,
                     productBridge, context.Require<EventBus>(), context.Require<UIService>(),
                     () => ListLuaAssetPaths(content), rootToken, context.Require<FeedbackService>())),
-                (ProcedureId.Main, new ProcedureMain(rootToken, pageFlow, metaEntry,
+                (ProcedureId.Main, new ProcedureMain(rootToken, pageFlow, metaFacts,
                     dev: context.Require<IDevSession>())),
                 (ProcedureId.Match, new ProcedureMatch(context.Require<IAccountSessionFactory>(),
                     context.Require<FeedbackService>(), rootToken)),
@@ -92,7 +96,7 @@ namespace LiteGame
                     context.Require<ICameraService>(), context.Require<IBattleCommands>(),
                     context.Require<IBattleViewGroupFactory>(), roomBridge,
                     rootToken, requireCamera: true,
-                    matchSessions: context.Require<IMatchSessionFactory>(),
+                    runs: context.Require<IBattleRunFactory>(),
                     pages: pageFlow,
                     scenes: context.Require<ISceneService>(),          // 开局入场加载 / 离场卸载对局场景组
                     maps: context.Require<IMapProvider>(),              // 多图批：场景路径查表行 scene 列 / 按表枚举

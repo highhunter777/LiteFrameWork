@@ -5,6 +5,7 @@ using LiteFramework;
 using LiteFramework.UI;
 using UnityEngine;
 using XLua;
+using LiteGame.Modules.Ui;
 
 namespace LiteGame
 {

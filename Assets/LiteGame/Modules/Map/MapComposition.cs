@@ -1,8 +1,9 @@
 using System.Threading;
 using Cysharp.Threading.Tasks;
 using LiteFramework;
+using LiteGame.Modules.Config;
 
-namespace LiteGame
+namespace LiteGame.Modules.Map
 {
     /// <summary>⑫ 地图：地图提供者（已装载表链 → 判定图，两端同源投影）。只提供能力，不含业务。</summary>
     public sealed class MapComposition : IClientModule, IClientModuleGraph

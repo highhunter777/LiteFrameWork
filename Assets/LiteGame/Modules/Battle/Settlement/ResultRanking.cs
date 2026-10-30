@@ -40,41 +40,31 @@ namespace LiteGame
             int n = players.Count;
             var rows = new Row[n];
             var entityIds = new long[n];
+            var kills = new int[n];
             for (int i = 0; i < n; i++)
             {
                 PlayerMatchResult p = players[i];
                 entityIds[i] = p.EntityId;
+                kills[i] = p.Kills;
                 rows[i] = new Row(p.PlayerId, 0,
                     PlayerIdentity.PlaceholderNameFor(PlayerIdentity.OrdinalOfRows(players, p.EntityId)),
                     p.Kills, p.Deaths);
             }
 
-            // 全序：击杀降序 → EntityId 升序（插入排序——名单小，零比较器分配）
-            for (int i = 1; i < n; i++)
-            {
-                Row row = rows[i];
-                long id = entityIds[i];
-                int j = i - 1;
-                while (j >= 0 && (rows[j].Kills < row.Kills
-                        || (rows[j].Kills == row.Kills && entityIds[j] > id)))
-                {
-                    rows[j + 1] = rows[j];
-                    entityIds[j + 1] = entityIds[j];
-                    j--;
-                }
-                rows[j + 1] = row;
-                entityIds[j + 1] = id;
-            }
-
-            // 名次：1 + 击杀严格大于本行者数（并列同名次）
+            // 全序与名次走单一实现（与局内排行榜共用 BattleRankOrder）。
+            var order = new int[n];
+            BattleRankOrder.SortDisplay(n, entityIds, kills, order);
+            var sorted = new Row[n];
+            var sortedKills = new int[n];
             for (int i = 0; i < n; i++)
             {
-                int better = 0;
-                for (int k = 0; k < n; k++)
-                    if (rows[k].Kills > rows[i].Kills) better++;
-                rows[i] = new Row(rows[i].PlayerId, better + 1, rows[i].Name, rows[i].Kills, rows[i].Deaths);
+                sorted[i] = rows[order[i]];
+                sortedKills[i] = sorted[i].Kills;
             }
-            return rows;
+            for (int i = 0; i < n; i++)
+                sorted[i] = new Row(sorted[i].PlayerId, BattleRankOrder.RankAt(i, sortedKills),
+                    sorted[i].Name, sorted[i].Kills, sorted[i].Deaths);
+            return sorted;
         }
     }
 }

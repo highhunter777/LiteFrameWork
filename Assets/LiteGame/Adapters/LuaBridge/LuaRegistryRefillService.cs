@@ -5,6 +5,7 @@ using Cysharp.Threading.Tasks;
 using LiteFramework;
 using LiteFramework;
 using LiteFramework.UI;
+using LiteGame.Modules.Config;
 
 namespace LiteGame
 {

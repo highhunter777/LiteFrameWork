@@ -1,8 +1,8 @@
-using System;
+﻿using System;
 using System.IO;
 using LiteFramework;
 using LiteSim;
-using LiteGame;
+using LiteGame.Modules.Config;
 
 namespace RoomServer
 {

@@ -1,10 +1,10 @@
-using System.Threading;
+﻿using System.Threading;
 using Cysharp.Threading.Tasks;
 using LiteFramework;
 using LiteFramework;
 using UnityEngine;
 
-namespace LiteGame
+namespace LiteGame.Modules.Settings
 {
     /// <summary>③ 设置：加载玩家偏好（先于容器——UI/音频服务注册时就要读）；退出前保存（《客户端总设计》§6.1 刷新钩子语义）。
     /// 平台差异（帧率档默认值）在此用运行时查询传入 <see cref="GameSettings"/>，数据层不做平台分支（R15）。</summary>

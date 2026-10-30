@@ -9,7 +9,7 @@
     { "id": "debug", "title": "调试与诊断", "order": 30, "docs": "Docs/设计文档/架构/GM与调试工具分层专项设计.md", "allowDocs": ["Docs/说明/11-构建与本地联测.md", "Docs/说明/13-调试面与排障.md"] },
     { "id": "codegen", "title": "代码生成", "order": 40, "docs": "Docs/设计文档/架构/生成器工具箱专项设计.md", "allowDocs": ["Docs/说明/14-代码地图与根目录.md", "Docs/说明/11-构建与本地联测.md", "Docs/设计文档/客户端/UI系统/UI编辑器工具链专项设计.md"] },
     { "id": "deploy", "title": "部署与云运维", "order": 45, "docs": "Docs/说明/12-云侧部署与联机测试.md", "allowDocs": ["Docs/说明/12-云侧部署与联机测试.md"] },
-    { "id": "quality", "title": "质量门禁", "order": 50, "docs": "Docs/说明/10-测试与门禁.md", "allowDocs": ["Docs/规范/03-领域查询表.md", "Docs/说明/15-工具链手册.md"] },
+    { "id": "quality", "title": "质量门禁", "order": 50, "docs": "Docs/说明/10-测试与门禁.md", "allowDocs": ["Docs/规范/03-领域查询表.md", "Docs/说明/15-工具链手册.md", "Docs/说明/18-域间引用矩阵.md"] },
     { "id": "build", "title": "构建", "order": 60, "docs": "Docs/说明/10-测试与门禁.md" },
     { "id": "content", "title": "内容发布", "order": 65, "docs": "Docs/设计文档/客户端/内容/资源收集目录专项设计.md" },
     { "id": "env", "title": "环境与索引", "order": 70, "docs": "Docs/说明/15-工具链手册.md", "allowDocs": ["Docs/说明/10-测试与门禁.md", "Docs/说明/16-环境复原与机器差异.md", "Docs/说明/11-构建与本地联测.md", "Docs/说明/15-工具链手册.md", "Docs/设计文档/测试与性能/调试与开发工具链演进路线图.md"] }
@@ -80,7 +80,7 @@
       "destructive": false,
       "order": 40,
       "outputs": [
-        { "path": "Assets/LiteGame/Modules/View/Animation/GripBake.g.cs", "kind": "generated" }
+        { "path": "Assets/LiteGame/Modules/Battle/Characters/GripBake.g.cs", "kind": "generated" }
       ],
       "safety": { "dryRun": "supported", "undo": "file", "confirmation": "none" }
     },
@@ -625,7 +625,7 @@
         { "path": "Assets/GameData/Generated/", "kind": "generated" },
         { "path": "Assets/GameData/Config/", "kind": "data" },
         { "path": "Assets/LiteGame/Lua/Cfg/", "kind": "data" },
-        { "path": "Assets/LiteGame/Adapters/LuaBridge/Generated/LuaKeys.g.cs", "kind": "generated" }
+        { "path": "Assets/LiteGame/Modules/Ui/Generated/LuaKeys.g.cs", "kind": "generated" }
       ],
       "destructive": false,
       "order": 30
@@ -783,6 +783,20 @@
       ],
       "destructive": false,
       "order": 20
+    },
+    {
+      "id": "quality.domain-matrix",
+      "title": "域间引用矩阵",
+      "category": "quality",
+      "kind": "gate",
+      "plane": "external",
+      "purpose": "delivery",
+      "summary": "Modules 顶层 12 域直引计数；--check 与 Docs/说明/18 不一致即红。",
+      "docs": "Docs/说明/18-域间引用矩阵.md",
+      "command": ["python", "scripts/gate/domain-matrix.py", "--check"],
+      "writes": ["none"],
+      "destructive": false,
+      "order": 25
     },
     {
       "id": "quality.l2",

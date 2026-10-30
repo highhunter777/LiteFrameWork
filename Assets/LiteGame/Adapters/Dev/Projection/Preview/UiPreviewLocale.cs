@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using LiteFramework;
 using LiteFramework;
+using LiteGame.Modules.Config;
 
 namespace LiteGame
 {

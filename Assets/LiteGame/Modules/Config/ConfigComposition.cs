@@ -1,9 +1,9 @@
-using System;
+﻿using System;
 using System.Threading;
 using Cysharp.Threading.Tasks;
 using LiteFramework;
 
-namespace LiteGame
+namespace LiteGame.Modules.Config
 {
     /// <summary>⑩ 配置：表投影数据源（页面目录生成物/注册表填充依赖）。字节通道经 ④内容服务租约
     /// （代次/引用统一——提取 bytes 即释放源资产，热更专项 §9）；候选校验→原子发布见 <see cref="ConfigService"/>。

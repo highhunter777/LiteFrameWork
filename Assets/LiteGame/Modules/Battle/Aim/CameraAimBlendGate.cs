@@ -1,20 +1,20 @@
-namespace LiteGame
+﻿﻿namespace LiteGame
 {
     /// <summary>
-    /// 瞄准态滞回门（最小保持宽度）：喂原始瞄准位与帧间隔，输出门控后的瞄准态。
+    /// 相机瞄准混合门（最小保持宽度）：喂"玩家原始瞄准位"与帧间隔，输出**相机混合位**。
     ///
-    /// 语义（频繁点按 ADS 会反复重启相机混合——输入侧滞回治理）：
+    /// 这是**相机混合语义**，不是玩家瞄准事实（原始位由 Sim/设备源给出）：频繁点按 ADS 会反复重启
+    /// 相机混合——输入侧用滞回治理：
     /// - **上升沿立即生效**（按下即瞄准，不加延迟）；
     /// - **下降沿按时长分治**——瞄准持续 ≥ 最小保持宽度 → 释放立即生效（长按手感不变）；
     ///   不足 → 推迟到满宽度（短按也得到一次完整摆动，不再半途折返）；
     /// - **推迟窗口内再按 → 取消推迟重新武装**（连点期间瞄准持续，相机不随点按来回翻转；
     ///   点按停止后，窗口走完自然释放）。
     ///
-    /// 宽度与 Cinemachine Brain 的 DefaultBlend（EaseInOut 0.3s）对齐：每个摆动至少完整
-    /// 走完一次混合，点按频率再高也只有一次混合在跑——"从中间态重启混合"的振荡由此消除。
-    /// dt 由调用方注入（FSM OnUpdate 的 elapseSeconds），本类不读时钟（确定性可测）。
+    /// 宽度取相机侧常量 <see cref="CameraBlendDefaults.AimBlendSeconds"/>（与 Cinemachine Brain 的
+    /// DefaultBlend/EaseInOut 对齐）——本类不读时钟（dt 由调用方注入，确定性可测）。
     /// </summary>
-    public sealed class AimHoldGate
+    public sealed class CameraAimBlendGate
     {
         private readonly float _minHoldSeconds;
         private float _onSeconds;          // 本轮按下的持续时长（**每个上升沿清零**——连点的累计时长不得
@@ -23,10 +23,10 @@ namespace LiteGame
         private bool _held;                // 门控后的瞄准态
         private bool _prevRaw;             // 上一帧原始位（上升沿检测）
 
-        public AimHoldGate(float minHoldSeconds)
+        public CameraAimBlendGate(float minHoldSeconds)
             => _minHoldSeconds = minHoldSeconds < 0f ? 0f : minHoldSeconds;
 
-        /// <summary>喂一帧：原始瞄准位（Sim 预测态）+ 帧间隔，返回门控后的瞄准态。</summary>
+        /// <summary>喂一帧：原始瞄准位（Sim 预测态）+ 帧间隔，返回门控后的相机混合位。</summary>
         public bool Feed(bool rawAiming, float deltaSeconds)
         {
             if (rawAiming && !_prevRaw) _onSeconds = 0f;   // 上升沿：新一轮按下，按持续时长从零起算

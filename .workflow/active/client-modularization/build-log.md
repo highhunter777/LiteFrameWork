@@ -31,6 +31,9 @@
 - 2026-10-31T00:16:16+08:00 · 开始任务 T7「批4 组合根与 Container 拆解」
 - 2026-10-31T00:31:09+08:00 · 完成任务 T7 · 证据: A15：ContainerModule 删除（不再是 IClientModule）；GameEntry 18 段全序（①PI ②Camera ③Identity ④DevSession ⑤Content ⑥Settings ⑦Events ⑧Clocks ⑨Schedulers ⑩LuaHost ⑪Config ⑫M…
 - 2026-10-31T00:37:27+08:00 · 开始任务 T8「批5 外层域边界收口」
+- 2026-10-31T02:34:49+08:00 · 完成任务 T8 · 证据: 批5 3/3：A24 IBattleRun/IBattleRunFactory/IMatchJoin 端口化 Procedure（ProcedureBoundaryTests 2/2）；A25 8 共享域 LiteGame.Modules.<域>（DomainBoundaryTests 5/5 先红后绿）；A26 B…
+- 2026-10-31T02:36:04+08:00 · 开始任务 T9「全批 文档回写与收尾」
+- 2026-10-31T02:36:22+08:00 · 完成任务 T9 · 证据: 文档回写：说明 02/14/17/18/README、规范 03、框架总设计/设置专项、技术债、进度卷第18章、test-plan（A30 新域步骤+命名空间/矩阵）；门禁实测：L1 1921 PASS、doc-lint 0/0、doc-lane PASS、restore PASS、l0 6/6、toolchain-…
 
 ## 关键决定
 
@@ -59,6 +62,11 @@
 - **批 2：HUD 读模型构造上移到 `BattleViewRig`**（`BattleHudAssembler` 只接 `IBattleReadModel` 实例）。`Presentation/Battle/Hud` 与 `Presentation/Hud` 合并进 `Battle/Hud` 后，装配器落进 `PresentationReadModelGuardTests` 的扫描面：它当时用 `Func<SimWorldState>` 现场 `new BattleReadModel(...)`，等于出现"第二个翻译点"。把构造留给装配点（Rig，本来就持 `SimView`）后，守卫基线仍是"唯一翻译点 = BattleReadModel.cs"，不需要加例外（守卫只减不增）。
 - **批 2：越肩几何判据的参照系用相机视线水平轴**（不是角色 `transform.forward`）。实测该角色 prefab 的模型朝向轴是 +X（不是 +Z），用 `forward` 当"身后"方向会把 20° 肩偏读成 155°（首跑即红）。判据改为"相机在角色身后、相对视线轴横向偏出 15°~45° 且在右侧"——与场景 vcam 的 `FollowOffset` 解耦，也不绑定美术朝向约定。
 
+- **批 5 命名空间口径**：8 个共享能力域各自 `LiteGame.Modules.<域>`（Camera/Config/Dev/Framework/Input/Map/Settings/Ui）；业务域 Battle/Meta/Session 与应用壳 Procedure 仍住 `LiteGame`——业务域靠程序集（Battle）与 `DomainBoundaryTests`/矩阵约束，不强行改命名空间以缩小本批爆炸半径。测试守卫先红（51 个文件全部报错）后绿（5/5）。
+- **A24 战斗流程端口拆两层**：`IBattleRun`（StartGame 等待/Ended/原因/结果/席位/每帧驱动/离场）由 `BattleSession` 实现、`IBattleRunFactory` 由会话段产出；进房另立 `IMatchJoin`（JoinAck/收发泵）。流程段因此不认 `BattleClient`/`BattleContext`/`RoomSessionFace`；`ProcedureBoundaryTests` 用代码区扫描钉住。
+- **Meta 端口注册在 Meta 段**：`MetaComposition` 同时 `Put<IAccountSessionControl>`/`Put<IMetaConfigFacts>`，`ProcedureComposition` 只取端口——避免"App 组合根替 Meta 注册"的隐式所有权。
+- **域间矩阵是文档门禁，不是引用禁止表**：`domain-matrix.py` 统计代码区顶层类型引用次数并渲染 `Docs/说明/18`；`--check` 只判过期。允许边在脚本 `ALLOWED_EDGES` 单源，计数异常/新增边靠评审与人工登记（机械的"未登记边即红"留待后续）。
+
 ## 偏差与处理
 
 - **段位置：18 段中 16 个住 `Modules/**`，Ui 段（`App/UiServiceModule.cs`）与流程段（`App/ProcedureComposition.cs`）仍在 App**。
@@ -86,27 +94,50 @@
 - **批 2 冒烟二跑：只剩"自然寿命"级别的残留**（火光/弹着按 2~5s 寿命慢慢退）——A12 要求离场 ≤2s 归零，故补**归属人回收面**：`IVFXService.Play/PlayAt` 增可选 `owner`、`StopAll(object owner)`；`BattleMuzzleFlashDriver`/`BattleImpactFxDriver`/`BattleRemoteMuzzleFlashDriver` 以自己的 `this` 为归属人播放，`Dispose` 时 `StopAll(this)` 一次收回。回归用例：`VFX_按归属人整体收回_不影响无归属与他人`；`BattleCombatFxEditModeTests.Dispose后…` 增断言"两个驱动各按归属人收回一次"。
 - **批 2 冒烟三跑：VFX 归零后卡在 `AudioService.VoiceCount == 1`**（分组快照 Effect=0/4，即实际没有在播）。根因：`_voices` 的键表只在 `Shutdown` 清空，代理解绑/停止后键仍挂账 → `VoiceCount`（在册同源 voice 数）恒 ≥1。修法：`ReleaseProxy` 与 `Configure`（代理易主）两处调 `ForgetVoicesOf` 摘键；`BattleAudioDriver` 记录自己登记的同源 voice 句柄，`Dispose` 逐个 `Stop`。回归：`BattleAudioDriverEditModeTests` 4/4 保持绿。
 - **Boot 冒烟发现 `checksum-mismatch` 诊断包**（`[Battle] 诊断现场包已落盘: …-checksum-mismatch-…`，2026-10-30 本地测试房）：本批只改装配与端口、未触判定与协议，判为既有行为，**本批不处理**；批 2 冒烟时对照是否复现。
+- **`Tests/LiteNet.Tests.csproj` 源链接未随批 5 会话搬迁**：仍指向 `Modules/Procedure/Session/`，L1 首跑 CS2001。修为 `Modules/Session/` 并补 `IMatchJoin.cs` 链接（AccountSession 实现端口）。教训：目录搬动后 `Tests.slnx`/`*.csproj` 源链接必须逐条核对。
+- **共享域命名空间迁移的批量工具副作用**：首轮脚本按"类型名出现在文件任意位置"加 `using`，把第三方/框架/生成物也改脏（`UI` 嵌套类型、注释中的类型名、BOM/CRLF 变化）。处置：按**顶层类型 + 代码区**重算 using、剥掉非产品程序集的模块 using、还原无实质 diff 的文件；最终 8 域 51 个文件 + 约 115 个消费文件有实质改动。
+- **`Config` 共享源改名空间后服务端编译红**：`Server/RoomServer/{ServerTableLoader,ServerMapLoader,Program}.cs` 与 `Tests/LiteNet.Tests` 需补 `using LiteGame.Modules.Config;`；共享源（`SimConfigMapper`/`TableLayout`）在 BuildHash 闭包内，已重算 `shared=cf3c3453057b28a4`。
+- **`WeaponAimConstraint` 对空 Avatar 无守卫**（既有缺陷，审计已登记的 `AimPitchPostureDriver` 同型）：灰盒/清单供片视图调 `GetBoneTransform` 抛 `Avatar is null`，`ClipManifestDriverEditModeTests` 3 红。补 `animator.avatar == null` 显性退化；3 例转绿。
+- **`UiApiSpecGuardTests` dispatch 路径仍指旧目录**（`LiteGame/LuaBridge` → `LiteGame/Adapters/LuaBridge`）：守卫恒红，修为现行路径。
+- **`VisualSingleSourceEditModeTests` 目录级冷扫描实测 231s**，超过默认 180s：保留断言、把用例超时提到 300s（不改扫描面）。
+- **`UiValidationEditModeTests` 文字档基线 104 vs 实测 128**：UI 批新增 24 条未标记文本，非本批改动；记未决（不擅改 UI 基线，避免掩盖样式债）。
 
 ## 验证结果
 
-- 待填写（verify 会自动追加每次运行记录）
+- 2026-10-31 · **L1（PullRequest）PASS 1921/1921**（含新增 ProcedureBoundaryTests 2、DomainBoundaryTests 5；Unity 0 error）。
+- 2026-10-31 · **BattleSmokePlayModeTests 1/1**（Boot→Main→进测试房→开火→离场→容器归零）。
+- 2026-10-31 · 定向 EditMode：BattleRankboard 8/8、BattleRankingConsistency 1/1、CameraAimBlend 6/6、BattleSession 12/12、MatchLoopLeak 1/1、ClipManifest 7/7、UiApiSpec 4/4、VisualSingleSource 8/8。
+- 2026-10-31 · 全量 EditMode 1098 例首跑 6 红（5 红已修转绿；余 1 为 UiValidation 文字档基线，见未决）。
+- 2026-10-31 · BuildHash --check 双 OK（shared=cf3c3453057b28a4 / meta=75e0e85fe3c33cf2）；gen-ui-page --check 12 页；domain-matrix --check OK；doc-lint 0/0；restore-check PASS；l2-meta 14618 meta 全合法；scripts/tests exit 0。
+- 2026-10-31 · 上述九条门禁为逐条手跑（等价 A29 清单）；**未运行 workflow verify 全量 59 条**（含全量 PlayMode），因此 state.json 的 verification 仍为空。
 - 2026-10-30T21:20:02+08:00 · 先行测试 PASS · 3/11 · 证据 evidence/red.json
 
 ## 交付摘要
 
-- 待填写
+- 18 段装配就地 + Container 拆解：App/AppComposition 为组合根；Modules/** 16 段 + App/UiServiceModule、App/ProcedureComposition（因 LuaBridge 依赖暂留，已登记债）。
+- 外层域收口：会话/地图/Ui/Meta 归位；Product/Recovery 并入 Procedure，Hosting→Dev；Modules 顶层收敛为 12 域。
+- 边界机械化：8 共享域命名空间守卫 + domain-matrix 12×12 矩阵门禁；A24 运行端口 IBattleRun(Factory)/IMatchJoin 把流程与战斗内部件解耦；A26 排行单源、A27 相机混合门禁改名与常量归位。
 
 ## 未决事项
 
-- 待填写（无则写“无”）
+- UiValidationEditModeTests.门禁_真实资产面_命名hash表路径零Error：文字档基线写 104，实测 128（24 条新增未标记文本）。属 UI 样式对账债，不属本批；需 UI 线确认是补标记还是更新基线。
+- A17 人工点界面未做：当前以 BattleSmokePlayModeTests 自动化链替代（真实指针/键盘操作仍待）。
+- 全量 L2（l2-unity-gate 含 EditMode/PlayMode 全套）未跑；本轮跑了全量 EditMode、定向 PlayMode 与 meta 扫描。
+- 工作区改动尚未 commit（本轮未提交）。
 
 ## 文件清单
 
-- 待填写
+- 结构：Assets/LiteGame/Modules/{Battle,Session,Meta,Procedure,Map,Ui,Dev,Framework,Camera,Config,Input,Settings}/**、Assets/LiteGame/App/{AppComposition,ProcedureComposition,UiServiceModule,GameEntry}.cs、Assets/LiteFramework/Runtime/Framework/**。
+- 端口/算法：Modules/Session/Abstractions/{IBattleRun,IBattleRunFactory,IMatchJoin}.cs、Modules/Session/BattleRunFactory.cs、Modules/Battle/BattleRankOrder.cs、Modules/Battle/Aim/{CameraAimBlendGate,CameraAimBlendDriver}.cs、Modules/Camera/Abstractions/CameraBlendDefaults.cs。
+- 守卫/用例：Tests/LiteFramework.Core.Tests/{DomainBoundaryTests,ProcedureBoundaryTests,M3WiringGuardTests}.cs、Assets/Tests/EditMode/{BattleRankingConsistency,CameraAimBlend}EditModeTests.cs、Assets/Tests/EditMode/{UiApiSpecGuardTests,VisualSingleSourceEditModeTests}.cs。
+- 门禁/文档：scripts/gate/domain-matrix.py、scripts/gate/toolchain.json、.workflow/config.json、Docs/说明/{02,14,17,18,README}.md、Docs/规范/03-领域查询表.md、Docs/设计文档/架构/商业级通用客户端框架总设计.md、Docs/设计文档/客户端/UI系统/设置系统专项设计.md、Docs/审计/客户端/登记/技术债.md、Docs/施工进度/{README,客户端重构线}.md。
 
 ## 后续建议
 
-- 待填写
+- 提交前按 batch-wrapup 复核：git status 确认未误带第三方/生成物；逐文件 git add（禁 -A）。
+- 跑全量 L2（EditMode + PlayMode）；补 A17 真实指针/键盘手测。
+- 结清 UiValidation 的 24 条文字档漂移（补标记或评审后更新基线）。
+- 把 App/UiServiceModule.cs、App/ProcedureComposition.cs 的注册表装订面下沉为端口/独立程序集后迁入 Modules/，达成 A15 的 18 段全就地。
 
 ## 阶段流转
 

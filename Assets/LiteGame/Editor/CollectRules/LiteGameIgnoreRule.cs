@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using UnityEditor;
 using YooAsset.Editor;
+using LiteGame.Modules.Framework;
 
 namespace LiteGame.Editor
 {

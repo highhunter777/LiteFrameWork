@@ -10,6 +10,7 @@ using RoomServer.Application;
 using RoomServer.Runtime;
 using LiteFramework;
 using LiteGame;
+using LiteGame.Modules.Map;
 
 // 开发面剥离：与 DevHUD/DevStartupConfig 同款三宏 #if（release Player 中本件整体不编译；
 // asmdef 层不设约束）。

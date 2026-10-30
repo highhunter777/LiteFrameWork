@@ -1,5 +1,7 @@
 using System;
 using LiteFramework;
+using LiteGame.Modules.Dev;
+using LiteGame.Modules.Map;
 
 namespace LiteGame
 {

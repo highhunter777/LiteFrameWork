@@ -1,6 +1,6 @@
 using UnityEngine;
 
-namespace LiteGame
+namespace LiteGame.Modules.Camera
 {
     /// <summary>
     /// **渲染相机来源**（可选能力，相机实现按需实现）：表现层要拿"真正在渲染的那台相机"。
@@ -15,7 +15,7 @@ namespace LiteGame
         bool EnsureCamera();
 
         /// <summary>渲染相机（Cinemachine brain 的 OutputCamera）；解析不到返回 null。</summary>
-        Camera TryGetRenderCamera();
+        UnityEngine.Camera TryGetRenderCamera();
 
         /// <summary>是否已解析到虚拟相机（装配期诊断读口；未解析不是错误——切到配了 vcam 的场景会自动接上）。</summary>
         bool HasCamera { get; }

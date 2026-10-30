@@ -1,9 +1,10 @@
-using System;
+﻿using System;
 using System.IO;
 using LiteSim;
 using RoomServer;
 using Xunit;
 using LiteGame;
+using LiteGame.Modules.Config;
 
 namespace LiteNet.Tests
 {

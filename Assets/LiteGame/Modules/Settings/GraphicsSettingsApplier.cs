@@ -1,8 +1,8 @@
-using System;
+﻿using System;
 using UnityEngine;
 using LiteFramework;
 
-namespace LiteGame
+namespace LiteGame.Modules.Settings
 {
     /// <summary>
     /// 图形设置生效器：**画质预设**（低/中/高 ↔ 平台档位按名匹配、缺档按序号钳位）。

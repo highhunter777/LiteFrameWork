@@ -3,6 +3,8 @@ using LiteFramework;
 using LiteFramework.Diagnostics;
 using LiteFramework;
 using LiteGame;
+using LiteGame.Modules.Input;
+using LiteGame.Modules.Map;
 
 namespace LiteGame
 {
@@ -31,6 +33,8 @@ namespace LiteGame
     {
         public ServiceContainer Services { get; }
         public BattleContext Context { get; }
+        /// <summary>会话客户端（会话域读口；<c>BattleSession</c> 经此取 StartGame 等待/地图行键/房间门面）。</summary>
+        internal BattleClient BattleClient => Context.DebugBattle;
         /// <summary>本局事件总线（Match Scope 独占；Dispose 随服务域释放，清空局内订阅）。</summary>
         public IEventBus Events { get; }
         private bool _disposed;

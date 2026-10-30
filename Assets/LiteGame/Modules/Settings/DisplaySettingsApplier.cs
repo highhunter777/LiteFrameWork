@@ -1,9 +1,9 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using UnityEngine;
 using LiteFramework;
 
-namespace LiteGame
+namespace LiteGame.Modules.Settings
 {
     /// <summary>
     /// 一个可选分辨率（宽高；刷新率不参与存档与展示——见 <see cref="DisplayOptions"/> 的分辨率口径）。

@@ -6,6 +6,7 @@ using LiteFramework.UI;
 using LiteGame;
 using NUnit.Framework;
 using UnityEngine;
+using LiteGame.Modules.Framework;
 
 namespace LiteGame.Tests.EditMode
 {
@@ -15,7 +16,7 @@ namespace LiteGame.Tests.EditMode
     /// </summary>
     public sealed class UiApiSpecGuardTests
     {
-        private const string DispatchRelativePath = "LiteGame/LuaBridge/Generated/LuaBehaviourAdapter.Dispatch.g.cs";
+        private const string DispatchRelativePath = "LiteGame/Adapters/LuaBridge/Generated/LuaBehaviourAdapter.Dispatch.g.cs";
 
         [Test]
         public void 清单无重复且版本与能力集同源()

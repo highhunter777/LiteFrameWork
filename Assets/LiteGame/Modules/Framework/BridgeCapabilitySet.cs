@@ -1,7 +1,7 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 
-namespace LiteGame
+namespace LiteGame.Modules.Framework
 {
     /// <summary>
     /// Bridge 能力声明（《热更与内容发布专项设计》§10"BridgeApiVersion/能力集合覆盖方法签名、语义、

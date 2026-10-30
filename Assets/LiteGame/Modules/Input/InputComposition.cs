@@ -1,9 +1,9 @@
-using System;
+﻿using System;
 using System.Threading;
 using Cysharp.Threading.Tasks;
 using LiteFramework;
 
-namespace LiteGame
+namespace LiteGame.Modules.Input
 {
     /// <summary>
     /// ⑭ 输入服务（《角色状态与动作专项设计》§3"输入三件"）：

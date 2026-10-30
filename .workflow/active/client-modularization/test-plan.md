@@ -8,13 +8,14 @@
 
 1. **L1 结构守卫**（`dotnet test Tests/LiteFramework.Core.Tests`）
    - `CompositionBudgetTests`（新增）：`App/Bootstrap/Modules` 不存在、`Modules/**` 装配段数量与命名、装配段行数预算（类 ≤400 / 方法 ≤80）。
-   - `DomainBoundaryTests`（新增）：横向表现域不存在、业务端口不在 Core、`Modules/Battle/Abstractions` 齐备、业务域子目录命名规则。
+   - `DomainBoundaryTests`（新增）：横向表现域不存在、业务端口不在 Core、`Modules/Battle/Abstractions` 齐备、业务域子目录命名规则、**8 个共享域各自命名空间**（批 5 · A25）。
    - `ModuleDependencyDeclTests`（改写）：扫描面 `Modules/**/*Composition.cs` ∪ `App/**/*Composition.cs` ∪ 过渡期 `App/ContainerModule.cs`；**身份改由类声明提取**；`AppComposition` 排除 `DependsOn` 覆盖；`Baseline` 批 3 清空。
    - `ModuleScopeAdoptionTests`（双根基 + 键映射）、`ArchitectureBudgetTests`（152 键删除 + 批 2 三键随迁）、`ClientAsmdefAllowlistTests`（引用集 + 硬边 case）、`ArchitectureGuardTests`。
 2. **Unity EditMode / PlayMode**
    - `BattleSmokePlayModeTests`（新增）：harness（`Boot.unity` 起服 → `Started && Current == Main` → `TestModeRuntime.RequestEnter/RequestExit`）+ 观测面（`IsBuilt`/`Root.activeInHierarchy`/`Crosshair`/`ShotPulseCount`/`VoiceCount`/`VfxService.ActiveCount`/`DamageNumber.ActiveCount`/越肩几何容差）+ 离场容器级归零（≤2s 轮询）。
    - 既有 HUD/相机/动画/设置面用例全绿（能力端口替换不得改变行为）。
 3. **门禁**：`wf verify` 的 `commands` 全绿（新增 `battle-smoke-playmode`、`domain-matrix`）+ Unity 重编译 0 error。
+   - `domain-matrix` 复算 12 域直引矩阵；批量改名/搬文件后若不 `--write` 即过期红。
 
 ## 用例清单
 
@@ -27,6 +28,10 @@
 | `DomainBoundaryTests.业务端口不得留在Core` | A7 | 红 | 绿（批 2） |
 | `DomainBoundaryTests.战斗域Abstractions必须齐备` | A7 | 红（1/6） | 绿（批 2） |
 | `DomainBoundaryTests.业务域子目录必须按职责命名` | A9 | 绿 | 绿 |
+| `DomainBoundaryTests.共享域文件必须使用各自命名空间` | A25 | 红（0 个域命名空间） | 绿（8 域） |
+| `ProcedureBoundaryTests.流程段不得直引战斗与联机内部件` | A24 | 红（BattleClient/BattleContext 直引） | 绿（端口化） |
+| `BattleRankingConsistencyEditModeTests.局内排行榜与结算排行_同全序同名次` | A26 | 未编写 | 绿 |
+| `CameraAimBlendEditModeTests.黄金值_固定输入序列_SetAiming翻转时刻保持` | A27 | 未编写 | 绿 |
 | `ModuleDependencyDeclTests.模块DependsOn必须覆盖Require面` | A6/A13 | 绿（Container 在 App 前仍被扫） | 绿（Baseline 空） |
 | `ModuleScopeAdoptionTests.持有资源的模块必须登记模块作用域` | A6 | 绿 | 绿（键随改名） |
 | `ArchitectureBudgetTests` | A6/A16 | 绿 | 绿（键删除/随迁） |
@@ -73,5 +78,6 @@ python .agents/skills/staged-delivery/scripts/workflow.py --run client-modulariz
 3. `<域>Composition.cs`（薄装配：`Require`/`Put`/`Scope.Register`/`DependsOn`，无循环、无业务算法、不 `new` 适配器）。
 4. `GameEntry.RegisterModules` 一行 + 在更早段的产品上加 `DependsOn`。
 5. 端口只经 `Abstractions/`；跨程序集门面/装订需"类型落域 + 装订留调用方 + asmdef 引用与允许表一行"三处同步。
+6. **命名空间与矩阵**：业务域/共享域各用 `LiteGame.Modules.<域>`（共享域须同步 `DomainBoundaryTests.SharedDomains`；业务域须在 `scripts/gate/domain-matrix.py` 的 `DOMAIN_ORDER`/角色表增一行）；改完跑 `domain-matrix --write` 并 `--check`。
 
 **不需要改任何共享能力域代码**——但会改两处守卫表（asmdef 允许表、模块依赖声明）；需要全局服务（场景/命令中心/流程机/桥装订）的域，注册仍落 `AppComposition` 末段。

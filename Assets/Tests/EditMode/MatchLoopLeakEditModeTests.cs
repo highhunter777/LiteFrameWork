@@ -6,6 +6,7 @@ using LiteNet;
 using LiteNet.Transport;
 using LiteSim;
 using NUnit.Framework;
+using LiteGame.Modules.Map;
 
 namespace LiteGame.Tests.EditMode
 {

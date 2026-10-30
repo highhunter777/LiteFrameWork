@@ -1,4 +1,4 @@
-namespace LiteGame
+﻿namespace LiteGame.Modules.Camera
 {
     /// <summary>
     /// 瞄准机沿主视线前移距离曲线（纯二次）：<c>D(d) = d² / base</c>（d &lt; base），d ≥ base 不干预（回 base）。

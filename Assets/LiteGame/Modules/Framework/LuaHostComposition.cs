@@ -1,9 +1,9 @@
-using System.Threading;
+﻿using System.Threading;
 using Cysharp.Threading.Tasks;
 using LiteFramework;
 using LiteFramework;
 
-namespace LiteGame
+namespace LiteGame.Modules.Framework
 {
     /// <summary>⑥ Lua 宿主（同 GameObject 组件）：Init/DoMain 在 Preload 锚点；退出 Shutdown 释放 env/回调。</summary>
     public sealed class LuaHostModule : IClientModule, IClientModuleGraph

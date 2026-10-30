@@ -10,6 +10,7 @@ using NUnit.Framework;
 using UnityEngine;
 using XLua;
 using LiteFramework.UI;
+using LiteGame.Modules.Config;
 
 namespace LiteGame.Tests.EditMode
 {

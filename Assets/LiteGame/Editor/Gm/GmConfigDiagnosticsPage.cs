@@ -6,6 +6,7 @@ using LiteFramework;
 using LiteFramework;
 using UnityEditor;
 using UnityEngine;
+using LiteGame.Modules.Config;
 
 namespace LiteGame.Editor
 {

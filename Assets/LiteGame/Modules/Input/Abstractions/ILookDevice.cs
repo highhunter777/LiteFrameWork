@@ -1,6 +1,6 @@
-using UnityEngine;
+﻿using UnityEngine;
 
-namespace LiteGame
+namespace LiteGame.Modules.Input
 {
     /// <summary>
     /// **瞄准相机注入口**（可选能力，设备源按需实现）：把对局渲染相机交给需要相机做瞄准解算的设备源。

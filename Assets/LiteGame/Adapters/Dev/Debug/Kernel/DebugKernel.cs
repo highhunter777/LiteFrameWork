@@ -8,6 +8,7 @@ using LiteFramework.Diagnostics;
 using LiteNet.Diagnostics;
 using LiteFramework;
 using LiteGame;
+using LiteGame.Modules.Input;
 
 namespace LiteGame
 {

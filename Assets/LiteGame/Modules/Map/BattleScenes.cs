@@ -1,6 +1,7 @@
 using LiteFramework;
+using LiteGame.Modules.Config;
 
-namespace LiteGame
+namespace LiteGame.Modules.Map
 {
     /// <summary>
     /// 对局场景**装载语义单源**（多图批收敛）：Rig＝装配件（vcam×2）；地图场景路径**查地图表**

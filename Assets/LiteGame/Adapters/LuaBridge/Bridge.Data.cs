@@ -6,6 +6,8 @@ using LiteFramework;
 using XLua;
 using cfg;
 using LiteFramework.UI;
+using LiteGame.Modules.Config;
+using LiteGame.Modules.Ui;
 
 namespace LiteGame
 {
@@ -170,9 +172,9 @@ namespace LiteGame
         /// lua_path → 页面 id（生成目录反查；未登记返回 -1）。
         /// 页面寻址的单源解析口——页面脚本与产品流程（PageFlow）都按 lua_path 寻址（如 `UI.Page_Lobby`，
         /// 与 <c>LuaKeys</c> 常量同文），magic id 不进脚本（禁硬编码）。实现委托模块侧解析器
-        /// <see cref="UI.UiPageResolver"/>（页面目录归产品模块，Lua 桥不持有第二份）。
+        /// <see cref="LiteGame.Modules.Ui.UiPageResolver"/>（页面目录归产品模块，Lua 桥不持有第二份）。
         /// </summary>
-        public static int ResolveUIFormId(string luaPath) => UI.UiPageResolver.Resolve(luaPath);
+        public static int ResolveUIFormId(string luaPath) => LiteGame.Modules.Ui.UiPageResolver.Resolve(luaPath);
 
         /// <summary>DevReload 专用（§2.7）：env 重建后旧 LuaTable 引用全失效，缓存必须清空。</summary>
         public static void ClearLuaCaches()

@@ -7,6 +7,7 @@ using UnityEngine.InputSystem.LowLevel;
 using UnityEngine.TestTools;
 using LiteFramework;
 using LiteGame;
+using LiteGame.Modules.Dev;
 
 namespace LiteGame.Tests.UI.PlayMode
 {

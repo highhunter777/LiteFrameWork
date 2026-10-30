@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
@@ -23,6 +23,7 @@ using RoomServer;
 using RoomServer.Application;
 using RoomServer.Runtime;
 using Xunit;
+using LiteGame.Modules.Config;
 
 namespace MetaServer.IntegrationTests
 {
@@ -479,7 +480,7 @@ namespace MetaServer.IntegrationTests
 
             SimMapData defaultMap = ServerMapLoader.LoadFromRepo();
             var mapCatalog = new ServerMapCatalog(ServerMapLoader.LoadFromRepo, defaultMap,
-                LiteGame.MapTableProjection.DefaultMapId);
+                LiteGame.Modules.Config.MapTableProjection.DefaultMapId);
 
             var inputs = new HostAssembly.Inputs
             {

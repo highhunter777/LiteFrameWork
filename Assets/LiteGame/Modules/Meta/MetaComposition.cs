@@ -2,6 +2,7 @@ using System;
 using System.Threading;
 using Cysharp.Threading.Tasks;
 using LiteFramework;
+using LiteGame.Modules.Framework;
 
 namespace LiteGame
 {
@@ -40,6 +41,9 @@ namespace LiteGame
             // 云端测试房：模板/口令随部署注入（开发者本地才有；测试者包不带 ⇒ 建不了云端测试房）
             metaEntry.ConfigureTestRoom(deploy.RoomTemplate, deploy.RoomGmKey);
             context.Put(metaEntry);
+            // 端口面：账号重入只认控制端口、流程主阶段只认部署事实端口（流程不直引具体联机入口）。
+            context.Put<IAccountSessionControl>(metaEntry);
+            context.Put<IMetaConfigFacts>(metaEntry);
             return UniTask.CompletedTask;
         }
 

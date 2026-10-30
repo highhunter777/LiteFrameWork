@@ -2,6 +2,7 @@ using LiteFramework;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 using Cinemachine;
+using LiteGame.Modules.Camera;
 
 namespace LiteGame
 {

@@ -1,8 +1,8 @@
-using System.Threading;
+﻿using System.Threading;
 using Cysharp.Threading.Tasks;
 using LiteFramework;
 
-namespace LiteGame
+namespace LiteGame.Modules.Framework
 {
     /// <summary>
     /// ⑥ 事件域：根 <see cref="EventBus"/> 的**唯一**产出方。

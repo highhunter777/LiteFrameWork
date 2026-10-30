@@ -2,6 +2,9 @@ using System;
 using System.Threading;
 using Cysharp.Threading.Tasks;
 using LiteFramework;
+using LiteGame.Modules.Config;
+using LiteGame.Modules.Input;
+using LiteGame.Modules.Map;
 
 namespace LiteGame
 {
@@ -34,9 +37,12 @@ namespace LiteGame
             // 注册面＝服务接口（消费者经构造注入解析）：Account 半边零引擎依赖（L1 源链接直测）。
             context.Put<IAccountSessionFactory>(new AccountSessionFactory(
                 context.RootScope, context.Services, transport.Create, identity.Handshake));
-            context.Put<IMatchSessionFactory>(new MatchSessionFactory(
+            var matchSessions = new MatchSessionFactory(
                 context.Require<IInputService>(), gameplayDigestBase, maps,
-                context.Require<IReferencePool>(), identity.Diagnostics));
+                context.Require<IReferencePool>(), identity.Diagnostics);
+            context.Put<IMatchSessionFactory>(matchSessions);
+            // 流程段只拿对局运行端口（不构造 Match/Battle 会话）。
+            context.Put<IBattleRunFactory>(new BattleRunFactory(matchSessions, context.Require<IDevSession>()));
             return UniTask.CompletedTask;
         }
 

@@ -9,6 +9,8 @@ using NUnit.Framework;
 using UnityEditor.SceneManagement;
 using UnityEngine;
 using UnityEngine.SceneManagement;
+using LiteGame.Modules.Config;
+using LiteGame.Modules.Map;
 
 namespace LiteGame.Tests.EditMode
 {

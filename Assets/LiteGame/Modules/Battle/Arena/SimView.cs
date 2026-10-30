@@ -4,6 +4,7 @@ using LiteSim;
 using UnityEngine;
 using LiteFramework;
 using LiteGame;
+using LiteGame.Modules.Camera;
 
 namespace LiteGame.View
 {

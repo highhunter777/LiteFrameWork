@@ -12,6 +12,7 @@ using UnityEngine;
 using UnityEngine.UI;
 using XLua;
 using LiteFramework;
+using LiteGame.Modules.Ui;
 
 namespace LiteGame.Tests.EditMode
 {
@@ -206,7 +207,7 @@ return m";
         [Test]
         public void 生成目录_UIMain行已移除_PageLogin仍在()
         {
-            IPageCatalog catalog = LiteGame.UI.UiPageCatalog.Instance;
+            IPageCatalog catalog = LiteGame.Modules.Ui.UiPageCatalog.Instance;
 
             PageDefinition login = catalog.Get(11);
             Assert.AreEqual("Page_Login", login.Name);

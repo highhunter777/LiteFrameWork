@@ -1,7 +1,7 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 
-namespace LiteGame
+namespace LiteGame.Modules.Config
 {
     /// <summary>
     /// 表数据目录布局单源（客户端与服务端**源链接共编**——RoomServer.csproj/测试工程 Compile Include 本文件）：

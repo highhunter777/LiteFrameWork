@@ -2,6 +2,7 @@ using System;
 using LiteFramework;
 using LiteGame;
 using NUnit.Framework;
+using LiteGame.Modules.Map;
 
 namespace LiteGame.Tests.EditMode
 {

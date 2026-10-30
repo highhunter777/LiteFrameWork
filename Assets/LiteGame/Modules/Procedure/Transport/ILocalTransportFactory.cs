@@ -1,6 +1,7 @@
 using System;
 using LiteNet.Transport;
 using LiteSim;
+using LiteGame.Modules.Map;
 
 namespace LiteGame
 {

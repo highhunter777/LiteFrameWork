@@ -2,6 +2,7 @@ using LiteFramework;
 using LiteSim;
 using LiteFramework;
 using LiteGame;
+using LiteGame.Modules.Dev;
 
 namespace LiteGame
 {
@@ -26,7 +27,7 @@ namespace LiteGame
             if (dev == null || !dev.IsDevelopmentBuild) return null;   // 发布形态：无测试规则面
 
             // 每局规则持有件：初值随入口定（常规入口一律 false——与既有"随入口复位"同语义）；
-            // 登记后客户端预测（BattleContext.StartGame 绑定）与本地服（ForRoom 注入）同实例。
+            // 登记后客户端预测（对局运行端口 StartGame 绑定）与本地服（ForRoom 注入）同实例。
             // 爆头带覆写随端口待用值（本地服形态的调参延续；真服务器无此链）。
             var rules = new MatchTestRules
             {

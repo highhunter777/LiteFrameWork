@@ -4,6 +4,7 @@ using LiteFramework.UI;
 using LiteGame.Editor.UiTools.Contracts;
 using LiteGame.Editor.UiTools.Page;
 using NUnit.Framework;
+using LiteGame.Modules.Ui;
 
 namespace LiteGame.Tests.EditMode
 {
@@ -20,12 +21,12 @@ namespace LiteGame.Tests.EditMode
             Assert.IsTrue(port.TryListPages(out List<UiPageTableRow> rows, out string error), error);
 
             UiPageManifest manifest = UiPageManifestStore.Load();
-            Assert.AreEqual(rows.Count, LiteGame.UI.UiPageCatalog.All.Length, "页面定义数 = tbuiform 行数（同一 prefab 多行各一条）");
+            Assert.AreEqual(rows.Count, LiteGame.Modules.Ui.UiPageCatalog.All.Length, "页面定义数 = tbuiform 行数（同一 prefab 多行各一条）");
             Assert.AreEqual(rows.Count, rows.Select(r => r.id).Distinct().Count(), "表主键唯一");
 
             foreach (UiPageTableRow row in rows)
             {
-                PageDefinition page = LiteGame.UI.UiPageCatalog.Instance.Get(row.id);
+                PageDefinition page = LiteGame.Modules.Ui.UiPageCatalog.Instance.Get(row.id);
                 Assert.AreEqual(row.PrefabPath, page.Location, "prefab 路径单源");
                 Assert.AreEqual(row.lua ?? string.Empty, page.LuaPath, "lua_path 单源");
                 Assert.AreEqual(row.layer, page.Layer, "layer 单源");
@@ -51,10 +52,10 @@ namespace LiteGame.Tests.EditMode
         [Test]
         public void 生成目录_按Id升序且未知Id抛()
         {
-            for (int i = 1; i < LiteGame.UI.UiPageCatalog.All.Length; i++)
-                Assert.Less(LiteGame.UI.UiPageCatalog.All[i - 1].Id, LiteGame.UI.UiPageCatalog.All[i].Id, "All 必须按 Id 升序");
+            for (int i = 1; i < LiteGame.Modules.Ui.UiPageCatalog.All.Length; i++)
+                Assert.Less(LiteGame.Modules.Ui.UiPageCatalog.All[i - 1].Id, LiteGame.Modules.Ui.UiPageCatalog.All[i].Id, "All 必须按 Id 升序");
 
-            Assert.Throws<System.Collections.Generic.KeyNotFoundException>(() => LiteGame.UI.UiPageCatalog.Instance.Get(1));
+            Assert.Throws<System.Collections.Generic.KeyNotFoundException>(() => LiteGame.Modules.Ui.UiPageCatalog.Instance.Get(1));
         }
     }
 }

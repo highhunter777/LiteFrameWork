@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Threading;
 using LiteFramework;
 using LiteFramework.Diagnostics;
@@ -7,6 +7,8 @@ using LiteNet.Protocol;
 using LiteSim;
 using LiteFramework;
 using LiteGame;
+using LiteGame.Modules.Config;
+using LiteGame.Modules.Input;
 
 namespace LiteGame
 {

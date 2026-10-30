@@ -2,9 +2,9 @@ using System;
 using System.Collections.Generic;
 using LiteFramework;
 using LiteFramework.Animation;
-using LiteGame.Animation;
 using LiteSim;
 using UnityEngine;
+using LiteGame.Modules.Config;
 
 namespace LiteGame.View.Animation
 {

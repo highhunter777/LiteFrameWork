@@ -5,6 +5,7 @@ using System.Linq;
 using LiteFramework;
 using LiteGame.Editor.UiTools.Validation;
 using Luban;
+using LiteGame.Modules.Config;
 
 namespace LiteGame.Editor.UiTools.Text
 {

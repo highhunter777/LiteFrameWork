@@ -1,5 +1,5 @@
-using LiteFramework;
-namespace LiteGame
+﻿using LiteFramework;
+namespace LiteGame.Modules.Settings
 {
     /// <summary>
     /// 音频设置生效器：主音量 → 四组分组音量；音效开关 → Effect 组门。

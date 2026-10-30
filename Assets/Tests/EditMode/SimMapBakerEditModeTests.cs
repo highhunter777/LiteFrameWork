@@ -2,6 +2,7 @@ using LiteGame.EditorTools;
 using LiteSim;
 using NUnit.Framework;
 using UnityEngine;
+using LiteGame.Modules.Map;
 
 namespace LiteGame.Tests.EditMode
 {

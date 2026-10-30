@@ -1,0 +1,19 @@
+# A25 共享域命名空间守卫 · 先行失败证据（2026-10-31）
+
+命令：dotnet test Tests/LiteFramework.Core.Tests/LiteFramework.Core.Tests.csproj --filter "FullyQualifiedName~DomainBoundaryTests"
+
+失败：共享域文件必须使用各自命名空间
+（搬迁前 51 个共享域文件仍为 LiteGame / LiteGame.UI / LiteGame.Animation；Dev 目录尚不存在）
+
+抽样（完整输出见会话记录）：
+- Assets/LiteGame/Modules/Framework/* → LiteGame，期望 LiteGame.Modules.Framework
+- Assets/LiteGame/Modules/Ui/LuaUIData.cs → LiteGame，期望 LiteGame.Modules.Ui
+- Assets/LiteGame/Modules/Ui/Generated/UiPageCatalog.g.cs → LiteGame.UI，期望 LiteGame.Modules.Ui
+- Assets/LiteGame/Modules/Input/* → LiteGame，期望 LiteGame.Modules.Input
+- Assets/LiteGame/Modules/Settings/* → LiteGame，期望 LiteGame.Modules.Settings
+- Assets/LiteGame/Modules/Config/* → LiteGame / LiteGame.Animation，期望 LiteGame.Modules.Config
+- Assets/LiteGame/Modules/Camera/* → LiteGame，期望 LiteGame.Modules.Camera
+- Assets/LiteGame/Modules/Map/* → LiteGame，期望 LiteGame.Modules.Map
+- 缺共享域目录:Assets/LiteGame/Modules/Dev
+
+结果：失败 1 / 通过 4（总计 5）。

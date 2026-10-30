@@ -34,7 +34,7 @@ GENERATED = {
     "Assets/LiteNet/Core/Protocol/BuildHash.g.cs": "scripts/codegen/gen-build-hash.py",
     "Server/MetaServer/Host/BuildHash.g.cs": "scripts/codegen/gen-build-hash.py",
     "Assets/LiteSim/Diagnostics/Generated/EntitySlot.Sync.g.cs": "scripts/codegen/gen_sync_code.py",
-    "Assets/LiteGame/Adapters/LuaBridge/Generated/LuaKeys.g.cs": "Luban/gen_lua_keys.py",
+    "Assets/LiteGame/Modules/Ui/Generated/LuaKeys.g.cs": "Luban/gen_lua_keys.py",
 }
 
 

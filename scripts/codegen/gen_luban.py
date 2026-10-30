@@ -8,7 +8,7 @@
 # Direct entry:   python scripts/codegen/gen_luban.py [--python <python>]
 # Shim alias:     Luban/gen.bat (delegates here)
 # Outputs:        Assets/GameData/Generated/*.cs, Assets/GameData/Config/*.bytes,
-#                 Assets/LiteGame/Lua/Cfg/*.lua, Assets/LiteGame/Adapters/LuaBridge/Generated/LuaKeys.g.cs
+#                 Assets/LiteGame/Lua/Cfg/*.lua, Assets/LiteGame/Modules/Ui/Generated/LuaKeys.g.cs
 # Rerun when:     table source (Luban/Data/*.xlsx) or schema changed - then rerun
 #                 build-hash (table data is in its source set); Unity import is separate.
 
@@ -30,7 +30,7 @@ PUBLISH_TARGETS = [
     ('code',      os.path.join('Assets', 'GameData', 'Generated'),          '.cs'),
     ('bin',       os.path.join('Assets', 'GameData', 'Config'),             '.bytes'),
     ('lua',       os.path.join('Assets', 'LiteGame', 'Lua', 'Cfg'),         '.lua'),
-    ('lua-keys',  os.path.join('Assets', 'LiteGame', 'LuaBridge', 'Generated'), '.cs'),
+    ('lua-keys',  os.path.join('Assets', 'LiteGame', 'Modules', 'Ui', 'Generated'), '.cs'),
 ]
 
 # TableLayout 是表清单/域归属的单源；生成器只读它，不维护第二份清单。

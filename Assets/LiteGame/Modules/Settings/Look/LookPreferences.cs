@@ -1,7 +1,7 @@
-using System;
+﻿using System;
 using LiteFramework;
 
-namespace LiteGame
+namespace LiteGame.Modules.Settings
 {
     /// <summary>
     /// <see cref="ILookPreferences"/> 的实现：把 <see cref="GameSettings"/> 的三项读成**缓存值**。

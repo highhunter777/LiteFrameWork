@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using XLua;
 using LiteFramework;
+using LiteGame.Modules.Settings;
 
 namespace LiteGame.Editor
 {

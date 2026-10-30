@@ -121,7 +121,7 @@ var mapCatalog = new ServerMapCatalog(
     combatTableDir != null
         ? new Func<int, SimMapData>(id => ServerMapLoader.LoadTableBytes(combatTableDir, id))
         : id => ServerMapLoader.LoadFromRepo(id),
-    map, LiteGame.MapTableProjection.DefaultMapId);
+    map, LiteGame.Modules.Config.MapTableProjection.DefaultMapId);
 
 // 票据验证器装配：生产**必须**传 key（fail-closed）。缺 key 不静默退回——显式告警（§6"不能悄悄退回 fake"）。
 if (portOverride.HasValue) serverConfig.OverridePort(portOverride.Value);

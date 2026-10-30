@@ -137,29 +137,9 @@ namespace LiteGame
             }
         }
 
-        /// <summary>展示序：Kills 降序 → EntityId 升序（与规范序同集合；左＝第一名）。</summary>
+        /// <summary>展示序：Kills 降序 → EntityId 升序（与结算页共用 <see cref="BattleRankOrder"/> 单源；左＝第一名）。</summary>
         private void SortByDisplay()
-        {
-            for (int i = 0; i < _count; i++) _display[i] = i;
-            for (int i = 1; i < _count; i++)
-            {
-                int cur = _display[i];
-                int j = i - 1;
-                while (j >= 0 && Less(cur, _display[j]))
-                {
-                    _display[j + 1] = _display[j];
-                    j--;
-                }
-                _display[j + 1] = cur;
-            }
-        }
-
-        /// <summary>展示序比较：击杀多者在前；同击杀按 EntityId 升序（全序，防同分每帧互换）。</summary>
-        private bool Less(int left, int right)
-        {
-            if (_killCounts[left] != _killCounts[right]) return _killCounts[left] > _killCounts[right];
-            return _ids[left] < _ids[right];
-        }
+            => BattleRankOrder.SortDisplay(_count, _ids, _killCounts, _display);
 
         // ---- 写入（脏位）----
 
