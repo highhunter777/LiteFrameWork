@@ -31,6 +31,8 @@
 
 ## 关键决定
 
+- **批 4 分两个可交付检查点**（体量/风险实测）：① 组合根钩子与跨域装订迁移（`ComposeRoot` + `AppComposition.ComposeAfter`，其它段不动）——已提交；② 段拆解（Map/Meta/Session/Procedure 四段成型、`ContainerModule` 去 `IClientModule`、18 段序、归属表迁移）。两次提交都保持全绿（L1 + Boot 冒烟），避免"半个批 4"落在工作区。
+- **组合根执行器与模块图校验抽成协作件**：`ComposeRootRunner`（窗口开关/失败回收/逆序第一释放位）与 `ModuleGraphValidator`（重复名/缺依赖/环）从 `ClientHost` 移出——`ClientHost` 类行数冻结 454 不许涨，`InitializeAsync`/`ShutdownAsync` 拆到 ≤80 后按规则删除冻结键（不是调阈值）。
 - **T3 与 T2 顺序对调（实测发现）**：方案原序为 T2 搬迁 → T3 适配器上收，但实测程序集依赖使该序不可编译——`LiteGame.Adapters.Unity` 引用 `LiteGame.Modules.Input`/`Modules.Camera`、`LiteGame.Adapters.Luban` 引用 `LiteGame.Modules.Config`、`LiteGame.Adapters.LuaBridge` 引用 `LiteGame.Modules`；若先把段搬进 `Modules/**`（= 各域程序集），段内 `new NewInputIntentSource`/`new CinemachineCameraService`/`new ConfigService`/`new LuaBehaviourAdapter` 会立刻与适配器成环。故 DAG 改为 `T1 → T3 → T2`（已在 workflow 中更新依赖）。
 - 能力端口按既有 `IAimWorldSink` 范式落地（可选能力接口 + 消费方 `is` + 未实现即退化）：`IRenderCameraSource`（`Modules/Camera/Abstractions/`）、`IAimCameraSink`/`ILookDevice`（`Modules/Input/Abstractions/`），实现留在 `CinemachineCameraService`/`NewInputIntentSource`。
 - `FrameworkInfrastructure` 的池释放用 `(References as IDisposable)?.Dispose()`：`IReferencePool` 只约束取还，不该在接口上绑生命周期。
@@ -40,6 +42,7 @@
 
 ## 偏差与处理
 
+- **批 4 的跨域装订先落位**：`AppComposition.ComposeAfter` 已接管 Lua 门面/身份绑定/模态登记/输入拦截/注册表回填/联机入口接流程机/开发装饰/帧驱动序/装配面密封；`ProductSettings` 与 `BattleViewGroupFactory` 仍在 `ContainerModule`（其产物被流程机/视图工厂消费，须在段拆解时随归属表一起搬，否则顺序错位）。
 - 方案 A4 原文"`GameEntry` 在 `InitializeAsync` 前调用工厂"不可行：`NewInputIntentSource` 的 `matchRules` 读口依赖 ③ `IDevSession`，前置创建会静默丢掉测试房爆头带覆写。改为**工厂委托注入 + 段内调用**（已写入 plan.md A4）。
 - 方案 A12 的 `BattleViewGroupFactory` 注册落点原写 `AppComposition.ComposeAfter`，与 ⑱ `Procedure` 构造顺序冲突；改为批 1–3 在 `ContainerModule.CreateBattleViews` 处注册、批 4 归 `BattleComposition`（已写入 plan.md A12）。
 - **A16 的 `ContainerModule.Assemble`（152 行）四方法拆分未在批 1 执行**（批 1 任务已收口，但该键仍在 `ArchitectureBudgetTests` 冻结表里）。本批未扩范围：仍按 plan 的"批 4 只搬方法"口径，在 T7 拆 `ContainerModule` 时同批拆方法并删 152 行键。
