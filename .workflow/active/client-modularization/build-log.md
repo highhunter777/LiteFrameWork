@@ -34,6 +34,10 @@
 
 ## 关键决定
 
+- **A24 按端口逐个拆，不一次改完**：本轮已把"传输裁决（MetaEntryConfig）/联机事实（MetaEntryService）/战斗命令（TeleportToAimCommand）"三件事从流程段摘出
+  （分别归会话段、Meta 端口 `IMetaConfigFacts`、战斗端口 `IBattleCommands`）；余下 `BattleClient`/`BattleContext`/`EndReason`/`RoomSessionFace`
+  需要先立战斗流程端口（`IBattleRun`：StartGame 等待/Ended 事件/终局原因/结果/席位/规则），再改流程阶段——放到下一检查点，避免半改状态落地。
+
 - **设置门面按"本体/脚本面"切两半**：值域收敛与生效面住 `Modules/Settings`（不认识脚本环境），`Bridge.settings` 的 40+ 绑定随 `XLua` 适配器住 `Adapters/LuaBridge/ProductBridges`——设置域因此不再引 xLua；LuaBridge asmdef 增 `LiteGame.Modules.Settings`（允许表同步）。
 - **`DeployBake` 由静态可变改实例**：读取缝构造注入、memo 收进实例（`Reader`/`ResetForTests` 这类进程级可变静态消失）；内容段与联机段共用 GameEntry 创建的同一实例。
 - **联机入口经 `IAppFlow` 端口化**：`MetaEntryService` 不再持 `IStageHost<ProcedureId,ProcedureArgs>`（那是反向认识流程域类型）；
