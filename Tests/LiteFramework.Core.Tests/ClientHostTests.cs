@@ -310,13 +310,13 @@ namespace LiteFramework.Tests
         private sealed class GraphModule : IClientModule, IClientModuleGraph
         {
             public string Name { get; }
-            public IReadOnlyList<Type> DependsOn { get; }
+            public IReadOnlyList<string> DependsOn { get; }
             public ClientScope CapturedRoot { get; private set; }
 
-            public GraphModule(string name, params Type[] deps)
+            public GraphModule(string name, params string[] deps)
             {
                 Name = name;
-                DependsOn = deps ?? Array.Empty<Type>();
+                DependsOn = deps ?? Array.Empty<string>();
             }
 
             public UniTask InitializeAsync(ModuleContext context, CancellationToken ct)
@@ -338,7 +338,7 @@ namespace LiteFramework.Tests
         [Fact]
         public void 模块图_依赖缺失拒绝()
         {
-            var host = Host(new GraphModule("A"), new GraphModule("B", typeof(GraphModule2NotRegistered)));
+            var host = Host(new GraphModule("A"), new GraphModule("B", "GraphModule2NotRegistered"));
             Assert.Throws<InvalidOperationException>(() => Pump(host.InitializeAsync()));
             Assert.Equal(4, host.State);   // 图校验失败 = 终态，不得停在"初始化中"
         }
@@ -578,7 +578,7 @@ namespace LiteFramework.Tests
         private sealed class CycleA : IClientModule, IClientModuleGraph
         {
             public string Name => "CycleA";
-            public IReadOnlyList<Type> DependsOn => new[] { typeof(CycleB) };
+            public IReadOnlyList<string> DependsOn => new[] { "CycleB" };
             public UniTask InitializeAsync(ModuleContext context, CancellationToken ct) => UniTask.CompletedTask;
             public UniTask ShutdownAsync(CancellationToken ct) => UniTask.CompletedTask;
         }
@@ -586,7 +586,7 @@ namespace LiteFramework.Tests
         private sealed class CycleB : IClientModule, IClientModuleGraph
         {
             public string Name => "CycleB";
-            public IReadOnlyList<Type> DependsOn => new[] { typeof(CycleA) };
+            public IReadOnlyList<string> DependsOn => new[] { "CycleA" };
             public UniTask InitializeAsync(ModuleContext context, CancellationToken ct) => UniTask.CompletedTask;
             public UniTask ShutdownAsync(CancellationToken ct) => UniTask.CompletedTask;
         }

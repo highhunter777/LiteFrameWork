@@ -16,7 +16,7 @@ namespace LiteGame
     /// 跳过不计。注册表直存 require 所得逻辑表（LuaTable）；LuaBehaviourAdapter 包适配器随 UI 服务装配接入。
     /// DevReload（§2.7）重填走本类同一条路径，不写第二份。
     /// </summary>
-    public sealed class RegistryFiller
+    public sealed class RegistryFiller : ILuaRegistryFiller
     {
         /// <summary>启动期 LuaKeys 校验锚：取真实产品首屏（UIMain 样例页已退役）；改首屏只改这一处。</summary>
         public const string KnownUiKey = LuaKeys.UI.Page_Login;

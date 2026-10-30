@@ -2,6 +2,7 @@
     "name": "LiteGame.Modules.Config",
     "rootNamespace": "LiteGame",
     "references": [
+        "UniTask",
         "LiteFramework.Runtime",
         "Luban.Tables",
         "LiteSim",

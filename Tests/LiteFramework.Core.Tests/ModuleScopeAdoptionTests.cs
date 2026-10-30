@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using Xunit;
 
 namespace LiteFramework.Core.Tests
@@ -17,25 +18,38 @@ namespace LiteFramework.Core.Tests
         /// <summary>必须把资源登记进模块作用域的模块（文件名 → 持有的资源）。</summary>
         private static readonly Dictionary<string, string> Required = new Dictionary<string, string>(StringComparer.Ordinal)
         {
-            { "InputModule.cs", "设备源/输入服务" },
+            { "InputComposition.cs", "设备源/输入服务" },
             { "ContainerModule.cs", "命令注册/根容器/场景租约" },
             { "UiServiceModule.cs", "主题资产租约/红点登记" },
-            { "PresentationModule.cs", "租约缓存/实体/音频/VFX/相机" },
-            { "LuaHostModule.cs", "Lua 宿主 env" },
+            { "PresentationComposition.cs", "租约缓存/实体/音频/VFX/相机" },
+            { "LuaHostComposition.cs", "Lua 宿主 env" },
         };
 
         [Fact]
         public void 持有资源的模块必须登记模块作用域()
         {
             string root = RepoRoot();
-            string dir = Path.Combine(root, "Assets", "LiteGame", "App", "Bootstrap", "Modules");
-            Assert.True(Directory.Exists(dir), "模块目录不存在：" + dir);
+            // 装配段已就地住进各域目录；组合根两段（Container/Ui）仍住 App/（Ui 待 IUiLogicFactory 后归位）。
+            var dirs = new[]
+            {
+                Path.Combine(root, "Assets", "LiteGame", "Modules"),
+                Path.Combine(root, "Assets", "LiteGame", "App"),
+            };
+            foreach (string d in dirs)
+                Assert.True(Directory.Exists(d), "模块目录不存在：" + d);
 
             var offenders = new List<string>();
             foreach (KeyValuePair<string, string> pair in Required)
             {
-                string file = Path.Combine(dir, pair.Key);
-                if (!File.Exists(file)) { offenders.Add(pair.Key + "(缺失)"); continue; }
+                string file = null;
+                foreach (string d in dirs)
+                {
+                    string candidate = Directory.Exists(d)
+                        ? Directory.GetFiles(d, pair.Key, SearchOption.AllDirectories).FirstOrDefault()
+                        : null;
+                    if (candidate != null) { file = candidate; break; }
+                }
+                if (file == null) { offenders.Add(pair.Key + "(缺失)"); continue; }
                 if (!File.ReadAllText(file).Contains("context.Scope.Register"))
                     offenders.Add(pair.Key + "(" + pair.Value + ")");
             }

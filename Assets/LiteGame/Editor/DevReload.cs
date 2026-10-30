@@ -67,7 +67,8 @@ namespace LiteGame.Editor
                 ListLuaFilesOnDisk,    // 磁盘枚举：同上
                 LuaLayout.LuaDir);
             await preloader.PreloadAllAsync();             // ④ 重预载：改动后的 .lua 进缓存
-            lua.Init(preloader, events, ProductBridges.BindGlobals);   //    env 重建 + 事件桥/游戏桥重绑（产品门面单源装订——与 Preload 同口）
+            var productBridge = container.Resolve<LiteGame.ILuaProductBridge>();
+            lua.Init(preloader, events, productBridge.BindGlobals);   //    env 重建 + 事件桥/游戏桥重绑（产品门面单源装订——与 Preload 同口；同一实例保 Bridge.room 会话不丢）
             lua.DoMain();                                  // ⑤ 重跑 main.lua
 
             var filler = new LiteGame.RegistryFiller(config, LiteGame.UI.UiPageCatalog.All, lua, ui, content, strategy);

@@ -186,8 +186,8 @@ namespace LiteGame
         /// 解析不到 → null，驱动退回不跟随朝向。
         /// </summary>
         private Func<Camera> RenderCameraOf()
-            => _camera is CinemachineCameraService ccs
-                ? new Func<Camera>(ccs.TryGetRenderCamera)
+            => _camera is IRenderCameraSource cameraSource
+                ? new Func<Camera>(cameraSource.TryGetRenderCamera)
                 : (Func<Camera>)null;
 
         /// <summary>飘字实例工厂（驱动池的 create 回调）：底件实例化挂视图根，随离场拆。</summary>

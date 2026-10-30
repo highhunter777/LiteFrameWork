@@ -2,6 +2,7 @@
     "name": "LiteGame.Modules.Settings",
     "rootNamespace": "LiteGame",
     "references": [
+        "UniTask",
         "LiteFramework.Runtime"
     ],
     "includePlatforms": [],

@@ -31,7 +31,7 @@ namespace LiteGame
     /// （<see cref="LastResolveReason"/> / <see cref="HasCamera"/>），由调用方决定降级还是报错；
     /// 不在运行期凭空造一台——否则"美术调好的相机没生效"会被自己造的那台掩盖。
     /// </summary>
-    public sealed class CinemachineCameraService : ICameraService
+    public sealed class CinemachineCameraService : ICameraService, IRenderCameraSource
     {
         /// <summary>瞄准 vcam 的场景约定名（Rig 场景 `/Aim Camera`；构图/基础优先级归场景配置）。
         /// 主相机解析时**排除**它——瞄准接管期间它优先级被抬到主之上，不排除会在场景切换重解析时

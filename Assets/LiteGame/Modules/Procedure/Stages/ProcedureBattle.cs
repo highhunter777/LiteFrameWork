@@ -17,7 +17,7 @@ namespace LiteGame
     /// <summary>
     /// 对局流程（**只做编排**）：
     /// OnEnter 建 <see cref="BattleContext"/>（Match Scope 全套）→ 会话建立后由
-    /// <see cref="BattleViewRig"/> 取件并挂视图/输入接线 → 每帧驱动（上下文 + 视图消费者）；
+    /// <see cref="IBattleViewGroup"/> 取件并挂视图/输入接线 → 每帧驱动（上下文 + 视图消费者）；
     /// Ended（主动离场 / 会话失败）→ 逆序收尾（视图 → BattleContext → Match Scope → Account Scope，
     /// §6.2 关闭序）→ 回 Main。
     ///
@@ -25,9 +25,10 @@ namespace LiteGame
     /// （<see cref="LoadBattleScenesAsync"/>，全程进"正在进入对局…"遮罩），离场收尾卸载
     /// （<see cref="UnloadBattleScenes"/>）——避免"未开局即付费"与跨阶段所有权分叉。
     ///
-    /// **视图域全部归 <see cref="BattleViewRig"/>**（资源租约 / SimView / 七个表现件装配 / 每帧驱动 /
-    /// 逆序拆除）：本类只保留"取会话 → 等信令 → 每帧驱动 → 收尾"的编排与对局级裁决（相机就绪门、
-    /// 测试模式热键、瞄准世界注入），不再逐个持有表现件。
+    /// **视图域全部归视图组实现**（资源租约 / SimView / 七个表现件装配 / 每帧驱动 /
+    /// 逆序拆除）：经 <see cref="IBattleViewGroupFactory"/> 端口创建（装配根注入），本类只保留
+    /// "取会话 → 等信令 → 每帧驱动 → 收尾"的编排与对局级裁决（相机就绪门、
+    /// 测试模式热键、瞄准世界注入），不再持有表现件类型。
     ///
     /// 驱动形态：StageMachine 的 OnUpdate 即帧驱动入口（容器 Seal 后不可再注册 ITickable——
     /// 对局期驱动走阶段生命周期，天然随离场停止）。取消语义：阶段 CTS 链接宿主根（基类），
@@ -44,28 +45,23 @@ namespace LiteGame
         /// <summary>开发形态传送键（传送到当前准心点；端口全关时按键无效果）。</summary>
         private const UnityEngine.KeyCode TeleportKey = UnityEngine.KeyCode.T;
 
-        private readonly IContentService _content;
-        private readonly IVFXService _vfx;
-        private readonly AudioService _audio;        // 音频服务（装配根注册；对局音效的组+代理后端）
-        private readonly CommandCenter _commands;    // 命令中心（传送命令化：撤销/重做/排队派发）
         private readonly IInputService _input;       // 输入服务
         private readonly ICameraService _camera;     // 相机服务（Cinemachine 适配器；装配根建、跨对局复用）
+        private readonly CommandCenter _commands;    // 命令中心（传送命令化：撤销/重做/排队派发）
+        private readonly IBattleViewGroupFactory _views;   // 视图组工厂（表现层实现；装订根注入）
+        private readonly IRoomSessionBridge _roomBridge;   // 房间会话门面装订口（Lua 桥实现；房主开局批）
         private readonly bool _requireCamera;        // 缺相机 = 装配缺口（见 ctor 注释）
-        private readonly LiteFramework.IWorldClock _worldClock;   // 世界钟（伤害数字寿命/合并窗）
         private readonly IMatchSessionFactory _matchSessions;
         private readonly PageFlow _pages;            // 五页页面流（批C-④；可空 = 测试装配不接 UI）
         private readonly ISceneService _scenes;      // 对局场景组加载与卸载（可空 = 测试装配）
         private readonly IMapProvider _maps;         // 地图表（多图批：场景路径查表行 scene 列／离场卸载按表枚举）
         private readonly FeedbackService _feedback;  // 开局入场加载遮罩（可空 = 测试装配不接 UI）
-        private readonly CrosshairFeelProfile _crosshairFeel;   // 准心手感投影（tbcrosshair；可空 = 测试装配回落 Default）
-        private readonly Func<UiThemeAsset> _themeProvider;      // 主题资产工厂（P2-3 B4：HUD 注入复用；可空 = 保持烘焙值）
         private readonly LiteGame.IDevSession _devSession;     // 开发会话端口（dev 投影读本局规则；可空 = 测试装配）
-        private readonly ILookPreferences _lookPreferences;      // 视角手感偏好（灵敏度/ADS 倍率/反转；可空 = 纯机制常量）
 
         private BattleSession _session;              // 对局聚合（唯一状态所有者：Match 域 + 上下文 + 视图域）
 
         /// <summary>视图域（经会话消费——Battle 阶段不直接持有生命周期）。</summary>
-        private BattleViewRig _rig => _session?.View;
+        private IBattleViewGroup _rig => _session?.View;
 
         /// <summary>对局上下文（经会话消费）。</summary>
         private BattleContext _context => _session?.Context;
@@ -82,32 +78,28 @@ namespace LiteGame
         /// <param name="requireCamera">缺相机时是否拒绝对局。**装配根按场景是否配了虚拟相机决定**：
         /// 有 vcam 的包传 false（正常路径）；没配 vcam 的包传 true——让"对局跑得动但看不见"
         /// 这种最难的静默失效变成显性失败，而不是进了对局才发现画面纹丝不动。</param>
-        public ProcedureBattle(IContentService content, IInputService input, ICameraService camera,
-            IVFXService vfx = null, CancellationToken rootToken = default, bool requireCamera = false,
-            LiteFramework.IWorldClock worldClock = null, IMatchSessionFactory matchSessions = null,
-            AudioService audio = null, CommandCenter commands = null, PageFlow pages = null,
-            CrosshairFeelProfile crosshairFeel = null, ISceneService scenes = null, IMapProvider maps = null,
-            FeedbackService feedback = null, Func<UiThemeAsset> themeProvider = null,
-            LiteGame.IDevSession devSession = null, ILookPreferences lookPreferences = null)
+        /// <param name="views">视图组工厂（表现层实现；本流程只认端口——不持有视图装配件类型）。</param>
+        /// <param name="roomBridge">房间会话门面装订口（Lua 桥适配器实现；房主开局批）。</param>
+        public ProcedureBattle(IInputService input, ICameraService camera, CommandCenter commands,
+            IBattleViewGroupFactory views, IRoomSessionBridge roomBridge,
+            CancellationToken rootToken = default, bool requireCamera = false,
+            IMatchSessionFactory matchSessions = null, PageFlow pages = null,
+            ISceneService scenes = null, IMapProvider maps = null, FeedbackService feedback = null,
+            LiteGame.IDevSession devSession = null)
             : base(rootToken)
         {
-            _content = content ?? throw new ArgumentNullException(nameof(content));
             _input = input;
             _camera = camera;
-            _vfx = vfx;
-            _audio = audio;
             _commands = commands ?? throw new ArgumentNullException(nameof(commands));
+            _views = views ?? throw new ArgumentNullException(nameof(views));
+            _roomBridge = roomBridge ?? throw new ArgumentNullException(nameof(roomBridge));
             _requireCamera = requireCamera;
-            _worldClock = worldClock;
             _matchSessions = matchSessions ?? throw new ArgumentNullException(nameof(matchSessions));
             _pages = pages;
             _scenes = scenes;
             _maps = maps;
             _feedback = feedback;
-            _crosshairFeel = crosshairFeel;
-            _themeProvider = themeProvider;
             _devSession = devSession ?? NullDevSession.Instance;   // 发布/测试装配 = 全关端口
-            _lookPreferences = lookPreferences;                    // 视角手感偏好（可空 = 测试装配，倍率 1.0）
         }
 
         protected override void RunAsync(IStageHost<ProcedureId, ProcedureArgs> m, in ProcedureArgs req, CancellationToken ct)
@@ -128,19 +120,15 @@ namespace LiteGame
                 _account = accountSession.Scope;
                 BattleClient battleClient = accountSession.Battle;
 
-                // 视图域：自有 BattleView 作用域 + 视图根 + 六个取件（缺角色资源＝无角色视图）
-                var rig = new BattleViewRig(_content, _input, _camera, _account, _vfx, _worldClock, _audio, _commands,
-                    crosshairFeel: _crosshairFeel,       // 准心手感投影（可空 = 测试装配）
-                    themeProvider: _themeProvider,       // HUD 主题注入（可空 = 保持烘焙值）
-                    dev: _devSession, devOverlay: DevHooks.Current?.CreateBattleOverlay(), teleportDispatch: DispatchTeleport,
-                    lookPreferences: _lookPreferences);  // 视角偏好端口（设置页改值即生效）
+                // 视图域：工厂建视图组（表现层装配点：自有 BattleView 作用域 + 视图根 + 资源取件；缺角色资源＝无角色视图）
+                IBattleViewGroup rig = _views.Create(_account, DevHooks.Current?.CreateBattleOverlay(), DispatchTeleport);
                 await rig.LoadAsync(ct);
 
                 _session = new BattleSession(_matchSessions?.Create(accountSession, accountSession.Rules)
                     ?? throw new InvalidOperationException("缺少 MatchSessionFactory（完整 DI 装配要求由工厂创建 Match 域）"),
                     _devSession);
                 _session.AttachView(rig);            // 视图域归会话持有（拆除由 Session 统一逆序）
-                RoomBridge.BindSession(new RoomSessionFace(battleClient));   // 房间会话门面（房主开局批）——页面经 Bridge.room 读房主事实/发提前开局；收尾必摘
+                _roomBridge.BindSession(new RoomSessionFace(battleClient));   // 房间会话门面（房主开局批）——页面经 Bridge.room 读房主事实/发提前开局；收尾必摘
                 Log.Info("context-created (Match Scope built)", LogTag.Battle);
 
                 bool started = await WaitStartGameOrEnded(battleClient, _context, ct);   // Sim 就绪 = 视图可建（SimView 要读预测态）
@@ -226,7 +214,7 @@ namespace LiteGame
 
         /// <summary>开局入场加载对局场景组（**本阶段职责**——加载链修订：Rig ＋ 本局地图在 StartGame 之后加载）：
         /// 行键取 JoinAck 权威事实（多图批：`RoomClient.MapId` → <see cref="BattleScenes.ResolveMapId"/> 裁决 →
-        /// 场景路径查地图表 `scene` 列）；必须早于 <see cref="BattleViewRig.Attach"/>（视图件按名解析场景对象）
+        /// 场景路径查地图表 `scene` 列）；必须早于视图组 <c>Attach</c>（视图件按名解析场景对象）
         /// 与相机硬门（vcam 随 Rig 场景）。进度经开局入场遮罩（"正在进入对局…"）。
         /// 未注入场景服务（测试装配）= 跳过；**注入了场景服务但缺地图表 = 配置缺失 fail-fast**（不给"静默不加载"留口）；
         /// 加载失败向上抛（RunAsyncCore 的失败分支统一收口进 Error，finally 照卸已载场景）。</summary>
@@ -352,7 +340,7 @@ namespace LiteGame
         /// <summary>离场收尾：摘房间会话门面 → 摘对局菜单 Back 策略 → 清输入派发状态 → 拆视图域（逆序：消费者 → 视图 → 租约作用域）。</summary>
         private void DetachView()
         {
-            RoomBridge.UnbindSession();            // 会话门面先摘（页面订阅不得命中死会话——未在途回调随作废）
+            _roomBridge.UnbindSession();           // 会话门面先摘（页面订阅不得命中死会话——未在途回调随作废）
             _pages?.DisableBattleMenuBack();   // 对局菜单 Back 随视图拆除（ESC 恢复原 Back 链——对局外不得开设置页）
             _input?.Reset();   // 离场即清派发状态（设备源与拦截源都是装配根的，不在此摘）
             _session?.DetachView();            // 视图域拆除归会话（消费者 → 视图 → 租约作用域）

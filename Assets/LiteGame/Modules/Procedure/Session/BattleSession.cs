@@ -17,7 +17,7 @@ namespace LiteGame
     /// 生命周期：构造即接线，<see cref="Dispose"/> 先摘订阅/解绑再释放视图域与 Match 域（不留下局可读状态）。
     ///
     /// **诊断所有权（M2）**：对局诊断读口（`BattleDiagnostics`，开发三宏内）的登记/注销归本会话——
-    /// 与会话同生共死，视图域（<see cref="BattleViewRig"/>）只做装配/拆除，不再登记静态读口。
+    /// 与会话同生共死，视图域（<see cref="IBattleViewGroup"/>）只做装配/拆除，不再登记静态读口。
     /// </summary>
     internal sealed class BattleSession : IDisposable
     {
@@ -30,7 +30,7 @@ namespace LiteGame
         public BattleContext Context => Match.Context;
 
         /// <summary>表现视图域（Battle 阶段创建后挂入；null = 尚未建立/已拆除）。</summary>
-        public BattleViewRig View { get; private set; }
+        public IBattleViewGroup View { get; private set; }
 
         /// <summary>本局规则实例（null = 常规房无测试规则）。</summary>
         public MatchTestRules Rules => Context.MatchRules;
@@ -54,16 +54,16 @@ namespace LiteGame
         }
 
         /// <summary>挂入视图域（Battle 阶段 StartGame 后建立；生命周期随本会话，先于 Match 域释放）。</summary>
-        public void AttachView(BattleViewRig view)
+        public void AttachView(IBattleViewGroup view)
         {
             if (_disposed) throw new ObjectDisposedException(nameof(BattleSession));
             View = view;
         }
 
-        /// <summary>拆视图域（幂等）：消费者/视图/租约作用域由 Rig.Dispose 自身逆序完成。</summary>
+        /// <summary>拆视图域（幂等）：消费者/视图/租约作用域由视图组自身逆序完成。</summary>
         public void DetachView()
         {
-            BattleViewRig view = View;
+            IBattleViewGroup view = View;
             View = null;
             view?.Dispose();
         }

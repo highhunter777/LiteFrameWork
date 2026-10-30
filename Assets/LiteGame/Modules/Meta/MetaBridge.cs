@@ -12,7 +12,7 @@ namespace LiteGame
     /// <summary>
     /// 联机门面（Bridge.meta，批C-③）：《上云测试专项设计》§2 客户端闭环的 Lua 侧入口。
     /// 住 App 侧（服务编排件在 App——LuaBridge 程序集不引用 App，依赖方向不可反），
-    /// 经 <see cref="ProductBridges.BindGlobals"/> 与框架四门面同 env 装订。
+    /// 经产品装订面（`ProductBridges`，住 Lua 桥适配器）与框架四门面同 env 装订。
     ///
     /// **回调契约**：每个异步入口回调**恰好一次**（主线程续延），首参 ok:bool，成功随结果形状、
     /// 失败随 reason:string（稳定错误码 / "Network" / "InvalidResponse"——不含敏感原文）。
@@ -37,7 +37,7 @@ namespace LiteGame
             s_reentry = reentry;
         }
 
-        /// <summary>装订 meta 门面进全局 Bridge 表（ProductBridges 调用——在框架四门面之后）。</summary>
+        /// <summary>装订 meta 门面进全局 Bridge 表（产品装订面调用——在框架四门面之后）。</summary>
         public static void BindGlobals(LuaEnv env)
         {
             var meta = env.NewTable();

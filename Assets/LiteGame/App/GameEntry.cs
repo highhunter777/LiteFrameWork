@@ -154,14 +154,15 @@ namespace LiteGame
                 .AddModule(new DevSessionModule())               // ③ 开发会话端口（设备源构造即消费——必须早于 ⑫）
                 .AddModule(new ContentModule())                  // ④ IContentService（配置/Lua 字节通道的租约来源）
                 .AddModule(new SettingsModule())                 // ⑤ 玩家偏好（先于容器——UI/音频服务注册时就要读）
-                .AddModule(new ClocksModule())                   // ⑥ 双轨时钟 + 事件中心
-                .AddModule(new SchedulersModule())               // ⑦ 时序执行（依赖 ⑥）
-                .AddModule(new LuaHostModule(gameObject))        // ⑧ 脚本宿主（同 GameObject 组件）
-                .AddModule(new ConfigModule())                   // ⑨ 表投影数据源（依赖 ④ 的租约通道）
-                .AddModule(new UiServiceModule())                // ⑩ UI 服务装配（依赖 ⑧⑨④）
-                .AddModule(new PresentationModule())             // ⑪ 表现域 + 相机服务（依赖 ④⑥）
-                .AddModule(new InputModule())                    // ⑫ 输入服务（设备源；瞄准相机取自 ⑪ 登记的主相机）
-                .AddModule(new ContainerModule());               // ⑬ 容器与流程机（消费以上全部——装配根最后一段）
+                .AddModule(new EventsModule())                   // ⑥ 事件总线（唯一产出方；只需 ① 的池）
+                .AddModule(new ClocksModule())                   // ⑦ 双轨时钟（事件域已独立，时钟只负责时间）
+                .AddModule(new SchedulersModule())               // ⑧ 时序执行（依赖 ⑦）
+                .AddModule(new LuaHostModule(gameObject))        // ⑨ 脚本宿主（同 GameObject 组件）
+                .AddModule(new ConfigModule(AppComposition.ConfigServiceFactory()))          // ⑩ 表投影数据源（依赖 ⑤ 的租约通道）
+                .AddModule(new UiServiceModule())                // ⑪ UI 服务装配（依赖 ⑨⑩⑤）
+                .AddModule(new PresentationModule(AppComposition.CameraServiceFactory()))    // ⑫ 表现域 + 相机服务（依赖 ⑤⑦）
+                .AddModule(new InputModule(AppComposition.IntentSourceFactory()))            // ⑬ 输入服务（设备源由组合根注入）
+                .AddModule(new ContainerModule());               // ⑭ 容器与流程机（消费以上全部——装配根最后一段）
         }
 
         private void Update()

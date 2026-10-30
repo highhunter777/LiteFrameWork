@@ -1,0 +1,224 @@
+{
+  "schema_version": 1,
+  "kind": "red",
+  "at": "2026-10-30T21:20:02+08:00",
+  "ok": true,
+  "command_fingerprint": "8dd6402a49a887ffe04b429b5c791845aba700adc1dc808551f17e09d14a2fea",
+  "commands": [
+    {
+      "name": "build-player-platform-red",
+      "cmd": [
+        "python",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "scripts/tests",
+        "-p",
+        "test_build_player.py",
+        "-v"
+      ],
+      "cwd": null,
+      "exit_code": 0,
+      "timed_out": false,
+      "error": null,
+      "duration_ms": 228,
+      "ok": false,
+      "output_tail": "[stderr]\ntest_android_player_extension_is_apk (test_build_player.BuildPlayerPlatformContractTests.test_android_player_extension_is_apk) ... ok\ntest_android_profile_named_target (test_build_player.BuildPlayerPlatformContractTests.test_android_profile_named_target) ... ok\ntest_artifact_glob_defaults_by_platform (test_build_player.BuildPlayerPlatformContractTests.test_artifact_glob_defaults_by_platform) ... ok\ntest_artifact_glob_prefers_profile_value (test_build_player.BuildPlayerPlatformContractTests.test_artifact_glob_prefers_profile_value) ... ok\ntest_backend_switch_android_uses_android_named_target (test_build_player.BuildPlayerPlatformContractTests.test_backend_switch_android_uses_android_named_target) ... ok\ntest_backend_switch_honors_mono_profile (test_build_player.BuildPlayerPlatformContractTests.test_backend_switch_honors_mono_profile) ... ok\ntest_backend_switch_windows_keeps_standalone (test_build_player.BuildPlayerPlatformContractTests.test_backend_switch_windows_keeps_standalone) ... ok\ntest_bundles_cs_targets_profile_platform (test_build_player.BuildPlayerPlatformContractTests.test_bundles_cs_targets_profile_platform) ... ok\ntest_bundles_supported_platforms (test_build_player.BuildPlayerPlatformContractTests.test_bundles_supported_platforms) ... ok\ntest_explicit_build_target_group_wins (test_build_player.BuildPlayerPlatformContractTests.test_explicit_build_target_group_wins) ... ok\ntest_output_expr_android_ends_with_apk (test_build_player.BuildPlayerPlatformContractTests.test_output_expr_android_ends_with_apk) ... ok\ntest_output_expr_windows_ends_with_exe (test_build_player.BuildPlayerPlatformContractTests.test_output_expr_windows_ends_with_exe) ... ok\ntest_profiles_carry_platform_contract_fields (test_build_player.BuildPlayerPlatformContractTests.test_profiles_carry_platform_contract_fields) ... ok\ntest_unknown_platform_extension_rejected (test_build_player.BuildPlayerPlatformContractTests.test_unknown_platform_extension_rejected) ... ok\ntest_unknown_platform_rejected (test_build_player.BuildPlayerPlatformContractTests.test_unknown_platform_rejected) ... ok\ntest_windows_player_extension_is_exe (test_build_player.BuildPlayerPlatformContractTests.test_windows_player_extension_is_exe) ... ok\ntest_windows_profile_named_target (test_build_player.BuildPlayerPlatformContractTests.test_windows_profile_named_target) ... ok\ntest_build_command_uses_double_dash_profile (test_build_player.ToolchainBuildCommandTests.test_build_command_uses_double_dash_profile) ... ok\ntest_build_command_without_profile (test_build_player.ToolchainBuildCommandTests.test_build_command_without_profile) ... ok\n\n----------------------------------------------------------------------\nRan 19 tests in 0.048s\n\nOK"
+    },
+    {
+      "name": "ui-selectable-theme-red",
+      "cmd": [
+        "python",
+        "scripts/gate/unity-tests.py",
+        "--mode",
+        "editor",
+        "--filter",
+        "UiSelectableThemeEditModeTests",
+        "--timeout",
+        "600"
+      ],
+      "cwd": null,
+      "exit_code": 0,
+      "timed_out": false,
+      "error": null,
+      "duration_ms": 18520,
+      "ok": false,
+      "output_tail": "  \"summary\": {\n    \"total\": 4,\n    \"passed\": 4,\n    \"failed\": 0,\n    \"skipped\": 0,\n    \"inconclusive\": 0\n  },\n  \"results\": [\n    {\n      \"FullName\": \"LiteGame.Tests.EditMode.UiSelectableThemeEditModeTests.Null解析器_不抛且保持现值\",\n      \"Status\": \"Passed\",\n      \"Duration\": 0.152045,\n      \"Message\": null,\n      \"StackTrace\": null\n    },\n    {\n      \"FullName\": \"LiteGame.Tests.EditMode.UiSelectableThemeEditModeTests.五色写入_保留multiplier与fade\",\n      \"Status\": \"Passed\",\n      \"Duration\": 0.0157186,\n      \"Message\": null,\n      \"StackTrace\": null\n    },\n    {\n      \"FullName\": \"LiteGame.Tests.EditMode.UiSelectableThemeEditModeTests.未知令牌_保留该字段现值\",\n      \"Status\": \"Passed\",\n      \"Duration\": 0.0045738,\n      \"Message\": null,\n      \"StackTrace\": null\n    },\n    {\n      \"FullName\": \"LiteGame.Tests.EditMode.UiSelectableThemeEditModeTests.非ColorTint_不写\",\n      \"Status\": \"Passed\",\n      \"Duration\": 0.0017192,\n      \"Message\": null,\n      \"StackTrace\": null\n    }\n  ]\n}\n[stderr]\ntests: 4/4 passed"
+    },
+    {
+      "name": "ui-selectable-applier-red",
+      "cmd": [
+        "python",
+        "scripts/gate/unity-tests.py",
+        "--mode",
+        "editor",
+        "--filter",
+        "UiSelectableThemeApplierEditModeTests",
+        "--timeout",
+        "600"
+      ],
+      "cwd": null,
+      "exit_code": 0,
+      "timed_out": false,
+      "error": null,
+      "duration_ms": 13713,
+      "ok": false,
+      "output_tail": "{\n  \"status\": \"completed\",\n  \"duration\": 5.31,\n  \"summary\": {\n    \"total\": 3,\n    \"passed\": 3,\n    \"failed\": 0,\n    \"skipped\": 0,\n    \"inconclusive\": 0\n  },\n  \"results\": [\n    {\n      \"FullName\": \"LiteGame.Tests.EditMode.UiSelectableThemeApplierEditModeTests.EnsureAll_不改ColorBlock序列化值\",\n      \"Status\": \"Passed\",\n      \"Duration\": 2.5389122,\n      \"Message\": null,\n      \"StackTrace\": null\n    },\n    {\n      \"FullName\": \"LiteGame.Tests.EditMode.UiSelectableThemeApplierEditModeTests.EnsureAll_直挂补组件_嵌套跳过_幂等\",\n      \"Status\": \"Passed\",\n      \"Duration\": 1.6917787,\n      \"Message\": null,\n      \"StackTrace\": null\n    },\n    {\n      \"FullName\": \"LiteGame.Tests.EditMode.UiSelectableThemeApplierEditModeTests.EnsureAll_非ColorTint跳过\",\n      \"Status\": \"Passed\",\n      \"Duration\": 0.7126882,\n      \"Message\": null,\n      \"StackTrace\": null\n    }\n  ]\n}\n[stderr]\ntests: 3/3 passed"
+    },
+    {
+      "name": "ui-theme-binder-red",
+      "cmd": [
+        "python",
+        "scripts/gate/unity-tests.py",
+        "--mode",
+        "editor",
+        "--filter",
+        "UiThemeBinderEditModeTests",
+        "--timeout",
+        "600"
+      ],
+      "cwd": null,
+      "exit_code": 0,
+      "timed_out": false,
+      "error": null,
+      "duration_ms": 10018,
+      "ok": false,
+      "output_tail": "    },\n    {\n      \"FullName\": \"LiteGame.Tests.EditMode.UiThemeBinderEditModeTests.Apply_SelectableTheme节点上的基色ref仍可应用\",\n      \"Status\": \"Passed\",\n      \"Duration\": 0.0044859,\n      \"Message\": null,\n      \"StackTrace\": null\n    },\n    {\n      \"FullName\": \"LiteGame.Tests.EditMode.UiThemeBinderEditModeTests.Apply_writer不拥有的子标签ref仍应用\",\n      \"Status\": \"Passed\",\n      \"Duration\": 0.0045525,\n      \"Message\": null,\n      \"StackTrace\": null\n    },\n    {\n      \"FullName\": \"LiteGame.Tests.EditMode.UiThemeBinderEditModeTests.Apply_writer认领的tab目标跳过ref\",\n      \"Status\": \"Passed\",\n      \"Duration\": 0.0032674,\n      \"Message\": null,\n      \"StackTrace\": null\n    },\n    {\n      \"FullName\": \"LiteGame.Tests.EditMode.UiThemeBinderEditModeTests.Apply_未知令牌只告警一次\",\n      \"Status\": \"Passed\",\n      \"Duration\": 0.0061375,\n      \"Message\": null,\n      \"StackTrace\": null\n    },\n    {\n      \"FullName\": \"LiteGame.Tests.EditMode.UiThemeBinderEditModeTests.Apply_真HUD_ButtonSettings变色_Slider不抛\",\n      \"Status\": \"Passed\",\n      \"Duration\": 1.1897628,\n      \"Message\": null,\n      \"StackTrace\": null\n    }\n  ]\n}\n[stderr]\ntests: 7/7 passed"
+    },
+    {
+      "name": "ui-style-selectable-rule-red",
+      "cmd": [
+        "python",
+        "scripts/gate/unity-tests.py",
+        "--mode",
+        "editor",
+        "--filter",
+        "UiStyleSelectableRuleEditModeTests",
+        "--timeout",
+        "600"
+      ],
+      "cwd": null,
+      "exit_code": 0,
+      "timed_out": false,
+      "error": null,
+      "duration_ms": 13506,
+      "ok": false,
+      "output_tail": "    },\n    {\n      \"FullName\": \"LiteGame.Tests.EditMode.UiStyleSelectableRuleEditModeTests.无Selectable_Error\",\n      \"Status\": \"Passed\",\n      \"Duration\": 0.913433,\n      \"Message\": null,\n      \"StackTrace\": null\n    },\n    {\n      \"FullName\": \"LiteGame.Tests.EditMode.UiStyleSelectableRuleEditModeTests.未知令牌_Error\",\n      \"Status\": \"Passed\",\n      \"Duration\": 1.2934658,\n      \"Message\": null,\n      \"StackTrace\": null\n    },\n    {\n      \"FullName\": \"LiteGame.Tests.EditMode.UiStyleSelectableRuleEditModeTests.正例_ColorTint有组件且值命中_零问题\",\n      \"Status\": \"Passed\",\n      \"Duration\": 0.7290702,\n      \"Message\": null,\n      \"StackTrace\": null\n    },\n    {\n      \"FullName\": \"LiteGame.Tests.EditMode.UiStyleSelectableRuleEditModeTests.缺组件_Warning\",\n      \"Status\": \"Passed\",\n      \"Duration\": 0.8143643,\n      \"Message\": null,\n      \"StackTrace\": null\n    },\n    {\n      \"FullName\": \"LiteGame.Tests.EditMode.UiStyleSelectableRuleEditModeTests.非ColorTint_跳过\",\n      \"Status\": \"Passed\",\n      \"Duration\": 0.7570969,\n      \"Message\": null,\n      \"StackTrace\": null\n    }\n  ]\n}\n[stderr]\ntests: 7/7 passed"
+    },
+    {
+      "name": "ui-text-migration-red",
+      "cmd": [
+        "python",
+        "scripts/gate/unity-tests.py",
+        "--mode",
+        "editor",
+        "--filter",
+        "UiTextStyleEditModeTests",
+        "--timeout",
+        "600"
+      ],
+      "cwd": null,
+      "exit_code": 0,
+      "timed_out": false,
+      "error": null,
+      "duration_ms": 20952,
+      "ok": false,
+      "output_tail": "    },\n    {\n      \"FullName\": \"LiteGame.Tests.EditMode.UiTextStyleEditModeTests.应用_UGUI映射与加粗\",\n      \"Status\": \"Passed\",\n      \"Duration\": 1.8742711,\n      \"Message\": null,\n      \"StackTrace\": null\n    },\n    {\n      \"FullName\": \"LiteGame.Tests.EditMode.UiTextStyleEditModeTests.应用_加粗位只动Bold不动斜体\",\n      \"Status\": \"Passed\",\n      \"Duration\": 0.9493572,\n      \"Message\": null,\n      \"StackTrace\": null\n    },\n    {\n      \"FullName\": \"LiteGame.Tests.EditMode.UiTextStyleEditModeTests.迁移_UGUI按Legacy档匹配\",\n      \"Status\": \"Passed\",\n      \"Duration\": 1.0145516,\n      \"Message\": null,\n      \"StackTrace\": null\n    },\n    {\n      \"FullName\": \"LiteGame.Tests.EditMode.UiTextStyleEditModeTests.迁移_不匹配不加_36号留债\",\n      \"Status\": \"Passed\",\n      \"Duration\": 0.970072,\n      \"Message\": null,\n      \"StackTrace\": null\n    },\n    {\n      \"FullName\": \"LiteGame.Tests.EditMode.UiTextStyleEditModeTests.迁移_直挂加Body_嵌套跳过_幂等\",\n      \"Status\": \"Passed\",\n      \"Duration\": 1.2722094,\n      \"Message\": null,\n      \"StackTrace\": null\n    }\n  ]\n}\n[stderr]\ntests: 13/13 passed"
+    },
+    {
+      "name": "ui-style-ref-red",
+      "cmd": [
+        "python",
+        "scripts/gate/unity-tests.py",
+        "--mode",
+        "editor",
+        "--filter",
+        "UiStyleRefEditModeTests",
+        "--timeout",
+        "600"
+      ],
+      "cwd": null,
+      "exit_code": 0,
+      "timed_out": false,
+      "error": null,
+      "duration_ms": 17346,
+      "ok": false,
+      "output_tail": "    },\n    {\n      \"FullName\": \"LiteGame.Tests.EditMode.UiStyleRefEditModeTests.ApplyRefs_未知令牌_不写值并计数\",\n      \"Status\": \"Passed\",\n      \"Duration\": 0.743081,\n      \"Message\": null,\n      \"StackTrace\": null\n    },\n    {\n      \"FullName\": \"LiteGame.Tests.EditMode.UiStyleRefEditModeTests.ApplyRefs_跳过IThemeBound节点\",\n      \"Status\": \"Passed\",\n      \"Duration\": 1.0162341,\n      \"Message\": null,\n      \"StackTrace\": null\n    },\n    {\n      \"FullName\": \"LiteGame.Tests.EditMode.UiStyleRefEditModeTests.MigrateWidgetTokens_不命中不填\",\n      \"Status\": \"Passed\",\n      \"Duration\": 1.108697,\n      \"Message\": null,\n      \"StackTrace\": null\n    },\n    {\n      \"FullName\": \"LiteGame.Tests.EditMode.UiStyleRefEditModeTests.MigrateWidgetTokens_不填selectable专用令牌\",\n      \"Status\": \"Passed\",\n      \"Duration\": 1.1233161,\n      \"Message\": null,\n      \"StackTrace\": null\n    },\n    {\n      \"FullName\": \"LiteGame.Tests.EditMode.UiStyleRefEditModeTests.MigrateWidgetTokens_最近匹配填入\",\n      \"Status\": \"Passed\",\n      \"Duration\": 1.4310179,\n      \"Message\": null,\n      \"StackTrace\": null\n    }\n  ]\n}\n[stderr]\ntests: 9/9 passed"
+    },
+    {
+      "name": "ui-validation-b4-red",
+      "cmd": [
+        "python",
+        "scripts/gate/unity-tests.py",
+        "--mode",
+        "editor",
+        "--filter",
+        "UiValidationEditModeTests",
+        "--timeout",
+        "600"
+      ],
+      "cwd": null,
+      "exit_code": 1,
+      "timed_out": false,
+      "error": null,
+      "duration_ms": 20519,
+      "ok": true,
+      "output_tail": "    },\n    {\n      \"FullName\": \"LiteGame.Tests.EditMode.UiValidationEditModeTests.视觉规则_端口标识与族\",\n      \"Status\": \"Passed\",\n      \"Duration\": 0.0004937,\n      \"Message\": null,\n      \"StackTrace\": null\n    },\n    {\n      \"FullName\": \"LiteGame.Tests.EditMode.UiValidationEditModeTests.负例_代码建Canvas_报一条Error\",\n      \"Status\": \"Passed\",\n      \"Duration\": 0.3017355,\n      \"Message\": null,\n      \"StackTrace\": null\n    },\n    {\n      \"FullName\": \"LiteGame.Tests.EditMode.UiValidationEditModeTests.门禁_真实资产面_命名hash表路径零Error\",\n      \"Status\": \"Failed\",\n      \"Duration\": 2.4738744,\n      \"Message\": \"  文字档对账基线（B4：37 个精确匹配覆盖后 141→104）\\r\\n  Expected: 104\\r\\n  But was:  128\\r\\n\",\n      \"StackTrace\": \"at LiteGame.Tests.EditMode.UiValidationEditModeTests.门禁_真实资产面_命名hash表路径零Error () [0x00253] in E:\\\\unityProject\\\\Test\\\\Assets\\\\Tests\\\\EditMode\\\\UiValidationEditModeTests.cs:222\\r\\n\"\n    },\n    {\n      \"FullName\": \"LiteGame.Tests.EditMode.UiValidationEditModeTests.门禁_规则族全部接入登记_待接入子项描述含原因\",\n      \"Status\": \"Passed\",\n      \"Duration\": 0.2314876,\n      \"Message\": null,\n      \"StackTrace\": null\n    }\n  ]\n}\n[stderr]\nFAILED: LiteGame.Tests.EditMode.UiValidationEditModeTests.门禁_真实资产面_命名hash表路径零Error:   文字档对账基线（B4：37 个精确匹配覆盖后 141→104）\n\n  Expected: 104\n\n  But was:  128\n\n\ntests: 1/14 failed"
+    },
+    {
+      "name": "module-dependency-decl-red",
+      "cmd": [
+        "dotnet",
+        "test",
+        "Tests/LiteFramework.Core.Tests/LiteFramework.Core.Tests.csproj",
+        "--filter",
+        "FullyQualifiedName~ModuleDependencyDeclTests",
+        "--nologo"
+      ],
+      "cwd": null,
+      "exit_code": 0,
+      "timed_out": false,
+      "error": null,
+      "duration_ms": 3995,
+      "ok": false,
+      "output_tail": "  正在确定要还原的项目…\n  所有项目均是最新的，无法还原。\n  LiteTesting.Core -> E:\\unityProject\\Test\\Assets\\LiteTesting\\.dotnet\\bin\\Debug\\netstandard2.1\\LiteTesting.Core.dll\n  LiteFramework.Core -> E:\\unityProject\\Test\\Assets\\LiteFramework\\.dotnet\\bin\\Debug\\net8.0\\LiteFramework.Core.dll\n  DisciplineScanner -> E:\\unityProject\\Test\\Assets\\Tools\\DisciplineScanner\\.dotnet\\bin\\Debug\\net8.0\\DisciplineScanner.dll\n  LiteFramework.Async -> E:\\unityProject\\Test\\Assets\\LiteFramework\\Runtime\\Modules\\.dotnet\\bin\\Debug\\net8.0\\LiteFramework.Async.dll\n  LiteFramework.Core.Tests -> E:\\unityProject\\Test\\Tests\\LiteFramework.Core.Tests\\bin\\Debug\\net8.0\\LiteFramework.Core.Tests.dll\nE:\\unityProject\\Test\\Tests\\LiteFramework.Core.Tests\\bin\\Debug\\net8.0\\LiteFramework.Core.Tests.dll (.NETCoreApp,Version=v8.0)的测试运行\n总共 1 个测试文件与指定模式相匹配。\n\n已通过! - 失败:     0，通过:     2，已跳过:     0，总计:     2，持续时间: 33 ms - LiteFramework.Core.Tests.dll (net8.0)\n\n有可用的工作负载更新。有关详细信息，请运行 `dotnet workload list`。"
+    },
+    {
+      "name": "composition-budget-red",
+      "cmd": [
+        "dotnet",
+        "test",
+        "Tests/LiteFramework.Core.Tests/LiteFramework.Core.Tests.csproj",
+        "--filter",
+        "FullyQualifiedName~CompositionBudgetTests",
+        "--nologo"
+      ],
+      "cwd": null,
+      "exit_code": 1,
+      "timed_out": false,
+      "error": null,
+      "duration_ms": 3765,
+      "ok": true,
+      "output_tail": "  正在确定要还原的项目…\n  所有项目均是最新的，无法还原。\n  LiteTesting.Core -> E:\\unityProject\\Test\\Assets\\LiteTesting\\.dotnet\\bin\\Debug\\netstandard2.1\\LiteTesting.Core.dll\n  LiteFramework.Core -> E:\\unityProject\\Test\\Assets\\LiteFramework\\.dotnet\\bin\\Debug\\net8.0\\LiteFramework.Core.dll\n  DisciplineScanner -> E:\\unityProject\\Test\\Assets\\Tools\\DisciplineScanner\\.dotnet\\bin\\Debug\\net8.0\\DisciplineScanner.dll\n  LiteFramework.Async -> E:\\unityProject\\Test\\Assets\\LiteFramework\\Runtime\\Modules\\.dotnet\\bin\\Debug\\net8.0\\LiteFramework.Async.dll\n  LiteFramework.Core.Tests -> E:\\unityProject\\Test\\Tests\\LiteFramework.Core.Tests\\bin\\Debug\\net8.0\\LiteFramework.Core.Tests.dll\nE:\\unityProject\\Test\\Tests\\LiteFramework.Core.Tests\\bin\\Debug\\net8.0\\LiteFramework.Core.Tests.dll (.NETCoreApp,Version=v8.0)的测试运行\n总共 1 个测试文件与指定模式相匹配。\n  失败 装配段必须就地且数量达标 [12 ms]\n  错误消息:\n   `Modules/**` 下装配段不足 13 个（实测 0）：\n  堆栈跟踪:\n     at LiteFramework.Core.Tests.CompositionBudgetTests.装配段必须就地且数量达标() in E:\\unityProject\\Test\\Tests\\LiteFramework.Core.Tests\\CompositionBudgetTests.cs:line 52\n   at System.RuntimeMethodHandle.InvokeMethod(Object target, Void** arguments, Signature sig, Boolean isConstructor)\n   at System.Reflection.MethodBaseInvoker.InvokeWithNoArgs(Object obj, BindingFlags invokeAttr)\n  失败 模块目录不得残留于Bootstrap [1 ms]\n  错误消息:\n   装配段必须就地住进 Modules/<域>/<域>Composition.cs；`Assets/LiteGame/App/Bootstrap/Modules` 不应存在（批 1）\n  堆栈跟踪:\n     at LiteFramework.Core.Tests.CompositionBudgetTests.模块目录不得残留于Bootstrap() in E:\\unityProject\\Test\\Tests\\LiteFramework.Core.Tests\\CompositionBudgetTests.cs:line 36\n   at System.RuntimeMethodHandle.InvokeMethod(Object target, Void** arguments, Signature sig, Boolean isConstructor)\n   at System.Reflection.MethodBaseInvoker.InvokeWithNoArgs(Object obj, BindingFlags invokeAttr)\n\n失败!  - 失败:     2，通过:     1，已跳过:     0，总计:     3，持续时间: 18 ms - LiteFramework.Core.Tests.dll (net8.0)\n\n有可用的工作负载更新。有关详细信息，请运行 `dotnet workload list`。\n[stderr]\n[xUnit.net 00:00:00.34]     装配段必须就地且数量达标 [FAIL]\n[xUnit.net 00:00:00.35]     模块目录不得残留于Bootstrap [FAIL]"
+    },
+    {
+      "name": "domain-boundary-red",
+      "cmd": [
+        "dotnet",
+        "test",
+        "Tests/LiteFramework.Core.Tests/LiteFramework.Core.Tests.csproj",
+        "--filter",
+        "FullyQualifiedName~DomainBoundaryTests",
+        "--nologo"
+      ],
+      "cwd": null,
+      "exit_code": 1,
+      "timed_out": false,
+      "error": null,
+      "duration_ms": 3920,
+      "ok": true,
+      "output_tail": "  正在确定要还原的项目…\n  所有项目均是最新的，无法还原。\n  LiteTesting.Core -> E:\\unityProject\\Test\\Assets\\LiteTesting\\.dotnet\\bin\\Debug\\netstandard2.1\\LiteTesting.Core.dll\n  DisciplineScanner -> E:\\unityProject\\Test\\Assets\\Tools\\DisciplineScanner\\.dotnet\\bin\\Debug\\net8.0\\DisciplineScanner.dll\n  LiteFramework.Core -> E:\\unityProject\\Test\\Assets\\LiteFramework\\.dotnet\\bin\\Debug\\net8.0\\LiteFramework.Core.dll\n  LiteFramework.Async -> E:\\unityProject\\Test\\Assets\\LiteFramework\\Runtime\\Modules\\.dotnet\\bin\\Debug\\net8.0\\LiteFramework.Async.dll\n  LiteFramework.Core.Tests -> E:\\unityProject\\Test\\Tests\\LiteFramework.Core.Tests\\bin\\Debug\\net8.0\\LiteFramework.Core.Tests.dll\nE:\\unityProject\\Test\\Tests\\LiteFramework.Core.Tests\\bin\\Debug\\net8.0\\LiteFramework.Core.Tests.dll (.NETCoreApp,Version=v8.0)的测试运行\n总共 1 个测试文件与指定模式相匹配。\n  失败 战斗域Abstractions必须齐备 [1 ms]\n  错误消息:\n   `Modules/Battle/Abstractions/` 缺端口：IBattleView.cs, IBattleReadModel.cs, IMatchIdentity.cs, IBattleViewGroup.cs, IBattleViewGroupFactory.cs\n  堆栈跟踪:\n     at LiteFramework.Core.Tests.DomainBoundaryTests.战斗域Abstractions必须齐备() in E:\\unityProject\\Test\\Tests\\LiteFramework.Core.Tests\\DomainBoundaryTests.cs:line 69\n   at System.RuntimeMethodHandle.InvokeMethod(Object target, Void** arguments, Signature sig, Boolean isConstructor)\n   at System.Reflection.MethodBaseInvoker.InvokeWithNoArgs(Object obj, BindingFlags invokeAttr)\n  失败 横向表现域不得存在 [1 ms]\n  错误消息:\n   横向 UI/表现域必须并入业务域（战斗表现归 Modules/Battle）：Assets/LiteGame/Modules/View, Assets/LiteGame/Modules/Presentation\n  堆栈跟踪:\n     at LiteFramework.Core.Tests.DomainBoundaryTests.横向表现域不得存在() in E:\\unityProject\\Test\\Tests\\LiteFramework.Core.Tests\\DomainBoundaryTests.cs:line 45\n   at System.RuntimeMethodHandle.InvokeMethod(Object target, Void** arguments, Signature sig, Boolean isConstructor)\n   at System.Reflection.MethodBaseInvoker.InvokeWithNoArgs(Object obj, BindingFlags invokeAttr)\n  失败 业务端口不得留在Core [1 ms]\n  错误消息:\n   Core 只放基础设施与工具；业务端口须下沉 Modules/Battle/Abstractions（实测仍在：Assets/LiteGame/Core/Battle）\n  堆栈跟踪:\n     at LiteFramework.Core.Tests.DomainBoundaryTests.业务端口不得留在Core() in E:\\unityProject\\Test\\Tests\\LiteFramework.Core.Tests\\DomainBoundaryTests.cs:line 55\n   at System.RuntimeMethodHandle.InvokeMethod(Object target, Void** arguments, Signature sig, Boolean isConstructor)\n   at System.Reflection.MethodBaseInvoker.InvokeWithNoArgs(Object obj, BindingFlags invokeAttr)\n\n失败!  - 失败:     3，通过:     1，已跳过:     0，总计:     4，持续时间: 25 ms - LiteFramework.Core.Tests.dll (net8.0)\n\n有可用的工作负载更新。有关详细信息，请运行 `dotnet workload list`。\n[stderr]\n[xUnit.net 00:00:00.35]     战斗域Abstractions必须齐备 [FAIL]\n[xUnit.net 00:00:00.35]     横向表现域不得存在 [FAIL]\n[xUnit.net 00:00:00.35]     业务端口不得留在Core [FAIL]"
+    }
+  ]
+}

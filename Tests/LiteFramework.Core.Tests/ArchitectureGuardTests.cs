@@ -96,7 +96,6 @@ namespace LiteFramework.Core.Tests
             {
                 "Assets/LiteGame/Adapters/LuaBridge/Bridge.Data.cs",
                 "Assets/LiteGame/Modules/Meta/MetaBridge.cs",
-                "Assets/LiteGame/Modules/Room/RoomBridge.cs",
             };
             var pattern = new Regex(@"public\s+static\s+class\s+\w*(Bridge|Facade)\b", RegexOptions.Compiled);
             var offenders = new List<string>();

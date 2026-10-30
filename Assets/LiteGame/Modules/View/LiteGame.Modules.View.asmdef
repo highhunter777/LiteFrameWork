@@ -2,8 +2,10 @@
     "name": "LiteGame.Modules.View",
     "rootNamespace": "LiteGame.View",
     "references": [
+        "LiteGame.Modules.Battle",
         "LiteGame.Modules.Config",
         "LiteGame.Modules.Camera",
+        "LiteGame.Modules.Input",
         "LiteGame.Core",
         "LiteFramework.Runtime",
         "LiteSim",

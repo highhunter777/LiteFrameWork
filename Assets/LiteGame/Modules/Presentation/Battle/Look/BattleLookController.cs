@@ -131,16 +131,16 @@ namespace LiteGame
         /// </summary>
         private static Func<Vector2> LookDeltaOf(IInputService input)
         {
-            return input != null && input.Source is NewInputIntentSource source
-                ? () => source.LookDelta
+            return input != null && input.Source is ILookDevice device
+                ? () => device.LookDelta
                 : null;
         }
 
         /// <summary>肩位切换沿来源：设备源适配器的 Q 沿（同一 R12 边界；非该实现 = 无肩切形态）。</summary>
         private static Func<bool> ShoulderSwapOf(IInputService input)
         {
-            return input != null && input.Source is NewInputIntentSource source
-                ? () => source.ShoulderSwapPressed
+            return input != null && input.Source is ILookDevice device
+                ? () => device.ShoulderSwapPressed
                 : null;
         }
 

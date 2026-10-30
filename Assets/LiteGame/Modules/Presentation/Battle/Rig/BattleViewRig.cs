@@ -33,7 +33,7 @@ namespace LiteGame
     /// **降级口径**：缺资源/缺服务一律"警告 + 显式降级"（缺角色 prefab → 无角色视图，不造假人；缺 HUD/激光/飘字/
     /// 音效 → 该项静默降级），不把表现增益当成对局失败。
     /// </summary>
-    internal sealed class BattleViewRig
+    internal sealed class BattleViewRig : IBattleViewGroup
     {
         private readonly IInputService _input;       // 输入服务（设备源注入/清派发状态）
         private readonly ICameraService _camera;     // 相机服务（Cinemachine 适配器；装配根建、跨对局复用）
@@ -87,7 +87,7 @@ namespace LiteGame
 
         /// <summary>取全部对局表现资源（角色 prefab → 激光束 → HUD → 保护壳 → 飘字底件 → 逐档材质 → 片段清单 → 音效 clip）。
         /// 逐项失败只降级该项（缺角色资源＝无角色视图），不把缺美术当对局失败。</summary>
-        internal UniTask LoadAsync(CancellationToken ct) => _assets.LoadAsync(ct);
+        public UniTask LoadAsync(CancellationToken ct) => _assets.LoadAsync(ct);
 
         // ---- 装配（建视图 + 接线；须在 StartGame 之后调用）----
 
@@ -102,7 +102,7 @@ namespace LiteGame
         /// <paramref name="openBattleMenu"/>＝对局菜单钮回调（HUD 菜单钮点击 → 流程层开设置页——退场链；
         /// null / 旧 prefab 无此钮 = 静默降级，HUD 其余面照常）。
         /// </summary>
-        internal void Attach(BattleContext context, Action openBattleMenu = null)
+        public void Attach(BattleContext context, Action openBattleMenu = null)
         {
             _context = context ?? throw new ArgumentNullException(nameof(context));
             UnityEngine.Events.UnityAction menuClick =
@@ -137,7 +137,7 @@ namespace LiteGame
 
         /// <summary>每帧驱动视图消费者（<see cref="BattleContext.Tick"/> 之后调用——权威已应用）：
         /// 移动动画 → 权威反馈 → HUD 族 → 世界表现件 → 反馈消费者 → 视角/指针（相位顺序固定）。</summary>
-        internal void Tick(float elapseSeconds)
+        public void Tick(float elapseSeconds)
         {
             _viewAssembler.TickMovement(elapseSeconds);
             _feedbackAssembler.TickAuthority();
@@ -149,7 +149,7 @@ namespace LiteGame
 
         /// <summary>渲染帧采样**之前**的诊断件驱动（编辑器专用；release 空实现）：自瞄验证件要替换输入源，
         /// 必须在本帧采样前落位，否则自瞄点落后一帧（GM 面板现场开关；关闭即还原设备源）。</summary>
-        internal void TickPreSample()
+        public void TickPreSample()
         {
             _devOverlay?.TickPreSample();        // 爆头绘制 + 自瞄验证（发布无叠加层 = 空调用）
         }
@@ -166,11 +166,11 @@ namespace LiteGame
             // **对局相机注入**：设备源持有的是装配根 boot 相机——叠加开发形态下它
             // **不随场景销毁**，`Camera.main` 回落也拿错机（两台相机在场），瞄准/相机相对移动会
             // 全部算在错机上。这里把真对局渲染相机（brain 所在 Camera）显式换进去。
-            if (_camera is CinemachineCameraService ccs && _input.Source is NewInputIntentSource source)
+            if (_camera is IRenderCameraSource cameraSource && _input.Source is IAimCameraSink aimCamera)
             {
-                ccs.EnsureCamera();                                // 视图未建时 Follow 还没跑过——先解析 vcam
-                Camera renderCamera = ccs.TryGetRenderCamera();
-                if (renderCamera != null) source.SetAimCamera(renderCamera);
+                cameraSource.EnsureCamera();                       // 视图未建时 Follow 还没跑过——先解析 vcam
+                Camera renderCamera = cameraSource.TryGetRenderCamera();
+                if (renderCamera != null) aimCamera.SetAimCamera(renderCamera);
                 else Log.Warning("对局渲染相机未解析到——瞄准/移动继续用设备源现持相机", LogTag.Battle);
             }
 
@@ -179,7 +179,7 @@ namespace LiteGame
         }
 
         /// <summary>拆视图（按相位逆序：消费者 → 分发器 → 视图 → 根件 → 作用域）。不触发对局结束——那是流程层的裁决。</summary>
-        internal void Dispose()
+        public void Dispose()
         {
             _viewAssembler.DisposeMovement();     // 先停动画驱动（视图消费者），再拆视图本体
             _hudAssembler.DisposeRankboard();     // 排行榜（格归位——同属视图消费者）

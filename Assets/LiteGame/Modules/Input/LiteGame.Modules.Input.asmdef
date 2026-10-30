@@ -3,6 +3,7 @@
     "rootNamespace": "LiteGame",
     "references": [
         "LiteFramework.Runtime",
+        "LiteGame.Core",
         "LiteSim",
         "UniTask"
     ],

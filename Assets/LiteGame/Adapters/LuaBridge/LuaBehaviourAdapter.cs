@@ -8,18 +8,6 @@ using XLua;
 
 namespace LiteGame
 {
-    /// <summary>Lua 侧数据包装：Lua 构造的数据表经 C# 工厂包成 <see cref="IUIData"/>；
-    /// 适配器回传时解包出原始 LuaTable——Lua 拿到的永远是自己认识的表，不是 C# 包装对象。</summary>
-    public sealed class LuaUIData : IUIData
-    {
-        public LuaTable Table { get; }
-
-        public LuaUIData(LuaTable table)
-        {
-            Table = table ?? throw new ArgumentNullException(nameof(table));
-        }
-    }
-
     /// <summary>
     /// 生命周期桥（实例与调用契约见《UI框架总设计》§5.1）：
     /// 注册表存的是**模块表**，本适配器即**实例工厂**——构造期执行 `module.new()` 得到页面实例

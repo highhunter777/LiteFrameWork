@@ -7,5 +7,8 @@ namespace LiteGame
     public interface IConfigService : IConfigTableSource
     {
         cfg.Tables Tables { get; }
+
+        /// <summary>玩法数据身份基摘要（判定面表字节 + 规则位 → 两端 ConfigHash 对账用）。</summary>
+        uint GameplayDigestBase { get; }
     }
 }

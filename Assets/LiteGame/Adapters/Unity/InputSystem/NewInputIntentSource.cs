@@ -28,7 +28,7 @@ namespace LiteGame
     /// - **移动按相机平面 yaw 旋转**：W=屏幕上=相机 forward 投影；
     ///   相机为 null（纯测试装配）时退化为世界轴直映射。
     /// </summary>
-    public sealed class NewInputIntentSource : IIntentSource, IAimWorldSink, IDisposable
+    public sealed class NewInputIntentSource : IIntentSource, IAimWorldSink, IAimCameraSink, ILookDevice, IDisposable
     {
         /// <summary>地面平面（俯视角：瞄准射线打到 y=0 的地面）——目标点解算的**兜底**面
         /// （实体圆柱未命中时落这里，见 <see cref="TryResolveAimPoint"/>）。</summary>

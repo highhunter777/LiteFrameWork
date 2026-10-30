@@ -22,7 +22,7 @@ namespace LiteFramework.Core.Tests
             // Lua 回调边界（页面/桥脚本回调不得炸派发链）
             ["Assets/LiteFramework/Runtime/Adapters/XLua/Lua/EventBridge.cs"] = 2,
             ["Assets/LiteGame/Modules/Meta/MetaBridge.cs"] = 1,
-            ["Assets/LiteGame/Modules/Room/RoomBridge.cs"] = 3,
+            ["Assets/LiteGame/Adapters/LuaBridge/RoomBridge.cs"] = 3,
             // UI 逻辑/控件回调边界（页面生命周期、控件事件、主题/静态文案绑定、红点规则）
             ["Assets/LiteFramework/Runtime/Modules/UI/UIForm.cs"] = 13,
             ["Assets/LiteFramework/Runtime/Modules/UI/Bind/UIBindEvents.cs"] = 4,

@@ -18,13 +18,15 @@ namespace LiteGame
         private readonly IContentService _content;
         private readonly IConfigService _config;
         private readonly LuaComponent _lua;
-        private readonly RegistryFiller _filler;
+        private readonly ILuaRegistryFiller _filler;
+        private readonly ILuaProductBridge _productBridge;
         private readonly IEventBus _events;
         private readonly UIService _ui;
         private readonly FeedbackService _feedback;        // 启动走廊装载面（窗口③）
         private readonly Func<string[]> _listLuaFiles;     // Lua 清单（装配点绑定——静态门面收口于装配点）
 
-        public ProcedurePreload(IContentService content, IConfigService config, LuaComponent lua, RegistryFiller filler, IEventBus events,
+        public ProcedurePreload(IContentService content, IConfigService config, LuaComponent lua, ILuaRegistryFiller filler,
+            ILuaProductBridge productBridge, IEventBus events,
             UIService ui, Func<string[]> listLuaFiles = null, CancellationToken rootToken = default, FeedbackService feedback = null)
             : base(rootToken)
         {
@@ -32,6 +34,7 @@ namespace LiteGame
             _config = config ?? throw new ArgumentNullException(nameof(config));
             _lua = lua ?? throw new ArgumentNullException(nameof(lua));
             _filler = filler ?? throw new ArgumentNullException(nameof(filler));
+            _productBridge = productBridge ?? throw new ArgumentNullException(nameof(productBridge));
             _events = events ?? throw new ArgumentNullException(nameof(events));
             _ui = ui ?? throw new ArgumentNullException(nameof(ui));
             _feedback = feedback;                          // 可空 = 测试装配（LaunchLoading.Begin 空引用跳过）
@@ -57,7 +60,7 @@ namespace LiteGame
                 //     清单经装配点注入——不直查静态门面）
                 var preloader = new LuaPreloader(LoadLuaBytesViaContent, _listLuaFiles, LuaLayout.LuaDir);
                 await preloader.PreloadAllAsync(ct);
-                _lua.Init(preloader, _events, ProductBridges.BindGlobals);   // env + 事件桥；游戏桥经注入（产品→框架——框架四门面+meta 单源装订）
+                _lua.Init(preloader, _events, _productBridge.BindGlobals);   // env + 事件桥；产品门面经端口装订（单源）
                 _lua.DoMain();                                   // ② 执行 main.lua（require/定义，§4.4）
                 _lua.TickEnabled = true;                         // tick 派发开（宿主心跳；main.lua 无定时器也无害）
 
@@ -77,7 +80,7 @@ namespace LiteGame
                 // ---- 模态登记（配置已装载——表驱动反查单源；装配期查表必抛，见 ContainerModule 注）----
                 // 设置页模态要在**任何打开路径**（登录/大厅/结算/对局菜单；Lua 直开与 PageFlow 两条链）之前全局注册，
                 // 故落在放行闸口而非页面流内部。
-                int settingsFormId = Bridge.Data.ResolveUIFormId(LuaKeys.UI.Page_Settings);
+                int settingsFormId = UI.UiPageResolver.Resolve(LuaKeys.UI.Page_Settings);
                 if (settingsFormId >= 0) _ui.RegisterModal(settingsFormId);
                 else Log.Error($"模态登记失败：生成页面目录未登记 '{LuaKeys.UI.Page_Settings}'", LogTag.UI);
 

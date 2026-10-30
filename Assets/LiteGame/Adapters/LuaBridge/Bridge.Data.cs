@@ -12,9 +12,9 @@ namespace LiteGame
     /// <summary>
     /// 服务桥根类型：Lua 全局表四件（data/ui/content/text）的宿主。启动时绑定成 Lua 全局表，
     /// **白名单只此四件**——ILuaRegistry/玩法系统一律不导出（设计方案 §4.3 服务桥纪律）。
-    /// 产品侧另有联机门面（meta）经 App 的 <c>ProductBridges/MetaBridge</c> 装订（批C-③——
-    /// 依赖方向不可反向：LuaBridge 不引用 App，见 asmdef 图）；两路 env 重建（Preload/DevReload）
-    /// 共用 <c>ProductBridges.BindGlobals</c> 单源。
+    /// 产品侧另有联机门面（meta）经 <c>ProductBridges</c> 装订（批C-③——装订面住本适配器，
+    /// 实现模块自持端口 <c>ILuaProductBridge</c>）；两路 env 重建（Preload/DevReload）
+    /// 共用同一装订面单源。
     /// 绑定形态：不走生成 wrapper——门面方法以白名单委托（Func&lt;int, LuaTable&gt;）注册，
     /// 行字段在 Runtime 层手工展开（Lua 不触碰 Luban 类型，§1d）；注册表实例经 BindRegistries
     /// 装配期注入（装配根）。
@@ -28,15 +28,9 @@ namespace LiteGame
         private static UINavigationController s_nav;           // Lua 侧打开的单写者后端（三通道收口）
         private static Func<ILocalizationService> s_localeProvider;   // LText 门面后端（懒建工厂——表装载在 Preload）
 
-        private static IReadOnlyList<PageDefinition> s_pages;   // 页面目录（装配根注入；Lua 不碰生成类）
-
         /// <summary>绑定查表入口（经 IConfigService.Tables；未加载时其 Tables 访问器会抛）。</summary>
         public static void Bind(Func<Tables> tables)
             => s_tables = tables ?? throw new ArgumentNullException(nameof(tables));
-
-        /// <summary>绑定页面目录（装配根注入生成目录；Lua 桥不反向引用产品模块）。</summary>
-        public static void BindPageCatalog(IReadOnlyList<PageDefinition> pages)
-            => s_pages = pages ?? throw new ArgumentNullException(nameof(pages));
 
         /// <summary>装配期注入注册表（ui/content 骨架门面的查询底座）。</summary>
         public static void BindRegistries(IUILuaRegistry ui, IContentLuaRegistry content)
@@ -175,16 +169,10 @@ namespace LiteGame
         /// <summary>
         /// lua_path → 页面 id（生成目录反查；未登记返回 -1）。
         /// 页面寻址的单源解析口——页面脚本与产品流程（PageFlow）都按 lua_path 寻址（如 `UI.Page_Lobby`，
-        /// 与 <c>LuaKeys</c> 常量同文），magic id 不进脚本（禁硬编码）。
+        /// 与 <c>LuaKeys</c> 常量同文），magic id 不进脚本（禁硬编码）。实现委托模块侧解析器
+        /// <see cref="UI.UiPageResolver"/>（页面目录归产品模块，Lua 桥不持有第二份）。
         /// </summary>
-        public static int ResolveUIFormId(string luaPath)
-        {
-            if (string.IsNullOrEmpty(luaPath)) return -1;
-            if (s_pages != null)
-                foreach (PageDefinition page in s_pages)
-                    if (string.Equals(page.LuaPath, luaPath, StringComparison.Ordinal)) return page.Id;
-            return -1;
-        }
+        public static int ResolveUIFormId(string luaPath) => UI.UiPageResolver.Resolve(luaPath);
 
         /// <summary>DevReload 专用（§2.7）：env 重建后旧 LuaTable 引用全失效，缓存必须清空。</summary>
         public static void ClearLuaCaches()
