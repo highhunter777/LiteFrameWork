@@ -157,11 +157,14 @@ namespace Tools.DisciplineScan
         /// </summary>
         public static readonly string[] LiteGameTopLevelDirs =
         {
+            "Adapters",              // 产品侧适配层（Unity/框架引擎后端实现）
             "App",                   // §5 顶层第一层 Game.App
+            "Core",                  // 产品侧纯契约/纯计算（对局端口、视图数学；零引擎）
             "Editor",                // 编辑器工具程序集（不在 §5 层内，登记为例外）
             "Dev",                   // 开发装配层（LiteGame.Dev：DevHUD/调试控制台/调试面板 + 本地服 + 本地传输工厂；defineConstraints 三宏，发布包不参与）
             "Lua",                   // 脚本资产（非程序集目录；Luban lua pass 的产物 + 业务脚本）
             "LuaBridge",             // 产品侧 Lua 桥（LiteGame.LuaBridge：生命周期/数据门面/注册表；宿主 LiteFramework.Scripting.XLua 的消费者）
+            "Modules",               // 产品侧功能模块（Battle/View）
         };
 
         /// <summary>
@@ -187,11 +190,9 @@ namespace Tools.DisciplineScan
         public static readonly ScanTarget[] Default =
         {
             new ScanTarget("Assets/LiteSim", SimRules, SimLayerExcludes),
-            new ScanTarget("Assets/LiteView", UnityRules),                                 // 表现层：只守 R6
             new ScanTarget("Assets/LiteNet", NetRules),
             new ScanTarget("Assets/LiteFramework/Runtime/Core", CoreRules),
             new ScanTarget("Assets/LiteFramework/Runtime/Adapters/Unity", UnityRules),
-            new ScanTarget("Assets/LiteBattle", CoreRules),                                    // 对局/开发端口契约层：零引擎、零实现（R5 宏并集）
             // R6 的正则 `\byield\s+return\b` **不区分 C# 迭代器与 Unity 协程**——
             // IEnumerable 迭代器的 `yield return` 会被误报。
             new ScanTarget("Assets/LiteFramework/Runtime/Modules", GameRules),                                    // R8 资源唯一入口 + R12 适配器边界（框架侧：Modules）
@@ -455,7 +456,6 @@ namespace Tools.DisciplineScan
         public static readonly string[] ClientFrameworkPurityAsmdefs =
         {
             "Assets/LiteFramework/Runtime/LiteFramework.Runtime.asmdef",
-            "Assets/LiteBattle/Abstractions/LiteBattle.Abstractions.asmdef",
         };
 
         /// <summary>第一方代码根（注释卫生扫描范围；第三方与生成物不在内）。</summary>
@@ -464,7 +464,6 @@ namespace Tools.DisciplineScan
             "Assets/LiteFramework/Runtime/Modules",
             "Assets/LiteGame",
             "Assets/LiteFramework",
-            "Assets/LiteBattle",
             "Assets/LiteSim",
             "Assets/LiteNet",
             "Assets/LiteTesting",

@@ -42,7 +42,7 @@ namespace LiteFramework.Core.Tests
             Assert.Contains("LITEFRAMEWORK_DEBUG", devText);
 
             var offenders = new List<string>();
-            string[] clientRoots = { "Assets/LiteFramework", "Assets/LiteGame", "Assets/LiteView", "Assets/LiteBattle" };
+            string[] clientRoots = { "Assets/LiteFramework", "Assets/LiteGame" };
             foreach (string clientRoot in clientRoots)
             {
                 string dir = Path.Combine(root, clientRoot.Replace('/', Path.DirectorySeparatorChar));

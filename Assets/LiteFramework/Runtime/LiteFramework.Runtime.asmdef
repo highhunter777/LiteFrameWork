@@ -2,7 +2,6 @@
     "name": "LiteFramework.Runtime",
     "rootNamespace": "LiteFramework",
     "references": [
-        "LiteBattle.Abstractions",
         "LiteCodeGen.Runtime",
         "LiteNet",
         "LiteSim",

@@ -80,7 +80,7 @@
       "destructive": false,
       "order": 40,
       "outputs": [
-        { "path": "Assets/LiteView/Modules/Animation/GripBake.g.cs", "kind": "generated" }
+        { "path": "Assets/LiteGame/Modules/View/Animation/GripBake.g.cs", "kind": "generated" }
       ],
       "safety": { "dryRun": "supported", "undo": "file", "confirmation": "none" }
     },

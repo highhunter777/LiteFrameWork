@@ -76,7 +76,7 @@ namespace LiteGame.Tests.UI.PlayMode
                 greybox.transform.SetParent(viewRoot, false);
 
                 using (var driver = new CharacterLocomotionDriver(
-                           new SimView(sim, viewRoot, (loc, parent) => greybox), ProductionProfile()))
+                           new SimView(sim, viewRoot, (loc, parent) => greybox), ProductionProfile(), backendFactory: new LiteView.Animation.AnimatorAnimationBackendFactory()))
                 {
                     Assert.DoesNotThrow(() => driver.Tick(0.02f), "无绑定组件视图不得抛（灰盒降级，§4）");
                     Assert.AreEqual(0, driver.AnimatedViews, "无绑定组件的视图不建播放器（AnimatedViews=0）");
@@ -151,7 +151,7 @@ namespace LiteGame.Tests.UI.PlayMode
                 greybox.transform.SetParent(viewRoot, false);
 
                 using (var driver = new CharacterLocomotionDriver(
-                           new SimView(new SimWorldState(), viewRoot, (loc, parent) => greybox), ProductionProfile()))
+                           new SimView(new SimWorldState(), viewRoot, (loc, parent) => greybox), ProductionProfile(), backendFactory: new LiteView.Animation.AnimatorAnimationBackendFactory()))
                 {
                     Assert.DoesNotThrow(() => driver.Tick(0.02f), "无绑定组件视图不得抛（灰盒降级）");
                     Assert.AreEqual(0, driver.AnimatedViews, "无绑定组件的视图不建播放器");
@@ -272,7 +272,7 @@ namespace LiteGame.Tests.UI.PlayMode
             viewGo.transform.SetParent(root, false);
 
             var sim = new SimWorldState();
-            using (var driver = new CharacterLocomotionDriver(new SimView(sim, root, (loc, parent) => viewGo), ProductionProfile()))
+            using (var driver = new CharacterLocomotionDriver(new SimView(sim, root, (loc, parent) => viewGo), ProductionProfile(), backendFactory: new LiteView.Animation.AnimatorAnimationBackendFactory()))
             {
                 Assert.DoesNotThrow(() => driver.Tick(0.02f));
                 Assert.AreEqual(0, driver.AnimatedViews,

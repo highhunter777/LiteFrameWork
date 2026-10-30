@@ -74,6 +74,24 @@ namespace LiteFramework.Animation
         /// <summary>通道是否正被本后端占用。</summary>
         bool IsChannelActive(AnimationChannel channel);
 
+        /// <summary>按绑定键取片段时长（秒）；键不可解析返回 false。</summary>
+        bool TryGetClipSeconds(string binding, out float seconds);
+
+        /// <summary>当前活跃通道数（诊断）。</summary>
+        int ActiveChannels { get; }
+
+        /// <summary>当前 Playable 节点数（诊断；节点稳定性观测）。</summary>
+        int PlayableCount { get; }
+
+        /// <summary>清单中登记但片段引用缺失的键数（诊断/降级观测）。</summary>
+        int MissingManifestClips { get; }
+
+        /// <summary>未知绑定键数（诊断）。</summary>
+        int UnknownBindings { get; }
+
+        /// <summary>被截断的混合提交数（诊断）。</summary>
+        int TruncatedBlends { get; }
+
         /// <summary>
         /// 采样推进（**唯一驱动入口**——Graph Evaluate 只由一个驱动器调用）。
         /// <b>单次驱动全部活跃通道</b>（不能在通道循环里逐通道调——那会让累计时间被重复推进）。

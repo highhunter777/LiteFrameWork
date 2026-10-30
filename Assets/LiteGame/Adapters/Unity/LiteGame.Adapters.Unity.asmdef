@@ -1,0 +1,17 @@
+{
+    "name": "LiteGame.Adapters.Unity",
+    "rootNamespace": "LiteView.Animation",
+    "references": [
+        "LiteFramework.Runtime",
+        "LiteGame.Modules.View"
+    ],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}

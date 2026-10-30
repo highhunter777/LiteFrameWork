@@ -1,0 +1,20 @@
+{
+    "name": "LiteGame.Modules.Battle",
+    "rootNamespace": "LiteGame",
+    "references": [
+        "LiteGame.Core",
+        "LiteFramework.Runtime",
+        "LiteNet",
+        "LiteSim",
+        "UniTask"
+    ],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}

@@ -22,7 +22,7 @@ namespace LiteFramework.Core.Tests
         private static readonly Dictionary<string, int> ClassCaps = new Dictionary<string, int>(StringComparer.Ordinal)
         {
             ["Assets/LiteFramework/Runtime/Adapters/Cinemachine/CinemachineCameraService.cs::CinemachineCameraService"] = 590,
-            ["Assets/LiteFramework/Runtime/Modules/Battle/BattleContext.cs::BattleContext"] = 491,
+            ["Assets/LiteGame/Modules/Battle/BattleContext.cs::BattleContext"] = 491,
             ["Assets/LiteFramework/Runtime/Modules/UI/Bind/UIBindIndex.cs::UIBindIndex"] = 402,
             ["Assets/LiteFramework/Runtime/Modules/UI/UIService.cs::UIService"] = 650,
             ["Assets/LiteFramework/Runtime/Modules/Hosting/ClientHost.cs::ClientHost"] = 454,
@@ -38,8 +38,8 @@ namespace LiteFramework.Core.Tests
             ["Assets/LiteGame/Editor/Toolchain/Window/LiteGameToolboxWindow.cs::LiteGameToolboxWindow"] = 409,
             ["Assets/LiteGame/Editor/UiTools/Contract/UiContractGenerator.cs::UiContractGenerator"] = 424,
             ["Assets/LiteGame/Editor/UiTools/Workbench/Window/UiWorkbenchWindow.cs::UiWorkbenchWindow"] = 457,
-            ["Assets/LiteView/Adapters/Unity/AnimationBackends/AnimatorAnimationBackend.cs::AnimatorAnimationBackend"] = 505,
-            ["Assets/LiteView/Modules/Animation/Drivers/CharacterLocomotionDriver.cs::CharacterLocomotionDriver"] = 520,
+            ["Assets/LiteGame/Adapters/Unity/AnimationBackends/AnimatorAnimationBackend.cs::AnimatorAnimationBackend"] = 505,
+            ["Assets/LiteGame/Modules/View/Animation/Drivers/CharacterLocomotionDriver.cs::CharacterLocomotionDriver"] = 524,
         };
 
         /// <summary>方法行数冻结上限（同 7d 口径；超 80 行的方法只许降）。</summary>
@@ -70,7 +70,7 @@ namespace LiteFramework.Core.Tests
             ["Assets/LiteGame/Editor/UiTools/Preview/UiDeviceProfileCatalog.cs::UiDeviceProfileCatalog.Validate"] = 81,
             ["Assets/LiteGame/Editor/UiTools/Preview/UiPreviewMatrixRunner.cs::UiPreviewMatrixRunner.Tick"] = 91,
             ["Assets/LiteGame/Editor/UiTools/Validation/Rules/Structure/ContractReferenceRule.cs::ContractReferenceRule.Check"] = 100,
-            ["Assets/LiteView/Modules/Animation/Drivers/CharacterLocomotionDriver.cs::CharacterLocomotionDriver.Tick"] = 177,
+            ["Assets/LiteGame/Modules/View/Animation/Drivers/CharacterLocomotionDriver.cs::CharacterLocomotionDriver.Tick"] = 177,
         };
 
         [Fact]
@@ -81,7 +81,7 @@ namespace LiteFramework.Core.Tests
             var methodOffenders = new List<string>();
             var classActual = new Dictionary<string, int>(StringComparer.Ordinal);
             var methodActual = new Dictionary<string, int>(StringComparer.Ordinal);
-            string[] roots = { "Assets/LiteFramework/Runtime/Modules", "Assets/LiteGame", "Assets/LiteFramework", "Assets/LiteView", "Assets/LiteBattle" };
+            string[] roots = { "Assets/LiteFramework/Runtime/Modules", "Assets/LiteGame", "Assets/LiteFramework" };
 
             foreach (string relativeRoot in roots)
             {

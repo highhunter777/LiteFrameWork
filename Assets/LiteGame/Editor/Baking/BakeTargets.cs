@@ -36,7 +36,7 @@ namespace LiteGame.EditorTools
         public const string BodyBakeOutput = "Assets/LiteSim/Core/Scripts/BodyBake.g.cs";
         /// <summary>持枪偏移常量产物。**刻意不进 LiteSim/Core/Scripts**（BuildHash 源集）——
         /// 纯表现参数进闭包会复刻"hash 变了但判定没变"的全员拒进房噪声（gen-build-hash 头注释明令的病症）。</summary>
-        public const string GripBakeOutput = "Assets/LiteView/Animation/GripBake.g.cs";
+        public const string GripBakeOutput = "Assets/LiteGame/Modules/View/Animation/GripBake.g.cs";
 
         // ---- 片段采样族（根位移——来源是 RootMotionBakeConfig 引用的 CombatGirls 片段包，不入版本管理）----
 

@@ -26,14 +26,14 @@ namespace LiteFramework.Core.Tests
             "Assets/LiteGame/App/Presentation/Hud/CrosshairFeel.cs :: KickRecoverDevOverride",
             "Assets/LiteGame/App/Presentation/Hud/CrosshairFeel.cs :: StaticMaxDevOverride",
             "Assets/LiteGame/Editor/GenConfig/GenConfig.cs :: CSharpCallLua",
-            "Assets/LiteView/Modules/Animation/Drivers/GripTuning.cs :: TorsoWeightDevOverride",
+            "Assets/LiteGame/Modules/View/Animation/Drivers/GripTuning.cs :: TorsoWeightDevOverride",
         };
 
         [Fact]
         public void 静态可变字段仅限基线()
         {
             string root = RepoRoot();
-            string[] roots = { "Assets/LiteFramework/Runtime/Modules", "Assets/LiteGame", "Assets/LiteFramework", "Assets/LiteView", "Assets/LiteSim", "Assets/LiteBattle" };
+            string[] roots = { "Assets/LiteFramework/Runtime/Modules", "Assets/LiteGame", "Assets/LiteFramework", "Assets/LiteSim" };
             var rx = new Regex(@"^\s*public\s+static\s+(?!readonly\b)(?!const\b)(?!class\b)(?!partial\b)(?!void\b)(?!event\b)[\w<>,\[\]\.]+\s+([A-Za-z_]\w*)\s*(=[^=>]|;)");
             var offenders = new List<string>();
             foreach (string dir in roots)

@@ -44,7 +44,8 @@ namespace LiteGame
             Locomotion = new CharacterLocomotionDriver(View, animationProfile,
                 manifest: manifest,                               // 清单在 = 去 AC 主路径供片；缺清单回退控制器便利源
                 cameraPitchOf: camera != null ? (Func<float>)(() => camera.LookPitch) : null,   // TPS 俯仰姿态源
-                aimPointOf: aimPointOf);                          // ADS/腰射枪口对齐源（准心世界点）
+                aimPointOf: aimPointOf,                           // ADS/腰射枪口对齐源（准心世界点）
+                backendFactory: new LiteView.Animation.AnimatorAnimationBackendFactory());   // 引擎后端由适配层提供
         }
 
         /// <summary>挂瞄准激光（端点判定与显隐归驱动；本方法只装配）。</summary>

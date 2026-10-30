@@ -27,7 +27,7 @@
     该文件本身零引擎依赖，故按源**链接编译**——单一来源，语义不可能在两侧漂移。
   -->
   <ItemGroup>
-    <Compile Include="..\..\Assets\LiteView\Core\Transform\ViewTransformMath.cs" Link="View\ViewTransformMath.cs" />
+    <Compile Include="..\..\Assets\LiteGame\Core\View\Transform\ViewTransformMath.cs" Link="View\ViewTransformMath.cs" />
   </ItemGroup>
 
   <!--
@@ -36,12 +36,12 @@
     格式化——全零引擎。角色键 HitLocalRole 独立成零引擎文件（HitFeedback.cs 含 Vector3，Unity 侧独编）。
   -->
   <ItemGroup>
-    <Compile Include="..\..\Assets\LiteView\Core\HitFeedback\HitLocalRole.cs" Link="View\HitLocalRole.cs" />
-    <Compile Include="..\..\Assets\LiteView\Core\DamageNumbers\DamageNumberMotion.cs" Link="View\DamageNumbers\DamageNumberMotion.cs" />
-    <Compile Include="..\..\Assets\LiteView\Core\DamageNumbers\DamageNumberAggregator.cs" Link="View\DamageNumbers\DamageNumberAggregator.cs" />
-    <Compile Include="..\..\Assets\LiteView\Core\DamageNumbers\Abstractions\IDamageNumberStyleResolver.cs" Link="View\DamageNumbers\IDamageNumberStyleResolver.cs" />
-    <Compile Include="..\..\Assets\LiteView\Core\DamageNumbers\DamageNumberStyle.cs" Link="View\DamageNumbers\DamageNumberStyle.cs" />
-    <Compile Include="..\..\Assets\LiteView\Core\DamageNumbers\DamageNumberFormatter.cs" Link="View\DamageNumbers\DamageNumberFormatter.cs" />
+    <Compile Include="..\..\Assets\LiteGame\Core\View\HitFeedback\HitLocalRole.cs" Link="View\HitLocalRole.cs" />
+    <Compile Include="..\..\Assets\LiteGame\Core\View\DamageNumbers\DamageNumberMotion.cs" Link="View\DamageNumbers\DamageNumberMotion.cs" />
+    <Compile Include="..\..\Assets\LiteGame\Core\View\DamageNumbers\DamageNumberAggregator.cs" Link="View\DamageNumbers\DamageNumberAggregator.cs" />
+    <Compile Include="..\..\Assets\LiteGame\Core\View\DamageNumbers\Abstractions\IDamageNumberStyleResolver.cs" Link="View\DamageNumbers\IDamageNumberStyleResolver.cs" />
+    <Compile Include="..\..\Assets\LiteGame\Core\View\DamageNumbers\DamageNumberStyle.cs" Link="View\DamageNumbers\DamageNumberStyle.cs" />
+    <Compile Include="..\..\Assets\LiteGame\Core\View\DamageNumbers\DamageNumberFormatter.cs" Link="View\DamageNumbers\DamageNumberFormatter.cs" />
   </ItemGroup>
 
   <!--
@@ -52,9 +52,9 @@
   -->
   <ItemGroup>
     <Compile Include="..\..\Assets\LiteFramework\Runtime\Modules\Input\InputService.cs" Link="Input\InputService.cs" />
-    <Compile Include="..\..\Assets\LiteBattle\Abstractions\Input\IntentGate.cs" Link="Input\IntentGate.cs" />
-    <Compile Include="..\..\Assets\LiteBattle\Abstractions\Input\IIntentSource.cs" Link="Input\IIntentSource.cs" />
-    <Compile Include="..\..\Assets\LiteBattle\Abstractions\Input\IInputService.cs" Link="Input\IInputService.cs" />
+    <Compile Include="..\..\Assets\LiteFramework\Runtime\Modules\Input\IntentGate.cs" Link="Input\IntentGate.cs" />
+    <Compile Include="..\..\Assets\LiteFramework\Runtime\Modules\Input\Abstractions\IIntentSource.cs" Link="Input\IIntentSource.cs" />
+    <Compile Include="..\..\Assets\LiteFramework\Runtime\Modules\Input\Abstractions\IInputService.cs" Link="Input\IInputService.cs" />
     <Compile Include="..\..\Assets\LiteFramework\Runtime\Modules\Input\IntentVectorLimit.cs" Link="Input\IntentVectorLimit.cs" />
     <!--
       **平台实现不在 L1**：`NewInputIntentSource` / `CinemachineCameraService`（`Adapters/UnityPlatform/`）
@@ -75,7 +75,7 @@
   <ItemGroup>
     <Compile Include="..\..\Assets\LiteGame\Dev\Debug\Session\TestModeOptions.cs" Link="Gm\TestModeOptions.cs" />
     <Compile Include="..\..\Assets\LiteGame\Dev\Debug\Session\TestModeRuntime.cs" Link="Gm\TestModeRuntime.cs" />
-    <Compile Include="..\..\Assets\LiteBattle\Abstractions\Dev\ILocalTestHooks.cs" Link="Dev\ILocalTestHooks.cs" />
+    <Compile Include="..\..\Assets\LiteGame\Core\Dev\ILocalTestHooks.cs" Link="Dev\ILocalTestHooks.cs" />
   </ItemGroup>
 
   <ItemGroup>

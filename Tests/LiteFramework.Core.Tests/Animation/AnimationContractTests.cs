@@ -45,6 +45,13 @@ namespace LiteFramework.Tests.Animation
             /// <summary>累计被驱动的秒数（验证时钟缩放归属：播放器不乘 TimeScale，原样交给后端）。</summary>
             public float TotalTickedSeconds;
 
+            public int ActiveChannels => 0;
+            public int PlayableCount => 0;
+            public int MissingManifestClips => 0;
+            public int UnknownBindings => 0;
+            public int TruncatedBlends => 0;
+            public bool TryGetClipSeconds(string binding, out float seconds) { seconds = 0f; return false; }
+
             public bool TryPlay(in AnimationResolvedPlayback playback)
             {
                 if (!PlaySucceeds) return false;

@@ -1,0 +1,19 @@
+{
+    "name": "LiteGame.Modules.View",
+    "rootNamespace": "LiteView",
+    "references": [
+        "LiteGame.Core",
+        "LiteFramework.Runtime",
+        "LiteSim",
+        "UniTask"
+    ],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}

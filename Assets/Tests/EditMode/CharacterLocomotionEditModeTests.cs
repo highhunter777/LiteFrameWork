@@ -833,7 +833,7 @@ namespace LiteGame.Tests.EditMode
                     return go;
                 },
                 recycler: null);                                            // 自有池：回收 = 停用入池
-            var driver = new CharacterLocomotionDriver(view, ProductionProfile(), manifest: Manifest());
+            var driver = new CharacterLocomotionDriver(view, ProductionProfile(), manifest: Manifest(), backendFactory: new LiteView.Animation.AnimatorAnimationBackendFactory());
             const float dt = 1f / 60f;
             var weights = new float[4];
 
@@ -893,7 +893,7 @@ namespace LiteGame.Tests.EditMode
                 },
                 recycler: null);
             view.AlignLocal(selfId);                                    // 本地实体：IsAiming 走预测态分支
-            var driver = new CharacterLocomotionDriver(view, ProductionProfile(), manifest: Manifest());
+            var driver = new CharacterLocomotionDriver(view, ProductionProfile(), manifest: Manifest(), backendFactory: new LiteView.Animation.AnimatorAnimationBackendFactory());
             const float dt = 1f / 60f;
             var weights = new float[4];
 
@@ -965,7 +965,7 @@ namespace LiteGame.Tests.EditMode
                 },
                 recycler: null);
             view.AlignLocal(selfId);
-            var driver = new CharacterLocomotionDriver(view, ProductionProfile(), manifest: Manifest());       // 构造即自订阅 EventSink（§8 接缝）
+            var driver = new CharacterLocomotionDriver(view, ProductionProfile(), manifest: Manifest(), backendFactory: new LiteView.Animation.AnimatorAnimationBackendFactory());       // 构造即自订阅 EventSink（§8 接缝）
             const float dt = 1f / 60f;
             var stats = new Dictionary<string, string>();
             var firePos = new SimVector3(0f, 0f, 0f);
@@ -1040,7 +1040,7 @@ namespace LiteGame.Tests.EditMode
                 recycler: null);
             view.AlignLocal(selfId);
             view.ReconcileSharpness = 600f;                     // 本地朝向衰减加速收敛——测角断言不等指数尾巴
-            var driver = new CharacterLocomotionDriver(view, ProductionProfile(), manifest: Manifest());
+            var driver = new CharacterLocomotionDriver(view, ProductionProfile(), manifest: Manifest(), backendFactory: new LiteView.Animation.AnimatorAnimationBackendFactory());
             const float dt = 1f / 60f;
             var weights = new float[4];
 
@@ -1110,7 +1110,7 @@ namespace LiteGame.Tests.EditMode
                 },
                 recycler: null);
             view.AlignLocal(selfId);
-            var driver = new CharacterLocomotionDriver(view, ProductionProfile(), manifest: Manifest());
+            var driver = new CharacterLocomotionDriver(view, ProductionProfile(), manifest: Manifest(), backendFactory: new LiteView.Animation.AnimatorAnimationBackendFactory());
             const float dt = 1f / 60f;
 
             view.Tick(dt);
@@ -1168,7 +1168,7 @@ namespace LiteGame.Tests.EditMode
                 },
                 recycler: null);
             view.AlignLocal(selfId);
-            var driver = new CharacterLocomotionDriver(view, ProductionProfile(), manifest: Manifest());
+            var driver = new CharacterLocomotionDriver(view, ProductionProfile(), manifest: Manifest(), backendFactory: new LiteView.Animation.AnimatorAnimationBackendFactory());
             const float dt = 1f / 60f;
             var firePos = new SimVector3(0f, 0f, 0f);
 
@@ -1221,7 +1221,7 @@ namespace LiteGame.Tests.EditMode
                 },
                 recycler: null);
             view.AlignLocal(selfId);
-            var driver = new CharacterLocomotionDriver(view, ProductionProfile(), manifest: Manifest());
+            var driver = new CharacterLocomotionDriver(view, ProductionProfile(), manifest: Manifest(), backendFactory: new LiteView.Animation.AnimatorAnimationBackendFactory());
             const float dt = 1f / 60f;
             var firePos = new SimVector3(0f, 0f, 0f);
 
@@ -1284,7 +1284,7 @@ namespace LiteGame.Tests.EditMode
                 },
                 recycler: null);
             view.AlignLocal(selfId);                                    // 本地实体：IsAiming 走预测态分支
-            var driver = new CharacterLocomotionDriver(view, ProductionProfile(), manifest: Manifest());
+            var driver = new CharacterLocomotionDriver(view, ProductionProfile(), manifest: Manifest(), backendFactory: new LiteView.Animation.AnimatorAnimationBackendFactory());
             const float dt = 1f / 60f;
             var firePos = new SimVector3(0f, 0f, 0f);
 
@@ -1365,7 +1365,7 @@ namespace LiteGame.Tests.EditMode
                 },
                 recycler: null);
             view.AlignLocal(selfId);
-            var driver = new CharacterLocomotionDriver(view, ProductionProfile(), manifest: Manifest());
+            var driver = new CharacterLocomotionDriver(view, ProductionProfile(), manifest: Manifest(), backendFactory: new LiteView.Animation.AnimatorAnimationBackendFactory());
             const float dt = 1f / 60f;
             var stats = new Dictionary<string, string>();
 
@@ -1435,7 +1435,7 @@ namespace LiteGame.Tests.EditMode
                 },
                 recycler: null);
             view.AlignLocal(selfId);
-            var driver = new CharacterLocomotionDriver(view, ProductionProfile(), manifest: Manifest());
+            var driver = new CharacterLocomotionDriver(view, ProductionProfile(), manifest: Manifest(), backendFactory: new LiteView.Animation.AnimatorAnimationBackendFactory());
             const float dt = 1f / 60f;
             var firePos = new SimVector3(0f, 0f, 0f);
 
@@ -1579,7 +1579,7 @@ namespace LiteGame.Tests.EditMode
             SimView view = new SimView(world, null,
                 factory: (loc, parent) => Scope.CreateGameObject(loc),      // 灰盒形态：无 Animator
                 recycler: null);
-            var driver = new CharacterLocomotionDriver(view, ProductionProfile(), manifest: Manifest());
+            var driver = new CharacterLocomotionDriver(view, ProductionProfile(), manifest: Manifest(), backendFactory: new LiteView.Animation.AnimatorAnimationBackendFactory());
             const float dt = 1f / 60f;
 
             view.Tick(dt);
@@ -1610,7 +1610,7 @@ namespace LiteGame.Tests.EditMode
                 },
                 recycler: null);
             view.AlignLocal(selfId);
-            var driver = new CharacterLocomotionDriver(view, ProductionProfile(), manifest: Manifest());
+            var driver = new CharacterLocomotionDriver(view, ProductionProfile(), manifest: Manifest(), backendFactory: new LiteView.Animation.AnimatorAnimationBackendFactory());
             const float dt = 1f / 60f;
 
             view.Tick(dt);

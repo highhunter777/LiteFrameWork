@@ -1,0 +1,16 @@
+{
+    "name": "LiteGame.Core",
+    "rootNamespace": "LiteGame",
+    "references": [
+        "LiteSim"
+    ],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": true
+}

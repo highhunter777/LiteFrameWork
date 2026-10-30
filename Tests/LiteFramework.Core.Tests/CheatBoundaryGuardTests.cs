@@ -69,7 +69,7 @@ namespace LiteFramework.Core.Tests
             Assert.True(File.Exists(Path.Combine(root, "Assets/LiteGame/Dev/Debug/Session/TestModeRuntime.cs")));
             Assert.True(File.Exists(Path.Combine(root, "Assets/LiteGame/Dev/Debug/Kernel/DebugKernel.cs")));
             Assert.False(File.Exists(Path.Combine(root, "Assets/LiteGame/App/Debug/TestModeRuntime.cs")));
-            Assert.True(File.Exists(Path.Combine(root, "Assets/LiteBattle/Abstractions/Dev/ILocalTestHooks.cs")));
+            Assert.True(File.Exists(Path.Combine(root, "Assets/LiteGame/Core/Dev/ILocalTestHooks.cs")));
         }
 
         private static string StripCommentAndStrings(string line)

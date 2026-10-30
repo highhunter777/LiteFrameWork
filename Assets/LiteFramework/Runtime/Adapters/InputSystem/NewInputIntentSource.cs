@@ -37,7 +37,7 @@ namespace LiteFramework
         private readonly PlayerInputActions _actions;
         private readonly bool _ownsActions;      // 自建资产时负责释放；外部传入（装配根共享）由调用方释放
         private Camera _camera;
-        private readonly LiteBattle.IDevSession _dev;   // 本局规则来源（爆头带覆写；null = 常规房/发布形态）
+        private readonly Func<MatchTestRules> _matchRules;   // 本局规则读口（爆头带覆写；null = 常规房/发布形态）
 
         // 瞄准点（AimPoint 单口径：**唯一瞄准表示**——相机射线与实体/地面的交点，世界坐标；
         // 朝向与弹道方向两端自本点派生，方向字段已随重规划退役）
@@ -66,14 +66,15 @@ namespace LiteFramework
 
         /// <param name="actions">Action 资产包装（装配根创建并持有；null = 自建，由本类释放）。</param>
         /// <param name="camera">瞄准解算相机（null = 不做瞄准换算，沿用上次方向）。</param>
-        /// <param name="dev">开发会话端口（读本局规则的爆头带覆写；null = 无覆写——常规房/发布形态）。</param>
+        /// <param name="matchRules">本局规则读口（爆头带覆写；null = 无覆写——常规房/发布形态）。
+        /// 由装配根绑定开发会话读口，框架适配器不依赖产品态端口。</param>
         public NewInputIntentSource(PlayerInputActions actions = null, Camera camera = null,
-            LiteBattle.IDevSession dev = null)
+            Func<MatchTestRules> matchRules = null)
         {
             _ownsActions = actions == null;
             _actions = actions ?? new PlayerInputActions();
             _camera = camera;
-            _dev = dev;
+            _matchRules = matchRules;
             _actions.GamePlay.Enable();          // 采集前置：动作图未启用时读数恒为零（静默失效的经典形态）
         }
 
@@ -145,7 +146,7 @@ namespace LiteFramework
                 && SimRaycast.RaycastEntities(_aimWorld, _localSlot,
                     new SimVector3(ray.origin.x, ray.origin.y, ray.origin.z),
                     new SimVector3(ray.direction.x, ray.direction.y, ray.direction.z),
-                    CombatConfig.HitscanRange, out _, out float t, _dev?.MatchRules))
+                    CombatConfig.HitscanRange, out _, out float t, _matchRules?.Invoke()))
             {
                 point = ray.GetPoint(t);
                 return true;

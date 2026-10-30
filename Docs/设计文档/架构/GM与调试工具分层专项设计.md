@@ -26,7 +26,7 @@
 | 类别 | 信任边界 | 所有者/落点 | 发布面 | 鉴权/审计 | 失败语义 |
 |---|---|---|---|---|---|
 | **DevCheat**（开发作弊） | 本机开发/编辑器 | `LiteGame.Dev`：`TestModeRuntime`、`DebugKernel`、`DevHUD`、`DebugConsole`、`DebugPanel`；编辑器 GM 页只做投影 | `defineConstraints` 三宏，release 不编译 | 无（本机）；产品只经 `IDevSession` 读 | 端口缺失 = 发布形态空实现；不静默造开发副作用 |
-| **MatchSandbox**（测试沙盒） | 本地测试房/单局 | `MatchTestRules`（LiteSim，每局实例）、`ILocalTestHooks`（LiteBattle.Abstractions，开发端口）、`LocalServerTransport`（LiteGame.Dev） | 只在本地测试房生效；不进正式匹配 | 测试房由入口/GM 显式创建；钩子只由本地服消费 | 规则缺失 = 本地服构造失败；发布端口恒空 |
+| **MatchSandbox**（测试沙盒） | 本地测试房/单局 | `MatchTestRules`（LiteSim，每局实例）、`ILocalTestHooks`（LiteGame.Core，开发端口）、`LocalServerTransport`（LiteGame.Dev） | 只在本地测试房生效；不进正式匹配 | 测试房由入口/GM 显式创建；钩子只由本地服消费 | 规则缺失 = 本地服构造失败；发布端口恒空 |
 | **OpsGm**（运维 GM） | 云端运维面 | `Server/RoomServer` 的 `/gm/*`（`start`/`abort`/`kick`/`settle-flush`/`rules`/`diag-*`）；`CommandCenter` GM 命令；编辑器 `Gm*Page` 只是投影 | 服务端常驻；客户端 GM 页仅 Editor | `X-GM-Key` + 隧道绑定；命令进审计环 | 缺密钥/隧道 = 拒绝；不降级为开发作弊 |
 | **AntiCheat**（反作弊） | 服务端判定/校验面 | `RoomServer.Runtime` 的 `InputGate`/`LagCompensator`/快照 checksum；`LiteNet` 协议校验；BuildHash/ConfigHash/CombatConfigDigest 身份 | 服务端与客户端校验链；不是可开关模块 | 服务器权威；客户端只报事实/被拒 | 超界即夹取/拒绝；不得由客户端自证 |
 
@@ -48,7 +48,7 @@
 ## 3. 覆写面治理（沙箱件统一口径）
 
 - **爆头带**：`MatchTestRules.HeadHitLineOverride` / `HeadshotRadiusOverride`（判定面）。**不进 `CombatValues` 摘要、不可重放**——连续调参旋钮进摘要会让每次试验抖动联机身份；同"中局开合"裁决。生效值统一经 `MatchTestRules.ResolveHeadHitLine/ResolveHeadshotRadius(rules)` 解析（null ⇒ 恒烘焙导出值，release/常规入口形态）。
-- **持枪幅度**：`GripTuning.TorsoWeightDevOverride`（纯表现，LiteView）。
+- **持枪幅度**：`GripTuning.TorsoWeightDevOverride`（纯表现，LiteGame.Modules.View）。
 - **统一口径**：仅开发三宏内存在、不落盘、复位即回烘焙/导出值、判定路径读注入实例；定型值经 `HeadHitLineTuner.Export` → `HeadBake.g.cs`（**进 digest 的只有导出常量**）。
 - 判定与可视化的同值机制：判定链（`ShootingSystem`/`SimRaycast`）经 SimStep 注入 rules；客户端可视化（激光/瞄准射线/调试绘制）传本局 `MatchTestRules` 实例——本地服同进程同实例，滑杆一动实弹即见。
 

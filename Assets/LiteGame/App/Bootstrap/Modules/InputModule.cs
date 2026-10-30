@@ -32,7 +32,8 @@ namespace LiteGame
             // 不必依赖 ShutdownAsync（失败模块不会被调用关闭）。
             context.Scope.Register(new DelegatedDisposable(DisposeModuleResources));
             _service = new InputService();
-            _source = new NewInputIntentSource(dev: context.Require<LiteBattle.IDevSession>());   // Action 资产在本类内建；本局规则走 dev 端口
+            LiteBattle.IDevSession dev = context.Require<LiteBattle.IDevSession>();
+            _source = new NewInputIntentSource(matchRules: () => dev.MatchRules);   // Action 资产在本类内建；本局规则经读口注入
             _source.SetAimCamera(context.Get<UnityEngine.Camera>());   // ⑩ 表现域建的主相机（注册序保证已就绪；null = 不做换算）
             _service.SetSource(_source);
             context.Put<IInputService>(_service);
