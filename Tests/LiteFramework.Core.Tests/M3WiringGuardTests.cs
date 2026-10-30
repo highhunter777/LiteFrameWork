@@ -66,7 +66,7 @@ namespace LiteFramework.Core.Tests
             string bridge = File.ReadAllText(Path.Combine(root, "Assets/LiteGame/Modules/Meta/MetaBridge.cs"));
             string procedure = File.ReadAllText(Path.Combine(root, "Assets/LiteGame/App/ProcedureComposition.cs"));
             string composition = File.ReadAllText(Path.Combine(root, "Assets/LiteGame/App/AppComposition.cs"));
-            string pageFlow = File.ReadAllText(Path.Combine(root, "Assets/LiteGame/Modules/Ui/PageFlow.cs"));
+            string pageFlow = File.ReadAllText(Path.Combine(root, "Assets/LiteGame/Modules/Procedure/PageFlow.cs"));
             string meta = File.ReadAllText(Path.Combine(root, "Assets/LiteGame/Modules/Meta/MetaEntryService.cs"));
 
             Assert.Contains("IsAuthLost", bridge);                       // 401/凭证失效判据
