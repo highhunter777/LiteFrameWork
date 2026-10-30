@@ -2,6 +2,9 @@
     "name": "LiteGame.EditModeTests",
     "rootNamespace": "LiteGame.Tests.EditMode",
     "references": [
+        "LiteGame.Modules.Settings",
+        "LiteGame.Modules.Input",
+        "LiteGame.Modules.Camera",
         "LiteGame.Modules",
         "LiteGame.Adapters.Unity",
         "LiteGame.Core",

@@ -206,7 +206,7 @@ return m";
         [Test]
         public void 生成目录_UIMain行已移除_PageLogin仍在()
         {
-            IPageCatalog catalog = UiPageCatalog.Instance;
+            IPageCatalog catalog = LiteGame.UI.UiPageCatalog.Instance;
 
             PageDefinition login = catalog.Get(11);
             Assert.AreEqual("Page_Login", login.Name);

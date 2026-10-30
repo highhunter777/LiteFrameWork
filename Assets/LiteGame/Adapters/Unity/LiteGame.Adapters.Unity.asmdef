@@ -2,6 +2,11 @@
     "name": "LiteGame.Adapters.Unity",
     "rootNamespace": "LiteGame.View.Animation",
     "references": [
+        "Unity.InputSystem",
+        "Cinemachine",
+        "LiteSim",
+        "LiteGame.Modules.Input",
+        "LiteGame.Modules.Camera",
         "LiteFramework.Runtime",
         "LiteGame.Modules.View"
     ],

@@ -2,6 +2,9 @@
     "name": "LiteGame.Presentation",
     "rootNamespace": "LiteGame",
     "references": [
+        "LiteGame.Modules.Settings",
+        "LiteGame.Modules.Input",
+        "LiteGame.Modules.Camera",
         "LiteGame.Adapters.Unity",
         "LiteGame.Core",
         "LiteGame.Modules.Battle",

@@ -215,7 +215,7 @@ SimStep.Step(..., advanceMatch: false)
 1. **`FramePump` 零生产调用点**：定次步进（1:1）已实现，但客户端与服务端都不用它。
 2. **`MovementValues` 装载了没人读**：18 字段中只有 `Gravity` 经 `CombatValues` 进机制，其余 17 项（走/跑/冲/滑铲/钩爪/闪现等）在 `Assets/LiteSim` 内无引用。
 3. **静态读口仍在**：`CombatConfig.Loaded`、`WeaponConfig.Loaded` 作为表现面读口存在，机制面由纪律扫描 R13 禁止读取；生产构造（`BattleContext.OnStartGame`）仍从静态取实例后按参数下传。
-4. **瞄准是屏心射线**：`AimPoint` 由相机屏幕射线与"实体圆柱→地面"求交得到，采集侧解算、服务端校验与判定；表现层的越肩相机数学在 `Assets/LiteFramework/Runtime/Modules/Camera/TpsCameraMath.cs`。
+4. **瞄准是屏心射线**：`AimPoint` 由相机屏幕射线与"实体圆柱→地面"求交得到，采集侧解算、服务端校验与判定；表现层的越肩相机数学在 `Assets/LiteGame/Modules/Camera/TpsCameraMath.cs`。
 5. **私有面不预测**：弹药/技能 CD/背包/资源只随本人快照与权威反馈刷新，客户端不重建；这也是增量和解只比对公共面的原因。
 
 ## 11. 本章要点

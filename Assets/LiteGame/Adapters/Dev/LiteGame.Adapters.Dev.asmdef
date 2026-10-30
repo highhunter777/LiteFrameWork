@@ -2,6 +2,9 @@
     "name": "LiteGame.Adapters.Dev",
     "rootNamespace": "LiteGame.Adapters.Dev",
     "references": [
+        "LiteGame.Modules.Settings",
+        "LiteGame.Modules.Input",
+        "LiteGame.Modules.Camera",
         "LiteGame.Modules",
         "LiteGame.Adapters.Unity",
         "LiteGame.Core",

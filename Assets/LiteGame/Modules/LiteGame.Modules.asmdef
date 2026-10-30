@@ -2,6 +2,9 @@
     "name": "LiteGame.Modules",
     "rootNamespace": "LiteGame",
     "references": [
+        "LiteGame.Modules.Settings",
+        "LiteGame.Modules.Input",
+        "LiteGame.Modules.Camera",
         "LiteFramework.Runtime",
         "LiteGame.Core",
         "LiteGame.Adapters.LuaBridge",

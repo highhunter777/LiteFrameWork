@@ -346,8 +346,7 @@ namespace LiteGame
         private bool CameraReady()
         {
             if (_camera == null) return false;
-            var cinemachine = _camera as CinemachineCameraService;
-            return cinemachine != null ? cinemachine.EnsureCamera() : true;
+            return _camera.EnsureReady();
         }
 
         /// <summary>离场收尾：摘房间会话门面 → 摘对局菜单 Back 策略 → 清输入派发状态 → 拆视图域（逆序：消费者 → 视图 → 租约作用域）。</summary>

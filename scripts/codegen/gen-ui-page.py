@@ -8,7 +8,7 @@ Inputs:
   - Assets/LiteGame/Editor/UiTools/Contracts/*.contract.json
 
 Output:
-  - Assets/LiteFramework/Runtime/Modules/UI/Generated/UiPageCatalog.g.cs
+  - Assets/LiteGame/Modules/Ui/Generated/UiPageCatalog.g.cs
 
 The generated file is the only runtime page directory. Contracts/manifest/hash stay
 editor-side; runtime code reads PageDefinition via IPageCatalog.
@@ -35,7 +35,7 @@ TOOL = "codegen/ui-page"
 DEFAULT_TABLE = ROOT / "Luban" / "Data" / "#uiform.xlsx"
 DEFAULT_MANIFEST = ROOT / "Assets" / "LiteGame" / "Editor" / "UiTools" / "UiPageManifest.json"
 DEFAULT_CONTRACTS = ROOT / "Assets" / "LiteGame" / "Editor" / "UiTools" / "Contracts"
-DEFAULT_OUTPUT = ROOT / "Assets" / "LiteFramework" / "Runtime" / "Modules" / "UI" / "Generated" / "UiPageCatalog.g.cs"
+DEFAULT_OUTPUT = ROOT / "Assets" / "LiteGame" / "Modules" / "Ui" / "Generated" / "UiPageCatalog.g.cs"
 
 
 def parse_args(argv=None):
@@ -166,8 +166,9 @@ def render(definitions):
         "// 运行时唯一页面目录（PageDefinition）；contract/manifest/hash 不进运行时。>",
         "using System;",
         "using System.Collections.Generic;",
+        "using LiteFramework.UI;",
         "",
-        "namespace LiteFramework.UI",
+        "namespace LiteGame.UI",
         "{",
         "    /// <summary>生成的页面目录（PageDefinition 单制品）；运行时经 IPageCatalog 取件。</summary>",
         "    public sealed class UiPageCatalog : IPageCatalog",

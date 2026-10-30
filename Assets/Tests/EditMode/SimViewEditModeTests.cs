@@ -423,6 +423,7 @@ namespace LiteGame.Tests.EditMode
         /// 瞄准态由流程喂，SimView 不碰——记录位供流程级用例断言）。</summary>
         private sealed class CameraProbe : ICameraService
         {
+            public bool EnsureReady() => true;
             public int FollowCount;
             public Vector3 LastTarget;
             public Quaternion LastFacing;

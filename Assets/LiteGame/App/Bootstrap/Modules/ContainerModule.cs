@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Threading;
 using Cysharp.Threading.Tasks;
 using LiteFramework;
+using LiteGame.UI;
 using LiteFramework.UI;
 using LiteGame.View;
 using LiteFramework;
@@ -147,6 +148,7 @@ namespace LiteGame
             _services.RegisterInstance(new ToastTicker(() => feedback.ToastHost));
 
             Bridge.Bind(() => config.Tables);
+            Bridge.BindPageCatalog(UiPageCatalog.All);
             Bridge.BindRegistries(uiRegistry, contentRegistry);
             Bridge.BindUIService(ui);
             Bridge.BindNavigation(nav);

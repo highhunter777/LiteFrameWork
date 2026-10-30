@@ -581,7 +581,7 @@
       ],
       "writes": ["generated"],
       "outputs": [
-        { "path": "Assets/LiteFramework/Runtime/Modules/UI/Generated/UiPageCatalog.g.cs", "kind": "generated" }
+        { "path": "Assets/LiteGame/Modules/Ui/Generated/UiPageCatalog.g.cs", "kind": "generated" }
       ],
       "destructive": false,
       "order": 25

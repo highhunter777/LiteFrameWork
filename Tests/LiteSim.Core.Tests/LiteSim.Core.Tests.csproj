@@ -51,10 +51,10 @@
     （RollbackSim 的 OnRealInput 入史语义），这里只钉输入服务自己那一段。
   -->
   <ItemGroup>
-    <Compile Include="..\..\Assets\LiteFramework\Runtime\Modules\Input\InputService.cs" Link="Input\InputService.cs" />
+    <Compile Include="..\..\Assets\LiteGame\Modules\Input\InputService.cs" Link="Input\InputService.cs" />
     <Compile Include="..\..\Assets\LiteFramework\Runtime\Modules\Input\IntentGate.cs" Link="Input\IntentGate.cs" />
-    <Compile Include="..\..\Assets\LiteFramework\Runtime\Modules\Input\Abstractions\IIntentSource.cs" Link="Input\IIntentSource.cs" />
-    <Compile Include="..\..\Assets\LiteFramework\Runtime\Modules\Input\Abstractions\IInputService.cs" Link="Input\IInputService.cs" />
+    <Compile Include="..\..\Assets\LiteGame\Modules\Input\Abstractions\IIntentSource.cs" Link="Input\IIntentSource.cs" />
+    <Compile Include="..\..\Assets\LiteGame\Modules\Input\Abstractions\IInputService.cs" Link="Input\IInputService.cs" />
     <Compile Include="..\..\Assets\LiteFramework\Runtime\Modules\Input\IntentVectorLimit.cs" Link="Input\IntentVectorLimit.cs" />
     <!--
       **平台实现不在 L1**：`NewInputIntentSource` / `CinemachineCameraService`（`Adapters/UnityPlatform/`）

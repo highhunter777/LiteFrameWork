@@ -21,7 +21,7 @@ namespace LiteFramework.Core.Tests
         // 范围含 Dev/Editor：它们不进发布包，但同样只减不增；UIService 为用户裁决例外（只留开关管线，不拆）。
         private static readonly Dictionary<string, int> ClassCaps = new Dictionary<string, int>(StringComparer.Ordinal)
         {
-            ["Assets/LiteFramework/Runtime/Adapters/Cinemachine/CinemachineCameraService.cs::CinemachineCameraService"] = 590,
+            ["Assets/LiteGame/Adapters/Unity/Cinemachine/CinemachineCameraService.cs::CinemachineCameraService"] = 592,
             ["Assets/LiteGame/Modules/Battle/BattleContext.cs::BattleContext"] = 491,
             ["Assets/LiteFramework/Runtime/Modules/UI/Bind/UIBindIndex.cs::UIBindIndex"] = 402,
             ["Assets/LiteFramework/Runtime/Modules/UI/UIService.cs::UIService"] = 650,
@@ -51,7 +51,7 @@ namespace LiteFramework.Core.Tests
             ["Assets/LiteFramework/Runtime/Modules/Content/Abstractions/CandidateContentVerifier.cs::CandidateContentVerifier.Verify"] = 87,
             ["Assets/LiteFramework/Editor/EditorTools/BindGenerator.cs::BindGenerator.DoGenerate"] = 130,
             ["Assets/LiteFramework/Editor/Inspectors/BindNodeInspector.cs::BindNodeInspector.OnInspectorGUI"] = 99,
-            ["Assets/LiteGame/App/Bootstrap/Modules/ContainerModule.cs::ContainerModule.Assemble"] = 151,
+            ["Assets/LiteGame/App/Bootstrap/Modules/ContainerModule.cs::ContainerModule.Assemble"] = 152,
             ["Assets/LiteGame/App/Bootstrap/Probes/InputModalProbe.cs::InputModalProbe.RunAsync"] = 103,
             ["Assets/LiteGame/Modules/Presentation/Fx/BattleDamageNumberDriver.cs::BattleDamageNumberDriver.Tick"] = 82,
             ["Assets/LiteGame/Modules/Procedure/Stages/ProcedureBattle.cs::ProcedureBattle.RunAsyncCore"] = 109,

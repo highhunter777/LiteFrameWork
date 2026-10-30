@@ -28,9 +28,15 @@ namespace LiteGame
         private static UINavigationController s_nav;           // Lua 侧打开的单写者后端（三通道收口）
         private static Func<ILocalizationService> s_localeProvider;   // LText 门面后端（懒建工厂——表装载在 Preload）
 
+        private static IReadOnlyList<PageDefinition> s_pages;   // 页面目录（装配根注入；Lua 不碰生成类）
+
         /// <summary>绑定查表入口（经 IConfigService.Tables；未加载时其 Tables 访问器会抛）。</summary>
         public static void Bind(Func<Tables> tables)
             => s_tables = tables ?? throw new ArgumentNullException(nameof(tables));
+
+        /// <summary>绑定页面目录（装配根注入生成目录；Lua 桥不反向引用产品模块）。</summary>
+        public static void BindPageCatalog(IReadOnlyList<PageDefinition> pages)
+            => s_pages = pages ?? throw new ArgumentNullException(nameof(pages));
 
         /// <summary>装配期注入注册表（ui/content 骨架门面的查询底座）。</summary>
         public static void BindRegistries(IUILuaRegistry ui, IContentLuaRegistry content)
@@ -174,8 +180,9 @@ namespace LiteGame
         public static int ResolveUIFormId(string luaPath)
         {
             if (string.IsNullOrEmpty(luaPath)) return -1;
-            foreach (PageDefinition page in UiPageCatalog.All)
-                if (string.Equals(page.LuaPath, luaPath, StringComparison.Ordinal)) return page.Id;
+            if (s_pages != null)
+                foreach (PageDefinition page in s_pages)
+                    if (string.Equals(page.LuaPath, luaPath, StringComparison.Ordinal)) return page.Id;
             return -1;
         }
 

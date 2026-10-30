@@ -198,7 +198,6 @@ namespace Tools.DisciplineScan
             new ScanTarget("Assets/LiteFramework/Runtime/Adapters/XLua", GameRules),
             new ScanTarget("Assets/LiteFramework/Runtime/Adapters/Luban", GameRules),
             new ScanTarget("Assets/LiteFramework/Runtime/Adapters/InputSystem", GameRules),
-            new ScanTarget("Assets/LiteFramework/Runtime/Adapters/Cinemachine", GameRules),
             new ScanTarget("Assets/LiteFramework/Runtime/Adapters/Newtonsoft", GameRules),
             new ScanTarget("Assets/LiteGame", GameRules),                                      // R8 资源唯一入口 + R12 适配器边界（产品侧）
             new ScanTarget("Assets/LiteFramework/Runtime/Modules/UI", UiLayerRules),                                // R10 UI 层不发业务包

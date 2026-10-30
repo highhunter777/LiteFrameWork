@@ -14,7 +14,7 @@ namespace LiteFramework.Core.Tests
         private static readonly HashSet<string> Allowed = new HashSet<string>(StringComparer.Ordinal)
         {
             "Assets/LiteFramework/Runtime/Adapters/Luban/TableLayout.cs",
-            "Assets/LiteFramework/Runtime/Modules/UI/Generated/UiPageCatalog.g.cs",
+            "Assets/LiteGame/Modules/Ui/Generated/UiPageCatalog.g.cs",
         };
 
         [Fact]
