@@ -299,6 +299,67 @@ namespace LiteGame.Tests.EditMode
 
         }
 
+        // ---- 归属人整体收回（所有者离场点）----
+
+        /// <summary>对局反馈件拆除时按归属人一次收回自己播过的弹着/火光（不等自然到期）；无归属件不受影响。</summary>
+        [Test]
+        [Category(TestCategory.Contract)]
+        public void VFX_按归属人整体收回_不影响无归属与他人()
+        {
+            var rig = NewRig();
+            var svc = rig.Make();
+            var ownerA = new object();
+            var ownerB = new object();
+            var attach = Scope.CreateGameObject("host").transform;
+
+            svc.Play("fx_a", attach, true, owner: ownerA);
+            svc.PlayAt("fx_b", Vector3.zero, 1f, owner: ownerB);
+            svc.Play("fx_c", attach, true);                          // 无归属：只按时间管
+            Assert.AreEqual("3", Snap(svc, "活跃"));
+
+            svc.StopAll(ownerA);
+            Assert.AreEqual("2", Snap(svc, "活跃"), "只收回 ownerA 的");
+            Assert.DoesNotThrow(() => svc.StopAll(ownerA), "重复收回幂等");
+            Assert.AreEqual("2", Snap(svc, "活跃"));
+
+            svc.StopAll(ownerB);
+            Assert.AreEqual("1", Snap(svc, "活跃"), "无归属件不受影响（仍按寿命收）");
+
+            svc.StopAll((object)null);
+            Assert.AreEqual("1", Snap(svc, "活跃"), "空归属人 no-op");
+        }
+
+        // ---- 挂点被外部销毁（视图根整体拆除）----
+
+        /// <summary>
+        /// **挂点随视图根被销毁后的到期回收**（离场冒烟的既有残留形态：跟随特效挂表不降、活跃数删不掉）。
+        /// 已实例化的特效被外部销毁时 Unity 让字段变 fake-null——旧判据 <c>Go != null</c> 把它误当成
+        /// "加载在途"，表项永久残留（活跃数永不归零，池/租约账也算错）。判据＝时钟越过寿命后活跃归零。
+        /// </summary>
+        [Test]
+        [Category(TestCategory.Contract)]
+        public void VFX_挂点被外部销毁_仍按寿命到期回收_活跃归零()
+        {
+            var rig = NewRig();
+            var svc = rig.Make();
+            var host = Scope.CreateGameObject("host");
+            Transform attach = host.transform;
+
+            var h = svc.Play("fx_hit", attach, follow: true);
+            Assert.AreEqual("1", Snap(svc, "活跃"));
+            Assert.AreEqual(1, attach.childCount, "跟随实例应挂在挂点下");
+
+            UnityEngine.Object.DestroyImmediate(host);          // 视图根整体拆除（实例随之销毁）
+            Assert.AreEqual("1", Snap(svc, "活跃"), "实例对象虽没了，表项此时仍应在（未到期）");
+
+            rig.Clock.NowValue = 10f;                            // 越过寿命（duration 1s + lifetime 1s = 2s）
+            svc.Tick(0.016f);                                    // 到期扫描
+
+            Assert.AreEqual("0", Snap(svc, "活跃"), "挂点销毁后仍须按寿命回收（不得永久挂表）");
+            Assert.DoesNotThrow(() => svc.Stop(h), "已回收句柄的 Stop 保持幂等");
+            Assert.AreEqual("0", Snap(svc, "活跃"), "重复 Stop 不得复活/计数漂移");
+        }
+
         // ---- 关闭释放面（宿主关闭，§5 接缝 1）----
 
         [Test]

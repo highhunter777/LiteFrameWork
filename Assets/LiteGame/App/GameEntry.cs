@@ -44,7 +44,11 @@ namespace LiteGame
         private bool _startRequested;      // Start 已到（流程可以启动）；实际启动等依赖就绪
         private bool _proceduresStarted;   // 流程机已启动（幂等标记）
 
-        /// <summary>引导与开发工具取得已装配的根容器；业务流程只消费注入的能力。</summary>
+        /// <summary>引导与开发/测试工具取得已装配的根容器；**业务流程只消费注入的能力**。
+        ///
+        /// 消费面封闭（清单登记在 Docs/审计/客户端/登记/技术债.md「TakeContainer 消费清单」）：
+        /// 编辑器工具（GM 取件 / DevReload / LuaDevRefill）与 PlayMode 冒烟用例；
+        /// 产品运行期代码与流程阶段不得调用（否则等于运行期服务定位器，层级边界静默失效）。</summary>
         public ServiceContainer TakeContainer()
         {
             if (_container == null) throw new InvalidOperationException("未装配");
@@ -150,19 +154,20 @@ namespace LiteGame
         private void RegisterModules(ClientHost host)
         {
             host.AddModule(new PlatformInfrastructureModule())   // ① 本地持久化 + 日志（先于一切 IO）
-                .AddModule(new IdentityModule())                 // ② 身份上下文（Build/Schema 唯一构造点）
-                .AddModule(new DevSessionModule())               // ③ 开发会话端口（设备源构造即消费——必须早于 ⑫）
-                .AddModule(new ContentModule())                  // ④ IContentService（配置/Lua 字节通道的租约来源）
-                .AddModule(new SettingsModule())                 // ⑤ 玩家偏好（先于容器——UI/音频服务注册时就要读）
-                .AddModule(new EventsModule())                   // ⑥ 事件总线（唯一产出方；只需 ① 的池）
-                .AddModule(new ClocksModule())                   // ⑦ 双轨时钟（事件域已独立，时钟只负责时间）
-                .AddModule(new SchedulersModule())               // ⑧ 时序执行（依赖 ⑦）
-                .AddModule(new LuaHostModule(gameObject))        // ⑨ 脚本宿主（同 GameObject 组件）
-                .AddModule(new ConfigModule(AppComposition.ConfigServiceFactory()))          // ⑩ 表投影数据源（依赖 ⑤ 的租约通道）
-                .AddModule(new UiServiceModule())                // ⑪ UI 服务装配（依赖 ⑨⑩⑤）
-                .AddModule(new PresentationModule(AppComposition.CameraServiceFactory()))    // ⑫ 表现域 + 相机服务（依赖 ⑤⑦）
-                .AddModule(new InputModule(AppComposition.IntentSourceFactory()))            // ⑬ 输入服务（设备源由组合根注入）
-                .AddModule(new ContainerModule());               // ⑭ 容器与流程机（消费以上全部——装配根最后一段）
+                .AddModule(new CameraComposition(AppComposition.CameraServiceFactory()))    // ② 主相机 + 相机服务（薄段：适配器由组合根注入）
+                .AddModule(new IdentityModule())                 // ③ 身份上下文（Build/Schema 唯一构造点）
+                .AddModule(new DevSessionModule())               // ④ 开发会话端口（设备源构造即消费——必须早于 ⑭）
+                .AddModule(new ContentModule())                  // ⑤ IContentService（配置/Lua 字节通道的租约来源）
+                .AddModule(new SettingsModule())                 // ⑥ 玩家偏好（先于容器——UI/音频服务注册时就要读）
+                .AddModule(new EventsModule())                   // ⑦ 事件总线（唯一产出方；只需 ① 的池）
+                .AddModule(new ClocksModule())                   // ⑧ 双轨时钟（事件域已独立，时钟只负责时间）
+                .AddModule(new SchedulersModule())               // ⑨ 时序执行（依赖 ⑧）
+                .AddModule(new LuaHostModule(gameObject))        // ⑩ 脚本宿主（同 GameObject 组件）
+                .AddModule(new ConfigModule(AppComposition.ConfigServiceFactory()))          // ⑪ 表投影数据源（依赖 ⑥ 的租约通道）
+                .AddModule(new UiServiceModule())                // ⑫ UI 服务装配（依赖 ⑩⑪⑥；投影面由 ② 保证）
+                .AddModule(new BattleComposition())              // ⑬ 战斗域表现内核（依赖 ⑤⑧；相机归 ②）
+                .AddModule(new InputModule(AppComposition.IntentSourceFactory()))            // ⑭ 输入服务（设备源由组合根注入）
+                .AddModule(new ContainerModule());               // ⑮ 容器与流程机（消费以上全部——装配根最后一段）
         }
 
         private void Update()

@@ -24,7 +24,7 @@ namespace LiteGame.Editor.UiTools.Validation
             "Assets/LiteFramework/Runtime/Modules/ClientRuntime",
             "Assets/LiteGame/App",
             "Assets/LiteFramework/Runtime",
-            "Assets/LiteGame/Modules/View",
+            "Assets/LiteGame/Modules/Battle",
         };
 
         /// <summary>UI 资产扫描面（模板 prefab 所在，供资产面规则用）。</summary>

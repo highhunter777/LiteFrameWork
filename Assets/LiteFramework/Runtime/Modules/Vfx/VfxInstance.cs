@@ -26,11 +26,15 @@ namespace LiteFramework
 
         public float Scale;
 
-        /// <summary>实例对象；**null = 加载在途**（pending）。</summary>
+        /// <summary>实例对象。**null 有两种语义**：加载在途（pending，`ExpireAt` = +∞）与
+        /// 已实例化但对象被外部销毁（挂点随视图根拆除——到期回收仍必须发生，见 `VfxHandleTable.CollectExpired`）。</summary>
         public GameObject Go;
 
         /// <summary>到期时刻（世界时钟秒；pending 时 = +∞）。</summary>
         public float ExpireAt;
+
+        /// <summary>归属人（null = 无归属，只按寿命到期；非空 → <see cref="VfxService.StopAll(object)"/> 可整体收回）。</summary>
+        public object Owner;
 
         /// <summary>宿主已回收：异步加载的续体据此**丢弃而不实例化**（闭合"加载在途 × 宿主回收"竞态）。</summary>
         public bool Cancelled;

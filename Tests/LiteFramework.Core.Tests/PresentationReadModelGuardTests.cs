@@ -26,7 +26,7 @@ namespace LiteFramework.Core.Tests
         public void Hud驱动不得直读SimWorldState()
         {
             string root = RepoRoot();
-            string dir = Path.Combine(root, "Assets", "LiteGame", "Modules", "Presentation", "Hud");
+            string dir = Path.Combine(root, "Assets", "LiteGame", "Modules", "Battle", "Hud");
             Assert.True(Directory.Exists(dir), "读模型守卫目标目录不存在：" + dir);
 
             var offenders = new List<string>();

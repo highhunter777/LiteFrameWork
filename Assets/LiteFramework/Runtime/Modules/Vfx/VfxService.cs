@@ -35,7 +35,9 @@ namespace LiteFramework
         private readonly VfxHandleTable _table = new VfxHandleTable();
         private readonly Dictionary<string, GameObject> _prefabs = new Dictionary<string, GameObject>(8);
         private readonly Dictionary<Transform, List<int>> _byAttach = new Dictionary<Transform, List<int>>(8);
+        private readonly VfxOwnerIndex _owners = new VfxOwnerIndex();
         private readonly List<int> _expired = new List<int>(16);
+        private readonly List<int> _owned = new List<int>(16);
 
         /// <summary>宿主关闭级联令牌（在途加载链接它——关闭即取消，不靠等待丢弃）。</summary>
         private readonly CancellationTokenSource _lifetime = new CancellationTokenSource();
@@ -91,14 +93,14 @@ namespace LiteFramework
         /// prefab 缓存时**同步** Materialize，事后 <c>SetPosition</c> 补写只会躺进表里没人再读
         /// （特效留在池内原位＝世界原点）——故走带位的内部重载，不做事后补写。
         /// </summary>
-        public VfxHandle PlayAt(string name, Vector3 position, float scale = 1f)
-            => PlayInternal(name, attach: null, follow: false, scale, position, hasPosition: true);
+        public VfxHandle PlayAt(string name, Vector3 position, float scale = 1f, object owner = null)
+            => PlayInternal(name, attach: null, follow: false, scale, position, hasPosition: true, owner);
 
-        public VfxHandle Play(string name, Transform attach, bool follow, float scale = 1f)
-            => PlayInternal(name, attach, follow, scale, default, hasPosition: false);
+        public VfxHandle Play(string name, Transform attach, bool follow, float scale = 1f, object owner = null)
+            => PlayInternal(name, attach, follow, scale, default, hasPosition: false, owner);
 
         private VfxHandle PlayInternal(string name, Transform attach, bool follow, float scale,
-            Vector3 position, bool hasPosition)
+            Vector3 position, bool hasPosition, object owner)
         {
             if (IsShutdown)
                 throw new ObjectDisposedException(nameof(VfxService),
@@ -143,9 +145,11 @@ namespace LiteFramework
                 ExpireAt = float.PositiveInfinity,
                 Position = position,                              // 落点在登记前就位——同步/异步两条
                 HasPosition = hasPosition,                        // Materialize 路径都读得到（无事后补写）
+                Owner = owner,                                    // 归属人：离场整体回收（StopAll(owner)）
             };
             _table.Add(inst);                                     // 先登记后加载：竞态窗口从一开始就被表覆盖
             if (attach != null) Track(attach, inst.Id);
+            _owners.Track(owner, inst.Id);
 
             if (_prefabs.TryGetValue(def.Location, out var prefab))
             {
@@ -164,6 +168,7 @@ namespace LiteFramework
             if (!handle.IsValid) return;
             if (!_table.TryTake(handle.Id, out var inst)) return;  // 幂等：未登记 / 已回收
             Untrack(inst.Attach, handle.Id);
+            _owners.Untrack(inst.Owner, handle.Id);
 
             if (inst.Go == null)
             {
@@ -183,6 +188,14 @@ namespace LiteFramework
             var copy = ids.ToArray();                              // Stop 会改集合 → 先拷再遍历
             _byAttach.Remove(attach);
             for (int i = 0; i < copy.Length; i++) Stop(new VfxHandle(copy[i]));
+        }
+
+        public void StopAll(object owner)
+        {
+            _owned.Clear();
+            if (!_owners.TakeAll(owner, _owned)) return;           // Stop 会改集合 → 先拷再遍历
+            for (int i = 0; i < _owned.Count; i++) Stop(new VfxHandle(_owned[i]));
+            _owned.Clear();
         }
 
         // ---- 关闭释放面（宿主关闭）----
@@ -208,6 +221,7 @@ namespace LiteFramework
                 Stop(new VfxHandle(ids[i]));                       // 活体归池 / 在途置弃（正常路径收尾）
 
             _byAttach.Clear();
+            _owners.Clear();
             _prefabs.Clear();                                      // 只清引用——租约归 PrefabLeaseCache.ReleaseAll（装配层）
             _pool.Dispose();                                       // 排空闲置件 + 销毁自建池根（注入的归注入方）
 
@@ -244,6 +258,10 @@ namespace LiteFramework
 
         public string StatsName => "VFX";
 
+        /// <summary>当前活跃特效实例数（**诊断读口**：冒烟用例/面板核对"开火后有世界特效在场"；
+        /// 与 <see cref="Snapshot"/> 的"活跃"同源，不额外持有状态）。</summary>
+        public int ActiveCount => _table.ActiveCount;
+
         public void Snapshot(Dictionary<string, string> into)
         {
             into.Clear();                                    // 契约：实现 Clear + 填（HUD 不清，全实现统一）
@@ -278,7 +296,7 @@ namespace LiteFramework
                 if (prefab == null)
                 {
                     Log.Error($"VFX 加载为空:{inst.Def.Location}", Tag);
-                    _table.TryTake(inst.Id, out _);
+                    Discard(inst);
                     return;
                 }
 
@@ -288,12 +306,12 @@ namespace LiteFramework
             catch (OperationCanceledException)
             {
                 // 取消 ≠ 错误（§7.2 口径）：宿主关闭路径取消在途加载——静默收口，不进错误日志
-                _table.TryTake(inst.Id, out _);
+                Discard(inst);
             }
             catch (Exception ex)
             {
                 Log.Error($"VFX 加载失败[{inst.Def.Location}]:{ex.Message}", Tag);
-                _table.TryTake(inst.Id, out _);
+                Discard(inst);
             }
             finally
             {
@@ -369,6 +387,15 @@ namespace LiteFramework
             if (!_byAttach.TryGetValue(attach, out var list)) return;
             list.Remove(id);
             if (list.Count == 0) _byAttach.Remove(attach);
+        }
+
+        /// <summary>登记项作废（加载失败/取消/迟到丢弃）：从表移除并同步摘挂点/归属登记，不留半状态。</summary>
+        private void Discard(VfxInstance inst)
+        {
+            if (inst == null) return;
+            _table.TryTake(inst.Id, out _);
+            Untrack(inst.Attach, inst.Id);
+            _owners.Untrack(inst.Owner, inst.Id);
         }
     }
 }

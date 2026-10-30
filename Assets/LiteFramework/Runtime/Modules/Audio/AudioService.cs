@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using Cysharp.Threading.Tasks;
 using LiteFramework;
@@ -65,7 +65,8 @@ namespace LiteFramework
         /// <summary>同源重触发调用数（诊断面——连发的开火音应等于开火次数）。</summary>
         public int RetriggerCount => _retriggerCount;
 
-        /// <summary>在册同源 voice 数（诊断面——按 (组, voiceKey) 计；同源重触发应恒为 1）。</summary>
+        /// <summary>在册同源 voice 数（诊断面——按 (组, voiceKey) 计；同源重触发应恒为 1）。
+        /// 代理易主/停止即摘键（<see cref="ForgetVoicesOf"/>）——否则绑定在解绑后永久挂账。</summary>
         public int VoiceCount => _voices.Count;
 
         /// <summary>全组累计丢弃数（代理全忙且同优先级；诊断面——日志已限频，读数不受限频影响）。</summary>
@@ -246,6 +247,7 @@ namespace LiteFramework
         private int Configure(GroupDef g, Proxy pick, AudioClip clip, float volume, int priority, bool loop,
             float spatialBlend, Vector3? position)
         {
+            ForgetVoicesOf(pick);                              // 代理易主：旧绑定立刻失效（不留挂账键）
             pick.Handle = _nextHandle++;                       // 句柄单调递增且永不复用
             pick.Priority = priority;
             pick.BaseVolume = volume;
@@ -375,6 +377,16 @@ namespace LiteFramework
             p.Source.Stop();
             p.Handle = 0;
             p.Priority = int.MinValue;
+            ForgetVoicesOf(p);                                 // 显式停止：同源绑定随代理一起摘（计数归零）
+        }
+
+        /// <summary>摘掉绑定到该代理的同源 voice（键表 O(键数) 有界；代理易主/停止两处调用）。</summary>
+        private void ForgetVoicesOf(Proxy proxy)
+        {
+            if (proxy == null || _voices.Count == 0) return;
+            var stale = new List<(Group, string)>(2);
+            foreach (var kv in _voices) if (ReferenceEquals(kv.Value.Proxy, proxy)) stale.Add(kv.Key);
+            for (int i = 0; i < stale.Count; i++) _voices.Remove(stale[i]);
         }
 
         /// <summary>

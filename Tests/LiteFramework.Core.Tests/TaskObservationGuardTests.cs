@@ -35,7 +35,7 @@ namespace LiteFramework.Core.Tests
             ["Assets/LiteFramework/Runtime/Core/Clock/GameScheduler.cs"] = 1,
             ["Assets/LiteFramework/Runtime/Core/Clock/TimelineRunner.cs"] = 1,
             // 表现降级边界（HUD 主题注入失败保持烘焙值，不阻断对局）
-            ["Assets/LiteGame/Modules/Presentation/Battle/Rig/BattleViewAssets.cs"] = 1,
+            ["Assets/LiteGame/Modules/Battle/Setup/BattleViewAssets.cs"] = 1,
         };
 
         private static readonly string[] ProductRoots =

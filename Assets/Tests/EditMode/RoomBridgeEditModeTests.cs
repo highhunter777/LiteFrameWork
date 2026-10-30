@@ -12,31 +12,34 @@ namespace LiteGame.Tests.EditMode
     /// 测试全局，与生产 BindGlobals 同委托形，不走 CS 反射访问）：
     /// 回放双序（装订即回放／订阅即回放——页面先于 JoinAck 打开的竞态消解）、订阅替换语义、
     /// 无会话显性降级、被拒恰一次回调、会话摘除作废在途回调与推送、房规模拉取（未绑会话归零）。
-    /// 静态门面：TearDown 必清（防跨用例污染）。
+    /// 实例门面：每个用例新建，TearDown 重置订阅（防跨用例污染）。
     /// </summary>
     public sealed class RoomBridgeEditModeTests : UnityTestBase
     {
         private LuaEnv _env;
+        private RoomBridge _bridge;
         private FakeSession _face;
 
         [SetUp]
         public void SetUp()
         {
             _env = new LuaEnv();
+            _bridge = new RoomBridge();
             // 与生产 BindGlobals 同委托形（Func<bool>/Func<int>/Action<LuaFunction>——GenConfig 白名单在册形）
-            _env.Global.Set("RoomBridge_OnOwner", new Action<LuaFunction>(RoomBridge.OnOwner));
-            _env.Global.Set("RoomBridge_OnMembers", new Action<LuaFunction>(fn => RoomBridge.OnMembers(_env, fn)));
-            _env.Global.Set("RoomBridge_ExpectedPlayers", new Func<int>(() => RoomBridge.ExpectedPlayers));
-            _env.Global.Set("RoomBridge_StartMatch", new Action<LuaFunction>(RoomBridge.StartMatch));
+            _env.Global.Set("RoomBridge_OnOwner", new Action<LuaFunction>(_bridge.OnOwner));
+            _env.Global.Set("RoomBridge_OnMembers", new Action<LuaFunction>(fn => _bridge.OnMembers(_env, fn)));
+            _env.Global.Set("RoomBridge_ExpectedPlayers", new Func<int>(() => _bridge.ExpectedPlayers));
+            _env.Global.Set("RoomBridge_StartMatch", new Action<LuaFunction>(_bridge.StartMatch));
             _face = new FakeSession();
         }
 
         [TearDown]
         public void TearDown()
         {
-            RoomBridge.UnbindSession();
-            RoomBridge.OnOwner(null);
-            RoomBridge.OnMembers(_env, null);
+            _bridge.UnbindSession();
+            _bridge.OnOwner(null);
+            _bridge.OnMembers(_env, null);
+            _bridge = null;
             _env?.Dispose();
             _env = null;
             _face = null;
@@ -88,14 +91,14 @@ RoomBridge_OnOwner(function(isOwner) owner_calls[#owner_calls + 1] = tostring(is
         {
             BindOwnerRecorder();
             _face.IsOwner = true;                           // JoinAck 先到的序：装订时事实已在
-            RoomBridge.BindSession(_face);
+            _bridge.BindSession(_face);
             Assert.AreEqual("true", OwnerCalls(), "页面已订阅：装订即回放当前事实");
         }
 
         [Test]
         public void 先装订后订阅_订阅即回放()
         {
-            RoomBridge.BindSession(_face);
+            _bridge.BindSession(_face);
             _face.IsOwner = true;
             BindOwnerRecorder();                            // 页面晚于进房打开的序
             Assert.AreEqual("true", OwnerCalls(), "会话已在：订阅即回放");
@@ -104,7 +107,7 @@ RoomBridge_OnOwner(function(isOwner) owner_calls[#owner_calls + 1] = tostring(is
         [Test]
         public void 订阅替换语义_旧回调不再命中()
         {
-            RoomBridge.BindSession(_face);
+            _bridge.BindSession(_face);
             BindOwnerRecorder();
             _env.DoString(@"
 owner_calls = {}
@@ -117,7 +120,7 @@ RoomBridge_OnOwner(function(isOwner) owner_calls[#owner_calls + 1] = 'second:' .
         [Test]
         public void 房主迁移推送_事实由端口重算()
         {
-            RoomBridge.BindSession(_face);
+            _bridge.BindSession(_face);
             _face.IsOwner = false;
             BindOwnerRecorder();                            // 订阅即回放 false
             Assert.AreEqual("false", OwnerCalls());
@@ -129,7 +132,7 @@ RoomBridge_OnOwner(function(isOwner) owner_calls[#owner_calls + 1] = 'second:' .
         [Test]
         public void 无会话_IsOwner恒false_StartMatch显性降级()
         {
-            Assert.IsFalse(RoomBridge.IsOwner, "未进房无房主事实");
+            Assert.IsFalse(_bridge.IsOwner, "未进房无房主事实");
             _env.DoString(@"
 start_calls = ''
 RoomBridge_StartMatch(function(ok, reason) start_calls = tostring(ok) .. '/' .. tostring(reason) end)");
@@ -139,7 +142,7 @@ RoomBridge_StartMatch(function(ok, reason) start_calls = tostring(ok) .. '/' .. 
         [Test]
         public void 提前开局_请求送达_被拒恰一次回调()
         {
-            RoomBridge.BindSession(_face);
+            _bridge.BindSession(_face);
             _env.DoString(@"
 start_calls = ''
 RoomBridge_StartMatch(function(ok, reason) start_calls = start_calls .. tostring(ok) .. '/' .. tostring(reason) .. ';' end)");
@@ -154,12 +157,12 @@ RoomBridge_StartMatch(function(ok, reason) start_calls = start_calls .. tostring
         [Test]
         public void 会话摘除_在途回调作废_推送停()
         {
-            RoomBridge.BindSession(_face);
+            _bridge.BindSession(_face);
             BindOwnerRecorder();                            // 订阅即回放 false（假件默认态）
             _env.DoString(@"
 start_calls = ''
 RoomBridge_StartMatch(function(ok, reason) start_calls = start_calls .. 'hit' end)");
-            RoomBridge.UnbindSession();                    // 离场收尾
+            _bridge.UnbindSession();                    // 离场收尾
 
             _face.Deny("denied");
             _face.Migrate();
@@ -191,14 +194,14 @@ end)");
             BindMembersRecorder();
             _face.PushSeats((0, "玩家1", true), (1, "玩家2", false));   // 快照先到（订阅时无会话——不推送）
             Assert.AreEqual("", MemberCalls(), "订阅时无会话 = 不推送（显性降级，与 OnOwner 同契约）");
-            RoomBridge.BindSession(_face);
+            _bridge.BindSession(_face);
             Assert.AreEqual("2[0:玩家1:true;1:玩家2:false;]", MemberCalls(), "装订即回放当前快照");
         }
 
         [Test]
         public void 席位名单_先装订后订阅_订阅即回放()
         {
-            RoomBridge.BindSession(_face);
+            _bridge.BindSession(_face);
             _face.PushSeats((0, "玩家1", true));                        // 快照先于页面订阅到达
             BindMembersRecorder();
             Assert.AreEqual("1[0:玩家1:true;]", MemberCalls(), "订阅即回放会话当前快照");
@@ -207,7 +210,7 @@ end)");
         [Test]
         public void 席位名单_事件推送_整表逐次到达()
         {
-            RoomBridge.BindSession(_face);
+            _bridge.BindSession(_face);
             BindMembersRecorder();                                      // 回放：未收到过 = 空表
             Assert.AreEqual("0[]", MemberCalls());
 
@@ -221,9 +224,9 @@ end)");
         [Test]
         public void 席位名单_退订与替换语义()
         {
-            RoomBridge.BindSession(_face);
+            _bridge.BindSession(_face);
             BindMembersRecorder();
-            RoomBridge.OnMembers(_env, null);                           // 退订
+            _bridge.OnMembers(_env, null);                           // 退订
             _face.PushSeats((0, "玩家1", true));
             Assert.AreEqual("0[]", MemberCalls(), "退订后不再推送（仅剩订阅时空表回放）");
 
@@ -243,18 +246,18 @@ end)");
         [Test]
         public void 房规模_未绑会话归零_绑会话回权威值()
         {
-            Assert.AreEqual(0, RoomBridge.ExpectedPlayers, "未绑会话 = 0（显性降级——房间页据此隐藏计数）");
+            Assert.AreEqual(0, _bridge.ExpectedPlayers, "未绑会话 = 0（显性降级——房间页据此隐藏计数）");
             Assert.AreEqual("0", (string)_env.DoString("return tostring(RoomBridge_ExpectedPlayers())")[0],
                 "Lua 面同值");
 
             _face.ExpectedPlayers = 4;                                  // JoinAck 房事实（协议派生态）
-            RoomBridge.BindSession(_face);
-            Assert.AreEqual(4, RoomBridge.ExpectedPlayers, "绑会话即回权威房规模");
+            _bridge.BindSession(_face);
+            Assert.AreEqual(4, _bridge.ExpectedPlayers, "绑会话即回权威房规模");
             Assert.AreEqual("4", (string)_env.DoString("return tostring(RoomBridge_ExpectedPlayers())")[0],
                 "Lua 面同值（订阅即回放同源）");
 
-            RoomBridge.UnbindSession();
-            Assert.AreEqual(0, RoomBridge.ExpectedPlayers, "摘除会话 → 归零（页面订阅不得命中死会话）");
+            _bridge.UnbindSession();
+            Assert.AreEqual(0, _bridge.ExpectedPlayers, "摘除会话 → 归零（页面订阅不得命中死会话）");
         }
     }
 }

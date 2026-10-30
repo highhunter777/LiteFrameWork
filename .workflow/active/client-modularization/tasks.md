@@ -4,15 +4,15 @@
 
 ## 任务清单
 
-阶段：正式施工（implement） ｜ 完成 3/9（取消 0，阻塞 0）
+阶段：正式施工（implement） ｜ 完成 5/9（取消 0，阻塞 0）
 
 | ID | 任务 | 依赖 | 状态 | 验收标准 | 验证方式 | 证据 |
 |---|---|---|---|---|---|---|
 | T1 | 批1 框架装配入口与 Events 独立 | - | 完成 | A3/A5：三个 Create 入口存在；Modules/**Composition.cs 无 new ReferencePoolService(/new LogService(/new FileSystem(/new WorldClock(/new EventBus(；EventsComposition 独立产出 EventBus | unity_editor.refresh 0 error + rg 负断言 + L1 | 新增 LiteFramework/Runtime/Framework/{FrameworkInfrastructure,FrameworkClocks}.cs；PlatformInfrastructureModule 改用 Create … |
 | T2 | 批1 装配段就地迁移与守卫同步 | T1, T3 | 完成 | A1/A2/A6：Bootstrap/Modules 不存在；Modules/** 13 个 Composition；ContainerModule 在 App/；守卫全绿 L1 全量；CompositionBudgetTests 迁移前红后绿 | wf verify --red（CompositionBudgetTests）+ unity_editor.refresh 0 error + L1 | 12 段就地迁入 Modules/<域>/<域>Composition.cs，Container/Ui 移 App/ 并删 Bootstrap/Modules；DependsOn 改模块名；BridgeCapabilitySet 下沉解环… |
 | T3 | 批1 适配器委托注入与能力端口 | T1 | 完成 | A4：三个 new 只在 AppComposition；Modules/** 无 is 具体适配器；首采样前 Camera==null、ComposeAfter 后 ==Camera.main | rg 负断言 + 启动冒烟断言 + L1 | 能力端口 IRenderCameraSource/IAimCameraSink/ILookDevice 落地并替换 4 处 is 具体适配器；新增 App/AppComposition.cs 的工厂委托（ConfigService/New… |
-| T4 | 批2 业务域垂直化与 asmdef 合并 | T3 | 待办 | A7/A8/A8b/A9/A10/A10a/A11 | unity_editor.refresh 0 error + wf verify --red（DomainBoundaryTests）+ L1 | - |
-| T5 | 批2 对局冒烟用例与命令接线 | T4 | 待办 | A12 | wf verify（含 battle-smoke-playmode） | - |
+| T4 | 批2 业务域垂直化与 asmdef 合并 | T3 | 完成 | A7/A8/A8b/A9/A10/A10a/A11 | unity_editor.refresh 0 error + wf verify --red（DomainBoundaryTests）+ L1 | 批2 结构落地：Core/Battle 删除；View+Presentation 迁入 Modules/Battle 按职责子目录（Aim/Arena/Characters/Combat/Commands/Hud/Setup）+ Abst… |
+| T5 | 批2 对局冒烟用例与命令接线 | T4 | 完成 | A12 | wf verify（含 battle-smoke-playmode） | A12 落地：Assets/Tests/UI/PlayMode/BattleSmokePlayModeTests.cs（Boot.unity 起服→Main→RequestEnter→Battle→IsBuilt/Hud.Root/Cro… |
 | T6 | 批3 确认框端口与 Baseline 清空 | T5 | 待办 | A13/A14 | L1（ModuleDependencyDeclTests）+ Play 冒烟 | - |
 | T7 | 批4 组合根与 Container 拆解 | T6 | 待办 | A15/A15a/A16/A17 | L1 + 定向 EditMode + 手测 + wf verify | - |
 | T8 | 批5 外层域边界收口 | T7 | 待办 | A18~A28 | L1 + wf verify（含 domain-matrix）+ 纪律扫描 | - |

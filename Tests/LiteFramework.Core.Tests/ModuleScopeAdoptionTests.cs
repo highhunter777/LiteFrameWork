@@ -21,7 +21,8 @@ namespace LiteFramework.Core.Tests
             { "InputComposition.cs", "设备源/输入服务" },
             { "ContainerModule.cs", "命令注册/根容器/场景租约" },
             { "UiServiceModule.cs", "主题资产租约/红点登记" },
-            { "PresentationComposition.cs", "租约缓存/实体/音频/VFX/相机" },
+            { "BattleComposition.cs", "租约缓存/实体/音频/VFX" },
+            { "CameraComposition.cs", "主相机/相机服务" },
             { "LuaHostComposition.cs", "Lua 宿主 env" },
         };
 

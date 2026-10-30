@@ -35,13 +35,16 @@ namespace LiteGame.Tests.EditMode
 
             public readonly List<Call> Calls = new List<Call>(8);
 
-            public VfxHandle Play(string name, Transform attach, bool follow, float scale = 1f)
+            /// <summary>按归属人清空过的归属人（断言"离场一次收回"用）。</summary>
+            public readonly List<object> OwnerStops = new List<object>(4);
+
+            public VfxHandle Play(string name, Transform attach, bool follow, float scale = 1f, object owner = null)
             {
                 Calls.Add(new Call(name, attach, follow, default, at: false, scale));
                 return new VfxHandle(1);
             }
 
-            public VfxHandle PlayAt(string name, Vector3 position, float scale = 1f)
+            public VfxHandle PlayAt(string name, Vector3 position, float scale = 1f, object owner = null)
             {
                 Calls.Add(new Call(name, null, follow: false, position, at: true, scale));
                 return new VfxHandle(1);
@@ -49,6 +52,7 @@ namespace LiteGame.Tests.EditMode
 
             public void Stop(VfxHandle handle) { }
             public void StopAll(Transform attach) { }
+            public void StopAll(object owner) => OwnerStops.Add(owner);
 
             public string StatsName => "recording-vfx";
             public void Snapshot(Dictionary<string, string> into) { }
@@ -191,6 +195,9 @@ namespace LiteGame.Tests.EditMode
 
             flash.Dispose();
             impact.Dispose();
+            Assert.AreEqual(2, vfx.OwnerStops.Count, "Dispose 按归属人各收回一次（火光/弹着不留给自然到期）");
+            Assert.AreSame(flash, vfx.OwnerStops[0], "火光归属 = 火光驱动本件");
+            Assert.AreSame(impact, vfx.OwnerStops[1], "弹着归属 = 弹着驱动本件");
             flash.OnHitFeedback(Fire(self, 0));
             impact.OnHitFeedback(HitEvent(FrameEventKind.Hit, bot, 1, HitLocalRole.Caused, Vector3.one));
             Assert.AreEqual(2, vfx.Calls.Count, "Dispose 后不再播放");

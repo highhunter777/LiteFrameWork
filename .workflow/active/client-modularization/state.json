@@ -5,7 +5,7 @@
   "status": "active",
   "current_stage": "implement",
   "created_at": "2026-10-30T19:40:28+08:00",
-  "updated_at": "2026-10-30T22:45:24+08:00",
+  "updated_at": "2026-10-30T23:52:30+08:00",
   "completed_at": null,
   "completed_stages": [
     {
@@ -170,12 +170,12 @@
       "deps": [
         "T3"
       ],
-      "status": "todo",
-      "evidence": "",
+      "status": "done",
+      "evidence": "批2 结构落地：Core/Battle 删除；View+Presentation 迁入 Modules/Battle 按职责子目录（Aim/Arena/Characters/Combat/Commands/Hud/Setup）+ Abstractions 六端口（IBattleViewGroupFactory 独立成文件）；三 asmdef 合一（LiteGame.Modules.Battle 13 条引用 + AssemblyInfo 5 friend，删 View/Presentation 两 asmdef）；新增 Modules/Camera/CameraComposition 薄段（主相机+相机服务，适配器经工厂委托注入）并把相机从 BattleComposition 拆出；PresentationModule 改名 BattleComposition（Name=Battle），GameEntry 15 段序（Camera ② / Battle ⑬），ContainerModule.DependsOn 补 Camera 换 Battle。守卫同步：ModuleScopeAdoption/PresentationReadModel/StaticMutable/TaskObservation/DisciplineScanner(PlatformForkAllowedFiles)/ScanTargets(ClientSideProjectMarkers)/BakeTargets/UiValidator/toolchain.json/ClientAsmdefAllowlist；HUD 读模型构造上移到 BattleViewRig（BattleHudAssembler 只接 IBattleReadModel 实例，Sim 布局只在 BattleReadModel 翻译）。验证：Unity recompile completed/failed=false；L1 python scripts/gate/test.py --suite L1 --profile PullRequest PASS 1914；Boot 冒烟 modules=15 [PlatformInfrastructure,Camera,Identity,DevSession,Content,Settings,Events,Clocks,Schedulers,LuaHost,Config,UiService,Battle,Input,Container] started=True current=Battle cameraMain=True，HUD/rankboard/kill-feed/respawn/laser/protection/damage-numbers 全链 attached，console 0 error。偏差：A16 的 ContainerModule.Assemble 152 行拆分（原计划批 1）未执行，随 T7 处理（已记 build-log）。",
       "status_reason": "",
       "created_at": "2026-10-30T21:15:48+08:00",
-      "started_at": null,
-      "completed_at": null
+      "started_at": "2026-10-30T23:13:08+08:00",
+      "completed_at": "2026-10-30T23:23:23+08:00"
     },
     {
       "id": "T5",
@@ -191,12 +191,12 @@
       "deps": [
         "T4"
       ],
-      "status": "todo",
-      "evidence": "",
+      "status": "done",
+      "evidence": "A12 落地：Assets/Tests/UI/PlayMode/BattleSmokePlayModeTests.cs（Boot.unity 起服→Main→RequestEnter→Battle→IsBuilt/Hud.Root/Crosshair→自瞄开火四路表现（ShotPulse/VoiceCount/VfxService.ActiveCount/BattleDamageNumberDriver.ActiveCount）→越肩几何→RequestExit→容器级归零）；IBattleViewGroupFactory.LastCreated + 内部装饰器（存真 rig、Dispose 置空）+ ContainerModule 注册该端口；BattleViewRig 观测面 IsBuilt/Hud/View/Feedback，BattleHudAssembler.Root，VfxService.ActiveCount；.workflow/config.json 增 battle-smoke-playmode；技术债登记新增 TakeContainer 消费清单 + GameEntry 注释。冒烟暴露并同批修复两处既有缺陷：VFX 表项在挂点被销毁后永久挂账（CollectExpired 去掉 Go!=null 前提）+ 归属人回收面（Play/PlayAt owner + StopAll(owner)，三段驱动离场整体收回）；Audio 同源 voice 键在代理解绑后挂账（ReleaseProxy/Configure 摘键 + BattleAudioDriver 记句柄并 Dispose 停）。验证：playmode 1/1 passed；editor VfxService 19/19、BattleAudioDriver 4/4、BattleCombatFx 7/7、BattleRemoteFire 5/5；L1 PASS 1914；Unity recompile failed=false；gen-build-hash --check OK。",
       "status_reason": "",
       "created_at": "2026-10-30T21:15:49+08:00",
-      "started_at": null,
-      "completed_at": null
+      "started_at": "2026-10-30T23:52:22+08:00",
+      "completed_at": "2026-10-30T23:52:30+08:00"
     },
     {
       "id": "T6",

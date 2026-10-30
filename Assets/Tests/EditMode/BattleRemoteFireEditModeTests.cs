@@ -35,13 +35,13 @@ namespace LiteGame.Tests.EditMode
 
             public readonly List<Call> Calls = new List<Call>(8);
 
-            public VfxHandle Play(string name, Transform attach, bool follow, float scale = 1f)
+            public VfxHandle Play(string name, Transform attach, bool follow, float scale = 1f, object owner = null)
             {
                 Calls.Add(new Call(name, attach, follow, default, at: false));
                 return new VfxHandle(1);
             }
 
-            public VfxHandle PlayAt(string name, Vector3 position, float scale = 1f)
+            public VfxHandle PlayAt(string name, Vector3 position, float scale = 1f, object owner = null)
             {
                 Calls.Add(new Call(name, null, follow: false, position, at: true));
                 return new VfxHandle(1);
@@ -49,6 +49,7 @@ namespace LiteGame.Tests.EditMode
 
             public void Stop(VfxHandle handle) { }
             public void StopAll(Transform attach) { }
+            public void StopAll(object owner) { }
             public string StatsName => "recording-vfx";
             public void Snapshot(Dictionary<string, string> into) { }
         }

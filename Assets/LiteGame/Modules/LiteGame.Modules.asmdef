@@ -9,7 +9,6 @@
         "LiteFramework.Runtime",
         "LiteGame.Core",
         "LiteGame.Modules.Battle",
-        "LiteGame.Modules.View",
         "LiteNet",
         "LiteSim",
         "Luban.Runtime",

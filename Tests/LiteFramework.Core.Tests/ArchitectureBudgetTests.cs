@@ -39,7 +39,7 @@ namespace LiteFramework.Core.Tests
             ["Assets/LiteGame/Editor/UiTools/Contract/UiContractGenerator.cs::UiContractGenerator"] = 424,
             ["Assets/LiteGame/Editor/UiTools/Workbench/Window/UiWorkbenchWindow.cs::UiWorkbenchWindow"] = 457,
             ["Assets/LiteFramework/Runtime/Adapters/Unity/AnimationBackends/AnimatorAnimationBackend.cs::AnimatorAnimationBackend"] = 505,
-            ["Assets/LiteGame/Modules/View/Animation/Drivers/CharacterLocomotionDriver.cs::CharacterLocomotionDriver"] = 524,
+            ["Assets/LiteGame/Modules/Battle/Characters/Drivers/CharacterLocomotionDriver.cs::CharacterLocomotionDriver"] = 524,
         };
 
         /// <summary>方法行数冻结上限（同 7d 口径；超 80 行的方法只许降）。</summary>
@@ -53,7 +53,7 @@ namespace LiteFramework.Core.Tests
             ["Assets/LiteFramework/Editor/Inspectors/BindNodeInspector.cs::BindNodeInspector.OnInspectorGUI"] = 99,
             ["Assets/LiteGame/App/ContainerModule.cs::ContainerModule.Assemble"] = 152,
             ["Assets/LiteGame/App/Bootstrap/Probes/InputModalProbe.cs::InputModalProbe.RunAsync"] = 103,
-            ["Assets/LiteGame/Modules/Presentation/Fx/BattleDamageNumberDriver.cs::BattleDamageNumberDriver.Tick"] = 82,
+            ["Assets/LiteGame/Modules/Battle/Combat/BattleDamageNumberDriver.cs::BattleDamageNumberDriver.Tick"] = 82,
             ["Assets/LiteGame/Modules/Procedure/Stages/ProcedureBattle.cs::ProcedureBattle.RunAsyncCore"] = 109,
             ["Assets/LiteGame/Adapters/Dev/Projection/DebugPanelUiToolkitHost.cs::DebugPanelUiToolkitHost.AddTunableRow"] = 91,
             ["Assets/LiteGame/Editor/Gm/GmNetDiagPage.cs::GmNetDiagPage.Draw"] = 130,
@@ -70,7 +70,7 @@ namespace LiteFramework.Core.Tests
             ["Assets/LiteGame/Editor/UiTools/Preview/UiDeviceProfileCatalog.cs::UiDeviceProfileCatalog.Validate"] = 81,
             ["Assets/LiteGame/Editor/UiTools/Preview/UiPreviewMatrixRunner.cs::UiPreviewMatrixRunner.Tick"] = 91,
             ["Assets/LiteGame/Editor/UiTools/Validation/Rules/Structure/ContractReferenceRule.cs::ContractReferenceRule.Check"] = 100,
-            ["Assets/LiteGame/Modules/View/Animation/Drivers/CharacterLocomotionDriver.cs::CharacterLocomotionDriver.Tick"] = 177,
+            ["Assets/LiteGame/Modules/Battle/Characters/Drivers/CharacterLocomotionDriver.cs::CharacterLocomotionDriver.Tick"] = 177,
         };
 
         [Fact]

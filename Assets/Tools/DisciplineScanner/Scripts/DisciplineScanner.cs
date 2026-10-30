@@ -223,7 +223,7 @@ namespace Tools.DisciplineScan
         {
             "Assets/LiteGame/Modules/Meta/DeployBake.cs",
             "Assets/LiteGame/Modules/Input/InputComposition.cs",
-            "Assets/LiteGame/Modules/Presentation/Battle/Rig/BattleViewRig.cs",
+            "Assets/LiteGame/Modules/Battle/Setup/BattleViewRig.cs",
         };
 
         /// <summary>

@@ -17,16 +17,16 @@ namespace LiteFramework.Core.Tests
         private static readonly HashSet<string> Allowed = new HashSet<string>(StringComparer.Ordinal)
         {
             "Assets/LiteGame/Adapters/Dev/Debug/Session/DevStartupConfig.cs :: DirectToTrainingEnabled",
-            "Assets/LiteGame/Modules/Presentation/Battle/Look/LookTuning.cs :: AdsScaleDevOverride",
-            "Assets/LiteGame/Modules/Presentation/Battle/Look/LookTuning.cs :: SensitivityDevOverride",
-            "Assets/LiteGame/Modules/Presentation/Hud/CrosshairFeel.cs :: BurstCapDevOverride",
-            "Assets/LiteGame/Modules/Presentation/Hud/CrosshairFeel.cs :: BurstGrowthDevOverride",
-            "Assets/LiteGame/Modules/Presentation/Hud/CrosshairFeel.cs :: BurstRecoverDevOverride",
-            "Assets/LiteGame/Modules/Presentation/Hud/CrosshairFeel.cs :: KickDevOverride",
-            "Assets/LiteGame/Modules/Presentation/Hud/CrosshairFeel.cs :: KickRecoverDevOverride",
-            "Assets/LiteGame/Modules/Presentation/Hud/CrosshairFeel.cs :: StaticMaxDevOverride",
+            "Assets/LiteGame/Modules/Battle/Aim/LookTuning.cs :: AdsScaleDevOverride",
+            "Assets/LiteGame/Modules/Battle/Aim/LookTuning.cs :: SensitivityDevOverride",
+            "Assets/LiteGame/Modules/Battle/Hud/CrosshairFeel.cs :: BurstCapDevOverride",
+            "Assets/LiteGame/Modules/Battle/Hud/CrosshairFeel.cs :: BurstGrowthDevOverride",
+            "Assets/LiteGame/Modules/Battle/Hud/CrosshairFeel.cs :: BurstRecoverDevOverride",
+            "Assets/LiteGame/Modules/Battle/Hud/CrosshairFeel.cs :: KickDevOverride",
+            "Assets/LiteGame/Modules/Battle/Hud/CrosshairFeel.cs :: KickRecoverDevOverride",
+            "Assets/LiteGame/Modules/Battle/Hud/CrosshairFeel.cs :: StaticMaxDevOverride",
             "Assets/LiteGame/Editor/GenConfig/GenConfig.cs :: CSharpCallLua",
-            "Assets/LiteGame/Modules/View/Animation/Drivers/GripTuning.cs :: TorsoWeightDevOverride",
+            "Assets/LiteGame/Modules/Battle/Characters/Drivers/GripTuning.cs :: TorsoWeightDevOverride",
         };
 
         [Fact]

@@ -32,13 +32,18 @@ namespace LiteFramework
             return oldest;
         }
 
-        /// <summary>收集到期实例的 id（**已实例化**且 `ExpireAt &lt;= now`；pending 的 ExpireAt = +∞ 不会命中）。</summary>
+        /// <summary>收集到期实例的 id（`ExpireAt &lt;= now`）。
+        ///
+        /// **不以 `Go != null` 作前提**：加载在途的实例 `ExpireAt` 为 +∞（`Materialize` 才落寿命），
+        /// 天然不会被收集；而**已实例化但挂点被外部销毁**的实例（视图根/实体视图整体拆除时 Unity 把
+        /// 跟随实例一起销毁）`Go` 会变成 fake-null——把 `Go != null` 当判据就会把它误当成"还在加载"，
+        /// 于是表项永久残留、`ActiveCount` 永不归零（离场冒烟会一直卡在非零活跃数）。</summary>
         public void CollectExpired(float now, List<int> into)
         {
             foreach (var kv in _byId)
             {
                 var inst = kv.Value;
-                if (inst.Go != null && inst.ExpireAt <= now) into.Add(inst.Id);
+                if (inst.ExpireAt <= now) into.Add(inst.Id);
             }
         }
 

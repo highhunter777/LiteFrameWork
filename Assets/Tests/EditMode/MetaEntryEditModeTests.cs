@@ -358,7 +358,7 @@ namespace LiteGame.Tests.EditMode
         {
             using (var env = new LuaEnv())
             {
-                ProductBridges.BindGlobals(env);
+                new ProductBridges(new RoomBridge()).BindGlobals(env);
                 var client = new FakeMetaClient();
                 var service = Service(client, new FakeStageHost());
                 MetaBridge.Bind(service);
@@ -383,7 +383,7 @@ namespace LiteGame.Tests.EditMode
         {
             using (var env = new LuaEnv())
             {
-                ProductBridges.BindGlobals(env);
+                new ProductBridges(new RoomBridge()).BindGlobals(env);
                 MetaBridge.Bind(Service(new FakeMetaClient()));
                 env.DoString(@"
                     result_ok, result_val = nil, nil
@@ -421,7 +421,7 @@ namespace LiteGame.Tests.EditMode
             };
             using (var env = new LuaEnv())
             {
-                ProductBridges.BindGlobals(env);
+                new ProductBridges(new RoomBridge()).BindGlobals(env);
                 var service = Service(client);
                 MetaBridge.Bind(service);
                 service.GuestLoginAsync().GetAwaiter().GetResult();      // 令牌就位

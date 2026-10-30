@@ -29,6 +29,7 @@ namespace LiteGame
         public IReadOnlyList<string> DependsOn => new[]
         {
             "PlatformInfrastructure",
+            "Camera",
             "Identity",
             "DevSession",
             "Content",
@@ -39,7 +40,7 @@ namespace LiteGame
             "LuaHost",
             "Config",
             "UiService",
-            "Presentation",
+            "Battle",
             "Input",
         };
 
@@ -176,6 +177,7 @@ namespace LiteGame
             // 流程端口（装配根是唯一组装点）：视图组工厂 + 产品桥装订口 + 房间会话门面——
             // 实现留在各适配/表现程序集，流程只认模块端口。
             BattleViewGroupFactory battleViews = CreateBattleViews(context, content, config, commands, devSession, appSettings);
+            _services.RegisterInstance<IBattleViewGroupFactory>(battleViews);   // 流程与冒烟用例经端口取（批 4 归 BattleComposition）
             // 房间会话门面与产品桥共用同一实例（Battle 阶段装订的会话须被 env 重建后的门面读到）；
             // 产品桥登记为端口产物——DevReload 经容器取同一装订口重建 env。
             var roomBridge = new RoomBridge();
