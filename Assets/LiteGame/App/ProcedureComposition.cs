@@ -56,7 +56,10 @@ namespace LiteGame
                 new AppRecoveryActions(cache: context.Require<IContentCacheMaintenance>()));
             context.Put(recovery);
 
-            context.Put(CreateMachine(context, pageFlow, metaEntry, recovery, productBridge, roomBridge));
+            var machine = CreateMachine(context, pageFlow, metaEntry, recovery, productBridge, roomBridge);
+            context.Put(machine);
+            // 联机入口只认流程端口（不回看阶段机/阶段参数类型）
+            context.Put<IAppFlow>(new ProcedureFlow(machine));
             return UniTask.CompletedTask;
         }
 

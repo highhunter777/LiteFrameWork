@@ -46,6 +46,9 @@
     <Compile Include="..\..\Assets\LiteFramework\Runtime\Modules\Content\ReleaseLayout.cs" Link="Content\ReleaseLayout.cs" />
     <Compile Include="..\..\Assets\LiteFramework\Runtime\Modules\Content\ContentCacheMaintenance.cs" Link="Content\ContentCacheMaintenance.cs" />
     <Compile Include="..\..\Assets\LiteGame\Modules\Meta\AccountReentry.cs" Link="Meta\AccountReentry.cs" />
+    <Compile Include="..\..\Assets\LiteGame\Modules\Meta\Abstractions\IAccountSessionControl.cs" Link="Meta\Abstractions\IAccountSessionControl.cs" />
+    <Compile Include="..\..\Assets\LiteGame\Modules\Meta\Abstractions\IAppFlow.cs" Link="Meta\Abstractions\IAppFlow.cs" />
+    <Compile Include="..\..\Assets\LiteGame\Modules\Meta\MetaJoin.cs" Link="Meta\MetaJoin.cs" />
   </ItemGroup>
 
   <!--

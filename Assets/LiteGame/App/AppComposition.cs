@@ -140,7 +140,7 @@ namespace LiteGame
         private static void BindMetaEntry(ModuleContext context)
         {
             MetaEntryService meta = context.Require<MetaEntryService>();
-            meta.BindMachine(context.Require<StageMachine<ProcedureId, ProcedureArgs>>());
+            meta.BindFlow(context.Require<IAppFlow>());
             IConfigService config = context.Require<IConfigService>();
             MetaBridge.Bind(meta, context.Require<IdentityContext>(), () => config.Tables,
                 context.Require<IAccountReentry>());

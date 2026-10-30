@@ -83,33 +83,29 @@ namespace LiteGame.Tests.EditMode
                 => UniTask.FromResult(Records);
         }
 
-        /// <summary>IStageHost 替身：捕获 Request（进房移交的断言面）。</summary>
-        private sealed class FakeStageHost : IStageHost<ProcedureId, ProcedureArgs>
+        /// <summary>流程端口替身：捕获语义请求（进房/离场的断言面）。</summary>
+        private sealed class FakeAppFlow : IAppFlow
         {
             public (ProcedureId id, ProcedureArgs args)? LastRequest;
-            public bool Started => true;
-            public ProcedureId Current => ProcedureId.Main;
-            public float StageTime => 0f;
-            public int StageFrames => 0;
+            public bool AtMain = true;
 
-            public bool Request(ProcedureId nextId, in ProcedureArgs req)
-            {
-                LastRequest = (nextId, req);
-                return true;
-            }
+            public bool IsAtMain => AtMain;
 
-            public bool Request(ProcedureId nextId) => Request(nextId, default);
+            public void RequestMatch(MetaJoin join)
+                => LastRequest = (ProcedureId.Match, new ProcedureArgs(metaJoin: join));
+
+            public void RequestMain() => LastRequest = (ProcedureId.Main, default);
         }
 
         private static IdentityContext Identity() => new IdentityContext(
             new BuildIdentity(LiteNet.BuildHash.Value, "0.1.0", "WindowsPlayer", string.Empty, 5),
             new SchemaIdentity(0, 0, 0, ActivationRecord.CurrentSchemaVersion));
 
-        private static MetaEntryService Service(FakeMetaClient client, FakeStageHost machine = null,
+        private static MetaEntryService Service(FakeMetaClient client, FakeAppFlow machine = null,
             bool configured = true)
         {
             var service = new MetaEntryService(configured ? client : null, () => "device-1", "http://meta.test", Identity());
-            if (machine != null) service.BindMachine(machine);
+            if (machine != null) service.BindFlow(machine);
             return service;
         }
 
@@ -119,7 +115,7 @@ namespace LiteGame.Tests.EditMode
         public void 配置测试房_建房带模板与口令_未配置则请求体不变()
         {
             var client = new FakeMetaClient();
-            MetaEntryService service = Service(client, new FakeStageHost());
+            MetaEntryService service = Service(client, new FakeAppFlow());
             service.ConfigureTestRoom("sandbox", "k-1");
 
             service.GuestLoginAsync().GetAwaiter().GetResult();
@@ -129,7 +125,7 @@ namespace LiteGame.Tests.EditMode
             Assert.AreEqual("k-1", client.SeenGmKey, "口令同批带上（服务端比对，不匹配 403）");
 
             var plain = new FakeMetaClient();
-            MetaEntryService plainService = Service(plain, new FakeStageHost());
+            MetaEntryService plainService = Service(plain, new FakeAppFlow());
             plainService.GuestLoginAsync().GetAwaiter().GetResult();
             plainService.CreateRoomAsync(mapId: 1, expectedPlayers: 2).GetAwaiter().GetResult();
 
@@ -141,7 +137,7 @@ namespace LiteGame.Tests.EditMode
         public void 显式模板建房_不依赖部署注入_携带地图与口令()
         {
             var client = new FakeMetaClient();
-            MetaEntryService service = Service(client, new FakeStageHost());
+            MetaEntryService service = Service(client, new FakeAppFlow());
             service.GuestLoginAsync().GetAwaiter().GetResult();
 
             MetaCall<JoinTicketInfo> call = service.CreateRoomAsync(
@@ -160,7 +156,7 @@ namespace LiteGame.Tests.EditMode
         [Test]
         public void 未配置_登录进房查询全显性失败_零Request()
         {
-            var machine = new FakeStageHost();
+            var machine = new FakeAppFlow();
             var service = Service(null, machine, configured: false);
 
             MetaCall<GuestLoginInfo> login = service.GuestLoginAsync().GetAwaiter().GetResult();
@@ -194,7 +190,7 @@ namespace LiteGame.Tests.EditMode
         public void 未登录_换票与查询被拒_零票据调用()
         {
             var client = new FakeMetaClient();
-            var service = Service(client, new FakeStageHost());
+            var service = Service(client, new FakeAppFlow());
 
             MetaCall<JoinTicketInfo> enter = service.EnterRoomAsync("Room-A").GetAwaiter().GetResult();
             Assert.IsFalse(enter.Ok);
@@ -208,7 +204,7 @@ namespace LiteGame.Tests.EditMode
         public void 换票成功_地址解析并精确移交Match()
         {
             var client = new FakeMetaClient();
-            var machine = new FakeStageHost();
+            var machine = new FakeAppFlow();
             var service = Service(client, machine);
             service.GuestLoginAsync().GetAwaiter().GetResult();          // 先登录（缓存令牌）
 
@@ -235,7 +231,7 @@ namespace LiteGame.Tests.EditMode
                 JoinTicket = MetaCall<JoinTicketInfo>.OkResult(new JoinTicketInfo
                     { InstanceId = "ins-1", Address = "no-port", RoomId = "Room-A", Ticket = "tkt-1", ExpiresAtMs = 2 }),
             };
-            var machine = new FakeStageHost();
+            var machine = new FakeAppFlow();
             var service = Service(client, machine);
             service.GuestLoginAsync().GetAwaiter().GetResult();
 
@@ -247,16 +243,16 @@ namespace LiteGame.Tests.EditMode
         }
 
         [Test]
-        public void 流程机未绑定_换票显性失败()
+        public void 流程端口未绑定_换票显性失败()
         {
             var client = new FakeMetaClient();
-            var service = Service(client);                               // 不 BindMachine
+            var service = Service(client);                               // 不 BindFlow
             service.GuestLoginAsync().GetAwaiter().GetResult();
 
             MetaCall<JoinTicketInfo> call = service.EnterRoomAsync("").GetAwaiter().GetResult();
             Assert.IsFalse(call.Ok);
             Assert.AreEqual(MetaFailureKind.InvalidResponse, call.Failure.Kind);
-            StringAssert.Contains("BindMachine", call.Failure.Detail, "失败点名装配面缺口");
+            StringAssert.Contains("BindFlow", call.Failure.Detail, "失败点名装配面缺口");
         }
 
         // ---- 创建房间（服务端出号 → 与进房同一管道）----
@@ -265,7 +261,7 @@ namespace LiteGame.Tests.EditMode
         public void 创建房间_服务端出号_精确移交Match_与进房同管道()
         {
             var client = new FakeMetaClient();
-            var machine = new FakeStageHost();
+            var machine = new FakeAppFlow();
             var service = Service(client, machine);
             service.GuestLoginAsync().GetAwaiter().GetResult();
 
@@ -293,7 +289,7 @@ namespace LiteGame.Tests.EditMode
             // 多图批：create-room 的 mapId 是"房间创建意图"的客户端侧入口——必须原样到达客户端
             // （盖章与校验归 Meta/房间端：票据段 + 表行）
             var client = new FakeMetaClient();
-            var machine = new FakeStageHost();
+            var machine = new FakeAppFlow();
             var service = Service(client, machine);
             service.GuestLoginAsync().GetAwaiter().GetResult();
 
@@ -310,7 +306,7 @@ namespace LiteGame.Tests.EditMode
             // 开房参数批：create-room 的 expectedPlayers 同 mapId 口径——客户端侧入口原样到达客户端
             // （盖章与上界校验归 Meta/房间端：票据段 + 内核席位容量）
             var client = new FakeMetaClient();
-            var machine = new FakeStageHost();
+            var machine = new FakeAppFlow();
             var service = Service(client, machine);
             service.GuestLoginAsync().GetAwaiter().GetResult();
 
@@ -330,7 +326,7 @@ namespace LiteGame.Tests.EditMode
                 CreateRoomResult = MetaCall<JoinTicketInfo>.OkResult(new JoinTicketInfo
                     { InstanceId = "ins-2", Address = "no-port", RoomId = "R-NEW001", Ticket = "tkt-2", ExpiresAtMs = 3 }),
             };
-            var machine = new FakeStageHost();
+            var machine = new FakeAppFlow();
             var service = Service(client, machine);
             service.GuestLoginAsync().GetAwaiter().GetResult();
 
@@ -344,7 +340,7 @@ namespace LiteGame.Tests.EditMode
         public void 未登录_创建房间被拒_零create调用()
         {
             var client = new FakeMetaClient();
-            var service = Service(client, new FakeStageHost());
+            var service = Service(client, new FakeAppFlow());
 
             MetaCall<JoinTicketInfo> call = service.CreateRoomAsync().GetAwaiter().GetResult();
 
@@ -360,7 +356,7 @@ namespace LiteGame.Tests.EditMode
             {
                 new ProductBridges(new RoomBridge()).BindGlobals(env);
                 var client = new FakeMetaClient();
-                var service = Service(client, new FakeStageHost());
+                var service = Service(client, new FakeAppFlow());
                 MetaBridge.Bind(service);
                 service.GuestLoginAsync().GetAwaiter().GetResult();      // 令牌就位
 

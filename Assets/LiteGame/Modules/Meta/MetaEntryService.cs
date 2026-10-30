@@ -24,7 +24,7 @@ namespace LiteGame
         private readonly IMetaClient _client;          // null = 未配置（装配面按 HasMeta 决定）
         private readonly Func<string> _deviceId;
         private readonly IdentityContext _identity;
-        private IStageHost<ProcedureId, ProcedureArgs> _machine;
+        private IAppFlow _flow;                         // 流程请求端口（不认识阶段机/阶段参数类型）
         private string _accessToken;                    // 访问令牌（只住本服务——不出日志不出服务面）
 
         public MetaEntryService(IMetaClient client, Func<string> deviceId, string serverUrl, IdentityContext identity)
@@ -76,10 +76,10 @@ namespace LiteGame
         /// <summary>Meta 基址（设置页只读展示——来自部署注入）。</summary>
         public string ServerUrl { get; }
 
-        /// <summary>装配点接流程机（ContainerModule 建机后回填——请求面只认窄接口）。</summary>
-        public void BindMachine(IStageHost<ProcedureId, ProcedureArgs> machine)
+        /// <summary>装配点接流程端口（流程段建机后回填——请求面只认窄接口，不认识阶段机类型）。</summary>
+        public void BindFlow(IAppFlow flow)
         {
-            _machine = machine ?? throw new ArgumentNullException(nameof(machine));
+            _flow = flow ?? throw new ArgumentNullException(nameof(flow));
         }
 
         /// <summary>游客一键登录（成功缓存登录态——AccountId/访问令牌；重复调用即重登，服务端按 deviceId 幂等）。</summary>
@@ -109,7 +109,7 @@ namespace LiteGame
         {
             if (!IsConfigured) return NotConfigured<JoinTicketInfo>();
             if (_accessToken == null) return NotLoggedIn<JoinTicketInfo>();
-            if (_machine == null) return MachineUnbound<JoinTicketInfo>();
+            if (_flow == null) return FlowUnbound<JoinTicketInfo>();
 
             return JoinWith(await _client.RequestJoinTicketAsync(
                 _accessToken, roomId ?? "", _identity.Handshake.BuildHash));
@@ -131,7 +131,7 @@ namespace LiteGame
         {
             if (!IsConfigured) return NotConfigured<JoinTicketInfo>();
             if (_accessToken == null) return NotLoggedIn<JoinTicketInfo>();
-            if (_machine == null) return MachineUnbound<JoinTicketInfo>();
+            if (_flow == null) return FlowUnbound<JoinTicketInfo>();
 
             return JoinWith(await _client.CreateRoomAsync(_accessToken, _identity.Handshake.BuildHash, mapId,
                 expectedPlayers, template, gmKey));
@@ -149,8 +149,8 @@ namespace LiteGame
                 return MetaCall<JoinTicketInfo>.Failed(
                     MetaFailure.Invalid("票据地址不可解析（" + reason + "）——联系部署侧核对 AdvertiseHost"));
 
-            _machine.Request(ProcedureId.Match, new ProcedureArgs(metaJoin: new MetaJoin(
-                endpoint.Host, endpoint.Port, call.Value.RoomId, call.Value.Ticket)));
+            _flow.RequestMatch(new MetaJoin(
+                endpoint.Host, endpoint.Port, call.Value.RoomId, call.Value.Ticket));
             return call;
         }
 
@@ -169,10 +169,9 @@ namespace LiteGame
         /// </summary>
         public bool LeaveMatch()
         {
-            if (_machine == null) return false;
-            if (_machine.Current == ProcedureId.Main) return false;   // 已在 Main（无对局/工作台等 dev 落点）：
-                                                                     // 请求 Main 会被流程机拒为"重入禁止"并抛——离场语义此处不成立，直接 no-op
-            _machine.Request(ProcedureId.Main);
+            if (_flow == null || _flow.IsAtMain) return false;   // 已在主菜单（无对局/工作台等 dev 落点）：
+                                                                  // 再请求回 Main 会被流程机拒为"重入禁止"并抛——离场语义不成立，直接 no-op
+            _flow.RequestMain();
             return true;
         }
 
@@ -182,8 +181,8 @@ namespace LiteGame
         private MetaCall<T> NotLoggedIn<T>()
             => MetaCall<T>.Failed(MetaFailure.Rejected(0, "entry.not-logged-in", "未登录"));
 
-        /// <summary>流程机未绑定（装配面缺 <c>BindMachine</c>）——进房/创建房间同判据。</summary>
-        private static MetaCall<T> MachineUnbound<T>()
-            => MetaCall<T>.Failed(MetaFailure.Invalid("流程机未绑定（装配面缺 BindMachine）"));
+        /// <summary>流程端口未绑定（装配面缺 <c>BindFlow</c>）——进房/创建房间同判据。</summary>
+        private static MetaCall<T> FlowUnbound<T>()
+            => MetaCall<T>.Failed(MetaFailure.Invalid("流程端口未绑定（装配面缺 BindFlow）"));
     }
 }
