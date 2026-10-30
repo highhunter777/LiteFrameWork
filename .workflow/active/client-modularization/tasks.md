@@ -15,7 +15,7 @@
 | T5 | 批2 对局冒烟用例与命令接线 | T4 | 完成 | A12 | wf verify（含 battle-smoke-playmode） | A12 落地：Assets/Tests/UI/PlayMode/BattleSmokePlayModeTests.cs（Boot.unity 起服→Main→RequestEnter→Battle→IsBuilt/Hud.Root/Cro… |
 | T6 | 批3 确认框端口与 Baseline 清空 | T5 | 完成 | A13/A14 | L1（ModuleDependencyDeclTests）+ Play 冒烟 | A13：ModuleDependencyDeclTests.Baseline 清空（最后一笔 UiService <- Container 由确认缝端口化解）并通过；Ui 段不再 Require<FeedbackService>（App/… |
 | T7 | 批4 组合根与 Container 拆解 | T6 | 完成 | A15/A15a/A16/A17 | L1 + 定向 EditMode + 手测 + wf verify | A15：ContainerModule 删除（不再是 IClientModule）；GameEntry 18 段全序（①PI ②Camera ③Identity ④DevSession ⑤Content ⑥Settings ⑦Events… |
-| T8 | 批5 外层域边界收口 | T7 | 待办 | A18~A28 | L1 + wf verify（含 domain-matrix）+ 纪律扫描 | - |
+| T8 | 批5 外层域边界收口 | T7 | 进行中 | A18~A28 | L1 + wf verify（含 domain-matrix）+ 纪律扫描 | - |
 | T9 | 全批 文档回写与收尾 | T8 | 待办 | A29/A30/A31 | wf verify | - |
 
 ## 任务详情

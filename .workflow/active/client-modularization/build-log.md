@@ -30,9 +30,12 @@
 - 2026-10-31T00:02:42+08:00 · 完成任务 T6 · 证据: A13：ModuleDependencyDeclTests.Baseline 清空（最后一笔 UiService <- Container 由确认缝端口化解）并通过；Ui 段不再 Require<FeedbackService>（App/UiServiceModule.cs 产 ConfirmDialogRouter…
 - 2026-10-31T00:16:16+08:00 · 开始任务 T7「批4 组合根与 Container 拆解」
 - 2026-10-31T00:31:09+08:00 · 完成任务 T7 · 证据: A15：ContainerModule 删除（不再是 IClientModule）；GameEntry 18 段全序（①PI ②Camera ③Identity ④DevSession ⑤Content ⑥Settings ⑦Events ⑧Clocks ⑨Schedulers ⑩LuaHost ⑪Config ⑫M…
+- 2026-10-31T00:37:27+08:00 · 开始任务 T8「批5 外层域边界收口」
 
 ## 关键决定
 
+- **批 5 分三个检查点**：1/3 文件归位（会话/地图/UI 纯化/错位件）——已提交；2/3 契约与命名空间收口（Meta 端口、Procedure 去直引、8 域命名空间、排序与瞄准单源）；3/3 域间矩阵门禁与文档回写。
+- **会话域收敛口径**：`Modules/Session/` 收 `AccountSession+Factory`、`MatchSession+Factory`、`MatchTransport`、`BattleSession` 聚合、`RoomSessionFace` 与两契约；`Modules/Room/`、`Modules/Procedure/Session/` 删除。`BattleSession` 与既有 `MatchSession`（Match 域本体）同名冲突，故聚合保留原名——A18 的 "MatchSession(Factory)" 指既有类型 + 工厂。
 - **批 4 段拆解的归属落位**（归属表逐行落地，段名即模块名）：⑤ Content 收场景/缓存租约（`SceneService`/`IContentCacheMaintenance`）、
   ⑥ Settings 收视角偏好单实例、⑦ Events 收 `IEventBus` 接口键、⑨ Schedulers 收 `ITimelineRunner` 接口键、
   ⑫ Map（`IMapProvider`）、⑬ Ui 收弹窗/反馈/提示/UI 时钟驱动（确认缝在本段内产口即绑）、⑮ Meta（部署快照 + 联机客户端 + 入口编排件）、
