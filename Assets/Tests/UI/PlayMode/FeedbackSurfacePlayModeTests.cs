@@ -33,6 +33,7 @@ namespace LiteGame.Tests.UI.PlayMode
         private const int ErrorFormId = 201;
         private const int LoadingFormId = 202;
         private const int ToastFormId = 203;
+        private const int ConfirmFormId = 206;      // FeedbackService 的确认弹窗表单（与 Error 分层：206）
 
         /// <summary>生成目录（与生产同源：PageDefinition）。</summary>
         private static IPageCatalog BuildCatalog()
@@ -42,6 +43,7 @@ namespace LiteGame.Tests.UI.PlayMode
                 new PageDefinition { Id = ErrorFormId, Layer = 3, FullScreen = false, LuaPath = "", Location = "Assets/ShareResource/UI/Screens/Tmp_Dialog.prefab" },
                 new PageDefinition { Id = LoadingFormId, Layer = 3, FullScreen = false, LuaPath = "", Location = "Assets/ShareResource/UI/Screens/Tmp_Loading.prefab" },
                 new PageDefinition { Id = ToastFormId,   Layer = 3, FullScreen = false, LuaPath = "", Location = "Assets/ShareResource/UI/Screens/Tmp_Toast.prefab" },
+                new PageDefinition { Id = ConfirmFormId, Layer = 3, FullScreen = false, LuaPath = "", Location = "Assets/ShareResource/UI/Screens/Tmp_Dialog.prefab" },
             });
         }
 
@@ -177,6 +179,32 @@ namespace LiteGame.Tests.UI.PlayMode
             yield return WaitUntil(() => task.Status != UniTaskStatus.Pending, 15f, "结果未落定");
             Assert.IsTrue(task.GetAwaiter().GetResult(), "选确认 → true");
             Assert.IsFalse(_ui.IsOpen(ErrorFormId), "结果落定后弹窗已收口（先关后交付）");
+        }
+
+        /// <summary>
+        /// 确认缝（批 3 · A14）：<see cref="ConfirmDialogRouter"/> 绑定真实现后，经
+        /// <c>FeedbackService.ConfirmAsync → DialogService</c> 弹真 prefab，选确认返回 true。
+        /// 与 Lua 门面用例（<c>UiConfirmApiEditModeTests</c>）分工：那条钉回调语义，这条钉**真资源返回链**。
+        /// </summary>
+        [UnityTest]
+        public IEnumerator 确认框_路由器绑定Feedback_真资源选确认返回true()
+        {
+            var router = new ConfirmDialogRouter();
+            Assert.IsFalse(router.IsBound, "装配根绑定之前未绑定");
+            router.Bind((title, message, okText, cancelText) =>
+                _feedback.ConfirmAsync(title, message, okText, cancelText));
+
+            UniTask<bool> task = router.ShowAsync("确认", "来自真 prefab", "确定", "取消");
+            yield return WaitUntil(() => _dialogs.TryGetActiveDialog("confirm", out _),
+                15f, "确认弹窗未武装（真转场链路）");
+
+            Assert.IsTrue(_dialogs.TryGetActiveDialog("confirm", out UIDialog dialog), "取到确认对话框");
+            Assert.IsNotNull(dialog.OkButton, "OkButton 接线（真 prefab）");
+
+            dialog.OkButton.onClick.Invoke();
+            yield return WaitUntil(() => task.Status != UniTaskStatus.Pending, 15f, "结果未落定");
+            Assert.IsTrue(task.GetAwaiter().GetResult(), "路由器经真实现返回 true（选确认）");
+            Assert.AreEqual(0, router.WarningCount, "已绑定路径不得产生未绑定告警");
         }
 
         // ---- 辅助 ----

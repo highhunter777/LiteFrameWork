@@ -15,6 +15,7 @@ namespace LiteGame
     public sealed class UiServiceModule : IClientModule, IClientModuleGraph
     {
         private RedDotRegistry _redDotRegistry;
+        private ConfirmDialogRouter _confirmRouter;      // 确认缝端口（本段产出，装配根后段绑定实现）
         private UIService _uiService;
         private IDisposable _themeLease;
         private UiThemeAsset _themeAsset;
@@ -23,6 +24,7 @@ namespace LiteGame
 
         /// <summary>依赖的模块（与 GameEntry 注册序一致；供 Host DAG 校验）。</summary>
         public System.Collections.Generic.IReadOnlyList<string> DependsOn => new[] { "LuaHost", "Config", "Content" };
+
         public async UniTask InitializeAsync(ModuleContext context, CancellationToken ct)
         {
             // 同步资源归属＝本模块作用域（路线图 §4.3）：初始化中途失败（主题已装载、UIService 构造抛出）
@@ -32,6 +34,9 @@ namespace LiteGame
             var lua = context.Require<LuaComponent>();
             var content = context.Require<IContentService>();   // 依赖②内容服务——注册序即依赖序
             _redDotRegistry = new RedDotRegistry();
+            _confirmRouter = new ConfirmDialogRouter();      // 确认缝：本段产口，装配根后段绑定实现
+            context.Put(_confirmRouter);
+            context.Put<IConfirmDialog>(_confirmRouter);
             var uiRegistry = new UiLuaRegistry();
             var contentRegistry = new ContentLuaRegistry();
             var strategyRegistry = new StrategyLuaRegistry();
@@ -43,7 +48,7 @@ namespace LiteGame
             var localeProvider = BuildLocaleProvider(config);
             var themeProvider = await TryLoadThemeProviderAsync(content, ct);   // P2-3 B2：失败降级 null（页面保持烘焙值）
             _uiService = new UIService(UiPageCatalog.Instance,
-                logicResolver: info => new LuaBehaviourAdapter(lua.Env, uiRegistry.Get(info.LuaPath), ConfirmOf(context)),
+                logicResolver: info => new LuaBehaviourAdapter(lua.Env, uiRegistry.Get(info.LuaPath), _confirmRouter.ShowAsync),
                 loadPrefab: (location, token) => LoadPrefabLeaseAsync(content, location, token),
                 // 转场策略**必须显式传**（《客户端总设计》§5.1 逻辑边界）：UIService 默认为零动效
                 // InstantTransition（通用层不认识 DOTween）；产品转场是**装配决策**，
@@ -64,6 +69,8 @@ namespace LiteGame
         {
             _redDotRegistry?.Clear();
             _redDotRegistry = null;
+            _confirmRouter?.Unbind();                         // 确认缝解除绑定（不留指向已拆服务的委托）
+            _confirmRouter = null;
             _themeLease?.Dispose();                           // 主题资产租约归还（引用计数递减）
             _themeLease = null;
             _themeAsset = null;
@@ -96,13 +103,6 @@ namespace LiteGame
                 return null;
             }
         }
-
-        /// <summary>页面确认缝（<c>self.ui:ShowConfirm</c> 的服务端）：懒解析 FeedbackService——本模块装配
-        /// 早于 Container 段（该服务在后段建），resolver 执行（首次开页）时已在容器；装配缺口在首次调用
-        /// 即显性失败。确认链＝FeedbackService.ConfirmAsync → DialogService（首个生产消费者）。</summary>
-        private static Func<string, string, string, string, UniTask<bool>> ConfirmOf(ModuleContext context)
-            => (title, message, okText, cancelText)
-                => context.Require<FeedbackService>().ConfirmAsync(title, message, okText, cancelText);
 
         /// <summary>语言服务工厂（懒建 + 单实例——SetLocale 订阅者要求实例稳定）：
         /// tbltext 行经 <see cref="LTextCatalog"/> 投射为目录；缺 key 开发期显 <c>[key]</c>（发布期回退占位，

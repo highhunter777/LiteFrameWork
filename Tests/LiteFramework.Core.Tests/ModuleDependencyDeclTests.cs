@@ -31,14 +31,11 @@ namespace LiteFramework.Core.Tests
             "ClientScope",
         };
 
-        /// <summary>已知欠账（"消费方 -> 产出方"）：每条对应一处 DependsOn 缺失，修复后必须删除本行。</summary>
-        private static readonly SortedSet<string> Baseline = new SortedSet<string>(StringComparer.Ordinal)
-        {
-            // UiServiceModule 在 ConfirmOf 闭包里懒取 ContainerModule 的 FeedbackService：
-            // 运行期反向依赖（第 ⑩ 模块读第 ⑬ 模块产物），DependsOn 未声明，启动期不报。
-            // 修法＝引入 IConfirmDialog 端口由 Container 段注册实现（见批次计划 B3）。
-            "UiService <- Container",
-        };
+        /// <summary>已知欠账（"消费方 -> 产出方"）：每条对应一处 DependsOn 缺失，修复后必须删除本行。
+        /// **当前为空集**——最后一笔（"UiService ← Container"）已随确认缝端口化解：
+        /// UI 段产出 <see cref="LiteFramework.UI.ConfirmDialogRouter"/>（可后绑定的 <c>IConfirmDialog</c>），
+        /// 装配根在后段把 <c>FeedbackService.ConfirmAsync</c> 绑上去；UI 段不再 Require&lt;FeedbackService&gt;。</summary>
+        private static readonly SortedSet<string> Baseline = new SortedSet<string>(StringComparer.Ordinal);
 
         [Fact]
         public void 模块DependsOn必须覆盖Require面()

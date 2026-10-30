@@ -85,7 +85,6 @@ namespace LiteGame
                 Input = context.Require<IInputService>(),
             });
             RegisterConfigAndLuaServices(context, config, lua, ui, uiRegistry, contentRegistry, strategyRegistry);
-
             // 会话工厂（DI-3）：Account 半边零引擎依赖（L1 源链接直测）；Match 半边 Unity 面（DI-4 验收）。
             // 传输裁决经委托留给产品装配根（ProcedureMatch.CreateTransport——工厂不认识测试开关语义）；
             // **每局规则播种是显式步骤**（MatchRulesSeeder.Seed），传输工厂只接收规则实例产传输。
@@ -137,6 +136,7 @@ namespace LiteGame
             _services.RegisterInstance(dialogs, ServiceOwnership.ContainerOwned);
             var feedback = new FeedbackService(ui, dialogs, nav);
             _services.RegisterInstance(feedback, ServiceOwnership.ContainerOwned);
+            BindConfirmDialog(context, feedback);
             _services.RegisterInstance(new ToastTicker(() => feedback.ToastHost));
 
             Bridge.Bind(() => config.Tables);
@@ -262,6 +262,12 @@ namespace LiteGame
             _services.RegisterInstance<ITimelineRunner>(context.Require<GameTimelineRunner>());
             _services.RegisterInstance<IVFXService>(context.Require<VfxService>());
         }
+
+        /// <summary>确认缝装订：UI 段产出可后绑定的路由器（<see cref="IConfirmDialog"/>），本段接真实现——
+        /// UI 段因此不 Require&lt;FeedbackService&gt;（模块依赖声明里没有 UiService → Container 的反向边）。</summary>
+        private static void BindConfirmDialog(ModuleContext context, FeedbackService feedback)
+            => context.Require<ConfirmDialogRouter>().Bind(
+                (title, message, okText, cancelText) => feedback.ConfirmAsync(title, message, okText, cancelText));
 
         /// <summary>视图组工厂装配（视图域依赖留在表现层；流程只认 <see cref="IBattleViewGroupFactory"/>）。</summary>
         private static BattleViewGroupFactory CreateBattleViews(ModuleContext context, IContentService content,

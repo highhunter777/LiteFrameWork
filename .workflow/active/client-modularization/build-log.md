@@ -26,6 +26,8 @@
 - 2026-10-30T23:23:23+08:00 · 完成任务 T4 · 证据: 批2 结构落地：Core/Battle 删除；View+Presentation 迁入 Modules/Battle 按职责子目录（Aim/Arena/Characters/Combat/Commands/Hud/Setup）+ Abstractions 六端口（IBattleViewGroupFactory 独立成…
 - 2026-10-30T23:52:22+08:00 · 开始任务 T5「批2 对局冒烟用例与命令接线」
 - 2026-10-30T23:52:30+08:00 · 完成任务 T5 · 证据: A12 落地：Assets/Tests/UI/PlayMode/BattleSmokePlayModeTests.cs（Boot.unity 起服→Main→RequestEnter→Battle→IsBuilt/Hud.Root/Crosshair→自瞄开火四路表现（ShotPulse/VoiceCount/Vfx…
+- 2026-10-31T00:02:42+08:00 · 开始任务 T6「批3 确认框端口与 Baseline 清空」
+- 2026-10-31T00:02:42+08:00 · 完成任务 T6 · 证据: A13：ModuleDependencyDeclTests.Baseline 清空（最后一笔 UiService <- Container 由确认缝端口化解）并通过；Ui 段不再 Require<FeedbackService>（App/UiServiceModule.cs 产 ConfirmDialogRouter…
 
 ## 关键决定
 
@@ -43,6 +45,7 @@
 - **A16 的 `ContainerModule.Assemble`（152 行）四方法拆分未在批 1 执行**（批 1 任务已收口，但该键仍在 `ArchitectureBudgetTests` 冻结表里）。本批未扩范围：仍按 plan 的"批 4 只搬方法"口径，在 T7 拆 `ContainerModule` 时同批拆方法并删 152 行键。
 - **批 2 冒烟（A12）暴露两处既有产品缺陷并同批修复**（见"问题与修复"）：① `VfxHandleTable.CollectExpired` 以 `Go != null` 为前提，挂点随视图根销毁后被误判为"加载在途"→ 特效表项永久挂账；② `AudioService._voices` 的"同源 voice 键"在代理解绑后不摘 → `VoiceCount` 离场恒为 1。A12 的"≤2s 归零"判据正是打在这两处上，不修则门禁恒红。
 - T1 过渡期把 Events 段命名为 `EventsModule.cs`（依赖守卫现按 `*Module.cs` 收集；批 1 迁移时统一改 `EventsComposition.cs` 并同步扫描面）。
+- **批 3：确认缝改"端口 + 后绑定"**：新增 `LiteFramework.UI.IConfirmDialog` + `ConfirmDialogRouter`（可后绑定的实现槽）；UI 段（`App/UiServiceModule.cs`）**产出**路由器并交给 `LuaBehaviourAdapter`（`self.ui:ShowConfirm` 的服务端），装配根（`ContainerModule`）在 `FeedbackService` 建好后 `Bind(feedback.ConfirmAsync)`；`ModuleDependencyDeclTests.Baseline` 清空。落点说明：plan 把契约写进 `App/Bootstrap/Contracts/**`，但批 1 已把 `App/Bootstrap` 收敛为只含 `Probes/Fallbacks`（A2），且契约要被 `LiteFramework` 的 `FeedbackService` 与产品 UI 段同时看见——故落 `LiteFramework/Runtime/Modules/UI/`（框架 UI 能力层）。未绑定语义：按取消返回 false、只记一条 Warning（`WarningCount` 诊断读口），不抛不悬挂。
 - **批 2：A7 的 `IBattleViewGroupFactory` 独立成文件**（原来与 `IBattleViewGroup` 同文件）：`DomainBoundaryTests` 按文件名判"六端口齐备"，同文件会让判据与实现形态耦合。
 - **批 2：A12 观测面补两个 internal 读口**——`BattleViewRig.Feedback`（→ `BattleFeedbackAssembler`）与其 `DamageNumbers`。A12 原文只列了 `IsBuilt`/`Hud`/`View` 三个 `BattleViewRig` 成员，但判据同时要求读 `BattleDamageNumberDriver.ActiveCount`——没有读取面这条断言无法落地（驱动实例由反馈装配件私有持有）。
 - **契约变更（用户裁决，方案 B）：`IClientModuleGraph.DependsOn` 由 `IReadOnlyList<Type>` 改为 `IReadOnlyList<string>`（按模块名寻址）**。原因：业务域各一程序集且段就地住域目录，`typeof(段类)` 必然把域程序集连成环（`Modules.Input → LiteGame.Modules → Modules.Input`，Config/Settings/Presentation 同理）。`ClientHost.ValidateModuleGraph` 改按名校验 + 按名 DFS 环检测；13 段 `DependsOn` 全改字符串；`ModuleDependencyDeclTests` 身份改取 `public string Name => "X"`（回退文件名去 `Module`/`Composition` 后缀）、依赖改解析字符串字面量、Baseline 键改 `UiService <- Container`；`ClientHostTests` 三个测试替身同步。验证：Unity 0 error；L1 793/798（5 红＝迁移守卫预期）。
