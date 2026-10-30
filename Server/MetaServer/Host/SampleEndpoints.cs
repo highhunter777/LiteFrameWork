@@ -55,12 +55,12 @@ namespace MetaServer
                 SampleCommandResult result = await useCase.ExecuteAsync(command, context.RequestAborted);
                 return result switch
                 {
-                    SampleCommandResult.Accepted accepted => Results.Json(
+                    SampleCommandResult.Accepted accepted => MetaResults.Ok(
                         new SampleAccepted { Status = "accepted", Record = accepted.Record }),
-                    SampleCommandResult.DuplicateHit duplicate => Results.Json(
+                    SampleCommandResult.DuplicateHit duplicate => MetaResults.Ok(
                         new SampleAccepted { Status = "duplicate", Record = duplicate.Record }),
                     // 领域体（见类注释的判据）：冲突必须带 expected/actual 数字
-                    SampleCommandResult.Conflict conflict => Results.Json(
+                    SampleCommandResult.Conflict conflict => MetaResults.Ok(
                         new SampleConflict
                         {
                             Code = "revision-conflict",

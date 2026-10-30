@@ -33,6 +33,10 @@ PUBLISH_TARGETS = [
     ('lua-keys',  os.path.join('Assets', 'LiteGame', 'LuaBridge', 'Generated'), '.cs'),
 ]
 
+# TableLayout 是表清单/域归属的单源；生成器只读它，不维护第二份清单。
+TABLE_LAYOUT_REL = os.path.join(
+    'Assets', 'LiteFramework', 'Runtime', 'Adapters', 'Luban', 'TableLayout.cs')
+
 
 def sha256_b64(path):
     with open(path, 'rb') as f:
@@ -153,8 +157,7 @@ def main():
     run_checked([args.python, os.path.join(luban_root, 'gen_lua_keys.py'),
                  '--output', os.path.join(stage_root, 'lua-keys', 'LuaKeys.g.cs')])
 
-    domain_by_table = parse_table_layout(os.path.join(
-        root, 'Assets', 'LiteClient', 'Adapters', 'Serialization.Luban', 'TableLayout.cs'))
+    domain_by_table = parse_table_layout(os.path.join(root, TABLE_LAYOUT_REL))
     reorganize_bin_stage(os.path.join(stage_root, 'bin'), domain_by_table)
 
     for stage, target_rel, extension in PUBLISH_TARGETS:

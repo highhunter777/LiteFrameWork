@@ -40,6 +40,9 @@ namespace LiteGame
                 case "setDropdown": _index.SetDropdownValue(Text(payload, "name"), payload.Get<string, int>("index")); return true;
                 case "getDropdown": result = _index.GetDropdownValue(Text(payload, "name")); return true;
                 case "onDropdownChanged": _index.OnDropdownChanged(Text(payload, "name"), Arg1<int>(payload, (fn, v) => fn.Call(v))); return true;
+                case "setTab": _index.SetTab(Text(payload, "name"), payload.Get<string, int>("index")); return true;
+                case "getTab": result = _index.GetTab(Text(payload, "name")); return true;
+                case "onTabChanged": _index.OnTabChanged(Text(payload, "name"), Arg1<int>(payload, (fn, v) => fn.Call(v))); return true;
                 case "pulse": result = _index.Pulse(payload.Get<string, string>("name"), payload.Get<string, float>("strength"), payload.Get<string, float>("duration")); return true;
                 case "flash": result = _index.Flash(payload.Get<string, string>("name"), payload.Get<string, float>("duration")); return true;
                 case "slide": result = _index.Slide(payload.Get<string, string>("name"), new Vector2(payload.Get<string, float>("ox"), payload.Get<string, float>("oy")), payload.Get<string, float>("duration")); return true;

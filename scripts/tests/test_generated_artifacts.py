@@ -29,9 +29,9 @@ gen_candidate = _load("gen_candidate", "scripts/content/gen-candidate.py")
 gen_luban = _load("gen_luban", "scripts/codegen/gen_luban.py")
 gen_sync_code = _load("gen_sync_code", "scripts/codegen/gen_sync_code.py")
 
-SYNC_OUTPUT = ROOT / "Assets" / "LiteSim" / "Core" / "Diagnostics" / "Generated" / "EntitySlot.Sync.g.cs"
+SYNC_OUTPUT = ROOT / "Assets" / "LiteSim" / "Diagnostics" / "Generated" / "EntitySlot.Sync.g.cs"
 GENERATED = {
-    "Assets/LiteNet/Protocol/BuildHash.g.cs": "scripts/codegen/gen-build-hash.py",
+    "Assets/LiteNet/Core/Protocol/BuildHash.g.cs": "scripts/codegen/gen-build-hash.py",
     "Server/MetaServer/Host/BuildHash.g.cs": "scripts/codegen/gen-build-hash.py",
     "Assets/LiteSim/Diagnostics/Generated/EntitySlot.Sync.g.cs": "scripts/codegen/gen_sync_code.py",
     "Assets/LiteGame/LuaBridge/Generated/LuaKeys.g.cs": "Luban/gen_lua_keys.py",
@@ -77,6 +77,13 @@ class IdempotenceTests(unittest.TestCase):
         )
         self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
         self.assertIn("CHECK OK", result.stdout)
+
+    def test_luban_reads_the_live_table_layout(self):
+        path = ROOT / gen_luban.TABLE_LAYOUT_REL
+        self.assertTrue(path.is_file(), f"TableLayout 清单不存在: {path}")
+        mapping = gen_luban.parse_table_layout(str(path))
+        self.assertEqual("Combat", mapping.get("tbcombatnum"))
+        self.assertGreaterEqual(len(mapping), 1)
 
     def test_luban_publish_copies_only_changed_files(self):
         with tempfile.TemporaryDirectory() as temp:

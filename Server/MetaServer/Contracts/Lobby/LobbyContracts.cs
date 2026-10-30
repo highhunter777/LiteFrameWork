@@ -109,12 +109,6 @@ namespace MetaServer.Contracts.Lobby
         public int MapId { get; set; }
     }
 
-    /// <summary>实例注册响应：心跳存活时限（Meta 判定"可分配"的时效——客户端心跳间隔应显著小于它）。</summary>
-    public sealed class InstanceRegisterResponse
-    {
-        /// <summary>心跳存活时限（毫秒）：超过此时限未收到心跳即从可分配集合移除。</summary>
-        public long HeartbeatTtlMs { get; set; }
-    }
 
     /// <summary>
     /// Join Ticket 签发命令（客户端 → Lobby，C→S "Command" 语义）。
@@ -184,63 +178,7 @@ namespace MetaServer.Contracts.Lobby
         public string GmKey { get; set; }
     }
 
-    /// <summary>
-    /// Join Ticket 签发响应（S→C 载荷）。票据本身对客户端**不透明**（只透传给房间端 Join）。
-    /// JSON 形状（camelCase）：
-    /// <c>{"instanceId":"...","address":"host:port","roomId":"...","ticket":"...","expiresAtMs":123}</c>。
-    /// </summary>
-    public sealed class JoinTicketResponse
-    {
-        /// <summary>被分配实例的标识（诊断/对数用）。</summary>
-        public string InstanceId { get; set; }
 
-        /// <summary>被分配实例的客户端可达地址（KCP UDP；客户端据此建连）。</summary>
-        public string Address { get; set; }
 
-        /// <summary>票据绑定的房间号（客户端 Join 时同值透传）。</summary>
-        public string RoomId { get; set; }
 
-        /// <summary>签名票据（v1 线格式；客户端不可解析不可验证——只透传）。</summary>
-        public string Ticket { get; set; }
-
-        /// <summary>过期时刻（epoch 毫秒，UTC——客户端只用于提前重取，不作判据）。</summary>
-        public long ExpiresAtMs { get; set; }
-    }
-
-    /// <summary>
-    /// 房间状态投影（S→C 查询载荷；§7"Match 状态投影…是上报事实的投影，不是权威"）。
-    /// </summary>
-    public sealed class LobbyRoomsResponse
-    {
-        public IReadOnlyList<LobbyRoomView> Rooms { get; set; }
-    }
-
-    /// <summary>单个实例的投影视图（字段 = 最近一次心跳上报事实 + 距上次心跳的时长）。</summary>
-    public sealed class LobbyRoomView
-    {
-        public string InstanceId { get; set; }
-        public string BuildHash { get; set; }
-        public string Address { get; set; }
-        public int MaxRooms { get; set; }
-        public int RoomCount { get; set; }
-        public int MaxPlayers { get; set; }
-        public int PlayerCount { get; set; }
-        public bool Draining { get; set; }
-
-        /// <summary>距最近一次心跳的毫秒数（投影新鲜度——过期即从投影消失，不猜状态）。</summary>
-        public long LastSeenAgeMs { get; set; }
-
-        /// <summary>房间明细投影（房间列表批；空 = 实例未上报明细）。</summary>
-        public IReadOnlyList<RoomView> Rooms { get; set; }
-    }
-
-    /// <summary>房间明细投影视图（字段同 <see cref="RoomReport"/>——上报事实直映）。</summary>
-    public sealed class RoomView
-    {
-        public string RoomId { get; set; }
-        public int Phase { get; set; }
-        public int Players { get; set; }
-        public int ExpectedPlayers { get; set; }
-        public int MapId { get; set; }
-    }
 }

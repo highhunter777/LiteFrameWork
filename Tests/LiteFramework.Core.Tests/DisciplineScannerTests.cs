@@ -535,6 +535,9 @@ namespace LiteFramework.Tests
                 "using XLua;", LintRule.R12AdapterBoundary));
             Assert.Equal(0, CountAt("Assets/LiteFramework/Runtime/Modules/UI/Anim/C.cs",
                 "using DG.Tweening;", LintRule.R12AdapterBoundary));
+            // JSON 序列化器：只有适配层可引（消费方走 IJsonSerializer / IJsonCodec 端口）
+            Assert.Equal(0, CountAt("Assets/LiteFramework/Runtime/Adapters/Newtonsoft/NewtonsoftJsonCodec.cs",
+                "using Newtonsoft.Json;", LintRule.R12AdapterBoundary));
 
             // 反向：边界目录**不**放行别人的适配器
             Assert.Equal(1, CountAt("Assets/LiteFramework/Runtime/Adapters/YooAsset/C.cs",
@@ -556,6 +559,11 @@ namespace LiteFramework.Tests
                 "using DG.Tweening;", LintRule.R12AdapterBoundary));
             Assert.Equal(1, CountAt("Assets/LiteFramework/Runtime/Modules/UI/Adapter.cs",
                 "using XLua;", LintRule.R12AdapterBoundary));
+            // JSON 序列化器同守：业务/框架代码只认 IJsonSerializer / IJsonCodec 端口
+            Assert.Equal(1, CountAt("Assets/LiteGame/App/Meta/MetaJson.cs",
+                "using Newtonsoft.Json.Linq;", LintRule.R12AdapterBoundary));
+            Assert.Equal(1, CountAt("Assets/LiteFramework/Runtime/Modules/C.cs",
+                "using Newtonsoft.Json;", LintRule.R12AdapterBoundary));
         }
 
         [Fact]
@@ -574,7 +582,7 @@ namespace LiteFramework.Tests
             Assert.Equal(0, CountAt("Assets/LiteFramework/Runtime/Modules/C.cs",
                 "using System.Collections;", LintRule.R12AdapterBoundary));
 
-            // 边界表只列 YooAsset/XLua/DG.Tweening——其它第三方不受 R12 管
+            // 边界表只列已登记的适配器（见 DisciplineScanner.R12Boundaries）——其它第三方不受 R12 管
             Assert.Equal(0, CountAt("Assets/LiteGame/App/C.cs",
                 "using UniTask;", LintRule.R12AdapterBoundary));
         }
@@ -659,6 +667,63 @@ namespace LiteFramework.Tests
             }
             Assert.True(devTool, "R14 缺 Assets/LiteGame/Dev/Projection 受守根——运行期投影将不受把守");
             Assert.True(editorGm, "R14 缺 Assets/LiteGame/Editor/Gm 受守根——编辑器 GM 页将不受把守");
+        }
+
+        // ---- R15 平台特判收敛（平台差异只走 profile 与收敛点，不堆 #if）----
+
+        [Fact]
+        public void 纪律_R15_平台特判被命中()
+        {
+            Assert.Equal(1, Count("#if UNITY_ANDROID\n", LintRule.R15PlatformFork));
+            Assert.Equal(1, Count("#if UNITY_ANDROID && !UNITY_EDITOR\n", LintRule.R15PlatformFork));
+            Assert.Equal(1, Count("#elif UNITY_ANDROID\n", LintRule.R15PlatformFork));
+            Assert.Equal(1, Count("#ifdef UNITY_ANDROID\n", LintRule.R15PlatformFork));
+            // 其它平台符号不归本规则管（iOS/主机另批裁决，避免守卫比裁决更宽）
+            Assert.Equal(0, Count("#if UNITY_EDITOR\n", LintRule.R15PlatformFork));
+            Assert.Equal(0, Count("#if UNITY_IOS\n", LintRule.R15PlatformFork));
+        }
+
+        [Fact]
+        public void 纪律_R15_收敛点放行_同名目录不放行()
+        {
+            foreach (string allowed in DisciplineScanner.PlatformForkAllowedFiles)
+            {
+                Assert.Equal(0, CountAt(allowed, "#if UNITY_ANDROID\n", LintRule.R15PlatformFork));
+            }
+
+            // 允许面是精确文件匹配（不是目录前缀）——名字相近的邻文件照样报红
+            Assert.Equal(1, CountAt("Assets/LiteGame/App/Meta/DeployBakeExtra.cs",
+                "#if UNITY_ANDROID\n", LintRule.R15PlatformFork));
+        }
+
+        [Fact]
+        public void 纪律_R15_注释与字符串不误报()
+        {
+            Assert.Equal(0, Count("// #if UNITY_ANDROID（示例）\n", LintRule.R15PlatformFork));
+            Assert.Equal(0, Count("Append(\"#if UNITY_ANDROID\");", LintRule.R15PlatformFork));
+        }
+
+        [Fact]
+        public void 纪律_R15_受守根与允许面已登记()
+        {
+            bool game = false, unity = false;
+            for (int i = 0; i < ScanTargets.Default.Length; i++)
+            {
+                ScanTarget t = ScanTargets.Default[i];
+                if (Array.IndexOf(t.Rules, LintRule.R15PlatformFork) < 0) continue;
+                if (t.Root == "Assets/LiteGame") game = true;
+                if (t.Root == "Assets/LiteFramework/Runtime/Adapters/Unity") unity = true;
+            }
+            Assert.True(game, "R15 缺 Assets/LiteGame 受守根——产品侧平台分叉将不受把守");
+            Assert.True(unity, "R15 缺 Assets/LiteFramework/Runtime/Adapters/Unity 受守根——设备适配层将不受把守");
+
+            // 允许面陈旧 = 静默失效（登记的收敛点搬迁后，规则会放行一条不存在的路径）
+            string repoRoot = RepoRoot();
+            foreach (string rel in DisciplineScanner.PlatformForkAllowedFiles)
+            {
+                string full = System.IO.Path.Combine(repoRoot, rel.Replace('/', System.IO.Path.DirectorySeparatorChar));
+                Assert.True(System.IO.File.Exists(full), "R15 允许面登记的收敛点不存在：" + rel);
+            }
         }
 
         [Fact]

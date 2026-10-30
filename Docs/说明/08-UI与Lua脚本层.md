@@ -69,7 +69,7 @@ Loading → Active ⇄ Covered / Paused → Closing → Recycled → Disposed
 
 ### 6.2 预载五步序
 
-`ProcedurePreload`（`Assets/LiteGame/App/Procedure/ProcedurePreload.cs`）在配置装载后执行五步，任一失败即阻断进 Main：① Lua 全量预载（字节经 `IContentService` 租约，清单由装配点注入）→ ② `_lua.Init(...)`（env + 事件桥）+`DoMain()` 执行 `main.lua` → ③ `RegistryFiller.FillAll()` 逐行 require/校验/填充并出报告 → ④ 报告整批判定（有失败→记 Error、进 Error 流程）→ ⑤ 放行：登记设置页为模态（表驱动反查 `formId`）后 `Request(Main)`。失败/取消都先 `LaunchLoading.End()`；`LuaPreloader` 缓存键用斜杠、模块名用点分（与 `ReleaseLayout` 同口径）。
+`ProcedurePreload`（`Assets/LiteGame/App/Procedure/Stages/ProcedurePreload.cs`）在配置装载后执行五步，任一失败即阻断进 Main：① Lua 全量预载（字节经 `IContentService` 租约，清单由装配点注入）→ ② `_lua.Init(...)`（env + 事件桥）+`DoMain()` 执行 `main.lua` → ③ `RegistryFiller.FillAll()` 逐行 require/校验/填充并出报告 → ④ 报告整批判定（有失败→记 Error、进 Error 流程）→ ⑤ 放行：登记设置页为模态（表驱动反查 `formId`）后 `Request(Main)`。失败/取消都先 `LaunchLoading.End()`；`LuaPreloader` 缓存键用斜杠、模块名用点分（与 `ReleaseLayout` 同口径）。
 
 ### 6.3 填充与失败分类
 

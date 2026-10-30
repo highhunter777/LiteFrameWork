@@ -8,6 +8,11 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
 
+using InstanceRegisterResponse = MetaWire.InstanceRegisterResponse;
+using JoinTicketResponse = MetaWire.JoinTicketInfo;
+using LobbyRoomsResponse = MetaWire.RoomsResponse;
+
+using MetaWire;
 namespace MetaServer
 {
     /// <summary>
@@ -27,7 +32,7 @@ namespace MetaServer
     {
         public static void Map(WebApplication app)
         {
-            app.MapPost("/lobby/instances/register", async (HttpContext context) =>
+            app.MapPost(MetaWireEndpoints.InstanceRegister, async (HttpContext context) =>
             {
                 InstanceRegistry registry = context.RequestServices.GetService<InstanceRegistry>();
                 if (registry == null) return Disabled();
@@ -41,7 +46,7 @@ namespace MetaServer
                 {
                     case InstanceRegistry.RegisterResult.Accepted:
                         context.RequestServices.GetRequiredService<Ops>().CountInstanceRegister();
-                        return Results.Json(new InstanceRegisterResponse
+                        return MetaResults.Ok(new InstanceRegisterResponse
                         {
                             HeartbeatTtlMs = registry.HeartbeatTtlMs,
                         });
@@ -56,7 +61,7 @@ namespace MetaServer
                 }
             });
 
-            app.MapPost("/lobby/join-ticket", async (HttpContext context) =>
+            app.MapPost(MetaWireEndpoints.JoinTicket, async (HttpContext context) =>
             {
                 JoinTicketIssueUseCase useCase = context.RequestServices.GetService<JoinTicketIssueUseCase>();
                 AccessTokenService tokens = context.RequestServices.GetService<AccessTokenService>();
@@ -85,7 +90,7 @@ namespace MetaServer
 
             // 创建房间（房主开局批）：服务端出唯一新号并按它签发进房票据——客户端不发明房号
             // （响应形状 = join-ticket 同款；房间实体随首入座者物化，开房者=房主）。
-            app.MapPost("/lobby/create-room", async (HttpContext context) =>
+            app.MapPost(MetaWireEndpoints.CreateRoom, async (HttpContext context) =>
             {
                 CreateRoomUseCase useCase = context.RequestServices.GetService<CreateRoomUseCase>();
                 AccessTokenService tokens = context.RequestServices.GetService<AccessTokenService>();
@@ -111,7 +116,7 @@ namespace MetaServer
                     context.RequestServices.GetRequiredService<Ops>().CountRoomCreated());
             });
 
-            app.MapGet("/lobby/rooms", (HttpContext context) =>
+            app.MapGet(MetaWireEndpoints.RoomsAll, (HttpContext context) =>
             {
                 InstanceRegistry registry = context.RequestServices.GetService<InstanceRegistry>();
                 if (registry == null) return Disabled();
@@ -119,13 +124,13 @@ namespace MetaServer
                 MetaConfig meta = context.RequestServices.GetRequiredService<IOptions<MetaConfig>>().Value;
                 if (!InstanceKeyAuth.Matches(context, meta.LobbyInstanceKeyBase64)) return InstanceUnauthorized();
 
-                return Results.Json(new LobbyRoomsResponse { Rooms = registry.ProjectRooms() });
+                return MetaResults.Ok(new LobbyRoomsResponse { Rooms = registry.ProjectRooms() });
             });
 
             // 房间列表批：**玩家可见**的实例+房间明细投影（Bearer = 玩家访问令牌——与票据签发同凭据类别；
             // 客户端据此发现"哪台服务器有哪些房间在等待"，挑 roomId → 换票 → 进房）。
             // 字段与实例面端点同源（ProjectRooms 单次投影，含 address/buildHash——玩家进房要用）。
-            app.MapGet("/lobby/rooms/public", (HttpContext context) =>
+            app.MapGet(MetaWireEndpoints.RoomsPublic, (HttpContext context) =>
             {
                 InstanceRegistry registry = context.RequestServices.GetService<InstanceRegistry>();
                 AccessTokenService tokens = context.RequestServices.GetService<AccessTokenService>();
@@ -140,7 +145,7 @@ namespace MetaServer
                 }
                 _ = claims;                                  // 鉴权即用（不按账号维度过滤——实例/房间不含个人数据）
 
-                return Results.Json(new LobbyRoomsResponse { Rooms = registry.ProjectRooms() });
+                return MetaResults.Ok(new LobbyRoomsResponse { Rooms = registry.ProjectRooms() });
             });
         }
 
@@ -155,7 +160,7 @@ namespace MetaServer
             {
                 case JoinTicketIssueUseCase.Result.Accepted accepted:
                     onAccepted();
-                    return Results.Json(new JoinTicketResponse
+                    return MetaResults.Ok(new JoinTicketResponse
                     {
                         InstanceId = accepted.InstanceId,
                         Address = accepted.Address,

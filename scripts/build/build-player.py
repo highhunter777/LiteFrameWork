@@ -19,6 +19,166 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from _common import EXIT_FAIL, EXIT_OK, configure_stdio, fail, info, repo_root  # noqa: E402
 
 
+# ---- 平台映射（profile → Unity 构建参数；纯函数，供 scripts/tests 契约测试） ----
+
+# profile.platform → 默认 buildTargetGroup（profile 显式 buildTargetGroup 优先）。
+PLATFORM_TARGET_GROUPS = {
+    "StandaloneWindows64": "Standalone",
+    "Android": "Android",
+}
+
+# profile.platform → Player 产物扩展名。
+PLATFORM_PLAYER_EXTENSIONS = {
+    "StandaloneWindows64": ".exe",
+    "Android": ".apk",
+}
+
+# 内置内容包（YooAsset Offline）已接线的平台；新平台先接线 BuiltinBundleBuildInvoker 再登记。
+BUNDLE_PLATFORMS = ("StandaloneWindows64", "Android")
+
+
+def named_build_target(profile):
+    group = profile.get("buildTargetGroup") or PLATFORM_TARGET_GROUPS.get(profile.get("platform") or "")
+    if group not in ("Standalone", "Android"):
+        raise RuntimeError(f"profile buildTargetGroup unsupported: {profile.get('buildTargetGroup')!r}")
+    return group
+
+
+def player_extension(profile):
+    platform = profile.get("platform") or ""
+    if platform not in PLATFORM_PLAYER_EXTENSIONS:
+        raise RuntimeError(f"player extension unknown for platform: {platform!r}")
+    return PLATFORM_PLAYER_EXTENSIONS[platform]
+
+
+def artifact_glob(profile):
+    return profile.get("artifactGlob") or "*" + player_extension(profile)
+
+
+def bundles_supported(profile):
+    return (profile.get("platform") or "") in BUNDLE_PLATFORMS
+
+
+def backend_switch_cs(profile):
+    target = named_build_target(profile)
+    implementation = "Mono" if str(profile.get("backend") or "").lower() == "mono" else "IL2CPP"
+    return (
+        f"UnityEditor.Build.NamedBuildTarget t = UnityEditor.Build.NamedBuildTarget.{target};\n"
+        f"UnityEditor.PlayerSettings.SetScriptingBackend(t, UnityEditor.ScriptingImplementation.{implementation});\n"
+        "return UnityEditor.PlayerSettings.GetScriptingBackend(t).ToString();\n"
+    )
+
+
+def build_output_expr(profile):
+    extension = player_extension(profile)
+    return (
+        'System.IO.Path.Combine("' + str(profile.get("output")) + '", '
+        "UnityEditor.PlayerSettings.productName + \"" + extension + "\")"
+    )
+
+
+def bundles_cs(profile):
+    platform = profile.get("platform") or ""
+    return (
+        "public static class BuildBundles\n"
+        "{\n"
+        "    public static string Start()\n"
+        "    {\n"
+        f"        LiteGame.EditorTools.BuiltinBundleBuildInvoker.RunAsync(UnityEditor.BuildTarget.{platform});\n"
+        "        return LiteGame.EditorTools.BuiltinBundleBuildInvoker.Status;\n"
+        "    }\n"
+        "\n"
+        "    public static string Status()\n"
+        "    {\n"
+        "        return LiteGame.EditorTools.BuiltinBundleBuildInvoker.Status\n"
+        "             + \" | out=\" + LiteGame.EditorTools.BuiltinBundleBuildInvoker.LastOutputDirectory;\n"
+        "    }\n"
+        "}\n"
+    )
+
+
+# ---- Android 明文（cleartext）通道策略（纯函数，供 L1 单测） ----
+
+# 自定义主清单（useCustomMainManifest=1 时打包消费的文件）。
+ANDROID_MANIFEST = Path("Assets/Plugins/Android/AndroidManifest.xml")
+
+# 明文放行属性：只有 development 通道（开发/封闭测试）才注入。
+CLEARTEXT_ATTRIBUTE = 'android:usesCleartextTraffic="true"'
+
+# 允许明文放行的通道；其余通道一律要求清单干净——明文泄漏必须让出包当场失败。
+CLEARTEXT_CHANNELS = ("development",)
+
+
+def channel_allows_cleartext(profile):
+    return (profile.get("channel") or "") in CLEARTEXT_CHANNELS
+
+
+def _strip_xml_comments(text):
+    """去掉 XML 注释再判属性（注释里提到属性名不等于清单真放开了明文）。"""
+    out = []
+    index = 0
+    while True:
+        start = text.find("<!--", index)
+        if start < 0:
+            out.append(text[index:])
+            break
+        out.append(text[index:start])
+        end = text.find("-->", start + 4)
+        if end < 0:
+            break
+        index = end + 3
+    return "".join(out)
+
+
+def manifest_allows_cleartext(text):
+    return CLEARTEXT_ATTRIBUTE in _strip_xml_comments(text or "")
+
+
+def apply_cleartext(text, allow):
+    """按通道改写主清单的 <application> 起始标签（幂等；缺该标签即抛）。"""
+    if manifest_allows_cleartext(text) == bool(allow):
+        return text
+    if allow:
+        index = text.find("<application")
+        if index < 0:
+            raise RuntimeError("android manifest has no <application> tag - cannot apply cleartext")
+        end = index + len("<application")
+        return text[:end] + " " + CLEARTEXT_ATTRIBUTE + text[end:]
+    return text.replace(" " + CLEARTEXT_ATTRIBUTE, "")
+
+
+def assert_cleartext_absent(text):
+    if manifest_allows_cleartext(text):
+        raise RuntimeError(
+            "release channel forbids cleartext in the Android manifest - "
+            "a previous development build left " + CLEARTEXT_ATTRIBUTE + " behind"
+        )
+
+
+def sync_android_cleartext(project, profile):
+    """按通道同步主清单；返回被改动文件的原始全文（未改动＝None，供 finally 还原）。"""
+    path = project / ANDROID_MANIFEST
+    if not path.is_file():
+        raise RuntimeError(f"android manifest missing: {ANDROID_MANIFEST}")
+    original = path.read_text(encoding="utf-8")
+    if not channel_allows_cleartext(profile):
+        assert_cleartext_absent(original)
+        return None
+    patched = apply_cleartext(original, True)
+    if patched == original:
+        return None
+    path.write_text(patched, encoding="utf-8", newline="\n")
+    info("build/player", f"android manifest: cleartext ON (channel={profile.get('channel')})")
+    return original
+
+
+def restore_android_cleartext(project, original):
+    if original is None:
+        return
+    (project / ANDROID_MANIFEST).write_text(original, encoding="utf-8", newline="\n")
+    info("build/player", "android manifest: cleartext attribute restored (source stays release-safe)")
+
+
 def parse_args(argv=None):
     parser = argparse.ArgumentParser(description="Build a Player through Unity Pipeline")
     parser.add_argument("--project-path", default=None)
@@ -83,6 +243,7 @@ def main(argv=None):
         return fail("build/player", f"profile parse failed: {exc}")
 
     builder = Builder(project)
+    manifest_original = None
     try:
         if not args.skip_restore_check:
             info("build/player", "== restore-check ==")
@@ -108,12 +269,7 @@ def main(argv=None):
         player_settings = load_json(builder.pipeline("get_player_settings"))
         if ((player_settings.get("values") or {}).get("scriptingBackend")) != profile.get("backend"):
             info("build/player", f"switching scripting backend -> {profile.get('backend')}")
-            builder.eval_file(
-                "build-backend-switch.cs",
-                "UnityEditor.Build.NamedBuildTarget t = UnityEditor.Build.NamedBuildTarget.Standalone;\n"
-                "UnityEditor.PlayerSettings.SetScriptingBackend(t, UnityEditor.ScriptingImplementation.IL2CPP);\n"
-                "return UnityEditor.PlayerSettings.GetScriptingBackend(t).ToString();\n",
-            )
+            builder.eval_file("build-backend-switch.cs", backend_switch_cs(profile))
             time.sleep(25)
             player_settings = load_json(builder.pipeline("get_player_settings"))
             if ((player_settings.get("values") or {}).get("scriptingBackend")) != profile.get("backend"):
@@ -167,29 +323,14 @@ def main(argv=None):
 
         if args.skip_bundles:
             info("build/player", "== bundles: SKIPPED (--skip-bundles; packaged content may be stale) ==")
-        elif profile.get("platform") != "StandaloneWindows64":
+        elif not bundles_supported(profile):
             raise RuntimeError(
-                f"profile platform is {profile.get('platform')} - only StandaloneWindows64 content is wired; "
+                f"profile platform is {profile.get('platform')} - builtin bundles not wired for it; "
                 "use --skip-bundles to acknowledge"
             )
         else:
             info("build/player", "== bundles: build builtin content bundles (Offline) ==")
-            bundle_cs = """public static class BuildBundles
-{
-    public static string Start()
-    {
-        LiteGame.EditorTools.BuiltinBundleBuildInvoker.RunAsync();
-        return LiteGame.EditorTools.BuiltinBundleBuildInvoker.Status;
-    }
-
-    public static string Status()
-    {
-        return LiteGame.EditorTools.BuiltinBundleBuildInvoker.Status
-             + " | out=" + LiteGame.EditorTools.BuiltinBundleBuildInvoker.LastOutputDirectory;
-    }
-}
-"""
-            builder.eval_file("build-bundles.cs", bundle_cs)
+            builder.eval_file("build-bundles.cs", bundles_cs(profile))
             builder.pipeline("run_script", ["--file", "Temp/build-bundles.cs", "--entry", "BuildBundles.Start"])
             bundle_state = ""
             polls = 0
@@ -210,14 +351,14 @@ def main(argv=None):
                 )
             info("build/player", "bundles OK")
 
+        if (profile.get("platform") or "") == "Android":
+            manifest_original = sync_android_cleartext(project, profile)
+
         info("build/player", "== build dry_run ==")
         build_options = "null"
         if profile.get("channel") == "development":
             build_options = 'new string[]{ "Development", "DetailedBuildReport" }'
-        output_expr = (
-            'System.IO.Path.Combine("' + str(profile.get("output")) + '", '
-            "UnityEditor.PlayerSettings.productName + \".exe\")"
-        )
+        output_expr = build_output_expr(profile)
         dry_json = builder.eval_file(
             "build-step.cs",
             f"return Unity.Pipeline.Editor.Commands.Build.BuildCommand.Build(options: {build_options}, "
@@ -265,10 +406,10 @@ def main(argv=None):
             raise RuntimeError(f"build FAILED: {final_json}")
 
         out_dir = project / str(profile.get("output"))
-        artifact_glob = profile.get("artifactGlob") or "*.exe"
-        artifacts = sorted(path for path in out_dir.glob(artifact_glob) if path.is_file()) if out_dir.is_dir() else []
+        glob_pattern = artifact_glob(profile)
+        artifacts = sorted(path for path in out_dir.glob(glob_pattern) if path.is_file()) if out_dir.is_dir() else []
         if not artifacts:
-            raise RuntimeError(f"no artifact ({artifact_glob}) under {out_dir} - artifact verification failed")
+            raise RuntimeError(f"no artifact ({glob_pattern}) under {out_dir} - artifact verification failed")
         artifact = artifacts[0]
         info("build/player", f"artifact: {artifact} ({artifact.stat().st_size / 1_048_576:.1f} MB)")
         cutoff = build_start.timestamp() - 60
@@ -283,6 +424,8 @@ def main(argv=None):
         return EXIT_OK
     except RuntimeError as exc:
         return fail("build/player", str(exc))
+    finally:
+        restore_android_cleartext(project, manifest_original)
 
 
 if __name__ == "__main__":

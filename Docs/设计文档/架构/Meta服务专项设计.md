@@ -24,7 +24,7 @@ Meta 是战斗服之外的**局外权威**：账号、身份、大厅、进度�
 
 | 选型项 | 设计选择 |
 | --- | --- |
-| 宿主框架 | **ASP.NET Core Minimal API + Kestrel**，以 `<FrameworkReference Include="Microsoft.AspNetCore.App" />` 引用共享框架，不引入任何 NuGet Web 包（见 §4.1） |
+| 宿主框架 | **ASP.NET Core Minimal API + Kestrel**，以 `<FrameworkReference Include="Microsoft.AspNetCore.App" />` 引用共享框架；HTTP 契约序列化用 Newtonsoft.Json（见 §4.1） |
 | 是否一开始拆微服务 | 不拆。第一版为**模块化单体**，Auth/Lobby/Profile 是同进程内的独立模块与数据所有权（服务端总设计 §11.1） |
 | 是否自研 HTTP 栈 | 否。禁止用 `HttpListener`、裸 `Socket` 或第三方自研框架重写路由、TLS、HTTP/2、健康检查与优雅关闭 |
 | Chat/Guild 是否同期 | 否。战斗服稳定后加入，可同进程但保持独立模块与数据所有权（§11.1 末段） |
@@ -63,15 +63,15 @@ Meta 当前处于**骨架＋持久化接缝＋R3 Auth 首批＋R3-Lobby＋R3-Pro
 
 ### 4.1 宿主选型：ASP.NET Core Minimal API + Kestrel
 
-**裁决：采用 ASP.NET Core Minimal API，以共享框架引用接入，不引入 NuGet Web 依赖。**
+**裁决：采用 ASP.NET Core Minimal API + Kestrel，以共享框架引用接入（Web 框架本身不用 NuGet Web 包）；HTTP 契约的序列化改用 Newtonsoft.Json，与客户端同一库、同一份 `WireJsonSettings`。**
 
 依据：
 
-1. **零新增依赖**。`net8.0` 上 `<FrameworkReference Include="Microsoft.AspNetCore.App" />` 引用的是随 SDK 安装的共享框架，**不产生 `PackageReference`**，不进入 NuGet 还原图。符合 C0-① 的依赖治理与 `scripts/gate/l0-dep-scan.py` 的依赖/许可扫描口径。WebSocket 同属该共享框架，不需要额外包。
+1. **宿主零新增 Web 依赖**。`net8.0` 上 `<FrameworkReference Include="Microsoft.AspNetCore.App" />` 引用的是随 SDK 安装的共享框架，**不产生 `PackageReference`**，不进入 NuGet 还原图。符合 C0-① 的依赖治理与 `scripts/gate/l0-dep-scan.py` 的依赖/许可扫描口径。WebSocket 同属该共享框架，不需要额外包。
 2. **与 RoomServer 的宿主规划收敛**。服务端总设计 §12 已裁定 `RoomServer.Host` 走 .NET Generic Host、Options `ValidateOnStart`、启动失败返回非零退出码。两条线共用同一套 Host/Options/`IHostedService`/Cancellation/优雅关闭纪律，不产生第二套启动范式。
 3. **§13.3 与 §14 的要求是现成路径**。`/live`、`/ready`、`/metrics`、readiness gate、多阶段 Dockerfile、非 root、只读根文件系统、显式端口、优雅终止时限，在 ASP.NET Core 上都有受支持的标准做法；用 `HttpListener` 或自研栈重写这些是纯负债，且会引入自研 TLS/HTTP 的合规风险。
 4. **契约与诊断同源**。结构化日志、`Activity`/`Trace`、限流中间件与 OpenTelemetry 接入点在 R4 的 §13 目标里有直接对应物。
-5. **零依赖的 HTTP 集成测试可行**。`WebApplicationFactory`/`TestServer` 都需要 `PackageReference`，与上述约束冲突；改用 `WebHost` 绑定 `http://127.0.0.1:0` 取临时端口、启动后从 `IServer` 的 `IServerAddressesFeature` 取回真实地址、再以 `HttpClient` 打真实回环——全程零 NuGet，且测的是真实 Kestrel 而非内存管道。L3 集成用例用此形态。
+5. **HTTP 集成测试走真实回环**。`WebHost` 绑定 `http://127.0.0.1:0` 取临时端口、启动后从 `IServer` 的 `IServerAddressesFeature` 取回真实地址、再以 `HttpClient` 打真实回环——测的是真实 Kestrel 而非内存管道。L3 集成用例沿用此形态（`WebApplicationFactory`/`TestServer` 也可用，但那是内存管道，覆盖更弱）。
 
 **被否决的选项：**
 

@@ -15,6 +15,7 @@ from pathlib import Path
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
+from _toolchain_defines import check_defines
 from _toolchain_docs import check_docs, write_docs
 from _toolchain_domains import check_domains
 from _toolchain_manifest import (
@@ -98,6 +99,11 @@ def collect_checks(manifest_path, strict=False):
             else:
                 warnings.append(message)
         for level, message in check_domains(manifest, ROOT):
+            if level == "error":
+                errors.append(message)
+            else:
+                warnings.append(message)
+        for level, message in check_defines(manifest, ROOT):
             if level == "error":
                 errors.append(message)
             else:
@@ -434,11 +440,15 @@ def cmd_verify(args):
     return _run_child(command)
 
 
-def cmd_build(args):
+def build_command(profile=None):
     command = [sys.executable, str(ROOT / "scripts" / "build" / "build-player.py")]
-    if args.profile:
-        command += ["-Profile", args.profile]
-    return _run_child(command)
+    if profile:
+        command += ["--profile", profile]
+    return command
+
+
+def cmd_build(args):
+    return _run_child(build_command(args.profile))
 
 
 def cmd_doctor(args):

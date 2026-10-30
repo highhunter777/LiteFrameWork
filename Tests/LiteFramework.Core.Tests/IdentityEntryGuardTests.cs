@@ -13,7 +13,7 @@ namespace LiteFramework.Core.Tests
     {
         private static readonly HashSet<string> Allowed = new HashSet<string>(StringComparer.Ordinal)
         {
-            "Assets/LiteGame/App/Bootstrap/IdentityModule.cs",
+            "Assets/LiteGame/App/Bootstrap/Modules/IdentityModule.cs",
             "Assets/LiteFramework/Runtime/Modules/Battle/GameplayMatchIdentity.cs",
             "Assets/LiteFramework/Runtime/Adapters/Luban/TableLayout.cs",
         };

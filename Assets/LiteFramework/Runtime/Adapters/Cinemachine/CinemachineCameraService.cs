@@ -85,6 +85,7 @@ namespace LiteFramework
 
         private float _lookYaw;     // 累计视角 yaw（弧度，环绕）
         private float _lookPitch;   // 累计视角 pitch（弧度，限位钳制后值）
+        private bool _shoulderLeft; // 左肩构图（场景 FollowOffset.x 镜像；默认右肩）
 
         /// <summary>当前视角 yaw（弧度；未收增量 = 0）。诊断/测试读口。</summary>
         public float LookYaw => _lookYaw;
@@ -322,6 +323,16 @@ namespace LiteFramework
             _snapNextFollow = true;
             _lookYaw = 0f;
             _lookPitch = 0f;
+            _shoulderLeft = false;             // 每局从右肩起步（肩位不跨局沿用）
+        }
+
+        /// <summary>左/右肩切换（<see cref="ICameraService.ToggleShoulder"/> 契约）：镜像场景
+        /// FollowOffset.x；有焦点当拍写入，无焦点由下一次 Follow 落位。</summary>
+        public void ToggleShoulder()
+        {
+            if (_shutdown) return;
+            _shoulderLeft = !_shoulderLeft;
+            ApplyRigDerived();
         }
 
         /// <summary>视角增量累进（<see cref="ICameraService.AddLookDelta"/> 契约）：累进自持 yaw/pitch 状态
@@ -394,6 +405,7 @@ namespace LiteFramework
         private Vector3 ResolveMainOffset()
         {
             Vector3 offset = _mainFollowOffsetAtBind;
+            offset.x = (_shoulderLeft ? -1f : 1f) * Mathf.Abs(offset.x);   // 肩偏镜像（宽度归场景）
             if (_mainRig == null) return offset;
 
             Vector2 arm = TpsCameraMath.PitchArm(

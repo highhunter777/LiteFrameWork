@@ -44,8 +44,8 @@ namespace LiteGame
         /// （实机目测定档）；按武器的"开多大"由表行 static_max_scale 承载，不在此再设档。</summary>
         public const float SpreadFullDegrees = 5f;
 
-        /// <summary>连发张开回正速率（1/s，指数衰减）：残余按 e^(−rate·dt) 收敛。推导：600rpm
-        /// （10 发/s）连发时稳态张开 ≈ 每发增量×射速/速率（0.05×10/3 ≈ 0.17 倍率），停手 ~0.3s
+        /// <summary>连发张开回正速率（1/s，指数衰减）：残余按 e^(−rate·dt) 收敛。推导：480rpm
+        /// （8 发/s）连发时稳态张开 ≈ 每发增量×射速/速率（0.05×8/3 ≈ 0.13 倍率），停手 ~0.3s
         /// 收回大半——"连射渐张、停手即收"的观感档（实机定档随调参面可再调）。</summary>
         public const float BurstRecoverPerSecond = 3f;
 

@@ -163,8 +163,8 @@ class BuildPlanTests(unittest.TestCase):
     # ---- client / content / editor / docs ----
 
     def test_client_code(self):
-        plan = self.plan(["Assets/LiteGame/App/Procedure/ProcedureMatch.cs"])
-        item = self.finding(plan, "Assets/LiteGame/App/Procedure/ProcedureMatch.cs")
+        plan = self.plan(["Assets/LiteGame/App/Procedure/Stages/ProcedureMatch.cs"])
+        item = self.finding(plan, "Assets/LiteGame/App/Procedure/Stages/ProcedureMatch.cs")
         self.assertEqual(item["area"], "client_code")
         self.assertIn("rebuild_client_player", item["deliveryActions"])
         self.assertNotIn("publish_server", item["deliveryActions"])
@@ -201,8 +201,8 @@ class BuildPlanTests(unittest.TestCase):
         self.assertEqual(self.finding(plan, "Assets/ShareResource/UI/Screens/Page_Lobby.prefab.meta")["area"], "content")
 
     def test_editor_code(self):
-        plan = self.plan(["Assets/LiteGame/Editor/Toolchain/EditorToolHandlers.cs"])
-        item = self.finding(plan, "Assets/LiteGame/Editor/Toolchain/EditorToolHandlers.cs")
+        plan = self.plan(["Assets/LiteGame/Editor/Toolchain/Registry/EditorToolHandlers.cs"])
+        item = self.finding(plan, "Assets/LiteGame/Editor/Toolchain/Registry/EditorToolHandlers.cs")
         self.assertEqual(item["area"], "editor_code")
         self.assertIn("editor_reload", item["innerActions"])
         self.assertNotIn("rebuild_client_player", item["deliveryActions"])
@@ -245,11 +245,11 @@ class BuildPlanTests(unittest.TestCase):
         plan = self.plan([
             "Assets/LiteSim/Scripts/Editor/Helper.cs",
             "Assets/LiteGame/Lua/UI/Page_Login.lua",
-            "Assets/LiteGame/Editor/Toolchain/EditorToolHandlers.cs",
+            "Assets/LiteGame/Editor/Toolchain/Registry/EditorToolHandlers.cs",
         ])
         self.assertEqual(self.finding(plan, "Assets/LiteSim/Scripts/Editor/Helper.cs")["area"], "editor_code")
         self.assertEqual(self.finding(plan, "Assets/LiteGame/Lua/UI/Page_Login.lua")["area"], "content")
-        self.assertEqual(self.finding(plan, "Assets/LiteGame/Editor/Toolchain/EditorToolHandlers.cs")["area"], "editor_code")
+        self.assertEqual(self.finding(plan, "Assets/LiteGame/Editor/Toolchain/Registry/EditorToolHandlers.cs")["area"], "editor_code")
 
 
     def test_drift_is_project_scoped(self):
@@ -270,7 +270,7 @@ class BuildPlanTests(unittest.TestCase):
     def test_mixed_changes_are_deduped_in_semantic_order(self):
         plan = self.plan([
             "Assets/LiteNet/Protocol/Wire.cs",
-            "Assets/LiteGame/App/Procedure/ProcedureMatch.cs",
+            "Assets/LiteGame/App/Procedure/Stages/ProcedureMatch.cs",
             "Assets/ShareResource/UI/Screens/Page_Lobby.prefab",
             "Docs/项目说明/11-联机测试流程.md",
         ])

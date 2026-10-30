@@ -204,5 +204,60 @@ namespace LiteGame.Tests.EditMode
                 "枪骨旋转随 Chest 同刚体转");
             Assert.AreEqual(1, posture.AppliedFrames, "射击语境确实覆写");
         }
+
+        [Test]
+        [Category(TestCategory.Contract)]
+        public void 瞄准对齐_枪口前向指向准心点_非瞄准不写()
+        {
+            var prefab = LoadPrefabOrIgnore();
+            var go = Scope.Track(Object.Instantiate(prefab));
+            var animator = go.GetComponentInChildren<Animator>(true);
+            var aim = new WeaponAimConstraint(animator);
+            Assert.IsTrue(aim.IsValid, "Chest/枪骨/Muzzle 路径必须可解析");
+
+            Transform muzzle = FindDeep(animator.transform, "Muzzle");
+            Transform weapon = animator.transform.Find(GripBake.WeaponPath);
+            Transform hand = animator.GetBoneTransform(HumanBodyBones.RightHand);
+            Assert.IsNotNull(muzzle, "Muzzle 必须存在");
+            Assert.IsNotNull(weapon, "枪骨必须存在");
+            Assert.IsNotNull(hand, "RightHand 必须存在");
+            Vector3 handLocalWeapon = hand.InverseTransformPoint(weapon.position);
+            Quaternion handLocalRot = Quaternion.Inverse(hand.rotation) * weapon.rotation;
+            Vector3 target = muzzle.position + muzzle.forward * 5f + Vector3.up * 0.25f;
+            Vector3 before = muzzle.forward;
+
+            Assert.IsTrue(aim.Update(false, false, target), "非射击语境调用不失败");
+            Assert.Less(Vector3.Angle(before, muzzle.forward), 0.01f, "非射击语境不写枪骨");
+
+            Assert.IsTrue(aim.Update(false, true, target), "腰射语境执行对齐");
+            Vector3 toTarget = (target - muzzle.position).normalized;
+            Assert.Less(Vector3.Angle(muzzle.forward, toTarget), 2f,
+                "腰射枪口前向指向准心点（残余误差 <2°）");
+            Assert.Less(Vector3.Distance(handLocalWeapon, hand.InverseTransformPoint(weapon.position)), 1e-3f,
+                "腰射后手/枪相对位置不变（手不脱枪）");
+            Assert.Less(Quaternion.Angle(handLocalRot, Quaternion.Inverse(hand.rotation) * weapon.rotation), 0.1f,
+                "腰射后手/枪相对旋转不变");
+            Assert.AreEqual(1, aim.AppliedFrames, "腰射确实修正一帧");
+
+            Assert.IsTrue(aim.Update(true, false, target), "ADS 语境执行对齐");
+            Assert.Less(Vector3.Angle(muzzle.forward, (target - muzzle.position).normalized), 2f,
+                "ADS 枪口前向指向准心点（残余误差 <2°）");
+            Assert.Less(Vector3.Distance(handLocalWeapon, hand.InverseTransformPoint(weapon.position)), 1e-3f,
+                "ADS 后手/枪相对位置不变（手不脱枪）");
+            Assert.Less(Quaternion.Angle(handLocalRot, Quaternion.Inverse(hand.rotation) * weapon.rotation), 0.1f,
+                "ADS 后手/枪相对旋转不变");
+            Assert.AreEqual(2, aim.AppliedFrames, "ADS 也修正一帧");
+        }
+
+        private static Transform FindDeep(Transform root, string name)
+        {
+            if (root.name == name) return root;
+            for (int i = 0; i < root.childCount; i++)
+            {
+                Transform found = FindDeep(root.GetChild(i), name);
+                if (found != null) return found;
+            }
+            return null;
+        }
     }
 }

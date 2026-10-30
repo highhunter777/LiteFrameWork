@@ -258,8 +258,8 @@ namespace LiteNet.Tests
             var lag = new LagCompensator(state, map, PlayerCount, ring, CombatValues.Default, NoSpreadTable());
             WeaponTable table = NoSpreadTable();
 
-            // 按住开火跑 13 帧（600rpm 节拍 ⇒ 0/6/12 三发权威击发）——每帧真实链：Step → Capture → Record
-            for (int f = 0; f < 13; f++)
+            // 按住开火跑 17 帧（480rpm 节拍 ⇒ 0/8/16 三发权威击发）——每帧真实链：Step → Capture → Record
+            for (int f = 0; f < 17; f++)
             {
                 var inputs = new SimInputFrame[PlayerCount];
                 inputs[0] = new SimInputFrame { EntityId = state.Entities[0].Id, AimPointX = 50f, AimPointY = 1f, AimPointZ = 0f, Buttons = SimInputFrame.ButtonFire };
@@ -269,17 +269,17 @@ namespace LiteNet.Tests
                 lag.RecordInputs(state.Frame, inputs);
             }
 
-            // 第三发（frame 12）的视帧：客户端 lag 3 帧 ⇒ ack=9 ⇒ 回溯目标帧 9。
-            // frame 9 上 NextFireFrame = 12（第二发 frame 6 置的节拍窗）——**在视帧的未来**：
+            // 第三发（frame 16）的视帧：客户端 lag 3 帧 ⇒ ack=13 ⇒ 回溯目标帧 13。
+            // frame 13 上 NextFireFrame = 16（第二发 frame 8 置的节拍窗）——**在视帧的未来**：
             // 资源门重查必拦（本用例锁定的反例面）；补判按 ButtonFireFlag 跳门仍判定。
-            int ack = 12 - 3;
+            int ack = 16 - 3;
             int reportedView = ack;
 
             LagCompensator.Outcome outcome = lag.CompensateFire(0, state.Entities[0].Id, reportedView, ack);
 
             Assert.Equal(LagCompensator.Outcome.Compensated, outcome);
             Assert.Equal(ack, lag.LastTargetFrame);
-            Assert.Equal(13, state.Frame);                                 // 权威帧号毫发无损
+            Assert.Equal(17, state.Frame);                                 // 权威帧号毫发无损
 
             bool damageFound = false;
             long targetId = state.Entities[1].Id;

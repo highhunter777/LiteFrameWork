@@ -2,7 +2,11 @@ using System;
 using System.Net.Http;
 using System.Text;
 using System.Text.Json;
+using System.Collections.Generic;
 using System.Threading;
+using LiteFramework;
+using MetaWire;
+using Newtonsoft.Json;
 
 namespace RoomServer
 {
@@ -62,30 +66,8 @@ namespace RoomServer
             public ServerHost.RoomSummary[] Rooms;
         }
 
-        /// <summary>单房间明细的 wire DTO（camelCase——与 Meta 的 <c>RoomReport</c> 契约逐字段对应）。</summary>
-        private sealed class RoomDetailDto
-        {
-            public string RoomId { get; set; }
-            public int Phase { get; set; }
-            public int Players { get; set; }
-            public int ExpectedPlayers { get; set; }
-            public int MapId { get; set; }        // 多图批：房间列表可见性（0 = 未标注）
-        }
+        // 注册载荷与房间明细的线形状在 MetaWire 共享契约里（客户端/MetaServer/RoomServer 同一份）。
 
-        private sealed class RegisterPayload
-        {
-            public string InstanceId { get; set; }
-            public string BuildHash { get; set; }
-            public string Address { get; set; }
-            public int MaxRooms { get; set; }
-            public int RoomCount { get; set; }
-            public int MaxPlayers { get; set; }
-            public int PlayerCount { get; set; }
-            public bool Draining { get; set; }
-            public RoomDetailDto[] Rooms { get; set; }
-        }
-
-        private static readonly JsonSerializerOptions WebJson = new JsonSerializerOptions(JsonSerializerDefaults.Web);
 
         private readonly Settings _settings;
         private readonly Func<Snapshot> _snapshot;
@@ -160,7 +142,7 @@ namespace RoomServer
             try
             {
                 Snapshot snapshot = _snapshot();
-                var payload = new RegisterPayload
+                var payload = new InstanceRegisterRequest
                 {
                     InstanceId = _settings.InstanceId,
                     BuildHash = snapshot.BuildHash,
@@ -176,7 +158,7 @@ namespace RoomServer
                 using var request = new HttpRequestMessage(HttpMethod.Post, _settings.Url);
                 HttpWorkerSupport.AddBearer(request, _settings.InstanceKey);   // Bearer 构造单源（P2）
                 request.Content = new StringContent(
-                    JsonSerializer.Serialize(payload, WebJson), Encoding.UTF8, "application/json");
+                    JsonConvert.SerializeObject(payload, WireJsonSettings.Value), Encoding.UTF8, "application/json");
 
                 // 专用心跳线程上同步等待异步发送（无同步上下文，不可能死锁）——
                 // 该形态同时兼容覆写 SendAsync 的测试替身与真实 SocketsHttpHandler。
@@ -240,20 +222,20 @@ namespace RoomServer
         }
 
         /// <summary>宿主明细 → wire DTO（null 保持 null——"未上报"语义两端一致）。</summary>
-        private static RoomDetailDto[] ToRoomDtos(ServerHost.RoomSummary[] rooms)
+        private static List<LobbyRoomEntry> ToRoomDtos(ServerHost.RoomSummary[] rooms)
         {
             if (rooms == null) return null;
-            var result = new RoomDetailDto[rooms.Length];
+            var result = new List<LobbyRoomEntry>(rooms.Length);
             for (int i = 0; i < rooms.Length; i++)
             {
-                result[i] = new RoomDetailDto
+                result.Add(new LobbyRoomEntry
                 {
                     RoomId = rooms[i].RoomId,
                     Phase = rooms[i].Phase,
                     Players = rooms[i].Players,
                     ExpectedPlayers = rooms[i].ExpectedPlayers,
                     MapId = rooms[i].MapId,
-                };
+                });
             }
             return result;
         }
@@ -263,14 +245,12 @@ namespace RoomServer
             if (string.IsNullOrWhiteSpace(body)) return 0;
             try
             {
-                using JsonDocument doc = JsonDocument.Parse(body);
-                if (doc.RootElement.ValueKind != JsonValueKind.Object) return 0;
-                if (!doc.RootElement.TryGetProperty("heartbeatTtlMs", out JsonElement ttl)) return 0;
-                return ttl.ValueKind == JsonValueKind.Number && ttl.TryGetInt64(out long value) ? value : 0;
+                var response = JsonConvert.DeserializeObject<InstanceRegisterResponse>(body, WireJsonSettings.Value);
+                return response == null ? 0 : response.HeartbeatTtlMs;
             }
-            catch (JsonException)
+            catch (Exception)
             {
-                return 0;
+                return 0;   // 响应形状异常只影响读 TTL，不影响心跳成功判定
             }
         }
 

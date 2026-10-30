@@ -5,6 +5,7 @@ using Cysharp.Threading.Tasks;
 using LiteFramework;
 using XLua; // lint-allow R12：联机门面本体住 App（须引用 MetaEntryService——LuaBridge 不引用 App，依赖方向不可反），本体只做 env 装订/行展开
 using LiteFramework.UI;
+using MetaWire;
 
 namespace LiteGame
 {

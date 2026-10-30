@@ -4,6 +4,9 @@ using MetaServer.Contracts.Lobby;
 using MetaServer.Contracts.Validation;
 using MetaServer.Modules.Lobby;
 
+using LobbyRoomView = MetaWire.LobbyInstanceView;
+using RoomView = MetaWire.LobbyRoomEntry;
+
 namespace MetaServer.Modules.Lobby
 {
     /// <summary>

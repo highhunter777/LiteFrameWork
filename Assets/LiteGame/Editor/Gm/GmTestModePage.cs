@@ -6,6 +6,7 @@ using LiteFramework.UI;
 using LiteFramework;
 using UnityEditor;
 using UnityEngine;
+using MetaWire;
 
 namespace LiteGame.Editor
 {

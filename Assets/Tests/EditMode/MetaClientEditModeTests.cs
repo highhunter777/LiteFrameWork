@@ -6,6 +6,7 @@ using LiteGame;
 using LiteTesting.Unity;
 using NUnit.Framework;
 using UnityEngine.TestTools;
+using MetaWire;
 
 namespace LiteGame.Tests.EditMode
 {
@@ -19,7 +20,8 @@ namespace LiteGame.Tests.EditMode
     public sealed class MetaClientEditModeTests : UnityTestBase
     {
         private static UnityMetaClient Client(LocalHttpTestServer server, int timeoutSeconds = 5)
-            => new UnityMetaClient(server.BaseUrl, timeoutSeconds, () => "req-test");
+            => new UnityMetaClient(server.BaseUrl, timeoutSeconds, new LiteFramework.NewtonsoftJsonCodec(),
+                () => "req-test");
 
         [UnityTest]
         public IEnumerator 游客登录_请求体形状与Bearer外无鉴权_响应解析一致()
@@ -182,7 +184,8 @@ namespace LiteGame.Tests.EditMode
             using (var server = new LocalHttpTestServer())
             {
                 // 先取端口再立刻释放——该端口无人监听 = 真实连接失败（非替身）
-                var client = new UnityMetaClient(server.BaseUrl, 1, () => "req-test");
+                var client = new UnityMetaClient(server.BaseUrl, 1, new LiteFramework.NewtonsoftJsonCodec(),
+                    () => "req-test");
                 server.Dispose();
                 MetaCall<GuestLoginInfo> r = null;
 
@@ -212,8 +215,67 @@ namespace LiteGame.Tests.EditMode
         [Test]
         public void 装配门禁_空基址抛_超时非法抛()
         {
-            Assert.Throws<ArgumentException>(() => new UnityMetaClient("", 5));
-            Assert.Throws<ArgumentOutOfRangeException>(() => new UnityMetaClient("http://x", 0));
+            var codec = new LiteFramework.NewtonsoftJsonCodec();
+            Assert.Throws<ArgumentException>(() => new UnityMetaClient("", 5, codec));
+            Assert.Throws<ArgumentOutOfRangeException>(() => new UnityMetaClient("http://x", 0, codec));
+        }
+
+        [Test]
+        public void 装配门禁_缺编解码端口抛()
+        {
+            Assert.Throws<ArgumentNullException>(() => new UnityMetaClient("http://x", 5, null));
+        }
+
+        [UnityTest]
+        public IEnumerator 二xx但响应含未知字段_判InvalidResponse_契约漂移立刻失败()
+        {
+            using (var server = new LocalHttpTestServer())
+            {
+                // 未知字段 = 契约漂移：MissingMemberHandling.Error 必须让它失败，
+                // 而不是静默忽略后表现为"某个字段永远是 null"。
+                server.Route("/auth/guest",
+                    "{\"accountId\":\"acc-1\",\"accessToken\":\"tok-1\",\"expiresAtMs\":123,\"unexpected\":\"x\"}");
+                var client = Client(server);
+                MetaCall<GuestLoginInfo> r = null;
+
+                yield return client.GuestLoginAsync("device-1").ToCoroutine(x => r = x);
+
+                Assert.IsFalse(r.Ok);
+                Assert.AreEqual(MetaFailureKind.InvalidResponse, r.Failure.Kind);
+            }
+        }
+
+        [UnityTest]
+        public IEnumerator 二xx但必填字段缺失_判InvalidResponse()
+        {
+            using (var server = new LocalHttpTestServer())
+            {
+                // expiresAtMs 缺失 → 0 → 必填校验拒绝（反射反序列化不会因缺字段报错，校验补这一环）。
+                server.Route("/auth/guest", "{\"accountId\":\"acc-1\",\"accessToken\":\"tok-1\"}");
+                var client = Client(server);
+                MetaCall<GuestLoginInfo> r = null;
+
+                yield return client.GuestLoginAsync("device-1").ToCoroutine(x => r = x);
+
+                Assert.IsFalse(r.Ok);
+                Assert.AreEqual(MetaFailureKind.InvalidResponse, r.Failure.Kind);
+            }
+        }
+
+        [UnityTest]
+        public IEnumerator 二xx但响应非JSON对象_判InvalidResponse()
+        {
+            using (var server = new LocalHttpTestServer())
+            {
+                server.Route("/auth/guest", "[]");
+                var client = Client(server);
+                MetaCall<GuestLoginInfo> r = null;
+
+                yield return client.GuestLoginAsync("device-1").ToCoroutine(x => r = x);
+
+                Assert.IsFalse(r.Ok);
+                Assert.AreEqual(MetaFailureKind.InvalidResponse, r.Failure.Kind);
+            }
         }
     }
 }

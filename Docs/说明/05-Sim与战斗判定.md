@@ -169,9 +169,9 @@ SimStep.Step(..., advanceMatch: false)
 |---|---|
 | 玩法数值 | `CombatValues`（10 字段）：`MoveSpeed`/`Gravity`/`HitscanRange`/`BaseDamage`/`DamageSpread`/`EntityHp`/`AimMoveSpeed`/`FireStanceFrames` + 两个测试规则位 `NoDeath`/`InfiniteAmmo`；按值传入每个系统，`Default` 是属性（每次返回副本） |
 | 武器表 | `WeaponTable` 定容 16 行 + 槽位默认映射（`first-wins`）；装载期写入，此后只读；槽位数 2 |
-| 默认步枪 | id 0：伤害 16、600 rpm、弹匣 30、备弹 90（上限同值）、换弹 132 帧、射程 100m、散布 1.2°、单弹丸、切枪 30 帧、自动 |
+| 默认步枪 | id 0：伤害 16、480 rpm、弹匣 30、备弹 90（上限同值）、换弹 132 帧、射程 100m、散布 1.2°、单弹丸、切枪 30 帧、自动 |
 | 其它默认 | `MoveSpeed=5`、`AimMoveSpeed=2.5`、`HitscanRange=100`、`BaseDamage=25`（未装备兜底）、`DamageSpread=1`、`FireStanceFrames=60` |
-| 击发节拍 | `FireIntervalFrames = ceil(TickRate×60/rpm)`——600 rpm @60Hz = 6 帧 |
+| 击发节拍 | `FireIntervalFrames = ceil(TickRate×60/rpm)`——480 rpm @60Hz = 8 帧 |
 
 已装备实体的伤害/射程/弹丸数取武器表行；未装备（测试/沙盒直调）才回落 `CombatValues.BaseDamage`/`HitscanRange`。
 

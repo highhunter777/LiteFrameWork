@@ -5,6 +5,9 @@ using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.DependencyInjection;
 
+using GuestLoginResponse = MetaWire.GuestLoginInfo;
+
+using MetaWire;
 namespace MetaServer
 {
     /// <summary>Auth 首批 HTTP 入口：游客登录。正式错误形状统一为 <see cref="MetaError"/>，
@@ -12,7 +15,7 @@ namespace MetaServer
     public static class AuthEndpoints
     {
         /// <summary>游客登录路径（限流中间件按它匹配——路径字面量单源，改一处不会漏改另一处）。</summary>
-        public const string GuestLoginPath = "/auth/guest";
+        public const string GuestLoginPath = MetaWireEndpoints.GuestLogin;
 
         public static void Map(WebApplication app)
         {
@@ -41,7 +44,7 @@ namespace MetaServer
                 switch (result)
                 {
                     case GuestLoginUseCase.Result.Accepted accepted:
-                        return Results.Json(new GuestLoginResponse
+                        return MetaResults.Ok(new GuestLoginResponse
                         {
                             AccountId = accepted.AccountId,
                             AccessToken = accepted.AccessToken,

@@ -1,8 +1,11 @@
 using System;
+using System.Collections.Generic;
 using System.Net.Http;
 using System.Text;
-using System.Text.Json;
 using System.Threading;
+using LiteFramework;
+using MetaWire;
+using Newtonsoft.Json;
 using RoomServer.Runtime;
 
 namespace RoomServer
@@ -69,36 +72,9 @@ namespace RoomServer
             public ISettlementRewardPolicy RewardPolicy;
         }
 
-        private sealed class SubmitPlayer
-        {
-            public string PlayerId { get; set; }
-            public string AccountId { get; set; }
-            public int Kills { get; set; }
-            public int Deaths { get; set; }
+        // 结算提交的线形状在 MetaWire 共享契约（客户端/MetaServer/RoomServer 同一份），
+        // 本类不再手写镜像 DTO。
 
-            /// <summary>奖励增量（由 <see cref="ISettlementRewardPolicy"/> 换算；当前无经济口径 → 0）。</summary>
-            public long Delta { get; set; }
-
-            /// <summary>追加模式（提交方不持有玩家修订号——幂等由 Meta 账本唯一索引承载）。</summary>
-            public long ExpectedRevision { get; set; } = -1L;
-
-            /// <summary>缺省 null：服务端按 match:{matchId}:{playerId} 确定性派生。</summary>
-            public string OperationId { get; set; }
-        }
-
-        private sealed class SubmitPayload
-        {
-            public string RequestId { get; set; }
-            public string MatchId { get; set; }
-            public long Seed { get; set; }
-            public int FinalFrame { get; set; }
-            public int EndReason { get; set; }
-            public int GameplayEndReason { get; set; }
-            public long WinnerEntityId { get; set; }
-            public SubmitPlayer[] Players { get; set; }
-        }
-
-        private static readonly JsonSerializerOptions WebJson = new JsonSerializerOptions(JsonSerializerDefaults.Web);
 
         private readonly Settings _settings;
         private readonly ISettlementOutbox _outbox;
@@ -194,7 +170,7 @@ namespace RoomServer
                 using var request = new HttpRequestMessage(HttpMethod.Post, _settings.Url);
                 HttpWorkerSupport.AddBearer(request, _settings.InstanceKey);   // Bearer 构造单源（P2）
                 request.Content = new StringContent(
-                    JsonSerializer.Serialize(BuildPayload(entry), WebJson), Encoding.UTF8, "application/json");
+                    JsonConvert.SerializeObject(BuildPayload(entry), WireJsonSettings.Value), Encoding.UTF8, "application/json");
 
                 // **带停止令牌**（关闭链批）：Stop 时取消在途请求，让"有界等待"真的能等到线程退出
                 // （否则线程停在超时请求里，Dispose 会在存活线程上释放停止位 → 未处理异常杀进程）。
@@ -248,15 +224,15 @@ namespace RoomServer
         }
 
         /// <summary>载荷组装（测试经伪造 handler 捕获 JSON 断言字段形状与账号映射对齐）。</summary>
-        private SubmitPayload BuildPayload(PendingSettlement entry)
+        private MatchResultSubmission BuildPayload(PendingSettlement entry)
         {
             MatchResultSummary summary = entry.Summary;
             PlayerMatchResult[] results = summary.Players;
-            var players = new SubmitPlayer[results.Length];
-            for (int i = 0; i < players.Length; i++)
+            var players = new List<PlayerResultEntry>(results.Length);
+            for (int i = 0; i < results.Length; i++)
             {
                 string accountId = i < entry.SeatAccountIds.Length ? entry.SeatAccountIds[i] : string.Empty;
-                players[i] = new SubmitPlayer
+                players.Add(new PlayerResultEntry
                 {
                     PlayerId = results[i].PlayerId.ToString(System.Globalization.CultureInfo.InvariantCulture),
                     AccountId = accountId ?? string.Empty,
@@ -264,9 +240,9 @@ namespace RoomServer
                     Deaths = results[i].Deaths,
                     // 唯一的奖励换算点（P3：占位改显式接缝）——仅在此调用策略，别处不得自算 delta
                     Delta = _rewardPolicy.RewardDelta(results[i].PlayerId, results[i].Kills, results[i].Deaths),
-                };
+                });
             }
-            return new SubmitPayload
+            return new MatchResultSubmission
             {
                 RequestId = "submit:" + summary.MatchId,
                 MatchId = summary.MatchId,

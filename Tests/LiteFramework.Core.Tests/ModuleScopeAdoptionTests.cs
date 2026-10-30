@@ -28,7 +28,7 @@ namespace LiteFramework.Core.Tests
         public void 持有资源的模块必须登记模块作用域()
         {
             string root = RepoRoot();
-            string dir = Path.Combine(root, "Assets", "LiteGame", "App", "Bootstrap");
+            string dir = Path.Combine(root, "Assets", "LiteGame", "App", "Bootstrap", "Modules");
             Assert.True(Directory.Exists(dir), "模块目录不存在：" + dir);
 
             var offenders = new List<string>();

@@ -62,13 +62,15 @@ namespace Tools.DisciplineScan
             LintRule.R5BareUnityEditor,
         };
 
-        /// <summary>业务 Unity 层：只守 R6（原生协程）。</summary>
+        /// <summary>业务 Unity 层：R6（原生协程）＋ R15 平台特判收敛（平台差异不散落 `#if`）。</summary>
         public static readonly LintRule[] UnityRules =
         {
             LintRule.R6NativeCoroutine,
+            LintRule.R15PlatformFork,
         };
 
-        /// <summary>LiteGame 全域：R8 资源唯一入口 + R12 适配器边界（Editor 目录由 IsExcluded 排除）。</summary>
+        /// <summary>LiteGame 全域：R8 资源唯一入口 + R12 适配器边界（Editor 目录由 IsExcluded 排除）
+        /// + R15 平台特判收敛（允许面见 DisciplineScanner.PlatformForkAllowedFiles）。</summary>
         public static readonly LintRule[] GameRules =
         {
             LintRule.R8ResourcesLoad,
@@ -76,6 +78,9 @@ namespace Tools.DisciplineScan
             // YooAsset/xLua/DOTween 的实现只许在各自边界目录内 import——
             // 阻止新耦合扩散：在一体 asmdef 里，没有它，任何人都能再 import 一次而无人察觉。
             LintRule.R12AdapterBoundary,
+            // R15 平台特判收敛：Android 适配的平台差异只走 profile/四个装配收敛点，
+            // 别处出现 `#if UNITY_ANDROID` 即报红（否则平台分叉会按文件数蔓延）。
+            LintRule.R15PlatformFork,
         };
 
         /// <summary>UI 层：R10 不得直发业务包（禁 INetworkService 契约）。</summary>

@@ -21,7 +21,7 @@ namespace LiteSim
         public readonly int Pellets;
         public readonly int SwitchFrames;
         /// <summary>击发节拍（帧，@TickRate）：<c>ceil(TickRate × 60 / rpm)</c>——整数帧，禁浮点倒计时。
-        /// （rpm = 发/分 ⇒ 每发间隔 = 60/rpm 秒 ⇒ ×TickRate 帧；600rpm @60Hz ⇒ 6 帧。）</summary>
+        /// （rpm = 发/分 ⇒ 每发间隔 = 60/rpm 秒 ⇒ ×TickRate 帧；480rpm @60Hz ⇒ 8 帧。）</summary>
         public readonly int FireIntervalFrames;
 
         /// <summary>自动击发（按住连发）；false = 半自动（按住只发一发——击发沿门
@@ -42,7 +42,7 @@ namespace LiteSim
             Spread = spread;
             Pellets = pellets;
             SwitchFrames = switchFrames;
-            FireIntervalFrames = (SimConfig.TickRate * 60 + rpm - 1) / rpm;   // ceil(TickRate×60/rpm)：600rpm @60Hz → 6 帧
+            FireIntervalFrames = (SimConfig.TickRate * 60 + rpm - 1) / rpm;   // ceil(TickRate×60/rpm)：480rpm @60Hz → 8 帧
             Automatic = automatic;
         }
     }
@@ -71,7 +71,7 @@ namespace LiteSim
 
         /// <summary>内置默认步枪定义（= tb_weapon.xlsx 步枪行；未装载兜底，L1 守卫卡漂移。**不可变常量面**）。</summary>
         public static readonly WeaponDef DefaultRifle =
-            new WeaponDef(id: 0, damage: 16, rpm: 600, magazineSize: 30, reserveAmmo: 90, maxReserveAmmo: 90,
+            new WeaponDef(id: 0, damage: 16, rpm: 480, magazineSize: 30, reserveAmmo: 90, maxReserveAmmo: 90,
                 reloadFrames: 132, range: 100f, spread: 1.2f, pellets: 1, switchFrames: 30, automatic: true);
 
         private static WeaponTable _loaded = WeaponTable.Default;

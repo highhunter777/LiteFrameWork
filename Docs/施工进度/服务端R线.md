@@ -19,6 +19,8 @@
 | 7 | 服务端 R3-Lobby 批：施工进度 | `服务端R3-Lobby.md` |
 | 8 | 服务端 R3-Profile 批：施工进度 | `服务端R3-Profile.md` |
 | 9 | R4 可观测首批：RoomServer /metrics 零依赖出口 | `R4可观测首批.md` |
+| 10 | Meta HTTP 契约双端共享：施工进度 | 本章（原无独立文件） |
+| 11 | Meta 契约反射守卫与结算形状收口：施工进度 | 本章（原无独立文件） |
 
 ---
 
@@ -932,3 +934,86 @@ R2 行亦写"RoomServer 侧：Join Ticket **本地验签**"。Meta 侧只**签�
   部署/灰度/回滚演练、24h 长稳、故障注入、P8 集成压测（目标容量须由产品并发目标定——§17 不虚构）。
 - **挂账**：`Ops.Format` 的 `outRej=` 与逐房间 gauge（如帧号）未进 metrics——逐房间维度属有界标签
   （≤max_rooms），等 OTel/正式出口批一并裁。
+
+---
+
+## 第10章 Meta HTTP 契约双端共享：施工进度
+
+> **状态**：已完成（工作区未提交）。**范围**：客户端 ↔ MetaServer ↔ RoomServer 的 HTTP 契约（形状/路径/上限/序列化行为）收口为单源，并消除三处重复（客户端手写解析、服务端 DTO 副本、房间服注册载荷镜像）。
+
+### 交付物
+
+| 面 | 落点 | 说明 |
+|---|---|---|
+| 线形状 | `Assets/LiteGame/App/Meta/Wire/MetaWireContracts.cs` | 12 个 DTO（属性 POCO、零注解、C#9、零第三方）；客户端编译，MetaServer/RoomServer 源链接共编 |
+| 端点路径 | `.../Wire/MetaWireEndpoints.cs` | 七个常量；**服务端 `Map*` 与客户端调用都引用它**（写错＝编译失败） |
+| 字段上限 | `.../Wire/MetaWireLimits.cs` | 语义类别上限表；服务端 `FieldLimits` 改为别名引用 |
+| 序列化行为 | `Assets/LiteFramework/Runtime/Adapters/Newtonsoft/WireJsonSettings.cs` | camelCase ＋ `DateParseHandling.None` ＋ `MissingMemberHandling.Error`；三方共用一份 |
+| 客户端编解码 | `App/Meta/MetaJson.cs` ＋ `MetaWireValidator.cs` | 259 行手写逐字段解析 → 约 140 行「序列化/反序列化 ＋ 必填校验 ＋ 失败分类」 |
+| 服务端出口 | `Host/MetaResults.cs` | `Ok()`/`WriteAsync()` 成为唯一 JSON 出口；10 处端点直调 ＋ 限流中间件的 `WriteAsJsonAsync` 全部收口 |
+| 服务端 DTO | `Contracts/{Auth,Lobby,Profile}` | 删除 9 个与共享面重复的类型，引用方用文件级别名指向 `MetaWire.*` |
+| 房间服载荷 | `Server/RoomServer/LobbyRegistrationClient.cs` | 私有 `RegisterPayload`/`RoomDetailDto` 删除，改共享类型；心跳 TTL 解析改反序列化共享响应 |
+
+### 验证证据
+
+- `dotnet build Server/MetaServer` / `Server/RoomServer`：**0 error**（MetaServer 0 warning）；
+- **L1 全量 1897 例通过**（含 `MetaServer.Tests` 163 例：换库后响应仍为 camelCase、错误体形状不变）；
+- EditMode `MetaClientEditModeTests` ＋ `MetaEntryEditModeTests`：**31/31**（含「未知字段 → InvalidResponse」「必填缺失 → InvalidResponse」）；
+- `l0-dep-scan.py`：PASS（新增服务端 `csproj` 的 `PackageReference` 扫描：缺版本/浮动范围即违规）；`test_l0_dep_scan` 单测通过；
+- `--suite Doc`：doc-lint 0 violation / 0 warning；
+- `gen-build-hash.py`：`META_EXTRA_FILES` ＋4（三个 Wire 文件 ＋ `WireJsonSettings`），Meta 构建身份已重生成（共享握手常量不受影响）。
+
+### 关键决定
+
+- **不再手写严格逐字段解析**：形状由共享 DTO 在编译期单源，宽松转换不再是风险来源；严格性改由「类型单源 ＋ 服务端 `MissingMemberHandling.Error` ＋ 必填校验 ＋ L1 契约测试」四件保证。
+- **服务端不用 `AddNewtonsoftJson()`**：它是 MVC 扩展，Minimal API 无挂钩点；`MetaResults` 手写序列化收口，避免同一个服务出现两套 JSON 口径。
+- **settings 住适配层而非契约目录**：共享契约件零第三方是 R12 纪律；`WireJsonSettings` 引 Newtonsoft，放 `Adapters/Newtonsoft/` 才合法，服务端链接同一份。
+- **房间服同步换库**：`LobbyRegistrationClient` 与 `SettlementSubmitService` 由 `JsonSerializerDefaults.Web` 改为 `JsonConvert` ＋ `WireJsonSettings`，三方口径一致。
+
+### 已知边界
+
+- `IJsonCodec` 的**严格树面**（`TryParse` ＋ `IJsonNode`）当前无生产消费者——保留为「外部不可信 JSON」的能力面（内容清单/健康探针），未接线；
+- L3 的 Mongo 用例（36 例）在本机 Docker 守护进程未运行时被 skip，未取得真库闭环证据；
+- `SampleEndpoints` 的 `/sample/settlement` 仍是字面量（样例链路默认关闭、非客户端契约）。
+
+---
+
+## 第11章 Meta 契约反射守卫与结算形状收口：施工进度
+
+<a id="ch11-Meta契约反射守卫与结算形状收口"></a>
+
+> **状态**：已完成（工作区未提交）。**范围**：补齐第 10 章未收口的三项——契约反射守卫、结算提交形状单源、客户端 deviceId 字节裁剪。
+
+### 交付物
+
+| 面 | 落点 | 说明 |
+|---|---|---|
+| 结算线形状 | `Assets/LiteGame/App/Meta/Wire/MetaWireContracts.cs` | 新增 `MatchResultSubmission`/`PlayerResultEntry`（共 14 DTO）；非 sealed——供 MetaServer 继承壳使用 |
+| 服务端命名壳 | `Server/MetaServer/Contracts/Profile/ProfileContracts.cs` | `MatchResultSubmission`/`PlayerResultEntry` 改为继承共享 POCO 的**零属性重复壳**；属性只在 `MetaWire` 定义（避免测试项目同时引用两程序集时 CS0433） |
+| 服务端消费面 | `ApplyMatchResultUseCase.cs`、`SettlementEndpoints.cs` | 列表元素用 `MetaWire.PlayerResultEntry`；端点显式别名 `MatchResultSubmission = MetaServer.Contracts.Profile.MatchResultSubmission`（消除 `using MetaWire` 的 CS0104） |
+| 房间服提交 | `Server/RoomServer/SettlementSubmitService.cs` | 删除私有 `SubmitPayload`/`SubmitPlayer` 镜像，改用 `MetaWire.MatchResultSubmission`/`PlayerResultEntry`；`List` 装配 |
+| 反射守卫 | `Tests/LiteFramework.Core.Tests/Meta/MetaWireContractTests.cs` | 每个客户端成功响应属性必须显式归入“必填/可选”；必填缺失判 `InvalidResponse`，可选缺失仍可解析，新增属性未分类即红 |
+| 必填补强 | `Assets/LiteGame/App/Meta/MetaWireValidator.cs` | `GuestLoginInfo.TokenType` 纳入必填 |
+| deviceId 裁剪 | `MetaWireLimits.TrimUtf8` ＋ `MetaJson.BuildGuestLoginRequest` | 按 `ShortIdBytes` UTF-8 整字截断，不拆代理对 |
+
+### 验证证据
+
+- `dotnet build Server/MetaServer` / `Server/RoomServer`：**0 error**；
+- `MetaServer.Tests`：**196/196**；
+- **L1 全量 1901/1901**（Core 785、LiteNet 568、LiteSim 378、LiteTesting 7、MetaServer 163）——新增契约守卫 3 例 + deviceId 裁剪 1 例；
+- 客户端 Meta EditMode 四组：**74/74**；Unity 重编译 **0 error**；
+- `test_generated_artifacts.py`：**6/6 OK**；`gen-build-hash --check`：shared=`48fa22580c3a03c4`（未变）、meta=`513a27daa521f039`（已重算）；
+- `l0-dep-scan.py` PASS；`--suite Doc` 0 violation / 0 warning。
+
+### 关键决定
+
+- **结算形状进共享契约、服务端留继承壳**：直接让 MetaServer 与 RoomServer 都命名 `MetaWire.MatchResultSubmission` 会在同时引用两程序集的测试项目里 CS0433；继承壳让属性只在共享类定义，既不重复形状，也不破坏测试命名。
+- **契约守卫用“必填/可选分类”而非“所有属性缺失都失败”**：数值型字段缺失与合法 0 在类型化反序列化后不可区分；强制全必填会误伤可选字段。分类表把“新属性必须做决定”机制化。
+- **deviceId 在请求构造点裁剪**：服务端按字节校验，客户端按同一上限整字裁剪，避免长设备号整单 400。
+
+### 已知边界
+
+- L3 的 Mongo 用例（36 例）仍因本机 Docker 守护进程未运行被 skip，未取得真库闭环；
+- RoomServer 的本地诊断/Outbox（`CrashCapture`/`RoomRunEnvelope`/`SettlementOutbox`）仍用 STJ——非 Meta HTTP 契约，按当前裁决保留；
+- `IJsonCodec` 严格树面（`TryParse`/`IJsonNode`）仍无生产消费者，保留为外部不可信 JSON 能力面。
+

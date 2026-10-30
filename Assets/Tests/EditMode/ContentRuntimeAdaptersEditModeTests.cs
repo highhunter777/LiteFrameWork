@@ -350,7 +350,20 @@ namespace LiteGame.Tests.EditMode
                 => UniTask.CompletedTask;
         }
 
-        private PatchRunner BuildRunner(ReleaseManifest manifest, byte[] signedBytes, bool healthy)
+        private sealed class NoOpGenerationSink : IGenerationSink
+        {
+            public void Advise(ContentGeneration generation) { }
+        }
+
+        private sealed class RecordingGenerationSink : IGenerationSink
+        {
+            public ContentGeneration Last;
+            public int Calls;
+            public void Advise(ContentGeneration generation) { Last = generation; Calls++; }
+        }
+
+        private PatchRunner BuildRunner(ReleaseManifest manifest, byte[] signedBytes, bool healthy,
+            IGenerationSink sink = null)
         {
             var io = new MemoryActivationIO();
             var store = new ActivationTransactionStore(io, () => 1);
@@ -366,7 +379,7 @@ namespace LiteGame.Tests.EditMode
                 new LocalDirectoryCandidateFetcher(Root, _files),
                 healthy ? (ICandidateHealthCheck)new AlwaysHealthy() : new CompositeHealthCheck(),   // 空聚合 = 不健康
                 new NoOpActivator(),
-                generationSink: null);
+                generationSink: sink ?? new NoOpGenerationSink());
 
             var offer = new CandidateOffer(manifest, signedBytes, new byte[] { 1 });
             return new PatchRunner(new FixedProvider(offer), Player(), store, coord,
@@ -425,6 +438,35 @@ namespace LiteGame.Tests.EditMode
         }
 
         [Test]
+        public void 编排_确认提交_把加载代次推进到已确认发布()
+        {
+            ReleaseManifest m = ManifestWith(("a.bin", "AAA"));
+            var sink = new RecordingGenerationSink();
+
+            PatchRunner runner = BuildRunner(m, Bytes("signed"), healthy: true, sink: sink);
+            PatchRunResult r = runner.RunAsync().GetAwaiter().GetResult();
+
+            Assert.IsTrue(r.Succeeded, r.ToString());
+            Assert.AreEqual(1, sink.Calls, "确认提交必须恰好推进一次代次");
+            Assert.AreEqual(m.ReleaseId, sink.Last.ReleaseId);
+            Assert.AreEqual(1UL, sink.Last.Value, "首次确认同发布代次 +1");
+        }
+
+        [Test]
+        public void 编排_失败回退_提示回已确认代次()
+        {
+            ReleaseManifest m = ManifestWith(("a.bin", "AAA"));
+            var sink = new RecordingGenerationSink();
+
+            PatchRunner runner = BuildRunner(m, Bytes("signed"), healthy: false, sink: sink);
+            PatchRunResult r = runner.RunAsync().GetAwaiter().GetResult();
+
+            Assert.IsFalse(r.Succeeded);
+            Assert.AreEqual(1, sink.Calls, "失败收尾必须提示回退代次");
+            Assert.AreEqual(ContentGeneration.Default, sink.Last, "候选未确认时回退到内置代次");
+        }
+
+        [Test]
         public void 编排端到端_描述被拒_不进入编排()
         {
             // 清单为空 → ReleaseManifestValidator 第③步拒绝（文件清单为空）
@@ -477,7 +519,7 @@ namespace LiteGame.Tests.EditMode
                 new LocalDirectoryCandidateFetcher(Root, _files),
                 new AlwaysHealthy(),
                 new NoOpActivator(),
-                generationSink: null);
+                generationSink: new NoOpGenerationSink());
 
             // **关键差异**：验签器来自内置锚点（真实信任链），不是 AlwaysOkVerifier
             var trustedKeys = new TrustedKeyStore();
@@ -528,7 +570,7 @@ namespace LiteGame.Tests.EditMode
                 new LocalDirectoryCandidateFetcher(Root, _files),
                 new AlwaysHealthy(),
                 new NoOpActivator(),
-                generationSink: null);
+                generationSink: new NoOpGenerationSink());
 
             var trustedKeys = new TrustedKeyStore();
             ContentTrustAnchors.ApplyTo(trustedKeys);
@@ -577,7 +619,7 @@ namespace LiteGame.Tests.EditMode
                 new LocalDirectoryCandidateFetcher(Root, _files),
                 new AlwaysHealthy(),
                 new NoOpActivator(),
-                generationSink: null);
+                generationSink: new NoOpGenerationSink());
 
             var trustedKeys = new TrustedKeyStore();
             ContentTrustAnchors.ApplyTo(trustedKeys);

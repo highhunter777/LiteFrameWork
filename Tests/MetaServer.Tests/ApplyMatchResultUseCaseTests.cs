@@ -20,7 +20,7 @@ namespace MetaServer.Tests
             string matchId = "m-100", params (string PlayerId, long Delta)[] players)
         {
             var submission = new MatchResultSubmission { RequestId = "req-1", MatchId = matchId };
-            submission.Players = new System.Collections.Generic.List<PlayerResultEntry>();
+            submission.Players = new();
             foreach ((string playerId, long delta) in players)
                 submission.Players.Add(new PlayerResultEntry
                 {

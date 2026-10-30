@@ -93,11 +93,11 @@ namespace MetaServer
                     string key = context.Connection.RemoteIpAddress?.ToString() ?? "unknown";
                     if (!limiter.TryAcquire(key, out long retryAfterMs))
                     {
-                        context.Response.StatusCode = StatusCodes.Status429TooManyRequests;
                         context.Response.Headers.RetryAfter =
                             ((retryAfterMs + 999) / 1000).ToString(CultureInfo.InvariantCulture);
-                        await context.Response.WriteAsJsonAsync(MetaResults.Error(
-                            AuthErrorCodes.RateLimited, AuthErrorCodes.MessageKeyRateLimited));
+                        await MetaResults.WriteAsync(context,
+                            MetaResults.Error(AuthErrorCodes.RateLimited, AuthErrorCodes.MessageKeyRateLimited),
+                            StatusCodes.Status429TooManyRequests);
                         return;
                     }
                 }

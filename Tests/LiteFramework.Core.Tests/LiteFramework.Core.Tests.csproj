@@ -48,4 +48,19 @@
     <Compile Include="..\..\Assets\LiteGame\App\Meta\AccountReentry.cs" Link="Meta\AccountReentry.cs" />
   </ItemGroup>
 
+  <!--
+    Meta 网络契约的 L1 覆盖：客户端本地契约 + 共享线形状 + 编解码/校验按源链接纳入
+    （全部零引擎、零第三方——IJsonCodec/IJsonNode 经 LiteFramework.Core 工程引用取得）。
+    形状单源与必填校验在 L1 直测；Newtonsoft 适配行为（未知字段拒绝等）由
+    Assets/Tests/EditMode/MetaClientEditModeTests 经真实 HTTP 覆盖。
+  -->
+  <ItemGroup>
+    <Compile Include="..\..\Assets\LiteGame\App\Meta\MetaContracts.cs" Link="Meta\MetaContracts.cs" />
+    <Compile Include="..\..\Assets\LiteGame\App\Meta\MetaJson.cs" Link="Meta\MetaJson.cs" />
+    <Compile Include="..\..\Assets\LiteGame\App\Meta\MetaWireValidator.cs" Link="Meta\MetaWireValidator.cs" />
+    <Compile Include="..\..\Assets\LiteGame\App\Meta\Wire\MetaWireContracts.cs" Link="Meta\Wire\MetaWireContracts.cs" />
+    <Compile Include="..\..\Assets\LiteGame\App\Meta\Wire\MetaWireEndpoints.cs" Link="Meta\Wire\MetaWireEndpoints.cs" />
+    <Compile Include="..\..\Assets\LiteGame\App\Meta\Wire\MetaWireLimits.cs" Link="Meta\Wire\MetaWireLimits.cs" />
+  </ItemGroup>
+
 </Project>

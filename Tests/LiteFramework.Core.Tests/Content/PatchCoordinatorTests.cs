@@ -269,19 +269,15 @@ namespace LiteFramework.Tests
         }
 
         [Fact]
-        public void 无代次接收方_不影响编排()
+        public void 缺代次接收方_构造期拒绝()
         {
             var io = new FakeActivationIO();
             var store = new ActivationTransactionStore(io, () => 1);
             var files = new FakeCandidateFileSource();
-            var coord = new PatchCoordinator(store, files, new FakeDiskSpaceProbe(long.MaxValue),
-                new FakeFetcher(), new FakeHealthCheck(), new FakeActivator(), generationSink: null);
 
-            ReleaseManifest m = PatchTestFixtures.ManifestWithFiles(files, "rel-2", ("a.bin", "A"));
-            PatchRunResult r = PatchTestFixtures.Pump(
-                coord.RunAsync(m, PatchTestFixtures.PlanFor(m), PatchTestFixtures.SpaceFor(m)));
-
-            Assert.True(r.Succeeded, r.ToString());
+            Assert.Throws<ArgumentNullException>(() => new PatchCoordinator(store, files,
+                new FakeDiskSpaceProbe(long.MaxValue), new FakeFetcher(), new FakeHealthCheck(),
+                new FakeActivator(), generationSink: null));
         }
 
         [Fact]

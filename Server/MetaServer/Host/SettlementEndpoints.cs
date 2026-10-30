@@ -11,6 +11,13 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
 
+using MatchQueryResponse = MetaWire.MatchesResponse;
+using MatchSummaryView = MetaWire.MatchRecordInfo;
+// 提交形状在 MetaWire；服务端保留继承壳（见 ProfileContracts），此处显式指向本服务端类型，
+// 避免 `using MetaWire;` 与 `using MetaServer.Contracts.Profile;` 造成 CS0104。
+using MatchResultSubmission = MetaServer.Contracts.Profile.MatchResultSubmission;
+
+using MetaWire;
 namespace MetaServer
 {
     /// <summary>
@@ -32,7 +39,7 @@ namespace MetaServer
     {
         public static void Map(WebApplication app)
         {
-            app.MapPost("/matches/result", async (HttpContext context) =>
+            app.MapPost(MetaWireEndpoints.MatchesResult, async (HttpContext context) =>
             {
                 ApplyMatchResultUseCase useCase = context.RequestServices.GetService<ApplyMatchResultUseCase>();
                 if (useCase == null) return Disabled();
@@ -55,7 +62,7 @@ namespace MetaServer
                         Ops ops = context.RequestServices.GetRequiredService<Ops>();
                         if (processed.Duplicate) ops.CountMatchResultDuplicate();
                         else ops.CountMatchResultStore();
-                        return Results.Json(new MatchSettlementResponse
+                        return MetaResults.Ok(new MatchSettlementResponse
                         {
                             MatchId = processed.MatchId,
                             Duplicate = processed.Duplicate,
@@ -73,7 +80,7 @@ namespace MetaServer
                 }
             });
 
-            app.MapGet("/matches", async (HttpContext context) =>
+            app.MapGet(MetaWireEndpoints.Matches, async (HttpContext context) =>
             {
                 IMatchResultArchive archive = context.RequestServices.GetService<IMatchResultArchive>();
                 AccessTokenService tokens = context.RequestServices.GetService<AccessTokenService>();
@@ -126,7 +133,7 @@ namespace MetaServer
                         FinishedAtMs = ToUnixMs(m.FinishedUtc),
                     });
                 }
-                return Results.Json(new MatchQueryResponse { Matches = views });
+                return MetaResults.Ok(new MatchQueryResponse { Matches = views });
             });
         }
 

@@ -119,7 +119,7 @@ namespace LiteFramework
             ICandidateFetcher fetcher,
             ICandidateHealthCheck health,
             IContentActivator activator,
-            IGenerationSink generationSink = null,
+            IGenerationSink generationSink,
             ReleaseBudget budget = null)
         {
             _store = store ?? throw new ArgumentNullException(nameof(store));
@@ -128,7 +128,9 @@ namespace LiteFramework
             _fetcher = fetcher ?? throw new ArgumentNullException(nameof(fetcher));
             _health = health ?? throw new ArgumentNullException(nameof(health));
             _activator = activator ?? throw new ArgumentNullException(nameof(activator));
-            _generationSink = generationSink;                 // 可选：无内容服务时留空
+            // 代次推进是确认/回退的必备一环：漏注入会让 Advise 静默 no-op，
+            // 装配期显性失败优于运行期“看着切换了、其实没切”。
+            _generationSink = generationSink ?? throw new ArgumentNullException(nameof(generationSink));
             _budget = budget ?? new ReleaseBudget();
         }
 
@@ -212,7 +214,7 @@ namespace LiteFramework
 
             // ── ⑧ 确认提交（写盘失败由 IO 实现方抛出，本类不吞）──
             _store.Confirm(candidate.ReleaseId, recovered.ConfirmedVersion + 1, candidate.Revision);
-            _generationSink?.Advise(_store.ActiveGeneration);
+            _generationSink.Advise(_store.ActiveGeneration);
             SetPhase(PatchPhase.Confirmed);
             return PatchRunResult.Ok(PatchPhase.Confirmed, candidate.ReleaseId);
         }
@@ -263,7 +265,7 @@ namespace LiteFramework
                 await _fetcher.CleanupTempAsync(_activeReleaseId, ct);
 
             ContentGeneration confirmed = new ContentGeneration(recovered.ConfirmedReleaseId, recovered.ConfirmedVersion);
-            _generationSink?.Advise(confirmed);
+            _generationSink.Advise(confirmed);
 
             // 已激活过候选才需要重建；未进入激活链路时已确认内容本就在运行，重建是多余的清缓存。
             if (phase == PatchPhase.HealthChecking)

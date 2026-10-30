@@ -32,6 +32,12 @@
       manifest/lock 与密钥，不管服务端 PackageReference——本 ItemGroup 即登记位置。
     -->
     <PackageReference Include="MongoDB.Driver" Version="3.12.0" />
+    <!--
+      HTTP 契约的序列化库：与客户端（Unity 包 com.unity.nuget.newtonsoft-json 3.2.1 携带的
+      程序集版本 13.0.0.0）同一主版本。**不用** Microsoft.AspNetCore.Mvc.NewtonsoftJson——
+      Minimal API 无该挂钩点，且它会引入 MVC 包；服务端经 MetaResults 手写序列化收口。
+    -->
+    <PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
   </ItemGroup>
 
   <ItemGroup>
@@ -55,6 +61,18 @@
       本文件纯 BCL（无 using），不引入 LiteSim/proto。
     -->
     <Compile Include="..\..\Assets\RoomServer\Core\MatchStateMachine.cs" Link="Shared\MatchStateMachine.cs" />
+    <!--
+      Meta HTTP 契约的**线形状单源**（客户端 LiteGame.App 编译同一份）：改字段 = 两端同时编译失败。
+      三个文件均零引擎、零第三方（属性 POCO / 常量表），可直接进服务端编译。
+    -->
+    <Compile Include="..\..\Assets\LiteGame\App\Meta\Wire\MetaWireContracts.cs" Link="Shared\MetaWire\MetaWireContracts.cs" />
+    <Compile Include="..\..\Assets\LiteGame\App\Meta\Wire\MetaWireEndpoints.cs" Link="Shared\MetaWire\MetaWireEndpoints.cs" />
+    <Compile Include="..\..\Assets\LiteGame\App\Meta\Wire\MetaWireLimits.cs" Link="Shared\MetaWire\MetaWireLimits.cs" />
+    <!--
+      契约序列化行为单源（camelCase + 禁日期自动解析 + 未知字段报错）。它引用 Newtonsoft，
+      因此住客户端适配层（R12 允许），服务端链接同一份——**两端的字段名/转义/日期口径只有一个定义**。
+    -->
+    <Compile Include="..\..\Assets\LiteFramework\Runtime\Adapters\Newtonsoft\WireJsonSettings.cs" Link="Shared\MetaWire\WireJsonSettings.cs" />
   </ItemGroup>
 
   <ItemGroup>

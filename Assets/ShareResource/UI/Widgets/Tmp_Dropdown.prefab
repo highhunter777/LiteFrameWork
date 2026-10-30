@@ -809,7 +809,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   Comment: "\u754C\u9762\u7EA7\u547D\u540D\uFF1A\u5982 RegionDropdown"
-  CustomTypeName: LiteClient.UI.UIDropdownWrap
+  CustomTypeName: LiteFramework.UI.UIDropdownWrap
   BindName: Dropdown_Quality
 --- !u!114 &832236536920962173
 MonoBehaviour:

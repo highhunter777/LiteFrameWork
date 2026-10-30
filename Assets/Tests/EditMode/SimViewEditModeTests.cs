@@ -432,6 +432,7 @@ namespace LiteGame.Tests.EditMode
             public Vector3 LastAimPoint;
             public bool LastHasAimPoint;
             public int ResetCount;                                 // Reset() 调用次数（复活落位断言）
+            public int ToggleShoulderCount;                        // 肩位切换次数（端口接线断言）
             public bool HasFocus { get; private set; }
             public Vector3 Focus => LastTarget;
 
@@ -455,6 +456,8 @@ namespace LiteGame.Tests.EditMode
                 LastAimPoint = point;
                 LastHasAimPoint = hasPoint;
             }
+
+            public void ToggleShoulder() { ToggleShoulderCount++; }
 
             public void AddLookDelta(float yawDelta, float pitchDelta) { }
 

@@ -49,6 +49,9 @@ namespace LiteView.Animation
         /// 注入位形态（不进构造依赖面：相机是视图服务，驱动只消费 float 事实）。</summary>
         private readonly Func<float> _cameraPitchOf;
 
+        /// <summary>准心世界点（TPS ADS 枪口对齐源；null = 无瞄准形态——测试/非自由视角装配）。</summary>
+        private readonly Func<Vector3?> _aimPointOf;
+
         /// <summary>射击窗长（秒）＝ CombatConfig.FireStanceFrames / SimConfig.TickRate（1s 单源派生）。</summary>
         private readonly float _fireHoldSeconds;
 
@@ -66,7 +69,8 @@ namespace LiteView.Animation
         private bool _disposed;
 
         public CharacterLocomotionDriver(SimView view, AnimationProfile profile,
-            AnimationClipManifest manifest = null, Func<float> cameraPitchOf = null)
+            AnimationClipManifest manifest = null, Func<float> cameraPitchOf = null,
+            Func<Vector3?> aimPointOf = null)
         {
             _view = view ?? throw new ArgumentNullException(nameof(view));
             _profile = profile ?? throw new ArgumentNullException(nameof(profile),
@@ -120,6 +124,7 @@ namespace LiteView.Animation
 
             _fireHoldSeconds = (float)CombatConfig.FireStanceFrames / SimConfig.TickRate;   // 60/60 = 1s（单源派生）
             _cameraPitchOf = cameraPitchOf;
+            _aimPointOf = aimPointOf;
 
             _view.EventSink += OnFrameEvent;      // 自订阅（§8 接缝：接在静默门之后）；Dispose 时摘下
         }
@@ -316,6 +321,12 @@ namespace LiteView.Animation
                     if (s.Posture == null)
                         Log.Warning($"slot {i} 人形 Chest 骨映射缺失：view「{go.name}」——俯仰姿态不生效", LogTag.Anim);
 
+                    // 枪口对齐（TPS ADS）：只补枪骨残余下偏，不改手/臂动画；缺枪骨或 Muzzle → 不建。
+                    var weaponAim = new WeaponAimConstraint(animator);
+                    s.WeaponAim = weaponAim.IsValid ? weaponAim : null;
+                    if (s.WeaponAim == null)
+                        Log.Warning($"slot {i} 枪骨/Muzzle 缺失：view「{go.name}」——ADS 枪口对齐不生效", LogTag.Anim);
+
                     Log.Info($"slot {i} 播放器建立：view「{go.name}」animator「{animator.name}」"
                         + $"ctrl={(animator.runtimeAnimatorController != null ? animator.runtimeAnimatorController.name : "none")}"
                         + $" manifest={(_manifest != null ? "on" : "off")} layers={animator.layerCount}"
@@ -407,6 +418,14 @@ namespace LiteView.Animation
                     s.Posture.Update(
                         (s.Ctx?.IsAiming ?? false) || (s.Ctx?.IsFireStance ?? false),
                         _cameraPitchOf());
+
+                // 枪口对齐（ADS + 腰射）：只给本地玩家；把枪口前向掰向准心世界点。
+                // 写序在俯仰姿态之后（枪骨位姿已由动画/姿态定稿），退出射击语境即停写。
+                bool aiming = s.Ctx?.IsAiming ?? false;
+                bool firing = s.Ctx?.IsFireStance ?? false;
+                if (s.WeaponAim != null && _aimPointOf != null && _view.IsLocalSlot(i)
+                    && (aiming || firing) && _aimPointOf() is Vector3 aimPoint)
+                    s.WeaponAim.Update(aiming, firing, aimPoint);
             }
         }
 
@@ -529,6 +548,7 @@ namespace LiteView.Animation
             public AnimatorAnimationBackend Backend;
             public WeaponGripConstraint Grip;              // 持枪约束（可选：视图未声明偏移或骨缺失时为 null）
             public AimPitchPostureDriver Posture;          // 俯仰姿态（TPS；可选：人形 Chest 映射缺失或无相机注入时为 null）
+            public WeaponAimConstraint WeaponAim;          // ADS/腰射枪口对齐（可选：枪骨/Muzzle 缺失时为 null）
             public SlotAnimContext Ctx;
             public HierarchicalStageMachine<CharacterAnimId, CombatAnimReq> Machine;
             public Vector3 LastPos;

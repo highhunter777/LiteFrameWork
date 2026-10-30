@@ -253,3 +253,53 @@
 - **待办**：T10 专题设计按 POV/恒定臂长弧/ADS 新链重写；实机矩阵（T9/T11）验旋转跟手、角色构图、
   上看/下看边界、ADS 无甩动；`PitchFollow=0.4` / `PivotHeight=1.6` 为场景初档，实机可继续调
   （Inspector 单源；调高 follow 更锁角色、调低更漂）。
+
+---
+
+## 相机高度试调（2026-10-30）
+
+- 用户实机反馈步枪/准心视差，先试低成本方向：只降相机 `FollowOffset.y`，不动 pivot/x/z。
+- 场景 `BattleRig.unity`：`Player Camera` y 2 → **1.75**；`Aim Camera` y 2 → **1.65**（x=0.75、z=-2.1/-1.5 不变，`PivotHeight=1.6` 不变）。
+- 验证：`TpsBattleRigEditModeTests` **4/4**；Unity 无代码改动。待用户进对局看手感（角色遮挡/掩体视野/ADS 进出/俯仰）。
+- 若观感不足，下一档候选 1.85/1.70（更保守）或 1.70/1.60（更低）；仍不齐则归“枪管朝向/Aim IK”，不是高度问题。
+
+---
+
+## 开发直入接线修复（2026-10-30）
+
+- 现象：Boot 场景 `DevStartupConfig.DirectToTraining=1`，Play 后仍停在入口页，无 `[Main] 直入训练场`。
+- 根因：`ContainerModule` 构造 `ProcedureMain` 时未传 `IDevSession`，`ProcedureMain` 回落 `NullDevSession`（容器里实际是 `DevSession`）；`DirectToTrainingEnabled` 恒 false。
+- 修复：`new ProcedureMain(..., dev: context.Require<IDevSession>())`。
+- 验证（真实 Play）：`clear_console → editor_play` 后日志 `[Main] 直入训练场` → `[Match] 本地测试模式 Room-Test` → `[Battle] joined (JoinAck)` → `BattleRig/TrainingGround` 叠加加载 → 表现件 attach；探针 `stage=Battle devActive=True testModeActive=True`。随后 `editor_stop`。
+- 备注：直入后仍出现一条 `checksum-mismatch` 诊断包日志（未阻塞进局），另案观察，不并入本修复。
+
+### 追加（2026-10-30）：相机高度回退
+
+- 用户实机判定降高“没啥用”；`BattleRig` 已回退 `Player Camera y=2.0`、`Aim Camera y=2.0`（x/z 不变），场景已保存。
+- 结论：视差主因不是相机高度，下一步归“武器朝向/瞄准姿态”，不再在高度上试档。
+
+### 追加（2026-10-30）：ADS 枪口对齐
+
+- 用户确认“枪口瞄准线总在准心下方”；相机高度回退 2.0/2.0 后，新增 `WeaponAimConstraint`。
+- 行为：仅本地、仅瞄准态；把根级枪骨绕自身枢轴补转，使 `Muzzle` 世界前向指向准心点；单帧 ≤20°；不改手/臂；退出瞄准停写。
+- 接线：`CharacterLocomotionDriver(aimPointOf)` → `BattleViewSceneAssembler.AttachCore` → `BattleViewRig` 传 `BattleLookController.AimPoint`。
+- 验证：Unity 编译 0 错；真 prefab 脚本 `valid=True idleDrift=0.000 residual=0.276 frames=1`。本机 Unity TestRunner 跑批再次卡死（重启后复现），定向 EditMode 未执行；用例已补，待 TestRunner 恢复后跑。
+
+### 追加（2026-10-30）：腰射也对齐
+
+- 用户追加“腰射也要对齐”；`WeaponAimConstraint` 门控由仅 `IsAiming` 扩到 `IsAiming || IsFireStance`。
+- 修正上限分档：ADS 20°，腰射 45°（FireIdle 比 AimIdle 低，允许更大抬枪量）；非射击语境停写。
+- 真 prefab 脚本：`valid=True idleDrift=0.000 hipResidual=0.276 adsResidual=0.034 frames=2`；Unity 编译 0 错。
+
+### 修正（2026-10-30）：手/枪分离
+
+- 用户实机反馈 ADS/腰射手和枪分离；根因是上一版只转 `add_weapon_r`，手（Chest 子骨）没跟着转。
+- 改为 `WeaponAimConstraint` 把**胸腔 + 枪骨作为同一刚体**绕 Chest 枢轴补转：手随 Chest 转，枪骨镜像同一旋转；握持关系不再变化。
+- 真 prefab 脚本：`handPosDrift=0.000000 handRotDrift=0.000000`，`hipResidual=0.450`、`adsResidual=0.097`；编译 0 错。
+- 代价：修正角来自胸腔扭转（ADS≤20°/腰射≤45°），不是手臂 IK；视觉上上半身会朝准心带一点，但手不脱枪。
+
+### 追加（2026-10-30）：左右肩切换
+
+- 用户要求加左右肩切换；`ICameraService.ToggleShoulder()` + `CinemachineCameraService` 镜像场景 `FollowOffset.x`；ADS 随主偏移同步；`Reset` 回右肩。
+- 输入 Q（`NewInputIntentSource.ShoulderSwapPressed`）→ `BattleLookController` 仅 pointerLocked 消费。
+- Play 端口脚本：`before=0.750 left=-0.750 right=0.750`；Unity 编译 0 错。

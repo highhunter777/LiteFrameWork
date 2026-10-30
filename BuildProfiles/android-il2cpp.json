@@ -9,7 +9,6 @@
   "backend": "IL2CPP",
   "architecture": "ARM64",
   "scenes": ["Assets/Scenes/Boot.unity"],
-  "defines": [],
   "contentMode": "OfflineBundles",
   "endpoints": {},
   "signing": { "mode": "debug-keystore" },

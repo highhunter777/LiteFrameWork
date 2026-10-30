@@ -131,11 +131,11 @@ namespace LiteSim.Tests
         {
             var world = new SimWorldState { RngState = 1UL };
             long id = world.Spawn(new EntitySlot { Hp = 100, Pos = new SimVector3(0f, 0f, 0f) }, out int slot);
-            WeaponTable table = TestWeapons.NoSpread();                 // 步枪 auto（600rpm 6 帧）
+            WeaponTable table = TestWeapons.NoSpread();                 // 步枪 auto（480rpm 8 帧）
             WeaponSystem.Run(world, new[] { new SimInputFrame { EntityId = id } }, table);
 
             for (int f = 0; f < 30; f++) RunFrame(world, id, f, held: true, table);
-            Assert.Equal(5, FireEvents(world));                        // 0/6/12/18/24 帧各一发——连发不受 armed 门
+            Assert.Equal(4, FireEvents(world));                        // 0/8/16/24 帧各一发——连发不受 armed 门
             _ = slot;
         }
     }

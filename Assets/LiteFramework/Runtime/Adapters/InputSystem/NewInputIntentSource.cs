@@ -208,6 +208,10 @@ namespace LiteFramework
         /// </summary>
         public Vector2 LookDelta => _actions.GamePlay.Look.ReadValue<Vector2>();
 
+        /// <summary>左右肩切换（Q 初档；纯视图侧，不进意图三件/不上行）。</summary>
+        public bool ShoulderSwapPressed => Keyboard.current != null
+            && Keyboard.current.qKey.wasPressedThisFrame;
+
         public IntentSample Sample(in SimVector3 localPos)
         {
             _hasAimPoint = false;

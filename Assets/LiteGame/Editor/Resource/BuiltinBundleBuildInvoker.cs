@@ -48,8 +48,11 @@ namespace LiteGame.EditorTools
         /// <summary>最近一次构建的**产物目录**（PackageRoot，含版本/清单/Bundle——候选打包的输入）。</summary>
         public static string LastOutputDirectory { get; private set; } = string.Empty;
 
-        /// <summary>异步启动构建（EditorApplication.delayCall 下一帧执行；调用方轮询 <see cref="Status"/>）。</summary>
-        public static void RunAsync()
+        /// <summary>异步启动构建（默认 Windows 档；EditorApplication.delayCall 下一帧执行，调用方轮询 <see cref="Status"/>）。</summary>
+        public static void RunAsync() => RunAsync(BuildTarget.StandaloneWindows64);
+
+        /// <summary>异步启动构建——显式目标平台（EditorApplication.delayCall 下一帧执行，调用方轮询 <see cref="Status"/>）。</summary>
+        public static void RunAsync(BuildTarget buildTarget)
         {
             Status = "starting";
             EditorApplication.delayCall += () =>
@@ -57,7 +60,7 @@ namespace LiteGame.EditorTools
                 try
                 {
                     Status = "running";
-                    Run();
+                    Run(buildTarget);
                     Status = "success";
                 }
                 catch (Exception ex)
@@ -68,11 +71,13 @@ namespace LiteGame.EditorTools
             };
         }
 
+        public static void RunCandidateAsync() => RunCandidateAsync(BuildTarget.StandaloneWindows64);
+
         /// <summary>
-        /// 候选构建的**异步**入口（CLI/Pipeline 调用——同步入口超出 eval 主线程窗口；
+        /// 候选构建的**异步**入口——显式目标平台（CLI/Pipeline 调用——同步入口超出 eval 主线程窗口；
         /// 完成后 <see cref="Status"/> = success/failed，产物目录见 <see cref="LastOutputDirectory"/>）。
         /// </summary>
-        public static void RunCandidateAsync()
+        public static void RunCandidateAsync(BuildTarget buildTarget)
         {
             Status = "starting";
             EditorApplication.delayCall += () =>
@@ -80,7 +85,7 @@ namespace LiteGame.EditorTools
                 try
                 {
                     Status = "running";
-                    RunForCandidate(out _);
+                    RunForCandidate(buildTarget, out _);
                     Status = "success";
                 }
                 catch (Exception ex)
@@ -107,11 +112,14 @@ namespace LiteGame.EditorTools
         }
 
         public static void RunForCandidate(out string outputDirectory)
-            => RunCore(BuildTarget.StandaloneWindows64, EBundledCopyOption.None, out outputDirectory);
+            => RunForCandidate(BuildTarget.StandaloneWindows64, out outputDirectory);
+
+        public static void RunForCandidate(BuildTarget buildTarget, out string outputDirectory)
+            => RunCore(buildTarget, EBundledCopyOption.None, out outputDirectory);
 
         /// <summary>同步构建（Unity 主线程调用——SBP 构建过程内部自管异步等待）。
         /// **显式目标平台**：跟随 activeBuildTarget 会在 C0-② 会话遗留 Android 目标时打出 ARM64 包进
-        /// Windows Player（实测 02:18 踩坑）——Offline 冒烟的宿主是 Windows，目标固定并主动切换。</summary>
+        /// Windows Player（实测 02:18 踩坑）——Offline 冒烟的宿主是 Windows，目标由调用方显式传入并主动切换。</summary>
         public static void Run(BuildTarget buildTarget = BuildTarget.StandaloneWindows64)
             => RunCore(buildTarget, EBundledCopyOption.ClearAndCopyAll, out _);
 
@@ -157,7 +165,7 @@ namespace LiteGame.EditorTools
         {
             if (EditorUserBuildSettings.activeBuildTarget != buildTarget)
             {
-                EditorUserBuildSettings.SwitchActiveBuildTarget(BuildTargetGroup.Standalone, buildTarget);
+                EditorUserBuildSettings.SwitchActiveBuildTarget(BuildPipeline.GetBuildTargetGroup(buildTarget), buildTarget);
             }
 
             var buildParameters = new ScriptableBuildParameters

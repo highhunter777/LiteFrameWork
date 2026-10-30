@@ -125,7 +125,40 @@ def check_gm_contract_file(project, violations):
     violations.extend(check_gm_contract(project))
 
 
+def check_server_packages(project, violations):
+    # 服务端 NuGet 登记面：PackageReference 必须显式钉死版本（浮动/缺版本 = 不可复现）。
+    # 原先 l0 只覆盖 Unity manifest/lock 与密钥，服务端包无门禁——引入第二个 NuGet 后补上。
+    import xml.etree.ElementTree as ET
+
+    server = project / "Server"
+    if not server.is_dir():
+        return
+    for csproj in sorted(server.rglob("*.csproj")):
+        relative = csproj.relative_to(project).as_posix()
+        try:
+            root = ET.parse(str(csproj)).getroot()
+        except ET.ParseError as error:
+            violations.append(relative + ": csproj 解析失败 - " + str(error))
+            continue
+        for node in root.iter():
+            if not node.tag.endswith("PackageReference"):
+                continue
+            name = node.get("Include") or node.get("Update")
+            version = node.get("Version") or node.get("VersionOverride")
+            if not name:
+                violations.append(relative + ": PackageReference 缺 Include")
+                continue
+            if not version:
+                version = (node.findtext("Version") or "").strip()
+            if not version:
+                violations.append(relative + ": " + name + " 未显式钉死 Version（浮动依赖不可复现）")
+                continue
+            if any(ch in version for ch in "*[](),"):
+                violations.append(relative + ": " + name + " 版本不是精确值：" + version)
+
+
 def main(argv=None):
+
     configure_stdio()
     args = parse_args(argv)
     project = Path(args.project_path).resolve() if args.project_path else repo_root()
@@ -136,6 +169,7 @@ def main(argv=None):
     check_secrets(project, violations)
     check_toolchain(project, violations)
     check_gm_contract_file(project, violations)
+    check_server_packages(project, violations)
 
     info("quality/l0", f"L0 dependency & secret scan | project: {project}")
     if not violations:

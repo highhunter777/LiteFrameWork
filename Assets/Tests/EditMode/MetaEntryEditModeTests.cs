@@ -7,6 +7,7 @@ using LiteTesting.Unity;
 using NUnit.Framework;
 using XLua;
 using LiteFramework.UI;
+using MetaWire;
 
 namespace LiteGame.Tests.EditMode
 {
@@ -411,7 +412,10 @@ namespace LiteGame.Tests.EditMode
                     new LobbyInstanceView
                     {
                         InstanceId = "ins-1", BuildHash = "bh", Address = "h:1", PlayerCount = 2, Draining = false,
-                        Rooms = new[] { new LobbyRoomEntry { RoomId = "Room-A", Phase = 1, Players = 2, ExpectedPlayers = 8 } },
+                        Rooms = new List<LobbyRoomEntry>
+                        {
+                            new LobbyRoomEntry { RoomId = "Room-A", Phase = 1, Players = 2, ExpectedPlayers = 8 },
+                        },
                     },
                 }),
             };

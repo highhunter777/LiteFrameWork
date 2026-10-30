@@ -71,24 +71,39 @@ namespace LiteFramework
         {
             // 包根选择（真实资产包段）：激活记录给出**已确认候选**且候选资产包版本文件已就位时，
             // 以候选 `content/candidate/bundle` 为包根（绝对路径）；否则沿用内置包根（StreamingAssets/yoo）。
-            string bundleRoot = ResolveConfirmedBundleRoot();
+            // 代次与包根同源判定：只有真正以候选根启动时才把加载键推进到该确认代次，
+            // 否则退回内置代次（否则键说“候选”而包根是内置，旧使用者会从错的键取内容）。
+            ActivationRecord record = new FileActivationRecordIO(files: _files).TryLoad();
+            string bundleRoot = ResolveConfirmedBundleRoot(record);
             await AssetService.InitAsync(ct: ct, builtinPackageRoot: bundleRoot);
-            _generation = ContentGeneration.Default;
+            _generation = GenerationOf(record, bundleRoot);
             Interlocked.Exchange(ref _initialized, 1);
         }
 
         /// <summary>
         /// 解析已确认候选的资产包根绝对路径；不满足（无候选身份/版本文件缺失）返回 null = 沿用内置包根。
-        /// 激活记录经 <see cref="FileActivationRecordIO"/> 读（与 Patch 流程同一记录、同一 FileSystem 根）。
+        /// 激活记录由调用方读一次后传入（与代次判定共用同一份记录，避免两次读盘得出不同结论）。
         /// </summary>
-        private string ResolveConfirmedBundleRoot()
+        private string ResolveConfirmedBundleRoot(ActivationRecord record)
         {
-            ActivationRecord record = new FileActivationRecordIO(files: _files).TryLoad();
             if (!CandidateBundleRootResolver.IsCandidateBundleReady(record?.ConfirmedReleaseId,
                 ReleaseLayout.CandidateBundleRootRelative, AssetService.DefaultPackageName, _files.Exists))
                 return null;
             return string.Concat(UnityEngine.Application.persistentDataPath, "/",
                 ReleaseLayout.CandidateBundleRootRelative);
+        }
+
+        /// <summary>
+        /// 启动代次 = 实际生效的已确认身份：以候选包根启动才用记录里的确认代次；
+        /// 退回内置包根时一律 <see cref="ContentGeneration.Default"/>（不把“候选”写进加载键）。
+        /// </summary>
+        private static ContentGeneration GenerationOf(ActivationRecord record, string bundleRoot)
+        {
+            if (record == null || bundleRoot == null) return ContentGeneration.Default;
+            string releaseId = string.IsNullOrEmpty(record.ConfirmedReleaseId)
+                ? ContentGeneration.BuiltinReleaseId
+                : record.ConfirmedReleaseId;
+            return new ContentGeneration(releaseId, record.ConfirmedVersion);
         }
 
         /// <summary>

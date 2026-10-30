@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  自定义 Android 主清单（PlayerSettings.Android.useCustomMainManifest=1）。
+
+  为什么需要它：显式声明 INTERNET、锁横屏的 screenOrientation，并作为**明文放行的落点**。
+  文件本身保持**不放明文**的安全默认：development 通道出包时由
+  `scripts/build/build-player.py` 依 BuildProfile.channel 给 application 标签注入明文放行属性，
+  并在收尾还原；其余通道（release 等）出包前断言清单干净，带残留明文即构建失败。
+  策略实现见 build-player.py 的 apply_cleartext/sync_android_cleartext。
+
+  发布口径（待 T16 回写）：对外分发前把端点换 https，届时 development 通道也不再需要明文。
+-->
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <uses-permission android:name="android.permission.INTERNET" />
+    <uses-feature android:glEsVersion="0x00020000" android:required="true" />
+
+    <application>
+
+        <activity
+            android:name="com.unity3d.player.UnityPlayerActivity"
+            android:theme="@style/UnityThemeSelector"
+            android:screenOrientation="landscape"
+            android:launchMode="singleTask"
+            android:configChanges="mcc|mnc|locale|touchscreen|keyboard|keyboardHidden|navigation|orientation|screenLayout|uiMode|screenSize|smallestScreenSize|fontScale|layoutDirection|density"
+            android:hardwareAccelerated="false"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+            <meta-data android:name="unityplayer.UnityActivity" android:value="true" />
+        </activity>
+
+    </application>
+
+</manifest>

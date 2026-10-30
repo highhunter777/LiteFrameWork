@@ -5,6 +5,7 @@ using MetaServer.Contracts.Lobby;
 using MetaServer.Modules.Lobby;
 using Xunit;
 
+
 namespace MetaServer.Tests
 {
     /// <summary>
@@ -236,7 +237,7 @@ namespace MetaServer.Tests
             registry.Register(Command("a", buildHash: "h1"), out _);
 
             clock.Ms = 4_000;
-            List<LobbyRoomView> rooms = registry.ProjectRooms();
+            var rooms = registry.ProjectRooms();
 
             Assert.Equal(2, rooms.Count);
             Assert.Equal("a", rooms[0].InstanceId);            // Ordinal 序

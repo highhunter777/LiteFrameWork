@@ -6,6 +6,7 @@ using Cysharp.Threading.Tasks;
 using LiteFramework;
 using UnityEngine.Networking;
 using LiteFramework.UI;
+using MetaWire;
 
 namespace LiteGame
 {
@@ -17,57 +18,63 @@ namespace LiteGame
     ///   <see cref="MetaCall{T}"/>；取消（<see cref="OperationCanceledException"/>）原样传播——Scope 语义不变；
     /// - **Content-Type 必须显式 application/json**（服务端 <c>TryReadJsonAsync</c> 对非 JSON 类型按坏请求收口，
     ///   UnityWebRequest.Post(string,string) 默认表单编码——不可用，须手工 UploadHandler）；
+    /// - **JSON 编解码经注入的 <see cref="IJsonCodec"/>**（端口住 Core、实现住适配层）：本类与
+    ///   <see cref="MetaJson"/> 都不引用第三方 JSON 库；
     /// - 令牌/票据不落日志（§11.1）；失败 Detail 只带状态码与错误码，不带原文。
     /// </summary>
     public sealed class UnityMetaClient : IMetaClient
     {
         private readonly string _baseUrl;
         private readonly int _timeoutSeconds;
+        private readonly MetaJson _json;
         private readonly Func<string> _requestIdFactory;
 
         /// <param name="baseUrl">Meta 基址（末尾不带 /；空 = 抛——装配面 fail-fast，联机入口缺配置在上游显性拒绝）。</param>
         /// <param name="timeoutSeconds">单请求超时（秒；&lt;1 抛）。</param>
+        /// <param name="codec">网络契约 JSON 编解码端口（必填；装配面经容器注入 <see cref="IJsonCodec"/>）。</param>
         /// <param name="requestIdFactory">请求标识工厂（缺省时间戳+随机；注入便于测试对数）。</param>
-        public UnityMetaClient(string baseUrl, int timeoutSeconds, Func<string> requestIdFactory = null)
+        public UnityMetaClient(string baseUrl, int timeoutSeconds, IJsonCodec codec,
+            Func<string> requestIdFactory = null)
         {
             if (string.IsNullOrEmpty(baseUrl)) throw new ArgumentException("Meta 基址必填", nameof(baseUrl));
             if (timeoutSeconds < 1) throw new ArgumentOutOfRangeException(nameof(timeoutSeconds), "超时必须 ≥ 1 秒");
             _baseUrl = baseUrl.TrimEnd('/');
             _timeoutSeconds = timeoutSeconds;
+            _json = new MetaJson(codec ?? throw new ArgumentNullException(nameof(codec)));
             _requestIdFactory = requestIdFactory ?? DefaultRequestId;
         }
 
         public async UniTask<MetaCall<GuestLoginInfo>> GuestLoginAsync(string deviceId, CancellationToken ct = default)
         {
-            string body = MetaJson.BuildGuestLoginRequest(_requestIdFactory(), deviceId ?? "");
-            return await SendAsync("POST", MetaEndpoints.GuestLogin, body, bearer: null,
-                MetaJson.ParseGuestLogin, ct);
+            string body = _json.BuildGuestLoginRequest(_requestIdFactory(), deviceId ?? "");
+            return await SendAsync("POST", MetaWireEndpoints.GuestLogin, body, bearer: null,
+                _json.ParseGuestLogin, ct);
         }
 
         public async UniTask<MetaCall<JoinTicketInfo>> RequestJoinTicketAsync(string accessToken, string roomId,
             string buildHash, CancellationToken ct = default)
         {
-            string body = MetaJson.BuildJoinTicketRequest(_requestIdFactory(), roomId ?? "", buildHash ?? "");
-            return await SendAsync("POST", MetaEndpoints.JoinTicket, body, accessToken, MetaJson.ParseJoinTicket, ct);
+            string body = _json.BuildJoinTicketRequest(_requestIdFactory(), roomId ?? "", buildHash ?? "");
+            return await SendAsync("POST", MetaWireEndpoints.JoinTicket, body, accessToken, _json.ParseJoinTicket, ct);
         }
 
         public UniTask<MetaCall<JoinTicketInfo>> CreateRoomAsync(string accessToken, string buildHash, int mapId = 0,
             int expectedPlayers = 0, string template = null, string gmKey = null, CancellationToken ct = default)
         {
-            string body = MetaJson.BuildCreateRoomRequest(_requestIdFactory(), buildHash ?? "", mapId, expectedPlayers,
+            string body = _json.BuildCreateRoomRequest(_requestIdFactory(), buildHash ?? "", mapId, expectedPlayers,
                 template, gmKey);
-            return SendAsync("POST", MetaEndpoints.CreateRoom, body, accessToken, MetaJson.ParseJoinTicket, ct);
+            return SendAsync("POST", MetaWireEndpoints.CreateRoom, body, accessToken, _json.ParseJoinTicket, ct);
         }
 
         public UniTask<MetaCall<IReadOnlyList<LobbyInstanceView>>> ListRoomsAsync(string accessToken,
             CancellationToken ct = default)
-            => SendAsync("GET", MetaEndpoints.RoomsPublic, null, accessToken, MetaJson.ParseRooms, ct);
+            => SendAsync("GET", MetaWireEndpoints.RoomsPublic, null, accessToken, _json.ParseRooms, ct);
 
         public UniTask<MetaCall<IReadOnlyList<MatchRecordInfo>>> ListRecentMatchesAsync(string accessToken, int limit,
             CancellationToken ct = default)
         {
-            string path = limit > 0 ? MetaEndpoints.Matches + "?limit=" + limit : MetaEndpoints.Matches;
-            return SendAsync("GET", path, null, accessToken, MetaJson.ParseMatches, ct);
+            string path = limit > 0 ? MetaWireEndpoints.Matches + "?limit=" + limit : MetaWireEndpoints.Matches;
+            return SendAsync("GET", path, null, accessToken, _json.ParseMatches, ct);
         }
 
         /// <summary>统一收发：传输 → 2xx 解析载荷 / 非 2xx 解析错误体 / 网络错分类。取消原样传播。</summary>
@@ -99,7 +106,7 @@ namespace LiteGame
                     // 非 2xx 在这里自抛（先例同 HttpCandidateFetcher）；无响应（连接失败/DNS/超时）ResponseCode=0 → 暂态
                     if (ex.ResponseCode <= 0)
                         return MetaCall<T>.Failed(MetaFailure.Network("meta:" + path));
-                    return MetaCall<T>.Failed(MetaJson.ParseFailure(ex.ResponseCode, ex.Text));
+                    return MetaCall<T>.Failed(_json.ParseFailure(ex.ResponseCode, ex.Text));
                 }
 
                 if (request.result != UnityWebRequest.Result.Success)
@@ -107,7 +114,7 @@ namespace LiteGame
                     long code = request.responseCode;
                     if (code <= 0)
                         return MetaCall<T>.Failed(MetaFailure.Network("meta:" + path));
-                    return MetaCall<T>.Failed(MetaJson.ParseFailure(code, body));
+                    return MetaCall<T>.Failed(_json.ParseFailure(code, body));
                 }
 
                 MetaCall<T> parsed = parse(body);

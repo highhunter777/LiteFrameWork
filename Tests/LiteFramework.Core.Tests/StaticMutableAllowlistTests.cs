@@ -16,9 +16,9 @@ namespace LiteFramework.Core.Tests
         /// <summary>存量基线（路径 :: 字段名）。</summary>
         private static readonly HashSet<string> Allowed = new HashSet<string>(StringComparer.Ordinal)
         {
-            "Assets/LiteGame/Dev/Debug/DevStartupConfig.cs :: DirectToTrainingEnabled",
-            "Assets/LiteGame/App/Presentation/Battle/LookTuning.cs :: AdsScaleDevOverride",
-            "Assets/LiteGame/App/Presentation/Battle/LookTuning.cs :: SensitivityDevOverride",
+            "Assets/LiteGame/Dev/Debug/Session/DevStartupConfig.cs :: DirectToTrainingEnabled",
+            "Assets/LiteGame/App/Presentation/Battle/Look/LookTuning.cs :: AdsScaleDevOverride",
+            "Assets/LiteGame/App/Presentation/Battle/Look/LookTuning.cs :: SensitivityDevOverride",
             "Assets/LiteGame/App/Presentation/Hud/CrosshairFeel.cs :: BurstCapDevOverride",
             "Assets/LiteGame/App/Presentation/Hud/CrosshairFeel.cs :: BurstGrowthDevOverride",
             "Assets/LiteGame/App/Presentation/Hud/CrosshairFeel.cs :: BurstRecoverDevOverride",

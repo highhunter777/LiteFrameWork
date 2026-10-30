@@ -64,7 +64,7 @@ namespace LiteGame.Tests.EditMode
             // 引导期错误界面：例外（§7 判据）——显式登记在 AllowedFileNames。
             // 按**文件名**登记，故此处路径随目录迁移变化不影响放行。
             var v = VisualConstructionScanner.ScanSource(
-                "Assets/LiteGame/App/Procedure/ProcedureError.cs",
+                "Assets/LiteGame/App/Procedure/Stages/ProcedureError.cs",
                 "var root = new GameObject(\"BootstrapErrorUI\", typeof(Canvas), typeof(Image));");
             Assert.AreEqual(0, v.Count, "登记例外不判违规（判据见 §7：仅引导期 + 绑冒烟标记）");
         }
@@ -74,7 +74,7 @@ namespace LiteGame.Tests.EditMode
         {
             // 按文件名登记的边界：**只有登记的那个文件名**放行，别的文件即便在例外目录里也不行
             var v = VisualConstructionScanner.ScanSource(
-                "Assets/LiteGame/App/Procedure/ProcedureMain.cs",
+                "Assets/LiteGame/App/Procedure/Stages/ProcedureMain.cs",
                 "var root = new GameObject(\"X\", typeof(Canvas), typeof(Image));");
             Assert.AreEqual(1, v.Count, "未登记文件不得借例外目录逃逸");
         }

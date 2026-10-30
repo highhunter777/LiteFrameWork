@@ -2,22 +2,6 @@ using System.Collections.Generic;
 
 namespace MetaServer.Contracts.Auth
 {
-    /// <summary>
-    /// 统一错误形状（§5.2）：<c>{code, messageKey, args}</c>——<c>code</c> 是**稳定机器可读**标识，
-    /// 客户端按 code 分支不解析自由文本；<c>messageKey</c> 交本地化；<c>args</c> 只放非敏感参数。
-    /// 取代样例端点的简化 <c>SampleError</c>（后者归 M0-c 样例专用，不扩展）。
-    /// </summary>
-    public sealed class MetaError
-    {
-        /// <summary>稳定机器可读错误码（AuthErrorCodes 常量表单源）。</summary>
-        public string Code { get; set; }
-
-        /// <summary>本地化消息键（客户端侧查表展示，不解析自由文本）。</summary>
-        public string MessageKey { get; set; }
-
-        /// <summary>非敏感参数（如字段名/上限值；**绝不**放令牌、字段原文或凭据）。</summary>
-        public IReadOnlyList<string> Args { get; set; }
-    }
 
     /// <summary>
     /// Auth 稳定错误码表（§5.2"错误码表归 Contracts 单源"）。变更 = 契约变更：
@@ -67,21 +51,4 @@ namespace MetaServer.Contracts.Auth
         public string DeviceId { get; set; }
     }
 
-    /// <summary>
-    /// 游客登录成功响应（S→C 载荷）。JSON 形状（camelCase）：
-    /// <c>{"accountId":"...","accessToken":"...","tokenType":"Bearer","expiresAtMs":123}</c>。
-    /// </summary>
-    public sealed class GuestLoginResponse
-    {
-        public string AccountId { get; set; }
-
-        /// <summary>访问令牌（v1 线格式；客户端对其不可解析不可验证——只透传）。</summary>
-        public string AccessToken { get; set; }
-
-        /// <summary>令牌类型（透传形态固定 "Bearer"；Authorization: Bearer &lt;token&gt;）。</summary>
-        public string TokenType { get; set; } = "Bearer";
-
-        /// <summary>过期时刻（epoch 毫秒，UTC——§5.2"时间字段一律 UTC"；客户端只用于提前刷新，不作判据）。</summary>
-        public long ExpiresAtMs { get; set; }
-    }
 }

@@ -111,7 +111,7 @@ namespace MetaServer.Modules.Profile
             bool hasConflict = false;
             try
             {
-                foreach (PlayerResultEntry entry in submission.Players)
+                foreach (MetaWire.PlayerResultEntry entry in submission.Players)
                 {
                     string operationId = ResolveOperationId(submission.MatchId, entry);
                     SettlementOutcome outcome = await _ledger.ApplyAsync(new SettlementWrite(
@@ -149,7 +149,7 @@ namespace MetaServer.Modules.Profile
             var players = new MatchResultPlayerEntry[submission.Players.Count];
             for (int i = 0; i < players.Length; i++)
             {
-                PlayerResultEntry p = submission.Players[i];
+                MetaWire.PlayerResultEntry p = submission.Players[i];
                 players[i] = new MatchResultPlayerEntry(p.PlayerId, p.AccountId, p.Kills, p.Deaths);
             }
             return new MatchResultArchiveEntry(submission.MatchId, submission.Seed, submission.FinalFrame,
@@ -158,7 +158,7 @@ namespace MetaServer.Modules.Profile
 
         /// <summary>幂等键解析：显式供给优先；缺省按 (matchId, playerId) 确定性派生——
         /// 同局重投恒命中同账目（压实后重枚举/响应丢失重试均收敛）。</summary>
-        private static string ResolveOperationId(string matchId, PlayerResultEntry entry)
+        private static string ResolveOperationId(string matchId, MetaWire.PlayerResultEntry entry)
         {
             if (!string.IsNullOrEmpty(entry.OperationId)) return entry.OperationId;
             return "match:" + matchId + ":" + entry.PlayerId;
@@ -222,7 +222,7 @@ namespace MetaServer.Modules.Profile
                 var seen = new HashSet<string>(StringComparer.Ordinal);
                 for (int i = 0; i < submission.Players.Count; i++)
                 {
-                    PlayerResultEntry entry = submission.Players[i];
+                    MetaWire.PlayerResultEntry entry = submission.Players[i];
                     if (entry == null)
                     {
                         errors.Add("players[" + i + "] 为空");

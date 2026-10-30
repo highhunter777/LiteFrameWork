@@ -1,78 +1,24 @@
 using System;
-using System.Collections.Generic;
 using System.Globalization;
-using LiteFramework.UI;
 
 namespace LiteGame
 {
     /// <summary>
-    /// Meta 端点契约的客户端面（《上云测试专项设计》§2 最小闭环：游客登录 → Join Ticket → 对局 → 结算可查）。
-    /// JSON 形状与服务端 `MetaServer.Contracts`（camelCase 序列化）一一对应；解析单源在 <see cref="MetaJson"/>。
-    /// 本件零引擎、零 Newtonsoft——纯数据与结果形状，可直测。
+    /// Meta 契约的**客户端本地面**（线形状在 <c>MetaWire</c>，双端共用）。
+    /// 本件只放"客户端如何处置结果"的类型：失败分类与结果包装——服务端没有这些概念，
+    /// 因此不进共享契约（共享面只描述线上长什么样）。
     ///
-    /// **结果型返回**（不抛业务异常——服务端 <c>JoinTicketIssueUseCase.Result</c> 同款纪律）：
-    /// 传输/形状问题一律落 <see cref="MetaCall{T}.Failure"/>，调用方按 <see cref="MetaFailureKind"/>
-    /// 分支处置（Network 可重试、Rejected 按 code 展示、InvalidResponse 确定性不重试）。
+    /// **结果型返回**（不抛业务异常）：传输/形状问题一律落 <see cref="MetaCall{T}.Failure"/>，
+    /// 调用方按 <see cref="MetaFailureKind"/> 分支处置（Network 可重试、Rejected 按 code 展示、
+    /// InvalidResponse 确定性不重试）。
     /// </summary>
-    public sealed class GuestLoginInfo
-    {
-        public string AccountId;
-        public string AccessToken;
-        public long ExpiresAtMs;
-    }
-
-    /// <summary>Join Ticket 签发结果（<c>/lobby/join-ticket</c>；Address = "host:port"，见 <see cref="RoomEndpoint"/>）。</summary>
-    public sealed class JoinTicketInfo
-    {
-        public string InstanceId;
-        public string Address;
-        public string RoomId;
-        public string Ticket;
-        public long ExpiresAtMs;
-    }
-
-    /// <summary>房间明细（实例投影内单行：roomId/相位/在场/满员/地图）。</summary>
-    public sealed class LobbyRoomEntry
-    {
-        public string RoomId;
-        public int Phase;
-        public int Players;
-        public int ExpectedPlayers;
-
-        /// <summary>本房地图行键（多图批；0 = 未标注——显示面按"未标注"回落，不作判据）。</summary>
-        public int MapId;
-    }
-
-    /// <summary>实例投影（<c>/lobby/rooms/public</c> 单行：实例身份 + 该实例的房间明细列表）。</summary>
-    public sealed class LobbyInstanceView
-    {
-        public string InstanceId;
-        public string BuildHash;
-        public string Address;
-        public int PlayerCount;
-        public bool Draining;
-        public IReadOnlyList<LobbyRoomEntry> Rooms;
-    }
-
-    /// <summary>单局战绩（<c>/matches</c> 单行；结束原因值域与服务端枚举同源编号）。</summary>
-    public sealed class MatchRecordInfo
-    {
-        public string MatchId;
-        public int Kills;
-        public int Deaths;
-        public int EndReason;
-        public int GameplayEndReason;
-        public long FinishedAtMs;
-    }
-
-    /// <summary>失败分类（处置语义见各分支注释；HttpStatus=0 表示未拿到 HTTP 响应）。</summary>
     public enum MetaFailureKind
     {
         /// <summary>传输层失败（连不上/DNS/超时/中断）——暂态，可重试。</summary>
         Network = 0,
 
-        /// <summary>服务端拒绝（非 2xx）：Code 携带 meta.* 稳定错误码（如 auth.unauthorized / lobby.no-capacity /
-        /// lobby.version-mismatch），HttpStatus 携带状态码；409/401 等确定性，5xx 暂态。</summary>
+        /// <summary>服务端拒绝（非 2xx）：Code 携带 meta.* 稳定错误码（如 auth.unauthorized /
+        /// lobby.no-capacity / lobby.version-mismatch），HttpStatus 携带状态码；409/401 等确定性，5xx 暂态。</summary>
         Rejected = 1,
 
         /// <summary>响应形状非法（2xx 但字段缺失/类型不符/坏 JSON）——确定性，重试无效。</summary>
@@ -139,17 +85,6 @@ namespace LiteGame
 
         /// <summary>凭证失效的 HTTP 状态码（与 <see cref="Unauthorized"/> 同判据，两端都收）。</summary>
         public const long HttpUnauthorized = 401;
-    }
-
-    /// <summary>端点路径单源（服务端 <c>AuthEndpoints/LobbyEndpoints/SettlementEndpoints.Map</c> 的挂载名——
-    /// 无 /api 前缀；改动需两端同步核对）。</summary>
-    public static class MetaEndpoints
-    {
-        public const string GuestLogin = "/auth/guest";
-        public const string JoinTicket = "/lobby/join-ticket";
-        public const string CreateRoom = "/lobby/create-room";
-        public const string RoomsPublic = "/lobby/rooms/public";
-        public const string Matches = "/matches";
     }
 
     /// <summary>

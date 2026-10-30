@@ -4,15 +4,15 @@
 
 ## 任务清单
 
-阶段：正式施工（implement） ｜ 完成 0/16（取消 0，阻塞 0）
+阶段：正式施工（implement） ｜ 完成 5/16（取消 0，阻塞 0）
 
 | ID | 任务 | 依赖 | 状态 | 验收标准 | 验证方式 | 证据 |
 |---|---|---|---|---|---|---|
-| T1 | 构建链平台参数化 | - | 进行中 | build-player.py 以 profile.buildTargetGroup 驱动 NamedBuildTarget 与后端切换，产物后缀与 artifactGlob 由 profile 驱动（Android 产出 apk）；BuiltinBundleBuildInvoker 支持 Android 目标并解除仅 StandaloneWindows64 的 bundles 硬门禁（支持平台清单化）；toolchain.py build 的 -Profile 单横线参数修复为 --profile；windows-x64 profile 行为零变化 | python -m unittest discover -s scripts/tests -p test_build_player.py -v（新增双 profile 平台映射/产物 glob/门禁清单用例） | - |
-| T2 | defines 校验面与平台特判守卫 | - | 待办 | toolchain.py check 新增 Android defines 校验面（期望宏集入 toolchain 配置、错集即红）；DisciplineScanner 新增对 #if UNITY_ANDROID 平台特判的守卫（白名单＝方案四处收敛点；正/负例用例） | python scripts/toolchain.py check（错宏集红、对齐绿）＋python scripts/gate/unity-tests.py --mode editor --filter DisciplineScannerTests | - |
-| T3 | Android 工程设置批 | T2 | 待办 | Android scriptingBackend=IL2CPP 与 targetArchitectures=ARM64；脚本宏与 Standalone 差集逐项对齐（补 HOTFIX_ENABLE/UNITY_PIPELINE_URP/DOTWEEN/DOTWEEN_UITOOLKIT/HIDE_REFLECTION，不补 MAGICACLOTH2 与 ODIN 系并登记）；锁横屏；包名 com.litegame.dev；INTERNET Require；useCustomMainManifest 且 dev 通道 usesCleartextTraffic=true；图形 API 序 GLES3 优先；纹理压缩 ASTC；Android 默认质量档 Performant；移动 targetFrameRate 档启动件单点设置；android profile 的 defines 死字段删除（工程设置为唯一真源） | 编辑器读回探针逐字段断言＋python scripts/toolchain.py check（defines 校验面绿） | - |
-| T4 | DeployBake 安卓同步读通道 | - | 待办 | ReadArgs 安卓分支经 UnityWebRequest 与 WaitForCompletion 同步收流（BakeReadTimeoutSeconds=2 常量带推导注释与 Stopwatch 耗时日志）；桌面 File 直读不变；进程内 memo 使读次数恒 1；日志拆分 DeployBake missing（无文件正常）与 DeployBake read failed（异常，一次性 Warning，进程级 flag，用 Debug.Log）；三处消费点调用形态零改动 | python scripts/gate/test.py --suite L1 --profile PullRequest（新增安卓文本分支与合并序回归用例先行红） | - |
-| T5 | player-smoke adb 通道与 ARM 预检 | - | 待办 | player-smoke.py 新增 --platform android 分支：--adb-serial 与 adb connect 双形态参数化、logcat 先清缓冲或 -T 只取新行、真标记与 player-smoke.py:107 同源、会话日志工件导出路径固化、卸载清理；ARM 翻译预检命令（abilist 快检＋首个产物即探针）；分支纯 Python fake adb 单测 | python -m unittest scripts.tests.test_player_smoke -v（扩展 adb 分支用例） | - |
+| T1 | 构建链平台参数化 | - | 完成 | build-player.py 以 profile.buildTargetGroup 驱动 NamedBuildTarget 与后端切换，产物后缀与 artifactGlob 由 profile 驱动（Android 产出 apk）；BuiltinBundleBuildInvoker 支持 Android 目标并解除仅 StandaloneWindows64 的 bundles 硬门禁（支持平台清单化）；toolchain.py build 的 -Profile 单横线参数修复为 --profile；windows-x64 profile 行为零变化 | python -m unittest discover -s scripts/tests -p test_build_player.py -v（新增双 profile 平台映射/产物 glob/门禁清单用例） | unittest test_build_player.py 19/19 OK; L1 1901/1901 PASS; toolchain.py check OK(2 pre-existing warnings); Unity refres… |
+| T2 | defines 校验面与平台特判守卫 | - | 完成 | toolchain.py check 新增 Android defines 校验面（期望宏集入 toolchain 配置、错集即红）；DisciplineScanner 新增对 #if UNITY_ANDROID 平台特判的守卫（白名单＝方案四处收敛点；正/负例用例） | python scripts/toolchain.py check（错宏集红、对齐绿）＋python scripts/gate/unity-tests.py --mode editor --filter DisciplineScannerTests | defines 校验面 test_toolchain_defines 14/14 OK; DisciplineScanner 定向 52/52（含 R15 正负例与允许面存在性）; L1 1905/1905 PASS; Unity 编译 … |
+| T3 | Android 工程设置批 | T2 | 完成 | Android scriptingBackend=IL2CPP 与 targetArchitectures=ARM64；脚本宏与 Standalone 差集逐项对齐（补 HOTFIX_ENABLE/UNITY_PIPELINE_URP/DOTWEEN/DOTWEEN_UITOOLKIT/HIDE_REFLECTION，不补 MAGICACLOTH2 与 ODIN 系并登记）；锁横屏；包名 com.litegame.dev；INTERNET Require；useCustomMainManifest 且 dev 通道 usesCleartextTraffic=true；图形 API 序 GLES3 优先；纹理压缩 ASTC；Android 默认质量档 Performant；移动 targetFrameRate 档启动件单点设置；android profile 的 defines 死字段删除（工程设置为唯一真源） | 编辑器读回探针逐字段断言＋python scripts/toolchain.py check（defines 校验面绿） | 读回探针：IL2CPP/ARM64/LandscapeLeft/com.litegame.dev/INTERNET/customManifest=true/GLES3,Vulkan/ASTC(m_Format=3)/质量档 Perform… |
+| T4 | DeployBake 安卓同步读通道 | - | 完成 | ReadArgs 保持同步契约：桌面 File 直读不变，Android 经 APK zip 条目 assets/deploy.args 真同步读取（本机 UnityWebRequest 无 WaitForCompletion——机制替换已记入 build-log 偏差）；进程内 memo 使引导期读次数恒 1；日志拆分 DeployBake missing（正常，一次性）与 DeployBake read failed（异常，一次性 Warning，进程级 flag）；Stopwatch 耗时日志；三处消费点调用形态零改动 | python scripts/gate/test.py --suite L1 --profile PullRequest（新增安卓文本分支与合并序回归用例先行红） | DeployBakeEditModeTests 7/7 PASS（桌面直读/zip 条目/memo 只读一次/missing 一次/失败一次性 Warning/成功不再读/复位语义）；AndroidPlatformSettingsEdit… |
+| T5 | player-smoke adb 通道与 ARM 预检 | - | 完成 | player-smoke.py 新增 --platform android 分支：--adb-serial 与 adb connect 双形态参数化、logcat 先清缓冲或 -T 只取新行、真标记与 player-smoke.py:107 同源、会话日志工件导出路径固化、卸载清理；ARM 翻译预检命令（abilist 快检＋首个产物即探针）；分支纯 Python fake adb 单测 | python -m unittest scripts.tests.test_player_smoke -v（扩展 adb 分支用例） | test_player_smoke 20/20（10 契约 + 7 fake adb 流程 + 3 既有）；流程断言：abilist 预检→install -t -r→logcat -c→force-stop→am start→logca… |
 | T6 | ILookDeltaSource 泛化镜头喂源缝 | - | 待办 | 可选接口 ILookDeltaSource 住 Platform.Unity；NewInputIntentSource 与触屏侧 TouchLookAdapter 双实现；BattleViewRig.LookDeltaOf 改按 is ILookDeltaSource 取委托；桌面 NewInputIntentSource 现值行为不变断言；模态/死亡门覆盖触屏镜头断言 | EditMode 合成断言（AddLookDelta 收触摸 delta、模态拦截、桌面回归）＋AC4.2 桌面符号回归 | - |
 | T7 | 触屏意图链 | - | 待办 | TouchGestureState 纯值手势状态（float 对，Runtime）与 TouchIntentSource : IIntentSource（住 Runtime、L1 链接集不新增引擎类型）产同形态意图（Move 轴归一、Fire/Aim held、Reload 离散沿）；InputModule 按平台或 Touchscreen 能力选源且单源不合并 | python scripts/gate/test.py --suite L1 --profile PullRequest（新增映射用例先行红） | - |
 | T8 | 首次 Android 出包与模拟器首启 | T1, T3, T4, T5 | 待办 | android-il2cpp profile 全链出包 Builds/android/Test.apk 且解包断言 lib/arm64-v8a；模拟器 ARM 翻译预检两段通过；player-smoke --platform android 判 PASSED（[Asset] ready 且无 BootstrapError）；development 通道映射确认（channel: development 到 EditorBuildOptions.development，缺则补）；引导期 DeployBake 读次数=1 且 Stopwatch 耗时小于 2s | build-player.py 全链日志＋player-smoke PASSED 输出＋ABI 解包断言＋DeployBake 耗时日志 | - |
@@ -37,11 +37,11 @@
 
 ### T3 · Android 工程设置批
 
-- 文件: ProjectSettings/ProjectSettings.asset, BuildProfiles/android-il2cpp.json, Assets/LiteFramework/Scripts/Unity/App/AppLifetime.cs
+- 文件: ProjectSettings/ProjectSettings.asset, ProjectSettings/QualitySettings.asset, BuildProfiles/android-il2cpp.json, Assets/Plugins/Android/AndroidManifest.xml, Assets/LiteFramework/Runtime/Adapters/Unity/App/AppLifetime.cs, Assets/Tests/EditMode/AndroidPlatformSettingsEditModeTests.cs
 
 ### T4 · DeployBake 安卓同步读通道
 
-- 文件: Assets/LiteGame/App/Meta/DeployBake.cs
+- 文件: Assets/LiteGame/App/Meta/DeployBake.cs, Assets/Tests/EditMode/DeployBakeEditModeTests.cs
 
 ### T5 · player-smoke adb 通道与 ARM 预检
 

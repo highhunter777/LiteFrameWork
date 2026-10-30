@@ -11,7 +11,7 @@ namespace LiteGame
     /// 对局音效驱动（帧事件路由 <see cref="HitFeedbackDispatcher"/> 的消费者——VFX/飘字同族先例）：
     /// <list type="bullet">
     /// <item><b>Fire</b>：本地造成 = 2D 满音量（自己的枪不空间化）；他人开火 = 3D 空间位（距离衰减）。
-    ///   两者都走 <see cref="AudioService.PlayRetrigger"/> **同源重触发**——自动连发（步枪 600 RPM = 10 发/秒）
+    ///   两者都走 <see cref="AudioService.PlayRetrigger"/> **同源重触发**——自动连发（步枪 480 RPM = 8 发/秒）
     ///   每发重启同一代理，节奏 = 开火节奏、不吃代理预算、不堆叠；本地 voice 优先级高于他人/命中档
     ///   （<see cref="LocalFirePriority"/>——自己的枪不被抢）。</item>
     /// <item><b>Hit/Crit</b>：命中点 3D（全角色可闻——空间衰减天然管距离；爆头档独立 clip）。</item>

@@ -861,7 +861,7 @@
       "plane": "editor",
       "purpose": "dev",
       "handler": "quality.discipline",
-      "summary": "R1～R13 机制纪律扫描（常规随 L1）。",
+      "summary": "R1～R15 机制纪律扫描（常规随 L1）。",
       "docs": "Docs/说明/10-测试与门禁.md",
       "menu": "Tools/纪律扫描",
       "writes": ["none"],
@@ -915,13 +915,21 @@
       "plane": "external",
       "purpose": "delivery",
       "requires": ["player"],
-      "summary": "启动构建产物并等待定义态标记。",
+      "summary": "启动构建产物并等待定义态标记（desktop 起 exe 读 Player.log；android 走 adb install/am start/logcat）。",
       "docs": "Docs/说明/10-测试与门禁.md",
       "command": ["python", "scripts/build/player-smoke.py"],
       "args": [
         { "name": "project-path", "type": "path", "description": "Unity 工程根路径" },
-        { "name": "exe-path", "type": "path", "description": "Player 可执行文件路径" },
-        { "name": "timeout-sec", "type": "int", "description": "启动等待秒数" },
+        { "name": "platform", "type": "enum", "values": ["desktop", "android"], "description": "冒烟通道（默认 desktop）" },
+        { "name": "exe-path", "type": "path", "description": "Player 可执行文件路径（desktop）" },
+        { "name": "apk-path", "type": "path", "description": "APK 路径（android，默认 Builds/android/Test.apk）" },
+        { "name": "adb-path", "type": "path", "description": "adb 可执行文件（默认取 PATH；编辑器自带在 PlaybackEngines/AndroidPlayer/SDK/platform-tools）" },
+        { "name": "adb-serial", "type": "string", "description": "设备序列号（多设备时必填；也可先 adb connect）" },
+        { "name": "package-name", "type": "string", "description": "安卓包名（默认读 ProjectSettings 的 applicationIdentifier）" },
+        { "name": "log-artifact", "type": "path", "description": "会话日志工件导出路径（默认 TestResults/android-smoke/<时间戳>.log）" },
+        { "name": "keep-installed", "type": "bool", "description": "冒烟后不卸载（默认卸载清理）" },
+        { "name": "skip-arm-preflight", "type": "bool", "description": "跳过 ARM 翻译预检（abilist 需含 arm64-v8a）" },
+        { "name": "timeout-sec", "type": "int", "description": "启动等待秒数（android 未显式指定时抬到 120）" },
         { "name": "player-arg", "type": "string", "description": "追加传给 Player 的参数（可重复）" },
         { "name": "mem-loop", "type": "bool", "description": "启用内存循环采样" },
         { "name": "mem-loop-cycles", "type": "int", "description": "内存循环轮数" },
@@ -1364,5 +1372,16 @@
     "status": "未配置",
     "requires": ["JDK 11", "Android SDK (API 34)", "Android NDK (r23+)"],
     "note": "C0-② 构建 Android IL2CPP 前须安装；restore-check 以警告报告，不阻塞 Windows 开发"
+  },
+  "platformDefines": {
+    "$comment": "平台脚本宏期望集 = 平台差集裁决的唯一登记点。toolchain.py check 读 ProjectSettings.asset 的 scriptingDefineSymbols 逐平台比对，缺宏/多宏即报错（切平台编出不同代码路径属静默失效）。Android 期望集＝与 Standalone 差集逐项裁决：补 HOTFIX_ENABLE/UNITY_PIPELINE_URP/DOTWEEN/DOTWEEN_UITOOLKIT/HIDE_REFLECTION/UNITY_POST_PROCESSING_STACK_V2；不对齐 MAGICACLOTH2（插件不在工程内）与 ODIN_INSPECTOR*（编辑器宏，Player 无效）。",
+    "Android": [
+      "DOTWEEN",
+      "DOTWEEN_UITOOLKIT",
+      "HIDE_REFLECTION",
+      "HOTFIX_ENABLE",
+      "UNITY_PIPELINE_URP",
+      "UNITY_POST_PROCESSING_STACK_V2"
+    ]
   }
 }

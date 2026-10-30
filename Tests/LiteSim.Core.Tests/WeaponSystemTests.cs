@@ -57,22 +57,22 @@ namespace LiteSim.Tests
         }
 
         [Fact]
-        public void 节拍_600rpm为6帧_连帧开火只首帧打出()
+        public void 节拍_480rpm为8帧_连帧开火只首帧打出()
         {
             var (world, id, slot) = Spawn();
             WeaponSystem.Run(world, Idle(id), WeaponTable.Default);
             ref WeaponRuntime w = ref WeaponOf(world, slot);
-            Assert.Equal(6, WeaponConfig.Default.FireIntervalFrames);   // 600rpm @60Hz ⇒ 6 帧/发
+            Assert.Equal(8, WeaponConfig.Default.FireIntervalFrames);   // 480rpm @60Hz ⇒ 8 帧/发
 
-            for (int f = 0; f < 5; f++)
+            for (int f = 0; f < 7; f++)
             {
                 world.Frame = f;
                 ShootingSystem.Run(world, NoObstacles, Fire(id), CombatValues.Default, WeaponTable.Default);
             }
-            Assert.Equal(1, FireEvents(world));                    // 5 帧窗口内仅首帧真开火
+            Assert.Equal(1, FireEvents(world));                    // 7 帧窗口内仅首帧真开火
             Assert.Equal(WeaponConfig.Default.MagazineSize - 1, w.MagAmmo);
 
-            world.Frame = 6;                                       // 节拍到帧 → 第二发
+            world.Frame = 8;                                       // 节拍到帧 → 第二发
             ShootingSystem.Run(world, NoObstacles, Fire(id), CombatValues.Default, WeaponTable.Default);
             Assert.Equal(2, FireEvents(world));
             Assert.Equal(WeaponConfig.Default.MagazineSize - 2, w.MagAmmo);
@@ -104,9 +104,9 @@ namespace LiteSim.Tests
             world.Frame = 0;
             ShootingSystem.Run(world, NoObstacles, Fire(id), CombatValues.Default, WeaponTable.Default, rules);
             Assert.Equal(1, FireEvents(world));
-            Assert.Equal(3, w.NextFireFrame);                      // 覆写节拍 3 帧（表值 6）
+            Assert.Equal(3, w.NextFireFrame);                      // 覆写节拍 3 帧（表值 8）
 
-            world.Frame = 3;                                       // 覆写节拍到帧 → 第二发（表值要等第 6 帧）
+            world.Frame = 3;                                       // 覆写节拍到帧 → 第二发（表值要等第 8 帧）
             ShootingSystem.Run(world, NoObstacles, Fire(id), CombatValues.Default, WeaponTable.Default, rules);
             Assert.Equal(2, FireEvents(world));
         }
@@ -225,24 +225,24 @@ namespace LiteSim.Tests
             WeaponDef def = WeaponConfig.Default;
             var fire = Fire(id);
 
-            // ① 按住 10s（600 帧）：600rpm ⇒ 每 6 帧一发；30 发打空（174 帧）→ **自动换弹**（打空即补），
-            //    306 帧完成同帧续射第二梭（306..480）→ 第 60 发打空再入自动换弹。
-            //    帧内两梭正好跨自动换弹窗：600 帧末仍处第二次换弹（ReloadEndFrame=480+132=612）。
+            // ① 按住 10s（600 帧）：480rpm ⇒ 每 8 帧一发；30 发打空（232 帧）→ **自动换弹**（打空即补），
+            //    364 帧完成同帧续射第二梭（364..596）→ 第 60 发打空再入自动换弹。
+            //    帧内两梭正好跨自动换弹窗：600 帧末仍处第二次换弹（ReloadEndFrame=596+132=728）。
             for (int f = 0; f < 600; f++)
             {
                 world.Frame = f;
                 WeaponSystem.Run(world, fire, WeaponTable.Default);
                 ShootingSystem.Run(world, NoObstacles, fire, CombatValues.Default, WeaponTable.Default);
             }
-            Assert.Equal(60, FireEvents(world));                  // 两梭整发（0..174 + 306..480）
+            Assert.Equal(60, FireEvents(world));                  // 两梭整发（0..232 + 364..596）
             Assert.Equal(0, w.MagAmmo);                            // 第 60 发打空
             Assert.Equal(60, w.ReserveAmmo);                       // 转移尚未发生（完成帧才转移：90−30）
             Assert.Equal(WeaponSlotState.Reloading, w.State);      // 打空自动换弹进行中
-            Assert.Equal(480 + def.ReloadFrames, w.ReloadEndFrame);
+            Assert.Equal(596 + def.ReloadFrames, w.ReloadEndFrame);
 
             // ② 按住过完换弹窗：静默至完成帧；到帧完成同帧自动续射（换弹先回满——WeaponSystem 先跑）
             int before = FireEvents(world);
-            for (int f = 600; f < 612; f++)
+            for (int f = 600; f < 728; f++)
             {
                 world.Frame = f;
                 WeaponSystem.Run(world, fire, WeaponTable.Default);
@@ -250,7 +250,7 @@ namespace LiteSim.Tests
             }
             Assert.Equal(before, FireEvents(world));              // 换弹窗内静默
 
-            world.Frame = 612;
+            world.Frame = 728;
             WeaponSystem.Run(world, fire, WeaponTable.Default);
             ShootingSystem.Run(world, NoObstacles, fire, CombatValues.Default, WeaponTable.Default);
             Assert.Equal(before + 1, FireEvents(world));           // 完成同帧续射首发
@@ -258,15 +258,15 @@ namespace LiteSim.Tests
             Assert.Equal(30, w.ReserveAmmo);                       // 第二次转移：60−30
             Assert.Equal(WeaponSlotState.Ready, w.State);
 
-            // ③ 续射节拍照旧：+6 帧内不发、到点即发（600rpm 不被换弹打乱）
-            for (int f = 613; f < 618; f++)
+            // ③ 续射节拍照旧：+8 帧内不发、到点即发（480rpm 不被换弹打乱）
+            for (int f = 729; f < 736; f++)
             {
                 world.Frame = f;
                 WeaponSystem.Run(world, fire, WeaponTable.Default);
                 ShootingSystem.Run(world, NoObstacles, fire, CombatValues.Default, WeaponTable.Default);
             }
             Assert.Equal(before + 1, FireEvents(world));           // 节拍未到——不发
-            world.Frame = 618;
+            world.Frame = 736;
             WeaponSystem.Run(world, fire, WeaponTable.Default);
             ShootingSystem.Run(world, NoObstacles, fire, CombatValues.Default, WeaponTable.Default);
             Assert.Equal(before + 2, FireEvents(world));           // 节拍到点——续射第二发

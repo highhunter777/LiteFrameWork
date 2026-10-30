@@ -5,7 +5,7 @@
   "status": "active",
   "current_stage": "implement",
   "created_at": "2026-10-26T17:03:04+08:00",
-  "updated_at": "2026-10-26T17:33:20+08:00",
+  "updated_at": "2026-10-29T22:19:12+08:00",
   "completed_at": null,
   "completed_stages": [
     {
@@ -102,12 +102,12 @@
         "scripts/toolchain.py"
       ],
       "deps": [],
-      "status": "doing",
-      "evidence": "",
+      "status": "done",
+      "evidence": "unittest test_build_player.py 19/19 OK; L1 1901/1901 PASS; toolchain.py check OK(2 pre-existing warnings); Unity refresh 0 errors; files: scripts/build/build-player.py, Assets/LiteGame/Editor/Resource/BuiltinBundleBuildInvoker.cs, scripts/toolchain.py",
       "status_reason": "",
       "created_at": "2026-10-26T17:25:46+08:00",
       "started_at": "2026-10-26T17:33:20+08:00",
-      "completed_at": null
+      "completed_at": "2026-10-29T20:52:36+08:00"
     },
     {
       "id": "T2",
@@ -121,12 +121,12 @@
         "Assets/Tools/DisciplineScanner/Scripts/DisciplineScanner.cs"
       ],
       "deps": [],
-      "status": "todo",
-      "evidence": "",
+      "status": "done",
+      "evidence": "defines 校验面 test_toolchain_defines 14/14 OK; DisciplineScanner 定向 52/52（含 R15 正负例与允许面存在性）; L1 1905/1905 PASS; Unity 编译 0 错; Doc 0/0; buildHash --check-shared 不变(48fa22580c3a03c4)。已知红（按设计，T3 落工程设置后转绿）：toolchain.py check 报 Android 缺 HOTFIX_ENABLE/UNITY_PIPELINE_URP。",
       "status_reason": "",
       "created_at": "2026-10-26T17:25:46+08:00",
-      "started_at": null,
-      "completed_at": null
+      "started_at": "2026-10-29T21:07:49+08:00",
+      "completed_at": "2026-10-29T21:07:50+08:00"
     },
     {
       "id": "T3",
@@ -136,35 +136,39 @@
       "verify": "编辑器读回探针逐字段断言＋python scripts/toolchain.py check（defines 校验面绿）",
       "files": [
         "ProjectSettings/ProjectSettings.asset",
+        "ProjectSettings/QualitySettings.asset",
         "BuildProfiles/android-il2cpp.json",
-        "Assets/LiteFramework/Scripts/Unity/App/AppLifetime.cs"
+        "Assets/Plugins/Android/AndroidManifest.xml",
+        "Assets/LiteFramework/Runtime/Adapters/Unity/App/AppLifetime.cs",
+        "Assets/Tests/EditMode/AndroidPlatformSettingsEditModeTests.cs"
       ],
       "deps": [
         "T2"
       ],
-      "status": "todo",
-      "evidence": "",
+      "status": "done",
+      "evidence": "读回探针：IL2CPP/ARM64/LandscapeLeft/com.litegame.dev/INTERNET/customManifest=true/GLES3,Vulkan/ASTC(m_Format=3)/质量档 Performant/宏含 HOTFIX_ENABLE+UNITY_PIPELINE_URP; EditMode AndroidPlatformSettingsEditModeTests 8/8 PASS; toolchain.py check OK（T2 已知红闭合）; L1 1905/1905; Unity 编译 0 错; shared BuildHash 48fa22580c3a03c4 不变。遗留已登记审计技术债：cleartext 全通道放开、手写主清单待 T8 与引擎生成版对账。",
       "status_reason": "",
       "created_at": "2026-10-26T17:25:46+08:00",
-      "started_at": null,
-      "completed_at": null
+      "started_at": "2026-10-29T21:18:02+08:00",
+      "completed_at": "2026-10-29T21:18:02+08:00"
     },
     {
       "id": "T4",
       "title": "DeployBake 安卓同步读通道",
       "description": "",
-      "acceptance": "ReadArgs 安卓分支经 UnityWebRequest 与 WaitForCompletion 同步收流（BakeReadTimeoutSeconds=2 常量带推导注释与 Stopwatch 耗时日志）；桌面 File 直读不变；进程内 memo 使读次数恒 1；日志拆分 DeployBake missing（无文件正常）与 DeployBake read failed（异常，一次性 Warning，进程级 flag，用 Debug.Log）；三处消费点调用形态零改动",
+      "acceptance": "ReadArgs 保持同步契约：桌面 File 直读不变，Android 经 APK zip 条目 assets/deploy.args 真同步读取（本机 UnityWebRequest 无 WaitForCompletion——机制替换已记入 build-log 偏差）；进程内 memo 使引导期读次数恒 1；日志拆分 DeployBake missing（正常，一次性）与 DeployBake read failed（异常，一次性 Warning，进程级 flag）；Stopwatch 耗时日志；三处消费点调用形态零改动",
       "verify": "python scripts/gate/test.py --suite L1 --profile PullRequest（新增安卓文本分支与合并序回归用例先行红）",
       "files": [
-        "Assets/LiteGame/App/Meta/DeployBake.cs"
+        "Assets/LiteGame/App/Meta/DeployBake.cs",
+        "Assets/Tests/EditMode/DeployBakeEditModeTests.cs"
       ],
       "deps": [],
-      "status": "todo",
-      "evidence": "",
+      "status": "done",
+      "evidence": "DeployBakeEditModeTests 7/7 PASS（桌面直读/zip 条目/memo 只读一次/missing 一次/失败一次性 Warning/成功不再读/复位语义）；AndroidPlatformSettingsEditModeTests 8/8 PASS（含源码清单不放明文的断言）；L1 1905/1905；toolchain check OK；Doc 0/0；Unity 0 错；shared BuildHash 不变。偏差：WaitForCompletion 缺失 → 改 APK zip 条目读（build-log 已记）。",
       "status_reason": "",
       "created_at": "2026-10-26T17:25:46+08:00",
-      "started_at": null,
-      "completed_at": null
+      "started_at": "2026-10-29T22:09:14+08:00",
+      "completed_at": "2026-10-29T22:09:15+08:00"
     },
     {
       "id": "T5",
@@ -177,12 +181,12 @@
         "scripts/tests/test_player_smoke.py"
       ],
       "deps": [],
-      "status": "todo",
-      "evidence": "",
+      "status": "done",
+      "evidence": "test_player_smoke 20/20（10 契约 + 7 fake adb 流程 + 3 既有）；流程断言：abilist 预检→install -t -r→logcat -c→force-stop→am start→logcat -d 轮询→工件落盘→uninstall；BootstrapError 判失败、无 ARM 翻译 fail-fast 不安装、--keep-installed/--skip-arm-preflight 生效；toolchain check OK（build.smoke 参数已登记）；Doc 0/0；L1 1905/1905。真机未验（归 T8/T14）。",
       "status_reason": "",
       "created_at": "2026-10-26T17:25:46+08:00",
-      "started_at": null,
-      "completed_at": null
+      "started_at": "2026-10-29T22:19:12+08:00",
+      "completed_at": "2026-10-29T22:19:12+08:00"
     },
     {
       "id": "T6",

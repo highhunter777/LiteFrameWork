@@ -72,7 +72,7 @@ namespace MetaServer.Tests
     /// L3：真实 Kestrel + 真实回环 HTTP。
     /// **不用 `WebApplicationFactory`/`TestServer`**——两者都需 `PackageReference`，
     /// 与 §4.1"不引入 NuGet Web 依赖"冲突；此处以临时端口 + `IServerAddressesFeature`
-    /// 取回真实端口，再用 `HttpClient` 打真实回环，全程零 NuGet 且测的是真实监听栈。
+    /// 取回真实端口，再用 `HttpClient` 打真实回环——测的是真实监听栈（不用内存管道）。
     /// </summary>
     [Trait(TestTrait.Category, TestCategory.Integration)]
     public sealed class MetaHostTests

@@ -70,6 +70,13 @@ namespace Tools.DisciplineScan
         /// 纯格式化助手（`DiagTrace.Line`、`Log.TagName`）、日志门面写口（`Log.Warning/Error/Info`——投影自身运维日志）。
         /// 例外行 `lint-allow R14` 并写明理由（如场景页＝带参命令专面板）。</summary>
         R14ProjectionDebugPort = 14,
+
+        /// <summary>R15 平台特判收敛（《商业级通用客户端框架总设计》平台适配：平台差异走 profile/装配点，
+        /// 不堆 `#if`）：第一方代码不得用 `#if UNITY_ANDROID` 分叉。允许面＝四个收敛点
+        /// （构建 profile 是数据不在此列；`DeployBake` 读流、`InputModule` 意图源装配、
+        /// `BattleViewRig.LookDeltaOf` 喂源选择——见 <see cref="PlatformForkAllowedFiles"/>）。
+        /// 新增收敛点须改登记表并说明它替代了哪条平台假设，而不是就地加 `#if`。</summary>
+        R15PlatformFork = 15,
     }
 
     /// <summary>一条纪律违规。</summary>
@@ -158,9 +165,10 @@ namespace Tools.DisciplineScan
             @"|\bnew\s+Random\s*\(",
             RegexOptions.Compiled);
 
-        /// <summary>R12：适配器实现的 import——按<b>文件路径</b>决定是否放行（见 <see cref="IsAdapterBoundaryAllowed"/>）。</summary>
+        /// <summary>R12：适配器实现的 import——按<b>文件路径</b>决定是否放行（见 <see cref="IsAdapterBoundaryAllowed"/>）。
+        /// Newtonsoft 亦在表内：JSON 序列化器是第三方实现，业务/框架代码只认 <c>IJsonSerializer</c>/<c>IJsonCodec</c> 端口。</summary>
         private static readonly Regex R12Regex = new Regex(
-            @"^\s*using\s+(YooAsset|XLua|DG\.Tweening|UnityEngine\.InputSystem|Cinemachine)\b",
+            @"^\s*using\s+(YooAsset|XLua|DG\.Tweening|UnityEngine\.InputSystem|Cinemachine|Newtonsoft)\b",
             RegexOptions.Compiled | RegexOptions.Multiline);
 
         /// <summary>
@@ -197,6 +205,28 @@ namespace Tools.DisciplineScan
             RegexOptions.Compiled);
 
         /// <summary>
+        /// R15：平台特判收敛——`#if`/`#elif`/`#ifdef` 里的 `UNITY_ANDROID` 只许出现在
+        /// <see cref="PlatformForkAllowedFiles"/> 登记的收敛点。字符串字面量先剥离
+        /// （文档/日志文案可能写示例），注释本就先行剔除。
+        /// </summary>
+        private static readonly Regex R15Regex = new Regex(
+            @"^\s*#\s*(?:if|elif|ifdef)\b[^\n]*\bUNITY_ANDROID\b",
+            RegexOptions.Compiled);
+
+        /// <summary>
+        /// R15 允许面＝平台差异的收敛点（构建 profile 是数据文件，不在代码扫描面）：
+        /// ①`DeployBake` 读流平台化；②`InputModule` 意图源按设备/平台选源；
+        /// ③`BattleViewRig.LookDeltaOf` 镜头喂源选择。
+        /// **这是唯一登记点**——新增一处须说明它替代了哪条平台假设，而不是就地加 `#if`。
+        /// </summary>
+        public static readonly string[] PlatformForkAllowedFiles =
+        {
+            "Assets/LiteGame/App/Meta/DeployBake.cs",
+            "Assets/LiteGame/App/Bootstrap/Modules/InputModule.cs",
+            "Assets/LiteGame/App/Presentation/Battle/Rig/BattleViewRig.cs",
+        };
+
+        /// <summary>
         /// R12 边界表：适配器 → 允许 import 它的目录前缀（相对**项目根**，正斜杠）。
         /// <b>这是"形成逻辑边界"的唯一登记点</b>——新增适配器时在这里加一行，
         /// 而不是到处散写字符串（与动画 Profile 的"ID→状态绑定唯一登记点"同一纪律）。
@@ -219,6 +249,10 @@ namespace Tools.DisciplineScan
             // DG.Tweening：UI 动效适配。**不在 Adapters 层**——它是 UI 框架（LiteFramework.UI）的
             // 专属适配，住其 Anim 子目录（同 InputSystem 的 UI/Input 判例）
             ("DG.Tweening", new[] { "Assets/LiteFramework/Runtime/Modules/UI/Anim/" }),
+            // Newtonsoft：JSON 序列化器（第三方）。消费方只认 Core 端口——
+            // IJsonSerializer（整对象↔文本，文件/存档）与 IJsonCodec（严格契约读取）；
+            // 实现类与 JToken 映射全部收在此目录，业务/框架代码出现 `using Newtonsoft` 即违规。
+            ("Newtonsoft", new[] { "Assets/LiteFramework/Runtime/Adapters/Newtonsoft/" }),
         };
 
         /// <summary>
@@ -270,6 +304,16 @@ namespace Tools.DisciplineScan
             return false;
         }
 
+        /// <summary>R15：该文件是否属于平台特判允许面（<see cref="PlatformForkAllowedFiles"/>）。</summary>
+        private static bool IsPlatformForkAllowed(string fileName)
+        {
+            if (string.IsNullOrEmpty(fileName)) return false;
+            string p = fileName.Replace('\\', '/').TrimStart('/');
+            for (int i = 0; i < PlatformForkAllowedFiles.Length; i++)
+                if (string.Equals(p, PlatformForkAllowedFiles[i], StringComparison.Ordinal)) return true;
+            return false;
+        }
+
         /// <summary>从一行 `using X;` 中取出适配器名（非适配器 import 返回 null）。</summary>
         private static string AdapterOf(string codeLine)
         {
@@ -297,6 +341,7 @@ namespace Tools.DisciplineScan
             LintRule.R12AdapterBoundary,
             LintRule.R13StaticConfigPort,
             LintRule.R14ProjectionDebugPort,
+            LintRule.R15PlatformFork,
         };
 
         public static string RuleId(LintRule rule)
@@ -317,6 +362,7 @@ namespace Tools.DisciplineScan
                 case LintRule.R12AdapterBoundary: return "R12";
                 case LintRule.R13StaticConfigPort: return "R13";
                 case LintRule.R14ProjectionDebugPort: return "R14";
+                case LintRule.R15PlatformFork: return "R15";
                 default: return "R?";
             }
         }
@@ -510,6 +556,8 @@ namespace Tools.DisciplineScan
                 }
                 case LintRule.R13StaticConfigPort: return R13Regex.IsMatch(code);
                 case LintRule.R14ProjectionDebugPort: return R14Regex.IsMatch(StripStrings(code));
+                case LintRule.R15PlatformFork:
+                    return !IsPlatformForkAllowed(fileName) && R15Regex.IsMatch(StripStrings(code));
                 default: return false;
             }
         }

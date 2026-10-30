@@ -61,7 +61,7 @@ namespace LiteSim
         /// 不是客户端能上报的按键位——传输层把 <c>Buttons</c> 限制在已定义的玩家按键集合（见 InputGate），
         /// 服务器内部构造的补判输入才带此位；<see cref="ShootingSystem"/> 据此跳过移动向量归一化、
         /// 并**跳过武器资源门**（节拍/弹匣/换弹/切枪/半自动扳机——权威帧已消费，回溯只补几何判定；
-        /// 不跳会被"视帧上节拍未到"拦截持续火力：600rpm 连发第 2 发起的回溯帧 NextFireFrame 在未来）。
+        /// 不跳会被"视帧上节拍未到"拦截持续火力：480rpm 连发第 2 发起的回溯帧 NextFireFrame 在未来）。
         /// </summary>
         public const uint ButtonFireFlag = 1u << 31;
         /// <summary>服务器内部：资源/Fire 仍在权威帧消费，命中改由回溯单次结算；客户端白名单拒绝此位。</summary>
