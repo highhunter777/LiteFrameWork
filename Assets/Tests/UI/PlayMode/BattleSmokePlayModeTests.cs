@@ -88,6 +88,9 @@ namespace LiteGame.Tests.UI.PlayMode
             }
             for (int i = 0; i < 10; i++) yield return null;
 
+            // A15a 释放探针：关停后容器应已释放（根作用域 + 全部服务归零）
+            Assert.IsTrue(_container == null || _container.IsDisposed, "关停后容器应已释放（根作用域未归零）");
+
             Scene boot = SceneManager.GetSceneByPath(BootScene);
             if (boot.isLoaded)
             {
@@ -99,6 +102,10 @@ namespace LiteGame.Tests.UI.PlayMode
         [UnityTest]
         public IEnumerator 对局全链冒烟_起服到进测试房到开火离场_容器级归零()
         {
+            // ═══ ⓪ 装配归属（A15a）：13 项帧驱动序回读 + 视角偏好单实例（模块产物按归属表落位）═══
+            AssertTickOrder(_container);
+            AssertLookPreferencesSingleInstance(_container);
+
             // ═══ ① 流程到主菜单（Started 与 Current 同判：只读 Current 会误命中枚举默认值 Launch）═══
             yield return WaitUntil(() => _fsm.Started && _fsm.Current == ProcedureId.Main, MainTimeout,
                 "未能进入 Main 阶段（当前 " + _fsm.Current + "）");
@@ -164,6 +171,49 @@ namespace LiteGame.Tests.UI.PlayMode
             }
             yield return WaitUntil(() => audio.VoiceCount == 0, ZeroTimeout,
                 "离场后音效 voice 未归零（仍有 " + audio.VoiceCount + " 个）");
+        }
+
+        // ---- 装配归属（A15a）----
+
+        /// <summary>帧驱动序回读：<c>Tickables</c> 的类型序必须按 13 项期望序出现（接口键按实现类型匹配）。
+        /// 判据钉的是"SetTickOrder 单点声明"——段各自声明会让相对序随注册序漂移。</summary>
+        private static void AssertTickOrder(ServiceContainer container)
+        {
+            var expected = new[]
+            {
+                typeof(IMainThreadDispatcher), typeof(IWorldClock), typeof(IUIClock),
+                typeof(LiteFramework.UI.DotweenUiClockDriver), typeof(LiteFramework.UI.UIService),
+                typeof(ILogicScheduler), typeof(IUIScheduler), typeof(ITimelineRunner),
+                typeof(IVFXService), typeof(LiteFramework.UI.DialogService),
+                typeof(LiteFramework.UI.ToastTicker), typeof(ICommandCenter),
+                typeof(StageMachine<ProcedureId, ProcedureArgs>),
+            };
+
+            int cursor = 0;
+            foreach (ITickable tickable in container.Tickables)
+                if (cursor < expected.Length && expected[cursor].IsInstanceOfType(tickable)) cursor++;
+
+            Assert.AreEqual(expected.Length, cursor,
+                "帧驱动序回读与 13 项期望序不一致（SetTickOrder 单点声明失效）");
+        }
+
+        /// <summary>视角偏好**单实例**：设置门面与战斗域端口必须拿到同一对象；改灵敏度后端口读值同步
+        /// （否则"设置页改值 → 对局不生效"是静默行为退化）。</summary>
+        private static void AssertLookPreferencesSingleInstance(ServiceContainer container)
+        {
+            var settings = container.Resolve<ProductSettings>();
+            var concrete = container.Resolve<LookPreferences>();
+            ILookPreferences port = container.Resolve<ILookPreferences>();
+
+            Assert.AreSame(concrete, port, "具体键与端口键必须是同一实例");
+            Assert.AreSame(concrete, settings.Look, "设置门面持有的偏好必须是设置段产出的那一份");
+
+            float before = port.SensitivityMultiplier;
+            float target = before >= 2.5f ? 1.5f : 2.5f;
+            settings.SetLookSensitivity(target);
+            Assert.AreEqual(settings.LookSensitivity, port.SensitivityMultiplier, 1e-4f,
+                "改灵敏度后端口读值必须同步（Refresh 落在同一实例上）");
+            settings.SetLookSensitivity(before);                 // 还原（后续用例按默认手感）
         }
 
         // ---- 断言细节 ----

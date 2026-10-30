@@ -15,7 +15,9 @@ namespace LiteGame
         {
             context.Put<ILogicScheduler>(new LogicScheduler(context.Require<IWorldClock>()));
             context.Put<IUIScheduler>(new UIScheduler(context.Require<IUIClock>()));
-            context.Put(new GameTimelineRunner(context.Require<IWorldClock>()));
+            var timeline = new GameTimelineRunner(context.Require<IWorldClock>());
+            context.Put(timeline);
+            context.Put<ITimelineRunner>(timeline);   // 接口键（时间轴用户只经端口取；与具体键同实例）
             return UniTask.CompletedTask;
         }
 

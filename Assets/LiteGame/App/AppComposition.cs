@@ -37,6 +37,15 @@ namespace LiteGame
         internal Func<ICameraService> CameraServiceFactory()
             => () => new CinemachineCameraService();
 
+        /// <summary>Lua 桥装订口工厂（房间会话门面 + 产品桥，**同一实例**）：适配器类型只出现在这里，
+        /// 流程段经 <c>IRoomSessionBridge</c>/<c>ILuaProductBridge</c> 端口消费。</summary>
+        internal Func<(IRoomSessionBridge room, ILuaProductBridge product)> LuaBridgesFactory()
+            => () =>
+            {
+                var room = new RoomBridge();
+                return (room, new ProductBridges(room));
+            };
+
         // ---- ② 组合根（ClientHost.ComposeRoot 驱动）----
 
         /// <summary>跨域装订：模块全部成功后执行一次；登记资源进本窗口作用域（关闭时先于模块释放）。
@@ -52,6 +61,7 @@ namespace LiteGame
             BindInputGate(context);
             BindRegistryRefill(context);
             BindMetaEntry(context);
+            BindProductSettings(context);
             BindDevDecoration(context);
             DeclareTickOrder(context.Services);
             context.Services.Seal();                   // 装配面密封（最后一步；职责与旧 Container 末段一致）
@@ -67,6 +77,21 @@ namespace LiteGame
             Bridge.BindRegistries(context.Require<UiLuaRegistry>(), context.Require<ContentLuaRegistry>());
             Bridge.BindUIService(context.Require<UIService>());
             Bridge.BindNavigation(context.Require<UINavigationController>());
+            // 注册表接口键（Lua 门面/回填/工具只经端口取；与具体键同实例）
+            context.Services.RegisterInstance<IUILuaRegistry>(context.Require<UiLuaRegistry>());
+            context.Services.RegisterInstance<IContentLuaRegistry>(context.Require<ContentLuaRegistry>());
+            context.Services.RegisterInstance<IStrategyLuaRegistry>(context.Require<StrategyLuaRegistry>());
+        }
+
+        /// <summary>设置门面装订：构造即全量应用持久化值（启动生效点），Lua 门面后端 + 容器取件面。
+        /// 视角偏好用设置段的**同一实例**（<c>LookPreferences</c>）——改灵敏度后对局即时生效。</summary>
+        private static void BindProductSettings(ModuleContext context)
+        {
+            var settings = new ProductSettings(
+                context.Require<GameSettings>(), context.Require<SettingService>(),
+                context.Require<AudioService>(), context.Require<LookPreferences>());
+            ProductSettings.Bind(settings);
+            context.Put(settings);
         }
 
         /// <summary>内容身份绑定（只此一次）：内容/配置装配完成后，身份上下文用同一份 Activation/Config 事实回答。</summary>
@@ -110,11 +135,15 @@ namespace LiteGame
                 context.Require<StrategyLuaRegistry>()));
         }
 
-        /// <summary>联机入口接流程机：进房 = Request(Match, MetaJoin)——走既有 Join 管道（不另开路径）。</summary>
+        /// <summary>联机入口接流程机与 Lua 门面：进房 = Request(Match, MetaJoin)——走既有 Join 管道（不另开路径）；
+        /// 重新登录唯一调用方 = Bridge.meta（凭证失效分支）。</summary>
         private static void BindMetaEntry(ModuleContext context)
         {
-            context.Require<MetaEntryService>().BindMachine(
-                context.Require<StageMachine<ProcedureId, ProcedureArgs>>());
+            MetaEntryService meta = context.Require<MetaEntryService>();
+            meta.BindMachine(context.Require<StageMachine<ProcedureId, ProcedureArgs>>());
+            IConfigService config = context.Require<IConfigService>();
+            MetaBridge.Bind(meta, context.Require<IdentityContext>(), () => config.Tables,
+                context.Require<IAccountReentry>());
         }
 
         /// <summary>开发装配（GM 命令/弱网/调试内核）整段归 LiteGame.Dev，经钩子装饰；发布形态无 Dev 程序集 = 不装饰。

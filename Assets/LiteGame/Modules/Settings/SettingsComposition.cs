@@ -11,6 +11,7 @@ namespace LiteGame
     public sealed class SettingsModule : IClientModule, IClientModuleGraph
     {
         private SettingService _settings;
+        private LookPreferences _look;      // 视角偏好单实例（ProductSettings 刷新 + 战斗域只读）
 
         public string Name => "Settings";
 
@@ -21,7 +22,13 @@ namespace LiteGame
             _settings = new SettingService(context.Require<IFileStore>());
             _settings.Load();
             context.Put(_settings);
-            context.Put(new GameSettings(_settings, Application.isMobilePlatform));
+            var gameSettings = new GameSettings(_settings, Application.isMobilePlatform);
+            context.Put(gameSettings);
+            // 视角偏好**单实例**：具体键供设置门面 Refresh（改灵敏度即生效），端口键供战斗域只读——
+            // 两处拿到同一实例是"设置页改值 → 对局同步"的唯一保证。
+            _look = new LookPreferences(gameSettings);
+            context.Put(_look);
+            context.Put<ILookPreferences>(_look);
             return UniTask.CompletedTask;
         }
 

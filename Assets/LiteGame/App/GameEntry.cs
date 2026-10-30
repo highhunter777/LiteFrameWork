@@ -158,20 +158,23 @@ namespace LiteGame
         private void RegisterModules(ClientHost host)
         {
             host.AddModule(new PlatformInfrastructureModule())   // ① 本地持久化 + 日志（先于一切 IO）
-                .AddModule(new CameraComposition(_appComposition.CameraServiceFactory()))   // ② 主相机 + 相机服务（薄段：适配器由组合根注入）
+                .AddModule(new CameraComposition(_appComposition.CameraServiceFactory()))    // ② 主相机 + 相机服务（薄段）
                 .AddModule(new IdentityModule())                 // ③ 身份上下文（Build/Schema 唯一构造点）
                 .AddModule(new DevSessionModule())               // ④ 开发会话端口（设备源构造即消费——必须早于 ⑭）
-                .AddModule(new ContentModule())                  // ⑤ IContentService（配置/Lua 字节通道的租约来源）
-                .AddModule(new SettingsModule())                 // ⑥ 玩家偏好（先于容器——UI/音频服务注册时就要读）
+                .AddModule(new ContentModule())                  // ⑤ 内容/场景/缓存租约（配置/Lua 字节通道来源）
+                .AddModule(new SettingsModule())                 // ⑥ 玩家偏好 + 视角偏好单实例（先于 UI/音频）
                 .AddModule(new EventsModule())                   // ⑦ 事件总线（唯一产出方；只需 ① 的池）
                 .AddModule(new ClocksModule())                   // ⑧ 双轨时钟（事件域已独立，时钟只负责时间）
-                .AddModule(new SchedulersModule())               // ⑨ 时序执行（依赖 ⑧）
+                .AddModule(new SchedulersModule())               // ⑨ 时序执行 + 时间轴（依赖 ⑧）
                 .AddModule(new LuaHostModule(gameObject))        // ⑩ 脚本宿主（同 GameObject 组件）
-                .AddModule(new ConfigModule(_appComposition.ConfigServiceFactory()))         // ⑪ 表投影数据源（依赖 ⑥ 的租约通道）
-                .AddModule(new UiServiceModule())                // ⑫ UI 服务装配（依赖 ⑩⑪⑥；投影面由 ② 保证）
-                .AddModule(new BattleComposition())              // ⑬ 战斗域表现内核（依赖 ⑤⑧；相机归 ②）
-                .AddModule(new InputModule(_appComposition.IntentSourceFactory()))           // ⑭ 输入服务（设备源由组合根注入）
-                .AddModule(new ContainerModule());               // ⑮ 容器与流程机（消费以上全部——装配根最后一段）
+                .AddModule(new ConfigModule(_appComposition.ConfigServiceFactory()))          // ⑪ 表投影数据源
+                .AddModule(new MapComposition())                 // ⑫ 地图提供者（依赖 ⑪ 的表链）
+                .AddModule(new UiServiceModule())                // ⑬ UI 能力：服务/导航/反馈面（投影面由 ② 保证）
+                .AddModule(new InputModule(_appComposition.IntentSourceFactory()))            // ⑭ 输入服务（设备源由组合根注入）
+                .AddModule(new MetaComposition())                // ⑮ 联机入口（部署快照 + 客户端 + 入口编排件）
+                .AddModule(new BattleComposition())              // ⑯ 战斗域（表现内核 + 视图组工厂；相机归 ②）
+                .AddModule(new SessionComposition())             // ⑰ 会话（账号/对局工厂 + 传输端口）
+                .AddModule(new ProcedureComposition(_appComposition.LuaBridgesFactory()));    // ⑱ 应用壳（流程机 + 页面流 + 恢复）
         }
 
         private void Update()

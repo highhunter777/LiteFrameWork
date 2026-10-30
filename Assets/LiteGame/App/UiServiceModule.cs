@@ -15,15 +15,17 @@ namespace LiteGame
     public sealed class UiServiceModule : IClientModule, IClientModuleGraph
     {
         private RedDotRegistry _redDotRegistry;
-        private ConfirmDialogRouter _confirmRouter;      // 确认缝端口（本段产出，装配根后段绑定实现）
+        private ConfirmDialogRouter _confirmRouter;      // 确认缝端口（本段产出，本段内绑定真实现）
         private UIService _uiService;
+        private DialogService _dialogs;
+        private FeedbackService _feedback;
         private IDisposable _themeLease;
         private UiThemeAsset _themeAsset;
 
         public string Name => "UiService";
 
         /// <summary>依赖的模块（与 GameEntry 注册序一致；供 Host DAG 校验）。</summary>
-        public System.Collections.Generic.IReadOnlyList<string> DependsOn => new[] { "LuaHost", "Config", "Content" };
+        public System.Collections.Generic.IReadOnlyList<string> DependsOn => new[] { "LuaHost", "Config", "Content", "Clocks" };
 
         public async UniTask InitializeAsync(ModuleContext context, CancellationToken ct)
         {
@@ -60,6 +62,16 @@ namespace LiteGame
             var nav = new UINavigationController(_uiService);        // 产品导航的单写者入口
             _uiService.Focus.PlatformBack = () => nav.BackAsync(); // 平台返回统一口径（§6.2）：ESC→协调者→导航器 Back 链
             context.Put(nav);
+
+            // UI 能力段自持的配套件：UI 时钟驱动 + 弹窗/反馈/提示 + 确认缝真实现
+            context.Services.RegisterInstance(new DotweenUiClockDriver(context.Require<IUIClock>()));
+            _dialogs = new DialogService(_uiService, nav: nav);
+            context.Services.RegisterInstance(_dialogs, ServiceOwnership.ContainerOwned);
+            _feedback = new FeedbackService(_uiService, _dialogs, nav);
+            context.Services.RegisterInstance(_feedback, ServiceOwnership.ContainerOwned);
+            context.Services.RegisterInstance(new ToastTicker(() => _feedback.ToastHost));
+            _confirmRouter.Bind((title, message, okText, cancelText)
+                => _feedback.ConfirmAsync(title, message, okText, cancelText));
             Bridge.BindText(localeProvider);                   // Lua 门面后端（Bridge.text——与页面索引共用同一实例）
         }
 
@@ -71,6 +83,8 @@ namespace LiteGame
             _redDotRegistry = null;
             _confirmRouter?.Unbind();                         // 确认缝解除绑定（不留指向已拆服务的委托）
             _confirmRouter = null;
+            _dialogs = null;                                  // 反馈面随容器所有权释放（ServiceOwnership.ContainerOwned）
+            _feedback = null;
             _themeLease?.Dispose();                           // 主题资产租约归还（引用计数递减）
             _themeLease = null;
             _themeAsset = null;

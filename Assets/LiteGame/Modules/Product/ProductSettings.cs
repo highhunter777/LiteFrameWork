@@ -34,19 +34,20 @@ namespace LiteGame
 
         private IReadOnlyList<DisplayResolution> _resolutionSnapshot;   // 一次页面会话内复用（Screen.resolutions 每次都分配）
 
-        public ProductSettings(GameSettings settings, SettingService store, AudioService audio)
+        /// <param name="look">视角偏好**单实例**（由设置段产出；本件只刷新不重建——改灵敏度后对局立即生效）。</param>
+        public ProductSettings(GameSettings settings, SettingService store, AudioService audio, LookPreferences look)
         {
             _settings = settings ?? throw new ArgumentNullException(nameof(settings));
             _store = store ?? throw new ArgumentNullException(nameof(store));
             _audio = new AudioSettingsApplier(audio);
             _graphics = new GraphicsSettingsApplier();
             _display = new DisplaySettingsApplier();
-            _look = new LookPreferences(settings);
+            _look = look ?? throw new ArgumentNullException(nameof(look));
             _isMobilePlatform = Application.isMobilePlatform;
             ApplyAll();
         }
 
-        /// <summary>装配期装订（ContainerModule——Lua 门面后端）。</summary>
+        /// <summary>装配期装订（组合根 ComposeAfter——Lua 门面后端）。</summary>
         public static void Bind(ProductSettings settings)
             => s_instance = settings ?? throw new ArgumentNullException(nameof(settings));
 

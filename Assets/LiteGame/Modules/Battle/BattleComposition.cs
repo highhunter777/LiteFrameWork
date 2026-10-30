@@ -2,6 +2,7 @@ using System;
 using System.Threading;
 using Cysharp.Threading.Tasks;
 using LiteFramework;
+using LiteFramework.UI;
 using LiteGame.View;
 
 namespace LiteGame
@@ -24,7 +25,10 @@ namespace LiteGame
         public string Name => "Battle";
 
         /// <summary>依赖的模块（与 GameEntry 注册序一致；供 Host DAG 校验）。</summary>
-        public System.Collections.Generic.IReadOnlyList<string> DependsOn => new[] { "Content", "Clocks" };
+        public System.Collections.Generic.IReadOnlyList<string> DependsOn => new[]
+        {
+            "PlatformInfrastructure", "Camera", "DevSession", "Content", "Settings", "Clocks", "Config", "UiService", "Input",
+        };
 
         public UniTask InitializeAsync(ModuleContext context, CancellationToken ct)
         {
@@ -45,6 +49,15 @@ namespace LiteGame
             context.Put(_entities);
             context.Put(_audio);
             context.Put(_vfxService);
+            context.Put<IVFXService>(_vfxService);               // 接口键（HUD/消费方只经端口取；与具体键同实例）
+            // 视图组工厂：战斗域自持的装配点（流程只认端口；每局再注入 account 作用域/开发叠加层/传送分发）
+            context.Put<IBattleViewGroupFactory>(new BattleViewGroupFactory(
+                content, context.Require<IInputService>(), context.Require<ICameraService>(),
+                _vfxService, context.Require<IWorldClock>(), _audio, context.Require<CommandCenter>(),
+                new CrosshairFeelProfile(context.Require<IConfigService>()),
+                context.Require<UIService>().ThemeAssetProvider,      // HUD 状态色主题注入
+                context.Require<IDevSession>(),                        // dev 投影读本局规则（实例端口）
+                context.Require<ILookPreferences>()));                 // 视角手感偏好（设置段单实例）
             return UniTask.CompletedTask;
         }
 

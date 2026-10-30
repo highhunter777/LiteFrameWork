@@ -49,7 +49,6 @@ namespace LiteFramework.Core.Tests
             ["Assets/LiteFramework/Runtime/Modules/Content/Abstractions/CandidateContentVerifier.cs::CandidateContentVerifier.Verify"] = 87,
             ["Assets/LiteFramework/Editor/EditorTools/BindGenerator.cs::BindGenerator.DoGenerate"] = 130,
             ["Assets/LiteFramework/Editor/Inspectors/BindNodeInspector.cs::BindNodeInspector.OnInspectorGUI"] = 99,
-            ["Assets/LiteGame/App/ContainerModule.cs::ContainerModule.Assemble"] = 152,
             ["Assets/LiteGame/App/Bootstrap/Probes/InputModalProbe.cs::InputModalProbe.RunAsync"] = 103,
             ["Assets/LiteGame/Modules/Battle/Combat/BattleDamageNumberDriver.cs::BattleDamageNumberDriver.Tick"] = 82,
             ["Assets/LiteGame/Modules/Procedure/Stages/ProcedureBattle.cs::ProcedureBattle.RunAsyncCore"] = 109,

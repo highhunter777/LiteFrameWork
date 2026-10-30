@@ -11,6 +11,7 @@ namespace LiteGame
     public sealed class ContentModule : IClientModule, IClientModuleGraph
     {
         private YooAssetContentService _content;
+        private SceneService _scenes;      // 场景句柄服务（流程/工具体消费；租约面归内容域）
 
         public string Name => "Content";
 
@@ -23,6 +24,7 @@ namespace LiteGame
             context.Put<IContentService>(_content);
             context.Put<IGenerationSink>(_content);                                      // 代次推进（§9：确认后切换，失败回退）
             context.Put(new ActivationTransactionStore(new FileActivationRecordIO(files: files)));   // 启动恢复决策（Patch 流程消费）
+            RegisterSceneAndCacheServices(context, files);
 
             // 热更链生产装配。装配形态决定能力边界：
             // - **信任锚**：内置锚表（ContentTrustAnchors——根信任编入应用本体，不放可写存储）。
@@ -95,7 +97,20 @@ namespace LiteGame
             return UniTask.CompletedTask;
         }
 
+        /// <summary>场景与缓存租约都走内容包：场景服务、清缓存实现面归本段（进程级实例，关闭时归零）。</summary>
+        private void RegisterSceneAndCacheServices(ModuleContext context, IFileStore files)
+        {
+            _scenes = new SceneService();
+            context.Put<ISceneService>(_scenes);
+            context.Put<IContentCacheMaintenance>(
+                new ContentCacheMaintenance(_content, files, context.Require<ActivationTransactionStore>()));
+        }
+
         public UniTask ShutdownAsync(CancellationToken ct)
-            => _content?.ShutdownAsync(ct) ?? UniTask.CompletedTask;   // 释放面：剩余租约/句柄归零
+        {
+            _scenes?.ReleaseAll();                                     // 场景句柄归零（先收场景再收内容）
+            _scenes = null;
+            return _content?.ShutdownAsync(ct) ?? UniTask.CompletedTask;   // 释放面：剩余租约/句柄归零
+        }
     }
 }

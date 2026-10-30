@@ -126,14 +126,14 @@ namespace LiteFramework.Core.Tests
             Assert.True(Directory.Exists(modulesDir), "模块目录缺失：Assets/LiteGame/Modules（模块搬动后须同步本守卫）");
 
             var files = new List<string>(Directory.GetFiles(modulesDir, "*Composition.cs", SearchOption.AllDirectories));
-            // 过渡期：组合根两段（Ui 待 IUiLogicFactory 端口后归位）
-            foreach (string name in new[] { "ContainerModule.cs", "UiServiceModule.cs" })
+            // 过渡期：Ui 段仍在 App（待 IUiLogicFactory 端口后归位；批 4 已拆掉 Container 段）
+            foreach (string name in new[] { "UiServiceModule.cs" })
             {
                 string path = Path.Combine(root, "Assets", "LiteGame", "App", name);
                 if (File.Exists(path)) files.Add(path);
             }
 
-            Assert.True(files.Count > 0, "未找到任何装配段（Modules/**/*Composition.cs ∪ App/{Container,Ui}Module.cs）");
+            Assert.True(files.Count > 0, "未找到任何装配段（Modules/**/*Composition.cs ∪ App/UiServiceModule.cs）");
 
             var modules = new List<ModuleNode>(files.Count);
             foreach (string file in files) modules.Add(Parse(file));

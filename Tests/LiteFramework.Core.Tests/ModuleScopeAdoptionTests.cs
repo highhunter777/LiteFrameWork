@@ -19,7 +19,6 @@ namespace LiteFramework.Core.Tests
         private static readonly Dictionary<string, string> Required = new Dictionary<string, string>(StringComparer.Ordinal)
         {
             { "InputComposition.cs", "设备源/输入服务" },
-            { "ContainerModule.cs", "命令注册/根容器/场景租约" },
             { "UiServiceModule.cs", "主题资产租约/红点登记" },
             { "BattleComposition.cs", "租约缓存/实体/音频/VFX" },
             { "CameraComposition.cs", "主相机/相机服务" },

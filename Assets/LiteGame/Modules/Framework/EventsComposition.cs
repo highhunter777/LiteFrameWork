@@ -27,6 +27,7 @@ namespace LiteGame
         {
             _events = FrameworkEvents.Create(context.Require<IReferencePool>(), DevBuildFacts.IsDevelopment);
             context.Put(_events);
+            context.Put<IEventBus>(_events);   // 接口键（消费者只经端口取；与具体键同实例）
             context.Scope.Register(_events);   // Root 总线随本段关闭 Dispose（清订阅/队列）
             return UniTask.CompletedTask;
         }

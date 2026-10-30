@@ -48,13 +48,15 @@ namespace LiteFramework.Core.Tests
                 "Assets/LiteFramework/Runtime/Modules/Hosting/Recovery/ErrorRecoveryService.cs"));
             string actions = File.ReadAllText(Path.Combine(root,
                 "Assets/LiteGame/Modules/Recovery/AppRecoveryActions.cs"));
-            string container = File.ReadAllText(Path.Combine(root,
-                "Assets/LiteGame/App/ContainerModule.cs"));
+            string content = File.ReadAllText(Path.Combine(root,
+                "Assets/LiteGame/Modules/Framework/ContentComposition.cs"));
+            string procedure = File.ReadAllText(Path.Combine(root,
+                "Assets/LiteGame/App/ProcedureComposition.cs"));
 
             Assert.Contains("ClearContentCacheAsync", service);          // 执行器 Recoverable 升级路径
             Assert.Contains("ClearContentCacheAsync", actions);          // 生产动作实现
-            Assert.Contains("new ContentCacheMaintenance(", container);  // 装配点构造
-            Assert.Contains("AppRecoveryActions(cache: contentCache)", container);
+            Assert.Contains("new ContentCacheMaintenance(", content);    // 内容段构造（清缓存实现面）
+            Assert.Contains("AppRecoveryActions(cache: context.Require<IContentCacheMaintenance>())", procedure);
         }
 
         [Fact]
@@ -62,15 +64,16 @@ namespace LiteFramework.Core.Tests
         {
             string root = RepoRoot();
             string bridge = File.ReadAllText(Path.Combine(root, "Assets/LiteGame/Modules/Meta/MetaBridge.cs"));
-            string container = File.ReadAllText(Path.Combine(root, "Assets/LiteGame/App/ContainerModule.cs"));
+            string procedure = File.ReadAllText(Path.Combine(root, "Assets/LiteGame/App/ProcedureComposition.cs"));
+            string composition = File.ReadAllText(Path.Combine(root, "Assets/LiteGame/App/AppComposition.cs"));
             string pageFlow = File.ReadAllText(Path.Combine(root, "Assets/LiteGame/Modules/Ui/PageFlow.cs"));
             string meta = File.ReadAllText(Path.Combine(root, "Assets/LiteGame/Modules/Meta/MetaEntryService.cs"));
 
             Assert.Contains("IsAuthLost", bridge);                       // 401/凭证失效判据
             Assert.Contains("ReturnToLoginAsync", bridge);               // 唯一重入调用点
-            Assert.Contains("new AccountReentry(", container);
-            Assert.Contains("RegisterInstance<IAccountReentry>", container);
-            Assert.Contains("MetaBridge.Bind(metaEntry, identity, () => config.Tables, reentry)", container);
+            Assert.Contains("new AccountReentry(", procedure);
+            Assert.Contains("Put<IAccountReentry>", procedure);
+            Assert.Contains("MetaBridge.Bind(meta, context.Require<IdentityContext>(), () => config.Tables,", composition);
             Assert.Contains(": ILoginSurface", pageFlow);
             Assert.Contains("ShowLogin(", pageFlow);
             Assert.Contains(": IAccountSessionControl", meta);
