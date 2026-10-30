@@ -28,9 +28,17 @@
 - 2026-10-30T23:52:30+08:00 · 完成任务 T5 · 证据: A12 落地：Assets/Tests/UI/PlayMode/BattleSmokePlayModeTests.cs（Boot.unity 起服→Main→RequestEnter→Battle→IsBuilt/Hud.Root/Crosshair→自瞄开火四路表现（ShotPulse/VoiceCount/Vfx…
 - 2026-10-31T00:02:42+08:00 · 开始任务 T6「批3 确认框端口与 Baseline 清空」
 - 2026-10-31T00:02:42+08:00 · 完成任务 T6 · 证据: A13：ModuleDependencyDeclTests.Baseline 清空（最后一笔 UiService <- Container 由确认缝端口化解）并通过；Ui 段不再 Require<FeedbackService>（App/UiServiceModule.cs 产 ConfirmDialogRouter…
+- 2026-10-31T00:16:16+08:00 · 开始任务 T7「批4 组合根与 Container 拆解」
+- 2026-10-31T00:31:09+08:00 · 完成任务 T7 · 证据: A15：ContainerModule 删除（不再是 IClientModule）；GameEntry 18 段全序（①PI ②Camera ③Identity ④DevSession ⑤Content ⑥Settings ⑦Events ⑧Clocks ⑨Schedulers ⑩LuaHost ⑪Config ⑫M…
 
 ## 关键决定
 
+- **批 4 段拆解的归属落位**（归属表逐行落地，段名即模块名）：⑤ Content 收场景/缓存租约（`SceneService`/`IContentCacheMaintenance`）、
+  ⑥ Settings 收视角偏好单实例、⑦ Events 收 `IEventBus` 接口键、⑨ Schedulers 收 `ITimelineRunner` 接口键、
+  ⑫ Map（`IMapProvider`）、⑬ Ui 收弹窗/反馈/提示/UI 时钟驱动（确认缝在本段内产口即绑）、⑮ Meta（部署快照 + 联机客户端 + 入口编排件）、
+  ⑯ Battle 收视图组工厂与 `IVFXService` 接口键、⑰ Session（`ITransportFactory` 端口 + 传输工厂 + 会话工厂）、
+  ⑱ Procedure（流程机/页面流/账号重入/恢复执行器/Lua 桥装订口）。`ContainerModule` 删除。
+- **帧驱动序与密封仍单点**：`SetTickOrder(13 项)` 与 `services.Seal()` 只在 `AppComposition.ComposeAfter`——分段落声明会按注册序重排相对序。
 - **批 4 分两个可交付检查点**（体量/风险实测）：① 组合根钩子与跨域装订迁移（`ComposeRoot` + `AppComposition.ComposeAfter`，其它段不动）——已提交；② 段拆解（Map/Meta/Session/Procedure 四段成型、`ContainerModule` 去 `IClientModule`、18 段序、归属表迁移）。两次提交都保持全绿（L1 + Boot 冒烟），避免"半个批 4"落在工作区。
 - **组合根执行器与模块图校验抽成协作件**：`ComposeRootRunner`（窗口开关/失败回收/逆序第一释放位）与 `ModuleGraphValidator`（重复名/缺依赖/环）从 `ClientHost` 移出——`ClientHost` 类行数冻结 454 不许涨，`InitializeAsync`/`ShutdownAsync` 拆到 ≤80 后按规则删除冻结键（不是调阈值）。
 - **T3 与 T2 顺序对调（实测发现）**：方案原序为 T2 搬迁 → T3 适配器上收，但实测程序集依赖使该序不可编译——`LiteGame.Adapters.Unity` 引用 `LiteGame.Modules.Input`/`Modules.Camera`、`LiteGame.Adapters.Luban` 引用 `LiteGame.Modules.Config`、`LiteGame.Adapters.LuaBridge` 引用 `LiteGame.Modules`；若先把段搬进 `Modules/**`（= 各域程序集），段内 `new NewInputIntentSource`/`new CinemachineCameraService`/`new ConfigService`/`new LuaBehaviourAdapter` 会立刻与适配器成环。故 DAG 改为 `T1 → T3 → T2`（已在 workflow 中更新依赖）。
@@ -42,6 +50,11 @@
 
 ## 偏差与处理
 
+- **段位置：18 段中 16 个住 `Modules/**`，Ui 段（`App/UiServiceModule.cs`）与流程段（`App/ProcedureComposition.cs`）仍在 App**。
+  原因：两段都要用 `Adapters.LuaBridge` 的类型（`LuaBehaviourAdapter`/注册表/`RegistryFiller`），而业务模块程序集不得引适配器（硬边）。
+  A15 的"Modules/** 合计 18 个 Composition"要等批 5 把注册表件归位后再达成；本批以"18 段全序 + Container 去 IClientModule"为准。
+- **A17 手测以自动化链路替代**：Boot 起服 → Main → `RequestEnter` 进本地测试房 → 开火 → `RequestExit` 全链由冒烟用例驱动
+  （生产入口与生产装配同一路径），并断言控制台零 error；"人工点界面"未做，记入未决事项。
 - **批 4 的跨域装订先落位**：`AppComposition.ComposeAfter` 已接管 Lua 门面/身份绑定/模态登记/输入拦截/注册表回填/联机入口接流程机/开发装饰/帧驱动序/装配面密封；`ProductSettings` 与 `BattleViewGroupFactory` 仍在 `ContainerModule`（其产物被流程机/视图工厂消费，须在段拆解时随归属表一起搬，否则顺序错位）。
 - 方案 A4 原文"`GameEntry` 在 `InitializeAsync` 前调用工厂"不可行：`NewInputIntentSource` 的 `matchRules` 读口依赖 ③ `IDevSession`，前置创建会静默丢掉测试房爆头带覆写。改为**工厂委托注入 + 段内调用**（已写入 plan.md A4）。
 - 方案 A12 的 `BattleViewGroupFactory` 注册落点原写 `AppComposition.ComposeAfter`，与 ⑱ `Procedure` 构造顺序冲突；改为批 1–3 在 `ContainerModule.CreateBattleViews` 处注册、批 4 归 `BattleComposition`（已写入 plan.md A12）。

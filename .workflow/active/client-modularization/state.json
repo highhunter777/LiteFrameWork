@@ -5,7 +5,7 @@
   "status": "active",
   "current_stage": "implement",
   "created_at": "2026-10-30T19:40:28+08:00",
-  "updated_at": "2026-10-31T00:02:42+08:00",
+  "updated_at": "2026-10-31T00:31:09+08:00",
   "completed_at": null,
   "completed_stages": [
     {
@@ -236,12 +236,12 @@
       "deps": [
         "T6"
       ],
-      "status": "todo",
-      "evidence": "",
+      "status": "done",
+      "evidence": "A15：ContainerModule 删除（不再是 IClientModule）；GameEntry 18 段全序（①PI ②Camera ③Identity ④DevSession ⑤Content ⑥Settings ⑦Events ⑧Clocks ⑨Schedulers ⑩LuaHost ⑪Config ⑫Map ⑬Ui ⑭Input ⑮Meta ⑯Battle ⑰Session ⑱Procedure）；AppComposition 由 ClientHost.ComposeRoot 驱动（窗口内 Put 合法/窗口外抛，ClientHostTests 4 例）。A15a：归属表落位（Content 收场景/缓存；Map/Meta/Session/Procedure 四段成型；Ui 收反馈面；Battle 收视图组工厂与 IVFXService；Settings 产 LookPreferences 单实例）；判据进冒烟用例——13 项帧驱动序回读、LookPreferences 单实例且改灵敏度后端口同步、关停后容器 IsDisposed。A16：AppComposition ≤400 行且方法 ≤80（CompositionBudgetTests 绿）；ContainerModule.Assemble 152 行冻结键随文件删除；ClientHost 454 行冻结内（抽 ComposeRootRunner/ModuleGraphValidator 抵消，InitializeAsync/ShutdownAsync 降到 ≤80 后按规则删冻结键）。A17：Boot→Main→RequestEnter→Battle→开火→RequestExit 全链自动化通过、控制台零 error（人工点界面未做，记未决）。验证：L1 PASS 1918；BattleSmoke 1/1；MetaEntry 17/17；UiConfirmApi 4/4；Unity 重编译 0 error。",
       "status_reason": "",
       "created_at": "2026-10-30T21:15:51+08:00",
-      "started_at": null,
-      "completed_at": null
+      "started_at": "2026-10-31T00:16:16+08:00",
+      "completed_at": "2026-10-31T00:31:09+08:00"
     },
     {
       "id": "T8",
