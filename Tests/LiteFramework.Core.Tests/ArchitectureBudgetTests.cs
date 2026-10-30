@@ -46,8 +46,6 @@ namespace LiteFramework.Core.Tests
         private static readonly Dictionary<string, int> MethodCaps = new Dictionary<string, int>(StringComparer.Ordinal)
         {
             ["Assets/LiteFramework/Runtime/Adapters/XLua/Lua/CandidateLuaValidator.cs::CandidateLuaValidator.Validate"] = 87,
-            ["Assets/LiteFramework/Runtime/Modules/Hosting/ClientHost.cs::ClientHost.InitializeAsync"] = 83,
-            ["Assets/LiteFramework/Runtime/Modules/Hosting/ClientHost.cs::ClientHost.ShutdownAsync"] = 86,
             ["Assets/LiteFramework/Runtime/Modules/Content/Abstractions/CandidateContentVerifier.cs::CandidateContentVerifier.Verify"] = 87,
             ["Assets/LiteFramework/Editor/EditorTools/BindGenerator.cs::BindGenerator.DoGenerate"] = 130,
             ["Assets/LiteFramework/Editor/Inspectors/BindNodeInspector.cs::BindNodeInspector.OnInspectorGUI"] = 99,

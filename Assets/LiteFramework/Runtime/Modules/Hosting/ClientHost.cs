@@ -32,6 +32,7 @@ namespace LiteFramework
 
         private ClientScope _rootScope;
         private ClientContext _context;
+        private ComposeRootRunner _composeRoot;              // 组合根执行器（全部模块成功后、密封前一次）
         private int _initializedCount;                    // 已成功初始化的模块数（回滚/关闭的边界）
         private int _state;                                // 0=构造未启动 1=初始化中 2=运行 3=关闭中 4=已关闭
         private bool _shutdownRequested;
@@ -69,6 +70,21 @@ namespace LiteFramework
             {
                 if (_state != 0) throw new InvalidOperationException($"模块 {module.Name} 注册过晚：Host 已进入阶段 {_state}（模块集在启动后必须封闭）");
                 _modules.Add(module);
+            }
+            return this;
+        }
+
+        /// <summary>注册组合根回调（<c>AppComposition.ComposeAfter</c>）：**全部模块初始化成功后、装配面密封前**
+        /// 调用一次。回调拿到**打开的装配窗口**（<c>Put</c> 合法；返回/抛出/取消后立即关闭）与自己的资源作用域
+        /// （关闭时先于模块释放；失败与模块失败同路径回滚）。跨域装订只能落这里——段内不许跨域连线。
+        /// **必须早于启动登记**（与 <see cref="AddModule"/> 同口径）。</summary>
+        public ClientHost ComposeRoot(Func<ModuleContext, UniTask> compose)
+        {
+            if (compose == null) throw new ArgumentNullException(nameof(compose));
+            lock (_gate)
+            {
+                if (_state != 0) throw new InvalidOperationException($"组合根登记过晚：Host 已进入阶段 {_state}（回调集在启动后必须封闭）");
+                _composeRoot = new ComposeRootRunner(compose);
             }
             return this;
         }
@@ -118,7 +134,7 @@ namespace LiteFramework
             // 校验失败 = 启动终止：进入终态（4），否则 Host 会停在"初始化中"且无法重试。
             try
             {
-                ValidateModuleGraph(modules);
+                ModuleGraphValidator.Validate(modules);
             }
             catch
             {
@@ -135,42 +151,9 @@ namespace LiteFramework
 
             try
             {
-                for (int i = 0; i < modules.Count; i++)
-                {
-                    ct.ThrowIfCancellationRequested();
-                    lock (_gate)
-                    {
-                        // 关闭竞态守卫：ShutdownAsync 与初始化并发（退出打断引导）时，
-                        // 初始化停止继续装配——以 OCE 走"回滚已成功模块 → 确定错误态"路径。
-                        if (_shutdownRequested)
-                            throw new OperationCanceledException("引导被宿主关闭打断（ShutdownAsync 与 InitializeAsync 并发）");
-                    }
-                    IClientModule module = modules[i];
-                    ModuleTrace?.Invoke(module.Name, "init:start");
-                    // 每个模块独立资源作用域（路线图 §4.3）：失败时本模块 scope 就地释放，不留给根作用域。
-                    var moduleScope = new ModuleScope(_rootScope, module.Name);
-                    // 装配窗口只覆盖本模块初始化：返回/抛出/取消/异步泄漏都在 finally 关窗。
-                    var moduleContext = new ModuleContext(_context, module.Name, moduleScope);
-                    try
-                    {
-                        await module.InitializeAsync(moduleContext, ct);
-                    }
-                    catch
-                    {
-                        moduleScope.Dispose();                 // 失败模块先释放自己的登记资源
-                        throw;
-                    }
-                    finally
-                    {
-                        moduleContext.Close();
-                    }
-                    ModuleTrace?.Invoke(module.Name, "init:done");
-                    lock (_gate)
-                    {
-                        _handles.Add((new ModuleHandle(module), moduleScope));   // 成功即产出关闭句柄（M1：初始化成功与可关闭绑定）
-                        _initializedCount = i + 1;
-                    }
-                }
+                await InitializeModulesAsync(modules, ct);
+                if (_composeRoot != null)                      // 组合根：全部模块成功后、密封前的跨域装订
+                    await _composeRoot.RunAsync(_context, _rootScope, ModuleTrace, ct);
 
                 _context.SealAssembly();                       // 装配完成：运行期不再新增注册
                 if (!_context.Services.IsSealed) _context.Services.Seal();
@@ -226,21 +209,12 @@ namespace LiteFramework
             _rootScope?.Cancel();
 
             // ② 刷新钩子（登记顺序）：失败聚合不阻断
-            for (int i = 0; i < flushes.Count; i++)
-            {
-                try
-                {
-                    ModuleTrace?.Invoke(flushes[i].name, "flush:start");
-                    await flushes[i].flush(ct);
-                    ModuleTrace?.Invoke(flushes[i].name, "flush:done");
-                }
-                catch (Exception ex)
-                {
-                    lock (_gate) _shutdownFailures.Add(ex);
-                }
-            }
+            await RunFlushHooksAsync(flushes, ct);
 
-            // ③ 逆序关闭已初始化模块（未初始化者跳过——启动失败回滚后再次关闭不应触碰未初始化模块）
+            // ③ 组合根作用域先释放（最后一步装配 = 逆序第一），再逆序关闭模块
+            ReleaseComposeScope();
+
+            // ④ 逆序关闭已初始化模块（未初始化者跳过——启动失败回滚后再次关闭不应触碰未初始化模块）
             List<(IClientModuleHandle handle, ModuleScope scope)> handles;
             lock (_gate) handles = new List<(IClientModuleHandle, ModuleScope)>(_handles);
             try
@@ -269,10 +243,10 @@ namespace LiteFramework
             }
             finally
             {
-                // ④ 取消/异常路径兜底：未走到的模块 scope 也必须释放（Dispose 幂等；IsDisposed 防重复记账）。
+                // ⑤ 取消/异常路径兜底：未走到的模块 scope 也必须释放（Dispose 幂等；IsDisposed 防重复记账）。
                 for (int i = handles.Count - 1; i >= 0; i--) ReleaseModuleScope(handles[i]);
 
-                // ⑤ 根 Scope 释放（LIFO 资源逆序 + 根取消）+ 终态——**任何提前退出路径都必须释放**
+                // ⑥ 根 Scope 释放（LIFO 资源逆序 + 根取消）+ 终态——**任何提前退出路径都必须释放**
                 // （Roadmap §4.3：取消令牌只约束等待上限，不得跳过根 Scope 释放）。
                 DisposeRoot();
                 UniTaskCompletionSource signal;
@@ -328,58 +302,72 @@ namespace LiteFramework
             catch (Exception ex) { lock (_gate) _shutdownFailures.Add(ex); }
         }
 
-        /// <summary>
-        /// 模块图校验（路线图 M1）：模块名重复、依赖缺失、依赖环——全部 fail-fast，且早于任何副作用。
-        /// **只校验已声明依赖**（实现 <see cref="IClientModuleGraph"/> 的模块）；未声明者按注册序初始化。
-        /// 依赖按**模块名**寻址（同一模块类可有多个实例，名字才是唯一身份）。
-        /// </summary>
-        private static void ValidateModuleGraph(List<IClientModule> modules)
+        /// <summary>按注册序初始化全部模块；任一失败抛出（调用方走回滚）。失败模块的作用域就地释放，
+        /// 成功模块产出关闭句柄（"初始化成功"与"可关闭"绑定）。</summary>
+        private async UniTask InitializeModulesAsync(List<IClientModule> modules, CancellationToken ct)
         {
-            var byName = new Dictionary<string, IClientModule>(StringComparer.Ordinal);
             for (int i = 0; i < modules.Count; i++)
             {
-                IClientModule m = modules[i];
-                if (byName.ContainsKey(m.Name))
-                    throw new InvalidOperationException($"模块名重复：{m.Name}（模块集必须唯一）");
-                byName.Add(m.Name, m);
-            }
-
-            for (int i = 0; i < modules.Count; i++)
-            {
-                if (!(modules[i] is IClientModuleGraph graph) || graph.DependsOn == null) continue;
-                for (int d = 0; d < graph.DependsOn.Count; d++)
+                ct.ThrowIfCancellationRequested();
+                lock (_gate)
                 {
-                    string dep = graph.DependsOn[d];
-                    if (string.IsNullOrEmpty(dep) || !byName.ContainsKey(dep))
-                        throw new InvalidOperationException(
-                            $"模块 {modules[i].Name} 依赖缺失：{(string.IsNullOrEmpty(dep) ? "<null>" : dep)} 未注册（注册序/装配错误）");
+                    // 关闭竞态守卫：ShutdownAsync 与初始化并发（退出打断引导）时，
+                    // 初始化停止继续装配——以 OCE 走"回滚已成功模块 → 确定错误态"路径。
+                    if (_shutdownRequested)
+                        throw new OperationCanceledException("引导被宿主关闭打断（ShutdownAsync 与 InitializeAsync 并发）");
+                }
+                IClientModule module = modules[i];
+                ModuleTrace?.Invoke(module.Name, "init:start");
+                // 每个模块独立资源作用域（路线图 §4.3）：失败时本模块 scope 就地释放，不留给根作用域。
+                var moduleScope = new ModuleScope(_rootScope, module.Name);
+                // 装配窗口只覆盖本模块初始化：返回/抛出/取消/异步泄漏都在 finally 关窗。
+                var moduleContext = new ModuleContext(_context, module.Name, moduleScope);
+                try
+                {
+                    await module.InitializeAsync(moduleContext, ct);
+                }
+                catch
+                {
+                    moduleScope.Dispose();                 // 失败模块先释放自己的登记资源
+                    throw;
+                }
+                finally
+                {
+                    moduleContext.Close();
+                }
+                ModuleTrace?.Invoke(module.Name, "init:done");
+                lock (_gate)
+                {
+                    _handles.Add((new ModuleHandle(module), moduleScope));   // 成功即产出关闭句柄（M1：初始化成功与可关闭绑定）
+                    _initializedCount = i + 1;
                 }
             }
-
-            // 环检测（DFS 三色；只走已声明边）
-            var state = new Dictionary<string, int>(StringComparer.Ordinal);   // 0=未访问 1=在栈 2=完成
-            for (int i = 0; i < modules.Count; i++)
-                VisitModule(modules[i].Name, byName, state);
         }
 
-        private static void VisitModule(string name, Dictionary<string, IClientModule> byName, Dictionary<string, int> state)
+        /// <summary>按登记顺序跑刷新钩子（单钩子失败聚合不阻断退出）。</summary>
+        private async UniTask RunFlushHooksAsync(List<(string name, Func<CancellationToken, UniTask> flush)> flushes, CancellationToken ct)
         {
-            if (state.TryGetValue(name, out int s))
+            for (int i = 0; i < flushes.Count; i++)
             {
-                if (s == 1) throw new InvalidOperationException($"模块依赖成环：{name}");
-                if (s == 2) return;
-            }
-            state[name] = 1;
-            if (byName.TryGetValue(name, out IClientModule module)
-                && module is IClientModuleGraph graph && graph.DependsOn != null)
-            {
-                for (int i = 0; i < graph.DependsOn.Count; i++)
+                try
                 {
-                    string dep = graph.DependsOn[i];
-                    if (!string.IsNullOrEmpty(dep)) VisitModule(dep, byName, state);
+                    ModuleTrace?.Invoke(flushes[i].name, "flush:start");
+                    await flushes[i].flush(ct);
+                    ModuleTrace?.Invoke(flushes[i].name, "flush:done");
+                }
+                catch (Exception ex)
+                {
+                    lock (_gate) _shutdownFailures.Add(ex);
                 }
             }
-            state[name] = 2;
+        }
+
+        /// <summary>释放组合根作用域（幂等；关闭/回滚两处调用，先于模块逆序关闭；失败聚合不抛出）。</summary>
+        private void ReleaseComposeScope()
+        {
+            IReadOnlyList<Exception> failures = _composeRoot?.Release();
+            if (failures == null || failures.Count == 0) return;
+            lock (_gate) _shutdownFailures.AddRange(failures);
         }
 
         /// <summary>
@@ -410,6 +398,8 @@ namespace LiteFramework
         /// <summary>启动失败回滚：逆序关闭已成功模块 + 释放各自作用域 + 根 Scope；异常全部吞掉（原异常优先上抛）。</summary>
         private async UniTask RollbackInitializedAsync()
         {
+            ReleaseComposeScope();                             // 组合根最后装配 → 逆序最先回滚
+
             List<(IClientModuleHandle handle, ModuleScope scope)> handles;
             lock (_gate) handles = new List<(IClientModuleHandle, ModuleScope)>(_handles);
 

@@ -37,6 +37,7 @@ namespace LiteGame
         }
 
         private ClientHost _host;
+        private AppComposition _appComposition;   // 组合根：适配器工厂 + 跨域装订（ComposeAfter）
         private ServiceContainer _container;   // 实例全程持有，随引导件销毁
         private StageMachine<ProcedureId, ProcedureArgs> _fsm;
         private CancellationTokenSource _bootCts;
@@ -78,7 +79,10 @@ namespace LiteGame
             gameObject.AddComponent<AppLifetime>().Bind(_host);
 
             // 装配（§6.1：注册顺序 = 初始化顺序 = 关闭逆序——依赖图由调用序表达）
+            _appComposition = new AppComposition();
             RegisterModules(_host);
+            // 组合根：全部模块成功后、装配面密封前做跨域装订（桥/模态/身份/输入拦截/开发装饰/帧驱动序/密封）
+            _host.ComposeRoot(_appComposition.ComposeAfter);
 
             _bootCts = new CancellationTokenSource();
 
@@ -154,7 +158,7 @@ namespace LiteGame
         private void RegisterModules(ClientHost host)
         {
             host.AddModule(new PlatformInfrastructureModule())   // ① 本地持久化 + 日志（先于一切 IO）
-                .AddModule(new CameraComposition(AppComposition.CameraServiceFactory()))    // ② 主相机 + 相机服务（薄段：适配器由组合根注入）
+                .AddModule(new CameraComposition(_appComposition.CameraServiceFactory()))   // ② 主相机 + 相机服务（薄段：适配器由组合根注入）
                 .AddModule(new IdentityModule())                 // ③ 身份上下文（Build/Schema 唯一构造点）
                 .AddModule(new DevSessionModule())               // ④ 开发会话端口（设备源构造即消费——必须早于 ⑭）
                 .AddModule(new ContentModule())                  // ⑤ IContentService（配置/Lua 字节通道的租约来源）
@@ -163,10 +167,10 @@ namespace LiteGame
                 .AddModule(new ClocksModule())                   // ⑧ 双轨时钟（事件域已独立，时钟只负责时间）
                 .AddModule(new SchedulersModule())               // ⑨ 时序执行（依赖 ⑧）
                 .AddModule(new LuaHostModule(gameObject))        // ⑩ 脚本宿主（同 GameObject 组件）
-                .AddModule(new ConfigModule(AppComposition.ConfigServiceFactory()))          // ⑪ 表投影数据源（依赖 ⑥ 的租约通道）
+                .AddModule(new ConfigModule(_appComposition.ConfigServiceFactory()))         // ⑪ 表投影数据源（依赖 ⑥ 的租约通道）
                 .AddModule(new UiServiceModule())                // ⑫ UI 服务装配（依赖 ⑩⑪⑥；投影面由 ② 保证）
                 .AddModule(new BattleComposition())              // ⑬ 战斗域表现内核（依赖 ⑤⑧；相机归 ②）
-                .AddModule(new InputModule(AppComposition.IntentSourceFactory()))            // ⑭ 输入服务（设备源由组合根注入）
+                .AddModule(new InputModule(_appComposition.IntentSourceFactory()))           // ⑭ 输入服务（设备源由组合根注入）
                 .AddModule(new ContainerModule());               // ⑮ 容器与流程机（消费以上全部——装配根最后一段）
         }
 

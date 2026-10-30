@@ -457,6 +457,91 @@ namespace LiteFramework.Tests
             Assert.Throws<InvalidOperationException>(() => captured.Put(new SealedProbe()));
         }
 
+        // ---- 组合根（ComposeRoot：全部模块成功后、密封前的跨域装订） ----
+
+        [Fact]
+        public void 组合根_全部模块成功后执行_窗口内可登记_密封后迟到登记拒绝()
+        {
+            var trace = new List<string>();
+            ModuleContext composeWindow = null;
+            var host = Host(new FakeModule("A", trace), new FakeModule("B", trace));
+            host.ComposeRoot(context =>
+            {
+                trace.Add("compose");
+                composeWindow = context;
+                context.Put(new SealedProbe());                 // 窗口内登记合法（与模块同一语义）
+                return UniTask.CompletedTask;
+            });
+
+            Pump(host.InitializeAsync());
+
+            Assert.Equal(new[] { "init:A", "init:B", "compose" }, trace.ToArray());   // 模块全成功后才装订
+            Assert.NotNull(composeWindow);
+            Assert.True(host.IsAssemblySealed);
+            var ex = Assert.Throws<InvalidOperationException>(() => composeWindow.Put(new SealedProbe()));
+            Assert.Contains("装配窗口已关闭", ex.Message);       // 与模块同一窗口纪律
+        }
+
+        [Fact]
+        public void 组合根失败_回滚模块并释放组合根作用域_原异常上抛()
+        {
+            var trace = new List<string>();
+            var released = new List<string>();
+            var boom = new InvalidOperationException("compose 失败");
+            var host = Host(new FakeModule("A", trace));
+            host.ComposeRoot(context =>
+            {
+                trace.Add("compose");
+                context.Scope.Register(new Tracer(released, "compose-resource"));
+                throw boom;
+            });
+
+            var ex = Assert.Throws<InvalidOperationException>(() => Pump(host.InitializeAsync()));
+
+            Assert.Same(boom, ex);                              // 原异常上抛
+            Assert.Contains("shutdown:A", trace);               // 已成功模块照常逆序回滚
+            Assert.Equal(new[] { "release:compose-resource" }, released.ToArray());   // 组合根登记资源就地回收
+            Assert.Equal(4, host.State);
+        }
+
+        [Fact]
+        public void 组合根取消_回滚模块_不进入运行态()
+        {
+            var trace = new List<string>();
+            using var cts = new CancellationTokenSource();
+            var host = Host(new FakeModule("A", trace));
+            host.ComposeRoot(async context =>
+            {
+                trace.Add("compose");
+                await UniTask.Yield();
+                cts.Cancel();
+                cts.Token.ThrowIfCancellationRequested();
+            });
+
+            Assert.ThrowsAny<OperationCanceledException>(() => Pump(host.InitializeAsync(cts.Token)));
+            Assert.Contains("shutdown:A", trace);
+            Assert.Equal(4, host.State);
+            Assert.NotEqual(2, host.State);
+        }
+
+        [Fact]
+        public void 关闭_组合根作用域先于模块释放()
+        {
+            var released = new List<string>();
+            var host = Host(new ScopedModule("module", released));
+            host.ComposeRoot(context =>
+            {
+                context.Scope.Register(new Tracer(released, "compose"));
+                return UniTask.CompletedTask;
+            });
+
+            Pump(host.InitializeAsync());
+            Pump(host.ShutdownAsync());
+
+            // 组合根作用域先释放（最后装订 = 逆序第一），随后才是模块句柄关闭与其作用域
+            Assert.Equal(new[] { "init:module", "release:compose", "shutdown:module", "release:scope:module" }, released.ToArray());
+        }
+
         // ---- M2：逐模块资源作用域（路线图 §4.3） ----
 
         /// <summary>把资源登记进本模块作用域的模块：验证释放时机与顺序。</summary>

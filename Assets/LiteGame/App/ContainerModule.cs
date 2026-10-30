@@ -21,7 +21,6 @@ namespace LiteGame
     {
         private SceneService _scenes;
         private ServiceContainer _services;
-        private IDisposable _devDecoration;     // 开发装配装饰句柄（GM/弱网/调试内核；null = 发布形态）
 
         public string Name => "Container";
 
@@ -74,16 +73,6 @@ namespace LiteGame
             // 命令中心与主线程派发由 ① 平台基础设施的框架装配入口产出；本段只取件，
             // 不再手拼构造（形态位与构造顺序归框架）。
             var commands = context.Require<CommandCenter>();
-            // 开发装配（GM 命令/弱网/调试内核）整段归 LiteGame.Dev，经钩子装饰；发布形态无 Dev 程序集 = 不装饰。
-            _devDecoration = DevHooks.Current?.Decorate(new DevServices
-            {
-                Context = context,
-                Commands = commands,
-                Services = _services,
-                Session = devSession,
-                Scenes = _scenes,
-                Input = context.Require<IInputService>(),
-            });
             RegisterConfigAndLuaServices(context, config, lua, ui, uiRegistry, contentRegistry, strategyRegistry);
             // 会话工厂（DI-3）：Account 半边零引擎依赖（L1 源链接直测）；Match 半边 Unity 面（DI-4 验收）。
             // 传输裁决经委托留给产品装配根（ProcedureMatch.CreateTransport——工厂不认识测试开关语义）；
@@ -139,13 +128,6 @@ namespace LiteGame
             BindConfirmDialog(context, feedback);
             _services.RegisterInstance(new ToastTicker(() => feedback.ToastHost));
 
-            Bridge.Bind(() => config.Tables);
-            Bridge.BindRegistries(uiRegistry, contentRegistry);
-            Bridge.BindUIService(ui);
-            Bridge.BindNavigation(nav);
-            context.Require<IInputService>().RegisterBlocker(
-                new IntentGate.BlockerKey("ui.modal", "模态 UI 打开——游戏意图被拦截"), () => ui.IsModalOpen);
-
             // 模态登记（生产装配——与测试同口径，见 DialogServiceEditModeTests/FeedbackServiceEditModeTests）：
             // 设置页＝对局中的暂停菜单（打开即拦游戏输入——上面的 `ui.modal` 拦截源经 IsModalOpen 生效）；
             // 错误/确认弹窗＝模态弹窗（开着时其下不可命中、Back 先关最顶）。Loading/Toast 走射线阻断，不是模态。
@@ -153,17 +135,7 @@ namespace LiteGame
             // 早于 ProcedurePreload 的 `LoadAsync`——此处查表必抛「配置未加载」阻断引导（实伤：SampleTripleChain）。
             // 登记随 ProcedurePreload 放行闸口（配置装载后）就位；此处只留不依赖表的两个弹窗 id
             // （单源在 FeedbackService 构造默认——审计 [低]「表单 id 单处」口径）。
-            ui.RegisterModal(feedback.ErrorFormId);
-            ui.RegisterModal(feedback.ConfirmFormId);
-
-            // 内容身份绑定（只此一次）：内容/配置装配完成后，身份上下文用同一份 Activation/Config 事实回答。
-            var activation = context.Require<ActivationTransactionStore>();
-            identity.BindContent(() => new ContentIdentity(
-                activation.ActiveGeneration.ReleaseId,
-                activation.ActiveGeneration.Value,
-                activation.Current.ConfirmedRevision,
-                config.GameplayDigestBase,
-                LiteSim.RootMotionCatalog.ContentDigest));
+            var activation = context.Require<ActivationTransactionStore>();   // 恢复动作/身份装订共用（装订在组合根）
 
             var pageFlow = new PageFlow(nav, ui, lua);    // 五页页面流（批C-④）：入口/开局关房/结算三处流程×页面接缝
             // 账号重入单点（《客户端依赖注入专项设计》§6.2「重新登录」）：登录失效（Meta 401）→ 清登录态 →
@@ -191,26 +163,13 @@ namespace LiteGame
             var fsm = CreateMachine(context, content, config, lua, uiRegistry, contentRegistry, strategyRegistry,
                 pageFlow, metaEntry, feedback, recovery, productBridge, roomBridge, battleViews);
             context.Put(fsm);
-            metaEntry.BindMachine(fsm);                   // 进房 = Request(Match, MetaJoin)——走既有 Join 管道
-
-            // 帧驱动表独立于模块产物登记序；每个别名仍指向统一来源中的同一实例。
-            // CommandCenter 置流程机前：排队/延迟命令到期派发先于机器 Tick——命令对流程机的 Request 当帧可被应用。
-            _services.SetTickOrder(
-                typeof(IMainThreadDispatcher), typeof(IWorldClock), typeof(IUIClock),
-                typeof(DotweenUiClockDriver), typeof(UIService),   // M3-7 7b 起 EventBus 无队列、不再实现 ITickable
-                typeof(ILogicScheduler), typeof(IUIScheduler), typeof(ITimelineRunner),
-                typeof(IVFXService), typeof(DialogService), typeof(ToastTicker),
-                typeof(ICommandCenter),
-                typeof(StageMachine<ProcedureId, ProcedureArgs>));
-            _services.Seal();
+            // 帧驱动序（13 项）与装配面密封在组合根单点声明——段只 Put 实例，不各自声明相对序。
         }
 
         /// <summary>模块资源释放（由模块作用域在关闭/回滚时调用）。
         /// 顺序：命令注销 → 容器 → 场景租约（注销先于容器释放；场景句柄最后归零）。</summary>
         private void DisposeModuleResources()
         {
-            _devDecoration?.Dispose();            // 开发装饰：命令注销 + Dev 静态读口收口（先于容器释放）
-            _devDecoration = null;
             _services?.Dispose();
             _services = null;
             _scenes?.ReleaseAll();
@@ -258,7 +217,7 @@ namespace LiteGame
             _services.RegisterInstance<IUILuaRegistry>(uiRegistry);
             _services.RegisterInstance<IContentLuaRegistry>(contentRegistry);
             _services.RegisterInstance<IStrategyLuaRegistry>(strategyRegistry);
-            _services.RegisterInstance(new LuaRegistryRefillService(lua, ui, config, UiPageCatalog.All, uiRegistry, contentRegistry, strategyRegistry));
+            // LuaRegistryRefillService 的登记在组合根（跨域装订面）
             _services.RegisterInstance<ITimelineRunner>(context.Require<GameTimelineRunner>());
             _services.RegisterInstance<IVFXService>(context.Require<VfxService>());
         }
